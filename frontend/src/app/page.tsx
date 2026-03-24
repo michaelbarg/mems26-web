@@ -1,11 +1,10 @@
-// frontend/src/app/page.tsx - Polling mode
 "use client";
 import { useEffect, useState } from "react";
 import TradingChart   from "@/components/TradingChart";
 import TrafficLight   from "@/components/TrafficLight";
 import SignalCard     from "@/components/SignalCard";
-import LevelsBadges  from "@/components/LevelsBadges";
-import DailyTracker  from "@/components/DailyTracker";
+import LevelsBadges   from "@/components/LevelsBadges";
+import DailyTracker   from "@/components/DailyTracker";
 import ReversalStatus from "@/components/ReversalStatus";
 import CVDPanel       from "@/components/CVDPanel";
 
@@ -27,35 +26,33 @@ export type MarketUpdate = {
 function useMarketPolling() {
   const [update, setUpdate] = useState<MarketUpdate|null>(null);
   const [connected, setConnected] = useState(false);
+
   useEffect(() => {
     let active = true;
     const poll = async () => {
       while (active) {
         try {
-          const [hRes, sRes] = await Promise.all([fetch(`${API_URL}/health`), fetch(`${API_URL}/signals/latest`)]);
-          if (hRes.ok) {
-            const h = await hRes.json();
-            const s = sRes.ok ? await sRes.json() : null;
-            const sig: Signal|null = s?.direction ? s : null;
-            if (h.last_price) {
+          // שינוי: קוראים ל-market/latest במקום ל-health כדי לקבל את כל הנתונים
+          const response = await fetch(`${API_URL}/market/latest`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.type === "market_update") {
               setConnected(true);
-              setUpdate(prev => ({
-                type:"market_update", ts:Date.now(), price:h.last_price,
-                session: prev?.session??"—", ses_min: prev?.ses_min??-1,
-                features: prev?.features??{}, woodi: prev?.woodi??{},
-                levels: prev?.levels??{}, cvd: prev?.cvd??{}, bar: prev?.bar??{},
-                signal: sig??prev?.signal??null,
-                daily_stats:{ trades_taken:h.trades_today??0, trades_remaining:3-(h.trades_today??0) },
-              }));
-            } else { setConnected(false); }
-          } else { setConnected(false); }
-        } catch { setConnected(false); }
+              setUpdate(data);
+            }
+          } else {
+            setConnected(false);
+          }
+        } catch {
+          setConnected(false);
+        }
         await new Promise(r => setTimeout(r, 2000));
       }
     };
     poll();
     return () => { active = false; };
   }, []);
+
   return { update, connected };
 }
 
@@ -68,22 +65,28 @@ export default function Dashboard() {
   const { update, connected } = useMarketPolling();
   const [signal, setSignal] = useState<Signal|null>(null);
   const [priceHistory, setPriceHistory] = useState<number[]>([]);
+
   useEffect(() => {
     if (update?.signal) setSignal(update.signal);
     if (update?.price) setPriceHistory(prev => [...prev, update.price].slice(-200));
   }, [update]);
+
   const price=update?.price??0, session=update?.session??"—", sesMin=update?.ses_min??-1;
   const features=update?.features??{}, woodi=update?.woodi??{}, levels=update?.levels??{};
   const cvd=update?.cvd??{}, bar=update?.bar??{};
   const daily=update?.daily_stats??{trades_taken:0,trades_remaining:3};
   const tlColor=signal?.tl_color??(connected?"orange":"red"), score=signal?.score??0;
+
   return (
     <main className="min-h-screen bg-[#0a0a0f] text-white p-3 flex flex-col gap-3 font-mono">
       <div className="flex items-center justify-between px-3 py-2 bg-[#111118] rounded-lg border border-[#1e1e2e]">
         <span className="font-bold text-sm tracking-widest">MEMS26 · AI TRADER</span>
         <div className="flex items-center gap-4 text-xs text-gray-400">
           <span className={connected?"text-green-400":"text-red-400"}>{connected?"● LIVE":"○ CONNECTING..."}</span>
-          <span>{new Date().toLocaleTimeString("he-IL",{timeZone:"Asia/Jerusalem"})} IST</span>
+          {/* שינוי: הוספת suppressHydrationWarning כדי למנוע קריסה של הדף */}
+          <span suppressHydrationWarning>
+            {new Date().toLocaleTimeString("he-IL",{timeZone:"Asia/Jerusalem"})} IST
+          </span>
         </div>
       </div>
       <div className="grid grid-cols-[1fr_92px] gap-3">
