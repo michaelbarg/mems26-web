@@ -175,3 +175,23 @@ async def latest_signal():
 @app.get("/signals/history")
 async def signal_history():
     return engine.get_signal_history()
+
+@app.get("/market/latest")
+async def market_latest():
+    """מחזיר נתון מלא לדשבורד (polling)"""
+    if not _last_payload:
+        return {"status": "no_data"}
+    return {
+        "type":        "market_update",
+        "ts":          _last_payload.get("ts"),
+        "price":       _last_payload["bar"]["c"],
+        "session":     _last_payload["session"]["phase"],
+        "ses_min":     _last_payload["session"]["min"],
+        "features":    _last_payload.get("features", {}),
+        "woodi":       _last_payload.get("woodi", {}),
+        "levels":      _last_payload.get("levels", {}),
+        "cvd":         _last_payload.get("cvd", {}),
+        "bar":         _last_payload.get("bar", {}),
+        "signal":      _last_signal,
+        "daily_stats": engine.get_daily_stats(),
+    }
