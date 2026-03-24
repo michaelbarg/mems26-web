@@ -78,7 +78,7 @@ export default function TradingChart({ priceHistory, signal, woodi, levels, feat
 
     // Market levels
     LEVEL_DEFS.forEach(({ key, col, lbl, lw, dash }) => {
-      const v = levelSrc[key];
+      const v = (levelSrc as Record<string, number>)[key];
       if (!v || v < minP || v > maxP) return;
       const y = toY(v);
       ctx.beginPath(); ctx.strokeStyle = col + "99"; ctx.lineWidth = lw;
