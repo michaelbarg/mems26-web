@@ -78,6 +78,11 @@ export default function Dashboard() {
   const score    = signal?.score ?? 0;
 
   return (
+  
+   import ChartPanel from '@/components/ChartPanel'
+// ואז:
+<ChartPanel /> 
+    
     <main className="min-h-screen bg-[#0a0a0f] text-white p-3 flex flex-col gap-3 font-mono">
 
       {/* ── Top bar ── */}
