@@ -124,3 +124,23 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(ws)
+# ── הוסף את זה ל-main.py ב-Render ──────────────────────────────────────────
+# שים את זה לאחר ה-route של /market/latest
+
+@app.get("/market/candles")
+async def get_candles(limit: int = 80):
+    """מחזיר היסטוריית נרות מ-Redis (עד 960 נרות = 48 שעות)"""
+    try:
+        import json as json_lib
+        # Redis LRANGE — הרשימה מסודרת מהחדש לישן
+        raw = await redis.lrange("mems26:candles", 0, limit - 1)
+        candles = []
+        for item in raw:
+            try:
+                c = json_lib.loads(item)
+                candles.append(c)
+            except Exception:
+                continue
+        return candles
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
