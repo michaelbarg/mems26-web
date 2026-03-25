@@ -15,6 +15,7 @@ BRIDGE_TOKEN      = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
 REDIS_URL         = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN       = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY         = "mems26:latest"
+REDIS_CANDLES_KEY = "mems26:candles"
 
 
 async def redis_set(data: dict):
@@ -49,6 +50,24 @@ async def redis_get() -> Optional[dict]:
     except Exception as e:
         log.warning(f"Redis get failed: {e}")
     return None
+
+
+async def redis_lrange(key: str, start: int, stop: int) -> list:
+    """LRANGE via Upstash REST API"""
+    if not REDIS_URL or not REDIS_TOKEN:
+        return []
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{REDIS_URL}/lrange/{key}/{start}/{stop}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+            result = resp.json()
+            return result.get("result", [])
+    except Exception as e:
+        log.warning(f"Redis lrange failed: {e}")
+        return []
 
 
 class ConnectionManager:
@@ -110,6 +129,20 @@ async def market_latest():
     return data
 
 
+@app.get("/market/candles")
+async def get_candles(limit: int = 80):
+    """מחזיר היסטוריית נרות מ-Redis (עד 960 נרות = 48 שעות)"""
+    raw = await redis_lrange(REDIS_CANDLES_KEY, 0, limit - 1)
+    candles = []
+    for item in raw:
+        try:
+            c = json.loads(item) if isinstance(item, str) else item
+            candles.append(c)
+        except Exception:
+            continue
+    return candles
+
+
 @app.get("/health")
 async def health():
     data = await redis_get()
@@ -124,23 +157,3 @@ async def websocket_endpoint(ws: WebSocket):
             await ws.receive_text()
     except WebSocketDisconnect:
         manager.disconnect(ws)
-# ── הוסף את זה ל-main.py ב-Render ──────────────────────────────────────────
-# שים את זה לאחר ה-route של /market/latest
-
-@app.get("/market/candles")
-async def get_candles(limit: int = 80):
-    """מחזיר היסטוריית נרות מ-Redis (עד 960 נרות = 48 שעות)"""
-    try:
-        import json as json_lib
-        # Redis LRANGE — הרשימה מסודרת מהחדש לישן
-        raw = await redis.lrange("mems26:candles", 0, limit - 1)
-        candles = []
-        for item in raw:
-            try:
-                c = json_lib.loads(item)
-                candles.append(c)
-            except Exception:
-                continue
-        return candles
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
