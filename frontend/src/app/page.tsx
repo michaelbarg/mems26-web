@@ -1,7 +1,7 @@
 // frontend/src/app/page.tsx
 "use client";
 import { useEffect, useState } from "react";
-import TradingChart     from "@/components/TradingChart";
+import ChartPanel       from "@/components/ChartPanel";
 import TrafficLight     from "@/components/TrafficLight";
 import SignalCard       from "@/components/SignalCard";
 import LevelsBadges     from "@/components/LevelsBadges";
@@ -37,7 +37,6 @@ export default function Dashboard() {
   const [update, setUpdate]           = useState<any>(null);
   const [connected, setConnected]     = useState(false);
   const [signal, setSignal]           = useState<Signal | null>(null);
-  const [priceHistory, setPriceHistory] = useState<number[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -51,8 +50,6 @@ export default function Dashboard() {
               setConnected(true);
               setUpdate(data);
               if (data.signal) setSignal(data.signal);
-              const price = data.bar.c;
-              if (price) setPriceHistory(prev => [...prev, price].slice(-200));
             }
           }
         } catch {
@@ -78,11 +75,6 @@ export default function Dashboard() {
   const score    = signal?.score ?? 0;
 
   return (
-  
-   import ChartPanel from '@/components/ChartPanel'
-// ואז:
-<ChartPanel /> 
-    
     <main className="min-h-screen bg-[#0a0a0f] text-white p-3 flex flex-col gap-3 font-mono">
 
       {/* ── Top bar ── */}
@@ -97,6 +89,9 @@ export default function Dashboard() {
           </span>
         </div>
       </div>
+
+      {/* ── Chart מלא ── */}
+      <ChartPanel />
 
       {/* ── Main grid ── */}
       <div className="grid grid-cols-[1fr_92px] gap-3">
@@ -124,14 +119,6 @@ export default function Dashboard() {
               {session} {sesMin >= 0 ? `${sesMin}m` : ""}
             </span>
           </div>
-
-          <TradingChart
-            priceHistory={priceHistory}
-            signal={signal}
-            woodi={woodi}
-            levels={levels}
-            features={features as Record<string, number | string | boolean>}
-          />
 
           <CVDPanel cvd={cvd} bar={bar} />
 
