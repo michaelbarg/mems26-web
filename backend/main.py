@@ -75,7 +75,7 @@ manager = ConnectionManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info("MEMS26 API Started")
+    log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)}")
     yield
 
 app = FastAPI(lifespan=lifespan)
