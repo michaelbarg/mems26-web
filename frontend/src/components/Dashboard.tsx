@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import LightweightChart from './LightweightChart';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -91,7 +92,7 @@ function TopBar({ live, connected }:{ live:MarketData|null; connected:boolean })
         <span style={{ fontSize:18, fontWeight:700, fontFamily:'monospace', color:'#f0f6fc' }}>{time}</span>
         <span style={{ fontSize:11, color:'#4a5568' }}>EST</span>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:connected?G:R, boxShadow:connected?`0 0 6px ${G}`:'none', animation:connected?'blink 2s infinite':'none' }} />
+          <div style={{ width:8, height:8, borderRadius:'50%', background:connected?G:R, boxShadow:connected?`0 0 6px ${G}`:'none' }} className={connected?'live-blink':''} />
           <span style={{ fontSize:11, fontWeight:700, color:connected?G:R }}>{connected?'LIVE':'OFFLINE'}</span>
         </div>
       </div>
@@ -108,7 +109,7 @@ function MainScore({ live }:{ live:MarketData|null }) {
   const isActive = dir !== 'NO_TRADE' && score >= 5;
 
   return (
-    <div style={{ background: isActive ? '#0d1f1a' : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14, transition:'all .4s' }}>
+    <div style={{ background: isActive ? '#0d1f1a' : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14, minHeight:120 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
         {/* Traffic light */}
         <TrafficLight score={score} />
@@ -168,7 +169,7 @@ function EntryZone({ live }:{ live:MarketData|null }) {
 
   if (!isGreen || !sig) {
     return (
-      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:14, display:'flex', alignItems:'center', justifyContent:'center', minHeight:90 }}>
+      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:14, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120 }}>
         <span style={{ fontSize:11, color:'#4a5568', direction:'rtl' }}>ממתין לסיגנל ירוק...</span>
       </div>
     );
@@ -532,8 +533,9 @@ export default function Dashboard() {
     try{
       const r=await fetch(`${API_URL}/market/candles?limit=80`,{cache:'no-store'});
       if(!r.ok)return;
-      const d:Candle[]=await r.json();
-      if(Array.isArray(d)&&d.length>0)setCandles(d);
+      const raw=await r.json();
+      const d:Candle[]=Array.isArray(raw)?raw.map((i:any)=>typeof i==='string'?JSON.parse(i):i):[];
+      if(d.length>0)setCandles(d);
     }catch{}
   },[]);
 
@@ -572,7 +574,17 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-          <AIChart candles={candles} live={live} tf={tf} />
+          <LightweightChart
+            candles={candles}
+            livePrice={live?.price}
+            liveBar={live?.bar ? { ts: live.ts, o: live.bar.o, h: live.bar.h, l: live.bar.l, c: live.bar.c } : null}
+            vwap={live?.vwap?.value}
+            levels={live?.levels}
+            profile={live?.profile}
+            session={{ ibh: live?.session?.ibh, ibl: live?.session?.ibl }}
+            signal={live?.signal ?? null}
+            height={480}
+          />
           <VolumeTimer bar={bar??null} />
         </div>
 
@@ -580,7 +592,7 @@ export default function Dashboard() {
         <Indicators live={live} />
       </div>
 
-      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
+      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} .live-blink{animation:blink 2s infinite}`}</style>
     </div>
   );
 }
