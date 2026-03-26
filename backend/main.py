@@ -16,6 +16,7 @@ REDIS_URL         = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN       = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY         = "mems26:latest"
 REDIS_CANDLES_KEY = "mems26:candles"
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 
 async def redis_set(data: dict):
@@ -53,7 +54,6 @@ async def redis_get() -> Optional[dict]:
 
 
 async def redis_lrange(key: str, start: int, stop: int) -> list:
-    """LRANGE via Upstash REST API"""
     if not REDIS_URL or not REDIS_TOKEN:
         return []
     try:
@@ -111,13 +111,10 @@ async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None))
     if x_bridge_token != BRIDGE_TOKEN:
         log.warning(f"Unauthorized: {x_bridge_token}")
         raise HTTPException(status_code=401, detail="Invalid token")
-
     raw = await request.json()
     await redis_set(raw)
-
-    log.info(f"✅ Received Data: Price {raw.get('bar', {}).get('c')}")
+    log.info(f"Received: {raw.get('bar', {}).get('c')}")
     await manager.broadcast({"type": "market_update", **raw})
-
     return {"ok": True}
 
 
@@ -131,7 +128,6 @@ async def market_latest():
 
 @app.get("/market/candles")
 async def get_candles(limit: int = 80):
-    """מחזיר היסטוריית נרות מ-Redis (עד 960 נרות = 48 שעות)"""
     raw = await redis_lrange(REDIS_CANDLES_KEY, 0, limit - 1)
     candles = []
     for item in raw:
@@ -141,6 +137,83 @@ async def get_candles(limit: int = 80):
         except Exception:
             continue
     return candles
+
+
+@app.get("/market/analyze")
+async def market_analyze():
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
+
+    data = await redis_get()
+    if not data:
+        return {
+            "direction": "NO_TRADE", "score": 0, "confidence": "LOW",
+            "setup": "אין נתונים", "win_rate": 0,
+            "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
+            "risk_pts": 0, "rationale": "Bridge לא פעיל", "tl_color": "red", "ts": 0
+        }
+
+    price   = data.get("price", 0)
+    bar     = data.get("bar", {})
+    cvd     = data.get("cvd", {})
+    vwap    = data.get("vwap", {})
+    session = data.get("session", {})
+    profile = data.get("profile", {})
+    woodi   = data.get("woodi", {})
+    levels  = data.get("levels", {})
+    of2     = data.get("order_flow", {})
+    mtf     = data.get("mtf", {})
+
+    prompt = f"""אתה מערכת AI למסחר יומי ב-MES (Micro E-Mini S&P 500 Futures).
+
+נתונים נוכחיים:
+- מחיר: {price}
+- נר 3m: O={bar.get('o')} H={bar.get('h')} L={bar.get('l')} C={bar.get('c')} Vol={bar.get('vol')} Delta={bar.get('delta')}
+- Session: {session.get('phase')} | IBH={session.get('ibh')} IBL={session.get('ibl')} IB_Locked={session.get('ib_locked')}
+- VWAP: {vwap.get('value')} | מעל={vwap.get('above')} | מרחק={vwap.get('distance')} | Pullback={vwap.get('pullback')}
+- CVD: trend={cvd.get('trend')} | total={cvd.get('total')} | 60m={cvd.get('d20')} | 15m={cvd.get('d5')} | bar={cvd.get('delta')}
+- Profile: POC={profile.get('poc')} VAH={profile.get('vah')} VAL={profile.get('val')} in_VA={profile.get('in_va')} above_poc={profile.get('above_poc')}
+- Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.get('s1')} above_pp={woodi.get('above_pp')}
+- Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')}
+- Order Flow: Absorption={of2.get('absorption_bull')} LiqSweep={of2.get('liq_sweep')} ImbBull={of2.get('imbalance_bull')} ImbBear={of2.get('imbalance_bear')}
+- MTF: 15m={mtf.get('m15',{}).get('delta')} 30m={mtf.get('m30',{}).get('delta')} 60m={mtf.get('m60',{}).get('delta')}
+
+3 סטאפים אפשריים:
+1. Liquidity Sweep — שבירת רמה + חזרה אגרסיבית עם volume
+2. VWAP Pullback — מגמה מבוססת + pullback חלש לVWAP + נר היפוך
+3. IB Breakout Retest — פריצת IB עם volume + חזרה לרמה עם בלימה
+
+ניהול: C1=R:R 1:1, C2=R:R 1:2, C3=Runner עד Woodi R1/R2
+
+ענה רק ב-JSON תקני ללא backticks וללא טקסט נוסף:
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם הסטאפ בעברית","win_rate":0-85,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"הסבר קצר בעברית","tl_color":"red/orange/green/green_bright"}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 500,
+                    "messages": [{"role": "user", "content": prompt}]
+                }
+            )
+
+        result = resp.json()
+        text = result.get("content", [{}])[0].get("text", "").strip()
+        signal = json.loads(text)
+        signal["ts"] = data.get("ts", 0)
+        log.info(f"AI: {signal.get('direction')} score={signal.get('score')} setup={signal.get('setup')}")
+        return signal
+
+    except Exception as e:
+        log.error(f"AI Analyzer error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
