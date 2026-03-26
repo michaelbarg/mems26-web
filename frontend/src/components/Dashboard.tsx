@@ -310,7 +310,7 @@ function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null;
     if (sig && sig.direction!=='NO_TRADE') [sig.entry,sig.stop,sig.target1,sig.target2,sig.target3].forEach(p=>p&&prices.push(p));
     if (live?.vwap?.value) prices.push(live.vwap.value);
     if (live?.profile) prices.push(live.profile.vah,live.profile.val,live.profile.poc);
-    if ((live?.session?.ibh ?? 0) > 0) prices.push(live?.session?.ibh ?? 0, live?.session?.ibl ?? 0);
+    if (live?.session?.ibh>0) prices.push(live.session.ibh,live.session.ibl);
     if (live?.levels) prices.push(live.levels.prev_high,live.levels.prev_low,live.levels.daily_open);
 
     let minP=Math.min(...prices.filter(Boolean)), maxP=Math.max(...prices.filter(Boolean));
@@ -429,10 +429,10 @@ function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null;
         onMouseMove={onMove} onMouseLeave={()=>setHov(null)} />
       {hov&&(
         <div style={{ position:'absolute', top:8, left:12, background:'#1a2233ee', border:'1px solid #2d3a4a', borderRadius:6, padding:'4px 10px', fontSize:10, color:'#94a3b8', fontFamily:'monospace', pointerEvents:'none' }}>
-          <span style={{color:'#60a5fa'}}>O</span> {(hov.o??0).toFixed(2)}&nbsp;
-          <span style={{color:'#22c55e'}}>H</span> {(hov.h??0).toFixed(2)}&nbsp;
-          <span style={{color:'#ef5350'}}>L</span> {(hov.l??0).toFixed(2)}&nbsp;
-          <span style={{color:'#e2e8f0'}}>C</span> {(hov.c??0).toFixed(2)}&nbsp;
+          <span style={{color:'#60a5fa'}}>O</span> {hov.o.toFixed(2)}&nbsp;
+          <span style={{color:'#22c55e'}}>H</span> {hov.h.toFixed(2)}&nbsp;
+          <span style={{color:'#ef5350'}}>L</span> {hov.l.toFixed(2)}&nbsp;
+          <span style={{color:'#e2e8f0'}}>C</span> {hov.c.toFixed(2)}&nbsp;
           <span style={{color:hov.delta>=0?'#26a69a':'#ef5350'}}>Δ {hov.delta>=0?'+':''}{Math.round(hov.delta)}</span>
         </div>
       )}
@@ -576,6 +576,17 @@ export default function Dashboard() {
     }catch{setConnected(false);}
   },[]);
 
+  const fetchAnalyze=useCallback(async()=>{
+    try{
+      const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
+      if(!r.ok)return;
+      const sig=await r.json();
+      if(sig?.direction){
+        setLive(prev=>prev?{...prev,signal:sig}:prev);
+      }
+    }catch{}
+  },[]);
+
   const fetchCandles=useCallback(async()=>{
     try{
       const r=await fetch(`${API_URL}/market/candles?limit=80`,{cache:'no-store'});
@@ -586,11 +597,12 @@ export default function Dashboard() {
   },[]);
 
   useEffect(()=>{
-    fetchLive();fetchCandles();
+    fetchLive();fetchCandles();fetchAnalyze();
     const lt=setInterval(fetchLive,2000);
     const ct=setInterval(fetchCandles,15000);
-    return()=>{clearInterval(lt);clearInterval(ct);};
-  },[fetchLive,fetchCandles]);
+    const at=setInterval(fetchAnalyze,30000);
+    return()=>{clearInterval(lt);clearInterval(ct);clearInterval(at);};
+  },[fetchLive,fetchCandles,fetchAnalyze]);
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
