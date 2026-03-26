@@ -1,7 +1,7 @@
 // frontend/src/components/TradingChart.tsx
 "use client";
 import { useEffect, useRef } from "react";
-import { Signal } from "@/types/signal";
+import { Signal } from "@/components/types/signal";
 
 type Props = {
   priceHistory: number[];
