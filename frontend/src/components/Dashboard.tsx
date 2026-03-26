@@ -70,7 +70,7 @@ function MiniLight({ col }: { col: string }) {
 }
 
 // ── Zone A: Top Bar ───────────────────────────────────────────────────────────
-function TopBar({ live, connected }:{ live:MarketData|null; connected:boolean }) {
+function TopBar({ live, connected, onAskAI, aiLoading }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean }) {
   const [time, setTime] = useState('');
   useEffect(() => {
     const t = setInterval(() => {
@@ -88,6 +88,27 @@ function TopBar({ live, connected }:{ live:MarketData|null; connected:boolean })
       <span style={{ fontSize:16, fontWeight:800, letterSpacing:2, color:'#f0f6fc' }}>MES<span style={{ color:'#f6c90e' }}>26</span></span>
       <span style={{ fontSize:28, fontWeight:800, fontFamily:'monospace', color:'#f0f6fc' }}>{price ? price.toFixed(2) : '—'}</span>
       <span style={{ fontSize:11, padding:'3px 10px', borderRadius:12, fontWeight:700, background:phaseCol+'22', color:phaseCol, border:`1px solid ${phaseCol}44` }}>{phase}</span>
+
+      {/* כפתור AI on-demand */}
+      <button onClick={onAskAI} disabled={aiLoading} style={{
+        display:'flex', alignItems:'center', gap:6,
+        padding:'6px 14px', borderRadius:8, fontSize:12, fontWeight:700,
+        background: aiLoading ? '#1e2738' : '#7f77dd22',
+        color: aiLoading ? '#4a5568' : '#7f77dd',
+        border:`1px solid ${aiLoading ? '#2d3a4a' : '#7f77dd44'}`,
+        cursor: aiLoading ? 'not-allowed' : 'pointer',
+        fontFamily:'inherit', transition:'all .2s',
+      }}>
+        {aiLoading ? (
+          <>
+            <span style={{ display:'inline-block', width:10, height:10, borderRadius:'50%', border:'2px solid #4a5568', borderTopColor:'#7f77dd', animation:'spin 0.8s linear infinite' }} />
+            מנתח...
+          </>
+        ) : (
+          <>⚡ שאל AI עכשיו</>
+        )}
+      </button>
+
       <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:16 }}>
         <span style={{ fontSize:18, fontWeight:700, fontFamily:'monospace', color:'#f0f6fc' }}>{time}</span>
         <span style={{ fontSize:11, color:'#4a5568' }}>EST</span>
@@ -553,7 +574,32 @@ export default function Dashboard() {
   const [accepted,setAccepted]=useState(false);
   const [lockedSignal,setLockedSignal]=useState<any>(null);
   const [rejectedTs,setRejectedTs]=useState(0);
+  const [aiLoading,setAiLoading]=useState(false);
   const prevSigRef=useRef<string>('');
+
+  const askAI=useCallback(async()=>{
+    if(aiLoading) return;
+    setAiLoading(true);
+    try{
+      const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
+      if(!r.ok) throw new Error();
+      const sig=await r.json();
+      if(!sig?.direction) return;
+      // תמיד מציג — גם אם נדחה קודם
+      prevSigRef.current='';
+      setRejectedTs(0);
+      const isGreen=sig.tl_color==='green'||sig.tl_color==='green_bright';
+      if(isGreen && sig.direction!=='NO_TRADE'){
+        setLockedSignal(sig);
+        setAccepted(true);
+      } else {
+        setAccepted(false);
+        setLockedSignal(null);
+      }
+      setLive(prev=>prev?{...prev,signal:sig}:prev);
+    }catch{}
+    finally{ setAiLoading(false); }
+  },[aiLoading]);
 
   const fetchLive=useCallback(async()=>{
     try{
@@ -608,7 +654,7 @@ export default function Dashboard() {
     <div style={{ background:'#0a0a0f', minHeight:'100vh', padding:12, display:'flex', flexDirection:'column', gap:10, fontFamily:'"JetBrains Mono","Fira Code",monospace' }}>
 
       {/* א — Top bar */}
-      <TopBar live={live} connected={connected} />
+      <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} />
 
       {/* ב + ג — Score + Entry Zone */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
@@ -658,7 +704,7 @@ export default function Dashboard() {
         <Indicators live={live} />
       </div>
 
-      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} .live-blink{animation:blink 2s infinite}`}</style>
+      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} .live-blink{animation:blink 2s infinite} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
