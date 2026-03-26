@@ -1,125 +1,75 @@
-import os, json, logging
-from typing import Optional
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-import httpx
+'use client';
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-log = logging.getLogger("api")
+interface CVDPanelProps {
+  cvd: {
+    total?: number;
+    d20?: number;
+    d5?: number;
+    trend?: string;
+    buy_vol?: number;
+    sell_vol?: number;
+    delta?: number;
+  };
+  bar: {
+    buy?: number;
+    sell?: number;
+    delta?: number;
+    vol?: number;
+  };
+}
 
-BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
-REDIS_URL    = os.getenv("UPSTASH_REDIS_REST_URL")
-REDIS_TOKEN  = os.getenv("UPSTASH_REDIS_REST_TOKEN")
-REDIS_KEY    = "mems26:latest"
+export default function CVDPanel({ cvd, bar }: CVDPanelProps) {
+  const trend = cvd?.trend ?? '—';
+  const trendColor = trend === 'BULLISH' ? '#22c55e' : trend === 'BEARISH' ? '#ef5350' : '#f59e0b';
+  const buy = bar?.buy ?? 0;
+  const sell = bar?.sell ?? 0;
+  const total = buy + sell || 1;
+  const buyPct = Math.round((buy / total) * 100);
+  const delta = bar?.delta ?? 0;
+  const isPos = delta >= 0;
 
+  return (
+    <div className="bg-[#111118] rounded-lg border border-[#1e1e2e] px-3 py-2 text-xs">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[10px] text-gray-500 tracking-widest font-bold">CVD</span>
+        <span style={{ color: trendColor }} className="font-bold text-[10px]">{trend}</span>
+      </div>
 
-async def redis_set(data: dict):
-    if not REDIS_URL or not REDIS_TOKEN:
-        return
-    try:
-        async with httpx.AsyncClient() as client:
-            # שולחים dict ישיר — httpx יעשה json.dumps
-            await client.post(
-                f"{REDIS_URL}/set/{REDIS_KEY}",
-                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
-                json=data,
-                timeout=3.0
-            )
-    except Exception as e:
-        log.warning(f"Redis set failed: {e}")
+      {/* Buy/Sell bar */}
+      <div className="mb-2">
+        <div className="flex justify-between text-[9px] mb-1">
+          <span style={{ color: '#22c55e' }}>B {Math.round(buy).toLocaleString()}</span>
+          <span style={{ color: '#6b7280' }}>{buyPct}%</span>
+          <span style={{ color: '#ef5350' }}>S {Math.round(sell).toLocaleString()}</span>
+        </div>
+        <div className="h-2 rounded-full overflow-hidden flex" style={{ background: '#ef5350' }}>
+          <div style={{ width: `${buyPct}%`, background: '#22c55e', borderRadius: '4px 0 0 4px', transition: 'width .4s' }} />
+        </div>
+      </div>
 
+      {/* Delta */}
+      <div className="flex justify-between items-center">
+        <span className="text-gray-500">Delta</span>
+        <span style={{ color: isPos ? '#22c55e' : '#ef5350', fontFamily: 'monospace', fontWeight: 700 }}>
+          {isPos ? '+' : ''}{Math.round(delta).toLocaleString()}
+        </span>
+      </div>
 
-async def redis_get() -> Optional[dict]:
-    if not REDIS_URL or not REDIS_TOKEN:
-        return None
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{REDIS_URL}/get/{REDIS_KEY}",
-                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
-                timeout=3.0
-            )
-            result = resp.json()
-            val = result.get("result")
-            if val is None:
-                return None
-            # אם זה string — parse אותו
-            if isinstance(val, str):
-                return json.loads(val)
-            # אם כבר dict — החזר ישירות
-            return val
-    except Exception as e:
-        log.warning(f"Redis get failed: {e}")
-    return None
-
-
-class ConnectionManager:
-    def __init__(self):
-        self._clients: list[WebSocket] = []
-
-    async def connect(self, ws: WebSocket):
-        await ws.accept()
-        self._clients.append(ws)
-
-    def disconnect(self, ws: WebSocket):
-        if ws in self._clients:
-            self._clients.remove(ws)
-
-    async def broadcast(self, data: dict):
-        for ws in self._clients:
-            try:
-                await ws.send_json(data)
-            except:
-                pass
-
-manager = ConnectionManager()
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)}")
-    yield
-
-app = FastAPI(lifespan=lifespan)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.post("/ingest")
-async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None)):
-    if x_bridge_token != BRIDGE_TOKEN:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    raw = await request.json()
-    await redis_set(raw)
-    log.info(f"✅ Received: {raw.get('bar', {}).get('c')}")
-    await manager.broadcast({"type": "market_update", **raw})
-    return {"ok": True}
-
-
-@app.get("/market/latest")
-async def market_latest():
-    data = await redis_get()
-    if not data:
-        return {"type": "no_data", "status": "waiting_for_bridge"}
-    return data
-
-
-@app.get("/health")
-async def health():
-    data = await redis_get()
-    return {"status": "ok", "has_data": data is not None}
-
-
-@app.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket):
-    await manager.connect(ws)
-    try:
-        while True:
-            await ws.receive_text()
-    except WebSocketDisconnect:
-        manager.disconnect(ws)
+      {/* CVD totals */}
+      <div className="grid grid-cols-3 gap-1 mt-2 pt-2 border-t border-[#1e1e2e]">
+        {[
+          { label: 'Total', val: cvd?.total },
+          { label: '60m Δ', val: cvd?.d20 },
+          { label: '15m Δ', val: cvd?.d5 },
+        ].map(({ label, val }) => (
+          <div key={label} className="text-center">
+            <div className="text-[9px] text-gray-600">{label}</div>
+            <div style={{ color: (val ?? 0) >= 0 ? '#22c55e' : '#ef5350', fontFamily: 'monospace', fontSize: 10, fontWeight: 700 }}>
+              {val !== undefined ? ((val >= 0 ? '+' : '') + Math.round(val).toLocaleString()) : '—'}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
