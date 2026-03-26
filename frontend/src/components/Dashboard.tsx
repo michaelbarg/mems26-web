@@ -7,7 +7,7 @@ const API_URL = 'https://mems26-web.onrender.com';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Bar { o:number; h:number; l:number; c:number; vol:number; buy:number; sell:number; delta:number; }
-interface Signal { direction:'LONG'|'SHORT'|'NO_TRADE'; score:number; confidence:string; entry:number; stop:number; target1:number; target2:number; target3:number; risk_pts:number; rationale:string; tl_color:string; setup?:string; win_rate?:number; }
+interface Signal { direction:'LONG'|'SHORT'|'NO_TRADE'; score:number; confidence:string; entry:number; stop:number; target1:number; target2:number; target3:number; risk_pts:number; rationale:string; tl_color:string; setup?:string; win_rate?:number; t1_win_rate?:number; t2_win_rate?:number; t3_win_rate?:number; wait_reason?:string; }
 interface MarketData {
   ts:number; price:number; bar:Bar;
   mtf:{ m3:Bar; m15:Bar; m30:Bar; m60:Bar };
@@ -100,49 +100,96 @@ function TopBar({ live, connected }:{ live:MarketData|null; connected:boolean })
   );
 }
 
-// ── Zone B: Main Score ────────────────────────────────────────────────────────
-function MainScore({ live }:{ live:MarketData|null }) {
-  const sig = live?.signal;
+// ── Zone B: Main Score + Signal Panel ────────────────────────────────────────
+function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null; onAccept:()=>void; onReject:()=>void; accepted:boolean }) {
+  const sig   = live?.signal;
   const score = sig?.score ?? 0;
-  const col = scoreCol(score);
-  const dir = sig?.direction ?? 'NO_TRADE';
+  const col   = scoreCol(score);
+  const dir   = sig?.direction ?? 'NO_TRADE';
   const isActive = dir !== 'NO_TRADE' && score >= 5;
+  const isGreen  = sig?.tl_color === 'green' || sig?.tl_color === 'green_bright';
 
   return (
     <div style={{ background: isActive ? '#0d1f1a' : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14, minHeight:120 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-        {/* Traffic light */}
         <TrafficLight score={score} />
-        {/* Score number */}
-        <div style={{ width:44, height:44, borderRadius:'50%', background:col+'18', border:`2px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, transition:'all .4s' }}>
+        <div style={{ width:44, height:44, borderRadius:'50%', background:col+'18', border:`2px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <span style={{ fontSize:20, fontWeight:800, color:col, fontFamily:'monospace' }}>{score}</span>
         </div>
-        {/* Direction + info */}
         <div style={{ flex:1 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
             <span style={{ fontSize:20, fontWeight:800, color:col }}>{dir === 'NO_TRADE' ? 'המתן' : dir}</span>
             {isActive && <span style={{ fontSize:11, color:'#6b7280' }}>{sig?.confidence}</span>}
+            {isActive && sig?.setup && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{sig.setup}</span>}
           </div>
-          <div style={{ fontSize:10, color:'#4a5568', marginBottom:6 }}>{score}/14 ירוקים</div>
+          <div style={{ fontSize:10, color:'#4a5568', marginBottom:6 }}>{score}/10 ירוקים</div>
           <div style={{ height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
-            <div style={{ width:`${(score/10)*100}%`, height:'100%', background:col, borderRadius:2, transition:'width .6s' }} />
+            <div style={{ width:`${(score/10)*100}%`, height:'100%', background:col, borderRadius:2 }} />
           </div>
         </div>
-        {/* Setup + win rate */}
         {isActive && sig && (
           <div style={{ textAlign:'right', flexShrink:0 }}>
-            <div style={{ fontSize:10, color:'#4a5568', marginBottom:2 }}>{sig.setup ?? 'Setup'}</div>
-            <div style={{ fontSize:24, fontWeight:800, color:col, fontFamily:'monospace' }}>{sig.win_rate ?? 73}%</div>
-            <div style={{ fontSize:9, color:'#4a5568' }}>אחוז הצלחה</div>
+            <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>סיכוי הצלחה</div>
+            <div style={{ fontSize:24, fontWeight:800, color:col, fontFamily:'monospace' }}>{sig.win_rate ?? 0}%</div>
           </div>
         )}
       </div>
-      {/* Rationale */}
-      {isActive && sig?.rationale && (
-        <div style={{ marginTop:10, padding:'6px 10px', background:'#0a1628', borderRadius:6, borderLeft:'2px solid #7f77dd', fontSize:10, color:'#94a3b8', lineHeight:1.6, direction:'rtl', textAlign:'right' }}>
-          <span style={{ fontSize:9, color:'#7f77dd', display:'block', marginBottom:2, direction:'ltr', textAlign:'left' }}>CLAUDE AI</span>
-          {sig.rationale}
+
+      {/* Wait reason — כשאין סטאפ */}
+      {!isActive && sig?.wait_reason && (
+        <div style={{ marginTop:10, padding:'6px 10px', background:'#111827', borderRadius:6, fontSize:11, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
+          ⏳ {sig.wait_reason}
         </div>
+      )}
+
+      {/* Signal detail — כשיש סטאפ */}
+      {isActive && sig && (
+        <>
+          {/* Per-target win rates */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, marginTop:10 }}>
+            {[
+              { label:'T1 · C1', val:sig.target1, pct:sig.t1_win_rate??0, note:'R:R 1:1' },
+              { label:'T2 · C2', val:sig.target2, pct:sig.t2_win_rate??0, note:'R:R 1:2' },
+              { label:'T3 · Runner', val:sig.target3, pct:sig.t3_win_rate??0, note:'Woodi R1' },
+            ].map(({ label, val, pct, note }) => (
+              <div key={label} style={{ background:'#0d1117', borderRadius:6, padding:'6px 8px', textAlign:'center', border:`1px solid ${col}22` }}>
+                <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{label}</div>
+                <div style={{ fontSize:12, fontWeight:700, color:col, fontFamily:'monospace' }}>{(val??0).toFixed(2)}</div>
+                <div style={{ fontSize:10, color:col, fontWeight:700 }}>{pct}%</div>
+                <div style={{ height:3, background:'#1e2738', borderRadius:2, marginTop:3, overflow:'hidden' }}>
+                  <div style={{ width:`${pct}%`, height:'100%', background:col, borderRadius:2 }} />
+                </div>
+                <div style={{ fontSize:8, color:'#4a5568', marginTop:2 }}>{note}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Rationale */}
+          {sig.rationale && (
+            <div style={{ marginTop:8, padding:'6px 10px', background:'#0a1628', borderRadius:6, borderLeft:'2px solid #7f77dd', fontSize:10, color:'#94a3b8', lineHeight:1.6, direction:'rtl', textAlign:'right' }}>
+              <span style={{ fontSize:9, color:'#7f77dd', display:'block', marginBottom:2, direction:'ltr', textAlign:'left' }}>CLAUDE AI</span>
+              {sig.rationale}
+            </div>
+          )}
+
+          {/* Accept / Reject buttons */}
+          {!accepted && isGreen && (
+            <div style={{ display:'flex', gap:8, marginTop:10 }}>
+              <button onClick={onAccept} style={{ flex:1, padding:'8px', borderRadius:6, fontSize:12, fontWeight:700, background:G, color:'#0d1117', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
+                מעניין ✓
+              </button>
+              <button onClick={onReject} style={{ flex:1, padding:'8px', borderRadius:6, fontSize:12, fontWeight:700, background:'#1e2738', color:'#ef5350', border:'1px solid #ef535044', cursor:'pointer', fontFamily:'inherit' }}>
+                לא מעניין ✗
+              </button>
+            </div>
+          )}
+          {accepted && (
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10, padding:'6px 10px', background:'#22c55e18', borderRadius:6, border:'1px solid #22c55e44' }}>
+              <span style={{ fontSize:11, color:G, fontWeight:700 }}>✓ סטאפ מקובע — עוקב אחרי המחיר</span>
+              <button onClick={onReject} style={{ fontSize:10, padding:'2px 10px', borderRadius:4, background:'#1e2738', color:'#6b7280', border:'none', cursor:'pointer', fontFamily:'inherit' }}>בטל</button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -508,6 +555,9 @@ export default function Dashboard() {
   const [candles,setCandles]=useState<Candle[]>([]);
   const [connected,setConnected]=useState(false);
   const [tf,setTf]=useState<'m3'|'m15'|'m30'|'m60'>('m3');
+  const [accepted,setAccepted]=useState(false);
+  const [rejectedTs,setRejectedTs]=useState(0);
+  const prevSigRef=useRef<string>('');
 
   const fetchLive=useCallback(async()=>{
     try{
@@ -519,15 +569,18 @@ export default function Dashboard() {
   },[]);
 
   const fetchAnalyze=useCallback(async()=>{
+    if(accepted) return; // מקובע — לא מחפש חדש
     try{
       const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
       if(!r.ok)return;
       const sig=await r.json();
       if(sig?.direction){
+        const sigKey=`${sig.direction}-${sig.setup}-${sig.score}`;
+        if(sigKey===prevSigRef.current&&rejectedTs>0) return; // אותו סטאפ שנדחה
         setLive(prev=>prev?{...prev,signal:sig}:prev);
       }
     }catch{}
-  },[]);
+  },[accepted,rejectedTs]);
 
   const fetchCandles=useCallback(async()=>{
     try{
@@ -557,8 +610,18 @@ export default function Dashboard() {
 
       {/* ב + ג — Score + Entry Zone */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-        <MainScore live={live} />
-        <EntryZone live={live} />
+        <MainScore
+          live={live}
+          accepted={accepted}
+          onAccept={()=>setAccepted(true)}
+          onReject={()=>{
+            const sig=live?.signal;
+            if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
+            setAccepted(false);
+            setRejectedTs(Date.now());
+          }}
+        />
+        <EntryZone live={accepted?live:null} />
       </div>
 
       {/* ד + ה — Chart + Indicators */}
