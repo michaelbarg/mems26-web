@@ -310,7 +310,7 @@ function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null;
     if (sig && sig.direction!=='NO_TRADE') [sig.entry,sig.stop,sig.target1,sig.target2,sig.target3].forEach(p=>p&&prices.push(p));
     if (live?.vwap?.value) prices.push(live.vwap.value);
     if (live?.profile) prices.push(live.profile.vah,live.profile.val,live.profile.poc);
-    if ((live?.session?.ibh ?? 0) > 0) prices.push(live?.session?.ibh ?? 0, live?.session?.ibl ?? 0);
+    if (live?.session?.ibh>0) prices.push(live.session.ibh,live.session.ibl);
     if (live?.levels) prices.push(live.levels.prev_high,live.levels.prev_low,live.levels.daily_open);
 
     let minP=Math.min(...prices.filter(Boolean)), maxP=Math.max(...prices.filter(Boolean));
@@ -527,7 +527,7 @@ function Indicators({ live }:{ live:MarketData|null }) {
     // מבנה
     { cat:'מבנה', name:'Session', col:sess.phase==='RTH'?G:sess.phase==='OVERNIGHT'?Y:R, val:sess.phase||'—', note:sess.phase==='RTH'?'שעות מסחר':'לילי' },
     { cat:'', name:'IB', col:sess.ibh>0?(sess.ib_locked?G:Y):'#2d3a4a', val:sess.ibh>0?`H${sess.ibh?.toFixed(0)} L${sess.ibl?.toFixed(0)}`:'בניית IB', note:sess.ib_locked?'נעול ✓':sess.ibh>0?'מתגבש':'—' },
-    { cat:'', name:'MTF', col:(()=>{ const m3=bar.delta||0, m15=(mtf.m15||{}).delta||0, m30=(mtf.m30||{}).delta||0; return (m3>0&&m15>0&&m30>0)||(m3<0&&m15<0&&m30<0)?G:Y; })(), val:(()=>{ const m3=bar.delta||0, m15=(mtf.m15||{}).delta||0, m30=(mtf.m30||{}).delta||0; return `3m${m3>=0?'▲':'▼'} 15m${m15>=0?'▲':'▼'} 30m${m30>=0?'▲':'▼'}`; })(), note:'יישור timeframes' },
+    { cat:'', name:'MTF', col:(()=>{ const m3=bar.delta||0, m15=mtf.m15?.delta||0, m30=mtf.m30?.delta||0; return (m3>0&&m15>0&&m30>0)||(m3<0&&m15<0&&m30<0)?G:Y; })(), val:(()=>{ const m3=bar.delta||0, m15=mtf.m15?.delta||0, m30=mtf.m30?.delta||0; return `3m${m3>=0?'▲':'▼'} 15m${m15>=0?'▲':'▼'} 30m${m30>=0?'▲':'▼'}`; })(), note:'יישור timeframes' },
   ];
 
   return (
