@@ -1,6 +1,6 @@
 // frontend/src/components/SignalCard.tsx
 "use client";
-import { Signal } from "@/app/page";
+import { Signal } from "@/types/signal";
 
 type Props = { signal: Signal | null };
 
