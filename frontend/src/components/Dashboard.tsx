@@ -310,7 +310,7 @@ function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null;
     if (sig && sig.direction!=='NO_TRADE') [sig.entry,sig.stop,sig.target1,sig.target2,sig.target3].forEach(p=>p&&prices.push(p));
     if (live?.vwap?.value) prices.push(live.vwap.value);
     if (live?.profile) prices.push(live.profile.vah,live.profile.val,live.profile.poc);
-    if (live?.session?.ibh>0) prices.push(live.session.ibh,live.session.ibl);
+    if ((live?.session?.ibh ?? 0) > 0) prices.push(live?.session?.ibh ?? 0, live?.session?.ibl ?? 0);
     if (live?.levels) prices.push(live.levels.prev_high,live.levels.prev_low,live.levels.daily_open);
 
     let minP=Math.min(...prices.filter(Boolean)), maxP=Math.max(...prices.filter(Boolean));
