@@ -222,65 +222,6 @@ function EntryZone({ live }:{ live:MarketData|null }) {
   );
 }
 
-// ── TradingView Widget ────────────────────────────────────────────────────────
-function TVWidget() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [sym, setSym] = useState('MES1!');
-  const [edit, setEdit] = useState(false);
-  const [inp, setInp] = useState('MES1!');
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    if (collapsed || !ref.current) return;
-    ref.current.innerHTML = '';
-    const s = document.createElement('script');
-    s.src = 'https://s3.tradingview.com/tv.js';
-    s.async = true;
-    s.onload = () => {
-      if (!(window as any).TradingView || !ref.current) return;
-      ref.current.innerHTML = '<div id="tv-inner" style="height:260px"></div>';
-      new (window as any).TradingView.widget({
-        container_id:'tv-inner', symbol:sym, interval:'3',
-        timezone:'America/New_York', theme:'dark', style:'1', locale:'en',
-        toolbar_bg:'#0d1117', enable_publishing:false, hide_top_toolbar:false,
-        save_image:false, height:260, width:'100%',
-        studies:['Volume@tv-basicstudies'],
-        overrides:{
-          'paneProperties.background':'#0d1117','paneProperties.backgroundType':'solid',
-          'scalesProperties.textColor':'#6b7280',
-          'mainSeriesProperties.candleStyle.upColor':'#26a69a',
-          'mainSeriesProperties.candleStyle.downColor':'#ef5350',
-          'mainSeriesProperties.candleStyle.wickUpColor':'#1a756d',
-          'mainSeriesProperties.candleStyle.wickDownColor':'#a33535',
-        },
-      });
-    };
-    document.head.appendChild(s);
-    return () => { if (ref.current) ref.current.innerHTML = ''; };
-  }, [collapsed, sym]);
-
-  return (
-    <div style={{ background:'#0d1117', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#111827', borderBottom:'1px solid #1e2738' }}>
-        <span style={{ fontSize:9, color:'#4a5568', letterSpacing:2 }}>TRADINGVIEW</span>
-        {edit
-          ? <form onSubmit={e => { e.preventDefault(); setSym(inp.toUpperCase()); setEdit(false); }} style={{ display:'flex', gap:4, flex:1 }}>
-              <input value={inp} onChange={e => setInp(e.target.value)} autoFocus style={{ background:'#1e2738', border:'1px solid #2d3a4a', borderRadius:4, color:'#e2e8f0', fontSize:11, padding:'2px 6px', fontFamily:'monospace', width:80 }} />
-              <button type="submit" style={{ fontSize:10, padding:'2px 8px', borderRadius:4, background:'#26a69a', color:'#0d1117', border:'none', cursor:'pointer', fontWeight:700 }}>אישור</button>
-              <button type="button" onClick={() => setEdit(false)} style={{ fontSize:10, padding:'2px 6px', borderRadius:4, background:'#1e2738', color:'#6b7280', border:'none', cursor:'pointer' }}>ביטול</button>
-            </form>
-          : <span onClick={() => setEdit(true)} style={{ fontSize:11, color:'#94a3b8', fontFamily:'monospace', cursor:'pointer', borderBottom:'1px dashed #2d3a4a' }}>{sym}</span>
-        }
-        <span style={{ fontSize:9, color:'#2d3a4a', marginLeft:'auto' }}>3M · לעיון</span>
-        <button onClick={() => setCollapsed(v => !v)} style={{ fontSize:9, padding:'2px 8px', borderRadius:4, background:'#1e2738', color:'#6b7280', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
-          {collapsed ? '▼ פתח' : '▲ כווץ'}
-        </button>
-      </div>
-      {!collapsed && <div ref={ref} style={{ height:260 }} />}
-    </div>
-  );
-}
-
 // ── AI Canvas Chart ───────────────────────────────────────────────────────────
 function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null; tf:string }) {
   const cvs = useRef<HTMLCanvasElement>(null);
@@ -310,7 +251,7 @@ function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null;
     if (sig && sig.direction!=='NO_TRADE') [sig.entry,sig.stop,sig.target1,sig.target2,sig.target3].forEach(p=>p&&prices.push(p));
     if (live?.vwap?.value) prices.push(live.vwap.value);
     if (live?.profile) prices.push(live.profile.vah,live.profile.val,live.profile.poc);
-    if ((live?.session?.ibh??0)>0) prices.push(live?.session?.ibh??0,live?.session?.ibl??0);
+    if (live?.session?.ibh>0) prices.push(live.session.ibh,live.session.ibl);
     if (live?.levels) prices.push(live.levels.prev_high,live.levels.prev_low,live.levels.daily_open);
 
     let minP=Math.min(...prices.filter(Boolean)), maxP=Math.max(...prices.filter(Boolean));
@@ -429,10 +370,10 @@ function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null;
         onMouseMove={onMove} onMouseLeave={()=>setHov(null)} />
       {hov&&(
         <div style={{ position:'absolute', top:8, left:12, background:'#1a2233ee', border:'1px solid #2d3a4a', borderRadius:6, padding:'4px 10px', fontSize:10, color:'#94a3b8', fontFamily:'monospace', pointerEvents:'none' }}>
-          <span style={{color:'#60a5fa'}}>O</span> {hov.o.toFixed(2)}&nbsp;
-          <span style={{color:'#22c55e'}}>H</span> {hov.h.toFixed(2)}&nbsp;
-          <span style={{color:'#ef5350'}}>L</span> {hov.l.toFixed(2)}&nbsp;
-          <span style={{color:'#e2e8f0'}}>C</span> {hov.c.toFixed(2)}&nbsp;
+          <span style={{color:'#60a5fa'}}>O</span> {(hov.o??0).toFixed(2)}&nbsp;
+          <span style={{color:'#22c55e'}}>H</span> {(hov.h??0).toFixed(2)}&nbsp;
+          <span style={{color:'#ef5350'}}>L</span> {(hov.l??0).toFixed(2)}&nbsp;
+          <span style={{color:'#e2e8f0'}}>C</span> {(hov.c??0).toFixed(2)}&nbsp;
           <span style={{color:hov.delta>=0?'#26a69a':'#ef5350'}}>Δ {hov.delta>=0?'+':''}{Math.round(hov.delta)}</span>
         </div>
       )}
@@ -617,9 +558,6 @@ export default function Dashboard() {
         <MainScore live={live} />
         <EntryZone live={live} />
       </div>
-
-      {/* TradingView */}
-      <TVWidget />
 
       {/* ד + ה — Chart + Indicators */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 240px', gap:10 }}>
