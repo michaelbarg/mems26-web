@@ -1,7 +1,6 @@
 // frontend/src/components/TrafficLight.tsx
 "use client";
-import { Signal } from "@/app/page";
-
+import { Signal } from "@/types/signal";
 type Props = {
   color: string;
   score: number;
