@@ -172,21 +172,16 @@ function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null
             </div>
           )}
 
-          {/* Accept / Reject buttons */}
-          {!accepted && isGreen && (
-            <div style={{ display:'flex', gap:8, marginTop:10 }}>
-              <button onClick={onAccept} style={{ flex:1, padding:'8px', borderRadius:6, fontSize:12, fontWeight:700, background:G, color:'#0d1117', border:'none', cursor:'pointer', fontFamily:'inherit' }}>
-                מעניין ✓
-              </button>
-              <button onClick={onReject} style={{ flex:1, padding:'8px', borderRadius:6, fontSize:12, fontWeight:700, background:'#1e2738', color:'#ef5350', border:'1px solid #ef535044', cursor:'pointer', fontFamily:'inherit' }}>
-                לא מעניין ✗
-              </button>
-            </div>
-          )}
+          {/* כפתור ביטול בלבד — קבלה אוטומטית */}
           {accepted && (
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10, padding:'6px 10px', background:'#22c55e18', borderRadius:6, border:'1px solid #22c55e44' }}>
-              <span style={{ fontSize:11, color:G, fontWeight:700 }}>✓ סטאפ מקובע — עוקב אחרי המחיר</span>
-              <button onClick={onReject} style={{ fontSize:10, padding:'2px 10px', borderRadius:4, background:'#1e2738', color:'#6b7280', border:'none', cursor:'pointer', fontFamily:'inherit' }}>בטל</button>
+              <span style={{ fontSize:11, color:G, fontWeight:700 }}>✓ סטאפ מקובע אוטומטית</span>
+              <button onClick={onReject} style={{ fontSize:10, padding:'3px 12px', borderRadius:4, background:'#ef535022', color:'#ef5350', border:'1px solid #ef535044', cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>לא מעניין ✗</button>
+            </div>
+          )}
+          {!accepted && isGreen && (
+            <div style={{ marginTop:10, padding:'6px 10px', background:'#f59e0b18', borderRadius:6, border:'1px solid #f59e0b44', fontSize:10, color:'#f59e0b', direction:'rtl' }}>
+              ⏳ ממתין לאישור אוטומטי...
             </div>
           )}
         </>
@@ -556,6 +551,7 @@ export default function Dashboard() {
   const [connected,setConnected]=useState(false);
   const [tf,setTf]=useState<'m3'|'m15'|'m30'|'m60'>('m3');
   const [accepted,setAccepted]=useState(false);
+  const [lockedSignal,setLockedSignal]=useState<any>(null);
   const [rejectedTs,setRejectedTs]=useState(0);
   const prevSigRef=useRef<string>('');
 
@@ -569,18 +565,24 @@ export default function Dashboard() {
   },[]);
 
   const fetchAnalyze=useCallback(async()=>{
-    if(accepted) return; // מקובע — לא מחפש חדש
+    if(accepted && lockedSignal) return; // מקובע — לא מחפש חדש
     try{
       const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
       if(!r.ok)return;
       const sig=await r.json();
-      if(sig?.direction){
-        const sigKey=`${sig.direction}-${sig.setup}-${sig.score}`;
-        if(sigKey===prevSigRef.current&&rejectedTs>0) return; // אותו סטאפ שנדחה
-        setLive(prev=>prev?{...prev,signal:sig}:prev);
+      if(!sig?.direction) return;
+      const sigKey=`${sig.direction}-${sig.setup}-${sig.score}`;
+      // אם זה אותו סטאפ שנדחה — לא מציג
+      if(sigKey===prevSigRef.current && rejectedTs>0) return;
+      // Auto-lock ברגע שמגיע ירוק
+      const isGreen = sig.tl_color==='green'||sig.tl_color==='green_bright';
+      if(isGreen && sig.direction!=='NO_TRADE' && !accepted) {
+        setLockedSignal(sig);
+        setAccepted(true);
       }
+      setLive(prev=>prev?{...prev,signal:sig}:prev);
     }catch{}
-  },[accepted,rejectedTs]);
+  },[accepted,lockedSignal,rejectedTs]);
 
   const fetchCandles=useCallback(async()=>{
     try{
@@ -611,17 +613,18 @@ export default function Dashboard() {
       {/* ב + ג — Score + Entry Zone */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
         <MainScore
-          live={live}
+          live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : live}
           accepted={accepted}
-          onAccept={()=>setAccepted(true)}
+          onAccept={()=>{ setAccepted(true); setLockedSignal(live?.signal); }}
           onReject={()=>{
-            const sig=live?.signal;
+            const sig=lockedSignal||live?.signal;
             if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
             setAccepted(false);
+            setLockedSignal(null);
             setRejectedTs(Date.now());
           }}
         />
-        <EntryZone live={accepted?live:null} />
+        <EntryZone live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : null} />
       </div>
 
       {/* ד + ה — Chart + Indicators */}
@@ -645,7 +648,7 @@ export default function Dashboard() {
             levels={live?.levels}
             profile={live?.profile}
             session={{ ibh: live?.session?.ibh, ibl: live?.session?.ibl }}
-            signal={live?.signal ?? null}
+            signal={(accepted && lockedSignal) ? lockedSignal : live?.signal ?? null}
             height={480}
           />
           <VolumeTimer bar={bar??null} />
