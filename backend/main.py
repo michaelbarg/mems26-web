@@ -150,7 +150,27 @@ async def market_analyze():
             "direction": "NO_TRADE", "score": 0, "confidence": "LOW",
             "setup": "אין נתונים", "win_rate": 0,
             "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
-            "risk_pts": 0, "rationale": "Bridge לא פעיל", "tl_color": "red", "ts": 0
+            "risk_pts": 0, "rationale": "Bridge לא פעיל", "tl_color": "red", "ts": 0,
+            "t1_win_rate": 0, "t2_win_rate": 0, "t3_win_rate": 0,
+            "wait_reason": "Bridge לא פעיל"
+        }
+
+    from datetime import datetime
+    import pytz
+    et = pytz.timezone("America/New_York")
+    now_et = datetime.now(et)
+    h, m = now_et.hour, now_et.minute
+    is_rth = (h == 9 and m >= 30) or (10 <= h <= 15) or (h == 16 and m == 0)
+
+    if not is_rth:
+        return {
+            "direction": "NO_TRADE", "score": 0, "confidence": "LOW",
+            "setup": "מחוץ לשעות RTH", "win_rate": 0,
+            "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
+            "risk_pts": 0, "rationale": "שוק סגור. RTH מתחיל ב-9:30 ET",
+            "tl_color": "red", "ts": data.get("ts", 0),
+            "t1_win_rate": 0, "t2_win_rate": 0, "t3_win_rate": 0,
+            "wait_reason": "RTH מתחיל ב-9:30 ET"
         }
 
     price   = data.get("price", 0)
@@ -163,30 +183,50 @@ async def market_analyze():
     levels  = data.get("levels", {})
     of2     = data.get("order_flow", {})
     mtf     = data.get("mtf", {})
+    day     = data.get("day", {})
+    cci     = data.get("woodies_cci", {})
+    vol_ctx = data.get("volume_context", {})
+    candle_p= data.get("candle_patterns", {})
 
-    prompt = f"""אתה מערכת AI למסחר יומי ב-MES (Micro E-Mini S&P 500 Futures).
+    vwap_dist = vwap.get("distance", 0) or 0
+    rel_vol   = vol_ctx.get("rel_vol", 1) or 1
 
-נתונים נוכחיים:
-- מחיר: {price}
-- נר 3m: O={bar.get('o')} H={bar.get('h')} L={bar.get('l')} C={bar.get('c')} Vol={bar.get('vol')} Delta={bar.get('delta')}
-- Session: {session.get('phase')} | IBH={session.get('ibh')} IBL={session.get('ibl')} IB_Locked={session.get('ib_locked')}
-- VWAP: {vwap.get('value')} | מעל={vwap.get('above')} | מרחק={vwap.get('distance')} | Pullback={vwap.get('pullback')}
-- CVD: trend={cvd.get('trend')} | total={cvd.get('total')} | 60m={cvd.get('d20')} | 15m={cvd.get('d5')} | bar={cvd.get('delta')}
-- Profile: POC={profile.get('poc')} VAH={profile.get('vah')} VAL={profile.get('val')} in_VA={profile.get('in_va')} above_poc={profile.get('above_poc')}
-- Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.get('s1')} above_pp={woodi.get('above_pp')}
-- Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')}
-- Order Flow: Absorption={of2.get('absorption_bull')} LiqSweep={of2.get('liq_sweep')} ImbBull={of2.get('imbalance_bull')} ImbBear={of2.get('imbalance_bear')}
-- MTF: 15m={mtf.get('m15',{}).get('delta')} 30m={mtf.get('m30',{}).get('delta')} 60m={mtf.get('m60',{}).get('delta')}
+    prompt = f"""אתה מערכת AI מתקדמת למסחר יומי ב-MES (Micro E-Mini S&P 500 Futures).
+אתה מומחה ב-3 סטאפים ספציפיים. החלט האם יש הזדמנות מסחר עכשיו.
 
-3 סטאפים אפשריים:
-1. Liquidity Sweep — שבירת רמה + חזרה אגרסיבית עם volume
-2. VWAP Pullback — מגמה מבוססת + pullback חלש לVWAP + נר היפוך
-3. IB Breakout Retest — פריצת IB עם volume + חזרה לרמה עם בלימה
+נתוני שוק:
+מחיר={price} | Session={session.get('phase')} | דקה={session.get('min',-1)}
+DayType={day.get('type','?')} | IB_Range={day.get('ib_range',0):.2f} | Gap={day.get('gap_type','FLAT')}
+Extensions={day.get('total_ext',0)} | Returned={day.get('returned',False)}
 
-ניהול: C1=R:R 1:1, C2=R:R 1:2, C3=Runner עד Woodi R1/R2
+נר 3m: O={bar.get('o')} H={bar.get('h')} L={bar.get('l')} C={bar.get('c')} Delta={bar.get('delta')}
+Pattern: {candle_p.get('bar0')} | prev={candle_p.get('bar1')} | BullEngulf={candle_p.get('bull_engulf')} | BearEngulf={candle_p.get('bear_engulf')}
 
-ענה רק ב-JSON תקני ללא backticks וללא טקסט נוסף:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם הסטאפ בעברית","win_rate":0-85,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"הסבר קצר בעברית","tl_color":"red/orange/green/green_bright"}}"""
+CVD: {cvd.get('trend')} | 60m={cvd.get('d20')} | 15m={cvd.get('d5')} | bar={cvd.get('delta')}
+VWAP: {vwap.get('value')} | above={vwap.get('above')} | dist={vwap_dist:.2f} | pullback={vwap.get('pullback')}
+CCI: cci14={cci.get('cci14',0):.1f} | cci6={cci.get('cci6',0):.1f} | trend={cci.get('trend')}
+     TurboBull={cci.get('turbo_bull')} | TurboBear={cci.get('turbo_bear')} | ZLR_Bull={cci.get('zlr_bull')} | ZLR_Bear={cci.get('zlr_bear')}
+
+Profile: POC={profile.get('poc')} | VAH={profile.get('vah')} | VAL={profile.get('val')} | PrevPOC={profile.get('prev_day_poc')}
+         in_VA={profile.get('in_va')} | above_poc={profile.get('above_poc')}
+IB: H={session.get('ibh')} L={session.get('ibl')} | locked={session.get('ib_locked')}
+    breakout_up={day.get('ib_breakout_up')} | breakout_down={day.get('ib_breakout_down')}
+OR: H={day.get('or_high')} L={day.get('or_low')}
+Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.get('s1')}
+Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')} ONH={levels.get('overnight_high')} ONL={levels.get('overnight_low')}
+OF: Absorption={of2.get('absorption_bull')} | LiqSweepLong={of2.get('liq_sweep_long')} | LiqSweepShort={of2.get('liq_sweep_short')} | ImbBull={of2.get('imbalance_bull')} | ImbBear={of2.get('imbalance_bear')}
+RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
+MTF: 15m={mtf.get('m15',{{}}).get('delta')} | 30m={mtf.get('m30',{{}}).get('delta')} | 60m={mtf.get('m60',{{}}).get('delta')}
+
+סטאפים:
+1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
+2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. אחוז בסיס: 62-70%
+3. IB BREAKOUT RETEST: פריצה+חזרה+בלימה. אחוז בסיס: 58-65%
+
+ניהול: C1=R:R 1:1 | C2=R:R 1:2 | C3=Runner Woodi R1/R2
+
+JSON בלבד ללא backticks:
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ בעברית","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"2-3 משפטים עברית","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -199,20 +239,18 @@ async def market_analyze():
                 },
                 json={
                     "model": "claude-sonnet-4-20250514",
-                    "max_tokens": 500,
+                    "max_tokens": 600,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
-
         result = resp.json()
         text = result.get("content", [{}])[0].get("text", "").strip()
         signal = json.loads(text)
         signal["ts"] = data.get("ts", 0)
-        log.info(f"AI: {signal.get('direction')} score={signal.get('score')} setup={signal.get('setup')}")
+        log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
         return signal
-
     except Exception as e:
-        log.error(f"AI Analyzer error: {e}")
+        log.error(f"AI error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
