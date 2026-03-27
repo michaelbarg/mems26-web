@@ -471,8 +471,8 @@ function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null
 }
 
 // ── Zone C: Entry Zone ────────────────────────────────────────────────────────
-function EntryZone({ live }:{ live:MarketData|null }) {
-  const sig = live?.signal;
+function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
+  const sig = signal || live?.signal;
   const [c1, setC1] = useState<'open'|'hit'|'closed'>('open');
   const [c2, setC2] = useState<'open'|'hit'|'closed'>('open');
   const [c3, setC3] = useState<'open'|'hit'|'closed'>('open');
@@ -487,20 +487,52 @@ function EntryZone({ live }:{ live:MarketData|null }) {
     if (long ? price >= sig.target3 : price <= sig.target3) setC3(v => v === 'open' ? 'hit' : v);
   }, [price, sig, entered]);
 
-  const isGreen = sig && sig.direction !== 'NO_TRADE' && (sig.tl_color === 'green' || sig.tl_color === 'green_bright');
+  const hasSignal = sig && sig.direction !== 'NO_TRADE' && (sig.entry ?? 0) > 0;
+  const isLong = sig?.direction === 'LONG';
+  const acol = isLong ? G : R;
+  const sCol = (s:string) => s==='hit'?G:s==='closed'?'#4a5568':Y;
+  const sTxt = (s:string) => s==='hit'?'✓ הגיע':s==='closed'?'✗ סגור':'◌ פתוח';
 
-  if (!isGreen || !sig) {
+  // תמיד מוצג — אם אין signal, מציג נתוני שוק בסיסיים
+  if (!hasSignal) {
+    const { long: lPct, short: sPct } = calcProbability(live);
+    const bias = lPct > sPct ? 'LONG' : 'SHORT';
+    const bCol = bias==='LONG' ? G : R;
     return (
-      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:14, display:'flex', alignItems:'center', justifyContent:'center', minHeight:120 }}>
-        <span style={{ fontSize:11, color:'#4a5568', direction:'rtl' }}>ממתין לסיגנל ירוק...</span>
+      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
+        <div style={{ padding:'8px 12px', borderBottom:'1px solid #1e2738', display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:9, color:'#4a5568', letterSpacing:1 }}>אזור כניסה — לפי שוק נוכחי</span>
+          <span style={{ fontSize:10, fontWeight:800, color:bCol, marginLeft:'auto' }}>{bias} {lPct>sPct?lPct:sPct}%</span>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:0 }}>
+          {[
+            { l:'סיכוי LONG', v:`${lPct}%`, c:G, sub:'לפי CVD+VWAP+OF' },
+            { l:'סיכוי SHORT', v:`${sPct}%`, c:R, sub:'לפי CVD+VWAP+OF' },
+            { l:'מחיר נוכחי', v:(live?.price??0).toFixed(2), c:'#f0f6fc', sub:'לחץ AI לכניסה' },
+          ].map(({l,v,c,sub})=>(
+            <div key={l} style={{ padding:'10px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
+              <div style={{ fontSize:9, color:'#4a5568', marginBottom:4 }}>{l}</div>
+              <div style={{ fontSize:16, fontWeight:800, color:c, fontFamily:'monospace' }}>{v}</div>
+              <div style={{ fontSize:8, color:'#2d3a4a', marginTop:3 }}>{sub}</div>
+            </div>
+          ))}
+        </div>
+        {live?.vwap && (
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:'1px solid #1e2738' }}>
+            {[
+              { l:'VWAP', v:(live.vwap.value??0).toFixed(2), c:'#f6c90e', note:live.vwap.above?'מעל ▲':'מתחת ▼' },
+              { l:'CVD מגמה', v:live.cvd?.trend??'—', c:live.cvd?.trend==='BULLISH'?G:live.cvd?.trend==='BEARISH'?R:Y, note:'' },
+            ].map(({l,v,c,note})=>(
+              <div key={l} style={{ padding:'6px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
+                <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{l}</div>
+                <div style={{ fontSize:11, fontWeight:700, color:c, fontFamily:'monospace' }}>{v} <span style={{fontSize:9,color:'#4a5568'}}>{note}</span></div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     );
   }
-
-  const isLong = sig.direction === 'LONG';
-  const acol = isLong ? G : R;
-  const sCol = (s:string) => s === 'hit' ? G : s === 'closed' ? '#4a5568' : Y;
-  const sTxt = (s:string) => s === 'hit' ? '✓ הגיע' : s === 'closed' ? '✗ סגור' : '◌ פתוח';
 
   return (
     <div style={{ background:'#0d1f1a', border:`1px solid ${acol}33`, borderRadius:8, overflow:'hidden' }}>
@@ -1064,7 +1096,7 @@ export default function Dashboard() {
           <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={askAI} />
 
           {/* 3. Entry Zone — רק כשיש סיגנל ירוק */}
-          <EntryZone live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:null} />
+          <EntryZone live={live} signal={persistedSignal} />
 
           {/* 4. Setup Scanner — לחיצה מציגה על הגרף */}
           <SetupScanner live={live} onSelect={(id,dir)=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})} selectedId={selectedSetup?.id} />
