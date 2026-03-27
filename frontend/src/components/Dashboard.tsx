@@ -851,6 +851,9 @@ export default function Dashboard() {
   const [lockedSignal,setLockedSignal]=useState<any>(null);
   const [rejectedTs,setRejectedTs]=useState(0);
   const [aiLoading,setAiLoading]=useState(false);
+  const [persistedSignal,setPersistedSignal]=useState<Signal|null>(null);
+  const [signalTime,setSignalTime]=useState<string>('');
+  const [selectedSetup,setSelectedSetup]=useState<{id:string;dir:'long'|'short'}|null>(null);
   const prevSigRef=useRef<string>('');
 
   const askAI=useCallback(async()=>{
