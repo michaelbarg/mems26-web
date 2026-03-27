@@ -905,7 +905,7 @@ function AIAnalysisPanel({signal,signalTime,aiLoading,onAskAI}:{signal?:Signal|n
 
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, selectedSetup, onSelectSetup, onAccept, onReject }:any) {
+function RightPanel({ live, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'indicators'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
