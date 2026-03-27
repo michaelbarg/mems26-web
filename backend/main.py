@@ -105,6 +105,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi import Request as FastAPIRequest
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: FastAPIRequest, exc: Exception):
+    log.error(f"Unhandled exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: FastAPIRequest, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+
+
 
 @app.post("/ingest")
 async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None)):
@@ -155,10 +177,9 @@ async def market_analyze():
             "wait_reason": "Bridge לא פעיל"
         }
 
-    from datetime import datetime
-    import pytz
-    et = pytz.timezone("America/New_York")
-    now_et = datetime.now(et)
+    from datetime import datetime, timezone, timedelta
+    et_offset = timedelta(hours=-4)  # EDT (קיץ) — בחורף -5
+    now_et = datetime.now(timezone(et_offset))
     h, m = now_et.hour, now_et.minute
     is_rth = (h == 9 and m >= 30) or (10 <= h <= 15) or (h == 16 and m == 0)
 
@@ -238,7 +259,7 @@ JSON בלבד ללא backticks:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-4-5",
                     "max_tokens": 600,
                     "messages": [{"role": "user", "content": prompt}]
                 }
@@ -249,9 +270,15 @@ JSON בלבד ללא backticks:
         signal["ts"] = data.get("ts", 0)
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
         return signal
+    except json.JSONDecodeError as e:
+        log.error(f"AI JSON parse error: {e} | text: {text[:200] if 'text' in dir() else 'N/A'}")
+        raise HTTPException(status_code=500, detail=f"AI returned invalid JSON: {e}")
+    except httpx.TimeoutException:
+        log.error("AI timeout")
+        raise HTTPException(status_code=504, detail="AI request timed out — try again")
     except Exception as e:
-        log.error(f"AI error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error(f"AI error: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
 
 
 @app.get("/health")
