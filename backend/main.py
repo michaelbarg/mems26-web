@@ -237,8 +237,7 @@ Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.
 Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')} ONH={levels.get('overnight_high')} ONL={levels.get('overnight_low')}
 OF: Absorption={of2.get('absorption_bull')} | LiqSweepLong={of2.get('liq_sweep_long')} | LiqSweepShort={of2.get('liq_sweep_short')} | ImbBull={of2.get('imbalance_bull')} | ImbBear={of2.get('imbalance_bear')}
 RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
-MTF: 15m={mtf.get('m15',{{}}).get('delta')} | 30m={mtf.get('m30',{{}}).get('delta')} | 60m={mtf.get('m60',{{}}).get('delta')}
-
+MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')} | 60m={mtf.get('m60',{}).get('delta')}
 סטאפים:
 1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
 2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. אחוז בסיס: 62-70%
