@@ -215,7 +215,7 @@ Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.
 Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')} ONH={levels.get('overnight_high')} ONL={levels.get('overnight_low')}
 OF: Absorption={of2.get('absorption_bull')} | LiqSweepLong={of2.get('liq_sweep_long')} | LiqSweepShort={of2.get('liq_sweep_short')} | ImbBull={of2.get('imbalance_bull')} | ImbBear={of2.get('imbalance_bear')}
 RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
-MTF: 15m={mtf.get('m15',{{}}).get('delta')} | 30m={mtf.get('m30',{{}}).get('delta')} | 60m={mtf.get('m60',{{}}).get('delta')}
+MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')} | 60m={mtf.get('m60',{}).get('delta')}
 
 סטאפים:
 1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
@@ -224,14 +224,8 @@ MTF: 15m={mtf.get('m15',{{}}).get('delta')} | 30m={mtf.get('m30',{{}}).get('delt
 
 ניהול: C1=R:R 1:1 | C2=R:R 1:2 | C3=Runner Woodi R1/R2
 
-חוקים חשובים:
-- תמיד תספק rationale מפורט (3-4 משפטות) — גם אם NO_TRADE
-- wait_reason: הסבר קונקרטי מה חסר ומה לחכות לו
-- entry/stop/target: אם NO_TRADE תן רמות תיאורטיות לפי הניתוח
-- score: ציון מ-0-10 לפי כמה תנאים מתקיימים
-
 החזר JSON בלבד, ללא backticks, ללא הסבר נוסף:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"3-4 משפטות ניתוח מפורט בעברית — מה קורה בשוק עכשיו","wait_reason":"מה ספציפית חסר ומה לחכות לו","tl_color":"red/orange/green/green_bright"}}"""
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ בעברית","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"3-4 משפטות ניתוח מפורט — מה קורה עכשיו, מה הבעיה, מה לחכות","wait_reason":"פירוט קונקרטי מה ספציפית חסר ומה הטריגר לכניסה","tl_color":"red/orange/green/green_bright"}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -243,13 +237,18 @@ MTF: 15m={mtf.get('m15',{{}}).get('delta')} | 30m={mtf.get('m30',{{}}).get('delt
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-4-5",
                     "max_tokens": 600,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
         result = resp.json()
         text = result.get("content", [{}])[0].get("text", "").strip()
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+            text = text.strip()
         signal = json.loads(text)
         signal["ts"] = data.get("ts", 0)
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
