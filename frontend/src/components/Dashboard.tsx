@@ -17,7 +17,7 @@ interface MarketData {
   profile:{ poc:number; vah:number; val:number; tpo_poc:number; in_va:boolean; above_poc:boolean };
   woodi:{ pp:number; r1:number; r2:number; s1:number; s2:number; above_pp:boolean };
   levels:{ prev_high:number; prev_low:number; prev_close:number; daily_open:number; overnight_high:number; overnight_low:number };
-  order_flow:{ absorption_bull:boolean; liq_sweep:boolean; imbalance_bull:number; imbalance_bear:number };
+  order_flow:{ absorption_bull:boolean; liq_sweep:boolean; liq_sweep_long:boolean; liq_sweep_short:boolean; imbalance_bull:number; imbalance_bear:number };
   reversal:{ ib_high:number; ib_low:number; rev15_type:string; rev15_price:number };
   signal?:Signal;
 }
@@ -944,72 +944,135 @@ export default function Dashboard() {
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
+  const activeSetups = calcSetups(live)?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
+    name: s.name,
+    dir: s.long.score>=s.short.score ? 'long' : 'short' as 'long'|'short',
+    col: s.col,
+  }));
+
   return (
-    <div style={{ background:'#0a0a0f', minHeight:'100vh', padding:12, display:'flex', flexDirection:'column', gap:10, fontFamily:'"JetBrains Mono","Fira Code",monospace' }}>
+    <div style={{ background:'#0a0a0f', minHeight:'100vh', fontFamily:'"JetBrains Mono","Fira Code",monospace', display:'flex', flexDirection:'column', height:'100vh', overflow:'hidden' }}>
 
-      {/* א — Top bar */}
-      <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} />
-
-      {/* ב + ג — Score + Entry Zone */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
-        <MainScore
-          live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : live}
-          accepted={accepted}
-          onAccept={()=>{ setAccepted(true); setLockedSignal(live?.signal); }}
-          onReject={()=>{
-            const sig=lockedSignal||live?.signal;
-            if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
-            setAccepted(false);
-            setLockedSignal(null);
-            setRejectedTs(Date.now());
-          }}
-        />
-        <EntryZone live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : null} />
+      {/* Top bar — קבוע בראש */}
+      <div style={{ flexShrink:0, padding:'8px 12px', borderBottom:'1px solid #1e2738' }}>
+        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} />
       </div>
 
-      {/* AI Analysis — קבוע */}
-      <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={askAI} />
+      {/* Main area — שמאל + מרכז */}
+      <div style={{ display:'grid', gridTemplateColumns:'300px 1fr', flex:1, overflow:'hidden', gap:0 }}>
 
-      {/* ד + ה — Chart + Indicators */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 240px', gap:10 }}>
-        {/* Chart */}
-        <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
+        {/* עמודה שמאל — כל המידע, גולל בנפרד */}
+        <div style={{ borderRight:'1px solid #1e2738', overflowY:'auto', display:'flex', flexDirection:'column', gap:8, padding:10 }}>
+
+          {/* Score */}
+          <MainScore
+            live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : live}
+            accepted={accepted}
+            onAccept={()=>{ setAccepted(true); setLockedSignal(live?.signal); }}
+            onReject={()=>{
+              const sig=lockedSignal||live?.signal;
+              if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
+              setAccepted(false);
+              setLockedSignal(null);
+              setRejectedTs(Date.now());
+            }}
+          />
+
+          {/* Entry Zone */}
+          <EntryZone live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : null} />
+
+          {/* AI Analysis */}
+          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={askAI} />
+
+          {/* Setup Scanner */}
+          <SetupScanner live={live} />
+
+          {/* Indicators */}
+          <Indicators live={live} />
+
+        </div>
+
+        {/* עמודה מרכז — גרף קבוע, לא זז */}
+        <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
+
           {/* Chart header */}
-          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#111827', borderBottom:'1px solid #1e2738' }}>
+          <div style={{ flexShrink:0, display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#111827', borderBottom:'1px solid #1e2738' }}>
             <span style={{ fontSize:9, color:'#4a5568', letterSpacing:2 }}>גרף נרות + רמות</span>
+
+            {/* Setup badges על הגרף */}
+            <div style={{ display:'flex', gap:4, marginRight:8 }}>
+              {activeSetups && activeSetups.length > 0 ? activeSetups.map(s=>(
+                <div key={s.name} style={{
+                  display:'flex', alignItems:'center', gap:4, padding:'2px 10px',
+                  borderRadius:12, border:`1px solid ${s.col}77`,
+                  background:`${s.col}18`, animation:'pulse 2s infinite'
+                }}>
+                  <div style={{ width:6, height:6, borderRadius:'50%', background:s.col, boxShadow:`0 0 6px ${s.col}` }} />
+                  <span style={{ fontSize:9, fontWeight:800, color:s.col }}>{s.name}</span>
+                  <span style={{ fontSize:9, color:s.dir==='long'?'#22c55e':'#ef5350', fontWeight:700 }}>{s.dir==='long'?'▲':'▼'}</span>
+                </div>
+              )) : (
+                <span style={{ fontSize:9, color:'#2d3a4a' }}>אין סטאפ פעיל</span>
+              )}
+            </div>
+
             <div style={{ display:'flex', gap:3, marginLeft:'auto' }}>
               {(['m3','m15','m30','m60'] as const).map(t=>(
                 <button key={t} onClick={()=>setTf(t)} style={{ padding:'2px 8px', borderRadius:5, fontSize:9, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'inherit', background:tf===t?'#f6c90e':'#1e2738', color:tf===t?'#0d1117':'#6b7280' }}>{t.toUpperCase()}</button>
               ))}
             </div>
           </div>
-          <LightweightChart
-            candles={candles}
-            livePrice={live?.price}
-            liveBar={live?.bar ? { ts: live.ts, o: live.bar.o, h: live.bar.h, l: live.bar.l, c: live.bar.c } : null}
-            vwap={live?.vwap?.value}
-            levels={live?.levels}
-            profile={live?.profile}
-            session={{ ibh: live?.session?.ibh, ibl: live?.session?.ibl }}
-            signal={(accepted && lockedSignal) ? lockedSignal : live?.signal ?? null}
-            activeSetups={calcSetups(live)?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
-              name: s.name,
-              dir: s.long.score>=s.short.score ? 'long' : 'short',
-              col: s.col,
-            }))}
-            height={480}
-          />
-          <VolumeTimer bar={bar??null} />
+
+          {/* גרף — ממלא את כל השטח הנותר, לא זז */}
+          <div style={{ flex:1, position:'relative', overflow:'hidden' }}>
+            <LightweightChart
+              candles={candles}
+              livePrice={live?.price}
+              liveBar={live?.bar ? { ts: live.ts, o: live.bar.o, h: live.bar.h, l: live.bar.l, c: live.bar.c } : null}
+              vwap={live?.vwap?.value}
+              levels={live?.levels}
+              profile={live?.profile}
+              session={{ ibh: live?.session?.ibh, ibl: live?.session?.ibl }}
+              signal={(accepted && lockedSignal) ? lockedSignal : live?.signal ?? null}
+              activeSetups={activeSetups}
+              height={undefined}
+            />
+
+            {/* Setup Overlay על הגרף — badges בפינה */}
+            {activeSetups && activeSetups.length > 0 && (
+              <div style={{ position:'absolute', top:10, right:10, display:'flex', flexDirection:'column', gap:6, zIndex:10, pointerEvents:'none' }}>
+                {activeSetups.map(s=>(
+                  <div key={s.name} style={{
+                    display:'flex', alignItems:'center', gap:6, padding:'5px 12px',
+                    borderRadius:8, border:`1.5px solid ${s.col}`,
+                    background:`#0d1117ee`, backdropFilter:'blur(4px)'
+                  }}>
+                    <div style={{ width:8, height:8, borderRadius:'50%', background:s.col, boxShadow:`0 0 8px ${s.col}` }} />
+                    <span style={{ fontSize:11, fontWeight:800, color:s.col }}>{s.name}</span>
+                    <span style={{ fontSize:11, fontWeight:800, color:s.dir==='long'?'#22c55e':'#ef5350' }}>{s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Volume timer */}
+          <div style={{ flexShrink:0, borderTop:'1px solid #1e2738' }}>
+            <VolumeTimer bar={bar??null} />
+          </div>
+
         </div>
-
-        {/* Indicators */}
-        <Indicators live={live} />
-
-        {/* Setup Scanner */}
-        <SetupScanner live={live} />
       </div>
 
-      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} .live-blink{animation:blink 2s infinite} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      <style>{`
+        @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+        @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .live-blink{animation:blink 2s infinite}
+        ::-webkit-scrollbar{width:4px}
+        ::-webkit-scrollbar-track{background:#0a0a0f}
+        ::-webkit-scrollbar-thumb{background:#1e2738;border-radius:2px}
+      `}</style>
     </div>
   );
 }
