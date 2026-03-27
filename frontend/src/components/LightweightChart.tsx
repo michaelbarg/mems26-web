@@ -24,6 +24,7 @@ interface Props {
   profile?: { poc?: number; vah?: number; val?: number };
   session?: { ibh?: number; ibl?: number };
   signal?: Signal | null;
+  activeSetups?: { name: string; dir: 'long'|'short'; col: string }[];
   height?: number;
 }
 
