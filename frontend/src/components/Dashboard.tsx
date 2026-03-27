@@ -17,7 +17,7 @@ interface MarketData {
   profile:{ poc:number; vah:number; val:number; tpo_poc:number; in_va:boolean; above_poc:boolean };
   woodi:{ pp:number; r1:number; r2:number; s1:number; s2:number; above_pp:boolean };
   levels:{ prev_high:number; prev_low:number; prev_close:number; daily_open:number; overnight_high:number; overnight_low:number };
-  order_flow:{ absorption_bull:boolean; liq_sweep:boolean; imbalance_bull:number; imbalance_bear:number };
+  order_flow:{ absorption_bull:boolean; liq_sweep:boolean; liq_sweep_long:boolean; liq_sweep_short:boolean; imbalance_bull:number; imbalance_bear:number };
   reversal:{ ib_high:number; ib_low:number; rev15_type:string; rev15_price:number };
   signal?:Signal;
 }
@@ -109,7 +109,7 @@ function calcSetups(live: MarketData | null) {
   ].map(s=>({...s, long:{...s.long,wr:wr(s.base,s.long.score)}, short:{...s.short,wr:wr(s.base,s.short.score)}}));
 }
 
-function SetupScanner({ live }:{ live:MarketData|null }) {
+function SetupScanner({ live, onSelect, selectedId }:{ live:MarketData|null; onSelect?:(id:string,dir:'long'|'short')=>void; selectedId?:string }) {
   const setups = calcSetups(live);
   if (!setups) return null;
   return (
@@ -123,7 +123,8 @@ function SetupScanner({ live }:{ live:MarketData|null }) {
           const bChecks = best==='long' ? s.long.checks: s.short.checks;
           const active  = bScore >= 60;
           return (
-            <div key={s.name} style={{ border:`1px solid ${active?s.col+'55':'#1e2738'}`, borderRadius:6, padding:'7px 9px', background:active?s.col+'08':'transparent' }}>
+            <div key={s.name} onClick={()=>onSelect&&onSelect(s.name,best as 'long'|'short')}
+              style={{ border:`1px solid ${selectedId===s.name?s.col+'aa':active?s.col+'55':'#1e2738'}`, borderRadius:6, padding:'7px 9px', background:selectedId===s.name?s.col+'18':active?s.col+'08':'transparent', cursor:'pointer', transition:'all .2s' }}>
               <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
                 <div style={{ width:7, height:7, borderRadius:'50%', background:s.col, opacity:active?1:0.3, boxShadow:active?`0 0 5px ${s.col}`:'none' }} />
                 <span style={{ fontSize:11, fontWeight:500, color:'#e2e8f0', flex:1 }}>{s.name}</span>
@@ -151,6 +152,63 @@ function SetupScanner({ live }:{ live:MarketData|null }) {
       </div>
     </div>
   );
+}
+
+
+// ── חישוב רמות סטאפ לפי נתונים חיים ─────────────────────────────────────────
+function calcSetupLevels(setupId: string, live: MarketData | null, dir: 'long'|'short') {
+  if (!live) return null;
+  const price  = live.price || 0;
+  const bar    = live.bar   || {} as any;
+  const vwap   = live.vwap  || {} as any;
+  const sess   = live.session || {} as any;
+  const prof   = live.profile || {} as any;
+  const woodi  = live.woodi  || {} as any;
+
+  const isLong = dir === 'long';
+  let detect=0, verify=0, entry=0, stop=0, t1=0, t2=0, t3stop=0;
+
+  if (setupId === 'Liq Sweep') {
+    const sweepPt = isLong ? (bar.l || price-2) : (bar.h || price+2);
+    detect = sweepPt;
+    verify = isLong ? sweepPt + 1.0 : sweepPt - 1.0;
+    entry  = isLong ? (bar.h || price) + 0.25 : (bar.l || price) - 0.25;
+    const risk = Math.abs(entry - sweepPt) + 0.25;
+    stop   = isLong ? sweepPt - 0.25 : sweepPt + 0.25;
+    t1     = isLong ? entry + risk     : entry - risk;
+    t2     = isLong ? entry + risk*2   : entry - risk*2;
+    t3stop = isLong ? t1               : t1;
+  } else if (setupId === 'VWAP Pullback') {
+    detect = vwap.value || price;
+    verify = isLong ? detect + 0.5 : detect - 0.5;
+    entry  = isLong ? verify + 0.5  : verify - 0.5;
+    stop   = isLong ? detect - 0.5  : detect + 0.5;
+    const risk = Math.abs(entry - stop);
+    t1     = isLong ? entry + risk   : entry - risk;
+    t2     = isLong ? entry + risk*2 : entry - risk*2;
+    t3stop = t1;
+  } else if (setupId === 'IB Breakout') {
+    const ibLevel = isLong ? (sess.ibh || price+2) : (sess.ibl || price-2);
+    detect = ibLevel;
+    verify = isLong ? ibLevel - 0.5 : ibLevel + 0.5;
+    entry  = isLong ? ibLevel + 0.25 : ibLevel - 0.25;
+    stop   = isLong ? ibLevel - 1.5 : ibLevel + 1.5;
+    const risk = Math.abs(entry - stop);
+    t1     = isLong ? entry + risk   : entry - risk;
+    t2     = isLong ? entry + risk*2 : entry - risk*2;
+    t3stop = isLong ? (woodi.r1 || t1) : (woodi.s1 || t1);
+  } else if (setupId === 'CCI Turbo') {
+    detect = prof.poc || price;
+    verify = isLong ? detect + 0.5 : detect - 0.5;
+    entry  = isLong ? verify + 0.5  : verify - 0.5;
+    stop   = isLong ? (bar.l || price-2) - 0.25 : (bar.h || price+2) + 0.25;
+    const risk = Math.abs(entry - stop);
+    t1     = isLong ? entry + risk   : entry - risk;
+    t2     = isLong ? entry + risk*2 : entry - risk*2;
+    t3stop = isLong ? (woodi.r1 || t2) : (woodi.s1 || t2);
+  }
+
+  return { detect, verify, entry, stop, t1, t2, t3stop };
 }
 
 // ── Live LONG/SHORT probability ───────────────────────────────────────────────
@@ -783,65 +841,6 @@ function Indicators({ live }:{ live:MarketData|null }) {
   );
 }
 
-
-// ── AI Analysis Panel ─────────────────────────────────────────────────────────
-function AIAnalysisPanel({ signal, signalTime, aiLoading, onAskAI }:{ signal?:Signal|null; signalTime?:string; aiLoading:boolean; onAskAI:()=>void }) {
-  if(aiLoading) return (
-    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:14, display:'flex', alignItems:'center', gap:10 }}>
-      <div style={{ width:12,height:12,borderRadius:'50%',border:'2px solid #4a5568',borderTopColor:'#7f77dd',animation:'spin 0.8s linear infinite',flexShrink:0 }} />
-      <span style={{ fontSize:11,color:'#6b7280' }}>Claude מנתח...</span>
-    </div>
-  );
-  if(!signal) return (
-    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'10px 14px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-      <span style={{ fontSize:11,color:'#4a5568' }}>לחץ לניתוח AI</span>
-      <button onClick={onAskAI} style={{ padding:'4px 14px',borderRadius:6,fontSize:11,fontWeight:700,background:'#7f77dd22',color:'#7f77dd',border:'1px solid #7f77dd44',cursor:'pointer',fontFamily:'inherit' }}>⚡ נתח</button>
-    </div>
-  );
-  const col=signal.direction==='LONG'?'#22c55e':signal.direction==='SHORT'?'#ef5350':'#f59e0b';
-  const dir=signal.direction==='LONG'?'▲ LONG':signal.direction==='SHORT'?'▼ SHORT':'⏳ המתן';
-  return (
-    <div style={{ background:'#0a1117',border:`1.5px solid ${col}33`,borderRadius:8,overflow:'hidden' }}>
-      <div style={{ display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:`${col}08`,borderBottom:`1px solid ${col}22` }}>
-        <div style={{ width:7,height:7,borderRadius:'50%',background:col,boxShadow:`0 0 5px ${col}` }} />
-        <span style={{ fontSize:10,color:'#7f77dd',fontWeight:700 }}>⚡ CLAUDE AI</span>
-        <span style={{ fontSize:13,fontWeight:800,color:col }}>{dir}</span>
-        {signal.setup&&<span style={{ fontSize:9,padding:'2px 8px',borderRadius:10,background:`${col}22`,color:col,fontWeight:700 }}>{signal.setup}</span>}
-        <span style={{ fontSize:9,color:'#4a5568',marginLeft:'auto' }}>{signalTime&&`${signalTime}`}</span>
-        <button onClick={onAskAI} style={{ padding:'2px 8px',borderRadius:5,fontSize:9,fontWeight:700,background:'#1e2738',color:'#6b7280',border:'1px solid #2d3a4a',cursor:'pointer',fontFamily:'inherit' }}>🔄</button>
-      </div>
-      {signal.rationale&&(
-        <div style={{ padding:'10px 14px',borderBottom:'1px solid #1e2738' }}>
-          <div style={{ fontSize:9,color:'#4a5568',marginBottom:5,letterSpacing:1 }}>ניתוח שוק</div>
-          <div style={{ fontSize:13,color:'#cbd5e1',lineHeight:1.9,direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif' }}>{signal.rationale}</div>
-        </div>
-      )}
-      {signal.wait_reason&&(
-        <div style={{ padding:'8px 14px',borderBottom:'1px solid #1e2738',background:'#0d1117' }}>
-          <div style={{ fontSize:9,color:'#f59e0b',marginBottom:3 }}>⏳ מה חסר</div>
-          <div style={{ fontSize:12,color:'#94a3b8',lineHeight:1.8,direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif' }}>{signal.wait_reason}</div>
-        </div>
-      )}
-      {(signal.entry??0)>0&&(
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(5,1fr)' }}>
-          {[
-            {l:'כניסה',v:(signal.entry??0).toFixed(2),c:'#f0f6fc'},
-            {l:'סטופ',v:(signal.stop??0).toFixed(2),c:'#ef5350'},
-            {l:'T1',v:(signal.target1??0).toFixed(2),c:'#22c55e'},
-            {l:'T2',v:(signal.target2??0).toFixed(2),c:'#16a34a'},
-            {l:'WR',v:`${signal.win_rate??0}%`,c:col},
-          ].map(({l,v,c})=>(
-            <div key={l} style={{ padding:'7px 4px',textAlign:'center',borderRight:'1px solid #1e2738' }}>
-              <div style={{ fontSize:9,color:'#4a5568',marginBottom:2 }}>{l}</div>
-              <div style={{ fontSize:11,fontWeight:800,color:c,fontFamily:'monospace' }}>{v}</div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Root Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [live,setLive]=useState<MarketData|null>(null);
@@ -852,8 +851,6 @@ export default function Dashboard() {
   const [lockedSignal,setLockedSignal]=useState<any>(null);
   const [rejectedTs,setRejectedTs]=useState(0);
   const [aiLoading,setAiLoading]=useState(false);
-  const [persistedSignal,setPersistedSignal]=useState<Signal|null>(null);
-  const [signalTime,setSignalTime]=useState<string>('');
   const prevSigRef=useRef<string>('');
 
   const askAI=useCallback(async()=>{
@@ -861,19 +858,22 @@ export default function Dashboard() {
     setAiLoading(true);
     try{
       const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
-      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      if(!r.ok) throw new Error();
       const sig=await r.json();
-      if(!sig?.direction) throw new Error('no direction');
-      // שמור מיד — לא ייעלם לעולם
-      setPersistedSignal(sig);
-      setSignalTime(new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
-      setLive(prev=>prev?{...prev,signal:sig}:prev);
+      if(!sig?.direction) return;
+      // תמיד מציג — גם אם נדחה קודם
+      prevSigRef.current='';
+      setRejectedTs(0);
       const isGreen=sig.tl_color==='green'||sig.tl_color==='green_bright';
       if(isGreen && sig.direction!=='NO_TRADE'){
         setLockedSignal(sig);
         setAccepted(true);
+      } else {
+        setAccepted(false);
+        setLockedSignal(null);
       }
-    }catch(e){console.error('AI:',e);}
+      setLive(prev=>prev?{...prev,signal:sig}:prev);
+    }catch{}
     finally{ setAiLoading(false); }
   },[aiLoading]);
 
@@ -882,10 +882,7 @@ export default function Dashboard() {
       const r=await fetch(`${API_URL}/market/latest?t=${Date.now()}`,{cache:'no-store'});
       if(!r.ok)throw new Error();
       const d:MarketData=await r.json();
-      if(d?.bar){
-        setLive(prev=>({...d,signal:prev?.signal??d.signal}));
-        setConnected(true);
-      }
+      if(d?.bar){setLive(d);setConnected(true);}
     }catch{setConnected(false);}
   },[]);
 
@@ -929,101 +926,79 @@ export default function Dashboard() {
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
+  const setupLevels = selectedSetup ? calcSetupLevels(selectedSetup.id, live, selectedSetup.dir) : null;
+  const setupCol = calcSetups(live)?.find(s=>s.name===selectedSetup?.id)?.col||'#f59e0b';
   const activeSetups = calcSetups(live)?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
     name:s.name, dir:(s.long.score>=s.short.score?'long':'short') as 'long'|'short', col:s.col,
   }));
+  const chartSignal:any = setupLevels ? {
+    direction: selectedSetup!.dir==='long'?'LONG':'SHORT',
+    entry:setupLevels.entry, stop:setupLevels.stop,
+    target1:setupLevels.t1, target2:setupLevels.t2, target3:setupLevels.t3stop,
+    score:8, tl_color:'green', setup:selectedSetup!.id,
+    win_rate:70, risk_pts:Math.abs(setupLevels.entry-setupLevels.stop),
+    _detect:setupLevels.detect, _verify:setupLevels.verify, _col:setupCol,
+  } : (accepted&&lockedSignal)?lockedSignal:persistedSignal??null;
 
   return (
-    <div style={{ background:'#0a0a0f',fontFamily:'"JetBrains Mono","Fira Code",monospace',display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden' }}>
+    <div style={{ background:'#0a0a0f', minHeight:'100vh', padding:12, display:'flex', flexDirection:'column', gap:10, fontFamily:'"JetBrains Mono","Fira Code",monospace' }}>
 
-      {/* TopBar */}
-      <div style={{ flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738' }}>
-        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} />
+      {/* א — Top bar */}
+      <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} />
+
+      {/* ב + ג — Score + Entry Zone */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        <MainScore
+          live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : live}
+          accepted={accepted}
+          onAccept={()=>{ setAccepted(true); setLockedSignal(live?.signal); }}
+          onReject={()=>{
+            const sig=lockedSignal||live?.signal;
+            if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
+            setAccepted(false);
+            setLockedSignal(null);
+            setRejectedTs(Date.now());
+          }}
+        />
+        <EntryZone live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : null} />
       </div>
 
-      {/* גרף (שמאל) + עמודת מידע (ימין) */}
-      <div style={{ display:'grid',gridTemplateColumns:'1fr 320px',flex:1,overflow:'hidden' }}>
-
-        {/* גרף — קבוע, לא זז */}
-        <div style={{ display:'flex',flexDirection:'column',overflow:'hidden',position:'relative',borderRight:'1px solid #1e2738' }}>
+      {/* ד + ה — Chart + Indicators */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 240px', gap:10 }}>
+        {/* Chart */}
+        <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
           {/* Chart header */}
-          <div style={{ flexShrink:0,display:'flex',alignItems:'center',gap:8,padding:'5px 12px',background:'#111827',borderBottom:'1px solid #1e2738' }}>
-            <span style={{ fontSize:9,color:'#4a5568',letterSpacing:2 }}>גרף</span>
-            {/* Setup badges */}
-            <div style={{ display:'flex',gap:4,flex:1 }}>
-              {activeSetups&&activeSetups.length>0?activeSetups.map(s=>(
-                <div key={s.name} style={{ display:'flex',alignItems:'center',gap:4,padding:'2px 8px',borderRadius:10,border:`1px solid ${s.col}66`,background:`${s.col}15` }}>
-                  <div style={{ width:5,height:5,borderRadius:'50%',background:s.col,boxShadow:`0 0 4px ${s.col}` }} />
-                  <span style={{ fontSize:9,fontWeight:800,color:s.col }}>{s.name}</span>
-                  <span style={{ fontSize:9,color:s.dir==='long'?'#22c55e':'#ef5350',fontWeight:700 }}>{s.dir==='long'?'▲':'▼'}</span>
-                </div>
-              )):<span style={{ fontSize:9,color:'#2d3a4a' }}>אין סטאפ פעיל</span>}
-            </div>
-            <div style={{ display:'flex',gap:3 }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#111827', borderBottom:'1px solid #1e2738' }}>
+            <span style={{ fontSize:9, color:'#4a5568', letterSpacing:2 }}>גרף נרות + רמות</span>
+            <div style={{ display:'flex', gap:3, marginLeft:'auto' }}>
               {(['m3','m15','m30','m60'] as const).map(t=>(
-                <button key={t} onClick={()=>setTf(t)} style={{ padding:'2px 7px',borderRadius:4,fontSize:9,fontWeight:700,border:'none',cursor:'pointer',fontFamily:'inherit',background:tf===t?'#f6c90e':'#1e2738',color:tf===t?'#0d1117':'#6b7280' }}>{t.toUpperCase()}</button>
+                <button key={t} onClick={()=>setTf(t)} style={{ padding:'2px 8px', borderRadius:5, fontSize:9, fontWeight:700, border:'none', cursor:'pointer', fontFamily:'inherit', background:tf===t?'#f6c90e':'#1e2738', color:tf===t?'#0d1117':'#6b7280' }}>{t.toUpperCase()}</button>
               ))}
             </div>
           </div>
-          {/* גרף */}
-          <div style={{ flex:1,position:'relative',overflow:'hidden' }}>
-            <LightweightChart
-              candles={candles}
-              livePrice={live?.price}
-              liveBar={live?.bar?{ts:live.ts,o:live.bar.o,h:live.bar.h,l:live.bar.l,c:live.bar.c}:null}
-              vwap={live?.vwap?.value}
-              levels={live?.levels}
-              profile={live?.profile}
-              session={{ibh:live?.session?.ibh,ibl:live?.session?.ibl}}
-              signal={(accepted&&lockedSignal)?lockedSignal:persistedSignal??null}
-              activeSetups={activeSetups}
-              height={undefined}
-            />
-            {/* Setup overlay על הגרף */}
-            {activeSetups&&activeSetups.length>0&&(
-              <div style={{ position:'absolute',top:8,left:8,display:'flex',flexDirection:'column',gap:5,zIndex:10,pointerEvents:'none' }}>
-                {activeSetups.map(s=>(
-                  <div key={s.name} style={{ display:'flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:7,border:`1.5px solid ${s.col}`,background:'#0d1117ee' }}>
-                    <div style={{ width:7,height:7,borderRadius:'50%',background:s.col,boxShadow:`0 0 7px ${s.col}` }} />
-                    <span style={{ fontSize:11,fontWeight:800,color:s.col }}>{s.name}</span>
-                    <span style={{ fontSize:11,fontWeight:800,color:s.dir==='long'?'#22c55e':'#ef5350' }}>{s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div style={{ flexShrink:0,borderTop:'1px solid #1e2738' }}>
-            <VolumeTimer bar={bar??null} />
-          </div>
+          <LightweightChart
+            candles={candles}
+            livePrice={live?.price}
+            liveBar={live?.bar ? { ts: live.ts, o: live.bar.o, h: live.bar.h, l: live.bar.l, c: live.bar.c } : null}
+            vwap={live?.vwap?.value}
+            levels={live?.levels}
+            profile={live?.profile}
+            session={{ ibh: live?.session?.ibh, ibl: live?.session?.ibl }}
+            signal={(accepted && lockedSignal) ? lockedSignal : live?.signal ?? null}
+            activeSetups={activeSetups}
+            height={undefined}
+          />
+          <VolumeTimer bar={bar??null} />
         </div>
 
-        {/* עמודה ימין — כל המידע */}
-        <div style={{ overflowY:'auto',display:'flex',flexDirection:'column',gap:8,padding:10 }}>
-          <MainScore
-            live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:live}
-            accepted={accepted}
-            onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
-            onReject={()=>{
-              const sig=lockedSignal||live?.signal;
-              if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
-              setAccepted(false);setLockedSignal(null);setRejectedTs(Date.now());
-            }}
-          />
-          <EntryZone live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:null} />
-          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={askAI} />
-          <SetupScanner live={live} />
-          <Indicators live={live} />
-        </div>
+        {/* Indicators */}
+        <Indicators live={live} />
+
+        {/* Setup Scanner */}
+        <SetupScanner live={live} />
       </div>
 
-      <style>{`
-        @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        .live-blink{animation:blink 2s infinite}
-        ::-webkit-scrollbar{width:4px}
-        ::-webkit-scrollbar-track{background:#0a0a0f}
-        ::-webkit-scrollbar-thumb{background:#1e2738;border-radius:2px}
-      `}</style>
+      <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} .live-blink{animation:blink 2s infinite} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
