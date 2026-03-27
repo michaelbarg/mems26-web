@@ -1146,7 +1146,7 @@ export default function Dashboard() {
           aiLoading={aiLoading}
           onAskAI={askAI}
           selectedSetup={selectedSetup}
-          onSelectSetup={(id,dir)=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})}
+          onSelectSetup={(id:string,dir:'long'|'short')=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
           onReject={()=>{
             const sig=lockedSignal||live?.signal;
