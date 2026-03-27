@@ -903,6 +903,65 @@ function AIAnalysisPanel({signal,signalTime,aiLoading,onAskAI}:{signal?:Signal|n
   );
 }
 
+
+// ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
+function RightPanel({ live, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, selectedSetup, onSelectSetup, onAccept, onReject }:any) {
+  const [tab, setTab] = useState<'signal'|'setups'|'indicators'>('signal');
+  const tabs = [
+    { id:'signal',    label:'סיגנל', icon:'⚡' },
+    { id:'setups',    label:'סטאפים', icon:'🔍' },
+    { id:'indicators',label:'נתונים', icon:'📊' },
+  ] as const;
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', height:'100%', borderLeft:'1px solid #1e2738' }}>
+      {/* Tab bar */}
+      <div style={{ display:'flex', borderBottom:'1px solid #1e2738', flexShrink:0 }}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            style={{ flex:1, padding:'7px 4px', border:'none', cursor:'pointer', fontFamily:'inherit',
+              background: tab===t.id ? '#1e2738' : '#111827',
+              borderBottom: tab===t.id ? '2px solid #7f77dd' : '2px solid transparent',
+              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:10, fontWeight:700,
+              display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+            <span style={{ fontSize:13 }}>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div style={{ flex:1, overflowY:'auto', padding:8, display:'flex', flexDirection:'column', gap:7 }}>
+
+        {tab === 'signal' && <>
+          <MainScore
+            live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:live}
+            accepted={accepted}
+            onAccept={onAccept}
+            onReject={onReject}
+          />
+          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={onAskAI} />
+          <EntryZone live={live} signal={persistedSignal} />
+        </>}
+
+        {tab === 'setups' && <>
+          <SetupScanner live={live} onSelect={onSelectSetup} selectedId={selectedSetup?.id} />
+          {selectedSetup && (
+            <div style={{ padding:'8px 10px', background:'#111827', border:'1px solid #1e2738', borderRadius:8, fontSize:10, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
+              לחץ על הגרף לראות את רמות הסטאפ
+            </div>
+          )}
+        </>}
+
+        {tab === 'indicators' && <>
+          <Indicators live={live} />
+        </>}
+
+      </div>
+    </div>
+  );
+}
+
 // ── Root Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [live,setLive]=useState<MarketData|null>(null);
@@ -1077,34 +1136,24 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* עמודה ימין — סדר: Score → AI → Entry → Setups → Indicators */}
-        <div style={{overflowY:'auto',display:'flex',flexDirection:'column',gap:8,padding:10}}>
-
-          {/* 1. MainScore + רמזור — תמיד ראשון */}
-          <MainScore
-            live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:live}
-            accepted={accepted}
-            onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
-            onReject={()=>{
-              const sig=lockedSignal||live?.signal;
-              if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
-              setAccepted(false);setLockedSignal(null);setRejectedTs(Date.now());
-            }}
-          />
-
-          {/* 2. AI Analysis — מיד אחרי הרמזור */}
-          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={askAI} />
-
-          {/* 3. Entry Zone — רק כשיש סיגנל ירוק */}
-          <EntryZone live={live} signal={persistedSignal} />
-
-          {/* 4. Setup Scanner — לחיצה מציגה על הגרף */}
-          <SetupScanner live={live} onSelect={(id,dir)=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})} selectedId={selectedSetup?.id} />
-
-          {/* 5. Indicators — רמזורים קטנים עם כל המידע */}
-          <Indicators live={live} />
-
-        </div>
+        {/* עמודה ימין — טאבים */}
+        <RightPanel
+          live={live}
+          accepted={accepted}
+          lockedSignal={lockedSignal}
+          persistedSignal={persistedSignal}
+          signalTime={signalTime}
+          aiLoading={aiLoading}
+          onAskAI={askAI}
+          selectedSetup={selectedSetup}
+          onSelectSetup={(id,dir)=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})}
+          onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
+          onReject={()=>{
+            const sig=lockedSignal||live?.signal;
+            if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
+            setAccepted(false);setLockedSignal(null);setRejectedTs(Date.now());
+          }}
+        />
       </div>
 
       <style>{`
