@@ -27,11 +27,198 @@ interface Candle { ts:number; o:number; h:number; l:number; c:number; buy:number
 const G = '#22c55e', Y = '#f59e0b', R = '#ef5350';
 const scoreCol = (s:number) => s >= 7 ? G : s >= 5 ? Y : R;
 
+// ── Real-time Setup Scanner ───────────────────────────────────────────────────
+function calcSetups(live: MarketData | null) {
+  if (!live) return null;
+  const cvd  = live.cvd        || {} as any;
+  const vwap = live.vwap       || {} as any;
+  const prof = live.profile    || {} as any;
+  const of2  = live.order_flow || {} as any;
+  const sess = live.session    || {} as any;
+  const bar  = live.bar        || {} as any;
+  const mtf  = live.mtf        || {} as any;
+  const wcci = (live as any).woodies_cci     || {};
+  const day  = (live as any).day             || {};
+  const cp   = (live as any).candle_patterns || {};
+
+  const liqLong   = [
+    { label:'LiqSweep', ok:!!of2.liq_sweep_long },
+    { label:'Delta +',  ok:(bar.delta||0)>0 },
+    { label:'CVD Bull', ok:cvd.trend==='BULLISH' },
+    { label:'Vol Buy',  ok:(cvd.buy_vol||0)>(cvd.sell_vol||0) },
+    { label:'Engulf ↑', ok:!!cp.bull_engulf },
+  ];
+  const liqShort  = [
+    { label:'Sweep ↓',  ok:!!of2.liq_sweep_short },
+    { label:'Delta −',  ok:(bar.delta||0)<0 },
+    { label:'CVD Bear', ok:cvd.trend==='BEARISH' },
+    { label:'Vol Sell', ok:(cvd.sell_vol||0)>(cvd.buy_vol||0) },
+    { label:'Engulf ↓', ok:!!cp.bear_engulf },
+  ];
+  const vwapLong  = [
+    { label:'מעל VWAP', ok:!!vwap.above },
+    { label:'Pullback', ok:!!vwap.pullback },
+    { label:'CVD Bull', ok:cvd.trend==='BULLISH' },
+    { label:'Hook Up',  ok:!!wcci.hook_up||!!wcci.zlr_bull },
+    { label:'Hammer',   ok:cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG' },
+  ];
+  const vwapShort = [
+    { label:'מתחת VWAP',ok:!vwap.above },
+    { label:'Dist < 2', ok:(vwap.distance||0)<2&&!vwap.above },
+    { label:'CVD Bear', ok:cvd.trend==='BEARISH' },
+    { label:'Hook Dn',  ok:!!wcci.hook_down||!!wcci.zlr_bear },
+    { label:'Star',     ok:cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG' },
+  ];
+  const ibLong    = [
+    { label:'IB Lock',  ok:!!sess.ib_locked },
+    { label:'Break Up', ok:!!day.ib_breakout_up },
+    { label:'Absorb',   ok:!!of2.absorption_bull },
+    { label:'CCI14>0',  ok:(wcci.cci14||0)>0 },
+    { label:'15m Bull', ok:(mtf?.m15?.delta||0)>0 },
+  ];
+  const ibShort   = [
+    { label:'IB Lock',  ok:!!sess.ib_locked },
+    { label:'Break Dn', ok:!!day.ib_breakout_down },
+    { label:'CVD Bear', ok:cvd.trend==='BEARISH' },
+    { label:'CCI14<0',  ok:(wcci.cci14||0)<0 },
+    { label:'15m Bear', ok:(mtf?.m15?.delta||0)<0 },
+  ];
+  const turboLong = [
+    { label:'Turbo ↑',  ok:!!wcci.turbo_bull },
+    { label:'BLUE',     ok:wcci.hist_color==='BLUE' },
+    { label:'מעל VWAP', ok:!!vwap.above },
+    { label:'מעל POC',  ok:!!prof.above_poc },
+    { label:'CVD d5+',  ok:(cvd.d5||0)>0 },
+  ];
+  const turboShort= [
+    { label:'Turbo ↓',  ok:!!wcci.turbo_bear },
+    { label:'D.RED',    ok:wcci.hist_color==='DARK_RED' },
+    { label:'מתחת VWAP',ok:!vwap.above },
+    { label:'מתחת POC', ok:!prof.above_poc },
+    { label:'CVD d5−',  ok:(cvd.d5||0)<0 },
+  ];
+
+  const pct = (c:{ok:boolean}[]) => Math.round(c.filter(x=>x.ok).length/c.length*100);
+  const wr  = (base:number, s:number) => Math.round(base*(s/100)*0.55 + base*0.45);
+
+  return [
+    { name:'Liq Sweep',    col:'#22c55e', base:72, long:{checks:liqLong,   score:pct(liqLong)},   short:{checks:liqShort,  score:pct(liqShort)} },
+    { name:'VWAP Pullback',col:'#f6c90e', base:66, long:{checks:vwapLong,  score:pct(vwapLong)},  short:{checks:vwapShort, score:pct(vwapShort)} },
+    { name:'IB Breakout',  col:'#60a5fa', base:62, long:{checks:ibLong,    score:pct(ibLong)},    short:{checks:ibShort,   score:pct(ibShort)} },
+    { name:'CCI Turbo',    col:'#a78bfa', base:64, long:{checks:turboLong, score:pct(turboLong)}, short:{checks:turboShort,score:pct(turboShort)} },
+  ].map(s=>({...s, long:{...s.long,wr:wr(s.base,s.long.score)}, short:{...s.short,wr:wr(s.base,s.short.score)}}));
+}
+
+function SetupScanner({ live }:{ live:MarketData|null }) {
+  const setups = calcSetups(live);
+  if (!setups) return null;
+  return (
+    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:12 }}>
+      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:8 }}>סורק סטאפים — זמן אמת</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+        {setups.map(s => {
+          const best    = s.long.score >= s.short.score ? 'long' : 'short';
+          const bScore  = best==='long' ? s.long.score : s.short.score;
+          const bWR     = best==='long' ? s.long.wr    : s.short.wr;
+          const bChecks = best==='long' ? s.long.checks: s.short.checks;
+          const active  = bScore >= 60;
+          return (
+            <div key={s.name} style={{ border:`1px solid ${active?s.col+'55':'#1e2738'}`, borderRadius:6, padding:'7px 9px', background:active?s.col+'08':'transparent' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
+                <div style={{ width:7, height:7, borderRadius:'50%', background:s.col, opacity:active?1:0.3, boxShadow:active?`0 0 5px ${s.col}`:'none' }} />
+                <span style={{ fontSize:11, fontWeight:500, color:'#e2e8f0', flex:1 }}>{s.name}</span>
+                <span style={{ fontSize:10, color:best==='long'?G:R, fontWeight:700 }}>{best==='long'?'▲ L':'▼ S'}</span>
+                <span style={{ fontSize:14, fontWeight:800, color:active?s.col:'#4a5568', fontFamily:'monospace', minWidth:34, textAlign:'right' }}>{bWR}%</span>
+              </div>
+              <div style={{ height:3, background:'#1e2738', borderRadius:2, marginBottom:5, overflow:'hidden' }}>
+                <div style={{ width:`${bScore}%`, height:'100%', background:s.col, borderRadius:2, opacity:active?1:0.4 }} />
+              </div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 6px' }}>
+                {bChecks.map(c=>(
+                  <span key={c.label} style={{ fontSize:9, color:c.ok?s.col:'#2d3a4a', display:'flex', alignItems:'center', gap:2 }}>
+                    <span style={{ width:4, height:4, borderRadius:'50%', background:c.ok?s.col:'#2d3a4a', display:'inline-block', flexShrink:0 }} />
+                    {c.label}
+                  </span>
+                ))}
+              </div>
+              <div style={{ display:'flex', marginTop:4, fontSize:9 }}>
+                <span style={{ color:G, flex:1 }}>L {s.long.score}% <span style={{ color:'#2d3a4a' }}>({s.long.wr}% WR)</span></span>
+                <span style={{ color:R, textAlign:'right' }}>S {s.short.score}% <span style={{ color:'#2d3a4a' }}>({s.short.wr}% WR)</span></span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ── Live LONG/SHORT probability ───────────────────────────────────────────────
+function calcProbability(live: MarketData | null): { long: number; short: number } {
+  if (!live) return { long: 50, short: 50 };
+
+  const cvd    = live.cvd    || {} as any;
+  const vwap   = live.vwap   || {} as any;
+  const prof   = live.profile|| {} as any;
+  const woodi  = live.woodi  || {} as any;
+  const of2    = live.order_flow || {} as any;
+  const bar    = live.bar    || {} as any;
+  const sess   = live.session|| {} as any;
+
+  let longScore  = 0;
+  let shortScore = 0;
+
+  // CVD Trend (משקל גבוה)
+  if (cvd.trend === 'BULLISH')  longScore  += 20;
+  if (cvd.trend === 'BEARISH')  shortScore += 20;
+  if ((cvd.d20 || 0) > 200)    longScore  += 10;
+  if ((cvd.d20 || 0) < -200)   shortScore += 10;
+  if ((cvd.d5  || 0) > 50)     longScore  += 8;
+  if ((cvd.d5  || 0) < -50)    shortScore += 8;
+  if ((bar.delta || 0) > 100)   longScore  += 6;
+  if ((bar.delta || 0) < -100)  shortScore += 6;
+
+  // VWAP
+  if (vwap.above)             longScore  += 12;
+  else                        shortScore += 12;
+  if (vwap.pullback)          longScore  += 8;
+
+  // Profile
+  if (prof.above_poc)         longScore  += 8;
+  else                        shortScore += 8;
+  if (prof.in_va) { longScore += 3; shortScore += 3; }
+
+  // Woodi PP
+  if (woodi.above_pp)         longScore  += 6;
+  else                        shortScore += 6;
+
+  // Order Flow
+  if (of2.absorption_bull)    longScore  += 10;
+  if (of2.liq_sweep || of2.liq_sweep_long) longScore += 8;
+  if (of2.liq_sweep_short)    shortScore += 8;
+  if ((of2.imbalance_bull||0) > 0) longScore  += 5;
+  if ((of2.imbalance_bear||0) > 0) shortScore += 5;
+
+  // Session
+  if (sess.phase === 'RTH' || sess.phase === 'AM_SESSION') {
+    longScore += 2; shortScore += 2;
+  }
+
+  const total = longScore + shortScore || 1;
+  const longPct  = Math.round((longScore  / total) * 100);
+  const shortPct = 100 - longPct;
+  return { long: longPct, short: shortPct };
+}
+
 // ── Traffic Light — רמזור קלאסי אנכי ─────────────────────────────────────────
-function TrafficLight({ score }: { score: number }) {
+function TrafficLight({ score, live }: { score: number; live: MarketData | null }) {
   const isGreen  = score >= 7;
   const isYellow = score >= 5 && score < 7;
   const isRed    = score < 5;
+  const { long, short } = calcProbability(live);
+  const bias = long > short ? 'LONG' : short > long ? 'SHORT' : 'NEUTRAL';
+  const biasCol = bias === 'LONG' ? G : bias === 'SHORT' ? R : Y;
+
   const light = (on: boolean, color: string) => ({
     width: 28, height: 28, borderRadius: '50%',
     background: on ? color : '#1a1a2e',
@@ -39,11 +226,42 @@ function TrafficLight({ score }: { score: number }) {
     boxShadow: on ? `0 0 14px ${color}, 0 0 4px ${color}` : 'none',
     transition: 'all .4s',
   });
+
   return (
-    <div style={{ background:'#111827', border:'2px solid #2d3a4a', borderRadius:14, padding:'10px 8px', display:'flex', flexDirection:'column', gap:8, alignItems:'center', width:48, flexShrink:0 }}>
-      <div style={light(isRed,    R)} />
-      <div style={light(isYellow, Y)} />
-      <div style={light(isGreen,  G)} />
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flexShrink:0 }}>
+      {/* Traffic light housing */}
+      <div style={{ background:'#111827', border:'2px solid #2d3a4a', borderRadius:14, padding:'10px 8px', display:'flex', flexDirection:'column', gap:8, alignItems:'center', width:48 }}>
+        <div style={light(isRed,    R)} />
+        <div style={light(isYellow, Y)} />
+        <div style={light(isGreen,  G)} />
+      </div>
+
+      {/* LONG/SHORT probability */}
+      <div style={{ width:48, background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'6px 4px', display:'flex', flexDirection:'column', gap:4 }}>
+        <div style={{ textAlign:'center', fontSize:8, color:'#4a5568', marginBottom:2 }}>סיכוי</div>
+        {/* LONG bar */}
+        <div>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:8, marginBottom:1 }}>
+            <span style={{ color:G, fontWeight:700 }}>L</span>
+            <span style={{ color:G, fontFamily:'monospace', fontWeight:700 }}>{long}%</span>
+          </div>
+          <div style={{ height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
+            <div style={{ width:`${long}%`, height:'100%', background:G, borderRadius:2, transition:'width .5s' }} />
+          </div>
+        </div>
+        {/* SHORT bar */}
+        <div>
+          <div style={{ display:'flex', justifyContent:'space-between', fontSize:8, marginBottom:1 }}>
+            <span style={{ color:R, fontWeight:700 }}>S</span>
+            <span style={{ color:R, fontFamily:'monospace', fontWeight:700 }}>{short}%</span>
+          </div>
+          <div style={{ height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
+            <div style={{ width:`${short}%`, height:'100%', background:R, borderRadius:2, transition:'width .5s' }} />
+          </div>
+        </div>
+        {/* Bias label */}
+        <div style={{ textAlign:'center', fontSize:9, fontWeight:700, color:biasCol, marginTop:2 }}>{bias}</div>
+      </div>
     </div>
   );
 }
@@ -133,7 +351,7 @@ function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null
   return (
     <div style={{ background: isActive ? '#0d1f1a' : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14, minHeight:120 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-        <TrafficLight score={score} />
+        <TrafficLight score={score} live={live} />
         <div style={{ width:44, height:44, borderRadius:'50%', background:col+'18', border:`2px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <span style={{ fontSize:20, fontWeight:800, color:col, fontFamily:'monospace' }}>{score}</span>
         </div>
@@ -695,6 +913,11 @@ export default function Dashboard() {
             profile={live?.profile}
             session={{ ibh: live?.session?.ibh, ibl: live?.session?.ibl }}
             signal={(accepted && lockedSignal) ? lockedSignal : live?.signal ?? null}
+            activeSetups={calcSetups(live)?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
+              name: s.name,
+              dir: s.long.score>=s.short.score ? 'long' : 'short',
+              col: s.col,
+            }))}
             height={480}
           />
           <VolumeTimer bar={bar??null} />
@@ -702,6 +925,9 @@ export default function Dashboard() {
 
         {/* Indicators */}
         <Indicators live={live} />
+
+        {/* Setup Scanner */}
+        <SetupScanner live={live} />
       </div>
 
       <style>{`@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}} .live-blink{animation:blink 2s infinite} @keyframes spin{to{transform:rotate(360deg)}}`}</style>
