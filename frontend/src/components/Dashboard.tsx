@@ -1045,10 +1045,10 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* עמודה ימין */}
-        <div style={{overflowY:'auto',display:'flex',flexDirection:'column',gap:8,padding:10,paddingTop:12}}>
-          {/* AI — ראשון כדי שיהיה נראה מיד */}
-          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={askAI} />
+        {/* עמודה ימין — סדר: Score → AI → Entry → Setups → Indicators */}
+        <div style={{overflowY:'auto',display:'flex',flexDirection:'column',gap:8,padding:10}}>
+
+          {/* 1. MainScore + רמזור — תמיד ראשון */}
           <MainScore
             live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:live}
             accepted={accepted}
@@ -1059,9 +1059,19 @@ export default function Dashboard() {
               setAccepted(false);setLockedSignal(null);setRejectedTs(Date.now());
             }}
           />
+
+          {/* 2. AI Analysis — מיד אחרי הרמזור */}
+          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={askAI} />
+
+          {/* 3. Entry Zone — רק כשיש סיגנל ירוק */}
           <EntryZone live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:null} />
+
+          {/* 4. Setup Scanner — לחיצה מציגה על הגרף */}
           <SetupScanner live={live} onSelect={(id,dir)=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})} selectedId={selectedSetup?.id} />
+
+          {/* 5. Indicators — רמזורים קטנים עם כל המידע */}
           <Indicators live={live} />
+
         </div>
       </div>
 
