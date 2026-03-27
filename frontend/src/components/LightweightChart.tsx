@@ -204,17 +204,15 @@ export default function LightweightChart({
     add(session?.ibl,           '#38bdf8', 'IBL ', 2);
     add(vwap,                   '#f6c90e', 'VWAP', 0, 2);
 
-    // Setup overlay — נקודות הבחנה ובדיקה
-    const sig2 = signal as any;
-    if (sig2?._detect) add(sig2._detect, '#f6c90e', '① הבחנה  ', 4, 2);
-    if (sig2?._verify) add(sig2._verify, '#60a5fa', '② בדיקה  ', 4, 2);
-
+    const s2=signal as any;
+    if(s2?._detect) add(s2._detect,'#f6c90e','① הבחנה ',4,2);
+    if(s2?._verify) add(s2._verify,'#60a5fa','② בדיקה ',4,2);
     if (signal && signal.direction !== 'NO_TRADE' && signal.entry) {
-      add(signal.entry,   sig2._detect?'#a78bfa':'#ffffff', '③ → כניסה', 0, 2);
-      add(signal.stop,    '#ef5350', '④ ✕ סטופ ', 2, 1);
-      add(signal.target1, '#22c55e', '⑤ T1·C1  ', 2, 1);
-      add(signal.target2, '#16a34a', '⑥ T2·C2  ', 2, 1);
-      add(signal.target3, '#86efac', '⑦ T3·Stop', 1, 1);
+      add(signal.entry,   s2?._detect?'#a78bfa':'#ffffff', s2?._detect?'③ כניסה ':'→ ENTRY  ', 0, 2);
+      add(signal.stop,    '#ef5350', s2?._detect?'④ סטופ  ':'✕ STOP   ', 2, 1);
+      add(signal.target1, '#22c55e', s2?._detect?'⑤ T1·C1 ':'⊕ T1·C1  ', 2, 1);
+      add(signal.target2, '#16a34a', s2?._detect?'⑥ T2·C2 ':'⊕ T2·C2  ', 2, 1);
+      add(signal.target3, '#86efac', s2?._detect?'⑦ T3stop':'★ T3     ', 1, 1);
     }
 
     // ── Setup markers on live bar ──────────────────────────
