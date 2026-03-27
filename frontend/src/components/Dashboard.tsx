@@ -873,26 +873,21 @@ export default function Dashboard() {
     setAiLoading(true);
     try{
       const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
-      if(!r.ok) throw new Error();
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
       const sig=await r.json();
-      if(!sig?.direction) return;
-      // תמיד מציג — גם אם נדחה קודם
-      prevSigRef.current='';
-      setRejectedTs(0);
+      if(!sig?.direction) throw new Error('No direction in response');
+      // שמור מיד — לא ייעלם
+      setPersistedSignal(sig);
+      setSignalTime(new Date().toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
+      // עדכן live signal
+      setLive(prev=>prev?{...prev,signal:sig}:prev);
+      // Auto-lock אם ירוק
       const isGreen=sig.tl_color==='green'||sig.tl_color==='green_bright';
       if(isGreen && sig.direction!=='NO_TRADE'){
         setLockedSignal(sig);
         setAccepted(true);
-      } else {
-        setAccepted(false);
-        setLockedSignal(null);
       }
-      setLive(prev=>prev?{...prev,signal:sig}:prev);
-      // שמור signal עם זמן — לא ייעלם
-      setPersistedSignal(sig);
-      const now = new Date();
-      setSignalTime(now.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit',second:'2-digit'}));
-    }catch{}
+    }catch(e){ console.error('AI error:',e); }
     finally{ setAiLoading(false); }
   },[aiLoading]);
 
@@ -940,7 +935,7 @@ export default function Dashboard() {
     const lt=setInterval(fetchLive,2000);
     const ct=setInterval(fetchCandles,3000);
     return()=>{clearInterval(lt);clearInterval(ct);};
-  },[fetchLive,fetchCandles,fetchAnalyze]);
+  },[fetchLive,fetchCandles]);
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
