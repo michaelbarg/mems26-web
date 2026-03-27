@@ -244,7 +244,9 @@ JSON בלבד ללא backticks:
             )
         result = resp.json()
         text = result.get("content", [{}])[0].get("text", "").strip()
-        signal = json.loads(text)
+# נקה backticks אם Claude החזיר ```json
+text = text.replace("```json", "").replace("```", "").strip()
+signal = json.loads(text)
         signal["ts"] = data.get("ts", 0)
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
         return signal
