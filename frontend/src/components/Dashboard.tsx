@@ -17,8 +17,7 @@ interface MarketData {
   profile:{ poc:number; vah:number; val:number; tpo_poc:number; in_va:boolean; above_poc:boolean };
   woodi:{ pp:number; r1:number; r2:number; s1:number; s2:number; above_pp:boolean };
   levels:{ prev_high:number; prev_low:number; prev_close:number; daily_open:number; overnight_high:number; overnight_low:number };
-  order_flow:{ absorption_bull:boolean; liq_sweep:boolean; liq_sweep_long:boolean; liq_sweep_short:boolean; imbalance_bull:number; imbalance_bear:number; };
-  
+  order_flow:{ absorption_bull:boolean; liq_sweep:boolean; imbalance_bull:number; imbalance_bear:number };
   reversal:{ ib_high:number; ib_low:number; rev15_type:string; rev15_price:number };
   signal?:Signal;
 }
@@ -375,10 +374,35 @@ function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null
         )}
       </div>
 
-      {/* Wait reason — כשאין סטאפ */}
-      {!isActive && sig?.wait_reason && (
-        <div style={{ marginTop:10, padding:'6px 10px', background:'#111827', borderRadius:6, fontSize:11, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
-          ⏳ {sig.wait_reason}
+      {/* ניתוח AI — גם כשאין סטאפ */}
+      {!isActive && sig && (
+        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:6 }}>
+          {sig.rationale && (
+            <div style={{ padding:'10px 14px', background:'#0a1628', borderRadius:8, borderLeft:'3px solid #7f77dd', fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.7 }}>
+              <div style={{ fontSize:9, color:'#7f77dd', marginBottom:4, letterSpacing:1, direction:'ltr', textAlign:'left' }}>⚡ CLAUDE — ניתוח שוק</div>
+              {sig.rationale}
+            </div>
+          )}
+          {sig.wait_reason && (
+            <div style={{ padding:'8px 12px', background:'#0d1117', borderRadius:7, borderLeft:`3px solid ${Y}`, fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.6 }}>
+              <div style={{ fontSize:9, color:Y, marginBottom:3, letterSpacing:1 }}>⏳ מה חסר לסטאפ</div>
+              {sig.wait_reason}
+            </div>
+          )}
+          {(sig.entry??0) > 0 && (
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:5 }}>
+              {[
+                {l:'כניסה תיאורטית', v:(sig.entry??0).toFixed(2), c:'#94a3b8'},
+                {l:'סטופ', v:(sig.stop??0).toFixed(2), c:'#ef5350'},
+                {l:'T1', v:(sig.target1??0).toFixed(2), c:'#22c55e'},
+              ].map(({l,v,c})=>(
+                <div key={l} style={{ background:'#0d1117', borderRadius:6, padding:'5px 7px', textAlign:'center', border:'1px solid #1e2738' }}>
+                  <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{l}</div>
+                  <div style={{ fontSize:11, fontWeight:700, color:c, fontFamily:'monospace' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -862,7 +886,7 @@ export default function Dashboard() {
   useEffect(()=>{
     fetchLive();fetchCandles();fetchAnalyze();
     const lt=setInterval(fetchLive,2000);
-    const ct=setInterval(fetchCandles,15000);
+    const ct=setInterval(fetchCandles,3000);
     const at=setInterval(fetchAnalyze,30000);
     return()=>{clearInterval(lt);clearInterval(ct);clearInterval(at);};
   },[fetchLive,fetchCandles,fetchAnalyze]);
@@ -895,7 +919,7 @@ export default function Dashboard() {
       {/* ד + ה — Chart + Indicators */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 240px', gap:10 }}>
         {/* Chart */}
-        <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
+        <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden', display:'flex', flexDirection:'column' }}>
           {/* Chart header */}
           <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#111827', borderBottom:'1px solid #1e2738' }}>
             <span style={{ fontSize:9, color:'#4a5568', letterSpacing:2 }}>גרף נרות + רמות</span>
