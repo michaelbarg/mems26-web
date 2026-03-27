@@ -29,7 +29,7 @@ interface Props {
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, height = 480
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, height
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef     = useRef<any>(null);
@@ -45,7 +45,7 @@ export default function LightweightChart({
 
     const chart = LW.createChart(containerRef.current, {
       width:  containerRef.current.clientWidth,
-      height: height,
+      height: height ?? (containerRef.current?.clientHeight ?? 480),
       layout: {
         background: { color: '#0d1117' },
         textColor:  '#94a3b8',
@@ -179,7 +179,7 @@ export default function LightweightChart({
     });
   }, [livePrice]);
 
-  // Update level lines
+  // Update level lines + setup markers
   useEffect(() => {
     if (!seriesRef.current) return;
 
@@ -192,7 +192,6 @@ export default function LightweightChart({
       linesRef.current.push(l);
     };
 
-    // Levels
     add(levels?.prev_high,      '#ef4444', 'PDH ', 2);
     add(levels?.prev_low,       '#ef4444', 'PDL ', 2);
     add(levels?.daily_open,     '#60a5fa', 'DO  ', 2);
@@ -205,7 +204,6 @@ export default function LightweightChart({
     add(session?.ibl,           '#38bdf8', 'IBL ', 2);
     add(vwap,                   '#f6c90e', 'VWAP', 0, 2);
 
-    // Signal
     if (signal && signal.direction !== 'NO_TRADE' && signal.entry) {
       add(signal.entry,   '#ffffff', '→ ENTRY  ', 0, 2);
       add(signal.stop,    '#ef5350', '✕ STOP   ', 2, 1);
@@ -213,9 +211,27 @@ export default function LightweightChart({
       add(signal.target2, '#16a34a', '⊕ T2·C2  ', 2, 1);
       add(signal.target3, '#86efac', '★ T3     ', 1, 1);
     }
-  }, [levels, profile, session, vwap, signal]);
+
+    // ── Setup markers on live bar ──────────────────────────
+    if (seriesRef.current && activeSetups && activeSetups.length > 0 && liveBar) {
+      try {
+        const markers = activeSetups.map((s, i) => ({
+          time: liveBar.ts as any,
+          position: s.dir === 'long' ? 'belowBar' : 'aboveBar',
+          color: s.col,
+          shape: s.dir === 'long' ? 'arrowUp' : 'arrowDown',
+          text: s.name,
+          size: 1,
+        }));
+        seriesRef.current.setMarkers(markers);
+      } catch {}
+    } else if (seriesRef.current) {
+      try { seriesRef.current.setMarkers([]); } catch {}
+    }
+
+  }, [levels, profile, session, vwap, signal, activeSetups, liveBar]);
 
   return (
-    <div ref={containerRef} style={{ width: '100%', height, background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
+    <div ref={containerRef} style={{ width: '100%', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
   );
 }
