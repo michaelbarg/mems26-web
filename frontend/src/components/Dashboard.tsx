@@ -374,35 +374,10 @@ function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null
         )}
       </div>
 
-      {/* ניתוח AI — גם כשאין סטאפ */}
-      {!isActive && sig && (
-        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:6 }}>
-          {sig.rationale && (
-            <div style={{ padding:'10px 14px', background:'#0a1628', borderRadius:8, borderLeft:'3px solid #7f77dd', fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.7 }}>
-              <div style={{ fontSize:9, color:'#7f77dd', marginBottom:4, letterSpacing:1, direction:'ltr', textAlign:'left' }}>⚡ CLAUDE — ניתוח שוק</div>
-              {sig.rationale}
-            </div>
-          )}
-          {sig.wait_reason && (
-            <div style={{ padding:'8px 12px', background:'#0d1117', borderRadius:7, borderLeft:`3px solid ${Y}`, fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.6 }}>
-              <div style={{ fontSize:9, color:Y, marginBottom:3, letterSpacing:1 }}>⏳ מה חסר לסטאפ</div>
-              {sig.wait_reason}
-            </div>
-          )}
-          {(sig.entry??0) > 0 && (
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:5 }}>
-              {[
-                {l:'כניסה תיאורטית', v:(sig.entry??0).toFixed(2), c:'#94a3b8'},
-                {l:'סטופ', v:(sig.stop??0).toFixed(2), c:'#ef5350'},
-                {l:'T1', v:(sig.target1??0).toFixed(2), c:'#22c55e'},
-              ].map(({l,v,c})=>(
-                <div key={l} style={{ background:'#0d1117', borderRadius:6, padding:'5px 7px', textAlign:'center', border:'1px solid #1e2738' }}>
-                  <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{l}</div>
-                  <div style={{ fontSize:11, fontWeight:700, color:c, fontFamily:'monospace' }}>{v}</div>
-                </div>
-              ))}
-            </div>
-          )}
+      {/* Wait reason — כשאין סטאפ */}
+      {!isActive && sig?.wait_reason && (
+        <div style={{ marginTop:10, padding:'6px 10px', background:'#111827', borderRadius:6, fontSize:11, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
+          ⏳ {sig.wait_reason}
         </div>
       )}
 
@@ -808,6 +783,83 @@ function Indicators({ live }:{ live:MarketData|null }) {
   );
 }
 
+
+// ── AI Analysis Panel — קבוע ונראה תמיד ─────────────────────────────────────
+function AIAnalysisPanel({ signal, aiLoading, onAskAI }: { signal?: Signal; aiLoading: boolean; onAskAI: () => void }) {
+  if (aiLoading) {
+    return (
+      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:16, display:'flex', alignItems:'center', gap:12 }}>
+        <div style={{ width:14, height:14, borderRadius:'50%', border:'2px solid #4a5568', borderTopColor:'#7f77dd', animation:'spin 0.8s linear infinite', flexShrink:0 }} />
+        <span style={{ fontSize:12, color:'#6b7280' }}>Claude מנתח את השוק...</span>
+      </div>
+    );
+  }
+
+  if (!signal) {
+    return (
+      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:16, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <span style={{ fontSize:11, color:'#4a5568' }}>לחץ ⚡ לניתוח AI</span>
+        <button onClick={onAskAI} style={{ padding:'4px 14px', borderRadius:6, fontSize:11, fontWeight:700, background:'#7f77dd22', color:'#7f77dd', border:'1px solid #7f77dd44', cursor:'pointer', fontFamily:'inherit' }}>⚡ נתח עכשיו</button>
+      </div>
+    );
+  }
+
+  const isActive = signal.direction !== 'NO_TRADE' && (signal.score ?? 0) >= 5;
+  const col = signal.direction === 'LONG' ? '#22c55e' : signal.direction === 'SHORT' ? '#ef5350' : '#f59e0b';
+  const dirLabel = signal.direction === 'LONG' ? '▲ LONG' : signal.direction === 'SHORT' ? '▼ SHORT' : '⏳ המתן';
+
+  return (
+    <div style={{ background:'#0a1117', border:`1px solid ${col}33`, borderRadius:8, overflow:'hidden' }}>
+      {/* Header */}
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 16px', background:`${col}08`, borderBottom:`1px solid ${col}22` }}>
+        <div style={{ width:8, height:8, borderRadius:'50%', background:col, boxShadow:`0 0 6px ${col}` }} />
+        <span style={{ fontSize:11, color:'#7f77dd', fontWeight:700, letterSpacing:1 }}>⚡ CLAUDE AI — ניתוח שוק</span>
+        <span style={{ fontSize:13, fontWeight:800, color:col, marginLeft:'auto' }}>{dirLabel}</span>
+        {signal.setup && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:`${col}22`, color:col, fontWeight:700 }}>{signal.setup}</span>}
+        <button onClick={onAskAI} style={{ padding:'3px 10px', borderRadius:5, fontSize:10, fontWeight:700, background:'#1e2738', color:'#6b7280', border:'1px solid #2d3a4a', cursor:'pointer', fontFamily:'inherit' }}>רענן</button>
+      </div>
+
+      {/* Rationale — תמיד מוצג */}
+      {signal.rationale && (
+        <div style={{ padding:'12px 16px', borderBottom:`1px solid ${col}11` }}>
+          <div style={{ fontSize:9, color:'#4a5568', marginBottom:6, letterSpacing:1 }}>ניתוח</div>
+          <div style={{ fontSize:13, color:'#cbd5e1', lineHeight:1.8, direction:'rtl', textAlign:'right', fontFamily:'sans-serif' }}>
+            {signal.rationale}
+          </div>
+        </div>
+      )}
+
+      {/* Wait reason — מה חסר */}
+      {signal.wait_reason && (
+        <div style={{ padding:'10px 16px', borderBottom:`1px solid ${col}11`, background:'#0d1117' }}>
+          <div style={{ fontSize:9, color:'#f59e0b', marginBottom:4, letterSpacing:1 }}>⏳ מה חסר לכניסה</div>
+          <div style={{ fontSize:12, color:'#94a3b8', lineHeight:1.7, direction:'rtl', textAlign:'right', fontFamily:'sans-serif' }}>
+            {signal.wait_reason}
+          </div>
+        </div>
+      )}
+
+      {/* Levels row */}
+      {(signal.entry ?? 0) > 0 && (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', borderTop:`1px solid ${col}11` }}>
+          {[
+            { l:'כניסה', v:(signal.entry??0).toFixed(2), c:'#f0f6fc' },
+            { l:'סטופ', v:(signal.stop??0).toFixed(2), c:'#ef5350' },
+            { l:'T1', v:(signal.target1??0).toFixed(2), c:'#22c55e' },
+            { l:'T2', v:(signal.target2??0).toFixed(2), c:'#16a34a' },
+            { l:'WR', v:`${signal.win_rate??0}%`, c:col },
+          ].map(({l,v,c})=>(
+            <div key={l} style={{ padding:'8px 6px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
+              <div style={{ fontSize:9, color:'#4a5568', marginBottom:3 }}>{l}</div>
+              <div style={{ fontSize:12, fontWeight:800, color:c, fontFamily:'monospace' }}>{v}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Root Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [live,setLive]=useState<MarketData|null>(null);
@@ -886,7 +938,7 @@ export default function Dashboard() {
   useEffect(()=>{
     fetchLive();fetchCandles();fetchAnalyze();
     const lt=setInterval(fetchLive,2000);
-    const ct=setInterval(fetchCandles,3000);
+    const ct=setInterval(fetchCandles,15000);
     const at=setInterval(fetchAnalyze,30000);
     return()=>{clearInterval(lt);clearInterval(ct);clearInterval(at);};
   },[fetchLive,fetchCandles,fetchAnalyze]);
@@ -916,10 +968,13 @@ export default function Dashboard() {
         <EntryZone live={accepted && lockedSignal ? {...live, signal:lockedSignal} as any : null} />
       </div>
 
+      {/* ג.5 — AI Analysis Panel */}
+      <AIAnalysisPanel signal={live?.signal} aiLoading={aiLoading} onAskAI={askAI} />
+
       {/* ד + ה — Chart + Indicators */}
       <div style={{ display:'grid', gridTemplateColumns:'1fr 240px', gap:10 }}>
         {/* Chart */}
-        <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+        <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
           {/* Chart header */}
           <div style={{ display:'flex', alignItems:'center', gap:8, padding:'6px 12px', background:'#111827', borderBottom:'1px solid #1e2738' }}>
             <span style={{ fontSize:9, color:'#4a5568', letterSpacing:2 }}>גרף נרות + רמות</span>
