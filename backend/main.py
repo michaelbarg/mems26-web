@@ -105,6 +105,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from fastapi import Request as FRequest
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exc(request: FRequest, exc: Exception):
+    log.error(f"500: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc)},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
+@app.exception_handler(HTTPException)
+async def http_exc(request: FRequest, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers={"Access-Control-Allow-Origin": "*"}
+    )
+
 
 @app.post("/ingest")
 async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None)):
@@ -215,7 +235,7 @@ Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.
 Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')} ONH={levels.get('overnight_high')} ONL={levels.get('overnight_low')}
 OF: Absorption={of2.get('absorption_bull')} | LiqSweepLong={of2.get('liq_sweep_long')} | LiqSweepShort={of2.get('liq_sweep_short')} | ImbBull={of2.get('imbalance_bull')} | ImbBear={of2.get('imbalance_bear')}
 RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
-MTF: 15m={mtf.get('m15',{{}}).get('delta')} | 30m={mtf.get('m30',{{}}).get('delta')} | 60m={mtf.get('m60',{{}}).get('delta')}
+MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')} | 60m={mtf.get('m60',{}).get('delta')}
 
 סטאפים:
 1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
@@ -237,14 +257,13 @@ JSON בלבד ללא backticks:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-20250514",
+                    "model": "claude-sonnet-4-5",
                     "max_tokens": 600,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
         result = resp.json()
         text = result.get("content", [{}])[0].get("text", "").strip()
-        # Claude sometimes wraps JSON in ```json ... ``` — strip it
         if text.startswith("```"):
             text = text.split("```")[1]
             if text.startswith("json"):
