@@ -105,28 +105,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from fastapi import Request as FastAPIRequest
-from fastapi.responses import JSONResponse
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: FastAPIRequest, exc: Exception):
-    log.error(f"Unhandled exception: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc)},
-        headers={"Access-Control-Allow-Origin": "*"}
-    )
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: FastAPIRequest, exc: HTTPException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"detail": exc.detail},
-        headers={"Access-Control-Allow-Origin": "*"}
-    )
-
-
-
 
 @app.post("/ingest")
 async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None)):
@@ -238,6 +216,7 @@ Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.ge
 OF: Absorption={of2.get('absorption_bull')} | LiqSweepLong={of2.get('liq_sweep_long')} | LiqSweepShort={of2.get('liq_sweep_short')} | ImbBull={of2.get('imbalance_bull')} | ImbBear={of2.get('imbalance_bear')}
 RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
 MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')} | 60m={mtf.get('m60',{}).get('delta')}
+
 סטאפים:
 1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
 2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. אחוז בסיס: 62-70%
@@ -269,15 +248,9 @@ JSON בלבד ללא backticks:
         signal["ts"] = data.get("ts", 0)
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
         return signal
-    except json.JSONDecodeError as e:
-        log.error(f"AI JSON parse error: {e} | text: {text[:200] if 'text' in dir() else 'N/A'}")
-        raise HTTPException(status_code=500, detail=f"AI returned invalid JSON: {e}")
-    except httpx.TimeoutException:
-        log.error("AI timeout")
-        raise HTTPException(status_code=504, detail="AI request timed out — try again")
     except Exception as e:
-        log.error(f"AI error: {type(e).__name__}: {e}")
-        raise HTTPException(status_code=500, detail=f"{type(e).__name__}: {str(e)}")
+        log.error(f"AI error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
