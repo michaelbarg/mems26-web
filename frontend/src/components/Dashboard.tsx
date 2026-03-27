@@ -266,40 +266,32 @@ function TrafficLight({ score, live }: { score: number; live: MarketData | null 
     transition: 'all .4s',
   });
 
+  const biasWR = bias==='LONG' ? long : bias==='SHORT' ? short : 50;
+
   return (
-    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:6, flexShrink:0 }}>
-      {/* Traffic light housing */}
-      <div style={{ background:'#111827', border:'2px solid #2d3a4a', borderRadius:14, padding:'10px 8px', display:'flex', flexDirection:'column', gap:8, alignItems:'center', width:48 }}>
+    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:5, flexShrink:0 }}>
+      {/* Traffic light */}
+      <div style={{ background:'#111827', border:'2px solid #2d3a4a', borderRadius:14, padding:'8px 7px', display:'flex', flexDirection:'column', gap:7, alignItems:'center', width:46 }}>
         <div style={light(isRed,    R)} />
         <div style={light(isYellow, Y)} />
         <div style={light(isGreen,  G)} />
       </div>
 
-      {/* LONG/SHORT probability */}
-      <div style={{ width:48, background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'6px 4px', display:'flex', flexDirection:'column', gap:4 }}>
-        <div style={{ textAlign:'center', fontSize:8, color:'#4a5568', marginBottom:2 }}>סיכוי</div>
-        {/* LONG bar */}
-        <div>
-          <div style={{ display:'flex', justifyContent:'space-between', fontSize:8, marginBottom:1 }}>
-            <span style={{ color:G, fontWeight:700 }}>L</span>
-            <span style={{ color:G, fontFamily:'monospace', fontWeight:700 }}>{long}%</span>
-          </div>
-          <div style={{ height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
-            <div style={{ width:`${long}%`, height:'100%', background:G, borderRadius:2, transition:'width .5s' }} />
-          </div>
+      {/* הצגת המלצה + אחוזי הצלחה */}
+      <div style={{ width:46, background:'#111827', border:`1px solid ${biasCol}44`, borderRadius:8, padding:'6px 4px', display:'flex', flexDirection:'column', gap:3, alignItems:'center' }}>
+        {/* Bias */}
+        <div style={{ fontSize:9, fontWeight:800, color:biasCol }}>{bias}</div>
+        {/* אחוז הצלחה */}
+        <div style={{ fontSize:16, fontWeight:800, color:biasCol, fontFamily:'monospace', lineHeight:1 }}>{biasWR}%</div>
+        {/* Bar */}
+        <div style={{ width:'100%', height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
+          <div style={{ width:`${biasWR}%`, height:'100%', background:biasCol, borderRadius:2, transition:'width .5s' }} />
         </div>
-        {/* SHORT bar */}
-        <div>
-          <div style={{ display:'flex', justifyContent:'space-between', fontSize:8, marginBottom:1 }}>
-            <span style={{ color:R, fontWeight:700 }}>S</span>
-            <span style={{ color:R, fontFamily:'monospace', fontWeight:700 }}>{short}%</span>
-          </div>
-          <div style={{ height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
-            <div style={{ width:`${short}%`, height:'100%', background:R, borderRadius:2, transition:'width .5s' }} />
-          </div>
+        {/* L / S mini */}
+        <div style={{ display:'flex', justifyContent:'space-between', width:'100%', fontSize:8, marginTop:1 }}>
+          <span style={{ color:G, fontWeight:700 }}>L {long}%</span>
+          <span style={{ color:R, fontWeight:700 }}>S {short}%</span>
         </div>
-        {/* Bias label */}
-        <div style={{ textAlign:'center', fontSize:9, fontWeight:700, color:biasCol, marginTop:2 }}>{bias}</div>
       </div>
     </div>
   );
@@ -413,10 +405,20 @@ function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null
         )}
       </div>
 
-      {/* Wait reason — כשאין סטאפ */}
-      {!isActive && sig?.wait_reason && (
-        <div style={{ marginTop:10, padding:'6px 10px', background:'#111827', borderRadius:6, fontSize:11, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
-          ⏳ {sig.wait_reason}
+      {/* ניתוח + המתנה — תמיד מוצג */}
+      {!isActive && sig && (
+        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:6 }}>
+          {sig.rationale && (
+            <div style={{ padding:'8px 12px', background:'#0a1628', borderRadius:7, borderLeft:'3px solid #7f77dd', fontSize:11, color:'#cbd5e1', direction:'rtl', textAlign:'right', lineHeight:1.8, fontFamily:'Arial,sans-serif' }}>
+              {sig.rationale}
+            </div>
+          )}
+          {sig.wait_reason && (
+            <div style={{ padding:'8px 12px', background:'#0d1117', borderRadius:7, borderLeft:`3px solid ${Y}`, fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.7, fontFamily:'Arial,sans-serif' }}>
+              <span style={{ fontSize:9, color:Y, display:'block', marginBottom:3 }}>⏳ מה חסר לכניסה</span>
+              {sig.wait_reason}
+            </div>
+          )}
         </div>
       )}
 
