@@ -934,6 +934,13 @@ function RightPanel({ live, accepted, lockedSignal, persistedSignal, signalTime,
       <div style={{ flex:1, overflowY:'auto', padding:8, display:'flex', flexDirection:'column', gap:7 }}>
 
         {tab === 'signal' && <>
+          <DayTypeBar live={live} onRequestExplanation={onAskDayType} aiLoading={dayLoading} />
+          {dayExplanation && (
+            <div style={{ padding:'10px 14px', background:'#0a1628', borderRadius:8, borderLeft:'3px solid #7f77dd', fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.8, fontFamily:'Arial,sans-serif' }}>
+              <div style={{ fontSize:9, color:'#7f77dd', marginBottom:4, direction:'ltr', textAlign:'left' }}>⚡ ניתוח סוג יום</div>
+              {dayExplanation}
+            </div>
+          )}
           <MainScore
             live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:live}
             accepted={accepted}
@@ -962,6 +969,63 @@ function RightPanel({ live, accepted, lockedSignal, persistedSignal, signalTime,
   );
 }
 
+
+// ── Day Type Bar ──────────────────────────────────────────────────────────────
+const DAY_EXPLANATIONS: Record<string,{heb:string; desc:string; strategy:string; col:string}> = {
+  'NORMAL_TRENDING': { heb:'ממשיך רגיל', col:'#22c55e', desc:'יום עם כיוון ברור — מחיר נוטה להמשיך בכיוון הפתיחה', strategy:'עקוב אחרי המגמה. IB Breakout ו-VWAP Pullback עם הכיוון.' },
+  'NORMAL_VARIATION': { heb:'ווריאציה רגילה', col:'#22c55e', desc:'יום רגיל עם תנודות — אין מגמה חזקה', strategy:'Liq Sweep וVWAP Pullback מועדפים. היזהר מ-IB Breakout.' },
+  'TREND_DAY':        { heb:'יום מגמה', col:'#a78bfa', desc:'מגמה חזקה חד-כיוונית — המחיר לא חוזר לIB', strategy:'כנס עם המגמה בלבד. סטופ רחוק. T3 runner — הניח לו לרוץ.' },
+  'NEUTRAL':          { heb:'נייטרלי', col:'#f59e0b', desc:'מסחר בתוך הטווח — מחיר חוזר לאמצע', strategy:'מסחר קצר יותר. T1 בלבד. הימנע מ-Breakouts.' },
+  'ROTATIONAL':       { heb:'רוטציה', col:'#f59e0b', desc:'רוטציה בין קונים למוכרים — אין כיוון', strategy:'ציפייה בלבד. רק Liq Sweep מובהק. WR נמוך.' },
+  'DOUBLE_DISTRIBUTION':{ heb:'דיסטריביושן כפול', col:'#60a5fa', desc:'שני אזורי מסחר עיקריים — פריצה בין האזורים', strategy:'חכה לפריצה ברורה. IB Breakout Retest בלבד.' },
+};
+
+function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|null; onRequestExplanation:()=>void; aiLoading:boolean }) {
+  const day = (live as any)?.day || {};
+  const sess = live?.session || {} as any;
+  const dtype = day.type || 'UNKNOWN';
+  const info = DAY_EXPLANATIONS[dtype];
+  const col = info?.col || '#4a5568';
+  const ibRange = day.ib_range || 0;
+  const ext = day.total_ext || 0;
+  const gap = day.gap_type || 'FLAT';
+  const min = sess.min || 0;
+  const phase = sess.phase || '—';
+
+  return (
+    <div style={{ background:'#111827', border:`1px solid ${col}44`, borderRadius:8, overflow:'hidden', flexShrink:0 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px' }}>
+        {/* Day type pill */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, flex:1 }}>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:col, boxShadow:`0 0 5px ${col}` }} />
+          <span style={{ fontSize:12, fontWeight:800, color:col }}>{info?.heb || dtype}</span>
+          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:9, color:'#6b7280' }}>IB {ibRange.toFixed(1)}pts</span>
+          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:9, color:'#6b7280' }}>Ext ×{ext}</span>
+          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:9, color: gap==='FLAT'?'#4a5568':'#f59e0b' }}>Gap {gap}</span>
+        </div>
+        {/* Phase + min */}
+        <span style={{ fontSize:9, color:'#4a5568' }}>{phase} {min>0?`${min}m`:''}</span>
+        {/* Explain button */}
+        <button onClick={onRequestExplanation} disabled={aiLoading} style={{
+          padding:'3px 10px', borderRadius:6, fontSize:9, fontWeight:700,
+          background:'#7f77dd22', color:'#7f77dd', border:'1px solid #7f77dd44',
+          cursor: aiLoading?'not-allowed':'pointer', fontFamily:'inherit'
+        }}>
+          {aiLoading ? '...' : '? הסבר'}
+        </button>
+      </div>
+      {info?.desc && (
+        <div style={{ padding:'4px 12px 7px', fontSize:10, color:'#6b7280', direction:'rtl', textAlign:'right', borderTop:`1px solid ${col}22` }}>
+          {info.desc}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Root Dashboard ────────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [live,setLive]=useState<MarketData|null>(null);
@@ -975,6 +1039,8 @@ export default function Dashboard() {
   const [persistedSignal,setPersistedSignal]=useState<Signal|null>(null);
   const [signalTime,setSignalTime]=useState<string>('');
   const [selectedSetup,setSelectedSetup]=useState<{id:string;dir:'long'|'short'}|null>(null);
+  const [dayExplanation,setDayExplanation]=useState<string>('');
+  const [dayLoading,setDayLoading]=useState(false);
   const prevSigRef=useRef<string>('');
 
   const askAI=useCallback(async()=>{
@@ -993,6 +1059,25 @@ export default function Dashboard() {
     }catch(e){console.error('AI:',e);}
     finally{ setAiLoading(false); }
   },[aiLoading]);
+
+  const askDayType=useCallback(async()=>{
+    if(dayLoading) return;
+    setDayLoading(true);
+    try{
+      const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
+      if(!r.ok) throw new Error();
+      const sig=await r.json();
+      const day=(sig as any)?.day_analysis || sig?.rationale || '';
+      // בקש ניתוח יום ספציפי
+      const live2=await (await fetch(`${API_URL}/market/latest`,{cache:'no-store'})).json();
+      const dtype=(live2 as any)?.day?.type||'UNKNOWN';
+      const ibRange=(live2 as any)?.day?.ib_range||0;
+      const ext=(live2 as any)?.day?.total_ext||0;
+      const explanation = `סוג יום: ${dtype} | IB: ${ibRange.toFixed(1)}pts | Extensions: ${ext}\n${sig?.rationale||'ממתין לנתונים...'}`;
+      setDayExplanation(explanation);
+    }catch(e){ setDayExplanation('שגיאה בטעינת הניתוח'); }
+    finally{ setDayLoading(false); }
+  },[dayLoading]);
 
   const fetchLive=useCallback(async()=>{
     try{
@@ -1145,6 +1230,9 @@ export default function Dashboard() {
           signalTime={signalTime}
           aiLoading={aiLoading}
           onAskAI={askAI}
+          dayLoading={dayLoading}
+          onAskDayType={askDayType}
+          dayExplanation={dayExplanation}
           selectedSetup={selectedSetup}
           onSelectSetup={(id:string,dir:'long'|'short')=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
