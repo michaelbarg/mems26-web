@@ -45,7 +45,7 @@ export default function LightweightChart({
 
     const chart = LW.createChart(containerRef.current, {
       width:  containerRef.current.clientWidth,
-      height: height ?? (containerRef.current?.clientHeight ?? 480),
+      height: height ?? (containerRef.current?.clientHeight ?? 500),
       layout: {
         background: { color: '#0d1117' },
         textColor:  '#94a3b8',
@@ -204,12 +204,16 @@ export default function LightweightChart({
     add(session?.ibl,           '#38bdf8', 'IBL ', 2);
     add(vwap,                   '#f6c90e', 'VWAP', 0, 2);
 
+    // Setup overlay — נקודות הבחנה ובדיקה
+    if (signal?._detect) add(signal._detect, '#f6c90e', '① הבחנה  ', 4, 2);
+    if (signal?._verify) add(signal._verify, '#60a5fa', '② בדיקה  ', 4, 2);
+
     if (signal && signal.direction !== 'NO_TRADE' && signal.entry) {
-      add(signal.entry,   '#ffffff', '→ ENTRY  ', 0, 2);
-      add(signal.stop,    '#ef5350', '✕ STOP   ', 2, 1);
-      add(signal.target1, '#22c55e', '⊕ T1·C1  ', 2, 1);
-      add(signal.target2, '#16a34a', '⊕ T2·C2  ', 2, 1);
-      add(signal.target3, '#86efac', '★ T3     ', 1, 1);
+      add(signal.entry,   signal._detect?'#a78bfa':'#ffffff', '③ → כניסה', 0, 2);
+      add(signal.stop,    '#ef5350', '④ ✕ סטופ ', 2, 1);
+      add(signal.target1, '#22c55e', '⑤ T1·C1  ', 2, 1);
+      add(signal.target2, '#16a34a', '⑥ T2·C2  ', 2, 1);
+      add(signal.target3, '#86efac', '⑦ T3·Stop', 1, 1);
     }
 
     // ── Setup markers on live bar ──────────────────────────
