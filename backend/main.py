@@ -121,6 +121,16 @@ async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None))
 @app.get("/market/latest")
 async def market_latest():
     data = await redis_get()
+    # שלוף 10 נרות אחרונים להקשר
+    raw_candles = await redis_lrange(REDIS_CANDLES_KEY, 0, 9)
+    recent_candles = []
+    for item in raw_candles:
+        try:
+            c = json.loads(item) if isinstance(item, str) else item
+            recent_candles.append(c)
+        except:
+            continue
+
     if not data:
         return {"type": "no_data", "status": "waiting_for_bridge"}
     return data
@@ -145,6 +155,16 @@ async def market_analyze():
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
 
     data = await redis_get()
+    # שלוף 10 נרות אחרונים להקשר
+    raw_candles = await redis_lrange(REDIS_CANDLES_KEY, 0, 9)
+    recent_candles = []
+    for item in raw_candles:
+        try:
+            c = json.loads(item) if isinstance(item, str) else item
+            recent_candles.append(c)
+        except:
+            continue
+
     if not data:
         return {
             "direction": "NO_TRADE", "score": 0, "confidence": "LOW",
@@ -190,6 +210,18 @@ async def market_analyze():
     vwap_dist = vwap.get("distance", 0) or 0
     rel_vol   = vol_ctx.get("rel_vol", 1) or 1
 
+    # סיכום נרות אחרונים
+    if recent_candles:
+        c_lines = []
+        for c in recent_candles[:5]:
+            d = c.get('delta',0)
+            c_lines.append(f"  נר: O={c.get('o',0):.1f} C={c.get('c',0):.1f} Δ={d:+.0f} {'▲' if d>0 else '▼'}")
+        candle_summary = "5 נרות אחרונים (חדש→ישן):
+" + "
+".join(c_lines)
+    else:
+        candle_summary = "אין היסטוריית נרות"
+
     prompt = f"""אתה מערכת AI מתקדמת למסחר יומי ב-MES (Micro E-Mini S&P 500 Futures).
 אתה מומחה ב-3 סטאפים ספציפיים. החלט האם יש הזדמנות מסחר עכשיו.
 
@@ -218,14 +250,24 @@ RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
 MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')} | 60m={mtf.get('m60',{}).get('delta')}
 
 סטאפים:
-1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
-2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. אחוז בסיס: 62-70%
-3. IB BREAKOUT RETEST: פריצה+חזרה+בלימה. אחוז בסיס: 58-65%
+1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume גבוה. בסיס: 68-75%
+2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. בסיס: 62-70%
+3. IB BREAKOUT RETEST: פריצה+חזרה+בלימה. בסיס: 58-65%
+4. CCI TURBO: Turbo Bull/Bear + ZLR + POC. בסיס: 62-68%
 
-ניהול: C1=R:R 1:1 | C2=R:R 1:2 | C3=Runner Woodi R1/R2
+ניהול: C1=R:R 1:1 (מינ' 10pts) | C2=R:R 1:2 (מינ' 20pts) | C3=Runner
 
-החזר JSON בלבד, ללא backticks, ללא הסבר נוסף:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ בעברית","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"3-4 משפטות ניתוח מפורט — מה קורה עכשיו, מה הבעיה, מה לחכות","wait_reason":"פירוט קונקרטי מה ספציפית חסר ומה הטריגר לכניסה","tl_color":"red/orange/green/green_bright"}}"""
+כללי וודאות — חובה:
+א. MTF: אם delta של 15m+30m+60m לא בכיוון הכניסה — הפחת 2 מהסקור וציין ב-rationale
+ב. Day Type: NORMAL_TRENDING=WR+8% | NEUTRAL/ROTATIONAL=WR-10%
+ג. אם המחיר זזה >15pts בכיוון — הפחת 10% מ-WR
+ד. אם T1<10pts — ציין "R:R קטן" ב-wait_reason
+ה. תמיד כתוב rationale מפורט 3-4 משפטות גם ב-NO_TRADE
+
+{candle_summary}
+
+JSON בלבד, ללא backticks:
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"3-4 משפטות: כיוון+MTF+Day Type+נרות","wait_reason":"מה חסר ספציפית","tl_color":"red/orange/green/green_bright","mtf_aligned":true,"rr_ok":true}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -246,8 +288,7 @@ MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')}
         text = result.get("content", [{}])[0].get("text", "").strip()
         if text.startswith("```"):
             text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
+            if text.startswith("json"): text = text[4:]
             text = text.strip()
         signal = json.loads(text)
         signal["ts"] = data.get("ts", 0)
