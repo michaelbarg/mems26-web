@@ -14,8 +14,9 @@ log = logging.getLogger("api")
 BRIDGE_TOKEN      = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
 REDIS_URL         = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN       = os.getenv("UPSTASH_REDIS_REST_TOKEN")
-REDIS_KEY         = "mems26:latest"
-REDIS_CANDLES_KEY = "mems26:candles"
+REDIS_KEY          = "mems26:latest"
+REDIS_CANDLES_KEY  = "mems26:candles"
+REDIS_FOOTPRINT_KEY = "mems26:footprint"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 
@@ -121,23 +122,47 @@ async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None))
 @app.get("/market/latest")
 async def market_latest():
     data = await redis_get()
-    # שלוף 10 נרות אחרונים להקשר
-    raw_candles = await redis_lrange(REDIS_CANDLES_KEY, 0, 9)
-    recent_candles = []
-    for item in raw_candles:
-        try:
-            c = json.loads(item) if isinstance(item, str) else item
-            recent_candles.append(c)
-        except:
-            continue
-
     if not data:
         return {"type": "no_data", "status": "waiting_for_bridge"}
     return data
 
 
+@app.post("/ingest/history")
+async def ingest_history(request: Request, x_bridge_token: Optional[str] = Header(None)):
+    """מקבל batch של נרות היסטוריים בחיבור ראשוני"""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    raw = await request.json()
+    candles = raw.get("candles", [])
+    if not candles:
+        raise HTTPException(status_code=400, detail="No candles provided")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            # מחק היסטוריה קיימת
+            await client.delete(
+                f"{REDIS_URL}/del/{REDIS_CANDLES_KEY}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+            # שמור נרות בבת אחת — LPUSH (חדש→ישן)
+            items = [json.dumps(c) for c in candles[:300]]  # מקסימום 300
+            for chunk in [items[i:i+50] for i in range(0, len(items), 50)]:
+                await client.post(
+                    f"{REDIS_URL}/lpush/{REDIS_CANDLES_KEY}",
+                    headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                    json=chunk,
+                    timeout=10.0
+                )
+        log.info(f"History loaded: {len(candles)} candles")
+        return {"ok": True, "loaded": len(candles)}
+    except Exception as e:
+        log.error(f"History ingest error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/market/candles")
-async def get_candles(limit: int = 80):
+async def get_candles(limit: int = 200):
     raw = await redis_lrange(REDIS_CANDLES_KEY, 0, limit - 1)
     candles = []
     for item in raw:
@@ -155,16 +180,6 @@ async def market_analyze():
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
 
     data = await redis_get()
-    # שלוף 10 נרות אחרונים להקשר
-    raw_candles = await redis_lrange(REDIS_CANDLES_KEY, 0, 9)
-    recent_candles = []
-    for item in raw_candles:
-        try:
-            c = json.loads(item) if isinstance(item, str) else item
-            recent_candles.append(c)
-        except:
-            continue
-
     if not data:
         return {
             "direction": "NO_TRADE", "score": 0, "confidence": "LOW",
@@ -210,18 +225,6 @@ async def market_analyze():
     vwap_dist = vwap.get("distance", 0) or 0
     rel_vol   = vol_ctx.get("rel_vol", 1) or 1
 
-    # סיכום נרות אחרונים
-    if recent_candles:
-        c_lines = []
-        for c in recent_candles[:5]:
-            d = c.get('delta',0)
-            c_lines.append(f"  נר: O={c.get('o',0):.1f} C={c.get('c',0):.1f} Δ={d:+.0f} {'▲' if d>0 else '▼'}")
-        candle_summary = "5 נרות אחרונים (חדש→ישן):
-" + "
-".join(c_lines)
-    else:
-        candle_summary = "אין היסטוריית נרות"
-
     prompt = f"""אתה מערכת AI מתקדמת למסחר יומי ב-MES (Micro E-Mini S&P 500 Futures).
 אתה מומחה ב-3 סטאפים ספציפיים. החלט האם יש הזדמנות מסחר עכשיו.
 
@@ -246,28 +249,19 @@ OR: H={day.get('or_high')} L={day.get('or_low')}
 Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.get('s1')}
 Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')} ONH={levels.get('overnight_high')} ONL={levels.get('overnight_low')}
 OF: Absorption={of2.get('absorption_bull')} | LiqSweepLong={of2.get('liq_sweep_long')} | LiqSweepShort={of2.get('liq_sweep_short')} | ImbBull={of2.get('imbalance_bull')} | ImbBear={of2.get('imbalance_bear')}
+Footprint (10 נרות): {footprint_summary}
 RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
 MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')} | 60m={mtf.get('m60',{}).get('delta')}
 
 סטאפים:
-1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume גבוה. בסיס: 68-75%
-2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. בסיס: 62-70%
-3. IB BREAKOUT RETEST: פריצה+חזרה+בלימה. בסיס: 58-65%
-4. CCI TURBO: Turbo Bull/Bear + ZLR + POC. בסיס: 62-68%
+1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
+2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. אחוז בסיס: 62-70%
+3. IB BREAKOUT RETEST: פריצה+חזרה+בלימה. אחוז בסיס: 58-65%
 
-ניהול: C1=R:R 1:1 (מינ' 10pts) | C2=R:R 1:2 (מינ' 20pts) | C3=Runner
+ניהול: C1=R:R 1:1 | C2=R:R 1:2 | C3=Runner Woodi R1/R2
 
-כללי וודאות — חובה:
-א. MTF: אם delta של 15m+30m+60m לא בכיוון הכניסה — הפחת 2 מהסקור וציין ב-rationale
-ב. Day Type: NORMAL_TRENDING=WR+8% | NEUTRAL/ROTATIONAL=WR-10%
-ג. אם המחיר זזה >15pts בכיוון — הפחת 10% מ-WR
-ד. אם T1<10pts — ציין "R:R קטן" ב-wait_reason
-ה. תמיד כתוב rationale מפורט 3-4 משפטות גם ב-NO_TRADE
-
-{candle_summary}
-
-JSON בלבד, ללא backticks:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"3-4 משפטות: כיוון+MTF+Day Type+נרות","wait_reason":"מה חסר ספציפית","tl_color":"red/orange/green/green_bright","mtf_aligned":true,"rr_ok":true}}"""
+JSON בלבד ללא backticks:
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ בעברית","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"2-3 משפטים עברית","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -297,6 +291,48 @@ JSON בלבד, ללא backticks:
     except Exception as e:
         log.error(f"AI error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/ingest/footprint")
+async def ingest_footprint(request: Request, x_bridge_token: Optional[str] = Header(None)):
+    """מקבל footprint של 10 נרות אחרונים — bid/ask/delta/imbalance לפי מחיר"""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    raw = await request.json()
+    bars = raw.get("footprint", [])
+    if not bars:
+        return {"ok": True, "msg": "no data"}
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{REDIS_URL}/set/{REDIS_FOOTPRINT_KEY}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                json=json.dumps(bars),
+                timeout=5.0
+            )
+        log.info(f"Footprint: {len(bars)} bars stored")
+        return {"ok": True, "bars": len(bars)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/market/footprint")
+async def get_footprint():
+    """מחזיר footprint אחרון"""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{REDIS_URL}/get/{REDIS_FOOTPRINT_KEY}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=3.0
+            )
+            result = resp.json()
+            val = result.get("result")
+            if val:
+                return json.loads(val)
+    except Exception as e:
+        log.warning(f"Footprint get failed: {e}")
+    return []
 
 
 @app.get("/health")
