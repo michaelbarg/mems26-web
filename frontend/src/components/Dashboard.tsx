@@ -154,6 +154,265 @@ function SetupScanner({ live,onSelect,selectedId }:{ live:MarketData|null; onSel
 }
 
 
+
+// ── Pattern Detection — זיהוי תבניות גרף על 50 נרות ─────────────────────────
+interface PatternResult {
+  id: string;
+  name: string;
+  nameHeb: string;
+  direction: 'long' | 'short' | 'neutral';
+  confidence: number;        // 0-100
+  keyLevel: number;          // רמת פריצה/תמיכה
+  breakoutLevel?: number;    // נקודת כניסה
+  stopLevel?: number;        // סטופ מומלץ
+  description: string;       // הסבר קצר
+  col: string;
+  barIndex?: number;         // איפה התבנית התחילה
+}
+
+function detectPatterns(candles: Candle[]): PatternResult[] {
+  const results: PatternResult[] = [];
+  if (!candles || candles.length < 10) return results;
+
+  const c = [...candles].reverse(); // חדש → ישן → הופך לישן → חדש
+  const n = c.length;
+
+  // ── עזרים ────────────────────────────────────────────────────────────────
+  const highs  = c.map(x => x.h);
+  const lows   = c.map(x => x.l);
+  const closes = c.map(x => x.c);
+  const deltas = c.map(x => x.delta || 0);
+
+  // מוצא שיא/שפל מקומי בחלון
+  const isLocalHigh = (i:number, w=3) => {
+    const start = Math.max(0,i-w), end = Math.min(n-1,i+w);
+    for(let j=start;j<=end;j++) if(j!==i && highs[j]>highs[i]) return false;
+    return true;
+  };
+  const isLocalLow = (i:number, w=3) => {
+    const start = Math.max(0,i-w), end = Math.min(n-1,i+w);
+    for(let j=start;j<=end;j++) if(j!==i && lows[j]<lows[i]) return false;
+    return true;
+  };
+
+  // אוסף שיאים/שפלים מקומיים
+  const localHighs: number[] = [];
+  const localLows:  number[] = [];
+  for(let i=3;i<n-3;i++){
+    if(isLocalHigh(i)) localHighs.push(i);
+    if(isLocalLow(i))  localLows.push(i);
+  }
+
+  const price = closes[n-1];
+  const tolerance = price * 0.001; // 0.1% tolerance לרמות
+
+  // ── 1. DOUBLE BOTTOM — רצפה כפולה ─────────────────────────────────────────
+  if(localLows.length >= 2){
+    const recent = localLows.slice(-4);
+    for(let a=0;a<recent.length-1;a++){
+      for(let b=a+1;b<recent.length;b++){
+        const i1=recent[a], i2=recent[b];
+        const l1=lows[i1], l2=lows[i2];
+        if(Math.abs(l1-l2) < tolerance*3 && i2-i1 >= 5){
+          // בדוק שיש שיא בין השניים
+          const midHigh = Math.max(...highs.slice(i1,i2));
+          const neckline = midHigh;
+          const depth = neckline - Math.min(l1,l2);
+          const conf = Math.min(95, 60 + (depth/price)*500 + (i2-i1)*1.5);
+          // בדוק נפח — buy delta צריך לגדול בשפל השני
+          const vol2 = deltas.slice(Math.max(0,i2-2),i2+2).reduce((a,b)=>a+b,0);
+          const confAdj = vol2 > 0 ? conf + 10 : conf - 5;
+          results.push({
+            id:'double_bottom', name:'Double Bottom', nameHeb:'רצפה כפולה',
+            direction:'long', confidence:Math.min(95,Math.round(confAdj)),
+            keyLevel:Math.min(l1,l2), breakoutLevel:neckline+0.25,
+            stopLevel:Math.min(l1,l2)-0.5,
+            description:`שני שפלים ב-${Math.min(l1,l2).toFixed(2)} | פריצה מעל ${neckline.toFixed(2)}`,
+            col:'#22c55e', barIndex:i1,
+          });
+        }
+      }
+    }
+  }
+
+  // ── 2. DOUBLE TOP — קורת גג כפולה ─────────────────────────────────────────
+  if(localHighs.length >= 2){
+    const recent = localHighs.slice(-4);
+    for(let a=0;a<recent.length-1;a++){
+      for(let b=a+1;b<recent.length;b++){
+        const i1=recent[a], i2=recent[b];
+        const h1=highs[i1], h2=highs[i2];
+        if(Math.abs(h1-h2) < tolerance*3 && i2-i1 >= 5){
+          const midLow = Math.min(...lows.slice(i1,i2));
+          const neckline = midLow;
+          const depth = Math.max(h1,h2) - neckline;
+          const conf = Math.min(95, 60 + (depth/price)*500 + (i2-i1)*1.5);
+          const vol2 = deltas.slice(Math.max(0,i2-2),i2+2).reduce((a,b)=>a+b,0);
+          const confAdj = vol2 < 0 ? conf + 10 : conf - 5;
+          results.push({
+            id:'double_top', name:'Double Top', nameHeb:'קורת גג כפולה',
+            direction:'short', confidence:Math.min(95,Math.round(confAdj)),
+            keyLevel:Math.max(h1,h2), breakoutLevel:neckline-0.25,
+            stopLevel:Math.max(h1,h2)+0.5,
+            description:`שני שיאים ב-${Math.max(h1,h2).toFixed(2)} | שבירה מתחת ${neckline.toFixed(2)}`,
+            col:'#ef5350', barIndex:i1,
+          });
+        }
+      }
+    }
+  }
+
+  // ── 3. BULL FLAG — דגל שורי ──────────────────────────────────────────────
+  if(n >= 15){
+    // חפש עמוד: 5+ נרות עולים חזק
+    for(let start=n-25;start<n-10;start++){
+      if(start<0) continue;
+      const poleEnd = start+5;
+      const poleGain = closes[poleEnd]-closes[start];
+      const poleRange = Math.max(...highs.slice(start,poleEnd)) - Math.min(...lows.slice(start,poleEnd));
+      if(poleGain < price*0.003) continue; // עמוד קטן מ-0.3%
+
+      // חפש קונסולידציה אחרי העמוד
+      const flagBars = closes.slice(poleEnd, Math.min(poleEnd+10, n));
+      if(flagBars.length < 4) continue;
+      const flagHigh = Math.max(...highs.slice(poleEnd,poleEnd+10));
+      const flagLow  = Math.min(...lows.slice(poleEnd,poleEnd+10));
+      const flagRange = flagHigh - flagLow;
+
+      if(flagRange < poleRange*0.5 && flagRange > 0){
+        // דגל — קונסולידציה צרה אחרי עמוד
+        const lastClose = closes[n-1];
+        const breakout = flagHigh;
+        const isNearBreakout = lastClose > flagHigh*0.998;
+        const conf = Math.min(90, 55 + (poleGain/poleRange)*20 + (isNearBreakout?15:0));
+        results.push({
+          id:'bull_flag', name:'Bull Flag', nameHeb:'דגל שורי',
+          direction:'long', confidence:Math.round(conf),
+          keyLevel:flagHigh, breakoutLevel:flagHigh+0.25,
+          stopLevel:flagLow-0.25,
+          description:`עמוד +${poleGain.toFixed(1)}pts | דגל ${flagRange.toFixed(1)}pts | פריצה מעל ${flagHigh.toFixed(2)}`,
+          col:'#22c55e', barIndex:start,
+        });
+        break;
+      }
+    }
+  }
+
+  // ── 4. BEAR FLAG — דגל דובי ──────────────────────────────────────────────
+  if(n >= 15){
+    for(let start=n-25;start<n-10;start++){
+      if(start<0) continue;
+      const poleEnd = start+5;
+      const poleDrop = closes[start]-closes[poleEnd];
+      const poleRange = Math.max(...highs.slice(start,poleEnd)) - Math.min(...lows.slice(start,poleEnd));
+      if(poleDrop < price*0.003) continue;
+
+      const flagBars = closes.slice(poleEnd, Math.min(poleEnd+10, n));
+      if(flagBars.length < 4) continue;
+      const flagHigh = Math.max(...highs.slice(poleEnd,poleEnd+10));
+      const flagLow  = Math.min(...lows.slice(poleEnd,poleEnd+10));
+      const flagRange = flagHigh - flagLow;
+
+      if(flagRange < poleRange*0.5 && flagRange > 0){
+        const lastClose = closes[n-1];
+        const breakout = flagLow;
+        const isNearBreakout = lastClose < flagLow*1.002;
+        const conf = Math.min(90, 55 + (poleDrop/poleRange)*20 + (isNearBreakout?15:0));
+        results.push({
+          id:'bear_flag', name:'Bear Flag', nameHeb:'דגל דובי',
+          direction:'short', confidence:Math.round(conf),
+          keyLevel:flagLow, breakoutLevel:flagLow-0.25,
+          stopLevel:flagHigh+0.25,
+          description:`עמוד -${poleDrop.toFixed(1)}pts | דגל ${flagRange.toFixed(1)}pts | שבירה מתחת ${flagLow.toFixed(2)}`,
+          col:'#ef5350', barIndex:start,
+        });
+        break;
+      }
+    }
+  }
+
+  // ── 5. HEAD AND SHOULDERS ─────────────────────────────────────────────────
+  if(localHighs.length >= 3){
+    const h = localHighs.slice(-5);
+    for(let i=0;i<h.length-2;i++){
+      const [iL,iH,iR] = [h[i],h[i+1],h[i+2]];
+      const [hL,hH,hR] = [highs[iL],highs[iH],highs[iR]];
+      if(hH > hL && hH > hR && Math.abs(hL-hR) < tolerance*4 && iH-iL>=4 && iR-iH>=4){
+        const neckL = Math.min(...lows.slice(iL,iH));
+        const neckR = Math.min(...lows.slice(iH,iR));
+        const neckline = (neckL+neckR)/2;
+        const depth = hH - neckline;
+        const target = neckline - depth;
+        const conf = Math.min(88, 65 + (depth/price)*400);
+        results.push({
+          id:'head_shoulders', name:'Head & Shoulders', nameHeb:'ראש וכתפיים',
+          direction:'short', confidence:Math.round(conf),
+          keyLevel:neckline, breakoutLevel:neckline-0.25,
+          stopLevel:hR+0.5,
+          description:`ראש ${hH.toFixed(2)} | Neckline ${neckline.toFixed(2)} | Target ${target.toFixed(2)}`,
+          col:'#f59e0b', barIndex:iL,
+        });
+      }
+    }
+  }
+
+  // ── 6. CUP AND HANDLE ────────────────────────────────────────────────────
+  if(n >= 20 && localLows.length >= 1){
+    const cupStart = Math.max(0, n-30);
+    const cupHigh  = Math.max(...highs.slice(cupStart, cupStart+5));
+    const cupLow   = Math.min(...lows.slice(cupStart+3, n-5));
+    const cupRight = Math.max(...highs.slice(n-8, n-2));
+    const depth    = cupHigh - cupLow;
+
+    if(depth > price*0.002 && Math.abs(cupRight-cupHigh) < tolerance*5){
+      // ידית — ירידה קטנה מהשפה הימנית
+      const handleLow  = Math.min(...lows.slice(n-5,n));
+      const handleDrop = cupRight - handleLow;
+      if(handleDrop > 0 && handleDrop < depth*0.4){
+        const conf = Math.min(88, 60 + (depth/price)*300);
+        results.push({
+          id:'cup_handle', name:'Cup & Handle', nameHeb:'כוס וידית',
+          direction:'long', confidence:Math.round(conf),
+          keyLevel:cupRight, breakoutLevel:cupRight+0.25,
+          stopLevel:handleLow-0.25,
+          description:`עומק ${depth.toFixed(1)}pts | שפה ${cupRight.toFixed(2)} | ידית ${handleDrop.toFixed(1)}pts`,
+          col:'#60a5fa', barIndex:cupStart,
+        });
+      }
+    }
+  }
+
+  // ── 7. HIGHER HIGHS / LOWER LOWS — מבנה מגמה ────────────────────────────
+  if(localHighs.length >= 3 && localLows.length >= 3){
+    const recentH = localHighs.slice(-3).map(i=>highs[i]);
+    const recentL = localLows.slice(-3).map(i=>lows[i]);
+    const hhhl = recentH[0]<recentH[1] && recentH[1]<recentH[2] && recentL[0]<recentL[1] && recentL[1]<recentL[2];
+    const lhll = recentH[0]>recentH[1] && recentH[1]>recentH[2] && recentL[0]>recentL[1] && recentL[1]>recentL[2];
+    if(hhhl){
+      results.push({
+        id:'hh_hl', name:'HH/HL Structure', nameHeb:'מבנה עולה HH/HL',
+        direction:'long', confidence:78,
+        keyLevel:recentL[2], breakoutLevel:recentH[2]+0.25,
+        stopLevel:recentL[2]-0.5,
+        description:`שיאים ושפלים עולים — מגמת עלייה מבנית`,
+        col:'#22c55e',
+      });
+    } else if(lhll){
+      results.push({
+        id:'lh_ll', name:'LH/LL Structure', nameHeb:'מבנה יורד LH/LL',
+        direction:'short', confidence:78,
+        keyLevel:recentH[2], breakoutLevel:recentL[2]-0.25,
+        stopLevel:recentH[2]+0.5,
+        description:`שיאים ושפלים יורדים — מגמת ירידה מבנית`,
+        col:'#ef5350',
+      });
+    }
+  }
+
+  // מיין לפי confidence
+  return results.sort((a,b)=>b.confidence-a.confidence).slice(0,4);
+}
+
 // ── חישוב רמות סטאפ ────────────────────────────────────────────────────────
 function calcSetupLevels(id:string, live:MarketData|null, dir:'long'|'short') {
   if(!live) return null;
@@ -904,12 +1163,66 @@ function AIAnalysisPanel({signal,signalTime,aiLoading,onAskAI}:{signal?:Signal|n
 }
 
 
+
+// ── Pattern Scanner Component ────────────────────────────────────────────────
+function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; onSelect?:(p:PatternResult)=>void; selectedId?:string }) {
+  const patterns = detectPatterns(candles);
+  if(!patterns.length) return (
+    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'10px 14px' }}>
+      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:4 }}>זיהוי תבניות גרף</div>
+      <div style={{ fontSize:10, color:'#2d3a4a', direction:'rtl' }}>לא זוהו תבניות משמעותיות</div>
+    </div>
+  );
+  return (
+    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
+      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:8 }}>זיהוי תבניות — {patterns.length} נמצאו</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
+        {patterns.map(p=>{
+          const isSelected = selectedId===p.id;
+          const dirCol = p.direction==='long'?'#22c55e':p.direction==='short'?'#ef5350':'#f59e0b';
+          return (
+            <div key={p.id} onClick={()=>onSelect?.(p)}
+              style={{ border:`1px solid ${isSelected?p.col:'#1e2738'}`, borderRadius:7, padding:'7px 10px',
+                background:isSelected?p.col+'12':'transparent', cursor:'pointer', transition:'all .2s' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:4 }}>
+                <div style={{ width:7, height:7, borderRadius:'50%', background:p.col, boxShadow:isSelected?`0 0 6px ${p.col}`:'none' }} />
+                <span style={{ fontSize:11, fontWeight:700, color:p.col, flex:1 }}>{p.nameHeb}</span>
+                <span style={{ fontSize:10, fontWeight:700, color:dirCol }}>{p.direction==='long'?'▲ LONG':p.direction==='short'?'▼ SHORT':'↔'}</span>
+                <span style={{ fontSize:13, fontWeight:800, color:p.confidence>=70?p.col:'#f59e0b', fontFamily:'monospace' }}>{p.confidence}%</span>
+              </div>
+              <div style={{ height:3, background:'#1e2738', borderRadius:2, marginBottom:5, overflow:'hidden' }}>
+                <div style={{ width:`${p.confidence}%`, height:'100%', background:p.col, borderRadius:2 }} />
+              </div>
+              <div style={{ fontSize:9, color:'#6b7280', direction:'rtl', textAlign:'right' }}>{p.description}</div>
+              {isSelected && p.breakoutLevel && (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4, marginTop:6 }}>
+                  {[
+                    {l:'כניסה', v:p.breakoutLevel.toFixed(2), c:'#a78bfa'},
+                    {l:'סטופ',  v:(p.stopLevel||0).toFixed(2), c:'#ef5350'},
+                    {l:'רמה',  v:p.keyLevel.toFixed(2), c:p.col},
+                  ].map(({l,v,c})=>(
+                    <div key={l} style={{ background:'#0d1117', borderRadius:5, padding:'4px 6px', textAlign:'center' }}>
+                      <div style={{ fontSize:8, color:'#4a5568' }}>{l}</div>
+                      <div style={{ fontSize:10, fontWeight:700, color:c, fontFamily:'monospace' }}>{v}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, onAccept, onReject }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'indicators'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
     { id:'setups',    label:'סטאפים', icon:'🔍' },
+    { id:'patterns',  label:'תבניות', icon:'📈' },
     { id:'indicators',label:'נתונים', icon:'📊' },
   ] as const;
 
@@ -956,6 +1269,22 @@ function RightPanel({ live, accepted, lockedSignal, persistedSignal, signalTime,
           {selectedSetup && (
             <div style={{ padding:'8px 10px', background:'#111827', border:'1px solid #1e2738', borderRadius:8, fontSize:10, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
               לחץ על הגרף לראות את רמות הסטאפ
+            </div>
+          )}
+        </>}
+
+        {tab === 'patterns' && <>
+          <PatternScanner
+            candles={candles||[]}
+            onSelect={(p:PatternResult)=>setSelectedPattern((prev:any)=>prev?.id===p.id?null:p)}
+            selectedId={selectedPattern?.id}
+          />
+          {selectedPattern && (
+            <div style={{ padding:'8px 12px', background:'#0a1628', borderRadius:8, borderLeft:`3px solid ${selectedPattern.col}`, fontSize:10, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.7 }}>
+              <div style={{ fontSize:9, color:selectedPattern.col, marginBottom:3 }}>💡 אסטרטגיה</div>
+              {selectedPattern.direction==='long'
+                ? 'כניסה על פריצת רמת ה-' + selectedPattern.nameHeb + '. סטופ מתחת לשפל התבנית. T1=R:R 1:1, T2=R:R 1:2.'
+                : 'כניסה על שבירת רמת ה-' + selectedPattern.nameHeb + '. סטופ מעל לשיא התבנית. T1=R:R 1:1, T2=R:R 1:2.'}
             </div>
           )}
         </>}
@@ -1039,6 +1368,7 @@ export default function Dashboard() {
   const [persistedSignal,setPersistedSignal]=useState<Signal|null>(null);
   const [signalTime,setSignalTime]=useState<string>('');
   const [selectedSetup,setSelectedSetup]=useState<{id:string;dir:'long'|'short'}|null>(null);
+  const [selectedPattern,setSelectedPattern]=useState<PatternResult|null>(null);
   const [dayExplanation,setDayExplanation]=useState<string>('');
   const [dayLoading,setDayLoading]=useState(false);
   const prevSigRef=useRef<string>('');
@@ -1110,7 +1440,7 @@ export default function Dashboard() {
 
   const fetchCandles=useCallback(async()=>{
     try{
-      const r=await fetch(`${API_URL}/market/candles?limit=80`,{cache:'no-store'});
+      const r=await fetch(`${API_URL}/market/candles?limit=200`,{cache:'no-store'});
       if(!r.ok)return;
       const raw=await r.json();
       const d:Candle[]=Array.isArray(raw)?raw.map((i:any)=>typeof i==='string'?JSON.parse(i):i):[];
@@ -1182,6 +1512,8 @@ export default function Dashboard() {
               session={{ibh:live?.session?.ibh,ibl:live?.session?.ibl}}
               signal={chartSignal}
               activeSetups={activeSetups}
+              patterns={detectPatterns(candles)}
+              selectedPatternId={selectedPattern?.id}
               height={undefined}
             />
             {/* Setup overlay — badges + legend */}
@@ -1224,6 +1556,9 @@ export default function Dashboard() {
         {/* עמודה ימין — טאבים */}
         <RightPanel
           live={live}
+          candles={candles}
+          selectedPattern={selectedPattern}
+          setSelectedPattern={setSelectedPattern}
           accepted={accepted}
           lockedSignal={lockedSignal}
           persistedSignal={persistedSignal}
