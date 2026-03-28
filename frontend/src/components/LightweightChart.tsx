@@ -5,7 +5,7 @@ import { useEffect, useRef, useCallback } from 'react';
 interface Candle {
   ts: number;
   o: number; h: number; l: number; c: number;
-  buy?: number; sell?: number; delta?: number;
+  buy?: number; sell?: number; delta?: number a;
 }
 
 interface Signal {
@@ -25,11 +25,13 @@ interface Props {
   session?: { ibh?: number; ibl?: number };
   signal?: Signal | null;
   activeSetups?: { name: string; dir: 'long'|'short'; col: string }[];
+  patterns?: Array<{id:string; nameHeb:string; direction:string; confidence:number; keyLevel:number; breakoutLevel?:number; stopLevel?:number; col:string; barIndex?:number}>;
+  selectedPatternId?: string;
   height?: number;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, height
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, patterns, selectedPatternId, height
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef     = useRef<any>(null);
@@ -204,6 +206,24 @@ export default function LightweightChart({
     add(session?.ibl,           '#38bdf8', 'IBL ', 2);
     add(vwap,                   '#f6c90e', 'VWAP', 0, 2);
 
+    // Pattern selected — הוסף קווי כניסה וסטופ
+    if (patterns && selectedPatternId) {
+      const selP = patterns.find(p => p.id === selectedPatternId);
+      if (selP) {
+        if (selP.breakoutLevel) add(selP.breakoutLevel, selP.col, `▶ ${selP.nameHeb}`, 0, 2);
+        if (selP.stopLevel)     add(selP.stopLevel, '#ef5350', '✕ סטופ', 2, 1);
+        if (selP.keyLevel)      add(selP.keyLevel, selP.col+'99', '— רמה', 4, 1);
+        // Target = כניסה + distance (R:R 1:1)
+        if (selP.breakoutLevel && selP.stopLevel) {
+          const risk = Math.abs(selP.breakoutLevel - selP.stopLevel);
+          const t1 = selP.direction === 'long' ? selP.breakoutLevel + risk : selP.breakoutLevel - risk;
+          const t2 = selP.direction === 'long' ? selP.breakoutLevel + risk*2 : selP.breakoutLevel - risk*2;
+          add(t1, '#22c55e', `⊕ T1 ${selP.confidence}%`, 2, 1);
+          add(t2, '#16a34a', `⊕ T2 ${Math.round(selP.confidence*0.7)}%`, 2, 1);
+        }
+      }
+    }
+
     const s2=signal as any;
     if(s2?._detect) add(s2._detect,'#f6c90e','① הבחנה ',4,2);
     if(s2?._verify) add(s2._verify,'#60a5fa','② בדיקה ',4,2);
@@ -215,24 +235,69 @@ export default function LightweightChart({
       add(signal.target3, '#86efac', s2?._detect?'⑦ T3stop':'★ T3     ', 1, 1);
     }
 
-    // ── Setup markers on live bar ──────────────────────────
-    if (seriesRef.current && activeSetups && activeSetups.length > 0 && liveBar) {
+    // ── Markers: Setup + Pattern ──────────────────────────
+    if (seriesRef.current) {
       try {
-        const markers = activeSetups.map((s, i) => ({
-          time: liveBar.ts as any,
-          position: s.dir === 'long' ? 'belowBar' : 'aboveBar',
-          color: s.col,
-          shape: s.dir === 'long' ? 'arrowUp' : 'arrowDown',
-          text: s.name,
-          size: 1,
-        }));
-        seriesRef.current.setMarkers(markers);
+        const allMarkers: any[] = [];
+
+        // Setup markers on live bar
+        if (activeSetups && activeSetups.length > 0 && liveBar) {
+          activeSetups.forEach(s => {
+            allMarkers.push({
+              time: liveBar.ts as any,
+              position: s.dir === 'long' ? 'belowBar' : 'aboveBar',
+              color: s.col,
+              shape: s.dir === 'long' ? 'arrowUp' : 'arrowDown',
+              text: s.name,
+              size: 1,
+            });
+          });
+        }
+
+        // Pattern markers — על הנר הרלוונטי
+        if (patterns && patterns.length > 0 && candles.length > 0) {
+          // candles מגיעים ישן→חדש
+          const sortedCandles = [...candles].sort((a,b) => a.ts - b.ts);
+          patterns.forEach(p => {
+            const isSelected = p.id === selectedPatternId;
+            // barIndex מחושב מהסוף — הופכים לאינדקס בsortedCandles
+            const idx = p.barIndex !== undefined
+              ? Math.max(0, sortedCandles.length - 1 - p.barIndex)
+              : sortedCandles.length - 1;
+            const candle = sortedCandles[idx];
+            if (!candle) return;
+
+            // Marker על נר התבנית
+            allMarkers.push({
+              time: candle.ts as any,
+              position: p.direction === 'long' ? 'belowBar' : 'aboveBar',
+              color: isSelected ? p.col : p.col + '99',
+              shape: p.direction === 'long' ? 'arrowUp' : p.direction === 'short' ? 'arrowDown' : 'circle',
+              text: `${p.nameHeb} ${p.confidence}%`,
+              size: isSelected ? 2 : 1,
+            });
+
+            // אם נבחר — הוסף marker גם על נר הפריצה (עכשיו)
+            if (isSelected && p.breakoutLevel && liveBar) {
+              allMarkers.push({
+                time: liveBar.ts as any,
+                position: p.direction === 'long' ? 'belowBar' : 'aboveBar',
+                color: '#a78bfa',
+                shape: p.direction === 'long' ? 'arrowUp' : 'arrowDown',
+                text: `⚡ כניסה ${p.breakoutLevel?.toFixed(2)}`,
+                size: 2,
+              });
+            }
+          });
+        }
+
+        // מיין לפי זמן (חובה ב-LightweightCharts)
+        allMarkers.sort((a,b) => (a.time as number) - (b.time as number));
+        seriesRef.current.setMarkers(allMarkers);
       } catch {}
-    } else if (seriesRef.current) {
-      try { seriesRef.current.setMarkers([]); } catch {}
     }
 
-  }, [levels, profile, session, vwap, signal, activeSetups, liveBar]);
+  }, [levels, profile, session, vwap, signal, activeSetups, liveBar, patterns, selectedPatternId]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
