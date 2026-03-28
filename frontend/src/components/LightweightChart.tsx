@@ -5,7 +5,7 @@ import { useEffect, useRef, useCallback } from 'react';
 interface Candle {
   ts: number;
   o: number; h: number; l: number; c: number;
-  buy?: number; sell?: number; delta?: number a;
+  buy?: number; sell?: number; delta?: number;
 }
 
 interface Signal {
