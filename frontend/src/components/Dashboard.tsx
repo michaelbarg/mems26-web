@@ -1218,7 +1218,7 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
-  const [tab, setTab] = useState<'signal'|'setups'|'indicators'>('signal');
+  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
     { id:'setups',    label:'סטאפים', icon:'🔍' },
