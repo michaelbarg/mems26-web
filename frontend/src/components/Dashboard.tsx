@@ -19,6 +19,8 @@ interface MarketData {
   levels:{ prev_high:number; prev_low:number; prev_close:number; daily_open:number; overnight_high:number; overnight_low:number };
   order_flow:{ absorption_bull:boolean; liq_sweep:boolean; liq_sweep_long:boolean; liq_sweep_short:boolean; imbalance_bull:number; imbalance_bear:number };
   reversal:{ ib_high:number; ib_low:number; rev15_type:string; rev15_price:number };
+  order_fills?:{ price:number; qty:number; side:string; ts:number; pos:number }[];
+  footprint?:any[];
   signal?:Signal;
 }
 interface Candle { ts:number; o:number; h:number; l:number; c:number; buy:number; sell:number; delta:number; }
@@ -1216,84 +1218,310 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
   );
 }
 
-// ── Fills Panel — פקודות מסחר ────────────────────────────────────────────────
-function FillsPanel({ live }:{ live:MarketData|null }) {
-  const fills:any[] = (live as any)?.order_fills || [];
-  const price = live?.price || 0;
+// ── Trade Journal — יומן מסחר ────────────────────────────────────────────────
+function TradeJournal({ live }:{ live:MarketData|null }) {
+  const [trades, setTrades]       = useState<any[]>([]);
+  const [analysis, setAnalysis]   = useState<Record<string,any>>({});
+  const [loading, setLoading]     = useState<Record<string,boolean>>({});
+  const [showForm, setShowForm]   = useState(false);
+  const [showFills, setShowFills] = useState(true);
+  const [form, setForm]           = useState({ side:'LONG', entry:'', stop:'', t1:'', t2:'', setup:'', notes:'' });
 
-  if (fills.length === 0) {
-    return (
-      <div style={{ padding:'20px 12px', textAlign:'center', color:'#4a5568', fontSize:11, direction:'rtl' }}>
-        <div style={{ fontSize:24, marginBottom:8 }}>💼</div>
-        <div>אין פקודות — מסחר לא פעיל</div>
-        <div style={{ fontSize:9, marginTop:4, color:'#2d3a4a' }}>פקודות יופיעו כאן בזמן אמת</div>
-      </div>
-    );
-  }
+  const price    = live?.price || 0;
+  const sierraFills = live?.order_fills || [];
 
-  // חשב PnL לכל fill
-  let position = 0;
-  let totalPnl = 0;
-  const enriched = fills.map((f:any) => {
-    const qty = f.qty > 0 ? f.qty : Math.abs(f.qty);
-    const side = f.side === 'BUY' ? 1 : -1;
-    position += side * qty;
-    const unrealized = position !== 0 ? (price - f.price) * position : 0;
-    return { ...f, unrealized };
-  });
+  // טעינת עסקאות
+  const fetchTrades = useCallback(async () => {
+    try {
+      const r = await fetch(`${API_URL}/trades`, { cache:'no-store' });
+      if (r.ok) setTrades(await r.json());
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchTrades();
+    const t = setInterval(fetchTrades, 5000);
+    return () => clearInterval(t);
+  }, [fetchTrades]);
+
+  // שמירת עסקה חדשה
+  const saveTrade = async () => {
+    if (!form.entry) return;
+    const entry = parseFloat(form.entry);
+    const stop  = parseFloat(form.stop) || 0;
+    const t1    = parseFloat(form.t1) || 0;
+    const t2    = parseFloat(form.t2) || 0;
+    const rr    = stop > 0 ? Math.abs((t1 - entry) / (entry - stop)) : 0;
+    const trade = {
+      id:           Date.now().toString(),
+      ts_open:      Math.floor(Date.now() / 1000),
+      side:         form.side,
+      entry_price:  entry,
+      stop,
+      t1, t2,
+      setup:        form.setup,
+      notes:        form.notes,
+      status:       'OPEN',
+      exit_price:   null,
+      pnl_pts:      null,
+      pnl_usd:      null,
+      rr_planned:   Math.round(rr * 10) / 10,
+      // הוסף הקשר שוק בכניסה
+      ctx: {
+        day_type:   (live as any)?.day?.type || '',
+        phase:      live?.session?.phase || '',
+        vwap_above: live?.vwap?.above || false,
+        cci14:      (live as any)?.woodies_cci?.cci14 || 0,
+        cvd_trend:  live?.cvd?.trend || '',
+      }
+    };
+    await fetch(`${API_URL}/trades`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(trade)
+    });
+    setShowForm(false);
+    setForm({ side:'LONG', entry:'', stop:'', t1:'', t2:'', setup:'', notes:'' });
+    fetchTrades();
+  };
+
+  // סגירת עסקה
+  const closeTrade = async (trade: any) => {
+    const exit    = price;
+    const pnlPts  = trade.side === 'LONG' ? exit - trade.entry_price : trade.entry_price - exit;
+    const updated = { ...trade, status:'CLOSED', exit_price:exit, pnl_pts:Math.round(pnlPts*4)/4, pnl_usd:Math.round(pnlPts*5*100)/100, ts_close:Math.floor(Date.now()/1000) };
+    await fetch(`${API_URL}/trades/${trade.id}`, { method: 'DELETE' });
+    await fetch(`${API_URL}/trades`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(updated)
+    });
+    fetchTrades();
+  };
+
+  // ניתוח AI
+  const analyzeTradeAI = async (tradeId: string) => {
+    setLoading(p => ({ ...p, [tradeId]: true }));
+    try {
+      const r = await fetch(`${API_URL}/trades/analyze/${tradeId}`);
+      if (r.ok) {
+        const data = await r.json();
+        setAnalysis(p => ({ ...p, [tradeId]: data }));
+      }
+    } catch {}
+    setLoading(p => ({ ...p, [tradeId]: false }));
+  };
+
+  const openTrades  = trades.filter(t => t.status === 'OPEN');
+  const closedTrades = trades.filter(t => t.status === 'CLOSED');
+  const totalPnl    = closedTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+  const wins        = closedTrades.filter(t => (t.pnl_pts || 0) > 0).length;
+  const wr          = closedTrades.length > 0 ? Math.round(wins / closedTrades.length * 100) : 0;
+
+  const actionCol: Record<string,string> = { HOLD:'#22c55e', EXIT:'#ef5350', MOVE_BE:'#f59e0b', PARTIAL:'#60a5fa' };
+  const actionHeb: Record<string,string> = { HOLD:'המשך', EXIT:'צא עכשיו', MOVE_BE:'הזז ל-BE', PARTIAL:'קח חלקי' };
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-      {/* Position summary */}
-      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'10px 12px' }}>
-        <div style={{ fontSize:9, color:'#4a5568', marginBottom:6, direction:'rtl' }}>פוזיציה נוכחית</div>
-        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          {(() => {
-            const pos = fills.reduce((acc:number, f:any) => acc + (f.side==='BUY'?1:-1)*Math.abs(f.qty), 0);
-            const col = pos > 0 ? G : pos < 0 ? R : '#4a5568';
-            const label = pos > 0 ? `▲ LONG ${pos}` : pos < 0 ? `▼ SHORT ${Math.abs(pos)}` : 'FLAT';
-            return <span style={{ fontSize:16, fontWeight:800, color:col, fontFamily:'monospace' }}>{label}</span>;
-          })()}
-          <span style={{ fontSize:11, color:'#6b7280', fontFamily:'monospace' }}>{price.toFixed(2)}</span>
-        </div>
-      </div>
+    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
 
-      {/* Fills list */}
-      <div style={{ fontSize:9, color:'#4a5568', direction:'rtl', padding:'0 2px' }}>
-        {fills.length} פקודות אחרונות
-      </div>
-      {[...enriched].reverse().map((f:any, i:number) => {
-        const isBuy = f.side === 'BUY';
-        const col = isBuy ? G : R;
-        const ts = new Date(f.ts * 1000).toLocaleTimeString('en-US', {
-          hour:'2-digit', minute:'2-digit', second:'2-digit',
-          hour12:false, timeZone:'America/New_York'
-        });
-        const pnl = (price - f.price) * (isBuy ? 1 : -1) * Math.abs(f.qty);
+      {/* Stats bar */}
+      {closedTrades.length > 0 && (
+        <div style={{ display:'flex', gap:6 }}>
+          {[
+            { label:'עסקאות', val:closedTrades.length, col:'#94a3b8' },
+            { label:'WR', val:`${wr}%`, col:wr>=55?G:wr>=45?Y:R },
+            { label:'PnL', val:`${totalPnl>=0?'+':''}$${totalPnl.toFixed(0)}`, col:totalPnl>=0?G:R },
+          ].map(s => (
+            <div key={s.label} style={{ flex:1, background:'#111827', border:'1px solid #1e2738', borderRadius:7, padding:'6px 8px', textAlign:'center' }}>
+              <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{s.label}</div>
+              <div style={{ fontSize:13, fontWeight:800, color:s.col, fontFamily:'monospace' }}>{s.val}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* כפתור עסקה חדשה */}
+      <button onClick={() => setShowForm(!showForm)} style={{ background:showForm?'#1e2738':'#7f77dd22', border:'1px solid #7f77dd44', borderRadius:7, padding:'7px', color:'#a78bfa', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+        {showForm ? '✕ סגור' : '+ עסקה חדשה'}
+      </button>
+
+      {/* טופס עסקה חדשה */}
+      {showForm && (
+        <div style={{ background:'#0d1117', border:'1px solid #7f77dd44', borderRadius:8, padding:10, display:'flex', flexDirection:'column', gap:6 }}>
+          {/* Side */}
+          <div style={{ display:'flex', gap:4 }}>
+            {['LONG','SHORT'].map(s => (
+              <button key={s} onClick={() => setForm(p => ({...p, side:s}))}
+                style={{ flex:1, padding:'5px', borderRadius:6, border:'none', cursor:'pointer', fontWeight:800, fontSize:11,
+                  background: form.side===s ? (s==='LONG'?'#22c55e':'#ef5350') : '#1e2738',
+                  color: form.side===s ? '#fff' : '#4a5568' }}>
+                {s==='LONG'?'▲ LONG':'▼ SHORT'}
+              </button>
+            ))}
+          </div>
+          {/* Fields */}
+          {[
+            { key:'entry', label:'כניסה', placeholder:price.toFixed(2) },
+            { key:'stop',  label:'סטופ',  placeholder:'' },
+            { key:'t1',    label:'T1',    placeholder:'' },
+            { key:'t2',    label:'T2',    placeholder:'' },
+          ].map(f => (
+            <div key={f.key} style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:10, color:'#6b7280', minWidth:36, textAlign:'right' }}>{f.label}</span>
+              <input value={(form as any)[f.key]} onChange={e => setForm(p => ({...p,[f.key]:e.target.value}))}
+                placeholder={f.placeholder}
+                style={{ flex:1, background:'#1e2738', border:'1px solid #2d3a4a', borderRadius:5, padding:'4px 8px', color:'#e2e8f0', fontSize:11, fontFamily:'monospace', outline:'none' }} />
+            </div>
+          ))}
+          {/* Setup */}
+          <select value={form.setup} onChange={e => setForm(p => ({...p,setup:e.target.value}))}
+            style={{ background:'#1e2738', border:'1px solid #2d3a4a', borderRadius:5, padding:'4px 8px', color:'#e2e8f0', fontSize:11, fontFamily:'inherit' }}>
+            <option value=''>בחר סטאפ</option>
+            {['Liq Sweep','VWAP Pullback','IB Breakout','CCI Turbo','אחר'].map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <button onClick={saveTrade}
+            style={{ background:'#7f77dd', border:'none', borderRadius:6, padding:'7px', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+            ✓ שמור עסקה
+          </button>
+        </div>
+      )}
+
+      {/* עסקאות פתוחות */}
+      {openTrades.map(trade => {
+        const pnlPts = trade.side === 'LONG' ? price - trade.entry_price : trade.entry_price - price;
+        const pnlUsd = pnlPts * 5;
+        const col = trade.side === 'LONG' ? G : R;
+        const ai  = analysis[trade.id];
+        const aiCol = ai ? (actionCol[ai.action] || '#94a3b8') : '#4a5568';
+
         return (
-          <div key={i} style={{ background:'#0d1117', border:`1px solid ${col}33`, borderRadius:7, padding:'8px 10px', borderLeft:`3px solid ${col}` }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
-              <span style={{ fontSize:12, fontWeight:800, color:col }}>
-                {isBuy ? '▲ BUY' : '▼ SELL'} {Math.abs(f.qty)}
-              </span>
-              <span style={{ fontSize:10, color:'#4a5568', fontFamily:'monospace' }}>{ts} ET</span>
+          <div key={trade.id} style={{ background:'#0d1117', border:`1.5px solid ${col}44`, borderRadius:8, overflow:'hidden' }}>
+            {/* Header */}
+            <div style={{ background:`${col}12`, padding:'8px 10px', borderBottom:`1px solid ${col}22` }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                <span style={{ fontSize:12, fontWeight:800, color:col }}>{trade.side==='LONG'?'▲':'▼'} {trade.side} — {trade.setup||'—'}</span>
+                <span style={{ fontSize:14, fontWeight:800, color:pnlPts>=0?G:R, fontFamily:'monospace' }}>
+                  {pnlPts>=0?'+':''}{pnlPts.toFixed(2)}pt / {pnlUsd>=0?'+':''}${pnlUsd.toFixed(0)}
+                </span>
+              </div>
+              <div style={{ display:'flex', gap:8, marginTop:4, fontSize:10, color:'#6b7280', fontFamily:'monospace' }}>
+                <span>כניסה: {trade.entry_price}</span>
+                {trade.stop>0 && <span>סטופ: {trade.stop}</span>}
+                {trade.t1>0 && <span>T1: {trade.t1}</span>}
+                {trade.rr_planned>0 && <span style={{color:'#a78bfa'}}>R:R {trade.rr_planned}</span>}
+              </div>
             </div>
-            <div style={{ display:'flex', justifyContent:'space-between' }}>
-              <span style={{ fontSize:11, fontFamily:'monospace', color:'#e2e8f0', fontWeight:700 }}>
-                {f.price.toFixed(2)}
-              </span>
-              <span style={{ fontSize:10, fontWeight:700, color:pnl >= 0 ? G : R, fontFamily:'monospace' }}>
-                {pnl >= 0 ? '+' : ''}{(pnl * 5).toFixed(0)}$ {/* MES = $5/pt */}
-              </span>
-            </div>
-            {f.pos !== undefined && (
-              <div style={{ fontSize:9, color:'#4a5568', marginTop:2 }}>
-                פוזיציה: {f.pos > 0 ? `▲ ${f.pos}` : f.pos < 0 ? `▼ ${Math.abs(f.pos)}` : 'FLAT'}
+
+            {/* AI Analysis */}
+            {ai && (
+              <div style={{ padding:'7px 10px', background:`${aiCol}11`, borderBottom:`1px solid ${aiCol}22` }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:aiCol }}>
+                    {actionHeb[ai.action] || ai.action}
+                  </span>
+                  <span style={{ fontSize:10, color:'#6b7280' }}>ביטחון {ai.confidence}%</span>
+                </div>
+                <div style={{ fontSize:10, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.5 }}>{ai.reason}</div>
+                {ai.urgency === 'HIGH' && (
+                  <div style={{ marginTop:4, fontSize:9, color:'#ef5350', fontWeight:700 }}>⚠ דחוף</div>
+                )}
               </div>
             )}
+
+            {/* Actions */}
+            <div style={{ display:'flex', gap:4, padding:'7px 10px' }}>
+              <button onClick={() => analyzeTradeAI(trade.id)}
+                disabled={loading[trade.id]}
+                style={{ flex:1, background:'#7f77dd22', border:'1px solid #7f77dd44', borderRadius:5, padding:'5px', color:'#a78bfa', fontSize:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>
+                {loading[trade.id] ? '...' : '🤖 AI'}
+              </button>
+              <button onClick={() => closeTrade(trade)}
+                style={{ flex:2, background:'#ef535022', border:'1px solid #ef535044', borderRadius:5, padding:'5px', color:'#ef5350', fontSize:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>
+                סגור @ {price.toFixed(2)}
+              </button>
+            </div>
           </div>
         );
       })}
+
+      {/* עסקאות סגורות */}
+      {closedTrades.length > 0 && (
+        <>
+          <div style={{ fontSize:9, color:'#4a5568', padding:'4px 2px', borderTop:'1px solid #1e2738', marginTop:2 }}>היסטוריה</div>
+          {closedTrades.slice(0, 10).map(trade => {
+            const won = (trade.pnl_pts || 0) > 0;
+            const col = won ? G : R;
+            return (
+              <div key={trade.id} style={{ background:'#0d1117', border:`1px solid ${col}22`, borderRadius:7, padding:'8px 10px' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:10, color:trade.side==='LONG'?G:R, fontWeight:700 }}>{trade.side==='LONG'?'▲':'▼'}</span>
+                    <span style={{ fontSize:10, color:'#6b7280' }}>{trade.setup||'—'}</span>
+                    {trade.ctx?.day_type && <span style={{ fontSize:9, color:'#4a5568' }}>{trade.ctx.day_type}</span>}
+                  </div>
+                  <div style={{ textAlign:'right' }}>
+                    <span style={{ fontSize:12, fontWeight:800, color:col, fontFamily:'monospace' }}>
+                      {(trade.pnl_pts||0)>=0?'+':''}{(trade.pnl_pts||0).toFixed(2)}pt
+                    </span>
+                    <span style={{ fontSize:10, color:col, fontFamily:'monospace', marginLeft:6 }}>
+                      {(trade.pnl_usd||0)>=0?'+':''}${(trade.pnl_usd||0).toFixed(0)}
+                    </span>
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:8, marginTop:3, fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>
+                  <span>{trade.entry_price} → {trade.exit_price}</span>
+                  {trade.rr_planned>0 && <span>R:R {trade.rr_planned}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      {trades.length === 0 && !showForm && sierraFills.length === 0 && (
+        <div style={{ padding:'20px 12px', textAlign:'center', color:'#4a5568', fontSize:11, direction:'rtl' }}>
+          <div style={{ fontSize:24, marginBottom:8 }}>📒</div>
+          <div>יומן מסחר ריק</div>
+          <div style={{ fontSize:9, marginTop:4, color:'#2d3a4a' }}>לחץ + לפתוח עסקה חדשה</div>
+        </div>
+      )}
+
+      {/* פקודות Sierra Chart — בזמן אמת */}
+      {sierraFills.length > 0 && (
+        <>
+          <div
+            onClick={() => setShowFills(p => !p)}
+            style={{ fontSize:9, color:'#60a5fa', padding:'4px 2px', borderTop:'1px solid #1e2738', marginTop:2, cursor:'pointer', display:'flex', justifyContent:'space-between' }}>
+            <span>📡 פקודות Sierra ({sierraFills.length})</span>
+            <span>{showFills ? '▲' : '▼'}</span>
+          </div>
+          {showFills && sierraFills.map((f, i) => {
+            const isBuy = f.side === 'BUY';
+            const col   = isBuy ? G : R;
+            const pnl   = (price - f.price) * (isBuy ? 1 : -1) * Math.abs(f.qty);
+            const ts    = new Date(f.ts * 1000).toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false, timeZone:'America/New_York' });
+            return (
+              <div key={i} style={{ background:'#0d1117', border:`1px solid ${col}33`, borderRadius:7, padding:'7px 10px', borderLeft:`3px solid ${col}` }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontSize:12, fontWeight:800, color:col }}>{isBuy?'▲ BUY':'▼ SELL'} {Math.abs(f.qty)}</span>
+                  <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>{ts} ET</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', marginTop:3 }}>
+                  <span style={{ fontSize:11, fontFamily:'monospace', color:'#e2e8f0', fontWeight:700 }}>{f.price.toFixed(2)}</span>
+                  <span style={{ fontSize:10, fontWeight:700, color:pnl>=0?G:R, fontFamily:'monospace' }}>
+                    {pnl>=0?'+':''}{(pnl*5).toFixed(0)}$
+                  </span>
+                </div>
+                {f.pos !== undefined && f.pos !== 0 && (
+                  <div style={{ fontSize:9, color:'#4a5568', marginTop:2 }}>
+                    פוז: {f.pos>0?`▲ ${f.pos}`:f.pos<0?`▼ ${Math.abs(f.pos)}`:'FLAT'}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </>
+      )}
     </div>
   );
 }
@@ -1377,7 +1605,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         </>}
 
         {tab === 'fills' && <>
-          <FillsPanel live={live} />
+          <TradeJournal live={live} />
         </>}
 
       </div>
