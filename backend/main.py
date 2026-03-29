@@ -385,8 +385,8 @@ async def get_trades():
 
 
 @app.post("/trades")
-async def save_trade(request: Request):
-    """שומר עסקה ביומן"""
+async def save_trade(request: Request, x_bridge_token: Optional[str] = Header(None)):
+    """שומר עסקה ביומן — פתוח לדשבורד ולbridge"""
     trade = await request.json()
     if not trade.get("entry_price"):
         raise HTTPException(status_code=400, detail="entry_price required")
@@ -410,7 +410,7 @@ async def save_trade(request: Request):
 
 
 @app.delete("/trades/{trade_id}")
-async def delete_trade(trade_id: str):
+async def delete_trade(trade_id: str, x_bridge_token: Optional[str] = Header(None)):
     """מחיקת עסקה ספציפית"""
     try:
         trades = await redis_trades_get()
