@@ -172,15 +172,15 @@ export default function LightweightChart({
       return etMin >= 9 * 60 + 30 && etMin < 16 * 60;
     };
 
-    const sorted = [...candles].reverse();
+    const sorted = [...candles].reverse().filter(c => c.ts > 0);
 
     const cData = sorted.map(c => ({
-      time:  c.ts as any,
+      time:  Math.floor(c.ts) as any,
       open:  c.o, high: c.h, low: c.l, close: c.c,
     }));
 
     const vData = sorted.map(c => ({
-      time:  c.ts as any,
+      time:  Math.floor(c.ts) as any,
       value: (c.buy || 0) + (c.sell || 0),
       color: (c.c >= c.o) ? '#26a69a44' : '#ef535044',
     }));
@@ -188,7 +188,7 @@ export default function LightweightChart({
     // Add/update live bar
     if (liveBar) {
       const lb = {
-        time: liveBar.ts as any,
+        time: Math.floor(liveBar.ts) as any,
         open: liveBar.o, high: liveBar.h, low: liveBar.l,
         close: livePrice ?? liveBar.c,
       };
@@ -196,7 +196,7 @@ export default function LightweightChart({
         cData[cData.length - 1] = lb;
       } else {
         cData.push(lb);
-        vData.push({ time: liveBar.ts as any, value: 0, color: '#26a69a44' });
+        vData.push({ time: Math.floor(liveBar.ts) as any, value: 0, color: '#26a69a44' });
       }
     }
 
@@ -208,7 +208,7 @@ export default function LightweightChart({
       const dData = sorted.map(c => {
         const d = (c.buy || 0) - (c.sell || 0);
         return {
-          time:  c.ts as any,
+          time:  Math.floor(c.ts) as any,
           value: d,
           color: d >= 0 ? '#26a69a99' : '#ef535099',
         };
@@ -216,7 +216,7 @@ export default function LightweightChart({
       if (liveBar) {
         const ld = (liveBar.buy || 0) - (liveBar.sell || 0);
         dData.push({
-          time:  liveBar.ts as any,
+          time:  Math.floor(liveBar.ts) as any,
           value: ld,
           color: ld >= 0 ? '#26a69a99' : '#ef535099',
         });
@@ -227,13 +227,13 @@ export default function LightweightChart({
     // RTH background overlay
     if (rthBgRef.current) {
       const bgData = sorted.map(c => ({
-        time:  c.ts as any,
+        time:  Math.floor(c.ts) as any,
         value: 1,
         color: isRTH(c.ts) ? '#ffffff00' : '#0a0e1a99',
       }));
       if (liveBar) {
         bgData.push({
-          time:  liveBar.ts as any,
+          time:  Math.floor(liveBar.ts) as any,
           value: 1,
           color: isRTH(liveBar.ts) ? '#ffffff00' : '#0a0e1a99',
         });
@@ -247,7 +247,7 @@ export default function LightweightChart({
   useEffect(() => {
     if (!seriesRef.current || !liveBar || !livePrice) return;
     seriesRef.current.update({
-      time:  liveBar.ts as any,
+      time:  Math.floor(liveBar.ts) as any,
       open:  liveBar.o,
       high:  Math.max(liveBar.h, livePrice),
       low:   Math.min(liveBar.l, livePrice),
