@@ -18,7 +18,7 @@ interface Signal {
 interface Props {
   candles: Candle[];
   livePrice?: number;
-  liveBar?: { ts: number; o: number; h: number; l: number; c: number } | null;
+  liveBar?: { ts: number; o: number; h: number; l: number; c: number; buy?: number; sell?: number } | null;
   vwap?: number;
   levels?: { prev_high?: number; prev_low?: number; daily_open?: number; overnight_high?: number; overnight_low?: number };
   profile?: { poc?: number; vah?: number; val?: number };
@@ -37,7 +37,9 @@ export default function LightweightChart({
   const chartRef     = useRef<any>(null);
   const seriesRef    = useRef<any>(null);
   const volRef       = useRef<any>(null);
+  const deltaRef     = useRef<any>(null);
   const linesRef     = useRef<any[]>([]);
+  const rthBgRef     = useRef<any>(null);
   const loadedRef    = useRef(false);
 
   const initChart = useCallback(() => {
@@ -66,7 +68,7 @@ export default function LightweightChart({
       rightPriceScale: {
         borderColor:    '#1e2738',
         textColor:      '#94a3b8',
-        scaleMargins:   { top: 0.05, bottom: 0.2 },
+        scaleMargins:   { top: 0.05, bottom: 0.35 },
       },
       timeScale: {
         borderColor:    '#1e2738',
@@ -96,12 +98,37 @@ export default function LightweightChart({
       priceScaleId:    'vol',
     });
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.82, bottom: 0 },
+      scaleMargins: { top: 0.72, bottom: 0.18 },
+    });
+
+    // Delta (buy - sell) histogram
+    const delta = chart.addHistogramSeries({
+      priceFormat:     { type: 'volume' },
+      priceScaleId:    'delta',
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    chart.priceScale('delta').applyOptions({
+      scaleMargins: { top: 0.86, bottom: 0 },
+      visible: false,
     });
 
     chartRef.current  = chart;
     seriesRef.current = series;
     volRef.current    = vol;
+    deltaRef.current  = delta;
+
+    // RTH background overlay — covers full chart height
+    const rthBg = chart.addHistogramSeries({
+      priceScaleId:    'rth-bg',
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    chart.priceScale('rth-bg').applyOptions({
+      scaleMargins: { top: 0, bottom: 0 },
+      visible: false,
+    });
+    rthBgRef.current = rthBg;
 
     // Resize
     const ro = new ResizeObserver(() => {
@@ -136,6 +163,15 @@ export default function LightweightChart({
     if (!seriesRef.current || !volRef.current) return;
     if (candles.length === 0) return;
 
+    // RTH = 9:30–16:00 ET (EDT=-4h, EST=-5h; אפרוקסימציה: UTC-4 בקיץ)
+    const isRTH = (ts: number) => {
+      const d = new Date(ts * 1000);
+      const utcH = d.getUTCHours();
+      const utcM = d.getUTCMinutes();
+      const etMin = ((utcH - 4 + 24) % 24) * 60 + utcM; // EDT offset
+      return etMin >= 9 * 60 + 30 && etMin < 16 * 60;
+    };
+
     const sorted = [...candles].reverse();
 
     const cData = sorted.map(c => ({
@@ -166,6 +202,44 @@ export default function LightweightChart({
 
     seriesRef.current.setData(cData);
     volRef.current.setData(vData);
+
+    // Delta bar (buy - sell per candle)
+    if (deltaRef.current) {
+      const dData = sorted.map(c => {
+        const d = (c.buy || 0) - (c.sell || 0);
+        return {
+          time:  c.ts as any,
+          value: d,
+          color: d >= 0 ? '#26a69a99' : '#ef535099',
+        };
+      });
+      if (liveBar) {
+        const ld = (liveBar.buy || 0) - (liveBar.sell || 0);
+        dData.push({
+          time:  liveBar.ts as any,
+          value: ld,
+          color: ld >= 0 ? '#26a69a99' : '#ef535099',
+        });
+      }
+      deltaRef.current.setData(dData);
+    }
+
+    // RTH background overlay
+    if (rthBgRef.current) {
+      const bgData = sorted.map(c => ({
+        time:  c.ts as any,
+        value: 1,
+        color: isRTH(c.ts) ? '#ffffff00' : '#0a0e1a99',
+      }));
+      if (liveBar) {
+        bgData.push({
+          time:  liveBar.ts as any,
+          value: 1,
+          color: isRTH(liveBar.ts) ? '#ffffff00' : '#0a0e1a99',
+        });
+      }
+      rthBgRef.current.setData(bgData);
+    }
 
   }, [candles, liveBar, livePrice]);
 
