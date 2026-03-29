@@ -1,4 +1,4 @@
- ה'use client';
+'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
