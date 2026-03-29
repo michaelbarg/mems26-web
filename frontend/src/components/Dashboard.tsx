@@ -1216,14 +1216,97 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
   );
 }
 
+// ── Fills Panel — פקודות מסחר ────────────────────────────────────────────────
+function FillsPanel({ live }:{ live:MarketData|null }) {
+  const fills:any[] = (live as any)?.order_fills || [];
+  const price = live?.price || 0;
+
+  if (fills.length === 0) {
+    return (
+      <div style={{ padding:'20px 12px', textAlign:'center', color:'#4a5568', fontSize:11, direction:'rtl' }}>
+        <div style={{ fontSize:24, marginBottom:8 }}>💼</div>
+        <div>אין פקודות — מסחר לא פעיל</div>
+        <div style={{ fontSize:9, marginTop:4, color:'#2d3a4a' }}>פקודות יופיעו כאן בזמן אמת</div>
+      </div>
+    );
+  }
+
+  // חשב PnL לכל fill
+  let position = 0;
+  let totalPnl = 0;
+  const enriched = fills.map((f:any) => {
+    const qty = f.qty > 0 ? f.qty : Math.abs(f.qty);
+    const side = f.side === 'BUY' ? 1 : -1;
+    position += side * qty;
+    const unrealized = position !== 0 ? (price - f.price) * position : 0;
+    return { ...f, unrealized };
+  });
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+      {/* Position summary */}
+      <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'10px 12px' }}>
+        <div style={{ fontSize:9, color:'#4a5568', marginBottom:6, direction:'rtl' }}>פוזיציה נוכחית</div>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          {(() => {
+            const pos = fills.reduce((acc:number, f:any) => acc + (f.side==='BUY'?1:-1)*Math.abs(f.qty), 0);
+            const col = pos > 0 ? G : pos < 0 ? R : '#4a5568';
+            const label = pos > 0 ? `▲ LONG ${pos}` : pos < 0 ? `▼ SHORT ${Math.abs(pos)}` : 'FLAT';
+            return <span style={{ fontSize:16, fontWeight:800, color:col, fontFamily:'monospace' }}>{label}</span>;
+          })()}
+          <span style={{ fontSize:11, color:'#6b7280', fontFamily:'monospace' }}>{price.toFixed(2)}</span>
+        </div>
+      </div>
+
+      {/* Fills list */}
+      <div style={{ fontSize:9, color:'#4a5568', direction:'rtl', padding:'0 2px' }}>
+        {fills.length} פקודות אחרונות
+      </div>
+      {[...enriched].reverse().map((f:any, i:number) => {
+        const isBuy = f.side === 'BUY';
+        const col = isBuy ? G : R;
+        const ts = new Date(f.ts * 1000).toLocaleTimeString('en-US', {
+          hour:'2-digit', minute:'2-digit', second:'2-digit',
+          hour12:false, timeZone:'America/New_York'
+        });
+        const pnl = (price - f.price) * (isBuy ? 1 : -1) * Math.abs(f.qty);
+        return (
+          <div key={i} style={{ background:'#0d1117', border:`1px solid ${col}33`, borderRadius:7, padding:'8px 10px', borderLeft:`3px solid ${col}` }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+              <span style={{ fontSize:12, fontWeight:800, color:col }}>
+                {isBuy ? '▲ BUY' : '▼ SELL'} {Math.abs(f.qty)}
+              </span>
+              <span style={{ fontSize:10, color:'#4a5568', fontFamily:'monospace' }}>{ts} ET</span>
+            </div>
+            <div style={{ display:'flex', justifyContent:'space-between' }}>
+              <span style={{ fontSize:11, fontFamily:'monospace', color:'#e2e8f0', fontWeight:700 }}>
+                {f.price.toFixed(2)}
+              </span>
+              <span style={{ fontSize:10, fontWeight:700, color:pnl >= 0 ? G : R, fontFamily:'monospace' }}>
+                {pnl >= 0 ? '+' : ''}{(pnl * 5).toFixed(0)}$ {/* MES = $5/pt */}
+              </span>
+            </div>
+            {f.pos !== undefined && (
+              <div style={{ fontSize:9, color:'#4a5568', marginTop:2 }}>
+                פוזיציה: {f.pos > 0 ? `▲ ${f.pos}` : f.pos < 0 ? `▼ ${Math.abs(f.pos)}` : 'FLAT'}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
-  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'>('signal');
+  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
     { id:'setups',    label:'סטאפים', icon:'🔍' },
     { id:'patterns',  label:'תבניות', icon:'📈' },
     { id:'indicators',label:'נתונים', icon:'📊' },
+    { id:'fills',     label:'פקודות', icon:'💼' },
   ] as const;
 
   return (
@@ -1291,6 +1374,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
         {tab === 'indicators' && <>
           <Indicators live={live} />
+        </>}
+
+        {tab === 'fills' && <>
+          <FillsPanel live={live} />
         </>}
 
       </div>
@@ -1443,16 +1530,37 @@ export default function Dashboard() {
       const r=await fetch(`${API_URL}/market/candles?limit=960`,{cache:'no-store'});
       if(!r.ok)return;
       const raw=await r.json();
-      const d:Candle[]=Array.isArray(raw)?raw.map((i:any)=>typeof i==='string'?JSON.parse(i):i):[];
-      if(d.length>0)setCandles(d);
+      if(!Array.isArray(raw))return;
+      // flatten — מטפל ב-nested arrays וב-strings
+      const flat:Candle[]=[];
+      for(const item of raw){
+        if(Array.isArray(item)){
+          for(const sub of item){
+            try{const c=typeof sub==='string'?JSON.parse(sub):sub;if(c?.ts>0)flat.push(c);}catch{}
+          }
+        } else {
+          try{const c=typeof item==='string'?JSON.parse(item):item;if(c?.ts>0)flat.push(c);}catch{}
+        }
+      }
+      // מיין ישן→חדש, הסר כפולים
+      const seen=new Set<number>();
+      const deduped=flat.filter(c=>{if(seen.has(c.ts))return false;seen.add(c.ts);return true;});
+      deduped.sort((a,b)=>b.ts-a.ts);
+      if(deduped.length>0)setCandles(deduped);
     }catch{}
   },[]);
 
   useEffect(()=>{
-    fetchLive();fetchCandles();
-    const lt=setInterval(fetchLive,2000);
-    const ct=setInterval(fetchCandles,3000);
-    return()=>{clearInterval(lt);clearInterval(ct);};
+    // טעינה ראשונה — קודם היסטוריה, אחר כך לייב
+    const init=async()=>{
+      await fetchCandles();
+      fetchLive();
+      const lt=setInterval(fetchLive,2000);
+      const ct=setInterval(fetchCandles,15000); // נרות כל 15 שניות מספיק
+      return()=>{clearInterval(lt);clearInterval(ct);};
+    };
+    const cleanup=init();
+    return()=>{cleanup.then(fn=>fn?.());};
   },[fetchLive,fetchCandles,fetchAnalyze]);
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
@@ -1511,11 +1619,11 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-          <div style={{flex:1,position:'relative',overflow:'hidden'}}>
+          <div style={{flex:1,position:'relative',overflow:'hidden',minHeight:0}}>
             <LightweightChart
               candles={candles}
               livePrice={live?.price}
-              liveBar={live?.bar?{ts:live.ts,o:live.bar.o,h:live.bar.h,l:live.bar.l,c:live.bar.c}:null}
+              liveBar={live?.bar?{ts:live.ts,o:live.bar.o,h:live.bar.h,l:live.bar.l,c:live.bar.c,buy:live.bar.buy,sell:live.bar.sell}:null}
               vwap={live?.vwap?.value}
               levels={live?.levels}
               profile={live?.profile}
