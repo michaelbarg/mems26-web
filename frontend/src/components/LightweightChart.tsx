@@ -68,7 +68,7 @@ export default function LightweightChart({
       rightPriceScale: {
         borderColor:    '#1e2738',
         textColor:      '#94a3b8',
-        scaleMargins:   { top: 0.05, bottom: 0.35 },
+        scaleMargins:   { top: 0.04, bottom: 0.32 },
       },
       timeScale: {
         borderColor:    '#1e2738',
@@ -98,7 +98,7 @@ export default function LightweightChart({
       priceScaleId:    'vol',
     });
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.72, bottom: 0.18 },
+      scaleMargins: { top: 0.75, bottom: 0.15 },
     });
 
     // Delta (buy - sell) histogram
@@ -109,7 +109,7 @@ export default function LightweightChart({
       priceLineVisible: false,
     });
     chart.priceScale('delta').applyOptions({
-      scaleMargins: { top: 0.86, bottom: 0 },
+      scaleMargins: { top: 0.88, bottom: 0 },
       visible: false,
     });
 
