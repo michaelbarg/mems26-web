@@ -146,7 +146,7 @@ async def ingest_history(request: Request, x_bridge_token: Optional[str] = Heade
                 timeout=5.0
             )
             # שמור נרות בבת אחת — LPUSH (חדש→ישן)
-            items = [json.dumps(c) for c in candles[:300]]  # מקסימום 300
+            items = [json.dumps(c) for c in candles[:960]]  # מקסימום 960 (48h @ 3m bars)
             for chunk in [items[i:i+50] for i in range(0, len(items), 50)]:
                 await client.post(
                     f"{REDIS_URL}/lpush/{REDIS_CANDLES_KEY}",
@@ -162,7 +162,7 @@ async def ingest_history(request: Request, x_bridge_token: Optional[str] = Heade
 
 
 @app.get("/market/candles")
-async def get_candles(limit: int = 200):
+async def get_candles(limit: int = 960):
     raw = await redis_lrange(REDIS_CANDLES_KEY, 0, limit - 1)
     candles = []
     for item in raw:
