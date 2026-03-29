@@ -1,4 +1,4 @@
-'use client';
+ ה'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
@@ -1473,6 +1473,16 @@ export default function Dashboard() {
 
   return (
     <div style={{background:'#0a0a0f',fontFamily:'"JetBrains Mono","Fira Code",monospace',display:'flex',flexDirection:'column',height:'100vh',overflow:'hidden'}}>
+      <style>{`
+        @media (min-width: 3000px) {
+          html { font-size: 18px; }
+        }
+        @media (min-width: 4000px) {
+          html { font-size: 22px; }
+        }
+        * { box-sizing: border-box; }
+        @keyframes spin{to{transform:rotate(360deg)}}
+      `}</style>
 
       {/* TopBar */}
       <div style={{flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738'}}>
@@ -1480,7 +1490,7 @@ export default function Dashboard() {
       </div>
 
       {/* גרף שמאל + מידע ימין */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 310px',flex:1,overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr clamp(310px, 22vw, 480px)',flex:1,overflow:'hidden'}}>
 
         {/* גרף — קבוע */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738'}}>
@@ -1581,7 +1591,6 @@ export default function Dashboard() {
 
       <style>{`
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-        @keyframes spin{to{transform:rotate(360deg)}}
         .live-blink{animation:blink 2s infinite}
         ::-webkit-scrollbar{width:4px}
         ::-webkit-scrollbar-track{background:#0a0a0f}
