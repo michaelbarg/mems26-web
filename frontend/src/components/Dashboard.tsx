@@ -1389,26 +1389,93 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
       {/* עסקאות פתוחות */}
       {openTrades.map(trade => {
         const pnlPts = trade.side === 'LONG' ? price - trade.entry_price : trade.entry_price - price;
-        const pnlUsd = pnlPts * 5;
-        const col = trade.side === 'LONG' ? G : R;
-        const ai  = analysis[trade.id];
-        const aiCol = ai ? (actionCol[ai.action] || '#94a3b8') : '#4a5568';
+        const pnlUsd = pnlPts * 5 * (trade.qty || 1);
+        const col    = trade.side === 'LONG' ? G : R;
+        const ai     = analysis[trade.id];
+        const aiCol  = ai ? (actionCol[ai.action] || '#94a3b8') : '#4a5568';
+        const entry  = trade.entry_price || 0;
+        const stop   = trade.stop || 0;
+        const t1     = trade.t1 || 0;
+        const t2     = trade.t2 || 0;
+        const risk   = stop ? Math.abs(entry - stop) : 0;
+        const rr     = risk > 0 ? (pnlPts / risk) : 0;
+
+        // האם מחיר קרוב לסטופ (25% מהריסק)
+        const stopNear = stop && risk > 0 && Math.abs(price - stop) < risk * 0.25;
 
         return (
-          <div key={trade.id} style={{ background:'#0d1117', border:`1.5px solid ${col}44`, borderRadius:8, overflow:'hidden' }}>
-            {/* Header */}
+          <div key={trade.id} style={{ background:'#0d1117', border:`1.5px solid ${stopNear?'#ef5350':col}44`, borderRadius:8, overflow:'hidden' }}>
+
+            {/* Header — PnL */}
             <div style={{ background:`${col}12`, padding:'8px 10px', borderBottom:`1px solid ${col}22` }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:12, fontWeight:800, color:col }}>{trade.side==='LONG'?'▲':'▼'} {trade.side} — {trade.setup||'—'}</span>
+                <span style={{ fontSize:12, fontWeight:800, color:col }}>
+                  {trade.side==='LONG'?'▲':'▼'} {trade.side} {trade.qty>1?`×${trade.qty}`:''} — {trade.setup||'Sierra'}
+                </span>
                 <span style={{ fontSize:14, fontWeight:800, color:pnlPts>=0?G:R, fontFamily:'monospace' }}>
-                  {pnlPts>=0?'+':''}{pnlPts.toFixed(2)}pt / {pnlUsd>=0?'+':''}${pnlUsd.toFixed(0)}
+                  {pnlPts>=0?'+':''}{pnlPts.toFixed(2)}pt
                 </span>
               </div>
-              <div style={{ display:'flex', gap:8, marginTop:4, fontSize:10, color:'#6b7280', fontFamily:'monospace' }}>
-                <span>כניסה: {trade.entry_price}</span>
-                {trade.stop>0 && <span>סטופ: {trade.stop}</span>}
-                {trade.t1>0 && <span>T1: {trade.t1}</span>}
-                {trade.rr_planned>0 && <span style={{color:'#a78bfa'}}>R:R {trade.rr_planned}</span>}
+              <div style={{ display:'flex', justifyContent:'space-between', marginTop:2 }}>
+                <span style={{ fontSize:10, color:'#6b7280', fontFamily:'monospace' }}>
+                  כניסה {entry.toFixed(2)} → {price.toFixed(2)}
+                </span>
+                <span style={{ fontSize:11, fontWeight:700, color:pnlUsd>=0?G:R, fontFamily:'monospace' }}>
+                  {pnlUsd>=0?'+':''}${pnlUsd.toFixed(0)}
+                  {risk>0 && <span style={{color:'#6b7280',fontSize:9}}> ({rr>=0?'+':''}{rr.toFixed(1)}R)</span>}
+                </span>
+              </div>
+            </div>
+
+            {/* תוכנית יציאה */}
+            <div style={{ padding:'8px 10px', borderBottom:'1px solid #1e2738' }}>
+              <div style={{ fontSize:9, color:'#4a5568', marginBottom:5 }}>תוכנית יציאה</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+
+                {/* סטופ */}
+                {stop > 0 ? (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                    background: stopNear ? '#ef535018' : '#0a0a0f',
+                    border: `1px solid ${stopNear?'#ef5350':'#1e2738'}`, borderRadius:5, padding:'4px 8px' }}>
+                    <span style={{ fontSize:10, color:'#ef5350', fontWeight:700 }}>
+                      {stopNear ? '⚠ סטופ קרוב!' : '✕ סטופ'}
+                    </span>
+                    <span style={{ fontSize:11, fontFamily:'monospace', color:'#ef5350', fontWeight:700 }}>{stop.toFixed(2)}</span>
+                    {risk > 0 && <span style={{ fontSize:9, color:'#4a5568' }}>−{risk.toFixed(2)}pt / −${(risk*5).toFixed(0)}</span>}
+                  </div>
+                ) : (
+                  <div style={{ background:'#ef535011', border:'1px solid #ef535033', borderRadius:5, padding:'4px 8px', fontSize:10, color:'#ef5350' }}>
+                    ⚠ אין סטופ מוגדר!
+                  </div>
+                )}
+
+                {/* T1 */}
+                {t1 > 0 && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                    background: price >= t1 && trade.side==='LONG' || price <= t1 && trade.side==='SHORT' ? '#22c55e18' : '#0a0a0f',
+                    border:'1px solid #22c55e22', borderRadius:5, padding:'4px 8px' }}>
+                    <span style={{ fontSize:10, color:G, fontWeight:700 }}>⊕ T1 · C1</span>
+                    <span style={{ fontSize:11, fontFamily:'monospace', color:G, fontWeight:700 }}>{t1.toFixed(2)}</span>
+                    {risk > 0 && <span style={{ fontSize:9, color:'#4a5568' }}>+{risk.toFixed(2)}pt / +${(risk*5).toFixed(0)}</span>}
+                  </div>
+                )}
+
+                {/* T2 */}
+                {t2 > 0 && (
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
+                    background:'#0a0a0f', border:'1px solid #16a34a22', borderRadius:5, padding:'4px 8px' }}>
+                    <span style={{ fontSize:10, color:'#16a34a', fontWeight:700 }}>⊕ T2 · C2</span>
+                    <span style={{ fontSize:11, fontFamily:'monospace', color:'#16a34a', fontWeight:700 }}>{t2.toFixed(2)}</span>
+                    {risk > 0 && <span style={{ fontSize:9, color:'#4a5568' }}>+{(risk*2).toFixed(2)}pt / +${(risk*10).toFixed(0)}</span>}
+                  </div>
+                )}
+
+                {/* אם אין T1/T2 */}
+                {!t1 && !t2 && (
+                  <div style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:5, padding:'4px 8px', fontSize:10, color:Y }}>
+                    ⚠ הגדר T1/T2 לניהול פוזיציה
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1416,22 +1483,17 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
             {ai && (
               <div style={{ padding:'7px 10px', background:`${aiCol}11`, borderBottom:`1px solid ${aiCol}22` }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
-                  <span style={{ fontSize:12, fontWeight:800, color:aiCol }}>
-                    {actionHeb[ai.action] || ai.action}
-                  </span>
+                  <span style={{ fontSize:12, fontWeight:800, color:aiCol }}>{actionHeb[ai.action] || ai.action}</span>
                   <span style={{ fontSize:10, color:'#6b7280' }}>ביטחון {ai.confidence}%</span>
                 </div>
                 <div style={{ fontSize:10, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.5 }}>{ai.reason}</div>
-                {ai.urgency === 'HIGH' && (
-                  <div style={{ marginTop:4, fontSize:9, color:'#ef5350', fontWeight:700 }}>⚠ דחוף</div>
-                )}
+                {ai.urgency === 'HIGH' && <div style={{ marginTop:4, fontSize:9, color:'#ef5350', fontWeight:700 }}>⚠ דחוף</div>}
               </div>
             )}
 
             {/* Actions */}
             <div style={{ display:'flex', gap:4, padding:'7px 10px' }}>
-              <button onClick={() => analyzeTradeAI(trade.id)}
-                disabled={loading[trade.id]}
+              <button onClick={() => analyzeTradeAI(trade.id)} disabled={loading[trade.id]}
                 style={{ flex:1, background:'#7f77dd22', border:'1px solid #7f77dd44', borderRadius:5, padding:'5px', color:'#a78bfa', fontSize:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>
                 {loading[trade.id] ? '...' : '🤖 AI'}
               </button>
