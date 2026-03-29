@@ -229,13 +229,13 @@ export default function LightweightChart({
       const bgData = sorted.map(c => ({
         time:  Math.floor(c.ts) as any,
         value: 1,
-        color: isRTH(c.ts) ? '#ffffff00' : '#0a0e1a99',
+        color: isRTH(c.ts) ? '#ffffff00' : '#1a2035aa',
       }));
       if (liveBar) {
         bgData.push({
           time:  Math.floor(liveBar.ts) as any,
           value: 1,
-          color: isRTH(liveBar.ts) ? '#ffffff00' : '#0a0e1a99',
+          color: isRTH(liveBar.ts) ? '#ffffff00' : '#1a2035aa',
         });
       }
       rthBgRef.current.setData(bgData);
