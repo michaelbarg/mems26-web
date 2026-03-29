@@ -140,19 +140,23 @@ async def ingest_history(request: Request, x_bridge_token: Optional[str] = Heade
     try:
         async with httpx.AsyncClient() as client:
             # מחק היסטוריה קיימת
-            await client.delete(
+            await client.post(
                 f"{REDIS_URL}/del/{REDIS_CANDLES_KEY}",
                 headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                json={},
                 timeout=5.0
             )
-            # שמור נרות בבת אחת — LPUSH (חדש→ישן)
-            items = [json.dumps(c) for c in candles[:960]]  # מקסימום 960 (48h @ 3m bars)
-            for chunk in [items[i:i+50] for i in range(0, len(items), 50)]:
+            # דחוף נרות ב-chunks — כל נר בנפרד ב-URL path
+            items = [json.dumps(c) for c in candles[:960]]
+            for chunk in [items[i:i+20] for i in range(0, len(items), 20)]:
+                # Upstash REST: /lpush/key/v1/v2/v3 דוחף כל value בנפרד
+                path_values = "/".join(
+                    v.replace("/", "%2F").replace(" ", "%20") for v in chunk
+                )
                 await client.post(
-                    f"{REDIS_URL}/lpush/{REDIS_CANDLES_KEY}",
+                    f"{REDIS_URL}/lpush/{REDIS_CANDLES_KEY}/{path_values}",
                     headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
-                    json=chunk,
-                    timeout=10.0
+                    timeout=15.0
                 )
         log.info(f"History loaded: {len(candles)} candles")
         return {"ok": True, "loaded": len(candles)}
@@ -167,10 +171,20 @@ async def get_candles(limit: int = 960):
     candles = []
     for item in raw:
         try:
-            c = json.loads(item) if isinstance(item, str) else item
-            candles.append(c)
+            if isinstance(item, list):
+                # nested array — פירוק
+                for sub in item:
+                    c = json.loads(sub) if isinstance(sub, str) else sub
+                    if isinstance(c, dict) and c.get("ts", 0) > 0:
+                        candles.append(c)
+            else:
+                c = json.loads(item) if isinstance(item, str) else item
+                if isinstance(c, dict) and c.get("ts", 0) > 0:
+                    candles.append(c)
         except Exception:
             continue
+    # מיין לפי זמן ישן→חדש
+    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
     return candles
 
 
