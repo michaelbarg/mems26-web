@@ -1440,7 +1440,7 @@ export default function Dashboard() {
 
   const fetchCandles=useCallback(async()=>{
     try{
-      const r=await fetch(`${API_URL}/market/candles?limit=200`,{cache:'no-store'});
+      const r=await fetch(`${API_URL}/market/candles?limit=960`,{cache:'no-store'});
       if(!r.ok)return;
       const raw=await r.json();
       const d:Candle[]=Array.isArray(raw)?raw.map((i:any)=>typeof i==='string'?JSON.parse(i):i):[];
