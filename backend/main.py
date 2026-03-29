@@ -349,6 +349,145 @@ async def get_footprint():
     return []
 
 
+REDIS_TRADES_KEY = "mems26:trades"
+
+
+async def redis_trades_get() -> list:
+    if not REDIS_URL or not REDIS_TOKEN:
+        return []
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{REDIS_URL}/lrange/{REDIS_TRADES_KEY}/0/199",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+            result = resp.json()
+            items = result.get("result", [])
+            trades = []
+            for item in items:
+                try:
+                    t = json.loads(item) if isinstance(item, str) else item
+                    if isinstance(t, dict):
+                        trades.append(t)
+                except:
+                    pass
+            return trades
+    except Exception as e:
+        log.warning(f"Trades get failed: {e}")
+    return []
+
+
+@app.get("/trades")
+async def get_trades():
+    """מחזיר יומן עסקאות"""
+    return await redis_trades_get()
+
+
+@app.post("/trades")
+async def save_trade(request: Request):
+    """שומר עסקה ביומן"""
+    trade = await request.json()
+    if not trade.get("entry_price"):
+        raise HTTPException(status_code=400, detail="entry_price required")
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{REDIS_URL}/lpush/{REDIS_TRADES_KEY}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                json=[json.dumps(trade)],
+                timeout=5.0
+            )
+            await client.post(
+                f"{REDIS_URL}/ltrim/{REDIS_TRADES_KEY}/0/199",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+        log.info(f"Trade saved: {trade.get('side')} @ {trade.get('entry_price')}")
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/trades/{trade_id}")
+async def delete_trade(trade_id: str):
+    """מחיקת עסקה ספציפית"""
+    try:
+        trades = await redis_trades_get()
+        updated = [t for t in trades if t.get("id") != trade_id]
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{REDIS_URL}/del/{REDIS_TRADES_KEY}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+            for t in updated:
+                await client.post(
+                    f"{REDIS_URL}/rpush/{REDIS_TRADES_KEY}",
+                    headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                    json=[json.dumps(t)], timeout=5.0
+                )
+        return {"ok": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/trades/analyze/{trade_id}")
+async def analyze_trade(trade_id: str):
+    """ניתוח AI לעסקה פתוחה — האם לצאת או להישאר"""
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=500, detail="No API key")
+
+    trades = await redis_trades_get()
+    trade = next((t for t in trades if t.get("id") == trade_id), None)
+    if not trade:
+        raise HTTPException(status_code=404, detail="Trade not found")
+
+    data = await redis_get()
+    if not data:
+        raise HTTPException(status_code=503, detail="No market data")
+
+    price   = data.get("price", 0)
+    cvd     = data.get("cvd", {})
+    vwap    = data.get("vwap", {})
+    cci     = data.get("woodies_cci", {})
+    day     = data.get("day", {})
+    session = data.get("session", {})
+
+    entry   = trade.get("entry_price", 0)
+    side    = trade.get("side", "LONG")
+    stop    = trade.get("stop", 0)
+    t1      = trade.get("t1", 0)
+    t2      = trade.get("t2", 0)
+    pnl_pts = (price - entry) if side == "LONG" else (entry - price)
+
+    prompt = f"""אתה מנהל עסקאות MES Futures. עסקה פתוחה:
+צד: {side} | כניסה: {entry} | מחיר נוכחי: {price:.2f}
+PnL: {pnl_pts:+.2f} נקודות | סטופ: {stop} | T1: {t1} | T2: {t2}
+Session: {session.get('phase')} | DayType: {day.get('type')}
+CCI14: {cci.get('cci14',0):.1f} | CVD trend: {cvd.get('trend')} | VWAP above: {vwap.get('above')}
+
+החלט: האם להישאר בעסקה, לצאת, להזיז סטופ ל-BE, או לקחת חלקי רווח?
+ענה JSON בלבד:
+{{"action":"HOLD/EXIT/MOVE_BE/PARTIAL","confidence":0-100,"reason":"משפט קצר בעברית","urgency":"LOW/MEDIUM/HIGH"}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            resp = await client.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"},
+                json={"model": "claude-sonnet-4-5", "max_tokens": 200, "messages": [{"role": "user", "content": prompt}]}
+            )
+        text = resp.json().get("content", [{}])[0].get("text", "").strip()
+        if text.startswith("```"): text = text.split("```")[1]; text = text[4:] if text.startswith("json") else text
+        result = json.loads(text.strip())
+        result["pnl_pts"] = round(pnl_pts, 2)
+        result["pnl_usd"] = round(pnl_pts * 5, 2)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 async def health():
     data = await redis_get()
