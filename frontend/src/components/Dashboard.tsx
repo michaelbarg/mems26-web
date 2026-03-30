@@ -1194,36 +1194,51 @@ function TopBar({ live, connected, onAskAI, aiLoading }:{ live:MarketData|null; 
 }
 
 // ── Zone B: Main Score + Signal Panel ────────────────────────────────────────
-function MainScore({ live, onAccept, onReject, accepted }:{ live:MarketData|null; onAccept:()=>void; onReject:()=>void; accepted:boolean }) {
-  const sig   = live?.signal;
-  const score = sig?.score ?? 0;
-  const col   = scoreCol(score);
-  const dir   = sig?.direction ?? 'NO_TRADE';
-  const isActive = dir !== 'NO_TRADE' && score >= 5;
-  const isGreen  = sig?.tl_color === 'green' || sig?.tl_color === 'green_bright';
+function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:MarketData|null; liveSetup:any; onAccept:()=>void; onReject:()=>void; accepted:boolean }) {
+  // Primary source: real-time calcSetups opportunity
+  const opp = liveSetup?.opportunity || 'none';
+  const oppScore = liveSetup?.opportunityScore || 0;
+  const oppSweep = liveSetup?.opportunitySweep;
+  const oppLevels = liveSetup?.opportunityLevels;
+
+  // Map 0-100 score to 1-10 for display
+  const score10 = Math.round(oppScore / 10);
+  const { long: longPct, short: shortPct } = calcProbability(live);
+
+  // AI signal as secondary
+  const sig = live?.signal;
+
+  // Determine direction and color
+  const dir = opp === 'long' ? 'LONG' : opp === 'short' ? 'SHORT' : (sig?.direction === 'LONG' || sig?.direction === 'SHORT') ? sig.direction : 'NO_TRADE';
+  const isActive = opp !== 'none' || (dir !== 'NO_TRADE' && (sig?.score ?? 0) >= 5);
+  const col = dir === 'LONG' ? G : dir === 'SHORT' ? R : Y;
+  const displayScore = opp !== 'none' ? score10 : (sig?.score ?? 0);
 
   return (
-    <div style={{ background: isActive ? '#0d1f1a' : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14, minHeight:120 }}>
+    <div style={{ background: isActive ? (dir==='LONG'?'#0d1f1a':'#1f0d0d') : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14, minHeight:120 }}>
       <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-        <TrafficLight score={score} live={live} />
+        <TrafficLight score={displayScore} live={live} />
         <div style={{ width:44, height:44, borderRadius:'50%', background:col+'18', border:`2px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <span style={{ fontSize:20, fontWeight:800, color:col, fontFamily:'monospace' }}>{score}</span>
+          <span style={{ fontSize:20, fontWeight:800, color:col, fontFamily:'monospace' }}>{displayScore}</span>
         </div>
         <div style={{ flex:1 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
             <span style={{ fontSize:20, fontWeight:800, color:col }}>{dir === 'NO_TRADE' ? 'המתן' : dir}</span>
-            {isActive && <span style={{ fontSize:11, color:'#6b7280' }}>{sig?.confidence}</span>}
-            {isActive && sig?.setup && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{sig.setup}</span>}
+            {oppSweep && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{oppSweep.levelName}</span>}
+            {!oppSweep && sig?.setup && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{sig.setup}</span>}
           </div>
-          <div style={{ fontSize:10, color:'#4a5568', marginBottom:6 }}>{score}/10 ירוקים</div>
+          <div style={{ fontSize:10, color:'#4a5568', marginBottom:6 }}>
+            {opp !== 'none' ? `${oppScore}% תנאים | L ${longPct}% S ${shortPct}%` : `L ${longPct}% · S ${shortPct}%`}
+          </div>
           <div style={{ height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
-            <div style={{ width:`${(score/10)*100}%`, height:'100%', background:col, borderRadius:2 }} />
+            <div style={{ width:`${opp!=='none' ? oppScore : Math.max(longPct,shortPct)}%`, height:'100%', background:col, borderRadius:2 }} />
           </div>
         </div>
-        {isActive && sig && (
+        {isActive && oppLevels && (
           <div style={{ textAlign:'right', flexShrink:0 }}>
-            <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>סיכוי הצלחה</div>
-            <div style={{ fontSize:24, fontWeight:800, color:col, fontFamily:'monospace' }}>{sig.win_rate ?? 0}%</div>
+            <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה / סטופ</div>
+            <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{oppLevels.entry.toFixed(2)}</div>
+            <div style={{ fontSize:11, fontWeight:700, color:R, fontFamily:'monospace' }}>{oppLevels.stop.toFixed(2)}</div>
           </div>
         )}
       </div>
@@ -2151,7 +2166,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
 }
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
@@ -2191,6 +2206,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
           )}
           <MainScore
             live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:live}
+            liveSetup={liveSetup}
             accepted={accepted}
             onAccept={onAccept}
             onReject={onReject}
@@ -2780,6 +2796,7 @@ export default function Dashboard() {
           onActivateSweep={(ev:SweepEvent)=>setActiveSetup(buildActiveSetup(ev,candles))}
           onDeactivateSetup={()=>setActiveSetup(null)}
           levelTouches={levelTouches}
+          liveSetup={liveSetup}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
           onReject={()=>{
             const sig=lockedSignal||live?.signal;
