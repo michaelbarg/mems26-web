@@ -2328,6 +2328,13 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             onReject={onReject}
           />
           <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={onAskAI} />
+          {/* AI rationale as fallback when no setup detected */}
+          {persistedSignal?.wait_reason && !liveSetup?.opportunity && liveSetup?.opportunity !== 'none' && (
+            <div style={{ background:'#0d1117', border:'1px solid #f59e0b33', borderRadius:8, padding:'10px 14px' }}>
+              <div style={{ fontSize:9, color:'#f59e0b', marginBottom:4, letterSpacing:1 }}>⏳ AI ממליץ</div>
+              <div style={{ fontSize:12, color:'#94a3b8', lineHeight:1.8, direction:'rtl', textAlign:'right', fontFamily:'Arial,sans-serif' }}>{persistedSignal.wait_reason}</div>
+            </div>
+          )}
           <EntryZone live={live} signal={persistedSignal} />
         </>}
 
@@ -2719,6 +2726,18 @@ export default function Dashboard() {
     const cleanup=init();
     return()=>{cleanup.then(fn=>fn?.());};
   },[fetchLive,fetchCandles,fetchAnalyze]);
+
+  // ── Auto-AI fallback: call every 60s when no setup detected ──
+  const lastAutoAI = useRef(0);
+  useEffect(() => {
+    const opp = calcSetups(live, candles)?.opportunity || 'none';
+    const now = Date.now();
+    // Only auto-call when: no opportunity, not loading, 60s since last call, has live data
+    if (opp === 'none' && !aiLoading && live?.price && now - lastAutoAI.current > 60000 && !persistedSignal) {
+      lastAutoAI.current = now;
+      askAI();
+    }
+  }, [live?.price]); // runs on each price update (~2s)
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
