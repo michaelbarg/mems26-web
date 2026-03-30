@@ -325,138 +325,123 @@ function scanHistoricalSweeps(
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
 function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   if (!live) return null;
-  const cvd  = live.cvd        || {} as any;
-  const vwap = live.vwap       || {} as any;
-  const prof = live.profile    || {} as any;
-  const of2  = live.order_flow || {} as any;
-  const sess = live.session    || {} as any;
   const bar  = live.bar        || {} as any;
-  const mtf  = live.mtf        || {} as any;
-  const wcci = (live as any).woodies_cci     || {};
-  const day  = (live as any).day             || {};
+  const sess = live.session    || {} as any;
+  const lev  = live.levels     || {} as any;
   const cp   = (live as any).candle_patterns || {};
   const vol  = (live as any).volume_context  || {};
-  const lev  = live.levels     || {} as any;
+  const price = live.price || 0;
   const relVol = vol.rel_vol || 1;
 
-  // ── Liq Sweep — בודק 5 נרות אחורה + נר נוכחי ─────────────────────────
-  const sweepLevels = [lev.prev_high, lev.prev_low, lev.overnight_high, lev.overnight_low]
-    .filter(v => v && v > 0);
-  const price = live.price || 0;
+  // ── רמות: PDH, PDL, ONH, ONL + IBH, IBL ──────────────────────────────
+  const sweepLevels: { price: number; name: string }[] = [];
+  if (lev.prev_high > 0)      sweepLevels.push({ price: lev.prev_high,      name: 'PDH' });
+  if (lev.prev_low > 0)       sweepLevels.push({ price: lev.prev_low,       name: 'PDL' });
+  if (lev.overnight_high > 0) sweepLevels.push({ price: lev.overnight_high, name: 'ONH' });
+  if (lev.overnight_low > 0)  sweepLevels.push({ price: lev.overnight_low,  name: 'ONL' });
+  if (sess.ibh > 0 && sess.ib_locked) sweepLevels.push({ price: sess.ibh, name: 'IBH' });
+  if (sess.ibl > 0 && sess.ib_locked) sweepLevels.push({ price: sess.ibl, name: 'IBL' });
 
-  // חפש sweep ב-5 נרות אחרונים
-  const recentBars = [...candles].sort((a,b) => b.ts - a.ts).slice(0, 5);
+  // ── 10 נרות אחרונים + ממוצע volume ──────────────────────────────────
+  const sorted = [...candles].sort((a, b) => b.ts - a.ts);
+  const recent10 = sorted.slice(0, 10);
+  const recent20 = sorted.slice(0, 20);
+  const avgVol20 = recent20.length > 0
+    ? recent20.reduce((s, c) => s + (c.buy || 0) + (c.sell || 0), 0) / recent20.length
+    : 1;
 
-  // Long sweep: נר שה-low שלו שבר רמה וסגר מעלה
-  let sweepLongLevel: number | undefined;
-  let sweepLongBar: Candle | undefined;
-  for (const rb of recentBars) {
-    const found = sweepLevels.find(l => rb.l < l - 0.5 && rb.c > l);
-    if (found) { sweepLongLevel = found; sweepLongBar = rb; break; }
+  // ── חפש sweep ב-10 נרות אחרונים ────────────────────────────────────
+  let longSweep: { level: number; levelName: string; bar: Candle; relVol: number } | null = null;
+  let shortSweep: { level: number; levelName: string; bar: Candle; relVol: number } | null = null;
+
+  for (const rb of recent10) {
+    const rbVol = (rb.buy || 0) + (rb.sell || 0);
+    const rbRelVol = avgVol20 > 0 ? rbVol / avgVol20 : 1;
+
+    if (!longSweep) {
+      const found = sweepLevels.find(l => rb.l < l.price - 0.5 && rb.c > l.price);
+      if (found) longSweep = { level: found.price, levelName: found.name, bar: rb, relVol: rbRelVol };
+    }
+    if (!shortSweep) {
+      const found = sweepLevels.find(l => rb.h > l.price + 0.5 && rb.c < l.price);
+      if (found) shortSweep = { level: found.price, levelName: found.name, bar: rb, relVol: rbRelVol };
+    }
+    if (longSweep && shortSweep) break;
   }
-  // Fallback: בדוק גם נר נוכחי
-  if (!sweepLongLevel) {
-    sweepLongLevel = sweepLevels.find(l => (bar.l||price) < l - 0.5 && price > l);
+
+  // ── Fallback: בדוק נר נוכחי מ-live ────────────────────────────────
+  if (!longSweep) {
+    const found = sweepLevels.find(l => (bar.l || price) < l.price - 0.5 && price > l.price);
+    if (found) longSweep = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol };
+  }
+  if (!shortSweep) {
+    const found = sweepLevels.find(l => (bar.h || price) > l.price + 0.5 && price < l.price);
+    if (found) shortSweep = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol };
   }
 
-  // Short sweep
-  let sweepShortLevel: number | undefined;
-  let sweepShortBar: Candle | undefined;
-  for (const rb of recentBars) {
-    const found = sweepLevels.find(l => rb.h > l + 0.5 && rb.c < l);
-    if (found) { sweepShortLevel = found; sweepShortBar = rb; break; }
-  }
-  if (!sweepShortLevel) {
-    sweepShortLevel = sweepLevels.find(l => (bar.h||price) > l + 0.5 && price < l);
-  }
-
-  // Volume check: ממוצע 20 נרות אחרונים
-  const recent20 = [...candles].sort((a,b) => b.ts - a.ts).slice(0, 20);
-  const avgVol20 = recent20.length > 0 ? recent20.reduce((s,c) => s + (c.buy||0) + (c.sell||0), 0) / recent20.length : 1;
-  const sweepBarVol = sweepLongBar ? (sweepLongBar.buy||0) + (sweepLongBar.sell||0) : (sweepShortBar ? (sweepShortBar.buy||0) + (sweepShortBar.sell||0) : 0);
-  const sweepRelVol = avgVol20 > 0 ? sweepBarVol / avgVol20 : relVol;
-
-  const liqLong   = [
-    { label:'Sweep ↓↑ (5 bars)', ok: !!sweepLongLevel,         critical:true  },
-    { label:'מחיר מעל רמה',      ok: !!sweepLongLevel && price > sweepLongLevel, critical:true },
-    { label:'Delta מתהפך',       ok: (bar.delta||0) > 50,       critical:true  },
-    { label:'Vol sweep > 1.3x',  ok: sweepLongBar ? sweepRelVol > 1.3 : relVol > 1.2, critical:true },
-    { label:'נר היפוך',          ok: cp.bull_engulf||cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG', critical:false },
+  // ── Checks ─────────────────────────────────────────────────────────
+  const liqLong = [
+    { label: `Sweep ↓↑ ${longSweep?.levelName || ''}`, ok: !!longSweep, critical: true },
+    { label: 'מחיר מעל רמה', ok: !!longSweep && price > longSweep.level, critical: true },
+    { label: 'Delta > +50',  ok: (bar.delta || 0) > 50, critical: true },
+    { label: `Vol > 1.2x`,   ok: longSweep ? longSweep.relVol > 1.2 : relVol > 1.2, critical: true },
+    { label: 'נר היפוך',     ok: cp.bull_engulf || cp.bar0 === 'HAMMER' || cp.bar0 === 'BULL_STRONG', critical: false },
   ];
-  const liqShort  = [
-    { label:'Sweep ↑↓ (5 bars)', ok: !!sweepShortLevel,        critical:true  },
-    { label:'מחיר מתחת רמה',     ok: !!sweepShortLevel && price < sweepShortLevel, critical:true },
-    { label:'Delta מתהפך',       ok: (bar.delta||0) < -50,      critical:true  },
-    { label:'Vol sweep > 1.3x',  ok: sweepShortBar ? sweepRelVol > 1.3 : relVol > 1.2, critical:true },
-    { label:'נר היפוך',          ok: cp.bear_engulf||cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG', critical:false },
+  const liqShort = [
+    { label: `Sweep ↑↓ ${shortSweep?.levelName || ''}`, ok: !!shortSweep, critical: true },
+    { label: 'מחיר מתחת רמה', ok: !!shortSweep && price < shortSweep.level, critical: true },
+    { label: 'Delta < -50',   ok: (bar.delta || 0) < -50, critical: true },
+    { label: `Vol > 1.2x`,    ok: shortSweep ? shortSweep.relVol > 1.2 : relVol > 1.2, critical: true },
+    { label: 'נר היפוך',      ok: cp.bear_engulf || cp.bar0 === 'SHOOTING_STAR' || cp.bar0 === 'BEAR_STRONG', critical: false },
   ];
 
-  // ── VWAP Pullback ──────────────────────────────────────────────────────────
-  const vwapLong  = [
-    { label:'מעל VWAP',     ok: !!vwap.above,                  critical:true  },
-    { label:'Pullback חלש', ok: !!vwap.pullback,               critical:true  },
-    { label:'CVD Bull',     ok: cvd.trend==='BULLISH',          critical:false },
-    { label:'Hook/ZLR ↑',   ok: !!wcci.hook_up||!!wcci.zlr_bull, critical:false },
-    { label:'נר היפוך',     ok: cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG', critical:false },
-  ];
-  const vwapShort = [
-    { label:'מתחת VWAP',    ok: !vwap.above,                   critical:true  },
-    { label:'Dist < 3',     ok: Math.abs(vwap.distance||0)<3,  critical:true  },
-    { label:'CVD Bear',     ok: cvd.trend==='BEARISH',          critical:false },
-    { label:'Hook/ZLR ↓',   ok: !!wcci.hook_down||!!wcci.zlr_bear, critical:false },
-    { label:'נר היפוך',     ok: cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG', critical:false },
-  ];
-
-  // ── IB Breakout ───────────────────────────────────────────────────────────
-  const ibLong    = [
-    { label:'IB ננעל',      ok: !!sess.ib_locked,              critical:true  },
-    { label:'פריצה מעלה',   ok: !!day.ib_breakout_up,          critical:true  },
-    { label:'Retest IBH',   ok: !!sess.ib_locked && Math.abs(price-(sess.ibh||0))<1.5, critical:true },
-    { label:'15m Bull',     ok: (mtf?.m15?.delta||0)>0,        critical:false },
-    { label:'CVD Bull',     ok: cvd.trend==='BULLISH',          critical:false },
-  ];
-  const ibShort   = [
-    { label:'IB ננעל',      ok: !!sess.ib_locked,              critical:true  },
-    { label:'פריצה מטה',    ok: !!day.ib_breakout_down,        critical:true  },
-    { label:'Retest IBL',   ok: !!sess.ib_locked && Math.abs(price-(sess.ibl||0))<1.5, critical:true },
-    { label:'15m Bear',     ok: (mtf?.m15?.delta||0)<0,        critical:false },
-    { label:'CVD Bear',     ok: cvd.trend==='BEARISH',          critical:false },
-  ];
-
-  // ── CCI Turbo ─────────────────────────────────────────────────────────────
-  const turboLong = [
-    { label:'Turbo Bull',   ok: !!wcci.turbo_bull,             critical:true  },
-    { label:'ZLR ↑',        ok: !!wcci.zlr_bull,              critical:false },
-    { label:'מעל VWAP',     ok: !!vwap.above,                  critical:false },
-    { label:'מעל POC',      ok: !!prof.above_poc,              critical:false },
-    { label:'CVD d5+',      ok: (cvd.d5||0)>0,                critical:false },
-  ];
-  const turboShort= [
-    { label:'Turbo Bear',   ok: !!wcci.turbo_bear,             critical:true  },
-    { label:'ZLR ↓',        ok: !!wcci.zlr_bear,              critical:false },
-    { label:'מתחת VWAP',    ok: !vwap.above,                   critical:false },
-    { label:'מתחת POC',     ok: !prof.above_poc,               critical:false },
-    { label:'CVD d5−',      ok: (cvd.d5||0)<0,                critical:false },
-  ];
-
-  // ── חישוב score — תנאי critical שקיים יותר ─────────────────────────────
-  const score = (checks:{ok:boolean;critical:boolean}[]) => {
-    const criticalAll = checks.filter(c=>c.critical);
-    const criticalOk  = criticalAll.filter(c=>c.ok).length;
-    const allOk       = checks.filter(c=>c.ok).length;
-    // אם לא כל התנאים הקריטיים עברו — מקסימום 40%
-    if (criticalOk < criticalAll.length) return Math.round(criticalOk/criticalAll.length * 40);
-    return Math.round(45 + (allOk/checks.length)*55);
+  // ── Score ──────────────────────────────────────────────────────────
+  const score = (checks: { ok: boolean; critical: boolean }[]) => {
+    const criticalAll = checks.filter(c => c.critical);
+    const criticalOk = criticalAll.filter(c => c.ok).length;
+    const allOk = checks.filter(c => c.ok).length;
+    if (criticalOk < criticalAll.length) return Math.round(criticalOk / criticalAll.length * 40);
+    return Math.round(45 + (allOk / checks.length) * 55);
   };
 
-  const wr = (base:number, s:number) => Math.round(base*(s/100)*0.55 + base*0.45);
+  const longScore = score(liqLong);
+  const shortScore = score(liqShort);
 
-  return [
-    { name:'Liq Sweep',    col:'#22c55e', base:72, long:{checks:liqLong,   score:score(liqLong)},   short:{checks:liqShort,  score:score(liqShort)} },
-    { name:'VWAP Pullback',col:'#f6c90e', base:66, long:{checks:vwapLong,  score:score(vwapLong)},  short:{checks:vwapShort, score:score(vwapShort)} },
-    { name:'IB Breakout',  col:'#60a5fa', base:62, long:{checks:ibLong,    score:score(ibLong)},    short:{checks:ibShort,   score:score(ibShort)} },
-    { name:'CCI Turbo',    col:'#a78bfa', base:64, long:{checks:turboLong, score:score(turboLong)}, short:{checks:turboShort,score:score(turboShort)} },
-  ].map(s=>({...s, long:{...s.long,wr:wr(s.base,s.long.score)}, short:{...s.short,wr:wr(s.base,s.short.score)}}));
+  // ── Entry/Stop/T1/T2 ──────────────────────────────────────────────
+  const calcLevels = (dir: 'long' | 'short', sweep: typeof longSweep) => {
+    if (!sweep) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0 };
+    const L = dir === 'long';
+    const entry = price; // כניסה במחיר נוכחי
+    const stop = L ? sweep.bar.l - 0.25 : sweep.bar.h + 0.25;
+    const risk = Math.abs(entry - stop);
+    const c1 = L ? entry + risk : entry - risk;
+    const c2 = L ? entry + risk * 2 : entry - risk * 2;
+    const woodi = live.woodi || {} as any;
+    const c3 = L
+      ? (woodi.r1 && woodi.r1 > entry + risk * 2 ? woodi.r1 : entry + risk * 3)
+      : (woodi.s1 && woodi.s1 < entry - risk * 2 ? woodi.s1 : entry - risk * 3);
+    return { entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4 };
+  };
+
+  // ── Opportunity — רמזור ────────────────────────────────────────────
+  const bestDir: 'long' | 'short' | 'none' =
+    longScore >= 80 ? 'long' :
+    shortScore >= 80 ? 'short' :
+    longScore >= 60 ? 'long' :
+    shortScore >= 60 ? 'short' : 'none';
+
+  const bestSweep = bestDir === 'long' ? longSweep : bestDir === 'short' ? shortSweep : null;
+  const bestLevels = bestDir !== 'none' ? calcLevels(bestDir, bestSweep) : null;
+  const bestScore = bestDir === 'long' ? longScore : bestDir === 'short' ? shortScore : 0;
+
+  return {
+    long: { checks: liqLong, score: longScore, sweep: longSweep },
+    short: { checks: liqShort, score: shortScore, sweep: shortSweep },
+    opportunity: bestDir,
+    opportunityScore: bestScore,
+    opportunitySweep: bestSweep,
+    opportunityLevels: bestLevels,
+  };
 }
 
 // ── Setup Entry Card — כרטיס כניסה ראשי ─────────────────────────────────────
@@ -603,65 +588,6 @@ function SetupEntryCard({ setup, dir, levels, live }: {
     </div>
   );
 }
-
-function SetupScanner({ live,candles,onSelect,selectedId }:{ live:MarketData|null; candles:Candle[]; onSelect?:(id:string,dir:'long'|'short')=>void; selectedId?:string }) {
-  const setups = calcSetups(live, candles);
-  if (!setups) return null;
-  return (
-    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:6 }}>סטאפים</div>
-      <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
-        {setups.map(s => {
-          const best    = s.long.score >= s.short.score ? 'long' : 'short';
-          const bScore  = best==='long' ? s.long.score : s.short.score;
-          const bWR     = best==='long' ? s.long.wr    : s.short.wr;
-          const bChecks = best==='long' ? s.long.checks: s.short.checks;
-          const active  = bScore >= 60;
-          const selected = selectedId===s.name;
-          const critOk  = bChecks.filter((c:any)=>c.critical&&c.ok).length;
-          const critAll = bChecks.filter((c:any)=>c.critical).length;
-          return (
-            <div key={s.name} onClick={()=>onSelect?.(s.name,best as 'long'|'short')}
-              style={{ border:`1px solid ${selected?s.col+'aa':active?s.col+'44':'#1e2738'}`, borderRadius:6, padding:'6px 9px', background:selected?s.col+'15':'transparent', cursor:'pointer', transition:'all .15s' }}>
-              {/* שורה ראשית — תמיד נראית */}
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <div style={{ width:6, height:6, borderRadius:'50%', background:active?s.col:'#2d3a4a', boxShadow:active?`0 0 4px ${s.col}`:'none' }} />
-                <span style={{ fontSize:11, fontWeight:600, color:active?'#e2e8f0':'#4a5568', flex:1 }}>{s.name}</span>
-                <span style={{ fontSize:9, color:best==='long'?G:R, fontWeight:700 }}>{best==='long'?'▲':'▼'}</span>
-                <span style={{ fontSize:9, color:'#4a5568' }}>{critOk}/{critAll}</span>
-                <span style={{ fontSize:13, fontWeight:800, color:active?s.col:'#2d3a4a', fontFamily:'monospace', minWidth:30, textAlign:'right' }}>{bScore}%</span>
-              </div>
-              {/* פרטים — רק בלחיצה */}
-              {selected && (
-                <div style={{ marginTop:6, paddingTop:6, borderTop:`1px solid ${s.col}33` }}>
-                  <div style={{ height:3, background:'#1e2738', borderRadius:2, marginBottom:6, overflow:'hidden' }}>
-                    <div style={{ width:`${bScore}%`, height:'100%', background:s.col, borderRadius:2 }} />
-                  </div>
-                  <div style={{ display:'flex', flexWrap:'wrap', gap:'3px 6px' }}>
-                    {bChecks.map((c:any)=>(
-                      <span key={c.label} style={{ fontSize:9, padding:'1px 5px', borderRadius:3, fontWeight:600,
-                        background: c.ok ? `${s.col}22` : (c.critical?'#ef535015':'transparent'),
-                        color: c.ok ? s.col : (c.critical?'#ef5350':'#2d3a4a'),
-                        border: `1px solid ${c.ok?s.col+'33':(c.critical?'#ef535033':'#1e2738')}` }}>
-                        {c.ok?'✓':c.critical?'✗':'○'} {c.label}
-                      </span>
-                    ))}
-                  </div>
-                  <div style={{ display:'flex', marginTop:5, fontSize:9 }}>
-                    <span style={{ color:G, flex:1 }}>L {s.long.score}%</span>
-                    <span style={{ color:R }}>S {s.short.score}%</span>
-                    <span style={{ color:'#4a5568', marginLeft:8 }}>WR {bWR}%</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 
 
 // ── Pattern Detection — זיהוי תבניות גרף על 50 נרות ─────────────────────────
@@ -2566,12 +2492,19 @@ export default function Dashboard() {
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
-  const allSetups = calcSetups(live, candles);
-  const activeSetups = allSetups?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
-    name:s.name, dir:(s.long.score>=s.short.score?'long':'short') as 'long'|'short', col:s.col,
-  }));
+  // ── Real-time opportunity detection ──────────────────
+  const liveSetup = calcSetups(live, candles);
+  const opportunity = liveSetup?.opportunity || 'none';
+  const oppScore = liveSetup?.opportunityScore || 0;
+  const oppLevels = liveSetup?.opportunityLevels;
+  const oppSweep = liveSetup?.opportunitySweep;
+
+  // Legacy compatibility
+  const activeSetups = opportunity !== 'none' ? [{
+    name: 'Liq Sweep', dir: opportunity as 'long'|'short', col: opportunity === 'long' ? '#22c55e' : '#ef5350',
+  }] : [];
   const setupLevels = selectedSetup ? calcSetupLevels(selectedSetup.id, live, selectedSetup.dir) : null;
-  const setupCol = allSetups?.find(s=>s.name===selectedSetup?.id)?.col||'#f59e0b';
+  const setupCol = opportunity === 'long' ? '#22c55e' : opportunity === 'short' ? '#ef5350' : '#f59e0b';
 
   // ── Historical sweep events ─────────────────────────
   const sweepResult = candles.length > 10 && live?.levels
@@ -2638,13 +2571,18 @@ export default function Dashboard() {
           <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:6,padding:'5px 12px',background:'#111827',borderBottom:'1px solid #1e2738'}}>
             <span style={{fontSize:9,color:'#4a5568',letterSpacing:2}}>גרף</span>
             <div style={{display:'flex',gap:4,flex:1,flexWrap:'wrap'}}>
-              {activeSetups&&activeSetups.length>0?activeSetups.map(s=>(
-                <div key={s.name} style={{display:'flex',alignItems:'center',gap:3,padding:'2px 8px',borderRadius:10,border:`1px solid ${s.col}66`,background:`${s.col}15`}}>
-                  <div style={{width:5,height:5,borderRadius:'50%',background:s.col,boxShadow:`0 0 4px ${s.col}`}}/>
-                  <span style={{fontSize:9,fontWeight:800,color:s.col}}>{s.name}</span>
-                  <span style={{fontSize:9,color:s.dir==='long'?'#22c55e':'#ef5350',fontWeight:700}}>{s.dir==='long'?'▲':'▼'}</span>
+              {opportunity !== 'none' ? (
+                <div style={{display:'flex',alignItems:'center',gap:4,padding:'2px 10px',borderRadius:10,border:`1px solid ${setupCol}66`,background:`${setupCol}15`}}>
+                  <div style={{width:8,height:8,borderRadius:'50%',background:setupCol,boxShadow:`0 0 6px ${setupCol}`}}/>
+                  <span style={{fontSize:10,fontWeight:800,color:setupCol}}>
+                    {opportunity==='long'?'🟢 LONG':'🔴 SHORT'}
+                  </span>
+                  <span style={{fontSize:10,fontWeight:800,color:'#e2e8f0',fontFamily:'monospace'}}>{oppScore}%</span>
+                  {oppSweep && <span style={{fontSize:9,color:'#6b7280'}}>{oppSweep.levelName}</span>}
                 </div>
-              )):<span style={{fontSize:9,color:'#2d3a4a'}}>אין סטאפ פעיל</span>}
+              ) : (
+                <span style={{fontSize:9,color:'#2d3a4a'}}>⚫ אין הזדמנות</span>
+              )}
             </div>
             <div style={{display:'flex',gap:3}}>
               {(['m3','m15','m30','m60'] as const).map(t=>(
@@ -2697,15 +2635,17 @@ export default function Dashboard() {
                 ))}
               </div>
             )}
-            {activeSetups&&activeSetups.length>0&&!selectedSetup&&(
+            {opportunity!=='none'&&oppLevels&&(
               <div style={{position:'absolute',top:8,left:8,display:'flex',flexDirection:'column',gap:5,zIndex:10,pointerEvents:'none'}}>
-                {activeSetups.map(s=>(
-                  <div key={s.name} style={{display:'flex',alignItems:'center',gap:6,padding:'4px 10px',borderRadius:7,border:`1.5px solid ${s.col}`,background:'#0d1117ee'}}>
-                    <div style={{width:7,height:7,borderRadius:'50%',background:s.col,boxShadow:`0 0 7px ${s.col}`}}/>
-                    <span style={{fontSize:11,fontWeight:800,color:s.col}}>{s.name}</span>
-                    <span style={{fontSize:11,fontWeight:800,color:s.dir==='long'?'#22c55e':'#ef5350'}}>{s.dir==='long'?'▲ LONG':'▼ SHORT'}</span>
-                  </div>
-                ))}
+                <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:8,border:`2px solid ${setupCol}`,background:'#0d1117ee'}}>
+                  <div style={{width:9,height:9,borderRadius:'50%',background:setupCol,boxShadow:`0 0 8px ${setupCol}`}}/>
+                  <span style={{fontSize:12,fontWeight:900,color:setupCol}}>
+                    {opportunity==='long'?'▲ LONG':'▼ SHORT'} {oppScore}%
+                  </span>
+                  <span style={{fontSize:10,color:'#94a3b8',fontFamily:'monospace'}}>
+                    E:{oppLevels.entry.toFixed(2)} S:{oppLevels.stop.toFixed(2)}
+                  </span>
+                </div>
               </div>
             )}
           </div>
