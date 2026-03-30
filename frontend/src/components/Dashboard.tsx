@@ -172,28 +172,55 @@ function scanHistoricalSweeps(
   candles: Candle[],
   levels: { prev_high:number; prev_low:number; overnight_high:number; overnight_low:number },
   woodi?: { pp:number; r1:number; r2:number; s1:number; s2:number },
+  live?: MarketData | null,
 ): { events: SweepEvent[]; levelTouches: LevelTouch[] } {
   if (!candles || candles.length < 10) return { events: [], levelTouches: [] };
 
   const bars = [...candles].sort((a, b) => a.ts - b.ts);
+  const sess = live?.session || {} as any;
+  const prof = live?.profile || {} as any;
+  const vwap = live?.vwap || {} as any;
 
-  // ── שלב א: רמות + ספירת נגיעות ──────────────────────────
+  // ── שלב א: כל הרמות — קבועות + דינמיות ────────────────────
   const keyLevels: { price: number; name: string }[] = [];
   if (levels.prev_high > 0)      keyLevels.push({ price: levels.prev_high,      name: 'PDH' });
   if (levels.prev_low > 0)       keyLevels.push({ price: levels.prev_low,       name: 'PDL' });
   if (levels.overnight_high > 0) keyLevels.push({ price: levels.overnight_high, name: 'ONH' });
   if (levels.overnight_low > 0)  keyLevels.push({ price: levels.overnight_low,  name: 'ONL' });
+  if (sess.ibh > 0 && sess.ib_locked) keyLevels.push({ price: sess.ibh, name: 'IBH' });
+  if (sess.ibl > 0 && sess.ib_locked) keyLevels.push({ price: sess.ibl, name: 'IBL' });
+  if (vwap.value > 0)           keyLevels.push({ price: vwap.value,           name: 'VWAP' });
+  if (prof.poc > 0)             keyLevels.push({ price: prof.poc,             name: 'POC' });
+  if (prof.vah > 0)             keyLevels.push({ price: prof.vah,             name: 'VAH' });
+  if (prof.val > 0)             keyLevels.push({ price: prof.val,             name: 'VAL' });
+  if (sess.sh > 0)              keyLevels.push({ price: sess.sh,              name: 'SH' });
+  if (sess.sl > 0)              keyLevels.push({ price: sess.sl,              name: 'SL' });
+
+  // רמות דינמיות — מחירים שנגעו 3+ פעמים
+  const touchCount: Record<number, number> = {};
+  for (const c of bars.slice(-50)) {
+    const rh = Math.round(c.h * 2) / 2;
+    const rl = Math.round(c.l * 2) / 2;
+    touchCount[rh] = (touchCount[rh] || 0) + 1;
+    touchCount[rl] = (touchCount[rl] || 0) + 1;
+  }
+  for (const [p, count] of Object.entries(touchCount)) {
+    const pf = parseFloat(p);
+    if (count >= 3 && !keyLevels.some(l => Math.abs(l.price - pf) < 1.5)) {
+      keyLevels.push({ price: pf, name: `T${count}x` });
+    }
+  }
+
   if (keyLevels.length === 0) return { events: [], levelTouches: [] };
 
-  const TOUCH_DIST = 0.75; // מרחק נגיעה ברמה
+  // ── ספירת נגיעות ────────────────────────────────────────────
+  const TOUCH_DIST = 0.75;
   const levelTouches: LevelTouch[] = keyLevels.map(lev => {
     const touchBars: number[] = [];
     for (let i = 0; i < bars.length; i++) {
       const b = bars[i];
-      // נר נגע ברמה אם ה-high/low בטווח ±0.75 מהרמה
       if (Math.abs(b.h - lev.price) <= TOUCH_DIST || Math.abs(b.l - lev.price) <= TOUCH_DIST ||
           (b.l <= lev.price && b.h >= lev.price)) {
-        // Skip if too close to last touch (min 3 bars apart)
         if (touchBars.length === 0 || i - bars.findIndex(bb => bb.ts === touchBars[touchBars.length-1]) >= 3) {
           touchBars.push(b.ts);
         }
@@ -202,10 +229,7 @@ function scanHistoricalSweeps(
     return { price: lev.price, name: lev.name, touches: touchBars.length, touchBarTs: touchBars };
   });
 
-  // Only keep levels with >= 2 touches
-  const validLevels = levelTouches.filter(lt => lt.touches >= 2);
-
-  // ── שלב ב+ג: זיהוי sweep + אישור ──────────────────────
+  // ── שלב ב+ג: זיהוי sweep + rejection + אישור ───────────────
   const avgVol = (idx: number): number => {
     const start = Math.max(0, idx - 20);
     let sum = 0, count = 0;
@@ -217,103 +241,128 @@ function scanHistoricalSweeps(
   };
 
   const events: SweepEvent[] = [];
-  const MIN_GAP = 6;
+  const MIN_GAP = 4;
 
   for (let i = 1; i < bars.length - 2; i++) {
     const bar = bars[i];
     const nextBar = bars[i + 1];
+    const vol = (bar.buy || 0) + (bar.sell || 0);
+    const avg = avgVol(i);
+    const relVol = avg > 0 ? vol / avg : 1;
+    const barDelta = bar.delta || ((bar.buy || 0) - (bar.sell || 0));
+    const body = Math.abs(bar.c - bar.o);
+    const lowerWick = Math.min(bar.o, bar.c) - bar.l;
+    const upperWick = bar.h - Math.max(bar.o, bar.c);
 
-    for (const lev of validLevels) {
-      const recentSame = events.find(e => e.levelName === lev.name && i - e.sweepBarIndex < MIN_GAP);
+    for (const lev of keyLevels) {
+      const recentSame = events.find(e => Math.abs(e.level - lev.price) < 2 && i - e.sweepBarIndex < MIN_GAP);
       if (recentSame) continue;
 
-      const vol = (bar.buy || 0) + (bar.sell || 0);
-      const avg = avgVol(i);
-      const relVol = avg > 0 ? vol / avg : 1;
+      const confirmDelta = nextBar.delta || ((nextBar.buy||0) - (nextBar.sell||0));
+      const confirmCCI6 = (nextBar as any).cci6;
+      const lt = levelTouches.find(l => l.name === lev.name);
+      const touches = lt?.touches || 0;
 
-      // ── LONG: bar broke below level, closed back above (wick) ──
+      // ═══ LONG patterns ═══════════════════════════════════════
+      let longType: 'sweep' | 'rejection' | null = null;
+      let longScore = 0;
+
+      // Sweep: wick שבר רמה ב-0.5+, סגר מעל
       if (bar.l < lev.price - 0.5 && bar.c > lev.price) {
-        if (relVol < 1.3) continue; // Volume filter
-
-        const sweepWick = lev.price - bar.l;
-        const confirmDelta = nextBar.delta || ((nextBar.buy||0) - (nextBar.sell||0));
-        const confirmCCI6 = (nextBar as any).cci6;
-        const confirmed = confirmDelta > 100;
-
-        // Score
-        let score = 0;
-        score += 20; // broke level
-        score += 20; // closed back above (always true here)
-        if (relVol >= 1.3) score += 20;
-        if (sweepWick >= 1.0) score += 10; else score += 5;
-        if (confirmed) score += 20;
-        if (confirmCCI6 !== undefined && confirmCCI6 > 0) score += 5;
-        if (lev.touches >= 3) score += 5;
-
-        if (score < 60) continue;
-
-        const entry = nextBar.c; // סגירת נר האישור
-        const stop = bar.l - 0.25;
-        const risk = Math.abs(entry - stop);
-        const c1 = entry + risk;
-        const c2 = entry + risk * 2;
-        const c3 = (woodi?.r1 && woodi.r1 > entry + risk * 2) ? woodi.r1 : entry + risk * 3;
-        const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
-
-        events.push({
-          id: `sweep-long-${bar.ts}-${lev.name}`,
-          ts: bar.ts, dir: 'long',
-          level: lev.price, levelName: lev.name, levelTouches: lev.touches,
-          sweepBarIndex: i, reversalBarIndex: i, confirmBarIndex: i + 1,
-          confirmed, confirmDelta, confirmCCI6,
-          sweepWick, entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4,
-          delta: bar.delta || ((bar.buy||0) - (bar.sell||0)),
-          volume: vol, relVol: Math.round(relVol * 10) / 10, score,
-          sweepBarTs: bar.ts, reversalBarTs: bar.ts, confirmBarTs: nextBar.ts,
-          setupBarTs: setupBars,
-        });
+        longType = 'sweep';
+        longScore += 25; // שבירה
+        longScore += 20; // חזרה מעל
+        if (relVol >= 1.2) longScore += 15;
+        if (lev.price - bar.l >= 1.0) longScore += 10;
+        if (confirmDelta > 100) longScore += 20;
+        if (confirmDelta > 50) longScore += 5;
+        if (touches >= 2) longScore += 5;
+      }
+      // Rejection: נגע ברמה + wick ארוך למטה + סגר ירוק
+      else if (Math.abs(bar.l - lev.price) < 1.0 && bar.c > lev.price && bar.c > bar.o) {
+        if (lowerWick > body * 1.5) {
+          longType = 'rejection';
+          longScore += 20; // נגיעה ברמה
+          longScore += 15; // wick ארוך
+          if (bar.c > bar.o) longScore += 10; // נר ירוק
+          if (relVol >= 1.2) longScore += 15;
+          if (confirmDelta > 50) longScore += 15;
+          if (touches >= 2) longScore += 5;
+        }
       }
 
-      // ── SHORT: bar broke above level, closed back below (wick) ──
+      if (longType && longScore >= 55) {
+        const entry = nextBar.c;
+        const stop = bar.l - 0.25;
+        const risk = Math.abs(entry - stop);
+        if (risk > 0.5 && risk < 15) {
+          const c1 = entry + risk;
+          const c2 = entry + risk * 2;
+          const c3 = (woodi?.r1 && woodi.r1 > entry + risk * 2) ? woodi.r1 : entry + risk * 3;
+          events.push({
+            id: `${longType}-long-${bar.ts}-${lev.name}`,
+            ts: bar.ts, dir: 'long',
+            level: lev.price, levelName: lev.name, levelTouches: touches,
+            sweepBarIndex: i, reversalBarIndex: i, confirmBarIndex: i + 1,
+            confirmed: confirmDelta > 100, confirmDelta, confirmCCI6,
+            sweepWick: lev.price - bar.l, entry, stop, c1, c2, c3,
+            riskPts: Math.round(risk * 4) / 4,
+            delta: barDelta, volume: vol,
+            relVol: Math.round(relVol * 10) / 10, score: Math.min(longScore, 100),
+            sweepBarTs: bar.ts, reversalBarTs: bar.ts, confirmBarTs: nextBar.ts,
+            setupBarTs: bars.slice(Math.max(0, i - 3), i).map(b => b.ts),
+          });
+        }
+      }
+
+      // ═══ SHORT patterns ══════════════════════════════════════
+      let shortType: 'sweep' | 'rejection' | null = null;
+      let shortScore = 0;
+
       if (bar.h > lev.price + 0.5 && bar.c < lev.price) {
-        if (relVol < 1.3) continue;
+        shortType = 'sweep';
+        shortScore += 25;
+        shortScore += 20;
+        if (relVol >= 1.2) shortScore += 15;
+        if (bar.h - lev.price >= 1.0) shortScore += 10;
+        if (confirmDelta < -100) shortScore += 20;
+        if (confirmDelta < -50) shortScore += 5;
+        if (touches >= 2) shortScore += 5;
+      }
+      else if (Math.abs(bar.h - lev.price) < 1.0 && bar.c < lev.price && bar.c < bar.o) {
+        if (upperWick > body * 1.5) {
+          shortType = 'rejection';
+          shortScore += 20;
+          shortScore += 15;
+          if (bar.c < bar.o) shortScore += 10;
+          if (relVol >= 1.2) shortScore += 15;
+          if (confirmDelta < -50) shortScore += 15;
+          if (touches >= 2) shortScore += 5;
+        }
+      }
 
-        const sweepWick = bar.h - lev.price;
-        const confirmDelta = nextBar.delta || ((nextBar.buy||0) - (nextBar.sell||0));
-        const confirmCCI6 = (nextBar as any).cci6;
-        const confirmed = confirmDelta < -100;
-
-        let score = 0;
-        score += 20;
-        score += 20;
-        if (relVol >= 1.3) score += 20;
-        if (sweepWick >= 1.0) score += 10; else score += 5;
-        if (confirmed) score += 20;
-        if (confirmCCI6 !== undefined && confirmCCI6 < 0) score += 5;
-        if (lev.touches >= 3) score += 5;
-
-        if (score < 60) continue;
-
+      if (shortType && shortScore >= 55) {
         const entry = nextBar.c;
         const stop = bar.h + 0.25;
         const risk = Math.abs(entry - stop);
-        const c1 = entry - risk;
-        const c2 = entry - risk * 2;
-        const c3 = (woodi?.s1 && woodi.s1 < entry - risk * 2) ? woodi.s1 : entry - risk * 3;
-        const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
-
-        events.push({
-          id: `sweep-short-${bar.ts}-${lev.name}`,
-          ts: bar.ts, dir: 'short',
-          level: lev.price, levelName: lev.name, levelTouches: lev.touches,
-          sweepBarIndex: i, reversalBarIndex: i, confirmBarIndex: i + 1,
-          confirmed, confirmDelta: Math.abs(confirmDelta), confirmCCI6,
-          sweepWick, entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4,
-          delta: Math.abs(bar.delta || ((bar.buy||0) - (bar.sell||0))),
-          volume: vol, relVol: Math.round(relVol * 10) / 10, score,
-          sweepBarTs: bar.ts, reversalBarTs: bar.ts, confirmBarTs: nextBar.ts,
-          setupBarTs: setupBars,
-        });
+        if (risk > 0.5 && risk < 15) {
+          const c1 = entry - risk;
+          const c2 = entry - risk * 2;
+          const c3 = (woodi?.s1 && woodi.s1 < entry - risk * 2) ? woodi.s1 : entry - risk * 3;
+          events.push({
+            id: `${shortType}-short-${bar.ts}-${lev.name}`,
+            ts: bar.ts, dir: 'short',
+            level: lev.price, levelName: lev.name, levelTouches: touches,
+            sweepBarIndex: i, reversalBarIndex: i, confirmBarIndex: i + 1,
+            confirmed: confirmDelta < -100, confirmDelta: Math.abs(confirmDelta), confirmCCI6,
+            sweepWick: bar.h - lev.price, entry, stop, c1, c2, c3,
+            riskPts: Math.round(risk * 4) / 4,
+            delta: Math.abs(barDelta), volume: vol,
+            relVol: Math.round(relVol * 10) / 10, score: Math.min(shortScore, 100),
+            sweepBarTs: bar.ts, reversalBarTs: bar.ts, confirmBarTs: nextBar.ts,
+            setupBarTs: bars.slice(Math.max(0, i - 3), i).map(b => b.ts),
+          });
+        }
       }
     }
   }
@@ -2557,7 +2606,7 @@ export default function Dashboard() {
 
   // ── Historical sweep events ─────────────────────────
   const sweepResult = candles.length > 10 && live?.levels
-    ? scanHistoricalSweeps(candles, live.levels, live.woodi)
+    ? scanHistoricalSweeps(candles, live.levels, live.woodi, live)
     : { events: [], levelTouches: [] };
   const sweepEvents = sweepResult.events;
   const levelTouches = sweepResult.levelTouches;
