@@ -430,7 +430,7 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const avgRange20 = recent20.length > 0
     ? recent20.reduce((s, c) => s + Math.abs(c.h - c.l), 0) / recent20.length : 1;
 
-  type SetupHit = { level: number; levelName: string; bar: Candle; relVol: number; type: 'sweep' | 'rejection' | 'momentum' | 'bounce' | 'breakout' };
+  type SetupHit = { level: number; levelName: string; bar: Candle; relVol: number; type: 'sweep' | 'rejection' | 'momentum' | 'bounce' | 'breakout' | 'approaching' };
   let longHit: SetupHit | null = null;
   let shortHit: SetupHit | null = null;
 
@@ -545,14 +545,41 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     }
   }
 
-  // ── Fallback: נר נוכחי מ-live ──────────────────────────────────
-  if (!longHit) {
-    const found = allLevels.find(l => (bar.l || price) < l.price - 0.5 && price > l.price);
-    if (found) longHit = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol, type: 'sweep' };
-  }
-  if (!shortHit) {
-    const found = allLevels.find(l => (bar.h || price) > l.price + 0.5 && price < l.price);
-    if (found) shortHit = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol, type: 'sweep' };
+  // ── Pattern 6: Approaching Level — מתקרב לרמה, התראה מוקדמת ────
+  if (!longHit || !shortHit) {
+    // Find closest level below price (potential long) and above (potential short)
+    const levelsBelow = allLevels.filter(l => l.price < price).sort((a, b) => b.price - a.price);
+    const levelsAbove = allLevels.filter(l => l.price > price).sort((a, b) => a.price - b.price);
+
+    if (!longHit && levelsBelow.length > 0) {
+      const closest = levelsBelow[0];
+      const dist = price - closest.price;
+      // Within 8pt, price moving toward it (bar is red or delta negative)
+      if (dist <= 8 && dist > 0.5) {
+        const approaching = (bar.delta || 0) < 0 || (bar.c || price) < (bar.o || price);
+        if (approaching) {
+          longHit = {
+            level: closest.price, levelName: closest.name,
+            bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c || price, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle,
+            relVol, type: 'approaching' as any,
+          };
+        }
+      }
+    }
+    if (!shortHit && levelsAbove.length > 0) {
+      const closest = levelsAbove[0];
+      const dist = closest.price - price;
+      if (dist <= 8 && dist > 0.5) {
+        const approaching = (bar.delta || 0) > 0 || (bar.c || price) > (bar.o || price);
+        if (approaching) {
+          shortHit = {
+            level: closest.price, levelName: closest.name,
+            bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c || price, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle,
+            relVol, type: 'approaching' as any,
+          };
+        }
+      }
+    }
   }
 
   // ── Type labels ────────────────────────────────────────────────────
@@ -562,20 +589,21 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     if (t === 'momentum') return 'Momentum';
     if (t === 'bounce') return 'Bounce';
     if (t === 'breakout') return 'Breakout';
+    if (t === 'approaching') return 'Approaching';
     return t;
   };
 
   // ── Checks ─────────────────────────────────────────────────────────
   const liqLong = [
     { label: `${typeLabel(longHit?.type||'')} ${longHit?.levelName||''}`, ok: !!longHit, critical: true },
-    { label: longHit?.type==='breakout' ? 'פריצה מעלה' : 'מחיר מעל רמה', ok: !!longHit && (longHit.type==='breakout' ? price > longHit.level + 0.5 : price > longHit.level), critical: true },
+    { label: longHit?.type==='breakout' ? 'פריצה מעלה' : longHit?.type==='approaching' ? 'מתקרב לרמה' : 'מחיר מעל רמה', ok: !!longHit && (longHit.type==='breakout' ? price > longHit.level + 0.5 : longHit.type==='approaching' ? price > longHit.level && price - longHit.level <= 8 : price > longHit.level), critical: true },
     { label: 'Delta > +50',  ok: (bar.delta || 0) > 50, critical: true },
     { label: 'Vol > 1.2x',   ok: longHit ? longHit.relVol > 1.2 : relVol > 1.2, critical: false },
     { label: 'נר היפוך',     ok: cp.bull_engulf || cp.bar0 === 'HAMMER' || cp.bar0 === 'BULL_STRONG', critical: false },
   ];
   const liqShort = [
     { label: `${typeLabel(shortHit?.type||'')} ${shortHit?.levelName||''}`, ok: !!shortHit, critical: true },
-    { label: shortHit?.type==='breakout' ? 'פריצה מטה' : 'מחיר מתחת רמה', ok: !!shortHit && (shortHit.type==='breakout' ? price < shortHit.level - 0.5 : price < shortHit.level), critical: true },
+    { label: shortHit?.type==='breakout' ? 'פריצה מטה' : shortHit?.type==='approaching' ? 'מתקרב לרמה' : 'מחיר מתחת רמה', ok: !!shortHit && (shortHit.type==='breakout' ? price < shortHit.level - 0.5 : shortHit.type==='approaching' ? price < shortHit.level && shortHit.level - price <= 8 : price < shortHit.level), critical: true },
     { label: 'Delta < -50',   ok: (bar.delta || 0) < -50, critical: true },
     { label: 'Vol > 1.2x',    ok: shortHit ? shortHit.relVol > 1.2 : relVol > 1.2, critical: false },
     { label: 'נר היפוך',      ok: cp.bear_engulf || cp.bar0 === 'SHOOTING_STAR' || cp.bar0 === 'BEAR_STRONG', critical: false },
