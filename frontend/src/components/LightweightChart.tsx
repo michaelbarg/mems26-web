@@ -48,21 +48,26 @@ interface Props {
   activeSetups?: { name: string; dir: 'long'|'short'; col: string }[];
   sweepData?: SweepData;
   sweepEvents?: Array<{ id:string; ts:number; dir:'long'|'short'; levelName:string; score:number; sweepBarTs:number }>;
+  onSweepClick?: (sweepTs: number) => void;
   patterns?: Array<{id:string; nameHeb:string; direction:string; confidence:number; keyLevel:number; breakoutLevel?:number; stopLevel?:number; col:string; barIndex?:number}>;
   selectedPatternId?: string;
   height?: number;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, patterns, selectedPatternId, height
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, onSweepClick, patterns, selectedPatternId, height
 }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef     = useRef<any>(null);
-  const seriesRef    = useRef<any>(null);
-  const volRef       = useRef<any>(null);
-  const deltaRef     = useRef<any>(null);
-  const linesRef     = useRef<any[]>([]);
-  const rthBgRef     = useRef<any>(null);
+  const containerRef     = useRef<HTMLDivElement>(null);
+  const chartRef         = useRef<any>(null);
+  const seriesRef        = useRef<any>(null);
+  const volRef           = useRef<any>(null);
+  const deltaRef         = useRef<any>(null);
+  const linesRef         = useRef<any[]>([]);
+  const rthBgRef         = useRef<any>(null);
+  const sweepEventsRef   = useRef(sweepEvents);
+  const onSweepClickRef  = useRef(onSweepClick);
+  sweepEventsRef.current  = sweepEvents;
+  onSweepClickRef.current = onSweepClick;
   const loadedRef    = useRef(false);
 
   const initChart = useCallback(() => {
@@ -152,6 +157,17 @@ export default function LightweightChart({
       visible: false,
     });
     rthBgRef.current = rthBg;
+
+    // Click handler — find nearest sweep event
+    chart.subscribeClick((param: any) => {
+      if (!param.time || !sweepEventsRef.current || !onSweepClickRef.current) return;
+      const clickTs = param.time as number;
+      // Find sweep within ±2 bars (±360 sec)
+      const match = sweepEventsRef.current.find((ev: any) =>
+        Math.abs(ev.sweepBarTs - clickTs) <= 360
+      );
+      if (match) onSweepClickRef.current(match.sweepBarTs);
+    });
 
     // Resize
     const ro = new ResizeObserver(() => {
@@ -356,15 +372,15 @@ export default function LightweightChart({
           // Stop/C1/C2/C3 are now shown as horizontal price lines above (not markers)
         }
 
-        // ── Historical sweep markers (small, on all detected sweeps) ──
+        // ── Historical sweep dots (tiny circles, no text) ──
         if (sweepEvents && sweepEvents.length > 0 && !sweepData) {
-          sweepEvents.forEach(ev => {
+          sweepEvents.forEach((ev: any) => {
             allMarkers.push({
               time: Math.floor(ev.sweepBarTs) as any,
               position: ev.dir === 'long' ? 'belowBar' : 'aboveBar',
-              color: ev.dir === 'long' ? '#22c55e88' : '#ef535088',
-              shape: ev.dir === 'long' ? 'arrowUp' : 'arrowDown',
-              text: `SWP ${ev.levelName}`,
+              color: ev.dir === 'long' ? '#22c55e55' : '#ef535055',
+              shape: 'circle' as any,
+              text: '',
               size: 0,
             });
           });

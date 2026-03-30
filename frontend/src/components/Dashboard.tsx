@@ -2709,6 +2709,10 @@ export default function Dashboard() {
               activeSetups={activeSetups}
               sweepData={sweepData}
               sweepEvents={sweepEvents}
+              onSweepClick={(ts:number) => {
+                const ev = sweepEvents.find((e:SweepEvent) => e.sweepBarTs === ts);
+                if (ev) setSelectedSweep(prev => prev?.id === ev.id ? null : ev);
+              }}
               patterns={detectPatterns(candles)}
               selectedPatternId={selectedPattern?.id}
               height={undefined}
