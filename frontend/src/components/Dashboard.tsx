@@ -73,10 +73,9 @@ function buildActiveSetup(sweep: SweepEvent, candles: Candle[]): ActiveSetup {
   const now = Math.floor(Date.now() / 1000);
   const entryTs = sweep.reversalBarTs || now;
   const risk = Math.abs(sweep.entry - sweep.stop);
-  const t1dist = Math.abs(sweep.t1 - sweep.entry);
-  const t2dist = Math.abs(sweep.t2 - sweep.entry);
-  const t3dist = risk * 3;
-  const t3 = sweep.dir === 'long' ? sweep.entry + t3dist : sweep.entry - t3dist;
+  const t1dist = Math.abs(sweep.c1 - sweep.entry);
+  const t2dist = Math.abs(sweep.c2 - sweep.entry);
+  const t3dist = Math.abs(sweep.c3 - sweep.entry);
 
   const t1Est = estimateBarReach(candles, t1dist);
   const t2Est = estimateBarReach(candles, t2dist);
