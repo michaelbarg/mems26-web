@@ -811,11 +811,11 @@ function SetupEntryCard({ setup, dir, levels, live }: {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
             <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
               <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה</div>
-              <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{levels.entry.toFixed(2)}</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(levels.entry||0).toFixed(2)}</div>
             </div>
             <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
               <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
-              <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{levels.stop.toFixed(2)}</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{(levels.stop||0).toFixed(2)}</div>
               <div style={{ fontSize:9, color:'#4a5568' }}>−{pot?.risk_pts}pt / −${(pot?.risk_pts||0)*5}</div>
             </div>
           </div>
@@ -830,7 +830,7 @@ function SetupEntryCard({ setup, dir, levels, live }: {
               ].map(t => (
                 <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'5px 6px', textAlign:'center' }}>
                   <div style={{ fontSize:9, color:t.col, fontWeight:700 }}>{t.label}</div>
-                  <div style={{ fontSize:12, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{(t.price||0).toFixed(2)}</div>
                   <div style={{ fontSize:9, color:'#4a5568' }}>+{t.pts}pt</div>
                   <div style={{ fontSize:9, fontWeight:700, color:t.col }}>+${t.usd}</div>
                   {t.rr && <div style={{ fontSize:8, color:'#4a5568' }}>R:R 1:{t.rr}</div>}
@@ -1965,9 +1965,9 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
               {isSelected && p.breakoutLevel && (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4, marginTop:6 }}>
                   {[
-                    {l:'כניסה', v:p.breakoutLevel.toFixed(2), c:'#a78bfa'},
+                    {l:'כניסה', v:(p.breakoutLevel||0).toFixed(2), c:'#a78bfa'},
                     {l:'סטופ',  v:(p.stopLevel||0).toFixed(2), c:'#ef5350'},
-                    {l:'רמה',  v:p.keyLevel.toFixed(2), c:p.col},
+                    {l:'רמה',  v:(p.keyLevel||0).toFixed(2), c:p.col},
                   ].map(({l,v,c})=>(
                     <div key={l} style={{ background:'#0d1117', borderRadius:5, padding:'4px 6px', textAlign:'center' }}>
                       <div style={{ fontSize:8, color:'#4a5568' }}>{l}</div>
@@ -2425,10 +2425,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <div>
                     <div style={{ fontSize:12, fontWeight:700, color:col }}>
-                      {isLong?'▲':'▼'} SWEEP {s.levelName} @ {s.level.toFixed(2)}
+                      {isLong?'▲':'▼'} SWEEP {s.levelName} @ {(s.level||0).toFixed(2)}
                     </div>
                     <div style={{ fontSize:9, color:'#6b7280' }}>
-                      {new Date(s.ts*1000).toLocaleTimeString('he-IL')} · {s.levelTouches} נגיעות · Wick {s.sweepWick.toFixed(1)}pt
+                      {new Date(s.ts*1000).toLocaleTimeString('he-IL')} · {s.levelTouches} נגיעות · Wick {(s.sweepWick||0).toFixed(1)}pt
                     </div>
                   </div>
                   <div style={{ textAlign:'right' }}>
@@ -2458,11 +2458,11 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
                   <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
                     <div style={{ fontSize:9, color:'#94a3b8', marginBottom:2 }}>כניסה</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{s.entry.toFixed(2)}</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(s.entry||0).toFixed(2)}</div>
                   </div>
                   <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
                     <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{s.stop.toFixed(2)}</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{(s.stop||0).toFixed(2)}</div>
                     <div style={{ fontSize:9, color:'#4a5568' }}>−{s.riskPts}pt / −${Math.round(s.riskPts*5*3)}</div>
                   </div>
                 </div>
