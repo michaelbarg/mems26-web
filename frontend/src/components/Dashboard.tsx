@@ -79,29 +79,28 @@ function calcSetups(live: MarketData | null) {
   const lev  = live.levels     || {} as any;
   const relVol = vol.rel_vol || 1;
 
-  // ── Liq Sweep — 5 תנאים קשיחים ──────────────────────────────────────────
+  // ── Liq Sweep — 4 תנאים CRITICAL + 1 בונוס ─────────────────────────────
   // זיהוי sweep רמה: PDH/PDL/ONH/ONL בלבד
   const sweepLevels = [lev.prev_high, lev.prev_low, lev.overnight_high, lev.overnight_low]
     .filter(v => v && v > 0);
   const price = live.price || 0;
-  const nearLevel = sweepLevels.find(l => Math.abs(price - l) < 3);
 
-  // Sweep long: שבר מתחת לרמה, חזר מעלה, delta חיובי, volume גבוה
-  const sweepLong_broken  = sweepLevels.some(l => (bar.l||price) < l - 0.5 && price > l - 0.5);
-  const sweepShort_broken = sweepLevels.some(l => (bar.h||price) > l + 0.5 && price < l + 0.5);
+  // Sweep long: שבר מתחת לרמה ב->0.5pt, מחיר חזר מעבר לרמה עצמה
+  const sweepLongLevel  = sweepLevels.find(l => (bar.l||price) < l - 0.5 && price > l);
+  const sweepShortLevel = sweepLevels.find(l => (bar.h||price) > l + 0.5 && price < l);
 
   const liqLong   = [
-    { label:'שבירת רמה ↓↑', ok: sweepLong_broken,            critical:true  },
-    { label:'Delta חיובי',  ok: (bar.delta||0) > 50,          critical:true  },
-    { label:'Volume גבוה',  ok: relVol > 1.2,                 critical:true  },
-    { label:'CVD מתהפך',    ok: cvd.trend==='BULLISH'||(cvd.d5||0)>0, critical:false },
+    { label:'שבירת רמה ↓↑', ok: !!sweepLongLevel,             critical:true  },
+    { label:'חזרה מעל רמה', ok: !!sweepLongLevel && price > sweepLongLevel, critical:true },
+    { label:'Delta > 50',   ok: (bar.delta||0) > 50,          critical:true  },
+    { label:'Vol > 1.2x',   ok: relVol > 1.2,                 critical:true  },
     { label:'נר היפוך',     ok: cp.bull_engulf||cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG', critical:false },
   ];
   const liqShort  = [
-    { label:'שבירת רמה ↑↓', ok: sweepShort_broken,           critical:true  },
-    { label:'Delta שלילי',  ok: (bar.delta||0) < -50,         critical:true  },
-    { label:'Volume גבוה',  ok: relVol > 1.2,                 critical:true  },
-    { label:'CVD מתהפך',    ok: cvd.trend==='BEARISH'||(cvd.d5||0)<0, critical:false },
+    { label:'שבירת רמה ↑↓', ok: !!sweepShortLevel,            critical:true  },
+    { label:'חזרה מתחת רמה',ok: !!sweepShortLevel && price < sweepShortLevel, critical:true },
+    { label:'Delta < -50',  ok: (bar.delta||0) < -50,         critical:true  },
+    { label:'Vol > 1.2x',   ok: relVol > 1.2,                 critical:true  },
     { label:'נר היפוך',     ok: cp.bear_engulf||cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG', critical:false },
   ];
 
@@ -158,8 +157,8 @@ function calcSetups(live: MarketData | null) {
     const criticalAll = checks.filter(c=>c.critical);
     const criticalOk  = criticalAll.filter(c=>c.ok).length;
     const allOk       = checks.filter(c=>c.ok).length;
-    // אם לא כל התנאים הקריטיים עברו — מקסימום 49%
-    if (criticalOk < criticalAll.length) return Math.round(criticalOk/criticalAll.length * 45);
+    // אם לא כל התנאים הקריטיים עברו — מקסימום 40%
+    if (criticalOk < criticalAll.length) return Math.round(criticalOk/criticalAll.length * 40);
     return Math.round(45 + (allOk/checks.length)*55);
   };
 
@@ -222,16 +221,37 @@ function SetupEntryCard({ setup, dir, levels, live }: {
   return (
     <div style={{ background:'#0a0e1a', border:`2px solid ${decisionCol}44`, borderRadius:10, overflow:'hidden' }}>
 
-      {/* Header — החלטה */}
-      <div style={{ background:`${decisionCol}18`, padding:'10px 14px', borderBottom:`1px solid ${decisionCol}33`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <div>
-          <div style={{ fontSize:11, color:`${col}`, fontWeight:700, marginBottom:2 }}>
-            {setup.name} {L ? '▲ LONG' : '▼ SHORT'}
+      {/* Header — החלטה + win rate */}
+      <div style={{ background:`${decisionCol}18`, padding:'10px 14px', borderBottom:`1px solid ${decisionCol}33` }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div>
+            <div style={{ fontSize:11, color:`${col}`, fontWeight:700, marginBottom:2 }}>
+              {setup.name} {L ? '▲ LONG' : '▼ SHORT'}
+            </div>
+            <div style={{ fontSize:9, color:'#6b7280' }}>{decisionSub}</div>
           </div>
-          <div style={{ fontSize:9, color:'#6b7280' }}>{decisionSub}</div>
+          <div style={{ fontSize:20, fontWeight:900, color:decisionCol, letterSpacing:-0.5 }}>
+            {decisionText}
+          </div>
         </div>
-        <div style={{ fontSize:20, fontWeight:900, color:decisionCol, letterSpacing:-0.5 }}>
-          {decisionText}
+        {/* Win Rate + Delta + Volume */}
+        <div style={{ display:'flex', gap:8, marginTop:8 }}>
+          <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
+            <div style={{ fontSize:8, color:'#4a5568' }}>Win Rate</div>
+            <div style={{ fontSize:14, fontWeight:800, color:col }}>{setup.base}%</div>
+          </div>
+          <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
+            <div style={{ fontSize:8, color:'#4a5568' }}>Delta</div>
+            <div style={{ fontSize:14, fontWeight:800, color:(live?.bar?.delta||0)>=0?'#22c55e':'#ef5350', fontFamily:'monospace' }}>
+              {(live?.bar?.delta||0)>0?'+':''}{live?.bar?.delta||0}
+            </div>
+          </div>
+          <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
+            <div style={{ fontSize:8, color:'#4a5568' }}>Vol</div>
+            <div style={{ fontSize:14, fontWeight:800, color:((live as any)?.volume_context?.rel_vol||1)>1.2?'#22c55e':'#4a5568', fontFamily:'monospace' }}>
+              {((live as any)?.volume_context?.rel_vol||1).toFixed(1)}x
+            </div>
+          </div>
         </div>
       </div>
 
@@ -301,38 +321,52 @@ function SetupScanner({ live,onSelect,selectedId }:{ live:MarketData|null; onSel
   const setups = calcSetups(live);
   if (!setups) return null;
   return (
-    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:12 }}>
-      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:8 }}>סורק סטאפים — זמן אמת</div>
-      <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
+      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:6 }}>סטאפים</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
         {setups.map(s => {
           const best    = s.long.score >= s.short.score ? 'long' : 'short';
           const bScore  = best==='long' ? s.long.score : s.short.score;
           const bWR     = best==='long' ? s.long.wr    : s.short.wr;
           const bChecks = best==='long' ? s.long.checks: s.short.checks;
           const active  = bScore >= 60;
+          const selected = selectedId===s.name;
+          const critOk  = bChecks.filter((c:any)=>c.critical&&c.ok).length;
+          const critAll = bChecks.filter((c:any)=>c.critical).length;
           return (
-            <div key={s.name} onClick={()=>onSelect?.(s.name,best as 'long'|'short')} style={{ border:`1px solid ${selectedId===s.name?s.col+'aa':active?s.col+'55':'#1e2738'}`, borderRadius:6, padding:'7px 9px', background:selectedId===s.name?s.col+'18':active?s.col+'08':'transparent', cursor:'pointer', transition:'all .2s' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4 }}>
-                <div style={{ width:7, height:7, borderRadius:'50%', background:s.col, opacity:active?1:0.3, boxShadow:active?`0 0 5px ${s.col}`:'none' }} />
-                <span style={{ fontSize:11, fontWeight:500, color:'#e2e8f0', flex:1 }}>{s.name}</span>
-                <span style={{ fontSize:10, color:best==='long'?G:R, fontWeight:700 }}>{best==='long'?'▲ L':'▼ S'}</span>
-                <span style={{ fontSize:14, fontWeight:800, color:active?s.col:'#4a5568', fontFamily:'monospace', minWidth:34, textAlign:'right' }}>{bWR}%</span>
+            <div key={s.name} onClick={()=>onSelect?.(s.name,best as 'long'|'short')}
+              style={{ border:`1px solid ${selected?s.col+'aa':active?s.col+'44':'#1e2738'}`, borderRadius:6, padding:'6px 9px', background:selected?s.col+'15':'transparent', cursor:'pointer', transition:'all .15s' }}>
+              {/* שורה ראשית — תמיד נראית */}
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ width:6, height:6, borderRadius:'50%', background:active?s.col:'#2d3a4a', boxShadow:active?`0 0 4px ${s.col}`:'none' }} />
+                <span style={{ fontSize:11, fontWeight:600, color:active?'#e2e8f0':'#4a5568', flex:1 }}>{s.name}</span>
+                <span style={{ fontSize:9, color:best==='long'?G:R, fontWeight:700 }}>{best==='long'?'▲':'▼'}</span>
+                <span style={{ fontSize:9, color:'#4a5568' }}>{critOk}/{critAll}</span>
+                <span style={{ fontSize:13, fontWeight:800, color:active?s.col:'#2d3a4a', fontFamily:'monospace', minWidth:30, textAlign:'right' }}>{bScore}%</span>
               </div>
-              <div style={{ height:3, background:'#1e2738', borderRadius:2, marginBottom:5, overflow:'hidden' }}>
-                <div style={{ width:`${bScore}%`, height:'100%', background:s.col, borderRadius:2, opacity:active?1:0.4 }} />
-              </div>
-              <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 6px' }}>
-                {bChecks.map(c=>(
-                  <span key={c.label} style={{ fontSize:9, color:c.ok?s.col:'#2d3a4a', display:'flex', alignItems:'center', gap:2 }}>
-                    <span style={{ width:4, height:4, borderRadius:'50%', background:c.ok?s.col:'#2d3a4a', display:'inline-block', flexShrink:0 }} />
-                    {c.label}
-                  </span>
-                ))}
-              </div>
-              <div style={{ display:'flex', marginTop:4, fontSize:9 }}>
-                <span style={{ color:G, flex:1 }}>L {s.long.score}% <span style={{ color:'#2d3a4a' }}>({s.long.wr}% WR)</span></span>
-                <span style={{ color:R, textAlign:'right' }}>S {s.short.score}% <span style={{ color:'#2d3a4a' }}>({s.short.wr}% WR)</span></span>
-              </div>
+              {/* פרטים — רק בלחיצה */}
+              {selected && (
+                <div style={{ marginTop:6, paddingTop:6, borderTop:`1px solid ${s.col}33` }}>
+                  <div style={{ height:3, background:'#1e2738', borderRadius:2, marginBottom:6, overflow:'hidden' }}>
+                    <div style={{ width:`${bScore}%`, height:'100%', background:s.col, borderRadius:2 }} />
+                  </div>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:'3px 6px' }}>
+                    {bChecks.map((c:any)=>(
+                      <span key={c.label} style={{ fontSize:9, padding:'1px 5px', borderRadius:3, fontWeight:600,
+                        background: c.ok ? `${s.col}22` : (c.critical?'#ef535015':'transparent'),
+                        color: c.ok ? s.col : (c.critical?'#ef5350':'#2d3a4a'),
+                        border: `1px solid ${c.ok?s.col+'33':(c.critical?'#ef535033':'#1e2738')}` }}>
+                        {c.ok?'✓':c.critical?'✗':'○'} {c.label}
+                      </span>
+                    ))}
+                  </div>
+                  <div style={{ display:'flex', marginTop:5, fontSize:9 }}>
+                    <span style={{ color:G, flex:1 }}>L {s.long.score}%</span>
+                    <span style={{ color:R }}>S {s.short.score}%</span>
+                    <span style={{ color:'#4a5568', marginLeft:8 }}>WR {bWR}%</span>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -2080,11 +2114,40 @@ export default function Dashboard() {
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
-  const activeSetups = calcSetups(live)?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
+  const allSetups = calcSetups(live);
+  const activeSetups = allSetups?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
     name:s.name, dir:(s.long.score>=s.short.score?'long':'short') as 'long'|'short', col:s.col,
   }));
   const setupLevels = selectedSetup ? calcSetupLevels(selectedSetup.id, live, selectedSetup.dir) : null;
-  const setupCol = calcSetups(live)?.find(s=>s.name===selectedSetup?.id)?.col||'#f59e0b';
+  const setupCol = allSetups?.find(s=>s.name===selectedSetup?.id)?.col||'#f59e0b';
+
+  // ── Sweep data for chart markers ──────────────────────
+  const sweepData = (() => {
+    if (!selectedSetup || selectedSetup.id !== 'Liq Sweep' || !setupLevels || !candles?.length) return undefined;
+    const liqSetup = allSetups?.find(s=>s.name==='Liq Sweep');
+    if (!liqSetup) return undefined;
+    const dir = selectedSetup.dir;
+    const sc = dir==='long' ? liqSetup.long.score : liqSetup.short.score;
+    if (sc < 60) return undefined;
+    // Find the sweep candle — the one with low below level (long) or high above level (short)
+    const sorted = [...candles].sort((a,b)=>b.ts-a.ts);
+    const sweepCandle = sorted[0]; // current/latest candle is the sweep
+    const entryCandle = sorted[0]; // same candle for now (reversal on same bar)
+    const setupCandles = sorted.slice(1,4); // 2-3 bars before
+    return {
+      dir: dir as 'long'|'short',
+      sweepBarTs: sweepCandle?.ts || 0,
+      entryBarTs: entryCandle?.ts || 0,
+      setupBarTs: setupCandles.map(c=>c.ts),
+      entry: setupLevels.entry,
+      stop: setupLevels.stop,
+      t1: setupLevels.t1,
+      t2: setupLevels.t2,
+      delta: live?.bar?.delta || 0,
+      relVol: (live as any)?.volume_context?.rel_vol || 1,
+      score: sc,
+    };
+  })();
   const chartSignal:any = setupLevels ? {
     direction:selectedSetup!.dir==='long'?'LONG':'SHORT',
     entry:setupLevels.entry, stop:setupLevels.stop,
@@ -2153,6 +2216,7 @@ export default function Dashboard() {
               session={{ibh:live?.session?.ibh,ibl:live?.session?.ibl}}
               signal={chartSignal}
               activeSetups={activeSetups}
+              sweepData={sweepData}
               patterns={detectPatterns(candles)}
               selectedPatternId={selectedPattern?.id}
               height={undefined}

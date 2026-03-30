@@ -15,6 +15,20 @@ interface Signal {
   tl_color?: string;
 }
 
+interface SweepData {
+  dir: 'long' | 'short';
+  sweepBarTs: number;
+  entryBarTs: number;
+  setupBarTs: number[];
+  entry: number;
+  stop: number;
+  t1: number;
+  t2: number;
+  delta: number;
+  relVol: number;
+  score: number;
+}
+
 interface Props {
   candles: Candle[];
   livePrice?: number;
@@ -25,13 +39,14 @@ interface Props {
   session?: { ibh?: number; ibl?: number };
   signal?: Signal | null;
   activeSetups?: { name: string; dir: 'long'|'short'; col: string }[];
+  sweepData?: SweepData;
   patterns?: Array<{id:string; nameHeb:string; direction:string; confidence:number; keyLevel:number; breakoutLevel?:number; stopLevel?:number; col:string; barIndex?:number}>;
   selectedPatternId?: string;
   height?: number;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, patterns, selectedPatternId, height
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, patterns, selectedPatternId, height
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef     = useRef<any>(null);
@@ -284,15 +299,26 @@ export default function LightweightChart({
       }
     }
 
+    // ── Sweep lines — entry/stop/T1/T2 ──────────────────────
+    if (sweepData && sweepData.entry > 0) {
+      add(sweepData.entry, '#ffffff',  '→ ENTRY  ', 0, 2);
+      add(sweepData.stop,  '#ef5350',  '✕ STOP   ', 2, 1);
+      add(sweepData.t1,    '#22c55e',  '⊕ T1     ', 2, 1);
+      add(sweepData.t2,    '#16a34a',  '⊕ T2     ', 2, 1);
+    }
+
+    // ── Signal lines (non-sweep) ─────────────────────────
     const s2=signal as any;
-    if(s2?._detect) add(s2._detect,'#f6c90e','① הבחנה ',4,2);
-    if(s2?._verify) add(s2._verify,'#60a5fa','② בדיקה ',4,2);
-    if (signal && signal.direction !== 'NO_TRADE' && signal.entry) {
-      add(signal.entry,   s2?._detect?'#a78bfa':'#ffffff', s2?._detect?'③ כניסה ':'→ ENTRY  ', 0, 2);
-      add(signal.stop,    '#ef5350', s2?._detect?'④ סטופ  ':'✕ STOP   ', 2, 1);
-      add(signal.target1, '#22c55e', s2?._detect?'⑤ T1·C1 ':'⊕ T1·C1  ', 2, 1);
-      add(signal.target2, '#16a34a', s2?._detect?'⑥ T2·C2 ':'⊕ T2·C2  ', 2, 1);
-      add(signal.target3, '#86efac', s2?._detect?'⑦ T3stop':'★ T3     ', 1, 1);
+    if (!sweepData) {
+      if(s2?._detect) add(s2._detect,'#f6c90e','① הבחנה ',4,2);
+      if(s2?._verify) add(s2._verify,'#60a5fa','② בדיקה ',4,2);
+      if (signal && signal.direction !== 'NO_TRADE' && signal.entry) {
+        add(signal.entry,   s2?._detect?'#a78bfa':'#ffffff', s2?._detect?'③ כניסה ':'→ ENTRY  ', 0, 2);
+        add(signal.stop,    '#ef5350', s2?._detect?'④ סטופ  ':'✕ STOP   ', 2, 1);
+        add(signal.target1, '#22c55e', s2?._detect?'⑤ T1·C1 ':'⊕ T1·C1  ', 2, 1);
+        add(signal.target2, '#16a34a', s2?._detect?'⑥ T2·C2 ':'⊕ T2·C2  ', 2, 1);
+        add(signal.target3, '#86efac', s2?._detect?'⑦ T3stop':'★ T3     ', 1, 1);
+      }
     }
 
     // ── Markers: Setup + Pattern ──────────────────────────
@@ -300,8 +326,48 @@ export default function LightweightChart({
       try {
         const allMarkers: any[] = [];
 
-        // Setup markers on live bar
-        if (activeSetups && activeSetups.length > 0 && liveBar) {
+        // ── Sweep markers — SWEEP / ENTRY / setup ──────────
+        if (sweepData && sweepData.sweepBarTs > 0) {
+          const isLong = sweepData.dir === 'long';
+          // Sweep candle — large arrow
+          allMarkers.push({
+            time: Math.floor(sweepData.sweepBarTs) as any,
+            position: isLong ? 'belowBar' : 'aboveBar',
+            color: isLong ? '#22c55e' : '#ef5350',
+            shape: isLong ? 'arrowUp' : 'arrowDown',
+            text: `SWEEP Δ${sweepData.delta>0?'+':''}${sweepData.delta}`,
+            size: 2,
+          });
+          // Entry candle — even larger
+          if (sweepData.entryBarTs > 0) {
+            allMarkers.push({
+              time: Math.floor(sweepData.entryBarTs) as any,
+              position: isLong ? 'belowBar' : 'aboveBar',
+              color: '#ffffff',
+              shape: isLong ? 'arrowUp' : 'arrowDown',
+              text: `ENTRY ${sweepData.entry.toFixed(2)}`,
+              size: 3,
+            });
+          }
+          // Setup candles — small circles before sweep
+          if (sweepData.setupBarTs) {
+            sweepData.setupBarTs.forEach(ts => {
+              if (ts > 0) {
+                allMarkers.push({
+                  time: Math.floor(ts) as any,
+                  position: isLong ? 'belowBar' : 'aboveBar',
+                  color: '#4a5568',
+                  shape: 'circle',
+                  text: 'setup',
+                  size: 0,
+                });
+              }
+            });
+          }
+        }
+
+        // Setup markers on live bar (non-sweep)
+        if (!sweepData && activeSetups && activeSetups.length > 0 && liveBar) {
           activeSetups.forEach(s => {
             allMarkers.push({
               time: liveBar.ts as any,
@@ -357,7 +423,7 @@ export default function LightweightChart({
       } catch {}
     }
 
-  }, [levels, profile, session, vwap, signal, activeSetups, liveBar, patterns, selectedPatternId]);
+  }, [levels, profile, session, vwap, signal, activeSetups, sweepData, liveBar, patterns, selectedPatternId]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
