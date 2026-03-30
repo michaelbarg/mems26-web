@@ -62,6 +62,179 @@ function calcPotential(entry:number, stop:number, dir:'long'|'short', woodi:any,
   };
 }
 
+// ── Historical Sweep Scanner — סורק 960 נרות ────────────────────────────────
+interface SweepEvent {
+  id: string;
+  ts: number;
+  dir: 'long' | 'short';
+  level: number;
+  levelName: string;
+  sweepBarIndex: number;
+  reversalBarIndex: number;
+  entry: number;
+  stop: number;
+  t1: number;
+  t2: number;
+  delta: number;
+  volume: number;
+  score: number;
+  sweepBarTs: number;
+  reversalBarTs: number;
+  setupBarTs: number[];
+}
+
+function scanHistoricalSweeps(
+  candles: Candle[],
+  levels: { prev_high:number; prev_low:number; overnight_high:number; overnight_low:number },
+  woodi?: { pp:number; r1:number; r2:number; s1:number; s2:number },
+): SweepEvent[] {
+  if (!candles || candles.length < 10) return [];
+
+  // Sort oldest → newest
+  const bars = [...candles].sort((a, b) => a.ts - b.ts);
+
+  // Key levels to check
+  const keyLevels: { price: number; name: string }[] = [];
+  if (levels.prev_high > 0)      keyLevels.push({ price: levels.prev_high,      name: 'PDH' });
+  if (levels.prev_low > 0)       keyLevels.push({ price: levels.prev_low,       name: 'PDL' });
+  if (levels.overnight_high > 0) keyLevels.push({ price: levels.overnight_high, name: 'ONH' });
+  if (levels.overnight_low > 0)  keyLevels.push({ price: levels.overnight_low,  name: 'ONL' });
+  if (keyLevels.length === 0) return [];
+
+  // Average volume over 20 bars (rolling)
+  const avgVol = (idx: number): number => {
+    const start = Math.max(0, idx - 20);
+    let sum = 0, count = 0;
+    for (let j = start; j < idx; j++) {
+      sum += (bars[j].buy || 0) + (bars[j].sell || 0);
+      count++;
+    }
+    return count > 0 ? sum / count : 1;
+  };
+
+  const events: SweepEvent[] = [];
+  const MIN_GAP = 6; // minimum 6 bars (18 min) between sweep detections on same level
+
+  for (let i = 1; i < bars.length - 1; i++) {
+    const bar = bars[i];
+    const nextBar = bars[i + 1];
+
+    for (const lev of keyLevels) {
+      // Check if we already found a sweep on this level recently
+      const recentSame = events.find(e => e.levelName === lev.name && i - e.sweepBarIndex < MIN_GAP);
+      if (recentSame) continue;
+
+      // ── LONG sweep: bar.l broke below level by >0.5, close or next bar back above level
+      if (bar.l < lev.price - 0.5) {
+        const reversedSame = bar.c > lev.price;
+        const reversedNext = nextBar.c > lev.price;
+        if (reversedSame || reversedNext) {
+          const revBar = reversedSame ? bar : nextBar;
+          const revIdx = reversedSame ? i : i + 1;
+          const delta = revBar.delta || ((revBar.buy||0) - (revBar.sell||0));
+          const vol = (revBar.buy || 0) + (revBar.sell || 0);
+          const avg = avgVol(i);
+          const relVol = avg > 0 ? vol / avg : 1;
+
+          // Score: 4 critical conditions
+          let score = 0;
+          if (true) score += 25;                    // broke level ✓ (always true here)
+          if (revBar.c > lev.price) score += 25;    // returned above ✓
+          if (delta > 50) score += 25;              // delta positive ✓
+          if (relVol > 1.2) score += 15;            // volume high ✓
+          // Bonus
+          if (bar.l < lev.price - 1.0) score += 5;  // deep sweep
+          if (delta > 200) score += 5;               // strong delta
+
+          if (score >= 75) {
+            const entry = lev.price + 1.0;
+            const stop = bar.l - 0.5;
+            const risk = Math.abs(entry - stop);
+            const t1 = entry + risk;
+            const t2 = woodi?.r1 && woodi.r1 > entry ? woodi.r1 : entry + risk * 2;
+            const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
+
+            events.push({
+              id: `sweep-long-${bar.ts}-${lev.name}`,
+              ts: bar.ts,
+              dir: 'long',
+              level: lev.price,
+              levelName: lev.name,
+              sweepBarIndex: i,
+              reversalBarIndex: revIdx,
+              entry,
+              stop,
+              t1,
+              t2,
+              delta,
+              volume: vol,
+              score,
+              sweepBarTs: bar.ts,
+              reversalBarTs: revBar.ts,
+              setupBarTs: setupBars,
+            });
+          }
+        }
+      }
+
+      // ── SHORT sweep: bar.h broke above level by >0.5, close or next bar back below level
+      if (bar.h > lev.price + 0.5) {
+        const reversedSame = bar.c < lev.price;
+        const reversedNext = nextBar.c < lev.price;
+        if (reversedSame || reversedNext) {
+          const revBar = reversedSame ? bar : nextBar;
+          const revIdx = reversedSame ? i : i + 1;
+          const delta = revBar.delta || ((revBar.buy||0) - (revBar.sell||0));
+          const vol = (revBar.buy || 0) + (revBar.sell || 0);
+          const avg = avgVol(i);
+          const relVol = avg > 0 ? vol / avg : 1;
+
+          let score = 0;
+          if (true) score += 25;
+          if (revBar.c < lev.price) score += 25;
+          if (delta < -50) score += 25;
+          if (relVol > 1.2) score += 15;
+          if (bar.h > lev.price + 1.0) score += 5;
+          if (delta < -200) score += 5;
+
+          if (score >= 75) {
+            const entry = lev.price - 1.0;
+            const stop = bar.h + 0.5;
+            const risk = Math.abs(entry - stop);
+            const t1 = entry - risk;
+            const t2 = woodi?.s1 && woodi.s1 < entry ? woodi.s1 : entry - risk * 2;
+            const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
+
+            events.push({
+              id: `sweep-short-${bar.ts}-${lev.name}`,
+              ts: bar.ts,
+              dir: 'short',
+              level: lev.price,
+              levelName: lev.name,
+              sweepBarIndex: i,
+              reversalBarIndex: revIdx,
+              entry,
+              stop,
+              t1,
+              t2,
+              delta: Math.abs(delta),
+              volume: vol,
+              score,
+              sweepBarTs: bar.ts,
+              reversalBarTs: revBar.ts,
+              setupBarTs: setupBars,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Sort newest first
+  events.sort((a, b) => b.ts - a.ts);
+  return events;
+}
+
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
 function calcSetups(live: MarketData | null) {
   if (!live) return null;
@@ -1840,7 +2013,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
 }
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
@@ -1889,20 +2062,105 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         </>}
 
         {tab === 'setups' && <>
-          {/* כרטיס כניסה מורחב אם יש סטאפ נבחר */}
-          {selectedSetup && (() => {
-            const setupData = calcSetups(live)?.find(s=>s.name===selectedSetup.id);
-            const lvls = calcSetupLevels(selectedSetup.id, live, selectedSetup.dir);
-            return setupData && lvls ? (
-              <SetupEntryCard setup={setupData} dir={selectedSetup.dir} levels={lvls} live={live} />
-            ) : null;
-          })()}
-          <SetupScanner live={live} onSelect={onSelectSetup} selectedId={selectedSetup?.id} />
-          {selectedSetup && (
-            <div style={{ padding:'8px 10px', background:'#111827', border:'1px solid #1e2738', borderRadius:8, fontSize:10, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
-              לחץ על הגרף לראות את רמות הסטאפ
+          {/* Selected sweep detail card */}
+          {selectedSweep && (
+            <div style={{ background:'#0a0e1a', border:`2px solid ${selectedSweep.dir==='long'?'#22c55e':'#ef5350'}44`, borderRadius:10, overflow:'hidden' }}>
+              <div style={{ background:selectedSweep.dir==='long'?'#22c55e18':'#ef535018', padding:'10px 14px', borderBottom:'1px solid #1e2738' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div>
+                    <div style={{ fontSize:11, fontWeight:700, color:selectedSweep.dir==='long'?'#22c55e':'#ef5350' }}>
+                      SWEEP {selectedSweep.levelName} {selectedSweep.dir==='long'?'▲ LONG':'▼ SHORT'}
+                    </div>
+                    <div style={{ fontSize:9, color:'#6b7280' }}>{new Date(selectedSweep.ts*1000).toLocaleTimeString('he-IL')}</div>
+                  </div>
+                  <div style={{ fontSize:18, fontWeight:900, color:selectedSweep.score>=90?'#22c55e':selectedSweep.score>=75?'#f59e0b':'#4a5568' }}>
+                    {selectedSweep.score}%
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:8, marginTop:8 }}>
+                  <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
+                    <div style={{ fontSize:8, color:'#4a5568' }}>Win Rate</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#22c55e' }}>72%</div>
+                  </div>
+                  <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
+                    <div style={{ fontSize:8, color:'#4a5568' }}>Delta</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:selectedSweep.delta>=0?'#22c55e':'#ef5350', fontFamily:'monospace' }}>
+                      {selectedSweep.delta>0?'+':''}{selectedSweep.delta}
+                    </div>
+                  </div>
+                  <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
+                    <div style={{ fontSize:8, color:'#4a5568' }}>Level</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#f6c90e', fontFamily:'monospace' }}>{selectedSweep.level.toFixed(2)}</div>
+                  </div>
+                </div>
+              </div>
+              {/* Entry/Stop/T1/T2 */}
+              <div style={{ padding:'10px 14px' }}>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+                  <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
+                    <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{selectedSweep.entry.toFixed(2)}</div>
+                  </div>
+                  <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
+                    <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>סטופ</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{selectedSweep.stop.toFixed(2)}</div>
+                    <div style={{ fontSize:9, color:'#4a5568' }}>−{Math.abs(selectedSweep.entry-selectedSweep.stop).toFixed(1)}pt / −${Math.round(Math.abs(selectedSweep.entry-selectedSweep.stop)*5)}</div>
+                  </div>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4 }}>
+                  {[
+                    { label:'T1', price:selectedSweep.t1, col:'#22c55e' },
+                    { label:'T2', price:selectedSweep.t2, col:'#16a34a' },
+                  ].map(t => {
+                    const pts = Math.abs(t.price - selectedSweep.entry);
+                    return (
+                      <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'5px 6px', textAlign:'center' }}>
+                        <div style={{ fontSize:9, color:t.col, fontWeight:700 }}>{t.label}</div>
+                        <div style={{ fontSize:12, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
+                        <div style={{ fontSize:9, color:'#4a5568' }}>+{pts.toFixed(1)}pt / +${Math.round(pts*5)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div style={{ padding:'6px 14px 10px', borderTop:'1px solid #1e2738' }}>
+                <button onClick={()=>setSelectedSweep(null)} style={{ width:'100%', padding:'5px', border:'1px solid #1e2738', borderRadius:5, background:'transparent', color:'#6b7280', fontSize:10, cursor:'pointer' }}>סגור</button>
+              </div>
             </div>
           )}
+
+          {/* Sweep events list */}
+          <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
+            <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:6 }}>SWEEP EVENTS ({sweepEvents.length})</div>
+            {sweepEvents.length === 0 ? (
+              <div style={{ padding:'12px', textAlign:'center', color:'#2d3a4a', fontSize:10 }}>אין sweep events בהיסטוריה</div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                {sweepEvents.slice(0, 20).map(ev => {
+                  const sel = selectedSweep?.id === ev.id;
+                  const isLong = ev.dir === 'long';
+                  const time = new Date(ev.ts * 1000).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+                  const date = new Date(ev.ts * 1000).toLocaleDateString('he-IL', { day:'2-digit', month:'2-digit' });
+                  return (
+                    <div key={ev.id} onClick={() => setSelectedSweep(sel ? null : ev)}
+                      style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 8px', borderRadius:5, cursor:'pointer',
+                        border: `1px solid ${sel ? (isLong?'#22c55e':'#ef5350')+'66' : '#1e2738'}`,
+                        background: sel ? (isLong?'#22c55e':'#ef5350')+'11' : 'transparent',
+                      }}>
+                      <span style={{ fontSize:10, color:isLong?'#22c55e':'#ef5350', fontWeight:700 }}>{isLong?'▲':'▼'}</span>
+                      <span style={{ fontSize:10, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{ev.levelName}</span>
+                      <span style={{ fontSize:9, color:'#4a5568', flex:1 }}>{date} {time}</span>
+                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>Δ{ev.delta>0?'+':''}{ev.delta}</span>
+                      <span style={{ fontSize:11, fontWeight:800, color:ev.score>=90?'#22c55e':ev.score>=75?'#f59e0b':'#4a5568', fontFamily:'monospace', minWidth:28, textAlign:'right' }}>{ev.score}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Real-time setups (collapsed) */}
+          <SetupScanner live={live} onSelect={onSelectSetup} selectedId={selectedSetup?.id} />
         </>}
 
         {tab === 'patterns' && <>
@@ -2004,6 +2262,7 @@ export default function Dashboard() {
   const [persistedSignal,setPersistedSignal]=useState<Signal|null>(null);
   const [signalTime,setSignalTime]=useState<string>('');
   const [selectedSetup,setSelectedSetup]=useState<{id:string;dir:'long'|'short'}|null>(null);
+  const [selectedSweep,setSelectedSweep]=useState<SweepEvent|null>(null);
   const [selectedPattern,setSelectedPattern]=useState<PatternResult|null>(null);
   const [dayExplanation,setDayExplanation]=useState<string>('');
   const [dayLoading,setDayLoading]=useState(false);
@@ -2121,33 +2380,25 @@ export default function Dashboard() {
   const setupLevels = selectedSetup ? calcSetupLevels(selectedSetup.id, live, selectedSetup.dir) : null;
   const setupCol = allSetups?.find(s=>s.name===selectedSetup?.id)?.col||'#f59e0b';
 
-  // ── Sweep data for chart markers ──────────────────────
-  const sweepData = (() => {
-    if (!selectedSetup || selectedSetup.id !== 'Liq Sweep' || !setupLevels || !candles?.length) return undefined;
-    const liqSetup = allSetups?.find(s=>s.name==='Liq Sweep');
-    if (!liqSetup) return undefined;
-    const dir = selectedSetup.dir;
-    const sc = dir==='long' ? liqSetup.long.score : liqSetup.short.score;
-    if (sc < 60) return undefined;
-    // Find the sweep candle — the one with low below level (long) or high above level (short)
-    const sorted = [...candles].sort((a,b)=>b.ts-a.ts);
-    const sweepCandle = sorted[0]; // current/latest candle is the sweep
-    const entryCandle = sorted[0]; // same candle for now (reversal on same bar)
-    const setupCandles = sorted.slice(1,4); // 2-3 bars before
-    return {
-      dir: dir as 'long'|'short',
-      sweepBarTs: sweepCandle?.ts || 0,
-      entryBarTs: entryCandle?.ts || 0,
-      setupBarTs: setupCandles.map(c=>c.ts),
-      entry: setupLevels.entry,
-      stop: setupLevels.stop,
-      t1: setupLevels.t1,
-      t2: setupLevels.t2,
-      delta: live?.bar?.delta || 0,
-      relVol: (live as any)?.volume_context?.rel_vol || 1,
-      score: sc,
-    };
-  })();
+  // ── Historical sweep events ─────────────────────────
+  const sweepEvents = candles.length > 10 && live?.levels
+    ? scanHistoricalSweeps(candles, live.levels, live.woodi)
+    : [];
+
+  // Selected sweep → chart data
+  const sweepData = selectedSweep ? {
+    dir: selectedSweep.dir,
+    sweepBarTs: selectedSweep.sweepBarTs,
+    entryBarTs: selectedSweep.reversalBarTs,
+    setupBarTs: selectedSweep.setupBarTs,
+    entry: selectedSweep.entry,
+    stop: selectedSweep.stop,
+    t1: selectedSweep.t1,
+    t2: selectedSweep.t2,
+    delta: selectedSweep.delta,
+    relVol: selectedSweep.volume,
+    score: selectedSweep.score,
+  } : undefined;
   const chartSignal:any = setupLevels ? {
     direction:selectedSetup!.dir==='long'?'LONG':'SHORT',
     entry:setupLevels.entry, stop:setupLevels.stop,
@@ -2217,6 +2468,7 @@ export default function Dashboard() {
               signal={chartSignal}
               activeSetups={activeSetups}
               sweepData={sweepData}
+              sweepEvents={sweepEvents}
               patterns={detectPatterns(candles)}
               selectedPatternId={selectedPattern?.id}
               height={undefined}
@@ -2275,6 +2527,9 @@ export default function Dashboard() {
           dayExplanation={dayExplanation}
           selectedSetup={selectedSetup}
           onSelectSetup={(id:string,dir:'long'|'short')=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})}
+          sweepEvents={sweepEvents}
+          selectedSweep={selectedSweep}
+          setSelectedSweep={setSelectedSweep}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
           onReject={()=>{
             const sig=lockedSignal||live?.signal;

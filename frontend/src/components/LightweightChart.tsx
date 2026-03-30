@@ -40,13 +40,14 @@ interface Props {
   signal?: Signal | null;
   activeSetups?: { name: string; dir: 'long'|'short'; col: string }[];
   sweepData?: SweepData;
+  sweepEvents?: Array<{ id:string; ts:number; dir:'long'|'short'; levelName:string; score:number; sweepBarTs:number }>;
   patterns?: Array<{id:string; nameHeb:string; direction:string; confidence:number; keyLevel:number; breakoutLevel?:number; stopLevel?:number; col:string; barIndex?:number}>;
   selectedPatternId?: string;
   height?: number;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, patterns, selectedPatternId, height
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, patterns, selectedPatternId, height
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef     = useRef<any>(null);
@@ -380,6 +381,20 @@ export default function LightweightChart({
           });
         }
 
+        // ── Historical sweep markers (small, on all detected sweeps) ──
+        if (sweepEvents && sweepEvents.length > 0 && !sweepData) {
+          sweepEvents.forEach(ev => {
+            allMarkers.push({
+              time: Math.floor(ev.sweepBarTs) as any,
+              position: ev.dir === 'long' ? 'belowBar' : 'aboveBar',
+              color: ev.dir === 'long' ? '#22c55e88' : '#ef535088',
+              shape: ev.dir === 'long' ? 'arrowUp' : 'arrowDown',
+              text: `SWP ${ev.levelName}`,
+              size: 0,
+            });
+          });
+        }
+
         // Pattern markers — על הנר הרלוונטי
         if (patterns && patterns.length > 0 && candles.length > 0) {
           // candles מגיעים ישן→חדש
@@ -423,7 +438,7 @@ export default function LightweightChart({
       } catch {}
     }
 
-  }, [levels, profile, session, vwap, signal, activeSetups, sweepData, liveBar, patterns, selectedPatternId]);
+  }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, liveBar, patterns, selectedPatternId]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
