@@ -269,17 +269,17 @@ export default function LightweightChart({
       linesRef.current.push(l);
     };
 
-    add(levels?.prev_high,      '#ef4444', 'PDH ', 2);
-    add(levels?.prev_low,       '#ef4444', 'PDL ', 2);
-    add(levels?.daily_open,     '#60a5fa', 'DO  ', 2);
-    add(levels?.overnight_high, '#a78bfa', 'ONH ', 1);
-    add(levels?.overnight_low,  '#a78bfa', 'ONL ', 1);
-    add(profile?.vah,           '#22c55e', 'VAH ', 2);
-    add(profile?.val,           '#22c55e', 'VAL ', 2);
-    add(profile?.poc,           '#f97316', 'POC ', 0, 2);
-    add(session?.ibh,           '#38bdf8', 'IBH ', 2);
-    add(session?.ibl,           '#38bdf8', 'IBL ', 2);
-    add(vwap,                   '#f6c90e', 'VWAP', 0, 2);
+    add(levels?.prev_high,      '#ef444466', 'PDH ', 3, 1);
+    add(levels?.prev_low,       '#ef444466', 'PDL ', 3, 1);
+    add(levels?.daily_open,     '#60a5fa66', 'DO  ', 3, 1);
+    add(levels?.overnight_high, '#a78bfa66', 'ONH ', 3, 1);
+    add(levels?.overnight_low,  '#a78bfa66', 'ONL ', 3, 1);
+    add(profile?.vah,           '#22c55e66', 'VAH ', 3, 1);
+    add(profile?.val,           '#22c55e66', 'VAL ', 3, 1);
+    add(profile?.poc,           '#f9731666', 'POC ', 3, 1);
+    add(session?.ibh,           '#38bdf866', 'IBH ', 3, 1);
+    add(session?.ibl,           '#38bdf866', 'IBL ', 3, 1);
+    add(vwap,                   '#f6c90e66', 'VWAP', 3, 1);
 
     // Pattern selected — הוסף קווי כניסה וסטופ
     if (patterns && selectedPatternId) {
