@@ -556,6 +556,7 @@ async def main():
 
     last_send = 0.0
     candle = CandleBuilder()  # local candle for this session
+    footprint_seeded = False   # האם כבר טענו footprint מ-Sierra
 
     async with aiohttp.ClientSession() as http:
         while True:
@@ -574,6 +575,46 @@ async def main():
                 sell  = m3.get("sell", 0)
                 vol   = m3.get("vol", 0)
                 ts    = raw.get("timestamp", 0)
+
+                # ── Seed from Sierra footprint (once) ────────
+                # footprint = 10 recent 3m candles from Sierra Chart
+                # Push any that are newer than what's already in Redis
+                if not footprint_seeded:
+                    footprint_seeded = True
+                    fp_bars = raw.get("footprint", [])
+                    if fp_bars:
+                        # Get newest candle ts from Redis
+                        newest_redis_ts = 0
+                        try:
+                            async with http.get(
+                                f"{REDIS_URL}/lrange/{REDIS_CANDLES}/0/0",
+                                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                                timeout=aiohttp.ClientTimeout(total=3.0)
+                            ) as resp:
+                                result = await resp.json()
+                                items = result.get("result", [])
+                                if items:
+                                    c = items[0]
+                                    while isinstance(c, str):
+                                        c = json.loads(c)
+                                    newest_redis_ts = c.get("ts", 0) if isinstance(c, dict) else 0
+                        except Exception:
+                            pass
+
+                        # Push footprint candles that are newer than Redis
+                        fp_sorted = sorted(fp_bars, key=lambda x: x.get("ts", 0))
+                        seeded = 0
+                        for bar in fp_sorted:
+                            bar_ts = bar.get("ts", 0)
+                            if bar_ts > newest_redis_ts:
+                                cj = json.dumps(bar)
+                                await redis_post_raw(http, f"lpush/{REDIS_CANDLES}", cj)
+                                seeded += 1
+                        if seeded:
+                            await redis_post(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}", "")
+                            log.info(f"Seeded {seeded} candles from Sierra footprint")
+                        else:
+                            log.info(f"Footprint: {len(fp_bars)} bars, all already in Redis")
 
                 # ── Candle Building — לפי זמן מחשב אמיתי ────
                 wall_ts   = int(time.time())
