@@ -323,7 +323,7 @@ function scanHistoricalSweeps(
 }
 
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
-function calcSetups(live: MarketData | null) {
+function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   if (!live) return null;
   const cvd  = live.cvd        || {} as any;
   const vwap = live.vwap       || {} as any;
@@ -339,29 +339,56 @@ function calcSetups(live: MarketData | null) {
   const lev  = live.levels     || {} as any;
   const relVol = vol.rel_vol || 1;
 
-  // ── Liq Sweep — 4 תנאים CRITICAL + 1 בונוס ─────────────────────────────
-  // זיהוי sweep רמה: PDH/PDL/ONH/ONL בלבד
+  // ── Liq Sweep — בודק 5 נרות אחורה + נר נוכחי ─────────────────────────
   const sweepLevels = [lev.prev_high, lev.prev_low, lev.overnight_high, lev.overnight_low]
     .filter(v => v && v > 0);
   const price = live.price || 0;
 
-  // Sweep long: שבר מתחת לרמה ב->0.5pt, מחיר חזר מעבר לרמה עצמה
-  const sweepLongLevel  = sweepLevels.find(l => (bar.l||price) < l - 0.5 && price > l);
-  const sweepShortLevel = sweepLevels.find(l => (bar.h||price) > l + 0.5 && price < l);
+  // חפש sweep ב-5 נרות אחרונים
+  const recentBars = [...candles].sort((a,b) => b.ts - a.ts).slice(0, 5);
+
+  // Long sweep: נר שה-low שלו שבר רמה וסגר מעלה
+  let sweepLongLevel: number | undefined;
+  let sweepLongBar: Candle | undefined;
+  for (const rb of recentBars) {
+    const found = sweepLevels.find(l => rb.l < l - 0.5 && rb.c > l);
+    if (found) { sweepLongLevel = found; sweepLongBar = rb; break; }
+  }
+  // Fallback: בדוק גם נר נוכחי
+  if (!sweepLongLevel) {
+    sweepLongLevel = sweepLevels.find(l => (bar.l||price) < l - 0.5 && price > l);
+  }
+
+  // Short sweep
+  let sweepShortLevel: number | undefined;
+  let sweepShortBar: Candle | undefined;
+  for (const rb of recentBars) {
+    const found = sweepLevels.find(l => rb.h > l + 0.5 && rb.c < l);
+    if (found) { sweepShortLevel = found; sweepShortBar = rb; break; }
+  }
+  if (!sweepShortLevel) {
+    sweepShortLevel = sweepLevels.find(l => (bar.h||price) > l + 0.5 && price < l);
+  }
+
+  // Volume check: ממוצע 20 נרות אחרונים
+  const recent20 = [...candles].sort((a,b) => b.ts - a.ts).slice(0, 20);
+  const avgVol20 = recent20.length > 0 ? recent20.reduce((s,c) => s + (c.buy||0) + (c.sell||0), 0) / recent20.length : 1;
+  const sweepBarVol = sweepLongBar ? (sweepLongBar.buy||0) + (sweepLongBar.sell||0) : (sweepShortBar ? (sweepShortBar.buy||0) + (sweepShortBar.sell||0) : 0);
+  const sweepRelVol = avgVol20 > 0 ? sweepBarVol / avgVol20 : relVol;
 
   const liqLong   = [
-    { label:'שבירת רמה ↓↑', ok: !!sweepLongLevel,             critical:true  },
-    { label:'חזרה מעל רמה', ok: !!sweepLongLevel && price > sweepLongLevel, critical:true },
-    { label:'Delta > 50',   ok: (bar.delta||0) > 50,          critical:true  },
-    { label:'Vol > 1.2x',   ok: relVol > 1.2,                 critical:true  },
-    { label:'נר היפוך',     ok: cp.bull_engulf||cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG', critical:false },
+    { label:'Sweep ↓↑ (5 bars)', ok: !!sweepLongLevel,         critical:true  },
+    { label:'מחיר מעל רמה',      ok: !!sweepLongLevel && price > sweepLongLevel, critical:true },
+    { label:'Delta מתהפך',       ok: (bar.delta||0) > 50,       critical:true  },
+    { label:'Vol sweep > 1.3x',  ok: sweepLongBar ? sweepRelVol > 1.3 : relVol > 1.2, critical:true },
+    { label:'נר היפוך',          ok: cp.bull_engulf||cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG', critical:false },
   ];
   const liqShort  = [
-    { label:'שבירת רמה ↑↓', ok: !!sweepShortLevel,            critical:true  },
-    { label:'חזרה מתחת רמה',ok: !!sweepShortLevel && price < sweepShortLevel, critical:true },
-    { label:'Delta < -50',  ok: (bar.delta||0) < -50,         critical:true  },
-    { label:'Vol > 1.2x',   ok: relVol > 1.2,                 critical:true  },
-    { label:'נר היפוך',     ok: cp.bear_engulf||cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG', critical:false },
+    { label:'Sweep ↑↓ (5 bars)', ok: !!sweepShortLevel,        critical:true  },
+    { label:'מחיר מתחת רמה',     ok: !!sweepShortLevel && price < sweepShortLevel, critical:true },
+    { label:'Delta מתהפך',       ok: (bar.delta||0) < -50,      critical:true  },
+    { label:'Vol sweep > 1.3x',  ok: sweepShortBar ? sweepRelVol > 1.3 : relVol > 1.2, critical:true },
+    { label:'נר היפוך',          ok: cp.bear_engulf||cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG', critical:false },
   ];
 
   // ── VWAP Pullback ──────────────────────────────────────────────────────────
@@ -577,8 +604,8 @@ function SetupEntryCard({ setup, dir, levels, live }: {
   );
 }
 
-function SetupScanner({ live,onSelect,selectedId }:{ live:MarketData|null; onSelect?:(id:string,dir:'long'|'short')=>void; selectedId?:string }) {
-  const setups = calcSetups(live);
+function SetupScanner({ live,candles,onSelect,selectedId }:{ live:MarketData|null; candles:Candle[]; onSelect?:(id:string,dir:'long'|'short')=>void; selectedId?:string }) {
+  const setups = calcSetups(live, candles);
   if (!setups) return null;
   return (
     <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
@@ -2539,7 +2566,7 @@ export default function Dashboard() {
 
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
-  const allSetups = calcSetups(live);
+  const allSetups = calcSetups(live, candles);
   const activeSetups = allSetups?.filter(s=>Math.max(s.long.score,s.short.score)>=60).map(s=>({
     name:s.name, dir:(s.long.score>=s.short.score?'long':'short') as 'long'|'short', col:s.col,
   }));
