@@ -345,11 +345,21 @@ export default function LightweightChart({
             });
           }
 
-          // Future markers — Stop/C1/C2/C3 on estimated future candles
+          // Future markers — Stop opposite side, C1/C2/C3 on target side
+          // STOP: above for long (loss is up), below for short (loss is down)
+          // Wait — STOP is always opposite to entry direction:
+          //   LONG entry: stop is BELOW → marker belowBar
+          //   SHORT entry: stop is ABOVE → marker aboveBar
+          const stopPos = isLong ? 'belowBar' : 'aboveBar';
+          // Targets: same direction as trade
+          //   LONG targets are above → aboveBar
+          //   SHORT targets are below → belowBar
+          const targetPos = isLong ? 'aboveBar' : 'belowBar';
+
           if (sweepData.stopBarTs && sweepData.stopBarTs > 0) {
             allMarkers.push({
               time: Math.floor(sweepData.stopBarTs) as any,
-              position: isLong ? 'aboveBar' : 'belowBar',
+              position: stopPos,
               color: '#ef5350', shape: 'circle' as any,
               text: `✕ STOP ${sweepData.stop.toFixed(2)}`, size: 1,
             });
@@ -357,21 +367,21 @@ export default function LightweightChart({
           if (sweepData.t1BarTs && sweepData.t1BarTs > 0) {
             allMarkers.push({
               time: Math.floor(sweepData.t1BarTs) as any,
-              position: pos, color: '#22c55e', shape: 'circle' as any,
+              position: targetPos, color: '#22c55e', shape: 'circle' as any,
               text: `① C1 ${sweepData.t1.toFixed(2)} +${Math.abs(sweepData.t1-sweepData.entry).toFixed(0)}pt 50%→BE`, size: 1,
             });
           }
           if (sweepData.t2BarTs && sweepData.t2BarTs > 0) {
             allMarkers.push({
               time: Math.floor(sweepData.t2BarTs) as any,
-              position: pos, color: '#16a34a', shape: 'circle' as any,
+              position: targetPos, color: '#16a34a', shape: 'circle' as any,
               text: `② C2 ${sweepData.t2.toFixed(2)} +${Math.abs(sweepData.t2-sweepData.entry).toFixed(0)}pt 25%`, size: 1,
             });
           }
           if (sweepData.t3BarTs && sweepData.t3BarTs > 0 && sweepData.t3) {
             allMarkers.push({
               time: Math.floor(sweepData.t3BarTs) as any,
-              position: pos, color: '#86efac', shape: 'circle' as any,
+              position: targetPos, color: '#86efac', shape: 'circle' as any,
               text: `③ C3 ${sweepData.t3.toFixed(2)} +${Math.abs(sweepData.t3-sweepData.entry).toFixed(0)}pt Run`, size: 1,
             });
           }
