@@ -509,14 +509,14 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
 
     for (const lv of allLevels) {
       // LONG bounce: price near level from above, slowing down, then green
-      if (!longHit && Math.abs(curBar.l - lv.price) < 2.0 && curBar.c > curBar.o && curDelta > 0) {
+      if (!longHit && Math.abs(curBar.l - lv.price) < 5.0 && curBar.c > curBar.o && curDelta > 0) {
         // Previous bar was bearish or small — slowing
         if (prevBar.c <= prevBar.o || Math.abs(prevDelta) < 200) {
           longHit = { level: lv.price, levelName: lv.name, bar: curBar, relVol: curRelVol, type: 'bounce' };
         }
       }
       // SHORT bounce: price near level from below, slowing, then red
-      if (!shortHit && Math.abs(curBar.h - lv.price) < 2.0 && curBar.c < curBar.o && curDelta < 0) {
+      if (!shortHit && Math.abs(curBar.h - lv.price) < 5.0 && curBar.c < curBar.o && curDelta < 0) {
         if (prevBar.c >= prevBar.o || Math.abs(prevDelta) < 200) {
           shortHit = { level: lv.price, levelName: lv.name, bar: curBar, relVol: curRelVol, type: 'bounce' };
         }
