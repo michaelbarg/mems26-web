@@ -328,74 +328,123 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const bar  = live.bar        || {} as any;
   const sess = live.session    || {} as any;
   const lev  = live.levels     || {} as any;
+  const prof = live.profile    || {} as any;
+  const vwap = live.vwap       || {} as any;
   const cp   = (live as any).candle_patterns || {};
   const vol  = (live as any).volume_context  || {};
   const price = live.price || 0;
   const relVol = vol.rel_vol || 1;
 
-  // ── רמות: PDH, PDL, ONH, ONL + IBH, IBL ──────────────────────────────
-  const sweepLevels: { price: number; name: string }[] = [];
-  if (lev.prev_high > 0)      sweepLevels.push({ price: lev.prev_high,      name: 'PDH' });
-  if (lev.prev_low > 0)       sweepLevels.push({ price: lev.prev_low,       name: 'PDL' });
-  if (lev.overnight_high > 0) sweepLevels.push({ price: lev.overnight_high, name: 'ONH' });
-  if (lev.overnight_low > 0)  sweepLevels.push({ price: lev.overnight_low,  name: 'ONL' });
-  if (sess.ibh > 0 && sess.ib_locked) sweepLevels.push({ price: sess.ibh, name: 'IBH' });
-  if (sess.ibl > 0 && sess.ib_locked) sweepLevels.push({ price: sess.ibl, name: 'IBL' });
+  // ── רמות קבועות ──────────────────────────────────────────────────
+  const allLevels: { price: number; name: string }[] = [];
+  if (lev.prev_high > 0)      allLevels.push({ price: lev.prev_high,      name: 'PDH' });
+  if (lev.prev_low > 0)       allLevels.push({ price: lev.prev_low,       name: 'PDL' });
+  if (lev.overnight_high > 0) allLevels.push({ price: lev.overnight_high, name: 'ONH' });
+  if (lev.overnight_low > 0)  allLevels.push({ price: lev.overnight_low,  name: 'ONL' });
+  if (sess.ibh > 0 && sess.ib_locked) allLevels.push({ price: sess.ibh, name: 'IBH' });
+  if (sess.ibl > 0 && sess.ib_locked) allLevels.push({ price: sess.ibl, name: 'IBL' });
+  if (vwap.value > 0)         allLevels.push({ price: vwap.value,         name: 'VWAP' });
+  if (prof.poc > 0)           allLevels.push({ price: prof.poc,           name: 'POC' });
+  if (prof.vah > 0)           allLevels.push({ price: prof.vah,           name: 'VAH' });
+  if (prof.val > 0)           allLevels.push({ price: prof.val,           name: 'VAL' });
+  if (sess.sh > 0)            allLevels.push({ price: sess.sh,            name: 'SH' });
+  if (sess.sl > 0)            allLevels.push({ price: sess.sl,            name: 'SL' });
 
-  // ── 10 נרות אחרונים + ממוצע volume ──────────────────────────────────
+  // ── רמות דינמיות — מחירים שנגעו 3+ פעמים ─────────────────────────
   const sorted = [...candles].sort((a, b) => b.ts - a.ts);
+  const recent50 = sorted.slice(0, 50);
+  if (recent50.length >= 10) {
+    const touchCount: Record<number, number> = {};
+    for (const c of recent50) {
+      // Round to 0.5 pt precision
+      const rh = Math.round(c.h * 2) / 2;
+      const rl = Math.round(c.l * 2) / 2;
+      touchCount[rh] = (touchCount[rh] || 0) + 1;
+      touchCount[rl] = (touchCount[rl] || 0) + 1;
+    }
+    for (const [p, count] of Object.entries(touchCount)) {
+      const pf = parseFloat(p);
+      if (count >= 3 && Math.abs(pf - price) < 30) {
+        // Don't add if too close to existing level
+        const tooClose = allLevels.some(l => Math.abs(l.price - pf) < 1.5);
+        if (!tooClose) allLevels.push({ price: pf, name: `T${count}x` });
+      }
+    }
+  }
+
+  // ── נתוני בסיס ────────────────────────────────────────────────────
   const recent10 = sorted.slice(0, 10);
   const recent20 = sorted.slice(0, 20);
   const avgVol20 = recent20.length > 0
-    ? recent20.reduce((s, c) => s + (c.buy || 0) + (c.sell || 0), 0) / recent20.length
-    : 1;
+    ? recent20.reduce((s, c) => s + (c.buy || 0) + (c.sell || 0), 0) / recent20.length : 1;
+  const avgRange20 = recent20.length > 0
+    ? recent20.reduce((s, c) => s + Math.abs(c.h - c.l), 0) / recent20.length : 1;
 
-  // ── חפש sweep ב-10 נרות אחרונים ────────────────────────────────────
-  let longSweep: { level: number; levelName: string; bar: Candle; relVol: number } | null = null;
-  let shortSweep: { level: number; levelName: string; bar: Candle; relVol: number } | null = null;
+  type SweepHit = { level: number; levelName: string; bar: Candle; relVol: number; type: 'sweep' | 'rejection' };
+  let longHit: SweepHit | null = null;
+  let shortHit: SweepHit | null = null;
 
   for (const rb of recent10) {
     const rbVol = (rb.buy || 0) + (rb.sell || 0);
     const rbRelVol = avgVol20 > 0 ? rbVol / avgVol20 : 1;
+    const rbRange = Math.abs(rb.h - rb.l);
+    const rbDelta = rb.delta || ((rb.buy || 0) - (rb.sell || 0));
+    const lowerWick = Math.min(rb.o, rb.c) - rb.l;
+    const upperWick = rb.h - Math.max(rb.o, rb.c);
+    const body = Math.abs(rb.c - rb.o);
 
-    if (!longSweep) {
-      const found = sweepLevels.find(l => rb.l < l.price - 0.5 && rb.c > l.price);
-      if (found) longSweep = { level: found.price, levelName: found.name, bar: rb, relVol: rbRelVol };
+    for (const lv of allLevels) {
+      // ── LONG: Sweep — wick שבר רמה מלמטה, סגר מעל ──────────
+      if (!longHit && rb.l < lv.price - 0.5 && rb.c > lv.price) {
+        longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+      }
+      // ── LONG: Rejection — נגע ברמה מלמטה + hammer / wick ארוך ──
+      if (!longHit && Math.abs(rb.l - lv.price) < 1.0 && rb.c > lv.price) {
+        if (lowerWick > body * 1.5 && rb.c > rb.o) {
+          longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'rejection' };
+        }
+      }
+      // ── SHORT: Sweep — wick שבר רמה מלמעלה, סגר מתחת ────────
+      if (!shortHit && rb.h > lv.price + 0.5 && rb.c < lv.price) {
+        shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+      }
+      // ── SHORT: Rejection — נגע ברמה מלמעלה + shooting star ──
+      if (!shortHit && Math.abs(rb.h - lv.price) < 1.0 && rb.c < lv.price) {
+        if (upperWick > body * 1.5 && rb.c < rb.o) {
+          shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'rejection' };
+        }
+      }
     }
-    if (!shortSweep) {
-      const found = sweepLevels.find(l => rb.h > l.price + 0.5 && rb.c < l.price);
-      if (found) shortSweep = { level: found.price, levelName: found.name, bar: rb, relVol: rbRelVol };
-    }
-    if (longSweep && shortSweep) break;
+    if (longHit && shortHit) break;
   }
 
-  // ── Fallback: בדוק נר נוכחי מ-live ────────────────────────────────
-  if (!longSweep) {
-    const found = sweepLevels.find(l => (bar.l || price) < l.price - 0.5 && price > l.price);
-    if (found) longSweep = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol };
+  // ── Fallback: נר נוכחי מ-live ──────────────────────────────────
+  if (!longHit) {
+    const found = allLevels.find(l => (bar.l || price) < l.price - 0.5 && price > l.price);
+    if (found) longHit = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol, type: 'sweep' };
   }
-  if (!shortSweep) {
-    const found = sweepLevels.find(l => (bar.h || price) > l.price + 0.5 && price < l.price);
-    if (found) shortSweep = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol };
+  if (!shortHit) {
+    const found = allLevels.find(l => (bar.h || price) > l.price + 0.5 && price < l.price);
+    if (found) shortHit = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol, type: 'sweep' };
   }
 
   // ── Checks ─────────────────────────────────────────────────────────
   const liqLong = [
-    { label: `Sweep ↓↑ ${longSweep?.levelName || ''}`, ok: !!longSweep, critical: true },
-    { label: 'מחיר מעל רמה', ok: !!longSweep && price > longSweep.level, critical: true },
+    { label: `${longHit?.type==='rejection'?'Rejection':'Sweep'} ${longHit?.levelName||''}`, ok: !!longHit, critical: true },
+    { label: 'מחיר מעל רמה', ok: !!longHit && price > longHit.level, critical: true },
     { label: 'Delta > +50',  ok: (bar.delta || 0) > 50, critical: true },
-    { label: `Vol > 1.2x`,   ok: longSweep ? longSweep.relVol > 1.2 : relVol > 1.2, critical: true },
+    { label: 'Vol > 1.2x',   ok: longHit ? longHit.relVol > 1.2 : relVol > 1.2, critical: false },
     { label: 'נר היפוך',     ok: cp.bull_engulf || cp.bar0 === 'HAMMER' || cp.bar0 === 'BULL_STRONG', critical: false },
   ];
   const liqShort = [
-    { label: `Sweep ↑↓ ${shortSweep?.levelName || ''}`, ok: !!shortSweep, critical: true },
-    { label: 'מחיר מתחת רמה', ok: !!shortSweep && price < shortSweep.level, critical: true },
+    { label: `${shortHit?.type==='rejection'?'Rejection':'Sweep'} ${shortHit?.levelName||''}`, ok: !!shortHit, critical: true },
+    { label: 'מחיר מתחת רמה', ok: !!shortHit && price < shortHit.level, critical: true },
     { label: 'Delta < -50',   ok: (bar.delta || 0) < -50, critical: true },
-    { label: `Vol > 1.2x`,    ok: shortSweep ? shortSweep.relVol > 1.2 : relVol > 1.2, critical: true },
+    { label: 'Vol > 1.2x',    ok: shortHit ? shortHit.relVol > 1.2 : relVol > 1.2, critical: false },
     { label: 'נר היפוך',      ok: cp.bear_engulf || cp.bar0 === 'SHOOTING_STAR' || cp.bar0 === 'BEAR_STRONG', critical: false },
   ];
 
-  // ── Score ──────────────────────────────────────────────────────────
+  // ── Score — 3 critical, 2 bonus ────────────────────────────────────
   const score = (checks: { ok: boolean; critical: boolean }[]) => {
     const criticalAll = checks.filter(c => c.critical);
     const criticalOk = criticalAll.filter(c => c.ok).length;
@@ -407,12 +456,12 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const longScore = score(liqLong);
   const shortScore = score(liqShort);
 
-  // ── Entry/Stop/T1/T2 ──────────────────────────────────────────────
-  const calcLevels = (dir: 'long' | 'short', sweep: typeof longSweep) => {
-    if (!sweep) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0 };
+  // ── Entry/Stop/C1/C2/C3 ──────────────────────────────────────────
+  const calcLevels = (dir: 'long' | 'short', hit: SweepHit | null) => {
+    if (!hit) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0 };
     const L = dir === 'long';
-    const entry = price; // כניסה במחיר נוכחי
-    const stop = L ? sweep.bar.l - 0.25 : sweep.bar.h + 0.25;
+    const entry = price;
+    const stop = L ? hit.bar.l - 0.25 : hit.bar.h + 0.25;
     const risk = Math.abs(entry - stop);
     const c1 = L ? entry + risk : entry - risk;
     const c2 = L ? entry + risk * 2 : entry - risk * 2;
@@ -423,23 +472,23 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     return { entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4 };
   };
 
-  // ── Opportunity — רמזור ────────────────────────────────────────────
+  // ── Opportunity ────────────────────────────────────────────────────
   const bestDir: 'long' | 'short' | 'none' =
     longScore >= 80 ? 'long' :
     shortScore >= 80 ? 'short' :
     longScore >= 60 ? 'long' :
     shortScore >= 60 ? 'short' : 'none';
 
-  const bestSweep = bestDir === 'long' ? longSweep : bestDir === 'short' ? shortSweep : null;
-  const bestLevels = bestDir !== 'none' ? calcLevels(bestDir, bestSweep) : null;
+  const bestHit = bestDir === 'long' ? longHit : bestDir === 'short' ? shortHit : null;
+  const bestLevels = bestDir !== 'none' ? calcLevels(bestDir, bestHit) : null;
   const bestScore = bestDir === 'long' ? longScore : bestDir === 'short' ? shortScore : 0;
 
   return {
-    long: { checks: liqLong, score: longScore, sweep: longSweep },
-    short: { checks: liqShort, score: shortScore, sweep: shortSweep },
+    long: { checks: liqLong, score: longScore, sweep: longHit },
+    short: { checks: liqShort, score: shortScore, sweep: shortHit },
     opportunity: bestDir,
     opportunityScore: bestScore,
-    opportunitySweep: bestSweep,
+    opportunitySweep: bestHit,
     opportunityLevels: bestLevels,
   };
 }
