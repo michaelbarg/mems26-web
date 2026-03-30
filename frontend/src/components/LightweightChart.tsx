@@ -239,7 +239,7 @@ export default function LightweightChart({
       low:   Math.min(liveBar.l, livePrice),
       close: livePrice,
     });
-  }, [livePrice]);
+  }, [liveBar, livePrice]);
 
   // Update level lines + setup markers
   useEffect(() => {
