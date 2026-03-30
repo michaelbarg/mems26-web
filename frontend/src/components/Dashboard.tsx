@@ -1297,7 +1297,7 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
               <button onClick={onReject} style={{ fontSize:10, padding:'3px 12px', borderRadius:4, background:'#ef535022', color:'#ef5350', border:'1px solid #ef535044', cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>לא מעניין ✗</button>
             </div>
           )}
-          {!accepted && isGreen && (
+          {!accepted && isActive && displayScore >= 7 && (
             <div style={{ marginTop:10, padding:'6px 10px', background:'#f59e0b18', borderRadius:6, border:'1px solid #f59e0b44', fontSize:10, color:'#f59e0b', direction:'rtl' }}>
               ⏳ ממתין לאישור אוטומטי...
             </div>
