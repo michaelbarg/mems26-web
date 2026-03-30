@@ -1322,7 +1322,7 @@ function MiniLight({ col }: { col: string }) {
 }
 
 // ── Zone A: Top Bar ───────────────────────────────────────────────────────────
-function TopBar({ live, connected, onAskAI, aiLoading }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean }) {
+function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void }) {
   const [time, setTime] = useState('');
   useEffect(() => {
     const t = setInterval(() => {
@@ -1365,9 +1365,18 @@ function TopBar({ live, connected, onAskAI, aiLoading }:{ live:MarketData|null; 
         <span style={{ fontSize:18, fontWeight:700, fontFamily:'monospace', color:'#f0f6fc' }}>{time}</span>
         <span style={{ fontSize:11, color:'#4a5568' }}>EST</span>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <div style={{ width:8, height:8, borderRadius:'50%', background:connected?G:R, boxShadow:connected?`0 0 6px ${G}`:'none' }} className={connected?'live-blink':''} />
-          <span style={{ fontSize:11, fontWeight:700, color:connected?G:R }}>{connected?'LIVE':'OFFLINE'}</span>
+          <div style={{ width:8, height:8, borderRadius:'50%', background:connected&&systemOn?G:R, boxShadow:connected&&systemOn?`0 0 6px ${G}`:'none' }} className={connected&&systemOn?'live-blink':''} />
+          <span style={{ fontSize:11, fontWeight:700, color:connected&&systemOn?G:R }}>{systemOn?(connected?'LIVE':'OFFLINE'):'OFF'}</span>
         </div>
+        <button onClick={onToggleSystem} style={{
+          padding:'4px 12px', borderRadius:6, fontSize:11, fontWeight:800,
+          background: systemOn ? '#ef535022' : '#22c55e22',
+          color: systemOn ? '#ef5350' : '#22c55e',
+          border: `1px solid ${systemOn ? '#ef535044' : '#22c55e44'}`,
+          cursor:'pointer', fontFamily:'inherit',
+        }}>
+          {systemOn ? '⏸ OFF' : '▶ ON'}
+        </button>
       </div>
     </div>
   );
@@ -2677,6 +2686,7 @@ export default function Dashboard() {
   const [live,setLive]=useState<MarketData|null>(null);
   const [candles,setCandles]=useState<Candle[]>([]);
   const [connected,setConnected]=useState(false);
+  const [systemOn,setSystemOn]=useState(true);
   const [tf,setTf]=useState<'m3'|'m15'|'m30'|'m60'>('m3');
   const [accepted,setAccepted]=useState(false);
   const [lockedSignal,setLockedSignal]=useState<any>(null);
@@ -2757,6 +2767,7 @@ export default function Dashboard() {
   }, [live?.price, activeSetup]);
 
   const fetchLive=useCallback(async()=>{
+    if(!systemOn) return;
     try{
       const r=await fetch(`${API_URL}/market/latest?t=${Date.now()}`,{cache:'no-store'});
       if(!r.ok)throw new Error();
@@ -2786,6 +2797,7 @@ export default function Dashboard() {
   },[accepted,lockedSignal,rejectedTs]);
 
   const fetchCandles=useCallback(async()=>{
+    if(!systemOn) return;
     try{
       const r=await fetch(`${API_URL}/market/candles?limit=960`,{cache:'no-store'});
       if(!r.ok)return;
@@ -2829,7 +2841,7 @@ export default function Dashboard() {
     const opp = calcSetups(live, candles)?.opportunity || 'none';
     const now = Date.now();
     // Only auto-call when: no opportunity, not loading, 60s since last call, has live data
-    if (opp === 'none' && !aiLoading && live?.price && now - lastAutoAI.current > 60000 && !persistedSignal) {
+    if (systemOn && opp === 'none' && !aiLoading && live?.price && now - lastAutoAI.current > 60000 && !persistedSignal) {
       lastAutoAI.current = now;
       askAI();
     }
@@ -2976,7 +2988,7 @@ export default function Dashboard() {
 
       {/* TopBar */}
       <div style={{flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738'}}>
-        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} />
+        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} />
       </div>
 
       {/* גרף שמאל + מידע ימין */}
