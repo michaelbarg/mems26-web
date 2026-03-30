@@ -130,46 +130,83 @@ function calcPotential(entry:number, stop:number, dir:'long'|'short', woodi:any,
   };
 }
 
-// ── Historical Sweep Scanner — סורק 960 נרות ────────────────────────────────
+// ── Liq Sweep Scanner — סורק 960 נרות ───────────────────────────────────────
 interface SweepEvent {
   id: string;
   ts: number;
   dir: 'long' | 'short';
   level: number;
   levelName: string;
+  levelTouches: number;       // כמה נגיעות ברמה לפני ה-sweep
   sweepBarIndex: number;
   reversalBarIndex: number;
+  confirmBarIndex: number;    // נר האישור
+  confirmed: boolean;         // האם נר האישור עבר
+  confirmDelta: number;       // delta של נר האישור
+  confirmCCI6?: number;       // CCI6 אם זמין
+  sweepWick: number;          // עומק ה-sweep מתחת/מעל לרמה
   entry: number;
   stop: number;
-  t1: number;
-  t2: number;
+  c1: number;                 // R:R 1:1 — 50% exit, סטופ ל-BE
+  c2: number;                 // R:R 1:2 — 25% exit
+  c3: number;                 // runner — Woodi R1/S1 or R:R 1:3
+  riskPts: number;
   delta: number;
   volume: number;
+  relVol: number;
   score: number;
   sweepBarTs: number;
   reversalBarTs: number;
+  confirmBarTs: number;
   setupBarTs: number[];
+}
+
+// Level touch data for chart markers
+interface LevelTouch {
+  price: number;
+  name: string;
+  touches: number;
+  touchBarTs: number[];       // timestamps of bars that touched the level
 }
 
 function scanHistoricalSweeps(
   candles: Candle[],
   levels: { prev_high:number; prev_low:number; overnight_high:number; overnight_low:number },
   woodi?: { pp:number; r1:number; r2:number; s1:number; s2:number },
-): SweepEvent[] {
-  if (!candles || candles.length < 10) return [];
+): { events: SweepEvent[]; levelTouches: LevelTouch[] } {
+  if (!candles || candles.length < 10) return { events: [], levelTouches: [] };
 
-  // Sort oldest → newest
   const bars = [...candles].sort((a, b) => a.ts - b.ts);
 
-  // Key levels to check
+  // ── שלב א: רמות + ספירת נגיעות ──────────────────────────
   const keyLevels: { price: number; name: string }[] = [];
   if (levels.prev_high > 0)      keyLevels.push({ price: levels.prev_high,      name: 'PDH' });
   if (levels.prev_low > 0)       keyLevels.push({ price: levels.prev_low,       name: 'PDL' });
   if (levels.overnight_high > 0) keyLevels.push({ price: levels.overnight_high, name: 'ONH' });
   if (levels.overnight_low > 0)  keyLevels.push({ price: levels.overnight_low,  name: 'ONL' });
-  if (keyLevels.length === 0) return [];
+  if (keyLevels.length === 0) return { events: [], levelTouches: [] };
 
-  // Average volume over 20 bars (rolling)
+  const TOUCH_DIST = 0.75; // מרחק נגיעה ברמה
+  const levelTouches: LevelTouch[] = keyLevels.map(lev => {
+    const touchBars: number[] = [];
+    for (let i = 0; i < bars.length; i++) {
+      const b = bars[i];
+      // נר נגע ברמה אם ה-high/low בטווח ±0.75 מהרמה
+      if (Math.abs(b.h - lev.price) <= TOUCH_DIST || Math.abs(b.l - lev.price) <= TOUCH_DIST ||
+          (b.l <= lev.price && b.h >= lev.price)) {
+        // Skip if too close to last touch (min 3 bars apart)
+        if (touchBars.length === 0 || i - bars.findIndex(bb => bb.ts === touchBars[touchBars.length-1]) >= 3) {
+          touchBars.push(b.ts);
+        }
+      }
+    }
+    return { price: lev.price, name: lev.name, touches: touchBars.length, touchBarTs: touchBars };
+  });
+
+  // Only keep levels with >= 2 touches
+  const validLevels = levelTouches.filter(lt => lt.touches >= 2);
+
+  // ── שלב ב+ג: זיהוי sweep + אישור ──────────────────────
   const avgVol = (idx: number): number => {
     const start = Math.max(0, idx - 20);
     let sum = 0, count = 0;
@@ -181,126 +218,109 @@ function scanHistoricalSweeps(
   };
 
   const events: SweepEvent[] = [];
-  const MIN_GAP = 6; // minimum 6 bars (18 min) between sweep detections on same level
+  const MIN_GAP = 6;
 
-  for (let i = 1; i < bars.length - 1; i++) {
+  for (let i = 1; i < bars.length - 2; i++) {
     const bar = bars[i];
     const nextBar = bars[i + 1];
 
-    for (const lev of keyLevels) {
-      // Check if we already found a sweep on this level recently
+    for (const lev of validLevels) {
       const recentSame = events.find(e => e.levelName === lev.name && i - e.sweepBarIndex < MIN_GAP);
       if (recentSame) continue;
 
-      // ── LONG sweep: bar.l broke below level by >0.5, close or next bar back above level
-      if (bar.l < lev.price - 0.5) {
-        const reversedSame = bar.c > lev.price;
-        const reversedNext = nextBar.c > lev.price;
-        if (reversedSame || reversedNext) {
-          const revBar = reversedSame ? bar : nextBar;
-          const revIdx = reversedSame ? i : i + 1;
-          const delta = revBar.delta || ((revBar.buy||0) - (revBar.sell||0));
-          const vol = (revBar.buy || 0) + (revBar.sell || 0);
-          const avg = avgVol(i);
-          const relVol = avg > 0 ? vol / avg : 1;
+      const vol = (bar.buy || 0) + (bar.sell || 0);
+      const avg = avgVol(i);
+      const relVol = avg > 0 ? vol / avg : 1;
 
-          // Score: 4 critical conditions
-          let score = 0;
-          if (true) score += 25;                    // broke level ✓ (always true here)
-          if (revBar.c > lev.price) score += 25;    // returned above ✓
-          if (delta > 50) score += 25;              // delta positive ✓
-          if (relVol > 1.2) score += 15;            // volume high ✓
-          // Bonus
-          if (bar.l < lev.price - 1.0) score += 5;  // deep sweep
-          if (delta > 200) score += 5;               // strong delta
+      // ── LONG: bar broke below level, closed back above (wick) ──
+      if (bar.l < lev.price - 0.5 && bar.c > lev.price) {
+        if (relVol < 1.3) continue; // Volume filter
 
-          if (score >= 75) {
-            const entry = lev.price + 1.0;
-            const stop = bar.l - 0.5;
-            const risk = Math.abs(entry - stop);
-            const t1 = entry + risk;
-            const t2 = woodi?.r1 && woodi.r1 > entry ? woodi.r1 : entry + risk * 2;
-            const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
+        const sweepWick = lev.price - bar.l;
+        const confirmDelta = nextBar.delta || ((nextBar.buy||0) - (nextBar.sell||0));
+        const confirmCCI6 = (nextBar as any).cci6;
+        const confirmed = confirmDelta > 100;
 
-            events.push({
-              id: `sweep-long-${bar.ts}-${lev.name}`,
-              ts: bar.ts,
-              dir: 'long',
-              level: lev.price,
-              levelName: lev.name,
-              sweepBarIndex: i,
-              reversalBarIndex: revIdx,
-              entry,
-              stop,
-              t1,
-              t2,
-              delta,
-              volume: vol,
-              score,
-              sweepBarTs: bar.ts,
-              reversalBarTs: revBar.ts,
-              setupBarTs: setupBars,
-            });
-          }
-        }
+        // Score
+        let score = 0;
+        score += 20; // broke level
+        score += 20; // closed back above (always true here)
+        if (relVol >= 1.3) score += 20;
+        if (sweepWick >= 1.0) score += 10; else score += 5;
+        if (confirmed) score += 20;
+        if (confirmCCI6 !== undefined && confirmCCI6 > 0) score += 5;
+        if (lev.touches >= 3) score += 5;
+
+        if (score < 60) continue;
+
+        const entry = nextBar.c; // סגירת נר האישור
+        const stop = bar.l - 0.25;
+        const risk = Math.abs(entry - stop);
+        const c1 = entry + risk;
+        const c2 = entry + risk * 2;
+        const c3 = (woodi?.r1 && woodi.r1 > entry + risk * 2) ? woodi.r1 : entry + risk * 3;
+        const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
+
+        events.push({
+          id: `sweep-long-${bar.ts}-${lev.name}`,
+          ts: bar.ts, dir: 'long',
+          level: lev.price, levelName: lev.name, levelTouches: lev.touches,
+          sweepBarIndex: i, reversalBarIndex: i, confirmBarIndex: i + 1,
+          confirmed, confirmDelta, confirmCCI6,
+          sweepWick, entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4,
+          delta: bar.delta || ((bar.buy||0) - (bar.sell||0)),
+          volume: vol, relVol: Math.round(relVol * 10) / 10, score,
+          sweepBarTs: bar.ts, reversalBarTs: bar.ts, confirmBarTs: nextBar.ts,
+          setupBarTs: setupBars,
+        });
       }
 
-      // ── SHORT sweep: bar.h broke above level by >0.5, close or next bar back below level
-      if (bar.h > lev.price + 0.5) {
-        const reversedSame = bar.c < lev.price;
-        const reversedNext = nextBar.c < lev.price;
-        if (reversedSame || reversedNext) {
-          const revBar = reversedSame ? bar : nextBar;
-          const revIdx = reversedSame ? i : i + 1;
-          const delta = revBar.delta || ((revBar.buy||0) - (revBar.sell||0));
-          const vol = (revBar.buy || 0) + (revBar.sell || 0);
-          const avg = avgVol(i);
-          const relVol = avg > 0 ? vol / avg : 1;
+      // ── SHORT: bar broke above level, closed back below (wick) ──
+      if (bar.h > lev.price + 0.5 && bar.c < lev.price) {
+        if (relVol < 1.3) continue;
 
-          let score = 0;
-          if (true) score += 25;
-          if (revBar.c < lev.price) score += 25;
-          if (delta < -50) score += 25;
-          if (relVol > 1.2) score += 15;
-          if (bar.h > lev.price + 1.0) score += 5;
-          if (delta < -200) score += 5;
+        const sweepWick = bar.h - lev.price;
+        const confirmDelta = nextBar.delta || ((nextBar.buy||0) - (nextBar.sell||0));
+        const confirmCCI6 = (nextBar as any).cci6;
+        const confirmed = confirmDelta < -100;
 
-          if (score >= 75) {
-            const entry = lev.price - 1.0;
-            const stop = bar.h + 0.5;
-            const risk = Math.abs(entry - stop);
-            const t1 = entry - risk;
-            const t2 = woodi?.s1 && woodi.s1 < entry ? woodi.s1 : entry - risk * 2;
-            const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
+        let score = 0;
+        score += 20;
+        score += 20;
+        if (relVol >= 1.3) score += 20;
+        if (sweepWick >= 1.0) score += 10; else score += 5;
+        if (confirmed) score += 20;
+        if (confirmCCI6 !== undefined && confirmCCI6 < 0) score += 5;
+        if (lev.touches >= 3) score += 5;
 
-            events.push({
-              id: `sweep-short-${bar.ts}-${lev.name}`,
-              ts: bar.ts,
-              dir: 'short',
-              level: lev.price,
-              levelName: lev.name,
-              sweepBarIndex: i,
-              reversalBarIndex: revIdx,
-              entry,
-              stop,
-              t1,
-              t2,
-              delta: Math.abs(delta),
-              volume: vol,
-              score,
-              sweepBarTs: bar.ts,
-              reversalBarTs: revBar.ts,
-              setupBarTs: setupBars,
-            });
-          }
-        }
+        if (score < 60) continue;
+
+        const entry = nextBar.c;
+        const stop = bar.h + 0.25;
+        const risk = Math.abs(entry - stop);
+        const c1 = entry - risk;
+        const c2 = entry - risk * 2;
+        const c3 = (woodi?.s1 && woodi.s1 < entry - risk * 2) ? woodi.s1 : entry - risk * 3;
+        const setupBars = bars.slice(Math.max(0, i - 3), i).map(b => b.ts);
+
+        events.push({
+          id: `sweep-short-${bar.ts}-${lev.name}`,
+          ts: bar.ts, dir: 'short',
+          level: lev.price, levelName: lev.name, levelTouches: lev.touches,
+          sweepBarIndex: i, reversalBarIndex: i, confirmBarIndex: i + 1,
+          confirmed, confirmDelta: Math.abs(confirmDelta), confirmCCI6,
+          sweepWick, entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4,
+          delta: Math.abs(bar.delta || ((bar.buy||0) - (bar.sell||0))),
+          volume: vol, relVol: Math.round(relVol * 10) / 10, score,
+          sweepBarTs: bar.ts, reversalBarTs: bar.ts, confirmBarTs: nextBar.ts,
+          setupBarTs: setupBars,
+        });
       }
     }
   }
 
-  // Sort newest first
   events.sort((a, b) => b.ts - a.ts);
-  return events;
+  return { events, levelTouches };
 }
 
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
@@ -2131,86 +2151,98 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
         {tab === 'setups' && <>
           {/* Selected sweep detail card */}
-          {selectedSweep && (
-            <div style={{ background:'#0a0e1a', border:`2px solid ${selectedSweep.dir==='long'?'#22c55e':'#ef5350'}44`, borderRadius:10, overflow:'hidden' }}>
-              <div style={{ background:selectedSweep.dir==='long'?'#22c55e18':'#ef535018', padding:'10px 14px', borderBottom:'1px solid #1e2738' }}>
+          {selectedSweep && (() => {
+            const s = selectedSweep;
+            const isLong = s.dir === 'long';
+            const col = isLong ? '#22c55e' : '#ef5350';
+            const isActive = activeSetup?.sweep?.id === s.id;
+            return (
+            <div style={{ background:'#0a0e1a', border:`2px solid ${col}44`, borderRadius:10, overflow:'hidden' }}>
+              {/* Header */}
+              <div style={{ background:`${col}18`, padding:'10px 14px', borderBottom:'1px solid #1e2738' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <div>
-                    <div style={{ fontSize:11, fontWeight:700, color:selectedSweep.dir==='long'?'#22c55e':'#ef5350' }}>
-                      SWEEP {selectedSweep.levelName} {selectedSweep.dir==='long'?'▲ LONG':'▼ SHORT'}
+                    <div style={{ fontSize:12, fontWeight:700, color:col }}>
+                      {isLong?'▲':'▼'} SWEEP {s.levelName} @ {s.level.toFixed(2)}
                     </div>
-                    <div style={{ fontSize:9, color:'#6b7280' }}>{new Date(selectedSweep.ts*1000).toLocaleTimeString('he-IL')}</div>
+                    <div style={{ fontSize:9, color:'#6b7280' }}>
+                      {new Date(s.ts*1000).toLocaleTimeString('he-IL')} · {s.levelTouches} נגיעות · Wick {s.sweepWick.toFixed(1)}pt
+                    </div>
                   </div>
-                  <div style={{ fontSize:18, fontWeight:900, color:selectedSweep.score>=90?'#22c55e':selectedSweep.score>=75?'#f59e0b':'#4a5568' }}>
-                    {selectedSweep.score}%
+                  <div style={{ textAlign:'right' }}>
+                    <div style={{ fontSize:18, fontWeight:900, color:s.score>=90?'#22c55e':s.score>=75?'#f59e0b':'#4a5568' }}>{s.score}%</div>
+                    <div style={{ fontSize:9, color:s.confirmed?'#22c55e':'#f59e0b', fontWeight:700 }}>
+                      {s.confirmed ? '✓ מאושר' : '⏳ ממתין'}
+                    </div>
                   </div>
                 </div>
-                <div style={{ display:'flex', gap:8, marginTop:8 }}>
-                  <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-                    <div style={{ fontSize:8, color:'#4a5568' }}>Win Rate</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#22c55e' }}>72%</div>
-                  </div>
-                  <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-                    <div style={{ fontSize:8, color:'#4a5568' }}>Delta</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:selectedSweep.delta>=0?'#22c55e':'#ef5350', fontFamily:'monospace' }}>
-                      {selectedSweep.delta>0?'+':''}{selectedSweep.delta}
+                {/* Stats row */}
+                <div style={{ display:'flex', gap:6, marginTop:8 }}>
+                  {[
+                    { label:'Delta', val:`${s.delta>0?'+':''}${s.delta}`, col: s.delta>=0?'#22c55e':'#ef5350' },
+                    { label:'Vol', val:`${s.relVol}x`, col: s.relVol>=1.3?'#22c55e':'#4a5568' },
+                    { label:'Risk', val:`${s.riskPts}pt`, col:'#f59e0b' },
+                    { label:'אישור Δ', val:`${s.confirmDelta>0?'+':''}${s.confirmDelta}`, col: s.confirmed?'#22c55e':'#ef5350' },
+                  ].map(x => (
+                    <div key={x.label} style={{ background:'#0a0e1a', borderRadius:4, padding:'3px 6px', textAlign:'center', flex:1 }}>
+                      <div style={{ fontSize:7, color:'#4a5568' }}>{x.label}</div>
+                      <div style={{ fontSize:11, fontWeight:800, color:x.col, fontFamily:'monospace' }}>{x.val}</div>
                     </div>
-                  </div>
-                  <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-                    <div style={{ fontSize:8, color:'#4a5568' }}>Level</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#f6c90e', fontFamily:'monospace' }}>{selectedSweep.level.toFixed(2)}</div>
-                  </div>
+                  ))}
                 </div>
               </div>
-              {/* Entry/Stop/T1/T2 */}
+              {/* Entry / Stop */}
               <div style={{ padding:'10px 14px' }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
                   <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
-                    <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{selectedSweep.entry.toFixed(2)}</div>
+                    <div style={{ fontSize:9, color:'#94a3b8', marginBottom:2 }}>כניסה</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{s.entry.toFixed(2)}</div>
                   </div>
                   <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
-                    <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>סטופ</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{selectedSweep.stop.toFixed(2)}</div>
-                    <div style={{ fontSize:9, color:'#4a5568' }}>−{Math.abs(selectedSweep.entry-selectedSweep.stop).toFixed(1)}pt / −${Math.round(Math.abs(selectedSweep.entry-selectedSweep.stop)*5)}</div>
+                    <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
+                    <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{s.stop.toFixed(2)}</div>
+                    <div style={{ fontSize:9, color:'#4a5568' }}>−{s.riskPts}pt / −${Math.round(s.riskPts*5*3)}</div>
                   </div>
                 </div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:4 }}>
+                {/* C1 / C2 / C3 */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4 }}>
                   {[
-                    { label:'T1', price:selectedSweep.t1, col:'#22c55e' },
-                    { label:'T2', price:selectedSweep.t2, col:'#16a34a' },
+                    { label:'① C1 · 50%', price:s.c1, desc:'R:R 1:1 → BE', col:'#22c55e' },
+                    { label:'② C2 · 25%', price:s.c2, desc:'R:R 1:2', col:'#16a34a' },
+                    { label:'③ C3 · 25%', price:s.c3, desc:'Runner', col:'#86efac' },
                   ].map(t => {
-                    const pts = Math.abs(t.price - selectedSweep.entry);
+                    const pts = Math.abs(t.price - s.entry);
                     return (
-                      <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'5px 6px', textAlign:'center' }}>
-                        <div style={{ fontSize:9, color:t.col, fontWeight:700 }}>{t.label}</div>
-                        <div style={{ fontSize:12, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
-                        <div style={{ fontSize:9, color:'#4a5568' }}>+{pts.toFixed(1)}pt / +${Math.round(pts*5)}</div>
+                      <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'4px 5px', textAlign:'center' }}>
+                        <div style={{ fontSize:8, color:t.col, fontWeight:700 }}>{t.label}</div>
+                        <div style={{ fontSize:11, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
+                        <div style={{ fontSize:8, color:'#4a5568' }}>+{pts.toFixed(1)}pt +${Math.round(pts*5)}</div>
+                        <div style={{ fontSize:7, color:'#2d3a4a' }}>{t.desc}</div>
                       </div>
                     );
                   })}
                 </div>
               </div>
               {/* Time estimates */}
-              {activeSetup?.sweep?.id === selectedSweep.id && (
+              {isActive && activeSetup.status === 'ACTIVE' && (
                 <div style={{ padding:'8px 14px', borderTop:'1px solid #1e2738', fontSize:9, color:'#6b7280' }}>
-                  <div style={{ marginBottom:4, fontWeight:700, color:'#94a3b8' }}>זמן משוער:</div>
-                  <div>T1 בעוד ~{activeSetup.t1EstBars} נרות ({activeSetup.t1EstBars*3}-{activeSetup.t1EstBars*3*2} דק')</div>
-                  <div>T2 בעוד ~{activeSetup.t2EstBars} נרות ({activeSetup.t2EstBars*3}-{activeSetup.t2EstBars*3*2} דק')</div>
+                  <div style={{ fontWeight:700, color:'#94a3b8', marginBottom:3 }}>זמן משוער:</div>
+                  <div>C1 בעוד ~{activeSetup.t1EstBars} נרות ({activeSetup.t1EstBars*3}-{activeSetup.t1EstBars*6} דק')</div>
+                  <div>C2 בעוד ~{activeSetup.t2EstBars} נרות ({activeSetup.t2EstBars*3}-{activeSetup.t2EstBars*6} דק')</div>
                 </div>
               )}
-              {/* Status */}
-              {activeSetup?.sweep?.id === selectedSweep.id && activeSetup.status !== 'ACTIVE' && (
-                <div style={{ padding:'8px 14px', borderTop:'1px solid #1e2738', textAlign:'center' }}>
-                  <div style={{ fontSize:14, fontWeight:800, color: activeSetup.status==='STOPPED'?'#ef5350':'#22c55e' }}>
+              {/* Status result */}
+              {isActive && activeSetup.status !== 'ACTIVE' && (
+                <div style={{ padding:'10px 14px', borderTop:'1px solid #1e2738', textAlign:'center' }}>
+                  <div style={{ fontSize:16, fontWeight:800, color: activeSetup.status==='STOPPED'?'#ef5350':'#22c55e' }}>
                     {activeSetup.status==='STOPPED' ? '❌' : '✅'} {activeSetup.result}
                   </div>
                 </div>
               )}
               {/* Buttons */}
               <div style={{ padding:'6px 14px 10px', borderTop:'1px solid #1e2738', display:'flex', gap:6 }}>
-                {(!activeSetup || activeSetup.sweep?.id !== selectedSweep.id) ? (
-                  <button onClick={()=>onActivateSweep(selectedSweep)} style={{ flex:1, padding:'6px', border:'none', borderRadius:5, background:'#22c55e', color:'#0a0e1a', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                {(!activeSetup || activeSetup.sweep?.id !== s.id) ? (
+                  <button onClick={()=>onActivateSweep(s)} style={{ flex:1, padding:'6px', border:'none', borderRadius:5, background:'#22c55e', color:'#0a0e1a', fontSize:11, fontWeight:800, cursor:'pointer' }}>
                     הפעל על הגרף
                   </button>
                 ) : (
@@ -2221,7 +2253,8 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                 <button onClick={()=>setSelectedSweep(null)} style={{ padding:'6px 12px', border:'1px solid #1e2738', borderRadius:5, background:'transparent', color:'#6b7280', fontSize:10, cursor:'pointer' }}>✕</button>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* Sweep events list */}
           <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
@@ -2243,8 +2276,9 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                       }}>
                       <span style={{ fontSize:10, color:isLong?'#22c55e':'#ef5350', fontWeight:700 }}>{isLong?'▲':'▼'}</span>
                       <span style={{ fontSize:10, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{ev.levelName}</span>
+                      <span style={{ fontSize:8, color:ev.confirmed?'#22c55e':'#f59e0b' }}>{ev.confirmed?'✓':'⏳'}</span>
                       <span style={{ fontSize:9, color:'#4a5568', flex:1 }}>{date} {time}</span>
-                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>Δ{ev.delta>0?'+':''}{ev.delta}</span>
+                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>{ev.relVol}x</span>
                       <span style={{ fontSize:11, fontWeight:800, color:ev.score>=90?'#22c55e':ev.score>=75?'#f59e0b':'#4a5568', fontFamily:'monospace', minWidth:28, textAlign:'right' }}>{ev.score}%</span>
                     </div>
                   );
@@ -2253,8 +2287,19 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             )}
           </div>
 
-          {/* Real-time setups (collapsed) */}
-          <SetupScanner live={live} onSelect={onSelectSetup} selectedId={selectedSetup?.id} />
+          {/* Level touches */}
+          {levelTouches.filter((lt:LevelTouch)=>lt.touches>=2).length > 0 && (
+            <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
+              <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:4 }}>LEVELS</div>
+              <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+                {levelTouches.filter((lt:LevelTouch)=>lt.touches>=2).map((lt:LevelTouch) => (
+                  <span key={lt.name} style={{ fontSize:9, padding:'2px 6px', borderRadius:4, background:'#1e2738', color:'#94a3b8', fontFamily:'monospace' }}>
+                    {lt.name} {lt.price.toFixed(2)} <span style={{ color:'#f6c90e' }}>●{lt.touches}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </>}
 
         {tab === 'patterns' && <>
@@ -2410,18 +2455,18 @@ export default function Dashboard() {
     if (isLong) {
       if (p <= s.stop) {
         setActiveSetup(prev => prev ? { ...prev, status: 'STOPPED', result: `סטופ נלחץ ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
-      } else if (s.t2 && p >= s.t2) {
-        setActiveSetup(prev => prev ? { ...prev, status: 'T2_HIT', result: `T2 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
-      } else if (p >= s.t1) {
-        setActiveSetup(prev => prev ? { ...prev, status: 'T1_HIT', result: `T1 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      } else if (s.c2 && p >= s.c2) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T2_HIT', result: `C2 הושג ב-${barsSinceEntry} נרות — 75% יצא`, resultBars: barsSinceEntry } : null);
+      } else if (p >= s.c1) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T1_HIT', result: `C1 הושג ב-${barsSinceEntry} נרות — 50% יצא, סטופ→BE`, resultBars: barsSinceEntry } : null);
       }
     } else {
       if (p >= s.stop) {
         setActiveSetup(prev => prev ? { ...prev, status: 'STOPPED', result: `סטופ נלחץ ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
-      } else if (s.t2 && p <= s.t2) {
-        setActiveSetup(prev => prev ? { ...prev, status: 'T2_HIT', result: `T2 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
-      } else if (p <= s.t1) {
-        setActiveSetup(prev => prev ? { ...prev, status: 'T1_HIT', result: `T1 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      } else if (s.c2 && p <= s.c2) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T2_HIT', result: `C2 הושג ב-${barsSinceEntry} נרות — 75% יצא`, resultBars: barsSinceEntry } : null);
+      } else if (p <= s.c1) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T1_HIT', result: `C1 הושג ב-${barsSinceEntry} נרות — 50% יצא, סטופ→BE`, resultBars: barsSinceEntry } : null);
       }
     }
   }, [live?.price, activeSetup]);
@@ -2503,25 +2548,28 @@ export default function Dashboard() {
   const setupCol = allSetups?.find(s=>s.name===selectedSetup?.id)?.col||'#f59e0b';
 
   // ── Historical sweep events ─────────────────────────
-  const sweepEvents = candles.length > 10 && live?.levels
+  const sweepResult = candles.length > 10 && live?.levels
     ? scanHistoricalSweeps(candles, live.levels, live.woodi)
-    : [];
+    : { events: [], levelTouches: [] };
+  const sweepEvents = sweepResult.events;
+  const levelTouches = sweepResult.levelTouches;
 
   // Active or selected sweep → chart data
   const activeSweep = activeSetup?.sweep || selectedSweep;
   const sweepData = activeSweep ? {
     dir: activeSweep.dir,
     sweepBarTs: activeSweep.sweepBarTs,
-    entryBarTs: activeSweep.reversalBarTs,
+    entryBarTs: activeSweep.confirmBarTs || activeSweep.reversalBarTs,
     setupBarTs: activeSweep.setupBarTs,
     entry: activeSweep.entry,
     stop: activeSweep.stop,
-    t1: activeSweep.t1,
-    t2: activeSweep.t2,
-    t3: activeSweep.dir === 'long' ? activeSweep.entry + Math.abs(activeSweep.entry - activeSweep.stop) * 3 : activeSweep.entry - Math.abs(activeSweep.entry - activeSweep.stop) * 3,
+    t1: activeSweep.c1,
+    t2: activeSweep.c2,
+    t3: activeSweep.c3,
     delta: activeSweep.delta,
-    relVol: activeSweep.volume,
+    relVol: activeSweep.relVol,
     score: activeSweep.score,
+    confirmed: activeSweep.confirmed,
     // Future bar timestamps for markers
     stopBarTs: activeSetup?.stopBarTs || 0,
     t1BarTs: activeSetup?.t1BarTs || 0,

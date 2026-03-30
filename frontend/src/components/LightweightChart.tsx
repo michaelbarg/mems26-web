@@ -345,7 +345,7 @@ export default function LightweightChart({
             });
           }
 
-          // Future markers — Stop/T1/T2/T3 on estimated future candles
+          // Future markers — Stop/C1/C2/C3 on estimated future candles
           if (sweepData.stopBarTs && sweepData.stopBarTs > 0) {
             allMarkers.push({
               time: Math.floor(sweepData.stopBarTs) as any,
@@ -358,21 +358,21 @@ export default function LightweightChart({
             allMarkers.push({
               time: Math.floor(sweepData.t1BarTs) as any,
               position: pos, color: '#22c55e', shape: 'circle' as any,
-              text: `① ${sweepData.t1.toFixed(2)} +${Math.abs(sweepData.t1-sweepData.entry).toFixed(0)}pt`, size: 1,
+              text: `① C1 ${sweepData.t1.toFixed(2)} +${Math.abs(sweepData.t1-sweepData.entry).toFixed(0)}pt 50%→BE`, size: 1,
             });
           }
           if (sweepData.t2BarTs && sweepData.t2BarTs > 0) {
             allMarkers.push({
               time: Math.floor(sweepData.t2BarTs) as any,
               position: pos, color: '#16a34a', shape: 'circle' as any,
-              text: `② ${sweepData.t2.toFixed(2)} +${Math.abs(sweepData.t2-sweepData.entry).toFixed(0)}pt`, size: 1,
+              text: `② C2 ${sweepData.t2.toFixed(2)} +${Math.abs(sweepData.t2-sweepData.entry).toFixed(0)}pt 25%`, size: 1,
             });
           }
           if (sweepData.t3BarTs && sweepData.t3BarTs > 0 && sweepData.t3) {
             allMarkers.push({
               time: Math.floor(sweepData.t3BarTs) as any,
               position: pos, color: '#86efac', shape: 'circle' as any,
-              text: `③ ${sweepData.t3.toFixed(2)} +${Math.abs(sweepData.t3-sweepData.entry).toFixed(0)}pt`, size: 1,
+              text: `③ C3 ${sweepData.t3.toFixed(2)} +${Math.abs(sweepData.t3-sweepData.entry).toFixed(0)}pt Run`, size: 1,
             });
           }
         }
