@@ -48,6 +48,7 @@ interface Props {
   activeSetups?: { name: string; dir: 'long'|'short'; col: string }[];
   sweepData?: SweepData;
   sweepEvents?: Array<{ id:string; ts:number; dir:'long'|'short'; levelName:string; score:number; sweepBarTs:number }>;
+  detectedSetups?: Array<{ id:string; dir:'long'|'short'; type:string; levelName:string; score:number; detectionBarTs:number; entryBarTs:number; entry:number; stop:number; c1:number; status:string }>;
   onSweepClick?: (sweepTs: number) => void;
   patterns?: Array<{id:string; nameHeb:string; direction:string; confidence:number; keyLevel:number; breakoutLevel?:number; stopLevel?:number; col:string; barIndex?:number}>;
   selectedPatternId?: string;
@@ -55,7 +56,7 @@ interface Props {
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, onSweepClick, patterns, selectedPatternId, height
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -372,6 +373,35 @@ export default function LightweightChart({
           // Stop/C1/C2/C3 are now shown as horizontal price lines above (not markers)
         }
 
+        // ── Detected setup markers — on specific candles ──────
+        if (detectedSetups && detectedSetups.length > 0) {
+          detectedSetups.forEach((ds: any) => {
+            if (ds.status === 'expired') return;
+            const isLong = ds.dir === 'long';
+            const pos = isLong ? 'belowBar' : 'aboveBar';
+            const col = ds.status === 'stopped' ? '#ef5350' : ds.status === 'c1_hit' || ds.status === 'c2_hit' ? '#22c55e' : isLong ? '#22c55e' : '#ef5350';
+
+            // Detection marker
+            if (ds.detectionBarTs > 0) {
+              allMarkers.push({
+                time: Math.floor(ds.detectionBarTs) as any,
+                position: pos, color: col + 'aa',
+                shape: isLong ? 'arrowUp' : 'arrowDown',
+                text: `${ds.type.slice(0,3).toUpperCase()} ${ds.levelName}`, size: 1,
+              });
+            }
+            // Entry marker (if different from detection)
+            if (ds.entryBarTs > 0 && ds.entryBarTs !== ds.detectionBarTs) {
+              allMarkers.push({
+                time: Math.floor(ds.entryBarTs) as any,
+                position: pos, color: '#ffffff',
+                shape: isLong ? 'arrowUp' : 'arrowDown',
+                text: `E ${ds.entry.toFixed(0)}`, size: 1,
+              });
+            }
+          });
+        }
+
         // ── Historical sweep dots (tiny circles, no text) ──
         if (sweepEvents && sweepEvents.length > 0 && !sweepData) {
           sweepEvents.forEach((ev: any) => {
@@ -429,7 +459,7 @@ export default function LightweightChart({
       } catch {}
     }
 
-  }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, liveBar, patterns, selectedPatternId]);
+  }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, detectedSetups, liveBar, patterns, selectedPatternId]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />

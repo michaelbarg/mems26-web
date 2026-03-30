@@ -31,6 +31,31 @@ const G = '#22c55e', Y = '#f59e0b', R = '#ef5350';
 const scoreCol = (s:number) => s >= 7 ? G : s >= 5 ? Y : R;
 const CANDLE_SEC = 180; // 3 minute candles
 
+// ── Detected Setup — סטאפ שזוהה ונשמר ─────────────────────────────────────
+interface DetectedSetup {
+  id: string;
+  detectedAt: number;       // ts of detection
+  type: string;             // sweep/rejection/momentum/bounce/breakout/approaching
+  dir: 'long' | 'short';
+  levelName: string;
+  level: number;
+  score: number;
+  entry: number;
+  stop: number;
+  c1: number;
+  c2: number;
+  c3: number;
+  riskPts: number;
+  delta: number;
+  // Bar timestamps for chart markers
+  detectionBarTs: number;   // נר הזיהוי
+  entryBarTs: number;       // נר הכניסה
+  // Lifecycle
+  status: 'detected' | 'confirmed' | 'entered' | 'c1_hit' | 'c2_hit' | 'stopped' | 'expired';
+  result?: string;
+  pnlPts?: number;
+}
+
 // ── Active Setup — סטאפ שנבחר ונשאר על הגרף ─────────────────────────────────
 interface ActiveSetup {
   sweep: SweepEvent;
@@ -2321,7 +2346,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
 }
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
@@ -2484,6 +2509,37 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             );
           })()}
 
+          {/* Detected setups — accumulated */}
+          {detectedSetups && detectedSetups.length > 0 && (
+            <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
+              <div style={{ fontSize:9, color:'#f6c90e', letterSpacing:2, marginBottom:6 }}>LIVE SETUPS ({detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').length})</div>
+              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                {detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').slice(0,15).map((s:DetectedSetup) => {
+                  const isLong = s.dir === 'long';
+                  const col = isLong ? G : R;
+                  const statusCol = s.status==='stopped'?R : s.status==='c1_hit'||s.status==='c2_hit'?G : s.status==='detected'?Y : '#4a5568';
+                  const statusIcon = s.status==='stopped'?'X' : s.status==='c1_hit'?'C1' : s.status==='c2_hit'?'C2' : s.status==='detected'?'!' : '?';
+                  const time = new Date(s.detectedAt * 1000).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+                  return (
+                    <div key={s.id} onClick={() => setSelectedSweep(s as any)}
+                      style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 8px', borderRadius:5, cursor:'pointer',
+                        border:`1px solid ${col}33`, background:`${col}08` }}>
+                      <span style={{ fontSize:10, color:col, fontWeight:700 }}>{isLong?'▲':'▼'}</span>
+                      <span style={{ fontSize:9, color:col, fontWeight:700, minWidth:22 }}>{s.type.slice(0,3).toUpperCase()}</span>
+                      <span style={{ fontSize:10, color:'#e2e8f0', fontWeight:600, minWidth:24 }}>{s.levelName}</span>
+                      <span style={{ fontSize:9, color:'#4a5568' }}>{time}</span>
+                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{s.entry.toFixed(0)}</span>
+                      <span style={{ fontSize:9, fontWeight:800, color:statusCol, padding:'1px 5px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
+                        {statusIcon}
+                      </span>
+                      <span style={{ fontSize:10, fontWeight:800, color:col, fontFamily:'monospace' }}>{s.score}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Sweep events list */}
           <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
             <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:6 }}>SWEEP EVENTS ({sweepEvents.length})</div>
@@ -2631,6 +2687,7 @@ export default function Dashboard() {
   const [selectedSetup,setSelectedSetup]=useState<{id:string;dir:'long'|'short'}|null>(null);
   const [selectedSweep,setSelectedSweep]=useState<SweepEvent|null>(null);
   const [activeSetup,setActiveSetup]=useState<ActiveSetup|null>(null);
+  const [detectedSetups,setDetectedSetups]=useState<DetectedSetup[]>([]);
   const [selectedPattern,setSelectedPattern]=useState<PatternResult|null>(null);
   const [dayExplanation,setDayExplanation]=useState<string>('');
   const [dayLoading,setDayLoading]=useState(false);
@@ -2778,6 +2835,77 @@ export default function Dashboard() {
     }
   }, [live?.price]); // runs on each price update (~2s)
 
+  // ── Setup accumulator — זיהוי סטאפים חדשים ומעקב ──────
+  const lastDetectRef = useRef('');
+  useEffect(() => {
+    if (!live?.price || !candles.length) return;
+    const setup = calcSetups(live, candles);
+    if (!setup || setup.opportunity === 'none') return;
+
+    const hit = setup.opportunitySweep;
+    const levels = setup.opportunityLevels;
+    if (!hit || !levels || levels.entry <= 0) return;
+
+    // Unique ID based on direction + level + approximate time
+    const barTs = hit.bar?.ts || Math.floor(Date.now() / 1000 / CANDLE_SEC) * CANDLE_SEC;
+    const setupId = `${hit.type}-${setup.opportunity}-${hit.levelName}-${barTs}`;
+
+    // Skip if same as last detection or already exists
+    if (setupId === lastDetectRef.current) return;
+    if (detectedSetups.some(s => s.id === setupId)) return;
+    lastDetectRef.current = setupId;
+
+    const newSetup: DetectedSetup = {
+      id: setupId,
+      detectedAt: Date.now() / 1000,
+      type: hit.type,
+      dir: setup.opportunity as 'long' | 'short',
+      levelName: hit.levelName,
+      level: hit.level,
+      score: setup.opportunityScore,
+      entry: levels.entry,
+      stop: levels.stop,
+      c1: levels.c1,
+      c2: levels.c2,
+      c3: levels.c3,
+      riskPts: levels.riskPts,
+      delta: hit.bar?.delta || 0,
+      detectionBarTs: barTs,
+      entryBarTs: barTs,
+      status: 'detected',
+    };
+
+    setDetectedSetups(prev => [newSetup, ...prev].slice(0, 50)); // max 50 setups
+  }, [live?.price, live?.bar?.delta]);
+
+  // ── Update setup status based on price ──────────────────
+  useEffect(() => {
+    if (!live?.price) return;
+    const p = live.price;
+    setDetectedSetups(prev => prev.map(s => {
+      if (s.status === 'stopped' || s.status === 'c2_hit' || s.status === 'expired') return s;
+      const isLong = s.dir === 'long';
+      // Check stop
+      if (isLong && p <= s.stop) return { ...s, status: 'stopped' as const, result: 'סטופ', pnlPts: s.stop - s.entry };
+      if (!isLong && p >= s.stop) return { ...s, status: 'stopped' as const, result: 'סטופ', pnlPts: s.entry - s.stop };
+      // Check C1
+      if (s.status === 'detected' || s.status === 'confirmed') {
+        if (isLong && p >= s.c1) return { ...s, status: 'c1_hit' as const, result: 'C1 הושג', pnlPts: s.c1 - s.entry };
+        if (!isLong && p <= s.c1) return { ...s, status: 'c1_hit' as const, result: 'C1 הושג', pnlPts: s.entry - s.c1 };
+      }
+      // Check C2
+      if (s.status === 'c1_hit') {
+        if (isLong && p >= s.c2) return { ...s, status: 'c2_hit' as const, result: 'C2 הושג', pnlPts: s.c2 - s.entry };
+        if (!isLong && p <= s.c2) return { ...s, status: 'c2_hit' as const, result: 'C2 הושג', pnlPts: s.entry - s.c2 };
+      }
+      // Expire after 30 bars (90 min)
+      if (Date.now() / 1000 - s.detectedAt > 30 * CANDLE_SEC && s.status === 'detected') {
+        return { ...s, status: 'expired' as const, result: 'פג תוקף' };
+      }
+      return s;
+    }));
+  }, [live?.price]);
+
   const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
 
   // ── Real-time opportunity detection ──────────────────
@@ -2899,6 +3027,7 @@ export default function Dashboard() {
               activeSetups={activeSetups}
               sweepData={sweepData}
               sweepEvents={sweepEvents}
+              detectedSetups={detectedSetups}
               onSweepClick={(ts:number) => {
                 const ev = sweepEvents.find((e:SweepEvent) => e.sweepBarTs === ts);
                 if (ev) setSelectedSweep(prev => prev?.id === ev.id ? null : ev);
@@ -2971,6 +3100,7 @@ export default function Dashboard() {
           onDeactivateSetup={()=>setActiveSetup(null)}
           levelTouches={levelTouches}
           liveSetup={liveSetup}
+          detectedSetups={detectedSetups}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
           onReject={()=>{
             const sig=lockedSignal||live?.signal;
