@@ -421,8 +421,9 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     }
   }
 
-  // ── נתוני בסיס ────────────────────────────────────────────────────
-  const recent10 = sorted.slice(0, 10);
+  // ── נתוני בסיס — כולל נר חי בראש ────────────────────────────────
+  const liveCandle: Candle = { ts: 0, o: bar.o||0, h: bar.h||0, l: bar.l||0, c: bar.c||price, buy: bar.buy||0, sell: bar.sell||0, delta: bar.delta||0 };
+  const recent10 = [liveCandle, ...sorted.slice(0, 9)];
   const recent20 = sorted.slice(0, 20);
   const avgVol20 = recent20.length > 0
     ? recent20.reduce((s, c) => s + (c.buy || 0) + (c.sell || 0), 0) / recent20.length : 1;
