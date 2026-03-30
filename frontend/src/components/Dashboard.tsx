@@ -429,42 +429,119 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const avgRange20 = recent20.length > 0
     ? recent20.reduce((s, c) => s + Math.abs(c.h - c.l), 0) / recent20.length : 1;
 
-  type SweepHit = { level: number; levelName: string; bar: Candle; relVol: number; type: 'sweep' | 'rejection' };
-  let longHit: SweepHit | null = null;
-  let shortHit: SweepHit | null = null;
+  type SetupHit = { level: number; levelName: string; bar: Candle; relVol: number; type: 'sweep' | 'rejection' | 'momentum' | 'bounce' | 'breakout' };
+  let longHit: SetupHit | null = null;
+  let shortHit: SetupHit | null = null;
 
+  // ── Pattern 1+2: Sweep + Rejection (level-based) ──────────────────
   for (const rb of recent10) {
     const rbVol = (rb.buy || 0) + (rb.sell || 0);
     const rbRelVol = avgVol20 > 0 ? rbVol / avgVol20 : 1;
-    const rbRange = Math.abs(rb.h - rb.l);
     const rbDelta = rb.delta || ((rb.buy || 0) - (rb.sell || 0));
     const lowerWick = Math.min(rb.o, rb.c) - rb.l;
     const upperWick = rb.h - Math.max(rb.o, rb.c);
     const body = Math.abs(rb.c - rb.o);
 
     for (const lv of allLevels) {
-      // ── LONG: Sweep — wick שבר רמה מלמטה, סגר מעל ──────────
+      // LONG Sweep: wick שבר רמה מלמטה, סגר מעל
       if (!longHit && rb.l < lv.price - 0.5 && rb.c > lv.price) {
         longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
       }
-      // ── LONG: Rejection — נגע ברמה מלמטה + hammer / wick ארוך ──
-      if (!longHit && Math.abs(rb.l - lv.price) < 1.0 && rb.c > lv.price) {
-        if (lowerWick > body * 1.5 && rb.c > rb.o) {
-          longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'rejection' };
-        }
+      // LONG Rejection: נגע ברמה + hammer
+      if (!longHit && Math.abs(rb.l - lv.price) < 1.0 && rb.c > lv.price && rb.c > rb.o && lowerWick > body * 1.5) {
+        longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'rejection' };
       }
-      // ── SHORT: Sweep — wick שבר רמה מלמעלה, סגר מתחת ────────
+      // SHORT Sweep: wick שבר רמה מלמעלה, סגר מתחת
       if (!shortHit && rb.h > lv.price + 0.5 && rb.c < lv.price) {
         shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
       }
-      // ── SHORT: Rejection — נגע ברמה מלמעלה + shooting star ──
-      if (!shortHit && Math.abs(rb.h - lv.price) < 1.0 && rb.c < lv.price) {
-        if (upperWick > body * 1.5 && rb.c < rb.o) {
-          shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'rejection' };
-        }
+      // SHORT Rejection: נגע ברמה + shooting star
+      if (!shortHit && Math.abs(rb.h - lv.price) < 1.0 && rb.c < lv.price && rb.c < rb.o && upperWick > body * 1.5) {
+        shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'rejection' };
       }
     }
     if (longHit && shortHit) break;
+  }
+
+  // ── Pattern 3: Momentum Reversal — 3+ נרות בכיוון אחד ואז היפוך ──
+  if ((!longHit || !shortHit) && recent10.length >= 4) {
+    const r = recent10; // newest first
+    const curBar = r[0];
+    const curDelta = curBar.delta || ((curBar.buy||0) - (curBar.sell||0));
+    const curVol = (curBar.buy||0) + (curBar.sell||0);
+    const curRelVol = avgVol20 > 0 ? curVol / avgVol20 : 1;
+
+    // LONG momentum: 3+ red bars then green strong bar with positive delta
+    const prevRed = r.slice(1, 4).filter(c => c.c < c.o);
+    if (!longHit && prevRed.length >= 2 && curBar.c > curBar.o && curDelta > 100) {
+      const avgLow = prevRed.reduce((s, c) => s + c.l, 0) / prevRed.length;
+      const nearLevel = allLevels.find(l => Math.abs(avgLow - l.price) < 3);
+      longHit = {
+        level: nearLevel?.price || curBar.l,
+        levelName: nearLevel?.name || 'REV',
+        bar: curBar, relVol: curRelVol, type: 'momentum',
+      };
+    }
+
+    // SHORT momentum: 3+ green bars then red strong bar with negative delta
+    const prevGreen = r.slice(1, 4).filter(c => c.c > c.o);
+    if (!shortHit && prevGreen.length >= 2 && curBar.c < curBar.o && curDelta < -100) {
+      const avgHigh = prevGreen.reduce((s, c) => s + c.h, 0) / prevGreen.length;
+      const nearLevel = allLevels.find(l => Math.abs(avgHigh - l.price) < 3);
+      shortHit = {
+        level: nearLevel?.price || curBar.h,
+        levelName: nearLevel?.name || 'REV',
+        bar: curBar, relVol: curRelVol, type: 'momentum',
+      };
+    }
+  }
+
+  // ── Pattern 4: Support/Resistance Bounce — מתקרב לרמה + מאט + היפוך ──
+  if ((!longHit || !shortHit) && recent10.length >= 3) {
+    const r = recent10;
+    const curBar = r[0];
+    const curDelta = curBar.delta || ((curBar.buy||0) - (curBar.sell||0));
+    const curVol = (curBar.buy||0) + (curBar.sell||0);
+    const curRelVol = avgVol20 > 0 ? curVol / avgVol20 : 1;
+    const prevBar = r[1];
+    const prevDelta = prevBar.delta || ((prevBar.buy||0) - (prevBar.sell||0));
+
+    for (const lv of allLevels) {
+      // LONG bounce: price near level from above, slowing down, then green
+      if (!longHit && Math.abs(curBar.l - lv.price) < 2.0 && curBar.c > curBar.o && curDelta > 0) {
+        // Previous bar was bearish or small — slowing
+        if (prevBar.c <= prevBar.o || Math.abs(prevDelta) < 200) {
+          longHit = { level: lv.price, levelName: lv.name, bar: curBar, relVol: curRelVol, type: 'bounce' };
+        }
+      }
+      // SHORT bounce: price near level from below, slowing, then red
+      if (!shortHit && Math.abs(curBar.h - lv.price) < 2.0 && curBar.c < curBar.o && curDelta < 0) {
+        if (prevBar.c >= prevBar.o || Math.abs(prevDelta) < 200) {
+          shortHit = { level: lv.price, levelName: lv.name, bar: curBar, relVol: curRelVol, type: 'bounce' };
+        }
+      }
+    }
+  }
+
+  // ── Pattern 5: Breakout — פריצת רמה עם volume + המשך ──────────────
+  if ((!longHit || !shortHit) && recent10.length >= 2) {
+    const r = recent10;
+    const curBar = r[0];
+    const curDelta = curBar.delta || ((curBar.buy||0) - (curBar.sell||0));
+    const curVol = (curBar.buy||0) + (curBar.sell||0);
+    const curRelVol = avgVol20 > 0 ? curVol / avgVol20 : 1;
+    const prevBar = r[1];
+
+    for (const lv of allLevels) {
+      // LONG breakout: prev bar was below level, current bar breaks above with volume
+      if (!longHit && prevBar.c < lv.price && curBar.c > lv.price + 0.5 && curRelVol > 1.3 && curDelta > 50) {
+        longHit = { level: lv.price, levelName: lv.name, bar: curBar, relVol: curRelVol, type: 'breakout' };
+      }
+      // SHORT breakout: prev bar was above level, current bar breaks below
+      if (!shortHit && prevBar.c > lv.price && curBar.c < lv.price - 0.5 && curRelVol > 1.3 && curDelta < -50) {
+        shortHit = { level: lv.price, levelName: lv.name, bar: curBar, relVol: curRelVol, type: 'breakout' };
+      }
+    }
   }
 
   // ── Fallback: נר נוכחי מ-live ──────────────────────────────────
@@ -477,23 +554,33 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     if (found) shortHit = { level: found.price, levelName: found.name, bar: { ts: 0, o: bar.o, h: bar.h, l: bar.l, c: bar.c, buy: bar.buy, sell: bar.sell, delta: bar.delta } as Candle, relVol, type: 'sweep' };
   }
 
+  // ── Type labels ────────────────────────────────────────────────────
+  const typeLabel = (t: string) => {
+    if (t === 'sweep') return 'Sweep';
+    if (t === 'rejection') return 'Rejection';
+    if (t === 'momentum') return 'Momentum';
+    if (t === 'bounce') return 'Bounce';
+    if (t === 'breakout') return 'Breakout';
+    return t;
+  };
+
   // ── Checks ─────────────────────────────────────────────────────────
   const liqLong = [
-    { label: `${longHit?.type==='rejection'?'Rejection':'Sweep'} ${longHit?.levelName||''}`, ok: !!longHit, critical: true },
-    { label: 'מחיר מעל רמה', ok: !!longHit && price > longHit.level, critical: true },
+    { label: `${typeLabel(longHit?.type||'')} ${longHit?.levelName||''}`, ok: !!longHit, critical: true },
+    { label: longHit?.type==='breakout' ? 'פריצה מעלה' : 'מחיר מעל רמה', ok: !!longHit && (longHit.type==='breakout' ? price > longHit.level + 0.5 : price > longHit.level), critical: true },
     { label: 'Delta > +50',  ok: (bar.delta || 0) > 50, critical: true },
     { label: 'Vol > 1.2x',   ok: longHit ? longHit.relVol > 1.2 : relVol > 1.2, critical: false },
     { label: 'נר היפוך',     ok: cp.bull_engulf || cp.bar0 === 'HAMMER' || cp.bar0 === 'BULL_STRONG', critical: false },
   ];
   const liqShort = [
-    { label: `${shortHit?.type==='rejection'?'Rejection':'Sweep'} ${shortHit?.levelName||''}`, ok: !!shortHit, critical: true },
-    { label: 'מחיר מתחת רמה', ok: !!shortHit && price < shortHit.level, critical: true },
+    { label: `${typeLabel(shortHit?.type||'')} ${shortHit?.levelName||''}`, ok: !!shortHit, critical: true },
+    { label: shortHit?.type==='breakout' ? 'פריצה מטה' : 'מחיר מתחת רמה', ok: !!shortHit && (shortHit.type==='breakout' ? price < shortHit.level - 0.5 : price < shortHit.level), critical: true },
     { label: 'Delta < -50',   ok: (bar.delta || 0) < -50, critical: true },
     { label: 'Vol > 1.2x',    ok: shortHit ? shortHit.relVol > 1.2 : relVol > 1.2, critical: false },
     { label: 'נר היפוך',      ok: cp.bear_engulf || cp.bar0 === 'SHOOTING_STAR' || cp.bar0 === 'BEAR_STRONG', critical: false },
   ];
 
-  // ── Score — 3 critical, 2 bonus ────────────────────────────────────
+  // ── Score ──────────────────────────────────────────────────────────
   const score = (checks: { ok: boolean; critical: boolean }[]) => {
     const criticalAll = checks.filter(c => c.critical);
     const criticalOk = criticalAll.filter(c => c.ok).length;
@@ -506,7 +593,7 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const shortScore = score(liqShort);
 
   // ── Entry/Stop/C1/C2/C3 ──────────────────────────────────────────
-  const calcLevels = (dir: 'long' | 'short', hit: SweepHit | null) => {
+  const calcLevels = (dir: 'long' | 'short', hit: SetupHit | null) => {
     if (!hit) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0 };
     const L = dir === 'long';
     const entry = price;
