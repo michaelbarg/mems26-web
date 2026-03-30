@@ -509,9 +509,14 @@ async def main():
     log.info(f"  Redis      : {REDIS_URL}")
     log.info("="*50)
 
-    # ── טעינת היסטוריה ישירות ל-Redis ──────────────────────────
+    # ── טעינת היסטוריה ─────────────────────────────────────────
+    # אסטרטגיה:
+    # 1. אם קובץ Sierra טרי — טען ממנו (מחליף את Redis)
+    # 2. אם לא — השאר את מה שכבר ב-Redis (נרות מצטברים)
+    # 3. נרות חדשים תמיד מתווספים ב-lpush (חדש בהתחלה)
     async with aiohttp.ClientSession() as http:
         try:
+            loaded_from_file = False
             if os.path.exists(SC_HISTORY_PATH):
                 age_h = time.time() - os.path.getmtime(SC_HISTORY_PATH)
                 if age_h < 7200:  # קובץ עד שעתיים
@@ -519,21 +524,33 @@ async def main():
                         hist = json.load(hf)
                     candles_list = hist.get("candles", [])
                     if candles_list:
-                        log.info(f"Loading {len(candles_list)} historical candles → Redis direct...")
-                        # מחק היסטוריה קיימת
+                        log.info(f"Loading {len(candles_list)} historical candles → Redis...")
                         await redis_post(http, f"del/{REDIS_CANDLES}", "")
-                        # דחוף נרות — ישן→חדש, lpush שם חדשים בהתחלה
                         loaded = 0
                         for c in candles_list[:MAX_CANDLES]:
                             cj = json.dumps(c) if isinstance(c, dict) else str(c)
                             await redis_post_raw(http, f"rpush/{REDIS_CANDLES}", cj)
                             loaded += 1
                         await redis_post(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}", "")
-                        log.info(f"History loaded: {loaded} candles → Redis OK")
+                        log.info(f"History loaded: {loaded} candles from file → Redis OK")
+                        loaded_from_file = True
                 else:
-                    log.info(f"History file too old ({age_h:.0f}s), skipping")
-            else:
-                log.info("No history file found — will accumulate live")
+                    log.info(f"History file too old ({age_h/3600:.1f}h), keeping existing Redis candles")
+
+            if not loaded_from_file:
+                # בדוק כמה נרות כבר ב-Redis
+                try:
+                    async with http.get(
+                        f"{REDIS_URL}/llen/{REDIS_CANDLES}",
+                        headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                        timeout=aiohttp.ClientTimeout(total=3.0)
+                    ) as resp:
+                        result = await resp.json()
+                        existing = result.get("result", 0)
+                        log.info(f"Redis has {existing} existing candles — will append new ones")
+                except Exception:
+                    log.info("Could not check Redis candle count — will append new ones")
+
         except Exception as e:
             log.warning(f"History load failed: {e}")
 
