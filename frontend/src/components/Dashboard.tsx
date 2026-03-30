@@ -1417,8 +1417,8 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
         {isActive && oppLevels && (
           <div style={{ textAlign:'right', flexShrink:0 }}>
             <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה / סטופ</div>
-            <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{oppLevels.entry.toFixed(2)}</div>
-            <div style={{ fontSize:11, fontWeight:700, color:R, fontFamily:'monospace' }}>{oppLevels.stop.toFixed(2)}</div>
+            <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(oppLevels.entry||0).toFixed(2)}</div>
+            <div style={{ fontSize:11, fontWeight:700, color:R, fontFamily:'monospace' }}>{(oppLevels.stop||0).toFixed(2)}</div>
           </div>
         )}
       </div>
@@ -2528,7 +2528,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                       <span style={{ fontSize:9, color:col, fontWeight:700, minWidth:22 }}>{s.type.slice(0,3).toUpperCase()}</span>
                       <span style={{ fontSize:10, color:'#e2e8f0', fontWeight:600, minWidth:24 }}>{s.levelName}</span>
                       <span style={{ fontSize:9, color:'#4a5568' }}>{time}</span>
-                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{s.entry.toFixed(0)}</span>
+                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{(s.entry||0).toFixed(0)}</span>
                       <span style={{ fontSize:9, fontWeight:800, color:statusCol, padding:'1px 5px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
                         {statusIcon}
                       </span>
@@ -3064,7 +3064,7 @@ export default function Dashboard() {
                     {opportunity==='long'?'▲ LONG':'▼ SHORT'} {oppScore}%
                   </span>
                   <span style={{fontSize:10,color:'#94a3b8',fontFamily:'monospace'}}>
-                    E:{oppLevels.entry.toFixed(2)} S:{oppLevels.stop.toFixed(2)}
+                    E:{(oppLevels.entry||0).toFixed(2)} S:{(oppLevels.stop||0).toFixed(2)}
                   </span>
                 </div>
               </div>
