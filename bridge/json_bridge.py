@@ -446,6 +446,7 @@ def enrich(raw):
 
 
 async def redis_post(http, path, data):
+    """Send data as JSON body (aiohttp serializes dict/list/str → JSON)."""
     try:
         async with http.post(
             f"{REDIS_URL}/{path}",
@@ -457,6 +458,22 @@ async def redis_post(http, path, data):
                 log.warning(f"Redis {path} {resp.status}")
     except Exception as e:
         log.warning(f"Redis failed ({path}): {e}")
+
+
+async def redis_post_raw(http, path, raw_json_str: str):
+    """Send a pre-serialized JSON string as body — avoids double-encoding."""
+    try:
+        async with http.post(
+            f"{REDIS_URL}/{path}",
+            headers={"Authorization": f"Bearer {REDIS_TOKEN}",
+                     "Content-Type": "application/json"},
+            data=raw_json_str,
+            timeout=aiohttp.ClientTimeout(total=4.0)
+        ) as resp:
+            if resp.status != 200:
+                log.warning(f"Redis raw {path} {resp.status}")
+    except Exception as e:
+        log.warning(f"Redis raw failed ({path}): {e}")
 
 
 async def save_candle(http, c: CandleBuilder, raw: dict = None):
@@ -473,8 +490,10 @@ async def save_candle(http, c: CandleBuilder, raw: dict = None):
         c.above_vwap      = bool(vwap.get("above", False))
         c.liq_sweep_long  = bool(of2.get("liq_sweep_long", False))
         c.liq_sweep_short = bool(of2.get("liq_sweep_short", False))
-    candle_json = json.dumps(c.to_dict())
-    await redis_post(http, f"lpush/{REDIS_CANDLES}", candle_json)
+    candle_dict = c.to_dict()
+    candle_json = json.dumps(candle_dict)
+    # Use data= (not json=) to avoid double-encoding the already-serialized string
+    await redis_post_raw(http, f"lpush/{REDIS_CANDLES}", candle_json)
     await redis_post(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}", "")
     log.info(f"Candle saved: {c.c:.2f} Δ={c.buy-c.sell:.0f} CCI14={c.cci14:.1f} VWAP={c.vwap:.2f}")
 
@@ -507,7 +526,7 @@ async def main():
                         loaded = 0
                         for c in candles_list[:MAX_CANDLES]:
                             cj = json.dumps(c) if isinstance(c, dict) else str(c)
-                            await redis_post(http, f"rpush/{REDIS_CANDLES}", cj)
+                            await redis_post_raw(http, f"rpush/{REDIS_CANDLES}", cj)
                             loaded += 1
                         await redis_post(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}", "")
                         log.info(f"History loaded: {loaded} candles → Redis OK")

@@ -171,19 +171,15 @@ async def get_candles(limit: int = 960):
     candles = []
     for item in raw:
         try:
-            if isinstance(item, list):
-                # nested array — פירוק
-                for sub in item:
-                    c = json.loads(sub) if isinstance(sub, str) else sub
-                    if isinstance(c, dict) and c.get("ts", 0) > 0:
-                        candles.append(c)
-            else:
-                c = json.loads(item) if isinstance(item, str) else item
-                if isinstance(c, dict) and c.get("ts", 0) > 0:
-                    candles.append(c)
+            c = item
+            # Parse until we get a dict (handles double/triple encoding)
+            while isinstance(c, str):
+                c = json.loads(c)
+            if isinstance(c, dict) and c.get("ts", 0) > 0:
+                candles.append(c)
         except Exception:
             continue
-    # מיין לפי זמן ישן→חדש
+    # מיין לפי זמן חדש→ישן
     candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
     return candles
 
