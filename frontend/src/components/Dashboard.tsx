@@ -472,11 +472,11 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     const curVol = (curBar.buy||0) + (curBar.sell||0);
     const curRelVol = avgVol20 > 0 ? curVol / avgVol20 : 1;
 
-    // LONG momentum: 3+ red bars then green strong bar with positive delta
+    // LONG momentum: 1+ red bars then green bar with positive delta > 50
     const prevRed = r.slice(1, 4).filter(c => c.c < c.o);
-    if (!longHit && prevRed.length >= 2 && curBar.c > curBar.o && curDelta > 100) {
+    if (!longHit && prevRed.length >= 1 && curBar.c > curBar.o && curDelta > 50) {
       const avgLow = prevRed.reduce((s, c) => s + c.l, 0) / prevRed.length;
-      const nearLevel = allLevels.find(l => Math.abs(avgLow - l.price) < 3);
+      const nearLevel = allLevels.find(l => Math.abs(avgLow - l.price) < 5);
       longHit = {
         level: nearLevel?.price || curBar.l,
         levelName: nearLevel?.name || 'REV',
@@ -484,11 +484,11 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
       };
     }
 
-    // SHORT momentum: 3+ green bars then red strong bar with negative delta
+    // SHORT momentum: 1+ green bars then red bar with negative delta < -50
     const prevGreen = r.slice(1, 4).filter(c => c.c > c.o);
-    if (!shortHit && prevGreen.length >= 2 && curBar.c < curBar.o && curDelta < -100) {
+    if (!shortHit && prevGreen.length >= 1 && curBar.c < curBar.o && curDelta < -50) {
       const avgHigh = prevGreen.reduce((s, c) => s + c.h, 0) / prevGreen.length;
-      const nearLevel = allLevels.find(l => Math.abs(avgHigh - l.price) < 3);
+      const nearLevel = allLevels.find(l => Math.abs(avgHigh - l.price) < 5);
       shortHit = {
         level: nearLevel?.price || curBar.h,
         levelName: nearLevel?.name || 'REV',
