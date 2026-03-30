@@ -24,9 +24,16 @@ interface SweepData {
   stop: number;
   t1: number;
   t2: number;
+  t3?: number;
   delta: number;
   relVol: number;
   score: number;
+  // Future bar timestamps for markers
+  stopBarTs?: number;
+  t1BarTs?: number;
+  t2BarTs?: number;
+  t3BarTs?: number;
+  status?: string;
 }
 
 interface Props {
@@ -300,85 +307,74 @@ export default function LightweightChart({
       }
     }
 
-    // ── Sweep lines — entry/stop/T1/T2 ──────────────────────
-    if (sweepData && sweepData.entry > 0) {
-      add(sweepData.entry, '#ffffff',  '→ ENTRY  ', 0, 2);
-      add(sweepData.stop,  '#ef5350',  '✕ STOP   ', 2, 1);
-      add(sweepData.t1,    '#22c55e',  '⊕ T1     ', 2, 1);
-      add(sweepData.t2,    '#16a34a',  '⊕ T2     ', 2, 1);
-    }
-
-    // ── Signal lines (non-sweep) ─────────────────────────
-    const s2=signal as any;
-    if (!sweepData) {
-      if(s2?._detect) add(s2._detect,'#f6c90e','① הבחנה ',4,2);
-      if(s2?._verify) add(s2._verify,'#60a5fa','② בדיקה ',4,2);
-      if (signal && signal.direction !== 'NO_TRADE' && signal.entry) {
-        add(signal.entry,   s2?._detect?'#a78bfa':'#ffffff', s2?._detect?'③ כניסה ':'→ ENTRY  ', 0, 2);
-        add(signal.stop,    '#ef5350', s2?._detect?'④ סטופ  ':'✕ STOP   ', 2, 1);
-        add(signal.target1, '#22c55e', s2?._detect?'⑤ T1·C1 ':'⊕ T1·C1  ', 2, 1);
-        add(signal.target2, '#16a34a', s2?._detect?'⑥ T2·C2 ':'⊕ T2·C2  ', 2, 1);
-        add(signal.target3, '#86efac', s2?._detect?'⑦ T3stop':'★ T3     ', 1, 1);
-      }
-    }
+    // ── No horizontal lines for sweep/signal — all via markers below ──
 
     // ── Markers: Setup + Pattern ──────────────────────────
     if (seriesRef.current) {
       try {
         const allMarkers: any[] = [];
 
-        // ── Sweep markers — SWEEP / ENTRY / setup ──────────
+        // ── Sweep markers — on actual + future candles ──────────
         if (sweepData && sweepData.sweepBarTs > 0) {
           const isLong = sweepData.dir === 'long';
-          // Sweep candle — large arrow
+          const pos = isLong ? 'belowBar' : 'aboveBar';
+          const entryPts = Math.abs(sweepData.entry - sweepData.stop);
+
+          // Sweep candle
           allMarkers.push({
             time: Math.floor(sweepData.sweepBarTs) as any,
-            position: isLong ? 'belowBar' : 'aboveBar',
-            color: isLong ? '#22c55e' : '#ef5350',
+            position: pos, color: isLong ? '#22c55e' : '#ef5350',
             shape: isLong ? 'arrowUp' : 'arrowDown',
-            text: `SWEEP Δ${sweepData.delta>0?'+':''}${sweepData.delta}`,
-            size: 2,
+            text: `⚡ SWEEP`, size: 2,
           });
-          // Entry candle — even larger
+
+          // Entry candle (reversal bar)
           if (sweepData.entryBarTs > 0) {
             allMarkers.push({
               time: Math.floor(sweepData.entryBarTs) as any,
-              position: isLong ? 'belowBar' : 'aboveBar',
-              color: '#ffffff',
+              position: pos, color: '#ffffff',
               shape: isLong ? 'arrowUp' : 'arrowDown',
-              text: `ENTRY ${sweepData.entry.toFixed(2)}`,
-              size: 3,
+              text: `→ ENTRY ${sweepData.entry.toFixed(2)}`, size: 2,
             });
           }
-          // Setup candles — small circles before sweep
+
+          // Setup candles
           if (sweepData.setupBarTs) {
             sweepData.setupBarTs.forEach(ts => {
-              if (ts > 0) {
-                allMarkers.push({
-                  time: Math.floor(ts) as any,
-                  position: isLong ? 'belowBar' : 'aboveBar',
-                  color: '#4a5568',
-                  shape: 'circle',
-                  text: 'setup',
-                  size: 0,
-                });
-              }
+              if (ts > 0) allMarkers.push({ time: Math.floor(ts) as any, position: pos, color: '#4a556866', shape: 'circle' as any, text: 'setup', size: 0 });
             });
           }
-        }
 
-        // Setup markers on live bar (non-sweep)
-        if (!sweepData && activeSetups && activeSetups.length > 0 && liveBar) {
-          activeSetups.forEach(s => {
+          // Future markers — Stop/T1/T2/T3 on estimated future candles
+          if (sweepData.stopBarTs && sweepData.stopBarTs > 0) {
             allMarkers.push({
-              time: liveBar.ts as any,
-              position: s.dir === 'long' ? 'belowBar' : 'aboveBar',
-              color: s.col,
-              shape: s.dir === 'long' ? 'arrowUp' : 'arrowDown',
-              text: s.name,
-              size: 1,
+              time: Math.floor(sweepData.stopBarTs) as any,
+              position: isLong ? 'aboveBar' : 'belowBar',
+              color: '#ef5350', shape: 'circle' as any,
+              text: `✕ STOP ${sweepData.stop.toFixed(2)}`, size: 1,
             });
-          });
+          }
+          if (sweepData.t1BarTs && sweepData.t1BarTs > 0) {
+            allMarkers.push({
+              time: Math.floor(sweepData.t1BarTs) as any,
+              position: pos, color: '#22c55e', shape: 'circle' as any,
+              text: `① ${sweepData.t1.toFixed(2)} +${Math.abs(sweepData.t1-sweepData.entry).toFixed(0)}pt`, size: 1,
+            });
+          }
+          if (sweepData.t2BarTs && sweepData.t2BarTs > 0) {
+            allMarkers.push({
+              time: Math.floor(sweepData.t2BarTs) as any,
+              position: pos, color: '#16a34a', shape: 'circle' as any,
+              text: `② ${sweepData.t2.toFixed(2)} +${Math.abs(sweepData.t2-sweepData.entry).toFixed(0)}pt`, size: 1,
+            });
+          }
+          if (sweepData.t3BarTs && sweepData.t3BarTs > 0 && sweepData.t3) {
+            allMarkers.push({
+              time: Math.floor(sweepData.t3BarTs) as any,
+              position: pos, color: '#86efac', shape: 'circle' as any,
+              text: `③ ${sweepData.t3.toFixed(2)} +${Math.abs(sweepData.t3-sweepData.entry).toFixed(0)}pt`, size: 1,
+            });
+          }
         }
 
         // ── Historical sweep markers (small, on all detected sweeps) ──

@@ -29,6 +29,74 @@ interface Candle { ts:number; o:number; h:number; l:number; c:number; buy:number
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const G = '#22c55e', Y = '#f59e0b', R = '#ef5350';
 const scoreCol = (s:number) => s >= 7 ? G : s >= 5 ? Y : R;
+const CANDLE_SEC = 180; // 3 minute candles
+
+// ── Active Setup — סטאפ שנבחר ונשאר על הגרף ─────────────────────────────────
+interface ActiveSetup {
+  sweep: SweepEvent;
+  activatedAt: number;      // ts of activation
+  status: 'ACTIVE' | 'T1_HIT' | 'T2_HIT' | 'T3_HIT' | 'STOPPED';
+  result?: string;
+  resultBars?: number;      // כמה נרות עד לתוצאה
+  // Future bar timestamps (estimated)
+  entryBarTs: number;
+  stopBarTs: number;
+  t1BarTs: number;
+  t2BarTs: number;
+  t3BarTs: number;
+  // Time estimates
+  t1EstBars: number;
+  t2EstBars: number;
+  t3EstBars: number;
+}
+
+// ── Time Estimation — הערכת נרות עד למחיר יעד ────────────────────────────────
+function estimateBarReach(candles: Candle[], targetDist: number): { bars: number; minBars: number; maxBars: number } {
+  if (!candles || candles.length < 5) return { bars: 5, minBars: 3, maxBars: 10 };
+  // Sort oldest → newest, take last 20
+  const sorted = [...candles].sort((a, b) => a.ts - b.ts);
+  const recent = sorted.slice(-20);
+  // Average |close - open| per bar
+  let sumMove = 0;
+  for (const c of recent) sumMove += Math.abs(c.c - c.o);
+  const avgMove = sumMove / recent.length;
+  if (avgMove < 0.01) return { bars: 10, minBars: 5, maxBars: 20 };
+  const bars = Math.round(targetDist / avgMove);
+  return {
+    bars: Math.max(1, bars),
+    minBars: Math.max(1, Math.round(bars * 0.5)),
+    maxBars: Math.max(2, Math.round(bars * 1.8)),
+  };
+}
+
+function buildActiveSetup(sweep: SweepEvent, candles: Candle[]): ActiveSetup {
+  const now = Math.floor(Date.now() / 1000);
+  const entryTs = sweep.reversalBarTs || now;
+  const risk = Math.abs(sweep.entry - sweep.stop);
+  const t1dist = Math.abs(sweep.t1 - sweep.entry);
+  const t2dist = Math.abs(sweep.t2 - sweep.entry);
+  const t3dist = risk * 3;
+  const t3 = sweep.dir === 'long' ? sweep.entry + t3dist : sweep.entry - t3dist;
+
+  const t1Est = estimateBarReach(candles, t1dist);
+  const t2Est = estimateBarReach(candles, t2dist);
+  const t3Est = estimateBarReach(candles, t3dist);
+  const stopEst = estimateBarReach(candles, risk);
+
+  return {
+    sweep,
+    activatedAt: now,
+    status: 'ACTIVE',
+    entryBarTs: entryTs,
+    stopBarTs: entryTs + stopEst.bars * CANDLE_SEC,
+    t1BarTs: entryTs + t1Est.bars * CANDLE_SEC,
+    t2BarTs: entryTs + t2Est.bars * CANDLE_SEC,
+    t3BarTs: entryTs + t3Est.bars * CANDLE_SEC,
+    t1EstBars: t1Est.bars,
+    t2EstBars: t2Est.bars,
+    t3EstBars: t3Est.bars,
+  };
+}
 
 // ── Setup Potential Calculator ────────────────────────────────────────────────
 function calcPotential(entry:number, stop:number, dir:'long'|'short', woodi:any, levels:any) {
@@ -2013,7 +2081,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
 }
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
@@ -2123,8 +2191,34 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                   })}
                 </div>
               </div>
-              <div style={{ padding:'6px 14px 10px', borderTop:'1px solid #1e2738' }}>
-                <button onClick={()=>setSelectedSweep(null)} style={{ width:'100%', padding:'5px', border:'1px solid #1e2738', borderRadius:5, background:'transparent', color:'#6b7280', fontSize:10, cursor:'pointer' }}>סגור</button>
+              {/* Time estimates */}
+              {activeSetup?.sweep?.id === selectedSweep.id && (
+                <div style={{ padding:'8px 14px', borderTop:'1px solid #1e2738', fontSize:9, color:'#6b7280' }}>
+                  <div style={{ marginBottom:4, fontWeight:700, color:'#94a3b8' }}>זמן משוער:</div>
+                  <div>T1 בעוד ~{activeSetup.t1EstBars} נרות ({activeSetup.t1EstBars*3}-{activeSetup.t1EstBars*3*2} דק')</div>
+                  <div>T2 בעוד ~{activeSetup.t2EstBars} נרות ({activeSetup.t2EstBars*3}-{activeSetup.t2EstBars*3*2} דק')</div>
+                </div>
+              )}
+              {/* Status */}
+              {activeSetup?.sweep?.id === selectedSweep.id && activeSetup.status !== 'ACTIVE' && (
+                <div style={{ padding:'8px 14px', borderTop:'1px solid #1e2738', textAlign:'center' }}>
+                  <div style={{ fontSize:14, fontWeight:800, color: activeSetup.status==='STOPPED'?'#ef5350':'#22c55e' }}>
+                    {activeSetup.status==='STOPPED' ? '❌' : '✅'} {activeSetup.result}
+                  </div>
+                </div>
+              )}
+              {/* Buttons */}
+              <div style={{ padding:'6px 14px 10px', borderTop:'1px solid #1e2738', display:'flex', gap:6 }}>
+                {(!activeSetup || activeSetup.sweep?.id !== selectedSweep.id) ? (
+                  <button onClick={()=>onActivateSweep(selectedSweep)} style={{ flex:1, padding:'6px', border:'none', borderRadius:5, background:'#22c55e', color:'#0a0e1a', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                    הפעל על הגרף
+                  </button>
+                ) : (
+                  <button onClick={()=>onDeactivateSetup()} style={{ flex:1, padding:'6px', border:'1px solid #ef535066', borderRadius:5, background:'transparent', color:'#ef5350', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                    הסר מהגרף
+                  </button>
+                )}
+                <button onClick={()=>setSelectedSweep(null)} style={{ padding:'6px 12px', border:'1px solid #1e2738', borderRadius:5, background:'transparent', color:'#6b7280', fontSize:10, cursor:'pointer' }}>✕</button>
               </div>
             </div>
           )}
@@ -2263,6 +2357,7 @@ export default function Dashboard() {
   const [signalTime,setSignalTime]=useState<string>('');
   const [selectedSetup,setSelectedSetup]=useState<{id:string;dir:'long'|'short'}|null>(null);
   const [selectedSweep,setSelectedSweep]=useState<SweepEvent|null>(null);
+  const [activeSetup,setActiveSetup]=useState<ActiveSetup|null>(null);
   const [selectedPattern,setSelectedPattern]=useState<PatternResult|null>(null);
   const [dayExplanation,setDayExplanation]=useState<string>('');
   const [dayLoading,setDayLoading]=useState(false);
@@ -2303,6 +2398,33 @@ export default function Dashboard() {
     }catch(e){ setDayExplanation('שגיאה בטעינת הניתוח'); }
     finally{ setDayLoading(false); }
   },[dayLoading]);
+
+  // ── Active Setup status tracking ──────────────────────
+  useEffect(() => {
+    if (!activeSetup || activeSetup.status !== 'ACTIVE' || !live?.price) return;
+    const p = live.price;
+    const s = activeSetup.sweep;
+    const isLong = s.dir === 'long';
+    const barsSinceEntry = Math.round((Date.now()/1000 - activeSetup.activatedAt) / CANDLE_SEC);
+
+    if (isLong) {
+      if (p <= s.stop) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'STOPPED', result: `סטופ נלחץ ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      } else if (s.t2 && p >= s.t2) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T2_HIT', result: `T2 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      } else if (p >= s.t1) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T1_HIT', result: `T1 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      }
+    } else {
+      if (p >= s.stop) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'STOPPED', result: `סטופ נלחץ ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      } else if (s.t2 && p <= s.t2) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T2_HIT', result: `T2 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      } else if (p <= s.t1) {
+        setActiveSetup(prev => prev ? { ...prev, status: 'T1_HIT', result: `T1 הושג ב-${barsSinceEntry} נרות`, resultBars: barsSinceEntry } : null);
+      }
+    }
+  }, [live?.price, activeSetup]);
 
   const fetchLive=useCallback(async()=>{
     try{
@@ -2385,19 +2507,27 @@ export default function Dashboard() {
     ? scanHistoricalSweeps(candles, live.levels, live.woodi)
     : [];
 
-  // Selected sweep → chart data
-  const sweepData = selectedSweep ? {
-    dir: selectedSweep.dir,
-    sweepBarTs: selectedSweep.sweepBarTs,
-    entryBarTs: selectedSweep.reversalBarTs,
-    setupBarTs: selectedSweep.setupBarTs,
-    entry: selectedSweep.entry,
-    stop: selectedSweep.stop,
-    t1: selectedSweep.t1,
-    t2: selectedSweep.t2,
-    delta: selectedSweep.delta,
-    relVol: selectedSweep.volume,
-    score: selectedSweep.score,
+  // Active or selected sweep → chart data
+  const activeSweep = activeSetup?.sweep || selectedSweep;
+  const sweepData = activeSweep ? {
+    dir: activeSweep.dir,
+    sweepBarTs: activeSweep.sweepBarTs,
+    entryBarTs: activeSweep.reversalBarTs,
+    setupBarTs: activeSweep.setupBarTs,
+    entry: activeSweep.entry,
+    stop: activeSweep.stop,
+    t1: activeSweep.t1,
+    t2: activeSweep.t2,
+    t3: activeSweep.dir === 'long' ? activeSweep.entry + Math.abs(activeSweep.entry - activeSweep.stop) * 3 : activeSweep.entry - Math.abs(activeSweep.entry - activeSweep.stop) * 3,
+    delta: activeSweep.delta,
+    relVol: activeSweep.volume,
+    score: activeSweep.score,
+    // Future bar timestamps for markers
+    stopBarTs: activeSetup?.stopBarTs || 0,
+    t1BarTs: activeSetup?.t1BarTs || 0,
+    t2BarTs: activeSetup?.t2BarTs || 0,
+    t3BarTs: activeSetup?.t3BarTs || 0,
+    status: activeSetup?.status || 'ACTIVE',
   } : undefined;
   const chartSignal:any = setupLevels ? {
     direction:selectedSetup!.dir==='long'?'LONG':'SHORT',
@@ -2530,6 +2660,9 @@ export default function Dashboard() {
           sweepEvents={sweepEvents}
           selectedSweep={selectedSweep}
           setSelectedSweep={setSelectedSweep}
+          activeSetup={activeSetup}
+          onActivateSweep={(ev:SweepEvent)=>setActiveSetup(buildActiveSetup(ev,candles))}
+          onDeactivateSetup={()=>setActiveSetup(null)}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
           onReject={()=>{
             const sig=lockedSignal||live?.signal;
