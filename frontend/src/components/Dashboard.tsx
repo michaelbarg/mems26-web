@@ -21,6 +21,7 @@ interface MarketData {
   reversal:{ ib_high:number; ib_low:number; rev15_type:string; rev15_price:number };
   order_fills?:{ price:number; qty:number; side:string; ts:number; pos:number }[];
   footprint?:any[];
+  current_candle?:{ ts:number; o:number; h:number; l:number; c:number; buy:number; sell:number; vol:number; delta:number };
   signal?:Signal;
 }
 interface Candle { ts:number; o:number; h:number; l:number; c:number; buy:number; sell:number; delta:number; }
@@ -28,6 +29,38 @@ interface Candle { ts:number; o:number; h:number; l:number; c:number; buy:number
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const G = '#22c55e', Y = '#f59e0b', R = '#ef5350';
 const scoreCol = (s:number) => s >= 7 ? G : s >= 5 ? Y : R;
+
+// ── Setup Potential Calculator ────────────────────────────────────────────────
+function calcPotential(entry:number, stop:number, dir:'long'|'short', woodi:any, levels:any) {
+  if (!entry || !stop) return null;
+  const risk = Math.abs(entry - stop);
+  if (risk <= 0) return null;
+  const L = dir === 'long';
+  const t1 = L ? entry + risk     : entry - risk;
+  const t2 = L ? entry + risk * 2 : entry - risk * 2;
+  // T3 = Woodi R1/S1 או PDH/PDL
+  const t3 = L
+    ? Math.max(woodi?.r1||0, levels?.prev_high||0) || (entry + risk * 3)
+    : Math.min(woodi?.s1||9999, levels?.prev_low||9999) || (entry - risk * 3);
+  const t1pts  = Math.abs(t1 - entry);
+  const t2pts  = Math.abs(t2 - entry);
+  const t3pts  = Math.abs(t3 - entry);
+  const valid  = t1pts >= 10; // פילטר מינימום 10 נקודות
+  return {
+    risk_pts: Math.round(risk * 4) / 4,
+    t1, t2, t3,
+    t1_pts: Math.round(t1pts * 4) / 4,
+    t2_pts: Math.round(t2pts * 4) / 4,
+    t3_pts: Math.round(t3pts * 4) / 4,
+    t1_usd: Math.round(t1pts * 5),
+    t2_usd: Math.round(t2pts * 5),
+    t3_usd: Math.round(t3pts * 5),
+    rr1:    Math.round(t1pts / risk * 10) / 10,
+    rr2:    Math.round(t2pts / risk * 10) / 10,
+    valid,
+    reason: !valid ? `T1 = ${t1pts.toFixed(1)}pt — פחות מ-10` : '',
+  };
+}
 
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
 function calcSetups(live: MarketData | null) {
@@ -42,76 +75,229 @@ function calcSetups(live: MarketData | null) {
   const wcci = (live as any).woodies_cci     || {};
   const day  = (live as any).day             || {};
   const cp   = (live as any).candle_patterns || {};
+  const vol  = (live as any).volume_context  || {};
+  const lev  = live.levels     || {} as any;
+  const relVol = vol.rel_vol || 1;
+
+  // ── Liq Sweep — 5 תנאים קשיחים ──────────────────────────────────────────
+  // זיהוי sweep רמה: PDH/PDL/ONH/ONL בלבד
+  const sweepLevels = [lev.prev_high, lev.prev_low, lev.overnight_high, lev.overnight_low]
+    .filter(v => v && v > 0);
+  const price = live.price || 0;
+  const nearLevel = sweepLevels.find(l => Math.abs(price - l) < 3);
+
+  // Sweep long: שבר מתחת לרמה, חזר מעלה, delta חיובי, volume גבוה
+  const sweepLong_broken  = sweepLevels.some(l => (bar.l||price) < l - 0.5 && price > l - 0.5);
+  const sweepShort_broken = sweepLevels.some(l => (bar.h||price) > l + 0.5 && price < l + 0.5);
 
   const liqLong   = [
-    { label:'LiqSweep', ok:!!of2.liq_sweep_long },
-    { label:'Delta +',  ok:(bar.delta||0)>0 },
-    { label:'CVD Bull', ok:cvd.trend==='BULLISH' },
-    { label:'Vol Buy',  ok:(cvd.buy_vol||0)>(cvd.sell_vol||0) },
-    { label:'Engulf ↑', ok:!!cp.bull_engulf },
+    { label:'שבירת רמה ↓↑', ok: sweepLong_broken,            critical:true  },
+    { label:'Delta חיובי',  ok: (bar.delta||0) > 50,          critical:true  },
+    { label:'Volume גבוה',  ok: relVol > 1.2,                 critical:true  },
+    { label:'CVD מתהפך',    ok: cvd.trend==='BULLISH'||(cvd.d5||0)>0, critical:false },
+    { label:'נר היפוך',     ok: cp.bull_engulf||cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG', critical:false },
   ];
   const liqShort  = [
-    { label:'Sweep ↓',  ok:!!of2.liq_sweep_short },
-    { label:'Delta −',  ok:(bar.delta||0)<0 },
-    { label:'CVD Bear', ok:cvd.trend==='BEARISH' },
-    { label:'Vol Sell', ok:(cvd.sell_vol||0)>(cvd.buy_vol||0) },
-    { label:'Engulf ↓', ok:!!cp.bear_engulf },
+    { label:'שבירת רמה ↑↓', ok: sweepShort_broken,           critical:true  },
+    { label:'Delta שלילי',  ok: (bar.delta||0) < -50,         critical:true  },
+    { label:'Volume גבוה',  ok: relVol > 1.2,                 critical:true  },
+    { label:'CVD מתהפך',    ok: cvd.trend==='BEARISH'||(cvd.d5||0)<0, critical:false },
+    { label:'נר היפוך',     ok: cp.bear_engulf||cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG', critical:false },
   ];
+
+  // ── VWAP Pullback ──────────────────────────────────────────────────────────
   const vwapLong  = [
-    { label:'מעל VWAP', ok:!!vwap.above },
-    { label:'Pullback', ok:!!vwap.pullback },
-    { label:'CVD Bull', ok:cvd.trend==='BULLISH' },
-    { label:'Hook Up',  ok:!!wcci.hook_up||!!wcci.zlr_bull },
-    { label:'Hammer',   ok:cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG' },
+    { label:'מעל VWAP',     ok: !!vwap.above,                  critical:true  },
+    { label:'Pullback חלש', ok: !!vwap.pullback,               critical:true  },
+    { label:'CVD Bull',     ok: cvd.trend==='BULLISH',          critical:false },
+    { label:'Hook/ZLR ↑',   ok: !!wcci.hook_up||!!wcci.zlr_bull, critical:false },
+    { label:'נר היפוך',     ok: cp.bar0==='HAMMER'||cp.bar0==='BULL_STRONG', critical:false },
   ];
   const vwapShort = [
-    { label:'מתחת VWAP',ok:!vwap.above },
-    { label:'Dist < 2', ok:(vwap.distance||0)<2&&!vwap.above },
-    { label:'CVD Bear', ok:cvd.trend==='BEARISH' },
-    { label:'Hook Dn',  ok:!!wcci.hook_down||!!wcci.zlr_bear },
-    { label:'Star',     ok:cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG' },
+    { label:'מתחת VWAP',    ok: !vwap.above,                   critical:true  },
+    { label:'Dist < 3',     ok: Math.abs(vwap.distance||0)<3,  critical:true  },
+    { label:'CVD Bear',     ok: cvd.trend==='BEARISH',          critical:false },
+    { label:'Hook/ZLR ↓',   ok: !!wcci.hook_down||!!wcci.zlr_bear, critical:false },
+    { label:'נר היפוך',     ok: cp.bar0==='SHOOTING_STAR'||cp.bar0==='BEAR_STRONG', critical:false },
   ];
+
+  // ── IB Breakout ───────────────────────────────────────────────────────────
   const ibLong    = [
-    { label:'IB Lock',  ok:!!sess.ib_locked },
-    { label:'Break Up', ok:!!day.ib_breakout_up },
-    { label:'Absorb',   ok:!!of2.absorption_bull },
-    { label:'CCI14>0',  ok:(wcci.cci14||0)>0 },
-    { label:'15m Bull', ok:(mtf?.m15?.delta||0)>0 },
+    { label:'IB ננעל',      ok: !!sess.ib_locked,              critical:true  },
+    { label:'פריצה מעלה',   ok: !!day.ib_breakout_up,          critical:true  },
+    { label:'Retest IBH',   ok: !!sess.ib_locked && Math.abs(price-(sess.ibh||0))<1.5, critical:true },
+    { label:'15m Bull',     ok: (mtf?.m15?.delta||0)>0,        critical:false },
+    { label:'CVD Bull',     ok: cvd.trend==='BULLISH',          critical:false },
   ];
   const ibShort   = [
-    { label:'IB Lock',  ok:!!sess.ib_locked },
-    { label:'Break Dn', ok:!!day.ib_breakout_down },
-    { label:'CVD Bear', ok:cvd.trend==='BEARISH' },
-    { label:'CCI14<0',  ok:(wcci.cci14||0)<0 },
-    { label:'15m Bear', ok:(mtf?.m15?.delta||0)<0 },
+    { label:'IB ננעל',      ok: !!sess.ib_locked,              critical:true  },
+    { label:'פריצה מטה',    ok: !!day.ib_breakout_down,        critical:true  },
+    { label:'Retest IBL',   ok: !!sess.ib_locked && Math.abs(price-(sess.ibl||0))<1.5, critical:true },
+    { label:'15m Bear',     ok: (mtf?.m15?.delta||0)<0,        critical:false },
+    { label:'CVD Bear',     ok: cvd.trend==='BEARISH',          critical:false },
   ];
+
+  // ── CCI Turbo ─────────────────────────────────────────────────────────────
   const turboLong = [
-    { label:'Turbo ↑',  ok:!!wcci.turbo_bull },
-    { label:'BLUE',     ok:wcci.hist_color==='BLUE' },
-    { label:'מעל VWAP', ok:!!vwap.above },
-    { label:'מעל POC',  ok:!!prof.above_poc },
-    { label:'CVD d5+',  ok:(cvd.d5||0)>0 },
+    { label:'Turbo Bull',   ok: !!wcci.turbo_bull,             critical:true  },
+    { label:'ZLR ↑',        ok: !!wcci.zlr_bull,              critical:false },
+    { label:'מעל VWAP',     ok: !!vwap.above,                  critical:false },
+    { label:'מעל POC',      ok: !!prof.above_poc,              critical:false },
+    { label:'CVD d5+',      ok: (cvd.d5||0)>0,                critical:false },
   ];
   const turboShort= [
-    { label:'Turbo ↓',  ok:!!wcci.turbo_bear },
-    { label:'D.RED',    ok:wcci.hist_color==='DARK_RED' },
-    { label:'מתחת VWAP',ok:!vwap.above },
-    { label:'מתחת POC', ok:!prof.above_poc },
-    { label:'CVD d5−',  ok:(cvd.d5||0)<0 },
+    { label:'Turbo Bear',   ok: !!wcci.turbo_bear,             critical:true  },
+    { label:'ZLR ↓',        ok: !!wcci.zlr_bear,              critical:false },
+    { label:'מתחת VWAP',    ok: !vwap.above,                   critical:false },
+    { label:'מתחת POC',     ok: !prof.above_poc,               critical:false },
+    { label:'CVD d5−',      ok: (cvd.d5||0)<0,                critical:false },
   ];
 
-  const pct = (c:{ok:boolean}[]) => Math.round(c.filter(x=>x.ok).length/c.length*100);
-  const wr  = (base:number, s:number) => Math.round(base*(s/100)*0.55 + base*0.45);
+  // ── חישוב score — תנאי critical שקיים יותר ─────────────────────────────
+  const score = (checks:{ok:boolean;critical:boolean}[]) => {
+    const criticalAll = checks.filter(c=>c.critical);
+    const criticalOk  = criticalAll.filter(c=>c.ok).length;
+    const allOk       = checks.filter(c=>c.ok).length;
+    // אם לא כל התנאים הקריטיים עברו — מקסימום 49%
+    if (criticalOk < criticalAll.length) return Math.round(criticalOk/criticalAll.length * 45);
+    return Math.round(45 + (allOk/checks.length)*55);
+  };
+
+  const wr = (base:number, s:number) => Math.round(base*(s/100)*0.55 + base*0.45);
 
   return [
-    { name:'Liq Sweep',    col:'#22c55e', base:72, long:{checks:liqLong,   score:pct(liqLong)},   short:{checks:liqShort,  score:pct(liqShort)} },
-    { name:'VWAP Pullback',col:'#f6c90e', base:66, long:{checks:vwapLong,  score:pct(vwapLong)},  short:{checks:vwapShort, score:pct(vwapShort)} },
-    { name:'IB Breakout',  col:'#60a5fa', base:62, long:{checks:ibLong,    score:pct(ibLong)},    short:{checks:ibShort,   score:pct(ibShort)} },
-    { name:'CCI Turbo',    col:'#a78bfa', base:64, long:{checks:turboLong, score:pct(turboLong)}, short:{checks:turboShort,score:pct(turboShort)} },
+    { name:'Liq Sweep',    col:'#22c55e', base:72, long:{checks:liqLong,   score:score(liqLong)},   short:{checks:liqShort,  score:score(liqShort)} },
+    { name:'VWAP Pullback',col:'#f6c90e', base:66, long:{checks:vwapLong,  score:score(vwapLong)},  short:{checks:vwapShort, score:score(vwapShort)} },
+    { name:'IB Breakout',  col:'#60a5fa', base:62, long:{checks:ibLong,    score:score(ibLong)},    short:{checks:ibShort,   score:score(ibShort)} },
+    { name:'CCI Turbo',    col:'#a78bfa', base:64, long:{checks:turboLong, score:score(turboLong)}, short:{checks:turboShort,score:score(turboShort)} },
   ].map(s=>({...s, long:{...s.long,wr:wr(s.base,s.long.score)}, short:{...s.short,wr:wr(s.base,s.short.score)}}));
 }
 
-function SetupScanner({ live,onSelect,selectedId }:{ live:MarketData|null; onSelect?:(id:string,dir:'long'|'short')=>void; selectedId?:string }) {
+// ── Setup Entry Card — כרטיס כניסה ראשי ─────────────────────────────────────
+function SetupEntryCard({ setup, dir, levels, live }: {
+  setup: any; dir: 'long'|'short'; levels: any; live: MarketData|null;
+}) {
+  if (!setup || !levels) return null;
+  const L       = dir === 'long';
+  const col     = setup.col;
+  const price   = live?.price || 0;
+  const pot     = levels.potential;
+  const checks  = L ? setup.long.checks : setup.short.checks;
+  const score   = L ? setup.long.score  : setup.short.score;
+  const criticalFail = checks.filter((c:any) => c.critical && !c.ok);
+
+  // החלטה: כנס / חכה / דלג
+  let decision: 'ENTER' | 'WAIT' | 'SKIP';
+  let decisionText: string;
+  let decisionSub: string;
+  let decisionCol: string;
+
+  if (criticalFail.length > 0) {
+    decision = 'SKIP';
+    decisionText = 'דלג';
+    decisionSub  = `חסר: ${criticalFail[0].label}`;
+    decisionCol  = '#ef5350';
+  } else if (!pot?.valid) {
+    decision = 'SKIP';
+    decisionText = 'פוטנציאל נמוך';
+    decisionSub  = pot?.reason || 'T1 < 10 נקודות';
+    decisionCol  = '#ef5350';
+  } else if (score >= 80) {
+    decision = 'ENTER';
+    decisionText = 'כנס עכשיו';
+    decisionSub  = `${score}% תנאים עברו`;
+    decisionCol  = '#22c55e';
+  } else if (score >= 60) {
+    decision = 'WAIT';
+    decisionText = 'חכה לאישור';
+    decisionSub  = `${score}% — צריך עוד אישור`;
+    decisionCol  = '#f59e0b';
+  } else {
+    decision = 'SKIP';
+    decisionText = 'דלג';
+    decisionSub  = `רק ${score}% תנאים`;
+    decisionCol  = '#ef5350';
+  }
+
+  return (
+    <div style={{ background:'#0a0e1a', border:`2px solid ${decisionCol}44`, borderRadius:10, overflow:'hidden' }}>
+
+      {/* Header — החלטה */}
+      <div style={{ background:`${decisionCol}18`, padding:'10px 14px', borderBottom:`1px solid ${decisionCol}33`, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+        <div>
+          <div style={{ fontSize:11, color:`${col}`, fontWeight:700, marginBottom:2 }}>
+            {setup.name} {L ? '▲ LONG' : '▼ SHORT'}
+          </div>
+          <div style={{ fontSize:9, color:'#6b7280' }}>{decisionSub}</div>
+        </div>
+        <div style={{ fontSize:20, fontWeight:900, color:decisionCol, letterSpacing:-0.5 }}>
+          {decisionText}
+        </div>
+      </div>
+
+      {/* רמות כניסה */}
+      {decision !== 'SKIP' && levels.entry > 0 && (
+        <div style={{ padding:'10px 14px', borderBottom:`1px solid #1e2738` }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
+            <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
+              <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{levels.entry.toFixed(2)}</div>
+            </div>
+            <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
+              <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{levels.stop.toFixed(2)}</div>
+              <div style={{ fontSize:9, color:'#4a5568' }}>−{pot?.risk_pts}pt / −${(pot?.risk_pts||0)*5}</div>
+            </div>
+          </div>
+
+          {/* פוטנציאל */}
+          {pot?.valid && (
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4 }}>
+              {[
+                { label:'T1 · C1', pts:pot.t1_pts, usd:pot.t1_usd, rr:pot.rr1, col:'#22c55e', price:levels.t1 },
+                { label:'T2 · C2', pts:pot.t2_pts, usd:pot.t2_usd, rr:pot.rr2, col:'#16a34a', price:levels.t2 },
+                { label:'T3 · Run', pts:pot.t3_pts, usd:pot.t3_usd, rr:null, col:'#86efac', price:levels.t3stop },
+              ].map(t => (
+                <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'5px 6px', textAlign:'center' }}>
+                  <div style={{ fontSize:9, color:t.col, fontWeight:700 }}>{t.label}</div>
+                  <div style={{ fontSize:12, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
+                  <div style={{ fontSize:9, color:'#4a5568' }}>+{t.pts}pt</div>
+                  <div style={{ fontSize:9, fontWeight:700, color:t.col }}>+${t.usd}</div>
+                  {t.rr && <div style={{ fontSize:8, color:'#4a5568' }}>R:R 1:{t.rr}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* אזהרת פוטנציאל נמוך */}
+          {!pot?.valid && pot?.reason && (
+            <div style={{ background:'#ef535011', border:'1px solid #ef535033', borderRadius:6, padding:'6px 10px', fontSize:10, color:'#ef5350', textAlign:'center' }}>
+              ⚠ {pot.reason}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* תנאים */}
+      <div style={{ padding:'8px 14px' }}>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 8px' }}>
+          {checks.map((c:any) => (
+            <span key={c.label} style={{
+              fontSize:9, padding:'2px 6px', borderRadius:4, fontWeight:700,
+              background: c.ok ? (c.critical?'#22c55e22':'#22c55e11') : (c.critical?'#ef535022':'#1e2738'),
+              color: c.ok ? '#22c55e' : (c.critical ? '#ef5350' : '#4a5568'),
+              border: `1px solid ${c.ok?(c.critical?'#22c55e44':'#22c55e22'):(c.critical?'#ef535044':'#1e2738')}`,
+            }}>
+              {c.ok ? '✓' : c.critical ? '✗' : '○'} {c.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
   const setups = calcSetups(live);
   if (!setups) return null;
   return (
@@ -418,39 +604,70 @@ function detectPatterns(candles: Candle[]): PatternResult[] {
 // ── חישוב רמות סטאפ ────────────────────────────────────────────────────────
 function calcSetupLevels(id:string, live:MarketData|null, dir:'long'|'short') {
   if(!live) return null;
-  const p=live.price||0, bar=live.bar||{} as any;
-  const vwap=live.vwap||{} as any, sess=live.session||{} as any;
-  const prof=live.profile||{} as any, woodi=live.woodi||{} as any;
-  const L=dir==='long';
-  let detect=0,verify=0,entry=0,stop=0,t1=0,t2=0,t3stop=0;
+  const p    = live.price||0;
+  const bar  = live.bar||{} as any;
+  const vwap = live.vwap||{} as any;
+  const sess = live.session||{} as any;
+  const prof = live.profile||{} as any;
+  const woodi= live.woodi||{} as any;
+  const lev  = live.levels||{} as any;
+  const L    = dir==='long';
+
+  let detect=0, verify=0, entry=0, stop=0, t1=0, t2=0, t3stop=0;
+
   if(id==='Liq Sweep'){
-    const sw=L?(bar.l||p-2):(bar.h||p+2);
-    detect=sw; verify=L?sw+1:sw-1;
-    entry=L?(bar.h||p)+0.25:(bar.l||p)-0.25;
-    stop=L?sw-0.25:sw+0.25;
-    const rk=Math.abs(entry-stop);
-    t1=L?entry+rk:entry-rk; t2=L?entry+rk*2:entry-rk*2; t3stop=t1;
+    // מצא את הרמה הקרובה ביותר שנשברה
+    const candidates = [lev.prev_high, lev.prev_low, lev.overnight_high, lev.overnight_low]
+      .filter(v=>v&&v>0);
+    const swept = candidates.find(l => L ? (bar.l||p)<l-0.5 : (bar.h||p)>l+0.5) || (L?p-2:p+2);
+    detect = swept;
+    verify = L ? swept + 0.5 : swept - 0.5;  // חזרה מעל/מתחת
+    entry  = L ? swept + 1.0 : swept - 1.0;  // כניסה אחרי אישור
+    stop   = L ? (bar.l||swept) - 0.5 : (bar.h||swept) + 0.5;
+    const risk = Math.abs(entry-stop);
+    t1     = L ? entry+risk   : entry-risk;
+    t2     = L ? entry+risk*2 : entry-risk*2;
+    t3stop = L ? (woodi.r1||lev.prev_high||entry+risk*3) : (woodi.s1||lev.prev_low||entry-risk*3);
+
   } else if(id==='VWAP Pullback'){
-    detect=vwap.value||p; verify=L?detect+0.5:detect-0.5;
-    entry=L?verify+0.5:verify-0.5; stop=L?detect-0.5:detect+0.5;
-    const rk=Math.abs(entry-stop);
-    t1=L?entry+rk:entry-rk; t2=L?entry+rk*2:entry-rk*2; t3stop=t1;
+    const vwapV = vwap.value||p;
+    detect = vwapV;
+    verify = L ? vwapV+0.25 : vwapV-0.25;
+    entry  = L ? vwapV+0.5  : vwapV-0.5;
+    stop   = L ? vwapV-1.5  : vwapV+1.5;
+    const risk = Math.abs(entry-stop);
+    t1     = L ? entry+risk   : entry-risk;
+    t2     = L ? entry+risk*2 : entry-risk*2;
+    t3stop = L ? (woodi.r1||entry+risk*3) : (woodi.s1||entry-risk*3);
+
   } else if(id==='IB Breakout'){
-    const ib=L?(sess.ibh||p+2):(sess.ibl||p-2);
-    detect=ib; verify=L?ib-0.5:ib+0.5;
-    entry=L?ib+0.25:ib-0.25; stop=L?ib-1.5:ib+1.5;
-    const rk=Math.abs(entry-stop);
-    t1=L?entry+rk:entry-rk; t2=L?entry+rk*2:entry-rk*2;
-    t3stop=L?(woodi.r1||t2):(woodi.s1||t2);
+    const ib = L ? (sess.ibh||p+2) : (sess.ibl||p-2);
+    detect = ib;
+    verify = L ? ib-0.5 : ib+0.5;    // חזרה לבדוק
+    entry  = L ? ib+0.25 : ib-0.25;  // כניסה על הבדיקה
+    stop   = L ? ib-1.5  : ib+1.5;
+    const risk = Math.abs(entry-stop);
+    t1     = L ? entry+risk   : entry-risk;
+    t2     = L ? entry+risk*2 : entry-risk*2;
+    t3stop = L ? (woodi.r1||lev.prev_high||t2) : (woodi.s1||lev.prev_low||t2);
+
   } else if(id==='CCI Turbo'){
-    detect=prof.poc||p; verify=L?detect+0.5:detect-0.5;
-    entry=L?verify+0.5:verify-0.5;
-    stop=L?(bar.l||p-2)-0.25:(bar.h||p+2)+0.25;
-    const rk=Math.abs(entry-stop);
-    t1=L?entry+rk:entry-rk; t2=L?entry+rk*2:entry-rk*2;
-    t3stop=L?(woodi.r1||t2):(woodi.s1||t2);
+    const poc = prof.poc||p;
+    detect = poc;
+    verify = L ? poc+0.5 : poc-0.5;
+    entry  = L ? poc+1.0 : poc-1.0;
+    stop   = L ? (bar.l||poc-3)-0.25 : (bar.h||poc+3)+0.25;
+    const risk = Math.abs(entry-stop);
+    t1     = L ? entry+risk   : entry-risk;
+    t2     = L ? entry+risk*2 : entry-risk*2;
+    t3stop = L ? (woodi.r1||t2) : (woodi.s1||t2);
   }
-  return {detect,verify,entry,stop,t1,t2,t3stop};
+
+  const potential = calcPotential(entry, stop, dir, woodi, lev);
+  // עדכן T1/T2 מהpotential (מחושב נכון)
+  if(potential){ t1 = potential.t1; t2 = potential.t2; t3stop = potential.t3; }
+
+  return {detect, verify, entry, stop, t1, t2, t3stop, potential};
 }
 
 // ── Live LONG/SHORT probability ───────────────────────────────────────────────
@@ -1638,6 +1855,14 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         </>}
 
         {tab === 'setups' && <>
+          {/* כרטיס כניסה מורחב אם יש סטאפ נבחר */}
+          {selectedSetup && (() => {
+            const setupData = calcSetups(live)?.find(s=>s.name===selectedSetup.id);
+            const lvls = calcSetupLevels(selectedSetup.id, live, selectedSetup.dir);
+            return setupData && lvls ? (
+              <SetupEntryCard setup={setupData} dir={selectedSetup.dir} levels={lvls} live={live} />
+            ) : null;
+          })()}
           <SetupScanner live={live} onSelect={onSelectSetup} selectedId={selectedSetup?.id} />
           {selectedSetup && (
             <div style={{ padding:'8px 10px', background:'#111827', border:'1px solid #1e2738', borderRadius:8, fontSize:10, color:'#6b7280', direction:'rtl', textAlign:'right' }}>
@@ -1846,7 +2071,7 @@ export default function Dashboard() {
       await fetchCandles();
       fetchLive();
       const lt=setInterval(fetchLive,2000);
-      const ct=setInterval(fetchCandles,15000); // נרות כל 15 שניות מספיק
+      const ct=setInterval(fetchCandles,5000); // נרות כל 5 שניות
       return()=>{clearInterval(lt);clearInterval(ct);};
     };
     const cleanup=init();
@@ -1913,7 +2138,15 @@ export default function Dashboard() {
             <LightweightChart
               candles={candles}
               livePrice={live?.price}
-              liveBar={live?.bar?{ts:live.ts,o:live.bar.o,h:live.bar.h,l:live.bar.l,c:live.bar.c,buy:live.bar.buy,sell:live.bar.sell}:null}
+              liveBar={live?.bar ? {
+                ts:   live.current_candle?.ts ?? Math.floor(Date.now()/1000 / 180) * 180,
+                o:    live.current_candle?.o ?? live.bar.o,
+                h:    live.current_candle?.h ?? live.bar.h,
+                l:    live.current_candle?.l ?? live.bar.l,
+                c:    live.bar.c,
+                buy:  live.current_candle?.buy ?? live.bar.buy,
+                sell: live.current_candle?.sell ?? live.bar.sell,
+              } : null}
               vwap={live?.vwap?.value}
               levels={live?.levels}
               profile={live?.profile}
