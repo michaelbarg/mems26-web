@@ -235,6 +235,17 @@ async def market_analyze():
     vwap_dist = vwap.get("distance", 0) or 0
     rel_vol   = vol_ctx.get("rel_vol", 1) or 1
 
+    # Footprint summary for AI prompt
+    fp_raw = data.get("footprint", [])
+    if fp_raw and isinstance(fp_raw, list):
+        fp_lines = []
+        for fb in fp_raw[-5:]:
+            if isinstance(fb, dict):
+                fp_lines.append(f"Δ={fb.get('delta',0):+.0f} vol={fb.get('buy',0)+fb.get('sell',0):.0f}")
+        footprint_summary = " | ".join(fp_lines) if fp_lines else "N/A"
+    else:
+        footprint_summary = "N/A"
+
     prompt = f"""אתה מערכת AI מתקדמת למסחר יומי ב-MES (Micro E-Mini S&P 500 Futures).
 אתה מומחה ב-3 סטאפים ספציפיים. החלט האם יש הזדמנות מסחר עכשיו.
 
