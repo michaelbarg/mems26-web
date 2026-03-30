@@ -399,8 +399,24 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   if (sess.sh > 0)            allLevels.push({ price: sess.sh,            name: 'SH' });
   if (sess.sl > 0)            allLevels.push({ price: sess.sl,            name: 'SL' });
 
+  // ── רמות מנרות — session low/high snapshot מ-10 נרות אחרונים ──────
+  // זה תופס רמות שהמחיר כבר עבר (ONL ישן שהתעדכן)
+  const sortedAll = [...candles].sort((a, b) => b.ts - a.ts);
+  if (sortedAll.length >= 10) {
+    const r30 = sortedAll.slice(0, 30);
+    const r30Low = Math.min(...r30.map(c => c.l));
+    const r30High = Math.max(...r30.map(c => c.h));
+    // Add recent swing low/high if not too close to existing levels
+    if (r30Low > 0 && !allLevels.some(l => Math.abs(l.price - r30Low) < 1.5)) {
+      allLevels.push({ price: r30Low, name: 'SwL' });
+    }
+    if (r30High > 0 && !allLevels.some(l => Math.abs(l.price - r30High) < 1.5)) {
+      allLevels.push({ price: r30High, name: 'SwH' });
+    }
+  }
+
   // ── רמות דינמיות — מחירים שנגעו 3+ פעמים ─────────────────────────
-  const sorted = [...candles].sort((a, b) => b.ts - a.ts);
+  const sorted = sortedAll;
   const recent50 = sorted.slice(0, 50);
   if (recent50.length >= 10) {
     const touchCount: Record<number, number> = {};
@@ -435,7 +451,11 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   let shortHit: SetupHit | null = null;
 
   // ── Pattern 1+2: Sweep + Rejection (level-based) ──────────────────
-  for (const rb of recent10) {
+  // Sweep: check same bar close OR next bar close (delayed reversal)
+  for (let ri = 0; ri < recent10.length; ri++) {
+    const rb = recent10[ri];
+    const nextRb = ri > 0 ? recent10[ri - 1] : null; // ri=0 is newest, ri-1 doesn't exist for newest
+    // For candles (not live), the "next" bar is the one with smaller index (newer)
     const rbVol = (rb.buy || 0) + (rb.sell || 0);
     const rbRelVol = avgVol20 > 0 ? rbVol / avgVol20 : 1;
     const rbDelta = rb.delta || ((rb.buy || 0) - (rb.sell || 0));
@@ -444,17 +464,36 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     const body = Math.abs(rb.c - rb.o);
 
     for (const lv of allLevels) {
-      // LONG Sweep: wick שבר רמה מלמטה, סגר מעל
-      if (!longHit && rb.l < lv.price - 0.5 && rb.c > lv.price) {
-        longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+      // LONG Sweep: wick שבר רמה מלמטה
+      if (!longHit && rb.l < lv.price - 0.5) {
+        // Same bar closed above?
+        if (rb.c > lv.price) {
+          longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+        }
+        // Or next bar closed above? (delayed reversal)
+        else if (nextRb && nextRb.c > lv.price) {
+          longHit = { level: lv.price, levelName: lv.name, bar: nextRb, relVol: rbRelVol, type: 'sweep' };
+        }
+        // Or current price is above? (live reversal in progress)
+        else if (ri > 0 && price > lv.price) {
+          longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+        }
       }
       // LONG Rejection: נגע ברמה + hammer
       if (!longHit && Math.abs(rb.l - lv.price) < 1.0 && rb.c > lv.price && rb.c > rb.o && lowerWick > body * 1.5) {
         longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'rejection' };
       }
-      // SHORT Sweep: wick שבר רמה מלמעלה, סגר מתחת
-      if (!shortHit && rb.h > lv.price + 0.5 && rb.c < lv.price) {
-        shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+      // SHORT Sweep: wick שבר רמה מלמעלה
+      if (!shortHit && rb.h > lv.price + 0.5) {
+        if (rb.c < lv.price) {
+          shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+        }
+        else if (nextRb && nextRb.c < lv.price) {
+          shortHit = { level: lv.price, levelName: lv.name, bar: nextRb, relVol: rbRelVol, type: 'sweep' };
+        }
+        else if (ri > 0 && price < lv.price) {
+          shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+        }
       }
       // SHORT Rejection: נגע ברמה + shooting star
       if (!shortHit && Math.abs(rb.h - lv.price) < 1.0 && rb.c < lv.price && rb.c < rb.o && upperWick > body * 1.5) {
