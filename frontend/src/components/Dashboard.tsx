@@ -297,7 +297,7 @@ function SetupEntryCard({ setup, dir, levels, live }: {
   );
 }
 
-
+function SetupScanner({ live,onSelect,selectedId }:{ live:MarketData|null; onSelect?:(id:string,dir:'long'|'short')=>void; selectedId?:string }) {
   const setups = calcSetups(live);
   if (!setups) return null;
   return (
