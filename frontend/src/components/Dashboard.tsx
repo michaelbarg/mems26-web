@@ -2136,7 +2136,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
               <div style={{ padding:'12px', textAlign:'center', color:'#2d3a4a', fontSize:10 }}>אין sweep events בהיסטוריה</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                {sweepEvents.slice(0, 20).map(ev => {
+                {sweepEvents.slice(0, 20).map((ev:SweepEvent) => {
                   const sel = selectedSweep?.id === ev.id;
                   const isLong = ev.dir === 'long';
                   const time = new Date(ev.ts * 1000).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
