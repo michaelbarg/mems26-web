@@ -246,43 +246,64 @@ async def market_analyze():
     else:
         footprint_summary = "N/A"
 
-    prompt = f"""אתה מערכת AI מתקדמת למסחר יומי ב-MES (Micro E-Mini S&P 500 Futures).
-אתה מומחה ב-3 סטאפים ספציפיים. החלט האם יש הזדמנות מסחר עכשיו.
+    # Last 5 candles summary
+    candles_raw = await redis_lrange(REDIS_CANDLES_KEY, 0, 4)
+    last_5 = []
+    for item in candles_raw:
+        try:
+            c = item
+            while isinstance(c, str):
+                c = json.loads(c)
+            if isinstance(c, dict) and c.get("ts", 0) > 0:
+                last_5.append(c)
+        except Exception:
+            continue
+    last_5.sort(key=lambda x: x.get("ts", 0))
+    last_5_str = " | ".join(
+        f"O={c.get('o',0):.2f} H={c.get('h',0):.2f} L={c.get('l',0):.2f} C={c.get('c',0):.2f} Δ={c.get('delta',0):+.0f}"
+        for c in last_5
+    ) if last_5 else "N/A"
 
-נתוני שוק:
-מחיר={price} | Session={session.get('phase')} | דקה={session.get('min',-1)}
-DayType={day.get('type','?')} | IB_Range={day.get('ib_range',0):.2f} | Gap={day.get('gap_type','FLAT')}
-Extensions={day.get('total_ext',0)} | Returned={day.get('returned',False)}
+    prompt = f"""אתה אנליסט בכיר למסחר ב-MES Futures.
+נתח את הנתונים הבאים וגבש המלצת כניסה מדויקת.
 
-נר 3m: O={bar.get('o')} H={bar.get('h')} L={bar.get('l')} C={bar.get('c')} Delta={bar.get('delta')}
-Pattern: {candle_p.get('bar0')} | prev={candle_p.get('bar1')} | BullEngulf={candle_p.get('bull_engulf')} | BearEngulf={candle_p.get('bear_engulf')}
+נתוני שוק נוכחיים:
+- מחיר: {price}
+- Session: {session.get('phase','?')} | דקה: {session.get('min',-1)}
+- DayType: {day.get('type','?')} | IB_Range: {day.get('ib_range',0):.2f} | Gap: {day.get('gap_type','FLAT')}
+- Delta נר נוכחי: {bar.get('delta',0)}
+- CVD trend: {cvd.get('trend','?')} | CVD d5: {cvd.get('d5',0)} | CVD d20: {cvd.get('d20',0)}
+- Volume יחסי: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
+- VWAP: {vwap.get('value',0)} | מעל: {vwap.get('above',False)} | dist: {vwap_dist:.2f} | pullback: {vwap.get('pullback',False)}
+- POC: {profile.get('poc',0)} | מעל POC: {profile.get('above_poc',False)} | VAH: {profile.get('vah',0)} | VAL: {profile.get('val',0)}
+- PDH: {levels.get('prev_high',0)} | PDL: {levels.get('prev_low',0)} | DO: {levels.get('daily_open',0)}
+- ONH: {levels.get('overnight_high',0)} | ONL: {levels.get('overnight_low',0)}
+- IBH: {session.get('ibh',0)} | IBL: {session.get('ibl',0)} | IB נעול: {session.get('ib_locked',False)}
+- CCI14: {cci.get('cci14',0):.1f} | CCI6: {cci.get('cci6',0):.1f} | trend: {cci.get('trend','?')}
+- Turbo Bull: {cci.get('turbo_bull',False)} | Turbo Bear: {cci.get('turbo_bear',False)}
+- Woodi: PP={woodi.get('pp',0)} R1={woodi.get('r1',0)} R2={woodi.get('r2',0)} S1={woodi.get('s1',0)} S2={woodi.get('s2',0)}
+- Pattern: {candle_p.get('bar0','?')} | prev: {candle_p.get('bar1','?')} | BullEngulf: {candle_p.get('bull_engulf',False)} | BearEngulf: {candle_p.get('bear_engulf',False)}
+- OF: Absorption={of2.get('absorption_bull',False)} | LiqSweepLong={of2.get('liq_sweep_long',False)} | LiqSweepShort={of2.get('liq_sweep_short',False)}
+- Footprint (5 נרות): {footprint_summary}
+- MTF: 15m={mtf.get('m15',{{}}).get('delta',0)} | 30m={mtf.get('m30',{{}}).get('delta',0)} | 60m={mtf.get('m60',{{}}).get('delta',0)}
+- 5 נרות אחרונים: {last_5_str}
 
-CVD: {cvd.get('trend')} | 60m={cvd.get('d20')} | 15m={cvd.get('d5')} | bar={cvd.get('delta')}
-VWAP: {vwap.get('value')} | above={vwap.get('above')} | dist={vwap_dist:.2f} | pullback={vwap.get('pullback')}
-CCI: cci14={cci.get('cci14',0):.1f} | cci6={cci.get('cci6',0):.1f} | trend={cci.get('trend')}
-     TurboBull={cci.get('turbo_bull')} | TurboBear={cci.get('turbo_bear')} | ZLR_Bull={cci.get('zlr_bull')} | ZLR_Bear={cci.get('zlr_bear')}
+כללים קשיחים:
+1. אם סטופ > 8 נקודות → direction: NO_TRADE
+2. אם T1 < 10 נקודות → direction: NO_TRADE
+3. אם rel_vol < 0.8 → confidence מקסימום 50
+4. אם DayType = BALANCED → confidence מקסימום 60
+5. אם אין sweep ברור ב-5 נרות אחרונים → העדף NO_TRADE
 
-Profile: POC={profile.get('poc')} | VAH={profile.get('vah')} | VAL={profile.get('val')} | PrevPOC={profile.get('prev_day_poc')}
-         in_VA={profile.get('in_va')} | above_poc={profile.get('above_poc')}
-IB: H={session.get('ibh')} L={session.get('ibl')} | locked={session.get('ib_locked')}
-    breakout_up={day.get('ib_breakout_up')} | breakout_down={day.get('ib_breakout_down')}
-OR: H={day.get('or_high')} L={day.get('or_low')}
-Woodi: PP={woodi.get('pp')} R1={woodi.get('r1')} R2={woodi.get('r2')} S1={woodi.get('s1')}
-Levels: PDH={levels.get('prev_high')} PDL={levels.get('prev_low')} DO={levels.get('daily_open')} ONH={levels.get('overnight_high')} ONL={levels.get('overnight_low')}
-OF: Absorption={of2.get('absorption_bull')} | LiqSweepLong={of2.get('liq_sweep_long')} | LiqSweepShort={of2.get('liq_sweep_short')} | ImbBull={of2.get('imbalance_bull')} | ImbBear={of2.get('imbalance_bear')}
-Footprint (10 נרות): {footprint_summary}
-RelVol: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
-MTF: 15m={mtf.get('m15',{}).get('delta')} | 30m={mtf.get('m30',{}).get('delta')} | 60m={mtf.get('m60',{}).get('delta')}
+סטאפים מועדפים:
+1. LIQ SWEEP: שבירת רמה (PDH/PDL/ONH/ONL/IBH/IBL) ב-wick, חזרה אגרסיבית עם volume. הטוב ביותר.
+2. VWAP PULLBACK: מגמה ברורה + pullback חלש ל-VWAP + נר היפוך + delta מאשר.
+3. IB BREAKOUT RETEST: פריצת IB + חזרה לגבול + בלימה + המשך.
 
-סטאפים:
-1. LIQ SWEEP: שבירת רמה+חזרה אגרסיבית+volume. אחוז בסיס: 68-75%
-2. VWAP PULLBACK: מגמה+pullback חלש+נר היפוך. אחוז בסיס: 62-70%
-3. IB BREAKOUT RETEST: פריצה+חזרה+בלימה. אחוז בסיס: 58-65%
-
-ניהול: C1=R:R 1:1 | C2=R:R 1:2 | C3=Runner Woodi R1/R2
+ניהול עסקה: C1=50% R:R 1:1 | C2=25% R:R 1:2 | C3=25% Runner Woodi R1/S1
 
 JSON בלבד ללא backticks:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":"LOW/MEDIUM/HIGH/ULTRA","setup":"שם סטאפ בעברית","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rationale":"2-3 משפטים עברית","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":0-100,"setup":"שם הסטאפ","setup_name":"LIQ_SWEEP/VWAP_PB/IB_RETEST","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rr":"1:X","the_box":"low-high","anchor_line":0.0,"order_block":"low-high","invalidation":0.0,"rationale":"2-3 משפטים בעברית — הקשר נפח-מבנה","geometric_notes":"הוראות ציור: rect/line/label","warning":"אזהרות אם יש","time_estimate":"X-Y דקות ל-T1","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -295,7 +316,7 @@ JSON בלבד ללא backticks:
                 },
                 json={
                     "model": "claude-sonnet-4-5",
-                    "max_tokens": 600,
+                    "max_tokens": 800,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )

@@ -7,7 +7,7 @@ const API_URL = 'https://mems26-web.onrender.com';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface Bar { o:number; h:number; l:number; c:number; vol:number; buy:number; sell:number; delta:number; }
-interface Signal { direction:'LONG'|'SHORT'|'NO_TRADE'; score:number; confidence:string; entry:number; stop:number; target1:number; target2:number; target3:number; risk_pts:number; rationale:string; tl_color:string; setup?:string; win_rate?:number; t1_win_rate?:number; t2_win_rate?:number; t3_win_rate?:number; wait_reason?:string; }
+interface Signal { direction:'LONG'|'SHORT'|'NO_TRADE'; score:number; confidence:string|number; entry:number; stop:number; target1:number; target2:number; target3:number; risk_pts:number; rationale:string; tl_color:string; setup?:string; setup_name?:string; win_rate?:number; t1_win_rate?:number; t2_win_rate?:number; t3_win_rate?:number; wait_reason?:string; rr?:string; the_box?:string; anchor_line?:number; order_block?:string; invalidation?:number; geometric_notes?:string; warning?:string; time_estimate?:string; }
 interface MarketData {
   ts:number; price:number; bar:Bar;
   mtf:{ m3:Bar; m15:Bar; m30:Bar; m60:Bar };
@@ -1945,6 +1945,9 @@ function AIAnalysisPanel({signal,signalTime,aiLoading,onAskAI}:{signal?:Signal|n
         <span style={{fontSize:9,color:'#4a5568',marginLeft:'auto'}}>{signalTime}</span>
         <button onClick={onAskAI} style={{padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:700,background:'#1e2738',color:'#6b7280',border:'1px solid #2d3a4a',cursor:'pointer',fontFamily:'inherit',marginLeft:4}}>🔄</button>
       </div>
+      {signal.warning&&<div style={{padding:'6px 14px',borderBottom:'1px solid #1e2738',background:'#1a0000'}}>
+        <div style={{fontSize:11,color:'#f59e0b',direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif'}}>⚠️ {signal.warning}</div>
+      </div>}
       {signal.rationale&&<div style={{padding:'10px 14px',borderBottom:'1px solid #1e2738'}}>
         <div style={{fontSize:9,color:'#4a5568',marginBottom:4,letterSpacing:1}}>ניתוח שוק</div>
         <div style={{fontSize:13,color:'#cbd5e1',lineHeight:1.9,direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif'}}>{signal.rationale}</div>
@@ -1953,8 +1956,8 @@ function AIAnalysisPanel({signal,signalTime,aiLoading,onAskAI}:{signal?:Signal|n
         <div style={{fontSize:9,color:'#f59e0b',marginBottom:3}}>⏳ מה חסר</div>
         <div style={{fontSize:12,color:'#94a3b8',lineHeight:1.8,direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif'}}>{signal.wait_reason}</div>
       </div>}
-      {(signal.entry??0)>0&&<div style={{display:'grid',gridTemplateColumns:'repeat(5,1fr)'}}>
-        {[{l:'כניסה',v:(signal.entry??0).toFixed(2),c:'#f0f6fc'},{l:'סטופ',v:(signal.stop??0).toFixed(2),c:'#ef5350'},{l:'T1',v:(signal.target1??0).toFixed(2),c:'#22c55e'},{l:'T2',v:(signal.target2??0).toFixed(2),c:'#16a34a'},{l:'WR',v:`${signal.win_rate??0}%`,c:col}].map(({l,v,c})=>(
+      {(signal.entry??0)>0&&<div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)'}}>
+        {[{l:'כניסה',v:(signal.entry??0).toFixed(2),c:'#f0f6fc'},{l:'סטופ',v:(signal.stop??0).toFixed(2),c:'#ef5350'},{l:'T1',v:(signal.target1??0).toFixed(2),c:'#22c55e'},{l:'T2',v:(signal.target2??0).toFixed(2),c:'#16a34a'},{l:'R:R',v:signal.rr||`1:${((Math.abs((signal.target1||0)-signal.entry))/Math.max(signal.risk_pts||1,0.25)).toFixed(1)}`,c:'#60a5fa'},{l:'זמן ל-T1',v:signal.time_estimate||'—',c:'#94a3b8'}].map(({l,v,c})=>(
           <div key={l} style={{padding:'7px 4px',textAlign:'center',borderRight:'1px solid #1e2738'}}>
             <div style={{fontSize:9,color:'#4a5568',marginBottom:2}}>{l}</div>
             <div style={{fontSize:11,fontWeight:800,color:c,fontFamily:'monospace'}}>{v}</div>
