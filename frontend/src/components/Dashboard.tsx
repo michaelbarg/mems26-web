@@ -487,21 +487,26 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     const lowerWick = Math.min(rb.o, rb.c) - rb.l;
     const upperWick = rb.h - Math.max(rb.o, rb.c);
     const body = Math.abs(rb.c - rb.o);
+    const totalRange = rb.h - rb.l;
 
     for (const lv of allLevels) {
       // LONG Sweep: wick שבר רמה מלמטה
       if (!longHit && rb.l < lv.price - 0.5) {
-        // Same bar closed above?
-        if (rb.c > lv.price) {
-          longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
-        }
-        // Or next bar closed above? (delayed reversal)
-        else if (nextRb && nextRb.c > lv.price) {
-          longHit = { level: lv.price, levelName: lv.name, bar: nextRb, relVol: rbRelVol, type: 'sweep' };
-        }
-        // Or current price is above? (live reversal in progress)
-        else if (ri > 0 && price > lv.price) {
-          longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+        // Wick ratio: lower wick must be ≥40% of total range
+        const wickRatio = totalRange > 0 ? lowerWick / totalRange : 0;
+        if (wickRatio >= 0.4) {
+          // Same bar closed above?
+          if (rb.c > lv.price) {
+            longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+          }
+          // Or next bar closed above? (delayed reversal)
+          else if (nextRb && nextRb.c > lv.price) {
+            longHit = { level: lv.price, levelName: lv.name, bar: nextRb, relVol: rbRelVol, type: 'sweep' };
+          }
+          // Or current price is above? (live reversal in progress)
+          else if (ri > 0 && price > lv.price) {
+            longHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+          }
         }
       }
       // LONG Rejection: נגע ברמה + hammer
@@ -510,14 +515,18 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
       }
       // SHORT Sweep: wick שבר רמה מלמעלה
       if (!shortHit && rb.h > lv.price + 0.5) {
-        if (rb.c < lv.price) {
-          shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
-        }
-        else if (nextRb && nextRb.c < lv.price) {
-          shortHit = { level: lv.price, levelName: lv.name, bar: nextRb, relVol: rbRelVol, type: 'sweep' };
-        }
-        else if (ri > 0 && price < lv.price) {
-          shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+        // Wick ratio: upper wick must be ≥40% of total range
+        const wickRatio = totalRange > 0 ? upperWick / totalRange : 0;
+        if (wickRatio >= 0.4) {
+          if (rb.c < lv.price) {
+            shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+          }
+          else if (nextRb && nextRb.c < lv.price) {
+            shortHit = { level: lv.price, levelName: lv.name, bar: nextRb, relVol: rbRelVol, type: 'sweep' };
+          }
+          else if (ri > 0 && price < lv.price) {
+            shortHit = { level: lv.price, levelName: lv.name, bar: rb, relVol: rbRelVol, type: 'sweep' };
+          }
         }
       }
       // SHORT Rejection: נגע ברמה + shooting star
@@ -657,19 +666,42 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     return t;
   };
 
+  // ── Sweep-specific checks: wick ratio + CVD divergence ───────────
+  const cvd = live.cvd || {} as any;
+  // LONG: wick ratio of sweep candle
+  const longSweepRange = longHit?.bar ? longHit.bar.h - longHit.bar.l : 0;
+  const longSweepWick = longHit?.bar ? (Math.min(longHit.bar.o, longHit.bar.c) - longHit.bar.l) : 0;
+  const longWickRatio = longSweepRange > 0 ? longSweepWick / longSweepRange : 0;
+  // LONG CVD divergence: price made new low but CVD didn't collapse
+  const longCvdDiv = longHit?.type === 'sweep' && (cvd.d5 || 0) > -50;
+  // SHORT: wick ratio of sweep candle
+  const shortSweepRange = shortHit?.bar ? shortHit.bar.h - shortHit.bar.l : 0;
+  const shortSweepWick = shortHit?.bar ? (shortHit.bar.h - Math.max(shortHit.bar.o, shortHit.bar.c)) : 0;
+  const shortWickRatio = shortSweepRange > 0 ? shortSweepWick / shortSweepRange : 0;
+  // SHORT CVD divergence: price made new high but CVD didn't surge
+  const shortCvdDiv = shortHit?.type === 'sweep' && (cvd.d5 || 0) < 50;
+
   // ── Checks ─────────────────────────────────────────────────────────
   const liqLong = [
     { label: `${typeLabel(longHit?.type||'')} ${longHit?.levelName||''}`, ok: !!longHit, critical: true },
     { label: longHit?.type==='breakout' ? 'פריצה מעלה' : longHit?.type==='approaching' ? 'מתקרב לרמה' : 'מחיר מעל רמה', ok: !!longHit && (longHit.type==='breakout' ? price > longHit.level + 0.5 : longHit.type==='approaching' ? price > longHit.level && price - longHit.level <= 8 : price > longHit.level), critical: true },
     { label: 'Delta > +50',  ok: (bar.delta || 0) > 50, critical: true },
-    { label: 'Vol > 1.2x',   ok: longHit ? longHit.relVol > 1.2 : relVol > 1.2, critical: false },
+    ...(longHit?.type === 'sweep' ? [
+      { label: 'Wick ≥ 40%', ok: longWickRatio >= 0.4, critical: true },
+      { label: 'CVD Divergence', ok: longCvdDiv, critical: true },
+    ] : []),
+    { label: 'Vol > 1.1x',   ok: longHit ? longHit.relVol > 1.1 : relVol > 1.1, critical: false },
     { label: 'נר היפוך',     ok: cp.bull_engulf || cp.bar0 === 'HAMMER' || cp.bar0 === 'BULL_STRONG', critical: false },
   ];
   const liqShort = [
     { label: `${typeLabel(shortHit?.type||'')} ${shortHit?.levelName||''}`, ok: !!shortHit, critical: true },
     { label: shortHit?.type==='breakout' ? 'פריצה מטה' : shortHit?.type==='approaching' ? 'מתקרב לרמה' : 'מחיר מתחת רמה', ok: !!shortHit && (shortHit.type==='breakout' ? price < shortHit.level - 0.5 : shortHit.type==='approaching' ? price < shortHit.level && shortHit.level - price <= 8 : price < shortHit.level), critical: true },
     { label: 'Delta < -50',   ok: (bar.delta || 0) < -50, critical: true },
-    { label: 'Vol > 1.2x',    ok: shortHit ? shortHit.relVol > 1.2 : relVol > 1.2, critical: false },
+    ...(shortHit?.type === 'sweep' ? [
+      { label: 'Wick ≥ 40%', ok: shortWickRatio >= 0.4, critical: true },
+      { label: 'CVD Divergence', ok: shortCvdDiv, critical: true },
+    ] : []),
+    { label: 'Vol > 1.1x',    ok: shortHit ? shortHit.relVol > 1.1 : relVol > 1.1, critical: false },
     { label: 'נר היפוך',      ok: cp.bear_engulf || cp.bar0 === 'SHOOTING_STAR' || cp.bar0 === 'BEAR_STRONG', critical: false },
   ];
 
@@ -689,7 +721,10 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const calcLevels = (dir: 'long' | 'short', hit: SetupHit | null) => {
     if (!hit) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0 };
     const L = dir === 'long';
-    const entry = price;
+    // Sweep: entry on sweep candle high/low, not current price
+    const entry = hit.type === 'sweep'
+      ? (L ? hit.bar.h + 0.25 : hit.bar.l - 0.25)
+      : price;
     const stop = L ? hit.bar.l - 0.25 : hit.bar.h + 0.25;
     const risk = Math.abs(entry - stop);
     const c1 = L ? entry + risk : entry - risk;
