@@ -65,11 +65,101 @@ export default function LightweightChart({
   const deltaRef         = useRef<any>(null);
   const linesRef         = useRef<any[]>([]);
   const rthBgRef         = useRef<any>(null);
+  const canvasRef        = useRef<HTMLCanvasElement>(null);
   const sweepEventsRef   = useRef(sweepEvents);
   const onSweepClickRef  = useRef(onSweepClick);
+  const sweepDataRef     = useRef(sweepData);
   sweepEventsRef.current  = sweepEvents;
   onSweepClickRef.current = onSweepClick;
+  sweepDataRef.current    = sweepData;
   const loadedRef    = useRef(false);
+
+  // ── Sweep Zone canvas overlay drawing ──────────────────────────────
+  const drawSweepZone = useCallback(() => {
+    const canvas = canvasRef.current;
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    const sd = sweepDataRef.current;
+    if (!canvas || !chart || !series) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.parentElement?.getBoundingClientRect();
+    if (!rect) return;
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, rect.width, rect.height);
+
+    if (!sd || sd.entry <= 0) return;
+
+    const ts = chart.timeScale();
+    const x1 = ts.timeToCoordinate(Math.floor(sd.sweepBarTs));
+    const x2 = ts.timeToCoordinate(Math.floor(sd.entryBarTs || sd.sweepBarTs));
+    if (x1 === null || x2 === null) return;
+
+    const isLong = sd.dir === 'long';
+    const entryY = series.priceToCoordinate(sd.entry);
+    const stopY = series.priceToCoordinate(sd.stop);
+    const t1Y = series.priceToCoordinate(sd.t1);
+    const t2Y = series.priceToCoordinate(sd.t2);
+    if (entryY === null || stopY === null || t1Y === null || t2Y === null) return;
+
+    // Zone bounds: x from sweep bar to entry bar + some padding
+    const pad = 60;
+    const xLeft = Math.min(x1, x2) - 10;
+    const xRight = Math.max(x1, x2) + pad;
+    const zoneW = xRight - xLeft;
+
+    // Full sweep zone rectangle (stop → t2)
+    const zoneTop = Math.min(stopY, t2Y);
+    const zoneBot = Math.max(stopY, t2Y);
+    ctx.fillStyle = isLong ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
+    ctx.fillRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
+    ctx.strokeStyle = isLong ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
+
+    // Risk rectangle (entry → stop)
+    const riskTop = Math.min(entryY, stopY);
+    const riskBot = Math.max(entryY, stopY);
+    ctx.fillStyle = 'rgba(239,68,68,0.15)';
+    ctx.fillRect(xLeft, riskTop, zoneW, riskBot - riskTop);
+
+    // Reward rectangle (entry → t2)
+    const rewTop = Math.min(entryY, t2Y);
+    const rewBot = Math.max(entryY, t2Y);
+    ctx.fillStyle = 'rgba(34,197,94,0.1)';
+    ctx.fillRect(xLeft, rewTop, zoneW, rewBot - rewTop);
+
+    // ── Labels ──────────────────────────────────────────────────────
+    const risk = Math.abs(sd.entry - sd.stop);
+    const riskDollar = Math.round(risk * 5); // MES $5/pt
+    const t1pts = Math.abs(sd.t1 - sd.entry);
+    const t2pts = Math.abs(sd.t2 - sd.entry);
+
+    const drawLabel = (text: string, x: number, y: number, bg: string, textCol = '#ffffff') => {
+      ctx.font = '11px JetBrains Mono, monospace';
+      const m = ctx.measureText(text);
+      const pw = 6, ph = 3;
+      ctx.fillStyle = bg;
+      ctx.fillRect(x, y - 7 - ph, m.width + pw * 2, 14 + ph * 2);
+      ctx.fillStyle = textCol;
+      ctx.fillText(text, x + pw, y + 4);
+    };
+
+    const labelX = xLeft + 6;
+    drawLabel('SWEEP ZONE', labelX, zoneTop + 16, '#001a00');
+    drawLabel(`ENTRY ${sd.entry.toFixed(2)}`, labelX, entryY, '#001a00');
+    drawLabel(`STOP ${sd.stop.toFixed(2)} −$${riskDollar}`, labelX, stopY, '#1a0000');
+    drawLabel(`① +${t1pts.toFixed(0)}pt $${Math.round(t1pts * 5)}`, labelX, t1Y, '#001a00');
+    drawLabel(`② +${t2pts.toFixed(0)}pt $${Math.round(t2pts * 5)}`, labelX, t2Y, '#001200');
+  }, []);
 
   const initChart = useCallback(() => {
     if (!containerRef.current || chartRef.current) return;
@@ -174,10 +264,14 @@ export default function LightweightChart({
     const ro = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
+        drawSweepZone();
       }
     });
     ro.observe(containerRef.current);
-  }, [height]);
+
+    // Redraw overlay on scroll/zoom
+    chart.timeScale().subscribeVisibleLogicalRangeChange(() => drawSweepZone());
+  }, [height, drawSweepZone]);
 
   // Load script once
   useEffect(() => {
@@ -461,7 +555,15 @@ export default function LightweightChart({
 
   }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, detectedSetups, liveBar, patterns, selectedPatternId]);
 
+  // Redraw sweep zone overlay when sweepData changes
+  useEffect(() => {
+    drawSweepZone();
+  }, [sweepData, drawSweepZone]);
+
   return (
-    <div ref={containerRef} style={{ width: '100%', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
+    <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
+      <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+    </div>
   );
 }
