@@ -3106,6 +3106,7 @@ export default function Dashboard() {
               patterns={detectPatterns(candles)}
               selectedPatternId={selectedPattern?.id}
               height={undefined}
+              scannedPatterns={scannedPatterns}
               zone={sweepData ? {
                 entry:     sweepData.entry,
                 stop:      sweepData.stop,

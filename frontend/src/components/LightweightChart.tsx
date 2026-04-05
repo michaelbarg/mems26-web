@@ -66,10 +66,11 @@ interface Props {
   selectedPatternId?: string;
   height?: number;
   zone?: SetupZone | null;
+  scannedPatterns?: Array<{pattern:string;direction:string;entry:number;stop:number;t1:number;t2:number;neckline:number;confidence:number;label:string;start_ts:number;end_ts:number}>;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -88,6 +89,8 @@ export default function LightweightChart({
   const loadedRef            = useRef(false);
   const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
   const vpCanvasRef          = useRef<HTMLCanvasElement>(null);
+  const patternLinesRef      = useRef<any[]>([]);
+  const patternTLRef         = useRef<any[]>([]);
 
   // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
   const drawOverlays = useCallback(() => {
@@ -826,6 +829,56 @@ export default function LightweightChart({
   }, [zone, drawZones]);
 
   useEffect(() => { requestAnimationFrame(() => drawVP()); }, [candles, drawVP]);
+
+  const drawPatternLines = useCallback(() => {
+    const chart  = chartRef.current;
+    const series = seriesRef.current;
+    if (!chart || !series) return;
+
+    patternLinesRef.current.forEach(l => { try { series.removePriceLine(l); } catch {} });
+    patternLinesRef.current = [];
+    patternTLRef.current.forEach(s => { try { chart.removeSeries(s); } catch {} });
+    patternTLRef.current = [];
+
+    if (!scannedPatterns || scannedPatterns.length === 0) return;
+    const p = scannedPatterns[0];
+
+    if (p.neckline) {
+      const nl = series.createPriceLine({ price: p.neckline, color: 'rgba(255,215,0,0.85)', lineWidth: 1.5, lineStyle: 2, axisLabelVisible: true, title: `Neck ${p.neckline.toFixed(2)}` });
+      patternLinesRef.current.push(nl);
+    }
+    if (p.stop) {
+      const sl = series.createPriceLine({ price: p.stop, color: 'rgba(233,30,99,0.7)', lineWidth: 1, lineStyle: 1, axisLabelVisible: false, title: 'Support' });
+      patternLinesRef.current.push(sl);
+    }
+    if (p.entry) {
+      const el = series.createPriceLine({ price: p.entry, color: 'rgba(0,230,118,0.9)', lineWidth: 2, lineStyle: 0, axisLabelVisible: true, title: `Entry ${p.entry.toFixed(2)}` });
+      patternLinesRef.current.push(el);
+    }
+
+    if ((p.pattern === 'TRI_ASC' || p.pattern === 'TRI_DESC') && p.start_ts && p.end_ts) {
+      const isAsc = p.pattern === 'TRI_ASC';
+      const upperTL = chart.addLineSeries({ color: isAsc ? 'rgba(233,30,99,0.6)' : 'rgba(233,30,99,0.8)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+      const upperStart = isAsc ? p.neckline : (p.neckline + (p.entry - p.stop) * 0.3);
+      const upperEnd = isAsc ? p.neckline : p.neckline;
+      upperTL.setData([{ time: p.start_ts as any, value: upperStart }, { time: p.end_ts as any, value: upperEnd }]);
+      patternTLRef.current.push(upperTL);
+
+      const lowerTL = chart.addLineSeries({ color: isAsc ? 'rgba(0,188,212,0.8)' : 'rgba(0,188,212,0.6)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+      const lowerStart = p.stop;
+      const lowerEnd = isAsc ? (p.stop + (p.neckline - p.stop) * 0.6) : p.stop;
+      lowerTL.setData([{ time: p.start_ts as any, value: lowerStart }, { time: p.end_ts as any, value: lowerEnd }]);
+      patternTLRef.current.push(lowerTL);
+    }
+
+    if ((p.pattern === 'HS' || p.pattern === 'IHS') && p.start_ts && p.end_ts && p.neckline) {
+      const neckTL = chart.addLineSeries({ color: 'rgba(255,215,0,0.7)', lineWidth: 1.5, lineStyle: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+      neckTL.setData([{ time: p.start_ts as any, value: p.neckline }, { time: p.end_ts as any, value: p.neckline }]);
+      patternTLRef.current.push(neckTL);
+    }
+  }, [scannedPatterns]);
+
+  useEffect(() => { drawPatternLines(); }, [scannedPatterns, drawPatternLines]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
