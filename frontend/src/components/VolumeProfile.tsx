@@ -214,7 +214,7 @@ export function VolumeProfile({
     requestAnimationFrame(draw);
 
     // Redraw on scroll/zoom
-    const unsubTime = chart.timeScale().subscribeVisibleLogicalRangeChange(draw);
+    chart.timeScale().subscribeVisibleLogicalRangeChange(draw);
 
     // Redraw on resize
     const container = canvasRef.current?.parentElement;
@@ -228,7 +228,7 @@ export function VolumeProfile({
     const interval = setInterval(draw, 3000);
 
     return () => {
-      unsubTime();
+      try { chart.timeScale().unsubscribeVisibleLogicalRangeChange(draw); } catch {}
       ro?.disconnect();
       clearInterval(interval);
     };
