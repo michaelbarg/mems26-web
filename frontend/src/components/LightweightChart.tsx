@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { VolumeProfile } from './VolumeProfile';
 
 interface Candle {
   ts: number;
@@ -75,7 +76,7 @@ export default function LightweightChart({
   onSweepClickRef.current = onSweepClick;
   sweepDataRef.current    = sweepData;
   const loadedRef        = useRef(false);
-  const volProfileRef    = useRef<Map<number, {buy: number; sell: number}>>(new Map());
+  const [chartReady, setChartReady] = useState(false);
 
   // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
   const drawOverlays = useCallback(() => {
@@ -97,72 +98,6 @@ export default function LightweightChart({
     canvas.style.height = rect.height + 'px';
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, rect.width, rect.height);
-
-    // ── Volume Profile — horizontal bars at each price level ──────────
-    const vp = volProfileRef.current;
-    if (vp.size > 0) {
-      // Find max total volume for scaling
-      let maxVol = 0;
-      vp.forEach(v => { maxVol = Math.max(maxVol, v.buy + v.sell); });
-
-      if (maxVol > 0) {
-        // Max bar width = 35% of chart width
-        const maxBarW = rect.width * 0.35;
-        // Price scale area is on the right (~60px), draw bars just left of it
-        const barRight = rect.width - 58;
-        // Get row height from price coordinates — use 2.5pt bucket
-        const BUCKET = 2.5;
-
-        const sortedPrices = Array.from(vp.keys()).sort((a, b) => a - b);
-        for (const price of sortedPrices) {
-          const { buy, sell } = vp.get(price)!;
-          const total = buy + sell;
-          if (total === 0) continue;
-
-          const yTop = series.priceToCoordinate(price + BUCKET / 2);
-          const yBot = series.priceToCoordinate(price - BUCKET / 2);
-          if (yTop === null || yBot === null) continue;
-
-          const rowH = Math.max(Math.abs(yBot - yTop) - 1, 2);
-          const y = Math.min(yTop, yBot) + 0.5;
-          const halfH = rowH / 2;
-
-          const barW = (total / maxVol) * maxBarW;
-          const buyW = (buy / total) * barW;
-          const sellW = (sell / total) * barW;
-          const barLeft = barRight - barW;
-
-          // Buy bar (cyan) — top half
-          ctx.fillStyle = 'rgba(0, 188, 212, 0.55)';
-          ctx.fillRect(barRight - buyW, y, buyW, halfH);
-
-          // Sell bar (pink) — bottom half
-          ctx.fillStyle = 'rgba(233, 30, 99, 0.55)';
-          ctx.fillRect(barRight - sellW, y + halfH, sellW, halfH);
-
-          // Thin border between rows
-          ctx.fillStyle = 'rgba(13, 17, 23, 0.4)';
-          ctx.fillRect(barLeft, y + halfH - 0.5, barW, 1);
-        }
-
-        // POC line — price with highest volume
-        let pocPrice = 0, pocVol = 0;
-        vp.forEach((v, p) => { if (v.buy + v.sell > pocVol) { pocVol = v.buy + v.sell; pocPrice = p; } });
-        if (pocPrice > 0) {
-          const pocY = series.priceToCoordinate(pocPrice);
-          if (pocY !== null) {
-            ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([4, 3]);
-            ctx.beginPath();
-            ctx.moveTo(barRight - (pocVol / maxVol) * maxBarW, pocY);
-            ctx.lineTo(barRight, pocY);
-            ctx.stroke();
-            ctx.setLineDash([]);
-          }
-        }
-      }
-    }
 
     // ── Sweep Zone ───────────────────────────────────────────────────
     const sd = sweepDataRef.current;
@@ -324,6 +259,7 @@ export default function LightweightChart({
     deltaRef.current  = delta;
     cvdRef.current    = cvdLine;
     cvdMaRef.current  = cvdMaLine;
+    setChartReady(true);
 
     // RTH background overlay — covers full chart height
     const rthBg = chart.addHistogramSeries({
@@ -444,40 +380,6 @@ export default function LightweightChart({
         });
       }
       deltaRef.current.setData(dData);
-    }
-
-    // ── Volume Profile — aggregate buy/sell by price level ──────────
-    {
-      const BUCKET = 2.5; // 10 ticks per bucket
-      const vpMap = new Map<number, {buy: number; sell: number}>();
-      for (const c of sorted) {
-        let buyVal = c.buy || 0;
-        let sellVal = c.sell || 0;
-        // Fallback: estimate from price action when no real buy/sell
-        if (buyVal + sellVal === 0) {
-          const spread = c.h - c.l;
-          if (spread === 0) { buyVal = 50; sellVal = 50; }
-          else {
-            const buyPct = (c.c - c.l) / spread;
-            buyVal = 100 * buyPct;
-            sellVal = 100 * (1 - buyPct);
-          }
-        }
-        // Distribute volume across price range (low → high) by bucket
-        const lo = Math.floor(c.l / BUCKET) * BUCKET;
-        const hi = Math.ceil(c.h / BUCKET) * BUCKET;
-        const numBuckets = Math.max(1, Math.round((hi - lo) / BUCKET));
-        const buyPer = buyVal / numBuckets;
-        const sellPer = sellVal / numBuckets;
-        for (let p = lo; p <= hi; p += BUCKET) {
-          const key = Math.round(p * 10) / 10;
-          const existing = vpMap.get(key) || { buy: 0, sell: 0 };
-          existing.buy += buyPer;
-          existing.sell += sellPer;
-          vpMap.set(key, existing);
-        }
-      }
-      volProfileRef.current = vpMap;
     }
 
     // CVD (cumulative volume delta) + MA20
@@ -749,6 +651,15 @@ export default function LightweightChart({
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
       <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }} />
+      {chartReady && (
+        <VolumeProfile
+          series={seriesRef.current}
+          chart={chartRef.current}
+          candles={candles}
+          tickSize={0.25}
+          profileWidth={130}
+        />
+      )}
     </div>
   );
 }
