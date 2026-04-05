@@ -521,7 +521,7 @@ async def main():
             loaded_from_file = False
             if os.path.exists(SC_HISTORY_PATH):
                 age_h = time.time() - os.path.getmtime(SC_HISTORY_PATH)
-                if age_h < 7200:  # קובץ עד שעתיים
+                if age_h < 604800:  # קובץ עד שעתיים
                     with open(SC_HISTORY_PATH) as hf:
                         hist = json.load(hf)
                     candles_list = hist.get("candles", [])
@@ -571,6 +571,11 @@ async def main():
                 age = time.time() - os.path.getmtime(SC_JSON_PATH)
                 if age > 30:
                     log.warning(f"Stale ({age:.0f}s)")
+                    wall_ts   = int(time.time())
+                    candle_ts = (wall_ts // CANDLE_INTERVAL) * CANDLE_INTERVAL
+                    if candle.start_ts != 0 and candle_ts > candle.start_ts:
+                        candle = CandleBuilder()
+                        candle.start_ts = candle_ts
                     await asyncio.sleep(1); continue
 
                 price = raw.get("current_price", 0)
@@ -640,6 +645,7 @@ async def main():
                 if now - last_send >= POST_INTERVAL:
                     payload = enrich(raw)
                     payload["current_candle"] = candle.to_dict()
+                    payload["wall_ts"] = int(time.time())
                     await redis_post(http, f"set/{REDIS_KEY}", payload)
                     last_send = now
                     day_type = payload["day"]["type"]
