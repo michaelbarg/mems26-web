@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { VolumeProfile } from './VolumeProfile';
 export interface SetupZone {
   entry:      number;
   stop:       number;
@@ -754,7 +753,6 @@ export default function LightweightChart({
       <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
       <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }} />
       <canvas ref={zoneCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 4 }} />
-      <VolumeProfile chart={chartRef.current} candles={candles ?? []} tickSize={0.25} profileWidth={100} />
     </div>
   );
 }
