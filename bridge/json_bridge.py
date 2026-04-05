@@ -631,14 +631,31 @@ async def main():
 
                 if candle.start_ts == 0:
                     candle.start_ts = candle_ts
-                    candle.update(price, buy, sell, vol)
+                    candle.o = m3.get('o', price)
+                    candle.h = m3.get('h', price)
+                    candle.l = m3.get('l', price)
+                    candle.c = price
+                    candle.buy  = buy
+                    candle.sell = sell
+                    candle.vol  = vol
                 elif candle_ts > candle.start_ts:
                     await save_candle(http, candle, raw)
                     candle = CandleBuilder()
                     candle.start_ts = candle_ts
-                    candle.update(price, buy, sell, vol)
+                    candle.o = m3.get('o', price)
+                    candle.h = m3.get('h', price)
+                    candle.l = m3.get('l', price)
+                    candle.c = price
+                    candle.buy  = buy
+                    candle.sell = sell
+                    candle.vol  = vol
                 else:
-                    candle.update(price, buy, sell, vol)
+                    candle.h = max(candle.h, m3.get('h', price))
+                    candle.l = min(candle.l, m3.get('l', price))
+                    candle.c = price
+                    candle.buy  = buy
+                    candle.sell = sell
+                    candle.vol  = vol
 
                 # ── Send to Redis ─────────────────────────────
                 now = time.time()
