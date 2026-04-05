@@ -325,11 +325,12 @@ export default function LightweightChart({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
-    const TICK = 0.25;
+    const TICK = 2.5;
     const PROFILE_W = 90;
     const priceMap = new Map<number, { buy: number; sell: number }>();
     const round = (p: number) => Math.round(p / TICK) * TICK;
     for (const c of cs) {
+      if (!c.h || !c.l || !c.c || c.h === 0) continue;
       const hi = c.h, lo = c.l, cl = c.c;
       const vol = (c.buy || 0) + (c.sell || 0) || 100;
       const spread = hi - lo;
@@ -834,9 +835,9 @@ export default function LightweightChart({
     drawZones();
   }, [zone, drawZones]);
 
-  // Redraw volume profile when candles change
+  // Redraw volume profile when candles change — delay to let chart render
   useEffect(() => {
-    drawVolumeProfile();
+    requestAnimationFrame(() => drawVolumeProfile());
   }, [candles, drawVolumeProfile]);
 
   return (
