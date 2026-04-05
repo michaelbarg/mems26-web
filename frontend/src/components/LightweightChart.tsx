@@ -335,7 +335,7 @@ export default function LightweightChart({
       rightPriceScale: {
         borderColor:    '#1e2738',
         textColor:      '#94a3b8',
-        scaleMargins:   { top: 0.02, bottom: 0.52 },
+        scaleMargins:   { top: 0.02, bottom: 0.35 },
       },
       timeScale: {
         borderColor:    '#1e2738',
@@ -365,18 +365,7 @@ export default function LightweightChart({
       priceScaleId:    'vol',
     });
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.50, bottom: 0.34 },
-    });
-
-    // Delta (buy - sell) histogram — below volume
-    const delta = chart.addHistogramSeries({
-      priceFormat:     { type: 'volume' },
-      priceScaleId:    'delta',
-      lastValueVisible: false,
-      priceLineVisible: false,
-    });
-    chart.priceScale('delta').applyOptions({
-      scaleMargins: { top: 0.68, bottom: 0.16 },
+      scaleMargins: { top: 0.65, bottom: 0.22 },
     });
 
     // CVD (cumulative volume delta) — bottom band
@@ -388,7 +377,7 @@ export default function LightweightChart({
       priceLineVisible: false,
     });
     chart.priceScale('cvd').applyOptions({
-      scaleMargins: { top: 0.86, bottom: 0.01 },
+      scaleMargins: { top: 0.78, bottom: 0.01 },
     });
 
     // CVD MA20 — dashed overlay
@@ -404,7 +393,6 @@ export default function LightweightChart({
     chartRef.current  = chart;
     seriesRef.current = series;
     volRef.current    = vol;
-    deltaRef.current  = delta;
     cvdRef.current    = cvdLine;
     cvdMaRef.current  = cvdMaLine;
     // RTH background overlay — covers full chart height
