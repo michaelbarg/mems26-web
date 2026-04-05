@@ -3,14 +3,15 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { VolumeProfile } from './VolumeProfile';
 
-export interface TriangleSetup {
-  entry:     number;
-  stop:      number;
-  t1:        number;
-  t2:        number;
-  t3:        number;
-  direction: "LONG" | "SHORT";
-  visible:   boolean;
+export interface SetupZone {
+  entry:      number;
+  stop:       number;
+  t1:         number;
+  t2:         number;
+  t3:         number;
+  direction:  "LONG" | "SHORT";
+  sweepTs:    number;
+  visible:    boolean;
 }
 
 interface Candle {
@@ -64,11 +65,11 @@ interface Props {
   patterns?: Array<{id:string; nameHeb:string; direction:string; confidence:number; keyLevel:number; breakoutLevel?:number; stopLevel?:number; col:string; barIndex?:number}>;
   selectedPatternId?: string;
   height?: number;
-  setup?: TriangleSetup | null;
+  zone?: SetupZone | null;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, setup
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -87,7 +88,7 @@ export default function LightweightChart({
   onSweepClickRef.current = onSweepClick;
   sweepDataRef.current    = sweepData;
   const loadedRef            = useRef(false);
-  const triangleCanvasRef   = useRef<HTMLCanvasElement>(null);
+  const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
   const [chartReady, setChartReady] = useState(false);
 
   // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
@@ -173,19 +174,19 @@ export default function LightweightChart({
     }
   }, []);
 
-  // ── Triangle overlay drawing ───────────────────────────────────────
-  const setupRef = useRef(setup);
-  setupRef.current = setup;
+  // ── Setup Zones heatmap overlay ─────────────────────────────────────
+  const zoneRef = useRef(zone);
+  zoneRef.current = zone;
 
-  const drawTriangle = useCallback(() => {
-    const canvas = triangleCanvasRef.current;
+  const drawZones = useCallback(() => {
+    const canvas = zoneCanvasRef.current;
     const series = seriesRef.current;
-    const cntr = canvas?.parentElement;
+    const container = canvas?.parentElement;
 
-    if (!canvas || !cntr) return;
+    if (!canvas || !container) return;
 
-    const W = cntr.clientWidth;
-    const H = cntr.clientHeight;
+    const W = container.clientWidth;
+    const H = container.clientHeight;
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr;
     canvas.height = H * dpr;
@@ -197,118 +198,91 @@ export default function LightweightChart({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
 
-    const s = setupRef.current;
-    if (!series || !s || !s.visible) return;
+    const z = zoneRef.current;
+    if (!series || !z || !z.visible) return;
 
-    const py = (price: number): number | null => {
+    const p2y = (price: number): number | null => {
       try { return series.priceToCoordinate(price); }
       catch { return null; }
     };
 
-    const { entry, stop, t1, t2, t3, direction } = s;
-    const entY = py(entry), stopY = py(stop);
-    const t1Y = py(t1), t2Y = py(t2), t3Y = py(t3);
-    if (entY === null || stopY === null || t3Y === null) return;
+    const { entry, stop, t1, t2, t3, direction } = z;
+    const yEnt = p2y(entry), yStp = p2y(stop);
+    const yT1 = p2y(t1), yT2 = p2y(t2), yT3 = p2y(t3);
+    if (yEnt === null || yStp === null || yT3 === null) return;
 
     const scaleW = 72;
-    const chartW = W - scaleW;
-    const apexX = chartW * 0.22;
-    const maxW = chartW * 0.70;
+    const zW = W - scaleW;
 
-    const risk = Math.abs(entry - stop);
-    const rwd3 = Math.abs(t3 - entry);
-    if (risk === 0 || rwd3 === 0) return;
-
-    const wReward = (p: number) => maxW * Math.min(Math.abs(p - entry) / rwd3, 1);
-    const wRisk = (p: number) => maxW * 0.22 * Math.min(Math.abs(p - entry) / risk, 1);
-
-    // ── Reward triangle ──────────────────────────
-    const w3 = wReward(t3);
-    const g = ctx.createLinearGradient(0, Math.max(entY, t3Y), 0, Math.min(entY, t3Y));
-    if (direction === "LONG") {
-      g.addColorStop(0, "rgba(0,188,212,0.00)");
-      g.addColorStop(0.5, "rgba(0,188,212,0.07)");
-      g.addColorStop(1, "rgba(0,188,212,0.20)");
-    } else {
-      g.addColorStop(0, "rgba(0,188,212,0.20)");
-      g.addColorStop(0.5, "rgba(0,188,212,0.07)");
-      g.addColorStop(1, "rgba(0,188,212,0.00)");
-    }
-
-    ctx.beginPath();
-    ctx.moveTo(apexX, entY);
-    ctx.lineTo(apexX - w3, t3Y);
-    ctx.lineTo(apexX + w3, t3Y);
-    ctx.closePath();
-    ctx.fillStyle = g;
-    ctx.fill();
-
-    // Edges
-    ctx.strokeStyle = "rgba(0,188,212,0.45)";
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([]);
-    ctx.beginPath(); ctx.moveTo(apexX, entY); ctx.lineTo(apexX - w3, t3Y); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(apexX, entY); ctx.lineTo(apexX + w3, t3Y); ctx.stroke();
-
-    // T3 base
-    ctx.strokeStyle = "rgba(0,188,212,0.85)";
-    ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.moveTo(apexX - w3, t3Y); ctx.lineTo(apexX + w3, t3Y); ctx.stroke();
-
-    // ── Risk triangle ────────────────────────────
-    const wS = wRisk(stop);
-    ctx.beginPath();
-    ctx.moveTo(apexX, entY);
-    ctx.lineTo(apexX - wS, stopY);
-    ctx.lineTo(apexX + wS, stopY);
-    ctx.closePath();
-    ctx.fillStyle = "rgba(233,30,99,0.10)";
-    ctx.fill();
-    ctx.strokeStyle = "rgba(233,30,99,0.55)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    // ── T1, T2 dashed lines ─────────────────────
-    ([[t1Y, t1, "rgba(0,188,212,0.55)"], [t2Y, t2, "rgba(0,188,212,0.75)"]] as [number|null, number, string][]).forEach(([y, p, col]) => {
-      if (y === null) return;
-      const w = wReward(p);
-      ctx.strokeStyle = col; ctx.lineWidth = 1;
-      ctx.setLineDash([5, 4]);
-      ctx.beginPath(); ctx.moveTo(apexX - w, y); ctx.lineTo(apexX + w, y); ctx.stroke();
-      ctx.setLineDash([]);
+    // ── Reward zones (entry → T3) — 3 layers increasing intensity ──
+    const rewardZones: [number | null, number | null, string][] = [
+      [yEnt, yT1, "rgba(0,188,212,0.07)"],
+      [yT1, yT2, "rgba(0,188,212,0.13)"],
+      [yT2, yT3, "rgba(0,188,212,0.21)"],
+    ];
+    rewardZones.forEach(([ya, yb, color]) => {
+      if (ya === null || yb === null) return;
+      const top = Math.min(ya, yb);
+      const bot = Math.max(ya, yb);
+      ctx.fillStyle = color;
+      ctx.fillRect(0, top, zW, bot - top);
+      ctx.fillStyle = color.replace(/[\d.]+\)$/, "0.7)");
+      ctx.fillRect(0, top, 3, bot - top);
     });
 
-    // ── Labels ──────────────────────────────────
-    const lbl = (y: number|null, x: number, l1: string, l2: string, col: string) => {
+    // ── Risk zone (entry → stop) — gradient ──
+    {
+      const top = Math.min(yEnt, yStp);
+      const bot = Math.max(yEnt, yStp);
+      const gRisk = ctx.createLinearGradient(0, top, 0, bot);
+      if (direction === "LONG") {
+        gRisk.addColorStop(0, "rgba(233,30,99,0.05)");
+        gRisk.addColorStop(1, "rgba(233,30,99,0.18)");
+      } else {
+        gRisk.addColorStop(0, "rgba(233,30,99,0.18)");
+        gRisk.addColorStop(1, "rgba(233,30,99,0.05)");
+      }
+      ctx.fillStyle = gRisk;
+      ctx.fillRect(0, top, zW, bot - top);
+      ctx.fillStyle = "rgba(233,30,99,0.7)";
+      ctx.fillRect(0, top, 3, bot - top);
+    }
+
+    // ── Border lines ──
+    const risk = Math.abs(entry - stop);
+    const borders: [number | null, string, number][] = [
+      [yT3, "rgba(0,188,212,0.85)", 1.5],
+      [yT2, "rgba(0,188,212,0.55)", 0.8],
+      [yT1, "rgba(0,188,212,0.40)", 0.8],
+      [yEnt, "rgba(255,255,255,0.85)", 2],
+      [yStp, "rgba(233,30,99,0.85)", 1.5],
+    ];
+    borders.forEach(([y, color, lw]) => {
       if (y === null) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = lw;
+      ctx.setLineDash([]);
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(zW, y); ctx.stroke();
+    });
+
+    // ── Labels ──
+    const labels: [number | null, string, string, string][] = [
+      [yT3, `T3  ${t3.toFixed(2)}`, `R:R ${(Math.abs(t3 - entry) / risk).toFixed(1)}:1`, "rgba(0,210,220,0.9)"],
+      [yT2, `T2  ${t2.toFixed(2)}`, `R:R ${(Math.abs(t2 - entry) / risk).toFixed(1)}:1`, "rgba(0,188,212,0.8)"],
+      [yT1, `T1  ${t1.toFixed(2)}`, `R:R ${(Math.abs(t1 - entry) / risk).toFixed(1)}:1`, "rgba(0,170,200,0.7)"],
+      [yEnt, `ENT ${entry.toFixed(2)}`, direction === "LONG" ? "LONG" : "SHORT", "rgba(255,255,255,0.9)"],
+      [yStp, `STP ${stop.toFixed(2)}`, `${risk.toFixed(2)} pt`, "rgba(233,30,99,0.9)"],
+    ];
+    labels.forEach(([y, line1, line2, color]) => {
+      if (y === null) return;
+      ctx.font = "bold 10px monospace";
+      ctx.fillStyle = color;
       ctx.textAlign = "left";
-      ctx.font = "bold 10px monospace"; ctx.fillStyle = col;
-      ctx.fillText(l1, x + 8, y - 2);
-      ctx.font = "9px monospace"; ctx.fillStyle = col.replace(/[\d.]+\)$/, "0.55)");
-      ctx.fillText(l2, x + 8, y + 10);
-    };
-    const rr = (p: number) => (Math.abs(p - entry) / risk).toFixed(1);
-
-    lbl(t3Y, apexX + w3, `T3  ${t3.toFixed(2)}`, `R:R ${rr(t3)}:1 runner`, "rgba(0,210,220,0.95)");
-    lbl(t2Y, apexX + wReward(t2), `T2  ${t2.toFixed(2)}`, `R:R ${rr(t2)}:1 25%`, "rgba(0,188,212,0.85)");
-    lbl(t1Y, apexX + wReward(t1), `T1  ${t1.toFixed(2)}`, `R:R ${rr(t1)}:1 50%`, "rgba(0,170,200,0.75)");
-    lbl(stopY, apexX + wS, `STP ${stop.toFixed(2)}`, `Risk ${risk.toFixed(2)} pt`, "rgba(233,30,99,0.90)");
-
-    // Entry dot
-    ctx.fillStyle = "#fff";
-    ctx.beginPath(); ctx.arc(apexX, entY, 4, 0, Math.PI * 2); ctx.fill();
-    ctx.font = "bold 10px monospace"; ctx.fillStyle = "#ffffff"; ctx.textAlign = "left";
-    ctx.fillText(`ENT  ${entry.toFixed(2)}`, apexX + 10, entY + 4);
-
-    // Direction arrow
-    const dir = direction === "LONG" ? -1 : 1;
-    ctx.fillStyle = direction === "LONG" ? "#00c853" : "#e91e63";
-    ctx.beginPath();
-    ctx.moveTo(apexX, entY + dir * 10);
-    ctx.lineTo(apexX - 6, entY + dir * 22);
-    ctx.lineTo(apexX + 6, entY + dir * 22);
-    ctx.closePath();
-    ctx.fill();
+      ctx.fillText(line1, 8, y - 3);
+      ctx.font = "9px monospace";
+      ctx.fillStyle = color.replace(/[\d.]+\)$/, "0.55)");
+      ctx.fillText(line2, 8, y + 9);
+    });
   }, []);
 
   const initChart = useCallback(() => {
@@ -439,7 +413,7 @@ export default function LightweightChart({
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
         drawOverlays();
-        drawTriangle();
+        drawZones();
       }
     });
     ro.observe(containerRef.current);
@@ -447,9 +421,9 @@ export default function LightweightChart({
     // Redraw overlays on scroll/zoom
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       drawOverlays();
-      drawTriangle();
+      drawZones();
     });
-  }, [height, drawOverlays, drawTriangle]);
+  }, [height, drawOverlays, drawZones]);
 
   // Load script once
   useEffect(() => {
@@ -801,10 +775,10 @@ export default function LightweightChart({
     drawOverlays();
   }, [sweepData, drawOverlays]);
 
-  // Redraw triangle when setup changes
+  // Redraw zones when zone changes
   useEffect(() => {
-    drawTriangle();
-  }, [setup, drawTriangle]);
+    drawZones();
+  }, [zone, drawZones]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
@@ -819,7 +793,7 @@ export default function LightweightChart({
           profileWidth={130}
         />
       )}
-      <canvas ref={triangleCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 6 }} />
+      <canvas ref={zoneCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 4 }} />
     </div>
   );
 }

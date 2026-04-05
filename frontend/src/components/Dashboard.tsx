@@ -3085,13 +3085,14 @@ export default function Dashboard() {
               patterns={detectPatterns(candles)}
               selectedPatternId={selectedPattern?.id}
               height={undefined}
-              setup={sweepData ? {
+              zone={sweepData ? {
                 entry:     sweepData.entry,
                 stop:      sweepData.stop,
                 t1:        sweepData.t1,
                 t2:        sweepData.t2,
                 t3:        sweepData.t3 ?? (sweepData.dir === 'long' ? sweepData.t2 + Math.abs(sweepData.t2 - sweepData.entry) : sweepData.t2 - Math.abs(sweepData.t2 - sweepData.entry)),
                 direction: sweepData.dir === 'long' ? 'LONG' : 'SHORT',
+                sweepTs:   sweepData.sweepBarTs,
                 visible:   sweepData.entry > 0,
               } : null}
             />
