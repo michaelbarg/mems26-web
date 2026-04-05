@@ -130,7 +130,7 @@ export function VolumeProfile({
       ? Math.max(2, Math.abs(testY2 - testY1) - 1)
       : 3;
 
-    const xRight = w - 4; // snug to right edge
+    const xRight = w - 72; // left of price scale (~70px wide)
 
     for (const price of allPrices) {
       const vol = priceMap.get(price)!;
