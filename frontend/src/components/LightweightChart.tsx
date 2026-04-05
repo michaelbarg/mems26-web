@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { VolumeProfile } from './VolumeProfile';
-
+import { useEffect, useRef, useCallback } from 'react';
 export interface SetupZone {
   entry:      number;
   stop:       number;
@@ -91,7 +89,6 @@ export default function LightweightChart({
   sweepDataRef.current    = sweepData;
   const loadedRef            = useRef(false);
   const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
-  const [chartReady, setChartReady] = useState(false);
 
   // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
   const drawOverlays = useCallback(() => {
@@ -409,8 +406,6 @@ export default function LightweightChart({
     deltaRef.current  = delta;
     cvdRef.current    = cvdLine;
     cvdMaRef.current  = cvdMaLine;
-    setChartReady(true);
-
     // RTH background overlay — covers full chart height
     const rthBg = chart.addHistogramSeries({
       priceScaleId:    'rth-bg',
@@ -810,15 +805,6 @@ export default function LightweightChart({
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
       <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }} />
-      {chartReady && (
-        <VolumeProfile
-          series={seriesRef.current}
-          chart={chartRef.current}
-          candles={candles}
-          tickSize={0.25}
-          profileWidth={130}
-        />
-      )}
       <canvas ref={zoneCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 4 }} />
     </div>
   );
