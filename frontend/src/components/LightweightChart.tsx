@@ -74,8 +74,6 @@ export default function LightweightChart({
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
   const seriesRef        = useRef<any>(null);
-  const volRef           = useRef<any>(null);
-  const deltaRef         = useRef<any>(null);
   const cvdRef           = useRef<any>(null);
   const cvdMaRef         = useRef<any>(null);
   const linesRef         = useRef<any[]>([]);
@@ -334,7 +332,7 @@ export default function LightweightChart({
       rightPriceScale: {
         borderColor:    '#1e2738',
         textColor:      '#94a3b8',
-        scaleMargins:   { top: 0.02, bottom: 0.35 },
+        scaleMargins:   { top: 0.02, bottom: 0.25 },
       },
       timeScale: {
         borderColor:    '#1e2738',
@@ -356,15 +354,6 @@ export default function LightweightChart({
       borderVisible:    false,
       priceLineVisible: false,
       lastValueVisible: true,
-    });
-
-    // Volume (buy/sell) — middle band
-    const vol = chart.addHistogramSeries({
-      priceFormat:     { type: 'volume' },
-      priceScaleId:    'vol',
-    });
-    chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.65, bottom: 0.22 },
     });
 
     // CVD (cumulative volume delta) — bottom band
@@ -391,7 +380,6 @@ export default function LightweightChart({
 
     chartRef.current  = chart;
     seriesRef.current = series;
-    volRef.current    = vol;
     cvdRef.current    = cvdLine;
     cvdMaRef.current  = cvdMaLine;
     // RTH background overlay — covers full chart height
@@ -450,12 +438,12 @@ export default function LightweightChart({
     script.onload = initChart;
     document.head.appendChild(script);
 
-    return () => { chartRef.current?.remove(); chartRef.current = null; seriesRef.current = null; volRef.current = null; };
+    return () => { chartRef.current?.remove(); chartRef.current = null; seriesRef.current = null; };
   }, [initChart]);
 
   // Update candles
   useEffect(() => {
-    if (!seriesRef.current || !volRef.current) return;
+    if (!seriesRef.current) return;
     if (candles.length === 0) return;
 
     // RTH = 9:30–16:00 ET (EDT=-4h, EST=-5h; אפרוקסימציה: UTC-4 בקיץ)
@@ -474,12 +462,6 @@ export default function LightweightChart({
       open:  c.o, high: c.h, low: c.l, close: c.c,
     }));
 
-    const vData = sorted.map(c => ({
-      time:  Math.floor(c.ts) as any,
-      value: (c.buy || 0) + (c.sell || 0),
-      color: (c.c >= c.o) ? '#26a69a44' : '#ef535044',
-    }));
-
     // Add/update live bar
     if (liveBar) {
       const lb = {
@@ -491,33 +473,10 @@ export default function LightweightChart({
         cData[cData.length - 1] = lb;
       } else {
         cData.push(lb);
-        vData.push({ time: Math.floor(liveBar.ts) as any, value: 0, color: '#26a69a44' });
       }
     }
 
     seriesRef.current.setData(cData);
-    volRef.current.setData(vData);
-
-    // Delta bar (buy - sell per candle)
-    if (deltaRef.current) {
-      const dData = sorted.map(c => {
-        const d = (c.buy || 0) - (c.sell || 0);
-        return {
-          time:  Math.floor(c.ts) as any,
-          value: d,
-          color: d >= 0 ? '#26a69a99' : '#ef535099',
-        };
-      });
-      if (liveBar) {
-        const ld = (liveBar.buy || 0) - (liveBar.sell || 0);
-        dData.push({
-          time:  Math.floor(liveBar.ts) as any,
-          value: ld,
-          color: ld >= 0 ? '#26a69a99' : '#ef535099',
-        });
-      }
-      deltaRef.current.setData(dData);
-    }
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
