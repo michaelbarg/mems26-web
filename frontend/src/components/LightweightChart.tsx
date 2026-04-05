@@ -74,14 +74,14 @@ export default function LightweightChart({
   sweepEventsRef.current  = sweepEvents;
   onSweepClickRef.current = onSweepClick;
   sweepDataRef.current    = sweepData;
-  const loadedRef    = useRef(false);
+  const loadedRef        = useRef(false);
+  const volProfileRef    = useRef<Map<number, {buy: number; sell: number}>>(new Map());
 
-  // ── Sweep Zone canvas overlay drawing ──────────────────────────────
-  const drawSweepZone = useCallback(() => {
+  // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
+  const drawOverlays = useCallback(() => {
     const canvas = canvasRef.current;
     const chart = chartRef.current;
     const series = seriesRef.current;
-    const sd = sweepDataRef.current;
     if (!canvas || !chart || !series) return;
 
     const ctx = canvas.getContext('2d');
@@ -98,69 +98,132 @@ export default function LightweightChart({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    if (!sd || sd.entry <= 0) return;
+    // ── Volume Profile — horizontal bars at each price level ──────────
+    const vp = volProfileRef.current;
+    if (vp.size > 0) {
+      // Find max total volume for scaling
+      let maxVol = 0;
+      vp.forEach(v => { maxVol = Math.max(maxVol, v.buy + v.sell); });
 
-    const ts = chart.timeScale();
-    const x1 = ts.timeToCoordinate(Math.floor(sd.sweepBarTs));
-    const x2 = ts.timeToCoordinate(Math.floor(sd.entryBarTs || sd.sweepBarTs));
-    if (x1 === null || x2 === null) return;
+      if (maxVol > 0) {
+        // Max bar width = 35% of chart width
+        const maxBarW = rect.width * 0.35;
+        // Price scale area is on the right (~60px), draw bars just left of it
+        const barRight = rect.width - 58;
+        // Get row height from price coordinates — use 2.5pt bucket
+        const BUCKET = 2.5;
 
-    const isLong = sd.dir === 'long';
-    const entryY = series.priceToCoordinate(sd.entry);
-    const stopY = series.priceToCoordinate(sd.stop);
-    const t1Y = series.priceToCoordinate(sd.t1);
-    const t2Y = series.priceToCoordinate(sd.t2);
-    if (entryY === null || stopY === null || t1Y === null || t2Y === null) return;
+        const sortedPrices = Array.from(vp.keys()).sort((a, b) => a - b);
+        for (const price of sortedPrices) {
+          const { buy, sell } = vp.get(price)!;
+          const total = buy + sell;
+          if (total === 0) continue;
 
-    // Zone bounds: x from sweep bar to entry bar + some padding
-    const pad = 60;
-    const xLeft = Math.min(x1, x2) - 10;
-    const xRight = Math.max(x1, x2) + pad;
-    const zoneW = xRight - xLeft;
+          const yTop = series.priceToCoordinate(price + BUCKET / 2);
+          const yBot = series.priceToCoordinate(price - BUCKET / 2);
+          if (yTop === null || yBot === null) continue;
 
-    // Full sweep zone rectangle (stop → t2)
-    const zoneTop = Math.min(stopY, t2Y);
-    const zoneBot = Math.max(stopY, t2Y);
-    ctx.fillStyle = isLong ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
-    ctx.fillRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
-    ctx.strokeStyle = isLong ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
+          const rowH = Math.max(Math.abs(yBot - yTop) - 1, 2);
+          const y = Math.min(yTop, yBot) + 0.5;
+          const halfH = rowH / 2;
 
-    // Risk rectangle (entry → stop)
-    const riskTop = Math.min(entryY, stopY);
-    const riskBot = Math.max(entryY, stopY);
-    ctx.fillStyle = 'rgba(239,68,68,0.15)';
-    ctx.fillRect(xLeft, riskTop, zoneW, riskBot - riskTop);
+          const barW = (total / maxVol) * maxBarW;
+          const buyW = (buy / total) * barW;
+          const sellW = (sell / total) * barW;
+          const barLeft = barRight - barW;
 
-    // Reward rectangle (entry → t2)
-    const rewTop = Math.min(entryY, t2Y);
-    const rewBot = Math.max(entryY, t2Y);
-    ctx.fillStyle = 'rgba(34,197,94,0.1)';
-    ctx.fillRect(xLeft, rewTop, zoneW, rewBot - rewTop);
+          // Buy bar (cyan) — top half
+          ctx.fillStyle = 'rgba(0, 188, 212, 0.55)';
+          ctx.fillRect(barRight - buyW, y, buyW, halfH);
 
-    // ── Labels ──────────────────────────────────────────────────────
-    const risk = Math.abs(sd.entry - sd.stop);
-    const riskDollar = Math.round(risk * 5); // MES $5/pt
-    const t1pts = Math.abs(sd.t1 - sd.entry);
-    const t2pts = Math.abs(sd.t2 - sd.entry);
+          // Sell bar (pink) — bottom half
+          ctx.fillStyle = 'rgba(233, 30, 99, 0.55)';
+          ctx.fillRect(barRight - sellW, y + halfH, sellW, halfH);
 
-    const drawLabel = (text: string, x: number, y: number, bg: string, textCol = '#ffffff') => {
-      ctx.font = '11px JetBrains Mono, monospace';
-      const m = ctx.measureText(text);
-      const pw = 6, ph = 3;
-      ctx.fillStyle = bg;
-      ctx.fillRect(x, y - 7 - ph, m.width + pw * 2, 14 + ph * 2);
-      ctx.fillStyle = textCol;
-      ctx.fillText(text, x + pw, y + 4);
-    };
+          // Thin border between rows
+          ctx.fillStyle = 'rgba(13, 17, 23, 0.4)';
+          ctx.fillRect(barLeft, y + halfH - 0.5, barW, 1);
+        }
 
-    const labelX = xLeft + 6;
-    drawLabel('SWEEP ZONE', labelX, zoneTop + 16, '#001a00');
-    drawLabel(`ENTRY ${sd.entry.toFixed(2)}`, labelX, entryY, '#001a00');
-    drawLabel(`STOP ${sd.stop.toFixed(2)} −$${riskDollar}`, labelX, stopY, '#1a0000');
-    drawLabel(`① +${t1pts.toFixed(0)}pt $${Math.round(t1pts * 5)}`, labelX, t1Y, '#001a00');
-    drawLabel(`② +${t2pts.toFixed(0)}pt $${Math.round(t2pts * 5)}`, labelX, t2Y, '#001200');
+        // POC line — price with highest volume
+        let pocPrice = 0, pocVol = 0;
+        vp.forEach((v, p) => { if (v.buy + v.sell > pocVol) { pocVol = v.buy + v.sell; pocPrice = p; } });
+        if (pocPrice > 0) {
+          const pocY = series.priceToCoordinate(pocPrice);
+          if (pocY !== null) {
+            ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(barRight - (pocVol / maxVol) * maxBarW, pocY);
+            ctx.lineTo(barRight, pocY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+    }
+
+    // ── Sweep Zone ───────────────────────────────────────────────────
+    const sd = sweepDataRef.current;
+    if (sd && sd.entry > 0) {
+      const ts = chart.timeScale();
+      const x1 = ts.timeToCoordinate(Math.floor(sd.sweepBarTs));
+      const x2 = ts.timeToCoordinate(Math.floor(sd.entryBarTs || sd.sweepBarTs));
+      if (x1 !== null && x2 !== null) {
+        const isLong = sd.dir === 'long';
+        const entryY = series.priceToCoordinate(sd.entry);
+        const stopY = series.priceToCoordinate(sd.stop);
+        const t1Y = series.priceToCoordinate(sd.t1);
+        const t2Y = series.priceToCoordinate(sd.t2);
+        if (entryY !== null && stopY !== null && t1Y !== null && t2Y !== null) {
+          const pad = 60;
+          const xLeft = Math.min(x1, x2) - 10;
+          const xRight = Math.max(x1, x2) + pad;
+          const zoneW = xRight - xLeft;
+
+          const zoneTop = Math.min(stopY, t2Y);
+          const zoneBot = Math.max(stopY, t2Y);
+          ctx.fillStyle = isLong ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
+          ctx.fillRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
+          ctx.strokeStyle = isLong ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
+
+          ctx.fillStyle = 'rgba(239,68,68,0.15)';
+          const riskTop = Math.min(entryY, stopY);
+          const riskBot = Math.max(entryY, stopY);
+          ctx.fillRect(xLeft, riskTop, zoneW, riskBot - riskTop);
+
+          ctx.fillStyle = 'rgba(34,197,94,0.1)';
+          const rewTop = Math.min(entryY, t2Y);
+          const rewBot = Math.max(entryY, t2Y);
+          ctx.fillRect(xLeft, rewTop, zoneW, rewBot - rewTop);
+
+          const risk = Math.abs(sd.entry - sd.stop);
+          const riskDollar = Math.round(risk * 5);
+          const t1pts = Math.abs(sd.t1 - sd.entry);
+          const t2pts = Math.abs(sd.t2 - sd.entry);
+
+          const drawLabel = (text: string, x: number, y: number, bg: string, textCol = '#ffffff') => {
+            ctx.font = '11px JetBrains Mono, monospace';
+            const m = ctx.measureText(text);
+            const pw = 6, ph = 3;
+            ctx.fillStyle = bg;
+            ctx.fillRect(x, y - 7 - ph, m.width + pw * 2, 14 + ph * 2);
+            ctx.fillStyle = textCol;
+            ctx.fillText(text, x + pw, y + 4);
+          };
+
+          const labelX = xLeft + 6;
+          drawLabel('SWEEP ZONE', labelX, zoneTop + 16, '#001a00');
+          drawLabel(`ENTRY ${sd.entry.toFixed(2)}`, labelX, entryY, '#001a00');
+          drawLabel(`STOP ${sd.stop.toFixed(2)} −$${riskDollar}`, labelX, stopY, '#1a0000');
+          drawLabel(`① +${t1pts.toFixed(0)}pt $${Math.round(t1pts * 5)}`, labelX, t1Y, '#001a00');
+          drawLabel(`② +${t2pts.toFixed(0)}pt $${Math.round(t2pts * 5)}`, labelX, t2Y, '#001200');
+        }
+      }
+    }
   }, []);
 
   const initChart = useCallback(() => {
@@ -289,14 +352,14 @@ export default function LightweightChart({
     const ro = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
-        drawSweepZone();
+        drawOverlays();
       }
     });
     ro.observe(containerRef.current);
 
     // Redraw overlay on scroll/zoom
-    chart.timeScale().subscribeVisibleLogicalRangeChange(() => drawSweepZone());
-  }, [height, drawSweepZone]);
+    chart.timeScale().subscribeVisibleLogicalRangeChange(() => drawOverlays());
+  }, [height, drawOverlays]);
 
   // Load script once
   useEffect(() => {
@@ -383,6 +446,30 @@ export default function LightweightChart({
       deltaRef.current.setData(dData);
     }
 
+    // ── Volume Profile — aggregate buy/sell by price level ──────────
+    {
+      const BUCKET = 2.5; // 10 ticks per bucket
+      const vpMap = new Map<number, {buy: number; sell: number}>();
+      for (const c of sorted) {
+        const buyVal = c.buy || 0;
+        const sellVal = c.sell || 0;
+        // Distribute volume across price range (low → high) by bucket
+        const lo = Math.floor(c.l / BUCKET) * BUCKET;
+        const hi = Math.ceil(c.h / BUCKET) * BUCKET;
+        const numBuckets = Math.max(1, Math.round((hi - lo) / BUCKET));
+        const buyPer = buyVal / numBuckets;
+        const sellPer = sellVal / numBuckets;
+        for (let p = lo; p <= hi; p += BUCKET) {
+          const key = Math.round(p * 10) / 10; // avoid float issues
+          const existing = vpMap.get(key) || { buy: 0, sell: 0 };
+          existing.buy += buyPer;
+          existing.sell += sellPer;
+          vpMap.set(key, existing);
+        }
+      }
+      volProfileRef.current = vpMap;
+    }
+
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
       let cvd = 0;
@@ -446,7 +533,10 @@ export default function LightweightChart({
     // RTH background — disabled
     // if (rthBgRef.current) { ... }
 
-  }, [candles, liveBar, livePrice]);
+    // Redraw overlays (volume profile + sweep zone)
+    drawOverlays();
+
+  }, [candles, liveBar, livePrice, drawOverlays]);
 
   // Update live price only (no full redraw)
   useEffect(() => {
@@ -642,8 +732,8 @@ export default function LightweightChart({
 
   // Redraw sweep zone overlay when sweepData changes
   useEffect(() => {
-    drawSweepZone();
-  }, [sweepData, drawSweepZone]);
+    drawOverlays();
+  }, [sweepData, drawOverlays]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
