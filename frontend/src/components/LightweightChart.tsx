@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { VolumeDeltaBars, CVDChart } from './VolumeDeltaPanel';
 
 interface Candle {
   ts: number;
@@ -561,9 +562,21 @@ export default function LightweightChart({
   }, [sweepData, drawSweepZone]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
-      <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+    <div>
+      <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
+        <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
+        <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+      </div>
+      {candles && candles.length > 0 && (
+        <div className="border-t border-green-900/40">
+          <VolumeDeltaBars candles={candles} height={110} />
+        </div>
+      )}
+      {candles && candles.length > 0 && (
+        <div className="border-t border-green-900/40">
+          <CVDChart candles={candles} height={110} />
+        </div>
+      )}
     </div>
   );
 }
