@@ -87,6 +87,7 @@ export default function LightweightChart({
   sweepDataRef.current    = sweepData;
   const loadedRef            = useRef(false);
   const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
+  const vpCanvasRef          = useRef<HTMLCanvasElement>(null);
 
   // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
   const drawOverlays = useCallback(() => {
@@ -306,6 +307,81 @@ export default function LightweightChart({
     });
   }, []);
 
+  const drawVP = useCallback(() => {
+    const canvas = vpCanvasRef.current;
+    const series = seriesRef.current;
+    if (!canvas || !series || !candles || candles.length === 0) return;
+    const el = canvas.parentElement;
+    if (!el) return;
+    const W = el.clientWidth, H = el.clientHeight;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
+    const TICK = 0.25, PW = 90;
+    const map = new Map<number, {b:number;s:number}>();
+    const rnd = (p:number) => Math.round(p / TICK) * TICK;
+    for (const c of candles) {
+      if (!c.h || !c.l) continue;
+      const sp = c.h - c.l;
+      const vol = (c.buy || 0) + (c.sell || 0) || 100;
+      const bp = sp > 0 ? (c.c - c.l) / sp : 0.5;
+      const lv = Math.max(1, Math.round(sp / TICK));
+      for (let i = 0; i <= lv; i++) {
+        const pr = rnd(c.l + i * TICK);
+        const ex = map.get(pr) ?? {b:0,s:0};
+        ex.b += (vol * bp)       / lv;
+        ex.s += (vol * (1 - bp)) / lv;
+        map.set(pr, ex);
+      }
+    }
+    if (!map.size) return;
+    let mx = 0, poc = 0;
+    map.forEach((v,p) => { const t=v.b+v.s; if(t>mx){mx=t;poc=p;} });
+    const p2y = (pr:number):number|null => {
+      try { return series.priceToCoordinate(pr); } catch { return null; }
+    };
+    const scW = 72, xR = W - scW - 2;
+    const allPrices = Array.from(map.keys());
+    const midPrice = allPrices[Math.floor(allPrices.length/2)];
+    const ya = p2y(midPrice), yb = p2y(midPrice + TICK);
+    const bH = ya!==null && yb!==null ? Math.max(2, Math.abs(ya-yb)-0.5) : 3;
+    map.forEach((v, pr) => {
+      const y = p2y(pr);
+      if (y===null || y<0 || y>H) return;
+      const t  = v.b + v.s;
+      const tw = (t / mx) * PW;
+      const bw = (v.b / t) * tw;
+      const sw = tw - bw;
+      const yT = y - bH / 2;
+      ctx.fillStyle = 'rgba(233,30,99,0.65)';
+      ctx.fillRect(xR - sw - bw, yT, sw, bH);
+      ctx.fillStyle = 'rgba(0,188,212,0.65)';
+      ctx.fillRect(xR - bw, yT, bw, bH);
+      if (pr === poc) {
+        ctx.strokeStyle = 'rgba(255,215,0,0.9)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3,2]);
+        ctx.beginPath();
+        ctx.moveTo(xR - PW, y);
+        ctx.lineTo(xR, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = 'rgba(0,188,212,0.8)';
+    ctx.textAlign = 'right';
+    ctx.fillText('■BUY',  xR - 48, 14);
+    ctx.fillStyle = 'rgba(233,30,99,0.8)';
+    ctx.fillText('■SELL', xR - 2,  14);
+  }, [candles]);
+
   const initChart = useCallback(() => {
     if (!containerRef.current || chartRef.current) return;
     const LW = (window as any).LightweightCharts;
@@ -419,6 +495,7 @@ export default function LightweightChart({
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       drawOverlays();
       drawZones();
+      drawVP();
     });
   }, [height, drawOverlays, drawZones]);
 
@@ -748,11 +825,14 @@ export default function LightweightChart({
     drawZones();
   }, [zone, drawZones]);
 
+  useEffect(() => { requestAnimationFrame(() => drawVP()); }, [candles, drawVP]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
       <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }} />
       <canvas ref={zoneCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 4 }} />
+      <canvas ref={vpCanvasRef} style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:5 }} />
     </div>
   );
 }
