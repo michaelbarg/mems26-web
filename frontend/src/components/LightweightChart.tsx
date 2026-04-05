@@ -451,8 +451,18 @@ export default function LightweightChart({
       const BUCKET = 2.5; // 10 ticks per bucket
       const vpMap = new Map<number, {buy: number; sell: number}>();
       for (const c of sorted) {
-        const buyVal = c.buy || 0;
-        const sellVal = c.sell || 0;
+        let buyVal = c.buy || 0;
+        let sellVal = c.sell || 0;
+        // Fallback: estimate from price action when no real buy/sell
+        if (buyVal + sellVal === 0) {
+          const spread = c.h - c.l;
+          if (spread === 0) { buyVal = 50; sellVal = 50; }
+          else {
+            const buyPct = (c.c - c.l) / spread;
+            buyVal = 100 * buyPct;
+            sellVal = 100 * (1 - buyPct);
+          }
+        }
         // Distribute volume across price range (low → high) by bucket
         const lo = Math.floor(c.l / BUCKET) * BUCKET;
         const hi = Math.ceil(c.h / BUCKET) * BUCKET;
@@ -460,7 +470,7 @@ export default function LightweightChart({
         const buyPer = buyVal / numBuckets;
         const sellPer = sellVal / numBuckets;
         for (let p = lo; p <= hi; p += BUCKET) {
-          const key = Math.round(p * 10) / 10; // avoid float issues
+          const key = Math.round(p * 10) / 10;
           const existing = vpMap.get(key) || { buy: 0, sell: 0 };
           existing.buy += buyPer;
           existing.sell += sellPer;
@@ -533,8 +543,8 @@ export default function LightweightChart({
     // RTH background — disabled
     // if (rthBgRef.current) { ... }
 
-    // Redraw overlays (volume profile + sweep zone)
-    drawOverlays();
+    // Redraw overlays (volume profile + sweep zone) — delay to let chart render
+    requestAnimationFrame(() => drawOverlays());
 
   }, [candles, liveBar, livePrice, drawOverlays]);
 
@@ -738,7 +748,7 @@ export default function LightweightChart({
   return (
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
-      <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
+      <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }} />
     </div>
   );
 }
