@@ -309,20 +309,21 @@ export default function LightweightChart({
 
   const drawVolumeProfile = useCallback(() => {
     const canvas = vpCanvasRef.current;
-    const chart  = chartRef.current;
+    const series = seriesRef.current;
     const cs     = candles;
-    if (!canvas || !chart || !cs || cs.length === 0) return;
+    if (!canvas || !series || !cs || cs.length === 0) return;
     const container = canvas.parentElement;
     if (!container) return;
     const W = container.clientWidth;
     const H = container.clientHeight;
-    canvas.width  = W * devicePixelRatio;
-    canvas.height = H * devicePixelRatio;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
     canvas.style.width  = W + 'px';
     canvas.style.height = H + 'px';
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
     const TICK = 0.25;
     const PROFILE_W = 90;
@@ -347,12 +348,14 @@ export default function LightweightChart({
     let maxVol = 0, pocPrice = 0;
     priceMap.forEach((v, p) => { const t = v.buy + v.sell; if (t > maxVol) { maxVol = t; pocPrice = p; } });
     const p2y = (price: number): number | null => {
-      try { return chart.priceScale('right').priceToCoordinate(price); } catch { return null; }
+      try { return series.priceToCoordinate(price); } catch { return null; }
     };
     const scaleW = 72;
     const xRight = W - scaleW - 2;
-    const sampleY1 = p2y(6600);
-    const sampleY2 = p2y(6600 + TICK);
+    // Compute bar height from actual price data
+    const firstPrice = cs[0].l;
+    const sampleY1 = p2y(firstPrice);
+    const sampleY2 = p2y(firstPrice + TICK);
     const barH = sampleY1 !== null && sampleY2 !== null
       ? Math.max(2, Math.abs(sampleY1 - sampleY2) - 0.5)
       : 3;
