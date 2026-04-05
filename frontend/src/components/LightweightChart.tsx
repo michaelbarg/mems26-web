@@ -87,6 +87,7 @@ export default function LightweightChart({
   sweepDataRef.current    = sweepData;
   const loadedRef            = useRef(false);
   const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
+  const vpCanvasRef          = useRef<HTMLCanvasElement>(null);
 
   // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
   const drawOverlays = useCallback(() => {
@@ -306,6 +307,86 @@ export default function LightweightChart({
     });
   }, []);
 
+  const drawVolumeProfile = useCallback(() => {
+    const canvas = vpCanvasRef.current;
+    const chart  = chartRef.current;
+    const cs     = candles;
+    if (!canvas || !chart || !cs || cs.length === 0) return;
+    const container = canvas.parentElement;
+    if (!container) return;
+    const W = container.clientWidth;
+    const H = container.clientHeight;
+    canvas.width  = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+    ctx.clearRect(0, 0, W, H);
+    const TICK = 0.25;
+    const PROFILE_W = 90;
+    const priceMap = new Map<number, { buy: number; sell: number }>();
+    const round = (p: number) => Math.round(p / TICK) * TICK;
+    for (const c of cs) {
+      const hi = c.h, lo = c.l, cl = c.c;
+      const vol = (c.buy || 0) + (c.sell || 0) || 100;
+      const spread = hi - lo;
+      const buyPct  = spread > 0 ? (cl - lo)  / spread : 0.5;
+      const sellPct = spread > 0 ? (hi - cl) / spread : 0.5;
+      const levels = Math.max(1, Math.round(spread / TICK));
+      for (let i = 0; i <= levels; i++) {
+        const price = round(lo + i * TICK);
+        const ex = priceMap.get(price) ?? { buy: 0, sell: 0 };
+        ex.buy  += (vol * buyPct)  / levels;
+        ex.sell += (vol * sellPct) / levels;
+        priceMap.set(price, ex);
+      }
+    }
+    if (!priceMap.size) return;
+    let maxVol = 0, pocPrice = 0;
+    priceMap.forEach((v, p) => { const t = v.buy + v.sell; if (t > maxVol) { maxVol = t; pocPrice = p; } });
+    const p2y = (price: number): number | null => {
+      try { return chart.priceScale('right').priceToCoordinate(price); } catch { return null; }
+    };
+    const scaleW = 72;
+    const xRight = W - scaleW - 2;
+    const sampleY1 = p2y(6600);
+    const sampleY2 = p2y(6600 + TICK);
+    const barH = sampleY1 !== null && sampleY2 !== null
+      ? Math.max(2, Math.abs(sampleY1 - sampleY2) - 0.5)
+      : 3;
+    priceMap.forEach((vol, price) => {
+      const y = p2y(price);
+      if (y === null || y < 0 || y > H) return;
+      const total = vol.buy + vol.sell;
+      const tw  = (total / maxVol) * PROFILE_W;
+      const bw  = (vol.buy / total) * tw;
+      const sw  = tw - bw;
+      const yTop = y - barH / 2;
+      ctx.fillStyle = 'rgba(233,30,99,0.65)';
+      ctx.fillRect(xRight - sw - bw, yTop, sw, barH);
+      ctx.fillStyle = 'rgba(0,188,212,0.65)';
+      ctx.fillRect(xRight - bw, yTop, bw, barH);
+      if (price === pocPrice) {
+        ctx.strokeStyle = 'rgba(255,215,0,0.9)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3, 2]);
+        ctx.beginPath();
+        ctx.moveTo(xRight - PROFILE_W, y);
+        ctx.lineTo(xRight, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    });
+    ctx.font = 'bold 9px monospace';
+    ctx.fillStyle = 'rgba(0,188,212,0.85)';
+    ctx.textAlign = 'right';
+    ctx.fillText('■ BUY', xRight - 48, 14);
+    ctx.fillStyle = 'rgba(233,30,99,0.85)';
+    ctx.fillText('■ SELL', xRight - 2, 14);
+  }, [candles]);
+
   const initChart = useCallback(() => {
     if (!containerRef.current || chartRef.current) return;
     const LW = (window as any).LightweightCharts;
@@ -411,6 +492,7 @@ export default function LightweightChart({
         chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
         drawOverlays();
         drawZones();
+        drawVolumeProfile();
       }
     });
     ro.observe(containerRef.current);
@@ -419,8 +501,9 @@ export default function LightweightChart({
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       drawOverlays();
       drawZones();
+      drawVolumeProfile();
     });
-  }, [height, drawOverlays, drawZones]);
+  }, [height, drawOverlays, drawZones, drawVolumeProfile]);
 
   // Load script once
   useEffect(() => {
@@ -748,11 +831,17 @@ export default function LightweightChart({
     drawZones();
   }, [zone, drawZones]);
 
+  // Redraw volume profile when candles change
+  useEffect(() => {
+    drawVolumeProfile();
+  }, [candles, drawVolumeProfile]);
+
   return (
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
       <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }} />
       <canvas ref={zoneCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 4 }} />
+      <canvas ref={vpCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 5 }} />
     </div>
   );
 }
