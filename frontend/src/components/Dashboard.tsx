@@ -3123,6 +3123,8 @@ export default function Dashboard() {
                 t3:        activeScannedPattern.t2 + Math.abs(activeScannedPattern.t2 - activeScannedPattern.t1),
                 direction: activeScannedPattern.direction as 'LONG'|'SHORT',
                 sweepTs:   activeScannedPattern.end_ts,
+                start_ts:  activeScannedPattern.start_ts,
+                end_ts:    activeScannedPattern.end_ts,
                 visible:   true,
               } : null}
             />

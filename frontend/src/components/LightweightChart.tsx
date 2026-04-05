@@ -12,6 +12,8 @@ export interface SetupZone {
   direction:  "LONG" | "SHORT";
   sweepTs:    number;
   visible:    boolean;
+  start_ts?:  number;
+  end_ts?:    number;
 }
 
 interface Candle {
@@ -212,7 +214,31 @@ export default function LightweightChart({
     if (yEnt === null || yStp === null || yT3 === null) return;
 
     const scaleW = 72;
-    const zW = W - scaleW;
+    const chartW = W - scaleW;
+    const chart = chartRef.current;
+
+    // ── Convert timestamps to X pixels ──
+    let xStart = 0;
+    let xEnd = chartW;
+
+    if (chart && z.start_ts) {
+      try {
+        const x = chart.timeScale().timeToCoordinate(z.start_ts as any);
+        if (x !== null) xStart = Math.max(0, x);
+      } catch {}
+    }
+    if (chart && z.end_ts) {
+      try {
+        const x = chart.timeScale().timeToCoordinate(z.end_ts as any);
+        if (x !== null) xEnd = Math.min(chartW, x + 6);
+      } catch {}
+    }
+
+    if (xStart >= chartW || xEnd <= 0 || xStart >= xEnd) {
+      ctx.clearRect(0, 0, W, H);
+      return;
+    }
+    const zoneW = xEnd - xStart;
 
     // ── Reward zones (entry → T3) — 3 layers increasing intensity ──
     const rewardZones: [number | null, number | null, string][] = [
@@ -225,9 +251,9 @@ export default function LightweightChart({
       const top = Math.min(ya, yb);
       const bot = Math.max(ya, yb);
       ctx.fillStyle = color;
-      ctx.fillRect(0, top, zW, bot - top);
+      ctx.fillRect(xStart, top, zoneW, bot - top);
       ctx.fillStyle = color.replace(/[\d.]+\)$/, "0.7)");
-      ctx.fillRect(0, top, 3, bot - top);
+      ctx.fillRect(xStart, top, 3, bot - top);
     });
 
     // ── Risk zone (entry → stop) — gradient ──
@@ -243,9 +269,9 @@ export default function LightweightChart({
         gRisk.addColorStop(1, "rgba(233,30,99,0.05)");
       }
       ctx.fillStyle = gRisk;
-      ctx.fillRect(0, top, zW, bot - top);
+      ctx.fillRect(xStart, top, zoneW, bot - top);
       ctx.fillStyle = "rgba(233,30,99,0.7)";
-      ctx.fillRect(0, top, 3, bot - top);
+      ctx.fillRect(xStart, top, 3, bot - top);
     }
 
     // ── Border lines ──
@@ -262,7 +288,7 @@ export default function LightweightChart({
       ctx.strokeStyle = color;
       ctx.lineWidth = lw;
       ctx.setLineDash([]);
-      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(zW, y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(xStart, y); ctx.lineTo(xEnd, y); ctx.stroke();
     });
 
     // ── Labels ──
@@ -278,10 +304,10 @@ export default function LightweightChart({
       ctx.font = "bold 10px monospace";
       ctx.fillStyle = color;
       ctx.textAlign = "left";
-      ctx.fillText(line1, 8, y - 3);
+      ctx.fillText(line1, xStart + 6, y - 3);
       ctx.font = "9px monospace";
       ctx.fillStyle = color.replace(/[\d.]+\)$/, "0.55)");
-      ctx.fillText(line2, 8, y + 9);
+      ctx.fillText(line2, xStart + 6, y + 9);
     });
   }, []);
 
