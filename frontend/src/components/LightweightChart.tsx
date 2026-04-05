@@ -298,14 +298,13 @@ export default function LightweightChart({
     ];
     labels.forEach(([y, line1, line2, color]) => {
       if (y === null) return;
-      const labelX = Math.min(xEnd + 6, W - scaleW - 90);
       ctx.font = "bold 10px monospace";
       ctx.fillStyle = color;
-      ctx.textAlign = "left";
-      ctx.fillText(line1, labelX, y - 2);
+      ctx.textAlign = "right";
+      ctx.fillText(line1, xEnd - 6, y - 3);
       ctx.font = "9px monospace";
       ctx.fillStyle = color.replace(/[\d.]+\)$/, "0.55)");
-      ctx.fillText(line2, labelX, y + 10);
+      ctx.fillText(line2, xEnd - 6, y + 9);
     });
   }, []);
 
