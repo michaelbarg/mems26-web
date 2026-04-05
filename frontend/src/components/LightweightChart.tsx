@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { VolumeProfile } from './VolumeProfile';
+import { SetupTriangle, TriangleSetup } from './SetupTriangle';
 
 interface Candle {
   ts: number;
@@ -54,10 +55,11 @@ interface Props {
   patterns?: Array<{id:string; nameHeb:string; direction:string; confidence:number; keyLevel:number; breakoutLevel?:number; stopLevel?:number; col:string; barIndex?:number}>;
   selectedPatternId?: string;
   height?: number;
+  setup?: TriangleSetup | null;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, setup
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -658,6 +660,13 @@ export default function LightweightChart({
           candles={candles}
           tickSize={0.25}
           profileWidth={130}
+        />
+      )}
+      {chartReady && (
+        <SetupTriangle
+          series={seriesRef.current}
+          chart={chartRef.current}
+          setup={setup ?? null}
         />
       )}
     </div>
