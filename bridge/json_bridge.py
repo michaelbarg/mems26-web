@@ -8,6 +8,7 @@ import json, asyncio, aiohttp, os, logging, time
 from datetime import datetime
 from dataclasses import dataclass
 from dotenv import load_dotenv
+from pattern_scanner import scan_patterns
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -19,6 +20,7 @@ REDIS_URL       = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN     = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY       = "mems26:latest"
 REDIS_CANDLES   = "mems26:candles"
+REDIS_PATTERNS  = "mems26:patterns"
 MAX_CANDLES     = 960
 POST_INTERVAL   = 1.0
 CANDLE_INTERVAL = 180
@@ -555,6 +557,8 @@ async def main():
             log.warning(f"History load failed: {e}")
 
     last_send = 0.0
+    last_pattern_scan = 0.0
+    PATTERN_SCAN_INTERVAL = 60  # seconds
     candle = CandleBuilder()  # local candle for this session
     footprint_seeded = False   # האם כבר טענו footprint מ-Sierra
 
@@ -689,6 +693,32 @@ async def main():
                     if trade_tracker.open_trade.get("stop") != stop_price:
                         trade_tracker.open_trade["stop"] = stop_price
                         log.info(f"Stop updated: {stop_price}")
+
+                # ── Pattern scan כל 60 שניות ────────────────
+                if now - last_pattern_scan > PATTERN_SCAN_INTERVAL:
+                    try:
+                        async with http.get(
+                            f"{REDIS_URL}/lrange/{REDIS_CANDLES}/0/{MAX_CANDLES-1}",
+                            headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                            timeout=aiohttp.ClientTimeout(total=5.0)
+                        ) as resp:
+                            result = await resp.json()
+                            items = result.get("result", [])
+                            all_candles = []
+                            for item in items:
+                                c = item
+                                while isinstance(c, str):
+                                    c = json.loads(c)
+                                if isinstance(c, dict):
+                                    all_candles.append(c)
+                            if all_candles:
+                                patterns = scan_patterns(all_candles)
+                                await redis_post(http, f"set/{REDIS_PATTERNS}", json.dumps(patterns))
+                                if patterns:
+                                    log.info(f"[Pattern] {len(patterns)} detected: {[p['pattern'] for p in patterns]}")
+                        last_pattern_scan = now
+                    except Exception as e:
+                        log.warning(f"[Pattern Error] {e}")
 
                 # ── מעקב מחיר לסטופ/טארגט ───────────────────
                 level_events = trade_tracker.check_exit_levels(price)

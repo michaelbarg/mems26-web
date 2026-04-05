@@ -17,6 +17,7 @@ REDIS_TOKEN       = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY          = "mems26:latest"
 REDIS_CANDLES_KEY  = "mems26:candles"
 REDIS_FOOTPRINT_KEY = "mems26:footprint"
+REDIS_PATTERNS_KEY  = "mems26:patterns"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 
@@ -356,6 +357,25 @@ async def ingest_footprint(request: Request, x_bridge_token: Optional[str] = Hea
         return {"ok": True, "bars": len(bars)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/market/patterns")
+async def get_patterns():
+    """Returns detected chart patterns from Redis"""
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{REDIS_URL}/get/{REDIS_PATTERNS_KEY}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=3.0
+            )
+            result = resp.json()
+            val = result.get("result")
+            if val:
+                return {"patterns": json.loads(val)}
+    except Exception as e:
+        log.warning(f"Patterns get failed: {e}")
+    return {"patterns": []}
 
 
 @app.get("/market/footprint")

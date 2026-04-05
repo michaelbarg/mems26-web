@@ -2739,6 +2739,8 @@ export default function Dashboard() {
   const [selectedPattern,setSelectedPattern]=useState<PatternResult|null>(null);
   const [dayExplanation,setDayExplanation]=useState<string>('');
   const [dayLoading,setDayLoading]=useState(false);
+  const [scannedPatterns,setScannedPatterns]=useState<{pattern:string;direction:string;entry:number;stop:number;t1:number;t2:number;neckline:number;confidence:number;label:string;start_ts:number;end_ts:number}[]>([]);
+  const [activeScannedPattern,setActiveScannedPattern]=useState<typeof scannedPatterns[0]|null>(null);
   const prevSigRef=useRef<string>('');
 
   const askAI=useCallback(async()=>{
@@ -2872,6 +2874,25 @@ export default function Dashboard() {
     const cleanup=init();
     return()=>{cleanup.then(fn=>fn?.());};
   },[fetchLive,fetchCandles,fetchAnalyze]);
+
+  // ── Pattern scanner polling ──
+  useEffect(()=>{
+    if(!systemOn) return;
+    const fetchPatterns=async()=>{
+      try{
+        const res=await fetch(`${API_URL}/market/patterns`,{cache:'no-store'});
+        const data=await res.json();
+        const ps=data.patterns||[];
+        setScannedPatterns(ps);
+        if(ps.length>0 && ps[0].confidence>=70 && ps[0].pattern!==activeScannedPattern?.pattern){
+          setActiveScannedPattern(ps[0]);
+        }
+      }catch{}
+    };
+    fetchPatterns();
+    const pt=setInterval(fetchPatterns,30000);
+    return()=>clearInterval(pt);
+  },[systemOn]);
 
   // ── Auto-AI fallback: call every 60s when no setup detected ──
   const lastAutoAI = useRef(0);
@@ -3094,6 +3115,15 @@ export default function Dashboard() {
                 direction: sweepData.dir === 'long' ? 'LONG' : 'SHORT',
                 sweepTs:   sweepData.sweepBarTs,
                 visible:   sweepData.entry > 0,
+              } : activeScannedPattern ? {
+                entry:     activeScannedPattern.entry,
+                stop:      activeScannedPattern.stop,
+                t1:        activeScannedPattern.t1,
+                t2:        activeScannedPattern.t2,
+                t3:        activeScannedPattern.t2 + Math.abs(activeScannedPattern.t2 - activeScannedPattern.t1),
+                direction: activeScannedPattern.direction as 'LONG'|'SHORT',
+                sweepTs:   activeScannedPattern.end_ts,
+                visible:   true,
               } : null}
             />
             {/* Setup overlay — badges + legend */}
@@ -3130,6 +3160,23 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          {activeScannedPattern && (
+            <div style={{flexShrink:0,borderTop:'1px solid #164e63',padding:'6px 10px',background:'#0a1a1f'}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:9,fontFamily:'monospace',color:'#6b7280'}}>Pattern Scanner</span>
+                <span style={{fontSize:10,fontFamily:'monospace',fontWeight:700,color:activeScannedPattern.direction==='LONG'?'#00bcd4':'#e91e63'}}>
+                  {activeScannedPattern.direction==='LONG'?'▲':'▼'} {activeScannedPattern.label}
+                </span>
+                <span style={{fontSize:9,fontFamily:'monospace',color:'#f6c90e'}}>{activeScannedPattern.confidence}%</span>
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:4,fontSize:9,fontFamily:'monospace'}}>
+                <div><span style={{color:'#6b7280'}}>Entry</span><br/><span style={{color:'#fff'}}>{activeScannedPattern.entry.toFixed(2)}</span></div>
+                <div><span style={{color:'#6b7280'}}>Stop</span><br/><span style={{color:'#e91e63'}}>{activeScannedPattern.stop.toFixed(2)}</span></div>
+                <div><span style={{color:'#6b7280'}}>T1</span><br/><span style={{color:'#00bcd4'}}>{activeScannedPattern.t1.toFixed(2)}</span></div>
+              </div>
+              <button onClick={()=>setActiveScannedPattern(null)} style={{marginTop:4,fontSize:8,color:'#4b5563',background:'none',border:'none',cursor:'pointer',fontFamily:'monospace'}}>x close</button>
+            </div>
+          )}
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
             <VolumeTimer bar={bar??null} />
           </div>
