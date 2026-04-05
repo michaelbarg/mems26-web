@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { VolumeDeltaBars, CVDChart } from './VolumeDeltaPanel';
 
 interface Candle {
   ts: number;
@@ -64,6 +63,8 @@ export default function LightweightChart({
   const seriesRef        = useRef<any>(null);
   const volRef           = useRef<any>(null);
   const deltaRef         = useRef<any>(null);
+  const cvdRef           = useRef<any>(null);
+  const cvdMaRef         = useRef<any>(null);
   const linesRef         = useRef<any[]>([]);
   const rthBgRef         = useRef<any>(null);
   const canvasRef        = useRef<HTMLCanvasElement>(null);
@@ -188,7 +189,7 @@ export default function LightweightChart({
       rightPriceScale: {
         borderColor:    '#1e2738',
         textColor:      '#94a3b8',
-        scaleMargins:   { top: 0.04, bottom: 0.32 },
+        scaleMargins:   { top: 0.02, bottom: 0.52 },
       },
       timeScale: {
         borderColor:    '#1e2738',
@@ -212,16 +213,16 @@ export default function LightweightChart({
       lastValueVisible: true,
     });
 
-    // Volume
+    // Volume (buy/sell) — middle band
     const vol = chart.addHistogramSeries({
       priceFormat:     { type: 'volume' },
       priceScaleId:    'vol',
     });
     chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.75, bottom: 0.15 },
+      scaleMargins: { top: 0.50, bottom: 0.34 },
     });
 
-    // Delta (buy - sell) histogram
+    // Delta (buy - sell) histogram — below volume
     const delta = chart.addHistogramSeries({
       priceFormat:     { type: 'volume' },
       priceScaleId:    'delta',
@@ -229,14 +230,37 @@ export default function LightweightChart({
       priceLineVisible: false,
     });
     chart.priceScale('delta').applyOptions({
-      scaleMargins: { top: 0.88, bottom: 0 },
-      visible: false,
+      scaleMargins: { top: 0.68, bottom: 0.16 },
+    });
+
+    // CVD (cumulative volume delta) — bottom band
+    const cvdLine = chart.addLineSeries({
+      color:           '#00e676',
+      lineWidth:       2,
+      priceScaleId:    'cvd',
+      lastValueVisible: true,
+      priceLineVisible: false,
+    });
+    chart.priceScale('cvd').applyOptions({
+      scaleMargins: { top: 0.86, bottom: 0.01 },
+    });
+
+    // CVD MA20 — dashed overlay
+    const cvdMaLine = chart.addLineSeries({
+      color:           '#ffeb3b',
+      lineWidth:       1,
+      lineStyle:       2,
+      priceScaleId:    'cvd',
+      lastValueVisible: false,
+      priceLineVisible: false,
     });
 
     chartRef.current  = chart;
     seriesRef.current = series;
     volRef.current    = vol;
     deltaRef.current  = delta;
+    cvdRef.current    = cvdLine;
+    cvdMaRef.current  = cvdMaLine;
 
     // RTH background overlay — covers full chart height
     const rthBg = chart.addHistogramSeries({
@@ -357,6 +381,66 @@ export default function LightweightChart({
         });
       }
       deltaRef.current.setData(dData);
+    }
+
+    // CVD (cumulative volume delta) + MA20
+    if (cvdRef.current && cvdMaRef.current) {
+      let cvd = 0;
+      let prevDay = -1;
+      const win20: number[] = [];
+      const cvdData: any[] = [];
+      const maData: any[] = [];
+
+      for (const c of sorted) {
+        const buyVal = c.buy || 0;
+        const sellVal = c.sell || 0;
+        let delta: number;
+        if (buyVal + sellVal > 0) {
+          delta = buyVal - sellVal;
+        } else {
+          const spread = c.h - c.l;
+          delta = spread > 0 ? 100 * ((c.c - c.l) - (c.h - c.c)) / spread : 0;
+        }
+
+        // Daily reset
+        const dayNum = Math.floor(c.ts / 86400);
+        if (dayNum !== prevDay && prevDay !== -1) cvd = 0;
+        prevDay = dayNum;
+
+        cvd += delta;
+        const t = Math.floor(c.ts) as any;
+        cvdData.push({ time: t, value: cvd });
+
+        win20.push(cvd);
+        if (win20.length > 20) win20.shift();
+        const ma = win20.reduce((s, v) => s + v, 0) / win20.length;
+        maData.push({ time: t, value: ma });
+      }
+
+      if (liveBar) {
+        const lb = liveBar;
+        const buyVal = lb.buy || 0;
+        const sellVal = lb.sell || 0;
+        let delta: number;
+        if (buyVal + sellVal > 0) {
+          delta = buyVal - sellVal;
+        } else {
+          const spread = lb.h - lb.l;
+          delta = spread > 0 ? 100 * ((lb.c - lb.l) - (lb.h - lb.c)) / spread : 0;
+        }
+        const dayNum = Math.floor(lb.ts / 86400);
+        if (dayNum !== prevDay && prevDay !== -1) cvd = 0;
+        cvd += delta;
+        const t = Math.floor(lb.ts) as any;
+        cvdData.push({ time: t, value: cvd });
+        win20.push(cvd);
+        if (win20.length > 20) win20.shift();
+        const ma = win20.reduce((s, v) => s + v, 0) / win20.length;
+        maData.push({ time: t, value: ma });
+      }
+
+      cvdRef.current.setData(cvdData);
+      cvdMaRef.current.setData(maData);
     }
 
     // RTH background — disabled
@@ -562,21 +646,9 @@ export default function LightweightChart({
   }, [sweepData, drawSweepZone]);
 
   return (
-    <div>
-      <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
-        <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
-        <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
-      </div>
-      {candles && candles.length > 0 && (
-        <div className="border-t border-green-900/40">
-          <VolumeDeltaBars candles={candles} height={110} />
-        </div>
-      )}
-      {candles && candles.length > 0 && (
-        <div className="border-t border-green-900/40">
-          <CVDChart candles={candles} height={110} />
-        </div>
-      )}
+    <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
+      <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
+      <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }} />
     </div>
   );
 }
