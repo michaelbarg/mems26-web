@@ -2806,8 +2806,11 @@ export default function Dashboard() {
     }
   }, [live?.price, activeSetup]);
 
+  const systemOnRef=useRef(systemOn);
+  useEffect(()=>{systemOnRef.current=systemOn;},[systemOn]);
+
   const fetchLive=useCallback(async()=>{
-    if(!systemOn) return;
+    if(!systemOnRef.current) return;
     try{
       const r=await fetch(`${API_URL}/market/latest?t=${Date.now()}`,{cache:'no-store'});
       if(!r.ok)throw new Error();
@@ -2837,7 +2840,7 @@ export default function Dashboard() {
   },[accepted,lockedSignal,rejectedTs]);
 
   const fetchCandles=useCallback(async()=>{
-    if(!systemOn) return;
+    if(!systemOnRef.current) return;
     try{
       const r=await fetch(`${API_URL}/market/candles?limit=960`,{cache:'no-store'});
       if(!r.ok)return;

@@ -312,8 +312,9 @@ export default function LightweightChart({
 
   const drawVP = useCallback(() => {
     const canvas = vpCanvasRef.current;
+    const chart = chartRef.current;
     const series = seriesRef.current;
-    if (!canvas || !series || !candles || candles.length === 0) return;
+    if (!canvas || !chart || !series || !candles || candles.length === 0) return;
     const el = canvas.parentElement;
     if (!el) return;
     const W = el.clientWidth, H = el.clientHeight;
@@ -326,7 +327,9 @@ export default function LightweightChart({
     if (!ctx) return;
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
+
     const TICK = 0.25, PW = 90;
+    const scW = 78, xR = W - scW - 4;
     const map = new Map<number, {b:number;s:number}>();
     const rnd = (p:number) => Math.round(p / TICK) * TICK;
     for (const c of candles) {
@@ -344,16 +347,23 @@ export default function LightweightChart({
       }
     }
     if (!map.size) return;
-    let mx = 0, poc = 0;
-    map.forEach((v,p) => { const t=v.b+v.s; if(t>mx){mx=t;poc=p;} });
+    let mx = 0, pocPrice = 0;
+    map.forEach((v,p) => { const t=v.b+v.s; if(t>mx){mx=t;pocPrice=p;} });
+
+    // Wall detection: bar volume > 2.5x average
+    const totalVols: number[] = [];
+    map.forEach(v => totalVols.push(v.b + v.s));
+    const avgVol = totalVols.reduce((a,b) => a+b, 0) / totalVols.length;
+    const WALL_THRESHOLD = avgVol * 2.5;
+
     const p2y = (pr:number):number|null => {
       try { return series.priceToCoordinate(pr); } catch { return null; }
     };
-    const scW = 72, xR = W - scW - 2;
     const allPrices = Array.from(map.keys());
     const midPrice = allPrices[Math.floor(allPrices.length/2)];
     const ya = p2y(midPrice), yb = p2y(midPrice + TICK);
     const bH = ya!==null && yb!==null ? Math.max(2, Math.abs(ya-yb)-0.5) : 3;
+
     map.forEach((v, pr) => {
       const y = p2y(pr);
       if (y===null || y<0 || y>H) return;
@@ -362,27 +372,56 @@ export default function LightweightChart({
       const bw = (v.b / t) * tw;
       const sw = tw - bw;
       const yT = y - bH / 2;
-      ctx.fillStyle = 'rgba(233,30,99,0.65)';
+
+      // Dynamic opacity based on volume
+      const intensity = Math.min(0.9, 0.35 + t / mx * 0.55);
+      ctx.fillStyle = `rgba(233,30,99,${intensity})`;
       ctx.fillRect(xR - sw - bw, yT, sw, bH);
-      ctx.fillStyle = 'rgba(0,188,212,0.65)';
+      ctx.fillStyle = `rgba(0,188,212,${intensity})`;
       ctx.fillRect(xR - bw, yT, bw, bH);
-      if (pr === poc) {
-        ctx.strokeStyle = 'rgba(255,215,0,0.9)';
+
+      // POC highlight
+      if (pr === pocPrice) {
+        ctx.font = 'bold 9px monospace';
+        ctx.fillStyle = 'rgba(255,215,0,0.9)';
+        ctx.textAlign = 'right';
+        ctx.fillText(`POC ${pr.toFixed(2)}`, xR - PW - 4, y + 3);
+
+        ctx.strokeStyle = 'rgba(255,215,0,0.85)';
         ctx.lineWidth = 1.5;
-        ctx.setLineDash([3,2]);
+        ctx.setLineDash([3, 2]);
         ctx.beginPath();
         ctx.moveTo(xR - PW, y);
         ctx.lineTo(xR, y);
         ctx.stroke();
         ctx.setLineDash([]);
       }
+
+      // Wall detection — glowing border + label
+      const isWall = t > WALL_THRESHOLD;
+      if (isWall) {
+        ctx.strokeStyle = (v.b > v.s)
+          ? 'rgba(0,188,212,0.9)'
+          : 'rgba(233,30,99,0.9)';
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(xR - tw, yT, tw, bH);
+
+        ctx.font = 'bold 8px monospace';
+        ctx.fillStyle = (v.b > v.s)
+          ? 'rgba(0,188,212,0.8)'
+          : 'rgba(233,30,99,0.8)';
+        ctx.textAlign = 'right';
+        ctx.fillText('▌', xR - PW - 2, y + 3);
+      }
     });
+
+    // Header — BUY/SELL labels left of profile
     ctx.font = 'bold 9px monospace';
     ctx.fillStyle = 'rgba(0,188,212,0.8)';
     ctx.textAlign = 'right';
-    ctx.fillText('■BUY',  xR - 48, 14);
+    ctx.fillText('BUY', xR - PW - 4, 14);
     ctx.fillStyle = 'rgba(233,30,99,0.8)';
-    ctx.fillText('■SELL', xR - 2,  14);
+    ctx.fillText('SELL', xR - PW - 4, 26);
   }, [candles]);
 
   const initChart = useCallback(() => {
@@ -521,19 +560,18 @@ export default function LightweightChart({
     return () => { chartRef.current?.remove(); chartRef.current = null; seriesRef.current = null; };
   }, [initChart]);
 
-  // Update candles
+  // Track last candles fingerprint to avoid unnecessary setData calls
+  const lastCandlesFingerprintRef = useRef('');
+
+  // Update candles (only when candle data actually changes)
   useEffect(() => {
     if (!seriesRef.current) return;
     if (candles.length === 0) return;
 
-    // RTH = 9:30–16:00 ET (EDT=-4h, EST=-5h; אפרוקסימציה: UTC-4 בקיץ)
-    const isRTH = (ts: number) => {
-      const d = new Date(ts * 1000);
-      const utcH = d.getUTCHours();
-      const utcM = d.getUTCMinutes();
-      const etMin = ((utcH - 4 + 24) % 24) * 60 + utcM; // EDT offset
-      return etMin >= 9 * 60 + 30 && etMin < 16 * 60;
-    };
+    // Check if candles actually changed (by length + last candle ts)
+    const fingerprint = `${candles.length}-${candles[0]?.ts}-${candles[candles.length-1]?.ts}`;
+    if (fingerprint === lastCandlesFingerprintRef.current) return;
+    lastCandlesFingerprintRef.current = fingerprint;
 
     const sorted = [...candles].reverse().filter(c => c.ts > 0);
 
@@ -624,18 +662,34 @@ export default function LightweightChart({
     // Redraw overlays (volume profile + sweep zone) — delay to let chart render
     requestAnimationFrame(() => drawOverlays());
 
-  }, [candles, liveBar, livePrice, drawOverlays]);
+  }, [candles, drawOverlays]);
 
-  // Update live price only (no full redraw)
+  // Update live candle in real-time (lightweight update, no full setData)
   useEffect(() => {
-    if (!seriesRef.current || !liveBar || !livePrice) return;
+    if (!seriesRef.current || !liveBar) return;
+    const price = livePrice ?? liveBar.c;
     seriesRef.current.update({
       time:  Math.floor(liveBar.ts) as any,
       open:  liveBar.o,
-      high:  Math.max(liveBar.h, livePrice),
-      low:   Math.min(liveBar.l, livePrice),
-      close: livePrice,
+      high:  Math.max(liveBar.h, price),
+      low:   Math.min(liveBar.l, price),
+      close: price,
     });
+
+    // Update CVD for live bar too
+    if (cvdRef.current && cvdMaRef.current) {
+      const buyVal = liveBar.buy || 0;
+      const sellVal = liveBar.sell || 0;
+      let delta: number;
+      if (buyVal + sellVal > 0) {
+        delta = buyVal - sellVal;
+      } else {
+        const spread = liveBar.h - liveBar.l;
+        delta = spread > 0 ? 100 * ((liveBar.c - liveBar.l) - (liveBar.h - liveBar.c)) / spread : 0;
+      }
+      const t = Math.floor(liveBar.ts) as any;
+      cvdRef.current.update({ time: t, value: delta });
+    }
   }, [liveBar, livePrice]);
 
   // Update level lines + setup markers
