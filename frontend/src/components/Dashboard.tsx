@@ -3134,7 +3134,7 @@ export default function Dashboard() {
             />
             {/* Setup overlay — badges + legend */}
             {selectedSetup&&setupLevels&&(
-              <div style={{position:'absolute',top:8,left:8,background:'#0d1117dd',border:`1px solid ${setupCol}`,borderRadius:8,padding:'8px 12px',zIndex:10,pointerEvents:'none',minWidth:160}}>
+              <div style={{position:'absolute',top:8,left:8,background:'#0d1117dd',border:`1px solid ${setupCol}`,borderRadius:8,padding:'8px 12px',zIndex:20,pointerEvents:'none',minWidth:160}}>
                 <div style={{fontSize:10,fontWeight:800,color:setupCol,marginBottom:6}}>{selectedSetup.id} — {selectedSetup.dir==='long'?'▲ LONG':'▼ SHORT'}</div>
                 {[
                   {n:'① הבחנה',v:setupLevels.detect,c:'#f6c90e'},
@@ -3153,7 +3153,7 @@ export default function Dashboard() {
               </div>
             )}
             {opportunity!=='none'&&oppLevels&&(
-              <div style={{position:'absolute',top:8,left:8,display:'flex',flexDirection:'column',gap:5,zIndex:10,pointerEvents:'none'}}>
+              <div style={{position:'absolute',top:8,left:8,display:'flex',flexDirection:'column',gap:5,zIndex:20,pointerEvents:'none'}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:8,border:`2px solid ${setupCol}`,background:'#0d1117ee'}}>
                   <div style={{width:9,height:9,borderRadius:'50%',background:setupCol,boxShadow:`0 0 8px ${setupCol}`}}/>
                   <span style={{fontSize:12,fontWeight:900,color:setupCol}}>
