@@ -309,7 +309,7 @@ JSON בלבד ללא backticks:
                 },
                 json={
                     "model": "claude-sonnet-4-6",
-                    "max_tokens": 800,
+                    "max_tokens": 1200,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
@@ -330,7 +330,21 @@ JSON בלבד ללא backticks:
             text = text[start:end]
         if not text:
             raise ValueError("Empty AI response")
-        signal = json.loads(text)
+        # נסה לתקן JSON חתוך
+        if text.count('{') > text.count('}'):
+            text = text + '}'
+        try:
+            signal = json.loads(text)
+        except json.JSONDecodeError:
+            # החזר NO_TRADE במקום לזרוק שגיאה
+            signal = {
+                "direction": "NO_TRADE", "score": 0, "confidence": 0,
+                "setup": "שגיאת פרסור", "win_rate": 0,
+                "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
+                "risk_pts": 0, "rationale": "תגובת AI לא תקינה — נסה שוב",
+                "tl_color": "red", "t1_win_rate": 0, "t2_win_rate": 0,
+                "t3_win_rate": 0, "wait_reason": "נסה שוב בעוד דקה"
+            }
         signal["ts"] = data.get("ts", 0)
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
         return signal
