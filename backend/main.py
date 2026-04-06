@@ -278,7 +278,7 @@ async def market_analyze():
 - Pattern: {candle_p.get('bar0','?')} | prev: {candle_p.get('bar1','?')} | BullEngulf: {candle_p.get('bull_engulf',False)} | BearEngulf: {candle_p.get('bear_engulf',False)}
 - OF: Absorption={of2.get('absorption_bull',False)} | LiqSweepLong={of2.get('liq_sweep_long',False)} | LiqSweepShort={of2.get('liq_sweep_short',False)}
 - Footprint (5 נרות): {footprint_summary}
-- MTF: 15m={mtf.get('m15',{{}}).get('delta',0)} | 30m={mtf.get('m30',{{}}).get('delta',0)} | 60m={mtf.get('m60',{{}}).get('delta',0)}
+- MTF: 15m={mtf.get('m15', {}).get('delta',0)} | 30m={mtf.get('m30', {}).get('delta',0)} | 60m={mtf.get('m60', {}).get('delta',0)}
 - 5 נרות אחרונים: {last_5_str}
 
 כללים קשיחים:
