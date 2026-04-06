@@ -88,7 +88,7 @@ export default function LightweightChart({
   sweepDataRef.current    = sweepData;
   const loadedRef            = useRef(false);
   const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
-  const vpCanvasRef          = useRef<HTMLCanvasElement>(null);
+  const volRef               = useRef<any>(null);
   const patternLinesRef      = useRef<any[]>([]);
   const patternTLRef         = useRef<any[]>([]);
 
@@ -310,113 +310,6 @@ export default function LightweightChart({
     });
   }, []);
 
-  const drawVP = useCallback(() => {
-    const canvas = vpCanvasRef.current;
-    const chart = chartRef.current;
-    const series = seriesRef.current;
-    if (!canvas || !chart || !series || !candles || candles.length === 0) return;
-    const el = canvas.parentElement;
-    if (!el) return;
-    const W = el.clientWidth, H = el.clientHeight;
-    const dpr = window.devicePixelRatio || 1;
-    canvas.width  = W * dpr;
-    canvas.height = H * dpr;
-    canvas.style.width  = W + 'px';
-    canvas.style.height = H + 'px';
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, W, H);
-
-    const TICK = 0.25, PW = 70, X0 = 6;
-    const map = new Map<number, {b:number;s:number}>();
-    const rnd = (p:number) => Math.round(p / TICK) * TICK;
-    for (const c of candles) {
-      if (!c.h || !c.l) continue;
-      const sp = c.h - c.l;
-      const vol = (c.buy || 0) + (c.sell || 0) || 100;
-      const bp = sp > 0 ? (c.c - c.l) / sp : 0.5;
-      const lv = Math.max(1, Math.round(sp / TICK));
-      for (let i = 0; i <= lv; i++) {
-        const pr = rnd(c.l + i * TICK);
-        const ex = map.get(pr) ?? {b:0,s:0};
-        ex.b += (vol * bp)       / lv;
-        ex.s += (vol * (1 - bp)) / lv;
-        map.set(pr, ex);
-      }
-    }
-    if (!map.size) return;
-    let mx = 0, pocPrice = 0;
-    map.forEach((v,p) => { const t=v.b+v.s; if(t>mx){mx=t;pocPrice=p;} });
-
-    // Wall detection: bar volume > 2.5x average
-    const totalVols: number[] = [];
-    map.forEach(v => totalVols.push(v.b + v.s));
-    const avgVol = totalVols.reduce((a,b) => a+b, 0) / totalVols.length;
-    const WALL_THRESHOLD = avgVol * 2.5;
-
-    const p2y = (pr:number):number|null => {
-      try { return series.priceToCoordinate(pr); } catch { return null; }
-    };
-    const allPrices = Array.from(map.keys());
-    const midPrice = allPrices[Math.floor(allPrices.length/2)];
-    const ya = p2y(midPrice), yb = p2y(midPrice + TICK);
-    const bH = ya!==null && yb!==null ? Math.max(2, Math.abs(ya-yb)-0.5) : 3;
-
-    map.forEach((v, pr) => {
-      const y = p2y(pr);
-      if (y===null || y<0 || y>H) return;
-      const t  = v.b + v.s;
-      const tw = (t / mx) * PW;
-      const bw = (v.b / t) * tw;
-      const sw = tw - bw;
-      const yT = y - bH / 2;
-
-      // Dynamic opacity based on volume
-      const intensity = Math.min(0.9, 0.35 + t / mx * 0.55);
-      // Draw from left edge: SELL then BUY
-      ctx.fillStyle = `rgba(233,30,99,${intensity})`;
-      ctx.fillRect(X0, yT, sw, bH);
-      ctx.fillStyle = `rgba(0,188,212,${intensity})`;
-      ctx.fillRect(X0 + sw, yT, bw, bH);
-
-      // POC highlight
-      if (pr === pocPrice) {
-        ctx.strokeStyle = 'rgba(255,215,0,0.85)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([3, 2]);
-        ctx.beginPath();
-        ctx.moveTo(X0, y);
-        ctx.lineTo(X0 + PW, y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-
-        ctx.font = 'bold 9px monospace';
-        ctx.fillStyle = 'rgba(255,215,0,0.9)';
-        ctx.textAlign = 'left';
-        ctx.fillText(`POC ${pr.toFixed(2)}`, X0 + PW + 6, y + 3);
-      }
-
-      // Wall detection — glowing border + label
-      const isWall = t > WALL_THRESHOLD;
-      if (isWall) {
-        ctx.strokeStyle = (v.b > v.s)
-          ? 'rgba(0,188,212,0.9)'
-          : 'rgba(233,30,99,0.9)';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(X0, yT, tw, bH);
-
-        if (pr !== pocPrice) {
-          ctx.font = 'bold 8px monospace';
-          ctx.fillStyle = (v.b > v.s)
-            ? 'rgba(0,188,212,0.8)'
-            : 'rgba(233,30,99,0.8)';
-          ctx.textAlign = 'left';
-          ctx.fillText('WALL', X0 + PW + 6, y + 3);
-        }
-      }
-    });
-  }, [candles]);
 
   const initChart = useCallback(() => {
     if (!containerRef.current || chartRef.current) return;
@@ -490,10 +383,24 @@ export default function LightweightChart({
       priceLineVisible: false,
     });
 
+    // Volume histogram — bottom band
+    const volHist = chart.addHistogramSeries({
+      color:           '#5b6a8a',
+      priceScaleId:    'vol',
+      priceFormat:     { type: 'volume' },
+      lastValueVisible: false,
+      priceLineVisible: false,
+    });
+    chart.priceScale('vol').applyOptions({
+      scaleMargins: { top: 0.85, bottom: 0 },
+      visible: false,
+    });
+
     chartRef.current  = chart;
     seriesRef.current = series;
     cvdRef.current    = cvdLine;
     cvdMaRef.current  = cvdMaLine;
+    volRef.current    = volHist;
     // RTH background overlay — covers full chart height
     const rthBg = chart.addHistogramSeries({
       priceScaleId:    'rth-bg',
@@ -531,7 +438,6 @@ export default function LightweightChart({
     chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
       drawOverlays();
       drawZones();
-      drawVP();
     });
   }, [height, drawOverlays, drawZones]);
 
@@ -650,8 +556,28 @@ export default function LightweightChart({
       cvdMaRef.current.setData(maData);
     }
 
-    // RTH background — disabled
-    // if (rthBgRef.current) { ... }
+    // Volume histogram
+    if (volRef.current) {
+      const volData = sorted.map(c => {
+        const vol = (c.buy || 0) + (c.sell || 0);
+        const isBuy = c.c >= c.o;
+        return {
+          time: Math.floor(c.ts) as any,
+          value: vol > 0 ? vol : 100,
+          color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
+        };
+      });
+      if (liveBar) {
+        const vol = (liveBar.buy || 0) + (liveBar.sell || 0);
+        const isBuy = (livePrice ?? liveBar.c) >= liveBar.o;
+        volData.push({
+          time: Math.floor(liveBar.ts) as any,
+          value: vol > 0 ? vol : 100,
+          color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
+        });
+      }
+      volRef.current.setData(volData);
+    }
 
     // Redraw overlays (volume profile + sweep zone) — delay to let chart render
     requestAnimationFrame(() => drawOverlays());
@@ -683,6 +609,17 @@ export default function LightweightChart({
       }
       const t = Math.floor(liveBar.ts) as any;
       cvdRef.current.update({ time: t, value: delta });
+    }
+
+    // Update volume for live bar
+    if (volRef.current) {
+      const vol = (liveBar.buy || 0) + (liveBar.sell || 0);
+      const isBuy = price >= liveBar.o;
+      volRef.current.update({
+        time: Math.floor(liveBar.ts) as any,
+        value: vol > 0 ? vol : 100,
+        color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
+      });
     }
   }, [liveBar, livePrice]);
 
@@ -876,7 +813,6 @@ export default function LightweightChart({
     drawZones();
   }, [zone, drawZones]);
 
-  useEffect(() => { requestAnimationFrame(() => drawVP()); }, [candles, drawVP]);
 
   const drawPatternLines = useCallback(() => {
     const chart  = chartRef.current;
@@ -932,7 +868,6 @@ export default function LightweightChart({
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%', background: '#0d1117', borderRadius: 8, overflow: 'hidden' }} />
       <canvas ref={zoneCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 2 }} />
-      <canvas ref={vpCanvasRef} style={{ position:'absolute', top:0, left:0, width:'100%', height:'100%', pointerEvents:'none', zIndex:3 }} />
       <canvas ref={canvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 4 }} />
     </div>
   );
