@@ -130,7 +130,6 @@ async def market_latest():
 
 @app.post("/ingest/history")
 async def ingest_history(request: Request, x_bridge_token: Optional[str] = Header(None)):
-    """מקבל batch של נרות היסטוריים בחיבור ראשוני"""
     if x_bridge_token != BRIDGE_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid token")
     raw = await request.json()
@@ -140,17 +139,14 @@ async def ingest_history(request: Request, x_bridge_token: Optional[str] = Heade
 
     try:
         async with httpx.AsyncClient() as client:
-            # מחק היסטוריה קיימת
             await client.post(
                 f"{REDIS_URL}/del/{REDIS_CANDLES_KEY}",
                 headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
                 json={},
                 timeout=5.0
             )
-            # דחוף נרות ב-chunks — כל נר בנפרד ב-URL path
             items = [json.dumps(c) for c in candles[:960]]
             for chunk in [items[i:i+20] for i in range(0, len(items), 20)]:
-                # Upstash REST: /lpush/key/v1/v2/v3 דוחף כל value בנפרד
                 path_values = "/".join(
                     v.replace("/", "%2F").replace(" ", "%20") for v in chunk
                 )
@@ -173,14 +169,12 @@ async def get_candles(limit: int = 960):
     for item in raw:
         try:
             c = item
-            # Parse until we get a dict (handles double/triple encoding)
             while isinstance(c, str):
                 c = json.loads(c)
             if isinstance(c, dict) and c.get("ts", 0) > 0:
                 candles.append(c)
         except Exception:
             continue
-    # מיין לפי זמן חדש→ישן
     candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
     return candles
 
@@ -202,7 +196,7 @@ async def market_analyze():
         }
 
     from datetime import datetime, timezone, timedelta
-    et_offset = timedelta(hours=-4)  # EDT (קיץ) — בחורף -5
+    et_offset = timedelta(hours=-4)
     now_et = datetime.now(timezone(et_offset))
     h, m = now_et.hour, now_et.minute
     is_rth = (h == 9 and m >= 30) or (10 <= h <= 15) or (h == 16 and m == 0)
@@ -236,7 +230,6 @@ async def market_analyze():
     vwap_dist = vwap.get("distance", 0) or 0
     rel_vol   = vol_ctx.get("rel_vol", 1) or 1
 
-    # Footprint summary for AI prompt
     fp_raw = data.get("footprint", [])
     if fp_raw and isinstance(fp_raw, list):
         fp_lines = []
@@ -247,7 +240,6 @@ async def market_analyze():
     else:
         footprint_summary = "N/A"
 
-    # Last 5 candles summary
     candles_raw = await redis_lrange(REDIS_CANDLES_KEY, 0, 4)
     last_5 = []
     for item in candles_raw:
@@ -316,7 +308,7 @@ JSON בלבד ללא backticks:
                     "content-type": "application/json",
                 },
                 json={
-                    "model": "claude-sonnet-4-5",
+                    "model": "claude-sonnet-4-6",
                     "max_tokens": 800,
                     "messages": [{"role": "user", "content": prompt}]
                 }
@@ -338,7 +330,6 @@ JSON בלבד ללא backticks:
 
 @app.post("/ingest/footprint")
 async def ingest_footprint(request: Request, x_bridge_token: Optional[str] = Header(None)):
-    """מקבל footprint של 10 נרות אחרונים — bid/ask/delta/imbalance לפי מחיר"""
     if x_bridge_token != BRIDGE_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid token")
     raw = await request.json()
@@ -361,7 +352,6 @@ async def ingest_footprint(request: Request, x_bridge_token: Optional[str] = Hea
 
 @app.get("/market/patterns")
 async def get_patterns():
-    """Returns detected chart patterns from Redis"""
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
@@ -380,7 +370,6 @@ async def get_patterns():
 
 @app.get("/market/footprint")
 async def get_footprint():
-    """מחזיר footprint אחרון"""
     try:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
@@ -428,13 +417,11 @@ async def redis_trades_get() -> list:
 
 @app.get("/trades")
 async def get_trades():
-    """מחזיר יומן עסקאות"""
     return await redis_trades_get()
 
 
 @app.post("/trades")
 async def save_trade(request: Request, x_bridge_token: Optional[str] = Header(None)):
-    """שומר עסקה ביומן — פתוח לדשבורד ולbridge"""
     trade = await request.json()
     if not trade.get("entry_price"):
         raise HTTPException(status_code=400, detail="entry_price required")
@@ -459,7 +446,6 @@ async def save_trade(request: Request, x_bridge_token: Optional[str] = Header(No
 
 @app.delete("/trades/{trade_id}")
 async def delete_trade(trade_id: str, x_bridge_token: Optional[str] = Header(None)):
-    """מחיקת עסקה ספציפית"""
     try:
         trades = await redis_trades_get()
         updated = [t for t in trades if t.get("id") != trade_id]
@@ -482,7 +468,6 @@ async def delete_trade(trade_id: str, x_bridge_token: Optional[str] = Header(Non
 
 @app.get("/trades/analyze/{trade_id}")
 async def analyze_trade(trade_id: str):
-    """ניתוח AI לעסקה פתוחה — האם לצאת או להישאר"""
     if not ANTHROPIC_API_KEY:
         raise HTTPException(status_code=500, detail="No API key")
 
@@ -524,10 +509,12 @@ CCI14: {cci.get('cci14',0):.1f} | CVD trend: {cvd.get('trend')} | VWAP above: {v
             resp = await client.post(
                 "https://api.anthropic.com/v1/messages",
                 headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                json={"model": "claude-sonnet-4-5", "max_tokens": 200, "messages": [{"role": "user", "content": prompt}]}
+                json={"model": "claude-sonnet-4-6", "max_tokens": 200, "messages": [{"role": "user", "content": prompt}]}
             )
         text = resp.json().get("content", [{}])[0].get("text", "").strip()
-        if text.startswith("```"): text = text.split("```")[1]; text = text[4:] if text.startswith("json") else text
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            text = text[4:] if text.startswith("json") else text
         result = json.loads(text.strip())
         result["pnl_pts"] = round(pnl_pts, 2)
         result["pnl_usd"] = round(pnl_pts * 5, 2)
