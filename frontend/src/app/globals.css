@@ -8,18 +8,61 @@
   padding: 0;
 }
 
+html {
+  font-size: 15px;
+}
+
 body {
   background: #0a0a0f;
   color: #ffffff;
   font-family: 'Courier New', monospace;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
+/* גלילה לכל הדף */
+html, body {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* אזורי תוכן גללים */
+.overflow-y-auto {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* מניעת חפיפה */
+.relative {
+  position: relative;
+}
+
+/* טקסט ברור יותר */
+.text-xs  { font-size: 0.80rem !important; }
+.text-sm  { font-size: 0.90rem !important; }
+.text-base{ font-size: 1.00rem !important; }
+.text-lg  { font-size: 1.15rem !important; }
+.text-xl  { font-size: 1.30rem !important; }
+.text-2xl { font-size: 1.55rem !important; }
+.text-3xl { font-size: 1.90rem !important; }
+
+/* כרטיסים לא חופפים */
+[class*="absolute"] {
+  z-index: auto;
+}
+
+/* scrollbar עדין */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 2px; }
+::-webkit-scrollbar-thumb { 
+  background: #2a2a3a; 
+  border-radius: 3px; 
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a5a;
+}
 
 canvas { display: block; }
