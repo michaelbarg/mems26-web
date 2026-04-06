@@ -315,10 +315,21 @@ JSON בלבד ללא backticks:
             )
         result = resp.json()
         text = result.get("content", [{}])[0].get("text", "").strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"): text = text[4:]
-            text = text.strip()
+        if "```" in text:
+            parts = text.split("```")
+            for part in parts:
+                part = part.strip()
+                if part.startswith("json"):
+                    part = part[4:].strip()
+                if part.startswith("{"):
+                    text = part
+                    break
+        start = text.find("{")
+        end   = text.rfind("}") + 1
+        if start >= 0 and end > start:
+            text = text[start:end]
+        if not text:
+            raise ValueError("Empty AI response")
         signal = json.loads(text)
         signal["ts"] = data.get("ts", 0)
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
