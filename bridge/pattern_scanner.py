@@ -6,22 +6,23 @@ Candle format: {ts, o, h, l, c, buy, sell, vol, delta, ...}
 """
 
 import time as time_module
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import Optional
 
 @dataclass
 class PatternResult:
-    pattern:    str          # "HS" | "IHS" | "DT" | "DB" | "CUP" | "TRI_ASC" | "TRI_DESC"
-    direction:  str          # "LONG" | "SHORT"
+    pattern:    str
+    direction:  str
     start_ts:   int
     end_ts:     int
     entry:      float
     stop:       float
     t1:         float
     t2:         float
-    neckline:   float
-    confidence: int          # 0-100
-    label:      str
+    t3:         float = 0.0
+    neckline:   float = 0.0
+    confidence: int   = 0
+    label:      str   = ""
 
 LABELS = {
     "HS":       "ראש וכתפיים",
@@ -32,6 +33,8 @@ LABELS = {
     "TRI_ASC":  "משולש עולה",
     "TRI_DESC": "משולש יורד",
     "LSR":      "שבירה וחזרה",
+    "RETEST":   "בדיקת רמה",
+    "BASE":     "צבירה",
 }
 
 # ─── Helpers ──────────────────────────────────────────
@@ -69,6 +72,12 @@ def avg_vol(candles: list, start: int, end: int) -> float:
     chunk = candles[max(0, start):end]
     return sum(c.get("vol", c.get("volume", 0)) or 0 for c in chunk) / max(len(chunk), 1)
 
+def quality_label(score: int) -> str:
+    if score >= 90: return "A+"
+    if score >= 75: return "A"
+    if score >= 60: return "B"
+    return "C"
+
 # ─── Head & Shoulders ─────────────────────────────────
 
 def detect_hs(candles: list) -> Optional[PatternResult]:
@@ -101,6 +110,7 @@ def detect_hs(candles: list) -> Optional[PatternResult]:
         stop = rh + 0.25
         t1 = neckline - height * 0.5
         t2 = neckline - height
+        t3 = neckline - height * 1.5
 
         conf = 60
         if pct_diff(lh, rh) < 4: conf += 10
@@ -110,7 +120,7 @@ def detect_hs(candles: list) -> Optional[PatternResult]:
         return PatternResult(
             pattern="HS", direction="SHORT",
             start_ts=lts, end_ts=rts,
-            entry=entry, stop=stop, t1=t1, t2=t2,
+            entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
             neckline=neckline, confidence=min(conf, 95),
             label=LABELS["HS"]
         )
@@ -146,6 +156,7 @@ def detect_ihs(candles: list) -> Optional[PatternResult]:
         stop = rl - 0.25
         t1 = neckline + height * 0.5
         t2 = neckline + height
+        t3 = neckline + height * 1.5
 
         conf = 60
         if pct_diff(ll, rl) < 4: conf += 10
@@ -155,95 +166,181 @@ def detect_ihs(candles: list) -> Optional[PatternResult]:
         return PatternResult(
             pattern="IHS", direction="LONG",
             start_ts=lts, end_ts=rts,
-            entry=entry, stop=stop, t1=t1, t2=t2,
+            entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
             neckline=neckline, confidence=min(conf, 95),
             label=LABELS["IHS"]
         )
     return None
 
+# ─── Double Top / Bottom Quality Scoring ──────────────
+
+def quality_score_double(
+    candles: list,
+    p1_idx: int, p2_idx: int,
+    p1_price: float, p2_price: float,
+    is_top: bool
+) -> int:
+    score = 0
+
+    # סימטריה
+    sym_pct = pct_diff(p1_price, p2_price)
+    if sym_pct < 0.5:   score += 20
+    elif sym_pct < 1.0: score += 12
+    elif sym_pct < 2.0: score += 5
+
+    # מספר נרות בין השיאים (חובה ≥5)
+    bars_between = p2_idx - p1_idx
+    if bars_between >= 10:  score += 20
+    elif bars_between >= 7: score += 15
+    elif bars_between >= 5: score += 10
+    else: return 0  # פסול
+
+    # עומק בין השיאים
+    mid_candles = candles[p1_idx:p2_idx]
+    if mid_candles:
+        if is_top:
+            valley = min(_lo(c) for c in mid_candles)
+            depth  = p1_price - valley
+        else:
+            peak  = max(_hi(c) for c in mid_candles)
+            depth = peak - p2_price
+        if depth >= 4.0:   score += 20
+        elif depth >= 2.5: score += 12
+        elif depth >= 1.5: score += 6
+        else: return 0
+
+    # נפח יורד בשיא/שפל 2
+    vol1 = avg_vol(candles, max(0, p1_idx - 2), p1_idx + 3)
+    vol2 = avg_vol(candles, max(0, p2_idx - 2), p2_idx + 3)
+    if vol2 < vol1 * 0.75:   score += 15
+    elif vol2 < vol1 * 0.90: score += 8
+
+    # CVD Divergence
+    if len(candles) > p2_idx:
+        c1 = candles[p1_idx]
+        c2 = candles[p2_idx]
+        cvd1 = c1.get("delta", 0)
+        cvd2 = c2.get("delta", 0)
+        if is_top and cvd2 < cvd1 and p2_price >= p1_price * 0.998:
+            score += 15
+        elif not is_top and cvd2 > cvd1 and p2_price <= p1_price * 1.002:
+            score += 15
+
+    # Wick חזק בשיא/שפל 2
+    c2 = candles[p2_idx]
+    bar_range = _hi(c2) - _lo(c2)
+    if bar_range > 0:
+        if is_top:
+            wick = _hi(c2) - max(c2.get("o", 0), _cl(c2))
+            if wick / bar_range >= 0.4: score += 10
+        else:
+            wick = min(c2.get("o", 0), _cl(c2)) - _lo(c2)
+            if wick / bar_range >= 0.4: score += 10
+
+    # Session
+    phase = candles[p2_idx].get("phase", "")
+    if phase in ("RTH", "OPEN", "AM_SESSION"): score += 8
+    elif phase == "OVERNIGHT":                  score -= 5
+
+    # CCI
+    cci = candles[p2_idx].get("cci14", 0)
+    if is_top and cci > 80:    score += 8
+    elif not is_top and cci < -80: score += 8
+
+    # VWAP alignment
+    last_price = _cl(candles[-1])
+    vwap = candles[-1].get("vwap", 0)
+    if vwap > 0:
+        if is_top and last_price < vwap:     score += 8
+        elif not is_top and last_price > vwap: score += 8
+
+    return min(score, 100)
+
 # ─── Double Top ───────────────────────────────────────
 
 def detect_double_top(candles: list) -> Optional[PatternResult]:
-    highs, _ = find_pivots(candles, window=5)
+    if len(candles) < 12:
+        return None
+
+    highs, _ = find_pivots(candles, window=4)
     if len(highs) < 2:
         return None
+
+    best = None
+    best_score = 0
 
     for i in range(len(highs) - 1):
         p1i, p1h, p1ts = highs[i]
         p2i, p2h, p2ts = highs[i + 1]
 
-        if pct_diff(p1h, p2h) > 0.8:
-            continue
-        mid = candles[p1i:p2i]
-        if not mid:
-            continue
-        valley = min(_lo(c) for c in mid)
-        if pct_diff(max(p1h, p2h), valley) < 1.5:
+        if pct_diff(p1h, p2h) > 2.0:
             continue
 
-        neckline = valley
-        height = max(p1h, p2h) - neckline
-        entry = neckline - 0.25
-        stop = max(p1h, p2h) + 0.25
-        t1 = neckline - height * 0.5
-        t2 = neckline - height
+        score = quality_score_double(candles, p1i, p2i, p1h, p2h, is_top=True)
 
-        vol1 = avg_vol(candles, p1i - 3, p1i + 3)
-        vol2 = avg_vol(candles, p2i - 3, p2i + 3)
-        conf = 65
-        if vol2 < vol1 * 0.85: conf += 15
-        if pct_diff(p1h, p2h) < 0.4: conf += 10
+        if score >= 60 and score > best_score:
+            best_score = score
+            mid = candles[p1i:p2i]
+            neckline = min(_lo(c) for c in mid) if mid else (p1h + p2h) / 2 - 4
+            height   = max(p1h, p2h) - neckline
+            entry    = neckline - 0.25
+            stop     = max(p1h, p2h) + 0.25
+            t1       = neckline - height * 0.5
+            t2       = neckline - height
+            t3       = neckline - height * 1.5
 
-        return PatternResult(
-            pattern="DT", direction="SHORT",
-            start_ts=p1ts, end_ts=p2ts,
-            entry=entry, stop=stop, t1=t1, t2=t2,
-            neckline=neckline, confidence=min(conf, 95),
-            label=LABELS["DT"]
-        )
-    return None
+            best = PatternResult(
+                pattern="DT", direction="SHORT",
+                start_ts=p1ts, end_ts=p2ts,
+                entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
+                neckline=neckline, confidence=score,
+                label=f"תקרה כפולה {quality_label(score)} ({score}%)"
+            )
+
+    return best
 
 # ─── Double Bottom ────────────────────────────────────
 
 def detect_double_bottom(candles: list) -> Optional[PatternResult]:
-    _, lows = find_pivots(candles, window=5)
+    if len(candles) < 12:
+        return None
+
+    _, lows = find_pivots(candles, window=4)
     if len(lows) < 2:
         return None
+
+    best = None
+    best_score = 0
 
     for i in range(len(lows) - 1):
         p1i, p1l, p1ts = lows[i]
         p2i, p2l, p2ts = lows[i + 1]
 
-        if pct_diff(p1l, p2l) > 0.8:
-            continue
-        mid = candles[p1i:p2i]
-        if not mid:
-            continue
-        peak = max(_hi(c) for c in mid)
-        if pct_diff(min(p1l, p2l), peak) < 1.5:
+        if pct_diff(p1l, p2l) > 2.0:
             continue
 
-        neckline = peak
-        height = neckline - min(p1l, p2l)
-        entry = neckline + 0.25
-        stop = min(p1l, p2l) - 0.25
-        t1 = neckline + height * 0.5
-        t2 = neckline + height
+        score = quality_score_double(candles, p1i, p2i, p1l, p2l, is_top=False)
 
-        vol1 = avg_vol(candles, p1i - 3, p1i + 3)
-        vol2 = avg_vol(candles, p2i - 3, p2i + 3)
-        conf = 65
-        if vol2 < vol1 * 0.85: conf += 15
-        if pct_diff(p1l, p2l) < 0.4: conf += 10
+        if score >= 60 and score > best_score:
+            best_score = score
+            mid = candles[p1i:p2i]
+            neckline = max(_hi(c) for c in mid) if mid else (p1l + p2l) / 2 + 4
+            height   = neckline - min(p1l, p2l)
+            entry    = neckline + 0.25
+            stop     = min(p1l, p2l) - 0.25
+            t1       = neckline + height * 0.5
+            t2       = neckline + height
+            t3       = neckline + height * 1.5
 
-        return PatternResult(
-            pattern="DB", direction="LONG",
-            start_ts=p1ts, end_ts=p2ts,
-            entry=entry, stop=stop, t1=t1, t2=t2,
-            neckline=neckline, confidence=min(conf, 95),
-            label=LABELS["DB"]
-        )
-    return None
+            best = PatternResult(
+                pattern="DB", direction="LONG",
+                start_ts=p1ts, end_ts=p2ts,
+                entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
+                neckline=neckline, confidence=score,
+                label=f"רצפה כפולה {quality_label(score)} ({score}%)"
+            )
+
+    return best
 
 # ─── Cup & Handle ─────────────────────────────────────
 
@@ -253,11 +350,11 @@ def detect_cup(candles: list) -> Optional[PatternResult]:
 
     n = len(candles)
     third = n // 3
-    left = candles[:third]
+    left   = candles[:third]
     bottom = candles[third:2 * third]
-    right = candles[2 * third:]
+    right  = candles[2 * third:]
 
-    left_high = max(_hi(c) for c in left)
+    left_high  = max(_hi(c) for c in left)
     right_high = max(_hi(c) for c in right)
     bottom_low = min(_lo(c) for c in bottom)
 
@@ -271,17 +368,18 @@ def detect_cup(candles: list) -> Optional[PatternResult]:
     if not handle:
         return None
     handle_high = max(_hi(c) for c in handle)
-    handle_low = min(_lo(c) for c in handle)
+    handle_low  = min(_lo(c) for c in handle)
     handle_depth = pct_diff(handle_high, handle_low)
     if handle_depth > cup_depth * 0.6:
         return None
 
     neckline = max(left_high, right_high)
-    height = neckline - bottom_low
-    entry = neckline + 0.25
-    stop = handle_low - 0.25
-    t1 = entry + height * 0.5
-    t2 = entry + height
+    height   = neckline - bottom_low
+    entry    = neckline + 0.25
+    stop     = handle_low - 0.25
+    t1       = entry + height * 0.5
+    t2       = entry + height
+    t3       = entry + height * 1.5
 
     conf = 70
     if handle_depth < cup_depth * 0.35: conf += 15
@@ -289,7 +387,7 @@ def detect_cup(candles: list) -> Optional[PatternResult]:
     return PatternResult(
         pattern="CUP", direction="LONG",
         start_ts=_ts(candles[0]), end_ts=_ts(candles[-1]),
-        entry=entry, stop=stop, t1=t1, t2=t2,
+        entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
         neckline=neckline, confidence=min(conf, 92),
         label=LABELS["CUP"]
     )
@@ -304,45 +402,47 @@ def detect_triangle(candles: list) -> Optional[PatternResult]:
         return None
 
     recent_highs = highs[-4:]
-    recent_lows = lows[-4:]
+    recent_lows  = lows[-4:]
     high_vals = [h[1] for h in recent_highs]
-    low_vals = [l[1] for l in recent_lows]
+    low_vals  = [l[1] for l in recent_lows]
 
-    highs_flat = max(high_vals) - min(high_vals) < 1.5 if high_vals else False
-    lows_rising = all(low_vals[i] > low_vals[i - 1] for i in range(1, len(low_vals)))
-    lows_flat = max(low_vals) - min(low_vals) < 1.5 if low_vals else False
+    highs_flat    = max(high_vals) - min(high_vals) < 1.5 if high_vals else False
+    lows_rising   = all(low_vals[i] > low_vals[i - 1] for i in range(1, len(low_vals)))
+    lows_flat     = max(low_vals) - min(low_vals) < 1.5 if low_vals else False
     highs_falling = all(high_vals[i] < high_vals[i - 1] for i in range(1, len(high_vals)))
 
     if highs_flat and lows_rising:
         resistance = sum(high_vals) / len(high_vals)
-        support = low_vals[-1]
-        height = resistance - support
-        entry = resistance + 0.25
-        stop = support - 0.25
-        t1 = entry + height * 0.5
-        t2 = entry + height
+        support    = low_vals[-1]
+        height     = resistance - support
+        entry      = resistance + 0.25
+        stop       = support - 0.25
+        t1         = entry + height * 0.5
+        t2         = entry + height
+        t3         = entry + height * 1.5
         return PatternResult(
             pattern="TRI_ASC", direction="LONG",
             start_ts=_ts(candles[recent_highs[0][0]]),
             end_ts=_ts(candles[-1]),
-            entry=entry, stop=stop, t1=t1, t2=t2,
+            entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
             neckline=resistance, confidence=72,
             label=LABELS["TRI_ASC"]
         )
 
     if lows_flat and highs_falling:
-        support = sum(low_vals) / len(low_vals)
+        support    = sum(low_vals) / len(low_vals)
         resistance = high_vals[-1]
-        height = resistance - support
-        entry = support - 0.25
-        stop = resistance + 0.25
-        t1 = entry - height * 0.5
-        t2 = entry - height
+        height     = resistance - support
+        entry      = support - 0.25
+        stop       = resistance + 0.25
+        t1         = entry - height * 0.5
+        t2         = entry - height
+        t3         = entry - height * 1.5
         return PatternResult(
             pattern="TRI_DESC", direction="SHORT",
             start_ts=_ts(candles[recent_lows[0][0]]),
             end_ts=_ts(candles[-1]),
-            entry=entry, stop=stop, t1=t1, t2=t2,
+            entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
             neckline=support, confidence=72,
             label=LABELS["TRI_DESC"]
         )
@@ -351,21 +451,15 @@ def detect_triangle(candles: list) -> Optional[PatternResult]:
 # ─── Support / Resistance Retest ──────────────────────
 
 def detect_retest(candles: list) -> Optional[PatternResult]:
-    """
-    מזהה רמת support/resistance שנבדקת 2+ פעמים.
-    חלון: 20 נרות אחרונים.
-    """
     if len(candles) < 6:
         return None
 
-    window = candles[-20:]
-    TOLERANCE = 0.5   # ±0.5 נקודות = אותה רמה
+    window    = candles[-20:]
+    TOLERANCE = 0.5
 
-    # מצא כל השפלים והשיאים
     lows  = [(i, _lo(c), _ts(c)) for i, c in enumerate(window)]
     highs = [(i, _hi(c), _ts(c)) for i, c in enumerate(window)]
 
-    # קבץ שפלים קרובים → רמות support
     support_levels = []
     used = set()
     for i, lo, ts in lows:
@@ -378,15 +472,12 @@ def detect_retest(candles: list) -> Optional[PatternResult]:
         if len(group) >= 2:
             avg_price = sum(g[1] for g in group) / len(group)
             support_levels.append({
-                "price": avg_price,
-                "touches": len(group),
-                "first_ts": group[0][2],
-                "last_ts":  group[-1][2],
+                "price": avg_price, "touches": len(group),
+                "first_ts": group[0][2], "last_ts": group[-1][2],
                 "direction": "LONG",
             })
             used.update(g[0] for g in group)
 
-    # קבץ שיאים קרובים → רמות resistance
     resist_levels = []
     used2 = set()
     for i, hi, ts in highs:
@@ -399,78 +490,61 @@ def detect_retest(candles: list) -> Optional[PatternResult]:
         if len(group) >= 2:
             avg_price = sum(g[1] for g in group) / len(group)
             resist_levels.append({
-                "price": avg_price,
-                "touches": len(group),
-                "first_ts": group[0][2],
-                "last_ts":  group[-1][2],
+                "price": avg_price, "touches": len(group),
+                "first_ts": group[0][2], "last_ts": group[-1][2],
                 "direction": "SHORT",
             })
             used2.update(g[0] for g in group)
 
-    # בחר הרמה עם הכי הרבה נגיעות וקרובה לנר האחרון
     all_levels = support_levels + resist_levels
     if not all_levels:
         return None
 
     last_price = _cl(candles[-1])
-    # מיין: הכי הרבה נגיעות + הכי קרוב למחיר
     all_levels.sort(
         key=lambda l: (l["touches"] * 2 - abs(l["price"] - last_price) / 10),
         reverse=True
     )
     best = all_levels[0]
 
-    # וודא שהנר האחרון קרוב לרמה (בדיקה פעילה)
     if abs(last_price - best["price"]) > 3.0:
         return None
 
-    # חשב entry/stop/targets
-    risk     = 4.0  # ברירת מחדל
-    is_long  = best["direction"] == "LONG"
-    entry    = best["price"] + (0.25 if is_long else -0.25)
-    stop     = best["price"] - (risk if is_long else -risk)
-    t1       = entry + (risk if is_long else -risk)
-    t2       = entry + (risk * 2 if is_long else -risk * 2)
+    risk    = 4.0
+    is_long = best["direction"] == "LONG"
+    entry   = best["price"] + (0.25 if is_long else -0.25)
+    stop    = best["price"] - (risk if is_long else -risk)
+    t1      = entry + (risk if is_long else -risk)
+    t2      = entry + (risk * 2 if is_long else -risk * 2)
+    t3      = entry + (risk * 3 if is_long else -risk * 3)
 
     conf = 50
     if best["touches"] >= 3: conf += 20
     if best["touches"] >= 4: conf += 10
-    vol_last  = candles[-1].get("vol", 0)
-    vol_prev  = sum(c.get("vol", 0) for c in candles[-5:-1]) / 4
-    if vol_last < vol_prev * 0.8: conf += 10  # נפח יורד = חלש יותר
+    vol_last = candles[-1].get("vol", 0)
+    vol_prev = sum(c.get("vol", 0) for c in candles[-5:-1]) / 4
+    if vol_last < vol_prev * 0.8: conf += 10
     if abs(last_price - best["price"]) < 1.0: conf += 10
 
     return PatternResult(
-        pattern   = "RETEST",
-        direction = best["direction"],
-        start_ts  = best["first_ts"],
-        end_ts    = best["last_ts"],
-        entry     = entry,
-        stop      = stop,
-        t1        = t1,
-        t2        = t2,
-        neckline  = best["price"],
-        confidence= min(conf, 90),
-        label     = f"בדיקת {'Support' if is_long else 'Resistance'} ({best['touches']} נגיעות)",
+        pattern="RETEST", direction=best["direction"],
+        start_ts=best["first_ts"], end_ts=best["last_ts"],
+        entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
+        neckline=best["price"], confidence=min(conf, 90),
+        label=f"בדיקת {'Support' if is_long else 'Resistance'} ({best['touches']} נגיעות)",
     )
 
-
-# ─── Base Candles (צבירה לפני פריצה) ─────────────────
+# ─── Base Candles ─────────────────────────────────────
 
 def detect_base(candles: list) -> Optional[PatternResult]:
-    """
-    מזהה 3+ נרות רצופים עם טווח צר (≤3 נקודות) = base/צבירה.
-    """
     if len(candles) < 5:
         return None
 
-    window = candles[-15:]
+    window         = candles[-15:]
     BASE_MAX_RANGE = 3.0
     MIN_BASE_BARS  = 3
-
-    # חפש רצף נרות צרים
-    best_base = None
-    best_len  = 0
+    best_base      = None
+    best_len       = 0
 
     i = 0
     while i < len(window):
@@ -478,13 +552,11 @@ def detect_base(candles: list) -> Optional[PatternResult]:
         j = i
         while j < len(window):
             c = window[j]
-            bar_range = _hi(c) - _lo(c)
-            if bar_range <= BASE_MAX_RANGE:
+            if _hi(c) - _lo(c) <= BASE_MAX_RANGE:
                 base_candles.append(c)
                 j += 1
             else:
                 break
-
         if len(base_candles) >= MIN_BASE_BARS and len(base_candles) > best_len:
             best_len  = len(base_candles)
             best_base = base_candles
@@ -493,20 +565,17 @@ def detect_base(candles: list) -> Optional[PatternResult]:
     if not best_base:
         return None
 
-    # רמת הbase
     base_high = max(_hi(c) for c in best_base)
     base_low  = min(_lo(c) for c in best_base)
     base_mid  = (base_high + base_low) / 2
 
-    # כיוון — לפי המחיר לפני הbase
-    pre_candles = candles[:-best_len-1]
+    pre_candles = candles[:-best_len - 1]
     if not pre_candles:
         return None
     pre_price = _cl(pre_candles[-1])
-    is_long   = pre_price < base_mid  # מגיע מלמטה → LONG
+    is_long   = pre_price < base_mid
 
-    # נפח יורד בbase = צבירה טובה
-    vols = [c.get("vol", 0) for c in best_base]
+    vols         = [c.get("vol", 0) for c in best_base]
     vol_declining = vols[-1] < vols[0] * 0.8 if vols[0] > 0 else False
 
     risk  = base_high - base_low + 1.0
@@ -514,136 +583,108 @@ def detect_base(candles: list) -> Optional[PatternResult]:
     stop  = (base_low  - 0.25) if is_long else (base_high + 0.25)
     t1    = entry + (risk if is_long else -risk)
     t2    = entry + (risk * 2 if is_long else -risk * 2)
+    t3    = entry + (risk * 3 if is_long else -risk * 3)
 
     conf = 55
-    if best_len >= 4:     conf += 15
-    if best_len >= 5:     conf += 10
-    if vol_declining:     conf += 15
-    if risk < 2.0:        conf += 10  # base צר = טוב
+    if best_len >= 4: conf += 15
+    if best_len >= 5: conf += 10
+    if vol_declining: conf += 15
+    if risk < 2.0:    conf += 10
 
     return PatternResult(
-        pattern   = "BASE",
-        direction = "LONG" if is_long else "SHORT",
-        start_ts  = best_base[0]["ts"],
-        end_ts    = best_base[-1]["ts"],
-        entry     = entry,
-        stop      = stop,
-        t1        = t1,
-        t2        = t2,
-        neckline  = base_high if is_long else base_low,
-        confidence= min(conf, 88),
-        label     = f"Base {best_len} נרות {'▲' if is_long else '▼'}",
+        pattern="BASE", direction="LONG" if is_long else "SHORT",
+        start_ts=_ts(best_base[0]), end_ts=_ts(best_base[-1]),
+        entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
+        neckline=base_high if is_long else base_low,
+        confidence=min(conf, 88),
+        label=f"Base {best_len} נרות {'▲' if is_long else '▼'}",
     )
-
 
 # ─── Sweep + Return (LSR) ─────────────────────────────
 
 def detect_sweep_return(candles: list) -> Optional[PatternResult]:
-    """
-    שבירת רמה (sweep) וחזרה מהירה — Liquidity Sweep Return.
-    מחפש נר שפרץ שפל/שיא של 10+ נרות ואז סגר בחזרה מעבר לרמה.
-    """
     if len(candles) < 12:
         return None
 
-    window = candles[-30:] if len(candles) >= 30 else candles
-    LOOKBACK = 10  # כמה נרות אחורה לחפש רמה
-
-    best = None
+    window   = candles[-30:] if len(candles) >= 30 else candles
+    LOOKBACK = 10
+    best     = None
     best_conf = 0
 
     for i in range(LOOKBACK, len(window)):
-        c = window[i]
-        hi = _hi(c)
-        lo = _lo(c)
-        cl = _cl(c)
-        op = c.get("o", c.get("open", 0))
-        prior = window[max(0, i - LOOKBACK):i]
-
+        c      = window[i]
+        hi     = _hi(c)
+        lo     = _lo(c)
+        cl     = _cl(c)
+        op     = c.get("o", c.get("open", 0))
+        prior  = window[max(0, i - LOOKBACK):i]
         if not prior:
             continue
 
         prior_high = max(_hi(p) for p in prior)
-        prior_low = min(_lo(p) for p in prior)
+        prior_low  = min(_lo(p) for p in prior)
+        vol        = c.get("vol", c.get("volume", 0)) or 0
+        avg_v      = sum((p.get("vol", p.get("volume", 0)) or 0) for p in prior) / len(prior)
 
-        # --- Sweep HIGH then close back below (SHORT) ---
-        sweep_above = hi > prior_high + 0.5
-        closed_back_below = cl < prior_high
-        if sweep_above and closed_back_below:
+        # SHORT sweep
+        if hi > prior_high + 0.5 and cl < prior_high:
             wick_above = hi - max(cl, op)
-            body = abs(cl - op)
-            long_wick = wick_above > body * 0.8 if body > 0 else wick_above > 1.0
-
-            neckline = prior_high
-            risk = hi - neckline + 1.0
-            entry = neckline - 0.25
-            stop = hi + 0.25
-            t1 = entry - risk
-            t2 = entry - risk * 2
-
-            conf = 60
+            body       = abs(cl - op)
+            long_wick  = wick_above > body * 0.8 if body > 0 else wick_above > 1.0
+            neckline   = prior_high
+            risk       = hi - neckline + 1.0
+            entry      = neckline - 0.25
+            stop       = hi + 0.25
+            t1         = entry - risk
+            t2         = entry - risk * 2
+            t3         = entry - risk * 3
+            conf       = 60
             if long_wick: conf += 10
-            delta = c.get("delta", 0)
-            if delta < -50: conf += 10  # דלתא שלילית = מוכרים חזקים
-            vol = c.get("vol", c.get("volume", 0)) or 0
-            avg_v = sum((p.get("vol", p.get("volume", 0)) or 0) for p in prior) / len(prior)
-            if vol > avg_v * 1.3: conf += 10  # נפח גבוה בשבירה
-
+            if c.get("delta", 0) < -50: conf += 10
+            if vol > avg_v * 1.3:       conf += 10
             if conf > best_conf:
                 best_conf = conf
                 best = PatternResult(
                     pattern="LSR", direction="SHORT",
                     start_ts=_ts(prior[0]), end_ts=_ts(c),
-                    entry=entry, stop=stop, t1=t1, t2=t2,
+                    entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
                     neckline=neckline, confidence=min(conf, 92),
                     label=f"Sweep High {hi:.1f} → חזרה",
                 )
 
-        # --- Sweep LOW then close back above (LONG) ---
-        sweep_below = lo < prior_low - 0.5
-        closed_back_above = cl > prior_low
-        if sweep_below and closed_back_above:
+        # LONG sweep
+        if lo < prior_low - 0.5 and cl > prior_low:
             wick_below = min(cl, op) - lo
-            body = abs(cl - op)
-            long_wick = wick_below > body * 0.8 if body > 0 else wick_below > 1.0
-
-            neckline = prior_low
-            risk = neckline - lo + 1.0
-            entry = neckline + 0.25
-            stop = lo - 0.25
-            t1 = entry + risk
-            t2 = entry + risk * 2
-
-            conf = 60
+            body       = abs(cl - op)
+            long_wick  = wick_below > body * 0.8 if body > 0 else wick_below > 1.0
+            neckline   = prior_low
+            risk       = neckline - lo + 1.0
+            entry      = neckline + 0.25
+            stop       = lo - 0.25
+            t1         = entry + risk
+            t2         = entry + risk * 2
+            t3         = entry + risk * 3
+            conf       = 60
             if long_wick: conf += 10
-            delta = c.get("delta", 0)
-            if delta > 50: conf += 10  # דלתא חיובית = קונים חזקים
-            vol = c.get("vol", c.get("volume", 0)) or 0
-            avg_v = sum((p.get("vol", p.get("volume", 0)) or 0) for p in prior) / len(prior)
-            if vol > avg_v * 1.3: conf += 10
-
+            if c.get("delta", 0) > 50: conf += 10
+            if vol > avg_v * 1.3:      conf += 10
             if conf > best_conf:
                 best_conf = conf
                 best = PatternResult(
                     pattern="LSR", direction="LONG",
                     start_ts=_ts(prior[0]), end_ts=_ts(c),
-                    entry=entry, stop=stop, t1=t1, t2=t2,
+                    entry=entry, stop=stop, t1=t1, t2=t2, t3=t3,
                     neckline=neckline, confidence=min(conf, 92),
                     label=f"Sweep Low {lo:.1f} → חזרה",
                 )
 
     return best
 
-
 # ─── Main scanner ─────────────────────────────────────
 
 def scan_patterns(candles: list) -> list[dict]:
-    """
-    Run all detectors on multiple windows of the candle data.
-    Returns top 3 unique patterns sorted by confidence.
-    """
-    results = []
-    windows = [20, 60, 120, 240, 480, 960]
+    results  = []
+    windows  = [20, 60, 120, 240, 480, 960]
     detectors = [
         detect_hs,
         detect_ihs,
@@ -666,43 +707,29 @@ def scan_patterns(candles: list) -> list[dict]:
             except Exception:
                 pass
 
-    # Sort by confidence, deduplicate by pattern type
     results.sort(key=lambda x: x["confidence"], reverse=True)
-    seen = set()
-    unique = []
+    seen, unique = set(), []
     for r in results:
         if r["pattern"] not in seen:
             seen.add(r["pattern"])
             unique.append(r)
 
-    # Filter: recency — pattern must have ended within 90 minutes
-    now_ts = int(time_module.time())
-    MAX_AGE_SEC = 90 * 60
+    now_ts        = int(time_module.time())
+    MAX_AGE_SEC   = 90 * 60
     current_price = _cl(candles[-1]) if candles else 0
 
-    time_filtered = [
-        r for r in unique
-        if now_ts - r["end_ts"] <= MAX_AGE_SEC
-    ]
+    time_filtered = [r for r in unique if now_ts - r["end_ts"] <= MAX_AGE_SEC]
 
-    # Filter: actionable — price must be near neckline, not already ran past or invalidated
     def is_actionable(r: dict) -> bool:
-        entry = r["entry"]
-        stop = r["stop"]
-        neckline = r["neckline"]
+        entry     = r["entry"]
+        stop      = r["stop"]
+        neckline  = r["neckline"]
         direction = r["direction"]
-        price = current_price
-
+        price     = current_price
         if direction == "LONG":
-            already_ran = price > entry + 5
-            invalidated = price < stop
-            near_entry = abs(price - neckline) <= 8
+            return abs(price - neckline) <= 8 and price <= entry + 5 and price >= stop
         else:
-            already_ran = price < entry - 5
-            invalidated = price > stop
-            near_entry = abs(price - neckline) <= 8
-
-        return near_entry and not already_ran and not invalidated
+            return abs(price - neckline) <= 8 and price >= entry - 5 and price <= stop
 
     actionable = [r for r in time_filtered if is_actionable(r)]
     return actionable[:3]
