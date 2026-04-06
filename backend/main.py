@@ -195,23 +195,6 @@ async def market_analyze():
             "wait_reason": "Bridge לא פעיל"
         }
 
-    from datetime import datetime, timezone, timedelta
-    et_offset = timedelta(hours=-4)
-    now_et = datetime.now(timezone(et_offset))
-    h, m = now_et.hour, now_et.minute
-    is_rth = (h == 9 and m >= 30) or (10 <= h <= 15) or (h == 16 and m == 0)
-
-    if not is_rth:
-        return {
-            "direction": "NO_TRADE", "score": 0, "confidence": "LOW",
-            "setup": "מחוץ לשעות RTH", "win_rate": 0,
-            "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
-            "risk_pts": 0, "rationale": "שוק סגור. RTH מתחיל ב-9:30 ET",
-            "tl_color": "red", "ts": data.get("ts", 0),
-            "t1_win_rate": 0, "t2_win_rate": 0, "t3_win_rate": 0,
-            "wait_reason": "RTH מתחיל ב-9:30 ET"
-        }
-
     price   = data.get("price", 0)
     bar     = data.get("bar", {})
     cvd     = data.get("cvd", {})
@@ -309,7 +292,7 @@ JSON בלבד ללא backticks:
                 },
                 json={
                     "model": "claude-sonnet-4-6",
-                    "max_tokens": 1200,
+                    "max_tokens": 1500,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
@@ -330,6 +313,7 @@ JSON בלבד ללא backticks:
             text = text[start:end]
         if not text:
             raise ValueError("Empty AI response")
+        log.info(f"AI raw response: {text[:300]}")
         # נסה לתקן JSON חתוך
         if text.count('{') > text.count('}'):
             text = text + '}'
