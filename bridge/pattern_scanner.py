@@ -31,6 +31,7 @@ LABELS = {
     "CUP":      "כוס וידית",
     "TRI_ASC":  "משולש עולה",
     "TRI_DESC": "משולש יורד",
+    "LSR":      "שבירה וחזרה",
 }
 
 # ─── Helpers ──────────────────────────────────────────
@@ -347,6 +348,293 @@ def detect_triangle(candles: list) -> Optional[PatternResult]:
         )
     return None
 
+# ─── Support / Resistance Retest ──────────────────────
+
+def detect_retest(candles: list) -> Optional[PatternResult]:
+    """
+    מזהה רמת support/resistance שנבדקת 2+ פעמים.
+    חלון: 20 נרות אחרונים.
+    """
+    if len(candles) < 6:
+        return None
+
+    window = candles[-20:]
+    TOLERANCE = 0.5   # ±0.5 נקודות = אותה רמה
+
+    # מצא כל השפלים והשיאים
+    lows  = [(i, _lo(c), _ts(c)) for i, c in enumerate(window)]
+    highs = [(i, _hi(c), _ts(c)) for i, c in enumerate(window)]
+
+    # קבץ שפלים קרובים → רמות support
+    support_levels = []
+    used = set()
+    for i, lo, ts in lows:
+        if i in used:
+            continue
+        group = [(i, lo, ts)]
+        for j, lo2, ts2 in lows:
+            if j != i and j not in used and abs(lo - lo2) <= TOLERANCE:
+                group.append((j, lo2, ts2))
+        if len(group) >= 2:
+            avg_price = sum(g[1] for g in group) / len(group)
+            support_levels.append({
+                "price": avg_price,
+                "touches": len(group),
+                "first_ts": group[0][2],
+                "last_ts":  group[-1][2],
+                "direction": "LONG",
+            })
+            used.update(g[0] for g in group)
+
+    # קבץ שיאים קרובים → רמות resistance
+    resist_levels = []
+    used2 = set()
+    for i, hi, ts in highs:
+        if i in used2:
+            continue
+        group = [(i, hi, ts)]
+        for j, hi2, ts2 in highs:
+            if j != i and j not in used2 and abs(hi - hi2) <= TOLERANCE:
+                group.append((j, hi2, ts2))
+        if len(group) >= 2:
+            avg_price = sum(g[1] for g in group) / len(group)
+            resist_levels.append({
+                "price": avg_price,
+                "touches": len(group),
+                "first_ts": group[0][2],
+                "last_ts":  group[-1][2],
+                "direction": "SHORT",
+            })
+            used2.update(g[0] for g in group)
+
+    # בחר הרמה עם הכי הרבה נגיעות וקרובה לנר האחרון
+    all_levels = support_levels + resist_levels
+    if not all_levels:
+        return None
+
+    last_price = _cl(candles[-1])
+    # מיין: הכי הרבה נגיעות + הכי קרוב למחיר
+    all_levels.sort(
+        key=lambda l: (l["touches"] * 2 - abs(l["price"] - last_price) / 10),
+        reverse=True
+    )
+    best = all_levels[0]
+
+    # וודא שהנר האחרון קרוב לרמה (בדיקה פעילה)
+    if abs(last_price - best["price"]) > 3.0:
+        return None
+
+    # חשב entry/stop/targets
+    risk     = 4.0  # ברירת מחדל
+    is_long  = best["direction"] == "LONG"
+    entry    = best["price"] + (0.25 if is_long else -0.25)
+    stop     = best["price"] - (risk if is_long else -risk)
+    t1       = entry + (risk if is_long else -risk)
+    t2       = entry + (risk * 2 if is_long else -risk * 2)
+
+    conf = 50
+    if best["touches"] >= 3: conf += 20
+    if best["touches"] >= 4: conf += 10
+    vol_last  = candles[-1].get("vol", 0)
+    vol_prev  = sum(c.get("vol", 0) for c in candles[-5:-1]) / 4
+    if vol_last < vol_prev * 0.8: conf += 10  # נפח יורד = חלש יותר
+    if abs(last_price - best["price"]) < 1.0: conf += 10
+
+    return PatternResult(
+        pattern   = "RETEST",
+        direction = best["direction"],
+        start_ts  = best["first_ts"],
+        end_ts    = best["last_ts"],
+        entry     = entry,
+        stop      = stop,
+        t1        = t1,
+        t2        = t2,
+        neckline  = best["price"],
+        confidence= min(conf, 90),
+        label     = f"בדיקת {'Support' if is_long else 'Resistance'} ({best['touches']} נגיעות)",
+    )
+
+
+# ─── Base Candles (צבירה לפני פריצה) ─────────────────
+
+def detect_base(candles: list) -> Optional[PatternResult]:
+    """
+    מזהה 3+ נרות רצופים עם טווח צר (≤3 נקודות) = base/צבירה.
+    """
+    if len(candles) < 5:
+        return None
+
+    window = candles[-15:]
+    BASE_MAX_RANGE = 3.0
+    MIN_BASE_BARS  = 3
+
+    # חפש רצף נרות צרים
+    best_base = None
+    best_len  = 0
+
+    i = 0
+    while i < len(window):
+        base_candles = []
+        j = i
+        while j < len(window):
+            c = window[j]
+            bar_range = _hi(c) - _lo(c)
+            if bar_range <= BASE_MAX_RANGE:
+                base_candles.append(c)
+                j += 1
+            else:
+                break
+
+        if len(base_candles) >= MIN_BASE_BARS and len(base_candles) > best_len:
+            best_len  = len(base_candles)
+            best_base = base_candles
+        i = j + 1 if j == i else j
+
+    if not best_base:
+        return None
+
+    # רמת הbase
+    base_high = max(_hi(c) for c in best_base)
+    base_low  = min(_lo(c) for c in best_base)
+    base_mid  = (base_high + base_low) / 2
+
+    # כיוון — לפי המחיר לפני הbase
+    pre_candles = candles[:-best_len-1]
+    if not pre_candles:
+        return None
+    pre_price = _cl(pre_candles[-1])
+    is_long   = pre_price < base_mid  # מגיע מלמטה → LONG
+
+    # נפח יורד בbase = צבירה טובה
+    vols = [c.get("vol", 0) for c in best_base]
+    vol_declining = vols[-1] < vols[0] * 0.8 if vols[0] > 0 else False
+
+    risk  = base_high - base_low + 1.0
+    entry = (base_high + 0.25) if is_long else (base_low - 0.25)
+    stop  = (base_low  - 0.25) if is_long else (base_high + 0.25)
+    t1    = entry + (risk if is_long else -risk)
+    t2    = entry + (risk * 2 if is_long else -risk * 2)
+
+    conf = 55
+    if best_len >= 4:     conf += 15
+    if best_len >= 5:     conf += 10
+    if vol_declining:     conf += 15
+    if risk < 2.0:        conf += 10  # base צר = טוב
+
+    return PatternResult(
+        pattern   = "BASE",
+        direction = "LONG" if is_long else "SHORT",
+        start_ts  = best_base[0]["ts"],
+        end_ts    = best_base[-1]["ts"],
+        entry     = entry,
+        stop      = stop,
+        t1        = t1,
+        t2        = t2,
+        neckline  = base_high if is_long else base_low,
+        confidence= min(conf, 88),
+        label     = f"Base {best_len} נרות {'▲' if is_long else '▼'}",
+    )
+
+
+# ─── Sweep + Return (LSR) ─────────────────────────────
+
+def detect_sweep_return(candles: list) -> Optional[PatternResult]:
+    """
+    שבירת רמה (sweep) וחזרה מהירה — Liquidity Sweep Return.
+    מחפש נר שפרץ שפל/שיא של 10+ נרות ואז סגר בחזרה מעבר לרמה.
+    """
+    if len(candles) < 12:
+        return None
+
+    window = candles[-30:] if len(candles) >= 30 else candles
+    LOOKBACK = 10  # כמה נרות אחורה לחפש רמה
+
+    best = None
+    best_conf = 0
+
+    for i in range(LOOKBACK, len(window)):
+        c = window[i]
+        hi = _hi(c)
+        lo = _lo(c)
+        cl = _cl(c)
+        op = c.get("o", c.get("open", 0))
+        prior = window[max(0, i - LOOKBACK):i]
+
+        if not prior:
+            continue
+
+        prior_high = max(_hi(p) for p in prior)
+        prior_low = min(_lo(p) for p in prior)
+
+        # --- Sweep HIGH then close back below (SHORT) ---
+        sweep_above = hi > prior_high + 0.5
+        closed_back_below = cl < prior_high
+        if sweep_above and closed_back_below:
+            wick_above = hi - max(cl, op)
+            body = abs(cl - op)
+            long_wick = wick_above > body * 0.8 if body > 0 else wick_above > 1.0
+
+            neckline = prior_high
+            risk = hi - neckline + 1.0
+            entry = neckline - 0.25
+            stop = hi + 0.25
+            t1 = entry - risk
+            t2 = entry - risk * 2
+
+            conf = 60
+            if long_wick: conf += 10
+            delta = c.get("delta", 0)
+            if delta < -50: conf += 10  # דלתא שלילית = מוכרים חזקים
+            vol = c.get("vol", c.get("volume", 0)) or 0
+            avg_v = sum((p.get("vol", p.get("volume", 0)) or 0) for p in prior) / len(prior)
+            if vol > avg_v * 1.3: conf += 10  # נפח גבוה בשבירה
+
+            if conf > best_conf:
+                best_conf = conf
+                best = PatternResult(
+                    pattern="LSR", direction="SHORT",
+                    start_ts=_ts(prior[0]), end_ts=_ts(c),
+                    entry=entry, stop=stop, t1=t1, t2=t2,
+                    neckline=neckline, confidence=min(conf, 92),
+                    label=f"Sweep High {hi:.1f} → חזרה",
+                )
+
+        # --- Sweep LOW then close back above (LONG) ---
+        sweep_below = lo < prior_low - 0.5
+        closed_back_above = cl > prior_low
+        if sweep_below and closed_back_above:
+            wick_below = min(cl, op) - lo
+            body = abs(cl - op)
+            long_wick = wick_below > body * 0.8 if body > 0 else wick_below > 1.0
+
+            neckline = prior_low
+            risk = neckline - lo + 1.0
+            entry = neckline + 0.25
+            stop = lo - 0.25
+            t1 = entry + risk
+            t2 = entry + risk * 2
+
+            conf = 60
+            if long_wick: conf += 10
+            delta = c.get("delta", 0)
+            if delta > 50: conf += 10  # דלתא חיובית = קונים חזקים
+            vol = c.get("vol", c.get("volume", 0)) or 0
+            avg_v = sum((p.get("vol", p.get("volume", 0)) or 0) for p in prior) / len(prior)
+            if vol > avg_v * 1.3: conf += 10
+
+            if conf > best_conf:
+                best_conf = conf
+                best = PatternResult(
+                    pattern="LSR", direction="LONG",
+                    start_ts=_ts(prior[0]), end_ts=_ts(c),
+                    entry=entry, stop=stop, t1=t1, t2=t2,
+                    neckline=neckline, confidence=min(conf, 92),
+                    label=f"Sweep Low {lo:.1f} → חזרה",
+                )
+
+    return best
+
+
 # ─── Main scanner ─────────────────────────────────────
 
 def scan_patterns(candles: list) -> list[dict]:
@@ -355,7 +643,7 @@ def scan_patterns(candles: list) -> list[dict]:
     Returns top 3 unique patterns sorted by confidence.
     """
     results = []
-    windows = [120, 240, 480, 960]
+    windows = [20, 60, 120, 240, 480, 960]
     detectors = [
         detect_hs,
         detect_ihs,
@@ -363,6 +651,9 @@ def scan_patterns(candles: list) -> list[dict]:
         detect_double_bottom,
         detect_cup,
         detect_triangle,
+        detect_retest,
+        detect_sweep_return,
+        detect_base,
     ]
 
     for w in windows:

@@ -113,66 +113,220 @@ export default function LightweightChart({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, rect.width, rect.height);
 
-    // ── Sweep Zone ───────────────────────────────────────────────────
-    const sd = sweepDataRef.current;
-    if (sd && sd.entry > 0) {
-      const ts = chart.timeScale();
-      const x1 = ts.timeToCoordinate(Math.floor(sd.sweepBarTs));
-      const x2 = ts.timeToCoordinate(Math.floor(sd.entryBarTs || sd.sweepBarTs));
-      if (x1 !== null && x2 !== null) {
-        const isLong = sd.dir === 'long';
-        const entryY = series.priceToCoordinate(sd.entry);
-        const stopY = series.priceToCoordinate(sd.stop);
-        const t1Y = series.priceToCoordinate(sd.t1);
-        const t2Y = series.priceToCoordinate(sd.t2);
-        if (entryY !== null && stopY !== null && t1Y !== null && t2Y !== null) {
-          const pad = 60;
-          const xLeft = Math.min(x1, x2) - 10;
-          const xRight = Math.max(x1, x2) + pad;
-          const zoneW = xRight - xLeft;
+      // ── Sweep Zone ───────────────────────────────────────────────────
+      const sd = sweepDataRef.current;
+      if (sd && sd.entry > 0) {
+        const ts = chart.timeScale();
+        const x1 = ts.timeToCoordinate(Math.floor(sd.sweepBarTs));
+        const x2 = ts.timeToCoordinate(Math.floor(sd.entryBarTs || sd.sweepBarTs));
+        if (x1 !== null && x2 !== null) {
+          const isLong  = sd.dir === 'long';
+          const entryY  = series.priceToCoordinate(sd.entry);
+          const stopY   = series.priceToCoordinate(sd.stop);
+          const t1Y     = series.priceToCoordinate(sd.t1);
+          const t2Y     = series.priceToCoordinate(sd.t2);
+          if (entryY !== null && stopY !== null && t1Y !== null && t2Y !== null) {
 
-          const zoneTop = Math.min(stopY, t2Y);
-          const zoneBot = Math.max(stopY, t2Y);
-          ctx.fillStyle = isLong ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)';
-          ctx.fillRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
-          ctx.strokeStyle = isLong ? 'rgba(34,197,94,0.6)' : 'rgba(239,68,68,0.6)';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(xLeft, zoneTop, zoneW, zoneBot - zoneTop);
+            const risk      = Math.abs(sd.entry - sd.stop);
+            const riskDollar = Math.round(risk * 5);
+            const t1pts     = Math.abs(sd.t1 - sd.entry);
+            const t2pts     = Math.abs(sd.t2 - sd.entry);
 
-          ctx.fillStyle = 'rgba(239,68,68,0.15)';
-          const riskTop = Math.min(entryY, stopY);
-          const riskBot = Math.max(entryY, stopY);
-          ctx.fillRect(xLeft, riskTop, zoneW, riskBot - riskTop);
+            // ── X bounds: Sweep נר עד Entry נר בלבד ────────────────
+            const BOX_L  = Math.min(x1, x2) - 6;
+            const BOX_R  = Math.max(x1, x2) + 6;  // מסתיים בנר הכניסה
+            const LINE_R = rect.width - 4;          // קווי T1/T2 ממשיכים עד קצה
 
-          ctx.fillStyle = 'rgba(34,197,94,0.1)';
-          const rewTop = Math.min(entryY, t2Y);
-          const rewBot = Math.max(entryY, t2Y);
-          ctx.fillRect(xLeft, rewTop, zoneW, rewBot - rewTop);
+            // ── Y bounds ────────────────────────────────────────────
+            const BOX_T = Math.min(stopY, t2Y) - 12;
+            const BOX_B = Math.max(stopY, t2Y) + 8;
+            const BOX_W = BOX_R - BOX_L;
+            const BOX_H = BOX_B - BOX_T;
 
-          const risk = Math.abs(sd.entry - sd.stop);
-          const riskDollar = Math.round(risk * 5);
-          const t1pts = Math.abs(sd.t1 - sd.entry);
-          const t2pts = Math.abs(sd.t2 - sd.entry);
+            // ── fills ────────────────────────────────────────────────
+            // risk zone
+            const rT = Math.min(entryY, stopY), rB = Math.max(entryY, stopY);
+            ctx.fillStyle = 'rgba(180,20,50,0.12)';
+            ctx.fillRect(BOX_L, rT, BOX_W, rB - rT);
 
-          const drawLabel = (text: string, x: number, y: number, bg: string, textCol = '#ffffff') => {
-            ctx.font = '11px JetBrains Mono, monospace';
-            const m = ctx.measureText(text);
-            const pw = 6, ph = 3;
-            ctx.fillStyle = bg;
-            ctx.fillRect(x, y - 7 - ph, m.width + pw * 2, 14 + ph * 2);
-            ctx.fillStyle = textCol;
-            ctx.fillText(text, x + pw, y + 4);
-          };
+            // reward T1
+            const r1T = Math.min(entryY, t1Y), r1B = Math.max(entryY, t1Y);
+            ctx.fillStyle = isLong ? 'rgba(0,188,212,0.06)' : 'rgba(233,30,99,0.06)';
+            ctx.fillRect(BOX_L, r1T, BOX_W, r1B - r1T);
 
-          const labelX = xLeft + 6;
-          drawLabel('SWEEP ZONE', labelX, zoneTop + 16, '#001a00');
-          drawLabel(`ENTRY ${sd.entry.toFixed(2)}`, labelX, entryY, '#001a00');
-          drawLabel(`STOP ${sd.stop.toFixed(2)} −$${riskDollar}`, labelX, stopY, '#1a0000');
-          drawLabel(`① +${t1pts.toFixed(0)}pt $${Math.round(t1pts * 5)}`, labelX, t1Y, '#001a00');
-          drawLabel(`② +${t2pts.toFixed(0)}pt $${Math.round(t2pts * 5)}`, labelX, t2Y, '#001200');
+            // reward T2
+            const r2T = Math.min(t1Y, t2Y), r2B = Math.max(t1Y, t2Y);
+            ctx.fillStyle = isLong ? 'rgba(0,188,212,0.11)' : 'rgba(233,30,99,0.11)';
+            ctx.fillRect(BOX_L, r2T, BOX_W, r2B - r2T);
+
+            // ── מלבן חיצוני ─────────────────────────────────────────
+            ctx.shadowColor = isLong ? 'rgba(0,188,212,0.2)' : 'rgba(233,30,99,0.2)';
+            ctx.shadowBlur  = 16;
+            ctx.strokeStyle = isLong ? 'rgba(0,188,212,0.65)' : 'rgba(233,30,99,0.65)';
+            ctx.lineWidth   = 1.5;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.roundRect(BOX_L, BOX_T, BOX_W, BOX_H, 6);
+            ctx.stroke();
+            ctx.shadowBlur = 0; ctx.shadowColor = 'transparent';
+
+            // ── קווים ────────────────────────────────────────────────
+            // STOP — מקווקו אדום, בתוך המלבן בלבד
+            ctx.strokeStyle = 'rgba(220,40,80,0.85)';
+            ctx.lineWidth   = 1.5;
+            ctx.setLineDash([5, 4]);
+            ctx.beginPath();
+            ctx.moveTo(BOX_L, stopY);
+            ctx.lineTo(BOX_R, stopY);
+            ctx.stroke();
+
+            // ENTRY — לבן מלא, מהמלבן עד קצה ימין
+            ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+            ctx.lineWidth   = 2;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(BOX_L, entryY);
+            ctx.lineTo(LINE_R, entryY);
+            ctx.stroke();
+
+            // T1 — ציאן מקווקו, מהנר הכניסה עד קצה ימין
+            ctx.strokeStyle = 'rgba(0,188,212,0.55)';
+            ctx.lineWidth   = 1;
+            ctx.setLineDash([3, 4]);
+            ctx.beginPath();
+            ctx.moveTo(BOX_L, t1Y);
+            ctx.lineTo(LINE_R, t1Y);
+            ctx.stroke();
+
+            // T2 — ציאן מלא, מהנר הכניסה עד קצה ימין
+            ctx.strokeStyle = 'rgba(0,210,220,0.85)';
+            ctx.lineWidth   = 1.5;
+            ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(BOX_L, t2Y);
+            ctx.lineTo(LINE_R, t2Y);
+            ctx.stroke();
+
+            // ── קווים אנכיים על נרות מיוחדים ───────────────────────
+            ctx.strokeStyle = 'rgba(255,165,0,0.35)';
+            ctx.lineWidth   = 1;
+            ctx.setLineDash([2, 3]);
+            ctx.beginPath();
+            ctx.moveTo(x1, BOX_T);
+            ctx.lineTo(x1, BOX_B);
+            ctx.stroke();
+
+            ctx.strokeStyle = 'rgba(0,230,118,0.3)';
+            ctx.beginPath();
+            ctx.moveTo(x2, BOX_T);
+            ctx.lineTo(x2, BOX_B);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // ── עיגולי עיגון ─────────────────────────────────────────
+            // Stop — על נר ה-sweep
+            ctx.fillStyle = '#e91e63';
+            ctx.beginPath(); ctx.arc(x1, stopY, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(x1, stopY, 5, 0, Math.PI * 2); ctx.stroke();
+
+            // Entry — על נר הכניסה
+            ctx.fillStyle = '#00e676';
+            ctx.beginPath(); ctx.arc(x2, entryY, 5, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.85)'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.arc(x2, entryY, 5, 0, Math.PI * 2); ctx.stroke();
+
+            // ── חץ כניסה ─────────────────────────────────────────────
+            const aD = isLong ? -1 : 1;
+            ctx.fillStyle   = '#00e676';
+            ctx.beginPath();
+            ctx.moveTo(x2, entryY + aD * 8);
+            ctx.lineTo(x2 - 9, entryY + aD * 22);
+            ctx.lineTo(x2 + 9, entryY + aD * 22);
+            ctx.closePath(); ctx.fill();
+
+            // ── פונקציית pill ─────────────────────────────────────────
+            const pill = (
+              txt: string, px: number, py2: number,
+              bg: string, tc: string, align: 'left' | 'right' = 'right'
+            ) => {
+              ctx.font = 'bold 9px monospace';
+              const m = ctx.measureText(txt);
+              const pw = 7, bh = 15, r = 3;
+              const bx = align === 'right' ? px - m.width - pw * 2 : px;
+              ctx.fillStyle = bg;
+              ctx.beginPath();
+              ctx.roundRect(bx, py2 - 7, m.width + pw * 2, bh, r);
+              ctx.fill();
+              ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+              ctx.lineWidth = 0.5;
+              ctx.beginPath();
+              ctx.roundRect(bx, py2 - 7, m.width + pw * 2, bh, r);
+              ctx.stroke();
+              ctx.fillStyle = tc;
+              ctx.textAlign = align;
+              ctx.fillText(txt, align === 'right' ? px - pw : px + pw, py2 + 4);
+            };
+
+            // ── labels ימין (על הקווים הממשיכים) ────────────────────
+            pill(`T2  +${t2pts.toFixed(0)}pt`, LINE_R - 4, t2Y,
+              isLong ? 'rgba(0,35,45,0.96)' : 'rgba(45,0,18,0.96)',
+              isLong ? '#00e5ff' : '#ff4081');
+
+            pill(`T1  +${t1pts.toFixed(0)}pt`, LINE_R - 4, t1Y,
+              isLong ? 'rgba(0,28,38,0.92)' : 'rgba(38,0,14,0.92)',
+              isLong ? 'rgba(0,200,215,0.9)' : 'rgba(230,70,110,0.9)');
+
+            pill(isLong ? '▲ ENTRY' : '▼ ENTRY', LINE_R - 4, entryY,
+              'rgba(28,28,28,0.96)', '#ffffff');
+
+            pill(`✕ STOP  −${riskDollar}$`, LINE_R - 4, stopY,
+              'rgba(45,0,8,0.96)', '#ff5252');
+
+            // ── labels שמאל (מחיר) ────────────────────────────────────
+            pill(sd.t2.toFixed(2), BOX_L + 4, t2Y,
+              'rgba(0,25,35,0.92)',
+              isLong ? '#00e5ff' : '#ff4081', 'left');
+
+            pill(sd.t1.toFixed(2), BOX_L + 4, t1Y,
+              'rgba(0,20,28,0.88)',
+              isLong ? 'rgba(0,195,210,0.85)' : 'rgba(225,65,105,0.85)', 'left');
+
+            pill(sd.entry.toFixed(2), BOX_L + 4, entryY,
+              'rgba(22,22,22,0.92)', '#ffffff', 'left');
+
+            pill(sd.stop.toFixed(2), BOX_L + 4, stopY,
+              'rgba(40,0,6,0.92)', '#ff5252', 'left');
+
+            // ── כותרת מלבן ────────────────────────────────────────────
+            const titleTxt = isLong ? '▲ LONG · LSR' : '▼ SHORT · LSR';
+            const titleBg  = isLong ? 'rgba(0,50,60,0.97)' : 'rgba(55,0,18,0.97)';
+            const titleCol = isLong ? '#00e5ff' : '#ff4081';
+            ctx.font = 'bold 10px monospace';
+            const tm = ctx.measureText(titleTxt);
+            const tx = BOX_L + (BOX_W - tm.width) / 2 - 4;
+            ctx.fillStyle = titleBg;
+            ctx.beginPath();
+            ctx.roundRect(tx - 6, BOX_T + 2, tm.width + 12, 17, 4);
+            ctx.fill();
+            ctx.fillStyle = titleCol;
+            ctx.textAlign = 'left';
+            ctx.fillText(titleTxt, tx, BOX_T + 14);
+
+            // R:R badge
+            ctx.font = 'bold 9px monospace';
+            const rrTxt = `R:R 1:2`;
+            const rm = ctx.measureText(rrTxt);
+            ctx.fillStyle = 'rgba(15,15,5,0.92)';
+            ctx.beginPath();
+            ctx.roundRect(BOX_R - rm.width - 18, BOX_B - 16, rm.width + 12, 14, 3);
+            ctx.fill();
+            ctx.fillStyle = '#ffd600';
+            ctx.textAlign = 'right';
+            ctx.fillText(rrTxt, BOX_R - 4, BOX_B - 5);
+          }
         }
       }
-    }
   }, []);
 
   // ── Setup Zones heatmap overlay ─────────────────────────────────────
