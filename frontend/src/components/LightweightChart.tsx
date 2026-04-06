@@ -241,9 +241,9 @@ export default function LightweightChart({
 
     // ── Reward zones (entry → T3) — 3 layers increasing intensity ──
     const rewardZones: [number | null, number | null, string][] = [
-      [yEnt, yT1, "rgba(0,188,212,0.07)"],
-      [yT1, yT2, "rgba(0,188,212,0.13)"],
-      [yT2, yT3, "rgba(0,188,212,0.21)"],
+      [yEnt, yT1, "rgba(0,188,212,0.04)"],
+      [yT1, yT2, "rgba(0,188,212,0.07)"],
+      [yT2, yT3, "rgba(0,188,212,0.12)"],
     ];
     rewardZones.forEach(([ya, yb, color]) => {
       if (ya === null || yb === null) return;
@@ -261,11 +261,11 @@ export default function LightweightChart({
       const bot = Math.max(yEnt, yStp);
       const gRisk = ctx.createLinearGradient(0, top, 0, bot);
       if (direction === "LONG") {
-        gRisk.addColorStop(0, "rgba(233,30,99,0.05)");
-        gRisk.addColorStop(1, "rgba(233,30,99,0.18)");
+        gRisk.addColorStop(0, "rgba(233,30,99,0.03)");
+        gRisk.addColorStop(1, "rgba(233,30,99,0.10)");
       } else {
-        gRisk.addColorStop(0, "rgba(233,30,99,0.18)");
-        gRisk.addColorStop(1, "rgba(233,30,99,0.05)");
+        gRisk.addColorStop(0, "rgba(233,30,99,0.10)");
+        gRisk.addColorStop(1, "rgba(233,30,99,0.03)");
       }
       ctx.fillStyle = gRisk;
       ctx.fillRect(xStart, top, zoneW, bot - top);
@@ -328,8 +328,7 @@ export default function LightweightChart({
     ctx.scale(dpr, dpr);
     ctx.clearRect(0, 0, W, H);
 
-    const TICK = 0.25, PW = 90;
-    const scW = 78, xR = W - scW - 4;
+    const TICK = 0.25, PW = 70, X0 = 6;
     const map = new Map<number, {b:number;s:number}>();
     const rnd = (p:number) => Math.round(p / TICK) * TICK;
     for (const c of candles) {
@@ -375,26 +374,27 @@ export default function LightweightChart({
 
       // Dynamic opacity based on volume
       const intensity = Math.min(0.9, 0.35 + t / mx * 0.55);
+      // Draw from left edge: SELL then BUY
       ctx.fillStyle = `rgba(233,30,99,${intensity})`;
-      ctx.fillRect(xR - sw - bw, yT, sw, bH);
+      ctx.fillRect(X0, yT, sw, bH);
       ctx.fillStyle = `rgba(0,188,212,${intensity})`;
-      ctx.fillRect(xR - bw, yT, bw, bH);
+      ctx.fillRect(X0 + sw, yT, bw, bH);
 
       // POC highlight
       if (pr === pocPrice) {
-        ctx.font = 'bold 9px monospace';
-        ctx.fillStyle = 'rgba(255,215,0,0.9)';
-        ctx.textAlign = 'right';
-        ctx.fillText(`POC ${pr.toFixed(2)}`, xR - PW - 4, y + 3);
-
         ctx.strokeStyle = 'rgba(255,215,0,0.85)';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([3, 2]);
         ctx.beginPath();
-        ctx.moveTo(xR - PW, y);
-        ctx.lineTo(xR, y);
+        ctx.moveTo(X0, y);
+        ctx.lineTo(X0 + PW, y);
         ctx.stroke();
         ctx.setLineDash([]);
+
+        ctx.font = 'bold 9px monospace';
+        ctx.fillStyle = 'rgba(255,215,0,0.9)';
+        ctx.textAlign = 'left';
+        ctx.fillText(`POC ${pr.toFixed(2)}`, X0 + PW + 6, y + 3);
       }
 
       // Wall detection — glowing border + label
@@ -404,24 +404,18 @@ export default function LightweightChart({
           ? 'rgba(0,188,212,0.9)'
           : 'rgba(233,30,99,0.9)';
         ctx.lineWidth = 1.5;
-        ctx.strokeRect(xR - tw, yT, tw, bH);
+        ctx.strokeRect(X0, yT, tw, bH);
 
-        ctx.font = 'bold 8px monospace';
-        ctx.fillStyle = (v.b > v.s)
-          ? 'rgba(0,188,212,0.8)'
-          : 'rgba(233,30,99,0.8)';
-        ctx.textAlign = 'right';
-        ctx.fillText('▌', xR - PW - 2, y + 3);
+        if (pr !== pocPrice) {
+          ctx.font = 'bold 8px monospace';
+          ctx.fillStyle = (v.b > v.s)
+            ? 'rgba(0,188,212,0.8)'
+            : 'rgba(233,30,99,0.8)';
+          ctx.textAlign = 'left';
+          ctx.fillText('WALL', X0 + PW + 6, y + 3);
+        }
       }
     });
-
-    // Header — BUY/SELL labels left of profile
-    ctx.font = 'bold 9px monospace';
-    ctx.fillStyle = 'rgba(0,188,212,0.8)';
-    ctx.textAlign = 'right';
-    ctx.fillText('BUY', xR - PW - 4, 14);
-    ctx.fillStyle = 'rgba(233,30,99,0.8)';
-    ctx.fillText('SELL', xR - PW - 4, 26);
   }, [candles]);
 
   const initChart = useCallback(() => {
