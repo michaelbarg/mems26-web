@@ -339,7 +339,7 @@ export default function LightweightChart({
     const rthX = tsc.timeToCoordinate(rthTs as any);
     if (rthX !== null) {
       const dtColors: Record<string, string> = {
-        NORMAL_TRENDING:     '#3b82f6',
+        NORMAL:              '#3b82f6',
         NORMAL_VARIATION:    '#6366f1',
         TREND_DAY:           '#10b981',
         DOUBLE_DISTRIBUTION: '#f59e0b',

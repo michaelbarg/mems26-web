@@ -2523,7 +2523,7 @@ function DayTypeSVG({ shape, color }: { shape: string; color: string }) {
 // ── Day Type Helpers ─────────────────────────────────────────────────────────
 function getDayTypeRule(id: string): string {
   const rules: Record<string, string> = {
-    NORMAL_TRENDING: 'מסחר דו-כיווני. קנה ב-VAL, מכור ב-VAH. IB בדרך כלל מוחזק.',
+    NORMAL: 'מסחר דו-כיווני. קנה ב-VAL, מכור ב-VAH. IB בדרך כלל מוחזק.',
     NORMAL_VARIATION: 'מסחר בכיוון הזנב. אם זנב למעלה — Long בלבד מ-VWAP/VAL.',
     TREND_DAY: 'מסחר חד-כיווני בלבד. כניסות רק בכיוון הטרנד. אל תמכור חוזקה.',
     DOUBLE_DISTRIBUTION: 'זהירות בין שתי הדיסטריבוציות. מסחר רק בתוך כל דיסטריבוציה.',
@@ -2537,7 +2537,7 @@ function getDayTypeRule(id: string): string {
 
 function getDayTypeLookFor(id: string): string {
   const lookFor: Record<string, string> = {
-    NORMAL_TRENDING: 'Rejection מ-VAH/VAL עם נפח. Sweep של IBH/IBL ב-extension.',
+    NORMAL: 'Rejection מ-VAH/VAL עם נפח. Sweep של IBH/IBL ב-extension.',
     NORMAL_VARIATION: 'Pullback לאחר הזנב עם CVD חיובי. VWAP reclaim.',
     TREND_DAY: 'כל pullback קטן לרמת תמיכה — הזדמנות כניסה בכיוון הטרנד.',
     DOUBLE_DISTRIBUTION: 'Breakout ברור מהדיסטריבוציה הראשונה עם נפח גבוה.',
@@ -2551,7 +2551,7 @@ function getDayTypeLookFor(id: string): string {
 
 function getDayTypeAvoid(id: string): string {
   const avoid: Record<string, string> = {
-    NORMAL_TRENDING: 'כניסות באמצע הטווח. breakouts מחוץ ל-IB בלי אישור נפח.',
+    NORMAL: 'כניסות באמצע הטווח. breakouts מחוץ ל-IB בלי אישור נפח.',
     NORMAL_VARIATION: 'מסחר נגד כיוון הזנב. Fade של המגמה הראשונית.',
     TREND_DAY: 'כל כניסה נגד הטרנד. "קניית זול" בירידה חדה.',
     DOUBLE_DISTRIBUTION: 'מסחר באזור ה-gap בין שתי הדיסטריבוציות.',
@@ -2823,7 +2823,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
               סוג יום — Market Profile
             </div>
             {[
-              { id:'NORMAL_TRENDING', label:'Normal', labelHe:'נורמלי', color:'#3b82f6', desc:'IB מאוזן, שני כיוונים אפשריים. מסחר בקצוות ה-IB.', shape:'bell' },
+              { id:'NORMAL', label:'Normal', labelHe:'נורמלי', color:'#3b82f6', desc:'IB מאוזן, שני כיוונים אפשריים. מסחר בקצוות ה-IB.', shape:'bell' },
               { id:'NORMAL_VARIATION', label:'Normal Variation', labelHe:'נורמל + זנב', color:'#6366f1', desc:'כיוון ברור עם IB מורחב. כניסה בכיוון הזנב.', shape:'bell_tail' },
               { id:'TREND_DAY', label:'Trend', labelHe:'טרנד', color:'#10b981', desc:'יום חד-כיווני. תפוס breakouts, אל תמכור חוזקה.', shape:'trend' },
               { id:'DOUBLE_DISTRIBUTION', label:'Double Distribution', labelHe:'כפול', color:'#f59e0b', desc:'שני עולמות מחיר נפרדים. זהירות בין שניהם — VAH/VAL חלש.', shape:'double' },
@@ -2915,7 +2915,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
 // ── Day Type Bar ──────────────────────────────────────────────────────────────
 const DAY_EXPLANATIONS: Record<string,{heb:string; desc:string; strategy:string; col:string}> = {
-  'NORMAL_TRENDING': { heb:'ממשיך רגיל', col:'#22c55e', desc:'יום עם כיוון ברור — מחיר נוטה להמשיך בכיוון הפתיחה', strategy:'עקוב אחרי המגמה. IB Breakout ו-VWAP Pullback עם הכיוון.' },
+  'NORMAL': { heb:'ממשיך רגיל', col:'#22c55e', desc:'יום עם כיוון ברור — מחיר נוטה להמשיך בכיוון הפתיחה', strategy:'עקוב אחרי המגמה. IB Breakout ו-VWAP Pullback עם הכיוון.' },
   'NORMAL_VARIATION': { heb:'ווריאציה רגילה', col:'#22c55e', desc:'יום רגיל עם תנודות — אין מגמה חזקה', strategy:'Liq Sweep וVWAP Pullback מועדפים. היזהר מ-IB Breakout.' },
   'TREND_DAY':        { heb:'יום מגמה', col:'#a78bfa', desc:'מגמה חזקה חד-כיוונית — המחיר לא חוזר לIB', strategy:'כנס עם המגמה בלבד. סטופ רחוק. T3 runner — הניח לו לרוץ.' },
   'NEUTRAL':          { heb:'נייטרלי', col:'#f59e0b', desc:'מסחר בתוך הטווח — מחיר חוזר לאמצע', strategy:'מסחר קצר יותר. T1 בלבד. הימנע מ-Breakouts.' },
