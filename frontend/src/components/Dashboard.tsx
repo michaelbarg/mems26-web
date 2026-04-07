@@ -2447,6 +2447,46 @@ function DayTypeSVG({ shape, color }: { shape: string; color: string }) {
   }
 }
 
+// ── Day Type Helpers ─────────────────────────────────────────────────────────
+function getDayTypeRule(id: string): string {
+  const rules: Record<string, string> = {
+    NORMAL_TRENDING: 'מסחר דו-כיווני. קנה ב-VAL, מכור ב-VAH. IB בדרך כלל מוחזק.',
+    NORMAL_VARIATION: 'מסחר בכיוון הזנב. אם זנב למעלה — Long בלבד מ-VWAP/VAL.',
+    TREND_DAY: 'מסחר חד-כיווני בלבד. כניסות רק בכיוון הטרנד. אל תמכור חוזקה.',
+    DOUBLE_DISTRIBUTION: 'זהירות בין שתי הדיסטריבוציות. מסחר רק בתוך כל דיסטריבוציה.',
+    NEUTRAL: 'קנה בקצה התחתון, מכור בקצה העליון. הימנע מ-breakouts.',
+    ROTATIONAL: 'אל תסחר — שוק ללא כיוון. המתן ליום טוב יותר.',
+    DEVELOPING: 'IB לא נעול — אין סיווג סופי. המתן לשעה הראשונה לפני כניסה.',
+  };
+  return rules[id] || '—';
+}
+
+function getDayTypeLookFor(id: string): string {
+  const lookFor: Record<string, string> = {
+    NORMAL_TRENDING: 'Rejection מ-VAH/VAL עם נפח. Sweep של IBH/IBL ב-extension.',
+    NORMAL_VARIATION: 'Pullback לאחר הזנב עם CVD חיובי. VWAP reclaim.',
+    TREND_DAY: 'כל pullback קטן לרמת תמיכה — הזדמנות כניסה בכיוון הטרנד.',
+    DOUBLE_DISTRIBUTION: 'Breakout ברור מהדיסטריבוציה הראשונה עם נפח גבוה.',
+    NEUTRAL: 'נגיעה בקצוות הטווח עם rejection ברור + wick ארוך.',
+    ROTATIONAL: 'אין — המתן ליום הבא.',
+    DEVELOPING: 'המתן לנעילת ה-IB. בדוק Gap ו-day type שמתחיל להתגבש.',
+  };
+  return lookFor[id] || '—';
+}
+
+function getDayTypeAvoid(id: string): string {
+  const avoid: Record<string, string> = {
+    NORMAL_TRENDING: 'כניסות באמצע הטווח. breakouts מחוץ ל-IB בלי אישור נפח.',
+    NORMAL_VARIATION: 'מסחר נגד כיוון הזנב. Fade של המגמה הראשונית.',
+    TREND_DAY: 'כל כניסה נגד הטרנד. "קניית זול" בירידה חדה.',
+    DOUBLE_DISTRIBUTION: 'מסחר באזור ה-gap בין שתי הדיסטריבוציות.',
+    NEUTRAL: 'Breakouts — סיכוי גבוה ל-false breakout ביום ניטרלי.',
+    ROTATIONAL: 'כל כניסה — יום ללא edge מובהק.',
+    DEVELOPING: 'כניסות מוקדמות לפני שה-IB נעול ו-day type ברור.',
+  };
+  return avoid[id] || '—';
+}
+
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
@@ -2726,34 +2766,77 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
               { id:'DOUBLE_DISTRIBUTION', label:'Double Distribution', labelHe:'כפול', color:'#f59e0b', desc:'שני עולמות מחיר נפרדים. זהירות בין שניהם — VAH/VAL חלש.', shape:'double' },
               { id:'NEUTRAL', label:'Neutral', labelHe:'ניטרלי', color:'#64748b', desc:'שוק מהסס ורחב. קנה קצוות, מכור אמצע.', shape:'wide' },
               { id:'ROTATIONAL', label:'Non-Trend', labelHe:'ללא טרנד', color:'#ef4444', desc:'טווח צר מאוד. אל תסחר — מחכה לזרז.', shape:'narrow' },
+              { id:'DEVELOPING', label:'Developing', labelHe:'מתפתח', color:'#475569', desc:'היום עדיין מתפתח — אין סיווג סופי. המתן לסגירת ה-IB.', shape:'narrow' },
             ].map((dt) => {
               const dtype = (live as any)?.day?.type || '';
               const isActive = dtype === dt.id;
               return (
-                <div key={dt.id} style={{
-                  background: isActive ? `${dt.color}22` : '#0f172a',
-                  border: `1.5px solid ${isActive ? dt.color : '#1e2738'}`,
-                  borderRadius:10, padding:'10px 12px',
-                  display:'flex', alignItems:'center', gap:12, transition:'all 0.2s',
-                }}>
-                  <div style={{ flexShrink:0, width:40, height:36 }}>
-                    <DayTypeSVG shape={dt.shape} color={isActive ? dt.color : '#334155'} />
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
-                      <span style={{ fontSize:12, fontWeight:700, color: isActive ? dt.color : '#94a3b8' }}>
-                        {dt.labelHe}
-                      </span>
-                      {isActive && (
-                        <span style={{ fontSize:9, fontWeight:700, background:dt.color, color:'#000', borderRadius:4, padding:'1px 5px' }}>
-                          ✓ היום
+                <div key={dt.id}>
+                  <div style={{
+                    background: isActive ? `${dt.color}22` : '#0f172a',
+                    border: `1.5px solid ${isActive ? dt.color : '#1e2738'}`,
+                    borderRadius:10, padding: isActive ? '10px 12px' : '8px 12px',
+                    display:'flex', alignItems:'center', gap:12, transition:'all 0.2s',
+                    opacity: isActive ? 1 : 0.6,
+                  }}>
+                    <div style={{ flexShrink:0, width:40, height:36 }}>
+                      <DayTypeSVG shape={dt.shape} color={isActive ? dt.color : '#334155'} />
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
+                        <span style={{ fontSize:12, fontWeight:700, color: isActive ? dt.color : '#94a3b8' }}>
+                          {dt.labelHe}
                         </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize:11, color:'#64748b', lineHeight:1.5, direction:'rtl' as const }}>
-                      {dt.desc}
+                        {isActive && (
+                          <span style={{ fontSize:9, fontWeight:700, background:dt.color, color:'#000', borderRadius:4, padding:'1px 5px' }}>
+                            ✓ היום
+                          </span>
+                        )}
+                      </div>
+                      <div style={{ fontSize:11, color:'#64748b', lineHeight:1.5, direction:'rtl' as const }}>
+                        {dt.desc}
+                      </div>
                     </div>
                   </div>
+                  {isActive && (
+                    <div style={{
+                      background:'#0a0f1a', border:`1px solid ${dt.color}33`,
+                      borderRadius:8, padding:'12px 14px', marginTop:-8,
+                      display:'flex', flexDirection:'column', gap:10,
+                    }}>
+                      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                        {[
+                          { label:'IB Range', value:`${((live as any)?.day?.ib_range || 0).toFixed(2)} pt` },
+                          { label:'IB נעול', value:(live as any)?.day?.ib_locked ? '✓ כן' : '✗ לא',
+                            color:(live as any)?.day?.ib_locked ? '#10b981' : '#ef4444' },
+                          { label:'Gap', value:(live as any)?.day?.gap_type || 'FLAT' },
+                          { label:'שלב', value:(live as any)?.session?.phase || '—' },
+                        ].map(item => (
+                          <div key={item.label} style={{
+                            background:'#1e2738', borderRadius:6, padding:'5px 10px',
+                            flex:'1 1 80px', minWidth:0,
+                          }}>
+                            <div style={{ fontSize:10, color:'#64748b', marginBottom:2 }}>{item.label}</div>
+                            <div style={{ fontSize:13, fontWeight:700, color:(item as any).color || '#e2e8f0' }}>
+                              {item.value}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ borderTop:'1px solid #1e2738', paddingTop:8 }}>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6, fontWeight:600 }}>📋 כלל מסחר</div>
+                        <div style={{ fontSize:12, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeRule(dt.id)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6, fontWeight:600 }}>🎯 מה לחפש</div>
+                        <div style={{ fontSize:12, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeLookFor(dt.id)}</div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize:11, color:'#ef444499', marginBottom:6, fontWeight:600 }}>⚠️ מה להימנע</div>
+                        <div style={{ fontSize:12, color:'#94a3b8', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeAvoid(dt.id)}</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               );
             })}
