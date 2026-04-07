@@ -2392,15 +2392,71 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
   );
 }
 
+// ── Day Type SVG Icons ───────────────────────────────────────────────────────
+function DayTypeSVG({ shape, color }: { shape: string; color: string }) {
+  const s = { stroke: color, strokeWidth: 1.5, fill: 'none' };
+  switch (shape) {
+    case 'bell':
+      return (
+        <svg viewBox="0 0 40 36" width="40" height="36">
+          <polyline points="2,34 8,28 12,16 20,6 28,16 32,28 38,34" {...s} />
+          <line x1="2" y1="34" x2="38" y2="34" {...s} strokeWidth={1} />
+        </svg>
+      );
+    case 'bell_tail':
+      return (
+        <svg viewBox="0 0 40 36" width="40" height="36">
+          <polyline points="2,34 6,30 10,20 16,10 22,6 28,14 32,26 38,34" {...s} />
+          <line x1="2" y1="16" x2="2" y2="34" stroke={color} strokeWidth={2.5} />
+          <line x1="2" y1="34" x2="38" y2="34" {...s} strokeWidth={1} />
+        </svg>
+      );
+    case 'trend':
+      return (
+        <svg viewBox="0 0 40 36" width="40" height="36">
+          <rect x="14" y="4" width="12" height="30" fill={color} opacity={0.3} rx={2} />
+          <rect x="14" y="4" width="12" height="30" {...s} rx={2} />
+          <line x1="2" y1="34" x2="38" y2="34" {...s} strokeWidth={1} />
+        </svg>
+      );
+    case 'double':
+      return (
+        <svg viewBox="0 0 40 36" width="40" height="36">
+          <polyline points="2,34 5,28 8,18 12,12 16,18 19,28 22,34" {...s} />
+          <polyline points="18,34 21,26 24,16 28,10 32,16 35,26 38,34" {...s} />
+          <line x1="2" y1="34" x2="38" y2="34" {...s} strokeWidth={1} />
+        </svg>
+      );
+    case 'wide':
+      return (
+        <svg viewBox="0 0 40 36" width="40" height="36">
+          <polyline points="2,34 4,30 8,24 14,20 20,18 26,20 32,24 36,30 38,34" {...s} />
+          <line x1="2" y1="34" x2="38" y2="34" {...s} strokeWidth={1} />
+        </svg>
+      );
+    case 'narrow':
+      return (
+        <svg viewBox="0 0 40 36" width="40" height="36">
+          <rect x="17" y="10" width="6" height="24" fill={color} opacity={0.2} rx={1} />
+          <rect x="17" y="10" width="6" height="24" {...s} rx={1} />
+          <line x1="2" y1="34" x2="38" y2="34" {...s} strokeWidth={1} />
+        </svg>
+      );
+    default:
+      return <svg viewBox="0 0 40 36" width="40" height="36" />;
+  }
+}
+
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
-  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'>('signal');
+  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
     { id:'setups',    label:'סטאפים', icon:'🔍' },
     { id:'patterns',  label:'תבניות', icon:'📈' },
     { id:'indicators',label:'נתונים', icon:'📊' },
     { id:'fills',     label:'פקודות', icon:'💼' },
+    { id:'daytype',   label:'יום',    icon:'📅' },
   ] as const;
 
   return (
@@ -2657,6 +2713,52 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         {tab === 'fills' && <>
           <TradeJournal live={live} />
         </>}
+
+        {tab === 'daytype' && (
+          <div style={{ padding:'12px 10px', display:'flex', flexDirection:'column', gap:16 }}>
+            <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f0', textAlign:'center' }}>
+              סוג יום — Market Profile
+            </div>
+            {[
+              { id:'NORMAL_TRENDING', label:'Normal', labelHe:'נורמלי', color:'#3b82f6', desc:'IB מאוזן, שני כיוונים אפשריים. מסחר בקצוות ה-IB.', shape:'bell' },
+              { id:'NORMAL_VARIATION', label:'Normal Variation', labelHe:'נורמל + זנב', color:'#6366f1', desc:'כיוון ברור עם IB מורחב. כניסה בכיוון הזנב.', shape:'bell_tail' },
+              { id:'TREND_DAY', label:'Trend', labelHe:'טרנד', color:'#10b981', desc:'יום חד-כיווני. תפוס breakouts, אל תמכור חוזקה.', shape:'trend' },
+              { id:'DOUBLE_DISTRIBUTION', label:'Double Distribution', labelHe:'כפול', color:'#f59e0b', desc:'שני עולמות מחיר נפרדים. זהירות בין שניהם — VAH/VAL חלש.', shape:'double' },
+              { id:'NEUTRAL', label:'Neutral', labelHe:'ניטרלי', color:'#64748b', desc:'שוק מהסס ורחב. קנה קצוות, מכור אמצע.', shape:'wide' },
+              { id:'ROTATIONAL', label:'Non-Trend', labelHe:'ללא טרנד', color:'#ef4444', desc:'טווח צר מאוד. אל תסחר — מחכה לזרז.', shape:'narrow' },
+            ].map((dt) => {
+              const dtype = (live as any)?.day?.type || '';
+              const isActive = dtype === dt.id;
+              return (
+                <div key={dt.id} style={{
+                  background: isActive ? `${dt.color}22` : '#0f172a',
+                  border: `1.5px solid ${isActive ? dt.color : '#1e2738'}`,
+                  borderRadius:10, padding:'10px 12px',
+                  display:'flex', alignItems:'center', gap:12, transition:'all 0.2s',
+                }}>
+                  <div style={{ flexShrink:0, width:40, height:36 }}>
+                    <DayTypeSVG shape={dt.shape} color={isActive ? dt.color : '#334155'} />
+                  </div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
+                      <span style={{ fontSize:12, fontWeight:700, color: isActive ? dt.color : '#94a3b8' }}>
+                        {dt.labelHe}
+                      </span>
+                      {isActive && (
+                        <span style={{ fontSize:9, fontWeight:700, background:dt.color, color:'#000', borderRadius:4, padding:'1px 5px' }}>
+                          ✓ היום
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize:11, color:'#64748b', lineHeight:1.5, direction:'rtl' as const }}>
+                      {dt.desc}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
       </div>
     </div>
