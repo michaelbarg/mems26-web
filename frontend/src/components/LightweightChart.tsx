@@ -67,10 +67,11 @@ interface Props {
   height?: number;
   zone?: SetupZone | null;
   scannedPatterns?: Array<{pattern:string;direction:string;entry:number;stop:number;t1:number;t2:number;neckline:number;confidence:number;label:string;start_ts:number;end_ts:number}>;
+  dayType?: string;
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -91,6 +92,8 @@ export default function LightweightChart({
   const volRef               = useRef<any>(null);
   const patternLinesRef      = useRef<any[]>([]);
   const patternTLRef         = useRef<any[]>([]);
+  const dayTypeRef           = useRef(dayType);
+  dayTypeRef.current         = dayType;
 
   // ── Canvas overlay: Volume Profile + Sweep Zone ─────────────────────
   const drawOverlays = useCallback(() => {
@@ -327,6 +330,46 @@ export default function LightweightChart({
           }
         }
       }
+
+    // ── RTH Open Vertical Line ─────────────────────────────────────────
+    const tsc = chart.timeScale();
+    const now = new Date();
+    const rthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 13, 30, 0));
+    const rthTs = Math.floor(rthUtc.getTime() / 1000);
+    const rthX = tsc.timeToCoordinate(rthTs as any);
+    if (rthX !== null) {
+      const dtColors: Record<string, string> = {
+        NORMAL_TRENDING:     '#3b82f6',
+        NORMAL_VARIATION:    '#6366f1',
+        TREND_DAY:           '#10b981',
+        DOUBLE_DISTRIBUTION: '#f59e0b',
+        NEUTRAL:             '#64748b',
+        ROTATIONAL:          '#ef4444',
+        DEVELOPING:          '#475569',
+      };
+      const dtCol = dtColors[dayTypeRef.current || ''] || '#475569';
+      ctx.strokeStyle = dtCol;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(rthX, 0);
+      ctx.lineTo(rthX, rect.height);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Label
+      ctx.font = 'bold 9px monospace';
+      const rthLabel = 'RTH';
+      const rthM = ctx.measureText(rthLabel);
+      ctx.fillStyle = dtCol + 'cc';
+      ctx.beginPath();
+      ctx.roundRect(rthX - rthM.width / 2 - 4, 2, rthM.width + 8, 14, 3);
+      ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(rthLabel, rthX, 12);
+      ctx.textAlign = 'left';
+    }
   }, []);
 
   // ── Setup Zones heatmap overlay ─────────────────────────────────────

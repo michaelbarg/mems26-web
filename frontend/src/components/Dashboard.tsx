@@ -3214,6 +3214,7 @@ export default function Dashboard() {
               selectedPatternId={selectedPattern?.id}
               height={undefined}
               scannedPatterns={scannedPatterns}
+              dayType={(live as any)?.day?.type || ''}
               zone={sweepData ? {
                 entry:     sweepData.entry,
                 stop:      sweepData.stop,
