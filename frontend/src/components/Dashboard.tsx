@@ -1920,50 +1920,148 @@ function Indicators({ live }:{ live:MarketData|null }) {
 
 
 // ── AI Analysis Panel ─────────────────────────────────────────────────────────
-function AIAnalysisPanel({signal,signalTime,aiLoading,onAskAI}:{signal?:Signal|null;signalTime?:string;aiLoading:boolean;onAskAI:()=>void}) {
-  if(aiLoading) return (
-    <div style={{background:'#111827',border:'1px solid #1e2738',borderRadius:8,padding:14,display:'flex',alignItems:'center',gap:10}}>
-      <div style={{width:12,height:12,borderRadius:'50%',border:'2px solid #4a5568',borderTopColor:'#7f77dd',animation:'spin 0.8s linear infinite',flexShrink:0}}/>
-      <span style={{fontSize:11,color:'#6b7280'}}>Claude מנתח...</span>
+function AIAnalysisPanel({signal, signalTime, aiLoading, onAskAI, live}: {
+  signal?: Signal | null; signalTime?: string; aiLoading: boolean; onAskAI: () => void; live?: any;
+}) {
+  if (aiLoading) return (
+    <div style={{ padding:20, textAlign:'center', color:'#7f77dd' }}>
+      <div style={{ fontSize:13, marginBottom:8 }}>⚡ Claude מנתח...</div>
+      <div style={{ fontSize:11, color:'#4a5568' }}>בודק נפח, מבנה ורמות</div>
     </div>
   );
-  if(!signal) return (
-    <div style={{background:'#111827',border:'1px solid #1e2738',borderRadius:8,padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-      <span style={{fontSize:11,color:'#4a5568'}}>לחץ לניתוח AI</span>
-      <button onClick={onAskAI} style={{padding:'4px 14px',borderRadius:6,fontSize:11,fontWeight:700,background:'#7f77dd22',color:'#7f77dd',border:'1px solid #7f77dd44',cursor:'pointer',fontFamily:'inherit'}}>⚡ נתח</button>
+  if (!signal) return (
+    <div style={{ padding:16, textAlign:'center' }}>
+      <div style={{ fontSize:12, color:'#4a5568', marginBottom:12 }}>לחץ לניתוח AI מלא</div>
+      <button onClick={onAskAI} style={{
+        padding:'8px 20px', borderRadius:8, fontSize:12, fontWeight:700,
+        background:'#7f77dd22', color:'#7f77dd', border:'1px solid #7f77dd44',
+        cursor:'pointer', fontFamily:'inherit',
+      }}>⚡ נתח</button>
     </div>
   );
-  const col=signal.direction==='LONG'?'#22c55e':signal.direction==='SHORT'?'#ef5350':'#f59e0b';
-  const dir=signal.direction==='LONG'?'▲ LONG':signal.direction==='SHORT'?'▼ SHORT':'⏳ המתן';
+
+  const dirColors: Record<string, string> = { LONG:'#10b981', SHORT:'#ef4444', NO_TRADE:'#64748b' };
+  const dirLabels: Record<string, string> = { LONG:'▲ LONG', SHORT:'▼ SHORT', NO_TRADE:'— NO TRADE' };
+  const col = dirColors[signal.direction] || '#64748b';
+  const dirLabel = dirLabels[signal.direction] || signal.direction;
+  const biasColor = signal.score >= 7 ? '#10b981' : signal.score >= 4 ? '#f59e0b' : '#ef4444';
+  const profile = (live as any)?.profile || {};
+  const vwap = (live as any)?.vwap?.value || 0;
+
   return (
-    <div style={{background:'#0a1117',border:`1.5px solid ${col}33`,borderRadius:8,overflow:'hidden'}}>
-      <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',background:`${col}08`,borderBottom:`1px solid ${col}22`}}>
-        <div style={{width:7,height:7,borderRadius:'50%',background:col,boxShadow:`0 0 5px ${col}`}}/>
-        <span style={{fontSize:10,color:'#7f77dd',fontWeight:700}}>⚡ CLAUDE AI</span>
-        <span style={{fontSize:13,fontWeight:800,color:col}}>{dir}</span>
-        {signal.setup&&<span style={{fontSize:9,padding:'2px 8px',borderRadius:10,background:`${col}22`,color:col,fontWeight:700}}>{signal.setup}</span>}
-        <span style={{fontSize:9,color:'#4a5568',marginLeft:'auto'}}>{signalTime}</span>
-        <button onClick={onAskAI} style={{padding:'2px 8px',borderRadius:5,fontSize:10,fontWeight:700,background:'#1e2738',color:'#6b7280',border:'1px solid #2d3a4a',cursor:'pointer',fontFamily:'inherit',marginLeft:4}}>🔄</button>
+    <div style={{ display:'flex', flexDirection:'column', gap:1 }}>
+
+      {/* HEADER */}
+      <div style={{
+        background:'#0f172a', borderRadius:'10px 10px 0 0', padding:'10px 12px',
+        display:'flex', alignItems:'center', justifyContent:'space-between',
+        borderBottom:'1px solid #1e2738',
+      }}>
+        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <span style={{ fontSize:10, color:'#7f77dd', fontWeight:700 }}>⚡ CLAUDE AI</span>
+          <span style={{
+            fontSize:12, fontWeight:800, color:col,
+            background:`${col}22`, padding:'2px 8px', borderRadius:6, border:`1px solid ${col}44`,
+          }}>{dirLabel}</span>
+          {signal.setup_name && (
+            <span style={{ fontSize:10, color:'#94a3b8', background:'#1e2738', padding:'2px 7px', borderRadius:5 }}>{signal.setup_name}</span>
+          )}
+        </div>
+        <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          {signalTime && <span style={{ fontSize:10, color:'#4a5568' }}>{signalTime}</span>}
+          <button onClick={onAskAI} style={{
+            padding:'2px 8px', borderRadius:5, fontSize:10, fontWeight:700,
+            background:'#1e2738', color:'#6b7280', border:'1px solid #2d3a4a',
+            cursor:'pointer', fontFamily:'inherit',
+          }}>🔄</button>
+        </div>
       </div>
-      {signal.warning&&<div style={{padding:'6px 14px',borderBottom:'1px solid #1e2738',background:'#1a0000'}}>
-        <div style={{fontSize:11,color:'#f59e0b',direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif'}}>⚠️ {signal.warning}</div>
-      </div>}
-      {signal.rationale&&<div style={{padding:'10px 14px',borderBottom:'1px solid #1e2738'}}>
-        <div style={{fontSize:9,color:'#4a5568',marginBottom:4,letterSpacing:1}}>ניתוח שוק</div>
-        <div style={{fontSize:13,color:'#cbd5e1',lineHeight:1.9,direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif'}}>{signal.rationale}</div>
-      </div>}
-      {signal.wait_reason&&<div style={{padding:'8px 14px',borderBottom:'1px solid #1e2738',background:'#0d1117'}}>
-        <div style={{fontSize:9,color:'#f59e0b',marginBottom:3}}>⏳ מה חסר</div>
-        <div style={{fontSize:12,color:'#94a3b8',lineHeight:1.8,direction:'rtl',textAlign:'right',fontFamily:'Arial,sans-serif'}}>{signal.wait_reason}</div>
-      </div>}
-      {(signal.entry??0)>0&&<div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)'}}>
-        {[{l:'כניסה',v:(signal.entry??0).toFixed(2),c:'#f0f6fc'},{l:'סטופ',v:(signal.stop??0).toFixed(2),c:'#ef5350'},{l:'T1',v:(signal.target1??0).toFixed(2),c:'#22c55e'},{l:'T2',v:(signal.target2??0).toFixed(2),c:'#16a34a'},{l:'R:R',v:signal.rr||`1:${((Math.abs((signal.target1||0)-signal.entry))/Math.max(signal.risk_pts||1,0.25)).toFixed(1)}`,c:'#60a5fa'},{l:'זמן ל-T1',v:signal.time_estimate||'—',c:'#94a3b8'}].map(({l,v,c})=>(
-          <div key={l} style={{padding:'7px 4px',textAlign:'center',borderRight:'1px solid #1e2738'}}>
-            <div style={{fontSize:9,color:'#4a5568',marginBottom:2}}>{l}</div>
-            <div style={{fontSize:11,fontWeight:800,color:c,fontFamily:'monospace'}}>{v}</div>
+
+      {/* BIAS + SCORE */}
+      <div style={{
+        background:'#0a0f1a', padding:'8px 12px', display:'flex', alignItems:'center', gap:10,
+        borderBottom:'1px solid #1e2738',
+      }}>
+        <div style={{
+          fontSize:11, fontWeight:700, color:biasColor,
+          background:`${biasColor}22`, padding:'3px 10px', borderRadius:20, border:`1px solid ${biasColor}44`,
+        }}>
+          {signal.score >= 7 ? '🟢 Bias חיובי' : signal.score >= 4 ? '🟡 Bias ניטרלי' : '🔴 Bias שלילי'}
+        </div>
+        <div style={{ fontSize:11, color:'#64748b' }}>ציון: <span style={{ color:biasColor, fontWeight:700 }}>{signal.score}/10</span></div>
+        <div style={{ fontSize:11, color:'#64748b' }}>ביטחון: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.confidence}%</span></div>
+        {signal.win_rate && <div style={{ fontSize:11, color:'#64748b' }}>Win: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.win_rate}%</span></div>}
+      </div>
+
+      {/* RATIONALE */}
+      {signal.rationale && (
+        <div style={{ background:'#0a0f1a', padding:'10px 12px', borderBottom:'1px solid #1e2738' }}>
+          <div style={{ fontSize:11, color:'#475569', marginBottom:6, fontWeight:600 }}>📋 ניתוח</div>
+          <div style={{ fontSize:12, color:'#cbd5e1', lineHeight:1.7, direction:'rtl' as const, textAlign:'right' }}>{signal.rationale}</div>
+        </div>
+      )}
+
+      {/* ENTRY GRID */}
+      {signal.direction !== 'NO_TRADE' && (
+        <div style={{ background:'#0a0f1a', padding:'10px 12px', borderBottom:'1px solid #1e2738' }}>
+          <div style={{ fontSize:11, color:'#475569', marginBottom:8, fontWeight:600 }}>🎯 פרמטרי כניסה</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6 }}>
+            {[
+              { label:'כניסה', value:signal.entry?.toFixed(2), color:col },
+              { label:'סטופ', value:signal.stop?.toFixed(2), color:'#ef4444' },
+              { label:'T1', value:signal.target1?.toFixed(2), color:'#10b981' },
+              { label:'T2', value:signal.target2?.toFixed(2), color:'#10b981' },
+              { label:'R:R', value:signal.rr, color:'#f59e0b' },
+              { label:'זמן T1', value:signal.time_estimate || '—', color:'#94a3b8' },
+            ].map(item => (
+              <div key={item.label} style={{ background:'#1e2738', borderRadius:6, padding:'6px 8px', minWidth:0 }}>
+                <div style={{ fontSize:10, color:'#475569', marginBottom:2 }}>{item.label}</div>
+                <div style={{ fontSize:13, fontWeight:700, color:item.color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{item.value || '—'}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>}
+        </div>
+      )}
+
+      {/* LEVELS */}
+      {(profile.vah || profile.val || profile.poc || vwap) ? (
+        <div style={{ background:'#0a0f1a', padding:'10px 12px', borderBottom:'1px solid #1e2738' }}>
+          <div style={{ fontSize:11, color:'#475569', marginBottom:8, fontWeight:600 }}>📊 רמות קריטיות</div>
+          <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+            {[
+              { label:'VAH', value:profile.vah, color:'#3b82f6' },
+              { label:'POC', value:profile.poc, color:'#7c3aed' },
+              { label:'VAL', value:profile.val, color:'#3b82f6' },
+              { label:'VWAP', value:vwap, color:'#f59e0b' },
+            ].filter(l => l.value).map(level => (
+              <div key={level.label} style={{
+                background:`${level.color}11`, border:`1px solid ${level.color}33`,
+                borderRadius:6, padding:'4px 10px', display:'flex', alignItems:'center', gap:6,
+              }}>
+                <span style={{ fontSize:10, color:level.color, fontWeight:700 }}>{level.label}</span>
+                <span style={{ fontSize:12, color:'#e2e8f0', fontWeight:600 }}>{level.value?.toFixed(2)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {/* WARNING */}
+      {signal.warning && (
+        <div style={{ background:'#1c110a', padding:'8px 12px', borderBottom:'1px solid #1e2738', borderLeft:'3px solid #f59e0b' }}>
+          <div style={{ fontSize:11, color:'#f59e0b', fontWeight:600, marginBottom:4 }}>⚠️ אזהרה</div>
+          <div style={{ fontSize:12, color:'#fbbf24', direction:'rtl' as const, lineHeight:1.6 }}>{signal.warning}</div>
+        </div>
+      )}
+
+      {/* WAIT REASON */}
+      {signal.wait_reason && (
+        <div style={{ background:'#0a0f1a', padding:'8px 12px', borderRadius:'0 0 10px 10px' }}>
+          <div style={{ fontSize:11, color:'#475569', fontWeight:600, marginBottom:4 }}>⏳ מה חסר</div>
+          <div style={{ fontSize:12, color:'#64748b', direction:'rtl' as const, lineHeight:1.6 }}>{signal.wait_reason}</div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -2522,12 +2620,6 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
         {tab === 'signal' && <>
           <DayTypeBar live={live} onRequestExplanation={onAskDayType} aiLoading={dayLoading} />
-          {dayExplanation && (
-            <div style={{ padding:'10px 14px', background:'#0a1628', borderRadius:8, borderLeft:'3px solid #7f77dd', fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.8, fontFamily:'Arial,sans-serif' }}>
-              <div style={{ fontSize:9, color:'#7f77dd', marginBottom:4, direction:'ltr', textAlign:'left' }}>⚡ ניתוח סוג יום</div>
-              {dayExplanation}
-            </div>
-          )}
           <MainScore
             live={accepted&&lockedSignal?{...live,signal:lockedSignal} as any:live}
             liveSetup={liveSetup}
@@ -2535,7 +2627,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             onAccept={onAccept}
             onReject={onReject}
           />
-          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={onAskAI} />
+          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={onAskAI} live={live} />
           {/* AI rationale as fallback when no setup detected */}
           {persistedSignal?.wait_reason && !liveSetup?.opportunity && liveSetup?.opportunity !== 'none' && (
             <div style={{ background:'#0d1117', border:'1px solid #f59e0b33', borderRadius:8, padding:'10px 14px' }}>
