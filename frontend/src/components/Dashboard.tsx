@@ -822,17 +822,17 @@ function SetupEntryCard({ setup, dir, levels, live }: {
         {/* Win Rate + Delta + Volume */}
         <div style={{ display:'flex', gap:8, marginTop:8 }}>
           <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-            <div style={{ fontSize:8, color:'#4a5568' }}>Win Rate</div>
+            <div style={{ fontSize:11, color:'#4a5568' }}>Win Rate</div>
             <div style={{ fontSize:14, fontWeight:800, color:col }}>{setup.base}%</div>
           </div>
           <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-            <div style={{ fontSize:8, color:'#4a5568' }}>Delta</div>
+            <div style={{ fontSize:11, color:'#4a5568' }}>Delta</div>
             <div style={{ fontSize:14, fontWeight:800, color:(live?.bar?.delta||0)>=0?'#22c55e':'#ef5350', fontFamily:'monospace' }}>
               {(live?.bar?.delta||0)>0?'+':''}{live?.bar?.delta||0}
             </div>
           </div>
           <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-            <div style={{ fontSize:8, color:'#4a5568' }}>Vol</div>
+            <div style={{ fontSize:11, color:'#4a5568' }}>Vol</div>
             <div style={{ fontSize:14, fontWeight:800, color:((live as any)?.volume_context?.rel_vol||1)>1.2?'#22c55e':'#4a5568', fontFamily:'monospace' }}>
               {((live as any)?.volume_context?.rel_vol||1).toFixed(1)}x
             </div>
@@ -857,7 +857,7 @@ function SetupEntryCard({ setup, dir, levels, live }: {
 
           {/* פוטנציאל */}
           {pot?.valid && (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6 }}>
               {[
                 { label:'T1 · C1', pts:pot.t1_pts, usd:pot.t1_usd, rr:pot.rr1, col:'#22c55e', price:levels.t1 },
                 { label:'T2 · C2', pts:pot.t2_pts, usd:pot.t2_usd, rr:pot.rr2, col:'#16a34a', price:levels.t2 },
@@ -868,7 +868,7 @@ function SetupEntryCard({ setup, dir, levels, live }: {
                   <div style={{ fontSize:12, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{(t.price||0).toFixed(2)}</div>
                   <div style={{ fontSize:9, color:'#4a5568' }}>+{t.pts}pt</div>
                   <div style={{ fontSize:9, fontWeight:700, color:t.col }}>+${t.usd}</div>
-                  {t.rr && <div style={{ fontSize:8, color:'#4a5568' }}>R:R 1:{t.rr}</div>}
+                  {t.rr && <div style={{ fontSize:12, color:'#4a5568' }}>R:R 1:{t.rr}</div>}
                 </div>
               ))}
             </div>
@@ -1326,7 +1326,7 @@ function TrafficLight({ score, live }: { score: number; live: MarketData | null 
           <div style={{ width:`${biasWR}%`, height:'100%', background:biasCol, borderRadius:2, transition:'width .5s' }} />
         </div>
         {/* L / S mini */}
-        <div style={{ display:'flex', justifyContent:'space-between', width:'100%', fontSize:8, marginTop:1 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', width:'100%', fontSize:11, marginTop:1 }}>
           <span style={{ color:G, fontWeight:700 }}>L {long}%</span>
           <span style={{ color:R, fontWeight:700 }}>S {short}%</span>
         </div>
@@ -1371,9 +1371,9 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem 
   const phaseCol = phase === 'RTH' ? G : phase === 'OVERNIGHT' ? Y : '#60a5fa';
 
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:16, padding:'10px 16px', background:'#111827', borderRadius:8, border:'1px solid #1e2738' }}>
-      <span style={{ fontSize:16, fontWeight:800, letterSpacing:2, color:'#f0f6fc' }}>MES<span style={{ color:'#f6c90e' }}>26</span></span>
-      <span style={{ fontSize:28, fontWeight:800, fontFamily:'monospace', color:'#f0f6fc' }}>{price ? price.toFixed(2) : '—'}</span>
+    <div style={{ display:'flex', alignItems:'center', gap:16, padding:'10px 16px', background:'#111827', borderRadius:8, border:'1px solid #1e2738', flexWrap:'wrap' }}>
+      <span style={{ fontSize:16, fontWeight:800, letterSpacing:2, color:'#f0f6fc', flexShrink:0 }}>MES<span style={{ color:'#f6c90e' }}>26</span></span>
+      <span style={{ fontSize:28, fontWeight:800, fontFamily:'monospace', color:'#f0f6fc', flexShrink:0 }}>{price ? price.toFixed(2) : '—'}</span>
       <span style={{ fontSize:11, padding:'3px 10px', borderRadius:12, fontWeight:700, background:phaseCol+'22', color:phaseCol, border:`1px solid ${phaseCol}44` }}>{phase}</span>
 
       {/* כפתור AI on-demand */}
@@ -1488,7 +1488,7 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
       {isActive && sig && (
         <>
           {/* Per-target win rates */}
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6, marginTop:10 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6, marginTop:10 }}>
             {[
               { label:'T1 · C1', val:sig.target1, pct:sig.t1_win_rate??0, note:'R:R 1:1' },
               { label:'T2 · C2', val:sig.target2, pct:sig.t2_win_rate??0, note:'R:R 1:2' },
@@ -1501,7 +1501,7 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
                 <div style={{ height:3, background:'#1e2738', borderRadius:2, marginTop:3, overflow:'hidden' }}>
                   <div style={{ width:`${pct}%`, height:'100%', background:col, borderRadius:2 }} />
                 </div>
-                <div style={{ fontSize:8, color:'#4a5568', marginTop:2 }}>{note}</div>
+                <div style={{ fontSize:11, color:'#4a5568', marginTop:2 }}>{note}</div>
               </div>
             ))}
           </div>
@@ -1575,7 +1575,7 @@ function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
             <div key={l} style={{ padding:'10px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
               <div style={{ fontSize:9, color:'#4a5568', marginBottom:4 }}>{l}</div>
               <div style={{ fontSize:16, fontWeight:800, color:c, fontFamily:'monospace' }}>{v}</div>
-              <div style={{ fontSize:8, color:'#2d3a4a', marginTop:3 }}>{sub}</div>
+              <div style={{ fontSize:11, color:'#2d3a4a', marginTop:3 }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -1903,7 +1903,7 @@ function Indicators({ live }:{ live:MarketData|null }) {
       <div style={{ padding:'4px 0' }}>
         {rows.map((r,i)=>(
           <div key={i}>
-            {r.cat && <div style={{ fontSize:8, color:'#2d3a4a', letterSpacing:1, padding:'4px 10px 2px' }}>{r.cat}</div>}
+            {r.cat && <div style={{ fontSize:11, color:'#2d3a4a', letterSpacing:1, padding:'4px 10px 2px' }}>{r.cat}</div>}
             <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', borderBottom:'1px solid #0d1117' }}>
               <MiniLight col={r.col} />
               <span style={{ fontSize:10, color:'#6b7280', width:72, flexShrink:0 }}>{r.name}</span>
@@ -2008,7 +2008,7 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
                     {l:'רמה',  v:(p.keyLevel||0).toFixed(2), c:p.col},
                   ].map(({l,v,c})=>(
                     <div key={l} style={{ background:'#0d1117', borderRadius:5, padding:'4px 6px', textAlign:'center' }}>
-                      <div style={{ fontSize:8, color:'#4a5568' }}>{l}</div>
+                      <div style={{ fontSize:11, color:'#4a5568' }}>{l}</div>
                       <div style={{ fontSize:10, fontWeight:700, color:c, fontFamily:'monospace' }}>{v}</div>
                     </div>
                   ))}
@@ -2412,8 +2412,9 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             style={{ flex:1, padding:'7px 4px', border:'none', cursor:'pointer', fontFamily:'inherit',
               background: tab===t.id ? '#1e2738' : '#111827',
               borderBottom: tab===t.id ? '2px solid #7f77dd' : '2px solid transparent',
-              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:10, fontWeight:700,
-              display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:11, fontWeight:700,
+              display:'flex', flexDirection:'column', alignItems:'center', gap:1,
+              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
             <span style={{ fontSize:13 }}>{t.icon}</span>
             <span>{t.label}</span>
           </button>
@@ -2484,9 +2485,9 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     { label:'Risk', val:`${s.riskPts}pt`, col:'#f59e0b' },
                     { label:'אישור Δ', val:`${s.confirmDelta>0?'+':''}${s.confirmDelta}`, col: s.confirmed?'#22c55e':'#ef5350' },
                   ].map(x => (
-                    <div key={x.label} style={{ background:'#0a0e1a', borderRadius:4, padding:'3px 6px', textAlign:'center', flex:1 }}>
-                      <div style={{ fontSize:7, color:'#4a5568' }}>{x.label}</div>
-                      <div style={{ fontSize:11, fontWeight:800, color:x.col, fontFamily:'monospace' }}>{x.val}</div>
+                    <div key={x.label} style={{ background:'#0a0e1a', borderRadius:4, padding:'3px 6px', textAlign:'center', flex:1, minWidth:0, overflow:'hidden' }}>
+                      <div style={{ fontSize:11, color:'#4a5568' }}>{x.label}</div>
+                      <div style={{ fontSize:13, fontWeight:800, color:x.col, fontFamily:'monospace' }}>{x.val}</div>
                     </div>
                   ))}
                 </div>
@@ -2505,7 +2506,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                   </div>
                 </div>
                 {/* C1 / C2 / C3 */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:6 }}>
                   {[
                     { label:'① C1 · 50%', price:s.c1, desc:'R:R 1:1 → BE', col:'#22c55e' },
                     { label:'② C2 · 25%', price:s.c2, desc:'R:R 1:2', col:'#16a34a' },
@@ -2514,10 +2515,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     const pts = Math.abs(t.price - s.entry);
                     return (
                       <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'4px 5px', textAlign:'center' }}>
-                        <div style={{ fontSize:8, color:t.col, fontWeight:700 }}>{t.label}</div>
+                        <div style={{ fontSize:11, color:t.col, fontWeight:700 }}>{t.label}</div>
                         <div style={{ fontSize:11, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
-                        <div style={{ fontSize:8, color:'#4a5568' }}>+{pts.toFixed(1)}pt +${Math.round(pts*5)}</div>
-                        <div style={{ fontSize:7, color:'#2d3a4a' }}>{t.desc}</div>
+                        <div style={{ fontSize:11, color:'#4a5568' }}>+{pts.toFixed(1)}pt +${Math.round(pts*5)}</div>
+                        <div style={{ fontSize:11, color:'#2d3a4a' }}>{t.desc}</div>
                       </div>
                     );
                   })}
@@ -2607,7 +2608,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                       }}>
                       <span style={{ fontSize:10, color:isLong?'#22c55e':'#ef5350', fontWeight:700 }}>{isLong?'▲':'▼'}</span>
                       <span style={{ fontSize:10, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{ev.levelName}</span>
-                      <span style={{ fontSize:8, color:ev.confirmed?'#22c55e':'#f59e0b' }}>{ev.confirmed?'✓':'⏳'}</span>
+                      <span style={{ fontSize:11, color:ev.confirmed?'#22c55e':'#f59e0b' }}>{ev.confirmed?'✓':'⏳'}</span>
                       <span style={{ fontSize:9, color:'#4a5568', flex:1 }}>{date} {time}</span>
                       <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>{ev.relVol}x</span>
                       <span style={{ fontSize:11, fontWeight:800, color:ev.score>=90?'#22c55e':ev.score>=75?'#f59e0b':'#4a5568', fontFamily:'monospace', minWidth:28, textAlign:'right' }}>{ev.score}%</span>
@@ -3054,15 +3055,16 @@ export default function Dashboard() {
       </div>
 
       {/* גרף שמאל + מידע ימין */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr clamp(310px, 22vw, 480px)',flex:1,overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr clamp(340px, 22vw, 480px)',flex:1,overflow:'hidden'}}>
 
         {/* גרף — קבוע */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738'}}>
-          <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:6,padding:'5px 12px',background:'#111827',borderBottom:'1px solid #1e2738'}}>
+          <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:8,padding:'5px 12px',background:'#111827',borderBottom:'1px solid #1e2738',flexWrap:'wrap'}}>
             <span style={{fontSize:9,color:'#4a5568',letterSpacing:2}}>גרף</span>
             <div style={{display:'flex',gap:4,flex:1,flexWrap:'wrap'}}>
               {opportunity !== 'none' ? (
-                <div style={{display:'flex',alignItems:'center',gap:4,padding:'2px 10px',borderRadius:10,border:`1px solid ${setupCol}66`,background:`${setupCol}15`}}>
+                <div style={{display:'flex',alignItems:'center',gap:4,padding:'2px 10px',borderRadius:10,border:`1px solid ${setupCol}66`,background:`${setupCol}15`,maxWidth:200,overflow:'hidden'}}>
+
                   <div style={{width:8,height:8,borderRadius:'50%',background:setupCol,boxShadow:`0 0 6px ${setupCol}`}}/>
                   <span style={{fontSize:10,fontWeight:800,color:setupCol}}>
                     {opportunity==='long'?'🟢 LONG':'🔴 SHORT'}
@@ -3180,7 +3182,7 @@ export default function Dashboard() {
                 <div><span style={{color:'#6b7280'}}>Stop</span><br/><span style={{color:'#e91e63'}}>{activeScannedPattern.stop.toFixed(2)}</span></div>
                 <div><span style={{color:'#6b7280'}}>T1</span><br/><span style={{color:'#00bcd4'}}>{activeScannedPattern.t1.toFixed(2)}</span></div>
               </div>
-              <button onClick={()=>setActiveScannedPattern(null)} style={{marginTop:4,fontSize:8,color:'#4b5563',background:'none',border:'none',cursor:'pointer',fontFamily:'monospace'}}>x close</button>
+              <button onClick={()=>setActiveScannedPattern(null)} style={{marginTop:4,fontSize:11,color:'#4b5563',background:'none',border:'none',cursor:'pointer',fontFamily:'monospace'}}>x close</button>
             </div>
           )}
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
