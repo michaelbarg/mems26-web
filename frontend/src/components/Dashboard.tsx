@@ -1467,23 +1467,6 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
         )}
       </div>
 
-      {/* ניתוח + המתנה — תמיד מוצג */}
-      {!isActive && sig && (
-        <div style={{ marginTop:10, display:'flex', flexDirection:'column', gap:6 }}>
-          {sig.rationale && (
-            <div style={{ padding:'8px 12px', background:'#0a1628', borderRadius:7, borderLeft:'3px solid #7f77dd', fontSize:11, color:'#cbd5e1', direction:'rtl', textAlign:'right', lineHeight:1.8, fontFamily:'Arial,sans-serif' }}>
-              {sig.rationale}
-            </div>
-          )}
-          {sig.wait_reason && (
-            <div style={{ padding:'8px 12px', background:'#0d1117', borderRadius:7, borderLeft:`3px solid ${Y}`, fontSize:11, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.7, fontFamily:'Arial,sans-serif' }}>
-              <span style={{ fontSize:9, color:Y, display:'block', marginBottom:3 }}>⏳ מה חסר לכניסה</span>
-              {sig.wait_reason}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Signal detail — כשיש סטאפ */}
       {isActive && sig && (
         <>
