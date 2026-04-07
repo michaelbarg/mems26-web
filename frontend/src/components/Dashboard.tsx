@@ -2814,10 +2814,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                         ].map(item => (
                           <div key={item.label} style={{
                             background:'#1e2738', borderRadius:6, padding:'5px 10px',
-                            flex:'1 1 80px', minWidth:0,
+                            flex:'1 1 60px', minWidth:0, overflow:'hidden',
                           }}>
                             <div style={{ fontSize:10, color:'#64748b', marginBottom:2 }}>{item.label}</div>
-                            <div style={{ fontSize:13, fontWeight:700, color:(item as any).color || '#e2e8f0' }}>
+                            <div style={{ fontSize:13, fontWeight:700, color:(item as any).color || '#e2e8f0', overflow:'hidden', minWidth:0 }}>
                               {item.value}
                             </div>
                           </div>
@@ -2833,7 +2833,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                       </div>
                       <div>
                         <div style={{ fontSize:11, color:'#ef444499', marginBottom:6, fontWeight:600 }}>⚠️ מה להימנע</div>
-                        <div style={{ fontSize:12, color:'#94a3b8', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeAvoid(dt.id)}</div>
+                        <div style={{ fontSize:12, color:'#94a3b8', lineHeight:1.6, direction:'rtl' as const, wordBreak:'keep-all' as const }}>{getDayTypeAvoid(dt.id)}</div>
                       </div>
                     </div>
                   )}
