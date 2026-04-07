@@ -2628,13 +2628,6 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             onReject={onReject}
           />
           <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={onAskAI} live={live} />
-          {/* AI rationale as fallback when no setup detected */}
-          {persistedSignal?.wait_reason && !liveSetup?.opportunity && liveSetup?.opportunity !== 'none' && (
-            <div style={{ background:'#0d1117', border:'1px solid #f59e0b33', borderRadius:8, padding:'10px 14px' }}>
-              <div style={{ fontSize:9, color:'#f59e0b', marginBottom:4, letterSpacing:1 }}>⏳ AI ממליץ</div>
-              <div style={{ fontSize:12, color:'#94a3b8', lineHeight:1.8, direction:'rtl', textAlign:'right', fontFamily:'Arial,sans-serif' }}>{persistedSignal.wait_reason}</div>
-            </div>
-          )}
           <EntryZone live={live} signal={persistedSignal} />
         </>}
 
