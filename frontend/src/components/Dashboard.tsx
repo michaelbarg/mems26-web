@@ -2530,6 +2530,7 @@ function getDayTypeRule(id: string): string {
     NEUTRAL: 'קנה בקצה התחתון, מכור בקצה העליון. הימנע מ-breakouts.',
     ROTATIONAL: 'אל תסחר — שוק ללא כיוון. המתן ליום טוב יותר.',
     DEVELOPING: 'IB לא נעול — אין סיווג סופי. המתן לשעה הראשונה לפני כניסה.',
+    VOLATILE: 'תנועות חדות — הקטן גודל פוזיציה ל-50%. סטופ רחב יותר מהרגיל.',
   };
   return rules[id] || '—';
 }
@@ -2543,6 +2544,7 @@ function getDayTypeLookFor(id: string): string {
     NEUTRAL: 'נגיעה בקצוות הטווח עם rejection ברור + wick ארוך.',
     ROTATIONAL: 'אין — המתן ליום הבא.',
     DEVELOPING: 'המתן לנעילת ה-IB. בדוק Gap ו-day type שמתחיל להתגבש.',
+    VOLATILE: 'Sweep ברור עם חזרה מהירה. המתן לאחר תנועה ראשונה לפני כניסה.',
   };
   return lookFor[id] || '—';
 }
@@ -2556,6 +2558,7 @@ function getDayTypeAvoid(id: string): string {
     NEUTRAL: 'Breakouts — סיכוי גבוה ל-false breakout ביום ניטרלי.',
     ROTATIONAL: 'כל כניסה — יום ללא edge מובהק.',
     DEVELOPING: 'כניסות מוקדמות לפני שה-IB נעול ו-day type ברור.',
+    VOLATILE: 'כניסה בתוך התנועה — המתן לסיום ה-spike ואישור כיוון.',
   };
   return avoid[id] || '—';
 }
@@ -2827,6 +2830,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
               { id:'NEUTRAL', label:'Neutral', labelHe:'ניטרלי', color:'#64748b', desc:'שוק מהסס ורחב. קנה קצוות, מכור אמצע.', shape:'wide' },
               { id:'ROTATIONAL', label:'Non-Trend', labelHe:'ללא טרנד', color:'#ef4444', desc:'טווח צר מאוד. אל תסחר — מחכה לזרז.', shape:'narrow' },
               { id:'DEVELOPING', label:'Developing', labelHe:'מתפתח', color:'#475569', desc:'היום עדיין מתפתח — אין סיווג סופי. המתן לסגירת ה-IB.', shape:'narrow' },
+              { id:'VOLATILE', label:'Volatile', labelHe:'תנודתי', color:'#f97316', desc:'תנועות חדות ומהירות לשני הכיוונים. סטופים רחבים יותר נדרשים.', shape:'bell_tail' },
             ].map((dt) => {
               const dtype = (live as any)?.day?.type || '';
               const isActive = dtype === dt.id;

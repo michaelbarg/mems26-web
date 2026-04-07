@@ -346,6 +346,7 @@ export default function LightweightChart({
         NEUTRAL:             '#64748b',
         ROTATIONAL:          '#ef4444',
         DEVELOPING:          '#475569',
+        VOLATILE:            '#f97316',
       };
       const dtCol = dtColors[dayTypeRef.current || ''] || '#475569';
       ctx.strokeStyle = dtCol;
