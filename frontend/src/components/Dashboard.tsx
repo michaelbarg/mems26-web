@@ -1489,14 +1489,6 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
             ))}
           </div>
 
-          {/* Rationale */}
-          {sig.rationale && (
-            <div style={{ marginTop:8, padding:'6px 10px', background:'#0a1628', borderRadius:6, borderLeft:'2px solid #7f77dd', fontSize:10, color:'#94a3b8', lineHeight:1.6, direction:'rtl', textAlign:'right' }}>
-              <span style={{ fontSize:9, color:'#7f77dd', display:'block', marginBottom:2, direction:'ltr', textAlign:'left' }}>CLAUDE AI</span>
-              {sig.rationale}
-            </div>
-          )}
-
           {/* כפתור ביטול בלבד — קבלה אוטומטית */}
           {accepted && (
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10, padding:'6px 10px', background:'#22c55e18', borderRadius:6, border:'1px solid #22c55e44' }}>
