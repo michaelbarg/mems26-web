@@ -704,6 +704,7 @@ export default function LightweightChart({
       }
     }
 
+    console.log('setData:', cData.length, 'first:', cData[0]?.time, 'last:', cData[cData.length-1]?.time);
     seriesRef.current.setData(cData);
 
     // CVD (cumulative volume delta) + MA20
