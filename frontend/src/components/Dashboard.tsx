@@ -3127,10 +3127,11 @@ export default function Dashboard() {
           }catch{}
         }
       }
-      // מיין ישן→חדש, הסר כפולים
+      // מיין חדש→ישן, הסר כפולים
+      flat.sort((a,b)=>b.ts-a.ts);
       const seen=new Set<number>();
       const deduped=flat.filter(c=>{if(seen.has(c.ts))return false;seen.add(c.ts);return true;});
-      deduped.sort((a,b)=>b.ts-a.ts);
+      console.log(`TF ${curTf}: ${deduped.length} candles, first=${deduped[deduped.length-1]?.ts}, last=${deduped[0]?.ts}`);
       if(deduped.length>0)setCandles(deduped);
     }catch{}
   },[]);
