@@ -2975,7 +2975,7 @@ export default function Dashboard() {
   const [candles,setCandles]=useState<Candle[]>([]);
   const [connected,setConnected]=useState(false);
   const [systemOn,setSystemOn]=useState(true);
-  const [tf,setTf]=useState<'m3'|'m15'|'m30'|'m60'>('m3');
+  const [tf,setTf]=useState<'3m'|'5m'|'15m'|'30m'|'1h'>('3m');
   const [accepted,setAccepted]=useState(false);
   const [lockedSignal,setLockedSignal]=useState<any>(null);
   const [rejectedTs,setRejectedTs]=useState(0);
@@ -3089,10 +3089,22 @@ export default function Dashboard() {
     }catch{}
   },[accepted,lockedSignal,rejectedTs]);
 
+  const tfRef=useRef(tf);
+  tfRef.current=tf;
+
   const fetchCandles=useCallback(async()=>{
     if(!systemOnRef.current) return;
+    const curTf=tfRef.current;
+    const tfConfig:{[k:string]:{path:string;limit:number}}={
+      '3m':  {path:'/market/candles',     limit:960},
+      '5m':  {path:'/market/candles/5m',  limit:288},
+      '15m': {path:'/market/candles/15m', limit:96},
+      '30m': {path:'/market/candles/30m', limit:48},
+      '1h':  {path:'/market/candles/1h',  limit:64},
+    };
+    const cfg=tfConfig[curTf]||tfConfig['3m'];
     try{
-      const r=await fetch(`${API_URL}/market/candles?limit=960`,{cache:'no-store'});
+      const r=await fetch(`${API_URL}${cfg.path}?limit=${cfg.limit}`,{cache:'no-store'});
       if(!r.ok)return;
       const raw=await r.json();
       if(!Array.isArray(raw))return;
@@ -3104,7 +3116,16 @@ export default function Dashboard() {
             try{const c=typeof sub==='string'?JSON.parse(sub):sub;if(c?.ts>0)flat.push(c);}catch{}
           }
         } else {
-          try{const c=typeof item==='string'?JSON.parse(item):item;if(c?.ts>0)flat.push(c);}catch{}
+          try{
+            const c=typeof item==='string'?JSON.parse(item):item;
+            if(c?.ts>0){
+              // Normalize full field names (5m/15m/1h) to short names (o/h/l/c)
+              if(c.open!==undefined && c.o===undefined){
+                c.o=c.open; c.h=c.high; c.l=c.low; c.c=c.close;
+              }
+              flat.push(c);
+            }
+          }catch{}
         }
       }
       // מיין ישן→חדש, הסר כפולים
@@ -3127,6 +3148,11 @@ export default function Dashboard() {
     const cleanup=init();
     return()=>{cleanup.then(fn=>fn?.());};
   },[fetchLive,fetchCandles,fetchAnalyze]);
+
+  // ── Re-fetch candles when timeframe changes ──
+  useEffect(()=>{
+    fetchCandles();
+  },[tf,fetchCandles]);
 
   // ── Pattern scanner polling ──
   useEffect(()=>{
@@ -3230,7 +3256,8 @@ export default function Dashboard() {
     }));
   }, [live?.price]);
 
-  const bar=tf==='m3'?live?.bar:live?.mtf?.[tf]??live?.bar;
+  const tfToMtf:{[k:string]:string}={'3m':'m3','5m':'m3','15m':'m15','30m':'m30','1h':'m60'};
+  const bar=tf==='3m'?live?.bar:(live?.mtf as any)?.[tfToMtf[tf]]??live?.bar;
 
   // ── Real-time opportunity detection ──────────────────
   const liveSetup = calcSetups(live, candles);
@@ -3326,8 +3353,8 @@ export default function Dashboard() {
               )}
             </div>
             <div style={{display:'flex',gap:3}}>
-              {(['m3','m15','m30','m60'] as const).map(t=>(
-                <button key={t} onClick={()=>setTf(t)} style={{padding:'2px 7px',borderRadius:4,fontSize:9,fontWeight:700,border:'none',cursor:'pointer',fontFamily:'inherit',background:tf===t?'#f6c90e':'#1e2738',color:tf===t?'#0d1117':'#6b7280'}}>{t.toUpperCase()}</button>
+              {(['3m','5m','15m','30m','1h'] as const).map(t=>(
+                <button key={t} onClick={()=>setTf(t)} style={{padding:'2px 7px',borderRadius:4,fontSize:9,fontWeight:700,border:tf===t?'1px solid #a855f7':'1px solid transparent',cursor:'pointer',fontFamily:'inherit',background:tf===t?'#f6c90e':'#1e2738',color:tf===t?'#0d1117':'#6b7280'}}>{t.toUpperCase()}</button>
               ))}
             </div>
           </div>
@@ -3335,15 +3362,22 @@ export default function Dashboard() {
             <LightweightChart
               candles={candles}
               livePrice={live?.price}
-              liveBar={live?.bar ? {
-                ts:   live.current_candle?.ts ?? Math.floor(Date.now()/1000 / 180) * 180,
-                o:    live.current_candle?.o ?? live.bar.o,
-                h:    live.current_candle?.h ?? live.bar.h,
-                l:    live.current_candle?.l ?? live.bar.l,
-                c:    live.bar.c,
-                buy:  live.current_candle?.buy ?? live.bar.buy,
-                sell: live.current_candle?.sell ?? live.bar.sell,
-              } : null}
+              liveBar={live?.bar ? (()=>{
+                const tfSec:{[k:string]:number}={'3m':180,'5m':300,'15m':900,'30m':1800,'1h':3600};
+                const tfMtf:{[k:string]:string}={'3m':'','5m':'m5','15m':'m15','30m':'m30','1h':'m60'};
+                const sec=tfSec[tf]||180;
+                const cc=tf==='3m'?live.current_candle:
+                          (live as any)?.[`current_candle_${tfMtf[tf]}`] ?? null;
+                return {
+                  ts:   cc?.ts ?? Math.floor(Date.now()/1000 / sec) * sec,
+                  o:    cc?.o ?? cc?.open ?? live.bar.o,
+                  h:    cc?.h ?? cc?.high ?? live.bar.h,
+                  l:    cc?.l ?? cc?.low ?? live.bar.l,
+                  c:    live.bar.c,
+                  buy:  cc?.buy ?? live.bar.buy,
+                  sell: cc?.sell ?? live.bar.sell,
+                };
+              })() : null}
               vwap={live?.vwap?.value}
               levels={live?.levels}
               profile={live?.profile}

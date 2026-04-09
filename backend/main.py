@@ -16,6 +16,10 @@ REDIS_URL         = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN       = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY          = "mems26:latest"
 REDIS_CANDLES_KEY  = "mems26:candles"
+REDIS_CANDLES_5M   = "mems26:candles:5m"
+REDIS_CANDLES_15M  = "mems26:candles:15m"
+REDIS_CANDLES_30M  = "mems26:candles:30m"
+REDIS_CANDLES_1H   = "mems26:candles:1h"
 REDIS_FOOTPRINT_KEY = "mems26:footprint"
 REDIS_PATTERNS_KEY  = "mems26:patterns"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -70,6 +74,28 @@ async def redis_lrange(key: str, start: int, stop: int) -> list:
     except Exception as e:
         log.warning(f"Redis lrange failed: {e}")
         return []
+
+
+async def redis_get_json_array(key: str) -> list:
+    """Read a SET-based key that stores a JSON array string."""
+    if not REDIS_URL or not REDIS_TOKEN:
+        return []
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{REDIS_URL}/get/{key}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+            result = resp.json()
+            val = result.get("result")
+            if val and isinstance(val, str):
+                parsed = json.loads(val)
+                if isinstance(parsed, list):
+                    return parsed
+    except Exception as e:
+        log.warning(f"Redis get_json_array failed ({key}): {e}")
+    return []
 
 
 class ConnectionManager:
@@ -177,6 +203,38 @@ async def get_candles(limit: int = 960):
             continue
     candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
     return candles
+
+
+@app.get("/market/candles/5m")
+async def get_candles_5m(limit: int = 288):
+    candles = await redis_get_json_array(REDIS_CANDLES_5M)
+    candles = [c for c in candles if isinstance(c, dict) and c.get("ts", 0) > 0]
+    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
+    return candles[:limit]
+
+
+@app.get("/market/candles/15m")
+async def get_candles_15m(limit: int = 96):
+    candles = await redis_get_json_array(REDIS_CANDLES_15M)
+    candles = [c for c in candles if isinstance(c, dict) and c.get("ts", 0) > 0]
+    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
+    return candles[:limit]
+
+
+@app.get("/market/candles/30m")
+async def get_candles_30m(limit: int = 48):
+    candles = await redis_get_json_array(REDIS_CANDLES_30M)
+    candles = [c for c in candles if isinstance(c, dict) and c.get("ts", 0) > 0]
+    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
+    return candles[:limit]
+
+
+@app.get("/market/candles/1h")
+async def get_candles_1h(limit: int = 64):
+    candles = await redis_get_json_array(REDIS_CANDLES_1H)
+    candles = [c for c in candles if isinstance(c, dict) and c.get("ts", 0) > 0]
+    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
+    return candles[:limit]
 
 
 @app.get("/market/analyze")

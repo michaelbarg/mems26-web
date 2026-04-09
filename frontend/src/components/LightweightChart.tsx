@@ -544,6 +544,18 @@ export default function LightweightChart({
         barSpacing:     8,
         rightOffset:    5,
       },
+      localization: {
+        timeFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          const hours = date.getHours().toString().padStart(2, '0');
+          const minutes = date.getMinutes().toString().padStart(2, '0');
+          return `${hours}:${minutes}`;
+        },
+        dateFormatter: (timestamp: number) => {
+          const date = new Date(timestamp * 1000);
+          return `${date.getDate()}/${date.getMonth()+1}`;
+        },
+      },
       handleScroll:  { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
       handleScale:   { mouseWheel: true, axisPressedMouseMove: true, pinch: true },
     });
@@ -728,7 +740,7 @@ export default function LightweightChart({
         maData.push({ time: t, value: ma });
       }
 
-      if (liveBar) {
+      if (liveBar && liveBar.ts > 0) {
         const lb = liveBar;
         const buyVal = lb.buy || 0;
         const sellVal = lb.sell || 0;
@@ -743,11 +755,16 @@ export default function LightweightChart({
         if (dayNum !== prevDay && prevDay !== -1) cvd = 0;
         cvd += delta;
         const t = Math.floor(lb.ts) as any;
-        cvdData.push({ time: t, value: cvd });
-        win20.push(cvd);
-        if (win20.length > 20) win20.shift();
-        const ma = win20.reduce((s, v) => s + v, 0) / win20.length;
-        maData.push({ time: t, value: ma });
+        // Replace last entry if same timestamp, otherwise append
+        if (cvdData.length > 0 && cvdData[cvdData.length - 1].time === t) {
+          cvdData[cvdData.length - 1] = { time: t, value: cvd };
+          maData[maData.length - 1] = { time: t, value: win20.reduce((s, v) => s + v, 0) / win20.length };
+        } else {
+          cvdData.push({ time: t, value: cvd });
+          win20.push(cvd);
+          if (win20.length > 20) win20.shift();
+          maData.push({ time: t, value: win20.reduce((s, v) => s + v, 0) / win20.length });
+        }
       }
 
       cvdRef.current.setData(cvdData);
@@ -785,39 +802,48 @@ export default function LightweightChart({
   // Update live candle in real-time (lightweight update, no full setData)
   useEffect(() => {
     if (!seriesRef.current || !liveBar) return;
+    const liveTs = Math.floor(liveBar.ts);
+    if (!liveTs || liveTs <= 0 || !isFinite(liveTs)) return;
     const price = livePrice ?? liveBar.c;
-    seriesRef.current.update({
-      time:  Math.floor(liveBar.ts) as any,
-      open:  liveBar.o,
-      high:  Math.max(liveBar.h, price),
-      low:   Math.min(liveBar.l, price),
-      close: price,
-    });
-
-    // Update CVD for live bar too
-    if (cvdRef.current && cvdMaRef.current) {
-      const buyVal = liveBar.buy || 0;
-      const sellVal = liveBar.sell || 0;
-      let delta: number;
-      if (buyVal + sellVal > 0) {
-        delta = buyVal - sellVal;
-      } else {
-        const spread = liveBar.h - liveBar.l;
-        delta = spread > 0 ? 100 * ((liveBar.c - liveBar.l) - (liveBar.h - liveBar.c)) / spread : 0;
-      }
-      const t = Math.floor(liveBar.ts) as any;
-      cvdRef.current.update({ time: t, value: delta });
+    try {
+      seriesRef.current.update({
+        time:  liveTs as any,
+        open:  liveBar.o,
+        high:  Math.max(liveBar.h, price),
+        low:   Math.min(liveBar.l, price),
+        close: price,
+      });
+    } catch (e) {
+      // Ignore "Cannot update oldest data" during tf switch
     }
 
-    // Update volume for live bar
-    if (volRef.current) {
-      const vol = (liveBar.buy || 0) + (liveBar.sell || 0);
-      const isBuy = price >= liveBar.o;
-      volRef.current.update({
-        time: Math.floor(liveBar.ts) as any,
-        value: vol > 0 ? vol : 100,
-        color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
-      });
+    // Update CVD for live bar too
+    try {
+      if (cvdRef.current && cvdMaRef.current) {
+        const buyVal = liveBar.buy || 0;
+        const sellVal = liveBar.sell || 0;
+        let delta: number;
+        if (buyVal + sellVal > 0) {
+          delta = buyVal - sellVal;
+        } else {
+          const spread = liveBar.h - liveBar.l;
+          delta = spread > 0 ? 100 * ((liveBar.c - liveBar.l) - (liveBar.h - liveBar.c)) / spread : 0;
+        }
+        cvdRef.current.update({ time: liveTs as any, value: delta });
+      }
+
+      // Update volume for live bar
+      if (volRef.current) {
+        const vol = (liveBar.buy || 0) + (liveBar.sell || 0);
+        const isBuy = price >= liveBar.o;
+        volRef.current.update({
+          time: liveTs as any,
+          value: vol > 0 ? vol : 100,
+          color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
+        });
+      }
+    } catch (e) {
+      // Ignore during tf switch
     }
   }, [liveBar, livePrice]);
 

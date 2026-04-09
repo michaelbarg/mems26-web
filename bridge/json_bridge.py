@@ -24,6 +24,15 @@ REDIS_PATTERNS  = "mems26:patterns"
 MAX_CANDLES     = 960
 POST_INTERVAL   = 1.0
 CANDLE_INTERVAL = 180
+STALE_THRESHOLD = 120
+
+# MTF candle config: (mtf_key, redis_key, interval_sec, max_candles)
+MTF_CONFIG = [
+    ("m5",  "mems26:candles:5m",  300,  288),
+    ("m15", "mems26:candles:15m", 900,  96),
+    ("m30", "mems26:candles:30m", 1800, 48),
+    ("m60", "mems26:candles:1h",  3600, 64),
+]
 
 @dataclass
 class SessionState:
@@ -69,6 +78,23 @@ class CandleBuilder:
         return {
             "ts": self.start_ts,
             "o": self.o, "h": self.h, "l": self.l, "c": self.c,
+            "buy": self.buy, "sell": self.sell,
+            "vol": self.vol,
+            "delta": self.buy - self.sell,
+            "cci14": round(self.cci14, 2),
+            "cci6": round(self.cci6, 2),
+            "vwap": round(self.vwap, 2),
+            "phase": self.phase,
+            "above_vwap": self.above_vwap,
+            "liq_sweep_long": self.liq_sweep_long,
+            "liq_sweep_short": self.liq_sweep_short,
+        }
+
+    def to_dict_full(self):
+        """Full field names for 5m/15m/1H candles (spec format)."""
+        return {
+            "ts": self.start_ts,
+            "open": self.o, "high": self.h, "low": self.l, "close": self.c,
             "buy": self.buy, "sell": self.sell,
             "vol": self.vol,
             "delta": self.buy - self.sell,
@@ -447,6 +473,20 @@ def enrich(raw):
     }
 
 
+async def redis_cmd(http, path):
+    """Send a no-body Redis command via GET (ltrim, del, llen, etc.)."""
+    try:
+        async with http.get(
+            f"{REDIS_URL}/{path}",
+            headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+            timeout=aiohttp.ClientTimeout(total=4.0)
+        ) as resp:
+            if resp.status != 200:
+                log.warning(f"Redis {path} {resp.status}")
+    except Exception as e:
+        log.warning(f"Redis cmd failed ({path}): {e}")
+
+
 async def redis_post(http, path, data):
     """Send data as JSON body (aiohttp serializes dict/list/str → JSON)."""
     try:
@@ -478,26 +518,83 @@ async def redis_post_raw(http, path, raw_json_str: str):
         log.warning(f"Redis raw failed ({path}): {e}")
 
 
-async def save_candle(http, c: CandleBuilder, raw: dict = None):
-    # העשר נר עם נתוני indicators לפני שמירה
+def enrich_candle(c: CandleBuilder, raw: dict):
+    """העשר נר עם נתוני indicators מהנתון הגולמי"""
+    cci  = raw.get("woodies_cci", {})
+    vwap = raw.get("vwap", {})
+    of2  = raw.get("order_flow", {})
+    sess = raw.get("session", {})
+    c.cci14           = float(cci.get("cci14", 0) or 0)
+    c.cci6            = float(cci.get("cci6", 0) or 0)
+    c.vwap            = float(vwap.get("value", 0) or 0)
+    c.phase           = str(sess.get("phase", ""))
+    c.above_vwap      = bool(vwap.get("above", False))
+    c.liq_sweep_long  = bool(of2.get("liq_sweep_long", False))
+    c.liq_sweep_short = bool(of2.get("liq_sweep_short", False))
+
+
+async def save_candle(http, c: CandleBuilder, raw: dict = None,
+                      redis_key: str = REDIS_CANDLES, max_candles: int = MAX_CANDLES,
+                      label: str = "3m"):
     if raw:
-        cci  = raw.get("woodies_cci", {})
-        vwap = raw.get("vwap", {})
-        of2  = raw.get("order_flow", {})
-        sess = raw.get("session", {})
-        c.cci14           = float(cci.get("cci14", 0) or 0)
-        c.cci6            = float(cci.get("cci6", 0) or 0)
-        c.vwap            = float(vwap.get("value", 0) or 0)
-        c.phase           = str(sess.get("phase", ""))
-        c.above_vwap      = bool(vwap.get("above", False))
-        c.liq_sweep_long  = bool(of2.get("liq_sweep_long", False))
-        c.liq_sweep_short = bool(of2.get("liq_sweep_short", False))
+        enrich_candle(c, raw)
     candle_dict = c.to_dict()
     candle_json = json.dumps(candle_dict)
-    # Use data= (not json=) to avoid double-encoding the already-serialized string
-    await redis_post_raw(http, f"lpush/{REDIS_CANDLES}", candle_json)
-    await redis_post(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}", "")
-    log.info(f"Candle saved: {c.c:.2f} Δ={c.buy-c.sell:.0f} CCI14={c.cci14:.1f} VWAP={c.vwap:.2f}")
+    await redis_post_raw(http, f"lpush/{redis_key}", candle_json)
+    await redis_cmd(http, f"ltrim/{redis_key}/0/{max_candles-1}")
+    log.info(f"Candle [{label}] saved: {c.c:.2f} Δ={c.buy-c.sell:.0f} CCI14={c.cci14:.1f} VWAP={c.vwap:.2f}")
+
+
+async def save_candle_mtf(http, c: CandleBuilder, raw: dict,
+                          redis_key: str, max_candles: int, label: str):
+    """Save MTF candle as JSON array via SET (spec format: open/high/low/close)."""
+    enrich_candle(c, raw)
+    candle_dict = c.to_dict_full()
+
+    # Read existing array from Redis
+    existing = []
+    try:
+        async with http.get(
+            f"{REDIS_URL}/get/{redis_key}",
+            headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+            timeout=aiohttp.ClientTimeout(total=4.0)
+        ) as resp:
+            result = await resp.json()
+            val = result.get("result")
+            if val and isinstance(val, str):
+                parsed = json.loads(val)
+                if isinstance(parsed, list):
+                    # Ensure each element is a dict (not double-encoded string)
+                    for item in parsed:
+                        if isinstance(item, dict):
+                            existing.append(item)
+                        elif isinstance(item, str):
+                            try:
+                                existing.append(json.loads(item))
+                            except Exception:
+                                pass
+    except Exception:
+        pass
+
+    # Append new candle, trim to max
+    existing.append(candle_dict)
+    if len(existing) > max_candles:
+        existing = existing[-max_candles:]
+
+    # Store as JSON string in Redis: single json.dumps, send with data= (not json=)
+    try:
+        async with http.post(
+            f"{REDIS_URL}/set/{redis_key}",
+            headers={"Authorization": f"Bearer {REDIS_TOKEN}",
+                     "Content-Type": "application/json"},
+            data=json.dumps(existing),
+            timeout=aiohttp.ClientTimeout(total=4.0)
+        ) as resp:
+            if resp.status != 200:
+                log.warning(f"Redis SET {redis_key} {resp.status}")
+    except Exception as e:
+        log.warning(f"Redis SET failed ({redis_key}): {e}")
+    log.info(f"Candle [{label}] saved: {c.c:.2f} Δ={c.buy-c.sell:.0f} total={len(existing)}")
 
 
 async def main():
@@ -527,13 +624,13 @@ async def main():
                     candles_list = hist.get("candles", [])
                     if candles_list:
                         log.info(f"Loading {len(candles_list)} historical candles → Redis...")
-                        await redis_post(http, f"del/{REDIS_CANDLES}", "")
+                        await redis_cmd(http, f"del/{REDIS_CANDLES}")
                         loaded = 0
                         for c in candles_list[:MAX_CANDLES]:
                             cj = json.dumps(c) if isinstance(c, dict) else str(c)
                             await redis_post_raw(http, f"rpush/{REDIS_CANDLES}", cj)
                             loaded += 1
-                        await redis_post(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}", "")
+                        await redis_cmd(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}")
                         log.info(f"History loaded: {loaded} candles from file → Redis OK")
                         loaded_from_file = True
                 else:
@@ -559,8 +656,10 @@ async def main():
     last_send = 0.0
     last_pattern_scan = 0.0
     PATTERN_SCAN_INTERVAL = 60  # seconds
-    candle = CandleBuilder()  # local candle for this session
-    footprint_seeded = False   # האם כבר טענו footprint מ-Sierra
+    candle = CandleBuilder()     # 3m candle for this session
+    # MTF candle builders: keyed by mtf_key (m5, m15, m30, m60)
+    mtf_candles = {cfg[0]: CandleBuilder() for cfg in MTF_CONFIG}
+    footprint_seeded = False     # האם כבר טענו footprint מ-Sierra
 
     async with aiohttp.ClientSession() as http:
         while True:
@@ -569,13 +668,19 @@ async def main():
                     raw = json.load(f)
 
                 age = time.time() - os.path.getmtime(SC_JSON_PATH)
-                if age > 30:
+                if age > STALE_THRESHOLD:
                     log.warning(f"Stale ({age:.0f}s)")
                     wall_ts   = int(time.time())
                     candle_ts = (wall_ts // CANDLE_INTERVAL) * CANDLE_INTERVAL
                     if candle.start_ts != 0 and candle_ts > candle.start_ts:
                         candle = CandleBuilder()
                         candle.start_ts = candle_ts
+                    for mtf_key, _, interval, _ in MTF_CONFIG:
+                        mc = mtf_candles[mtf_key]
+                        mts = (wall_ts // interval) * interval
+                        if mc.start_ts != 0 and mts > mc.start_ts:
+                            mtf_candles[mtf_key] = CandleBuilder()
+                            mtf_candles[mtf_key].start_ts = mts
                     await asyncio.sleep(1); continue
 
                 price = raw.get("current_price", 0)
@@ -620,7 +725,7 @@ async def main():
                                 await redis_post_raw(http, f"lpush/{REDIS_CANDLES}", cj)
                                 seeded += 1
                         if seeded:
-                            await redis_post(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}", "")
+                            await redis_cmd(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}")
                             log.info(f"Seeded {seeded} candles from Sierra footprint")
                         else:
                             log.info(f"Footprint: {len(fp_bars)} bars, all already in Redis")
@@ -657,11 +762,52 @@ async def main():
                     candle.sell = sell
                     candle.vol  = vol
 
+                # ── MTF Candle Building (5m/15m/30m/1H from Sierra native) ──
+                mtf_raw = raw.get("mtf", {})
+                for mtf_key, redis_key, interval, max_c in MTF_CONFIG:
+                    bar_data = mtf_raw.get(mtf_key, {})
+                    if not bar_data:
+                        continue
+                    if not all([bar_data.get('o'), bar_data.get('h'), bar_data.get('l'), bar_data.get('c')]):
+                        continue  # skip invalid candle (0 or None)
+                    mc = mtf_candles[mtf_key]
+                    mts = (wall_ts // interval) * interval
+                    b_o   = bar_data.get('o', price)
+                    b_h   = bar_data.get('h', price)
+                    b_l   = bar_data.get('l', price)
+                    b_buy = bar_data.get('buy', 0)
+                    b_sell= bar_data.get('sell', 0)
+                    b_vol = bar_data.get('vol', 0)
+
+                    if mc.start_ts == 0:
+                        mc.start_ts = mts
+                        mc.o = b_o; mc.h = b_h; mc.l = b_l; mc.c = price
+                        mc.buy = b_buy; mc.sell = b_sell; mc.vol = b_vol
+                    elif mts > mc.start_ts:
+                        if not all([mc.o, mc.h, mc.l, mc.c]):
+                            log.warning(f"Skipping invalid {mtf_key} candle: o={mc.o} h={mc.h} l={mc.l} c={mc.c}")
+                        else:
+                            label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
+                            await save_candle_mtf(http, mc, raw, redis_key, max_c, label)
+                        mtf_candles[mtf_key] = CandleBuilder()
+                        mc = mtf_candles[mtf_key]
+                        mc.start_ts = mts
+                        mc.o = b_o; mc.h = b_h; mc.l = b_l; mc.c = price
+                        mc.buy = b_buy; mc.sell = b_sell; mc.vol = b_vol
+                    else:
+                        mc.h = max(mc.h, b_h)
+                        mc.l = min(mc.l, b_l)
+                        mc.c = price
+                        mc.buy = b_buy; mc.sell = b_sell; mc.vol = b_vol
+
                 # ── Send to Redis ─────────────────────────────
                 now = time.time()
                 if now - last_send >= POST_INTERVAL:
                     payload = enrich(raw)
                     payload["current_candle"] = candle.to_dict()
+                    # Add current MTF candles to payload
+                    for mtf_key, _, _, _ in MTF_CONFIG:
+                        payload[f"current_candle_{mtf_key}"] = mtf_candles[mtf_key].to_dict_full()
                     payload["wall_ts"] = int(time.time())
                     await redis_post(http, f"set/{REDIS_KEY}", payload)
                     last_send = now
