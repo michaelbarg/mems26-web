@@ -687,11 +687,13 @@ export default function LightweightChart({
     lastCandlesFingerprintRef.current = fingerprint;
 
     const sorted = [...candles].reverse().filter(c => c.ts > 0);
+    console.log('LWC sorted[0]:', JSON.stringify(sorted[0]), 'sorted.last:', JSON.stringify(sorted[sorted.length-1]));
 
     const cData = sorted.map(c => ({
       time:  Math.floor(c.ts) as any,
       open:  c.o, high: c.h, low: c.l, close: c.c,
     }));
+    console.log('LWC cData[0]:', JSON.stringify(cData[0]), 'cData.last:', JSON.stringify(cData[cData.length-1]));
 
     // Add/update live bar
     if (liveBar) {
