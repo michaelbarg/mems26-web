@@ -676,6 +676,7 @@ export default function LightweightChart({
   // Update candles (only when candle data actually changes)
   useEffect(() => {
     console.log('LightweightChart useEffect fired, candles.length:', candles.length);
+    console.log('seriesRef:', !!seriesRef.current, 'candles:', candles.length);
     if (!seriesRef.current) return;
     if (candles.length === 0) return;
 
