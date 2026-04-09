@@ -597,6 +597,59 @@ async def save_candle_mtf(http, c: CandleBuilder, raw: dict,
     log.info(f"Candle [{label}] saved: {c.c:.2f} Δ={c.buy-c.sell:.0f} total={len(existing)}")
 
 
+def aggregate_candles(candles_3m: list, interval_sec: int, max_candles: int) -> list:
+    """Aggregate 3m candles into larger timeframe candles."""
+    if not candles_3m:
+        return []
+    # Sort old → new
+    sorted_c = sorted(candles_3m, key=lambda c: c.get("ts", 0))
+    buckets = {}
+    for c in sorted_c:
+        ts = c.get("ts", 0)
+        if ts <= 0:
+            continue
+        bucket_ts = (ts // interval_sec) * interval_sec
+        if bucket_ts not in buckets:
+            o = c.get("o", c.get("open", 0))
+            h = c.get("h", c.get("high", 0))
+            l = c.get("l", c.get("low", 999999))
+            buckets[bucket_ts] = {
+                "ts": bucket_ts,
+                "open": o, "high": h, "low": l,
+                "close": c.get("c", c.get("close", 0)),
+                "buy": c.get("buy", 0), "sell": c.get("sell", 0),
+                "vol": c.get("vol", 0),
+                "delta": c.get("delta", 0),
+                "cci14": c.get("cci14", 0), "cci6": c.get("cci6", 0),
+                "vwap": c.get("vwap", 0), "phase": c.get("phase", ""),
+                "above_vwap": c.get("above_vwap", False),
+                "liq_sweep_long": False, "liq_sweep_short": False,
+            }
+        else:
+            b = buckets[bucket_ts]
+            h = c.get("h", c.get("high", 0))
+            l = c.get("l", c.get("low", 999999))
+            b["high"] = max(b["high"], h)
+            b["low"] = min(b["low"], l)
+            b["close"] = c.get("c", c.get("close", 0))
+            b["buy"] = c.get("buy", b["buy"])
+            b["sell"] = c.get("sell", b["sell"])
+            b["vol"] = c.get("vol", b["vol"])
+            b["delta"] = b["buy"] - b["sell"]
+            b["cci14"] = c.get("cci14", b["cci14"])
+            b["cci6"] = c.get("cci6", b["cci6"])
+            b["vwap"] = c.get("vwap", b["vwap"])
+            b["phase"] = c.get("phase", b["phase"])
+            b["above_vwap"] = c.get("above_vwap", b["above_vwap"])
+            if c.get("liq_sweep_long"): b["liq_sweep_long"] = True
+            if c.get("liq_sweep_short"): b["liq_sweep_short"] = True
+
+    result = sorted(buckets.values(), key=lambda c: c["ts"])
+    # Filter out candles with invalid OHLC
+    result = [c for c in result if all([c["open"], c["high"], c["low"], c["close"]])]
+    return result[-max_candles:]
+
+
 async def main():
     if not REDIS_URL or not REDIS_TOKEN:
         log.error("Missing UPSTASH credentials"); return
@@ -633,11 +686,32 @@ async def main():
                         await redis_cmd(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}")
                         log.info(f"History loaded: {loaded} candles from file → Redis OK")
                         loaded_from_file = True
+
+                        # ── Seed MTF candles from 3m history ──
+                        for mtf_key, redis_key, interval, max_c in MTF_CONFIG:
+                            label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
+                            agg = aggregate_candles(candles_list, interval, max_c)
+                            if agg:
+                                serialized = json.dumps(agg)
+                                try:
+                                    async with http.post(
+                                        f"{REDIS_URL}/set/{redis_key}",
+                                        headers={"Authorization": f"Bearer {REDIS_TOKEN}",
+                                                 "Content-Type": "application/json"},
+                                        data=serialized,
+                                        timeout=aiohttp.ClientTimeout(total=4.0)
+                                    ) as resp:
+                                        if resp.status == 200:
+                                            log.info(f"MTF [{label}] seeded: {len(agg)} candles → Redis")
+                                        else:
+                                            log.warning(f"MTF [{label}] seed failed: {resp.status}")
+                                except Exception as e:
+                                    log.warning(f"MTF [{label}] seed error: {e}")
                 else:
                     log.info(f"History file too old ({age_h/3600:.1f}h), keeping existing Redis candles")
 
             if not loaded_from_file:
-                # בדוק כמה נרות כבר ב-Redis
+                # בדוק כמה נרות כבר ב-Redis ובנה MTF מהם
                 try:
                     async with http.get(
                         f"{REDIS_URL}/llen/{REDIS_CANDLES}",
@@ -647,6 +721,40 @@ async def main():
                         result = await resp.json()
                         existing = result.get("result", 0)
                         log.info(f"Redis has {existing} existing candles — will append new ones")
+
+                    # Seed MTF from existing 3m candles in Redis
+                    if existing and int(existing) > 10:
+                        async with http.get(
+                            f"{REDIS_URL}/lrange/{REDIS_CANDLES}/0/{MAX_CANDLES-1}",
+                            headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                            timeout=aiohttp.ClientTimeout(total=5.0)
+                        ) as resp:
+                            result = await resp.json()
+                            items = result.get("result", [])
+                            redis_candles = []
+                            for item in items:
+                                c = item
+                                while isinstance(c, str):
+                                    c = json.loads(c)
+                                if isinstance(c, dict) and c.get("ts", 0) > 0:
+                                    redis_candles.append(c)
+                            if redis_candles:
+                                for mtf_key, redis_key, interval, max_c in MTF_CONFIG:
+                                    label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
+                                    agg = aggregate_candles(redis_candles, interval, max_c)
+                                    if agg:
+                                        try:
+                                            async with http.post(
+                                                f"{REDIS_URL}/set/{redis_key}",
+                                                headers={"Authorization": f"Bearer {REDIS_TOKEN}",
+                                                         "Content-Type": "application/json"},
+                                                data=json.dumps(agg),
+                                                timeout=aiohttp.ClientTimeout(total=4.0)
+                                            ) as resp2:
+                                                if resp2.status == 200:
+                                                    log.info(f"MTF [{label}] seeded from Redis 3m: {len(agg)} candles")
+                                        except Exception as e:
+                                            log.warning(f"MTF [{label}] seed error: {e}")
                 except Exception:
                     log.info("Could not check Redis candle count — will append new ones")
 

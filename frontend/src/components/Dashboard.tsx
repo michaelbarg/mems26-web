@@ -3111,20 +3111,19 @@ export default function Dashboard() {
       // flatten — מטפל ב-nested arrays וב-strings
       const flat:Candle[]=[];
       for(const item of raw){
+        const normalize=(c:any)=>{
+          if(c?.open!==undefined && c?.o===undefined){
+            c.o=c.open; c.h=c.high; c.l=c.low; c.c=c.close;
+          }
+        };
         if(Array.isArray(item)){
           for(const sub of item){
-            try{const c=typeof sub==='string'?JSON.parse(sub):sub;if(c?.ts>0)flat.push(c);}catch{}
+            try{const c=typeof sub==='string'?JSON.parse(sub):sub;if(c?.ts>0){normalize(c);flat.push(c);}}catch{}
           }
         } else {
           try{
             const c=typeof item==='string'?JSON.parse(item):item;
-            if(c?.ts>0){
-              // Normalize full field names (5m/15m/1h) to short names (o/h/l/c)
-              if(c.open!==undefined && c.o===undefined){
-                c.o=c.open; c.h=c.high; c.l=c.low; c.c=c.close;
-              }
-              flat.push(c);
-            }
+            if(c?.ts>0){normalize(c);flat.push(c);}
           }catch{}
         }
       }
