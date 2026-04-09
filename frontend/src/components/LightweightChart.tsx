@@ -680,6 +680,7 @@ export default function LightweightChart({
 
     // Check if candles actually changed (by length + last candle ts)
     const fingerprint = `${candles.length}-${candles[0]?.ts}-${candles[candles.length-1]?.ts}`;
+    console.log('fingerprint old:', lastCandlesFingerprintRef.current, 'new:', fingerprint, 'skip:', fingerprint === lastCandlesFingerprintRef.current);
     if (fingerprint === lastCandlesFingerprintRef.current) return;
     lastCandlesFingerprintRef.current = fingerprint;
 
