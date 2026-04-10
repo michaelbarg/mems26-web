@@ -35,6 +35,8 @@ LABELS = {
     "LSR":      "שבירה וחזרה",
     "RETEST":   "בדיקת רמה",
     "BASE":     "צבירה",
+    "MSS":      "שבירת מבנה שוק",
+    "FVG":      "פער שוויי הוגן",
 }
 
 # ─── Helpers ──────────────────────────────────────────
@@ -680,6 +682,118 @@ def detect_sweep_return(candles: list) -> Optional[PatternResult]:
 
     return best
 
+# ─── Market Structure Shift ───────────────────────────
+
+def detect_mss(candles: list) -> Optional[PatternResult]:
+    """Market Structure Shift — שבירת swing עם volume confirmation."""
+    if len(candles) < 10:
+        return None
+
+    LOOKBACK = 5
+    avg_v = avg_vol(candles, max(0, len(candles)-30), len(candles))
+
+    # סרוק מהסוף אחורה
+    for i in range(len(candles)-1, LOOKBACK, -1):
+        candle = candles[i]
+        rel_v = (candle.get('vol', 0) or 0) / avg_v if avg_v > 0 else 0
+        if rel_v < 1.2:
+            continue
+
+        window = candles[i-LOOKBACK:i]
+        swing_high = max(_hi(c) for c in window)
+        swing_low  = min(_lo(c) for c in window)
+        close = _cl(candle)
+
+        # MSS שורט — שבירת swing low
+        if close < swing_low and _lo(candle) < swing_low:
+            stop  = _hi(candle) + 0.5
+            risk  = stop - close
+            if risk <= 0: continue
+            return PatternResult(
+                pattern='MSS', direction='SHORT',
+                start_ts=_ts(candles[i-LOOKBACK]), end_ts=_ts(candle),
+                entry=close, stop=stop,
+                t1=round(close - risk * 1.5, 2),
+                t2=round(close - risk * 3.0, 2),
+                neckline=swing_low,
+                confidence=min(95, 60 + int(rel_v * 10)),
+                label='MSS שורט'
+            )
+
+        # MSS לונג — שבירת swing high
+        if close > swing_high and _hi(candle) > swing_high:
+            stop  = _lo(candle) - 0.5
+            risk  = close - stop
+            if risk <= 0: continue
+            return PatternResult(
+                pattern='MSS', direction='LONG',
+                start_ts=_ts(candles[i-LOOKBACK]), end_ts=_ts(candle),
+                entry=close, stop=stop,
+                t1=round(close + risk * 1.5, 2),
+                t2=round(close + risk * 3.0, 2),
+                neckline=swing_high,
+                confidence=min(95, 60 + int(rel_v * 10)),
+                label='MSS לונג'
+            )
+
+    return None
+
+
+# ─── Fair Value Gap ──────────────────────────────────
+
+def detect_fvg(candles: list) -> Optional[PatternResult]:
+    """Fair Value Gap — imbalance בין נרות סמוכים."""
+    if len(candles) < 3:
+        return None
+
+    MIN_GAP = 0.5
+    MAX_GAP = 4.0
+
+    for i in range(len(candles)-1, 1, -1):
+        prev  = candles[i-2]
+        mid   = candles[i-1]
+        curr  = candles[i]
+
+        # FVG ירידה (bearish): high של prev < low של curr
+        gap_bear = _lo(curr) - _hi(prev)
+        if MIN_GAP <= gap_bear <= MAX_GAP:
+            mid_close = _cl(mid)
+            stop  = _hi(curr) + 0.5
+            risk  = stop - _lo(curr)
+            if risk <= 0: continue
+            return PatternResult(
+                pattern='FVG', direction='SHORT',
+                start_ts=_ts(prev), end_ts=_ts(curr),
+                entry=_lo(curr),
+                stop=stop,
+                t1=round(_lo(curr) - risk * 1.5, 2),
+                t2=round(_lo(curr) - risk * 3.0, 2),
+                neckline=_hi(prev),
+                confidence=75,
+                label=f'FVG שורט {gap_bear:.2f}pt'
+            )
+
+        # FVG עלייה (bullish): low של prev > high של curr
+        gap_bull = _lo(prev) - _hi(curr)
+        if MIN_GAP <= gap_bull <= MAX_GAP:
+            stop  = _lo(curr) - 0.5
+            risk  = _hi(curr) - stop
+            if risk <= 0: continue
+            return PatternResult(
+                pattern='FVG', direction='LONG',
+                start_ts=_ts(curr), end_ts=_ts(prev),
+                entry=_hi(curr),
+                stop=stop,
+                t1=round(_hi(curr) + risk * 1.5, 2),
+                t2=round(_hi(curr) + risk * 3.0, 2),
+                neckline=_lo(prev),
+                confidence=75,
+                label=f'FVG לונג {gap_bull:.2f}pt'
+            )
+
+    return None
+
+
 # ─── Main scanner ─────────────────────────────────────
 
 def scan_patterns(candles: list) -> list[dict]:
@@ -695,6 +809,8 @@ def scan_patterns(candles: list) -> list[dict]:
         detect_retest,
         detect_sweep_return,
         detect_base,
+        detect_mss,
+        detect_fvg,
     ]
 
     for w in windows:
