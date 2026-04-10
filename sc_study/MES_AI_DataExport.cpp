@@ -270,21 +270,27 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     bool bull_engulf=(idx>=1)&&(sc.Close[idx]>sc.Open[idx-1])&&(sc.Open[idx]<sc.Close[idx-1])&&(sc.Close[idx-1]<sc.Open[idx-1]);
     bool bear_engulf=(idx>=1)&&(sc.Close[idx]<sc.Open[idx-1])&&(sc.Open[idx]>sc.Close[idx-1])&&(sc.Close[idx-1]>sc.Open[idx-1]);
 
-    // ── MTF (כולל m5 חדש) ─────────────────────────────────────
-    struct MTFBar{float o,h,l,c,vol,buy,sell,delta_v;};
-    auto calcBar=[&](int n)->MTFBar{
-        MTFBar b={0,0,999999,0,0,0,0,0};
-        int end=(idx-n+1>=0)?(idx-n+1):0;
-        b.o=sc.Open[end];b.c=sc.Close[idx];b.h=sc.High[end];b.l=sc.Low[end];
-        for(int i=end;i<=idx;i++){
+    // ── MTF — מיושר לגבולות זמן אמיתיים ──────────────────────
+    struct MTFBar{float o,h,l,c,vol,buy,sell,delta_v; long long bar_ts;};
+    auto calcBarAligned=[&](int interval_sec)->MTFBar{
+        MTFBar b={0,0,999999,0,0,0,0,0,0};
+        long long now_ts = ToUnixTime(sc.BaseDateTimeIn[idx]);
+        long long bar_start = (now_ts / interval_sec) * interval_sec;
+        b.bar_ts = bar_start;
+        b.c = sc.Close[idx];
+        bool first = true;
+        for(int i=idx;i>=0;i--){
+            long long bts = ToUnixTime(sc.BaseDateTimeIn[i]);
+            if(bts < bar_start) break;
+            b.o = sc.Open[i];
+            if(first){b.h=sc.High[i];b.l=sc.Low[i];first=false;}
             if(sc.High[i]>b.h)b.h=sc.High[i];
             if(sc.Low[i]<b.l)b.l=sc.Low[i];
             b.vol+=sc.Volume[i];b.buy+=sc.AskVolume[i];b.sell+=sc.BidVolume[i];
         }
         b.delta_v=b.buy-b.sell;return b;
     };
-    // m5 = 2 ברים (2×3min=6min — קירוב ל-5min; bar chart = 3min)
-    MTFBar m3=calcBar(1),m5=calcBar(2),m15=calcBar(5),m30=calcBar(10),m60=calcBar(20);
+    MTFBar m3=calcBarAligned(180),m5=calcBarAligned(300),m15=calcBarAligned(900),m30=calcBarAligned(1800),m60=calcBarAligned(3600);
 
     // ── Footprint — נרות אחרונים (bar-level) ──────────────────
     std::ostringstream fp_j;
@@ -392,11 +398,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     for(int i=0;i<imb_count;i++){if(i>0)j<<",";j<<"{\"price\":"<<imbalances[i].price<<",\"buy\":"<<imbalances[i].buy_vol<<",\"sell\":"<<imbalances[i].sell_vol<<",\"ratio\":"<<imbalances[i].ratio<<"}";}
     j<<"]}"
      <<",\"mtf\":{"
-        <<"\"m3\":{\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
-        <<",\"m5\":{\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"
-        <<",\"m15\":{\"o\":"<<m15.o<<",\"h\":"<<m15.h<<",\"l\":"<<m15.l<<",\"c\":"<<m15.c<<",\"vol\":"<<m15.vol<<",\"buy\":"<<m15.buy<<",\"sell\":"<<m15.sell<<",\"delta\":"<<m15.delta_v<<"}"
-        <<",\"m30\":{\"o\":"<<m30.o<<",\"h\":"<<m30.h<<",\"l\":"<<m30.l<<",\"c\":"<<m30.c<<",\"vol\":"<<m30.vol<<",\"buy\":"<<m30.buy<<",\"sell\":"<<m30.sell<<",\"delta\":"<<m30.delta_v<<"}"
-        <<",\"m60\":{\"o\":"<<m60.o<<",\"h\":"<<m60.h<<",\"l\":"<<m60.l<<",\"c\":"<<m60.c<<",\"vol\":"<<m60.vol<<",\"buy\":"<<m60.buy<<",\"sell\":"<<m60.sell<<",\"delta\":"<<m60.delta_v<<"}}"
+        <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
+        <<",\"m5\":{\"ts\":"<<m5.bar_ts<<",\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"
+        <<",\"m15\":{\"ts\":"<<m15.bar_ts<<",\"o\":"<<m15.o<<",\"h\":"<<m15.h<<",\"l\":"<<m15.l<<",\"c\":"<<m15.c<<",\"vol\":"<<m15.vol<<",\"buy\":"<<m15.buy<<",\"sell\":"<<m15.sell<<",\"delta\":"<<m15.delta_v<<"}"
+        <<",\"m30\":{\"ts\":"<<m30.bar_ts<<",\"o\":"<<m30.o<<",\"h\":"<<m30.h<<",\"l\":"<<m30.l<<",\"c\":"<<m30.c<<",\"vol\":"<<m30.vol<<",\"buy\":"<<m30.buy<<",\"sell\":"<<m30.sell<<",\"delta\":"<<m30.delta_v<<"}"
+        <<",\"m60\":{\"ts\":"<<m60.bar_ts<<",\"o\":"<<m60.o<<",\"h\":"<<m60.h<<",\"l\":"<<m60.l<<",\"c\":"<<m60.c<<",\"vol\":"<<m60.vol<<",\"buy\":"<<m60.buy<<",\"sell\":"<<m60.sell<<",\"delta\":"<<m60.delta_v<<"}}"
      <<",\"footprint\":"<<fp_j.str()
      <<",\"order_fills\":"<<fills_j.str()
      <<"}\n";
