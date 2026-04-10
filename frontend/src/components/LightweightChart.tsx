@@ -683,7 +683,7 @@ export default function LightweightChart({
     if (fingerprint === lastCandlesFingerprintRef.current) return;
     lastCandlesFingerprintRef.current = fingerprint;
 
-    const sorted = [...candles].reverse().filter(c => c.ts > 0);
+    const sorted = [...candles].reverse().filter(c => c.ts > 1577836800);
 
     const cData = sorted.map(c => ({
       time:  Math.floor(c.ts) as any,
@@ -803,7 +803,7 @@ export default function LightweightChart({
   useEffect(() => {
     if (!seriesRef.current || !liveBar) return;
     const liveTs = Math.floor(liveBar.ts);
-    if (!liveTs || liveTs <= 0 || !isFinite(liveTs)) return;
+    if (!liveTs || liveTs < 1577836800 || !isFinite(liveTs)) return;
     const price = livePrice ?? liveBar.c;
     try {
       seriesRef.current.update({
