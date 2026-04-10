@@ -788,7 +788,7 @@ async def main():
                         candle.start_ts = candle_ts
                     for mtf_key, _, interval, _ in MTF_CONFIG:
                         mc = mtf_candles[mtf_key]
-                        mts = bar_data.get('ts') or (wall_ts // interval) * interval
+                        mts = (wall_ts // interval) * interval
                         if mc.start_ts != 0 and mts > mc.start_ts:
                             mtf_candles[mtf_key] = CandleBuilder()
                             mtf_candles[mtf_key].start_ts = mts
