@@ -8,7 +8,7 @@ import json, asyncio, aiohttp, os, logging, time
 from datetime import datetime
 from dataclasses import dataclass
 from dotenv import load_dotenv
-from pattern_scanner import scan_patterns
+from pattern_scanner import scan_patterns, is_in_killzone
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -977,6 +977,8 @@ async def main():
                 # ── Pattern scan כל 60 שניות ────────────────
                 if now - last_pattern_scan > PATTERN_SCAN_INTERVAL:
                     try:
+                        # Fetch 3m candles
+                        all_candles = []
                         async with http.get(
                             f"{REDIS_URL}/lrange/{REDIS_CANDLES}/0/{MAX_CANDLES-1}",
                             headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
@@ -984,18 +986,54 @@ async def main():
                         ) as resp:
                             result = await resp.json()
                             items = result.get("result", [])
-                            all_candles = []
                             for item in items:
                                 c = item
                                 while isinstance(c, str):
                                     c = json.loads(c)
                                 if isinstance(c, dict):
                                     all_candles.append(c)
-                            if all_candles:
-                                patterns = scan_patterns(all_candles)
-                                await redis_post(http, f"set/{REDIS_PATTERNS}", json.dumps(patterns))
-                                if patterns:
-                                    log.info(f"[Pattern] {len(patterns)} detected: {[p['pattern'] for p in patterns]}")
+
+                        # Fetch 5m candles for V3 Liquidity Sweep chain
+                        candles_5m = []
+                        try:
+                            async with http.get(
+                                f"{REDIS_URL}/lrange/mems26:candles:5m/0/287",
+                                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                                timeout=aiohttp.ClientTimeout(total=5.0)
+                            ) as resp5:
+                                result5 = await resp5.json()
+                                for item in result5.get("result", []):
+                                    c = item
+                                    while isinstance(c, str):
+                                        c = json.loads(c)
+                                    if isinstance(c, dict):
+                                        candles_5m.append(c)
+                        except Exception:
+                            pass
+
+                        # Build levels dict from latest payload
+                        scan_levels = {}
+                        try:
+                            scan_levels.update(payload.get("levels", {}))
+                            scan_levels["ibh"] = payload.get("session", {}).get("ibh", 0)
+                            scan_levels["ibl"] = payload.get("session", {}).get("ibl", 0)
+                            scan_levels["vwap"] = payload.get("vwap", {}).get("current", 0) if isinstance(payload.get("vwap"), dict) else 0
+                            scan_levels["poc"] = payload.get("profile", {}).get("poc", 0)
+                            scan_levels["vah"] = payload.get("profile", {}).get("vah", 0)
+                            scan_levels["val"] = payload.get("profile", {}).get("val", 0)
+                        except Exception:
+                            pass
+
+                        if all_candles:
+                            patterns = scan_patterns(
+                                all_candles,
+                                candles_5m=candles_5m or None,
+                                levels=scan_levels or None,
+                                day_type=day_type,
+                            )
+                            await redis_post(http, f"set/{REDIS_PATTERNS}", json.dumps(patterns))
+                            if patterns:
+                                log.info(f"[Pattern] {len(patterns)} detected: {[p['pattern'] for p in patterns]}")
                         last_pattern_scan = now
                     except Exception as e:
                         log.warning(f"[Pattern Error] {e}")

@@ -3,9 +3,12 @@ Pattern Scanner — identifies classic chart patterns on 960 × 3min candles.
 Called from json_bridge.py every 60 seconds.
 
 Candle format: {ts, o, h, l, c, buy, sell, vol, delta, ...}
+
+V3: Liquidity Sweep chain (Sweep → MSS → FVG) on 5m candles with levels.
 """
 
 import time as time_module
+from datetime import datetime, timezone
 from dataclasses import dataclass, asdict, field
 from typing import Optional
 
@@ -794,10 +797,258 @@ def detect_fvg(candles: list) -> Optional[PatternResult]:
     return None
 
 
+# ─── Killzone Filter (A6) ─────────────────────────────
+
+KILLZONES = [
+    ("London",   7 * 60,       10 * 60),       # 07:00-10:00 UTC
+    ("NY_Open",  13 * 60 + 30, 15 * 60),       # 13:30-15:00 UTC
+    ("NY_Close", 18 * 60 + 30, 21 * 60),       # 18:30-21:00 UTC
+]
+
+def is_in_killzone(ts: int = 0) -> dict:
+    """Check if timestamp (or now) falls within a Killzone. Returns dict with status."""
+    utc = datetime.fromtimestamp(ts, tz=timezone.utc) if ts else datetime.now(timezone.utc)
+    minutes = utc.hour * 60 + utc.minute
+
+    for name, start, end in KILLZONES:
+        if start <= minutes <= end:
+            remaining = end - minutes
+            return {"in_killzone": True, "zone": name, "minutes_left": remaining, "minutes_to_next": 0}
+
+    # Calculate minutes to next killzone
+    best = 99999
+    best_name = ""
+    for name, start, end in KILLZONES:
+        diff = start - minutes
+        if diff < 0:
+            diff += 24 * 60
+        if diff < best:
+            best = diff
+            best_name = name
+    return {"in_killzone": False, "zone": "", "minutes_left": 0, "minutes_to_next": best, "next_zone": best_name}
+
+
+# ─── Liquidity Sweep Chain: Sweep → MSS → FVG ────────
+
+BLOCKED_DAYTYPES = {"NON_TREND", "ROTATIONAL", "NEUTRAL"}
+
+def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "") -> Optional[dict]:
+    """
+    V3 Liquidity Sweep — chained detection on 5m candles.
+    Returns full setup dict or None.
+
+    Chain: 1.Sweep (wick>=1.5pt past level, close back)
+           2.MSS (swing break within 5 bars after sweep, rel_vol>1.2)
+           3.FVG (0.5-4pt gap within 10 bars after MSS)
+    """
+    if len(candles_5m) < 12:
+        return None
+
+    # DayType filter
+    if day_type.upper() in BLOCKED_DAYTYPES:
+        return None
+
+    # Killzone filter
+    kz = is_in_killzone()
+    if not kz["in_killzone"]:
+        return None
+
+    # Build level list: (name, price)
+    level_list = []
+    level_map = {
+        "PDH": levels.get("prev_high", 0),
+        "PDL": levels.get("prev_low", 0),
+        "ONH": levels.get("overnight_high", 0),
+        "ONL": levels.get("overnight_low", 0),
+        "DO":  levels.get("daily_open", 0),
+    }
+    # Session levels from separate dict if provided
+    for k, v in level_map.items():
+        if v and v > 0:
+            level_list.append((k, v))
+
+    # Also accept IBH/IBL/VWAP etc from session/profile
+    for extra_key in ["ibh", "ibl", "vwap", "poc", "vah", "val"]:
+        val = levels.get(extra_key, 0)
+        if val and val > 0:
+            level_list.append((extra_key.upper(), val))
+
+    if not level_list:
+        return None
+
+    avg_v = avg_vol(candles_5m, max(0, len(candles_5m) - 30), len(candles_5m))
+
+    # ── Step 1: Find Sweep on 5m ──
+    for sweep_idx in range(len(candles_5m) - 1, 5, -1):
+        candle = candles_5m[sweep_idx]
+        hi = _hi(candle)
+        lo = _lo(candle)
+        cl = _cl(candle)
+        op = candle.get("o", candle.get("open", 0))
+
+        for level_name, level_price in level_list:
+            # SHORT sweep: wick above level >= 1.5pt, close below level
+            wick_above = hi - level_price
+            if wick_above >= 1.5 and cl < level_price:
+                # Body did not close above = rejection
+                mss = _find_mss_after_sweep(candles_5m, sweep_idx, "SHORT", avg_v)
+                if not mss:
+                    continue
+                fvg = _find_fvg_after_mss(candles_5m, mss["idx"], "SHORT")
+                if not fvg:
+                    continue
+                stop = hi + 0.5
+                risk = stop - fvg["entry"]
+                if risk <= 0 or risk > 8:
+                    continue
+                t1 = round(fvg["entry"] - max(risk * 1.5, 10), 2)
+                t2 = round(fvg["entry"] - risk * 3, 2)
+                conf = _calc_sweep_confidence(candle, avg_v, mss, fvg, kz)
+                return {
+                    "pattern": "LIQ_SWEEP", "direction": "SHORT",
+                    "level_name": level_name, "level_price": level_price,
+                    "sweep_ts": _ts(candle), "sweep_wick": round(wick_above, 2),
+                    "mss_ts": mss["ts"], "mss_level": mss["level"], "mss_rel_vol": round(mss["rel_vol"], 2),
+                    "fvg_high": fvg["high"], "fvg_low": fvg["low"],
+                    "entry": fvg["entry"], "stop": stop,
+                    "t1": t1, "t2": t2, "t3": 0,
+                    "risk_pts": round(risk, 2),
+                    "killzone": kz["zone"],
+                    "day_type": day_type,
+                    "confidence": conf,
+                    "label": f"Sweep {level_name} {level_price:.1f} → MSS → FVG",
+                    "start_ts": _ts(candle), "end_ts": fvg["ts"],
+                }
+
+            # LONG sweep: wick below level >= 1.5pt, close above level
+            wick_below = level_price - lo
+            if wick_below >= 1.5 and cl > level_price:
+                mss = _find_mss_after_sweep(candles_5m, sweep_idx, "LONG", avg_v)
+                if not mss:
+                    continue
+                fvg = _find_fvg_after_mss(candles_5m, mss["idx"], "LONG")
+                if not fvg:
+                    continue
+                stop = lo - 0.5
+                risk = fvg["entry"] - stop
+                if risk <= 0 or risk > 8:
+                    continue
+                t1 = round(fvg["entry"] + max(risk * 1.5, 10), 2)
+                t2 = round(fvg["entry"] + risk * 3, 2)
+                conf = _calc_sweep_confidence(candle, avg_v, mss, fvg, kz)
+                return {
+                    "pattern": "LIQ_SWEEP", "direction": "LONG",
+                    "level_name": level_name, "level_price": level_price,
+                    "sweep_ts": _ts(candle), "sweep_wick": round(wick_below, 2),
+                    "mss_ts": mss["ts"], "mss_level": mss["level"], "mss_rel_vol": round(mss["rel_vol"], 2),
+                    "fvg_high": fvg["high"], "fvg_low": fvg["low"],
+                    "entry": fvg["entry"], "stop": stop,
+                    "t1": t1, "t2": t2, "t3": 0,
+                    "risk_pts": round(risk, 2),
+                    "killzone": kz["zone"],
+                    "day_type": day_type,
+                    "confidence": conf,
+                    "label": f"Sweep {level_name} {level_price:.1f} → MSS → FVG",
+                    "start_ts": _ts(candle), "end_ts": fvg["ts"],
+                }
+
+    return None
+
+
+def _find_mss_after_sweep(candles: list, sweep_idx: int, direction: str, avg_v: float) -> Optional[dict]:
+    """Find MSS within 5 bars after sweep. Swing = 5 bars before sweep."""
+    SWING_LB = 5
+    start = max(0, sweep_idx - SWING_LB)
+    window = candles[start:sweep_idx]
+    if not window:
+        return None
+
+    if direction == "SHORT":
+        swing_low = min(_lo(c) for c in window)
+        for i in range(sweep_idx + 1, min(sweep_idx + 6, len(candles))):
+            c = candles[i]
+            rel_v = ((c.get("vol", 0) or 0) / avg_v) if avg_v > 0 else 0
+            if _cl(c) < swing_low and rel_v > 1.2:
+                return {"idx": i, "ts": _ts(c), "level": swing_low, "rel_vol": rel_v}
+    else:
+        swing_high = max(_hi(c) for c in window)
+        for i in range(sweep_idx + 1, min(sweep_idx + 6, len(candles))):
+            c = candles[i]
+            rel_v = ((c.get("vol", 0) or 0) / avg_v) if avg_v > 0 else 0
+            if _cl(c) > swing_high and rel_v > 1.2:
+                return {"idx": i, "ts": _ts(c), "level": swing_high, "rel_vol": rel_v}
+    return None
+
+
+def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str) -> Optional[dict]:
+    """Find FVG within 10 bars after MSS. Gap between candle[i-2].high and candle[i].low."""
+    FVG_MIN, FVG_MAX, FVG_MAX_AGE = 0.5, 4.0, 10
+    for i in range(mss_idx, min(mss_idx + FVG_MAX_AGE, len(candles))):
+        if i < 2:
+            continue
+        prev2 = candles[i - 2]
+        curr  = candles[i]
+        if direction == "LONG":
+            gap = _lo(curr) - _hi(prev2)
+            if FVG_MIN <= gap <= FVG_MAX:
+                entry = round(_hi(prev2) + gap / 2, 2)
+                return {"high": _lo(curr), "low": _hi(prev2), "entry": entry, "ts": _ts(curr)}
+        else:
+            gap = _lo(prev2) - _hi(curr)
+            if FVG_MIN <= gap <= FVG_MAX:
+                entry = round(_hi(curr) + gap / 2, 2)
+                return {"high": _lo(prev2), "low": _hi(curr), "entry": entry, "ts": _ts(curr)}
+    return None
+
+
+def _calc_sweep_confidence(sweep_candle: dict, avg_v: float, mss: dict, fvg: dict, kz: dict) -> int:
+    """Calculate confidence score for the full Sweep→MSS→FVG chain."""
+    score = 50  # base
+
+    # Wick quality
+    bar_range = _hi(sweep_candle) - _lo(sweep_candle)
+    body = abs(_cl(sweep_candle) - sweep_candle.get("o", _cl(sweep_candle)))
+    if bar_range > 0:
+        wick_ratio = (bar_range - body) / bar_range
+        if wick_ratio >= 0.6: score += 10
+        if wick_ratio >= 0.75: score += 5
+
+    # MSS volume
+    if mss["rel_vol"] >= 1.5: score += 10
+    elif mss["rel_vol"] >= 1.2: score += 5
+
+    # FVG size (sweet spot 1-2.5pt)
+    fvg_size = abs(fvg["high"] - fvg["low"])
+    if 1.0 <= fvg_size <= 2.5: score += 10
+    elif fvg_size < 1.0: score += 5
+
+    # Killzone bonus
+    if kz.get("zone") == "NY_Open": score += 5
+    elif kz.get("zone") == "London": score += 3
+
+    # Delta confirmation
+    delta = sweep_candle.get("delta", 0)
+    if delta < -50: score += 5  # bearish sweep confirmation
+    elif delta > 50: score += 5  # bullish sweep confirmation
+
+    return min(score, 95)
+
+
 # ─── Main scanner ─────────────────────────────────────
 
-def scan_patterns(candles: list) -> list[dict]:
+def scan_patterns(candles: list, candles_5m: list = None, levels: dict = None, day_type: str = "") -> list[dict]:
     results  = []
+
+    # ── V3: Liquidity Sweep chain on 5m ──
+    if candles_5m and levels:
+        try:
+            liq = detect_liquidity_sweep(candles_5m, levels, day_type)
+            if liq and liq.get("confidence", 0) >= 60:
+                results.append(liq)
+        except Exception:
+            pass
+
+    # ── Classic pattern detectors on 3m ──
     windows  = [20, 60, 120, 240, 480, 960]
     detectors = [
         detect_hs,
@@ -823,24 +1074,28 @@ def scan_patterns(candles: list) -> list[dict]:
             except Exception:
                 pass
 
-    results.sort(key=lambda x: x["confidence"], reverse=True)
+    results.sort(key=lambda x: x.get("confidence", 0), reverse=True)
     seen, unique = set(), []
     for r in results:
-        if r["pattern"] not in seen:
-            seen.add(r["pattern"])
+        pat = r.get("pattern", "")
+        if pat not in seen:
+            seen.add(pat)
             unique.append(r)
 
     now_ts        = int(time_module.time())
     MAX_AGE_SEC   = 90 * 60
     current_price = _cl(candles[-1]) if candles else 0
 
-    time_filtered = [r for r in unique if now_ts - r["end_ts"] <= MAX_AGE_SEC]
+    time_filtered = [r for r in unique if now_ts - r.get("end_ts", 0) <= MAX_AGE_SEC]
 
     def is_actionable(r: dict) -> bool:
-        entry     = r["entry"]
-        stop      = r["stop"]
-        neckline  = r["neckline"]
-        direction = r["direction"]
+        # LIQ_SWEEP has its own validation (killzone+daytype already checked)
+        if r.get("pattern") == "LIQ_SWEEP":
+            return True
+        entry     = r.get("entry", 0)
+        stop      = r.get("stop", 0)
+        neckline  = r.get("neckline", 0)
+        direction = r.get("direction", "")
         price     = current_price
         if direction == "LONG":
             return abs(price - neckline) <= 8 and price <= entry + 5 and price >= stop
@@ -848,4 +1103,4 @@ def scan_patterns(candles: list) -> list[dict]:
             return abs(price - neckline) <= 8 and price >= entry - 5 and price <= stop
 
     actionable = [r for r in time_filtered if is_actionable(r)]
-    return actionable[:3]
+    return actionable[:5]
