@@ -577,7 +577,10 @@ async def save_candle_mtf(http, c: CandleBuilder, raw: dict,
         pass
 
     # Append new candle, trim to max
-    existing.append(candle_dict)
+    if existing and existing[-1].get('ts') == candle_dict.get('ts'):
+        existing[-1] = candle_dict
+    else:
+        existing.append(candle_dict)
     if len(existing) > max_candles:
         existing = existing[-max_candles:]
 
@@ -632,9 +635,9 @@ def aggregate_candles(candles_3m: list, interval_sec: int, max_candles: int) -> 
             b["high"] = max(b["high"], h)
             b["low"] = min(b["low"], l)
             b["close"] = c.get("c", c.get("close", 0))
-            b["buy"] = c.get("buy", b["buy"])
-            b["sell"] = c.get("sell", b["sell"])
-            b["vol"] = c.get("vol", b["vol"])
+            b["buy"]  += c.get("buy",  0)
+            b["sell"] += c.get("sell", 0)
+            b["vol"]  += c.get("vol",  0)
             b["delta"] = b["buy"] - b["sell"]
             b["cci14"] = c.get("cci14", b["cci14"])
             b["cci6"] = c.get("cci6", b["cci6"])

@@ -3131,7 +3131,6 @@ export default function Dashboard() {
       flat.sort((a,b)=>b.ts-a.ts);
       const seen=new Set<number>();
       const deduped=flat.filter(c=>{if(seen.has(c.ts))return false;seen.add(c.ts);return true;});
-      console.log(`TF ${curTf}: ${deduped.length} candles, first=${deduped[deduped.length-1]?.ts}, last=${deduped[0]?.ts}`);
       if(deduped.length>0)setCandles(deduped);
     }catch{}
   },[]);
@@ -3359,8 +3358,8 @@ export default function Dashboard() {
             </div>
           </div>
           <div style={{flex:1,position:'relative',overflow:'hidden',minHeight:0}}>
-            {(() => { console.log('Dashboard→LightweightChart candles:', candles?.length, 'tf:', tf); return null; })()}
             <LightweightChart
+              key={tf}
               candles={candles}
               livePrice={live?.price}
               liveBar={live?.bar ? (()=>{

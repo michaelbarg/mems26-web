@@ -675,26 +675,20 @@ export default function LightweightChart({
 
   // Update candles (only when candle data actually changes)
   useEffect(() => {
-    console.log('LightweightChart useEffect fired, candles.length:', candles.length);
-    console.log('seriesRef:', !!seriesRef.current, 'candles:', candles.length);
     if (!seriesRef.current) return;
     if (candles.length === 0) return;
 
     // Check if candles actually changed (by length + last candle ts)
     const fingerprint = `${candles.length}-${candles[0]?.ts}-${candles[candles.length-1]?.ts}`;
-    console.log('fingerprint old:', lastCandlesFingerprintRef.current, 'new:', fingerprint, 'skip:', fingerprint === lastCandlesFingerprintRef.current);
     if (fingerprint === lastCandlesFingerprintRef.current) return;
     lastCandlesFingerprintRef.current = fingerprint;
 
     const sorted = [...candles].reverse().filter(c => c.ts > 0);
-    console.log('LWC sorted[0]:', JSON.stringify(sorted[0]), 'sorted.last:', JSON.stringify(sorted[sorted.length-1]));
 
     const cData = sorted.map(c => ({
       time:  Math.floor(c.ts) as any,
       open:  c.o, high: c.h, low: c.l, close: c.c,
     }));
-    console.log('LWC cData[0]:', JSON.stringify(cData[0]), 'cData.last:', JSON.stringify(cData[cData.length-1]));
-
     // Add/update live bar
     if (liveBar) {
       const lb = {
@@ -710,7 +704,6 @@ export default function LightweightChart({
     }
 
     const validCandles = cData.filter(c => c.open !== undefined && c.open > 0);
-    console.log('valid candles:', validCandles.length, 'of', cData.length, 'sample:', cData[0]);
     seriesRef.current.setData(cData);
 
     // CVD (cumulative volume delta) + MA20
