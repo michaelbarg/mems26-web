@@ -3100,7 +3100,7 @@ export default function Dashboard() {
       '5m':  {path:'/market/candles/5m',  limit:288},
       '15m': {path:'/market/candles/15m', limit:96},
       '30m': {path:'/market/candles/30m', limit:48},
-      '1h':  {path:'/market/candles/1h',  limit:64},
+      '1h':  {path:'/market/candles/1h',  limit:168},
     };
     const cfg=tfConfig[curTf]||tfConfig['3m'];
     try{
@@ -3140,9 +3140,10 @@ export default function Dashboard() {
     const init=async()=>{
       await fetchCandles();
       fetchLive();
-      const lt=setInterval(fetchLive,2000);
+      const lt=setInterval(fetchLive,1000);
       const ct=setInterval(fetchCandles,5000); // נרות כל 5 שניות
-      return()=>{clearInterval(lt);clearInterval(ct);};
+      const kt=setInterval(()=>fetch(API_URL+'/health',{cache:'no-store'}).catch(()=>{}),30000);
+      return()=>{clearInterval(lt);clearInterval(ct);clearInterval(kt);};
     };
     const cleanup=init();
     return()=>{cleanup.then(fn=>fn?.());};
