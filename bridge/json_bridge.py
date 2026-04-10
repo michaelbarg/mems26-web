@@ -22,7 +22,7 @@ REDIS_KEY       = "mems26:latest"
 REDIS_CANDLES   = "mems26:candles"
 REDIS_PATTERNS  = "mems26:patterns"
 MAX_CANDLES     = 960
-POST_INTERVAL   = 1.0
+POST_INTERVAL   = 0.5
 CANDLE_INTERVAL = 180
 STALE_THRESHOLD = 120
 
@@ -1016,7 +1016,7 @@ async def main():
                 pass
             except Exception as e:
                 log.error(f"Error: {e}")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
 
 
 if __name__ == "__main__":
