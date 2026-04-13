@@ -585,7 +585,7 @@ export default function LightweightChart({
       wickDownColor:    '#ef5350',
       borderVisible:    false,
       priceLineVisible: false,
-      lastValueVisible: true,
+      lastValueVisible: false,
     });
 
     // CVD (cumulative volume delta) — bottom band
@@ -593,7 +593,7 @@ export default function LightweightChart({
       color:           '#00e676',
       lineWidth:       2,
       priceScaleId:    'cvd',
-      lastValueVisible: true,
+      lastValueVisible: false,
       priceLineVisible: false,
     });
     chart.priceScale('cvd').applyOptions({
