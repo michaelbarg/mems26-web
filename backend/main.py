@@ -270,6 +270,7 @@ async def market_analyze():
 
     vwap_dist = vwap.get("distance", 0) or 0
     rel_vol   = vol_ctx.get("rel_vol", 1) or 1
+    fp_bools  = data.get("footprint_bools", {})
 
     fp_raw = data.get("footprint", [])
     if fp_raw and isinstance(fp_raw, list):
@@ -298,46 +299,83 @@ async def market_analyze():
         for c in last_5
     ) if last_5 else "N/A"
 
-    prompt = f"""אתה אנליסט בכיר למסחר ב-MES Futures.
-נתח את הנתונים הבאים וגבש המלצת כניסה מדויקת.
+    # B2: Footprint booleans summary
+    fp_bool_lines = []
+    if fp_bools:
+        if fp_bools.get("absorption_detected"): fp_bool_lines.append("ABSORPTION detected (iceberg at extreme)")
+        if fp_bools.get("exhaustion_detected"): fp_bool_lines.append("EXHAUSTION detected (<5 contracts at extreme)")
+        if fp_bools.get("trapped_buyers"): fp_bool_lines.append("TRAPPED BUYERS (broke high, reversed below open)")
+        sc = fp_bools.get("stacked_imbalance_count", 0)
+        sd = fp_bools.get("stacked_imbalance_dir", "NONE")
+        if sc >= 2: fp_bool_lines.append(f"STACKED IMBALANCE: {sc} levels x250% direction={sd}")
+        if fp_bools.get("pullback_delta_declining"): fp_bool_lines.append("PULLBACK DELTA DECLINING (momentum fading)")
+        if fp_bools.get("pullback_aggressive_buy"): fp_bool_lines.append("AGGRESSIVE BUY on pullback (+delta during dip)")
+        if fp_bools.get("pullback_aggressive_sell"): fp_bool_lines.append("AGGRESSIVE SELL on pullback (-delta during rise)")
+    fp_bool_str = " | ".join(fp_bool_lines) if fp_bool_lines else "No footprint signals"
 
-נתוני שוק נוכחיים:
-- מחיר: {price}
-- Session: {session.get('phase','?')} | דקה: {session.get('min',-1)}
-- DayType: {day.get('type','?')} | IB_Range: {day.get('ib_range',0):.2f} | Gap: {day.get('gap_type','FLAT')}
-- Delta נר נוכחי: {bar.get('delta',0)}
-- CVD trend: {cvd.get('trend','?')} | CVD d5: {cvd.get('d5',0)} | CVD d20: {cvd.get('d20',0)}
-- Volume יחסי: {rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
-- VWAP: {vwap.get('value',0)} | מעל: {vwap.get('above',False)} | dist: {vwap_dist:.2f} | pullback: {vwap.get('pullback',False)}
-- POC: {profile.get('poc',0)} | מעל POC: {profile.get('above_poc',False)} | VAH: {profile.get('vah',0)} | VAL: {profile.get('val',0)}
-- PDH: {levels.get('prev_high',0)} | PDL: {levels.get('prev_low',0)} | DO: {levels.get('daily_open',0)}
-- ONH: {levels.get('overnight_high',0)} | ONL: {levels.get('overnight_low',0)}
-- IBH: {session.get('ibh',0)} | IBL: {session.get('ibl',0)} | IB נעול: {session.get('ib_locked',False)}
-- CCI14: {cci.get('cci14',0):.1f} | CCI6: {cci.get('cci6',0):.1f} | trend: {cci.get('trend','?')}
-- Turbo Bull: {cci.get('turbo_bull',False)} | Turbo Bear: {cci.get('turbo_bear',False)}
-- Woodi: PP={woodi.get('pp',0)} R1={woodi.get('r1',0)} R2={woodi.get('r2',0)} S1={woodi.get('s1',0)} S2={woodi.get('s2',0)}
-- Pattern: {candle_p.get('bar0','?')} | prev: {candle_p.get('bar1','?')} | BullEngulf: {candle_p.get('bull_engulf',False)} | BearEngulf: {candle_p.get('bear_engulf',False)}
-- OF: Absorption={of2.get('absorption_bull',False)} | LiqSweepLong={of2.get('liq_sweep_long',False)} | LiqSweepShort={of2.get('liq_sweep_short',False)}
-- Footprint (5 נרות): {footprint_summary}
-- MTF: 15m={mtf.get('m15', {}).get('delta',0)} | 30m={mtf.get('m30', {}).get('delta',0)} | 60m={mtf.get('m60', {}).get('delta',0)}
-- 5 נרות אחרונים: {last_5_str}
+    # B2: Volume exhaustion check
+    vol_declining = rel_vol < 0.9
+    cvd_d5 = cvd.get("d5", 0) or 0
+    bar_delta = bar.get("delta", 0) or 0
+    exhaustion_signs = []
+    if vol_declining: exhaustion_signs.append("vol_declining")
+    if (bar_delta > 0 and cvd_d5 < -20) or (bar_delta < 0 and cvd_d5 > 20): exhaustion_signs.append("cvd_divergence")
+    if (bar_delta > 30 and price < vwap.get("value", price)) or (bar_delta < -30 and price > vwap.get("value", price)): exhaustion_signs.append("inverse_delta")
+    vol_exh_str = f"{len(exhaustion_signs)}/3 signs: {', '.join(exhaustion_signs)}" if exhaustion_signs else "0/3 — no exhaustion"
+
+    prompt = f"""אתה אנליסט בכיר למסחר ב-MES Futures. עקרון מנחה: איכות מעל כמות — עדיף לפספס 3 עסקאות מלהיכנס לאחת שגויה.
+
+נתח לפי הסדר: 1.רמות → 2.Order Flow → 3.Footprint → 4.החלטה
+
+═══ שלב 1: רמות ומבנה ═══
+מחיר: {price} | Session: {session.get('phase','?')} דקה {session.get('min',-1)}
+DayType: {day.get('type','?')} | IB: {session.get('ibh',0)}-{session.get('ibl',0)} (range={day.get('ib_range',0):.1f}) locked={session.get('ib_locked',False)}
+Gap: {day.get('gap_type','FLAT')} ({day.get('gap',0):.2f}pt)
+
+רמות מפתח:
+  PDH={levels.get('prev_high',0)} | PDL={levels.get('prev_low',0)} | DO={levels.get('daily_open',0)}
+  ONH={levels.get('overnight_high',0)} | ONL={levels.get('overnight_low',0)}
+  VWAP={vwap.get('value',0)} (dist={vwap_dist:+.2f}, above={vwap.get('above',False)}, pullback={vwap.get('pullback',False)})
+  POC={profile.get('poc',0)} (above={profile.get('above_poc',False)}) | VAH={profile.get('vah',0)} | VAL={profile.get('val',0)}
+  Woodi: PP={woodi.get('pp',0)} R1={woodi.get('r1',0)} S1={woodi.get('s1',0)} R2={woodi.get('r2',0)} S2={woodi.get('s2',0)}
+
+═══ שלב 2: Order Flow ═══
+Delta נוכחי: {bar_delta:+.0f} | CVD: trend={cvd.get('trend','?')} d5={cvd_d5:+.0f} d20={cvd.get('d20',0):+.0f}
+Volume: rel={rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
+Volume Exhaustion: {vol_exh_str}
+MTF delta: 5m={mtf.get('m5',{{}}).get('delta',0):+.0f} | 15m={mtf.get('m15',{{}}).get('delta',0):+.0f} | 30m={mtf.get('m30',{{}}).get('delta',0):+.0f} | 60m={mtf.get('m60',{{}}).get('delta',0):+.0f}
+CCI: 14={cci.get('cci14',0):.1f} 6={cci.get('cci6',0):.1f} trend={cci.get('trend','?')} | turbo_bull={cci.get('turbo_bull',False)} turbo_bear={cci.get('turbo_bear',False)}
+OF: Absorption={of2.get('absorption_bull',False)} | LiqSweepLong={of2.get('liq_sweep_long',False)} | LiqSweepShort={of2.get('liq_sweep_short',False)}
+Pattern: {candle_p.get('bar0','?')} | prev: {candle_p.get('bar1','?')} | Engulf: bull={candle_p.get('bull_engulf',False)} bear={candle_p.get('bear_engulf',False)}
+5 נרות אחרונים: {last_5_str}
+
+═══ שלב 3: Footprint (price-level analysis) ═══
+{fp_bool_str}
+Raw footprint (5 bars): {footprint_summary}
+
+═══ שלב 4: החלטה ═══
+Reversal vs Continuation table:
+  Reversal (enter): long wick + close back | vol declining | CVD divergence | inverse delta | absorption/zero-print
+  Continuation (don't enter): body closes beyond | vol increasing in direction | CVD matches | delta matches | imbalances support direction
+
+סטאפ עדיף: LIQUIDITY SWEEP (Sweep → MSS → FVG)
+  - Sweep: wick >= 1.5pt past level, close back
+  - MSS: swing break + rel_vol > 1.2 + stacked imbalance 2+ levels x250%
+  - FVG: gap 0.5-4pt within 10 bars, not cancelled (body beyond distal edge)
+  - Volume exhaustion required: 2 of 3 signs (vol declining, CVD divergence, inverse delta)
 
 כללים קשיחים:
-1. אם סטופ > 8 נקודות → direction: NO_TRADE
-2. אם T1 < 10 נקודות → direction: NO_TRADE
-3. אם rel_vol < 0.8 → confidence מקסימום 50
-4. אם DayType = BALANCED → confidence מקסימום 60
-5. אם אין sweep ברור ב-5 נרות אחרונים → העדף NO_TRADE
+1. סטופ > 8pt → NO_TRADE
+2. T1 < 10pt → NO_TRADE
+3. rel_vol < 0.8 → confidence max 50
+4. DayType BALANCED/ROTATIONAL/NEUTRAL → confidence max 60
+5. Volume supports direction (not exhaustion) → this is CONTINUATION not reversal → NO_TRADE
+6. No absorption or exhaustion in footprint → lower confidence by 15
 
-סטאפים מועדפים:
-1. LIQ SWEEP: שבירת רמה (PDH/PDL/ONH/ONL/IBH/IBL) ב-wick, חזרה אגרסיבית עם volume. הטוב ביותר.
-2. VWAP PULLBACK: מגמה ברורה + pullback חלש ל-VWAP + נר היפוך + delta מאשר.
-3. IB BREAKOUT RETEST: פריצת IB + חזרה לגבול + בלימה + המשך.
-
-ניהול עסקה: C1=50% R:R 1:1 | C2=25% R:R 1:2 | C3=25% Runner Woodi R1/S1
+ניהול: C1=50% R:R 1:1 (move stop to BE) | C2=25% R:R 1:2 | C3=25% Runner to R1/S1 or R:R 1:3
 
 JSON בלבד ללא backticks:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":0-100,"setup":"שם הסטאפ","setup_name":"LIQ_SWEEP/VWAP_PB/IB_RETEST","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rr":"1:X","the_box":"low-high","anchor_line":0.0,"order_block":"low-high","invalidation":0.0,"rationale":"2-3 משפטים בעברית — הקשר נפח-מבנה","geometric_notes":"הוראות ציור: rect/line/label","warning":"אזהרות אם יש","time_estimate":"X-Y דקות ל-T1","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":0-100,"setup":"שם הסטאפ","setup_name":"LIQ_SWEEP/VWAP_PB/IB_RETEST","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rr":"1:X","the_box":"low-high","anchor_line":0.0,"order_block":"low-high","invalidation":0.0,"rationale":"2-3 משפטים בעברית — ציין ממצא footprint + volume exhaustion + מבנה","geometric_notes":"הוראות ציור","warning":"אזהרות","time_estimate":"X-Y דקות ל-T1","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
