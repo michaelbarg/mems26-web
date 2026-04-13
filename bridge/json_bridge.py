@@ -721,6 +721,9 @@ async def main():
                         for mtf_key, redis_key, interval, max_c in MTF_CONFIG:
                             label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
                             agg = aggregate_candles(candles_list, interval, max_c)
+                            # Drop last candle — it's still open, will be built live
+                            if agg and len(agg) > 1:
+                                agg = agg[:-1]
                             if agg:
                                 serialized = json.dumps(agg)
                                 try:
@@ -772,6 +775,9 @@ async def main():
                                 for mtf_key, redis_key, interval, max_c in MTF_CONFIG:
                                     label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
                                     agg = aggregate_candles(redis_candles, interval, max_c)
+                                    # Drop last candle — still open, will be built live
+                                    if agg and len(agg) > 1:
+                                        agg = agg[:-1]
                                     if agg:
                                         try:
                                             async with http.post(
