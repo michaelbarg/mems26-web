@@ -288,7 +288,7 @@ async def market_analyze():
             "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
             "risk_pts": 0, "rationale": "Bridge לא פעיל", "tl_color": "red", "ts": 0,
             "t1_win_rate": 0, "t2_win_rate": 0, "t3_win_rate": 0,
-            "wait_reason": "Bridge לא פעיל"
+            "wait_reason": "Bridge לא פעיל", "markers": []
         }
 
     price   = data.get("price", 0)
@@ -466,7 +466,16 @@ FVG: {fvg_status} (entry={fvg_entry})
 ניהול: C1=50% R:R 1:1 (stop→BE) | C2=25% R:R 1:2 | C3=25% Runner R1/S1 or 1:3
 
 JSON בלבד ללא backticks:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":0-100,"setup":"שם הסטאפ בעברית","setup_name":"LIQ_SWEEP/VWAP_PB/IB_RETEST","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rr":"1:X","the_box":"low-high","anchor_line":0.0,"order_block":"low-high","invalidation":0.0,"rationale":"2-3 משפטים בעברית — ציין bias, footprint, volume exhaustion, setup chain status","warning":"אזהרות","time_estimate":"X-Y דקות ל-T1","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":0-100,"setup":"שם הסטאפ בעברית","setup_name":"LIQ_SWEEP/VWAP_PB/IB_RETEST","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rr":"1:X","the_box":"low-high","anchor_line":0.0,"order_block":"low-high","invalidation":0.0,"rationale":"2-3 משפטים בעברית — ציין bias, footprint, volume exhaustion, setup chain status","warning":"אזהרות","time_estimate":"X-Y דקות ל-T1","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright","markers":[{{"ts":unix_timestamp,"pos":"aboveBar/belowBar","shape":"arrowUp/arrowDown/circle","color":"#10b981/#ef4444/#f59e0b","text":"Entry/Sweep/MSS/FVG/Stop/T1"}}]}}
+
+markers כללים:
+- מקסימום 10 markers
+- סמן את: נקודת Entry, Sweep bar, MSS bar, FVG zone, Stop, T1/T2
+- ts = Unix timestamp של הנר הרלוונטי (השתמש ב-timestamps מה-5 נרות האחרונים שסופקו)
+- LONG: Entry/Sweep → belowBar+arrowUp (#10b981), Stop → belowBar+circle (#ef4444)
+- SHORT: Entry/Sweep → aboveBar+arrowDown (#ef4444), Stop → aboveBar+circle (#ef4444)
+- MSS → circle (#f59e0b), FVG → circle (#8b5cf6)
+- אם NO_TRADE → markers ריק []"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -514,10 +523,15 @@ JSON בלבד ללא backticks:
                 "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
                 "risk_pts": 0, "rationale": "תגובת AI לא תקינה — נסה שוב",
                 "tl_color": "red", "t1_win_rate": 0, "t2_win_rate": 0,
-                "t3_win_rate": 0, "wait_reason": "נסה שוב בעוד דקה"
+                "t3_win_rate": 0, "wait_reason": "נסה שוב בעוד דקה", "markers": []
             }
         signal["ts"] = data.get("ts", 0)
-        log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% t1={signal.get('t1_win_rate')}%")
+        # B3: Validate and cap markers
+        markers = signal.get("markers", [])
+        if not isinstance(markers, list):
+            markers = []
+        signal["markers"] = markers[:10]
+        log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% markers={len(signal['markers'])}")
         return signal
     except Exception as e:
         log.error(f"AI error: {e}")
