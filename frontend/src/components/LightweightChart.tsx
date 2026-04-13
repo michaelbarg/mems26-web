@@ -727,8 +727,11 @@ export default function LightweightChart({
       }
     }
 
-    const validCandles = cData.filter(c => c.open !== undefined && c.open > 0);
-    seriesRef.current.setData(cData);
+    const validCandles = cData.filter(c =>
+      c.open != null && c.high != null && c.low != null && c.close != null &&
+      c.time != null && c.time > 0
+    );
+    seriesRef.current.setData(validCandles);
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
@@ -791,8 +794,8 @@ export default function LightweightChart({
         }
       }
 
-      cvdRef.current.setData(cvdData);
-      cvdMaRef.current.setData(maData);
+      cvdRef.current.setData(cvdData.filter(c => c.time != null && c.time > 0 && c.value != null && isFinite(c.value)));
+      cvdMaRef.current.setData(maData.filter(c => c.time != null && c.time > 0 && c.value != null && isFinite(c.value)));
     }
 
     // Volume histogram
@@ -815,7 +818,8 @@ export default function LightweightChart({
           color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
         });
       }
-      volRef.current.setData(volData);
+      const validVol = volData.filter(c => c.value != null && c.value >= 0 && c.time != null && c.time > 0);
+      volRef.current.setData(validVol);
     }
 
     // Redraw overlays (volume profile + sweep zone) — delay to let chart render
