@@ -3258,8 +3258,8 @@ export default function Dashboard() {
         if(Array.isArray(item)){ for(const sub of item) parse(sub); }
         else parse(item);
       }
-      // מיין חדש→ישן, הסר כפולים
-      flat.sort((a,b)=>b.ts-a.ts);
+      // מיין ישן→חדש (LightweightCharts דורש ascending), הסר כפולים
+      flat.sort((a,b)=>a.ts-b.ts);
       const seen=new Set<number>();
       const deduped=flat.filter(c=>{if(seen.has(c.ts))return false;seen.add(c.ts);return true;});
       if(deduped.length>0)setCandles(deduped);

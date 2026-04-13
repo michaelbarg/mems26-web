@@ -711,7 +711,7 @@ export default function LightweightChart({
     if (fingerprint === lastCandlesFingerprintRef.current) return;
     lastCandlesFingerprintRef.current = fingerprint;
 
-    const sorted = [...candles].reverse().filter(c => c.ts > 1577836800);
+    const sorted = [...candles].filter(c => c.ts > 1577836800);
 
     // D7: trade active → color candle bodies from entry timestamp
     const tradeColor = tradeActive && healthScore !== undefined ? getTradeColor(healthScore) : null;

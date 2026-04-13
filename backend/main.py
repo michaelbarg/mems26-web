@@ -259,7 +259,7 @@ async def get_candles(limit: int = 960):
                 candles.append(c)
         except Exception:
             continue
-    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
+    candles.sort(key=lambda x: x.get("ts", 0))
     return candles
 
 
@@ -267,32 +267,32 @@ async def get_candles(limit: int = 960):
 async def get_candles_5m(limit: int = 288):
     candles = await redis_get_json_array(REDIS_CANDLES_5M)
     candles = [c for c in candles if _valid_candle(c)]
-    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
-    return candles[:limit]
+    candles.sort(key=lambda x: x.get("ts", 0))
+    return candles[-limit:]
 
 
 @app.get("/market/candles/15m")
 async def get_candles_15m(limit: int = 96):
     candles = await redis_get_json_array(REDIS_CANDLES_15M)
     candles = [c for c in candles if _valid_candle(c)]
-    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
-    return candles[:limit]
+    candles.sort(key=lambda x: x.get("ts", 0))
+    return candles[-limit:]
 
 
 @app.get("/market/candles/30m")
 async def get_candles_30m(limit: int = 48):
     candles = await redis_get_json_array(REDIS_CANDLES_30M)
     candles = [c for c in candles if _valid_candle(c)]
-    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
-    return candles[:limit]
+    candles.sort(key=lambda x: x.get("ts", 0))
+    return candles[-limit:]
 
 
 @app.get("/market/candles/1h")
 async def get_candles_1h(limit: int = 64):
     candles = await redis_get_json_array(REDIS_CANDLES_1H)
     candles = [c for c in candles if _valid_candle(c)]
-    candles.sort(key=lambda x: x.get("ts", 0), reverse=True)
-    return candles[:limit]
+    candles.sort(key=lambda x: x.get("ts", 0))
+    return candles[-limit:]
 
 
 @app.get("/market/analyze")
