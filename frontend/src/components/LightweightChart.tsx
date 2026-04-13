@@ -522,6 +522,7 @@ export default function LightweightChart({
 
   const initChart = useCallback(() => {
     if (!containerRef.current || chartRef.current) return;
+    if (!candles || candles.length === 0) return;
     const LW = (window as any).LightweightCharts;
     if (!LW) return;
 
@@ -660,23 +661,29 @@ export default function LightweightChart({
   }, [height, drawOverlays, drawZones]);
 
   // Load script once
+  // Load script once
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
-
-    if ((window as any).LightweightCharts) {
-      initChart();
-      return;
-    }
-
+    if ((window as any).LightweightCharts) return;
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
     script.async = true;
-    script.onload = initChart;
     document.head.appendChild(script);
-
     return () => { chartRef.current?.remove(); chartRef.current = null; seriesRef.current = null; };
-  }, [initChart]);
+  }, []);
+
+  // Init chart only when script loaded AND candles available
+  useEffect(() => {
+    if (chartRef.current) return;
+    if (!candles || candles.length === 0) return;
+    if (!(window as any).LightweightCharts) {
+      // Script not loaded yet — retry on next render
+      const timer = setTimeout(() => initChart(), 100);
+      return () => clearTimeout(timer);
+    }
+    initChart();
+  }, [candles, initChart]);
 
   // Track last candles fingerprint to avoid unnecessary setData calls
   const lastCandlesFingerprintRef = useRef('');
@@ -1152,6 +1159,14 @@ export default function LightweightChart({
   }, [scannedPatterns]);
 
   useEffect(() => { drawPatternLines(); }, [scannedPatterns, drawPatternLines]);
+
+  if (!candles || candles.length === 0) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, color: '#4a5568', fontFamily: 'monospace', fontSize: 13 }}>
+        טוען נתונים...
+      </div>
+    );
+  }
 
   return (
     <div style={{ position: 'relative', width: '100%', height: height ?? '100%', minHeight: height ?? 400 }}>
