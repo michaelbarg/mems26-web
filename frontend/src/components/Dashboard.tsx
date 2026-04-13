@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
+import PreEntryChecklist, { type ChecklistSetup } from './PreEntryChecklist';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -3132,6 +3133,9 @@ export default function Dashboard() {
   const [scannedPatterns,setScannedPatterns]=useState<{pattern:string;direction:string;entry:number;stop:number;t1:number;t2:number;neckline:number;confidence:number;label:string;start_ts:number;end_ts:number}[]>([]);
   const [activeScannedPattern,setActiveScannedPattern]=useState<typeof scannedPatterns[0]|null>(null);
   const [activeTrade,setActiveTrade]=useState<ActiveTrade|null>(null);
+  const [checklistSetup, setChecklistSetup] = useState<ChecklistSetup | null>(null);
+  const [wsCB, setWsCB] = useState<{ allowed: boolean; reason: string } | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
   const prevSigRef=useRef<string>('');
 
   const askAI=useCallback(async()=>{
@@ -3303,6 +3307,45 @@ export default function Dashboard() {
     const pt=setInterval(fetchPatterns,30000);
     return()=>clearInterval(pt);
   },[systemOn]);
+
+  useEffect(() => {
+    if (!systemOn) return;
+    let ws: WebSocket | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    const connect = () => {
+      const url = API_URL.replace('https://', 'wss://').replace('http://', 'ws://') + '/ws';
+      ws = new WebSocket(url);
+      wsRef.current = ws;
+      ws.onmessage = (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          if (d.type === 'status_update' && d.circuit_breaker)
+            setWsCB({ allowed: d.circuit_breaker.allowed, reason: d.circuit_breaker.reason ?? '' });
+        } catch {}
+      };
+      ws.onclose = () => { wsRef.current = null; retryTimer = setTimeout(connect, 5000); };
+      ws.onerror  = () => ws?.close();
+    };
+    connect();
+    return () => { retryTimer && clearTimeout(retryTimer); ws?.close(); wsRef.current = null; };
+  }, [systemOn]);
+
+  const handleExecuteTrade = useCallback(async (params: {
+    direction: 'LONG' | 'SHORT'; entry_price: number; stop: number;
+    t1: number; t2: number; t3: number; setup_type: string;
+  }) => {
+    const res = await fetch(`${API_URL}/trade/execute`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error((err as any).detail || `HTTP ${res.status}`);
+    }
+    setChecklistSetup(null);
+    return res.json();
+  }, []);
 
   // ── Auto-AI fallback: call every 60s when no setup detected ──
   const lastAutoAI = useRef(0);
@@ -3641,7 +3684,19 @@ export default function Dashboard() {
           selectedSweep={selectedSweep}
           setSelectedSweep={setSelectedSweep}
           activeSetup={activeSetup}
-          onActivateSweep={(ev:SweepEvent)=>setActiveSetup(buildActiveSetup(ev,candles))}
+          onActivateSweep={(ev: SweepEvent) => {
+            const fp = (live as any)?.footprint_bools || {};
+            setChecklistSetup({
+              id: ev.id, dir: ev.dir,
+              entry: ev.entry, stop: ev.stop,
+              t1: ev.c1, t2: ev.c2, t3: ev.c3,
+              riskPts: Math.abs(ev.entry - ev.stop),
+              levelName: ev.levelName || '',
+              sweepWick: ev.sweepWick || 0,
+              hasAbsorption: fp.absorption_detected ?? (ev.score >= 7),
+              hasExhaustion: fp.exhaustion_detected ?? false,
+            });
+          }}
           onDeactivateSetup={()=>setActiveSetup(null)}
           levelTouches={levelTouches}
           liveSetup={liveSetup}
@@ -3662,6 +3717,14 @@ export default function Dashboard() {
         ::-webkit-scrollbar-track{background:#0a0a0f}
         ::-webkit-scrollbar-thumb{background:#1e2738;border-radius:2px}
       `}</style>
+      <PreEntryChecklist
+        setup={checklistSetup}
+        live={live}
+        patterns={scannedPatterns}
+        wsCircuitBreaker={wsCB}
+        onExecute={handleExecuteTrade}
+        onCancel={() => setChecklistSetup(null)}
+      />
     </div>
   );
 }

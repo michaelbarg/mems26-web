@@ -25,6 +25,8 @@ REDIS_PATTERNS_KEY  = "mems26:patterns"
 REDIS_TRADE_STATUS  = "mems26:trade:status"
 REDIS_DAILY_PNL     = "mems26:daily:pnl"
 REDIS_DAILY_TRADES  = "mems26:daily:trades"
+REDIS_TRADE_COMMAND = "mems26:trade:command"
+COMMAND_TTL_SEC = 60
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 
@@ -114,6 +116,20 @@ async def redis_get_key(key: str):
     return None
 
 
+async def redis_delete_key(key: str):
+    if not REDIS_URL or not REDIS_TOKEN:
+        return
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.get(
+                f"{REDIS_URL}/del/{key}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=3.0
+            )
+    except Exception as e:
+        log.warning(f"Redis del({key}) failed: {e}")
+
+
 async def redis_get_json_array(key: str) -> list:
     """Read a SET-based key that stores a JSON array string."""
     if not REDIS_URL or not REDIS_TOKEN:
@@ -148,20 +164,55 @@ class ConnectionManager:
         if ws in self._clients:
             self._clients.remove(ws)
 
+    def client_count(self) -> int:
+        return len(self._clients)
+
     async def broadcast(self, data: dict):
+        dead = []
         for ws in self._clients:
             try:
                 await ws.send_json(data)
-            except:
-                pass
+            except Exception:
+                dead.append(ws)
+        for ws in dead:
+            self.disconnect(ws)
 
 manager = ConnectionManager()
 
 
+async def _build_status_payload() -> dict:
+    import time
+    trade = await trade_status()
+    cb    = await check_circuit_breaker()
+    data  = await redis_get()
+    return {
+        "type":            "status_update",
+        "ts":              int(time.time()),
+        "trade":           trade,
+        "circuit_breaker": cb,
+        "health": {"status": "ok", "has_data": data is not None},
+    }
+
+async def _ws_push_loop():
+    while True:
+        try:
+            if manager.client_count() > 0:
+                payload = await _build_status_payload()
+                await manager.broadcast(payload)
+        except Exception as e:
+            log.warning(f"WS push error: {e}")
+        await asyncio.sleep(2)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)}")
+    task = asyncio.create_task(_ws_push_loop())
     yield
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        pass
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -1289,6 +1340,13 @@ async def check_circuit_breaker() -> dict:
     return {"allowed": True, "reason": "", "lock_minutes": 0}
 
 
+def _make_checksum(cmd: str, price: float, qty: int, stop: float,
+                   trade_id: str, expires_at: int) -> tuple:
+    import hashlib
+    raw = f"{cmd}:{price}:{qty}:{stop}:{trade_id}:{expires_at}:{BRIDGE_TOKEN}"
+    return hashlib.sha256(raw.encode()).hexdigest(), raw
+
+
 @app.get("/trade/circuit-breaker")
 async def get_circuit_breaker():
     """Check circuit breaker status."""
@@ -1362,6 +1420,19 @@ async def trade_execute(request: Request):
     }
 
     await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+    import time as _time
+    expires_at = int(_time.time()) + COMMAND_TTL_SEC
+    cmd_str = "BUY" if direction == "LONG" else "SELL"
+    chk_hex, chk_raw = _make_checksum(cmd_str, entry, 3, stop, trade_id, expires_at)
+    command = {
+        "cmd": cmd_str, "price": entry, "qty": 3,
+        "stop": stop, "t1": t1, "t2": t2, "t3": t3,
+        "trade_id": trade_id, "expires_at": expires_at,
+        "checksum": chk_hex, "checksum_input": chk_raw,
+    }
+    await redis_set_key(REDIS_TRADE_COMMAND, command)
+    log.info(f"Command written: {cmd_str} {trade_id}")
 
     # Increment daily trade count
     state = await get_daily_state()
@@ -1490,6 +1561,50 @@ async def trade_scale(request: Request):
     return {"ok": True, "trade": active}
 
 
+@app.get("/trade/command")
+async def get_trade_command(x_bridge_token: Optional[str] = Header(None)):
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    cmd = await redis_get_key(REDIS_TRADE_COMMAND)
+    if not cmd:
+        return {"pending": False}
+    import time
+    if cmd.get("expires_at", 0) < int(time.time()):
+        await redis_delete_key(REDIS_TRADE_COMMAND)
+        return {"pending": False, "expired": True}
+    return {"pending": True, "command": cmd}
+
+@app.post("/trade/command/ack")
+async def ack_trade_command(request: Request, x_bridge_token: Optional[str] = Header(None)):
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    body = await request.json()
+    trade_id = body.get("trade_id", "")
+    cmd = await redis_get_key(REDIS_TRADE_COMMAND)
+    if cmd and cmd.get("trade_id") == trade_id:
+        await redis_delete_key(REDIS_TRADE_COMMAND)
+        log.info(f"Command acked: {trade_id}")
+        return {"ok": True}
+    return {"ok": False, "detail": "No matching pending command"}
+
+@app.post("/trade/command/cancel")
+async def cancel_trade_command(x_bridge_token: Optional[str] = Header(None)):
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    import time
+    expires_at = int(time.time()) + COMMAND_TTL_SEC
+    cancel_id = f"CANCEL_{int(time.time())}"
+    chk_hex, chk_raw = _make_checksum("CANCEL", 0, 0, 0, cancel_id, expires_at)
+    cmd = {
+        "cmd": "CANCEL", "price": 0, "qty": 0, "stop": 0,
+        "t1": 0, "t2": 0, "t3": 0,
+        "trade_id": cancel_id, "expires_at": expires_at,
+        "checksum": chk_hex, "checksum_input": chk_raw,
+    }
+    await redis_set_key(REDIS_TRADE_COMMAND, cmd)
+    return {"ok": True, "command": cmd}
+
+
 @app.get("/health")
 async def health():
     data = await redis_get()
@@ -1500,6 +1615,11 @@ async def health():
 async def websocket_endpoint(ws: WebSocket):
     await manager.connect(ws)
     try:
+        try:
+            payload = await _build_status_payload()
+            await ws.send_json(payload)
+        except Exception as e:
+            log.warning(f"WS initial push failed: {e}")
         while True:
             await ws.receive_text()
     except WebSocketDisconnect:

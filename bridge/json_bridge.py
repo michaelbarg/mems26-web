@@ -17,6 +17,14 @@ log = logging.getLogger("bridge")
 
 SC_JSON_PATH    = os.getenv("SC_JSON_PATH", "/Users/michael/SierraChart2/Data/mes_ai_data.json")
 SC_HISTORY_PATH = os.getenv("SC_HISTORY_PATH", "/Users/michael/SierraChart2/Data/mes_ai_history.json")
+SC_COMMAND_PATH = os.getenv("SC_COMMAND_PATH",
+    str(__import__("pathlib").Path(os.getenv("SC_JSON_PATH",
+        "/Users/michael/SierraChart2/Data/mes_ai_data.json")).parent / "trade_command.json"))
+SC_RESULT_PATH = os.getenv("SC_RESULT_PATH",
+    str(__import__("pathlib").Path(os.getenv("SC_JSON_PATH",
+        "/Users/michael/SierraChart2/Data/mes_ai_data.json")).parent / "trade_result.json"))
+CLOUD_URL    = os.getenv("CLOUD_URL", "https://mems26-web.onrender.com")
+BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
 REDIS_URL       = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN     = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY       = "mems26:latest"
@@ -814,6 +822,8 @@ async def main():
     footprint_seeded = False     # האם כבר טענו footprint מ-Sierra
 
     async with aiohttp.ClientSession() as http:
+        asyncio.create_task(_poll_trade_commands(http))
+        log.info("[C4] command poll started")
         while True:
             if not is_trading_session():
                 log.info("Market closed — waiting 30s")
@@ -1140,6 +1150,55 @@ async def main():
             except Exception as e:
                 log.error(f"Error: {e}")
             await asyncio.sleep(0.2)
+
+
+import hashlib
+
+def _verify_checksum(cmd: dict) -> bool:
+    expected = cmd.get("checksum", "")
+    raw = (f"{cmd['cmd']}:{cmd['price']}:{cmd['qty']}:{cmd['stop']}:"
+           f"{cmd['trade_id']}:{cmd['expires_at']}:{BRIDGE_TOKEN}")
+    return hashlib.sha256(raw.encode()).hexdigest() == expected
+
+async def _poll_trade_commands(http):
+    last_trade_id = None
+    while True:
+        try:
+            async with http.get(
+                f"{CLOUD_URL}/trade/command",
+                headers={"x-bridge-token": BRIDGE_TOKEN},
+                timeout=aiohttp.ClientTimeout(total=3),
+            ) as resp:
+                data = await resp.json()
+            if data.get("pending"):
+                cmd = data["command"]
+                trade_id = cmd.get("trade_id", "")
+                if trade_id == last_trade_id:
+                    await asyncio.sleep(1)
+                    continue
+                if not _verify_checksum(cmd):
+                    log.error(f"[C4] CHECKSUM FAIL — ignoring {trade_id}")
+                    await asyncio.sleep(1)
+                    continue
+                tmp = SC_COMMAND_PATH + ".tmp"
+                with open(tmp, "w") as f:
+                    json.dump(cmd, f, indent=2)
+                os.replace(tmp, SC_COMMAND_PATH)
+                log.info(f"[C4] written: {cmd['cmd']} {trade_id}")
+                async with http.post(
+                    f"{CLOUD_URL}/trade/command/ack",
+                    headers={"x-bridge-token": BRIDGE_TOKEN,
+                             "content-type": "application/json"},
+                    json={"trade_id": trade_id},
+                    timeout=aiohttp.ClientTimeout(total=3),
+                ) as ack_resp:
+                    ack = await ack_resp.json()
+                    if ack.get("ok"):
+                        log.info(f"[C4] acked: {trade_id}")
+                last_trade_id = trade_id
+        except Exception as e:
+            log.warning(f"[C4] poll error: {e}")
+        await asyncio.sleep(1)
 
 
 if __name__ == "__main__":
