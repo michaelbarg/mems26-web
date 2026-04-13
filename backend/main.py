@@ -760,6 +760,148 @@ async def pre_analysis():
     }
 
 
+@app.post("/trade/health")
+async def trade_health(request: Request):
+    """B3: Fast deterministic trade health check — no AI call.
+    Accepts: {direction, entry_price, stop, t1, t2, t3, entry_ts}
+    Returns: health_score 0-100, status HEALTHY/WARNING/DANGER, action HOLD/MOVE_BE/EXIT
+    """
+    body = await request.json()
+    direction  = body.get("direction", "LONG")
+    entry      = body.get("entry_price", 0)
+    stop       = body.get("stop", 0)
+    t1         = body.get("t1", 0)
+    t2         = body.get("t2", 0)
+    entry_ts   = body.get("entry_ts", 0)
+
+    data = await redis_get()
+    if not data:
+        return {"health_score": 50, "status": "WARNING", "action": "HOLD", "reason": "No market data"}
+
+    price    = data.get("price", 0)
+    cvd      = data.get("cvd", {})
+    vwap     = data.get("vwap", {})
+    vol_ctx  = data.get("volume_context", {})
+    fp_bools = data.get("footprint_bools", {})
+    mtf      = data.get("mtf", {})
+    day      = data.get("day", {})
+
+    is_long = direction == "LONG"
+    pnl_pts = (price - entry) if is_long else (entry - price)
+    dist_stop = (price - stop) if is_long else (stop - price)
+    risk = abs(entry - stop)
+
+    # Start at 70 (healthy baseline)
+    score = 70
+    warnings = []
+
+    # ── P&L factor ──
+    if pnl_pts > risk:
+        score += 10  # past 1R = great
+    elif pnl_pts > 0:
+        score += 5   # in profit
+    elif pnl_pts < -risk * 0.5:
+        score -= 20  # losing more than half risk
+        warnings.append(f"PnL {pnl_pts:+.2f}pt — over half risk lost")
+    elif pnl_pts < 0:
+        score -= 10  # small loss
+
+    # ── Distance to stop ──
+    if dist_stop < 1.0:
+        score -= 25
+        warnings.append(f"Only {dist_stop:.2f}pt from stop")
+    elif dist_stop < 2.0:
+        score -= 10
+        warnings.append(f"{dist_stop:.2f}pt from stop")
+
+    # ── Delta alignment ──
+    bar_delta = (data.get("bar", {}) or {}).get("delta", 0) or 0
+    if is_long and bar_delta < -80:
+        score -= 15
+        warnings.append(f"Strong negative delta {bar_delta:+.0f}")
+    elif not is_long and bar_delta > 80:
+        score -= 15
+        warnings.append(f"Strong positive delta {bar_delta:+.0f}")
+
+    # ── CVD alignment ──
+    cvd_d5 = cvd.get("d5", 0) or 0
+    if is_long and cvd_d5 < -50:
+        score -= 10
+        warnings.append("CVD 5-bar diverging against LONG")
+    elif not is_long and cvd_d5 > 50:
+        score -= 10
+        warnings.append("CVD 5-bar diverging against SHORT")
+
+    # ── VWAP cross ──
+    vwap_val = vwap.get("value", 0) or 0
+    if vwap_val > 0:
+        if is_long and price < vwap_val - 2:
+            score -= 10
+            warnings.append("Price fell below VWAP")
+        elif not is_long and price > vwap_val + 2:
+            score -= 10
+            warnings.append("Price broke above VWAP")
+
+    # ── Volume dying ──
+    rel_vol = vol_ctx.get("rel_vol", 1) or 1
+    if rel_vol < 0.5:
+        score -= 10
+        warnings.append(f"Very low volume ({rel_vol:.2f}x)")
+
+    # ── Footprint adverse signals ──
+    if fp_bools:
+        if is_long and fp_bools.get("pullback_aggressive_sell"):
+            score -= 15
+            warnings.append("Aggressive selling detected")
+        if not is_long and fp_bools.get("pullback_aggressive_buy"):
+            score -= 15
+            warnings.append("Aggressive buying detected")
+        if fp_bools.get("trapped_buyers") and is_long:
+            score -= 10
+            warnings.append("Trapped buyers pattern")
+
+    # ── MTF momentum fade ──
+    m15_delta = mtf.get("m15", {}).get("delta", 0) or 0
+    if is_long and m15_delta < -100:
+        score -= 5
+    elif not is_long and m15_delta > 100:
+        score -= 5
+
+    # ── Time decay (staleness after 45min) ──
+    if entry_ts > 0:
+        import time
+        elapsed_min = (time.time() - entry_ts) / 60
+        if elapsed_min > 60 and pnl_pts < risk * 0.5:
+            score -= 10
+            warnings.append(f"Trade open {int(elapsed_min)}min with small progress")
+
+    # Clamp
+    score = max(0, min(100, score))
+
+    # Status + action
+    if score >= 70:
+        status = "HEALTHY"
+        action = "HOLD"
+    elif score >= 40:
+        status = "WARNING"
+        action = "MOVE_BE" if pnl_pts > 0 else "HOLD"
+    else:
+        status = "DANGER"
+        action = "EXIT" if pnl_pts < 0 else "MOVE_BE"
+
+    return {
+        "health_score": score,
+        "status": status,
+        "action": action,
+        "pnl_pts": round(pnl_pts, 2),
+        "pnl_usd": round(pnl_pts * 5, 2),
+        "dist_stop": round(dist_stop, 2),
+        "warnings": warnings,
+        "day_type": day.get("type", ""),
+        "rel_vol": round(rel_vol, 2),
+    }
+
+
 @app.get("/health")
 async def health():
     data = await redis_get()
