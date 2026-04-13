@@ -65,7 +65,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
   const fetchRemote = useCallback(async () => {
     try {
       const [hRes, cbRes] = await Promise.all([
-        fetch(`${API_URL}/trade/health`, { cache: 'no-store' }),
+        fetch(`${API_URL}/trade/health`, { method: 'POST', body: '{}', headers: {'content-type':'application/json'} }),
         fetch(`${API_URL}/trade/circuit-breaker`, { cache: 'no-store' }),
       ]);
       if (hRes.ok) { const hd = await hRes.json(); setHealthScore(hd.health_score ?? null); }
