@@ -889,7 +889,7 @@ export default function LightweightChart({
   // Update level lines + setup markers
   useEffect(() => {
     if (!seriesRef.current) return;
-
+   try {
     linesRef.current.forEach(l => { try { seriesRef.current.removePriceLine(l); } catch {} });
     linesRef.current = [];
 
@@ -1058,12 +1058,17 @@ export default function LightweightChart({
           });
         }
 
-        // מיין לפי זמן (חובה ב-LightweightCharts)
-        allMarkers.sort((a,b) => (a.time as number) - (b.time as number));
-        seriesRef.current.setMarkers(allMarkers);
+        // Filter invalid markers + sort by time (required by LightweightCharts)
+        const validMarkers = allMarkers.filter(m => m.time != null && m.time > 1577836800 && isFinite(m.time as number));
+        validMarkers.sort((a,b) => (a.time as number) - (b.time as number));
+        try { seriesRef.current.setMarkers(validMarkers); } catch (e) {
+          // Fallback: clear markers if something is still invalid
+          try { seriesRef.current.setMarkers([]); } catch {}
+        }
       } catch {}
     }
 
+   } catch (e) { /* guard entire level lines + markers block */ }
   }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, detectedSetups, liveBar, patterns, selectedPatternId]);
 
   // Redraw sweep zone overlay when sweepData changes
