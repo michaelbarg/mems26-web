@@ -534,6 +534,7 @@ export default function LightweightChart({
 
 
   const initChart = useCallback(() => {
+    console.log('initChart:', candlesRef.current?.length, 'chartExists:', !!chartRef.current);
     if (!containerRef.current || chartRef.current) return;
     if (!candlesRef.current || candlesRef.current.length === 0) return;
     const LW = (window as any).LightweightCharts;
@@ -760,7 +761,8 @@ export default function LightweightChart({
     // Deduplicate by time (LightweightCharts crashes on duplicate timestamps)
     const seenTs = new Set<number>();
     const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
-    try { seriesRef.current.setData(dedupCandles); } catch (e) { /* ignore */ }
+    console.log('setData:', dedupCandles.length, 'valid:', validCandles.length, 'raw:', cData.length);
+    try { seriesRef.current.setData(dedupCandles); } catch (e) { console.error('setData error:', e); }
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {

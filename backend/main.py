@@ -295,6 +295,11 @@ async def get_candles_1h(limit: int = 64):
     return candles[-limit:]
 
 
+# AI response cache — avoid re-calling Claude when candles haven't changed
+_ai_cache: dict = {"key": "", "response": None, "ts": 0}
+AI_CACHE_TTL = 45  # seconds
+
+
 @app.get("/market/analyze")
 async def market_analyze():
   try:
@@ -311,6 +316,13 @@ async def market_analyze():
             "t1_win_rate": 0, "t2_win_rate": 0, "t3_win_rate": 0,
             "wait_reason": "Bridge לא פעיל", "markers": []
         }
+
+    # Cache check: if last candle ts + price unchanged and cache fresh, return cached
+    import time as _time
+    cache_key = f"{data.get('ts',0)}:{data.get('price',0)}"
+    if _ai_cache["key"] == cache_key and _ai_cache["response"] and (_time.time() - _ai_cache["ts"]) < AI_CACHE_TTL:
+        log.info("AI cache hit")
+        return _ai_cache["response"]
 
     price   = data.get("price", 0)
     bar     = data.get("bar", {})
@@ -440,7 +452,11 @@ async def market_analyze():
     last_5.sort(key=lambda x: x.get("ts", 0))
     last_5_str = " | ".join(f"O={c.get('o',0):.2f} H={c.get('h',0):.2f} L={c.get('l',0):.2f} C={c.get('c',0):.2f} Δ={c.get('delta',0):+.0f}" for c in last_5) if last_5 else "N/A"
 
-    _e = {}  # empty dict fallback for mtf.get() inside f-string ({{}} doesn't work)
+    # Safe MTF access — mtf values can be None even when key exists
+    _m5  = mtf.get('m5')  or {}
+    _m15 = mtf.get('m15') or {}
+    _m30 = mtf.get('m30') or {}
+    _m60 = mtf.get('m60') or {}
     prompt = f"""אתה אנליסט בכיר למסחר ב-MES Futures. איכות מעל כמות — עדיף לפספס 3 עסקאות מלהיכנס לאחת שגויה.
 
 ═══ 1. CONTEXT — Macro Bias + Day Type + Killzone ═══
@@ -462,7 +478,7 @@ Killzone: {kz_name} ({kz_left}min left) | Gap: {day.get('gap_type','FLAT')} ({da
 ═══ 3. ORDER FLOW + FOOTPRINT ═══
 Delta: {bar_delta:+.0f} | CVD: trend={cvd.get('trend','?')} d5={cvd_d5:+.0f} d20={cvd.get('d20',0):+.0f}
 Volume: rel={rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')}) | Exhaustion: {vol_exh_str}
-MTF delta: 5m={mtf.get('m5',_e).get('delta',0):+.0f} 15m={mtf.get('m15',_e).get('delta',0):+.0f} 30m={mtf.get('m30',_e).get('delta',0):+.0f} 60m={mtf.get('m60',_e).get('delta',0):+.0f}
+MTF delta: 5m={_m5.get('delta',0):+.0f} 15m={_m15.get('delta',0):+.0f} 30m={_m30.get('delta',0):+.0f} 60m={_m60.get('delta',0):+.0f}
 CCI: 14={cci.get('cci14',0):.1f} 6={cci.get('cci6',0):.1f} trend={cci.get('trend','?')} turbo_bull={cci.get('turbo_bull',False)} turbo_bear={cci.get('turbo_bear',False)}
 OF: Absorption={of2.get('absorption_bull',False)} LiqSweepLong={of2.get('liq_sweep_long',False)} LiqSweepShort={of2.get('liq_sweep_short',False)}
 Candle: {candle_p.get('bar0','?')} prev={candle_p.get('bar1','?')} BullEngulf={candle_p.get('bull_engulf',False)} BearEngulf={candle_p.get('bear_engulf',False)}
@@ -510,7 +526,7 @@ markers כללים:
                 },
                 json={
                     "model": "claude-sonnet-4-6",
-                    "max_tokens": 2000,
+                    "max_tokens": 800,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
@@ -554,6 +570,10 @@ markers כללים:
             markers = []
         signal["markers"] = markers[:10]
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% markers={len(signal['markers'])}")
+        # Store in cache
+        _ai_cache["key"] = cache_key
+        _ai_cache["response"] = signal
+        _ai_cache["ts"] = _time.time()
         return signal
     except Exception as e:
         log.error(f"AI Claude call error: {e}")
