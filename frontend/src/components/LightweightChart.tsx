@@ -648,7 +648,7 @@ export default function LightweightChart({
     // Resize
     const ro = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({ width: containerRef.current.clientWidth });
+        try { chartRef.current.applyOptions({ width: containerRef.current.clientWidth }); } catch (e) {}
         drawOverlays();
         drawZones();
       }
@@ -729,9 +729,13 @@ export default function LightweightChart({
 
     const validCandles = cData.filter(c =>
       c.open != null && c.high != null && c.low != null && c.close != null &&
-      c.time != null && c.time > 1577836800
+      isFinite(c.open) && isFinite(c.high) && isFinite(c.low) && isFinite(c.close) &&
+      c.time != null && c.time > 1577836800 && isFinite(c.time)
     );
-    seriesRef.current.setData(validCandles);
+    // Deduplicate by time (LightweightCharts crashes on duplicate timestamps)
+    const seenTs = new Set<number>();
+    const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
+    try { seriesRef.current.setData(dedupCandles); } catch (e) { /* ignore stale data errors */ }
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
@@ -794,8 +798,8 @@ export default function LightweightChart({
         }
       }
 
-      cvdRef.current.setData(cvdData.filter(c => c.time != null && c.time > 1577836800 && c.value != null && isFinite(c.value)));
-      cvdMaRef.current.setData(maData.filter(c => c.time != null && c.time > 1577836800 && c.value != null && isFinite(c.value)));
+      try { cvdRef.current.setData(cvdData.filter(c => c.time != null && c.time > 1577836800 && c.value != null && isFinite(c.value))); } catch (e) {}
+      try { cvdMaRef.current.setData(maData.filter(c => c.time != null && c.time > 1577836800 && c.value != null && isFinite(c.value))); } catch (e) {}
     }
 
     // Volume histogram
@@ -818,8 +822,10 @@ export default function LightweightChart({
           color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
         });
       }
-      const validVol = volData.filter(c => c.value != null && c.value >= 0 && c.time != null && c.time > 1577836800);
-      volRef.current.setData(validVol);
+      const validVol = volData.filter(c => c.value != null && isFinite(c.value) && c.value >= 0 && c.time != null && c.time > 1577836800 && isFinite(c.time));
+      const seenVolTs = new Set<number>();
+      const dedupVol = validVol.filter(c => { if (seenVolTs.has(c.time)) return false; seenVolTs.add(c.time); return true; });
+      try { volRef.current.setData(dedupVol); } catch (e) { /* ignore */ }
     }
 
     // Redraw overlays (volume profile + sweep zone) — delay to let chart render
