@@ -525,9 +525,13 @@ export default function LightweightChart({
     const LW = (window as any).LightweightCharts;
     if (!LW) return;
 
+    const cw = containerRef.current.clientWidth || 800;
+    const ch = height ?? (containerRef.current.clientHeight || 500);
+    if (cw <= 0 || ch <= 0) return;  // container not ready
+
     const chart = LW.createChart(containerRef.current, {
-      width:  containerRef.current.clientWidth,
-      height: height ?? (containerRef.current?.clientHeight ?? 500),
+      width:  cw,
+      height: ch,
       layout: {
         background: { color: '#0d1117' },
         textColor:  '#94a3b8',
@@ -557,12 +561,14 @@ export default function LightweightChart({
       },
       localization: {
         timeFormatter: (timestamp: number) => {
+          if (!timestamp || !isFinite(timestamp)) return '';
           const date = new Date(timestamp * 1000);
           const hours = date.getHours().toString().padStart(2, '0');
           const minutes = date.getMinutes().toString().padStart(2, '0');
           return `${hours}:${minutes}`;
         },
         dateFormatter: (timestamp: number) => {
+          if (!timestamp || !isFinite(timestamp)) return '';
           const date = new Date(timestamp * 1000);
           return `${date.getDate()}/${date.getMonth()+1}`;
         },
