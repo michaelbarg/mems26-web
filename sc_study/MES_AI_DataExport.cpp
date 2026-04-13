@@ -1,8 +1,7 @@
-// MES_AI_DataExport.cpp — v7.0 (A8: Footprint Booleans)
+// MES_AI_DataExport.cpp — v7.1 (split: live data + history on new bar)
 // Sierra Chart ACSIL Study — 3 minute chart
-// מייצא: MTF (כולל m5), CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
-//         Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
-//         Footprint (10 נרות), Order Fills, HistoryInit (960 נרות)
+// mes_ai_data.json: live data every 3s — MTF current bars, footprint (10), order fills
+// mes_ai_history.json: on new bar close — 960 candles, MTF history, full footprint (200)
 
 #include "sierrachart.h"
 #include <fstream>
@@ -422,16 +421,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     };
     MTFBar m3=calcBarAligned(180),m5=calcBarAligned(300),m15=calcBarAligned(900),m30=calcBarAligned(1800),m60=calcBarAligned(3600);
 
-    // ── Footprint — נרות אחרונים (bar-level) ──────────────────
+    // ── Footprint — last 10 bars for live file (lightweight) ──
     std::ostringstream fp_j;
     fp_j << std::fixed << std::setprecision(2);
     fp_j << "[";
-    int fp_count = FootprintBars.GetInt();
-    if (fp_count < 10) fp_count = 10;
-    if (fp_count > 960) fp_count = 960;
-    int fp_start = (idx >= fp_count - 1) ? idx - (fp_count - 1) : 0;
-    for (int bi = fp_start; bi <= idx; bi++) {
-        if (bi > fp_start) fp_j << ",";
+    int fp_live_count = 10;
+    int fp_live_start = (idx >= fp_live_count - 1) ? idx - (fp_live_count - 1) : 0;
+    for (int bi = fp_live_start; bi <= idx; bi++) {
+        if (bi > fp_live_start) fp_j << ",";
         fp_j << "{\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[bi])
              << ",\"o\":"     << sc.Open[bi]
              << ",\"h\":"     << sc.High[bi]
@@ -465,8 +462,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     fills_j << "]";
 
-    // ── HistoryInit — שולח 960 נרות + MTF היסטוריה פעם אחת בטעינה ──
-    if (sc.IsFullRecalculation && idx == sc.ArraySize - 1)
+    // ── History — written to separate file on new bar close or full recalc ──
+    static int s_last_bar_count = 0;
+    int current_bars = sc.ArraySize;
+    bool new_bar = (current_bars != s_last_bar_count);
+    if (new_bar) s_last_bar_count = current_bars;
+
+    if ((sc.IsFullRecalculation && idx == sc.ArraySize - 1) || (new_bar && idx == sc.ArraySize - 1))
     {
         int hist_count = (sc.ArraySize >= 960) ? 960 : sc.ArraySize;
         int hist_start = sc.ArraySize - hist_count;
@@ -559,7 +561,27 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         writeMTFArray(hj, m30h);
         hj << ",\"m60\":";
         writeMTFArray(hj, m60h);
-        hj << "}}";
+        hj << "},";
+
+        // ── Full footprint (200 bars) in history file ──
+        int fp_hist_count = FootprintBars.GetInt();
+        if (fp_hist_count < 10) fp_hist_count = 10;
+        if (fp_hist_count > 960) fp_hist_count = 960;
+        int fp_hist_start = (idx >= fp_hist_count - 1) ? idx - (fp_hist_count - 1) : 0;
+        hj << "\"footprint\":[";
+        for (int bi = fp_hist_start; bi <= idx; bi++) {
+            if (bi > fp_hist_start) hj << ",";
+            hj << "{\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[bi])
+               << ",\"o\":"     << sc.Open[bi]
+               << ",\"h\":"     << sc.High[bi]
+               << ",\"l\":"     << sc.Low[bi]
+               << ",\"c\":"     << sc.Close[bi]
+               << ",\"buy\":"   << sc.AskVolume[bi]
+               << ",\"sell\":"  << sc.BidVolume[bi]
+               << ",\"delta\":" << (sc.AskVolume[bi] - sc.BidVolume[bi])
+               << "}";
+        }
+        hj << "]}";
 
         std::ofstream hf(HistoryPath.GetString());
         if (hf.is_open()) { hf << hj.str(); hf.close(); }
