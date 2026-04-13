@@ -526,11 +526,14 @@ markers כללים:
                 },
                 json={
                     "model": "claude-sonnet-4-6",
-                    "max_tokens": 800,
+                    "max_tokens": 1200,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
         result = resp.json()
+        if result.get("type") == "error" or resp.status_code != 200:
+            log.error(f"Claude API error: status={resp.status_code} body={str(result)[:300]}")
+            raise ValueError(f"Claude API {resp.status_code}: {result.get('error', {}).get('message', str(result)[:100])}")
         text = result.get("content", [{}])[0].get("text", "").strip()
         if "```" in text:
             parts = text.split("```")
