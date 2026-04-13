@@ -565,12 +565,14 @@ markers כללים:
             "t3_win_rate": 0, "wait_reason": "נסה שוב בעוד דקה", "markers": [], "ts": 0
         }
   except Exception as e:
-    log.error(f"market_analyze crashed: {e}", exc_info=True)
+    import traceback
+    tb = traceback.format_exc()
+    log.error(f"market_analyze crashed: {e}\n{tb}")
     return {
         "direction": "NO_TRADE", "score": 0, "confidence": 0,
         "setup": "שגיאה פנימית", "win_rate": 0,
         "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
-        "risk_pts": 0, "rationale": f"שגיאה: {str(e)[:150]}",
+        "risk_pts": 0, "rationale": f"שגיאה: {str(e)[:100]} | {tb[-200:]}",
         "tl_color": "red", "t1_win_rate": 0, "t2_win_rate": 0,
         "t3_win_rate": 0, "wait_reason": "שגיאה פנימית — בדוק logs", "markers": [], "ts": 0
     }
