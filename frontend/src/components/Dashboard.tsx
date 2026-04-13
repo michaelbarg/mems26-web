@@ -26,6 +26,22 @@ interface MarketData {
 }
 interface Candle { ts:number; o:number; h:number; l:number; c:number; buy:number; sell:number; delta:number; }
 
+// ── Normalize candle — single source of truth ────────────────────────────────
+function normalizeCandle(c: any): Candle | null {
+  const o = c.o ?? c.open ?? 0;
+  const h = c.h ?? c.high ?? 0;
+  const l = c.l ?? c.low ?? 0;
+  const cl = c.c ?? c.close ?? 0;
+  const ts = c.ts ?? c.time ?? 0;
+  if (!o || !h || !l || !cl || ts < 1577836800) return null;
+  if (!isFinite(o) || !isFinite(h) || !isFinite(l) || !isFinite(cl)) return null;
+  return {
+    ts, o, h, l, c: cl,
+    buy: c.buy ?? 0, sell: c.sell ?? 0,
+    delta: c.delta ?? ((c.buy ?? 0) - (c.sell ?? 0)),
+  };
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const G = '#22c55e', Y = '#f59e0b', R = '#ef5350';
 const scoreCol = (s:number) => s >= 7 ? G : s >= 5 ? Y : R;
@@ -3233,24 +3249,14 @@ export default function Dashboard() {
       if(!r.ok)return;
       const raw=await r.json();
       if(!Array.isArray(raw))return;
-      // flatten — מטפל ב-nested arrays וב-strings
+      // flatten + normalize through single normalizeCandle()
       const flat:Candle[]=[];
       for(const item of raw){
-        const normalize=(c:any)=>{
-          if(c?.open!==undefined && c?.o===undefined){
-            c.o=c.open; c.h=c.high; c.l=c.low; c.c=c.close;
-          }
+        const parse=(v:any)=>{
+          try{ const c=typeof v==='string'?JSON.parse(v):v; const n=normalizeCandle(c); if(n)flat.push(n); }catch{}
         };
-        if(Array.isArray(item)){
-          for(const sub of item){
-            try{const c=typeof sub==='string'?JSON.parse(sub):sub;if(c?.ts>0){normalize(c);flat.push(c);}}catch{}
-          }
-        } else {
-          try{
-            const c=typeof item==='string'?JSON.parse(item):item;
-            if(c?.ts>0){normalize(c);flat.push(c);}
-          }catch{}
-        }
+        if(Array.isArray(item)){ for(const sub of item) parse(sub); }
+        else parse(item);
       }
       // מיין חדש→ישן, הסר כפולים
       flat.sort((a,b)=>b.ts-a.ts);
@@ -3494,7 +3500,7 @@ export default function Dashboard() {
                 const sec=tfSec[tf]||180;
                 const cc=tf==='3m'?live.current_candle:
                           (live as any)?.[`current_candle_${tfMtf[tf]}`] ?? null;
-                return {
+                const raw={
                   ts:   cc?.ts ?? Math.floor(Date.now()/1000 / sec) * sec,
                   o:    cc?.o ?? cc?.open ?? live.bar.o,
                   h:    cc?.h ?? cc?.high ?? live.bar.h,
@@ -3503,6 +3509,7 @@ export default function Dashboard() {
                   buy:  cc?.buy ?? live.bar.buy,
                   sell: cc?.sell ?? live.bar.sell,
                 };
+                return normalizeCandle(raw);
               })() : null}
               vwap={live?.vwap?.value}
               levels={live?.levels}
