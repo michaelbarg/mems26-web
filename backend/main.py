@@ -166,9 +166,10 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://thunderous-sopapillas-7ddb4b.netlify.app", "http://localhost:3000", "*"],
     allow_methods=["*"],
     allow_headers=["*"],
+    allow_credentials=True,
 )
 
 
@@ -277,6 +278,7 @@ async def get_candles_1h(limit: int = 64):
 
 @app.get("/market/analyze")
 async def market_analyze():
+  try:
     if not ANTHROPIC_API_KEY:
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not set")
 
@@ -534,8 +536,25 @@ markers כללים:
         log.info(f"AI: {signal.get('direction')} score={signal.get('score')} win={signal.get('win_rate')}% markers={len(signal['markers'])}")
         return signal
     except Exception as e:
-        log.error(f"AI error: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error(f"AI Claude call error: {e}")
+        return {
+            "direction": "NO_TRADE", "score": 0, "confidence": 0,
+            "setup": "שגיאת AI", "win_rate": 0,
+            "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
+            "risk_pts": 0, "rationale": f"שגיאת AI: {str(e)[:100]}",
+            "tl_color": "red", "t1_win_rate": 0, "t2_win_rate": 0,
+            "t3_win_rate": 0, "wait_reason": "נסה שוב בעוד דקה", "markers": [], "ts": 0
+        }
+  except Exception as e:
+    log.error(f"market_analyze crashed: {e}", exc_info=True)
+    return {
+        "direction": "NO_TRADE", "score": 0, "confidence": 0,
+        "setup": "שגיאה פנימית", "win_rate": 0,
+        "entry": 0, "stop": 0, "target1": 0, "target2": 0, "target3": 0,
+        "risk_pts": 0, "rationale": f"שגיאה: {str(e)[:150]}",
+        "tl_color": "red", "t1_win_rate": 0, "t2_win_rate": 0,
+        "t3_win_rate": 0, "wait_reason": "שגיאה פנימית — בדוק logs", "markers": [], "ts": 0
+    }
 
 
 @app.post("/ingest/footprint")
