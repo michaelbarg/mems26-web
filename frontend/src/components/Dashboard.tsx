@@ -3319,8 +3319,30 @@ export default function Dashboard() {
       ws.onmessage = (e) => {
         try {
           const d = JSON.parse(e.data);
-          if (d.type === 'status_update' && d.circuit_breaker)
-            setWsCB({ allowed: d.circuit_breaker.allowed, reason: d.circuit_breaker.reason ?? '' });
+          if (d.type === 'status_update') {
+            if (d.circuit_breaker)
+              setWsCB({ allowed: d.circuit_breaker.allowed, reason: d.circuit_breaker.reason ?? '' });
+            // D5: Wire WS trade data to ActiveTradePanel
+            const t = d.trade;
+            if (t && t.status === 'OPEN') {
+              setActiveTrade({
+                direction: t.direction,
+                setupType: t.setup_type || 'MANUAL',
+                entryPrice: t.entry_price || 0,
+                stopPrice: t.stop || 0,
+                t1: t.t1 || 0,
+                t2: t.t2 || 0,
+                t3: t.t3 || 0,
+                entryTs: t.entry_ts || 0,
+                healthScore: 70,
+                c1Status: t.c1_status === 'closed' ? 'closed' : 'open',
+                c2Status: t.c2_status === 'closed' ? 'closed' : 'open',
+                c3Status: t.c3_status === 'closed' ? 'closed' : 'open',
+              });
+            } else if (t && (t.status === 'CLOSED' || t.status === 'NO_TRADE')) {
+              setActiveTrade(null);
+            }
+          }
         } catch {}
       };
       ws.onclose = () => { wsRef.current = null; retryTimer = setTimeout(connect, 5000); };
@@ -3654,9 +3676,25 @@ export default function Dashboard() {
             <ActiveTradePanel
               trade={activeTrade}
               currentPrice={live?.price ?? 0}
-              onScaleC1={() => setActiveTrade(t => t ? { ...t, c1Status: 'closed' as const } : null)}
-              onScaleC2={() => setActiveTrade(t => t ? { ...t, c2Status: 'closed' as const } : null)}
-              onCloseAll={() => setActiveTrade(null)}
+              onScaleC1={async () => {
+                try {
+                  await fetch(`${API_URL}/trade/scale`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({contract:'c1',exit_price:0}) });
+                  setActiveTrade(t => t ? { ...t, c1Status: 'closed' as const } : null);
+                } catch {}
+              }}
+              onScaleC2={async () => {
+                try {
+                  await fetch(`${API_URL}/trade/scale`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({contract:'c2',exit_price:0}) });
+                  setActiveTrade(t => t ? { ...t, c2Status: 'closed' as const } : null);
+                } catch {}
+              }}
+              onCloseAll={async () => {
+                if (!confirm('Close all contracts?')) return;
+                try {
+                  await fetch(`${API_URL}/trade/close`, { method:'POST', headers:{'content-type':'application/json'}, body:JSON.stringify({exit_price:0,reason:'manual'}) });
+                  setActiveTrade(null);
+                } catch {}
+              }}
             />
           )}
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
