@@ -22,6 +22,9 @@ REDIS_CANDLES_30M  = "mems26:candles:30m"
 REDIS_CANDLES_1H   = "mems26:candles:1h"
 REDIS_FOOTPRINT_KEY = "mems26:footprint"
 REDIS_PATTERNS_KEY  = "mems26:patterns"
+REDIS_TRADE_STATUS  = "mems26:trade:status"
+REDIS_DAILY_PNL     = "mems26:daily:pnl"
+REDIS_DAILY_TRADES  = "mems26:daily:trades"
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 
@@ -74,6 +77,41 @@ async def redis_lrange(key: str, start: int, stop: int) -> list:
     except Exception as e:
         log.warning(f"Redis lrange failed: {e}")
         return []
+
+
+async def redis_set_key(key: str, value):
+    """Set an arbitrary Redis key to a JSON-serializable value."""
+    if not REDIS_URL or not REDIS_TOKEN:
+        return
+    try:
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"{REDIS_URL}/set/{key}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                json=json.dumps(value) if not isinstance(value, str) else value,
+                timeout=3.0
+            )
+    except Exception as e:
+        log.warning(f"Redis set_key({key}) failed: {e}")
+
+
+async def redis_get_key(key: str):
+    """Get an arbitrary Redis key, returns parsed JSON or None."""
+    if not REDIS_URL or not REDIS_TOKEN:
+        return None
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{REDIS_URL}/get/{key}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=3.0
+            )
+            val = resp.json().get("result")
+            if val:
+                return json.loads(val) if isinstance(val, str) else val
+    except Exception as e:
+        log.warning(f"Redis get_key({key}) failed: {e}")
+    return None
 
 
 async def redis_get_json_array(key: str) -> list:
@@ -1064,6 +1102,261 @@ async def trade_health(request: Request):
         "day_type": day.get("type", ""),
         "rel_vol": round(rel_vol, 2),
     }
+
+
+# ── Phase C: Semi-Auto Trading ────────────────────────────────────────────
+
+# Circuit Breaker thresholds
+CB_SOFT_LIMIT    = 150   # $150/day → lock 30 min
+CB_HARD_LIMIT    = 200   # $200/day → lock until next day
+CB_MAX_TRADES    = 3     # max 3 trades/day
+CB_CONSEC_LOSSES = 2     # 2 consecutive losses → lock 30 min
+CB_LOCK_MIN      = 30    # lock duration in minutes
+
+
+async def get_daily_state() -> dict:
+    """Get daily P&L and trade count from Redis."""
+    state = await redis_get_key(REDIS_DAILY_PNL)
+    if not state or not isinstance(state, dict):
+        state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
+                 "locked_until": 0, "hard_locked": False, "date": ""}
+    return state
+
+
+async def save_daily_state(state: dict):
+    await redis_set_key(REDIS_DAILY_PNL, state)
+
+
+async def check_circuit_breaker() -> dict:
+    """Check if trading is allowed. Returns {allowed, reason, lock_minutes}."""
+    import time
+    state = await get_daily_state()
+
+    # Reset if new day
+    today = __import__("datetime").date.today().isoformat()
+    if state.get("date") != today:
+        state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
+                 "locked_until": 0, "hard_locked": False, "date": today}
+        await save_daily_state(state)
+
+    now = time.time()
+
+    # Hard lock — until next day
+    if state.get("hard_locked"):
+        return {"allowed": False, "reason": f"Hard lock: daily loss ${abs(state['pnl']):.0f} >= ${CB_HARD_LIMIT}", "lock_minutes": -1}
+
+    # Soft lock — timed
+    locked_until = state.get("locked_until", 0)
+    if locked_until > now:
+        remaining = int((locked_until - now) / 60)
+        return {"allowed": False, "reason": f"Locked for {remaining} more minutes", "lock_minutes": remaining}
+
+    # Max trades
+    if state.get("trade_count", 0) >= CB_MAX_TRADES:
+        return {"allowed": False, "reason": f"Max {CB_MAX_TRADES} trades/day reached", "lock_minutes": -1}
+
+    return {"allowed": True, "reason": "", "lock_minutes": 0}
+
+
+@app.get("/trade/circuit-breaker")
+async def get_circuit_breaker():
+    """Check circuit breaker status."""
+    cb = await check_circuit_breaker()
+    state = await get_daily_state()
+    return {
+        **cb,
+        "daily_pnl": state.get("pnl", 0),
+        "trade_count": state.get("trade_count", 0),
+        "consecutive_losses": state.get("consecutive_losses", 0),
+        "soft_limit": CB_SOFT_LIMIT,
+        "hard_limit": CB_HARD_LIMIT,
+        "max_trades": CB_MAX_TRADES,
+    }
+
+
+@app.post("/trade/execute")
+async def trade_execute(request: Request):
+    """C1: Semi-auto trade execution.
+    Accepts: {direction, entry_price, stop, t1, t2, t3, setup_type}
+    Validates circuit breaker, stores trade status in Redis.
+    """
+    import time
+
+    # Circuit breaker check
+    cb = await check_circuit_breaker()
+    if not cb["allowed"]:
+        raise HTTPException(status_code=403, detail=cb["reason"])
+
+    body = await request.json()
+    direction  = body.get("direction", "")
+    entry      = body.get("entry_price", 0)
+    stop       = body.get("stop", 0)
+    t1         = body.get("t1", 0)
+    t2         = body.get("t2", 0)
+    t3         = body.get("t3", 0)
+    setup_type = body.get("setup_type", "MANUAL")
+
+    if direction not in ("LONG", "SHORT"):
+        raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
+    if entry <= 0 or stop <= 0:
+        raise HTTPException(status_code=400, detail="entry_price and stop required")
+
+    # Check no active trade
+    active = await redis_get_key(REDIS_TRADE_STATUS)
+    if active and active.get("status") == "OPEN":
+        raise HTTPException(status_code=409, detail="Trade already open")
+
+    risk = abs(entry - stop)
+    if risk > 8:
+        raise HTTPException(status_code=400, detail=f"Risk {risk:.2f}pt exceeds 8pt max")
+
+    trade_id = f"T{int(time.time())}"
+    trade = {
+        "id": trade_id,
+        "direction": direction,
+        "entry_price": entry,
+        "stop": stop,
+        "t1": t1,
+        "t2": t2,
+        "t3": t3,
+        "risk_pts": round(risk, 2),
+        "setup_type": setup_type,
+        "entry_ts": int(time.time()),
+        "status": "OPEN",
+        "c1_status": "open",
+        "c2_status": "open",
+        "c3_status": "open",
+        "pnl_pts": 0,
+        "pnl_usd": 0,
+    }
+
+    await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+    # Increment daily trade count
+    state = await get_daily_state()
+    today = __import__("datetime").date.today().isoformat()
+    if state.get("date") != today:
+        state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
+                 "locked_until": 0, "hard_locked": False, "date": today}
+    state["trade_count"] = state.get("trade_count", 0) + 1
+    await save_daily_state(state)
+
+    log.info(f"Trade opened: {trade_id} {direction} @ {entry} stop={stop} risk={risk:.2f}")
+    return {"ok": True, "trade": trade}
+
+
+@app.post("/trade/close")
+async def trade_close(request: Request):
+    """Close active trade. Updates daily P&L and circuit breaker state."""
+    import time
+
+    active = await redis_get_key(REDIS_TRADE_STATUS)
+    if not active or active.get("status") != "OPEN":
+        raise HTTPException(status_code=404, detail="No active trade")
+
+    body = await request.json()
+    exit_price = body.get("exit_price", 0)
+    reason = body.get("reason", "manual")
+
+    if exit_price <= 0:
+        # Use current market price
+        data = await redis_get()
+        exit_price = data.get("price", 0) if data else 0
+    if exit_price <= 0:
+        raise HTTPException(status_code=400, detail="exit_price required")
+
+    direction = active["direction"]
+    entry = active["entry_price"]
+    pnl_pts = (exit_price - entry) if direction == "LONG" else (entry - exit_price)
+    pnl_usd = round(pnl_pts * 5, 2)
+
+    # Update trade record
+    active["status"] = "CLOSED"
+    active["exit_price"] = exit_price
+    active["exit_ts"] = int(time.time())
+    active["pnl_pts"] = round(pnl_pts, 2)
+    active["pnl_usd"] = pnl_usd
+    active["close_reason"] = reason
+    await redis_set_key(REDIS_TRADE_STATUS, active)
+
+    # Update daily state + circuit breaker
+    state = await get_daily_state()
+    state["pnl"] = round(state.get("pnl", 0) + pnl_usd, 2)
+
+    if pnl_pts < 0:
+        state["consecutive_losses"] = state.get("consecutive_losses", 0) + 1
+    else:
+        state["consecutive_losses"] = 0
+
+    # Circuit breaker triggers
+    if abs(state["pnl"]) >= CB_HARD_LIMIT and state["pnl"] < 0:
+        state["hard_locked"] = True
+        log.warning(f"HARD LOCK: daily loss ${abs(state['pnl']):.0f}")
+    elif abs(state["pnl"]) >= CB_SOFT_LIMIT and state["pnl"] < 0:
+        state["locked_until"] = time.time() + CB_LOCK_MIN * 60
+        log.warning(f"SOFT LOCK: daily loss ${abs(state['pnl']):.0f} — locked {CB_LOCK_MIN}min")
+    elif state["consecutive_losses"] >= CB_CONSEC_LOSSES:
+        state["locked_until"] = time.time() + CB_LOCK_MIN * 60
+        log.warning(f"CONSEC LOCK: {state['consecutive_losses']} consecutive losses — locked {CB_LOCK_MIN}min")
+
+    await save_daily_state(state)
+
+    log.info(f"Trade closed: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f}) reason={reason}")
+    return {"ok": True, "trade": active, "daily_pnl": state["pnl"], "circuit_breaker": await check_circuit_breaker()}
+
+
+@app.get("/trade/status")
+async def trade_status():
+    """Get active trade status."""
+    active = await redis_get_key(REDIS_TRADE_STATUS)
+    if not active:
+        return {"status": "NO_TRADE"}
+
+    # If trade is open, calculate live P&L
+    if active.get("status") == "OPEN":
+        data = await redis_get()
+        if data:
+            price = data.get("price", 0)
+            direction = active["direction"]
+            entry = active["entry_price"]
+            pnl = (price - entry) if direction == "LONG" else (entry - price)
+            active["live_pnl_pts"] = round(pnl, 2)
+            active["live_pnl_usd"] = round(pnl * 5, 2)
+            active["current_price"] = price
+
+    return active
+
+
+@app.post("/trade/scale")
+async def trade_scale(request: Request):
+    """Scale out a contract (C1/C2/C3)."""
+    active = await redis_get_key(REDIS_TRADE_STATUS)
+    if not active or active.get("status") != "OPEN":
+        raise HTTPException(status_code=404, detail="No active trade")
+
+    body = await request.json()
+    contract = body.get("contract", "")  # "c1", "c2", "c3"
+    exit_price = body.get("exit_price", 0)
+
+    if contract not in ("c1", "c2", "c3"):
+        raise HTTPException(status_code=400, detail="contract must be c1, c2, or c3")
+
+    key = f"{contract}_status"
+    if active.get(key) == "closed":
+        raise HTTPException(status_code=409, detail=f"{contract} already closed")
+
+    active[key] = "closed"
+    active[f"{contract}_exit_price"] = exit_price
+    active[f"{contract}_exit_ts"] = int(__import__("time").time())
+
+    # Move stop to BE after C1
+    if contract == "c1" and exit_price > 0:
+        active["stop"] = active["entry_price"]
+        log.info(f"Stop moved to BE: {active['entry_price']}")
+
+    await redis_set_key(REDIS_TRADE_STATUS, active)
+    log.info(f"Scaled out {contract} @ {exit_price}")
+    return {"ok": True, "trade": active}
 
 
 @app.get("/health")
