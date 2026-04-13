@@ -523,8 +523,9 @@ export default function LightweightChart({
 
 
   const initChart = useCallback(() => {
+    console.log('[MEMS26] initChart called, candles:', candlesRef.current?.length ?? 0, 'chart exists:', !!chartRef.current);
     if (!containerRef.current || chartRef.current) return;
-    if (!candlesRef.current || candlesRef.current.length === 0) return;
+    if (!candlesRef.current || candlesRef.current.length === 0) { console.log('[MEMS26] no candles, skipping createChart'); return; }
     const LW = (window as any).LightweightCharts;
     if (!LW) return;
 
