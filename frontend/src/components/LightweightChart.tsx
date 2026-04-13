@@ -801,15 +801,15 @@ export default function LightweightChart({
       // D4: Footprint heatmap — color sweep candles
       if (sweepTsSet.has(Math.floor(c.ts))) {
         if (fpAbsorption) {
-          base.color = '#ff8c00';         // orange = absorption
-          base.borderColor = '#ff6600';
-          base.wickUpColor = '#ff8c00';
-          base.wickDownColor = '#ff8c00';
+          base.color = '#F97316';         // orange = absorption
+          base.borderColor = '#EA580C';
+          base.wickUpColor = '#F97316';
+          base.wickDownColor = '#F97316';
         } else if (fpExhaustion) {
-          base.color = '#3b82f6';         // blue = exhaustion
-          base.borderColor = '#2563eb';
-          base.wickUpColor = '#3b82f6';
-          base.wickDownColor = '#3b82f6';
+          base.color = '#3B82F6';         // blue = exhaustion
+          base.borderColor = '#2563EB';
+          base.wickUpColor = '#3B82F6';
+          base.wickDownColor = '#3B82F6';
         }
       }
       // D7: color body only (wick stays original green/red)
