@@ -5,8 +5,9 @@ json_bridge.py — v5
 - מעביר ישירות שדות חדשים מ-Study v5: woodies_cci, day_context, candle_patterns, volume_context
 """
 import json, asyncio, aiohttp, os, logging, time
-from datetime import datetime
+from datetime import datetime, time as dtime
 from dataclasses import dataclass
+from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from pattern_scanner import scan_patterns, is_in_killzone
 
@@ -33,6 +34,29 @@ MTF_CONFIG = [
     ("m30", "mems26:candles:30m", 1800, 48),
     ("m60", "mems26:candles:1h",  3600, 64),
 ]
+
+ET = ZoneInfo("America/New_York")
+
+def is_trading_session() -> bool:
+    """MES futures trade Sun-Fri. Closed: Fri 16:00 → Sun 17:00 ET, daily break 16:00-17:00 ET."""
+    now = datetime.now(ET)
+    weekday = now.weekday()  # 0=Mon, 6=Sun
+    t = now.time()
+
+    # Weekend: Friday 16:00 → Sunday 17:00
+    if weekday == 4 and t >= dtime(16, 0):   # Friday after 16:00
+        return False
+    if weekday == 5:                          # Saturday
+        return False
+    if weekday == 6 and t < dtime(17, 0):    # Sunday before 17:00
+        return False
+
+    # Daily maintenance break: 16:00-17:00 ET
+    if dtime(16, 0) <= t < dtime(17, 0):
+        return False
+
+    return True
+
 
 @dataclass
 class SessionState:
@@ -777,6 +801,10 @@ async def main():
 
     async with aiohttp.ClientSession() as http:
         while True:
+            if not is_trading_session():
+                log.info("Market closed — waiting 30s")
+                await asyncio.sleep(30)
+                continue
             try:
                 with open(SC_JSON_PATH) as f:
                     raw = json.load(f)
