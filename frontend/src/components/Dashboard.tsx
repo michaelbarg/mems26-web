@@ -3386,7 +3386,7 @@ export default function Dashboard() {
                 t2: t.t2 || 0,
                 t3: t.t3 || 0,
                 entryTs: t.entry_ts || 0,
-                healthScore: 70,
+                healthScore: d.trade_health ?? 70,
                 c1Status: t.c1_status === 'closed' ? 'closed' : 'open',
                 c2Status: t.c2_status === 'closed' ? 'closed' : 'open',
                 c3Status: t.c3_status === 'closed' ? 'closed' : 'open',

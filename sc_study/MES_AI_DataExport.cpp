@@ -1,7 +1,9 @@
-// MES_AI_DataExport.cpp — v7.1 (split: live data + history on new bar)
+// MES_AI_DataExport.cpp — v8.0 (C5: Trade Command Execution)
 // Sierra Chart ACSIL Study — 3 minute chart
-// mes_ai_data.json: live data every 3s — MTF current bars, footprint (10), order fills
-// mes_ai_history.json: on new bar close — 960 candles, MTF history, full footprint (200)
+// מייצא: MTF (כולל m5), CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
+//         Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
+//         Footprint (10 נרות), Order Fills, HistoryInit (960 נרות)
+// C5: Reads trade_command.json, verifies checksum, executes bracket order
 
 #include "sierrachart.h"
 #include <fstream>
@@ -68,6 +70,99 @@ static const char* getPhase(int H, int M)
     return "OVERNIGHT";
 }
 
+// ── SHA-256 (minimal, self-contained) ────────────────────────────────────────
+static void sha256(const unsigned char* data, size_t len, unsigned char out[32])
+{
+    uint32_t h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,
+             h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+    static const uint32_t k[64]={
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2};
+    // Padding
+    size_t new_len = len + 1;
+    while (new_len % 64 != 56) new_len++;
+    std::vector<unsigned char> msg(new_len + 8, 0);
+    memcpy(&msg[0], data, len);
+    msg[len] = 0x80;
+    uint64_t bit_len = (uint64_t)len * 8;
+    for (int i = 0; i < 8; i++) msg[new_len + 7 - i] = (unsigned char)(bit_len >> (i * 8));
+    // Process blocks
+    for (size_t off = 0; off < msg.size(); off += 64) {
+        uint32_t w[64];
+        for (int i = 0; i < 16; i++)
+            w[i] = ((uint32_t)msg[off+i*4]<<24)|((uint32_t)msg[off+i*4+1]<<16)|
+                   ((uint32_t)msg[off+i*4+2]<<8)|msg[off+i*4+3];
+        for (int i = 16; i < 64; i++) {
+            uint32_t s0 = ((w[i-15]>>7)|(w[i-15]<<25))^((w[i-15]>>18)|(w[i-15]<<14))^(w[i-15]>>3);
+            uint32_t s1 = ((w[i-2]>>17)|(w[i-2]<<15))^((w[i-2]>>19)|(w[i-2]<<13))^(w[i-2]>>10);
+            w[i] = w[i-16]+s0+w[i-7]+s1;
+        }
+        uint32_t a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,hh=h7;
+        for (int i = 0; i < 64; i++) {
+            uint32_t S1=((e>>6)|(e<<26))^((e>>11)|(e<<21))^((e>>25)|(e<<7));
+            uint32_t ch=(e&f)^((~e)&g);
+            uint32_t t1=hh+S1+ch+k[i]+w[i];
+            uint32_t S0=((a>>2)|(a<<30))^((a>>13)|(a<<19))^((a>>22)|(a<<10));
+            uint32_t maj=(a&b)^(a&c)^(b&c);
+            uint32_t t2=S0+maj;
+            hh=g;g=f;f=e;e=d+t1;d=c;c=b;b=a;a=t1+t2;
+        }
+        h0+=a;h1+=b;h2+=c;h3+=d;h4+=e;h5+=f;h6+=g;h7+=hh;
+    }
+    uint32_t hash[8]={h0,h1,h2,h3,h4,h5,h6,h7};
+    for(int i=0;i<8;i++){out[i*4]=(unsigned char)(hash[i]>>24);out[i*4+1]=(unsigned char)(hash[i]>>16);
+        out[i*4+2]=(unsigned char)(hash[i]>>8);out[i*4+3]=(unsigned char)hash[i];}
+}
+
+static std::string sha256hex(const std::string& input)
+{
+    unsigned char hash[32];
+    sha256((const unsigned char*)input.c_str(), input.size(), hash);
+    char hex[65];
+    for (int i = 0; i < 32; i++) sprintf(hex + i * 2, "%02x", hash[i]);
+    hex[64] = 0;
+    return std::string(hex);
+}
+
+// ── Minimal JSON field extraction (no external lib) ──────────────────────────
+static std::string jsonStr(const std::string& json, const std::string& key)
+{
+    std::string search = "\"" + key + "\"";
+    size_t p = json.find(search);
+    if (p == std::string::npos) return "";
+    p = json.find(':', p);
+    if (p == std::string::npos) return "";
+    p++;
+    while (p < json.size() && json[p] == ' ') p++;
+    if (p < json.size() && json[p] == '"') {
+        size_t start = p + 1;
+        size_t end = json.find('"', start);
+        return (end != std::string::npos) ? json.substr(start, end - start) : "";
+    }
+    // number or bool
+    size_t start = p;
+    size_t end = json.find_first_of(",} \n\r", start);
+    return (end != std::string::npos) ? json.substr(start, end - start) : json.substr(start);
+}
+
+static double jsonNum(const std::string& json, const std::string& key)
+{
+    std::string v = jsonStr(json, key);
+    return v.empty() ? 0.0 : atof(v.c_str());
+}
+
+static long long jsonInt(const std::string& json, const std::string& key)
+{
+    std::string v = jsonStr(json, key);
+    return v.empty() ? 0LL : atoll(v.c_str());
+}
+
 SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 {
     SCSubgraphRef CVD   = sc.Subgraph[0];
@@ -82,10 +177,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef IBPeriodMin       = sc.Input[4];
     SCInputRef HistoryPath       = sc.Input[5];
     SCInputRef FootprintBars     = sc.Input[6];
+    SCInputRef CommandPath       = sc.Input[7];
+    SCInputRef ResultPath        = sc.Input[8];
+    SCInputRef BridgeToken       = sc.Input[9];
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7";
+        sc.GraphName        = "MES AI Data Export v8";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -104,6 +202,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         HistoryPath.SetString("C:\\SierraChart2\\Data\\mes_ai_history.json");
         FootprintBars.Name = "Footprint Bars Count";
         FootprintBars.SetInt(200);
+        CommandPath.Name = "Trade Command JSON Path";
+        CommandPath.SetString("C:\\SierraChart2\\Data\\trade_command.json");
+        ResultPath.Name = "Trade Result JSON Path";
+        ResultPath.SetString("C:\\SierraChart2\\Data\\trade_result.json");
+        BridgeToken.Name = "Bridge Token";
+        BridgeToken.SetString("michael-mems26-2026");
+        sc.AllowMultipleEntriesInSameDirection = 0;
+        sc.MaximumPositionAllowed = 3;
+        sc.SupportReversals = 0;
         return;
     }
 
@@ -421,14 +528,16 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     };
     MTFBar m3=calcBarAligned(180),m5=calcBarAligned(300),m15=calcBarAligned(900),m30=calcBarAligned(1800),m60=calcBarAligned(3600);
 
-    // ── Footprint — last 10 bars for live file (lightweight) ──
+    // ── Footprint — נרות אחרונים (bar-level) ──────────────────
     std::ostringstream fp_j;
     fp_j << std::fixed << std::setprecision(2);
     fp_j << "[";
-    int fp_live_count = 10;
-    int fp_live_start = (idx >= fp_live_count - 1) ? idx - (fp_live_count - 1) : 0;
-    for (int bi = fp_live_start; bi <= idx; bi++) {
-        if (bi > fp_live_start) fp_j << ",";
+    int fp_count = FootprintBars.GetInt();
+    if (fp_count < 10) fp_count = 10;
+    if (fp_count > 960) fp_count = 960;
+    int fp_start = (idx >= fp_count - 1) ? idx - (fp_count - 1) : 0;
+    for (int bi = fp_start; bi <= idx; bi++) {
+        if (bi > fp_start) fp_j << ",";
         fp_j << "{\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[bi])
              << ",\"o\":"     << sc.Open[bi]
              << ",\"h\":"     << sc.High[bi]
@@ -462,13 +571,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     fills_j << "]";
 
-    // ── History — written to separate file on new bar close or full recalc ──
-    static int s_last_bar_count = 0;
-    int current_bars = sc.ArraySize;
-    bool new_bar = (current_bars != s_last_bar_count);
-    if (new_bar) s_last_bar_count = current_bars;
-
-    if ((sc.IsFullRecalculation && idx == sc.ArraySize - 1) || (new_bar && idx == sc.ArraySize - 1))
+    // ── HistoryInit — שולח 960 נרות + MTF היסטוריה פעם אחת בטעינה ──
+    if (sc.IsFullRecalculation && idx == sc.ArraySize - 1)
     {
         int hist_count = (sc.ArraySize >= 960) ? 960 : sc.ArraySize;
         int hist_start = sc.ArraySize - hist_count;
@@ -561,27 +665,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         writeMTFArray(hj, m30h);
         hj << ",\"m60\":";
         writeMTFArray(hj, m60h);
-        hj << "},";
-
-        // ── Full footprint (200 bars) in history file ──
-        int fp_hist_count = FootprintBars.GetInt();
-        if (fp_hist_count < 10) fp_hist_count = 10;
-        if (fp_hist_count > 960) fp_hist_count = 960;
-        int fp_hist_start = (idx >= fp_hist_count - 1) ? idx - (fp_hist_count - 1) : 0;
-        hj << "\"footprint\":[";
-        for (int bi = fp_hist_start; bi <= idx; bi++) {
-            if (bi > fp_hist_start) hj << ",";
-            hj << "{\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[bi])
-               << ",\"o\":"     << sc.Open[bi]
-               << ",\"h\":"     << sc.High[bi]
-               << ",\"l\":"     << sc.Low[bi]
-               << ",\"c\":"     << sc.Close[bi]
-               << ",\"buy\":"   << sc.AskVolume[bi]
-               << ",\"sell\":"  << sc.BidVolume[bi]
-               << ",\"delta\":" << (sc.AskVolume[bi] - sc.BidVolume[bi])
-               << "}";
-        }
-        hj << "]}";
+        hj << "}}";
 
         std::ofstream hf(HistoryPath.GetString());
         if (hf.is_open()) { hf << hj.str(); hf.close(); }
@@ -632,4 +716,154 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     std::ofstream f(ExportPath.GetString());
     if(f.is_open()){f<<j.str();f.close();}
+
+    // ── C5: Trade Command Execution ──────────────────────────────────────
+    // Poll trade_command.json every second, verify checksum, execute bracket
+    {
+        static time_t s_lastCmdCheck = 0;
+        static std::string s_lastTradeId;
+        time_t now_c = time(nullptr);
+        if (now_c - s_lastCmdCheck < 1) goto c5_done;
+        s_lastCmdCheck = now_c;
+
+        std::ifstream cf(CommandPath.GetString());
+        if (!cf.is_open()) goto c5_done;
+        std::string cmdJson((std::istreambuf_iterator<char>(cf)),
+                             std::istreambuf_iterator<char>());
+        cf.close();
+        if (cmdJson.size() < 10) goto c5_done;
+
+        std::string cmd      = jsonStr(cmdJson, "cmd");
+        double cmdPrice      = jsonNum(cmdJson, "price");
+        int    cmdQty        = (int)jsonNum(cmdJson, "qty");
+        double cmdStop       = jsonNum(cmdJson, "stop");
+        double cmdT1         = jsonNum(cmdJson, "t1");
+        double cmdT2         = jsonNum(cmdJson, "t2");
+        double cmdT3         = jsonNum(cmdJson, "t3");
+        std::string tradeId  = jsonStr(cmdJson, "trade_id");
+        long long expiresAt  = jsonInt(cmdJson, "expires_at");
+        std::string checksum = jsonStr(cmdJson, "checksum");
+
+        // Skip if same trade_id (already processed)
+        if (tradeId == s_lastTradeId) goto c5_done;
+
+        // TTL check — 60 seconds
+        if (expiresAt > 0 && (long long)now_c > expiresAt) {
+            sc.AddMessageToLog("C5: Command expired — skipping", 1);
+            s_lastTradeId = tradeId;
+            goto c5_done;
+        }
+
+        // Verify SHA-256 checksum
+        {
+            std::ostringstream raw;
+            raw << std::fixed << std::setprecision(2);
+            raw << cmd << ":" << cmdPrice << ":" << cmdQty << ":"
+                << cmdStop << ":" << tradeId << ":" << expiresAt
+                << ":" << BridgeToken.GetString();
+            std::string computed = sha256hex(raw.str());
+            if (computed != checksum) {
+                sc.AddMessageToLog("C5: CHECKSUM MISMATCH — ignoring", 1);
+                s_lastTradeId = tradeId;
+                goto c5_done;
+            }
+        }
+
+        s_lastTradeId = tradeId;
+
+        // Write result helper
+        auto writeResult = [&](const char* status, const char* detail, int orderId) {
+            std::ostringstream rj;
+            rj << std::fixed << std::setprecision(2);
+            rj << "{\"trade_id\":\"" << tradeId << "\""
+               << ",\"status\":\"" << status << "\""
+               << ",\"detail\":\"" << detail << "\""
+               << ",\"order_id\":" << orderId
+               << ",\"ts\":" << (long long)now_c
+               << ",\"price\":" << cp
+               << "}";
+            std::ofstream rf(ResultPath.GetString());
+            if (rf.is_open()) { rf << rj.str(); rf.close(); }
+        };
+
+        // ── CANCEL ──
+        if (cmd == "CANCEL") {
+            sc.FlattenAndCancelAllOrders();
+            writeResult("OK", "CANCEL executed — all orders flat", 0);
+            sc.AddMessageToLog("C5: CANCEL — flattened all", 0);
+            goto c5_done;
+        }
+
+        // ── BUY / SELL — Bracket Order ──
+        if (cmd != "BUY" && cmd != "SELL") {
+            writeResult("ERROR", "Unknown cmd", 0);
+            goto c5_done;
+        }
+
+        // Validate
+        if (cmdPrice <= 0 || cmdStop <= 0 || cmdQty <= 0 || cmdQty > 3) {
+            writeResult("ERROR", "Invalid price/stop/qty", 0);
+            goto c5_done;
+        }
+        if (std::fabs(cmdPrice - cmdStop) > 8.0) {
+            writeResult("ERROR", "Risk > 8pt", 0);
+            goto c5_done;
+        }
+
+        // Execute bracket: Entry + Stop + Target(s)
+        {
+            s_SCNewOrder order;
+            order.OrderQuantity = cmdQty;
+            order.TimeInForce = SCT_TIF_GTC;
+
+            if (cmd == "BUY") {
+                order.OrderType = SCT_ORDERTYPE_MARKET;
+                // Attached stop-loss
+                order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                order.Stop1Price = (float)cmdStop;
+                order.AttachedOrderStop1Offset = 0;
+                // Attached target
+                if (cmdT1 > 0) {
+                    order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                    order.Target1Price = (float)cmdT1;
+                }
+                int result = (int)sc.BuyEntry(order);
+                if (result > 0) {
+                    writeResult("OK", "BUY bracket submitted", result);
+                    SCString msg;
+                    msg.Format("C5: BUY %d @ %.2f stop=%.2f t1=%.2f id=%s",
+                               cmdQty, cmdPrice, cmdStop, cmdT1, tradeId.c_str());
+                    sc.AddMessageToLog(msg, 0);
+                } else {
+                    writeResult("ERROR", "BuyEntry failed", result);
+                    SCString msg;
+                    msg.Format("C5: BUY FAILED result=%d", result);
+                    sc.AddMessageToLog(msg, 1);
+                }
+            } else {
+                order.OrderType = SCT_ORDERTYPE_MARKET;
+                order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                order.Stop1Price = (float)cmdStop;
+                order.AttachedOrderStop1Offset = 0;
+                if (cmdT1 > 0) {
+                    order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                    order.Target1Price = (float)cmdT1;
+                }
+                int result = (int)sc.SellEntry(order);
+                if (result > 0) {
+                    writeResult("OK", "SELL bracket submitted", result);
+                    SCString msg;
+                    msg.Format("C5: SELL %d @ %.2f stop=%.2f t1=%.2f id=%s",
+                               cmdQty, cmdPrice, cmdStop, cmdT1, tradeId.c_str());
+                    sc.AddMessageToLog(msg, 0);
+                } else {
+                    writeResult("ERROR", "SellEntry failed", result);
+                    SCString msg;
+                    msg.Format("C5: SELL FAILED result=%d", result);
+                    sc.AddMessageToLog(msg, 1);
+                }
+            }
+        }
+    }
+    c5_done:;
 }

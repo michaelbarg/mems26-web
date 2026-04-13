@@ -185,10 +185,42 @@ async def _build_status_payload() -> dict:
     trade = await trade_status()
     cb    = await check_circuit_breaker()
     data  = await redis_get()
+
+    # D7: Compute trade health if trade is open
+    trade_health = None
+    if isinstance(trade, dict) and trade.get("status") == "OPEN":
+        try:
+            from starlette.testclient import TestClient
+        except Exception:
+            pass
+        # Inline health calc to avoid circular import
+        health_score = 70  # baseline
+        if data:
+            price = data.get("price", 0)
+            entry = trade.get("entry_price", 0)
+            stop = trade.get("stop", 0)
+            direction = trade.get("direction", "LONG")
+            is_long = direction == "LONG"
+            pnl = (price - entry) if is_long else (entry - price)
+            risk = abs(entry - stop)
+            dist_stop = (price - stop) if is_long else (stop - price)
+            if risk > 0 and pnl > risk: health_score += 10
+            elif pnl > 0: health_score += 5
+            elif risk > 0 and pnl < -risk * 0.5: health_score -= 20
+            elif pnl < 0: health_score -= 10
+            if dist_stop < 1.0: health_score -= 25
+            elif dist_stop < 2.0: health_score -= 10
+            bar_delta = (data.get("bar", {}) or {}).get("delta", 0) or 0
+            if is_long and bar_delta < -80: health_score -= 15
+            elif not is_long and bar_delta > 80: health_score -= 15
+            health_score = max(0, min(100, health_score))
+        trade_health = health_score
+
     return {
         "type":            "status_update",
         "ts":              int(time.time()),
         "trade":           trade,
+        "trade_health":    trade_health,
         "circuit_breaker": cb,
         "health": {"status": "ok", "has_data": data is not None},
     }
