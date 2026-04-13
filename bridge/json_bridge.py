@@ -1025,11 +1025,13 @@ async def main():
                             pass
 
                         if all_candles:
+                            fp_bools = payload.get("footprint_bools") if payload else None
                             patterns = scan_patterns(
                                 all_candles,
                                 candles_5m=candles_5m or None,
                                 levels=scan_levels or None,
                                 day_type=day_type,
+                                footprint_bools=fp_bools,
                             )
                             await redis_post(http, f"set/{REDIS_PATTERNS}", json.dumps(patterns))
                             if patterns:

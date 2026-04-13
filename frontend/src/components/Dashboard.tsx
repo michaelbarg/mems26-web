@@ -2563,6 +2563,130 @@ function getDayTypeAvoid(id: string): string {
   return avoid[id] || '—';
 }
 
+// ── D8: Active Trade Panel ────────────────────────────────────────────────
+interface ActiveTrade {
+  direction: 'LONG' | 'SHORT';
+  setupType: string;
+  entryPrice: number;
+  stopPrice: number;
+  t1: number;
+  t2: number;
+  t3: number;
+  entryTs: number;
+  healthScore: number;
+  c1Status: 'open' | 'closed';
+  c2Status: 'open' | 'closed';
+  c3Status: 'open' | 'closed';
+}
+
+function getHealthColor(score: number): string {
+  if (score >= 70) return '#FFD700';
+  if (score >= 50) return '#B8A000';
+  if (score >= 30) return '#FF8C00';
+  return '#FF4500';
+}
+
+function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAll }: {
+  trade: ActiveTrade;
+  currentPrice: number;
+  onScaleC1: () => void;
+  onScaleC2: () => void;
+  onCloseAll: () => void;
+}) {
+  const isLong = trade.direction === 'LONG';
+  const dirCol = isLong ? '#00bcd4' : '#e91e63';
+  const pnlPts = isLong ? currentPrice - trade.entryPrice : trade.entryPrice - currentPrice;
+  const pnlDollar = Math.round(pnlPts * 5);  // MES $5/pt
+  const distStop = isLong ? currentPrice - trade.stopPrice : trade.stopPrice - currentPrice;
+  const stopSize = Math.abs(trade.entryPrice - trade.stopPrice);
+  const hCol = getHealthColor(trade.healthScore);
+  const elapsed = Math.floor((Date.now() / 1000 - trade.entryTs) / 60);
+
+  const targetRow = (label: string, price: number, status: string) => {
+    const dist = isLong ? price - currentPrice : currentPrice - price;
+    const hit = status === 'closed';
+    return (
+      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '2px 0', opacity: hit ? 0.5 : 1 }}>
+        <span style={{ color: '#6b7280' }}>{label}</span>
+        <span style={{ color: '#fff', fontFamily: 'monospace' }}>{price.toFixed(2)}</span>
+        <span style={{ color: dist > 0 ? '#22c55e' : '#ef5350', fontFamily: 'monospace' }}>{dist > 0 ? '+' : ''}{dist.toFixed(2)}</span>
+        <span style={{ color: hit ? '#22c55e' : '#6b7280', fontSize: 9 }}>{hit ? 'CLOSED' : 'OPEN'}</span>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ background: '#0d1117', borderTop: `2px solid ${dirCol}`, padding: '8px 12px', flexShrink: 0 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 800, color: dirCol }}>
+            {isLong ? '▲ LONG' : '▼ SHORT'}
+          </span>
+          <span style={{ fontSize: 10, color: '#9ca3af' }}>{trade.setupType}</span>
+        </div>
+        <span style={{ fontSize: 9, color: '#6b7280', fontFamily: 'monospace' }}>{elapsed}m</span>
+      </div>
+
+      {/* Entry + Stop + P&L */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 6, fontSize: 10 }}>
+        <div>
+          <div style={{ color: '#6b7280', fontSize: 9 }}>Entry</div>
+          <div style={{ color: '#fff', fontFamily: 'monospace', fontWeight: 700 }}>{trade.entryPrice.toFixed(2)}</div>
+        </div>
+        <div>
+          <div style={{ color: '#6b7280', fontSize: 9 }}>Stop ({stopSize.toFixed(1)}pt)</div>
+          <div style={{ color: '#ef5350', fontFamily: 'monospace' }}>{trade.stopPrice.toFixed(2)}</div>
+          <div style={{ color: distStop > 2 ? '#22c55e' : '#ef5350', fontSize: 9, fontFamily: 'monospace' }}>{distStop.toFixed(2)}pt away</div>
+        </div>
+        <div>
+          <div style={{ color: '#6b7280', fontSize: 9 }}>P&L</div>
+          <div style={{ color: pnlPts >= 0 ? '#22c55e' : '#ef5350', fontFamily: 'monospace', fontWeight: 700, fontSize: 13 }}>
+            {pnlPts >= 0 ? '+' : ''}{pnlPts.toFixed(2)}pt
+          </div>
+          <div style={{ color: pnlDollar >= 0 ? '#22c55e' : '#ef5350', fontSize: 9, fontFamily: 'monospace' }}>
+            ${pnlDollar >= 0 ? '+' : ''}{pnlDollar}
+          </div>
+        </div>
+      </div>
+
+      {/* Targets */}
+      <div style={{ borderTop: '1px solid #1e2738', paddingTop: 4, marginBottom: 6 }}>
+        {targetRow('T1/C1', trade.t1, trade.c1Status)}
+        {targetRow('T2/C2', trade.t2, trade.c2Status)}
+        {targetRow('T3/C3', trade.t3, trade.c3Status)}
+      </div>
+
+      {/* Health Score bar */}
+      <div style={{ marginBottom: 6 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, marginBottom: 2 }}>
+          <span style={{ color: '#6b7280' }}>Health</span>
+          <span style={{ color: hCol, fontWeight: 700 }}>{trade.healthScore}</span>
+        </div>
+        <div style={{ background: '#1e2738', borderRadius: 3, height: 6, overflow: 'hidden' }}>
+          <div style={{ width: `${trade.healthScore}%`, height: '100%', background: hCol, borderRadius: 3, transition: 'width 0.5s, background 0.5s' }} />
+        </div>
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+        <button onClick={onScaleC1} disabled={trade.c1Status === 'closed'}
+          style={{ padding: '4px 0', fontSize: 10, fontWeight: 700, background: trade.c1Status === 'closed' ? '#1e2738' : '#1a3a2a', color: trade.c1Status === 'closed' ? '#4b5563' : '#22c55e', border: '1px solid #22c55e33', borderRadius: 4, cursor: trade.c1Status === 'closed' ? 'default' : 'pointer' }}>
+          Scale C1
+        </button>
+        <button onClick={onScaleC2} disabled={trade.c2Status === 'closed'}
+          style={{ padding: '4px 0', fontSize: 10, fontWeight: 700, background: trade.c2Status === 'closed' ? '#1e2738' : '#1a2a3a', color: trade.c2Status === 'closed' ? '#4b5563' : '#60a5fa', border: '1px solid #60a5fa33', borderRadius: 4, cursor: trade.c2Status === 'closed' ? 'default' : 'pointer' }}>
+          Scale C2
+        </button>
+        <button onClick={onCloseAll}
+          style={{ padding: '4px 0', fontSize: 10, fontWeight: 700, background: '#3a1a1a', color: '#ef5350', border: '1px solid #ef535033', borderRadius: 4, cursor: 'pointer' }}>
+          Close All
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
@@ -2991,6 +3115,7 @@ export default function Dashboard() {
   const [dayLoading,setDayLoading]=useState(false);
   const [scannedPatterns,setScannedPatterns]=useState<{pattern:string;direction:string;entry:number;stop:number;t1:number;t2:number;neckline:number;confidence:number;label:string;start_ts:number;end_ts:number}[]>([]);
   const [activeScannedPattern,setActiveScannedPattern]=useState<typeof scannedPatterns[0]|null>(null);
+  const [activeTrade,setActiveTrade]=useState<ActiveTrade|null>(null);
   const prevSigRef=useRef<string>('');
 
   const askAI=useCallback(async()=>{
@@ -3397,6 +3522,9 @@ export default function Dashboard() {
               height={undefined}
               scannedPatterns={scannedPatterns}
               dayType={(live as any)?.day?.type || ''}
+              tradeActive={!!activeTrade}
+              healthScore={activeTrade?.healthScore}
+              entryTimestamp={activeTrade?.entryTs}
               zone={sweepData ? {
                 entry:     sweepData.entry,
                 stop:      sweepData.stop,
@@ -3469,6 +3597,16 @@ export default function Dashboard() {
               </div>
               <button onClick={()=>setActiveScannedPattern(null)} style={{marginTop:4,fontSize:11,color:'#4b5563',background:'none',border:'none',cursor:'pointer',fontFamily:'monospace'}}>x close</button>
             </div>
+          )}
+          {/* D8: Active Trade Section */}
+          {activeTrade && (
+            <ActiveTradePanel
+              trade={activeTrade}
+              currentPrice={live?.price ?? 0}
+              onScaleC1={() => setActiveTrade(t => t ? { ...t, c1Status: 'closed' as const } : null)}
+              onScaleC2={() => setActiveTrade(t => t ? { ...t, c2Status: 'closed' as const } : null)}
+              onCloseAll={() => setActiveTrade(null)}
+            />
           )}
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
             <VolumeTimer bar={bar??null} />

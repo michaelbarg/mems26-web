@@ -9,6 +9,7 @@ V3: Liquidity Sweep chain (Sweep → MSS → FVG) on 5m candles with levels.
 
 import time as time_module
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from dataclasses import dataclass, asdict, field
 from typing import Optional
 
@@ -55,6 +56,24 @@ def _cl(c: dict) -> float:
 
 def _ts(c: dict) -> int:
     return int(c.get("ts", 0))
+
+def _op(c: dict) -> float:
+    return c.get("o", c.get("open", 0))
+
+def _is_fvg_cancelled(candles: list, fvg_idx: int, fvg_high: float, fvg_low: float, direction: str) -> bool:
+    """Cancel FVG only if a candle BODY closes beyond the Distal Edge.
+
+    Distal Edge:
+      LONG  FVG → bottom (fvg_low)  — cancel if body close < fvg_low
+      SHORT FVG → top    (fvg_high) — cancel if body close > fvg_high
+    """
+    for i in range(fvg_idx + 1, len(candles)):
+        close = _cl(candles[i])
+        if direction == "LONG" and close < fvg_low:
+            return True
+        if direction == "SHORT" and close > fvg_high:
+            return True
+    return False
 
 def find_pivots(candles: list, window: int = 5):
     highs, lows = [], []
@@ -687,13 +706,21 @@ def detect_sweep_return(candles: list) -> Optional[PatternResult]:
 
 # ─── Market Structure Shift ───────────────────────────
 
-def detect_mss(candles: list) -> Optional[PatternResult]:
-    """Market Structure Shift — שבירת swing עם volume confirmation."""
+def detect_mss(candles: list, footprint_bools: dict = None) -> Optional[PatternResult]:
+    """Market Structure Shift — שבירת swing עם volume confirmation.
+    A9: requires stacked_imbalance_count >= 2 in matching direction.
+    """
     if len(candles) < 10:
         return None
 
     LOOKBACK = 5
     avg_v = avg_vol(candles, max(0, len(candles)-30), len(candles))
+
+    # A9: stacked imbalance check
+    fp = footprint_bools or {}
+    stacked_count = fp.get("stacked_imbalance_count", 0)
+    stacked_dir = fp.get("stacked_imbalance_dir", "NONE")
+    fp_available = bool(fp)
 
     # סרוק מהסוף אחורה
     for i in range(len(candles)-1, LOOKBACK, -1):
@@ -709,6 +736,8 @@ def detect_mss(candles: list) -> Optional[PatternResult]:
 
         # MSS שורט — שבירת swing low
         if close < swing_low and _lo(candle) < swing_low:
+            if fp_available and not (stacked_count >= 2 and stacked_dir == "SHORT"):
+                continue  # A9: no stacked imbalance → NO_TRADE
             stop  = _hi(candle) + 0.5
             risk  = stop - close
             if risk <= 0: continue
@@ -725,6 +754,8 @@ def detect_mss(candles: list) -> Optional[PatternResult]:
 
         # MSS לונג — שבירת swing high
         if close > swing_high and _hi(candle) > swing_high:
+            if fp_available and not (stacked_count >= 2 and stacked_dir == "LONG"):
+                continue  # A9: no stacked imbalance → NO_TRADE
             stop  = _lo(candle) - 0.5
             risk  = close - stop
             if risk <= 0: continue
@@ -744,13 +775,20 @@ def detect_mss(candles: list) -> Optional[PatternResult]:
 
 # ─── Fair Value Gap ──────────────────────────────────
 
-def detect_fvg(candles: list) -> Optional[PatternResult]:
-    """Fair Value Gap — imbalance בין נרות סמוכים."""
+def detect_fvg(candles: list, footprint_bools: dict = None) -> Optional[PatternResult]:
+    """Fair Value Gap — imbalance בין נרות סמוכים.
+    A10: Pullback validation — aggressive buy against SHORT → cancel.
+    """
     if len(candles) < 3:
         return None
 
     MIN_GAP = 0.5
     MAX_GAP = 4.0
+
+    # A10: pullback validation
+    fp = footprint_bools or {}
+    fp_available = bool(fp)
+    aggressive_buy = fp.get("pullback_aggressive_buy", False)
 
     for i in range(len(candles)-1, 1, -1):
         prev  = candles[i-2]
@@ -760,17 +798,23 @@ def detect_fvg(candles: list) -> Optional[PatternResult]:
         # FVG ירידה (bearish): high של prev < low של curr
         gap_bear = _lo(curr) - _hi(prev)
         if MIN_GAP <= gap_bear <= MAX_GAP:
-            mid_close = _cl(mid)
+            fvg_high, fvg_low = _lo(curr), _hi(prev)
+            # A6: Cancel only if body closes beyond Distal Edge (top)
+            if _is_fvg_cancelled(candles, i, fvg_high, fvg_low, "SHORT"):
+                continue
+            # A10: SHORT FVG + aggressive buying on pullback → cancel
+            if fp_available and aggressive_buy:
+                continue
             stop  = _hi(curr) + 0.5
-            risk  = stop - _lo(curr)
+            risk  = stop - fvg_low
             if risk <= 0: continue
             return PatternResult(
                 pattern='FVG', direction='SHORT',
                 start_ts=_ts(prev), end_ts=_ts(curr),
-                entry=_lo(curr),
+                entry=fvg_low,
                 stop=stop,
-                t1=round(_lo(curr) - risk * 1.5, 2),
-                t2=round(_lo(curr) - risk * 3.0, 2),
+                t1=round(fvg_low - risk * 1.5, 2),
+                t2=round(fvg_low - risk * 3.0, 2),
                 neckline=_hi(prev),
                 confidence=75,
                 label=f'FVG שורט {gap_bear:.2f}pt'
@@ -779,16 +823,20 @@ def detect_fvg(candles: list) -> Optional[PatternResult]:
         # FVG עלייה (bullish): low של prev > high של curr
         gap_bull = _lo(prev) - _hi(curr)
         if MIN_GAP <= gap_bull <= MAX_GAP:
+            fvg_high, fvg_low = _lo(prev), _hi(curr)
+            # A6: Cancel only if body closes beyond Distal Edge (bottom)
+            if _is_fvg_cancelled(candles, i, fvg_high, fvg_low, "LONG"):
+                continue
             stop  = _lo(curr) - 0.5
-            risk  = _hi(curr) - stop
+            risk  = fvg_high - stop
             if risk <= 0: continue
             return PatternResult(
                 pattern='FVG', direction='LONG',
                 start_ts=_ts(curr), end_ts=_ts(prev),
-                entry=_hi(curr),
+                entry=fvg_high,
                 stop=stop,
-                t1=round(_hi(curr) + risk * 1.5, 2),
-                t2=round(_hi(curr) + risk * 3.0, 2),
+                t1=round(fvg_high + risk * 1.5, 2),
+                t2=round(fvg_high + risk * 3.0, 2),
                 neckline=_lo(prev),
                 confidence=75,
                 label=f'FVG לונג {gap_bull:.2f}pt'
@@ -797,23 +845,28 @@ def detect_fvg(candles: list) -> Optional[PatternResult]:
     return None
 
 
-# ─── Killzone Filter (A6) ─────────────────────────────
+# ─── Killzone Filter (A7) — America/New_York ─────────
+
+ET = ZoneInfo("America/New_York")
 
 KILLZONES = [
-    ("London",   7 * 60,       10 * 60),       # 07:00-10:00 UTC
-    ("NY_Open",  13 * 60 + 30, 15 * 60),       # 13:30-15:00 UTC
-    ("NY_Close", 18 * 60 + 30, 21 * 60),       # 18:30-21:00 UTC
+    ("London",   2 * 60,        5 * 60),        # 02:00-05:00 ET
+    ("NY_Open",  9 * 60 + 30,  11 * 60),        # 09:30-11:00 ET
+    ("NY_Close", 14 * 60 + 30, 16 * 60),        # 14:30-16:00 ET
 ]
 
 def is_in_killzone(ts: int = 0) -> dict:
-    """Check if timestamp (or now) falls within a Killzone. Returns dict with status."""
-    utc = datetime.fromtimestamp(ts, tz=timezone.utc) if ts else datetime.now(timezone.utc)
-    minutes = utc.hour * 60 + utc.minute
+    """Check if timestamp (or now) falls within a Killzone. All times in ET."""
+    if ts:
+        et_now = datetime.fromtimestamp(ts, tz=timezone.utc).astimezone(ET)
+    else:
+        et_now = datetime.now(ET)
+    minutes = et_now.hour * 60 + et_now.minute
 
     for name, start, end in KILLZONES:
         if start <= minutes <= end:
             remaining = end - minutes
-            return {"in_killzone": True, "zone": name, "minutes_left": remaining, "minutes_to_next": 0}
+            return {"in_killzone": True, "zone": name, "minutes_left": remaining, "minutes_to_next": 0, "next_zone": ""}
 
     # Calculate minutes to next killzone
     best = 99999
@@ -832,7 +885,8 @@ def is_in_killzone(ts: int = 0) -> dict:
 
 BLOCKED_DAYTYPES = {"NON_TREND", "ROTATIONAL", "NEUTRAL"}
 
-def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "") -> Optional[dict]:
+def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "",
+                           footprint_bools: dict = None) -> Optional[dict]:
     """
     V3 Liquidity Sweep — chained detection on 5m candles.
     Returns full setup dict or None.
@@ -891,10 +945,10 @@ def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "") -
             wick_above = hi - level_price
             if wick_above >= 1.5 and cl < level_price:
                 # Body did not close above = rejection
-                mss = _find_mss_after_sweep(candles_5m, sweep_idx, "SHORT", avg_v)
+                mss = _find_mss_after_sweep(candles_5m, sweep_idx, "SHORT", avg_v, footprint_bools)
                 if not mss:
                     continue
-                fvg = _find_fvg_after_mss(candles_5m, mss["idx"], "SHORT")
+                fvg = _find_fvg_after_mss(candles_5m, mss["idx"], "SHORT", footprint_bools)
                 if not fvg:
                     continue
                 stop = hi + 0.5
@@ -923,10 +977,10 @@ def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "") -
             # LONG sweep: wick below level >= 1.5pt, close above level
             wick_below = level_price - lo
             if wick_below >= 1.5 and cl > level_price:
-                mss = _find_mss_after_sweep(candles_5m, sweep_idx, "LONG", avg_v)
+                mss = _find_mss_after_sweep(candles_5m, sweep_idx, "LONG", avg_v, footprint_bools)
                 if not mss:
                     continue
-                fvg = _find_fvg_after_mss(candles_5m, mss["idx"], "LONG")
+                fvg = _find_fvg_after_mss(candles_5m, mss["idx"], "LONG", footprint_bools)
                 if not fvg:
                     continue
                 stop = lo - 0.5
@@ -955,13 +1009,25 @@ def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "") -
     return None
 
 
-def _find_mss_after_sweep(candles: list, sweep_idx: int, direction: str, avg_v: float) -> Optional[dict]:
-    """Find MSS within 5 bars after sweep. Swing = 5 bars before sweep."""
+def _find_mss_after_sweep(candles: list, sweep_idx: int, direction: str, avg_v: float,
+                          footprint_bools: dict = None) -> Optional[dict]:
+    """Find MSS within 5 bars after sweep. Swing = 5 bars before sweep.
+    A9: requires stacked_imbalance_count >= 2 in matching direction.
+    """
     SWING_LB = 5
     start = max(0, sweep_idx - SWING_LB)
     window = candles[start:sweep_idx]
     if not window:
         return None
+
+    # A9: Stacked imbalance validation
+    fp = footprint_bools or {}
+    stacked_count = fp.get("stacked_imbalance_count", 0)
+    stacked_dir = fp.get("stacked_imbalance_dir", "NONE")
+    # Require 2+ stacked imbalances in matching direction
+    has_stacked = (stacked_count >= 2 and stacked_dir == direction)
+    # If footprint_bools not available yet (DLL not compiled), skip validation
+    fp_available = bool(fp)
 
     if direction == "SHORT":
         swing_low = min(_lo(c) for c in window)
@@ -969,6 +1035,8 @@ def _find_mss_after_sweep(candles: list, sweep_idx: int, direction: str, avg_v: 
             c = candles[i]
             rel_v = ((c.get("vol", 0) or 0) / avg_v) if avg_v > 0 else 0
             if _cl(c) < swing_low and rel_v > 1.2:
+                if fp_available and not has_stacked:
+                    return None  # No stacked imbalance → suspected break → NO_TRADE
                 return {"idx": i, "ts": _ts(c), "level": swing_low, "rel_vol": rel_v}
     else:
         swing_high = max(_hi(c) for c in window)
@@ -976,13 +1044,24 @@ def _find_mss_after_sweep(candles: list, sweep_idx: int, direction: str, avg_v: 
             c = candles[i]
             rel_v = ((c.get("vol", 0) or 0) / avg_v) if avg_v > 0 else 0
             if _cl(c) > swing_high and rel_v > 1.2:
+                if fp_available and not has_stacked:
+                    return None  # No stacked imbalance → suspected break → NO_TRADE
                 return {"idx": i, "ts": _ts(c), "level": swing_high, "rel_vol": rel_v}
     return None
 
 
-def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str) -> Optional[dict]:
-    """Find FVG within 10 bars after MSS. Gap between candle[i-2].high and candle[i].low."""
+def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str,
+                        footprint_bools: dict = None) -> Optional[dict]:
+    """Find FVG within 10 bars after MSS. Gap between candle[i-2].high and candle[i].low.
+    A10: Pullback validation — aggressive buy against SHORT direction → cancel.
+    """
     FVG_MIN, FVG_MAX, FVG_MAX_AGE = 0.5, 4.0, 10
+
+    # A10: pullback validation from footprint bools
+    fp = footprint_bools or {}
+    fp_available = bool(fp)
+    aggressive_buy = fp.get("pullback_aggressive_buy", False)
+
     for i in range(mss_idx, min(mss_idx + FVG_MAX_AGE, len(candles))):
         if i < 2:
             continue
@@ -991,13 +1070,22 @@ def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str) -> Optional
         if direction == "LONG":
             gap = _lo(curr) - _hi(prev2)
             if FVG_MIN <= gap <= FVG_MAX:
-                entry = round(_hi(prev2) + gap / 2, 2)
-                return {"high": _lo(curr), "low": _hi(prev2), "entry": entry, "ts": _ts(curr)}
+                fvg_high, fvg_low = _lo(curr), _hi(prev2)
+                if _is_fvg_cancelled(candles, i, fvg_high, fvg_low, "LONG"):
+                    continue
+                entry = round(fvg_low + gap / 2, 2)
+                return {"high": fvg_high, "low": fvg_low, "entry": entry, "ts": _ts(curr)}
         else:
             gap = _lo(prev2) - _hi(curr)
             if FVG_MIN <= gap <= FVG_MAX:
-                entry = round(_hi(curr) + gap / 2, 2)
-                return {"high": _lo(prev2), "low": _hi(curr), "entry": entry, "ts": _ts(curr)}
+                fvg_high, fvg_low = _lo(prev2), _hi(curr)
+                if _is_fvg_cancelled(candles, i, fvg_high, fvg_low, "SHORT"):
+                    continue
+                # A10: SHORT FVG + aggressive buying on pullback → cancel entry
+                if fp_available and aggressive_buy:
+                    continue
+                entry = round(fvg_low + gap / 2, 2)
+                return {"high": fvg_high, "low": fvg_low, "entry": entry, "ts": _ts(curr)}
     return None
 
 
@@ -1036,13 +1124,14 @@ def _calc_sweep_confidence(sweep_candle: dict, avg_v: float, mss: dict, fvg: dic
 
 # ─── Main scanner ─────────────────────────────────────
 
-def scan_patterns(candles: list, candles_5m: list = None, levels: dict = None, day_type: str = "") -> list[dict]:
+def scan_patterns(candles: list, candles_5m: list = None, levels: dict = None,
+                  day_type: str = "", footprint_bools: dict = None) -> list[dict]:
     results  = []
 
     # ── V3: Liquidity Sweep chain on 5m ──
     if candles_5m and levels:
         try:
-            liq = detect_liquidity_sweep(candles_5m, levels, day_type)
+            liq = detect_liquidity_sweep(candles_5m, levels, day_type, footprint_bools)
             if liq and liq.get("confidence", 0) >= 60:
                 results.append(liq)
         except Exception:
@@ -1060,8 +1149,8 @@ def scan_patterns(candles: list, candles_5m: list = None, levels: dict = None, d
         detect_retest,
         detect_sweep_return,
         detect_base,
-        detect_mss,
-        detect_fvg,
+        lambda c: detect_mss(c, footprint_bools),
+        lambda c: detect_fvg(c, footprint_bools),
     ]
 
     for w in windows:

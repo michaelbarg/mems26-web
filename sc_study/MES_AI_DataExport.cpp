@@ -1,4 +1,4 @@
-// MES_AI_DataExport.cpp — v6.0
+// MES_AI_DataExport.cpp — v7.0 (A8: Footprint Booleans)
 // Sierra Chart ACSIL Study — 3 minute chart
 // מייצא: MTF (כולל m5), CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
 //         Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
@@ -86,10 +86,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v6";
-        sc.StudyDescription = "Full export v6: All indicators + Footprint + OrderFills + History960";
+        sc.GraphName        = "MES AI Data Export v7";
+        sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
+        sc.MaintainVolumeAtPriceData = 1;
         CVD.Name   = "CVD";   CVD.DrawStyle   = DRAWSTYLE_LINE; CVD.PrimaryColor   = COLOR_CYAN;
         VWAP.Name  = "VWAP";  VWAP.DrawStyle  = DRAWSTYLE_LINE; VWAP.PrimaryColor  = COLOR_YELLOW;
         CCI14.Name = "CCI14"; CCI14.DrawStyle = DRAWSTYLE_LINE; CCI14.PrimaryColor = COLOR_WHITE;
@@ -263,7 +264,131 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     std::sort(imbalances.begin(),imbalances.end(),[](const ImbLevel&a,const ImbLevel&b){return std::fabs(a.ratio)>std::fabs(b.ratio);});
     int imb_count=(int)imbalances.size();if(imb_count>3)imb_count=3;
 
-    // ── Candle Patterns ───────────────────────────────────────
+    // ── Footprint Booleans (A8) — price-level analysis ───────
+    bool fp_absorption = false;
+    bool fp_exhaustion = false;
+    bool fp_trapped_buyers = false;
+    int  fp_stacked_count = 0;
+    const char* fp_stacked_dir = "NONE";
+    bool fp_pullback_delta_declining = false;
+    bool fp_pullback_aggressive_buy  = false;
+
+    {
+        float tick_sz = sc.TickSize;  // MES = 0.25
+        if (tick_sz < 0.01f) tick_sz = 0.25f;
+        int vap_size = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(idx);
+
+        // ── 1. Absorption + 2. Exhaustion — scan extreme ticks of current bar ──
+        if (vap_size > 0)
+        {
+            // Find top 3 and bottom 3 price levels
+            float bar_hi = sc.High[idx], bar_lo = sc.Low[idx];
+            unsigned int top_ask = 0, top_bid = 0, top_vol = 0;
+            unsigned int bot_ask = 0, bot_bid = 0, bot_vol = 0;
+
+            for (int v = 0; v < vap_size; v++)
+            {
+                const s_VolumeAtPriceV2 *vap = NULL;
+                if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
+                if (vap == NULL) continue;
+                float px = vap->PriceInTicks * tick_sz;
+
+                // Top 3 ticks (near high)
+                if (px >= bar_hi - tick_sz * 2.5f)
+                {
+                    top_ask += vap->AskVolume;
+                    top_bid += vap->BidVolume;
+                    top_vol += vap->Volume;
+                }
+                // Bottom 3 ticks (near low)
+                if (px <= bar_lo + tick_sz * 2.5f)
+                {
+                    bot_ask += vap->AskVolume;
+                    bot_bid += vap->BidVolume;
+                    bot_vol += vap->Volume;
+                }
+            }
+
+            // Absorption: huge opposing volume at extreme but price rejected
+            // At high: big AskVol (buyers) but close < high → buyers absorbed by hidden sellers
+            if (top_ask > 50 && cp < bar_hi - tick_sz && top_ask > top_bid * 2)
+                fp_absorption = true;
+            // At low: big BidVol (sellers) but close > low → sellers absorbed by hidden buyers
+            if (bot_bid > 50 && cp > bar_lo + tick_sz && bot_bid > bot_ask * 2)
+                fp_absorption = true;
+
+            // Exhaustion: < 5 contracts at extreme tick → Zero Print
+            if (top_vol > 0 && top_vol < 5) fp_exhaustion = true;
+            if (bot_vol > 0 && bot_vol < 5) fp_exhaustion = true;
+        }
+
+        // ── 3. Trapped Buyers — broke above recent high then reversed ──
+        if (idx >= 3)
+        {
+            float prev_hi = sc.High[idx-1];
+            for (int i = idx-2; i >= idx-3 && i >= 0; i--)
+                if (sc.High[i] > prev_hi) prev_hi = sc.High[i];
+            // Broke above then closed below open = trapped buyers
+            if (sc.High[idx] > prev_hi + 0.5f && cp < sc.Open[idx])
+                fp_trapped_buyers = true;
+        }
+
+        // ── 4-5. Stacked Imbalances — consecutive price levels ×250% ──
+        if (vap_size >= 3)
+        {
+            int consec_bull = 0, consec_bear = 0;
+            int max_bull = 0, max_bear = 0;
+            const float STACK_RATIO = 2.5f;  // 250%
+
+            for (int v = 0; v < vap_size; v++)
+            {
+                const s_VolumeAtPriceV2 *vap = NULL;
+                if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
+                if (vap == NULL) continue;
+                unsigned int av = vap->AskVolume, bv = vap->BidVolume;
+
+                bool bull_imb = (bv > 0 && (float)av / bv >= STACK_RATIO);
+                bool bear_imb = (av > 0 && (float)bv / av >= STACK_RATIO);
+
+                if (bull_imb) { consec_bull++; if (consec_bull > max_bull) max_bull = consec_bull; }
+                else consec_bull = 0;
+
+                if (bear_imb) { consec_bear++; if (consec_bear > max_bear) max_bear = consec_bear; }
+                else consec_bear = 0;
+            }
+
+            if (max_bull >= 2 || max_bear >= 2)
+            {
+                fp_stacked_count = (max_bull >= max_bear) ? max_bull : max_bear;
+                if (fp_stacked_count > 10) fp_stacked_count = 10;
+                fp_stacked_dir = (max_bull >= max_bear) ? "LONG" : "SHORT";
+            }
+        }
+
+        // ── 6. Pullback Delta Declining — delta shrinking over last 3 bars ��─
+        if (idx >= 3)
+        {
+            float d0 = sc.AskVolume[idx]   - sc.BidVolume[idx];
+            float d1 = sc.AskVolume[idx-1] - sc.BidVolume[idx-1];
+            float d2 = sc.AskVolume[idx-2] - sc.BidVolume[idx-2];
+            // Absolute delta declining = momentum fading
+            if (std::fabs(d0) < std::fabs(d1) && std::fabs(d1) < std::fabs(d2))
+                fp_pullback_delta_declining = true;
+        }
+
+        // ── 7. Pullback Aggressive Buy — strong +delta during price dip ──
+        if (idx >= 3)
+        {
+            bool price_dipping = (cp < sc.Close[idx-3]);
+            float recent_delta = delta;
+            for (int i = idx-1; i >= idx-2 && i >= 0; i--)
+                recent_delta += sc.AskVolume[i] - sc.BidVolume[i];
+            if (price_dipping && recent_delta > 100)
+                fp_pullback_aggressive_buy = true;
+        }
+    }
+
+    // ── Candle Patterns ───────────────��───────────────────────
     const char* pat0=detectCandlePattern(sc.Open[idx],sc.High[idx],sc.Low[idx],sc.Close[idx]);
     const char* pat1=(idx>=1)?detectCandlePattern(sc.Open[idx-1],sc.High[idx-1],sc.Low[idx-1],sc.Close[idx-1]):"NONE";
     const char* pat2=(idx>=2)?detectCandlePattern(sc.Open[idx-2],sc.High[idx-2],sc.Low[idx-2],sc.Close[idx-2]):"NONE";
@@ -397,6 +522,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
      <<",\"order_flow\":{\"absorption_bull\":"<<(absorption_bull?"true":"false")<<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")<<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")<<",\"imbalances\":[";
     for(int i=0;i<imb_count;i++){if(i>0)j<<",";j<<"{\"price\":"<<imbalances[i].price<<",\"buy\":"<<imbalances[i].buy_vol<<",\"sell\":"<<imbalances[i].sell_vol<<",\"ratio\":"<<imbalances[i].ratio<<"}";}
     j<<"]}"
+     <<",\"footprint_bools\":{\"absorption_detected\":"<<(fp_absorption?"true":"false")
+        <<",\"exhaustion_detected\":"<<(fp_exhaustion?"true":"false")
+        <<",\"trapped_buyers\":"<<(fp_trapped_buyers?"true":"false")
+        <<",\"stacked_imbalance_count\":"<<fp_stacked_count
+        <<",\"stacked_imbalance_dir\":\""<<fp_stacked_dir<<"\""
+        <<",\"pullback_delta_declining\":"<<(fp_pullback_delta_declining?"true":"false")
+        <<",\"pullback_aggressive_buy\":"<<(fp_pullback_aggressive_buy?"true":"false")<<"}"
      <<",\"mtf\":{"
         <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
         <<",\"m5\":{\"ts\":"<<m5.bar_ts<<",\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"

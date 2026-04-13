@@ -68,10 +68,21 @@ interface Props {
   zone?: SetupZone | null;
   scannedPatterns?: Array<{pattern:string;direction:string;entry:number;stop:number;t1:number;t2:number;neckline:number;confidence:number;label:string;start_ts:number;end_ts:number}>;
   dayType?: string;
+  tradeActive?: boolean;
+  healthScore?: number;
+  entryTimestamp?: number;
+}
+
+// D7: Health Score → candle body color
+function getTradeColor(healthScore: number): string {
+  if (healthScore >= 70) return '#FFD700';  // bright yellow
+  if (healthScore >= 50) return '#B8A000';  // muted yellow
+  if (healthScore >= 30) return '#FF8C00';  // orange — warning
+  return '#FF4500';                          // red-orange — danger
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType, tradeActive, healthScore, entryTimestamp
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -685,10 +696,23 @@ export default function LightweightChart({
 
     const sorted = [...candles].reverse().filter(c => c.ts > 1577836800);
 
-    const cData = sorted.map(c => ({
-      time:  Math.floor(c.ts) as any,
-      open:  c.o, high: c.h, low: c.l, close: c.c,
-    }));
+    // D7: trade active → color candle bodies from entry timestamp
+    const tradeColor = tradeActive && healthScore !== undefined ? getTradeColor(healthScore) : null;
+    const entryTs = entryTimestamp || 0;
+
+    const cData = sorted.map(c => {
+      const base: any = {
+        time:  Math.floor(c.ts) as any,
+        open:  c.o, high: c.h, low: c.l, close: c.c,
+      };
+      // D7: color body only (wick stays original green/red)
+      if (tradeColor && c.ts >= entryTs) {
+        base.color = tradeColor;
+        base.wickUpColor = '#26a69a';
+        base.wickDownColor = '#ef5350';
+      }
+      return base;
+    });
     // Add/update live bar
     if (liveBar) {
       const lb = {
@@ -797,7 +821,7 @@ export default function LightweightChart({
     // Redraw overlays (volume profile + sweep zone) — delay to let chart render
     requestAnimationFrame(() => drawOverlays());
 
-  }, [candles, drawOverlays]);
+  }, [candles, drawOverlays, tradeActive, healthScore, entryTimestamp]);
 
   // Update live candle in real-time (lightweight update, no full setData)
   useEffect(() => {
@@ -806,13 +830,20 @@ export default function LightweightChart({
     if (!liveTs || liveTs < 1577836800 || !isFinite(liveTs)) return;
     const price = livePrice ?? liveBar.c;
     try {
-      seriesRef.current.update({
+      const liveUpdate: any = {
         time:  liveTs as any,
         open:  liveBar.o,
         high:  Math.max(liveBar.h, price),
         low:   Math.min(liveBar.l, price),
         close: price,
-      });
+      };
+      // D7: color live bar body during active trade
+      if (tradeActive && healthScore !== undefined && entryTimestamp && liveBar.ts >= entryTimestamp) {
+        liveUpdate.color = getTradeColor(healthScore);
+        liveUpdate.wickUpColor = '#26a69a';
+        liveUpdate.wickDownColor = '#ef5350';
+      }
+      seriesRef.current.update(liveUpdate);
     } catch (e) {
       // Ignore "Cannot update oldest data" during tf switch
     }
@@ -845,7 +876,7 @@ export default function LightweightChart({
     } catch (e) {
       // Ignore during tf switch
     }
-  }, [liveBar, livePrice]);
+  }, [liveBar, livePrice, tradeActive, healthScore, entryTimestamp]);
 
   // Update level lines + setup markers
   useEffect(() => {
