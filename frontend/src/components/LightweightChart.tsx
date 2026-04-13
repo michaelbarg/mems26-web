@@ -710,18 +710,26 @@ export default function LightweightChart({
       }
       return base;
     });
-    // Add/update live bar
+    // Add/update live bar (normalize o/open etc)
     if (liveBar) {
+      const lbO = liveBar.o ?? (liveBar as any).open;
+      const lbH = liveBar.h ?? (liveBar as any).high;
+      const lbL = liveBar.l ?? (liveBar as any).low;
+      const lbC = livePrice ?? liveBar.c ?? (liveBar as any).close;
+      const lbTs = Math.floor(liveBar.ts);
+      if (!lbO || !lbH || !lbL || !lbC || lbO <= 100 || lbTs < 1577836800) {
+        // skip bad liveBar
+      } else {
       const lb = {
-        time: Math.floor(liveBar.ts) as any,
-        open: liveBar.o, high: liveBar.h, low: liveBar.l,
-        close: livePrice ?? liveBar.c,
+        time: lbTs as any,
+        open: lbO, high: lbH, low: lbL, close: lbC,
       };
       if (cData.length > 0 && cData[cData.length - 1].time === lb.time) {
         cData[cData.length - 1] = lb;
       } else {
         cData.push(lb);
       }
+      } // end else (valid liveBar)
     }
 
     const validCandles = cData.filter(c =>
@@ -836,9 +844,11 @@ export default function LightweightChart({
     if (!seriesRef.current || !liveBar) return;
     const liveTs = Math.floor(liveBar.ts);
     if (!liveTs || liveTs < 1577836800 || !isFinite(liveTs)) return;
-    const price = livePrice ?? liveBar.c;
+    const price = livePrice ?? liveBar.c ?? (liveBar as any).close;
     if (!price || !isFinite(price) || price <= 100) return;
-    const liveO = liveBar.o, liveH = liveBar.h, liveL = liveBar.l;
+    const liveO = liveBar.o ?? (liveBar as any).open;
+    const liveH = liveBar.h ?? (liveBar as any).high;
+    const liveL = liveBar.l ?? (liveBar as any).low;
     if (!liveO || !liveH || !liveL || !isFinite(liveO) || !isFinite(liveH) || !isFinite(liveL)) return;
     if (liveO <= 100 || liveH <= 100 || liveL <= 100) return;
     try {
