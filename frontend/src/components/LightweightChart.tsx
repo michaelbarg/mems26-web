@@ -747,7 +747,8 @@ export default function LightweightChart({
     // Deduplicate by time (LightweightCharts crashes on duplicate timestamps)
     const seenTs = new Set<number>();
     const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
-    try { seriesRef.current.setData(dedupCandles); } catch (e) { /* ignore stale data errors */ }
+    console.log('setData candles:', dedupCandles.length, JSON.stringify(dedupCandles.slice(0,3)));
+    try { seriesRef.current.setData(dedupCandles); } catch (e) { console.error('setData error:', e); }
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
@@ -872,6 +873,7 @@ export default function LightweightChart({
         liveUpdate.wickUpColor = '#26a69a';
         liveUpdate.wickDownColor = '#ef5350';
       }
+      console.log('update liveBar:', JSON.stringify(liveUpdate));
       seriesRef.current.update(liveUpdate);
     } catch (e) {
       // Ignore "Cannot update oldest data" during tf switch
