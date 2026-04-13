@@ -455,6 +455,170 @@ async def ingest_footprint(request: Request, x_bridge_token: Optional[str] = Hea
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _ema(values: list[float], period: int) -> list[float]:
+    """Compute EMA over a list of floats, oldest-first."""
+    if not values:
+        return []
+    k = 2 / (period + 1)
+    ema = [values[0]]
+    for v in values[1:]:
+        ema.append(v * k + ema[-1] * (1 - k))
+    return ema
+
+
+def _swing_points(candles: list[dict], lookback: int = 5) -> dict:
+    """Find recent swing highs/lows for HH/HL/LH/LL detection."""
+    highs, lows = [], []
+    for i in range(lookback, len(candles) - lookback):
+        h = candles[i].get("h", 0)
+        l = candles[i].get("l", 0)
+        if all(h >= candles[j].get("h", 0) for j in range(i - lookback, i + lookback + 1) if j != i):
+            highs.append(h)
+        if all(l <= candles[j].get("l", 0) for j in range(i - lookback, i + lookback + 1) if j != i):
+            lows.append(l)
+    return {"highs": highs[-4:], "lows": lows[-4:]}
+
+
+def _detect_trend(swings: dict) -> str:
+    """HH+HL=BULLISH, LH+LL=BEARISH, else NEUTRAL."""
+    highs, lows = swings["highs"], swings["lows"]
+    if len(highs) >= 2 and len(lows) >= 2:
+        hh = highs[-1] > highs[-2]
+        hl = lows[-1] > lows[-2]
+        lh = highs[-1] < highs[-2]
+        ll = lows[-1] < lows[-2]
+        if hh and hl:
+            return "BULLISH"
+        if lh and ll:
+            return "BEARISH"
+    return "NEUTRAL"
+
+
+def _draw_on_liquidity(price: float, levels: dict, bias: str) -> dict:
+    """Find the next liquidity target in the bias direction."""
+    targets = []
+    for name, val in levels.items():
+        if not val or val == 0:
+            continue
+        if bias == "BULLISH" and val > price:
+            targets.append({"level": name, "price": val, "dist": val - price})
+        elif bias == "BEARISH" and val < price:
+            targets.append({"level": name, "price": val, "dist": price - val})
+    if not targets:
+        return {"level": "none", "price": 0, "dist": 0}
+    targets.sort(key=lambda x: x["dist"])
+    return targets[0]
+
+
+@app.get("/market/bias")
+async def market_bias():
+    """B1: Pre-Analysis Rule-Based Macro Bias from 15m + 1H candles."""
+    data = await redis_get()
+    price = data.get("price", 0) if data else 0
+    session = data.get("session", {}) if data else {}
+    vwap_val = data.get("vwap", {}).get("value", 0) if data else 0
+    profile = data.get("profile", {}) if data else {}
+
+    # Read 15m and 1H candles
+    candles_15m_raw = await redis_get_json_array(REDIS_CANDLES_15M)
+    candles_1h_raw = await redis_get_json_array(REDIS_CANDLES_1H)
+
+    def parse_candles(raw: list) -> list[dict]:
+        out = []
+        for c in raw:
+            if isinstance(c, str):
+                try:
+                    c = json.loads(c)
+                except Exception:
+                    continue
+            if isinstance(c, dict) and c.get("ts", 0) > 0:
+                out.append(c)
+        out.sort(key=lambda x: x.get("ts", 0))
+        return out
+
+    c15 = parse_candles(candles_15m_raw)
+    c1h = parse_candles(candles_1h_raw)
+
+    # EMA on 15m closes
+    closes_15m = [c.get("c", 0) for c in c15]
+    ema20_15m = _ema(closes_15m, 20)
+    ema50_15m = _ema(closes_15m, 50)
+
+    # EMA on 1H closes
+    closes_1h = [c.get("c", 0) for c in c1h]
+    ema20_1h = _ema(closes_1h, 20)
+    ema50_1h = _ema(closes_1h, 50)
+
+    # Current EMA values
+    e20_15 = ema20_15m[-1] if ema20_15m else 0
+    e50_15 = ema50_15m[-1] if ema50_15m else 0
+    e20_1h = ema20_1h[-1] if ema20_1h else 0
+    e50_1h = ema50_1h[-1] if ema50_1h else 0
+
+    # EMA trend: price above both EMAs = bullish, below both = bearish
+    ema_trend_15m = "BULLISH" if price > e20_15 > e50_15 else ("BEARISH" if price < e20_15 < e50_15 else "NEUTRAL")
+    ema_trend_1h = "BULLISH" if price > e20_1h > e50_1h else ("BEARISH" if price < e20_1h < e50_1h else "NEUTRAL")
+
+    # Swing structure on 1H
+    swings_1h = _swing_points(c1h, lookback=3) if len(c1h) >= 10 else {"highs": [], "lows": []}
+    structure_trend = _detect_trend(swings_1h)
+
+    # Combined bias: majority vote of 3 signals
+    votes = [ema_trend_15m, ema_trend_1h, structure_trend]
+    bull = votes.count("BULLISH")
+    bear = votes.count("BEARISH")
+    if bull >= 2:
+        bias = "BULLISH"
+    elif bear >= 2:
+        bias = "BEARISH"
+    else:
+        bias = "NEUTRAL"
+
+    # Confidence: 3/3 agree = 85, 2/3 = 65, mixed = 40
+    if bull == 3 or bear == 3:
+        confidence = 85
+    elif bull == 2 or bear == 2:
+        confidence = 65
+    else:
+        confidence = 40
+
+    # Key levels for Draw on Liquidity
+    key_levels = {
+        "PDH": data.get("levels", {}).get("prev_high", 0) if data else 0,
+        "PDL": data.get("levels", {}).get("prev_low", 0) if data else 0,
+        "ONH": data.get("levels", {}).get("overnight_high", 0) if data else 0,
+        "ONL": data.get("levels", {}).get("overnight_low", 0) if data else 0,
+        "VWAP": vwap_val,
+        "POC": profile.get("poc", 0),
+        "VAH": profile.get("vah", 0),
+        "VAL": profile.get("val", 0),
+        "IBH": session.get("ibh", 0),
+        "IBL": session.get("ibl", 0),
+    }
+
+    dol = _draw_on_liquidity(price, key_levels, bias)
+
+    return {
+        "bias": bias,
+        "confidence": confidence,
+        "ema_trend": {
+            "15m": ema_trend_15m,
+            "1h": ema_trend_1h,
+            "ema20_15m": round(e20_15, 2),
+            "ema50_15m": round(e50_15, 2),
+            "ema20_1h": round(e20_1h, 2),
+            "ema50_1h": round(e50_1h, 2),
+        },
+        "structure": structure_trend,
+        "swing_highs": swings_1h["highs"],
+        "swing_lows": swings_1h["lows"],
+        "draw_on_liquidity": dol,
+        "key_levels": key_levels,
+        "price": price,
+        "candle_counts": {"15m": len(c15), "1h": len(c1h)},
+    }
+
+
 @app.get("/market/patterns")
 async def get_patterns():
     try:
