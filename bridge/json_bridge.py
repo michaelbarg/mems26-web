@@ -961,6 +961,42 @@ async def main():
                     payload["wall_ts"] = int(time.time())
                     await redis_post(http, f"set/{REDIS_KEY}", payload)
                     last_send = now
+
+                    # ── Update live MTF candle in Redis array (so chart shows current bar) ──
+                    for mtf_key, redis_key, _, max_c in MTF_CONFIG:
+                        mc = mtf_candles[mtf_key]
+                        if mc.start_ts > 0 and mc.h > 0:
+                            live_dict = mc.to_dict_full()
+                            try:
+                                existing = []
+                                async with http.get(
+                                    f"{REDIS_URL}/get/{redis_key}",
+                                    headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                                    timeout=aiohttp.ClientTimeout(total=3.0)
+                                ) as resp:
+                                    result = await resp.json()
+                                    val = result.get("result")
+                                    if val and isinstance(val, str):
+                                        parsed = json.loads(val)
+                                        if isinstance(parsed, list):
+                                            existing = [c for c in parsed if isinstance(c, dict)]
+                                # Update or append live candle
+                                if existing and existing[-1].get("ts") == live_dict.get("ts"):
+                                    existing[-1] = live_dict
+                                else:
+                                    existing.append(live_dict)
+                                    if len(existing) > max_c:
+                                        existing = existing[-max_c:]
+                                async with http.post(
+                                    f"{REDIS_URL}/set/{redis_key}",
+                                    headers={"Authorization": f"Bearer {REDIS_TOKEN}",
+                                             "Content-Type": "application/json"},
+                                    data=json.dumps(existing),
+                                    timeout=aiohttp.ClientTimeout(total=3.0)
+                                ) as resp2:
+                                    pass
+                            except Exception:
+                                pass
                     day_type = payload["day"]["type"]
                     log.info(f"-> {raw.get('session_phase','?')} | {price:.2f} | {day_type} | buy={buy:.0f} sell={sell:.0f}")
 
