@@ -789,6 +789,7 @@ def detect_fvg(candles: list, footprint_bools: dict = None) -> Optional[PatternR
     fp = footprint_bools or {}
     fp_available = bool(fp)
     aggressive_buy = fp.get("pullback_aggressive_buy", False)
+    aggressive_sell = fp.get("pullback_aggressive_sell", False)
 
     for i in range(len(candles)-1, 1, -1):
         prev  = candles[i-2]
@@ -826,6 +827,9 @@ def detect_fvg(candles: list, footprint_bools: dict = None) -> Optional[PatternR
             fvg_high, fvg_low = _lo(prev), _hi(curr)
             # A6: Cancel only if body closes beyond Distal Edge (bottom)
             if _is_fvg_cancelled(candles, i, fvg_high, fvg_low, "LONG"):
+                continue
+            # A10: LONG FVG + aggressive selling on pullback → cancel
+            if fp_available and aggressive_sell:
                 continue
             stop  = _lo(curr) - 0.5
             risk  = fvg_high - stop
@@ -1053,7 +1057,7 @@ def _find_mss_after_sweep(candles: list, sweep_idx: int, direction: str, avg_v: 
 def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str,
                         footprint_bools: dict = None) -> Optional[dict]:
     """Find FVG within 10 bars after MSS. Gap between candle[i-2].high and candle[i].low.
-    A10: Pullback validation — aggressive buy against SHORT direction → cancel.
+    A10: Pullback validation — aggressive buy/sell against direction → cancel.
     """
     FVG_MIN, FVG_MAX, FVG_MAX_AGE = 0.5, 4.0, 10
 
@@ -1061,6 +1065,7 @@ def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str,
     fp = footprint_bools or {}
     fp_available = bool(fp)
     aggressive_buy = fp.get("pullback_aggressive_buy", False)
+    aggressive_sell = fp.get("pullback_aggressive_sell", False)
 
     for i in range(mss_idx, min(mss_idx + FVG_MAX_AGE, len(candles))):
         if i < 2:
@@ -1072,6 +1077,9 @@ def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str,
             if FVG_MIN <= gap <= FVG_MAX:
                 fvg_high, fvg_low = _lo(curr), _hi(prev2)
                 if _is_fvg_cancelled(candles, i, fvg_high, fvg_low, "LONG"):
+                    continue
+                # A10: LONG FVG + aggressive selling on pullback → cancel entry
+                if fp_available and aggressive_sell:
                     continue
                 entry = round(fvg_low + gap / 2, 2)
                 return {"high": fvg_high, "low": fvg_low, "entry": entry, "ts": _ts(curr)}

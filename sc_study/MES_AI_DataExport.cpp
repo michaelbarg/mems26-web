@@ -272,6 +272,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     const char* fp_stacked_dir = "NONE";
     bool fp_pullback_delta_declining = false;
     bool fp_pullback_aggressive_buy  = false;
+    bool fp_pullback_aggressive_sell = false;
 
     {
         float tick_sz = sc.TickSize;  // MES = 0.25
@@ -380,11 +381,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if (idx >= 3)
         {
             bool price_dipping = (cp < sc.Close[idx-3]);
+            bool price_rising  = (cp > sc.Close[idx-3]);
             float recent_delta = delta;
             for (int i = idx-1; i >= idx-2 && i >= 0; i--)
                 recent_delta += sc.AskVolume[i] - sc.BidVolume[i];
             if (price_dipping && recent_delta > 100)
                 fp_pullback_aggressive_buy = true;
+            // ── 7b. Pullback Aggressive Sell — strong -delta during price rise ──
+            if (price_rising && recent_delta < -100)
+                fp_pullback_aggressive_sell = true;
         }
     }
 
@@ -528,7 +533,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         <<",\"stacked_imbalance_count\":"<<fp_stacked_count
         <<",\"stacked_imbalance_dir\":\""<<fp_stacked_dir<<"\""
         <<",\"pullback_delta_declining\":"<<(fp_pullback_delta_declining?"true":"false")
-        <<",\"pullback_aggressive_buy\":"<<(fp_pullback_aggressive_buy?"true":"false")<<"}"
+        <<",\"pullback_aggressive_buy\":"<<(fp_pullback_aggressive_buy?"true":"false")
+        <<",\"pullback_aggressive_sell\":"<<(fp_pullback_aggressive_sell?"true":"false")<<"}"
      <<",\"mtf\":{"
         <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
         <<",\"m5\":{\"ts\":"<<m5.bar_ts<<",\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"
