@@ -590,6 +590,138 @@ CCI14: {cci.get('cci14',0):.1f} | CVD trend: {cvd.get('trend')} | VWAP above: {v
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/market/pre-analysis")
+async def pre_analysis():
+    """B1: Fast deterministic pre-analysis — no AI call.
+    Returns bias, confidence, levels, day_type, killzone, footprint, volume exhaustion.
+    """
+    data = await redis_get()
+    if not data:
+        return {"bias": "NEUTRAL", "confidence": 0, "reason": "No data from bridge"}
+
+    price   = data.get("price", 0)
+    cvd     = data.get("cvd", {})
+    vwap    = data.get("vwap", {})
+    session = data.get("session", {})
+    profile = data.get("profile", {})
+    levels  = data.get("levels", {})
+    day     = data.get("day", {})
+    vol_ctx = data.get("volume_context", {})
+    fp_bools = data.get("footprint_bools", {})
+    mtf     = data.get("mtf", {})
+
+    # ── Bias from MTF alignment ──
+    bullish_count = 0
+    bearish_count = 0
+    for tf_key in ["m5", "m15", "m30", "m60"]:
+        tf_data = mtf.get(tf_key, {})
+        if not tf_data:
+            continue
+        tf_c = tf_data.get("c", 0)
+        tf_o = tf_data.get("o", 0)
+        tf_delta = tf_data.get("delta", 0)
+        if tf_c > tf_o and tf_delta > 0:
+            bullish_count += 1
+        elif tf_c < tf_o and tf_delta < 0:
+            bearish_count += 1
+
+    # CVD trend
+    cvd_trend = cvd.get("trend", "NEUTRAL")
+    if cvd_trend == "BULLISH":
+        bullish_count += 1
+    elif cvd_trend == "BEARISH":
+        bearish_count += 1
+
+    # VWAP position
+    if vwap.get("above", False):
+        bullish_count += 1
+    else:
+        bearish_count += 1
+
+    # Profile position
+    if profile.get("above_poc", False):
+        bullish_count += 1
+    else:
+        bearish_count += 1
+
+    total = bullish_count + bearish_count
+    if total == 0:
+        bias = "NEUTRAL"
+        confidence = 0
+    elif bullish_count > bearish_count:
+        bias = "LONG"
+        confidence = round(bullish_count / total * 100)
+    elif bearish_count > bullish_count:
+        bias = "SHORT"
+        confidence = round(bearish_count / total * 100)
+    else:
+        bias = "NEUTRAL"
+        confidence = 50
+
+    # ── Volume exhaustion (2 of 3 signs) ──
+    rel_vol = vol_ctx.get("rel_vol", 1) or 1
+    vol_declining = rel_vol < 0.9
+    cvd_divergence = False
+    cvd_d5 = cvd.get("d5", 0) or 0
+    if bias == "LONG" and cvd_d5 < -20:
+        cvd_divergence = True
+    elif bias == "SHORT" and cvd_d5 > 20:
+        cvd_divergence = True
+    inverse_delta = False
+    bar_delta = (data.get("bar", {}) or {}).get("delta", 0)
+    if bias == "LONG" and bar_delta < -30:
+        inverse_delta = True
+    elif bias == "SHORT" and bar_delta > 30:
+        inverse_delta = True
+    exhaustion_signs = sum([vol_declining, cvd_divergence, inverse_delta])
+    volume_exhaustion = exhaustion_signs >= 2
+
+    # ── Key levels with distance ──
+    key_levels = []
+    level_sources = {
+        "PDH": levels.get("prev_high", 0),
+        "PDL": levels.get("prev_low", 0),
+        "ONH": levels.get("overnight_high", 0),
+        "ONL": levels.get("overnight_low", 0),
+        "DO":  levels.get("daily_open", 0),
+        "IBH": session.get("ibh", 0),
+        "IBL": session.get("ibl", 0),
+        "VWAP": vwap.get("value", 0),
+        "POC": profile.get("poc", 0),
+        "VAH": profile.get("vah", 0),
+        "VAL": profile.get("val", 0),
+    }
+    for name, lvl in level_sources.items():
+        if lvl and lvl > 0:
+            dist = round(price - lvl, 2)
+            key_levels.append({"name": name, "price": lvl, "distance": dist})
+    key_levels.sort(key=lambda x: abs(x["distance"]))
+
+    return {
+        "bias": bias,
+        "confidence": confidence,
+        "price": price,
+        "day_type": day.get("type", "DEVELOPING"),
+        "ib_locked": session.get("ib_locked", False),
+        "volume_exhaustion": volume_exhaustion,
+        "exhaustion_detail": {
+            "vol_declining": vol_declining,
+            "cvd_divergence": cvd_divergence,
+            "inverse_delta": inverse_delta,
+            "signs": exhaustion_signs,
+        },
+        "footprint_bools": fp_bools or {},
+        "key_levels": key_levels[:10],
+        "mtf_alignment": {
+            "bullish": bullish_count,
+            "bearish": bearish_count,
+        },
+        "vwap_above": vwap.get("above", False),
+        "in_value_area": profile.get("in_va", False),
+        "rel_vol": round(rel_vol, 2),
+    }
+
+
 @app.get("/health")
 async def health():
     data = await redis_get()

@@ -460,6 +460,9 @@ def enrich(raw):
         # Footprint — 10 נרות אחרונים
         "footprint": raw.get("footprint", []),
 
+        # Footprint Booleans (A8) — from C++ VolumeAtPrice analysis
+        "footprint_bools": raw.get("footprint_bools", {}),
+
         # Reversal
         "reversal": {
             "ib_high":    ibh,
