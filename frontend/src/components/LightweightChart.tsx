@@ -729,7 +729,7 @@ export default function LightweightChart({
 
     const validCandles = cData.filter(c =>
       c.open != null && c.high != null && c.low != null && c.close != null &&
-      c.time != null && c.time > 0
+      c.time != null && c.time > 1577836800
     );
     seriesRef.current.setData(validCandles);
 
@@ -794,8 +794,8 @@ export default function LightweightChart({
         }
       }
 
-      cvdRef.current.setData(cvdData.filter(c => c.time != null && c.time > 0 && c.value != null && isFinite(c.value)));
-      cvdMaRef.current.setData(maData.filter(c => c.time != null && c.time > 0 && c.value != null && isFinite(c.value)));
+      cvdRef.current.setData(cvdData.filter(c => c.time != null && c.time > 1577836800 && c.value != null && isFinite(c.value)));
+      cvdMaRef.current.setData(maData.filter(c => c.time != null && c.time > 1577836800 && c.value != null && isFinite(c.value)));
     }
 
     // Volume histogram
@@ -818,7 +818,7 @@ export default function LightweightChart({
           color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
         });
       }
-      const validVol = volData.filter(c => c.value != null && c.value >= 0 && c.time != null && c.time > 0);
+      const validVol = volData.filter(c => c.value != null && c.value >= 0 && c.time != null && c.time > 1577836800);
       volRef.current.setData(validVol);
     }
 
@@ -833,6 +833,8 @@ export default function LightweightChart({
     const liveTs = Math.floor(liveBar.ts);
     if (!liveTs || liveTs < 1577836800 || !isFinite(liveTs)) return;
     const price = livePrice ?? liveBar.c;
+    if (price == null || !isFinite(price) || price <= 0) return;
+    if (liveBar.o == null || liveBar.h == null || liveBar.l == null) return;
     try {
       const liveUpdate: any = {
         time:  liveTs as any,
@@ -864,7 +866,7 @@ export default function LightweightChart({
           const spread = liveBar.h - liveBar.l;
           delta = spread > 0 ? 100 * ((liveBar.c - liveBar.l) - (liveBar.h - liveBar.c)) / spread : 0;
         }
-        cvdRef.current.update({ time: liveTs as any, value: delta });
+        if (isFinite(delta)) cvdRef.current.update({ time: liveTs as any, value: delta });
       }
 
       // Update volume for live bar
