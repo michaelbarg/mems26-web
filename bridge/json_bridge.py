@@ -717,13 +717,21 @@ async def main():
                         log.info(f"History loaded: {loaded} candles from file → Redis OK")
                         loaded_from_file = True
 
-                        # ── Seed MTF candles from 3m history ──
+                        # ── Seed MTF candles — prefer C++ mtf_history, fallback to aggregation ──
+                        mtf_hist = hist.get("mtf_history", {})
                         for mtf_key, redis_key, interval, max_c in MTF_CONFIG:
                             label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
-                            agg = aggregate_candles(candles_list, interval, max_c)
-                            # Drop last candle — it's still open, will be built live
-                            if agg and len(agg) > 1:
-                                agg = agg[:-1]
+                            native = mtf_hist.get(mtf_key, [])
+                            if native and len(native) > 1:
+                                # C++ calcBarAligned — accurate, drop last (open) candle
+                                agg = native[:-1]
+                                log.info(f"MTF [{label}] using C++ native history: {len(agg)} candles")
+                            else:
+                                # Fallback: aggregate from 3m
+                                agg = aggregate_candles(candles_list, interval, max_c)
+                                if agg and len(agg) > 1:
+                                    agg = agg[:-1]
+                                log.info(f"MTF [{label}] using 3m aggregation: {len(agg) if agg else 0} candles")
                             if agg:
                                 serialized = json.dumps(agg)
                                 try:

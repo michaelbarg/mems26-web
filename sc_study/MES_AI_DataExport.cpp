@@ -465,12 +465,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     fills_j << "]";
 
-    // ── HistoryInit — שולח 960 נרות פעם אחת בטעינה ───────────
+    // ── HistoryInit — שולח 960 נרות + MTF היסטוריה פעם אחת בטעינה ──
     if (sc.IsFullRecalculation && idx == sc.ArraySize - 1)
     {
         int hist_count = (sc.ArraySize >= 960) ? 960 : sc.ArraySize;
         int hist_start = sc.ArraySize - hist_count;
 
+        // ── 3m history (existing) ──
         std::ostringstream hj;
         hj << std::fixed << std::setprecision(2);
         hj << "{\"candles\":[";
@@ -496,7 +497,69 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                << ",\"above_vwap\":" << (sc.Close[i] > VWAP[i] ? "true" : "false")
                << "}";
         }
-        hj << "]}";
+        hj << "],";
+
+        // ── MTF history — aggregate 3m bars into 5m/15m/30m/1h ──
+        struct MTFHist { long long ts; float o,h,l,c,vol,buy,sell; };
+        auto buildMTF = [&](int interval_sec, int max_bars) -> std::vector<MTFHist> {
+            std::map<long long, MTFHist> buckets;
+            for (int i = hist_start; i < sc.ArraySize; i++) {
+                long long bts = ToUnixTime(sc.BaseDateTimeIn[i]);
+                if (bts <= 0) continue;
+                long long bucket = (bts / interval_sec) * interval_sec;
+                auto it = buckets.find(bucket);
+                if (it == buckets.end()) {
+                    MTFHist bar;
+                    bar.ts = bucket;
+                    bar.o = sc.Open[i]; bar.h = sc.High[i]; bar.l = sc.Low[i]; bar.c = sc.Close[i];
+                    bar.vol = sc.Volume[i]; bar.buy = sc.AskVolume[i]; bar.sell = sc.BidVolume[i];
+                    buckets[bucket] = bar;
+                } else {
+                    MTFHist &bar = it->second;
+                    if (sc.High[i] > bar.h) bar.h = sc.High[i];
+                    if (sc.Low[i] < bar.l) bar.l = sc.Low[i];
+                    bar.c = sc.Close[i];
+                    bar.vol += sc.Volume[i]; bar.buy += sc.AskVolume[i]; bar.sell += sc.BidVolume[i];
+                }
+            }
+            // Sort by ts, take last max_bars
+            std::vector<MTFHist> result;
+            for (auto &kv : buckets) result.push_back(kv.second);
+            // std::map already sorted by key (ts), so result is sorted
+            if ((int)result.size() > max_bars)
+                result.erase(result.begin(), result.begin() + (result.size() - max_bars));
+            return result;
+        };
+
+        auto writeMTFArray = [&](std::ostringstream &out, const std::vector<MTFHist> &bars) {
+            out << "[";
+            for (int i = 0; i < (int)bars.size(); i++) {
+                if (i > 0) out << ",";
+                const MTFHist &b = bars[i];
+                out << "{\"ts\":" << b.ts
+                    << ",\"open\":" << b.o << ",\"high\":" << b.h
+                    << ",\"low\":" << b.l << ",\"close\":" << b.c
+                    << ",\"vol\":" << b.vol << ",\"buy\":" << b.buy
+                    << ",\"sell\":" << b.sell << ",\"delta\":" << (b.buy - b.sell)
+                    << "}";
+            }
+            out << "]";
+        };
+
+        auto m5h  = buildMTF(300,  288);
+        auto m15h = buildMTF(900,  96);
+        auto m30h = buildMTF(1800, 48);
+        auto m60h = buildMTF(3600, 64);
+
+        hj << "\"mtf_history\":{\"m5\":";
+        writeMTFArray(hj, m5h);
+        hj << ",\"m15\":";
+        writeMTFArray(hj, m15h);
+        hj << ",\"m30\":";
+        writeMTFArray(hj, m30h);
+        hj << ",\"m60\":";
+        writeMTFArray(hj, m60h);
+        hj << "}}";
 
         std::ofstream hf(HistoryPath.GetString());
         if (hf.is_open()) { hf << hj.str(); hf.close(); }
