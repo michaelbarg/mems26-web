@@ -55,6 +55,7 @@ const statusIcon = (s: Condition['status']) =>
   s === 'pass' ? '✅' : s === 'fail' ? '❌' : '⏳';
 
 export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBreaker, onExecute, onCancel }: Props) {
+  const safePatterns = Array.isArray(patterns) ? patterns : [];
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [healthScore, setHealthScore] = useState<number | null>(null);
   const [cbState, setCbState] = useState<{ allowed: boolean; reason: string } | null>(null);
@@ -97,11 +98,11 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
     const c3s: Condition['status'] = volScore >= 2 ? 'pass' : volScore === 1 ? 'wait' : 'fail';
 
     const stackedOk = (fp.stacked_imbalance_count ?? 0) >= 2;
-    const hasMSS    = patterns.some((p: any) => p.pattern === 'mss' || p.pattern === 'liquidity_sweep');
+    const hasMSS    = safePatterns.some((p: any) => p.pattern === 'mss' || p.pattern === 'liquidity_sweep');
     const c4s: Condition['status'] = stackedOk || hasMSS ? 'pass' : 'wait';
 
-    const hasFVG = patterns.some((p: any) => p.pattern === 'fvg' || p.pattern === 'fair_value_gap');
-    const fvgPat = patterns.find((p: any) => p.pattern === 'fvg' || p.pattern === 'fair_value_gap');
+    const hasFVG = safePatterns.some((p: any) => p.pattern === 'fvg' || p.pattern === 'fair_value_gap');
+    const fvgPat = safePatterns.find((p: any) => p.pattern === 'fvg' || p.pattern === 'fair_value_gap');
     const c5s: Condition['status'] = hasFVG ? 'pass' : 'wait';
 
     const c6s: Condition['status'] = healthScore === null ? 'wait' : healthScore >= 70 ? 'pass' : healthScore >= 50 ? 'wait' : 'fail';
