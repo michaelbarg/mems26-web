@@ -82,6 +82,7 @@ interface Props {
   tradeActive?: boolean;
   healthScore?: number;
   entryTimestamp?: number;
+  footprintBools?: { absorption_detected?: boolean; exhaustion_detected?: boolean };
 }
 
 // D7: Health Score → candle body color
@@ -93,7 +94,7 @@ function getTradeColor(healthScore: number): string {
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType, tradeActive, healthScore, entryTimestamp
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType, tradeActive, healthScore, entryTimestamp, footprintBools
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -782,11 +783,35 @@ export default function LightweightChart({
     const tradeColor = tradeActive && healthScore !== undefined ? getTradeColor(healthScore) : null;
     const entryTs = entryTimestamp || 0;
 
+    // D4: Build set of sweep candle timestamps for footprint heatmap
+    const sweepTsSet = new Set<number>();
+    if (sweepEventsRef.current) {
+      for (const ev of sweepEventsRef.current) {
+        if (ev.sweepBarTs > 0) sweepTsSet.add(Math.floor(ev.sweepBarTs));
+      }
+    }
+    const fpAbsorption = footprintBools?.absorption_detected ?? false;
+    const fpExhaustion = footprintBools?.exhaustion_detected ?? false;
+
     const cData = sorted.map(c => {
       const base: any = {
         time:  Math.floor(c.ts) as any,
         open:  c.o ?? (c as any).open, high: c.h ?? (c as any).high, low: c.l ?? (c as any).low, close: c.c ?? (c as any).close,
       };
+      // D4: Footprint heatmap — color sweep candles
+      if (sweepTsSet.has(Math.floor(c.ts))) {
+        if (fpAbsorption) {
+          base.color = '#ff8c00';         // orange = absorption
+          base.borderColor = '#ff6600';
+          base.wickUpColor = '#ff8c00';
+          base.wickDownColor = '#ff8c00';
+        } else if (fpExhaustion) {
+          base.color = '#3b82f6';         // blue = exhaustion
+          base.borderColor = '#2563eb';
+          base.wickUpColor = '#3b82f6';
+          base.wickDownColor = '#3b82f6';
+        }
+      }
       // D7: color body only (wick stays original green/red)
       if (tradeColor && c.ts >= entryTs) {
         base.color = tradeColor;

@@ -3572,6 +3572,7 @@ export default function Dashboard() {
               height={undefined}
               scannedPatterns={scannedPatterns}
               dayType={(live as any)?.day?.type || ''}
+              footprintBools={(live as any)?.footprint_bools}
               tradeActive={!!activeTrade}
               healthScore={activeTrade?.healthScore}
               entryTimestamp={activeTrade?.entryTs}
