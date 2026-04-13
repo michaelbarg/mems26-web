@@ -700,7 +700,7 @@ export default function LightweightChart({
     const cData = sorted.map(c => {
       const base: any = {
         time:  Math.floor(c.ts) as any,
-        open:  c.o, high: c.h, low: c.l, close: c.c,
+        open:  c.o ?? (c as any).open, high: c.h ?? (c as any).high, low: c.l ?? (c as any).low, close: c.c ?? (c as any).close,
       };
       // D7: color body only (wick stays original green/red)
       if (tradeColor && c.ts >= entryTs) {
@@ -749,8 +749,9 @@ export default function LightweightChart({
         if (buyVal + sellVal > 0) {
           delta = buyVal - sellVal;
         } else {
-          const spread = c.h - c.l;
-          delta = spread > 0 ? 100 * ((c.c - c.l) - (c.h - c.c)) / spread : 0;
+          const ch = c.h ?? (c as any).high ?? 0, cl = c.l ?? (c as any).low ?? 0, cc = c.c ?? (c as any).close ?? 0;
+          const spread = ch - cl;
+          delta = spread > 0 ? 100 * ((cc - cl) - (ch - cc)) / spread : 0;
         }
 
         // Daily reset
@@ -803,7 +804,7 @@ export default function LightweightChart({
     if (volRef.current) {
       const volData = sorted.map(c => {
         const vol = (c.buy || 0) + (c.sell || 0);
-        const isBuy = c.c >= c.o;
+        const isBuy = (c.c ?? (c as any).close ?? 0) >= (c.o ?? (c as any).open ?? 0);
         return {
           time: Math.floor(c.ts) as any,
           value: vol > 0 ? vol : 100,
