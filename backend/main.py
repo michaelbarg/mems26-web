@@ -309,111 +309,164 @@ async def market_analyze():
     vwap_dist = vwap.get("distance", 0) or 0
     rel_vol   = vol_ctx.get("rel_vol", 1) or 1
     fp_bools  = data.get("footprint_bools", {})
+    bar_delta = bar.get("delta", 0) or 0
+    cvd_d5    = cvd.get("d5", 0) or 0
 
+    # ── B2: Compute macro bias (same logic as B1 pre-analysis) ──
+    bullish_c, bearish_c = 0, 0
+    for tf_key in ["m5", "m15", "m30", "m60"]:
+        tf_d = mtf.get(tf_key, {})
+        if tf_d.get("c", 0) > tf_d.get("o", 0) and tf_d.get("delta", 0) > 0: bullish_c += 1
+        elif tf_d.get("c", 0) < tf_d.get("o", 0) and tf_d.get("delta", 0) < 0: bearish_c += 1
+    if cvd.get("trend") == "BULLISH": bullish_c += 1
+    elif cvd.get("trend") == "BEARISH": bearish_c += 1
+    if vwap.get("above"): bullish_c += 1
+    else: bearish_c += 1
+    if profile.get("above_poc"): bullish_c += 1
+    else: bearish_c += 1
+    total_bc = bullish_c + bearish_c
+    if total_bc == 0: macro_bias, bias_conf = "NEUTRAL", 0
+    elif bullish_c > bearish_c: macro_bias, bias_conf = "LONG", round(bullish_c / total_bc * 100)
+    elif bearish_c > bullish_c: macro_bias, bias_conf = "SHORT", round(bearish_c / total_bc * 100)
+    else: macro_bias, bias_conf = "NEUTRAL", 50
+
+    # Draw on Liquidity — nearest level in bias direction
+    draw_on = "N/A"
+    level_map = {"PDH": levels.get("prev_high",0), "PDL": levels.get("prev_low",0),
+                 "ONH": levels.get("overnight_high",0), "ONL": levels.get("overnight_low",0),
+                 "IBH": session.get("ibh",0), "IBL": session.get("ibl",0),
+                 "R1": woodi.get("r1",0), "S1": woodi.get("s1",0)}
+    if macro_bias == "LONG":
+        targets = [(n,v) for n,v in level_map.items() if v > price]
+        if targets: targets.sort(key=lambda x: x[1]); draw_on = f"{targets[0][0]}={targets[0][1]}"
+    elif macro_bias == "SHORT":
+        targets = [(n,v) for n,v in level_map.items() if v < price and v > 0]
+        if targets: targets.sort(key=lambda x: -x[1]); draw_on = f"{targets[0][0]}={targets[0][1]}"
+
+    # ── Fetch patterns (MSS/FVG status) from Redis ──
+    patterns = await redis_get_json_array(REDIS_PATTERNS_KEY)
+    mss_status = "NOT_DETECTED"
+    mss_level = 0
+    fvg_status = "NOT_DETECTED"
+    fvg_entry = 0
+    sweep_status = "NOT_DETECTED"
+    for p in (patterns if isinstance(patterns, list) else []):
+        pn = p.get("pattern", "")
+        if pn == "LIQ_SWEEP":
+            sweep_status = f"DETECTED {p.get('direction','')} @ {p.get('level_name','')}={p.get('level_price',0)}"
+            mss_status = f"CONFIRMED @ {p.get('mss_level',0)} rel_vol={p.get('mss_rel_vol',0)}"
+            fvg_status = f"ACTIVE {p.get('fvg_high',0)}-{p.get('fvg_low',0)}"
+            fvg_entry = p.get("entry", 0)
+        elif pn == "MSS" and mss_status == "NOT_DETECTED":
+            mss_status = f"DETECTED {p.get('direction','')} @ {p.get('neckline',0)}"
+            mss_level = p.get("neckline", 0)
+        elif pn == "FVG" and fvg_status == "NOT_DETECTED":
+            fvg_status = f"DETECTED {p.get('direction','')} entry={p.get('entry',0)}"
+            fvg_entry = p.get("entry", 0)
+
+    # ── Killzone (compute in ET) ──
+    from datetime import datetime, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        et_now = datetime.now(ZoneInfo("America/New_York"))
+    except Exception:
+        et_now = datetime.now(timezone.utc)
+    et_min = et_now.hour * 60 + et_now.minute
+    kz_zones = [("London", 120, 300), ("NY_Open", 570, 660), ("NY_Close", 870, 960)]
+    kz_name, kz_left = "OUTSIDE", 0
+    for name, start, end in kz_zones:
+        if start <= et_min <= end:
+            kz_name, kz_left = name, end - et_min
+            break
+
+    # ── Footprint booleans summary ──
+    fp_lines = []
+    if fp_bools:
+        if fp_bools.get("absorption_detected"): fp_lines.append("ABSORPTION (iceberg at extreme)")
+        if fp_bools.get("exhaustion_detected"): fp_lines.append("EXHAUSTION (<5 contracts at extreme)")
+        if fp_bools.get("trapped_buyers"): fp_lines.append("TRAPPED BUYERS")
+        sc = fp_bools.get("stacked_imbalance_count", 0)
+        sd = fp_bools.get("stacked_imbalance_dir", "NONE")
+        if sc >= 2: fp_lines.append(f"STACKED IMBALANCE {sc}x250% dir={sd}")
+        if fp_bools.get("pullback_delta_declining"): fp_lines.append("PULLBACK DELTA DECLINING")
+        if fp_bools.get("pullback_aggressive_buy"): fp_lines.append("AGGRESSIVE BUY on pullback")
+        if fp_bools.get("pullback_aggressive_sell"): fp_lines.append("AGGRESSIVE SELL on pullback")
+    fp_str = " | ".join(fp_lines) if fp_lines else "No footprint signals"
+
+    # ── Volume exhaustion ──
+    exhaustion_signs = []
+    if rel_vol < 0.9: exhaustion_signs.append("vol_declining")
+    if (bar_delta > 0 and cvd_d5 < -20) or (bar_delta < 0 and cvd_d5 > 20): exhaustion_signs.append("cvd_divergence")
+    if (bar_delta > 30 and price < vwap.get("value", price)) or (bar_delta < -30 and price > vwap.get("value", price)): exhaustion_signs.append("inverse_delta")
+    vol_exh_str = f"{len(exhaustion_signs)}/3: {', '.join(exhaustion_signs)}" if exhaustion_signs else "0/3 — no exhaustion"
+
+    # ── Footprint raw ──
     fp_raw = data.get("footprint", [])
+    footprint_summary = "N/A"
     if fp_raw and isinstance(fp_raw, list):
-        fp_lines = []
-        for fb in fp_raw[-5:]:
-            if isinstance(fb, dict):
-                fp_lines.append(f"Δ={fb.get('delta',0):+.0f} vol={fb.get('buy',0)+fb.get('sell',0):.0f}")
-        footprint_summary = " | ".join(fp_lines) if fp_lines else "N/A"
-    else:
-        footprint_summary = "N/A"
+        fl = [f"Δ={fb.get('delta',0):+.0f} vol={fb.get('buy',0)+fb.get('sell',0):.0f}" for fb in fp_raw[-5:] if isinstance(fb, dict)]
+        if fl: footprint_summary = " | ".join(fl)
 
+    # ── Last 5 candles ──
     candles_raw = await redis_lrange(REDIS_CANDLES_KEY, 0, 4)
     last_5 = []
     for item in candles_raw:
         try:
             c = item
-            while isinstance(c, str):
-                c = json.loads(c)
-            if isinstance(c, dict) and c.get("ts", 0) > 0:
-                last_5.append(c)
-        except Exception:
-            continue
+            while isinstance(c, str): c = json.loads(c)
+            if isinstance(c, dict) and c.get("ts", 0) > 0: last_5.append(c)
+        except Exception: continue
     last_5.sort(key=lambda x: x.get("ts", 0))
-    last_5_str = " | ".join(
-        f"O={c.get('o',0):.2f} H={c.get('h',0):.2f} L={c.get('l',0):.2f} C={c.get('c',0):.2f} Δ={c.get('delta',0):+.0f}"
-        for c in last_5
-    ) if last_5 else "N/A"
+    last_5_str = " | ".join(f"O={c.get('o',0):.2f} H={c.get('h',0):.2f} L={c.get('l',0):.2f} C={c.get('c',0):.2f} Δ={c.get('delta',0):+.0f}" for c in last_5) if last_5 else "N/A"
 
-    # B2: Footprint booleans summary
-    fp_bool_lines = []
-    if fp_bools:
-        if fp_bools.get("absorption_detected"): fp_bool_lines.append("ABSORPTION detected (iceberg at extreme)")
-        if fp_bools.get("exhaustion_detected"): fp_bool_lines.append("EXHAUSTION detected (<5 contracts at extreme)")
-        if fp_bools.get("trapped_buyers"): fp_bool_lines.append("TRAPPED BUYERS (broke high, reversed below open)")
-        sc = fp_bools.get("stacked_imbalance_count", 0)
-        sd = fp_bools.get("stacked_imbalance_dir", "NONE")
-        if sc >= 2: fp_bool_lines.append(f"STACKED IMBALANCE: {sc} levels x250% direction={sd}")
-        if fp_bools.get("pullback_delta_declining"): fp_bool_lines.append("PULLBACK DELTA DECLINING (momentum fading)")
-        if fp_bools.get("pullback_aggressive_buy"): fp_bool_lines.append("AGGRESSIVE BUY on pullback (+delta during dip)")
-        if fp_bools.get("pullback_aggressive_sell"): fp_bool_lines.append("AGGRESSIVE SELL on pullback (-delta during rise)")
-    fp_bool_str = " | ".join(fp_bool_lines) if fp_bool_lines else "No footprint signals"
+    prompt = f"""אתה אנליסט בכיר למסחר ב-MES Futures. איכות מעל כמות — עדיף לפספס 3 עסקאות מלהיכנס לאחת שגויה.
 
-    # B2: Volume exhaustion check
-    vol_declining = rel_vol < 0.9
-    cvd_d5 = cvd.get("d5", 0) or 0
-    bar_delta = bar.get("delta", 0) or 0
-    exhaustion_signs = []
-    if vol_declining: exhaustion_signs.append("vol_declining")
-    if (bar_delta > 0 and cvd_d5 < -20) or (bar_delta < 0 and cvd_d5 > 20): exhaustion_signs.append("cvd_divergence")
-    if (bar_delta > 30 and price < vwap.get("value", price)) or (bar_delta < -30 and price > vwap.get("value", price)): exhaustion_signs.append("inverse_delta")
-    vol_exh_str = f"{len(exhaustion_signs)}/3 signs: {', '.join(exhaustion_signs)}" if exhaustion_signs else "0/3 — no exhaustion"
+═══ 1. CONTEXT — Macro Bias + Day Type + Killzone ═══
+Macro Bias: {macro_bias} (confidence {bias_conf}%, MTF bull={bullish_c} bear={bearish_c})
+Draw on Liquidity: {draw_on}
+Day Type: {day.get('type','?')} | IB range={day.get('ib_range',0):.1f} locked={session.get('ib_locked',False)}
+Session: {session.get('phase','?')} | minute {session.get('min',-1)}
+Killzone: {kz_name} ({kz_left}min left) | Gap: {day.get('gap_type','FLAT')} ({day.get('gap',0):.2f}pt)
 
-    prompt = f"""אתה אנליסט בכיר למסחר ב-MES Futures. עקרון מנחה: איכות מעל כמות — עדיף לפספס 3 עסקאות מלהיכנס לאחת שגויה.
-
-נתח לפי הסדר: 1.רמות → 2.Order Flow → 3.Footprint → 4.החלטה
-
-═══ שלב 1: רמות ומבנה ═══
-מחיר: {price} | Session: {session.get('phase','?')} דקה {session.get('min',-1)}
-DayType: {day.get('type','?')} | IB: {session.get('ibh',0)}-{session.get('ibl',0)} (range={day.get('ib_range',0):.1f}) locked={session.get('ib_locked',False)}
-Gap: {day.get('gap_type','FLAT')} ({day.get('gap',0):.2f}pt)
-
-רמות מפתח:
+═══ 2. KEY LEVELS ═══
+מחיר: {price}
   PDH={levels.get('prev_high',0)} | PDL={levels.get('prev_low',0)} | DO={levels.get('daily_open',0)}
   ONH={levels.get('overnight_high',0)} | ONL={levels.get('overnight_low',0)}
+  IBH={session.get('ibh',0)} | IBL={session.get('ibl',0)}
   VWAP={vwap.get('value',0)} (dist={vwap_dist:+.2f}, above={vwap.get('above',False)}, pullback={vwap.get('pullback',False)})
   POC={profile.get('poc',0)} (above={profile.get('above_poc',False)}) | VAH={profile.get('vah',0)} | VAL={profile.get('val',0)}
   Woodi: PP={woodi.get('pp',0)} R1={woodi.get('r1',0)} S1={woodi.get('s1',0)} R2={woodi.get('r2',0)} S2={woodi.get('s2',0)}
 
-═══ שלב 2: Order Flow ═══
-Delta נוכחי: {bar_delta:+.0f} | CVD: trend={cvd.get('trend','?')} d5={cvd_d5:+.0f} d20={cvd.get('d20',0):+.0f}
-Volume: rel={rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')})
-Volume Exhaustion: {vol_exh_str}
-MTF delta: 5m={mtf.get('m5',{{}}).get('delta',0):+.0f} | 15m={mtf.get('m15',{{}}).get('delta',0):+.0f} | 30m={mtf.get('m30',{{}}).get('delta',0):+.0f} | 60m={mtf.get('m60',{{}}).get('delta',0):+.0f}
-CCI: 14={cci.get('cci14',0):.1f} 6={cci.get('cci6',0):.1f} trend={cci.get('trend','?')} | turbo_bull={cci.get('turbo_bull',False)} turbo_bear={cci.get('turbo_bear',False)}
-OF: Absorption={of2.get('absorption_bull',False)} | LiqSweepLong={of2.get('liq_sweep_long',False)} | LiqSweepShort={of2.get('liq_sweep_short',False)}
-Pattern: {candle_p.get('bar0','?')} | prev: {candle_p.get('bar1','?')} | Engulf: bull={candle_p.get('bull_engulf',False)} bear={candle_p.get('bear_engulf',False)}
-5 נרות אחרונים: {last_5_str}
+═══ 3. ORDER FLOW + FOOTPRINT ═══
+Delta: {bar_delta:+.0f} | CVD: trend={cvd.get('trend','?')} d5={cvd_d5:+.0f} d20={cvd.get('d20',0):+.0f}
+Volume: rel={rel_vol:.2f}x ({vol_ctx.get('context','NORMAL')}) | Exhaustion: {vol_exh_str}
+MTF delta: 5m={mtf.get('m5',{{}}).get('delta',0):+.0f} 15m={mtf.get('m15',{{}}).get('delta',0):+.0f} 30m={mtf.get('m30',{{}}).get('delta',0):+.0f} 60m={mtf.get('m60',{{}}).get('delta',0):+.0f}
+CCI: 14={cci.get('cci14',0):.1f} 6={cci.get('cci6',0):.1f} trend={cci.get('trend','?')} turbo_bull={cci.get('turbo_bull',False)} turbo_bear={cci.get('turbo_bear',False)}
+OF: Absorption={of2.get('absorption_bull',False)} LiqSweepLong={of2.get('liq_sweep_long',False)} LiqSweepShort={of2.get('liq_sweep_short',False)}
+Candle: {candle_p.get('bar0','?')} prev={candle_p.get('bar1','?')} BullEngulf={candle_p.get('bull_engulf',False)} BearEngulf={candle_p.get('bear_engulf',False)}
+Footprint: {fp_str}
+Raw bars: {footprint_summary}
+Last 5 candles: {last_5_str}
 
-═══ שלב 3: Footprint (price-level analysis) ═══
-{fp_bool_str}
-Raw footprint (5 bars): {footprint_summary}
+═══ 4. SETUP STATUS (Sweep → MSS → FVG chain) ═══
+Sweep: {sweep_status}
+MSS: {mss_status}
+FVG: {fvg_status} (entry={fvg_entry})
 
-═══ שלב 4: החלטה ═══
-Reversal vs Continuation table:
-  Reversal (enter): long wick + close back | vol declining | CVD divergence | inverse delta | absorption/zero-print
-  Continuation (don't enter): body closes beyond | vol increasing in direction | CVD matches | delta matches | imbalances support direction
-
-סטאפ עדיף: LIQUIDITY SWEEP (Sweep → MSS → FVG)
-  - Sweep: wick >= 1.5pt past level, close back
-  - MSS: swing break + rel_vol > 1.2 + stacked imbalance 2+ levels x250%
-  - FVG: gap 0.5-4pt within 10 bars, not cancelled (body beyond distal edge)
-  - Volume exhaustion required: 2 of 3 signs (vol declining, CVD divergence, inverse delta)
-
-כללים קשיחים:
+═══ 5. DECISION ═══
+כללים:
 1. סטופ > 8pt → NO_TRADE
 2. T1 < 10pt → NO_TRADE
 3. rel_vol < 0.8 → confidence max 50
 4. DayType BALANCED/ROTATIONAL/NEUTRAL → confidence max 60
-5. Volume supports direction (not exhaustion) → this is CONTINUATION not reversal → NO_TRADE
-6. No absorption or exhaustion in footprint → lower confidence by 15
+5. Volume supports direction (not exhaustion) = CONTINUATION → NO_TRADE
+6. No absorption/exhaustion in footprint → confidence -15
+7. Killzone=OUTSIDE → confidence max 40
 
-ניהול: C1=50% R:R 1:1 (move stop to BE) | C2=25% R:R 1:2 | C3=25% Runner to R1/S1 or R:R 1:3
+ניהול: C1=50% R:R 1:1 (stop→BE) | C2=25% R:R 1:2 | C3=25% Runner R1/S1 or 1:3
 
 JSON בלבד ללא backticks:
-{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":0-100,"setup":"שם הסטאפ","setup_name":"LIQ_SWEEP/VWAP_PB/IB_RETEST","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rr":"1:X","the_box":"low-high","anchor_line":0.0,"order_block":"low-high","invalidation":0.0,"rationale":"2-3 משפטים בעברית — ציין ממצא footprint + volume exhaustion + מבנה","geometric_notes":"הוראות ציור","warning":"אזהרות","time_estimate":"X-Y דקות ל-T1","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
+{{"direction":"LONG/SHORT/NO_TRADE","score":0-10,"confidence":0-100,"setup":"שם הסטאפ בעברית","setup_name":"LIQ_SWEEP/VWAP_PB/IB_RETEST","win_rate":0-85,"t1_win_rate":0-85,"t2_win_rate":0-65,"t3_win_rate":0-45,"entry":0.0,"stop":0.0,"target1":0.0,"target2":0.0,"target3":0.0,"risk_pts":0.0,"rr":"1:X","the_box":"low-high","anchor_line":0.0,"order_block":"low-high","invalidation":0.0,"rationale":"2-3 משפטים בעברית — ציין bias, footprint, volume exhaustion, setup chain status","warning":"אזהרות","time_estimate":"X-Y דקות ל-T1","wait_reason":"מה להמתין אם NO_TRADE","tl_color":"red/orange/green/green_bright"}}"""
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -426,7 +479,7 @@ JSON בלבד ללא backticks:
                 },
                 json={
                     "model": "claude-sonnet-4-6",
-                    "max_tokens": 1500,
+                    "max_tokens": 2000,
                     "messages": [{"role": "user", "content": prompt}]
                 }
             )
