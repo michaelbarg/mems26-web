@@ -910,8 +910,10 @@ async def main():
                     bar_data = mtf_raw.get(mtf_key, {})
                     if not bar_data:
                         continue
-                    if not all([bar_data.get('o'), bar_data.get('h'), bar_data.get('l'), bar_data.get('c')]):
-                        continue  # skip invalid candle (0 or None)
+                    if bar_data.get('o') is None or bar_data.get('h') is None or bar_data.get('c') is None:
+                        continue  # skip if missing keys
+                    if bar_data.get('h', 0) == 0 and bar_data.get('l', 0) == 0:
+                        continue  # skip truly empty candle
                     mc = mtf_candles[mtf_key]
                     mts = bar_data.get('ts') or (wall_ts // interval) * interval
                     b_o   = bar_data.get('o', price)
@@ -926,8 +928,8 @@ async def main():
                         mc.o = b_o; mc.h = b_h; mc.l = b_l; mc.c = price
                         mc.buy = b_buy; mc.sell = b_sell; mc.vol = b_vol
                     elif mts > mc.start_ts:
-                        if not all([mc.o, mc.h, mc.l, mc.c]):
-                            log.warning(f"Skipping invalid {mtf_key} candle: o={mc.o} h={mc.h} l={mc.l} c={mc.c}")
+                        if mc.h == 0 and mc.l == 0:
+                            log.warning(f"Skipping empty {mtf_key} candle: o={mc.o} h={mc.h} l={mc.l} c={mc.c}")
                         else:
                             label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
                             await save_candle_mtf(http, mc, raw, redis_key, max_c, label)
