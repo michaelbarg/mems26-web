@@ -355,6 +355,70 @@ export default function LightweightChart({
         }
       }
 
+    // ── D2: FVG Zones ────────────────────────────────────────────────────
+    const fvgPatterns = (scannedPatterns || []).filter((p: any) => p.pattern === 'FVG');
+    for (const fvg of fvgPatterns) {
+      const isLong = fvg.direction === 'LONG';
+
+      // Zone bounds: entry = proximal edge, stop ± 0.5 = distal edge
+      const proximal = fvg.entry;
+      const distal   = isLong ? fvg.stop + 0.5 : fvg.stop - 0.5;
+      const zoneTop  = Math.max(proximal, distal);
+      const zoneBot  = Math.min(proximal, distal);
+
+      const yTop = series.priceToCoordinate(zoneTop);
+      const yBot = series.priceToCoordinate(zoneBot);
+      if (yTop === null || yBot === null) continue;
+
+      // X: from FVG start bar to right edge of chart
+      const fvgTs   = chart.timeScale();
+      const xStart = fvgTs.timeToCoordinate(Math.floor(fvg.start_ts) as any);
+      if (xStart === null) continue;
+      const xEnd = rect.width;
+
+      const fvgH = Math.abs(yBot - yTop);
+      if (fvgH < 1) continue;
+
+      // Fill
+      ctx.fillStyle = isLong
+        ? 'rgba(34, 197, 94, 0.12)'
+        : 'rgba(239, 68, 68, 0.12)';
+      ctx.fillRect(xStart, Math.min(yTop, yBot), xEnd - xStart, fvgH);
+
+      // Border lines: proximal (solid) + distal (dashed)
+      const proxY = series.priceToCoordinate(proximal);
+      const distY = series.priceToCoordinate(distal);
+      if (proxY !== null) {
+        ctx.strokeStyle = isLong ? 'rgba(34,197,94,0.7)' : 'rgba(239,68,68,0.7)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(xStart, proxY);
+        ctx.lineTo(xEnd, proxY);
+        ctx.stroke();
+      }
+      if (distY !== null) {
+        ctx.strokeStyle = isLong ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)';
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(xStart, distY);
+        ctx.lineTo(xEnd, distY);
+        ctx.stroke();
+      }
+      ctx.setLineDash([]);
+
+      // Label
+      if (proxY !== null) {
+        ctx.fillStyle = isLong ? 'rgba(34,197,94,0.9)' : 'rgba(239,68,68,0.9)';
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText(
+          `FVG ${isLong ? '▲' : '▼'} ${(Math.abs(zoneTop - zoneBot)).toFixed(2)}pt`,
+          xStart + 4,
+          Math.min(yTop, yBot) + 11
+        );
+      }
+    }
+
     // ── RTH Open Vertical Line ─────────────────────────────────────────
     const tsc = chart.timeScale();
     const now = new Date();
@@ -1097,6 +1161,23 @@ export default function LightweightChart({
           });
         }
 
+        // D3: MSS markers
+        const mssPatterns = (scannedPatterns || []).filter((p: any) =>
+          p.pattern === 'MSS' || p.pattern === 'mss' || p.pattern === 'liquidity_sweep'
+        );
+        for (const mss of mssPatterns) {
+          const mssTs = Math.floor(mss.start_ts);
+          if (!mssTs || mssTs < 1577836800) continue;
+          allMarkers.push({
+            time: mssTs as any,
+            position: mss.direction === 'LONG' ? 'belowBar' : 'aboveBar',
+            color: mss.direction === 'LONG' ? '#22c55e' : '#ef4444',
+            shape: mss.direction === 'LONG' ? 'arrowUp' : 'arrowDown',
+            text: `MSS ${mss.direction === 'LONG' ? '▲' : '▼'}`,
+            size: 1,
+          });
+        }
+
         // Filter invalid markers + sort by time (required by LightweightCharts)
         const validMarkers = allMarkers.filter(m => m.time != null && m.time > 1577836800 && isFinite(m.time as number));
         validMarkers.sort((a,b) => (a.time as number) - (b.time as number));
@@ -1113,7 +1194,7 @@ export default function LightweightChart({
   // Redraw sweep zone overlay when sweepData changes
   useEffect(() => {
     drawOverlays();
-  }, [sweepData, drawOverlays]);
+  }, [sweepData, scannedPatterns, drawOverlays]);
 
   // Redraw zones when zone changes
   useEffect(() => {
