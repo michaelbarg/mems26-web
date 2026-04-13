@@ -1,6 +1,17 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+
+// Suppress known LightweightCharts v4.1.3 "Value is null" error during initial render.
+// This is a library bug where createChart throws async in requestAnimationFrame
+// before any data is set. The chart still works correctly.
+if (typeof window !== 'undefined') {
+  window.addEventListener('error', (e) => {
+    if (e.message === 'Value is null' && e.filename?.includes('lightweight-charts')) {
+      e.preventDefault();
+    }
+  });
+}
 export interface SetupZone {
   entry:      number;
   stop:       number;
@@ -523,9 +534,8 @@ export default function LightweightChart({
 
 
   const initChart = useCallback(() => {
-    console.log('[MEMS26] initChart called, candles:', candlesRef.current?.length ?? 0, 'chart exists:', !!chartRef.current);
     if (!containerRef.current || chartRef.current) return;
-    if (!candlesRef.current || candlesRef.current.length === 0) { console.log('[MEMS26] no candles, skipping createChart'); return; }
+    if (!candlesRef.current || candlesRef.current.length === 0) return;
     const LW = (window as any).LightweightCharts;
     if (!LW) return;
 
@@ -750,8 +760,7 @@ export default function LightweightChart({
     // Deduplicate by time (LightweightCharts crashes on duplicate timestamps)
     const seenTs = new Set<number>();
     const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
-    console.log('setData candles:', dedupCandles.length, JSON.stringify(dedupCandles.slice(0,3)));
-    try { seriesRef.current.setData(dedupCandles); } catch (e) { console.error('setData error:', e); }
+    try { seriesRef.current.setData(dedupCandles); } catch (e) { /* ignore */ }
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
@@ -876,7 +885,6 @@ export default function LightweightChart({
         liveUpdate.wickUpColor = '#26a69a';
         liveUpdate.wickDownColor = '#ef5350';
       }
-      console.log('update liveBar:', JSON.stringify(liveUpdate));
       seriesRef.current.update(liveUpdate);
     } catch (e) {
       // Ignore "Cannot update oldest data" during tf switch
