@@ -98,6 +98,8 @@ export default function LightweightChart({
   sweepEventsRef.current  = sweepEvents;
   onSweepClickRef.current = onSweepClick;
   sweepDataRef.current    = sweepData;
+  const candlesRef           = useRef(candles);
+  candlesRef.current         = candles;
   const loadedRef            = useRef(false);
   const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
   const volRef               = useRef<any>(null);
@@ -522,7 +524,7 @@ export default function LightweightChart({
 
   const initChart = useCallback(() => {
     if (!containerRef.current || chartRef.current) return;
-    if (!candles || candles.length === 0) return;
+    if (!candlesRef.current || candlesRef.current.length === 0) return;
     const LW = (window as any).LightweightCharts;
     if (!LW) return;
 
