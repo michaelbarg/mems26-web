@@ -675,8 +675,8 @@ def aggregate_candles(candles_3m: list, interval_sec: int, max_candles: int) -> 
             if c.get("liq_sweep_short"): b["liq_sweep_short"] = True
 
     result = sorted(buckets.values(), key=lambda c: c["ts"])
-    # Filter out candles with invalid OHLC
-    result = [c for c in result if all([c["open"], c["high"], c["low"], c["close"]])]
+    # Filter out truly empty candles (high=0 and low=999999 means no data)
+    result = [c for c in result if c["high"] > 0 and c["low"] < 999999]
     return result[-max_candles:]
 
 
