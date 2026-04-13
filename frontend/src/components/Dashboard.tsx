@@ -3064,6 +3064,53 @@ const DAY_EXPLANATIONS: Record<string,{heb:string; desc:string; strategy:string;
   'DOUBLE_DISTRIBUTION':{ heb:'דיסטריביושן כפול', col:'#60a5fa', desc:'שני אזורי מסחר עיקריים — פריצה בין האזורים', strategy:'חכה לפריצה ברורה. IB Breakout Retest בלבד.' },
 };
 
+function useKillzoneCountdown() {
+  const [kzText, setKzText] = useState('');
+  const [kzActive, setKzActive] = useState(false);
+  useEffect(() => {
+    const ZONES: [string, number, number][] = [
+      ['London',   120, 300],  // 02:00-05:00 ET
+      ['NY Open',  570, 660],  // 09:30-11:00 ET
+      ['NY Close', 810, 960],  // 13:30-16:00 ET
+    ];
+    const fmt = (totalSec: number) => {
+      const h = Math.floor(totalSec / 3600);
+      const m = Math.floor((totalSec % 3600) / 60);
+      const s = totalSec % 60;
+      return h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+                    : `${m}:${String(s).padStart(2,'0')}`;
+    };
+    const tick = () => {
+      const etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+      const et = new Date(etStr);
+      const nowMin = et.getHours() * 60 + et.getMinutes();
+      const nowSec = nowMin * 60 + et.getSeconds();
+      // Check if inside a zone
+      for (const [name, start, end] of ZONES) {
+        if (nowMin >= start && nowMin < end) {
+          const remaining = end * 60 - nowSec;
+          setKzText(`${name} — ${fmt(remaining)} left`);
+          setKzActive(true);
+          return;
+        }
+      }
+      // Outside — find next zone
+      let bestName = '', bestSec = Infinity;
+      for (const [name, start] of ZONES) {
+        let diff = start * 60 - nowSec;
+        if (diff <= 0) diff += 24 * 3600; // wrap to next day
+        if (diff < bestSec) { bestSec = diff; bestName = name; }
+      }
+      setKzText(`${bestName} in ${fmt(bestSec)}`);
+      setKzActive(false);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return { kzText, kzActive };
+}
+
 function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|null; onRequestExplanation:()=>void; aiLoading:boolean }) {
   const day = (live as any)?.day || {};
   const sess = live?.session || {} as any;
@@ -3075,6 +3122,7 @@ function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|
   const gap = day.gap_type || 'FLAT';
   const min = sess.min || 0;
   const phase = sess.phase || '—';
+  const { kzText, kzActive } = useKillzoneCountdown();
 
   return (
     <div style={{ background:'#111827', border:`1px solid ${col}44`, borderRadius:8, overflow:'hidden', flexShrink:0 }}>
@@ -3089,6 +3137,10 @@ function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|
           <span style={{ fontSize:9, color:'#6b7280' }}>Ext ×{ext}</span>
           <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
           <span style={{ fontSize:9, color: gap==='FLAT'?'#4a5568':'#f59e0b' }}>Gap {gap}</span>
+          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:9, fontWeight:700, color: kzActive ? '#22c55e' : '#6b7280', fontFamily:'monospace' }}>
+            {kzActive ? '🟢 ' : '⏱ '}{kzText}
+          </span>
         </div>
         {/* Phase + min */}
         <span style={{ fontSize:9, color:'#4a5568' }}>{phase} {min>0?`${min}m`:''}</span>
