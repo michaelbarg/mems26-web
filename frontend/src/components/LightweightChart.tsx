@@ -728,7 +728,7 @@ export default function LightweightChart({
     }
 
     const validCandles = cData.filter(c =>
-      c.open != null && c.high != null && c.low != null && c.close != null &&
+      c.open > 100 && c.high > 100 && c.low > 100 && c.close > 100 &&
       isFinite(c.open) && isFinite(c.high) && isFinite(c.low) && isFinite(c.close) &&
       c.time != null && c.time > 1577836800 && isFinite(c.time)
     );
@@ -839,14 +839,16 @@ export default function LightweightChart({
     const liveTs = Math.floor(liveBar.ts);
     if (!liveTs || liveTs < 1577836800 || !isFinite(liveTs)) return;
     const price = livePrice ?? liveBar.c;
-    if (price == null || !isFinite(price) || price <= 0) return;
-    if (liveBar.o == null || liveBar.h == null || liveBar.l == null) return;
+    if (!price || !isFinite(price) || price <= 100) return;
+    const liveO = liveBar.o, liveH = liveBar.h, liveL = liveBar.l;
+    if (!liveO || !liveH || !liveL || !isFinite(liveO) || !isFinite(liveH) || !isFinite(liveL)) return;
+    if (liveO <= 100 || liveH <= 100 || liveL <= 100) return;
     try {
       const liveUpdate: any = {
         time:  liveTs as any,
-        open:  liveBar.o,
-        high:  Math.max(liveBar.h, price),
-        low:   Math.min(liveBar.l, price),
+        open:  liveO,
+        high:  Math.max(liveH, price),
+        low:   Math.min(liveL, price),
         close: price,
       };
       // D7: color live bar body during active trade
