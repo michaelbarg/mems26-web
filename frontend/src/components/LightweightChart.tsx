@@ -623,16 +623,7 @@ export default function LightweightChart({
     cvdMaRef.current  = cvdMaLine;
     volRef.current    = volHist;
     // RTH background overlay — covers full chart height
-    const rthBg = chart.addHistogramSeries({
-      priceScaleId:    'rth-bg',
-      lastValueVisible: false,
-      priceLineVisible: false,
-    });
-    chart.priceScale('rth-bg').applyOptions({
-      scaleMargins: { top: 0, bottom: 0 },
-      visible: false,
-    });
-    rthBgRef.current = rthBg;
+    rthBgRef.current = null;
 
     // Click handler — find nearest sweep event
     chart.subscribeClick((param: any) => {
@@ -878,14 +869,17 @@ export default function LightweightChart({
       }
 
       // Update volume for live bar
-      if (volRef.current) {
+      if (volRef.current && liveTs > 1577836800) {
         const vol = (liveBar.buy || 0) + (liveBar.sell || 0);
-        const isBuy = price >= liveBar.o;
-        volRef.current.update({
-          time: liveTs as any,
-          value: vol > 0 ? vol : 100,
-          color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
-        });
+        const isBuy = price >= (liveBar.o || price);
+        const volVal = (vol > 0 && isFinite(vol)) ? vol : 100;
+        try {
+          volRef.current.update({
+            time: liveTs as any,
+            value: volVal,
+            color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
+          });
+        } catch (e) {}
       }
     } catch (e) {
       // Ignore during tf switch
@@ -1109,25 +1103,29 @@ export default function LightweightChart({
       patternLinesRef.current.push(el);
     }
 
-    if ((p.pattern === 'TRI_ASC' || p.pattern === 'TRI_DESC') && p.start_ts && p.end_ts) {
-      const isAsc = p.pattern === 'TRI_ASC';
-      const upperTL = chart.addLineSeries({ color: isAsc ? 'rgba(233,30,99,0.6)' : 'rgba(233,30,99,0.8)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-      const upperStart = isAsc ? p.neckline : (p.neckline + (p.entry - p.stop) * 0.3);
-      const upperEnd = isAsc ? p.neckline : p.neckline;
-      upperTL.setData([{ time: p.start_ts as any, value: upperStart }, { time: p.end_ts as any, value: upperEnd }]);
-      patternTLRef.current.push(upperTL);
+    if ((p.pattern === 'TRI_ASC' || p.pattern === 'TRI_DESC') && p.start_ts > 1577836800 && p.end_ts > 1577836800) {
+      try {
+        const isAsc = p.pattern === 'TRI_ASC';
+        const upperTL = chart.addLineSeries({ color: isAsc ? 'rgba(233,30,99,0.6)' : 'rgba(233,30,99,0.8)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        const upperStart = isAsc ? p.neckline : (p.neckline + (p.entry - p.stop) * 0.3);
+        const upperEnd = isAsc ? p.neckline : p.neckline;
+        if (upperStart > 100 && upperEnd > 100) upperTL.setData([{ time: p.start_ts as any, value: upperStart }, { time: p.end_ts as any, value: upperEnd }]);
+        patternTLRef.current.push(upperTL);
 
-      const lowerTL = chart.addLineSeries({ color: isAsc ? 'rgba(0,188,212,0.8)' : 'rgba(0,188,212,0.6)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-      const lowerStart = p.stop;
-      const lowerEnd = isAsc ? (p.stop + (p.neckline - p.stop) * 0.6) : p.stop;
-      lowerTL.setData([{ time: p.start_ts as any, value: lowerStart }, { time: p.end_ts as any, value: lowerEnd }]);
-      patternTLRef.current.push(lowerTL);
+        const lowerTL = chart.addLineSeries({ color: isAsc ? 'rgba(0,188,212,0.8)' : 'rgba(0,188,212,0.6)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        const lowerStart = p.stop;
+        const lowerEnd = isAsc ? (p.stop + (p.neckline - p.stop) * 0.6) : p.stop;
+        if (lowerStart > 100 && lowerEnd > 100) lowerTL.setData([{ time: p.start_ts as any, value: lowerStart }, { time: p.end_ts as any, value: lowerEnd }]);
+        patternTLRef.current.push(lowerTL);
+      } catch (e) {}
     }
 
-    if ((p.pattern === 'HS' || p.pattern === 'IHS') && p.start_ts && p.end_ts && p.neckline) {
-      const neckTL = chart.addLineSeries({ color: 'rgba(255,215,0,0.7)', lineWidth: 1.5, lineStyle: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-      neckTL.setData([{ time: p.start_ts as any, value: p.neckline }, { time: p.end_ts as any, value: p.neckline }]);
-      patternTLRef.current.push(neckTL);
+    if ((p.pattern === 'HS' || p.pattern === 'IHS') && p.start_ts > 1577836800 && p.end_ts > 1577836800 && p.neckline > 100) {
+      try {
+        const neckTL = chart.addLineSeries({ color: 'rgba(255,215,0,0.7)', lineWidth: 1.5, lineStyle: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+        neckTL.setData([{ time: p.start_ts as any, value: p.neckline }, { time: p.end_ts as any, value: p.neckline }]);
+        patternTLRef.current.push(neckTL);
+      } catch (e) {}
     }
   }, [scannedPatterns]);
 
