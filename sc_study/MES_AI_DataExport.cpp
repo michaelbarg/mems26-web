@@ -821,7 +821,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 // Attached stop-loss
                 order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                 order.Stop1Price = (float)cmdStop;
-                order.AttachedOrderStop1Offset = 0;
                 // Attached target
                 if (cmdT1 > 0) {
                     order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
@@ -844,7 +843,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 order.OrderType = SCT_ORDERTYPE_MARKET;
                 order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                 order.Stop1Price = (float)cmdStop;
-                order.AttachedOrderStop1Offset = 0;
                 if (cmdT1 > 0) {
                     order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
                     order.Target1Price = (float)cmdT1;
