@@ -762,6 +762,8 @@ export default function LightweightChart({
       return () => clearTimeout(timer);
     }
     initChart();
+    // Cleanup chart on unmount (key change = TF switch)
+    return () => { try { chartRef.current?.remove(); } catch {} chartRef.current = null; seriesRef.current = null; cvdRef.current = null; cvdMaRef.current = null; volRef.current = null; };
   }, [candles, initChart]);
 
   // Track last candles fingerprint to avoid unnecessary setData calls

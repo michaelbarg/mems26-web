@@ -3332,6 +3332,7 @@ export default function Dashboard() {
 
   // ── Re-fetch candles when timeframe changes ──
   useEffect(()=>{
+    setCandles([]); // clear stale data so chart re-inits with correct TF
     fetchCandles();
   },[tf,fetchCandles]);
 
