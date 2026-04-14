@@ -59,15 +59,27 @@ static long long ToUnixTime(SCDateTime dt)
     return (long long)((dt.GetAsDouble() - 25569.0) * 86400.0 + 0.5);
 }
 
-// ── Session Phase Helper ──────────────────────────────────────────────────────
-static const char* getPhase(int H, int M)
+// ── UTC → ET hour conversion (simplified DST: Mar-Nov = EDT, else EST) ──────
+static int UTCHourToET(int utcHour, int utcMonth)
 {
-    if (H == 9 && M >= 30) return "OPEN";
-    if (H >= 9 && H < 11)  return "AM_SESSION";
-    if (H >= 11 && H < 13) return "MIDDAY";
-    if (H >= 13 && H < 16) return "PM_SESSION";
-    if (H == 16)           return "CLOSE";
-    return "OVERNIGHT";
+    int offset = (utcMonth >= 3 && utcMonth <= 10) ? -4 : -5; // EDT / EST
+    int etH = utcHour + offset;
+    if (etH < 0) etH += 24;
+    return etH;
+}
+
+// ── Session Phase Helper (expects ET hour/minute) ────────────────────────────
+static const char* getPhase(int etH, int etM)
+{
+    int etMin = etH * 60 + etM;
+    if (etMin < 240)                   return "OVERNIGHT";   // 00:00-04:00
+    if (etMin < 570)                   return "PRE_MARKET";  // 04:00-09:30
+    if (etMin < 600)                   return "OPEN";        // 09:30-10:00
+    if (etMin < 660)                   return "AM_SESSION";  // 10:00-11:00
+    if (etMin < 780)                   return "MIDDAY";      // 11:00-13:00
+    if (etMin < 960)                   return "PM_SESSION";  // 13:00-16:00
+    if (etMin < 1080)                  return "POST_MARKET"; // 16:00-18:00
+    return "OVERNIGHT";                                      // 18:00-00:00
 }
 
 // ── SHA-256 (minimal, self-contained) ────────────────────────────────────────
@@ -222,6 +234,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float bid_vol = sc.BidVolume[idx];
     float delta   = ask_vol - bid_vol;
     int   H = now_dt.GetHour(), M = now_dt.GetMinute();
+    int   utcMonth = now_dt.GetMonth();
+    int   etH = UTCHourToET(H, utcMonth), etM = M;
 
     // ── CVD ──────────────────────────────────────────────────
     CVD[idx] = (idx == 0) ? delta : CVD[idx - 1] + delta;
@@ -290,8 +304,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     if(!prev_pvm.empty()){float pmv=0;for(auto&kv:prev_pvm)if(kv.second>pmv){pmv=kv.second;prev_day_poc=kv.first/4.0f;}}
 
     // ── Session Phase ─────────────────────────────────────────
-    const char* phase = getPhase(H, M);
-    float sesMin_f=(H*60.0f+M)-(9*60+30); int sesMin=(sesMin_f<0)?-1:(int)sesMin_f;
+    const char* phase = getPhase(etH, etM);
+    float sesMin_f=(etH*60.0f+etM)-(9*60+30); int sesMin=(sesMin_f<0)?-1:(int)sesMin_f;
 
     // ── Daily Open + Gap ─────────────────────────────────────
     float daily_open=cp; for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()==today)daily_open=sc.Open[i];else break;}
@@ -310,14 +324,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // ── IB + Opening Range ────────────────────────────────────
     int ib_minutes=IBPeriodMin.GetInt();
     float IBH=0,IBL=0; bool ib_locked=false;
-    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>ib_minutes)continue;if(IBH==0||sc.High[i]>IBH)IBH=sc.High[i];if(IBL==0||sc.Low[i]<IBL)IBL=sc.Low[i];}
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=UTCHourToET(sc.BaseDateTimeIn[i].GetHour(),sc.BaseDateTimeIn[i].GetMonth()),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>ib_minutes)continue;if(IBH==0||sc.High[i]>IBH)IBH=sc.High[i];if(IBL==0||sc.Low[i]<IBL)IBL=sc.Low[i];}
     float ib_range=(IBH>0&&IBL>0)?(IBH-IBL):0;
     ib_locked=(sesMin>=ib_minutes);
     bool ib_breakout_up=ib_locked&&IBH>0&&cp>IBH;
     bool ib_breakout_down=ib_locked&&IBL>0&&cp<IBL;
 
     float ORH=0,ORL=0;
-    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>30)continue;if(ORH==0||sc.High[i]>ORH)ORH=sc.High[i];if(ORL==0||sc.Low[i]<ORL)ORL=sc.Low[i];}
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=UTCHourToET(sc.BaseDateTimeIn[i].GetHour(),sc.BaseDateTimeIn[i].GetMonth()),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>30)continue;if(ORH==0||sc.High[i]>ORH)ORH=sc.High[i];if(ORL==0||sc.Low[i]<ORL)ORL=sc.Low[i];}
     float or_range=(ORH>0&&ORL>0)?(ORH-ORL):0;
 
     // ── Extension Count + Return to IB ───────────────────────
@@ -326,7 +340,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     if(ib_locked && IBH>0 && IBL>0) {
         for(int i=0;i<=idx;i++) {
             if(sc.BaseDateTimeIn[i].GetDate()<today) continue;
-            int bH2=sc.BaseDateTimeIn[i].GetHour(),bM2=sc.BaseDateTimeIn[i].GetMinute();
+            int bH2=UTCHourToET(sc.BaseDateTimeIn[i].GetHour(),sc.BaseDateTimeIn[i].GetMonth()),bM2=sc.BaseDateTimeIn[i].GetMinute();
             float mfo2=(bH2*60.0f+bM2)-(9*60+30);
             if(mfo2<ib_minutes) continue;
             float bar_c=sc.Close[i];
@@ -612,6 +626,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (i > hist_start) hj << ",";
             int bH2 = sc.BaseDateTimeIn[i].GetHour();
             int bM2 = sc.BaseDateTimeIn[i].GetMinute();
+            int bMonth2 = sc.BaseDateTimeIn[i].GetMonth();
+            int etH2 = UTCHourToET(bH2, bMonth2);
             hj << "{"
                << "\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[i])
                << ",\"o\":"    << sc.Open[i]
@@ -625,7 +641,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                << ",\"cci14\":" << CCI14[i]
                << ",\"cci6\":"  << CCI6[i]
                << ",\"vwap\":"  << VWAP[i]
-               << ",\"phase\":\"" << getPhase(bH2, bM2) << "\""
+               << ",\"phase\":\"" << getPhase(etH2, bM2) << "\""
                << ",\"above_vwap\":" << (sc.Close[i] > VWAP[i] ? "true" : "false")
                << "}";
         }

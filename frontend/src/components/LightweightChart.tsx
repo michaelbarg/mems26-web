@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { toETChartTime } from '../utils/timezone';
 
 // Suppress known LightweightCharts v4.1.3 "Value is null" error during initial render.
 // This is a library bug where createChart throws async in requestAnimationFrame
@@ -145,8 +146,8 @@ export default function LightweightChart({
       const sd = sweepDataRef.current;
       if (sd && sd.entry > 0) {
         const ts = chart.timeScale();
-        const x1 = ts.timeToCoordinate(Math.floor(sd.sweepBarTs));
-        const x2 = ts.timeToCoordinate(Math.floor(sd.entryBarTs || sd.sweepBarTs));
+        const x1 = ts.timeToCoordinate(toETChartTime(Math.floor(sd.sweepBarTs)));
+        const x2 = ts.timeToCoordinate(toETChartTime(Math.floor(sd.entryBarTs || sd.sweepBarTs)));
         if (x1 !== null && x2 !== null) {
           const isLong  = sd.dir === 'long';
           const entryY  = series.priceToCoordinate(sd.entry);
@@ -373,7 +374,7 @@ export default function LightweightChart({
 
       // X: from FVG start bar to right edge of chart
       const fvgTs   = chart.timeScale();
-      const xStart = fvgTs.timeToCoordinate(Math.floor(fvg.start_ts) as any);
+      const xStart = fvgTs.timeToCoordinate(toETChartTime(Math.floor(fvg.start_ts)) as any);
       if (xStart === null) continue;
       const xEnd = rect.width;
 
@@ -425,7 +426,7 @@ export default function LightweightChart({
     const now = new Date();
     const rthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 13, 30, 0));
     const rthTs = Math.floor(rthUtc.getTime() / 1000);
-    const rthX = tsc.timeToCoordinate(rthTs as any);
+    const rthX = tsc.timeToCoordinate(toETChartTime(rthTs) as any);
     if (rthX !== null) {
       const dtColors: Record<string, string> = {
         NORMAL:              '#3b82f6',
@@ -509,13 +510,13 @@ export default function LightweightChart({
 
     if (chart && z.start_ts) {
       try {
-        const x = chart.timeScale().timeToCoordinate(z.start_ts as any);
+        const x = chart.timeScale().timeToCoordinate(toETChartTime(z.start_ts) as any);
         if (x !== null) xStart = Math.max(0, x);
       } catch {}
     }
     if (chart && z.end_ts) {
       try {
-        const x = chart.timeScale().timeToCoordinate(z.end_ts as any);
+        const x = chart.timeScale().timeToCoordinate(toETChartTime(z.end_ts) as any);
         if (x !== null) xEnd = Math.min(chartW, x + 6);
       } catch {}
     }
@@ -800,7 +801,7 @@ export default function LightweightChart({
 
     const cData = sorted.map(c => {
       const base: any = {
-        time:  Math.floor(c.ts) as any,
+        time:  toETChartTime(Math.floor(c.ts)) as any,
         open:  c.o ?? (c as any).open, high: c.h ?? (c as any).high, low: c.l ?? (c as any).low, close: c.c ?? (c as any).close,
       };
       // D4: Footprint heatmap — color sweep candles
@@ -839,7 +840,7 @@ export default function LightweightChart({
         const gap = lbTs - lastHistTime;
         // Only include if gap < 1 hour (adjacent to history)
         if (gap < 3600) {
-          const lb = { time: lbTs as any, open: lbO, high: lbH, low: lbL, close: lbC };
+          const lb = { time: toETChartTime(lbTs) as any, open: lbO, high: lbH, low: lbL, close: lbC };
           if (lastHistTime === lbTs) {
             cData[cData.length - 1] = lb;
           } else {
@@ -886,7 +887,7 @@ export default function LightweightChart({
         prevDay = dayNum;
 
         cvd += delta;
-        const t = Math.floor(c.ts) as any;
+        const t = toETChartTime(Math.floor(c.ts)) as any;
         cvdData.push({ time: t, value: cvd });
 
         win20.push(cvd);
@@ -932,7 +933,7 @@ export default function LightweightChart({
         const vol = (c.buy || 0) + (c.sell || 0);
         const isBuy = (c.c ?? (c as any).close ?? 0) >= (c.o ?? (c as any).open ?? 0);
         return {
-          time: Math.floor(c.ts) as any,
+          time: toETChartTime(Math.floor(c.ts)) as any,
           value: vol > 0 ? vol : 100,
           color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
         };
@@ -941,7 +942,7 @@ export default function LightweightChart({
         const vol = (liveBar.buy || 0) + (liveBar.sell || 0);
         const isBuy = (livePrice ?? liveBar.c) >= liveBar.o;
         volData.push({
-          time: Math.floor(liveBar.ts) as any,
+          time: toETChartTime(Math.floor(liveBar.ts)) as any,
           value: vol > 0 ? vol : 100,
           color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
         });
@@ -969,9 +970,10 @@ export default function LightweightChart({
     const liveL = liveBar.l ?? (liveBar as any).low;
     if (!liveO || !liveH || !liveL || !isFinite(liveO) || !isFinite(liveH) || !isFinite(liveL)) return;
     if (liveO <= 100 || liveH <= 100 || liveL <= 100) return;
+    const liveTsET = toETChartTime(liveTs);
     try {
       const liveUpdate: any = {
-        time:  liveTs as any,
+        time:  liveTsET as any,
         open:  liveO,
         high:  Math.max(liveH, price),
         low:   Math.min(liveL, price),
@@ -1000,7 +1002,7 @@ export default function LightweightChart({
           const spread = liveBar.h - liveBar.l;
           delta = spread > 0 ? 100 * ((liveBar.c - liveBar.l) - (liveBar.h - liveBar.c)) / spread : 0;
         }
-        if (isFinite(delta)) cvdRef.current.update({ time: liveTs as any, value: delta });
+        if (isFinite(delta)) cvdRef.current.update({ time: liveTsET as any, value: delta });
       }
 
       // Update volume for live bar
@@ -1010,7 +1012,7 @@ export default function LightweightChart({
         const volVal = (vol > 0 && isFinite(vol)) ? vol : 100;
         try {
           volRef.current.update({
-            time: liveTs as any,
+            time: liveTsET as any,
             value: volVal,
             color: isBuy ? 'rgba(38,166,154,0.4)' : 'rgba(239,83,80,0.4)',
           });
@@ -1087,7 +1089,7 @@ export default function LightweightChart({
 
           // Sweep candle
           allMarkers.push({
-            time: Math.floor(sweepData.sweepBarTs) as any,
+            time: toETChartTime(Math.floor(sweepData.sweepBarTs)) as any,
             position: pos, color: isLong ? '#22c55e' : '#ef5350',
             shape: isLong ? 'arrowUp' : 'arrowDown',
             text: `⚡ SWEEP`, size: 2,
@@ -1096,7 +1098,7 @@ export default function LightweightChart({
           // Entry candle (reversal bar)
           if (sweepData.entryBarTs > 0) {
             allMarkers.push({
-              time: Math.floor(sweepData.entryBarTs) as any,
+              time: toETChartTime(Math.floor(sweepData.entryBarTs)) as any,
               position: pos, color: '#ffffff',
               shape: isLong ? 'arrowUp' : 'arrowDown',
               text: `→ ENTRY ${sweepData.entry.toFixed(2)}`, size: 2,
@@ -1106,7 +1108,7 @@ export default function LightweightChart({
           // Setup candles
           if (sweepData.setupBarTs) {
             sweepData.setupBarTs.forEach(ts => {
-              if (ts > 0) allMarkers.push({ time: Math.floor(ts) as any, position: pos, color: '#4a556866', shape: 'circle' as any, text: 'setup', size: 0 });
+              if (ts > 0) allMarkers.push({ time: toETChartTime(Math.floor(ts)) as any, position: pos, color: '#4a556866', shape: 'circle' as any, text: 'setup', size: 0 });
             });
           }
 
@@ -1124,7 +1126,7 @@ export default function LightweightChart({
             // Detection marker
             if (ds.detectionBarTs > 0) {
               allMarkers.push({
-                time: Math.floor(ds.detectionBarTs) as any,
+                time: toETChartTime(Math.floor(ds.detectionBarTs)) as any,
                 position: pos, color: col + 'aa',
                 shape: isLong ? 'arrowUp' : 'arrowDown',
                 text: `${ds.type.slice(0,3).toUpperCase()} ${ds.levelName}`, size: 1,
@@ -1133,7 +1135,7 @@ export default function LightweightChart({
             // Entry marker (if different from detection)
             if (ds.entryBarTs > 0 && ds.entryBarTs !== ds.detectionBarTs) {
               allMarkers.push({
-                time: Math.floor(ds.entryBarTs) as any,
+                time: toETChartTime(Math.floor(ds.entryBarTs)) as any,
                 position: pos, color: '#ffffff',
                 shape: isLong ? 'arrowUp' : 'arrowDown',
                 text: `E ${ds.entry.toFixed(0)}`, size: 1,
@@ -1146,7 +1148,7 @@ export default function LightweightChart({
         if (sweepEvents && sweepEvents.length > 0 && !sweepData) {
           sweepEvents.forEach((ev: any) => {
             allMarkers.push({
-              time: Math.floor(ev.sweepBarTs) as any,
+              time: toETChartTime(Math.floor(ev.sweepBarTs)) as any,
               position: ev.dir === 'long' ? 'belowBar' : 'aboveBar',
               color: ev.dir === 'long' ? '#22c55e55' : '#ef535055',
               shape: 'circle' as any,
@@ -1171,7 +1173,7 @@ export default function LightweightChart({
 
             // Marker על נר התבנית
             allMarkers.push({
-              time: candle.ts as any,
+              time: toETChartTime(Math.floor(candle.ts)) as any,
               position: p.direction === 'long' ? 'belowBar' : 'aboveBar',
               color: isSelected ? p.col : p.col + '99',
               shape: p.direction === 'long' ? 'arrowUp' : p.direction === 'short' ? 'arrowDown' : 'circle',
@@ -1182,7 +1184,7 @@ export default function LightweightChart({
             // אם נבחר — הוסף marker גם על נר הפריצה (עכשיו)
             if (isSelected && p.breakoutLevel && liveBar) {
               allMarkers.push({
-                time: liveBar.ts as any,
+                time: toETChartTime(Math.floor(liveBar.ts)) as any,
                 position: p.direction === 'long' ? 'belowBar' : 'aboveBar',
                 color: '#a78bfa',
                 shape: p.direction === 'long' ? 'arrowUp' : 'arrowDown',
@@ -1201,7 +1203,7 @@ export default function LightweightChart({
           const mssTs = Math.floor(mss.start_ts);
           if (!mssTs || mssTs < 1577836800) continue;
           allMarkers.push({
-            time: mssTs as any,
+            time: toETChartTime(mssTs) as any,
             position: mss.direction === 'LONG' ? 'belowBar' : 'aboveBar',
             color: mss.direction === 'LONG' ? '#22c55e' : '#ef4444',
             shape: mss.direction === 'LONG' ? 'arrowUp' : 'arrowDown',
@@ -1266,13 +1268,13 @@ export default function LightweightChart({
         const upperTL = chart.addLineSeries({ color: isAsc ? 'rgba(233,30,99,0.6)' : 'rgba(233,30,99,0.8)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         const upperStart = isAsc ? p.neckline : (p.neckline + (p.entry - p.stop) * 0.3);
         const upperEnd = isAsc ? p.neckline : p.neckline;
-        if (upperStart > 100 && upperEnd > 100) upperTL.setData([{ time: p.start_ts as any, value: upperStart }, { time: p.end_ts as any, value: upperEnd }]);
+        if (upperStart > 100 && upperEnd > 100) upperTL.setData([{ time: toETChartTime(p.start_ts) as any, value: upperStart }, { time: toETChartTime(p.end_ts) as any, value: upperEnd }]);
         patternTLRef.current.push(upperTL);
 
         const lowerTL = chart.addLineSeries({ color: isAsc ? 'rgba(0,188,212,0.8)' : 'rgba(0,188,212,0.6)', lineWidth: 1.5, lineStyle: 0, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
         const lowerStart = p.stop;
         const lowerEnd = isAsc ? (p.stop + (p.neckline - p.stop) * 0.6) : p.stop;
-        if (lowerStart > 100 && lowerEnd > 100) lowerTL.setData([{ time: p.start_ts as any, value: lowerStart }, { time: p.end_ts as any, value: lowerEnd }]);
+        if (lowerStart > 100 && lowerEnd > 100) lowerTL.setData([{ time: toETChartTime(p.start_ts) as any, value: lowerStart }, { time: toETChartTime(p.end_ts) as any, value: lowerEnd }]);
         patternTLRef.current.push(lowerTL);
       } catch (e) {}
     }
@@ -1280,7 +1282,7 @@ export default function LightweightChart({
     if ((p.pattern === 'HS' || p.pattern === 'IHS') && p.start_ts > 1577836800 && p.end_ts > 1577836800 && p.neckline > 100) {
       try {
         const neckTL = chart.addLineSeries({ color: 'rgba(255,215,0,0.7)', lineWidth: 1.5, lineStyle: 2, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
-        neckTL.setData([{ time: p.start_ts as any, value: p.neckline }, { time: p.end_ts as any, value: p.neckline }]);
+        neckTL.setData([{ time: toETChartTime(p.start_ts) as any, value: p.neckline }, { time: toETChartTime(p.end_ts) as any, value: p.neckline }]);
         patternTLRef.current.push(neckTL);
       } catch (e) {}
     }
