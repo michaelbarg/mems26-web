@@ -826,9 +826,7 @@ export default function LightweightChart({
       }
       return base;
     });
-    // Add live bar ONLY if it's within reasonable distance from history.
-    // If liveBar is hours ahead (market closed / bridge gap), including it
-    // causes the chart to compress all history or scroll it off-screen.
+    // Add live bar to chart data
     if (liveBar) {
       const lbO = liveBar.o ?? (liveBar as any).open;
       const lbH = liveBar.h ?? (liveBar as any).high;
@@ -836,16 +834,13 @@ export default function LightweightChart({
       const lbC = livePrice ?? liveBar.c ?? (liveBar as any).close;
       const lbTs = Math.floor(liveBar.ts);
       if (lbO && lbH && lbL && lbC && lbO > 100 && lbTs > 1577836800) {
-        const lastHistTime = cData.length > 0 ? cData[cData.length - 1].time : 0;
-        const gap = lbTs - lastHistTime;
-        // Only include if gap < 1 hour (adjacent to history)
-        if (gap < 3600) {
-          const lb = { time: toETChartTime(lbTs) as any, open: lbO, high: lbH, low: lbL, close: lbC };
-          if (lastHistTime === lbTs) {
-            cData[cData.length - 1] = lb;
-          } else {
-            cData.push(lb);
-          }
+        const lbET = toETChartTime(lbTs);
+        const lastChartTime = cData.length > 0 ? cData[cData.length - 1].time : 0;
+        const lb = { time: lbET as any, open: lbO, high: lbH, low: lbL, close: lbC };
+        if (lastChartTime === lbET) {
+          cData[cData.length - 1] = lb;
+        } else {
+          cData.push(lb);
         }
       }
     }
@@ -859,7 +854,10 @@ export default function LightweightChart({
     const seenTs = new Set<number>();
     const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
     console.log('[MEMS26] setData:', dedupCandles.length, 'candles, first:', dedupCandles[0]?.time, 'last:', dedupCandles[dedupCandles.length-1]?.time);
-    try { seriesRef.current.setData(dedupCandles); } catch (e) { console.error('setData error:', e); }
+    try {
+      seriesRef.current.setData(dedupCandles);
+      chartRef.current?.timeScale().scrollToRealTime();
+    } catch (e) { console.error('setData error:', e); }
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
@@ -986,6 +984,7 @@ export default function LightweightChart({
         liveUpdate.wickDownColor = '#ef5350';
       }
       seriesRef.current.update(liveUpdate);
+      chartRef.current?.timeScale().scrollToRealTime();
     } catch (e) {
       // Ignore "Cannot update oldest data" during tf switch
     }

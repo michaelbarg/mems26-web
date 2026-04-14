@@ -3614,10 +3614,10 @@ export default function Dashboard() {
                           (live as any)?.[`current_candle_${tfMtf[tf]}`] ?? null;
                 const raw={
                   ts:   cc?.ts ?? Math.floor(Date.now()/1000 / sec) * sec,
-                  o:    cc?.o ?? cc?.open ?? live.bar.o,
-                  h:    cc?.h ?? cc?.high ?? live.bar.h,
-                  l:    cc?.l ?? cc?.low ?? live.bar.l,
-                  c:    live.bar.c,
+                  o:    cc?.o || cc?.open || live.bar.o,
+                  h:    cc?.h || cc?.high || live.bar.h,
+                  l:    cc?.l || cc?.low || live.bar.l,
+                  c:    live.price ?? live.bar.c,
                   buy:  cc?.buy ?? live.bar.buy,
                   sell: cc?.sell ?? live.bar.sell,
                 };

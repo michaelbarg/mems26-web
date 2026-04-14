@@ -126,7 +126,7 @@ class CandleBuilder:
         """Full field names for 5m/15m/1H candles (spec format)."""
         return {
             "ts": self.start_ts,
-            "open": self.o, "high": self.h, "low": self.l, "close": self.c,
+            "open": self.o if self.o > 0 else self.c, "high": self.h, "low": self.l, "close": self.c,
             "buy": self.buy, "sell": self.sell,
             "vol": self.vol,
             "delta": self.buy - self.sell,
