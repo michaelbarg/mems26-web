@@ -184,6 +184,25 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
           </div>
         ))}
       </div>
+      {/* ── Info: New High/Low + Returned to Range (not a gate condition) ── */}
+      {(() => {
+        const nh = !!(live as any)?.new_high;
+        const nl = !!(live as any)?.new_low;
+        const rtr = !!(live as any)?.returned_to_range;
+        const hasNewHL = nh || nl;
+        const col = hasNewHL && rtr ? '#22c55e' : hasNewHL || rtr ? '#f59e0b' : '#475569';
+        return (
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 8px', borderRadius:6,
+            background:'rgba(100,116,139,0.06)', marginTop:4 }}>
+            <span style={{ fontSize:13, width:18, textAlign:'center', flexShrink:0 }}>ℹ️</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:10, fontWeight:700, color:col }}>New High/Low: {nh ? '✅ High' : nl ? '✅ Low' : '❌'}
+                {' '} | Returned: {rtr ? '✅' : '❌'}</div>
+              <div style={{ fontSize:9, color:'#64748b' }}>מידע בלבד — לא תנאי חוסם</div>
+            </div>
+          </div>
+        );
+      })()}
       <div style={{ height:3, background:'#1e293b', borderRadius:2, margin:'10px 0 8px' }}>
         <div style={{ height:'100%', borderRadius:2, width:`${(passCount/8)*100}%`,
           background: allPass ? '#22c55e' : passCount>=5 ? '#f59e0b' : '#ef4444',

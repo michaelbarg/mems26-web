@@ -452,6 +452,11 @@ def enrich(raw):
             "above_open": above_open,
         },
 
+        # New High / New Low indicators (from C++ study)
+        "new_high":            bool(raw.get("new_high", False)),
+        "new_low":             bool(raw.get("new_low", False)),
+        "returned_to_range":   bool(raw.get("returned_to_range", False)),
+
         # Order Flow
         "order_flow": {
             "absorption_bull":  of_data.get("absorption_bull", False),
