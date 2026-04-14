@@ -3348,7 +3348,8 @@ export default function Dashboard() {
       try{
         const res=await fetch(`${API_URL}/market/patterns`,{cache:'no-store'});
         const data=await res.json();
-        const ps=data.patterns||[];
+        const raw=data.patterns;
+        const ps=Array.isArray(raw)?raw:[];
         setScannedPatterns(ps);
         if(ps.length>0 && ps[0].confidence>=70 && ps[0].pattern!==activeScannedPattern?.pattern){
           setActiveScannedPattern(ps[0]);

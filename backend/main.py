@@ -883,7 +883,12 @@ async def get_patterns():
             result = resp.json()
             val = result.get("result")
             if val:
-                return {"patterns": json.loads(val)}
+                parsed = json.loads(val)
+                # Handle double-encoded JSON strings
+                if isinstance(parsed, str):
+                    parsed = json.loads(parsed)
+                if isinstance(parsed, list):
+                    return {"patterns": parsed}
     except Exception as e:
         log.warning(f"Patterns get failed: {e}")
     return {"patterns": []}

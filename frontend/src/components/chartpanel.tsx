@@ -279,8 +279,8 @@ export default function ChartPanel() {
     try {
       const r = await fetch(`${API_URL}/market/candles`);
       if (!r.ok) return;
-      const d: Candle[] = await r.json();
-      setCandles(d);
+      const d = await r.json();
+      if(Array.isArray(d)) setCandles(d);
     } catch {}
   }, []);
 
