@@ -762,9 +762,12 @@ export default function LightweightChart({
       return () => clearTimeout(timer);
     }
     initChart();
-    // Cleanup chart on unmount (key change = TF switch)
-    return () => { try { chartRef.current?.remove(); } catch {} chartRef.current = null; seriesRef.current = null; cvdRef.current = null; cvdMaRef.current = null; volRef.current = null; };
   }, [candles, initChart]);
+
+  // Cleanup chart on unmount (key change = TF switch)
+  useEffect(() => {
+    return () => { try { chartRef.current?.remove(); } catch {} chartRef.current = null; seriesRef.current = null; cvdRef.current = null; cvdMaRef.current = null; volRef.current = null; };
+  }, []);
 
   // Track last candles fingerprint to avoid unnecessary setData calls
   const lastCandlesFingerprintRef = useRef('');
@@ -822,27 +825,9 @@ export default function LightweightChart({
       }
       return base;
     });
-    // Add/update live bar (normalize o/open etc)
-    if (liveBar) {
-      const lbO = liveBar.o ?? (liveBar as any).open;
-      const lbH = liveBar.h ?? (liveBar as any).high;
-      const lbL = liveBar.l ?? (liveBar as any).low;
-      const lbC = livePrice ?? liveBar.c ?? (liveBar as any).close;
-      const lbTs = Math.floor(liveBar.ts);
-      if (!lbO || !lbH || !lbL || !lbC || lbO <= 100 || lbTs < 1577836800) {
-        // skip bad liveBar
-      } else {
-      const lb = {
-        time: lbTs as any,
-        open: lbO, high: lbH, low: lbL, close: lbC,
-      };
-      if (cData.length > 0 && cData[cData.length - 1].time === lb.time) {
-        cData[cData.length - 1] = lb;
-      } else {
-        cData.push(lb);
-      }
-      } // end else (valid liveBar)
-    }
+    // Live bar is handled by the separate live-update effect (seriesRef.update).
+    // Adding it here causes fitContent to include the time gap between last
+    // historical candle and now, compressing all history into a tiny strip.
 
     const validCandles = cData.filter(c =>
       c.open > 100 && c.high > 100 && c.low > 100 && c.close > 100 &&
