@@ -330,7 +330,15 @@ def _valid_candle(c: dict) -> bool:
 
 
 @app.get("/market/candles")
-async def get_candles(limit: int = 960):
+async def get_candles(limit: int = 960, tf: str = "3m"):
+    # Unified endpoint: ?tf=5m/15m/30m/1h routes to the right Redis key
+    tf_keys = {"5m": REDIS_CANDLES_5M, "15m": REDIS_CANDLES_15M, "30m": REDIS_CANDLES_30M, "1h": REDIS_CANDLES_1H}
+    if tf in tf_keys:
+        candles = await redis_get_json_array(tf_keys[tf])
+        candles = [c for c in candles if _valid_candle(c)]
+        candles.sort(key=lambda x: x.get("ts", 0))
+        return candles[-limit:]
+    # Default: 3m candles from Redis list
     raw = await redis_lrange(REDIS_CANDLES_KEY, 0, limit - 1)
     candles = []
     for item in raw:

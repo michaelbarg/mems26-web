@@ -852,6 +852,8 @@ export default function LightweightChart({
     const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
     console.log('setData:', dedupCandles.length, 'valid:', validCandles.length, 'raw:', cData.length);
     try { seriesRef.current.setData(dedupCandles); } catch (e) { console.error('setData error:', e); }
+    // Auto-fit viewport after data change (ensures chart isn't empty after TF switch)
+    try { chartRef.current?.timeScale().fitContent(); } catch {}
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {

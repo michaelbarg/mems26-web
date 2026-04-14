@@ -3292,16 +3292,10 @@ export default function Dashboard() {
   const fetchCandles=useCallback(async()=>{
     if(!systemOnRef.current) return;
     const curTf=tfRef.current;
-    const tfConfig:{[k:string]:{path:string;limit:number}}={
-      '3m':  {path:'/market/candles',     limit:960},
-      '5m':  {path:'/market/candles/5m',  limit:288},
-      '15m': {path:'/market/candles/15m', limit:96},
-      '30m': {path:'/market/candles/30m', limit:48},
-      '1h':  {path:'/market/candles/1h',  limit:168},
-    };
-    const cfg=tfConfig[curTf]||tfConfig['3m'];
+    const tfLimits:{[k:string]:number}={'3m':960,'5m':288,'15m':96,'30m':48,'1h':168};
+    const limit=tfLimits[curTf]||960;
     try{
-      const r=await fetch(`${API_URL}${cfg.path}?limit=${cfg.limit}`,{cache:'no-store'});
+      const r=await fetch(`${API_URL}/market/candles?tf=${curTf}&limit=${limit}`,{cache:'no-store'});
       if(!r.ok)return;
       const raw=await r.json();
       if(!Array.isArray(raw))return;
