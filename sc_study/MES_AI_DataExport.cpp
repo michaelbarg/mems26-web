@@ -370,30 +370,20 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float rel_vol=(avg_vol_20>0)?(sc.Volume[idx]/avg_vol_20):1.0f;
     const char* vol_ctx=(rel_vol>2.0f)?"VERY_HIGH":(rel_vol>1.5f)?"HIGH":(rel_vol<0.5f)?"VERY_LOW":(rel_vol<0.8f)?"LOW":"NORMAL";
 
-    // ── New High / New Low detection ─────────────────────────
+    // ── New High / New Low detection (last 5 bars vs 4 level pairs) ──
     bool new_high=false, new_low=false, returned_to_range=false;
     {
-        float hi_levels[]={PH,IBH,ONH}; float lo_levels[]={PL,IBL,ONL};
-        for(int k=0;k<3;k++){if(hi_levels[k]>0&&sc.High[idx]>hi_levels[k]+0.5f){new_high=true;break;}}
-        for(int k=0;k<3;k++){if(lo_levels[k]>0&&sc.Low[idx]<lo_levels[k]-0.5f){new_low=true;break;}}
-        // returned_to_range: after new high/low, a bar closed back inside within 5 bars
-        if(idx>=5){
-            for(int b=idx-1;b>=idx-5&&b>=0;b--){
-                bool had_nh=false,had_nl=false;
-                for(int k=0;k<3;k++){if(hi_levels[k]>0&&sc.High[b]>hi_levels[k]+0.5f)had_nh=true;}
-                for(int k=0;k<3;k++){if(lo_levels[k]>0&&sc.Low[b]<lo_levels[k]-0.5f)had_nl=true;}
-                if(had_nh||had_nl){
-                    // check if any subsequent bar closed back within range
-                    for(int r=b+1;r<=idx;r++){
-                        bool inside=true;
-                        if(had_nh){for(int k=0;k<3;k++){if(hi_levels[k]>0&&sc.High[b]>hi_levels[k]+0.5f&&sc.Close[r]<hi_levels[k]){returned_to_range=true;break;}}}
-                        if(had_nl){for(int k=0;k<3;k++){if(lo_levels[k]>0&&sc.Low[b]<lo_levels[k]-0.5f&&sc.Close[r]>lo_levels[k]){returned_to_range=true;break;}}}
-                        if(returned_to_range)break;
-                    }
-                    if(returned_to_range)break;
-                }
-            }
+        float hi_levels[]={PH,IBH,ONH,SH}; int nhi=4;
+        float lo_levels[]={PL,IBL,ONL,SL}; int nlo=4;
+        float breached_hi=0, breached_lo=0;
+        int start_i=(idx>=4)?idx-4:0;
+        for(int i=start_i;i<=idx;i++){
+            for(int k=0;k<nhi;k++){if(hi_levels[k]>0&&sc.High[i]>hi_levels[k]){new_high=true;breached_hi=hi_levels[k];break;}}
+            for(int k=0;k<nlo;k++){if(lo_levels[k]>0&&sc.Low[i]<lo_levels[k]){new_low=true;breached_lo=lo_levels[k];break;}}
         }
+        // returned_to_range: current bar closed back inside the breached level
+        if(new_high&&breached_hi>0&&sc.Close[idx]<breached_hi) returned_to_range=true;
+        if(new_low&&breached_lo>0&&sc.Close[idx]>breached_lo) returned_to_range=true;
     }
 
     // ── Order Flow ────────────────────────────────────────────
@@ -735,8 +725,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
      <<",\"candle_patterns\":{\"bar0\":\""<<pat0<<"\",\"bar1\":\""<<pat1<<"\",\"bar2\":\""<<pat2<<"\",\"bull_engulf\":"<<(bull_engulf?"true":"false")<<",\"bear_engulf\":"<<(bear_engulf?"true":"false")<<"}"
      <<",\"woodi_pivots\":{\"pp\":"<<PP<<",\"r1\":"<<R1<<",\"r2\":"<<R2<<",\"s1\":"<<S1<<",\"s2\":"<<S2<<",\"above_pp\":"<<(cp>PP?"true":"false")<<"}"
      <<",\"time_levels\":{\"weekly_high\":"<<HWk<<",\"weekly_low\":"<<LWk<<",\"h72_high\":"<<H72<<",\"h72_low\":"<<L72<<",\"prev_high\":"<<PH<<",\"prev_low\":"<<PL<<",\"prev_close\":"<<PC<<",\"daily_open\":"<<daily_open<<",\"overnight_high\":"<<ONH<<",\"overnight_low\":"<<ONL<<"}"
-     <<",\"new_high\":"<<(new_high?"true":"false")<<",\"new_low\":"<<(new_low?"true":"false")<<",\"returned_to_range\":"<<(returned_to_range?"true":"false")
-     <<",\"order_flow\":{\"absorption_bull\":"<<(absorption_bull?"true":"false")<<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")<<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")<<",\"imbalances\":[";
+     <<",\"order_flow\":{\"absorption_bull\":"<<(absorption_bull?"true":"false")<<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")<<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")<<",\"new_high\":"<<(new_high?"true":"false")<<",\"new_low\":"<<(new_low?"true":"false")<<",\"returned_to_range\":"<<(returned_to_range?"true":"false")<<",\"imbalances\":[";
     for(int i=0;i<imb_count;i++){if(i>0)j<<",";j<<"{\"price\":"<<imbalances[i].price<<",\"buy\":"<<imbalances[i].buy_vol<<",\"sell\":"<<imbalances[i].sell_vol<<",\"ratio\":"<<imbalances[i].ratio<<"}";}
     j<<"]}"
      <<",\"footprint_bools\":{\"absorption_detected\":"<<(fp_absorption?"true":"false")

@@ -186,20 +186,21 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
       </div>
       {/* ── Info: New High/Low + Returned to Range (not a gate condition) ── */}
       {(() => {
-        const nh = !!(live as any)?.new_high;
-        const nl = !!(live as any)?.new_low;
-        const rtr = !!(live as any)?.returned_to_range;
+        const of = (live as any)?.order_flow || {};
+        const nh = !!of.new_high;
+        const nl = !!of.new_low;
+        const rtr = !!of.returned_to_range;
         const hasNewHL = nh || nl;
-        const col = hasNewHL && rtr ? '#22c55e' : hasNewHL || rtr ? '#f59e0b' : '#475569';
+        const label = hasNewHL && rtr ? 'Strong Sweep' : hasNewHL ? 'Sweep Active' : '';
+        const labelCol = hasNewHL && rtr ? '#22c55e' : hasNewHL ? '#f59e0b' : '#475569';
         return (
-          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'5px 8px', borderRadius:6,
-            background:'rgba(100,116,139,0.06)', marginTop:4 }}>
-            <span style={{ fontSize:13, width:18, textAlign:'center', flexShrink:0 }}>ℹ️</span>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontSize:10, fontWeight:700, color:col }}>New High/Low: {nh ? '✅ High' : nl ? '✅ Low' : '❌'}
-                {' '} | Returned: {rtr ? '✅' : '❌'}</div>
-              <div style={{ fontSize:9, color:'#64748b' }}>מידע בלבד — לא תנאי חוסם</div>
+          <div style={{ marginTop:8, padding:'6px 8px', borderRadius:6, background:'rgba(100,116,139,0.06)', borderTop:'1px solid #1e293b' }}>
+            <div style={{ fontSize:9, fontWeight:700, color:'#64748b', marginBottom:4, letterSpacing:0.5 }}>INFO</div>
+            <div style={{ display:'flex', gap:12, fontSize:10, color:'#94a3b8' }}>
+              <span>New High/Low: {nh ? <span style={{color:'#22c55e'}}>✅ High</span> : nl ? <span style={{color:'#22c55e'}}>✅ Low</span> : <span style={{color:'#475569'}}>❌</span>}</span>
+              <span>Returned: {rtr ? <span style={{color:'#22c55e'}}>✅</span> : <span style={{color:'#475569'}}>❌</span>}</span>
             </div>
+            {label && <div style={{ fontSize:10, fontWeight:800, color:labelCol, marginTop:3 }}>{label}</div>}
           </div>
         );
       })()}

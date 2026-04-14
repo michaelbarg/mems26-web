@@ -453,19 +453,18 @@ def enrich(raw):
         },
 
         # New High / New Low indicators (from C++ study)
-        "new_high":            bool(raw.get("new_high", False)),
-        "new_low":             bool(raw.get("new_low", False)),
-        "returned_to_range":   bool(raw.get("returned_to_range", False)),
-
-        # Order Flow
+        # Order Flow (includes new_high/new_low/returned_to_range from C++)
         "order_flow": {
-            "absorption_bull":  of_data.get("absorption_bull", False),
-            "liq_sweep":        of_data.get("liq_sweep_long", False),   # backward compat
-            "liq_sweep_long":   of_data.get("liq_sweep_long", False),
-            "liq_sweep_short":  of_data.get("liq_sweep_short", False),  # ← חדש
-            "imbalance_bull":   sum(1 for i in of_data.get("imbalances",[]) if i.get("ratio",0)>0),
-            "imbalance_bear":   sum(1 for i in of_data.get("imbalances",[]) if i.get("ratio",0)<0),
-            "imbalances":       of_data.get("imbalances", []),
+            "absorption_bull":    of_data.get("absorption_bull", False),
+            "liq_sweep":          of_data.get("liq_sweep_long", False),   # backward compat
+            "liq_sweep_long":     of_data.get("liq_sweep_long", False),
+            "liq_sweep_short":    of_data.get("liq_sweep_short", False),
+            "new_high":           bool(of_data.get("new_high", False)),
+            "new_low":            bool(of_data.get("new_low", False)),
+            "returned_to_range":  bool(of_data.get("returned_to_range", False)),
+            "imbalance_bull":     sum(1 for i in of_data.get("imbalances",[]) if i.get("ratio",0)>0),
+            "imbalance_bear":     sum(1 for i in of_data.get("imbalances",[]) if i.get("ratio",0)<0),
+            "imbalances":         of_data.get("imbalances", []),
         },
 
         # Day Context — מה-Study ← מורחב
