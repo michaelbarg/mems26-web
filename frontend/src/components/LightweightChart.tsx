@@ -113,6 +113,7 @@ export default function LightweightChart({
   const candlesRef           = useRef(candles);
   candlesRef.current         = candles;
   const loadedRef            = useRef(false);
+  const firstDataSetRef      = useRef(true);
   const zoneCanvasRef        = useRef<HTMLCanvasElement>(null);
   const volRef               = useRef<any>(null);
   const patternLinesRef      = useRef<any[]>([]);
@@ -825,9 +826,22 @@ export default function LightweightChart({
       }
       return base;
     });
-    // Live bar is handled by the separate live-update effect (seriesRef.update).
-    // Adding it here causes fitContent to include the time gap between last
-    // historical candle and now, compressing all history into a tiny strip.
+    // Add live bar so chart always shows up-to-date data
+    if (liveBar) {
+      const lbO = liveBar.o ?? (liveBar as any).open;
+      const lbH = liveBar.h ?? (liveBar as any).high;
+      const lbL = liveBar.l ?? (liveBar as any).low;
+      const lbC = livePrice ?? liveBar.c ?? (liveBar as any).close;
+      const lbTs = Math.floor(liveBar.ts);
+      if (lbO && lbH && lbL && lbC && lbO > 100 && lbTs > 1577836800) {
+        const lb = { time: lbTs as any, open: lbO, high: lbH, low: lbL, close: lbC };
+        if (cData.length > 0 && cData[cData.length - 1].time === lb.time) {
+          cData[cData.length - 1] = lb;
+        } else {
+          cData.push(lb);
+        }
+      }
+    }
 
     const validCandles = cData.filter(c =>
       c.open > 100 && c.high > 100 && c.low > 100 && c.close > 100 &&
@@ -839,8 +853,12 @@ export default function LightweightChart({
     const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
     console.log('setData:', dedupCandles.length, 'valid:', validCandles.length, 'raw:', cData.length);
     try { seriesRef.current.setData(dedupCandles); } catch (e) { console.error('setData error:', e); }
-    // Auto-fit viewport after data change (ensures chart isn't empty after TF switch)
-    try { chartRef.current?.timeScale().fitContent(); } catch {}
+    // Only fitContent on first data load (fresh chart). After that, scroll to
+    // show latest candles without compressing all history + gap into the view.
+    if (firstDataSetRef.current) {
+      firstDataSetRef.current = false;
+      try { chartRef.current?.timeScale().scrollToRealTime(); } catch {}
+    }
 
     // CVD (cumulative volume delta) + MA20
     if (cvdRef.current && cvdMaRef.current) {
@@ -965,7 +983,14 @@ export default function LightweightChart({
         liveUpdate.wickUpColor = '#26a69a';
         liveUpdate.wickDownColor = '#ef5350';
       }
+      // Save scroll position so update() doesn't auto-scroll away from history
+      const ts = chartRef.current?.timeScale();
+      const pos = ts ? ts.scrollPosition() : null;
       seriesRef.current.update(liveUpdate);
+      // Restore scroll if it jumped (large gap between history and live candle)
+      if (ts && pos !== null && Math.abs(ts.scrollPosition() - pos) > 20) {
+        ts.scrollToPosition(pos, false);
+      }
     } catch (e) {
       // Ignore "Cannot update oldest data" during tf switch
     }
