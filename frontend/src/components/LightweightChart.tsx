@@ -421,45 +421,53 @@ export default function LightweightChart({
       }
     }
 
-    // ── RTH Open Vertical Line ─────────────────────────────────────────
+    // ── Session markers: NY Open (09:30 ET) + NY Close (16:00 ET) ──────
     const tsc = chart.timeScale();
     const now = new Date();
-    const rthUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 13, 30, 0));
-    const rthTs = Math.floor(rthUtc.getTime() / 1000);
-    const rthX = tsc.timeToCoordinate(toETChartTime(rthTs) as any);
-    if (rthX !== null) {
-      const dtColors: Record<string, string> = {
-        NORMAL:              '#3b82f6',
-        NORMAL_VARIATION:    '#6366f1',
-        TREND_DAY:           '#10b981',
-        DOUBLE_DISTRIBUTION: '#f59e0b',
-        NEUTRAL:             '#64748b',
-        ROTATIONAL:          '#ef4444',
-        DEVELOPING:          '#475569',
-        VOLATILE:            '#f97316',
-      };
-      const dtCol = dtColors[dayTypeRef.current || ''] || '#475569';
-      ctx.strokeStyle = dtCol;
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(rthX, 0);
-      ctx.lineTo(rthX, rect.height);
-      ctx.stroke();
-      ctx.setLineDash([]);
+    const dtColors: Record<string, string> = {
+      NORMAL:'#3b82f6', NORMAL_VARIATION:'#6366f1', TREND_DAY:'#10b981',
+      DOUBLE_DISTRIBUTION:'#f59e0b', NEUTRAL:'#64748b', ROTATIONAL:'#ef4444',
+      DEVELOPING:'#475569', VOLATILE:'#f97316',
+    };
+    const dtCol = dtColors[dayTypeRef.current || ''] || '#475569';
 
-      // Label
-      ctx.font = 'bold 9px monospace';
-      const rthLabel = 'RTH';
-      const rthM = ctx.measureText(rthLabel);
-      ctx.fillStyle = dtCol + 'cc';
-      ctx.beginPath();
-      ctx.roundRect(rthX - rthM.width / 2 - 4, 2, rthM.width + 8, 14, 3);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.textAlign = 'center';
-      ctx.fillText(rthLabel, rthX, 12);
-      ctx.textAlign = 'left';
+    // Draw session lines for today and previous days visible on chart
+    const sessionLines: { utcH: number; utcM: number; label: string; color: string; dash: number[] }[] = [
+      { utcH: 13, utcM: 30, label: 'NY Open',  color: dtCol,    dash: [4, 4] },
+      { utcH: 20, utcM:  0, label: 'NY Close', color: '#ef4444', dash: [3, 5] },
+    ];
+    for (let dayOff = 0; dayOff <= 4; dayOff++) {
+      const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - dayOff));
+      for (const sl of sessionLines) {
+        const utc = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), sl.utcH, sl.utcM, 0));
+        const ts = Math.floor(utc.getTime() / 1000);
+        const x = tsc.timeToCoordinate(toETChartTime(ts) as any);
+        if (x === null) continue;
+
+        // Vertical line
+        ctx.strokeStyle = sl.color;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash(sl.dash);
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, rect.height);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Label (only for today)
+        if (dayOff === 0) {
+          ctx.font = 'bold 9px monospace';
+          const m = ctx.measureText(sl.label);
+          ctx.fillStyle = sl.color + 'cc';
+          ctx.beginPath();
+          ctx.roundRect(x - m.width / 2 - 4, 2, m.width + 8, 14, 3);
+          ctx.fill();
+          ctx.fillStyle = '#fff';
+          ctx.textAlign = 'center';
+          ctx.fillText(sl.label, x, 12);
+          ctx.textAlign = 'left';
+        }
+      }
     }
   }, []);
 
