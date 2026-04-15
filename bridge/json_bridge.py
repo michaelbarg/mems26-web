@@ -943,7 +943,9 @@ async def main():
                     if bar_data.get('h', 0) == 0 and bar_data.get('l', 0) == 0:
                         continue  # skip truly empty candle
                     mc = mtf_candles[mtf_key]
-                    mts = bar_data.get('ts') or (wall_ts // interval) * interval
+                    # Use wall_ts (real UTC) for bucketing — SC's bar_data.ts
+                    # is in ET-as-UTC (shifted by ~4h) due to SC timezone config
+                    mts = (wall_ts // interval) * interval
                     b_o   = bar_data.get('o', price)
                     b_h   = bar_data.get('h', price)
                     b_l   = bar_data.get('l', price)

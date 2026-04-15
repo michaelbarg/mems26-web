@@ -51,12 +51,17 @@ static const char* detectCandlePattern(float o, float h, float l, float c)
     return (c >= o) ? "BULL" : "BEAR";
 }
 
-// ── SCDateTime → Unix Timestamp ──────────────────────────────────────────────
+// ── SCDateTime → Unix Timestamp (real UTC) ──────────────────────────────────
+// SC is configured in Eastern Time. BaseDateTimeIn stores ET local time.
+// We add the ET→UTC offset so all timestamps in JSON are true UTC.
 static long long ToUnixTime(SCDateTime dt)
 {
-    // SCDateTime = OLE Automation date (days since Dec 30 1899)
-    // Unix epoch = Jan 1 1970 = OLE day 25569
-    return (long long)((dt.GetAsDouble() - 25569.0) * 86400.0 + 0.5);
+    // OLE → "naive" seconds (in ET timezone)
+    long long et_secs = (long long)((dt.GetAsDouble() - 25569.0) * 86400.0 + 0.5);
+    // Determine EDT vs EST from month (simplified: Mar-Nov = EDT)
+    int month = dt.GetMonth();
+    int et_offset = (month >= 3 && month <= 10) ? 4 * 3600 : 5 * 3600;
+    return et_secs + et_offset;
 }
 
 // ── UTC → ET hour conversion (simplified DST: Mar-Nov = EDT, else EST) ──────
@@ -234,8 +239,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float bid_vol = sc.BidVolume[idx];
     float delta   = ask_vol - bid_vol;
     int   H = now_dt.GetHour(), M = now_dt.GetMinute();
-    int   utcMonth = now_dt.GetMonth();
-    int   etH = UTCHourToET(H, utcMonth), etM = M;
+    // H,M are already in ET (SC configured in Eastern Time)
+    int   etH = H, etM = M;
 
     // ── CVD ──────────────────────────────────────────────────
     CVD[idx] = (idx == 0) ? delta : CVD[idx - 1] + delta;
@@ -324,14 +329,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // ── IB + Opening Range ────────────────────────────────────
     int ib_minutes=IBPeriodMin.GetInt();
     float IBH=0,IBL=0; bool ib_locked=false;
-    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=UTCHourToET(sc.BaseDateTimeIn[i].GetHour(),sc.BaseDateTimeIn[i].GetMonth()),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>ib_minutes)continue;if(IBH==0||sc.High[i]>IBH)IBH=sc.High[i];if(IBL==0||sc.Low[i]<IBL)IBL=sc.Low[i];}
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>ib_minutes)continue;if(IBH==0||sc.High[i]>IBH)IBH=sc.High[i];if(IBL==0||sc.Low[i]<IBL)IBL=sc.Low[i];}
     float ib_range=(IBH>0&&IBL>0)?(IBH-IBL):0;
     ib_locked=(sesMin>=ib_minutes);
     bool ib_breakout_up=ib_locked&&IBH>0&&cp>IBH;
     bool ib_breakout_down=ib_locked&&IBL>0&&cp<IBL;
 
     float ORH=0,ORL=0;
-    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=UTCHourToET(sc.BaseDateTimeIn[i].GetHour(),sc.BaseDateTimeIn[i].GetMonth()),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>30)continue;if(ORH==0||sc.High[i]>ORH)ORH=sc.High[i];if(ORL==0||sc.Low[i]<ORL)ORL=sc.Low[i];}
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>30)continue;if(ORH==0||sc.High[i]>ORH)ORH=sc.High[i];if(ORL==0||sc.Low[i]<ORL)ORL=sc.Low[i];}
     float or_range=(ORH>0&&ORL>0)?(ORH-ORL):0;
 
     // ── Extension Count + Return to IB ───────────────────────
@@ -340,7 +345,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     if(ib_locked && IBH>0 && IBL>0) {
         for(int i=0;i<=idx;i++) {
             if(sc.BaseDateTimeIn[i].GetDate()<today) continue;
-            int bH2=UTCHourToET(sc.BaseDateTimeIn[i].GetHour(),sc.BaseDateTimeIn[i].GetMonth()),bM2=sc.BaseDateTimeIn[i].GetMinute();
+            int bH2=sc.BaseDateTimeIn[i].GetHour(),bM2=sc.BaseDateTimeIn[i].GetMinute();
             float mfo2=(bH2*60.0f+bM2)-(9*60+30);
             if(mfo2<ib_minutes) continue;
             float bar_c=sc.Close[i];
@@ -617,7 +622,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             int bH2 = sc.BaseDateTimeIn[i].GetHour();
             int bM2 = sc.BaseDateTimeIn[i].GetMinute();
             int bMonth2 = sc.BaseDateTimeIn[i].GetMonth();
-            int etH2 = UTCHourToET(bH2, bMonth2);
+            int etH2 = bH2; // already ET from SC
             hj << "{"
                << "\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[i])
                << ",\"o\":"    << sc.Open[i]

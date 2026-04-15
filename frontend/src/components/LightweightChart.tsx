@@ -644,14 +644,15 @@ export default function LightweightChart({
         timeFormatter: (timestamp: number) => {
           if (!timestamp || !isFinite(timestamp)) return '';
           const date = new Date(timestamp * 1000);
-          const hours = date.getHours().toString().padStart(2, '0');
-          const minutes = date.getMinutes().toString().padStart(2, '0');
+          // timestamps are ET-shifted via toETChartTime — use getUTC to display ET
+          const hours = date.getUTCHours().toString().padStart(2, '0');
+          const minutes = date.getUTCMinutes().toString().padStart(2, '0');
           return `${hours}:${minutes}`;
         },
         dateFormatter: (timestamp: number) => {
           if (!timestamp || !isFinite(timestamp)) return '';
           const date = new Date(timestamp * 1000);
-          return `${date.getDate()}/${date.getMonth()+1}`;
+          return `${date.getUTCDate()}/${date.getUTCMonth()+1}`;
         },
       },
       handleScroll:  { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true },
