@@ -414,6 +414,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     bool fp_pullback_delta_declining = false;
     bool fp_pullback_aggressive_buy  = false;
     bool fp_pullback_aggressive_sell = false;
+    bool fp_absorption_at_fvg        = false;
+    bool fp_delta_confirmed_5m       = false;
 
     {
         float tick_sz = sc.TickSize;  // MES = 0.25
@@ -531,6 +533,68 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             // ── 7b. Pullback Aggressive Sell — strong -delta during price rise ──
             if (price_rising && recent_delta < -100)
                 fp_pullback_aggressive_sell = true;
+        }
+
+        // ── 8. Absorption at FVG — contra-volume >= 2.5x avg within FVG range ──
+        // Uses the most recent FVG detected: gap between bar[idx-2].low/high and bar[idx].high/low
+        if (idx >= 2 && vap_size > 0)
+        {
+            float fvg_hi = 0, fvg_lo = 0;
+            bool fvg_bull = false, fvg_bear = false;
+            // Bullish FVG: bar[idx].low > bar[idx-2].high (gap up)
+            if (sc.Low[idx] > sc.High[idx-2] + 0.25f) {
+                fvg_hi = sc.Low[idx]; fvg_lo = sc.High[idx-2]; fvg_bull = true;
+            }
+            // Bearish FVG: bar[idx].high < bar[idx-2].low (gap down)
+            if (sc.High[idx] < sc.Low[idx-2] - 0.25f) {
+                fvg_hi = sc.Low[idx-2]; fvg_lo = sc.High[idx]; fvg_bear = true;
+            }
+            // Check if price is inside FVG and contra-volume at any level >= 2.5x avg
+            if ((fvg_bull || fvg_bear) && cp >= fvg_lo && cp <= fvg_hi)
+            {
+                unsigned int total_vol = 0;
+                int level_count = 0;
+                for (int v = 0; v < vap_size; v++) {
+                    const s_VolumeAtPriceV2 *vap = NULL;
+                    if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
+                    if (vap == NULL) continue;
+                    total_vol += vap->Volume;
+                    level_count++;
+                }
+                float avg_vol_per_level = (level_count > 0) ? (float)total_vol / level_count : 0;
+                float threshold = avg_vol_per_level * 2.5f;
+
+                for (int v = 0; v < vap_size; v++) {
+                    const s_VolumeAtPriceV2 *vap = NULL;
+                    if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
+                    if (vap == NULL) continue;
+                    float px = vap->PriceInTicks * tick_sz;
+                    if (px < fvg_lo || px > fvg_hi) continue;
+                    // Contra-side: in bullish FVG sellers absorb, in bearish FVG buyers absorb
+                    unsigned int contra = fvg_bull ? vap->BidVolume : vap->AskVolume;
+                    if (contra >= threshold && !((fvg_bull && cp < px) || (fvg_bear && cp > px))) {
+                        fp_absorption_at_fvg = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // ── 9. Delta Confirmed 5m — 5m bar delta matches FVG direction ──
+        // Compute 5m delta from bars within current 5m bucket
+        {
+            long long now_ts2 = ToUnixTime(sc.BaseDateTimeIn[idx]);
+            long long m5_start = (now_ts2 / 300) * 300;
+            float m5_buy = 0, m5_sell = 0;
+            for (int i = idx; i >= 0; i--) {
+                if (ToUnixTime(sc.BaseDateTimeIn[i]) < m5_start) break;
+                m5_buy += sc.AskVolume[i]; m5_sell += sc.BidVolume[i];
+            }
+            float m5_delta = m5_buy - m5_sell;
+            bool recent_bull_fvg = (idx >= 2 && sc.Low[idx] > sc.High[idx-2] + 0.25f);
+            bool recent_bear_fvg = (idx >= 2 && sc.High[idx] < sc.Low[idx-2] - 0.25f);
+            if (recent_bull_fvg && m5_delta > 0) fp_delta_confirmed_5m = true;
+            if (recent_bear_fvg && m5_delta < 0) fp_delta_confirmed_5m = true;
         }
     }
 
@@ -740,7 +804,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         <<",\"stacked_imbalance_dir\":\""<<fp_stacked_dir<<"\""
         <<",\"pullback_delta_declining\":"<<(fp_pullback_delta_declining?"true":"false")
         <<",\"pullback_aggressive_buy\":"<<(fp_pullback_aggressive_buy?"true":"false")
-        <<",\"pullback_aggressive_sell\":"<<(fp_pullback_aggressive_sell?"true":"false")<<"}"
+        <<",\"pullback_aggressive_sell\":"<<(fp_pullback_aggressive_sell?"true":"false")
+        <<",\"absorption_at_fvg\":"<<(fp_absorption_at_fvg?"true":"false")
+        <<",\"delta_confirmed_5m\":"<<(fp_delta_confirmed_5m?"true":"false")<<"}"
      <<",\"mtf\":{"
         <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
         <<",\"m5\":{\"ts\":"<<m5.bar_ts<<",\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"

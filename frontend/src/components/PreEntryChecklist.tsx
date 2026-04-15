@@ -109,6 +109,9 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
 
     const c7s: Condition['status'] = !effectiveCB ? 'wait' : effectiveCB.allowed ? 'pass' : 'fail';
 
+    const c8s: Condition['status'] = fp.absorption_at_fvg ? 'pass' : 'wait';
+    const c9s: Condition['status'] = fp.delta_confirmed_5m ? 'pass' : 'wait';
+
     setConditions([
       { id: 'daytype',  label: 'Day Type',           detail: dtype || 'ממתין', status: c0s },
       { id: 'killzone', label: 'Killzone',            detail: kz.active ? kz.name : 'מחוץ ל-Killzone', status: c1s },
@@ -118,6 +121,8 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
       { id: 'fvg',      label: 'FVG תקף',            detail: hasFVG ? `FVG @ ${fvgPat?.entry?.toFixed(2) ?? '?'}` : 'מחפש...', status: c5s },
       { id: 'health',   label: 'Health Score ≥ 70',  detail: healthScore !== null ? `${healthScore}/100` : 'טוען...', status: c6s },
       { id: 'circuit',  label: 'Circuit Breaker',    detail: effectiveCB ? (effectiveCB.allowed ? 'מאושר' : effectiveCB.reason) : 'בודק...', status: c7s },
+      { id: 'absfvg',   label: 'Absorption at FVG',  detail: fp.absorption_at_fvg ? 'ספיגה ב-FVG' : 'ממתין...', status: c8s },
+      { id: 'delta5m',  label: 'Delta 5m confirmed',  detail: fp.delta_confirmed_5m ? 'דלתא מאשרת' : 'ממתין...', status: c9s },
     ]);
   }, [setup, live, patterns, healthScore, effectiveCB]);
 
@@ -135,7 +140,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
   if (!setup) return null;
 
   const passCount = conditions.filter(c => c.status === 'pass').length;
-  const allPass   = conditions.length === 8 && passCount === 8;
+  const allPass   = conditions.length === 10 && passCount === 10;
 
   const handleExecute = async () => {
     if (!allPass || executing) return;
@@ -158,7 +163,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
         <div>
           <span style={{ fontSize:11, fontWeight:800, color:'#94a3b8', letterSpacing:1 }}>PRE-ENTRY CHECKLIST</span>
           <span style={{ marginLeft:8, fontSize:10, fontWeight:700,
-            color: passCount===8 ? '#22c55e' : passCount>=5 ? '#f59e0b' : '#ef4444' }}>{passCount}/8</span>
+            color: passCount===10 ? '#22c55e' : passCount>=5 ? '#f59e0b' : '#ef4444' }}>{passCount}/10</span>
         </div>
         <div style={{ display:'flex', gap:6, alignItems:'center' }}>
           <span style={{ fontSize:10, padding:'2px 6px', borderRadius:4,
@@ -205,7 +210,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
         );
       })()}
       <div style={{ height:3, background:'#1e293b', borderRadius:2, margin:'10px 0 8px' }}>
-        <div style={{ height:'100%', borderRadius:2, width:`${(passCount/8)*100}%`,
+        <div style={{ height:'100%', borderRadius:2, width:`${(passCount/10)*100}%`,
           background: allPass ? '#22c55e' : passCount>=5 ? '#f59e0b' : '#ef4444',
           transition:'width 0.4s, background 0.4s' }} />
       </div>
@@ -217,7 +222,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
         color: allPass ? '#0a0e1a' : '#334155',
         boxShadow: allPass ? '0 0 16px rgba(34,197,94,0.4)' : 'none',
         transition:'all 0.3s' }}>
-        {executing ? '⏳ שולח...' : allPass ? '🚀 EXECUTE — 3 חוזים' : `⏳ ממתין ${8-passCount} תנאים`}
+        {executing ? '⏳ שולח...' : allPass ? '🚀 EXECUTE — 3 חוזים' : `⏳ ממתין ${10-passCount} תנאים`}
       </button>
     </div>
   );
