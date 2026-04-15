@@ -1512,6 +1512,19 @@ async def get_circuit_breaker():
     }
 
 
+@app.post("/trade/circuit-breaker/reset")
+async def reset_circuit_breaker(x_bridge_token: Optional[str] = Header(None)):
+    """Reset circuit breaker: clear trade count, PnL, locks."""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    today = __import__("datetime").date.today().isoformat()
+    state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
+             "locked_until": 0, "hard_locked": False, "date": today}
+    await save_daily_state(state)
+    log.info("Circuit breaker RESET by user")
+    return {"ok": True, "state": state}
+
+
 @app.post("/trade/execute")
 async def trade_execute(request: Request):
     """C1: Semi-auto trade execution.
@@ -1545,11 +1558,13 @@ async def trade_execute(request: Request):
 
         # Check no active trade — force_clear overrides
         force_clear = body.get("force_clear", False)
+        is_replacement = False
         active = await redis_get_key(REDIS_TRADE_STATUS)
         if active and active.get("status") == "OPEN":
             if force_clear:
                 await redis_delete_key(REDIS_TRADE_STATUS)
                 await redis_delete_key(REDIS_TRADE_COMMAND)
+                is_replacement = True  # don't double-count
                 log.info(f"Force-cleared active trade {active.get('id')} and pending command")
             else:
                 raise HTTPException(status_code=409, detail="Trade already open")
@@ -1593,17 +1608,18 @@ async def trade_execute(request: Request):
         await redis_set_key(REDIS_TRADE_COMMAND, command)
         log.info(f"Command written: {cmd_str} {trade_id}")
 
-        # Increment daily trade count
-        try:
-            state = await get_daily_state()
-            today = __import__("datetime").date.today().isoformat()
-            if state.get("date") != today:
-                state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
-                         "locked_until": 0, "hard_locked": False, "date": today}
-            state["trade_count"] = state.get("trade_count", 0) + 1
-            await save_daily_state(state)
-        except Exception as e:
-            log.warning(f"Daily state update failed (trade still opened): {e}")
+        # Increment daily trade count — only for genuinely new trades
+        if not is_replacement:
+            try:
+                state = await get_daily_state()
+                today = __import__("datetime").date.today().isoformat()
+                if state.get("date") != today:
+                    state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
+                             "locked_until": 0, "hard_locked": False, "date": today}
+                state["trade_count"] = state.get("trade_count", 0) + 1
+                await save_daily_state(state)
+            except Exception as e:
+                log.warning(f"Daily state update failed (trade still opened): {e}")
 
         log.info(f"Trade opened: {trade_id} {direction} @ {entry} stop={stop} risk={risk:.2f}")
         return {"ok": True, "trade": trade}
