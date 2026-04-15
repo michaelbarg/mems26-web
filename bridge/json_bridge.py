@@ -592,8 +592,8 @@ async def save_candle(http, c: CandleBuilder, raw: dict = None,
         enrich_candle(c, raw)
     candle_dict = c.to_dict()
     candle_json = json.dumps(candle_dict)
-    await redis_post_raw(http, f"lpush/{redis_key}", candle_json)
-    await redis_cmd(http, f"ltrim/{redis_key}/0/{max_candles-1}")
+    await redis_post_raw(http, f"rpush/{redis_key}", candle_json)
+    await redis_cmd(http, f"ltrim/{redis_key}/-{max_candles}/-1")
     log.info(f"Candle [{label}] saved: {c.c:.2f} Δ={c.buy-c.sell:.0f} CCI14={c.cci14:.1f} VWAP={c.vwap:.2f}")
 
 
@@ -911,12 +911,16 @@ async def main():
                         seeded = 0
                         for bar in fp_sorted:
                             bar_ts = bar.get("ts", 0)
+                            # Fix SC timestamp: ET-as-UTC → real UTC
+                            if bar_ts > 0:
+                                bar["ts"] = sc_ts_to_utc(bar_ts)
+                                bar_ts = bar["ts"]
                             if bar_ts > newest_redis_ts:
                                 cj = json.dumps(bar)
-                                await redis_post_raw(http, f"lpush/{REDIS_CANDLES}", cj)
+                                await redis_post_raw(http, f"rpush/{REDIS_CANDLES}", cj)
                                 seeded += 1
                         if seeded:
-                            await redis_cmd(http, f"ltrim/{REDIS_CANDLES}/0/{MAX_CANDLES-1}")
+                            await redis_cmd(http, f"ltrim/{REDIS_CANDLES}/-{MAX_CANDLES}/-1")
                             log.info(f"Seeded {seeded} candles from Sierra footprint")
                         else:
                             log.info(f"Footprint: {len(fp_bars)} bars, all already in Redis")
