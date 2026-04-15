@@ -148,12 +148,20 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
   const allPass = testPass || (conditions.length === 10 && passCount === 10);
 
   const handleExecute = async () => {
-    if (!allPass || executing) return;
-    setExecuting(true); setLastError('');
+    // Snapshot pass count at click time — do not re-check live state
+    const passAtClick = conditions.filter(c => c.status === 'pass').length;
+    const threshold = testMode ? 4 : 10;
+    if (passAtClick < threshold || executing) return;
+
+    setExecuting(true);
+    setLastError('');
     try {
-      await onExecute({ direction: setup.dir === 'long' ? 'LONG' : 'SHORT',
+      await onExecute({
+        direction: setup.dir === 'long' ? 'LONG' : 'SHORT',
         entry_price: setup.entry, stop: setup.stop,
-        t1: setup.t1, t2: setup.t2, t3: setup.t3, setup_type: 'LIQUIDITY_SWEEP' });
+        t1: setup.t1, t2: setup.t2, t3: setup.t3,
+        setup_type: 'LIQUIDITY_SWEEP',
+      });
     } catch (e: any) { setLastError(e?.message || 'שגיאה'); }
     finally { setExecuting(false); }
   };
