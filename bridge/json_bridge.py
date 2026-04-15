@@ -1242,8 +1242,17 @@ async def _poll_trade_commands(http):
             async with http.get(
                 f"{CLOUD_URL}/trade/command",
                 headers={"x-bridge-token": BRIDGE_TOKEN},
-                timeout=aiohttp.ClientTimeout(total=3),
+                timeout=aiohttp.ClientTimeout(total=5),
             ) as resp:
+                if resp.status != 200:
+                    log.warning(f"[C4] poll HTTP {resp.status} — skipping")
+                    await asyncio.sleep(2)
+                    continue
+                content_type = resp.headers.get('content-type', '')
+                if 'json' not in content_type:
+                    log.warning(f"[C4] non-JSON response ({content_type}) — skipping")
+                    await asyncio.sleep(2)
+                    continue
                 data = await resp.json()
             if data.get("pending"):
                 cmd = data["command"]
@@ -1260,16 +1269,20 @@ async def _poll_trade_commands(http):
                     json.dump(cmd, f, indent=2)
                 os.replace(tmp, SC_COMMAND_PATH)
                 log.info(f"[C4] written: {cmd['cmd']} {trade_id}")
-                async with http.post(
-                    f"{CLOUD_URL}/trade/command/ack",
-                    headers={"x-bridge-token": BRIDGE_TOKEN,
-                             "content-type": "application/json"},
-                    json={"trade_id": trade_id},
-                    timeout=aiohttp.ClientTimeout(total=3),
-                ) as ack_resp:
-                    ack = await ack_resp.json()
-                    if ack.get("ok"):
-                        log.info(f"[C4] acked: {trade_id}")
+                try:
+                    async with http.post(
+                        f"{CLOUD_URL}/trade/command/ack",
+                        headers={"x-bridge-token": BRIDGE_TOKEN,
+                                 "content-type": "application/json"},
+                        json={"trade_id": trade_id},
+                        timeout=aiohttp.ClientTimeout(total=5),
+                    ) as ack_resp:
+                        if ack_resp.status == 200:
+                            ack = await ack_resp.json()
+                            if ack.get("ok"):
+                                log.info(f"[C4] acked: {trade_id}")
+                except Exception as e:
+                    log.warning(f"[C4] ack failed: {e}")
                 last_trade_id = trade_id
         except Exception as e:
             log.warning(f"[C4] poll error: {e}")
