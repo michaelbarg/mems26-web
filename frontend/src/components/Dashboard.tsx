@@ -3603,7 +3603,6 @@ export default function Dashboard() {
           </div>
           <div style={{flex:1,position:'relative',overflow:'hidden',minHeight:0}}>
             <LightweightChart
-              key={tf}
               candles={candles}
               livePrice={live?.price}
               liveBar={live?.bar ? (()=>{

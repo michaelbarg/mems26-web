@@ -741,7 +741,6 @@ export default function LightweightChart({
   }, [height, drawOverlays, drawZones]);
 
   // Load script once
-  // Load script once
   useEffect(() => {
     if (loadedRef.current) return;
     loadedRef.current = true;
@@ -750,22 +749,20 @@ export default function LightweightChart({
     script.src = 'https://unpkg.com/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
     script.async = true;
     document.head.appendChild(script);
-    return () => { chartRef.current?.remove(); chartRef.current = null; seriesRef.current = null; };
   }, []);
 
-  // Init chart only when script loaded AND candles available
+  // Init chart once (never destroyed between TF switches)
   useEffect(() => {
     if (chartRef.current) return;
     if (!candles || candles.length === 0) return;
     if (!(window as any).LightweightCharts) {
-      // Script not loaded yet — retry on next render
       const timer = setTimeout(() => initChart(), 100);
       return () => clearTimeout(timer);
     }
     initChart();
   }, [candles, initChart]);
 
-  // Cleanup chart on unmount (key change = TF switch)
+  // Cleanup chart only on true unmount
   useEffect(() => {
     return () => { try { chartRef.current?.remove(); } catch {} chartRef.current = null; seriesRef.current = null; cvdRef.current = null; cvdMaRef.current = null; volRef.current = null; };
   }, []);
@@ -826,24 +823,7 @@ export default function LightweightChart({
       }
       return base;
     });
-    // Add live bar to chart data
-    if (liveBar) {
-      const lbO = liveBar.o ?? (liveBar as any).open;
-      const lbH = liveBar.h ?? (liveBar as any).high;
-      const lbL = liveBar.l ?? (liveBar as any).low;
-      const lbC = livePrice ?? liveBar.c ?? (liveBar as any).close;
-      const lbTs = Math.floor(liveBar.ts);
-      if (lbO && lbH && lbL && lbC && lbO > 100 && lbTs > 1577836800) {
-        const lbET = toETChartTime(lbTs);
-        const lastChartTime = cData.length > 0 ? cData[cData.length - 1].time : 0;
-        const lb = { time: lbET as any, open: lbO, high: lbH, low: lbL, close: lbC };
-        if (lastChartTime === lbET) {
-          cData[cData.length - 1] = lb;
-        } else {
-          cData.push(lb);
-        }
-      }
-    }
+    // liveBar is NOT included here — handled by separate update() effect
 
     const validCandles = cData.filter(c =>
       c.open > 100 && c.high > 100 && c.low > 100 && c.close > 100 &&
@@ -855,8 +835,9 @@ export default function LightweightChart({
     const dedupCandles = validCandles.filter(c => { if (seenTs.has(c.time)) return false; seenTs.add(c.time); return true; });
     console.log('[MEMS26] setData:', dedupCandles.length, 'candles, first:', dedupCandles[0]?.time, 'last:', dedupCandles[dedupCandles.length-1]?.time);
     try {
-      seriesRef.current.setData(dedupCandles);
-      chartRef.current?.timeScale().scrollToRealTime();
+      seriesRef.current.setData([]);          // clear old TF data
+      seriesRef.current.setData(dedupCandles); // load new TF data
+      chartRef.current?.timeScale().fitContent();
     } catch (e) { console.error('setData error:', e); }
 
     // CVD (cumulative volume delta) + MA20
@@ -984,7 +965,6 @@ export default function LightweightChart({
         liveUpdate.wickDownColor = '#ef5350';
       }
       seriesRef.current.update(liveUpdate);
-      chartRef.current?.timeScale().scrollToRealTime();
     } catch (e) {
       // Ignore "Cannot update oldest data" during tf switch
     }
