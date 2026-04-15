@@ -111,7 +111,11 @@ async def redis_get_key(key: str):
             )
             val = resp.json().get("result")
             if val:
-                return json.loads(val) if isinstance(val, str) else val
+                parsed = json.loads(val) if isinstance(val, str) else val
+                # Handle double-encoded JSON strings
+                while isinstance(parsed, str):
+                    parsed = json.loads(parsed)
+                return parsed
     except Exception as e:
         log.warning(f"Redis get_key({key}) failed: {e}")
     return None
