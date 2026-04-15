@@ -3156,6 +3156,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                 </div>
               );
             })}
+            <TradeLogSection />
           </div>
         )}
 
