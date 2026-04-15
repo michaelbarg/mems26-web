@@ -1156,7 +1156,7 @@ async def main():
                     pass  # trade_result.json may not exist or be malformed
 
                 # עדכון סטופ בעסקה פתוחה בזמן אמת
-                elif stop_price > 0 and trade_tracker.open_trade:
+                if stop_price > 0 and trade_tracker.open_trade:
                     if trade_tracker.open_trade.get("stop") != stop_price:
                         trade_tracker.open_trade["stop"] = stop_price
                         log.info(f"Stop updated: {stop_price}")
