@@ -2489,6 +2489,72 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
           })}
         </>
       )}
+      {/* ── Trade Log — עסקאות סגורות ── */}
+      <TradeLogSection />
+    </div>
+  );
+}
+
+function TradeLogSection() {
+  const [log, setLog] = useState<any[]>([]);
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch(`${API_URL}/trades/log?limit=50`, { cache: 'no-store' });
+        if (r.ok) setLog(await r.json());
+      } catch {}
+    };
+    load();
+    const id = setInterval(load, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayTrades = log.filter(t => {
+    const d = new Date((t.exit_ts || 0) * 1000).toISOString().slice(0, 10);
+    return d === today;
+  });
+  const totalPnl = todayTrades.reduce((s, t) => s + (t.pnl_usd || 0), 0);
+
+  return (
+    <div style={{ borderTop: '1px solid #1e2738', marginTop: 8, paddingTop: 8 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+        <span>📋 עסקאות היום</span>
+        {todayTrades.length > 0 && (
+          <span style={{ color: totalPnl >= 0 ? '#22c55e' : '#ef4444' }}>
+            סה״כ: {totalPnl >= 0 ? '+' : ''}{totalPnl.toFixed(0)}$ | {todayTrades.length} עסקאות
+          </span>
+        )}
+      </div>
+      {todayTrades.length === 0 ? (
+        <div style={{ fontSize: 10, color: '#4a5568', textAlign: 'center', padding: 8 }}>אין עסקאות היום עדיין</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {todayTrades.map((t, i) => {
+            const isWin = (t.pnl_pts || 0) > 0;
+            const col = isWin ? '#22c55e' : '#ef4444';
+            const ts = new Date((t.exit_ts || 0) * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/New_York' });
+            return (
+              <div key={t.id || i} style={{ display: 'flex', gap: 6, fontSize: 10, padding: '4px 6px', borderRadius: 5,
+                background: isWin ? 'rgba(34,197,94,0.06)' : 'rgba(239,68,68,0.06)', alignItems: 'center' }}>
+                <span style={{ color: '#64748b', width: 36 }}>{ts}</span>
+                <span style={{ color: t.direction === 'LONG' ? '#22c55e' : '#ef4444', fontWeight: 700, width: 36 }}>
+                  {t.direction === 'LONG' ? '▲ L' : '▼ S'}
+                </span>
+                <span style={{ color: '#94a3b8', width: 48 }}>{t.entry_price?.toFixed(2)}</span>
+                <span style={{ color: '#94a3b8', width: 48 }}>{t.exit_price?.toFixed(2)}</span>
+                <span style={{ color: col, fontWeight: 700, width: 50 }}>
+                  {(t.pnl_pts || 0) >= 0 ? '+' : ''}{t.pnl_pts?.toFixed(2)}pt
+                </span>
+                <span style={{ color: col, fontWeight: 700, width: 40 }}>
+                  {(t.pnl_usd || 0) >= 0 ? '+' : ''}${t.pnl_usd?.toFixed(0)}
+                </span>
+                <span style={{ color: '#4a5568', fontSize: 9 }}>{t.close_reason || ''}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

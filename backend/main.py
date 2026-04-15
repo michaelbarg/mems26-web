@@ -989,6 +989,35 @@ async def redis_trades_get() -> list:
     return []
 
 
+@app.get("/trades/log")
+async def get_trade_log(limit: int = 50):
+    """Return last N closed trades from trade log, newest first."""
+    try:
+        async with httpx.AsyncClient() as client:
+            # Scan for tradelog keys
+            resp = await client.get(
+                f"{REDIS_URL}/keys/mems26:tradelog:*",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+            keys = resp.json().get("result", [])
+            if not keys:
+                return []
+            # Sort by timestamp (embedded in key), newest first
+            keys.sort(reverse=True)
+            keys = keys[:limit]
+            # Fetch all values
+            trades = []
+            for key in keys:
+                val = await redis_get_key(key)
+                if val and isinstance(val, dict):
+                    trades.append(val)
+            return trades
+    except Exception as e:
+        log.error(f"/trades/log failed: {e}")
+        return []
+
+
 @app.get("/trades")
 async def get_trades():
     return await redis_trades_get()
@@ -1606,6 +1635,13 @@ async def trade_close(request: Request):
         log.warning(f"CONSEC LOCK: {state['consecutive_losses']} consecutive losses — locked {CB_LOCK_MIN}min")
 
     await save_daily_state(state)
+
+    # Persist to trade log (no TTL)
+    try:
+        log_key = f"mems26:tradelog:{active['exit_ts']}"
+        await redis_set_key(log_key, active)
+    except Exception as e:
+        log.warning(f"Trade log persist failed: {e}")
 
     log.info(f"Trade closed: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f}) reason={reason}")
     return {"ok": True, "trade": active, "daily_pnl": state["pnl"], "circuit_breaker": await check_circuit_breaker()}

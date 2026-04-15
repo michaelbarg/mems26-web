@@ -156,9 +156,41 @@ state  = SessionState()
 candle = CandleBuilder()
 
 # ── Trade Tracker — זיהוי עסקאות אוטומטי מ-Sierra ─────────────────────────
+REDIS_SEEN_FILLS = "mems26:seen_fills"
+
 class TradeTracker:
     def __init__(self):
         self.seen_fill_ts: set = set()
+        self._new_fill_ts: list = []
+
+    async def persist_new_fills(self, http):
+        """Persist newly seen fill timestamps to Redis SET."""
+        if not self._new_fill_ts:
+            return
+        for ts in self._new_fill_ts:
+            try:
+                await redis_post_raw(http, f"sadd/{REDIS_SEEN_FILLS}", str(ts))
+            except Exception:
+                pass
+        self._new_fill_ts.clear()
+
+    async def load_seen_fills(self, http):
+        """Load persisted seen fill timestamps from Redis SET."""
+        try:
+            async with http.get(
+                f"{REDIS_URL}/smembers/{REDIS_SEEN_FILLS}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=aiohttp.ClientTimeout(total=3.0)
+            ) as resp:
+                result = await resp.json()
+                members = result.get("result", [])
+                for m in members:
+                    try: self.seen_fill_ts.add(int(m))
+                    except (ValueError, TypeError): pass
+                if members:
+                    log.info(f"Loaded {len(self.seen_fill_ts)} seen fills from Redis")
+        except Exception as e:
+            log.warning(f"Load seen fills failed: {e}")
         self.open_trade: dict = None
         self.position: float = 0.0
         self.last_stop: float = 0.0    # סטופ אחרון מDOM
@@ -219,6 +251,7 @@ class TradeTracker:
             if ts in self.seen_fill_ts or ts == 0 or fp == 0:
                 continue
             self.seen_fill_ts.add(ts)
+            self._new_fill_ts.append(ts)
 
             direction = 1 if sid == "BUY" else -1
             prev_pos  = self.position
@@ -835,6 +868,7 @@ async def main():
     footprint_seeded = False     # האם כבר טענו footprint מ-Sierra
 
     async with aiohttp.ClientSession() as http:
+        await trade_tracker.load_seen_fills(http)
         asyncio.create_task(_poll_trade_commands(http))
         log.info("[C4] command poll started")
         while True:
@@ -1058,6 +1092,7 @@ async def main():
                         "cvd_trend":   raw.get("cvd", {}).get("trend", ""),
                     }
                     events = trade_tracker.process_fills(fills, price, ctx, stop_price)
+                    await trade_tracker.persist_new_fills(http)
                     for ev in events:
                         trade = ev["trade"]
                         API_URL_LOCAL = os.getenv("API_URL", "http://localhost:8000")
