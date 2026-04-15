@@ -991,31 +991,47 @@ async def redis_trades_get() -> list:
 
 @app.get("/trades/log")
 async def get_trade_log(limit: int = 50):
-    """Return last N closed trades from trade log, newest first."""
+    """Return last N closed trades from trade log, newest first. Enriches with computed fields."""
+    trades = []
     try:
         async with httpx.AsyncClient() as client:
-            # Scan for tradelog keys
             resp = await client.get(
                 f"{REDIS_URL}/keys/mems26:tradelog:*",
                 headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
                 timeout=5.0
             )
             keys = resp.json().get("result", [])
-            if not keys:
-                return []
-            # Sort by timestamp (embedded in key), newest first
-            keys.sort(reverse=True)
-            keys = keys[:limit]
-            # Fetch all values
-            trades = []
-            for key in keys:
-                val = await redis_get_key(key)
-                if val and isinstance(val, dict):
-                    trades.append(val)
-            return trades
+            if keys:
+                keys.sort(reverse=True)
+                for key in keys[:limit]:
+                    val = await redis_get_key(key)
+                    if val and isinstance(val, dict):
+                        trades.append(val)
     except Exception as e:
-        log.error(f"/trades/log failed: {e}")
-        return []
+        log.error(f"/trades/log keys failed: {e}")
+
+    # Also include current trade if CLOSED but not yet in log
+    try:
+        active = await redis_get_key(REDIS_TRADE_STATUS)
+        if active and isinstance(active, dict) and active.get("status") == "CLOSED":
+            if not any(t.get("id") == active.get("id") for t in trades):
+                trades.insert(0, active)
+    except Exception:
+        pass
+
+    # Enrich each trade with computed fields
+    for t in trades:
+        entry_ts = t.get("entry_ts", 0)
+        exit_ts = t.get("exit_ts", 0)
+        if entry_ts and exit_ts:
+            t["duration_min"] = round((exit_ts - entry_ts) / 60, 1)
+        risk = t.get("risk_pts", 0)
+        pnl = t.get("pnl_pts", 0)
+        if risk and risk > 0:
+            t["rr_actual"] = round(abs(pnl) / risk, 2)
+        t["win"] = pnl > 0
+
+    return trades
 
 
 @app.get("/trades")
