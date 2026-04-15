@@ -1496,7 +1496,8 @@ async def check_circuit_breaker() -> dict:
 def _make_checksum(cmd: str, price: float, qty: int, stop: float,
                    trade_id: str, expires_at: int) -> tuple:
     import hashlib
-    raw = f"{cmd}:{price}:{qty}:{stop}:{trade_id}:{expires_at}:{BRIDGE_TOKEN}"
+    # Must match C++ format: std::fixed << std::setprecision(2)
+    raw = f"{cmd}:{price:.2f}:{qty}:{stop:.2f}:{trade_id}:{expires_at}:{BRIDGE_TOKEN}"
     return hashlib.sha256(raw.encode()).hexdigest(), raw
 
 

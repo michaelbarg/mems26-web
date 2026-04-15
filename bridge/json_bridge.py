@@ -1240,7 +1240,8 @@ import hashlib
 
 def _verify_checksum(cmd: dict) -> bool:
     expected = cmd.get("checksum", "")
-    raw = (f"{cmd['cmd']}:{cmd['price']}:{cmd['qty']}:{cmd['stop']}:"
+    # Must match C++ format: std::fixed << std::setprecision(2)
+    raw = (f"{cmd['cmd']}:{cmd['price']:.2f}:{cmd['qty']}:{cmd['stop']:.2f}:"
            f"{cmd['trade_id']}:{cmd['expires_at']}:{BRIDGE_TOKEN}")
     return hashlib.sha256(raw.encode()).hexdigest() == expected
 
