@@ -148,22 +148,36 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
   const allPass = testPass || (conditions.length === 10 && passCount === 10);
 
   const handleExecute = async () => {
-    // Snapshot pass count at click time — do not re-check live state
     const passAtClick = conditions.filter(c => c.status === 'pass').length;
     const threshold = testMode ? 4 : 10;
     if (passAtClick < threshold || executing) return;
 
     setExecuting(true);
     setLastError('');
+    const params = {
+      direction: setup.dir === 'long' ? 'LONG' as const : 'SHORT' as const,
+      entry_price: setup.entry, stop: setup.stop,
+      t1: setup.t1, t2: setup.t2, t3: setup.t3,
+      setup_type: 'LIQUIDITY_SWEEP',
+    };
     try {
-      await onExecute({
-        direction: setup.dir === 'long' ? 'LONG' : 'SHORT',
-        entry_price: setup.entry, stop: setup.stop,
-        t1: setup.t1, t2: setup.t2, t3: setup.t3,
-        setup_type: 'LIQUIDITY_SWEEP',
-      });
-    } catch (e: any) { setLastError(e?.message || 'שגיאה'); }
-    finally { setExecuting(false); }
+      await onExecute(params);
+    } catch (e: any) {
+      const msg = e?.message || '';
+      const isNetwork = msg.includes('fetch') || msg.includes('network') || msg.includes('Failed') || msg.includes('HTTP 5');
+      if (isNetwork) {
+        setLastError('מנסה שוב...');
+        await new Promise(r => setTimeout(r, 3000));
+        try {
+          await onExecute(params);
+          setLastError('');
+        } catch (e2: any) {
+          setLastError(e2?.message || 'שגיאה');
+        }
+      } else {
+        setLastError(msg);
+      }
+    } finally { setExecuting(false); }
   };
 
   return (
