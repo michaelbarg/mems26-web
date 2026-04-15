@@ -27,7 +27,7 @@ REDIS_TRADE_STATUS  = "mems26:trade:status"
 REDIS_DAILY_PNL     = "mems26:daily:pnl"
 REDIS_DAILY_TRADES  = "mems26:daily:trades"
 REDIS_TRADE_COMMAND = "mems26:trade:command"
-COMMAND_TTL_SEC = 60
+COMMAND_TTL_SEC = 300  # 5 minutes for command pickup
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 
 
@@ -87,13 +87,17 @@ async def redis_set_key(key: str, value):
     if not REDIS_URL or not REDIS_TOKEN:
         return
     try:
+        serialized = json.dumps(value) if not isinstance(value, str) else value
         async with httpx.AsyncClient() as client:
-            await client.post(
+            resp = await client.post(
                 f"{REDIS_URL}/set/{key}",
-                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
-                json=json.dumps(value) if not isinstance(value, str) else value,
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}",
+                         "Content-Type": "application/json"},
+                content=serialized,
                 timeout=3.0
             )
+            if resp.status_code != 200:
+                log.warning(f"Redis set_key({key}) HTTP {resp.status_code}: {resp.text[:100]}")
     except Exception as e:
         log.warning(f"Redis set_key({key}) failed: {e}")
 
@@ -1593,7 +1597,9 @@ async def trade_execute(request: Request):
             "pnl_usd": 0,
         }
 
+        log.info(f"[EXECUTE] step 1: writing trade status {trade_id}")
         await redis_set_key(REDIS_TRADE_STATUS, trade)
+        log.info(f"[EXECUTE] step 2: trade status written OK")
 
         import time as _time
         expires_at = int(_time.time()) + COMMAND_TTL_SEC
@@ -1605,8 +1611,11 @@ async def trade_execute(request: Request):
             "trade_id": trade_id, "expires_at": expires_at,
             "checksum": chk_hex, "checksum_input": chk_raw,
         }
+        log.info(f"[EXECUTE] step 3: writing command to Redis key={REDIS_TRADE_COMMAND}")
         await redis_set_key(REDIS_TRADE_COMMAND, command)
-        log.info(f"Command written: {cmd_str} {trade_id}")
+        # Verify it was written
+        verify = await redis_get_key(REDIS_TRADE_COMMAND)
+        log.info(f"[EXECUTE] step 4: command written, verify={verify is not None}, trade_id={verify.get('trade_id') if verify else 'NONE'}")
 
         # Increment daily trade count — only for genuinely new trades
         if not is_replacement:
