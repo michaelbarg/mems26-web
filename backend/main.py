@@ -329,17 +329,39 @@ def _valid_candle(c: dict) -> bool:
     return True
 
 
-@app.get("/market/candles")
-async def get_candles(limit: int = 960, tf: str = "3m"):
-    # Unified endpoint: ?tf=5m/15m/30m/1h routes to the right Redis key
-    tf_keys = {"5m": REDIS_CANDLES_5M, "15m": REDIS_CANDLES_15M, "30m": REDIS_CANDLES_30M, "1h": REDIS_CANDLES_1H}
-    if tf in tf_keys:
-        candles = await redis_get_json_array(tf_keys[tf])
-        candles = [c for c in candles if _valid_candle(c)]
-        candles.sort(key=lambda x: x.get("ts", 0))
-        return candles[-limit:]
-    # Default: 3m candles from Redis list
-    raw = await redis_lrange(REDIS_CANDLES_KEY, 0, limit - 1)
+def _aggregate_3m_to_tf(candles_3m: list, interval_sec: int, max_out: int) -> list:
+    """Aggregate 3m candles into larger timeframe on-the-fly."""
+    buckets = {}
+    for c in candles_3m:
+        ts = c.get("ts", 0)
+        if ts <= 0:
+            continue
+        bucket = (ts // interval_sec) * interval_sec
+        o = c.get("o", c.get("open", 0))
+        h = c.get("h", c.get("high", 0))
+        l = c.get("l", c.get("low", 999999))
+        cl = c.get("c", c.get("close", 0))
+        if bucket not in buckets:
+            buckets[bucket] = {"ts": bucket, "open": o, "high": h, "low": l, "close": cl,
+                               "buy": c.get("buy", 0), "sell": c.get("sell", 0),
+                               "vol": c.get("vol", 0), "delta": c.get("delta", 0)}
+        else:
+            b = buckets[bucket]
+            if h > b["high"]: b["high"] = h
+            if l < b["low"]: b["low"] = l
+            b["close"] = cl
+            b["buy"] += c.get("buy", 0)
+            b["sell"] += c.get("sell", 0)
+            b["vol"] += c.get("vol", 0)
+            b["delta"] = b["buy"] - b["sell"]
+    result = sorted(buckets.values(), key=lambda x: x["ts"])
+    result = [c for c in result if c["high"] > 0 and c["low"] < 999999]
+    return result[-max_out:]
+
+
+async def _get_3m_candles() -> list:
+    """Read all 3m candles from Redis list."""
+    raw = await redis_lrange(REDIS_CANDLES_KEY, 0, MAX_CANDLES - 1)
     candles = []
     for item in raw:
         try:
@@ -352,6 +374,19 @@ async def get_candles(limit: int = 960, tf: str = "3m"):
             continue
     candles.sort(key=lambda x: x.get("ts", 0))
     return candles
+
+
+@app.get("/market/candles")
+async def get_candles(limit: int = 960, tf: str = "3m"):
+    candles_3m = await _get_3m_candles()
+    if tf == "3m":
+        return candles_3m[-limit:]
+    # Aggregate 3m → requested TF on-the-fly (always up-to-date, no gaps)
+    tf_config = {"5m": (300, 288), "15m": (900, 96), "30m": (1800, 48), "1h": (3600, 168)}
+    if tf in tf_config:
+        interval, max_out = tf_config[tf]
+        return _aggregate_3m_to_tf(candles_3m, interval, min(limit, max_out))
+    return candles_3m[-limit:]
 
 
 @app.get("/market/candles/5m")
