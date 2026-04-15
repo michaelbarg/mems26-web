@@ -4,6 +4,7 @@ import asyncio
 import logging
 from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import httpx
@@ -1450,85 +1451,94 @@ async def trade_execute(request: Request):
     Validates circuit breaker, stores trade status in Redis.
     """
     import time
-
-    # Circuit breaker check
     try:
-        cb = await check_circuit_breaker()
+        # Circuit breaker check
+        try:
+            cb = await check_circuit_breaker()
+        except Exception as e:
+            log.warning(f"Circuit breaker check failed: {e}")
+            cb = {"allowed": True, "reason": "CB check failed — proceeding"}
+        if not cb["allowed"]:
+            raise HTTPException(status_code=403, detail=cb["reason"])
+
+        body = await request.json()
+        direction  = body.get("direction", "")
+        entry      = body.get("entry_price", 0)
+        stop       = body.get("stop", 0)
+        t1         = body.get("t1", 0)
+        t2         = body.get("t2", 0)
+        t3         = body.get("t3", 0)
+        setup_type = body.get("setup_type", "MANUAL")
+
+        if direction not in ("LONG", "SHORT"):
+            raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
+        if entry <= 0 or stop <= 0:
+            raise HTTPException(status_code=400, detail="entry_price and stop required")
+
+        # Check no active trade
+        active = await redis_get_key(REDIS_TRADE_STATUS)
+        if active and active.get("status") == "OPEN":
+            raise HTTPException(status_code=409, detail="Trade already open")
+
+        risk = abs(entry - stop)
+        if risk > 8:
+            raise HTTPException(status_code=400, detail=f"Risk {risk:.2f}pt exceeds 8pt max")
+
+        trade_id = f"T{int(time.time())}"
+        trade = {
+            "id": trade_id,
+            "direction": direction,
+            "entry_price": entry,
+            "stop": stop,
+            "t1": t1,
+            "t2": t2,
+            "t3": t3,
+            "risk_pts": round(risk, 2),
+            "setup_type": setup_type,
+            "entry_ts": int(time.time()),
+            "status": "OPEN",
+            "c1_status": "open",
+            "c2_status": "open",
+            "c3_status": "open",
+            "pnl_pts": 0,
+            "pnl_usd": 0,
+        }
+
+        await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+        import time as _time
+        expires_at = int(_time.time()) + COMMAND_TTL_SEC
+        cmd_str = "BUY" if direction == "LONG" else "SELL"
+        chk_hex, chk_raw = _make_checksum(cmd_str, entry, 3, stop, trade_id, expires_at)
+        command = {
+            "cmd": cmd_str, "price": entry, "qty": 3,
+            "stop": stop, "t1": t1, "t2": t2, "t3": t3,
+            "trade_id": trade_id, "expires_at": expires_at,
+            "checksum": chk_hex, "checksum_input": chk_raw,
+        }
+        await redis_set_key(REDIS_TRADE_COMMAND, command)
+        log.info(f"Command written: {cmd_str} {trade_id}")
+
+        # Increment daily trade count
+        try:
+            state = await get_daily_state()
+            today = __import__("datetime").date.today().isoformat()
+            if state.get("date") != today:
+                state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
+                         "locked_until": 0, "hard_locked": False, "date": today}
+            state["trade_count"] = state.get("trade_count", 0) + 1
+            await save_daily_state(state)
+        except Exception as e:
+            log.warning(f"Daily state update failed (trade still opened): {e}")
+
+        log.info(f"Trade opened: {trade_id} {direction} @ {entry} stop={stop} risk={risk:.2f}")
+        return {"ok": True, "trade": trade}
+
+    except HTTPException:
+        raise  # re-raise 400/403/409 as-is
     except Exception as e:
-        log.warning(f"Circuit breaker check failed: {e}")
-        cb = {"allowed": True, "reason": "CB check failed — proceeding"}
-    if not cb["allowed"]:
-        raise HTTPException(status_code=403, detail=cb["reason"])
-
-    body = await request.json()
-    direction  = body.get("direction", "")
-    entry      = body.get("entry_price", 0)
-    stop       = body.get("stop", 0)
-    t1         = body.get("t1", 0)
-    t2         = body.get("t2", 0)
-    t3         = body.get("t3", 0)
-    setup_type = body.get("setup_type", "MANUAL")
-
-    if direction not in ("LONG", "SHORT"):
-        raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
-    if entry <= 0 or stop <= 0:
-        raise HTTPException(status_code=400, detail="entry_price and stop required")
-
-    # Check no active trade
-    active = await redis_get_key(REDIS_TRADE_STATUS)
-    if active and active.get("status") == "OPEN":
-        raise HTTPException(status_code=409, detail="Trade already open")
-
-    risk = abs(entry - stop)
-    if risk > 8:
-        raise HTTPException(status_code=400, detail=f"Risk {risk:.2f}pt exceeds 8pt max")
-
-    trade_id = f"T{int(time.time())}"
-    trade = {
-        "id": trade_id,
-        "direction": direction,
-        "entry_price": entry,
-        "stop": stop,
-        "t1": t1,
-        "t2": t2,
-        "t3": t3,
-        "risk_pts": round(risk, 2),
-        "setup_type": setup_type,
-        "entry_ts": int(time.time()),
-        "status": "OPEN",
-        "c1_status": "open",
-        "c2_status": "open",
-        "c3_status": "open",
-        "pnl_pts": 0,
-        "pnl_usd": 0,
-    }
-
-    await redis_set_key(REDIS_TRADE_STATUS, trade)
-
-    import time as _time
-    expires_at = int(_time.time()) + COMMAND_TTL_SEC
-    cmd_str = "BUY" if direction == "LONG" else "SELL"
-    chk_hex, chk_raw = _make_checksum(cmd_str, entry, 3, stop, trade_id, expires_at)
-    command = {
-        "cmd": cmd_str, "price": entry, "qty": 3,
-        "stop": stop, "t1": t1, "t2": t2, "t3": t3,
-        "trade_id": trade_id, "expires_at": expires_at,
-        "checksum": chk_hex, "checksum_input": chk_raw,
-    }
-    await redis_set_key(REDIS_TRADE_COMMAND, command)
-    log.info(f"Command written: {cmd_str} {trade_id}")
-
-    # Increment daily trade count
-    state = await get_daily_state()
-    today = __import__("datetime").date.today().isoformat()
-    if state.get("date") != today:
-        state = {"pnl": 0, "trade_count": 0, "consecutive_losses": 0,
-                 "locked_until": 0, "hard_locked": False, "date": today}
-    state["trade_count"] = state.get("trade_count", 0) + 1
-    await save_daily_state(state)
-
-    log.info(f"Trade opened: {trade_id} {direction} @ {entry} stop={stop} risk={risk:.2f}")
-    return {"ok": True, "trade": trade}
+        log.error(f"/trade/execute failed: {e}", exc_info=True)
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @app.post("/trade/close")
