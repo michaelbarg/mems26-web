@@ -35,6 +35,19 @@ POST_INTERVAL   = 0.5
 CANDLE_INTERVAL = 180
 STALE_THRESHOLD = 120
 
+def sc_ts_to_utc(ts: int) -> int:
+    """Convert SC timestamp (ET-as-UTC) to real UTC by adding EDT/EST offset.
+    SC is configured in Eastern Time — ToUnixTime treats ET as UTC.
+    Until the C++ DLL is rebuilt, all SC timestamps are shifted ~4h behind."""
+    from datetime import datetime, timezone, timedelta
+    if ts <= 0:
+        return ts
+    # Determine EDT vs EST from the (wrong) timestamp — close enough for offset detection
+    dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+    month = dt.month
+    offset = 4 * 3600 if 3 <= month <= 10 else 5 * 3600  # EDT / EST
+    return ts + offset
+
 # MTF candle config: (mtf_key, redis_key, interval_sec, max_candles)
 MTF_CONFIG = [
     ("m5",  "mems26:candles:5m",  300,  288),
@@ -718,7 +731,11 @@ async def main():
                         hist = json.load(hf)
                     candles_list = hist.get("candles", [])
                     if candles_list:
-                        log.info(f"Loading {len(candles_list)} historical candles → Redis...")
+                        # Fix SC timestamps: ET-as-UTC → real UTC
+                        for c in candles_list:
+                            if isinstance(c, dict) and c.get("ts", 0) > 0:
+                                c["ts"] = sc_ts_to_utc(c["ts"])
+                        log.info(f"Loading {len(candles_list)} historical candles (ET→UTC fixed) → Redis...")
                         await redis_cmd(http, f"del/{REDIS_CANDLES}")
                         loaded = 0
                         for c in candles_list[:MAX_CANDLES]:
@@ -737,7 +754,11 @@ async def main():
                             if native and len(native) > 1:
                                 # C++ calcBarAligned — accurate, drop last (open) candle
                                 agg = native[:-1]
-                                log.info(f"MTF [{label}] using C++ native history: {len(agg)} candles")
+                                # Fix SC timestamps: ET-as-UTC → real UTC
+                                for c in agg:
+                                    if isinstance(c, dict) and c.get("ts", 0) > 0:
+                                        c["ts"] = sc_ts_to_utc(c["ts"])
+                                log.info(f"MTF [{label}] using C++ native history (ET→UTC fixed): {len(agg)} candles")
                             else:
                                 # Fallback: aggregate from 3m
                                 agg = aggregate_candles(candles_list, interval, max_c)
