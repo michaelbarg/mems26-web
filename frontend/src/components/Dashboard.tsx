@@ -3396,6 +3396,7 @@ export default function Dashboard() {
   const [activeScannedPattern,setActiveScannedPattern]=useState<typeof scannedPatterns[0]|null>(null);
   const [activeTrade,setActiveTrade]=useState<ActiveTrade|null>(null);
   const [tradeToast,setTradeToast]=useState<{msg:string;color:string}|null>(null);
+  const [stopWarning,setStopWarning]=useState<{dist:number;stop:number;price:number}|null>(null);
   const [checklistSetup, setChecklistSetup] = useState<ChecklistSetup | null>(null);
   const [wsCB, setWsCB] = useState<{ allowed: boolean; reason: string } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
@@ -3474,7 +3475,11 @@ export default function Dashboard() {
       const r=await fetch(`${API_URL}/market/latest?t=${Date.now()}`,{cache:'no-store'});
       if(!r.ok)throw new Error();
       const d:MarketData=await r.json();
-      if(d?.bar){setLive(prev=>({...d,signal:prev?.signal??d.signal}));setConnected(true);}
+      if(d?.bar){
+        setLive(prev=>({...d,signal:prev?.signal??d.signal}));setConnected(true);
+        // Clear stop warning when price moves away
+        setStopWarning(prev => prev && Math.abs(d.price - prev.stop) > 2 ? null : prev);
+      }
     }catch{setConnected(false);}
   },[]);
 
@@ -3579,6 +3584,18 @@ export default function Dashboard() {
         try {
           const d = JSON.parse(e.data);
           console.log('[X4] WS message received:', d.type, d.type === 'TRADE_CLOSE' ? d : '');
+          if (d.type === 'EXECUTE_RESULT') {
+            if (d.status === 'confirmed') {
+              setTradeToast({ msg: '✅ פקודה בוצעה ב-Sierra', color: '#22c55e' });
+              setTimeout(() => setTradeToast(null), 3000);
+            } else {
+              setTradeToast({ msg: '⚠️ לא התקבל אישור מ-Sierra — בדוק ידנית', color: '#f59e0b' });
+              setTimeout(() => setTradeToast(null), 10000);
+            }
+          }
+          if (d.type === 'STOP_NEAR') {
+            setStopWarning({ dist: d.dist, stop: d.stop, price: d.price });
+          }
           if (d.type === 'TRADE_CLOSE') {
             setActiveTrade(null);
             setChecklistSetup(null);
@@ -4050,9 +4067,20 @@ export default function Dashboard() {
           background:'#0f172a', border:`2px solid ${tradeToast.color}`,
           borderRadius:12, padding:'12px 24px', fontFamily:'monospace',
           boxShadow:`0 0 24px ${tradeToast.color}44`,
-          animation:'fadeIn 0.3s ease',
         }}>
           <span style={{ fontSize:14, fontWeight:800, color:tradeToast.color }}>{tradeToast.msg}</span>
+        </div>
+      )}
+      {stopWarning && (
+        <div style={{
+          position:'fixed', top:70, left:'50%', transform:'translateX(-50%)', zIndex:10000,
+          background:'#1a1500', border:'2px solid #f59e0b',
+          borderRadius:10, padding:'10px 20px', fontFamily:'monospace',
+          boxShadow:'0 0 20px rgba(245,158,11,0.3)',
+        }}>
+          <span style={{ fontSize:14, fontWeight:800, color:'#f59e0b' }}>
+            ⚠ סטופ קרוב! {stopWarning.dist.toFixed(2)}pt
+          </span>
         </div>
       )}
     </div>

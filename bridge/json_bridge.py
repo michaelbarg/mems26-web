@@ -1213,6 +1213,15 @@ async def main():
                 for ev in level_events:
                     if ev["type"] == "STOP_NEAR":
                         log.warning(f"⚠ STOP NEAR! price={price} stop={ev['stop']} dist={ev['dist']}")
+                        try:
+                            async with http.post(
+                                f"{CLOUD_URL}/ws/broadcast",
+                                headers={"x-bridge-token": BRIDGE_TOKEN, "content-type": "application/json"},
+                                json={"type": "STOP_NEAR", "price": price, "stop": ev["stop"], "dist": ev["dist"]},
+                                timeout=aiohttp.ClientTimeout(total=2),
+                            ) as _: pass
+                        except Exception:
+                            pass
                     elif ev["type"] == "T1_HIT":
                         log.info(f"✅ T1 HIT @ {ev['price']} pnl={ev['pnl_pts']:+.2f}pt ${ev['pnl_usd']:+.2f}")
                     elif ev["type"] == "T2_HIT":
@@ -1284,6 +1293,35 @@ async def _poll_trade_commands(http):
                 except Exception as e:
                     log.warning(f"[C4] ack failed: {e}")
                 last_trade_id = trade_id
+                # [C5] Poll trade_result.json for SC confirmation
+                import time as _t
+                cmd_ts = int(_t.time())
+                confirmed = False
+                for _ in range(20):  # 20 × 0.5s = 10 seconds
+                    await asyncio.sleep(0.5)
+                    try:
+                        if os.path.exists(SC_RESULT_PATH):
+                            with open(SC_RESULT_PATH) as rf:
+                                result = json.load(rf)
+                            if result.get("ts", 0) > cmd_ts:
+                                confirmed = True
+                                log.info(f"[C5] confirmed by SC: {result.get('detail', '')}")
+                                break
+                    except Exception:
+                        pass
+                exec_status = "confirmed" if confirmed else "timeout"
+                if not confirmed:
+                    log.warning(f"[C5] no confirmation from SC within 10s for {trade_id}")
+                # Broadcast result to frontend via WS
+                try:
+                    async with http.post(
+                        f"{CLOUD_URL}/ws/broadcast",
+                        headers={"x-bridge-token": BRIDGE_TOKEN, "content-type": "application/json"},
+                        json={"type": "EXECUTE_RESULT", "status": exec_status, "trade_id": trade_id},
+                        timeout=aiohttp.ClientTimeout(total=3),
+                    ) as _: pass
+                except Exception:
+                    pass
         except Exception as e:
             log.warning(f"[C4] poll error: {e}")
         await asyncio.sleep(1)

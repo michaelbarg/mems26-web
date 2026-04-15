@@ -1560,6 +1560,13 @@ async def trade_execute(request: Request):
         if entry <= 0 or stop <= 0:
             raise HTTPException(status_code=400, detail="entry_price and stop required")
 
+        # Validate: BUY only if no open position
+        cmd_type = body.get("cmd_type", "BUY")  # BUY or CLOSE
+        if cmd_type == "CLOSE":
+            check_active = await redis_get_key(REDIS_TRADE_STATUS)
+            if not check_active or check_active.get("status") != "OPEN":
+                raise HTTPException(status_code=400, detail="אין פוזיציה פתוחה לסגירה")
+
         # Check no active trade — force_clear overrides
         force_clear = body.get("force_clear", False)
         is_replacement = False
@@ -1721,6 +1728,16 @@ async def trade_close(request: Request):
         log.warning(f"[X4] broadcast failed: {e}")
 
     return {"ok": True, "trade": active, "daily_pnl": state["pnl"], "circuit_breaker": await check_circuit_breaker()}
+
+
+@app.post("/ws/broadcast")
+async def ws_broadcast(request: Request, x_bridge_token: Optional[str] = Header(None)):
+    """Broadcast arbitrary JSON to all WS clients. Bridge-only."""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    body = await request.json()
+    await manager.broadcast(body)
+    return {"ok": True, "clients": len(manager._clients)}
 
 
 @app.get("/trade/status")
