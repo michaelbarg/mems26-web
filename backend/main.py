@@ -1659,14 +1659,18 @@ async def trade_scale(request: Request):
 async def get_trade_command(x_bridge_token: Optional[str] = Header(None)):
     if x_bridge_token != BRIDGE_TOKEN:
         raise HTTPException(status_code=401, detail="Invalid token")
-    cmd = await redis_get_key(REDIS_TRADE_COMMAND)
-    if not cmd:
-        return {"pending": False}
-    import time
-    if cmd.get("expires_at", 0) < int(time.time()):
-        await redis_delete_key(REDIS_TRADE_COMMAND)
-        return {"pending": False, "expired": True}
-    return {"pending": True, "command": cmd}
+    try:
+        cmd = await redis_get_key(REDIS_TRADE_COMMAND)
+        if not cmd:
+            return {"pending": False}
+        import time
+        if cmd.get("expires_at", 0) < int(time.time()):
+            await redis_delete_key(REDIS_TRADE_COMMAND)
+            return {"pending": False, "expired": True}
+        return {"pending": True, "command": cmd}
+    except Exception as e:
+        log.error(f"/trade/command failed: {e}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.post("/trade/command/ack")
 async def ack_trade_command(request: Request, x_bridge_token: Optional[str] = Header(None)):
