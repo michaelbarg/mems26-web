@@ -61,6 +61,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
   const [cbState, setCbState] = useState<{ allowed: boolean; reason: string } | null>(null);
   const [executing, setExecuting] = useState(false);
   const [lastError, setLastError] = useState('');
+  const [testMode, setTestMode] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchRemote = useCallback(async () => {
@@ -140,7 +141,11 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
   if (!setup) return null;
 
   const passCount = conditions.filter(c => c.status === 'pass').length;
-  const allPass   = conditions.length === 10 && passCount === 10;
+  // Test mode: require Circuit Breaker + Sweep + any 2 others = 4 total
+  const testPass = testMode && conditions.length === 10 && passCount >= 4
+    && conditions.find(c => c.id === 'circuit')?.status === 'pass'
+    && conditions.find(c => c.id === 'sweep')?.status === 'pass';
+  const allPass = testPass || (conditions.length === 10 && passCount === 10);
 
   const handleExecute = async () => {
     if (!allPass || executing) return;
@@ -171,6 +176,13 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
             color: setup.dir==='long' ? '#22c55e' : '#ef4444', fontWeight:700 }}>
             {setup.dir==='long' ? '▲ LONG' : '▼ SHORT'}
           </span>
+          <button onClick={() => setTestMode(t => !t)} style={{
+            padding:'1px 5px', borderRadius:4, fontSize:9, fontWeight:700,
+            background: testMode ? '#854d0e' : '#1e2738',
+            color: testMode ? '#fbbf24' : '#4a5568',
+            border: `1px solid ${testMode ? '#a16207' : '#2d3a4a'}`,
+            cursor:'pointer', fontFamily:'inherit',
+          }}>🧪 TEST</button>
           <button onClick={onCancel} style={{ background:'none', border:'none', color:'#475569', fontSize:14, cursor:'pointer' }}>✕</button>
         </div>
       </div>
@@ -209,9 +221,14 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
           </div>
         );
       })()}
+      {testMode && (
+        <div style={{ margin:'8px 0 4px', padding:'4px 8px', borderRadius:5, background:'#854d0e33', border:'1px solid #a1620744', textAlign:'center' }}>
+          <span style={{ fontSize:10, fontWeight:700, color:'#fbbf24' }}>⚠ TEST MODE — לא לשימוש ב-Live</span>
+        </div>
+      )}
       <div style={{ height:3, background:'#1e293b', borderRadius:2, margin:'10px 0 8px' }}>
         <div style={{ height:'100%', borderRadius:2, width:`${(passCount/10)*100}%`,
-          background: allPass ? '#22c55e' : passCount>=5 ? '#f59e0b' : '#ef4444',
+          background: testMode ? '#f59e0b' : (allPass ? '#22c55e' : passCount>=5 ? '#f59e0b' : '#ef4444'),
           transition:'width 0.4s, background 0.4s' }} />
       </div>
       {lastError && <div style={{ fontSize:10, color:'#ef4444', marginBottom:6, textAlign:'center' }}>⚠ {lastError}</div>}
