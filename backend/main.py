@@ -1479,10 +1479,16 @@ async def trade_execute(request: Request):
         if entry <= 0 or stop <= 0:
             raise HTTPException(status_code=400, detail="entry_price and stop required")
 
-        # Check no active trade
+        # Check no active trade — force_clear overrides
+        force_clear = body.get("force_clear", False)
         active = await redis_get_key(REDIS_TRADE_STATUS)
         if active and active.get("status") == "OPEN":
-            raise HTTPException(status_code=409, detail="Trade already open")
+            if force_clear:
+                await redis_delete_key(REDIS_TRADE_STATUS)
+                await redis_delete_key(REDIS_TRADE_COMMAND)
+                log.info(f"Force-cleared active trade {active.get('id')} and pending command")
+            else:
+                raise HTTPException(status_code=409, detail="Trade already open")
 
         risk = abs(entry - stop)
         if risk > 8:
@@ -1705,6 +1711,17 @@ async def cancel_trade_command(x_bridge_token: Optional[str] = Header(None)):
     }
     await redis_set_key(REDIS_TRADE_COMMAND, cmd)
     return {"ok": True, "command": cmd}
+
+
+@app.delete("/trade/command")
+async def delete_trade_command():
+    """Clear any pending trade command from Redis (for testing)."""
+    try:
+        await redis_delete_key(REDIS_TRADE_COMMAND)
+        await redis_delete_key(REDIS_TRADE_STATUS)
+        return {"ok": True, "detail": "Cleared trade command and status"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 @app.get("/health")

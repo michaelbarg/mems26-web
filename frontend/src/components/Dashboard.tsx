@@ -3412,21 +3412,28 @@ export default function Dashboard() {
     return () => { retryTimer && clearTimeout(retryTimer); ws?.close(); wsRef.current = null; };
   }, [systemOn]);
 
+  const executeRetryRef = useRef(false);
   const handleExecuteTrade = useCallback(async (params: {
     direction: 'LONG' | 'SHORT'; entry_price: number; stop: number;
     t1: number; t2: number; t3: number; setup_type: string;
   }) => {
     console.log('[EXECUTE] called with params:', params);
     const url = `${API_URL}/trade/execute`;
-    console.log('[EXECUTE] fetching:', url);
+    const body = executeRetryRef.current ? { ...params, force_clear: true } : params;
+    executeRetryRef.current = false;
+    console.log('[EXECUTE] fetching:', url, body.hasOwnProperty('force_clear') ? '(force_clear)' : '');
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(params),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       let detail = `HTTP ${res.status}`;
       try { const err = await res.json(); detail = err.detail || detail; } catch {}
+      if (res.status === 409) {
+        executeRetryRef.current = true;
+        throw new Error('פקודה קיימת — לחץ שוב לביטול ושליחה מחדש');
+      }
       throw new Error(detail);
     }
     setChecklistSetup(null);
