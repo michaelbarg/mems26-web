@@ -1440,7 +1440,7 @@ async def trade_health(request: Request):
 # Circuit Breaker thresholds
 CB_SOFT_LIMIT    = 150   # $150/day → lock 30 min
 CB_HARD_LIMIT    = 200   # $200/day → lock until next day
-CB_MAX_TRADES    = 3     # max 3 trades/day
+CB_MAX_TRADES    = 50    # max trades/day (50 = Sim mode, 10 = Live mode)
 CB_CONSEC_LOSSES = 2     # 2 consecutive losses → lock 30 min
 CB_LOCK_MIN      = 30    # lock duration in minutes
 
