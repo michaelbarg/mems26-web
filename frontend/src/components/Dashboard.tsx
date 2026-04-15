@@ -3425,8 +3425,9 @@ export default function Dashboard() {
       body: JSON.stringify(params),
     });
     if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error((err as any).detail || `HTTP ${res.status}`);
+      let detail = `HTTP ${res.status}`;
+      try { const err = await res.json(); detail = err.detail || detail; } catch {}
+      throw new Error(detail);
     }
     setChecklistSetup(null);
     return res.json();

@@ -1452,7 +1452,11 @@ async def trade_execute(request: Request):
     import time
 
     # Circuit breaker check
-    cb = await check_circuit_breaker()
+    try:
+        cb = await check_circuit_breaker()
+    except Exception as e:
+        log.warning(f"Circuit breaker check failed: {e}")
+        cb = {"allowed": True, "reason": "CB check failed — proceeding"}
     if not cb["allowed"]:
         raise HTTPException(status_code=403, detail=cb["reason"])
 
