@@ -913,56 +913,57 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             goto c5_done;
         }
 
-        // Execute bracket: Entry + Stop + Target(s)
+        // Execute scale-out bracket: 3 separate orders (1 contract each)
+        // Each with its own stop + target: T1 (C1 50%), T2 (C2 25%), T3 (C3 25%)
+        // Z1: move stop to BE after T1 fill (pending)
         {
-            s_SCNewOrder order;
-            order.OrderQuantity = cmdQty;
-            order.TimeInForce = SCT_TIF_GTC;
+            double targets[3] = { cmdT1, cmdT2, cmdT3 };
+            const char* labels[3] = { "C1", "C2", "C3" };
+            int totalSent = 0, totalFailed = 0;
 
-            if (cmd == "BUY") {
+            for (int i = 0; i < 3; i++) {
+                s_SCNewOrder order;
+                order.OrderQuantity = 1;
+                order.TimeInForce = SCT_TIF_GTC;
                 order.OrderType = SCT_ORDERTYPE_MARKET;
-                // Attached stop-loss
+
+                // Attached stop-loss (same for all 3)
                 order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                 order.Stop1Price = (float)cmdStop;
-                // Attached target
-                if (cmdT1 > 0) {
+
+                // Attached target (different for each)
+                if (targets[i] > 0) {
                     order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
-                    order.Target1Price = (float)cmdT1;
+                    order.Target1Price = (float)targets[i];
                 }
-                int result = (int)sc.BuyEntry(order);
+
+                int result;
+                if (cmd == "BUY")
+                    result = (int)sc.BuyEntry(order);
+                else
+                    result = (int)sc.SellEntry(order);
+
                 if (result > 0) {
-                    writeResult("OK", "BUY bracket submitted", result);
+                    totalSent++;
                     SCString msg;
-                    msg.Format("C5: BUY %d @ %.2f stop=%.2f t1=%.2f id=%s",
-                               cmdQty, cmdPrice, cmdStop, cmdT1, tradeId.c_str());
+                    msg.Format("C5: %s %s qty=1 stop=%.2f target=%.2f orderId=%d",
+                               cmd.c_str(), labels[i], cmdStop, targets[i], result);
                     sc.AddMessageToLog(msg, 0);
                 } else {
-                    writeResult("ERROR", "BuyEntry failed", result);
+                    totalFailed++;
                     SCString msg;
-                    msg.Format("C5: BUY FAILED result=%d", result);
+                    msg.Format("C5: %s %s FAILED result=%d", cmd.c_str(), labels[i], result);
                     sc.AddMessageToLog(msg, 1);
                 }
+            }
+
+            if (totalSent > 0) {
+                SCString detail;
+                detail.Format("%s 3x bracket: %d sent, %d failed — T1=%.2f T2=%.2f T3=%.2f",
+                              cmd.c_str(), totalSent, totalFailed, cmdT1, cmdT2, cmdT3);
+                writeResult("OK", detail.GetChars(), totalSent);
             } else {
-                order.OrderType = SCT_ORDERTYPE_MARKET;
-                order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
-                order.Stop1Price = (float)cmdStop;
-                if (cmdT1 > 0) {
-                    order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
-                    order.Target1Price = (float)cmdT1;
-                }
-                int result = (int)sc.SellEntry(order);
-                if (result > 0) {
-                    writeResult("OK", "SELL bracket submitted", result);
-                    SCString msg;
-                    msg.Format("C5: SELL %d @ %.2f stop=%.2f t1=%.2f id=%s",
-                               cmdQty, cmdPrice, cmdStop, cmdT1, tradeId.c_str());
-                    sc.AddMessageToLog(msg, 0);
-                } else {
-                    writeResult("ERROR", "SellEntry failed", result);
-                    SCString msg;
-                    msg.Format("C5: SELL FAILED result=%d", result);
-                    sc.AddMessageToLog(msg, 1);
-                }
+                writeResult("ERROR", "All 3 orders failed", 0);
             }
         }
     }
