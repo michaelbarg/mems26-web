@@ -3416,7 +3416,10 @@ export default function Dashboard() {
     direction: 'LONG' | 'SHORT'; entry_price: number; stop: number;
     t1: number; t2: number; t3: number; setup_type: string;
   }) => {
-    const res = await fetch(`${API_URL}/trade/execute`, {
+    console.log('[EXECUTE] called with params:', params);
+    const url = `${API_URL}/trade/execute`;
+    console.log('[EXECUTE] fetching:', url);
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(params),
