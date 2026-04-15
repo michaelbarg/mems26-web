@@ -746,25 +746,13 @@ async def main():
                         log.info(f"History loaded: {loaded} candles from file → Redis OK")
                         loaded_from_file = True
 
-                        # ── Seed MTF candles — prefer C++ mtf_history, fallback to aggregation ──
-                        mtf_hist = hist.get("mtf_history", {})
+                        # ── Seed MTF candles — always aggregate from 3m (already UTC-fixed) ──
                         for mtf_key, redis_key, interval, max_c in MTF_CONFIG:
                             label = mtf_key.replace('m','') + 'm' if mtf_key != 'm60' else '1h'
-                            native = mtf_hist.get(mtf_key, [])
-                            if native and len(native) > 1:
-                                # C++ calcBarAligned — accurate, drop last (open) candle
-                                agg = native[:-1]
-                                # Fix SC timestamps: ET-as-UTC → real UTC
-                                for c in agg:
-                                    if isinstance(c, dict) and c.get("ts", 0) > 0:
-                                        c["ts"] = sc_ts_to_utc(c["ts"])
-                                log.info(f"MTF [{label}] using C++ native history (ET→UTC fixed): {len(agg)} candles")
-                            else:
-                                # Fallback: aggregate from 3m
-                                agg = aggregate_candles(candles_list, interval, max_c)
-                                if agg and len(agg) > 1:
-                                    agg = agg[:-1]
-                                log.info(f"MTF [{label}] using 3m aggregation: {len(agg) if agg else 0} candles")
+                            agg = aggregate_candles(candles_list, interval, max_c)
+                            if agg and len(agg) > 1:
+                                agg = agg[:-1]  # drop last (still open)
+                            log.info(f"MTF [{label}] aggregated from 3m: {len(agg) if agg else 0} candles")
                             if agg:
                                 serialized = json.dumps(agg)
                                 try:
