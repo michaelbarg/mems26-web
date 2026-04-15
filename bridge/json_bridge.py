@@ -1096,27 +1096,35 @@ async def main():
                     await trade_tracker.persist_new_fills(http)
                     for ev in events:
                         trade = ev["trade"]
-                        API_URL_LOCAL = os.getenv("API_URL", "http://localhost:8000")
-                        BRIDGE_TOKEN_LOCAL = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
+                        log.info(f"[X4] TradeTracker event: {ev['type']} trade_id={trade.get('id')}")
                         try:
                             if ev["type"] == "CLOSE":
-                                async with http.delete(
-                                    f"{API_URL_LOCAL}/trades/{trade['id']}",
-                                    headers={"x-bridge-token": BRIDGE_TOKEN_LOCAL},
+                                # POST to /trade/close on CLOUD (triggers WS broadcast)
+                                exit_price = trade.get("exit_price", 0)
+                                reason = trade.get("exit_type", "MANUAL")
+                                log.info(f"[X4] posting /trade/close to {CLOUD_URL}: exit={exit_price} reason={reason}")
+                                async with http.post(
+                                    f"{CLOUD_URL}/trade/close",
+                                    json={"exit_price": exit_price, "reason": reason},
+                                    headers={"content-type": "application/json"},
                                     timeout=aiohttp.ClientTimeout(total=5.0)
-                                ) as _: pass
-                            async with http.post(
-                                f"{API_URL_LOCAL}/trades",
-                                json=trade,
-                                headers={"x-bridge-token": BRIDGE_TOKEN_LOCAL, "content-type": "application/json"},
-                                timeout=aiohttp.ClientTimeout(total=5.0)
-                            ) as resp:
-                                if resp.status == 200:
-                                    log.info(f"Trade {ev['type']} → API OK")
+                                ) as resp:
+                                    body = await resp.text()
+                                    log.info(f"[X4] /trade/close response: HTTP {resp.status} {body[:200]}")
+                            else:
+                                # OPEN/ADD/PARTIAL → post to journal
+                                async with http.post(
+                                    f"{CLOUD_URL}/trades",
+                                    json=trade,
+                                    headers={"x-bridge-token": BRIDGE_TOKEN, "content-type": "application/json"},
+                                    timeout=aiohttp.ClientTimeout(total=5.0)
+                                ) as resp:
+                                    if resp.status == 200:
+                                        log.info(f"[X4] Trade {ev['type']} → journal OK")
                         except Exception as e:
-                            log.warning(f"Trade API failed: {e}")
+                            log.warning(f"[X4] Trade API failed: {e}")
 
-                # ── Poll trade_result.json — detect SC-side trade close ──
+                # ── Poll trade_result.json — log only (closes detected via order_fills) ──
                 try:
                     if os.path.exists(SC_RESULT_PATH):
                         with open(SC_RESULT_PATH) as rf:
@@ -1124,39 +1132,9 @@ async def main():
                         r_ts = result.get("ts", 0)
                         if r_ts > last_result_ts:
                             last_result_ts = r_ts
-                            if trade_tracker.open_trade:
-                                detail = result.get("detail", "")
-                                exit_type = "STOP" if "STOP" in detail.upper() else "TARGET" if "TARGET" in detail.upper() else "MANUAL"
-                                exit_price = result.get("price", price)
-                                ot = trade_tracker.open_trade
-                                entry_p = ot.get("entry_price", 0)
-                                side = ot.get("side", "LONG")
-                                pnl_pts = (exit_price - entry_p) if side == "LONG" else (entry_p - exit_price)
-                                closed_trade = {
-                                    **ot,
-                                    "status": "CLOSED", "exit_price": exit_price,
-                                    "exit_ts": r_ts, "close_reason": exit_type,
-                                    "pnl_pts": round(pnl_pts, 2), "pnl_usd": round(pnl_pts * 5, 2),
-                                }
-                                trade_tracker.open_trade = None
-                                trade_tracker.position = 0.0
-                                log.info(f"[X4] SC trade closed: {exit_type} @ {exit_price} PnL={pnl_pts:+.2f}pt")
-                                # POST to backend
-                                close_url = f"{CLOUD_URL}/trade/close"
-                                log.info(f"[X4] posting CLOSE to backend: {close_url}")
-                                try:
-                                    async with http.post(
-                                        close_url,
-                                        json={"exit_price": exit_price, "reason": exit_type},
-                                        headers={"content-type": "application/json"},
-                                        timeout=aiohttp.ClientTimeout(total=5.0)
-                                    ) as resp:
-                                        resp_body = await resp.text()
-                                        log.info(f"[X4] CLOSE response: HTTP {resp.status} body={resp_body[:200]}")
-                                except Exception as e:
-                                    log.warning(f"[X4] CLOSE POST failed: {e}")
-                except Exception as e:
-                    pass  # trade_result.json may not exist or be malformed
+                            log.info(f"[X4] trade_result.json: {result.get('detail', '')} @ {result.get('price', 0)}")
+                except Exception:
+                    pass
 
                 # עדכון סטופ בעסקה פתוחה בזמן אמת
                 if stop_price > 0 and trade_tracker.open_trade:
