@@ -866,6 +866,7 @@ async def main():
     # MTF candle builders: keyed by mtf_key (m5, m15, m30, m60)
     mtf_candles = {cfg[0]: CandleBuilder() for cfg in MTF_CONFIG}
     footprint_seeded = False     # האם כבר טענו footprint מ-Sierra
+    last_result_ts = 0           # last trade_result.json timestamp processed
 
     async with aiohttp.ClientSession() as http:
         await trade_tracker.load_seen_fills(http)
@@ -1114,6 +1115,45 @@ async def main():
                                     log.info(f"Trade {ev['type']} → API OK")
                         except Exception as e:
                             log.warning(f"Trade API failed: {e}")
+
+                # ── Poll trade_result.json — detect SC-side trade close ──
+                try:
+                    if os.path.exists(SC_RESULT_PATH):
+                        with open(SC_RESULT_PATH) as rf:
+                            result = json.load(rf)
+                        r_ts = result.get("ts", 0)
+                        if r_ts > last_result_ts:
+                            last_result_ts = r_ts
+                            if trade_tracker.open_trade:
+                                detail = result.get("detail", "")
+                                exit_type = "STOP" if "STOP" in detail.upper() else "TARGET" if "TARGET" in detail.upper() else "MANUAL"
+                                exit_price = result.get("price", price)
+                                ot = trade_tracker.open_trade
+                                entry_p = ot.get("entry_price", 0)
+                                side = ot.get("side", "LONG")
+                                pnl_pts = (exit_price - entry_p) if side == "LONG" else (entry_p - exit_price)
+                                closed_trade = {
+                                    **ot,
+                                    "status": "CLOSED", "exit_price": exit_price,
+                                    "exit_ts": r_ts, "close_reason": exit_type,
+                                    "pnl_pts": round(pnl_pts, 2), "pnl_usd": round(pnl_pts * 5, 2),
+                                }
+                                trade_tracker.open_trade = None
+                                trade_tracker.position = 0.0
+                                log.info(f"SC trade closed: {exit_type} @ {exit_price} PnL={pnl_pts:+.2f}pt")
+                                # POST to backend
+                                try:
+                                    async with http.post(
+                                        f"{CLOUD_URL}/trade/close",
+                                        json={"exit_price": exit_price, "reason": exit_type},
+                                        headers={"content-type": "application/json"},
+                                        timeout=aiohttp.ClientTimeout(total=5.0)
+                                    ) as resp:
+                                        log.info(f"Trade close POST: {resp.status}")
+                                except Exception as e:
+                                    log.warning(f"Trade close POST failed: {e}")
+                except Exception as e:
+                    pass  # trade_result.json may not exist or be malformed
 
                 # עדכון סטופ בעסקה פתוחה בזמן אמת
                 elif stop_price > 0 and trade_tracker.open_trade:

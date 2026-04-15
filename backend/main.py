@@ -1679,6 +1679,19 @@ async def trade_close(request: Request):
         log.warning(f"Trade log persist failed: {e}")
 
     log.info(f"Trade closed: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f}) reason={reason}")
+
+    # Broadcast to all WS clients
+    try:
+        await manager.broadcast({
+            "type": "TRADE_CLOSE",
+            "trade_id": active["id"],
+            "exit_type": reason,
+            "pnl_pts": round(pnl_pts, 2),
+            "pnl_usd": pnl_usd,
+        })
+    except Exception:
+        pass
+
     return {"ok": True, "trade": active, "daily_pnl": state["pnl"], "circuit_breaker": await check_circuit_breaker()}
 
 
