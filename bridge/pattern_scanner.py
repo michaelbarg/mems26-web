@@ -911,25 +911,20 @@ def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "",
     if not kz["in_killzone"]:
         return None
 
-    # Build level list: (name, price)
+    # Build level list: macro levels only (liquidity pools, not session levels)
+    # Excluded: VWAP, POC, VAH, VAL, DO — session levels that cause false signals
     level_list = []
     level_map = {
         "PDH": levels.get("prev_high", 0),
         "PDL": levels.get("prev_low", 0),
         "ONH": levels.get("overnight_high", 0),
         "ONL": levels.get("overnight_low", 0),
-        "DO":  levels.get("daily_open", 0),
+        "IBH": levels.get("ibh", 0),
+        "IBL": levels.get("ibl", 0),
     }
-    # Session levels from separate dict if provided
     for k, v in level_map.items():
         if v and v > 0:
             level_list.append((k, v))
-
-    # Also accept IBH/IBL/VWAP etc from session/profile
-    for extra_key in ["ibh", "ibl", "vwap", "poc", "vah", "val"]:
-        val = levels.get(extra_key, 0)
-        if val and val > 0:
-            level_list.append((extra_key.upper(), val))
 
     if not level_list:
         return None
@@ -961,7 +956,7 @@ def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "",
                     continue
                 t1 = round(fvg["entry"] - max(risk * 1.5, 10), 2)
                 t2 = round(fvg["entry"] - risk * 3, 2)
-                conf = _calc_sweep_confidence(candle, avg_v, mss, fvg, kz)
+                conf = _calc_sweep_confidence(candle, avg_v, mss, fvg, kz, sweep_idx, candles_5m)
                 return {
                     "pattern": "LIQ_SWEEP", "direction": "SHORT",
                     "level_name": level_name, "level_price": level_price,
@@ -993,7 +988,7 @@ def detect_liquidity_sweep(candles_5m: list, levels: dict, day_type: str = "",
                     continue
                 t1 = round(fvg["entry"] + max(risk * 1.5, 10), 2)
                 t2 = round(fvg["entry"] + risk * 3, 2)
-                conf = _calc_sweep_confidence(candle, avg_v, mss, fvg, kz)
+                conf = _calc_sweep_confidence(candle, avg_v, mss, fvg, kz, sweep_idx, candles_5m)
                 return {
                     "pattern": "LIQ_SWEEP", "direction": "LONG",
                     "level_name": level_name, "level_price": level_price,
@@ -1097,7 +1092,8 @@ def _find_fvg_after_mss(candles: list, mss_idx: int, direction: str,
     return None
 
 
-def _calc_sweep_confidence(sweep_candle: dict, avg_v: float, mss: dict, fvg: dict, kz: dict) -> int:
+def _calc_sweep_confidence(sweep_candle: dict, avg_v: float, mss: dict, fvg: dict, kz: dict,
+                           sweep_idx: int = 0, candles_5m: list = None) -> int:
     """Calculate confidence score for the full Sweep→MSS→FVG chain."""
     score = 50  # base
 
@@ -1126,6 +1122,15 @@ def _calc_sweep_confidence(sweep_candle: dict, avg_v: float, mss: dict, fvg: dic
     delta = sweep_candle.get("delta", 0)
     if delta < -50: score += 5  # bearish sweep confirmation
     elif delta > 50: score += 5  # bullish sweep confirmation
+
+    # New High/Low bonus: sweep candle made a new 5-bar extreme
+    if candles_5m and sweep_idx >= 5:
+        direction = mss.get("direction", "")
+        prev5 = candles_5m[sweep_idx - 5:sweep_idx]
+        if direction == "SHORT" and _hi(sweep_candle) > max(_hi(c) for c in prev5):
+            score += 8  # new 5-bar high → stronger short sweep
+        elif direction == "LONG" and _lo(sweep_candle) < min(_lo(c) for c in prev5):
+            score += 8  # new 5-bar low → stronger long sweep
 
     return min(score, 95)
 
