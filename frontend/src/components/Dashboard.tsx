@@ -2871,19 +2871,19 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             return (
             <div style={{ background:'#0a0e1a', border:`2px solid ${col}44`, borderRadius:10, overflow:'hidden' }}>
               {/* Header */}
-              <div style={{ background:`${col}18`, padding:'10px 14px', borderBottom:'1px solid #1e2738' }}>
+              <div style={{ background:`${col}18`, padding:'12px 16px', borderBottom:'1px solid #1e2738', borderLeft:`3px solid ${col}` }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <div>
-                    <div style={{ fontSize:12, fontWeight:700, color:col }}>
+                    <div style={{ fontSize:20, fontWeight:700, color:col }}>
                       {isLong?'▲':'▼'} SWEEP {s.levelName} @ {(s.level||0).toFixed(2)}
                     </div>
-                    <div style={{ fontSize:9, color:'#6b7280' }}>
+                    <div style={{ fontSize:11, color:'#6b7280' }}>
                       {new Date(s.ts*1000).toLocaleTimeString('he-IL')} · {s.levelTouches} נגיעות · Wick {(s.sweepWick||0).toFixed(1)}pt
                     </div>
                   </div>
                   <div style={{ textAlign:'right' }}>
-                    <div style={{ fontSize:18, fontWeight:900, color:s.score>=90?'#22c55e':s.score>=75?'#f59e0b':'#4a5568' }}>{s.score}%</div>
-                    <div style={{ fontSize:9, color:s.confirmed?'#22c55e':'#f59e0b', fontWeight:700 }}>
+                    <div style={{ fontSize:24, fontWeight:900, color:s.score>=90?'#22c55e':s.score>=75?'#f59e0b':'#4a5568' }}>{s.score}/100</div>
+                    <div style={{ fontSize:10, color:s.confirmed?'#22c55e':'#f59e0b', fontWeight:700 }}>
                       {s.confirmed ? '✓ מאושר' : '⏳ ממתין'}
                     </div>
                   </div>
@@ -2891,28 +2891,28 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                 {/* Stats row */}
                 <div style={{ display:'flex', gap:6, marginTop:8 }}>
                   {[
-                    { label:'Delta', val:`${s.delta>0?'+':''}${s.delta}`, col: s.delta>=0?'#22c55e':'#ef5350' },
-                    { label:'Vol', val:`${s.relVol}x`, col: s.relVol>=1.3?'#22c55e':'#4a5568' },
-                    { label:'Risk', val:`${s.riskPts}pt`, col:'#f59e0b' },
-                    { label:'אישור Δ', val:`${s.confirmDelta>0?'+':''}${s.confirmDelta}`, col: s.confirmed?'#22c55e':'#ef5350' },
+                    { label:'Delta', val: s.delta!=null ? `${s.delta>0?'+':''}${s.delta}` : '—', col: (s.delta||0)>=0?'#22c55e':'#ef5350' },
+                    { label:'Vol', val: s.relVol!=null ? `${s.relVol}x` : '—', col: (s.relVol||0)>=1.3?'#22c55e':'#4a5568' },
+                    { label:'Risk', val: s.riskPts!=null ? `${s.riskPts}pt` : '—', col:'#f59e0b' },
+                    { label:'אישור Δ', val: s.confirmDelta!=null ? `${s.confirmDelta>0?'+':''}${s.confirmDelta}` : '—', col: s.confirmed?'#22c55e':'#ef5350' },
                   ].map(x => (
-                    <div key={x.label} style={{ background:'#0a0e1a', borderRadius:4, padding:'3px 6px', textAlign:'center', flex:1, minWidth:0, overflow:'hidden' }}>
-                      <div style={{ fontSize:11, color:'#4a5568' }}>{x.label}</div>
-                      <div style={{ fontSize:13, fontWeight:800, color:x.col, fontFamily:'monospace' }}>{x.val}</div>
+                    <div key={x.label} style={{ background:'#0a0e1a', borderRadius:4, padding:'4px 8px', textAlign:'center', flex:1, minWidth:0, overflow:'hidden' }}>
+                      <div style={{ fontSize:12, color:'#4a5568' }}>{x.label}</div>
+                      <div style={{ fontSize:15, fontWeight:800, color:x.col, fontFamily:'monospace' }}>{x.val}</div>
                     </div>
                   ))}
                 </div>
               </div>
               {/* Entry / Stop */}
-              <div style={{ padding:'10px 14px' }}>
+              <div style={{ padding:'12px 16px' }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
-                  <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
-                    <div style={{ fontSize:9, color:'#94a3b8', marginBottom:2 }}>כניסה</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(s.entry||0).toFixed(2)}</div>
+                  <div style={{ background:'#1e2738', borderRadius:6, padding:'8px 12px' }}>
+                    <div style={{ fontSize:10, color:'#94a3b8', marginBottom:2 }}>כניסה</div>
+                    <div style={{ fontSize:26, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(s.entry||0).toFixed(2)}</div>
                   </div>
-                  <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
-                    <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
-                    <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{(s.stop||0).toFixed(2)}</div>
+                  <div style={{ background:'#1e2738', borderRadius:6, padding:'8px 12px' }}>
+                    <div style={{ fontSize:10, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
+                    <div style={{ fontSize:26, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{(s.stop||0).toFixed(2)}</div>
                     <div style={{ fontSize:9, color:'#4a5568' }}>−{s.riskPts}pt / −${Math.round(s.riskPts*5*3)}</div>
                   </div>
                 </div>
@@ -2971,7 +2971,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
           {/* Detected setups — accumulated */}
           {detectedSetups && detectedSetups.length > 0 && (
             <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-              <div style={{ fontSize:9, color:'#f6c90e', letterSpacing:2, marginBottom:6 }}>LIVE SETUPS ({detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').length})</div>
+              <div style={{ fontSize:11, color:'#f6c90e', letterSpacing:2, marginBottom:6, fontWeight:700 }}>LIVE SETUPS ({detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').length})</div>
               <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                 {detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').slice(0,15).map((s:DetectedSetup) => {
                   const isLong = s.dir === 'long';
@@ -2983,15 +2983,15 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     <div key={s.id} onClick={() => setSelectedSweep(s as any)}
                       style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 8px', borderRadius:5, cursor:'pointer',
                         border:`1px solid ${col}33`, background:`${col}08` }}>
-                      <span style={{ fontSize:10, color:col, fontWeight:700 }}>{isLong?'▲':'▼'}</span>
-                      <span style={{ fontSize:9, color:col, fontWeight:700, minWidth:22 }}>{s.type.slice(0,3).toUpperCase()}</span>
-                      <span style={{ fontSize:10, color:'#e2e8f0', fontWeight:600, minWidth:24 }}>{s.levelName}</span>
-                      <span style={{ fontSize:9, color:'#4a5568' }}>{time}</span>
-                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{(s.entry||0).toFixed(0)}</span>
-                      <span style={{ fontSize:9, fontWeight:800, color:statusCol, padding:'1px 5px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
+                      <span style={{ fontSize:15, color:col, fontWeight:700 }}>{isLong?'▲':'▼'}</span>
+                      <span style={{ fontSize:13, color:col, fontWeight:700, minWidth:28 }}>{s.type.slice(0,3).toUpperCase()}</span>
+                      <span style={{ fontSize:15, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{s.levelName}</span>
+                      <span style={{ fontSize:12, color:'#4a5568' }}>{time}</span>
+                      <span style={{ fontSize:13, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{(s.entry||0).toFixed(0)}</span>
+                      <span style={{ fontSize:11, fontWeight:800, color:statusCol, padding:'2px 6px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
                         {statusIcon}
                       </span>
-                      <span style={{ fontSize:10, fontWeight:800, color:col, fontFamily:'monospace' }}>{s.score}%</span>
+                      <span style={{ fontSize:15, fontWeight:800, color:col, fontFamily:'monospace' }}>{s.score}%</span>
                     </div>
                   );
                 })}
@@ -3001,7 +3001,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
           {/* Sweep events list */}
           <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-            <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:6 }}>SWEEP EVENTS ({sweepEvents.length})</div>
+            <div style={{ fontSize:11, color:'#4a5568', letterSpacing:2, marginBottom:6, fontWeight:700 }}>SWEEP EVENTS ({sweepEvents.length})</div>
             {sweepEvents.length === 0 ? (
               <div style={{ padding:'12px', textAlign:'center', color:'#2d3a4a', fontSize:10 }}>אין sweep events בהיסטוריה</div>
             ) : (
@@ -3017,9 +3017,9 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                         border: `1px solid ${sel ? (isLong?'#22c55e':'#ef5350')+'66' : '#1e2738'}`,
                         background: sel ? (isLong?'#22c55e':'#ef5350')+'11' : 'transparent',
                       }}>
-                      <span style={{ fontSize:10, color:isLong?'#22c55e':'#ef5350', fontWeight:700 }}>{isLong?'▲':'▼'}</span>
-                      <span style={{ fontSize:10, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{ev.levelName}</span>
-                      <span style={{ fontSize:11, color:ev.confirmed?'#22c55e':'#f59e0b' }}>{ev.confirmed?'✓':'⏳'}</span>
+                      <span style={{ fontSize:14, color:isLong?'#22c55e':'#ef5350', fontWeight:700 }}>{isLong?'▲':'▼'}</span>
+                      <span style={{ fontSize:14, color:'#e2e8f0', fontWeight:600, minWidth:32 }}>{ev.levelName}</span>
+                      <span style={{ fontSize:13, color:ev.confirmed?'#22c55e':'#f59e0b' }}>{ev.confirmed?'✓':'⏳'}</span>
                       <span style={{ fontSize:9, color:'#4a5568', flex:1 }}>{date} {time}</span>
                       <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>{ev.relVol}x</span>
                       <span style={{ fontSize:11, fontWeight:800, color:ev.score>=90?'#22c55e':ev.score>=75?'#f59e0b':'#4a5568', fontFamily:'monospace', minWidth:28, textAlign:'right' }}>{ev.score}%</span>
@@ -3070,9 +3070,12 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         </>}
 
         {tab === 'daytype' && (
+          <DayTypeTabContent live={live} />
+        )}
+        {false && (
           <div style={{ padding:'12px 10px', display:'flex', flexDirection:'column', gap:16 }}>
             <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f0', textAlign:'center' }}>
-              סוג יום — Market Profile
+              סוג יום — Market Profile OLD
             </div>
             {[
               { id:'NORMAL', label:'Normal', labelHe:'נורמלי', color:'#3b82f6', desc:'IB מאוזן, שני כיוונים אפשריים. מסחר בקצוות ה-IB.', shape:'bell' },
@@ -3221,6 +3224,100 @@ function useKillzoneCountdown() {
     return () => clearInterval(id);
   }, []);
   return { kzText, kzActive };
+}
+
+function DayTypeTabContent({ live }: { live: MarketData | null }) {
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const activeRef = useRef<HTMLDivElement>(null);
+  const dtype = (live as any)?.day?.type || '';
+
+  useEffect(() => {
+    if (activeRef.current) activeRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [dtype]);
+
+  const DAY_TYPES = [
+    { id:'NORMAL', labelHe:'נורמלי', color:'#3b82f6', desc:'IB מאוזן, שני כיוונים אפשריים. מסחר בקצוות ה-IB.', shape:'bell' },
+    { id:'NORMAL_VARIATION', labelHe:'נורמל + זנב', color:'#6366f1', desc:'כיוון ברור עם IB מורחב. כניסה בכיוון הזנב.', shape:'bell_tail' },
+    { id:'TREND_DAY', labelHe:'טרנד', color:'#10b981', desc:'יום חד-כיווני. תפוס breakouts, אל תמכור חוזקה.', shape:'trend' },
+    { id:'DOUBLE_DISTRIBUTION', labelHe:'כפול', color:'#f59e0b', desc:'שני עולמות מחיר נפרדים. זהירות בין שניהם.', shape:'double' },
+    { id:'NEUTRAL', labelHe:'ניטרלי', color:'#64748b', desc:'שוק מהסס ורחב. קנה קצוות, מכור אמצע.', shape:'narrow' },
+    { id:'ROTATIONAL', labelHe:'ללא טרנד', color:'#ef4444', desc:'טווח צר מאוד. אל תסחר — מחכה לזרז.', shape:'narrow' },
+    { id:'DEVELOPING', labelHe:'מתפתח', color:'#475569', desc:'היום עדיין מתפתח — אין סיווג סופי.', shape:'narrow' },
+    { id:'VOLATILE', labelHe:'תנודתי', color:'#f97316', desc:'תנועות חדות ומהירות. סטופים רחבים.', shape:'bell_tail' },
+  ];
+
+  return (
+    <div style={{ padding:'12px 10px', display:'flex', flexDirection:'column', gap:10 }}>
+      {DAY_TYPES.map(dt => {
+        const isActive = dtype === dt.id;
+        const isExpanded = expandedId === dt.id;
+        return (
+          <div key={dt.id} ref={isActive ? activeRef : undefined}>
+            <div style={{
+              background: isActive ? `${dt.color}22` : '#0f172a',
+              border: isActive ? `2px solid ${dt.color}` : '1px solid #1e2738',
+              borderRadius:10, padding:'10px 14px', transition:'all 0.2s',
+              opacity: isActive ? 1 : 0.5, position:'relative',
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <div style={{ flexShrink:0, width:40, height:36 }}>
+                  <DayTypeSVG shape={dt.shape} color={isActive ? dt.color : '#334155'} />
+                </div>
+                <div style={{ flex:1 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:20, fontWeight:700, color: isActive ? dt.color : '#94a3b8' }}>{dt.labelHe}</span>
+                    {isActive && <span style={{ fontSize:11, fontWeight:700, background:dt.color, color:'#000', borderRadius:5, padding:'2px 8px' }}>▶ היום</span>}
+                  </div>
+                  <div style={{ fontSize:14, color:'#64748b', lineHeight:1.5, direction:'rtl' as const, marginTop:2 }}>{dt.desc}</div>
+                </div>
+              </div>
+              {/* Data grid — always visible for active */}
+              {isActive && (
+                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:10 }}>
+                  {[
+                    { label:'IB Range', value:`${((live as any)?.day?.ib_range || 0).toFixed(2)} pt` },
+                    { label:'IB נעול', value:(live as any)?.day?.ib_locked ? '✓ כן' : '✗ לא', color:(live as any)?.day?.ib_locked ? '#10b981' : '#ef4444' },
+                    { label:'Gap', value:(live as any)?.day?.gap_type || 'FLAT' },
+                    { label:'שלב', value:(live as any)?.session?.phase || '—' },
+                  ].map(item => (
+                    <div key={item.label} style={{ background:'#1e2738', borderRadius:6, padding:'6px 12px', flex:'1 1 70px', minWidth:0 }}>
+                      <div style={{ fontSize:11, color:'#64748b', marginBottom:2 }}>{item.label}</div>
+                      <div style={{ fontSize:22, fontWeight:700, color:(item as any).color || '#e2e8f0' }}>{item.value}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Toggle details */}
+              {isActive && (
+                <button onClick={() => setExpandedId(isExpanded ? null : dt.id)} style={{
+                  marginTop:8, width:'100%', padding:'5px', border:'1px solid #1e2738', borderRadius:6,
+                  background:'transparent', color:'#64748b', fontSize:12, cursor:'pointer', fontFamily:'inherit',
+                }}>{isExpanded ? '▲ הסתר פרטים' : '▼ פרטים'}</button>
+              )}
+              {/* Expandable explanations */}
+              {isActive && isExpanded && (
+                <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:8, borderTop:'1px solid #1e2738', paddingTop:8 }}>
+                  <div>
+                    <div style={{ fontSize:12, color:'#94a3b8', marginBottom:4, fontWeight:600 }}>📋 כלל מסחר</div>
+                    <div style={{ fontSize:14, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeRule(dt.id)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:12, color:'#94a3b8', marginBottom:4, fontWeight:600 }}>🎯 מה לחפש</div>
+                    <div style={{ fontSize:14, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeLookFor(dt.id)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize:12, color:'#ef444499', marginBottom:4, fontWeight:600 }}>⚠️ מה להימנע</div>
+                    <div style={{ fontSize:14, color:'#94a3b8', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeAvoid(dt.id)}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+      <TradeLogSection />
+    </div>
+  );
 }
 
 function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|null; onRequestExplanation:()=>void; aiLoading:boolean }) {
