@@ -1912,13 +1912,24 @@ function Indicators({ live }:{ live:MarketData|null }) {
 
 
 // ── AI Analysis Panel ─────────────────────────────────────────────────────────
-function AIAnalysisPanel({signal, signalTime, aiLoading, onAskAI, live}: {
-  signal?: Signal | null; signalTime?: string; aiLoading: boolean; onAskAI: () => void; live?: any;
+function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}: {
+  signal?: Signal | null; signalTime?: string; aiLoading: boolean; aiError?: boolean; onAskAI: () => void; live?: any;
 }) {
   if (aiLoading) return (
     <div style={{ padding:20, textAlign:'center', color:'#7f77dd' }}>
       <div style={{ fontSize:13, marginBottom:8 }}>⚡ Claude מנתח...</div>
       <div style={{ fontSize:11, color:'#4a5568' }}>בודק נפח, מבנה ורמות</div>
+    </div>
+  );
+  if (aiError && !signal) return (
+    <div style={{ padding:16, textAlign:'center' }}>
+      <div style={{ fontSize:12, color:'#64748b', marginBottom:4 }}>AI לא זמין</div>
+      <div style={{ fontSize:10, color:'#4a5568', marginBottom:12 }}>המערכת ממשיכה לעבוד — ניתן לסחור ללא AI</div>
+      <button onClick={onAskAI} style={{
+        padding:'6px 16px', borderRadius:8, fontSize:11, fontWeight:700,
+        background:'#1e2738', color:'#7f77dd', border:'1px solid #7f77dd44',
+        cursor:'pointer', fontFamily:'inherit',
+      }}>🔄 רענן</button>
     </div>
   );
   if (!signal) return (
@@ -2705,7 +2716,7 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
 }
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
@@ -2746,7 +2757,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             onAccept={onAccept}
             onReject={onReject}
           />
-          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} onAskAI={onAskAI} live={live} />
+          <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} aiError={aiError} onAskAI={onAskAI} live={live} />
           <EntryZone live={live} signal={persistedSignal} />
         </>}
 
@@ -3173,6 +3184,7 @@ export default function Dashboard() {
   const [lockedSignal,setLockedSignal]=useState<any>(null);
   const [rejectedTs,setRejectedTs]=useState(0);
   const [aiLoading,setAiLoading]=useState(false);
+  const [aiError,setAiError]=useState(false);
   const [persistedSignal,setPersistedSignal]=useState<Signal|null>(null);
   const [signalTime,setSignalTime]=useState<string>('');
   const [selectedSetup,setSelectedSetup]=useState<{id:string;dir:'long'|'short'}|null>(null);
@@ -3193,6 +3205,7 @@ export default function Dashboard() {
   const askAI=useCallback(async()=>{
     if(aiLoading) return;
     setAiLoading(true);
+    setAiError(false);
     try{
       const r=await fetch(`${API_URL}/market/analyze`,{cache:'no-store'});
       if(!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -3203,7 +3216,7 @@ export default function Dashboard() {
       setLive(prev=>prev?{...prev,signal:sig}:prev);
       const isGreen=sig.tl_color==='green'||sig.tl_color==='green_bright';
       if(isGreen && sig.direction!=='NO_TRADE'){setLockedSignal(sig);setAccepted(true);}
-    }catch(e){console.error('AI:',e);}
+    }catch(e){console.error('AI:',e);setAiError(true);}
     finally{ setAiLoading(false); }
   },[aiLoading]);
 
@@ -3759,6 +3772,7 @@ export default function Dashboard() {
           persistedSignal={persistedSignal}
           signalTime={signalTime}
           aiLoading={aiLoading}
+          aiError={aiError}
           onAskAI={askAI}
           dayLoading={dayLoading}
           onAskDayType={askDayType}
