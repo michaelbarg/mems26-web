@@ -3578,6 +3578,7 @@ export default function Dashboard() {
       ws.onmessage = (e) => {
         try {
           const d = JSON.parse(e.data);
+          console.log('[X4] WS message received:', d.type, d.type === 'TRADE_CLOSE' ? d : '');
           if (d.type === 'TRADE_CLOSE') {
             setActiveTrade(null);
             setChecklistSetup(null);

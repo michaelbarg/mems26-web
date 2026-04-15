@@ -1706,16 +1706,19 @@ async def trade_close(request: Request):
     log.info(f"Trade closed: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f}) reason={reason}")
 
     # Broadcast to all WS clients
+    ws_msg = {
+        "type": "TRADE_CLOSE",
+        "trade_id": active["id"],
+        "exit_type": reason,
+        "pnl_pts": round(pnl_pts, 2),
+        "pnl_usd": pnl_usd,
+    }
+    log.info(f"[X4] broadcasting TRADE_CLOSE to {len(manager._clients)} WS clients: {ws_msg}")
     try:
-        await manager.broadcast({
-            "type": "TRADE_CLOSE",
-            "trade_id": active["id"],
-            "exit_type": reason,
-            "pnl_pts": round(pnl_pts, 2),
-            "pnl_usd": pnl_usd,
-        })
-    except Exception:
-        pass
+        await manager.broadcast(ws_msg)
+        log.info(f"[X4] broadcast sent OK")
+    except Exception as e:
+        log.warning(f"[X4] broadcast failed: {e}")
 
     return {"ok": True, "trade": active, "daily_pnl": state["pnl"], "circuit_breaker": await check_circuit_breaker()}
 

@@ -1140,18 +1140,21 @@ async def main():
                                 }
                                 trade_tracker.open_trade = None
                                 trade_tracker.position = 0.0
-                                log.info(f"SC trade closed: {exit_type} @ {exit_price} PnL={pnl_pts:+.2f}pt")
+                                log.info(f"[X4] SC trade closed: {exit_type} @ {exit_price} PnL={pnl_pts:+.2f}pt")
                                 # POST to backend
+                                close_url = f"{CLOUD_URL}/trade/close"
+                                log.info(f"[X4] posting CLOSE to backend: {close_url}")
                                 try:
                                     async with http.post(
-                                        f"{CLOUD_URL}/trade/close",
+                                        close_url,
                                         json={"exit_price": exit_price, "reason": exit_type},
                                         headers={"content-type": "application/json"},
                                         timeout=aiohttp.ClientTimeout(total=5.0)
                                     ) as resp:
-                                        log.info(f"Trade close POST: {resp.status}")
+                                        resp_body = await resp.text()
+                                        log.info(f"[X4] CLOSE response: HTTP {resp.status} body={resp_body[:200]}")
                                 except Exception as e:
-                                    log.warning(f"Trade close POST failed: {e}")
+                                    log.warning(f"[X4] CLOSE POST failed: {e}")
                 except Exception as e:
                     pass  # trade_result.json may not exist or be malformed
 
