@@ -361,7 +361,7 @@ def _aggregate_3m_to_tf(candles_3m: list, interval_sec: int, max_out: int) -> li
 
 async def _get_3m_candles() -> list:
     """Read all 3m candles from Redis list."""
-    raw = await redis_lrange(REDIS_CANDLES_KEY, 0, MAX_CANDLES - 1)
+    raw = await redis_lrange(REDIS_CANDLES_KEY, 0, 959)
     candles = []
     for item in raw:
         try:
