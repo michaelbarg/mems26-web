@@ -1034,6 +1034,25 @@ async def get_trade_log(limit: int = 50):
     return trades
 
 
+@app.post("/trades/log/test")
+async def create_test_trade():
+    """Create a dummy closed trade in Redis for testing the trade log display."""
+    import time
+    ts = int(time.time())
+    trade = {
+        "id": f"TEST_{ts}", "direction": "LONG",
+        "entry_price": 7009.75, "exit_price": 7006.50,
+        "stop": 7004.75, "t1": 7014.75, "t2": 7019.75, "t3": 0,
+        "risk_pts": 5.0, "setup_type": "LIQUIDITY_SWEEP",
+        "entry_ts": ts - 480, "exit_ts": ts,
+        "status": "CLOSED", "close_reason": "STOP",
+        "pnl_pts": -3.25, "pnl_usd": -16.25,
+        "killzone": "NY_Open", "day_type": "NORMAL",
+    }
+    await redis_set_key(f"mems26:tradelog:{ts}", trade)
+    return {"ok": True, "trade": trade}
+
+
 @app.get("/trades")
 async def get_trades():
     return await redis_trades_get()
