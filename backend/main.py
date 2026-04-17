@@ -1698,6 +1698,19 @@ async def trade_execute(request: Request):
             "contracts": CONTRACTS,
         }
 
+        # Snapshot market context at entry for analytics
+        try:
+            from analytics import snapshot_market_context
+            data_snap = await redis_get()
+            ctx = snapshot_market_context(data_snap) if data_snap else {}
+            trade.update(ctx)
+            trade["post_news"] = bool(news_tag)
+            # Pillar count from frontend is not available here; set to 0, updated at close
+            trade["pillars_passed"] = 0
+            trade["pillar_detail"] = ""
+        except Exception as e:
+            log.warning(f"Context snapshot failed: {e}")
+
         log.info(f"[EXECUTE] step 1: writing trade status {trade_id}")
         await redis_set_key(REDIS_TRADE_STATUS, trade)
         log.info(f"[EXECUTE] step 2: trade status written OK")
@@ -1773,6 +1786,25 @@ async def trade_close(request: Request):
     active["pnl_pts"] = round(pnl_pts, 2)
     active["pnl_usd"] = pnl_usd
     active["close_reason"] = reason
+    active["duration_min"] = round((active["exit_ts"] - active.get("entry_ts", active["exit_ts"])) / 60, 1)
+    active["bars_held"] = max(1, int(active["duration_min"] / 3))  # 3min bars
+
+    # Compute MAE/MFE from candle history
+    try:
+        from analytics import compute_mae_mfe
+        candles_3m = await _get_3m_candles()
+        mae_mfe = compute_mae_mfe(candles_3m, entry, active.get("entry_ts", 0),
+                                  active["exit_ts"], direction)
+        active["mae_pts"] = mae_mfe["mae_pts"]
+        active["mfe_pts"] = mae_mfe["mfe_pts"]
+        mfe = mae_mfe["mfe_pts"]
+        active["exit_efficiency"] = round(pnl_pts / mfe * 100, 1) if mfe > 0 else 0
+    except Exception as e:
+        log.warning(f"MAE/MFE compute failed: {e}")
+        active["mae_pts"] = 0
+        active["mfe_pts"] = 0
+        active["exit_efficiency"] = 0
+
     await redis_set_key(REDIS_TRADE_STATUS, active)
 
     # Update daily state + circuit breaker
@@ -2002,6 +2034,61 @@ async def news_status():
         log.warning(f"/news/status error: {e}")
         return {"is_freeze": False, "current_state": "NORMAL", "api_healthy": False,
                 "last_fetch_iso": "", "next_event": None, "todays_events": []}
+
+
+# ── Analytics Endpoints ───────────────────────────────────────────────────
+
+async def _get_all_trade_logs() -> list:
+    """Read all trade log entries from Redis."""
+    trades = []
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{REDIS_URL}/keys/mems26:tradelog:*",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=5.0
+            )
+            keys = resp.json().get("result", [])
+            if keys:
+                keys.sort(reverse=True)
+                for key in keys[:200]:
+                    val = await redis_get_key(key)
+                    if val and isinstance(val, dict):
+                        trades.append(val)
+    except Exception as e:
+        log.error(f"Trade logs read failed: {e}")
+    return trades
+
+
+@app.get("/analytics/daily")
+async def analytics_daily(date: str = ""):
+    """Daily trade report — WR, P&L, MAE/MFE, pillar attribution, killzone breakdown."""
+    from analytics import compute_daily_report
+    if not date:
+        from datetime import date as _d
+        date = _d.today().isoformat()
+    trades = await _get_all_trade_logs()
+    return compute_daily_report(trades, date)
+
+
+@app.get("/analytics/weekly")
+async def analytics_weekly(week_start: str = ""):
+    """Weekly report — 18-trade window, pillar correlation, threshold recs."""
+    from analytics import compute_weekly_report
+    if not week_start:
+        from datetime import date as _d, timedelta as _td
+        today = _d.today()
+        week_start = (today - _td(days=today.weekday())).isoformat()
+    trades = await _get_all_trade_logs()
+    return compute_weekly_report(trades, week_start)
+
+
+@app.get("/analytics/patterns")
+async def analytics_patterns():
+    """Setup Quality Matrix, MAE/MFE distributions, Exit Efficiency."""
+    from analytics import compute_pattern_analysis
+    trades = await _get_all_trade_logs()
+    return compute_pattern_analysis(trades)
 
 
 @app.get("/health")
