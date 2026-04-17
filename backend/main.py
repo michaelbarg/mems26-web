@@ -1441,12 +1441,19 @@ async def trade_health(request: Request):
 
 # ── Phase C: Semi-Auto Trading ────────────────────────────────────────────
 
-# Circuit Breaker thresholds
-CB_SOFT_LIMIT    = 150   # $150/day → lock 30 min
-CB_HARD_LIMIT    = 200   # $200/day → lock until next day
-CB_MAX_TRADES    = 50    # max trades/day (50 = Sim mode, 10 = Live mode)
-CB_CONSEC_LOSSES = 2     # 2 consecutive losses → lock 30 min
-CB_LOCK_MIN      = 30    # lock duration in minutes
+# Circuit Breaker thresholds — MODE-aware (env MEMS26_MODE=SIM|LIVE)
+_MODE = os.getenv("MEMS26_MODE", "SIM").upper()
+CB_SOFT_LIMIT    = 150 if _MODE == "SIM" else 100   # $/day → lock 30 min
+CB_HARD_LIMIT    = 200                                # $/day → lock until next day
+CB_MAX_TRADES    = 50  if _MODE == "SIM" else 10      # max trades/day
+CB_CONSEC_LOSSES = 2                                   # consecutive losses → lock 30 min
+CB_LOCK_MIN      = 30                                  # lock duration in minutes
+CONTRACTS        = 3   if _MODE == "SIM" else 1        # MES contracts per trade
+STOP_MIN_PT      = 3.0                                 # minimum stop distance
+STOP_MAX_PT      = 8.0                                 # maximum stop distance → NO_TRADE
+T1_RR            = 1.5                                 # T1 = risk × 1.5
+T1_MIN_PT        = 10.0                                # T1 minimum 10pt
+T2_RR            = 3.0                                 # T2 = risk × 3
 
 
 async def get_daily_state() -> dict:
@@ -1547,6 +1554,19 @@ async def trade_execute(request: Request):
         if not cb["allowed"]:
             raise HTTPException(status_code=403, detail=cb["reason"])
 
+        # News guard check — block during PRE_NEWS_FREEZE
+        try:
+            news_state = await redis_get_key("mems26:news:state")
+            if news_state and isinstance(news_state, dict):
+                if news_state.get("state") == "PRE_NEWS_FREEZE":
+                    ev = news_state.get("active_event", {})
+                    raise HTTPException(status_code=403,
+                        detail=f"PRE_NEWS_FREEZE: {ev.get('title', '?')} @ {ev.get('time_et', '?')} ET")
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.warning(f"News guard check failed: {e} — proceeding")
+
         body = await request.json()
         direction  = body.get("direction", "")
         entry      = body.get("entry_price", 0)
@@ -1582,8 +1602,26 @@ async def trade_execute(request: Request):
                 raise HTTPException(status_code=409, detail="Trade already open")
 
         risk = abs(entry - stop)
-        if risk > 8:
-            raise HTTPException(status_code=400, detail=f"Risk {risk:.2f}pt exceeds 8pt max")
+
+        # W1.5 — Stop Validation
+        if risk > STOP_MAX_PT:
+            raise HTTPException(status_code=400, detail=f"Risk {risk:.2f}pt exceeds {STOP_MAX_PT}pt max — NO_TRADE")
+        if risk < STOP_MIN_PT:
+            # Expand stop to minimum distance
+            old_stop = stop
+            if direction == "LONG":
+                stop = entry - STOP_MIN_PT
+            else:
+                stop = entry + STOP_MIN_PT
+            risk = STOP_MIN_PT
+            log.info(f"[W1.5] Stop expanded: {old_stop:.2f} → {stop:.2f} (min {STOP_MIN_PT}pt)")
+
+        # Recalc targets from validated risk
+        t1 = round(entry + risk * T1_RR, 2) if direction == "LONG" else round(entry - risk * T1_RR, 2)
+        if abs(t1 - entry) < T1_MIN_PT:
+            t1 = round(entry + T1_MIN_PT, 2) if direction == "LONG" else round(entry - T1_MIN_PT, 2)
+        t2 = round(entry + risk * T2_RR, 2) if direction == "LONG" else round(entry - risk * T2_RR, 2)
+        # t3 kept as-is if provided (Draw on Liquidity), otherwise = 0
 
         trade_id = f"T{int(time.time())}"
         trade = {
@@ -1612,9 +1650,9 @@ async def trade_execute(request: Request):
         import time as _time
         expires_at = int(_time.time()) + COMMAND_TTL_SEC
         cmd_str = "BUY" if direction == "LONG" else "SELL"
-        chk_hex, chk_raw = _make_checksum(cmd_str, entry, 3, stop, trade_id, expires_at)
+        chk_hex, chk_raw = _make_checksum(cmd_str, entry, CONTRACTS, stop, trade_id, expires_at)
         command = {
-            "cmd": cmd_str, "price": entry, "qty": 3,
+            "cmd": cmd_str, "price": entry, "qty": CONTRACTS,
             "stop": stop, "t1": t1, "t2": t2, "t3": t3,
             "trade_id": trade_id, "expires_at": expires_at,
             "checksum": chk_hex, "checksum_input": chk_raw,

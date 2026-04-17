@@ -624,7 +624,7 @@ export default function LightweightChart({
       layout: {
         background: { color: '#0d1117' },
         textColor:  '#94a3b8',
-        fontSize:   12,
+        fontSize:   14,
         fontFamily: 'JetBrains Mono, Fira Code, monospace',
       },
       grid: {
@@ -1280,7 +1280,7 @@ export default function LightweightChart({
 
   if (!candles || candles.length === 0) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, color: '#4a5568', fontFamily: 'monospace', fontSize: 13 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: height ?? '100%', minHeight: height ?? 400, background: '#0d1117', borderRadius: 8, color: '#4a5568', fontFamily: 'monospace', fontSize: 14 }}>
         טוען נתונים...
       </div>
     );

@@ -10,30 +10,24 @@ from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from pattern_scanner import scan_patterns, is_in_killzone
+from news_guard import NewsGuard, news_guard_loop
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("bridge")
 
-SC_JSON_PATH    = os.getenv("SC_JSON_PATH", "/Users/michael/SierraChart2/Data/mes_ai_data.json")
-SC_HISTORY_PATH = os.getenv("SC_HISTORY_PATH", "/Users/michael/SierraChart2/Data/mes_ai_history.json")
-SC_COMMAND_PATH = os.getenv("SC_COMMAND_PATH",
-    str(__import__("pathlib").Path(os.getenv("SC_JSON_PATH",
-        "/Users/michael/SierraChart2/Data/mes_ai_data.json")).parent / "trade_command.json"))
-SC_RESULT_PATH = os.getenv("SC_RESULT_PATH",
-    str(__import__("pathlib").Path(os.getenv("SC_JSON_PATH",
-        "/Users/michael/SierraChart2/Data/mes_ai_data.json")).parent / "trade_result.json"))
-CLOUD_URL    = os.getenv("CLOUD_URL", "https://mems26-web.onrender.com")
-BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
-REDIS_URL       = os.getenv("UPSTASH_REDIS_REST_URL")
-REDIS_TOKEN     = os.getenv("UPSTASH_REDIS_REST_TOKEN")
-REDIS_KEY       = "mems26:latest"
-REDIS_CANDLES   = "mems26:candles"
-REDIS_PATTERNS  = "mems26:patterns"
-MAX_CANDLES     = 960
-POST_INTERVAL   = 0.5
-CANDLE_INTERVAL = 180
-STALE_THRESHOLD = 120
+from config import (
+    SC_JSON_PATH, SC_HISTORY_PATH, SC_COMMAND_PATH, SC_RESULT_PATH,
+    CLOUD_URL, BRIDGE_TOKEN, REDIS_URL, REDIS_TOKEN,
+    REDIS_KEY, REDIS_CANDLES, REDIS_PATTERNS, REDIS_SEEN_FILLS,
+    MAX_CANDLES, POST_INTERVAL, CANDLE_INTERVAL, STALE_THRESHOLD,
+    MTF_CONFIG, PATTERN_SCAN_INTERVAL, MODE, CONTRACTS,
+    STOP_MIN_PT, STOP_MAX_PT, T1_RR, T1_MIN_PT, T2_RR,
+    EOD_FLATTEN_TIME, EOD_FLATTEN_ENABLED,
+    WATCHDOG_INTERVAL_SEC, WATCHDOG_REDIS_STALE, WATCHDOG_SC_STALE, WATCHDOG_API_TIMEOUT,
+    NEWS_API_TIMEOUT_SEC, NEWS_PRE_FREEZE_MIN, NEWS_POST_RELEASE_MIN,
+    REDIS_NEWS_STATE, REDIS_NEWS_EVENTS,
+)
 
 def sc_ts_to_utc(ts: int) -> int:
     """Convert SC timestamp (ET-as-UTC) to real UTC by adding EDT/EST offset.
@@ -48,13 +42,7 @@ def sc_ts_to_utc(ts: int) -> int:
     offset = 4 * 3600 if 3 <= month <= 10 else 5 * 3600  # EDT / EST
     return ts + offset
 
-# MTF candle config: (mtf_key, redis_key, interval_sec, max_candles)
-MTF_CONFIG = [
-    ("m5",  "mems26:candles:5m",  300,  288),
-    ("m15", "mems26:candles:15m", 900,  96),
-    ("m30", "mems26:candles:30m", 1800, 48),
-    ("m60", "mems26:candles:1h",  3600, 64),
-]
+# MTF_CONFIG imported from config.py
 
 ET = ZoneInfo("America/New_York")
 
@@ -156,7 +144,6 @@ state  = SessionState()
 candle = CandleBuilder()
 
 # ── Trade Tracker — זיהוי עסקאות אוטומטי מ-Sierra ─────────────────────────
-REDIS_SEEN_FILLS = "mems26:seen_fills"
 
 class TradeTracker:
     def __init__(self):
@@ -738,12 +725,133 @@ def aggregate_candles(candles_3m: list, interval_sec: int, max_candles: int) -> 
     return result[-max_candles:]
 
 
+# ── W1.3: Heartbeat Watchdog ─────────────────────────────────────────────────
+async def _heartbeat_watchdog(http):
+    """Every 30s: check Redis + FastAPI + SC file freshness.
+    If failure detected AND open position → Emergency Flatten."""
+    while True:
+        try:
+            failures = []
+
+            # 1. Redis freshness — read mems26:latest.wall_ts
+            try:
+                async with http.get(
+                    f"{REDIS_URL}/get/{REDIS_KEY}",
+                    headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                    timeout=aiohttp.ClientTimeout(total=WATCHDOG_API_TIMEOUT)
+                ) as resp:
+                    result = await resp.json()
+                    val = result.get("result")
+                    if val:
+                        data = json.loads(val) if isinstance(val, str) else val
+                        wall_ts = data.get("wall_ts", 0)
+                        age = time.time() - wall_ts
+                        if age > WATCHDOG_REDIS_STALE:
+                            failures.append(f"Redis stale ({age:.0f}s)")
+                    else:
+                        failures.append("Redis empty")
+            except Exception as e:
+                failures.append(f"Redis unreachable: {e}")
+
+            # 2. FastAPI health
+            try:
+                async with http.get(
+                    f"{CLOUD_URL}/market/latest",
+                    timeout=aiohttp.ClientTimeout(total=WATCHDOG_API_TIMEOUT)
+                ) as resp:
+                    if resp.status != 200:
+                        failures.append(f"FastAPI HTTP {resp.status}")
+            except Exception as e:
+                failures.append(f"FastAPI unreachable: {e}")
+
+            # 3. SC file freshness
+            try:
+                if os.path.exists(SC_JSON_PATH):
+                    sc_age = time.time() - os.path.getmtime(SC_JSON_PATH)
+                    if sc_age > WATCHDOG_SC_STALE:
+                        failures.append(f"SC file stale ({sc_age:.0f}s)")
+                else:
+                    failures.append("SC file missing")
+            except Exception as e:
+                failures.append(f"SC file check error: {e}")
+
+            if failures:
+                log.warning(f"[WATCHDOG] Failures: {failures}")
+                # Check if open position → emergency flatten
+                if trade_tracker.open_trade:
+                    log.error(f"[WATCHDOG] EMERGENCY FLATTEN — open position + failures: {failures}")
+                    try:
+                        async with http.post(
+                            f"{CLOUD_URL}/trade/close",
+                            json={"exit_price": 0, "reason": f"EMERGENCY_FLATTEN: {failures[0]}"},
+                            headers={"content-type": "application/json"},
+                            timeout=aiohttp.ClientTimeout(total=10.0)
+                        ) as resp:
+                            body = await resp.text()
+                            log.error(f"[WATCHDOG] Flatten response: HTTP {resp.status} {body[:200]}")
+                    except Exception as e:
+                        log.error(f"[WATCHDOG] Flatten POST failed: {e}")
+                    # Also broadcast alert
+                    try:
+                        await http.post(
+                            f"{CLOUD_URL}/ws/broadcast",
+                            headers={"x-bridge-token": BRIDGE_TOKEN, "content-type": "application/json"},
+                            json={"type": "EMERGENCY_FLATTEN", "reason": failures[0]},
+                            timeout=aiohttp.ClientTimeout(total=3),
+                        )
+                    except Exception:
+                        pass
+            else:
+                log.debug("[WATCHDOG] All systems healthy")
+
+        except Exception as e:
+            log.error(f"[WATCHDOG] Unexpected error: {e}")
+
+        await asyncio.sleep(WATCHDOG_INTERVAL_SEC)
+
+
+# ── EOD Flatten — auto-close before CME maintenance ─────────────────────────
+async def _eod_flatten_check(http):
+    """Check every 30s if we're past EOD_FLATTEN_TIME with an open position."""
+    while True:
+        try:
+            if EOD_FLATTEN_ENABLED and trade_tracker.open_trade:
+                now_et = datetime.now(ET)
+                flatten_h, flatten_m = map(int, EOD_FLATTEN_TIME.split(":"))
+                flatten_time = dtime(flatten_h, flatten_m)
+                if now_et.time() >= flatten_time and now_et.time() < dtime(16, 15):
+                    log.warning(f"[EOD] Auto-flatten at {EOD_FLATTEN_TIME} ET — closing position")
+                    try:
+                        async with http.post(
+                            f"{CLOUD_URL}/trade/close",
+                            json={"exit_price": 0, "reason": "EOD_FLATTEN"},
+                            headers={"content-type": "application/json"},
+                            timeout=aiohttp.ClientTimeout(total=10.0)
+                        ) as resp:
+                            body = await resp.text()
+                            log.info(f"[EOD] Flatten response: HTTP {resp.status} {body[:200]}")
+                    except Exception as e:
+                        log.error(f"[EOD] Flatten failed: {e}")
+                    try:
+                        await http.post(
+                            f"{CLOUD_URL}/ws/broadcast",
+                            headers={"x-bridge-token": BRIDGE_TOKEN, "content-type": "application/json"},
+                            json={"type": "EOD_FLATTEN", "time": EOD_FLATTEN_TIME},
+                            timeout=aiohttp.ClientTimeout(total=3),
+                        )
+                    except Exception:
+                        pass
+        except Exception as e:
+            log.error(f"[EOD] Check error: {e}")
+        await asyncio.sleep(30)
+
+
 async def main():
     if not REDIS_URL or not REDIS_TOKEN:
         log.error("Missing UPSTASH credentials"); return
 
     log.info("="*50)
-    log.info("  MEMS26 Bridge v6 — Full Data + History 960")
+    log.info(f"  MEMS26 Bridge v7 — MODE={MODE} | Contracts={CONTRACTS}")
     log.info(f"  SC JSON    : {SC_JSON_PATH}")
     log.info(f"  SC HISTORY : {SC_HISTORY_PATH}")
     log.info(f"  Redis      : {REDIS_URL}")
@@ -861,7 +969,6 @@ async def main():
 
     last_send = 0.0
     last_pattern_scan = 0.0
-    PATTERN_SCAN_INTERVAL = 60  # seconds
     candle = CandleBuilder()     # 3m candle for this session
     # MTF candle builders: keyed by mtf_key (m5, m15, m30, m60)
     mtf_candles = {cfg[0]: CandleBuilder() for cfg in MTF_CONFIG}
@@ -871,7 +978,20 @@ async def main():
     async with aiohttp.ClientSession() as http:
         await trade_tracker.load_seen_fills(http)
         asyncio.create_task(_poll_trade_commands(http))
-        log.info("[C4] command poll started")
+        asyncio.create_task(_heartbeat_watchdog(http))
+        asyncio.create_task(_eod_flatten_check(http))
+
+        # News Guard — ForexFactory USD High-Impact events
+        news = NewsGuard(
+            pre_freeze_min=NEWS_PRE_FREEZE_MIN,
+            post_release_min=NEWS_POST_RELEASE_MIN,
+            api_timeout=NEWS_API_TIMEOUT_SEC,
+        )
+        asyncio.create_task(news_guard_loop(
+            http, news, REDIS_URL, REDIS_TOKEN,
+            REDIS_NEWS_STATE, CLOUD_URL, BRIDGE_TOKEN,
+        ))
+        log.info("[W1] command poll + watchdog + EOD flatten + news guard started")
         while True:
             if not is_trading_session():
                 log.info("Market closed — waiting 30s")
@@ -1031,6 +1151,7 @@ async def main():
                     for mtf_key, _, _, _ in MTF_CONFIG:
                         payload[f"current_candle_{mtf_key}"] = mtf_candles[mtf_key].to_dict_full()
                     payload["wall_ts"] = int(time.time())
+                    payload["news_guard"] = news.to_dict()
                     await redis_post(http, f"set/{REDIS_KEY}", payload)
                     last_send = now
 

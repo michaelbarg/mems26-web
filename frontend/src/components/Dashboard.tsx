@@ -413,6 +413,119 @@ function scanHistoricalSweeps(
   return { events, levelTouches };
 }
 
+// ── Forked Setup Evaluation — RANGE vs TREND ─────────────────────────────────
+// Binary Pass/Fail — does NOT change the 8-check scoring model.
+// Returns { pass: boolean, reason: string, eval_type: string }
+
+interface SetupEvalResult {
+  pass: boolean;
+  reason: string;
+  eval_type: 'range' | 'trend';
+}
+
+function evaluate_range_setup(
+  hit: { level: number; levelName: string; bar: Candle; relVol: number; type: string } | null,
+  dir: 'long' | 'short',
+  live: MarketData | null,
+  candles: Candle[],
+): SetupEvalResult {
+  // For NORMAL / VOLATILE days: requires macro sweep + FVG + footprint confirmation
+  if (!hit || !live) return { pass: false, reason: 'No setup hit', eval_type: 'range' };
+
+  const bar = live.bar || {} as any;
+  const of2 = (live as any).order_flow || {} as any;
+  const L = dir === 'long';
+
+  // 1. Must be sweep or rejection at a key level (macro sweep)
+  if (hit.type !== 'sweep' && hit.type !== 'rejection') {
+    return { pass: false, reason: `Range requires sweep/rejection, got ${hit.type}`, eval_type: 'range' };
+  }
+
+  // 2. FVG check — look for a 3-candle gap in recent 10 candles
+  const recent = candles.slice(0, 10);
+  let hasFVG = false;
+  for (let i = 0; i < recent.length - 2; i++) {
+    const c1 = recent[i], c3 = recent[i + 2];
+    if (L) {
+      // Bullish FVG: candle[i].low > candle[i+2].high (gap up)
+      if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && (c1.l - c3.h) <= 4.0) { hasFVG = true; break; }
+    } else {
+      // Bearish FVG: candle[i].high < candle[i+2].low (gap down)
+      if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && (c3.l - c1.h) <= 4.0) { hasFVG = true; break; }
+    }
+  }
+  if (!hasFVG) return { pass: false, reason: 'No FVG in last 10 candles', eval_type: 'range' };
+
+  // 3. Footprint confirmation — absorption or sweep signal from order flow
+  const footprintOk = L
+    ? (of2.absorption_bull || of2.liq_sweep_long)
+    : (of2.absorption_bear || of2.liq_sweep_short);
+  if (!footprintOk) return { pass: false, reason: 'No footprint confirmation', eval_type: 'range' };
+
+  return { pass: true, reason: 'Range setup valid: sweep + FVG + footprint', eval_type: 'range' };
+}
+
+function evaluate_trend_setup(
+  hit: { level: number; levelName: string; bar: Candle; relVol: number; type: string } | null,
+  dir: 'long' | 'short',
+  live: MarketData | null,
+  candles: Candle[],
+): SetupEvalResult {
+  // For TREND days: pullback to VWAP/FVG + declining delta + continuation MSS (no sweep needed)
+  if (!hit || !live) return { pass: false, reason: 'No setup hit', eval_type: 'trend' };
+
+  const vwap = live.vwap || {} as any;
+  const bar = live.bar || {} as any;
+  const price = live.price || 0;
+  const L = dir === 'long';
+
+  // 1. Pullback to VWAP or FVG zone — price near VWAP (within 3pt)
+  const vwapDist = Math.abs(price - (vwap.value || 0));
+  let hasPullback = vwapDist <= 3.0;
+
+  // Also check for FVG pullback if not near VWAP
+  if (!hasPullback) {
+    const recent = candles.slice(0, 10);
+    for (let i = 0; i < recent.length - 2; i++) {
+      const c1 = recent[i], c3 = recent[i + 2];
+      if (L) {
+        const fvgMid = (c1.l + c3.h) / 2;
+        if (c1.l > c3.h && Math.abs(price - fvgMid) <= 2.0) { hasPullback = true; break; }
+      } else {
+        const fvgMid = (c1.h + c3.l) / 2;
+        if (c1.h < c3.l && Math.abs(price - fvgMid) <= 2.0) { hasPullback = true; break; }
+      }
+    }
+  }
+  if (!hasPullback) return { pass: false, reason: 'No pullback to VWAP/FVG', eval_type: 'trend' };
+
+  // 2. Declining delta — counter-trend move losing steam
+  const recent5 = candles.slice(0, 5);
+  if (recent5.length >= 3) {
+    const deltas = recent5.map(c => Math.abs(c.delta));
+    const declining = deltas[0] < deltas[1] || deltas[1] < deltas[2];
+    if (!declining) return { pass: false, reason: 'Delta not declining on pullback', eval_type: 'trend' };
+  }
+
+  // 3. Continuation MSS — break of recent swing in trend direction
+  const recent20 = candles.slice(0, 20);
+  let hasMSS = false;
+  if (L) {
+    // Bullish MSS: current bar breaks above a recent swing high
+    const recentHighs = recent20.slice(2).map(c => c.h);
+    const swingHigh = recentHighs.length > 0 ? Math.max(...recentHighs.slice(0, 5)) : 0;
+    hasMSS = price > swingHigh && swingHigh > 0;
+  } else {
+    // Bearish MSS: current bar breaks below a recent swing low
+    const recentLows = recent20.slice(2).map(c => c.l);
+    const swingLow = recentLows.length > 0 ? Math.min(...recentLows.slice(0, 5)) : 999999;
+    hasMSS = price < swingLow && swingLow < 999999;
+  }
+  if (!hasMSS) return { pass: false, reason: 'No continuation MSS', eval_type: 'trend' };
+
+  return { pass: true, reason: 'Trend setup valid: pullback + declining delta + MSS', eval_type: 'trend' };
+}
+
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
 function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   if (!live) return null;
@@ -764,6 +877,18 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const bestLevels = bestDir !== 'none' ? calcLevels(bestDir, bestHit) : null;
   const bestScore = bestDir === 'long' ? longScore : bestDir === 'short' ? shortScore : 0;
 
+  // ── Forked Evaluation — day-type-aware pass/fail ──────────────────
+  const dayType = ((live as any)?.day?.type || '').toUpperCase();
+  const isTrend = dayType === 'TREND' || dayType === 'TREND_DAY';
+  const sortedForEval = [...candles].sort((a, b) => b.ts - a.ts);
+
+  let setupEval: SetupEvalResult | null = null;
+  if (bestDir !== 'none' && bestHit) {
+    setupEval = isTrend
+      ? evaluate_trend_setup(bestHit, bestDir, live, sortedForEval)
+      : evaluate_range_setup(bestHit, bestDir, live, sortedForEval);
+  }
+
   return {
     long: { checks: liqLong, score: longScore, sweep: longHit },
     short: { checks: liqShort, score: shortScore, sweep: shortHit },
@@ -771,6 +896,8 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     opportunityScore: bestScore,
     opportunitySweep: bestHit,
     opportunityLevels: bestLevels,
+    setupEval,
+    dayType,
   };
 }
 
@@ -827,10 +954,10 @@ function SetupEntryCard({ setup, dir, levels, live }: {
       <div style={{ background:`${decisionCol}18`, padding:'10px 14px', borderBottom:`1px solid ${decisionCol}33` }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
           <div>
-            <div style={{ fontSize:11, color:`${col}`, fontWeight:700, marginBottom:2 }}>
+            <div style={{ fontSize:14, color:`${col}`, fontWeight:700, marginBottom:2 }}>
               {setup.name} {L ? '▲ LONG' : '▼ SHORT'}
             </div>
-            <div style={{ fontSize:9, color:'#6b7280' }}>{decisionSub}</div>
+            <div style={{ fontSize:14, color:'#6b7280' }}>{decisionSub}</div>
           </div>
           <div style={{ fontSize:20, fontWeight:900, color:decisionCol, letterSpacing:-0.5 }}>
             {decisionText}
@@ -839,17 +966,17 @@ function SetupEntryCard({ setup, dir, levels, live }: {
         {/* Win Rate + Delta + Volume */}
         <div style={{ display:'flex', gap:8, marginTop:8 }}>
           <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-            <div style={{ fontSize:11, color:'#4a5568' }}>Win Rate</div>
+            <div style={{ fontSize:14, color:'#4a5568' }}>Win Rate</div>
             <div style={{ fontSize:14, fontWeight:800, color:col }}>{setup.base}%</div>
           </div>
           <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-            <div style={{ fontSize:11, color:'#4a5568' }}>Delta</div>
+            <div style={{ fontSize:14, color:'#4a5568' }}>Delta</div>
             <div style={{ fontSize:14, fontWeight:800, color:(live?.bar?.delta||0)>=0?'#22c55e':'#ef5350', fontFamily:'monospace' }}>
               {(live?.bar?.delta||0)>0?'+':''}{live?.bar?.delta||0}
             </div>
           </div>
           <div style={{ background:'#0a0e1a', borderRadius:5, padding:'4px 8px', textAlign:'center', flex:1 }}>
-            <div style={{ fontSize:11, color:'#4a5568' }}>Vol</div>
+            <div style={{ fontSize:14, color:'#4a5568' }}>Vol</div>
             <div style={{ fontSize:14, fontWeight:800, color:((live as any)?.volume_context?.rel_vol||1)>1.2?'#22c55e':'#4a5568', fontFamily:'monospace' }}>
               {((live as any)?.volume_context?.rel_vol||1).toFixed(1)}x
             </div>
@@ -862,13 +989,13 @@ function SetupEntryCard({ setup, dir, levels, live }: {
         <div style={{ padding:'10px 14px', borderBottom:`1px solid #1e2738` }}>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
             <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
-              <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה</div>
+              <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>כניסה</div>
               <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(levels.entry||0).toFixed(2)}</div>
             </div>
             <div style={{ background:'#1e2738', borderRadius:6, padding:'6px 10px' }}>
-              <div style={{ fontSize:9, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
+              <div style={{ fontSize:14, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
               <div style={{ fontSize:14, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{(levels.stop||0).toFixed(2)}</div>
-              <div style={{ fontSize:9, color:'#4a5568' }}>−{pot?.risk_pts}pt / −${(pot?.risk_pts||0)*5}</div>
+              <div style={{ fontSize:14, color:'#4a5568' }}>−{pot?.risk_pts}pt / −${(pot?.risk_pts||0)*5}</div>
             </div>
           </div>
 
@@ -881,11 +1008,11 @@ function SetupEntryCard({ setup, dir, levels, live }: {
                 { label:'T3 · Run', pts:pot.t3_pts, usd:pot.t3_usd, rr:null, col:'#86efac', price:levels.t3stop },
               ].map(t => (
                 <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'5px 6px', textAlign:'center' }}>
-                  <div style={{ fontSize:9, color:t.col, fontWeight:700 }}>{t.label}</div>
-                  <div style={{ fontSize:12, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{(t.price||0).toFixed(2)}</div>
-                  <div style={{ fontSize:9, color:'#4a5568' }}>+{t.pts}pt</div>
-                  <div style={{ fontSize:9, fontWeight:700, color:t.col }}>+${t.usd}</div>
-                  {t.rr && <div style={{ fontSize:12, color:'#4a5568' }}>R:R 1:{t.rr}</div>}
+                  <div style={{ fontSize:14, color:t.col, fontWeight:700 }}>{t.label}</div>
+                  <div style={{ fontSize:14, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{(t.price||0).toFixed(2)}</div>
+                  <div style={{ fontSize:14, color:'#4a5568' }}>+{t.pts}pt</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:t.col }}>+${t.usd}</div>
+                  {t.rr && <div style={{ fontSize:14, color:'#4a5568' }}>R:R 1:{t.rr}</div>}
                 </div>
               ))}
             </div>
@@ -893,7 +1020,7 @@ function SetupEntryCard({ setup, dir, levels, live }: {
 
           {/* אזהרת פוטנציאל נמוך */}
           {!pot?.valid && pot?.reason && (
-            <div style={{ background:'#ef535011', border:'1px solid #ef535033', borderRadius:6, padding:'6px 10px', fontSize:10, color:'#ef5350', textAlign:'center' }}>
+            <div style={{ background:'#ef535011', border:'1px solid #ef535033', borderRadius:6, padding:'6px 10px', fontSize:14, color:'#ef5350', textAlign:'center' }}>
               ⚠ {pot.reason}
             </div>
           )}
@@ -905,7 +1032,7 @@ function SetupEntryCard({ setup, dir, levels, live }: {
         <div style={{ display:'flex', flexWrap:'wrap', gap:'4px 8px' }}>
           {checks.map((c:any) => (
             <span key={c.label} style={{
-              fontSize:9, padding:'2px 6px', borderRadius:4, fontWeight:700,
+              fontSize:14, padding:'2px 6px', borderRadius:4, fontWeight:700,
               background: c.ok ? (c.critical?'#22c55e22':'#22c55e11') : (c.critical?'#ef535022':'#1e2738'),
               color: c.ok ? '#22c55e' : (c.critical ? '#ef5350' : '#4a5568'),
               border: `1px solid ${c.ok?(c.critical?'#22c55e44':'#22c55e22'):(c.critical?'#ef535044':'#1e2738')}`,
@@ -1335,7 +1462,7 @@ function TrafficLight({ score, live }: { score: number; live: MarketData | null 
       {/* הצגת המלצה + אחוזי הצלחה */}
       <div style={{ width:46, background:'#111827', border:`1px solid ${biasCol}44`, borderRadius:8, padding:'6px 4px', display:'flex', flexDirection:'column', gap:3, alignItems:'center' }}>
         {/* Bias */}
-        <div style={{ fontSize:9, fontWeight:800, color:biasCol }}>{bias}</div>
+        <div style={{ fontSize:14, fontWeight:800, color:biasCol }}>{bias}</div>
         {/* אחוז הצלחה */}
         <div style={{ fontSize:16, fontWeight:800, color:biasCol, fontFamily:'monospace', lineHeight:1 }}>{biasWR}%</div>
         {/* Bar */}
@@ -1343,7 +1470,7 @@ function TrafficLight({ score, live }: { score: number; live: MarketData | null 
           <div style={{ width:`${biasWR}%`, height:'100%', background:biasCol, borderRadius:2, transition:'width .5s' }} />
         </div>
         {/* L / S mini */}
-        <div style={{ display:'flex', justifyContent:'space-between', width:'100%', fontSize:11, marginTop:1 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', width:'100%', fontSize:14, marginTop:1 }}>
           <span style={{ color:G, fontWeight:700 }}>L {long}%</span>
           <span style={{ color:R, fontWeight:700 }}>S {short}%</span>
         </div>
@@ -1391,12 +1518,12 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem 
     <div style={{ display:'flex', alignItems:'center', gap:16, padding:'10px 16px', background:'#111827', borderRadius:8, border:'1px solid #1e2738', flexWrap:'wrap' }}>
       <span style={{ fontSize:16, fontWeight:800, letterSpacing:2, color:'#f0f6fc', flexShrink:0 }}>MES<span style={{ color:'#f6c90e' }}>26</span></span>
       <span style={{ fontSize:28, fontWeight:800, fontFamily:'monospace', color:'#f0f6fc', flexShrink:0 }}>{price ? price.toFixed(2) : '—'}</span>
-      <span style={{ fontSize:11, padding:'3px 10px', borderRadius:12, fontWeight:700, background:phaseCol+'22', color:phaseCol, border:`1px solid ${phaseCol}44` }}>{phase}</span>
+      <span style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:700, background:phaseCol+'22', color:phaseCol, border:`1px solid ${phaseCol}44` }}>{phase}</span>
 
       {/* כפתור AI on-demand */}
       <button onClick={onAskAI} disabled={aiLoading} style={{
         display:'flex', alignItems:'center', gap:6,
-        padding:'6px 14px', borderRadius:8, fontSize:12, fontWeight:700,
+        padding:'6px 14px', borderRadius:8, fontSize:14, fontWeight:700,
         background: aiLoading ? '#1e2738' : '#7f77dd22',
         color: aiLoading ? '#4a5568' : '#7f77dd',
         border:`1px solid ${aiLoading ? '#2d3a4a' : '#7f77dd44'}`,
@@ -1415,13 +1542,13 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem 
 
       <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:16 }}>
         <span style={{ fontSize:18, fontWeight:700, fontFamily:'monospace', color:'#f0f6fc' }}>{time}</span>
-        <span style={{ fontSize:11, color:'#4a5568' }}>EST</span>
+        <span style={{ fontSize:14, color:'#4a5568' }}>EST</span>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
           <div style={{ width:8, height:8, borderRadius:'50%', background:connected&&systemOn?G:R, boxShadow:connected&&systemOn?`0 0 6px ${G}`:'none' }} className={connected&&systemOn?'live-blink':''} />
-          <span style={{ fontSize:11, fontWeight:700, color:connected&&systemOn?G:R }}>{systemOn?(connected?'LIVE':'OFFLINE'):'OFF'}</span>
+          <span style={{ fontSize:14, fontWeight:700, color:connected&&systemOn?G:R }}>{systemOn?(connected?'LIVE':'OFFLINE'):'OFF'}</span>
         </div>
         <button onClick={onToggleSystem} style={{
-          padding:'4px 12px', borderRadius:6, fontSize:11, fontWeight:800,
+          padding:'4px 12px', borderRadius:6, fontSize:14, fontWeight:800,
           background: systemOn ? '#ef535022' : '#22c55e22',
           color: systemOn ? '#ef5350' : '#22c55e',
           border: `1px solid ${systemOn ? '#ef535044' : '#22c55e44'}`,
@@ -1435,7 +1562,7 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem 
 }
 
 // ── Zone B: Main Score + Signal Panel ────────────────────────────────────────
-function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:MarketData|null; liveSetup:any; onAccept:()=>void; onReject:()=>void; accepted:boolean }) {
+function MainScore({ live, liveSetup, onAccept, onReject, accepted, newsGuard }:{ live:MarketData|null; liveSetup:any; onAccept:()=>void; onReject:()=>void; accepted:boolean; newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] } }) {
   // Primary source: real-time calcSetups opportunity
   const opp = liveSetup?.opportunity || 'none';
   const oppScore = liveSetup?.opportunityScore || 0;
@@ -1465,21 +1592,42 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
         <div style={{ flex:1 }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
             <span style={{ fontSize:20, fontWeight:800, color:col }}>{dir === 'NO_TRADE' ? 'המתן' : dir}</span>
-            {oppSweep && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{oppSweep.levelName}</span>}
-            {!oppSweep && sig?.setup && <span style={{ fontSize:10, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{sig.setup}</span>}
+            {oppSweep && <span style={{ fontSize:14, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{oppSweep.levelName}</span>}
+            {!oppSweep && sig?.setup && <span style={{ fontSize:14, padding:'2px 8px', borderRadius:10, background:col+'22', color:col }}>{sig.setup}</span>}
           </div>
-          <div style={{ fontSize:10, color:'#4a5568', marginBottom:6 }}>
+          <div style={{ fontSize:14, color:'#4a5568', marginBottom:6 }}>
             {opp !== 'none' ? `${oppScore}% תנאים | L ${longPct}% S ${shortPct}%` : `L ${longPct}% · S ${shortPct}%`}
           </div>
           <div style={{ height:4, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
             <div style={{ width:`${opp!=='none' ? oppScore : Math.max(longPct,shortPct)}%`, height:'100%', background:col, borderRadius:2 }} />
           </div>
+          {/* Forked eval result */}
+          {liveSetup?.setupEval && (
+            <div style={{ marginTop:4, fontSize:14, fontWeight:700, color: liveSetup.setupEval.pass ? G : '#f59e0b' }}>
+              {liveSetup.setupEval.pass ? '✓' : '✗'} {liveSetup.setupEval.eval_type === 'trend' ? 'TREND' : 'RANGE'}: {liveSetup.setupEval.reason}
+            </div>
+          )}
+          {/* News guard */}
+          {newsGuard && newsGuard.state !== 'CLEAR' && (
+            <div style={{ marginTop:4, padding:'4px 8px', borderRadius:4, fontSize:14, fontWeight:700,
+              background: newsGuard.state === 'PRE_NEWS_FREEZE' ? '#ef535022' : '#f59e0b22',
+              color: newsGuard.state === 'PRE_NEWS_FREEZE' ? R : Y,
+              border: `1px solid ${newsGuard.state === 'PRE_NEWS_FREEZE' ? '#ef535044' : '#f59e0b44'}` }}>
+              {newsGuard.state === 'PRE_NEWS_FREEZE' ? '⛔' : '⚡'} {newsGuard.state.replace(/_/g, ' ')}
+              {newsGuard.active_event && ` — ${newsGuard.active_event.title} @ ${newsGuard.active_event.time_et}`}
+            </div>
+          )}
+          {newsGuard && !newsGuard.available && (
+            <div style={{ marginTop:4, fontSize:14, color:'#f59e0b', fontWeight:700 }}>
+              ⚠ News guard unavailable
+            </div>
+          )}
         </div>
         {isActive && oppLevels && (
           <div style={{ textAlign:'right', flexShrink:0 }}>
-            <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>כניסה / סטופ</div>
+            <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>כניסה / סטופ</div>
             <div style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(oppLevels.entry||0).toFixed(2)}</div>
-            <div style={{ fontSize:11, fontWeight:700, color:R, fontFamily:'monospace' }}>{(oppLevels.stop||0).toFixed(2)}</div>
+            <div style={{ fontSize:14, fontWeight:700, color:R, fontFamily:'monospace' }}>{(oppLevels.stop||0).toFixed(2)}</div>
           </div>
         )}
       </div>
@@ -1495,13 +1643,13 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
               { label:'T3 · Runner', val:sig.target3, pct:sig.t3_win_rate??0, note:'Woodi R1' },
             ].map(({ label, val, pct, note }) => (
               <div key={label} style={{ background:'#0d1117', borderRadius:6, padding:'6px 8px', textAlign:'center', border:`1px solid ${col}22` }}>
-                <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{label}</div>
-                <div style={{ fontSize:12, fontWeight:700, color:col, fontFamily:'monospace' }}>{(val??0).toFixed(2)}</div>
-                <div style={{ fontSize:10, color:col, fontWeight:700 }}>{pct}%</div>
+                <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>{label}</div>
+                <div style={{ fontSize:14, fontWeight:700, color:col, fontFamily:'monospace' }}>{(val??0).toFixed(2)}</div>
+                <div style={{ fontSize:14, color:col, fontWeight:700 }}>{pct}%</div>
                 <div style={{ height:3, background:'#1e2738', borderRadius:2, marginTop:3, overflow:'hidden' }}>
                   <div style={{ width:`${pct}%`, height:'100%', background:col, borderRadius:2 }} />
                 </div>
-                <div style={{ fontSize:11, color:'#4a5568', marginTop:2 }}>{note}</div>
+                <div style={{ fontSize:14, color:'#4a5568', marginTop:2 }}>{note}</div>
               </div>
             ))}
           </div>
@@ -1509,12 +1657,12 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted }:{ live:Mark
           {/* כפתור ביטול בלבד — קבלה אוטומטית */}
           {accepted && (
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginTop:10, padding:'6px 10px', background:'#22c55e18', borderRadius:6, border:'1px solid #22c55e44' }}>
-              <span style={{ fontSize:11, color:G, fontWeight:700 }}>✓ סטאפ מקובע אוטומטית</span>
-              <button onClick={onReject} style={{ fontSize:10, padding:'3px 12px', borderRadius:4, background:'#ef535022', color:'#ef5350', border:'1px solid #ef535044', cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>לא מעניין ✗</button>
+              <span style={{ fontSize:14, color:G, fontWeight:700 }}>✓ סטאפ מקובע אוטומטית</span>
+              <button onClick={onReject} style={{ fontSize:14, padding:'3px 12px', borderRadius:4, background:'#ef535022', color:'#ef5350', border:'1px solid #ef535044', cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>לא מעניין ✗</button>
             </div>
           )}
           {!accepted && isActive && displayScore >= 7 && (
-            <div style={{ marginTop:10, padding:'6px 10px', background:'#f59e0b18', borderRadius:6, border:'1px solid #f59e0b44', fontSize:10, color:'#f59e0b', direction:'rtl' }}>
+            <div style={{ marginTop:10, padding:'6px 10px', background:'#f59e0b18', borderRadius:6, border:'1px solid #f59e0b44', fontSize:14, color:'#f59e0b', direction:'rtl' }}>
               ⏳ ממתין לאישור אוטומטי...
             </div>
           )}
@@ -1555,8 +1703,8 @@ function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
     return (
       <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
         <div style={{ padding:'8px 12px', borderBottom:'1px solid #1e2738', display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:9, color:'#4a5568', letterSpacing:1 }}>אזור כניסה — לפי שוק נוכחי</span>
-          <span style={{ fontSize:10, fontWeight:800, color:bCol, marginLeft:'auto' }}>{bias} {lPct>sPct?lPct:sPct}%</span>
+          <span style={{ fontSize:14, color:'#4a5568', letterSpacing:1 }}>אזור כניסה — לפי שוק נוכחי</span>
+          <span style={{ fontSize:14, fontWeight:800, color:bCol, marginLeft:'auto' }}>{bias} {lPct>sPct?lPct:sPct}%</span>
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:0 }}>
           {[
@@ -1565,9 +1713,9 @@ function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
             { l:'מחיר נוכחי', v:(live?.price??0).toFixed(2), c:'#f0f6fc', sub:'לחץ AI לכניסה' },
           ].map(({l,v,c,sub})=>(
             <div key={l} style={{ padding:'10px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
-              <div style={{ fontSize:9, color:'#4a5568', marginBottom:4 }}>{l}</div>
+              <div style={{ fontSize:14, color:'#4a5568', marginBottom:4 }}>{l}</div>
               <div style={{ fontSize:16, fontWeight:800, color:c, fontFamily:'monospace' }}>{v}</div>
-              <div style={{ fontSize:11, color:'#2d3a4a', marginTop:3 }}>{sub}</div>
+              <div style={{ fontSize:14, color:'#2d3a4a', marginTop:3 }}>{sub}</div>
             </div>
           ))}
         </div>
@@ -1578,8 +1726,8 @@ function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
               { l:'CVD מגמה', v:live.cvd?.trend??'—', c:live.cvd?.trend==='BULLISH'?G:live.cvd?.trend==='BEARISH'?R:Y, note:'' },
             ].map(({l,v,c,note})=>(
               <div key={l} style={{ padding:'6px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
-                <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{l}</div>
-                <div style={{ fontSize:11, fontWeight:700, color:c, fontFamily:'monospace' }}>{v} <span style={{fontSize:9,color:'#4a5568'}}>{note}</span></div>
+                <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>{l}</div>
+                <div style={{ fontSize:14, fontWeight:700, color:c, fontFamily:'monospace' }}>{v} <span style={{fontSize:14,color:'#4a5568'}}>{note}</span></div>
               </div>
             ))}
           </div>
@@ -1600,9 +1748,9 @@ function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
           { label:'T3·Runner', val:sig.target3, color:'#86efac', diff:true },
         ].map(({ label, val, color, diff }, i) => (
           <div key={label} style={{ padding:'8px 6px', textAlign:'center', borderRight:i<4?`1px solid ${acol}22`:'none', background: label==='ENTRY'?acol+'0f':'transparent' }}>
-            <div style={{ fontSize:9, color, marginBottom:3 }}>{label}</div>
-            <div style={{ fontSize:13, fontWeight:800, color, fontFamily:'monospace' }}>{val?.toFixed(2)??'—'}</div>
-            {diff && val && <div style={{ fontSize:9, color:'#4a5568' }}>+{(val-sig.entry).toFixed(2)}</div>}
+            <div style={{ fontSize:14, color, marginBottom:3 }}>{label}</div>
+            <div style={{ fontSize:14, fontWeight:800, color, fontFamily:'monospace' }}>{val?.toFixed(2)??'—'}</div>
+            {diff && val && <div style={{ fontSize:14, color:'#4a5568' }}>+{(val-sig.entry).toFixed(2)}</div>}
           </div>
         ))}
       </div>
@@ -1615,15 +1763,15 @@ function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
         ].map(({ label, status, desc, setter }) => (
           <div key={label} onClick={() => entered && setter(s => s==='open'?'hit':s==='hit'?'closed':'open')}
             style={{ padding:'6px 8px', textAlign:'center', borderRight:`1px solid ${acol}22`, cursor:entered?'pointer':'default' }}>
-            <div style={{ fontSize:11, fontWeight:700, color:entered?sCol(status):'#4a5568' }}>{label}</div>
-            <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{desc}</div>
-            {entered && <div style={{ fontSize:9, fontWeight:700, color:sCol(status) }}>{sTxt(status)}</div>}
+            <div style={{ fontSize:14, fontWeight:700, color:entered?sCol(status):'#4a5568' }}>{label}</div>
+            <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>{desc}</div>
+            {entered && <div style={{ fontSize:14, fontWeight:700, color:sCol(status) }}>{sTxt(status)}</div>}
           </div>
         ))}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', padding:6 }}>
           {!entered
-            ? <button onClick={() => setEntered(true)} style={{ padding:'4px 12px', borderRadius:6, fontSize:10, fontWeight:700, background:G, color:'#0d1117', border:'none', cursor:'pointer', fontFamily:'inherit' }}>נכנסתי ✓</button>
-            : <button onClick={() => { setEntered(false); setC1('open'); setC2('open'); setC3('open'); }} style={{ padding:'4px 10px', borderRadius:6, fontSize:10, background:'#1e2738', color:'#6b7280', border:'none', cursor:'pointer', fontFamily:'inherit' }}>אפס</button>
+            ? <button onClick={() => setEntered(true)} style={{ padding:'4px 12px', borderRadius:6, fontSize:14, fontWeight:700, background:G, color:'#0d1117', border:'none', cursor:'pointer', fontFamily:'inherit' }}>נכנסתי ✓</button>
+            : <button onClick={() => { setEntered(false); setC1('open'); setC2('open'); setC3('open'); }} style={{ padding:'4px 10px', borderRadius:6, fontSize:14, background:'#1e2738', color:'#6b7280', border:'none', cursor:'pointer', fontFamily:'inherit' }}>אפס</button>
           }
         </div>
       </div>
@@ -1778,7 +1926,7 @@ function AIChart({ candles, live, tf }:{ candles:Candle[]; live:MarketData|null;
       <canvas ref={cvs} height={400} style={{ width:'100%', display:'block', cursor:'crosshair' }}
         onMouseMove={onMove} onMouseLeave={()=>setHov(null)} />
       {hov&&(
-        <div style={{ position:'absolute', top:8, left:12, background:'#1a2233ee', border:'1px solid #2d3a4a', borderRadius:6, padding:'4px 10px', fontSize:10, color:'#94a3b8', fontFamily:'monospace', pointerEvents:'none' }}>
+        <div style={{ position:'absolute', top:8, left:12, background:'#1a2233ee', border:'1px solid #2d3a4a', borderRadius:6, padding:'4px 10px', fontSize:14, color:'#94a3b8', fontFamily:'monospace', pointerEvents:'none' }}>
           <span style={{color:'#60a5fa'}}>O</span> {(hov.o??0).toFixed(2)}&nbsp;
           <span style={{color:'#22c55e'}}>H</span> {(hov.h??0).toFixed(2)}&nbsp;
           <span style={{color:'#ef5350'}}>L</span> {(hov.l??0).toFixed(2)}&nbsp;
@@ -1808,7 +1956,7 @@ function VolumeTimer({ bar }:{ bar:Bar|null }) {
     <div style={{ borderTop:'1px solid #1e2738', padding:'8px 12px', display:'flex', flexDirection:'column', gap:6 }}>
       {/* Volume */}
       <div>
-        <div style={{ display:'flex', justifyContent:'space-between', fontSize:9, marginBottom:3 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:14, marginBottom:3 }}>
           <span style={{color:'#26a69a'}}>B {Math.round(buy).toLocaleString()}</span>
           <span style={{color:'#4a5568'}}>נפח</span>
           <span style={{color:'#ef5350'}}>S {Math.round(sell).toLocaleString()}</span>
@@ -1816,7 +1964,7 @@ function VolumeTimer({ bar }:{ bar:Bar|null }) {
         <div style={{ height:8, borderRadius:4, overflow:'hidden', display:'flex', background:'#ef5350' }}>
           <div style={{ width:`${buyPct}%`, background:'#26a69a', transition:'width .4s', borderRadius:'4px 0 0 4px' }} />
         </div>
-        <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, marginTop:3 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', fontSize:14, marginTop:3 }}>
           <span style={{color:'#4a5568'}}>Delta</span>
           <span style={{ color:isPos?'#26a69a':'#ef5350', fontFamily:'monospace', fontWeight:700 }}>
             {isPos?'+':''}{Math.round(delta).toLocaleString()} · {deltaLbl}
@@ -1825,11 +1973,11 @@ function VolumeTimer({ bar }:{ bar:Bar|null }) {
       </div>
       {/* Timer */}
       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <span style={{ fontSize:9, color:'#4a5568' }}>נר הבא</span>
+        <span style={{ fontSize:14, color:'#4a5568' }}>נר הבא</span>
         <div style={{ flex:1, height:3, background:'#1e2738', borderRadius:2, overflow:'hidden' }}>
           <div style={{ width:`${pct}%`, height:'100%', background:urgent?R:G, transition:'width 1s linear', borderRadius:2 }} />
         </div>
-        <span style={{ fontSize:11, fontFamily:'monospace', fontWeight:700, color:urgent?R:'#6b7280' }}>{mm}:{ss.toString().padStart(2,'0')}</span>
+        <span style={{ fontSize:14, fontFamily:'monospace', fontWeight:700, color:urgent?R:'#6b7280' }}>{mm}:{ss.toString().padStart(2,'0')}</span>
       </div>
     </div>
   );
@@ -1884,24 +2032,24 @@ function Indicators({ live }:{ live:MarketData|null }) {
     <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden', position:'relative' }}>
       {/* Tooltip */}
       {tip && (
-        <div style={{ position:'absolute', top:0, left:0, right:0, background:'#1a2233', borderBottom:'1px solid #2d3a4a', padding:'6px 10px', fontSize:10, color:'#94a3b8', lineHeight:1.5, direction:'rtl', textAlign:'right', zIndex:10 }}>
+        <div style={{ position:'absolute', top:0, left:0, right:0, background:'#1a2233', borderBottom:'1px solid #2d3a4a', padding:'6px 10px', fontSize:14, color:'#94a3b8', lineHeight:1.5, direction:'rtl', textAlign:'right', zIndex:10 }}>
           {TOOLTIPS[tip] || tip}
-          <button onClick={()=>setTip('')} style={{ float:'left', background:'none', border:'none', color:'#4a5568', cursor:'pointer', fontSize:12 }}>×</button>
+          <button onClick={()=>setTip('')} style={{ float:'left', background:'none', border:'none', color:'#4a5568', cursor:'pointer', fontSize:14 }}>×</button>
         </div>
       )}
       <div style={{ padding:'8px 10px', borderBottom:'1px solid #1e2738' }}>
-        <span style={{ fontSize:9, color:'#4a5568', letterSpacing:2 }}>אינדיקטורים ({rows.filter(r=>r.col===G).length}/{rows.length} ✓)</span>
+        <span style={{ fontSize:14, color:'#4a5568', letterSpacing:2 }}>אינדיקטורים ({rows.filter(r=>r.col===G).length}/{rows.length} ✓)</span>
       </div>
       <div style={{ padding:'4px 0' }}>
         {rows.map((r,i)=>(
           <div key={i}>
-            {r.cat && <div style={{ fontSize:11, color:'#2d3a4a', letterSpacing:1, padding:'4px 10px 2px' }}>{r.cat}</div>}
+            {r.cat && <div style={{ fontSize:14, color:'#2d3a4a', letterSpacing:1, padding:'4px 10px 2px' }}>{r.cat}</div>}
             <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', borderBottom:'1px solid #0d1117' }}>
               <MiniLight col={r.col} />
-              <span style={{ fontSize:10, color:'#6b7280', width:72, flexShrink:0 }}>{r.name}</span>
-              <span style={{ fontSize:10, color:r.col, fontFamily:'monospace', flex:1, fontWeight:600 }}>{r.val}</span>
-              <span style={{ fontSize:9, color:'#4a5568', direction:'rtl' }}>{r.note}</span>
-              <button onClick={()=>setTip(tip===r.name?'':r.name)} style={{ width:14, height:14, borderRadius:'50%', background:'#1e2738', border:'none', color:'#4a5568', fontSize:9, cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>?</button>
+              <span style={{ fontSize:14, color:'#6b7280', width:72, flexShrink:0 }}>{r.name}</span>
+              <span style={{ fontSize:14, color:r.col, fontFamily:'monospace', flex:1, fontWeight:600 }}>{r.val}</span>
+              <span style={{ fontSize:14, color:'#4a5568', direction:'rtl' }}>{r.note}</span>
+              <button onClick={()=>setTip(tip===r.name?'':r.name)} style={{ width:14, height:14, borderRadius:'50%', background:'#1e2738', border:'none', color:'#4a5568', fontSize:14, cursor:'pointer', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>?</button>
             </div>
           </div>
         ))}
@@ -1917,16 +2065,16 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
 }) {
   if (aiLoading) return (
     <div style={{ padding:20, textAlign:'center', color:'#7f77dd' }}>
-      <div style={{ fontSize:13, marginBottom:8 }}>⚡ Claude מנתח...</div>
-      <div style={{ fontSize:11, color:'#4a5568' }}>בודק נפח, מבנה ורמות</div>
+      <div style={{ fontSize:14, marginBottom:8 }}>⚡ Claude מנתח...</div>
+      <div style={{ fontSize:14, color:'#4a5568' }}>בודק נפח, מבנה ורמות</div>
     </div>
   );
   if (aiError && !signal) return (
     <div style={{ padding:16, textAlign:'center' }}>
-      <div style={{ fontSize:12, color:'#64748b', marginBottom:4 }}>AI לא זמין</div>
-      <div style={{ fontSize:10, color:'#4a5568', marginBottom:12 }}>המערכת ממשיכה לעבוד — ניתן לסחור ללא AI</div>
+      <div style={{ fontSize:14, color:'#64748b', marginBottom:4 }}>AI לא זמין</div>
+      <div style={{ fontSize:14, color:'#4a5568', marginBottom:12 }}>המערכת ממשיכה לעבוד — ניתן לסחור ללא AI</div>
       <button onClick={onAskAI} style={{
-        padding:'6px 16px', borderRadius:8, fontSize:11, fontWeight:700,
+        padding:'6px 16px', borderRadius:8, fontSize:14, fontWeight:700,
         background:'#1e2738', color:'#7f77dd', border:'1px solid #7f77dd44',
         cursor:'pointer', fontFamily:'inherit',
       }}>🔄 רענן</button>
@@ -1934,9 +2082,9 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
   );
   if (!signal) return (
     <div style={{ padding:16, textAlign:'center' }}>
-      <div style={{ fontSize:12, color:'#4a5568', marginBottom:12 }}>לחץ לניתוח AI מלא</div>
+      <div style={{ fontSize:14, color:'#4a5568', marginBottom:12 }}>לחץ לניתוח AI מלא</div>
       <button onClick={onAskAI} style={{
-        padding:'8px 20px', borderRadius:8, fontSize:12, fontWeight:700,
+        padding:'8px 20px', borderRadius:8, fontSize:14, fontWeight:700,
         background:'#7f77dd22', color:'#7f77dd', border:'1px solid #7f77dd44',
         cursor:'pointer', fontFamily:'inherit',
       }}>⚡ נתח</button>
@@ -1961,19 +2109,19 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
         borderBottom:'1px solid #1e2738',
       }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:10, color:'#7f77dd', fontWeight:700 }}>⚡ CLAUDE AI</span>
+          <span style={{ fontSize:14, color:'#7f77dd', fontWeight:700 }}>⚡ CLAUDE AI</span>
           <span style={{
-            fontSize:12, fontWeight:800, color:col,
+            fontSize:14, fontWeight:800, color:col,
             background:`${col}22`, padding:'2px 8px', borderRadius:6, border:`1px solid ${col}44`,
           }}>{dirLabel}</span>
           {signal.setup_name && (
-            <span style={{ fontSize:10, color:'#94a3b8', background:'#1e2738', padding:'2px 7px', borderRadius:5 }}>{signal.setup_name}</span>
+            <span style={{ fontSize:14, color:'#94a3b8', background:'#1e2738', padding:'2px 7px', borderRadius:5 }}>{signal.setup_name}</span>
           )}
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-          {signalTime && <span style={{ fontSize:10, color:'#4a5568' }}>{signalTime}</span>}
+          {signalTime && <span style={{ fontSize:14, color:'#4a5568' }}>{signalTime}</span>}
           <button onClick={onAskAI} style={{
-            padding:'2px 8px', borderRadius:5, fontSize:10, fontWeight:700,
+            padding:'2px 8px', borderRadius:5, fontSize:14, fontWeight:700,
             background:'#1e2738', color:'#6b7280', border:'1px solid #2d3a4a',
             cursor:'pointer', fontFamily:'inherit',
           }}>🔄</button>
@@ -1986,28 +2134,28 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
         borderBottom:'1px solid #1e2738',
       }}>
         <div style={{
-          fontSize:11, fontWeight:700, color:biasColor,
+          fontSize:14, fontWeight:700, color:biasColor,
           background:`${biasColor}22`, padding:'3px 10px', borderRadius:20, border:`1px solid ${biasColor}44`,
         }}>
           {signal.score >= 7 ? '🟢 Bias חיובי' : signal.score >= 4 ? '🟡 Bias ניטרלי' : '🔴 Bias שלילי'}
         </div>
-        <div style={{ fontSize:11, color:'#64748b' }}>ציון: <span style={{ color:biasColor, fontWeight:700 }}>{signal.score}/10</span></div>
-        <div style={{ fontSize:11, color:'#64748b' }}>ביטחון: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.confidence}%</span></div>
-        {signal.win_rate && <div style={{ fontSize:11, color:'#64748b' }}>Win: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.win_rate}%</span></div>}
+        <div style={{ fontSize:14, color:'#64748b' }}>ציון: <span style={{ color:biasColor, fontWeight:700 }}>{signal.score}/10</span></div>
+        <div style={{ fontSize:14, color:'#64748b' }}>ביטחון: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.confidence}%</span></div>
+        {signal.win_rate && <div style={{ fontSize:14, color:'#64748b' }}>Win: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.win_rate}%</span></div>}
       </div>
 
       {/* RATIONALE */}
       {signal.rationale && (
         <div style={{ background:'#0a0f1a', padding:'10px 12px', borderBottom:'1px solid #1e2738' }}>
-          <div style={{ fontSize:11, color:'#475569', marginBottom:6, fontWeight:600 }}>📋 ניתוח</div>
-          <div style={{ fontSize:12, color:'#cbd5e1', lineHeight:1.7, direction:'rtl' as const, textAlign:'right' }}>{signal.rationale}</div>
+          <div style={{ fontSize:14, color:'#475569', marginBottom:6, fontWeight:600 }}>📋 ניתוח</div>
+          <div style={{ fontSize:14, color:'#cbd5e1', lineHeight:1.7, direction:'rtl' as const, textAlign:'right' }}>{signal.rationale}</div>
         </div>
       )}
 
       {/* ENTRY GRID */}
       {signal.direction !== 'NO_TRADE' && (
         <div style={{ background:'#0a0f1a', padding:'10px 12px', borderBottom:'1px solid #1e2738' }}>
-          <div style={{ fontSize:11, color:'#475569', marginBottom:8, fontWeight:600 }}>🎯 פרמטרי כניסה</div>
+          <div style={{ fontSize:14, color:'#475569', marginBottom:8, fontWeight:600 }}>🎯 פרמטרי כניסה</div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6 }}>
             {[
               { label:'כניסה', value:signal.entry?.toFixed(2), color:col },
@@ -2018,8 +2166,8 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
               { label:'זמן T1', value:signal.time_estimate || '—', color:'#94a3b8' },
             ].map(item => (
               <div key={item.label} style={{ background:'#1e2738', borderRadius:6, padding:'6px 8px', minWidth:0 }}>
-                <div style={{ fontSize:10, color:'#475569', marginBottom:2 }}>{item.label}</div>
-                <div style={{ fontSize:13, fontWeight:700, color:item.color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{item.value || '—'}</div>
+                <div style={{ fontSize:14, color:'#475569', marginBottom:2 }}>{item.label}</div>
+                <div style={{ fontSize:14, fontWeight:700, color:item.color, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' as const }}>{item.value || '—'}</div>
               </div>
             ))}
           </div>
@@ -2029,7 +2177,7 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
       {/* LEVELS */}
       {(profile.vah || profile.val || profile.poc || vwap) ? (
         <div style={{ background:'#0a0f1a', padding:'10px 12px', borderBottom:'1px solid #1e2738' }}>
-          <div style={{ fontSize:11, color:'#475569', marginBottom:8, fontWeight:600 }}>📊 רמות קריטיות</div>
+          <div style={{ fontSize:14, color:'#475569', marginBottom:8, fontWeight:600 }}>📊 רמות קריטיות</div>
           <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
             {[
               { label:'VAH', value:profile.vah, color:'#3b82f6' },
@@ -2041,8 +2189,8 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
                 background:`${level.color}11`, border:`1px solid ${level.color}33`,
                 borderRadius:6, padding:'4px 10px', display:'flex', alignItems:'center', gap:6,
               }}>
-                <span style={{ fontSize:10, color:level.color, fontWeight:700 }}>{level.label}</span>
-                <span style={{ fontSize:12, color:'#e2e8f0', fontWeight:600 }}>{level.value?.toFixed(2)}</span>
+                <span style={{ fontSize:14, color:level.color, fontWeight:700 }}>{level.label}</span>
+                <span style={{ fontSize:14, color:'#e2e8f0', fontWeight:600 }}>{level.value?.toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -2052,16 +2200,16 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
       {/* WARNING */}
       {signal.warning && (
         <div style={{ background:'#1c110a', padding:'8px 12px', borderBottom:'1px solid #1e2738', borderLeft:'3px solid #f59e0b' }}>
-          <div style={{ fontSize:11, color:'#f59e0b', fontWeight:600, marginBottom:4 }}>⚠️ אזהרה</div>
-          <div style={{ fontSize:12, color:'#fbbf24', direction:'rtl' as const, lineHeight:1.6 }}>{signal.warning}</div>
+          <div style={{ fontSize:14, color:'#f59e0b', fontWeight:600, marginBottom:4 }}>⚠️ אזהרה</div>
+          <div style={{ fontSize:14, color:'#fbbf24', direction:'rtl' as const, lineHeight:1.6 }}>{signal.warning}</div>
         </div>
       )}
 
       {/* WAIT REASON */}
       {signal.wait_reason && (
         <div style={{ background:'#0a0f1a', padding:'8px 12px', borderRadius:'0 0 10px 10px' }}>
-          <div style={{ fontSize:11, color:'#475569', fontWeight:600, marginBottom:4 }}>⏳ מה חסר</div>
-          <div style={{ fontSize:12, color:'#64748b', direction:'rtl' as const, lineHeight:1.6 }}>{signal.wait_reason}</div>
+          <div style={{ fontSize:14, color:'#475569', fontWeight:600, marginBottom:4 }}>⏳ מה חסר</div>
+          <div style={{ fontSize:14, color:'#64748b', direction:'rtl' as const, lineHeight:1.6 }}>{signal.wait_reason}</div>
         </div>
       )}
 
@@ -2076,13 +2224,13 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
   const patterns = detectPatterns(candles);
   if(!patterns.length) return (
     <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'10px 14px' }}>
-      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:4 }}>זיהוי תבניות גרף</div>
-      <div style={{ fontSize:10, color:'#2d3a4a', direction:'rtl' }}>לא זוהו תבניות משמעותיות</div>
+      <div style={{ fontSize:14, color:'#4a5568', letterSpacing:2, marginBottom:4 }}>זיהוי תבניות גרף</div>
+      <div style={{ fontSize:14, color:'#2d3a4a', direction:'rtl' }}>לא זוהו תבניות משמעותיות</div>
     </div>
   );
   return (
     <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-      <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:8 }}>זיהוי תבניות — {patterns.length} נמצאו</div>
+      <div style={{ fontSize:14, color:'#4a5568', letterSpacing:2, marginBottom:8 }}>זיהוי תבניות — {patterns.length} נמצאו</div>
       <div style={{ display:'flex', flexDirection:'column', gap:5 }}>
         {patterns.map(p=>{
           const isSelected = selectedId===p.id;
@@ -2093,14 +2241,14 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
                 background:isSelected?p.col+'12':'transparent', cursor:'pointer', transition:'all .2s' }}>
               <div style={{ display:'flex', alignItems:'center', gap:7, marginBottom:4 }}>
                 <div style={{ width:7, height:7, borderRadius:'50%', background:p.col, boxShadow:isSelected?`0 0 6px ${p.col}`:'none' }} />
-                <span style={{ fontSize:11, fontWeight:700, color:p.col, flex:1 }}>{p.nameHeb}</span>
-                <span style={{ fontSize:10, fontWeight:700, color:dirCol }}>{p.direction==='long'?'▲ LONG':p.direction==='short'?'▼ SHORT':'↔'}</span>
-                <span style={{ fontSize:13, fontWeight:800, color:p.confidence>=70?p.col:'#f59e0b', fontFamily:'monospace' }}>{p.confidence}%</span>
+                <span style={{ fontSize:14, fontWeight:700, color:p.col, flex:1 }}>{p.nameHeb}</span>
+                <span style={{ fontSize:14, fontWeight:700, color:dirCol }}>{p.direction==='long'?'▲ LONG':p.direction==='short'?'▼ SHORT':'↔'}</span>
+                <span style={{ fontSize:14, fontWeight:800, color:p.confidence>=70?p.col:'#f59e0b', fontFamily:'monospace' }}>{p.confidence}%</span>
               </div>
               <div style={{ height:3, background:'#1e2738', borderRadius:2, marginBottom:5, overflow:'hidden' }}>
                 <div style={{ width:`${p.confidence}%`, height:'100%', background:p.col, borderRadius:2 }} />
               </div>
-              <div style={{ fontSize:9, color:'#6b7280', direction:'rtl', textAlign:'right' }}>{p.description}</div>
+              <div style={{ fontSize:14, color:'#6b7280', direction:'rtl', textAlign:'right' }}>{p.description}</div>
               {isSelected && p.breakoutLevel && (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:4, marginTop:6 }}>
                   {[
@@ -2109,8 +2257,8 @@ function PatternScanner({ candles, onSelect, selectedId }:{ candles:Candle[]; on
                     {l:'רמה',  v:(p.keyLevel||0).toFixed(2), c:p.col},
                   ].map(({l,v,c})=>(
                     <div key={l} style={{ background:'#0d1117', borderRadius:5, padding:'4px 6px', textAlign:'center' }}>
-                      <div style={{ fontSize:11, color:'#4a5568' }}>{l}</div>
-                      <div style={{ fontSize:10, fontWeight:700, color:c, fontFamily:'monospace' }}>{v}</div>
+                      <div style={{ fontSize:14, color:'#4a5568' }}>{l}</div>
+                      <div style={{ fontSize:14, fontWeight:700, color:c, fontFamily:'monospace' }}>{v}</div>
                     </div>
                   ))}
                 </div>
@@ -2238,15 +2386,15 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
             { label:'PnL', val:`${totalPnl>=0?'+':''}$${totalPnl.toFixed(0)}`, col:totalPnl>=0?G:R },
           ].map(s => (
             <div key={s.label} style={{ flex:1, background:'#111827', border:'1px solid #1e2738', borderRadius:7, padding:'6px 8px', textAlign:'center' }}>
-              <div style={{ fontSize:9, color:'#4a5568', marginBottom:2 }}>{s.label}</div>
-              <div style={{ fontSize:13, fontWeight:800, color:s.col, fontFamily:'monospace' }}>{s.val}</div>
+              <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>{s.label}</div>
+              <div style={{ fontSize:14, fontWeight:800, color:s.col, fontFamily:'monospace' }}>{s.val}</div>
             </div>
           ))}
         </div>
       )}
 
       {/* כפתור עסקה חדשה */}
-      <button onClick={() => setShowForm(!showForm)} style={{ background:showForm?'#1e2738':'#7f77dd22', border:'1px solid #7f77dd44', borderRadius:7, padding:'7px', color:'#a78bfa', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+      <button onClick={() => setShowForm(!showForm)} style={{ background:showForm?'#1e2738':'#7f77dd22', border:'1px solid #7f77dd44', borderRadius:7, padding:'7px', color:'#a78bfa', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
         {showForm ? '✕ סגור' : '+ עסקה חדשה'}
       </button>
 
@@ -2257,7 +2405,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
           <div style={{ display:'flex', gap:4 }}>
             {['LONG','SHORT'].map(s => (
               <button key={s} onClick={() => setForm(p => ({...p, side:s}))}
-                style={{ flex:1, padding:'5px', borderRadius:6, border:'none', cursor:'pointer', fontWeight:800, fontSize:11,
+                style={{ flex:1, padding:'5px', borderRadius:6, border:'none', cursor:'pointer', fontWeight:800, fontSize:14,
                   background: form.side===s ? (s==='LONG'?'#22c55e':'#ef5350') : '#1e2738',
                   color: form.side===s ? '#fff' : '#4a5568' }}>
                 {s==='LONG'?'▲ LONG':'▼ SHORT'}
@@ -2272,20 +2420,20 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
             { key:'t2',    label:'T2',    placeholder:'' },
           ].map(f => (
             <div key={f.key} style={{ display:'flex', alignItems:'center', gap:6 }}>
-              <span style={{ fontSize:10, color:'#6b7280', minWidth:36, textAlign:'right' }}>{f.label}</span>
+              <span style={{ fontSize:14, color:'#6b7280', minWidth:36, textAlign:'right' }}>{f.label}</span>
               <input value={(form as any)[f.key]} onChange={e => setForm(p => ({...p,[f.key]:e.target.value}))}
                 placeholder={f.placeholder}
-                style={{ flex:1, background:'#1e2738', border:'1px solid #2d3a4a', borderRadius:5, padding:'4px 8px', color:'#e2e8f0', fontSize:11, fontFamily:'monospace', outline:'none' }} />
+                style={{ flex:1, background:'#1e2738', border:'1px solid #2d3a4a', borderRadius:5, padding:'4px 8px', color:'#e2e8f0', fontSize:14, fontFamily:'monospace', outline:'none' }} />
             </div>
           ))}
           {/* Setup */}
           <select value={form.setup} onChange={e => setForm(p => ({...p,setup:e.target.value}))}
-            style={{ background:'#1e2738', border:'1px solid #2d3a4a', borderRadius:5, padding:'4px 8px', color:'#e2e8f0', fontSize:11, fontFamily:'inherit' }}>
+            style={{ background:'#1e2738', border:'1px solid #2d3a4a', borderRadius:5, padding:'4px 8px', color:'#e2e8f0', fontSize:14, fontFamily:'inherit' }}>
             <option value=''>בחר סטאפ</option>
             {['Liq Sweep','VWAP Pullback','IB Breakout','CCI Turbo','אחר'].map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <button onClick={saveTrade}
-            style={{ background:'#7f77dd', border:'none', borderRadius:6, padding:'7px', color:'#fff', fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+            style={{ background:'#7f77dd', border:'none', borderRadius:6, padding:'7px', color:'#fff', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
             ✓ שמור עסקה
           </button>
         </div>
@@ -2314,7 +2462,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
             {/* Header — PnL */}
             <div style={{ background:`${col}12`, padding:'8px 10px', borderBottom:`1px solid ${col}22` }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                <span style={{ fontSize:12, fontWeight:800, color:col }}>
+                <span style={{ fontSize:14, fontWeight:800, color:col }}>
                   {trade.side==='LONG'?'▲':'▼'} {trade.side} {trade.qty>1?`×${trade.qty}`:''} — {trade.setup||'Sierra'}
                 </span>
                 <span style={{ fontSize:14, fontWeight:800, color:pnlPts>=0?G:R, fontFamily:'monospace' }}>
@@ -2322,19 +2470,19 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
                 </span>
               </div>
               <div style={{ display:'flex', justifyContent:'space-between', marginTop:2 }}>
-                <span style={{ fontSize:10, color:'#6b7280', fontFamily:'monospace' }}>
+                <span style={{ fontSize:14, color:'#6b7280', fontFamily:'monospace' }}>
                   כניסה {entry.toFixed(2)} → {price.toFixed(2)}
                 </span>
-                <span style={{ fontSize:11, fontWeight:700, color:pnlUsd>=0?G:R, fontFamily:'monospace' }}>
+                <span style={{ fontSize:14, fontWeight:700, color:pnlUsd>=0?G:R, fontFamily:'monospace' }}>
                   {pnlUsd>=0?'+':''}${pnlUsd.toFixed(0)}
-                  {risk>0 && <span style={{color:'#6b7280',fontSize:9}}> ({rr>=0?'+':''}{rr.toFixed(1)}R)</span>}
+                  {risk>0 && <span style={{color:'#6b7280',fontSize:14}}> ({rr>=0?'+':''}{rr.toFixed(1)}R)</span>}
                 </span>
               </div>
             </div>
 
             {/* תוכנית יציאה */}
             <div style={{ padding:'8px 10px', borderBottom:'1px solid #1e2738' }}>
-              <div style={{ fontSize:9, color:'#4a5568', marginBottom:5 }}>תוכנית יציאה</div>
+              <div style={{ fontSize:14, color:'#4a5568', marginBottom:5 }}>תוכנית יציאה</div>
               <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
 
                 {/* סטופ */}
@@ -2342,14 +2490,14 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
                     background: stopNear ? '#ef535018' : '#0a0a0f',
                     border: `1px solid ${stopNear?'#ef5350':'#1e2738'}`, borderRadius:5, padding:'4px 8px' }}>
-                    <span style={{ fontSize:10, color:'#ef5350', fontWeight:700 }}>
+                    <span style={{ fontSize:14, color:'#ef5350', fontWeight:700 }}>
                       {stopNear ? '⚠ סטופ קרוב!' : '✕ סטופ'}
                     </span>
-                    <span style={{ fontSize:11, fontFamily:'monospace', color:'#ef5350', fontWeight:700 }}>{stop.toFixed(2)}</span>
-                    {risk > 0 && <span style={{ fontSize:9, color:'#4a5568' }}>−{risk.toFixed(2)}pt / −${(risk*5).toFixed(0)}</span>}
+                    <span style={{ fontSize:14, fontFamily:'monospace', color:'#ef5350', fontWeight:700 }}>{stop.toFixed(2)}</span>
+                    {risk > 0 && <span style={{ fontSize:14, color:'#4a5568' }}>−{risk.toFixed(2)}pt / −${(risk*5).toFixed(0)}</span>}
                   </div>
                 ) : (
-                  <div style={{ background:'#ef535011', border:'1px solid #ef535033', borderRadius:5, padding:'4px 8px', fontSize:10, color:'#ef5350' }}>
+                  <div style={{ background:'#ef535011', border:'1px solid #ef535033', borderRadius:5, padding:'4px 8px', fontSize:14, color:'#ef5350' }}>
                     ⚠ אין סטופ מוגדר!
                   </div>
                 )}
@@ -2359,9 +2507,9 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
                     background: price >= t1 && trade.side==='LONG' || price <= t1 && trade.side==='SHORT' ? '#22c55e18' : '#0a0a0f',
                     border:'1px solid #22c55e22', borderRadius:5, padding:'4px 8px' }}>
-                    <span style={{ fontSize:10, color:G, fontWeight:700 }}>⊕ T1 · C1</span>
-                    <span style={{ fontSize:11, fontFamily:'monospace', color:G, fontWeight:700 }}>{t1.toFixed(2)}</span>
-                    {risk > 0 && <span style={{ fontSize:9, color:'#4a5568' }}>+{risk.toFixed(2)}pt / +${(risk*5).toFixed(0)}</span>}
+                    <span style={{ fontSize:14, color:G, fontWeight:700 }}>⊕ T1 · C1</span>
+                    <span style={{ fontSize:14, fontFamily:'monospace', color:G, fontWeight:700 }}>{t1.toFixed(2)}</span>
+                    {risk > 0 && <span style={{ fontSize:14, color:'#4a5568' }}>+{risk.toFixed(2)}pt / +${(risk*5).toFixed(0)}</span>}
                   </div>
                 )}
 
@@ -2369,15 +2517,15 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
                 {t2 > 0 && (
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center',
                     background:'#0a0a0f', border:'1px solid #16a34a22', borderRadius:5, padding:'4px 8px' }}>
-                    <span style={{ fontSize:10, color:'#16a34a', fontWeight:700 }}>⊕ T2 · C2</span>
-                    <span style={{ fontSize:11, fontFamily:'monospace', color:'#16a34a', fontWeight:700 }}>{t2.toFixed(2)}</span>
-                    {risk > 0 && <span style={{ fontSize:9, color:'#4a5568' }}>+{(risk*2).toFixed(2)}pt / +${(risk*10).toFixed(0)}</span>}
+                    <span style={{ fontSize:14, color:'#16a34a', fontWeight:700 }}>⊕ T2 · C2</span>
+                    <span style={{ fontSize:14, fontFamily:'monospace', color:'#16a34a', fontWeight:700 }}>{t2.toFixed(2)}</span>
+                    {risk > 0 && <span style={{ fontSize:14, color:'#4a5568' }}>+{(risk*2).toFixed(2)}pt / +${(risk*10).toFixed(0)}</span>}
                   </div>
                 )}
 
                 {/* אם אין T1/T2 */}
                 {!t1 && !t2 && (
-                  <div style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:5, padding:'4px 8px', fontSize:10, color:Y }}>
+                  <div style={{ background:'#f59e0b11', border:'1px solid #f59e0b33', borderRadius:5, padding:'4px 8px', fontSize:14, color:Y }}>
                     ⚠ הגדר T1/T2 לניהול פוזיציה
                   </div>
                 )}
@@ -2388,22 +2536,22 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
             {ai && (
               <div style={{ padding:'7px 10px', background:`${aiCol}11`, borderBottom:`1px solid ${aiCol}22` }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:3 }}>
-                  <span style={{ fontSize:12, fontWeight:800, color:aiCol }}>{actionHeb[ai.action] || ai.action}</span>
-                  <span style={{ fontSize:10, color:'#6b7280' }}>ביטחון {ai.confidence}%</span>
+                  <span style={{ fontSize:14, fontWeight:800, color:aiCol }}>{actionHeb[ai.action] || ai.action}</span>
+                  <span style={{ fontSize:14, color:'#6b7280' }}>ביטחון {ai.confidence}%</span>
                 </div>
-                <div style={{ fontSize:10, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.5 }}>{ai.reason}</div>
-                {ai.urgency === 'HIGH' && <div style={{ marginTop:4, fontSize:9, color:'#ef5350', fontWeight:700 }}>⚠ דחוף</div>}
+                <div style={{ fontSize:14, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.5 }}>{ai.reason}</div>
+                {ai.urgency === 'HIGH' && <div style={{ marginTop:4, fontSize:14, color:'#ef5350', fontWeight:700 }}>⚠ דחוף</div>}
               </div>
             )}
 
             {/* Actions */}
             <div style={{ display:'flex', gap:4, padding:'7px 10px' }}>
               <button onClick={() => analyzeTradeAI(trade.id)} disabled={loading[trade.id]}
-                style={{ flex:1, background:'#7f77dd22', border:'1px solid #7f77dd44', borderRadius:5, padding:'5px', color:'#a78bfa', fontSize:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>
+                style={{ flex:1, background:'#7f77dd22', border:'1px solid #7f77dd44', borderRadius:5, padding:'5px', color:'#a78bfa', fontSize:14, cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>
                 {loading[trade.id] ? '...' : '🤖 AI'}
               </button>
               <button onClick={() => closeTrade(trade)}
-                style={{ flex:2, background:'#ef535022', border:'1px solid #ef535044', borderRadius:5, padding:'5px', color:'#ef5350', fontSize:10, cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>
+                style={{ flex:2, background:'#ef535022', border:'1px solid #ef535044', borderRadius:5, padding:'5px', color:'#ef5350', fontSize:14, cursor:'pointer', fontFamily:'inherit', fontWeight:700 }}>
                 סגור @ {price.toFixed(2)}
               </button>
             </div>
@@ -2414,7 +2562,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
       {/* עסקאות סגורות */}
       {closedTrades.length > 0 && (
         <>
-          <div style={{ fontSize:9, color:'#4a5568', padding:'4px 2px', borderTop:'1px solid #1e2738', marginTop:2 }}>היסטוריה</div>
+          <div style={{ fontSize:14, color:'#4a5568', padding:'4px 2px', borderTop:'1px solid #1e2738', marginTop:2 }}>היסטוריה</div>
           {closedTrades.slice(0, 10).map(trade => {
             const won = (trade.pnl_pts || 0) > 0;
             const col = won ? G : R;
@@ -2422,20 +2570,20 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
               <div key={trade.id} style={{ background:'#0d1117', border:`1px solid ${col}22`, borderRadius:7, padding:'8px 10px' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <span style={{ fontSize:10, color:trade.side==='LONG'?G:R, fontWeight:700 }}>{trade.side==='LONG'?'▲':'▼'}</span>
-                    <span style={{ fontSize:10, color:'#6b7280' }}>{trade.setup||'—'}</span>
-                    {trade.ctx?.day_type && <span style={{ fontSize:9, color:'#4a5568' }}>{trade.ctx.day_type}</span>}
+                    <span style={{ fontSize:14, color:trade.side==='LONG'?G:R, fontWeight:700 }}>{trade.side==='LONG'?'▲':'▼'}</span>
+                    <span style={{ fontSize:14, color:'#6b7280' }}>{trade.setup||'—'}</span>
+                    {trade.ctx?.day_type && <span style={{ fontSize:14, color:'#4a5568' }}>{trade.ctx.day_type}</span>}
                   </div>
                   <div style={{ textAlign:'right' }}>
-                    <span style={{ fontSize:12, fontWeight:800, color:col, fontFamily:'monospace' }}>
+                    <span style={{ fontSize:14, fontWeight:800, color:col, fontFamily:'monospace' }}>
                       {(trade.pnl_pts||0)>=0?'+':''}{(trade.pnl_pts||0).toFixed(2)}pt
                     </span>
-                    <span style={{ fontSize:10, color:col, fontFamily:'monospace', marginLeft:6 }}>
+                    <span style={{ fontSize:14, color:col, fontFamily:'monospace', marginLeft:6 }}>
                       {(trade.pnl_usd||0)>=0?'+':''}${(trade.pnl_usd||0).toFixed(0)}
                     </span>
                   </div>
                 </div>
-                <div style={{ display:'flex', gap:8, marginTop:3, fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>
+                <div style={{ display:'flex', gap:8, marginTop:3, fontSize:14, color:'#4a5568', fontFamily:'monospace' }}>
                   <span>{trade.entry_price} → {trade.exit_price}</span>
                   {trade.rr_planned>0 && <span>R:R {trade.rr_planned}</span>}
                 </div>
@@ -2446,10 +2594,10 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
       )}
 
       {trades.length === 0 && !showForm && sierraFills.length === 0 && (
-        <div style={{ padding:'20px 12px', textAlign:'center', color:'#4a5568', fontSize:11, direction:'rtl' }}>
+        <div style={{ padding:'20px 12px', textAlign:'center', color:'#4a5568', fontSize:14, direction:'rtl' }}>
           <div style={{ fontSize:24, marginBottom:8 }}>📒</div>
           <div>יומן מסחר ריק</div>
-          <div style={{ fontSize:9, marginTop:4, color:'#2d3a4a' }}>לחץ + לפתוח עסקה חדשה</div>
+          <div style={{ fontSize:14, marginTop:4, color:'#2d3a4a' }}>לחץ + לפתוח עסקה חדשה</div>
         </div>
       )}
 
@@ -2458,7 +2606,7 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
         <>
           <div
             onClick={() => setShowFills(p => !p)}
-            style={{ fontSize:9, color:'#60a5fa', padding:'4px 2px', borderTop:'1px solid #1e2738', marginTop:2, cursor:'pointer', display:'flex', justifyContent:'space-between' }}>
+            style={{ fontSize:14, color:'#60a5fa', padding:'4px 2px', borderTop:'1px solid #1e2738', marginTop:2, cursor:'pointer', display:'flex', justifyContent:'space-between' }}>
             <span>📡 פקודות Sierra ({sierraFills.length})</span>
             <span>{showFills ? '▲' : '▼'}</span>
           </div>
@@ -2470,17 +2618,17 @@ function TradeJournal({ live }:{ live:MarketData|null }) {
             return (
               <div key={i} style={{ background:'#0d1117', border:`1px solid ${col}33`, borderRadius:7, padding:'7px 10px', borderLeft:`3px solid ${col}` }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span style={{ fontSize:12, fontWeight:800, color:col }}>{isBuy?'▲ BUY':'▼ SELL'} {Math.abs(f.qty)}</span>
-                  <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>{ts} ET</span>
+                  <span style={{ fontSize:14, fontWeight:800, color:col }}>{isBuy?'▲ BUY':'▼ SELL'} {Math.abs(f.qty)}</span>
+                  <span style={{ fontSize:14, color:'#4a5568', fontFamily:'monospace' }}>{ts} ET</span>
                 </div>
                 <div style={{ display:'flex', justifyContent:'space-between', marginTop:3 }}>
-                  <span style={{ fontSize:11, fontFamily:'monospace', color:'#e2e8f0', fontWeight:700 }}>{f.price.toFixed(2)}</span>
-                  <span style={{ fontSize:10, fontWeight:700, color:pnl>=0?G:R, fontFamily:'monospace' }}>
+                  <span style={{ fontSize:14, fontFamily:'monospace', color:'#e2e8f0', fontWeight:700 }}>{f.price.toFixed(2)}</span>
+                  <span style={{ fontSize:14, fontWeight:700, color:pnl>=0?G:R, fontFamily:'monospace' }}>
                     {pnl>=0?'+':''}{(pnl*5).toFixed(0)}$
                   </span>
                 </div>
                 {f.pos !== undefined && f.pos !== 0 && (
-                  <div style={{ fontSize:9, color:'#4a5568', marginTop:2 }}>
+                  <div style={{ fontSize:14, color:'#4a5568', marginTop:2 }}>
                     פוז: {f.pos>0?`▲ ${f.pos}`:f.pos<0?`▼ ${Math.abs(f.pos)}`:'FLAT'}
                   </div>
                 )}
@@ -2535,27 +2683,27 @@ function TradeLogSection() {
     return (
       <div style={{ padding:'6px 8px', borderRadius:6, background: faded ? '#0d111733' : bg, border:`1px solid ${faded ? '#1e273844' : col+'22'}`,
         opacity: faded ? 0.5 : 1, marginBottom:3 }}>
-        <div style={{ display:'flex', gap:6, alignItems:'center', fontSize:10, marginBottom:3 }}>
+        <div style={{ display:'flex', gap:6, alignItems:'center', fontSize:14, marginBottom:3 }}>
           <span style={{ color:'#64748b' }}>{dateStr}{exitTime}</span>
           <span style={{ color: t.direction==='LONG'?'#22c55e':'#ef4444', fontWeight:800, padding:'1px 5px', borderRadius:3,
-            background: t.direction==='LONG'?'#14532d':'#450a0a', fontSize:9 }}>
+            background: t.direction==='LONG'?'#14532d':'#450a0a', fontSize:14 }}>
             {t.direction==='LONG'?'▲ LONG':'▼ SHORT'}
           </span>
           {t.setup_type && <span style={{ fontSize:8, color:'#7f77dd', background:'#7f77dd22', padding:'1px 4px', borderRadius:3 }}>{t.setup_type}</span>}
           {t.killzone && <span style={{ fontSize:8, color:'#f59e0b', background:'#f59e0b22', padding:'1px 4px', borderRadius:3 }}>{t.killzone}</span>}
           {t.day_type && <span style={{ fontSize:8, color:'#64748b' }}>{t.day_type}</span>}
         </div>
-        <div style={{ display:'flex', gap:8, fontSize:10, color:'#94a3b8', marginBottom:2 }}>
+        <div style={{ display:'flex', gap:8, fontSize:14, color:'#94a3b8', marginBottom:2 }}>
           <span>כניסה: {t.entry_price?.toFixed(2)}</span>
           <span>→</span>
           <span>יציאה: {t.exit_price?.toFixed(2)}</span>
           {t.duration_min != null && <span style={{ color:'#4a5568' }}>| {t.duration_min < 1 ? '<1' : Math.round(t.duration_min)}מ'</span>}
           {t.close_reason && <span style={{ color:'#4a5568' }}>| {t.close_reason}</span>}
         </div>
-        <div style={{ display:'flex', gap:10, fontSize:11, fontWeight:700 }}>
+        <div style={{ display:'flex', gap:10, fontSize:14, fontWeight:700 }}>
           <span style={{ color:col }}>{(t.pnl_pts||0)>=0?'+':''}{t.pnl_pts?.toFixed(2)}pt</span>
           <span style={{ color:col }}>{(t.pnl_usd||0)>=0?'+':''}${t.pnl_usd?.toFixed(0)}</span>
-          {t.rr_actual != null && <span style={{ color:'#f59e0b', fontSize:10 }}>R:R 1:{t.rr_actual.toFixed(1)}</span>}
+          {t.rr_actual != null && <span style={{ color:'#f59e0b', fontSize:14 }}>R:R 1:{t.rr_actual.toFixed(1)}</span>}
         </div>
       </div>
     );
@@ -2563,7 +2711,7 @@ function TradeLogSection() {
 
   return (
     <div style={{ borderTop:'1px solid #1e2738', marginTop:8, paddingTop:8 }}>
-      <div style={{ fontSize:10, fontWeight:700, color:'#94a3b8', marginBottom:6, display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:4 }}>
+      <div style={{ fontSize:14, fontWeight:700, color:'#94a3b8', marginBottom:6, display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:4 }}>
         <span>📋 עסקאות היום</span>
         {todayTrades.length > 0 && (
           <span style={{ color: totalPnl>=0?'#22c55e':'#ef4444' }}>
@@ -2572,11 +2720,11 @@ function TradeLogSection() {
         )}
       </div>
       {todayTrades.length === 0 ? (
-        <div style={{ fontSize:10, color:'#4a5568', textAlign:'center', padding:8 }}>אין עסקאות היום עדיין</div>
+        <div style={{ fontSize:14, color:'#4a5568', textAlign:'center', padding:8 }}>אין עסקאות היום עדיין</div>
       ) : (
         <>
           {todayTrades.map((t, i) => <TradeCard key={t.id||i} t={t} />)}
-          <div style={{ display:'flex', gap:10, fontSize:9, color:'#64748b', padding:'4px 8px', borderTop:'1px solid #1e2738', marginTop:4 }}>
+          <div style={{ display:'flex', gap:10, fontSize:14, color:'#64748b', padding:'4px 8px', borderTop:'1px solid #1e2738', marginTop:4 }}>
             <span>Win Rate: {wins.length}/{todayTrades.length} = {winRate}%</span>
             <span>ממוצע P&L: {avgPnl>=0?'+':''}{avgPnl.toFixed(2)}pt</span>
             {avgRR > 0 && <span>ממוצע R:R: 1:{avgRR.toFixed(1)}</span>}
@@ -2585,7 +2733,7 @@ function TradeLogSection() {
       )}
       {prevTrades.length > 0 && (
         <div style={{ marginTop:8 }}>
-          <div style={{ fontSize:9, color:'#4a5568', marginBottom:4 }}>ימים קודמים</div>
+          <div style={{ fontSize:14, color:'#4a5568', marginBottom:4 }}>ימים קודמים</div>
           {prevTrades.map((t, i) => <TradeCard key={t.id||`p${i}`} t={t} faded />)}
         </div>
       )}
@@ -2734,11 +2882,11 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
     const dist = isLong ? price - currentPrice : currentPrice - price;
     const hit = status === 'closed';
     return (
-      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '2px 0', opacity: hit ? 0.5 : 1 }}>
+      <div key={label} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, padding: '2px 0', opacity: hit ? 0.5 : 1 }}>
         <span style={{ color: '#6b7280' }}>{label}</span>
         <span style={{ color: '#fff', fontFamily: 'monospace' }}>{price.toFixed(2)}</span>
         <span style={{ color: dist > 0 ? '#22c55e' : '#ef5350', fontFamily: 'monospace' }}>{dist > 0 ? '+' : ''}{dist.toFixed(2)}</span>
-        <span style={{ color: hit ? '#22c55e' : '#6b7280', fontSize: 9 }}>{hit ? 'CLOSED' : 'OPEN'}</span>
+        <span style={{ color: hit ? '#22c55e' : '#6b7280', fontSize: 14 }}>{hit ? 'CLOSED' : 'OPEN'}</span>
       </div>
     );
   };
@@ -2748,31 +2896,31 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 800, color: dirCol }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: dirCol }}>
             {isLong ? '▲ LONG' : '▼ SHORT'}
           </span>
-          <span style={{ fontSize: 10, color: '#9ca3af' }}>{trade.setupType}</span>
+          <span style={{ fontSize: 14, color: '#9ca3af' }}>{trade.setupType}</span>
         </div>
-        <span style={{ fontSize: 9, color: '#6b7280', fontFamily: 'monospace' }}>{elapsed}m</span>
+        <span style={{ fontSize: 14, color: '#6b7280', fontFamily: 'monospace' }}>{elapsed}m</span>
       </div>
 
       {/* Entry + Stop + P&L */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 6, fontSize: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 6, fontSize: 14 }}>
         <div>
-          <div style={{ color: '#6b7280', fontSize: 9 }}>Entry</div>
+          <div style={{ color: '#6b7280', fontSize: 14 }}>Entry</div>
           <div style={{ color: '#fff', fontFamily: 'monospace', fontWeight: 700 }}>{trade.entryPrice.toFixed(2)}</div>
         </div>
         <div>
-          <div style={{ color: '#6b7280', fontSize: 9 }}>Stop ({stopSize.toFixed(1)}pt)</div>
+          <div style={{ color: '#6b7280', fontSize: 14 }}>Stop ({stopSize.toFixed(1)}pt)</div>
           <div style={{ color: '#ef5350', fontFamily: 'monospace' }}>{trade.stopPrice.toFixed(2)}</div>
-          <div style={{ color: distStop > 2 ? '#22c55e' : '#ef5350', fontSize: 9, fontFamily: 'monospace' }}>{distStop.toFixed(2)}pt away</div>
+          <div style={{ color: distStop > 2 ? '#22c55e' : '#ef5350', fontSize: 14, fontFamily: 'monospace' }}>{distStop.toFixed(2)}pt away</div>
         </div>
         <div>
-          <div style={{ color: '#6b7280', fontSize: 9 }}>P&L</div>
-          <div style={{ color: pnlPts >= 0 ? '#22c55e' : '#ef5350', fontFamily: 'monospace', fontWeight: 700, fontSize: 13 }}>
+          <div style={{ color: '#6b7280', fontSize: 14 }}>P&L</div>
+          <div style={{ color: pnlPts >= 0 ? '#22c55e' : '#ef5350', fontFamily: 'monospace', fontWeight: 700, fontSize: 14 }}>
             {pnlPts >= 0 ? '+' : ''}{pnlPts.toFixed(2)}pt
           </div>
-          <div style={{ color: pnlDollar >= 0 ? '#22c55e' : '#ef5350', fontSize: 9, fontFamily: 'monospace' }}>
+          <div style={{ color: pnlDollar >= 0 ? '#22c55e' : '#ef5350', fontSize: 14, fontFamily: 'monospace' }}>
             ${pnlDollar >= 0 ? '+' : ''}{pnlDollar}
           </div>
         </div>
@@ -2787,7 +2935,7 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
 
       {/* Health Score bar */}
       <div style={{ marginBottom: 6 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9, marginBottom: 2 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, marginBottom: 2 }}>
           <span style={{ color: '#6b7280' }}>Health</span>
           <span style={{ color: hCol, fontWeight: 700 }}>{trade.healthScore}</span>
         </div>
@@ -2799,15 +2947,15 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
       {/* Action buttons */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
         <button onClick={onScaleC1} disabled={trade.c1Status === 'closed'}
-          style={{ padding: '4px 0', fontSize: 10, fontWeight: 700, background: trade.c1Status === 'closed' ? '#1e2738' : '#1a3a2a', color: trade.c1Status === 'closed' ? '#4b5563' : '#22c55e', border: '1px solid #22c55e33', borderRadius: 4, cursor: trade.c1Status === 'closed' ? 'default' : 'pointer' }}>
+          style={{ padding: '4px 0', fontSize: 14, fontWeight: 700, background: trade.c1Status === 'closed' ? '#1e2738' : '#1a3a2a', color: trade.c1Status === 'closed' ? '#4b5563' : '#22c55e', border: '1px solid #22c55e33', borderRadius: 4, cursor: trade.c1Status === 'closed' ? 'default' : 'pointer' }}>
           Scale C1
         </button>
         <button onClick={onScaleC2} disabled={trade.c2Status === 'closed'}
-          style={{ padding: '4px 0', fontSize: 10, fontWeight: 700, background: trade.c2Status === 'closed' ? '#1e2738' : '#1a2a3a', color: trade.c2Status === 'closed' ? '#4b5563' : '#60a5fa', border: '1px solid #60a5fa33', borderRadius: 4, cursor: trade.c2Status === 'closed' ? 'default' : 'pointer' }}>
+          style={{ padding: '4px 0', fontSize: 14, fontWeight: 700, background: trade.c2Status === 'closed' ? '#1e2738' : '#1a2a3a', color: trade.c2Status === 'closed' ? '#4b5563' : '#60a5fa', border: '1px solid #60a5fa33', borderRadius: 4, cursor: trade.c2Status === 'closed' ? 'default' : 'pointer' }}>
           Scale C2
         </button>
         <button onClick={onCloseAll}
-          style={{ padding: '4px 0', fontSize: 10, fontWeight: 700, background: '#3a1a1a', color: '#ef5350', border: '1px solid #ef535033', borderRadius: 4, cursor: 'pointer' }}>
+          style={{ padding: '4px 0', fontSize: 14, fontWeight: 700, background: '#3a1a1a', color: '#ef5350', border: '1px solid #ef535033', borderRadius: 4, cursor: 'pointer' }}>
           Close All
         </button>
       </div>
@@ -2816,7 +2964,7 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
 }
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
@@ -2836,10 +2984,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             style={{ flex:1, padding:'7px 4px', border:'none', cursor:'pointer', fontFamily:'inherit',
               background: tab===t.id ? '#1e2738' : '#111827',
               borderBottom: tab===t.id ? '2px solid #7f77dd' : '2px solid transparent',
-              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:11, fontWeight:700,
+              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:14, fontWeight:700,
               display:'flex', flexDirection:'column', alignItems:'center', gap:1,
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-            <span style={{ fontSize:13 }}>{t.icon}</span>
+            <span style={{ fontSize:14 }}>{t.icon}</span>
             <span>{t.label}</span>
           </button>
         ))}
@@ -2856,6 +3004,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             accepted={accepted}
             onAccept={onAccept}
             onReject={onReject}
+            newsGuard={newsGuard}
           />
           <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} aiError={aiError} onAskAI={onAskAI} live={live} />
           <EntryZone live={live} signal={persistedSignal} />
@@ -2877,13 +3026,13 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     <div style={{ fontSize:20, fontWeight:700, color:col }}>
                       {isLong?'▲':'▼'} SWEEP {s.levelName} @ {(s.level||0).toFixed(2)}
                     </div>
-                    <div style={{ fontSize:11, color:'#6b7280' }}>
+                    <div style={{ fontSize:14, color:'#6b7280' }}>
                       {new Date(s.ts*1000).toLocaleTimeString('he-IL')} · {s.levelTouches} נגיעות · Wick {(s.sweepWick||0).toFixed(1)}pt
                     </div>
                   </div>
                   <div style={{ textAlign:'right' }}>
                     <div style={{ fontSize:24, fontWeight:900, color:s.score>=90?'#22c55e':s.score>=75?'#f59e0b':'#4a5568' }}>{s.score}/100</div>
-                    <div style={{ fontSize:10, color:s.confirmed?'#22c55e':'#f59e0b', fontWeight:700 }}>
+                    <div style={{ fontSize:14, color:s.confirmed?'#22c55e':'#f59e0b', fontWeight:700 }}>
                       {s.confirmed ? '✓ מאושר' : '⏳ ממתין'}
                     </div>
                   </div>
@@ -2897,7 +3046,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     { label:'אישור Δ', val: s.confirmDelta!=null ? `${s.confirmDelta>0?'+':''}${s.confirmDelta}` : '—', col: s.confirmed?'#22c55e':'#ef5350' },
                   ].map(x => (
                     <div key={x.label} style={{ background:'#0a0e1a', borderRadius:4, padding:'4px 8px', textAlign:'center', flex:1, minWidth:0, overflow:'hidden' }}>
-                      <div style={{ fontSize:12, color:'#4a5568' }}>{x.label}</div>
+                      <div style={{ fontSize:14, color:'#4a5568' }}>{x.label}</div>
                       <div style={{ fontSize:15, fontWeight:800, color:x.col, fontFamily:'monospace' }}>{x.val}</div>
                     </div>
                   ))}
@@ -2907,13 +3056,13 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
               <div style={{ padding:'12px 16px' }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
                   <div style={{ background:'#1e2738', borderRadius:6, padding:'8px 12px' }}>
-                    <div style={{ fontSize:10, color:'#94a3b8', marginBottom:2 }}>כניסה</div>
+                    <div style={{ fontSize:14, color:'#94a3b8', marginBottom:2 }}>כניסה</div>
                     <div style={{ fontSize:26, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(s.entry||0).toFixed(2)}</div>
                   </div>
                   <div style={{ background:'#1e2738', borderRadius:6, padding:'8px 12px' }}>
-                    <div style={{ fontSize:10, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
+                    <div style={{ fontSize:14, color:'#ef5350', marginBottom:2 }}>✕ סטופ</div>
                     <div style={{ fontSize:26, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{(s.stop||0).toFixed(2)}</div>
-                    <div style={{ fontSize:9, color:'#4a5568' }}>−{s.riskPts}pt / −${Math.round(s.riskPts*5*3)}</div>
+                    <div style={{ fontSize:14, color:'#4a5568' }}>−{s.riskPts}pt / −${Math.round(s.riskPts*5*3)}</div>
                   </div>
                 </div>
                 {/* C1 / C2 / C3 */}
@@ -2926,10 +3075,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     const pts = Math.abs(t.price - s.entry);
                     return (
                       <div key={t.label} style={{ background:`${t.col}11`, border:`1px solid ${t.col}33`, borderRadius:6, padding:'4px 5px', textAlign:'center' }}>
-                        <div style={{ fontSize:11, color:t.col, fontWeight:700 }}>{t.label}</div>
-                        <div style={{ fontSize:11, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
-                        <div style={{ fontSize:11, color:'#4a5568' }}>+{pts.toFixed(1)}pt +${Math.round(pts*5)}</div>
-                        <div style={{ fontSize:11, color:'#2d3a4a' }}>{t.desc}</div>
+                        <div style={{ fontSize:14, color:t.col, fontWeight:700 }}>{t.label}</div>
+                        <div style={{ fontSize:14, fontWeight:800, color:t.col, fontFamily:'monospace' }}>{t.price.toFixed(2)}</div>
+                        <div style={{ fontSize:14, color:'#4a5568' }}>+{pts.toFixed(1)}pt +${Math.round(pts*5)}</div>
+                        <div style={{ fontSize:14, color:'#2d3a4a' }}>{t.desc}</div>
                       </div>
                     );
                   })}
@@ -2937,7 +3086,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
               </div>
               {/* Time estimates */}
               {isActive && activeSetup.status === 'ACTIVE' && (
-                <div style={{ padding:'8px 14px', borderTop:'1px solid #1e2738', fontSize:9, color:'#6b7280' }}>
+                <div style={{ padding:'8px 14px', borderTop:'1px solid #1e2738', fontSize:14, color:'#6b7280' }}>
                   <div style={{ fontWeight:700, color:'#94a3b8', marginBottom:3 }}>זמן משוער:</div>
                   <div>C1 בעוד ~{activeSetup.t1EstBars} נרות ({activeSetup.t1EstBars*3}-{activeSetup.t1EstBars*6} דק')</div>
                   <div>C2 בעוד ~{activeSetup.t2EstBars} נרות ({activeSetup.t2EstBars*3}-{activeSetup.t2EstBars*6} דק')</div>
@@ -2954,15 +3103,15 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
               {/* Buttons */}
               <div style={{ padding:'6px 14px 10px', borderTop:'1px solid #1e2738', display:'flex', gap:6 }}>
                 {(!activeSetup || activeSetup.sweep?.id !== s.id) ? (
-                  <button onClick={()=>onActivateSweep(s)} style={{ flex:1, padding:'6px', border:'none', borderRadius:5, background:'#22c55e', color:'#0a0e1a', fontSize:11, fontWeight:800, cursor:'pointer' }}>
+                  <button onClick={()=>onActivateSweep(s)} style={{ flex:1, padding:'6px', border:'none', borderRadius:5, background:'#22c55e', color:'#0a0e1a', fontSize:14, fontWeight:800, cursor:'pointer' }}>
                     הפעל על הגרף
                   </button>
                 ) : (
-                  <button onClick={()=>onDeactivateSetup()} style={{ flex:1, padding:'6px', border:'1px solid #ef535066', borderRadius:5, background:'transparent', color:'#ef5350', fontSize:11, fontWeight:700, cursor:'pointer' }}>
+                  <button onClick={()=>onDeactivateSetup()} style={{ flex:1, padding:'6px', border:'1px solid #ef535066', borderRadius:5, background:'transparent', color:'#ef5350', fontSize:14, fontWeight:700, cursor:'pointer' }}>
                     הסר מהגרף
                   </button>
                 )}
-                <button onClick={()=>setSelectedSweep(null)} style={{ padding:'6px 12px', border:'1px solid #1e2738', borderRadius:5, background:'transparent', color:'#6b7280', fontSize:10, cursor:'pointer' }}>✕</button>
+                <button onClick={()=>setSelectedSweep(null)} style={{ padding:'6px 12px', border:'1px solid #1e2738', borderRadius:5, background:'transparent', color:'#6b7280', fontSize:14, cursor:'pointer' }}>✕</button>
               </div>
             </div>
             );
@@ -2971,7 +3120,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
           {/* Detected setups — accumulated */}
           {detectedSetups && detectedSetups.length > 0 && (
             <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-              <div style={{ fontSize:11, color:'#f6c90e', letterSpacing:2, marginBottom:6, fontWeight:700 }}>LIVE SETUPS ({detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').length})</div>
+              <div style={{ fontSize:14, color:'#f6c90e', letterSpacing:2, marginBottom:6, fontWeight:700 }}>LIVE SETUPS ({detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').length})</div>
               <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                 {detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').slice(0,15).map((s:DetectedSetup) => {
                   const isLong = s.dir === 'long';
@@ -2984,11 +3133,11 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                       style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 8px', borderRadius:5, cursor:'pointer',
                         border:`1px solid ${col}33`, background:`${col}08` }}>
                       <span style={{ fontSize:15, color:col, fontWeight:700 }}>{isLong?'▲':'▼'}</span>
-                      <span style={{ fontSize:13, color:col, fontWeight:700, minWidth:28 }}>{s.type.slice(0,3).toUpperCase()}</span>
+                      <span style={{ fontSize:14, color:col, fontWeight:700, minWidth:28 }}>{s.type.slice(0,3).toUpperCase()}</span>
                       <span style={{ fontSize:15, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{s.levelName}</span>
-                      <span style={{ fontSize:12, color:'#4a5568' }}>{time}</span>
-                      <span style={{ fontSize:13, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{(s.entry||0).toFixed(0)}</span>
-                      <span style={{ fontSize:11, fontWeight:800, color:statusCol, padding:'2px 6px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
+                      <span style={{ fontSize:14, color:'#4a5568' }}>{time}</span>
+                      <span style={{ fontSize:14, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{(s.entry||0).toFixed(0)}</span>
+                      <span style={{ fontSize:14, fontWeight:800, color:statusCol, padding:'2px 6px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
                         {statusIcon}
                       </span>
                       <span style={{ fontSize:15, fontWeight:800, color:col, fontFamily:'monospace' }}>{s.score}%</span>
@@ -3001,9 +3150,9 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
           {/* Sweep events list */}
           <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-            <div style={{ fontSize:11, color:'#4a5568', letterSpacing:2, marginBottom:6, fontWeight:700 }}>SWEEP EVENTS ({sweepEvents.length})</div>
+            <div style={{ fontSize:14, color:'#4a5568', letterSpacing:2, marginBottom:6, fontWeight:700 }}>SWEEP EVENTS ({sweepEvents.length})</div>
             {sweepEvents.length === 0 ? (
-              <div style={{ padding:'12px', textAlign:'center', color:'#2d3a4a', fontSize:10 }}>אין sweep events בהיסטוריה</div>
+              <div style={{ padding:'12px', textAlign:'center', color:'#2d3a4a', fontSize:14 }}>אין sweep events בהיסטוריה</div>
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
                 {sweepEvents.slice(0, 20).map((ev:SweepEvent) => {
@@ -3019,10 +3168,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                       }}>
                       <span style={{ fontSize:14, color:isLong?'#22c55e':'#ef5350', fontWeight:700 }}>{isLong?'▲':'▼'}</span>
                       <span style={{ fontSize:14, color:'#e2e8f0', fontWeight:600, minWidth:32 }}>{ev.levelName}</span>
-                      <span style={{ fontSize:13, color:ev.confirmed?'#22c55e':'#f59e0b' }}>{ev.confirmed?'✓':'⏳'}</span>
-                      <span style={{ fontSize:9, color:'#4a5568', flex:1 }}>{date} {time}</span>
-                      <span style={{ fontSize:9, color:'#4a5568', fontFamily:'monospace' }}>{ev.relVol}x</span>
-                      <span style={{ fontSize:11, fontWeight:800, color:ev.score>=90?'#22c55e':ev.score>=75?'#f59e0b':'#4a5568', fontFamily:'monospace', minWidth:28, textAlign:'right' }}>{ev.score}%</span>
+                      <span style={{ fontSize:14, color:ev.confirmed?'#22c55e':'#f59e0b' }}>{ev.confirmed?'✓':'⏳'}</span>
+                      <span style={{ fontSize:14, color:'#4a5568', flex:1 }}>{date} {time}</span>
+                      <span style={{ fontSize:14, color:'#4a5568', fontFamily:'monospace' }}>{ev.relVol}x</span>
+                      <span style={{ fontSize:14, fontWeight:800, color:ev.score>=90?'#22c55e':ev.score>=75?'#f59e0b':'#4a5568', fontFamily:'monospace', minWidth:28, textAlign:'right' }}>{ev.score}%</span>
                     </div>
                   );
                 })}
@@ -3033,10 +3182,10 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
           {/* Level touches */}
           {levelTouches.filter((lt:LevelTouch)=>lt.touches>=2).length > 0 && (
             <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-              <div style={{ fontSize:9, color:'#4a5568', letterSpacing:2, marginBottom:4 }}>LEVELS</div>
+              <div style={{ fontSize:14, color:'#4a5568', letterSpacing:2, marginBottom:4 }}>LEVELS</div>
               <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
                 {levelTouches.filter((lt:LevelTouch)=>lt.touches>=2).map((lt:LevelTouch) => (
-                  <span key={lt.name} style={{ fontSize:9, padding:'2px 6px', borderRadius:4, background:'#1e2738', color:'#94a3b8', fontFamily:'monospace' }}>
+                  <span key={lt.name} style={{ fontSize:14, padding:'2px 6px', borderRadius:4, background:'#1e2738', color:'#94a3b8', fontFamily:'monospace' }}>
                     {lt.name} {lt.price.toFixed(2)} <span style={{ color:'#f6c90e' }}>●{lt.touches}</span>
                   </span>
                 ))}
@@ -3052,8 +3201,8 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             selectedId={selectedPattern?.id}
           />
           {selectedPattern && (
-            <div style={{ padding:'8px 12px', background:'#0a1628', borderRadius:8, borderLeft:`3px solid ${selectedPattern.col}`, fontSize:10, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.7 }}>
-              <div style={{ fontSize:9, color:selectedPattern.col, marginBottom:3 }}>💡 אסטרטגיה</div>
+            <div style={{ padding:'8px 12px', background:'#0a1628', borderRadius:8, borderLeft:`3px solid ${selectedPattern.col}`, fontSize:14, color:'#94a3b8', direction:'rtl', textAlign:'right', lineHeight:1.7 }}>
+              <div style={{ fontSize:14, color:selectedPattern.col, marginBottom:3 }}>💡 אסטרטגיה</div>
               {selectedPattern.direction==='long'
                 ? 'כניסה על פריצת רמת ה-' + selectedPattern.nameHeb + '. סטופ מתחת לשפל התבנית. T1=R:R 1:1, T2=R:R 1:2.'
                 : 'כניסה על שבירת רמת ה-' + selectedPattern.nameHeb + '. סטופ מעל לשיא התבנית. T1=R:R 1:1, T2=R:R 1:2.'}
@@ -3074,7 +3223,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         )}
         {false && (
           <div style={{ padding:'12px 10px', display:'flex', flexDirection:'column', gap:16 }}>
-            <div style={{ fontSize:13, fontWeight:600, color:'#e2e8f0', textAlign:'center' }}>
+            <div style={{ fontSize:14, fontWeight:600, color:'#e2e8f0', textAlign:'center' }}>
               סוג יום — Market Profile OLD
             </div>
             {[
@@ -3103,16 +3252,16 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     </div>
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
-                        <span style={{ fontSize:12, fontWeight:700, color: isActive ? dt.color : '#94a3b8' }}>
+                        <span style={{ fontSize:14, fontWeight:700, color: isActive ? dt.color : '#94a3b8' }}>
                           {dt.labelHe}
                         </span>
                         {isActive && (
-                          <span style={{ fontSize:9, fontWeight:700, background:dt.color, color:'#000', borderRadius:4, padding:'1px 5px' }}>
+                          <span style={{ fontSize:14, fontWeight:700, background:dt.color, color:'#000', borderRadius:4, padding:'1px 5px' }}>
                             ✓ היום
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize:11, color:'#64748b', lineHeight:1.5, direction:'rtl' as const }}>
+                      <div style={{ fontSize:14, color:'#64748b', lineHeight:1.5, direction:'rtl' as const }}>
                         {dt.desc}
                       </div>
                     </div>
@@ -3135,24 +3284,24 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                             background:'#1e2738', borderRadius:6, padding:'5px 10px',
                             flex:'1 1 60px', minWidth:0, overflow:'hidden',
                           }}>
-                            <div style={{ fontSize:10, color:'#64748b', marginBottom:2 }}>{item.label}</div>
-                            <div style={{ fontSize:13, fontWeight:700, color:(item as any).color || '#e2e8f0', overflow:'hidden', minWidth:0 }}>
+                            <div style={{ fontSize:14, color:'#64748b', marginBottom:2 }}>{item.label}</div>
+                            <div style={{ fontSize:14, fontWeight:700, color:(item as any).color || '#e2e8f0', overflow:'hidden', minWidth:0 }}>
                               {item.value}
                             </div>
                           </div>
                         ))}
                       </div>
                       <div style={{ borderTop:'1px solid #1e2738', paddingTop:8 }}>
-                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6, fontWeight:600 }}>📋 כלל מסחר</div>
-                        <div style={{ fontSize:12, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeRule(dt.id)}</div>
+                        <div style={{ fontSize:14, color:'#94a3b8', marginBottom:6, fontWeight:600 }}>📋 כלל מסחר</div>
+                        <div style={{ fontSize:14, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeRule(dt.id)}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize:11, color:'#94a3b8', marginBottom:6, fontWeight:600 }}>🎯 מה לחפש</div>
-                        <div style={{ fontSize:12, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeLookFor(dt.id)}</div>
+                        <div style={{ fontSize:14, color:'#94a3b8', marginBottom:6, fontWeight:600 }}>🎯 מה לחפש</div>
+                        <div style={{ fontSize:14, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeLookFor(dt.id)}</div>
                       </div>
                       <div>
-                        <div style={{ fontSize:11, color:'#ef444499', marginBottom:6, fontWeight:600 }}>⚠️ מה להימנע</div>
-                        <div style={{ fontSize:12, color:'#94a3b8', lineHeight:1.6, direction:'rtl' as const, wordBreak:'keep-all' as const }}>{getDayTypeAvoid(dt.id)}</div>
+                        <div style={{ fontSize:14, color:'#ef444499', marginBottom:6, fontWeight:600 }}>⚠️ מה להימנע</div>
+                        <div style={{ fontSize:14, color:'#94a3b8', lineHeight:1.6, direction:'rtl' as const, wordBreak:'keep-all' as const }}>{getDayTypeAvoid(dt.id)}</div>
                       </div>
                     </div>
                   )}
@@ -3266,7 +3415,7 @@ function DayTypeTabContent({ live }: { live: MarketData | null }) {
                 <div style={{ flex:1 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <span style={{ fontSize:20, fontWeight:700, color: isActive ? dt.color : '#94a3b8' }}>{dt.labelHe}</span>
-                    {isActive && <span style={{ fontSize:11, fontWeight:700, background:dt.color, color:'#000', borderRadius:5, padding:'2px 8px' }}>▶ היום</span>}
+                    {isActive && <span style={{ fontSize:14, fontWeight:700, background:dt.color, color:'#000', borderRadius:5, padding:'2px 8px' }}>▶ היום</span>}
                   </div>
                   <div style={{ fontSize:14, color:'#64748b', lineHeight:1.5, direction:'rtl' as const, marginTop:2 }}>{dt.desc}</div>
                 </div>
@@ -3281,7 +3430,7 @@ function DayTypeTabContent({ live }: { live: MarketData | null }) {
                     { label:'שלב', value:(live as any)?.session?.phase || '—' },
                   ].map(item => (
                     <div key={item.label} style={{ background:'#1e2738', borderRadius:6, padding:'6px 12px', flex:'1 1 70px', minWidth:0 }}>
-                      <div style={{ fontSize:11, color:'#64748b', marginBottom:2 }}>{item.label}</div>
+                      <div style={{ fontSize:14, color:'#64748b', marginBottom:2 }}>{item.label}</div>
                       <div style={{ fontSize:22, fontWeight:700, color:(item as any).color || '#e2e8f0' }}>{item.value}</div>
                     </div>
                   ))}
@@ -3291,22 +3440,22 @@ function DayTypeTabContent({ live }: { live: MarketData | null }) {
               {isActive && (
                 <button onClick={() => setExpandedId(isExpanded ? null : dt.id)} style={{
                   marginTop:8, width:'100%', padding:'5px', border:'1px solid #1e2738', borderRadius:6,
-                  background:'transparent', color:'#64748b', fontSize:12, cursor:'pointer', fontFamily:'inherit',
+                  background:'transparent', color:'#64748b', fontSize:14, cursor:'pointer', fontFamily:'inherit',
                 }}>{isExpanded ? '▲ הסתר פרטים' : '▼ פרטים'}</button>
               )}
               {/* Expandable explanations */}
               {isActive && isExpanded && (
                 <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:8, borderTop:'1px solid #1e2738', paddingTop:8 }}>
                   <div>
-                    <div style={{ fontSize:12, color:'#94a3b8', marginBottom:4, fontWeight:600 }}>📋 כלל מסחר</div>
+                    <div style={{ fontSize:14, color:'#94a3b8', marginBottom:4, fontWeight:600 }}>📋 כלל מסחר</div>
                     <div style={{ fontSize:14, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeRule(dt.id)}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize:12, color:'#94a3b8', marginBottom:4, fontWeight:600 }}>🎯 מה לחפש</div>
+                    <div style={{ fontSize:14, color:'#94a3b8', marginBottom:4, fontWeight:600 }}>🎯 מה לחפש</div>
                     <div style={{ fontSize:14, color:'#cbd5e1', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeLookFor(dt.id)}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize:12, color:'#ef444499', marginBottom:4, fontWeight:600 }}>⚠️ מה להימנע</div>
+                    <div style={{ fontSize:14, color:'#ef444499', marginBottom:4, fontWeight:600 }}>⚠️ מה להימנע</div>
                     <div style={{ fontSize:14, color:'#94a3b8', lineHeight:1.6, direction:'rtl' as const }}>{getDayTypeAvoid(dt.id)}</div>
                   </div>
                 </div>
@@ -3339,23 +3488,23 @@ function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|
         {/* Day type pill */}
         <div style={{ display:'flex', alignItems:'center', gap:6, flex:1 }}>
           <div style={{ width:8, height:8, borderRadius:'50%', background:col, boxShadow:`0 0 5px ${col}` }} />
-          <span style={{ fontSize:12, fontWeight:800, color:col }}>{info?.heb || dtype}</span>
-          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
-          <span style={{ fontSize:9, color:'#6b7280' }}>IB {ibRange.toFixed(1)}pts</span>
-          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
-          <span style={{ fontSize:9, color:'#6b7280' }}>Ext ×{ext}</span>
-          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
-          <span style={{ fontSize:9, color: gap==='FLAT'?'#4a5568':'#f59e0b' }}>Gap {gap}</span>
-          <span style={{ fontSize:9, color:'#4a5568' }}>·</span>
-          <span style={{ fontSize:9, fontWeight:700, color: kzActive ? '#22c55e' : '#6b7280', fontFamily:'monospace' }}>
+          <span style={{ fontSize:14, fontWeight:800, color:col }}>{info?.heb || dtype}</span>
+          <span style={{ fontSize:14, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:14, color:'#6b7280' }}>IB {ibRange.toFixed(1)}pts</span>
+          <span style={{ fontSize:14, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:14, color:'#6b7280' }}>Ext ×{ext}</span>
+          <span style={{ fontSize:14, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:14, color: gap==='FLAT'?'#4a5568':'#f59e0b' }}>Gap {gap}</span>
+          <span style={{ fontSize:14, color:'#4a5568' }}>·</span>
+          <span style={{ fontSize:14, fontWeight:700, color: kzActive ? '#22c55e' : '#6b7280', fontFamily:'monospace' }}>
             {kzActive ? '🟢 ' : '⏱ '}{kzText}
           </span>
         </div>
         {/* Phase + min */}
-        <span style={{ fontSize:9, color:'#4a5568' }}>{phase} {min>0?`${min}m`:''}</span>
+        <span style={{ fontSize:14, color:'#4a5568' }}>{phase} {min>0?`${min}m`:''}</span>
         {/* Explain button */}
         <button onClick={onRequestExplanation} disabled={aiLoading} style={{
-          padding:'3px 10px', borderRadius:6, fontSize:9, fontWeight:700,
+          padding:'3px 10px', borderRadius:6, fontSize:14, fontWeight:700,
           background:'#7f77dd22', color:'#7f77dd', border:'1px solid #7f77dd44',
           cursor: aiLoading?'not-allowed':'pointer', fontFamily:'inherit'
         }}>
@@ -3363,7 +3512,7 @@ function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|
         </button>
       </div>
       {info?.desc && (
-        <div style={{ padding:'4px 12px 7px', fontSize:10, color:'#6b7280', direction:'rtl', textAlign:'right', borderTop:`1px solid ${col}22` }}>
+        <div style={{ padding:'4px 12px 7px', fontSize:14, color:'#6b7280', direction:'rtl', textAlign:'right', borderTop:`1px solid ${col}22` }}>
           {info.desc}
         </div>
       )}
@@ -3758,6 +3907,7 @@ export default function Dashboard() {
   const oppScore = liveSetup?.opportunityScore || 0;
   const oppLevels = liveSetup?.opportunityLevels;
   const oppSweep = liveSetup?.opportunitySweep;
+  const newsGuard = (live as any)?.news_guard as { state: string; available: boolean; active_event: any; events_today: number; events: any[] } | undefined;
 
   // Legacy compatibility
   const activeSetups = opportunity !== 'none' ? [{
@@ -3829,25 +3979,25 @@ export default function Dashboard() {
         {/* גרף — קבוע */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738'}}>
           <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:8,padding:'5px 12px',background:'#111827',borderBottom:'1px solid #1e2738',flexWrap:'wrap'}}>
-            <span style={{fontSize:9,color:'#4a5568',letterSpacing:2}}>גרף</span>
+            <span style={{fontSize:14,color:'#4a5568',letterSpacing:2}}>גרף</span>
             <div style={{display:'flex',gap:4,flex:1,flexWrap:'wrap'}}>
               {opportunity !== 'none' ? (
                 <div style={{display:'flex',alignItems:'center',gap:4,padding:'2px 10px',borderRadius:10,border:`1px solid ${setupCol}66`,background:`${setupCol}15`,maxWidth:200,overflow:'hidden'}}>
 
                   <div style={{width:8,height:8,borderRadius:'50%',background:setupCol,boxShadow:`0 0 6px ${setupCol}`}}/>
-                  <span style={{fontSize:10,fontWeight:800,color:setupCol}}>
+                  <span style={{fontSize:14,fontWeight:800,color:setupCol}}>
                     {opportunity==='long'?'🟢 LONG':'🔴 SHORT'}
                   </span>
-                  <span style={{fontSize:10,fontWeight:800,color:'#e2e8f0',fontFamily:'monospace'}}>{oppScore}%</span>
-                  {oppSweep && <span style={{fontSize:9,color:'#6b7280'}}>{oppSweep.levelName}</span>}
+                  <span style={{fontSize:14,fontWeight:800,color:'#e2e8f0',fontFamily:'monospace'}}>{oppScore}%</span>
+                  {oppSweep && <span style={{fontSize:14,color:'#6b7280'}}>{oppSweep.levelName}</span>}
                 </div>
               ) : (
-                <span style={{fontSize:9,color:'#2d3a4a'}}>⚫ אין הזדמנות</span>
+                <span style={{fontSize:14,color:'#2d3a4a'}}>⚫ אין הזדמנות</span>
               )}
             </div>
             <div style={{display:'flex',gap:3}}>
               {(['3m','5m','15m','30m','1h'] as const).map(t=>(
-                <button key={t} onClick={()=>setTf(t)} style={{padding:'2px 7px',borderRadius:4,fontSize:9,fontWeight:700,border:tf===t?'1px solid #a855f7':'1px solid transparent',cursor:'pointer',fontFamily:'inherit',background:tf===t?'#f6c90e':'#1e2738',color:tf===t?'#0d1117':'#6b7280'}}>{t.toUpperCase()}</button>
+                <button key={t} onClick={()=>setTf(t)} style={{padding:'2px 7px',borderRadius:4,fontSize:14,fontWeight:700,border:tf===t?'1px solid #a855f7':'1px solid transparent',cursor:'pointer',fontFamily:'inherit',background:tf===t?'#f6c90e':'#1e2738',color:tf===t?'#0d1117':'#6b7280'}}>{t.toUpperCase()}</button>
               ))}
             </div>
           </div>
@@ -3919,7 +4069,7 @@ export default function Dashboard() {
             {/* Setup overlay — badges + legend */}
             {selectedSetup&&setupLevels&&(
               <div style={{position:'absolute',top:8,left:8,background:'#0d1117dd',border:`1px solid ${setupCol}`,borderRadius:8,padding:'8px 12px',zIndex:20,pointerEvents:'none',minWidth:160}}>
-                <div style={{fontSize:10,fontWeight:800,color:setupCol,marginBottom:6}}>{selectedSetup.id} — {selectedSetup.dir==='long'?'▲ LONG':'▼ SHORT'}</div>
+                <div style={{fontSize:14,fontWeight:800,color:setupCol,marginBottom:6}}>{selectedSetup.id} — {selectedSetup.dir==='long'?'▲ LONG':'▼ SHORT'}</div>
                 {[
                   {n:'① הבחנה',v:setupLevels.detect,c:'#f6c90e'},
                   {n:'② בדיקה',v:setupLevels.verify,c:'#60a5fa'},
@@ -3929,7 +4079,7 @@ export default function Dashboard() {
                   {n:'⑥ T2·C2',v:setupLevels.t2,c:'#16a34a'},
                   {n:'⑦ T3·סטופ',v:setupLevels.t3stop,c:'#86efac'},
                 ].map(({n,v,c})=>(
-                  <div key={n} style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:10,marginBottom:2}}>
+                  <div key={n} style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:14,marginBottom:2}}>
                     <span style={{color:c,fontWeight:700}}>{n}</span>
                     <span style={{color:'#e2e8f0',fontFamily:'monospace'}}>{v.toFixed(2)}</span>
                   </div>
@@ -3940,10 +4090,10 @@ export default function Dashboard() {
               <div style={{position:'absolute',top:8,left:8,display:'flex',flexDirection:'column',gap:5,zIndex:20,pointerEvents:'none'}}>
                 <div style={{display:'flex',alignItems:'center',gap:6,padding:'5px 12px',borderRadius:8,border:`2px solid ${setupCol}`,background:'#0d1117ee'}}>
                   <div style={{width:9,height:9,borderRadius:'50%',background:setupCol,boxShadow:`0 0 8px ${setupCol}`}}/>
-                  <span style={{fontSize:12,fontWeight:900,color:setupCol}}>
+                  <span style={{fontSize:14,fontWeight:900,color:setupCol}}>
                     {opportunity==='long'?'▲ LONG':'▼ SHORT'} {oppScore}%
                   </span>
-                  <span style={{fontSize:10,color:'#94a3b8',fontFamily:'monospace'}}>
+                  <span style={{fontSize:14,color:'#94a3b8',fontFamily:'monospace'}}>
                     E:{(oppLevels.entry||0).toFixed(2)} S:{(oppLevels.stop||0).toFixed(2)}
                   </span>
                 </div>
@@ -3953,18 +4103,18 @@ export default function Dashboard() {
           {activeScannedPattern && (
             <div style={{flexShrink:0,borderTop:'1px solid #164e63',padding:'6px 10px',background:'#0a1a1f'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                <span style={{fontSize:9,fontFamily:'monospace',color:'#6b7280'}}>Pattern Scanner</span>
-                <span style={{fontSize:10,fontFamily:'monospace',fontWeight:700,color:activeScannedPattern.direction==='LONG'?'#00bcd4':'#e91e63'}}>
+                <span style={{fontSize:14,fontFamily:'monospace',color:'#6b7280'}}>Pattern Scanner</span>
+                <span style={{fontSize:14,fontFamily:'monospace',fontWeight:700,color:activeScannedPattern.direction==='LONG'?'#00bcd4':'#e91e63'}}>
                   {activeScannedPattern.direction==='LONG'?'▲':'▼'} {activeScannedPattern.label}
                 </span>
-                <span style={{fontSize:9,fontFamily:'monospace',color:'#f6c90e'}}>{activeScannedPattern.confidence}%</span>
+                <span style={{fontSize:14,fontFamily:'monospace',color:'#f6c90e'}}>{activeScannedPattern.confidence}%</span>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:4,fontSize:9,fontFamily:'monospace'}}>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:4,fontSize:14,fontFamily:'monospace'}}>
                 <div><span style={{color:'#6b7280'}}>Entry</span><br/><span style={{color:'#fff'}}>{activeScannedPattern.entry.toFixed(2)}</span></div>
                 <div><span style={{color:'#6b7280'}}>Stop</span><br/><span style={{color:'#e91e63'}}>{activeScannedPattern.stop.toFixed(2)}</span></div>
                 <div><span style={{color:'#6b7280'}}>T1</span><br/><span style={{color:'#00bcd4'}}>{activeScannedPattern.t1.toFixed(2)}</span></div>
               </div>
-              <button onClick={()=>setActiveScannedPattern(null)} style={{marginTop:4,fontSize:11,color:'#4b5563',background:'none',border:'none',cursor:'pointer',fontFamily:'monospace'}}>x close</button>
+              <button onClick={()=>setActiveScannedPattern(null)} style={{marginTop:4,fontSize:14,color:'#4b5563',background:'none',border:'none',cursor:'pointer',fontFamily:'monospace'}}>x close</button>
             </div>
           )}
           {/* D8: Active Trade Section */}
@@ -4037,6 +4187,7 @@ export default function Dashboard() {
           levelTouches={levelTouches}
           liveSetup={liveSetup}
           detectedSetups={detectedSetups}
+          newsGuard={newsGuard}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
           onReject={()=>{
             const sig=lockedSignal||live?.signal;
