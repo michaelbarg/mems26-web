@@ -14,7 +14,7 @@ MODE = os.getenv("MEMS26_MODE", "SIM").upper()
 # ── Circuit Breaker ──────────────────────────────────────────────────────────
 CB_SOFT_LIMIT  = 150 if MODE == "SIM" else 100   # $/day → 30-min lock
 CB_HARD_LIMIT  = 200                               # $/day → lock until next day
-CB_MAX_TRADES  = 50  if MODE == "SIM" else 10      # max trades/day
+CB_MAX_TRADES  = 3                                  # max trades/day (spec V6.1)
 CB_CONSEC_LOSSES = 2                                # consecutive losses → 30-min lock
 CB_LOCK_MIN    = 30                                 # lock duration in minutes
 
@@ -36,19 +36,21 @@ EOD_FLATTEN_TIME = "15:59"   # ET — auto-flatten if position open (CME mainten
 EOD_FLATTEN_ENABLED = True
 
 # ── Day Type Thresholds (ready for E3 calibration) ───────────────────────────
-# IB range (points) that separates day types
 DAY_TYPE_THRESHOLDS = {
     "NARROW_IB":    6.0,     # IB range < 6pt → potential TREND day
     "NORMAL_IB":   14.0,     # 6-14pt → NORMAL day
     "WIDE_IB":     14.0,     # > 14pt → VOLATILE / rotational
     "TREND_EXT":    1.5,     # extension > 1.5× IB → confirmed TREND
 }
+TREND_VWAP_PERCENT       = 70    # % of session price stayed on one side of VWAP → TREND
+TREND_IB_EXT             = 1.5   # extension > 1.5× IB → confirmed TREND
+ROTATIONAL_VWAP_CROSSES  = 3     # 3+ VWAP crosses → ROTATIONAL day
 
 # ── Killzone Windows (ET) ────────────────────────────────────────────────────
 KILLZONES = {
-    "LONDON":   ("02:00", "05:00"),    # London session overlap
-    "NY_OPEN":  ("08:30", "10:00"),     # NY Open (RTH)
-    "NY_CLOSE": ("13:30", "16:00"),     # NY Afternoon / Close
+    "LONDON":   ("03:00", "05:00"),    # London Open (V6.1 spec)
+    "NY_OPEN":  ("09:30", "10:30"),    # NY Open — IB formation (V6.1 spec)
+    "NY_CLOSE": ("15:00", "16:00"),    # NY Close — power hour (V6.1 spec)
 }
 
 # ── News Guard ───────────────────────────────────────────────────────────────

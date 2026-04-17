@@ -1445,7 +1445,7 @@ async def trade_health(request: Request):
 _MODE = os.getenv("MEMS26_MODE", "SIM").upper()
 CB_SOFT_LIMIT    = 150 if _MODE == "SIM" else 100   # $/day → lock 30 min
 CB_HARD_LIMIT    = 200                                # $/day → lock until next day
-CB_MAX_TRADES    = 50  if _MODE == "SIM" else 10      # max trades/day
+CB_MAX_TRADES    = 3                                    # max trades/day (V6.1 spec)
 CB_CONSEC_LOSSES = 2                                   # consecutive losses → lock 30 min
 CB_LOCK_MIN      = 30                                  # lock duration in minutes
 CONTRACTS        = 3   if _MODE == "SIM" else 1        # MES contracts per trade
@@ -1554,6 +1554,26 @@ async def trade_execute(request: Request):
         if not cb["allowed"]:
             raise HTTPException(status_code=403, detail=cb["reason"])
 
+        # Killzone enforcement — NO_TRADE outside windows (V6.1)
+        try:
+            from datetime import datetime as _dt, time as _tm
+            from zoneinfo import ZoneInfo as _ZI
+            _now_et = _dt.now(_ZI("America/New_York"))
+            _t = _now_et.hour * 60 + _now_et.minute
+            _KILLZONES = [
+                ("London",   3*60,        5*60),       # 03:00-05:00 ET
+                ("NY_Open",  9*60+30,     10*60+30),   # 09:30-10:30 ET
+                ("NY_Close", 15*60,       16*60),      # 15:00-16:00 ET
+            ]
+            _in_kz = any(start <= _t < end for _, start, end in _KILLZONES)
+            if not _in_kz:
+                raise HTTPException(status_code=403,
+                    detail=f"Outside killzone — current time {_now_et.strftime('%H:%M')} ET. Windows: London 03-05, NY Open 09:30-10:30, NY Close 15-16")
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.warning(f"Killzone check failed: {e} — proceeding")
+
         # News guard check — block during PRE_NEWS_FREEZE
         try:
             news_state = await redis_get_key("mems26:news:state")
@@ -1623,6 +1643,19 @@ async def trade_execute(request: Request):
         t2 = round(entry + risk * T2_RR, 2) if direction == "LONG" else round(entry - risk * T2_RR, 2)
         # t3 kept as-is if provided (Draw on Liquidity), otherwise = 0
 
+        # POST_NEWS tagging — tag trades within 60m of news event
+        news_tag = ""
+        try:
+            news_state = await redis_get_key("mems26:news:state")
+            if news_state and isinstance(news_state, dict):
+                ns = news_state.get("state", "")
+                if ns in ("POST_NEWS_OPPORTUNITY", "UNFREEZE"):
+                    news_tag = "POST_NEWS"
+                    ev = news_state.get("active_event", {})
+                    log.info(f"[NEWS] Trade tagged POST_NEWS — event: {ev.get('title', '?')}")
+        except Exception:
+            pass
+
         trade_id = f"T{int(time.time())}"
         trade = {
             "id": trade_id,
@@ -1641,6 +1674,8 @@ async def trade_execute(request: Request):
             "c3_status": "open",
             "pnl_pts": 0,
             "pnl_usd": 0,
+            "news_tag": news_tag,
+            "contracts": CONTRACTS,
         }
 
         log.info(f"[EXECUTE] step 1: writing trade status {trade_id}")

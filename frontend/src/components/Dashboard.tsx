@@ -429,40 +429,81 @@ function evaluate_range_setup(
   live: MarketData | null,
   candles: Candle[],
 ): SetupEvalResult {
-  // For NORMAL / VOLATILE days: requires macro sweep + FVG + footprint confirmation
+  // 3-Pillar evaluation for NORMAL / VOLATILE days (V6.1)
+  // All 3 pillars must PASS. Binary Pass/Fail.
   if (!hit || !live) return { pass: false, reason: 'No setup hit', eval_type: 'range' };
 
-  const bar = live.bar || {} as any;
   const of2 = (live as any).order_flow || {} as any;
+  const fp = (live as any).footprint_bools || {} as any;
   const L = dir === 'long';
 
-  // 1. Must be sweep or rejection at a key level (macro sweep)
-  if (hit.type !== 'sweep' && hit.type !== 'rejection') {
-    return { pass: false, reason: `Range requires sweep/rejection, got ${hit.type}`, eval_type: 'range' };
+  // ── PILLAR 1: ZONE — Macro Sweep of key level ──────────────────────
+  // Must be sweep with wick >= 1.5pt at macro level (PDH/PDL/ONH/ONL/IBH/IBL)
+  const macroLevels = ['PDH', 'PDL', 'ONH', 'ONL', 'IBH', 'IBL'];
+  if (hit.type !== 'sweep') {
+    return { pass: false, reason: 'P1 ZONE: Range requires sweep (not ' + hit.type + ')', eval_type: 'range' };
+  }
+  // Wick must be >= 1.5pt
+  const sweepWick = L
+    ? (Math.min(hit.bar.o, hit.bar.c) - hit.bar.l)
+    : (hit.bar.h - Math.max(hit.bar.o, hit.bar.c));
+  if (sweepWick < 1.5) {
+    return { pass: false, reason: `P1 ZONE: Sweep wick ${sweepWick.toFixed(1)}pt < 1.5pt min`, eval_type: 'range' };
+  }
+  // Middle of Nowhere reject — must be near a named level (not just dynamic)
+  if (!macroLevels.includes(hit.levelName) && !['VWAP', 'POC', 'VAH', 'VAL', 'SH', 'SL'].includes(hit.levelName)) {
+    return { pass: false, reason: 'P1 ZONE: Middle of Nowhere — no macro level', eval_type: 'range' };
   }
 
-  // 2. FVG check — look for a 3-candle gap in recent 10 candles
-  const recent = candles.slice(0, 10);
+  // ── PILLAR 2: PATTERN — MSS + FVG + RelVol + Stacked Imbalance ────
+  // MSS: swing break with volume
+  const recent20 = candles.slice(0, 20);
+  let hasMSS = false;
+  const price = live.price || 0;
+  if (L) {
+    const swingHighs = recent20.slice(2, 10).map(c => c.h);
+    const swingH = swingHighs.length > 0 ? Math.max(...swingHighs) : 0;
+    hasMSS = price > swingH && swingH > 0;
+  } else {
+    const swingLows = recent20.slice(2, 10).map(c => c.l);
+    const swingL = swingLows.length > 0 ? Math.min(...swingLows) : 999999;
+    hasMSS = price < swingL && swingL < 999999;
+  }
+  if (!hasMSS) return { pass: false, reason: 'P2 PATTERN: No MSS (swing break)', eval_type: 'range' };
+
+  // FVG: 0.5-4.0pt gap in last 10 candles
+  const recent10 = candles.slice(0, 10);
   let hasFVG = false;
-  for (let i = 0; i < recent.length - 2; i++) {
-    const c1 = recent[i], c3 = recent[i + 2];
+  for (let i = 0; i < recent10.length - 2; i++) {
+    const c1 = recent10[i], c3 = recent10[i + 2];
     if (L) {
-      // Bullish FVG: candle[i].low > candle[i+2].high (gap up)
       if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && (c1.l - c3.h) <= 4.0) { hasFVG = true; break; }
     } else {
-      // Bearish FVG: candle[i].high < candle[i+2].low (gap down)
       if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && (c3.l - c1.h) <= 4.0) { hasFVG = true; break; }
     }
   }
-  if (!hasFVG) return { pass: false, reason: 'No FVG in last 10 candles', eval_type: 'range' };
+  if (!hasFVG) return { pass: false, reason: 'P2 PATTERN: No FVG (0.5-4pt)', eval_type: 'range' };
 
-  // 3. Footprint confirmation — absorption or sweep signal from order flow
-  const footprintOk = L
-    ? (of2.absorption_bull || of2.liq_sweep_long)
-    : (of2.absorption_bear || of2.liq_sweep_short);
-  if (!footprintOk) return { pass: false, reason: 'No footprint confirmation', eval_type: 'range' };
+  // RelVol > 1.2 on MSS bar
+  if (hit.relVol <= 1.2) {
+    return { pass: false, reason: `P2 PATTERN: RelVol ${hit.relVol.toFixed(2)} <= 1.2`, eval_type: 'range' };
+  }
 
-  return { pass: true, reason: 'Range setup valid: sweep + FVG + footprint', eval_type: 'range' };
+  // Stacked Imbalance — 2+ levels at 250% (from C++ bools)
+  const stackedCount = fp.stacked_imbalance_count ?? (of2.imbalance_bull ?? 0) + (of2.imbalance_bear ?? 0);
+  if (stackedCount < 2) {
+    return { pass: false, reason: `P2 PATTERN: Stacked imbalance ${stackedCount} < 2`, eval_type: 'range' };
+  }
+
+  // ── PILLAR 3: FLOW — absorption_at_fvg + delta_confirmed_1m ───────
+  // Both are booleans from C++ via footprint_bools
+  const absorptionOk = fp.absorption_at_fvg ?? (L ? of2.absorption_bull : of2.absorption_bear) ?? false;
+  if (!absorptionOk) return { pass: false, reason: 'P3 FLOW: No absorption at FVG', eval_type: 'range' };
+
+  const deltaConfirmed = fp.delta_confirmed_1m ?? false;
+  if (!deltaConfirmed) return { pass: false, reason: 'P3 FLOW: No delta confirmation (1m)', eval_type: 'range' };
+
+  return { pass: true, reason: 'All 3 pillars PASS: ZONE + PATTERN + FLOW', eval_type: 'range' };
 }
 
 function evaluate_trend_setup(
@@ -471,59 +512,76 @@ function evaluate_trend_setup(
   live: MarketData | null,
   candles: Candle[],
 ): SetupEvalResult {
-  // For TREND days: pullback to VWAP/FVG + declining delta + continuation MSS (no sweep needed)
+  // 3-Pillar evaluation for TREND days (V6.1)
+  // All 3 pillars must PASS. No sweep required.
   if (!hit || !live) return { pass: false, reason: 'No setup hit', eval_type: 'trend' };
 
   const vwap = live.vwap || {} as any;
-  const bar = live.bar || {} as any;
+  const fp = (live as any).footprint_bools || {} as any;
   const price = live.price || 0;
   const L = dir === 'long';
 
-  // 1. Pullback to VWAP or FVG zone — price near VWAP (within 3pt)
+  // ── PILLAR 1: ZONE — Pullback to VWAP or FVG ─────────────────────
   const vwapDist = Math.abs(price - (vwap.value || 0));
   let hasPullback = vwapDist <= 3.0;
 
-  // Also check for FVG pullback if not near VWAP
   if (!hasPullback) {
     const recent = candles.slice(0, 10);
     for (let i = 0; i < recent.length - 2; i++) {
       const c1 = recent[i], c3 = recent[i + 2];
       if (L) {
-        const fvgMid = (c1.l + c3.h) / 2;
-        if (c1.l > c3.h && Math.abs(price - fvgMid) <= 2.0) { hasPullback = true; break; }
+        if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && Math.abs(price - (c1.l + c3.h) / 2) <= 2.0) { hasPullback = true; break; }
       } else {
-        const fvgMid = (c1.h + c3.l) / 2;
-        if (c1.h < c3.l && Math.abs(price - fvgMid) <= 2.0) { hasPullback = true; break; }
+        if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && Math.abs(price - (c1.h + c3.l) / 2) <= 2.0) { hasPullback = true; break; }
       }
     }
   }
-  if (!hasPullback) return { pass: false, reason: 'No pullback to VWAP/FVG', eval_type: 'trend' };
+  if (!hasPullback) return { pass: false, reason: 'P1 ZONE: No pullback to VWAP/FVG', eval_type: 'trend' };
 
-  // 2. Declining delta — counter-trend move losing steam
+  // ── PILLAR 2: PATTERN — Continuation MSS + FVG + RelVol > 1.2 ────
+  const recent20 = candles.slice(0, 20);
+  let hasMSS = false;
+  if (L) {
+    const swingHighs = recent20.slice(2, 10).map(c => c.h);
+    const swingH = swingHighs.length > 0 ? Math.max(...swingHighs) : 0;
+    hasMSS = price > swingH && swingH > 0;
+  } else {
+    const swingLows = recent20.slice(2, 10).map(c => c.l);
+    const swingL = swingLows.length > 0 ? Math.min(...swingLows) : 999999;
+    hasMSS = price < swingL && swingL < 999999;
+  }
+  if (!hasMSS) return { pass: false, reason: 'P2 PATTERN: No continuation MSS', eval_type: 'trend' };
+
+  // FVG check
+  const recent10 = candles.slice(0, 10);
+  let hasFVG = false;
+  for (let i = 0; i < recent10.length - 2; i++) {
+    const c1 = recent10[i], c3 = recent10[i + 2];
+    if (L) {
+      if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && (c1.l - c3.h) <= 4.0) { hasFVG = true; break; }
+    } else {
+      if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && (c3.l - c1.h) <= 4.0) { hasFVG = true; break; }
+    }
+  }
+  if (!hasFVG) return { pass: false, reason: 'P2 PATTERN: No FVG (0.5-4pt)', eval_type: 'trend' };
+
+  // RelVol > 1.2
+  if (hit.relVol <= 1.2) {
+    return { pass: false, reason: `P2 PATTERN: RelVol ${hit.relVol.toFixed(2)} <= 1.2`, eval_type: 'trend' };
+  }
+
+  // ── PILLAR 3: FLOW — Declining delta on pullback + delta_confirmed_1m ──
   const recent5 = candles.slice(0, 5);
   if (recent5.length >= 3) {
     const deltas = recent5.map(c => Math.abs(c.delta));
     const declining = deltas[0] < deltas[1] || deltas[1] < deltas[2];
-    if (!declining) return { pass: false, reason: 'Delta not declining on pullback', eval_type: 'trend' };
+    if (!declining) return { pass: false, reason: 'P3 FLOW: Delta not declining on pullback', eval_type: 'trend' };
   }
 
-  // 3. Continuation MSS — break of recent swing in trend direction
-  const recent20 = candles.slice(0, 20);
-  let hasMSS = false;
-  if (L) {
-    // Bullish MSS: current bar breaks above a recent swing high
-    const recentHighs = recent20.slice(2).map(c => c.h);
-    const swingHigh = recentHighs.length > 0 ? Math.max(...recentHighs.slice(0, 5)) : 0;
-    hasMSS = price > swingHigh && swingHigh > 0;
-  } else {
-    // Bearish MSS: current bar breaks below a recent swing low
-    const recentLows = recent20.slice(2).map(c => c.l);
-    const swingLow = recentLows.length > 0 ? Math.min(...recentLows.slice(0, 5)) : 999999;
-    hasMSS = price < swingLow && swingLow < 999999;
-  }
-  if (!hasMSS) return { pass: false, reason: 'No continuation MSS', eval_type: 'trend' };
+  const deltaConfirmed = fp.delta_confirmed_1m ?? false;
+  if (!deltaConfirmed) return { pass: false, reason: 'P3 FLOW: No delta confirmation (1m)', eval_type: 'trend' };
 
-  return { pass: true, reason: 'Trend setup valid: pullback + declining delta + MSS', eval_type: 'trend' };
+  return { pass: true, reason: 'All 3 pillars PASS: ZONE + PATTERN + FLOW', eval_type: 'trend' };
 }
 
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
