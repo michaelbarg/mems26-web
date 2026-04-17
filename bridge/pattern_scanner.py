@@ -1214,4 +1214,16 @@ def scan_patterns(candles: list, candles_5m: list = None, levels: dict = None,
         return MIN_STOP_PTS <= risk <= MAX_STOP_PTS
 
     validated = [r for r in actionable if valid_stop(r)]
-    return validated[:5]
+
+    # ── Price-past-entry invalidation: drop if price already past entry ──
+    def entry_still_valid(r: dict) -> bool:
+        entry = r.get("entry", 0)
+        direction = r.get("direction", "")
+        if direction == "LONG" and current_price > entry:
+            return False  # price already above entry
+        if direction == "SHORT" and current_price < entry:
+            return False  # price already below entry
+        return True
+
+    live_valid = [r for r in validated if entry_still_valid(r)]
+    return live_valid[:5]

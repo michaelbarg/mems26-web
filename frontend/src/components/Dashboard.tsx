@@ -3321,36 +3321,69 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             );
           })()}
 
-          {/* Detected setups — accumulated */}
-          {detectedSetups && detectedSetups.length > 0 && (
-            <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-              <div style={{ fontSize:14, color:'#f6c90e', letterSpacing:2, marginBottom:6, fontWeight:700 }}>LIVE SETUPS ({detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').length})</div>
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
-                {detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired').slice(0,15).map((s:DetectedSetup) => {
-                  const isLong = s.dir === 'long';
-                  const col = isLong ? G : R;
-                  const statusCol = s.status==='stopped'?R : s.status==='c1_hit'||s.status==='c2_hit'?G : s.status==='detected'?Y : '#4a5568';
-                  const statusIcon = s.status==='stopped'?'X' : s.status==='c1_hit'?'C1' : s.status==='c2_hit'?'C2' : s.status==='detected'?'!' : '?';
-                  const time = new Date(s.detectedAt * 1000).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
-                  return (
-                    <div key={s.id} onClick={() => setSelectedSweep(s as any)}
-                      style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 8px', borderRadius:5, cursor:'pointer',
-                        border:`1px solid ${col}33`, background:`${col}08` }}>
-                      <span style={{ fontSize:15, color:col, fontWeight:700 }}>{isLong?'▲':'▼'}</span>
-                      <span style={{ fontSize:14, color:col, fontWeight:700, minWidth:28 }}>{s.type.slice(0,3).toUpperCase()}</span>
-                      <span style={{ fontSize:15, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{s.levelName}</span>
-                      <span style={{ fontSize:14, color:'#4a5568' }}>{time}</span>
-                      <span style={{ fontSize:14, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{(s.entry||0).toFixed(0)}</span>
-                      <span style={{ fontSize:14, fontWeight:800, color:statusCol, padding:'2px 6px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
-                        {statusIcon}
-                      </span>
-                      <span style={{ fontSize:15, fontWeight:800, color:col, fontFamily:'monospace' }}>{s.score}%</span>
-                    </div>
-                  );
-                })}
+          {/* Detected setups — accumulated — always visible */}
+          {(() => {
+            const activeSetups = detectedSetups ? detectedSetups.filter((s:DetectedSetup)=>s.status!=='expired') : [];
+            const count = activeSetups.length;
+
+            // Build diagnosis when empty
+            let diagnosis = '';
+            if (count === 0 && liveSetup) {
+              const parts: string[] = [];
+              // Check killzone from live data
+              const etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+              const etNow = new Date(etStr);
+              const etMin = etNow.getHours() * 60 + etNow.getMinutes();
+              const inKz = (etMin>=180&&etMin<300)||(etMin>=570&&etMin<630)||(etMin>=900&&etMin<960);
+              if (!inKz) parts.push('Killzone OUTSIDE');
+              if (liveSetup.setupEval) {
+                const r = liveSetup.setupEval.reason;
+                if (r.includes('P1')) parts.push('Pillar 1 ZONE');
+                else if (r.includes('P2')) parts.push('Pillar 2 PATTERN');
+                else if (r.includes('P3')) parts.push('Pillar 3 FLOW');
+              } else if (liveSetup.opportunity === 'none') {
+                parts.push('No pattern detected (score < 60%)');
+              }
+              if (parts.length > 0) diagnosis = `Blocked by: ${parts.join(' + ')}`;
+            }
+
+            return (
+              <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
+                <div style={{ fontSize:14, color:'#f6c90e', letterSpacing:2, marginBottom:6, fontWeight:700 }}>LIVE SETUPS ({count})</div>
+                {count === 0 ? (
+                  <div>
+                    <div style={{ fontSize:13, color:Y, marginBottom:4 }}>No valid setup — waiting for 3-pillar match</div>
+                    {diagnosis && <div style={{ fontSize:12, color:'#4a5568', fontFamily:'monospace' }}>{diagnosis}</div>}
+                  </div>
+                ) : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+                    {activeSetups.slice(0,15).map((s:DetectedSetup) => {
+                      const isLong = s.dir === 'long';
+                      const col = isLong ? G : R;
+                      const statusCol = s.status==='stopped'?R : s.status==='c1_hit'||s.status==='c2_hit'?G : s.status==='detected'?Y : '#4a5568';
+                      const statusIcon = s.status==='stopped'?'X' : s.status==='c1_hit'?'C1' : s.status==='c2_hit'?'C2' : s.status==='detected'?'!' : '?';
+                      const time = new Date(s.detectedAt * 1000).toLocaleTimeString('he-IL', { hour:'2-digit', minute:'2-digit' });
+                      return (
+                        <div key={s.id} onClick={() => setSelectedSweep(s as any)}
+                          style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 8px', borderRadius:5, cursor:'pointer',
+                            border:`1px solid ${col}33`, background:`${col}08` }}>
+                          <span style={{ fontSize:15, color:col, fontWeight:700 }}>{isLong?'▲':'▼'}</span>
+                          <span style={{ fontSize:14, color:col, fontWeight:700, minWidth:28 }}>{s.type.slice(0,3).toUpperCase()}</span>
+                          <span style={{ fontSize:15, color:'#e2e8f0', fontWeight:600, minWidth:28 }}>{s.levelName}</span>
+                          <span style={{ fontSize:14, color:'#4a5568' }}>{time}</span>
+                          <span style={{ fontSize:14, color:'#4a5568', fontFamily:'monospace', flex:1 }}>E:{(s.entry||0).toFixed(0)}</span>
+                          <span style={{ fontSize:14, fontWeight:800, color:statusCol, padding:'2px 6px', borderRadius:3, background:`${statusCol}22`, border:`1px solid ${statusCol}33` }}>
+                            {statusIcon}
+                          </span>
+                          <span style={{ fontSize:15, fontWeight:800, color:col, fontFamily:'monospace' }}>{s.score}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Sweep events list */}
           <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
@@ -3913,7 +3946,15 @@ export default function Dashboard() {
         const res=await fetch(`${API_URL}/market/patterns`,{cache:'no-store'});
         const data=await res.json();
         const raw=data.patterns;
-        const ps=Array.isArray(raw)?raw.filter((p:any)=>{const r=Math.abs((p.entry||0)-(p.stop||0));return r>=3&&r<=8;}):[];
+        const curPrice=live?.price||0;
+        const ps=Array.isArray(raw)?raw.filter((p:any)=>{
+          const r=Math.abs((p.entry||0)-(p.stop||0));
+          if(r<3||r>8) return false;
+          // Invalidate if price already past entry
+          if(p.direction==='LONG'&&curPrice>p.entry) return false;
+          if(p.direction==='SHORT'&&curPrice<p.entry) return false;
+          return true;
+        }):[];
         setScannedPatterns(ps);
         if(ps.length>0 && ps[0].confidence>=70 && ps[0].pattern!==activeScannedPattern?.pattern){
           setActiveScannedPattern(ps[0]);
@@ -3924,6 +3965,14 @@ export default function Dashboard() {
     const pt=setInterval(fetchPatterns,30000);
     return()=>clearInterval(pt);
   },[systemOn]);
+
+  // ── Invalidate active pattern when price passes entry ──
+  useEffect(() => {
+    if (!activeScannedPattern || !live?.price) return;
+    const p = live.price;
+    if (activeScannedPattern.direction === 'LONG' && p > activeScannedPattern.entry) setActiveScannedPattern(null);
+    if (activeScannedPattern.direction === 'SHORT' && p < activeScannedPattern.entry) setActiveScannedPattern(null);
+  }, [live?.price, activeScannedPattern]);
 
   useEffect(() => {
     if (!systemOn) return;
