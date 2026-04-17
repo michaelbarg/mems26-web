@@ -960,6 +960,23 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
       : evaluate_range_setup(bestHit, bestDir, live, sortedForEval);
   }
 
+  // ── Building setups — expose raw hits for "BUILDING NOW" tracker ──
+  const buildingCandidates: { dir: 'long'|'short'; hit: SetupHit; score: number; levels: any; eval: SetupEvalResult | null }[] = [];
+  for (const side of ['long', 'short'] as const) {
+    const hit = side === 'long' ? longHit : shortHit;
+    const sc = side === 'long' ? longScore : shortScore;
+    const lv = side === 'long' ? longLevels : shortLevels;
+    if (hit && hit.type === 'sweep') {
+      let ev: SetupEvalResult | null = null;
+      try {
+        ev = isTrend
+          ? evaluate_trend_setup(hit, side, live, sortedForEval)
+          : evaluate_range_setup(hit, side, live, sortedForEval);
+      } catch {}
+      buildingCandidates.push({ dir: side, hit, score: sc, levels: lv, eval: ev });
+    }
+  }
+
   return {
     long: { checks: liqLong, score: longScore, sweep: longHit },
     short: { checks: liqShort, score: shortScore, sweep: shortHit },
@@ -969,6 +986,7 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
     opportunityLevels: bestLevels,
     setupEval,
     dayType,
+    buildingCandidates,
   };
 }
 
@@ -3149,6 +3167,107 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
 }
 
 // ── Bottom Trade Bar — persistent across all tabs ──────────────────────────
+// ── Building Setup interface ──────────────────────────────────────────────
+interface BuildingSetup {
+  id: string;
+  dir: 'long' | 'short';
+  levelName: string;
+  level: number;
+  type: string;
+  detectedAt: number;
+  expiresAt: number;          // detectedAt + 10 bars * 180s
+  p1Pass: boolean;
+  p1Detail: string;
+  p2Pass: boolean | null;     // null = not yet evaluated
+  p2Detail: string;
+  p3Pass: boolean | null;
+  p3Detail: string;
+  score: number;
+  exitReason?: string;        // reason for expiry/invalidation
+}
+
+// ── Building Now Section — shows setups as they form ──────────────────────
+function BuildingNowSection({ buildingSetups, expiredSetups }:{ buildingSetups: BuildingSetup[]; expiredSetups: BuildingSetup[] }) {
+  const active = buildingSetups.filter(s => !s.exitReason);
+  const pillarIcon = (pass: boolean | null) => pass === null ? '⏳' : pass ? '✅' : '❌';
+  const pillarBg = (pass: boolean | null) => pass === null ? '#1e273822' : pass ? '#22c55e11' : '#ef535011';
+  const pillarBorder = (pass: boolean | null) => pass === null ? '#2d3a4a' : pass ? '#22c55e44' : '#ef535044';
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
+      <div style={{ fontSize:12, color:'#f6c90e', letterSpacing:2, marginBottom:6, fontWeight:700 }}>BUILDING NOW ({active.length})</div>
+      {active.length === 0 ? (
+        <div style={{ fontSize:12, color:'#4a5568', padding:'4px 0' }}>No sweep detected — waiting for P1 ZONE trigger</div>
+      ) : (
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {active.map(s => {
+            const col = s.dir === 'long' ? '#22c55e' : '#ef5350';
+            const now = Date.now() / 1000;
+            const alive = Math.max(0, Math.floor(now - s.detectedAt));
+            const remaining = Math.max(0, Math.floor(s.expiresAt - now));
+            const allPass = s.p1Pass && s.p2Pass === true && s.p3Pass === true;
+            return (
+              <div key={s.id} style={{ background:'#0a0e1a', border:`1px solid ${col}33`, borderRadius:6, padding:'8px 10px' }}>
+                {/* Header */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:14, fontWeight:800, color:col }}>{s.dir==='long'?'▲':'▼'}</span>
+                    <span style={{ fontSize:12, fontWeight:700, color:col }}>{s.type.toUpperCase()}</span>
+                    <span style={{ fontSize:12, color:'#94a3b8' }}>{s.levelName} {s.level.toFixed(2)}</span>
+                  </div>
+                  <span style={{ fontSize:11, color: remaining < 120 ? '#ef5350' : '#4a5568', fontFamily:'monospace' }}>
+                    {remaining > 0 ? `expires ${formatTime(remaining)}` : 'expired'}
+                  </span>
+                </div>
+                {/* Pillar rows */}
+                {[
+                  { label: 'P1 ZONE', pass: s.p1Pass, detail: s.p1Detail },
+                  { label: 'P2 PATTERN', pass: s.p2Pass, detail: s.p2Detail },
+                  { label: 'P3 FLOW', pass: s.p3Pass, detail: s.p3Detail },
+                ].map(p => (
+                  <div key={p.label} style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 6px', marginBottom:2,
+                    background:pillarBg(p.pass), border:`1px solid ${pillarBorder(p.pass)}`, borderRadius:4 }}>
+                    <span style={{ fontSize:11 }}>{pillarIcon(p.pass)}</span>
+                    <span style={{ fontSize:11, fontWeight:700, color: p.pass===null?'#4a5568':p.pass?'#22c55e':'#ef5350', minWidth:60 }}>{p.label}</span>
+                    <span style={{ fontSize:10, color:'#94a3b8', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.detail}</span>
+                  </div>
+                ))}
+                {/* Footer */}
+                <div style={{ display:'flex', justifyContent:'space-between', marginTop:4, fontSize:10, color:'#4a5568' }}>
+                  <span>Alive: {formatTime(alive)}</span>
+                  <span>Score: {s.score}%</span>
+                  {allPass && <span style={{ color:'#22c55e', fontWeight:700 }}>READY</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {/* Expired feed — last 5 */}
+      {expiredSetups.length > 0 && (
+        <div style={{ marginTop:8, borderTop:'1px solid #1e2738', paddingTop:6 }}>
+          <div style={{ fontSize:10, color:'#4a5568', letterSpacing:1, marginBottom:4, fontWeight:700 }}>EXPIRED ({expiredSetups.length})</div>
+          {expiredSetups.slice(0, 5).map(s => {
+            const col = s.dir === 'long' ? '#22c55e44' : '#ef535044';
+            return (
+              <div key={s.id} style={{ fontSize:10, color:'#4a5568', padding:'2px 6px', marginBottom:1,
+                background:'#0a0e1a', border:`1px solid ${col}`, borderRadius:3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                {s.exitReason || 'Expired'} — {s.dir==='long'?'▲':'▼'} {s.levelName} {s.level.toFixed(0)}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup, onExecuteClick, checklistSetup }:{
   opportunity:string; oppLevels:any; oppSweep:any; oppScore:number;
   liveSetup:any; onExecuteClick:(setup:any)=>void; checklistSetup:any;
@@ -3240,7 +3359,7 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
 }
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
-function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard }:any) {
+function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard, buildingSetups, expiredBuildingSetups }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
@@ -3393,6 +3512,9 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             </div>
             );
           })()}
+
+          {/* Building Now — setups as they form */}
+          <BuildingNowSection buildingSetups={buildingSetups || []} expiredSetups={expiredBuildingSetups || []} />
 
           {/* Detected setups — accumulated — always visible */}
           {(() => {
@@ -3848,6 +3970,8 @@ export default function Dashboard() {
   const [selectedSweep,setSelectedSweep]=useState<SweepEvent|null>(null);
   const [activeSetup,setActiveSetup]=useState<ActiveSetup|null>(null);
   const [detectedSetups,setDetectedSetups]=useState<DetectedSetup[]>([]);
+  const [buildingSetups,setBuildingSetups]=useState<BuildingSetup[]>([]);
+  const [expiredBuildingSetups,setExpiredBuildingSetups]=useState<BuildingSetup[]>([]);
   const [selectedPattern,setSelectedPattern]=useState<PatternResult|null>(null);
   const [dayExplanation,setDayExplanation]=useState<string>('');
   const [dayLoading,setDayLoading]=useState(false);
@@ -4235,6 +4359,118 @@ export default function Dashboard() {
   const oppSweep = liveSetup?.opportunitySweep;
   const newsGuard = (live as any)?.news_guard as { state: string; available: boolean; active_event: any; events_today: number; events: any[] } | undefined;
 
+  // ── Building setup tracker — track setups as they form ──────
+  useEffect(() => {
+    if (!liveSetup?.buildingCandidates || !live?.price) return;
+    const now = Date.now() / 1000;
+    const EXPIRY_BARS = 10;
+    const EXPIRY_SEC = EXPIRY_BARS * CANDLE_SEC;
+    const price = live.price;
+
+    const candidates = liveSetup.buildingCandidates;
+
+    setBuildingSetups(prev => {
+      const updated = [...prev];
+      const newExpired: BuildingSetup[] = [];
+
+      // Add new candidates that aren't already tracked
+      for (const c of candidates) {
+        const id = `build-${c.dir}-${c.hit.levelName}-${Math.floor(now / 300)}`;
+        if (updated.some(s => s.id === id)) continue;
+        // Also skip if too similar to existing
+        if (updated.some(s => s.dir === c.dir && s.levelName === c.hit.levelName && Math.abs(s.level - c.hit.level) < 2)) continue;
+
+        const evalReason = c.eval?.reason || '';
+        const p1Pass = c.hit.type === 'sweep';
+        const p2Pass = c.eval ? (!evalReason.includes('P2') && !evalReason.includes('No MSS') && !evalReason.includes('No FVG') && !evalReason.includes('RelVol') && !evalReason.includes('Stacked') ? true : evalReason.includes('P3') || evalReason.includes('FLOW') ? true : false) : null;
+        const p3Pass = c.eval ? (c.eval.pass ? true : evalReason.includes('P3') || evalReason.includes('FLOW') ? false : null) : null;
+
+        // Build P2 detail
+        const fp = (live as any)?.footprint_bools || {};
+        const of2 = live.order_flow || {} as any;
+        const relVol = c.hit.relVol;
+        const stackedCount = fp.stacked_imbalance_count ?? 0;
+        const stackedDir = fp.stacked_imbalance_dir ?? '';
+        const p2Detail = `MSS: ${!evalReason.includes('No MSS')?'✓':'waiting'} | FVG: ${!evalReason.includes('No FVG')?'ready':'waiting'} | RelVol: ${relVol.toFixed(2)}${relVol>1.2?'✓':'✗'} | Stacked: ${stackedCount}${stackedCount>=2?'✓ '+stackedDir:'✗'}`;
+
+        const absorptionOk = fp.absorption_at_fvg ?? of2.absorption_bull ?? false;
+        const deltaConfirmed = fp.delta_confirmed_1m ?? false;
+        const p3Detail = `Absorption: ${absorptionOk?'✓':'✗'} | Delta 1m: ${deltaConfirmed?'✓':'✗'}`;
+
+        updated.push({
+          id,
+          dir: c.dir,
+          levelName: c.hit.levelName,
+          level: c.hit.level,
+          type: c.hit.type,
+          detectedAt: now,
+          expiresAt: now + EXPIRY_SEC,
+          p1Pass,
+          p1Detail: `Sweep @ ${c.hit.levelName} ${c.hit.level.toFixed(2)}`,
+          p2Pass,
+          p2Detail,
+          p3Pass,
+          p3Detail,
+          score: c.score,
+        });
+      }
+
+      // Update existing: check expiry + price invalidation
+      const stillActive: BuildingSetup[] = [];
+      for (const s of updated) {
+        if (s.exitReason) { newExpired.push(s); continue; }
+        // Expiry
+        if (now > s.expiresAt) {
+          newExpired.push({ ...s, exitReason: `⌛ Expired: Sweep aged out (${EXPIRY_BARS} bars)` });
+          continue;
+        }
+        // Price passed entry — need levels from candidates
+        const matchingCandidate = candidates.find(c => c.dir === s.dir && c.hit.levelName === s.levelName);
+        if (matchingCandidate?.levels) {
+          const entry = matchingCandidate.levels.entry;
+          if (s.dir === 'long' && price > entry) {
+            newExpired.push({ ...s, exitReason: '📈 Price passed entry before completion' });
+            continue;
+          }
+          if (s.dir === 'short' && price < entry) {
+            newExpired.push({ ...s, exitReason: '📉 Price passed entry before completion' });
+            continue;
+          }
+        }
+        // Promoted to LIVE — check if all 3 pillars pass
+        if (s.p1Pass && s.p2Pass === true && s.p3Pass === true) {
+          newExpired.push({ ...s, exitReason: '✅ Promoted to LIVE SETUPS' });
+          continue;
+        }
+
+        // Update pillar status from current candidate data
+        if (matchingCandidate?.eval) {
+          const evalReason = matchingCandidate.eval.reason || '';
+          const fp = (live as any)?.footprint_bools || {};
+          const of2 = live.order_flow || {} as any;
+          const relVol = matchingCandidate.hit.relVol;
+          const stackedCount = fp.stacked_imbalance_count ?? 0;
+          const stackedDir = fp.stacked_imbalance_dir ?? '';
+          s.p2Pass = !evalReason.includes('P2') && !evalReason.includes('No MSS') && !evalReason.includes('No FVG') && !evalReason.includes('RelVol') && !evalReason.includes('Stacked') ? true : evalReason.includes('P3') || evalReason.includes('FLOW') ? true : false;
+          s.p2Detail = `MSS: ${!evalReason.includes('No MSS')?'✓':'waiting'} | FVG: ${!evalReason.includes('No FVG')?'ready':'waiting'} | RelVol: ${relVol.toFixed(2)}${relVol>1.2?'✓':'✗'} | Stacked: ${stackedCount}${stackedCount>=2?'✓ '+stackedDir:'✗'}`;
+          const absorptionOk = fp.absorption_at_fvg ?? of2.absorption_bull ?? false;
+          const deltaConfirmed = fp.delta_confirmed_1m ?? false;
+          s.p3Pass = matchingCandidate.eval.pass ? true : evalReason.includes('P3') || evalReason.includes('FLOW') ? false : null;
+          s.p3Detail = `Absorption: ${absorptionOk?'✓':'✗'} | Delta 1m: ${deltaConfirmed?'✓':'✗'}`;
+          s.score = matchingCandidate.score;
+        }
+
+        stillActive.push(s);
+      }
+
+      if (newExpired.length > 0) {
+        setExpiredBuildingSetups(prev => [...newExpired.filter(e => e.exitReason !== '✅ Promoted to LIVE SETUPS'), ...prev].slice(0, 10));
+      }
+
+      return stillActive.slice(0, 10);
+    });
+  }, [live?.price, liveSetup?.buildingCandidates]);
+
   // Legacy compatibility
   const activeSetups = opportunity !== 'none' ? [{
     name: 'Liq Sweep', dir: opportunity as 'long'|'short', col: opportunity === 'long' ? '#22c55e' : '#ef5350',
@@ -4518,6 +4754,8 @@ export default function Dashboard() {
           liveSetup={liveSetup}
           detectedSetups={detectedSetups}
           newsGuard={newsGuard}
+          buildingSetups={buildingSetups}
+          expiredBuildingSetups={expiredBuildingSetups}
           onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
           onReject={()=>{
             const sig=lockedSignal||live?.signal;
