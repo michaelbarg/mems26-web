@@ -3109,7 +3109,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                       {isLong?'▲':'▼'} SWEEP {s.levelName} @ {(s.level||0).toFixed(2)}
                     </div>
                     <div style={{ fontSize:14, color:'#6b7280' }}>
-                      {new Date(s.ts*1000).toLocaleTimeString('he-IL')} · {s.levelTouches} נגיעות · Wick {(s.sweepWick||0).toFixed(1)}pt
+                      {(() => { const t = s.ts || s.detectedAt || 0; return t > 0 ? new Date(t*1000).toLocaleTimeString('he-IL') : '—'; })()} · {(s.levelTouches ?? 0) > 0 ? `${s.levelTouches} נגיעות` : ''} · Wick {(s.sweepWick||0).toFixed(1)}pt
                     </div>
                   </div>
                   <div style={{ textAlign:'right' }}>
