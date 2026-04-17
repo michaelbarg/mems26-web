@@ -854,9 +854,9 @@ def detect_fvg(candles: list, footprint_bools: dict = None) -> Optional[PatternR
 ET = ZoneInfo("America/New_York")
 
 KILLZONES = [
-    ("London",   2 * 60,        5 * 60),        # 02:00-05:00 ET
-    ("NY_Open",  9 * 60 + 30,  11 * 60),        # 09:30-11:00 ET
-    ("NY_Close", 14 * 60 + 30, 16 * 60),        # 14:30-16:00 ET
+    ("London",   3 * 60,        5 * 60),        # 03:00-05:00 ET (V6.1)
+    ("NY_Open",  9 * 60 + 30,  10 * 60 + 30),   # 09:30-10:30 ET (V6.1)
+    ("NY_Close", 15 * 60,      16 * 60),         # 15:00-16:00 ET (V6.1)
 ]
 
 def is_in_killzone(ts: int = 0) -> dict:

@@ -44,9 +44,9 @@ function inKillzone(): { active: boolean; name: string } {
   const etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
   const et = new Date(etStr);
   const mins = et.getHours() * 60 + et.getMinutes();
-  if (mins >= 120 && mins < 300) return { active: true, name: 'London 02:00-05:00' };
-  if (mins >= 570 && mins < 660) return { active: true, name: 'NY Open 09:30-11:00' };
-  if (mins >= 810 && mins < 960) return { active: true, name: 'NY Close 13:30-16:00' };
+  if (mins >= 180 && mins < 300) return { active: true, name: 'London 03:00-05:00' };
+  if (mins >= 570 && mins < 630) return { active: true, name: 'NY Open 09:30-10:30' };
+  if (mins >= 900 && mins < 960) return { active: true, name: 'NY Close 15:00-16:00' };
   return { active: false, name: '' };
 }
 

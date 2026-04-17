@@ -281,7 +281,8 @@ async def ingest(request: Request, x_bridge_token: Optional[str] = Header(None))
 async def market_latest():
     data = await redis_get()
     if not data:
-        return {"type": "no_data", "status": "waiting_for_bridge"}
+        return {"type": "no_data", "status": "waiting_for_bridge", "mode": _MODE}
+    data["mode"] = _MODE
     return data
 
 
@@ -540,7 +541,7 @@ async def market_analyze():
     except Exception:
         et_now = datetime.now(timezone.utc)
     et_min = et_now.hour * 60 + et_now.minute
-    kz_zones = [("London", 120, 300), ("NY_Open", 570, 660), ("NY_Close", 870, 960)]
+    kz_zones = [("London", 180, 300), ("NY_Open", 570, 630), ("NY_Close", 900, 960)]
     kz_name, kz_left = "OUTSIDE", 0
     for name, start, end in kz_zones:
         if start <= et_min <= end:

@@ -1578,6 +1578,17 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem 
       <span style={{ fontSize:28, fontWeight:800, fontFamily:'monospace', color:'#f0f6fc', flexShrink:0 }}>{price ? price.toFixed(2) : '—'}</span>
       <span style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:700, background:phaseCol+'22', color:phaseCol, border:`1px solid ${phaseCol}44` }}>{phase}</span>
 
+      {/* MODE badge — SIM/LIVE */}
+      {(() => {
+        const mode = (live as any)?.mode || 'SIM';
+        const isSim = mode === 'SIM';
+        return <span style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:800,
+          background: isSim ? '#22c55e22' : '#ef535022',
+          color: isSim ? '#22c55e' : '#ef5350',
+          border: `1px solid ${isSim ? '#22c55e44' : '#ef535044'}`,
+        }}>{isSim ? '🟢 SIM' : '🔴 LIVE'}</span>;
+      })()}
+
       {/* כפתור AI on-demand */}
       <button onClick={onAskAI} disabled={aiLoading} style={{
         display:'flex', alignItems:'center', gap:6,
@@ -3391,9 +3402,9 @@ function useKillzoneCountdown() {
   const [kzActive, setKzActive] = useState(false);
   useEffect(() => {
     const ZONES: [string, number, number][] = [
-      ['London',   120, 300],  // 02:00-05:00 ET
-      ['NY Open',  570, 660],  // 09:30-11:00 ET
-      ['NY Close', 810, 960],  // 13:30-16:00 ET
+      ['London',   180, 300],  // 03:00-05:00 ET (V6.1)
+      ['NY Open',  570, 630],  // 09:30-10:30 ET (V6.1)
+      ['NY Close', 900, 960],  // 15:00-16:00 ET (V6.1)
     ];
     const fmt = (totalSec: number) => {
       const h = Math.floor(totalSec / 3600);
