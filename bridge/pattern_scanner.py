@@ -1205,4 +1205,13 @@ def scan_patterns(candles: list, candles_5m: list = None, levels: dict = None,
             return abs(price - neckline) <= 8 and price >= entry - 5 and price <= stop
 
     actionable = [r for r in time_filtered if is_actionable(r)]
-    return actionable[:5]
+
+    # ── Stop validation: discard patterns with risk outside [3, 8] pt ──
+    MAX_STOP_PTS = 8.0
+    MIN_STOP_PTS = 3.0
+    def valid_stop(r: dict) -> bool:
+        risk = abs(r.get("entry", 0) - r.get("stop", 0))
+        return MIN_STOP_PTS <= risk <= MAX_STOP_PTS
+
+    validated = [r for r in actionable if valid_stop(r)]
+    return validated[:5]

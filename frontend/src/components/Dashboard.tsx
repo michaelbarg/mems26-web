@@ -2177,6 +2177,92 @@ function Indicators({ live }:{ live:MarketData|null }) {
 
 
 // ── AI Analysis Panel ─────────────────────────────────────────────────────────
+// ── 3-Pillar Badges — glanceable P1/P2/P3 status ──────────────────────────
+function PillarBadges({ live, liveSetup }:{ live:MarketData|null; liveSetup:any }) {
+  if (!live) return null;
+  const of2 = live.order_flow || {} as any;
+  const fp = (live as any)?.footprint_bools || {} as any;
+  const vol = (live as any)?.volume_context || {} as any;
+  const price = live.price || 0;
+
+  const opp = liveSetup?.opportunity || 'none';
+  const oppSweep = liveSetup?.opportunitySweep;
+  const evalResult = liveSetup?.setupEval;
+
+  // ── P1 ZONE: Sweep at macro level ──
+  const hasSweep = oppSweep?.type === 'sweep';
+  const sweepLevel = oppSweep?.levelName || '—';
+  const macroLevels = ['PDH','PDL','ONH','ONL','IBH','IBL','VWAP','POC','VAH','VAL','SH','SL'];
+  const atMacro = macroLevels.includes(sweepLevel);
+  const p1Pass = hasSweep && atMacro;
+
+  // ── P2 PATTERN: MSS + FVG + RelVol + Stacked ──
+  const relVol = oppSweep?.relVol ?? vol.rel_vol ?? 0;
+  const relVolOk = relVol > 1.2;
+  const stackedCount = fp.stacked_imbalance_count ?? 0;
+  const stackedDir = fp.stacked_imbalance_dir ?? '';
+  const stackedOk = stackedCount >= 2;
+  // MSS/FVG derived from evalResult reason
+  const evalReason = evalResult?.reason || '';
+  const hasMSS = evalResult ? !evalReason.includes('No MSS') : false;
+  const hasFVG = evalResult ? !evalReason.includes('No FVG') : false;
+  const p2Pass = hasMSS && hasFVG && relVolOk && stackedOk;
+
+  // ── P3 FLOW: Absorption + Delta 1m ──
+  const absorptionOk = fp.absorption_at_fvg ?? of2.absorption_bull ?? false;
+  const deltaConfirmed = fp.delta_confirmed_1m ?? false;
+  const p3Pass = absorptionOk && deltaConfirmed;
+
+  const allPass = p1Pass && p2Pass && p3Pass;
+  const evalType = evalResult?.eval_type === 'trend' ? 'TREND' : 'RANGE';
+
+  const row = (label:string, pass:boolean|null, subs:{label:string;ok:boolean;val?:string}[]) => {
+    const bg = pass === null ? '#1e273822' : pass ? '#22c55e11' : '#ef535011';
+    const borderCol = pass === null ? '#2d3a4a' : pass ? '#22c55e44' : '#ef535044';
+    const icon = pass === null ? '⬜' : pass ? '✅' : '❌';
+    return (
+      <div key={label} style={{ background:bg, border:`1px solid ${borderCol}`, borderRadius:6, padding:'6px 10px', marginBottom:3 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
+          <span style={{ fontSize:13 }}>{icon}</span>
+          <span style={{ fontSize:13, fontWeight:800, color: pass===null?'#4a5568': pass?G:R }}>{label}</span>
+        </div>
+        <div style={{ display:'flex', flexWrap:'wrap', gap:'2px 10px', fontSize:12, color:'#94a3b8' }}>
+          {subs.map(s => (
+            <span key={s.label}>
+              {s.label}: <span style={{ color:s.ok?G:R, fontWeight:700 }}>{s.ok?'✓':'✗'}{s.val ? ` ${s.val}` : ''}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ background:'#0a0e1a', border:'1px solid #1e2738', borderRadius:8, padding:8 }}>
+      <div style={{ fontSize:12, color:'#4a5568', letterSpacing:1.5, marginBottom:5, fontWeight:700 }}>3-PILLAR GATE — {evalType}</div>
+      {row('P1 ZONE', opp==='none'?null:p1Pass, [
+        { label:'Sweep', ok:hasSweep },
+        { label:'Level', ok:atMacro, val:sweepLevel },
+      ])}
+      {row('P2 PATTERN', opp==='none'?null:p2Pass, [
+        { label:'MSS', ok:hasMSS },
+        { label:'FVG', ok:hasFVG },
+        { label:'RelVol', ok:relVolOk, val:`${relVol.toFixed(2)}` },
+        { label:'Stacked', ok:stackedOk, val:stackedOk?`${stackedCount}×250% ${stackedDir}`:`${stackedCount}` },
+      ])}
+      {row('P3 FLOW', opp==='none'?null:p3Pass, [
+        { label:'Absorption', ok:absorptionOk },
+        { label:'Delta 1m', ok:deltaConfirmed },
+      ])}
+      {allPass && opp !== 'none' && (
+        <div style={{ marginTop:4, padding:'6px 10px', borderRadius:6, background:'#22c55e18', border:'1px solid #22c55e44', textAlign:'center' }}>
+          <span style={{ fontSize:13, fontWeight:800, color:G }}>✅ SETUP VALID — ready to execute</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}: {
   signal?: Signal | null; signalTime?: string; aiLoading: boolean; aiError?: boolean; onAskAI: () => void; live?: any;
 }) {
@@ -3123,6 +3209,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             onReject={onReject}
             newsGuard={newsGuard}
           />
+          <PillarBadges live={live} liveSetup={liveSetup} />
           <AIAnalysisPanel signal={persistedSignal} signalTime={signalTime} aiLoading={aiLoading} aiError={aiError} onAskAI={onAskAI} live={live} />
           <EntryZone live={live} signal={persistedSignal} />
         </>}
@@ -3826,7 +3913,7 @@ export default function Dashboard() {
         const res=await fetch(`${API_URL}/market/patterns`,{cache:'no-store'});
         const data=await res.json();
         const raw=data.patterns;
-        const ps=Array.isArray(raw)?raw:[];
+        const ps=Array.isArray(raw)?raw.filter((p:any)=>{const r=Math.abs((p.entry||0)-(p.stop||0));return r>=3&&r<=8;}):[];
         setScannedPatterns(ps);
         if(ps.length>0 && ps[0].confidence>=70 && ps[0].pattern!==activeScannedPattern?.pattern){
           setActiveScannedPattern(ps[0]);
