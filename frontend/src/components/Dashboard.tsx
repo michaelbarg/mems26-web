@@ -3148,6 +3148,97 @@ function ActiveTradePanel({ trade, currentPrice, onScaleC1, onScaleC2, onCloseAl
   );
 }
 
+// ── Bottom Trade Bar — persistent across all tabs ──────────────────────────
+function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup, onExecuteClick, checklistSetup }:{
+  opportunity:string; oppLevels:any; oppSweep:any; oppScore:number;
+  liveSetup:any; onExecuteClick:(setup:any)=>void; checklistSetup:any;
+}) {
+  const hasSetup = opportunity !== 'none' && oppLevels && oppLevels.entry > 0;
+  const isLong = opportunity === 'long';
+  const col = isLong ? '#22c55e' : '#ef5350';
+  const riskPts = hasSetup ? oppLevels.riskPts : 0;
+  const stopTooWide = riskPts > 8;
+  const allPillarsPass = liveSetup?.setupEval?.pass === true;
+  const canExecute = hasSetup && !stopTooWide && allPillarsPass;
+
+  const cell = (label:string, value:string, color:string) => (
+    <div style={{ textAlign:'center', padding:'2px 6px', minWidth:0 }}>
+      <div style={{ fontSize:10, color:'#4a5568', lineHeight:1 }}>{label}</div>
+      <div style={{ fontSize:13, fontWeight:700, color, fontFamily:'monospace', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{value}</div>
+    </div>
+  );
+
+  if (!hasSetup) {
+    return (
+      <div style={{ position:'fixed', bottom:0, left:0, right:0, height:48, zIndex:9990,
+        background:'#0f172a', borderTop:'1px solid #1e2738',
+        display:'flex', alignItems:'center', justifyContent:'center', gap:12, padding:'0 16px' }}>
+        <span style={{ fontSize:12, color:'#4a5568' }}>No valid setup — waiting for 3-pillar match</span>
+        <button disabled style={{ padding:'6px 20px', borderRadius:6, fontSize:12, fontWeight:800,
+          background:'#1e293b', color:'#334155', border:'none', cursor:'not-allowed', fontFamily:'inherit' }}>
+          EXECUTE
+        </button>
+      </div>
+    );
+  }
+
+  const risk = Math.abs(oppLevels.entry - oppLevels.stop);
+  const rr1 = risk > 0 ? (Math.abs(oppLevels.c1 - oppLevels.entry) / risk).toFixed(1) : '—';
+  const rr2 = risk > 0 ? (Math.abs(oppLevels.c2 - oppLevels.entry) / risk).toFixed(1) : '—';
+
+  return (
+    <div style={{ position:'fixed', bottom:0, left:0, right:0, height:52, zIndex:9990,
+      background: stopTooWide ? '#1a0a0a' : '#0f172a',
+      borderTop: `2px solid ${stopTooWide ? '#ef535066' : canExecute ? '#22c55e66' : '#1e2738'}`,
+      display:'flex', alignItems:'center', gap:4, padding:'0 12px', overflow:'hidden' }}>
+      {/* Setup label */}
+      <div style={{ display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
+        <span style={{ fontSize:14, fontWeight:800, color:col }}>{isLong?'▲':'▼'}</span>
+        <span style={{ fontSize:11, fontWeight:700, color:col }}>{oppSweep?.type?.toUpperCase()?.slice(0,3) || '—'}</span>
+        <span style={{ fontSize:11, color:'#94a3b8' }}>{oppSweep?.levelName || ''}</span>
+      </div>
+      <div style={{ width:1, height:28, background:'#1e2738', flexShrink:0 }} />
+      {cell('Entry', (oppLevels.entry||0).toFixed(2), '#f0f6fc')}
+      {cell('Stop', (oppLevels.stop||0).toFixed(2), '#ef5350')}
+      {cell('Risk', `${riskPts}pt`, stopTooWide ? '#ef5350' : '#f59e0b')}
+      <div style={{ width:1, height:28, background:'#1e2738', flexShrink:0 }} />
+      {cell('T1', (oppLevels.c1||0).toFixed(2), '#22c55e')}
+      {cell('T2', (oppLevels.c2||0).toFixed(2), '#16a34a')}
+      {cell('T3', (oppLevels.c3||0).toFixed(2), '#86efac')}
+      <div style={{ width:1, height:28, background:'#1e2738', flexShrink:0 }} />
+      {cell('R:R', `1:${rr1} | 1:${rr2}`, '#94a3b8')}
+      <div style={{ flex:1 }} />
+      {stopTooWide && (
+        <span style={{ fontSize:11, color:'#ef5350', fontWeight:700, flexShrink:0 }}>Stop too wide ({riskPts}pt &gt; 8pt)</span>
+      )}
+      <button
+        disabled={!canExecute || !!checklistSetup}
+        onClick={() => {
+          if (!canExecute || !oppSweep) return;
+          onExecuteClick({
+            id: `${oppSweep.type}-${opportunity}-${oppSweep.levelName}`,
+            dir: opportunity as 'long'|'short',
+            entry: oppLevels.entry, stop: oppLevels.stop,
+            t1: oppLevels.c1, t2: oppLevels.c2, t3: oppLevels.c3,
+            riskPts: oppLevels.riskPts,
+            levelName: oppSweep.levelName || '',
+            sweepWick: 0,
+            hasAbsorption: false, hasExhaustion: false,
+          });
+        }}
+        style={{ padding:'8px 24px', borderRadius:6, fontSize:13, fontWeight:900,
+          background: canExecute && !checklistSetup ? '#22c55e' : '#1e293b',
+          color: canExecute && !checklistSetup ? '#0a0e1a' : '#334155',
+          border:'none', cursor: canExecute && !checklistSetup ? 'pointer' : 'not-allowed',
+          fontFamily:'inherit', flexShrink:0,
+          boxShadow: canExecute ? '0 0 16px rgba(34,197,94,0.3)' : 'none',
+          transition:'all 0.3s' }}>
+        EXECUTE
+      </button>
+    </div>
+  );
+}
+
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
@@ -3161,18 +3252,18 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
   ] as const;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', height:'100%', borderLeft:'1px solid #1e2738' }}>
+    <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', height:'100%', borderLeft:'1px solid #1e2738', minWidth:0 }}>
       {/* Tab bar */}
-      <div style={{ display:'flex', borderBottom:'1px solid #1e2738', flexShrink:0 }}>
+      <div style={{ display:'flex', borderBottom:'1px solid #1e2738', flexShrink:0, overflowX:'auto', overflowY:'hidden' }}>
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
-            style={{ flex:1, padding:'7px 4px', border:'none', cursor:'pointer', fontFamily:'inherit',
+            style={{ flex:'1 0 0', minWidth:40, padding:'5px 2px', border:'none', cursor:'pointer', fontFamily:'inherit',
               background: tab===t.id ? '#1e2738' : '#111827',
               borderBottom: tab===t.id ? '2px solid #7f77dd' : '2px solid transparent',
-              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:14, fontWeight:700,
-              display:'flex', flexDirection:'column', alignItems:'center', gap:1,
+              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:11, fontWeight:700,
+              display:'flex', flexDirection:'column', alignItems:'center', gap:0,
               whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-            <span style={{ fontSize:14 }}>{t.icon}</span>
+            <span style={{ fontSize:13 }}>{t.icon}</span>
             <span>{t.label}</span>
           </button>
         ))}
@@ -4213,7 +4304,7 @@ export default function Dashboard() {
       </div>
 
       {/* גרף שמאל + מידע ימין */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr minmax(300px, clamp(300px, 22vw, 480px))',flex:1,overflow:'hidden',minWidth:0}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr minmax(260px, clamp(280px, 24vw, 420px))',flex:1,overflow:'hidden',minWidth:0,paddingBottom:52}}>
 
         {/* גרף — קבוע */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738',minWidth:0}}>
@@ -4435,6 +4526,17 @@ export default function Dashboard() {
           }}
         />
       </div>
+
+      {/* Bottom Trade Bar — always visible */}
+      <BottomTradeBar
+        opportunity={opportunity}
+        oppLevels={oppLevels}
+        oppSweep={oppSweep}
+        oppScore={oppScore}
+        liveSetup={liveSetup}
+        checklistSetup={checklistSetup}
+        onExecuteClick={(setup) => setChecklistSetup(setup)}
+      />
 
       <style>{`
         @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
