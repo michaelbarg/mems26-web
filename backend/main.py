@@ -941,7 +941,22 @@ async def get_patterns():
                 if isinstance(parsed, str):
                     parsed = json.loads(parsed)
                 if isinstance(parsed, list):
-                    return {"patterns": parsed}
+                    # Defense-in-depth: filter stop validation + price-past-entry
+                    data = await redis_get()
+                    cur_price = data.get("price", 0) if data else 0
+                    filtered = []
+                    for p in parsed:
+                        risk = abs(p.get("entry", 0) - p.get("stop", 0))
+                        if risk < 3.0 or risk > 8.0:
+                            continue
+                        d = p.get("direction", "")
+                        e = p.get("entry", 0)
+                        if cur_price > 0 and d == "LONG" and cur_price > e:
+                            continue
+                        if cur_price > 0 and d == "SHORT" and cur_price < e:
+                            continue
+                        filtered.append(p)
+                    return {"patterns": filtered}
     except Exception as e:
         log.warning(f"Patterns get failed: {e}")
     return {"patterns": []}
