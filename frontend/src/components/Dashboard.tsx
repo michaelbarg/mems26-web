@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
 import PreEntryChecklist, { type ChecklistSetup } from './PreEntryChecklist';
+import AnalyticsTab from './AnalyticsTab';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -3360,7 +3361,7 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard, buildingSetups, expiredBuildingSetups }:any) {
-  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'>('signal');
+  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'|'analytics'>('signal');
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
     { id:'setups',    label:'סטאפים', icon:'🔍' },
@@ -3368,6 +3369,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
     { id:'indicators',label:'נתונים', icon:'📊' },
     { id:'fills',     label:'פקודות', icon:'💼' },
     { id:'daytype',   label:'יום',    icon:'📅' },
+    { id:'analytics', label:'אנליטיקה', icon:'📉' },
   ] as const;
 
   return (
@@ -3653,6 +3655,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         {tab === 'daytype' && (
           <DayTypeTabContent live={live} />
         )}
+        {tab === 'analytics' && <AnalyticsTab />}
         {false && (
           <div style={{ padding:'12px 10px', display:'flex', flexDirection:'column', gap:16 }}>
             <div style={{ fontSize:14, fontWeight:600, color:'#e2e8f0', textAlign:'center' }}>
