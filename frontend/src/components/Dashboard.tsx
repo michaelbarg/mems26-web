@@ -2122,6 +2122,7 @@ function Indicators({ live }:{ live:MarketData|null }) {
 
   const cvd=live.cvd||{}, vwap=live.vwap||{}, prof=live.profile||{}, woodi=live.woodi||{};
   const sess=live.session||{}, of2=live.order_flow||{}, bar=live.bar||{}, mtf=live.mtf||{};
+  const fp=(live as any).footprint_bools||{};
   const price=live.price||0;
 
   const rows=[
@@ -2135,7 +2136,7 @@ function Indicators({ live }:{ live:MarketData|null }) {
     { cat:'', name:'POC', col:'#f97316', val:prof.poc?.toFixed(2)||'—', note:((price-(prof.poc||price))>=0?'+':'')+((price-(prof.poc||price)).toFixed(2))+' pts' },
     { cat:'', name:'Woodi PP', col:woodi.above_pp?G:R, val:woodi.pp?.toFixed(2)||'—', note:woodi.above_pp?'מעל ▲':'מתחת ▼' },
     // Order Flow
-    { cat:'Order Flow', name:'Absorption', col:of2.absorption_bull?G:'#2d3a4a', val:of2.absorption_bull?'פעיל ✓':'לא זוהה', note:of2.absorption_bull?'קונים בולעים':'—' },
+    { cat:'Order Flow', name:'Absorption', col:(of2.absorption_bull||fp.absorption_detected)?G:'#2d3a4a', val:(of2.absorption_bull||fp.absorption_detected)?'פעיל ✓':'לא זוהה', note:of2.absorption_bull?'קונים בולעים':fp.absorption_detected?'זוהה (footprint)':'—' },
     { cat:'', name:'Liq Sweep', col:of2.liq_sweep?G:'#2d3a4a', val:of2.liq_sweep?'זוהה ✓':'לא זוהה', note:of2.liq_sweep?'Sweep + חזרה':'—' },
     { cat:'', name:'Imbalance', col:(of2.imbalance_bull||0)>0?G:(of2.imbalance_bear||0)>0?R:'#2d3a4a', val:`B×${of2.imbalance_bull||0} S×${of2.imbalance_bear||0}`, note:(of2.imbalance_bull||0)>0?'עולה':(of2.imbalance_bear||0)>0?'יורד':'—' },
     // מבנה

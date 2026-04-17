@@ -1991,8 +1991,40 @@ async def news_status():
 
 @app.get("/health")
 async def health():
+    import time as _t
     data = await redis_get()
-    return {"status": "ok", "has_data": data is not None}
+    now = _t.time()
+
+    # Bridge heartbeat age
+    bridge_age = -1
+    sc_age = -1
+    if data:
+        data_ts = data.get("ts", 0)
+        if data_ts > 0:
+            bridge_age = int(now - data_ts)
+            sc_age = bridge_age  # SC data comes through the bridge
+
+    # News guard health
+    news_healthy = False
+    try:
+        news_state = await redis_get_key("mems26:news:state")
+        if news_state and isinstance(news_state, dict):
+            news_healthy = news_state.get("available", False)
+    except Exception:
+        pass
+
+    # Redis health — if we got here with data, Redis is OK
+    redis_ok = data is not None
+
+    return {
+        "status": "ok",
+        "has_data": data is not None,
+        "mode": _MODE,
+        "bridge_heartbeat_age_sec": bridge_age,
+        "news_guard_healthy": news_healthy,
+        "redis_ok": redis_ok,
+        "sc_data_age_sec": sc_age,
+    }
 
 
 @app.websocket("/ws")
