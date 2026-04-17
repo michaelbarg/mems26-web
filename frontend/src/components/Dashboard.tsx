@@ -1811,43 +1811,25 @@ function EntryZone({ live, signal }:{ live:MarketData|null; signal?:any }) {
   const sCol = (s:string) => s==='hit'?G:s==='closed'?'#4a5568':Y;
   const sTxt = (s:string) => s==='hit'?'✓ הגיע':s==='closed'?'✗ סגור':'◌ פתוח';
 
-  // תמיד מוצג — אם אין signal, מציג נתוני שוק בסיסיים
+  // תמיד מוצג — אם אין signal, מציג מחיר נוכחי + VWAP
   if (!hasSignal) {
-    const { long: lPct, short: sPct } = calcProbability(live);
-    const bias = lPct > sPct ? 'LONG' : 'SHORT';
-    const bCol = bias==='LONG' ? G : R;
     return (
       <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, overflow:'hidden' }}>
         <div style={{ padding:'8px 12px', borderBottom:'1px solid #1e2738', display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:14, color:'#4a5568', letterSpacing:1 }}>אזור כניסה — לפי שוק נוכחי</span>
-          <span style={{ fontSize:14, fontWeight:800, color:bCol, marginLeft:'auto' }}>{bias} {lPct>sPct?lPct:sPct}%</span>
+          <span style={{ fontSize:14, color:'#4a5568', letterSpacing:1 }}>אזור כניסה</span>
+          <span style={{ fontSize:14, fontWeight:800, color:'#f0f6fc', marginLeft:'auto', fontFamily:'monospace' }}>{(live?.price??0).toFixed(2)}</span>
         </div>
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:0 }}>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:0 }}>
           {[
-            { l:'סיכוי LONG', v:`${lPct}%`, c:G, sub:'לפי CVD+VWAP+OF' },
-            { l:'סיכוי SHORT', v:`${sPct}%`, c:R, sub:'לפי CVD+VWAP+OF' },
-            { l:'מחיר נוכחי', v:(live?.price??0).toFixed(2), c:'#f0f6fc', sub:'לחץ AI לכניסה' },
-          ].map(({l,v,c,sub})=>(
-            <div key={l} style={{ padding:'10px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
-              <div style={{ fontSize:14, color:'#4a5568', marginBottom:4 }}>{l}</div>
-              <div style={{ fontSize:16, fontWeight:800, color:c, fontFamily:'monospace' }}>{v}</div>
-              <div style={{ fontSize:14, color:'#2d3a4a', marginTop:3 }}>{sub}</div>
+            { l:'VWAP', v:(live?.vwap?.value??0).toFixed(2), c:'#f6c90e', note:live?.vwap?.above?'מעל ▲':'מתחת ▼' },
+            { l:'CVD', v:live?.cvd?.trend??'—', c:live?.cvd?.trend==='BULLISH'?G:live?.cvd?.trend==='BEARISH'?R:Y, note:'' },
+          ].map(({l,v,c,note})=>(
+            <div key={l} style={{ padding:'6px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
+              <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>{l}</div>
+              <div style={{ fontSize:14, fontWeight:700, color:c, fontFamily:'monospace' }}>{v} <span style={{fontSize:14,color:'#4a5568'}}>{note}</span></div>
             </div>
           ))}
         </div>
-        {live?.vwap && (
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', borderTop:'1px solid #1e2738' }}>
-            {[
-              { l:'VWAP', v:(live.vwap.value??0).toFixed(2), c:'#f6c90e', note:live.vwap.above?'מעל ▲':'מתחת ▼' },
-              { l:'CVD מגמה', v:live.cvd?.trend??'—', c:live.cvd?.trend==='BULLISH'?G:live.cvd?.trend==='BEARISH'?R:Y, note:'' },
-            ].map(({l,v,c,note})=>(
-              <div key={l} style={{ padding:'6px 8px', textAlign:'center', borderRight:'1px solid #1e2738' }}>
-                <div style={{ fontSize:14, color:'#4a5568', marginBottom:2 }}>{l}</div>
-                <div style={{ fontSize:14, fontWeight:700, color:c, fontFamily:'monospace' }}>{v} <span style={{fontSize:14,color:'#4a5568'}}>{note}</span></div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     );
   }
@@ -2342,8 +2324,8 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
         }}>
           {signal.score >= 7 ? '🟢 Bias חיובי' : signal.score >= 4 ? '🟡 Bias ניטרלי' : '🔴 Bias שלילי'}
         </div>
-        <div style={{ fontSize:14, color:'#64748b' }}>ציון: <span style={{ color:biasColor, fontWeight:700 }}>{signal.score}/10</span></div>
-        <div style={{ fontSize:14, color:'#64748b' }}>ביטחון: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.confidence}%</span></div>
+        <div style={{ fontSize:14, color:'#64748b', cursor:'help' }} title="Setup quality 0-10: combines Bias alignment, pillar pass count, volume context, and killzone.">ציון: <span style={{ color:biasColor, fontWeight:700 }}>{signal.score}/10</span></div>
+        <div style={{ fontSize:14, color:'#64748b' }}>ביטחון: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.direction === 'NO_TRADE' ? 'N/A (אין סטאפ לנתח)' : `${signal.confidence}%`}</span></div>
         {signal.win_rate && <div style={{ fontSize:14, color:'#64748b' }}>Win: <span style={{ color:'#94a3b8', fontWeight:700 }}>{signal.win_rate}%</span></div>}
       </div>
 
