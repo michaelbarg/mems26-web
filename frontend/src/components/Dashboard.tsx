@@ -906,33 +906,46 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const shortScore = score(liqShort);
 
   // ── Entry/Stop/C1/C2/C3 ──────────────────────────────────────────
+  const MAX_STOP_PTS = 8;
+  const MIN_STOP_PTS = 3;
   const calcLevels = (dir: 'long' | 'short', hit: SetupHit | null) => {
-    if (!hit) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0 };
+    if (!hit) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0, stopTooWide: false };
     const L = dir === 'long';
-    // Sweep: entry on sweep candle high/low, not current price
     const entry = hit.type === 'sweep'
       ? (L ? hit.bar.h + 0.25 : hit.bar.l - 0.25)
       : price;
-    const stop = L ? hit.bar.l - 0.25 : hit.bar.h + 0.25;
-    const risk = Math.abs(entry - stop);
+    let stop = L ? hit.bar.l - 0.25 : hit.bar.h + 0.25;
+    let risk = Math.abs(entry - stop);
+    // Auto-expand stop if too narrow
+    if (risk < MIN_STOP_PTS) {
+      stop = L ? entry - MIN_STOP_PTS : entry + MIN_STOP_PTS;
+      risk = MIN_STOP_PTS;
+    }
+    const stopTooWide = risk > MAX_STOP_PTS;
     const c1 = L ? entry + risk : entry - risk;
     const c2 = L ? entry + risk * 2 : entry - risk * 2;
     const woodi = live.woodi || {} as any;
     const c3 = L
       ? (woodi.r1 && woodi.r1 > entry + risk * 2 ? woodi.r1 : entry + risk * 3)
       : (woodi.s1 && woodi.s1 < entry - risk * 2 ? woodi.s1 : entry - risk * 3);
-    return { entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4 };
+    return { entry, stop, c1, c2, c3, riskPts: Math.round(risk * 4) / 4, stopTooWide };
   };
 
   // ── Opportunity ────────────────────────────────────────────────────
+  // ── Stop validation at setup level — reject if risk > MAX_STOP_PTS ──
+  const longLevels = longHit ? calcLevels('long', longHit) : null;
+  const shortLevels = shortHit ? calcLevels('short', shortHit) : null;
+  const longValid = longLevels && !longLevels.stopTooWide;
+  const shortValid = shortLevels && !shortLevels.stopTooWide;
+
   const bestDir: 'long' | 'short' | 'none' =
-    longScore >= 80 ? 'long' :
-    shortScore >= 80 ? 'short' :
-    longScore >= 60 ? 'long' :
-    shortScore >= 60 ? 'short' : 'none';
+    (longScore >= 80 && longValid) ? 'long' :
+    (shortScore >= 80 && shortValid) ? 'short' :
+    (longScore >= 60 && longValid) ? 'long' :
+    (shortScore >= 60 && shortValid) ? 'short' : 'none';
 
   const bestHit = bestDir === 'long' ? longHit : bestDir === 'short' ? shortHit : null;
-  const bestLevels = bestDir !== 'none' ? calcLevels(bestDir, bestHit) : null;
+  const bestLevels = bestDir === 'long' ? longLevels : bestDir === 'short' ? shortLevels : null;
   const bestScore = bestDir === 'long' ? longScore : bestDir === 'short' ? shortScore : 0;
 
   // ── Forked Evaluation — day-type-aware pass/fail ──────────────────
@@ -4033,7 +4046,11 @@ export default function Dashboard() {
         @media (min-width: 4000px) {
           html { font-size: 22px; }
         }
+        @media (max-width: 1360px) {
+          html { font-size: 13px; }
+        }
         * { box-sizing: border-box; }
+        html, body { overflow-x: hidden; max-width: 100vw; }
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
 
@@ -4043,10 +4060,10 @@ export default function Dashboard() {
       </div>
 
       {/* גרף שמאל + מידע ימין */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr clamp(340px, 22vw, 480px)',flex:1,overflow:'hidden'}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr minmax(300px, clamp(300px, 22vw, 480px))',flex:1,overflow:'hidden',minWidth:0}}>
 
         {/* גרף — קבוע */}
-        <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738'}}>
+        <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738',minWidth:0}}>
           <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:8,padding:'5px 12px',background:'#111827',borderBottom:'1px solid #1e2738',flexWrap:'wrap'}}>
             <span style={{fontSize:14,color:'#4a5568',letterSpacing:2}}>גרף</span>
             <div style={{display:'flex',gap:4,flex:1,flexWrap:'wrap'}}>

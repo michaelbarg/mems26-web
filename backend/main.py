@@ -1546,6 +1546,26 @@ async def trade_execute(request: Request):
     """
     import time
     try:
+        # Parse body first — validate inputs before guards
+        body = await request.json()
+        direction  = body.get("direction", "")
+        entry      = body.get("entry_price", 0)
+        stop       = body.get("stop", 0)
+        t1         = body.get("t1", 0)
+        t2         = body.get("t2", 0)
+        t3         = body.get("t3", 0)
+        setup_type = body.get("setup_type", "MANUAL")
+
+        if direction not in ("LONG", "SHORT"):
+            raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
+        if entry <= 0 or stop <= 0:
+            raise HTTPException(status_code=400, detail="entry_price and stop required")
+
+        # W1.5 — Early stop validation (before killzone/news checks)
+        raw_risk = abs(entry - stop)
+        if raw_risk > STOP_MAX_PT:
+            raise HTTPException(status_code=400, detail=f"STOP_TOO_WIDE: {raw_risk:.2f}pt > {STOP_MAX_PT}pt max")
+
         # Circuit breaker check
         try:
             cb = await check_circuit_breaker()
@@ -1588,20 +1608,6 @@ async def trade_execute(request: Request):
         except Exception as e:
             log.warning(f"News guard check failed: {e} — proceeding")
 
-        body = await request.json()
-        direction  = body.get("direction", "")
-        entry      = body.get("entry_price", 0)
-        stop       = body.get("stop", 0)
-        t1         = body.get("t1", 0)
-        t2         = body.get("t2", 0)
-        t3         = body.get("t3", 0)
-        setup_type = body.get("setup_type", "MANUAL")
-
-        if direction not in ("LONG", "SHORT"):
-            raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
-        if entry <= 0 or stop <= 0:
-            raise HTTPException(status_code=400, detail="entry_price and stop required")
-
         # Validate: BUY only if no open position
         cmd_type = body.get("cmd_type", "BUY")  # BUY or CLOSE
         if cmd_type == "CLOSE":
@@ -1624,9 +1630,7 @@ async def trade_execute(request: Request):
 
         risk = abs(entry - stop)
 
-        # W1.5 — Stop Validation
-        if risk > STOP_MAX_PT:
-            raise HTTPException(status_code=400, detail=f"Risk {risk:.2f}pt exceeds {STOP_MAX_PT}pt max — NO_TRADE")
+        # W1.5 — Stop expansion (too-wide already rejected above)
         if risk < STOP_MIN_PT:
             # Expand stop to minimum distance
             old_stop = stop
@@ -1926,6 +1930,63 @@ async def delete_trade_command():
         return {"ok": True, "detail": "Cleared trade command and status"}
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/news/status")
+async def news_status():
+    """News Guard status — events, freeze state, API health."""
+    try:
+        news_state = await redis_get_key("mems26:news:state")
+        if not news_state or not isinstance(news_state, dict):
+            return {
+                "is_freeze": False,
+                "current_state": "NORMAL",
+                "api_healthy": False,
+                "last_fetch_iso": "",
+                "next_event": None,
+                "todays_events": [],
+            }
+
+        state = news_state.get("state", "CLEAR")
+        events = news_state.get("events", [])
+        available = news_state.get("available", False)
+        active = news_state.get("active_event")
+
+        # Find next upcoming event
+        import datetime as _dtmod
+        from zoneinfo import ZoneInfo as _ZI
+        now_et = _dtmod.datetime.now(_ZI("America/New_York"))
+        next_event = None
+        for ev in events:
+            try:
+                h, m = map(int, ev.get("time_et", "0:0").split(":"))
+                ev_time = now_et.replace(hour=h, minute=m, second=0)
+                diff_min = int((ev_time - now_et).total_seconds() / 60)
+                if diff_min > -5:  # include events up to 5min ago
+                    candidate = {
+                        "title": ev.get("title", ""),
+                        "time_iso": ev_time.isoformat(),
+                        "impact": ev.get("impact", "High"),
+                        "currency": "USD",
+                        "minutes_until": max(0, diff_min),
+                    }
+                    if next_event is None or diff_min < next_event["minutes_until"]:
+                        next_event = candidate
+            except Exception:
+                continue
+
+        return {
+            "is_freeze": state == "PRE_NEWS_FREEZE",
+            "current_state": "FREEZE" if state == "PRE_NEWS_FREEZE" else "POST_NEWS" if state == "POST_NEWS_OPPORTUNITY" else "NORMAL",
+            "api_healthy": available,
+            "last_fetch_iso": now_et.strftime("%Y-%m-%dT%H:%M:%S"),
+            "next_event": next_event,
+            "todays_events": events,
+        }
+    except Exception as e:
+        log.warning(f"/news/status error: {e}")
+        return {"is_freeze": False, "current_state": "NORMAL", "api_healthy": False,
+                "last_fetch_iso": "", "next_event": None, "todays_events": []}
 
 
 @app.get("/health")
