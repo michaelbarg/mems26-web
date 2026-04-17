@@ -3253,18 +3253,18 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
   return (
     <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', height:'100%', borderLeft:'1px solid #1e2738', minWidth:0 }}>
-      {/* Tab bar */}
-      <div style={{ display:'flex', borderBottom:'1px solid #1e2738', flexShrink:0, overflowX:'auto', overflowY:'hidden' }}>
+      {/* Tab bar — icon + label, compact to fit 6 tabs in 260-420px */}
+      <div style={{ display:'flex', borderBottom:'1px solid #1e2738', flexShrink:0 }}>
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
-            style={{ flex:'1 0 0', minWidth:40, padding:'5px 2px', border:'none', cursor:'pointer', fontFamily:'inherit',
+            style={{ flex:'1 1 0', minWidth:0, padding:'4px 1px', border:'none', cursor:'pointer', fontFamily:'inherit',
               background: tab===t.id ? '#1e2738' : '#111827',
               borderBottom: tab===t.id ? '2px solid #7f77dd' : '2px solid transparent',
-              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:11, fontWeight:700,
+              color: tab===t.id ? '#e2e8f0' : '#4a5568', fontSize:10, fontWeight:700,
               display:'flex', flexDirection:'column', alignItems:'center', gap:0,
-              whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-            <span style={{ fontSize:13 }}>{t.icon}</span>
-            <span>{t.label}</span>
+              overflow:'hidden' }}>
+            <span style={{ fontSize:14, lineHeight:'18px' }}>{t.icon}</span>
+            <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'100%', lineHeight:'13px' }}>{t.label}</span>
           </button>
         ))}
       </div>
@@ -4304,7 +4304,7 @@ export default function Dashboard() {
       </div>
 
       {/* גרף שמאל + מידע ימין */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr minmax(260px, clamp(280px, 24vw, 420px))',flex:1,overflow:'hidden',minWidth:0,paddingBottom:52}}>
+      <div style={{display:'grid',gridTemplateColumns:'1fr min(420px, max(260px, 24vw))',flex:1,overflow:'hidden',minWidth:0,paddingBottom:52}}>
 
         {/* גרף — קבוע */}
         <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738',minWidth:0}}>
