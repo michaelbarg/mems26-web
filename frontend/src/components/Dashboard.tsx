@@ -1572,7 +1572,7 @@ function MiniLight({ col }: { col: string }) {
 }
 
 // ── Zone A: Top Bar ───────────────────────────────────────────────────────────
-function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void }) {
+function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem, newsGuard }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void; newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] } }) {
   const [time, setTime] = useState('');
   useEffect(() => {
     const t = setInterval(() => {
@@ -1600,6 +1600,40 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem 
           color: isSim ? '#22c55e' : '#ef5350',
           border: `1px solid ${isSim ? '#22c55e44' : '#ef535044'}`,
         }}>{isSim ? '🟢 SIM' : '🔴 LIVE'}</span>;
+      })()}
+
+      {/* News Guard indicator */}
+      {(() => {
+        if (!newsGuard) return <span style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:700, background:'#22c55e22', color:'#22c55e', border:'1px solid #22c55e44' }}>News: OK</span>;
+        if (newsGuard.state === 'PRE_NEWS_FREEZE') {
+          const ev = newsGuard.active_event;
+          return <span className="live-blink" style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:800, background:'#ef535022', color:'#ef5350', border:'1px solid #ef535044' }}>NEWS FREEZE{ev ? ` — ${ev.title}` : ''}</span>;
+        }
+        if (!newsGuard.available) {
+          return <span style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:700, background:'#f59e0b22', color:'#f59e0b', border:'1px solid #f59e0b44' }}>News: N/A</span>;
+        }
+        // Find next event within 60min
+        const nextEv = newsGuard.events?.find((ev: any) => {
+          try {
+            const etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+            const now = new Date(etStr);
+            const [h, m] = ev.time_et.split(':').map(Number);
+            const evTime = new Date(now);
+            evTime.setHours(h, m, 0, 0);
+            const diffMin = (evTime.getTime() - now.getTime()) / 60000;
+            return diffMin > 0 && diffMin <= 60;
+          } catch { return false; }
+        });
+        if (nextEv) {
+          const etStr = new Date().toLocaleString('en-US', { timeZone: 'America/New_York' });
+          const now = new Date(etStr);
+          const [h, m] = nextEv.time_et.split(':').map(Number);
+          const evTime = new Date(now);
+          evTime.setHours(h, m, 0, 0);
+          const minsUntil = Math.round((evTime.getTime() - now.getTime()) / 60000);
+          return <span style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:700, background:'#f59e0b22', color:'#f59e0b', border:'1px solid #f59e0b44' }}>Next: {nextEv.title} in {minsUntil}m</span>;
+        }
+        return <span style={{ fontSize:14, padding:'3px 10px', borderRadius:12, fontWeight:700, background:'#22c55e22', color:'#22c55e', border:'1px solid #22c55e44' }}>News: OK</span>;
       })()}
 
       {/* כפתור AI on-demand */}
@@ -4056,7 +4090,7 @@ export default function Dashboard() {
 
       {/* TopBar */}
       <div style={{flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738'}}>
-        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} />
+        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} />
       </div>
 
       {/* גרף שמאל + מידע ימין */}
