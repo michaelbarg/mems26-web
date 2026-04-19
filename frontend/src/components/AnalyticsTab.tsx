@@ -426,6 +426,14 @@ export default function AnalyticsTab() {
         {sub === 'patterns' && <PatternsView />}
         {sub === 'scoring' && <ScoringView />}
       </div>
+
+      {/* Open full journal */}
+      <div style={{ padding: '6px 0', textAlign: 'center', borderTop: '1px solid #1e2738' }}>
+        <a href="/journal" target="_blank" rel="noopener noreferrer"
+          style={{ fontSize: 11, color: '#f6c90e', textDecoration: 'none', fontWeight: 700 }}>
+          Open Full Journal
+        </a>
+      </div>
     </div>
   );
 }
