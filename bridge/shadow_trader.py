@@ -31,6 +31,24 @@ log = logging.getLogger("shadow")
 ET = ZoneInfo("America/New_York")
 
 MAX_SHADOW_TRADES = 50  # Max concurrent shadow trades
+BUILDING_EXPIRE_MIN = 90  # Building setup expires after 90 min
+HYPO_FORWARD_MIN = 60  # Hypothetical MAE/MFE scan window
+
+
+@dataclass
+class BuildingSetup:
+    """A setup where a hit was detected but 3 pillars didn't all pass."""
+    direction: str
+    level_name: str
+    level_price: float
+    entry_price: float
+    stop_price: float
+    detect_ts: float
+    setup_type: str
+    pillar_detail: str
+    day_type: str
+    killzone: str
+    price_at_detect: float
 
 
 @dataclass
@@ -83,6 +101,7 @@ class ShadowEngine:
         self._last_date: str = ""
         self._last_eval_ts: float = 0
         self._cooldown_setups: dict[str, float] = {}  # level_name -> last_ts
+        self._building: list[BuildingSetup] = []  # partially-passed setups
 
     def _reset_daily(self):
         today = datetime.now(ET).strftime("%Y-%m-%d")
@@ -121,6 +140,9 @@ class ShadowEngine:
         if now - self._last_eval_ts < 3.0:
             return
         self._last_eval_ts = now
+
+        # Check for expired BUILDING setups — compute hypothetical MAE/MFE
+        await self._check_building_expiry(now, candles, http_session)
 
         if len(self.active) >= MAX_SHADOW_TRADES:
             return
@@ -207,9 +229,27 @@ class ShadowEngine:
                 await self._log_attempt(
                     hit, direction, eval_result, market_data, day_type, http_session
                 )
+                # Track as BUILDING if at least P1 passed (sweep/rejection at level)
+                if "P2" in eval_result.get("reason", "") or "P3" in eval_result.get("reason", ""):
+                    bld_key = f"{direction}_{hit['levelName']}"
+                    if not any(b.direction == direction and b.level_name == hit["levelName"] for b in self._building):
+                        bld_levels = self._calc_levels(direction.lower(), hit, price, market_data)
+                        if bld_levels and not bld_levels.get("stopTooWide"):
+                            self._building.append(BuildingSetup(
+                                direction=direction, level_name=hit["levelName"],
+                                level_price=hit["level"], entry_price=bld_levels["entry"],
+                                stop_price=bld_levels["stop"], detect_ts=now,
+                                setup_type=hit["type"].upper(),
+                                pillar_detail=eval_result.get("reason", ""),
+                                day_type=day_type, killzone=self._get_killzone(),
+                                price_at_detect=price,
+                            ))
                 continue
 
             # 3 pillars passed — create shadow trade(s)
+            # Remove from building list (it graduated to live)
+            self._building = [b for b in self._building
+                              if not (b.direction == direction and b.level_name == hit["levelName"])]
             self._cooldown_setups[cooldown_key] = now
             self.setup_count_today += 1
 
@@ -700,6 +740,87 @@ class ShadowEngine:
             "stacked_dominant_vol": bool(fp.get("stacked_imbalance_count", 0) or 0 >= 3),
             "bars_building_before_live": bars_building,
         }
+
+    # ── Building setup expiry with hypothetical MAE/MFE ─────────────────
+
+    async def _check_building_expiry(self, now: float, candles: list, http_session):
+        """Expire BUILDING setups after 90 min, compute 60-min hypothetical MAE/MFE."""
+        expired = []
+        still_building = []
+        for bld in self._building:
+            age_min = (now - bld.detect_ts) / 60
+            if age_min >= BUILDING_EXPIRE_MIN:
+                expired.append(bld)
+            else:
+                still_building.append(bld)
+        self._building = still_building
+
+        if not expired or not candles:
+            return
+
+        sorted_candles = sorted(candles, key=lambda c: c.get("ts", 0))
+
+        for bld in expired:
+            # Scan forward 60 min from detect_ts
+            detect_ts = int(bld.detect_ts)
+            end_ts = detect_ts + HYPO_FORWARD_MIN * 60
+            is_long = bld.direction == "LONG"
+            mae = 0.0
+            mfe = 0.0
+
+            for c in sorted_candles:
+                cts = c.get("ts", 0)
+                if cts < detect_ts or cts > end_ts:
+                    continue
+                h = c.get("h", 0) or c.get("high", 0)
+                l = c.get("l", 0) or c.get("low", 0)
+                if h == 0 or l == 0:
+                    continue
+
+                if is_long:
+                    adverse = bld.entry_price - l
+                    favorable = h - bld.entry_price
+                else:
+                    adverse = h - bld.entry_price
+                    favorable = bld.entry_price - l
+
+                if adverse > mae:
+                    mae = adverse
+                if favorable > mfe:
+                    mfe = favorable
+
+            # Log enriched attempt
+            try:
+                import aiohttp
+                attempt = {
+                    "ts": detect_ts,
+                    "direction": bld.direction,
+                    "setup_type": bld.setup_type,
+                    "level_name": bld.level_name,
+                    "level_price": bld.level_price,
+                    "price_at_detect": bld.price_at_detect,
+                    "rejection_reason": f"BUILDING_EXPIRED ({BUILDING_EXPIRE_MIN}min): {bld.pillar_detail}",
+                    "pillars_detail": bld.pillar_detail,
+                    "day_type": bld.day_type,
+                    "killzone": bld.killzone,
+                    "is_shadow": True,
+                    "cb_respected": False,
+                    "hypothetical_mae_60min_pts": round(mae, 2),
+                    "hypothetical_mfe_60min_pts": round(mfe, 2),
+                    "entry_price_hypothetical": bld.entry_price,
+                    "stop_hypothetical": bld.stop_price,
+                }
+                async with http_session.post(
+                    f"{CLOUD_URL}/analytics/attempts",
+                    json=attempt,
+                    headers={"content-type": "application/json"},
+                    timeout=aiohttp.ClientTimeout(total=5)
+                ) as resp:
+                    pass
+                log.info(f"[SHADOW] BUILDING expired: {bld.direction} {bld.level_name} "
+                         f"hypo_MAE={mae:.1f} hypo_MFE={mfe:.1f}")
+            except Exception as e:
+                log.debug(f"[SHADOW] Building expiry log failed: {e}")
 
     # ── Shadow lifecycle ──────────────────────────────────────────────────
 

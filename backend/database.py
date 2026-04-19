@@ -133,6 +133,11 @@ async def init_db():
             cvd_direction_at_entry  TEXT,
             mtf_aligned             BOOLEAN,
             vwap_side               TEXT,
+            -- V6.3 Appendix D: hypothetical forward performance
+            hypothetical_mae_60min_pts  REAL,
+            hypothetical_mfe_60min_pts  REAL,
+            entry_price_hypothetical    REAL,
+            stop_hypothetical           REAL,
             extra_json      JSONB,
             created_at      TIMESTAMPTZ DEFAULT NOW()
         );
@@ -140,6 +145,19 @@ async def init_db():
         CREATE INDEX IF NOT EXISTS idx_attempts_ts ON setup_attempts (ts);
         CREATE INDEX IF NOT EXISTS idx_attempts_is_shadow ON setup_attempts (is_shadow);
         """)
+
+        # Migration: add hypothetical columns if missing (idempotent)
+        for col, typ in [
+            ("hypothetical_mae_60min_pts", "REAL"),
+            ("hypothetical_mfe_60min_pts", "REAL"),
+            ("entry_price_hypothetical", "REAL"),
+            ("stop_hypothetical", "REAL"),
+        ]:
+            try:
+                await conn.execute(f"ALTER TABLE setup_attempts ADD COLUMN IF NOT EXISTS {col} {typ}")
+            except Exception:
+                pass
+
     log.info("Postgres tables initialized")
 
 
@@ -339,6 +357,8 @@ async def insert_attempt(attempt: dict):
         'cb_state_at_entry', 'news_state_at_entry', 'day_pnl_before_entry',
         'setup_number_today', 'rel_vol_at_entry', 'cvd_direction_at_entry',
         'mtf_aligned', 'vwap_side',
+        'hypothetical_mae_60min_pts', 'hypothetical_mfe_60min_pts',
+        'entry_price_hypothetical', 'stop_hypothetical',
     }
     row = {}
     extra = {}
