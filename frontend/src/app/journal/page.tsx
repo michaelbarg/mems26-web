@@ -2,6 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import {
+  LineChart, Line, BarChart, Bar, ScatterChart, Scatter,
+  PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
+} from 'recharts';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -558,6 +563,11 @@ export default function JournalPage() {
                   </button>
                 </div>
               )}
+
+              {/* Charts Section */}
+              {filteredTrades.length > 0 && (
+                <JournalCharts trades={filteredTrades.filter(t => t.status === 'CLOSED')} />
+              )}
             </div>
           )}
         </main>
@@ -643,6 +653,138 @@ function DetailRow({ label, value, highlight }: { label: string; value?: string;
       <div className={`font-mono ${color}`}>{value || '-'}</div>
     </>
   );
+}
+
+const CHART_COLORS = ['#22c55e', '#ef5350', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4'];
+
+function JournalCharts({ trades }: { trades: Trade[] }) {
+  // 1. PnL over time (cumulative line chart)
+  const pnlData = useMemo(() => {
+    const sorted = [...trades].sort((a, b) => (a.entry_ts || 0) - (b.entry_ts || 0));
+    let cum = 0;
+    return sorted.map((t, i) => {
+      cum += t.pnl_pts || 0;
+      return {
+        idx: i + 1,
+        date: tsToDate(t.entry_ts),
+        pnl: round2(t.pnl_pts || 0),
+        cumPnl: round2(cum),
+      };
+    });
+  }, [trades]);
+
+  // 2. Win Rate by Day Type (bar chart)
+  const wrByDay = useMemo(() => {
+    const groups: Record<string, { total: number; wins: number }> = {};
+    for (const t of trades) {
+      const dt = t.day_type || 'UNKNOWN';
+      if (!groups[dt]) groups[dt] = { total: 0, wins: 0 };
+      groups[dt].total++;
+      if ((t.pnl_pts || 0) > 0) groups[dt].wins++;
+    }
+    return Object.entries(groups).map(([name, v]) => ({
+      name,
+      wr: v.total > 0 ? Math.round(v.wins / v.total * 100) : 0,
+      count: v.total,
+    }));
+  }, [trades]);
+
+  // 3. MAE vs MFE scatter
+  const scatterData = useMemo(() => {
+    return trades.map(t => ({
+      mae: round2(t.mae_pts || 0),
+      mfe: round2(t.mfe_pts || 0),
+      win: (t.pnl_pts || 0) > 0,
+    }));
+  }, [trades]);
+
+  // 4. Exit type breakdown (pie chart)
+  const exitData = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const t of trades) {
+      const reason = t.close_reason || 'UNKNOWN';
+      counts[reason] = (counts[reason] || 0) + 1;
+    }
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [trades]);
+
+  if (trades.length < 2) return null;
+
+  return (
+    <div className="mt-6">
+      <h3 className="text-sm font-bold text-gray-400 mb-3">Analytics Charts</h3>
+      <div className="grid grid-cols-2 gap-4">
+        {/* PnL over time */}
+        <div className="bg-gray-900 border border-gray-800 rounded p-3">
+          <div className="text-[10px] text-gray-500 mb-2">Cumulative PnL (pts)</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <LineChart data={pnlData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e2738" />
+              <XAxis dataKey="idx" tick={{ fontSize: 9, fill: '#6b7280' }} />
+              <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} />
+              <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #333', fontSize: 11 }} />
+              <Line type="monotone" dataKey="cumPnl" stroke="#3b82f6" strokeWidth={2} dot={false} name="Cum PnL" />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Win Rate by Day Type */}
+        <div className="bg-gray-900 border border-gray-800 rounded p-3">
+          <div className="text-[10px] text-gray-500 mb-2">Win Rate by Day Type</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={wrByDay}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e2738" />
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: '#6b7280' }} />
+              <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} domain={[0, 100]} />
+              <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #333', fontSize: 11 }} />
+              <Bar dataKey="wr" fill="#22c55e" name="WR%">
+                {wrByDay.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* MAE vs MFE scatter */}
+        <div className="bg-gray-900 border border-gray-800 rounded p-3">
+          <div className="text-[10px] text-gray-500 mb-2">MAE vs MFE (pts)</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <ScatterChart>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e2738" />
+              <XAxis dataKey="mae" name="MAE" tick={{ fontSize: 9, fill: '#6b7280' }} />
+              <YAxis dataKey="mfe" name="MFE" tick={{ fontSize: 9, fill: '#6b7280' }} />
+              <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #333', fontSize: 11 }}
+                formatter={(val: any, name: string) => [`${val}pt`, name]} />
+              <Scatter data={scatterData.filter(d => d.win)} fill="#22c55e" name="Winners" />
+              <Scatter data={scatterData.filter(d => !d.win)} fill="#ef5350" name="Losers" />
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Exit type breakdown */}
+        <div className="bg-gray-900 border border-gray-800 rounded p-3">
+          <div className="text-[10px] text-gray-500 mb-2">Exit Type Breakdown</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={exitData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                labelLine={{ stroke: '#4a5568' }}
+                fontSize={9}>
+                {exitData.map((_, i) => (
+                  <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #333', fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function round2(v: number): number {
+  return Math.round(v * 100) / 100;
 }
 
 function CompareTable({ trades }: { trades: Trade[] }) {
