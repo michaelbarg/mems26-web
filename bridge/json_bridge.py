@@ -1422,6 +1422,9 @@ async def main():
                         except Exception:
                             pass
                         await shadow_engine.evaluate_setup(payload, all_candles_shadow, http)
+
+                    # Write visualization JSON for Sierra Chart C6
+                    shadow_engine.write_visualization()
                 except Exception as e:
                     log.debug(f"[SHADOW] tick error: {e}")
 

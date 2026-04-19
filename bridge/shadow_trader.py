@@ -24,8 +24,9 @@ from config import (
     STOP_MIN_PT, STOP_MAX_PT, T1_RR, T1_MIN_PT, T2_RR,
     CB_SOFT_LIMIT, CB_HARD_LIMIT, CB_MAX_TRADES, CB_CONSEC_LOSSES,
     EOD_FLATTEN_TIME, KILLZONES, CLOUD_URL, BRIDGE_TOKEN,
-    REDIS_URL, REDIS_TOKEN,
+    REDIS_URL, REDIS_TOKEN, SC_JSON_PATH,
 )
+import os
 
 log = logging.getLogger("shadow")
 ET = ZoneInfo("America/New_York")
@@ -343,6 +344,77 @@ class ShadowEngine:
 
     def get_active_count(self) -> int:
         return sum(1 for s in self.active if s.status == "OPEN")
+
+    def write_visualization(self):
+        """Write mes_ai_visualization.json for Sierra Chart C6 drawing."""
+        viz_path = os.path.join(os.path.dirname(SC_JSON_PATH), "mes_ai_visualization.json")
+        drawings = []
+
+        # BUILDING setups: gray rectangle at FVG zone (P1+P2 detected)
+        for bld in self._building:
+            # Rectangle from level_price to entry_price
+            top = max(bld.level_price, bld.entry_price) + 0.5
+            bot = min(bld.level_price, bld.entry_price) - 0.5
+            age_min = (time.time() - bld.detect_ts) / 60
+            drawings.append({
+                "type": "rect",
+                "price_top": round(top, 2),
+                "price_bot": round(bot, 2),
+                "bar_offset": max(0, int(age_min / 3)),  # approx bars back
+                "color": "gray",
+                "alpha": 80,
+                "label": f"BUILDING {bld.direction} {bld.level_name}",
+            })
+
+        # ACTIVE shadow trades: green/red rectangle
+        for shadow in self.active:
+            if shadow.status != "OPEN":
+                continue
+            is_long = shadow.direction == "LONG"
+            color = "green" if is_long else "red"
+            top = max(shadow.entry_price, shadow.stop) + 0.5
+            bot = min(shadow.entry_price, shadow.stop) - 0.5
+            age_min = (time.time() - shadow.entry_ts) / 60
+            drawings.append({
+                "type": "rect",
+                "price_top": round(top, 2),
+                "price_bot": round(bot, 2),
+                "bar_offset": max(0, int(age_min / 3)),
+                "color": color,
+                "alpha": 100,
+                "label": f"{shadow.direction} {shadow.level_name}",
+            })
+
+        # Recent rejections: gray arrow + label (last 10 from closed_today)
+        for closed in self.closed_today[-10:]:
+            if closed.get("close_reason") == "STOP":
+                drawings.append({
+                    "type": "arrow",
+                    "price_top": round(closed.get("entry_price", 0), 2),
+                    "bar_offset": max(0, int((time.time() - closed.get("entry_ts", 0)) / 180)),
+                    "color": "gray",
+                    "alpha": 80,
+                    "dir": closed.get("direction", "LONG"),
+                    "label": closed.get("close_reason", ""),
+                })
+
+        # Absorption bubbles from building setups (if pillar detail mentions absorption)
+        for bld in self._building:
+            if "absorption" not in bld.pillar_detail.lower():
+                drawings.append({
+                    "type": "bubble",
+                    "price_top": round(bld.level_price, 2),
+                    "bar_offset": max(0, int((time.time() - bld.detect_ts) / 180)),
+                    "color": "cyan",
+                    "alpha": 180,
+                    "label": "absorption",
+                })
+
+        try:
+            with open(viz_path, "w") as f:
+                json.dump({"drawings": drawings, "ts": int(time.time())}, f)
+        except Exception as e:
+            log.debug(f"[VIZ] Write failed: {e}")
 
     # ── Internal: Level Building ──────────────────────────────────────────
 
