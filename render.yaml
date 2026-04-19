@@ -10,9 +10,19 @@ services:
         sync: false          # הגדר ב-Render Dashboard
       - key: BRIDGE_TOKEN
         sync: false          # אותו token כמו ב-.env של Bridge
+      - key: DATABASE_URL
+        fromDatabase:
+          name: mems26-db
+          property: connectionString
       - key: MAX_TRADES_DAY
         value: "3"
       - key: MIN_CONFIDENCE
         value: "HIGH"
     healthCheckPath: /health
     autoDeploy: true
+
+databases:
+  - name: mems26-db
+    plan: free
+    databaseName: mems26
+    user: mems26

@@ -29,6 +29,7 @@ REDIS_DAILY_TRADES  = "mems26:daily:trades"
 REDIS_TRADE_COMMAND = "mems26:trade:command"
 COMMAND_TTL_SEC = 300  # 5 minutes for command pickup
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 async def redis_set(data: dict):
@@ -246,7 +247,16 @@ async def _ws_push_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)}")
+    log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)} | PG={bool(DATABASE_URL)}")
+    # Initialize Postgres
+    from database import init_db, seed_from_redis, close_pool
+    try:
+        await init_db()
+        # Seed from Redis on first run (idempotent — upsert)
+        if DATABASE_URL:
+            await seed_from_redis(redis_get_key, REDIS_URL, REDIS_TOKEN)
+    except Exception as e:
+        log.error(f"Postgres init failed: {e}")
     task = asyncio.create_task(_ws_push_loop())
     yield
     task.cancel()
@@ -254,6 +264,7 @@ async def lifespan(app: FastAPI):
         await task
     except asyncio.CancelledError:
         pass
+    await close_pool()
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(
@@ -1010,25 +1021,49 @@ async def redis_trades_get() -> list:
 
 
 @app.get("/trades/log")
-async def get_trade_log(limit: int = 50):
-    """Return last N closed trades from trade log, newest first. Enriches with computed fields."""
-    trades = []
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(
-                f"{REDIS_URL}/keys/mems26:tradelog:*",
-                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
-                timeout=5.0
-            )
-            keys = resp.json().get("result", [])
-            if keys:
-                keys.sort(reverse=True)
-                for key in keys[:limit]:
-                    val = await redis_get_key(key)
-                    if val and isinstance(val, dict):
-                        trades.append(val)
-    except Exception as e:
-        log.error(f"/trades/log keys failed: {e}")
+async def get_trade_log(
+    limit: int = 50,
+    is_shadow: Optional[str] = None,
+    day_type: Optional[str] = None,
+    killzone: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+):
+    """Return last N closed trades, newest first. Uses Postgres when available."""
+    from database import get_trades_log as pg_get_trades, get_pool
+
+    # Try Postgres first
+    pool = await get_pool()
+    if pool:
+        shadow = None
+        if is_shadow == "true":
+            shadow = True
+        elif is_shadow == "false":
+            shadow = False
+        trades = await pg_get_trades(
+            limit=limit, is_shadow=shadow,
+            day_type=day_type, killzone=killzone,
+            from_date=from_date, to_date=to_date,
+        )
+    else:
+        # Fallback to Redis
+        trades = []
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"{REDIS_URL}/keys/mems26:tradelog:*",
+                    headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                    timeout=5.0
+                )
+                keys = resp.json().get("result", [])
+                if keys:
+                    keys.sort(reverse=True)
+                    for key in keys[:limit]:
+                        val = await redis_get_key(key)
+                        if val and isinstance(val, dict):
+                            trades.append(val)
+        except Exception as e:
+            log.error(f"/trades/log keys failed: {e}")
 
     # Also include current trade if CLOSED but not yet in log
     try:
@@ -1070,6 +1105,11 @@ async def create_test_trade():
         "killzone": "NY_Open", "day_type": "NORMAL",
     }
     await redis_set_key(f"mems26:tradelog:{ts}", trade)
+    try:
+        from database import insert_trade
+        await insert_trade(trade)
+    except Exception as e:
+        log.warning(f"Postgres test trade failed: {e}")
     return {"ok": True, "trade": trade}
 
 
@@ -1745,6 +1785,14 @@ async def trade_execute(request: Request):
                 log.warning(f"Daily state update failed (trade still opened): {e}")
 
         log.info(f"Trade opened: {trade_id} {direction} @ {entry} stop={stop} risk={risk:.2f}")
+
+        # Persist open trade to Postgres
+        try:
+            from database import insert_trade
+            await insert_trade(trade)
+        except Exception as e:
+            log.warning(f"Postgres trade open persist failed: {e}")
+
         return {"ok": True, "trade": trade}
 
     except HTTPException:
@@ -1829,12 +1877,17 @@ async def trade_close(request: Request):
 
     await save_daily_state(state)
 
-    # Persist to trade log (no TTL)
+    # Persist to trade log (Redis + Postgres)
     try:
         log_key = f"mems26:tradelog:{active['exit_ts']}"
         await redis_set_key(log_key, active)
     except Exception as e:
         log.warning(f"Trade log persist failed: {e}")
+    try:
+        from database import insert_trade
+        await insert_trade(active)
+    except Exception as e:
+        log.warning(f"Postgres trade persist failed: {e}")
 
     log.info(f"Trade closed: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f}) reason={reason}")
 
@@ -2038,8 +2091,14 @@ async def news_status():
 
 # ── Analytics Endpoints ───────────────────────────────────────────────────
 
-async def _get_all_trade_logs() -> list:
-    """Read all trade log entries from Redis."""
+async def _get_all_trade_logs(is_shadow: Optional[bool] = None) -> list:
+    """Read all trade log entries. Uses Postgres when available, else Redis."""
+    from database import get_all_trades, get_pool
+    pool = await get_pool()
+    if pool:
+        return await get_all_trades(is_shadow=is_shadow)
+
+    # Fallback to Redis
     trades = []
     try:
         async with httpx.AsyncClient() as client:
@@ -2089,6 +2148,36 @@ async def analytics_patterns():
     from analytics import compute_pattern_analysis
     trades = await _get_all_trade_logs()
     return compute_pattern_analysis(trades)
+
+
+@app.get("/analytics/attempts")
+async def analytics_attempts(
+    limit: int = 200,
+    is_shadow: Optional[str] = None,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+):
+    """Return setup attempts (rejected/taken setups) from Postgres."""
+    from database import get_attempts, get_pool
+    pool = await get_pool()
+    if not pool:
+        return []
+    shadow = None
+    if is_shadow == "true":
+        shadow = True
+    elif is_shadow == "false":
+        shadow = False
+    return await get_attempts(limit=limit, is_shadow=shadow,
+                              from_date=from_date, to_date=to_date)
+
+
+@app.post("/analytics/attempts")
+async def log_attempt(request: Request):
+    """Log a setup attempt (for shadow or live)."""
+    from database import insert_attempt
+    attempt = await request.json()
+    await insert_attempt(attempt)
+    return {"ok": True}
 
 
 @app.get("/health")
