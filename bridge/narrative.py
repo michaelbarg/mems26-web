@@ -259,6 +259,9 @@ def build_entry_narrative(
     # V6.5 Appendix G: Tick Reversal Signals (collection only, NO scoring effect)
     tls = fp.get("tick_level_signals")
     if tls and isinstance(tls, dict):
+        # Cap raw_ticks to 50 entries to limit storage
+        if "raw_ticks" in tls and isinstance(tls["raw_ticks"], list):
+            tls["raw_ticks"] = tls["raw_ticks"][:50]
         narrative["pillar_3"]["tick_level_signals"] = tls
 
     return narrative

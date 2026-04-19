@@ -610,52 +610,77 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // Tick-level signals (computed from VAP of current bar)
     bool trs_exhaustion = false;
     float trs_exhaustion_intensity = 0;
+    const char* trs_exhaustion_loc = "body";
     bool trs_stopping_vol = false;
     int trs_rejection_ticks = 0;
+    unsigned int trs_max_vol_last5 = 0;
     float trs_candle_delta = delta;
     float trs_last3_delta = 0;
     bool trs_delta_flip = false;
     float trs_reversal_strength = 0;
     bool trs_pv_divergence = false;
+    // raw_ticks: price-level data from VAP (up to 50 entries)
+    std::ostringstream raw_ticks_j;
+    raw_ticks_j << "[";
+    int raw_tick_count = 0;
 
     {
         int vap_sz = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(idx);
+        float bar_hi = sc.High[idx], bar_lo = sc.Low[idx];
+        float body_top = (sc.Open[idx] > cp) ? sc.Open[idx] : cp;
+        float body_bot = (sc.Open[idx] < cp) ? sc.Open[idx] : cp;
+
         if (vap_sz >= 5) {
-            // Gather tick sizes in order (bottom to top)
-            std::vector<unsigned int> tick_vols;
-            for (int v = 0; v < vap_sz && v < 30; v++) {
+            // Gather tick data (bottom to top)
+            struct TickInfo { float price; unsigned int ask; unsigned int bid; unsigned int vol; };
+            std::vector<TickInfo> ticks;
+            for (int v = 0; v < vap_sz && v < 50; v++) {
                 const s_VolumeAtPriceV2 *vap = NULL;
                 if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
                 if (!vap) continue;
-                tick_vols.push_back(vap->AskVolume + vap->BidVolume);
+                float px = sc.VolumeAtPriceForBars->GetPriceAtIndex(idx, v);
+                ticks.push_back({px, vap->AskVolume, vap->BidVolume, vap->AskVolume + vap->BidVolume});
             }
-            int n = (int)tick_vols.size();
+            int n = (int)ticks.size();
+
+            // raw_ticks_last_30sec: emit VAP ticks as array (up to 50)
+            for (int i = 0; i < n && i < 50; i++) {
+                if (i > 0) raw_ticks_j << ",";
+                const char* side = (ticks[i].ask > ticks[i].bid) ? "buy" : "sell";
+                raw_ticks_j << "{\"p\":" << ticks[i].price
+                            << ",\"s\":" << ticks[i].vol
+                            << ",\"side\":\"" << side << "\"}";
+                raw_tick_count++;
+            }
+
             if (n >= 5) {
                 // Exhaustion tail: last 3 ticks much smaller than first 5
                 float first5_max = 0;
                 for (int i = 0; i < 5 && i < n; i++)
-                    if (tick_vols[i] > first5_max) first5_max = (float)tick_vols[i];
+                    if (ticks[i].vol > first5_max) first5_max = (float)ticks[i].vol;
                 float last3_avg = 0;
-                for (int i = n-3; i < n; i++) last3_avg += tick_vols[i];
+                for (int i = n-3; i < n; i++) last3_avg += ticks[i].vol;
                 last3_avg /= 3.0f;
                 if (first5_max > 0) {
                     trs_exhaustion_intensity = 1.0f - (last3_avg / first5_max);
                     if (trs_exhaustion_intensity < 0) trs_exhaustion_intensity = 0;
                     trs_exhaustion = (trs_exhaustion_intensity > 0.6f);
                 }
+                // location: where is the exhaustion tail?
+                float tail_price = ticks[n-1].price;
+                if (tail_price >= body_top) trs_exhaustion_loc = "wick_top";
+                else if (tail_price <= body_bot) trs_exhaustion_loc = "wick_bottom";
 
                 // Stopping volume: max vol in last 5 ticks vs avg
                 float avg_vol = 0;
-                for (int i = 0; i < n; i++) avg_vol += tick_vols[i];
+                for (int i = 0; i < n; i++) avg_vol += ticks[i].vol;
                 avg_vol /= n;
-                unsigned int max_last5 = 0;
                 for (int i = n-5; i < n; i++)
-                    if (tick_vols[i] > max_last5) max_last5 = tick_vols[i];
-                if (avg_vol > 0 && max_last5 >= (unsigned int)(3.0f * avg_vol)) {
-                    // Count rejection ticks after max
+                    if (ticks[i].vol > trs_max_vol_last5) trs_max_vol_last5 = ticks[i].vol;
+                if (avg_vol > 0 && trs_max_vol_last5 >= (unsigned int)(3.0f * avg_vol)) {
                     int max_idx = n-5;
                     for (int i = n-5; i < n; i++)
-                        if (tick_vols[i] == max_last5) { max_idx = i; break; }
+                        if (ticks[i].vol == trs_max_vol_last5) { max_idx = i; break; }
                     trs_rejection_ticks = n - 1 - max_idx;
                     trs_stopping_vol = (trs_rejection_ticks >= 2);
                 }
@@ -663,11 +688,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
             // Delta reversal: last 3 ticks delta vs full bar delta
             if (n >= 3) {
-                for (int v = vap_sz-3; v < vap_sz; v++) {
-                    const s_VolumeAtPriceV2 *vap = NULL;
-                    if (sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap) && vap)
-                        trs_last3_delta += (float)vap->AskVolume - (float)vap->BidVolume;
-                }
+                for (int i = n-3; i < n; i++)
+                    trs_last3_delta += (float)ticks[i].ask - (float)ticks[i].bid;
                 trs_delta_flip = ((trs_candle_delta > 0 && trs_last3_delta < 0) ||
                                   (trs_candle_delta < 0 && trs_last3_delta > 0));
                 if (std::fabs(trs_candle_delta) > 0)
@@ -685,6 +707,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             trs_pv_divergence = (price_up != delta_up);
         }
     }
+    raw_ticks_j << "]";
 
     // -- Candle Patterns --------------------------------------
     const char* pat0=detectCandlePattern(sc.Open[idx],sc.High[idx],sc.Low[idx],sc.Close[idx]);
@@ -896,10 +919,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         <<",\"absorption_at_fvg\":"<<(fp_absorption_at_fvg?"true":"false")
         <<",\"delta_confirmed_5m\":"<<(fp_delta_confirmed_5m?"true":"false")
         <<",\"tick_level_signals\":{"
-           <<"\"exhaustion_tail\":{\"detected\":"<<(trs_exhaustion?"true":"false")<<",\"intensity\":"<<trs_exhaustion_intensity<<"}"
-           <<",\"stopping_volume\":{\"detected\":"<<(trs_stopping_vol?"true":"false")<<",\"rejection_ticks\":"<<trs_rejection_ticks<<"}"
+           <<"\"exhaustion_tail\":{\"detected\":"<<(trs_exhaustion?"true":"false")<<",\"intensity\":"<<trs_exhaustion_intensity<<",\"location\":\""<<trs_exhaustion_loc<<"\"}"
+           <<",\"stopping_volume\":{\"detected\":"<<(trs_stopping_vol?"true":"false")<<",\"rejection_ticks\":"<<trs_rejection_ticks<<",\"max_vol_last_5ticks\":"<<trs_max_vol_last5<<"}"
            <<",\"delta_reversal_ticks\":{\"candle_delta\":"<<trs_candle_delta<<",\"last3_delta\":"<<trs_last3_delta<<",\"direction_flip\":"<<(trs_delta_flip?"true":"false")<<",\"reversal_strength\":"<<trs_reversal_strength<<"}"
            <<",\"pv_divergence\":{\"detected\":"<<(trs_pv_divergence?"true":"false")<<"}"
+           <<",\"raw_ticks\":"<<raw_ticks_j.str()
         <<"}}"
      <<",\"mtf\":{"
         <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
