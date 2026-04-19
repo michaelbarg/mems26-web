@@ -813,22 +813,63 @@ async def _heartbeat_watchdog(http):
 
 
 # ── EOD Flatten — auto-close before CME maintenance ─────────────────────────
+_eod_dump_done_date = ""  # Track daily dump to prevent duplicates
+
+async def _eod_daily_dump(http):
+    """Write daily CSV exports at EOD."""
+    global _eod_dump_done_date
+    today = datetime.now(ET).strftime("%Y-%m-%d")
+    if _eod_dump_done_date == today:
+        return
+    _eod_dump_done_date = today
+
+    exports_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "exports")
+    os.makedirs(exports_dir, exist_ok=True)
+
+    for kind in ("shadow", "attempts", "live"):
+        try:
+            is_shadow_param = "true" if kind == "shadow" else "false" if kind == "live" else "all"
+            endpoint = "attempts" if kind == "attempts" else "trades"
+            async with http.get(
+                f"{CLOUD_URL}/analytics/export/{endpoint}?format=csv&from={today}&to={today}&is_shadow={is_shadow_param}",
+                timeout=aiohttp.ClientTimeout(total=15)
+            ) as resp:
+                if resp.status == 200:
+                    csv_data = await resp.text()
+                    if csv_data.strip():
+                        filepath = os.path.join(exports_dir, f"{kind}_{today}.csv")
+                        with open(filepath, "w") as f:
+                            f.write(csv_data)
+                        log.info(f"[EOD] Daily dump: {filepath}")
+                    else:
+                        log.info(f"[EOD] No {kind} data for {today}")
+        except Exception as e:
+            log.warning(f"[EOD] Daily dump {kind} failed: {e}")
+
+
 async def _eod_flatten_check(http):
     """Check every 30s if we're past EOD_FLATTEN_TIME with an open position."""
     while True:
         try:
-            if EOD_FLATTEN_ENABLED and trade_tracker.open_trade:
-                now_et = datetime.now(ET)
-                flatten_h, flatten_m = map(int, EOD_FLATTEN_TIME.split(":"))
-                flatten_time = dtime(flatten_h, flatten_m)
-                if now_et.time() >= flatten_time and now_et.time() < dtime(16, 15):
-                    log.warning(f"[EOD] Auto-flatten at {EOD_FLATTEN_TIME} ET — closing position")
-                    # Flatten shadow trades too
-                    try:
-                        await shadow_engine.eod_flatten()
+            now_et = datetime.now(ET)
+            flatten_h, flatten_m = map(int, EOD_FLATTEN_TIME.split(":"))
+            flatten_time = dtime(flatten_h, flatten_m)
+
+            if now_et.time() >= flatten_time and now_et.time() < dtime(16, 15):
+                # Always flatten shadows and dump CSV at EOD
+                try:
+                    await shadow_engine.eod_flatten()
+                    if shadow_engine.closed_today:
                         log.info(f"[EOD] Shadow trades flattened: {len(shadow_engine.closed_today)} closed today")
-                    except Exception as e:
-                        log.warning(f"[EOD] Shadow flatten error: {e}")
+                except Exception as e:
+                    log.warning(f"[EOD] Shadow flatten error: {e}")
+
+                # Daily CSV auto-dump
+                await _eod_daily_dump(http)
+
+                # Flatten real position if open
+                if EOD_FLATTEN_ENABLED and trade_tracker.open_trade:
+                    log.warning(f"[EOD] Auto-flatten at {EOD_FLATTEN_TIME} ET — closing position")
                     try:
                         async with http.post(
                             f"{CLOUD_URL}/trade/close",

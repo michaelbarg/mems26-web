@@ -4,7 +4,7 @@ import asyncio
 import logging
 from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import httpx
@@ -2194,6 +2194,153 @@ async def log_attempt(request: Request):
     attempt = await request.json()
     await insert_attempt(attempt)
     return {"ok": True}
+
+
+def _trades_to_csv(trades: list) -> str:
+    """Convert trade dicts to CSV string with all fields flattened."""
+    import io, csv
+    if not trades:
+        return ""
+    # Collect all keys from all trades
+    all_keys = set()
+    for t in trades:
+        all_keys.update(t.keys())
+    # Sort keys for consistent column order
+    priority = [
+        "id", "direction", "entry_price", "exit_price", "stop",
+        "t1", "t2", "t3", "risk_pts", "pnl_pts", "pnl_usd",
+        "entry_ts", "exit_ts", "status", "close_reason",
+        "setup_type", "day_type", "killzone", "is_shadow", "cb_respected",
+        "mae_pts", "mfe_pts", "duration_min",
+    ]
+    ordered = [k for k in priority if k in all_keys]
+    ordered += sorted(all_keys - set(ordered))
+
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=ordered, extrasaction="ignore")
+    writer.writeheader()
+    for t in trades:
+        # Convert timestamps to ISO strings
+        row = dict(t)
+        for ts_key in ("entry_ts", "exit_ts", "ts"):
+            if ts_key in row and isinstance(row[ts_key], (int, float)) and row[ts_key] > 0:
+                from datetime import datetime
+                from zoneinfo import ZoneInfo
+                row[ts_key] = datetime.fromtimestamp(row[ts_key], tz=ZoneInfo("America/New_York")).isoformat()
+        writer.writerow(row)
+    return output.getvalue()
+
+
+def _attempts_to_csv(attempts: list) -> str:
+    import io, csv
+    if not attempts:
+        return ""
+    all_keys = set()
+    for a in attempts:
+        all_keys.update(a.keys())
+    ordered = sorted(all_keys)
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=ordered, extrasaction="ignore")
+    writer.writeheader()
+    for a in attempts:
+        row = dict(a)
+        if "ts" in row and isinstance(row["ts"], (int, float)) and row["ts"] > 0:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            row["ts"] = datetime.fromtimestamp(row["ts"], tz=ZoneInfo("America/New_York")).isoformat()
+        writer.writerow(row)
+    return output.getvalue()
+
+
+@app.get("/analytics/export/trades")
+async def export_trades(
+    format: str = "csv",
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    is_shadow: Optional[str] = None,
+    day_type: Optional[str] = None,
+):
+    """Export trades as CSV or JSON with optional filters."""
+    shadow = None
+    if is_shadow == "true":
+        shadow = True
+    elif is_shadow == "false":
+        shadow = False
+    trades = await _get_all_trade_logs(is_shadow=shadow)
+
+    # Apply additional filters
+    if from_date:
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        from_ts = int(datetime.strptime(from_date, "%Y-%m-%d").replace(tzinfo=ZoneInfo("America/New_York")).timestamp())
+        trades = [t for t in trades if (t.get("entry_ts") or 0) >= from_ts]
+    if to_date:
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        to_ts = int((datetime.strptime(to_date, "%Y-%m-%d").replace(tzinfo=ZoneInfo("America/New_York")) + timedelta(days=1)).timestamp())
+        trades = [t for t in trades if (t.get("entry_ts") or 0) < to_ts]
+    if day_type and day_type != "all":
+        trades = [t for t in trades if t.get("day_type") == day_type]
+
+    if format == "json":
+        return JSONResponse(
+            content=trades,
+            headers={"Content-Disposition": "attachment; filename=trades.json"}
+        )
+
+    csv_data = _trades_to_csv(trades)
+    return StreamingResponse(
+        iter([csv_data]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=trades.csv"}
+    )
+
+
+@app.get("/analytics/export/attempts")
+async def export_attempts(
+    format: str = "csv",
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    is_shadow: Optional[str] = None,
+):
+    """Export setup attempts as CSV or JSON."""
+    from database import get_attempts, get_pool
+    pool = await get_pool()
+    if not pool:
+        return JSONResponse(content=[], status_code=200)
+    shadow = None
+    if is_shadow == "true":
+        shadow = True
+    elif is_shadow == "false":
+        shadow = False
+    attempts = await get_attempts(limit=10000, is_shadow=shadow,
+                                  from_date=from_date, to_date=to_date)
+
+    if format == "json":
+        return JSONResponse(
+            content=attempts,
+            headers={"Content-Disposition": "attachment; filename=attempts.json"}
+        )
+
+    csv_data = _attempts_to_csv(attempts)
+    return StreamingResponse(
+        iter([csv_data]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=attempts.csv"}
+    )
+
+
+@app.get("/analytics/export/all")
+async def export_all():
+    """Export all trades + attempts as JSON bundle."""
+    trades = await _get_all_trade_logs()
+    from database import get_attempts, get_pool
+    pool = await get_pool()
+    attempts = await get_attempts(limit=10000) if pool else []
+    return JSONResponse(
+        content={"trades": trades, "attempts": attempts},
+        headers={"Content-Disposition": "attachment; filename=mems26_all.json"}
+    )
 
 
 @app.get("/health")
