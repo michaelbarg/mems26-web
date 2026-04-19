@@ -271,7 +271,8 @@ class ShadowEngine:
             await self._open_shadow(
                 direction, hit, entry_levels, eval_result,
                 tags, fvg_size, cb_respected=False,
-                http_session=http_session
+                http_session=http_session, market_data=market_data,
+                candles=sorted_candles,
             )
 
             # Shadow 2: cb_respected=True (check CB/NEWS/MAX)
@@ -283,7 +284,8 @@ class ShadowEngine:
                 await self._open_shadow(
                     direction, hit, entry_levels, eval_result,
                     tags, fvg_size, cb_respected=True,
-                    http_session=http_session
+                    http_session=http_session, market_data=market_data,
+                    candles=sorted_candles,
                 )
             else:
                 # Log as rejected attempt with CB reason
@@ -896,7 +898,7 @@ class ShadowEngine:
 
     # ── Shadow lifecycle ──────────────────────────────────────────────────
 
-    async def _open_shadow(self, direction, hit, levels, eval_result, tags, fvg_size, cb_respected, http_session):
+    async def _open_shadow(self, direction, hit, levels, eval_result, tags, fvg_size, cb_respected, http_session, market_data=None, candles=None):
         shadow_id = f"SH_{int(time.time())}_{direction[0]}{'R' if cb_respected else 'B'}"
         shadow = ShadowTrade(
             id=shadow_id,
@@ -917,12 +919,27 @@ class ShadowEngine:
             **tags,
         )
         self.active.append(shadow)
+
+        # V6.5: Build entry narrative + quality score
+        narrative = None
+        quality_score = 5
+        try:
+            from narrative import build_entry_narrative
+            narrative = build_entry_narrative(
+                direction=direction, hit=hit, eval_result=eval_result,
+                market_data=market_data or {}, tags=tags,
+                levels=levels, fvg_size=fvg_size, candles=candles or [],
+            )
+            quality_score = narrative.get("score", {}).get("final", 5)
+        except Exception as e:
+            log.debug(f"[SHADOW] Narrative build failed: {e}")
+
         log.info(f"[SHADOW] OPEN {shadow_id} {direction} @ {levels['entry']} "
                  f"stop={levels['stop']} cb_respected={cb_respected} "
-                 f"level={hit['levelName']} type={hit['type']}")
+                 f"level={hit['levelName']} type={hit['type']} quality={quality_score}")
 
         # Persist to backend
-        await self._persist_trade(shadow, http_session)
+        await self._persist_trade(shadow, http_session, narrative=narrative, quality_score=quality_score)
 
     async def _close_shadow(self, shadow: ShadowTrade, exit_price: float, reason: str, ts: int):
         shadow.status = "CLOSED"
@@ -945,11 +962,14 @@ class ShadowEngine:
         # Remove from active
         self.active = [s for s in self.active if s.id != shadow.id]
 
-    async def _persist_trade(self, shadow: ShadowTrade, http_session):
+    async def _persist_trade(self, shadow: ShadowTrade, http_session, narrative=None, quality_score=5):
         """Persist shadow trade to backend Postgres."""
         try:
             import aiohttp
             trade_dict = self._to_dict(shadow)
+            if narrative:
+                trade_dict["entry_narrative"] = narrative
+                trade_dict["setup_quality_score"] = quality_score
             async with http_session.post(
                 f"{CLOUD_URL}/trades/log/shadow",
                 json=trade_dict,

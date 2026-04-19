@@ -94,6 +94,9 @@ async def init_db():
             fvg_size_pts            REAL,
             stacked_dominant_vol    BOOLEAN,
             bars_building_before_live INTEGER,
+            -- V6.5: Entry Narrative + Quality Score
+            entry_narrative     JSONB,
+            setup_quality_score INTEGER,
             -- Extra
             extra_json      JSONB,
             created_at      TIMESTAMPTZ DEFAULT NOW()
@@ -146,7 +149,7 @@ async def init_db():
         CREATE INDEX IF NOT EXISTS idx_attempts_is_shadow ON setup_attempts (is_shadow);
         """)
 
-        # Migration: add hypothetical columns if missing (idempotent)
+        # Migration: add new columns if missing (idempotent)
         for col, typ in [
             ("hypothetical_mae_60min_pts", "REAL"),
             ("hypothetical_mfe_60min_pts", "REAL"),
@@ -155,6 +158,16 @@ async def init_db():
         ]:
             try:
                 await conn.execute(f"ALTER TABLE setup_attempts ADD COLUMN IF NOT EXISTS {col} {typ}")
+            except Exception:
+                pass
+
+        # V6.5: entry_narrative + setup_quality_score on trades table
+        for col, typ in [
+            ("entry_narrative", "JSONB"),
+            ("setup_quality_score", "INTEGER"),
+        ]:
+            try:
+                await conn.execute(f"ALTER TABLE trades ADD COLUMN IF NOT EXISTS {col} {typ}")
             except Exception:
                 pass
 
@@ -180,6 +193,7 @@ def _trade_to_row(t: dict) -> dict:
         'setup_number_today', 'rel_vol_at_entry', 'cvd_direction_at_entry',
         'mtf_aligned', 'vwap_side', 'sweep_wick_pts_tag', 'fvg_size_pts',
         'stacked_dominant_vol', 'bars_building_before_live',
+        'entry_narrative', 'setup_quality_score',
     }
     row = {}
     extra = {}

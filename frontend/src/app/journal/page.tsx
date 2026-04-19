@@ -474,6 +474,7 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mae_pts')}>MAE{sortArrow('mae_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mfe_pts')}>MFE{sortArrow('mfe_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('duration_min')}>Dur{sortArrow('duration_min')}</th>
+                    <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('setup_quality_score')}>Q{sortArrow('setup_quality_score')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -512,6 +513,11 @@ function JournalPage() {
                         <td className="px-1 py-1 text-right font-mono">{(t.mae_pts || 0).toFixed(1)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.mfe_pts || 0).toFixed(1)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.duration_min || 0).toFixed(0)}m</td>
+                        <td className={`px-1 py-1 text-center font-mono font-bold ${
+                          (t.setup_quality_score || 0) >= 9 ? 'text-yellow-400' :
+                          (t.setup_quality_score || 0) >= 7 ? 'text-green-400' :
+                          (t.setup_quality_score || 0) >= 5 ? 'text-blue-400' : 'text-gray-500'
+                        }`}>{t.setup_quality_score || '-'}</td>
                       </tr>
                     );
                   })}
@@ -629,6 +635,23 @@ function JournalPage() {
               <DetailRow label="Bars Building" value={selectedTrade.bars_building_before_live?.toString()} />
             </div>
             <DetailRow label="Pillar Detail" value={selectedTrade.pillar_detail} />
+            {/* V6.5: Entry Narrative */}
+            {selectedTrade.entry_narrative && (
+              <NarrativeDisplay narrative={selectedTrade.entry_narrative} />
+            )}
+            {selectedTrade.setup_quality_score !== undefined && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-gray-500 text-xs">Quality Score:</span>
+                <span className={`font-bold text-sm ${
+                  selectedTrade.setup_quality_score >= 9 ? 'text-yellow-400' :
+                  selectedTrade.setup_quality_score >= 7 ? 'text-green-400' :
+                  selectedTrade.setup_quality_score >= 5 ? 'text-blue-400' : 'text-gray-500'
+                }`}>
+                  {selectedTrade.setup_quality_score}/10
+                  {selectedTrade.entry_narrative?.score?.rating && ` ${selectedTrade.entry_narrative.score.rating}`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -660,6 +683,62 @@ function DetailRow({ label, value, highlight }: { label: string; value?: string;
       <div className="text-gray-500">{label}</div>
       <div className={`font-mono ${color}`}>{value || '-'}</div>
     </>
+  );
+}
+
+function NarrativeDisplay({ narrative }: { narrative: any }) {
+  if (!narrative) return null;
+  const p1 = narrative.pillar_1 || {};
+  const p2 = narrative.pillar_2 || {};
+  const p3 = narrative.pillar_3 || {};
+  const score = narrative.score || {};
+  const GradeBadge = ({ g }: { g?: string }) => {
+    if (!g) return null;
+    const color = g === 'A+' ? 'text-yellow-400' : g === 'A' ? 'text-green-400' : g === 'B' ? 'text-blue-400' : 'text-gray-500';
+    return <span className={`font-bold ${color}`}>{g}</span>;
+  };
+  return (
+    <div className="mt-4 border-t border-gray-800 pt-3">
+      <h4 className="text-xs font-bold text-gray-400 mb-2">Entry Narrative</h4>
+      {narrative.trigger_summary && (
+        <div className="text-xs text-gray-300 mb-2">{narrative.trigger_summary}</div>
+      )}
+      <div className="grid grid-cols-3 gap-2 text-[10px]">
+        <div className="bg-gray-800/50 rounded p-1.5">
+          <div className="text-gray-500">P1 ZONE</div>
+          <div>{p1.type} @ {p1.level}</div>
+          <div>Wick: {p1.wick_pts?.toFixed(1)}pt <GradeBadge g={p1.wick_grade} /></div>
+          <div>{p1.depth_rating}</div>
+        </div>
+        <div className="bg-gray-800/50 rounded p-1.5">
+          <div className="text-gray-500">P2 PATTERN</div>
+          <div>FVG: {p2.fvg?.size_pts?.toFixed(1)}pt <GradeBadge g={p2.fvg?.size_grade} /></div>
+          <div>RelVol: {p2.rel_vol?.value?.toFixed(2)} <GradeBadge g={p2.rel_vol?.grade} /></div>
+          <div>Stacked: {p2.stacked?.count} <GradeBadge g={p2.stacked?.count_grade} /></div>
+        </div>
+        <div className="bg-gray-800/50 rounded p-1.5">
+          <div className="text-gray-500">P3 FLOW</div>
+          <div>Absorption: {p3.absorption_at_fvg ? 'Yes' : 'No'}</div>
+          <div>Delta 1m: {p3.delta_confirmation_1m ? 'Yes' : 'No'}</div>
+        </div>
+      </div>
+      {(narrative.confluence_factors?.length > 0 || narrative.risk_factors?.length > 0) && (
+        <div className="mt-2 text-[10px]">
+          {narrative.confluence_factors?.map((c: string, i: number) => (
+            <div key={i} className="text-green-400/70">+ {c}</div>
+          ))}
+          {narrative.risk_factors?.map((r: string, i: number) => (
+            <div key={i} className="text-red-400/70">- {r}</div>
+          ))}
+        </div>
+      )}
+      {score.bonuses && (
+        <div className="mt-2 text-[10px] text-gray-500">
+          Score: {score.base} base {score.bonuses.map((b: any) => `+${b.points}`).join('')}
+          {score.penalties?.map((p: any) => `${p.points}`).join('')} = {score.final}/10
+        </div>
+      )}
+    </div>
   );
 }
 
