@@ -975,151 +975,86 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     c5_done:;
 
-    // -- C6: Visualization -- read mes_ai_visualization.json, draw on chart --
-    // Bridge writes this file every second with setup states.
-    // We use sc.UseTool to draw rectangles, markers, and text.
+    // -- C6: Visualization -- read viz JSON, draw setup zones on chart --
     {
-        static time_t s_lastVizCheck = 0;
-        static int s_vizDrawingBase = 90000;  // unique drawing IDs start here
+        static time_t s_lastViz = 0;
+        static int s_vizBase = 90000;
+        static int s_vizCount = 0;
         time_t now_v = time(nullptr);
-        if (now_v - s_lastVizCheck < 1) goto c6_done;
-        s_lastVizCheck = now_v;
-
-        std::string vizPathStr = VizPath.GetString();
-        if (vizPathStr.empty()) goto c6_done;
-
-        std::ifstream vf(vizPathStr);
+        if (now_v - s_lastViz < 1) goto c6_done;
+        s_lastViz = now_v;
+        std::string vp(VizPath.GetString());
+        if (vp.empty()) goto c6_done;
+        std::ifstream vf(vp);
         if (!vf.is_open()) goto c6_done;
-        std::string vizJson((std::istreambuf_iterator<char>(vf)),
-                             std::istreambuf_iterator<char>());
+        std::string vj((std::istreambuf_iterator<char>(vf)), std::istreambuf_iterator<char>());
         vf.close();
-        if (vizJson.size() < 10) goto c6_done;
-
-        // Parse array of drawing commands
-        // Format: {"drawings":[{type,price_top,price_bot,bar_start,bar_end,color,alpha,label,dir},...]}
-        // We use a simple scan approach: find each {type:...} block
-
-        // First, clear old drawings
-        static int s_lastDrawCount = 0;
-        for (int d = 0; d < s_lastDrawCount; d++)
-        {
-            sc.DeleteACSILDrawingByLineNumber(sc.CurrentChart, s_vizDrawingBase + d);
-        }
-        s_lastDrawCount = 0;
-
-        // Find "drawings" array
-        size_t arr_start = vizJson.find("[");
-        if (arr_start == std::string::npos) goto c6_done;
-        size_t arr_end = vizJson.rfind("]");
-        if (arr_end == std::string::npos || arr_end <= arr_start) goto c6_done;
-
-        // Parse each object in the array
-        int drawIdx = 0;
-        size_t pos = arr_start;
-        while (pos < arr_end && drawIdx < 50)
-        {
-            size_t obj_start = vizJson.find("{", pos + 1);
-            if (obj_start == std::string::npos || obj_start >= arr_end) break;
-            size_t obj_end = vizJson.find("}", obj_start);
-            if (obj_end == std::string::npos) break;
-
-            std::string obj = vizJson.substr(obj_start, obj_end - obj_start + 1);
-            pos = obj_end;
-
-            std::string dtype = jsonStr(obj, "type");
-            double price_top = jsonNum(obj, "price_top");
-            double price_bot = jsonNum(obj, "price_bot");
-            int bar_offset   = (int)jsonNum(obj, "bar_offset");  // 0 = current bar
-            std::string label = jsonStr(obj, "label");
-            std::string color_str = jsonStr(obj, "color");
-            int alpha = (int)jsonNum(obj, "alpha");
-            if (alpha <= 0) alpha = 128;
-
-            int target_bar = idx - bar_offset;
-            if (target_bar < 0) target_bar = 0;
-
-            if (dtype == "rect" && price_top > 0 && price_bot > 0)
-            {
-                // Draw rectangle (FVG zone / setup zone)
-                s_UseTool Tool;
-                memset(&Tool, 0, sizeof(Tool));
-                Tool.ChartNumber = sc.ChartNumber;
-                Tool.DrawingType = DRAWING_RECTANGLEHIGHLIGHT;
-                Tool.LineNumber = s_vizDrawingBase + drawIdx;
-                Tool.BeginIndex = target_bar;
-                Tool.EndIndex = idx;  // extend to current bar
-                Tool.BeginValue = (float)price_top;
-                Tool.EndValue = (float)price_bot;
-                Tool.TransparencyLevel = 100 - (alpha * 100 / 255);
-                Tool.AddAsUserDrawnDrawing = 0;
-
-                // Color from string
-                if (color_str == "green")       Tool.Color = RGB(0, 180, 80);
-                else if (color_str == "red")    Tool.Color = RGB(200, 60, 60);
-                else if (color_str == "gray")   Tool.Color = RGB(80, 80, 80);
-                else if (color_str == "dark")   Tool.Color = RGB(40, 40, 40);
-                else                            Tool.Color = RGB(100, 100, 100);
-
-                Tool.SecondaryColor = Tool.Color;
-                sc.UseTool(Tool);
-                drawIdx++;
-            }
-            else if (dtype == "bubble" && price_top > 0)
-            {
-                // Cyan bubble at absorption point
-                s_UseTool Tool;
-                memset(&Tool, 0, sizeof(Tool));
-                Tool.ChartNumber = sc.ChartNumber;
-                Tool.DrawingType = DRAWING_MARKER;
-                Tool.LineNumber = s_vizDrawingBase + drawIdx;
-                Tool.BeginIndex = target_bar;
-                Tool.BeginValue = (float)price_top;
-                Tool.Color = RGB(0, 220, 220);  // Cyan
-                Tool.MarkerType = MARKER_DIAMOND;
-                Tool.MarkerSize = 6;
-                Tool.AddAsUserDrawnDrawing = 0;
-                sc.UseTool(Tool);
-                drawIdx++;
-            }
-            else if (dtype == "arrow" && price_top > 0)
-            {
-                // Rejection arrow with label
-                s_UseTool Tool;
-                memset(&Tool, 0, sizeof(Tool));
-                Tool.ChartNumber = sc.ChartNumber;
-                Tool.DrawingType = DRAWING_MARKER;
-                Tool.LineNumber = s_vizDrawingBase + drawIdx;
-                Tool.BeginIndex = target_bar;
-                Tool.BeginValue = (float)price_top;
-                Tool.Color = RGB(120, 120, 120);  // Faded gray
-                Tool.MarkerType = (jsonStr(obj, "dir") == "LONG") ? MARKER_ARROWUP : MARKER_ARROWDOWN;
-                Tool.MarkerSize = 5;
-                Tool.AddAsUserDrawnDrawing = 0;
-                sc.UseTool(Tool);
-                drawIdx++;
-
-                // Add text label for rejection reason
-                if (!label.empty())
-                {
-                    s_UseTool TextTool;
-                    memset(&TextTool, 0, sizeof(TextTool));
-                    TextTool.ChartNumber = sc.ChartNumber;
-                    TextTool.DrawingType = DRAWING_TEXT;
-                    TextTool.LineNumber = s_vizDrawingBase + drawIdx;
-                    TextTool.BeginIndex = target_bar;
-                    TextTool.BeginValue = (float)price_top + (jsonStr(obj, "dir") == "LONG" ? -1.0f : 1.0f);
-                    TextTool.Color = RGB(120, 120, 120);
-                    TextTool.FontSize = 8;
-                    TextTool.AddAsUserDrawnDrawing = 0;
-                    SCString textStr;
-                    textStr.Format("%s", label.c_str());
-                    TextTool.Text = textStr;
-                    sc.UseTool(TextTool);
-                    drawIdx++;
-                }
+        if (vj.size() < 10) goto c6_done;
+        for (int d = 0; d < s_vizCount; d++)
+            sc.DeleteACSILDrawingByLineNumber(sc.CurrentChart, s_vizBase + d);
+        s_vizCount = 0;
+        size_t as = vj.find('[');
+        if (as == std::string::npos) goto c6_done;
+        size_t ae = vj.rfind(']');
+        if (ae == std::string::npos || ae <= as) goto c6_done;
+        int di = 0;
+        size_t p = as;
+        while (p < ae && di < 50) {
+            size_t os = vj.find('{', p + 1);
+            if (os == std::string::npos || os >= ae) break;
+            size_t oe = vj.find('}', os);
+            if (oe == std::string::npos) break;
+            std::string o = vj.substr(os, oe - os + 1);
+            p = oe;
+            std::string dt = jsonStr(o, "type");
+            float pt = (float)jsonNum(o, "price_top");
+            float pb = (float)jsonNum(o, "price_bot");
+            int bo = (int)jsonNum(o, "bar_offset");
+            std::string cs = jsonStr(o, "color");
+            int al = (int)jsonNum(o, "alpha");
+            if (al <= 0) al = 128;
+            int tb = idx - bo;
+            if (tb < 0) tb = 0;
+            if (dt == "rect" && pt > 0 && pb > 0) {
+                s_UseTool T; memset(&T, 0, sizeof(T));
+                T.ChartNumber = sc.ChartNumber;
+                T.DrawingType = DRAWING_RECTANGLEHIGHLIGHT;
+                T.LineNumber = s_vizBase + di;
+                T.BeginIndex = tb; T.EndIndex = idx;
+                T.BeginValue = pt; T.EndValue = pb;
+                T.TransparencyLevel = 100 - (al * 100 / 255);
+                T.AddAsUserDrawnDrawing = 0;
+                if (cs == "green") T.Color = RGB(0,180,80);
+                else if (cs == "red") T.Color = RGB(200,60,60);
+                else if (cs == "dark") T.Color = RGB(40,40,40);
+                else T.Color = RGB(80,80,80);
+                T.SecondaryColor = T.Color;
+                sc.UseTool(T); di++;
+            } else if (dt == "bubble" && pt > 0) {
+                s_UseTool T; memset(&T, 0, sizeof(T));
+                T.ChartNumber = sc.ChartNumber;
+                T.DrawingType = DRAWING_MARKER;
+                T.LineNumber = s_vizBase + di;
+                T.BeginIndex = tb; T.BeginValue = pt;
+                T.Color = RGB(0,220,220);
+                T.MarkerType = MARKER_DIAMOND; T.MarkerSize = 6;
+                T.AddAsUserDrawnDrawing = 0;
+                sc.UseTool(T); di++;
+            } else if (dt == "arrow" && pt > 0) {
+                s_UseTool T; memset(&T, 0, sizeof(T));
+                T.ChartNumber = sc.ChartNumber;
+                T.DrawingType = DRAWING_MARKER;
+                T.LineNumber = s_vizBase + di;
+                T.BeginIndex = tb; T.BeginValue = pt;
+                T.Color = RGB(120,120,120);
+                std::string dr = jsonStr(o, "dir");
+                T.MarkerType = (dr == "LONG") ? MARKER_ARROWUP : MARKER_ARROWDOWN;
+                T.MarkerSize = 5;
+                T.AddAsUserDrawnDrawing = 0;
+                sc.UseTool(T); di++;
             }
         }
-        s_lastDrawCount = drawIdx;
+        s_vizCount = di;
     }
     c6_done:;
 }
