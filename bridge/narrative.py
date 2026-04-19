@@ -256,4 +256,9 @@ def build_entry_narrative(
         "model_version": "v1_phase1",
     }
 
+    # V6.5 Appendix G: Tick Reversal Signals (collection only, NO scoring effect)
+    tls = fp.get("tick_level_signals")
+    if tls and isinstance(tls, dict):
+        narrative["pillar_3"]["tick_level_signals"] = tls
+
     return narrative

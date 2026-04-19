@@ -602,6 +602,88 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (recent_bull_fvg && m5_delta > 0) fp_delta_confirmed_5m = true;
             if (recent_bear_fvg && m5_delta < 0) fp_delta_confirmed_5m = true;
         }
+
+        // -- 10. Tick Reversal Signals (V6.5 Appendix G) --
+        // Collection only, does NOT affect any gating or scoring.
+    }
+
+    // Tick-level signals (computed from VAP of current bar)
+    bool trs_exhaustion = false;
+    float trs_exhaustion_intensity = 0;
+    bool trs_stopping_vol = false;
+    int trs_rejection_ticks = 0;
+    float trs_candle_delta = delta;
+    float trs_last3_delta = 0;
+    bool trs_delta_flip = false;
+    float trs_reversal_strength = 0;
+    bool trs_pv_divergence = false;
+
+    {
+        int vap_sz = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(idx);
+        if (vap_sz >= 5) {
+            // Gather tick sizes in order (bottom to top)
+            std::vector<unsigned int> tick_vols;
+            for (int v = 0; v < vap_sz && v < 30; v++) {
+                const s_VolumeAtPriceV2 *vap = NULL;
+                if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
+                if (!vap) continue;
+                tick_vols.push_back(vap->AskVolume + vap->BidVolume);
+            }
+            int n = (int)tick_vols.size();
+            if (n >= 5) {
+                // Exhaustion tail: last 3 ticks much smaller than first 5
+                float first5_max = 0;
+                for (int i = 0; i < 5 && i < n; i++)
+                    if (tick_vols[i] > first5_max) first5_max = (float)tick_vols[i];
+                float last3_avg = 0;
+                for (int i = n-3; i < n; i++) last3_avg += tick_vols[i];
+                last3_avg /= 3.0f;
+                if (first5_max > 0) {
+                    trs_exhaustion_intensity = 1.0f - (last3_avg / first5_max);
+                    if (trs_exhaustion_intensity < 0) trs_exhaustion_intensity = 0;
+                    trs_exhaustion = (trs_exhaustion_intensity > 0.6f);
+                }
+
+                // Stopping volume: max vol in last 5 ticks vs avg
+                float avg_vol = 0;
+                for (int i = 0; i < n; i++) avg_vol += tick_vols[i];
+                avg_vol /= n;
+                unsigned int max_last5 = 0;
+                for (int i = n-5; i < n; i++)
+                    if (tick_vols[i] > max_last5) max_last5 = tick_vols[i];
+                if (avg_vol > 0 && max_last5 >= (unsigned int)(3.0f * avg_vol)) {
+                    // Count rejection ticks after max
+                    int max_idx = n-5;
+                    for (int i = n-5; i < n; i++)
+                        if (tick_vols[i] == max_last5) { max_idx = i; break; }
+                    trs_rejection_ticks = n - 1 - max_idx;
+                    trs_stopping_vol = (trs_rejection_ticks >= 2);
+                }
+            }
+
+            // Delta reversal: last 3 ticks delta vs full bar delta
+            if (n >= 3) {
+                for (int v = vap_sz-3; v < vap_sz; v++) {
+                    const s_VolumeAtPriceV2 *vap = NULL;
+                    if (sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap) && vap)
+                        trs_last3_delta += (float)vap->AskVolume - (float)vap->BidVolume;
+                }
+                trs_delta_flip = ((trs_candle_delta > 0 && trs_last3_delta < 0) ||
+                                  (trs_candle_delta < 0 && trs_last3_delta > 0));
+                if (std::fabs(trs_candle_delta) > 0)
+                    trs_reversal_strength = std::fabs(trs_last3_delta) / std::fabs(trs_candle_delta);
+            }
+        }
+
+        // P/V divergence: price direction vs delta direction (last 3 bars)
+        if (idx >= 3) {
+            bool price_up = cp > sc.Close[idx-3];
+            float d3 = 0;
+            for (int i = idx-2; i <= idx; i++)
+                d3 += sc.AskVolume[i] - sc.BidVolume[i];
+            bool delta_up = d3 > 0;
+            trs_pv_divergence = (price_up != delta_up);
+        }
     }
 
     // -- Candle Patterns --------------------------------------
@@ -812,7 +894,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         <<",\"pullback_aggressive_buy\":"<<(fp_pullback_aggressive_buy?"true":"false")
         <<",\"pullback_aggressive_sell\":"<<(fp_pullback_aggressive_sell?"true":"false")
         <<",\"absorption_at_fvg\":"<<(fp_absorption_at_fvg?"true":"false")
-        <<",\"delta_confirmed_5m\":"<<(fp_delta_confirmed_5m?"true":"false")<<"}"
+        <<",\"delta_confirmed_5m\":"<<(fp_delta_confirmed_5m?"true":"false")
+        <<",\"tick_level_signals\":{"
+           <<"\"exhaustion_tail\":{\"detected\":"<<(trs_exhaustion?"true":"false")<<",\"intensity\":"<<trs_exhaustion_intensity<<"}"
+           <<",\"stopping_volume\":{\"detected\":"<<(trs_stopping_vol?"true":"false")<<",\"rejection_ticks\":"<<trs_rejection_ticks<<"}"
+           <<",\"delta_reversal_ticks\":{\"candle_delta\":"<<trs_candle_delta<<",\"last3_delta\":"<<trs_last3_delta<<",\"direction_flip\":"<<(trs_delta_flip?"true":"false")<<",\"reversal_strength\":"<<trs_reversal_strength<<"}"
+           <<",\"pv_divergence\":{\"detected\":"<<(trs_pv_divergence?"true":"false")<<"}"
+        <<"}}"
      <<",\"mtf\":{"
         <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
         <<",\"m5\":{\"ts\":"<<m5.bar_ts<<",\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"
