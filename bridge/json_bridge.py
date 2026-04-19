@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
 from pattern_scanner import scan_patterns, is_in_killzone
 from news_guard import NewsGuard, news_guard_loop
+from shadow_trader import ShadowEngine
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -336,6 +337,7 @@ class TradeTracker:
         return events
 
 trade_tracker = TradeTracker()
+shadow_engine = ShadowEngine()
 
 
 def enrich(raw):
@@ -821,6 +823,12 @@ async def _eod_flatten_check(http):
                 flatten_time = dtime(flatten_h, flatten_m)
                 if now_et.time() >= flatten_time and now_et.time() < dtime(16, 15):
                     log.warning(f"[EOD] Auto-flatten at {EOD_FLATTEN_TIME} ET — closing position")
+                    # Flatten shadow trades too
+                    try:
+                        await shadow_engine.eod_flatten()
+                        log.info(f"[EOD] Shadow trades flattened: {len(shadow_engine.closed_today)} closed today")
+                    except Exception as e:
+                        log.warning(f"[EOD] Shadow flatten error: {e}")
                     try:
                         async with http.post(
                             f"{CLOUD_URL}/trade/close",
@@ -1347,6 +1355,34 @@ async def main():
                         log.info(f"✅ T1 HIT @ {ev['price']} pnl={ev['pnl_pts']:+.2f}pt ${ev['pnl_usd']:+.2f}")
                     elif ev["type"] == "T2_HIT":
                         log.info(f"🎯 T2 HIT @ {ev['price']} pnl={ev['pnl_pts']:+.2f}pt ${ev['pnl_usd']:+.2f}")
+
+                # ── Shadow Trading Engine ─────────────────────
+                try:
+                    # Track price for all open shadow trades
+                    await shadow_engine.track_price(price, int(time.time()))
+
+                    # Evaluate for new shadow setups (uses rate limiter internally)
+                    if payload:
+                        all_candles_shadow = []
+                        try:
+                            async with http.get(
+                                f"{REDIS_URL}/lrange/{REDIS_CANDLES}/0/99",
+                                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                                timeout=aiohttp.ClientTimeout(total=3.0)
+                            ) as resp:
+                                result = await resp.json()
+                                items = result.get("result", [])
+                                for item in items:
+                                    c = item
+                                    while isinstance(c, str):
+                                        c = json.loads(c)
+                                    if isinstance(c, dict):
+                                        all_candles_shadow.append(c)
+                        except Exception:
+                            pass
+                        await shadow_engine.evaluate_setup(payload, all_candles_shadow, http)
+                except Exception as e:
+                    log.debug(f"[SHADOW] tick error: {e}")
 
             except FileNotFoundError:
                 log.warning("JSON not found")

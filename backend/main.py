@@ -1113,6 +1113,22 @@ async def create_test_trade():
     return {"ok": True, "trade": trade}
 
 
+@app.post("/trades/log/shadow")
+async def save_shadow_trade(request: Request, x_bridge_token: Optional[str] = Header(None)):
+    """Persist a shadow trade from the bridge shadow engine."""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    trade = await request.json()
+    trade["is_shadow"] = True
+    try:
+        from database import insert_trade
+        await insert_trade(trade)
+    except Exception as e:
+        log.warning(f"Shadow trade persist failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"ok": True}
+
+
 @app.get("/trades")
 async def get_trades():
     return await redis_trades_get()
