@@ -66,7 +66,7 @@ interface Props {
   liveBar?: { ts: number; o: number; h: number; l: number; c: number; buy?: number; sell?: number } | null;
   vwap?: number;
   levels?: { prev_high?: number; prev_low?: number; daily_open?: number; overnight_high?: number; overnight_low?: number };
-  profile?: { poc?: number; vah?: number; val?: number };
+  profile?: { poc?: number; vah?: number; val?: number; prev_day_poc?: number; tpo_poc?: number };
   session?: { ibh?: number; ibl?: number };
   signal?: Signal | null;
   activeSetups?: { name: string; dir: 'long'|'short'; col: string }[];
@@ -1032,6 +1032,33 @@ export default function LightweightChart({
     add(profile?.vah,           '#22c55e66', 'VAH ', 3, 1);
     add(profile?.val,           '#22c55e66', 'VAL ', 3, 1);
     add(profile?.poc,           '#f9731666', 'POC ', 3, 1);
+    // V6.5: PD POC (white) + 30-min POCs (pink)
+    add(profile?.prev_day_poc,  '#ffffff88', 'PD POC', 2, 1);
+    // Compute 30-min POCs from candle data (last 3 half-hour periods)
+    if (candles.length > 5) {
+      const sorted = [...candles].sort((a, b) => b.ts - a.ts);
+      const now_ts = sorted[0]?.ts || 0;
+      for (let p = 0; p < 3; p++) {
+        const period_end = now_ts - p * 1800;
+        const period_start = period_end - 1800;
+        const period_candles = sorted.filter(c => c.ts >= period_start && c.ts < period_end);
+        if (period_candles.length >= 2) {
+          // POC = price with most volume (approximate from candle OHLC midpoints)
+          const vols: Record<number, number> = {};
+          for (const c of period_candles) {
+            const mid = Math.round(((c.h + c.l) / 2) * 4) / 4;
+            vols[mid] = (vols[mid] || 0) + (c.buy || 0) + (c.sell || 0);
+          }
+          let pocPrice = 0, maxVol = 0;
+          for (const [pr, vol] of Object.entries(vols)) {
+            if (vol > maxVol) { maxVol = vol; pocPrice = parseFloat(pr); }
+          }
+          if (pocPrice > 0) {
+            add(pocPrice, '#ec489988', `POC${p+1}`, 3, 1);
+          }
+        }
+      }
+    }
     add(session?.ibh,           '#38bdf866', 'IBH ', 3, 1);
     add(session?.ibl,           '#38bdf866', 'IBL ', 3, 1);
     add(vwap,                   '#f6c90e66', 'VWAP', 3, 1);

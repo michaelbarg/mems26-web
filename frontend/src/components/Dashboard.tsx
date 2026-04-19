@@ -4542,11 +4542,61 @@ export default function Dashboard() {
         <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} />
       </div>
 
-      {/* גרף שמאל + מידע ימין */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr min(420px, max(260px, 24vw))',flex:1,overflow:'hidden',minWidth:0,paddingBottom:52}}>
+      {/* V6.5: Sidebar left + chart right */}
+      <div style={{display:'grid',gridTemplateColumns:'min(420px, max(260px, 24vw)) 1fr',flex:1,overflow:'hidden',minWidth:0,paddingBottom:52}}>
 
-        {/* גרף — קבוע */}
-        <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderRight:'1px solid #1e2738',minWidth:0}}>
+        {/* Left panel — tabs */}
+        <RightPanel
+          live={live}
+          candles={candles}
+          selectedPattern={selectedPattern}
+          setSelectedPattern={setSelectedPattern}
+          accepted={accepted}
+          lockedSignal={lockedSignal}
+          persistedSignal={persistedSignal}
+          signalTime={signalTime}
+          aiLoading={aiLoading}
+          aiError={aiError}
+          onAskAI={askAI}
+          dayLoading={dayLoading}
+          onAskDayType={askDayType}
+          dayExplanation={dayExplanation}
+          selectedSetup={selectedSetup}
+          onSelectSetup={(id:string,dir:'long'|'short')=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})}
+          sweepEvents={sweepEvents}
+          selectedSweep={selectedSweep}
+          setSelectedSweep={setSelectedSweep}
+          activeSetup={activeSetup}
+          onActivateSweep={(ev: SweepEvent) => {
+            const fp = (live as any)?.footprint_bools || {};
+            setChecklistSetup({
+              id: ev.id, dir: ev.dir,
+              entry: ev.entry, stop: ev.stop,
+              t1: ev.c1, t2: ev.c2, t3: ev.c3,
+              riskPts: Math.abs(ev.entry - ev.stop),
+              levelName: ev.levelName || '',
+              sweepWick: ev.sweepWick || 0,
+              hasAbsorption: fp.absorption_detected ?? (ev.score >= 7),
+              hasExhaustion: fp.exhaustion_detected ?? false,
+            });
+          }}
+          onDeactivateSetup={()=>setActiveSetup(null)}
+          levelTouches={levelTouches}
+          liveSetup={liveSetup}
+          detectedSetups={detectedSetups}
+          newsGuard={newsGuard}
+          buildingSetups={buildingSetups}
+          expiredBuildingSetups={expiredBuildingSetups}
+          onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
+          onReject={()=>{
+            const sig=lockedSignal||live?.signal;
+            if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
+            setAccepted(false);setLockedSignal(null);setRejectedTs(Date.now());
+          }}
+        />
+
+        {/* Chart area */}
+        <div style={{display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:'1px solid #1e2738',minWidth:0}}>
           <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:8,padding:'5px 12px',background:'#111827',borderBottom:'1px solid #1e2738',flexWrap:'wrap'}}>
             <span style={{fontSize:14,color:'#4a5568',letterSpacing:2}}>גרף</span>
             <div style={{display:'flex',gap:4,flex:1,flexWrap:'wrap'}}>
@@ -4717,55 +4767,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* עמודה ימין — טאבים */}
-        <RightPanel
-          live={live}
-          candles={candles}
-          selectedPattern={selectedPattern}
-          setSelectedPattern={setSelectedPattern}
-          accepted={accepted}
-          lockedSignal={lockedSignal}
-          persistedSignal={persistedSignal}
-          signalTime={signalTime}
-          aiLoading={aiLoading}
-          aiError={aiError}
-          onAskAI={askAI}
-          dayLoading={dayLoading}
-          onAskDayType={askDayType}
-          dayExplanation={dayExplanation}
-          selectedSetup={selectedSetup}
-          onSelectSetup={(id:string,dir:'long'|'short')=>setSelectedSetup(prev=>prev?.id===id?null:{id,dir})}
-          sweepEvents={sweepEvents}
-          selectedSweep={selectedSweep}
-          setSelectedSweep={setSelectedSweep}
-          activeSetup={activeSetup}
-          onActivateSweep={(ev: SweepEvent) => {
-            const fp = (live as any)?.footprint_bools || {};
-            setChecklistSetup({
-              id: ev.id, dir: ev.dir,
-              entry: ev.entry, stop: ev.stop,
-              t1: ev.c1, t2: ev.c2, t3: ev.c3,
-              riskPts: Math.abs(ev.entry - ev.stop),
-              levelName: ev.levelName || '',
-              sweepWick: ev.sweepWick || 0,
-              hasAbsorption: fp.absorption_detected ?? (ev.score >= 7),
-              hasExhaustion: fp.exhaustion_detected ?? false,
-            });
-          }}
-          onDeactivateSetup={()=>setActiveSetup(null)}
-          levelTouches={levelTouches}
-          liveSetup={liveSetup}
-          detectedSetups={detectedSetups}
-          newsGuard={newsGuard}
-          buildingSetups={buildingSetups}
-          expiredBuildingSetups={expiredBuildingSetups}
-          onAccept={()=>{setAccepted(true);setLockedSignal(live?.signal);}}
-          onReject={()=>{
-            const sig=lockedSignal||live?.signal;
-            if(sig) prevSigRef.current=`${sig.direction}-${sig.setup}-${sig.score}`;
-            setAccepted(false);setLockedSignal(null);setRejectedTs(Date.now());
-          }}
-        />
+        {/* Left panel was moved above chart in V6.5 */}
       </div>
 
       {/* Bottom Trade Bar — always visible */}
