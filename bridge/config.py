@@ -59,6 +59,9 @@ NEWS_PRE_FREEZE_MIN   = 10     # minutes before event → block entries
 NEWS_POST_RELEASE_MIN = 3      # minutes after event → release block
 NEWS_FETCH_HOUR_ET    = 7      # hour (ET) to fetch daily calendar (once/day)
 
+# ── Stacked Imbalance ───────────────────────────────────────────────────────
+STACKED_MIN_DOMINANT_VOL = 30  # MES is thin — 5v2 hits 250% on noise alone
+
 # ── Heartbeat Watchdog ───────────────────────────────────────────────────────
 WATCHDOG_INTERVAL_SEC = 30     # check every 30 seconds
 WATCHDOG_REDIS_STALE  = 60     # Redis data older than 60s = stale

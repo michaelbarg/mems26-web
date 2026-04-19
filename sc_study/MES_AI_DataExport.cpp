@@ -477,12 +477,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 fp_trapped_buyers = true;
         }
 
-        // ── 4-5. Stacked Imbalances — consecutive price levels ×250% ──
+        // ── 4-5. Stacked Imbalances — consecutive price levels ×250% + min vol ──
+        // MES is thin: require dominant side >= 30 contracts to filter noise
         if (vap_size >= 3)
         {
             int consec_bull = 0, consec_bear = 0;
             int max_bull = 0, max_bear = 0;
-            const float STACK_RATIO = 2.5f;  // 250%
+            const float STACK_RATIO = 2.5f;       // 250%
+            const unsigned int MIN_DOM_VOL = 30;   // STACKED_MIN_DOMINANT_VOL
 
             for (int v = 0; v < vap_size; v++)
             {
@@ -491,8 +493,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 if (vap == NULL) continue;
                 unsigned int av = vap->AskVolume, bv = vap->BidVolume;
 
-                bool bull_imb = (bv > 0 && (float)av / bv >= STACK_RATIO);
-                bool bear_imb = (av > 0 && (float)bv / av >= STACK_RATIO);
+                bool bull_imb = (bv > 0 && av >= MIN_DOM_VOL && (float)av / bv >= STACK_RATIO);
+                bool bear_imb = (av > 0 && bv >= MIN_DOM_VOL && (float)bv / av >= STACK_RATIO);
 
                 if (bull_imb) { consec_bull++; if (consec_bull > max_bull) max_bull = consec_bull; }
                 else consec_bull = 0;
