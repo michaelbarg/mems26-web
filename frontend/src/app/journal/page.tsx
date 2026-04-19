@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   LineChart, Line, BarChart, Bar, ScatterChart, Scatter,
@@ -96,7 +96,15 @@ function fmtUsd(v: number | undefined): string {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 
-export default function JournalPage() {
+export default function JournalPageWrapper() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-950 text-gray-500 flex items-center justify-center">Loading journal...</div>}>
+      <JournalPage />
+    </Suspense>
+  );
+}
+
+function JournalPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -755,7 +763,7 @@ function JournalCharts({ trades }: { trades: Trade[] }) {
               <XAxis dataKey="mae" name="MAE" tick={{ fontSize: 9, fill: '#6b7280' }} />
               <YAxis dataKey="mfe" name="MFE" tick={{ fontSize: 9, fill: '#6b7280' }} />
               <Tooltip contentStyle={{ background: '#1a1a2e', border: '1px solid #333', fontSize: 11 }}
-                formatter={(val: any, name: string) => [`${val}pt`, name]} />
+                formatter={(val: any, name: any) => [`${val}pt`, name]} />
               <Scatter data={scatterData.filter(d => d.win)} fill="#22c55e" name="Winners" />
               <Scatter data={scatterData.filter(d => !d.win)} fill="#ef5350" name="Losers" />
             </ScatterChart>
@@ -767,7 +775,7 @@ function JournalCharts({ trades }: { trades: Trade[] }) {
           <div className="text-[10px] text-gray-500 mb-2">Exit Type Breakdown</div>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
-              <Pie data={exitData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              <Pie data={exitData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                 labelLine={{ stroke: '#4a5568' }}
                 fontSize={9}>
                 {exitData.map((_, i) => (
