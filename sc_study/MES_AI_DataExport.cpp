@@ -1,9 +1,10 @@
-// MES_AI_DataExport.cpp — v9.0 (C5: Trade Command + C6: Visualization)
-// Sierra Chart ACSIL Study — 3 minute chart
-// מייצא: MTF (כולל m5), CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
-//         Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
-//         Footprint (10 נרות), Order Fills, HistoryInit (960 נרות)
+// MES_AI_DataExport.cpp -- v9.0 (C5: Trade Command + C6: Visualization)
+// Sierra Chart ACSIL Study -- 3 minute chart
+// Exports: MTF, CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
+//          Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
+//          Footprint (200 bars), Order Fills, HistoryInit (960 bars)
 // C5: Reads trade_command.json, verifies checksum, executes bracket order
+// C6: Reads mes_ai_visualization.json, draws setup zones on chart
 
 #include "sierrachart.h"
 #include <fstream>
@@ -17,7 +18,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-// ── CCI Helper ────────────────────────────────────────────────────────────────
+// -- CCI Helper ----------------------------------------------------------------
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
 {
     if (idx < period - 1) return 0.0f;
@@ -34,7 +35,7 @@ static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
     return (tp - mean) / (0.015f * mad);
 }
 
-// ── Candle Pattern Helper ─────────────────────────────────────────────────────
+// -- Candle Pattern Helper -----------------------------------------------------
 static const char* detectCandlePattern(float o, float h, float l, float c)
 {
     float body  = std::fabs(c - o);
@@ -51,12 +52,12 @@ static const char* detectCandlePattern(float o, float h, float l, float c)
     return (c >= o) ? "BULL" : "BEAR";
 }
 
-// ── SCDateTime → Unix Timestamp (real UTC) ──────────────────────────────────
+// -- SCDateTime -> Unix Timestamp (real UTC) ----------------------------------
 // SC is configured in Eastern Time. BaseDateTimeIn stores ET local time.
-// We add the ET→UTC offset so all timestamps in JSON are true UTC.
+// We add the ET->UTC offset so all timestamps in JSON are true UTC.
 static long long ToUnixTime(SCDateTime dt)
 {
-    // OLE → "naive" seconds (in ET timezone)
+    // OLE -> "naive" seconds (in ET timezone)
     long long et_secs = (long long)((dt.GetAsDouble() - 25569.0) * 86400.0 + 0.5);
     // Determine EDT vs EST from month (simplified: Mar-Nov = EDT)
     int month = dt.GetMonth();
@@ -64,7 +65,7 @@ static long long ToUnixTime(SCDateTime dt)
     return et_secs + et_offset;
 }
 
-// ── UTC → ET hour conversion (simplified DST: Mar-Nov = EDT, else EST) ──────
+// -- UTC -> ET hour conversion (simplified DST: Mar-Nov = EDT, else EST) ------
 static int UTCHourToET(int utcHour, int utcMonth)
 {
     int offset = (utcMonth >= 3 && utcMonth <= 10) ? -4 : -5; // EDT / EST
@@ -73,7 +74,7 @@ static int UTCHourToET(int utcHour, int utcMonth)
     return etH;
 }
 
-// ── Session Phase Helper (expects ET hour/minute) ────────────────────────────
+// -- Session Phase Helper (expects ET hour/minute) ----------------------------
 static const char* getPhase(int etH, int etM)
 {
     int etMin = etH * 60 + etM;
@@ -87,7 +88,7 @@ static const char* getPhase(int etH, int etM)
     return "OVERNIGHT";                                      // 18:00-00:00
 }
 
-// ── SHA-256 (minimal, self-contained) ────────────────────────────────────────
+// -- SHA-256 (minimal, self-contained) ----------------------------------------
 static void sha256(const unsigned char* data, size_t len, unsigned char out[32])
 {
     uint32_t h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,
@@ -147,7 +148,7 @@ static std::string sha256hex(const std::string& input)
     return std::string(hex);
 }
 
-// ── Minimal JSON field extraction (no external lib) ──────────────────────────
+// -- Minimal JSON field extraction (no external lib) --------------------------
 static std::string jsonStr(const std::string& json, const std::string& key)
 {
     std::string search = "\"" + key + "\"";
@@ -245,12 +246,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // H,M are already in ET (SC configured in Eastern Time)
     int   etH = H, etM = M;
 
-    // ── CVD ──────────────────────────────────────────────────
+    // -- CVD --------------------------------------------------
     CVD[idx] = (idx == 0) ? delta : CVD[idx - 1] + delta;
     float cvd20 = (idx >= 20) ? CVD[idx] - CVD[idx - 20] : 0;
     float cvd5  = (idx >= 5)  ? CVD[idx] - CVD[idx - 5]  : 0;
 
-    // ── VWAP ─────────────────────────────────────────────────
+    // -- VWAP -------------------------------------------------
     float sum_pv = 0, sum_v = 0;
     for (int i = idx; i >= 0; i--) {
         if (sc.BaseDateTimeIn[i].GetDate() < today) break;
@@ -267,7 +268,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         vwap_pullback = was_higher && low_vol && (cp-vwap<4.0f);
     }
 
-    // ── Woodi Pivots ─────────────────────────────────────────
+    // -- Woodi Pivots -----------------------------------------
     float PH=0,PL=0,PC=0; SCDateTime prevDate; bool foundPrev=false;
     for (int i=idx-1;i>=0;i--) {
         SCDateTime bd=sc.BaseDateTimeIn[i].GetDate();
@@ -278,7 +279,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float PP=0,R1=0,R2=0,S1=0,S2=0;
     if(foundPrev&&PH>0){PP=(PH+PL+PC*2)/4.0f;R1=2*PP-PL;R2=PP+(PH-PL);S1=2*PP-PH;S2=PP-(PH-PL);}
 
-    // ── Woodies CCI ──────────────────────────────────────────
+    // -- Woodies CCI ------------------------------------------
     CCI14[idx]=calcCCI(sc,idx,14); CCI6[idx]=calcCCI(sc,idx,6);
     float cci14=CCI14[idx],cci6=CCI6[idx],cci_diff=cci6-cci14;
     float cci14_prev=(idx>=1)?CCI14[idx-1]:0, cci6_prev=(idx>=1)?CCI6[idx-1]:0;
@@ -295,7 +296,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     bool hook_up=(cci14>cci14_prev&&cci6>cci6_prev&&cci14<0);
     bool hook_down=(cci14<cci14_prev&&cci6<cci6_prev&&cci14>0);
 
-    // ── Market Profile (Today) ────────────────────────────────
+    // -- Market Profile (Today) --------------------------------
     float SH=sc.High[idx],SL=sc.Low[idx],TV=0; std::map<int,float> pvm;
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;float bh=sc.High[i],bl=sc.Low[i],bv=sc.Volume[i];if(bh>SH)SH=bh;if(bl<SL)SL=bl;TV+=bv;float vps=bv/((int)((bh-bl)/0.25f)+1);for(float p=bl;p<=bh+0.001f;p+=0.25f)pvm[(int)(p*4)]+=vps;}
     float POC=cp,maxV=0; for(auto&kv:pvm)if(kv.second>maxV){maxV=kv.second;POC=kv.first/4.0f;}
@@ -306,30 +307,30 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     for(int i=idx-tpo_back;i<=idx;i++)for(float p=sc.Low[i];p<=sc.High[i]+0.001f;p+=0.25f)tpo_map[(int)(p*4)]++;
     for(auto&kv:tpo_map)if(kv.second>tpo_max){tpo_max=kv.second;tpo_poc=kv.first/4.0f;}
 
-    // ── Prev Day POC ──────────────────────────────────────────
+    // -- Prev Day POC ------------------------------------------
     std::map<int,float> prev_pvm; float prev_day_poc=0; bool in_prev=false; SCDateTime prevD;
     for(int i=idx-1;i>=0;i--){SCDateTime bd=sc.BaseDateTimeIn[i].GetDate();if(!in_prev&&bd<today){in_prev=true;prevD=bd;}if(in_prev&&bd==prevD){float bh=sc.High[i],bl=sc.Low[i],bv=sc.Volume[i],vps=bv/((int)((bh-bl)/0.25f)+1);for(float p=bl;p<=bh+0.001f;p+=0.25f)prev_pvm[(int)(p*4)]+=vps;}else if(in_prev&&bd<prevD)break;}
     if(!prev_pvm.empty()){float pmv=0;for(auto&kv:prev_pvm)if(kv.second>pmv){pmv=kv.second;prev_day_poc=kv.first/4.0f;}}
 
-    // ── Session Phase ─────────────────────────────────────────
+    // -- Session Phase -----------------------------------------
     const char* phase = getPhase(etH, etM);
     float sesMin_f=(etH*60.0f+etM)-(9*60+30); int sesMin=(sesMin_f<0)?-1:(int)sesMin_f;
 
-    // ── Daily Open + Gap ─────────────────────────────────────
+    // -- Daily Open + Gap -------------------------------------
     float daily_open=cp; for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()==today)daily_open=sc.Open[i];else break;}
     float gap=daily_open-PC, gap_pct=(PC>0)?(gap/PC*100.0f):0;
     const char* gap_type=(gap>2.0f)?"GAP_UP":(gap<-2.0f)?"GAP_DOWN":"FLAT";
 
-    // ── Overnight H/L ─────────────────────────────────────────
+    // -- Overnight H/L -----------------------------------------
     float ONH=sc.High[idx],ONL=sc.Low[idx];
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;if(sc.High[i]>ONH)ONH=sc.High[i];if(sc.Low[i]<ONL)ONL=sc.Low[i];}
 
-    // ── 72H / Weekly ─────────────────────────────────────────
+    // -- 72H / Weekly -----------------------------------------
     float H72=sc.High[idx],L72=sc.Low[idx],HWk=sc.High[idx],LWk=sc.Low[idx];
     SCDateTime t72=now_dt;t72.SubtractSeconds(72*3600);SCDateTime twk=now_dt;twk.SubtractSeconds((int)twk.GetDayOfWeek()*86400);
     for(int i=idx-1;i>=0;i--){SCDateTime bt=sc.BaseDateTimeIn[i];if(bt>=t72){if(sc.High[i]>H72)H72=sc.High[i];if(sc.Low[i]<L72)L72=sc.Low[i];}if(bt>=twk){if(sc.High[i]>HWk)HWk=sc.High[i];if(sc.Low[i]<LWk)LWk=sc.Low[i];}if(bt<t72&&bt<twk)break;}
 
-    // ── IB + Opening Range ────────────────────────────────────
+    // -- IB + Opening Range ------------------------------------
     int ib_minutes=IBPeriodMin.GetInt();
     float IBH=0,IBL=0; bool ib_locked=false;
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>ib_minutes)continue;if(IBH==0||sc.High[i]>IBH)IBH=sc.High[i];if(IBL==0||sc.Low[i]<IBL)IBL=sc.Low[i];}
@@ -342,7 +343,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>30)continue;if(ORH==0||sc.High[i]>ORH)ORH=sc.High[i];if(ORL==0||sc.Low[i]<ORL)ORL=sc.Low[i];}
     float or_range=(ORH>0&&ORL>0)?(ORH-ORL):0;
 
-    // ── Extension Count + Return to IB ───────────────────────
+    // -- Extension Count + Return to IB -----------------------
     int ext_up_count=0, ext_down_count=0;
     bool returned_after_breakout=false, was_outside_ib=false, was_up=false;
     if(ib_locked && IBH>0 && IBL>0) {
@@ -360,7 +361,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     int total_extensions=ext_up_count+ext_down_count;
 
-    // ── Day Type ─────────────────────────────────────────────
+    // -- Day Type ---------------------------------------------
     const char* day_type="DEVELOPING";
     if(ib_locked && IBH>0) {
         if(ib_range<6.0f&&total_extensions==0) day_type="BALANCED";
@@ -371,14 +372,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         else day_type="BALANCED";
     }
 
-    // ── Relative Volume ──────────────────────────────────────
+    // -- Relative Volume --------------------------------------
     float avg_vol_20=0; int vc=0;
     for(int i=idx-1;i>=idx-20&&i>=0;i--){avg_vol_20+=sc.Volume[i];vc++;}
     if(vc>0)avg_vol_20/=vc;
     float rel_vol=(avg_vol_20>0)?(sc.Volume[idx]/avg_vol_20):1.0f;
     const char* vol_ctx=(rel_vol>2.0f)?"VERY_HIGH":(rel_vol>1.5f)?"HIGH":(rel_vol<0.5f)?"VERY_LOW":(rel_vol<0.8f)?"LOW":"NORMAL";
 
-    // ── New High / New Low detection (last 5 bars vs 4 level pairs) ──
+    // -- New High / New Low detection (last 5 bars vs 4 level pairs) --
     bool new_high=false, new_low=false, returned_to_range=false;
     {
         float hi_levels[]={PH,IBH,ONH,SH}; int nhi=4;
@@ -394,7 +395,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if(new_low&&breached_lo>0&&sc.Close[idx]>breached_lo) returned_to_range=true;
     }
 
-    // ── Order Flow ────────────────────────────────────────────
+    // -- Order Flow --------------------------------------------
     bool absorption_bull=false;
     if(idx>=3){float sp=0;for(int i=idx-2;i<=idx;i++)sp+=sc.BidVolume[i];if(sp>500&&(cp-sc.Close[idx-3])>=0)absorption_bull=true;}
     bool liq_sweep_long=false,liq_sweep_short=false;
@@ -408,7 +409,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     std::sort(imbalances.begin(),imbalances.end(),[](const ImbLevel&a,const ImbLevel&b){return std::fabs(a.ratio)>std::fabs(b.ratio);});
     int imb_count=(int)imbalances.size();if(imb_count>3)imb_count=3;
 
-    // ── Footprint Booleans (A8) — price-level analysis ───────
+    // -- Footprint Booleans (A8) -- price-level analysis -------
     bool fp_absorption = false;
     bool fp_exhaustion = false;
     bool fp_trapped_buyers = false;
@@ -425,7 +426,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if (tick_sz < 0.01f) tick_sz = 0.25f;
         int vap_size = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(idx);
 
-        // ── 1. Absorption + 2. Exhaustion — scan extreme ticks of current bar ──
+        // -- 1. Absorption + 2. Exhaustion -- scan extreme ticks of current bar --
         if (vap_size > 0)
         {
             // Find top 3 and bottom 3 price levels
@@ -457,19 +458,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
 
             // Absorption: huge opposing volume at extreme but price rejected
-            // At high: big AskVol (buyers) but close < high → buyers absorbed by hidden sellers
+            // At high: big AskVol (buyers) but close < high -> buyers absorbed by hidden sellers
             if (top_ask > 50 && cp < bar_hi - tick_sz && top_ask > top_bid * 2)
                 fp_absorption = true;
-            // At low: big BidVol (sellers) but close > low → sellers absorbed by hidden buyers
+            // At low: big BidVol (sellers) but close > low -> sellers absorbed by hidden buyers
             if (bot_bid > 50 && cp > bar_lo + tick_sz && bot_bid > bot_ask * 2)
                 fp_absorption = true;
 
-            // Exhaustion: < 5 contracts at extreme tick → Zero Print
+            // Exhaustion: < 5 contracts at extreme tick -> Zero Print
             if (top_vol > 0 && top_vol < 5) fp_exhaustion = true;
             if (bot_vol > 0 && bot_vol < 5) fp_exhaustion = true;
         }
 
-        // ── 3. Trapped Buyers — broke above recent high then reversed ──
+        // -- 3. Trapped Buyers -- broke above recent high then reversed --
         if (idx >= 3)
         {
             float prev_hi = sc.High[idx-1];
@@ -480,7 +481,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 fp_trapped_buyers = true;
         }
 
-        // ── 4-5. Stacked Imbalances — consecutive price levels ×250% + min vol ──
+        // -- 4-5. Stacked Imbalances -- consecutive price levels x250% + min vol --
         // MES is thin: require dominant side >= 30 contracts to filter noise
         if (vap_size >= 3)
         {
@@ -514,7 +515,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
         }
 
-        // ── 6. Pullback Delta Declining — delta shrinking over last 3 bars ��─
+        // -- 6. Pullback Delta Declining -- delta shrinking over last 3 bars -
         if (idx >= 3)
         {
             float d0 = sc.AskVolume[idx]   - sc.BidVolume[idx];
@@ -525,7 +526,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 fp_pullback_delta_declining = true;
         }
 
-        // ── 7. Pullback Aggressive Buy — strong +delta during price dip ──
+        // -- 7. Pullback Aggressive Buy -- strong +delta during price dip --
         if (idx >= 3)
         {
             bool price_dipping = (cp < sc.Close[idx-3]);
@@ -535,12 +536,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 recent_delta += sc.AskVolume[i] - sc.BidVolume[i];
             if (price_dipping && recent_delta > 100)
                 fp_pullback_aggressive_buy = true;
-            // ── 7b. Pullback Aggressive Sell — strong -delta during price rise ──
+            // -- 7b. Pullback Aggressive Sell -- strong -delta during price rise --
             if (price_rising && recent_delta < -100)
                 fp_pullback_aggressive_sell = true;
         }
 
-        // ── 8. Absorption at FVG — contra-volume >= 2.5x avg within FVG range ──
+        // -- 8. Absorption at FVG -- contra-volume >= 2.5x avg within FVG range --
         // Uses the most recent FVG detected: gap between bar[idx-2].low/high and bar[idx].high/low
         if (idx >= 2 && vap_size > 0)
         {
@@ -585,7 +586,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
         }
 
-        // ── 9. Delta Confirmed 5m — 5m bar delta matches FVG direction ──
+        // -- 9. Delta Confirmed 5m -- 5m bar delta matches FVG direction --
         // Compute 5m delta from bars within current 5m bucket
         {
             long long now_ts2 = ToUnixTime(sc.BaseDateTimeIn[idx]);
@@ -603,14 +604,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
     }
 
-    // ── Candle Patterns ───────────────��───────────────────────
+    // -- Candle Patterns --------------------------------------
     const char* pat0=detectCandlePattern(sc.Open[idx],sc.High[idx],sc.Low[idx],sc.Close[idx]);
     const char* pat1=(idx>=1)?detectCandlePattern(sc.Open[idx-1],sc.High[idx-1],sc.Low[idx-1],sc.Close[idx-1]):"NONE";
     const char* pat2=(idx>=2)?detectCandlePattern(sc.Open[idx-2],sc.High[idx-2],sc.Low[idx-2],sc.Close[idx-2]):"NONE";
     bool bull_engulf=(idx>=1)&&(sc.Close[idx]>sc.Open[idx-1])&&(sc.Open[idx]<sc.Close[idx-1])&&(sc.Close[idx-1]<sc.Open[idx-1]);
     bool bear_engulf=(idx>=1)&&(sc.Close[idx]<sc.Open[idx-1])&&(sc.Open[idx]>sc.Close[idx-1])&&(sc.Close[idx-1]>sc.Open[idx-1]);
 
-    // ── MTF — מיושר לגבולות זמן אמיתיים ──────────────────────
+    // -- MTF --     ----------------------
     struct MTFBar{float o,h,l,c,vol,buy,sell,delta_v; long long bar_ts;};
     auto calcBarAligned=[&](int interval_sec)->MTFBar{
         MTFBar b={0,0,999999,0,0,0,0,0,0};
@@ -632,7 +633,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     };
     MTFBar m3=calcBarAligned(180),m5=calcBarAligned(300),m15=calcBarAligned(900),m30=calcBarAligned(1800),m60=calcBarAligned(3600);
 
-    // ── Footprint — נרות אחרונים (bar-level) ──────────────────
+    // -- Footprint --   (bar-level) ------------------
     std::ostringstream fp_j;
     fp_j << std::fixed << std::setprecision(2);
     fp_j << "[";
@@ -654,7 +655,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     fp_j << "]";
 
-    // ── Order Fills ───────────────────────────────────────────
+    // -- Order Fills -------------------------------------------
     std::ostringstream fills_j;
     fills_j << std::fixed << std::setprecision(2);
     fills_j << "[";
@@ -675,13 +676,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     fills_j << "]";
 
-    // ── HistoryInit — שולח 960 נרות + MTF היסטוריה פעם אחת בטעינה ──
+    // -- HistoryInit --  960  + MTF     --
     if (sc.IsFullRecalculation && idx == sc.ArraySize - 1)
     {
         int hist_count = (sc.ArraySize >= 960) ? 960 : sc.ArraySize;
         int hist_start = sc.ArraySize - hist_count;
 
-        // ── 3m history (existing) ──
+        // -- 3m history (existing) --
         std::ostringstream hj;
         hj << std::fixed << std::setprecision(2);
         hj << "{\"candles\":[";
@@ -711,7 +712,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
         hj << "],";
 
-        // ── MTF history — aggregate 3m bars into 5m/15m/30m/1h ──
+        // -- MTF history -- aggregate 3m bars into 5m/15m/30m/1h --
         struct MTFHist { long long ts; float o,h,l,c,vol,buy,sell; };
         auto buildMTF = [&](int interval_sec, int max_bars) -> std::vector<MTFHist> {
             std::map<long long, MTFHist> buckets;
@@ -777,12 +778,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if (hf.is_open()) { hf << hj.str(); hf.close(); }
     }
 
-    // ── Throttle ─────────────────────────────────────────────
+    // -- Throttle ---------------------------------------------
     static time_t lastExport=0; time_t now_t=time(nullptr);
     if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
     lastExport=now_t;
 
-    // ── JSON ──────────────────────────────────────────────────
+    // -- JSON --------------------------------------------------
     std::ostringstream j; j<<std::fixed<<std::setprecision(2);
     j<<"{"
      <<"\"timestamp\":"<<(long long)now_t
@@ -825,7 +826,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     std::ofstream f(ExportPath.GetString());
     if(f.is_open()){f<<j.str();f.close();}
 
-    // ── C5: Trade Command Execution ──────────────────────────────────────
+    // -- C5: Trade Command Execution --------------------------------------
     // Poll trade_command.json every second, verify checksum, execute bracket
     {
         static time_t s_lastCmdCheck = 0;
@@ -855,9 +856,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         // Skip if same trade_id (already processed)
         if (tradeId == s_lastTradeId) goto c5_done;
 
-        // TTL check — 60 seconds
+        // TTL check -- 60 seconds
         if (expiresAt > 0 && (long long)now_c > expiresAt) {
-            sc.AddMessageToLog("C5: Command expired — skipping", 1);
+            sc.AddMessageToLog("C5: Command expired -- skipping", 1);
             s_lastTradeId = tradeId;
             goto c5_done;
         }
@@ -871,7 +872,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 << ":" << BridgeToken.GetString();
             std::string computed = sha256hex(raw.str());
             if (computed != checksum) {
-                sc.AddMessageToLog("C5: CHECKSUM MISMATCH — ignoring", 1);
+                sc.AddMessageToLog("C5: CHECKSUM MISMATCH -- ignoring", 1);
                 s_lastTradeId = tradeId;
                 goto c5_done;
             }
@@ -894,15 +895,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (rf.is_open()) { rf << rj.str(); rf.close(); }
         };
 
-        // ── CANCEL ──
+        // -- CANCEL --
         if (cmd == "CANCEL") {
             sc.FlattenAndCancelAllOrders();
-            writeResult("OK", "CANCEL executed — all orders flat", 0);
-            sc.AddMessageToLog("C5: CANCEL — flattened all", 0);
+            writeResult("OK", "CANCEL executed -- all orders flat", 0);
+            sc.AddMessageToLog("C5: CANCEL -- flattened all", 0);
             goto c5_done;
         }
 
-        // ── BUY / SELL — Bracket Order ──
+        // -- BUY / SELL -- Bracket Order --
         if (cmd != "BUY" && cmd != "SELL") {
             writeResult("ERROR", "Unknown cmd", 0);
             goto c5_done;
@@ -964,7 +965,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
             if (totalSent > 0) {
                 SCString detail;
-                detail.Format("%s 3x bracket: %d sent, %d failed — T1=%.2f T2=%.2f T3=%.2f",
+                detail.Format("%s 3x bracket: %d sent, %d failed -- T1=%.2f T2=%.2f T3=%.2f",
                               cmd.c_str(), totalSent, totalFailed, cmdT1, cmdT2, cmdT3);
                 writeResult("OK", detail.GetChars(), totalSent);
             } else {
@@ -974,7 +975,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     c5_done:;
 
-    // ── C6: Visualization — read mes_ai_visualization.json, draw on chart ──
+    // -- C6: Visualization -- read mes_ai_visualization.json, draw on chart --
     // Bridge writes this file every second with setup states.
     // We use sc.UseTool to draw rectangles, markers, and text.
     {
