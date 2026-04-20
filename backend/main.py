@@ -2166,6 +2166,86 @@ async def analytics_patterns():
     return compute_pattern_analysis(trades)
 
 
+@app.get("/analytics/by-segment")
+async def analytics_by_segment():
+    """V6.5.2: Breakdown of shadow trades by day_type, killzone, setup_type, trade_number, entry_mode."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"by_day_type": [], "by_killzone": [], "by_setup_type": [],
+                "by_trade_number": [], "by_entry_mode": [], "cross_tab": []}
+
+    trades = await _get_all_trade_logs(is_shadow=True)
+    # Only closed trades with pnl
+    closed = [t for t in trades if t.get("status") == "CLOSED" and t.get("pnl_pts") is not None]
+
+    def _bucket(items, key_fn):
+        groups = {}
+        for t in items:
+            k = key_fn(t)
+            if not k:
+                k = "UNKNOWN"
+            if k not in groups:
+                groups[k] = []
+            groups[k].append(t)
+        result = []
+        for k, g in sorted(groups.items(), key=lambda x: -len(x[1])):
+            wins = sum(1 for t in g if (t.get("pnl_pts") or 0) > 0)
+            result.append({
+                key_fn.__name__: k,
+                "n": len(g),
+                "wins": wins,
+                "wr": round(wins / len(g) * 100, 1) if g else 0,
+                "avg_pnl_pts": round(sum(t.get("pnl_pts", 0) or 0 for t in g) / len(g), 2) if g else 0,
+                "avg_mae": round(sum(t.get("mae_pts", 0) or 0 for t in g) / len(g), 1) if g else 0,
+                "avg_mfe": round(sum(t.get("mfe_pts", 0) or 0 for t in g) / len(g), 1) if g else 0,
+            })
+        return result
+
+    def day_type(t): return t.get("day_type") or t.get("day_type_at_entry") or "UNKNOWN"
+    def killzone(t): return t.get("killzone") or t.get("killzone_at_entry") or "UNKNOWN"
+    def setup_type(t): return t.get("setup_type") or "UNKNOWN"
+    def entry_mode(t): return t.get("entry_mode") or "UNKNOWN"
+
+    by_day = _bucket(closed, day_type)
+    by_kz = _bucket(closed, killzone)
+    by_setup = _bucket(closed, setup_type)
+    by_mode = _bucket(closed, entry_mode)
+
+    # Trade number buckets (1-3 vs 4+)
+    def trade_num_bucket(t):
+        n = t.get("trade_number_of_day") or t.get("setup_number_today") or 0
+        return "1-3" if 0 < n <= 3 else "4+" if n > 3 else "UNKNOWN"
+    by_num = _bucket(closed, trade_num_bucket)
+
+    # Cross-tab: day_type x killzone x setup_type (only combos with n>=2)
+    cross = {}
+    for t in closed:
+        key = f"{day_type(t)}|{killzone(t)}|{setup_type(t)}"
+        if key not in cross:
+            cross[key] = []
+        cross[key].append(t)
+    cross_tab = []
+    for key, g in sorted(cross.items(), key=lambda x: -len(x[1])):
+        if len(g) < 2:
+            continue
+        parts = key.split("|")
+        wins = sum(1 for t in g if (t.get("pnl_pts") or 0) > 0)
+        cross_tab.append({
+            "day_type": parts[0], "killzone": parts[1], "setup_type": parts[2],
+            "n": len(g), "wr": round(wins / len(g) * 100, 1) if g else 0,
+        })
+
+    return {
+        "by_day_type": by_day,
+        "by_killzone": by_kz,
+        "by_setup_type": by_setup,
+        "by_trade_number": by_num,
+        "by_entry_mode": by_mode,
+        "cross_tab": cross_tab[:20],
+    }
+
+
 @app.get("/analytics/attempts")
 async def analytics_attempts(
     limit: int = 200,
@@ -2370,10 +2450,31 @@ async def health():
     # Redis health — if we got here with data, Redis is OK
     redis_ok = data is not None
 
+    # V6.5.2: Entry mode info
+    _entry_mode = os.getenv("MEMS26_ENTRY_MODE", "STRICT").upper()
+    if _entry_mode == "DEMO" and _MODE == "LIVE":
+        _entry_mode = "STRICT"
+    _relvol_min = 1.0 if _entry_mode == "DEMO" else 1.2
+    _fvg_max = 5.0 if _entry_mode == "DEMO" else 4.0
+    _sweep_min = 1.0 if _entry_mode == "DEMO" else 1.5
+    _kz_required = _entry_mode != "DEMO"
+
+    # Pre-close freeze check
+    from datetime import datetime as _dt
+    from zoneinfo import ZoneInfo as _ZI
+    _now_et = _dt.now(_ZI("America/New_York"))
+    _pre_close = (_now_et.hour * 60 + _now_et.minute) >= 15 * 60 + 30
+
     return {
         "status": "ok",
         "has_data": data is not None,
         "mode": _MODE,
+        "entry_mode": _entry_mode,
+        "pre_close_freeze_active": _pre_close,
+        "gate_relvol_min": _relvol_min,
+        "gate_fvg_max": _fvg_max,
+        "gate_sweep_min": _sweep_min,
+        "killzone_required": _kz_required,
         "bridge_heartbeat_age_sec": bridge_age,
         "news_guard_healthy": news_healthy,
         "redis_ok": redis_ok,

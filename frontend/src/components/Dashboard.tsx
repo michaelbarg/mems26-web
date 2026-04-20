@@ -1591,7 +1591,7 @@ function MiniLight({ col }: { col: string }) {
 }
 
 // ── Zone A: Top Bar ───────────────────────────────────────────────────────────
-function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem, newsGuard }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void; newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] } }) {
+function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem, newsGuard, entryMode }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void; newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] }; entryMode?:{mode:string;gates?:any}|null }) {
   const [time, setTime] = useState('');
   useEffect(() => {
     const t = setInterval(() => {
@@ -1619,6 +1619,17 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem,
           color: isSim ? '#22c55e' : '#ef5350',
           border: `1px solid ${isSim ? '#22c55e44' : '#ef535044'}`,
         }}>{isSim ? '🟢 SIM' : '🔴 LIVE'}</span>;
+      })()}
+
+      {/* V6.5.2: Entry Mode badge */}
+      {entryMode && (() => {
+        const m = entryMode.mode;
+        const isDemo = m === 'DEMO';
+        return <span style={{ fontSize:12, padding:'2px 8px', borderRadius:10, fontWeight:700,
+          background: isDemo ? '#f59e0b22' : '#4a556822',
+          color: isDemo ? '#f59e0b' : '#6b7280',
+          border: `1px solid ${isDemo ? '#f59e0b44' : '#4a556844'}`,
+        }}>{isDemo ? '🧪 DEMO' : 'STRICT'}</span>;
       })()}
 
       {/* News Guard indicator */}
@@ -3961,6 +3972,12 @@ export default function Dashboard() {
   const [candles,setCandles]=useState<Candle[]>([]);
   const [connected,setConnected]=useState(false);
   const [systemOn,setSystemOn]=useState(true);
+  const [entryMode,setEntryMode]=useState<{mode:string;gates?:any}|null>(null);
+  useEffect(()=>{
+    fetch(API_URL+'/health',{cache:'no-store'}).then(r=>r.json()).then(d=>{
+      setEntryMode({mode:d.entry_mode||'STRICT',gates:{relvol:d.gate_relvol_min,fvg:d.gate_fvg_max,sweep:d.gate_sweep_min,kz:d.killzone_required}});
+    }).catch(()=>{});
+  },[]);
   const [tf,setTf]=useState<'3m'|'5m'|'15m'|'30m'|'1h'>('3m');
   const [accepted,setAccepted]=useState(false);
   const [lockedSignal,setLockedSignal]=useState<any>(null);
@@ -4539,7 +4556,12 @@ export default function Dashboard() {
 
       {/* TopBar */}
       <div style={{flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738'}}>
-        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} />
+        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} entryMode={entryMode} />
+        {entryMode?.mode === 'DEMO' && entryMode.gates && (
+          <div style={{fontSize:10,color:'#f59e0b88',marginTop:3,fontFamily:'monospace'}}>
+            DEMO Gates: RelVol&gt;={entryMode.gates.relvol} &middot; FVG&lt;={entryMode.gates.fvg}pt &middot; Sweep&gt;={entryMode.gates.sweep}pt &middot; Killzone=tag
+          </div>
+        )}
       </div>
 
       {/* V6.5: Sidebar left + chart right */}
