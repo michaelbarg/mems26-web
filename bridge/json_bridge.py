@@ -28,6 +28,8 @@ from config import (
     WATCHDOG_INTERVAL_SEC, WATCHDOG_REDIS_STALE, WATCHDOG_SC_STALE, WATCHDOG_API_TIMEOUT,
     NEWS_API_TIMEOUT_SEC, NEWS_PRE_FREEZE_MIN, NEWS_POST_RELEASE_MIN,
     REDIS_NEWS_STATE, REDIS_NEWS_EVENTS,
+    ENTRY_MODE, KILLZONE_REQUIRED, RELVOL_MIN, FVG_MAX_PTS, SWEEP_MIN_WICK_PTS,
+    PRE_CLOSE_FREEZE_ENABLED, PRE_CLOSE_FREEZE_TIME_ET,
 )
 
 def sc_ts_to_utc(ts: int) -> int:
@@ -895,6 +897,25 @@ async def _eod_flatten_check(http):
         await asyncio.sleep(30)
 
 
+async def _publish_bridge_config(http):
+    """Publish Bridge entry mode config to Redis every 30s so backend /health can read it."""
+    while True:
+        try:
+            config_data = json.dumps({
+                "entry_mode": ENTRY_MODE,
+                "gate_relvol_min": RELVOL_MIN,
+                "gate_fvg_max": FVG_MAX_PTS,
+                "gate_sweep_min": SWEEP_MIN_WICK_PTS,
+                "killzone_required": KILLZONE_REQUIRED,
+                "pre_close_freeze_enabled": PRE_CLOSE_FREEZE_ENABLED,
+                "updated_at": int(time.time()),
+            })
+            await redis_post(http, "set/mems26:bridge_config", config_data)
+        except Exception as e:
+            log.debug(f"[CONFIG] Publish failed: {e}")
+        await asyncio.sleep(30)
+
+
 async def main():
     if not REDIS_URL or not REDIS_TOKEN:
         log.error("Missing UPSTASH credentials"); return
@@ -1040,7 +1061,8 @@ async def main():
             http, news, REDIS_URL, REDIS_TOKEN,
             REDIS_NEWS_STATE, CLOUD_URL, BRIDGE_TOKEN,
         ))
-        log.info("[W1] command poll + watchdog + EOD flatten + news guard started")
+        asyncio.create_task(_publish_bridge_config(http))
+        log.info("[W1] command poll + watchdog + EOD flatten + news guard + config publisher started")
         while True:
             if not is_trading_session():
                 log.info("Market closed — waiting 30s")

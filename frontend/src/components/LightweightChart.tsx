@@ -1031,9 +1031,9 @@ export default function LightweightChart({
     add(levels?.overnight_low,  '#a78bfa66', 'ONL ', 3, 1);
     add(profile?.vah,           '#22c55e66', 'VAH ', 3, 1);
     add(profile?.val,           '#22c55e66', 'VAL ', 3, 1);
-    add(profile?.poc,           '#f9731666', 'POC ', 3, 1);
-    // V6.5: PD POC (white) + 30-min POCs (pink)
-    add(profile?.prev_day_poc,  '#ffffff88', 'PD POC', 2, 1);
+    add(profile?.poc,           '#EC489988', 'POC ', 0, 1);  // pink solid
+    add((profile as any)?.tpo_poc, '#F472B688', 'TPO', 0, 1);  // pink-400 solid
+    add(profile?.prev_day_poc,  '#ffffff88', 'PD POC', 2, 1);  // white dashed
     // Compute 30-min POCs from candle data (last 3 half-hour periods)
     if (candles.length > 5) {
       const sorted = [...candles].sort((a, b) => b.ts - a.ts);

@@ -1637,34 +1637,40 @@ async def trade_execute(request: Request):
         if raw_risk > STOP_MAX_PT:
             raise HTTPException(status_code=400, detail=f"STOP_TOO_WIDE: {raw_risk:.2f}pt > {STOP_MAX_PT}pt max")
 
-        # Circuit breaker check
+        # V6.5.2: Read entry mode from bridge config in Redis
+        _exec_entry_mode = "STRICT"
         try:
-            cb = await check_circuit_breaker()
-        except Exception as e:
-            log.warning(f"Circuit breaker check failed: {e}")
-            cb = {"allowed": True, "reason": "CB check failed — proceeding"}
-        if not cb["allowed"]:
-            raise HTTPException(status_code=403, detail=cb["reason"])
+            _bridge_cfg = await redis_get_key("mems26:bridge_config")
+            if _bridge_cfg and isinstance(_bridge_cfg, dict):
+                _exec_entry_mode = _bridge_cfg.get("entry_mode", "STRICT")
+        except Exception:
+            pass
+        log.info(f"[EXECUTE] entry_mode={_exec_entry_mode}")
 
-        # Killzone enforcement — NO_TRADE outside windows (V6.1)
-        try:
-            from datetime import datetime as _dt, time as _tm
-            from zoneinfo import ZoneInfo as _ZI
-            _now_et = _dt.now(_ZI("America/New_York"))
-            _t = _now_et.hour * 60 + _now_et.minute
-            _KILLZONES = [
-                ("London",   3*60,        5*60),       # 03:00-05:00 ET
-                ("NY_Open",  9*60+30,     10*60+30),   # 09:30-10:30 ET
-                ("NY_Close", 15*60,       16*60),      # 15:00-16:00 ET
-            ]
-            _in_kz = any(start <= _t < end for _, start, end in _KILLZONES)
-            if not _in_kz:
-                raise HTTPException(status_code=403,
-                    detail=f"Outside killzone — current time {_now_et.strftime('%H:%M')} ET. Windows: London 03-05, NY Open 09:30-10:30, NY Close 15-16")
-        except HTTPException:
-            raise
-        except Exception as e:
-            log.warning(f"Killzone check failed: {e} — proceeding")
+        # Circuit breaker check (skip in DEMO)
+        if _exec_entry_mode != "DEMO":
+            try:
+                cb = await check_circuit_breaker()
+            except Exception as e:
+                log.warning(f"Circuit breaker check failed: {e}")
+                cb = {"allowed": True, "reason": "CB check failed -- proceeding"}
+            if not cb["allowed"]:
+                raise HTTPException(status_code=403, detail=cb["reason"])
+
+        # Killzone enforcement (skip in DEMO — tag only)
+        from datetime import datetime as _dt
+        from zoneinfo import ZoneInfo as _ZI
+        _now_et = _dt.now(_ZI("America/New_York"))
+        _t = _now_et.hour * 60 + _now_et.minute
+        _KILLZONES = [
+            ("London",   3*60,        5*60),
+            ("NY_Open",  9*60+30,     10*60+30),
+            ("NY_Close", 15*60,       16*60),
+        ]
+        _in_kz = any(start <= _t < end for _, start, end in _KILLZONES)
+        if not _in_kz and _exec_entry_mode != "DEMO":
+            raise HTTPException(status_code=403,
+                detail=f"Outside killzone -- {_now_et.strftime('%H:%M')} ET. Windows: London 03-05, NY Open 09:30-10:30, NY Close 15-16")
 
         # News guard check — block during PRE_NEWS_FREEZE
         try:
@@ -2450,16 +2456,27 @@ async def health():
     # Redis health — if we got here with data, Redis is OK
     redis_ok = data is not None
 
-    # V6.5.2: Entry mode info
-    _entry_mode = os.getenv("MEMS26_ENTRY_MODE", "STRICT").upper()
-    if _entry_mode == "DEMO" and _MODE == "LIVE":
-        _entry_mode = "STRICT"
-    _relvol_min = 1.0 if _entry_mode == "DEMO" else 1.2
-    _fvg_max = 5.0 if _entry_mode == "DEMO" else 4.0
-    _sweep_min = 1.0 if _entry_mode == "DEMO" else 1.5
-    _kz_required = _entry_mode != "DEMO"
+    # V6.5.2: Entry mode from Bridge Redis config (falls back to env)
+    _entry_mode = "STRICT"
+    _relvol_min = 1.2
+    _fvg_max = 4.0
+    _sweep_min = 1.5
+    _kz_required = True
+    try:
+        _bridge_cfg = await redis_get_key("mems26:bridge_config")
+        if _bridge_cfg and isinstance(_bridge_cfg, dict):
+            _cfg_age = now - _bridge_cfg.get("updated_at", 0)
+            if _cfg_age < 120:  # fresh within 2 min
+                _entry_mode = _bridge_cfg.get("entry_mode", "STRICT")
+                _relvol_min = _bridge_cfg.get("gate_relvol_min", 1.2)
+                _fvg_max = _bridge_cfg.get("gate_fvg_max", 4.0)
+                _sweep_min = _bridge_cfg.get("gate_sweep_min", 1.5)
+                _kz_required = _bridge_cfg.get("killzone_required", True)
+            else:
+                log.warning(f"Bridge config stale in Redis ({_cfg_age:.0f}s), falling back to env config")
+    except Exception:
+        pass
 
-    # Pre-close freeze check
     from datetime import datetime as _dt
     from zoneinfo import ZoneInfo as _ZI
     _now_et = _dt.now(_ZI("America/New_York"))
