@@ -3974,9 +3974,14 @@ export default function Dashboard() {
   const [systemOn,setSystemOn]=useState(true);
   const [entryMode,setEntryMode]=useState<{mode:string;gates?:any}|null>(null);
   useEffect(()=>{
-    fetch(API_URL+'/health',{cache:'no-store'}).then(r=>r.json()).then(d=>{
-      setEntryMode({mode:d.entry_mode||'STRICT',gates:{relvol:d.gate_relvol_min,fvg:d.gate_fvg_max,sweep:d.gate_sweep_min,kz:d.killzone_required}});
-    }).catch(()=>{});
+    try {
+      fetch(API_URL+'/health',{cache:'no-store'}).then(r=>{
+        if(!r.ok) return;
+        return r.json();
+      }).then(d=>{
+        if(d&&d.entry_mode) setEntryMode({mode:d.entry_mode,gates:{relvol:d.gate_relvol_min||1.2,fvg:d.gate_fvg_max||4.0,sweep:d.gate_sweep_min||1.5,kz:d.killzone_required!==false}});
+      }).catch(()=>{});
+    } catch {}
   },[]);
   const [tf,setTf]=useState<'3m'|'5m'|'15m'|'30m'|'1h'>('3m');
   const [accepted,setAccepted]=useState(false);
