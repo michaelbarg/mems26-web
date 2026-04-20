@@ -3384,7 +3384,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
   ] as const;
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', height:'100%', borderLeft:'1px solid #1e2738', minWidth:0 }}>
+    <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', height:'100%', minHeight:0, borderLeft:'1px solid #1e2738', minWidth:0 }}>
       {/* Tab bar — icon + label, compact to fit 6 tabs in 260-420px */}
       <div style={{ display:'flex', borderBottom:'1px solid #1e2738', flexShrink:0 }}>
         {tabs.map(t=>(
@@ -3402,7 +3402,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
       </div>
 
       {/* Tab content */}
-      <div style={{ flex:1, overflowY:'auto', padding:8, display:'flex', flexDirection:'column', gap:7 }}>
+      <div style={{ flex:1, minHeight:0, overflowY:'auto', padding:8, display:'flex', flexDirection:'column', gap:7 }}>
 
         {tab === 'signal' && <>
           <DayTypeBar live={live} onRequestExplanation={onAskDayType} aiLoading={dayLoading} />
