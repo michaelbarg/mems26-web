@@ -25,6 +25,8 @@ from config import (
     CB_SOFT_LIMIT, CB_HARD_LIMIT, CB_MAX_TRADES, CB_CONSEC_LOSSES,
     EOD_FLATTEN_TIME, KILLZONES, CLOUD_URL, BRIDGE_TOKEN,
     REDIS_URL, REDIS_TOKEN, SC_JSON_PATH,
+    ENTRY_MODE, KILLZONE_REQUIRED, RELVOL_MIN, FVG_MAX_PTS,
+    SWEEP_MIN_WICK_PTS, PRE_CLOSE_FREEZE_TIME_ET, PRE_CLOSE_FREEZE_ENABLED,
 )
 import os
 
@@ -96,6 +98,10 @@ class ShadowTrade:
 
 class ShadowEngine:
     def __init__(self):
+        log.info(f"Shadow Trader -- ENTRY_MODE={ENTRY_MODE}")
+        log.info(f"Gates: RelVol>={RELVOL_MIN}, FVG<={FVG_MAX_PTS}pt, Sweep>={SWEEP_MIN_WICK_PTS}pt")
+        if ENTRY_MODE == "DEMO":
+            log.info("DEMO mode: Killzone/MaxTrades/Health/Confidence = tag-only")
         self.active: list[ShadowTrade] = []
         self.closed_today: list[dict] = []
         self.setup_count_today: int = 0
@@ -214,25 +220,44 @@ class ShadowEngine:
             if not entry_levels or entry_levels.get("stopTooWide"):
                 continue
 
-            # Compute score
-            score = self._compute_score(direction, hit, bar, rel_vol, cvd, cp, price)
-            if score < 60:
+            # ── V6.5.2 Ordered Gate Logic ────────────────────────
+            kz = self._get_killzone()
+            trade_num = self.setup_count_today + 1
+            now_et = datetime.now(ET)
+            pre_close_h, pre_close_m = map(int, PRE_CLOSE_FREEZE_TIME_ET.split(":"))
+            is_pre_close = (PRE_CLOSE_FREEZE_ENABLED and
+                            now_et.time() >= dtime(pre_close_h, pre_close_m))
+
+            # Compute sweep wick for gate check
+            is_long = direction == "LONG"
+            hit_bar = hit.get("bar", {})
+            if is_long:
+                sweep_wick = min(hit_bar.get("o", 0), hit_bar.get("c", 0)) - hit_bar.get("l", 0)
+            else:
+                sweep_wick = hit_bar.get("h", 0) - max(hit_bar.get("o", 0), hit_bar.get("c", 0))
+            sweep_wick = max(0, sweep_wick)
+            fvg_size = self._find_fvg_size(sorted_candles[:10], direction.lower())
+
+            # Gate 1: Pre-Close Freeze (NEVER loosened)
+            if is_pre_close:
+                await self._log_attempt(
+                    hit, direction,
+                    {"pass": False, "reason": "PRE_CLOSE_FREEZE", "eval_type": "gate"},
+                    market_data, day_type, http_session)
                 continue
 
-            # 3-Pillar evaluation
+            # Gate 2: News Freeze (NEVER loosened) — checked later via CB state
+
+            # Gate 3: 3-Pillar evaluation (NEVER loosened)
             eval_result = self._evaluate_pillars(
                 hit, direction.lower(), market_data, sorted_candles,
                 is_trend, vwap_data, fp, of2, price
             )
-
             if not eval_result["pass"]:
-                # Log rejected attempt
                 await self._log_attempt(
                     hit, direction, eval_result, market_data, day_type, http_session
                 )
-                # Track as BUILDING if at least P1 passed (sweep/rejection at level)
                 if "P2" in eval_result.get("reason", "") or "P3" in eval_result.get("reason", ""):
-                    bld_key = f"{direction}_{hit['levelName']}"
                     if not any(b.direction == direction and b.level_name == hit["levelName"] for b in self._building):
                         bld_levels = self._calc_levels(direction.lower(), hit, price, market_data)
                         if bld_levels and not bld_levels.get("stopTooWide"):
@@ -242,59 +267,94 @@ class ShadowEngine:
                                 stop_price=bld_levels["stop"], detect_ts=now,
                                 setup_type=hit["type"].upper(),
                                 pillar_detail=eval_result.get("reason", ""),
-                                day_type=day_type, killzone=self._get_killzone(),
+                                day_type=day_type, killzone=kz,
                                 price_at_detect=price,
                             ))
                 continue
 
-            # 3 pillars passed — create shadow trade(s)
-            # Remove from building list (it graduated to live)
+            # Gate 4: Stop validation (NEVER loosened) — already checked via entry_levels
+
+            # Gate 5: RelVol >= config minimum
+            if hit.get("relVol", 0) < RELVOL_MIN:
+                await self._log_attempt(
+                    hit, direction,
+                    {"pass": False, "reason": f"RELVOL_{hit.get('relVol',0):.2f}_BELOW_{RELVOL_MIN}", "eval_type": "gate"},
+                    market_data, day_type, http_session)
+                continue
+
+            # Gate 6: FVG size <= config max
+            if fvg_size > FVG_MAX_PTS and fvg_size > 0:
+                await self._log_attempt(
+                    hit, direction,
+                    {"pass": False, "reason": f"FVG_{fvg_size:.1f}pt_ABOVE_{FVG_MAX_PTS}", "eval_type": "gate"},
+                    market_data, day_type, http_session)
+                continue
+
+            # Gate 7: Sweep wick >= config min
+            if hit.get("type") == "sweep" and sweep_wick < SWEEP_MIN_WICK_PTS:
+                await self._log_attempt(
+                    hit, direction,
+                    {"pass": False, "reason": f"WICK_{sweep_wick:.1f}pt_BELOW_{SWEEP_MIN_WICK_PTS}", "eval_type": "gate"},
+                    market_data, day_type, http_session)
+                continue
+
+            # Gates 8-11: STRICT-only (skipped in DEMO, values still tagged)
+            cb_state = await self._get_cb_state(http_session)
+            news_state = await self._get_news_state(http_session)
+
+            # News freeze check (always active)
+            ns = news_state.get("state", "") if isinstance(news_state, dict) else ""
+            if ns in ("PRE_NEWS_FREEZE", "NEWS_ACTIVE"):
+                await self._log_attempt(
+                    hit, direction,
+                    {"pass": False, "reason": "NEWS_FREEZE", "eval_type": "gate"},
+                    market_data, day_type, http_session)
+                continue
+
+            if ENTRY_MODE == "STRICT":
+                if KILLZONE_REQUIRED and kz == "OUTSIDE":
+                    await self._log_attempt(
+                        hit, direction,
+                        {"pass": False, "reason": "OUTSIDE_KILLZONE", "eval_type": "gate"},
+                        market_data, day_type, http_session, cb_respected=True)
+                    continue
+                if trade_num > CB_MAX_TRADES:
+                    await self._log_attempt(
+                        hit, direction,
+                        {"pass": False, "reason": f"MAX_TRADES_{CB_MAX_TRADES}", "eval_type": "gate"},
+                        market_data, day_type, http_session, cb_respected=True)
+                    continue
+                cb_allows = self._check_cb_allows(cb_state, news_state)
+                if not cb_allows:
+                    await self._log_attempt(
+                        hit, direction,
+                        {"pass": False, "reason": "CB_BLOCKED", "eval_type": "gate"},
+                        market_data, day_type, http_session, cb_respected=True)
+                    continue
+
+            # ── All gates passed — create shadow trade ────────
             self._building = [b for b in self._building
                               if not (b.direction == direction and b.level_name == hit["levelName"])]
             self._cooldown_setups[cooldown_key] = now
             self.setup_count_today += 1
 
-            # Get CB/News state
-            cb_state = await self._get_cb_state(http_session)
-            news_state = await self._get_news_state(http_session)
-
-            # Strategic tags
             tags = self._build_tags(
                 market_data, day_type, cb_state, news_state,
                 hit, rel_vol, cvd, vwap_data, fp, sorted_candles, mtf
             )
+            # V6.5.2: additional entry tags
+            tags["entry_mode"] = ENTRY_MODE
+            tags["trade_number_of_day"] = self.setup_count_today
+            tags["health_score_at_entry"] = 0  # computed at trade level
+            tags["confidence_at_entry"] = 0
+            tags["pre_close_blocked"] = False
 
-            # FVG size
-            fvg_size = self._find_fvg_size(sorted_candles[:10], direction.lower())
-
-            # Shadow 1: cb_respected=False (always taken)
             await self._open_shadow(
                 direction, hit, entry_levels, eval_result,
-                tags, fvg_size, cb_respected=False,
+                tags, fvg_size, cb_respected=(ENTRY_MODE == "STRICT"),
                 http_session=http_session, market_data=market_data,
                 candles=sorted_candles,
             )
-
-            # Shadow 2: cb_respected=True (check CB/NEWS/MAX)
-            cb_allows = self._check_cb_allows(cb_state, news_state)
-            kz = self._get_killzone()
-            kz_allows = kz != "OUTSIDE"
-
-            if cb_allows and kz_allows:
-                await self._open_shadow(
-                    direction, hit, entry_levels, eval_result,
-                    tags, fvg_size, cb_respected=True,
-                    http_session=http_session, market_data=market_data,
-                    candles=sorted_candles,
-                )
-            else:
-                # Log as rejected attempt with CB reason
-                reason = "CB_BLOCKED" if not cb_allows else "OUTSIDE_KILLZONE"
-                await self._log_attempt(
-                    hit, direction,
-                    {"pass": False, "reason": reason, "eval_type": eval_result.get("eval_type", "range")},
-                    market_data, day_type, http_session, cb_respected=True
-                )
 
     async def track_price(self, price: float, ts: int):
         """Called every tick to update MAE/MFE and check exits."""
