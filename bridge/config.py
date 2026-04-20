@@ -11,11 +11,51 @@ import os
 # "SIM" = paper trading (Teton Paper), "LIVE" = real money
 MODE = os.getenv("MEMS26_MODE", "SIM").upper()
 
+# ── Entry Mode Selection (V6.5.2) ───────────────────────────────────────────
+ENTRY_MODE = os.getenv("MEMS26_ENTRY_MODE", "STRICT").upper()
+# STRICT = V6.1 baseline (default, backward-compatible)
+# DEMO   = Data collection mode (requires MODE=SIM)
+# LIVE automatically forces STRICT regardless of ENTRY_MODE
+
+if ENTRY_MODE == "DEMO" and MODE == "LIVE":
+    ENTRY_MODE = "STRICT"
+    import logging
+    logging.warning("DEMO mode blocked in LIVE — forcing STRICT")
+
+# ── Entry Gates (apply based on ENTRY_MODE) ─────────────────────────────────
+if ENTRY_MODE == "DEMO":
+    CB_MAX_TRADES = 999           # tag only in DEMO
+    KILLZONE_REQUIRED = False     # tag only
+    HEALTH_SCORE_MIN = 0          # tag only
+    CONFIDENCE_MIN = 0            # tag only
+    RELVOL_MIN = 1.0              # was 1.2
+    FVG_MAX_PTS = 5.0             # was 4.0
+    SWEEP_MIN_WICK_PTS = 1.0      # was 1.5
+else:  # STRICT (default)
+    CB_MAX_TRADES = 3
+    KILLZONE_REQUIRED = True
+    HEALTH_SCORE_MIN = 70
+    CONFIDENCE_MIN = 60
+    RELVOL_MIN = 1.2
+    FVG_MAX_PTS = 4.0
+    SWEEP_MIN_WICK_PTS = 1.5
+
+# ── Pre-Close Freeze (V6.5.2 — always active) ───────────────────────────────
+PRE_CLOSE_FREEZE_TIME_ET = "15:30"
+PRE_CLOSE_FREEZE_ENABLED = True
+
+# Hard limits NEVER loosened (even in DEMO):
+# - 3 Pillars (P1+P2+P3)
+# - Stop 3-8pt
+# - News Freeze
+# - Pre-Close Freeze 15:30 ET
+# - EOD Flatten 15:59 ET
+
 # ── Circuit Breaker ──────────────────────────────────────────────────────────
-CB_SOFT_LIMIT  = 150 if MODE == "SIM" else 100   # $/day → 30-min lock
-CB_HARD_LIMIT  = 200                               # $/day → lock until next day
-CB_MAX_TRADES  = 3                                  # max trades/day (spec V6.1)
-CB_CONSEC_LOSSES = 2                                # consecutive losses → 30-min lock
+CB_SOFT_LIMIT  = 150 if MODE == "SIM" else 100   # $/day -> 30-min lock
+CB_HARD_LIMIT  = 200                               # $/day -> lock until next day
+# CB_MAX_TRADES set above by ENTRY_MODE
+CB_CONSEC_LOSSES = 2                                # consecutive losses -> 30-min lock
 CB_LOCK_MIN    = 30                                 # lock duration in minutes
 
 # ── Contracts ────────────────────────────────────────────────────────────────

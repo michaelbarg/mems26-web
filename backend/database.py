@@ -171,6 +171,21 @@ async def init_db():
             except Exception:
                 pass
 
+        # V6.5.2: Entry mode tags on trades + setup_attempts
+        v652_cols = [
+            ("entry_mode", "VARCHAR(16)"),
+            ("trade_number_of_day", "INTEGER"),
+            ("health_score_at_entry", "INTEGER"),
+            ("confidence_at_entry", "INTEGER"),
+            ("pre_close_blocked", "BOOLEAN DEFAULT FALSE"),
+        ]
+        for col, typ in v652_cols:
+            for tbl in ("trades", "setup_attempts"):
+                try:
+                    await conn.execute(f"ALTER TABLE {tbl} ADD COLUMN IF NOT EXISTS {col} {typ}")
+                except Exception:
+                    pass
+
     log.info("Postgres tables initialized")
 
 
@@ -194,6 +209,8 @@ def _trade_to_row(t: dict) -> dict:
         'mtf_aligned', 'vwap_side', 'sweep_wick_pts_tag', 'fvg_size_pts',
         'stacked_dominant_vol', 'bars_building_before_live',
         'entry_narrative', 'setup_quality_score',
+        'entry_mode', 'trade_number_of_day',
+        'health_score_at_entry', 'confidence_at_entry', 'pre_close_blocked',
     }
     row = {}
     extra = {}
@@ -373,6 +390,8 @@ async def insert_attempt(attempt: dict):
         'mtf_aligned', 'vwap_side',
         'hypothetical_mae_60min_pts', 'hypothetical_mfe_60min_pts',
         'entry_price_hypothetical', 'stop_hypothetical',
+        'entry_mode', 'trade_number_of_day',
+        'health_score_at_entry', 'confidence_at_entry', 'pre_close_blocked',
     }
     row = {}
     extra = {}
