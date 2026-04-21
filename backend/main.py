@@ -2029,25 +2029,36 @@ async def ack_trade_command(request: Request, x_bridge_token: Optional[str] = He
     return {"ok": False, "detail": "No matching pending command"}
 
 @app.post("/trade/test-dispatch")
-async def test_dispatch():
-    """Diagnostic: write a test command to Redis to verify Bridge pickup."""
+async def test_dispatch(request: Request):
+    """Diagnostic: write a real bracket command to Redis with caller's values.
+    Uses the same field mapping as /trade/execute but skips all guards."""
     import time
+    body = await request.json()
+    direction = body.get("direction", "LONG")
+    entry = body.get("entry_price", 0)
+    stop = body.get("stop", 0)
+    t1 = body.get("t1", 0)
+    t2 = body.get("t2", 0)
+    t3 = body.get("t3", 0)
     ts = int(time.time())
+    trade_id = f"TEST_{ts}"
+    cmd_str = "BUY" if direction == "LONG" else "SELL"
+    expires_at = ts + 60
+    chk_hex, chk_raw = _make_checksum(cmd_str, entry, CONTRACTS, stop, trade_id, expires_at)
     test_cmd = {
-        "cmd": "TEST", "price": 0, "qty": 0, "stop": 0,
-        "t1": 0, "t2": 0, "t3": 0,
-        "trade_id": f"TEST_DISPATCH_{ts}",
-        "expires_at": ts + 60,
-        "checksum": "test", "checksum_input": "test",
+        "cmd": cmd_str, "price": entry, "qty": CONTRACTS,
+        "stop": stop, "t1": t1, "t2": t2, "t3": t3,
+        "trade_id": trade_id, "expires_at": expires_at,
+        "checksum": chk_hex, "checksum_input": chk_raw,
     }
     await redis_set_key(REDIS_TRADE_COMMAND, test_cmd)
-    log.info(f"[TEST-DISPATCH] wrote test command to {REDIS_TRADE_COMMAND}")
+    log.info(f"[TEST-DISPATCH] wrote {cmd_str} command: entry={entry} t1={t1} t2={t2} t3={t3}")
     return {
         "ok": True,
         "redis_key": REDIS_TRADE_COMMAND,
-        "trade_id": test_cmd["trade_id"],
+        "trade_id": trade_id,
+        "command": test_cmd,
         "expires_in_sec": 60,
-        "note": "Bridge will pick this up within 1-2 seconds if running. Check Bridge log for [C4].",
     }
 
 
