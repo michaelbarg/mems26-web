@@ -3373,6 +3373,13 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard, buildingSetups, expiredBuildingSetups }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'|'analytics'>('signal');
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Reset scroll on tab change
+  useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [tab]);
+  // Auto-select first sweep when entering setups tab with nothing selected
+  useEffect(() => {
+    if (tab === 'setups' && !selectedSweep && sweepEvents?.length > 0) setSelectedSweep(sweepEvents[0]);
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
   const tabs = [
     { id:'signal',    label:'סיגנל', icon:'⚡' },
     { id:'setups',    label:'סטאפים', icon:'🔍' },
@@ -3402,7 +3409,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
       </div>
 
       {/* Tab content */}
-      <div style={{ flex:1, minHeight:0, overflowY:'auto', padding:8, display:'flex', flexDirection:'column', gap:7 }}>
+      <div ref={scrollRef} style={{ flex:1, minHeight:0, overflowY:'auto', padding:8, display:'flex', flexDirection:'column', gap:7 }}>
 
         {tab === 'signal' && <>
           <DayTypeBar live={live} onRequestExplanation={onAskDayType} aiLoading={dayLoading} />
@@ -3932,7 +3939,7 @@ function DayTypeBar({ live, onRequestExplanation, aiLoading }:{ live:MarketData|
     <div style={{ background:'#111827', border:`1px solid ${col}44`, borderRadius:8, overflow:'hidden', flexShrink:0 }}>
       <div style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 12px' }}>
         {/* Day type pill */}
-        <div style={{ display:'flex', alignItems:'center', gap:6, flex:1 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:6, flex:1, minWidth:0, overflow:'hidden', flexWrap:'wrap' }}>
           <div style={{ width:8, height:8, borderRadius:'50%', background:col, boxShadow:`0 0 5px ${col}` }} />
           <span style={{ fontSize:14, fontWeight:800, color:col }}>{info?.heb || dtype}</span>
           <span style={{ fontSize:14, color:'#4a5568' }}>·</span>

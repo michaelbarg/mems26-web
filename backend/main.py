@@ -2025,6 +2025,29 @@ async def ack_trade_command(request: Request, x_bridge_token: Optional[str] = He
         return {"ok": True}
     return {"ok": False, "detail": "No matching pending command"}
 
+@app.post("/trade/test-dispatch")
+async def test_dispatch():
+    """Diagnostic: write a test command to Redis to verify Bridge pickup."""
+    import time
+    ts = int(time.time())
+    test_cmd = {
+        "cmd": "TEST", "price": 0, "qty": 0, "stop": 0,
+        "t1": 0, "t2": 0, "t3": 0,
+        "trade_id": f"TEST_DISPATCH_{ts}",
+        "expires_at": ts + 60,
+        "checksum": "test", "checksum_input": "test",
+    }
+    await redis_set_key(REDIS_TRADE_COMMAND, test_cmd)
+    log.info(f"[TEST-DISPATCH] wrote test command to {REDIS_TRADE_COMMAND}")
+    return {
+        "ok": True,
+        "redis_key": REDIS_TRADE_COMMAND,
+        "trade_id": test_cmd["trade_id"],
+        "expires_in_sec": 60,
+        "note": "Bridge will pick this up within 1-2 seconds if running. Check Bridge log for [C4].",
+    }
+
+
 @app.post("/trade/command/cancel")
 async def cancel_trade_command(x_bridge_token: Optional[str] = Header(None)):
     if x_bridge_token != BRIDGE_TOKEN:
