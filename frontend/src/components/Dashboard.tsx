@@ -3409,7 +3409,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
       </div>
 
       {/* Tab content */}
-      <div ref={scrollRef} style={{ flex:1, minHeight:0, overflowY:'auto', padding:8, paddingBottom:60, display:'flex', flexDirection:'column', gap:7 }}>
+      <div ref={scrollRef} style={{ flex:1, minHeight:0, overflowY:'auto', padding:8, paddingBottom:60, display:'flex', flexDirection:'column', gap:7, overflowAnchor:'none' as any }}>
 
         {tab === 'signal' && <>
           <DayTypeBar live={live} onRequestExplanation={onAskDayType} aiLoading={dayLoading} />
