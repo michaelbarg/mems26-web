@@ -212,3 +212,22 @@ cd /Users/michael/Downloads/mems26_web_git
 git add . && git commit -m "message" && git push origin main
 ```
 Netlify auto-deploys on push. Render auto-deploys on push.
+
+---
+
+## UI Flow Rule (added V6.5.6)
+
+All vertical lists of dynamically-growing items MUST use:
+- `flexDirection: 'column'` (NOT column-reverse)
+- `justifyContent: 'flex-start'` (NOT flex-end/center)
+- NO `marginTop: 'auto'` on children that flow naturally
+
+New items append to the BOTTOM. Growth extends DOWN. Scroll extends downward. The TOP of the list stays anchored.
+
+Applies to: BuildingNowSection, Signal tab section list, Sweep events list, Setups tab children, any panel that accepts items dynamically.
+
+If content disappears from the top when new items load, this rule has been violated. Fix the parent flex direction, not child sizing.
+
+## Backend /trade/execute Rule (added V6.5.6)
+
+The backend MUST forward t1/t2/t3 from the frontend as-is. Do NOT recalculate targets. The frontend's `calcLevels()` computes correct C1/C2/C3 from the setup's entry/stop/risk. Backend recalculation caused the 7147.50 bracket bug (T1_MIN_PT=10pt override).

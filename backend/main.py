@@ -1718,12 +1718,15 @@ async def trade_execute(request: Request):
             risk = STOP_MIN_PT
             log.info(f"[W1.5] Stop expanded: {old_stop:.2f} → {stop:.2f} (min {STOP_MIN_PT}pt)")
 
-        # Recalc targets from validated risk
-        t1 = round(entry + risk * T1_RR, 2) if direction == "LONG" else round(entry - risk * T1_RR, 2)
-        if abs(t1 - entry) < T1_MIN_PT:
-            t1 = round(entry + T1_MIN_PT, 2) if direction == "LONG" else round(entry - T1_MIN_PT, 2)
-        t2 = round(entry + risk * T2_RR, 2) if direction == "LONG" else round(entry - risk * T2_RR, 2)
-        # t3 kept as-is if provided (Draw on Liquidity), otherwise = 0
+        # V6.5.6: Use frontend's t1/t2/t3 directly — they are already computed
+        # from the setup's entry/stop/risk by calcLevels() in Dashboard.tsx.
+        # Previous code recalculated targets here using T1_RR/T2_RR/T1_MIN_PT,
+        # which overwrote the frontend values and caused the 7147.50 bug.
+        # Only recompute if targets are missing/zero (manual trade fallback).
+        if not t1 or t1 <= 0:
+            t1 = round(entry + risk * T1_RR, 2) if direction == "LONG" else round(entry - risk * T1_RR, 2)
+        if not t2 or t2 <= 0:
+            t2 = round(entry + risk * T2_RR, 2) if direction == "LONG" else round(entry - risk * T2_RR, 2)
 
         # POST_NEWS tagging — tag trades within 60m of news event
         news_tag = ""
