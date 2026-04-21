@@ -1,0 +1,43 @@
+
+[notice] A new release of pip is available: 25.3 -> 26.0.1
+[notice] To update, run: pip3 install --upgrade pip
+=== STEP 1: POST https://mems26-web.onrender.com/trade/test-dispatch ===
+body: {
+  "direction": "SHORT",
+  "entry_price": 7162.5,
+  "stop": 7165.5,
+  "t1": 7160.5,
+  "t2": 7157.5,
+  "t3": 7130.5,
+  "setup_type": "V6.5.7_verify"
+}
+status: 200
+response: {"ok":true,"redis_key":"mems26:trade:command","trade_id":"TEST_1776759401","command":{"cmd":"SELL","price":7162.5,"qty":3,"stop":7165.5,"t1":7160.5,"t2":7157.5,"t3":7130.5,"trade_id":"TEST_1776759401","expires_at":1776759461,"checksum":"a7194516e422b6ccd37a1dea99c8ec75cde69b76f5db4fb7ad521c4de529e5ad","checksum_input":"SELL:7162.50:3:7165.50:TEST_1776759401:1776759461:michael-mems26-2026"},"expires_in_sec":60}
+
+=== STEP 2: Verifying command from response (no Redis fetch needed) ===
+{
+  "cmd": "SELL",
+  "price": 7162.5,
+  "qty": 3,
+  "stop": 7165.5,
+  "t1": 7160.5,
+  "t2": 7157.5,
+  "t3": 7130.5,
+  "trade_id": "TEST_1776759401",
+  "expires_at": 1776759461,
+  "checksum": "a7194516e422b6ccd37a1dea99c8ec75cde69b76f5db4fb7ad521c4de529e5ad",
+  "checksum_input": "SELL:7162.50:3:7165.50:TEST_1776759401:1776759461:michael-mems26-2026"
+}
+
+=== STEP 3: Assertions ===
+  cmd: SELL == SELL
+  price: 7162.5 == 7162.5
+  qty: 3 == 3
+  stop: 7165.5 == 7165.5
+  t1: 7160.5 == 7160.5
+  t2: 7157.5 == 7157.5
+  t3: 7130.5 == 7130.5
+  checksum: VALID
+
+==================================================
+VERIFICATION PASSED -- all fields correct, checksum valid
