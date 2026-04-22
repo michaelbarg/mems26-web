@@ -424,11 +424,20 @@ interface SetupEvalResult {
   eval_type: 'range' | 'trend';
 }
 
+// V6.6.3: Dynamic thresholds per entry_mode
+const ENTRY_THRESHOLDS: Record<string, { relVol: number; fvgMax: number; sweepWick: number; stopMax: number; p3Hard: boolean }> = {
+  STRICT:   { relVol: 1.2,  fvgMax: 4.0, sweepWick: 1.5,  stopMax: 8,  p3Hard: true  },
+  DEMO:     { relVol: 1.0,  fvgMax: 5.0, sweepWick: 1.0,  stopMax: 8,  p3Hard: true  },
+  RESEARCH: { relVol: 1.0,  fvgMax: 8.0, sweepWick: 0.25, stopMax: 15, p3Hard: false },
+  LIVE:     { relVol: 1.2,  fvgMax: 4.0, sweepWick: 1.5,  stopMax: 8,  p3Hard: true  },
+};
+
 function evaluate_range_setup(
   hit: { level: number; levelName: string; bar: Candle; relVol: number; type: string } | null,
   dir: 'long' | 'short',
   live: MarketData | null,
   candles: Candle[],
+  entryMode: string = 'STRICT',
 ): SetupEvalResult {
   // 3-Pillar evaluation for NORMAL / VOLATILE days (V6.1)
   // All 3 pillars must PASS. Binary Pass/Fail.
@@ -437,6 +446,7 @@ function evaluate_range_setup(
   const of2 = (live as any).order_flow || {} as any;
   const fp = (live as any).footprint_bools || {} as any;
   const L = dir === 'long';
+  const t = ENTRY_THRESHOLDS[entryMode] || ENTRY_THRESHOLDS.STRICT;
 
   // ── PILLAR 1: ZONE — Macro Sweep of key level ──────────────────────
   // Must be sweep with wick >= 1.5pt at macro level (PDH/PDL/ONH/ONL/IBH/IBL)
@@ -448,8 +458,8 @@ function evaluate_range_setup(
   const sweepWick = L
     ? (Math.min(hit.bar.o, hit.bar.c) - hit.bar.l)
     : (hit.bar.h - Math.max(hit.bar.o, hit.bar.c));
-  if (sweepWick < 1.5) {
-    return { pass: false, reason: `P1 ZONE: Sweep wick ${sweepWick.toFixed(1)}pt < 1.5pt min`, eval_type: 'range' };
+  if (sweepWick < t.sweepWick) {
+    return { pass: false, reason: `P1 ZONE: Sweep wick ${sweepWick.toFixed(1)}pt < ${t.sweepWick}pt min`, eval_type: 'range' };
   }
   // Middle of Nowhere reject — must be near a named level (not just dynamic)
   if (!macroLevels.includes(hit.levelName) && !['VWAP', 'POC', 'VAH', 'VAL', 'SH', 'SL'].includes(hit.levelName)) {
@@ -472,22 +482,22 @@ function evaluate_range_setup(
   }
   if (!hasMSS) return { pass: false, reason: 'P2 PATTERN: No MSS (swing break)', eval_type: 'range' };
 
-  // FVG: 0.5-4.0pt gap in last 10 candles
+  // FVG: 0.5-fvgMax gap in last 10 candles
   const recent10 = candles.slice(0, 10);
   let hasFVG = false;
   for (let i = 0; i < recent10.length - 2; i++) {
     const c1 = recent10[i], c3 = recent10[i + 2];
     if (L) {
-      if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && (c1.l - c3.h) <= 4.0) { hasFVG = true; break; }
+      if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && (c1.l - c3.h) <= t.fvgMax) { hasFVG = true; break; }
     } else {
-      if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && (c3.l - c1.h) <= 4.0) { hasFVG = true; break; }
+      if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && (c3.l - c1.h) <= t.fvgMax) { hasFVG = true; break; }
     }
   }
   if (!hasFVG) return { pass: false, reason: 'P2 PATTERN: No FVG (0.5-4pt)', eval_type: 'range' };
 
-  // RelVol > 1.2 on MSS bar
-  if (hit.relVol <= 1.2) {
-    return { pass: false, reason: `P2 PATTERN: RelVol ${hit.relVol.toFixed(2)} <= 1.2`, eval_type: 'range' };
+  // RelVol check (threshold from entry_mode)
+  if (hit.relVol <= t.relVol) {
+    return { pass: false, reason: `P2 PATTERN: RelVol ${hit.relVol.toFixed(2)} <= ${t.relVol}`, eval_type: 'range' };
   }
 
   // Stacked Imbalance — 2+ levels at 250% (from C++ bools)
@@ -497,12 +507,14 @@ function evaluate_range_setup(
   }
 
   // ── PILLAR 3: FLOW — absorption_at_fvg + delta_confirmed_1m ───────
-  // Both are booleans from C++ via footprint_bools
   const absorptionOk = fp.absorption_at_fvg ?? (L ? of2.absorption_bull : of2.absorption_bear) ?? false;
-  if (!absorptionOk) return { pass: false, reason: 'P3 FLOW: No absorption at FVG', eval_type: 'range' };
-
   const deltaConfirmed = fp.delta_confirmed_1m ?? false;
-  if (!deltaConfirmed) return { pass: false, reason: 'P3 FLOW: No delta confirmation (1m)', eval_type: 'range' };
+
+  if (t.p3Hard) {
+    if (!absorptionOk) return { pass: false, reason: 'P3 FLOW: No absorption at FVG', eval_type: 'range' };
+    if (!deltaConfirmed) return { pass: false, reason: 'P3 FLOW: No delta confirmation (1m)', eval_type: 'range' };
+  }
+  // In RESEARCH: P3 is informational — pass regardless, tag the values
 
   return { pass: true, reason: 'All 3 pillars PASS: ZONE + PATTERN + FLOW', eval_type: 'range' };
 }
@@ -512,6 +524,7 @@ function evaluate_trend_setup(
   dir: 'long' | 'short',
   live: MarketData | null,
   candles: Candle[],
+  entryMode: string = 'STRICT',
 ): SetupEvalResult {
   // 3-Pillar evaluation for TREND days (V6.1)
   // All 3 pillars must PASS. No sweep required.
@@ -519,6 +532,7 @@ function evaluate_trend_setup(
 
   const vwap = live.vwap || {} as any;
   const fp = (live as any).footprint_bools || {} as any;
+  const t = ENTRY_THRESHOLDS[entryMode] || ENTRY_THRESHOLDS.STRICT;
   const price = live.price || 0;
   const L = dir === 'long';
 
@@ -559,35 +573,37 @@ function evaluate_trend_setup(
   for (let i = 0; i < recent10.length - 2; i++) {
     const c1 = recent10[i], c3 = recent10[i + 2];
     if (L) {
-      if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && (c1.l - c3.h) <= 4.0) { hasFVG = true; break; }
+      if (c1.l > c3.h && (c1.l - c3.h) >= 0.5 && (c1.l - c3.h) <= t.fvgMax) { hasFVG = true; break; }
     } else {
-      if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && (c3.l - c1.h) <= 4.0) { hasFVG = true; break; }
+      if (c1.h < c3.l && (c3.l - c1.h) >= 0.5 && (c3.l - c1.h) <= t.fvgMax) { hasFVG = true; break; }
     }
   }
-  if (!hasFVG) return { pass: false, reason: 'P2 PATTERN: No FVG (0.5-4pt)', eval_type: 'trend' };
+  if (!hasFVG) return { pass: false, reason: `P2 PATTERN: No FVG (0.5-${t.fvgMax}pt)`, eval_type: 'trend' };
 
-  // RelVol > 1.2
-  if (hit.relVol <= 1.2) {
-    return { pass: false, reason: `P2 PATTERN: RelVol ${hit.relVol.toFixed(2)} <= 1.2`, eval_type: 'trend' };
+  // RelVol check
+  if (hit.relVol <= t.relVol) {
+    return { pass: false, reason: `P2 PATTERN: RelVol ${hit.relVol.toFixed(2)} <= ${t.relVol}`, eval_type: 'trend' };
   }
 
   // ── PILLAR 3: FLOW — Declining delta on pullback + delta_confirmed_1m ──
-  const recent5 = candles.slice(0, 5);
-  if (recent5.length >= 3) {
-    const deltas = recent5.map(c => Math.abs(c.delta));
-    const declining = deltas[0] < deltas[1] || deltas[1] < deltas[2];
-    if (!declining) return { pass: false, reason: 'P3 FLOW: Delta not declining on pullback', eval_type: 'trend' };
-  }
-
   const deltaConfirmed = fp.delta_confirmed_1m ?? false;
-  if (!deltaConfirmed) return { pass: false, reason: 'P3 FLOW: No delta confirmation (1m)', eval_type: 'trend' };
+  if (t.p3Hard) {
+    const recent5 = candles.slice(0, 5);
+    if (recent5.length >= 3) {
+      const deltas = recent5.map(c => Math.abs(c.delta));
+      const declining = deltas[0] < deltas[1] || deltas[1] < deltas[2];
+      if (!declining) return { pass: false, reason: 'P3 FLOW: Delta not declining on pullback', eval_type: 'trend' };
+    }
+    if (!deltaConfirmed) return { pass: false, reason: 'P3 FLOW: No delta confirmation (1m)', eval_type: 'trend' };
+  }
 
   return { pass: true, reason: 'All 3 pillars PASS: ZONE + PATTERN + FLOW', eval_type: 'trend' };
 }
 
 // ── Real-time Setup Scanner ───────────────────────────────────────────────────
-function calcSetups(live: MarketData | null, candles: Candle[] = []) {
+function calcSetups(live: MarketData | null, candles: Candle[] = [], entryMode: string = 'STRICT') {
   if (!live) return null;
+  const th = ENTRY_THRESHOLDS[entryMode] || ENTRY_THRESHOLDS.STRICT;
   const bar  = live.bar        || {} as any;
   const sess = live.session    || {} as any;
   const lev  = live.levels     || {} as any;
@@ -907,7 +923,7 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   const shortScore = score(liqShort);
 
   // ── Entry/Stop/C1/C2/C3 ──────────────────────────────────────────
-  const MAX_STOP_PTS = 8;
+  const MAX_STOP_PTS = th.stopMax;
   const MIN_STOP_PTS = 3;
   const calcLevels = (dir: 'long' | 'short', hit: SetupHit | null) => {
     if (!hit) return { entry: 0, stop: 0, c1: 0, c2: 0, c3: 0, riskPts: 0, stopTooWide: false };
@@ -957,8 +973,8 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
   let setupEval: SetupEvalResult | null = null;
   if (bestDir !== 'none' && bestHit) {
     setupEval = isTrend
-      ? evaluate_trend_setup(bestHit, bestDir, live, sortedForEval)
-      : evaluate_range_setup(bestHit, bestDir, live, sortedForEval);
+      ? evaluate_trend_setup(bestHit, bestDir, live, sortedForEval, entryMode)
+      : evaluate_range_setup(bestHit, bestDir, live, sortedForEval, entryMode);
   }
 
   // ── Building setups — expose raw hits for "BUILDING NOW" tracker ──
@@ -971,8 +987,8 @@ function calcSetups(live: MarketData | null, candles: Candle[] = []) {
       let ev: SetupEvalResult | null = null;
       try {
         ev = isTrend
-          ? evaluate_trend_setup(hit, side, live, sortedForEval)
-          : evaluate_range_setup(hit, side, live, sortedForEval);
+          ? evaluate_trend_setup(hit, side, live, sortedForEval, entryMode)
+          : evaluate_range_setup(hit, side, live, sortedForEval, entryMode);
       } catch {}
       buildingCandidates.push({ dir: side, hit, score: sc, levels: lv, eval: ev });
     }
@@ -1624,12 +1640,12 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem,
       {/* V6.5.2: Entry Mode badge */}
       {entryMode && (() => {
         const m = entryMode.mode;
-        const isDemo = m === 'DEMO';
+        const isRelaxed = m === 'DEMO' || m === 'RESEARCH';
+        const col = m === 'RESEARCH' ? '#a855f7' : m === 'DEMO' ? '#f59e0b' : '#6b7280';
+        const label = m === 'RESEARCH' ? 'RESEARCH' : m === 'DEMO' ? 'DEMO' : 'STRICT';
         return <span style={{ fontSize:12, padding:'2px 8px', borderRadius:10, fontWeight:700,
-          background: isDemo ? '#f59e0b22' : '#4a556822',
-          color: isDemo ? '#f59e0b' : '#6b7280',
-          border: `1px solid ${isDemo ? '#f59e0b44' : '#4a556844'}`,
-        }}>{isDemo ? '🧪 DEMO' : 'STRICT'}</span>;
+          background: `${col}22`, color: col, border: `1px solid ${col}44`,
+        }}>{label}</span>;
       })()}
 
       {/* News Guard indicator */}
@@ -4300,7 +4316,7 @@ export default function Dashboard() {
   // ── Auto-AI fallback: call every 60s when no setup detected ──
   const lastAutoAI = useRef(0);
   useEffect(() => {
-    const opp = calcSetups(live, candles)?.opportunity || 'none';
+    const opp = calcSetups(live, candles, entryMode?.mode || 'STRICT')?.opportunity || 'none';
     const now = Date.now();
     // Only auto-call when: no opportunity, not loading, 60s since last call, has live data
     if (systemOn && opp === 'none' && !aiLoading && live?.price && now - lastAutoAI.current > 60000 && !persistedSignal) {
@@ -4313,7 +4329,7 @@ export default function Dashboard() {
   const lastDetectRef = useRef('');
   useEffect(() => {
     if (!live?.price || !candles.length) return;
-    const setup = calcSetups(live, candles);
+    const setup = calcSetups(live, candles, entryMode?.mode || 'STRICT');
     if (!setup || setup.opportunity === 'none') return;
 
     const hit = setup.opportunitySweep;
@@ -4384,7 +4400,7 @@ export default function Dashboard() {
   const bar=tf==='3m'?live?.bar:(live?.mtf as any)?.[tfToMtf[tf]]??live?.bar;
 
   // ── Real-time opportunity detection ──────────────────
-  const liveSetup = calcSetups(live, candles);
+  const liveSetup = calcSetups(live, candles, entryMode?.mode || 'STRICT');
   const opportunity = liveSetup?.opportunity || 'none';
   const oppScore = liveSetup?.opportunityScore || 0;
   const oppLevels = liveSetup?.opportunityLevels;
@@ -4569,7 +4585,7 @@ export default function Dashboard() {
       {/* TopBar */}
       <div style={{flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738'}}>
         <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} entryMode={entryMode} />
-        {entryMode?.mode === 'DEMO' && entryMode.gates && (
+        {(entryMode?.mode === 'DEMO' || entryMode?.mode === 'RESEARCH') && entryMode.gates && (
           <div style={{fontSize:10,color:'#f59e0b88',marginTop:3,fontFamily:'monospace'}}>
             DEMO Gates: RelVol&gt;={entryMode.gates.relvol} &middot; FVG&lt;={entryMode.gates.fvg}pt &middot; Sweep&gt;={entryMode.gates.sweep}pt &middot; Killzone=tag
           </div>

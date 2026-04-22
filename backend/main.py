@@ -1648,7 +1648,7 @@ async def trade_execute(request: Request):
         log.info(f"[EXECUTE] entry_mode={_exec_entry_mode}")
 
         # Circuit breaker check (skip in DEMO)
-        if _exec_entry_mode != "DEMO":
+        if _exec_entry_mode not in ("DEMO", "RESEARCH"):
             try:
                 cb = await check_circuit_breaker()
             except Exception as e:
@@ -1668,7 +1668,7 @@ async def trade_execute(request: Request):
             ("NY_Close", 15*60,       16*60),
         ]
         _in_kz = any(start <= _t < end for _, start, end in _KILLZONES)
-        if not _in_kz and _exec_entry_mode != "DEMO":
+        if not _in_kz and _exec_entry_mode not in ("DEMO", "RESEARCH"):
             raise HTTPException(status_code=403,
                 detail=f"Outside killzone -- {_now_et.strftime('%H:%M')} ET. Windows: London 03-05, NY Open 09:30-10:30, NY Close 15-16")
 

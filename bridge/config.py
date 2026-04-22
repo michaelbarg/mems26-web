@@ -17,10 +17,10 @@ ENTRY_MODE = os.getenv("MEMS26_ENTRY_MODE", "STRICT").upper()
 # DEMO   = Data collection mode (requires MODE=SIM)
 # LIVE automatically forces STRICT regardless of ENTRY_MODE
 
-if ENTRY_MODE == "DEMO" and MODE == "LIVE":
-    ENTRY_MODE = "STRICT"
+if ENTRY_MODE in ("DEMO", "RESEARCH") and MODE == "LIVE":
     import logging
-    logging.warning("DEMO mode blocked in LIVE — forcing STRICT")
+    logging.warning(f"SECURITY: {ENTRY_MODE} mode blocked in LIVE -- forcing STRICT")
+    ENTRY_MODE = "STRICT"
 
 # ── Entry Gates (apply based on ENTRY_MODE) ─────────────────────────────────
 if ENTRY_MODE == "DEMO":
@@ -31,6 +31,18 @@ if ENTRY_MODE == "DEMO":
     RELVOL_MIN = 1.0              # was 1.2
     FVG_MAX_PTS = 5.0             # was 4.0
     SWEEP_MIN_WICK_PTS = 1.0      # was 1.5
+    PILLAR3_HARD_GATE = True      # P3 still required in DEMO
+    NEWS_GUARD_HARD = True        # news freeze still enforced in DEMO
+elif ENTRY_MODE == "RESEARCH":
+    CB_MAX_TRADES = 999999        # unlimited
+    KILLZONE_REQUIRED = False     # tag only
+    HEALTH_SCORE_MIN = 0
+    CONFIDENCE_MIN = 0
+    RELVOL_MIN = 1.0
+    FVG_MAX_PTS = 8.0             # wide FVG allowed for volatile days
+    SWEEP_MIN_WICK_PTS = 0.25     # tick sweeps allowed
+    PILLAR3_HARD_GATE = False     # P3 becomes informational tag
+    NEWS_GUARD_HARD = False       # news freeze bypassed (tagged only)
 else:  # STRICT (default)
     CB_MAX_TRADES = 3
     KILLZONE_REQUIRED = True
@@ -39,6 +51,8 @@ else:  # STRICT (default)
     RELVOL_MIN = 1.2
     FVG_MAX_PTS = 4.0
     SWEEP_MIN_WICK_PTS = 1.5
+    PILLAR3_HARD_GATE = True
+    NEWS_GUARD_HARD = True
 
 # ── Pre-Close Freeze (V6.5.2 — always active) ───────────────────────────────
 PRE_CLOSE_FREEZE_TIME_ET = "15:30"
