@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
 import PreEntryChecklist, { type ChecklistSetup } from './PreEntryChecklist';
 import AnalyticsTab from './AnalyticsTab';
-import VersionModal from './VersionModal';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -1649,8 +1648,7 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem,
         }}>{label}</span>;
       })()}
 
-      {/* Version badge */}
-      {onVersionClick && <button onClick={onVersionClick} style={{ fontSize:10, padding:'2px 8px', borderRadius:4, background:'#1e2738', color:'#4a5568', border:'1px solid #2d3a4a', cursor:'pointer', fontFamily:'monospace' }}>V6.7.0</button>}
+      {/* Version badge — disabled, causes #185 */}
 
       {/* News Guard indicator */}
       {(() => {
@@ -4032,7 +4030,7 @@ export default function Dashboard() {
   const [connected,setConnected]=useState(false);
   const [systemOn,setSystemOn]=useState(true);
   const [entryMode,setEntryMode]=useState<{mode:string;gates?:any}|null>(null);
-  const [showVersionModal,setShowVersionModal]=useState(false);
+  const [showVersionModal,setShowVersionModal]=useState(false); // V6.7.0 modal disabled pending fix
   useEffect(()=>{
     try {
       fetch(API_URL+'/health',{cache:'no-store'}).then(r=>{
@@ -4883,7 +4881,7 @@ export default function Dashboard() {
         onExecute={handleExecuteTrade}
         onCancel={() => setChecklistSetup(null)}
       />
-      {showVersionModal && <VersionModal onClose={()=>setShowVersionModal(false)} />}
+      {/* Version modal temporarily disabled — was causing React #185 */}
       {tradeToast && (
         <div style={{
           position:'fixed', top:24, left:'50%', transform:'translateX(-50%)', zIndex:10000,
