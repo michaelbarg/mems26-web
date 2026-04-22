@@ -120,7 +120,7 @@ function DailyView() {
       {kzData.length > 0 && (
         <Section title="KILLZONE BREAKDOWN">
           <div style={{ height: 120 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={kzData} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                 <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis hide />
@@ -218,7 +218,7 @@ function WeeklyView() {
       {dailyData.length > 0 && (
         <Section title="DAILY P&L">
           <div style={{ height: 120 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dailyData} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                 <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis hide />
@@ -236,7 +236,7 @@ function WeeklyView() {
       {pillarData.length > 0 && (
         <Section title="PILLAR CORRELATION — WR%">
           <div style={{ height: 100 }}>
-            <ResponsiveContainer>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={pillarData} margin={{ top: 4, right: 4, bottom: 4, left: 4 }}>
                 <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <YAxis hide domain={[0, 100]} />
@@ -322,7 +322,7 @@ function PatternsView() {
             <div>
               <div style={{ fontSize: 9, color: R, marginBottom: 2, textAlign: 'center' }}>MAE (worst drawdown)</div>
               <div style={{ height: 80 }}>
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={maeData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 8 }} axisLine={false} tickLine={false} />
                     <Bar dataKey="count" fill={R} radius={[2, 2, 0, 0]} />
@@ -333,7 +333,7 @@ function PatternsView() {
             <div>
               <div style={{ fontSize: 9, color: G, marginBottom: 2, textAlign: 'center' }}>MFE (best run)</div>
               <div style={{ height: 80 }}>
-                <ResponsiveContainer>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={mfeData} margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                     <XAxis dataKey="name" tick={{ fill: '#4a5568', fontSize: 8 }} axisLine={false} tickLine={false} />
                     <Bar dataKey="count" fill={G} radius={[2, 2, 0, 0]} />
@@ -403,7 +403,7 @@ export default function AnalyticsTab() {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 0, height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
       {/* Sub-tab bar */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #1e2738', flexShrink: 0, marginBottom: 8 }}>
         {subTabs.map(t => (
