@@ -3404,7 +3404,58 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         ))}
       </div>
 
-      {/* Tab content */}
+      {/* Selected sweep card — FIXED above scroll, never scrolls away */}
+      {tab === 'setups' && selectedSweep && (() => {
+        const s = selectedSweep;
+        const isLong = s.dir === 'long';
+        const col = isLong ? '#22c55e' : '#ef5350';
+        return (
+          <div style={{ flexShrink:0, maxHeight:'40vh', overflowY:'auto', borderBottom:'1px solid #1e2738' }}>
+            <div style={{ background:'#0a0e1a', border:`2px solid ${col}44`, borderRadius:0, overflow:'hidden' }}>
+              <div onClick={()=>setSweepExpanded(p=>!p)} style={{ background:`${col}18`, padding:'6px 10px', cursor:'pointer' }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:14, fontWeight:700, color:col }}>{isLong?'▲':'▼'} {s.levelName} @ {(s.level||0).toFixed(2)}</span>
+                    <span style={{ fontSize:11, color:'#4a5568' }}>Wick {(s.sweepWick||0).toFixed(1)}pt</span>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                    <span style={{ fontSize:16, fontWeight:900, color:s.score>=90?'#22c55e':s.score>=75?'#f59e0b':'#4a5568' }}>{s.score}</span>
+                    <span style={{ fontSize:12, color:'#4a5568' }}>{sweepExpanded ? '\u25B2' : '\u25BC'}</span>
+                  </div>
+                </div>
+              </div>
+              {sweepExpanded && (
+                <div style={{ padding:'8px 10px' }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:6 }}>
+                    <div style={{ background:'#1e2738', borderRadius:5, padding:'6px 8px' }}>
+                      <div style={{ fontSize:10, color:'#94a3b8' }}>Entry</div>
+                      <div style={{ fontSize:18, fontWeight:800, color:'#f0f6fc', fontFamily:'monospace' }}>{(s.entry||0).toFixed(2)}</div>
+                    </div>
+                    <div style={{ background:'#1e2738', borderRadius:5, padding:'6px 8px' }}>
+                      <div style={{ fontSize:10, color:'#ef5350' }}>Stop</div>
+                      <div style={{ fontSize:18, fontWeight:800, color:'#ef5350', fontFamily:'monospace' }}>{(s.stop||0).toFixed(2)}</div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', gap:4, marginBottom:6 }}>
+                    {[
+                      {l:'C1',p:s.c1,c:'#22c55e'},{l:'C2',p:s.c2,c:'#16a34a'},{l:'C3',p:s.c3,c:'#86efac'}
+                    ].map(t=><div key={t.l} style={{flex:1,textAlign:'center',background:`${t.c}11`,border:`1px solid ${t.c}33`,borderRadius:4,padding:'3px 4px'}}>
+                      <div style={{fontSize:10,color:t.c}}>{t.l}</div>
+                      <div style={{fontSize:12,fontWeight:800,color:t.c,fontFamily:'monospace'}}>{(t.p||0).toFixed(2)}</div>
+                    </div>)}
+                  </div>
+                  <div style={{ display:'flex', gap:4 }}>
+                    <button onClick={()=>{const ev=s as any;onActivateSweep(ev)}} style={{flex:1,padding:'5px',border:'none',borderRadius:4,background:'#22c55e',color:'#0a0e1a',fontSize:12,fontWeight:800,cursor:'pointer'}}>Activate</button>
+                    <button onClick={()=>setSelectedSweep(null)} style={{padding:'5px 10px',border:'1px solid #1e2738',borderRadius:4,background:'transparent',color:'#6b7280',fontSize:12,cursor:'pointer'}}>X</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Tab content — scrollable */}
       <div ref={scrollRef} style={{ flex:1, minHeight:0, overflowY:'auto', padding:8, paddingBottom:60, display:'flex', flexDirection:'column', gap:7, overflowAnchor:'none' as any }}>
 
         {tab === 'signal' && <>
@@ -3423,8 +3474,8 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
         </>}
 
         {tab === 'setups' && <>
-          {/* Selected sweep detail card */}
-          {selectedSweep && (() => {
+          {/* Selected sweep card moved to fixed header above */}
+          {false && selectedSweep && (() => {
             const s = selectedSweep;
             const isLong = s.dir === 'long';
             const col = isLong ? '#22c55e' : '#ef5350';
