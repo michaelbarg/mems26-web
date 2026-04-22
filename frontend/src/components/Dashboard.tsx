@@ -3259,10 +3259,10 @@ function BuildingNowSection({ buildingSetups, expiredSetups }:{ buildingSetups: 
                   { label: 'P2 PATTERN', pass: s.p2Pass, detail: s.p2Detail },
                   { label: 'P3 FLOW', pass: s.p3Pass, detail: s.p3Detail },
                 ].map(p => (
-                  <div key={p.label} style={{ display:'flex', alignItems:'center', gap:6, padding:'3px 6px', marginBottom:2,
-                    background:pillarBg(p.pass), border:`1px solid ${pillarBorder(p.pass)}`, borderRadius:4 }}>
-                    <span style={{ fontSize:11 }}>{pillarIcon(p.pass)}</span>
-                    <span style={{ fontSize:11, fontWeight:700, color: p.pass===null?'#4a5568':p.pass?'#22c55e':'#ef5350', minWidth:60 }}>{p.label}</span>
+                  <div key={p.label} style={{ display:'flex', alignItems:'center', gap:4, padding:'2px 5px',
+                    background:pillarBg(p.pass), border:`1px solid ${pillarBorder(p.pass)}`, borderRadius:3 }}>
+                    <span style={{ fontSize:10 }}>{pillarIcon(p.pass)}</span>
+                    <span style={{ fontSize:10, fontWeight:700, color: p.pass===null?'#4a5568':p.pass?'#22c55e':'#ef5350', minWidth:50 }}>{p.label}</span>
                     <span style={{ fontSize:10, color:'#94a3b8', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.detail}</span>
                   </div>
                 ))}
@@ -3391,6 +3391,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'|'analytics'>('signal');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sweepExpanded, setSweepExpanded] = useState(false);
+  const [sweepEventsOpen, setSweepEventsOpen] = useState(false);
   // Reset scroll on tab change
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [tab]);
   // Collapse card when selected sweep changes
@@ -3411,7 +3412,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
   return (
     <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', height:'100%', minHeight:0, borderLeft:'1px solid #1e2738', minWidth:0 }}>
-      {/* Tab bar — icon + label, compact to fit 6 tabs in 260-420px */}
+      {/* Tab bar */}
       <div style={{ display:'flex', borderBottom:'1px solid #1e2738', flexShrink:0 }}>
         {tabs.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
@@ -3617,13 +3618,16 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             );
           })()}
 
-          {/* Sweep events list */}
-          <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:10 }}>
-            <div style={{ fontSize:14, color:'#4a5568', letterSpacing:2, marginBottom:6, fontWeight:700 }}>SWEEP EVENTS ({sweepEvents.length})</div>
-            {sweepEvents.length === 0 ? (
-              <div style={{ padding:'12px', textAlign:'center', color:'#2d3a4a', fontSize:14 }}>אין sweep events בהיסטוריה</div>
+          {/* Sweep events list — collapsible, default closed */}
+          <div style={{ background:'#111827', border:'1px solid #1e2738', borderRadius:8, padding:'8px 10px' }}>
+            <div onClick={()=>setSweepEventsOpen(p=>!p)} style={{ fontSize:12, color:'#4a5568', letterSpacing:2, fontWeight:700, cursor:'pointer', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <span>SWEEP EVENTS ({sweepEvents.length})</span>
+              <span style={{ fontSize:10 }}>{sweepEventsOpen ? '\u25B2' : '\u25BC'}</span>
+            </div>
+            {sweepEventsOpen && (sweepEvents.length === 0 ? (
+              <div style={{ padding:'8px', textAlign:'center', color:'#2d3a4a', fontSize:12 }}>אין sweep events</div>
             ) : (
-              <div style={{ display:'flex', flexDirection:'column', gap:3 }}>
+              <div style={{ display:'flex', flexDirection:'column', gap:3, marginTop:6 }}>
                 {sweepEvents.slice(0, 20).map((ev:SweepEvent) => {
                   const sel = selectedSweep?.id === ev.id;
                   const isLong = ev.dir === 'long';
@@ -3645,7 +3649,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                   );
                 })}
               </div>
-            )}
+            ))}
           </div>
 
           {/* Level touches */}
