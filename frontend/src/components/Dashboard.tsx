@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
 import PreEntryChecklist, { type ChecklistSetup } from './PreEntryChecklist';
 import AnalyticsTab from './AnalyticsTab';
+import { lazy, Suspense } from 'react';
+const VersionModal = lazy(() => import('./VersionModal'));
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -1607,7 +1609,7 @@ function MiniLight({ col }: { col: string }) {
 }
 
 // ── Zone A: Top Bar ───────────────────────────────────────────────────────────
-function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem, newsGuard, entryMode }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void; newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] }; entryMode?:{mode:string;gates?:any}|null }) {
+function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem, newsGuard, entryMode, onVersionClick }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void; newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] }; entryMode?:{mode:string;gates?:any}|null; onVersionClick?:()=>void }) {
   const [time, setTime] = useState('');
   useEffect(() => {
     const t = setInterval(() => {
@@ -1647,6 +1649,9 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem,
           background: `${col}22`, color: col, border: `1px solid ${col}44`,
         }}>{label}</span>;
       })()}
+
+      {/* Version badge */}
+      {onVersionClick && <button onClick={onVersionClick} style={{ fontSize:10, padding:'2px 8px', borderRadius:4, background:'#1e2738', color:'#4a5568', border:'1px solid #2d3a4a', cursor:'pointer', fontFamily:'monospace' }}>V6.7.0</button>}
 
       {/* News Guard indicator */}
       {(() => {
@@ -4028,6 +4033,7 @@ export default function Dashboard() {
   const [connected,setConnected]=useState(false);
   const [systemOn,setSystemOn]=useState(true);
   const [entryMode,setEntryMode]=useState<{mode:string;gates?:any}|null>(null);
+  const [showVersionModal,setShowVersionModal]=useState(false);
   useEffect(()=>{
     try {
       fetch(API_URL+'/health',{cache:'no-store'}).then(r=>{
@@ -4616,7 +4622,7 @@ export default function Dashboard() {
 
       {/* TopBar */}
       <div style={{flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738'}}>
-        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} entryMode={entryMode} />
+        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} entryMode={entryMode} onVersionClick={()=>setShowVersionModal(true)} />
         {(entryMode?.mode === 'DEMO' || entryMode?.mode === 'RESEARCH') && entryMode.gates && (
           <div style={{fontSize:10,color:'#f59e0b88',marginTop:3,fontFamily:'monospace'}}>
             DEMO Gates: RelVol&gt;={entryMode.gates.relvol} &middot; FVG&lt;={entryMode.gates.fvg}pt &middot; Sweep&gt;={entryMode.gates.sweep}pt &middot; Killzone=tag
@@ -4878,6 +4884,7 @@ export default function Dashboard() {
         onExecute={handleExecuteTrade}
         onCancel={() => setChecklistSetup(null)}
       />
+      {showVersionModal && <Suspense fallback={null}><VersionModal onClose={()=>setShowVersionModal(false)} /></Suspense>}
       {tradeToast && (
         <div style={{
           position:'fixed', top:24, left:'50%', transform:'translateX(-50%)', zIndex:10000,

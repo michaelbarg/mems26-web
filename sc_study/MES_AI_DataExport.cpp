@@ -18,6 +18,9 @@
 
 SCDLLName("MES_AI_DataExport")
 
+static const char* DLL_VERSION = "V6.7.0";
+static const char* DLL_BUILD_DATE = "2026-04-22";
+
 // -- CCI Helper ----------------------------------------------------------------
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
 {
@@ -233,6 +236,27 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sc.MaximumPositionAllowed = 3;
         sc.SupportReversals = 0;
         return;
+    }
+
+    // Write dll_info.json once on study load (idx==0)
+    {
+        static bool s_dllInfoWritten = false;
+        if (!s_dllInfoWritten) {
+            s_dllInfoWritten = true;
+            std::string dp(ExportPath.GetString());
+            size_t slash = dp.rfind('/');
+            if (slash == std::string::npos) slash = dp.rfind('\\');
+            if (slash != std::string::npos) {
+                std::string dir = dp.substr(0, slash + 1);
+                std::ofstream di(dir + "dll_info.json");
+                if (di.is_open()) {
+                    di << "{\"version\":\"" << DLL_VERSION
+                       << "\",\"built_at\":\"" << DLL_BUILD_DATE
+                       << "\",\"loaded_at\":" << (long long)time(nullptr) << "}";
+                    di.close();
+                }
+            }
+        }
     }
 
     int idx = sc.Index;

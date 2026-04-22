@@ -899,19 +899,31 @@ async def _eod_flatten_check(http):
 
 
 async def _publish_bridge_config(http):
-    """Publish Bridge entry mode config to Redis every 30s so backend /health can read it."""
+    """Publish Bridge config + version to Redis every 30s."""
+    from config import BRIDGE_VERSION, BUILD_DATE
     while True:
         try:
-            config_data = json.dumps({
+            cfg = {
                 "entry_mode": ENTRY_MODE,
                 "gate_relvol_min": RELVOL_MIN,
                 "gate_fvg_max": FVG_MAX_PTS,
                 "gate_sweep_min": SWEEP_MIN_WICK_PTS,
                 "killzone_required": KILLZONE_REQUIRED,
                 "pre_close_freeze_enabled": PRE_CLOSE_FREEZE_ENABLED,
+                "bridge_version": BRIDGE_VERSION,
+                "bridge_build_date": BUILD_DATE,
                 "updated_at": int(time.time()),
-            })
-            await redis_post(http, "set/mems26:bridge_config", config_data)
+            }
+            # Read DLL version if available
+            dll_path = os.path.join(os.path.dirname(SC_JSON_PATH), "dll_info.json")
+            try:
+                with open(dll_path) as df:
+                    dll = json.load(df)
+                cfg["dll_version"] = dll.get("version", "unknown")
+                cfg["dll_built_at"] = dll.get("built_at", "unknown")
+            except Exception:
+                cfg["dll_version"] = "unknown"
+            await redis_post(http, "set/mems26:bridge_config", json.dumps(cfg))
         except Exception as e:
             log.debug(f"[CONFIG] Publish failed: {e}")
         await asyncio.sleep(30)

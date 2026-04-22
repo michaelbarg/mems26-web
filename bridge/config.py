@@ -7,6 +7,10 @@ MODE selects SIM vs LIVE thresholds automatically.
 
 import os
 
+# ── Version ──────────────────────────────────────────────────────────────────
+BRIDGE_VERSION = "V6.7.0"
+BUILD_DATE = "2026-04-22"
+
 # ── Mode ─────────────────────────────────────────────────────────────────────
 # "SIM" = paper trading (Teton Paper), "LIVE" = real money
 MODE = os.getenv("MEMS26_MODE", "SIM").upper()

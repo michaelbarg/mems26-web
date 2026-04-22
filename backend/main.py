@@ -2466,6 +2466,42 @@ async def export_all():
     )
 
 
+@app.get("/api/versions")
+async def get_versions():
+    """Unified version info for Web/Bridge/DLL + parsed changelog."""
+    import re, time as _t
+    web_version = "V6.7.0"
+    # Bridge info from Redis
+    bcfg = await redis_get_key("mems26:bridge_config") or {}
+    bridge_version = bcfg.get("bridge_version", "unknown") if isinstance(bcfg, dict) else "unknown"
+    bridge_ts = bcfg.get("updated_at", 0) if isinstance(bcfg, dict) else 0
+    bridge_age = int(_t.time() - bridge_ts) if bridge_ts > 0 else -1
+    dll_version = bcfg.get("dll_version", "unknown") if isinstance(bcfg, dict) else "unknown"
+    dll_built = bcfg.get("dll_built_at", "unknown") if isinstance(bcfg, dict) else "unknown"
+    # Changelog
+    changelog = []
+    try:
+        with open("CHANGELOG.md") as f:
+            content = f.read()
+        for m in re.finditer(r'## \[(V[\d.]+)\] - (\d{4}-\d{2}-\d{2})\s*\n\*\*Scope:\*\* ([^\n]+)\s*\n\n((?:- [^\n]+\n?)+)', content):
+            v, d, s, b = m.groups()
+            changelog.append({"version": v, "date": d, "scope": s.strip(),
+                              "items": [l[2:].strip() for l in b.strip().split("\n") if l.startswith("-")]})
+    except Exception:
+        pass
+    mismatch = web_version != bridge_version and bridge_version != "unknown"
+    warnings = []
+    if mismatch:
+        warnings.append(f"Web ({web_version}) differs from Bridge ({bridge_version})")
+    return {
+        "web": {"version": web_version},
+        "bridge": {"version": bridge_version, "heartbeat_age_sec": bridge_age,
+                   "status": "online" if 0 <= bridge_age < 60 else "stale"},
+        "dll": {"version": dll_version, "built_at": dll_built},
+        "changelog": changelog, "mismatch": mismatch, "warnings": warnings,
+    }
+
+
 @app.get("/health")
 async def health():
     import time as _t
