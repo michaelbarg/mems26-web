@@ -229,7 +229,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         BridgeToken.SetString("michael-mems26-2026");
         VizPath.Name = "Visualization JSON Path";
         VizPath.SetString("C:\\SierraChart2\\Data\\mes_ai_visualization.json");
-        sc.AllowMultipleEntriesInSameDirection = 0;
+        sc.AllowMultipleEntriesInSameDirection = 1;  // V6.6.6: allow 3 separate brackets
         sc.MaximumPositionAllowed = 3;
         sc.SupportReversals = 0;
         return;
