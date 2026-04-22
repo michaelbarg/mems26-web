@@ -4,8 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
 import PreEntryChecklist, { type ChecklistSetup } from './PreEntryChecklist';
 import AnalyticsTab from './AnalyticsTab';
-import { lazy, Suspense } from 'react';
-const VersionModal = lazy(() => import('./VersionModal'));
+import VersionModal from './VersionModal';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -4884,7 +4883,7 @@ export default function Dashboard() {
         onExecute={handleExecuteTrade}
         onCancel={() => setChecklistSetup(null)}
       />
-      {showVersionModal && <Suspense fallback={null}><VersionModal onClose={()=>setShowVersionModal(false)} /></Suspense>}
+      {showVersionModal && <VersionModal onClose={()=>setShowVersionModal(false)} />}
       {tradeToast && (
         <div style={{
           position:'fixed', top:24, left:'50%', transform:'translateX(-50%)', zIndex:10000,
