@@ -3241,37 +3241,13 @@ function BuildingNowSection({ buildingSetups, expiredSetups }:{ buildingSetups: 
             const remaining = Math.max(0, Math.floor(s.expiresAt - now));
             const allPass = s.p1Pass && s.p2Pass === true && s.p3Pass === true;
             return (
-              <div key={s.id} style={{ background:'#0a0e1a', border:`1px solid ${col}33`, borderRadius:6, padding:'8px 10px' }}>
-                {/* Header */}
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                    <span style={{ fontSize:14, fontWeight:800, color:col }}>{s.dir==='long'?'▲':'▼'}</span>
-                    <span style={{ fontSize:12, fontWeight:700, color:col }}>{s.type.toUpperCase()}</span>
-                    <span style={{ fontSize:12, color:'#94a3b8' }}>{s.levelName} {s.level.toFixed(2)}</span>
-                  </div>
-                  <span style={{ fontSize:11, color: remaining < 120 ? '#ef5350' : '#4a5568', fontFamily:'monospace' }}>
-                    {remaining > 0 ? `expires ${formatTime(remaining)}` : 'expired'}
-                  </span>
-                </div>
-                {/* Pillar rows */}
-                {[
-                  { label: 'P1 ZONE', pass: s.p1Pass, detail: s.p1Detail },
-                  { label: 'P2 PATTERN', pass: s.p2Pass, detail: s.p2Detail },
-                  { label: 'P3 FLOW', pass: s.p3Pass, detail: s.p3Detail },
-                ].map(p => (
-                  <div key={p.label} style={{ display:'flex', alignItems:'center', gap:4, padding:'2px 5px',
-                    background:pillarBg(p.pass), border:`1px solid ${pillarBorder(p.pass)}`, borderRadius:3 }}>
-                    <span style={{ fontSize:10 }}>{pillarIcon(p.pass)}</span>
-                    <span style={{ fontSize:10, fontWeight:700, color: p.pass===null?'#4a5568':p.pass?'#22c55e':'#ef5350', minWidth:50 }}>{p.label}</span>
-                    <span style={{ fontSize:10, color:'#94a3b8', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.detail}</span>
-                  </div>
-                ))}
-                {/* Footer */}
-                <div style={{ display:'flex', justifyContent:'space-between', marginTop:4, fontSize:10, color:'#4a5568' }}>
-                  <span>Alive: {formatTime(alive)}</span>
-                  <span>Score: {s.score}%</span>
-                  {allPass && <span style={{ color:'#22c55e', fontWeight:700 }}>READY</span>}
-                </div>
+              <div key={s.id} style={{ background:'#0a0e1a', border:`1px solid ${col}33`, borderRadius:5, padding:'4px 8px', display:'flex', alignItems:'center', gap:5 }}>
+                <span style={{ fontSize:12, fontWeight:800, color:col }}>{s.dir==='long'?'▲':'▼'}</span>
+                <span style={{ fontSize:10, fontWeight:700, color:col }}>{s.type.slice(0,3).toUpperCase()}</span>
+                <span style={{ fontSize:10, color:'#94a3b8', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.levelName} {s.level.toFixed(0)}</span>
+                <span style={{ display:'flex', gap:1 }}>{[s.p1Pass,s.p2Pass,s.p3Pass].map((p,i)=><span key={i} style={{fontSize:8}}>{p===null?'⏳':p?'✅':'❌'}</span>)}</span>
+                <span style={{ fontSize:9, color:remaining<120?'#ef5350':'#4a5568', fontFamily:'monospace' }}>{formatTime(remaining)}</span>
+                <span style={{ fontSize:10, fontWeight:800, color:col }}>{s.score}%</span>
               </div>
             );
           })}
@@ -3281,7 +3257,7 @@ function BuildingNowSection({ buildingSetups, expiredSetups }:{ buildingSetups: 
       {expiredSetups.length > 0 && (
         <div style={{ marginTop:8, borderTop:'1px solid #1e2738', paddingTop:6 }}>
           <div style={{ fontSize:10, color:'#4a5568', letterSpacing:1, marginBottom:4, fontWeight:700 }}>EXPIRED ({expiredSetups.length})</div>
-          {expiredSetups.slice(0, 5).map(s => {
+          {expiredSetups.slice(0, 2).map(s => {
             const col = s.dir === 'long' ? '#22c55e44' : '#ef535044';
             return (
               <div key={s.id} style={{ fontSize:10, color:'#4a5568', padding:'2px 6px', marginBottom:1,
