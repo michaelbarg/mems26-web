@@ -18,7 +18,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-static const char* DLL_VERSION = "V6.7.0";
+static const char* DLL_VERSION = "V6.6.7";
 static const char* DLL_BUILD_DATE = "2026-04-22";
 
 // -- CCI Helper ----------------------------------------------------------------
@@ -206,7 +206,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     if (sc.SetDefaults)
     {
         sc.GraphName        = "MES AI Data Export v9";
-        sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
+        sc.StudyDescription = "V6.6.7: 3-bracket scale-out + BE on C2 + tick signals + visualization";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
         sc.MaintainVolumeAtPriceData = 1;
@@ -243,6 +243,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         static bool s_dllInfoWritten = false;
         if (!s_dllInfoWritten) {
             s_dllInfoWritten = true;
+            SCString loadMsg;
+            loadMsg.Format("MES AI Data Export v9 loaded -- %s build %s", DLL_VERSION, DLL_BUILD_DATE);
+            sc.AddMessageToLog(loadMsg, 1);
             std::string dp(ExportPath.GetString());
             size_t slash = dp.rfind('/');
             if (slash == std::string::npos) slash = dp.rfind('\\');
@@ -1114,14 +1117,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
             if (totalSent > 0) {
                 SCString detail;
-                detail.Format("%s 3x bracket: %d sent, %d failed -- T1=%.2f T2=%.2f T3=%.2f",
-                              cmd.c_str(), totalSent, totalFailed, cmdT1, cmdT2, cmdT3);
+                detail.Format("%d %s brackets submitted ids=[%d,%d,%d] T1=%.2f T2=%.2f T3=%.2f",
+                              totalSent, cmd.c_str(), p_order1, p_order2, p_order3, cmdT1, cmdT2, cmdT3);
                 writeResult("OK", detail.GetChars(), totalSent);
-                SCString msg2;
-                msg2.Format("C5: 3 brackets submitted ids=[%d,%d,%d]", p_order1, p_order2, p_order3);
-                sc.AddMessageToLog(msg2, 0);
+                sc.AddMessageToLog(detail, 0);
             } else {
-                writeResult("ERROR", "All 3 orders failed", 0);
+                writeResult("ERROR", "All 3 brackets failed", 0);
             }
         }
     }
