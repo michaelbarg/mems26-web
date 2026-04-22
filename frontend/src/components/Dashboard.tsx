@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import LightweightChart from './LightweightChart';
 import PreEntryChecklist, { type ChecklistSetup } from './PreEntryChecklist';
-import AnalyticsTab from './AnalyticsTab';
+import dynamic from 'next/dynamic';
+const AnalyticsTab = dynamic(() => import('./AnalyticsTab'), { ssr: false });
 
 const API_URL = 'https://mems26-web.onrender.com';
 
