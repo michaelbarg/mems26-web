@@ -1745,8 +1745,8 @@ function MainScore({ live, liveSetup, onAccept, onReject, accepted, newsGuard }:
   const displayScore = opp !== 'none' ? score10 : (sig?.score ?? 0);
 
   return (
-    <div style={{ background: isActive ? (dir==='LONG'?'#0d1f1a':'#1f0d0d') : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14, minHeight:120 }}>
-      <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+    <div style={{ background: isActive ? (dir==='LONG'?'#0d1f1a':'#1f0d0d') : '#111827', border:`1.5px solid ${isActive ? col+'44' : '#1e2738'}`, borderRadius:8, padding:14 }}>
+      <div style={{ display:'flex', alignItems:'flex-start', gap:14 }}>
         <TrafficLight score={displayScore} live={live} />
         <div style={{ width:44, height:44, borderRadius:'50%', background:col+'18', border:`2px solid ${col}44`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <span style={{ fontSize:20, fontWeight:800, color:col, fontFamily:'monospace' }}>{displayScore}</span>
@@ -3390,8 +3390,11 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard, buildingSetups, expiredBuildingSetups }:any) {
   const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'|'analytics'>('signal');
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [sweepExpanded, setSweepExpanded] = useState(false);
   // Reset scroll on tab change
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = 0; }, [tab]);
+  // Collapse card when selected sweep changes
+  useEffect(() => { setSweepExpanded(false); }, [selectedSweep?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   // Auto-select first sweep when entering setups tab with nothing selected
   useEffect(() => {
     if (tab === 'setups' && !selectedSweep && sweepEvents?.length > 0) setSelectedSweep(sweepEvents[0]);
@@ -3451,24 +3454,19 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             const isActive = activeSetup?.sweep?.id === s.id;
             return (
             <div style={{ background:'#0a0e1a', border:`2px solid ${col}44`, borderRadius:10, overflow:'hidden' }}>
-              {/* Header */}
-              <div style={{ background:`${col}18`, padding:'12px 16px', borderBottom:'1px solid #1e2738', borderLeft:`3px solid ${col}` }}>
+              {/* Header — clickable to expand/collapse */}
+              <div onClick={()=>setSweepExpanded(p=>!p)} style={{ background:`${col}18`, padding:'8px 12px', borderBottom:'1px solid #1e2738', borderLeft:`3px solid ${col}`, cursor:'pointer' }}>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <div>
-                    <div style={{ fontSize:20, fontWeight:700, color:col }}>
-                      {isLong?'▲':'▼'} SWEEP {s.levelName} @ {(s.level||0).toFixed(2)}
-                    </div>
-                    <div style={{ fontSize:14, color:'#6b7280' }}>
-                      {(() => { const t = s.ts || s.detectedAt || 0; return t > 0 ? new Date(t*1000).toLocaleTimeString('he-IL') : '—'; })()} · {(s.levelTouches ?? 0) > 0 ? `${s.levelTouches} נגיעות` : ''} · Wick {(s.sweepWick||0).toFixed(1)}pt
-                    </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:16, fontWeight:700, color:col }}>{isLong?'▲':'▼'} {s.levelName} @ {(s.level||0).toFixed(2)}</span>
+                    <span style={{ fontSize:12, color:'#4a5568' }}>Wick {(s.sweepWick||0).toFixed(1)}pt</span>
                   </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontSize:24, fontWeight:900, color:s.score>=90?'#22c55e':s.score>=75?'#f59e0b':'#4a5568' }}>{s.score}/100</div>
-                    <div style={{ fontSize:14, color:s.confirmed?'#22c55e':'#f59e0b', fontWeight:700 }}>
-                      {s.confirmed ? '✓ מאושר' : '⏳ ממתין'}
-                    </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:18, fontWeight:900, color:s.score>=90?'#22c55e':s.score>=75?'#f59e0b':'#4a5568' }}>{s.score}</span>
+                    <span style={{ fontSize:14, color:'#4a5568' }}>{sweepExpanded ? '\u25B2' : '\u25BC'}</span>
                   </div>
                 </div>
+                {sweepExpanded && <>
                 {/* Stats row */}
                 <div style={{ display:'flex', gap:6, marginTop:8 }}>
                   {[
@@ -3483,7 +3481,9 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                     </div>
                   ))}
                 </div>
+                </>}
               </div>
+              {sweepExpanded && <>
               {/* Entry / Stop */}
               <div style={{ padding:'12px 16px' }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, marginBottom:8 }}>
@@ -3545,6 +3545,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
                 )}
                 <button onClick={()=>setSelectedSweep(null)} style={{ padding:'6px 12px', border:'1px solid #1e2738', borderRadius:5, background:'transparent', color:'#6b7280', fontSize:14, cursor:'pointer' }}>✕</button>
               </div>
+              </>}
             </div>
             );
           })()}
