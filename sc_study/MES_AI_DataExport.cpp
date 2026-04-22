@@ -1032,12 +1032,24 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
 
         // Execute scale-out bracket: 3 separate orders (1 contract each)
-        // Each with its own stop + target: T1 (C1 50%), T2 (C2 25%), T3 (C3 25%)
-        // Z1: move stop to BE after T1 fill (pending)
+        // C1 (T1), C2 (T2), C3 (T3 runner). BE applied after C2 fill.
         {
             double targets[3] = { cmdT1, cmdT2, cmdT3 };
             const char* labels[3] = { "C1", "C2", "C3" };
             int totalSent = 0, totalFailed = 0;
+
+            // Persistent state for BE logic (survives between ticks)
+            int& p_order1 = sc.GetPersistentInt(100);
+            int& p_order2 = sc.GetPersistentInt(101);
+            int& p_order3 = sc.GetPersistentInt(102);
+            float& p_entry = sc.GetPersistentFloat(103);
+            int& p_beApplied = sc.GetPersistentInt(104);
+            int& p_isShort = sc.GetPersistentInt(105);
+
+            p_entry = (float)cmdPrice;
+            p_beApplied = 0;
+            p_isShort = (cmd == "SELL") ? 1 : 0;
+            p_order1 = 0; p_order2 = 0; p_order3 = 0;
 
             for (int i = 0; i < 3; i++) {
                 s_SCNewOrder order;
@@ -1045,11 +1057,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 order.TimeInForce = SCT_TIF_GTC;
                 order.OrderType = SCT_ORDERTYPE_MARKET;
 
-                // Attached stop-loss (same for all 3)
                 order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                 order.Stop1Price = (float)cmdStop;
 
-                // Attached target (different for each)
                 if (targets[i] > 0) {
                     order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
                     order.Target1Price = (float)targets[i];
@@ -1063,6 +1073,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
                 if (result > 0) {
                     totalSent++;
+                    if (i == 0) p_order1 = order.InternalOrderID;
+                    if (i == 1) p_order2 = order.InternalOrderID;
+                    if (i == 2) p_order3 = order.InternalOrderID;
                     SCString msg;
                     msg.Format("C5: %s %s qty=1 stop=%.2f target=%.2f orderId=%d",
                                cmd.c_str(), labels[i], cmdStop, targets[i], result);
@@ -1080,12 +1093,70 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 detail.Format("%s 3x bracket: %d sent, %d failed -- T1=%.2f T2=%.2f T3=%.2f",
                               cmd.c_str(), totalSent, totalFailed, cmdT1, cmdT2, cmdT3);
                 writeResult("OK", detail.GetChars(), totalSent);
+                SCString msg2;
+                msg2.Format("C5: 3 brackets submitted ids=[%d,%d,%d]", p_order1, p_order2, p_order3);
+                sc.AddMessageToLog(msg2, 0);
             } else {
                 writeResult("ERROR", "All 3 orders failed", 0);
             }
         }
     }
     c5_done:;
+
+    // -- C5-BE: Break-Even logic -- move C3 stop after C2 fills --
+    // Runs every tick. Checks if C2 target filled, then modifies C3 stop.
+    {
+        int& p_order2 = sc.GetPersistentInt(101);
+        int& p_order3 = sc.GetPersistentInt(102);
+        float& p_entry = sc.GetPersistentFloat(103);
+        int& p_beApplied = sc.GetPersistentInt(104);
+        int& p_isShort = sc.GetPersistentInt(105);
+
+        if (p_order2 > 0 && p_order3 > 0 && p_beApplied == 0) {
+            s_SCTradeOrder o2;
+            if (sc.GetOrderByOrderID(p_order2, o2) != SCTRADING_ORDER_ERROR) {
+                if (o2.OrderStatusCode == SCT_OSC_FILLED) {
+                    // C2 filled -- apply BE to C3's stop
+                    float bePrice = p_isShort
+                        ? (p_entry - 0.25f)   // SHORT: entry - 1 tick
+                        : (p_entry + 0.25f);  // LONG: entry + 1 tick
+
+                    // Find C3's parent order to get its attached stop
+                    s_SCTradeOrder o3;
+                    if (sc.GetOrderByOrderID(p_order3, o3) != SCTRADING_ORDER_ERROR) {
+                        // Modify the stop child of C3
+                        s_SCNewOrder mod;
+                        mod.InternalOrderID = o3.ParentInternalOrderID > 0
+                            ? o3.ParentInternalOrderID : p_order3;
+                        mod.Stop1Price = bePrice;
+                        int modResult = (int)sc.ModifyOrder(mod);
+
+                        if (modResult != 0) {
+                            p_beApplied = 1;
+                            SCString msg;
+                            msg.Format("C5: BE applied -- C3 stop moved to %.2f (C2 filled)", bePrice);
+                            sc.AddMessageToLog(msg, 0);
+                        } else {
+                            SCString msg;
+                            msg.Format("C5: BE modify failed for order %d", p_order3);
+                            sc.AddMessageToLog(msg, 1);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Reset when position is flat
+        if (p_order1 > 0) {
+            s_SCPositionData pos;
+            sc.GetTradePosition(pos);
+            if (pos.PositionQuantity == 0 && p_beApplied != 0) {
+                p_order1 = 0; p_order2 = 0; p_order3 = 0;
+                p_beApplied = 0;
+                sc.AddMessageToLog("C5: Position flat -- state reset", 0);
+            }
+        }
+    }
 
     // -- C6: Visualization -- read viz JSON, draw setup zones on chart --
     {
