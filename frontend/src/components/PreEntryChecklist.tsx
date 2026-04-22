@@ -186,6 +186,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
     <div style={{ position:'fixed', bottom:24, right:24, zIndex:9999,
       background:'#0f172a', border:`1px solid ${allPass ? '#22c55e' : '#1e293b'}`,
       borderRadius:12, padding:'14px 16px', width:320,
+      maxHeight:'calc(100vh - 48px)', overflowY:'auto',
       boxShadow: allPass ? '0 0 24px rgba(34,197,94,0.3)' : '0 4px 24px rgba(0,0,0,0.6)',
       fontFamily:'monospace', transition:'border-color 0.3s, box-shadow 0.3s' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
