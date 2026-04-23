@@ -9,11 +9,12 @@ from datetime import datetime, time as dtime
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
 from pattern_scanner import scan_patterns, is_in_killzone
 from news_guard import NewsGuard, news_guard_loop
 from shadow_trader import ShadowEngine
-
-load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("bridge")
 
@@ -1538,11 +1539,17 @@ async def _poll_trade_commands(http):
                     log.error(f"[C4] CHECKSUM FAIL — ignoring {trade_id}")
                     await asyncio.sleep(1)
                     continue
+                brackets = cmd.get("brackets", [])
+                if len(brackets) != 3 or not all(b.get("qty") == 1 for b in brackets):
+                    log.error(f"[C4] Invalid brackets structure — need 3×qty=1, got {len(brackets)}")
+                    await asyncio.sleep(1)
+                    continue
                 tmp = SC_COMMAND_PATH + ".tmp"
                 with open(tmp, "w") as f:
                     json.dump(cmd, f, indent=2)
                 os.replace(tmp, SC_COMMAND_PATH)
-                log.info(f"[C4] written: {cmd['cmd']} {trade_id}")
+                tgts = " ".join(f"{b['id']}@{b['target']}" for b in brackets)
+                log.info(f"[X4] 3-bracket order submitted: {tgts} stop={cmd['stop']}")
                 try:
                     async with http.post(
                         f"{CLOUD_URL}/trade/command/ack",

@@ -233,6 +233,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         VizPath.Name = "Visualization JSON Path";
         VizPath.SetString("C:\\SierraChart2\\Data\\mes_ai_visualization.json");
         sc.AllowMultipleEntriesInSameDirection = 1;  // V6.6.6: allow 3 separate brackets
+        sc.AllowOnlyOneTradePerBar = 0;             // V6.7.0: 3 entries on same bar
+        sc.SupportAttachedOrdersForTrading = 1;     // V6.7.0: bracket OCO support
         sc.MaximumPositionAllowed = 3;
         sc.SupportReversals = 0;
         return;
@@ -1059,9 +1061,33 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
 
         // Execute scale-out bracket: 3 separate orders (1 contract each)
-        // C1 (T1), C2 (T2), C3 (T3 runner). BE applied after C2 fill.
+        // V6.7.0: parse brackets[] array; fallback to flat t1/t2/t3
         {
-            double targets[3] = { cmdT1, cmdT2, cmdT3 };
+            double targets[3] = { 0, 0, 0 };
+            int numBrackets = 0;
+            size_t bp = cmdJson.find("\"brackets\"");
+            if (bp != std::string::npos) {
+                size_t arrS = cmdJson.find('[', bp);
+                size_t arrE = cmdJson.find(']', arrS);
+                if (arrS != std::string::npos && arrE != std::string::npos) {
+                    std::string arr = cmdJson.substr(arrS, arrE - arrS + 1);
+                    size_t pos = 0;
+                    while (numBrackets < 3) {
+                        size_t oS = arr.find('{', pos);
+                        if (oS == std::string::npos) break;
+                        size_t oE = arr.find('}', oS);
+                        if (oE == std::string::npos) break;
+                        std::string obj = arr.substr(oS, oE - oS + 1);
+                        targets[numBrackets] = jsonNum(obj, "target");
+                        numBrackets++;
+                        pos = oE + 1;
+                    }
+                }
+            }
+            if (numBrackets == 0) {
+                targets[0] = cmdT1; targets[1] = cmdT2; targets[2] = cmdT3;
+                numBrackets = 3;
+            }
             const char* labels[3] = { "C1", "C2", "C3" };
             int totalSent = 0, totalFailed = 0;
 
@@ -1078,25 +1104,23 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             p_isShort = (cmd == "SELL") ? 1 : 0;
             p_order1 = 0; p_order2 = 0; p_order3 = 0;
 
-            for (int i = 0; i < 3; i++) {
+            for (int i = 0; i < numBrackets; i++) {
                 s_SCNewOrder order;
+                order.Reset();
                 order.OrderQuantity = 1;
                 order.TimeInForce = SCT_TIF_GTC;
                 order.OrderType = SCT_ORDERTYPE_MARKET;
-
                 order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                 order.Stop1Price = (float)cmdStop;
-
                 if (targets[i] > 0) {
                     order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
                     order.Target1Price = (float)targets[i];
                 }
+                SCString tag; tag.Format("MEMS26_%s", labels[i]);
+                order.TextTag = tag;
 
-                int result;
-                if (cmd == "BUY")
-                    result = (int)sc.BuyEntry(order);
-                else
-                    result = (int)sc.SellEntry(order);
+                int result = (cmd == "BUY")
+                    ? (int)sc.BuyEntry(order) : (int)sc.SellEntry(order);
 
                 if (result > 0) {
                     totalSent++;
@@ -1104,23 +1128,25 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     if (i == 1) p_order2 = order.InternalOrderID;
                     if (i == 2) p_order3 = order.InternalOrderID;
                     SCString msg;
-                    msg.Format("C5: %s %s qty=1 stop=%.2f target=%.2f orderId=%d",
-                               cmd.c_str(), labels[i], cmdStop, targets[i], result);
+                    msg.Format("C5: bracket %s/%d submitted Result=%d",
+                               labels[i], numBrackets, result);
                     sc.AddMessageToLog(msg, 0);
                 } else {
                     totalFailed++;
                     SCString msg;
-                    msg.Format("C5: %s %s FAILED result=%d", cmd.c_str(), labels[i], result);
+                    msg.Format("C5: bracket %s/%d FAILED Result=%d",
+                               labels[i], numBrackets, result);
                     sc.AddMessageToLog(msg, 1);
                 }
             }
 
             if (totalSent > 0) {
+                sc.AddMessageToLog("C5: 3-bracket dispatch complete", 0);
                 SCString detail;
-                detail.Format("%d %s brackets submitted ids=[%d,%d,%d] T1=%.2f T2=%.2f T3=%.2f",
-                              totalSent, cmd.c_str(), p_order1, p_order2, p_order3, cmdT1, cmdT2, cmdT3);
+                detail.Format("%d brackets ids=[%d,%d,%d] T1=%.2f T2=%.2f T3=%.2f",
+                              totalSent, p_order1, p_order2, p_order3,
+                              targets[0], targets[1], targets[2]);
                 writeResult("OK", detail.GetChars(), totalSent);
-                sc.AddMessageToLog(detail, 0);
             } else {
                 writeResult("ERROR", "All 3 brackets failed", 0);
             }

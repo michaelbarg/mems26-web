@@ -72,7 +72,7 @@ print("\n=== STEP 3: Assertions ===")
 errors = []
 
 required = ["cmd", "price", "qty", "stop", "t1", "t2", "t3",
-            "trade_id", "expires_at", "checksum"]
+            "trade_id", "expires_at", "checksum", "brackets"]
 for f in required:
     if f not in cmd:
         errors.append(f"MISSING FIELD: {f}")
@@ -112,6 +112,21 @@ try:
         print(f"  checksum: VALID")
 except Exception as e:
     errors.append(f"Checksum check failed: {e}")
+
+# V6.7.0: Brackets assertions
+brackets = cmd.get("brackets", [])
+if len(brackets) != 3:
+    errors.append(f"brackets count={len(brackets)}, expected 3")
+else:
+    if not all(b.get("qty") == 1 for b in brackets):
+        errors.append(f"brackets qty not all 1: {[b.get('qty') for b in brackets]}")
+    if [b["target"] for b in brackets] != [7160.50, 7157.50, 7130.50]:
+        errors.append(f"bracket targets wrong: {[b['target'] for b in brackets]}")
+    if [b["id"] for b in brackets] != ["C1", "C2", "C3"]:
+        errors.append(f"bracket ids wrong: {[b['id'] for b in brackets]}")
+    if not errors:
+        print(f"  brackets: 3×qty=1, ids={[b['id'] for b in brackets]}, targets={[b['target'] for b in brackets]}")
+        print(f"  shared stop: {cmd.get('stop')} (single stop across all brackets)")
 
 if errors:
     print(f"\n{'='*50}")

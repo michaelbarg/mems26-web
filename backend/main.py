@@ -1631,6 +1631,8 @@ async def trade_execute(request: Request):
             raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
         if entry <= 0 or stop <= 0:
             raise HTTPException(status_code=400, detail="entry_price and stop required")
+        if not t1 or not t2 or not t3:
+            raise HTTPException(status_code=400, detail="V6.7.0 requires t1, t2, t3 from Frontend")
 
         # W1.5 — Early stop validation (before killzone/news checks)
         raw_risk = abs(entry - stop)
@@ -1787,6 +1789,11 @@ async def trade_execute(request: Request):
         command = {
             "cmd": cmd_str, "price": entry, "qty": CONTRACTS,
             "stop": stop, "t1": t1, "t2": t2, "t3": t3,
+            "brackets": [
+                {"id": "C1", "qty": 1, "target": t1},
+                {"id": "C2", "qty": 1, "target": t2},
+                {"id": "C3", "qty": 1, "target": t3},
+            ],
             "trade_id": trade_id, "expires_at": expires_at,
             "checksum": chk_hex, "checksum_input": chk_raw,
         }
@@ -2048,6 +2055,11 @@ async def test_dispatch(request: Request):
     test_cmd = {
         "cmd": cmd_str, "price": entry, "qty": CONTRACTS,
         "stop": stop, "t1": t1, "t2": t2, "t3": t3,
+        "brackets": [
+            {"id": "C1", "qty": 1, "target": t1},
+            {"id": "C2", "qty": 1, "target": t2},
+            {"id": "C3", "qty": 1, "target": t3},
+        ],
         "trade_id": trade_id, "expires_at": expires_at,
         "checksum": chk_hex, "checksum_input": chk_raw,
     }
