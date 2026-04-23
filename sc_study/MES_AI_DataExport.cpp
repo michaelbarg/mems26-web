@@ -946,7 +946,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 if (Result > 0) {
                     // V7.7.1: Store trade_id + init position tracking
                     s_lastTradeId = tradeId;
-                    sc.GetPersistentInt(200) = (int)sc.GetTradePosition();
+                    sc.GetPersistentInt(200) = (int)sc.PositionData.PositionQuantity;
                     writeResult("OK", "1 bracket with 3 targets accepted", Result);
                     sc.AddMessageToLog(
                         "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
@@ -996,7 +996,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         static std::string s_monitorTradeId;
         // Capture trade_id from BUY dispatch (set inside C5 block)
         // s_lastTradeId is scoped to C5, so we mirror it here via persistent
-        int currentQty = (int)sc.GetTradePosition();
+        int currentQty = (int)sc.PositionData.PositionQuantity;
         int lastQty = sc.GetPersistentInt(200);
 
         if (currentQty != lastQty) {
