@@ -1,10 +1,9 @@
-// MES_AI_DataExport.cpp -- v9.0 (C5: Trade Command + C6: Visualization)
-// Sierra Chart ACSIL Study -- 3 minute chart
-// Exports: MTF, CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
-//          Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
-//          Footprint (200 bars), Order Fills, HistoryInit (960 bars)
+// MES_AI_DataExport.cpp — v8.0 (C5: Trade Command Execution)
+// Sierra Chart ACSIL Study — 3 minute chart
+// מייצא: MTF (כולל m5), CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
+//         Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
+//         Footprint (10 נרות), Order Fills, HistoryInit (960 נרות)
 // C5: Reads trade_command.json, verifies checksum, executes bracket order
-// C6: Reads mes_ai_visualization.json, draws setup zones on chart
 
 #include "sierrachart.h"
 #include <fstream>
@@ -18,10 +17,9 @@
 
 SCDLLName("MES_AI_DataExport")
 
-static const char* DLL_VERSION = "V6.6.7";
-static const char* DLL_BUILD_DATE = "2026-04-22";
+#define MEMS26_DLL_VERSION "v6.7.0"
 
-// -- CCI Helper ----------------------------------------------------------------
+// ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
 {
     if (idx < period - 1) return 0.0f;
@@ -38,7 +36,7 @@ static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
     return (tp - mean) / (0.015f * mad);
 }
 
-// -- Candle Pattern Helper -----------------------------------------------------
+// ── Candle Pattern Helper ─────────────────────────────────────────────────────
 static const char* detectCandlePattern(float o, float h, float l, float c)
 {
     float body  = std::fabs(c - o);
@@ -55,43 +53,26 @@ static const char* detectCandlePattern(float o, float h, float l, float c)
     return (c >= o) ? "BULL" : "BEAR";
 }
 
-// -- SCDateTime -> Unix Timestamp (real UTC) ----------------------------------
-// SC is configured in Eastern Time. BaseDateTimeIn stores ET local time.
-// We add the ET->UTC offset so all timestamps in JSON are true UTC.
+// ── SCDateTime → Unix Timestamp ──────────────────────────────────────────────
 static long long ToUnixTime(SCDateTime dt)
 {
-    // OLE -> "naive" seconds (in ET timezone)
-    long long et_secs = (long long)((dt.GetAsDouble() - 25569.0) * 86400.0 + 0.5);
-    // Determine EDT vs EST from month (simplified: Mar-Nov = EDT)
-    int month = dt.GetMonth();
-    int et_offset = (month >= 3 && month <= 10) ? 4 * 3600 : 5 * 3600;
-    return et_secs + et_offset;
+    // SCDateTime = OLE Automation date (days since Dec 30 1899)
+    // Unix epoch = Jan 1 1970 = OLE day 25569
+    return (long long)((dt.GetAsDouble() - 25569.0) * 86400.0 + 0.5);
 }
 
-// -- UTC -> ET hour conversion (simplified DST: Mar-Nov = EDT, else EST) ------
-static int UTCHourToET(int utcHour, int utcMonth)
+// ── Session Phase Helper ──────────────────────────────────────────────────────
+static const char* getPhase(int H, int M)
 {
-    int offset = (utcMonth >= 3 && utcMonth <= 10) ? -4 : -5; // EDT / EST
-    int etH = utcHour + offset;
-    if (etH < 0) etH += 24;
-    return etH;
+    if (H == 9 && M >= 30) return "OPEN";
+    if (H >= 9 && H < 11)  return "AM_SESSION";
+    if (H >= 11 && H < 13) return "MIDDAY";
+    if (H >= 13 && H < 16) return "PM_SESSION";
+    if (H == 16)           return "CLOSE";
+    return "OVERNIGHT";
 }
 
-// -- Session Phase Helper (expects ET hour/minute) ----------------------------
-static const char* getPhase(int etH, int etM)
-{
-    int etMin = etH * 60 + etM;
-    if (etMin < 240)                   return "OVERNIGHT";   // 00:00-04:00
-    if (etMin < 570)                   return "PRE_MARKET";  // 04:00-09:30
-    if (etMin < 600)                   return "OPEN";        // 09:30-10:00
-    if (etMin < 660)                   return "AM_SESSION";  // 10:00-11:00
-    if (etMin < 780)                   return "MIDDAY";      // 11:00-13:00
-    if (etMin < 960)                   return "PM_SESSION";  // 13:00-16:00
-    if (etMin < 1080)                  return "POST_MARKET"; // 16:00-18:00
-    return "OVERNIGHT";                                      // 18:00-00:00
-}
-
-// -- SHA-256 (minimal, self-contained) ----------------------------------------
+// ── SHA-256 (minimal, self-contained) ────────────────────────────────────────
 static void sha256(const unsigned char* data, size_t len, unsigned char out[32])
 {
     uint32_t h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,
@@ -151,7 +132,7 @@ static std::string sha256hex(const std::string& input)
     return std::string(hex);
 }
 
-// -- Minimal JSON field extraction (no external lib) --------------------------
+// ── Minimal JSON field extraction (no external lib) ──────────────────────────
 static std::string jsonStr(const std::string& json, const std::string& key)
 {
     std::string search = "\"" + key + "\"";
@@ -201,12 +182,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef CommandPath       = sc.Input[7];
     SCInputRef ResultPath        = sc.Input[8];
     SCInputRef BridgeToken       = sc.Input[9];
-    SCInputRef VizPath           = sc.Input[10];
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9";
-        sc.StudyDescription = "V6.6.7: 3-bracket scale-out + BE on C2 + tick signals + visualization";
+        sc.GraphName        = "MES AI Data Export v8";
+        sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
         sc.MaintainVolumeAtPriceData = 1;
@@ -230,38 +210,16 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         ResultPath.SetString("C:\\SierraChart2\\Data\\trade_result.json");
         BridgeToken.Name = "Bridge Token";
         BridgeToken.SetString("michael-mems26-2026");
-        VizPath.Name = "Visualization JSON Path";
-        VizPath.SetString("C:\\SierraChart2\\Data\\mes_ai_visualization.json");
-        sc.AllowMultipleEntriesInSameDirection = 1;  // V6.6.6: allow 3 separate brackets
-        sc.AllowOnlyOneTradePerBar = 0;             // V6.7.0: 3 entries on same bar
-        sc.SupportAttachedOrdersForTrading = 1;     // V6.7.0: bracket OCO support
+        sc.AllowMultipleEntriesInSameDirection = 1;
+        sc.AllowOnlyOneTradePerBar = 0;
+        sc.SupportAttachedOrdersForTrading = 1;
+        sc.MaintainTradeStatisticsAndTradesData = 1;
         sc.MaximumPositionAllowed = 3;
         sc.SupportReversals = 0;
+        sc.AddMessageToLog(SCString().Format(
+            "MES_AI_DataExport loaded — DLL version: %s built: %s %s",
+            MEMS26_DLL_VERSION, __DATE__, __TIME__), 1);
         return;
-    }
-
-    // Write dll_info.json once on study load (idx==0)
-    {
-        static bool s_dllInfoWritten = false;
-        if (!s_dllInfoWritten) {
-            s_dllInfoWritten = true;
-            SCString loadMsg;
-            loadMsg.Format("MES AI Data Export v9 loaded -- %s build %s", DLL_VERSION, DLL_BUILD_DATE);
-            sc.AddMessageToLog(loadMsg, 1);
-            std::string dp(ExportPath.GetString());
-            size_t slash = dp.rfind('/');
-            if (slash == std::string::npos) slash = dp.rfind('\\');
-            if (slash != std::string::npos) {
-                std::string dir = dp.substr(0, slash + 1);
-                std::ofstream di(dir + "dll_info.json");
-                if (di.is_open()) {
-                    di << "{\"version\":\"" << DLL_VERSION
-                       << "\",\"built_at\":\"" << DLL_BUILD_DATE
-                       << "\",\"loaded_at\":" << (long long)time(nullptr) << "}";
-                    di.close();
-                }
-            }
-        }
     }
 
     int idx = sc.Index;
@@ -272,15 +230,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float bid_vol = sc.BidVolume[idx];
     float delta   = ask_vol - bid_vol;
     int   H = now_dt.GetHour(), M = now_dt.GetMinute();
-    // H,M are already in ET (SC configured in Eastern Time)
-    int   etH = H, etM = M;
 
-    // -- CVD --------------------------------------------------
+    // ── CVD ──────────────────────────────────────────────────
     CVD[idx] = (idx == 0) ? delta : CVD[idx - 1] + delta;
     float cvd20 = (idx >= 20) ? CVD[idx] - CVD[idx - 20] : 0;
     float cvd5  = (idx >= 5)  ? CVD[idx] - CVD[idx - 5]  : 0;
 
-    // -- VWAP -------------------------------------------------
+    // ── VWAP ─────────────────────────────────────────────────
     float sum_pv = 0, sum_v = 0;
     for (int i = idx; i >= 0; i--) {
         if (sc.BaseDateTimeIn[i].GetDate() < today) break;
@@ -297,7 +253,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         vwap_pullback = was_higher && low_vol && (cp-vwap<4.0f);
     }
 
-    // -- Woodi Pivots -----------------------------------------
+    // ── Woodi Pivots ─────────────────────────────────────────
     float PH=0,PL=0,PC=0; SCDateTime prevDate; bool foundPrev=false;
     for (int i=idx-1;i>=0;i--) {
         SCDateTime bd=sc.BaseDateTimeIn[i].GetDate();
@@ -308,7 +264,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float PP=0,R1=0,R2=0,S1=0,S2=0;
     if(foundPrev&&PH>0){PP=(PH+PL+PC*2)/4.0f;R1=2*PP-PL;R2=PP+(PH-PL);S1=2*PP-PH;S2=PP-(PH-PL);}
 
-    // -- Woodies CCI ------------------------------------------
+    // ── Woodies CCI ──────────────────────────────────────────
     CCI14[idx]=calcCCI(sc,idx,14); CCI6[idx]=calcCCI(sc,idx,6);
     float cci14=CCI14[idx],cci6=CCI6[idx],cci_diff=cci6-cci14;
     float cci14_prev=(idx>=1)?CCI14[idx-1]:0, cci6_prev=(idx>=1)?CCI6[idx-1]:0;
@@ -325,7 +281,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     bool hook_up=(cci14>cci14_prev&&cci6>cci6_prev&&cci14<0);
     bool hook_down=(cci14<cci14_prev&&cci6<cci6_prev&&cci14>0);
 
-    // -- Market Profile (Today) --------------------------------
+    // ── Market Profile (Today) ────────────────────────────────
     float SH=sc.High[idx],SL=sc.Low[idx],TV=0; std::map<int,float> pvm;
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;float bh=sc.High[i],bl=sc.Low[i],bv=sc.Volume[i];if(bh>SH)SH=bh;if(bl<SL)SL=bl;TV+=bv;float vps=bv/((int)((bh-bl)/0.25f)+1);for(float p=bl;p<=bh+0.001f;p+=0.25f)pvm[(int)(p*4)]+=vps;}
     float POC=cp,maxV=0; for(auto&kv:pvm)if(kv.second>maxV){maxV=kv.second;POC=kv.first/4.0f;}
@@ -336,30 +292,30 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     for(int i=idx-tpo_back;i<=idx;i++)for(float p=sc.Low[i];p<=sc.High[i]+0.001f;p+=0.25f)tpo_map[(int)(p*4)]++;
     for(auto&kv:tpo_map)if(kv.second>tpo_max){tpo_max=kv.second;tpo_poc=kv.first/4.0f;}
 
-    // -- Prev Day POC ------------------------------------------
+    // ── Prev Day POC ──────────────────────────────────────────
     std::map<int,float> prev_pvm; float prev_day_poc=0; bool in_prev=false; SCDateTime prevD;
     for(int i=idx-1;i>=0;i--){SCDateTime bd=sc.BaseDateTimeIn[i].GetDate();if(!in_prev&&bd<today){in_prev=true;prevD=bd;}if(in_prev&&bd==prevD){float bh=sc.High[i],bl=sc.Low[i],bv=sc.Volume[i],vps=bv/((int)((bh-bl)/0.25f)+1);for(float p=bl;p<=bh+0.001f;p+=0.25f)prev_pvm[(int)(p*4)]+=vps;}else if(in_prev&&bd<prevD)break;}
     if(!prev_pvm.empty()){float pmv=0;for(auto&kv:prev_pvm)if(kv.second>pmv){pmv=kv.second;prev_day_poc=kv.first/4.0f;}}
 
-    // -- Session Phase -----------------------------------------
-    const char* phase = getPhase(etH, etM);
-    float sesMin_f=(etH*60.0f+etM)-(9*60+30); int sesMin=(sesMin_f<0)?-1:(int)sesMin_f;
+    // ── Session Phase ─────────────────────────────────────────
+    const char* phase = getPhase(H, M);
+    float sesMin_f=(H*60.0f+M)-(9*60+30); int sesMin=(sesMin_f<0)?-1:(int)sesMin_f;
 
-    // -- Daily Open + Gap -------------------------------------
+    // ── Daily Open + Gap ─────────────────────────────────────
     float daily_open=cp; for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()==today)daily_open=sc.Open[i];else break;}
     float gap=daily_open-PC, gap_pct=(PC>0)?(gap/PC*100.0f):0;
     const char* gap_type=(gap>2.0f)?"GAP_UP":(gap<-2.0f)?"GAP_DOWN":"FLAT";
 
-    // -- Overnight H/L -----------------------------------------
+    // ── Overnight H/L ─────────────────────────────────────────
     float ONH=sc.High[idx],ONL=sc.Low[idx];
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;if(sc.High[i]>ONH)ONH=sc.High[i];if(sc.Low[i]<ONL)ONL=sc.Low[i];}
 
-    // -- 72H / Weekly -----------------------------------------
+    // ── 72H / Weekly ─────────────────────────────────────────
     float H72=sc.High[idx],L72=sc.Low[idx],HWk=sc.High[idx],LWk=sc.Low[idx];
     SCDateTime t72=now_dt;t72.SubtractSeconds(72*3600);SCDateTime twk=now_dt;twk.SubtractSeconds((int)twk.GetDayOfWeek()*86400);
     for(int i=idx-1;i>=0;i--){SCDateTime bt=sc.BaseDateTimeIn[i];if(bt>=t72){if(sc.High[i]>H72)H72=sc.High[i];if(sc.Low[i]<L72)L72=sc.Low[i];}if(bt>=twk){if(sc.High[i]>HWk)HWk=sc.High[i];if(sc.Low[i]<LWk)LWk=sc.Low[i];}if(bt<t72&&bt<twk)break;}
 
-    // -- IB + Opening Range ------------------------------------
+    // ── IB + Opening Range ────────────────────────────────────
     int ib_minutes=IBPeriodMin.GetInt();
     float IBH=0,IBL=0; bool ib_locked=false;
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>ib_minutes)continue;if(IBH==0||sc.High[i]>IBH)IBH=sc.High[i];if(IBL==0||sc.Low[i]<IBL)IBL=sc.Low[i];}
@@ -372,7 +328,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>30)continue;if(ORH==0||sc.High[i]>ORH)ORH=sc.High[i];if(ORL==0||sc.Low[i]<ORL)ORL=sc.Low[i];}
     float or_range=(ORH>0&&ORL>0)?(ORH-ORL):0;
 
-    // -- Extension Count + Return to IB -----------------------
+    // ── Extension Count + Return to IB ───────────────────────
     int ext_up_count=0, ext_down_count=0;
     bool returned_after_breakout=false, was_outside_ib=false, was_up=false;
     if(ib_locked && IBH>0 && IBL>0) {
@@ -390,7 +346,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     int total_extensions=ext_up_count+ext_down_count;
 
-    // -- Day Type ---------------------------------------------
+    // ── Day Type ─────────────────────────────────────────────
     const char* day_type="DEVELOPING";
     if(ib_locked && IBH>0) {
         if(ib_range<6.0f&&total_extensions==0) day_type="BALANCED";
@@ -401,30 +357,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         else day_type="BALANCED";
     }
 
-    // -- Relative Volume --------------------------------------
+    // ── Relative Volume ──────────────────────────────────────
     float avg_vol_20=0; int vc=0;
     for(int i=idx-1;i>=idx-20&&i>=0;i--){avg_vol_20+=sc.Volume[i];vc++;}
     if(vc>0)avg_vol_20/=vc;
     float rel_vol=(avg_vol_20>0)?(sc.Volume[idx]/avg_vol_20):1.0f;
     const char* vol_ctx=(rel_vol>2.0f)?"VERY_HIGH":(rel_vol>1.5f)?"HIGH":(rel_vol<0.5f)?"VERY_LOW":(rel_vol<0.8f)?"LOW":"NORMAL";
 
-    // -- New High / New Low detection (last 5 bars vs 4 level pairs) --
-    bool new_high=false, new_low=false, returned_to_range=false;
-    {
-        float hi_levels[]={PH,IBH,ONH,SH}; int nhi=4;
-        float lo_levels[]={PL,IBL,ONL,SL}; int nlo=4;
-        float breached_hi=0, breached_lo=0;
-        int start_i=(idx>=4)?idx-4:0;
-        for(int i=start_i;i<=idx;i++){
-            for(int k=0;k<nhi;k++){if(hi_levels[k]>0&&sc.High[i]>hi_levels[k]){new_high=true;breached_hi=hi_levels[k];break;}}
-            for(int k=0;k<nlo;k++){if(lo_levels[k]>0&&sc.Low[i]<lo_levels[k]){new_low=true;breached_lo=lo_levels[k];break;}}
-        }
-        // returned_to_range: current bar closed back inside the breached level
-        if(new_high&&breached_hi>0&&sc.Close[idx]<breached_hi) returned_to_range=true;
-        if(new_low&&breached_lo>0&&sc.Close[idx]>breached_lo) returned_to_range=true;
-    }
-
-    // -- Order Flow --------------------------------------------
+    // ── Order Flow ────────────────────────────────────────────
     bool absorption_bull=false;
     if(idx>=3){float sp=0;for(int i=idx-2;i<=idx;i++)sp+=sc.BidVolume[i];if(sp>500&&(cp-sc.Close[idx-3])>=0)absorption_bull=true;}
     bool liq_sweep_long=false,liq_sweep_short=false;
@@ -438,7 +378,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     std::sort(imbalances.begin(),imbalances.end(),[](const ImbLevel&a,const ImbLevel&b){return std::fabs(a.ratio)>std::fabs(b.ratio);});
     int imb_count=(int)imbalances.size();if(imb_count>3)imb_count=3;
 
-    // -- Footprint Booleans (A8) -- price-level analysis -------
+    // ── Footprint Booleans (A8) — price-level analysis ───────
     bool fp_absorption = false;
     bool fp_exhaustion = false;
     bool fp_trapped_buyers = false;
@@ -447,15 +387,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     bool fp_pullback_delta_declining = false;
     bool fp_pullback_aggressive_buy  = false;
     bool fp_pullback_aggressive_sell = false;
-    bool fp_absorption_at_fvg        = false;
-    bool fp_delta_confirmed_5m       = false;
 
     {
         float tick_sz = sc.TickSize;  // MES = 0.25
         if (tick_sz < 0.01f) tick_sz = 0.25f;
         int vap_size = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(idx);
 
-        // -- 1. Absorption + 2. Exhaustion -- scan extreme ticks of current bar --
+        // ── 1. Absorption + 2. Exhaustion — scan extreme ticks of current bar ──
         if (vap_size > 0)
         {
             // Find top 3 and bottom 3 price levels
@@ -487,19 +425,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
 
             // Absorption: huge opposing volume at extreme but price rejected
-            // At high: big AskVol (buyers) but close < high -> buyers absorbed by hidden sellers
+            // At high: big AskVol (buyers) but close < high → buyers absorbed by hidden sellers
             if (top_ask > 50 && cp < bar_hi - tick_sz && top_ask > top_bid * 2)
                 fp_absorption = true;
-            // At low: big BidVol (sellers) but close > low -> sellers absorbed by hidden buyers
+            // At low: big BidVol (sellers) but close > low → sellers absorbed by hidden buyers
             if (bot_bid > 50 && cp > bar_lo + tick_sz && bot_bid > bot_ask * 2)
                 fp_absorption = true;
 
-            // Exhaustion: < 5 contracts at extreme tick -> Zero Print
+            // Exhaustion: < 5 contracts at extreme tick → Zero Print
             if (top_vol > 0 && top_vol < 5) fp_exhaustion = true;
             if (bot_vol > 0 && bot_vol < 5) fp_exhaustion = true;
         }
 
-        // -- 3. Trapped Buyers -- broke above recent high then reversed --
+        // ── 3. Trapped Buyers — broke above recent high then reversed ──
         if (idx >= 3)
         {
             float prev_hi = sc.High[idx-1];
@@ -510,14 +448,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 fp_trapped_buyers = true;
         }
 
-        // -- 4-5. Stacked Imbalances -- consecutive price levels x250% + min vol --
-        // MES is thin: require dominant side >= 30 contracts to filter noise
+        // ── 4-5. Stacked Imbalances — consecutive price levels ×250% ──
         if (vap_size >= 3)
         {
             int consec_bull = 0, consec_bear = 0;
             int max_bull = 0, max_bear = 0;
-            const float STACK_RATIO = 2.5f;       // 250%
-            const unsigned int MIN_DOM_VOL = 30;   // STACKED_MIN_DOMINANT_VOL
+            const float STACK_RATIO = 2.5f;  // 250%
 
             for (int v = 0; v < vap_size; v++)
             {
@@ -526,8 +462,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 if (vap == NULL) continue;
                 unsigned int av = vap->AskVolume, bv = vap->BidVolume;
 
-                bool bull_imb = (bv > 0 && av >= MIN_DOM_VOL && (float)av / bv >= STACK_RATIO);
-                bool bear_imb = (av > 0 && bv >= MIN_DOM_VOL && (float)bv / av >= STACK_RATIO);
+                bool bull_imb = (bv > 0 && (float)av / bv >= STACK_RATIO);
+                bool bear_imb = (av > 0 && (float)bv / av >= STACK_RATIO);
 
                 if (bull_imb) { consec_bull++; if (consec_bull > max_bull) max_bull = consec_bull; }
                 else consec_bull = 0;
@@ -544,7 +480,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
         }
 
-        // -- 6. Pullback Delta Declining -- delta shrinking over last 3 bars -
+        // ── 6. Pullback Delta Declining — delta shrinking over last 3 bars ��─
         if (idx >= 3)
         {
             float d0 = sc.AskVolume[idx]   - sc.BidVolume[idx];
@@ -555,7 +491,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 fp_pullback_delta_declining = true;
         }
 
-        // -- 7. Pullback Aggressive Buy -- strong +delta during price dip --
+        // ── 7. Pullback Aggressive Buy — strong +delta during price dip ──
         if (idx >= 3)
         {
             bool price_dipping = (cp < sc.Close[idx-3]);
@@ -565,187 +501,20 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 recent_delta += sc.AskVolume[i] - sc.BidVolume[i];
             if (price_dipping && recent_delta > 100)
                 fp_pullback_aggressive_buy = true;
-            // -- 7b. Pullback Aggressive Sell -- strong -delta during price rise --
+            // ── 7b. Pullback Aggressive Sell — strong -delta during price rise ──
             if (price_rising && recent_delta < -100)
                 fp_pullback_aggressive_sell = true;
         }
-
-        // -- 8. Absorption at FVG -- contra-volume >= 2.5x avg within FVG range --
-        // Uses the most recent FVG detected: gap between bar[idx-2].low/high and bar[idx].high/low
-        if (idx >= 2 && vap_size > 0)
-        {
-            float fvg_hi = 0, fvg_lo = 0;
-            bool fvg_bull = false, fvg_bear = false;
-            // Bullish FVG: bar[idx].low > bar[idx-2].high (gap up)
-            if (sc.Low[idx] > sc.High[idx-2] + 0.25f) {
-                fvg_hi = sc.Low[idx]; fvg_lo = sc.High[idx-2]; fvg_bull = true;
-            }
-            // Bearish FVG: bar[idx].high < bar[idx-2].low (gap down)
-            if (sc.High[idx] < sc.Low[idx-2] - 0.25f) {
-                fvg_hi = sc.Low[idx-2]; fvg_lo = sc.High[idx]; fvg_bear = true;
-            }
-            // Check if price is inside FVG and contra-volume at any level >= 2.5x avg
-            if ((fvg_bull || fvg_bear) && cp >= fvg_lo && cp <= fvg_hi)
-            {
-                unsigned int total_vol = 0;
-                int level_count = 0;
-                for (int v = 0; v < vap_size; v++) {
-                    const s_VolumeAtPriceV2 *vap = NULL;
-                    if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
-                    if (vap == NULL) continue;
-                    total_vol += vap->Volume;
-                    level_count++;
-                }
-                float avg_vol_per_level = (level_count > 0) ? (float)total_vol / level_count : 0;
-                float threshold = avg_vol_per_level * 2.5f;
-
-                for (int v = 0; v < vap_size; v++) {
-                    const s_VolumeAtPriceV2 *vap = NULL;
-                    if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
-                    if (vap == NULL) continue;
-                    float px = vap->PriceInTicks * tick_sz;
-                    if (px < fvg_lo || px > fvg_hi) continue;
-                    // Contra-side: in bullish FVG sellers absorb, in bearish FVG buyers absorb
-                    unsigned int contra = fvg_bull ? vap->BidVolume : vap->AskVolume;
-                    if (contra >= threshold && !((fvg_bull && cp < px) || (fvg_bear && cp > px))) {
-                        fp_absorption_at_fvg = true;
-                        break;
-                    }
-                }
-            }
-        }
-
-        // -- 9. Delta Confirmed 5m -- 5m bar delta matches FVG direction --
-        // Compute 5m delta from bars within current 5m bucket
-        {
-            long long now_ts2 = ToUnixTime(sc.BaseDateTimeIn[idx]);
-            long long m5_start = (now_ts2 / 300) * 300;
-            float m5_buy = 0, m5_sell = 0;
-            for (int i = idx; i >= 0; i--) {
-                if (ToUnixTime(sc.BaseDateTimeIn[i]) < m5_start) break;
-                m5_buy += sc.AskVolume[i]; m5_sell += sc.BidVolume[i];
-            }
-            float m5_delta = m5_buy - m5_sell;
-            bool recent_bull_fvg = (idx >= 2 && sc.Low[idx] > sc.High[idx-2] + 0.25f);
-            bool recent_bear_fvg = (idx >= 2 && sc.High[idx] < sc.Low[idx-2] - 0.25f);
-            if (recent_bull_fvg && m5_delta > 0) fp_delta_confirmed_5m = true;
-            if (recent_bear_fvg && m5_delta < 0) fp_delta_confirmed_5m = true;
-        }
-
-        // -- 10. Tick Reversal Signals (V6.5 Appendix G) --
-        // Collection only, does NOT affect any gating or scoring.
     }
 
-    // Tick-level signals (computed from VAP of current bar)
-    bool trs_exhaustion = false;
-    float trs_exhaustion_intensity = 0;
-    const char* trs_exhaustion_loc = "body";
-    bool trs_stopping_vol = false;
-    int trs_rejection_ticks = 0;
-    unsigned int trs_max_vol_last5 = 0;
-    float trs_candle_delta = delta;
-    float trs_last3_delta = 0;
-    bool trs_delta_flip = false;
-    float trs_reversal_strength = 0;
-    bool trs_pv_divergence = false;
-    // raw_ticks: price-level data from VAP (up to 50 entries)
-    std::ostringstream raw_ticks_j;
-    raw_ticks_j << "[";
-    int raw_tick_count = 0;
-
-    {
-        int vap_sz = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(idx);
-        float bar_hi = sc.High[idx], bar_lo = sc.Low[idx];
-        float body_top = (sc.Open[idx] > cp) ? sc.Open[idx] : cp;
-        float body_bot = (sc.Open[idx] < cp) ? sc.Open[idx] : cp;
-
-        if (vap_sz >= 5) {
-            // Gather tick data (bottom to top)
-            struct TickInfo { float price; unsigned int ask; unsigned int bid; unsigned int vol; };
-            std::vector<TickInfo> ticks;
-            for (int v = 0; v < vap_sz && v < 50; v++) {
-                const s_VolumeAtPriceV2 *vap = NULL;
-                if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
-                if (!vap) continue;
-                float px = sc.VolumeAtPriceForBars->GetPriceAtIndex(idx, v);
-                ticks.push_back({px, vap->AskVolume, vap->BidVolume, vap->AskVolume + vap->BidVolume});
-            }
-            int n = (int)ticks.size();
-
-            // raw_ticks_last_30sec: emit VAP ticks as array (up to 50)
-            for (int i = 0; i < n && i < 50; i++) {
-                if (i > 0) raw_ticks_j << ",";
-                const char* side = (ticks[i].ask > ticks[i].bid) ? "buy" : "sell";
-                raw_ticks_j << "{\"p\":" << ticks[i].price
-                            << ",\"s\":" << ticks[i].vol
-                            << ",\"side\":\"" << side << "\"}";
-                raw_tick_count++;
-            }
-
-            if (n >= 5) {
-                // Exhaustion tail: last 3 ticks much smaller than first 5
-                float first5_max = 0;
-                for (int i = 0; i < 5 && i < n; i++)
-                    if (ticks[i].vol > first5_max) first5_max = (float)ticks[i].vol;
-                float last3_avg = 0;
-                for (int i = n-3; i < n; i++) last3_avg += ticks[i].vol;
-                last3_avg /= 3.0f;
-                if (first5_max > 0) {
-                    trs_exhaustion_intensity = 1.0f - (last3_avg / first5_max);
-                    if (trs_exhaustion_intensity < 0) trs_exhaustion_intensity = 0;
-                    trs_exhaustion = (trs_exhaustion_intensity > 0.6f);
-                }
-                // location: where is the exhaustion tail?
-                float tail_price = ticks[n-1].price;
-                if (tail_price >= body_top) trs_exhaustion_loc = "wick_top";
-                else if (tail_price <= body_bot) trs_exhaustion_loc = "wick_bottom";
-
-                // Stopping volume: max vol in last 5 ticks vs avg
-                float avg_vol = 0;
-                for (int i = 0; i < n; i++) avg_vol += ticks[i].vol;
-                avg_vol /= n;
-                for (int i = n-5; i < n; i++)
-                    if (ticks[i].vol > trs_max_vol_last5) trs_max_vol_last5 = ticks[i].vol;
-                if (avg_vol > 0 && trs_max_vol_last5 >= (unsigned int)(3.0f * avg_vol)) {
-                    int max_idx = n-5;
-                    for (int i = n-5; i < n; i++)
-                        if (ticks[i].vol == trs_max_vol_last5) { max_idx = i; break; }
-                    trs_rejection_ticks = n - 1 - max_idx;
-                    trs_stopping_vol = (trs_rejection_ticks >= 2);
-                }
-            }
-
-            // Delta reversal: last 3 ticks delta vs full bar delta
-            if (n >= 3) {
-                for (int i = n-3; i < n; i++)
-                    trs_last3_delta += (float)ticks[i].ask - (float)ticks[i].bid;
-                trs_delta_flip = ((trs_candle_delta > 0 && trs_last3_delta < 0) ||
-                                  (trs_candle_delta < 0 && trs_last3_delta > 0));
-                if (std::fabs(trs_candle_delta) > 0)
-                    trs_reversal_strength = std::fabs(trs_last3_delta) / std::fabs(trs_candle_delta);
-            }
-        }
-
-        // P/V divergence: price direction vs delta direction (last 3 bars)
-        if (idx >= 3) {
-            bool price_up = cp > sc.Close[idx-3];
-            float d3 = 0;
-            for (int i = idx-2; i <= idx; i++)
-                d3 += sc.AskVolume[i] - sc.BidVolume[i];
-            bool delta_up = d3 > 0;
-            trs_pv_divergence = (price_up != delta_up);
-        }
-    }
-    raw_ticks_j << "]";
-
-    // -- Candle Patterns --------------------------------------
+    // ── Candle Patterns ───────────────��───────────────────────
     const char* pat0=detectCandlePattern(sc.Open[idx],sc.High[idx],sc.Low[idx],sc.Close[idx]);
     const char* pat1=(idx>=1)?detectCandlePattern(sc.Open[idx-1],sc.High[idx-1],sc.Low[idx-1],sc.Close[idx-1]):"NONE";
     const char* pat2=(idx>=2)?detectCandlePattern(sc.Open[idx-2],sc.High[idx-2],sc.Low[idx-2],sc.Close[idx-2]):"NONE";
     bool bull_engulf=(idx>=1)&&(sc.Close[idx]>sc.Open[idx-1])&&(sc.Open[idx]<sc.Close[idx-1])&&(sc.Close[idx-1]<sc.Open[idx-1]);
     bool bear_engulf=(idx>=1)&&(sc.Close[idx]<sc.Open[idx-1])&&(sc.Open[idx]>sc.Close[idx-1])&&(sc.Close[idx-1]>sc.Open[idx-1]);
 
-    // -- MTF --     ----------------------
+    // ── MTF — מיושר לגבולות זמן אמיתיים ──────────────────────
     struct MTFBar{float o,h,l,c,vol,buy,sell,delta_v; long long bar_ts;};
     auto calcBarAligned=[&](int interval_sec)->MTFBar{
         MTFBar b={0,0,999999,0,0,0,0,0,0};
@@ -767,7 +536,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     };
     MTFBar m3=calcBarAligned(180),m5=calcBarAligned(300),m15=calcBarAligned(900),m30=calcBarAligned(1800),m60=calcBarAligned(3600);
 
-    // -- Footprint --   (bar-level) ------------------
+    // ── Footprint — נרות אחרונים (bar-level) ──────────────────
     std::ostringstream fp_j;
     fp_j << std::fixed << std::setprecision(2);
     fp_j << "[";
@@ -789,7 +558,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     fp_j << "]";
 
-    // -- Order Fills -------------------------------------------
+    // ── Order Fills ───────────────────────────────────────────
     std::ostringstream fills_j;
     fills_j << std::fixed << std::setprecision(2);
     fills_j << "[";
@@ -810,13 +579,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     fills_j << "]";
 
-    // -- HistoryInit --  960  + MTF     --
+    // ── HistoryInit — שולח 960 נרות + MTF היסטוריה פעם אחת בטעינה ──
     if (sc.IsFullRecalculation && idx == sc.ArraySize - 1)
     {
         int hist_count = (sc.ArraySize >= 960) ? 960 : sc.ArraySize;
         int hist_start = sc.ArraySize - hist_count;
 
-        // -- 3m history (existing) --
+        // ── 3m history (existing) ──
         std::ostringstream hj;
         hj << std::fixed << std::setprecision(2);
         hj << "{\"candles\":[";
@@ -825,8 +594,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (i > hist_start) hj << ",";
             int bH2 = sc.BaseDateTimeIn[i].GetHour();
             int bM2 = sc.BaseDateTimeIn[i].GetMinute();
-            int bMonth2 = sc.BaseDateTimeIn[i].GetMonth();
-            int etH2 = bH2; // already ET from SC
             hj << "{"
                << "\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[i])
                << ",\"o\":"    << sc.Open[i]
@@ -840,13 +607,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                << ",\"cci14\":" << CCI14[i]
                << ",\"cci6\":"  << CCI6[i]
                << ",\"vwap\":"  << VWAP[i]
-               << ",\"phase\":\"" << getPhase(etH2, bM2) << "\""
+               << ",\"phase\":\"" << getPhase(bH2, bM2) << "\""
                << ",\"above_vwap\":" << (sc.Close[i] > VWAP[i] ? "true" : "false")
                << "}";
         }
         hj << "],";
 
-        // -- MTF history -- aggregate 3m bars into 5m/15m/30m/1h --
+        // ── MTF history — aggregate 3m bars into 5m/15m/30m/1h ──
         struct MTFHist { long long ts; float o,h,l,c,vol,buy,sell; };
         auto buildMTF = [&](int interval_sec, int max_bars) -> std::vector<MTFHist> {
             std::map<long long, MTFHist> buckets;
@@ -912,12 +679,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if (hf.is_open()) { hf << hj.str(); hf.close(); }
     }
 
-    // -- Throttle ---------------------------------------------
+    // ── Throttle ─────────────────────────────────────────────
     static time_t lastExport=0; time_t now_t=time(nullptr);
     if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
     lastExport=now_t;
 
-    // -- JSON --------------------------------------------------
+    // ── JSON ──────────────────────────────────────────────────
     std::ostringstream j; j<<std::fixed<<std::setprecision(2);
     j<<"{"
      <<"\"timestamp\":"<<(long long)now_t
@@ -934,7 +701,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
      <<",\"candle_patterns\":{\"bar0\":\""<<pat0<<"\",\"bar1\":\""<<pat1<<"\",\"bar2\":\""<<pat2<<"\",\"bull_engulf\":"<<(bull_engulf?"true":"false")<<",\"bear_engulf\":"<<(bear_engulf?"true":"false")<<"}"
      <<",\"woodi_pivots\":{\"pp\":"<<PP<<",\"r1\":"<<R1<<",\"r2\":"<<R2<<",\"s1\":"<<S1<<",\"s2\":"<<S2<<",\"above_pp\":"<<(cp>PP?"true":"false")<<"}"
      <<",\"time_levels\":{\"weekly_high\":"<<HWk<<",\"weekly_low\":"<<LWk<<",\"h72_high\":"<<H72<<",\"h72_low\":"<<L72<<",\"prev_high\":"<<PH<<",\"prev_low\":"<<PL<<",\"prev_close\":"<<PC<<",\"daily_open\":"<<daily_open<<",\"overnight_high\":"<<ONH<<",\"overnight_low\":"<<ONL<<"}"
-     <<",\"order_flow\":{\"absorption_bull\":"<<(absorption_bull?"true":"false")<<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")<<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")<<",\"new_high\":"<<(new_high?"true":"false")<<",\"new_low\":"<<(new_low?"true":"false")<<",\"returned_to_range\":"<<(returned_to_range?"true":"false")<<",\"imbalances\":[";
+     <<",\"order_flow\":{\"absorption_bull\":"<<(absorption_bull?"true":"false")<<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")<<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")<<",\"imbalances\":[";
     for(int i=0;i<imb_count;i++){if(i>0)j<<",";j<<"{\"price\":"<<imbalances[i].price<<",\"buy\":"<<imbalances[i].buy_vol<<",\"sell\":"<<imbalances[i].sell_vol<<",\"ratio\":"<<imbalances[i].ratio<<"}";}
     j<<"]}"
      <<",\"footprint_bools\":{\"absorption_detected\":"<<(fp_absorption?"true":"false")
@@ -944,16 +711,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         <<",\"stacked_imbalance_dir\":\""<<fp_stacked_dir<<"\""
         <<",\"pullback_delta_declining\":"<<(fp_pullback_delta_declining?"true":"false")
         <<",\"pullback_aggressive_buy\":"<<(fp_pullback_aggressive_buy?"true":"false")
-        <<",\"pullback_aggressive_sell\":"<<(fp_pullback_aggressive_sell?"true":"false")
-        <<",\"absorption_at_fvg\":"<<(fp_absorption_at_fvg?"true":"false")
-        <<",\"delta_confirmed_5m\":"<<(fp_delta_confirmed_5m?"true":"false")
-        <<",\"tick_level_signals\":{"
-           <<"\"exhaustion_tail\":{\"detected\":"<<(trs_exhaustion?"true":"false")<<",\"intensity\":"<<trs_exhaustion_intensity<<",\"location\":\""<<trs_exhaustion_loc<<"\"}"
-           <<",\"stopping_volume\":{\"detected\":"<<(trs_stopping_vol?"true":"false")<<",\"rejection_ticks\":"<<trs_rejection_ticks<<",\"max_vol_last_5ticks\":"<<trs_max_vol_last5<<"}"
-           <<",\"delta_reversal_ticks\":{\"candle_delta\":"<<trs_candle_delta<<",\"last3_delta\":"<<trs_last3_delta<<",\"direction_flip\":"<<(trs_delta_flip?"true":"false")<<",\"reversal_strength\":"<<trs_reversal_strength<<"}"
-           <<",\"pv_divergence\":{\"detected\":"<<(trs_pv_divergence?"true":"false")<<"}"
-           <<",\"raw_ticks\":"<<raw_ticks_j.str()
-        <<"}}"
+        <<",\"pullback_aggressive_sell\":"<<(fp_pullback_aggressive_sell?"true":"false")<<"}"
      <<",\"mtf\":{"
         <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
         <<",\"m5\":{\"ts\":"<<m5.bar_ts<<",\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"
@@ -967,7 +725,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     std::ofstream f(ExportPath.GetString());
     if(f.is_open()){f<<j.str();f.close();}
 
-    // -- C5: Trade Command Execution --------------------------------------
+    // ── C5: Trade Command Execution ──────────────────────────────────────
     // Poll trade_command.json every second, verify checksum, execute bracket
     {
         static time_t s_lastCmdCheck = 0;
@@ -997,9 +755,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         // Skip if same trade_id (already processed)
         if (tradeId == s_lastTradeId) goto c5_done;
 
-        // TTL check -- 60 seconds
+        // TTL check — 60 seconds
         if (expiresAt > 0 && (long long)now_c > expiresAt) {
-            sc.AddMessageToLog("C5: Command expired -- skipping", 1);
+            sc.AddMessageToLog("C5: Command expired — skipping", 1);
             s_lastTradeId = tradeId;
             goto c5_done;
         }
@@ -1013,7 +771,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 << ":" << BridgeToken.GetString();
             std::string computed = sha256hex(raw.str());
             if (computed != checksum) {
-                sc.AddMessageToLog("C5: CHECKSUM MISMATCH -- ignoring", 1);
+                sc.AddMessageToLog("C5: CHECKSUM MISMATCH — ignoring", 1);
                 s_lastTradeId = tradeId;
                 goto c5_done;
             }
@@ -1036,15 +794,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (rf.is_open()) { rf << rj.str(); rf.close(); }
         };
 
-        // -- CANCEL --
+        // ── CANCEL ──
         if (cmd == "CANCEL") {
             sc.FlattenAndCancelAllOrders();
-            writeResult("OK", "CANCEL executed -- all orders flat", 0);
-            sc.AddMessageToLog("C5: CANCEL -- flattened all", 0);
+            writeResult("OK", "CANCEL executed — all orders flat", 0);
+            sc.AddMessageToLog("C5: CANCEL — flattened all", 0);
             goto c5_done;
         }
 
-        // -- BUY / SELL -- Bracket Order --
+        // ── BUY / SELL — Bracket Order ──
         if (cmd != "BUY" && cmd != "SELL") {
             writeResult("ERROR", "Unknown cmd", 0);
             goto c5_done;
@@ -1060,10 +818,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             goto c5_done;
         }
 
-        // Execute scale-out bracket: 3 separate orders (1 contract each)
-        // V6.7.0: parse brackets[] array; fallback to flat t1/t2/t3
+        // V6.7.0: Parse brackets[] array for 3 independent orders
         {
             double targets[3] = { 0, 0, 0 };
+            const char* labels[3] = { "C1", "C2", "C3" };
             int numBrackets = 0;
             size_t bp = cmdJson.find("\"brackets\"");
             if (bp != std::string::npos) {
@@ -1084,211 +842,73 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     }
                 }
             }
-            if (numBrackets == 0) {
-                targets[0] = cmdT1; targets[1] = cmdT2; targets[2] = cmdT3;
-                numBrackets = 3;
-            }
-            const char* labels[3] = { "C1", "C2", "C3" };
-            int totalSent = 0, totalFailed = 0;
 
-            // Persistent state for BE logic (survives between ticks)
-            int& p_order1 = sc.GetPersistentInt(100);
-            int& p_order2 = sc.GetPersistentInt(101);
-            int& p_order3 = sc.GetPersistentInt(102);
-            float& p_entry = sc.GetPersistentFloat(103);
-            int& p_beApplied = sc.GetPersistentInt(104);
-            int& p_isShort = sc.GetPersistentInt(105);
+            if (numBrackets == 3) {
+                // 3-bracket dispatch
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: %s 3-bracket dispatch starting (DLL %s)",
+                    cmd.c_str(), MEMS26_DLL_VERSION), 1);
+                int totalSent = 0;
+                for (int i = 0; i < 3; i++) {
+                    s_SCNewOrder order;
+                    order.OrderQuantity = 1;
+                    order.TimeInForce = SCT_TIF_GTC;
+                    order.OrderType = SCT_ORDERTYPE_MARKET;
+                    order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                    order.Stop1Price = (float)cmdStop;
+                    if (targets[i] > 0) {
+                        order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                        order.Target1Price = (float)targets[i];
+                    }
+                    SCString tag; tag.Format("MEMS26_%s", labels[i]);
+                    order.TextTag = tag;
 
-            p_entry = (float)cmdPrice;
-            p_beApplied = 0;
-            p_isShort = (cmd == "SELL") ? 1 : 0;
-            p_order1 = 0; p_order2 = 0; p_order3 = 0;
+                    int result = (cmd == "BUY")
+                        ? (int)sc.BuyEntry(order) : (int)sc.SellEntry(order);
 
-            for (int i = 0; i < numBrackets; i++) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: bracket %s/3 submitted Result=%d target=%.2f stop=%.2f tag=%s",
+                        labels[i], result, targets[i], cmdStop, tag.GetChars()), 1);
+                    if (result <= 0) {
+                        sc.AddMessageToLog(SCString().Format(
+                            "C5: ERROR bracket %s rejected", labels[i]), 1);
+                    } else {
+                        totalSent++;
+                    }
+                }
+                SCString detail;
+                detail.Format("3-bracket %s: %d/3 sent T1=%.2f T2=%.2f T3=%.2f",
+                              cmd.c_str(), totalSent, targets[0], targets[1], targets[2]);
+                writeResult(totalSent > 0 ? "OK" : "ERROR", detail.GetChars(), totalSent);
+                sc.AddMessageToLog("C5: 3-bracket dispatch complete", 1);
+            } else {
+                // LEGACY fallback — single position (no brackets[] in JSON)
+                sc.AddMessageToLog("C5: WARNING legacy single-bracket format", 1);
                 s_SCNewOrder order;
-                order.Reset();
-                order.OrderQuantity = 1;
+                order.OrderQuantity = cmdQty;
                 order.TimeInForce = SCT_TIF_GTC;
                 order.OrderType = SCT_ORDERTYPE_MARKET;
                 order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                 order.Stop1Price = (float)cmdStop;
-                if (targets[i] > 0) {
+                if (cmdT1 > 0) {
                     order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
-                    order.Target1Price = (float)targets[i];
+                    order.Target1Price = (float)cmdT1;
                 }
-                SCString tag; tag.Format("MEMS26_%s", labels[i]);
-                order.TextTag = tag;
-
                 int result = (cmd == "BUY")
                     ? (int)sc.BuyEntry(order) : (int)sc.SellEntry(order);
-
                 if (result > 0) {
-                    totalSent++;
-                    if (i == 0) p_order1 = order.InternalOrderID;
-                    if (i == 1) p_order2 = order.InternalOrderID;
-                    if (i == 2) p_order3 = order.InternalOrderID;
                     SCString msg;
-                    msg.Format("C5: bracket %s/%d submitted Result=%d",
-                               labels[i], numBrackets, result);
+                    msg.Format("C5: %s %d @ %.2f stop=%.2f t1=%.2f",
+                               cmd.c_str(), cmdQty, cmdPrice, cmdStop, cmdT1);
+                    writeResult("OK", msg.GetChars(), result);
                     sc.AddMessageToLog(msg, 0);
                 } else {
-                    totalFailed++;
-                    SCString msg;
-                    msg.Format("C5: bracket %s/%d FAILED Result=%d",
-                               labels[i], numBrackets, result);
-                    sc.AddMessageToLog(msg, 1);
+                    writeResult("ERROR", "Entry failed", result);
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: %s FAILED result=%d", cmd.c_str(), result), 1);
                 }
-            }
-
-            if (totalSent > 0) {
-                sc.AddMessageToLog("C5: 3-bracket dispatch complete", 0);
-                SCString detail;
-                detail.Format("%d brackets ids=[%d,%d,%d] T1=%.2f T2=%.2f T3=%.2f",
-                              totalSent, p_order1, p_order2, p_order3,
-                              targets[0], targets[1], targets[2]);
-                writeResult("OK", detail.GetChars(), totalSent);
-            } else {
-                writeResult("ERROR", "All 3 brackets failed", 0);
             }
         }
     }
     c5_done:;
-
-    // -- C5-BE: Break-Even logic -- move C3 stop after C2 fills --
-    // Runs every tick. Checks if C2 target filled, then modifies C3 stop.
-    {
-        int& p_order2 = sc.GetPersistentInt(101);
-        int& p_order3 = sc.GetPersistentInt(102);
-        float& p_entry = sc.GetPersistentFloat(103);
-        int& p_beApplied = sc.GetPersistentInt(104);
-        int& p_isShort = sc.GetPersistentInt(105);
-
-        if (p_order2 > 0 && p_order3 > 0 && p_beApplied == 0) {
-            s_SCTradeOrder o2;
-            if (sc.GetOrderByOrderID(p_order2, o2) != SCTRADING_ORDER_ERROR) {
-                if (o2.OrderStatusCode == SCT_OSC_FILLED) {
-                    // C2 filled -- apply BE to C3's stop
-                    float bePrice = p_isShort
-                        ? (p_entry - 0.25f)   // SHORT: entry - 1 tick
-                        : (p_entry + 0.25f);  // LONG: entry + 1 tick
-
-                    // Find C3's parent order to get its attached stop
-                    s_SCTradeOrder o3;
-                    if (sc.GetOrderByOrderID(p_order3, o3) != SCTRADING_ORDER_ERROR) {
-                        // Modify the stop child of C3
-                        s_SCNewOrder mod;
-                        mod.InternalOrderID = o3.ParentInternalOrderID > 0
-                            ? o3.ParentInternalOrderID : p_order3;
-                        mod.Stop1Price = bePrice;
-                        int modResult = (int)sc.ModifyOrder(mod);
-
-                        if (modResult != 0) {
-                            p_beApplied = 1;
-                            SCString msg;
-                            msg.Format("C5: BE applied -- C3 stop moved to %.2f (C2 filled)", bePrice);
-                            sc.AddMessageToLog(msg, 0);
-                        } else {
-                            SCString msg;
-                            msg.Format("C5: BE modify failed for order %d", p_order3);
-                            sc.AddMessageToLog(msg, 1);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Reset when position is flat
-        if (p_order1 > 0) {
-            s_SCPositionData pos;
-            sc.GetTradePosition(pos);
-            if (pos.PositionQuantity == 0 && p_beApplied != 0) {
-                p_order1 = 0; p_order2 = 0; p_order3 = 0;
-                p_beApplied = 0;
-                sc.AddMessageToLog("C5: Position flat -- state reset", 0);
-            }
-        }
-    }
-
-    // -- C6: Visualization -- read viz JSON, draw setup zones on chart --
-    {
-        static time_t s_lastViz = 0;
-        static int s_vizBase = 90000;
-        static int s_vizCount = 0;
-        time_t now_v = time(nullptr);
-        if (now_v - s_lastViz < 1) goto c6_done;
-        s_lastViz = now_v;
-        std::string vp(VizPath.GetString());
-        if (vp.empty()) goto c6_done;
-        std::ifstream vf(vp);
-        if (!vf.is_open()) goto c6_done;
-        std::string vj((std::istreambuf_iterator<char>(vf)), std::istreambuf_iterator<char>());
-        vf.close();
-        if (vj.size() < 10) goto c6_done;
-        for (int d = 0; d < s_vizCount; d++)
-            sc.DeleteACSILDrawingByLineNumber(sc.CurrentChart, s_vizBase + d);
-        s_vizCount = 0;
-        size_t as = vj.find('[');
-        if (as == std::string::npos) goto c6_done;
-        size_t ae = vj.rfind(']');
-        if (ae == std::string::npos || ae <= as) goto c6_done;
-        int di = 0;
-        size_t p = as;
-        while (p < ae && di < 50) {
-            size_t os = vj.find('{', p + 1);
-            if (os == std::string::npos || os >= ae) break;
-            size_t oe = vj.find('}', os);
-            if (oe == std::string::npos) break;
-            std::string o = vj.substr(os, oe - os + 1);
-            p = oe;
-            std::string dt = jsonStr(o, "type");
-            float pt = (float)jsonNum(o, "price_top");
-            float pb = (float)jsonNum(o, "price_bot");
-            int bo = (int)jsonNum(o, "bar_offset");
-            std::string cs = jsonStr(o, "color");
-            int al = (int)jsonNum(o, "alpha");
-            if (al <= 0) al = 128;
-            int tb = idx - bo;
-            if (tb < 0) tb = 0;
-            if (dt == "rect" && pt > 0 && pb > 0) {
-                s_UseTool T; memset(&T, 0, sizeof(T));
-                T.ChartNumber = sc.ChartNumber;
-                T.DrawingType = DRAWING_RECTANGLEHIGHLIGHT;
-                T.LineNumber = s_vizBase + di;
-                T.BeginIndex = tb; T.EndIndex = idx;
-                T.BeginValue = pt; T.EndValue = pb;
-                T.TransparencyLevel = 100 - (al * 100 / 255);
-                T.AddAsUserDrawnDrawing = 0;
-                if (cs == "green") T.Color = RGB(0,180,80);
-                else if (cs == "red") T.Color = RGB(200,60,60);
-                else if (cs == "dark") T.Color = RGB(40,40,40);
-                else T.Color = RGB(80,80,80);
-                T.SecondaryColor = T.Color;
-                sc.UseTool(T); di++;
-            } else if (dt == "bubble" && pt > 0) {
-                s_UseTool T; memset(&T, 0, sizeof(T));
-                T.ChartNumber = sc.ChartNumber;
-                T.DrawingType = DRAWING_MARKER;
-                T.LineNumber = s_vizBase + di;
-                T.BeginIndex = tb; T.BeginValue = pt;
-                T.Color = RGB(0,220,220);
-                T.MarkerType = MARKER_DIAMOND; T.MarkerSize = 6;
-                T.AddAsUserDrawnDrawing = 0;
-                sc.UseTool(T); di++;
-            } else if (dt == "arrow" && pt > 0) {
-                s_UseTool T; memset(&T, 0, sizeof(T));
-                T.ChartNumber = sc.ChartNumber;
-                T.DrawingType = DRAWING_MARKER;
-                T.LineNumber = s_vizBase + di;
-                T.BeginIndex = tb; T.BeginValue = pt;
-                T.Color = RGB(120,120,120);
-                std::string dr = jsonStr(o, "dir");
-                T.MarkerType = (dr == "LONG") ? MARKER_ARROWUP : MARKER_ARROWDOWN;
-                T.MarkerSize = 5;
-                T.AddAsUserDrawnDrawing = 0;
-                sc.UseTool(T); di++;
-            }
-        }
-        s_vizCount = di;
-    }
-    c6_done:;
 }
