@@ -1647,10 +1647,15 @@ async def trade_execute(request: Request):
                 _exec_entry_mode = _bridge_cfg.get("entry_mode", "STRICT")
         except Exception:
             pass
-        log.info(f"[EXECUTE] entry_mode={_exec_entry_mode}")
+        # V6.7.2: X-Test-Override header — skip entry gates in DEMO
+        _test_override = request.headers.get("x-test-override", "").lower() == "true"
+        if _test_override and _exec_entry_mode != "DEMO":
+            raise HTTPException(status_code=403, detail="X-Test-Override only allowed in DEMO")
+        _skip_gates = _test_override and _exec_entry_mode == "DEMO"
+        log.info(f"[EXECUTE] entry_mode={_exec_entry_mode} test_override={_test_override}")
 
-        # Circuit breaker check (skip in DEMO)
-        if _exec_entry_mode not in ("DEMO", "RESEARCH"):
+        # Circuit breaker check (skip in DEMO or test override)
+        if _exec_entry_mode not in ("DEMO", "RESEARCH") and not _skip_gates:
             try:
                 cb = await check_circuit_breaker()
             except Exception as e:
@@ -1670,7 +1675,7 @@ async def trade_execute(request: Request):
             ("NY_Close", 15*60,       16*60),
         ]
         _in_kz = any(start <= _t < end for _, start, end in _KILLZONES)
-        if not _in_kz and _exec_entry_mode not in ("DEMO", "RESEARCH"):
+        if not _in_kz and _exec_entry_mode not in ("DEMO", "RESEARCH") and not _skip_gates:
             raise HTTPException(status_code=403,
                 detail=f"Outside killzone -- {_now_et.strftime('%H:%M')} ET. Windows: London 03-05, NY Open 09:30-10:30, NY Close 15-16")
 
@@ -1763,6 +1768,7 @@ async def trade_execute(request: Request):
             "pnl_usd": 0,
             "news_tag": news_tag,
             "contracts": CONTRACTS,
+            "is_test": _test_override,
         }
 
         # Snapshot market context at entry for analytics
@@ -1803,8 +1809,8 @@ async def trade_execute(request: Request):
         verify = await redis_get_key(REDIS_TRADE_COMMAND)
         log.info(f"[EXECUTE] step 4: command written, verify={verify is not None}, trade_id={verify.get('trade_id') if verify else 'NONE'}")
 
-        # Increment daily trade count — only for genuinely new trades
-        if not is_replacement:
+        # Increment daily trade count — only for genuinely new trades (not test)
+        if not is_replacement and not _test_override:
             try:
                 state = await get_daily_state()
                 today = __import__("datetime").date.today().isoformat()
@@ -2162,12 +2168,15 @@ async def news_status():
 
 # ── Analytics Endpoints ───────────────────────────────────────────────────
 
-async def _get_all_trade_logs(is_shadow: Optional[bool] = None) -> list:
+async def _get_all_trade_logs(is_shadow: Optional[bool] = None, include_tests: bool = False) -> list:
     """Read all trade log entries. Uses Postgres when available, else Redis."""
     from database import get_all_trades, get_pool
     pool = await get_pool()
     if pool:
-        return await get_all_trades(is_shadow=is_shadow)
+        trades = await get_all_trades(is_shadow=is_shadow)
+        if not include_tests:
+            trades = [t for t in trades if not t.get("is_test")]
+        return trades
 
     # Fallback to Redis
     trades = []
