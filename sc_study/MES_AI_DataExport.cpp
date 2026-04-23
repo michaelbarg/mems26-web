@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v6.9"
+#define MEMS26_DLL_VERSION "v7.0"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v6.9";
+        sc.GraphName        = "MES AI Data Export v7.0";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -210,12 +210,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         ResultPath.SetString("C:\\SierraChart2\\Data\\trade_result.json");
         BridgeToken.Name = "Bridge Token";
         BridgeToken.SetString("michael-mems26-2026");
-        // V6.9: Trading variables per Sierra Chart official docs
-        // sierrachart.com/index.php?page=doc/AutoTradeManagment.php
+        // V7.0: Trading variables for single-bracket-with-3-targets model
+        // Per Sierra Chart Engineering (ThreadID=105021), this is the
+        // supported native pattern for partial scale-out.
         sc.AllowOnlyOneTradePerBar              = 0;
         sc.SupportAttachedOrdersForTrading      = 1;
         sc.MaintainTradeStatisticsAndTradesData = 1;
-        sc.AllowMultipleEntriesInSameDirection   = 1;
+        sc.AllowMultipleEntriesInSameDirection   = 0;
         sc.AllowEntryWithWorkingOrders           = 1;
         sc.MaximumPositionAllowed                = 10;
         sc.SupportReversals                      = 0;
@@ -226,10 +227,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             MEMS26_DLL_VERSION, __DATE__, __TIME__), 1);
         return;
     }
-
-    // V6.9: Per Sierra docs, SupportTradingScaleIn MUST be set
-    // outside SetDefaults to take effect.
-    sc.SupportTradingScaleIn = 1;
 
     int idx = sc.Index;
     SCDateTime now_dt = sc.BaseDateTimeIn[idx];
@@ -878,45 +875,54 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 "C5: parsed %d brackets from JSON", (int)brackets.size()), 1);
 
             if (brackets.size() == 3) {
-                // V6.9: No pre-flight cleanup needed. With
-                // AllowEntryWithWorkingOrders=1, AllowMultipleEntries=1,
-                // and SupportTradingScaleIn=1, Sierra accepts each
-                // BuyEntry independently without conflicting.
+                // V7.0: Single BuyEntry with 3 attached targets + shared stop
+                // Per Sierra Engineering (ThreadID=105021), this is the native
+                // pattern for partial scale-out brackets.
+
+                // Sort by target distance: nearest first for LONG, farthest for SHORT
+                std::sort(brackets.begin(), brackets.end(),
+                    [&](const BracketSpec& a, const BracketSpec& b) {
+                        return (cmd == "BUY") ? a.target < b.target : a.target > b.target;
+                    });
+
+                s_SCNewOrder NewOrder;
+                NewOrder.OrderQuantity = 3;
+                NewOrder.OrderType = SCT_ORDERTYPE_MARKET;
+                NewOrder.TextTag = "MEMS26_PARENT";
+                NewOrder.Target1Price = (float)brackets[0].target;
+                NewOrder.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                NewOrder.OCOGroup1Quantity = 1;
+                NewOrder.Target2Price = (float)brackets[1].target;
+                NewOrder.AttachedOrderTarget2Type = SCT_ORDERTYPE_LIMIT;
+                NewOrder.OCOGroup2Quantity = 1;
+                NewOrder.Target3Price = (float)brackets[2].target;
+                NewOrder.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
+                NewOrder.OCOGroup3Quantity = 1;
+                NewOrder.Stop1Price = (float)cmdStop;
+                NewOrder.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
 
                 sc.AddMessageToLog(SCString().Format(
-                    "C5: %s 3-bracket dispatch starting (DLL %s)",
+                    "C5: %s 3-target bracket dispatch starting (DLL %s)",
                     cmd.c_str(), MEMS26_DLL_VERSION), 1);
-                int totalSent = 0;
-                for (int i = 0; i < 3; i++) {
-                    s_SCNewOrder order;
-                    order.OrderQuantity = brackets[i].qty;
-                    order.TimeInForce = SCT_TIF_GTC;
-                    order.OrderType = SCT_ORDERTYPE_MARKET;
-                    order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
-                    order.Stop1Price = (float)cmdStop;
-                    if (brackets[i].target > 0) {
-                        order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
-                        order.Target1Price = (float)brackets[i].target;
-                    }
-                    SCString tag; tag.Format("MEMS26_%s", brackets[i].id.c_str());
-                    order.TextTag = tag;
-
-                    int result = (cmd == "BUY")
-                        ? (int)sc.BuyEntry(order) : (int)sc.SellEntry(order);
-
-                    sc.AddMessageToLog(SCString().Format(
-                        "C5: bracket %s/3 Result=%d target=%.2f stop=%.2f tag=%s",
-                        brackets[i].id.c_str(), result, brackets[i].target,
-                        cmdStop, tag.GetChars()), 1);
-                    if (result > 0) totalSent++;
-                    else sc.AddMessageToLog(SCString().Format(
-                        "C5: ERROR bracket %s rejected", brackets[i].id.c_str()), 1);
-                }
-                SCString detail;
-                detail.Format("3-bracket %s: %d/3 sent", cmd.c_str(), totalSent);
-                writeResult(totalSent > 0 ? "OK" : "ERROR", detail.GetChars(), totalSent);
                 sc.AddMessageToLog(SCString().Format(
-                    "C5: dispatch complete: %d/3 brackets accepted", totalSent), 1);
+                    "C5: T1=%.2f T2=%.2f T3=%.2f stop=%.2f qty=3",
+                    brackets[0].target, brackets[1].target,
+                    brackets[2].target, cmdStop), 1);
+
+                int Result = (cmd == "BUY")
+                    ? (int)sc.BuyEntry(NewOrder) : (int)sc.SellEntry(NewOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: bracket dispatch Result=%d", Result), 1);
+                if (Result > 0) {
+                    writeResult("OK", "1 bracket with 3 targets accepted", Result);
+                    sc.AddMessageToLog(
+                        "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
+                } else {
+                    writeResult("ERROR", "bracket rejected", Result);
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: ERROR bracket rejected: %d", Result), 1);
+                }
             } else {
                 // V6.8: replaced by strict parser above — kept for reference
                 sc.AddMessageToLog(SCString().Format(
