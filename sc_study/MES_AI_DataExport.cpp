@@ -857,7 +857,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             } else {
                 sc.AddMessageToLog(SCString().Format(
                     "C5: SCALE_OUT error %d: %s", result,
-                    sc.GetTradingErrorTextMessage(result).GetChars()), 1);
+                    sc.GetTradingErrorTextMessage(result)), 1);
             }
             writeResult(result > 0 ? "OK" : "ERROR", "SCALE_OUT", result);
             goto c5_done;
