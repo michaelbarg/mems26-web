@@ -2055,6 +2055,61 @@ async def trade_scale(request: Request):
     return {"ok": True, "trade": active}
 
 
+@app.post("/trade/event")
+async def receive_trade_event(request: Request, x_bridge_token: Optional[str] = Header(None)):
+    """V7.7.3: Receives POSITION_CHANGE events from DLL via Bridge."""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="invalid token")
+    body = await request.json()
+    if body.get("event_type") != "POSITION_CHANGE":
+        return {"status": "ignored", "reason": "unknown event_type"}
+
+    prev_qty = body.get("prev_qty", 0)
+    new_qty = body.get("new_qty", 0)
+    last_price = body.get("last_price", 0)
+    trade_id = body.get("trade_id", "")
+    # Strip suffixes to find parent trade
+    for sfx in ("_CLOSE", "_SCALE_C1", "_SCALE_C2", "_SCALE_C3"):
+        if trade_id.endswith(sfx):
+            trade_id = trade_id[:-len(sfx)]
+            break
+
+    active = await redis_get_key(REDIS_TRADE_STATUS)
+    if not active or active.get("id") != trade_id:
+        log.warning(f"[C3] event for unknown trade {trade_id}, ignoring")
+        return {"status": "ignored", "reason": "trade not found"}
+
+    transition = "UNKNOWN"
+    if prev_qty == 0 and new_qty > 0:
+        transition = "ENTRY"
+        active["entry_confirmed_ts"] = body.get("ts", 0)
+    elif new_qty == 0 and prev_qty > 0:
+        transition = "FULL_CLOSE"
+        active["status"] = "CLOSED"
+        active["exit_price"] = last_price
+        active["exit_ts"] = body.get("ts", 0)
+        active["close_reason"] = "sierra_event"
+    elif 0 < new_qty < prev_qty:
+        transition = "SCALE_OUT"
+        active["remaining_qty"] = new_qty
+        fills = active.get("fills", [])
+        fills.append({"qty": prev_qty - new_qty, "price": last_price, "ts": body.get("ts", 0)})
+        active["fills"] = fills
+
+    await redis_set_key(REDIS_TRADE_STATUS, active)
+    log.info(f"[C3] trade event {trade_id}: {prev_qty} → {new_qty} ({transition})")
+
+    # Persist to Postgres if full close
+    if transition == "FULL_CLOSE":
+        try:
+            from database import insert_trade
+            await insert_trade(active)
+        except Exception as e:
+            log.warning(f"[C3] Postgres persist failed: {e}")
+
+    return {"status": "processed", "trade_id": trade_id, "transition": transition}
+
+
 @app.get("/trade/command")
 async def get_trade_command(x_bridge_token: Optional[str] = Header(None)):
     if x_bridge_token != BRIDGE_TOKEN:
