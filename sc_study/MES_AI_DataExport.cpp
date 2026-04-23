@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.7.1"
+#define MEMS26_DLL_VERSION "v7.7.1c"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.7.1";
+        sc.GraphName        = "MES AI Data Export v7.7.1c";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -944,10 +944,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 sc.AddMessageToLog(SCString().Format(
                     "C5: bracket dispatch Result=%d", Result), 1);
                 if (Result > 0) {
-                    // V7.7.1: Store trade_id + init position tracking
                     s_lastTradeId = tradeId;
-                    { s_SCPositionData pd; sc.GetTradePosition(pd);
-                      sc.GetPersistentInt(200) = (int)pd.PositionQuantity; }
+                    // V7.7.1c: Persist trade_id to file for position monitoring
+                    { std::string dp(ExportPath.GetString());
+                      size_t s = dp.rfind('/'); if (s == std::string::npos) s = dp.rfind('\\');
+                      if (s != std::string::npos) {
+                          std::ofstream idf(dp.substr(0, s+1) + "mems26_current_trade_id.txt");
+                          if (idf.is_open()) { idf << tradeId; idf.close(); }
+                      }
+                    }
                     writeResult("OK", "1 bracket with 3 targets accepted", Result);
                     sc.AddMessageToLog(
                         "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
@@ -991,22 +996,27 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     c5_done:;
 
-    // V7.7.1: POSITION CHANGE DETECTION (runs every update interval)
-    // Safe: only reads PositionQuantity, no loops, no order modifications.
+    // V7.7.1c: POSITION CHANGE DETECTION (runs every update interval)
     {
-        static std::string s_monitorTradeId;
-        // Capture trade_id from BUY dispatch (set inside C5 block)
-        // s_lastTradeId is scoped to C5, so we mirror it here via persistent
         s_SCPositionData PosData;
         sc.GetTradePosition(PosData);
         int currentQty = (int)PosData.PositionQuantity;
         int lastQty = sc.GetPersistentInt(200);
 
         if (currentQty != lastQty) {
+            // Read trade_id from sidecar file
+            std::string tradeId = "unknown";
+            std::string dp(ExportPath.GetString());
+            size_t sl = dp.rfind('/'); if (sl == std::string::npos) sl = dp.rfind('\\');
+            std::string dataDir = (sl != std::string::npos) ? dp.substr(0, sl + 1) : "";
+            { std::ifstream idf(dataDir + "mems26_current_trade_id.txt");
+              if (idf.is_open()) { std::getline(idf, tradeId); idf.close(); } }
+
             std::ostringstream ej;
             ej << std::fixed << std::setprecision(2);
             ej << "{\n"
                << "  \"event_type\": \"POSITION_CHANGE\",\n"
+               << "  \"trade_id\": \"" << tradeId << "\",\n"
                << "  \"prev_qty\": " << lastQty << ",\n"
                << "  \"new_qty\": " << currentQty << ",\n"
                << "  \"last_price\": " << (double)sc.LastTradePrice << ",\n"
@@ -1015,18 +1025,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                << "  \"dll_version\": \"" << MEMS26_DLL_VERSION << "\"\n"
                << "}\n";
 
-            std::string eventPath = std::string(ExportPath.GetString());
-            size_t sl = eventPath.rfind('/');
-            if (sl == std::string::npos) sl = eventPath.rfind('\\');
-            if (sl != std::string::npos)
-                eventPath = eventPath.substr(0, sl + 1) + "trade_events.json";
-
-            std::ofstream ef(eventPath);
+            std::ofstream ef(dataDir + "trade_events.json");
             if (ef.is_open()) { ef << ej.str(); ef.close(); }
 
             sc.AddMessageToLog(SCString().Format(
-                "C5: V7.7.1 position change %d -> %d, event written",
-                lastQty, currentQty), 1);
+                "C5: V7.7.1c position %d -> %d (trade=%s), event written",
+                lastQty, currentQty, tradeId.c_str()), 1);
             sc.GetPersistentInt(200) = currentQty;
         }
     }
