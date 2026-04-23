@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v6.8.0"
+#define MEMS26_DLL_VERSION "v6.9"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v8.1";
+        sc.GraphName        = "MES AI Data Export v6.9";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -210,17 +210,26 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         ResultPath.SetString("C:\\SierraChart2\\Data\\trade_result.json");
         BridgeToken.Name = "Bridge Token";
         BridgeToken.SetString("michael-mems26-2026");
-        sc.AllowMultipleEntriesInSameDirection = 1;
-        sc.AllowOnlyOneTradePerBar = 0;
-        sc.SupportAttachedOrdersForTrading = 1;
+        // V6.9: Trading variables per Sierra Chart official docs
+        // sierrachart.com/index.php?page=doc/AutoTradeManagment.php
+        sc.AllowOnlyOneTradePerBar              = 0;
+        sc.SupportAttachedOrdersForTrading      = 1;
         sc.MaintainTradeStatisticsAndTradesData = 1;
-        sc.MaximumPositionAllowed = 3;
-        sc.SupportReversals = 0;
+        sc.AllowMultipleEntriesInSameDirection   = 1;
+        sc.AllowEntryWithWorkingOrders           = 1;
+        sc.MaximumPositionAllowed                = 10;
+        sc.SupportReversals                      = 0;
+        sc.AllowOppositeEntryWithOpposingPositionOrOrders = 0;
+        sc.CancelAllOrdersOnEntriesAndReversals  = 0;
         sc.AddMessageToLog(SCString().Format(
             "MES_AI_DataExport loaded — DLL version: %s built: %s %s",
             MEMS26_DLL_VERSION, __DATE__, __TIME__), 1);
         return;
     }
+
+    // V6.9: Per Sierra docs, SupportTradingScaleIn MUST be set
+    // outside SetDefaults to take effect.
+    sc.SupportTradingScaleIn = 1;
 
     int idx = sc.Index;
     SCDateTime now_dt = sc.BaseDateTimeIn[idx];
@@ -869,10 +878,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 "C5: parsed %d brackets from JSON", (int)brackets.size()), 1);
 
             if (brackets.size() == 3) {
-                // Pre-flight: cancel working orders first, then flatten
-                sc.CancelAllOrders();
-                sc.FlattenAndCancelAllOrders();
-                sc.AddMessageToLog("C5: pre-flight cleanup (cancel+flatten) done", 1);
+                // V6.9: No pre-flight cleanup needed. With
+                // AllowEntryWithWorkingOrders=1, AllowMultipleEntries=1,
+                // and SupportTradingScaleIn=1, Sierra accepts each
+                // BuyEntry independently without conflicting.
 
                 sc.AddMessageToLog(SCString().Format(
                     "C5: %s 3-bracket dispatch starting (DLL %s)",
