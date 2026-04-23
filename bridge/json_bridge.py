@@ -4,7 +4,7 @@ json_bridge.py — v5
 - צובר היסטוריית נרות 3m ב-Redis (mems26:candles) עד 960 נרות (48h)
 - מעביר ישירות שדות חדשים מ-Study v5: woodies_cci, day_context, candle_patterns, volume_context
 """
-import json, asyncio, aiohttp, os, logging, time
+import json, asyncio, aiohttp, os, logging, time, sys
 from datetime import datetime, time as dtime
 from dataclasses import dataclass
 from zoneinfo import ZoneInfo
@@ -930,15 +930,43 @@ async def _publish_bridge_config(http):
 
 
 async def main():
-    if not REDIS_URL or not REDIS_TOKEN:
-        log.error("Missing UPSTASH credentials"); return
+    # ── Env validation ────────────────────────────────────────────
+    _required = {
+        "UPSTASH_REDIS_REST_URL": REDIS_URL,
+        "UPSTASH_REDIS_REST_TOKEN": REDIS_TOKEN,
+        "CLOUD_URL": CLOUD_URL,
+        "BRIDGE_TOKEN": BRIDGE_TOKEN,
+        "SC_JSON_PATH": SC_JSON_PATH,
+        "SC_HISTORY_PATH": SC_HISTORY_PATH,
+    }
+    for name, val in _required.items():
+        if not val:
+            log.error(f"Missing env var {name}. Copy bridge/.env.example to bridge/.env and fill in values.")
+            sys.exit(1)
 
     log.info("="*50)
     log.info(f"  MEMS26 Bridge v7 — MODE={MODE} | Contracts={CONTRACTS}")
     log.info(f"  SC JSON    : {SC_JSON_PATH}")
     log.info(f"  SC HISTORY : {SC_HISTORY_PATH}")
     log.info(f"  Redis      : {REDIS_URL}")
+    log.info(f"  Token      : {REDIS_TOKEN[:8]}...({len(REDIS_TOKEN)} chars)")
     log.info("="*50)
+
+    # ── Live token validation ─────────────────────────────────────
+    async with aiohttp.ClientSession() as _hc:
+        try:
+            async with _hc.get(
+                f"{REDIS_URL}/get/__healthcheck__",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}"},
+                timeout=aiohttp.ClientTimeout(total=5.0),
+            ) as resp:
+                if resp.status == 401:
+                    log.error("REDIS TOKEN INVALID — check UPSTASH_REDIS_REST_TOKEN in bridge/.env")
+                    sys.exit(1)
+        except Exception as e:
+            log.error(f"Redis health check failed: {e}")
+            sys.exit(1)
+    log.info("Redis auth OK — Bridge ready")
 
     # ── טעינת היסטוריה ─────────────────────────────────────────
     # אסטרטגיה:

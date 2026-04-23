@@ -122,3 +122,54 @@ if errors:
 
 print(f"\n{'='*50}")
 print("VERIFICATION PASSED -- all fields correct, checksum valid")
+
+# ── Bridge startup assertions ─────────────────────────────────────────────
+import subprocess, shutil
+BRIDGE_DIR = os.path.join(os.path.dirname(__file__), "..", "bridge")
+real_env = os.path.join(BRIDGE_DIR, ".env")
+backup = real_env + ".bak"
+
+print(f"\n{'='*50}\n=== BRIDGE STARTUP TESTS ===")
+
+# Test 1: bad token → exits with "REDIS TOKEN INVALID"
+print("\n--- Test 1: bad token ---")
+if os.path.exists(real_env):
+    shutil.copy2(real_env, backup)
+with open(real_env, "w") as f:
+    f.write(f"UPSTASH_REDIS_REST_URL={REDIS_URL}\nUPSTASH_REDIS_REST_TOKEN=bad-token\n"
+            f"CLOUD_URL={BACKEND}\nBRIDGE_TOKEN={BRIDGE_TOKEN}\n"
+            "SC_JSON_PATH=/tmp/f.json\nSC_HISTORY_PATH=/tmp/fh.json\n")
+try:
+    p = subprocess.run([sys.executable, "json_bridge.py"], cwd=BRIDGE_DIR,
+                       capture_output=True, text=True, timeout=10)
+    if p.returncode != 0 and "REDIS TOKEN INVALID" in p.stderr:
+        print("  PASS")
+    else:
+        errors.append(f"Bridge bad-token: rc={p.returncode}, stderr={p.stderr[-200:]}")
+except subprocess.TimeoutExpired:
+    errors.append("Bridge bad-token: no exit within 10s")
+finally:
+    if os.path.exists(backup):
+        shutil.move(backup, real_env)
+
+# Test 2: valid .env → "Bridge ready"
+if os.path.exists(real_env):
+    print("\n--- Test 2: valid token ---")
+    try:
+        p = subprocess.run([sys.executable, "json_bridge.py"], cwd=BRIDGE_DIR,
+                           capture_output=True, text=True, timeout=15)
+        if "Bridge ready" in p.stderr:
+            print("  PASS")
+        else:
+            errors.append(f"Bridge valid: 'Bridge ready' missing, stderr={p.stderr[-300:]}")
+    except subprocess.TimeoutExpired:
+        errors.append("Bridge valid: timed out")
+else:
+    print("\n--- Test 2: SKIPPED (no .env) ---")
+
+if errors:
+    print(f"\n{'='*50}\nFAILED -- {len(errors)} error(s):")
+    for e in errors:
+        print(f"  - {e}")
+    sys.exit(1)
+print(f"\n{'='*50}\nALL TESTS PASSED")
