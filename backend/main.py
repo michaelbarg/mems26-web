@@ -1934,15 +1934,17 @@ async def trade_close(request: Request):
 
     log.info(f"Trade closed: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f}) reason={reason}")
 
-    # V6.8: Push CLOSE command to Redis so Bridge → DLL cancels Teton orders
+    # V7.2.2: Push CLOSE command — mirrors CANCEL format exactly
     try:
         close_ts = int(time.time())
-        close_id = active["id"]
-        chk_hex, _ = _make_checksum("CLOSE", 0, 0, 0, close_id, close_ts + 60)
+        close_id = f"{active['id']}_CLOSE"
+        close_exp = close_ts + COMMAND_TTL_SEC
+        chk_hex, chk_raw = _make_checksum("CLOSE", 0, 0, 0, close_id, close_exp)
         close_cmd = {
             "cmd": "CLOSE", "price": 0, "qty": 0, "stop": 0,
-            "trade_id": close_id, "expires_at": close_ts + 60,
-            "checksum": chk_hex,
+            "t1": 0, "t2": 0, "t3": 0,
+            "trade_id": close_id, "expires_at": close_exp,
+            "checksum": chk_hex, "checksum_input": chk_raw,
         }
         await redis_set_key(REDIS_TRADE_COMMAND, close_cmd)
         log.info(f"[CLOSE] command pushed to Redis for {close_id}")
@@ -2029,20 +2031,22 @@ async def trade_scale(request: Request):
     await redis_set_key(REDIS_TRADE_STATUS, active)
     log.info(f"Scaled out {contract} @ {exit_price}")
 
-    # V7.2: Push SCALE_OUT command to Redis so Bridge → DLL exits 1 contract
+    # V7.2.2: Push SCALE_OUT command — mirrors CANCEL format exactly
     try:
         import time as _t
         scale_ts = int(_t.time())
-        scale_exp = scale_ts + 60
-        chk_hex, _ = _make_checksum("SCALE_OUT", 0, 1, 0, active["id"], scale_exp)
+        scale_exp = scale_ts + COMMAND_TTL_SEC
+        scale_id = f"{active['id']}_SCALE_{contract.upper()}"
+        chk_hex, chk_raw = _make_checksum("SCALE_OUT", 0, 1, 0, scale_id, scale_exp)
         scale_cmd = {
             "cmd": "SCALE_OUT", "price": 0, "qty": 1, "stop": 0,
-            "trade_id": active["id"], "direction": active["direction"],
-            "ts": scale_ts, "expires_at": scale_exp,
-            "checksum": chk_hex,
+            "t1": 0, "t2": 0, "t3": 0,
+            "trade_id": scale_id, "direction": active["direction"],
+            "expires_at": scale_exp,
+            "checksum": chk_hex, "checksum_input": chk_raw,
         }
         await redis_set_key(REDIS_TRADE_COMMAND, scale_cmd)
-        log.info(f"[scale] SCALE_OUT cmd pushed to Redis for {active['id']} ({contract})")
+        log.info(f"[scale] SCALE_OUT pushed to Redis: {scale_id}")
     except Exception as e:
         log.warning(f"[scale] Redis push failed: {e}")
 
