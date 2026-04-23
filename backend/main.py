@@ -2042,6 +2042,7 @@ async def trade_scale(request: Request):
             "cmd": "SCALE_OUT", "price": 0, "qty": 1, "stop": 0,
             "t1": 0, "t2": 0, "t3": 0,
             "trade_id": scale_id, "direction": active["direction"],
+            "contract": contract,
             "expires_at": scale_exp,
             "checksum": chk_hex, "checksum_input": chk_raw,
         }

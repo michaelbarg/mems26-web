@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.2"
+#define MEMS26_DLL_VERSION "v7.3"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.2";
+        sc.GraphName        = "MES AI Data Export v7.3";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -824,31 +824,26 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             goto c5_done;
         }
 
-        // ── SCALE_OUT — partial exit (1 contract at market) ──
+        // ── SCALE_OUT — cancel a specific target order (V7.3) ──
         if (cmd == "SCALE_OUT") {
-            std::string direction = jsonStr(cmdJson, "direction");
-            int scaleQty = (int)jsonNum(cmdJson, "qty");
-            if (scaleQty < 1) scaleQty = 1;
+            std::string contract = jsonStr(cmdJson, "contract");
             sc.AddMessageToLog(SCString().Format(
-                "C5: SCALE_OUT %s qty=%d (DLL %s)",
-                direction.c_str(), scaleQty, MEMS26_DLL_VERSION), 1);
-            s_SCNewOrder exitOrder;
-            exitOrder.OrderQuantity = scaleQty;
-            exitOrder.OrderType = SCT_ORDERTYPE_MARKET;
-            exitOrder.TextTag = "MEMS26_SCALE_OUT";
-            int result = 0;
-            if (direction == "LONG")
-                result = (int)sc.SellExit(exitOrder);
-            else if (direction == "SHORT")
-                result = (int)sc.BuyExit(exitOrder);
-            else {
+                "C5: SCALE_OUT %s (DLL %s)", contract.c_str(), MEMS26_DLL_VERSION), 1);
+            int targetOrderID = 0;
+            if (contract == "c1") targetOrderID = sc.GetPersistentInt(101);
+            else if (contract == "c2") targetOrderID = sc.GetPersistentInt(102);
+            else if (contract == "c3") targetOrderID = sc.GetPersistentInt(103);
+            if (targetOrderID > 0) {
+                int result = sc.CancelOrder(targetOrderID);
                 sc.AddMessageToLog(SCString().Format(
-                    "C5: ERROR SCALE_OUT unknown direction: %s", direction.c_str()), 1);
-                goto c5_done;
+                    "C5: SCALE_OUT canceled %s target (orderID=%d) Result=%d",
+                    contract.c_str(), targetOrderID, result), 1);
+                writeResult(result >= 0 ? "OK" : "ERROR", "SCALE_OUT", result);
+            } else {
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: SCALE_OUT ERROR: no stored orderID for %s", contract.c_str()), 1);
+                writeResult("ERROR", "no orderID", 0);
             }
-            sc.AddMessageToLog(SCString().Format(
-                "C5: SCALE_OUT Result=%d", result), 1);
-            writeResult(result > 0 ? "OK" : "ERROR", "SCALE_OUT", result);
             goto c5_done;
         }
 
@@ -941,6 +936,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 sc.AddMessageToLog(SCString().Format(
                     "C5: bracket dispatch Result=%d", Result), 1);
                 if (Result > 0) {
+                    // V7.3: Store target order IDs for SCALE_OUT
+                    sc.GetPersistentInt(101) = NewOrder.Target1InternalOrderID;
+                    sc.GetPersistentInt(102) = NewOrder.Target2InternalOrderID;
+                    sc.GetPersistentInt(103) = NewOrder.Target3InternalOrderID;
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: stored target IDs: C1=%d C2=%d C3=%d",
+                        NewOrder.Target1InternalOrderID,
+                        NewOrder.Target2InternalOrderID,
+                        NewOrder.Target3InternalOrderID), 1);
                     writeResult("OK", "1 bracket with 3 targets accepted", Result);
                     sc.AddMessageToLog(
                         "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
