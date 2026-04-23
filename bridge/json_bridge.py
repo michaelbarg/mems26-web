@@ -1105,6 +1105,7 @@ async def main():
     async with aiohttp.ClientSession() as http:
         await trade_tracker.load_seen_fills(http)
         asyncio.create_task(_poll_trade_commands(http))
+        asyncio.create_task(_poll_trade_events(http))
         asyncio.create_task(_heartbeat_watchdog(http))
         asyncio.create_task(_eod_flatten_check(http))
 
@@ -1526,6 +1527,38 @@ def _verify_checksum(cmd: dict) -> bool:
     raw = (f"{cmd['cmd']}:{cmd['price']:.2f}:{cmd['qty']}:{cmd['stop']:.2f}:"
            f"{cmd['trade_id']}:{cmd['expires_at']}:{BRIDGE_TOKEN}")
     return hashlib.sha256(raw.encode()).hexdigest() == expected
+
+# V7.7.2: Position event monitoring — reads DLL trade_events.json
+TRADE_EVENTS_PATH = os.path.join(os.path.dirname(SC_JSON_PATH), "trade_events.json")
+
+async def _poll_trade_events(http):
+    """Poll trade_events.json for DLL position changes, forward to Backend."""
+    last_mtime = 0.0
+    last_sig = ""
+    while True:
+        try:
+            if os.path.exists(TRADE_EVENTS_PATH):
+                mtime = os.path.getmtime(TRADE_EVENTS_PATH)
+                if mtime > last_mtime:
+                    last_mtime = mtime
+                    with open(TRADE_EVENTS_PATH) as f:
+                        ev = json.load(f)
+                    sig = f"{ev.get('trade_id')}:{ev.get('prev_qty')}:{ev.get('new_qty')}:{ev.get('ts')}"
+                    if sig != last_sig:
+                        async with http.post(
+                            f"{CLOUD_URL}/trade/event",
+                            headers={"x-bridge-token": BRIDGE_TOKEN, "content-type": "application/json"},
+                            json=ev, timeout=aiohttp.ClientTimeout(total=5),
+                        ) as resp:
+                            if resp.status == 200:
+                                log.info(f"[C4] trade event sent: {ev.get('trade_id')} {ev.get('prev_qty')} → {ev.get('new_qty')}")
+                            else:
+                                log.warning(f"[C4] event POST {resp.status}")
+                        last_sig = sig
+        except Exception as e:
+            log.warning(f"[C4] trade event error: {e}")
+        await asyncio.sleep(1)
+
 
 async def _poll_trade_commands(http):
     last_trade_id = None
