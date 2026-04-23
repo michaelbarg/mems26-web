@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.5"
+#define MEMS26_DLL_VERSION "v7.6"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.5";
+        sc.GraphName        = "MES AI Data Export v7.6";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -952,6 +952,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 // V7.1: StopAllPrice creates one stop per OCOGroup
                 NewOrder.StopAllPrice = (float)cmdStop;
 
+                // V7.6: When C1 fills, auto-move StopAll to entry (breakeven)
+                NewOrder.MoveToBreakEven.Type = MOVETO_BE_ACTION_TYPE_OCO_GROUP_TRIGGERED;
+                NewOrder.MoveToBreakEven.BreakEvenLevelOffsetInTicks = 0;
+                NewOrder.MoveToBreakEven.TriggerOCOGroup = OCO_GROUP_1;
+
                 sc.AddMessageToLog(SCString().Format(
                     "C5: %s 3-target bracket dispatch (DLL %s) — T1=%.2f T2=%.2f T3=%.2f stopAll=%.2f qty=3",
                     cmd.c_str(), MEMS26_DLL_VERSION,
@@ -967,6 +972,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     writeResult("OK", "1 bracket with 3 targets accepted", Result);
                     sc.AddMessageToLog(
                         "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
+                    sc.AddMessageToLog(
+                        "C5: V7.6 MoveToBreakEven armed — C1 fill → StopAll → entry", 1);
                 } else {
                     writeResult("ERROR", "bracket rejected", Result);
                     sc.AddMessageToLog(SCString().Format(
