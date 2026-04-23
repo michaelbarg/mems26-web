@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.0"
+#define MEMS26_DLL_VERSION "v7.1"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.0";
+        sc.GraphName        = "MES AI Data Export v7.1";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -898,14 +898,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 NewOrder.Target3Price = (float)brackets[2].target;
                 NewOrder.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
                 NewOrder.OCOGroup3Quantity = 1;
-                NewOrder.Stop1Price = (float)cmdStop;
-                NewOrder.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                // V7.1: StopAllPrice creates one stop per OCOGroup
+                NewOrder.StopAllPrice = (float)cmdStop;
 
                 sc.AddMessageToLog(SCString().Format(
-                    "C5: %s 3-target bracket dispatch starting (DLL %s)",
-                    cmd.c_str(), MEMS26_DLL_VERSION), 1);
-                sc.AddMessageToLog(SCString().Format(
-                    "C5: T1=%.2f T2=%.2f T3=%.2f stop=%.2f qty=3",
+                    "C5: %s 3-target bracket dispatch (DLL %s) — T1=%.2f T2=%.2f T3=%.2f stopAll=%.2f qty=3",
+                    cmd.c_str(), MEMS26_DLL_VERSION,
                     brackets[0].target, brackets[1].target,
                     brackets[2].target, cmdStop), 1);
 
