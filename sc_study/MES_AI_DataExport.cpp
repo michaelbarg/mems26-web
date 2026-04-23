@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.6";
+        sc.GraphName        = "MES AI Data Export v7.6.2";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
