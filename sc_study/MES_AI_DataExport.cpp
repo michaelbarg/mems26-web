@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.6.3"
+#define MEMS26_DLL_VERSION "v7.7.1"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.6.3";
+        sc.GraphName        = "MES AI Data Export v7.7.1";
+        sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -943,6 +944,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 sc.AddMessageToLog(SCString().Format(
                     "C5: bracket dispatch Result=%d", Result), 1);
                 if (Result > 0) {
+                    // V7.7.1: Store trade_id + init position tracking
+                    s_lastTradeId = tradeId;
+                    sc.GetPersistentInt(200) = (int)sc.PositionData.PositionQuantity;
                     writeResult("OK", "1 bracket with 3 targets accepted", Result);
                     sc.AddMessageToLog(
                         "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
@@ -985,4 +989,42 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
     }
     c5_done:;
+
+    // V7.7.1: POSITION CHANGE DETECTION (runs every update interval)
+    // Safe: only reads PositionQuantity, no loops, no order modifications.
+    {
+        static std::string s_monitorTradeId;
+        // Capture trade_id from BUY dispatch (set inside C5 block)
+        // s_lastTradeId is scoped to C5, so we mirror it here via persistent
+        int currentQty = (int)sc.PositionData.PositionQuantity;
+        int lastQty = sc.GetPersistentInt(200);
+
+        if (currentQty != lastQty) {
+            std::ostringstream ej;
+            ej << std::fixed << std::setprecision(2);
+            ej << "{\n"
+               << "  \"event_type\": \"POSITION_CHANGE\",\n"
+               << "  \"prev_qty\": " << lastQty << ",\n"
+               << "  \"new_qty\": " << currentQty << ",\n"
+               << "  \"last_price\": " << (double)sc.LastTradePrice << ",\n"
+               << "  \"avg_price\": " << (double)sc.PositionData.AveragePrice << ",\n"
+               << "  \"ts\": " << (long long)time(NULL) << ",\n"
+               << "  \"dll_version\": \"" << MEMS26_DLL_VERSION << "\"\n"
+               << "}\n";
+
+            std::string eventPath = std::string(ExportPath.GetString());
+            size_t sl = eventPath.rfind('/');
+            if (sl == std::string::npos) sl = eventPath.rfind('\\');
+            if (sl != std::string::npos)
+                eventPath = eventPath.substr(0, sl + 1) + "trade_events.json";
+
+            std::ofstream ef(eventPath);
+            if (ef.is_open()) { ef << ej.str(); ef.close(); }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.7.1 position change %d -> %d, event written",
+                lastQty, currentQty), 1);
+            sc.GetPersistentInt(200) = currentQty;
+        }
+    }
 }
