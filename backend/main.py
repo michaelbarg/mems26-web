@@ -1649,8 +1649,13 @@ async def trade_execute(request: Request):
             pass
         # V6.7.2: X-Test-Override header — skip entry gates in DEMO
         _test_override = request.headers.get("x-test-override", "").lower() == "true"
-        if _test_override and _exec_entry_mode != "DEMO":
-            raise HTTPException(status_code=403, detail="X-Test-Override only allowed in DEMO")
+        if _test_override:
+            # Allow body entry_mode to override Redis config for curl testing
+            _body_mode = body.get("entry_mode", "")
+            if _body_mode == "DEMO":
+                _exec_entry_mode = "DEMO"
+            if _exec_entry_mode != "DEMO":
+                raise HTTPException(status_code=403, detail="X-Test-Override only allowed in DEMO")
         _skip_gates = _test_override and _exec_entry_mode == "DEMO"
         log.info(f"[EXECUTE] entry_mode={_exec_entry_mode} test_override={_test_override}")
 
