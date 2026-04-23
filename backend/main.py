@@ -2043,6 +2043,7 @@ async def trade_scale(request: Request):
             "t1": 0, "t2": 0, "t3": 0,
             "trade_id": scale_id, "direction": active["direction"],
             "contract": contract,
+            "contract_target": active.get(f"t{contract[1]}", 0),
             "expires_at": scale_exp,
             "checksum": chk_hex, "checksum_input": chk_raw,
         }

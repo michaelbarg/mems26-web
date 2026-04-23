@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.4"
+#define MEMS26_DLL_VERSION "v7.5"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.4";
+        sc.GraphName        = "MES AI Data Export v7.5";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -829,37 +829,49 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             goto c5_done;
         }
 
-        // ── SCALE_OUT — partial exit via SellExit/BuyExit (V7.4) ──
+        // ── SCALE_OUT — accelerate Target fill via ModifyOrder (V7.5) ──
         if (cmd == "SCALE_OUT") {
             std::string direction = jsonStr(cmdJson, "direction");
-            int scaleQty = (int)jsonNum(cmdJson, "qty");
-            if (scaleQty < 1) scaleQty = 1;
+            std::string contract = jsonStr(cmdJson, "contract");
+            double targetPrice = jsonNum(cmdJson, "contract_target");
             sc.AddMessageToLog(SCString().Format(
-                "C5: SCALE_OUT %s qty=%d (DLL %s)",
-                direction.c_str(), scaleQty, MEMS26_DLL_VERSION), 1);
-            s_SCNewOrder exitOrder;
-            exitOrder.OrderQuantity = scaleQty;
-            exitOrder.OrderType = SCT_ORDERTYPE_MARKET;
-            exitOrder.TextTag = "MEMS26_SCALE";
-            int result = 0;
-            if (direction == "LONG")
-                result = (int)sc.SellExit(exitOrder);
-            else if (direction == "SHORT")
-                result = (int)sc.BuyExit(exitOrder);
-            else {
-                sc.AddMessageToLog(SCString().Format(
-                    "C5: ERROR SCALE_OUT unknown direction: %s", direction.c_str()), 1);
+                "C5: SCALE_OUT %s %s target=%.2f (DLL %s)",
+                direction.c_str(), contract.c_str(), targetPrice, MEMS26_DLL_VERSION), 1);
+            if (targetPrice <= 0) {
+                sc.AddMessageToLog("C5: SCALE_OUT ERROR: no contract_target", 1);
+                writeResult("ERROR", "no contract_target", 0);
                 goto c5_done;
             }
-            if (result > 0) {
-                sc.AddMessageToLog(SCString().Format(
-                    "C5: SCALE_OUT Result=%d — partial exit accepted", result), 1);
-            } else {
-                sc.AddMessageToLog(SCString().Format(
-                    "C5: SCALE_OUT error %d: %s", result,
-                    sc.GetTradingErrorTextMessage(result)), 1);
+            // Find matching Target limit order and modify its price to fill now
+            int orderIndex = 0;
+            s_SCTradeOrder existingOrder;
+            bool found = false;
+            while (sc.GetOrderByIndex(orderIndex, existingOrder) != 0) {
+                bool isOpen = (existingOrder.OrderStatusCode == SCT_OSC_OPEN);
+                bool isLimit = (existingOrder.OrderType == SCT_ORDERTYPE_LIMIT);
+                bool priceMatch = std::fabs(existingOrder.Price1 - targetPrice) < (sc.TickSize / 2);
+                if (isOpen && isLimit && priceMatch) {
+                    s_SCNewOrder modOrder;
+                    modOrder.InternalOrderID = existingOrder.InternalOrderID;
+                    if (direction == "LONG")
+                        modOrder.Price1 = sc.Bid - sc.TickSize;
+                    else
+                        modOrder.Price1 = sc.Ask + sc.TickSize;
+                    int result = sc.ModifyOrder(modOrder);
+                    found = true;
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: SCALE_OUT accelerated orderID=%d: %.2f->%.2f Result=%d",
+                        existingOrder.InternalOrderID, targetPrice, modOrder.Price1, result), 1);
+                    writeResult(result > 0 ? "OK" : "ERROR", "SCALE_OUT", result);
+                    break;
+                }
+                orderIndex++;
             }
-            writeResult(result > 0 ? "OK" : "ERROR", "SCALE_OUT", result);
+            if (!found) {
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: SCALE_OUT ERROR: no open limit at %.2f", targetPrice), 1);
+                writeResult("ERROR", "target not found", 0);
+            }
             goto c5_done;
         }
 
