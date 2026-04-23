@@ -2033,10 +2033,13 @@ async def trade_scale(request: Request):
     try:
         import time as _t
         scale_ts = int(_t.time())
+        scale_exp = scale_ts + 60
+        chk_hex, _ = _make_checksum("SCALE_OUT", 0, 1, 0, active["id"], scale_exp)
         scale_cmd = {
-            "cmd": "SCALE_OUT", "trade_id": active["id"],
-            "direction": active["direction"], "qty": 1,
-            "ts": scale_ts, "expires_at": scale_ts + 60,
+            "cmd": "SCALE_OUT", "price": 0, "qty": 1, "stop": 0,
+            "trade_id": active["id"], "direction": active["direction"],
+            "ts": scale_ts, "expires_at": scale_exp,
+            "checksum": chk_hex,
         }
         await redis_set_key(REDIS_TRADE_COMMAND, scale_cmd)
         log.info(f"[scale] SCALE_OUT cmd pushed to Redis for {active['id']} ({contract})")
