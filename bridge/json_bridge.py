@@ -1556,9 +1556,19 @@ async def _poll_trade_commands(http):
                     log.error(f"[C4] CHECKSUM FAIL — ignoring {trade_id}")
                     await asyncio.sleep(1)
                     continue
+                # V6.8: CLOSE/CANCEL bypass brackets validation
+                if cmd.get("cmd") in ("CLOSE", "CANCEL"):
+                    tmp = SC_COMMAND_PATH + ".tmp"
+                    with open(tmp, "w") as f:
+                        json.dump(cmd, f, indent=2)
+                    os.replace(tmp, SC_COMMAND_PATH)
+                    log.info(f"[C4] {cmd['cmd']} command for {trade_id} → Sierra")
+                    last_trade_id = trade_id
+                    await asyncio.sleep(1)
+                    continue
                 brackets = cmd.get("brackets", [])
                 if len(brackets) != 3 or not all(b.get("qty") == 1 for b in brackets):
-                    log.error(f"[C4] Invalid brackets structure — need 3×qty=1, got {len(brackets)}")
+                    log.error(f"[C4] Invalid brackets structure — need 3xqty=1, got {len(brackets)}")
                     await asyncio.sleep(1)
                     continue
                 tmp = SC_COMMAND_PATH + ".tmp"

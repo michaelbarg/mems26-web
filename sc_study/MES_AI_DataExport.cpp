@@ -794,11 +794,27 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (rf.is_open()) { rf << rj.str(); rf.close(); }
         };
 
+        // Debug: log raw command content
+        sc.AddMessageToLog(SCString().Format(
+            "C5: trade_command file size=%d bytes, first 200 chars: %.200s",
+            (int)cmdJson.length(), cmdJson.c_str()), 1);
+
         // ── CANCEL ──
         if (cmd == "CANCEL") {
+            sc.CancelAllOrders();
             sc.FlattenAndCancelAllOrders();
-            writeResult("OK", "CANCEL executed — all orders flat", 0);
-            sc.AddMessageToLog("C5: CANCEL — flattened all", 0);
+            writeResult("OK", "CANCEL executed", 0);
+            sc.AddMessageToLog("C5: CANCEL — canceled + flattened all", 0);
+            goto c5_done;
+        }
+
+        // ── CLOSE ── V6.8: clean close from Backend
+        if (cmd == "CLOSE") {
+            sc.AddMessageToLog("C5: CLOSE command received", 1);
+            sc.CancelAllOrders();
+            sc.FlattenAndCancelAllOrders();
+            writeResult("OK", "CLOSE complete", 0);
+            sc.AddMessageToLog("C5: CLOSE complete (canceled + flattened)", 1);
             goto c5_done;
         }
 
@@ -818,75 +834,85 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             goto c5_done;
         }
 
-        // V6.7.0: Parse brackets[] array for 3 independent orders
+        // V6.8: Strict brackets[] parser with debug logging
         {
-            double targets[3] = { 0, 0, 0 };
-            const char* labels[3] = { "C1", "C2", "C3" };
-            int numBrackets = 0;
-            size_t bp = cmdJson.find("\"brackets\"");
-            if (bp != std::string::npos) {
-                size_t arrS = cmdJson.find('[', bp);
-                size_t arrE = cmdJson.find(']', arrS);
-                if (arrS != std::string::npos && arrE != std::string::npos) {
-                    std::string arr = cmdJson.substr(arrS, arrE - arrS + 1);
+            struct BracketSpec { std::string id; int qty; double target; };
+            std::vector<BracketSpec> brackets;
+
+            size_t bKey = cmdJson.find("\"brackets\"");
+            if (bKey != std::string::npos) {
+                size_t aS = cmdJson.find('[', bKey);
+                size_t aE = cmdJson.find(']', aS);
+                if (aS != std::string::npos && aE != std::string::npos) {
+                    std::string arr = cmdJson.substr(aS + 1, aE - aS - 1);
                     size_t pos = 0;
-                    while (numBrackets < 3) {
+                    while (brackets.size() < 3) {
                         size_t oS = arr.find('{', pos);
                         if (oS == std::string::npos) break;
                         size_t oE = arr.find('}', oS);
                         if (oE == std::string::npos) break;
                         std::string obj = arr.substr(oS, oE - oS + 1);
-                        targets[numBrackets] = jsonNum(obj, "target");
-                        numBrackets++;
+                        BracketSpec b;
+                        b.id = jsonStr(obj, "id");
+                        b.qty = (int)jsonNum(obj, "qty");
+                        b.target = jsonNum(obj, "target");
+                        brackets.push_back(b);
+                        sc.AddMessageToLog(SCString().Format(
+                            "C5: parsed bracket: id=%s qty=%d target=%.2f",
+                            b.id.c_str(), b.qty, b.target), 1);
                         pos = oE + 1;
                     }
                 }
             }
 
-            if (numBrackets == 3) {
-                // V6.7.3: Pre-flight cleanup — cancel stale working orders
+            sc.AddMessageToLog(SCString().Format(
+                "C5: parsed %d brackets from JSON", (int)brackets.size()), 1);
+
+            if (brackets.size() == 3) {
+                // Pre-flight: cancel working orders first, then flatten
+                sc.CancelAllOrders();
                 sc.FlattenAndCancelAllOrders();
-                sc.AddMessageToLog("C5: pre-flight cleanup done", 1);
-                // 3-bracket dispatch
+                sc.AddMessageToLog("C5: pre-flight cleanup (cancel+flatten) done", 1);
+
                 sc.AddMessageToLog(SCString().Format(
                     "C5: %s 3-bracket dispatch starting (DLL %s)",
                     cmd.c_str(), MEMS26_DLL_VERSION), 1);
                 int totalSent = 0;
                 for (int i = 0; i < 3; i++) {
                     s_SCNewOrder order;
-                    order.OrderQuantity = 1;
+                    order.OrderQuantity = brackets[i].qty;
                     order.TimeInForce = SCT_TIF_GTC;
                     order.OrderType = SCT_ORDERTYPE_MARKET;
                     order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                     order.Stop1Price = (float)cmdStop;
-                    if (targets[i] > 0) {
+                    if (brackets[i].target > 0) {
                         order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
-                        order.Target1Price = (float)targets[i];
+                        order.Target1Price = (float)brackets[i].target;
                     }
-                    SCString tag; tag.Format("MEMS26_%s", labels[i]);
+                    SCString tag; tag.Format("MEMS26_%s", brackets[i].id.c_str());
                     order.TextTag = tag;
 
                     int result = (cmd == "BUY")
                         ? (int)sc.BuyEntry(order) : (int)sc.SellEntry(order);
 
                     sc.AddMessageToLog(SCString().Format(
-                        "C5: bracket %s/3 submitted Result=%d target=%.2f stop=%.2f tag=%s",
-                        labels[i], result, targets[i], cmdStop, tag.GetChars()), 1);
-                    if (result <= 0) {
-                        sc.AddMessageToLog(SCString().Format(
-                            "C5: ERROR bracket %s rejected", labels[i]), 1);
-                    } else {
-                        totalSent++;
-                    }
+                        "C5: bracket %s/3 Result=%d target=%.2f stop=%.2f tag=%s",
+                        brackets[i].id.c_str(), result, brackets[i].target,
+                        cmdStop, tag.GetChars()), 1);
+                    if (result > 0) totalSent++;
+                    else sc.AddMessageToLog(SCString().Format(
+                        "C5: ERROR bracket %s rejected", brackets[i].id.c_str()), 1);
                 }
                 SCString detail;
-                detail.Format("3-bracket %s: %d/3 sent T1=%.2f T2=%.2f T3=%.2f",
-                              cmd.c_str(), totalSent, targets[0], targets[1], targets[2]);
+                detail.Format("3-bracket %s: %d/3 sent", cmd.c_str(), totalSent);
                 writeResult(totalSent > 0 ? "OK" : "ERROR", detail.GetChars(), totalSent);
-                sc.AddMessageToLog("C5: 3-bracket dispatch complete", 1);
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: dispatch complete: %d/3 brackets accepted", totalSent), 1);
             } else {
-                // LEGACY fallback — single position (no brackets[] in JSON)
-                sc.AddMessageToLog("C5: WARNING legacy single-bracket format", 1);
+                // V6.8: replaced by strict parser above — kept for reference
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: ERROR expected 3 brackets, got %d — using legacy fallback",
+                    (int)brackets.size()), 1);
                 s_SCNewOrder order;
                 order.OrderQuantity = cmdQty;
                 order.TimeInForce = SCT_TIF_GTC;
@@ -901,14 +927,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     ? (int)sc.BuyEntry(order) : (int)sc.SellEntry(order);
                 if (result > 0) {
                     SCString msg;
-                    msg.Format("C5: %s %d @ %.2f stop=%.2f t1=%.2f",
+                    msg.Format("C5: LEGACY %s %d @ %.2f stop=%.2f t1=%.2f",
                                cmd.c_str(), cmdQty, cmdPrice, cmdStop, cmdT1);
                     writeResult("OK", msg.GetChars(), result);
                     sc.AddMessageToLog(msg, 0);
                 } else {
                     writeResult("ERROR", "Entry failed", result);
                     sc.AddMessageToLog(SCString().Format(
-                        "C5: %s FAILED result=%d", cmd.c_str(), result), 1);
+                        "C5: LEGACY %s FAILED result=%d", cmd.c_str(), result), 1);
                 }
             }
         }

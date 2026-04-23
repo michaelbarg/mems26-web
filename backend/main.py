@@ -1934,6 +1934,21 @@ async def trade_close(request: Request):
 
     log.info(f"Trade closed: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f}) reason={reason}")
 
+    # V6.8: Push CLOSE command to Redis so Bridge → DLL cancels Teton orders
+    try:
+        close_ts = int(time.time())
+        close_id = active["id"]
+        chk_hex, _ = _make_checksum("CLOSE", 0, 0, 0, close_id, close_ts + 60)
+        close_cmd = {
+            "cmd": "CLOSE", "price": 0, "qty": 0, "stop": 0,
+            "trade_id": close_id, "expires_at": close_ts + 60,
+            "checksum": chk_hex,
+        }
+        await redis_set_key(REDIS_TRADE_COMMAND, close_cmd)
+        log.info(f"[CLOSE] command pushed to Redis for {close_id}")
+    except Exception as e:
+        log.warning(f"[CLOSE] Redis push failed: {e}")
+
     # Broadcast to all WS clients
     ws_msg = {
         "type": "TRADE_CLOSE",
