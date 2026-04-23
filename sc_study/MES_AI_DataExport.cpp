@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.1"
+#define MEMS26_DLL_VERSION "v7.2"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.1";
+        sc.GraphName        = "MES AI Data Export v7.2";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -821,6 +821,34 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             sc.FlattenAndCancelAllOrders();
             writeResult("OK", "CLOSE complete", 0);
             sc.AddMessageToLog("C5: CLOSE complete (canceled + flattened)", 1);
+            goto c5_done;
+        }
+
+        // ── SCALE_OUT — partial exit (1 contract at market) ──
+        if (cmd == "SCALE_OUT") {
+            std::string direction = jsonStr(cmdJson, "direction");
+            int scaleQty = (int)jsonNum(cmdJson, "qty");
+            if (scaleQty < 1) scaleQty = 1;
+            sc.AddMessageToLog(SCString().Format(
+                "C5: SCALE_OUT %s qty=%d (DLL %s)",
+                direction.c_str(), scaleQty, MEMS26_DLL_VERSION), 1);
+            s_SCNewOrder exitOrder;
+            exitOrder.OrderQuantity = scaleQty;
+            exitOrder.OrderType = SCT_ORDERTYPE_MARKET;
+            exitOrder.TextTag = "MEMS26_SCALE_OUT";
+            int result = 0;
+            if (direction == "LONG")
+                result = (int)sc.SellExit(exitOrder);
+            else if (direction == "SHORT")
+                result = (int)sc.BuyExit(exitOrder);
+            else {
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: ERROR SCALE_OUT unknown direction: %s", direction.c_str()), 1);
+                goto c5_done;
+            }
+            sc.AddMessageToLog(SCString().Format(
+                "C5: SCALE_OUT Result=%d", result), 1);
+            writeResult(result > 0 ? "OK" : "ERROR", "SCALE_OUT", result);
             goto c5_done;
         }
 

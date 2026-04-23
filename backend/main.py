@@ -2028,6 +2028,21 @@ async def trade_scale(request: Request):
 
     await redis_set_key(REDIS_TRADE_STATUS, active)
     log.info(f"Scaled out {contract} @ {exit_price}")
+
+    # V7.2: Push SCALE_OUT command to Redis so Bridge → DLL exits 1 contract
+    try:
+        import time as _t
+        scale_ts = int(_t.time())
+        scale_cmd = {
+            "cmd": "SCALE_OUT", "trade_id": active["id"],
+            "direction": active["direction"], "qty": 1,
+            "ts": scale_ts, "expires_at": scale_ts + 60,
+        }
+        await redis_set_key(REDIS_TRADE_COMMAND, scale_cmd)
+        log.info(f"[scale] SCALE_OUT cmd pushed to Redis for {active['id']} ({contract})")
+    except Exception as e:
+        log.warning(f"[scale] Redis push failed: {e}")
+
     return {"ok": True, "trade": active}
 
 
