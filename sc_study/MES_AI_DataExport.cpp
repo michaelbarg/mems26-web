@@ -1,4 +1,4 @@
-// MES_AI_DataExport.cpp — v8.0 (C5: Trade Command Execution)
+// MES_AI_DataExport.cpp — v8.1 / V6.7.0 (C5: 3-Bracket Trade Execution)
 // Sierra Chart ACSIL Study — 3 minute chart
 // מייצא: MTF (כולל m5), CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
 //         Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v8";
+        sc.GraphName        = "MES AI Data Export v8.1";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -844,6 +844,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
 
             if (numBrackets == 3) {
+                // V6.7.3: Pre-flight cleanup — cancel stale working orders
+                sc.FlattenAndCancelAllOrders();
+                sc.AddMessageToLog("C5: pre-flight cleanup done", 1);
                 // 3-bracket dispatch
                 sc.AddMessageToLog(SCString().Format(
                     "C5: %s 3-bracket dispatch starting (DLL %s)",

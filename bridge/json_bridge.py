@@ -186,7 +186,9 @@ class TradeTracker:
         self.open_trade: dict = None
         self.position: float = 0.0
         self.last_stop: float = 0.0    # סטופ אחרון מDOM
-        self.t1_hit: bool = False       # האם T1 כבר נלחץ
+        self.t1_hit: bool = False
+        self.t2_hit: bool = False
+        self.t3_hit: bool = False
 
     def check_exit_levels(self, price: float) -> list:
         """בודק כל tick אם המחיר הגיע לסטופ או לטארגט — מחזיר אירועי אזהרה"""
@@ -219,9 +221,18 @@ class TradeTracker:
                                 "pnl_usd": round(pnl_pts * 5 * self.open_trade.get("qty",1), 2)})
 
         # T2 נלחץ
-        if t2:
+        t3 = self.open_trade.get("t3", 0)
+        if t2 and not self.t2_hit:
             if (side == "LONG" and price >= t2) or (side == "SHORT" and price <= t2):
+                self.t2_hit = True
                 events.append({"type": "T2_HIT", "price": price, "t2": t2,
+                                "pnl_pts": round(pnl_pts, 2),
+                                "pnl_usd": round(pnl_pts * 5 * self.open_trade.get("qty",1), 2)})
+        # T3 נלחץ
+        if t3 and not self.t3_hit:
+            if (side == "LONG" and price >= t3) or (side == "SHORT" and price <= t3):
+                self.t3_hit = True
+                events.append({"type": "T3_HIT", "price": price, "t3": t3,
                                 "pnl_pts": round(pnl_pts, 2),
                                 "pnl_usd": round(pnl_pts * 5 * self.open_trade.get("qty",1), 2)})
 
@@ -257,6 +268,8 @@ class TradeTracker:
                 t1_auto = (fp + risk) if side == "LONG" else (fp - risk) if risk else 0
                 t2_auto = (fp + risk*2) if side == "LONG" else (fp - risk*2) if risk else 0
                 self.t1_hit = False
+                self.t2_hit = False
+                self.t3_hit = False
                 self.open_trade = {
                     "id":          str(ts),
                     "ts_open":     ts,
@@ -337,6 +350,8 @@ class TradeTracker:
                     log.info(f"Trade CLOSE: {side} {pnl_pts:+.2f}pt ${pnl_usd:+.2f} [{exit_type}]")
                     self.open_trade = None
                     self.t1_hit = False
+                self.t2_hit = False
+                self.t3_hit = False
 
         return events
 
@@ -1460,6 +1475,8 @@ async def main():
                         log.info(f"✅ T1 HIT @ {ev['price']} pnl={ev['pnl_pts']:+.2f}pt ${ev['pnl_usd']:+.2f}")
                     elif ev["type"] == "T2_HIT":
                         log.info(f"🎯 T2 HIT @ {ev['price']} pnl={ev['pnl_pts']:+.2f}pt ${ev['pnl_usd']:+.2f}")
+                    elif ev["type"] == "T3_HIT":
+                        log.info(f"🚀 T3 HIT @ {ev['price']} pnl={ev['pnl_pts']:+.2f}pt ${ev['pnl_usd']:+.2f}")
 
                 # ── Shadow Trading Engine ─────────────────────
                 try:
