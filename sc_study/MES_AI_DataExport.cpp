@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.6"
+#define MEMS26_DLL_VERSION "v7.6.2"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -829,49 +829,17 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             goto c5_done;
         }
 
-        // ── SCALE_OUT — accelerate Target fill via ModifyOrder (V7.5) ──
+        // ── SCALE_OUT — disabled in V7.6.2 (safe no-op) ──
+        // V7.2-V7.5 all had fatal issues (SellExit error, CancelOrder
+        // error, ModifyOrder froze Sierra). V7.6 MoveToBreakEven makes
+        // runtime SCALE_OUT obsolete.
         if (cmd == "SCALE_OUT") {
-            std::string direction = jsonStr(cmdJson, "direction");
             std::string contract = jsonStr(cmdJson, "contract");
-            double targetPrice = jsonNum(cmdJson, "contract_target");
             sc.AddMessageToLog(SCString().Format(
-                "C5: SCALE_OUT %s %s target=%.2f (DLL %s)",
-                direction.c_str(), contract.c_str(), targetPrice, MEMS26_DLL_VERSION), 1);
-            if (targetPrice <= 0) {
-                sc.AddMessageToLog("C5: SCALE_OUT ERROR: no contract_target", 1);
-                writeResult("ERROR", "no contract_target", 0);
-                goto c5_done;
-            }
-            // Find matching Target limit order and modify its price to fill now
-            int orderIndex = 0;
-            s_SCTradeOrder existingOrder;
-            bool found = false;
-            while (sc.GetOrderByIndex(orderIndex, existingOrder) != 0) {
-                bool isOpen = (existingOrder.OrderStatusCode == SCT_OSC_OPEN);
-                bool isLimit = (existingOrder.OrderType == SCT_ORDERTYPE_LIMIT);
-                bool priceMatch = std::fabs(existingOrder.Price1 - targetPrice) < (sc.TickSize / 2);
-                if (isOpen && isLimit && priceMatch) {
-                    s_SCNewOrder modOrder;
-                    modOrder.InternalOrderID = existingOrder.InternalOrderID;
-                    if (direction == "LONG")
-                        modOrder.Price1 = sc.Bid - sc.TickSize;
-                    else
-                        modOrder.Price1 = sc.Ask + sc.TickSize;
-                    int result = sc.ModifyOrder(modOrder);
-                    found = true;
-                    sc.AddMessageToLog(SCString().Format(
-                        "C5: SCALE_OUT accelerated orderID=%d: %.2f->%.2f Result=%d",
-                        existingOrder.InternalOrderID, targetPrice, modOrder.Price1, result), 1);
-                    writeResult(result > 0 ? "OK" : "ERROR", "SCALE_OUT", result);
-                    break;
-                }
-                orderIndex++;
-            }
-            if (!found) {
-                sc.AddMessageToLog(SCString().Format(
-                    "C5: SCALE_OUT ERROR: no open limit at %.2f", targetPrice), 1);
-                writeResult("ERROR", "target not found", 0);
-            }
+                "C5: SCALE_OUT ignored (DLL %s) — contract=%s — "
+                "obsolete: auto-breakeven handles stop management",
+                MEMS26_DLL_VERSION, contract.c_str()), 1);
+            writeResult("OK", "SCALE_OUT ignored (V7.6.2)", 0);
             goto c5_done;
         }
 
