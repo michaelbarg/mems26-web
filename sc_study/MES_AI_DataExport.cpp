@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.6.2"
+#define MEMS26_DLL_VERSION "v7.6.3"
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +185,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.6.2";
+        sc.GraphName        = "MES AI Data Export v7.6.3";
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -917,8 +917,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 NewOrder.Target3Price = (float)brackets[2].target;
                 NewOrder.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
                 NewOrder.OCOGroup3Quantity = 1;
-                // V7.1: StopAllPrice creates one stop per OCOGroup
-                NewOrder.StopAllPrice = (float)cmdStop;
+                // V7.6.3: Separate stops per OCO group so MoveToBreakEven
+                // can move C2/C3 stops when C1 fills (requires "different group")
+                NewOrder.Stop1Price = (float)cmdStop;
+                NewOrder.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                NewOrder.Stop2Price = (float)cmdStop;
+                NewOrder.AttachedOrderStop2Type = SCT_ORDERTYPE_STOP;
+                NewOrder.Stop3Price = (float)cmdStop;
+                NewOrder.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
 
                 // V7.6: When C1 fills, auto-move StopAll to entry (breakeven)
                 NewOrder.MoveToBreakEven.Type = MOVETO_BE_ACTION_TYPE_OCO_GROUP_TRIGGERED;
