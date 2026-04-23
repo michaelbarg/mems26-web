@@ -946,7 +946,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 if (Result > 0) {
                     // V7.7.1: Store trade_id + init position tracking
                     s_lastTradeId = tradeId;
-                    sc.GetPersistentInt(200) = (int)sc.PositionData.PositionQuantity;
+                    { s_SCPositionData pd; sc.GetTradePosition(pd);
+                      sc.GetPersistentInt(200) = (int)pd.PositionQuantity; }
                     writeResult("OK", "1 bracket with 3 targets accepted", Result);
                     sc.AddMessageToLog(
                         "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
@@ -996,7 +997,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         static std::string s_monitorTradeId;
         // Capture trade_id from BUY dispatch (set inside C5 block)
         // s_lastTradeId is scoped to C5, so we mirror it here via persistent
-        int currentQty = (int)sc.PositionData.PositionQuantity;
+        s_SCPositionData PosData;
+        sc.GetTradePosition(PosData);
+        int currentQty = (int)PosData.PositionQuantity;
         int lastQty = sc.GetPersistentInt(200);
 
         if (currentQty != lastQty) {
@@ -1007,7 +1010,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                << "  \"prev_qty\": " << lastQty << ",\n"
                << "  \"new_qty\": " << currentQty << ",\n"
                << "  \"last_price\": " << (double)sc.LastTradePrice << ",\n"
-               << "  \"avg_price\": " << (double)sc.Close[sc.Index] << ",\n"
+               << "  \"avg_price\": " << (double)PosData.AveragePrice << ",\n"
                << "  \"ts\": " << (long long)time(NULL) << ",\n"
                << "  \"dll_version\": \"" << MEMS26_DLL_VERSION << "\"\n"
                << "}\n";
