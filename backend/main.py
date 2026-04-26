@@ -1983,6 +1983,186 @@ async def trade_close(request: Request):
     return {"ok": True, "trade": active, "daily_pnl": state["pnl"], "circuit_breaker": await check_circuit_breaker()}
 
 
+# ---------------------------------------------------------------------------
+# V7.9.1: Bailout endpoint — aggressive exit tagged FP_BAILOUT
+# ---------------------------------------------------------------------------
+
+@app.post("/trade/bailout")
+async def trade_bailout(request: Request):
+    """V7.9.1: FP_BAILOUT exit. Same as /trade/close but enqueues BAILOUT cmd."""
+    import time
+
+    active = await redis_get_key(REDIS_TRADE_STATUS)
+    if not active or active.get("status") != "OPEN":
+        raise HTTPException(status_code=404, detail="No active trade")
+
+    body = await request.json()
+    exit_price = body.get("exit_price", 0)
+
+    if exit_price <= 0:
+        data = await redis_get()
+        exit_price = data.get("price", 0) if data else 0
+    if exit_price <= 0:
+        raise HTTPException(status_code=400, detail="exit_price required")
+
+    direction = active["direction"]
+    entry = active["entry_price"]
+    pnl_pts = (exit_price - entry) if direction == "LONG" else (entry - exit_price)
+    pnl_usd = round(pnl_pts * 5, 2)
+
+    active["status"] = "CLOSED"
+    active["exit_price"] = exit_price
+    active["exit_ts"] = int(time.time())
+    active["pnl_pts"] = round(pnl_pts, 2)
+    active["pnl_usd"] = pnl_usd
+    active["close_reason"] = "FP_BAILOUT"
+    active["active_management_state"] = "BAILED_OUT"
+    active["duration_min"] = round((active["exit_ts"] - active.get("entry_ts", active["exit_ts"])) / 60, 1)
+    active["bars_held"] = max(1, int(active["duration_min"] / 3))
+
+    try:
+        from analytics import compute_mae_mfe
+        candles_3m = await _get_3m_candles()
+        mae_mfe = compute_mae_mfe(candles_3m, entry, active.get("entry_ts", 0),
+                                  active["exit_ts"], direction)
+        active["mae_pts"] = mae_mfe["mae_pts"]
+        active["mfe_pts"] = mae_mfe["mfe_pts"]
+        mfe = mae_mfe["mfe_pts"]
+        active["exit_efficiency"] = round(pnl_pts / mfe * 100, 1) if mfe > 0 else 0
+    except Exception as e:
+        log.warning(f"MAE/MFE compute failed: {e}")
+        active["mae_pts"] = 0
+        active["mfe_pts"] = 0
+        active["exit_efficiency"] = 0
+
+    await redis_set_key(REDIS_TRADE_STATUS, active)
+
+    # Update daily state + circuit breaker (same as /trade/close)
+    state = await get_daily_state()
+    state["pnl"] = round(state.get("pnl", 0) + pnl_usd, 2)
+    if pnl_pts < 0:
+        state["consecutive_losses"] = state.get("consecutive_losses", 0) + 1
+    else:
+        state["consecutive_losses"] = 0
+    if abs(state["pnl"]) >= CB_HARD_LIMIT and state["pnl"] < 0:
+        state["hard_locked"] = True
+    elif abs(state["pnl"]) >= CB_SOFT_LIMIT and state["pnl"] < 0:
+        state["locked_until"] = time.time() + CB_LOCK_MIN * 60
+    elif state["consecutive_losses"] >= CB_CONSEC_LOSSES:
+        state["locked_until"] = time.time() + CB_LOCK_MIN * 60
+    await save_daily_state(state)
+
+    # Persist to trade log
+    try:
+        log_key = f"mems26:tradelog:{active['exit_ts']}"
+        await redis_set_key(log_key, active)
+    except Exception as e:
+        log.warning(f"Trade log persist failed: {e}")
+    try:
+        from database import insert_trade
+        await insert_trade(active)
+    except Exception as e:
+        log.warning(f"Postgres trade persist failed: {e}")
+
+    log.info(f"[V7.9.1] BAILOUT: {active['id']} PnL={pnl_pts:+.2f}pt (${pnl_usd:+.2f})")
+
+    # Enqueue BAILOUT cmd for DLL
+    try:
+        bailout_id = f"{active['id']}_BAILOUT"
+        bailout_exp = int(time.time()) + COMMAND_TTL_SEC
+        chk_hex, chk_raw = _make_checksum("BAILOUT", 0, 0, 0, bailout_id, bailout_exp)
+        bailout_cmd = {
+            "cmd": "BAILOUT", "price": 0, "qty": 0, "stop": 0,
+            "t1": 0, "t2": 0, "t3": 0,
+            "trade_id": bailout_id, "expires_at": bailout_exp,
+            "checksum": chk_hex, "checksum_input": chk_raw,
+        }
+        await redis_set_key(REDIS_TRADE_COMMAND, bailout_cmd)
+        log.info(f"[V7.9.1] BAILOUT command pushed for {bailout_id}")
+    except Exception as e:
+        log.warning(f"[V7.9.1] BAILOUT Redis push failed: {e}")
+
+    # Broadcast
+    try:
+        await manager.broadcast({
+            "type": "TRADE_CLOSE", "trade_id": active["id"],
+            "exit_type": "FP_BAILOUT",
+            "pnl_pts": round(pnl_pts, 2), "pnl_usd": pnl_usd,
+        })
+    except Exception as e:
+        log.warning(f"[V7.9.1] broadcast failed: {e}")
+
+    return {"ok": True, "trade": active, "daily_pnl": state["pnl"], "circuit_breaker": await check_circuit_breaker()}
+
+
+# ---------------------------------------------------------------------------
+# V7.9.2: Modify stop price for active trade
+# ---------------------------------------------------------------------------
+
+class ModifyStopRequest(BaseModel):
+    trade_id: str
+    new_stop_price: float
+
+
+@app.post("/trade/modify-stop")
+async def trade_modify_stop(
+    payload: ModifyStopRequest,
+    x_bridge_token: Optional[str] = Header(None, alias="X-Bridge-Token"),
+):
+    """V7.9.2: Modify all 3 stop prices on active trade."""
+    import time as _time
+
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="invalid token")
+
+    if payload.new_stop_price <= 0:
+        raise HTTPException(status_code=400, detail=f"INVALID_STOP: {payload.new_stop_price} must be > 0")
+
+    trade = await redis_get_key(REDIS_TRADE_STATUS)
+    if trade is None or trade.get("id") != payload.trade_id:
+        raise HTTPException(status_code=404, detail=f"TRADE_NOT_FOUND: {payload.trade_id}")
+
+    if trade.get("status") != "OPEN":
+        raise HTTPException(status_code=400, detail=f"TRADE_NOT_OPEN: status={trade.get('status')}")
+
+    entry_price = trade.get("entry_price", 0)
+    if entry_price > 0:
+        distance = abs(payload.new_stop_price - entry_price)
+        if distance > 50.0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"STOP_OUT_OF_RANGE: distance={distance:.2f}pt from entry={entry_price:.2f} exceeds 50pt limit",
+            )
+
+    # Enqueue MODIFY_STOP cmd
+    mod_ts = int(_time.time())
+    mod_exp = mod_ts + COMMAND_TTL_SEC
+    chk_hex, chk_raw = _make_checksum(
+        "MODIFY_STOP", payload.new_stop_price, 0, 0, payload.trade_id, mod_exp)
+    mod_cmd = {
+        "cmd": "MODIFY_STOP", "price": payload.new_stop_price, "qty": 0, "stop": 0,
+        "t1": 0, "t2": 0, "t3": 0,
+        "trade_id": payload.trade_id, "expires_at": mod_exp,
+        "checksum": chk_hex, "checksum_input": chk_raw,
+    }
+    await redis_set_key(REDIS_TRADE_COMMAND, mod_cmd)
+
+    # Update trade record
+    trade["stop"] = payload.new_stop_price
+    trade["last_stop_modify_price"] = payload.new_stop_price
+    trade["last_stop_modify_ts"] = mod_ts
+    await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+    log.info(f"[V7.9.2] MODIFY_STOP: trade={payload.trade_id} new_stop={payload.new_stop_price}")
+
+    return {
+        "ok": True,
+        "trade_id": payload.trade_id,
+        "new_stop_price": payload.new_stop_price,
+        "cmd_enqueued": True,
+    }
+
+
 @app.post("/ws/broadcast")
 async def ws_broadcast(request: Request, x_bridge_token: Optional[str] = Header(None)):
     """Broadcast arbitrary JSON to all WS clients. Bridge-only."""
