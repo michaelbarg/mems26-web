@@ -1624,7 +1624,7 @@ async def _poll_trade_commands(http):
                     await asyncio.sleep(1)
                     continue
                 # V7.2+V7.9: bypass brackets validation for management commands
-                if cmd.get("cmd") in ("CLOSE", "CANCEL", "SCALE_OUT", "ARM_BE", "BAILOUT", "MODIFY_STOP"):
+                if cmd.get("cmd") in ("CLOSE", "CANCEL", "SCALE_OUT", "ARM_BE", "BAILOUT", "MODIFY_STOP", "MODIFY_TARGET"):
                     tmp = SC_COMMAND_PATH + ".tmp"
                     with open(tmp, "w") as f:
                         json.dump(cmd, f, indent=2)
@@ -1637,6 +1637,11 @@ async def _poll_trade_commands(http):
                     elif cmd["cmd"] == "MODIFY_STOP":
                         new_stop = cmd.get("new_stop_price", 0)
                         log.info(f"[C4] MODIFY_STOP command for {trade_id} → Sierra (new_stop={new_stop})")
+                    elif cmd["cmd"] == "MODIFY_TARGET":
+                        t1 = cmd.get("new_t1", 0)
+                        t2 = cmd.get("new_t2", 0)
+                        t3 = cmd.get("new_t3", 0)
+                        log.info(f"[C4] MODIFY_TARGET command for {trade_id} → Sierra (t1={t1}, t2={t2}, t3={t3})")
                     else:
                         log.info(f"[C4] {cmd['cmd']} command for {trade_id} → Sierra")
                     last_trade_id = trade_id
