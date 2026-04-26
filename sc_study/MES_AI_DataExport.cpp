@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.7.1d"
+#define MEMS26_DLL_VERSION "v7.8.0"
 
 // V7.7.1d: Persistent keys for bracket order tracking.
 // We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
@@ -29,6 +29,18 @@ SCDLLName("MES_AI_DataExport")
 #define PERSIST_KEY_C2_STOP_ID     105
 #define PERSIST_KEY_C3_STOP_ID     106
 #define PERSIST_KEY_BUY_PARENT_ID  107
+
+// V7.8.0: Last-known OrderStatusCode for transition detection
+#define PERSIST_KEY_C1_LAST_STATUS      111
+#define PERSIST_KEY_C2_LAST_STATUS      112
+#define PERSIST_KEY_C3_LAST_STATUS      113
+#define PERSIST_KEY_S1_LAST_STATUS      114
+#define PERSIST_KEY_S2_LAST_STATUS      115
+#define PERSIST_KEY_S3_LAST_STATUS      116
+#define PERSIST_KEY_PARENT_LAST_STATUS  117
+
+// V7.8.0: Last write counter for trade_state.json (write only on changes)
+#define PERSIST_KEY_STATE_FILE_COUNTER  118
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -196,7 +208,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.7.1d";
+        sc.GraphName        = "MES AI Data Export v7.8.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -1065,6 +1077,143 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 "C5: V7.7.1c position %d -> %d (trade=%s), event written",
                 lastQty, currentQty, tradeId.c_str()), 1);
             sc.GetPersistentInt(200) = currentQty;
+        }
+    }
+
+    // V7.8.0: ACTIVE TRADE MONITOR (runs every update interval)
+    // Polls 7 stored bracket order IDs, detects status transitions,
+    // writes trade_state.json on changes.
+    // SAFE: bounded loop (7), read-only, no while, no runtime mods.
+    {
+        int c1Id = sc.GetPersistentInt(PERSIST_KEY_C1_TARGET_ID);
+        int c2Id = sc.GetPersistentInt(PERSIST_KEY_C2_TARGET_ID);
+        int c3Id = sc.GetPersistentInt(PERSIST_KEY_C3_TARGET_ID);
+        int s1Id = sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID);
+        int s2Id = sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID);
+        int s3Id = sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID);
+        int parentId = sc.GetPersistentInt(PERSIST_KEY_BUY_PARENT_ID);
+
+        if (c1Id != 0 || c2Id != 0 || c3Id != 0 ||
+            s1Id != 0 || s2Id != 0 || s3Id != 0 || parentId != 0)
+        {
+            struct OrderInfo {
+                const char* name;
+                int orderId;
+                int statusKey;
+                int currentStatus;
+                double lastFillPrice;
+                int filledQty;
+            };
+
+            OrderInfo orders[7] = {
+                {"C1",     c1Id,     PERSIST_KEY_C1_LAST_STATUS,     -1, 0.0, 0},
+                {"C2",     c2Id,     PERSIST_KEY_C2_LAST_STATUS,     -1, 0.0, 0},
+                {"C3",     c3Id,     PERSIST_KEY_C3_LAST_STATUS,     -1, 0.0, 0},
+                {"S1",     s1Id,     PERSIST_KEY_S1_LAST_STATUS,     -1, 0.0, 0},
+                {"S2",     s2Id,     PERSIST_KEY_S2_LAST_STATUS,     -1, 0.0, 0},
+                {"S3",     s3Id,     PERSIST_KEY_S3_LAST_STATUS,     -1, 0.0, 0},
+                {"parent", parentId, PERSIST_KEY_PARENT_LAST_STATUS, -1, 0.0, 0},
+            };
+
+            bool anyTransition = false;
+
+            // BOUNDED loop: exactly 7 iterations, no growth
+            for (int i = 0; i < 7; i++) {
+                if (orders[i].orderId <= 0) continue;
+
+                s_SCTradeOrder TradeOrder;
+                int qResult = sc.GetOrderByOrderID(orders[i].orderId, TradeOrder);
+
+                if (qResult != SCTRADING_ORDER_ERROR) {
+                    orders[i].currentStatus = (int)TradeOrder.OrderStatusCode;
+                    orders[i].lastFillPrice = (double)TradeOrder.LastFillPrice;
+                    orders[i].filledQty = (int)TradeOrder.FilledQuantity;
+
+                    int lastStatus = sc.GetPersistentInt(orders[i].statusKey);
+                    if (orders[i].currentStatus != lastStatus) {
+                        anyTransition = true;
+                        sc.SetPersistentInt(orders[i].statusKey,
+                                           orders[i].currentStatus);
+                    }
+                }
+            }
+
+            if (anyTransition) {
+                // Read trade_id from sidecar file (V7.7.1c pattern)
+                std::string tradeId = "unknown";
+                {
+                    std::string dp(ExportPath.GetString());
+                    size_t sl = dp.rfind('/');
+                    if (sl == std::string::npos) sl = dp.rfind('\\');
+                    std::string dataDir = (sl != std::string::npos)
+                        ? dp.substr(0, sl + 1) : "";
+                    std::ifstream idFile(dataDir + "mems26_current_trade_id.txt");
+                    if (idFile.is_open()) {
+                        std::getline(idFile, tradeId);
+                        idFile.close();
+                    }
+                }
+
+                auto statusName = [](int code) -> const char* {
+                    if (code == SCT_OSC_OPEN)     return "OPEN";
+                    if (code == SCT_OSC_FILLED)    return "FILLED";
+                    if (code == SCT_OSC_CANCELED)  return "CANCELED";
+                    if (code == SCT_OSC_REJECTED)  return "REJECTED";
+                    if (code == -1) return "NOT_FOUND";
+                    return "UNKNOWN";
+                };
+
+                int counter = sc.GetPersistentInt(PERSIST_KEY_STATE_FILE_COUNTER) + 1;
+                sc.SetPersistentInt(PERSIST_KEY_STATE_FILE_COUNTER, counter);
+
+                SCString stateJson;
+                stateJson.Format(
+                    "{\n"
+                    "  \"event_type\": \"TRADE_STATE\",\n"
+                    "  \"trade_id\": \"%s\",\n"
+                    "  \"counter\": %d,\n"
+                    "  \"ts\": %lld,\n"
+                    "  \"orders\": {\n"
+                    "    \"c1\":     {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"c2\":     {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"c3\":     {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"stop_c1\":{\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"stop_c2\":{\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"stop_c3\":{\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"parent\": {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d}\n"
+                    "  },\n"
+                    "  \"dll_version\": \"%s\"\n"
+                    "}\n",
+                    tradeId.c_str(), counter, (long long)time(NULL),
+                    orders[0].orderId, statusName(orders[0].currentStatus), orders[0].lastFillPrice, orders[0].filledQty,
+                    orders[1].orderId, statusName(orders[1].currentStatus), orders[1].lastFillPrice, orders[1].filledQty,
+                    orders[2].orderId, statusName(orders[2].currentStatus), orders[2].lastFillPrice, orders[2].filledQty,
+                    orders[3].orderId, statusName(orders[3].currentStatus), orders[3].lastFillPrice, orders[3].filledQty,
+                    orders[4].orderId, statusName(orders[4].currentStatus), orders[4].lastFillPrice, orders[4].filledQty,
+                    orders[5].orderId, statusName(orders[5].currentStatus), orders[5].lastFillPrice, orders[5].filledQty,
+                    orders[6].orderId, statusName(orders[6].currentStatus), orders[6].lastFillPrice, orders[6].filledQty,
+                    MEMS26_DLL_VERSION
+                );
+
+                // Write to Data directory (same dir as export path)
+                std::string dp(ExportPath.GetString());
+                size_t sl = dp.rfind('/');
+                if (sl == std::string::npos) sl = dp.rfind('\\');
+                std::string statePath = (sl != std::string::npos)
+                    ? dp.substr(0, sl + 1) + "trade_state.json" : "trade_state.json";
+
+                std::ofstream stateFile(statePath.c_str());
+                if (stateFile.is_open()) {
+                    stateFile << stateJson.GetChars();
+                    stateFile.close();
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.8.0 trade_state written #%d (trade=%s)",
+                        counter, tradeId.c_str()), 1);
+                } else {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.8.0 ERROR: cannot write trade_state.json"), 1);
+                }
+            }
         }
     }
 }
