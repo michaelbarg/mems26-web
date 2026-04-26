@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.9.5"
+#define MEMS26_DLL_VERSION "v7.9.6"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -211,7 +211,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.9.5";
+        sc.GraphName        = "MES AI Data Export v7.9.6";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -793,9 +793,17 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         // V7.9.5: Checksum dedup using ACSIL persistent storage (survives Re-add).
         {
             SCString lastChecksum = sc.GetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM);
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.6 cmd=%s chk=%s last=%s tid=%s",
+                cmd.c_str(),
+                checksum.empty() ? "EMPTY" : checksum.substr(0, 16).c_str(),
+                lastChecksum.GetLength() > 0 ? lastChecksum.GetSubString(16, 0).GetChars() : "EMPTY",
+                tradeId.c_str()), 1);
             if (!checksum.empty() && SCString(checksum.c_str()) == lastChecksum)
                 goto c5_done;
         }
+
+        sc.AddMessageToLog("C5: V7.9.6 past dedup", 1);
 
         // TTL check — 60 seconds
         if (expiresAt > 0 && (long long)now_c > expiresAt) {
@@ -804,6 +812,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             sc.SetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
             goto c5_done;
         }
+
+        sc.AddMessageToLog("C5: V7.9.6 past TTL check", 1);
 
         // Verify SHA-256 checksum
         {
@@ -1172,6 +1182,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 // V7.9.0: Auto-BE DISABLED — Backend controls Smart BE via ARM_BE command
                 // (was V7.6.3 MoveToBreakEven = OCO_GROUP_1 triggered)
 
+                sc.AddMessageToLog("C5: V7.9.6 entering bracket dispatch", 1);
                 sc.AddMessageToLog(SCString().Format(
                     "C5: %s 3-target bracket dispatch (DLL %s) — T1=%.2f T2=%.2f T3=%.2f stopAll=%.2f qty=3",
                     cmd.c_str(), MEMS26_DLL_VERSION,
