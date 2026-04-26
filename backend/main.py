@@ -3152,6 +3152,21 @@ async def receive_trade_state(
     trade["stop_c3_order_id"] = orders.stop_c3.id
     trade["parent_order_id"] = orders.parent.id
 
+    # V7.9.5 Bug #3: Auto-transition OPEN→CLOSED when all orders done
+    done_statuses = ("CANCELED", "FILLED", "ERROR")
+    all_stops_done = all(
+        getattr(orders, f"stop_c{i}").status in done_statuses for i in range(1, 4)
+    )
+    all_targets_done = all(
+        getattr(orders, f"c{i}").status in done_statuses for i in range(1, 4)
+    )
+    if all_stops_done and all_targets_done and trade.get("status") == "OPEN":
+        import time as _time
+        trade["status"] = "CLOSED"
+        trade["close_reason"] = trade.get("close_reason") or "AUTO_DETECTED_FROM_STATE"
+        trade["closed_at"] = int(_time.time())
+        log.info(f"[STATE] Auto-transitioned trade {payload.trade_id} OPEN→CLOSED")
+
     await redis_set_key(REDIS_TRADE_STATUS, trade)
 
     log.info(f"V7.8.1 trade_state #{payload.counter} applied: "

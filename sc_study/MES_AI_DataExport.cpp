@@ -17,7 +17,10 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.9.3"
+#define MEMS26_DLL_VERSION "v7.9.5"
+
+// V7.9.5: Persistent checksum for command dedup (survives Re-add)
+#define PERSIST_KEY_LAST_CHECKSUM  210
 
 // V7.7.1d: Persistent keys for bracket order tracking.
 // We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
@@ -208,7 +211,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.9.3";
+        sc.GraphName        = "MES AI Data Export v7.9.5";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -765,7 +768,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     {
         static time_t s_lastCmdCheck = 0;
         static std::string s_lastTradeId;
-        static std::string s_lastChecksum;  // V7.9.4-fix2: checksum dedup
         time_t now_c = time(nullptr);
         if (now_c - s_lastCmdCheck < 1) goto c5_done;
         s_lastCmdCheck = now_c;
@@ -788,18 +790,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         long long expiresAt  = jsonInt(cmdJson, "expires_at");
         std::string checksum = jsonStr(cmdJson, "checksum");
 
-        // V7.9.4-fix2: Checksum-based dedup (replaces trade_id dedup).
-        // Each unique command has unique checksum. Same file polled
-        // every 3s → same checksum → skip. Different cmd → different
-        // checksum → process. Prevents infinite loop AND allows
-        // multiple MODIFY_STOPs on same trade.
-        if (!checksum.empty() && checksum == s_lastChecksum) goto c5_done;
+        // V7.9.5: Checksum dedup using ACSIL persistent storage (survives Re-add).
+        {
+            SCString lastChecksum = sc.GetPersistentString(PERSIST_KEY_LAST_CHECKSUM);
+            if (!checksum.empty() && SCString(checksum.c_str()) == lastChecksum)
+                goto c5_done;
+        }
 
         // TTL check — 60 seconds
         if (expiresAt > 0 && (long long)now_c > expiresAt) {
             sc.AddMessageToLog("C5: Command expired — skipping", 1);
             s_lastTradeId = tradeId;
-            s_lastChecksum = checksum;
+            sc.SetPersistentString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
             goto c5_done;
         }
 
@@ -814,13 +816,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (computed != checksum) {
                 sc.AddMessageToLog("C5: CHECKSUM MISMATCH — ignoring", 1);
                 s_lastTradeId = tradeId;
-                s_lastChecksum = checksum;
+                sc.SetPersistentString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
                 goto c5_done;
             }
         }
 
         s_lastTradeId = tradeId;
-        s_lastChecksum = checksum;
+        sc.SetPersistentString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
 
         // Write result helper
         auto writeResult = [&](const char* status, const char* detail, int orderId) {
@@ -1199,10 +1201,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     sc.SetPersistentInt(PERSIST_KEY_C3_STOP_ID, s3Id);
                     sc.SetPersistentInt(PERSIST_KEY_BUY_PARENT_ID, parentId);
 
+                    // V7.9.5: If InternalOrderID is 0, use Result as parent
+                    if (parentId == 0) parentId = Result;
+                    if (parentId != 0)
+                        sc.SetPersistentInt(PERSIST_KEY_BUY_PARENT_ID, parentId);
+
                     sc.AddMessageToLog(SCString().Format(
-                        "C5: V7.7.1d stored IDs: parent=%d "
+                        "C5: V7.9.5 stored IDs: parent=%d "
                         "T1=%d T2=%d T3=%d S1=%d S2=%d S3=%d",
                         parentId, t1Id, t2Id, t3Id, s1Id, s2Id, s3Id), 1);
+                    if (t1Id == 0 && s1Id == 0)
+                        sc.AddMessageToLog(
+                            "C5: WARNING — IDs all zero, Sierra may populate async", 1);
 
                     s_lastTradeId = tradeId;
                     // V7.7.1c: Persist trade_id to file for position monitoring
