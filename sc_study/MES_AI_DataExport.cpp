@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.8.0"
+#define MEMS26_DLL_VERSION "v7.9.0"
 
 // V7.7.1d: Persistent keys for bracket order tracking.
 // We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
@@ -208,7 +208,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.8.0";
+        sc.GraphName        = "MES AI Data Export v7.9.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -867,6 +867,73 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             goto c5_done;
         }
 
+        // ── ARM_BE — V7.9.0: Smart Breakeven (move 3 stops to entry) ──
+        if (cmd == "ARM_BE") {
+            double entryPrice = jsonNum(cmdJson, "entry_price");
+            if (entryPrice <= 0) {
+                writeResult("ERROR", "ARM_BE: entry_price invalid", 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.0 ARM_BE rejected — entry_price=%.2f invalid",
+                    entryPrice), 1);
+                goto c5_done;
+            }
+
+            int stopIds[3] = {
+                sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
+            };
+            const char* stopNames[3] = {"S1", "S2", "S3"};
+
+            int modifiedCount = 0;
+            // BOUNDED loop: exactly 3 iterations
+            for (int i = 0; i < 3; i++) {
+                int stopId = stopIds[i];
+                if (stopId <= 0) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.0 ARM_BE skip %s — id=0 (no stop stored)",
+                        stopNames[i]), 1);
+                    continue;
+                }
+
+                s_SCTradeOrder ExistingOrder;
+                if (sc.GetOrderByOrderID(stopId, ExistingOrder)
+                    == SCTRADING_ORDER_ERROR) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.0 ARM_BE skip %s — id=%d not found",
+                        stopNames[i], stopId), 1);
+                    continue;
+                }
+
+                if (!IsWorkingOrderStatus(ExistingOrder.OrderStatusCode)) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.0 ARM_BE skip %s — id=%d status=%d (not working)",
+                        stopNames[i], stopId,
+                        (int)ExistingOrder.OrderStatusCode), 1);
+                    continue;
+                }
+
+                s_SCNewOrder ModifyOrder;
+                ModifyOrder.InternalOrderID = stopId;
+                ModifyOrder.Price1 = (float)entryPrice;
+                ModifyOrder.OrderQuantity = 0;  // Let Sierra manage qty
+
+                int modResult = sc.ModifyOrder(ModifyOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.0 ARM_BE %s id=%d -> price=%.2f result=%d",
+                    stopNames[i], stopId, entryPrice, modResult), 1);
+
+                if (modResult > 0) modifiedCount++;
+            }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.0 ARM_BE complete — %d/3 stops moved to BE=%.2f",
+                modifiedCount, entryPrice), 1);
+            writeResult("OK", "ARM_BE executed", modifiedCount);
+            goto c5_done;
+        }
+
         // ── BUY / SELL — Bracket Order ──
         if (cmd != "BUY" && cmd != "SELL") {
             writeResult("ERROR", "Unknown cmd", 0);
@@ -950,10 +1017,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 NewOrder.Stop3Price = (float)cmdStop;
                 NewOrder.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
 
-                // V7.6: When C1 fills, auto-move StopAll to entry (breakeven)
-                NewOrder.MoveToBreakEven.Type = MOVETO_BE_ACTION_TYPE_OCO_GROUP_TRIGGERED;
-                NewOrder.MoveToBreakEven.BreakEvenLevelOffsetInTicks = 0;
-                NewOrder.MoveToBreakEven.TriggerOCOGroup = OCO_GROUP_1;
+                // V7.9.0: Auto-BE DISABLED — Backend controls Smart BE via ARM_BE command
+                // (was V7.6.3 MoveToBreakEven = OCO_GROUP_1 triggered)
 
                 sc.AddMessageToLog(SCString().Format(
                     "C5: %s 3-target bracket dispatch (DLL %s) — T1=%.2f T2=%.2f T3=%.2f stopAll=%.2f qty=3",
@@ -1002,7 +1067,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     sc.AddMessageToLog(
                         "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
                     sc.AddMessageToLog(
-                        "C5: V7.6 MoveToBreakEven armed — C1 fill → StopAll → entry", 1);
+                        "C5: V7.9.0 Auto-BE DISABLED — Backend controls Smart BE", 1);
                 } else {
                     writeResult("ERROR", "bracket rejected", Result);
                     sc.AddMessageToLog(SCString().Format(
