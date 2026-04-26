@@ -2896,6 +2896,31 @@ async def receive_trade_state(
              f"c2={orders.c2.status} c3={orders.c3.status} "
              f"stop={trade['stop_status']}")
 
+    # V7.9.0: Smart BE auto-trigger on c1 FILLED transition
+    arm_be_fired = False
+    if (orders.c1.status == "FILLED"
+            and trade.get("active_management_state", "NORMAL") == "NORMAL"
+            and orders.parent.fill_price > 0):
+        trade["active_management_state"] = "BE_ARMED"
+        await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+        import time as _time
+        arm_ts = int(_time.time())
+        arm_exp = arm_ts + COMMAND_TTL_SEC
+        entry_price = orders.parent.fill_price
+        chk_hex, chk_raw = _make_checksum(
+            "ARM_BE", entry_price, 0, 0, payload.trade_id, arm_exp)
+        arm_cmd = {
+            "cmd": "ARM_BE", "price": entry_price, "qty": 0, "stop": 0,
+            "t1": 0, "t2": 0, "t3": 0,
+            "trade_id": payload.trade_id, "expires_at": arm_exp,
+            "checksum": chk_hex, "checksum_input": chk_raw,
+        }
+        await redis_set_key(REDIS_TRADE_COMMAND, arm_cmd)
+        arm_be_fired = True
+        log.info(f"[V7.9.0] ARM_BE enqueued for trade={payload.trade_id} "
+                 f"entry={entry_price}")
+
     return {
         "status": "ok",
         "trade_id": payload.trade_id,
@@ -2904,6 +2929,7 @@ async def receive_trade_state(
         "c2_status": trade["c2_status"],
         "c3_status": trade["c3_status"],
         "stop_status": trade["stop_status"],
+        "arm_be_fired": arm_be_fired,
     }
 
 
