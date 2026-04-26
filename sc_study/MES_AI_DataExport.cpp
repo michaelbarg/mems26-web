@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.9.0"
+#define MEMS26_DLL_VERSION "v7.9.2"
 
 // V7.7.1d: Persistent keys for bracket order tracking.
 // We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
@@ -208,7 +208,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.9.0";
+        sc.GraphName        = "MES AI Data Export v7.9.2";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -931,6 +931,82 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 "C5: V7.9.0 ARM_BE complete — %d/3 stops moved to BE=%.2f",
                 modifiedCount, entryPrice), 1);
             writeResult("OK", "ARM_BE executed", modifiedCount);
+            goto c5_done;
+        }
+
+        // ── BAILOUT — V7.9.1: Emergency exit (same as CLOSE, tagged for analytics) ──
+        if (cmd == "BAILOUT") {
+            sc.FlattenAndCancelAllOrders();
+            writeResult("OK", "BAILOUT executed", 0);
+            sc.AddMessageToLog(
+                "C5: V7.9.1 BAILOUT executed (FlattenAndCancelAllOrders)", 1);
+            goto c5_done;
+        }
+
+        // ── MODIFY_STOP — V7.9.2: Move all 3 stops to new price ──
+        if (cmd == "MODIFY_STOP") {
+            double newStopPrice = jsonNum(cmdJson, "new_stop_price");
+            if (newStopPrice <= 0) {
+                writeResult("ERROR", "MODIFY_STOP: new_stop_price invalid", 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.2 MODIFY_STOP rejected — new_stop_price=%.2f invalid",
+                    newStopPrice), 1);
+                goto c5_done;
+            }
+
+            int stopIds[3] = {
+                sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
+            };
+            const char* stopNames[3] = {"S1", "S2", "S3"};
+
+            int modifiedCount = 0;
+            // BOUNDED loop: exactly 3 iterations
+            for (int i = 0; i < 3; i++) {
+                int stopId = stopIds[i];
+                if (stopId <= 0) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.2 MODIFY_STOP skip %s — id=0",
+                        stopNames[i]), 1);
+                    continue;
+                }
+
+                s_SCTradeOrder ExistingOrder;
+                if (sc.GetOrderByOrderID(stopId, ExistingOrder)
+                    == SCTRADING_ORDER_ERROR) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.2 MODIFY_STOP skip %s — id=%d not found",
+                        stopNames[i], stopId), 1);
+                    continue;
+                }
+
+                if (!IsWorkingOrderStatus(ExistingOrder.OrderStatusCode)) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.2 MODIFY_STOP skip %s — id=%d status=%d (not working)",
+                        stopNames[i], stopId,
+                        (int)ExistingOrder.OrderStatusCode), 1);
+                    continue;
+                }
+
+                s_SCNewOrder ModifyOrder;
+                ModifyOrder.InternalOrderID = stopId;
+                ModifyOrder.Price1 = (float)newStopPrice;
+                ModifyOrder.OrderQuantity = 0;  // Let Sierra manage qty
+
+                int modResult = sc.ModifyOrder(ModifyOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.2 MODIFY_STOP %s id=%d -> price=%.2f result=%d",
+                    stopNames[i], stopId, newStopPrice, modResult), 1);
+
+                if (modResult > 0) modifiedCount++;
+            }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.2 MODIFY_STOP complete — %d/3 stops moved to %.2f",
+                modifiedCount, newStopPrice), 1);
+            writeResult("OK", "MODIFY_STOP executed", modifiedCount);
             goto c5_done;
         }
 
