@@ -141,8 +141,8 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
   if (!setup) return null;
 
   const passCount = conditions.filter(c => c.status === 'pass').length;
-  // Stop validation — block EXECUTE if stop > 8pt
-  const stopTooWide = setup.riskPts > 8;
+  // Stop validation — block EXECUTE if stop > 15pt
+  const stopTooWide = setup.riskPts > 15;
   // Test mode: require Circuit Breaker + Sweep + any 2 others = 4 total
   const testPass = testMode && conditions.length === 10 && passCount >= 4
     && conditions.find(c => c.id === 'circuit')?.status === 'pass'
@@ -256,7 +256,7 @@ export default function PreEntryChecklist({ setup, live, patterns, wsCircuitBrea
           background: testMode ? '#f59e0b' : (allPass ? '#22c55e' : passCount>=5 ? '#f59e0b' : '#ef4444'),
           transition:'width 0.4s, background 0.4s' }} />
       </div>
-      {stopTooWide && <div style={{ fontSize:10, color:'#ef4444', marginBottom:6, textAlign:'center', fontWeight:700 }}>Stop too wide ({setup.riskPts.toFixed(2)}pt &gt; 8pt max)</div>}
+      {stopTooWide && <div style={{ fontSize:10, color:'#ef4444', marginBottom:6, textAlign:'center', fontWeight:700 }}>Stop too wide ({setup.riskPts.toFixed(2)}pt &gt; 15pt max)</div>}
       {lastError && <div style={{ fontSize:10, color:'#ef4444', marginBottom:6, textAlign:'center' }}>⚠ {lastError}</div>}
       <button onClick={handleExecute} disabled={!allPass || executing} style={{
         width:'100%', padding:'10px 0', border:'none', borderRadius:8,

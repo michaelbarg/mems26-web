@@ -428,10 +428,10 @@ interface SetupEvalResult {
 
 // V6.6.3: Dynamic thresholds per entry_mode
 const ENTRY_THRESHOLDS: Record<string, { relVol: number; fvgMax: number; sweepWick: number; stopMax: number; p3Hard: boolean }> = {
-  STRICT:   { relVol: 1.2,  fvgMax: 4.0, sweepWick: 1.5,  stopMax: 8,  p3Hard: true  },
-  DEMO:     { relVol: 1.0,  fvgMax: 5.0, sweepWick: 1.0,  stopMax: 8,  p3Hard: true  },
+  STRICT:   { relVol: 1.2,  fvgMax: 4.0, sweepWick: 1.5,  stopMax: 15, p3Hard: true  },
+  DEMO:     { relVol: 1.0,  fvgMax: 5.0, sweepWick: 1.0,  stopMax: 15, p3Hard: true  },
   RESEARCH: { relVol: 1.0,  fvgMax: 8.0, sweepWick: 0.25, stopMax: 15, p3Hard: false },
-  LIVE:     { relVol: 1.2,  fvgMax: 4.0, sweepWick: 1.5,  stopMax: 8,  p3Hard: true  },
+  LIVE:     { relVol: 1.2,  fvgMax: 4.0, sweepWick: 1.5,  stopMax: 15, p3Hard: true  },
 };
 
 function evaluate_range_setup(
@@ -3284,7 +3284,7 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
   const isLong = opportunity === 'long';
   const col = isLong ? '#22c55e' : '#ef5350';
   const riskPts = hasSetup ? oppLevels.riskPts : 0;
-  const stopTooWide = riskPts > 8;
+  const stopTooWide = riskPts > 15;
   const allPillarsPass = liveSetup?.setupEval?.pass === true;
   const canExecute = hasSetup && !stopTooWide && allPillarsPass;
 
@@ -3336,7 +3336,7 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
       {cell('R:R', `1:${rr1} | 1:${rr2}`, '#94a3b8')}
       <div style={{ flex:1 }} />
       {stopTooWide && (
-        <span style={{ fontSize:11, color:'#ef5350', fontWeight:700, flexShrink:0 }}>Stop too wide ({riskPts}pt &gt; 8pt)</span>
+        <span style={{ fontSize:11, color:'#ef5350', fontWeight:700, flexShrink:0 }}>Stop too wide ({riskPts}pt &gt; 15pt)</span>
       )}
       <button
         disabled={!canExecute || !!checklistSetup}
