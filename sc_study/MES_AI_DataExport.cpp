@@ -17,7 +17,18 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.7.1c"
+#define MEMS26_DLL_VERSION "v7.7.1d"
+
+// V7.7.1d: Persistent keys for bracket order tracking.
+// We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
+// Sierra creates 3 parents, each with attached Target+Stop.
+#define PERSIST_KEY_C1_TARGET_ID   101
+#define PERSIST_KEY_C2_TARGET_ID   102
+#define PERSIST_KEY_C3_TARGET_ID   103
+#define PERSIST_KEY_C1_STOP_ID     104
+#define PERSIST_KEY_C2_STOP_ID     105
+#define PERSIST_KEY_C3_STOP_ID     106
+#define PERSIST_KEY_BUY_PARENT_ID  107
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -185,7 +196,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.7.1c";
+        sc.GraphName        = "MES AI Data Export v7.7.1d";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -944,6 +955,28 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 sc.AddMessageToLog(SCString().Format(
                     "C5: bracket dispatch Result=%d", Result), 1);
                 if (Result > 0) {
+                    // V7.7.1d: Persist 7 bracket order IDs for active management
+                    int t1Id = NewOrder.Target1InternalOrderID;
+                    int t2Id = NewOrder.Target2InternalOrderID;
+                    int t3Id = NewOrder.Target3InternalOrderID;
+                    int s1Id = NewOrder.Stop1InternalOrderID;
+                    int s2Id = NewOrder.Stop2InternalOrderID;
+                    int s3Id = NewOrder.Stop3InternalOrderID;
+                    int parentId = NewOrder.InternalOrderID;
+
+                    sc.SetPersistentInt(PERSIST_KEY_C1_TARGET_ID, t1Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_TARGET_ID, t2Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C3_TARGET_ID, t3Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C1_STOP_ID, s1Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_STOP_ID, s2Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C3_STOP_ID, s3Id);
+                    sc.SetPersistentInt(PERSIST_KEY_BUY_PARENT_ID, parentId);
+
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.7.1d stored IDs: parent=%d "
+                        "T1=%d T2=%d T3=%d S1=%d S2=%d S3=%d",
+                        parentId, t1Id, t2Id, t3Id, s1Id, s2Id, s3Id), 1);
+
                     s_lastTradeId = tradeId;
                     // V7.7.1c: Persist trade_id to file for position monitoring
                     { std::string dp(ExportPath.GetString());
