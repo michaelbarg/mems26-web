@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.9.2"
+#define MEMS26_DLL_VERSION "v7.9.3"
 
 // V7.7.1d: Persistent keys for bracket order tracking.
 // We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
@@ -208,7 +208,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.9.2";
+        sc.GraphName        = "MES AI Data Export v7.9.3";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -1007,6 +1007,72 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 "C5: V7.9.2 MODIFY_STOP complete — %d/3 stops moved to %.2f",
                 modifiedCount, newStopPrice), 1);
             writeResult("OK", "MODIFY_STOP executed", modifiedCount);
+            goto c5_done;
+        }
+
+        // ── MODIFY_TARGET — V7.9.3: Modify target prices independently ──
+        if (cmd == "MODIFY_TARGET") {
+            double newT1 = jsonNum(cmdJson, "new_t1");
+            double newT2 = jsonNum(cmdJson, "new_t2");
+            double newT3 = jsonNum(cmdJson, "new_t3");
+
+            int targetIds[3] = {
+                sc.GetPersistentInt(PERSIST_KEY_C1_TARGET_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C2_TARGET_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C3_TARGET_ID),
+            };
+            double newPrices[3] = { newT1, newT2, newT3 };
+            const char* targetNames[3] = {"T1", "T2", "T3"};
+
+            int modifiedCount = 0;
+            // BOUNDED loop: exactly 3 iterations
+            for (int i = 0; i < 3; i++) {
+                double newPrice = newPrices[i];
+                if (newPrice <= 0) continue;  // skip if not provided
+
+                int targetId = targetIds[i];
+                if (targetId <= 0) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.3 MODIFY_TARGET skip %s — id=0",
+                        targetNames[i]), 1);
+                    continue;
+                }
+
+                s_SCTradeOrder ExistingOrder;
+                if (sc.GetOrderByOrderID(targetId, ExistingOrder)
+                    == SCTRADING_ORDER_ERROR) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.3 MODIFY_TARGET skip %s — id=%d not found",
+                        targetNames[i], targetId), 1);
+                    continue;
+                }
+
+                if (!IsWorkingOrderStatus(ExistingOrder.OrderStatusCode)) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.3 MODIFY_TARGET skip %s — id=%d status=%d (not working)",
+                        targetNames[i], targetId,
+                        (int)ExistingOrder.OrderStatusCode), 1);
+                    continue;
+                }
+
+                s_SCNewOrder ModifyOrder;
+                ModifyOrder.InternalOrderID = targetId;
+                ModifyOrder.Price1 = (float)newPrice;
+                ModifyOrder.OrderQuantity = 0;  // Let Sierra manage qty
+
+                int modResult = sc.ModifyOrder(ModifyOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.3 MODIFY_TARGET %s id=%d -> price=%.2f result=%d",
+                    targetNames[i], targetId, newPrice, modResult), 1);
+
+                if (modResult > 0) modifiedCount++;
+            }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.3 MODIFY_TARGET complete — %d targets modified",
+                modifiedCount), 1);
+            writeResult("OK", "MODIFY_TARGET executed", modifiedCount);
             goto c5_done;
         }
 
