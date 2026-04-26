@@ -1106,6 +1106,7 @@ async def main():
         await trade_tracker.load_seen_fills(http)
         asyncio.create_task(_poll_trade_commands(http))
         asyncio.create_task(_poll_trade_events(http))
+        asyncio.create_task(_poll_trade_state(http))
         asyncio.create_task(_heartbeat_watchdog(http))
         asyncio.create_task(_eod_flatten_check(http))
 
@@ -1531,6 +1532,10 @@ def _verify_checksum(cmd: dict) -> bool:
 # V7.7.2: Position event monitoring — reads DLL trade_events.json
 TRADE_EVENTS_PATH = os.path.join(os.path.dirname(SC_JSON_PATH), "trade_events.json")
 
+# V7.8.0: Trade state monitoring — reads DLL trade_state.json
+TRADE_STATE_PATH = os.path.join(os.path.dirname(SC_JSON_PATH), "trade_state.json")
+STATE_POST_URL = f"{CLOUD_URL}/trade/state"
+
 async def _poll_trade_events(http):
     """Poll trade_events.json for DLL position changes, forward to Backend."""
     last_mtime = 0.0
@@ -1557,6 +1562,35 @@ async def _poll_trade_events(http):
                         last_sig = sig
         except Exception as e:
             log.warning(f"[C4] trade event error: {e}")
+        await asyncio.sleep(1)
+
+
+async def _poll_trade_state(http):
+    """Poll trade_state.json for DLL order state changes, forward to Backend."""
+    last_mtime = 0.0
+    last_counter = -1
+    while True:
+        try:
+            if os.path.exists(TRADE_STATE_PATH):
+                mtime = os.path.getmtime(TRADE_STATE_PATH)
+                if mtime > last_mtime:
+                    last_mtime = mtime
+                    with open(TRADE_STATE_PATH) as f:
+                        state = json.load(f)
+                    counter = state.get("counter", 0)
+                    if counter != last_counter:
+                        async with http.post(
+                            STATE_POST_URL,
+                            headers={"x-bridge-token": BRIDGE_TOKEN, "content-type": "application/json"},
+                            json=state, timeout=aiohttp.ClientTimeout(total=5),
+                        ) as resp:
+                            if resp.status == 200:
+                                log.info(f"[C4] trade state #{counter} sent: trade={state.get('trade_id', '?')}")
+                            else:
+                                log.warning(f"[C4] state POST {resp.status}")
+                        last_counter = counter
+        except Exception as e:
+            log.warning(f"[C4] trade state error: {e}")
         await asyncio.sleep(1)
 
 
