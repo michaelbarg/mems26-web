@@ -5,6 +5,7 @@ import LightweightChart from './LightweightChart';
 import PreEntryChecklist, { type ChecklistSetup } from './PreEntryChecklist';
 import dynamic from 'next/dynamic';
 const AnalyticsTab = dynamic(() => import('./AnalyticsTab'), { ssr: false });
+import ActiveTradePanelV2 from './ActiveTradePanelV2';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -4848,6 +4849,8 @@ export default function Dashboard() {
               }}
             />
           )}
+          {/* V7.7.1d-fe: Active Trade Management Panel (skeleton) */}
+          <ActiveTradePanelV2 />
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
             <VolumeTimer bar={bar??null} />
           </div>
