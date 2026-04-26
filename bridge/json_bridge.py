@@ -1616,7 +1616,11 @@ async def _poll_trade_commands(http):
             if data.get("pending"):
                 cmd = data["command"]
                 trade_id = cmd.get("trade_id", "")
-                if trade_id == last_trade_id:
+                cmd_type = cmd.get("cmd", "")
+                # V7.9.3-fix: management commands legitimately reuse trade_id
+                MANAGEMENT_CMDS = ("CLOSE", "CANCEL", "SCALE_OUT", "ARM_BE",
+                                   "BAILOUT", "MODIFY_STOP", "MODIFY_TARGET")
+                if trade_id == last_trade_id and cmd_type not in MANAGEMENT_CMDS:
                     await asyncio.sleep(1)
                     continue
                 if not _verify_checksum(cmd):
