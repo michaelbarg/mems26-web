@@ -1158,7 +1158,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     if (code == SCT_OSC_OPEN)     return "OPEN";
                     if (code == SCT_OSC_FILLED)    return "FILLED";
                     if (code == SCT_OSC_CANCELED)  return "CANCELED";
-                    if (code == SCT_OSC_REJECTED)  return "REJECTED";
+                    if (code == SCT_OSC_ERROR)     return "ERROR";
                     if (code == -1) return "NOT_FOUND";
                     return "UNKNOWN";
                 };
