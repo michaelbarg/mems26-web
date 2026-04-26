@@ -1107,8 +1107,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             writeResult("ERROR", "Invalid price/stop/qty", 0);
             goto c5_done;
         }
-        if (std::fabs(cmdPrice - cmdStop) > 8.0) {
-            writeResult("ERROR", "Risk > 8pt", 0);
+        if (std::fabs(cmdPrice - cmdStop) > 15.0) {
+            writeResult("ERROR", "Risk > 15pt", 0);
             goto c5_done;
         }
 
