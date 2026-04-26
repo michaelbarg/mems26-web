@@ -1623,8 +1623,8 @@ async def _poll_trade_commands(http):
                     log.error(f"[C4] CHECKSUM FAIL — ignoring {trade_id}")
                     await asyncio.sleep(1)
                     continue
-                # V7.2: CLOSE/CANCEL/SCALE_OUT/ARM_BE bypass brackets validation
-                if cmd.get("cmd") in ("CLOSE", "CANCEL", "SCALE_OUT", "ARM_BE"):
+                # V7.2+V7.9: bypass brackets validation for management commands
+                if cmd.get("cmd") in ("CLOSE", "CANCEL", "SCALE_OUT", "ARM_BE", "BAILOUT", "MODIFY_STOP"):
                     tmp = SC_COMMAND_PATH + ".tmp"
                     with open(tmp, "w") as f:
                         json.dump(cmd, f, indent=2)
@@ -1632,6 +1632,11 @@ async def _poll_trade_commands(http):
                     if cmd["cmd"] == "ARM_BE":
                         entry = cmd.get("entry_price", 0)
                         log.info(f"[C4] ARM_BE command for {trade_id} → Sierra (entry={entry})")
+                    elif cmd["cmd"] == "BAILOUT":
+                        log.info(f"[C4] BAILOUT command for {trade_id} → Sierra")
+                    elif cmd["cmd"] == "MODIFY_STOP":
+                        new_stop = cmd.get("new_stop_price", 0)
+                        log.info(f"[C4] MODIFY_STOP command for {trade_id} → Sierra (new_stop={new_stop})")
                     else:
                         log.info(f"[C4] {cmd['cmd']} command for {trade_id} → Sierra")
                     last_trade_id = trade_id
