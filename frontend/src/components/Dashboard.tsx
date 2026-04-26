@@ -3076,6 +3076,7 @@ function getDayTypeAvoid(id: string): string {
 
 // ── D8: Active Trade Panel ────────────────────────────────────────────────
 interface ActiveTrade {
+  tradeId: string;
   direction: 'LONG' | 'SHORT';
   setupType: string;
   entryPrice: number;
@@ -4296,6 +4297,7 @@ export default function Dashboard() {
             const t = d.trade;
             if (t && t.status === 'OPEN') {
               setActiveTrade({
+                tradeId: t.id || '',
                 direction: t.direction,
                 setupType: t.setup_type || 'MANUAL',
                 entryPrice: t.entry_price || 0,
@@ -4849,8 +4851,11 @@ export default function Dashboard() {
               }}
             />
           )}
-          {/* V7.7.1d-fe: Active Trade Management Panel (skeleton) */}
-          <ActiveTradePanelV2 />
+          {/* V7.9.4: Active Trade Management Panel */}
+          <ActiveTradePanelV2
+            tradeId={activeTrade?.tradeId}
+            apiUrl={API_URL}
+          />
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
             <VolumeTimer bar={bar??null} />
           </div>
