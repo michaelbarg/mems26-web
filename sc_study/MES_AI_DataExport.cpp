@@ -765,6 +765,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     {
         static time_t s_lastCmdCheck = 0;
         static std::string s_lastTradeId;
+        static std::string s_lastChecksum;  // V7.9.4-fix2: checksum dedup
         time_t now_c = time(nullptr);
         if (now_c - s_lastCmdCheck < 1) goto c5_done;
         s_lastCmdCheck = now_c;
@@ -787,18 +788,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         long long expiresAt  = jsonInt(cmdJson, "expires_at");
         std::string checksum = jsonStr(cmdJson, "checksum");
 
-        // Skip if same trade_id (already processed BUY/SELL).
-        // V7.9.4-fix: Management commands legitimately reuse trade_id.
-        bool isManagementCmd = (cmd == "CLOSE" || cmd == "CANCEL" ||
-                                cmd == "SCALE_OUT" || cmd == "ARM_BE" ||
-                                cmd == "BAILOUT" || cmd == "MODIFY_STOP" ||
-                                cmd == "MODIFY_TARGET");
-        if (tradeId == s_lastTradeId && !isManagementCmd) goto c5_done;
+        // V7.9.4-fix2: Checksum-based dedup (replaces trade_id dedup).
+        // Each unique command has unique checksum. Same file polled
+        // every 3s → same checksum → skip. Different cmd → different
+        // checksum → process. Prevents infinite loop AND allows
+        // multiple MODIFY_STOPs on same trade.
+        if (!checksum.empty() && checksum == s_lastChecksum) goto c5_done;
 
         // TTL check — 60 seconds
         if (expiresAt > 0 && (long long)now_c > expiresAt) {
             sc.AddMessageToLog("C5: Command expired — skipping", 1);
             s_lastTradeId = tradeId;
+            s_lastChecksum = checksum;
             goto c5_done;
         }
 
@@ -813,11 +814,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (computed != checksum) {
                 sc.AddMessageToLog("C5: CHECKSUM MISMATCH — ignoring", 1);
                 s_lastTradeId = tradeId;
+                s_lastChecksum = checksum;
                 goto c5_done;
             }
         }
 
         s_lastTradeId = tradeId;
+        s_lastChecksum = checksum;
 
         // Write result helper
         auto writeResult = [&](const char* status, const char* detail, int orderId) {
