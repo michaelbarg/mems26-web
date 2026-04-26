@@ -6,6 +6,7 @@ from typing import Optional
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from contextlib import asynccontextmanager
 import httpx
 
@@ -1769,6 +1770,19 @@ async def trade_execute(request: Request):
             "c1_status": "open",
             "c2_status": "open",
             "c3_status": "open",
+            "stop_status": "PENDING",
+            "c1_fill_price": None,
+            "c2_fill_price": None,
+            "c3_fill_price": None,
+            "stop_fill_price": None,
+            "c1_order_id": None,
+            "c2_order_id": None,
+            "c3_order_id": None,
+            "stop_c1_order_id": None,
+            "stop_c2_order_id": None,
+            "stop_c3_order_id": None,
+            "parent_order_id": None,
+            "active_management_state": "NORMAL",
             "pnl_pts": 0,
             "pnl_usd": 0,
             "news_tag": news_tag,
@@ -2690,6 +2704,106 @@ async def health():
         "redis_ok": redis_ok,
         "sc_data_age_sec": sc_age,
     }
+
+
+# ---------------------------------------------------------------------------
+# V7.7.1d-be: Trade state schema for active management
+# ---------------------------------------------------------------------------
+
+class TradeStateResponse(BaseModel):
+    trade_id: str
+    status: str
+    c1_status: str = "PENDING"
+    c2_status: str = "PENDING"
+    c3_status: str = "PENDING"
+    stop_status: str = "PENDING"
+    c1_fill_price: Optional[float] = None
+    c2_fill_price: Optional[float] = None
+    c3_fill_price: Optional[float] = None
+    stop_fill_price: Optional[float] = None
+    c1_order_id: Optional[int] = None
+    c2_order_id: Optional[int] = None
+    c3_order_id: Optional[int] = None
+    stop_c1_order_id: Optional[int] = None
+    stop_c2_order_id: Optional[int] = None
+    stop_c3_order_id: Optional[int] = None
+    parent_order_id: Optional[int] = None
+    active_management_state: str = "NORMAL"
+
+
+class TradeOrderIDsUpdate(BaseModel):
+    trade_id: str
+    c1_order_id: int
+    c2_order_id: int
+    c3_order_id: int
+    stop_c1_order_id: int
+    stop_c2_order_id: int
+    stop_c3_order_id: int
+    parent_order_id: int
+
+
+@app.get("/trade/state/{trade_id}", response_model=TradeStateResponse)
+async def get_trade_state(
+    trade_id: str,
+    x_bridge_token: Optional[str] = Header(None, alias="X-Bridge-Token"),
+):
+    """Returns full trade state including per-contract status."""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="invalid token")
+
+    trade = await redis_get_key(REDIS_TRADE_STATUS)
+    if trade is None or trade.get("id") != trade_id:
+        raise HTTPException(status_code=404, detail="trade not found")
+
+    return TradeStateResponse(
+        trade_id=trade_id,
+        status=trade.get("status", "UNKNOWN"),
+        c1_status=trade.get("c1_status", "PENDING"),
+        c2_status=trade.get("c2_status", "PENDING"),
+        c3_status=trade.get("c3_status", "PENDING"),
+        stop_status=trade.get("stop_status", "PENDING"),
+        c1_fill_price=trade.get("c1_fill_price"),
+        c2_fill_price=trade.get("c2_fill_price"),
+        c3_fill_price=trade.get("c3_fill_price"),
+        stop_fill_price=trade.get("stop_fill_price"),
+        c1_order_id=trade.get("c1_order_id"),
+        c2_order_id=trade.get("c2_order_id"),
+        c3_order_id=trade.get("c3_order_id"),
+        stop_c1_order_id=trade.get("stop_c1_order_id"),
+        stop_c2_order_id=trade.get("stop_c2_order_id"),
+        stop_c3_order_id=trade.get("stop_c3_order_id"),
+        parent_order_id=trade.get("parent_order_id"),
+        active_management_state=trade.get("active_management_state", "NORMAL"),
+    )
+
+
+@app.post("/trade/internal/set-order-ids")
+async def set_order_ids(
+    update: TradeOrderIDsUpdate,
+    x_bridge_token: Optional[str] = Header(None, alias="X-Bridge-Token"),
+):
+    """
+    Internal: store all 7 InternalOrderIDs from DLL/Bridge into the
+    trade record. Used by V7.8.x flow once Bridge implements relay.
+    For now this enables manual testing of the schema.
+    """
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="invalid token")
+
+    trade = await redis_get_key(REDIS_TRADE_STATUS)
+    if trade is None or trade.get("id") != update.trade_id:
+        return {"status": "ignored", "reason": "trade not found"}
+
+    trade["c1_order_id"] = update.c1_order_id
+    trade["c2_order_id"] = update.c2_order_id
+    trade["c3_order_id"] = update.c3_order_id
+    trade["stop_c1_order_id"] = update.stop_c1_order_id
+    trade["stop_c2_order_id"] = update.stop_c2_order_id
+    trade["stop_c3_order_id"] = update.stop_c3_order_id
+    trade["parent_order_id"] = update.parent_order_id
+    await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+    return {"status": "ok", "trade_id": update.trade_id}
 
 
 @app.websocket("/ws")
