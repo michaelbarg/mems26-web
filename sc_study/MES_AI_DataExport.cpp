@@ -792,7 +792,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         // V7.9.5: Checksum dedup using ACSIL persistent storage (survives Re-add).
         {
-            SCString lastChecksum = sc.GetPersistentString(PERSIST_KEY_LAST_CHECKSUM);
+            SCString lastChecksum = sc.GetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM);
             if (!checksum.empty() && SCString(checksum.c_str()) == lastChecksum)
                 goto c5_done;
         }
@@ -801,7 +801,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if (expiresAt > 0 && (long long)now_c > expiresAt) {
             sc.AddMessageToLog("C5: Command expired — skipping", 1);
             s_lastTradeId = tradeId;
-            sc.SetPersistentString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
+            sc.SetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
             goto c5_done;
         }
 
@@ -816,13 +816,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (computed != checksum) {
                 sc.AddMessageToLog("C5: CHECKSUM MISMATCH — ignoring", 1);
                 s_lastTradeId = tradeId;
-                sc.SetPersistentString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
+                sc.SetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
                 goto c5_done;
             }
         }
 
         s_lastTradeId = tradeId;
-        sc.SetPersistentString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
+        sc.SetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
 
         // Write result helper
         auto writeResult = [&](const char* status, const char* detail, int orderId) {
