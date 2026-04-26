@@ -641,7 +641,7 @@ FVG: {fvg_status} (entry={fvg_entry})
 
 ═══ 5. DECISION ═══
 כללים:
-1. סטופ > 8pt → NO_TRADE
+1. סטופ > 15pt → NO_TRADE
 2. T1 < 10pt → NO_TRADE
 3. rel_vol < 0.8 → confidence max 50
 4. DayType BALANCED/ROTATIONAL/NEUTRAL → confidence max 60
@@ -959,7 +959,7 @@ async def get_patterns():
                     filtered = []
                     for p in parsed:
                         risk = abs(p.get("entry", 0) - p.get("stop", 0))
-                        if risk < 3.0 or risk > 8.0:
+                        if risk < 3.0 or risk > 15.0:
                             continue
                         d = p.get("direction", "")
                         e = p.get("entry", 0)
@@ -1523,7 +1523,7 @@ CB_CONSEC_LOSSES = 2                                   # consecutive losses → 
 CB_LOCK_MIN      = 30                                  # lock duration in minutes
 CONTRACTS        = 3   if _MODE == "SIM" else 1        # MES contracts per trade
 STOP_MIN_PT      = 3.0                                 # minimum stop distance
-STOP_MAX_PT      = 8.0                                 # maximum stop distance → NO_TRADE
+STOP_MAX_PT      = 15.0                                # maximum stop distance → NO_TRADE
 T1_RR            = 1.5                                 # T1 = risk × 1.5
 T1_MIN_PT        = 10.0                                # T1 minimum 10pt
 T2_RR            = 3.0                                 # T2 = risk × 3
@@ -2804,6 +2804,107 @@ async def set_order_ids(
     await redis_set_key(REDIS_TRADE_STATUS, trade)
 
     return {"status": "ok", "trade_id": update.trade_id}
+
+
+# ---------------------------------------------------------------------------
+# V7.8.1: POST /trade/state — receive trade_state.json from Bridge
+# ---------------------------------------------------------------------------
+
+class OrderState(BaseModel):
+    id: int
+    status: str
+    fill_price: float = 0.0
+    filled_qty: int = 0
+
+class OrdersDict(BaseModel):
+    c1: OrderState
+    c2: OrderState
+    c3: OrderState
+    stop_c1: OrderState
+    stop_c2: OrderState
+    stop_c3: OrderState
+    parent: OrderState
+
+class TradeStatePayload(BaseModel):
+    event_type: str
+    trade_id: str
+    counter: int
+    ts: int
+    orders: OrdersDict
+    dll_version: str
+
+
+@app.post("/trade/state")
+async def receive_trade_state(
+    payload: TradeStatePayload,
+    x_bridge_token: Optional[str] = Header(None, alias="X-Bridge-Token"),
+):
+    """V7.8.1: Receives trade_state.json from Bridge, updates trade record."""
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="invalid token")
+
+    trade = await redis_get_key(REDIS_TRADE_STATUS)
+    if trade is None or trade.get("id") != payload.trade_id:
+        return {
+            "status": "ignored",
+            "reason": "trade not found",
+            "trade_id": payload.trade_id,
+            "counter": payload.counter,
+        }
+
+    orders = payload.orders
+
+    # Per-contract target status
+    trade["c1_status"] = orders.c1.status
+    trade["c2_status"] = orders.c2.status
+    trade["c3_status"] = orders.c3.status
+
+    # Collective stop status
+    stop_statuses = [orders.stop_c1.status, orders.stop_c2.status, orders.stop_c3.status]
+    if "FILLED" in stop_statuses:
+        trade["stop_status"] = "FILLED"
+    elif all(s == "CANCELED" for s in stop_statuses):
+        trade["stop_status"] = "CANCELED"
+    else:
+        trade["stop_status"] = "OPEN"
+
+    # Fill prices (only when FILLED with non-zero price)
+    if orders.c1.status == "FILLED" and orders.c1.fill_price > 0:
+        trade["c1_fill_price"] = orders.c1.fill_price
+    if orders.c2.status == "FILLED" and orders.c2.fill_price > 0:
+        trade["c2_fill_price"] = orders.c2.fill_price
+    if orders.c3.status == "FILLED" and orders.c3.fill_price > 0:
+        trade["c3_fill_price"] = orders.c3.fill_price
+    for s in [orders.stop_c1, orders.stop_c2, orders.stop_c3]:
+        if s.status == "FILLED" and s.fill_price > 0:
+            trade["stop_fill_price"] = s.fill_price
+            break
+
+    # Order IDs
+    trade["c1_order_id"] = orders.c1.id
+    trade["c2_order_id"] = orders.c2.id
+    trade["c3_order_id"] = orders.c3.id
+    trade["stop_c1_order_id"] = orders.stop_c1.id
+    trade["stop_c2_order_id"] = orders.stop_c2.id
+    trade["stop_c3_order_id"] = orders.stop_c3.id
+    trade["parent_order_id"] = orders.parent.id
+
+    await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+    log.info(f"V7.8.1 trade_state #{payload.counter} applied: "
+             f"trade={payload.trade_id} c1={orders.c1.status} "
+             f"c2={orders.c2.status} c3={orders.c3.status} "
+             f"stop={trade['stop_status']}")
+
+    return {
+        "status": "ok",
+        "trade_id": payload.trade_id,
+        "counter": payload.counter,
+        "c1_status": trade["c1_status"],
+        "c2_status": trade["c2_status"],
+        "c3_status": trade["c3_status"],
+        "stop_status": trade["stop_status"],
+    }
 
 
 @app.websocket("/ws")
