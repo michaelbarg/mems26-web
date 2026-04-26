@@ -2163,6 +2163,89 @@ async def trade_modify_stop(
     }
 
 
+# ---------------------------------------------------------------------------
+# V7.9.3: Modify target prices for active trade
+# ---------------------------------------------------------------------------
+
+class ModifyTargetRequest(BaseModel):
+    trade_id: str
+    new_t1: Optional[float] = None
+    new_t2: Optional[float] = None
+    new_t3: Optional[float] = None
+
+
+@app.post("/trade/modify-target")
+async def trade_modify_target(
+    payload: ModifyTargetRequest,
+    x_bridge_token: Optional[str] = Header(None, alias="X-Bridge-Token"),
+):
+    """V7.9.3: Modify 1-3 target prices on active trade."""
+    import time as _time
+
+    if x_bridge_token != BRIDGE_TOKEN:
+        raise HTTPException(status_code=401, detail="invalid token")
+
+    if payload.new_t1 is None and payload.new_t2 is None and payload.new_t3 is None:
+        raise HTTPException(status_code=400, detail="NO_TARGETS_PROVIDED: must provide new_t1, new_t2, or new_t3")
+
+    trade = await redis_get_key(REDIS_TRADE_STATUS)
+    if trade is None or trade.get("id") != payload.trade_id:
+        raise HTTPException(status_code=404, detail=f"TRADE_NOT_FOUND: {payload.trade_id}")
+
+    if trade.get("status") != "OPEN":
+        raise HTTPException(status_code=400, detail=f"TRADE_NOT_OPEN: status={trade.get('status')}")
+
+    # Sanity validation per target (50pt from entry)
+    entry_price = trade.get("entry_price", 0)
+    for label, val in [("new_t1", payload.new_t1), ("new_t2", payload.new_t2), ("new_t3", payload.new_t3)]:
+        if val is None:
+            continue
+        if val <= 0:
+            raise HTTPException(status_code=400, detail=f"INVALID_TARGET: {label}={val} must be > 0")
+        if entry_price > 0 and abs(val - entry_price) > 50.0:
+            raise HTTPException(
+                status_code=400,
+                detail=f"TARGET_OUT_OF_RANGE: {label}={val} distance={abs(val - entry_price):.2f}pt from entry={entry_price:.2f} exceeds 50pt limit",
+            )
+
+    # Enqueue MODIFY_TARGET cmd (0 means "skip / don't change")
+    t1_val = payload.new_t1 or 0.0
+    t2_val = payload.new_t2 or 0.0
+    t3_val = payload.new_t3 or 0.0
+    mod_ts = int(_time.time())
+    mod_exp = mod_ts + COMMAND_TTL_SEC
+    chk_hex, chk_raw = _make_checksum(
+        "MODIFY_TARGET", t1_val, 0, 0, payload.trade_id, mod_exp)
+    mod_cmd = {
+        "cmd": "MODIFY_TARGET", "price": t1_val, "qty": 0, "stop": 0,
+        "t1": t1_val, "t2": t2_val, "t3": t3_val,
+        "trade_id": payload.trade_id, "expires_at": mod_exp,
+        "checksum": chk_hex, "checksum_input": chk_raw,
+    }
+    await redis_set_key(REDIS_TRADE_COMMAND, mod_cmd)
+
+    # Update trade record
+    trade["last_target_modify_ts"] = mod_ts
+    if payload.new_t1 is not None:
+        trade["t1"] = payload.new_t1
+    if payload.new_t2 is not None:
+        trade["t2"] = payload.new_t2
+    if payload.new_t3 is not None:
+        trade["t3"] = payload.new_t3
+    await redis_set_key(REDIS_TRADE_STATUS, trade)
+
+    log.info(f"[V7.9.3] MODIFY_TARGET: trade={payload.trade_id} t1={t1_val} t2={t2_val} t3={t3_val}")
+
+    return {
+        "ok": True,
+        "trade_id": payload.trade_id,
+        "new_t1": payload.new_t1,
+        "new_t2": payload.new_t2,
+        "new_t3": payload.new_t3,
+        "cmd_enqueued": True,
+    }
+
+
 @app.post("/ws/broadcast")
 async def ws_broadcast(request: Request, x_bridge_token: Optional[str] = Header(None)):
     """Broadcast arbitrary JSON to all WS clients. Bridge-only."""
