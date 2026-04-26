@@ -1629,6 +1629,15 @@ async def _poll_trade_commands(http):
                     continue
                 # V7.2+V7.9: bypass brackets validation for management commands
                 if cmd.get("cmd") in ("CLOSE", "CANCEL", "SCALE_OUT", "ARM_BE", "BAILOUT", "MODIFY_STOP", "MODIFY_TARGET"):
+                    # V7.9.3-fix2: Inject field names DLL expects
+                    # Backend uses "price" but DLL reads "new_stop_price"
+                    # Backend uses "t1"/"t2"/"t3" but DLL reads "new_t1"/"new_t2"/"new_t3"
+                    if cmd["cmd"] == "MODIFY_STOP":
+                        cmd["new_stop_price"] = cmd.get("price", 0)
+                    elif cmd["cmd"] == "MODIFY_TARGET":
+                        cmd["new_t1"] = cmd.get("t1", 0)
+                        cmd["new_t2"] = cmd.get("t2", 0)
+                        cmd["new_t3"] = cmd.get("t3", 0)
                     tmp = SC_COMMAND_PATH + ".tmp"
                     with open(tmp, "w") as f:
                         json.dump(cmd, f, indent=2)
@@ -1639,15 +1648,24 @@ async def _poll_trade_commands(http):
                     elif cmd["cmd"] == "BAILOUT":
                         log.info(f"[C4] BAILOUT command for {trade_id} → Sierra")
                     elif cmd["cmd"] == "MODIFY_STOP":
-                        new_stop = cmd.get("new_stop_price", 0)
-                        log.info(f"[C4] MODIFY_STOP command for {trade_id} → Sierra (new_stop={new_stop})")
+                        log.info(f"[C4] MODIFY_STOP command for {trade_id} → Sierra (new_stop={cmd['new_stop_price']})")
                     elif cmd["cmd"] == "MODIFY_TARGET":
-                        t1 = cmd.get("new_t1", 0)
-                        t2 = cmd.get("new_t2", 0)
-                        t3 = cmd.get("new_t3", 0)
-                        log.info(f"[C4] MODIFY_TARGET command for {trade_id} → Sierra (t1={t1}, t2={t2}, t3={t3})")
+                        log.info(f"[C4] MODIFY_TARGET command for {trade_id} → Sierra (t1={cmd['new_t1']}, t2={cmd['new_t2']}, t3={cmd['new_t3']})")
                     else:
                         log.info(f"[C4] {cmd['cmd']} command for {trade_id} → Sierra")
+                    # V7.9.3-fix2: ACK to clear command from Redis (mirror BUY path)
+                    try:
+                        async with http.post(
+                            f"{CLOUD_URL}/trade/command/ack",
+                            headers={"x-bridge-token": BRIDGE_TOKEN,
+                                     "content-type": "application/json"},
+                            json={"trade_id": trade_id},
+                            timeout=aiohttp.ClientTimeout(total=5),
+                        ) as ack_resp:
+                            if ack_resp.status == 200:
+                                log.info(f"[C4] mgmt acked: {trade_id}")
+                    except Exception as e:
+                        log.warning(f"[C4] mgmt ack failed: {e}")
                     last_trade_id = trade_id
                     await asyncio.sleep(1)
                     continue
