@@ -787,8 +787,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         long long expiresAt  = jsonInt(cmdJson, "expires_at");
         std::string checksum = jsonStr(cmdJson, "checksum");
 
-        // Skip if same trade_id (already processed)
-        if (tradeId == s_lastTradeId) goto c5_done;
+        // Skip if same trade_id (already processed BUY/SELL).
+        // V7.9.4-fix: Management commands legitimately reuse trade_id.
+        bool isManagementCmd = (cmd == "CLOSE" || cmd == "CANCEL" ||
+                                cmd == "SCALE_OUT" || cmd == "ARM_BE" ||
+                                cmd == "BAILOUT" || cmd == "MODIFY_STOP" ||
+                                cmd == "MODIFY_TARGET");
+        if (tradeId == s_lastTradeId && !isManagementCmd) goto c5_done;
 
         // TTL check — 60 seconds
         if (expiresAt > 0 && (long long)now_c > expiresAt) {
