@@ -1784,6 +1784,35 @@ async def trade_execute(request: Request):
         except Exception as e:
             log.warning(f"News guard check failed: {e} — proceeding")
 
+        # V7.10.0: Vegas Tunnel trend filter
+        if _skip_gates:
+            log.info("[VEGAS_FILTER] BYPASSED (test override)")
+        else:
+            try:
+                _mkt = await redis_get()
+                _vegas = _mkt.get("vegas") if _mkt else None
+                if _vegas and isinstance(_vegas, dict):
+                    _setup_data = {"id": setup_type, "direction": direction}
+                    if not validate_setup_against_vegas(_setup_data, _vegas):
+                        raise HTTPException(status_code=400, detail=json.dumps({
+                            "ok": False,
+                            "error": "VEGAS_FILTER_REJECT",
+                            "message": "Setup direction conflicts with Vegas trend",
+                            "details": {
+                                "setup_direction": direction,
+                                "vegas_trend": _vegas.get("trend"),
+                                "vegas_price_position": _vegas.get("price_position"),
+                            }
+                        }))
+                    log.info(f"[VEGAS_FILTER] Setup {setup_type} APPROVED: "
+                             f"direction={direction} aligned with vegas={_vegas.get('trend')}")
+                else:
+                    log.info("[VEGAS_FILTER] No Vegas data — allowing trade")
+            except HTTPException:
+                raise
+            except Exception as e:
+                log.warning(f"Vegas filter check failed: {e} — proceeding")
+
         # Validate: BUY only if no open position
         cmd_type = body.get("cmd_type", "BUY")  # BUY or CLOSE
         if cmd_type == "CLOSE":
