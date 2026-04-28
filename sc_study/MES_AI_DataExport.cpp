@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.9.7"
+#define MEMS26_DLL_VERSION "v7.10.0"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -197,6 +197,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCSubgraphRef VWAP  = sc.Subgraph[1];
     SCSubgraphRef CCI14 = sc.Subgraph[2];
     SCSubgraphRef CCI6  = sc.Subgraph[3];
+    SCSubgraphRef EMA144 = sc.Subgraph[4];  // V7.10.0: Vegas Tunnel
+    SCSubgraphRef EMA169 = sc.Subgraph[5];
 
     SCInputRef ExportPath        = sc.Input[0];
     SCInputRef ExportIntervalSec = sc.Input[1];
@@ -211,7 +213,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.9.7";
+        sc.GraphName        = "MES AI Data Export v7.10.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -221,6 +223,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         VWAP.Name  = "VWAP";  VWAP.DrawStyle  = DRAWSTYLE_LINE; VWAP.PrimaryColor  = COLOR_YELLOW;
         CCI14.Name = "CCI14"; CCI14.DrawStyle = DRAWSTYLE_LINE; CCI14.PrimaryColor = COLOR_WHITE;
         CCI6.Name  = "CCI6";  CCI6.DrawStyle  = DRAWSTYLE_LINE; CCI6.PrimaryColor  = COLOR_GREEN;
+        EMA144.Name = "EMA144"; EMA144.DrawStyle = DRAWSTYLE_IGNORE;  // V7.10.0: Vegas Tunnel (data only)
+        EMA169.Name = "EMA169"; EMA169.DrawStyle = DRAWSTYLE_IGNORE;
         ExportPath.Name = "Export JSON Path";
         ExportPath.SetString("C:\\SierraChart2\\Data\\mes_ai_data.json");
         ExportIntervalSec.Name = "Export Interval (seconds)"; ExportIntervalSec.SetInt(3);
@@ -717,6 +721,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if (hf.is_open()) { hf << hj.str(); hf.close(); }
     }
 
+    // ── V7.10.0: Vegas Tunnel (EMA 144 + EMA 169) ─────────────
+    sc.ExponentialMovAvg(sc.BaseDataIn[SC_LAST], EMA144, 144);
+    sc.ExponentialMovAvg(sc.BaseDataIn[SC_LAST], EMA169, 169);
+    float ema144_val = EMA144[idx];
+    float ema169_val = EMA169[idx];
+    float tunnel_top = std::max(ema144_val, ema169_val);
+    float tunnel_bot = std::min(ema144_val, ema169_val);
+    float tunnel_width = std::fabs(ema144_val - ema169_val);
+    const char* vegas_pos = (cp > tunnel_top) ? "ABOVE" : (cp < tunnel_bot) ? "BELOW" : "INSIDE";
+    const char* vegas_trend = (cp > tunnel_top) ? "BULLISH" : (cp < tunnel_bot) ? "BEARISH" : "NEUTRAL";
+    int vegas_bars = idx + 1;
+    const char* vegas_quality = (vegas_bars >= 169) ? "FULL" : (vegas_bars >= 50) ? "PARTIAL" : "INSUFFICIENT";
+
     // ── Throttle ─────────────────────────────────────────────
     static time_t lastExport=0; time_t now_t=time(nullptr);
     if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
@@ -757,8 +774,23 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         <<",\"m30\":{\"ts\":"<<m30.bar_ts<<",\"o\":"<<m30.o<<",\"h\":"<<m30.h<<",\"l\":"<<m30.l<<",\"c\":"<<m30.c<<",\"vol\":"<<m30.vol<<",\"buy\":"<<m30.buy<<",\"sell\":"<<m30.sell<<",\"delta\":"<<m30.delta_v<<"}"
         <<",\"m60\":{\"ts\":"<<m60.bar_ts<<",\"o\":"<<m60.o<<",\"h\":"<<m60.h<<",\"l\":"<<m60.l<<",\"c\":"<<m60.c<<",\"vol\":"<<m60.vol<<",\"buy\":"<<m60.buy<<",\"sell\":"<<m60.sell<<",\"delta\":"<<m60.delta_v<<"}}"
      <<",\"footprint\":"<<fp_j.str()
-     <<",\"order_fills\":"<<fills_j.str()
-     <<"}\n";
+     <<",\"order_fills\":"<<fills_j.str();
+    // V7.10.0: Vegas Tunnel
+    if (vegas_bars >= 50) {
+        j<<",\"vegas\":{\"ema144\":"<<ema144_val
+          <<",\"ema169\":"<<ema169_val
+          <<",\"tunnel_top\":"<<tunnel_top
+          <<",\"tunnel_bot\":"<<tunnel_bot
+          <<",\"tunnel_width\":"<<tunnel_width
+          <<",\"price_position\":\""<<vegas_pos<<"\""
+          <<",\"trend\":\""<<vegas_trend<<"\""
+          <<",\"data_quality\":\""<<vegas_quality<<"\""
+          <<",\"bar_count\":"<<vegas_bars
+          <<",\"calculated_at\":"<<(long long)now_t<<"}";
+    } else {
+        j<<",\"vegas\":null";
+    }
+    j<<"}\n";
 
     std::ofstream f(ExportPath.GetString());
     if(f.is_open()){f<<j.str();f.close();}
