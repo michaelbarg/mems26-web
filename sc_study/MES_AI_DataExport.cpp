@@ -726,9 +726,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     sc.ExponentialMovAvg(sc.BaseDataIn[SC_LAST], EMA169, 169);
     float ema144_val = EMA144[idx];
     float ema169_val = EMA169[idx];
-    float tunnel_top = std::max(ema144_val, ema169_val);
-    float tunnel_bot = std::min(ema144_val, ema169_val);
-    float tunnel_width = std::fabs(ema144_val - ema169_val);
+    float tunnel_top = (ema144_val > ema169_val) ? ema144_val : ema169_val;
+    float tunnel_bot = (ema144_val < ema169_val) ? ema144_val : ema169_val;
+    float tunnel_width = fabs(ema144_val - ema169_val);
     const char* vegas_pos = (cp > tunnel_top) ? "ABOVE" : (cp < tunnel_bot) ? "BELOW" : "INSIDE";
     const char* vegas_trend = (cp > tunnel_top) ? "BULLISH" : (cp < tunnel_bot) ? "BEARISH" : "NEUTRAL";
     int vegas_bars = idx + 1;
