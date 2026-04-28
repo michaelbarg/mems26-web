@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.11.0"
+#define MEMS26_DLL_VERSION "v7.11.1"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -213,7 +213,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.11.0";
+        sc.GraphName        = "MES AI Data Export v7.11.1";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -753,6 +753,86 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float cd_val = (cdVAL.GetArraySize() > idx) ? cdVAL[idx] : 0.0f;
     bool pd_valid = (pd_poc > 1.0f);
     bool cd_valid = (cd_poc > 1.0f);
+
+    // V7.11.1: TPO DIAGNOSTIC LOGGING (one-shot on bar close)
+    {
+        static bool tpo_diag_done = false;
+        if (!tpo_diag_done && idx > 10) {
+            tpo_diag_done = true;
+            sc.AddMessageToLog("=== TPO DIAGNOSTIC START (v7.11.1) ===", 0);
+
+            // Study ID 1 (Previous Day) — 0-indexed subgraphs
+            sc.AddMessageToLog(SCString().Format(
+                "TPO ID %d: pdPOC.Size=%d pdVAH.Size=%d pdVAL.Size=%d idx=%d",
+                TPO_PD_ID, pdPOC.GetArraySize(), pdVAH.GetArraySize(),
+                pdVAL.GetArraySize(), idx), 0);
+            if (pdPOC.GetArraySize() > idx) {
+                sc.AddMessageToLog(SCString().Format(
+                    "TPO ID %d SG0[%d]=%.4f SG1[%d]=%.4f SG2[%d]=%.4f",
+                    TPO_PD_ID, idx, pdPOC[idx], idx, pdVAH[idx], idx, pdVAL[idx]), 0);
+                // Last 5 values of each subgraph
+                int i4 = (idx >= 4) ? idx - 4 : 0;
+                sc.AddMessageToLog(SCString().Format(
+                    "TPO ID %d SG0 last5: [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f",
+                    TPO_PD_ID, i4, pdPOC[i4], i4+1, pdPOC[i4+1],
+                    i4+2, pdPOC[i4+2], i4+3, pdPOC[i4+3], idx, pdPOC[idx]), 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "TPO ID %d SG1 last5: [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f",
+                    TPO_PD_ID, i4, pdVAH[i4], i4+1, pdVAH[i4+1],
+                    i4+2, pdVAH[i4+2], i4+3, pdVAH[i4+3], idx, pdVAH[idx]), 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "TPO ID %d SG2 last5: [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f",
+                    TPO_PD_ID, i4, pdVAL[i4], i4+1, pdVAL[i4+1],
+                    i4+2, pdVAL[i4+2], i4+3, pdVAL[i4+3], idx, pdVAL[idx]), 0);
+            }
+
+            // Study ID 3 (Current Day) — 0-indexed subgraphs
+            sc.AddMessageToLog(SCString().Format(
+                "TPO ID %d: cdPOC.Size=%d cdVAH.Size=%d cdVAL.Size=%d",
+                TPO_CD_ID, cdPOC.GetArraySize(), cdVAH.GetArraySize(),
+                cdVAL.GetArraySize()), 0);
+            if (cdPOC.GetArraySize() > idx) {
+                sc.AddMessageToLog(SCString().Format(
+                    "TPO ID %d SG0[%d]=%.4f SG1[%d]=%.4f SG2[%d]=%.4f",
+                    TPO_CD_ID, idx, cdPOC[idx], idx, cdVAH[idx], idx, cdVAL[idx]), 0);
+            } else {
+                sc.AddMessageToLog(SCString().Format(
+                    "WARNING: Study ID %d returned EMPTY array — study may not exist",
+                    TPO_CD_ID), 1);
+            }
+
+            // Try 1-indexed subgraphs for Study ID 1 (alternative mapping)
+            SCFloatArray alt1, alt2, alt3;
+            sc.GetStudyArrayUsingID(TPO_PD_ID, 1, alt1);
+            sc.GetStudyArrayUsingID(TPO_PD_ID, 2, alt2);
+            sc.GetStudyArrayUsingID(TPO_PD_ID, 3, alt3);
+            if (alt1.GetArraySize() > idx) {
+                sc.AddMessageToLog(SCString().Format(
+                    "TPO ID %d ALT (1-indexed) SG1=%.2f SG2=%.2f SG3=%.2f",
+                    TPO_PD_ID, alt1[idx], alt2[idx], alt3[idx]), 0);
+            }
+
+            // Scan all study IDs 1-10 to see what's actually on the chart
+            for (int test_id = 1; test_id <= 10; test_id++) {
+                SCFloatArray test_arr;
+                sc.GetStudyArrayUsingID(test_id, 0, test_arr);
+                if (test_arr.GetArraySize() > idx) {
+                    float v = test_arr[idx];
+                    // Also read SG1 and SG2
+                    SCFloatArray t1, t2;
+                    sc.GetStudyArrayUsingID(test_id, 1, t1);
+                    sc.GetStudyArrayUsingID(test_id, 2, t2);
+                    float v1 = (t1.GetArraySize() > idx) ? t1[idx] : 0.0f;
+                    float v2 = (t2.GetArraySize() > idx) ? t2[idx] : 0.0f;
+                    sc.AddMessageToLog(SCString().Format(
+                        "SCAN: Study ID %d SG0=%.2f SG1=%.2f SG2=%.2f (Size=%d)",
+                        test_id, v, v1, v2, test_arr.GetArraySize()), 0);
+                }
+            }
+
+            sc.AddMessageToLog("=== TPO DIAGNOSTIC END ===", 0);
+        }
+    }
 
     // ── Throttle ─────────────────────────────────────────────
     static time_t lastExport=0; time_t now_t=time(nullptr);
