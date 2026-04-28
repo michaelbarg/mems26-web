@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.11.1"
+#define MEMS26_DLL_VERSION "v7.11.2"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -210,10 +210,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef CommandPath       = sc.Input[7];
     SCInputRef ResultPath        = sc.Input[8];
     SCInputRef BridgeToken       = sc.Input[9];
+    SCInputRef TPO_PD_StudyID    = sc.Input[10];  // V7.11.2: configurable TPO IDs
+    SCInputRef TPO_CD_StudyID    = sc.Input[11];
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.11.1";
+        sc.GraphName        = "MES AI Data Export v7.11.2";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -241,6 +243,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         ResultPath.SetString("C:\\SierraChart2\\Data\\trade_result.json");
         BridgeToken.Name = "Bridge Token";
         BridgeToken.SetString("michael-mems26-2026");
+        TPO_PD_StudyID.Name = "TPO Previous Day Study ID (0=disabled)";
+        TPO_PD_StudyID.SetInt(1);
+        TPO_CD_StudyID.Name = "TPO Current Day Study ID (0=disabled)";
+        TPO_CD_StudyID.SetInt(3);
         // V7.0: Trading variables for single-bracket-with-3-targets model
         // Per Sierra Chart Engineering (ThreadID=105021), this is the
         // supported native pattern for partial scale-out.
@@ -734,103 +740,42 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     int vegas_bars = idx + 1;
     const char* vegas_quality = (vegas_bars >= 169) ? "FULL" : (vegas_bars >= 50) ? "PARTIAL" : "INSUFFICIENT";
 
-    // ── V7.11.0: TPO Dual Study (Previous Day + Current Day) ──
-    const int TPO_PD_ID = 1;  // Previous Day TPO study ID
-    const int TPO_CD_ID = 3;  // Current Day TPO study ID
-    SCFloatArray pdPOC, pdVAH, pdVAL;
-    sc.GetStudyArrayUsingID(TPO_PD_ID, 0, pdPOC);
-    sc.GetStudyArrayUsingID(TPO_PD_ID, 1, pdVAH);
-    sc.GetStudyArrayUsingID(TPO_PD_ID, 2, pdVAL);
-    SCFloatArray cdPOC, cdVAH, cdVAL;
-    sc.GetStudyArrayUsingID(TPO_CD_ID, 0, cdPOC);
-    sc.GetStudyArrayUsingID(TPO_CD_ID, 1, cdVAH);
-    sc.GetStudyArrayUsingID(TPO_CD_ID, 2, cdVAL);
-    float pd_poc = (pdPOC.GetArraySize() > idx) ? pdPOC[idx] : 0.0f;
-    float pd_vah = (pdVAH.GetArraySize() > idx) ? pdVAH[idx] : 0.0f;
-    float pd_val = (pdVAL.GetArraySize() > idx) ? pdVAL[idx] : 0.0f;
-    float cd_poc = (cdPOC.GetArraySize() > idx) ? cdPOC[idx] : 0.0f;
-    float cd_vah = (cdVAH.GetArraySize() > idx) ? cdVAH[idx] : 0.0f;
-    float cd_val = (cdVAL.GetArraySize() > idx) ? cdVAL[idx] : 0.0f;
-    bool pd_valid = (pd_poc > 1.0f);
-    bool cd_valid = (cd_poc > 1.0f);
+    // ── V7.11.2: TPO Dual Study (1-indexed subgraphs, configurable IDs) ──
+    int tpo_pd_id = TPO_PD_StudyID.GetInt();
+    int tpo_cd_id = TPO_CD_StudyID.GetInt();
 
-    // V7.11.1: TPO DIAGNOSTIC LOGGING (one-shot on bar close)
-    {
-        static bool tpo_diag_done = false;
-        if (!tpo_diag_done && idx > 10) {
-            tpo_diag_done = true;
-            sc.AddMessageToLog("=== TPO DIAGNOSTIC START (v7.11.1) ===", 0);
+    // Sanity check: MES futures price must be 1000-100000
+    auto isReasonablePrice = [](float v) -> bool {
+        return v >= 1000.0f && v <= 100000.0f;
+    };
 
-            // Study ID 1 (Previous Day) — 0-indexed subgraphs
-            sc.AddMessageToLog(SCString().Format(
-                "TPO ID %d: pdPOC.Size=%d pdVAH.Size=%d pdVAL.Size=%d idx=%d",
-                TPO_PD_ID, pdPOC.GetArraySize(), pdVAH.GetArraySize(),
-                pdVAL.GetArraySize(), idx), 0);
-            if (pdPOC.GetArraySize() > idx) {
-                sc.AddMessageToLog(SCString().Format(
-                    "TPO ID %d SG0[%d]=%.4f SG1[%d]=%.4f SG2[%d]=%.4f",
-                    TPO_PD_ID, idx, pdPOC[idx], idx, pdVAH[idx], idx, pdVAL[idx]), 0);
-                // Last 5 values of each subgraph
-                int i4 = (idx >= 4) ? idx - 4 : 0;
-                sc.AddMessageToLog(SCString().Format(
-                    "TPO ID %d SG0 last5: [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f",
-                    TPO_PD_ID, i4, pdPOC[i4], i4+1, pdPOC[i4+1],
-                    i4+2, pdPOC[i4+2], i4+3, pdPOC[i4+3], idx, pdPOC[idx]), 0);
-                sc.AddMessageToLog(SCString().Format(
-                    "TPO ID %d SG1 last5: [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f",
-                    TPO_PD_ID, i4, pdVAH[i4], i4+1, pdVAH[i4+1],
-                    i4+2, pdVAH[i4+2], i4+3, pdVAH[i4+3], idx, pdVAH[idx]), 0);
-                sc.AddMessageToLog(SCString().Format(
-                    "TPO ID %d SG2 last5: [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f [%d]=%.2f",
-                    TPO_PD_ID, i4, pdVAL[i4], i4+1, pdVAL[i4+1],
-                    i4+2, pdVAL[i4+2], i4+3, pdVAL[i4+3], idx, pdVAL[idx]), 0);
-            }
+    // Previous Day TPO (subgraph indices 1=POC, 2=VAH, 3=VAL)
+    float pd_poc = 0.0f, pd_vah = 0.0f, pd_val = 0.0f;
+    bool pd_valid = false;
+    if (tpo_pd_id > 0) {
+        SCFloatArray pdPOC, pdVAH, pdVAL;
+        sc.GetStudyArrayUsingID(tpo_pd_id, 1, pdPOC);
+        sc.GetStudyArrayUsingID(tpo_pd_id, 2, pdVAH);
+        sc.GetStudyArrayUsingID(tpo_pd_id, 3, pdVAL);
+        if (pdPOC.GetArraySize() > idx) {
+            pd_poc = pdPOC[idx]; pd_vah = pdVAH[idx]; pd_val = pdVAL[idx];
+            pd_valid = isReasonablePrice(pd_poc) &&
+                       isReasonablePrice(pd_vah) && isReasonablePrice(pd_val);
+        }
+    }
 
-            // Study ID 3 (Current Day) — 0-indexed subgraphs
-            sc.AddMessageToLog(SCString().Format(
-                "TPO ID %d: cdPOC.Size=%d cdVAH.Size=%d cdVAL.Size=%d",
-                TPO_CD_ID, cdPOC.GetArraySize(), cdVAH.GetArraySize(),
-                cdVAL.GetArraySize()), 0);
-            if (cdPOC.GetArraySize() > idx) {
-                sc.AddMessageToLog(SCString().Format(
-                    "TPO ID %d SG0[%d]=%.4f SG1[%d]=%.4f SG2[%d]=%.4f",
-                    TPO_CD_ID, idx, cdPOC[idx], idx, cdVAH[idx], idx, cdVAL[idx]), 0);
-            } else {
-                sc.AddMessageToLog(SCString().Format(
-                    "WARNING: Study ID %d returned EMPTY array — study may not exist",
-                    TPO_CD_ID), 1);
-            }
-
-            // Try 1-indexed subgraphs for Study ID 1 (alternative mapping)
-            SCFloatArray alt1, alt2, alt3;
-            sc.GetStudyArrayUsingID(TPO_PD_ID, 1, alt1);
-            sc.GetStudyArrayUsingID(TPO_PD_ID, 2, alt2);
-            sc.GetStudyArrayUsingID(TPO_PD_ID, 3, alt3);
-            if (alt1.GetArraySize() > idx) {
-                sc.AddMessageToLog(SCString().Format(
-                    "TPO ID %d ALT (1-indexed) SG1=%.2f SG2=%.2f SG3=%.2f",
-                    TPO_PD_ID, alt1[idx], alt2[idx], alt3[idx]), 0);
-            }
-
-            // Scan all study IDs 1-10 to see what's actually on the chart
-            for (int test_id = 1; test_id <= 10; test_id++) {
-                SCFloatArray test_arr;
-                sc.GetStudyArrayUsingID(test_id, 0, test_arr);
-                if (test_arr.GetArraySize() > idx) {
-                    float v = test_arr[idx];
-                    // Also read SG1 and SG2
-                    SCFloatArray t1, t2;
-                    sc.GetStudyArrayUsingID(test_id, 1, t1);
-                    sc.GetStudyArrayUsingID(test_id, 2, t2);
-                    float v1 = (t1.GetArraySize() > idx) ? t1[idx] : 0.0f;
-                    float v2 = (t2.GetArraySize() > idx) ? t2[idx] : 0.0f;
-                    sc.AddMessageToLog(SCString().Format(
-                        "SCAN: Study ID %d SG0=%.2f SG1=%.2f SG2=%.2f (Size=%d)",
-                        test_id, v, v1, v2, test_arr.GetArraySize()), 0);
-                }
-            }
-
-            sc.AddMessageToLog("=== TPO DIAGNOSTIC END ===", 0);
+    // Current Day TPO (same subgraph mapping)
+    float cd_poc = 0.0f, cd_vah = 0.0f, cd_val = 0.0f;
+    bool cd_valid = false;
+    if (tpo_cd_id > 0) {
+        SCFloatArray cdPOC, cdVAH, cdVAL;
+        sc.GetStudyArrayUsingID(tpo_cd_id, 1, cdPOC);
+        sc.GetStudyArrayUsingID(tpo_cd_id, 2, cdVAH);
+        sc.GetStudyArrayUsingID(tpo_cd_id, 3, cdVAL);
+        if (cdPOC.GetArraySize() > idx) {
+            cd_poc = cdPOC[idx]; cd_vah = cdVAH[idx]; cd_val = cdVAL[idx];
+            cd_valid = isReasonablePrice(cd_poc) &&
+                       isReasonablePrice(cd_vah) && isReasonablePrice(cd_val);
         }
     }
 
@@ -897,7 +842,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             j<<"\"current_day\":{\"poc_price\":"<<cd_poc
               <<",\"vah\":"<<cd_vah<<",\"val\":"<<cd_val
               <<",\"tpo_letter_minutes\":30,\"developing\":true"
-              <<",\"study_id\":"<<TPO_CD_ID
+              <<",\"study_id\":"<<tpo_cd_id
               <<",\"calculated_at\":"<<(long long)now_t<<"}";
         } else {
             j<<"\"current_day\":null";
@@ -906,7 +851,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             j<<",\"previous_day\":{\"poc_price\":"<<pd_poc
               <<",\"vah\":"<<pd_vah<<",\"val\":"<<pd_val
               <<",\"tpo_letter_minutes\":1440,\"developing\":false"
-              <<",\"study_id\":"<<TPO_PD_ID
+              <<",\"study_id\":"<<tpo_pd_id
               <<",\"calculated_at\":"<<(long long)now_t<<"}";
         } else {
             j<<",\"previous_day\":null";
