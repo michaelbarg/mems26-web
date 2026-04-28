@@ -410,6 +410,7 @@ def enrich(raw):
     cci     = raw.get("woodies_cci", {})       # ← חדש
     vol_ctx = raw.get("volume_context", {})    # ← חדש
     candle_p= raw.get("candle_patterns", {})  # ← חדש
+    vegas   = raw.get("vegas")                 # V7.10.0: Vegas Tunnel (may be None)
 
     # Day context — מה-Study ישירות
     day_type    = dc_study.get("day_type", "DEVELOPING")
@@ -563,6 +564,9 @@ def enrich(raw):
             "rev22_type": state.rev22_type,
             "rev22_price":state.rev22_price,
         },
+
+        # V7.10.0: Vegas Tunnel (None if < 50 bars)
+        "vegas": vegas,
     }
 
 
@@ -1284,6 +1288,13 @@ async def main():
                     payload["news_guard"] = news.to_dict()
                     await redis_post(http, f"set/{REDIS_KEY}", payload)
                     last_send = now
+
+                    # V7.10.0: Log Vegas Tunnel state
+                    v = payload.get("vegas")
+                    if v and isinstance(v, dict):
+                        log.info(f"[VEGAS] trend={v.get('trend')} "
+                                 f"position={v.get('price_position')} "
+                                 f"width={v.get('tunnel_width', 0):.2f}")
 
                     # ── Update live MTF candle in Redis array (so chart shows current bar) ──
                     for mtf_key, redis_key, _, max_c in MTF_CONFIG:
