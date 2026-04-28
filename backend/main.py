@@ -84,6 +84,26 @@ async def redis_lrange(key: str, start: int, stop: int) -> list:
         return []
 
 
+async def redis_set_key_ex(key: str, value, ttl_sec: int):
+    """Set a Redis key with TTL (expire after ttl_sec seconds)."""
+    if not REDIS_URL or not REDIS_TOKEN:
+        return
+    try:
+        serialized = json.dumps(value) if not isinstance(value, str) else value
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{REDIS_URL}",
+                headers={"Authorization": f"Bearer {REDIS_TOKEN}",
+                         "Content-Type": "application/json"},
+                json=["SET", key, serialized, "EX", str(ttl_sec)],
+                timeout=3.0
+            )
+            if resp.status_code != 200:
+                log.warning(f"Redis set_key_ex({key}) HTTP {resp.status_code}: {resp.text[:100]}")
+    except Exception as e:
+        log.warning(f"Redis set_key_ex({key}) failed: {e}")
+
+
 async def redis_set_key(key: str, value):
     """Set an arbitrary Redis key to a JSON-serializable value."""
     if not REDIS_URL or not REDIS_TOKEN:
@@ -296,6 +316,72 @@ async def market_latest():
         return {"type": "no_data", "status": "waiting_for_bridge", "mode": _MODE}
     data["mode"] = _MODE
     return data
+
+
+# ---------------------------------------------------------------------------
+# V7.10.0: Vegas Tunnel state endpoint + filter
+# ---------------------------------------------------------------------------
+
+@app.get("/vegas/state")
+async def get_vegas_state():
+    """Returns current Vegas Tunnel state from market data."""
+    import time as _time
+    data = await redis_get()
+    if not data:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "VEGAS_NOT_AVAILABLE",
+                     "message": "No market data available"})
+
+    vegas = data.get("vegas")
+    if vegas is None:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "VEGAS_NOT_AVAILABLE",
+                     "message": "Vegas state not yet computed (waiting for 50+ bars)"})
+
+    # Check staleness via market data timestamp
+    data_ts = data.get("ts", 0)
+    age = int(_time.time()) - data_ts if data_ts > 0 else 9999
+    if age > 60:
+        return JSONResponse(
+            status_code=503,
+            content={"ok": False, "error": "VEGAS_STALE",
+                     "message": f"Vegas data is {age}s old",
+                     "last_updated": data_ts})
+
+    vegas["received_at"] = data_ts
+    return {"ok": True, "vegas": vegas}
+
+
+def validate_setup_against_vegas(setup: dict, vegas: dict | None) -> bool:
+    """
+    V7.10.0: Returns True if setup direction aligns with Vegas trend.
+    Not wired up yet — will be integrated after E2E test of Vegas data flow.
+    """
+    if vegas is None:
+        log.warning("[VEGAS_FILTER] Setup rejected: no Vegas data")
+        return False
+
+    trend = vegas.get("trend")
+    if trend == "NEUTRAL":
+        log.info("[VEGAS_FILTER] Setup rejected: trend=NEUTRAL")
+        return False
+
+    direction = setup.get("direction", "").upper()
+    if direction == "LONG" and trend != "BULLISH":
+        log.info(f"[VEGAS_FILTER] Setup {setup.get('id')} REJECTED: "
+                 f"direction=LONG vegas={trend}")
+        return False
+
+    if direction == "SHORT" and trend != "BEARISH":
+        log.info(f"[VEGAS_FILTER] Setup {setup.get('id')} REJECTED: "
+                 f"direction=SHORT vegas={trend}")
+        return False
+
+    log.info(f"[VEGAS_FILTER] Setup {setup.get('id')} ALLOWED: "
+             f"direction={direction} vegas={trend}")
+    return True
 
 
 @app.post("/ingest/history")
