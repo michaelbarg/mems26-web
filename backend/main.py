@@ -1785,15 +1785,21 @@ async def trade_execute(request: Request):
             log.warning(f"News guard check failed: {e} — proceeding")
 
         # V7.10.0: Vegas Tunnel trend filter
+        # V7.9.5-fix: Runs on BOTH DEMO and LIVE — only X-Test-Override bypasses
         if _skip_gates:
             log.info("[VEGAS_FILTER] BYPASSED (test override)")
         else:
             try:
                 _mkt = await redis_get()
                 _vegas = _mkt.get("vegas") if _mkt else None
+                log.info(f"[VEGAS_DEBUG] direction={direction} entry_mode={_exec_entry_mode} "
+                         f"skip_gates={_skip_gates} vegas_type={type(_vegas).__name__} "
+                         f"vegas={_vegas}")
                 if _vegas and isinstance(_vegas, dict):
                     _setup_data = {"id": setup_type, "direction": direction}
-                    if not validate_setup_against_vegas(_setup_data, _vegas):
+                    _vegas_ok = validate_setup_against_vegas(_setup_data, _vegas)
+                    log.info(f"[VEGAS_DEBUG] filter_result={_vegas_ok}")
+                    if not _vegas_ok:
                         raise HTTPException(status_code=400, detail=json.dumps({
                             "ok": False,
                             "error": "VEGAS_FILTER_REJECT",
@@ -1807,11 +1813,18 @@ async def trade_execute(request: Request):
                     log.info(f"[VEGAS_FILTER] Setup {setup_type} APPROVED: "
                              f"direction={direction} aligned with vegas={_vegas.get('trend')}")
                 else:
-                    log.info("[VEGAS_FILTER] No Vegas data — allowing trade")
+                    log.warning(f"[VEGAS_FILTER] No Vegas data (type={type(_vegas).__name__}) — "
+                                f"BLOCKING trade (fail-closed)")
+                    raise HTTPException(status_code=400, detail=json.dumps({
+                        "ok": False,
+                        "error": "VEGAS_DATA_MISSING",
+                        "message": "Vegas Tunnel data not available — trade blocked",
+                    }))
             except HTTPException:
                 raise
             except Exception as e:
-                log.warning(f"Vegas filter check failed: {e} — proceeding")
+                log.warning(f"Vegas filter check failed: {e} — BLOCKING (fail-closed)")
+                raise HTTPException(status_code=500, detail=f"Vegas filter error: {e}")
 
         # Validate: BUY only if no open position
         cmd_type = body.get("cmd_type", "BUY")  # BUY or CLOSE
