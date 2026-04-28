@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.10.0"
+#define MEMS26_DLL_VERSION "v7.11.0"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -213,7 +213,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.10.0";
+        sc.GraphName        = "MES AI Data Export v7.11.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -734,6 +734,26 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     int vegas_bars = idx + 1;
     const char* vegas_quality = (vegas_bars >= 169) ? "FULL" : (vegas_bars >= 50) ? "PARTIAL" : "INSUFFICIENT";
 
+    // ── V7.11.0: TPO Dual Study (Previous Day + Current Day) ──
+    const int TPO_PD_ID = 1;  // Previous Day TPO study ID
+    const int TPO_CD_ID = 3;  // Current Day TPO study ID
+    SCFloatArray pdPOC, pdVAH, pdVAL;
+    sc.GetStudyArrayUsingID(TPO_PD_ID, 0, pdPOC);
+    sc.GetStudyArrayUsingID(TPO_PD_ID, 1, pdVAH);
+    sc.GetStudyArrayUsingID(TPO_PD_ID, 2, pdVAL);
+    SCFloatArray cdPOC, cdVAH, cdVAL;
+    sc.GetStudyArrayUsingID(TPO_CD_ID, 0, cdPOC);
+    sc.GetStudyArrayUsingID(TPO_CD_ID, 1, cdVAH);
+    sc.GetStudyArrayUsingID(TPO_CD_ID, 2, cdVAL);
+    float pd_poc = (pdPOC.GetArraySize() > idx) ? pdPOC[idx] : 0.0f;
+    float pd_vah = (pdVAH.GetArraySize() > idx) ? pdVAH[idx] : 0.0f;
+    float pd_val = (pdVAL.GetArraySize() > idx) ? pdVAL[idx] : 0.0f;
+    float cd_poc = (cdPOC.GetArraySize() > idx) ? cdPOC[idx] : 0.0f;
+    float cd_vah = (cdVAH.GetArraySize() > idx) ? cdVAH[idx] : 0.0f;
+    float cd_val = (cdVAL.GetArraySize() > idx) ? cdVAL[idx] : 0.0f;
+    bool pd_valid = (pd_poc > 1.0f);
+    bool cd_valid = (cd_poc > 1.0f);
+
     // ── Throttle ─────────────────────────────────────────────
     static time_t lastExport=0; time_t now_t=time(nullptr);
     if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
@@ -789,6 +809,31 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
           <<",\"calculated_at\":"<<(long long)now_t<<"}";
     } else {
         j<<",\"vegas\":null";
+    }
+    // V7.11.0: TPO Dual Study
+    if (pd_valid || cd_valid) {
+        j<<",\"tpo\":{";
+        if (cd_valid) {
+            j<<"\"current_day\":{\"poc_price\":"<<cd_poc
+              <<",\"vah\":"<<cd_vah<<",\"val\":"<<cd_val
+              <<",\"tpo_letter_minutes\":30,\"developing\":true"
+              <<",\"study_id\":"<<TPO_CD_ID
+              <<",\"calculated_at\":"<<(long long)now_t<<"}";
+        } else {
+            j<<"\"current_day\":null";
+        }
+        if (pd_valid) {
+            j<<",\"previous_day\":{\"poc_price\":"<<pd_poc
+              <<",\"vah\":"<<pd_vah<<",\"val\":"<<pd_val
+              <<",\"tpo_letter_minutes\":1440,\"developing\":false"
+              <<",\"study_id\":"<<TPO_PD_ID
+              <<",\"calculated_at\":"<<(long long)now_t<<"}";
+        } else {
+            j<<",\"previous_day\":null";
+        }
+        j<<"}";
+    } else {
+        j<<",\"tpo\":null";
     }
     j<<"}\n";
 
