@@ -500,6 +500,8 @@ def get_active_triggers_by_type(triggers: dict | None, trigger_type: str) -> lis
 # V7.12.0: Quality Score preview endpoint
 # ---------------------------------------------------------------------------
 
+_quality_attempt_cache = {}  # Phase 6: dedup cache {(direction, day_type): last_ts}
+
 async def _quality_preview_logic(direction: str, entry: float, stop: float,
                                  day_type_override: str = None):
     """Shared logic for quality preview (GET + POST)."""
@@ -527,6 +529,31 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
     score_result = calculate_quality_score(data, direction, day_type)
     position = determine_position_size(score_result["total"], "DEMO", day_type)
     targets = calculate_targets(entry, stop, direction, data, day_type)
+    be_strategy = get_be_strategy(day_type)
+
+    # Phase 6: Auto-log setup attempts (score >= 50, dedup 60s)
+    if score_result["total"] >= 50:
+        import time as _t
+        _attempt_key = (direction, day_type or "NONE")
+        _attempt_now = int(_t.time())
+        _attempt_last = _quality_attempt_cache.get(_attempt_key, 0)
+        if _attempt_now - _attempt_last >= 60:
+            _quality_attempt_cache[_attempt_key] = _attempt_now
+            try:
+                from database import insert_attempt
+                await insert_attempt({
+                    "ts": _attempt_now,
+                    "direction": direction,
+                    "entry_price_hypothetical": entry,
+                    "stop_hypothetical": stop,
+                    "health_score_at_entry": score_result["total"],
+                    "day_type": day_type,
+                    "is_shadow": True,
+                    "entry_mode": "DEMO",
+                })
+                log.info(f"[SETUP_LOG] Auto-logged attempt: {direction} score={score_result['total']} day={day_type}")
+            except Exception as e:
+                log.warning(f"[SETUP_LOG] insert_attempt failed: {e}")
 
     return {
         "ok": True,
@@ -539,7 +566,7 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
         "day_type_used": score_result.get("day_type_used"),
         "weights_applied": score_result.get("weights_applied"),
         "day_confidence": day_class.get("confidence", 0),
-        "be_strategy": get_be_strategy(day_type),
+        "be_strategy": be_strategy,
     }
 
 
@@ -2122,6 +2149,8 @@ async def trade_execute(request: Request):
             "news_tag": news_tag,
             "contracts": CONTRACTS,
             "is_test": _test_override,
+            "setup_quality_score": _qs_result["total"],
+            "day_type": _qs_day_class,
         }
 
         # Snapshot market context at entry for analytics
