@@ -73,14 +73,16 @@ def calculate_quality_score(market_data: dict, direction: str, day_type: str = N
             reasons.append(f"TPO VA levels unavailable, POC-only partial (+{partial})")
 
     # FVG (dynamic weight)
+    # DLL emits direction as "bullish"/"bearish", map from LONG/SHORT
+    fvg_dir = "bullish" if direction == "LONG" else "bearish"
     triggers = (market_data.get("triggers") or {}).get("active", [])
     matching_fvg = [t for t in triggers
                     if t.get("type") == "FVG"
-                    and t.get("direction") == direction.lower()]
+                    and t.get("direction") == fvg_dir]
     max_fvg = weights["fvg"]
     if matching_fvg:
         breakdown["fvg"] = max_fvg
-        reasons.append(f"FVG {direction.lower()} active ({len(matching_fvg)}) (+{max_fvg})")
+        reasons.append(f"FVG {fvg_dir} active ({len(matching_fvg)}) (+{max_fvg})")
 
     # Footprint (dynamic weight)
     fp = (market_data.get("triggers") or {}).get("footprint_last_bar") or {}

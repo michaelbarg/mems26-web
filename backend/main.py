@@ -531,8 +531,9 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
     targets = calculate_targets(entry, stop, direction, data, day_type)
     be_strategy = get_be_strategy(day_type)
 
-    # Phase 6: Auto-log setup attempts (score >= 50, dedup 60s)
-    if score_result["total"] >= 50:
+    # Phase 6: Auto-log setup attempts (score >= 10, dedup 60s)
+    # TODO: raise threshold to 50 when system generates real-quality setups
+    if score_result["total"] >= 10:
         import time as _t
         _attempt_key = (direction, day_type or "NONE")
         _attempt_now = int(_t.time())
@@ -541,16 +542,19 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
             _quality_attempt_cache[_attempt_key] = _attempt_now
             try:
                 from database import insert_attempt
-                await insert_attempt({
+                _attempt_data = {
                     "ts": _attempt_now,
                     "direction": direction,
                     "entry_price_hypothetical": entry,
                     "stop_hypothetical": stop,
                     "health_score_at_entry": score_result["total"],
+                    "setup_quality_score": score_result["total"],
                     "day_type": day_type,
                     "is_shadow": True,
                     "entry_mode": "DEMO",
-                })
+                }
+                log.info(f"[SETUP_LOG] Inserting: score={score_result['total']} fields={list(_attempt_data.keys())}")
+                await insert_attempt(_attempt_data)
                 log.info(f"[SETUP_LOG] Auto-logged attempt: {direction} score={score_result['total']} day={day_type}")
             except Exception as e:
                 log.warning(f"[SETUP_LOG] insert_attempt failed: {e}")
