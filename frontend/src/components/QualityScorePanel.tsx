@@ -17,6 +17,7 @@ interface QualityResponse {
   position?: { qty: number; exits: string[]; action: string };
   targets?: { c1: number; c2: number; R: number };
   day_type?: string;
+  weights_applied?: QualityBreakdown;
   error?: string;
 }
 
@@ -137,12 +138,21 @@ export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
   const style = getScoreStyle(score);
   const bd = data.breakdown;
 
-  const breakdownRows: { label: string; val: number; max: number; reason: string }[] = bd ? [
-    { label: 'Vegas', val: bd.vegas, max: 30, reason: '' },
-    { label: 'TPO', val: bd.tpo, max: 25, reason: '' },
-    { label: 'FVG', val: bd.fvg, max: 25, reason: '' },
-    { label: 'Footprint', val: bd.footprint, max: 20, reason: '' },
+  const w = data.weights_applied;
+  const defaultW = { vegas: 30, tpo: 25, fvg: 25, footprint: 20 };
+  const isCustomWeights = w && (w.vegas !== 30 || w.tpo !== 25 || w.fvg !== 25 || w.footprint !== 20);
+
+  const breakdownRows: { label: string; val: number; max: number; reason: string; weightLabel: string }[] = bd ? [
+    { label: 'Vegas', val: bd.vegas, max: w?.vegas ?? defaultW.vegas, reason: '', weightLabel: '' },
+    { label: 'TPO', val: bd.tpo, max: w?.tpo ?? defaultW.tpo, reason: '', weightLabel: '' },
+    { label: 'FVG', val: bd.fvg, max: w?.fvg ?? defaultW.fvg, reason: '', weightLabel: '' },
+    { label: 'Footprint', val: bd.footprint, max: w?.footprint ?? defaultW.footprint, reason: '', weightLabel: '' },
   ] : [];
+  if (isCustomWeights) {
+    for (const row of breakdownRows) {
+      row.weightLabel = `${row.max}%`;
+    }
+  }
 
   // Match reasons to breakdown rows
   if (data.reasons) {
@@ -164,8 +174,13 @@ export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <span style={{ fontSize: 14, fontWeight: 700, color: '#e5e7eb' }}>Quality Score</span>
-        {data.day_type && (
-          <span style={{ fontSize: 10, color: '#6b7280' }}>{data.day_type}</span>
+        {data.day_type && data.day_type !== 'UNKNOWN' && (
+          <span style={{
+            fontSize: 9, color: '#9ca3af', background: '#1e2738',
+            padding: '1px 6px', borderRadius: 3, letterSpacing: 0.5,
+          }}>
+            {data.day_type.replace('_', ' ')}
+          </span>
         )}
       </div>
 
@@ -200,6 +215,9 @@ export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
                 </td>
                 <td style={{ ...cellStyle, color: '#6b7280', fontSize: 10 }}>
                   {row.reason}
+                  {row.weightLabel && (
+                    <span style={{ color: '#4b5563', marginLeft: 4, fontSize: 9 }}>[{row.weightLabel}]</span>
+                  )}
                 </td>
               </tr>
             ))}
