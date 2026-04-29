@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.13.2"
+#define MEMS26_DLL_VERSION "v7.14.0"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -55,6 +55,12 @@ SCDLLName("MES_AI_DataExport")
 #define PERSIST_KEY_C3_ACTIVE     123
 #define PERSIST_KEY_ENTRY_PRICE   124  // stored as int (price * 100)
 #define PERSIST_KEY_BE_APPLIED    125
+
+// V7.14.0: Adaptive BE strategy + C2 target + C3 mode
+#define PERSIST_KEY_BE_STRATEGY   126  // 0=on_c2_fill, 1=on_c1_fill, 2=after_c2_plus_half_R
+#define PERSIST_KEY_C2_TARGET     127  // stored as int (price * 100)
+#define PERSIST_KEY_STOP_PRICE    128  // stored as int (price * 100)
+#define PERSIST_KEY_C3_ENABLED    129  // 0=disabled (c3_mode=="none"), 1=enabled
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -226,7 +232,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.13.2";
+        sc.GraphName        = "MES AI Data Export v7.14.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -272,7 +278,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sc.CancelAllOrdersOnEntriesAndReversals  = 0;
         sc.CancelAllWorkingOrdersOnExit          = 0;
         sc.AddMessageToLog(SCString().Format(
-            "MES_AI_DataExport loaded — DLL version: %s built: %s %s",
+            "MEMS26 %s — Adaptive BE strategy active — built: %s %s",
             MEMS26_DLL_VERSION, __DATE__, __TIME__), 1);
         return;
     }
@@ -1132,6 +1138,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         double cmdT3         = jsonNum(cmdJson, "t3");
         std::string tradeId  = jsonStr(cmdJson, "trade_id");
         long long expiresAt  = jsonInt(cmdJson, "expires_at");
+        // V7.14.0: Phase 5 fields
+        std::string beStrategy = jsonStr(cmdJson, "be_strategy");
+        std::string c3Mode     = jsonStr(cmdJson, "c3_mode");
+        double c1Target        = jsonNum(cmdJson, "c1_target");
+        double c2Target        = jsonNum(cmdJson, "c2_target");
         std::string checksum = jsonStr(cmdJson, "checksum");
 
         // V7.9.5: Checksum dedup using ACSIL persistent storage (survives Re-add).
@@ -1491,9 +1502,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 "C5: parsed %d brackets from JSON", (int)brackets.size()), 1);
 
             if (brackets.size() == 3) {
-                // V7.0: Single BuyEntry with 3 attached targets + shared stop
-                // Per Sierra Engineering (ThreadID=105021), this is the native
-                // pattern for partial scale-out brackets.
+                // V7.0: Single BuyEntry with attached targets + shared stop
 
                 // Sort by target distance: nearest first for LONG, farthest for SHORT
                 std::sort(brackets.begin(), brackets.end(),
@@ -1501,8 +1510,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         return (cmd == "BUY") ? a.target < b.target : a.target > b.target;
                     });
 
+                // V7.14.0: c3_mode=="none" → 2 contracts only, skip C3
+                bool c3en = (c3Mode != "none");
+                int orderQty = c3en ? 3 : 2;
+
                 s_SCNewOrder NewOrder;
-                NewOrder.OrderQuantity = 3;
+                NewOrder.OrderQuantity = orderQty;
                 NewOrder.OrderType = SCT_ORDERTYPE_MARKET;
                 NewOrder.TextTag = "MEMS26_PARENT";
                 NewOrder.Target1Price = (float)brackets[0].target;
@@ -1511,27 +1524,27 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 NewOrder.Target2Price = (float)brackets[1].target;
                 NewOrder.AttachedOrderTarget2Type = SCT_ORDERTYPE_LIMIT;
                 NewOrder.OCOGroup2Quantity = 1;
-                NewOrder.Target3Price = (float)brackets[2].target;
-                NewOrder.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
-                NewOrder.OCOGroup3Quantity = 1;
-                // V7.6.3: Separate stops per OCO group so MoveToBreakEven
-                // can move C2/C3 stops when C1 fills (requires "different group")
+                if (c3en) {
+                    NewOrder.Target3Price = (float)brackets[2].target;
+                    NewOrder.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
+                    NewOrder.OCOGroup3Quantity = 1;
+                }
+                // V7.6.3: Separate stops per OCO group
                 NewOrder.Stop1Price = (float)cmdStop;
                 NewOrder.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
                 NewOrder.Stop2Price = (float)cmdStop;
                 NewOrder.AttachedOrderStop2Type = SCT_ORDERTYPE_STOP;
-                NewOrder.Stop3Price = (float)cmdStop;
-                NewOrder.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
+                if (c3en) {
+                    NewOrder.Stop3Price = (float)cmdStop;
+                    NewOrder.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
+                }
 
-                // V7.9.0: Auto-BE DISABLED — Backend controls Smart BE via ARM_BE command
-                // (was V7.6.3 MoveToBreakEven = OCO_GROUP_1 triggered)
-
-                sc.AddMessageToLog("C5: V7.9.6 entering bracket dispatch", 1);
                 sc.AddMessageToLog(SCString().Format(
-                    "C5: %s 3-target bracket dispatch (DLL %s) — T1=%.2f T2=%.2f T3=%.2f stopAll=%.2f qty=3",
-                    cmd.c_str(), MEMS26_DLL_VERSION,
+                    "C5: %s %d-target bracket dispatch (DLL %s) — T1=%.2f T2=%.2f%s stopAll=%.2f",
+                    cmd.c_str(), orderQty, MEMS26_DLL_VERSION,
                     brackets[0].target, brackets[1].target,
-                    brackets[2].target, cmdStop), 1);
+                    c3en ? SCString().Format(" T3=%.2f", brackets[2].target).GetChars() : "",
+                    cmdStop), 1);
 
                 int Result = (cmd == "BUY")
                     ? (int)sc.BuyEntry(NewOrder) : (int)sc.SellEntry(NewOrder);
@@ -1569,12 +1582,26 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         sc.AddMessageToLog(
                             "C5: WARNING — IDs all zero, Sierra may populate async", 1);
 
-                    // V7.13.0: Initialize fill tracking
+                    // V7.14.0: Compute c3/BE config before fill tracking init
+                    int c3Enabled = (c3Mode != "none") ? 1 : 0;
+                    int beStratInt = 0;  // default: on_c2_fill
+                    if (beStrategy == "on_c1_fill") beStratInt = 1;
+                    else if (beStrategy == "after_c2_plus_half_R") beStratInt = 2;
+
+                    // V7.13.0+V7.14.0: Initialize fill + BE tracking
                     sc.SetPersistentInt(PERSIST_KEY_C1_FILLED, 0);
                     sc.SetPersistentInt(PERSIST_KEY_C2_FILLED, 0);
-                    sc.SetPersistentInt(PERSIST_KEY_C3_ACTIVE, 1);
+                    sc.SetPersistentInt(PERSIST_KEY_C3_ACTIVE, c3Enabled);
                     sc.SetPersistentInt(PERSIST_KEY_ENTRY_PRICE, (int)(cmdPrice * 100));
                     sc.SetPersistentInt(PERSIST_KEY_BE_APPLIED, 0);
+                    sc.SetPersistentInt(PERSIST_KEY_BE_STRATEGY, beStratInt);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_TARGET, (int)(c2Target * 100));
+                    sc.SetPersistentInt(PERSIST_KEY_STOP_PRICE, (int)(cmdStop * 100));
+                    sc.SetPersistentInt(PERSIST_KEY_C3_ENABLED, c3Enabled);
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.14.0 be_strategy=%s(%d) c3_mode=%s(%d) c1t=%.2f c2t=%.2f",
+                        beStrategy.c_str(), beStratInt, c3Mode.c_str(), c3Enabled,
+                        c1Target, c2Target), 1);
 
                     s_lastTradeId = tradeId;
                     // V7.7.1c: Persist trade_id to file for position monitoring
@@ -1725,52 +1752,82 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 }
             }
 
-            // V7.13.0: Track C1/C2 fills + Smart BE on C2 fill
+            // V7.14.0: Track C1/C2 fills + Adaptive BE
             if (anyTransition) {
                 // C1 filled?
                 if (orders[0].currentStatus == SCT_OSC_FILLED &&
                     sc.GetPersistentInt(PERSIST_KEY_C1_FILLED) == 0) {
                     sc.SetPersistentInt(PERSIST_KEY_C1_FILLED, 1);
-                    sc.AddMessageToLog("C5: V7.13.0 C1 FILLED", 1);
+                    sc.AddMessageToLog("C5: V7.14.0 C1 FILLED", 1);
                 }
-                // C2 filled → trigger Smart BE
+                // C2 filled?
                 if (orders[1].currentStatus == SCT_OSC_FILLED &&
                     sc.GetPersistentInt(PERSIST_KEY_C2_FILLED) == 0) {
                     sc.SetPersistentInt(PERSIST_KEY_C2_FILLED, 1);
-                    sc.AddMessageToLog("C5: V7.13.0 C2 FILLED — triggering Smart BE", 1);
-                    // Move remaining stops to entry price
-                    if (sc.GetPersistentInt(PERSIST_KEY_BE_APPLIED) == 0) {
-                        float be_price = sc.GetPersistentInt(PERSIST_KEY_ENTRY_PRICE) / 100.0f;
-                        if (be_price > 0) {
-                            int be_stops[3] = {
-                                sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
-                                sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
-                                sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
-                            };
-                            int be_moved = 0;
-                            for (int bi = 0; bi < 3; bi++) {
-                                if (be_stops[bi] <= 0) continue;
-                                s_SCTradeOrder ExOrd;
-                                if (sc.GetOrderByOrderID(be_stops[bi], ExOrd)
-                                    == SCTRADING_ORDER_ERROR) continue;
-                                if (!IsWorkingOrderStatus(ExOrd.OrderStatusCode)) continue;
-                                s_SCNewOrder ModOrd;
-                                ModOrd.InternalOrderID = be_stops[bi];
-                                ModOrd.Price1 = be_price;
-                                ModOrd.OrderQuantity = 0;
-                                if (sc.ModifyOrder(ModOrd) > 0) be_moved++;
-                            }
-                            sc.SetPersistentInt(PERSIST_KEY_BE_APPLIED, 1);
-                            sc.AddMessageToLog(SCString().Format(
-                                "C5: V7.13.0 Smart BE applied: %d/3 stops → %.2f",
-                                be_moved, be_price), 1);
-                        }
-                    }
+                    sc.AddMessageToLog("C5: V7.14.0 C2 FILLED", 1);
                 }
                 // C3 closed (filled or canceled)?
                 if (orders[2].currentStatus == SCT_OSC_FILLED ||
                     orders[2].currentStatus == SCT_OSC_CANCELED) {
                     sc.SetPersistentInt(PERSIST_KEY_C3_ACTIVE, 0);
+                }
+            }
+
+            // V7.14.0: Adaptive BE — check every bar, not just on transition
+            if (sc.GetPersistentInt(PERSIST_KEY_BE_APPLIED) == 0) {
+                int beStrat = sc.GetPersistentInt(PERSIST_KEY_BE_STRATEGY);
+                int c1f = sc.GetPersistentInt(PERSIST_KEY_C1_FILLED);
+                int c2f = sc.GetPersistentInt(PERSIST_KEY_C2_FILLED);
+                float be_price = sc.GetPersistentInt(PERSIST_KEY_ENTRY_PRICE) / 100.0f;
+
+                bool trigger_be = false;
+
+                if (beStrat == 1 && c1f) {
+                    // on_c1_fill
+                    trigger_be = true;
+                } else if (beStrat == 0 && c2f) {
+                    // on_c2_fill (default)
+                    trigger_be = true;
+                } else if (beStrat == 2 && c2f) {
+                    // after_c2_plus_half_R: wait for price to move 0.5R past C2
+                    float c2Price = sc.GetPersistentInt(PERSIST_KEY_C2_TARGET) / 100.0f;
+                    float stopPrice = sc.GetPersistentInt(PERSIST_KEY_STOP_PRICE) / 100.0f;
+                    float R = (be_price > stopPrice) ? (be_price - stopPrice)
+                                                     : (stopPrice - be_price);
+                    float curPrice = sc.Close[sc.ArraySize - 1];
+                    int dirSign = (be_price < c2Price) ? 1 : -1;
+                    float threshold = c2Price + (0.5f * R * dirSign);
+                    if ((dirSign > 0 && curPrice >= threshold) ||
+                        (dirSign < 0 && curPrice <= threshold)) {
+                        trigger_be = true;
+                    }
+                }
+
+                if (trigger_be && be_price > 0) {
+                    const char* stratNames[3] = {"on_c2_fill", "on_c1_fill", "after_c2_plus_half_R"};
+                    int be_stops[3] = {
+                        sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
+                        sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
+                        sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
+                    };
+                    int be_moved = 0;
+                    for (int bi = 0; bi < 3; bi++) {
+                        if (be_stops[bi] <= 0) continue;
+                        s_SCTradeOrder ExOrd;
+                        if (sc.GetOrderByOrderID(be_stops[bi], ExOrd)
+                            == SCTRADING_ORDER_ERROR) continue;
+                        if (!IsWorkingOrderStatus(ExOrd.OrderStatusCode)) continue;
+                        s_SCNewOrder ModOrd;
+                        ModOrd.InternalOrderID = be_stops[bi];
+                        ModOrd.Price1 = be_price;
+                        ModOrd.OrderQuantity = 0;
+                        if (sc.ModifyOrder(ModOrd) > 0) be_moved++;
+                    }
+                    sc.SetPersistentInt(PERSIST_KEY_BE_APPLIED, 1);
+                    int si = (beStrat >= 0 && beStrat <= 2) ? beStrat : 0;
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.14.0 Adaptive BE applied: strategy=%s %d/3 stops → %.2f",
+                        stratNames[si], be_moved, be_price), 1);
                 }
             }
 
