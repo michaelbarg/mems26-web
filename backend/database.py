@@ -414,9 +414,10 @@ async def insert_attempt(attempt: dict):
     vals = list(row.values())
     placeholders = ', '.join(f'${i+1}' for i in range(len(cols)))
     col_names = ', '.join(cols)
-    sql = f"INSERT INTO setup_attempts ({col_names}) VALUES ({placeholders})"
+    sql = f"INSERT INTO setup_attempts ({col_names}) VALUES ({placeholders}) RETURNING id"
     async with pool.acquire() as conn:
-        await conn.execute(sql, *vals)
+        row = await conn.fetchrow(sql, *vals)
+        return row['id'] if row else None
 
 
 async def get_attempts(

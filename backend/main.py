@@ -555,9 +555,9 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "is_shadow": True,
                     "entry_mode": "DEMO",
                 }
-                log.info(f"[PHASE6_INSERT] score={_score_total} type={type(_score_total).__name__} "
-                         f"fields={list(_attempt_data.keys())} values={{k: v for k, v in _attempt_data.items() if k != 'ts'}}")
-                await insert_attempt(_attempt_data)
+                log.warning(f"[PHASE6_DEBUG] About to insert: score={_score_total}, fields={list(_attempt_data.keys())}")
+                result_id = await insert_attempt(_attempt_data)
+                log.warning(f"[PHASE6_DEBUG] Insert returned: {result_id}")
                 log.info(f"[PHASE6_INSERT] SUCCESS: {direction} score={_score_total} day={day_type}")
             except Exception as e:
                 log.warning(f"[PHASE6_INSERT] FAILED: {e}", exc_info=True)
@@ -3093,6 +3093,29 @@ async def log_attempt(request: Request):
     attempt = await request.json()
     await insert_attempt(attempt)
     return {"ok": True}
+
+
+@app.get("/analytics/attempts/recent_with_score")
+async def attempts_recent_with_score(limit: int = 10):
+    """Diagnostic: return recent attempts that have setup_quality_score IS NOT NULL."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database pool"}
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT id, ts, direction, setup_quality_score, health_score_at_entry, "
+            "day_type, is_shadow, entry_mode "
+            "FROM setup_attempts "
+            "WHERE setup_quality_score IS NOT NULL "
+            "ORDER BY ts DESC LIMIT $1",
+            limit,
+        )
+        return {
+            "ok": True,
+            "count": len(rows),
+            "attempts": [dict(r) for r in rows],
+        }
 
 
 def _trades_to_csv(trades: list) -> str:
