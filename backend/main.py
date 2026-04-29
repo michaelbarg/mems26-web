@@ -266,6 +266,101 @@ async def _ws_push_loop():
             log.warning(f"WS push error: {e}")
         await asyncio.sleep(2)
 
+async def _outcome_worker_loop():
+    """Every 5 min: compute MAE/MFE/outcome for attempts that turned 60+ min old."""
+    log.info("[OUTCOME_WORKER] Started")
+    await asyncio.sleep(60)  # initial delay — let system warm up
+    while True:
+        try:
+            from database import get_pending_outcome_attempts, update_attempt_outcome
+            pending = await get_pending_outcome_attempts(min_age_seconds=3600)
+            if pending:
+                log.info(f"[OUTCOME_WORKER] Processing {len(pending)} attempts")
+            for attempt in pending:
+                try:
+                    await _calculate_attempt_outcome(attempt)
+                except Exception as e:
+                    log.warning(f"[OUTCOME_WORKER] Failed attempt {attempt.get('id')}: {e}")
+        except Exception as e:
+            log.error(f"[OUTCOME_WORKER] Loop error: {e}")
+        await asyncio.sleep(300)  # 5 minutes
+
+
+async def _calculate_attempt_outcome(attempt: dict):
+    """For ONE attempt: read 3m candle history, compute MAE/MFE, determine outcome."""
+    from database import update_attempt_outcome
+    from analytics import compute_mae_mfe
+
+    attempt_id = attempt["id"]
+    ts_start = attempt["ts"]
+    ts_end = ts_start + 3600  # 60 min window
+    direction = attempt["direction"] or "LONG"
+    entry = attempt["entry_price_hypothetical"]
+    stop = attempt["stop_hypothetical"]
+
+    if not entry or not stop or entry <= 0 or stop <= 0:
+        return
+
+    R = abs(entry - stop)
+    c1_target = entry + R if direction == "LONG" else entry - R
+
+    # Get 3m candles from Redis
+    candles = await _get_3m_candles()
+    if not candles:
+        log.warning(f"[OUTCOME] No candles for attempt {attempt_id}")
+        return
+
+    # Filter bars in the 60-min window after entry
+    bars = [b for b in candles if ts_start <= b.get("ts", 0) <= ts_end]
+    if len(bars) < 3:
+        log.info(f"[OUTCOME] Too few bars ({len(bars)}) for attempt {attempt_id} ts={ts_start}")
+        return
+
+    # Use existing MAE/MFE calculator
+    result = compute_mae_mfe(bars, entry, ts_start, ts_end, direction)
+    mae = result["mae_pts"]
+    mfe = result["mfe_pts"]
+
+    # Determine outcome: did price hit C1 target or stop?
+    is_long = direction == "LONG"
+    hit_stop = False
+    hit_c1 = False
+    for b in bars:
+        h = b.get("h", b.get("high", 0)) or 0
+        l = b.get("l", b.get("low", 0)) or 0
+        if is_long:
+            if l <= stop:
+                hit_stop = True
+                break  # stop hit first if same bar
+            if h >= c1_target:
+                hit_c1 = True
+                break
+        else:
+            if h >= stop:
+                hit_stop = True
+                break
+            if l <= c1_target:
+                hit_c1 = True
+                break
+
+    if hit_stop:
+        outcome = "HIT_STOP"
+    elif hit_c1:
+        outcome = "HIT_C1"
+    else:
+        outcome = "TIMEOUT"
+
+    await update_attempt_outcome(
+        attempt_id=attempt_id,
+        mae_pts=mae,
+        mfe_pts=mfe,
+        outcome=outcome,
+        extra={"c1_target": c1_target, "bars_analyzed": len(bars), "R": round(R, 2)},
+    )
+    log.info(f"[OUTCOME] Attempt {attempt_id}: {outcome} MAE={mae:.2f} MFE={mfe:.2f} "
+             f"({direction} entry={entry} stop={stop} c1={c1_target:.2f} bars={len(bars)})")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)} | PG={bool(DATABASE_URL)}")
@@ -278,11 +373,17 @@ async def lifespan(app: FastAPI):
             await seed_from_redis(redis_get_key, REDIS_URL, REDIS_TOKEN)
     except Exception as e:
         log.error(f"Postgres init failed: {e}")
-    task = asyncio.create_task(_ws_push_loop())
+    ws_task = asyncio.create_task(_ws_push_loop())
+    outcome_task = asyncio.create_task(_outcome_worker_loop())
     yield
-    task.cancel()
+    ws_task.cancel()
+    outcome_task.cancel()
     try:
-        await task
+        await ws_task
+    except asyncio.CancelledError:
+        pass
+    try:
+        await outcome_task
     except asyncio.CancelledError:
         pass
     await close_pool()
@@ -3116,6 +3217,14 @@ async def attempts_recent_with_score(limit: int = 10):
             "count": len(rows),
             "attempts": [dict(r) for r in rows],
         }
+
+
+@app.get("/analytics/attempts/with_outcomes")
+async def attempts_with_outcomes(limit: int = 20):
+    """Return recent attempts that have MAE/MFE outcomes computed."""
+    from database import get_attempts_with_outcomes
+    attempts = await get_attempts_with_outcomes(limit=limit)
+    return {"ok": True, "count": len(attempts), "attempts": attempts}
 
 
 def _trades_to_csv(trades: list) -> str:

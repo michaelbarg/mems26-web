@@ -420,6 +420,63 @@ async def insert_attempt(attempt: dict):
         return row['id'] if row else None
 
 
+async def get_pending_outcome_attempts(min_age_seconds: int = 3600, limit: int = 50) -> list:
+    """Find attempts that are 60+ min old but have no MAE/MFE yet."""
+    pool = await get_pool()
+    if not pool:
+        return []
+    import time as _time
+    cutoff = int(_time.time()) - min_age_seconds
+    max_age = cutoff - 86400  # don't go further than 24 hours back
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT id, ts, direction, entry_price_hypothetical, stop_hypothetical,
+                   setup_quality_score, health_score_at_entry, day_type
+            FROM setup_attempts
+            WHERE ts <= $1
+              AND ts >= $2
+              AND hypothetical_mae_60min_pts IS NULL
+              AND entry_price_hypothetical IS NOT NULL
+              AND stop_hypothetical IS NOT NULL
+            ORDER BY ts ASC
+            LIMIT $3
+        """, cutoff, max_age, limit)
+        return [dict(r) for r in rows]
+
+
+async def update_attempt_outcome(
+    attempt_id: int, mae_pts: float, mfe_pts: float,
+    outcome: str, extra: dict = None,
+):
+    """Update MAE/MFE and outcome for a setup attempt."""
+    pool = await get_pool()
+    if not pool:
+        return
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE setup_attempts SET
+                hypothetical_mae_60min_pts = $1,
+                hypothetical_mfe_60min_pts = $2,
+                extra_json = COALESCE(extra_json, '{}'::jsonb) || $3::jsonb
+            WHERE id = $4
+        """, mae_pts, mfe_pts, json.dumps({"outcome": outcome, **(extra or {})}), attempt_id)
+
+
+async def get_attempts_with_outcomes(limit: int = 20) -> list:
+    """Return recent attempts that have outcomes computed."""
+    pool = await get_pool()
+    if not pool:
+        return []
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT * FROM setup_attempts
+            WHERE hypothetical_mae_60min_pts IS NOT NULL
+            ORDER BY ts DESC
+            LIMIT $1
+        """, limit)
+        return [_row_to_dict(r) for r in rows]
+
+
 async def get_attempts(
     limit: int = 200,
     is_shadow: Optional[bool] = None,
