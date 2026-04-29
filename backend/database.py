@@ -177,6 +177,26 @@ async def init_db():
         except Exception:
                 pass
 
+        # Phase 6.6: Full setup details on setup_attempts
+        for col, typ in [
+            ("c1_target", "REAL"),
+            ("c2_target", "REAL"),
+            ("c3_target", "REAL"),
+            ("c3_enabled", "BOOLEAN"),
+            ("be_strategy", "TEXT"),
+            ("executed", "BOOLEAN DEFAULT FALSE"),
+            ("executed_trade_id", "TEXT"),
+            ("vegas_score", "INTEGER"),
+            ("tpo_score", "INTEGER"),
+            ("fvg_score", "INTEGER"),
+            ("footprint_score", "INTEGER"),
+            ("score_reasons", "TEXT"),
+        ]:
+            try:
+                await conn.execute(f"ALTER TABLE setup_attempts ADD COLUMN IF NOT EXISTS {col} {typ}")
+            except Exception:
+                pass
+
         # V6.5.2: Entry mode tags on trades + setup_attempts
         v652_cols = [
             ("entry_mode", "VARCHAR(16)"),
@@ -399,6 +419,10 @@ async def insert_attempt(attempt: dict):
         'entry_mode', 'trade_number_of_day',
         'health_score_at_entry', 'confidence_at_entry', 'pre_close_blocked',
         'setup_quality_score',
+        'c1_target', 'c2_target', 'c3_target', 'c3_enabled',
+        'be_strategy', 'executed', 'executed_trade_id',
+        'vegas_score', 'tpo_score', 'fvg_score', 'footprint_score',
+        'score_reasons',
     }
     row = {}
     extra = {}
@@ -571,6 +595,90 @@ def _row_to_dict(row) -> dict:
             extra = json.loads(extra)
         d.update(extra)
     return d
+
+
+async def mark_attempt_executed(direction: str, day_type: str, trade_id: str):
+    """Mark most recent matching attempt as executed (within last 5 min)."""
+    pool = await get_pool()
+    if not pool:
+        return
+    import time as _time
+    cutoff = int(_time.time()) - 300
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            UPDATE setup_attempts
+            SET executed = TRUE, executed_trade_id = $1
+            WHERE id = (
+                SELECT id FROM setup_attempts
+                WHERE direction = $2
+                  AND ts >= $3
+                  AND (executed IS NULL OR executed = FALSE)
+                  AND setup_quality_score IS NOT NULL
+                ORDER BY ts DESC LIMIT 1
+            )
+        """, trade_id, direction, cutoff)
+
+
+async def get_journal_unified(types: list = None, limit: int = 100, offset: int = 0):
+    """UNION trades + setup_attempts in unified format."""
+    pool = await get_pool()
+    if not pool:
+        return []
+
+    types = types or ['live', 'shadow']
+    wants_shadow = 'shadow' in types
+    wants_live = 'live' in types
+    results = []
+
+    async with pool.acquire() as conn:
+        if wants_live or wants_shadow:
+            trade_rows = await conn.fetch("""
+                SELECT
+                    id, entry_ts as ts, direction,
+                    entry_price as entry, stop, t1, t2, t3,
+                    setup_quality_score as score,
+                    pnl_pts, pnl_usd, status, close_reason,
+                    COALESCE(is_shadow, FALSE) as is_shadow,
+                    day_type, killzone,
+                    'trade' as source
+                FROM trades
+                WHERE
+                    ($1 = TRUE AND COALESCE(is_shadow, FALSE) = TRUE)
+                    OR ($2 = TRUE AND COALESCE(is_shadow, FALSE) = FALSE)
+                ORDER BY entry_ts DESC
+                LIMIT $3
+            """, wants_shadow, wants_live, limit)
+            results.extend([dict(r) for r in trade_rows])
+
+        if wants_shadow:
+            import time as _time
+            attempt_rows = await conn.fetch("""
+                SELECT
+                    id::text as id, ts, direction,
+                    entry_price_hypothetical as entry,
+                    stop_hypothetical as stop,
+                    c1_target as t1, c2_target as t2, c3_target as t3,
+                    setup_quality_score as score,
+                    hypothetical_mfe_60min_pts as pnl_pts,
+                    NULL::float as pnl_usd,
+                    CASE
+                        WHEN executed = TRUE THEN 'EXECUTED'
+                        ELSE 'PENDING'
+                    END as status,
+                    NULL as close_reason,
+                    TRUE as is_shadow,
+                    day_type, killzone,
+                    'attempt' as source
+                FROM setup_attempts
+                WHERE setup_quality_score IS NOT NULL
+                  AND ts > $1
+                ORDER BY ts DESC
+                LIMIT $2
+            """, int(_time.time()) - 86400 * 7, limit)
+            results.extend([dict(r) for r in attempt_rows])
+
+    results.sort(key=lambda x: x.get('ts', 0) or 0, reverse=True)
+    return results[:limit]
 
 
 async def close_pool():
