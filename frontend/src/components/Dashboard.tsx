@@ -3391,7 +3391,7 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
 
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard, buildingSetups, expiredBuildingSetups }:any) {
-  const [tab, setTab] = useState<'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'|'analytics'>('signal');
+  const [tab, setTab] = useState<'trade'|'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'|'analytics'>('trade');
   const scrollRef = useRef<HTMLDivElement>(null);
   const [sweepExpanded, setSweepExpanded] = useState(false);
   const [sweepEventsOpen, setSweepEventsOpen] = useState(false);
@@ -3404,6 +3404,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
     if (tab === 'setups' && !selectedSweep && sweepEvents?.length > 0) setSelectedSweep(sweepEvents[0]);
   }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
   const tabs = [
+    { id:'trade',     label:'מסחר',  icon:'🎯' },
     { id:'signal',    label:'סיגנל', icon:'⚡' },
     { id:'setups',    label:'סטאפים', icon:'🔍' },
     { id:'patterns',  label:'תבניות', icon:'📈' },
@@ -3484,6 +3485,16 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
       {/* Tab content — scrollable */}
       <div ref={scrollRef} style={{ flex:1, minHeight:0, overflowY:'auto', padding:8, paddingBottom:60, display:'flex', flexDirection:'column', gap:7, overflowAnchor:'none' as any }}>
+
+        {tab === 'trade' && (
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <DayTypeHero />
+            <QualityScorePanel />
+            <StrategyPreview />
+            <TriggerPanel />
+            <VegasTunnelPanel />
+          </div>
+        )}
 
         {tab === 'signal' && <>
           <DayTypeBar live={live} onRequestExplanation={onAskDayType} aiLoading={dayLoading} />
