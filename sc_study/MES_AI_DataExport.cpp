@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.11.3"
+#define MEMS26_DLL_VERSION "v7.11.4"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -215,7 +215,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.11.3";
+        sc.GraphName        = "MES AI Data Export v7.11.4";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -243,10 +243,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         ResultPath.SetString("/Users/michael/SierraChart2/Data/trade_result.json");
         BridgeToken.Name = "Bridge Token";
         BridgeToken.SetString("michael-mems26-2026");
-        TPO_PD_StudyID.Name = "TPO Previous Day Study ID (0=disabled)";
-        TPO_PD_StudyID.SetInt(1);
-        TPO_CD_StudyID.Name = "TPO Current Day Study ID (0=disabled)";
-        TPO_CD_StudyID.SetInt(3);
+        TPO_PD_StudyID.Name = "TPO PD Study ID (deprecated, ignored)";
+        TPO_PD_StudyID.SetInt(0);
+        TPO_CD_StudyID.Name = "TPO CD Study ID (deprecated, ignored)";
+        TPO_CD_StudyID.SetInt(0);
         // V7.0: Trading variables for single-bracket-with-3-targets model
         // Per Sierra Chart Engineering (ThreadID=105021), this is the
         // supported native pattern for partial scale-out.
@@ -740,44 +740,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     int vegas_bars = idx + 1;
     const char* vegas_quality = (vegas_bars >= 169) ? "FULL" : (vegas_bars >= 50) ? "PARTIAL" : "INSUFFICIENT";
 
-    // ── V7.11.2: TPO Dual Study (1-indexed subgraphs, configurable IDs) ──
-    int tpo_pd_id = TPO_PD_StudyID.GetInt();
-    int tpo_cd_id = TPO_CD_StudyID.GetInt();
-
-    // Sanity check: MES futures price must be 1000-100000
-    auto isReasonablePrice = [](float v) -> bool {
-        return v >= 1000.0f && v <= 100000.0f;
-    };
-
-    // Previous Day TPO (subgraph indices 1=POC, 2=VAH, 3=VAL)
-    float pd_poc = 0.0f, pd_vah = 0.0f, pd_val = 0.0f;
-    bool pd_valid = false;
-    if (tpo_pd_id > 0) {
-        SCFloatArray pdPOC, pdVAH, pdVAL;
-        sc.GetStudyArrayUsingID(tpo_pd_id, 1, pdPOC);
-        sc.GetStudyArrayUsingID(tpo_pd_id, 2, pdVAH);
-        sc.GetStudyArrayUsingID(tpo_pd_id, 3, pdVAL);
-        if (pdPOC.GetArraySize() > idx) {
-            pd_poc = pdPOC[idx]; pd_vah = pdVAH[idx]; pd_val = pdVAL[idx];
-            pd_valid = isReasonablePrice(pd_poc) &&
-                       isReasonablePrice(pd_vah) && isReasonablePrice(pd_val);
-        }
-    }
-
-    // Current Day TPO (same subgraph mapping)
-    float cd_poc = 0.0f, cd_vah = 0.0f, cd_val = 0.0f;
-    bool cd_valid = false;
-    if (tpo_cd_id > 0) {
-        SCFloatArray cdPOC, cdVAH, cdVAL;
-        sc.GetStudyArrayUsingID(tpo_cd_id, 1, cdPOC);
-        sc.GetStudyArrayUsingID(tpo_cd_id, 2, cdVAH);
-        sc.GetStudyArrayUsingID(tpo_cd_id, 3, cdVAL);
-        if (cdPOC.GetArraySize() > idx) {
-            cd_poc = cdPOC[idx]; cd_vah = cdVAH[idx]; cd_val = cdVAL[idx];
-            cd_valid = isReasonablePrice(cd_poc) &&
-                       isReasonablePrice(cd_vah) && isReasonablePrice(cd_val);
-        }
-    }
+    // ── V7.11.4: TPO using internal POC data (no Study API read) ──
+    // tpo_poc and prev_day_poc are already calculated above from raw bar data.
+    // VAH/VAL are from the market profile calculation.
+    bool tpo_cd_valid = (tpo_poc > 0.0f && tpo_poc < 100000.0f);
+    bool tpo_pd_valid = (prev_day_poc > 0.0f && prev_day_poc < 100000.0f);
 
     // ── Throttle ─────────────────────────────────────────────
     static time_t lastExport=0; time_t now_t=time(nullptr);
@@ -835,23 +802,25 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     } else {
         j<<",\"vegas\":null";
     }
-    // V7.11.0: TPO Dual Study
-    if (pd_valid || cd_valid) {
+    // V7.11.4: TPO using internal POC data
+    if (tpo_cd_valid || tpo_pd_valid) {
         j<<",\"tpo\":{";
-        if (cd_valid) {
-            j<<"\"current_day\":{\"poc_price\":"<<cd_poc
-              <<",\"vah\":"<<cd_vah<<",\"val\":"<<cd_val
+        if (tpo_cd_valid) {
+            j<<"\"current_day\":{\"poc_price\":"<<tpo_poc
+              <<",\"vah\":null,\"val\":null"
               <<",\"tpo_letter_minutes\":30,\"developing\":true"
-              <<",\"study_id\":"<<tpo_cd_id
-              <<",\"calculated_at\":"<<(long long)now_t<<"}";
+              <<",\"study_id\":null"
+              <<",\"calculated_at\":"<<(long long)now_t
+              <<",\"in_value_area\":"<<(cp>=VAL&&cp<=VAH?"true":"false")
+              <<",\"above_poc\":"<<(cp>POC?"true":"false")<<"}";
         } else {
             j<<"\"current_day\":null";
         }
-        if (pd_valid) {
-            j<<",\"previous_day\":{\"poc_price\":"<<pd_poc
-              <<",\"vah\":"<<pd_vah<<",\"val\":"<<pd_val
+        if (tpo_pd_valid) {
+            j<<",\"previous_day\":{\"poc_price\":"<<prev_day_poc
+              <<",\"vah\":null,\"val\":null"
               <<",\"tpo_letter_minutes\":1440,\"developing\":false"
-              <<",\"study_id\":"<<tpo_pd_id
+              <<",\"study_id\":null"
               <<",\"calculated_at\":"<<(long long)now_t<<"}";
         } else {
             j<<",\"previous_day\":null";
