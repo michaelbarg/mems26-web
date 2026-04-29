@@ -171,6 +171,12 @@ async def init_db():
             except Exception:
                 pass
 
+        # Phase 6: setup_quality_score on setup_attempts too
+        try:
+            await conn.execute("ALTER TABLE setup_attempts ADD COLUMN IF NOT EXISTS setup_quality_score INTEGER")
+        except Exception:
+                pass
+
         # V6.5.2: Entry mode tags on trades + setup_attempts
         v652_cols = [
             ("entry_mode", "VARCHAR(16)"),
@@ -392,6 +398,7 @@ async def insert_attempt(attempt: dict):
         'entry_price_hypothetical', 'stop_hypothetical',
         'entry_mode', 'trade_number_of_day',
         'health_score_at_entry', 'confidence_at_entry', 'pre_close_blocked',
+        'setup_quality_score',
     }
     row = {}
     extra = {}

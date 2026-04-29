@@ -533,12 +533,14 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
 
     # Phase 6: Auto-log setup attempts (score >= 10, dedup 60s)
     # TODO: raise threshold to 50 when system generates real-quality setups
-    if score_result["total"] >= 10:
+    _score_total = score_result.get("total", 0) or 0
+    if _score_total >= 10:
         import time as _t
         _attempt_key = (direction, day_type or "NONE")
         _attempt_now = int(_t.time())
         _attempt_last = _quality_attempt_cache.get(_attempt_key, 0)
-        if _attempt_now - _attempt_last >= 60:
+        _dedup_age = _attempt_now - _attempt_last
+        if _dedup_age >= 60:
             _quality_attempt_cache[_attempt_key] = _attempt_now
             try:
                 from database import insert_attempt
@@ -547,17 +549,20 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "direction": direction,
                     "entry_price_hypothetical": entry,
                     "stop_hypothetical": stop,
-                    "health_score_at_entry": score_result["total"],
-                    "setup_quality_score": score_result["total"],
+                    "health_score_at_entry": int(_score_total),
+                    "setup_quality_score": int(_score_total),
                     "day_type": day_type,
                     "is_shadow": True,
                     "entry_mode": "DEMO",
                 }
-                log.info(f"[SETUP_LOG] Inserting: score={score_result['total']} fields={list(_attempt_data.keys())}")
+                log.info(f"[PHASE6_INSERT] score={_score_total} type={type(_score_total).__name__} "
+                         f"fields={list(_attempt_data.keys())} values={{k: v for k, v in _attempt_data.items() if k != 'ts'}}")
                 await insert_attempt(_attempt_data)
-                log.info(f"[SETUP_LOG] Auto-logged attempt: {direction} score={score_result['total']} day={day_type}")
+                log.info(f"[PHASE6_INSERT] SUCCESS: {direction} score={_score_total} day={day_type}")
             except Exception as e:
-                log.warning(f"[SETUP_LOG] insert_attempt failed: {e}")
+                log.warning(f"[PHASE6_INSERT] FAILED: {e}", exc_info=True)
+        else:
+            log.debug(f"[PHASE6_DEDUP] Skipped: key={_attempt_key} age={_dedup_age}s < 60s")
 
     return {
         "ok": True,
