@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.14.1"
+#define MEMS26_DLL_VERSION "v7.14.2"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -235,7 +235,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.14.1";
+        sc.GraphName        = "MES AI Data Export v7.14.2";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -817,27 +817,26 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float day_class_conf = 0.0f;
     int vegas_flips = 0;
     float day_range = SH - SL;
-    // V7.13.2: Count vegas trend changes today using sticky_dir (hysteresis-protected)
-    // Only counts confirmed flips (2-bar + distance), not every tick crossing tunnel
+    // V7.14.2: Count vegas trend flips — RTH only, date-reset, capped
     {
         static int s_lastConfirmedDir = 0;
         static int s_vegasFlipCount = 0;
         static SCDateTime s_vegasFlipDate;
-        static int s_prevSesMin = -1;
-        // Reset on new trading day OR session transition (OVERNIGHT → RTH open)
-        bool newDay = (s_vegasFlipDate != today);
-        bool sessionStart = (s_prevSesMin < 0 && sesMin >= 0);
-        if (newDay || sessionStart) {
+        // Reset on date change (covers both overnight rollover and historical bar replay)
+        if (s_vegasFlipDate != today) {
             s_vegasFlipCount = 0;
             s_vegasFlipDate = today;
             s_lastConfirmedDir = sticky_dir;
         }
-        s_prevSesMin = sesMin;
-        // Count only confirmed hysteresis flips (sticky_dir changes)
-        if (sticky_dir != 0 && sticky_dir != s_lastConfirmedDir && s_lastConfirmedDir != 0)
-            s_vegasFlipCount++;
-        if (sticky_dir != 0) s_lastConfirmedDir = sticky_dir;
-        vegas_flips = s_vegasFlipCount;
+        // Only count flips during RTH (sesMin >= 0 means after 09:30 ET)
+        // Overnight flips are noise and should not affect day classification
+        if (sesMin >= 0) {
+            if (sticky_dir != 0 && sticky_dir != s_lastConfirmedDir && s_lastConfirmedDir != 0)
+                s_vegasFlipCount++;
+            if (sticky_dir != 0) s_lastConfirmedDir = sticky_dir;
+        }
+        // Cap at 50 for sanity (prevents runaway from edge cases)
+        vegas_flips = (s_vegasFlipCount < 50) ? s_vegasFlipCount : 50;
     }
     bool ib_break_held = (ib_breakout_up || ib_breakout_down) && !returned_after_breakout;
     // ATR baseline: average of last 14 days' ranges
