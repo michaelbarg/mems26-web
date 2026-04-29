@@ -496,6 +496,44 @@ def get_active_triggers_by_type(triggers: dict | None, trigger_type: str) -> lis
     return [t for t in triggers["active"] if t.get("type") == trigger_type]
 
 
+# ---------------------------------------------------------------------------
+# V7.12.0: Quality Score preview endpoint
+# ---------------------------------------------------------------------------
+
+@app.get("/quality/preview")
+async def get_quality_preview(direction: str, entry: float, stop: float):
+    """Pre-trade preview of quality score, position sizing, and targets."""
+    import time as _time
+    from quality_score import calculate_quality_score, determine_position_size, calculate_targets
+
+    if direction not in ("LONG", "SHORT"):
+        raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
+    if entry <= 0 or stop <= 0:
+        raise HTTPException(status_code=400, detail="entry and stop must be > 0")
+
+    data = await redis_get()
+    if not data:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "MARKET_DATA_NOT_AVAILABLE"})
+
+    score_result = calculate_quality_score(data, direction)
+    position = determine_position_size(score_result["total"], "DEMO")
+    targets = calculate_targets(entry, stop, direction, data.get("tpo") or {})
+    day_class = data.get("day_classification") or {}
+
+    return {
+        "ok": True,
+        "score": score_result["total"],
+        "breakdown": score_result["breakdown"],
+        "reasons": score_result["reasons"],
+        "position": position,
+        "targets": targets,
+        "day_type": day_class.get("type", "UNKNOWN"),
+        "day_confidence": day_class.get("confidence", 0),
+    }
+
+
 @app.post("/ingest/history")
 async def ingest_history(request: Request, x_bridge_token: Optional[str] = Header(None)):
     if x_bridge_token != BRIDGE_TOKEN:
