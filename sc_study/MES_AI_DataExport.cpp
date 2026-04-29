@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.13.1"
+#define MEMS26_DLL_VERSION "v7.13.2"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -226,7 +226,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.13.1";
+        sc.GraphName        = "MES AI Data Export v7.13.2";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -808,16 +808,26 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float day_class_conf = 0.0f;
     int vegas_flips = 0;
     float day_range = SH - SL;
-    // Count vegas trend changes today
+    // V7.13.2: Count vegas trend changes today using sticky_dir (hysteresis-protected)
+    // Only counts confirmed flips (2-bar + distance), not every tick crossing tunnel
     {
-        static int s_lastVegasDir = 0;  // 1=bull, -1=bear, 0=neutral
+        static int s_lastConfirmedDir = 0;
         static int s_vegasFlipCount = 0;
         static SCDateTime s_vegasFlipDate;
-        int curDir = (cp > tunnel_top) ? 1 : (cp < tunnel_bot) ? -1 : 0;
-        if (s_vegasFlipDate != today) { s_vegasFlipCount = 0; s_vegasFlipDate = today; s_lastVegasDir = curDir; }
-        if (curDir != 0 && curDir != s_lastVegasDir && s_lastVegasDir != 0)
+        static int s_prevSesMin = -1;
+        // Reset on new trading day OR session transition (OVERNIGHT → RTH open)
+        bool newDay = (s_vegasFlipDate != today);
+        bool sessionStart = (s_prevSesMin < 0 && sesMin >= 0);
+        if (newDay || sessionStart) {
+            s_vegasFlipCount = 0;
+            s_vegasFlipDate = today;
+            s_lastConfirmedDir = sticky_dir;
+        }
+        s_prevSesMin = sesMin;
+        // Count only confirmed hysteresis flips (sticky_dir changes)
+        if (sticky_dir != 0 && sticky_dir != s_lastConfirmedDir && s_lastConfirmedDir != 0)
             s_vegasFlipCount++;
-        if (curDir != 0) s_lastVegasDir = curDir;
+        if (sticky_dir != 0) s_lastConfirmedDir = sticky_dir;
         vegas_flips = s_vegasFlipCount;
     }
     bool ib_break_held = (ib_breakout_up || ib_breakout_down) && !returned_after_breakout;
