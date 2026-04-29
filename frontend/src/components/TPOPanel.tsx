@@ -4,8 +4,10 @@ import { useState, useEffect } from "react";
 
 interface TPOLevels {
   poc_price: number;
-  vah: number;
-  val: number;
+  vah: number | null;
+  val: number | null;
+  above_poc?: boolean;
+  in_value_area?: boolean;
   tpo_letter_minutes: number;
   developing: boolean;
   study_id: number;
@@ -35,17 +37,22 @@ function timeAgo(ts: number): string {
   return `${Math.floor(sec / 3600)}h ago`;
 }
 
-function LevelRow({ label, price, color }: { label: string; price: number; color: string }) {
+const fmt = (val: number | null | undefined): string => {
+  if (val === null || val === undefined) return "\u2014";
+  return val.toFixed(2);
+};
+
+function LevelRow({ label, price, color }: { label: string; price: number | null | undefined; color: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '1px 0' }}>
       <span style={{ color: '#6b7280' }}>{label}</span>
-      <span style={{ color, fontFamily: 'monospace', fontWeight: 700 }}>{price.toFixed(2)}</span>
+      <span style={{ color, fontFamily: 'monospace', fontWeight: 700 }}>{fmt(price)}</span>
     </div>
   );
 }
 
 function DaySection({ title, levels, badge }: { title: string; levels: TPOLevels; badge?: string }) {
-  const vaRange = levels.vah - levels.val;
+  const vaRange = (levels.vah != null && levels.val != null) ? levels.vah - levels.val : null;
   return (
     <div style={{ marginBottom: 4 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
@@ -68,7 +75,7 @@ function DaySection({ title, levels, badge }: { title: string; levels: TPOLevels
       <LevelRow label="VAL" price={levels.val} color="#60a5fa" />
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, padding: '1px 0', marginTop: 1 }}>
         <span style={{ color: '#4b5563' }}>VA Range</span>
-        <span style={{ color: '#6b7280', fontFamily: 'monospace' }}>{vaRange.toFixed(2)}pt</span>
+        <span style={{ color: '#6b7280', fontFamily: 'monospace' }}>{fmt(vaRange)}pt</span>
       </div>
     </div>
   );
