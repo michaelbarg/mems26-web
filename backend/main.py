@@ -384,6 +384,69 @@ def validate_setup_against_vegas(setup: dict, vegas: dict | None) -> bool:
     return True
 
 
+# ---------------------------------------------------------------------------
+# V7.11.0: TPO Dual Study state endpoint + nearby levels helper
+# ---------------------------------------------------------------------------
+
+@app.get("/tpo/state")
+async def get_tpo_state():
+    """Returns current TPO state from market data."""
+    import time as _time
+    data = await redis_get()
+    if not data:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "MARKET_DATA_NOT_AVAILABLE",
+                     "message": "No market data available"})
+
+    tpo = data.get("tpo")
+    if tpo is None:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "TPO_NOT_AVAILABLE",
+                     "message": "TPO data not yet computed (waiting for studies to load)"})
+
+    data_ts = data.get("ts", 0)
+    age = int(_time.time()) - data_ts if data_ts > 0 else 9999
+    if age > 60:
+        return JSONResponse(
+            status_code=503,
+            content={"ok": False, "error": "TPO_STALE",
+                     "message": f"TPO data is {age}s old",
+                     "last_updated": data_ts})
+
+    return {"ok": True, "tpo": tpo, "received_at": data_ts}
+
+
+def get_nearby_levels(current_price: float, tpo: dict | None, threshold: float = 5.0) -> list:
+    """
+    V7.11.0: Returns key TPO levels within threshold points of current price.
+    Used by setup detection (NOT wired yet — for future use).
+    Returns list of dicts: {type, price, distance, source}
+    """
+    levels = []
+    if not tpo:
+        return levels
+
+    for source_key, prefix in [("current_day", "CD"), ("previous_day", "PD")]:
+        day = tpo.get(source_key)
+        if not day:
+            continue
+        for level_type, price_key in [(f"{prefix}_POC", "poc_price"),
+                                      (f"{prefix}_VAH", "vah"),
+                                      (f"{prefix}_VAL", "val")]:
+            price = day.get(price_key)
+            if price and abs(current_price - price) <= threshold:
+                levels.append({
+                    "type": level_type,
+                    "price": price,
+                    "distance": round(current_price - price, 2),
+                    "source": source_key,
+                })
+
+    return levels
+
+
 @app.post("/ingest/history")
 async def ingest_history(request: Request, x_bridge_token: Optional[str] = Header(None)):
     if x_bridge_token != BRIDGE_TOKEN:

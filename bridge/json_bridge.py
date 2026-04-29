@@ -411,6 +411,7 @@ def enrich(raw):
     vol_ctx = raw.get("volume_context", {})    # ← חדש
     candle_p= raw.get("candle_patterns", {})  # ← חדש
     vegas   = raw.get("vegas")                 # V7.10.0: Vegas Tunnel (may be None)
+    tpo     = raw.get("tpo")                   # V7.11.0: TPO Dual Study (may be None)
 
     # Day context — מה-Study ישירות
     day_type    = dc_study.get("day_type", "DEVELOPING")
@@ -567,6 +568,9 @@ def enrich(raw):
 
         # V7.10.0: Vegas Tunnel (None if < 50 bars)
         "vegas": vegas,
+
+        # V7.11.0: TPO Dual Study (None if studies not loaded)
+        "tpo": tpo,
     }
 
 
@@ -1295,6 +1299,14 @@ async def main():
                         log.info(f"[VEGAS] trend={v.get('trend')} "
                                  f"position={v.get('price_position')} "
                                  f"width={v.get('tunnel_width', 0):.2f}")
+
+                    # V7.11.0: Log TPO state
+                    t = payload.get("tpo")
+                    if t and isinstance(t, dict):
+                        cd = t.get("current_day")
+                        pd = t.get("previous_day")
+                        log.info(f"[TPO] CD POC={cd.get('poc_price') if cd else 'null'} "
+                                 f"PD POC={pd.get('poc_price') if pd else 'null'}")
 
                     # ── Update live MTF candle in Redis array (so chart shows current bar) ──
                     for mtf_key, redis_key, _, max_c in MTF_CONFIG:

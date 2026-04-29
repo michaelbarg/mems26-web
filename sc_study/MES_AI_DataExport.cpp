@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.10.0"
+#define MEMS26_DLL_VERSION "v7.11.4"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -210,10 +210,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef CommandPath       = sc.Input[7];
     SCInputRef ResultPath        = sc.Input[8];
     SCInputRef BridgeToken       = sc.Input[9];
+    SCInputRef TPO_PD_StudyID    = sc.Input[10];  // V7.11.2: configurable TPO IDs
+    SCInputRef TPO_CD_StudyID    = sc.Input[11];
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.10.0";
+        sc.GraphName        = "MES AI Data Export v7.11.4";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -226,21 +228,25 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         EMA144.Name = "EMA144"; EMA144.DrawStyle = DRAWSTYLE_IGNORE;  // V7.10.0: Vegas Tunnel (data only)
         EMA169.Name = "EMA169"; EMA169.DrawStyle = DRAWSTYLE_IGNORE;
         ExportPath.Name = "Export JSON Path";
-        ExportPath.SetString("C:\\SierraChart2\\Data\\mes_ai_data.json");
+        ExportPath.SetString("/Users/michael/SierraChart2/Data/mes_ai_data.json");
         ExportIntervalSec.Name = "Export Interval (seconds)"; ExportIntervalSec.SetInt(3);
         VAPercent.Name = "Value Area %"; VAPercent.SetFloat(70.0f);
         ImbalanceRatio.Name = "Imbalance Ratio"; ImbalanceRatio.SetFloat(3.0f);
         IBPeriodMin.Name = "IB Period (minutes)"; IBPeriodMin.SetInt(60);
         HistoryPath.Name = "History JSON Path";
-        HistoryPath.SetString("C:\\SierraChart2\\Data\\mes_ai_history.json");
+        HistoryPath.SetString("/Users/michael/SierraChart2/Data/mes_ai_history.json");
         FootprintBars.Name = "Footprint Bars Count";
         FootprintBars.SetInt(200);
         CommandPath.Name = "Trade Command JSON Path";
-        CommandPath.SetString("C:\\SierraChart2\\Data\\trade_command.json");
+        CommandPath.SetString("/Users/michael/SierraChart2/Data/trade_command.json");
         ResultPath.Name = "Trade Result JSON Path";
-        ResultPath.SetString("C:\\SierraChart2\\Data\\trade_result.json");
+        ResultPath.SetString("/Users/michael/SierraChart2/Data/trade_result.json");
         BridgeToken.Name = "Bridge Token";
         BridgeToken.SetString("michael-mems26-2026");
+        TPO_PD_StudyID.Name = "TPO PD Study ID (deprecated, ignored)";
+        TPO_PD_StudyID.SetInt(0);
+        TPO_CD_StudyID.Name = "TPO CD Study ID (deprecated, ignored)";
+        TPO_CD_StudyID.SetInt(0);
         // V7.0: Trading variables for single-bracket-with-3-targets model
         // Per Sierra Chart Engineering (ThreadID=105021), this is the
         // supported native pattern for partial scale-out.
@@ -734,6 +740,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     int vegas_bars = idx + 1;
     const char* vegas_quality = (vegas_bars >= 169) ? "FULL" : (vegas_bars >= 50) ? "PARTIAL" : "INSUFFICIENT";
 
+    // ── V7.11.4: TPO using internal POC data (no Study API read) ──
+    // tpo_poc and prev_day_poc are already calculated above from raw bar data.
+    // VAH/VAL are from the market profile calculation.
+    bool tpo_cd_valid = (tpo_poc > 0.0f && tpo_poc < 100000.0f);
+    bool tpo_pd_valid = (prev_day_poc > 0.0f && prev_day_poc < 100000.0f);
+
     // ── Throttle ─────────────────────────────────────────────
     static time_t lastExport=0; time_t now_t=time(nullptr);
     if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
@@ -789,6 +801,33 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
           <<",\"calculated_at\":"<<(long long)now_t<<"}";
     } else {
         j<<",\"vegas\":null";
+    }
+    // V7.11.4: TPO using internal POC data
+    if (tpo_cd_valid || tpo_pd_valid) {
+        j<<",\"tpo\":{";
+        if (tpo_cd_valid) {
+            j<<"\"current_day\":{\"poc_price\":"<<tpo_poc
+              <<",\"vah\":null,\"val\":null"
+              <<",\"tpo_letter_minutes\":30,\"developing\":true"
+              <<",\"study_id\":null"
+              <<",\"calculated_at\":"<<(long long)now_t
+              <<",\"in_value_area\":"<<(cp>=VAL&&cp<=VAH?"true":"false")
+              <<",\"above_poc\":"<<(cp>POC?"true":"false")<<"}";
+        } else {
+            j<<"\"current_day\":null";
+        }
+        if (tpo_pd_valid) {
+            j<<",\"previous_day\":{\"poc_price\":"<<prev_day_poc
+              <<",\"vah\":null,\"val\":null"
+              <<",\"tpo_letter_minutes\":1440,\"developing\":false"
+              <<",\"study_id\":null"
+              <<",\"calculated_at\":"<<(long long)now_t<<"}";
+        } else {
+            j<<",\"previous_day\":null";
+        }
+        j<<"}";
+    } else {
+        j<<",\"tpo\":null";
     }
     j<<"}\n";
 
