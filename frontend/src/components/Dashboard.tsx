@@ -10,7 +10,9 @@ import VegasTunnelPanel from './VegasTunnelPanel';
 import TPOPanel from './TPOPanel';
 import TriggerPanel from './TriggerPanel';
 import DayTypeBadge from './DayTypeBadge';
+import DayTypeHero from './DayTypeHero';
 import QualityScorePanel from './QualityScorePanel';
+import StrategyPreview from './StrategyPreview';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -4861,7 +4863,8 @@ export default function Dashboard() {
             tradeId={activeTrade?.tradeId}
             apiUrl={API_URL}
           />
-          {/* Sprint 5: Day Type Badge */}
+          {/* Sprint 5: Day Type Hero (prominent) + Badge (kept for now) */}
+          <DayTypeHero apiUrl={API_URL} />
           <DayTypeBadge apiUrl={API_URL} />
           {/* Sprint 2: Vegas Tunnel Panel */}
           <VegasTunnelPanel apiUrl={API_URL} />
@@ -4869,8 +4872,9 @@ export default function Dashboard() {
           <TPOPanel apiUrl={API_URL} />
           {/* Sprint 3: Trigger Panel */}
           <TriggerPanel apiUrl={API_URL} />
-          {/* Sprint 5: Quality Score Panel */}
+          {/* Sprint 5: Quality Score Panel + Strategy Preview */}
           <QualityScorePanel apiUrl={API_URL} />
+          <StrategyPreview apiUrl={API_URL} />
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
             <VolumeTimer bar={bar??null} />
           </div>
