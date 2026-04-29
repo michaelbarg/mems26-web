@@ -1976,6 +1976,33 @@ async def trade_execute(request: Request):
                 log.warning(f"Vegas filter check failed: {e} — BLOCKING (fail-closed)")
                 raise HTTPException(status_code=500, detail=f"Vegas filter error: {e}")
 
+        # === Quality Score Gate (Phase 4) ===
+        from quality_score import calculate_quality_score, determine_position_size, calculate_targets
+        _qs_market = await redis_get() or {}
+        _qs_result = calculate_quality_score(_qs_market, direction)
+        _qs_position = determine_position_size(_qs_result["total"], _exec_entry_mode)
+
+        if _qs_position.get("reject") and not _skip_gates:
+            raise HTTPException(status_code=400, detail=json.dumps({
+                "ok": False,
+                "error": "QUALITY_SCORE_REJECT",
+                "score": _qs_result["total"],
+                "breakdown": _qs_result["breakdown"],
+                "reasons": _qs_result["reasons"],
+            }))
+
+        if _qs_position.get("warn"):
+            log.warning(
+                f"LOW_SCORE_DEMO: {_qs_result['total']}/100 — proceeding for learning. "
+                f"Breakdown: {_qs_result['breakdown']}"
+            )
+
+        _qs_targets = calculate_targets(entry, stop, direction, _qs_market.get("tpo", {}))
+        _qs_c3_mode = "vegas_trail" if "C3" in _qs_position.get("exits", []) else "none"
+        _qs_qty = _qs_position["qty"] if _qs_position["qty"] > 0 else CONTRACTS
+        log.info(f"[QUALITY] score={_qs_result['total']} qty={_qs_qty} "
+                 f"c3_mode={_qs_c3_mode} targets=c1:{_qs_targets['c1']} c2:{_qs_targets['c2']}")
+
         # Validate: BUY only if no open position
         cmd_type = body.get("cmd_type", "BUY")  # BUY or CLOSE
         if cmd_type == "CLOSE":
@@ -2099,6 +2126,13 @@ async def trade_execute(request: Request):
             ],
             "trade_id": trade_id, "expires_at": expires_at,
             "checksum": chk_hex, "checksum_input": chk_raw,
+            # Phase 4: Quality Score fields for DLL v7.13.0
+            "c1_target": _qs_targets["c1"],
+            "c2_target": _qs_targets["c2"],
+            "c3_mode": _qs_c3_mode,
+            "qty": _qs_qty,
+            "score": _qs_result["total"],
+            "score_breakdown": _qs_result["breakdown"],
         }
         log.info(f"[EXECUTE] step 3: writing command to Redis key={REDIS_TRADE_COMMAND}")
         await redis_set_key(REDIS_TRADE_COMMAND, command)
