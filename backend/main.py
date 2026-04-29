@@ -500,7 +500,8 @@ def get_active_triggers_by_type(triggers: dict | None, trigger_type: str) -> lis
 # V7.12.0: Quality Score preview endpoint
 # ---------------------------------------------------------------------------
 
-async def _quality_preview_logic(direction: str, entry: float, stop: float):
+async def _quality_preview_logic(direction: str, entry: float, stop: float,
+                                 day_type_override: str = None):
     """Shared logic for quality preview (GET + POST)."""
     from quality_score import calculate_quality_score, determine_position_size, calculate_targets, get_be_strategy
 
@@ -516,7 +517,12 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float):
             content={"ok": False, "error": "MARKET_DATA_NOT_AVAILABLE"})
 
     day_class = data.get("day_classification") or {}
-    day_type = day_class.get("type")
+    # V7.14.1: Allow override for testing (POST only)
+    VALID_DAY_TYPES = ("TREND_DAY", "RANGE_DAY", "GAP_FILL", "NORMAL", "DEVELOPING")
+    if day_type_override and day_type_override in VALID_DAY_TYPES:
+        day_type = day_type_override
+    else:
+        day_type = day_class.get("type")
 
     score_result = calculate_quality_score(data, direction, day_type)
     position = determine_position_size(score_result["total"], "DEMO", day_type)
@@ -545,12 +551,13 @@ async def get_quality_preview(direction: str, entry: float, stop: float):
 
 @app.post("/quality/preview")
 async def post_quality_preview(request: Request):
-    """Pre-trade preview of quality score (POST)."""
+    """Pre-trade preview of quality score (POST). Supports day_type_override."""
     body = await request.json()
     direction = body.get("direction", "LONG")
     entry = body.get("entry", 0) or body.get("entry_price", 0)
     stop = body.get("stop", 0)
-    return await _quality_preview_logic(direction, entry, stop)
+    day_type_override = body.get("day_type_override")
+    return await _quality_preview_logic(direction, entry, stop, day_type_override)
 
 
 @app.post("/ingest/history")
