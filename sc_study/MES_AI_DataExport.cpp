@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.11.2"
+#define MEMS26_DLL_VERSION "v7.11.3"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -215,7 +215,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.11.2";
+        sc.GraphName        = "MES AI Data Export v7.11.3";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -228,19 +228,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         EMA144.Name = "EMA144"; EMA144.DrawStyle = DRAWSTYLE_IGNORE;  // V7.10.0: Vegas Tunnel (data only)
         EMA169.Name = "EMA169"; EMA169.DrawStyle = DRAWSTYLE_IGNORE;
         ExportPath.Name = "Export JSON Path";
-        ExportPath.SetString("C:\\SierraChart2\\Data\\mes_ai_data.json");
+        ExportPath.SetString("/Users/michael/SierraChart2/Data/mes_ai_data.json");
         ExportIntervalSec.Name = "Export Interval (seconds)"; ExportIntervalSec.SetInt(3);
         VAPercent.Name = "Value Area %"; VAPercent.SetFloat(70.0f);
         ImbalanceRatio.Name = "Imbalance Ratio"; ImbalanceRatio.SetFloat(3.0f);
         IBPeriodMin.Name = "IB Period (minutes)"; IBPeriodMin.SetInt(60);
         HistoryPath.Name = "History JSON Path";
-        HistoryPath.SetString("C:\\SierraChart2\\Data\\mes_ai_history.json");
+        HistoryPath.SetString("/Users/michael/SierraChart2/Data/mes_ai_history.json");
         FootprintBars.Name = "Footprint Bars Count";
         FootprintBars.SetInt(200);
         CommandPath.Name = "Trade Command JSON Path";
-        CommandPath.SetString("C:\\SierraChart2\\Data\\trade_command.json");
+        CommandPath.SetString("/Users/michael/SierraChart2/Data/trade_command.json");
         ResultPath.Name = "Trade Result JSON Path";
-        ResultPath.SetString("C:\\SierraChart2\\Data\\trade_result.json");
+        ResultPath.SetString("/Users/michael/SierraChart2/Data/trade_result.json");
         BridgeToken.Name = "Bridge Token";
         BridgeToken.SetString("michael-mems26-2026");
         TPO_PD_StudyID.Name = "TPO Previous Day Study ID (0=disabled)";
