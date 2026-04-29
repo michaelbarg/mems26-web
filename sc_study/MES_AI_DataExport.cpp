@@ -17,10 +17,14 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.13.0"
+#define MEMS26_DLL_VERSION "v7.13.1"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
+
+// V7.13.1: Vegas hysteresis state
+#define PERSIST_KEY_VEGAS_TREND_DIR    220  // 1=BULLISH, -1=BEARISH, 0=NEUTRAL
+#define PERSIST_KEY_VEGAS_PENDING_FLIPS 221
 
 // V7.7.1d: Persistent keys for bracket order tracking.
 // We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
@@ -222,7 +226,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.13.0";
+        sc.GraphName        = "MES AI Data Export v7.13.1";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -743,9 +747,55 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     float tunnel_bot = (ema144_val < ema169_val) ? ema144_val : ema169_val;
     float tunnel_width = fabs(ema144_val - ema169_val);
     const char* vegas_pos = (cp > tunnel_top) ? "ABOVE" : (cp < tunnel_bot) ? "BELOW" : "INSIDE";
-    const char* vegas_trend = (cp > tunnel_top) ? "BULLISH" : (cp < tunnel_bot) ? "BEARISH" : "NEUTRAL";
     int vegas_bars = idx + 1;
     const char* vegas_quality = (vegas_bars >= 169) ? "FULL" : (vegas_bars >= 50) ? "PARTIAL" : "INSUFFICIENT";
+
+    // V7.13.1: Vegas hysteresis — 2 bars + 0.5pt buffer
+    // Raw direction from EMA spread (not price position)
+    float ema_distance = ema144_val - ema169_val;
+    float abs_ema_dist = (ema_distance > 0) ? ema_distance : -ema_distance;
+    int raw_dir = (ema_distance > 0) ? 1 : -1;  // 1=BULLISH, -1=BEARISH
+
+    int sticky_dir = sc.GetPersistentInt(PERSIST_KEY_VEGAS_TREND_DIR);
+    int pending_flips = sc.GetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS);
+
+    // Initialize on first run
+    if (sticky_dir == 0) {
+        sticky_dir = raw_dir;
+        sc.SetPersistentInt(PERSIST_KEY_VEGAS_TREND_DIR, sticky_dir);
+    }
+
+    // Only evaluate on new bar close (not every tick)
+    if (sc.GetBarHasClosedStatus(idx) == BHCS_BAR_HAS_CLOSED) {
+        if (raw_dir == sticky_dir) {
+            // Same direction — reset pending counter
+            if (pending_flips != 0) {
+                pending_flips = 0;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, 0);
+            }
+        } else if (abs_ema_dist > 0.5f) {
+            // Opposite direction with sufficient distance
+            pending_flips++;
+            sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, pending_flips);
+            if (pending_flips >= 2) {
+                sticky_dir = raw_dir;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_TREND_DIR, sticky_dir);
+                pending_flips = 0;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.13.1 Vegas trend flipped to %s (dist=%.2f)",
+                    (sticky_dir == 1) ? "BULLISH" : "BEARISH", ema_distance), 1);
+            }
+        } else {
+            // Distance too small — reset pending
+            if (pending_flips != 0) {
+                pending_flips = 0;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, 0);
+            }
+        }
+    }
+
+    const char* vegas_trend = (sticky_dir == 1) ? "BULLISH" : "BEARISH";
 
     // ── V7.11.4: TPO using internal POC data (no Study API read) ──
     // tpo_poc and prev_day_poc are already calculated above from raw bar data.
