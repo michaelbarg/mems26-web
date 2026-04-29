@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.11.4"
+#define MEMS26_DLL_VERSION "v7.12.0"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -215,7 +215,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.11.4";
+        sc.GraphName        = "MES AI Data Export v7.12.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -746,6 +746,122 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     bool tpo_cd_valid = (tpo_poc > 0.0f && tpo_poc < 100000.0f);
     bool tpo_pd_valid = (prev_day_poc > 0.0f && prev_day_poc < 100000.0f);
 
+    // ── V7.12.0: Phase 3 Trigger Layer ─────────────────────────
+    // Trigger storage (static persists across AutoLoop calls, max 20)
+    struct Trigger {
+        char id[32]; char type[12]; char direction[8];
+        float price_high, price_low, gap_size;
+        char swept_level[20]; float swept_price;
+        float current_price;
+        long long detected_at, expires_at;
+    };
+    static Trigger s_triggers[20];
+    static int s_triggerCount = 0;
+    long long trig_now = (long long)time(NULL);
+
+    // Remove expired triggers
+    int keep = 0;
+    for (int i = 0; i < s_triggerCount; i++) {
+        if (s_triggers[i].expires_at > trig_now)
+            s_triggers[keep++] = s_triggers[i];
+    }
+    s_triggerCount = keep;
+
+    // Helper: add trigger if room
+    auto addTrig = [&](const char* type, const char* dir,
+                       float ph, float pl, float gap,
+                       const char* swept_lv, float swept_px) {
+        if (s_triggerCount >= 20) return;
+        Trigger& t = s_triggers[s_triggerCount];
+        sprintf(t.id, "T_%s_%lld", type, trig_now);
+        strncpy(t.type, type, 11); t.type[11] = 0;
+        strncpy(t.direction, dir, 7); t.direction[7] = 0;
+        t.price_high = ph; t.price_low = pl; t.gap_size = gap;
+        strncpy(t.swept_level, swept_lv, 19); t.swept_level[19] = 0;
+        t.swept_price = swept_px;
+        t.current_price = cp;
+        t.detected_at = trig_now;
+        t.expires_at = trig_now + 300;
+        s_triggerCount++;
+    };
+
+    // PART A: FVG Detection (scan last 50 bars)
+    {
+        int fvg_start = (idx >= 52) ? idx - 50 : 2;
+        for (int i = fvg_start; i <= idx; i++) {
+            if (i < 2) continue;
+            float bull_gap = sc.Low[i] - sc.High[i-2];
+            if (bull_gap >= 0.25f && bull_gap <= 5.0f) {
+                // Check not already detected (simple: same bar timestamp)
+                long long bar_ts = (long long)((sc.BaseDateTimeIn[i].GetAsDouble() - 25569.0) * 86400.0 + 0.5);
+                bool dup = false;
+                for (int d = 0; d < s_triggerCount; d++)
+                    if (s_triggers[d].detected_at == bar_ts &&
+                        s_triggers[d].type[0] == 'F' &&
+                        s_triggers[d].direction[0] == 'b') { dup = true; break; }
+                if (!dup) addTrig("FVG", "bullish", sc.Low[i], sc.High[i-2], bull_gap, "", 0);
+            }
+            float bear_gap = sc.Low[i-2] - sc.High[i];
+            if (bear_gap >= 0.25f && bear_gap <= 5.0f) {
+                long long bar_ts = (long long)((sc.BaseDateTimeIn[i].GetAsDouble() - 25569.0) * 86400.0 + 0.5);
+                bool dup = false;
+                for (int d = 0; d < s_triggerCount; d++)
+                    if (s_triggers[d].detected_at == bar_ts &&
+                        s_triggers[d].type[0] == 'F' &&
+                        s_triggers[d].direction[0] == 'B') { dup = true; break; }
+                if (!dup) addTrig("FVG", "bearish", sc.Low[i-2], sc.High[i], bear_gap, "", 0);
+            }
+        }
+    }
+
+    // PART B: Footprint Reversal (last bar)
+    int fp_buy = (int)sc.AskVolume[idx];
+    int fp_sell = (int)sc.BidVolume[idx];
+    int fp_delta = fp_buy - fp_sell;
+    float fp_max = (float)((fp_buy > fp_sell) ? fp_buy : fp_sell);
+    float fp_min = (float)((fp_buy < fp_sell) ? fp_buy : fp_sell);
+    float fp_imb_ratio = (fp_min > 0) ? fp_max / fp_min : 0.0f;
+    bool fp_is_reversal = false;
+    if (idx >= 4 && fp_imb_ratio > 2.0f) {
+        int d1 = (int)(sc.AskVolume[idx-1] - sc.BidVolume[idx-1]);
+        int d2 = (int)(sc.AskVolume[idx-2] - sc.BidVolume[idx-2]);
+        int d3 = (int)(sc.AskVolume[idx-3] - sc.BidVolume[idx-3]);
+        bool prev_bullish = (d1 > 0 && d2 > 0 && d3 > 0);
+        bool prev_bearish = (d1 < 0 && d2 < 0 && d3 < 0);
+        if ((prev_bullish && fp_delta < 0) || (prev_bearish && fp_delta > 0)) {
+            fp_is_reversal = true;
+            addTrig("REVERSAL", (fp_delta > 0) ? "bullish" : "bearish",
+                    sc.High[idx], sc.Low[idx], 0, "", 0);
+        }
+    }
+
+    // PART C: Sweep Detection (last 5 bars against key levels)
+    {
+        struct LvlDef { const char* name; float price; };
+        LvlDef levels[7] = {
+            {"VEGAS_144", ema144_val}, {"VEGAS_169", ema169_val},
+            {"TPO_POC", tpo_poc}, {"TPO_VAH", VAH}, {"TPO_VAL", VAL},
+            {"PD_POC", prev_day_poc}, {"VWAP", vwap},
+        };
+        int sweep_start = (idx >= 5) ? idx - 4 : 0;
+        for (int li = 0; li < 7; li++) {
+            if (levels[li].price <= 0) continue;
+            float lv = levels[li].price;
+            for (int i = sweep_start; i <= idx; i++) {
+                if (sc.High[i] > lv + 0.25f && sc.Close[i] < lv) {
+                    addTrig("SWEEP", "bearish", sc.High[i], sc.Low[i], 0,
+                            levels[li].name, lv);
+                    break;
+                }
+                if (sc.Low[i] < lv - 0.25f && sc.Close[i] > lv) {
+                    addTrig("SWEEP", "bullish", sc.High[i], sc.Low[i], 0,
+                            levels[li].name, lv);
+                    break;
+                }
+            }
+        }
+    }
+
     // ── Throttle ─────────────────────────────────────────────
     static time_t lastExport=0; time_t now_t=time(nullptr);
     if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
@@ -829,6 +945,34 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     } else {
         j<<",\"tpo\":null";
     }
+    // V7.12.0: Triggers
+    j<<",\"triggers\":{\"active\":[";
+    for (int ti = 0; ti < s_triggerCount; ti++) {
+        if (ti > 0) j<<",";
+        const Trigger& t = s_triggers[ti];
+        j<<"{\"id\":\""<<t.id<<"\""
+          <<",\"type\":\""<<t.type<<"\""
+          <<",\"direction\":\""<<t.direction<<"\""
+          <<",\"price_high\":"<<t.price_high
+          <<",\"price_low\":"<<t.price_low
+          <<",\"gap_size\":"<<t.gap_size;
+        if (t.swept_level[0] != '\0')
+            j<<",\"swept_level\":\""<<t.swept_level<<"\"";
+        else
+            j<<",\"swept_level\":null";
+        j<<",\"swept_price\":"<<t.swept_price
+          <<",\"current_price\":"<<t.current_price
+          <<",\"detected_at\":"<<t.detected_at
+          <<",\"expires_at\":"<<t.expires_at
+          <<"}";
+    }
+    j<<"],\"footprint_last_bar\":{"
+      <<"\"buy_vol\":"<<fp_buy
+      <<",\"sell_vol\":"<<fp_sell
+      <<",\"delta\":"<<fp_delta
+      <<",\"imbalance_ratio\":"<<fp_imb_ratio
+      <<",\"is_reversal\":"<<(fp_is_reversal?"true":"false")
+      <<"}}";
     j<<"}\n";
 
     std::ofstream f(ExportPath.GetString());
