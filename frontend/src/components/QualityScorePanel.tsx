@@ -60,10 +60,19 @@ export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
     let active = true;
     const poll = async () => {
       try {
+        // Fetch current price from /market/latest
+        const mktRes = await fetch(`${base}/market/latest`);
+        const mkt = await mktRes.json();
+        const price = mkt?.price || mkt?.bar?.c;
+        if (!price || price <= 0) {
+          if (active) { setError("Waiting for market data..."); setErrorType(null); setData(null); }
+          return;
+        }
+        // Score with default 5pt risk
         const res = await fetch(`${base}/quality/preview`, {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ direction: 'LONG', entry: 0, stop: 0 }),
+          body: JSON.stringify({ direction: 'LONG', entry: price, stop: price - 5 }),
         });
         const j: QualityResponse = await res.json();
         if (!active) return;
@@ -98,7 +107,7 @@ export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
   if (loading) {
     return (
       <div style={box}>
-        <span style={{ fontSize: 12, color: '#6b7280' }}>Loading Quality Score...</span>
+        <span style={{ fontSize: 12, color: '#6b7280' }}>Scoring setup...</span>
       </div>
     );
   }
