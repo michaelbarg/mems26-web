@@ -8,6 +8,7 @@ const AnalyticsTab = dynamic(() => import('./AnalyticsTab'), { ssr: false });
 import ActiveTradePanelV2 from './ActiveTradePanelV2';
 import VegasTunnelPanel from './VegasTunnelPanel';
 import TPOPanel from './TPOPanel';
+import TriggerPanel from './TriggerPanel';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -4862,6 +4863,8 @@ export default function Dashboard() {
           <VegasTunnelPanel apiUrl={API_URL} />
           {/* Sprint 2 Wave 2: TPO Profile Panel */}
           <TPOPanel apiUrl={API_URL} />
+          {/* Sprint 3: Trigger Panel */}
+          <TriggerPanel apiUrl={API_URL} />
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
             <VolumeTimer bar={bar??null} />
           </div>
