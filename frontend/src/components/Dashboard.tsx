@@ -2416,10 +2416,25 @@ function AIAnalysisPanel({signal, signalTime, aiLoading, aiError, onAskAI, live}
         </div>
       )}
 
-      {/* LEVELS */}
+      {/* LEVELS + Volume */}
       {(profile.vah || profile.val || profile.poc || vwap) ? (
         <div style={{ background:'#0a0f1a', padding:'10px 12px', borderBottom:'1px solid #1e2738' }}>
-          <div style={{ fontSize:14, color:'#475569', marginBottom:8, fontWeight:600 }}>📊 רמות קריטיות</div>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+            <span style={{ fontSize:14, color:'#475569', fontWeight:600 }}>📊 רמות קריטיות</span>
+            {(() => {
+              const vc = (live as any)?.volume_context || {};
+              const rv = vc.rel_vol;
+              const cv = vc.current_vol;
+              if (!rv && !cv) return null;
+              const rvColor = rv >= 1.5 ? '#22c55e' : rv >= 1.0 ? '#ca8a04' : '#6b7280';
+              return (
+                <span style={{ fontSize:10, color:'#6b7280' }}>
+                  Vol: <span style={{ color:rvColor, fontWeight:700 }}>{rv?.toFixed(1) || '?'}x</span>
+                  {cv ? <span> ({cv >= 1000 ? `${(cv/1000).toFixed(1)}K` : cv})</span> : null}
+                </span>
+              );
+            })()}
+          </div>
           <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
             {[
               { label:'VAH', value:profile.vah, color:'#3b82f6' },
