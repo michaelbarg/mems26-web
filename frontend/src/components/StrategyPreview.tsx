@@ -5,8 +5,17 @@ import { useState, useEffect } from "react";
 interface StrategyData {
   day_type: string;
   targets?: { c1: number; c2: number; R: number; c3_enabled?: boolean; c2_method?: string };
-  be_strategy?: { trigger: string; offset: string };
-  be_rule?: string;
+  be_strategy?: string;
+}
+
+function mapBeStrategy(be?: string): string {
+  if (!be) return 'After C1';
+  switch (be) {
+    case 'on_c1_fill': return 'After C1';
+    case 'on_c2_fill': return 'After C2';
+    case 'after_c2_plus_half_R': return 'After C2 + 0.5R';
+    default: return be.replace(/_/g, ' ');
+  }
 }
 
 const POLL_MS = 30000;
@@ -37,10 +46,9 @@ export default function StrategyPreview({ apiUrl }: StrategyPreviewProps) {
         if (!active) return;
         if (j.ok) {
           setData({
-            day_type: j.day_type || 'NORMAL',
+            day_type: (j.day_type && j.day_type !== 'UNKNOWN') ? j.day_type : 'NORMAL',
             targets: j.targets,
             be_strategy: j.be_strategy,
-            be_rule: j.be_rule,
           });
         }
       } catch { /* retry next poll */ }
@@ -58,7 +66,7 @@ export default function StrategyPreview({ apiUrl }: StrategyPreviewProps) {
   const c2r = data.targets?.c2 && data.targets?.c1 && R > 0
     ? (Math.abs(data.targets.c2 - (data.targets.c1 - R)) / R).toFixed(0) : '2';
   const c3 = data.targets?.c3_enabled === false ? 'Off' : 'Trail';
-  const be = data.be_rule || data.be_strategy?.trigger || 'After C1';
+  const be = mapBeStrategy(data.be_strategy);
 
   return (
     <div style={{
@@ -74,7 +82,7 @@ export default function StrategyPreview({ apiUrl }: StrategyPreviewProps) {
       flexWrap: 'wrap',
     }}>
       <span style={{ fontWeight: 700, color: '#6b7280' }}>
-        Strategy: {data.day_type.replace('_', ' ')}
+        Strategy: {data.day_type.replace('_', ' ')}{data.day_type === 'NORMAL' || data.day_type === 'DEVELOPING' ? ' (default)' : ''}
       </span>
       <span style={{ color: '#4b5563' }}>|</span>
       <span>
