@@ -502,7 +502,7 @@ def get_active_triggers_by_type(triggers: dict | None, trigger_type: str) -> lis
 
 async def _quality_preview_logic(direction: str, entry: float, stop: float):
     """Shared logic for quality preview (GET + POST)."""
-    from quality_score import calculate_quality_score, determine_position_size, calculate_targets
+    from quality_score import calculate_quality_score, determine_position_size, calculate_targets, get_be_strategy
 
     if direction not in ("LONG", "SHORT"):
         raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
@@ -515,10 +515,12 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float):
             status_code=404,
             content={"ok": False, "error": "MARKET_DATA_NOT_AVAILABLE"})
 
-    score_result = calculate_quality_score(data, direction)
-    position = determine_position_size(score_result["total"], "DEMO")
-    targets = calculate_targets(entry, stop, direction, data.get("tpo") or {})
     day_class = data.get("day_classification") or {}
+    day_type = day_class.get("type")
+
+    score_result = calculate_quality_score(data, direction, day_type)
+    position = determine_position_size(score_result["total"], "DEMO", day_type)
+    targets = calculate_targets(entry, stop, direction, data, day_type)
 
     return {
         "ok": True,
@@ -528,7 +530,10 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float):
         "position": position,
         "targets": targets,
         "day_type": day_class.get("type", "UNKNOWN"),
+        "day_type_used": score_result.get("day_type_used"),
+        "weights_applied": score_result.get("weights_applied"),
         "day_confidence": day_class.get("confidence", 0),
+        "be_strategy": get_be_strategy(day_type),
     }
 
 
@@ -1989,11 +1994,12 @@ async def trade_execute(request: Request):
                 log.warning(f"Vegas filter check failed: {e} — BLOCKING (fail-closed)")
                 raise HTTPException(status_code=500, detail=f"Vegas filter error: {e}")
 
-        # === Quality Score Gate (Phase 4) ===
-        from quality_score import calculate_quality_score, determine_position_size, calculate_targets
+        # === Quality Score Gate (Phase 5: Day-Adaptive) ===
+        from quality_score import calculate_quality_score, determine_position_size, calculate_targets, get_be_strategy
         _qs_market = await redis_get() or {}
-        _qs_result = calculate_quality_score(_qs_market, direction)
-        _qs_position = determine_position_size(_qs_result["total"], _exec_entry_mode)
+        _qs_day_class = (_qs_market.get("day_classification") or {}).get("type")
+        _qs_result = calculate_quality_score(_qs_market, direction, _qs_day_class)
+        _qs_position = determine_position_size(_qs_result["total"], _exec_entry_mode, _qs_day_class)
 
         if _qs_position.get("reject") and not _skip_gates:
             raise HTTPException(status_code=400, detail=json.dumps({
@@ -2010,11 +2016,13 @@ async def trade_execute(request: Request):
                 f"Breakdown: {_qs_result['breakdown']}"
             )
 
-        _qs_targets = calculate_targets(entry, stop, direction, _qs_market.get("tpo", {}))
-        _qs_c3_mode = "vegas_trail" if "C3" in _qs_position.get("exits", []) else "none"
+        _qs_targets = calculate_targets(entry, stop, direction, _qs_market, _qs_day_class)
+        _qs_c3_mode = "vegas_trail" if _qs_targets.get("c3_enabled") and "C3" in _qs_position.get("exits", []) else "none"
+        _qs_be_strategy = get_be_strategy(_qs_day_class)
         _qs_qty = _qs_position["qty"] if _qs_position["qty"] > 0 else CONTRACTS
         log.info(f"[QUALITY] score={_qs_result['total']} qty={_qs_qty} "
-                 f"c3_mode={_qs_c3_mode} targets=c1:{_qs_targets['c1']} c2:{_qs_targets['c2']}")
+                 f"c3_mode={_qs_c3_mode} be={_qs_be_strategy} day={_qs_day_class} "
+                 f"targets=c1:{_qs_targets['c1']} c2:{_qs_targets['c2']}")
 
         # Validate: BUY only if no open position
         cmd_type = body.get("cmd_type", "BUY")  # BUY or CLOSE
