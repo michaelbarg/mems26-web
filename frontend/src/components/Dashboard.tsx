@@ -4889,18 +4889,7 @@ export default function Dashboard() {
             tradeId={activeTrade?.tradeId}
             apiUrl={API_URL}
           />
-          {/* Sprint 5: Day Type Hero (prominent) + Badge (kept for now) */}
-          <DayTypeHero apiUrl={API_URL} />
-          <DayTypeBadge apiUrl={API_URL} />
-          {/* Sprint 2: Vegas Tunnel Panel */}
-          <VegasTunnelPanel apiUrl={API_URL} />
-          {/* Sprint 2 Wave 2: TPO Profile Panel */}
-          <TPOPanel apiUrl={API_URL} />
-          {/* Sprint 3: Trigger Panel */}
-          <TriggerPanel apiUrl={API_URL} />
-          {/* Sprint 5: Quality Score Panel + Strategy Preview */}
-          <QualityScorePanel apiUrl={API_URL} />
-          <StrategyPreview apiUrl={API_URL} />
+          {/* Panels moved to "trade" tab — only VolumeTimer remains */}
           <div style={{flexShrink:0,borderTop:'1px solid #1e2738'}}>
             <VolumeTimer bar={bar??null} />
           </div>
