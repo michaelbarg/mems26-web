@@ -13,6 +13,7 @@ import DayTypeBadge from './DayTypeBadge';
 import DayTypeHero from './DayTypeHero';
 import QualityScorePanel from './QualityScorePanel';
 import StrategyPreview from './StrategyPreview';
+import AttemptsTable from './AttemptsTable';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -3493,6 +3494,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             <StrategyPreview />
             <TriggerPanel />
             <VegasTunnelPanel />
+            <AttemptsTable apiUrl={API_URL} />
           </div>
         )}
 
