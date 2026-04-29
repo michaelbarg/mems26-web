@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.12.0"
+#define MEMS26_DLL_VERSION "v7.13.0"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -44,6 +44,13 @@ SCDLLName("MES_AI_DataExport")
 
 // V7.8.0: Last write counter for trade_state.json (write only on changes)
 #define PERSIST_KEY_STATE_FILE_COUNTER  118
+
+// V7.13.0: C1/C2/C3 fill tracking + Smart BE state
+#define PERSIST_KEY_C1_FILLED     121
+#define PERSIST_KEY_C2_FILLED     122
+#define PERSIST_KEY_C3_ACTIVE     123
+#define PERSIST_KEY_ENTRY_PRICE   124  // stored as int (price * 100)
+#define PERSIST_KEY_BE_APPLIED    125
 
 // ── CCI Helper ────────────────────────────────────────────────────────────────
 static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
@@ -215,7 +222,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.12.0";
+        sc.GraphName        = "MES AI Data Export v7.13.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -746,6 +753,56 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     bool tpo_cd_valid = (tpo_poc > 0.0f && tpo_poc < 100000.0f);
     bool tpo_pd_valid = (prev_day_poc > 0.0f && prev_day_poc < 100000.0f);
 
+    // ── V7.13.0: Day Type Classifier ──────────────────────────
+    const char* day_class = "DEVELOPING";
+    float day_class_conf = 0.0f;
+    int vegas_flips = 0;
+    float day_range = SH - SL;
+    // Count vegas trend changes today
+    {
+        static int s_lastVegasDir = 0;  // 1=bull, -1=bear, 0=neutral
+        static int s_vegasFlipCount = 0;
+        static SCDateTime s_vegasFlipDate;
+        int curDir = (cp > tunnel_top) ? 1 : (cp < tunnel_bot) ? -1 : 0;
+        if (s_vegasFlipDate != today) { s_vegasFlipCount = 0; s_vegasFlipDate = today; s_lastVegasDir = curDir; }
+        if (curDir != 0 && curDir != s_lastVegasDir && s_lastVegasDir != 0)
+            s_vegasFlipCount++;
+        if (curDir != 0) s_lastVegasDir = curDir;
+        vegas_flips = s_vegasFlipCount;
+    }
+    bool ib_break_held = (ib_breakout_up || ib_breakout_down) && !returned_after_breakout;
+    // ATR baseline: average of last 14 days' ranges
+    float atr_base = 0;
+    {
+        int days_counted = 0;
+        SCDateTime prevD;
+        float dH = 0, dL = 999999;
+        for (int i = idx; i >= 0 && days_counted < 15; i--) {
+            SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
+            if (bd != prevD && prevD.IsDateSet()) {
+                if (days_counted > 0) atr_base += (dH - dL);
+                days_counted++;
+                dH = sc.High[i]; dL = sc.Low[i];
+            } else {
+                if (sc.High[i] > dH) dH = sc.High[i];
+                if (sc.Low[i] < dL) dL = sc.Low[i];
+            }
+            prevD = bd;
+        }
+        if (days_counted > 1) atr_base /= (days_counted - 1);
+    }
+    if (sesMin >= 60 && ib_locked) {
+        if (vegas_flips <= 2 && ib_break_held && atr_base > 0 && day_range > atr_base * 0.7f) {
+            day_class = "TREND_DAY"; day_class_conf = 0.85f;
+        } else if (vegas_flips >= 4 && atr_base > 0 && day_range < atr_base * 0.5f) {
+            day_class = "RANGE_DAY"; day_class_conf = 0.75f;
+        } else if (fabs(gap) > 5.0f && ((gap > 0 && cp < daily_open) || (gap < 0 && cp > daily_open))) {
+            day_class = "GAP_FILL"; day_class_conf = 0.70f;
+        } else {
+            day_class = "NORMAL"; day_class_conf = 0.50f;
+        }
+    }
+
     // ── V7.12.0: Phase 3 Trigger Layer ─────────────────────────
     // Trigger storage (static persists across AutoLoop calls, max 20)
     struct Trigger {
@@ -973,6 +1030,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
       <<",\"imbalance_ratio\":"<<fp_imb_ratio
       <<",\"is_reversal\":"<<(fp_is_reversal?"true":"false")
       <<"}}";
+    // V7.13.0: Day Classification
+    j<<",\"day_classification\":{"
+      <<"\"type\":\""<<day_class<<"\""
+      <<",\"confidence\":"<<day_class_conf
+      <<",\"metrics\":{"
+        <<"\"vegas_flips\":"<<vegas_flips
+        <<",\"ib_break_held\":"<<(ib_break_held?"true":"false")
+        <<",\"day_range\":"<<day_range
+        <<",\"atr_baseline\":"<<atr_base
+      <<"}"
+      <<",\"calculated_at\":"<<(long long)now_t
+      <<"}";
     j<<"}\n";
 
     std::ofstream f(ExportPath.GetString());
@@ -1440,6 +1509,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         sc.AddMessageToLog(
                             "C5: WARNING — IDs all zero, Sierra may populate async", 1);
 
+                    // V7.13.0: Initialize fill tracking
+                    sc.SetPersistentInt(PERSIST_KEY_C1_FILLED, 0);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_FILLED, 0);
+                    sc.SetPersistentInt(PERSIST_KEY_C3_ACTIVE, 1);
+                    sc.SetPersistentInt(PERSIST_KEY_ENTRY_PRICE, (int)(cmdPrice * 100));
+                    sc.SetPersistentInt(PERSIST_KEY_BE_APPLIED, 0);
+
                     s_lastTradeId = tradeId;
                     // V7.7.1c: Persist trade_id to file for position monitoring
                     { std::string dp(ExportPath.GetString());
@@ -1586,6 +1662,55 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         sc.SetPersistentInt(orders[i].statusKey,
                                            orders[i].currentStatus);
                     }
+                }
+            }
+
+            // V7.13.0: Track C1/C2 fills + Smart BE on C2 fill
+            if (anyTransition) {
+                // C1 filled?
+                if (orders[0].currentStatus == SCT_OSC_FILLED &&
+                    sc.GetPersistentInt(PERSIST_KEY_C1_FILLED) == 0) {
+                    sc.SetPersistentInt(PERSIST_KEY_C1_FILLED, 1);
+                    sc.AddMessageToLog("C5: V7.13.0 C1 FILLED", 1);
+                }
+                // C2 filled → trigger Smart BE
+                if (orders[1].currentStatus == SCT_OSC_FILLED &&
+                    sc.GetPersistentInt(PERSIST_KEY_C2_FILLED) == 0) {
+                    sc.SetPersistentInt(PERSIST_KEY_C2_FILLED, 1);
+                    sc.AddMessageToLog("C5: V7.13.0 C2 FILLED — triggering Smart BE", 1);
+                    // Move remaining stops to entry price
+                    if (sc.GetPersistentInt(PERSIST_KEY_BE_APPLIED) == 0) {
+                        float be_price = sc.GetPersistentInt(PERSIST_KEY_ENTRY_PRICE) / 100.0f;
+                        if (be_price > 0) {
+                            int be_stops[3] = {
+                                sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
+                                sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
+                                sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
+                            };
+                            int be_moved = 0;
+                            for (int bi = 0; bi < 3; bi++) {
+                                if (be_stops[bi] <= 0) continue;
+                                s_SCTradeOrder ExOrd;
+                                if (sc.GetOrderByOrderID(be_stops[bi], ExOrd)
+                                    == SCTRADING_ORDER_ERROR) continue;
+                                if (!IsWorkingOrderStatus(ExOrd.OrderStatusCode)) continue;
+                                s_SCNewOrder ModOrd;
+                                ModOrd.InternalOrderID = be_stops[bi];
+                                ModOrd.Price1 = be_price;
+                                ModOrd.OrderQuantity = 0;
+                                if (sc.ModifyOrder(ModOrd) > 0) be_moved++;
+                            }
+                            sc.SetPersistentInt(PERSIST_KEY_BE_APPLIED, 1);
+                            sc.AddMessageToLog(SCString().Format(
+                                "C5: V7.13.0 Smart BE applied: %d/3 stops → %.2f",
+                                be_moved, be_price), 1);
+                        }
+                    }
+                }
+                // C3 closed (filled or canceled)?
+                if (orders[2].currentStatus == SCT_OSC_FILLED ||
+                    orders[2].currentStatus == SCT_OSC_CANCELED) {
+                    sc.SetPersistentInt(PERSIST_KEY_C3_ACTIVE, 0);
                 }
             }
 
