@@ -412,6 +412,7 @@ def enrich(raw):
     candle_p= raw.get("candle_patterns", {})  # ← חדש
     vegas   = raw.get("vegas")                 # V7.10.0: Vegas Tunnel (may be None)
     tpo     = raw.get("tpo")                   # V7.11.0: TPO Dual Study (may be None)
+    triggers= raw.get("triggers")              # V7.12.0: Trigger events (may be None)
 
     # Day context — מה-Study ישירות
     day_type    = dc_study.get("day_type", "DEVELOPING")
@@ -571,6 +572,9 @@ def enrich(raw):
 
         # V7.11.0: TPO Dual Study (None if studies not loaded)
         "tpo": tpo,
+
+        # V7.12.0: Trigger events (None if DLL < v7.12.0)
+        "triggers": triggers,
     }
 
 
@@ -1307,6 +1311,13 @@ async def main():
                         pd = t.get("previous_day")
                         log.info(f"[TPO] CD POC={cd.get('poc_price') if cd else 'null'} "
                                  f"PD POC={pd.get('poc_price') if pd else 'null'}")
+
+                    # V7.12.0: Log Triggers state
+                    tr = payload.get("triggers")
+                    if tr and isinstance(tr, dict):
+                        active_count = len(tr.get("active", []))
+                        log.info(f"[TRIGGERS] active={active_count} "
+                                 f"fp_delta={tr.get('footprint_last_bar', {}).get('delta', 0)}")
 
                     # ── Update live MTF candle in Redis array (so chart shows current bar) ──
                     for mtf_key, redis_key, _, max_c in MTF_CONFIG:
