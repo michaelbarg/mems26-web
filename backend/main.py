@@ -655,6 +655,17 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "day_type": day_type,
                     "is_shadow": True,
                     "entry_mode": "DEMO",
+                    # Phase 6.6: Full setup details
+                    "c1_target": targets.get("c1"),
+                    "c2_target": targets.get("c2"),
+                    "c3_target": targets.get("c3"),
+                    "c3_enabled": targets.get("c3_enabled", False),
+                    "be_strategy": be_strategy,
+                    "vegas_score": int(score_result.get("breakdown", {}).get("vegas", 0)),
+                    "tpo_score": int(score_result.get("breakdown", {}).get("tpo", 0)),
+                    "fvg_score": int(score_result.get("breakdown", {}).get("fvg", 0)),
+                    "footprint_score": int(score_result.get("breakdown", {}).get("footprint", 0)),
+                    "score_reasons": " | ".join(score_result.get("reasons", []))[:500],
                 }
                 log.warning(f"[PHASE6_DEBUG] About to insert: score={_score_total}, fields={list(_attempt_data.keys())}")
                 result_id = await insert_attempt(_attempt_data)
@@ -1428,11 +1439,21 @@ async def get_trade_log(
     killzone: Optional[str] = None,
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
+    types: Optional[str] = None,
 ):
-    """Return last N closed trades, newest first. Uses Postgres when available."""
-    from database import get_trades_log as pg_get_trades, get_pool
+    """Return last N trades/attempts, newest first. Phase 6.7: unified journal."""
+    from database import get_trades_log as pg_get_trades, get_pool, get_journal_unified
 
-    # Try Postgres first
+    # Phase 6.7: If types= param provided, use unified journal
+    if types:
+        types_list = [t.strip().lower() for t in types.split(',')]
+        try:
+            return await get_journal_unified(types_list, limit)
+        except Exception as e:
+            log.error(f"unified journal failed: {e}")
+            return []
+
+    # Legacy path: Postgres
     pool = await get_pool()
     if pool:
         shadow = None
@@ -2322,6 +2343,13 @@ async def trade_execute(request: Request):
                 log.warning(f"Daily state update failed (trade still opened): {e}")
 
         log.info(f"Trade opened: {trade_id} {direction} @ {entry} stop={stop} risk={risk:.2f}")
+
+        # Phase 6.6: Mark recent matching attempt as executed
+        try:
+            from database import mark_attempt_executed
+            await mark_attempt_executed(direction, _qs_day_class or "NORMAL", trade_id)
+        except Exception as e:
+            log.warning(f"mark_attempt_executed failed: {e}")
 
         # Persist open trade to Postgres
         try:
