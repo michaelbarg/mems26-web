@@ -500,10 +500,8 @@ def get_active_triggers_by_type(triggers: dict | None, trigger_type: str) -> lis
 # V7.12.0: Quality Score preview endpoint
 # ---------------------------------------------------------------------------
 
-@app.get("/quality/preview")
-async def get_quality_preview(direction: str, entry: float, stop: float):
-    """Pre-trade preview of quality score, position sizing, and targets."""
-    import time as _time
+async def _quality_preview_logic(direction: str, entry: float, stop: float):
+    """Shared logic for quality preview (GET + POST)."""
     from quality_score import calculate_quality_score, determine_position_size, calculate_targets
 
     if direction not in ("LONG", "SHORT"):
@@ -532,6 +530,22 @@ async def get_quality_preview(direction: str, entry: float, stop: float):
         "day_type": day_class.get("type", "UNKNOWN"),
         "day_confidence": day_class.get("confidence", 0),
     }
+
+
+@app.get("/quality/preview")
+async def get_quality_preview(direction: str, entry: float, stop: float):
+    """Pre-trade preview of quality score (GET)."""
+    return await _quality_preview_logic(direction, entry, stop)
+
+
+@app.post("/quality/preview")
+async def post_quality_preview(request: Request):
+    """Pre-trade preview of quality score (POST)."""
+    body = await request.json()
+    direction = body.get("direction", "LONG")
+    entry = body.get("entry", 0) or body.get("entry_price", 0)
+    stop = body.get("stop", 0)
+    return await _quality_preview_logic(direction, entry, stop)
 
 
 @app.post("/ingest/history")
@@ -1868,8 +1882,7 @@ async def trade_execute(request: Request):
             raise HTTPException(status_code=400, detail="direction must be LONG or SHORT")
         if entry <= 0 or stop <= 0:
             raise HTTPException(status_code=400, detail="entry_price and stop required")
-        if not t1 or not t2 or not t3:
-            raise HTTPException(status_code=400, detail="V6.7.0 requires t1, t2, t3 from Frontend")
+        # t1/t2/t3 now optional — Quality Score targets used as fallback
 
         # W1.5 — Early stop validation (before killzone/news checks)
         raw_risk = abs(entry - stop)
@@ -2036,15 +2049,16 @@ async def trade_execute(request: Request):
             risk = STOP_MIN_PT
             log.info(f"[W1.5] Stop expanded: {old_stop:.2f} → {stop:.2f} (min {STOP_MIN_PT}pt)")
 
-        # V6.5.6: Use frontend's t1/t2/t3 directly — they are already computed
-        # from the setup's entry/stop/risk by calcLevels() in Dashboard.tsx.
-        # Previous code recalculated targets here using T1_RR/T2_RR/T1_MIN_PT,
-        # which overwrote the frontend values and caused the 7147.50 bug.
-        # Only recompute if targets are missing/zero (manual trade fallback).
+        # V6.5.6: Use frontend's t1/t2/t3 directly when provided.
+        # Phase 4: Fallback to Quality Score targets (TPO-aware), then T1_RR/T2_RR.
         if not t1 or t1 <= 0:
-            t1 = round(entry + risk * T1_RR, 2) if direction == "LONG" else round(entry - risk * T1_RR, 2)
+            t1 = _qs_targets["c1"] if _qs_targets.get("c1") else (
+                round(entry + risk * T1_RR, 2) if direction == "LONG" else round(entry - risk * T1_RR, 2))
         if not t2 or t2 <= 0:
-            t2 = round(entry + risk * T2_RR, 2) if direction == "LONG" else round(entry - risk * T2_RR, 2)
+            t2 = _qs_targets["c2"] if _qs_targets.get("c2") else (
+                round(entry + risk * T2_RR, 2) if direction == "LONG" else round(entry - risk * T2_RR, 2))
+        if not t3 or t3 <= 0:
+            t3 = t2  # C3 runner uses same level; DLL handles trail via c3_mode
 
         # POST_NEWS tagging — tag trades within 60m of news event
         news_tag = ""
