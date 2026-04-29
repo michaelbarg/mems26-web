@@ -18,18 +18,24 @@ def calculate_quality_score(market_data: dict, direction: str, day_type: str = N
     breakdown = {"vegas": 0, "tpo": 0, "fvg": 0, "footprint": 0}
     reasons = []
 
-    # Vegas (dynamic weight)
+    # Vegas (dynamic weight with width gradient)
     vegas = market_data.get("vegas") or {}
     vtrend = vegas.get("trend", "NEUTRAL")
-    vwidth = vegas.get("tunnel_width", 0)
+    vwidth = vegas.get("tunnel_width", 0) or 0
     max_vegas = weights["vegas"]
 
-    if vwidth < config["vegas_min_width"]:
-        reasons.append(f"Vegas width too narrow ({vwidth:.2f}pt) — no clear trend")
+    if vwidth < 0.2:
+        reasons.append(f"Vegas width too narrow ({vwidth:.2f}pt) — no trend signal")
     elif (direction == "LONG" and vtrend == "BULLISH") or \
          (direction == "SHORT" and vtrend == "BEARISH"):
-        breakdown["vegas"] = max_vegas
-        reasons.append(f"Vegas {vtrend} match (+{max_vegas})")
+        # Gradient: 0.2-0.5 → half, >= 0.5 → full
+        if vwidth >= 0.5:
+            breakdown["vegas"] = max_vegas
+            reasons.append(f"Vegas {vtrend} match (+{max_vegas})")
+        else:
+            half = max_vegas // 2
+            breakdown["vegas"] = half
+            reasons.append(f"Vegas {vtrend} match, narrow width ({vwidth:.2f}pt) (+{half})")
     elif vtrend == "NEUTRAL":
         breakdown["vegas"] = max_vegas // 2
         reasons.append(f"Vegas NEUTRAL (partial +{max_vegas // 2})")
@@ -39,23 +45,32 @@ def calculate_quality_score(market_data: dict, direction: str, day_type: str = N
     # TPO (dynamic weight)
     tpo = market_data.get("tpo") or {}
     tpo_cd = tpo.get("current_day") or {}
-    price = market_data.get("current_price", 0) or market_data.get("price", 0)
+    # Robust price extraction: try multiple field names
+    price = market_data.get("price") or market_data.get("current_price") or 0
+    if not price:
+        bar = market_data.get("bar") or {}
+        price = bar.get("c") or 0
     max_tpo = weights["tpo"]
     tpo_pos_pts = max_tpo // 2
     tpo_va_pts = max_tpo - tpo_pos_pts
 
-    if tpo_cd and tpo_cd.get("poc_price"):
+    if tpo_cd and tpo_cd.get("poc_price") and price > 0:
         poc = tpo_cd["poc_price"]
-        above_poc = price > poc if price and poc else False
+        above_poc = price > poc
         if (direction == "LONG" and above_poc) or \
            (direction == "SHORT" and not above_poc):
             breakdown["tpo"] += tpo_pos_pts
-            reasons.append(f"TPO position favors direction (+{tpo_pos_pts})")
-        vah = tpo_cd.get("vah", 0)
-        val = tpo_cd.get("val", 0)
+            reasons.append(f"TPO position favors direction (price={'above' if above_poc else 'below'} POC {poc:.2f}) (+{tpo_pos_pts})")
+        vah = tpo_cd.get("vah") or 0
+        val = tpo_cd.get("val") or 0
         if vah and val and val <= price <= vah:
             breakdown["tpo"] += tpo_va_pts
             reasons.append(f"Price in TPO Value Area (+{tpo_va_pts})")
+        elif not vah or not val:
+            # VAH/VAL unavailable but POC exists — award partial VA points
+            partial = tpo_va_pts // 2
+            breakdown["tpo"] += partial
+            reasons.append(f"TPO VA levels unavailable, POC-only partial (+{partial})")
 
     # FVG (dynamic weight)
     triggers = (market_data.get("triggers") or {}).get("active", [])
