@@ -447,6 +447,55 @@ def get_nearby_levels(current_price: float, tpo: dict | None, threshold: float =
     return levels
 
 
+# ---------------------------------------------------------------------------
+# V7.12.0: Trigger state endpoint + helper
+# ---------------------------------------------------------------------------
+
+@app.get("/trigger/state")
+async def get_trigger_state():
+    """Returns current trigger events from market data."""
+    import time as _time
+    data = await redis_get()
+    if not data:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "MARKET_DATA_NOT_AVAILABLE",
+                     "message": "No market data available"})
+
+    triggers = data.get("triggers")
+    if triggers is None:
+        return JSONResponse(
+            status_code=404,
+            content={"ok": False, "error": "TRIGGERS_NOT_AVAILABLE",
+                     "message": "Trigger data not yet available (DLL < v7.12.0)"})
+
+    data_ts = data.get("ts", 0)
+    age = int(_time.time()) - data_ts if data_ts > 0 else 9999
+    if age > 60:
+        return JSONResponse(
+            status_code=503,
+            content={"ok": False, "error": "TRIGGERS_STALE",
+                     "message": f"Trigger data is {age}s old",
+                     "last_updated": data_ts})
+
+    # Auto-cleanup expired triggers (server-side safety)
+    now = int(_time.time())
+    active = triggers.get("active", [])
+    triggers["active"] = [t for t in active if t.get("expires_at", 0) > now]
+
+    return {"ok": True, "triggers": triggers, "received_at": data_ts}
+
+
+def get_active_triggers_by_type(triggers: dict | None, trigger_type: str) -> list:
+    """
+    V7.12.0: Returns active triggers matching type (FVG, SWEEP, REVERSAL).
+    NOT wired up yet — standalone helper for future use.
+    """
+    if not triggers or not triggers.get("active"):
+        return []
+    return [t for t in triggers["active"] if t.get("type") == trigger_type]
+
+
 @app.post("/ingest/history")
 async def ingest_history(request: Request, x_bridge_token: Optional[str] = Header(None)):
     if x_bridge_token != BRIDGE_TOKEN:
