@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.14.0"
+#define MEMS26_DLL_VERSION "v7.14.1"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -48,6 +48,9 @@ SCDLLName("MES_AI_DataExport")
 
 // V7.8.0: Last write counter for trade_state.json (write only on changes)
 #define PERSIST_KEY_STATE_FILE_COUNTER  118
+
+// V7.14.1: Trigger ID counter (unique per trigger)
+#define PERSIST_KEY_TRIGGER_COUNTER  130
 
 // V7.13.0: C1/C2/C3 fill tracking + Smart BE state
 #define PERSIST_KEY_C1_FILLED     121
@@ -232,7 +235,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.14.0";
+        sc.GraphName        = "MES AI Data Export v7.14.1";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -890,13 +893,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
     s_triggerCount = keep;
 
-    // Helper: add trigger if room
+    // Helper: add trigger if room (V7.14.1: unique counter)
     auto addTrig = [&](const char* type, const char* dir,
                        float ph, float pl, float gap,
                        const char* swept_lv, float swept_px) {
         if (s_triggerCount >= 20) return;
+        int tctr = sc.GetPersistentInt(PERSIST_KEY_TRIGGER_COUNTER) + 1;
+        sc.SetPersistentInt(PERSIST_KEY_TRIGGER_COUNTER, tctr);
         Trigger& t = s_triggers[s_triggerCount];
-        sprintf(t.id, "T_%s_%lld", type, trig_now);
+        sprintf(t.id, "T_%s_%lld_%d", type, trig_now, tctr);
         strncpy(t.type, type, 11); t.type[11] = 0;
         strncpy(t.direction, dir, 7); t.direction[7] = 0;
         t.price_high = ph; t.price_low = pl; t.gap_size = gap;
