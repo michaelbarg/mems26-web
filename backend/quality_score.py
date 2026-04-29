@@ -18,29 +18,33 @@ def calculate_quality_score(market_data: dict, direction: str, day_type: str = N
     breakdown = {"vegas": 0, "tpo": 0, "fvg": 0, "footprint": 0}
     reasons = []
 
-    # Vegas (dynamic weight with width gradient)
+    # Vegas: trend match is primary, width modulates confidence
     vegas = market_data.get("vegas") or {}
     vtrend = vegas.get("trend", "NEUTRAL")
     vwidth = vegas.get("tunnel_width", 0) or 0
     max_vegas = weights["vegas"]
 
-    if vwidth < 0.2:
-        reasons.append(f"Vegas width too narrow ({vwidth:.2f}pt) — no trend signal")
-    elif (direction == "LONG" and vtrend == "BULLISH") or \
-         (direction == "SHORT" and vtrend == "BEARISH"):
-        # Gradient: 0.2-0.5 → half, >= 0.5 → full
+    trend_matches = ((direction == "LONG" and vtrend == "BULLISH") or
+                     (direction == "SHORT" and vtrend == "BEARISH"))
+    if trend_matches:
+        # Width modulates: >= 0.5 full, 0.2-0.5 75%, < 0.2 50%
         if vwidth >= 0.5:
             breakdown["vegas"] = max_vegas
-            reasons.append(f"Vegas {vtrend} match (+{max_vegas})")
+            reasons.append(f"Vegas {vtrend} match ({vwidth:.2f}pt width) (+{max_vegas})")
+        elif vwidth >= 0.2:
+            pts = int(max_vegas * 0.75)
+            breakdown["vegas"] = pts
+            reasons.append(f"Vegas {vtrend} match, narrow tunnel ({vwidth:.2f}pt) (+{pts})")
         else:
-            half = max_vegas // 2
-            breakdown["vegas"] = half
-            reasons.append(f"Vegas {vtrend} match, narrow width ({vwidth:.2f}pt) (+{half})")
+            pts = int(max_vegas * 0.5)
+            breakdown["vegas"] = pts
+            reasons.append(f"Vegas {vtrend} match, very narrow ({vwidth:.2f}pt) (+{pts})")
     elif vtrend == "NEUTRAL":
-        breakdown["vegas"] = max_vegas // 2
-        reasons.append(f"Vegas NEUTRAL (partial +{max_vegas // 2})")
+        pts = int(max_vegas * 0.3)
+        breakdown["vegas"] = pts
+        reasons.append(f"Vegas NEUTRAL ({vwidth:.2f}pt width) (+{pts})")
     else:
-        reasons.append(f"Vegas {vtrend} OPPOSES direction")
+        reasons.append(f"Vegas {vtrend} OPPOSES {direction}")
 
     # TPO (dynamic weight)
     tpo = market_data.get("tpo") or {}
@@ -72,33 +76,87 @@ def calculate_quality_score(market_data: dict, direction: str, day_type: str = N
             breakdown["tpo"] += partial
             reasons.append(f"TPO VA levels unavailable, POC-only partial (+{partial})")
 
-    # FVG (dynamic weight)
-    # DLL emits direction as "bullish"/"bearish", map from LONG/SHORT
+    # FVG: direction match + recency filter (last 30 min only)
+    import re, time as _time
     fvg_dir = "bullish" if direction == "LONG" else "bearish"
     triggers = (market_data.get("triggers") or {}).get("active", [])
-    matching_fvg = [t for t in triggers
-                    if t.get("type") == "FVG"
-                    and t.get("direction") == fvg_dir]
-    max_fvg = weights["fvg"]
-    if matching_fvg:
-        breakdown["fvg"] = max_fvg
-        reasons.append(f"FVG {fvg_dir} active ({len(matching_fvg)}) (+{max_fvg})")
+    now_ts = int(_time.time())
+    recency_sec = 30 * 60  # 30 minutes
 
-    # Footprint (dynamic weight)
+    matching_fvg = []
+    for t in triggers:
+        if t.get("type") != "FVG" or t.get("direction") != fvg_dir:
+            continue
+        # Extract timestamp from ID (T_FVG_<unix>_<counter>) or detected_at
+        fvg_ts = t.get("detected_at", 0)
+        if not fvg_ts:
+            m = re.search(r'T_FVG_(\d+)_', t.get("id", ""))
+            fvg_ts = int(m.group(1)) if m else 0
+        if fvg_ts > 0 and (now_ts - fvg_ts) <= recency_sec:
+            matching_fvg.append(t)
+
+    max_fvg = weights["fvg"]
+    if len(matching_fvg) >= 3:
+        breakdown["fvg"] = max_fvg
+        reasons.append(f"FVG {fvg_dir}: {len(matching_fvg)} recent matches (+{max_fvg})")
+    elif len(matching_fvg) >= 1:
+        pts = int(max_fvg * 0.6)
+        breakdown["fvg"] = pts
+        reasons.append(f"FVG {fvg_dir}: {len(matching_fvg)} recent match(es) (+{pts})")
+    else:
+        all_fvg = [t for t in triggers if t.get("type") == "FVG" and t.get("direction") == fvg_dir]
+        if all_fvg:
+            reasons.append(f"FVG {fvg_dir}: {len(all_fvg)} total but none recent (<30min)")
+        else:
+            reasons.append(f"FVG: no {fvg_dir} triggers")
+
+    # Footprint: check triggers.footprint_last_bar AND footprint_bools
     fp = (market_data.get("triggers") or {}).get("footprint_last_bar") or {}
+    fp_bools = market_data.get("footprint_bools") or {}
     max_fp = weights["footprint"]
-    fp_delta_pts = max_fp * 3 // 5  # 60% for delta
-    fp_imb_pts = max_fp - fp_delta_pts  # 40% for imbalance
-    if fp:
-        delta = fp.get("delta", 0)
-        if (direction == "LONG" and delta > 50) or \
-           (direction == "SHORT" and delta < -50):
-            breakdown["footprint"] += fp_delta_pts
-            reasons.append(f"Delta {delta} confirms direction (+{fp_delta_pts})")
-        imb = fp.get("imbalance_ratio", 0)
-        if imb > 1.5:
-            breakdown["footprint"] += fp_imb_pts
-            reasons.append(f"Imbalance ratio {imb:.2f} (+{fp_imb_pts})")
+    fp_delta_pts = int(max_fp * 0.7)  # 70% for delta
+    fp_imb_pts = max_fp - fp_delta_pts  # 30% for imbalance/booleans
+
+    # Delta: from footprint_last_bar or footprint_bools
+    delta = fp.get("delta", 0) or 0
+    if not delta:
+        # Fallback: compute from buy/sell in footprint_last_bar
+        buy = fp.get("buy_vol", 0) or 0
+        sell = fp.get("sell_vol", 0) or 0
+        if buy or sell:
+            delta = buy - sell
+
+    if delta != 0:
+        confirms = (direction == "LONG" and delta > 0) or \
+                   (direction == "SHORT" and delta < 0)
+        if confirms:
+            # Scale: delta > 200 = full, > 50 = 60%, > 0 = 30%
+            abs_delta = abs(delta)
+            if abs_delta >= 200:
+                breakdown["footprint"] += fp_delta_pts
+                reasons.append(f"Footprint: delta={delta:+d} strong ({direction}) (+{fp_delta_pts})")
+            elif abs_delta >= 50:
+                pts = int(fp_delta_pts * 0.6)
+                breakdown["footprint"] += pts
+                reasons.append(f"Footprint: delta={delta:+d} moderate ({direction}) (+{pts})")
+            else:
+                pts = int(fp_delta_pts * 0.3)
+                breakdown["footprint"] += pts
+                reasons.append(f"Footprint: delta={delta:+d} weak ({direction}) (+{pts})")
+        else:
+            reasons.append(f"Footprint: delta={delta:+d} opposes {direction}")
+    else:
+        reasons.append("Footprint: no delta data available")
+
+    # Imbalance: from footprint_last_bar or footprint_bools
+    imb = fp.get("imbalance_ratio", 0) or 0
+    absorption = fp_bools.get("absorption_detected", False)
+    if imb > 1.5:
+        breakdown["footprint"] += fp_imb_pts
+        reasons.append(f"Imbalance ratio {imb:.2f} (+{fp_imb_pts})")
+    elif absorption:
+        breakdown["footprint"] += fp_imb_pts
+        reasons.append(f"Absorption detected (+{fp_imb_pts})")
 
     total = sum(breakdown.values())
     return {
