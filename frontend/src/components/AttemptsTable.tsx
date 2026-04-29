@@ -14,6 +14,16 @@ interface Attempt {
   outcome?: string;
   entry_price_hypothetical?: number;
   stop_hypothetical?: number;
+  c1_target?: number;
+  c2_target?: number;
+  c3_target?: number;
+  vegas_score?: number;
+  tpo_score?: number;
+  fvg_score?: number;
+  footprint_score?: number;
+  score_reasons?: string;
+  executed?: boolean;
+  be_strategy?: string;
 }
 
 const POLL_MS = 30000;
@@ -23,6 +33,11 @@ function fmtTime(ts: number): string {
   if (!ts) return "--";
   const d = new Date(ts * 1000);
   return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function fmtPrice(v?: number | null): string {
+  if (v == null || v === 0) return "\u2014";
+  return v.toFixed(1);
 }
 
 function scoreColor(s: number): string {
@@ -37,19 +52,17 @@ function scoreBg(s: number): string {
   return "#1e2738";
 }
 
-function outcomeDisplay(a: Attempt): { text: string; color: string } {
+function outcomeShort(a: Attempt): { text: string; color: string } {
   const now = Date.now() / 1000;
   if ((now - a.ts) < 3600 && a.hypothetical_mae_60min_pts == null) {
-    return { text: "\u23F0 pending", color: "#6b7280" };
+    return { text: "\u23F0", color: "#6b7280" };
   }
-  const outcome = a.outcome;
-  if (outcome === "HIT_C1") return { text: "\u2705 HIT_C1", color: "#22c55e" };
-  if (outcome === "HIT_STOP") return { text: "\u274C HIT_STOP", color: "#ef5350" };
-  if (outcome === "TIMEOUT") return { text: "\u23F3 TIMEOUT", color: "#9ca3af" };
-  if (a.hypothetical_mae_60min_pts != null) {
-    return { text: `MAE=${a.hypothetical_mae_60min_pts?.toFixed(1)}`, color: "#9ca3af" };
-  }
-  return { text: "\u23F0 pending", color: "#6b7280" };
+  const oc = a.outcome;
+  if (oc === "HIT_C1") return { text: "HC1", color: "#22c55e" };
+  if (oc === "HIT_STOP") return { text: "STOP", color: "#ef5350" };
+  if (oc === "TIMEOUT") return { text: "TO", color: "#9ca3af" };
+  if (a.hypothetical_mae_60min_pts != null) return { text: "TO", color: "#9ca3af" };
+  return { text: "\u23F0", color: "#6b7280" };
 }
 
 interface AttemptsTableProps {
@@ -59,13 +72,13 @@ interface AttemptsTableProps {
 export default function AttemptsTable({ apiUrl }: AttemptsTableProps) {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
   const base = apiUrl || API_URL;
 
   useEffect(() => {
     let active = true;
     const poll = async () => {
       try {
-        // Fetch both endpoints in parallel
         const [scoreRes, outcomeRes] = await Promise.all([
           fetch(`${base}/analytics/attempts/recent_with_score?limit=30`),
           fetch(`${base}/analytics/attempts/with_outcomes?limit=30`),
@@ -74,7 +87,6 @@ export default function AttemptsTable({ apiUrl }: AttemptsTableProps) {
         const outcomeData = await outcomeRes.json();
         if (!active) return;
 
-        // Merge by id: scored attempts are primary, outcomes overlay
         const outcomeMap = new Map<number, Attempt>();
         for (const a of (outcomeData.attempts || [])) {
           outcomeMap.set(a.id, a);
@@ -83,18 +95,14 @@ export default function AttemptsTable({ apiUrl }: AttemptsTableProps) {
         const merged: Attempt[] = [];
         for (const a of (scoreData.attempts || [])) {
           const oc = outcomeMap.get(a.id);
-          merged.push({
-            ...a,
+          merged.push({ ...a, ...oc, ...a, // a fields take priority for non-outcome fields
             hypothetical_mae_60min_pts: oc?.hypothetical_mae_60min_pts ?? a.hypothetical_mae_60min_pts,
             hypothetical_mfe_60min_pts: oc?.hypothetical_mfe_60min_pts ?? a.hypothetical_mfe_60min_pts,
             outcome: oc?.outcome ?? a.outcome,
           });
         }
-        // Add any outcome-only entries not in scored list
         for (const a of (outcomeData.attempts || [])) {
-          if (!merged.find(m => m.id === a.id)) {
-            merged.push(a);
-          }
+          if (!merged.find(m => m.id === a.id)) merged.push(a);
         }
 
         merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
@@ -123,11 +131,13 @@ export default function AttemptsTable({ apiUrl }: AttemptsTableProps) {
     );
   }
 
-  const cellStyle: React.CSSProperties = {
-    padding: "3px 5px",
-    fontSize: 10,
-    borderBottom: "1px solid #1e2738",
-    whiteSpace: "nowrap",
+  const cell: React.CSSProperties = {
+    padding: "2px 4px", fontSize: 10, borderBottom: "1px solid #1e2738", whiteSpace: "nowrap",
+  };
+
+  const headers = ["Time", "Dir", "Score", "Day", "Entry", "Stop", "C1", "C2", "Exec", "Out"];
+  const aligns: Record<string, string> = {
+    Time: "left", Dir: "left", Day: "left", Exec: "center", Out: "center",
   };
 
   return (
@@ -142,54 +152,86 @@ export default function AttemptsTable({ apiUrl }: AttemptsTableProps) {
         <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              {["Time", "Dir", "Score", "Day", "MAE", "MFE", "Outcome"].map(h => (
+              {headers.map(h => (
                 <th key={h} style={{
-                  ...cellStyle, color: "#4b5563", fontWeight: 600,
-                  textAlign: h === "Time" || h === "Dir" || h === "Day" ? "left" : "right",
+                  ...cell, color: "#4b5563", fontWeight: 600,
+                  textAlign: (aligns[h] || "right") as any,
                   borderBottom: "1px solid #2d3748",
-                }}>
-                  {h}
-                </th>
+                }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {attempts.map(a => {
               const score = a.setup_quality_score ?? a.health_score_at_entry ?? 0;
-              const oc = outcomeDisplay(a);
+              const oc = outcomeShort(a);
               const dirColor = a.direction === "LONG" ? "#22c55e" : a.direction === "SHORT" ? "#ef5350" : "#6b7280";
+              const dirShort = a.direction === "LONG" ? "\u25B2LG" : "\u25BCSH";
+              const expanded = expandedId === a.id;
+
               return (
-                <tr key={a.id}>
-                  <td style={{ ...cellStyle, color: "#9ca3af" }}>{fmtTime(a.ts)}</td>
-                  <td style={{ ...cellStyle, color: dirColor, fontWeight: 700 }}>
-                    {a.direction === "LONG" ? "\u25B2" : "\u25BC"} {a.direction}
-                  </td>
-                  <td style={{
-                    ...cellStyle, textAlign: "right", fontFamily: "monospace",
-                    fontWeight: 700, color: scoreColor(score), background: scoreBg(score),
-                    borderRadius: 3, padding: "2px 6px",
-                  }}>
-                    {score}
-                  </td>
-                  <td style={{ ...cellStyle, color: "#6b7280", fontSize: 9 }}>
-                    {(a.day_type || "").replace("_", " ")}
-                  </td>
-                  <td style={{
-                    ...cellStyle, textAlign: "right", fontFamily: "monospace",
-                    color: a.hypothetical_mae_60min_pts != null ? "#ef5350" : "#2d3748",
-                  }}>
-                    {a.hypothetical_mae_60min_pts != null ? a.hypothetical_mae_60min_pts.toFixed(1) : "\u2014"}
-                  </td>
-                  <td style={{
-                    ...cellStyle, textAlign: "right", fontFamily: "monospace",
-                    color: a.hypothetical_mfe_60min_pts != null ? "#22c55e" : "#2d3748",
-                  }}>
-                    {a.hypothetical_mfe_60min_pts != null ? a.hypothetical_mfe_60min_pts.toFixed(1) : "\u2014"}
-                  </td>
-                  <td style={{ ...cellStyle, textAlign: "right", color: oc.color, fontWeight: 600 }}>
-                    {oc.text}
-                  </td>
-                </tr>
+                <>
+                  <tr key={a.id} onClick={() => setExpandedId(expanded ? null : a.id)}
+                    style={{ cursor: "pointer" }}>
+                    <td style={{ ...cell, color: "#9ca3af" }}>{fmtTime(a.ts)}</td>
+                    <td style={{ ...cell, color: dirColor, fontWeight: 700, fontSize: 9 }}>{dirShort}</td>
+                    <td style={{
+                      ...cell, textAlign: "right", fontFamily: "monospace",
+                      fontWeight: 700, color: scoreColor(score), background: scoreBg(score),
+                      borderRadius: 2, padding: "1px 5px",
+                    }}>{score}</td>
+                    <td style={{ ...cell, color: "#6b7280", fontSize: 8 }}>
+                      {(a.day_type || "").replace("_DAY", "").replace("_", " ")}
+                    </td>
+                    <td style={{ ...cell, textAlign: "right", fontFamily: "monospace", color: "#e5e7eb" }}>
+                      {fmtPrice(a.entry_price_hypothetical)}
+                    </td>
+                    <td style={{ ...cell, textAlign: "right", fontFamily: "monospace", color: "#ef5350" }}>
+                      {fmtPrice(a.stop_hypothetical)}
+                    </td>
+                    <td style={{ ...cell, textAlign: "right", fontFamily: "monospace", color: "#22c55e" }}>
+                      {fmtPrice(a.c1_target)}
+                    </td>
+                    <td style={{ ...cell, textAlign: "right", fontFamily: "monospace", color: "#16a34a" }}>
+                      {fmtPrice(a.c2_target)}
+                    </td>
+                    <td style={{ ...cell, textAlign: "center" }}>
+                      {a.executed ? "\u2705" : "\u26AA"}
+                    </td>
+                    <td style={{ ...cell, textAlign: "center", color: oc.color, fontWeight: 700, fontSize: 9 }}>
+                      {oc.text}
+                    </td>
+                  </tr>
+                  {expanded && (
+                    <tr key={`${a.id}_detail`}>
+                      <td colSpan={10} style={{
+                        padding: "4px 8px", background: "#0a0f1a",
+                        borderBottom: "1px solid #2d3748", fontSize: 9,
+                      }}>
+                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", color: "#9ca3af" }}>
+                          <span>Vegas: <b style={{ color: (a.vegas_score || 0) > 0 ? "#22c55e" : "#4b5563" }}>{a.vegas_score ?? "?"}</b></span>
+                          <span>TPO: <b style={{ color: (a.tpo_score || 0) > 0 ? "#22c55e" : "#4b5563" }}>{a.tpo_score ?? "?"}</b></span>
+                          <span>FVG: <b style={{ color: (a.fvg_score || 0) > 0 ? "#22c55e" : "#4b5563" }}>{a.fvg_score ?? "?"}</b></span>
+                          <span>FP: <b style={{ color: (a.footprint_score || 0) > 0 ? "#22c55e" : "#4b5563" }}>{a.footprint_score ?? "?"}</b></span>
+                          {a.hypothetical_mae_60min_pts != null && (
+                            <span>MAE: <b style={{ color: "#ef5350" }}>{a.hypothetical_mae_60min_pts.toFixed(1)}</b></span>
+                          )}
+                          {a.hypothetical_mfe_60min_pts != null && (
+                            <span>MFE: <b style={{ color: "#22c55e" }}>{a.hypothetical_mfe_60min_pts.toFixed(1)}</b></span>
+                          )}
+                          {a.be_strategy && (
+                            <span>BE: <b>{a.be_strategy.replace(/_/g, " ")}</b></span>
+                          )}
+                        </div>
+                        {a.score_reasons && (
+                          <div style={{ color: "#6b7280", marginTop: 2, fontSize: 8, lineHeight: 1.4 }}>
+                            {a.score_reasons}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </>
               );
             })}
           </tbody>
