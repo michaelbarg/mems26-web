@@ -675,43 +675,82 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
     targets = calculate_targets(entry, stop, direction, data, day_type)
     be_strategy = get_be_strategy(day_type)
 
-    # Phase 6 + Sprint 6: Auto-log setup attempts + Setup Lifecycle UPSERT
-    _score_total = score_result.get("total", 0) or 0
-    if _score_total >= 10:
-        import time as _t
-        import re as _re
-        _attempt_key = (direction, day_type or "NONE")
-        _attempt_now = int(_t.time())
-        _attempt_last = _quality_attempt_cache.get(_attempt_key, 0)
-        _dedup_age = _attempt_now - _attempt_last
-        if _dedup_age >= 60:
+    # Phase 6: Auto-log BOTH directions for unbiased data collection
+    import time as _t
+    import re as _re
+
+    # Determine killzone once (shared by both directions)
+    from datetime import datetime as _dt_kz
+    from zoneinfo import ZoneInfo as _ZI_kz
+    _now_et = _dt_kz.now(_ZI_kz("America/New_York"))
+    _t_min = _now_et.hour * 60 + _now_et.minute
+    _kz = "OFF_HOURS"
+    for _kzn, _ks, _ke in [("London", 180, 300), ("NY_Open", 570, 630), ("NY_Close", 900, 960)]:
+        if _ks <= _t_min < _ke:
+            _kz = _kzn
+            break
+
+    for log_direction in ('LONG', 'SHORT'):
+        try:
+            # Compute score for THIS direction (not just request direction)
+            score_result_dir = calculate_quality_score(data, log_direction, day_type)
+            score_dir = score_result_dir.get("total", 0) or 0
+
+            # Skip if very low (keep threshold >=10 as before)
+            if score_dir < 10:
+                continue
+
+            # Compute targets for this direction
+            # Use entry/stop from request if matches, else estimate from market
+            if log_direction == direction:
+                entry_d = entry
+                stop_d = stop
+            else:
+                current_price = data.get('price') or data.get('current_price') or entry
+                risk_pts = abs(entry - stop) if entry and stop else 5
+                if log_direction == 'LONG':
+                    entry_d = current_price
+                    stop_d = current_price - risk_pts
+                else:
+                    entry_d = current_price
+                    stop_d = current_price + risk_pts
+
+            targets_d = calculate_targets(entry_d, stop_d, log_direction, data, day_type)
+
+            # Dedup per direction (separate caches)
+            _attempt_key = (log_direction, day_type or "NONE")
+            _attempt_now = int(_t.time())
+            _attempt_last = _quality_attempt_cache.get(_attempt_key, 0)
+            if _attempt_now - _attempt_last < 60:
+                log.debug(f"[PHASE6_DEDUP] Skipped: key={_attempt_key}")
+                continue
             _quality_attempt_cache[_attempt_key] = _attempt_now
 
-            _bd = score_result.get("breakdown", {})
+            _bd = score_result_dir.get("breakdown", {})
             _vegas_s = int(_bd.get("vegas", 0))
             _tpo_s = int(_bd.get("tpo", 0))
             _fvg_s = int(_bd.get("fvg", 0))
             _fp_s = int(_bd.get("footprint", 0))
-            _reasons_str = " | ".join(score_result.get("reasons", []))[:500]
+            _reasons_str = " | ".join(score_result_dir.get("reasons", []))[:500]
 
-            # Legacy: insert_attempt (backwards compat)
+            # Legacy: insert_attempt
             try:
                 from database import insert_attempt
                 _attempt_data = {
                     "ts": _attempt_now,
-                    "direction": direction,
-                    "entry_price_hypothetical": entry,
-                    "stop_hypothetical": stop,
-                    "health_score_at_entry": int(_score_total),
-                    "setup_quality_score": int(_score_total),
+                    "direction": log_direction,
+                    "entry_price_hypothetical": entry_d,
+                    "stop_hypothetical": stop_d,
+                    "health_score_at_entry": int(score_dir),
+                    "setup_quality_score": int(score_dir),
                     "day_type": day_type,
                     "is_shadow": True,
                     "entry_mode": "DEMO",
-                    "c1_target": targets.get("c1"),
-                    "c2_target": targets.get("c2"),
-                    "c3_target": targets.get("c3"),
-                    "c3_enabled": targets.get("c3_enabled", False),
-                    "be_strategy": be_strategy,
+                    "c1_target": targets_d.get("c1"),
+                    "c2_target": targets_d.get("c2"),
+                    "c3_target": targets_d.get("c3"),
+                    "c3_enabled": targets_d.get("c3_enabled", False),
+                    "be_strategy": be_strategy or "default",
                     "vegas_score": _vegas_s,
                     "tpo_score": _tpo_s,
                     "fvg_score": _fvg_s,
@@ -719,15 +758,14 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "score_reasons": _reasons_str,
                 }
                 result_id = await insert_attempt(_attempt_data)
-                log.info(f"[PHASE6_INSERT] SUCCESS id={result_id} {direction} score={_score_total} day={day_type}")
+                log.info(f"[PHASE6_DUAL] INSERT id={result_id} {log_direction} score={score_dir}")
             except Exception as e:
-                log.warning(f"[PHASE6_INSERT] FAILED: {e}", exc_info=True)
+                log.warning(f"[PHASE6_DUAL] INSERT FAILED {log_direction}: {e}", exc_info=True)
 
-            # Sprint 6: Setup Lifecycle UPSERT
+            # Setup Lifecycle UPSERT for this direction
             try:
                 from database import generate_setup_id, upsert_setup, insert_observation
 
-                # Determine anchor from active triggers
                 _triggers_active = (data.get("triggers", {}).get("active") or [])
                 _anchor_ts = _attempt_now
                 _setup_type = "GENERIC"
@@ -735,8 +773,8 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
 
                 _matching = [
                     t for t in _triggers_active
-                    if (direction == "LONG" and t.get("direction") in ("bullish", "long"))
-                       or (direction == "SHORT" and t.get("direction") in ("bearish", "short"))
+                    if (log_direction == "LONG" and t.get("direction") in ("bullish", "long"))
+                       or (log_direction == "SHORT" and t.get("direction") in ("bearish", "short"))
                 ]
                 if _matching:
                     _primary = _matching[0]
@@ -747,43 +785,35 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     if _m:
                         _anchor_ts = int(_m.group(1))
 
-                _setup_id = generate_setup_id(direction, _setup_type, _level_name, _anchor_ts)
-
-                # Determine killzone
-                from datetime import datetime as _dt_kz
-                from zoneinfo import ZoneInfo as _ZI_kz
-                _now_et = _dt_kz.now(_ZI_kz("America/New_York"))
-                _t_min = _now_et.hour * 60 + _now_et.minute
-                _kz = "OFF_HOURS"
-                for _kzn, _ks, _ke in [("London", 180, 300), ("NY_Open", 570, 630), ("NY_Close", 900, 960)]:
-                    if _ks <= _t_min < _ke:
-                        _kz = _kzn
-                        break
+                _setup_id = generate_setup_id(log_direction, _setup_type, _level_name, _anchor_ts)
 
                 await upsert_setup(
                     setup_id=_setup_id, anchor_ts=_anchor_ts,
-                    direction=direction, setup_type=_setup_type,
+                    direction=log_direction, setup_type=_setup_type,
                     level_name=_level_name, day_type=day_type,
-                    killzone=_kz, initial_entry=entry, initial_stop=stop,
-                    score=int(_score_total),
-                    c1_target=targets.get("c1"), c2_target=targets.get("c2"),
-                    c3_target=targets.get("c3"), be_strategy=be_strategy or "default",
+                    killzone=_kz, initial_entry=entry_d, initial_stop=stop_d,
+                    score=int(score_dir),
+                    c1_target=targets_d.get("c1"), c2_target=targets_d.get("c2"),
+                    c3_target=targets_d.get("c3"), be_strategy=be_strategy or "default",
                     score_reasons=_reasons_str, now_ts=_attempt_now,
                 )
 
                 _cur_price = data.get("price") or data.get("current_price")
                 await insert_observation(
                     setup_id=_setup_id, observation_ts=_attempt_now,
-                    current_price=_cur_price, total_score=int(_score_total),
+                    current_price=_cur_price, total_score=int(score_dir),
                     vegas_score=_vegas_s, tpo_score=_tpo_s,
                     fvg_score=_fvg_s, footprint_score=_fp_s,
                     score_reasons=_reasons_str,
                 )
-                log.info(f"[SETUP_LIFECYCLE] upsert={_setup_id} type={_setup_type} score={_score_total}")
+                log.info(f"[PHASE6_DUAL] LIFECYCLE upsert={_setup_id} {log_direction} score={score_dir}")
             except Exception as e:
-                log.warning(f"[SETUP_LIFECYCLE] FAILED: {e}", exc_info=True)
-        else:
-            log.debug(f"[PHASE6_DEDUP] Skipped: key={_attempt_key} age={_dedup_age}s < 60s")
+                log.warning(f"[PHASE6_DUAL] LIFECYCLE FAILED {log_direction}: {e}", exc_info=True)
+
+            log.warning(f"[PHASE6_DUAL] Logged {log_direction} score={score_dir}")
+
+        except Exception as e:
+            log.error(f"[PHASE6_DUAL] Failed for {log_direction}: {e}")
 
     return {
         "ok": True,
