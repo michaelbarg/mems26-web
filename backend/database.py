@@ -365,19 +365,23 @@ async def insert_observation(setup_id, observation_ts, current_price,
              vegas_score, tpo_score, fvg_score, footprint_score, score_reasons)
 
 
-async def get_recent_setups(limit: int = 50, status: str = None):
+async def get_recent_setups(limit: int = 50, status: str = None, min_score: int = 0):
     pool = await get_pool()
     if not pool:
         return []
     async with pool.acquire() as conn:
         if status:
             rows = await conn.fetch(
-                "SELECT * FROM setups WHERE status = $1 ORDER BY last_seen_ts DESC LIMIT $2",
-                status, limit)
+                "SELECT * FROM setups WHERE status = $1"
+                " AND COALESCE(peak_score, initial_score, 0) >= $3"
+                " ORDER BY last_seen_ts DESC LIMIT $2",
+                status, limit, min_score)
         else:
             rows = await conn.fetch(
-                "SELECT * FROM setups ORDER BY last_seen_ts DESC LIMIT $1",
-                limit)
+                "SELECT * FROM setups"
+                " WHERE COALESCE(peak_score, initial_score, 0) >= $2"
+                " ORDER BY last_seen_ts DESC LIMIT $1",
+                limit, min_score)
         return [dict(r) for r in rows]
 
 
@@ -1025,8 +1029,9 @@ async def get_closed_setups(date: str = None, limit: int = 100, min_score: int =
         else:
             rows = await conn.fetch("""
                 SELECT * FROM setups WHERE closed_ts IS NOT NULL
+                  AND COALESCE(peak_score, initial_score, 0) >= $2
                 ORDER BY first_detected_ts DESC LIMIT $1
-            """, limit)
+            """, limit, min_score)
         return [dict(r) for r in rows]
 
 

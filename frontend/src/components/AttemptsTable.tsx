@@ -83,10 +83,15 @@ interface AttemptsTableProps {
 
 export default function AttemptsTable({ apiUrl, onHighlight }: AttemptsTableProps) {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
+  const [allCount, setAllCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const [execOnly, setExecOnly] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('mems26_attempts_view') !== 'all';
+    return true;
+  });
   const base = apiUrl || API_URL;
 
   useEffect(() => {
@@ -120,14 +125,18 @@ export default function AttemptsTable({ apiUrl, onHighlight }: AttemptsTableProp
         }
 
         merged.sort((a, b) => (b.ts || 0) - (a.ts || 0));
-        setAttempts(merged.slice(0, 30));
+        setAllCount(merged.length);
+        const filtered = execOnly
+          ? merged.filter(a => (a.setup_quality_score || 0) >= 70)
+          : merged;
+        setAttempts(filtered.slice(0, 30));
       } catch { /* retry */ }
       finally { if (active) setLoading(false); }
     };
     poll();
     const iv = setInterval(poll, POLL_MS);
     return () => { active = false; clearInterval(iv); };
-  }, [base]);
+  }, [base, execOnly]);
 
   if (loading) {
     return (
@@ -159,8 +168,22 @@ export default function AttemptsTable({ apiUrl, onHighlight }: AttemptsTableProp
       background: "#0d1117", border: "1px solid #1e2738",
       borderRadius: 6, padding: "8px 10px", marginTop: 8,
     }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb", marginBottom: 6 }}>
-        Setup Attempts ({attempts.length})
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb" }}>Setup Attempts</span>
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          <button onClick={() => {
+            const next = !execOnly;
+            setExecOnly(next);
+            if (typeof window !== 'undefined') localStorage.setItem('mems26_attempts_view', next ? 'exec' : 'all');
+          }} style={{
+            fontSize: 9, padding: "2px 6px", borderRadius: 3, border: "none", cursor: "pointer",
+            background: execOnly ? "#1a2e1a" : "#1e2738", color: execOnly ? "#22c55e" : "#6b7280",
+          }}>{execOnly ? "Score 70+" : "All"}</button>
+          <span style={{ fontSize: 9, color: "#4b5563" }}
+            title={execOnly ? "Showing attempts with score >= 70" : "Showing all scored attempts"}>
+            {attempts.length}/{allCount}
+          </span>
+        </div>
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse" }}>

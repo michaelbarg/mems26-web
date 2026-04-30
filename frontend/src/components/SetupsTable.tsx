@@ -51,14 +51,19 @@ export default function SetupsTable({ apiUrl }: SetupsTableProps) {
   const [setups, setSetups] = useState<Setup[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [execOnly, setExecOnly] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('mems26_setups_view') !== 'all';
+    return true;
+  });
   const base = apiUrl || API_URL;
 
   useEffect(() => {
     let active = true;
     const poll = async () => {
       try {
+        const ms = execOnly ? 70 : 0;
         const [setupsRes, summaryRes] = await Promise.all([
-          fetch(`${base}/analytics/setups/recent?limit=30`),
+          fetch(`${base}/analytics/setups/recent?limit=30&min_score=${ms}`),
           fetch(`${base}/analytics/setups/summary`),
         ]);
         const setupsData = await setupsRes.json();
@@ -72,7 +77,7 @@ export default function SetupsTable({ apiUrl }: SetupsTableProps) {
     poll();
     const iv = setInterval(poll, POLL_MS);
     return () => { active = false; clearInterval(iv); };
-  }, [base]);
+  }, [base, execOnly]);
 
   if (loading) {
     return (
@@ -91,8 +96,22 @@ export default function SetupsTable({ apiUrl }: SetupsTableProps) {
       background: "#0d1117", border: "1px solid #1e2738",
       borderRadius: 6, padding: "8px 10px", marginTop: 8,
     }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb", marginBottom: 6 }}>
-        Unique Setups
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "#e5e7eb" }}>Unique Setups</span>
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          <button onClick={() => {
+            const next = !execOnly;
+            setExecOnly(next);
+            if (typeof window !== 'undefined') localStorage.setItem('mems26_setups_view', next ? 'exec' : 'all');
+          }} style={{
+            fontSize: 9, padding: "2px 6px", borderRadius: 3, border: "none", cursor: "pointer",
+            background: execOnly ? "#1a2e1a" : "#1e2738", color: execOnly ? "#22c55e" : "#6b7280",
+          }}>{execOnly ? "Score 70+" : "All"}</button>
+          <span style={{ fontSize: 9, color: "#4b5563" }}
+            title={execOnly ? "Showing setups with peak score >= 70" : "Showing all detected setups"}>
+            {setups.length}{summary ? `/${summary.total_setups}` : ""}
+          </span>
+        </div>
       </div>
 
       {/* Summary card */}

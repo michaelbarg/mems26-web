@@ -3611,9 +3611,9 @@ async def setups_summary():
 
 
 @app.get("/analytics/setups/recent")
-async def setups_recent(limit: int = 50, status: str = None):
+async def setups_recent(limit: int = 50, status: str = None, min_score: int = 0):
     from database import get_recent_setups
-    setups = await get_recent_setups(limit=limit, status=status)
+    setups = await get_recent_setups(limit=limit, status=status, min_score=min_score)
     return {"ok": True, "count": len(setups), "setups": setups}
 
 
