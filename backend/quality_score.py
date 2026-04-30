@@ -247,6 +247,17 @@ def calculate_targets(entry: float, stop: float, direction: str,
                     c2 = round(min(c2_r_based, nearest_tpo), 2)
                 c2_method = "TPO_confluence"
 
+    # C2 Cap — day-type aware to preserve GAP_FILL strategy
+    MAX_C2_R = 6.0 if config["day_type"] == "GAP_FILL" else 4.0
+    max_c2_dist = MAX_C2_R * R
+    if direction == "LONG":
+        c2_capped = round(min(c2, entry + max_c2_dist), 2)
+    else:
+        c2_capped = round(max(c2, entry - max_c2_dist), 2)
+    if c2_capped != c2:
+        c2 = c2_capped
+        c2_method = c2_method + "_CAPPED"
+
     return {
         "c1": c1,
         "c2": c2,
