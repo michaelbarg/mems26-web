@@ -462,6 +462,8 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mfe_pts')}>MFE{sortArrow('mfe_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('duration_min')}>Dur{sortArrow('duration_min')}</th>
                     <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('setup_quality_score')}>Q{sortArrow('setup_quality_score')}</th>
+                    <th className="px-1 py-1.5 text-center">Path</th>
+                    <th className="px-1 py-1.5 text-center">Obs</th>
                     <th className="px-1 py-1.5 text-left">Type</th>
                     <th className="px-1 py-1.5 text-center">Result</th>
                     <th className="px-1 py-1.5 text-left">Reasoning</th>
@@ -511,7 +513,13 @@ function JournalPage() {
                         <td className={`px-1 py-1 text-center font-mono font-bold ${
                           (t.score || 0) >= 70 ? 'text-emerald-400' :
                           (t.score || 0) >= 50 ? 'text-amber-400' : 'text-zinc-500'
-                        }`}>{t.score || '-'}{t.peak_score && t.peak_score > (t.score||0) ? <span className="text-green-500 text-[9px]">{'\u2191'}{t.peak_score}</span> : ''}</td>
+                        }`}>{t.score || '-'}</td>
+                        <td className="px-1 py-1 text-center font-mono text-[9px]">{
+                          t.peak_score && t.peak_score > (t.score || 0)
+                            ? <span>{t.score || '?'}<span className="text-green-500">{'\u2191'}{t.peak_score}</span></span>
+                            : t.score ? <span className="text-zinc-500">{t.score}</span> : '-'
+                        }</td>
+                        <td className="px-1 py-1 text-center font-mono text-[9px] text-zinc-500">{t.observation_count || '-'}</td>
                         <td className="px-1 py-1 text-[10px]">{
                           t.setup_type ? <span className={`px-1 rounded ${
                             t.setup_type === 'FVG' ? 'bg-blue-900/50 text-blue-300' :
@@ -614,6 +622,27 @@ function JournalPage() {
               <DetailRow label="Bars Building" value={selectedTrade.bars_building_before_live?.toString()} />
             </div>
             <DetailRow label="Pillar Detail" value={selectedTrade.pillar_detail} />
+            {/* Component Scores */}
+            {(selectedTrade.vegas_score != null || selectedTrade.tpo_score != null) && (
+              <div className="mt-3 border-t border-gray-800 pt-2">
+                <h4 className="text-xs font-bold text-gray-400 mb-1">Component Scores</h4>
+                <div className="grid grid-cols-4 gap-1 text-[10px]">
+                  {[
+                    { label: 'Vegas', val: selectedTrade.vegas_score, max: 30 },
+                    { label: 'TPO', val: selectedTrade.tpo_score, max: 25 },
+                    { label: 'FVG', val: selectedTrade.fvg_score, max: 25 },
+                    { label: 'FP', val: selectedTrade.footprint_score, max: 20 },
+                  ].map(c => (
+                    <div key={c.label} className="text-center">
+                      <div className="text-gray-500">{c.label}</div>
+                      <div className={`font-mono font-bold ${(c.val||0) > 0 ? 'text-green-400' : 'text-zinc-600'}`}>
+                        {c.val ?? '?'}/{c.max}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* Score Reasoning */}
             {selectedTrade.score_reasons && (
               <div className="mt-3 border-t border-gray-800 pt-2">
@@ -634,6 +663,27 @@ function JournalPage() {
                 )}
               </div>
             )}
+            {/* Strategic Tags — show what's collected vs null */}
+            <div className="mt-3 border-t border-gray-800 pt-2">
+              <h4 className="text-xs font-bold text-gray-400 mb-1">Strategic Tags</h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
+                {[
+                  { label: 'RelVol', val: selectedTrade.rel_vol_at_entry, fmt: (v: any) => v?.toFixed(2) },
+                  { label: 'CVD Dir', val: selectedTrade.cvd_direction_at_entry },
+                  { label: 'MTF Aligned', val: selectedTrade.mtf_aligned, fmt: (v: any) => v ? 'Yes' : 'No' },
+                  { label: 'VWAP Side', val: selectedTrade.vwap_side },
+                  { label: 'Killzone', val: selectedTrade.killzone },
+                  { label: 'Day Type', val: selectedTrade.day_type },
+                ].map(tag => (
+                  <div key={tag.label} className="flex justify-between">
+                    <span className="text-gray-500">{tag.label}:</span>
+                    <span className={tag.val != null ? 'text-gray-300' : 'text-zinc-700'}>
+                      {tag.val != null ? (tag.fmt ? tag.fmt(tag.val) : String(tag.val)) : 'Not collected'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
             {/* V6.5: Entry Narrative */}
             {selectedTrade.entry_narrative && (
               <NarrativeDisplay narrative={selectedTrade.entry_narrative} />

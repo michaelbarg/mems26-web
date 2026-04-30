@@ -868,6 +868,7 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                     END as risk_pts,
                     vegas_score, tpo_score, fvg_score, footprint_score,
                     score_reasons,
+                    rel_vol_at_entry, cvd_direction_at_entry, mtf_aligned, vwap_side,
                     'attempt' as source
                 FROM setup_attempts
                 WHERE setup_quality_score IS NOT NULL
