@@ -266,6 +266,32 @@ async def _ws_push_loop():
             log.warning(f"WS push error: {e}")
         await asyncio.sleep(2)
 
+async def _setup_expire_loop():
+    """Every 2 min: mark setups as EXPIRED if no observation for 5+ min."""
+    log.info("[SETUP_EXPIRE] Started")
+    while True:
+        try:
+            await asyncio.sleep(120)
+            from database import get_pool
+            pool = await get_pool()
+            if not pool:
+                continue
+            cutoff = int(time.time()) - 300  # 5 min
+            async with pool.acquire() as conn:
+                result = await conn.execute("""
+                    UPDATE setups
+                    SET status = 'EXPIRED', updated_at = NOW()
+                    WHERE status IN ('BUILDING', 'LIVE')
+                      AND last_seen_ts < $1
+                """, cutoff)
+                if result and 'UPDATE' in result:
+                    count = int(result.split()[-1])
+                    if count > 0:
+                        log.info(f"[SETUP_EXPIRE] Marked {count} setups as EXPIRED")
+        except Exception as e:
+            log.error(f"[SETUP_EXPIRE] {e}")
+
+
 async def _outcome_worker_loop():
     """Every 5 min: compute MAE/MFE/outcome for attempts that turned 60+ min old."""
     log.info("[OUTCOME_WORKER] Started")
@@ -383,17 +409,16 @@ async def lifespan(app: FastAPI):
         log.error(f"Postgres init failed: {e}")
     ws_task = asyncio.create_task(_ws_push_loop())
     outcome_task = asyncio.create_task(_outcome_worker_loop())
+    expire_task = asyncio.create_task(_setup_expire_loop())
     yield
     ws_task.cancel()
     outcome_task.cancel()
-    try:
-        await ws_task
-    except asyncio.CancelledError:
-        pass
-    try:
-        await outcome_task
-    except asyncio.CancelledError:
-        pass
+    expire_task.cancel()
+    for t in (ws_task, outcome_task, expire_task):
+        try:
+            await t
+        except asyncio.CancelledError:
+            pass
     await close_pool()
 
 app = FastAPI(lifespan=lifespan)
@@ -650,17 +675,26 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
     targets = calculate_targets(entry, stop, direction, data, day_type)
     be_strategy = get_be_strategy(day_type)
 
-    # Phase 6: Auto-log setup attempts (score >= 10, dedup 60s)
-    # TODO: raise threshold to 50 when system generates real-quality setups
+    # Phase 6 + Sprint 6: Auto-log setup attempts + Setup Lifecycle UPSERT
     _score_total = score_result.get("total", 0) or 0
     if _score_total >= 10:
         import time as _t
+        import re as _re
         _attempt_key = (direction, day_type or "NONE")
         _attempt_now = int(_t.time())
         _attempt_last = _quality_attempt_cache.get(_attempt_key, 0)
         _dedup_age = _attempt_now - _attempt_last
         if _dedup_age >= 60:
             _quality_attempt_cache[_attempt_key] = _attempt_now
+
+            _bd = score_result.get("breakdown", {})
+            _vegas_s = int(_bd.get("vegas", 0))
+            _tpo_s = int(_bd.get("tpo", 0))
+            _fvg_s = int(_bd.get("fvg", 0))
+            _fp_s = int(_bd.get("footprint", 0))
+            _reasons_str = " | ".join(score_result.get("reasons", []))[:500]
+
+            # Legacy: insert_attempt (backwards compat)
             try:
                 from database import insert_attempt
                 _attempt_data = {
@@ -673,28 +707,81 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "day_type": day_type,
                     "is_shadow": True,
                     "entry_mode": "DEMO",
-                    # Phase 6.6: Full setup details
                     "c1_target": targets.get("c1"),
                     "c2_target": targets.get("c2"),
                     "c3_target": targets.get("c3"),
                     "c3_enabled": targets.get("c3_enabled", False),
                     "be_strategy": be_strategy,
-                    "vegas_score": int(score_result.get("breakdown", {}).get("vegas", 0)),
-                    "tpo_score": int(score_result.get("breakdown", {}).get("tpo", 0)),
-                    "fvg_score": int(score_result.get("breakdown", {}).get("fvg", 0)),
-                    "footprint_score": int(score_result.get("breakdown", {}).get("footprint", 0)),
-                    "score_reasons": " | ".join(score_result.get("reasons", []))[:500],
+                    "vegas_score": _vegas_s,
+                    "tpo_score": _tpo_s,
+                    "fvg_score": _fvg_s,
+                    "footprint_score": _fp_s,
+                    "score_reasons": _reasons_str,
                 }
-                log.warning(f"[PHASE6_DEBUG] insert: score={_score_total} "
-                            f"v={_attempt_data.get('vegas_score')} t={_attempt_data.get('tpo_score')} "
-                            f"f={_attempt_data.get('fvg_score')} fp={_attempt_data.get('footprint_score')} "
-                            f"c1={_attempt_data.get('c1_target')} be={_attempt_data.get('be_strategy')} "
-                            f"fields={len(_attempt_data)}")
                 result_id = await insert_attempt(_attempt_data)
-                log.warning(f"[PHASE6_DEBUG] Insert OK id={result_id}")
-                log.info(f"[PHASE6_INSERT] SUCCESS: {direction} score={_score_total} day={day_type}")
+                log.info(f"[PHASE6_INSERT] SUCCESS id={result_id} {direction} score={_score_total} day={day_type}")
             except Exception as e:
                 log.warning(f"[PHASE6_INSERT] FAILED: {e}", exc_info=True)
+
+            # Sprint 6: Setup Lifecycle UPSERT
+            try:
+                from database import generate_setup_id, upsert_setup, insert_observation
+
+                # Determine anchor from active triggers
+                _triggers_active = (data.get("triggers", {}).get("active") or [])
+                _anchor_ts = _attempt_now
+                _setup_type = "GENERIC"
+                _level_name = None
+
+                _matching = [
+                    t for t in _triggers_active
+                    if (direction == "LONG" and t.get("direction") in ("bullish", "long"))
+                       or (direction == "SHORT" and t.get("direction") in ("bearish", "short"))
+                ]
+                if _matching:
+                    _primary = _matching[0]
+                    _setup_type = _primary.get("type", "GENERIC")
+                    _level_name = _primary.get("level_name") or str(_primary.get("price", ""))
+                    _tid = _primary.get("id", "")
+                    _m = _re.search(r"T_\w+_(\d+)_", _tid)
+                    if _m:
+                        _anchor_ts = int(_m.group(1))
+
+                _setup_id = generate_setup_id(direction, _setup_type, _level_name, _anchor_ts)
+
+                # Determine killzone
+                from datetime import datetime as _dt_kz
+                from zoneinfo import ZoneInfo as _ZI_kz
+                _now_et = _dt_kz.now(_ZI_kz("America/New_York"))
+                _t_min = _now_et.hour * 60 + _now_et.minute
+                _kz = "OFF_HOURS"
+                for _kzn, _ks, _ke in [("London", 180, 300), ("NY_Open", 570, 630), ("NY_Close", 900, 960)]:
+                    if _ks <= _t_min < _ke:
+                        _kz = _kzn
+                        break
+
+                await upsert_setup(
+                    setup_id=_setup_id, anchor_ts=_anchor_ts,
+                    direction=direction, setup_type=_setup_type,
+                    level_name=_level_name, day_type=day_type,
+                    killzone=_kz, initial_entry=entry, initial_stop=stop,
+                    score=int(_score_total),
+                    c1_target=targets.get("c1"), c2_target=targets.get("c2"),
+                    c3_target=targets.get("c3"), be_strategy=be_strategy or "default",
+                    score_reasons=_reasons_str, now_ts=_attempt_now,
+                )
+
+                _cur_price = data.get("price") or data.get("current_price")
+                await insert_observation(
+                    setup_id=_setup_id, observation_ts=_attempt_now,
+                    current_price=_cur_price, total_score=int(_score_total),
+                    vegas_score=_vegas_s, tpo_score=_tpo_s,
+                    fvg_score=_fvg_s, footprint_score=_fp_s,
+                    score_reasons=_reasons_str,
+                )
+                log.info(f"[SETUP_LIFECYCLE] upsert={_setup_id} type={_setup_type} score={_score_total}")
+            except Exception as e:
+                log.warning(f"[SETUP_LIFECYCLE] FAILED: {e}", exc_info=True)
         else:
             log.debug(f"[PHASE6_DEDUP] Skipped: key={_attempt_key} age={_dedup_age}s < 60s")
 
@@ -3277,6 +3364,45 @@ async def attempts_with_outcomes(limit: int = 20):
     from database import get_attempts_with_outcomes
     attempts = await get_attempts_with_outcomes(limit=limit)
     return {"ok": True, "count": len(attempts), "attempts": attempts}
+
+
+@app.get("/analytics/setups/summary")
+async def setups_summary():
+    """Quick stats — unique setups vs raw attempts (last 24h)."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database"}
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("""
+            SELECT
+                COUNT(*) as total_setups,
+                SUM(CASE WHEN status = 'BUILDING' THEN 1 ELSE 0 END) as building,
+                SUM(CASE WHEN status = 'LIVE' THEN 1 ELSE 0 END) as live,
+                SUM(CASE WHEN status = 'EXPIRED' THEN 1 ELSE 0 END) as expired,
+                SUM(CASE WHEN status = 'EXECUTED' THEN 1 ELSE 0 END) as executed,
+                AVG(observation_count) as avg_observations,
+                MAX(observation_count) as max_observations
+            FROM setups
+            WHERE first_detected_ts > $1
+        """, int(time.time()) - 86400)
+        return {"ok": True, **dict(row)}
+
+
+@app.get("/analytics/setups/recent")
+async def setups_recent(limit: int = 50, status: str = None):
+    from database import get_recent_setups
+    setups = await get_recent_setups(limit=limit, status=status)
+    return {"ok": True, "count": len(setups), "setups": setups}
+
+
+@app.get("/analytics/setups/{setup_id}")
+async def setup_detail(setup_id: str):
+    from database import get_setup_with_observations
+    data = await get_setup_with_observations(setup_id)
+    if not data:
+        raise HTTPException(404, "Setup not found")
+    return {"ok": True, **data}
 
 
 @app.get("/analytics/by_score_bucket")

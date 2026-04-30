@@ -9,6 +9,7 @@ import os
 import json
 import logging
 import asyncio
+import hashlib
 from datetime import datetime, date, timedelta
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -212,7 +213,168 @@ async def init_db():
                 except Exception:
                     pass
 
+        # Sprint 6: Setup Lifecycle tables
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS setups (
+                setup_id            TEXT PRIMARY KEY,
+                anchor_ts           BIGINT NOT NULL,
+                first_detected_ts   BIGINT NOT NULL,
+                last_seen_ts        BIGINT NOT NULL,
+                direction           TEXT NOT NULL,
+                setup_type          TEXT,
+                level_name          TEXT,
+                level_price         REAL,
+                day_type            TEXT,
+                killzone            TEXT,
+                initial_entry       REAL,
+                initial_stop        REAL,
+                initial_score       INTEGER,
+                peak_score          INTEGER,
+                latest_score        INTEGER,
+                observation_count   INTEGER DEFAULT 1,
+                status              TEXT DEFAULT 'BUILDING',
+                executed            BOOLEAN DEFAULT FALSE,
+                executed_trade_id   TEXT,
+                outcome             TEXT,
+                outcome_ts          BIGINT,
+                mae_pts             REAL,
+                mfe_pts             REAL,
+                c1_target           REAL,
+                c2_target           REAL,
+                c3_target           REAL,
+                be_strategy         TEXT,
+                score_reasons       TEXT,
+                extra_json          JSONB,
+                created_at          TIMESTAMPTZ DEFAULT NOW(),
+                updated_at          TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_setups_anchor_ts ON setups (anchor_ts)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_setups_status ON setups (status)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_setups_direction ON setups (direction)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_setups_day_type ON setups (day_type)")
+
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS setup_observations (
+                id                  SERIAL PRIMARY KEY,
+                setup_id            TEXT NOT NULL,
+                observation_ts      BIGINT NOT NULL,
+                current_price       REAL,
+                total_score         INTEGER,
+                vegas_score         INTEGER,
+                tpo_score           INTEGER,
+                fvg_score           INTEGER,
+                footprint_score     INTEGER,
+                score_reasons       TEXT,
+                created_at          TIMESTAMPTZ DEFAULT NOW()
+            )
+        """)
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_obs_setup_id ON setup_observations (setup_id)")
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_obs_ts ON setup_observations (observation_ts)")
+
     log.info("Postgres tables initialized")
+
+
+# ── Setup Lifecycle ──────────────────────────────────────────────────────
+
+def generate_setup_id(direction: str, setup_type: str, level_name: str,
+                      anchor_ts: int) -> str:
+    """Anchor Method: deterministic setup_id from anchor signal."""
+    raw = f"{direction}|{setup_type or 'UNKNOWN'}|{level_name or 'NONE'}|{anchor_ts}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
+                       day_type, killzone, initial_entry, initial_stop,
+                       score, c1_target, c2_target, c3_target, be_strategy,
+                       score_reasons, now_ts):
+    """Insert new setup or update existing one's last_seen + scores."""
+    pool = await get_pool()
+    if not pool:
+        return
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO setups (
+                setup_id, anchor_ts, first_detected_ts, last_seen_ts,
+                direction, setup_type, level_name, day_type, killzone,
+                initial_entry, initial_stop, initial_score,
+                peak_score, latest_score, observation_count,
+                c1_target, c2_target, c3_target, be_strategy, score_reasons,
+                status
+            )
+            VALUES (
+                $1, $2, $16, $16,
+                $3, $4, $5, $6, $7,
+                $8, $9, $10,
+                $10, $10, 1,
+                $11, $12, $13, $14, $15,
+                CASE WHEN $10 >= 50 THEN 'LIVE' ELSE 'BUILDING' END
+            )
+            ON CONFLICT (setup_id) DO UPDATE SET
+                last_seen_ts = $16,
+                latest_score = $10,
+                peak_score = GREATEST(setups.peak_score, $10),
+                observation_count = setups.observation_count + 1,
+                day_type = COALESCE(EXCLUDED.day_type, setups.day_type),
+                killzone = COALESCE(EXCLUDED.killzone, setups.killzone),
+                status = CASE
+                    WHEN $10 >= 50 AND setups.status = 'BUILDING' THEN 'LIVE'
+                    ELSE setups.status
+                END,
+                updated_at = NOW()
+        """, setup_id, anchor_ts, direction, setup_type, level_name,
+             day_type, killzone, initial_entry, initial_stop, score,
+             c1_target, c2_target, c3_target, be_strategy, score_reasons,
+             now_ts)
+
+
+async def insert_observation(setup_id, observation_ts, current_price,
+                             total_score, vegas_score, tpo_score,
+                             fvg_score, footprint_score, score_reasons):
+    pool = await get_pool()
+    if not pool:
+        return
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO setup_observations (
+                setup_id, observation_ts, current_price, total_score,
+                vegas_score, tpo_score, fvg_score, footprint_score, score_reasons
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        """, setup_id, observation_ts, current_price, total_score,
+             vegas_score, tpo_score, fvg_score, footprint_score, score_reasons)
+
+
+async def get_recent_setups(limit: int = 50, status: str = None):
+    pool = await get_pool()
+    if not pool:
+        return []
+    async with pool.acquire() as conn:
+        if status:
+            rows = await conn.fetch(
+                "SELECT * FROM setups WHERE status = $1 ORDER BY last_seen_ts DESC LIMIT $2",
+                status, limit)
+        else:
+            rows = await conn.fetch(
+                "SELECT * FROM setups ORDER BY last_seen_ts DESC LIMIT $1",
+                limit)
+        return [dict(r) for r in rows]
+
+
+async def get_setup_with_observations(setup_id: str):
+    pool = await get_pool()
+    if not pool:
+        return None
+    async with pool.acquire() as conn:
+        setup = await conn.fetchrow("SELECT * FROM setups WHERE setup_id = $1", setup_id)
+        if not setup:
+            return None
+        obs = await conn.fetch(
+            "SELECT * FROM setup_observations WHERE setup_id = $1 ORDER BY observation_ts ASC",
+            setup_id)
+        return {
+            "setup": dict(setup),
+            "observations": [dict(o) for o in obs],
+        }
 
 
 # ── Trade CRUD ────────────────────────────────────────────────────────────
