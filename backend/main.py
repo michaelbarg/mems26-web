@@ -942,6 +942,15 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
     else:
         _vwap_side = None
     _ses_min = data.get("session_min")
+    # MTF alignment: count timeframes where delta matches direction
+    _mtf_data = data.get("mtf") or {}
+    def _compute_mtf_aligned(direction: str) -> bool:
+        aligned = 0
+        for tf in ("m5", "m15", "m30", "m60"):
+            d = (_mtf_data.get(tf) or {}).get("delta", 0) or 0
+            if (direction == "LONG" and d > 0) or (direction == "SHORT" and d < 0):
+                aligned += 1
+        return aligned >= 3
 
     for log_direction in ('LONG', 'SHORT'):
         try:
@@ -1055,6 +1064,11 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     c1_target=targets_d.get("c1"), c2_target=targets_d.get("c2"),
                     c3_target=targets_d.get("c3"), be_strategy=be_strategy or "default",
                     score_reasons=_reasons_str, now_ts=_attempt_now,
+                    rel_vol_at_entry=_rel_vol,
+                    cvd_direction_at_entry=_cvd_dir,
+                    mtf_aligned=_compute_mtf_aligned(log_direction),
+                    vwap_side=_vwap_side,
+                    minutes_into_session=_ses_min if isinstance(_ses_min, int) else None,
                 )
 
                 _cur_price = data.get("price") or data.get("current_price")

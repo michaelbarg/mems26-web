@@ -289,6 +289,11 @@ async def init_db():
             ("contracts_used", "INTEGER"),
             ("executed_in_sim", "BOOLEAN DEFAULT FALSE"),
             ("sim_skip_reason", "TEXT"),
+            ("rel_vol_at_entry", "REAL"),
+            ("cvd_direction_at_entry", "TEXT"),
+            ("mtf_aligned", "BOOLEAN"),
+            ("vwap_side", "TEXT"),
+            ("minutes_into_session", "INTEGER"),
         ]:
             try:
                 await conn.execute(f"ALTER TABLE setups ADD COLUMN IF NOT EXISTS {col} {typ}")
@@ -310,7 +315,9 @@ def generate_setup_id(direction: str, setup_type: str, level_name: str,
 async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                        day_type, killzone, initial_entry, initial_stop,
                        score, c1_target, c2_target, c3_target, be_strategy,
-                       score_reasons, now_ts):
+                       score_reasons, now_ts, *,
+                       rel_vol_at_entry=None, cvd_direction_at_entry=None,
+                       mtf_aligned=None, vwap_side=None, minutes_into_session=None):
     """Insert new setup or update existing one's last_seen + scores."""
     pool = await get_pool()
     if not pool:
@@ -323,7 +330,9 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                 initial_entry, initial_stop, initial_score,
                 peak_score, latest_score, observation_count,
                 c1_target, c2_target, c3_target, be_strategy, score_reasons,
-                status
+                status,
+                rel_vol_at_entry, cvd_direction_at_entry, mtf_aligned,
+                vwap_side, minutes_into_session
             )
             VALUES (
                 $1, $2, $16, $16,
@@ -331,7 +340,8 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                 $8, $9, $10,
                 $10, $10, 1,
                 $11, $12, $13, $14, $15,
-                CASE WHEN $10 >= 50 THEN 'LIVE' ELSE 'BUILDING' END
+                CASE WHEN $10 >= 50 THEN 'LIVE' ELSE 'BUILDING' END,
+                $17, $18, $19, $20, $21
             )
             ON CONFLICT (setup_id) DO UPDATE SET
                 last_seen_ts = $16,
@@ -340,6 +350,11 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                 observation_count = setups.observation_count + 1,
                 day_type = COALESCE(EXCLUDED.day_type, setups.day_type),
                 killzone = COALESCE(EXCLUDED.killzone, setups.killzone),
+                rel_vol_at_entry = COALESCE(EXCLUDED.rel_vol_at_entry, setups.rel_vol_at_entry),
+                cvd_direction_at_entry = COALESCE(EXCLUDED.cvd_direction_at_entry, setups.cvd_direction_at_entry),
+                mtf_aligned = COALESCE(EXCLUDED.mtf_aligned, setups.mtf_aligned),
+                vwap_side = COALESCE(EXCLUDED.vwap_side, setups.vwap_side),
+                minutes_into_session = COALESCE(EXCLUDED.minutes_into_session, setups.minutes_into_session),
                 status = CASE
                     WHEN $10 >= 50 AND setups.status = 'BUILDING' THEN 'LIVE'
                     ELSE setups.status
@@ -348,7 +363,9 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
         """, setup_id, anchor_ts, direction, setup_type, level_name,
              day_type, killzone, initial_entry, initial_stop, score,
              c1_target, c2_target, c3_target, be_strategy, score_reasons,
-             now_ts)
+             now_ts,
+             rel_vol_at_entry, cvd_direction_at_entry, mtf_aligned,
+             vwap_side, minutes_into_session)
 
 
 async def insert_observation(setup_id, observation_ts, current_price,
