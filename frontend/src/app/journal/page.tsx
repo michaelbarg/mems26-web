@@ -488,19 +488,21 @@ function JournalPage() {
                             className="accent-blue-500" />
                         </td>
                         <td className="px-1 py-1">
-                          {isAttempt
+                          {t.source === 'setup'
+                            ? <span className="bg-emerald-900/50 text-emerald-300 px-1 rounded text-[9px]">Setup</span>
+                            : isAttempt
                             ? <span className="bg-purple-900/50 text-purple-300 px-1 rounded text-[9px]">Shadow</span>
                             : <span className="bg-cyan-900/50 text-cyan-300 px-1 rounded text-[9px]">Trade</span>}
                         </td>
-                        <td className="px-1 py-1 whitespace-nowrap">{tsToDate(t.entry_ts || 0)}</td>
-                        <td className="px-1 py-1 whitespace-nowrap">{tsToTime(t.entry_ts || 0)}</td>
+                        <td className="px-1 py-1 whitespace-nowrap">{tsToDate(t.entry_ts || t.ts || 0)}</td>
+                        <td className="px-1 py-1 whitespace-nowrap">{tsToTime(t.entry_ts || t.ts || 0)}</td>
                         <td className={`px-1 py-1 font-bold ${t.direction === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
                           {t.direction}
                         </td>
                         <td className="px-1 py-1">{t.setup_type}</td>
                         <td className="px-1 py-1">{t.day_type}</td>
                         <td className="px-1 py-1">{t.killzone}</td>
-                        <td className="px-1 py-1 text-right font-mono">{(t.entry_price || 0).toFixed(2)}</td>
+                        <td className="px-1 py-1 text-right font-mono">{((t.entry_price || t.entry) || 0).toFixed(2)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.stop || 0).toFixed(2)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.risk_pts || 0).toFixed(1)}</td>
                         <td className="px-1 py-1 text-right font-mono">{t.exit_price ? t.exit_price.toFixed(2) : '-'}</td>
@@ -527,16 +529,19 @@ function JournalPage() {
                             'bg-zinc-800 text-zinc-400'
                           }`}>{t.setup_type}</span> : '-'
                         }</td>
-                        <td className="px-1 py-1 text-center text-[10px]">{
-                          t.close_reason?.includes('T3') ? <span className="text-emerald-400 font-bold">T3</span>
-                          : t.close_reason?.includes('T2') ? <span className="text-green-400">T2</span>
-                          : t.close_reason?.includes('T1') ? <span className="text-green-300">T1</span>
-                          : t.close_reason === 'STOP' ? <span className="text-red-400">STOP</span>
-                          : t.close_reason?.includes('EOD') ? <span className="text-yellow-400">EOD</span>
-                          : t.status === 'EXECUTED' ? <span className="text-blue-400">EXEC</span>
-                          : t.status === 'CLOSED' ? <span className="text-gray-400">DONE</span>
-                          : <span className="text-gray-600">-</span>
-                        }</td>
+                        <td className="px-1 py-1 text-center text-[10px]">{(() => {
+                          const cr = t.close_reason || '';
+                          if (cr.includes('T3') || t.t3_hit) return <span className="text-emerald-400 font-bold">{'\u2705\u2705\u2705'} T3</span>;
+                          if (cr.includes('T2') || (t.t2_hit && (t.stop_hit || cr.includes('STOP')))) return <span className="text-green-400 font-bold">{'\u2705\u2705'} T2</span>;
+                          if (cr.includes('T1') || (t.t1_hit && (t.stop_hit || cr.includes('STOP')))) return <span className="text-green-300">{'\u2705'} T1</span>;
+                          if (cr === 'STOP' || cr === 'FULL_STOP' || (t.stop_hit && !t.t1_hit)) return <span className="text-red-400 font-bold">{'\u274C'} STOP</span>;
+                          if (cr.includes('EOD')) return <span className="text-yellow-400">EOD</span>;
+                          if (t.status === 'CLOSED') return <span className="text-gray-400">DONE</span>;
+                          if (t.status === 'LIVE' || t.status === 'BUILDING') return <span className="text-cyan-400">{'\u23F0'} OPEN</span>;
+                          if (t.status === 'EXECUTED') return <span className="text-blue-400">EXEC</span>;
+                          if (t.status === 'EXPIRED') return <span className="text-zinc-500">EXP</span>;
+                          return <span className="text-gray-600">-</span>;
+                        })()}</td>
                         <td className="px-1 py-1 text-[9px] text-gray-500 max-w-[200px] truncate" title={t.score_reasons || ''}>
                           {t.score_reasons ? t.score_reasons.split(' | ').slice(0, 2).join(' | ') : '-'}
                         </td>
