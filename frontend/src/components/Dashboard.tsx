@@ -15,6 +15,7 @@ import QualityScorePanel from './QualityScorePanel';
 import StrategyPreview from './StrategyPreview';
 import AttemptsTable, { SetupHighlight } from './AttemptsTable';
 import SetupsTable from './SetupsTable';
+import ShadowTradesTodayCard from './ShadowTradesTodayCard';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -3495,6 +3496,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             <StrategyPreview />
             <TriggerPanel />
             <VegasTunnelPanel />
+            <ShadowTradesTodayCard />
             <SetupsTable apiUrl={API_URL} />
             <AttemptsTable apiUrl={API_URL} />
           </div>

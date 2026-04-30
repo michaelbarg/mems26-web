@@ -446,6 +446,7 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mfe_pts')}>MFE{sortArrow('mfe_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('duration_min')}>Dur{sortArrow('duration_min')}</th>
                     <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('setup_quality_score')}>Q{sortArrow('setup_quality_score')}</th>
+                    <th className="px-1 py-1.5 text-center">Result</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -493,6 +494,15 @@ function JournalPage() {
                           (t.score || 0) >= 70 ? 'text-emerald-400' :
                           (t.score || 0) >= 50 ? 'text-amber-400' : 'text-zinc-500'
                         }`}>{t.score || '-'}</td>
+                        <td className="px-1 py-1 text-center text-[10px]">{
+                          t.status === 'EXECUTED' ? <span className="text-blue-400">EXEC</span>
+                          : t.status === 'HIT_C1' || t.close_reason === 'T1_PARTIAL' ? <span className="text-green-300">T1</span>
+                          : t.close_reason === 'T3_FULL' ? <span className="text-emerald-400 font-bold">T3</span>
+                          : t.close_reason === 'STOP' ? <span className="text-red-400">STOP</span>
+                          : t.close_reason === 'EOD_FLATTEN' ? <span className="text-yellow-400">EOD</span>
+                          : t.status === 'CLOSED' ? <span className="text-gray-400">DONE</span>
+                          : <span className="text-gray-600">-</span>
+                        }</td>
                       </tr>
                     );
                   })}
