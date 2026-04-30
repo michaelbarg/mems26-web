@@ -318,7 +318,10 @@ async def _calculate_attempt_outcome(attempt: dict):
         log.info(f"[OUTCOME_DEBUG] first_bar_ts={bars[0].get('ts')} last_bar_ts={bars[-1].get('ts')} sample={bars[0]}")
 
     if len(bars) < 3:
-        log.info(f"[OUTCOME] Too few bars ({len(bars)}) for attempt {attempt_id} ts={ts_start}")
+        oldest = candles[0].get("ts", 0) if candles else 0
+        newest = candles[-1].get("ts", 0) if candles else 0
+        log.info(f"[OUTCOME] Too few bars ({len(bars)}) for attempt {attempt_id} "
+                 f"window=[{ts_start}-{ts_end}] candle_range=[{oldest}-{newest}]")
         return
 
     # Use existing MAE/MFE calculator
@@ -630,7 +633,13 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
     if day_type_override and day_type_override in VALID_DAY_TYPES:
         day_type = day_type_override
     else:
-        day_type = day_class.get("type")
+        # Try day_classification first (DLL v7.13.0+), fallback to day_context
+        day_type = day_class.get("type") or (data.get("day") or {}).get("type")
+        # Map old DLL day_type names to V8.0 names
+        _dt_map = {"TRENDING": "TREND_DAY", "NORMAL_TRENDING": "TREND_DAY",
+                    "BALANCED": "RANGE_DAY", "VOLATILE": "RANGE_DAY"}
+        if day_type in _dt_map:
+            day_type = _dt_map[day_type]
 
     score_result = calculate_quality_score(data, direction, day_type)
     # Fallback: if day_type is None, try getting it from score_result
