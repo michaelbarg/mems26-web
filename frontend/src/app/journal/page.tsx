@@ -446,7 +446,9 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mfe_pts')}>MFE{sortArrow('mfe_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('duration_min')}>Dur{sortArrow('duration_min')}</th>
                     <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('setup_quality_score')}>Q{sortArrow('setup_quality_score')}</th>
+                    <th className="px-1 py-1.5 text-left">Type</th>
                     <th className="px-1 py-1.5 text-center">Result</th>
+                    <th className="px-1 py-1.5 text-left">Reasoning</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -493,16 +495,27 @@ function JournalPage() {
                         <td className={`px-1 py-1 text-center font-mono font-bold ${
                           (t.score || 0) >= 70 ? 'text-emerald-400' :
                           (t.score || 0) >= 50 ? 'text-amber-400' : 'text-zinc-500'
-                        }`}>{t.score || '-'}</td>
+                        }`}>{t.score || '-'}{t.peak_score && t.peak_score > (t.score||0) ? <span className="text-green-500 text-[9px]">{'\u2191'}{t.peak_score}</span> : ''}</td>
+                        <td className="px-1 py-1 text-[10px]">{
+                          t.setup_type ? <span className={`px-1 rounded ${
+                            t.setup_type === 'FVG' ? 'bg-blue-900/50 text-blue-300' :
+                            t.setup_type === 'SWEEP' ? 'bg-purple-900/50 text-purple-300' :
+                            'bg-zinc-800 text-zinc-400'
+                          }`}>{t.setup_type}</span> : '-'
+                        }</td>
                         <td className="px-1 py-1 text-center text-[10px]">{
-                          t.status === 'EXECUTED' ? <span className="text-blue-400">EXEC</span>
-                          : t.status === 'HIT_C1' || t.close_reason === 'T1_PARTIAL' ? <span className="text-green-300">T1</span>
-                          : t.close_reason === 'T3_FULL' ? <span className="text-emerald-400 font-bold">T3</span>
+                          t.close_reason?.includes('T3') ? <span className="text-emerald-400 font-bold">T3</span>
+                          : t.close_reason?.includes('T2') ? <span className="text-green-400">T2</span>
+                          : t.close_reason?.includes('T1') ? <span className="text-green-300">T1</span>
                           : t.close_reason === 'STOP' ? <span className="text-red-400">STOP</span>
-                          : t.close_reason === 'EOD_FLATTEN' ? <span className="text-yellow-400">EOD</span>
+                          : t.close_reason?.includes('EOD') ? <span className="text-yellow-400">EOD</span>
+                          : t.status === 'EXECUTED' ? <span className="text-blue-400">EXEC</span>
                           : t.status === 'CLOSED' ? <span className="text-gray-400">DONE</span>
                           : <span className="text-gray-600">-</span>
                         }</td>
+                        <td className="px-1 py-1 text-[9px] text-gray-500 max-w-[200px] truncate" title={t.score_reasons || ''}>
+                          {t.score_reasons ? t.score_reasons.split(' | ').slice(0, 2).join(' | ') : '-'}
+                        </td>
                       </tr>
                     );
                   })}
@@ -585,6 +598,26 @@ function JournalPage() {
               <DetailRow label="Bars Building" value={selectedTrade.bars_building_before_live?.toString()} />
             </div>
             <DetailRow label="Pillar Detail" value={selectedTrade.pillar_detail} />
+            {/* Score Reasoning */}
+            {selectedTrade.score_reasons && (
+              <div className="mt-3 border-t border-gray-800 pt-2">
+                <h4 className="text-xs font-bold text-gray-400 mb-1">Score Reasoning</h4>
+                <div className="space-y-0.5">
+                  {selectedTrade.score_reasons.split(' | ').map((r: string, i: number) => {
+                    const hasPlus = /\(\+\d+\)/.test(r);
+                    const opposes = /OPPOSES|no.*data|too narrow/i.test(r);
+                    const color = hasPlus ? 'text-green-400' : opposes ? 'text-red-400' : 'text-amber-400';
+                    const icon = hasPlus ? '\u2713' : opposes ? '\u2717' : '\u26A0';
+                    return <div key={i} className={`text-[10px] ${color}`}>{icon} {r}</div>;
+                  })}
+                </div>
+                {selectedTrade.setup_type && (
+                  <div className="mt-1 text-[10px] text-gray-500">Type: {selectedTrade.setup_type}
+                    {selectedTrade.peak_score ? ` | Peak: ${selectedTrade.peak_score}` : ''}
+                    {selectedTrade.observation_count ? ` | Obs: ${selectedTrade.observation_count}` : ''}</div>
+                )}
+              </div>
+            )}
             {/* V6.5: Entry Narrative */}
             {selectedTrade.entry_narrative && (
               <NarrativeDisplay narrative={selectedTrade.entry_narrative} />

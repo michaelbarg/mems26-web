@@ -861,6 +861,8 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                         THEN ABS(entry_price_hypothetical - stop_hypothetical)
                         ELSE NULL
                     END as risk_pts,
+                    vegas_score, tpo_score, fvg_score, footprint_score,
+                    score_reasons,
                     'attempt' as source
                 FROM setup_attempts
                 WHERE setup_quality_score IS NOT NULL
@@ -869,6 +871,33 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                 LIMIT $2
             """, int(_time.time()) - 86400 * 7, limit)
             results.extend([dict(r) for r in attempt_rows])
+
+            # Setups (lifecycle-tracked with simulation results)
+            setup_rows = await conn.fetch("""
+                SELECT
+                    setup_id as id, first_detected_ts as ts, direction,
+                    initial_entry as entry, initial_stop as stop,
+                    c1_target as t1, c2_target as t2, c3_target as t3,
+                    initial_score as score,
+                    pnl_pts, pnl_usd,
+                    CASE WHEN closed_ts IS NOT NULL THEN 'CLOSED' ELSE status END as status,
+                    close_reason,
+                    TRUE as is_shadow, day_type, killzone,
+                    CASE
+                        WHEN initial_entry IS NOT NULL AND initial_stop IS NOT NULL
+                        THEN ABS(initial_entry - initial_stop)
+                        ELSE NULL
+                    END as risk_pts,
+                    setup_type, score_reasons, peak_score, observation_count,
+                    contracts_used,
+                    'setup' as source
+                FROM setups
+                WHERE initial_entry IS NOT NULL AND initial_entry > 0
+                  AND first_detected_ts > $1
+                ORDER BY first_detected_ts DESC
+                LIMIT $2
+            """, int(_time.time()) - 86400 * 7, limit)
+            results.extend([dict(r) for r in setup_rows])
 
     results.sort(key=lambda x: x.get('ts', 0) or 0, reverse=True)
     return results[:limit]
