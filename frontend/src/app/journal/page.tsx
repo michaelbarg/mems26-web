@@ -106,6 +106,10 @@ function JournalPage() {
   const [sortCol, setSortCol] = useState(searchParams.get('sort') || 'entry_ts');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>((searchParams.get('dir') as any) || 'desc');
   const [showFilters, setShowFilters] = useState(true);
+  const [viewMode, setViewMode] = useState<'executed' | 'all'>(() => {
+    const v = searchParams.get('view');
+    return v === 'all' ? 'all' : 'executed';
+  });
 
   // Data
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -129,6 +133,7 @@ function JournalPage() {
     if (cbFilter !== 'all') params.set('cb', cbFilter);
     if (sortCol !== 'entry_ts') params.set('sort', sortCol);
     if (sortDir !== 'desc') params.set('dir', sortDir);
+    if (viewMode !== 'executed') params.set('view', viewMode);
     const qs = params.toString();
     window.history.replaceState(null, '', qs ? `?${qs}` : '/journal');
   }, [fromDate, toDate, tradeTypes, dayTypes, killzones, setupTypes, outcomes, cbFilter, sortCol, sortDir]);
@@ -140,6 +145,7 @@ function JournalPage() {
       const params = new URLSearchParams();
       params.set('limit', '500');
       params.set('types', Array.from(tradeTypes).join(','));
+      if (viewMode === 'executed') params.set('min_score', '70');
       if (fromDate) params.set('from_date', fromDate);
       if (toDate) params.set('to_date', toDate);
 
@@ -160,7 +166,7 @@ function JournalPage() {
       console.error('Journal fetch failed:', e);
     }
     setLoading(false);
-  }, [fromDate, toDate, tradeTypes]);
+  }, [fromDate, toDate, tradeTypes, viewMode]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -285,6 +291,16 @@ function JournalPage() {
           Back to Dashboard
         </a>
         <h1 className="text-sm font-bold flex-1">MEMS26 Trade Journal</h1>
+        <div className="flex gap-1">
+          <button onClick={() => { setViewMode('executed'); setPage(0); }}
+            className={`text-xs px-3 py-1.5 rounded ${viewMode === 'executed' ? 'bg-green-900 text-green-300' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+            Executed (70+)
+          </button>
+          <button onClick={() => { setViewMode('all'); setPage(0); }}
+            className={`text-xs px-3 py-1.5 rounded ${viewMode === 'all' ? 'bg-blue-900 text-blue-300' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}>
+            All Detected
+          </button>
+        </div>
         <button onClick={() => setShowFilters(f => !f)} className="text-xs bg-gray-800 hover:bg-gray-700 px-3 py-1.5 rounded">
           Filters {showFilters ? '\u25B2' : '\u25BC'}
         </button>

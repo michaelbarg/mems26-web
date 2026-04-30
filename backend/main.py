@@ -1754,6 +1754,7 @@ async def get_trade_log(
     from_date: Optional[str] = None,
     to_date: Optional[str] = None,
     types: Optional[str] = None,
+    min_score: int = 0,
 ):
     """Return last N trades/attempts, newest first. Phase 6.7: unified journal."""
     from database import get_trades_log as pg_get_trades, get_pool, get_journal_unified
@@ -1762,7 +1763,10 @@ async def get_trade_log(
     if types:
         types_list = [t.strip().lower() for t in types.split(',')]
         try:
-            return await get_journal_unified(types_list, limit)
+            results = await get_journal_unified(types_list, limit)
+            if min_score > 0:
+                results = [r for r in results if (r.get("score") or 0) >= min_score]
+            return results
         except Exception as e:
             log.error(f"unified journal failed: {e}")
             return []
@@ -3614,10 +3618,10 @@ async def setups_recent(limit: int = 50, status: str = None):
 
 
 @app.get("/analytics/setups/today_summary")
-async def setups_today_summary():
-    """Phase 3.1: Today's shadow trade summary."""
+async def setups_today_summary(min_score: int = 0):
+    """Phase 3.1: Today's shadow trade summary. ?min_score=70 for executed-only."""
     from database import get_today_shadow_summary
-    summary = await get_today_shadow_summary()
+    summary = await get_today_shadow_summary(min_score=min_score)
     return {"ok": True, **summary}
 
 
@@ -3641,10 +3645,10 @@ async def setups_resimulate():
 
 
 @app.get("/analytics/setups/closed")
-async def setups_closed(date: str = None, limit: int = 100):
+async def setups_closed(date: str = None, limit: int = 100, min_score: int = 0):
     """Phase 3.1: Closed setups with simulation results."""
     from database import get_closed_setups
-    setups = await get_closed_setups(date=date, limit=limit)
+    setups = await get_closed_setups(date=date, limit=limit, min_score=min_score)
     return {"ok": True, "count": len(setups), "setups": setups}
 
 

@@ -6,6 +6,8 @@ const API = "https://mems26-web.onrender.com";
 interface Summary {
   date: string;
   total_setups: number;
+  total_all_detected: number;
+  min_score_filter: number;
   closed: number;
   still_open: number;
   wins: number;
@@ -20,11 +22,16 @@ interface Summary {
 
 export default function ShadowTradesTodayCard() {
   const [data, setData] = useState<Summary | null>(null);
+  const [execOnly, setExecOnly] = useState(() => {
+    if (typeof window !== 'undefined') return localStorage.getItem('mems26_view_mode') !== 'all';
+    return true;
+  });
 
   useEffect(() => {
     const poll = async () => {
       try {
-        const r = await fetch(`${API}/analytics/setups/today_summary`);
+        const ms = execOnly ? 70 : 0;
+        const r = await fetch(`${API}/analytics/setups/today_summary?min_score=${ms}`);
         if (r.ok) {
           const j = await r.json();
           if (j.ok) setData(j);
@@ -34,7 +41,13 @@ export default function ShadowTradesTodayCard() {
     poll();
     const iv = setInterval(poll, 30000);
     return () => clearInterval(iv);
-  }, []);
+  }, [execOnly]);
+
+  const toggleMode = () => {
+    const next = !execOnly;
+    setExecOnly(next);
+    if (typeof window !== 'undefined') localStorage.setItem('mems26_view_mode', next ? 'exec' : 'all');
+  };
 
   if (!data) return null;
 
@@ -44,7 +57,16 @@ export default function ShadowTradesTodayCard() {
     <div style={{ background: "#0d1117", border: "1px solid #1e2738", borderRadius: 6, padding: "8px 12px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: "#e5e7eb" }}>Today Shadow Trades</span>
-        <span style={{ fontSize: 10, color: "#6b7280" }}>{data.date}</span>
+        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+          <button onClick={toggleMode} style={{
+            fontSize: 9, padding: "2px 6px", borderRadius: 3, border: "none", cursor: "pointer",
+            background: execOnly ? "#1a2e1a" : "#1e2738", color: execOnly ? "#22c55e" : "#6b7280",
+          }}>{execOnly ? "Executed Only" : "All Detected"}</button>
+          <span style={{ fontSize: 9, color: "#4b5563" }}
+            title={`${data.total_setups} shown of ${data.total_all_detected} total. ${execOnly ? 'Score >= 70 = would execute in LIVE.' : 'All detections shown.'}`}>
+            {data.total_setups}/{data.total_all_detected}
+          </span>
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 6, marginBottom: 6 }}>

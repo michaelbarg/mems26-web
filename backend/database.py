@@ -943,8 +943,8 @@ async def update_setup_simulation(setup_id: str, updates: dict):
         await conn.execute(sql, *vals)
 
 
-async def get_today_shadow_summary() -> dict:
-    """Summary of today's shadow trades."""
+async def get_today_shadow_summary(min_score: int = 0) -> dict:
+    """Summary of today's shadow trades, optionally filtered by min peak_score."""
     pool = await get_pool()
     if not pool:
         return {}
@@ -953,20 +953,26 @@ async def get_today_shadow_summary() -> dict:
     from zoneinfo import ZoneInfo
     now_et = datetime.now(ZoneInfo("America/New_York"))
     today_str = now_et.strftime("%Y-%m-%d")
-    # Start of today ET in unix
     start_of_day = datetime(now_et.year, now_et.month, now_et.day, tzinfo=ZoneInfo("America/New_York"))
     sod_ts = int(start_of_day.timestamp())
 
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
             SELECT setup_id, direction, close_reason, pnl_pts, pnl_usd,
-                   contracts_used, killzone, day_type,
+                   contracts_used, killzone, day_type, peak_score, initial_score,
                    t1_hit, t2_hit, t3_hit, stop_hit, closed_ts
             FROM setups
             WHERE first_detected_ts >= $1
               AND initial_entry IS NOT NULL
+              AND COALESCE(peak_score, initial_score, 0) >= $2
             ORDER BY first_detected_ts DESC
-        """, sod_ts)
+        """, sod_ts, min_score)
+
+    # Also get total unfiltered count for context
+    async with pool.acquire() as conn:
+        total_all = await conn.fetchval(
+            "SELECT COUNT(*) FROM setups WHERE first_detected_ts >= $1 AND initial_entry IS NOT NULL",
+            sod_ts)
 
     setups = [dict(r) for r in rows]
     closed = [s for s in setups if s.get("closed_ts")]
@@ -980,6 +986,8 @@ async def get_today_shadow_summary() -> dict:
     return {
         "date": today_str,
         "total_setups": len(setups),
+        "total_all_detected": total_all or 0,
+        "min_score_filter": min_score,
         "closed": len(closed),
         "still_open": len(setups) - len(closed),
         "wins": len(wins),
@@ -995,8 +1003,8 @@ async def get_today_shadow_summary() -> dict:
     }
 
 
-async def get_closed_setups(date: str = None, limit: int = 100) -> list:
-    """Get closed setups, optionally filtered by date."""
+async def get_closed_setups(date: str = None, limit: int = 100, min_score: int = 0) -> list:
+    """Get closed setups, optionally filtered by date and min score."""
     pool = await get_pool()
     if not pool:
         return []
@@ -1010,8 +1018,9 @@ async def get_closed_setups(date: str = None, limit: int = 100) -> list:
             rows = await conn.fetch("""
                 SELECT * FROM setups
                 WHERE closed_ts IS NOT NULL AND first_detected_ts >= $1 AND first_detected_ts < $2
+                  AND COALESCE(peak_score, initial_score, 0) >= $4
                 ORDER BY first_detected_ts DESC LIMIT $3
-            """, sod, eod, limit)
+            """, sod, eod, limit, min_score)
         else:
             rows = await conn.fetch("""
                 SELECT * FROM setups WHERE closed_ts IS NOT NULL
