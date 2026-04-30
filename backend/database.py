@@ -908,9 +908,11 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                 FROM setups
                 WHERE initial_entry IS NOT NULL AND initial_entry > 0
                   AND first_detected_ts > $1
-                ORDER BY first_detected_ts DESC
+                ORDER BY
+                    CASE WHEN closed_ts IS NOT NULL THEN 0 ELSE 1 END,
+                    first_detected_ts DESC
                 LIMIT $2
-            """, int(_time.time()) - 86400 * 7, limit)
+            """, int(_time.time()) - 86400 * 7, limit * 2)
             results.extend([dict(r) for r in setup_rows])
 
     results.sort(key=lambda x: x.get('ts', 0) or 0, reverse=True)
