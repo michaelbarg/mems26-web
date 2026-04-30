@@ -13,7 +13,7 @@ import DayTypeBadge from './DayTypeBadge';
 import DayTypeHero from './DayTypeHero';
 import QualityScorePanel from './QualityScorePanel';
 import StrategyPreview from './StrategyPreview';
-import AttemptsTable from './AttemptsTable';
+import AttemptsTable, { SetupHighlight } from './AttemptsTable';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -3494,7 +3494,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             <StrategyPreview />
             <TriggerPanel />
             <VegasTunnelPanel />
-            <AttemptsTable apiUrl={API_URL} />
+            <AttemptsTable apiUrl={API_URL} onHighlight={setHighlightedSetup} />
           </div>
         )}
 
@@ -4099,6 +4099,7 @@ export default function Dashboard() {
   const [scannedPatterns,setScannedPatterns]=useState<{pattern:string;direction:string;entry:number;stop:number;t1:number;t2:number;neckline:number;confidence:number;label:string;start_ts:number;end_ts:number}[]>([]);
   const [activeScannedPattern,setActiveScannedPattern]=useState<typeof scannedPatterns[0]|null>(null);
   const [activeTrade,setActiveTrade]=useState<ActiveTrade|null>(null);
+  const [highlightedSetup,setHighlightedSetup]=useState<SetupHighlight|null>(null);
   const [tradeToast,setTradeToast]=useState<{msg:string;color:string}|null>(null);
   const [stopWarning,setStopWarning]=useState<{dist:number;stop:number;price:number}|null>(null);
   const [checklistSetup, setChecklistSetup] = useState<ChecklistSetup | null>(null);
@@ -4784,6 +4785,7 @@ export default function Dashboard() {
               scannedPatterns={scannedPatterns}
               dayType={(live as any)?.day?.type || ''}
               footprintBools={(live as any)?.footprint_bools}
+              highlightedSetup={highlightedSetup}
               tradeActive={!!activeTrade}
               healthScore={activeTrade?.healthScore}
               entryTimestamp={activeTrade?.entryTs}

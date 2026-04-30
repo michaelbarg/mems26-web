@@ -84,6 +84,7 @@ interface Props {
   healthScore?: number;
   entryTimestamp?: number;
   footprintBools?: { absorption_detected?: boolean; exhaustion_detected?: boolean };
+  highlightedSetup?: { entry: number; stop: number; t1?: number; t2?: number; t3?: number; direction: string } | null;
 }
 
 // D7: Health Score → candle body color
@@ -95,7 +96,7 @@ function getTradeColor(healthScore: number): string {
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType, tradeActive, healthScore, entryTimestamp, footprintBools
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType, tradeActive, healthScore, entryTimestamp, footprintBools, highlightedSetup
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -103,6 +104,7 @@ export default function LightweightChart({
   const cvdRef           = useRef<any>(null);
   const cvdMaRef         = useRef<any>(null);
   const linesRef         = useRef<any[]>([]);
+  const highlightLinesRef = useRef<any[]>([]);
   const rthBgRef         = useRef<any>(null);
   const canvasRef        = useRef<HTMLCanvasElement>(null);
   const sweepEventsRef   = useRef(sweepEvents);
@@ -1239,6 +1241,26 @@ export default function LightweightChart({
 
    } catch (e) { /* guard entire level lines + markers block */ }
   }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, detectedSetups, liveBar, patterns, selectedPatternId]);
+
+  // Highlighted setup from AttemptsTable click
+  useEffect(() => {
+    if (!seriesRef.current) return;
+    highlightLinesRef.current.forEach(l => { try { seriesRef.current.removePriceLine(l); } catch {} });
+    highlightLinesRef.current = [];
+    if (!highlightedSetup) return;
+
+    const addHL = (price: number | undefined, color: string, title: string, style = 2, width = 1.5) => {
+      if (!price || price <= 0) return;
+      const l = seriesRef.current.createPriceLine({ price, color, lineWidth: width, lineStyle: style, axisLabelVisible: true, title });
+      highlightLinesRef.current.push(l);
+    };
+    const isLong = highlightedSetup.direction === 'LONG';
+    addHL(highlightedSetup.entry, '#ffffff', 'Entry', 0, 2);
+    addHL(highlightedSetup.stop, '#ef5350', 'Stop', 2, 1.5);
+    addHL(highlightedSetup.t1, '#22c55e', 'T1', 2, 1);
+    addHL(highlightedSetup.t2, '#16a34a', 'T2', 2, 1);
+    addHL(highlightedSetup.t3, '#86efac', 'T3', 2, 1);
+  }, [highlightedSetup]);
 
   // Redraw sweep zone overlay when sweepData changes
   useEffect(() => {

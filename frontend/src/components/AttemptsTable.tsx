@@ -65,14 +65,27 @@ function outcomeShort(a: Attempt): { text: string; color: string } {
   return { text: "\u23F0", color: "#6b7280" };
 }
 
-interface AttemptsTableProps {
-  apiUrl?: string;
+export interface SetupHighlight {
+  entry: number;
+  stop: number;
+  t1?: number;
+  t2?: number;
+  t3?: number;
+  direction: string;
+  ts: number;
+  id: number;
 }
 
-export default function AttemptsTable({ apiUrl }: AttemptsTableProps) {
+interface AttemptsTableProps {
+  apiUrl?: string;
+  onHighlight?: (setup: SetupHighlight | null) => void;
+}
+
+export default function AttemptsTable({ apiUrl, onHighlight }: AttemptsTableProps) {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const base = apiUrl || API_URL;
 
   useEffect(() => {
@@ -171,8 +184,22 @@ export default function AttemptsTable({ apiUrl }: AttemptsTableProps) {
 
               return (
                 <>
-                  <tr key={a.id} onClick={() => setExpandedId(expanded ? null : a.id)}
-                    style={{ cursor: "pointer" }}>
+                  <tr key={a.id} onClick={() => {
+                    setExpandedId(expanded ? null : a.id);
+                    if (selectedId === a.id) {
+                      setSelectedId(null);
+                      onHighlight?.(null);
+                    } else if (a.entry_price_hypothetical && a.stop_hypothetical) {
+                      setSelectedId(a.id);
+                      onHighlight?.({
+                        entry: a.entry_price_hypothetical,
+                        stop: a.stop_hypothetical,
+                        t1: a.c1_target, t2: a.c2_target, t3: a.c3_target,
+                        direction: a.direction, ts: a.ts, id: a.id,
+                      });
+                    }
+                  }}
+                    style={{ cursor: "pointer", outline: selectedId === a.id ? "1px solid #22d3ee" : "none" }}>
                     <td style={{ ...cell, color: "#9ca3af" }}>{fmtTime(a.ts)}</td>
                     <td style={{ ...cell, color: dirColor, fontWeight: 700, fontSize: 9 }}>{dirShort}</td>
                     <td style={{
