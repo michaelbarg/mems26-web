@@ -802,6 +802,11 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                     pnl_pts, pnl_usd, status, close_reason,
                     COALESCE(is_shadow, FALSE) as is_shadow,
                     day_type, killzone,
+                    CASE
+                        WHEN entry_price IS NOT NULL AND stop IS NOT NULL
+                        THEN ABS(entry_price - stop)
+                        ELSE NULL
+                    END as risk_pts,
                     'trade' as source
                 FROM trades
                 WHERE
@@ -830,6 +835,11 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                     NULL as close_reason,
                     TRUE as is_shadow,
                     day_type, killzone,
+                    CASE
+                        WHEN entry_price_hypothetical IS NOT NULL AND stop_hypothetical IS NOT NULL
+                        THEN ABS(entry_price_hypothetical - stop_hypothetical)
+                        ELSE NULL
+                    END as risk_pts,
                     'attempt' as source
                 FROM setup_attempts
                 WHERE setup_quality_score IS NOT NULL
