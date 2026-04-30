@@ -14,6 +14,7 @@ import DayTypeHero from './DayTypeHero';
 import QualityScorePanel from './QualityScorePanel';
 import StrategyPreview from './StrategyPreview';
 import AttemptsTable, { SetupHighlight } from './AttemptsTable';
+import SetupsTable from './SetupsTable';
 
 const API_URL = 'https://mems26-web.onrender.com';
 
@@ -3494,6 +3495,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             <StrategyPreview />
             <TriggerPanel />
             <VegasTunnelPanel />
+            <SetupsTable apiUrl={API_URL} />
             <AttemptsTable apiUrl={API_URL} onHighlight={setHighlightedSetup} />
           </div>
         )}
