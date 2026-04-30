@@ -143,9 +143,10 @@ function JournalPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set('limit', '500');
+      params.set('limit', '200');
       params.set('types', Array.from(tradeTypes).join(','));
       if (viewMode === 'executed') params.set('min_score', '70');
+      params.set('include_closed', '1');
       if (fromDate) params.set('from_date', fromDate);
       if (toDate) params.set('to_date', toDate);
 
@@ -458,6 +459,7 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-right">Risk</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('exit_price')}>Exit{sortArrow('exit_price')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('pnl_pts')}>PnL{sortArrow('pnl_pts')}</th>
+                    <th className="px-1 py-1.5 text-right">$</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mae_pts')}>MAE{sortArrow('mae_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mfe_pts')}>MFE{sortArrow('mfe_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('duration_min')}>Dur{sortArrow('duration_min')}</th>
@@ -507,7 +509,10 @@ function JournalPage() {
                         <td className="px-1 py-1 text-right font-mono">{(t.risk_pts || 0).toFixed(1)}</td>
                         <td className="px-1 py-1 text-right font-mono">{t.exit_price ? t.exit_price.toFixed(2) : '-'}</td>
                         <td className={`px-1 py-1 text-right font-mono font-bold ${pnl > 0 ? 'text-green-400' : pnl < 0 ? 'text-red-400' : ''}`}>
-                          {fmtPts(pnl)}
+                          {pnl ? fmtPts(pnl) : '-'}
+                        </td>
+                        <td className={`px-1 py-1 text-right font-mono text-[10px] ${(t.pnl_usd||0) > 0 ? 'text-green-400' : (t.pnl_usd||0) < 0 ? 'text-red-400' : 'text-gray-600'}`}>
+                          {t.pnl_usd ? fmtUsd(t.pnl_usd) : '-'}
                         </td>
                         <td className="px-1 py-1 text-right font-mono">{(t.mae_pts || 0).toFixed(1)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.mfe_pts || 0).toFixed(1)}</td>
