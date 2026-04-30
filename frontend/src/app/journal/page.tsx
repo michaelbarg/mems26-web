@@ -533,38 +533,61 @@ function JournalPage() {
                 </div>
               )}
 
-              {/* Rejected Attempts */}
+              {/* Shadow Attempts */}
               {showRejected && attempts.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="text-sm font-bold text-gray-400 mb-2">Rejected Setups ({attempts.length})</h3>
+                  <h3 className="text-sm font-bold text-gray-400 mb-2">Shadow Setups ({attempts.length})</h3>
+                  <div className="overflow-x-auto">
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr className="border-b border-gray-800 text-gray-500">
-                        <th className="px-2 py-1 text-left">Time</th>
-                        <th className="px-2 py-1 text-left">Dir</th>
-                        <th className="px-2 py-1 text-left">Setup</th>
-                        <th className="px-2 py-1 text-left">Level</th>
-                        <th className="px-2 py-1 text-right">Price</th>
-                        <th className="px-2 py-1 text-left">Day</th>
-                        <th className="px-2 py-1 text-left">KZ</th>
-                        <th className="px-2 py-1 text-left">Reason</th>
+                        <th className="px-1 py-1 text-left">Source</th>
+                        <th className="px-1 py-1 text-left">Time</th>
+                        <th className="px-1 py-1 text-left">Dir</th>
+                        <th className="px-1 py-1 text-center">Score</th>
+                        <th className="px-1 py-1 text-left">Day</th>
+                        <th className="px-1 py-1 text-right">Entry</th>
+                        <th className="px-1 py-1 text-right">Stop</th>
+                        <th className="px-1 py-1 text-right">MAE</th>
+                        <th className="px-1 py-1 text-right">MFE</th>
+                        <th className="px-1 py-1 text-center">Status</th>
+                        <th className="px-1 py-1 text-left">Reason</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {attempts.slice(0, 100).map(a => (
-                        <tr key={a.id} className="border-b border-gray-900 bg-gray-950/50">
-                          <td className="px-2 py-1">{tsToTime(a.ts)}</td>
-                          <td className={`px-2 py-1 ${a.direction === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>{a.direction}</td>
-                          <td className="px-2 py-1">{a.setup_type}</td>
-                          <td className="px-2 py-1">{a.level_name} @ {(a.level_price || 0).toFixed(2)}</td>
-                          <td className="px-2 py-1 text-right font-mono">{(a.price_at_detect || 0).toFixed(2)}</td>
-                          <td className="px-2 py-1">{a.day_type}</td>
-                          <td className="px-2 py-1">{a.killzone}</td>
-                          <td className="px-2 py-1 text-gray-500 truncate max-w-[200px]">{a.rejection_reason}</td>
+                      {attempts.slice(0, 100).map(a => {
+                        const score = a.setup_quality_score || a.health_score_at_entry || 0;
+                        const outcome = a.outcome || (a.extra_json && typeof a.extra_json === 'object' ? a.extra_json.outcome : null);
+                        const mae = a.hypothetical_mae_60min_pts;
+                        const mfe = a.hypothetical_mfe_60min_pts;
+                        const isPending = mae == null && (Date.now()/1000 - a.ts) < 3600;
+                        const statusBadge = isPending
+                          ? <span className="text-gray-500">{'\u23F0'}</span>
+                          : outcome === 'HIT_C1' ? <span className="text-green-400 font-bold">{'\u2705'} C1</span>
+                          : outcome === 'HIT_STOP' ? <span className="text-red-400 font-bold">{'\u274C'} Stop</span>
+                          : outcome === 'TIMEOUT' ? <span className="text-yellow-500">{'\u23F3'} TO</span>
+                          : mae != null ? <span className="text-gray-500">Done</span>
+                          : <span className="text-gray-600">{'\u23F0'}</span>;
+                        const scoreColor = score >= 70 ? 'text-green-400' : score >= 50 ? 'text-yellow-400' : 'text-gray-500';
+                        return (
+                        <tr key={a.id} className="border-b border-gray-900 bg-purple-950/10 hover:bg-gray-800/50">
+                          <td className="px-1 py-1"><span className="bg-purple-900/50 text-purple-300 px-1 rounded text-[9px]">Shadow</span></td>
+                          <td className="px-1 py-1 whitespace-nowrap">{tsToTime(a.ts)}</td>
+                          <td className={`px-1 py-1 font-bold ${a.direction === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>{a.direction}</td>
+                          <td className={`px-1 py-1 text-center font-mono font-bold ${scoreColor}`}>{score || '-'}</td>
+                          <td className="px-1 py-1 text-gray-500">{a.day_type || '-'}</td>
+                          <td className="px-1 py-1 text-right font-mono">{a.entry_price_hypothetical ? a.entry_price_hypothetical.toFixed(1) : '-'}</td>
+                          <td className="px-1 py-1 text-right font-mono text-red-400/70">{a.stop_hypothetical ? a.stop_hypothetical.toFixed(1) : '-'}</td>
+                          <td className="px-1 py-1 text-right font-mono text-red-400/50">{mae != null ? mae.toFixed(1) : '-'}</td>
+                          <td className="px-1 py-1 text-right font-mono text-green-400/50">{mfe != null ? mfe.toFixed(1) : '-'}</td>
+                          <td className="px-1 py-1 text-center">{statusBadge}</td>
+                          <td className="px-1 py-1 text-gray-500 truncate max-w-[160px]">{a.rejection_reason || a.score_reasons || '-'}</td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
+                  </div>
                 </div>
               )}
 
