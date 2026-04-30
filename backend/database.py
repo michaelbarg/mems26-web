@@ -828,6 +828,7 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                         THEN ABS(entry_price - stop)
                         ELSE NULL
                     END as risk_pts,
+                    setup_type,
                     'trade' as source
                 FROM trades
                 WHERE

@@ -86,6 +86,7 @@ export default function AttemptsTable({ apiUrl, onHighlight }: AttemptsTableProp
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
   const base = apiUrl || API_URL;
 
   useEffect(() => {
@@ -205,8 +206,32 @@ export default function AttemptsTable({ apiUrl, onHighlight }: AttemptsTableProp
                     <td style={{
                       ...cell, textAlign: "right", fontFamily: "monospace",
                       fontWeight: 700, color: scoreColor(score), background: scoreBg(score),
-                      borderRadius: 2, padding: "1px 5px",
-                    }}>{score}</td>
+                      borderRadius: 2, padding: "1px 5px", position: "relative",
+                    }}
+                      onMouseEnter={() => setHoveredId(a.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                    >
+                      {score}
+                      {hoveredId === a.id && a.score_reasons && (
+                        <div style={{
+                          position: "absolute", right: 0, top: "100%", zIndex: 50,
+                          background: "#0d1117", border: "1px solid #2d3748", borderRadius: 6,
+                          padding: "6px 8px", minWidth: 240, maxWidth: 320,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.5)", pointerEvents: "none",
+                        }}>
+                          <div style={{ fontSize: 10, color: "#e5e7eb", fontWeight: 700, marginBottom: 3 }}>
+                            Score: {score}{a.setup_quality_score && a.setup_quality_score !== score ? ` \u2192 Peak ${a.setup_quality_score}` : ""}
+                          </div>
+                          {a.score_reasons.split(" | ").map((r: string, i: number) => {
+                            const hasPlus = /\(\+\d+\)/.test(r);
+                            const opposes = /OPPOSES|no.*data|too narrow/i.test(r);
+                            const color = hasPlus ? "#22c55e" : opposes ? "#ef5350" : "#ca8a04";
+                            const icon = hasPlus ? "\u2713" : opposes ? "\u2717" : "\u26A0";
+                            return <div key={i} style={{ fontSize: 9, color, lineHeight: 1.4 }}>{icon} {r}</div>;
+                          })}
+                        </div>
+                      )}
+                    </td>
                     <td style={{ ...cell, color: "#6b7280", fontSize: 8 }}>
                       {(a.day_type || "").replace("_DAY", "").replace("_", " ")}
                     </td>
