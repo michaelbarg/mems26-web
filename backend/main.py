@@ -546,6 +546,71 @@ async def _shadow_simulator_loop():
         await asyncio.sleep(60)
 
 
+async def _sequential_sim_loop():
+    """Phase 3.1: Every 5min, determine which setups would execute in LIVE (1 at a time)."""
+    log.info("[SEQ_SIM] Started")
+    await asyncio.sleep(120)
+    while True:
+        try:
+            from database import get_pool, update_setup_simulation
+            pool = await get_pool()
+            if not pool:
+                await asyncio.sleep(300)
+                continue
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            now_et = datetime.now(ZoneInfo("America/New_York"))
+            sod = int(datetime(now_et.year, now_et.month, now_et.day, tzinfo=ZoneInfo("America/New_York")).timestamp())
+            async with pool.acquire() as conn:
+                rows = await conn.fetch("""
+                    SELECT setup_id, first_detected_ts, peak_score, initial_score,
+                           closed_ts, executed_in_sim
+                    FROM setups
+                    WHERE first_detected_ts >= $1 AND initial_entry IS NOT NULL
+                    ORDER BY first_detected_ts ASC
+                """, sod)
+            setups = [dict(r) for r in rows]
+            current_open_id = None
+            last_close_ts = 0
+            changes = 0
+            for s in setups:
+                sid = s["setup_id"]
+                score = s.get("peak_score") or s.get("initial_score") or 0
+                detected = s["first_detected_ts"]
+                closed = s.get("closed_ts")
+                was_exec = s.get("executed_in_sim")
+                if score < 70:
+                    if not was_exec and not s.get("sim_skip_reason"):
+                        await update_setup_simulation(sid, {"sim_skip_reason": "LOW_SCORE"})
+                        changes += 1
+                    continue
+                if current_open_id and not closed:
+                    # Another trade still open
+                    if sid != current_open_id:
+                        if not was_exec:
+                            await update_setup_simulation(sid, {"sim_skip_reason": "OTHER_TRADE_OPEN"})
+                            changes += 1
+                        continue
+                if detected - last_close_ts < 300 and last_close_ts > 0:
+                    if not was_exec:
+                        await update_setup_simulation(sid, {"sim_skip_reason": "COOLDOWN"})
+                        changes += 1
+                    continue
+                # This setup would execute
+                if not was_exec:
+                    await update_setup_simulation(sid, {"executed_in_sim": True, "sim_skip_reason": None})
+                    changes += 1
+                current_open_id = sid
+                if closed:
+                    last_close_ts = closed
+                    current_open_id = None
+            if changes:
+                log.info(f"[SEQ_SIM] Updated {changes} setups")
+        except Exception as e:
+            log.error(f"[SEQ_SIM] Error: {e}")
+        await asyncio.sleep(300)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)} | PG={bool(DATABASE_URL)}")
@@ -562,12 +627,14 @@ async def lifespan(app: FastAPI):
     outcome_task = asyncio.create_task(_outcome_worker_loop())
     expire_task = asyncio.create_task(_setup_expire_loop())
     shadow_task = asyncio.create_task(_shadow_simulator_loop())
+    seq_task = asyncio.create_task(_sequential_sim_loop())
     yield
     ws_task.cancel()
     outcome_task.cancel()
     expire_task.cancel()
     shadow_task.cancel()
-    for t in (ws_task, outcome_task, expire_task, shadow_task):
+    seq_task.cancel()
+    for t in (ws_task, outcome_task, expire_task, shadow_task, seq_task):
         try:
             await t
         except asyncio.CancelledError:
@@ -3622,6 +3689,14 @@ async def setups_today_summary(min_score: int = 0):
     """Phase 3.1: Today's shadow trade summary. ?min_score=70 for executed-only."""
     from database import get_today_shadow_summary
     summary = await get_today_shadow_summary(min_score=min_score)
+    return {"ok": True, **summary}
+
+
+@app.get("/analytics/setups/sequential_today_summary")
+async def sequential_today_summary():
+    """Phase 3.1: Sequential simulation (1 trade at a time) summary."""
+    from database import get_sequential_today_summary
+    summary = await get_sequential_today_summary()
     return {"ok": True, **summary}
 
 

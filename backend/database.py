@@ -287,6 +287,8 @@ async def init_db():
             ("pnl_pts", "REAL"),
             ("pnl_usd", "REAL"),
             ("contracts_used", "INTEGER"),
+            ("executed_in_sim", "BOOLEAN DEFAULT FALSE"),
+            ("sim_skip_reason", "TEXT"),
         ]:
             try:
                 await conn.execute(f"ALTER TABLE setups ADD COLUMN IF NOT EXISTS {col} {typ}")
@@ -1034,6 +1036,44 @@ async def get_closed_setups(date: str = None, limit: int = 100, min_score: int =
                 ORDER BY first_detected_ts DESC LIMIT $1
             """, limit, min_score)
         return [dict(r) for r in rows]
+
+
+async def get_sequential_today_summary() -> dict:
+    """Summary of sequential simulation (1 trade at a time)."""
+    pool = await get_pool()
+    if not pool:
+        return {}
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    sod = int(datetime(now_et.year, now_et.month, now_et.day, tzinfo=ZoneInfo("America/New_York")).timestamp())
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT setup_id, direction, pnl_pts, pnl_usd, close_reason, closed_ts,
+                   executed_in_sim, sim_skip_reason, peak_score
+            FROM setups
+            WHERE first_detected_ts >= $1 AND initial_entry IS NOT NULL
+            ORDER BY first_detected_ts ASC
+        """, sod)
+    setups = [dict(r) for r in rows]
+    executed = [s for s in setups if s.get("executed_in_sim")]
+    skipped = [s for s in setups if not s.get("executed_in_sim")]
+    exec_closed = [s for s in executed if s.get("closed_ts")]
+    exec_wins = [s for s in exec_closed if (s.get("pnl_pts") or 0) > 0]
+    seq_pnl = sum(s.get("pnl_usd") or 0 for s in exec_closed)
+    skip_reasons: dict = {}
+    for s in skipped:
+        r = s.get("sim_skip_reason") or "UNKNOWN"
+        skip_reasons[r] = skip_reasons.get(r, 0) + 1
+    return {
+        "total_executed_in_sim": len(executed),
+        "total_skipped": len(skipped),
+        "skip_reasons": skip_reasons,
+        "sequential_pnl_usd": round(seq_pnl, 2),
+        "sequential_wr": round(len(exec_wins) / len(exec_closed) * 100, 1) if exec_closed else 0,
+        "executed_closed": len(exec_closed),
+        "executed_open": len(executed) - len(exec_closed),
+    }
 
 
 async def close_pool():

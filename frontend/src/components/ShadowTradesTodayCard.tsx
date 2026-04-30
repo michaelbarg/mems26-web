@@ -22,6 +22,7 @@ interface Summary {
 
 export default function ShadowTradesTodayCard() {
   const [data, setData] = useState<Summary | null>(null);
+  const [seqData, setSeqData] = useState<{total_executed_in_sim:number;sequential_pnl_usd:number;sequential_wr:number;executed_closed:number}|null>(null);
   const [execOnly, setExecOnly] = useState(() => {
     if (typeof window !== 'undefined') return localStorage.getItem('mems26_view_mode') !== 'all';
     return true;
@@ -38,8 +39,14 @@ export default function ShadowTradesTodayCard() {
         }
       } catch {}
     };
-    poll();
-    const iv = setInterval(poll, 30000);
+    const pollSeq = async () => {
+      try {
+        const r2 = await fetch(`${API}/analytics/setups/sequential_today_summary`);
+        if (r2.ok) { const j2 = await r2.json(); if (j2.ok) setSeqData(j2); }
+      } catch {}
+    };
+    poll(); pollSeq();
+    const iv = setInterval(() => { poll(); pollSeq(); }, 30000);
     return () => clearInterval(iv);
   }, [execOnly]);
 
@@ -112,6 +119,17 @@ export default function ShadowTradesTodayCard() {
         <span>Closed: {data.closed}</span>
         <span>Avg: ${data.avg_pnl_per_trade.toFixed(0)}</span>
       </div>
+
+      {seqData && seqData.total_executed_in_sim > 0 && (
+        <div style={{ marginTop: 4, padding: "3px 6px", background: "#111827", borderRadius: 4, fontSize: 10 }}>
+          <span style={{ color: "#6b7280" }}>Sequential (1 at a time): </span>
+          <span style={{ color: "#e5e7eb", fontWeight: 700 }}>{seqData.executed_closed} trades</span>
+          <span style={{ color: seqData.sequential_pnl_usd >= 0 ? "#22c55e" : "#ef4444", fontWeight: 700, marginLeft: 4 }}>
+            {seqData.sequential_pnl_usd >= 0 ? "+" : ""}${seqData.sequential_pnl_usd.toFixed(0)}
+          </span>
+          <span style={{ color: "#6b7280", marginLeft: 4 }}>WR {seqData.sequential_wr}%</span>
+        </div>
+      )}
     </div>
   );
 }
