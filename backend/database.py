@@ -272,6 +272,27 @@ async def init_db():
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_obs_setup_id ON setup_observations (setup_id)")
         await conn.execute("CREATE INDEX IF NOT EXISTS idx_obs_ts ON setup_observations (observation_ts)")
 
+        # Phase 3.1: Shadow Trade Simulator columns on setups
+        for col, typ in [
+            ("t1_hit", "BOOLEAN DEFAULT FALSE"),
+            ("t1_hit_ts", "BIGINT"),
+            ("t2_hit", "BOOLEAN DEFAULT FALSE"),
+            ("t2_hit_ts", "BIGINT"),
+            ("t3_hit", "BOOLEAN DEFAULT FALSE"),
+            ("t3_hit_ts", "BIGINT"),
+            ("stop_hit", "BOOLEAN DEFAULT FALSE"),
+            ("stop_hit_ts", "BIGINT"),
+            ("closed_ts", "BIGINT"),
+            ("close_reason", "TEXT"),
+            ("pnl_pts", "REAL"),
+            ("pnl_usd", "REAL"),
+            ("contracts_used", "INTEGER"),
+        ]:
+            try:
+                await conn.execute(f"ALTER TABLE setups ADD COLUMN IF NOT EXISTS {col} {typ}")
+            except Exception:
+                pass
+
     log.info("Postgres tables initialized")
 
 
@@ -851,6 +872,123 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
 
     results.sort(key=lambda x: x.get('ts', 0) or 0, reverse=True)
     return results[:limit]
+
+
+async def get_open_setups_for_simulation() -> list:
+    """Get setups that need shadow simulation (not yet closed)."""
+    pool = await get_pool()
+    if not pool:
+        return []
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT setup_id, first_detected_ts, direction, initial_entry, initial_stop,
+                   initial_score, c1_target, c2_target, c3_target,
+                   t1_hit, t2_hit, t3_hit, stop_hit
+            FROM setups
+            WHERE closed_ts IS NULL
+              AND initial_entry IS NOT NULL AND initial_entry > 0
+              AND initial_stop IS NOT NULL AND initial_stop > 0
+              AND status IN ('LIVE', 'BUILDING')
+            ORDER BY first_detected_ts DESC
+            LIMIT 100
+        """)
+        return [dict(r) for r in rows]
+
+
+async def update_setup_simulation(setup_id: str, updates: dict):
+    """Update setup with simulation results."""
+    pool = await get_pool()
+    if not pool:
+        return
+    sets = []
+    vals = []
+    idx = 1
+    for k, v in updates.items():
+        sets.append(f"{k} = ${idx}")
+        vals.append(v)
+        idx += 1
+    sets.append(f"updated_at = NOW()")
+    vals.append(setup_id)
+    sql = f"UPDATE setups SET {', '.join(sets)} WHERE setup_id = ${idx}"
+    async with pool.acquire() as conn:
+        await conn.execute(sql, *vals)
+
+
+async def get_today_shadow_summary() -> dict:
+    """Summary of today's shadow trades."""
+    pool = await get_pool()
+    if not pool:
+        return {}
+    import time as _t
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    now_et = datetime.now(ZoneInfo("America/New_York"))
+    today_str = now_et.strftime("%Y-%m-%d")
+    # Start of today ET in unix
+    start_of_day = datetime(now_et.year, now_et.month, now_et.day, tzinfo=ZoneInfo("America/New_York"))
+    sod_ts = int(start_of_day.timestamp())
+
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT setup_id, direction, close_reason, pnl_pts, pnl_usd,
+                   contracts_used, killzone, day_type,
+                   t1_hit, t2_hit, t3_hit, stop_hit, closed_ts
+            FROM setups
+            WHERE first_detected_ts >= $1
+              AND initial_entry IS NOT NULL
+            ORDER BY first_detected_ts DESC
+        """, sod_ts)
+
+    setups = [dict(r) for r in rows]
+    closed = [s for s in setups if s.get("closed_ts")]
+    wins = [s for s in closed if (s.get("pnl_pts") or 0) > 0]
+    losses = [s for s in closed if (s.get("pnl_pts") or 0) < 0]
+    total_pnl = sum(s.get("pnl_usd") or 0 for s in closed)
+
+    best = max(closed, key=lambda s: s.get("pnl_usd") or 0) if closed else None
+    worst = min(closed, key=lambda s: s.get("pnl_usd") or 0) if closed else None
+
+    return {
+        "date": today_str,
+        "total_setups": len(setups),
+        "closed": len(closed),
+        "still_open": len(setups) - len(closed),
+        "wins": len(wins),
+        "losses": len(losses),
+        "breakeven": len(closed) - len(wins) - len(losses),
+        "win_rate": round(len(wins) / len(closed) * 100, 1) if closed else 0,
+        "total_pnl_usd": round(total_pnl, 2),
+        "avg_pnl_per_trade": round(total_pnl / len(closed), 2) if closed else 0,
+        "best_trade": {"setup_id": best["setup_id"], "direction": best["direction"],
+                       "pnl_usd": best.get("pnl_usd"), "close_reason": best.get("close_reason")} if best else None,
+        "worst_trade": {"setup_id": worst["setup_id"], "direction": worst["direction"],
+                        "pnl_usd": worst.get("pnl_usd"), "close_reason": worst.get("close_reason")} if worst else None,
+    }
+
+
+async def get_closed_setups(date: str = None, limit: int = 100) -> list:
+    """Get closed setups, optionally filtered by date."""
+    pool = await get_pool()
+    if not pool:
+        return []
+    async with pool.acquire() as conn:
+        if date:
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            dt = datetime.strptime(date, "%Y-%m-%d").replace(tzinfo=ZoneInfo("America/New_York"))
+            sod = int(dt.timestamp())
+            eod = sod + 86400
+            rows = await conn.fetch("""
+                SELECT * FROM setups
+                WHERE closed_ts IS NOT NULL AND first_detected_ts >= $1 AND first_detected_ts < $2
+                ORDER BY first_detected_ts DESC LIMIT $3
+            """, sod, eod, limit)
+        else:
+            rows = await conn.fetch("""
+                SELECT * FROM setups WHERE closed_ts IS NOT NULL
+                ORDER BY first_detected_ts DESC LIMIT $1
+            """, limit)
+        return [dict(r) for r in rows]
 
 
 async def close_pool():

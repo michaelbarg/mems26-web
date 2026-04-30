@@ -395,6 +395,142 @@ async def _calculate_attempt_outcome(attempt: dict):
              f"({direction} entry={entry} stop={stop} c1={c1_target:.2f} bars={len(bars)})")
 
 
+async def _shadow_simulator_loop():
+    """Phase 3.1: Every 60s, simulate shadow trades for open setups."""
+    log.info("[SHADOW_SIM] Started")
+    await asyncio.sleep(90)
+    while True:
+        try:
+            from database import get_open_setups_for_simulation, update_setup_simulation
+            setups = await get_open_setups_for_simulation()
+            if not setups:
+                await asyncio.sleep(60)
+                continue
+            candles = await _get_3m_candles()
+            if not candles:
+                await asyncio.sleep(60)
+                continue
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            for s in setups:
+                try:
+                    entry = s["initial_entry"]
+                    stop = s["initial_stop"]
+                    direction = s["direction"]
+                    t1 = s.get("c1_target") or 0
+                    t2 = s.get("c2_target") or 0
+                    t3 = s.get("c3_target") or 0
+                    score = s.get("initial_score") or 0
+                    is_long = direction == "LONG"
+                    R = abs(entry - stop)
+                    if R <= 0 or entry <= 0:
+                        continue
+                    contracts = 3 if score >= 70 else 2 if score >= 50 else 1
+                    t1_hit = bool(s.get("t1_hit"))
+                    t2_hit = bool(s.get("t2_hit"))
+                    t3_hit = bool(s.get("t3_hit"))
+                    stop_hit = bool(s.get("stop_hit"))
+                    bars = [b for b in candles if (b.get("ts") or 0) >= s["first_detected_ts"]]
+                    bars.sort(key=lambda b: b.get("ts", 0))
+                    updates = {}
+                    closed = False
+                    for b in bars:
+                        bh = b.get("h", b.get("high", 0)) or 0
+                        bl = b.get("l", b.get("low", 0)) or 0
+                        bc = b.get("c", b.get("close", 0)) or 0
+                        bts = b.get("ts", 0)
+                        if bh == 0 or bl == 0:
+                            continue
+                        # EOD check
+                        bar_dt = datetime.fromtimestamp(bts, tz=ZoneInfo("America/New_York"))
+                        if bar_dt.hour >= 15 and bar_dt.minute >= 59:
+                            # Flatten at EOD
+                            pnl = 0.0
+                            for ci in range(contracts):
+                                if ci == 0 and t1_hit:
+                                    pnl += R
+                                elif ci == 0:
+                                    pnl += (bc - entry) if is_long else (entry - bc)
+                                elif ci == 1 and t2_hit:
+                                    pnl += 2 * R
+                                elif ci == 1:
+                                    be = entry if t1_hit else stop
+                                    pnl += (bc - entry) if is_long else (entry - bc)
+                                elif ci == 2 and t3_hit:
+                                    pnl += 3 * R
+                                elif ci == 2:
+                                    pnl += (bc - entry) if is_long else (entry - bc)
+                            updates.update(closed_ts=bts, close_reason="EOD_FLATTEN",
+                                           pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
+                                           contracts_used=contracts, status="CLOSED")
+                            closed = True
+                            break
+                        # Stop check
+                        eff_stop = entry if t2_hit else stop
+                        if not stop_hit:
+                            if (is_long and bl <= eff_stop) or (not is_long and bh >= eff_stop):
+                                stop_hit = True
+                                updates["stop_hit"] = True
+                                updates["stop_hit_ts"] = bts
+                                pnl = 0.0
+                                for ci in range(contracts):
+                                    if ci == 0 and t1_hit:
+                                        pnl += R
+                                    elif ci == 0:
+                                        pnl += -R
+                                    elif ci == 1 and t2_hit:
+                                        pnl += 2 * R
+                                    elif ci == 1 and t1_hit:
+                                        pnl += 0  # BE
+                                    elif ci == 1:
+                                        pnl += -R
+                                    elif ci == 2 and t3_hit:
+                                        pnl += 3 * R
+                                    elif ci == 2 and t2_hit:
+                                        pnl += 0  # BE
+                                    elif ci == 2:
+                                        pnl += -R
+                                updates.update(closed_ts=bts, close_reason="STOP",
+                                               pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
+                                               contracts_used=contracts, status="CLOSED")
+                                closed = True
+                                break
+                        # Target checks
+                        if not t1_hit and t1 > 0:
+                            if (is_long and bh >= t1) or (not is_long and bl <= t1):
+                                t1_hit = True
+                                updates["t1_hit"] = True
+                                updates["t1_hit_ts"] = bts
+                        if not t2_hit and t2 > 0 and contracts >= 2:
+                            if (is_long and bh >= t2) or (not is_long and bl <= t2):
+                                t2_hit = True
+                                updates["t2_hit"] = True
+                                updates["t2_hit_ts"] = bts
+                        if not t3_hit and t3 > 0 and contracts >= 3:
+                            if (is_long and bh >= t3) or (not is_long and bl <= t3):
+                                t3_hit = True
+                                updates["t3_hit"] = True
+                                updates["t3_hit_ts"] = bts
+                                pnl = R + 2 * R + 3 * R  # full 3-target win
+                                updates.update(closed_ts=bts, close_reason="T3_FULL",
+                                               pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
+                                               contracts_used=contracts, status="CLOSED")
+                                closed = True
+                                break
+                    if updates:
+                        if not closed:
+                            updates["contracts_used"] = contracts
+                        await update_setup_simulation(s["setup_id"], updates)
+                        if closed:
+                            log.info(f"[SHADOW_SIM] {s['setup_id']} {direction}: "
+                                     f"{updates.get('close_reason')} pnl=${updates.get('pnl_usd',0):.0f}")
+                except Exception as e:
+                    log.warning(f"[SHADOW_SIM] Error on {s.get('setup_id')}: {e}")
+        except Exception as e:
+            log.error(f"[SHADOW_SIM] Loop error: {e}")
+        await asyncio.sleep(60)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info(f"MEMS26 API Started | REDIS_URL={REDIS_URL} | HAS_TOKEN={bool(REDIS_TOKEN)} | PG={bool(DATABASE_URL)}")
@@ -410,11 +546,13 @@ async def lifespan(app: FastAPI):
     ws_task = asyncio.create_task(_ws_push_loop())
     outcome_task = asyncio.create_task(_outcome_worker_loop())
     expire_task = asyncio.create_task(_setup_expire_loop())
+    shadow_task = asyncio.create_task(_shadow_simulator_loop())
     yield
     ws_task.cancel()
     outcome_task.cancel()
     expire_task.cancel()
-    for t in (ws_task, outcome_task, expire_task):
+    shadow_task.cancel()
+    for t in (ws_task, outcome_task, expire_task, shadow_task):
         try:
             await t
         except asyncio.CancelledError:
@@ -3467,6 +3605,22 @@ async def setup_detail(setup_id: str):
     if not data:
         raise HTTPException(404, "Setup not found")
     return {"ok": True, **data}
+
+
+@app.get("/analytics/setups/today_summary")
+async def setups_today_summary():
+    """Phase 3.1: Today's shadow trade summary."""
+    from database import get_today_shadow_summary
+    summary = await get_today_shadow_summary()
+    return {"ok": True, **summary}
+
+
+@app.get("/analytics/setups/closed")
+async def setups_closed(date: str = None, limit: int = 100):
+    """Phase 3.1: Closed setups with simulation results."""
+    from database import get_closed_setups
+    setups = await get_closed_setups(date=date, limit=limit)
+    return {"ok": True, "count": len(setups), "setups": setups}
 
 
 @app.get("/analytics/by_score_bucket")
