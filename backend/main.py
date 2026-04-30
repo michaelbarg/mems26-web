@@ -685,9 +685,13 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "footprint_score": int(score_result.get("breakdown", {}).get("footprint", 0)),
                     "score_reasons": " | ".join(score_result.get("reasons", []))[:500],
                 }
-                log.warning(f"[PHASE6_DEBUG] About to insert: score={_score_total}, fields={list(_attempt_data.keys())}")
+                log.warning(f"[PHASE6_DEBUG] insert: score={_score_total} "
+                            f"v={_attempt_data.get('vegas_score')} t={_attempt_data.get('tpo_score')} "
+                            f"f={_attempt_data.get('fvg_score')} fp={_attempt_data.get('footprint_score')} "
+                            f"c1={_attempt_data.get('c1_target')} be={_attempt_data.get('be_strategy')} "
+                            f"fields={len(_attempt_data)}")
                 result_id = await insert_attempt(_attempt_data)
-                log.warning(f"[PHASE6_DEBUG] Insert returned: {result_id}")
+                log.warning(f"[PHASE6_DEBUG] Insert OK id={result_id}")
                 log.info(f"[PHASE6_INSERT] SUCCESS: {direction} score={_score_total} day={day_type}")
             except Exception as e:
                 log.warning(f"[PHASE6_INSERT] FAILED: {e}", exc_info=True)
@@ -3252,7 +3256,9 @@ async def attempts_recent_with_score(limit: int = 10):
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             "SELECT id, ts, direction, setup_quality_score, health_score_at_entry, "
-            "day_type, is_shadow, entry_mode "
+            "day_type, is_shadow, entry_mode, "
+            "vegas_score, tpo_score, fvg_score, footprint_score, "
+            "score_reasons, c1_target, c2_target, c3_target, c3_enabled, be_strategy "
             "FROM setup_attempts "
             "WHERE setup_quality_score IS NOT NULL "
             "ORDER BY ts DESC LIMIT $1",
@@ -3308,6 +3314,97 @@ async def analytics_by_score_bucket():
             b["wr"] = round(b["hit_c1"] / total * 100, 1) if total > 0 else 0
             result[bucket] = b
         return {"ok": True, "buckets": result}
+
+
+@app.get("/analytics/data_quality_check")
+async def data_quality_check():
+    """Sprint 6 Calibration: verify data completeness."""
+    from database import get_pool
+    import time as _t
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database"}
+    cutoff = int(_t.time()) - 86400
+    async with pool.acquire() as conn:
+        total = await conn.fetchval(
+            "SELECT COUNT(*) FROM setup_attempts WHERE ts >= $1", cutoff)
+        with_outcome = await conn.fetchval(
+            "SELECT COUNT(*) FROM setup_attempts WHERE ts >= $1 AND extra_json->>'outcome' IS NOT NULL", cutoff)
+        with_components = await conn.fetchval(
+            "SELECT COUNT(*) FROM setup_attempts WHERE ts >= $1 AND vegas_score IS NOT NULL", cutoff)
+        with_day_type = await conn.fetchval(
+            "SELECT COUNT(*) FROM setup_attempts WHERE ts >= $1 AND day_type IS NOT NULL", cutoff)
+        with_killzone = await conn.fetchval(
+            "SELECT COUNT(*) FROM setup_attempts WHERE ts >= $1 AND killzone IS NOT NULL", cutoff)
+        dir_row = await conn.fetchrow("""
+            SELECT
+                COUNT(*) FILTER (WHERE direction='LONG') as long,
+                COUNT(*) FILTER (WHERE direction='SHORT') as short
+            FROM setup_attempts WHERE ts >= $1
+        """, cutoff)
+        score_row = await conn.fetchrow("""
+            SELECT MIN(setup_quality_score) as mn, MAX(setup_quality_score) as mx,
+                   ROUND(AVG(setup_quality_score)::numeric, 1) as avg,
+                   ROUND(STDDEV(setup_quality_score)::numeric, 1) as sd
+            FROM setup_attempts WHERE ts >= $1 AND setup_quality_score IS NOT NULL
+        """, cutoff)
+    long_c = dir_row["long"] if dir_row else 0
+    short_c = dir_row["short"] if dir_row else 0
+    completeness = round(with_components / total * 100, 1) if total > 0 else 0
+    warnings = []
+    if total > 0 and short_c > 0 and long_c / short_c > 5:
+        warnings.append(f"{round(long_c/total*100)}% LONG bias detected")
+    if completeness < 80:
+        warnings.append(f"Only {completeness}% have component scores")
+    if with_outcome < total * 0.5 and total > 20:
+        warnings.append(f"Only {round(with_outcome/total*100)}% have outcomes")
+    return {
+        "ok": True,
+        "checks": {
+            "total_attempts_24h": total,
+            "with_outcome": with_outcome,
+            "with_component_scores": with_components,
+            "with_day_type": with_day_type,
+            "with_killzone": with_killzone,
+            "completeness_pct": completeness,
+            "direction_balance": {"long": long_c, "short": short_c,
+                                  "ratio": round(long_c / short_c, 1) if short_c > 0 else float("inf")},
+            "score_distribution": dict(score_row) if score_row else {},
+        },
+        "warnings": warnings,
+    }
+
+
+@app.get("/analytics/component_correlation")
+async def component_correlation():
+    """Sprint 6 Calibration: which components predict success?"""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database"}
+    components = {}
+    async with pool.acquire() as conn:
+        for comp in ("vegas", "tpo", "fvg", "footprint"):
+            col = f"{comp}_score"
+            row = await conn.fetchrow(f"""
+                SELECT
+                    ROUND(AVG(CASE WHEN extra_json->>'outcome'='HIT_C1' THEN {col} END)::numeric, 1) as avg_win,
+                    ROUND(AVG(CASE WHEN extra_json->>'outcome'='HIT_STOP' THEN {col} END)::numeric, 1) as avg_loss,
+                    COUNT(*) FILTER (WHERE extra_json->>'outcome'='HIT_C1') as n_win,
+                    COUNT(*) FILTER (WHERE extra_json->>'outcome'='HIT_STOP') as n_loss
+                FROM setup_attempts
+                WHERE {col} IS NOT NULL AND extra_json->>'outcome' IN ('HIT_C1','HIT_STOP')
+            """)
+            avg_win = float(row["avg_win"]) if row and row["avg_win"] else 0
+            avg_loss = float(row["avg_loss"]) if row and row["avg_loss"] else 0
+            components[comp] = {
+                "avg_when_win": avg_win, "avg_when_loss": avg_loss,
+                "delta": round(avg_win - avg_loss, 1),
+                "n_win": row["n_win"] if row else 0,
+                "n_loss": row["n_loss"] if row else 0,
+            }
+    ranking = sorted(components.keys(), key=lambda c: components[c]["delta"], reverse=True)
+    return {"ok": True, "components": components, "ranking": ranking}
 
 
 _OUTCOME_FILTER = """
