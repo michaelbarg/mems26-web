@@ -899,6 +899,7 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                     setup_type, score_reasons, peak_score, observation_count,
                     contracts_used,
                     t1_hit, t2_hit, t3_hit, stop_hit,
+                    mae_pts, mfe_pts,
                     CASE
                         WHEN closed_ts IS NOT NULL AND first_detected_ts IS NOT NULL
                         THEN ROUND((closed_ts - first_detected_ts) / 60.0)

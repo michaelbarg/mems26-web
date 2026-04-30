@@ -434,6 +434,8 @@ async def _shadow_simulator_loop():
                     bars.sort(key=lambda b: b.get("ts", 0))
                     updates = {}
                     closed = False
+                    mae = 0.0  # worst drawdown (positive = bad)
+                    mfe = 0.0  # best run (positive = good)
                     for b in bars:
                         bh = b.get("h", b.get("high", 0)) or 0
                         bl = b.get("l", b.get("low", 0)) or 0
@@ -441,6 +443,17 @@ async def _shadow_simulator_loop():
                         bts = b.get("ts", 0)
                         if bh == 0 or bl == 0:
                             continue
+                        # Track MAE/MFE
+                        if is_long:
+                            adverse = entry - bl
+                            favorable = bh - entry
+                        else:
+                            adverse = bh - entry
+                            favorable = entry - bl
+                        if adverse > mae:
+                            mae = adverse
+                        if favorable > mfe:
+                            mfe = favorable
                         # EOD check
                         bar_dt = datetime.fromtimestamp(bts, tz=ZoneInfo("America/New_York"))
                         if bar_dt.hour >= 15 and bar_dt.minute >= 59:
@@ -532,6 +545,10 @@ async def _shadow_simulator_loop():
                                                contracts_used=contracts, status="CLOSED")
                                 closed = True
                                 break
+                    # Always write MAE/MFE (even for open setups — track live drawdown)
+                    if mae > 0 or mfe > 0:
+                        updates["mae_pts"] = round(mae, 2)
+                        updates["mfe_pts"] = round(mfe, 2)
                     if updates:
                         if not closed:
                             updates["contracts_used"] = contracts
@@ -3713,6 +3730,7 @@ async def setups_resimulate():
                 t1_hit=FALSE, t1_hit_ts=NULL, t2_hit=FALSE, t2_hit_ts=NULL,
                 t3_hit=FALSE, t3_hit_ts=NULL, stop_hit=FALSE, stop_hit_ts=NULL,
                 closed_ts=NULL, close_reason=NULL, pnl_pts=NULL, pnl_usd=NULL,
+                mae_pts=NULL, mfe_pts=NULL,
                 status='LIVE'
             WHERE initial_entry IS NOT NULL AND initial_entry > 0
         """)
