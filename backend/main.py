@@ -444,7 +444,6 @@ async def _shadow_simulator_loop():
                         # EOD check
                         bar_dt = datetime.fromtimestamp(bts, tz=ZoneInfo("America/New_York"))
                         if bar_dt.hour >= 15 and bar_dt.minute >= 59:
-                            # Flatten at EOD
                             pnl = 0.0
                             for ci in range(contracts):
                                 if ci == 0 and t1_hit:
@@ -454,48 +453,25 @@ async def _shadow_simulator_loop():
                                 elif ci == 1 and t2_hit:
                                     pnl += 2 * R
                                 elif ci == 1:
-                                    be = entry if t1_hit else stop
                                     pnl += (bc - entry) if is_long else (entry - bc)
                                 elif ci == 2 and t3_hit:
                                     pnl += 3 * R
                                 elif ci == 2:
                                     pnl += (bc - entry) if is_long else (entry - bc)
-                            updates.update(closed_ts=bts, close_reason="EOD_FLATTEN",
+                            reason = "EOD_FLATTEN"
+                            if t3_hit:
+                                reason = "T3_FULL"
+                            elif t2_hit:
+                                reason = "T2_PARTIAL_EOD"
+                            elif t1_hit:
+                                reason = "T1_PARTIAL_EOD"
+                            updates.update(closed_ts=bts, close_reason=reason,
                                            pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
                                            contracts_used=contracts, status="CLOSED")
                             closed = True
                             break
-                        # Stop check
-                        eff_stop = entry if t2_hit else stop
-                        if not stop_hit:
-                            if (is_long and bl <= eff_stop) or (not is_long and bh >= eff_stop):
-                                stop_hit = True
-                                updates["stop_hit"] = True
-                                updates["stop_hit_ts"] = bts
-                                pnl = 0.0
-                                for ci in range(contracts):
-                                    if ci == 0 and t1_hit:
-                                        pnl += R
-                                    elif ci == 0:
-                                        pnl += -R
-                                    elif ci == 1 and t2_hit:
-                                        pnl += 2 * R
-                                    elif ci == 1 and t1_hit:
-                                        pnl += 0  # BE
-                                    elif ci == 1:
-                                        pnl += -R
-                                    elif ci == 2 and t3_hit:
-                                        pnl += 3 * R
-                                    elif ci == 2 and t2_hit:
-                                        pnl += 0  # BE
-                                    elif ci == 2:
-                                        pnl += -R
-                                updates.update(closed_ts=bts, close_reason="STOP",
-                                               pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
-                                               contracts_used=contracts, status="CLOSED")
-                                closed = True
-                                break
-                        # Target checks
+
+                        # CHECK TARGETS FIRST (favorable assumption within same bar)
                         if not t1_hit and t1 > 0:
                             if (is_long and bh >= t1) or (not is_long and bl <= t1):
                                 t1_hit = True
@@ -511,8 +487,47 @@ async def _shadow_simulator_loop():
                                 t3_hit = True
                                 updates["t3_hit"] = True
                                 updates["t3_hit_ts"] = bts
-                                pnl = R + 2 * R + 3 * R  # full 3-target win
+                                # All 3 targets hit → full close
+                                pnl = R + 2 * R + 3 * R
                                 updates.update(closed_ts=bts, close_reason="T3_FULL",
+                                               pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
+                                               contracts_used=contracts, status="CLOSED")
+                                closed = True
+                                break
+
+                        # THEN CHECK STOP (after targets — same bar favors targets)
+                        eff_stop = entry if t2_hit else stop
+                        if not stop_hit:
+                            if (is_long and bl <= eff_stop) or (not is_long and bh >= eff_stop):
+                                stop_hit = True
+                                updates["stop_hit"] = True
+                                updates["stop_hit_ts"] = bts
+                                pnl = 0.0
+                                for ci in range(contracts):
+                                    if ci == 0 and t1_hit:
+                                        pnl += R  # C1 already won
+                                    elif ci == 0:
+                                        pnl -= R  # C1 stopped
+                                    elif ci == 1 and t2_hit:
+                                        pnl += 2 * R  # C2 already won
+                                    elif ci == 1 and t1_hit:
+                                        pnl += 0  # C2 at BE
+                                    elif ci == 1:
+                                        pnl -= R  # C2 stopped
+                                    elif ci == 2 and t3_hit:
+                                        pnl += 3 * R
+                                    elif ci == 2 and t2_hit:
+                                        pnl += 0  # C3 at BE
+                                    elif ci == 2:
+                                        pnl -= R
+                                # Determine close_reason based on highest target hit
+                                if t2_hit:
+                                    reason = "T2_PARTIAL_STOP"
+                                elif t1_hit:
+                                    reason = "T1_PARTIAL_STOP"
+                                else:
+                                    reason = "STOP"
+                                updates.update(closed_ts=bts, close_reason=reason,
                                                pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
                                                contracts_used=contracts, status="CLOSED")
                                 closed = True
@@ -3604,6 +3619,25 @@ async def setups_today_summary():
     from database import get_today_shadow_summary
     summary = await get_today_shadow_summary()
     return {"ok": True, **summary}
+
+
+@app.post("/analytics/setups/resimulate")
+async def setups_resimulate():
+    """Reset simulation state so worker re-processes all setups."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False}
+    async with pool.acquire() as conn:
+        result = await conn.execute("""
+            UPDATE setups SET
+                t1_hit=FALSE, t1_hit_ts=NULL, t2_hit=FALSE, t2_hit_ts=NULL,
+                t3_hit=FALSE, t3_hit_ts=NULL, stop_hit=FALSE, stop_hit_ts=NULL,
+                closed_ts=NULL, close_reason=NULL, pnl_pts=NULL, pnl_usd=NULL,
+                status='LIVE'
+            WHERE initial_entry IS NOT NULL AND initial_entry > 0
+        """)
+    return {"ok": True, "detail": "All setups reset for re-simulation"}
 
 
 @app.get("/analytics/setups/closed")
