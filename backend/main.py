@@ -3598,15 +3598,6 @@ async def setups_recent(limit: int = 50, status: str = None):
     return {"ok": True, "count": len(setups), "setups": setups}
 
 
-@app.get("/analytics/setups/{setup_id}")
-async def setup_detail(setup_id: str):
-    from database import get_setup_with_observations
-    data = await get_setup_with_observations(setup_id)
-    if not data:
-        raise HTTPException(404, "Setup not found")
-    return {"ok": True, **data}
-
-
 @app.get("/analytics/setups/today_summary")
 async def setups_today_summary():
     """Phase 3.1: Today's shadow trade summary."""
@@ -3621,6 +3612,15 @@ async def setups_closed(date: str = None, limit: int = 100):
     from database import get_closed_setups
     setups = await get_closed_setups(date=date, limit=limit)
     return {"ok": True, "count": len(setups), "setups": setups}
+
+
+@app.get("/analytics/setups/{setup_id}")
+async def setup_detail(setup_id: str):
+    from database import get_setup_with_observations
+    data = await get_setup_with_observations(setup_id)
+    if not data:
+        raise HTTPException(404, "Setup not found")
+    return {"ok": True, **data}
 
 
 @app.get("/analytics/by_score_bucket")
