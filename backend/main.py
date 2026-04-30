@@ -3310,6 +3310,101 @@ async def analytics_by_score_bucket():
         return {"ok": True, "buckets": result}
 
 
+_OUTCOME_FILTER = """
+    setup_quality_score IS NOT NULL
+    AND extra_json->>'outcome' IN ('HIT_C1', 'HIT_STOP', 'TIMEOUT')
+"""
+
+
+@app.get("/analytics/by_killzone")
+async def analytics_by_killzone():
+    """Win rate breakdown by killzone."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database"}
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(f"""
+            SELECT
+                COALESCE(killzone, 'UNKNOWN') as killzone,
+                COUNT(*) as count,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_C1') as hit_c1,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_STOP') as hit_stop,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'TIMEOUT') as timeout,
+                ROUND(AVG(hypothetical_mfe_60min_pts)::numeric, 2) as avg_mfe,
+                ROUND(AVG(hypothetical_mae_60min_pts)::numeric, 2) as avg_mae
+            FROM setup_attempts
+            WHERE {_OUTCOME_FILTER}
+            GROUP BY killzone
+            ORDER BY count DESC
+        """)
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["wr"] = round(d["hit_c1"] / d["count"] * 100, 1) if d["count"] > 0 else 0
+            result.append(d)
+        return {"ok": True, "killzones": result}
+
+
+@app.get("/analytics/by_day_type")
+async def analytics_by_day_type():
+    """Win rate breakdown by day type."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database"}
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(f"""
+            SELECT
+                COALESCE(day_type, 'UNKNOWN') as day_type,
+                COUNT(*) as count,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_C1') as hit_c1,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_STOP') as hit_stop,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'TIMEOUT') as timeout,
+                ROUND(AVG(hypothetical_mfe_60min_pts)::numeric, 2) as avg_mfe,
+                ROUND(AVG(hypothetical_mae_60min_pts)::numeric, 2) as avg_mae
+            FROM setup_attempts
+            WHERE {_OUTCOME_FILTER}
+            GROUP BY day_type
+            ORDER BY count DESC
+        """)
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["wr"] = round(d["hit_c1"] / d["count"] * 100, 1) if d["count"] > 0 else 0
+            result.append(d)
+        return {"ok": True, "day_types": result}
+
+
+@app.get("/analytics/by_direction_hour")
+async def analytics_by_direction_hour():
+    """Win rate by direction + hour of day (UTC)."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database"}
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(f"""
+            SELECT
+                direction,
+                EXTRACT(HOUR FROM TO_TIMESTAMP(ts) AT TIME ZONE 'America/New_York')::int as hour_et,
+                COUNT(*) as count,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_C1') as hit_c1,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_STOP') as hit_stop,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'TIMEOUT') as timeout
+            FROM setup_attempts
+            WHERE {_OUTCOME_FILTER}
+            GROUP BY direction, hour_et
+            ORDER BY hour_et, direction
+        """)
+        result = []
+        for r in rows:
+            d = dict(r)
+            d["wr"] = round(d["hit_c1"] / d["count"] * 100, 1) if d["count"] > 0 else 0
+            result.append(d)
+        return {"ok": True, "breakdown": result}
+
+
 def _trades_to_csv(trades: list) -> str:
     """Convert trade dicts to CSV string with all fields flattened."""
     import io, csv
