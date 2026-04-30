@@ -690,6 +690,22 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
             _kz = _kzn
             break
 
+    # Phase 6.B.3: Strategic tags from DLL data (shared by both directions)
+    # Field names verified: volume_context.rel_vol, cvd.trend, vwap.above, session_min
+    _vol_ctx = data.get("volume_context") or {}
+    _cvd_data = data.get("cvd") or {}
+    _vwap_data = data.get("vwap") or {}
+    _rel_vol = _vol_ctx.get("rel_vol")
+    _cvd_dir = _cvd_data.get("trend")  # BULLISH/BEARISH/NEUTRAL
+    _vwap_above = _vwap_data.get("above")  # true/false string or bool
+    if isinstance(_vwap_above, str):
+        _vwap_side = "above" if _vwap_above == "true" else "below"
+    elif isinstance(_vwap_above, bool):
+        _vwap_side = "above" if _vwap_above else "below"
+    else:
+        _vwap_side = None
+    _ses_min = data.get("session_min")
+
     for log_direction in ('LONG', 'SHORT'):
         try:
             # Compute score for THIS direction (not just request direction)
@@ -757,6 +773,11 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "fvg_score": _fvg_s,
                     "footprint_score": _fp_s,
                     "score_reasons": _reasons_str,
+                    # Phase 6.B.3: Strategic tags
+                    "rel_vol_at_entry": _rel_vol,
+                    "cvd_direction_at_entry": _cvd_dir,
+                    "vwap_side": _vwap_side,
+                    "minutes_into_session": _ses_min if isinstance(_ses_min, int) else None,
                 }
                 result_id = await insert_attempt(_attempt_data)
                 log.info(f"[PHASE6_DUAL] INSERT id={result_id} {log_direction} score={score_dir}")
