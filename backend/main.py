@@ -312,6 +312,11 @@ async def _calculate_attempt_outcome(attempt: dict):
 
     # Filter bars in the 60-min window after entry
     bars = [b for b in candles if ts_start <= b.get("ts", 0) <= ts_end]
+
+    log.info(f"[OUTCOME_DEBUG] id={attempt_id} ts_range={ts_start}-{ts_end} total_candles={len(candles)} bars_in_window={len(bars)}")
+    if bars:
+        log.info(f"[OUTCOME_DEBUG] first_bar_ts={bars[0].get('ts')} last_bar_ts={bars[-1].get('ts')} sample={bars[0]}")
+
     if len(bars) < 3:
         log.info(f"[OUTCOME] Too few bars ({len(bars)}) for attempt {attempt_id} ts={ts_start}")
         return
@@ -628,6 +633,10 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
         day_type = day_class.get("type")
 
     score_result = calculate_quality_score(data, direction, day_type)
+    # Fallback: if day_type is None, try getting it from score_result
+    day_type = day_type or score_result.get("day_type_used")
+    log.info(f"[PHASE6_DAYTYPE] raw={day_class.get('type')} fallback={score_result.get('day_type_used')} final={day_type}")
+
     position = determine_position_size(score_result["total"], "DEMO", day_type)
     targets = calculate_targets(entry, stop, direction, data, day_type)
     be_strategy = get_be_strategy(day_type)
@@ -3253,6 +3262,43 @@ async def attempts_with_outcomes(limit: int = 20):
     from database import get_attempts_with_outcomes
     attempts = await get_attempts_with_outcomes(limit=limit)
     return {"ok": True, "count": len(attempts), "attempts": attempts}
+
+
+@app.get("/analytics/by_score_bucket")
+async def analytics_by_score_bucket():
+    """Score bucket breakdown with win rates."""
+    from database import get_pool
+    pool = await get_pool()
+    if not pool:
+        return {"ok": False, "error": "no database"}
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT
+                CASE
+                    WHEN setup_quality_score >= 70 THEN '70+'
+                    WHEN setup_quality_score >= 50 THEN '50-69'
+                    WHEN setup_quality_score >= 30 THEN '30-49'
+                    ELSE '<30'
+                END as bucket,
+                COUNT(*) as count,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_C1') as hit_c1,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'HIT_STOP') as hit_stop,
+                COUNT(*) FILTER (WHERE extra_json->>'outcome' = 'TIMEOUT') as timeout,
+                ROUND(AVG(hypothetical_mfe_60min_pts)::numeric, 2) as avg_mfe,
+                ROUND(AVG(hypothetical_mae_60min_pts)::numeric, 2) as avg_mae
+            FROM setup_attempts
+            WHERE setup_quality_score IS NOT NULL
+            GROUP BY bucket
+            ORDER BY bucket
+        """)
+        result = {}
+        for r in rows:
+            b = dict(r)
+            bucket = b.pop("bucket")
+            total = b["count"]
+            b["wr"] = round(b["hit_c1"] / total * 100, 1) if total > 0 else 0
+            result[bucket] = b
+        return {"ok": True, "buckets": result}
 
 
 def _trades_to_csv(trades: list) -> str:
