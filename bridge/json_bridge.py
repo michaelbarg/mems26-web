@@ -413,6 +413,7 @@ def enrich(raw):
     vegas   = raw.get("vegas")                 # V7.10.0: Vegas Tunnel (may be None)
     tpo     = raw.get("tpo")                   # V7.11.0: TPO Dual Study (may be None)
     triggers= raw.get("triggers")              # V7.12.0: Trigger events (may be None)
+    day_classification = raw.get("day_classification")  # V7.13.0: Day Type Classifier
 
     # Day context — מה-Study ישירות
     day_type    = dc_study.get("day_type", "DEVELOPING")
@@ -575,6 +576,9 @@ def enrich(raw):
 
         # V7.12.0: Trigger events (None if DLL < v7.12.0)
         "triggers": triggers,
+
+        # V7.13.0: Day Classification (type, confidence, metrics)
+        "day_classification": day_classification,
     }
 
 

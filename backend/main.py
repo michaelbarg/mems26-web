@@ -912,13 +912,18 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
     if day_type_override and day_type_override in VALID_DAY_TYPES:
         day_type = day_type_override
     else:
-        # Try day_classification first (DLL v7.13.0+), fallback to day_context
-        day_type = day_class.get("type") or (data.get("day") or {}).get("type")
-        # Map old DLL day_type names to V8.0 names
-        _dt_map = {"TRENDING": "TREND_DAY", "NORMAL_TRENDING": "TREND_DAY",
-                    "BALANCED": "RANGE_DAY", "VOLATILE": "RANGE_DAY"}
-        if day_type in _dt_map:
-            day_type = _dt_map[day_type]
+        # V8.1.4: Use day_classification if confidence >= 0.5, else fallback to day_context
+        _dc_type = day_class.get("type")
+        _dc_conf = day_class.get("confidence", 0) or 0
+        if _dc_type and _dc_type != "DEVELOPING" and _dc_conf >= 0.5:
+            day_type = _dc_type
+        else:
+            # Fallback to day_context (Bridge legacy field)
+            day_type = (data.get("day") or {}).get("type")
+            _dt_map = {"TRENDING": "TREND_DAY", "NORMAL_TRENDING": "TREND_DAY",
+                        "BALANCED": "RANGE_DAY", "VOLATILE": "RANGE_DAY"}
+            if day_type in _dt_map:
+                day_type = _dt_map[day_type]
 
     score_result = calculate_quality_score(data, direction, day_type)
     # Fallback: if day_type is None, try getting it from score_result
