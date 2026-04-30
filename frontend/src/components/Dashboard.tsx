@@ -3496,7 +3496,7 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             <TriggerPanel />
             <VegasTunnelPanel />
             <SetupsTable apiUrl={API_URL} />
-            <AttemptsTable apiUrl={API_URL} onHighlight={setHighlightedSetup} />
+            <AttemptsTable apiUrl={API_URL} />
           </div>
         )}
 

@@ -14,61 +14,32 @@ const API_URL = 'https://mems26-web.onrender.com';
 
 interface Trade {
   id: string;
+  ts?: number;
   direction: string;
-  entry_price: number;
-  exit_price: number;
+  entry_price?: number;
+  entry?: number;
+  exit_price?: number;
   stop: number;
   t1: number;
   t2: number;
   t3: number;
-  risk_pts: number;
+  risk_pts?: number;
   pnl_pts: number;
   pnl_usd: number;
-  entry_ts: number;
-  exit_ts: number;
+  entry_ts?: number;
+  exit_ts?: number;
   status: string;
   close_reason: string;
-  setup_type: string;
+  setup_type?: string;
   day_type: string;
   killzone: string;
   is_shadow: boolean;
-  cb_respected: boolean;
-  mae_pts: number;
-  mfe_pts: number;
-  duration_min: number;
-  // Strategic tags
-  day_type_at_entry?: string;
-  killzone_at_entry?: string;
-  minutes_into_session?: number;
-  cb_state_at_entry?: string;
-  news_state_at_entry?: string;
-  day_pnl_before_entry?: number;
-  setup_number_today?: number;
-  rel_vol_at_entry?: number;
-  cvd_direction_at_entry?: string;
-  mtf_aligned?: boolean;
-  vwap_side?: string;
-  sweep_wick_pts_tag?: number;
-  fvg_size_pts?: number;
-  stacked_dominant_vol?: boolean;
-  bars_building_before_live?: number;
-  pillar_detail?: string;
-  pillars_passed?: number;
-  [key: string]: any;
-}
-
-interface Attempt {
-  id: number;
-  ts: number;
-  direction: string;
-  setup_type: string;
-  level_name: string;
-  level_price: number;
-  price_at_detect: number;
-  rejection_reason: string;
-  day_type: string;
-  killzone: string;
-  is_shadow: boolean;
+  cb_respected?: boolean;
+  mae_pts?: number;
+  mfe_pts?: number;
+  duration_min?: number;
+  score?: number;
+  source?: string;  // 'trade' | 'attempt'
   [key: string]: any;
 }
 
@@ -138,7 +109,6 @@ function JournalPage() {
 
   // Data
   const [trades, setTrades] = useState<Trade[]>([]);
-  const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
@@ -163,30 +133,34 @@ function JournalPage() {
     window.history.replaceState(null, '', qs ? `?${qs}` : '/journal');
   }, [fromDate, toDate, tradeTypes, dayTypes, killzones, setupTypes, outcomes, cbFilter, sortCol, sortDir]);
 
-  // Fetch data
+  // Fetch data — unified journal (trades + shadow attempts)
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set('limit', '500');
+      params.set('types', Array.from(tradeTypes).join(','));
       if (fromDate) params.set('from_date', fromDate);
       if (toDate) params.set('to_date', toDate);
 
-      const [tradesRes, attemptsRes] = await Promise.all([
-        fetch(`${API_URL}/trades/log?${params}`, { cache: 'no-store' }),
-        fetch(`${API_URL}/analytics/attempts?${params}`, { cache: 'no-store' }),
-      ]);
-
-      if (tradesRes.ok) setTrades(await tradesRes.json());
-      if (attemptsRes.ok) {
-        const data = await attemptsRes.json();
-        setAttempts(Array.isArray(data) ? data : []);
+      const res = await fetch(`${API_URL}/trades/log?${params}`, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        // Normalize fields: unified endpoint uses 'entry'/'ts', trades use 'entry_price'/'entry_ts'
+        const normalized = (Array.isArray(data) ? data : []).map((r: any) => ({
+          ...r,
+          entry_price: r.entry_price ?? r.entry ?? 0,
+          entry_ts: r.entry_ts ?? r.ts ?? 0,
+          score: r.score ?? r.setup_quality_score ?? 0,
+          source: r.source ?? 'trade',
+        }));
+        setTrades(normalized);
       }
     } catch (e) {
       console.error('Journal fetch failed:', e);
     }
     setLoading(false);
-  }, [fromDate, toDate]);
+  }, [fromDate, toDate, tradeTypes]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -216,7 +190,7 @@ function JournalPage() {
 
     // Setup type
     if (setupTypes.size > 0) {
-      result = result.filter(t => setupTypes.has(t.setup_type));
+      result = result.filter(t => setupTypes.has(t.setup_type || ''));
     }
 
     // Outcome
@@ -243,9 +217,6 @@ function JournalPage() {
 
     return result;
   }, [trades, tradeTypes, dayTypes, killzones, setupTypes, outcomes, cbFilter, sortCol, sortDir]);
-
-  // Include rejected attempts in display when "rejected" is checked
-  const showRejected = tradeTypes.has('rejected');
 
   const pagedTrades = filteredTrades.slice(0, (page + 1) * PAGE_SIZE);
 
@@ -361,8 +332,8 @@ function JournalPage() {
 
             {/* Trade Type */}
             <div>
-              <label className="block text-gray-500 mb-1">Trade Type</label>
-              {['shadow', 'live', 'rejected'].map(t => (
+              <label className="block text-gray-500 mb-1">Source</label>
+              {['shadow', 'live'].map(t => (
                 <label key={t} className="flex items-center gap-1.5 mb-0.5">
                   <input type="checkbox" checked={tradeTypes.has(t)} onChange={() => toggleSet(tradeTypes, setTradeTypes, t)} className="accent-blue-500" />
                   <span className="capitalize">{t}</span>
@@ -459,7 +430,7 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-left w-6">
                       <span title="Compare" className="cursor-pointer">Cmp</span>
                     </th>
-                    <th className="px-1 py-1.5 text-left w-6">Type</th>
+                    <th className="px-1 py-1.5 text-left w-12">Source</th>
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('entry_ts')}>Date{sortArrow('entry_ts')}</th>
                     <th className="px-1 py-1.5 text-left">Time</th>
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('direction')}>Side{sortArrow('direction')}</th>
@@ -480,9 +451,10 @@ function JournalPage() {
                 <tbody>
                   {pagedTrades.map(t => {
                     const pnl = t.pnl_pts || 0;
-                    const bgClass = t.status !== 'CLOSED' ? '' : pnl > 0 ? 'bg-green-950/30' : pnl < 0 ? 'bg-red-950/30' : '';
+                    const isAttempt = t.source === 'attempt';
+                    const bgClass = isAttempt ? 'bg-purple-950/10' : t.status !== 'CLOSED' ? '' : pnl > 0 ? 'bg-green-950/30' : pnl < 0 ? 'bg-red-950/30' : '';
                     return (
-                      <tr key={t.id} className={`border-b border-gray-900 hover:bg-gray-800/50 cursor-pointer ${bgClass}`}
+                      <tr key={`${t.source}_${t.id}`} className={`border-b border-gray-900 hover:bg-gray-800/50 cursor-pointer ${bgClass}`}
                         onClick={() => setSelectedTrade(t)}>
                         <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={compareIds.has(t.id)}
@@ -494,9 +466,13 @@ function JournalPage() {
                             }}
                             className="accent-blue-500" />
                         </td>
-                        <td className="px-1 py-1">{t.is_shadow ? '\uD83D\uDC41\uFE0F' : '\uD83D\uDCBC'}</td>
-                        <td className="px-1 py-1 whitespace-nowrap">{tsToDate(t.entry_ts)}</td>
-                        <td className="px-1 py-1 whitespace-nowrap">{tsToTime(t.entry_ts)}</td>
+                        <td className="px-1 py-1">
+                          {isAttempt
+                            ? <span className="bg-purple-900/50 text-purple-300 px-1 rounded text-[9px]">Shadow</span>
+                            : <span className="bg-cyan-900/50 text-cyan-300 px-1 rounded text-[9px]">Trade</span>}
+                        </td>
+                        <td className="px-1 py-1 whitespace-nowrap">{tsToDate(t.entry_ts || 0)}</td>
+                        <td className="px-1 py-1 whitespace-nowrap">{tsToTime(t.entry_ts || 0)}</td>
                         <td className={`px-1 py-1 font-bold ${t.direction === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>
                           {t.direction}
                         </td>
@@ -514,10 +490,9 @@ function JournalPage() {
                         <td className="px-1 py-1 text-right font-mono">{(t.mfe_pts || 0).toFixed(1)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.duration_min || 0).toFixed(0)}m</td>
                         <td className={`px-1 py-1 text-center font-mono font-bold ${
-                          (t.setup_quality_score || 0) >= 9 ? 'text-yellow-400' :
-                          (t.setup_quality_score || 0) >= 7 ? 'text-green-400' :
-                          (t.setup_quality_score || 0) >= 5 ? 'text-blue-400' : 'text-gray-500'
-                        }`}>{t.setup_quality_score || '-'}</td>
+                          (t.score || 0) >= 70 ? 'text-emerald-400' :
+                          (t.score || 0) >= 50 ? 'text-amber-400' : 'text-zinc-500'
+                        }`}>{t.score || '-'}</td>
                       </tr>
                     );
                   })}
@@ -530,64 +505,6 @@ function JournalPage() {
                   <button onClick={() => setPage(p => p + 1)} className="bg-gray-800 hover:bg-gray-700 px-4 py-1.5 rounded text-xs">
                     Load more ({filteredTrades.length - pagedTrades.length} remaining)
                   </button>
-                </div>
-              )}
-
-              {/* Shadow Attempts */}
-              {showRejected && attempts.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-sm font-bold text-gray-400 mb-2">Shadow Setups ({attempts.length})</h3>
-                  <div className="overflow-x-auto">
-                  <table className="w-full text-xs border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-800 text-gray-500">
-                        <th className="px-1 py-1 text-left">Source</th>
-                        <th className="px-1 py-1 text-left">Time</th>
-                        <th className="px-1 py-1 text-left">Dir</th>
-                        <th className="px-1 py-1 text-center">Score</th>
-                        <th className="px-1 py-1 text-left">Day</th>
-                        <th className="px-1 py-1 text-right">Entry</th>
-                        <th className="px-1 py-1 text-right">Stop</th>
-                        <th className="px-1 py-1 text-right">MAE</th>
-                        <th className="px-1 py-1 text-right">MFE</th>
-                        <th className="px-1 py-1 text-center">Status</th>
-                        <th className="px-1 py-1 text-left">Reason</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {attempts.slice(0, 100).map(a => {
-                        const score = a.setup_quality_score || a.health_score_at_entry || 0;
-                        const outcome = a.outcome || (a.extra_json && typeof a.extra_json === 'object' ? a.extra_json.outcome : null);
-                        const mae = a.hypothetical_mae_60min_pts;
-                        const mfe = a.hypothetical_mfe_60min_pts;
-                        const isPending = mae == null && (Date.now()/1000 - a.ts) < 3600;
-                        const statusBadge = isPending
-                          ? <span className="text-gray-500">{'\u23F0'}</span>
-                          : outcome === 'HIT_C1' ? <span className="text-green-400 font-bold">{'\u2705'} C1</span>
-                          : outcome === 'HIT_STOP' ? <span className="text-red-400 font-bold">{'\u274C'} Stop</span>
-                          : outcome === 'TIMEOUT' ? <span className="text-yellow-500">{'\u23F3'} TO</span>
-                          : mae != null ? <span className="text-gray-500">Done</span>
-                          : <span className="text-gray-600">{'\u23F0'}</span>;
-                        const scoreColor = score >= 70 ? 'text-green-400' : score >= 50 ? 'text-yellow-400' : 'text-gray-500';
-                        return (
-                        <tr key={a.id} className="border-b border-gray-900 bg-purple-950/10 hover:bg-gray-800/50">
-                          <td className="px-1 py-1"><span className="bg-purple-900/50 text-purple-300 px-1 rounded text-[9px]">Shadow</span></td>
-                          <td className="px-1 py-1 whitespace-nowrap">{tsToTime(a.ts)}</td>
-                          <td className={`px-1 py-1 font-bold ${a.direction === 'LONG' ? 'text-green-400' : 'text-red-400'}`}>{a.direction}</td>
-                          <td className={`px-1 py-1 text-center font-mono font-bold ${scoreColor}`}>{score || '-'}</td>
-                          <td className="px-1 py-1 text-gray-500">{a.day_type || '-'}</td>
-                          <td className="px-1 py-1 text-right font-mono">{a.entry_price_hypothetical ? a.entry_price_hypothetical.toFixed(1) : '-'}</td>
-                          <td className="px-1 py-1 text-right font-mono text-red-400/70">{a.stop_hypothetical ? a.stop_hypothetical.toFixed(1) : '-'}</td>
-                          <td className="px-1 py-1 text-right font-mono text-red-400/50">{mae != null ? mae.toFixed(1) : '-'}</td>
-                          <td className="px-1 py-1 text-right font-mono text-green-400/50">{mfe != null ? mfe.toFixed(1) : '-'}</td>
-                          <td className="px-1 py-1 text-center">{statusBadge}</td>
-                          <td className="px-1 py-1 text-gray-500 truncate max-w-[160px]">{a.rejection_reason || a.score_reasons || '-'}</td>
-                        </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                  </div>
                 </div>
               )}
 
@@ -776,7 +693,7 @@ function JournalCharts({ trades }: { trades: Trade[] }) {
       cum += t.pnl_pts || 0;
       return {
         idx: i + 1,
-        date: tsToDate(t.entry_ts),
+        date: tsToDate(t.entry_ts || 0),
         pnl: round2(t.pnl_pts || 0),
         cumPnl: round2(cum),
       };
