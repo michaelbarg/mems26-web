@@ -3369,6 +3369,7 @@ async def attempts_with_outcomes(limit: int = 20):
 @app.get("/analytics/setups/summary")
 async def setups_summary():
     """Quick stats — unique setups vs raw attempts (last 24h)."""
+    import time as _time
     from database import get_pool
     pool = await get_pool()
     if not pool:
@@ -3385,8 +3386,19 @@ async def setups_summary():
                 MAX(observation_count) as max_observations
             FROM setups
             WHERE first_detected_ts > $1
-        """, int(time.time()) - 86400)
-        return {"ok": True, **dict(row)}
+        """, int(_time.time()) - 86400)
+        if not row:
+            return {"ok": True, "total_setups": 0, "building": 0, "live": 0,
+                    "expired": 0, "executed": 0, "avg_observations": 0, "max_observations": 0}
+        result = {}
+        for k, v in dict(row).items():
+            if v is None:
+                result[k] = 0
+            elif hasattr(v, '__float__'):
+                result[k] = round(float(v), 2)
+            else:
+                result[k] = v
+        return {"ok": True, **result}
 
 
 @app.get("/analytics/setups/recent")
