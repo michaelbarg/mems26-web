@@ -286,6 +286,9 @@ async def init_db():
             ("close_reason", "TEXT"),
             ("pnl_pts", "REAL"),
             ("pnl_usd", "REAL"),
+            ("pnl_net_usd", "REAL"),
+            ("commissions_usd", "REAL"),
+            ("slippage_usd", "REAL"),
             ("contracts_used", "INTEGER"),
             ("executed_in_sim", "BOOLEAN DEFAULT FALSE"),
             ("sim_skip_reason", "TEXT"),
@@ -904,7 +907,7 @@ async def get_journal_unified(types: list = None, limit: int = 100, offset: int 
                     initial_entry as entry, initial_stop as stop,
                     c1_target as t1, c2_target as t2, c3_target as t3,
                     initial_score as score,
-                    pnl_pts, pnl_usd,
+                    pnl_pts, pnl_usd, pnl_net_usd, commissions_usd, slippage_usd,
                     CASE WHEN closed_ts IS NOT NULL THEN 'CLOSED' ELSE status END as status,
                     close_reason,
                     TRUE as is_shadow, day_type, killzone,
@@ -993,6 +996,7 @@ async def get_today_shadow_summary(min_score: int = 0) -> dict:
     async with pool.acquire() as conn:
         rows = await conn.fetch("""
             SELECT setup_id, direction, close_reason, pnl_pts, pnl_usd,
+                   pnl_net_usd, commissions_usd, slippage_usd,
                    contracts_used, killzone, day_type, peak_score, initial_score,
                    t1_hit, t2_hit, t3_hit, stop_hit, closed_ts
             FROM setups
@@ -1013,6 +1017,8 @@ async def get_today_shadow_summary(min_score: int = 0) -> dict:
     wins = [s for s in closed if (s.get("pnl_pts") or 0) > 0]
     losses = [s for s in closed if (s.get("pnl_pts") or 0) < 0]
     total_pnl = sum(s.get("pnl_usd") or 0 for s in closed)
+    total_pnl_net = sum(s.get("pnl_net_usd") or (s.get("pnl_usd") or 0) for s in closed)
+    total_costs = round(total_pnl - total_pnl_net, 2)
 
     best = max(closed, key=lambda s: s.get("pnl_usd") or 0) if closed else None
     worst = min(closed, key=lambda s: s.get("pnl_usd") or 0) if closed else None
@@ -1029,6 +1035,8 @@ async def get_today_shadow_summary(min_score: int = 0) -> dict:
         "breakeven": len(closed) - len(wins) - len(losses),
         "win_rate": round(len(wins) / len(closed) * 100, 1) if closed else 0,
         "total_pnl_usd": round(total_pnl, 2),
+        "total_pnl_net_usd": round(total_pnl_net, 2),
+        "total_costs_usd": total_costs,
         "avg_pnl_per_trade": round(total_pnl / len(closed), 2) if closed else 0,
         "best_trade": {"setup_id": best["setup_id"], "direction": best["direction"],
                        "pnl_usd": best.get("pnl_usd"), "close_reason": best.get("close_reason")} if best else None,

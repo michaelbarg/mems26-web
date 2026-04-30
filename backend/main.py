@@ -397,6 +397,14 @@ async def _calculate_attempt_outcome(attempt: dict):
 
 async def _shadow_simulator_loop():
     """Phase 3.1: Every 60s, simulate shadow trades for open setups."""
+    COMMISSION_PER_ROUND_TRIP = 1.50
+    SLIPPAGE_ON_STOP = 1.25
+
+    def _calc_net(pnl_usd, contracts, close_reason):
+        commissions = contracts * COMMISSION_PER_ROUND_TRIP
+        slippage = contracts * SLIPPAGE_ON_STOP if 'STOP' in (close_reason or '') else 0.0
+        return round(pnl_usd - commissions - slippage, 2), round(commissions, 2), round(slippage, 2)
+
     log.info("[SHADOW_SIM] Started")
     await asyncio.sleep(90)
     while True:
@@ -478,8 +486,11 @@ async def _shadow_simulator_loop():
                                 reason = "T2_PARTIAL_EOD"
                             elif t1_hit:
                                 reason = "T1_PARTIAL_EOD"
+                            pnl_usd = round(pnl * 5, 2)
+                            net, comm, slip = _calc_net(pnl_usd, contracts, reason)
                             updates.update(closed_ts=bts, close_reason=reason,
-                                           pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
+                                           pnl_pts=round(pnl, 2), pnl_usd=pnl_usd,
+                                           pnl_net_usd=net, commissions_usd=comm, slippage_usd=slip,
                                            contracts_used=contracts, status="CLOSED")
                             closed = True
                             break
@@ -502,8 +513,11 @@ async def _shadow_simulator_loop():
                                 updates["t3_hit_ts"] = bts
                                 # All 3 targets hit → full close
                                 pnl = R + 2 * R + 3 * R
+                                pnl_usd = round(pnl * 5, 2)
+                                net, comm, slip = _calc_net(pnl_usd, contracts, "T3_FULL")
                                 updates.update(closed_ts=bts, close_reason="T3_FULL",
-                                               pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
+                                               pnl_pts=round(pnl, 2), pnl_usd=pnl_usd,
+                                               pnl_net_usd=net, commissions_usd=comm, slippage_usd=slip,
                                                contracts_used=contracts, status="CLOSED")
                                 closed = True
                                 break
@@ -540,8 +554,11 @@ async def _shadow_simulator_loop():
                                     reason = "T1_PARTIAL_STOP"
                                 else:
                                     reason = "STOP"
+                                pnl_usd = round(pnl * 5, 2)
+                                net, comm, slip = _calc_net(pnl_usd, contracts, reason)
                                 updates.update(closed_ts=bts, close_reason=reason,
-                                               pnl_pts=round(pnl, 2), pnl_usd=round(pnl * 5, 2),
+                                               pnl_pts=round(pnl, 2), pnl_usd=pnl_usd,
+                                               pnl_net_usd=net, commissions_usd=comm, slippage_usd=slip,
                                                contracts_used=contracts, status="CLOSED")
                                 closed = True
                                 break

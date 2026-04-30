@@ -15,6 +15,8 @@ interface Summary {
   breakeven: number;
   win_rate: number;
   total_pnl_usd: number;
+  total_pnl_net_usd: number;
+  total_costs_usd: number;
   avg_pnl_per_trade: number;
   best_trade: { setup_id: string; direction: string; pnl_usd: number; close_reason: string } | null;
   worst_trade: { setup_id: string; direction: string; pnl_usd: number; close_reason: string } | null;
@@ -59,6 +61,7 @@ export default function ShadowTradesTodayCard() {
   if (!data) return null;
 
   const pnlColor = data.total_pnl_usd > 0 ? "#22c55e" : data.total_pnl_usd < 0 ? "#ef4444" : "#6b7280";
+  const netColor = (data.total_pnl_net_usd ?? data.total_pnl_usd) > 0 ? "#22c55e" : (data.total_pnl_net_usd ?? data.total_pnl_usd) < 0 ? "#ef4444" : "#6b7280";
 
   return (
     <div style={{ background: "#0d1117", border: "1px solid #1e2738", borderRadius: 6, padding: "8px 12px" }}>
@@ -90,10 +93,17 @@ export default function ShadowTradesTodayCard() {
           <div style={{ fontSize: 16, fontWeight: 700, color: "#ef4444" }}>{data.losses}</div>
         </div>
         <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 10, color: "#6b7280" }}>Net P&L</div>
-          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor, fontFamily: "monospace" }}>
-            {data.total_pnl_usd >= 0 ? "+" : ""}${data.total_pnl_usd.toFixed(0)}
+          <div style={{ fontSize: 10, color: "#6b7280" }}>P&L</div>
+          <div style={{ fontSize: 12, color: pnlColor, fontFamily: "monospace" }}>
+            Gross: {data.total_pnl_usd >= 0 ? "+" : ""}${data.total_pnl_usd.toFixed(0)}
           </div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: netColor, fontFamily: "monospace" }}
+               title={`After $${(data.total_costs_usd || 0).toFixed(0)} costs (commissions + slippage)`}>
+            Net: {(data.total_pnl_net_usd ?? data.total_pnl_usd) >= 0 ? "+" : ""}${(data.total_pnl_net_usd ?? data.total_pnl_usd).toFixed(0)}
+          </div>
+          {data.total_costs_usd > 0 && (
+            <div style={{ fontSize: 9, color: "#6b7280" }}>after ${data.total_costs_usd.toFixed(0)} costs</div>
+          )}
         </div>
       </div>
 

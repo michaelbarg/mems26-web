@@ -2963,6 +2963,12 @@ function TradeLogSection() {
         <div style={{ display:'flex', gap:10, fontSize:14, fontWeight:700 }}>
           <span style={{ color:col }}>{(t.pnl_pts||0)>=0?'+':''}{t.pnl_pts?.toFixed(2)}pt</span>
           <span style={{ color:col }}>{(t.pnl_usd||0)>=0?'+':''}${t.pnl_usd?.toFixed(0)}</span>
+          {t.pnl_net_usd != null && (
+            <span style={{ color: t.pnl_net_usd >= 0 ? '#22c55e' : '#ef4444', fontSize:11 }}
+                  title={`Commissions: $${(t.commissions_usd||0).toFixed(2)} | Slippage: $${(t.slippage_usd||0).toFixed(2)}`}>
+              Net: {t.pnl_net_usd>=0?'+':''}${t.pnl_net_usd.toFixed(0)}
+            </span>
+          )}
           {t.rr_actual != null && <span style={{ color:'#f59e0b', fontSize:14 }}>R:R 1:{t.rr_actual.toFixed(1)}</span>}
         </div>
       </div>
