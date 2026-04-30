@@ -52,10 +52,14 @@ def sc_ts_to_utc(ts: int) -> int:
 ET = ZoneInfo("America/New_York")
 
 def is_trading_session() -> bool:
-    """MES futures trade Sun-Fri. Closed: Fri 16:00 → Sun 17:00 ET, daily break 16:00-17:00 ET."""
+    """MES futures trade Sun-Fri. Closed: Fri 16:00 → Sun 17:00 ET, daily break 16:00-17:00 ET.
+    DST-safe: uses ZoneInfo('America/New_York') which handles EDT/EST automatically."""
     now = datetime.now(ET)
     weekday = now.weekday()  # 0=Mon, 6=Sun
     t = now.time()
+    import os as _os
+    if _os.environ.get("BRIDGE_DEBUG_TZ") == "1":
+        log.info(f"[TZ] now_ET={now.isoformat()} wd={weekday} t={t} tzname={now.tzname()}")
 
     # Weekend: Friday 16:00 → Sunday 17:00
     if weekday == 4 and t >= dtime(16, 0):   # Friday after 16:00
