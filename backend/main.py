@@ -1119,13 +1119,19 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "minutes_into_session": _ses_min if isinstance(_ses_min, int) else None,
                     "filtered_reason": _filtered_reason,
                 }
-                # V8.2.7f: Shadow structural stop (extra_json, no schema change)
+                # W38: Shadow structural stop (multi-source, extra_json)
                 try:
                     from quality_score import compute_structural_stop_shadow
                     _trig_list = (data.get("triggers") or {}).get("active") or []
+                    _fp_candles = data.get("footprint") or []
                     _shadow_stop = compute_structural_stop_shadow(
-                        log_direction, entry_d, _trig_list)
+                        log_direction, entry_d, _trig_list, candles_recent=_fp_candles)
                     _attempt_data["extra_json"] = json.dumps({"shadow_structural_stop": _shadow_stop})
+                    if _shadow_stop.get("structural_stop_valid"):
+                        _sd = _shadow_stop
+                        _saves = "saves" if _sd["diff_pts"] < 0 else "adds"
+                        _reasons_str += f" | Shadow stop: {_sd['structural_stop_pts']}pt ({_sd['structural_stop_source']}, {_sd['structural_stop_quality']}) vs 5pt fixed — {_saves} {abs(_sd['diff_pts'])}pt"
+                        _attempt_data["score_reasons"] = _reasons_str[:500]
                 except Exception as _sse:
                     log.debug(f"[SHADOW_STOP] compute failed: {_sse}")
                 result_id = await insert_attempt(_attempt_data)
@@ -1158,12 +1164,13 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
 
                 _setup_id = generate_setup_id(log_direction, _setup_type, _level_name, _anchor_ts)
 
-                # V8.2.7h: Shadow structural stop for setups table
+                # W38: Shadow structural stop for setups table (multi-source)
                 _setup_extra = None
                 try:
                     from quality_score import compute_structural_stop_shadow
+                    _fp_candles2 = data.get("footprint") or []
                     _shadow_stop = compute_structural_stop_shadow(
-                        log_direction, entry_d, _triggers_active)
+                        log_direction, entry_d, _triggers_active, candles_recent=_fp_candles2)
                     _setup_extra = json.dumps({"shadow_structural_stop": _shadow_stop})
                     log.info(f"[SHADOW_STOP] setup={_setup_id} stop={_shadow_stop.get('structural_stop_price')}")
                 except Exception as _sse2:

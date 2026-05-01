@@ -313,61 +313,80 @@ def get_be_strategy(day_type: Optional[str] = None) -> str:
 def compute_structural_stop_shadow(
     direction: str, entry: float,
     triggers: list, candles_recent: list = None,
-    buffer: float = 1.0,
+    atr_14: float = None, buffer: float = 1.0,
 ) -> dict:
-    """V8.2.7f: SHADOW structural stop. Does NOT replace actual stop.
-    Stored in extra_json for Phase 3.2 comparison analysis."""
-    anchor = None
-    source = "unavailable"
+    """W38: Multi-source structural stop with priority ordering.
+    Tries 6 sources in order, returns FIRST that produces valid 3-15pt stop."""
+    MIN_PT = 3.0
+    MAX_PT = 15.0
+    sign = 1 if direction == "LONG" else -1
+    sources = []
 
-    # Priority 1: matching trigger (DLL structure)
-    for t in (triggers or []):
-        td = t.get("direction", "")
-        if direction == "LONG" and td in ("bullish", "long"):
-            pl = t.get("price_low")
-            if pl and pl > 0:
-                anchor = pl
-                source = f"trigger_{t.get('type', 'UNKNOWN')}"
-                break
-        elif direction == "SHORT" and td in ("bearish", "short"):
-            ph = t.get("price_high")
-            if ph and ph > 0:
-                anchor = ph
-                source = f"trigger_{t.get('type', 'UNKNOWN')}"
-                break
-
-    # Priority 2: candle scan fallback (20-bar lookback)
-    if anchor is None and candles_recent and len(candles_recent) >= 3:
-        recent = candles_recent[-20:]
+    # 1. trigger_FVG — deepest FVG matching direction
+    fvg = [t for t in (triggers or []) if t.get("type") == "FVG"
+           and ((direction == "LONG" and t.get("direction") in ("bullish", "long"))
+                or (direction == "SHORT" and t.get("direction") in ("bearish", "short")))]
+    if fvg:
         if direction == "LONG":
-            lows = [c.get("l") or c.get("low") or 0 for c in recent]
-            lows = [v for v in lows if v > 0]
-            if lows:
-                anchor = min(lows)
-                source = "candles_20bar"
+            anchor = min((t.get("price_low") or entry) for t in fvg)
         else:
-            highs = [c.get("h") or c.get("high") or 0 for c in recent]
-            highs = [v for v in highs if v > 0]
-            if highs:
-                anchor = max(highs)
-                source = "candles_20bar"
+            anchor = max((t.get("price_high") or entry) for t in fvg)
+        sources.append(("trigger_FVG", anchor))
 
-    if anchor is None:
-        return {"structural_stop_price": None, "structural_stop_pts": None,
-                "structural_stop_source": "unavailable", "structural_stop_valid": False}
+    # 2. trigger_SWEEP — swept level
+    sweep = [t for t in (triggers or []) if t.get("type") == "SWEEP"
+             and t.get("swept_price") and t.get("swept_price") > 0]
+    if sweep:
+        if direction == "LONG":
+            anchor = min(t["swept_price"] for t in sweep)
+        else:
+            anchor = max(t["swept_price"] for t in sweep)
+        sources.append(("trigger_SWEEP", anchor))
 
-    if direction == "LONG":
-        stop = round(anchor - buffer, 2)
-    else:
-        stop = round(anchor + buffer, 2)
+    # 3-5. recent_swing at 5/10/20 bar windows
+    if candles_recent:
+        for window, name in [(5, "swing_5bar"), (10, "swing_10bar"), (20, "swing_20bar")]:
+            if len(candles_recent) >= window:
+                last_n = candles_recent[-window:]
+                if direction == "LONG":
+                    vals = [c.get("l") or c.get("low") or 0 for c in last_n]
+                    vals = [v for v in vals if v > 0]
+                    if vals:
+                        sources.append((name, min(vals)))
+                else:
+                    vals = [c.get("h") or c.get("high") or 0 for c in last_n]
+                    vals = [v for v in vals if v > 0]
+                    if vals:
+                        sources.append((name, max(vals)))
 
-    risk = round(abs(entry - stop), 2)
-    valid = 3.0 <= risk <= 15.0
+    # 6. fallback_atr
+    if atr_14 and atr_14 > 0:
+        sources.append(("fallback_atr", entry - sign * (1.5 * atr_14)))
+
+    # Try each source — return first valid
+    for src_name, anchor in sources:
+        stop_price = round(anchor - sign * buffer, 2)
+        stop_pts = round(abs(entry - stop_price), 2)
+        if MIN_PT <= stop_pts <= MAX_PT:
+            quality = "tight" if stop_pts <= 7 else "normal" if stop_pts <= 12 else "wide"
+            if src_name == "fallback_atr":
+                quality = "fallback_atr"
+            diff = round(stop_pts - 5.0, 2)
+            return {
+                "structural_stop_price": stop_price,
+                "structural_stop_pts": stop_pts,
+                "structural_stop_source": src_name,
+                "structural_stop_anchor": round(anchor, 2),
+                "structural_stop_valid": True,
+                "structural_stop_quality": quality,
+                "fixed_stop_pts": 5.0,
+                "diff_pts": diff,
+                "structural_better": stop_pts < 5.0,
+            }
 
     return {
-        "structural_stop_price": stop,
-        "structural_stop_pts": risk,
-        "structural_stop_source": source,
-        "structural_stop_valid": valid,
-        "structural_stop_anchor": round(anchor, 2),
+        "structural_stop_price": None, "structural_stop_pts": None,
+        "structural_stop_source": "out_of_range", "structural_stop_anchor": None,
+        "structural_stop_valid": False, "structural_stop_quality": "out_of_range",
+        "fixed_stop_pts": 5.0, "diff_pts": None, "structural_better": None,
     }
