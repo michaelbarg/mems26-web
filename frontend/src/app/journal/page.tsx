@@ -75,6 +75,30 @@ export default function JournalPageWrapper() {
   );
 }
 
+const MES_DOLLAR_PER_PT = 5;
+
+function computeExitPrice(s: any): number | null {
+  if (!s.close_reason && !s.closed_ts) return null;
+  const cr = s.close_reason || '';
+  if (cr === 'STOP' || cr === 'FULL_STOP') return s.initial_stop || s.stop;
+  if (cr.includes('T3') || cr === 'HIT_C3') return s.c3_target || s.t3;
+  if (cr.includes('T2') || cr === 'HIT_C2') return s.c2_target || s.t2;
+  if (cr.includes('T1') || cr === 'HIT_C1') return s.c1_target || s.t1;
+  // Fallback: compute from pnl
+  const entry = s.initial_entry || s.entry_price || s.entry;
+  const contracts = s.contracts_used || 1;
+  if (entry && s.pnl_pts != null && contracts > 0) {
+    const ptsPerC = s.pnl_pts / contracts;
+    return s.direction === 'LONG' ? entry + ptsPerC : entry - ptsPerC;
+  }
+  return null;
+}
+
+function fmtHitTime(ts: number | null): string {
+  if (!ts) return '';
+  return new Date(ts * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/New_York' });
+}
+
 function JournalPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -529,7 +553,7 @@ function JournalPage() {
                         <td className="px-1 py-1 text-right font-mono">{((t.entry_price || t.entry) || 0).toFixed(2)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.stop || 0).toFixed(2)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.risk_pts || 0).toFixed(1)}</td>
-                        <td className="px-1 py-1 text-right font-mono">{t.exit_price ? t.exit_price.toFixed(2) : '-'}</td>
+                        <td className="px-1 py-1 text-right font-mono">{(t.exit_price || computeExitPrice(t))?.toFixed(2) || '-'}</td>
                         <td className={`px-1 py-1 text-right font-mono font-bold ${pnl > 0 ? 'text-green-400' : pnl < 0 ? 'text-red-400' : ''}`}>
                           {pnl ? fmtPts(pnl) : '-'}
                         </td>
@@ -637,6 +661,7 @@ function JournalPage() {
               <DetailRow label="Risk" value={`${(s.risk_pts || t.risk_pts || Math.abs((s.initial_entry||s.entry||0)-(s.initial_stop||s.stop||0))).toFixed(1)}pt`} />
               <DetailRow label="Day Type" value={s.day_type} />
               <DetailRow label="Killzone" value={s.killzone} />
+              {(() => { const ep = computeExitPrice(s); return ep ? <DetailRow label="Exit" value={ep.toFixed(2)} /> : null; })()}
               {s.close_reason && <DetailRow label="Close Reason" value={s.close_reason} />}
               {(s.pnl_pts != null || t.pnl_pts != null) && <DetailRow label="PnL" value={fmtPts(s.pnl_pts ?? t.pnl_pts)} highlight={s.pnl_pts ?? t.pnl_pts} />}
               {(s.pnl_usd != null || t.pnl_usd != null) && <DetailRow label="PnL $" value={fmtUsd(s.pnl_usd ?? t.pnl_usd)} highlight={s.pnl_usd ?? t.pnl_usd} />}
@@ -704,6 +729,65 @@ function JournalPage() {
                 </div>
               </div>
             )}
+
+            {/* Planned Targets + Potential PnL */}
+            {(() => {
+              const entry = s.initial_entry || s.entry_price || s.entry || 0;
+              const stop = s.initial_stop || s.stop || 0;
+              const dir = s.direction || 'LONG';
+              const isLong = dir === 'LONG';
+              const contracts = s.contracts_used || 3;
+              const targets = [
+                { name: 'T1', price: s.c1_target || s.t1, hit: s.t1_hit, hitTs: s.t1_hit_ts },
+                { name: 'T2', price: s.c2_target || s.t2, hit: s.t2_hit, hitTs: s.t2_hit_ts },
+                ...(s.c3_target || s.t3 ? [{ name: 'T3', price: s.c3_target || s.t3, hit: s.t3_hit, hitTs: s.t3_hit_ts }] : []),
+              ];
+              if (!entry || (!targets[0]?.price && !stop)) return null;
+              const calcPts = (p: number) => isLong ? p - entry : entry - p;
+              const calcPnl = (pts: number) => pts * contracts * MES_DOLLAR_PER_PT;
+              const maxPotential = targets.reduce((sum, tg) => sum + (tg.price ? calcPnl(calcPts(tg.price)) : 0), 0);
+              const actualPnl = s.pnl_usd ?? (s.pnl_pts != null ? s.pnl_pts * MES_DOLLAR_PER_PT : null);
+              return (
+                <div className="mt-3 border-t border-gray-800 pt-2">
+                  <h4 className="text-xs font-bold text-gray-400 mb-1">{'\uD83C\uDFAF'} Planned Targets</h4>
+                  <div className="space-y-1 text-[10px]">
+                    {targets.map(tg => {
+                      if (!tg.price) return null;
+                      const pts = calcPts(tg.price);
+                      const pnl = calcPnl(pts);
+                      return (
+                        <div key={tg.name} className="flex items-center gap-2">
+                          <span className="text-gray-400 w-6 font-bold">{tg.name}</span>
+                          <span className="font-mono text-green-400">{tg.price.toFixed(2)}</span>
+                          <span className="text-gray-500">({pts >= 0 ? '+' : ''}{pts.toFixed(1)}pt)</span>
+                          <span>{tg.hit ? <span className="text-green-400">{'\u2705'} Hit{tg.hitTs ? ` @ ${fmtHitTime(tg.hitTs)}` : ''}</span> : <span className="text-zinc-600">{'\u274C'} Not hit</span>}</span>
+                          <span className="text-gray-500 ml-auto">{'\u2192'} ${pnl >= 0 ? '+' : ''}{pnl.toFixed(0)}</span>
+                        </div>
+                      );
+                    })}
+                    {stop > 0 && (
+                      <div className="flex items-center gap-2 border-t border-gray-800 pt-1">
+                        <span className="text-gray-400 w-6 font-bold">Stop</span>
+                        <span className="font-mono text-red-400">{stop.toFixed(2)}</span>
+                        <span className="text-gray-500">({calcPts(stop) >= 0 ? '+' : ''}{calcPts(stop).toFixed(1)}pt)</span>
+                        <span>{s.stop_hit ? <span className="text-red-400">{'\u2705'} Hit{s.stop_hit_ts ? ` @ ${fmtHitTime(s.stop_hit_ts)}` : ''}</span> : <span className="text-zinc-600">Not hit</span>}</span>
+                        <span className="text-red-400/70 ml-auto">{'\u2192'} ${calcPnl(calcPts(stop)).toFixed(0)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between border-t border-gray-800 pt-1 text-[10px]">
+                      <span className="text-gray-500">Max potential ({contracts}c):</span>
+                      <span className="text-green-400 font-mono font-bold">${maxPotential.toFixed(0)}</span>
+                    </div>
+                    {actualPnl != null && (
+                      <div className="flex justify-between text-[10px]">
+                        <span className="text-gray-500">Actual P&L:</span>
+                        <span className={`font-mono font-bold ${actualPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>${actualPnl >= 0 ? '+' : ''}{actualPnl.toFixed(0)}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Score Reasoning */}
             {s.score_reasons && (
