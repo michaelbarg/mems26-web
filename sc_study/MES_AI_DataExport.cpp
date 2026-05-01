@@ -363,7 +363,16 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // ── Prev Day POC ──────────────────────────────────────────
     std::map<int,float> prev_pvm; float prev_day_poc=0; bool in_prev=false; SCDateTime prevD;
     for(int i=idx-1;i>=0;i--){SCDateTime bd=sc.BaseDateTimeIn[i].GetDate();if(!in_prev&&bd<today){in_prev=true;prevD=bd;}if(in_prev&&bd==prevD){float bh=sc.High[i],bl=sc.Low[i],bv=sc.Volume[i],vps=bv/((int)((bh-bl)/0.25f)+1);for(float p=bl;p<=bh+0.001f;p+=0.25f)prev_pvm[(int)(p*4)]+=vps;}else if(in_prev&&bd<prevD)break;}
-    if(!prev_pvm.empty()){float pmv=0;for(auto&kv:prev_pvm)if(kv.second>pmv){pmv=kv.second;prev_day_poc=kv.first/4.0f;}}
+    float prev_day_vah=0, prev_day_val=0;
+    if(!prev_pvm.empty()){float pmv=0;for(auto&kv:prev_pvm)if(kv.second>pmv){pmv=kv.second;prev_day_poc=kv.first/4.0f;}
+        // Compute prev day VAH/VAL using same value area algorithm
+        float pTV=0;for(auto&kv:prev_pvm)pTV+=kv.second;
+        float pvat=pTV*(VAPercent.GetFloat()/100),pvav=pmv;
+        prev_day_vah=prev_day_poc;prev_day_val=prev_day_poc;
+        auto pitu=prev_pvm.find((int)(prev_day_poc*4));auto pitd=pitu;
+        if(pitu!=prev_pvm.end())++pitu;
+        while(pvav<pvat){float un=(pitu!=prev_pvm.end())?pitu->second:0,dn=(pitd!=prev_pvm.begin())?std::prev(pitd)->second:0;if(un>=dn){if(pitu!=prev_pvm.end()){pvav+=un;prev_day_vah=pitu->first/4.0f;++pitu;}else break;}else{if(pitd!=prev_pvm.begin()){--pitd;pvav+=pitd->second;prev_day_val=pitd->first/4.0f;}else break;}}
+    }
 
     // ── Session Phase ─────────────────────────────────────────
     const char* phase = getPhase(H, M);
@@ -1050,7 +1059,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         j<<",\"tpo\":{";
         if (tpo_cd_valid) {
             j<<"\"current_day\":{\"poc_price\":"<<tpo_poc
-              <<",\"vah\":null,\"val\":null"
+              <<",\"vah\":"<<VAH<<",\"val\":"<<VAL
               <<",\"tpo_letter_minutes\":30,\"developing\":true"
               <<",\"study_id\":null"
               <<",\"calculated_at\":"<<(long long)now_t
@@ -1061,7 +1070,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
         if (tpo_pd_valid) {
             j<<",\"previous_day\":{\"poc_price\":"<<prev_day_poc
-              <<",\"vah\":null,\"val\":null"
+              <<",\"vah\":"<<(prev_day_vah>0?prev_day_vah:prev_day_poc)
+              <<",\"val\":"<<(prev_day_val>0?prev_day_val:prev_day_poc)
               <<",\"tpo_letter_minutes\":1440,\"developing\":false"
               <<",\"study_id\":null"
               <<",\"calculated_at\":"<<(long long)now_t<<"}";
