@@ -760,7 +760,6 @@ function JournalPage() {
         </div>
         );
       })()}
-      )}
 
       {/* Compare Modal */}
       {showCompare && compareIds.size >= 2 && (
