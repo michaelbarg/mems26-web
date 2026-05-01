@@ -14,6 +14,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("api")
 
 BRIDGE_TOKEN      = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
+SKIP_NORMAL_DAY_TYPE = os.getenv("SKIP_NORMAL_DAY_TYPE", "true").lower() == "true"
 REDIS_URL         = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN       = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY          = "mems26:latest"
@@ -598,7 +599,7 @@ async def _sequential_sim_loop():
             async with pool.acquire() as conn:
                 rows = await conn.fetch("""
                     SELECT setup_id, first_detected_ts, peak_score, initial_score,
-                           closed_ts, executed_in_sim
+                           closed_ts, executed_in_sim, day_type, sim_skip_reason
                     FROM setups
                     WHERE first_detected_ts >= $1 AND initial_entry IS NOT NULL
                     ORDER BY first_detected_ts ASC
@@ -613,6 +614,12 @@ async def _sequential_sim_loop():
                 detected = s["first_detected_ts"]
                 closed = s.get("closed_ts")
                 was_exec = s.get("executed_in_sim")
+                # V8.2.4: Skip NORMAL day type setups when filter enabled
+                if SKIP_NORMAL_DAY_TYPE and s.get("day_type") == "NORMAL":
+                    if not was_exec and s.get("sim_skip_reason") != "NORMAL_DAY_SKIP":
+                        await update_setup_simulation(sid, {"sim_skip_reason": "NORMAL_DAY_SKIP"})
+                        changes += 1
+                    continue
                 if score < 70:
                     if not was_exec and not s.get("sim_skip_reason"):
                         await update_setup_simulation(sid, {"sim_skip_reason": "LOW_SCORE"})
@@ -1017,6 +1024,9 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
             _fp_s = int(_bd.get("footprint", 0))
             _reasons_str = " | ".join(score_result_dir.get("reasons", []))[:500]
 
+            # V8.2.4: Tag NORMAL day setups as filtered (still write to DB for analysis)
+            _filtered_reason = "NORMAL_DAY_SKIP" if (SKIP_NORMAL_DAY_TYPE and day_type == "NORMAL") else None
+
             # Legacy: insert_attempt
             try:
                 from database import insert_attempt
@@ -1047,6 +1057,7 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "mtf_aligned": _compute_mtf_aligned(log_direction),
                     "vwap_side": _vwap_side,
                     "minutes_into_session": _ses_min if isinstance(_ses_min, int) else None,
+                    "filtered_reason": _filtered_reason,
                 }
                 result_id = await insert_attempt(_attempt_data)
                 log.info(f"[PHASE6_DUAL] INSERT id={result_id} {log_direction} score={score_dir}")
