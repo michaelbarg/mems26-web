@@ -18,16 +18,47 @@ def calculate_quality_score(market_data: dict, direction: str, day_type: str = N
     breakdown = {"vegas": 0, "tpo": 0, "fvg": 0, "footprint": 0}
     reasons = []
 
-    # Vegas: trend match is primary, width modulates confidence
+    # Vegas: trend match + flow-disagree override
     vegas = market_data.get("vegas") or {}
     vtrend = vegas.get("trend", "NEUTRAL")
     vwidth = vegas.get("tunnel_width", 0) or 0
+    vpos = vegas.get("price_position", "INSIDE")  # ABOVE / BELOW / INSIDE
     max_vegas = weights["vegas"]
+
+    # Flow-Vegas disagreement detection (W35)
+    fp_raw = (market_data.get("triggers") or {}).get("footprint_last_bar") or {}
+    fp_delta = fp_raw.get("delta", 0) or 0
+    flow_disagree = "AGREE"
+    if vtrend == "BULLISH" and vpos == "BELOW" and fp_delta < -200:
+        flow_disagree = "STRONG_DISAGREE"
+    elif vtrend == "BEARISH" and vpos == "ABOVE" and fp_delta > 200:
+        flow_disagree = "STRONG_DISAGREE"
+    elif (vtrend == "BULLISH" and (vpos == "BELOW" or fp_delta < -100)) or \
+         (vtrend == "BEARISH" and (vpos == "ABOVE" or fp_delta > 100)):
+        flow_disagree = "WEAK_DISAGREE"
+
+    # Determine if THIS direction matches real flow (not Vegas trend)
+    real_flow_long = (vpos == "ABOVE" or fp_delta > 100)
+    real_flow_short = (vpos == "BELOW" or fp_delta < -100)
+    direction_matches_flow = (direction == "LONG" and real_flow_long) or \
+                             (direction == "SHORT" and real_flow_short)
 
     trend_matches = ((direction == "LONG" and vtrend == "BULLISH") or
                      (direction == "SHORT" and vtrend == "BEARISH"))
-    if trend_matches:
-        # Width modulates: >= 0.5 full, 0.2-0.5 75%, < 0.2 50%
+
+    if flow_disagree == "STRONG_DISAGREE":
+        # Vegas trend unreliable — override scoring
+        if direction_matches_flow:
+            pts = int(max_vegas * 0.5)  # +15 for flow alignment
+            breakdown["vegas"] = pts
+            reasons.append(f"Flow override: Vegas {vtrend} contradicted by flow "
+                           f"(pos={vpos}, delta={fp_delta:+d}) — setup aligns with real flow (+{pts})")
+        else:
+            breakdown["vegas"] = 0
+            reasons.append(f"Flow override: Vegas {vtrend} questionable "
+                           f"(pos={vpos}, delta={fp_delta:+d}) — no boost")
+    elif trend_matches:
+        # Normal Vegas scoring (width modulates)
         if vwidth >= 0.5:
             breakdown["vegas"] = max_vegas
             reasons.append(f"Vegas {vtrend} match ({vwidth:.2f}pt width) (+{max_vegas})")
@@ -44,7 +75,12 @@ def calculate_quality_score(market_data: dict, direction: str, day_type: str = N
         breakdown["vegas"] = pts
         reasons.append(f"Vegas NEUTRAL ({vwidth:.2f}pt width) (+{pts})")
     else:
-        reasons.append(f"Vegas {vtrend} OPPOSES {direction}")
+        if flow_disagree == "WEAK_DISAGREE" and direction_matches_flow:
+            pts = int(max_vegas * 0.25)
+            breakdown["vegas"] = pts
+            reasons.append(f"Vegas {vtrend} OPPOSES {direction}, but flow hints favor (+{pts})")
+        else:
+            reasons.append(f"Vegas {vtrend} OPPOSES {direction}")
 
     # TPO (dynamic weight)
     tpo = market_data.get("tpo") or {}
