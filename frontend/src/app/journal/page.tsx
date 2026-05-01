@@ -9,6 +9,24 @@ import {
 } from 'recharts';
 
 const API_URL = 'https://mems26-web.onrender.com';
+const API = API_URL;
+
+function DayBadge({ day }: { day: string }) {
+  const colors: Record<string, string> = {
+    TREND_DAY: 'bg-green-700', TREND: 'bg-green-700',
+    NORMAL: 'bg-gray-600',
+    DEVELOPING: 'bg-blue-700',
+    VOLATILE: 'bg-orange-600',
+    RANGE_DAY: 'bg-purple-700', ROTATIONAL: 'bg-purple-700',
+    GAP_FILL: 'bg-yellow-700',
+    UNKNOWN: 'bg-red-700',
+  };
+  return (
+    <span className={`${colors[day] || 'bg-gray-600'} text-white px-2 py-0.5 rounded text-[10px] font-semibold`}>
+      {day}
+    </span>
+  );
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -158,6 +176,20 @@ function JournalPage() {
   const [loading, setLoading] = useState(true);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
   const [setupDetail, setSetupDetail] = useState<any>(null);
+  const [currentDayType, setCurrentDayType] = useState('');
+  useEffect(() => {
+    const fetchDT = async () => {
+      try {
+        const res = await fetch(`${API}/analytics/setups/recent?limit=1`);
+        const data = await res.json();
+        const latest = (data.setups || [])[0];
+        if (latest?.day_type) setCurrentDayType(latest.day_type);
+      } catch {}
+    };
+    fetchDT();
+    const id = setInterval(fetchDT, 30000);
+    return () => clearInterval(id);
+  }, []);
   const [setupDetailLoading, setSetupDetailLoading] = useState(false);
   const [showObservations, setShowObservations] = useState(false);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
@@ -532,6 +564,13 @@ function JournalPage() {
             ))}
           </div>
 
+          {/* Current day type indicator */}
+          {currentDayType && (
+            <div className="text-[10px] text-gray-500">
+              Current day type: <DayBadge day={currentDayType} /> <span className="text-gray-600">— historical setups may show different values</span>
+            </div>
+          )}
+
           {/* Loading */}
           {loading && <div className="text-center text-gray-500 py-8">Loading trades...</div>}
 
@@ -549,7 +588,7 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-left">Time</th>
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('direction')}>Side{sortArrow('direction')}</th>
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('setup_type')}>Setup{sortArrow('setup_type')}</th>
-                    <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('day_type')}>Day{sortArrow('day_type')}</th>
+                    <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('day_type')} title="Day Type when detected. Evolves during day (e.g. NORMAL early → DEVELOPING mid → TREND late).">Day{sortArrow('day_type')}</th>
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('killzone')}>KZ{sortArrow('killzone')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('entry_price')}>Entry{sortArrow('entry_price')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('stop')}>Stop{sortArrow('stop')}</th>
@@ -602,7 +641,7 @@ function JournalPage() {
                           {t.direction}
                         </td>
                         <td className="px-1 py-1">{t.setup_type}</td>
-                        <td className="px-1 py-1">{t.day_type}</td>
+                        <td className="px-1 py-1"><DayBadge day={t.day_type || 'UNKNOWN'} /></td>
                         <td className="px-1 py-1">{t.killzone}</td>
                         <td className="px-1 py-1 text-right font-mono">{((t.entry_price || t.entry) || 0).toFixed(2)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.stop || 0).toFixed(2)}</td>
