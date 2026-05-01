@@ -85,6 +85,36 @@ interface Props {
   entryTimestamp?: number;
   footprintBools?: { absorption_detected?: boolean; exhaustion_detected?: boolean };
   highlightedSetup?: { entry: number; stop: number; t1?: number; t2?: number; t3?: number; direction: string } | null;
+  tradeMarkings?: TradeMarking[];
+  showShadowMarkings?: boolean;
+}
+
+export interface TradeMarking {
+  setup_id: string;
+  first_detected_ts: number;
+  closed_ts?: number | null;
+  direction: string;
+  initial_entry: number;
+  initial_stop: number;
+  c1_target?: number | null;
+  c2_target?: number | null;
+  c3_target?: number | null;
+  status: string;
+  close_reason?: string | null;
+  peak_score?: number | null;
+  pnl_usd?: number | null;
+  executed_in_sim?: boolean;
+}
+
+function getTradeMarkingColor(m: TradeMarking): string {
+  if (!m.executed_in_sim) return '#9ca3af';  // gray = shadow
+  if (m.status !== 'CLOSED' && !m.closed_ts) return '#3b82f6';  // blue = open
+  const cr = m.close_reason || '';
+  if (/T[123]|HIT_C[123]/.test(cr)) return '#22c55e';  // green = win
+  if (cr === 'STOP') return '#ef4444';  // red = loss
+  if (cr === 'T1_PARTIAL_STOP') return '#eab308';  // yellow = partial
+  if (cr === 'TIMEOUT') return '#f97316';  // orange
+  return '#9ca3af';
 }
 
 // D7: Health Score → candle body color
@@ -96,7 +126,7 @@ function getTradeColor(healthScore: number): string {
 }
 
 export default function LightweightChart({
-  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType, tradeActive, healthScore, entryTimestamp, footprintBools, highlightedSetup
+  candles, livePrice, liveBar, vwap, levels, profile, session, signal, activeSetups, sweepData, sweepEvents, detectedSetups, onSweepClick, patterns, selectedPatternId, height, zone, scannedPatterns, dayType, tradeActive, healthScore, entryTimestamp, footprintBools, highlightedSetup, tradeMarkings, showShadowMarkings = true
 }: Props) {
   const containerRef     = useRef<HTMLDivElement>(null);
   const chartRef         = useRef<any>(null);
@@ -1212,6 +1242,45 @@ export default function LightweightChart({
           });
         }
 
+        // V8.2.7h: Trade markings overlay (setup lifecycle outcomes)
+        if (tradeMarkings && tradeMarkings.length > 0) {
+          const filtered = showShadowMarkings
+            ? tradeMarkings
+            : tradeMarkings.filter(m => m.executed_in_sim);
+          for (const m of filtered) {
+            const ts = Math.floor(m.first_detected_ts);
+            if (!ts || ts < 1577836800) continue;
+            const isLong = m.direction === 'LONG';
+            const col = getTradeMarkingColor(m);
+            const scoreText = m.peak_score ? ` ${m.peak_score}` : '';
+            // Entry marker
+            allMarkers.push({
+              time: toETChartTime(ts) as any,
+              position: isLong ? 'belowBar' : 'aboveBar',
+              color: col,
+              shape: isLong ? 'arrowUp' : 'arrowDown',
+              text: `${m.setup_id.slice(0, 4)}${scoreText}`,
+              size: m.executed_in_sim ? 1 : 0,
+            });
+            // Exit marker for closed trades
+            if (m.closed_ts && m.close_reason) {
+              const exitTs = Math.floor(m.closed_ts);
+              if (exitTs > 1577836800) {
+                const cr = m.close_reason || '';
+                const exitSymbol = /STOP/.test(cr) ? 'X' : /T[123]|HIT/.test(cr) ? 'V' : '~';
+                allMarkers.push({
+                  time: toETChartTime(exitTs) as any,
+                  position: isLong ? 'aboveBar' : 'belowBar',
+                  color: col,
+                  shape: 'circle' as any,
+                  text: exitSymbol,
+                  size: 0,
+                });
+              }
+            }
+          }
+        }
+
         // D3: MSS markers
         const mssPatterns = (scannedPatterns || []).filter((p: any) =>
           p.pattern === 'MSS' || p.pattern === 'mss' || p.pattern === 'liquidity_sweep'
@@ -1240,7 +1309,7 @@ export default function LightweightChart({
     }
 
    } catch (e) { /* guard entire level lines + markers block */ }
-  }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, detectedSetups, liveBar, patterns, selectedPatternId]);
+  }, [levels, profile, session, vwap, signal, activeSetups, sweepData, sweepEvents, detectedSetups, liveBar, patterns, selectedPatternId, tradeMarkings, showShadowMarkings]);
 
   // Highlighted setup from AttemptsTable click
   useEffect(() => {

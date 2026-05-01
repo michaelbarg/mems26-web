@@ -4110,6 +4110,23 @@ export default function Dashboard() {
   const [activeScannedPattern,setActiveScannedPattern]=useState<typeof scannedPatterns[0]|null>(null);
   const [activeTrade,setActiveTrade]=useState<ActiveTrade|null>(null);
   const [highlightedSetup,setHighlightedSetup]=useState<SetupHighlight|null>(null);
+
+  // V8.2.7h: Trade markings for chart overlay
+  const [tradeMarkings, setTradeMarkings] = useState<import('./LightweightChart').TradeMarking[]>([]);
+  const [showShadowMarkings, setShowShadowMarkings] = useState(true);
+  useEffect(() => {
+    if (!systemOn) return;
+    const fetchMarkings = async () => {
+      try {
+        const res = await fetch(`${API_URL}/analytics/setups/recent?limit=50`);
+        const data = await res.json();
+        if (data.ok) setTradeMarkings(data.setups || []);
+      } catch {}
+    };
+    fetchMarkings();
+    const iv = setInterval(fetchMarkings, 15000);
+    return () => clearInterval(iv);
+  }, [systemOn]);
   const [tradeToast,setTradeToast]=useState<{msg:string;color:string}|null>(null);
   const [stopWarning,setStopWarning]=useState<{dist:number;stop:number;price:number}|null>(null);
   const [checklistSetup, setChecklistSetup] = useState<ChecklistSetup | null>(null);
@@ -4796,6 +4813,8 @@ export default function Dashboard() {
               dayType={(live as any)?.day?.type || ''}
               footprintBools={(live as any)?.footprint_bools}
               highlightedSetup={highlightedSetup}
+              tradeMarkings={tradeMarkings}
+              showShadowMarkings={showShadowMarkings}
               tradeActive={!!activeTrade}
               healthScore={activeTrade?.healthScore}
               entryTimestamp={activeTrade?.entryTs}
@@ -4855,6 +4874,21 @@ export default function Dashboard() {
               </div>
             )}
           </div>
+          {/* V8.2.7h: Trade markings legend */}
+          {tradeMarkings.length > 0 && (
+            <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:8,padding:'2px 10px',fontSize:9,color:'#6b7280'}}>
+              <span style={{color:'#22c55e'}}>Win</span>
+              <span style={{color:'#ef4444'}}>Loss</span>
+              <span style={{color:'#eab308'}}>Partial</span>
+              <span style={{color:'#f97316'}}>TO</span>
+              <span style={{color:'#3b82f6'}}>Open</span>
+              <span style={{color:'#9ca3af'}}>Shadow</span>
+              <button onClick={()=>setShowShadowMarkings(s=>!s)} style={{
+                fontSize:9,padding:'1px 4px',borderRadius:3,border:'none',cursor:'pointer',marginLeft:'auto',
+                background:showShadowMarkings?'#1e2738':'#0d1117',color:showShadowMarkings?'#9ca3af':'#4b5563',
+              }}>{showShadowMarkings?'Hide shadow':'Show shadow'}</button>
+            </div>
+          )}
           {activeScannedPattern && (
             <div style={{flexShrink:0,borderTop:'1px solid #164e63',padding:'6px 10px',background:'#0a1a1f'}}>
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
