@@ -3398,6 +3398,113 @@ function BottomTradeBar({ opportunity, oppLevels, oppSweep, oppScore, liveSetup,
   );
 }
 
+// ── Trade Status Row — ACTIVE SHADOW or PLANNED ─────────────────────────
+function TradeStatusRow({ liveSetup }: { liveSetup: any }) {
+  const opp = liveSetup?.opportunity || 'none';
+  const oppScore = liveSetup?.opportunityScore || 0;
+  const oppLevels = liveSetup?.opportunityLevels;
+  const [activeShadow, setActiveShadow] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchActive = async () => {
+      try {
+        const res = await fetch('https://mems26-web.onrender.com/analytics/setups/recent?limit=30');
+        if (!res.ok) return;
+        const data = await res.json();
+        const open = (data.setups || []).find((s: any) =>
+          s.executed_in_sim === true && !s.closed_ts && s.status === 'LIVE'
+        );
+        setActiveShadow(open || null);
+      } catch {}
+    };
+    fetchActive();
+    const id = setInterval(fetchActive, 10000);
+    return () => clearInterval(id);
+  }, []);
+
+  const sign = (dir: string) => dir === 'LONG' ? 1 : -1;
+  const pts = (target: number, entry: number, dir: string) => ((target - entry) * sign(dir));
+  const usd = (target: number, entry: number, dir: string, c: number = 3) => pts(target, entry, dir) * c * 5;
+  const fmtDur = (startTs: number) => {
+    const sec = Math.floor(Date.now() / 1000) - startTs;
+    return Math.floor(sec / 60) + 'm ' + (sec % 60) + 's';
+  };
+
+  if (activeShadow) {
+    const s = activeShadow;
+    const entry = s.initial_entry || 0;
+    const stop = s.initial_stop || 0;
+    const dir = s.direction || 'LONG';
+    const risk = Math.abs(entry - stop);
+    const c = s.contracts_used || 3;
+    const t1 = s.c1_target || 0;
+    const t2 = s.c2_target || 0;
+    const t3 = s.c3_target || 0;
+    const arrow = dir === 'LONG' ? '\u25B2' : '\u25BC';
+    const dirColor = dir === 'LONG' ? '#22c55e' : '#ef4444';
+    return (
+      <div style={{ background: 'rgba(234,179,8,0.05)', border: '1px solid #1e2738', borderLeft: '4px solid #eab308', borderRadius: 6, padding: '6px 10px', fontSize: 11 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 2 }}>
+          <span style={{ color: '#eab308', fontWeight: 700 }}>ACTIVE SHADOW</span>
+          <span style={{ color: dirColor, fontWeight: 700 }}>{arrow} {dir}</span>
+          <span style={{ color: '#9ca3af' }}>Entry <span style={{ color: '#e5e7eb', fontFamily: 'monospace' }}>{entry.toFixed(2)}</span></span>
+          <span style={{ color: '#9ca3af' }}>Stop <span style={{ color: '#ef4444', fontFamily: 'monospace' }}>{stop.toFixed(2)}</span></span>
+          <span style={{ color: '#9ca3af' }}>Risk <span style={{ fontFamily: 'monospace' }}>{risk.toFixed(1)}pt</span></span>
+        </div>
+        <div style={{ display: 'flex', gap: 12, color: '#6b7280', marginBottom: 2 }}>
+          {t1 > 0 && <span>T1: <span style={{ color: '#22c55e', fontFamily: 'monospace' }}>{t1.toFixed(2)}</span> <span style={{ color: '#4b5563' }}>(+${usd(t1, entry, dir, c).toFixed(0)})</span></span>}
+          {t2 > 0 && <span>T2: <span style={{ color: '#22c55e', fontFamily: 'monospace' }}>{t2.toFixed(2)}</span> <span style={{ color: '#4b5563' }}>(+${usd(t2, entry, dir, c).toFixed(0)})</span></span>}
+          {t3 > 0 && <span>T3: <span style={{ color: '#22c55e', fontFamily: 'monospace' }}>{t3.toFixed(2)}</span> <span style={{ color: '#4b5563' }}>(+${usd(t3, entry, dir, c).toFixed(0)})</span></span>}
+        </div>
+        <div style={{ display: 'flex', gap: 12, color: '#6b7280', fontSize: 10 }}>
+          <span>Open: {s.first_detected_ts ? fmtDur(s.first_detected_ts) : '?'}</span>
+          <span>Score: <span style={{ color: '#e5e7eb' }}>{s.peak_score || s.initial_score || '?'}</span></span>
+          <span>Setup: <span style={{ color: '#e5e7eb' }}>{s.setup_type || 'GENERIC'}</span></span>
+        </div>
+      </div>
+    );
+  }
+
+  // PLANNED state
+  if (opp === 'none' || !oppLevels) {
+    return (
+      <div style={{ background: '#0d1117', border: '1px solid #1e2738', borderLeft: '4px solid #6b7280', borderRadius: 6, padding: '6px 10px', fontSize: 11, color: '#4b5563' }}>
+        No active shadow trade or planned setup
+      </div>
+    );
+  }
+
+  const dir = opp === 'long' ? 'LONG' : 'SHORT';
+  const entry = oppLevels?.entry || 0;
+  const stop = oppLevels?.stop || 0;
+  const risk = Math.abs(entry - stop);
+  const t1 = oppLevels?.c1 || oppLevels?.t1 || 0;
+  const t2 = oppLevels?.c2 || oppLevels?.t2 || 0;
+  const t3 = oppLevels?.c3 || oppLevels?.t3 || 0;
+  const arrow = dir === 'LONG' ? '\u25B2' : '\u25BC';
+  const dirColor = dir === 'LONG' ? '#22c55e' : '#ef4444';
+
+  return (
+    <div style={{ background: '#0d1117', border: '1px solid #1e2738', borderLeft: '4px solid #6b7280', borderRadius: 6, padding: '6px 10px', fontSize: 11 }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 2 }}>
+        <span style={{ color: '#6b7280', fontWeight: 700 }}>PLANNED</span>
+        <span style={{ color: dirColor, fontWeight: 700 }}>{arrow} {dir}</span>
+        <span style={{ color: '#6b7280' }}>({oppScore}%)</span>
+        <span style={{ color: '#9ca3af' }}>Entry <span style={{ color: '#e5e7eb', fontFamily: 'monospace' }}>{entry.toFixed(2)}</span></span>
+        <span style={{ color: '#9ca3af' }}>Stop <span style={{ color: '#ef4444', fontFamily: 'monospace' }}>{stop.toFixed(2)}</span></span>
+      </div>
+      <div style={{ display: 'flex', gap: 12, color: '#6b7280', marginBottom: 2 }}>
+        <span>Risk {risk.toFixed(1)}pt</span>
+        {t1 > 0 && <span>T1 <span style={{ fontFamily: 'monospace' }}>{t1.toFixed(2)}</span> (+${usd(t1, entry, dir).toFixed(0)})</span>}
+        {t2 > 0 && <span>T2 <span style={{ fontFamily: 'monospace' }}>{t2.toFixed(2)}</span> (+${usd(t2, entry, dir).toFixed(0)})</span>}
+        {t3 > 0 && <span>T3 <span style={{ fontFamily: 'monospace' }}>{t3.toFixed(2)}</span> (+${usd(t3, entry, dir).toFixed(0)})</span>}
+      </div>
+      <div style={{ fontSize: 10, color: '#4b5563' }}>Awaiting trigger</div>
+    </div>
+  );
+}
+
+
 // ── Right Panel — טאבים חסכוניים ──────────────────────────────────────────
 function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, signalTime, aiLoading, aiError, onAskAI, dayLoading, onAskDayType, dayExplanation, selectedSetup, onSelectSetup, sweepEvents, selectedSweep, setSelectedSweep, activeSetup, onActivateSweep, onDeactivateSetup, levelTouches, liveSetup, detectedSetups, selectedPattern, setSelectedPattern, onAccept, onReject, newsGuard, buildingSetups, expiredBuildingSetups }:any) {
   const [tab, setTab] = useState<'trade'|'signal'|'setups'|'patterns'|'indicators'|'fills'|'daytype'|'analytics'>('trade');
@@ -3497,12 +3604,13 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
 
         {tab === 'trade' && (
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            <ShadowTradesTodayCard />
+            <TradeStatusRow liveSetup={liveSetup} />
             <DayTypeHero />
             <QualityScorePanel />
             <StrategyPreview />
             <TriggerPanel />
             <VegasTunnelPanel />
-            <ShadowTradesTodayCard />
             <SetupsTable apiUrl={API_URL} />
             <AttemptsTable apiUrl={API_URL} />
           </div>
