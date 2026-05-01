@@ -521,19 +521,22 @@ function JournalPage() {
                   {pagedTrades.map(t => {
                     const pnl = t.pnl_pts || 0;
                     const isAttempt = t.source === 'attempt';
-                    const bgClass = isAttempt ? 'bg-purple-950/10' : t.status !== 'CLOSED' ? '' : pnl > 0 ? 'bg-green-950/30' : pnl < 0 ? 'bg-red-950/30' : '';
+                    const isExec = t.executed_in_sim === true;
+                    const bgClass = isExec ? 'bg-green-950/10 border-l-2 border-l-green-700' : isAttempt ? 'bg-purple-950/10' : t.status !== 'CLOSED' ? '' : pnl > 0 ? 'bg-green-950/30' : pnl < 0 ? 'bg-red-950/30' : '';
                     return (
                       <tr key={`${t.source}_${t.id}`} className={`border-b border-gray-900 hover:bg-gray-800/50 cursor-pointer ${bgClass}`}
                         onClick={() => handleRowClick(t)}>
-                        <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
-                          <input type="checkbox" checked={compareIds.has(t.id)}
+                        <td className="px-1 py-1 text-center" onClick={e => e.stopPropagation()}>
+                          {isExec
+                            ? <span className="text-[8px] bg-green-900/50 text-green-300 px-1 rounded" title="Would execute in LIVE">EXEC</span>
+                            : <input type="checkbox" checked={compareIds.has(t.id)}
                             onChange={() => {
                               const next = new Set(compareIds);
                               if (next.has(t.id)) next.delete(t.id);
                               else if (next.size < 3) next.add(t.id);
                               setCompareIds(next);
                             }}
-                            className="accent-blue-500" />
+                            className="accent-blue-500" />}
                         </td>
                         <td className="px-1 py-1">
                           {t.source === 'setup'
@@ -671,6 +674,52 @@ function JournalPage() {
               {s.contracts_used && <DetailRow label="Contracts" value={s.contracts_used.toString()} />}
               {s.sim_skip_reason && <DetailRow label="Skip Reason" value={s.sim_skip_reason} />}
             </div>
+
+            {/* Targets */}
+            {(s.c1_target || s.t1) && (() => {
+              const entry = s.initial_entry || s.entry_price || s.entry || 0;
+              const isLong = s.direction === 'LONG';
+              const sign = isLong ? 1 : -1;
+              const targets = [
+                { name: 'T1', price: s.c1_target || s.t1, hit: s.t1_hit, hitTs: s.t1_hit_ts },
+                { name: 'T2', price: s.c2_target || s.t2, hit: s.t2_hit, hitTs: s.t2_hit_ts },
+                { name: 'T3', price: s.c3_target || s.t3, hit: s.t3_hit, hitTs: s.t3_hit_ts },
+              ].filter(tg => tg.price && tg.price > 0);
+              const stopPrice = s.initial_stop || s.stop || 0;
+              return (
+                <div className="mt-3 border-t border-gray-800 pt-2">
+                  <h4 className="text-xs font-bold text-gray-400 mb-1">Planned Targets</h4>
+                  <div className="space-y-1 text-[10px]">
+                    {targets.map(tg => {
+                      const dist = ((tg.price - entry) * sign);
+                      const pot = dist * (s.contracts_used || 1) * 5;
+                      return (
+                        <div key={tg.name} className="flex justify-between items-center">
+                          <span className="text-gray-400">{tg.name}: <span className="font-mono text-gray-300">{tg.price.toFixed(2)}</span> <span className="text-gray-500">({dist >= 0 ? '+' : ''}{dist.toFixed(1)}pt)</span></span>
+                          <span>{tg.hit
+                            ? <span className="text-green-400">Hit {tg.hitTs ? `@ ${fmtHitTime(tg.hitTs)}` : ''}</span>
+                            : <span className="text-gray-600">Not hit</span>}
+                            <span className="text-gray-500 ml-2">${pot >= 0 ? '+' : ''}{pot.toFixed(0)}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {stopPrice > 0 && (() => {
+                      const stopDist = (stopPrice - entry) * sign;
+                      return (
+                        <div className="flex justify-between items-center border-t border-gray-800 pt-1">
+                          <span className="text-gray-400">Stop: <span className="font-mono text-red-400/70">{stopPrice.toFixed(2)}</span> <span className="text-gray-500">({stopDist >= 0 ? '+' : ''}{stopDist.toFixed(1)}pt)</span></span>
+                          <span>{s.stop_hit
+                            ? <span className="text-red-400">Hit {s.stop_hit_ts ? `@ ${fmtHitTime(s.stop_hit_ts)}` : ''}</span>
+                            : <span className="text-gray-600">Not hit</span>}
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Score */}
             <div className="mt-3 border-t border-gray-800 pt-2">
