@@ -680,7 +680,7 @@ function JournalPage() {
                         <td className="px-1 py-1">{t.killzone}</td>
                         <td className="px-1 py-1 text-right font-mono">{((t.entry_price || t.entry) || 0).toFixed(2)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.stop || 0).toFixed(2)}</td>
-                        <td className="px-1 py-1 text-right font-mono">{(t.risk_pts || 0).toFixed(1)}</td>
+                        <td className="px-1 py-1 text-right font-mono">{(t.risk_pts || Math.abs((t.entry_price || 0) - (t.stop || 0)) || 0).toFixed(1)}</td>
                         <td className="px-1 py-1 text-right font-mono">{(t.exit_price || computeExitPrice(t))?.toFixed(2) || '-'}</td>
                         <td className={`px-1 py-1 text-right font-mono font-bold ${pnl > 0 ? 'text-green-400' : pnl < 0 ? 'text-red-400' : ''}`}>
                           {pnl ? fmtPts(pnl) : '-'}
