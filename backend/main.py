@@ -611,7 +611,8 @@ async def _sequential_sim_loop():
             async with pool.acquire() as conn:
                 rows = await conn.fetch("""
                     SELECT setup_id, first_detected_ts, peak_score, initial_score,
-                           closed_ts, executed_in_sim, day_type, sim_skip_reason
+                           closed_ts, executed_in_sim, day_type, sim_skip_reason,
+                           killzone, direction, score_reasons
                     FROM setups
                     WHERE first_detected_ts >= $1 AND initial_entry IS NOT NULL
                     ORDER BY first_detected_ts ASC
@@ -637,6 +638,14 @@ async def _sequential_sim_loop():
                 if footprint_opposes_direction(s.get("direction", ""), _sr_delta):
                     if not was_exec and s.get("sim_skip_reason") != "FOOTPRINT_OPPOSES":
                         await update_setup_simulation(sid, {"sim_skip_reason": "FOOTPRINT_OPPOSES"})
+                        changes += 1
+                    continue
+                # W34: Killzone filter — OFF_HOURS blocked in STRICT mode
+                _ALLOWED_KZ = {"London", "NY_Open", "NY_Close"}
+                _kz_setup = s.get("killzone") or "OFF_HOURS"
+                if _kz_setup not in _ALLOWED_KZ:
+                    if not was_exec and s.get("sim_skip_reason") != "OFF_HOURS_BLOCKED":
+                        await update_setup_simulation(sid, {"sim_skip_reason": "OFF_HOURS_BLOCKED"})
                         changes += 1
                     continue
                 if score < 70:
