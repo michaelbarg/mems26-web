@@ -115,6 +115,9 @@ function JournalPage() {
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const [setupDetail, setSetupDetail] = useState<any>(null);
+  const [setupDetailLoading, setSetupDetailLoading] = useState(false);
+  const [showObservations, setShowObservations] = useState(false);
   const [compareIds, setCompareIds] = useState<Set<string>>(new Set());
   const [showCompare, setShowCompare] = useState(false);
   const [page, setPage] = useState(0);
@@ -170,6 +173,25 @@ function JournalPage() {
   }, [fromDate, toDate, tradeTypes, viewMode]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Fetch enriched setup data when a row is clicked
+  const handleRowClick = useCallback(async (t: Trade) => {
+    setSelectedTrade(t);
+    setSetupDetail(null);
+    setShowObservations(false);
+    // Try to fetch from /analytics/setups/{id} for enriched data
+    const setupId = t.id;
+    if (!setupId || t.source === 'trade') return; // real trades don't have setup detail
+    setSetupDetailLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/analytics/setups/${setupId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok) setSetupDetail(data);
+      }
+    } catch { /* fall back to selectedTrade data */ }
+    setSetupDetailLoading(false);
+  }, []);
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 
@@ -478,7 +500,7 @@ function JournalPage() {
                     const bgClass = isAttempt ? 'bg-purple-950/10' : t.status !== 'CLOSED' ? '' : pnl > 0 ? 'bg-green-950/30' : pnl < 0 ? 'bg-red-950/30' : '';
                     return (
                       <tr key={`${t.source}_${t.id}`} className={`border-b border-gray-900 hover:bg-gray-800/50 cursor-pointer ${bgClass}`}
-                        onClick={() => setSelectedTrade(t)}>
+                        onClick={() => handleRowClick(t)}>
                         <td className="px-1 py-1" onClick={e => e.stopPropagation()}>
                           <input type="checkbox" checked={compareIds.has(t.id)}
                             onChange={() => {
@@ -585,63 +607,92 @@ function JournalPage() {
       </div>
 
       {/* Detail Modal */}
-      {selectedTrade && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setSelectedTrade(null)}>
+      {selectedTrade && (() => {
+        const s = setupDetail?.setup || selectedTrade;
+        const obs = setupDetail?.observations || [];
+        const t = selectedTrade;
+        return (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => { setSelectedTrade(null); setSetupDetail(null); }}>
           <div className="bg-gray-900 border border-gray-700 rounded-lg max-w-lg w-full max-h-[80vh] overflow-y-auto p-4" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-bold text-sm">
-                {selectedTrade.is_shadow ? '\uD83D\uDC41\uFE0F Shadow' : '\uD83D\uDCBC Live'} Trade Detail
-              </h3>
-              <button onClick={() => setSelectedTrade(null)} className="text-gray-500 hover:text-white text-lg">\u00D7</button>
+              <div className="flex items-center gap-2">
+                <h3 className="font-bold text-sm">
+                  {t.source === 'setup' ? '\uD83D\uDD2C Setup' : t.is_shadow ? '\uD83D\uDC41\uFE0F Shadow' : '\uD83D\uDCBC Live'} Detail
+                </h3>
+                <button onClick={() => { navigator.clipboard.writeText(t.id); }}
+                  className="text-[9px] text-gray-500 hover:text-gray-300 px-1 rounded bg-gray-800" title="Copy ID">
+                  {t.id?.toString().slice(0, 8)}... \uD83D\uDCCB
+                </button>
+              </div>
+              <button onClick={() => { setSelectedTrade(null); setSetupDetail(null); }} className="text-gray-500 hover:text-white text-lg">\u00D7</button>
             </div>
+            {setupDetailLoading && <div className="text-[10px] text-gray-500 mb-2">Loading enriched data...</div>}
+
+            {/* Core Info */}
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <DetailRow label="ID" value={selectedTrade.id} />
-              <DetailRow label="Direction" value={selectedTrade.direction} />
-              <DetailRow label="Entry" value={selectedTrade.entry_price?.toFixed(2)} />
-              <DetailRow label="Exit" value={selectedTrade.exit_price?.toFixed(2) || '-'} />
-              <DetailRow label="Stop" value={selectedTrade.stop?.toFixed(2)} />
-              <DetailRow label="Risk" value={`${selectedTrade.risk_pts?.toFixed(1)}pt`} />
-              <DetailRow label="PnL" value={fmtPts(selectedTrade.pnl_pts)} highlight={selectedTrade.pnl_pts} />
-              <DetailRow label="PnL $" value={fmtUsd(selectedTrade.pnl_usd)} highlight={selectedTrade.pnl_usd} />
-              <DetailRow label="MAE" value={`${(selectedTrade.mae_pts || 0).toFixed(1)}pt`} />
-              <DetailRow label="MFE" value={`${(selectedTrade.mfe_pts || 0).toFixed(1)}pt`} />
-              <DetailRow label="Duration" value={`${(selectedTrade.duration_min || 0).toFixed(0)}min`} />
-              <DetailRow label="Close Reason" value={selectedTrade.close_reason} />
-              <DetailRow label="Setup" value={selectedTrade.setup_type} />
-              <DetailRow label="Day Type" value={selectedTrade.day_type} />
-              <DetailRow label="Killzone" value={selectedTrade.killzone} />
-              <DetailRow label="CB Respected" value={selectedTrade.cb_respected ? 'Yes' : 'No'} />
+              <DetailRow label="Direction" value={s.direction} />
+              <DetailRow label="Setup Type" value={s.setup_type} />
+              <DetailRow label="Entry" value={(s.initial_entry || s.entry_price || t.entry_price || s.entry)?.toFixed(2)} />
+              <DetailRow label="Stop" value={(s.initial_stop || s.stop || t.stop)?.toFixed(2)} />
+              <DetailRow label="Risk" value={`${(s.risk_pts || t.risk_pts || Math.abs((s.initial_entry||s.entry||0)-(s.initial_stop||s.stop||0))).toFixed(1)}pt`} />
+              <DetailRow label="Day Type" value={s.day_type} />
+              <DetailRow label="Killzone" value={s.killzone} />
+              {s.close_reason && <DetailRow label="Close Reason" value={s.close_reason} />}
+              {(s.pnl_pts != null || t.pnl_pts != null) && <DetailRow label="PnL" value={fmtPts(s.pnl_pts ?? t.pnl_pts)} highlight={s.pnl_pts ?? t.pnl_pts} />}
+              {(s.pnl_usd != null || t.pnl_usd != null) && <DetailRow label="PnL $" value={fmtUsd(s.pnl_usd ?? t.pnl_usd)} highlight={s.pnl_usd ?? t.pnl_usd} />}
+              {(s.mae_pts != null) && <DetailRow label="MAE" value={`${s.mae_pts.toFixed(1)}pt`} />}
+              {(s.mfe_pts != null) && <DetailRow label="MFE" value={`${s.mfe_pts.toFixed(1)}pt`} />}
+              {(s.duration_min != null || t.duration_min) && <DetailRow label="Duration" value={`${(s.duration_min ?? t.duration_min ?? 0).toFixed(0)}min`} />}
+              {s.contracts_used && <DetailRow label="Contracts" value={s.contracts_used.toString()} />}
+              {s.sim_skip_reason && <DetailRow label="Skip Reason" value={s.sim_skip_reason} />}
             </div>
-            {/* 15 Strategic Tags */}
-            <h4 className="text-xs font-bold text-gray-400 mt-4 mb-2">Strategic Tags</h4>
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-              <DetailRow label="Day Type @ Entry" value={selectedTrade.day_type_at_entry} />
-              <DetailRow label="Killzone @ Entry" value={selectedTrade.killzone_at_entry} />
-              <DetailRow label="Min Into Session" value={selectedTrade.minutes_into_session?.toString()} />
-              <DetailRow label="CB State" value={selectedTrade.cb_state_at_entry} />
-              <DetailRow label="News State" value={selectedTrade.news_state_at_entry} />
-              <DetailRow label="Day PnL Before" value={selectedTrade.day_pnl_before_entry ? `$${selectedTrade.day_pnl_before_entry.toFixed(0)}` : '-'} />
-              <DetailRow label="Setup # Today" value={selectedTrade.setup_number_today?.toString()} />
-              <DetailRow label="RelVol" value={selectedTrade.rel_vol_at_entry?.toFixed(2)} />
-              <DetailRow label="CVD Direction" value={selectedTrade.cvd_direction_at_entry} />
-              <DetailRow label="MTF Aligned" value={selectedTrade.mtf_aligned ? 'Yes' : 'No'} />
-              <DetailRow label="VWAP Side" value={selectedTrade.vwap_side} />
-              <DetailRow label="Sweep Wick" value={selectedTrade.sweep_wick_pts_tag ? `${selectedTrade.sweep_wick_pts_tag.toFixed(1)}pt` : '-'} />
-              <DetailRow label="FVG Size" value={selectedTrade.fvg_size_pts ? `${selectedTrade.fvg_size_pts.toFixed(1)}pt` : '-'} />
-              <DetailRow label="Stacked Vol" value={selectedTrade.stacked_dominant_vol ? 'Yes' : 'No'} />
-              <DetailRow label="Bars Building" value={selectedTrade.bars_building_before_live?.toString()} />
+
+            {/* Score */}
+            <div className="mt-3 border-t border-gray-800 pt-2">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-gray-500">Score:</span>
+                <span className={`font-bold ${(s.initial_score || s.score || 0) >= 70 ? 'text-emerald-400' : (s.initial_score || s.score || 0) >= 50 ? 'text-amber-400' : 'text-zinc-400'}`}>
+                  {s.initial_score ?? s.score ?? '?'}
+                </span>
+                {s.peak_score && s.peak_score > (s.initial_score || 0) && (
+                  <span className="text-green-500 text-[10px]">{'\u2191'} Peak: {s.peak_score}</span>
+                )}
+                {s.observation_count && <span className="text-gray-500 text-[10px]">({s.observation_count} obs)</span>}
+              </div>
             </div>
-            <DetailRow label="Pillar Detail" value={selectedTrade.pillar_detail} />
+
+            {/* Strategic Tags — from enriched setup data */}
+            <div className="mt-3 border-t border-gray-800 pt-2">
+              <h4 className="text-xs font-bold text-gray-400 mb-1">Strategic Tags</h4>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
+                {[
+                  { label: 'RelVol', val: s.rel_vol_at_entry, fmt: (v: any) => v?.toFixed(2) },
+                  { label: 'CVD Dir', val: s.cvd_direction_at_entry },
+                  { label: 'MTF Aligned', val: s.mtf_aligned, fmt: (v: any) => v === true ? 'Yes' : v === false ? 'No' : null },
+                  { label: 'VWAP Side', val: s.vwap_side },
+                  { label: 'Killzone', val: s.killzone },
+                  { label: 'Min Into Session', val: s.minutes_into_session, fmt: (v: any) => `${v}min` },
+                ].map(tag => (
+                  <div key={tag.label} className="flex justify-between">
+                    <span className="text-gray-500">{tag.label}:</span>
+                    <span className={tag.val != null ? 'text-gray-300' : 'text-zinc-700'}>
+                      {tag.val != null ? (tag.fmt ? tag.fmt(tag.val) : String(tag.val)) : 'Not collected'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Component Scores */}
-            {(selectedTrade.vegas_score != null || selectedTrade.tpo_score != null) && (
+            {(s.vegas_score != null || s.tpo_score != null) && (
               <div className="mt-3 border-t border-gray-800 pt-2">
                 <h4 className="text-xs font-bold text-gray-400 mb-1">Component Scores</h4>
                 <div className="grid grid-cols-4 gap-1 text-[10px]">
                   {[
-                    { label: 'Vegas', val: selectedTrade.vegas_score, max: 30 },
-                    { label: 'TPO', val: selectedTrade.tpo_score, max: 25 },
-                    { label: 'FVG', val: selectedTrade.fvg_score, max: 25 },
-                    { label: 'FP', val: selectedTrade.footprint_score, max: 20 },
+                    { label: 'Vegas', val: s.vegas_score, max: 30 },
+                    { label: 'TPO', val: s.tpo_score, max: 25 },
+                    { label: 'FVG', val: s.fvg_score, max: 25 },
+                    { label: 'FP', val: s.footprint_score, max: 20 },
                   ].map(c => (
                     <div key={c.label} className="text-center">
                       <div className="text-gray-500">{c.label}</div>
@@ -653,12 +704,13 @@ function JournalPage() {
                 </div>
               </div>
             )}
+
             {/* Score Reasoning */}
-            {selectedTrade.score_reasons && (
+            {s.score_reasons && (
               <div className="mt-3 border-t border-gray-800 pt-2">
                 <h4 className="text-xs font-bold text-gray-400 mb-1">Score Reasoning</h4>
                 <div className="space-y-0.5">
-                  {selectedTrade.score_reasons.split(' | ').map((r: string, i: number) => {
+                  {s.score_reasons.split(' | ').map((r: string, i: number) => {
                     const hasPlus = /\(\+\d+\)/.test(r);
                     const opposes = /OPPOSES|no.*data|too narrow/i.test(r);
                     const color = hasPlus ? 'text-green-400' : opposes ? 'text-red-400' : 'text-amber-400';
@@ -666,53 +718,48 @@ function JournalPage() {
                     return <div key={i} className={`text-[10px] ${color}`}>{icon} {r}</div>;
                   })}
                 </div>
-                {selectedTrade.setup_type && (
-                  <div className="mt-1 text-[10px] text-gray-500">Type: {selectedTrade.setup_type}
-                    {selectedTrade.peak_score ? ` | Peak: ${selectedTrade.peak_score}` : ''}
-                    {selectedTrade.observation_count ? ` | Obs: ${selectedTrade.observation_count}` : ''}</div>
+              </div>
+            )}
+
+            {/* Score Evolution (observations) */}
+            {obs.length > 0 && (
+              <div className="mt-3 border-t border-gray-800 pt-2">
+                <button onClick={() => setShowObservations(!showObservations)}
+                  className="text-xs text-gray-400 hover:text-gray-200 flex items-center gap-1">
+                  {showObservations ? '\u25BC' : '\u25B6'} Score Evolution ({obs.length} observations)
+                </button>
+                {showObservations && (
+                  <table className="w-full text-[9px] mt-1 border-collapse">
+                    <thead>
+                      <tr className="text-gray-500 border-b border-gray-800">
+                        <th className="text-left py-0.5">Time</th>
+                        <th className="text-right py-0.5">Total</th>
+                        <th className="text-right py-0.5">V</th>
+                        <th className="text-right py-0.5">T</th>
+                        <th className="text-right py-0.5">F</th>
+                        <th className="text-right py-0.5">FP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {obs.map((o: any, i: number) => (
+                        <tr key={i} className="border-b border-gray-900">
+                          <td className="py-0.5 text-gray-400">{new Date((o.observation_ts || 0) * 1000).toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit',hour12:false})}</td>
+                          <td className={`py-0.5 text-right font-mono font-bold ${(o.total_score||0) >= 70 ? 'text-emerald-400' : (o.total_score||0) >= 50 ? 'text-amber-400' : 'text-zinc-400'}`}>{o.total_score}</td>
+                          <td className="py-0.5 text-right font-mono text-gray-400">{o.vegas_score}</td>
+                          <td className="py-0.5 text-right font-mono text-gray-400">{o.tpo_score}</td>
+                          <td className="py-0.5 text-right font-mono text-gray-400">{o.fvg_score}</td>
+                          <td className="py-0.5 text-right font-mono text-gray-400">{o.footprint_score}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
-              </div>
-            )}
-            {/* Strategic Tags — show what's collected vs null */}
-            <div className="mt-3 border-t border-gray-800 pt-2">
-              <h4 className="text-xs font-bold text-gray-400 mb-1">Strategic Tags</h4>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
-                {[
-                  { label: 'RelVol', val: selectedTrade.rel_vol_at_entry, fmt: (v: any) => v?.toFixed(2) },
-                  { label: 'CVD Dir', val: selectedTrade.cvd_direction_at_entry },
-                  { label: 'MTF Aligned', val: selectedTrade.mtf_aligned, fmt: (v: any) => v ? 'Yes' : 'No' },
-                  { label: 'VWAP Side', val: selectedTrade.vwap_side },
-                  { label: 'Killzone', val: selectedTrade.killzone },
-                  { label: 'Day Type', val: selectedTrade.day_type },
-                ].map(tag => (
-                  <div key={tag.label} className="flex justify-between">
-                    <span className="text-gray-500">{tag.label}:</span>
-                    <span className={tag.val != null ? 'text-gray-300' : 'text-zinc-700'}>
-                      {tag.val != null ? (tag.fmt ? tag.fmt(tag.val) : String(tag.val)) : 'Not collected'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {/* V6.5: Entry Narrative */}
-            {selectedTrade.entry_narrative && (
-              <NarrativeDisplay narrative={selectedTrade.entry_narrative} />
-            )}
-            {selectedTrade.setup_quality_score !== undefined && (
-              <div className="mt-3 flex items-center gap-2">
-                <span className="text-gray-500 text-xs">Quality Score:</span>
-                <span className={`font-bold text-sm ${
-                  selectedTrade.setup_quality_score >= 9 ? 'text-yellow-400' :
-                  selectedTrade.setup_quality_score >= 7 ? 'text-green-400' :
-                  selectedTrade.setup_quality_score >= 5 ? 'text-blue-400' : 'text-gray-500'
-                }`}>
-                  {selectedTrade.setup_quality_score}/10
-                  {selectedTrade.entry_narrative?.score?.rating && ` ${selectedTrade.entry_narrative.score.rating}`}
-                </span>
               </div>
             )}
           </div>
         </div>
+        );
+      })()}
       )}
 
       {/* Compare Modal */}
