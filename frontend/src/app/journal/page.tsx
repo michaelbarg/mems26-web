@@ -215,7 +215,7 @@ function JournalPage() {
     window.history.replaceState(null, '', qs ? `?${qs}` : '/journal');
   }, [fromDate, toDate, tradeTypes, dayTypes, killzones, setupTypes, outcomes, cbFilter, sortCol, sortDir]);
 
-  // Fetch data — unified journal (trades + shadow attempts)
+  // Fetch data — unified journal (trades + shadow attempts + setups)
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -227,19 +227,47 @@ function JournalPage() {
       if (fromDate) params.set('from_date', fromDate);
       if (toDate) params.set('to_date', toDate);
 
-      const res = await fetch(`${API_URL}/trades/log?${params}`, { cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        // Normalize fields: unified endpoint uses 'entry'/'ts', trades use 'entry_price'/'entry_ts'
-        const normalized = (Array.isArray(data) ? data : []).map((r: any) => ({
-          ...r,
-          entry_price: r.entry_price ?? r.entry ?? 0,
-          entry_ts: r.entry_ts ?? r.ts ?? 0,
-          score: r.score ?? r.setup_quality_score ?? 0,
-          source: r.source ?? 'trade',
-        }));
-        setTrades(normalized);
+      // Fetch unified journal + all setups (to ensure executed ones aren't missed)
+      const [logRes, setupsRes] = await Promise.all([
+        fetch(`${API_URL}/trades/log?${params}`, { cache: 'no-store' }),
+        fetch(`${API_URL}/analytics/setups/recent?limit=500`, { cache: 'no-store' }),
+      ]);
+
+      const normalize = (r: any) => ({
+        ...r,
+        entry_price: r.entry_price ?? r.initial_entry ?? r.entry ?? 0,
+        entry_ts: r.entry_ts ?? r.first_detected_ts ?? r.ts ?? 0,
+        stop: r.stop ?? r.initial_stop ?? 0,
+        score: r.score ?? r.peak_score ?? r.initial_score ?? r.setup_quality_score ?? 0,
+        source: r.source ?? (r.setup_id ? 'setup' : 'trade'),
+        id: r.id ?? r.setup_id ?? '',
+        t1: r.t1 ?? r.c1_target,
+        t2: r.t2 ?? r.c2_target,
+        t3: r.t3 ?? r.c3_target,
+      });
+
+      const seenIds = new Set<string>();
+      const merged: Trade[] = [];
+
+      if (logRes.ok) {
+        const data = await logRes.json();
+        for (const r of (Array.isArray(data) ? data : [])) {
+          const n = normalize(r);
+          if (!seenIds.has(n.id)) { seenIds.add(n.id); merged.push(n); }
+        }
       }
+
+      // Merge setups (includes executed_in_sim ones that may be outside limit)
+      if (setupsRes.ok) {
+        const data = await setupsRes.json();
+        for (const r of (data.setups || [])) {
+          const n = normalize({ ...r, source: 'setup' });
+          if (!seenIds.has(n.id)) { seenIds.add(n.id); merged.push(n); }
+        }
+      }
+
+      merged.sort((a, b) => (b.entry_ts || 0) - (a.entry_ts || 0));
+      setTrades(merged);
     } catch (e) {
       console.error('Journal fetch failed:', e);
     }
@@ -334,13 +362,15 @@ function JournalPage() {
   const kpis = useMemo(() => {
     // REAL tab: use sequential summary for headline KPIs
     if (journalView === 'REAL' && realSummary) {
-      const realRows = viewFiltered.filter(t => t.mae_pts != null);
+      const realRows = viewFiltered;
+      const withMae = realRows.filter(t => t.mae_pts != null && t.mae_pts > 0);
+      const withMfe = realRows.filter(t => t.mfe_pts != null && t.mfe_pts > 0);
       return {
         total: realSummary.total_executed_in_sim || 0,
         wr: Math.round(realSummary.sequential_wr || 0),
         netPnl: realSummary.sequential_pnl_usd || 0,
-        avgMae: realRows.length ? realRows.reduce((s: number, t: any) => s + (t.mae_pts || 0), 0) / realRows.length : 0,
-        avgMfe: realRows.length ? realRows.reduce((s: number, t: any) => s + (t.mfe_pts || 0), 0) / realRows.length : 0,
+        avgMae: withMae.length ? withMae.reduce((s: number, t: any) => s + t.mae_pts, 0) / withMae.length : 0,
+        avgMfe: withMfe.length ? withMfe.reduce((s: number, t: any) => s + t.mfe_pts, 0) / withMfe.length : 0,
         shadowCount: 0,
         liveCount: realSummary.executed_closed || 0,
       };
