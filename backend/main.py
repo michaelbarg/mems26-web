@@ -15,6 +15,8 @@ log = logging.getLogger("api")
 
 BRIDGE_TOKEN      = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
 SKIP_NORMAL_DAY_TYPE = os.getenv("SKIP_NORMAL_DAY_TYPE", "true").lower() == "true"
+CONFLUENCE_FILTER_ENABLED = os.getenv("CONFLUENCE_FILTER_ENABLED", "true").lower() == "true"
+FOOTPRINT_OPPOSES_THRESHOLD = float(os.getenv("FOOTPRINT_OPPOSES_THRESHOLD", "500"))
 REDIS_URL         = os.getenv("UPSTASH_REDIS_REST_URL")
 REDIS_TOKEN       = os.getenv("UPSTASH_REDIS_REST_TOKEN")
 REDIS_KEY          = "mems26:latest"
@@ -620,6 +622,13 @@ async def _sequential_sim_loop():
                         await update_setup_simulation(sid, {"sim_skip_reason": "NORMAL_DAY_SKIP"})
                         changes += 1
                     continue
+                # V8.2.6: Confluence Filter — skip when footprint opposes direction
+                _sr_delta = _extract_delta_from_reasons(s.get("score_reasons") or "")
+                if footprint_opposes_direction(s.get("direction", ""), _sr_delta):
+                    if not was_exec and s.get("sim_skip_reason") != "FOOTPRINT_OPPOSES":
+                        await update_setup_simulation(sid, {"sim_skip_reason": "FOOTPRINT_OPPOSES"})
+                        changes += 1
+                    continue
                 if score < 70:
                     if not was_exec and not s.get("sim_skip_reason"):
                         await update_setup_simulation(sid, {"sim_skip_reason": "LOW_SCORE"})
@@ -747,6 +756,27 @@ async def get_vegas_state():
 
     vegas["received_at"] = data_ts
     return {"ok": True, "vegas": vegas}
+
+
+def footprint_opposes_direction(direction: str, footprint_delta: float | None) -> bool:
+    """V8.2.6: Returns True if footprint delta strongly opposes trade direction.
+    LONG with delta < -threshold = strong selling → SKIP.
+    SHORT with delta > +threshold = strong buying → SKIP."""
+    if not CONFLUENCE_FILTER_ENABLED or footprint_delta is None:
+        return False
+    if direction == "LONG" and footprint_delta < -FOOTPRINT_OPPOSES_THRESHOLD:
+        return True
+    if direction == "SHORT" and footprint_delta > FOOTPRINT_OPPOSES_THRESHOLD:
+        return True
+    return False
+
+
+def _extract_delta_from_reasons(score_reasons: str) -> float | None:
+    """Extract footprint delta value from score_reasons text.
+    Matches patterns like 'delta=-1204' or 'delta=+758'."""
+    import re
+    m = re.search(r'delta=([+-]?\d+)', score_reasons or '')
+    return int(m.group(1)) if m else None
 
 
 def validate_setup_against_vegas(setup: dict, vegas: dict | None) -> bool:
@@ -1026,6 +1056,17 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
 
             # V8.2.4: Tag NORMAL day setups as filtered (still write to DB for analysis)
             _filtered_reason = "NORMAL_DAY_SKIP" if (SKIP_NORMAL_DAY_TYPE and day_type == "NORMAL") else None
+
+            # V8.2.6: Confluence Filter — skip when footprint delta strongly opposes direction
+            _fp_data = (data.get("triggers") or {}).get("footprint_last_bar") or {}
+            _fp_delta = _fp_data.get("delta") or 0
+            if not _fp_delta:
+                _buy = _fp_data.get("buy_vol", 0) or 0
+                _sell = _fp_data.get("sell_vol", 0) or 0
+                if _buy or _sell:
+                    _fp_delta = _buy - _sell
+            if _filtered_reason is None and footprint_opposes_direction(log_direction, _fp_delta):
+                _filtered_reason = "FOOTPRINT_OPPOSES"
 
             # Legacy: insert_attempt
             try:
