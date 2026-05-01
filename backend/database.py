@@ -949,7 +949,7 @@ async def get_open_setups_for_simulation() -> list:
         rows = await conn.fetch("""
             SELECT setup_id, first_detected_ts, direction, initial_entry, initial_stop,
                    initial_score, c1_target, c2_target, c3_target,
-                   t1_hit, t2_hit, t3_hit, stop_hit
+                   t1_hit, t2_hit, t3_hit, stop_hit, be_strategy
             FROM setups
             WHERE closed_ts IS NULL
               AND initial_entry IS NOT NULL AND initial_entry > 0

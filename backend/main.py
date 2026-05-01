@@ -526,30 +526,40 @@ async def _shadow_simulator_loop():
                                 break
 
                         # THEN CHECK STOP (after targets — same bar favors targets)
-                        eff_stop = entry if t2_hit else stop
+                        # V8.2.7d: BE-strategy-aware effective stop
+                        be_strat = s.get("be_strategy") or "on_c2_fill"
+                        be_moved = False
+                        if be_strat == "on_c1_fill" and t1_hit:
+                            be_moved = True
+                        elif be_strat == "on_c2_fill" and t2_hit:
+                            be_moved = True
+                        elif be_strat == "after_c2_plus_half_R" and t2_hit:
+                            be_moved = True  # simplified: treat as BE at entry
+                        eff_stop = entry if be_moved else stop
                         if not stop_hit:
                             if (is_long and bl <= eff_stop) or (not is_long and bh >= eff_stop):
                                 stop_hit = True
                                 updates["stop_hit"] = True
                                 updates["stop_hit_ts"] = bts
+                                # V8.2.7d: Per-contract PnL with BE-strategy awareness
                                 pnl = 0.0
                                 for ci in range(contracts):
                                     if ci == 0 and t1_hit:
-                                        pnl += R  # C1 already won
+                                        pnl += R  # C1 exited at T1
                                     elif ci == 0:
-                                        pnl -= R  # C1 stopped
+                                        pnl -= R  # C1 stopped at original
                                     elif ci == 1 and t2_hit:
-                                        pnl += 2 * R  # C2 already won
-                                    elif ci == 1 and t1_hit:
-                                        pnl += 0  # C2 at BE
+                                        pnl += 2 * R  # C2 exited at T2
+                                    elif ci == 1 and be_moved:
+                                        pnl += 0  # C2 at BE (entry)
                                     elif ci == 1:
-                                        pnl -= R  # C2 stopped
+                                        pnl -= R  # C2 at original stop
                                     elif ci == 2 and t3_hit:
                                         pnl += 3 * R
-                                    elif ci == 2 and t2_hit:
-                                        pnl += 0  # C3 at BE
+                                    elif ci == 2 and be_moved:
+                                        pnl += 0  # C3 at BE (entry)
                                     elif ci == 2:
-                                        pnl -= R
+                                        pnl -= R  # C3 at original stop
                                 # Determine close_reason based on highest target hit
                                 if t2_hit:
                                     reason = "T2_PARTIAL_STOP"
@@ -3820,7 +3830,9 @@ async def setups_resimulate():
                 t1_hit=FALSE, t1_hit_ts=NULL, t2_hit=FALSE, t2_hit_ts=NULL,
                 t3_hit=FALSE, t3_hit_ts=NULL, stop_hit=FALSE, stop_hit_ts=NULL,
                 closed_ts=NULL, close_reason=NULL, pnl_pts=NULL, pnl_usd=NULL,
+                pnl_net_usd=NULL, commissions_usd=NULL, slippage_usd=NULL,
                 mae_pts=NULL, mfe_pts=NULL,
+                executed_in_sim=FALSE, sim_skip_reason=NULL,
                 status='LIVE'
             WHERE initial_entry IS NOT NULL AND initial_entry > 0
         """)
