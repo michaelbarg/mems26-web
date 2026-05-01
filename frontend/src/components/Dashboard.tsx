@@ -13,6 +13,7 @@ import DayTypeBadge from './DayTypeBadge';
 import DayTypeHero from './DayTypeHero';
 import QualityScorePanel from './QualityScorePanel';
 import StrategyPreview from './StrategyPreview';
+import AwaitingTriggerPanel from './AwaitingTriggerPanel';
 import AttemptsTable, { SetupHighlight } from './AttemptsTable';
 import SetupsTable from './SetupsTable';
 import ShadowTradesTodayCard from './ShadowTradesTodayCard';
@@ -3499,7 +3500,12 @@ function TradeStatusRow({ liveSetup }: { liveSetup: any }) {
         {t2 > 0 && <span>T2 <span style={{ fontFamily: 'monospace' }}>{t2.toFixed(2)}</span> (+${usd(t2, entry, dir).toFixed(0)})</span>}
         {t3 > 0 && <span>T3 <span style={{ fontFamily: 'monospace' }}>{t3.toFixed(2)}</span> (+${usd(t3, entry, dir).toFixed(0)})</span>}
       </div>
-      <div style={{ fontSize: 10, color: '#4b5563' }}>Awaiting trigger</div>
+      <AwaitingTriggerPanel
+        direction={dir}
+        entry={entry}
+        stop={stop}
+        score={oppScore}
+      />
     </div>
   );
 }
