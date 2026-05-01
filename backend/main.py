@@ -1044,6 +1044,7 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     # Phase 6.B.3: Strategic tags
                     "rel_vol_at_entry": _rel_vol,
                     "cvd_direction_at_entry": _cvd_dir,
+                    "mtf_aligned": _compute_mtf_aligned(log_direction),
                     "vwap_side": _vwap_side,
                     "minutes_into_session": _ses_min if isinstance(_ses_min, int) else None,
                 }
@@ -3674,7 +3675,8 @@ async def attempts_recent_with_score(limit: int = 10):
             "SELECT id, ts, direction, setup_quality_score, health_score_at_entry, "
             "day_type, is_shadow, entry_mode, "
             "vegas_score, tpo_score, fvg_score, footprint_score, "
-            "score_reasons, c1_target, c2_target, c3_target, c3_enabled, be_strategy "
+            "score_reasons, c1_target, c2_target, c3_target, c3_enabled, be_strategy, "
+            "rel_vol_at_entry, cvd_direction_at_entry, mtf_aligned, vwap_side, minutes_into_session "
             "FROM setup_attempts "
             "WHERE setup_quality_score IS NOT NULL "
             "ORDER BY ts DESC LIMIT $1",
