@@ -499,21 +499,21 @@ function JournalPage() {
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('direction')}>Side{sortArrow('direction')}</th>
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('setup_type')}>Setup{sortArrow('setup_type')}</th>
                     <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('day_type')}>Day{sortArrow('day_type')}</th>
-                    <th className="px-1 py-1.5 text-left">KZ</th>
+                    <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('killzone')}>KZ{sortArrow('killzone')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('entry_price')}>Entry{sortArrow('entry_price')}</th>
-                    <th className="px-1 py-1.5 text-right">Stop</th>
-                    <th className="px-1 py-1.5 text-right">Risk</th>
+                    <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('stop')}>Stop{sortArrow('stop')}</th>
+                    <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('risk_pts')}>Risk{sortArrow('risk_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('exit_price')}>Exit{sortArrow('exit_price')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('pnl_pts')}>PnL{sortArrow('pnl_pts')}</th>
-                    <th className="px-1 py-1.5 text-right">$</th>
+                    <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('pnl_usd')}>${ sortArrow('pnl_usd')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mae_pts')}>MAE{sortArrow('mae_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('mfe_pts')}>MFE{sortArrow('mfe_pts')}</th>
                     <th className="px-1 py-1.5 text-right cursor-pointer" onClick={() => handleSort('duration_min')}>Dur{sortArrow('duration_min')}</th>
                     <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('setup_quality_score')}>Q{sortArrow('setup_quality_score')}</th>
-                    <th className="px-1 py-1.5 text-center">Path</th>
-                    <th className="px-1 py-1.5 text-center">Obs</th>
-                    <th className="px-1 py-1.5 text-left">Type</th>
-                    <th className="px-1 py-1.5 text-center">Result</th>
+                    <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('peak_score')}>Path{sortArrow('peak_score')}</th>
+                    <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('observation_count')}>Obs{sortArrow('observation_count')}</th>
+                    <th className="px-1 py-1.5 text-left cursor-pointer" onClick={() => handleSort('setup_type')}>Type{sortArrow('setup_type')}</th>
+                    <th className="px-1 py-1.5 text-center cursor-pointer" onClick={() => handleSort('close_reason')}>Result{sortArrow('close_reason')}</th>
                     <th className="px-1 py-1.5 text-left">Reasoning</th>
                   </tr>
                 </thead>
