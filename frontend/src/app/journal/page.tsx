@@ -156,20 +156,24 @@ function JournalPage() {
   // REAL/SHADOW tabs
   const [journalView, setJournalView] = useState<'REAL' | 'SHADOW'>('REAL');
   const [realSummary, setRealSummary] = useState<any>(null);
+  const [shadowSummary, setShadowSummary] = useState<any>(null);
 
   useEffect(() => {
-    if (journalView !== 'REAL') return;
     let active = true;
     const fetchSummary = async () => {
       try {
-        const res = await fetch(`${API_URL}/analytics/setups/sequential_today_summary`);
-        if (res.ok && active) setRealSummary(await res.json());
+        const [r1, r2] = await Promise.all([
+          fetch(`${API_URL}/analytics/setups/sequential_today_summary`),
+          fetch(`${API_URL}/analytics/setups/today_summary?min_score=70`),
+        ]);
+        if (r1.ok && active) setRealSummary(await r1.json());
+        if (r2.ok && active) setShadowSummary(await r2.json());
       } catch {}
     };
     fetchSummary();
     const id = setInterval(fetchSummary, 15000);
     return () => { active = false; clearInterval(id); };
-  }, [journalView]);
+  }, []);
 
   // Data
   const [trades, setTrades] = useState<Trade[]>([]);
@@ -577,21 +581,31 @@ function JournalPage() {
               SHADOW ({filteredTrades.length})
             </button>
             {journalView === 'SHADOW' && (
-              <span className="text-[10px] text-yellow-400">Shows ALL detected setups, including filtered out</span>
+              <span className="text-[10px] text-yellow-400">All detected (parallel sim)</span>
+            )}
+            {journalView === 'REAL' && (
+              <span className="text-[10px] text-green-400">Sequential (1 at a time)</span>
             )}
           </div>
 
-          {/* KPI Strip */}
+          {/* KPI Strip — from API summary (truth source) */}
           <div className="flex gap-3 flex-wrap">
-            {[
-              { label: 'Total', value: kpis.total },
-              { label: 'WR', value: `${kpis.wr}%` },
-              { label: 'Net PnL', value: fmtUsd(kpis.netPnl), color: kpis.netPnl >= 0 ? 'text-green-400' : 'text-red-400' },
-              { label: 'Avg MAE', value: `${kpis.avgMae.toFixed(1)}pt` },
-              { label: 'Avg MFE', value: `${kpis.avgMfe.toFixed(1)}pt` },
-              { label: 'Shadow', value: kpis.shadowCount },
-              { label: 'Live', value: kpis.liveCount },
-            ].map(k => (
+            {(() => {
+              const ss = journalView === 'SHADOW' ? shadowSummary : realSummary;
+              if (ss) return [
+                { label: 'Total', value: ss.total_setups ?? ss.total_executed_in_sim ?? kpis.total },
+                { label: 'Closed', value: ss.closed ?? ss.executed_closed ?? 0 },
+                { label: 'WR', value: `${ss.win_rate ?? ss.sequential_wr ?? kpis.wr}%` },
+                { label: 'Net PnL', value: fmtUsd(ss.total_pnl_net_usd ?? ss.sequential_pnl_usd ?? kpis.netPnl),
+                  color: (ss.total_pnl_net_usd ?? ss.sequential_pnl_usd ?? 0) >= 0 ? 'text-green-400' : 'text-red-400' },
+                { label: 'Open', value: ss.still_open ?? ss.executed_open ?? 0 },
+              ];
+              return [
+                { label: 'Total', value: kpis.total },
+                { label: 'WR', value: `${kpis.wr}%` },
+                { label: 'Net PnL', value: fmtUsd(kpis.netPnl), color: kpis.netPnl >= 0 ? 'text-green-400' : 'text-red-400' },
+              ];
+            })().map(k => (
               <div key={k.label} className="bg-gray-900 border border-gray-800 rounded px-3 py-2 text-center min-w-[80px]">
                 <div className="text-[10px] text-gray-500 uppercase">{k.label}</div>
                 <div className={`text-sm font-mono font-bold ${(k as any).color || ''}`}>{k.value}</div>
