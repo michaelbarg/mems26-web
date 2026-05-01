@@ -16,9 +16,11 @@ BUILD_DATE = "2026-04-22"
 MODE = os.getenv("MEMS26_MODE", "SIM").upper()
 
 # ── Entry Mode Selection (V6.5.2) ───────────────────────────────────────────
-ENTRY_MODE = os.getenv("MEMS26_ENTRY_MODE", "STRICT").upper()
-# STRICT = V6.1 baseline (default, backward-compatible)
-# DEMO   = Data collection mode (requires MODE=SIM)
+# Default: DEMO for SIM mode (Phase 3.2 data collection), STRICT for LIVE
+_default_entry = "DEMO" if MODE == "SIM" else "STRICT"
+ENTRY_MODE = os.getenv("MEMS26_ENTRY_MODE", _default_entry).upper()
+# STRICT = V6.1 baseline
+# DEMO   = Data collection mode (Phase 3.2+)
 # LIVE automatically forces STRICT regardless of ENTRY_MODE
 
 if ENTRY_MODE in ("DEMO", "RESEARCH") and MODE == "LIVE":
