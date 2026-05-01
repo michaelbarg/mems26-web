@@ -17,7 +17,7 @@
 
 SCDLLName("MES_AI_DataExport")
 
-#define MEMS26_DLL_VERSION "v7.14.2"
+#define MEMS26_DLL_VERSION "v7.15.0"
 
 // V7.9.5: Persistent checksum for command dedup (survives Re-add)
 #define PERSIST_KEY_LAST_CHECKSUM  210
@@ -235,7 +235,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v7.14.2";
+        sc.GraphName        = "MES AI Data Export v7.15.0";
         sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
         sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
@@ -1055,6 +1055,16 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         j<<",\"vegas\":null";
     }
     // V7.11.4: TPO using internal POC data
+    // V7.15.0: Diagnostic — confirm VAH/VAL reach tpo section
+    {
+        static int s_tpoLogCount = 0;
+        if (s_tpoLogCount < 3) {
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.15.0 TPO_DEBUG cd_valid=%d pd_valid=%d VAH=%.2f VAL=%.2f tpo_poc=%.2f pd_poc=%.2f pd_vah=%.2f pd_val=%.2f",
+                tpo_cd_valid?1:0, tpo_pd_valid?1:0, VAH, VAL, tpo_poc, prev_day_poc, prev_day_vah, prev_day_val), 1);
+            s_tpoLogCount++;
+        }
+    }
     if (tpo_cd_valid || tpo_pd_valid) {
         j<<",\"tpo\":{";
         if (tpo_cd_valid) {
