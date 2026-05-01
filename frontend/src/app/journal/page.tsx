@@ -363,8 +363,12 @@ function JournalPage() {
     // REAL tab: use sequential summary for headline KPIs
     if (journalView === 'REAL' && realSummary) {
       const realRows = viewFiltered;
-      const withMae = realRows.filter(t => t.mae_pts != null && t.mae_pts > 0);
-      const withMfe = realRows.filter(t => t.mfe_pts != null && t.mfe_pts > 0);
+      const MAE_SANITY_MAX = 50; // MES with 5-15pt stop can't have MAE > 50
+      const withMae = realRows.filter(t => t.mae_pts != null && t.mae_pts > 0 && t.mae_pts <= MAE_SANITY_MAX);
+      const withMfe = realRows.filter(t => t.mfe_pts != null && t.mfe_pts > 0 && t.mfe_pts <= MAE_SANITY_MAX);
+      // Log outliers for investigation
+      realRows.filter(t => (t.mae_pts || 0) > MAE_SANITY_MAX).forEach(t =>
+        console.warn(`[JOURNAL] Outlier MAE: id=${t.id} mae_pts=${t.mae_pts} (capped)`));
       return {
         total: realSummary.total_executed_in_sim || 0,
         wr: Math.round(realSummary.sequential_wr || 0),
@@ -380,8 +384,9 @@ function JournalPage() {
     const shadows = t.filter(t => t.is_shadow);
     const live = t.filter(t => !t.is_shadow);
     const totalPnl = t.reduce((s, t) => s + (t.pnl_usd || 0), 0);
-    const avgMae = t.length > 0 ? t.reduce((s, t) => s + (t.mae_pts || 0), 0) / t.length : 0;
-    const avgMfe = t.length > 0 ? t.reduce((s, t) => s + (t.mfe_pts || 0), 0) / t.length : 0;
+    const saneT = t.filter(r => (r.mae_pts || 0) <= 50);
+    const avgMae = saneT.length > 0 ? saneT.reduce((s, r) => s + (r.mae_pts || 0), 0) / saneT.length : 0;
+    const avgMfe = saneT.length > 0 ? saneT.reduce((s, r) => s + (r.mfe_pts || 0), 0) / saneT.length : 0;
     return {
       total: t.length,
       wr: t.length > 0 ? Math.round(wins.length / t.length * 100) : 0,
