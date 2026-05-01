@@ -416,6 +416,14 @@ def enrich(raw):
     candle_p= raw.get("candle_patterns", {})  # ← חדש
     vegas   = raw.get("vegas")                 # V7.10.0: Vegas Tunnel (may be None)
     tpo     = raw.get("tpo")                   # V7.11.0: TPO Dual Study (may be None)
+    # V8.2.7: Fallback — populate tpo VAH/VAL from market_profile when null
+    if tpo and isinstance(tpo, dict):
+        cd = tpo.get("current_day")
+        if cd and isinstance(cd, dict) and cd.get("vah") is None and mp.get("vah") is not None:
+            cd["vah"] = mp["vah"]
+            cd["val"] = mp.get("val")
+            tpo["current_day"] = cd
+            log.info(f"[TPO_FALLBACK] market_profile VAH={mp['vah']} VAL={mp.get('val')} → tpo.current_day")
     triggers= raw.get("triggers")              # V7.12.0: Trigger events (may be None)
     day_classification = raw.get("day_classification")  # V7.13.0: Day Type Classifier
 
