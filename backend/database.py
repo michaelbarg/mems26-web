@@ -320,7 +320,8 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                        score, c1_target, c2_target, c3_target, be_strategy,
                        score_reasons, now_ts, *,
                        rel_vol_at_entry=None, cvd_direction_at_entry=None,
-                       mtf_aligned=None, vwap_side=None, minutes_into_session=None):
+                       mtf_aligned=None, vwap_side=None, minutes_into_session=None,
+                       extra_json=None):
     """Insert new setup or update existing one's last_seen + scores."""
     pool = await get_pool()
     if not pool:
@@ -335,7 +336,8 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                 c1_target, c2_target, c3_target, be_strategy, score_reasons,
                 status,
                 rel_vol_at_entry, cvd_direction_at_entry, mtf_aligned,
-                vwap_side, minutes_into_session
+                vwap_side, minutes_into_session,
+                extra_json
             )
             VALUES (
                 $1, $2, $16, $16,
@@ -344,7 +346,8 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                 $10, $10, 1,
                 $11, $12, $13, $14, $15,
                 CASE WHEN $10 >= 50 THEN 'LIVE' ELSE 'BUILDING' END,
-                $17, $18, $19, $20, $21
+                $17, $18, $19, $20, $21,
+                $22::jsonb
             )
             ON CONFLICT (setup_id) DO UPDATE SET
                 last_seen_ts = $16,
@@ -358,6 +361,7 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
                 mtf_aligned = COALESCE(EXCLUDED.mtf_aligned, setups.mtf_aligned),
                 vwap_side = COALESCE(EXCLUDED.vwap_side, setups.vwap_side),
                 minutes_into_session = COALESCE(EXCLUDED.minutes_into_session, setups.minutes_into_session),
+                extra_json = COALESCE(setups.extra_json, '{}'::jsonb) || COALESCE(EXCLUDED.extra_json, '{}'::jsonb),
                 status = CASE
                     WHEN $10 >= 50 AND setups.status = 'BUILDING' THEN 'LIVE'
                     ELSE setups.status
@@ -368,7 +372,8 @@ async def upsert_setup(setup_id, anchor_ts, direction, setup_type, level_name,
              c1_target, c2_target, c3_target, be_strategy, score_reasons,
              now_ts,
              rel_vol_at_entry, cvd_direction_at_entry, mtf_aligned,
-             vwap_side, minutes_into_session)
+             vwap_side, minutes_into_session,
+             extra_json)
 
 
 async def insert_observation(setup_id, observation_ts, current_price,

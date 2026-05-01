@@ -1149,6 +1149,17 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
 
                 _setup_id = generate_setup_id(log_direction, _setup_type, _level_name, _anchor_ts)
 
+                # V8.2.7h: Shadow structural stop for setups table
+                _setup_extra = None
+                try:
+                    from quality_score import compute_structural_stop_shadow
+                    _shadow_stop = compute_structural_stop_shadow(
+                        log_direction, entry_d, _triggers_active)
+                    _setup_extra = json.dumps({"shadow_structural_stop": _shadow_stop})
+                    log.info(f"[SHADOW_STOP] setup={_setup_id} stop={_shadow_stop.get('structural_stop_price')}")
+                except Exception as _sse2:
+                    log.debug(f"[SHADOW_STOP] setup compute failed: {_sse2}")
+
                 await upsert_setup(
                     setup_id=_setup_id, anchor_ts=_anchor_ts,
                     direction=log_direction, setup_type=_setup_type,
@@ -1163,6 +1174,7 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     mtf_aligned=_compute_mtf_aligned(log_direction),
                     vwap_side=_vwap_side,
                     minutes_into_session=_ses_min if isinstance(_ses_min, int) else None,
+                    extra_json=_setup_extra,
                 )
 
                 _cur_price = data.get("price") or data.get("current_price")
