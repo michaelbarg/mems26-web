@@ -576,6 +576,12 @@ async def _shadow_simulator_loop():
                                 closed = True
                                 break
                     # Always write MAE/MFE (even for open setups — track live drawdown)
+                    # V8.2.7o: Sanity cap at 50pt (shadow sim bug can produce 600+ values)
+                    if mae > 50:
+                        log.warning(f"[MAE_CAP] {s['setup_id']} mae={mae:.1f}pt capped to 50")
+                        mae = 50.0
+                    if mfe > 50:
+                        mfe = 50.0
                     if mae > 0 or mfe > 0:
                         updates["mae_pts"] = round(mae, 2)
                         updates["mfe_pts"] = round(mfe, 2)
@@ -1116,7 +1122,9 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "cvd_direction_at_entry": _cvd_dir,
                     "mtf_aligned": _compute_mtf_aligned(log_direction),
                     "vwap_side": _vwap_side,
-                    "minutes_into_session": _ses_min if isinstance(_ses_min, int) else None,
+                    # V8.2.7o NOTE: minutes_into_session often null in OFF_HOURS/London
+                    # (session_min from DLL is -1 pre-RTH, cast to None here)
+                    "minutes_into_session": _ses_min if isinstance(_ses_min, int) and _ses_min >= 0 else None,
                     "filtered_reason": _filtered_reason,
                 }
                 # W38: Shadow structural stop (multi-source, extra_json)
@@ -3873,7 +3881,29 @@ async def setups_resimulate():
                 status='LIVE'
             WHERE initial_entry IS NOT NULL AND initial_entry > 0
         """)
-    return {"ok": True, "detail": "All setups reset for re-simulation"}
+        # V8.2.7o: Clean MAE outliers in both tables
+        await conn.execute("UPDATE setups SET mae_pts = LEAST(mae_pts, 50.0) WHERE mae_pts > 50.0")
+        await conn.execute("UPDATE setups SET mfe_pts = LEAST(mfe_pts, 50.0) WHERE mfe_pts > 50.0")
+        await conn.execute("UPDATE setup_attempts SET hypothetical_mae_60min_pts = LEAST(hypothetical_mae_60min_pts, 50.0) WHERE hypothetical_mae_60min_pts > 50.0")
+        # V8.2.7o: Backfill extra_json where NULL (shadow_structural_stop)
+        nulls = await conn.fetch("""
+            SELECT setup_id, direction, initial_entry
+            FROM setups WHERE extra_json IS NULL AND initial_entry IS NOT NULL
+        """)
+        backfilled = 0
+        if nulls:
+            from quality_score import compute_structural_stop_shadow
+            for row in nulls:
+                try:
+                    ss = compute_structural_stop_shadow(row["direction"], row["initial_entry"], [])
+                    await conn.execute(
+                        "UPDATE setups SET extra_json = $1::jsonb WHERE setup_id = $2",
+                        json.dumps({"shadow_structural_stop": ss, "backfilled": True}),
+                        row["setup_id"])
+                    backfilled += 1
+                except Exception:
+                    pass
+    return {"ok": True, "detail": f"All setups reset for re-simulation, backfilled={backfilled}"}
 
 
 @app.get("/analytics/setups/closed")
