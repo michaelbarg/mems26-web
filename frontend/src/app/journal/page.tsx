@@ -135,6 +135,24 @@ function JournalPage() {
     return v === 'all' ? 'all' : 'executed';
   });
 
+  // REAL/SHADOW tabs
+  const [journalView, setJournalView] = useState<'REAL' | 'SHADOW'>('REAL');
+  const [realSummary, setRealSummary] = useState<any>(null);
+
+  useEffect(() => {
+    if (journalView !== 'REAL') return;
+    let active = true;
+    const fetchSummary = async () => {
+      try {
+        const res = await fetch(`${API_URL}/analytics/setups/sequential_today_summary`);
+        if (res.ok && active) setRealSummary(await res.json());
+      } catch {}
+    };
+    fetchSummary();
+    const id = setInterval(fetchSummary, 15000);
+    return () => { active = false; clearInterval(id); };
+  }, [journalView]);
+
   // Data
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,12 +289,31 @@ function JournalPage() {
     return result;
   }, [trades, tradeTypes, dayTypes, killzones, setupTypes, outcomes, cbFilter, sortCol, sortDir]);
 
-  const pagedTrades = filteredTrades.slice(0, (page + 1) * PAGE_SIZE);
+  // Tab-filtered view
+  const viewFiltered = useMemo(() => {
+    if (journalView === 'REAL') return filteredTrades.filter(t => t.executed_in_sim === true);
+    return filteredTrades;
+  }, [filteredTrades, journalView]);
+
+  const pagedTrades = viewFiltered.slice(0, (page + 1) * PAGE_SIZE);
 
   // ── KPIs ───────────────────────────────────────────────────────────────────
 
   const kpis = useMemo(() => {
-    const t = filteredTrades.filter(t => t.status === 'CLOSED');
+    // REAL tab: use sequential summary for headline KPIs
+    if (journalView === 'REAL' && realSummary) {
+      const realRows = viewFiltered.filter(t => t.mae_pts != null);
+      return {
+        total: realSummary.total_executed_in_sim || 0,
+        wr: Math.round(realSummary.sequential_wr || 0),
+        netPnl: realSummary.sequential_pnl_usd || 0,
+        avgMae: realRows.length ? realRows.reduce((s: number, t: any) => s + (t.mae_pts || 0), 0) / realRows.length : 0,
+        avgMfe: realRows.length ? realRows.reduce((s: number, t: any) => s + (t.mfe_pts || 0), 0) / realRows.length : 0,
+        shadowCount: 0,
+        liveCount: realSummary.executed_closed || 0,
+      };
+    }
+    const t = viewFiltered.filter(t => t.status === 'CLOSED');
     const wins = t.filter(t => (t.pnl_pts || 0) > 0);
     const shadows = t.filter(t => t.is_shadow);
     const live = t.filter(t => !t.is_shadow);
@@ -287,12 +324,11 @@ function JournalPage() {
       total: t.length,
       wr: t.length > 0 ? Math.round(wins.length / t.length * 100) : 0,
       netPnl: totalPnl,
-      avgMae: avgMae,
-      avgMfe: avgMfe,
+      avgMae, avgMfe,
       shadowCount: shadows.length,
       liveCount: live.length,
     };
-  }, [filteredTrades]);
+  }, [viewFiltered, journalView, realSummary]);
 
   // ── Toggle helpers ─────────────────────────────────────────────────────────
 
@@ -463,6 +499,21 @@ function JournalPage() {
 
         {/* Main Content */}
         <main className="flex-1 p-4 space-y-4 overflow-x-auto">
+          {/* REAL / SHADOW Tabs */}
+          <div className="flex gap-2 items-center">
+            <button onClick={() => setJournalView('REAL')}
+              className={`px-4 py-1.5 rounded text-xs font-semibold ${journalView === 'REAL' ? 'bg-green-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
+              REAL ({realSummary?.total_executed_in_sim ?? '?'})
+            </button>
+            <button onClick={() => setJournalView('SHADOW')}
+              className={`px-4 py-1.5 rounded text-xs font-semibold ${journalView === 'SHADOW' ? 'bg-blue-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}>
+              SHADOW ({filteredTrades.length})
+            </button>
+            {journalView === 'SHADOW' && (
+              <span className="text-[10px] text-yellow-400">Shows ALL detected setups, including filtered out</span>
+            )}
+          </div>
+
           {/* KPI Strip */}
           <div className="flex gap-3 flex-wrap">
             {[
@@ -606,7 +657,7 @@ function JournalPage() {
               </table>
 
               {/* Pagination */}
-              {filteredTrades.length > (page + 1) * PAGE_SIZE && (
+              {viewFiltered.length > (page + 1) * PAGE_SIZE && (
                 <div className="text-center mt-3">
                   <button onClick={() => setPage(p => p + 1)} className="bg-gray-800 hover:bg-gray-700 px-4 py-1.5 rounded text-xs">
                     Load more ({filteredTrades.length - pagedTrades.length} remaining)
