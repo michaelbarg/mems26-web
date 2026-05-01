@@ -646,10 +646,11 @@ async def _sequential_sim_loop():
                         await update_setup_simulation(sid, {"sim_skip_reason": "FOOTPRINT_OPPOSES"})
                         changes += 1
                     continue
-                # W34: Killzone filter — OFF_HOURS blocked in STRICT mode
+                # W34: Killzone filter — only enforce in STRICT/LIVE mode
+                # Per V6.5.x: SIM/SHADOW/DEMO/RESEARCH = 24/5, killzone as tag only
                 _ALLOWED_KZ = {"London", "NY_Open", "NY_Close"}
                 _kz_setup = s.get("killzone") or "OFF_HOURS"
-                if _kz_setup not in _ALLOWED_KZ:
+                if _MODE in ("STRICT", "LIVE") and _kz_setup not in _ALLOWED_KZ:
                     if not was_exec and s.get("sim_skip_reason") != "OFF_HOURS_BLOCKED":
                         await update_setup_simulation(sid, {"sim_skip_reason": "OFF_HOURS_BLOCKED"})
                         changes += 1
