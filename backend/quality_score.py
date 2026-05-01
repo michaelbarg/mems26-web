@@ -272,3 +272,66 @@ def get_be_strategy(day_type: Optional[str] = None) -> str:
     """Returns BE timing rule for the day type."""
     config = get_config(day_type)
     return config["be_rule"]
+
+
+def compute_structural_stop_shadow(
+    direction: str, entry: float,
+    triggers: list, candles_recent: list = None,
+    buffer: float = 1.0,
+) -> dict:
+    """V8.2.7f: SHADOW structural stop. Does NOT replace actual stop.
+    Stored in extra_json for Phase 3.2 comparison analysis."""
+    anchor = None
+    source = "unavailable"
+
+    # Priority 1: matching trigger (DLL structure)
+    for t in (triggers or []):
+        td = t.get("direction", "")
+        if direction == "LONG" and td in ("bullish", "long"):
+            pl = t.get("price_low")
+            if pl and pl > 0:
+                anchor = pl
+                source = f"trigger_{t.get('type', 'UNKNOWN')}"
+                break
+        elif direction == "SHORT" and td in ("bearish", "short"):
+            ph = t.get("price_high")
+            if ph and ph > 0:
+                anchor = ph
+                source = f"trigger_{t.get('type', 'UNKNOWN')}"
+                break
+
+    # Priority 2: candle scan fallback (20-bar lookback)
+    if anchor is None and candles_recent and len(candles_recent) >= 3:
+        recent = candles_recent[-20:]
+        if direction == "LONG":
+            lows = [c.get("l") or c.get("low") or 0 for c in recent]
+            lows = [v for v in lows if v > 0]
+            if lows:
+                anchor = min(lows)
+                source = "candles_20bar"
+        else:
+            highs = [c.get("h") or c.get("high") or 0 for c in recent]
+            highs = [v for v in highs if v > 0]
+            if highs:
+                anchor = max(highs)
+                source = "candles_20bar"
+
+    if anchor is None:
+        return {"structural_stop_price": None, "structural_stop_pts": None,
+                "structural_stop_source": "unavailable", "structural_stop_valid": False}
+
+    if direction == "LONG":
+        stop = round(anchor - buffer, 2)
+    else:
+        stop = round(anchor + buffer, 2)
+
+    risk = round(abs(entry - stop), 2)
+    valid = 3.0 <= risk <= 15.0
+
+    return {
+        "structural_stop_price": stop,
+        "structural_stop_pts": risk,
+        "structural_stop_source": source,
+        "structural_stop_valid": valid,
+        "structural_stop_anchor": round(anchor, 2),
+    }

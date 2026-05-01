@@ -1110,6 +1110,15 @@ async def _quality_preview_logic(direction: str, entry: float, stop: float,
                     "minutes_into_session": _ses_min if isinstance(_ses_min, int) else None,
                     "filtered_reason": _filtered_reason,
                 }
+                # V8.2.7f: Shadow structural stop (extra_json, no schema change)
+                try:
+                    from quality_score import compute_structural_stop_shadow
+                    _trig_list = (data.get("triggers") or {}).get("active") or []
+                    _shadow_stop = compute_structural_stop_shadow(
+                        log_direction, entry_d, _trig_list)
+                    _attempt_data["extra_json"] = json.dumps({"shadow_structural_stop": _shadow_stop})
+                except Exception as _sse:
+                    log.debug(f"[SHADOW_STOP] compute failed: {_sse}")
                 result_id = await insert_attempt(_attempt_data)
                 log.info(f"[PHASE6_DUAL] INSERT id={result_id} {log_direction} score={score_dir}")
             except Exception as e:
