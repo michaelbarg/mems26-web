@@ -48,9 +48,12 @@ function checkIcon(val: number, max: number): string {
 
 interface QualityScorePanelProps {
   apiUrl?: string;
+  direction?: 'LONG' | 'SHORT';
+  entry?: number;
+  stop?: number;
 }
 
-export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
+export default function QualityScorePanel({ apiUrl, direction, entry: propEntry, stop: propStop }: QualityScorePanelProps) {
   const [data, setData] = useState<QualityResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<string | null>(null);
@@ -69,22 +72,46 @@ export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
           if (active) { setError("Waiting for market data..."); setErrorType(null); setData(null); }
           return;
         }
-        // Score with default 5pt risk
-        const res = await fetch(`${base}/quality/preview`, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ direction: 'LONG', entry: price, stop: price - 5 }),
-        });
-        const j: QualityResponse = await res.json();
-        if (!active) return;
-        if (j.ok && j.score !== undefined) {
-          setData(j);
-          setError(null);
-          setErrorType(null);
+        // Use props if available, else compute both directions and pick higher
+        const ent = propEntry && propEntry > 0 ? propEntry : price;
+        if (direction) {
+          // Explicit direction from active setup
+          const stp = propStop && propStop > 0 ? propStop : (direction === 'LONG' ? ent - 5 : ent + 5);
+          const res = await fetch(`${base}/quality/preview`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ direction, entry: ent, stop: stp }),
+          });
+          const j: QualityResponse = await res.json();
+          if (!active) return;
+          if (j.ok && j.score !== undefined) {
+            setData(j);
+            setError(null);
+            setErrorType(null);
+          }
         } else {
-          setError(j.error || "No score available");
-          setErrorType(j.error || null);
-          setData(null);
+          // No active setup — fetch both LONG and SHORT, show higher
+          const [longRes, shortRes] = await Promise.all([
+            fetch(`${base}/quality/preview`, {
+              method: 'POST', headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ direction: 'LONG', entry: ent, stop: ent - 5 }),
+            }),
+            fetch(`${base}/quality/preview`, {
+              method: 'POST', headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ direction: 'SHORT', entry: ent, stop: ent + 5 }),
+            }),
+          ]);
+          const jL: QualityResponse = await longRes.json();
+          const jS: QualityResponse = await shortRes.json();
+          if (!active) return;
+          const sL = jL.ok ? (jL.score ?? 0) : 0;
+          const sS = jS.ok ? (jS.score ?? 0) : 0;
+          const best = sS > sL ? jS : jL;
+          if (best.ok && best.score !== undefined) {
+            setData(best);
+            setError(null);
+            setErrorType(null);
+          }
         }
       } catch {
         if (!active) return;
@@ -98,7 +125,7 @@ export default function QualityScorePanel({ apiUrl }: QualityScorePanelProps) {
     poll();
     const iv = setInterval(poll, POLL_MS);
     return () => { active = false; clearInterval(iv); };
-  }, [base]);
+  }, [base, direction, propEntry, propStop]);
 
   const box: React.CSSProperties = {
     background: '#0d1117', border: '1px solid #1e2738',

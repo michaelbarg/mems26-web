@@ -3613,7 +3613,11 @@ function RightPanel({ live, candles, accepted, lockedSignal, persistedSignal, si
             <ShadowTradesTodayCard />
             <TradeStatusRow liveSetup={liveSetup} />
             <DayTypeHero />
-            <QualityScorePanel />
+            <QualityScorePanel
+              direction={liveSetup?.opportunity === 'short' ? 'SHORT' : liveSetup?.opportunity === 'long' ? 'LONG' : undefined}
+              entry={liveSetup?.opportunityLevels?.entry}
+              stop={liveSetup?.opportunityLevels?.stop}
+            />
             <StrategyPreview />
             <TriggerPanel />
             <VegasTunnelPanel />
