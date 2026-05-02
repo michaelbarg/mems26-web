@@ -231,3 +231,14 @@ If content disappears from the top when new items load, this rule has been viola
 ## Backend /trade/execute Rule (added V6.5.6)
 
 The backend MUST forward t1/t2/t3 from the frontend as-is. Do NOT recalculate targets. The frontend's `calcLevels()` computes correct C1/C2/C3 from the setup's entry/stop/risk. Backend recalculation caused the 7147.50 bracket bug (T1_MIN_PT=10pt override).
+
+## Quick Commands
+
+This repo has named commands defined in `docs/CC_COMMANDS.md`.
+
+When the user types any of these triggers:
+- בדיקת דופק / PULSE / dofek
+- STATUS, TODAY, TRADES, V2-SIM, RETRO, BACKUP
+
+Read `docs/CC_COMMANDS.md` and execute the defined action immediately.
+Report in the specified format. Don't ask for clarification.
