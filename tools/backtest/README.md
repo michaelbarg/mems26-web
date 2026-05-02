@@ -23,12 +23,16 @@ python3 run_scenarios.py --no-csv
 ## Requirements
 
 ```bash
-pip install psycopg2-binary pyyaml
+pip install pyyaml
 ```
 
-Set `DATABASE_URL` in your environment:
+Uses the mems26-web API (no DATABASE_URL needed):
 ```bash
-export DATABASE_URL='postgresql://user:pass@host:port/dbname'
+# Default: https://mems26-web.onrender.com
+python3 run_scenarios.py
+
+# Custom API URL:
+python3 run_scenarios.py --api-url http://localhost:8000
 ```
 
 ## Scenarios (V8.3.0)
@@ -75,6 +79,25 @@ footprint veto, day type filtering, and direction sizing for real signal.
 
 3. **Use for HYPOTHESIS GENERATION, not execution.**
    Real validation = Day 1-3 fresh data with live market hours.
+
+## Sample Run Results (2026-05-02, 5499 attempts)
+
+```
+  Scenario                  Total   Exec  W/Data    WR%    PnL($)   Avg/tr
+  ──────────────────────────────────────────────────────────────────────────
+  baseline                   5499   3558    3175  59.2% $25421.12 $   8.01
+  vegas_reduced              5499   3753    3371  59.8% $28017.40 $   8.31
+  footprint_veto             5499   1501    1233  62.7% $11529.31 $   9.35
+  threshold_lower            5499   4897    4459  60.0% $38428.68 $   8.62
+  structural_stop            5499   3558    3175  59.2% $25421.12 $   8.01
+  combined_v2                5499   1511    1242  62.9% $11704.31 $   9.42
+  design_b_score_binary      5499   1062     799  73.5% $ 5327.19 $   6.67
+  design_b_aggressive        5499    703     445  77.1% $ 3420.30 $   7.69
+```
+
+Best total PnL: **threshold_lower** (+$38K, +$13K vs baseline)
+Best WR: **design_b_aggressive** (77.1%, +17.9% vs baseline)
+Best avg/trade: **combined_v2** ($9.42/trade)
 
 ## Output
 
