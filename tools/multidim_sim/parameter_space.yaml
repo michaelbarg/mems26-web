@@ -1,9 +1,66 @@
-mds_version: "1.0.0"
+mds_version: "1.0.2"
 created: "2026-05-02"
-status: "skeleton — full ranges in MDS-V1.0.1"
-architecture: "Option C — DB outcome direct, trade mgmt deferred to Phase 3.5"
+status: "Focused grid — filters > weights"
+architecture: "Option C + Multi-Target Retro + Sequential Filter"
 
-# Baseline V1 reference (used by sanity test)
+# Continuous dimensions (narrower — weights matter less per forensics)
+continuous:
+  threshold:
+    range: [30, 60]
+    description: "Score gate — narrowed from [25,75]"
+
+# Discrete weight values (not continuous — just 3 per dimension)
+discrete:
+  vegas_weight:
+    values: [25, 30, 35]
+    description: "Vegas component (V1=30)"
+  tpo_weight:
+    values: [20, 25, 30]
+    description: "TPO component (V1=25)"
+  fvg_weight:
+    values: [20, 25, 30]
+    description: "FVG component (V1=25)"
+
+# Categorical dimensions (FULL sweep — this is the lever)
+categorical:
+  footprint_logic:
+    values: ["weighted", "veto", "off"]
+  day_filter:
+    values:
+      - "all_days"
+      - "skip_DEVELOPING"
+      - "skip_DEVELOPING_NEUTRAL"
+      - "TREND_only"
+      - "TREND_GAP_only"
+  direction_filter:
+    values: ["both", "SHORT_only"]
+  skip_overextended:
+    values: [false, true]
+
+# Fixed
+fixed:
+  duration_max_minutes: 720
+  duration_penalty_factor: 0.0
+  footprint_weight: 20
+
+# Constraints
+constraints:
+  - "vegas_weight + tpo_weight + fvg_weight <= 105"
+  - "vegas_weight + tpo_weight + fvg_weight >= 60"
+
+# Composite score
+composite_score:
+  hard_penalties:
+    win_rate_min: 0.50
+    profit_factor_min: 1.20
+    n_trades_min: 20
+    max_drawdown_max: 3000
+  soft_weights:
+    base_pnl_weight: 1.0
+    drawdown_penalty: 0.5
+    profit_factor_bonus: 100
+
+# Baselines
 baselines:
   v1_production:
     threshold: 50
@@ -14,56 +71,6 @@ baselines:
     footprint_logic: "weighted"
     day_filter: "all_days"
     direction_filter: "both"
-    skip_overextended: false        # V1 doesn't filter
-    duration_max_minutes: 720       # effectively no cap
-    duration_penalty_factor: 0.0    # no penalty
-
-# Dimensions for sweep (skeleton — full ranges in MDS-V1.0.1)
-continuous:
-  threshold:
-    range: [25, 75]
-    description: "Score gate for execution"
-  vegas_weight:
-    range: [0, 45]
-    description: "Vegas component max contribution"
-  tpo_weight:
-    range: [5, 40]
-    description: "TPO position component max"
-  fvg_weight:
-    range: [5, 40]
-    description: "FVG component max"
-
-categorical:
-  footprint_logic:
-    values: ["weighted", "veto", "off"]
-    description: "How footprint contributes"
-  day_filter:
-    values: ["all_days", "skip_DEVELOPING", "skip_DEVELOPING_NEUTRAL", "TREND_only"]
-    description: "Which day types to allow"
-  direction_filter:
-    values: ["both", "SHORT_only"]
-    description: "Direction restriction"
-  skip_overextended:
-    values: [false, true]
-    description: |
-      When true: vetoes overextended setups (LONG with vwap_side=above,
-      SHORT with vwap_side=below). Only filters setups with non-null
-      vwap_side (~3.4% of dataset). Setups with NULL vwap_side pass through.
-      Finding: Score 90+ are 96.3% overextended.
-  duration_max_minutes:
-    values: [720]
-    note: "FIXED — not swept in V1.0 due to fixed 60min measurement window"
-    future: "V1.1: JOIN setups table for real first_detected→closed duration"
-  duration_penalty_factor:
-    values: [0.0]
-    note: "FIXED — inert until duration becomes variable in V1.1"
-
-# Deferred to Phase 3.5 (bar-by-bar simulator)
-deferred:
-  - stop_type        # fixed_5pt / structural_shadow
-  - t2_cap_R         # T2 max distance in R units
-  - c3_mode          # off / fixed_3R / vegas_trail_proxy
-
-constraints:
-  - "vegas_weight + tpo_weight + fvg_weight + 20 <= 105"
-  - "vegas_weight + tpo_weight + fvg_weight + 20 >= 70"
+    skip_overextended: false
+    duration_max_minutes: 720
+    duration_penalty_factor: 0.0

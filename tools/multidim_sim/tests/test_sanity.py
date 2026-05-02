@@ -27,19 +27,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 from tools.multidim_sim.data_loader import get_dataset
 from tools.multidim_sim.simulator_core import run_single_config
 
-# Tight tolerances for Option C (DB outcome direct, ±5% on counts, ±3pp on WR)
-# Based on setup_attempts data verified 2026-05-02
+# V1 baseline with multi-target retro (BE after C2) + sequential filter
+# Verified 2026-05-02: 100 trades, 59.34% WR, +$419 net
 EXPECTED_V1_BASELINE = {
-    "n_trades_min": 3000,           # 3,158 - 5%
-    "n_trades_max": 3350,           # 3,158 + 6%
-    "win_rate_min": 0.40,           # 42.86% - 3pp
-    "win_rate_max": 0.46,           # 42.86% + 3pp
-    "hit_c1_count_min": 1100,       # 1,159 - 5%
-    "hit_c1_count_max": 1250,       # 1,159 + 8%
-    "hit_stop_count_min": 1460,     # 1,545 - 6%
-    "hit_stop_count_max": 1650,     # 1,545 + 7%
-    "timeout_count_min": 430,       # 454 - 5%
-    "timeout_count_max": 480,       # 454 + 6%
+    "n_trades_min": 85,
+    "n_trades_max": 115,
+    "win_rate_min": 0.56,
+    "win_rate_max": 0.62,
+    "net_pnl_usd_min": 200,
+    "net_pnl_usd_max": 700,
+    "profit_factor_min": 1.2,
+    "max_drawdown_max": 1000,
 }
 
 # V1 production config (Option C — no trade management dims)
@@ -96,21 +94,18 @@ def test_v1_baseline_win_rate(baseline_metrics):
     assert lo <= wr <= hi, f"win_rate={wr:.4f} outside [{lo}, {hi}]"
 
 
-def test_v1_baseline_outcome_distribution(baseline_metrics):
-    """GATE: outcome counts within expected ranges."""
+def test_v1_baseline_pnl_and_drawdown(baseline_metrics):
+    """GATE: PnL near breakeven, drawdown contained."""
     m = baseline_metrics
+    lo, hi = EXPECTED_V1_BASELINE["net_pnl_usd_min"], EXPECTED_V1_BASELINE["net_pnl_usd_max"]
+    assert lo <= m["net_pnl_usd"] <= hi, \
+        f"net_pnl={m['net_pnl_usd']:.0f} outside [{lo}, {hi}]"
 
-    hit_c1 = m["n_hit_c1"]
-    lo, hi = EXPECTED_V1_BASELINE["hit_c1_count_min"], EXPECTED_V1_BASELINE["hit_c1_count_max"]
-    assert lo <= hit_c1 <= hi, f"n_hit_c1={hit_c1} outside [{lo}, {hi}]"
+    assert m["profit_factor"] >= EXPECTED_V1_BASELINE["profit_factor_min"], \
+        f"profit_factor={m['profit_factor']:.3f} below {EXPECTED_V1_BASELINE['profit_factor_min']}"
 
-    hit_stop = m["n_hit_stop"]
-    lo, hi = EXPECTED_V1_BASELINE["hit_stop_count_min"], EXPECTED_V1_BASELINE["hit_stop_count_max"]
-    assert lo <= hit_stop <= hi, f"n_hit_stop={hit_stop} outside [{lo}, {hi}]"
-
-    timeout = m["n_timeout"]
-    lo, hi = EXPECTED_V1_BASELINE["timeout_count_min"], EXPECTED_V1_BASELINE["timeout_count_max"]
-    assert lo <= timeout <= hi, f"n_timeout={timeout} outside [{lo}, {hi}]"
+    assert m["max_drawdown_usd"] <= EXPECTED_V1_BASELINE["max_drawdown_max"], \
+        f"max_dd={m['max_drawdown_usd']:.0f} above {EXPECTED_V1_BASELINE['max_drawdown_max']}"
 
 
 def test_simulation_is_fast(dataset):
@@ -143,12 +138,13 @@ def test_duration_coverage(dataset):
     assert coverage >= 0.70, f"Duration coverage too low: {coverage:.1%}"
 
 
-def test_pnl_signs_correct(baseline_metrics):
-    """Sanity: HIT_C1 produces positive gross, HIT_STOP produces negative."""
-    # With V1's 42% WR and 1:1 R:R, net should be negative (more stops than wins)
+def test_pnl_structure_correct(baseline_metrics):
+    """Sanity: multi-target system has wins and losses, PnL near breakeven."""
     m = baseline_metrics
-    assert m["n_hit_stop"] > m["n_hit_c1"], "V1 should have more stops than wins"
-    assert m["net_pnl_usd"] < 0, f"V1 net PnL should be negative, got {m['net_pnl_usd']}"
+    assert m["n_hit_stop"] > 0, "Should have some stops"
+    total_wins = m["n_hit_c1"] + m["n_hit_c2"] + m["n_hit_c3"] + m["n_partial"]
+    assert total_wins > 0, "Should have some wins"
+    assert abs(m["net_pnl_usd"]) < 1000, f"V1 PnL should be near breakeven, got {m['net_pnl_usd']}"
 
 
 def test_skip_overextended_reduces_trades(dataset):
@@ -167,5 +163,40 @@ def test_skip_overextended_reduces_trades(dataset):
 
     # Reduction can be large (high-score setups are mostly overextended)
     # but should not eliminate everything
-    assert metrics_on["n_trades"] > 100, \
+    assert metrics_on["n_trades"] > 20, \
         f"skip_overextended removed too many: only {metrics_on['n_trades']} left"
+
+
+# ── Grid Runner Tests (Commit 2) ──────────────────────────────────────────
+
+def test_grid_test_mode_runs():
+    """Verify grid_runner works end-to-end on small sample."""
+    from tools.multidim_sim.grid_runner import run_grid
+    grid_df = run_grid(n_lhs_samples=50, cat_subset_size=3, n_jobs=1)
+
+    assert len(grid_df) > 20, f"Too few configs: {len(grid_df)}"
+    assert "composite_score" in grid_df.columns
+    assert "config_hash" in grid_df.columns
+    assert "win_rate" in grid_df.columns
+    # Not all will pass hard penalties in small samples — just verify execution
+
+
+def test_composite_score_basics():
+    """Verify composite score hard penalties and soft scoring."""
+    from tools.multidim_sim.analyzer import compute_composite_score
+
+    # Hard penalty: WR too low
+    bad_wr = {"win_rate": 0.30, "profit_factor": 1.5, "n_trades": 100,
+              "max_drawdown_usd": 100, "net_pnl_usd": 5000}
+    assert compute_composite_score(bad_wr) == float("-inf")
+
+    # Hard penalty: too few trades
+    bad_n = {"win_rate": 0.55, "profit_factor": 1.5, "n_trades": 10,
+             "max_drawdown_usd": 100, "net_pnl_usd": 5000}
+    assert compute_composite_score(bad_n) == float("-inf")
+
+    # Valid case
+    good = {"win_rate": 0.55, "profit_factor": 1.6, "n_trades": 500,
+            "max_drawdown_usd": 200, "net_pnl_usd": 5000}
+    score = compute_composite_score(good)
+    assert score > 0, f"Should be positive: {score}"
