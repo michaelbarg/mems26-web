@@ -1,0 +1,107 @@
+# MEMS26 Backtest Scenarios — V8.3.0
+# Each scenario overrides scoring weights and execution rules.
+# Run: python3 run_scenarios.py --scenarios scenarios.yaml
+
+scenarios:
+  baseline:
+    description: "Current production scoring (NORMAL day weights)"
+    weights:
+      vegas: 30
+      tpo: 25
+      fvg: 25
+      footprint: 20
+    execution_threshold: 50
+    footprint_veto: false
+    use_structural_stop: false
+
+  vegas_reduced:
+    description: "Reduce Vegas weight, increase Footprint"
+    weights:
+      vegas: 15
+      tpo: 25
+      fvg: 25
+      footprint: 35
+    execution_threshold: 50
+    footprint_veto: false
+    use_structural_stop: false
+
+  footprint_veto:
+    description: "Footprint contrarian = REJECT entirely"
+    weights:
+      vegas: 30
+      tpo: 25
+      fvg: 25
+      footprint: 20
+    execution_threshold: 50
+    footprint_veto: true
+    use_structural_stop: false
+
+  threshold_lower:
+    description: "Lower exec threshold to capture 30-49 bucket"
+    weights:
+      vegas: 30
+      tpo: 25
+      fvg: 25
+      footprint: 20
+    execution_threshold: 35
+    footprint_veto: false
+    use_structural_stop: false
+
+  structural_stop:
+    description: "Use multi-source structural stop instead of fixed 5pt"
+    weights:
+      vegas: 30
+      tpo: 25
+      fvg: 25
+      footprint: 20
+    execution_threshold: 50
+    footprint_veto: false
+    use_structural_stop: true
+
+  combined_v2:
+    description: "Combine: Vegas reduced + Footprint veto + lower threshold"
+    weights:
+      vegas: 15
+      tpo: 25
+      fvg: 25
+      footprint: 35
+    execution_threshold: 35
+    footprint_veto: true
+    use_structural_stop: true
+
+  # ── Design B scenarios (score-as-binary-qualifier hypothesis) ──
+
+  design_b_score_binary:
+    description: "Score >=30 is binary qualifier; filters do real work"
+    weights:
+      vegas: 30
+      tpo: 25
+      fvg: 25
+      footprint: 20
+    execution_threshold: 30
+    score_above_30_uniform: true
+    footprint_veto: true
+    day_type_filter:
+      block: ["DEVELOPING"]
+    direction_size_bias:
+      SHORT: 1.0
+      LONG: 0.5
+    use_structural_stop: false
+
+  design_b_aggressive:
+    description: "Design B + structural stop + skip Score 90+ death trap"
+    weights:
+      vegas: 30
+      tpo: 25
+      fvg: 25
+      footprint: 20
+    execution_threshold: 30
+    score_above_30_uniform: true
+    score_max_threshold: 89
+    footprint_veto: true
+    day_type_filter:
+      block: ["DEVELOPING"]
+    direction_size_bias:
+      SHORT: 1.0
+      LONG: 0.5
+    use_structural_stop: true
