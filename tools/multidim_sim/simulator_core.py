@@ -357,6 +357,30 @@ def merge_retro_outcomes(df: pl.DataFrame, retro_df: pl.DataFrame) -> pl.DataFra
     return df.join(retro_cols, left_on="id", right_on="attempt_id", how="left")
 
 
+def apply_stale_entry_filter(df: pl.DataFrame, max_distance_pts: float = 2.0) -> pl.DataFrame:
+    """
+    Reject trades where market has already moved too far from entry.
+    Uses retro first-tick data: if retro_mae_pts or retro_mfe_pts on first tick
+    already exceeds threshold, the entry price was stale.
+
+    Placeholder: full implementation requires first-tick price comparison.
+    Current approximation: if retro_duration_sec == 0 and outcome is a win,
+    it's likely a look-ahead artifact.
+    """
+    if "retro_duration_sec" not in df.columns:
+        return df
+
+    # Flag instant wins (duration 0s with positive PnL) as stale
+    stale = (
+        (pl.col("retro_duration_sec") == 0)
+        & (pl.col("gross_usd") > 0)
+        & (pl.col("qty") > 0)
+    )
+    return df.with_columns(
+        pl.when(stale).then(0).otherwise(pl.col("qty")).alias("qty")
+    )
+
+
 def apply_sequential_filter(df: pl.DataFrame) -> pl.DataFrame:
     """
     Reality constraint: only one trade open at a time.

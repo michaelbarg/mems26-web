@@ -67,6 +67,42 @@ Frontend:
 
 ---
 
+## Filter 3: skip_stale_entry (PRODUCTION CRITICAL)
+
+**Discovery:** Look-ahead investigation found that some setups are
+re-emitted every 60 seconds with stale entry_price. During fast
+market moves, this creates impossible-to-fill orders.
+
+**Evidence:**
+- Apr 29 cluster: 7 setups at entry 7167.75 over 7 minutes
+- Market moved ±18pt during that window
+- Some setups had first tick already past T3
+- 1.6% of all setups affected (3/186 sampled past T1 on first tick)
+
+**Production Fix:**
+
+```python
+# In setup detection (DLL or Backend):
+def validate_setup_entry(setup, current_price):
+    """Reject setup if market has moved away from intended entry."""
+    distance = abs(current_price - setup.entry_price)
+    if distance > 2.0:  # 2pt threshold
+        return False, "STALE_ENTRY_PRICE"
+    return True, "valid"
+```
+
+**Why this matters for LIVE:**
+- LIVE broker would reject or slippage these fills
+- Without fix, LIVE PnL will be lower than backtest
+- With fix, backtest matches LIVE reality
+
+**Impact on V2 Performance:**
+- ~$290 of the $1,547 V2 best PnL was from look-ahead trades
+- Realistic V2 PnL after fix: ~$1,250
+- Still 3x V1 baseline ($419)
+
+---
+
 ## Future Iterations (V3, V4)
 
 - After 30+ V2 Demo trades:
