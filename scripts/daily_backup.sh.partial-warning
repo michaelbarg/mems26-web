@@ -1,4 +1,18 @@
 #!/bin/bash
+#
+# WARNING: This script currently uses Python JSON export
+# which is INCOMPLETE (LIMIT 5000 on setup_attempts).
+#
+# TODO: Install pg_dump (Postgres.app or libpq) and update
+# this script to use pg_dump for proper full backup.
+#
+# Current backup is suitable for testing only, NOT production.
+#
+# Setup pg_dump:
+#   1. Download Postgres.app from https://postgresapp.com
+#   2. Drag to Applications, launch once
+#   3. Update this script to use pg_dump
+#
 set -e
 
 # Daily backup script for MEMS26
