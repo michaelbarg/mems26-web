@@ -1,10 +1,18 @@
 #!/bin/bash
+
+# Auto-load environment if not already loaded (used for future psql/backup scripts)
+if [ -z "$DATABASE_URL" ] && [ -f "$HOME/.mems26_env" ]; then
+    source "$HOME/.mems26_env"
+fi
+
+BACKEND_URL=${BACKEND_URL:-https://mems26-web.onrender.com}
+
 echo "=== MEMS26 Daily Health Check ==="
 echo "Date: $(date)"
 echo ""
 
 echo "--- Backend ---"
-curl -s -o /dev/null -w "Backend: %{http_code}\n" https://mems26-web.onrender.com/health || echo "Backend: DOWN"
+curl -s -o /dev/null -w "Backend: %{http_code}\n" "$BACKEND_URL/health" || echo "Backend: DOWN"
 
 echo ""
 echo "--- Frontend ---"
@@ -20,39 +28,66 @@ else
 fi
 
 echo ""
-echo "--- DB Recent Activity ---"
-python3 << 'PYEOF'
-import os, psycopg2
+echo "--- DB Recent Activity (via Backend API) ---"
 
-conn = psycopg2.connect(os.environ['DATABASE_URL'])
-cur = conn.cursor()
+# Last Trade
+HTTP_CODE=$(curl -s -o /tmp/dc_trades.json -w "%{http_code}" --max-time 10 "$BACKEND_URL/trades?limit=1")
+if [ "$HTTP_CODE" != "200" ]; then
+    echo "  ⚠️ /trades: HTTP $HTTP_CODE"
+else
+    python3 -c "
+import json
+with open('/tmp/dc_trades.json') as f:
+    data = json.load(f)
+if isinstance(data, dict):
+    data = data.get('trades', data.get('data', []))
+if not data:
+    print('Last Trade: NONE in DB')
+else:
+    t = data[0]
+    ts = t.get('created_at', t.get('entry_ts', 'unknown'))
+    print(f'Last Trade: {ts}')
+"
+fi
 
-cur.execute("""
-  SELECT MAX(created_at),
-         EXTRACT(EPOCH FROM (NOW() - MAX(created_at)))/60 as min_ago
-  FROM setup_attempts
-""")
-r = cur.fetchone()
-print(f"Last setup: {r[0]} ({r[1]:.0f} min ago)")
+# Today Activity
+HTTP_CODE=$(curl -s -o /tmp/dc_today.json -w "%{http_code}" --max-time 10 "$BACKEND_URL/analytics/setups/today_summary")
+if [ "$HTTP_CODE" != "200" ]; then
+    echo "  ⚠️ /analytics/setups/today_summary: HTTP $HTTP_CODE"
+else
+    python3 -c "
+import json
+with open('/tmp/dc_today.json') as f:
+    d = json.load(f)
+total = d.get('total_setups', d.get('total', 0))
+closed = d.get('closed', d.get('closed_setups', 0))
+wr = d.get('win_rate', d.get('win_rate_pct', 0))
+pnl = d.get('total_pnl_net_usd', d.get('pnl', d.get('total_pnl', 0)))
+print(f'Today: {total} setups, {closed} closed, WR {wr}%, PnL \${pnl:.2f}')
+"
+fi
 
-cur.execute("""
-  SELECT COUNT(*)
-  FROM setup_attempts
-  WHERE created_at >= CURRENT_DATE
-""")
-print(f"Today's setups: {cur.fetchone()[0]}")
+# Recent Days
+HTTP_CODE=$(curl -s -o /tmp/dc_daily.json -w "%{http_code}" --max-time 10 "$BACKEND_URL/analytics/daily?days=7")
+if [ "$HTTP_CODE" != "200" ]; then
+    echo "  ⚠️ /analytics/daily: HTTP $HTTP_CODE"
+else
+    echo "Last 7 days:"
+    python3 -c "
+import json
+with open('/tmp/dc_daily.json') as f:
+    data = json.load(f)
+if isinstance(data, dict):
+    data = data.get('days', data.get('data', []))
+for day in data:
+    dt = day.get('date', day.get('day', '?'))
+    n = day.get('count', day.get('setups', day.get('total_setups', 0)))
+    print(f'  {dt}: {n} setups')
+"
+fi
 
-cur.execute("""
-  SELECT COUNT(*), COALESCE(SUM(pnl_usd), 0)
-  FROM trades
-  WHERE entry_ts >= EXTRACT(EPOCH FROM CURRENT_DATE)
-""")
-r = cur.fetchone()
-print(f"Today's trades: {r[0]}, PnL: ${r[1]:.2f}")
-
-cur.close()
-conn.close()
-PYEOF
+# Cleanup temp files
+rm -f /tmp/dc_trades.json /tmp/dc_today.json /tmp/dc_daily.json
 
 echo ""
 echo "=== Check Complete ==="
