@@ -235,10 +235,86 @@ The backend MUST forward t1/t2/t3 from the frontend as-is. Do NOT recalculate ta
 ## Quick Commands
 
 This repo has named commands defined in `docs/CC_COMMANDS.md`.
+Validation protocol is in `docs/DATA_VALIDATION_PROTOCOL.md`.
 
-When the user types any of these triggers:
-- בדיקת דופק / PULSE / dofek
-- STATUS, TODAY, TRADES, V2-SIM, RETRO, BACKUP
+When the user types any of these triggers, execute immediately without clarification:
+
+| Trigger | Action |
+|---------|--------|
+| `בדיקת דופק` / `PULSE` / `dofek` | Run daily_check.sh |
+| `STATUS` | Git status + last commits |
+| `TODAY` | Today's performance metrics |
+| `TRADES` | Last 10 trades with FULL timestamps |
+| `V2-SIM` | Run V2 grid simulation |
+| `RETRO` | Run multi-target retro |
+| `BACKUP` | Run + verify backup |
 
 Read `docs/CC_COMMANDS.md` and execute the defined action immediately.
 Report in the specified format. Don't ask for clarification.
+
+---
+
+## Mandatory First Steps (Every Chat Session)
+
+At the start of every chat session, automatically:
+
+1. **Read the protocol:** `docs/DATA_VALIDATION_PROTOCOL.md`
+2. **Read the commands:** `docs/CC_COMMANDS.md`
+3. **Run PULSE:** `source ~/.mems26_env && ./scripts/daily_check.sh`
+4. **Report status** in standard format
+5. **Then wait** for user task
+
+Do NOT ask permission to do these. They are mandatory and automatic.
+
+---
+
+## Security Rules (NEVER VIOLATE)
+
+1. NEVER include `DATABASE_URL` value in any command or log
+2. NEVER write secrets to files
+3. NEVER push without user explicit approval
+4. ALWAYS use `${DATABASE_URL}` substitution or `os.environ`
+5. NEVER expose values in commit messages
+
+---
+
+## Trade Review Format (REQUIRED)
+
+When showing trades to user, ALWAYS include for each trade:
+- Date, Entry timestamp, Exit timestamp PER CONTRACT (t1/t2/t3/stop hit timestamps)
+- Direction, Price ladder (entry, stop, T1, T2, T3)
+- Day type, Killzone, Outcome
+- PnL per contract + total
+- Component scores (Vegas, TPO, FVG, Footprint), VWAP side
+- Sierra Chart reference time
+
+Without timestamps per contract, user cannot verify on Sierra Chart. This format is MANDATORY.
+See `docs/DATA_VALIDATION_PROTOCOL.md` Layer 3 for full template.
+
+---
+
+## Working Style
+
+- Hebrew responses for Hebrew users
+- English code blocks
+- Bash commands as single copy-paste blocks
+- Use ASCII charts and visual aids
+- Provide context + options + recommendation for decisions
+
+---
+
+## Current Sprint
+
+Sprint 6 — Data Quality + Shadow Calibration
+- Phase 3.2: Pure Observation (May 4-7)
+- Phase 3.3: V2 Implementation (May 8-10)
+- Target LIVE: May 28, 2026
+
+## Key Files Reference
+
+- Master Log: `MEMS26_LOG_2026-05-02.md`
+- V2 Spec: `tools/multidim_sim/V2_SPEC_FINAL.md`
+- Day Type: `MEMS26_DAY_TYPE_SPEC_V2.md`
+- Health Check: `scripts/daily_check.sh`
+- Validation Protocol: `docs/DATA_VALIDATION_PROTOCOL.md`
+- Commands: `docs/CC_COMMANDS.md`

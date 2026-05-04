@@ -1,5 +1,20 @@
 # MEMS26 — CC Quick Commands
 
+## ALWAYS FIRST: Read Protocol
+
+Before executing any command in this file, read:
+`docs/DATA_VALIDATION_PROTOCOL.md`
+
+That document defines:
+- Required validation steps
+- Output formats
+- Security rules
+- Cross-chat continuity
+
+When user invokes any command below, also follow protocol procedures.
+
+---
+
 When the user types one of these commands (in Hebrew or English),
 perform the action exactly as defined. Don't ask for clarification —
 just execute and report.
