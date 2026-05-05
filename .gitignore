@@ -11,3 +11,6 @@ tools/backtest/output/*.csv
 tools/multidim_sim/cache/
 tools/multidim_sim/results/experiments/
 tools/multidim_sim/results/reports/
+
+# TypeScript auto-generated build info
+frontend/tsconfig.tsbuildinfo
