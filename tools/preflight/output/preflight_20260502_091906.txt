@@ -1,0 +1,12 @@
+MEMS26 Pre-Flight Report — 2026-05-02 09:19:03 IL
+Pass: 9  Warn: 6  Fail: 1
+API: https://mems26-web.onrender.com
+Branch: feature/preflight-script  Commit: c8bc9cd
+Actions:
+  - Switch to main before market open: git checkout main
+  - Commit or stash changes before market open
+  - Start Bridge before market open: cd bridge && python3 json_bridge.py
+  - Sierra Chart not exporting — start before market open
+  - Bridge config entry_mode should be DEMO for Phase 3.2
+  - May block off-hours setups — verify this is intended
+  - Bridge not sending data — restart before market open

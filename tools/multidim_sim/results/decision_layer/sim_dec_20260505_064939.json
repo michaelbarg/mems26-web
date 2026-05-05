@@ -1,0 +1,732 @@
+{
+  "01_baseline": {
+    "sim": "SIM-DEC-01",
+    "config": {
+      "threshold": 50,
+      "vegas_weight": 25,
+      "tpo_weight": 30,
+      "fvg_weight": 25,
+      "footprint_weight": 20,
+      "day_filter": "skip_DEVELOPING",
+      "skip_killzones": [
+        "London"
+      ],
+      "direction_filter": "both",
+      "vwap_overextension_veto": true,
+      "fp_min_score": 10,
+      "fp_opposes_veto": true
+    },
+    "decision_summary": {
+      "total": 4996,
+      "approved": 180,
+      "rejected": 4816,
+      "approval_rate_pct": 3.6,
+      "rejected_by_stage": {
+        "VWAP": 1277,
+        "Tournament": 2912,
+        "Footprint": 627
+      }
+    },
+    "pnl_approved": {
+      "trades": 180,
+      "wins": 128,
+      "losses": 52,
+      "wr": 71.1,
+      "gross_pnl": 3737.5,
+      "net_pnl": 2747.5,
+      "avg_trade": 15.26
+    },
+    "pnl_rejected": {
+      "trades": 4816,
+      "wins": 2855,
+      "losses": 1961,
+      "wr": 59.3,
+      "gross_pnl": 43972.5,
+      "net_pnl": 17484.5,
+      "avg_trade": 3.63
+    },
+    "pnl_v1_all": {
+      "trades": 4996,
+      "wins": 2983,
+      "losses": 2013,
+      "wr": 59.7,
+      "gross_pnl": 47710.0,
+      "net_pnl": 20232.0,
+      "avg_trade": 4.05
+    },
+    "pnl_delta_vs_v1": -17484.5,
+    "approved_score_stats": {
+      "mean": 76.0,
+      "median": 71.9,
+      "min": 51.7,
+      "max": 100.0
+    }
+  },
+  "02_counterfactual": {
+    "sim": "SIM-DEC-02",
+    "date": "2026-05-03",
+    "n_setups": 244,
+    "decision_summary": {
+      "total": 244,
+      "approved": 30,
+      "rejected": 214,
+      "approval_rate_pct": 12.3,
+      "rejected_by_stage": {
+        "Footprint": 29,
+        "VWAP": 47,
+        "Tournament": 138
+      }
+    },
+    "pnl_actual_v1": {
+      "trades": 244,
+      "wins": 142,
+      "losses": 102,
+      "wr": 58.2,
+      "gross_pnl": 1210.0,
+      "net_pnl": -132.0,
+      "avg_trade": -0.54
+    },
+    "pnl_with_dl": {
+      "trades": 30,
+      "wins": 14,
+      "losses": 16,
+      "wr": 46.7,
+      "gross_pnl": -162.5,
+      "net_pnl": -327.5,
+      "avg_trade": -10.92
+    },
+    "pnl_rejected": {
+      "trades": 214,
+      "wins": 128,
+      "losses": 86,
+      "wr": 59.8,
+      "gross_pnl": 1372.5,
+      "net_pnl": 195.5,
+      "avg_trade": 0.91
+    },
+    "shadow_delta": -195.5
+  },
+  "03_threshold_sweep": {
+    "sim": "SIM-DEC-03",
+    "grid": [
+      {
+        "threshold": 30,
+        "fp_min_score": 0,
+        "approved": 265,
+        "approval_rate": 5.3,
+        "trades": 265,
+        "wr": 78.9,
+        "net_pnl": 6070.0,
+        "avg_trade": 22.91
+      },
+      {
+        "threshold": 30,
+        "fp_min_score": 5,
+        "approved": 255,
+        "approval_rate": 5.1,
+        "trades": 255,
+        "wr": 78.4,
+        "net_pnl": 5745.0,
+        "avg_trade": 22.53
+      },
+      {
+        "threshold": 30,
+        "fp_min_score": 8,
+        "approved": 255,
+        "approval_rate": 5.1,
+        "trades": 255,
+        "wr": 78.4,
+        "net_pnl": 5745.0,
+        "avg_trade": 22.53
+      },
+      {
+        "threshold": 30,
+        "fp_min_score": 10,
+        "approved": 242,
+        "approval_rate": 4.8,
+        "trades": 242,
+        "wr": 77.7,
+        "net_pnl": 5306.5,
+        "avg_trade": 21.93
+      },
+      {
+        "threshold": 30,
+        "fp_min_score": 12,
+        "approved": 233,
+        "approval_rate": 4.7,
+        "trades": 233,
+        "wr": 78.5,
+        "net_pnl": 5306.0,
+        "avg_trade": 22.77
+      },
+      {
+        "threshold": 30,
+        "fp_min_score": 15,
+        "approved": 188,
+        "approval_rate": 3.8,
+        "trades": 188,
+        "wr": 78.2,
+        "net_pnl": 4113.5,
+        "avg_trade": 21.88
+      },
+      {
+        "threshold": 40,
+        "fp_min_score": 0,
+        "approved": 265,
+        "approval_rate": 5.3,
+        "trades": 265,
+        "wr": 78.9,
+        "net_pnl": 6070.0,
+        "avg_trade": 22.91
+      },
+      {
+        "threshold": 40,
+        "fp_min_score": 5,
+        "approved": 255,
+        "approval_rate": 5.1,
+        "trades": 255,
+        "wr": 78.4,
+        "net_pnl": 5745.0,
+        "avg_trade": 22.53
+      },
+      {
+        "threshold": 40,
+        "fp_min_score": 8,
+        "approved": 255,
+        "approval_rate": 5.1,
+        "trades": 255,
+        "wr": 78.4,
+        "net_pnl": 5745.0,
+        "avg_trade": 22.53
+      },
+      {
+        "threshold": 40,
+        "fp_min_score": 10,
+        "approved": 242,
+        "approval_rate": 4.8,
+        "trades": 242,
+        "wr": 77.7,
+        "net_pnl": 5306.5,
+        "avg_trade": 21.93
+      },
+      {
+        "threshold": 40,
+        "fp_min_score": 12,
+        "approved": 233,
+        "approval_rate": 4.7,
+        "trades": 233,
+        "wr": 78.5,
+        "net_pnl": 5306.0,
+        "avg_trade": 22.77
+      },
+      {
+        "threshold": 40,
+        "fp_min_score": 15,
+        "approved": 188,
+        "approval_rate": 3.8,
+        "trades": 188,
+        "wr": 78.2,
+        "net_pnl": 4113.5,
+        "avg_trade": 21.88
+      },
+      {
+        "threshold": 50,
+        "fp_min_score": 0,
+        "approved": 203,
+        "approval_rate": 4.1,
+        "trades": 203,
+        "wr": 73.4,
+        "net_pnl": 3511.0,
+        "avg_trade": 17.3
+      },
+      {
+        "threshold": 50,
+        "fp_min_score": 5,
+        "approved": 193,
+        "approval_rate": 3.9,
+        "trades": 193,
+        "wr": 72.5,
+        "net_pnl": 3186.0,
+        "avg_trade": 16.51
+      },
+      {
+        "threshold": 50,
+        "fp_min_score": 8,
+        "approved": 193,
+        "approval_rate": 3.9,
+        "trades": 193,
+        "wr": 72.5,
+        "net_pnl": 3186.0,
+        "avg_trade": 16.51
+      },
+      {
+        "threshold": 50,
+        "fp_min_score": 10,
+        "approved": 180,
+        "approval_rate": 3.6,
+        "trades": 180,
+        "wr": 71.1,
+        "net_pnl": 2747.5,
+        "avg_trade": 15.26
+      },
+      {
+        "threshold": 50,
+        "fp_min_score": 12,
+        "approved": 171,
+        "approval_rate": 3.4,
+        "trades": 171,
+        "wr": 71.9,
+        "net_pnl": 2747.0,
+        "avg_trade": 16.06
+      },
+      {
+        "threshold": 50,
+        "fp_min_score": 15,
+        "approved": 128,
+        "approval_rate": 2.6,
+        "trades": 128,
+        "wr": 68.0,
+        "net_pnl": 1443.5,
+        "avg_trade": 11.28
+      },
+      {
+        "threshold": 60,
+        "fp_min_score": 0,
+        "approved": 191,
+        "approval_rate": 3.8,
+        "trades": 191,
+        "wr": 71.7,
+        "net_pnl": 2997.0,
+        "avg_trade": 15.69
+      },
+      {
+        "threshold": 60,
+        "fp_min_score": 5,
+        "approved": 185,
+        "approval_rate": 3.7,
+        "trades": 185,
+        "wr": 71.4,
+        "net_pnl": 2830.0,
+        "avg_trade": 15.3
+      },
+      {
+        "threshold": 60,
+        "fp_min_score": 8,
+        "approved": 185,
+        "approval_rate": 3.7,
+        "trades": 185,
+        "wr": 71.4,
+        "net_pnl": 2830.0,
+        "avg_trade": 15.3
+      },
+      {
+        "threshold": 60,
+        "fp_min_score": 10,
+        "approved": 175,
+        "approval_rate": 3.5,
+        "trades": 175,
+        "wr": 70.3,
+        "net_pnl": 2525.0,
+        "avg_trade": 14.43
+      },
+      {
+        "threshold": 60,
+        "fp_min_score": 12,
+        "approved": 167,
+        "approval_rate": 3.3,
+        "trades": 167,
+        "wr": 71.3,
+        "net_pnl": 2569.0,
+        "avg_trade": 15.38
+      },
+      {
+        "threshold": 60,
+        "fp_min_score": 15,
+        "approved": 128,
+        "approval_rate": 2.6,
+        "trades": 128,
+        "wr": 68.0,
+        "net_pnl": 1443.5,
+        "avg_trade": 11.28
+      },
+      {
+        "threshold": 70,
+        "fp_min_score": 0,
+        "approved": 137,
+        "approval_rate": 2.7,
+        "trades": 137,
+        "wr": 70.8,
+        "net_pnl": 2051.5,
+        "avg_trade": 14.97
+      },
+      {
+        "threshold": 70,
+        "fp_min_score": 5,
+        "approved": 137,
+        "approval_rate": 2.7,
+        "trades": 137,
+        "wr": 70.8,
+        "net_pnl": 2051.5,
+        "avg_trade": 14.97
+      },
+      {
+        "threshold": 70,
+        "fp_min_score": 8,
+        "approved": 137,
+        "approval_rate": 2.7,
+        "trades": 137,
+        "wr": 70.8,
+        "net_pnl": 2051.5,
+        "avg_trade": 14.97
+      },
+      {
+        "threshold": 70,
+        "fp_min_score": 10,
+        "approved": 129,
+        "approval_rate": 2.6,
+        "trades": 129,
+        "wr": 69.8,
+        "net_pnl": 1795.5,
+        "avg_trade": 13.92
+      },
+      {
+        "threshold": 70,
+        "fp_min_score": 12,
+        "approved": 126,
+        "approval_rate": 2.5,
+        "trades": 126,
+        "wr": 70.6,
+        "net_pnl": 1862.0,
+        "avg_trade": 14.78
+      },
+      {
+        "threshold": 70,
+        "fp_min_score": 15,
+        "approved": 104,
+        "approval_rate": 2.1,
+        "trades": 104,
+        "wr": 69.2,
+        "net_pnl": 1275.5,
+        "avg_trade": 12.26
+      },
+      {
+        "threshold": 80,
+        "fp_min_score": 0,
+        "approved": 78,
+        "approval_rate": 1.6,
+        "trades": 78,
+        "wr": 61.5,
+        "net_pnl": 318.5,
+        "avg_trade": 4.08
+      },
+      {
+        "threshold": 80,
+        "fp_min_score": 5,
+        "approved": 78,
+        "approval_rate": 1.6,
+        "trades": 78,
+        "wr": 61.5,
+        "net_pnl": 318.5,
+        "avg_trade": 4.08
+      },
+      {
+        "threshold": 80,
+        "fp_min_score": 8,
+        "approved": 78,
+        "approval_rate": 1.6,
+        "trades": 78,
+        "wr": 61.5,
+        "net_pnl": 318.5,
+        "avg_trade": 4.08
+      },
+      {
+        "threshold": 80,
+        "fp_min_score": 10,
+        "approved": 72,
+        "approval_rate": 1.4,
+        "trades": 72,
+        "wr": 59.7,
+        "net_pnl": 151.5,
+        "avg_trade": 2.1
+      },
+      {
+        "threshold": 80,
+        "fp_min_score": 12,
+        "approved": 72,
+        "approval_rate": 1.4,
+        "trades": 72,
+        "wr": 59.7,
+        "net_pnl": 151.5,
+        "avg_trade": 2.1
+      },
+      {
+        "threshold": 80,
+        "fp_min_score": 15,
+        "approved": 63,
+        "approval_rate": 1.3,
+        "trades": 63,
+        "wr": 57.1,
+        "net_pnl": -49.0,
+        "avg_trade": -0.78
+      }
+    ],
+    "sweet_spot": {
+      "threshold": 30,
+      "fp_min_score": 0,
+      "approved": 265,
+      "approval_rate": 5.3,
+      "trades": 265,
+      "wr": 78.9,
+      "net_pnl": 6070.0,
+      "avg_trade": 22.91
+    },
+    "monotonic_check": {
+      "avg_pnl_by_threshold": {
+        "30": 5381.0,
+        "40": 5381.0,
+        "50": 2803.5,
+        "60": 2532.42,
+        "70": 1847.92,
+        "80": 201.58
+      },
+      "is_monotonic": true,
+      "has_sweet_spot": false
+    }
+  },
+  "04_stage_attribution": {
+    "sim": "SIM-DEC-04",
+    "pnl_baseline_v1": {
+      "trades": 4996,
+      "wins": 2983,
+      "losses": 2013,
+      "wr": 59.7,
+      "gross_pnl": 47710.0,
+      "net_pnl": 20232.0,
+      "avg_trade": 4.05
+    },
+    "pnl_full_dl": {
+      "trades": 180,
+      "wins": 128,
+      "losses": 52,
+      "wr": 71.1,
+      "gross_pnl": 3737.5,
+      "net_pnl": 2747.5,
+      "avg_trade": 15.26
+    },
+    "full_dl_savings": -17484.5,
+    "stage_results": {
+      "Tournament_only": {
+        "rejected_count": 2912,
+        "pnl_approved": {
+          "trades": 2084,
+          "wins": 1337,
+          "losses": 747,
+          "wr": 64.2,
+          "gross_pnl": 28925.0,
+          "net_pnl": 17463.0,
+          "avg_trade": 8.38
+        },
+        "pnl_rejected": {
+          "trades": 2912,
+          "wins": 1646,
+          "losses": 1266,
+          "wr": 56.5,
+          "gross_pnl": 18785.0,
+          "net_pnl": 2769.0,
+          "avg_trade": 0.95
+        },
+        "savings_usd": -2769.0
+      },
+      "VWAP_only": {
+        "rejected_count": 2114,
+        "pnl_approved": {
+          "trades": 2882,
+          "wins": 1761,
+          "losses": 1121,
+          "wr": 61.1,
+          "gross_pnl": 31912.5,
+          "net_pnl": 16061.5,
+          "avg_trade": 5.57
+        },
+        "pnl_rejected": {
+          "trades": 2114,
+          "wins": 1222,
+          "losses": 892,
+          "wr": 57.8,
+          "gross_pnl": 15797.5,
+          "net_pnl": 4170.5,
+          "avg_trade": 1.97
+        },
+        "savings_usd": -4170.5
+      },
+      "Footprint_only": {
+        "rejected_count": 3843,
+        "pnl_approved": {
+          "trades": 1153,
+          "wins": 767,
+          "losses": 386,
+          "wr": 66.5,
+          "gross_pnl": 18960.0,
+          "net_pnl": 12618.5,
+          "avg_trade": 10.94
+        },
+        "pnl_rejected": {
+          "trades": 3843,
+          "wins": 2216,
+          "losses": 1627,
+          "wr": 57.7,
+          "gross_pnl": 28750.0,
+          "net_pnl": 7613.5,
+          "avg_trade": 1.98
+        },
+        "savings_usd": -7613.5
+      }
+    },
+    "marginal_rejections": {
+      "Tournament": 2912,
+      "VWAP": 1277,
+      "Footprint": 627
+    }
+  },
+  "05_day_type_interaction": {
+    "sim": "SIM-DEC-05",
+    "matrix": {
+      "DEVELOPING": {
+        "total": 1864,
+        "approved": 0,
+        "rejected": 1864,
+        "approval_rate": 0.0,
+        "v1_all": {
+          "trades": 1864,
+          "wins": 1015,
+          "losses": 849,
+          "wr": 54.5,
+          "gross_pnl": 8300.0,
+          "net_pnl": -1952.0,
+          "avg_trade": -1.05
+        },
+        "dl_approved": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "wr": 0.0,
+          "gross_pnl": 0.0,
+          "net_pnl": 0.0,
+          "avg_trade": 0.0
+        },
+        "dl_rejected": {
+          "trades": 1864,
+          "wins": 1015,
+          "losses": 849,
+          "wr": 54.5,
+          "gross_pnl": 8300.0,
+          "net_pnl": -1952.0,
+          "avg_trade": -1.05
+        },
+        "dl_savings": 1952.0
+      },
+      "NORMAL": {
+        "total": 2472,
+        "approved": 70,
+        "rejected": 2402,
+        "approval_rate": 2.8,
+        "v1_all": {
+          "trades": 2472,
+          "wins": 1445,
+          "losses": 1027,
+          "wr": 58.5,
+          "gross_pnl": 20900.0,
+          "net_pnl": 7304.0,
+          "avg_trade": 2.95
+        },
+        "dl_approved": {
+          "trades": 70,
+          "wins": 50,
+          "losses": 20,
+          "wr": 71.4,
+          "gross_pnl": 1500.0,
+          "net_pnl": 1115.0,
+          "avg_trade": 15.93
+        },
+        "dl_rejected": {
+          "trades": 2402,
+          "wins": 1395,
+          "losses": 1007,
+          "wr": 58.1,
+          "gross_pnl": 19400.0,
+          "net_pnl": 6189.0,
+          "avg_trade": 2.58
+        },
+        "dl_savings": -6189.0
+      },
+      "RANGE_DAY": {
+        "total": 303,
+        "approved": 33,
+        "rejected": 270,
+        "approval_rate": 10.9,
+        "v1_all": {
+          "trades": 303,
+          "wins": 243,
+          "losses": 60,
+          "wr": 80.2,
+          "gross_pnl": 8360.0,
+          "net_pnl": 6693.5,
+          "avg_trade": 22.09
+        },
+        "dl_approved": {
+          "trades": 33,
+          "wins": 17,
+          "losses": 16,
+          "wr": 51.5,
+          "gross_pnl": -12.5,
+          "net_pnl": -194.0,
+          "avg_trade": -5.88
+        },
+        "dl_rejected": {
+          "trades": 270,
+          "wins": 226,
+          "losses": 44,
+          "wr": 83.7,
+          "gross_pnl": 8372.5,
+          "net_pnl": 6887.5,
+          "avg_trade": 25.51
+        },
+        "dl_savings": -6887.5
+      },
+      "TREND_DAY": {
+        "total": 88,
+        "approved": 0,
+        "rejected": 88,
+        "approval_rate": 0.0,
+        "v1_all": {
+          "trades": 88,
+          "wins": 83,
+          "losses": 5,
+          "wr": 94.3,
+          "gross_pnl": 3900.0,
+          "net_pnl": 3416.0,
+          "avg_trade": 38.82
+        },
+        "dl_approved": {
+          "trades": 0,
+          "wins": 0,
+          "losses": 0,
+          "wr": 0.0,
+          "gross_pnl": 0.0,
+          "net_pnl": 0.0,
+          "avg_trade": 0.0
+        },
+        "dl_rejected": {
+          "trades": 88,
+          "wins": 83,
+          "losses": 5,
+          "wr": 94.3,
+          "gross_pnl": 3900.0,
+          "net_pnl": 3416.0,
+          "avg_trade": 38.82
+        },
+        "dl_savings": -3416.0
+      }
+    }
+  }
+}

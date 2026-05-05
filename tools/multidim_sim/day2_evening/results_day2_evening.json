@@ -1,0 +1,184 @@
+{
+  "task1_monte_carlo": {
+    "mc_results": {
+      "8": {
+        "wr_p5": 62.5,
+        "wr_p25": 75.0,
+        "wr_p50": 85.7,
+        "wr_p75": 100.0,
+        "wr_p95": 100.0,
+        "wr_mean": 84.6,
+        "pnl_p5": 84.0,
+        "pnl_p50": 309.0,
+        "pnl_p95": 534.0,
+        "avg_p5": 10.5,
+        "avg_p50": 38.62,
+        "avg_p95": 66.75,
+        "prob_positive": 97.9
+      },
+      "10": {
+        "wr_p5": 66.7,
+        "wr_p25": 77.8,
+        "wr_p50": 88.9,
+        "wr_p75": 90.0,
+        "wr_p95": 100.0,
+        "wr_mean": 85.0,
+        "pnl_p5": 142.5,
+        "pnl_p50": 442.5,
+        "pnl_p95": 667.5,
+        "avg_p5": 14.25,
+        "avg_p50": 44.25,
+        "avg_p95": 66.75,
+        "prob_positive": 98.2
+      },
+      "12": {
+        "wr_p5": 66.7,
+        "wr_p25": 80.0,
+        "wr_p50": 83.3,
+        "wr_p75": 91.7,
+        "wr_p95": 100.0,
+        "wr_mean": 84.9,
+        "pnl_p5": 201.0,
+        "pnl_p50": 501.0,
+        "pnl_p95": 726.0,
+        "avg_p5": 16.75,
+        "avg_p50": 41.75,
+        "avg_p95": 60.5,
+        "prob_positive": 99.4
+      }
+    },
+    "n_trades": 14,
+    "actual_wr": 84.6,
+    "ruin_prob_pct": 3.7
+  },
+  "task2_extended": {
+    "period_days": 5,
+    "trades": 14,
+    "wins": 11,
+    "losses": 2,
+    "wr": 84.6,
+    "net_pnl": 559.5,
+    "avg_trade": 39.96,
+    "max_drawdown": 99.75,
+    "trades_per_day": 2.8
+  },
+  "task3_sequences": {
+    "total_sequences": 4992,
+    "base_wr": 47.3,
+    "top_5": [
+      {
+        "label": "LONG_HIT_C1 \u2192 LONG",
+        "prev_pattern": "LONG_HIT_C1",
+        "curr_direction": "LONG",
+        "n": 395,
+        "wins": 342,
+        "losses": 47,
+        "wr": 87.9,
+        "edge_pp": 40.6,
+        "avg_mfe": 2.62
+      },
+      {
+        "label": "SHORT_HIT_C1 \u2192 SHORT",
+        "prev_pattern": "SHORT_HIT_C1",
+        "curr_direction": "SHORT",
+        "n": 188,
+        "wins": 161,
+        "losses": 23,
+        "wr": 87.5,
+        "edge_pp": 40.2,
+        "avg_mfe": 2.28
+      },
+      {
+        "label": "LONG_HIT_STOP \u2192 SHORT",
+        "prev_pattern": "LONG_HIT_STOP",
+        "curr_direction": "SHORT",
+        "n": 824,
+        "wins": 712,
+        "losses": 107,
+        "wr": 86.9,
+        "edge_pp": 39.6,
+        "avg_mfe": 2.52
+      },
+      {
+        "label": "SHORT_HIT_STOP \u2192 LONG",
+        "prev_pattern": "SHORT_HIT_STOP",
+        "curr_direction": "LONG",
+        "n": 818,
+        "wins": 696,
+        "losses": 119,
+        "wr": 85.4,
+        "edge_pp": 38.1,
+        "avg_mfe": 3.06
+      },
+      {
+        "label": "LONG_HIT_STOP \u2192 LONG",
+        "prev_pattern": "LONG_HIT_STOP",
+        "curr_direction": "LONG",
+        "n": 378,
+        "wins": 50,
+        "losses": 325,
+        "wr": 13.3,
+        "edge_pp": -34.0,
+        "avg_mfe": 1.68
+      }
+    ],
+    "meta_patterns": {
+      "after_win_same_dir": 583,
+      "after_win_reverse": 1451,
+      "after_loss_same_dir": 623,
+      "after_loss_reverse": 1642
+    },
+    "best_edge": 40.6
+  },
+  "task4_multi_tf": {
+    "method": "score_reasons_parse",
+    "base_wr": 47.3,
+    "tf_groups": [
+      {
+        "tf_count": 0,
+        "n": 2038,
+        "wins": 910,
+        "losses": 821,
+        "wr": 52.6,
+        "avg_mfe": 1.76,
+        "edge": 5.3
+      },
+      {
+        "tf_count": 1,
+        "n": 1621,
+        "wins": 621,
+        "losses": 778,
+        "wr": 44.4,
+        "avg_mfe": 1.62,
+        "edge": -2.9
+      },
+      {
+        "tf_count": 3,
+        "n": 466,
+        "wins": 217,
+        "losses": 211,
+        "wr": 50.7,
+        "avg_mfe": 2.46,
+        "edge": 3.4
+      },
+      {
+        "tf_count": 4,
+        "n": 871,
+        "wins": 287,
+        "losses": 457,
+        "wr": 38.6,
+        "avg_mfe": 1.93,
+        "edge": -8.7
+      }
+    ],
+    "high_tf_wr": 43.0,
+    "low_tf_wr": 48.9,
+    "edge_3plus_vs_lt2": -5.9
+  },
+  "task5_structural_stop": {
+    "n_valid_structural": 0,
+    "error": "insufficient_data"
+  },
+  "runtime_sec": 0.9,
+  "timestamp": "2026-05-05T08:04:37.406148+00:00"
+}
