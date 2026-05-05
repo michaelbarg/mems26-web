@@ -14,3 +14,6 @@ tools/multidim_sim/results/reports/
 
 # TypeScript auto-generated build info
 frontend/tsconfig.tsbuildinfo
+
+# Git internals — should never be tracked
+FETCH_HEAD
