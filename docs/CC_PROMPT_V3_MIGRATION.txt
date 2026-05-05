@@ -1,0 +1,123 @@
+Version: V8.4.0-RESEARCH-MIGRATION
+Phase 3.2 Day 2 V3 Day Type Reclassification (READ-ONLY, OFFLINE)
+
+CONTEXT
+Phase 3.2 Day 2 is Pure Observation. NO production changes allowed.
+Day Type Spec V3 introduces new classification logic with 6 day types plus DEVELOPING as time-phase filter.
+Need to reclassify 4,996 cached MDS setups to V3 day types BEFORE Day 3 SIMs run.
+This script is OFFLINE, runs on cached parquet only.
+
+Reference document: docs/MEMS26_DAY_TYPE_SPEC_V3.md
+
+ALLOWED FILES
+- tools/migrations/reclassify_day_types_v3.py (NEW)
+- tools/migrations/__init__.py (NEW if needed)
+- docs/MIGRATION_V3_DAY_TYPES_REPORT.md (NEW report)
+- setups_clean_2026-05-05_v3.parquet (NEW output, do not overwrite original)
+
+DO NOT TOUCH
+- backend/ bridge/ frontend/ folders
+- Production database
+- Original cached parquet (read-only)
+- ~/.mems26_env
+
+TASK 1: Build V3 classifier in Python
+
+Implement these classifier functions per V3 spec:
+- is_developing_period(timestamp)
+- is_special_day_block(timestamp)  
+- is_rollover_period(timestamp)
+- is_news_blackout(timestamp, news_calendar) - use empty calendar for now
+- is_trend_day(metrics) returns (bool, confidence)
+- is_range_day(metrics) returns (bool, confidence)
+- is_broad_channel(metrics) returns (bool, confidence)
+- is_gap_fill_day(metrics) returns (bool, confidence)
+- is_reversal_day(metrics) returns (bool, confidence)
+- is_neutral_day(metrics) returns (bool, confidence)
+- classify_day(metrics) returns (day_type, confidence, details)
+
+Note: For setups dataset, derive metrics from setup data:
+- range_pct_of_atr from setup day price range
+- ib_break_held use heuristic from killzone and time
+- vegas_direction_stable_minutes parse score_reasons
+- max_pullback_pct_of_atr best-effort from MAE
+If a metric cannot be derived, document and use sensible default.
+
+TASK 2: Reclassify 4,996 setups
+
+Load: setups_clean_2026-05-05_full.parquet
+For each setup:
+1. Build DayMetrics from setup fields plus day-level aggregations
+2. Run classify_day(metrics)
+3. Store columns:
+   - day_type_v3 (new)
+   - day_type_v3_confidence (new)
+   - day_type_v2 (preserved original)
+   - is_developing_v3 (boolean)
+   - is_special_day_v3 (boolean)
+
+Save: setups_clean_2026-05-05_v3.parquet
+
+TASK 3: Migration Report
+
+Save to: docs/MIGRATION_V3_DAY_TYPES_REPORT.md
+
+Include:
+1. Distribution comparison V2 vs V3:
+   V2 NORMAL 2408 (49.2%) becomes V3 ?
+   V2 DEVELOPING 1884 (38.5%) becomes V3 ?
+   V2 RANGE_DAY 179 (3.7%) becomes V3 ?
+   V2 TREND_DAY 92 (1.9%) becomes V3 ?
+   V2 UNKNOWN 327 (6.7%) becomes V3 ?
+
+2. New V3 distribution:
+   DEVELOPING (filter)    X (Y%)
+   TREND_DAY              X (Y%)
+   RANGE_DAY              X (Y%)
+   BROAD_CHANNEL          X (Y%)
+   GAP_FILL               X (Y%)
+   REVERSAL_DAY           X (Y%)
+   NEUTRAL                X (Y%)
+   SPECIAL_DAY (filter)   X (Y%)
+
+3. Confidence distribution:
+   Mean confidence per day type
+   Percent of setups with confidence below 60
+
+4. WR per day type V3 using outcome column:
+   For each V3 day_type compute:
+   - count
+   - WR (close_reason in T1_HIT T2_HIT T2_PARTIAL_STOP OR pnl_net_usd above 0)
+   - net PnL
+   - per-trade avg
+
+5. Compare V2 vs V3 WR:
+   Identify cases where setups moved between day types
+   Example: Setups V2 marked NORMAL but V3 marks BROAD_CHANNEL WR was X% now Y%
+
+6. Critical findings:
+   Did REVERSAL_DAY emerge? How many setups?
+   Did BROAD_CHANNEL absorb most NORMAL? Or distributed?
+   Setups in SPECIAL_DAY filter that we should now skip?
+   
+TASK 4: Sanity Checks
+
+Validate the migration:
+- DEVELOPING count should match 09:30-10:30 ET window
+- No setup should have NULL day_type_v3
+- Confidence values must be 0-100
+- Sum of day type counts equals total setups
+Print warnings for any anomalies.
+
+CONSTRAINTS
+- READ-ONLY on production
+- All work in tools/migrations/ and docs/
+- DO NOT push to git
+- Estimated runtime 2-3 minutes
+- Output reproducible (use timestamp in filenames if needed)
+
+When complete print:
+- V2 vs V3 distribution comparison
+- Top 3 surprises
+- File paths
+- MIGRATION COMPLETE V3 dataset ready for Day 3 SIMs
