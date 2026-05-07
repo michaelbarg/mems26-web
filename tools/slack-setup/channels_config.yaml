@@ -1,0 +1,83 @@
+channels:
+  # Strategic layer
+  - name: strategic
+    topic: "Strategic decisions with טראמפ"
+    description: "Architecture, methodology, and high-level decisions. D-XXX entries originate here."
+    is_private: false
+    purpose_category: leadership
+
+  - name: cc-master
+    topic: "Master coordinator dispatch"
+    description: "CC Master agent assigns tasks to Workers. Status updates and progress."
+    is_private: false
+    purpose_category: leadership
+
+  - name: checkpoints
+    topic: "Approval gate — Michael's signoff required"
+    description: "Decisions and deployments awaiting Michael's ✅ before proceeding."
+    is_private: false
+    purpose_category: leadership
+
+  # Development layer
+  - name: dev-dll
+    topic: "DLL Worker — C++ Sierra Chart code"
+    description: "DLL build status, commits, and test results. Reference: Sierra ACSIL constraints."
+    is_private: false
+    purpose_category: development
+
+  - name: dev-backend
+    topic: "Backend Worker — Python/FastAPI"
+    description: "API endpoints, Redis schema changes, deployments to Render."
+    is_private: false
+    purpose_category: development
+
+  - name: dev-frontend
+    topic: "Frontend Worker — Next.js"
+    description: "UI components, page updates, Netlify deployments. Mobile-first."
+    is_private: false
+    purpose_category: development
+
+  - name: qa
+    topic: "QA Agent — schema, tests, regression checks"
+    description: "BLOCK authority on commits. PASS/FAIL/WARN reports per build."
+    is_private: false
+    purpose_category: quality
+
+  # Operations layer
+  - name: alerts-critical
+    topic: "🚨 CRITICAL — overrides quiet hours"
+    description: "Daily cap hit, 3 consecutive stops, bridge down, infrastructure failures."
+    is_private: false
+    purpose_category: operations
+
+  - name: alerts-info
+    topic: "ℹ️  Informational alerts (quiet hours respected)"
+    description: "Latency warnings, soft thresholds, non-critical anomalies."
+    is_private: false
+    purpose_category: operations
+
+  - name: live-trading
+    topic: "🔴 LIVE trade events — סטארק"
+    description: "Setup attempts, gate decisions, T1/T2/T3 fills, stops. Active during RTH."
+    is_private: false
+    purpose_category: operations
+
+  # Knowledge layer
+  - name: methodology
+    topic: "Methodology Guardian — source compliance"
+    description: "Mind Over Markets / Liebowitz / Michael's notes citations and compliance checks."
+    is_private: false
+    purpose_category: knowledge
+
+  - name: simulations
+    topic: "Simulation Agent — דה וינצ'י theory testing"
+    description: "Theory validations on historical data. Reports + verdicts."
+    is_private: false
+    purpose_category: research
+
+  # Reporting layer
+  - name: daily-reports
+    topic: "📊 EOD reports — Daily Reporter"
+    description: "End-of-day summaries: trades, PnL, gate stats, tomorrow's posture."
+    is_private: false
+    purpose_category: reporting

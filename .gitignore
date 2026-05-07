@@ -8,3 +8,5 @@ node_modules/
 data/*.db
 exports/
 tools/backtest/output/*.csv
+tools/slack-setup/channels_state.json
+tools/slack-setup/.env
