@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Glob(**)",
+      "Grep(**)",
+      "Edit(tools/**)",
+      "Edit(docs/**)",
+      "Edit(.claude/**)",
+      "Edit(MEMS26_FIRST.md)",
+      "Write(tools/**)",
+      "Write(docs/**)",
+      "Write(.claude/**)",
+      "Write(MEMS26_FIRST.md)",
+      "Bash(git status*)",
+      "Bash(git log*)",
+      "Bash(git diff*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git branch*)",
+      "Bash(git checkout*)",
+      "Bash(python3 -c*)",
+      "Bash(python3 tools/**)",
+      "Bash(bash tools/**)",
+      "Bash(ls*)",
+      "Bash(mkdir*)",
+      "Bash(cat*)"
+    ],
+    "deny": [
+      "Bash(git push*)",
+      "Bash(git push --force*)",
+      "Bash(git merge*)",
+      "Bash(git reset --hard*)",
+      "Bash(rm -rf*)",
+      "Bash(pip install*)",
+      "Bash(npm install*)",
+      "Bash(brew install*)",
+      "Read(**/.env*)",
+      "Edit(**/.env*)",
+      "Write(**/.env*)",
+      "Edit(app/**)",
+      "Edit(backend/**)",
+      "Edit(bridge/**)",
+      "Edit(frontend/**)",
+      "Edit(sc_study/**)",
+      "Write(app/**)",
+      "Write(backend/**)",
+      "Write(bridge/**)",
+      "Write(frontend/**)",
+      "Write(sc_study/**)"
+    ]
+  }
+}
