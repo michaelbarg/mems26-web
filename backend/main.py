@@ -1251,6 +1251,33 @@ async def post_quality_preview(request: Request):
     return await _quality_preview_logic(direction, entry, stop, day_type_override)
 
 
+@app.get("/gates/suffering-side")
+async def gate_suffering_side(direction: str, price: float, day_poc: float = 0):
+    """
+    Check Suffering Side Veto gate.
+
+    Per D-049, D-065: blocks trades against the day POC.
+    If day_poc not provided, attempts to read from Redis (mems26:primitives or TPO fallback).
+    """
+    from gates.suffering_side import check_suffering_side
+    _poc = day_poc
+    if _poc <= 0:
+        # Try Redis primitives first, then TPO fallback
+        _prims = await redis_get_key("mems26:primitives")
+        if _prims and isinstance(_prims, dict):
+            _poc = float(_prims.get("day_poc.price", 0) or 0)
+        if _poc <= 0:
+            _mkt = await redis_get()
+            if _mkt:
+                _tpo = (_mkt.get("tpo") or {}).get("current_day") or {}
+                _poc = float(_tpo.get("poc_price", 0) or 0)
+    result = check_suffering_side(
+        direction=direction, price=price,
+        day_poc=_poc if _poc > 0 else None,
+    )
+    return result.to_dict()
+
+
 @app.post("/ingest/history")
 async def ingest_history(request: Request, x_bridge_token: Optional[str] = Header(None)):
     if x_bridge_token != BRIDGE_TOKEN:
@@ -2705,6 +2732,38 @@ async def trade_execute(request: Request):
             except Exception as e:
                 log.warning(f"Vegas filter check failed: {e} — BLOCKING (fail-closed)")
                 raise HTTPException(status_code=500, detail=f"Vegas filter error: {e}")
+
+        # === Suffering Side Veto (D-049, D-065) ===
+        from gates.suffering_side import check_suffering_side as _check_ss
+        _ss_poc = None
+        try:
+            _ss_prims = await redis_get_key("mems26:primitives")
+            if _ss_prims and isinstance(_ss_prims, dict):
+                _ss_poc = float(_ss_prims.get("day_poc.price", 0) or 0)
+            if not _ss_poc or _ss_poc <= 0:
+                _ss_mkt = await redis_get()
+                if _ss_mkt:
+                    _ss_tpo = (_ss_mkt.get("tpo") or {}).get("current_day") or {}
+                    _ss_poc = float(_ss_tpo.get("poc_price", 0) or 0)
+        except Exception as e:
+            log.warning(f"[SUFFERING_SIDE] POC fetch failed: {e}")
+        _ss_mode = os.getenv("MEMS26_SUFFERING_SIDE_MODE", "open")
+        _ss_result = _check_ss(
+            direction=direction, price=entry,
+            day_poc=_ss_poc if _ss_poc and _ss_poc > 0 else None,
+            mode=_ss_mode,
+        )
+        log.info(f"[SUFFERING_SIDE] {_ss_result.result}: {_ss_result.reason} "
+                 f"(price={entry} poc={_ss_poc} mode={_ss_mode})")
+        if _ss_result.result == "BLOCK" and not _skip_gates:
+            if _exec_entry_mode not in ("DEMO", "RESEARCH"):
+                raise HTTPException(status_code=400, detail=json.dumps({
+                    "ok": False,
+                    "error": "SUFFERING_SIDE_VETO",
+                    "gate_result": _ss_result.to_dict(),
+                }))
+            else:
+                log.warning(f"[SUFFERING_SIDE] BLOCK in {_exec_entry_mode} mode — proceeding with warning")
 
         # === Quality Score Gate (Phase 5: Day-Adaptive) ===
         from quality_score import calculate_quality_score, determine_position_size, calculate_targets, get_be_strategy
