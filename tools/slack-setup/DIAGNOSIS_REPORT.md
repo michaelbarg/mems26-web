@@ -89,3 +89,16 @@ DO NOT attempt to install the chat app via automation — it requires UI/OAuth f
 - tools/slack-setup/diagnose_workspace.py (new)
 - tools/slack-setup/channels_state.json (updated)
 - tools/slack-setup/DIAGNOSIS_REPORT.md (new)
+
+
+## V1.3 Resolution — 2026-05-08T07:39:38.432431+00:00
+- Bot workspace: MEMS26-OPS (URL: https://mems26-ops.slack.com/)
+- Michael: Michael Barg (U0B28Q5AHUM) | email: N/A
+- Total public channels: 16
+- Michael was member of: 0/13 expected channels
+- Auto-invited to: 13 channels (strategic, cc-master, checkpoints, dev-dll, dev-backend, dev-frontend, qa, alerts-critical, alerts-info, live-trading, methodology, simulations, daily-reports)
+- Failures: 0
+- Michael now member of: 13/13
+
+### Root Cause Confirmed
+Michael was only a member of 0/13 channels. The bot created all channels successfully, but Michael's user was never invited. Slack only shows channels you've joined in the sidebar — hence 'only 3 visible'.
