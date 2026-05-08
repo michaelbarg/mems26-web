@@ -42,6 +42,17 @@ python bootstrap_channels.py
 | `missing_scope` | Bot lacks a required permission. Go to api.slack.com/apps → OAuth & Permissions → add the scope → Reinstall app to workspace |
 | `ratelimited` | Script auto-retries once. If persistent, wait a few minutes and re-run |
 
+| "Only N channels visible" | All channels exist but aren't in your Slack sidebar. Click **Browse Channels** (or `+` next to Channels) to find them. The bot creates channels but doesn't auto-join other workspace members — you need to manually join each channel. |
+
+## Diagnostics
+
+Run `diagnose_workspace.py` to compare workspace state against `channels_config.yaml`:
+```bash
+cd tools/slack-setup
+python diagnose_workspace.py
+```
+Outputs: `DIAGNOSIS_REPORT.md` (findings) + updated `channels_state.json` (validated state).
+
 ## How to Undo
 
 Channel deletion is not automated for safety. To remove channels:
