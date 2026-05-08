@@ -1,0 +1,56 @@
+# MEMS26 GitHub Webhook Filter Configuration
+# Maps GitHub events to Slack channels
+
+rules:
+  # PRs opened → #cc-master
+  - event: pull_request
+    action: opened
+    channel: cc-master
+    description: "New PR opened — notify coordinator"
+
+  # PR review requested → #checkpoints
+  - event: pull_request
+    action: review_requested
+    channel: checkpoints
+    description: "Review needed — Michael's signoff"
+
+  # PR merged to main → #strategic + #daily-reports
+  - event: pull_request
+    action: closed
+    # Note: handler checks payload.pull_request.merged == true
+    branch_pattern: main
+    channel: strategic
+    description: "PR merged to main — strategic visibility"
+
+  # Also notify daily-reports on merge (handler posts to both)
+  # For dual-channel posting, add a second rule or handle in code
+  - event: pull_request
+    action: closed
+    branch_pattern: main
+    channel: daily-reports
+    description: "PR merged to main — daily report tracking"
+
+  # Push to feature/* → silent (no notification)
+  - event: push
+    branch_pattern: "feature/*"
+    silent: true
+    description: "Feature branch pushes — silent, no spam"
+
+  # Push to main → #strategic
+  - event: push
+    branch_pattern: main
+    channel: strategic
+    description: "Direct push to main — rare, needs visibility"
+
+  # CI failed → #alerts-critical
+  - event: workflow_run
+    action: completed
+    # Note: handler checks conclusion == "failure"
+    channel: alerts-critical
+    description: "CI failure — critical alert"
+
+  # Issue opened → #methodology
+  - event: issues
+    action: opened
+    channel: methodology
+    description: "New issue — methodology discussion"
