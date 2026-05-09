@@ -1,6 +1,8 @@
-// MES_AI_DataExport.cpp — v3.0
-// Sierra Chart ACSIL Study — 3 minute chart
+// MES_AI_DataExport.cpp — v9.0.0
+// Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
+//         + V9: Tick Reversal (15/12), Footprint, Volume Profile,
+//               Imbalance Flags, Stacked Imbalances, Cumulative Delta
 
 #include "sierrachart.h"
 #include <fstream>
@@ -10,6 +12,8 @@
 #include <map>
 #include <vector>
 #include <algorithm>
+#include "v9_types.h"
+#include "v9_exports.h"
 
 SCDLLName("MES_AI_DataExport")
 
@@ -22,11 +26,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef ExportIntervalSec = sc.Input[1];
     SCInputRef VAPercent         = sc.Input[2];
     SCInputRef ImbalanceRatio    = sc.Input[3];
+    SCInputRef V9ExportPath      = sc.Input[4];
+    SCInputRef V9TickRev15       = sc.Input[5];
+    SCInputRef V9TickRev12       = sc.Input[6];
+    SCInputRef V9Lookback        = sc.Input[7];
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v3";
-        sc.StudyDescription = "Full export: MTF + VWAP + Imbalance + Market Profile";
+        sc.GraphName        = "MES AI Data Export v9.0.0";
+        sc.StudyDescription = "V9: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
 
@@ -49,6 +57,20 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         ImbalanceRatio.Name = "Imbalance Ratio (e.g. 3.0 = 3:1)";
         ImbalanceRatio.SetFloat(3.0f);
+
+        V9ExportPath.Name = "V9 Export Directory";
+        V9ExportPath.SetString("C:\\SierraChart_Data\\v9_export\\");
+
+        V9TickRev15.Name = "V9 Tick Reversal 15-tick (1=on)";
+        V9TickRev15.SetInt(1);
+
+        V9TickRev12.Name = "V9 Tick Reversal 12-tick (1=on)";
+        V9TickRev12.SetInt(1);
+
+        V9Lookback.Name = "V9 Lookback Bars";
+        V9Lookback.SetInt(200);
+
+        sc.MaintainVolumeAtPriceData = 1;  // Required for footprint
 
         return;
     }
@@ -199,9 +221,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
     }
 
-    // מיין לפי ratio מוחלט
+    // מיין לפי ratio מוחלט (use v9_abs, not std::abs — ACSIL macro conflict)
     std::sort(imbalances.begin(), imbalances.end(), [](const ImbLevel& a, const ImbLevel& b){
-        return std::abs(a.ratio) > std::abs(b.ratio);
+        return v9_abs(a.ratio) > v9_abs(b.ratio);
     });
 
     // גבול: שמור עד 3 imbalances חזקים
@@ -369,4 +391,62 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     std::ofstream f(ExportPath.GetString());
     if(f.is_open()){f<<j.str();f.close();}
+
+    // ══════════════════════════════════════════════════════════════
+    // V9 EXPORTS — New tick reversal + footprint + delta exports
+    // ══════════════════════════════════════════════════════════════
+    const char* v9dir = V9ExportPath.GetString();
+    int v9_lookback = V9Lookback.GetInt();
+    float v9_imb_threshold = 2.5f;  // 250% ratio for imbalance detection
+
+    // ── Export 1: Tick Reversal 15-tick ──
+    if (V9TickRev15.GetInt() == 1)
+    {
+        std::vector<TickReversalBar> tr15 = v9_build_tick_reversal_bars(sc, 15, v9_lookback);
+        std::string json15 = v9_tick_reversal_to_json(tr15, 15);
+        v9_write_json(v9dir, "tick_reversal_15.json", json15);
+    }
+
+    // ── Export 2: Tick Reversal 12-tick ──
+    if (V9TickRev12.GetInt() == 1)
+    {
+        std::vector<TickReversalBar> tr12 = v9_build_tick_reversal_bars(sc, 12, v9_lookback);
+        std::string json12 = v9_tick_reversal_to_json(tr12, 12);
+        v9_write_json(v9dir, "tick_reversal_12.json", json12);
+    }
+
+    // ── Export 3+4+5: Footprint + Volume Profile + Imbalance Flags ──
+    {
+        int fp_start = v9_max_i(0, sc.Index - 30);  // Last 30 chart bars
+        std::vector<FootprintBar> fp_bars;
+        for (int i = fp_start; i <= sc.Index; i++)
+        {
+            fp_bars.push_back(v9_build_footprint_bar(sc, i, v9_imb_threshold));
+        }
+
+        // Export 3: Footprint per bar
+        float cum_delta = 0;
+        for (int i = 0; i <= sc.Index; i++)
+            cum_delta += sc.AskVolume[i] - sc.BidVolume[i];
+        std::string fp_json = v9_footprint_to_json(fp_bars, cum_delta);
+        v9_write_json(v9dir, "footprint.json", fp_json);
+
+        // Export 4: Volume Profile per bar
+        std::string vp_json = v9_volume_profile_to_json(fp_bars, VAPercent.GetFloat());
+        v9_write_json(v9dir, "volume_profile.json", vp_json);
+
+        // Export 5: Imbalance flags (250%+)
+        std::string imb_json = v9_imbalance_flags_to_json(fp_bars);
+        v9_write_json(v9dir, "imbalance_flags.json", imb_json);
+
+        // Export 6: Stacked imbalances (3+ consecutive)
+        std::string stack_json = v9_stacked_imbalances_to_json(fp_bars, 3);
+        v9_write_json(v9dir, "stacked_imbalances.json", stack_json);
+    }
+
+    // ── Export 7: Cumulative Delta running total ──
+    {
+        std::string cd_json = v9_cumulative_delta_to_json(sc, v9_lookback);
+        v9_write_json(v9dir, "cumulative_delta.json", cd_json);
+    }
 }
