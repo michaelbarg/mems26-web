@@ -1,0 +1,1461 @@
+// MES_AI_DataExport.cpp — v9.0.0
+// Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
+// מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
+//         + V9: Tick Reversal (15/12), Footprint, Volume Profile,
+//               Imbalance Flags, Stacked Imbalances, Cumulative Delta
+
+#include "sierrachart.h"
+
+SCDLLName("MES_AI_DataExport")
+
+// ====== v9_types.h (inlined) ======
+// v9_types.h — MEMS26 V9 shared types and helpers
+// ACSIL-safe: no std::max/min, no STL that Sierra macros break
+
+#include <vector>
+#include <map>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <fstream>
+#include <ctime>
+
+// ── ACSIL-safe min/max (Sierra macros clobber std::max/min) ──
+inline float v9_max(float a, float b) { return (a > b) ? a : b; }
+inline float v9_min(float a, float b) { return (a < b) ? a : b; }
+inline int   v9_max_i(int a, int b)   { return (a > b) ? a : b; }
+inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
+inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
+
+// ── Version ──
+static const char* V9_VERSION = "v9.0.0";
+
+// ── Export directory ──
+static const char* V9_EXPORT_DIR = "C:\\SierraChart_Data\\v9_export\\";
+
+// ── Tick reversal bar ──
+struct TickReversalBar {
+    float open;
+    float high;
+    float low;
+    float close;
+    float volume;
+    float ask_volume;  // buy
+    float bid_volume;  // sell
+    float delta;       // ask - bid
+    int   bar_index;
+    int   direction;   // +1 up, -1 down, 0 neutral
+    long long timestamp;
+};
+
+// ── Footprint price level ──
+struct FootprintLevel {
+    float price;
+    float bid_vol;   // sell
+    float ask_vol;   // buy
+    float delta;     // ask - bid
+    bool  imbalance_buy;   // ask/bid >= 2.5
+    bool  imbalance_sell;  // bid/ask >= 2.5
+};
+
+// ── Footprint bar ──
+struct FootprintBar {
+    int   bar_index;
+    float open;
+    float high;
+    float low;
+    float close;
+    float total_volume;
+    float total_delta;
+    float poc_price;         // price with max volume
+    float poc_volume;
+    int   stacked_imb_buy;   // consecutive buy imbalances
+    int   stacked_imb_sell;  // consecutive sell imbalances
+    std::vector<FootprintLevel> levels;
+};
+
+// ── Volume Profile entry ──
+struct VolumeProfileEntry {
+    float price;
+    float volume;
+    float pct_of_total;
+    bool  is_poc;
+    bool  is_vah;
+    bool  is_val;
+};
+
+// ── JSON helper: write a float with precision ──
+inline void json_float(std::ostringstream& j, const char* key, float val, bool comma = true) {
+    if (comma) j << ",";
+    j << "\"" << key << "\":" << std::fixed << std::setprecision(2) << val;
+}
+
+inline void json_int(std::ostringstream& j, const char* key, int val, bool comma = true) {
+    if (comma) j << ",";
+    j << "\"" << key << "\":" << val;
+}
+
+inline void json_str(std::ostringstream& j, const char* key, const char* val, bool comma = true) {
+    if (comma) j << ",";
+    j << "\"" << key << "\":\"" << val << "\"";
+}
+
+inline void json_bool(std::ostringstream& j, const char* key, bool val, bool comma = true) {
+    if (comma) j << ",";
+    j << "\"" << key << "\":" << (val ? "true" : "false");
+}
+
+inline void json_long(std::ostringstream& j, const char* key, long long val, bool comma = true) {
+    if (comma) j << ",";
+    j << "\"" << key << "\":" << val;
+}
+
+// ── File write helper ──
+inline bool v9_write_json(const char* dir, const char* filename, const std::string& json) {
+    std::string path = std::string(dir) + filename;
+    std::ofstream f(path.c_str());
+    if (!f.is_open()) return false;
+    f << json;
+    f.close();
+    return true;
+}
+
+// ====== v9_exports.h (inlined) ======
+// v9_exports.h — MEMS26 V9 new export functions
+// Each function builds JSON and writes to v9_export/ directory
+// ACSIL-safe: uses v9_max/v9_min, not std::max/std::min
+
+
+// ─────────────────────────────────────────────────────────────
+// 1. Tick Reversal Bars (generic N-tick)
+// ─────────────────────────────────────────────────────────────
+// Builds reversal bars from the underlying chart bars.
+// A reversal bar completes when price reverses N ticks (N * tick_size)
+// from the bar's extreme in the current direction.
+
+inline std::vector<TickReversalBar> v9_build_tick_reversal_bars(
+    SCStudyInterfaceRef sc, int num_ticks, int lookback_bars)
+{
+    std::vector<TickReversalBar> bars;
+    float tick_size = sc.TickSize;
+    float reversal_amount = num_ticks * tick_size;
+
+    if (sc.Index < 2 || tick_size <= 0) return bars;
+
+    int start = v9_max_i(0, sc.Index - lookback_bars);
+
+    // State: current building bar
+    TickReversalBar current;
+    current.open = sc.Open[start];
+    current.high = sc.Open[start];
+    current.low  = sc.Open[start];
+    current.close = sc.Close[start];
+    current.volume = 0;
+    current.ask_volume = 0;
+    current.bid_volume = 0;
+    current.delta = 0;
+    current.bar_index = 0;
+    current.direction = 0;
+    current.timestamp = 0;
+
+    for (int i = start; i <= sc.Index; i++)
+    {
+        float h = sc.High[i];
+        float l = sc.Low[i];
+        float c = sc.Close[i];
+        float v = sc.Volume[i];
+        float av = sc.AskVolume[i];
+        float bv = sc.BidVolume[i];
+
+        // Update current bar extremes
+        current.high = v9_max(current.high, h);
+        current.low  = v9_min(current.low, l);
+        current.close = c;
+        current.volume += v;
+        current.ask_volume += av;
+        current.bid_volume += bv;
+
+        // Determine direction from open
+        if (current.direction == 0) {
+            if (c > current.open + tick_size) current.direction = 1;
+            else if (c < current.open - tick_size) current.direction = -1;
+        }
+
+        // Check reversal
+        bool reversed = false;
+        if (current.direction == 1) {
+            // Up bar: reversal = price drops reversal_amount from high
+            if (current.high - c >= reversal_amount) reversed = true;
+        } else if (current.direction == -1) {
+            // Down bar: reversal = price rises reversal_amount from low
+            if (c - current.low >= reversal_amount) reversed = true;
+        }
+
+        if (reversed) {
+            current.delta = current.ask_volume - current.bid_volume;
+            current.timestamp = (long long)time(nullptr);
+            bars.push_back(current);
+
+            // Start new bar
+            int new_dir = (current.direction == 1) ? -1 : 1;
+            current.open = c;
+            current.high = c;
+            current.low  = c;
+            current.close = c;
+            current.volume = 0;
+            current.ask_volume = 0;
+            current.bid_volume = 0;
+            current.delta = 0;
+            current.bar_index = (int)bars.size();
+            current.direction = new_dir;
+            current.timestamp = 0;
+        }
+    }
+
+    // Include the building bar as "current"
+    current.delta = current.ask_volume - current.bid_volume;
+    current.timestamp = time(nullptr);
+    bars.push_back(current);
+
+    return bars;
+}
+
+inline std::string v9_tick_reversal_to_json(
+    const std::vector<TickReversalBar>& bars, int num_ticks)
+{
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "tick_reversal", false);
+    json_int(j, "tick_count", num_ticks);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+    json_int(j, "bar_count", (int)bars.size());
+    j << ",\"bars\":[";
+
+    for (size_t i = 0; i < bars.size(); i++) {
+        if (i > 0) j << ",";
+        const TickReversalBar& b = bars[i];
+        j << "{";
+        json_int(j, "idx", b.bar_index, false);
+        json_float(j, "o", b.open);
+        json_float(j, "h", b.high);
+        json_float(j, "l", b.low);
+        json_float(j, "c", b.close);
+        json_float(j, "vol", b.volume);
+        json_float(j, "ask_vol", b.ask_volume);
+        json_float(j, "bid_vol", b.bid_volume);
+        json_float(j, "delta", b.delta);
+        json_int(j, "dir", b.direction);
+        json_long(j, "ts", b.timestamp);
+        j << "}";
+    }
+    j << "]}";
+    return j.str();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2. Footprint per bar (Bid×Ask per price level)
+// ─────────────────────────────────────────────────────────────
+// For each chart bar, breaks down volume by price level (tick increments).
+// Uses sc.VolumeAtPriceForBars when available, falls back to distribution.
+
+inline FootprintBar v9_build_footprint_bar(
+    SCStudyInterfaceRef sc, int bar_idx, float imb_threshold)
+{
+    FootprintBar fp;
+    fp.bar_index = bar_idx;
+    fp.open  = sc.Open[bar_idx];
+    fp.high  = sc.High[bar_idx];
+    fp.low   = sc.Low[bar_idx];
+    fp.close = sc.Close[bar_idx];
+    fp.total_volume = sc.Volume[bar_idx];
+    fp.total_delta  = sc.AskVolume[bar_idx] - sc.BidVolume[bar_idx];
+    fp.poc_price  = 0;
+    fp.poc_volume = 0;
+    fp.stacked_imb_buy  = 0;
+    fp.stacked_imb_sell = 0;
+
+    float tick = sc.TickSize;
+    if (tick <= 0) tick = 0.25f;
+
+    // Build price levels from bar range
+    float bar_ask = sc.AskVolume[bar_idx];
+    float bar_bid = sc.BidVolume[bar_idx];
+    float range   = fp.high - fp.low;
+    int   steps   = (int)(range / tick) + 1;
+    if (steps < 1) steps = 1;
+    if (steps > 200) steps = 200; // safety cap
+
+    float max_level_vol = 0;
+    int consecutive_buy_imb  = 0;
+    int consecutive_sell_imb = 0;
+    int max_buy_stack  = 0;
+    int max_sell_stack = 0;
+
+    // Use ACSIL VolumeAtPriceForBars API (pointer-to-pointer signature)
+    const s_VolumeAtPriceV2* p_vap = nullptr;
+    int has_vap = sc.VolumeAtPriceForBars->GetVAPElementAtIndex(bar_idx, 0, &p_vap);
+
+    if (has_vap != 0 && p_vap != nullptr) {
+        // Real VAP data available — iterate all price levels
+        int vi = 0;
+        while (sc.VolumeAtPriceForBars->GetVAPElementAtIndex(bar_idx, vi, &p_vap) != 0 && p_vap != nullptr) {
+            FootprintLevel lvl;
+            lvl.price   = p_vap->PriceInTicks * tick;
+            lvl.ask_vol = (float)p_vap->AskVolume;
+            lvl.bid_vol = (float)p_vap->BidVolume;
+            lvl.delta   = lvl.ask_vol - lvl.bid_vol;
+
+            lvl.imbalance_buy  = (lvl.bid_vol > 0 && lvl.ask_vol / lvl.bid_vol >= imb_threshold);
+            lvl.imbalance_sell = (lvl.ask_vol > 0 && lvl.bid_vol / lvl.ask_vol >= imb_threshold);
+
+            float total = lvl.ask_vol + lvl.bid_vol;
+            if (total > max_level_vol) {
+                max_level_vol = total;
+                fp.poc_price  = lvl.price;
+                fp.poc_volume = total;
+            }
+
+            if (lvl.imbalance_buy) {
+                consecutive_buy_imb++;
+                consecutive_sell_imb = 0;
+                if (consecutive_buy_imb > max_buy_stack)
+                    max_buy_stack = consecutive_buy_imb;
+            } else if (lvl.imbalance_sell) {
+                consecutive_sell_imb++;
+                consecutive_buy_imb = 0;
+                if (consecutive_sell_imb > max_sell_stack)
+                    max_sell_stack = consecutive_sell_imb;
+            } else {
+                consecutive_buy_imb  = 0;
+                consecutive_sell_imb = 0;
+            }
+
+            fp.levels.push_back(lvl);
+            vi++;
+        }
+    } else {
+        // Fallback: distribute bar volume across price levels proportionally
+        float vol_per_step = fp.total_volume / steps;
+        float ask_per_step = bar_ask / steps;
+        float bid_per_step = bar_bid / steps;
+
+        for (int s = 0; s < steps; s++) {
+            FootprintLevel lvl;
+            lvl.price   = fp.low + s * tick;
+            lvl.ask_vol = ask_per_step;
+            lvl.bid_vol = bid_per_step;
+            lvl.delta   = lvl.ask_vol - lvl.bid_vol;
+            lvl.imbalance_buy  = (lvl.bid_vol > 0 && lvl.ask_vol / lvl.bid_vol >= imb_threshold);
+            lvl.imbalance_sell = (lvl.ask_vol > 0 && lvl.bid_vol / lvl.ask_vol >= imb_threshold);
+
+            float total = lvl.ask_vol + lvl.bid_vol;
+            if (total > max_level_vol) {
+                max_level_vol = total;
+                fp.poc_price  = lvl.price;
+                fp.poc_volume = total;
+            }
+            fp.levels.push_back(lvl);
+        }
+    }
+
+    fp.stacked_imb_buy  = max_buy_stack;
+    fp.stacked_imb_sell = max_sell_stack;
+
+    return fp;
+}
+
+inline std::string v9_footprint_to_json(
+    const std::vector<FootprintBar>& bars, float cumulative_delta)
+{
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "footprint", false);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+    json_int(j, "bar_count", (int)bars.size());
+    json_float(j, "cumulative_delta", cumulative_delta);
+    j << ",\"bars\":[";
+
+    for (size_t bi = 0; bi < bars.size(); bi++) {
+        if (bi > 0) j << ",";
+        const FootprintBar& b = bars[bi];
+        j << "{";
+        json_int(j, "idx", b.bar_index, false);
+        json_float(j, "o", b.open);
+        json_float(j, "h", b.high);
+        json_float(j, "l", b.low);
+        json_float(j, "c", b.close);
+        json_float(j, "vol", b.total_volume);
+        json_float(j, "delta", b.total_delta);
+        json_float(j, "poc_price", b.poc_price);
+        json_float(j, "poc_vol", b.poc_volume);
+        json_int(j, "stacked_buy", b.stacked_imb_buy);
+        json_int(j, "stacked_sell", b.stacked_imb_sell);
+        j << ",\"levels\":[";
+
+        for (size_t li = 0; li < b.levels.size(); li++) {
+            if (li > 0) j << ",";
+            const FootprintLevel& lv = b.levels[li];
+            j << "{";
+            json_float(j, "p", lv.price, false);
+            json_float(j, "bid", lv.bid_vol);
+            json_float(j, "ask", lv.ask_vol);
+            json_float(j, "d", lv.delta);
+            json_bool(j, "ib", lv.imbalance_buy);
+            json_bool(j, "is", lv.imbalance_sell);
+            j << "}";
+        }
+        j << "]}";
+    }
+    j << "]}";
+    return j.str();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 3. Volume Profile per tick reversal bar
+// ─────────────────────────────────────────────────────────────
+
+inline std::string v9_volume_profile_to_json(
+    const std::vector<FootprintBar>& fp_bars, float va_pct)
+{
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "volume_profile", false);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+    json_float(j, "va_pct", va_pct);
+    json_int(j, "bar_count", (int)fp_bars.size());
+    j << ",\"profiles\":[";
+
+    for (size_t bi = 0; bi < fp_bars.size(); bi++) {
+        if (bi > 0) j << ",";
+        const FootprintBar& fb = fp_bars[bi];
+        j << "{";
+        json_int(j, "bar_idx", fb.bar_index, false);
+
+        // Compute VA from levels
+        float total_vol = 0;
+        for (size_t li = 0; li < fb.levels.size(); li++)
+            total_vol += fb.levels[li].ask_vol + fb.levels[li].bid_vol;
+
+        float va_target = total_vol * (va_pct / 100.0f);
+
+        // Find POC level index
+        int poc_idx = 0;
+        float max_vol = 0;
+        for (size_t li = 0; li < fb.levels.size(); li++) {
+            float lv = fb.levels[li].ask_vol + fb.levels[li].bid_vol;
+            if (lv > max_vol) { max_vol = lv; poc_idx = (int)li; }
+        }
+
+        // Expand from POC to build Value Area
+        float va_vol = max_vol;
+        int va_top = poc_idx, va_bot = poc_idx;
+        while (va_vol < va_target) {
+            float up_vol = (va_top + 1 < (int)fb.levels.size())
+                ? fb.levels[va_top + 1].ask_vol + fb.levels[va_top + 1].bid_vol : 0;
+            float dn_vol = (va_bot - 1 >= 0)
+                ? fb.levels[va_bot - 1].ask_vol + fb.levels[va_bot - 1].bid_vol : 0;
+
+            if (up_vol >= dn_vol && va_top + 1 < (int)fb.levels.size()) {
+                va_top++;
+                va_vol += up_vol;
+            } else if (va_bot - 1 >= 0) {
+                va_bot--;
+                va_vol += dn_vol;
+            } else {
+                break;
+            }
+        }
+
+        float vah = (va_top < (int)fb.levels.size()) ? fb.levels[va_top].price : fb.high;
+        float val_price = (va_bot >= 0 && va_bot < (int)fb.levels.size()) ? fb.levels[va_bot].price : fb.low;
+
+        json_float(j, "poc", fb.poc_price);
+        json_float(j, "poc_vol", fb.poc_volume);
+        json_float(j, "vah", vah);
+        json_float(j, "val", val_price);
+        json_float(j, "total_vol", total_vol);
+
+        j << ",\"levels\":[";
+        for (size_t li = 0; li < fb.levels.size(); li++) {
+            if (li > 0) j << ",";
+            float lv = fb.levels[li].ask_vol + fb.levels[li].bid_vol;
+            float pct = (total_vol > 0) ? (lv / total_vol * 100.0f) : 0;
+            j << "{";
+            json_float(j, "p", fb.levels[li].price, false);
+            json_float(j, "v", lv);
+            json_float(j, "pct", pct);
+            json_bool(j, "poc", (int)li == poc_idx);
+            json_bool(j, "va", (int)li >= va_bot && (int)li <= va_top);
+            j << "}";
+        }
+        j << "]}";
+    }
+    j << "]}";
+    return j.str();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 4. Imbalance flags summary (250%+ ratio)
+// ─────────────────────────────────────────────────────────────
+
+inline std::string v9_imbalance_flags_to_json(
+    const std::vector<FootprintBar>& fp_bars)
+{
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "imbalance_flags", false);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+
+    int total_buy_imb = 0, total_sell_imb = 0;
+    int bars_with_imb = 0;
+
+    j << ",\"bars\":[";
+    bool first_bar = true;
+    for (size_t bi = 0; bi < fp_bars.size(); bi++) {
+        const FootprintBar& fb = fp_bars[bi];
+        bool has_imb = false;
+        for (size_t li = 0; li < fb.levels.size(); li++) {
+            if (fb.levels[li].imbalance_buy || fb.levels[li].imbalance_sell) {
+                has_imb = true;
+                if (fb.levels[li].imbalance_buy) total_buy_imb++;
+                if (fb.levels[li].imbalance_sell) total_sell_imb++;
+            }
+        }
+        if (!has_imb) continue;
+
+        bars_with_imb++;
+        if (!first_bar) j << ",";
+        first_bar = false;
+        j << "{";
+        json_int(j, "bar_idx", fb.bar_index, false);
+        json_float(j, "price", fb.close);
+        json_int(j, "stacked_buy", fb.stacked_imb_buy);
+        json_int(j, "stacked_sell", fb.stacked_imb_sell);
+        j << ",\"levels\":[";
+
+        bool first_lvl = true;
+        for (size_t li = 0; li < fb.levels.size(); li++) {
+            const FootprintLevel& lv = fb.levels[li];
+            if (!lv.imbalance_buy && !lv.imbalance_sell) continue;
+            if (!first_lvl) j << ",";
+            first_lvl = false;
+            j << "{";
+            json_float(j, "p", lv.price, false);
+            json_float(j, "bid", lv.bid_vol);
+            json_float(j, "ask", lv.ask_vol);
+            float ratio = (lv.imbalance_buy && lv.bid_vol > 0)
+                ? lv.ask_vol / lv.bid_vol
+                : (lv.imbalance_sell && lv.ask_vol > 0) ? lv.bid_vol / lv.ask_vol : 0;
+            json_float(j, "ratio", ratio);
+            json_str(j, "side", lv.imbalance_buy ? "BUY" : "SELL");
+            j << "}";
+        }
+        j << "]}";
+    }
+    j << "]";
+    json_int(j, "total_buy_imbalances", total_buy_imb);
+    json_int(j, "total_sell_imbalances", total_sell_imb);
+    json_int(j, "bars_with_imbalances", bars_with_imb);
+    j << "}";
+    return j.str();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 5. Stacked imbalance counts (3+ consecutive)
+// ─────────────────────────────────────────────────────────────
+
+inline std::string v9_stacked_imbalances_to_json(
+    const std::vector<FootprintBar>& fp_bars, int min_stack)
+{
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "stacked_imbalances", false);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+    json_int(j, "min_stack", min_stack);
+
+    int total_stacked = 0;
+    j << ",\"stacks\":[";
+    bool first = true;
+
+    for (size_t bi = 0; bi < fp_bars.size(); bi++) {
+        const FootprintBar& fb = fp_bars[bi];
+        if (fb.stacked_imb_buy < min_stack && fb.stacked_imb_sell < min_stack)
+            continue;
+
+        total_stacked++;
+        if (!first) j << ",";
+        first = false;
+
+        j << "{";
+        json_int(j, "bar_idx", fb.bar_index, false);
+        json_float(j, "price", fb.close);
+        json_int(j, "buy_stack", fb.stacked_imb_buy);
+        json_int(j, "sell_stack", fb.stacked_imb_sell);
+        json_str(j, "dominant",
+            (fb.stacked_imb_buy >= min_stack && fb.stacked_imb_sell >= min_stack) ? "BOTH"
+            : (fb.stacked_imb_buy >= min_stack) ? "BUY" : "SELL");
+        json_float(j, "poc", fb.poc_price);
+        j << "}";
+    }
+    j << "]";
+    json_int(j, "total_stacked_bars", total_stacked);
+    j << "}";
+    return j.str();
+}
+
+// ─────────────────────────────────────────────────────────────
+// 6. Cumulative Delta running total
+// ─────────────────────────────────────────────────────────────
+
+inline std::string v9_cumulative_delta_to_json(
+    SCStudyInterfaceRef sc, int lookback)
+{
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "cumulative_delta", false);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+
+    int start = v9_max_i(0, sc.Index - lookback);
+    float running = 0;
+    float session_delta = 0;
+    float peak = 0, trough = 0;
+    SCDateTime today = sc.BaseDateTimeIn[sc.Index].GetDate();
+
+    j << ",\"points\":[";
+    bool first = true;
+    for (int i = start; i <= sc.Index; i++) {
+        float d = sc.AskVolume[i] - sc.BidVolume[i];
+        running += d;
+        if (sc.BaseDateTimeIn[i].GetDate() == today)
+            session_delta += d;
+
+        peak   = v9_max(peak, running);
+        trough = v9_min(trough, running);
+
+        // Only emit every 5th point to keep file small
+        if ((i - start) % 5 == 0 || i == sc.Index) {
+            if (!first) j << ",";
+            first = false;
+            j << "{";
+            json_int(j, "i", i, false);
+            json_float(j, "d", d);
+            json_float(j, "cum", running);
+            json_float(j, "p", sc.Close[i]);
+            j << "}";
+        }
+    }
+    j << "]";
+
+    json_float(j, "current_delta", running);
+    json_float(j, "session_delta", session_delta);
+    json_float(j, "peak", peak);
+    json_float(j, "trough", trough);
+
+    // Divergence: price up but delta down (or vice versa)
+    float price_change = sc.Close[sc.Index] - sc.Close[start];
+    bool divergence = (price_change > 0 && running < 0) || (price_change < 0 && running > 0);
+    json_bool(j, "divergence", divergence);
+    json_str(j, "trend",
+        (running > 100) ? "BULLISH" :
+        (running < -100) ? "BEARISH" : "NEUTRAL");
+
+    j << "}";
+    return j.str();
+}
+
+// ====== v9_woodies_export.h (inlined) ======
+// v9_woodies_export.h — MEMS26 V9 Woodies CCI export (30-min synthetic bars)
+// Computes CCI-14, TCCI-6, LSMA-25, EMA-34, Sidewinder, ChopZone,
+// trend state, CCI predictor, and ZLR detection from 3-min chart bars.
+// ACSIL-safe: uses v9_max/v9_min/v9_abs, no std::max/min.
+
+#include <cmath>
+
+// ── 30-min bar aggregated from 3-min chart bars (10 bars per period) ──
+static const int WOODIES_30MIN_PERIOD = 10;  // 10 × 3-min = 30 min
+
+struct Woodies30MinBar {
+    float open, high, low, close;
+    float volume, ask_vol, bid_vol;
+    long long timestamp;
+    int chart_bar_start;  // first chart bar index in this 30min bar
+};
+
+// ── Build 30-min synthetic bars from chart bars ──
+inline std::vector<Woodies30MinBar> v9_build_30min_bars(
+    SCStudyInterfaceRef sc, int max_bars)
+{
+    std::vector<Woodies30MinBar> bars;
+    int total_chart = sc.Index + 1;
+    // Start from a 10-bar-aligned boundary
+    int usable = total_chart - (total_chart % WOODIES_30MIN_PERIOD);
+    int start_from = v9_max_i(0, usable - max_bars * WOODIES_30MIN_PERIOD);
+    // Align start
+    start_from = start_from - (start_from % WOODIES_30MIN_PERIOD);
+    if (start_from < 0) start_from = 0;
+
+    for (int b = start_from; b + WOODIES_30MIN_PERIOD - 1 <= sc.Index; b += WOODIES_30MIN_PERIOD) {
+        Woodies30MinBar bar;
+        bar.chart_bar_start = b;
+        bar.open   = sc.Open[b];
+        bar.high   = sc.High[b];
+        bar.low    = sc.Low[b];
+        bar.close  = sc.Close[b + WOODIES_30MIN_PERIOD - 1];
+        bar.volume = 0; bar.ask_vol = 0; bar.bid_vol = 0;
+        for (int i = b; i < b + WOODIES_30MIN_PERIOD && i <= sc.Index; i++) {
+            bar.high    = v9_max(bar.high, sc.High[i]);
+            bar.low     = v9_min(bar.low, sc.Low[i]);
+            bar.volume += sc.Volume[i];
+            bar.ask_vol += sc.AskVolume[i];
+            bar.bid_vol += sc.BidVolume[i];
+        }
+        bar.timestamp = (long long)time(nullptr);
+        bars.push_back(bar);
+    }
+    return bars;
+}
+
+// ── CCI calculation (standard: (TP - SMA(TP,n)) / (0.015 * MeanDev)) ──
+inline float v9_calc_cci(const std::vector<Woodies30MinBar>& bars, int end_idx, int period)
+{
+    if (end_idx < period - 1 || end_idx >= (int)bars.size()) return 0;
+
+    // Typical prices
+    float sum_tp = 0;
+    for (int i = end_idx - period + 1; i <= end_idx; i++) {
+        float tp = (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
+        sum_tp += tp;
+    }
+    float sma_tp = sum_tp / period;
+
+    float tp_current = (bars[end_idx].high + bars[end_idx].low + bars[end_idx].close) / 3.0f;
+
+    // Mean deviation
+    float mean_dev = 0;
+    for (int i = end_idx - period + 1; i <= end_idx; i++) {
+        float tp = (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
+        mean_dev += v9_abs(tp - sma_tp);
+    }
+    mean_dev /= period;
+
+    if (mean_dev < 0.0001f) return 0;
+    return (tp_current - sma_tp) / (0.015f * mean_dev);
+}
+
+// ── EMA calculation ──
+inline float v9_calc_ema(const std::vector<Woodies30MinBar>& bars, int end_idx, int period)
+{
+    if (end_idx < 0 || bars.empty()) return 0;
+    float k = 2.0f / (period + 1);
+    int start = v9_max_i(0, end_idx - period * 3);  // enough warmup
+    float ema = bars[start].close;
+    for (int i = start + 1; i <= end_idx; i++) {
+        ema = bars[i].close * k + ema * (1.0f - k);
+    }
+    return ema;
+}
+
+// ── LSMA (Least Squares Moving Average) period 25 ──
+inline float v9_calc_lsma(const std::vector<Woodies30MinBar>& bars, int end_idx, int period)
+{
+    if (end_idx < period - 1 || end_idx >= (int)bars.size()) return 0;
+    // Linear regression: y = a + b*x, LSMA = predicted value at last point
+    float sum_x = 0, sum_y = 0, sum_xy = 0, sum_x2 = 0;
+    int n = period;
+    for (int i = 0; i < n; i++) {
+        float x = (float)i;
+        float y = bars[end_idx - n + 1 + i].close;
+        sum_x += x;
+        sum_y += y;
+        sum_xy += x * y;
+        sum_x2 += x * x;
+    }
+    float denom = n * sum_x2 - sum_x * sum_x;
+    if (v9_abs(denom) < 0.0001f) return bars[end_idx].close;
+    float b = (n * sum_xy - sum_x * sum_y) / denom;
+    float a = (sum_y - b * sum_x) / n;
+    return a + b * (n - 1);  // value at last point
+}
+
+// ── Sidewinder (SWI): momentum via CCI slope ──
+// SWI = CCI(14) - CCI(14)[3 bars ago], scaled to ±200 range
+inline float v9_calc_sidewinder(float cci_current, float cci_3ago)
+{
+    return cci_current - cci_3ago;
+}
+
+// ── ChopZone indicator: ADX-like measure ──
+// Simplified: uses close vs EMA distance normalized by ATR
+inline float v9_calc_chopzone(const std::vector<Woodies30MinBar>& bars, int end_idx, float ema_val)
+{
+    if (end_idx < 1 || end_idx >= (int)bars.size()) return 0;
+    // ATR approximation over 14 bars
+    float atr_sum = 0;
+    int atr_count = 0;
+    int atr_start = v9_max_i(1, end_idx - 13);
+    for (int i = atr_start; i <= end_idx; i++) {
+        float tr1 = bars[i].high - bars[i].low;
+        float tr2 = v9_abs(bars[i].high - bars[i-1].close);
+        float tr3 = v9_abs(bars[i].low - bars[i-1].close);
+        float tr = v9_max(tr1, v9_max(tr2, tr3));
+        atr_sum += tr;
+        atr_count++;
+    }
+    float atr = (atr_count > 0) ? atr_sum / atr_count : 1.0f;
+    if (atr < 0.01f) atr = 0.01f;
+
+    // ChopZone: angle of close relative to EMA, normalized by ATR
+    float angle = (bars[end_idx].close - ema_val) / atr;
+    return angle * 100.0f;  // Scale to ±100-ish range
+}
+
+// ── Trend state: BLUE (up), RED (down), GRAY (neutral), YELLOW (warning) ──
+inline const char* v9_woodies_trend_state(float cci14, float cci14_prev, float swi)
+{
+    // Woodies convention:
+    // BLUE:   CCI > 0 for 6+ bars (we approximate: CCI > 0 and rising)
+    // RED:    CCI < 0 for 6+ bars
+    // YELLOW: CCI crossed zero recently (transition)
+    // GRAY:   choppy / no clear trend
+    if (cci14 > 50 && cci14_prev > 0 && swi > 20)  return "BLUE";
+    if (cci14 < -50 && cci14_prev < 0 && swi < -20) return "RED";
+    if ((cci14 > 0 && cci14_prev < 0) || (cci14 < 0 && cci14_prev > 0)) return "YELLOW";
+    return "GRAY";
+}
+
+// ── CCI Predictor: linear extrapolation ──
+inline float v9_cci_predictor(float cci_current, float cci_prev)
+{
+    // Simple: next = current + (current - prev)
+    return cci_current + (cci_current - cci_prev);
+}
+
+// ── ZLR (Zero Line Reject) detection ──
+// ZLR UP:   CCI was above +100 → pulls back toward 0 (but stays > -100) → bounces up
+// ZLR DOWN: CCI was below -100 → pulls back toward 0 (but stays < +100) → drops
+struct ZLRResult {
+    bool detected;
+    const char* direction;  // "UP", "DOWN", or "NONE"
+    float entry_cci;
+    int bars_since_extreme;
+};
+
+inline ZLRResult v9_detect_zlr(const std::vector<float>& cci_hist, int lookback)
+{
+    ZLRResult r = {false, "NONE", 0, 0};
+    int n = (int)cci_hist.size();
+    if (n < lookback + 1) return r;
+
+    float current = cci_hist[n - 1];
+    float prev    = cci_hist[n - 2];
+
+    // Check for ZLR UP: was above 100, pulled to near-zero, bouncing
+    bool was_above_100 = false;
+    int bars_since = 0;
+    for (int i = n - 2; i >= n - lookback && i >= 0; i--) {
+        if (cci_hist[i] > 100) { was_above_100 = true; bars_since = n - 1 - i; break; }
+    }
+    if (was_above_100 && bars_since <= lookback) {
+        // Check pullback: CCI came to 0..+100 range, then bouncing up
+        bool pulled_near_zero = false;
+        for (int i = n - 2; i >= n - bars_since && i >= 0; i--) {
+            if (cci_hist[i] >= -50 && cci_hist[i] <= 100) { pulled_near_zero = true; break; }
+        }
+        if (pulled_near_zero && current > prev && current > 0 && current < 200) {
+            r.detected = true;
+            r.direction = "UP";
+            r.entry_cci = current;
+            r.bars_since_extreme = bars_since;
+            return r;
+        }
+    }
+
+    // Check for ZLR DOWN: was below -100, pulled to near-zero, dropping
+    bool was_below_n100 = false;
+    bars_since = 0;
+    for (int i = n - 2; i >= n - lookback && i >= 0; i--) {
+        if (cci_hist[i] < -100) { was_below_n100 = true; bars_since = n - 1 - i; break; }
+    }
+    if (was_below_n100 && bars_since <= lookback) {
+        bool pulled_near_zero = false;
+        for (int i = n - 2; i >= n - bars_since && i >= 0; i--) {
+            if (cci_hist[i] >= -100 && cci_hist[i] <= 50) { pulled_near_zero = true; break; }
+        }
+        if (pulled_near_zero && current < prev && current < 0 && current > -200) {
+            r.detected = true;
+            r.direction = "DOWN";
+            r.entry_cci = current;
+            r.bars_since_extreme = bars_since;
+            return r;
+        }
+    }
+
+    return r;
+}
+
+// ══════════════════════════════════════════════════════════════
+// Master export: woodies_30min.json
+// ══════════════════════════════════════════════════════════════
+
+inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_history)
+{
+    std::vector<Woodies30MinBar> bars = v9_build_30min_bars(sc, max_history + 10);
+    int n = (int)bars.size();
+
+    // Pre-compute CCI-14 history for ZLR detection
+    std::vector<float> cci14_hist;
+    for (int i = 0; i < n; i++) {
+        cci14_hist.push_back(v9_calc_cci(bars, i, 14));
+    }
+
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "woodies_30min", false);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+    json_int(j, "bar_period_minutes", 30);
+    json_int(j, "total_bars", n);
+
+    // History + current_bar
+    int history_start = v9_max_i(0, n - max_history);
+    j << ",\"history\":[";
+
+    for (int bi = history_start; bi < n; bi++) {
+        if (bi > history_start) j << ",";
+
+        float cci14     = v9_calc_cci(bars, bi, 14);
+        float cci6      = v9_calc_cci(bars, bi, 6);
+        float ema34     = v9_calc_ema(bars, bi, 34);
+        float lsma25    = v9_calc_lsma(bars, bi, 25);
+        float cci14_prev = (bi > 0) ? v9_calc_cci(bars, bi - 1, 14) : 0;
+        float cci14_3ago = (bi >= 3) ? v9_calc_cci(bars, bi - 3, 14) : 0;
+        float swi       = v9_calc_sidewinder(cci14, cci14_3ago);
+        float czi       = v9_calc_chopzone(bars, bi, ema34);
+        float predictor = v9_cci_predictor(cci14, cci14_prev);
+        const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
+
+        // ZLR detection using history up to this bar
+        std::vector<float> cci_slice(cci14_hist.begin(), cci14_hist.begin() + bi + 1);
+        ZLRResult zlr = v9_detect_zlr(cci_slice, 12);
+
+        j << "{";
+        json_long(j, "ts", bars[bi].timestamp, false);
+        j << ",\"ohlc\":{";
+        json_float(j, "o", bars[bi].open, false);
+        json_float(j, "h", bars[bi].high);
+        json_float(j, "l", bars[bi].low);
+        json_float(j, "c", bars[bi].close);
+        json_float(j, "vol", bars[bi].volume);
+        j << "}";
+        json_float(j, "cci_14", cci14);
+        json_float(j, "cci_6_tcci", cci6);
+        json_float(j, "lsma_value", lsma25);
+        json_bool(j, "lsma_above_price", lsma25 > bars[bi].close);
+        json_float(j, "swi_value", swi);
+        json_float(j, "czi_value", czi);
+        json_float(j, "ema_34", ema34);
+        json_str(j, "trend_state", trend);
+        json_float(j, "predictor_next_cci", predictor);
+        json_bool(j, "zlr_detected", zlr.detected);
+        json_str(j, "zlr_direction", zlr.direction);
+        j << "}";
+    }
+    j << "]";
+
+    // Current bar summary (last in array)
+    if (n > 0) {
+        int ci = n - 1;
+        float cci14     = v9_calc_cci(bars, ci, 14);
+        float cci6      = v9_calc_cci(bars, ci, 6);
+        float ema34     = v9_calc_ema(bars, ci, 34);
+        float lsma25    = v9_calc_lsma(bars, ci, 25);
+        float cci14_prev = (ci > 0) ? v9_calc_cci(bars, ci - 1, 14) : 0;
+        float cci14_3ago = (ci >= 3) ? v9_calc_cci(bars, ci - 3, 14) : 0;
+        float swi       = v9_calc_sidewinder(cci14, cci14_3ago);
+        float czi       = v9_calc_chopzone(bars, ci, ema34);
+        float predictor = v9_cci_predictor(cci14, cci14_prev);
+        const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
+        ZLRResult zlr = v9_detect_zlr(cci14_hist, 12);
+
+        j << ",\"current_bar\":{";
+        json_long(j, "ts", bars[ci].timestamp, false);
+        j << ",\"ohlc\":{";
+        json_float(j, "o", bars[ci].open, false);
+        json_float(j, "h", bars[ci].high);
+        json_float(j, "l", bars[ci].low);
+        json_float(j, "c", bars[ci].close);
+        json_float(j, "vol", bars[ci].volume);
+        j << "}";
+        json_float(j, "cci_14", cci14);
+        json_float(j, "cci_6_tcci", cci6);
+        json_float(j, "lsma_value", lsma25);
+        json_bool(j, "lsma_above_price", lsma25 > bars[ci].close);
+        json_float(j, "swi_value", swi);
+        json_float(j, "czi_value", czi);
+        json_float(j, "ema_34", ema34);
+        json_str(j, "trend_state", trend);
+        json_float(j, "predictor_next_cci", predictor);
+        json_bool(j, "zlr_detected", zlr.detected);
+        json_str(j, "zlr_direction", zlr.direction);
+        json_float(j, "cci_14_prev", cci14_prev);
+        json_float(j, "cci_14_3ago", cci14_3ago);
+        j << "}";
+    }
+
+    j << "}";
+    return j.str();
+}
+
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+#include <map>
+#include <vector>
+#include <algorithm>
+
+SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
+{
+    SCSubgraphRef CVD  = sc.Subgraph[0];
+    SCSubgraphRef VWAP = sc.Subgraph[1];
+
+    SCInputRef ExportPath        = sc.Input[0];
+    SCInputRef ExportIntervalSec = sc.Input[1];
+    SCInputRef VAPercent         = sc.Input[2];
+    SCInputRef ImbalanceRatio    = sc.Input[3];
+    SCInputRef V9ExportPath      = sc.Input[4];
+    SCInputRef V9TickRev15       = sc.Input[5];
+    SCInputRef V9TickRev12       = sc.Input[6];
+    SCInputRef V9Lookback        = sc.Input[7];
+    SCInputRef V9WoodiesHistory  = sc.Input[8];
+
+    if (sc.SetDefaults)
+    {
+        sc.GraphName        = "MES AI Data Export v9.0.0";
+        sc.StudyDescription = "V9: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
+        sc.AutoLoop         = 1;
+        sc.GraphRegion      = 1;
+
+        CVD.Name         = "CVD";
+        CVD.DrawStyle    = DRAWSTYLE_LINE;
+        CVD.PrimaryColor = COLOR_CYAN;
+
+        VWAP.Name         = "VWAP";
+        VWAP.DrawStyle    = DRAWSTYLE_LINE;
+        VWAP.PrimaryColor = COLOR_YELLOW;
+
+        ExportPath.Name = "Export JSON Path";
+        ExportPath.SetString("Y:\\SierraChart\\Data\\mes_ai_data.json");
+
+        ExportIntervalSec.Name = "Export Interval (seconds)";
+        ExportIntervalSec.SetInt(3);
+
+        VAPercent.Name = "Value Area %";
+        VAPercent.SetFloat(70.0f);
+
+        ImbalanceRatio.Name = "Imbalance Ratio (e.g. 3.0 = 3:1)";
+        ImbalanceRatio.SetFloat(3.0f);
+
+        V9ExportPath.Name = "V9 Export Directory";
+        V9ExportPath.SetString("Y:\\SierraChart\\Data\\v9_export\\");
+
+        V9TickRev15.Name = "V9 Tick Reversal 15-tick (1=on)";
+        V9TickRev15.SetInt(1);
+
+        V9TickRev12.Name = "V9 Tick Reversal 12-tick (1=on)";
+        V9TickRev12.SetInt(1);
+
+        V9Lookback.Name = "V9 Lookback Bars";
+        V9Lookback.SetInt(200);
+
+        V9WoodiesHistory.Name = "V9 Woodies 30min History Bars";
+        V9WoodiesHistory.SetInt(50);
+
+        sc.MaintainVolumeAtPriceData = 1;  // Required for footprint
+
+        return;
+    }
+
+    int idx = sc.Index;
+    SCDateTime today = sc.BaseDateTimeIn[idx].GetDate();
+    float cp  = sc.Close[idx];
+    float ask_vol = sc.AskVolume[idx];
+    float bid_vol = sc.BidVolume[idx];
+    float delta   = ask_vol - bid_vol;
+
+    // ── CVD ──────────────────────────────────────────────────
+    CVD[idx] = (idx == 0) ? delta : CVD[idx - 1] + delta;
+    float cvd20 = (idx >= 20) ? CVD[idx] - CVD[idx - 20] : 0;
+    float cvd5  = (idx >= 5)  ? CVD[idx] - CVD[idx - 5]  : 0;
+
+    // ── VWAP (מתחיל מחדש כל יום) ──────────────────────────
+    float sum_pv = 0, sum_v = 0;
+    for (int i = idx; i >= 0; i--)
+    {
+        if (sc.BaseDateTimeIn[i].GetDate() < today) break;
+        float tp = (sc.High[i] + sc.Low[i] + sc.Close[i]) / 3.0f;
+        float v  = sc.Volume[i];
+        sum_pv += tp * v;
+        sum_v  += v;
+    }
+    VWAP[idx] = (sum_v > 0) ? sum_pv / sum_v : cp;
+    float vwap = VWAP[idx];
+
+    // VWAP distance & side
+    float vwap_dist  = cp - vwap;
+    bool  above_vwap = (cp > vwap);
+
+    // VWAP pullback detection (last 5 bars trending toward VWAP from above/below)
+    bool vwap_pullback = false;
+    if (idx >= 5 && above_vwap)
+    {
+        bool was_higher = (sc.Close[idx-3] > sc.Close[idx-1]);
+        bool low_volume = true;
+        float avg_vol = 0;
+        for (int i = idx-10; i < idx && i >= 0; i++) avg_vol += sc.Volume[i];
+        avg_vol /= 10.0f;
+        for (int i = idx-3; i <= idx; i++)
+            if (sc.Volume[i] > avg_vol * 0.8f) { low_volume = false; break; }
+        vwap_pullback = was_higher && low_volume && (cp - vwap < 4.0f);
+    }
+
+    // ── Woodi Pivots ─────────────────────────────────────────
+    float PH=0, PL=0, PC=0;
+    SCDateTime prevDate;
+    bool foundPrev = false;
+    for (int i = idx-1; i >= 0; i--)
+    {
+        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
+        if (!foundPrev && bd < today) { prevDate=bd; foundPrev=true; PC=sc.Close[i]; PH=sc.High[i]; PL=sc.Low[i]; }
+        else if (foundPrev && bd == prevDate) { if (sc.High[i]>PH) PH=sc.High[i]; if (sc.Low[i]<PL) PL=sc.Low[i]; }
+        else if (foundPrev) break;
+    }
+    float PP=0,R1=0,R2=0,S1=0,S2=0;
+    if (foundPrev && PH>0) { PP=(PH+PL+PC*2)/4; R1=2*PP-PL; R2=PP+(PH-PL); S1=2*PP-PH; S2=PP-(PH-PL); }
+
+    // ── Session POC + Value Area ──────────────────────────────
+    float SH=sc.High[idx], SL=sc.Low[idx], TV=0;
+    std::map<int,float> pvm;
+    float HPrev=0,LPrev=0,CPrev=0;
+    bool prevDayFound=false;
+    for (int i=idx; i>=0; i--)
+    {
+        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
+        if (bd < today) {
+            if (!prevDayFound) { HPrev=sc.High[i]; LPrev=sc.Low[i]; CPrev=sc.Close[i]; prevDayFound=true; }
+            break;
+        }
+        float bh=sc.High[i], bl=sc.Low[i], bv=sc.Volume[i];
+        if (bh>SH) SH=bh; if (bl<SL) SL=bl; TV+=bv;
+        int steps=(int)((bh-bl)/0.25f)+1; float vps=bv/steps;
+        for (float p=bl; p<=bh+0.001f; p+=0.25f) pvm[(int)(p*4)]+=vps;
+    }
+    float POC=cp, maxV=0;
+    for (auto& kv:pvm) if (kv.second>maxV){maxV=kv.second; POC=kv.first/4.0f;}
+
+    float vat=TV*(VAPercent.GetFloat()/100), vav=maxV, VAH=POC, VAL=POC;
+    auto itu=pvm.upper_bound((int)(POC*4)), itd=pvm.lower_bound((int)(POC*4));
+    while(vav<vat){
+        float un=0, dn=0;
+        if(itu!=pvm.end()) un=itu->second;
+        if(itd!=pvm.begin()){auto tmp=itd; --tmp; dn=tmp->second;}
+        if(un>=dn){if(itu!=pvm.end()){vav+=un;VAH=itu->first/4.0f;++itu;}else break;}
+        else{if(itd!=pvm.begin()){--itd;vav+=itd->second;VAL=itd->first/4.0f;}else break;}
+    }
+
+    // TPO POC
+    std::map<int,int> tpo_map;
+    int tpo_back = (idx >= 30) ? 30 : idx;
+    for(int i=idx-tpo_back; i<=idx; i++){
+        for(float p=sc.Low[i]; p<=sc.High[i]+0.001f; p+=0.25f)
+            tpo_map[(int)(p*4)]++;
+    }
+    float tpo_poc=cp; int tpo_max=0;
+    for(auto& kv:tpo_map) if(kv.second>tpo_max){tpo_max=kv.second;tpo_poc=kv.first/4.0f;}
+
+    // ── 72H / Weekly ─────────────────────────────────────────
+    float H72=sc.High[idx],L72=sc.Low[idx],HWk=sc.High[idx],LWk=sc.Low[idx];
+    SCDateTime t72=sc.BaseDateTimeIn[idx]; t72.SubtractSeconds(72*3600);
+    SCDateTime twk=sc.BaseDateTimeIn[idx]; twk.SubtractSeconds((int)twk.GetDayOfWeek()*86400);
+    for(int i=idx-1;i>=0;i--){
+        SCDateTime bt=sc.BaseDateTimeIn[i];
+        if(bt>=t72){if(sc.High[i]>H72)H72=sc.High[i];if(sc.Low[i]<L72)L72=sc.Low[i];}
+        if(bt>=twk){if(sc.High[i]>HWk)HWk=sc.High[i];if(sc.Low[i]<LWk)LWk=sc.Low[i];}
+        if(bt<t72&&bt<twk)break;
+    }
+
+    // ── Session Phase ─────────────────────────────────────────
+    int H=sc.BaseDateTimeIn[idx].GetHour(), M=sc.BaseDateTimeIn[idx].GetMinute();
+    const char* phase="OVERNIGHT";
+    if(H==16&&M>=30)phase="OPEN";
+    else if(H>=17&&H<19)phase="AM_SESSION";
+    else if(H>=19&&H<21)phase="MIDDAY";
+    else if(H>=21&&H<23)phase="PM_SESSION";
+    else if(H==23)phase="CLOSE";
+    float sesMin_f = (H*60.0f+M) - (16*60+30);
+    int   sesMin   = (sesMin_f < 0) ? -1 : (int)sesMin_f;
+
+    float slope = (idx >= 5) ? (sc.Close[idx] - sc.Close[idx-5]) / 5.0f : 0;
+
+    // ── Imbalance Detection ───────────────────────────────────
+    // בודק את הנר הנוכחי ו-4 הנרות האחרונים לחוסר איזון
+    float imb_ratio = ImbalanceRatio.GetFloat();
+    struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
+    std::vector<ImbLevel> imbalances;
+
+    // בדיקת imbalance בנרות אחרונים
+    int imb_lookback = (idx >= 5) ? 5 : idx;
+    for (int i = idx - imb_lookback; i <= idx; i++)
+    {
+        if (i < 0) continue;
+        float bv_bar = sc.AskVolume[i];
+        float sv_bar = sc.BidVolume[i];
+        float bar_range = sc.High[i] - sc.Low[i];
+        if (bar_range < 0.5f) continue;
+
+        float ratio = 0;
+        float dom_price = (sc.High[i] + sc.Low[i]) / 2.0f;
+        if (sv_bar > 0 && bv_bar / sv_bar >= imb_ratio) {
+            ratio = bv_bar / sv_bar;
+            imbalances.push_back({dom_price, bv_bar, sv_bar, ratio});
+        } else if (bv_bar > 0 && sv_bar / bv_bar >= imb_ratio) {
+            ratio = -(sv_bar / bv_bar);
+            imbalances.push_back({dom_price, bv_bar, sv_bar, ratio});
+        }
+    }
+
+    // מיין לפי ratio מוחלט (use v9_abs, not std::abs — ACSIL macro conflict)
+    std::sort(imbalances.begin(), imbalances.end(), [](const ImbLevel& a, const ImbLevel& b){
+        return v9_abs(a.ratio) > v9_abs(b.ratio);
+    });
+
+    // גבול: שמור עד 3 imbalances חזקים
+    int imb_count = (int)imbalances.size();
+    if (imb_count > 3) imb_count = 3;
+
+    // Absorption detection: מוכרים הרבה אבל מחיר לא ירד
+    bool absorption_bull = false;
+    if (idx >= 3)
+    {
+        float sell_pressure = 0;
+        for (int i = idx-2; i <= idx; i++) sell_pressure += sc.BidVolume[i];
+        float price_change = sc.Close[idx] - sc.Close[idx-3];
+        if (sell_pressure > 500 && price_change >= 0) absorption_bull = true;
+    }
+
+    // Liquidity sweep detection
+    bool liq_sweep_long = false;
+    bool liq_sweep_short = false;
+    if (idx >= 3)
+    {
+        // Long sweep: מחיר שבר שפל ואז חזר מעליו
+        float recent_low = SL;
+        bool broke_low = (sc.Low[idx-1] < recent_low - 1.0f || sc.Low[idx-2] < recent_low - 1.0f);
+        bool recovered  = (cp > recent_low + 0.5f);
+        if (broke_low && recovered && delta > 0) liq_sweep_long = true;
+    }
+
+    // IB Breakout + Retest (מחושב כשיש IB)
+    // יישלח ל-Bridge שיחשב
+
+    // ── MTF (chart = 3 min per bar) ──────────────────────────
+    struct MTFBar { float o,h,l,c,vol,buy,sell,delta_v; };
+    auto calcBar = [&](int n) -> MTFBar {
+        MTFBar b = {0,0,999999,0,0,0,0,0};
+        int end = (idx-n+1>=0)?(idx-n+1):0;
+        b.o=sc.Open[end]; b.c=sc.Close[idx];
+        b.h=sc.High[end]; b.l=sc.Low[end];
+        for(int i=end;i<=idx;i++){
+            if(sc.High[i]>b.h)b.h=sc.High[i];
+            if(sc.Low[i]<b.l)b.l=sc.Low[i];
+            b.vol+=sc.Volume[i]; b.buy+=sc.AskVolume[i]; b.sell+=sc.BidVolume[i];
+        }
+        b.delta_v=b.buy-b.sell;
+        return b;
+    };
+    MTFBar m3=calcBar(1), m15=calcBar(5), m30=calcBar(10), m60=calcBar(20);
+
+    // ── Trend Strength ────────────────────────────────────────
+    // HH/HL count in last 20 bars
+    int hh_count=0, ll_count=0;
+    for(int i=idx-1; i>=idx-20 && i>0; i--){
+        if(sc.High[i]>sc.High[i-1]) hh_count++;
+        if(sc.Low[i]<sc.Low[i-1])   ll_count++;
+    }
+    const char* trend_str = "NEUTRAL";
+    if(hh_count > 14) trend_str = "STRONG_UP";
+    else if(hh_count > 10) trend_str = "UP";
+    else if(ll_count > 14) trend_str = "STRONG_DOWN";
+    else if(ll_count > 10) trend_str = "DOWN";
+
+    // ── Throttle ─────────────────────────────────────────────
+    static time_t lastExport=0;
+    time_t now_t=time(nullptr);
+    if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
+    lastExport=now_t;
+
+    // ── JSON ──────────────────────────────────────────────────
+    std::ostringstream j;
+    j<<std::fixed<<std::setprecision(2);
+
+    j<<"{"
+     <<"\"timestamp\":"<<(long long)now_t
+     <<",\"symbol\":\"MEMS26\""
+     <<",\"current_price\":"<<cp
+     <<",\"session_phase\":\""<<phase<<"\""
+     <<",\"session_min\":"<<sesMin
+
+     // CVD
+     <<",\"cvd\":{"
+       <<"\"current\":"<<CVD[idx]
+       <<",\"change_20bar\":"<<cvd20
+       <<",\"change_5bar\":"<<cvd5
+       <<",\"cumul_today\":"<<CVD[idx]
+       <<",\"trend\":\""<<(cvd20>100?"BULLISH":cvd20<-100?"BEARISH":"NEUTRAL")<<"\""
+       <<",\"buy_vol\":"<<ask_vol
+       <<",\"sell_vol\":"<<bid_vol
+       <<",\"delta\":"<<delta
+     <<"}"
+
+     // VWAP
+     <<",\"vwap\":{"
+       <<"\"value\":"<<vwap
+       <<",\"distance\":"<<vwap_dist
+       <<",\"above\":"<<(above_vwap?"true":"false")
+       <<",\"pullback\":"<<(vwap_pullback?"true":"false")
+     <<"}"
+
+     // Market Profile
+     <<",\"market_profile\":{"
+       <<"\"poc\":"<<POC
+       <<",\"vah\":"<<VAH
+       <<",\"val\":"<<VAL
+       <<",\"session_high\":"<<SH
+       <<",\"session_low\":"<<SL
+       <<",\"tpo_poc\":"<<tpo_poc
+       <<",\"in_value_area\":"<<(cp>=VAL&&cp<=VAH?"true":"false")
+       <<",\"above_poc\":"<<(cp>POC?"true":"false")
+     <<"}"
+
+     // Woodi
+     <<",\"woodi_pivots\":{"
+       <<"\"pp\":"<<PP<<",\"r1\":"<<R1<<",\"r2\":"<<R2
+       <<",\"s1\":"<<S1<<",\"s2\":"<<S2
+       <<",\"above_pp\":"<<(cp>PP?"true":"false")
+     <<"}"
+
+     // Levels
+     <<",\"time_levels\":{"
+       <<"\"weekly_high\":"<<HWk<<",\"weekly_low\":"<<LWk
+       <<",\"h72_high\":"<<H72<<",\"h72_low\":"<<L72
+       <<",\"prev_high\":"<<HPrev<<",\"prev_low\":"<<LPrev<<",\"prev_close\":"<<CPrev
+     <<"}"
+
+     // Price Action
+     <<",\"price_action\":{"
+       <<"\"slope_5bar\":"<<slope
+       <<",\"trend\":\""<<(slope>0?"UP":slope<0?"DOWN":"FLAT")<<"\""
+       <<",\"trend_strength\":\""<<trend_str<<"\""
+       <<",\"buy_vol_bar\":"<<ask_vol
+       <<",\"sell_vol_bar\":"<<bid_vol
+     <<"}"
+
+     // Imbalance
+     <<",\"order_flow\":{"
+       <<"\"absorption_bull\":"<<(absorption_bull?"true":"false")
+       <<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")
+       <<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")
+       <<",\"imbalances\":[";
+
+    for(int i=0; i<imb_count; i++){
+        if(i>0) j<<",";
+        j<<"{"
+         <<"\"price\":"<<imbalances[i].price
+         <<",\"buy\":"<<imbalances[i].buy_vol
+         <<",\"sell\":"<<imbalances[i].sell_vol
+         <<",\"ratio\":"<<imbalances[i].ratio
+         <<"}";
+    }
+    j<<"]}"
+
+     // MTF
+     <<",\"mtf\":{"
+       <<"\"m3\":{\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c
+         <<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
+       <<",\"m15\":{\"o\":"<<m15.o<<",\"h\":"<<m15.h<<",\"l\":"<<m15.l<<",\"c\":"<<m15.c
+         <<",\"vol\":"<<m15.vol<<",\"buy\":"<<m15.buy<<",\"sell\":"<<m15.sell<<",\"delta\":"<<m15.delta_v<<"}"
+       <<",\"m30\":{\"o\":"<<m30.o<<",\"h\":"<<m30.h<<",\"l\":"<<m30.l<<",\"c\":"<<m30.c
+         <<",\"vol\":"<<m30.vol<<",\"buy\":"<<m30.buy<<",\"sell\":"<<m30.sell<<",\"delta\":"<<m30.delta_v<<"}"
+       <<",\"m60\":{\"o\":"<<m60.o<<",\"h\":"<<m60.h<<",\"l\":"<<m60.l<<",\"c\":"<<m60.c
+         <<",\"vol\":"<<m60.vol<<",\"buy\":"<<m60.buy<<",\"sell\":"<<m60.sell<<",\"delta\":"<<m60.delta_v<<"}"
+     <<"}"
+
+     <<"}\n";
+
+    std::ofstream f(ExportPath.GetString());
+    if(f.is_open()){f<<j.str();f.close();}
+
+    // ══════════════════════════════════════════════════════════════
+    // V9 EXPORTS — Only run on the LAST bar to avoid freezing SC
+    // ══════════════════════════════════════════════════════════════
+    if (sc.Index != sc.ArraySize - 1)
+        return;  // Skip V9 exports for historical bars — only compute on latest
+
+    const char* v9dir = V9ExportPath.GetString();
+    int v9_lookback = V9Lookback.GetInt();
+    float v9_imb_threshold = 2.5f;
+
+    // ── Export 1: Tick Reversal 15-tick ──
+    if (V9TickRev15.GetInt() == 1)
+    {
+        std::vector<TickReversalBar> tr15 = v9_build_tick_reversal_bars(sc, 15, v9_lookback);
+        std::string json15 = v9_tick_reversal_to_json(tr15, 15);
+        v9_write_json(v9dir, "tick_reversal_15.json", json15);
+    }
+
+    // ── Export 2: Tick Reversal 12-tick ──
+    if (V9TickRev12.GetInt() == 1)
+    {
+        std::vector<TickReversalBar> tr12 = v9_build_tick_reversal_bars(sc, 12, v9_lookback);
+        std::string json12 = v9_tick_reversal_to_json(tr12, 12);
+        v9_write_json(v9dir, "tick_reversal_12.json", json12);
+    }
+
+    // ── Export 3+4+5+6: Footprint + Volume Profile + Imbalance Flags ──
+    {
+        int fp_start = v9_max_i(0, sc.Index - 30);
+        std::vector<FootprintBar> fp_bars;
+        for (int i = fp_start; i <= sc.Index; i++)
+            fp_bars.push_back(v9_build_footprint_bar(sc, i, v9_imb_threshold));
+
+        // Cumulative delta — only last 200 bars, not entire chart
+        float cum_delta = 0;
+        int cd_start = v9_max_i(0, sc.Index - v9_lookback);
+        for (int i = cd_start; i <= sc.Index; i++)
+            cum_delta += sc.AskVolume[i] - sc.BidVolume[i];
+
+        v9_write_json(v9dir, "footprint.json", v9_footprint_to_json(fp_bars, cum_delta));
+        v9_write_json(v9dir, "volume_profile.json", v9_volume_profile_to_json(fp_bars, VAPercent.GetFloat()));
+        v9_write_json(v9dir, "imbalance_flags.json", v9_imbalance_flags_to_json(fp_bars));
+        v9_write_json(v9dir, "stacked_imbalances.json", v9_stacked_imbalances_to_json(fp_bars, 3));
+    }
+
+    // ── Export 7: Cumulative Delta running total ──
+    v9_write_json(v9dir, "cumulative_delta.json", v9_cumulative_delta_to_json(sc, v9_lookback));
+
+    // ── Export 8: Woodies CCI 30-min ──
+    v9_write_json(v9dir, "woodies_30min.json", v9_woodies_30min_to_json(sc, V9WoodiesHistory.GetInt()));
+}
