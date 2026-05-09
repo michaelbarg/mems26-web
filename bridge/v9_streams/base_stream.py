@@ -43,8 +43,32 @@ class BaseV9Stream:
     def filepath(self) -> Path:
         return Path(EXPORT_DIR) / self.filename
 
+    def historical_load(self) -> bool:
+        """Load historical data from DLL export file on startup.
+        Ported from V8 json_bridge.py history loading strategy."""
+        from v9_history import historical_load as _load
+        return _load(
+            stream_name=self.name,
+            filepath=self.filepath,
+            redis_key=self.redis_key,
+            api_path=self.api_path,
+            redis_url=REDIS_URL,
+            redis_token=REDIS_TOKEN,
+            cloud_url=CLOUD_URL,
+            bridge_token=BRIDGE_TOKEN,
+        )
+
     def start(self):
         logger.info(f"[{self.name}] Starting stream — watching {self.filepath}")
+
+        # Historical backfill before going live (V8 parity)
+        try:
+            loaded = self.historical_load()
+            if loaded:
+                logger.info(f"[{self.name}] Historical backfill complete")
+        except Exception as e:
+            logger.warning(f"[{self.name}] Historical backfill failed: {e}")
+
         while not self._stop.is_set():
             try:
                 self._tick()

@@ -17,9 +17,26 @@ logger = logging.getLogger("v9_bridge")
 
 
 def main():
-    logger.info("MEMS26 V9 Bridge starting — %d streams", len(ALL_STREAMS))
+    history_only = "--history-only" in sys.argv
+
+    if history_only:
+        logger.info("MEMS26 V9 Bridge — history-only mode (backfill then exit)")
+    else:
+        logger.info("MEMS26 V9 Bridge starting — %d streams", len(ALL_STREAMS))
 
     instances = [StreamClass() for StreamClass in ALL_STREAMS]
+
+    if history_only:
+        for stream in instances:
+            try:
+                loaded = stream.historical_load()
+                status = "OK" if loaded else "skipped"
+            except Exception as e:
+                status = f"FAILED: {e}"
+            logger.info("  %s: %s", stream.name, status)
+        logger.info("History backfill complete. Exiting.")
+        return
+
     threads = []
 
     for stream in instances:
