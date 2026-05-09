@@ -1,0 +1,372 @@
+// MES_AI_DataExport.cpp — v3.0
+// Sierra Chart ACSIL Study — 3 minute chart
+// מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
+
+#include "sierrachart.h"
+#include <fstream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+#include <map>
+#include <vector>
+#include <algorithm>
+
+SCDLLName("MES_AI_DataExport")
+
+SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
+{
+    SCSubgraphRef CVD  = sc.Subgraph[0];
+    SCSubgraphRef VWAP = sc.Subgraph[1];
+
+    SCInputRef ExportPath        = sc.Input[0];
+    SCInputRef ExportIntervalSec = sc.Input[1];
+    SCInputRef VAPercent         = sc.Input[2];
+    SCInputRef ImbalanceRatio    = sc.Input[3];
+
+    if (sc.SetDefaults)
+    {
+        sc.GraphName        = "MES AI Data Export v3";
+        sc.StudyDescription = "Full export: MTF + VWAP + Imbalance + Market Profile";
+        sc.AutoLoop         = 1;
+        sc.GraphRegion      = 1;
+
+        CVD.Name         = "CVD";
+        CVD.DrawStyle    = DRAWSTYLE_LINE;
+        CVD.PrimaryColor = COLOR_CYAN;
+
+        VWAP.Name         = "VWAP";
+        VWAP.DrawStyle    = DRAWSTYLE_LINE;
+        VWAP.PrimaryColor = COLOR_YELLOW;
+
+        ExportPath.Name = "Export JSON Path";
+        ExportPath.SetString("C:\\SierraChart2\\Data\\mes_ai_data.json");
+
+        ExportIntervalSec.Name = "Export Interval (seconds)";
+        ExportIntervalSec.SetInt(3);
+
+        VAPercent.Name = "Value Area %";
+        VAPercent.SetFloat(70.0f);
+
+        ImbalanceRatio.Name = "Imbalance Ratio (e.g. 3.0 = 3:1)";
+        ImbalanceRatio.SetFloat(3.0f);
+
+        return;
+    }
+
+    int idx = sc.Index;
+    SCDateTime today = sc.BaseDateTimeIn[idx].GetDate();
+    float cp  = sc.Close[idx];
+    float ask_vol = sc.AskVolume[idx];
+    float bid_vol = sc.BidVolume[idx];
+    float delta   = ask_vol - bid_vol;
+
+    // ── CVD ──────────────────────────────────────────────────
+    CVD[idx] = (idx == 0) ? delta : CVD[idx - 1] + delta;
+    float cvd20 = (idx >= 20) ? CVD[idx] - CVD[idx - 20] : 0;
+    float cvd5  = (idx >= 5)  ? CVD[idx] - CVD[idx - 5]  : 0;
+
+    // ── VWAP (מתחיל מחדש כל יום) ──────────────────────────
+    float sum_pv = 0, sum_v = 0;
+    for (int i = idx; i >= 0; i--)
+    {
+        if (sc.BaseDateTimeIn[i].GetDate() < today) break;
+        float tp = (sc.High[i] + sc.Low[i] + sc.Close[i]) / 3.0f;
+        float v  = sc.Volume[i];
+        sum_pv += tp * v;
+        sum_v  += v;
+    }
+    VWAP[idx] = (sum_v > 0) ? sum_pv / sum_v : cp;
+    float vwap = VWAP[idx];
+
+    // VWAP distance & side
+    float vwap_dist  = cp - vwap;
+    bool  above_vwap = (cp > vwap);
+
+    // VWAP pullback detection (last 5 bars trending toward VWAP from above/below)
+    bool vwap_pullback = false;
+    if (idx >= 5 && above_vwap)
+    {
+        bool was_higher = (sc.Close[idx-3] > sc.Close[idx-1]);
+        bool low_volume = true;
+        float avg_vol = 0;
+        for (int i = idx-10; i < idx && i >= 0; i++) avg_vol += sc.Volume[i];
+        avg_vol /= 10.0f;
+        for (int i = idx-3; i <= idx; i++)
+            if (sc.Volume[i] > avg_vol * 0.8f) { low_volume = false; break; }
+        vwap_pullback = was_higher && low_volume && (cp - vwap < 4.0f);
+    }
+
+    // ── Woodi Pivots ─────────────────────────────────────────
+    float PH=0, PL=0, PC=0;
+    SCDateTime prevDate;
+    bool foundPrev = false;
+    for (int i = idx-1; i >= 0; i--)
+    {
+        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
+        if (!foundPrev && bd < today) { prevDate=bd; foundPrev=true; PC=sc.Close[i]; PH=sc.High[i]; PL=sc.Low[i]; }
+        else if (foundPrev && bd == prevDate) { if (sc.High[i]>PH) PH=sc.High[i]; if (sc.Low[i]<PL) PL=sc.Low[i]; }
+        else if (foundPrev) break;
+    }
+    float PP=0,R1=0,R2=0,S1=0,S2=0;
+    if (foundPrev && PH>0) { PP=(PH+PL+PC*2)/4; R1=2*PP-PL; R2=PP+(PH-PL); S1=2*PP-PH; S2=PP-(PH-PL); }
+
+    // ── Session POC + Value Area ──────────────────────────────
+    float SH=sc.High[idx], SL=sc.Low[idx], TV=0;
+    std::map<int,float> pvm;
+    float HPrev=0,LPrev=0,CPrev=0;
+    bool prevDayFound=false;
+    for (int i=idx; i>=0; i--)
+    {
+        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
+        if (bd < today) {
+            if (!prevDayFound) { HPrev=sc.High[i]; LPrev=sc.Low[i]; CPrev=sc.Close[i]; prevDayFound=true; }
+            break;
+        }
+        float bh=sc.High[i], bl=sc.Low[i], bv=sc.Volume[i];
+        if (bh>SH) SH=bh; if (bl<SL) SL=bl; TV+=bv;
+        int steps=(int)((bh-bl)/0.25f)+1; float vps=bv/steps;
+        for (float p=bl; p<=bh+0.001f; p+=0.25f) pvm[(int)(p*4)]+=vps;
+    }
+    float POC=cp, maxV=0;
+    for (auto& kv:pvm) if (kv.second>maxV){maxV=kv.second; POC=kv.first/4.0f;}
+
+    float vat=TV*(VAPercent.GetFloat()/100), vav=maxV, VAH=POC, VAL=POC;
+    auto itu=pvm.upper_bound((int)(POC*4)), itd=pvm.lower_bound((int)(POC*4));
+    while(vav<vat){
+        float un=(itu!=pvm.end())?itu->second:0, dn=(itd!=pvm.begin())?std::prev(itd)->second:0;
+        if(un>=dn){if(itu!=pvm.end()){vav+=un;VAH=itu->first/4.0f;++itu;}else break;}
+        else{if(itd!=pvm.begin()){--itd;vav+=itd->second;VAL=itd->first/4.0f;}else break;}
+    }
+
+    // TPO POC
+    std::map<int,int> tpo_map;
+    int tpo_back = (idx >= 30) ? 30 : idx;
+    for(int i=idx-tpo_back; i<=idx; i++){
+        for(float p=sc.Low[i]; p<=sc.High[i]+0.001f; p+=0.25f)
+            tpo_map[(int)(p*4)]++;
+    }
+    float tpo_poc=cp; int tpo_max=0;
+    for(auto& kv:tpo_map) if(kv.second>tpo_max){tpo_max=kv.second;tpo_poc=kv.first/4.0f;}
+
+    // ── 72H / Weekly ─────────────────────────────────────────
+    float H72=sc.High[idx],L72=sc.Low[idx],HWk=sc.High[idx],LWk=sc.Low[idx];
+    SCDateTime t72=sc.BaseDateTimeIn[idx]; t72.SubtractSeconds(72*3600);
+    SCDateTime twk=sc.BaseDateTimeIn[idx]; twk.SubtractSeconds((int)twk.GetDayOfWeek()*86400);
+    for(int i=idx-1;i>=0;i--){
+        SCDateTime bt=sc.BaseDateTimeIn[i];
+        if(bt>=t72){if(sc.High[i]>H72)H72=sc.High[i];if(sc.Low[i]<L72)L72=sc.Low[i];}
+        if(bt>=twk){if(sc.High[i]>HWk)HWk=sc.High[i];if(sc.Low[i]<LWk)LWk=sc.Low[i];}
+        if(bt<t72&&bt<twk)break;
+    }
+
+    // ── Session Phase ─────────────────────────────────────────
+    int H=sc.BaseDateTimeIn[idx].GetHour(), M=sc.BaseDateTimeIn[idx].GetMinute();
+    const char* phase="OVERNIGHT";
+    if(H==16&&M>=30)phase="OPEN";
+    else if(H>=17&&H<19)phase="AM_SESSION";
+    else if(H>=19&&H<21)phase="MIDDAY";
+    else if(H>=21&&H<23)phase="PM_SESSION";
+    else if(H==23)phase="CLOSE";
+    float sesMin_f = (H*60.0f+M) - (16*60+30);
+    int   sesMin   = (sesMin_f < 0) ? -1 : (int)sesMin_f;
+
+    float slope = (idx >= 5) ? (sc.Close[idx] - sc.Close[idx-5]) / 5.0f : 0;
+
+    // ── Imbalance Detection ───────────────────────────────────
+    // בודק את הנר הנוכחי ו-4 הנרות האחרונים לחוסר איזון
+    float imb_ratio = ImbalanceRatio.GetFloat();
+    struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
+    std::vector<ImbLevel> imbalances;
+
+    // בדיקת imbalance בנרות אחרונים
+    int imb_lookback = (idx >= 5) ? 5 : idx;
+    for (int i = idx - imb_lookback; i <= idx; i++)
+    {
+        if (i < 0) continue;
+        float bv_bar = sc.AskVolume[i];
+        float sv_bar = sc.BidVolume[i];
+        float bar_range = sc.High[i] - sc.Low[i];
+        if (bar_range < 0.5f) continue;
+
+        float ratio = 0;
+        float dom_price = (sc.High[i] + sc.Low[i]) / 2.0f;
+        if (sv_bar > 0 && bv_bar / sv_bar >= imb_ratio) {
+            ratio = bv_bar / sv_bar;
+            imbalances.push_back({dom_price, bv_bar, sv_bar, ratio});
+        } else if (bv_bar > 0 && sv_bar / bv_bar >= imb_ratio) {
+            ratio = -(sv_bar / bv_bar);
+            imbalances.push_back({dom_price, bv_bar, sv_bar, ratio});
+        }
+    }
+
+    // מיין לפי ratio מוחלט
+    std::sort(imbalances.begin(), imbalances.end(), [](const ImbLevel& a, const ImbLevel& b){
+        return std::abs(a.ratio) > std::abs(b.ratio);
+    });
+
+    // גבול: שמור עד 3 imbalances חזקים
+    int imb_count = (int)imbalances.size();
+    if (imb_count > 3) imb_count = 3;
+
+    // Absorption detection: מוכרים הרבה אבל מחיר לא ירד
+    bool absorption_bull = false;
+    if (idx >= 3)
+    {
+        float sell_pressure = 0;
+        for (int i = idx-2; i <= idx; i++) sell_pressure += sc.BidVolume[i];
+        float price_change = sc.Close[idx] - sc.Close[idx-3];
+        if (sell_pressure > 500 && price_change >= 0) absorption_bull = true;
+    }
+
+    // Liquidity sweep detection
+    bool liq_sweep_long = false;
+    bool liq_sweep_short = false;
+    if (idx >= 3)
+    {
+        // Long sweep: מחיר שבר שפל ואז חזר מעליו
+        float recent_low = SL;
+        bool broke_low = (sc.Low[idx-1] < recent_low - 1.0f || sc.Low[idx-2] < recent_low - 1.0f);
+        bool recovered  = (cp > recent_low + 0.5f);
+        if (broke_low && recovered && delta > 0) liq_sweep_long = true;
+    }
+
+    // IB Breakout + Retest (מחושב כשיש IB)
+    // יישלח ל-Bridge שיחשב
+
+    // ── MTF (chart = 3 min per bar) ──────────────────────────
+    struct MTFBar { float o,h,l,c,vol,buy,sell,delta_v; };
+    auto calcBar = [&](int n) -> MTFBar {
+        MTFBar b = {0,0,999999,0,0,0,0,0};
+        int end = (idx-n+1>=0)?(idx-n+1):0;
+        b.o=sc.Open[end]; b.c=sc.Close[idx];
+        b.h=sc.High[end]; b.l=sc.Low[end];
+        for(int i=end;i<=idx;i++){
+            if(sc.High[i]>b.h)b.h=sc.High[i];
+            if(sc.Low[i]<b.l)b.l=sc.Low[i];
+            b.vol+=sc.Volume[i]; b.buy+=sc.AskVolume[i]; b.sell+=sc.BidVolume[i];
+        }
+        b.delta_v=b.buy-b.sell;
+        return b;
+    };
+    MTFBar m3=calcBar(1), m15=calcBar(5), m30=calcBar(10), m60=calcBar(20);
+
+    // ── Trend Strength ────────────────────────────────────────
+    // HH/HL count in last 20 bars
+    int hh_count=0, ll_count=0;
+    for(int i=idx-1; i>=idx-20 && i>0; i--){
+        if(sc.High[i]>sc.High[i-1]) hh_count++;
+        if(sc.Low[i]<sc.Low[i-1])   ll_count++;
+    }
+    const char* trend_str = "NEUTRAL";
+    if(hh_count > 14) trend_str = "STRONG_UP";
+    else if(hh_count > 10) trend_str = "UP";
+    else if(ll_count > 14) trend_str = "STRONG_DOWN";
+    else if(ll_count > 10) trend_str = "DOWN";
+
+    // ── Throttle ─────────────────────────────────────────────
+    static time_t lastExport=0;
+    time_t now_t=time(nullptr);
+    if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
+    lastExport=now_t;
+
+    // ── JSON ──────────────────────────────────────────────────
+    std::ostringstream j;
+    j<<std::fixed<<std::setprecision(2);
+
+    j<<"{"
+     <<"\"timestamp\":"<<(long long)now_t
+     <<",\"symbol\":\"MEMS26\""
+     <<",\"current_price\":"<<cp
+     <<",\"session_phase\":\""<<phase<<"\""
+     <<",\"session_min\":"<<sesMin
+
+     // CVD
+     <<",\"cvd\":{"
+       <<"\"current\":"<<CVD[idx]
+       <<",\"change_20bar\":"<<cvd20
+       <<",\"change_5bar\":"<<cvd5
+       <<",\"cumul_today\":"<<CVD[idx]
+       <<",\"trend\":\""<<(cvd20>100?"BULLISH":cvd20<-100?"BEARISH":"NEUTRAL")<<"\""
+       <<",\"buy_vol\":"<<ask_vol
+       <<",\"sell_vol\":"<<bid_vol
+       <<",\"delta\":"<<delta
+     <<"}"
+
+     // VWAP
+     <<",\"vwap\":{"
+       <<"\"value\":"<<vwap
+       <<",\"distance\":"<<vwap_dist
+       <<",\"above\":"<<(above_vwap?"true":"false")
+       <<",\"pullback\":"<<(vwap_pullback?"true":"false")
+     <<"}"
+
+     // Market Profile
+     <<",\"market_profile\":{"
+       <<"\"poc\":"<<POC
+       <<",\"vah\":"<<VAH
+       <<",\"val\":"<<VAL
+       <<",\"session_high\":"<<SH
+       <<",\"session_low\":"<<SL
+       <<",\"tpo_poc\":"<<tpo_poc
+       <<",\"in_value_area\":"<<(cp>=VAL&&cp<=VAH?"true":"false")
+       <<",\"above_poc\":"<<(cp>POC?"true":"false")
+     <<"}"
+
+     // Woodi
+     <<",\"woodi_pivots\":{"
+       <<"\"pp\":"<<PP<<",\"r1\":"<<R1<<",\"r2\":"<<R2
+       <<",\"s1\":"<<S1<<",\"s2\":"<<S2
+       <<",\"above_pp\":"<<(cp>PP?"true":"false")
+     <<"}"
+
+     // Levels
+     <<",\"time_levels\":{"
+       <<"\"weekly_high\":"<<HWk<<",\"weekly_low\":"<<LWk
+       <<",\"h72_high\":"<<H72<<",\"h72_low\":"<<L72
+       <<",\"prev_high\":"<<HPrev<<",\"prev_low\":"<<LPrev<<",\"prev_close\":"<<CPrev
+     <<"}"
+
+     // Price Action
+     <<",\"price_action\":{"
+       <<"\"slope_5bar\":"<<slope
+       <<",\"trend\":\""<<(slope>0?"UP":slope<0?"DOWN":"FLAT")<<"\""
+       <<",\"trend_strength\":\""<<trend_str<<"\""
+       <<",\"buy_vol_bar\":"<<ask_vol
+       <<",\"sell_vol_bar\":"<<bid_vol
+     <<"}"
+
+     // Imbalance
+     <<",\"order_flow\":{"
+       <<"\"absorption_bull\":"<<(absorption_bull?"true":"false")
+       <<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")
+       <<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")
+       <<",\"imbalances\":[";
+
+    for(int i=0; i<imb_count; i++){
+        if(i>0) j<<",";
+        j<<"{"
+         <<"\"price\":"<<imbalances[i].price
+         <<",\"buy\":"<<imbalances[i].buy_vol
+         <<",\"sell\":"<<imbalances[i].sell_vol
+         <<",\"ratio\":"<<imbalances[i].ratio
+         <<"}";
+    }
+    j<<"]}"
+
+     // MTF
+     <<",\"mtf\":{"
+       <<"\"m3\":{\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c
+         <<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
+       <<",\"m15\":{\"o\":"<<m15.o<<",\"h\":"<<m15.h<<",\"l\":"<<m15.l<<",\"c\":"<<m15.c
+         <<",\"vol\":"<<m15.vol<<",\"buy\":"<<m15.buy<<",\"sell\":"<<m15.sell<<",\"delta\":"<<m15.delta_v<<"}"
+       <<",\"m30\":{\"o\":"<<m30.o<<",\"h\":"<<m30.h<<",\"l\":"<<m30.l<<",\"c\":"<<m30.c
+         <<",\"vol\":"<<m30.vol<<",\"buy\":"<<m30.buy<<",\"sell\":"<<m30.sell<<",\"delta\":"<<m30.delta_v<<"}"
+       <<",\"m60\":{\"o\":"<<m60.o<<",\"h\":"<<m60.h<<",\"l\":"<<m60.l<<",\"c\":"<<m60.c
+         <<",\"vol\":"<<m60.vol<<",\"buy\":"<<m60.buy<<",\"sell\":"<<m60.sell<<",\"delta\":"<<m60.delta_v<<"}"
+     <<"}"
+
+     <<"}\n";
+
+    std::ofstream f(ExportPath.GetString());
+    if(f.is_open()){f<<j.str();f.close();}
+}
