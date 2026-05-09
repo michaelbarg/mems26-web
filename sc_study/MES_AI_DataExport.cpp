@@ -14,6 +14,7 @@
 #include <algorithm>
 #include "v9_types.h"
 #include "v9_exports.h"
+#include "v9_woodies_export.h"
 
 SCDLLName("MES_AI_DataExport")
 
@@ -30,6 +31,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef V9TickRev15       = sc.Input[5];
     SCInputRef V9TickRev12       = sc.Input[6];
     SCInputRef V9Lookback        = sc.Input[7];
+    SCInputRef V9WoodiesHistory  = sc.Input[8];
 
     if (sc.SetDefaults)
     {
@@ -69,6 +71,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         V9Lookback.Name = "V9 Lookback Bars";
         V9Lookback.SetInt(200);
+
+        V9WoodiesHistory.Name = "V9 Woodies 30min History Bars";
+        V9WoodiesHistory.SetInt(50);
 
         sc.MaintainVolumeAtPriceData = 1;  // Required for footprint
 
@@ -448,5 +453,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     {
         std::string cd_json = v9_cumulative_delta_to_json(sc, v9_lookback);
         v9_write_json(v9dir, "cumulative_delta.json", cd_json);
+    }
+
+    // ── Export 8: Woodies CCI 30-min (all 11 studies + patterns) ──
+    {
+        std::string w_json = v9_woodies_30min_to_json(sc, V9WoodiesHistory.GetInt());
+        v9_write_json(v9dir, "woodies_30min.json", w_json);
     }
 }
