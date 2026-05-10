@@ -279,13 +279,20 @@ When no spec in Drive:
 ✅ W8 signal persistence POST /process (commit 5dc2006)
 ✅ W8 Woodies spec gap RESOLVED — DERIVED spec uploaded to Drive (id: 1NtKDNZNVwWi8Dio_C-42Yj0c6DPFGEfnFSo3Vx4rp0k) from woodies_audit.md + v9_woodies_export.h per §6.5
 
+### Pre-existing Test Failures (WARN-S3, Phase 3.5 backlog)
+🟡 11× WS connection tests — need websockets package + auth fixture (tests/v9/api/test_websocket.py)
+🟡 7× API POST tests — 403 auth (missing BRIDGE_TOKEN in test env) (tests/v9/db/test_api.py)
+🟡 1× model test — stale `dominant_system` field after W11 rename to `firing_system` (tests/v9/db/test_models.py)
+🟡 1× trade log model — TypeError on renamed field (tests/v9/db/test_models.py)
+Non-blocking for SHADOW. All 199 Phase 3 service tests pass clean.
+
 ### Backlog (Phase 3.5)
 🟡 W9 Stage F EOD — deferred, non-blocking for SHADOW
 🟡 W9 Naked POC lookback — deferred
 🟡 W9 time-gated classification — deferred
 
 ### Infrastructure
-🛠️ V9 backend not deployed to Render
+🛠️ V9 backend ready for Render deploy (backend/main.py + Procfile created, commit 7c030a6)
 🛠️ DLL v9.1.2 quarantined (Bug #11)
 [x] scripts/build_monolithic_cpp.sh created — monolith generator with verification
     Enforces SCDLLName in first 10 lines, checks IsNotEmpty/std::max, deploys with --deploy flag
