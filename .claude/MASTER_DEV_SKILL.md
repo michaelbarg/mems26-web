@@ -231,6 +231,18 @@ Drive specs (search by title):
 - MEMS26_DASHBOARD_SPEC_V1_LOCKED
 - MEMS26_OPTION_C_PATH_TO_READY (master plan)
 - MEMS26_LATENCY_OPTIMIZATION_SPEC (id: 1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc) — LOCKED
+- MEMS26_CREDENTIALS_SKILL (id: 1gJzthhg7WKNUWtDOphNtV8RhrsXP4b02ICZOr8FXty4) — LOCKED
+- MEMS26_SPEC_IMPLEMENTATION_REGISTRY (id: 1_gQCaMTq-3D3Fe34_ddV54-9eQvOAW9Mfx4zAyPMSwk) — LOCKED
+
+## §0.7 — CREDENTIALS ACCESS
+
+Master CC has authorized access via:
+- .env at repo root (sourced into shell automatically)
+- macOS Keychain entries prefixed MEMS26_*
+- ~/.ssh/mesmclaude for GitHub
+- Render deploy hook (see .claude/CREDENTIALS_SKILL.md)
+DO NOT ASK user for these. Use them via documented patterns.
+Self-test: bash scripts/credentials_self_test.sh
 
 ## §6.0 — STEP 0: PATH VALIDATION (mandatory pre-QA)
 
