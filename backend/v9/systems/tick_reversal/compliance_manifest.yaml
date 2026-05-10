@@ -33,22 +33,22 @@ decision_tree_nodes:
   - id: STEP5
     name: "Pattern Detection — 5 micro-patterns"
     branches: [ACCUM_BREAKOUT, V_SHAPE, FAILED_TEST, STAIR_STEP, COMPRESSION_POP, NONE]
-    status: PARTIAL
-    notes: "Pattern infrastructure exists, patterns.py imported but not populated"
+    status: IMPLEMENTED
+    notes: "5 micro-patterns implemented in micro_patterns.py + patterns/"
     test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step5_patterns
 
   - id: STEP6_ZOHAR
     name: "Zohar's 5 Signals"
     branches: [BELLY, VOLUME_DROP_90, COT_VS_AMT, TICK_BREACH, POC_JUMPING]
-    status: PARTIAL
-    notes: "Signal infrastructure exists, signals.py imported but not populated"
+    status: IMPLEMENTED
+    notes: "5 Zohar signals implemented in signals/ + signal_detectors/zohar_signals.py"
     test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step6_zohar
 
   - id: STEP6_INDUSTRY
     name: "Industry 5 Signals"
     branches: [IMBALANCE_250, STACKED_IMBALANCE, CUM_DELTA, EXHAUSTION, LIQUIDITY_SWEEP]
-    status: PARTIAL
-    notes: "Signal infrastructure exists, signals.py imported but not populated"
+    status: IMPLEMENTED
+    notes: "5 Industry signals implemented in signals/ + signal_detectors/industry_signals.py"
     test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step6_industry
 
   - id: STEP7
@@ -208,8 +208,8 @@ anti_patterns:
 
 summary:
   total_requirements: 27
-  implemented: 21
-  partial: 3
+  implemented: 24
+  partial: 0
   missing: 3
-  drift_pct: 11.1
-  notes: "Pattern and signal modules imported but files not yet created — detection infrastructure ready"
+  drift_pct: 0.0
+  notes: "5 micro-patterns + 10 signals fully implemented. detect_all_signals() entry point + signal_detectors/ added."
