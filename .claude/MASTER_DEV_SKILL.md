@@ -230,6 +230,7 @@ Drive specs (search by title):
 - MEMS26_3_MODE_TRADING_SPEC_V3_FINAL_LOCKED
 - MEMS26_DASHBOARD_SPEC_V1_LOCKED
 - MEMS26_OPTION_C_PATH_TO_READY (master plan)
+- MEMS26_LATENCY_OPTIMIZATION_SPEC (id: 1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc) — LOCKED
 
 ## §6.0 — STEP 0: PATH VALIDATION (mandatory pre-QA)
 
@@ -262,7 +263,10 @@ When no spec in Drive:
 ## §17 — DATA INTEGRITY & GAP RESOLUTION
 
 ### Active Violations
-(none)
+🟡 #L1 Sierra Export Interval 3s → 0.5s (Michael's UI click in Sierra DLL Inputs In:2)
+🟡 #L2 Bridge fsevents watcher — polling → watchdog fsevents (Worker, 2-3h)
+🟡 #L3 Frontend WebSocket — REST poll → WS push (Worker, 4-6h)
+🟡 #L4 Bridge → Backend WS push — HTTPS per-cycle → persistent WS (Worker, 3-4h)
 
 ### Resolved (2026-05-10)
 ✅ Footprint VAP — DLL v9.2.0 has MaintainVolumeAtPriceData=0 but Bridge
@@ -296,8 +300,14 @@ DATA SOURCE HIERARCHY (when adding new features):
 ## §18 — DATA INTEGRITY PRINCIPLE
 
 See: .claude/DATA_INTEGRITY_PRINCIPLE.md (LOCKED)
+See: .claude/LATENCY_OPTIMIZATION_SPEC.md (LOCKED)
 Audit: scripts/data_integrity_audit.sh
 Rule: ANY 🔴 in audit → PHASE TRANSITION BLOCKED
+
+Phase transition latency gates:
+- Before SHADOW: E2E ≤ 1000ms (p95)
+- Before SIM:    E2E ≤ 500ms (p95), #L1 + #L2 resolved
+- Before LIVE:   E2E ≤ 300ms (p95), all #L1-#L4 resolved, 7-day clean SIM
 
 ## COMMUNICATION
 
