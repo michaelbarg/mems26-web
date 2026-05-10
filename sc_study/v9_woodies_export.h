@@ -23,6 +23,7 @@ inline std::vector<Woodies30MinBar> v9_build_30min_bars(
     SCStudyInterfaceRef sc, int max_bars)
 {
     std::vector<Woodies30MinBar> bars;
+    bars.reserve(max_bars + 1);
     int total_chart = sc.Index + 1;
     // Start from a 10-bar-aligned boundary
     int usable = total_chart - (total_chart % WOODIES_30MIN_PERIOD);
@@ -177,10 +178,9 @@ struct ZLRResult {
     int bars_since_extreme;
 };
 
-inline ZLRResult v9_detect_zlr(const std::vector<float>& cci_hist, int lookback)
+inline ZLRResult v9_detect_zlr(const float* cci_hist, int n, int lookback)
 {
     ZLRResult r = {false, "NONE", 0, 0};
-    int n = (int)cci_hist.size();
     if (n < lookback + 1) return r;
 
     float current = cci_hist[n - 1];
@@ -241,6 +241,7 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
 
     // Pre-compute CCI-14 history for ZLR detection
     std::vector<float> cci14_hist;
+    cci14_hist.reserve(n);
     for (int i = 0; i < n; i++) {
         cci14_hist.push_back(v9_calc_cci(bars, i, 14));
     }
@@ -272,9 +273,8 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         float predictor = v9_cci_predictor(cci14, cci14_prev);
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
 
-        // ZLR detection using history up to this bar
-        std::vector<float> cci_slice(cci14_hist.begin(), cci14_hist.begin() + bi + 1);
-        ZLRResult zlr = v9_detect_zlr(cci_slice, 12);
+        // ZLR detection using history up to this bar (no copy — pointer + count)
+        ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), bi + 1, 12);
 
         j << "{";
         json_long(j, "ts", bars[bi].timestamp, false);
@@ -313,7 +313,7 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         float czi       = v9_calc_chopzone(bars, ci, ema34);
         float predictor = v9_cci_predictor(cci14, cci14_prev);
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
-        ZLRResult zlr = v9_detect_zlr(cci14_hist, 12);
+        ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), (int)cci14_hist.size(), 12);
 
         j << ",\"current_bar\":{";
         json_long(j, "ts", bars[ci].timestamp, false);

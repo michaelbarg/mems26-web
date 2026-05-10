@@ -142,6 +142,7 @@ inline std::vector<TickReversalBar> v9_build_tick_reversal_bars(
     float reversal_amount = num_ticks * tick_size;
 
     if (sc.Index < 2 || tick_size <= 0) return bars;
+    bars.reserve(lookback_bars / 4);  // pre-alloc: ~1 reversal bar per 4 chart bars
 
     int start = v9_max_i(0, sc.Index - lookback_bars);
 
@@ -699,6 +700,7 @@ inline std::vector<Woodies30MinBar> v9_build_30min_bars(
     SCStudyInterfaceRef sc, int max_bars)
 {
     std::vector<Woodies30MinBar> bars;
+    bars.reserve(max_bars + 1);
     int total_chart = sc.Index + 1;
     // Start from a 10-bar-aligned boundary
     int usable = total_chart - (total_chart % WOODIES_30MIN_PERIOD);
@@ -853,10 +855,9 @@ struct ZLRResult {
     int bars_since_extreme;
 };
 
-inline ZLRResult v9_detect_zlr(const std::vector<float>& cci_hist, int lookback)
+inline ZLRResult v9_detect_zlr(const float* cci_hist, int n, int lookback)
 {
     ZLRResult r = {false, "NONE", 0, 0};
-    int n = (int)cci_hist.size();
     if (n < lookback + 1) return r;
 
     float current = cci_hist[n - 1];
@@ -917,6 +918,7 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
 
     // Pre-compute CCI-14 history for ZLR detection
     std::vector<float> cci14_hist;
+    cci14_hist.reserve(n);
     for (int i = 0; i < n; i++) {
         cci14_hist.push_back(v9_calc_cci(bars, i, 14));
     }
@@ -948,9 +950,8 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         float predictor = v9_cci_predictor(cci14, cci14_prev);
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
 
-        // ZLR detection using history up to this bar
-        std::vector<float> cci_slice(cci14_hist.begin(), cci14_hist.begin() + bi + 1);
-        ZLRResult zlr = v9_detect_zlr(cci_slice, 12);
+        // ZLR detection using history up to this bar (no copy — pointer + count)
+        ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), bi + 1, 12);
 
         j << "{";
         json_long(j, "ts", bars[bi].timestamp, false);
@@ -989,7 +990,7 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         float czi       = v9_calc_chopzone(bars, ci, ema34);
         float predictor = v9_cci_predictor(cci14, cci14_prev);
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
-        ZLRResult zlr = v9_detect_zlr(cci14_hist, 12);
+        ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), (int)cci14_hist.size(), 12);
 
         j << ",\"current_bar\":{";
         json_long(j, "ts", bars[ci].timestamp, false);
@@ -1113,6 +1114,20 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sum_v  += v;
     }
     VWAP[idx] = (sum_v > 0) ? sum_pv / sum_v : cp;
+
+    // ══ THROTTLE (EARLY — before heavy computation) ══════════
+    // CVD + VWAP subgraph writes above run every bar (required for
+    // accurate per-bar tracking). Everything below only runs every
+    // ExportIntervalSec seconds. This prevents millions of map/vector
+    // heap allocs during AutoLoop chart load (was causing 123 GB leak).
+    static time_t lastExport = 0;
+    time_t now_t = time(nullptr);
+    if ((now_t - lastExport) < ExportIntervalSec.GetInt()) return;
+    lastExport = now_t;
+
+    // ── Memory tracking (safety net) ─────────────────────────
+    size_t mem_est = 0;
+
     float vwap = VWAP[idx];
 
     // VWAP distance & side
@@ -1215,7 +1230,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // בודק את הנר הנוכחי ו-4 הנרות האחרונים לחוסר איזון
     float imb_ratio = ImbalanceRatio.GetFloat();
     struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
-    std::vector<ImbLevel> imbalances;
+    static std::vector<ImbLevel> imbalances;
+    imbalances.clear();  // reuses capacity — no heap alloc after first call
 
     // בדיקת imbalance בנרות אחרונים
     int imb_lookback = (idx >= 5) ? 5 : idx;
@@ -1301,12 +1317,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     else if(hh_count > 10) trend_str = "UP";
     else if(ll_count > 14) trend_str = "STRONG_DOWN";
     else if(ll_count > 10) trend_str = "DOWN";
-
-    // ── Throttle ─────────────────────────────────────────────
-    static time_t lastExport=0;
-    time_t now_t=time(nullptr);
-    if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
-    lastExport=now_t;
 
     // ── JSON ──────────────────────────────────────────────────
     std::ostringstream j;
@@ -1438,6 +1448,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     {
         int fp_start = v9_max_i(0, sc.Index - 30);
         std::vector<FootprintBar> fp_bars;
+        fp_bars.reserve(32);  // pre-alloc: max 31 bars
         for (int i = fp_start; i <= sc.Index; i++)
             fp_bars.push_back(v9_build_footprint_bar(sc, i, v9_imb_threshold));
 
@@ -1460,4 +1471,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     // ── Export 8: Woodies CCI 30-min ──
     v9_write_json(v9dir, "woodies_30min.json", v9_woodies_30min_to_json(sc, V9WoodiesHistory.GetInt()));
+
+    // ── Memory safety net ────────────────────────────────────
+    // Approximate bytes allocated this export cycle.
+    // Maps: ~80 bytes per node.  Vectors: element size * capacity.
+    mem_est += pvm.size() * 80;        // Session POC map nodes
+    mem_est += tpo_map.size() * 56;    // TPO map nodes
+    mem_est += imbalances.capacity() * sizeof(ImbLevel);
+    // V9 exports (vectors inside functions) are already destroyed here,
+    // but their peak was bounded by reserve() + throttle.
+    static size_t peak_mem = 0;
+    if (mem_est > peak_mem) peak_mem = mem_est;
+    if (mem_est > 10 * 1024 * 1024) {
+        sc.AddMessageToLog("MEMS26 WARNING: export alloc > 10 MB! Check for memory leak.", 1);
+    }
 }

@@ -21,6 +21,7 @@ inline std::vector<TickReversalBar> v9_build_tick_reversal_bars(
     float reversal_amount = num_ticks * tick_size;
 
     if (sc.Index < 2 || tick_size <= 0) return bars;
+    bars.reserve(lookback_bars / 4);  // pre-alloc: ~1 reversal bar per 4 chart bars
 
     int start = v9_max_i(0, sc.Index - lookback_bars);
 

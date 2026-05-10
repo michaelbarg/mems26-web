@@ -104,6 +104,17 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sum_v  += v;
     }
     VWAP[idx] = (sum_v > 0) ? sum_pv / sum_v : cp;
+
+    // ══ THROTTLE (EARLY — before heavy computation) ══════════
+    // CVD + VWAP subgraph writes above run every bar (required for
+    // accurate per-bar tracking). Everything below only runs every
+    // ExportIntervalSec seconds. This prevents millions of map/vector
+    // heap allocs during AutoLoop chart load (was causing 123 GB leak).
+    static time_t lastExport = 0;
+    time_t now_t = time(nullptr);
+    if ((now_t - lastExport) < ExportIntervalSec.GetInt()) return;
+    lastExport = now_t;
+
     float vwap = VWAP[idx];
 
     // VWAP distance & side
@@ -204,7 +215,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // בודק את הנר הנוכחי ו-4 הנרות האחרונים לחוסר איזון
     float imb_ratio = ImbalanceRatio.GetFloat();
     struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
-    std::vector<ImbLevel> imbalances;
+    static std::vector<ImbLevel> imbalances;
+    imbalances.clear();  // reuses capacity — no heap alloc after first call
 
     // בדיקת imbalance בנרות אחרונים
     int imb_lookback = (idx >= 5) ? 5 : idx;
@@ -290,12 +302,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     else if(hh_count > 10) trend_str = "UP";
     else if(ll_count > 14) trend_str = "STRONG_DOWN";
     else if(ll_count > 10) trend_str = "DOWN";
-
-    // ── Throttle ─────────────────────────────────────────────
-    static time_t lastExport=0;
-    time_t now_t=time(nullptr);
-    if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
-    lastExport=now_t;
 
     // ── JSON ──────────────────────────────────────────────────
     std::ostringstream j;
