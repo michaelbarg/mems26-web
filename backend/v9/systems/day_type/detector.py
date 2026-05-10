@@ -10,15 +10,22 @@ from .schemas import (
 
 # ── IB Width Classification ─────────────────────────────────────────────
 
-IB_NARROW_THRESHOLD = 15.0   # points
-IB_WIDE_THRESHOLD = 20.0     # points
 
+def classify_ib_width(
+    ib_range_pt: float,
+    narrow_max: float = 15.0,
+    medium_max: float = 25.0,
+) -> IBWidth:
+    """Classify IB range into NARROW / MEDIUM / WIDE.
 
-def classify_ib_width(ib_range_pt: float) -> IBWidth:
-    """Classify IB range into NARROW / MEDIUM / WIDE."""
-    if ib_range_pt < IB_NARROW_THRESHOLD:
+    Args:
+        ib_range_pt: IB range in points
+        narrow_max: max width for NARROW (default 15.0 per spec)
+        medium_max: max width for MEDIUM (default 25.0 per spec)
+    """
+    if ib_range_pt < narrow_max:
         return IBWidth.NARROW
-    elif ib_range_pt <= IB_WIDE_THRESHOLD:
+    elif ib_range_pt <= medium_max:
         return IBWidth.MEDIUM
     else:
         return IBWidth.WIDE

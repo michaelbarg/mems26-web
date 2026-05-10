@@ -77,6 +77,17 @@ class FailedExtensionType(str, Enum):
     DOUBLE_FAILED = "DOUBLE_FAILED"
 
 
+# ── Config (spec §S2) ───────────────────────────────────────────────────
+
+class DayTypeConfig(BaseModel):
+    """Configurable parameters per spec §S2."""
+    ib_period_min: int = Field(default=60, ge=30, le=90, description="IB period in minutes (RTH)")
+    ib_narrow_max_pt: float = Field(default=15.0, ge=10.0, le=20.0, description="Max width for NARROW IB")
+    ib_medium_max_pt: float = Field(default=25.0, ge=18.0, le=30.0, description="Max width for MEDIUM IB")
+    confidence_threshold: float = Field(default=0.70, ge=0.5, le=0.95, description="Min confidence to lock")
+    min_session_min_for_lock: int = Field(default=210, ge=120, le=300, description="Min minutes before forced lock (210=13:00 ET)")
+
+
 # ── Input ────────────────────────────────────────────────────────────────
 
 class BarInput(BaseModel):

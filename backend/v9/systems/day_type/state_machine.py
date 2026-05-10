@@ -7,7 +7,7 @@ from .schemas import (
     BarInput, DayType, OpeningType, IBWidth, Stage, LockState,
     Behavior, RangeCategory, FailedExtensionType,
     PreOpenContext, OpeningDetection, IBClassification,
-    VoteRecord, PlaybookOutput, DayTypeState,
+    VoteRecord, PlaybookOutput, DayTypeState, DayTypeConfig,
 )
 from .detector import (
     classify_ib_width, detect_opening_type, detect_behavior,
@@ -18,25 +18,26 @@ from .detector import (
 # ── Decision Matrix (B1) ────────────────────────────────────────────────
 # Key: (OpeningType, IBWidth) → DayType
 DECISION_MATRIX: Dict[tuple, DayType] = {
-    (OpeningType.OPEN_DRIVE, IBWidth.NARROW):   DayType.Trend_DD,
-    (OpeningType.OPEN_DRIVE, IBWidth.MEDIUM):   DayType.Trend_Normal,
-    (OpeningType.OPEN_DRIVE, IBWidth.WIDE):     DayType.Trend_Normal,
+    # V2 spec: highest-probability day type per Opening Type × IB Width
+    (OpeningType.OPEN_DRIVE, IBWidth.NARROW):   DayType.Trend_Normal,   # 60% per spec
+    (OpeningType.OPEN_DRIVE, IBWidth.MEDIUM):   DayType.Trend_Normal,   # 70%
+    (OpeningType.OPEN_DRIVE, IBWidth.WIDE):     DayType.Trend_Normal,   # 50%
 
-    (OpeningType.OPEN_TEST_DRIVE, IBWidth.NARROW):  DayType.Variation,
-    (OpeningType.OPEN_TEST_DRIVE, IBWidth.MEDIUM):  DayType.Trend_Normal,
-    (OpeningType.OPEN_TEST_DRIVE, IBWidth.WIDE):    DayType.Variation,
+    (OpeningType.OPEN_TEST_DRIVE, IBWidth.NARROW):  DayType.Trend_DD,   # 40% per spec
+    (OpeningType.OPEN_TEST_DRIVE, IBWidth.MEDIUM):  DayType.Trend_Normal,  # 50%
+    (OpeningType.OPEN_TEST_DRIVE, IBWidth.WIDE):    DayType.Variation,  # 50%
 
-    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.NARROW):  DayType.Variation,
-    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.MEDIUM):  DayType.Variation,
-    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.WIDE):    DayType.Normal,
+    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.NARROW):  DayType.Variation,  # 40%
+    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.MEDIUM):  DayType.Variation,  # 50%
+    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.WIDE):    DayType.Normal,     # 50%
 
-    (OpeningType.OPEN_AUCTION_IN, IBWidth.NARROW):  DayType.Nontrend,
-    (OpeningType.OPEN_AUCTION_IN, IBWidth.MEDIUM):  DayType.Nontrend,
-    (OpeningType.OPEN_AUCTION_IN, IBWidth.WIDE):    DayType.Normal,
+    (OpeningType.OPEN_AUCTION_IN, IBWidth.NARROW):  DayType.Nontrend,   # 50%
+    (OpeningType.OPEN_AUCTION_IN, IBWidth.MEDIUM):  DayType.Normal,     # 40% per spec
+    (OpeningType.OPEN_AUCTION_IN, IBWidth.WIDE):    DayType.Normal,     # 50%
 
-    (OpeningType.OPEN_AUCTION_OUT, IBWidth.NARROW):  DayType.Trend_DD,
-    (OpeningType.OPEN_AUCTION_OUT, IBWidth.MEDIUM):  DayType.Trend_DD,
-    (OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE):    DayType.Variation,
+    (OpeningType.OPEN_AUCTION_OUT, IBWidth.NARROW):  DayType.Trend_DD,     # 50%
+    (OpeningType.OPEN_AUCTION_OUT, IBWidth.MEDIUM):  DayType.Trend_DD,     # 40%
+    (OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE):    DayType.Trend_Normal, # 40% per spec
 }
 
 # ── Playbook Templates (C3) ─────────────────────────────────────────────
@@ -129,9 +130,8 @@ class DayTypeStateMachine:
         C3: Playbook Selection
     """
 
-    IB_DURATION_MIN = 60  # IB = first 60 minutes (09:30-10:30)
-
-    def __init__(self):
+    def __init__(self, config: Optional[DayTypeConfig] = None):
+        self.config = config or DayTypeConfig()
         self.stage: Stage = Stage.A1
         self.day_type: DayType = DayType.UNKNOWN
         self.confidence: float = 0.0
@@ -268,8 +268,8 @@ class DayTypeStateMachine:
         else:
             self.ib_low = min(self.ib_low, bar.low)
 
-        # IB closes at 60 minutes (session_min >= 60)
-        if bar.session_min >= self.IB_DURATION_MIN:
+        # IB closes at configured duration (default 60 min = 09:30-10:30)
+        if bar.session_min >= self.config.ib_period_min:
             self.stage = Stage.A4
 
     def _stage_a4(self, bar: BarInput):
@@ -278,7 +278,11 @@ class DayTypeStateMachine:
             self.ib_low = bar.low
 
         ib_range = self.ib_high - self.ib_low
-        ib_width = classify_ib_width(ib_range)
+        ib_width = classify_ib_width(
+            ib_range,
+            narrow_max=self.config.ib_narrow_max_pt,
+            medium_max=self.config.ib_medium_max_pt,
+        )
 
         self.ib_class = IBClassification(
             ib_high=self.ib_high,
@@ -446,7 +450,7 @@ class DayTypeStateMachine:
         """C1: Lock criteria check.
 
         Lock when:
-        - confidence >= 0.85, OR
+        - confidence >= 0.70 (per spec §S2 confidence_threshold), OR
         - same vote 2x consecutive, OR
         - session_min >= 210 (13:00 ET)
         """
@@ -465,17 +469,19 @@ class DayTypeStateMachine:
                     break
         self.consecutive_same_vote = consec
 
+        conf_threshold = self.config.confidence_threshold
+
         should_lock = False
 
-        if self.confidence >= 0.85:
+        if self.confidence >= conf_threshold:
             should_lock = True
         elif consec >= 2:
             should_lock = True
-        elif bar.session_min >= 210:  # 13:00 ET = 3.5 hrs after open
+        elif bar.session_min >= self.config.min_session_min_for_lock:
             should_lock = True
 
         if should_lock:
-            if self.confidence >= 0.85:
+            if self.confidence >= conf_threshold:
                 self.lock_state = LockState.LOCKED
             else:
                 self.lock_state = LockState.LOCKED_LOW_CONF

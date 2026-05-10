@@ -78,10 +78,10 @@ class TestIBWidthClassification:
         assert classify_ib_width(15.0) == IBWidth.MEDIUM
 
     def test_medium_upper(self):
-        assert classify_ib_width(20.0) == IBWidth.MEDIUM
+        assert classify_ib_width(25.0) == IBWidth.MEDIUM
 
     def test_wide(self):
-        assert classify_ib_width(20.1) == IBWidth.WIDE
+        assert classify_ib_width(25.1) == IBWidth.WIDE
 
     def test_very_wide(self):
         assert classify_ib_width(50.0) == IBWidth.WIDE
@@ -344,7 +344,8 @@ class TestDecisionMatrix:
                 assert (ot, w) in DECISION_MATRIX, f"Missing: {ot}, {w}"
 
     def test_open_drive_narrow(self):
-        assert DECISION_MATRIX[(OpeningType.OPEN_DRIVE, IBWidth.NARROW)] == DayType.Trend_DD
+        # V2 spec: Trend_Normal 60% (highest probability)
+        assert DECISION_MATRIX[(OpeningType.OPEN_DRIVE, IBWidth.NARROW)] == DayType.Trend_Normal
 
     def test_open_drive_medium(self):
         assert DECISION_MATRIX[(OpeningType.OPEN_DRIVE, IBWidth.MEDIUM)] == DayType.Trend_Normal
@@ -353,7 +354,8 @@ class TestDecisionMatrix:
         assert DECISION_MATRIX[(OpeningType.OPEN_DRIVE, IBWidth.WIDE)] == DayType.Trend_Normal
 
     def test_test_drive_narrow(self):
-        assert DECISION_MATRIX[(OpeningType.OPEN_TEST_DRIVE, IBWidth.NARROW)] == DayType.Variation
+        # V2 spec: Trend_DD 40% (highest probability)
+        assert DECISION_MATRIX[(OpeningType.OPEN_TEST_DRIVE, IBWidth.NARROW)] == DayType.Trend_DD
 
     def test_test_drive_medium(self):
         assert DECISION_MATRIX[(OpeningType.OPEN_TEST_DRIVE, IBWidth.MEDIUM)] == DayType.Trend_Normal
@@ -371,7 +373,8 @@ class TestDecisionMatrix:
         assert DECISION_MATRIX[(OpeningType.OPEN_AUCTION_OUT, IBWidth.NARROW)] == DayType.Trend_DD
 
     def test_auction_out_wide(self):
-        assert DECISION_MATRIX[(OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE)] == DayType.Variation
+        # V2 spec: Trend_Normal 40% (highest probability)
+        assert DECISION_MATRIX[(OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE)] == DayType.Trend_Normal
 
 
 # ── State Machine Stages ─────────────────────────────────────────────────
@@ -577,8 +580,9 @@ class TestFullFlowScenarios:
             pd_high=4520, pd_low=4490, pd_close=4500,
         ))
         # Opening should be OPEN_DRIVE, IB should be NARROW
+        # V2 spec: OPEN_DRIVE + NARROW → Trend_Normal (60%)
         if sm.opening and sm.opening.opening_type == OpeningType.OPEN_DRIVE:
-            assert sm.day_type == DayType.Trend_DD
+            assert sm.day_type == DayType.Trend_Normal
 
     def test_auction_in_narrow_nontrend(self):
         """Auction (in range) + Narrow IB -> Nontrend."""
