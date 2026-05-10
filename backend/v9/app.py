@@ -1,19 +1,26 @@
-"""MEMS26 V9 FastAPI application."""
+"""MEMS26 V9 FastAPI application.
 
-from fastapi import FastAPI
+Can be run standalone OR mounted into the unified backend (backend.main).
+"""
+
+from fastapi import APIRouter, FastAPI
 from backend.v9.api.v9 import bars, signals, markers, trades, configs, websocket
-from backend.v9.services.trade_manager import TradeManager  # W11
 
-app = FastAPI(title="MEMS26 V9", version="9.0.0")
+# ── Composite router (used by backend.main for mounting) ──
+v9_router = APIRouter()
+v9_router.include_router(bars.router)
+v9_router.include_router(signals.router)
+v9_router.include_router(markers.router)
+v9_router.include_router(trades.router)
+v9_router.include_router(configs.router)
+v9_router.include_router(websocket.router)
 
-app.include_router(bars.router)
-app.include_router(signals.router)
-app.include_router(markers.router)
-app.include_router(trades.router)
-app.include_router(configs.router)
-app.include_router(websocket.router)
 
-
-@app.get("/api/v9/health")
-def health():
+@v9_router.get("/api/v9/health")
+def v9_health():
     return {"status": "ok", "version": "v9.0.0"}
+
+
+# ── Standalone app (python -m backend.v9.app) ──
+app = FastAPI(title="MEMS26 V9", version="9.0.0")
+app.include_router(v9_router)
