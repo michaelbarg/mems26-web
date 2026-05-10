@@ -15,6 +15,7 @@ import { RightSideLabels } from './RightSideLabels';
 import { TradeMarkerOverlay } from './TradeMarkerOverlay';
 import { VegasEMAs } from './VegasEMAs';
 import { SYSTEM_COLORS, type SystemId } from '../../types';
+import { registerMainChart, unregisterMainChart } from '../../stores/chartSyncStore';
 
 export function ChartArea() {
   const chartContainerRef = useRef<HTMLDivElement>(null);
@@ -70,6 +71,7 @@ export function ChartArea() {
 
     chartRef.current = chart;
     candleSeriesRef.current = candleSeries;
+    registerMainChart(chart);
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -81,6 +83,7 @@ export function ChartArea() {
 
     return () => {
       resizeObserver.disconnect();
+      unregisterMainChart();
       chart.remove();
       chartRef.current = null;
       candleSeriesRef.current = null;

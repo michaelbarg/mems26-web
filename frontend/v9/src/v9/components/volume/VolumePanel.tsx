@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { createChart, HistogramSeries, IChartApi, ISeriesApi, Time } from 'lightweight-charts';
 import { useMarketStore } from '../../stores/marketStore';
 import { useLayoutStore } from '../../stores/layoutStore';
+import { registerVolumeChart, unregisterVolumeChart } from '../../stores/chartSyncStore';
 
 export function VolumePanel() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,7 +31,8 @@ export function VolumePanel() {
       timeScale: {
         borderColor: '#30363d',
         timeVisible: true,
-        visible: false,
+        secondsVisible: false,
+        visible: true,
       },
       crosshair: { mode: 0 },
     });
@@ -51,6 +53,7 @@ export function VolumePanel() {
     chartRef.current = chart;
     volumeSeriesRef.current = volumeSeries;
     deltaSeriesRef.current = deltaSeries;
+    registerVolumeChart(chart);
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -59,7 +62,7 @@ export function VolumePanel() {
     });
     resizeObserver.observe(containerRef.current);
 
-    return () => { resizeObserver.disconnect(); chart.remove(); };
+    return () => { resizeObserver.disconnect(); unregisterVolumeChart(); chart.remove(); };
   }, []);
 
   useEffect(() => {
