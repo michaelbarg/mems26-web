@@ -43,6 +43,7 @@ class BaseV9Stream:
         self._last_export_ts: Optional[float] = None
         self._last_heartbeat: float = 0
         self._consecutive_errors: int = 0
+        self.last_update_ts: float = 0  # public: last successful data read
 
     @property
     def filepath(self) -> Path:
@@ -116,6 +117,7 @@ class BaseV9Stream:
         self._last_mtime = mtime
         self._last_export_ts = export_ts
         self._consecutive_errors = 0
+        self.last_update_ts = time.time()
 
         logger.info(f"[{self.name}] New data — export_ts={export_ts}")
         self._push_redis(data)

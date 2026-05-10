@@ -4,6 +4,7 @@
 import logging
 import signal
 import sys
+import time
 import threading
 
 from v9_streams import ALL_STREAMS
@@ -45,8 +46,34 @@ def main():
         t.start()
         logger.info("Started thread: %s", stream.name)
 
+    # Heartbeat thread — logs alive status every 60s
+    stop_event = threading.Event()
+
+    def heartbeat_loop():
+        while not stop_event.is_set():
+            stop_event.wait(60)
+            if stop_event.is_set():
+                break
+            now = time.time()
+            active = sum(1 for s in instances if s.last_update_ts > 0)
+            newest = max((s.last_update_ts for s in instances), default=0)
+            age = int(now - newest) if newest > 0 else -1
+            if age < 0:
+                logger.info("[heartbeat] alive — no data received yet, streams=%d/%d",
+                            active, len(instances))
+            elif age > 300:
+                logger.info("[heartbeat] alive — market likely closed (data %ds old), "
+                            "streams=%d/%d", age, active, len(instances))
+            else:
+                logger.info("[heartbeat] alive — newest_data_age=%ds streams=%d/%d",
+                            age, active, len(instances))
+
+    hb_thread = threading.Thread(target=heartbeat_loop, name="heartbeat", daemon=True)
+    hb_thread.start()
+
     def shutdown(sig, frame):
         logger.info("Shutdown signal received, stopping all streams...")
+        stop_event.set()
         for stream in instances:
             stream.stop()
         for t in threads:
