@@ -1,10 +1,14 @@
 'use client';
+import { useMemo } from 'react';
 import { SystemPanelWrapper } from './SystemPanelWrapper';
 import { useSystemStore } from '../../stores/systemStore';
 
 export function System2Panel() {
-  const signals = useSystemStore((s) => s.signals.filter((sg) => sg.system_id === 2));
-  const recent = signals.slice(-3).reverse();
+  const allSignals = useSystemStore((s) => s.signals);
+  const recent = useMemo(
+    () => allSignals.filter((sg) => sg.system_id === 2).slice(-3).reverse(),
+    [allSignals],
+  );
 
   return (
     <SystemPanelWrapper systemId={2}>

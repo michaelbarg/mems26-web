@@ -1,9 +1,11 @@
 'use client';
+import { useMemo } from 'react';
 import { SystemPanelWrapper } from './SystemPanelWrapper';
 import { useSystemStore } from '../../stores/systemStore';
 
 export function System6Panel() {
-  const signals = useSystemStore((s) => s.signals.filter((sg) => sg.system_id === 6));
+  const allSignals = useSystemStore((s) => s.signals);
+  const signals = useMemo(() => allSignals.filter((sg) => sg.system_id === 6), [allSignals]);
   const latest = signals[signals.length - 1];
 
   const now = new Date();
