@@ -21,6 +21,7 @@ from backend.v9.services.trade_manager.state_machine import (
     TradeStateMachine,
 )
 from backend.v9.services.trade_manager.events import TradeEventEmitter
+from backend.v9.services.snapshot_service.snapshot import CrossSystemSnapshotService
 
 logger = logging.getLogger(__name__)
 
@@ -46,9 +47,11 @@ class TradeManager:
         self,
         db: Session,
         event_emitter: Optional[TradeEventEmitter] = None,
+        snapshot_service: Optional[CrossSystemSnapshotService] = None,
     ):
         self._db = db
         self._emitter = event_emitter or TradeEventEmitter()
+        self._snapshot = snapshot_service
         # Active state machines keyed by trade_id — bounded by active trades
         self._machines: Dict[int, TradeStateMachine] = {}
 
@@ -73,6 +76,14 @@ class TradeManager:
         if direction not in ("LONG", "SHORT"):
             raise ValueError(f"Invalid direction: {direction}")
 
+        # Capture cross-system snapshot at entry (per spec Section 2.4)
+        cross_ctx = setup.get("cross_context")
+        if self._snapshot is not None:
+            snapshot = self._snapshot.capture(
+                "entry", firing_system_id=firing_system,
+            )
+            cross_ctx = [snapshot]
+
         trade = V9Trade(
             mode=mode,
             firing_system=firing_system,
@@ -84,7 +95,7 @@ class TradeManager:
             t1=setup["t1"],
             t2=setup["t2"],
             t3=setup["t3"],
-            cross_context=setup.get("cross_context"),
+            cross_context=cross_ctx,
         )
 
         self._db.add(trade)
