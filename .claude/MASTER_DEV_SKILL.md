@@ -306,6 +306,35 @@ Non-blocking for SHADOW. All 199 Phase 3 service tests pass clean.
    Report: .claude/R3_DRIFT_REPORT_2026-05-10.md
    146 compliance tests added, all passing. tpo (13.3%) + killzone (7.7%) already OK.
 
+### V-Audit Findings (2026-05-10, V1-V7 cycle)
+
+Cross-cutting architectural issues found across 6 audits + R3 drift report:
+- `dir` vs `direction` naming inconsistency (V1/V3/V4/V5) — 4 layers affected
+- Redis dual-path: Bridge uses Upstash REST, ws_manager expects redis:// (V4/V6)
+- WebSocket pipeline 0% frontend connectivity (V3/V4) — auth token never sent
+- 5min.json + tpo.json have Bridge streams but no DLL data source (V1/V4/V5)
+- DLL v9.2.0 (with memory safety caps) not deployed, disk has v9.1.2 (V5)
+
+Full report: /tmp/v_audits/v7/REPORT.md
+
+### Prioritized Backlog (V-Audit, ranked by priority score)
+
+**SHADOW blockers (Phase A — 3 Workers parallel, ~6-8h):**
+🔴 #VA-1 Fill chart_5min 12 pattern stubs (3h) — drift 46.9% -> ~10%
+🔴 #VA-2 Fill woodies 8 pattern stubs (3h) — drift 41.7% -> ~10%
+🔴 #VA-3 Fill tick_reversal patterns+signals (3h) — drift 22.2% -> ~10%
+
+**SIM blockers (Phase B — 1 Worker, ~8h):**
+🟠 #VA-4 Fix WS auth token — append ?token= in frontend websocket.ts (1h)
+🟠 #VA-5 Add publish_event() to 5 POST routes (footprint/vol_profile/imbalance/stacked/delta) (2h)
+🟠 #VA-6 Unify Redis protocol — Upstash REST vs redis:// pub/sub (3h)
+🟠 #VA-7 Wire 3 missing WS channels (woodies, tpo, signals) (2h)
+🟠 #VA-10 Fix dir -> direction naming in DLL+WS+Bridge (1h)
+🟠 #VA-9 Implement 5min.json + tpo.json data sources in Bridge from SCID (4h)
+
+**LIVE blockers (Phase C — ~2h + 7-day soak):**
+🟡 #VA-8 Deploy DLL v9.2.0 to replace v9.1.2 on disk (1h)
+
 ### Backlog (Phase 3.5)
 🟡 W9 Stage F EOD — deferred, non-blocking for SHADOW
 🟡 W9 Naked POC lookback — deferred
