@@ -12,15 +12,15 @@ export function System1Panel() {
         <div className="space-y-1 mt-1">
           <div style={{ color: 'var(--text-secondary)' }}>
             <span className="opacity-60">Type: </span>
-            <span>{(latest.metadata_json?.day_type as string) || '\u2014'}</span>
+            <span>{(latest.payload?.day_type as string) || '\u2014'}</span>
           </div>
           <div style={{ color: 'var(--text-secondary)' }}>
             <span className="opacity-60">IB Range: </span>
-            <span>{(latest.metadata_json?.ib_range as string) || '\u2014'}</span>
+            <span>{(latest.payload?.ib_range as string) || '\u2014'}</span>
           </div>
           <div style={{ color: 'var(--text-secondary)' }}>
             <span className="opacity-60">Mode: </span>
-            <span>{latest.mode}</span>
+            <span>{(latest.payload?.mode as string) || '\u2014'}</span>
           </div>
         </div>
       )}

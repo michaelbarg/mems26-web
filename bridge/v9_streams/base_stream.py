@@ -16,7 +16,12 @@ EXPORT_DIR = os.getenv("V9_EXPORT_DIR", "/Users/michael/SierraChart_Data/v9_expo
 REDIS_URL = os.getenv("UPSTASH_REDIS_REST_URL", "")
 REDIS_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
 CLOUD_URL = os.getenv("CLOUD_URL", "https://mems26-web.onrender.com")
-BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
+BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "")
+if not BRIDGE_TOKEN:
+    raise RuntimeError(
+        "BRIDGE_TOKEN env var is required but not set. "
+        "Set it in .env or your hosting provider's environment variables."
+    )
 
 POLL_INTERVAL = float(os.getenv("V9_POLL_INTERVAL", "2.0"))
 MAX_RETRIES = 3
@@ -140,11 +145,31 @@ class BaseV9Stream:
 
     def _redis_lpush(self, key: str, value: str):
         self._redis_cmd(["LPUSH", key, value])
-        self._redis_cmd(["LTRIM", key, "0", "99"])
+        # LTRIM to cap list at 100 items — log failures explicitly
+        resp = self._redis_cmd(["LTRIM", key, "0", "99"])
+        if resp is not None and "error" in str(resp).lower():
+            logger.error(f"[{self.name}] LTRIM failed for {key}: {resp}")
+        # Periodic list-length check — alert if unbounded growth
+        llen_resp = self._redis_cmd(["LLEN", key])
+        if llen_resp is not None:
+            try:
+                length = int(llen_resp) if isinstance(llen_resp, (int, str)) else 0
+                if length > 10_000:
+                    logger.error(
+                        f"[{self.name}] ALERT: Redis list {key} has {length} items "
+                        f"(>10K) — unbounded growth detected, LTRIM may be failing"
+                    )
+                elif length > 200:
+                    logger.warning(
+                        f"[{self.name}] Redis list {key} has {length} items "
+                        f"(expected <=100) — LTRIM may be failing"
+                    )
+            except (ValueError, TypeError):
+                pass
 
     def _redis_cmd(self, args: list):
         if not REDIS_URL or not REDIS_TOKEN:
-            return
+            return None
         try:
             body = json.dumps(args).encode()
             req = urllib.request.Request(
@@ -156,10 +181,12 @@ class BaseV9Stream:
                 },
                 method="POST",
             )
-            with urllib.request.urlopen(req, timeout=10):
-                pass
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                result = json.loads(resp.read().decode())
+                return result.get("result")
         except urllib.error.URLError as e:
             logger.warning(f"[{self.name}] Redis cmd {args[0]} error: {e}")
+            return None
 
     def _push_api(self, data: dict):
         url = f"{CLOUD_URL}{self.api_path}"

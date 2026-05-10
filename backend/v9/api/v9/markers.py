@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from backend.v9.db.session import get_db
 from backend.v9.db.models import V9SystemMarker
 from backend.v9.api.v9.auth import verify_bridge_token
+from backend.v9.api.v9.ws_manager import publish_event, CHANNEL_MARKERS
 
 router = APIRouter(prefix="/api/v9/markers", tags=["v9-markers"])
 
@@ -55,6 +56,9 @@ def post_markers(
         db.add(row)
         created += 1
     db.commit()
+    system_ids = set(m.system_id for m in batch.markers)
+    for sid in system_ids:
+        publish_event(CHANNEL_MARKERS.format(system_id=sid), {"count": created})
     return {"ok": True, "inserted": created}
 
 

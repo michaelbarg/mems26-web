@@ -24,14 +24,14 @@ export function System6Panel() {
         </div>
         <div>
           <span className="opacity-60">Gate: </span>
-          <span style={{ color: latest?.metadata_json?.gate_open ? 'var(--green)' : 'var(--red)' }}>
-            {latest?.metadata_json?.gate_open ? 'OPEN' : 'CLOSED'}
+          <span style={{ color: latest?.payload?.gate_open ? 'var(--green)' : 'var(--red)' }}>
+            {latest?.payload?.gate_open ? 'OPEN' : 'CLOSED'}
           </span>
         </div>
         {latest && (
           <div>
             <span className="opacity-60">Volume: </span>
-            <span>{(latest.metadata_json?.session_volume as string) || '\u2014'}</span>
+            <span>{(latest.payload?.session_volume as string) || '\u2014'}</span>
           </div>
         )}
       </div>

@@ -50,12 +50,12 @@ function calculateEMA(bars: any[], period: number): LineData[] {
   if (bars.length === 0) return [];
   const k = 2 / (period + 1);
   const result: LineData[] = [];
-  let ema = bars[0].close;
+  let ema = bars[0].c;
 
   for (const bar of bars) {
-    ema = bar.close * k + ema * (1 - k);
+    ema = bar.c * k + ema * (1 - k);
     result.push({
-      time: (new Date(bar.timestamp).getTime() / 1000) as Time,
+      time: (new Date(bar.ts).getTime() / 1000) as Time,
       value: ema,
     });
   }

@@ -2,6 +2,7 @@
 
 from .bars_5min import V9Bar5Min
 from .bars_tick_reversal import V9BarTickReversal
+from .bars_footprint import V9BarFootprint
 from .bars_woodies import V9Bar30MinWoodies
 from .tpo_bars import V9TpoBar
 from .system_signals import V9SystemSignal
@@ -15,6 +16,7 @@ from .account_status import V9AccountStatus
 __all__ = [
     "V9Bar5Min",
     "V9BarTickReversal",
+    "V9BarFootprint",
     "V9Bar30MinWoodies",
     "V9TpoBar",
     "V9SystemSignal",

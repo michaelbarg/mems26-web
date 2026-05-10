@@ -50,9 +50,9 @@ export function TopBar() {
         {lastBar && (
           <>
             <span className="text-lg font-mono font-bold" style={{
-              color: lastBar.close >= lastBar.open ? 'var(--green)' : 'var(--red)',
+              color: lastBar.c >= lastBar.o ? 'var(--green)' : 'var(--red)',
             }}>
-              {lastBar.close.toFixed(2)}
+              {lastBar.c.toFixed(2)}
             </span>
             <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>MES</span>
           </>

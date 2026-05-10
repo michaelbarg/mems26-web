@@ -17,11 +17,9 @@ export function TradesTable() {
           <th className="text-left px-3 py-2 font-medium">Dir</th>
           <th className="text-right px-3 py-2 font-medium">Entry</th>
           <th className="text-right px-3 py-2 font-medium">Exit</th>
-          <th className="text-right px-3 py-2 font-medium">Ticks</th>
           <th className="text-right px-3 py-2 font-medium">P&L</th>
+          <th className="text-right px-3 py-2 font-medium">R</th>
           <th className="text-left px-3 py-2 font-medium">Outcome</th>
-          <th className="text-left px-3 py-2 font-medium">Pattern</th>
-          <th className="text-right px-3 py-2 font-medium">Quality</th>
         </tr>
       </thead>
       <tbody>
@@ -33,34 +31,30 @@ export function TradesTable() {
             onClick={() => setSelectedTradeId(t.id)}
           >
             <td className="px-3 py-1.5" style={{ color: 'var(--text-secondary)' }}>
-              {new Date(t.entry_time).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              {t.entry_ts ? new Date(t.entry_ts).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '\u2014'}
             </td>
             <td className="px-3 py-1.5">
-              <span style={{ color: SYSTEM_COLORS[t.system_id as SystemId] }}>
-                S{t.system_id} {SYSTEM_NAMES[t.system_id as SystemId]}
+              <span style={{ color: SYSTEM_COLORS[(t.system as SystemId) || 1] }}>
+                S{t.system} {SYSTEM_NAMES[(t.system as SystemId) || 1]}
               </span>
             </td>
             <td className="px-3 py-1.5" style={{ color: 'var(--text-muted)' }}>{t.mode}</td>
             <td className="px-3 py-1.5">
               <span style={{ color: t.direction === 'LONG' ? 'var(--green)' : 'var(--red)' }}>{t.direction}</span>
             </td>
-            <td className="px-3 py-1.5 text-right font-mono">{t.entry_price.toFixed(2)}</td>
+            <td className="px-3 py-1.5 text-right font-mono">{t.entry_price?.toFixed(2) ?? '\u2014'}</td>
             <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
-              {t.exit_price?.toFixed(2) || '\u2014'}
+              {t.exit_price?.toFixed(2) ?? '\u2014'}
             </td>
             <td className="px-3 py-1.5 text-right font-mono" style={{
-              color: t.pnl_ticks !== null
-                ? t.pnl_ticks > 0 ? 'var(--green)' : t.pnl_ticks < 0 ? 'var(--red)' : 'var(--text-secondary)'
+              color: t.pnl_usd !== null
+                ? (t.pnl_usd ?? 0) > 0 ? 'var(--green)' : (t.pnl_usd ?? 0) < 0 ? 'var(--red)' : 'var(--text-secondary)'
                 : 'var(--text-muted)',
             }}>
-              {t.pnl_ticks !== null ? (t.pnl_ticks > 0 ? '+' : '') + t.pnl_ticks : '\u2014'}
+              {t.pnl_usd != null ? '$' + t.pnl_usd.toFixed(0) : '\u2014'}
             </td>
-            <td className="px-3 py-1.5 text-right font-mono" style={{
-              color: t.pnl_dollars !== null
-                ? t.pnl_dollars > 0 ? 'var(--green)' : t.pnl_dollars < 0 ? 'var(--red)' : 'var(--text-secondary)'
-                : 'var(--text-muted)',
-            }}>
-              {t.pnl_dollars !== null ? '$' + t.pnl_dollars.toFixed(0) : '\u2014'}
+            <td className="px-3 py-1.5 text-right font-mono" style={{ color: 'var(--text-secondary)' }}>
+              {t.pnl_r != null ? t.pnl_r.toFixed(2) + 'R' : '\u2014'}
             </td>
             <td className="px-3 py-1.5">
               <span className="px-1.5 py-0.5 rounded text-[10px]" style={{
@@ -73,18 +67,14 @@ export function TradesTable() {
                   t.outcome === 'LOSS' ? 'var(--red)' :
                   t.outcome === 'OPEN' ? 'var(--sys1)' : 'var(--text-secondary)',
               }}>
-                {t.outcome}
+                {t.outcome ?? '\u2014'}
               </span>
-            </td>
-            <td className="px-3 py-1.5" style={{ color: 'var(--text-secondary)' }}>{t.pattern_name || '\u2014'}</td>
-            <td className="px-3 py-1.5 text-right" style={{ color: 'var(--text-secondary)' }}>
-              {t.quality_score !== null ? `${(t.quality_score * 100).toFixed(0)}%` : '\u2014'}
             </td>
           </tr>
         ))}
         {trades.length === 0 && (
           <tr>
-            <td colSpan={11} className="px-3 py-8 text-center" style={{ color: 'var(--text-muted)' }}>
+            <td colSpan={9} className="px-3 py-8 text-center" style={{ color: 'var(--text-muted)' }}>
               No trades found matching filters.
             </td>
           </tr>

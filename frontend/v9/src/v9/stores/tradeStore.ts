@@ -51,11 +51,11 @@ export const useTradeStore = create<TradeState>((set, get) => ({
     const { trades, filters } = get();
     return trades.filter((t) => {
       if (filters.mode !== 'ALL' && t.mode !== filters.mode) return false;
-      if (filters.systemId !== 'ALL' && t.system_id !== filters.systemId) return false;
+      if (filters.systemId !== 'ALL' && t.system !== filters.systemId) return false;
       if (filters.outcome !== 'ALL' && t.outcome !== filters.outcome) return false;
-      if (filters.dateFrom && t.entry_time < filters.dateFrom) return false;
-      if (filters.dateTo && t.entry_time > filters.dateTo) return false;
-      if (filters.pattern && !t.pattern_name.toLowerCase().includes(filters.pattern.toLowerCase())) return false;
+      if (filters.dateFrom && (t.entry_ts ?? '') < filters.dateFrom) return false;
+      if (filters.dateTo && (t.entry_ts ?? '') > filters.dateTo) return false;
+      if (filters.pattern && !t.direction.toLowerCase().includes(filters.pattern.toLowerCase())) return false;
       return true;
     });
   },

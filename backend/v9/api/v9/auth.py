@@ -3,7 +3,13 @@
 import os
 from fastapi import Header, HTTPException
 
-BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
+BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "")
+if not BRIDGE_TOKEN:
+    raise RuntimeError(
+        "BRIDGE_TOKEN env var is required but not set. "
+        "Set it in .env or your hosting provider's environment variables."
+    )
+
 
 
 def verify_bridge_token(authorization: str = Header(...)):

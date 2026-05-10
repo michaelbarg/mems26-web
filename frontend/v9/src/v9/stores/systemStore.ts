@@ -33,7 +33,7 @@ export const useSystemStore = create<SystemState>((set) => ({
   updateConfig: (systemId, mode, params) => set((state) => ({
     configs: state.configs.map((c) =>
       c.system_id === systemId && c.mode === mode
-        ? { ...c, params_json: { ...c.params_json, ...params } }
+        ? { ...c, params: { ...c.params, ...params } }
         : c
     ),
   })),

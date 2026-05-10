@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from backend.v9.db.session import get_db
 from backend.v9.db.models import V9Trade, V9TradeManagementLog
 from backend.v9.api.v9.auth import verify_bridge_token
+from backend.v9.api.v9.ws_manager import publish_event, CHANNEL_TRADES
 
 router = APIRouter(prefix="/api/v9/trades", tags=["v9-trades"])
 
@@ -82,6 +83,10 @@ def create_trade(
     db.add(row)
     db.commit()
     db.refresh(row)
+    publish_event(CHANNEL_TRADES, {
+        "trade_id": row.id, "mode": row.mode,
+        "direction": row.direction, "system": row.dominant_system,
+    })
     return {"ok": True, "trade_id": row.id}
 
 

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { fetchConfig, updateConfig } from '../../lib/api';
-import { SYSTEM_COLORS, SYSTEM_NAMES } from '../../types';
+import { SYSTEM_COLORS, SYSTEM_NAMES, SYSTEM_BORDER_STYLE } from '../../types';
 import type { SystemId, TradeMode } from '../../types';
 
 export function SettingsDrawer() {
@@ -15,7 +15,7 @@ export function SettingsDrawer() {
   useEffect(() => {
     if (!systemId) return;
     fetchConfig(systemId, mode)
-      .then((cfg) => setParams(cfg?.params_json || {}))
+      .then((cfg) => setParams(cfg?.params || {}))
       .catch(() => setParams({}));
   }, [systemId, mode]);
 
@@ -64,7 +64,9 @@ export function SettingsDrawer() {
                 style={{
                   background: mode === m ? 'var(--bg-tertiary)' : 'transparent',
                   color: mode === m ? 'var(--text-primary)' : 'var(--text-muted)',
-                  border: `1px ${m === 'SHADOW' ? 'dashed' : m === 'SIM' ? 'dotted' : 'solid'} ${mode === m ? color : 'var(--border)'}`,
+                  border: SYSTEM_BORDER_STYLE[m] === 'none'
+                    ? `1px solid ${mode === m ? color : 'var(--border)'}`
+                    : `1px ${SYSTEM_BORDER_STYLE[m]} ${mode === m ? color : 'var(--border)'}`,
                 }}
               >
                 {m}

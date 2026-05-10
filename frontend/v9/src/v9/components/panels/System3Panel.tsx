@@ -12,18 +12,18 @@ export function System3Panel() {
         <div className="space-y-1 mt-1" style={{ color: 'var(--text-secondary)' }}>
           <div>
             <span className="opacity-60">Imbalance: </span>
-            <span>{(latest.metadata_json?.imbalance_count as string) || '\u2014'}</span>
+            <span>{(latest.payload?.imbalance_count as string) || '\u2014'}</span>
           </div>
           <div>
             <span className="opacity-60">Stacked: </span>
-            <span>{(latest.metadata_json?.stacked_count as string) || '\u2014'}</span>
+            <span>{(latest.payload?.stacked_count as string) || '\u2014'}</span>
           </div>
           <div>
             <span className="opacity-60">Delta: </span>
             <span style={{
-              color: (latest.metadata_json?.delta as number) >= 0 ? 'var(--green)' : 'var(--red)',
+              color: (latest.payload?.delta as number) >= 0 ? 'var(--green)' : 'var(--red)',
             }}>
-              {(latest.metadata_json?.delta as string) || '\u2014'}
+              {(latest.payload?.delta as string) || '\u2014'}
             </span>
           </div>
         </div>

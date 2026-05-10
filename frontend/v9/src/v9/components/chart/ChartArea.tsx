@@ -6,7 +6,8 @@ import { useSystemStore } from '../../stores/systemStore';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { WS_CHANNELS } from '../../lib/websocket';
-import { fetchBars5min, fetchTickReversalBars, fetchMarkers, fetchSignals } from '../../lib/api';
+import { fetchBars5min, fetchTickReversalBars, fetchMarkers, fetchSignals, fetchTrades } from '../../lib/api';
+import { useTradeStore } from '../../stores/tradeStore';
 import { TPOLines } from './TPOLines';
 import { StaticLevels } from './StaticLevels';
 import { RightSideLabels } from './RightSideLabels';
@@ -21,6 +22,7 @@ export function ChartArea() {
   const activeChartType = useLayoutStore((s) => s.activeChartType);
   const { setBars5min, addBar5min, setLevels } = useMarketStore();
   const { setMarkers, addMarker, setSignals } = useSystemStore();
+  const setTrades = useTradeStore((s) => s.setTrades);
 
   // Initialize chart
   useEffect(() => {
@@ -92,34 +94,37 @@ export function ChartArea() {
         if (activeChartType === '5min') setBars5min(bars);
 
         const chartData: CandlestickData[] = bars.map((b: any) => ({
-          time: (new Date(b.timestamp).getTime() / 1000) as Time,
-          open: b.open,
-          high: b.high,
-          low: b.low,
-          close: b.close,
+          time: (new Date(b.ts).getTime() / 1000) as Time,
+          open: b.o,
+          high: b.h,
+          low: b.l,
+          close: b.c,
         }));
         candleSeriesRef.current?.setData(chartData);
 
-        const [allMarkers, allSignals] = await Promise.all([fetchMarkers(), fetchSignals()]);
+        const [allMarkers, allSignals, allTrades] = await Promise.all([
+          fetchMarkers(), fetchSignals(), fetchTrades(),
+        ]);
         setMarkers(allMarkers);
         setSignals(allSignals);
+        setTrades(allTrades);
       } catch (err) {
         console.error('Failed to load chart data:', err);
       }
     }
     loadData();
-  }, [activeChartType, setBars5min, setMarkers, setSignals]);
+  }, [activeChartType, setBars5min, setMarkers, setSignals, setTrades]);
 
   // WebSocket for real-time bars
   const wsChannel = activeChartType === '5min' ? WS_CHANNELS.BARS_5MIN : WS_CHANNELS.BARS_TICK_REVERSAL;
   useWebSocket(wsChannel, useCallback((data: any) => {
     if (activeChartType === '5min') addBar5min(data);
     candleSeriesRef.current?.update({
-      time: (new Date(data.timestamp).getTime() / 1000) as Time,
-      open: data.open,
-      high: data.high,
-      low: data.low,
-      close: data.close,
+      time: (new Date(data.ts).getTime() / 1000) as Time,
+      open: data.o,
+      high: data.h,
+      low: data.l,
+      close: data.c,
     });
   }, [activeChartType, addBar5min]));
 

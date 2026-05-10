@@ -7,8 +7,12 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from backend.v9.db.session import get_db
-from backend.v9.db.models import V9Bar5Min, V9BarTickReversal, V9Bar30MinWoodies, V9TpoBar
+from backend.v9.db.models import V9Bar5Min, V9BarTickReversal, V9BarFootprint, V9Bar30MinWoodies, V9TpoBar
 from backend.v9.api.v9.auth import verify_bridge_token
+from backend.v9.api.v9.ws_manager import (
+    publish_event, CHANNEL_BARS_5MIN, CHANNEL_BARS_TICK_REVERSAL,
+    CHANNEL_BARS_WOODIES, CHANNEL_LEVELS,
+)
 
 router = APIRouter(prefix="/api/v9/bars", tags=["v9-bars"])
 
@@ -121,6 +125,11 @@ def post_bars_5min(
         db.add(row)
         created.append(row)
     db.commit()
+    publish_event(CHANNEL_BARS_5MIN, {
+        "count": len(created),
+        "last": {"o": bars[-1].o, "h": bars[-1].h, "l": bars[-1].l,
+                 "c": bars[-1].c, "vol": bars[-1].vol} if bars else {},
+    })
     return {"ok": True, "inserted": len(created)}
 
 
@@ -148,6 +157,9 @@ def post_tick_reversal(
         db.add(row)
         created += 1
     db.commit()
+    publish_event(CHANNEL_BARS_TICK_REVERSAL, {
+        "count": created, "tick_count": tick_count,
+    })
     return {"ok": True, "inserted": created, "tick_count": tick_count}
 
 
@@ -161,17 +173,16 @@ def post_footprint(
 ):
     created = 0
     for bar in payload.bars:
-        row = V9BarTickReversal(
+        row = V9BarFootprint(
             ts=_ts_from_unix(bar.get("ts")),
-            tick_size=0,  # footprint bars use tick_size=0
             open=bar["o"], high=bar["h"], low=bar["l"], close=bar["c"],
             volume=bar.get("vol", 0),
             delta=bar.get("delta"),
-            footprint_json={"levels": bar.get("levels", []),
-                            "poc_price": bar.get("poc_price"),
-                            "poc_vol": bar.get("poc_vol")},
-            cluster_data={"stacked_buy": bar.get("stacked_buy"),
-                          "stacked_sell": bar.get("stacked_sell")},
+            poc_price=bar.get("poc_price"),
+            poc_vol=bar.get("poc_vol"),
+            levels=bar.get("levels", []),
+            stacked_buy=bar.get("stacked_buy"),
+            stacked_sell=bar.get("stacked_sell"),
         )
         db.add(row)
         created += 1
@@ -187,23 +198,27 @@ def post_volume_profile(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    # Store volume profile data as enrichment on 5min bars
-    # For now, store in v9_bars_5min with profile data in poc/vah/val
-    created = 0
+    # Enrich existing 5-min bars with profile data (UPDATE, not INSERT).
+    # Match by closest ts within a 5-minute window.
+    from datetime import timedelta
+    updated = 0
+    skipped = 0
     for bar in payload.bars:
-        row = V9Bar5Min(
-            ts=_ts_from_unix(bar.get("ts")),
-            open=bar.get("o", 0), high=bar.get("h", 0),
-            low=bar.get("l", 0), close=bar.get("c", 0),
-            volume=bar.get("vol", 0),
-            poc_vol=bar.get("poc_vol"),
-            vah=bar.get("vah"),
-            val=bar.get("val"),
-        )
-        db.add(row)
-        created += 1
+        ts = _ts_from_unix(bar.get("ts"))
+        window = timedelta(minutes=5)
+        row = db.query(V9Bar5Min).filter(
+            V9Bar5Min.ts >= ts - window,
+            V9Bar5Min.ts <= ts + window,
+        ).order_by(V9Bar5Min.ts).first()
+        if row:
+            row.poc_vol = bar.get("poc_vol", row.poc_vol)
+            row.vah = bar.get("vah", row.vah)
+            row.val = bar.get("val", row.val)
+            updated += 1
+        else:
+            skipped += 1
     db.commit()
-    return {"ok": True, "inserted": created, "type": "volume_profile"}
+    return {"ok": True, "updated": updated, "skipped": skipped, "type": "volume_profile"}
 
 
 # ── POST /api/v9/bars/imbalance ──
@@ -271,19 +286,24 @@ def post_cumulative_delta(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    created = 0
+    # Enrich existing 5-min bars with cumulative delta (UPDATE, not INSERT).
+    from datetime import timedelta
+    updated = 0
+    skipped = 0
     for bar in payload.bars:
-        row = V9Bar5Min(
-            ts=_ts_from_unix(bar.get("ts")),
-            open=bar.get("o", 0), high=bar.get("h", 0),
-            low=bar.get("l", 0), close=bar.get("c", 0),
-            volume=bar.get("vol", 0),
-            cumulative_delta=bar.get("cumulative_delta") or bar.get("delta"),
-        )
-        db.add(row)
-        created += 1
+        ts = _ts_from_unix(bar.get("ts"))
+        window = timedelta(minutes=5)
+        row = db.query(V9Bar5Min).filter(
+            V9Bar5Min.ts >= ts - window,
+            V9Bar5Min.ts <= ts + window,
+        ).order_by(V9Bar5Min.ts).first()
+        if row:
+            row.cumulative_delta = bar.get("cumulative_delta") or bar.get("delta")
+            updated += 1
+        else:
+            skipped += 1
     db.commit()
-    return {"ok": True, "inserted": created, "type": "cumulative_delta"}
+    return {"ok": True, "updated": updated, "skipped": skipped, "type": "cumulative_delta"}
 
 
 # ── POST /api/v9/bars/woodies ──
@@ -318,6 +338,7 @@ def post_woodies(
         db.add(row)
         created += 1
     db.commit()
+    publish_event(CHANNEL_BARS_WOODIES, {"count": created})
     return {"ok": True, "inserted": created, "type": "woodies"}
 
 
@@ -341,6 +362,7 @@ def post_tpo(
         db.add(row)
         created += 1
     db.commit()
+    publish_event(CHANNEL_LEVELS, {"count": created, "type": "tpo"})
     return {"ok": True, "inserted": created, "type": "tpo"}
 
 

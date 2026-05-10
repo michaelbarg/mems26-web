@@ -1,134 +1,147 @@
-// MEMS26 V9 Types
+// MEMS26 V9 Types — aligned with backend API response shapes (2026-05-10)
 
-// Bar types
+// ── Bar types (GET /api/v9/bars/*) ──
+
 export interface Bar5Min {
   id: number;
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  tick_count: number;
-  vwap: number;
-  delta: number;
-  poc_price: number;
-  vah_price: number;
-  val_price: number;
+  ts: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  vol: number;
+  poc_vol: number | null;
+  vah: number | null;
+  val: number | null;
+  cumulative_delta: number | null;
 }
 
 export interface TickReversalBar {
   id: number;
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  tick_count: number;
-  up_ticks: number;
-  down_ticks: number;
-  delta: number;
-  bid_volume: number;
-  ask_volume: number;
-  footprint_json: Record<string, { bid: number; ask: number }>;
+  ts: string;
+  tick_size: number;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  vol: number;
+  ask_vol: number | null;
+  bid_vol: number | null;
+  delta: number | null;
+  dir: number | null;
+  footprint: Record<string, any> | null;
+  cluster: Record<string, any> | null;
 }
 
 export interface WoodiesBar {
   id: number;
-  timestamp: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  cci_14: number;
-  cci_6: number;
-  tcci: number;
-  cci_34: number;
-  cci_50: number;
-  cci_128: number;
-  cci_200: number;
-  lsma_25: number;
-  ema_34_cci: number;
-  turbo_cci_5: number;
-  turbo_cci_8: number;
-  zlr_pattern: string | null;
+  ts: string;
+  o: number;
+  h: number;
+  l: number;
+  c: number;
+  vol: number;
+  cci_14: number | null;
+  cci_6_tcci: number | null;
+  lsma_value: number | null;
+  swi_value: number | null;
+  czi_value: number | null;
+  ema_34: number | null;
+  trend_state: string | null;
+  predictor_next_cci: number | null;
+  zlr_detected: boolean;
+  zlr_direction: string | null;
 }
 
 export interface TPOBar {
   id: number;
-  timestamp: string;
-  price_level: number;
-  tpo_letter: string;
-  period_label: string;
-  is_poc: boolean;
-  is_vah: boolean;
-  is_val: boolean;
+  ts: string;
+  letter: string;
+  price: number;
+  level: number;
+  period_id: number;
 }
 
-// System types
+// ── System types ──
+
 export type SystemId = 1 | 2 | 3 | 4 | 5 | 6;
 export type TradeMode = 'SHADOW' | 'SIM' | 'LIVE';
-export type MarkerType = 'ENTRY' | 'EXIT_WIN' | 'EXIT_STOP' | 'ALERT' | 'LEVEL';
 
 export interface SystemSignal {
   id: number;
-  system_id: SystemId;
-  timestamp: string;
-  signal_type: string;
-  direction: 'LONG' | 'SHORT' | null;
-  confidence: number;
-  mode: TradeMode;
-  metadata_json: Record<string, unknown>;
+  ts: string;
+  system_id: number;
+  classification: string | null;
+  direction: string | null;
+  confidence: number | null;
+  payload: Record<string, unknown> | null;
 }
 
 export interface SystemMarker {
   id: number;
-  system_id: SystemId;
-  timestamp: string;
-  bar_timestamp: string;
-  marker_type: MarkerType;
-  price: number;
-  direction: 'LONG' | 'SHORT';
-  mode: TradeMode;
-  label: string;
-  metadata_json: Record<string, unknown>;
+  ts: string;
+  system_id: number;
+  type: string;
+  price: number | null;
+  color: string | null;
+  label: string | null;
+  border_style: string | null;
+  payload: Record<string, unknown> | null;
 }
 
-// Trade types
 export type TradeOutcome = 'WIN' | 'LOSS' | 'SCRATCH' | 'OPEN';
+
+// ── Trade types (GET /api/v9/trades) ──
 
 export interface Trade {
   id: number;
-  system_id: SystemId;
-  mode: TradeMode;
-  direction: 'LONG' | 'SHORT';
-  entry_time: string;
-  entry_price: number;
-  exit_time: string | null;
+  mode: string;
+  system: number;
+  direction: string;
+  entry_ts: string | null;
+  entry_price: number | null;
+  exit_ts: string | null;
   exit_price: number | null;
-  stop_price: number;
-  target_price: number;
-  quantity: number;
-  pnl_ticks: number | null;
-  pnl_dollars: number | null;
-  outcome: TradeOutcome;
-  quality_score: number | null;
-  pattern_name: string;
-  notes: string;
+  exit_reason: string | null;
+  pnl_usd: number | null;
+  pnl_r: number | null;
+  outcome: string | null;
+  sierra_bracket_id: string | null;
 }
 
-// Config types
-export interface SystemConfig {
-  system_id: SystemId;
-  mode: TradeMode;
-  enabled: boolean;
-  params_json: Record<string, unknown>;
+export interface TradeDetailed extends Trade {
+  stop_initial: number | null;
+  stop_final: number | null;
+  t1_price: number | null;
+  t1_filled_at: string | null;
+  t2_price: number | null;
+  t2_filled_at: string | null;
+  t3_price: number | null;
+  quality_review: Record<string, unknown> | null;
+  context_json: Record<string, unknown> | null;
 }
+
+export interface TradeLogEntry {
+  id: number;
+  ts: string;
+  action: string;
+  value: Record<string, unknown> | null;
+}
+
+// ── Config types (GET /api/v9/configs) ──
+
+export interface SystemConfig {
+  id: number;
+  system_id: number;
+  mode: string;
+  params: Record<string, unknown>;
+  locked_at: string | null;
+  locked_by: string | null;
+}
+
+// ── Account status (WS-only, no REST endpoint) ──
 
 export interface AccountStatus {
-  id: number;
-  timestamp: string;
   daily_pnl: number;
   total_pnl: number;
   trade_count: number;
@@ -137,7 +150,8 @@ export interface AccountStatus {
   margin_used: number;
 }
 
-// System metadata
+// ── System metadata ──
+
 export const SYSTEM_COLORS: Record<SystemId, string> = {
   1: '#58a6ff',
   2: '#56d364',

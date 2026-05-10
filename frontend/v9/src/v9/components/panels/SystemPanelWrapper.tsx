@@ -42,14 +42,14 @@ export function SystemPanelWrapper({ systemId, children }: Props) {
         {activeSignal ? (
           <div className="flex items-center gap-1 mb-1">
             <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: color }} />
-            <span style={{ color }}>{activeSignal.signal_type}</span>
+            <span style={{ color }}>{activeSignal.classification}</span>
             {activeSignal.direction && (
               <span style={{ color: activeSignal.direction === 'LONG' ? 'var(--green)' : 'var(--red)' }}>
                 {activeSignal.direction}
               </span>
             )}
             <span style={{ color: 'var(--text-muted)' }}>
-              {(activeSignal.confidence * 100).toFixed(0)}%
+              {activeSignal.confidence != null ? `${(activeSignal.confidence * 100).toFixed(0)}%` : ''}
             </span>
           </div>
         ) : (

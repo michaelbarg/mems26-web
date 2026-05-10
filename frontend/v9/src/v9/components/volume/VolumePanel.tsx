@@ -68,9 +68,9 @@ export function VolumePanel() {
 
     volumeSeriesRef.current.setData(
       data.map((b: any) => ({
-        time: (new Date(b.timestamp).getTime() / 1000) as Time,
-        value: b.volume,
-        color: b.close >= b.open ? 'rgba(86,211,100,0.5)' : 'rgba(248,81,73,0.5)',
+        time: (new Date(b.ts).getTime() / 1000) as Time,
+        value: b.vol,
+        color: b.c >= b.o ? 'rgba(86,211,100,0.5)' : 'rgba(248,81,73,0.5)',
       }))
     );
 
@@ -79,7 +79,7 @@ export function VolumePanel() {
       data.map((b: any) => {
         cumDelta += b.delta || 0;
         return {
-          time: (new Date(b.timestamp).getTime() / 1000) as Time,
+          time: (new Date(b.ts).getTime() / 1000) as Time,
           value: cumDelta,
           color: cumDelta >= 0 ? 'rgba(86,211,100,0.7)' : 'rgba(248,81,73,0.7)',
         };

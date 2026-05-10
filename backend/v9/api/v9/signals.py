@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from backend.v9.db.session import get_db
 from backend.v9.db.models import V9SystemSignal
 from backend.v9.api.v9.auth import verify_bridge_token
+from backend.v9.api.v9.ws_manager import publish_event, CHANNEL_SIGNALS
 
 router = APIRouter(prefix="/api/v9/signals", tags=["v9-signals"])
 
@@ -51,6 +52,10 @@ def post_signals(
         db.add(row)
         created += 1
     db.commit()
+    # Publish to per-system channels
+    system_ids = set(s.system_id for s in batch.signals)
+    for sid in system_ids:
+        publish_event(CHANNEL_SIGNALS.format(system_id=sid), {"count": created})
     return {"ok": True, "inserted": created}
 
 
