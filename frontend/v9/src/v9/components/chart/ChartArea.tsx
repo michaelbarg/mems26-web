@@ -7,8 +7,8 @@ import { useLayoutStore } from '../../stores/layoutStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { WS_CHANNELS } from '../../lib/websocket';
 import { fetchBars5min, fetchTickReversalBars, fetchMarkers, fetchSignals, fetchTrades } from '../../lib/api';
+import { generateMockBars, generateMockSignals, generateMockLevels } from '../../lib/mockData';
 import { useTradeStore } from '../../stores/tradeStore';
-import { useSystemStore as useSystemStoreForSignals } from '../../stores/systemStore';
 import { TPOLines } from './TPOLines';
 import { StaticLevels } from './StaticLevels';
 import { RightSideLabels } from './RightSideLabels';
@@ -91,9 +91,16 @@ export function ChartArea() {
   useEffect(() => {
     async function loadData() {
       try {
-        const bars = activeChartType === '5min'
+        let bars = activeChartType === '5min'
           ? await fetchBars5min(300)
           : await fetchTickReversalBars(15, 300);
+
+        // Fallback to mock data if API returned empty/non-array
+        const useMock = !Array.isArray(bars) || bars.length === 0;
+        if (useMock) {
+          console.info('[ChartArea] No live data — using mock bars');
+          bars = generateMockBars(100);
+        }
 
         if (activeChartType === '5min') setBars5min(bars);
 
@@ -106,14 +113,33 @@ export function ChartArea() {
         }));
         candleSeriesRef.current?.setData(chartData);
 
+        if (useMock) {
+          // Load mock levels so TPO lines appear
+          setLevels(generateMockLevels());
+        }
+
         const [allMarkers, allSignals, allTrades] = await Promise.all([
           fetchMarkers(), fetchSignals(), fetchTrades(),
         ]);
-        setMarkers(allMarkers);
-        setSignals(allSignals);
-        setTrades(allTrades);
+        setMarkers(Array.isArray(allMarkers) ? allMarkers : []);
+
+        let signals = Array.isArray(allSignals) ? allSignals : [];
+        if (signals.length === 0) {
+          signals = generateMockSignals();
+        }
+        setSignals(signals);
+        setTrades(Array.isArray(allTrades) ? allTrades : []);
       } catch (err) {
         console.error('Failed to load chart data:', err);
+        // Last resort fallback
+        const mockBars = generateMockBars(100);
+        setBars5min(mockBars);
+        candleSeriesRef.current?.setData(mockBars.map((b: any) => ({
+          time: (new Date(b.ts).getTime() / 1000) as Time,
+          open: b.o, high: b.h, low: b.l, close: b.c,
+        })));
+        setLevels(generateMockLevels());
+        setSignals(generateMockSignals());
       }
     }
     loadData();

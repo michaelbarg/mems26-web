@@ -2,22 +2,24 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const TOKEN = process.env.NEXT_PUBLIC_BRIDGE_TOKEN || 'michael-mems26-2026';
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${TOKEN}`,
-      ...options?.headers,
-    },
-  });
-  if (!res.ok) {
-    if (res.status === 401 || res.status === 404) {
-      console.warn(`API ${res.status} on ${path} — returning empty`);
-      return {} as T;
+  try {
+    const res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${TOKEN}`,
+        ...options?.headers,
+      },
+    });
+    if (!res.ok) {
+      console.warn(`API ${res.status} on ${path}`);
+      return [] as unknown as T;
     }
-    throw new Error(`API error: ${res.status} ${res.statusText}`);
+    return res.json();
+  } catch {
+    console.warn(`API unreachable for ${path}`);
+    return [] as unknown as T;
   }
-  return res.json();
 }
 
 export const fetchBars5min = (limit = 300) =>
