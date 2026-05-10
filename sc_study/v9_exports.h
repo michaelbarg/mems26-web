@@ -74,10 +74,11 @@ inline std::vector<TickReversalBar> v9_build_tick_reversal_bars(
 
         if (reversed) {
             current.delta = current.ask_volume - current.bid_volume;
-            current.timestamp = (long long)sc.BaseDateTimeIn[i].IsNotEmpty()
-                ? (long long)sc.BaseDateTimeIn[i].GetAsDouble() * 86400
-                : time(nullptr);
+            current.timestamp = (long long)time(nullptr);
             bars.push_back(current);
+
+            // v9.2.0 safety cap: prevent unbounded tick reversal accumulation
+            if (bars.size() >= 200) break;
 
             // Start new bar
             int new_dir = (current.direction == 1) ? -1 : 1;
@@ -143,10 +144,25 @@ inline std::string v9_tick_reversal_to_json(
 // For each chart bar, breaks down volume by price level (tick increments).
 // Uses sc.VolumeAtPriceForBars when available, falls back to distribution.
 
+// v9.2.0: global budget counter — reset before each export cycle
+static size_t v9_footprint_total_levels = 0;
+inline void v9_footprint_reset_budget() { v9_footprint_total_levels = 0; }
+
 inline FootprintBar v9_build_footprint_bar(
     SCStudyInterfaceRef sc, int bar_idx, float imb_threshold)
 {
+    const size_t FOOTPRINT_BUDGET = 10000;  // v9.2.0 safety cap
     FootprintBar fp;
+    // v9.2.0: check footprint memory budget
+    if (v9_footprint_total_levels >= FOOTPRINT_BUDGET) {
+        fp.bar_index = bar_idx;
+        fp.open = fp.high = fp.low = fp.close = 0;
+        fp.total_volume = fp.total_delta = 0;
+        fp.poc_price = fp.poc_volume = 0;
+        fp.stacked_imb_buy = fp.stacked_imb_sell = 0;
+        return fp;  // budget exceeded — return empty bar
+    }
+
     fp.bar_index = bar_idx;
     fp.open  = sc.Open[bar_idx];
     fp.high  = sc.High[bar_idx];
@@ -181,9 +197,11 @@ inline FootprintBar v9_build_footprint_bar(
     int max_sell_stack = 0;
 
     if (has_vap != 0 && p_vap != nullptr) {
-        // Real VAP data available — iterate all price levels
+        // Real VAP data available — iterate price levels (CAPPED v9.2.0)
+        const int VAP_MAX_LEVELS = 500;  // v9.2.0 safety cap — MES realistic max ~400
         int vi = 0;
-        while (sc.VolumeAtPriceForBars->GetVAPElementAtIndex(bar_idx, vi, &p_vap) != 0 && p_vap != nullptr) {
+        while (vi < VAP_MAX_LEVELS &&
+               sc.VolumeAtPriceForBars->GetVAPElementAtIndex(bar_idx, vi, &p_vap) != 0 && p_vap != nullptr) {
             FootprintLevel lvl;
             lvl.price   = p_vap->PriceInTicks * tick;
             lvl.ask_vol = (float)p_vap->AskVolume;
@@ -220,6 +238,9 @@ inline FootprintBar v9_build_footprint_bar(
             fp.levels.push_back(lvl);
             vi++;
         }
+        if (vi >= VAP_MAX_LEVELS) {
+            sc.AddMessageToLog("v9.2: VAP cap reached for bar — possible data corruption", 0);
+        }
     } else {
         // Fallback: distribute bar volume across price levels proportionally
         float vol_per_step = fp.total_volume / steps;
@@ -247,6 +268,9 @@ inline FootprintBar v9_build_footprint_bar(
 
     fp.stacked_imb_buy  = max_buy_stack;
     fp.stacked_imb_sell = max_sell_stack;
+
+    // v9.2.0: track budget usage
+    v9_footprint_total_levels += fp.levels.size();
 
     return fp;
 }
