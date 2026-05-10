@@ -1,4 +1,4 @@
-// MES_AI_DataExport.cpp — v9.1.0
+// MES_AI_DataExport.cpp — v9.1.1
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
 // REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
@@ -29,7 +29,7 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.1.0";
+static const char* V9_VERSION = "v9.1.1";
 
 // ── Export directory ──
 static const char* V9_EXPORT_DIR = "C:\\SierraChart_Data\\v9_export\\";
@@ -1046,7 +1046,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.1.0";
+        sc.GraphName        = "MES AI Data Export v9.1.1";
         sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
