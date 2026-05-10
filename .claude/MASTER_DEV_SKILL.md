@@ -286,6 +286,12 @@ When no spec in Drive:
 🟡 1× trade log model — TypeError on renamed field (tests/v9/db/test_models.py)
 Non-blocking for SHADOW. All 199 Phase 3 service tests pass clean.
 
+### R3 Compliance Drift (SHADOW gate blocker)
+🔴 R3 drift 26.3% (threshold 15%) — patterns/signals stubs in chart_5min (46.9%),
+   woodies (41.7%), tick_reversal (22.2%). Fix: 3 Workers parallel ~4-6h.
+   Report: .claude/R3_DRIFT_REPORT_2026-05-10.md
+   146 compliance tests added, all passing. tpo (13.3%) + killzone (7.7%) already OK.
+
 ### Backlog (Phase 3.5)
 🟡 W9 Stage F EOD — deferred, non-blocking for SHADOW
 🟡 W9 Naked POC lookback — deferred
