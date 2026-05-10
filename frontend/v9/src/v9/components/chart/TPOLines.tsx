@@ -25,7 +25,7 @@ export function TPOLines({ chart, candleSeries }: Props) {
     if (currentPOC !== null) {
       const pocLine = candleSeries.createPriceLine({
         price: currentPOC,
-        color: '#e3b341',
+        color: '#F97316',
         lineWidth: 2,
         lineStyle: 0,
         axisLabelVisible: true,

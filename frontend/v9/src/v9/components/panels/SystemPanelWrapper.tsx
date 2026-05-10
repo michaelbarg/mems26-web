@@ -27,7 +27,7 @@ export function SystemPanelWrapper({ systemId, children }: Props) {
         onClick={() => openSettings(systemId)}
       >
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full" style={{ background: color }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: activeSignal ? '#22C55E' : '#6B7280' }} />
           <span className="text-[11px] font-medium" style={{ color }}>S{systemId}</span>
           <span className="text-[10px]" style={{ color: 'var(--text-secondary)' }}>{name}</span>
         </div>

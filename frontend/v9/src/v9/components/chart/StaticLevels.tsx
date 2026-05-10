@@ -16,10 +16,12 @@ const LEVEL_CONFIGS = [
   { key: 'onh', label: 'ONH', color: '#79c0ff', style: 2 },
   { key: 'onl', label: 'ONL', color: '#79c0ff', style: 2 },
   { key: 'openPrice', label: 'OPEN', color: '#e6edf3', style: 2 },
+  { key: 'ibh', label: 'IBH', color: '#FACC15', style: 2 },
+  { key: 'ibl', label: 'IBL', color: '#FACC15', style: 2 },
 ] as const;
 
 export function StaticLevels({ chart, candleSeries }: Props) {
-  const { pdh, pdl, onh, onl, openPrice } = useMarketStore();
+  const { pdh, pdl, onh, onl, openPrice, ibh, ibl } = useMarketStore();
   const linesRef = useRef<any[]>([]);
 
   useEffect(() => {
@@ -30,7 +32,7 @@ export function StaticLevels({ chart, candleSeries }: Props) {
     });
     linesRef.current = [];
 
-    const levels: Record<string, number | null> = { pdh, pdl, onh, onl, openPrice };
+    const levels: Record<string, number | null> = { pdh, pdl, onh, onl, openPrice, ibh, ibl };
 
     for (const cfg of LEVEL_CONFIGS) {
       const value = levels[cfg.key];
@@ -46,7 +48,7 @@ export function StaticLevels({ chart, candleSeries }: Props) {
       });
       linesRef.current.push(line);
     }
-  }, [candleSeries, pdh, pdl, onh, onl, openPrice]);
+  }, [candleSeries, pdh, pdl, onh, onl, openPrice, ibh, ibl]);
 
   return null;
 }

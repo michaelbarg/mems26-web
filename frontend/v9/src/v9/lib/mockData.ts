@@ -72,6 +72,8 @@ export function generateMockLevels() {
     onh: roundTick(BASE_PRICE + 8),
     onl: roundTick(BASE_PRICE - 6),
     openPrice: roundTick(BASE_PRICE - 1),
+    ibh: roundTick(BASE_PRICE + 4),
+    ibl: roundTick(BASE_PRICE - 3),
   };
 }
 

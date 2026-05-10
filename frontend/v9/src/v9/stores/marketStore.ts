@@ -14,6 +14,8 @@ interface MarketState {
   onh: number | null;
   onl: number | null;
   openPrice: number | null;
+  ibh: number | null;
+  ibl: number | null;
   vegasEma12: number | null;
   vegasEma34: number | null;
   vegasEma144: number | null;
@@ -27,7 +29,7 @@ interface MarketState {
   addTickReversalBar: (bar: TickReversalBar) => void;
   setWoodiesBars: (bars: WoodiesBar[]) => void;
   setTPOBars: (bars: TPOBar[]) => void;
-  setLevels: (levels: Partial<Pick<MarketState, 'pdh' | 'pdl' | 'onh' | 'onl' | 'openPrice' | 'currentPOC' | 'currentVAH' | 'currentVAL'>>) => void;
+  setLevels: (levels: Partial<Pick<MarketState, 'pdh' | 'pdl' | 'onh' | 'onl' | 'openPrice' | 'ibh' | 'ibl' | 'currentPOC' | 'currentVAH' | 'currentVAL'>>) => void;
   setVegas: (emas: Partial<Pick<MarketState, 'vegasEma12' | 'vegasEma34' | 'vegasEma144' | 'vegasEma169' | 'vegasEma576' | 'vegasEma676'>>) => void;
 }
 
@@ -44,6 +46,8 @@ export const useMarketStore = create<MarketState>((set) => ({
   onh: null,
   onl: null,
   openPrice: null,
+  ibh: null,
+  ibl: null,
   vegasEma12: null,
   vegasEma34: null,
   vegasEma144: null,

@@ -153,12 +153,12 @@ export interface AccountStatus {
 // ── System metadata ──
 
 export const SYSTEM_COLORS: Record<SystemId, string> = {
-  1: '#58a6ff',
-  2: '#56d364',
-  3: '#d2a8ff',
-  4: '#fb950b',
-  5: '#79c0ff',
-  6: '#8b949e',
+  1: '#3B82F6',
+  2: '#10B981',
+  3: '#8B5CF6',
+  4: '#F97316',
+  5: '#06B6D4',
+  6: '#6B7280',
 };
 
 export const SYSTEM_NAMES: Record<SystemId, string> = {
