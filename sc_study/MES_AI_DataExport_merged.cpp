@@ -1,4 +1,4 @@
-// MES_AI_DataExport.cpp — v9.1.1
+// MES_AI_DataExport.cpp — v9.1.2
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
 // REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
@@ -29,10 +29,10 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.1.1";
+static const char* V9_VERSION = "v9.1.2";
 
 // ── Export directory ──
-static const char* V9_EXPORT_DIR = "C:\\SierraChart_Data\\v9_export\\";
+static const char* V9_EXPORT_DIR = "/Users/michael/SierraChart/Data/v9_export/";
 
 // ── Tick reversal bar ──
 struct TickReversalBar {
@@ -951,7 +951,10 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
 
         // ZLR detection using history up to this bar (no copy — pointer + count)
-        ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), bi + 1, 12);
+        ZLRResult zlr = {false, "NONE", 0, 0};
+        if (!cci14_hist.empty() && bi + 1 > 0) {
+            zlr = v9_detect_zlr(cci14_hist.data(), bi + 1, 12);
+        }
 
         j << "{";
         json_long(j, "ts", bars[bi].timestamp, false);
@@ -990,7 +993,10 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         float czi       = v9_calc_chopzone(bars, ci, ema34);
         float predictor = v9_cci_predictor(cci14, cci14_prev);
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
-        ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), (int)cci14_hist.size(), 12);
+        ZLRResult zlr = {false, "NONE", 0, 0};
+        if (!cci14_hist.empty()) {
+            zlr = v9_detect_zlr(cci14_hist.data(), (int)cci14_hist.size(), 12);
+        }
 
         j << ",\"current_bar\":{";
         json_long(j, "ts", bars[ci].timestamp, false);
@@ -1029,6 +1035,9 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
 #include <vector>
 #include <algorithm>
 
+// ── File-scope struct for static vector (must be outside function for MSVC) ──
+struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
+
 SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 {
     SCSubgraphRef CVD  = sc.Subgraph[0];
@@ -1046,7 +1055,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.1.1";
+        sc.GraphName        = "MES AI Data Export v9.1.2";
         sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -1060,7 +1069,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         VWAP.PrimaryColor = COLOR_YELLOW;
 
         ExportPath.Name = "Export JSON Path";
-        ExportPath.SetString("Y:\\SierraChart\\Data\\mes_ai_data.json");
+        ExportPath.SetString("/Users/michael/SierraChart/Data/mes_ai_data.json");
 
         ExportIntervalSec.Name = "Export Interval (seconds)";
         ExportIntervalSec.SetInt(3);
@@ -1072,7 +1081,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         ImbalanceRatio.SetFloat(3.0f);
 
         V9ExportPath.Name = "V9 Export Directory";
-        V9ExportPath.SetString("Y:\\SierraChart\\Data\\v9_export\\");
+        V9ExportPath.SetString("/Users/michael/SierraChart/Data/v9_export/");
 
         V9TickRev15.Name = "V9 Tick Reversal 15-tick (1=on)";
         V9TickRev15.SetInt(1);
@@ -1229,7 +1238,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // ── Imbalance Detection ───────────────────────────────────
     // בודק את הנר הנוכחי ו-4 הנרות האחרונים לחוסר איזון
     float imb_ratio = ImbalanceRatio.GetFloat();
-    struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
     static std::vector<ImbLevel> imbalances;
     imbalances.clear();  // reuses capacity — no heap alloc after first call
 
@@ -1483,6 +1491,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     static size_t peak_mem = 0;
     if (mem_est > peak_mem) peak_mem = mem_est;
     if (mem_est > 10 * 1024 * 1024) {
-        sc.AddMessageToLog("MEMS26 WARNING: export alloc > 10 MB! Check for memory leak.", 1);
+        sc.AddMessageToLog("MEMS26 WARNING: export alloc > 10 MB! Check for memory leak.", 0);
     }
 }
