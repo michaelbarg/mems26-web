@@ -5,7 +5,11 @@ from pydantic import BaseModel
 
 
 class WoodiesBar(BaseModel):
-    """Single 30-min bar with all 11 studies computed."""
+    """Single 30-min bar with all 11 studies computed.
+
+    Fields o/h/l/c/vol are aliases for open/high/low/close/volume
+    to support both flat and nested OHLC formats from the DLL JSON.
+    """
     ts: float
     open: float
     high: float
@@ -24,9 +28,45 @@ class WoodiesBar(BaseModel):
     zlr_detected: bool = False
     zlr_direction: str = "NONE"
 
+    @property
+    def o(self) -> float:
+        return self.open
+
+    @property
+    def h(self) -> float:
+        return self.high
+
+    @property
+    def l(self) -> float:
+        return self.low
+
+    @property
+    def c(self) -> float:
+        return self.close
+
+    @property
+    def vol(self) -> float:
+        return self.volume
+
+
+class PatternResult(BaseModel):
+    """Result of a pattern detection — includes trading fields."""
+    detected: bool
+    pattern_id: str         # ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB
+    direction: str = "NEUTRAL"  # LONG, SHORT, NEUTRAL
+    confidence: float = 0.0     # 0.0-1.0
+    entry_price: float = 0.0
+    stop: float = 0.0
+    targets: List[float] = []
+    group: str = ""             # CONTINUATION or REVERSAL
+    cci_at_signal: float = 0.0
+    bar_index: int = 0
+    ts: float = 0.0
+    details: Optional[dict] = None
+
 
 class PatternSignal(BaseModel):
-    """A detected Woodies pattern."""
+    """A detected Woodies pattern (legacy interface)."""
     pattern: str           # ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB
     group: str             # CONTINUATION or REVERSAL
     direction: str         # LONG or SHORT
