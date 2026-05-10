@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 from backend.v9.api.v9 import bars, signals, markers, trades, configs, websocket
+from backend.v9.services.trade_manager import TradeManager  # W11
 
 app = FastAPI(title="MEMS26 V9", version="9.0.0")
 
