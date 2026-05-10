@@ -260,6 +260,15 @@ When no spec in Drive:
 - WARN-S3 MEDIUM   → Phase 3.5 backlog
 - WARN-S4 LOW      → Don't even mention
 
+## §6.8 — END-TO-END SMOKE TEST (LOCKED)
+
+See: .claude/SMOKE_TEST_PRINCIPLE.md (LOCKED)
+Drive: 1Ldb_f-qgWJ8eB8WTq7VeGtojeETrs_v2zu5dQaTyPKM
+
+No Worker may report DONE on user-facing code without E2E smoke test.
+Unit tests passing is necessary but NOT SUFFICIENT.
+Anti-pattern #22: "Unit Tests = DONE" → user finds broken UI.
+
 ## §17 — DATA INTEGRITY & GAP RESOLUTION
 
 ### Active Violations
@@ -285,6 +294,11 @@ When no spec in Drive:
 🟡 1× model test — stale `dominant_system` field after W11 rename to `firing_system` (tests/v9/db/test_models.py)
 🟡 1× trade log model — TypeError on renamed field (tests/v9/db/test_models.py)
 Non-blocking for SHADOW. All 199 Phase 3 service tests pass clean.
+
+### Smoke Test Debt (§6.8)
+🟡 Phase 3 Workers W11-W15 lacked end-to-end smoke tests.
+   3 frontend bugs found post-DONE on 2026-05-10 (401 + infinite render + SSR).
+   Smoke tests now required per §6.8 LOCKED principle.
 
 ### R3 Compliance Drift (SHADOW gate blocker)
 🔴 R3 drift 26.3% (threshold 15%) — patterns/signals stubs in chart_5min (46.9%),
@@ -314,6 +328,7 @@ DATA SOURCE HIERARCHY (when adding new features):
 
 See: .claude/DATA_INTEGRITY_PRINCIPLE.md (LOCKED)
 See: .claude/LATENCY_OPTIMIZATION_SPEC.md (LOCKED)
+See: .claude/SMOKE_TEST_PRINCIPLE.md (LOCKED)
 Audit: scripts/data_integrity_audit.sh
 Rule: ANY 🔴 in audit → PHASE TRANSITION BLOCKED
 
@@ -321,6 +336,11 @@ Phase transition latency gates:
 - Before SHADOW: E2E ≤ 1000ms (p95)
 - Before SIM:    E2E ≤ 500ms (p95), #L1 + #L2 resolved
 - Before LIVE:   E2E ≤ 300ms (p95), all #L1-#L4 resolved, 7-day clean SIM
+
+Phase transition smoke gates (§6.8):
+- Before SHADOW: dashboard loads, API calls succeed, no console errors
+- Before SIM:    24h soak E2E pipeline with no error spikes
+- Before LIVE:   7-day soak, zero hydration errors, zero auth failures
 
 ## COMMUNICATION
 

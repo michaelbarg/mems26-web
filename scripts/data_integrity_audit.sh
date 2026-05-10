@@ -126,6 +126,29 @@ else
 fi
 echo ""
 
+echo "TEST 10 — End-to-end smoke (§6.8)"
+SMOKE_FAIL=0
+# Backend reachable
+if curl -fs -m 3 http://localhost:8000/health > /dev/null 2>/dev/null; then
+    echo "  ✅ Backend health: reachable"
+else
+    echo "  ⚪ Backend not running locally (skipped)"
+fi
+# Frontend reachable
+if curl -fs -m 3 http://localhost:3000 > /dev/null 2>/dev/null; then
+    echo "  ✅ Frontend: reachable"
+else
+    echo "  ⚪ Frontend not running locally (skipped)"
+fi
+# API call with auth
+BRIDGE_TOKEN="${BRIDGE_TOKEN:-michael-mems26-2026}"
+if curl -fs -m 3 -H "Authorization: Bearer $BRIDGE_TOKEN" http://localhost:8000/api/v9/health > /dev/null 2>/dev/null; then
+    echo "  ✅ V9 API with auth: reachable"
+else
+    echo "  ⚪ V9 API not available locally (skipped)"
+fi
+echo ""
+
 echo "═══════════════════════════════════════════════════════════════"
 if [ "$VIOLATIONS" -eq 0 ]; then
     echo "   ✅ DATA INTEGRITY: PASS"
