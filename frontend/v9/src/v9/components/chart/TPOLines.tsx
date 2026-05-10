@@ -21,11 +21,11 @@ export function TPOLines({ chart, candleSeries }: Props) {
     });
     linesRef.current = [];
 
-    // POC line — dynamic, steps with price
+    // POC line — dynamic, yellow per spec Section 3.2
     if (currentPOC !== null) {
       const pocLine = candleSeries.createPriceLine({
         price: currentPOC,
-        color: '#79c0ff',
+        color: '#e3b341',
         lineWidth: 2,
         lineStyle: 0,
         axisLabelVisible: true,
@@ -34,11 +34,11 @@ export function TPOLines({ chart, candleSeries }: Props) {
       linesRef.current.push(pocLine);
     }
 
-    // VAH line — dynamic dashed
+    // VAH line — dynamic, green dashed per spec Section 3.2
     if (currentVAH !== null) {
       const vahLine = candleSeries.createPriceLine({
         price: currentVAH,
-        color: '#79c0ff',
+        color: '#56d364',
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,
@@ -47,11 +47,11 @@ export function TPOLines({ chart, candleSeries }: Props) {
       linesRef.current.push(vahLine);
     }
 
-    // VAL line — dynamic dashed
+    // VAL line — dynamic, red dashed per spec Section 3.2
     if (currentVAL !== null) {
       const valLine = candleSeries.createPriceLine({
         price: currentVAL,
-        color: '#79c0ff',
+        color: '#f85149',
         lineWidth: 1,
         lineStyle: 2,
         axisLabelVisible: true,

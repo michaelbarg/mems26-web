@@ -8,6 +8,7 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { WS_CHANNELS } from '../../lib/websocket';
 import { fetchBars5min, fetchTickReversalBars, fetchMarkers, fetchSignals, fetchTrades } from '../../lib/api';
 import { useTradeStore } from '../../stores/tradeStore';
+import { useSystemStore as useSystemStoreForSignals } from '../../stores/systemStore';
 import { TPOLines } from './TPOLines';
 import { StaticLevels } from './StaticLevels';
 import { RightSideLabels } from './RightSideLabels';
@@ -21,8 +22,11 @@ export function ChartArea() {
   const candleSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const activeChartType = useLayoutStore((s) => s.activeChartType);
   const { setBars5min, addBar5min, setLevels } = useMarketStore();
-  const { setMarkers, addMarker, setSignals } = useSystemStore();
+  const { setMarkers, addMarker, setSignals, addSignal } = useSystemStore();
   const setTrades = useTradeStore((s) => s.setTrades);
+  const addTrade = useTradeStore((s) => s.addTrade);
+  const updateTrade = useTradeStore((s) => s.updateTrade);
+  const setAccountStatus = useTradeStore((s) => s.setAccountStatus);
 
   // Initialize chart
   useEffect(() => {
@@ -141,6 +145,29 @@ export function ChartArea() {
   useWebSocket(WS_CHANNELS.MARKERS(4), handleMarker);
   useWebSocket(WS_CHANNELS.MARKERS(5), handleMarker);
   useWebSocket(WS_CHANNELS.MARKERS(6), handleMarker);
+
+  // WebSocket for trade events (spec Section 9)
+  useWebSocket(WS_CHANNELS.TRADES, useCallback((data: any) => {
+    if (data.event === 'update') {
+      updateTrade(data);
+    } else {
+      addTrade(data);
+    }
+  }, [addTrade, updateTrade]));
+
+  // WebSocket for account status (spec Section 9)
+  useWebSocket(WS_CHANNELS.ACCOUNT, useCallback((data: any) => {
+    setAccountStatus(data);
+  }, [setAccountStatus]));
+
+  // WebSocket for signals (all systems)
+  const handleSignal = useCallback((data: any) => { addSignal(data); }, [addSignal]);
+  useWebSocket('/ws/v9/signals/1', handleSignal);
+  useWebSocket('/ws/v9/signals/2', handleSignal);
+  useWebSocket('/ws/v9/signals/3', handleSignal);
+  useWebSocket('/ws/v9/signals/4', handleSignal);
+  useWebSocket('/ws/v9/signals/5', handleSignal);
+  useWebSocket('/ws/v9/signals/6', handleSignal);
 
   return (
     <div className="relative w-full h-full" style={{ background: 'var(--bg-primary)' }}>

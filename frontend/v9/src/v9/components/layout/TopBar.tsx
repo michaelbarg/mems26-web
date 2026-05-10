@@ -1,27 +1,67 @@
 'use client';
+import { useMemo } from 'react';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useTradeStore } from '../../stores/tradeStore';
 import { useMarketStore } from '../../stores/marketStore';
+import { useSystemStore } from '../../stores/systemStore';
 import Link from 'next/link';
 
 export function TopBar() {
   const { activeChartType, setActiveChartType, togglePanels, panelsCollapsed } = useLayoutStore();
   const accountStatus = useTradeStore((s) => s.accountStatus);
+  const trades = useTradeStore((s) => s.trades);
   const bars = useMarketStore((s) => s.bars5min);
   const lastBar = bars[bars.length - 1];
+  const allSignals = useSystemStore((s) => s.signals);
+
+  // Day Type from System 1 latest signal
+  const dayType = useMemo(() => {
+    const sys1 = allSignals.filter((s) => s.system_id === 1);
+    const latest = sys1[sys1.length - 1];
+    return (latest?.payload?.day_type as string) || '\u2014';
+  }, [allSignals]);
+
+  // Killzone from System 6 latest signal
+  const killzone = useMemo(() => {
+    const sys6 = allSignals.filter((s) => s.system_id === 6);
+    const latest = sys6[sys6.length - 1];
+    const zone = (latest?.payload?.session_phase as string) || '';
+    const gate = latest?.payload?.gate_open;
+    return { zone: zone || '\u2014', open: !!gate };
+  }, [allSignals]);
+
+  // PnL and trade counts by mode
+  const stats = useMemo(() => {
+    const shadowTrades = trades.filter((t) => t.mode === 'SHADOW');
+    const demoTrades = trades.filter((t) => t.mode === 'SIM');
+    const liveTrades = trades.filter((t) => t.mode === 'LIVE');
+    return {
+      shadowPnl: shadowTrades.reduce((s, t) => s + (t.pnl_usd ?? 0), 0),
+      demoPnl: demoTrades.reduce((s, t) => s + (t.pnl_usd ?? 0), 0),
+      livePnl: liveTrades.reduce((s, t) => s + (t.pnl_usd ?? 0), 0),
+      shadowCount: shadowTrades.length,
+      demoCount: demoTrades.length,
+      liveCount: liveTrades.length,
+    };
+  }, [trades]);
 
   return (
     <div
       className="h-[40px] flex items-center justify-between px-4 border-b shrink-0"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
     >
-      {/* Left: Logo + Chart Type */}
+      {/* Left: Symbol + Day Type + Killzone */}
       <div className="flex items-center gap-4">
-        <span className="font-bold text-sm tracking-wider" style={{ color: 'var(--sys1)' }}>
-          MEMS26
+        <span className="font-bold text-sm tracking-wider" style={{ color: '#58a6ff' }}>
+          MES
         </span>
-        <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>V9</span>
-        <div className="flex gap-1 ml-4">
+        <span className="text-xs font-medium" style={{ color: '#58a6ff' }}>
+          {dayType}
+        </span>
+        <span className="text-xs" style={{ color: killzone.open ? '#56d364' : '#f85149' }}>
+          {killzone.zone} {killzone.open ? 'OPEN' : 'CLOSED'}
+        </span>
+        <div className="flex gap-1 ml-2">
           <button
             onClick={() => setActiveChartType('5min')}
             className="px-2 py-0.5 rounded text-xs"
@@ -54,26 +94,44 @@ export function TopBar() {
             }}>
               {lastBar.c.toFixed(2)}
             </span>
-            <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>MES</span>
           </>
         )}
       </div>
 
-      {/* Right: Account + Nav */}
-      <div className="flex items-center gap-4">
-        {accountStatus && (
-          <div className="flex items-center gap-3 text-xs">
-            <span style={{ color: accountStatus.daily_pnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
-              P&L: ${accountStatus.daily_pnl.toFixed(0)}
-            </span>
-            <span style={{ color: 'var(--text-secondary)' }}>
-              Trades: {accountStatus.trade_count}
-            </span>
-            <span style={{ color: 'var(--text-secondary)' }}>
-              WR: {(accountStatus.win_rate * 100).toFixed(0)}%
-            </span>
-          </div>
-        )}
+      {/* Right: Mode PnL + Nav */}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 text-xs">
+          {accountStatus ? (
+            <>
+              <span style={{ color: accountStatus.daily_pnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                P&L: ${accountStatus.daily_pnl.toFixed(0)}
+              </span>
+              <span style={{ color: 'var(--text-secondary)' }}>
+                Trades: {accountStatus.trade_count}
+              </span>
+            </>
+          ) : (
+            <>
+              <span style={{ color: 'var(--text-muted)' }}>
+                SHADOW: {stats.shadowCount}t
+              </span>
+              <span style={{ color: stats.shadowPnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                ${stats.shadowPnl.toFixed(0)}
+              </span>
+              {stats.demoCount > 0 && (
+                <>
+                  <span style={{ color: 'var(--text-muted)' }}>|</span>
+                  <span style={{ color: 'var(--text-muted)' }}>
+                    DEMO: {stats.demoCount}t
+                  </span>
+                  <span style={{ color: stats.demoPnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                    ${stats.demoPnl.toFixed(0)}
+                  </span>
+                </>
+              )}
+            </>
+          )}
+        </div>
         <Link
           href="/trades"
           className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"

@@ -8,12 +8,14 @@ interface Props {
   candleSeries: ISeriesApi<'Candlestick'> | null;
 }
 
+// Colors per spec Section 3.4:
+// PDH/PDL = gray dashed, ONH/ONL = light blue dashed, Open = white dashed
 const LEVEL_CONFIGS = [
-  { key: 'pdh', label: 'PDH', color: '#f85149', style: 2 },
-  { key: 'pdl', label: 'PDL', color: '#f85149', style: 2 },
-  { key: 'onh', label: 'ONH', color: '#d2a8ff', style: 1 },
-  { key: 'onl', label: 'ONL', color: '#d2a8ff', style: 1 },
-  { key: 'openPrice', label: 'OPEN', color: '#fb950b', style: 0 },
+  { key: 'pdh', label: 'PDH', color: '#8b949e', style: 2 },
+  { key: 'pdl', label: 'PDL', color: '#8b949e', style: 2 },
+  { key: 'onh', label: 'ONH', color: '#79c0ff', style: 2 },
+  { key: 'onl', label: 'ONL', color: '#79c0ff', style: 2 },
+  { key: 'openPrice', label: 'OPEN', color: '#e6edf3', style: 2 },
 ] as const;
 
 export function StaticLevels({ chart, candleSeries }: Props) {

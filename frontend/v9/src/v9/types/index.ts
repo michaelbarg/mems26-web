@@ -28,7 +28,7 @@ export interface TickReversalBar {
   ask_vol: number | null;
   bid_vol: number | null;
   delta: number | null;
-  dir: number | null;
+  direction: number | null;
   footprint: Record<string, any> | null;
   cluster: Record<string, any> | null;
 }
@@ -170,12 +170,12 @@ export const SYSTEM_NAMES: Record<SystemId, string> = {
   6: 'Killzone',
 };
 
-export const SYSTEM_ROLES: Record<SystemId, 'firing' | 'observer' | 'data' | 'gate'> = {
+export const SYSTEM_ROLES: Record<SystemId, 'firing' | 'observer' | 'gate'> = {
   1: 'firing',
   2: 'firing',
   3: 'observer',
   4: 'firing',
-  5: 'data',
+  5: 'observer',
   6: 'gate',
 };
 

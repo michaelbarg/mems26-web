@@ -13,8 +13,8 @@ export function SystemPanelsBar() {
       style={{
         background: 'var(--bg-secondary)',
         borderColor: 'var(--border)',
-        height: '140px',
-        minHeight: '140px',
+        height: '120px',
+        minHeight: '120px',
       }}
     >
       <System1Panel />
