@@ -175,6 +175,16 @@ JSON field names (frontend MUST match):
     Sierra parser scans top of file only. Monolith generator (scripts/build_monolithic_cpp.sh)
     enforces this. IsNotEmpty() is not valid ACSIL — use time(nullptr) instead.
 
+19. SCID format is the authoritative tick source on Sierra Chart Mac.
+    No DLL modification needed — raw ticks (bid/ask classified at exchange)
+    are exported by Sierra natively to ~/SierraChart/Data/*.scid.
+    Future tick-based features should read SCID, not extend the DLL.
+
+20. ALWAYS investigate existing local data before designing new DLL features.
+    The "we need to add X to the DLL" assumption was wrong twice on this project.
+    First check: what does Sierra already export? 15-minute audit can save
+    days of unnecessary DLL work.
+
 ## PER-WINDOW CHECKLIST (before W*_DONE)
 
 1. Code compiles/lints clean
@@ -274,6 +284,13 @@ When no spec in Drive:
 🛠️ DLL v9.1.2 quarantined (Bug #11)
 [x] scripts/build_monolithic_cpp.sh created — monolith generator with verification
     Enforces SCDLLName in first 10 lines, checks IsNotEmpty/std::max, deploys with --deploy flag
+
+### Architectural Principles
+
+DATA SOURCE HIERARCHY (when adding new features):
+1. Read existing Sierra exports (SCID, DLY, JSON) → 15 min audit
+2. Compute in Python Bridge from existing data → preferred for new features
+3. Extend DLL → ONLY if computation infeasible in Python (latency, complexity)
 
 ## §18 — DATA INTEGRITY PRINCIPLE
 
