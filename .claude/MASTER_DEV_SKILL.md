@@ -272,6 +272,20 @@ When no spec in Drive:
 - WARN-S3 MEDIUM   → Phase 3.5 backlog
 - WARN-S4 LOW      → Don't even mention
 
+## §6.12 — INDEPENDENT VERIFICATION (LOCKED)
+
+See: .claude/INDEPENDENT_VERIFICATION.md (LOCKED)
+Drive: 1g27kZkDmzBDJ68jZV2HgNgCa5ML0AWfx6ZUwYAcMktw
+
+Workers CANNOT self-certify completion. Independent Verifier must:
+1. Read original spec (not Worker's summary)
+2. Verify every requirement present with evidence
+3. Check for regressions
+4. Only Verifier can set status=VERIFIED
+
+Workers say "submitted for verification", NOT "DONE".
+Triggered by: U1 Phase 7.1 false-positive DONE (2026-05-11).
+
 ## §6.8 — END-TO-END SMOKE TEST (LOCKED)
 
 See: .claude/SMOKE_TEST_PRINCIPLE.md (LOCKED)
