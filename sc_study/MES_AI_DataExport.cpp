@@ -1,5 +1,6 @@
-// MES_AI_DataExport.cpp — v9.0.0
+// MES_AI_DataExport.cpp — v9.1.0
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
+// REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
 //         + V9: Tick Reversal (15/12), Footprint, Volume Profile,
 //               Imbalance Flags, Stacked Imbalances, Cumulative Delta
@@ -35,8 +36,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.0.0";
-        sc.StudyDescription = "V9: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
+        sc.GraphName        = "MES AI Data Export v9.1.0";
+        sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
 
@@ -429,10 +430,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             fp_bars.push_back(v9_build_footprint_bar(sc, i, v9_imb_threshold));
         }
 
-        // Export 3: Footprint per bar
+        // Export 3: Footprint per bar — session-anchored cumulative delta
         float cum_delta = 0;
         for (int i = 0; i <= sc.Index; i++)
+        {
+            if (sc.BaseDateTimeIn[i].GetDate() < today) continue;
             cum_delta += sc.AskVolume[i] - sc.BidVolume[i];
+        }
         std::string fp_json = v9_footprint_to_json(fp_bars, cum_delta);
         v9_write_json(v9dir, "footprint.json", fp_json);
 

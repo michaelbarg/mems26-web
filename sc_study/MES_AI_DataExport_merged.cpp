@@ -1,5 +1,6 @@
-// MES_AI_DataExport.cpp — v9.0.0
+// MES_AI_DataExport.cpp — v9.1.0
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
+// REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
 //         + V9: Tick Reversal (15/12), Footprint, Volume Profile,
 //               Imbalance Flags, Stacked Imbalances, Cumulative Delta
@@ -28,7 +29,7 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.0.0";
+static const char* V9_VERSION = "v9.1.0";
 
 // ── Export directory ──
 static const char* V9_EXPORT_DIR = "C:\\SierraChart_Data\\v9_export\\";
@@ -1044,8 +1045,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.0.0";
-        sc.StudyDescription = "V9: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
+        sc.GraphName        = "MES AI Data Export v9.1.0";
+        sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
 
@@ -1409,11 +1410,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     if(f.is_open()){f<<j.str();f.close();}
 
     // ══════════════════════════════════════════════════════════════
-    // V9 EXPORTS — Only run on the LAST bar to avoid freezing SC
+    // V9 EXPORTS — REAL-TIME: run on every throttled iteration
+    // (W4 had "if last bar" guard here — REMOVED. The throttle
+    //  above already prevents excessive exports.)
     // ══════════════════════════════════════════════════════════════
-    if (sc.Index != sc.ArraySize - 1)
-        return;  // Skip V9 exports for historical bars — only compute on latest
-
     const char* v9dir = V9ExportPath.GetString();
     int v9_lookback = V9Lookback.GetInt();
     float v9_imb_threshold = 2.5f;
@@ -1441,11 +1441,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         for (int i = fp_start; i <= sc.Index; i++)
             fp_bars.push_back(v9_build_footprint_bar(sc, i, v9_imb_threshold));
 
-        // Cumulative delta — only last 200 bars, not entire chart
+        // Cumulative delta — session-anchored (resets each day)
         float cum_delta = 0;
-        int cd_start = v9_max_i(0, sc.Index - v9_lookback);
-        for (int i = cd_start; i <= sc.Index; i++)
+        for (int i = 0; i <= sc.Index; i++)
+        {
+            if (sc.BaseDateTimeIn[i].GetDate() < today) continue;
             cum_delta += sc.AskVolume[i] - sc.BidVolume[i];
+        }
 
         v9_write_json(v9dir, "footprint.json", v9_footprint_to_json(fp_bars, cum_delta));
         v9_write_json(v9dir, "volume_profile.json", v9_volume_profile_to_json(fp_bars, VAPercent.GetFloat()));

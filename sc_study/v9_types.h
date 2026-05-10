@@ -18,7 +18,7 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.0.0";
+static const char* V9_VERSION = "v9.1.0";
 
 // ── Export directory ──
 static const char* V9_EXPORT_DIR = "C:\\SierraChart_Data\\v9_export\\";

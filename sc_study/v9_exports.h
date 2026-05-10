@@ -169,16 +169,9 @@ inline FootprintBar v9_build_footprint_bar(
     if (steps < 1) steps = 1;
     if (steps > 200) steps = 200; // safety cap
 
-    // Try to use VolumeAtPriceForBars for per-level data
-    const s_VolumeAtPriceV2* vap = nullptr;
-    int vap_count = 0;
-
-    // Use sc.VolumeAtPriceForBars if available
-    unsigned int num_vap = 0;
-    const s_VolumeAtPriceV2* vap_array = nullptr;
-    if (sc.VolumeAtPriceForBars != nullptr) {
-        vap_array = sc.VolumeAtPriceForBars->GetVAPArrayAtBarIndex(bar_idx, &num_vap);
-    }
+    // Use ACSIL VolumeAtPriceForBars API (element-by-element — correct signature)
+    const s_VolumeAtPriceV2* p_vap = nullptr;
+    int has_vap = sc.VolumeAtPriceForBars->GetVAPElementAtIndex(bar_idx, 0, &p_vap);
 
     float max_level_vol = 0;
     int consecutive_buy_imb  = 0;
@@ -186,13 +179,14 @@ inline FootprintBar v9_build_footprint_bar(
     int max_buy_stack  = 0;
     int max_sell_stack = 0;
 
-    if (vap_array != nullptr && num_vap > 0) {
-        // Real VAP data available
-        for (unsigned int vi = 0; vi < num_vap; vi++) {
+    if (has_vap != 0 && p_vap != nullptr) {
+        // Real VAP data available — iterate all price levels
+        int vi = 0;
+        while (sc.VolumeAtPriceForBars->GetVAPElementAtIndex(bar_idx, vi, &p_vap) != 0 && p_vap != nullptr) {
             FootprintLevel lvl;
-            lvl.price   = vap_array[vi].PriceInTicks * tick;
-            lvl.ask_vol = (float)vap_array[vi].AskVolume;
-            lvl.bid_vol = (float)vap_array[vi].BidVolume;
+            lvl.price   = p_vap->PriceInTicks * tick;
+            lvl.ask_vol = (float)p_vap->AskVolume;
+            lvl.bid_vol = (float)p_vap->BidVolume;
             lvl.delta   = lvl.ask_vol - lvl.bid_vol;
 
             // Imbalance detection (250% = 2.5x)
@@ -223,6 +217,7 @@ inline FootprintBar v9_build_footprint_bar(
             }
 
             fp.levels.push_back(lvl);
+            vi++;
         }
     } else {
         // Fallback: distribute bar volume across price levels proportionally
@@ -507,7 +502,7 @@ inline std::string v9_stacked_imbalances_to_json(
 // ─────────────────────────────────────────────────────────────
 
 inline std::string v9_cumulative_delta_to_json(
-    SCStudyInterfaceRef sc, int lookback)
+    SCStudyInterfaceRef sc, int /*lookback — ignored, session-anchored now*/)
 {
     std::ostringstream j;
     j << std::fixed << std::setprecision(2);
@@ -516,25 +511,30 @@ inline std::string v9_cumulative_delta_to_json(
     json_str(j, "version", V9_VERSION);
     json_long(j, "export_ts", (long long)time(nullptr));
 
-    int start = v9_max_i(0, sc.Index - lookback);
-    float running = 0;
-    float session_delta = 0;
-    float peak = 0, trough = 0;
+    // Session-anchored: find first bar of today's session
     SCDateTime today = sc.BaseDateTimeIn[sc.Index].GetDate();
+    int session_start = 0;
+    for (int i = sc.Index; i >= 0; i--) {
+        if (sc.BaseDateTimeIn[i].GetDate() < today) {
+            session_start = i + 1;
+            break;
+        }
+    }
+
+    float running = 0;
+    float peak = 0, trough = 0;
 
     j << ",\"points\":[";
     bool first = true;
-    for (int i = start; i <= sc.Index; i++) {
+    for (int i = session_start; i <= sc.Index; i++) {
         float d = sc.AskVolume[i] - sc.BidVolume[i];
         running += d;
-        if (sc.BaseDateTimeIn[i].GetDate() == today)
-            session_delta += d;
 
         peak   = v9_max(peak, running);
         trough = v9_min(trough, running);
 
         // Only emit every 5th point to keep file small
-        if ((i - start) % 5 == 0 || i == sc.Index) {
+        if ((i - session_start) % 5 == 0 || i == sc.Index) {
             if (!first) j << ",";
             first = false;
             j << "{";
@@ -548,12 +548,12 @@ inline std::string v9_cumulative_delta_to_json(
     j << "]";
 
     json_float(j, "current_delta", running);
-    json_float(j, "session_delta", session_delta);
+    json_float(j, "session_delta", running);  // same as current — all session-anchored
     json_float(j, "peak", peak);
     json_float(j, "trough", trough);
 
     // Divergence: price up but delta down (or vice versa)
-    float price_change = sc.Close[sc.Index] - sc.Close[start];
+    float price_change = sc.Close[sc.Index] - sc.Close[session_start];
     bool divergence = (price_change > 0 && running < 0) || (price_change < 0 && running > 0);
     json_bool(j, "divergence", divergence);
     json_str(j, "trend",
