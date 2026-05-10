@@ -1,0 +1,139 @@
+system_id: 4
+system_name: woodies
+spec_title: MEMS26_WOODIES_SPEC_V1_DERIVED
+spec_drive_id: 1NtKDNZNVwWi8Dio_C-42Yj0c6DPFGEfnFSo3Vx4rp0k
+spec_version: V1.0
+manifest_last_synced: "2026-05-10"
+
+decision_tree_nodes:
+  - id: STUDY_COMPUTE
+    name: "Compute 11 CCI studies from bar data"
+    branches: [ALL_COMPUTED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_woodies_compliance.py::test_study_computation
+
+  - id: PATTERN_DETECT
+    name: "Detect 8 Woodies patterns (4 continuation + 4 reversal)"
+    branches: [ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, NONE]
+    status: PARTIAL
+    notes: "Pattern infrastructure exists, ALL_DETECTORS imported from patterns.py (not yet populated)"
+    test: tests/v9/compliance/test_woodies_compliance.py::test_pattern_detection
+
+  - id: CLASSIFY
+    name: "Classification — NO_SETUP / TACTICAL / STRATEGIC"
+    branches: [NO_SETUP, TACTICAL, STRATEGIC]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_woodies_compliance.py::test_classification
+
+  - id: TREND_STATE
+    name: "Trend State Logic — BLUE/RED/YELLOW/GRAY"
+    branches: [BLUE, RED, YELLOW, GRAY]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_woodies_compliance.py::test_trend_state
+
+output_fields:
+  - name: cci_14
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: cci_6_tcci
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: ema_34
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: lsma_value
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: lsma_above_price
+    type: bool
+    required: true
+    status: IMPLEMENTED
+
+  - name: swi_value
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: czi_value
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: trend_state
+    type: string
+    required: true
+    enum: [BLUE, RED, YELLOW, GRAY]
+    status: IMPLEMENTED
+
+  - name: predictor_next_cci
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: active_patterns
+    type: array
+    required: true
+    status: IMPLEMENTED
+
+  - name: classification
+    type: string
+    required: true
+    enum: [NO_SETUP, TACTICAL, STRATEGIC]
+    status: IMPLEMENTED
+
+  - name: direction
+    type: string
+    required: true
+    enum: [LONG, SHORT, NEUTRAL]
+    status: IMPLEMENTED
+
+studies:
+  - {id: S1, name: "CCI-14 (main)", field: cci_14, status: IMPLEMENTED}
+  - {id: S2, name: "CCI-6 / TCCI (turbo)", field: cci_6_tcci, status: IMPLEMENTED}
+  - {id: S3, name: "EMA-34", field: ema_34, status: IMPLEMENTED}
+  - {id: S4, name: "LSMA-25", field: lsma_value, status: IMPLEMENTED}
+  - {id: S5, name: "LSMA above price", field: lsma_above_price, status: IMPLEMENTED}
+  - {id: S6, name: "Sidewinder (SWI)", field: swi_value, status: IMPLEMENTED}
+  - {id: S7, name: "ChopZone (CZI)", field: czi_value, status: IMPLEMENTED}
+  - {id: S8, name: "Trend State", field: trend_state, status: IMPLEMENTED}
+  - {id: S9, name: "CCI Predictor", field: predictor_next_cci, status: IMPLEMENTED}
+  - {id: S10, name: "ZLR Detected", field: zlr_detected, status: MISSING, notes: "Not in WoodiesState output schema"}
+  - {id: S11, name: "ZLR Direction", field: zlr_direction, status: MISSING, notes: "Not in WoodiesState output schema"}
+
+patterns:
+  - {id: A1, name: ZLR, group: CONTINUATION, status: PARTIAL, notes: "Referenced but detector not populated"}
+  - {id: A2, name: TLB, group: CONTINUATION, status: PARTIAL}
+  - {id: A3, name: TT, group: CONTINUATION, status: PARTIAL}
+  - {id: A4, name: GB100, group: CONTINUATION, status: PARTIAL}
+  - {id: B1, name: VEGAS, group: REVERSAL, status: PARTIAL}
+  - {id: B2, name: GHOST, group: REVERSAL, status: PARTIAL}
+  - {id: B3, name: FAMIR, group: REVERSAL, status: PARTIAL}
+  - {id: B4, name: HTLB, group: REVERSAL, status: PARTIAL}
+
+anti_patterns:
+  - id: AP1
+    description: "MUST NOT depend on any other system's signals"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_woodies_compliance.py::test_AP1_independence
+
+  - id: AP2
+    description: "MUST NOT compute CCI internally — receives pre-computed from DLL"
+    status: PARTIAL
+    notes: "Python has cci_calc.py for testing/validation, but production uses DLL-computed values"
+    test: tests/v9/compliance/test_woodies_compliance.py::test_AP2_dll_source
+
+summary:
+  total_requirements: 24
+  implemented: 14
+  partial: 8
+  missing: 2
+  drift_pct: 20.8
+  notes: "8 patterns referenced but detectors pending, zlr_detected/zlr_direction not in output state"

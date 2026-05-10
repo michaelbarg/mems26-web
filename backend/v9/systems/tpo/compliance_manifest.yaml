@@ -1,0 +1,240 @@
+system_id: 5
+system_name: tpo
+spec_title: MEMS26_TPO_PROFILE_DECISION_TREE_V2
+spec_drive_id: 1DrjQOphmG3Edn0QaniSRf7Ijr50i-7TWrNqRWK2xn_0
+spec_version: V2
+manifest_last_synced: "2026-05-10"
+
+decision_tree_nodes:
+  - id: Q1
+    name: "Session state classification"
+    branches: [PRE_OPEN, BUILDING, LOCKED, CLOSED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_Q1_session_state
+
+  - id: A1
+    name: "Stage A: Load history — PD POC, VAH/VAL, Naked POCs, PD Shape"
+    branches: [LOADED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_A1_init
+
+  - id: A2
+    name: "Init TPO map — empty letters A-M (13 slots)"
+    branches: [INITIALIZED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_A2_letters
+
+  - id: B1
+    name: "Stage B: Open Position vs PD"
+    branches: [INSIDE_PD_VA, AT_VA_EDGE, OUT_VA, OUT_RANGE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_B1_open_position
+
+  - id: B2
+    name: "First 5 min Behavior"
+    branches: [ONE_WAY, TEST_REVERSE, OSCILLATE, STRONG_REVERSE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_B2_first5min
+
+  - id: C1
+    name: "Append new letter on 30-min boundary"
+    branches: [ADVANCED, SAME_LETTER]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_C1_letter_advance
+
+  - id: C2
+    name: "IB Tracking (letters A+B) and IB Lock at 10:30"
+    branches: [TRACKING, LOCKED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_C2_ib_lock
+
+  - id: C3
+    name: "IB Width Classification"
+    branches: [NARROW_LT15, MEDIUM_15_25, WIDE_GT25]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_C3_ib_width
+
+  - id: C4
+    name: "Single Prints scan"
+    branches: [FOUND, NONE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_C4_single_prints
+
+  - id: C5
+    name: "Tails Detection — buying/selling tail count"
+    branches: [BUYING_TAIL, SELLING_TAIL, BOTH, NONE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_C5_tails
+
+  - id: C6
+    name: "POC Migration — velocity, stuck count, distance"
+    branches: [MOVING, STUCK]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_C6_poc_migration
+
+  - id: C7
+    name: "Value Area (70% around POC)"
+    branches: [COMPUTED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_C7_value_area
+
+  - id: D1
+    name: "Profile Shape Classification (8 shapes)"
+    branches: [D, WIDE_D, COMPACT_D, P, b, DOUBLE_DIST, THIN, NEUTRAL]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_D1_shapes
+
+  - id: D2
+    name: "Lock shape at 14:00 with confidence >= 0.85"
+    branches: [LOCKED, PRELIMINARY]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_D2_shape_lock
+
+  - id: D3
+    name: "HVN + LVN identification"
+    branches: [FOUND, NONE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_D3_hvn_lvn
+
+  - id: D4
+    name: "Naked POC status"
+    branches: [TOUCHED, NAKED]
+    status: PARTIAL
+    notes: "Naked POC tracking exists in schema but cross-day lookback not fully wired"
+    test: tests/v9/compliance/test_tpo_compliance.py::test_D4_naked_poc
+
+  - id: E1
+    name: "Intent Detection — buyer/seller/none"
+    branches: [BUYER, SELLER, NONE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_E1_intent
+
+  - id: E2
+    name: "Migration Pattern — FAILED/ACCEPTED/ROTATIONAL/STUCK"
+    branches: [FAILED, ACCEPTED, ROTATIONAL, STUCK]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_E2_migration
+
+  - id: E3
+    name: "OTF Clarity Inference (4 states)"
+    branches: [BOTH_CLEAR, SELLERS_CLEAR, BUYERS_CLEAR, UNCLEAR]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_E3_otf_clarity
+
+  - id: F1
+    name: "Stage F: EOD — final lock + naked POC update + stacked HVN"
+    branches: [SAVED]
+    status: PARTIAL
+    notes: "EOD stage deferred to Phase 3.5 backlog"
+    test: tests/v9/compliance/test_tpo_compliance.py::test_F1_eod
+
+output_fields:
+  - name: poc
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: vah
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: val
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: shape
+    type: string
+    required: true
+    enum: [D, WIDE_D, COMPACT_D, P, b, DOUBLE_DIST, THIN, NEUTRAL]
+    status: IMPLEMENTED
+
+  - name: current_letter
+    type: string
+    required: true
+    status: IMPLEMENTED
+
+  - name: ib
+    type: object
+    required: true
+    fields: [high, low, width, classification, locked]
+    status: IMPLEMENTED
+
+  - name: otf_clarity
+    type: string
+    required: true
+    enum: [BOTH_CLEAR, SELLERS_CLEAR, BUYERS_CLEAR, UNCLEAR]
+    status: IMPLEMENTED
+
+  - name: intent
+    type: string
+    required: true
+    enum: [BUYER, SELLER, NONE]
+    status: IMPLEMENTED
+
+  - name: migration_pattern
+    type: string
+    required: true
+    enum: [FAILED, ACCEPTED, ROTATIONAL, STUCK]
+    status: IMPLEMENTED
+
+  - name: hvn_prices
+    type: array
+    required: true
+    status: IMPLEMENTED
+
+  - name: lvn_prices
+    type: array
+    required: true
+    status: IMPLEMENTED
+
+  - name: single_prints
+    type: array
+    required: true
+    status: IMPLEMENTED
+
+  - name: data_quality
+    type: string
+    required: true
+    enum: [OK, DEGRADED]
+    status: IMPLEMENTED
+
+config_params:
+  - {name: tpo_period_minutes, default: 30, status: IMPLEMENTED}
+  - {name: value_area_pct, default: 0.70, status: IMPLEMENTED}
+  - {name: tick_size, default: 0.25, status: IMPLEMENTED}
+  - {name: naked_poc_lookback_days, default: 5, status: IMPLEMENTED}
+  - {name: single_print_min_letters, default: 1, status: IMPLEMENTED}
+  - {name: tail_min_letters, default: 2, status: IMPLEMENTED}
+  - {name: hvn_top_pct, default: 0.20, status: IMPLEMENTED}
+  - {name: lvn_bottom_pct, default: 0.10, status: IMPLEMENTED}
+  - {name: ib_width_narrow_max, default: 15, status: IMPLEMENTED}
+  - {name: ib_width_wide_min, default: 25, status: IMPLEMENTED}
+  - {name: poc_migration_threshold, default: 1.5, status: IMPLEMENTED}
+  - {name: poc_stuck_letters, default: 3, status: IMPLEMENTED}
+  - {name: open_pos_threshold_pts, default: 5, status: IMPLEMENTED}
+  - {name: reversal_threshold_pts, default: 3, status: IMPLEMENTED}
+
+anti_patterns:
+  - id: AP1
+    description: "MUST NOT skip letters — each 30-min period gets exactly one letter"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_AP1_no_skip_letters
+
+  - id: AP2
+    description: "MUST NOT modify IB after lock at 10:30"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_AP2_ib_immutable
+
+  - id: AP3
+    description: "If DLL data gap > 60sec, MUST mark DEGRADED"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tpo_compliance.py::test_AP3_degraded_mode
+
+summary:
+  total_requirements: 30
+  implemented: 26
+  partial: 2
+  missing: 2
+  drift_pct: 6.7

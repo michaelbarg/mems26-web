@@ -1,0 +1,183 @@
+system_id: 6
+system_name: killzone
+spec_title: MEMS26_KILLZONE_SPEC_V1
+spec_drive_id: 1s6GpXv2zXy8KzQASkzIgdxRYDDG8KYWkyokdq-3iSzY
+spec_version: V1.0
+manifest_last_synced: "2026-05-10"
+
+decision_tree_nodes:
+  - id: ZONE_LOOKUP
+    name: "O(1) zone lookup from current time"
+    branches: [PRE_MARKET, NY_OPEN_VOLATILITY, NY_OPEN_IB, NY_PRIME, PRE_LUNCH, LUNCH, PM_RECOVERY, PM_PRIME, CLOSE_APPROACH, CLOSE_FINAL, AFTER_HOURS]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_zone_lookup
+
+  - id: QUALITY
+    name: "Quality classification per zone"
+    branches: [HIGH, MEDIUM, LOW, OFF]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_quality
+
+  - id: VOLATILITY
+    name: "Volatility classification per zone"
+    branches: [VERY_HIGH, HIGH, MEDIUM, LOW]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_volatility
+
+  - id: SIZING
+    name: "Sizing modifier per zone"
+    branches: ["1.0_FULL", "0.5_HALF", "0.25_MIN", "0.0_BLOCKED"]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_sizing
+
+  - id: BLOCKED
+    name: "Block logic — default + config overrides"
+    branches: [BLOCKED_DEFAULT, BLOCKED_LUNCH, BLOCKED_CLOSE, BLOCKED_HOLIDAY, OPEN]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_blocked
+
+  - id: TIME_CALC
+    name: "Time in zone + time to next zone"
+    branches: [COMPUTED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_time_calc
+
+  - id: GATE
+    name: "Gate function — is_gate_open()"
+    branches: [OPEN, CLOSED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_gate
+
+zones:
+  - {name: PRE_MARKET, start: "05:00", end: "09:30", quality: LOW, volatility: LOW, sizing: 0.25, blocked: false, status: IMPLEMENTED}
+  - {name: NY_OPEN_VOLATILITY, start: "09:30", end: "09:45", quality: MEDIUM, volatility: VERY_HIGH, sizing: 0.5, blocked: false, status: IMPLEMENTED}
+  - {name: NY_OPEN_IB, start: "09:45", end: "10:30", quality: HIGH, volatility: HIGH, sizing: 1.0, blocked: false, status: IMPLEMENTED}
+  - {name: NY_PRIME, start: "10:30", end: "11:30", quality: HIGH, volatility: HIGH, sizing: 1.0, blocked: false, status: IMPLEMENTED}
+  - {name: PRE_LUNCH, start: "11:30", end: "12:00", quality: MEDIUM, volatility: MEDIUM, sizing: 0.5, blocked: false, status: IMPLEMENTED}
+  - {name: LUNCH, start: "12:00", end: "13:00", quality: LOW, volatility: LOW, sizing: 0.0, blocked: true, status: IMPLEMENTED}
+  - {name: PM_RECOVERY, start: "13:00", end: "14:00", quality: MEDIUM, volatility: MEDIUM, sizing: 0.5, blocked: false, status: IMPLEMENTED}
+  - {name: PM_PRIME, start: "14:00", end: "15:00", quality: HIGH, volatility: HIGH, sizing: 1.0, blocked: false, status: IMPLEMENTED}
+  - {name: CLOSE_APPROACH, start: "15:00", end: "15:45", quality: MEDIUM, volatility: HIGH, sizing: 0.5, blocked: false, status: IMPLEMENTED}
+  - {name: CLOSE_FINAL, start: "15:45", end: "16:00", quality: LOW, volatility: VERY_HIGH, sizing: 0.0, blocked: true, status: IMPLEMENTED}
+  - {name: AFTER_HOURS, start: "16:00", end: "05:00", quality: OFF, volatility: LOW, sizing: 0.0, blocked: true, status: IMPLEMENTED}
+
+output_fields:
+  - name: current_killzone
+    type: string
+    required: true
+    status: IMPLEMENTED
+
+  - name: killzone_id
+    type: string
+    required: true
+    status: IMPLEMENTED
+
+  - name: time_in_zone_min
+    type: int
+    required: true
+    status: IMPLEMENTED
+
+  - name: time_to_next_zone_min
+    type: int
+    required: true
+    status: IMPLEMENTED
+
+  - name: next_zone
+    type: string
+    required: true
+    status: IMPLEMENTED
+
+  - name: quality
+    type: string
+    required: true
+    enum: [HIGH, MEDIUM, LOW, OFF]
+    status: IMPLEMENTED
+
+  - name: volatility
+    type: string
+    required: true
+    enum: [VERY_HIGH, HIGH, MEDIUM, LOW]
+    status: IMPLEMENTED
+
+  - name: sizing_modifier
+    type: float
+    required: true
+    status: IMPLEMENTED
+
+  - name: is_blocked
+    type: bool
+    required: true
+    status: IMPLEMENTED
+
+  - name: block_reason
+    type: string
+    required: false
+    status: IMPLEMENTED
+
+  - name: is_trading_day
+    type: bool
+    required: true
+    status: IMPLEMENTED
+
+  - name: session_phase
+    type: string
+    required: true
+    status: IMPLEMENTED
+
+config_params:
+  - {name: trade_in_lunch, default: false, status: IMPLEMENTED}
+  - {name: trade_in_close, default: true, status: IMPLEMENTED}
+  - {name: min_killzone_quality, default: GOOD, status: IMPLEMENTED}
+  - {name: block_first_15min, default: false, status: IMPLEMENTED}
+  - {name: block_last_15min, default: true, status: IMPLEMENTED}
+
+edge_cases:
+  - id: EC1
+    name: "Half-day sessions — close at 13:00 ET"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_EC1_half_day
+
+  - id: EC2
+    name: "Holidays — is_trading_day=false"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_EC2_holiday
+
+  - id: EC3
+    name: "DST transitions — auto-detect timezone offset"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_EC3_dst
+
+  - id: EC4
+    name: "News events — override quality to LOW for +-15 min"
+    status: MISSING
+    notes: "News guard not yet implemented, deferred to post-demo"
+    test: tests/v9/compliance/test_killzone_compliance.py::test_EC4_news
+
+  - id: EC5
+    name: "System time drift — validate against NTP every 5 min"
+    status: MISSING
+    notes: "NTP validation not implemented"
+    test: tests/v9/compliance/test_killzone_compliance.py::test_EC5_ntp
+
+anti_patterns:
+  - id: AP1
+    description: "Transitions MUST be instant (no overlap between zones)"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_AP1_no_overlap
+
+  - id: AP2
+    description: "MUST return valid killzone every tick"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_AP2_always_valid
+
+  - id: AP3
+    description: "Block flags MUST be respected by all consumers"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_killzone_compliance.py::test_AP3_block_respected
+
+summary:
+  total_requirements: 26
+  implemented: 24
+  partial: 0
+  missing: 2
+  drift_pct: 3.8

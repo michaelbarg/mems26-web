@@ -1,0 +1,230 @@
+system_id: 1
+system_name: day_type
+spec_title: MEMS26_DAY_TYPE_DECISION_TREE_V2
+spec_drive_id: 1Tx1sfVdebnTNS2Cv8MQpnBOXwCbVutmFyIZ-tJtYGuU
+spec_version: V2
+manifest_last_synced: "2026-05-10"
+
+decision_tree_nodes:
+  - id: Q1
+    name: "Day Type already LOCKED?"
+    branches: [YES_REEVAL, NO_STAGE_A]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_Q1_lock_check
+
+  - id: Q2
+    name: "Session time classification"
+    branches: [PRE_OPEN, OPENING_TRACKING, IB_LOCK]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_Q2_time_stages
+
+  - id: A1
+    name: "Pre-Open Context — load PD POC/VAH/VAL/High/Low, ON High/Low, PD Shape"
+    branches: [GAP_UP, GAP_DOWN, FLAT, ABOVE_PD, BELOW_PD, INSIDE_PD]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A1_preopen
+
+  - id: Q4
+    name: "ON Activity Bias"
+    branches: [BULLISH_ON, NEUTRAL_ON, BEARISH_ON]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A1_overnight_bias
+
+  - id: A2
+    name: "Opening Type Classifier (09:30-09:40)"
+    branches: [OD, OTD, ORR, OA_IN, OA_OUT, INDETERMINATE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A2_opening_types
+
+  - id: Q5
+    name: "A2.1 Open Position vs PD VA"
+    branches: [INSIDE_PD_VA, AT_VA_EDGE, OUT_VA, OUT_RANGE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A2_open_position
+
+  - id: Q6
+    name: "A2.2 First 5 min Pattern"
+    branches: [ONE_WAY, TEST_REVERSE, OSCILLATE, STRONG_REVERSE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A2_first5min
+
+  - id: Q7
+    name: "A2.3 Lock Opening Type at 09:40"
+    branches: [OD_95pct, OTD_85pct, ORR_50pct, OA_40pct, INDETERMINATE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A2_opening_lock
+
+  - id: A3
+    name: "IB Tracking (09:30-10:30)"
+    branches: [TRACKING, COMPLETE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A3_ib_tracking
+
+  - id: A4
+    name: "IB Lock and Width Classification"
+    branches: [NARROW_LT15, MEDIUM_15_25, WIDE_GT25]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_A4_ib_classification
+
+  - id: B1
+    name: "Initial Vote — Decision Matrix (Opening x IB -> Day Type)"
+    branches: [5x3_MATRIX_15_CELLS]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_B1_decision_matrix
+
+  - id: C1_POST_IB
+    name: "Post-IB Behavior (10:30-12:00)"
+    branches: [EXTEND_UP, EXTEND_DOWN, FAILED_EXTEND, COMPRESSED, DOUBLE_DIST]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_C1_postib_behavior
+
+  - id: C2_PROFILE_SHAPE
+    name: "Profile Shape Read (8 shapes)"
+    branches: [D, WIDE_D, COMP, P_b, DOUBLE, THIN, NEUTRAL]
+    status: PARTIAL
+    notes: "Profile shape boost implemented via behavior/range, not direct TPO shape mapping"
+    test: tests/v9/compliance/test_day_type_compliance.py::test_C2_profile_shapes
+
+  - id: D1
+    name: "Vote Update — re-score if conf_diff > 0.15"
+    branches: [SWITCH_TYPE, HOLD_TYPE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_D1_vote_update
+
+  - id: E1
+    name: "Lock Criteria (confidence >= 0.85 OR 2x same OR time >= 13:00)"
+    branches: [LOCKED_HIGH, LOCKED_LOW, PENDING]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_E1_lock_criteria
+
+  - id: E2
+    name: "Final Day Type Output (7 types)"
+    branches: [NORMAL, NORMAL_VARIATION, TREND_NORMAL, TREND_DD, NONTREND, NEUTRAL_CENTER, NEUTRAL_EXTREME]
+    status: PARTIAL
+    notes: "6 types implemented (Neutral_Center and Neutral_Extreme merged into Neutral)"
+    test: tests/v9/compliance/test_day_type_compliance.py::test_E2_day_types
+
+  - id: Q16
+    name: "Re-eval Triggers (5 triggers)"
+    branches: [NEWS_EVENT, EXTREME_MOVE_3ATR, FAILED_EXT_POST_LOCK, RANGE_EXCEEDED, PROFILE_SHAPE_CHANGE]
+    status: PARTIAL
+    notes: "Triggers 1 (News) and 5 (Profile Shape) not implemented; Triggers 2,3,4 implemented"
+    test: tests/v9/compliance/test_day_type_compliance.py::test_Q16_reeval_triggers
+
+output_fields:
+  - name: day_type
+    type: string
+    required: true
+    enum: [Trend_Normal, Trend_DD, Variation, Normal, Neutral, Nontrend, UNKNOWN]
+    status: IMPLEMENTED
+
+  - name: confidence
+    type: float
+    required: true
+    range: [0.0, 1.0]
+    status: IMPLEMENTED
+
+  - name: lock_state
+    type: string
+    required: true
+    enum: [PENDING, LOCKED, LOCKED_LOW_CONF]
+    status: IMPLEMENTED
+
+  - name: opening_type
+    type: string
+    required: true
+    enum: [OPEN_DRIVE, OPEN_TEST_DRIVE, OPEN_REJECTION_REVERSE, OPEN_AUCTION_IN, OPEN_AUCTION_OUT, UNKNOWN]
+    status: IMPLEMENTED
+
+  - name: ib_width
+    type: string
+    required: true
+    enum: [NARROW, MEDIUM, WIDE, UNKNOWN]
+    status: IMPLEMENTED
+
+  - name: behavior
+    type: string
+    required: true
+    enum: [TRENDING_UP, TRENDING_DOWN, FAILED_EXTENSION, COMPRESSED, DEVELOPING]
+    status: IMPLEMENTED
+
+  - name: playbook
+    type: object
+    required: false
+    fields: [day_type, strategy, sizing, time_stop_min, key_rules]
+    status: IMPLEMENTED
+
+  - name: stage
+    type: string
+    required: true
+    enum: [A1, A2, A3, A4, B1, B2, B3, B4, B5, B6, C1, C2, C3]
+    status: IMPLEMENTED
+
+  - name: vote_history
+    type: array
+    required: true
+    status: IMPLEMENTED
+
+  - name: pre_open
+    type: object
+    required: false
+    fields: [gap_size, gap_direction, location_vs_pd, overnight_bias]
+    status: IMPLEMENTED
+
+config_params:
+  - name: min_lock_confidence
+    default: 0.70
+    spec_default: 0.85
+    status: PARTIAL
+    notes: "Code uses 0.70, spec says 0.85"
+
+  - name: min_lock_time_minutes
+    default: 210
+    status: IMPLEMENTED
+
+  - name: re_eval_atr_multiplier
+    default: 3.0
+    status: IMPLEMENTED
+
+  - name: confidence_diff_threshold
+    default: 0.15
+    status: IMPLEMENTED
+
+  - name: enable_re_eval_news
+    default: true
+    status: MISSING
+    notes: "News trigger not implemented"
+
+  - name: enable_re_eval_shape
+    default: true
+    status: MISSING
+    notes: "Profile shape re-eval trigger not implemented"
+
+anti_patterns:
+  - id: AP1
+    description: "Day type MUST NOT change after LOCKED without re-eval trigger"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_AP1_no_change_after_lock
+
+  - id: AP2
+    description: "MUST NOT skip IB period (Stage A3)"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_AP2_no_skip_ib
+
+  - id: AP3
+    description: "MUST NOT produce a day type before IB lock"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_day_type_compliance.py::test_AP3_no_early_lock
+
+  - id: AP4
+    description: "Re-eval MUST halt new trades for 30 min"
+    status: PARTIAL
+    notes: "Re-eval unlocks but halt logic is in TradeManager, not in DayType engine"
+    test: tests/v9/compliance/test_day_type_compliance.py::test_AP4_reeval_halt
+
+summary:
+  total_requirements: 28
+  implemented: 21
+  partial: 5
+  missing: 2
+  drift_pct: 12.5

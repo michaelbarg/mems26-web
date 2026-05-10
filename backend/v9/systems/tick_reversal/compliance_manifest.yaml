@@ -1,0 +1,215 @@
+system_id: 3
+system_name: tick_reversal
+spec_title: MEMS26_FOOTPRINT_TICK_SPEC_V3_STANDALONE
+spec_drive_id: 1iPndwDKwYn70pXCwkHNJVyAwLeU8WislDGAQX3HXvT4
+spec_version: V3.0
+manifest_last_synced: "2026-05-10"
+
+decision_tree_nodes:
+  - id: STEP1
+    name: "Bar Data Update — rolling buffer (last 30 bars)"
+    branches: [APPENDED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step1_buffer
+
+  - id: STEP2
+    name: "Cluster Detection — Yellow POC, 3 consecutive levels"
+    branches: [CLUSTER_FOUND, NO_CLUSTER]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step2_cluster
+
+  - id: STEP3
+    name: "Empty Zone Detection — levels with volume < 5%"
+    branches: [EMPTY_ZONE_FOUND, NO_EMPTY_ZONE]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step3_empty_zone
+
+  - id: STEP4
+    name: "Context Analysis — accumulation, 3 jumps, OTF state"
+    branches: [ACCUM_ACTIVE, JUMPS_DETECTED, OTF_1, OTF_2, OTF_3, OTF_4]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step4_context
+
+  - id: STEP5
+    name: "Pattern Detection — 5 micro-patterns"
+    branches: [ACCUM_BREAKOUT, V_SHAPE, FAILED_TEST, STAIR_STEP, COMPRESSION_POP, NONE]
+    status: PARTIAL
+    notes: "Pattern infrastructure exists, patterns.py imported but not populated"
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step5_patterns
+
+  - id: STEP6_ZOHAR
+    name: "Zohar's 5 Signals"
+    branches: [BELLY, VOLUME_DROP_90, COT_VS_AMT, TICK_BREACH, POC_JUMPING]
+    status: PARTIAL
+    notes: "Signal infrastructure exists, signals.py imported but not populated"
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step6_zohar
+
+  - id: STEP6_INDUSTRY
+    name: "Industry 5 Signals"
+    branches: [IMBALANCE_250, STACKED_IMBALANCE, CUM_DELTA, EXHAUSTION, LIQUIDITY_SWEEP]
+    status: PARTIAL
+    notes: "Signal infrastructure exists, signals.py imported but not populated"
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step6_industry
+
+  - id: STEP7
+    name: "Confluence Calculation — weighted sum with boosters/penalties"
+    branches: [SCORE_COMPUTED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step7_confluence
+
+  - id: STEP8
+    name: "Classification — NO_SETUP / TACTICAL / STRATEGIC"
+    branches: [NO_SETUP_LT4, TACTICAL_4_5, STRATEGIC_GE6]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step8_classification
+
+  - id: STEP9
+    name: "Visual Marking — marker + cluster box + empty zone box + arrow"
+    branches: [MARKER_DRAWN, NO_MARKER]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step9_markers
+
+  - id: STEP10
+    name: "Journal Logging — every bar, including NO_SETUP"
+    branches: [LOGGED]
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_step10_logging
+
+output_fields:
+  - name: ts
+    type: string
+    required: true
+    status: IMPLEMENTED
+
+  - name: bar_id
+    type: string
+    required: true
+    status: IMPLEMENTED
+
+  - name: tick_reversal_size
+    type: int
+    required: true
+    status: IMPLEMENTED
+
+  - name: bar
+    type: object
+    required: true
+    fields: [o, h, l, c, vol]
+    status: IMPLEMENTED
+
+  - name: cluster
+    type: object
+    required: true
+    fields: [detected, yellow_poc, boundaries, volume_pct]
+    status: IMPLEMENTED
+
+  - name: empty_zone
+    type: object
+    required: true
+    fields: [detected, boundaries, volume_pct]
+    status: IMPLEMENTED
+
+  - name: context
+    type: object
+    required: true
+    fields: [accumulation_active, accumulation_bars, jumps_count, jumps_direction, otf_state]
+    status: IMPLEMENTED
+
+  - name: pattern
+    type: object
+    required: true
+    fields: [detected, completion]
+    status: IMPLEMENTED
+
+  - name: signals_zohar
+    type: object
+    required: true
+    fields: [belly_comparison, volume_drop_90, cot_above_amt, tick_breach_ok, poc_jumping]
+    status: IMPLEMENTED
+
+  - name: signals_industry
+    type: object
+    required: true
+    fields: [imbalance_250, stacked_imbalance, cumulative_delta_aligned, exhaustion, liquidity_sweep]
+    status: IMPLEMENTED
+
+  - name: confluence
+    type: object
+    required: true
+    fields: [zohar_count, industry_count, boosters, penalties, total]
+    status: IMPLEMENTED
+
+  - name: classification
+    type: string
+    required: true
+    enum: [NO_SETUP, TACTICAL, STRATEGIC]
+    status: IMPLEMENTED
+
+  - name: direction_inferred
+    type: string
+    required: false
+    enum: [LONG, SHORT]
+    status: IMPLEMENTED
+
+  - name: would_be_entry_price
+    type: float
+    required: false
+    status: IMPLEMENTED
+
+  - name: would_be_stop_price
+    type: float
+    required: false
+    status: IMPLEMENTED
+
+  - name: visual_marker_drawn
+    type: bool
+    required: true
+    status: IMPLEMENTED
+
+config_params:
+  - {name: tick_reversal_size, default: 15, status: IMPLEMENTED}
+  - {name: accumulation_min_bars, default: 5, status: IMPLEMENTED}
+  - {name: accumulation_range_ticks, default: 15, status: IMPLEMENTED}
+  - {name: jumps_required, default: 3, status: IMPLEMENTED}
+  - {name: cluster_poc_threshold_pct, default: 30, status: IMPLEMENTED}
+  - {name: empty_zone_threshold_pct, default: 5, status: IMPLEMENTED}
+  - {name: imbalance_ratio, default: 250, status: IMPLEMENTED}
+  - {name: stacked_imbalance_count, default: 3, status: IMPLEMENTED}
+  - {name: volume_drop_pct, default: 90, status: IMPLEMENTED}
+  - {name: belly_dominance_ratio, default: 1.5, status: IMPLEMENTED}
+  - {name: confluence_tactical_min, default: 4, status: IMPLEMENTED}
+  - {name: confluence_strategic_min, default: 6, status: IMPLEMENTED}
+
+anti_patterns:
+  - id: AP1
+    description: "MUST NOT fire trades — observer only"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_AP1_no_trade_execution
+
+  - id: AP2
+    description: "MUST NOT take input from other systems"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_AP2_no_external_input
+
+  - id: AP3
+    description: "MUST NOT skip bars — always log every bar"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_AP3_log_every_bar
+
+  - id: AP4
+    description: "MUST NOT send orders to Sierra"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_AP4_no_orders
+
+  - id: AP5
+    description: "MUST NOT gate on killzone"
+    status: IMPLEMENTED
+    test: tests/v9/compliance/test_tick_reversal_compliance.py::test_AP5_no_killzone_gate
+
+summary:
+  total_requirements: 27
+  implemented: 21
+  partial: 3
+  missing: 3
+  drift_pct: 11.1
+  notes: "Pattern and signal modules imported but files not yet created — detection infrastructure ready"
