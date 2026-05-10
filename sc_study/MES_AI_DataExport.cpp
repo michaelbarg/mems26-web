@@ -1,4 +1,4 @@
-// MES_AI_DataExport.cpp — v9.1.0
+// MES_AI_DataExport.cpp — v9.2.0 (VAP loop cap + MaintainVolumeAtPriceData off)
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
 // REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
@@ -36,7 +36,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.1.0";
+        sc.GraphName        = "MES AI Data Export v9.2.0";
         sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -76,7 +76,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         V9WoodiesHistory.Name = "V9 Woodies 30min History Bars";
         V9WoodiesHistory.SetInt(50);
 
-        sc.MaintainVolumeAtPriceData = 1;  // Required for footprint
+        // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
+        // (unbounded VAP storage per bar). Footprint export now uses fallback
+        // distribution path which is bounded and safe.
+        sc.MaintainVolumeAtPriceData = 0;
 
         return;
     }
@@ -164,7 +167,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         float bh=sc.High[i], bl=sc.Low[i], bv=sc.Volume[i];
         if (bh>SH) SH=bh; if (bl<SL) SL=bl; TV+=bv;
         int steps=(int)((bh-bl)/0.25f)+1; float vps=bv/steps;
-        for (float p=bl; p<=bh+0.001f; p+=0.25f) pvm[(int)(p*4)]+=vps;
+        int price_steps = 0;
+        const int PRICE_MAX_STEPS = 1000;  // v9.2.0 safety cap
+        for (float p=bl; p<=bh+0.001f && price_steps < PRICE_MAX_STEPS; p+=0.25f) {
+            pvm[(int)(p*4)]+=vps;
+            price_steps++;
+        }
     }
     float POC=cp, maxV=0;
     for (auto& kv:pvm) if (kv.second>maxV){maxV=kv.second; POC=kv.first/4.0f;}
@@ -429,6 +437,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     // ── Export 3+4+5: Footprint + Volume Profile + Imbalance Flags ──
     {
+        v9_footprint_reset_budget();  // v9.2.0: reset per-cycle memory budget
         int fp_start = v9_max_i(0, sc.Index - 30);  // Last 30 chart bars
         std::vector<FootprintBar> fp_bars;
         for (int i = fp_start; i <= sc.Index; i++)

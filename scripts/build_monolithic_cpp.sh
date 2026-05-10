@@ -37,27 +37,27 @@ VERSION=$(grep -o 'v9\.[0-9]\+\.[0-9]\+' "$SRCDIR/MES_AI_DataExport.cpp" | head 
     echo 'SCDLLName("MES_AI_DataExport")'
     echo ""
     echo "// ====== v9_types.h (inlined) ======"
-    grep -v '#pragma once\|#include "sierrachart.h"' "$SRCDIR/v9_types.h"
+    grep -v -E '#pragma once|#include "sierrachart.h"' "$SRCDIR/v9_types.h"
     echo ""
     echo "// ====== v9_exports.h (inlined) ======"
-    grep -v '#pragma once\|#include "sierrachart.h"\|#include "v9_types.h"' "$SRCDIR/v9_exports.h"
+    grep -v -E '#pragma once|#include "sierrachart.h"|#include "v9_types.h"' "$SRCDIR/v9_exports.h"
     echo ""
     echo "// ====== v9_woodies_export.h (inlined) ======"
-    grep -v '#pragma once\|#include "sierrachart.h"\|#include "v9_types.h"' "$SRCDIR/v9_woodies_export.h"
+    grep -v -E '#pragma once|#include "sierrachart.h"|#include "v9_types.h"|#include <cmath>' "$SRCDIR/v9_woodies_export.h"
     echo ""
     echo "// ====== ImbLevel struct (file scope — Bug #16 fix) ======"
     echo "struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };"
     echo ""
     echo "// ====== MES_AI_DataExport.cpp main function ======"
-    grep -v '#include "sierrachart.h"\|#include "v9_types.h"\|#include "v9_exports.h"\|#include "v9_woodies_export.h"\|^SCDLLName' "$SRCDIR/MES_AI_DataExport.cpp" | \
+    grep -v -E '#include "sierrachart.h"|#include "v9_types.h"|#include "v9_exports.h"|#include "v9_woodies_export.h"|^SCDLLName' "$SRCDIR/MES_AI_DataExport.cpp" | \
     sed 's/struct ImbLevel {[^}]*};//'
 } > "$OUTFILE"
 
 # ── Verification ──────────────────────────────────────────────
 LINES=$(wc -l < "$OUTFILE")
-SCDLL_COUNT=$(grep -c "SCDLLName" "$OUTFILE")
+SCDLL_COUNT=$(grep -c '^SCDLLName(' "$OUTFILE")
 SIERRA_COUNT=$(grep -c '#include "sierrachart.h"' "$OUTFILE")
-SCDLL_LINE=$(grep -n "SCDLLName" "$OUTFILE" | head -1 | cut -d: -f1)
+SCDLL_LINE=$(grep -n '^SCDLLName(' "$OUTFILE" | head -1 | cut -d: -f1)
 V920_COUNT=$(grep -c "v9.2" "$OUTFILE" || true)
 MAINTAIN_VAP=$(grep -c "MaintainVolumeAtPriceData" "$OUTFILE")
 ISNOTEMPTY=$(grep -c "IsNotEmpty" "$OUTFILE" || true)

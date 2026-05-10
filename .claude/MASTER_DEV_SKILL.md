@@ -262,11 +262,12 @@ When no spec in Drive:
 ## §17 — DATA INTEGRITY & GAP RESOLUTION
 
 ### Active Violations
-🔴 VIOLATION: Footprint VAP — DLL v9.2.0 has MaintainVolumeAtPriceData=0
-   Resolution: Worker VAP_PYTHON_RECOMPUTE
-   Blocks: SHADOW phase
+(none)
 
 ### Resolved (2026-05-10)
+✅ Footprint VAP — DLL v9.2.0 has MaintainVolumeAtPriceData=0 but Bridge
+   VAP_PYTHON_RECOMPUTE reads SCID ticks and recomputes real bid/ask split.
+   Verified 2026-05-10: bid=167 ask=458 (NOT identical). SHADOW unblocked.
 ✅ W5 confidence threshold 0.85 → 0.70 (commit 5dc2006)
 ✅ W5 Decision Matrix 4 cells fixed to V2 spec (commit 5dc2006)
 ✅ W5 config params now configurable via DayTypeConfig (commit 5dc2006)
