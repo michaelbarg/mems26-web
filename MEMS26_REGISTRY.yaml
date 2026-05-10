@@ -1,0 +1,1452 @@
+# MEMS26 V9 — Requirements Registry
+# Generated: 2026-05-10
+# Source: LOCKED Drive docs + compliance manifests + inventory gaps audit
+# Schema version: 1.0
+#
+# CATEGORIES:
+#   REQ-S-*       System decision trees, patterns, signals
+#   REQ-DATA-*    Data collection, snapshots, predictions
+#   REQ-ADMIN-*   Admin console, overrides
+#   REQ-UI-*      Dashboard layout, tabs, panels
+#   REQ-EXPLAIN-* Tooltips, narratives, post-mortems
+#   REQ-INFRA-*   DLL, Bridge, Backend, Render, latency
+#   REQ-GOVERN-*  Policies, principles, gates
+
+requirements:
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-S — SYSTEM DECISION TREES, PATTERNS, SIGNALS
+  # ═══════════════════════════════════════════════════════════════════
+
+  # --- System 1: Day Type ---
+  - id: REQ-S-001
+    name: "Day Type decision tree — 16 nodes (Q1-E2)"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/day_type/compliance_manifest.yaml"
+      section: "decision_tree_nodes"
+    status: IMPLEMENTED
+    owner_worker: "W5"
+    code_path: "backend/v9/systems/day_type/"
+    test_path: "tests/v9/compliance/test_day_type_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "21/28 implemented, 5 partial, 2 missing. Drift 12.5%"
+
+  - id: REQ-S-002
+    name: "Day Type output — 7 types + confidence + lock state"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/day_type/compliance_manifest.yaml"
+      section: "output_fields"
+    status: IMPLEMENTED
+    owner_worker: "W5"
+    code_path: "backend/v9/systems/day_type/"
+    test_path: "tests/v9/compliance/test_day_type_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "All output fields implemented. E2 has 6 types (Neutral merged)"
+
+  - id: REQ-S-003
+    name: "Day Type profile shape read (8 shapes via TPO)"
+    category: SYSTEM
+    severity: MEDIUM
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/day_type/compliance_manifest.yaml"
+      section: "decision_tree_nodes.C2_PROFILE_SHAPE"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/day_type/"
+    test_path: "tests/v9/compliance/test_day_type_compliance.py::test_C2_profile_shapes"
+    last_verified: null
+    notes: "PARTIAL — boost via behavior/range, not direct TPO shape mapping"
+
+  - id: REQ-S-004
+    name: "Day Type re-eval triggers — news event + profile shape change"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/day_type/compliance_manifest.yaml"
+      section: "decision_tree_nodes.Q16"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/day_type/"
+    test_path: "tests/v9/compliance/test_day_type_compliance.py::test_Q16_reeval_triggers"
+    last_verified: null
+    notes: "Triggers 1 (News) and 5 (Profile Shape) MISSING; 2,3,4 implemented"
+
+  - id: REQ-S-005
+    name: "Day Type anti-patterns — 4 constraints (AP1-AP4)"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/day_type/compliance_manifest.yaml"
+      section: "anti_patterns"
+    status: IMPLEMENTED
+    owner_worker: "W5"
+    code_path: "backend/v9/systems/day_type/"
+    test_path: "tests/v9/compliance/test_day_type_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "AP4 PARTIAL — halt logic in TradeManager not DayType engine"
+
+  # --- System 2: 5-min Chart ---
+  - id: REQ-S-010
+    name: "5-min chart decision tree — 10 steps (STEP1-STEP10)"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/chart_5min/compliance_manifest.yaml"
+      section: "decision_tree_nodes"
+    status: IMPLEMENTED
+    owner_worker: "W6"
+    code_path: "backend/v9/systems/chart_5min/"
+    test_path: "tests/v9/compliance/test_chart_5min_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "STEP5+STEP6 PARTIAL — pattern detection stubs. Drift 23.4%"
+
+  - id: REQ-S-011
+    name: "5-min OFA patterns (A1-A4) — 4 patterns detection"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/chart_5min/compliance_manifest.yaml"
+      section: "pattern_library A group"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/chart_5min/patterns.py"
+    test_path: "tests/v9/compliance/test_chart_5min_compliance.py::test_step5_ofa_patterns"
+    last_verified: null
+    notes: "SHADOW BLOCKER — schema exists, detection logic not populated"
+
+  - id: REQ-S-012
+    name: "5-min geometric patterns (B1-B4) — 4 patterns detection"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/chart_5min/compliance_manifest.yaml"
+      section: "pattern_library B group"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/chart_5min/patterns.py"
+    test_path: "tests/v9/compliance/test_chart_5min_compliance.py::test_step6_chart_patterns"
+    last_verified: null
+    notes: "SHADOW BLOCKER — schema exists, detection logic not populated"
+
+  - id: REQ-S-013
+    name: "5-min complex patterns (C1-C4) — 4 patterns detection"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/chart_5min/compliance_manifest.yaml"
+      section: "pattern_library C group"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/chart_5min/patterns.py"
+    test_path: "tests/v9/compliance/test_chart_5min_compliance.py::test_step6_chart_patterns"
+    last_verified: null
+    notes: "SHADOW BLOCKER — schema exists, detection logic not populated"
+
+  - id: REQ-S-014
+    name: "5-min trade management matrix — Day Type x Pattern"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/chart_5min/compliance_manifest.yaml"
+      section: "trade_management_matrix"
+    status: IMPLEMENTED
+    owner_worker: "W6"
+    code_path: "backend/v9/systems/chart_5min/"
+    test_path: "tests/v9/compliance/test_chart_5min_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "6 day-type rows implemented"
+
+  - id: REQ-S-015
+    name: "5-min anti-patterns — 4 constraints (AP1-AP4)"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/chart_5min/compliance_manifest.yaml"
+      section: "anti_patterns"
+    status: IMPLEMENTED
+    owner_worker: "W6"
+    code_path: "backend/v9/systems/chart_5min/"
+    test_path: "tests/v9/compliance/test_chart_5min_compliance.py"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  # --- System 3: Tick Reversal / Footprint ---
+  - id: REQ-S-020
+    name: "Tick reversal decision tree — 10 steps"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tick_reversal/compliance_manifest.yaml"
+      section: "decision_tree_nodes"
+    status: IMPLEMENTED
+    owner_worker: "W7"
+    code_path: "backend/v9/systems/tick_reversal/"
+    test_path: "tests/v9/compliance/test_tick_reversal_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "STEP5+STEP6 PARTIAL. Drift 11.1%"
+
+  - id: REQ-S-021
+    name: "Tick reversal micro-patterns — 5 patterns"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tick_reversal/compliance_manifest.yaml"
+      section: "decision_tree_nodes.STEP5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/tick_reversal/patterns.py"
+    test_path: "tests/v9/compliance/test_tick_reversal_compliance.py::test_step5_patterns"
+    last_verified: null
+    notes: "SHADOW BLOCKER — infrastructure exists, detection not populated"
+
+  - id: REQ-S-022
+    name: "Tick reversal Zohar's 5 signals"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tick_reversal/compliance_manifest.yaml"
+      section: "decision_tree_nodes.STEP6_ZOHAR"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/tick_reversal/signals.py"
+    test_path: "tests/v9/compliance/test_tick_reversal_compliance.py::test_step6_zohar"
+    last_verified: null
+    notes: "SHADOW BLOCKER — infrastructure exists, signal logic not populated"
+
+  - id: REQ-S-023
+    name: "Tick reversal Industry 5 signals"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tick_reversal/compliance_manifest.yaml"
+      section: "decision_tree_nodes.STEP6_INDUSTRY"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/tick_reversal/signals.py"
+    test_path: "tests/v9/compliance/test_tick_reversal_compliance.py::test_step6_industry"
+    last_verified: null
+    notes: "SHADOW BLOCKER — infrastructure exists, signal logic not populated"
+
+  - id: REQ-S-024
+    name: "Tick reversal anti-patterns — observer only, no orders"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tick_reversal/compliance_manifest.yaml"
+      section: "anti_patterns"
+    status: IMPLEMENTED
+    owner_worker: "W7"
+    code_path: "backend/v9/systems/tick_reversal/"
+    test_path: "tests/v9/compliance/test_tick_reversal_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "5 anti-patterns all IMPLEMENTED"
+
+  # --- System 4: Woodies CCI ---
+  - id: REQ-S-030
+    name: "Woodies 11 CCI studies computation"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/woodies/compliance_manifest.yaml"
+      section: "studies"
+    status: IMPLEMENTED
+    owner_worker: "W8"
+    code_path: "backend/v9/systems/woodies/"
+    test_path: "tests/v9/compliance/test_woodies_compliance.py::test_study_computation"
+    last_verified: "2026-05-10"
+    notes: "S10 (ZLR Detected) and S11 (ZLR Direction) MISSING from output schema"
+
+  - id: REQ-S-031
+    name: "Woodies 8 pattern detectors (ZLR/TLB/TT/GB100/VEGAS/GHOST/FAMIR/HTLB)"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/woodies/compliance_manifest.yaml"
+      section: "patterns"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/woodies/patterns.py"
+    test_path: "tests/v9/compliance/test_woodies_compliance.py::test_pattern_detection"
+    last_verified: null
+    notes: "SHADOW BLOCKER — all 8 PARTIAL, detectors not populated. Drift 20.8%"
+
+  - id: REQ-S-032
+    name: "Woodies trend state logic — BLUE/RED/YELLOW/GRAY"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/woodies/compliance_manifest.yaml"
+      section: "decision_tree_nodes.TREND_STATE"
+    status: IMPLEMENTED
+    owner_worker: "W8"
+    code_path: "backend/v9/systems/woodies/"
+    test_path: "tests/v9/compliance/test_woodies_compliance.py::test_trend_state"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  # --- System 5: TPO ---
+  - id: REQ-S-040
+    name: "TPO decision tree — 20 nodes (Q1-F1)"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tpo/compliance_manifest.yaml"
+      section: "decision_tree_nodes"
+    status: IMPLEMENTED
+    owner_worker: "W9"
+    code_path: "backend/v9/systems/tpo/"
+    test_path: "tests/v9/compliance/test_tpo_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "D4 (Naked POC) PARTIAL, F1 (EOD) PARTIAL. Drift 6.7%"
+
+  - id: REQ-S-041
+    name: "TPO profile shape classification (8 shapes)"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tpo/compliance_manifest.yaml"
+      section: "decision_tree_nodes.D1"
+    status: IMPLEMENTED
+    owner_worker: "W9"
+    code_path: "backend/v9/systems/tpo/"
+    test_path: "tests/v9/compliance/test_tpo_compliance.py::test_D1_shapes"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  - id: REQ-S-042
+    name: "TPO EOD stage — final lock + naked POC + stacked HVN"
+    category: SYSTEM
+    severity: MEDIUM
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tpo/compliance_manifest.yaml"
+      section: "decision_tree_nodes.F1"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/tpo/"
+    test_path: "tests/v9/compliance/test_tpo_compliance.py::test_F1_eod"
+    last_verified: null
+    notes: "Deferred to Phase 3.5 backlog"
+
+  - id: REQ-S-043
+    name: "TPO naked POC cross-day lookback"
+    category: SYSTEM
+    severity: MEDIUM
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/tpo/compliance_manifest.yaml"
+      section: "decision_tree_nodes.D4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/tpo/"
+    test_path: "tests/v9/compliance/test_tpo_compliance.py::test_D4_naked_poc"
+    last_verified: null
+    notes: "Deferred to Phase 3.5 backlog"
+
+  # --- System 6: Killzone ---
+  - id: REQ-S-050
+    name: "Killzone zone lookup + quality + sizing — 11 zones"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/killzone/compliance_manifest.yaml"
+      section: "decision_tree_nodes + zones"
+    status: IMPLEMENTED
+    owner_worker: "W10"
+    code_path: "backend/v9/systems/killzone/"
+    test_path: "tests/v9/compliance/test_killzone_compliance.py"
+    last_verified: "2026-05-10"
+    notes: "24/26 implemented. Drift 3.8%"
+
+  - id: REQ-S-051
+    name: "Killzone news guard — override quality +-15 min"
+    category: SYSTEM
+    severity: MEDIUM
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/killzone/compliance_manifest.yaml"
+      section: "edge_cases.EC4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/killzone/"
+    test_path: "tests/v9/compliance/test_killzone_compliance.py::test_EC4_news"
+    last_verified: null
+    notes: "Deferred post-demo"
+
+  - id: REQ-S-052
+    name: "Killzone NTP time validation every 5 min"
+    category: SYSTEM
+    severity: LOW
+    source:
+      type: local_file
+      doc_id: "backend/v9/systems/killzone/compliance_manifest.yaml"
+      section: "edge_cases.EC5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/systems/killzone/"
+    test_path: "tests/v9/compliance/test_killzone_compliance.py::test_EC5_ntp"
+    last_verified: null
+    notes: "Deferred post-demo"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-S — 3-MODE TRADING SYSTEM
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-S-060
+    name: "3-Mode trading — SHADOW parallel, DEMO/LIVE first-wins"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1F9KWXpSplBsPHhLu2erlMbHDQp4EmqmV4T00U9NYHyM"
+      section: "Sections 1-5"
+    status: IMPLEMENTED
+    owner_worker: "W13"
+    code_path: "backend/v9/services/trading_gateway/"
+    test_path: "tests/v9/services/"
+    last_verified: "2026-05-10"
+    notes: "TradingGateway with shadow/demo/live slots"
+
+  - id: REQ-S-061
+    name: "LIVE mode strict caps — $250/day, 5 trades, 2 contracts, <14:30 ET"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1F9KWXpSplBsPHhLu2erlMbHDQp4EmqmV4T00U9NYHyM"
+      section: "Section 5"
+    status: IMPLEMENTED
+    owner_worker: "W14"
+    code_path: "backend/v9/services/risk_validator/"
+    test_path: "tests/v9/services/"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  - id: REQ-S-062
+    name: "Dual-layer operation — SHADOW + DEMO independent layers"
+    category: SYSTEM
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1F9KWXpSplBsPHhLu2erlMbHDQp4EmqmV4T00U9NYHyM"
+      section: "Section 4"
+    status: IMPLEMENTED
+    owner_worker: "W13"
+    code_path: "backend/v9/services/trading_gateway/gateway.py"
+    test_path: "tests/v9/services/"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  - id: REQ-S-063
+    name: "Risk gating order — time > news > loss > trades > consecutive > margin > manual > slot"
+    category: SYSTEM
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1F9KWXpSplBsPHhLu2erlMbHDQp4EmqmV4T00U9NYHyM"
+      section: "Section 5 risk gating order"
+    status: IMPLEMENTED
+    owner_worker: "W14"
+    code_path: "backend/v9/services/risk_validator/"
+    test_path: "tests/v9/services/"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-DATA — DATA COLLECTION, SNAPSHOTS, PREDICTIONS
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-DATA-001
+    name: "Per-trade data logging (all modes) — 12 required fields"
+    category: DATA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1F9KWXpSplBsPHhLu2erlMbHDQp4EmqmV4T00U9NYHyM"
+      section: "Section 6"
+    status: IMPLEMENTED
+    owner_worker: "W11"
+    code_path: "backend/v9/services/trade_manager/"
+    test_path: "tests/v9/services/"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  - id: REQ-DATA-002
+    name: "cross_context — 6-system snapshot at every trade event"
+    category: DATA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "12wcayLIK0SyHFrG5GkXhwAs28x0mHHlEGLSVsqYsbb8"
+      section: "Section 2"
+    status: IN_PROGRESS
+    owner_worker: "W11"
+    code_path: "backend/v9/services/snapshot_service/snapshot.py"
+    test_path: "tests/v9/services/"
+    last_verified: null
+    notes: "Snapshot service exists. End-to-end validation pending (GAP D-1)"
+
+  - id: REQ-DATA-003
+    name: "cross_context per-system state schemas — 6 system snapshots"
+    category: DATA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12wcayLIK0SyHFrG5GkXhwAs28x0mHHlEGLSVsqYsbb8"
+      section: "Section 2.3"
+    status: IN_PROGRESS
+    owner_worker: "W11"
+    code_path: "backend/v9/services/snapshot_service/snapshot.py"
+    test_path: "tests/v9/services/"
+    last_verified: null
+    notes: ""
+
+  - id: REQ-DATA-004
+    name: "Predicted vs Actual — each system implements get_prediction()"
+    category: DATA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1aapYSPj3IV57Ft3b-KYAqi0Ynkr6ZrIx1Qqri3I5qXg"
+      section: "Section 4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP D-2 — each system needs prediction interface. Worker P4 needed"
+
+  - id: REQ-DATA-005
+    name: "Predicted vs Actual — outcome evaluation at trade close"
+    category: DATA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1aapYSPj3IV57Ft3b-KYAqi0Ynkr6ZrIx1Qqri3I5qXg"
+      section: "Section 5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Depends on REQ-DATA-004. TradeManager._evaluate_predictions() needed"
+
+  - id: REQ-DATA-006
+    name: "Predicted vs Actual — per-system prediction schemas (6 systems)"
+    category: DATA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1aapYSPj3IV57Ft3b-KYAqi0Ynkr6ZrIx1Qqri3I5qXg"
+      section: "Section 4 per-system"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "6 system-specific prediction field schemas"
+
+  - id: REQ-DATA-007
+    name: "Per-system PnL aggregation (SHADOW parallel)"
+    category: DATA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP D-3"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "/api/v9/system_performance/{system_id} endpoint needed"
+
+  - id: REQ-DATA-008
+    name: "Decision tree path logging — breadcrumb per classification"
+    category: DATA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP D-4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "tree_path array with input_values per node"
+
+  - id: REQ-DATA-009
+    name: "Setup history retention — building + decaying setups persisted"
+    category: DATA
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP D-5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "v9_setup_history table needed"
+
+  - id: REQ-DATA-010
+    name: "Pattern lifecycle events — building/forming/invalidating"
+    category: DATA
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP D-6"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "v9_pattern_lifecycle table needed"
+
+  - id: REQ-DATA-011
+    name: "EOD analysis — SHADOW vs DEMO comparison + slippage"
+    category: DATA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1F9KWXpSplBsPHhLu2erlMbHDQp4EmqmV4T00U9NYHyM"
+      section: "Section 6 EOD Analysis"
+    status: IMPLEMENTED
+    owner_worker: "W12"
+    code_path: "backend/v9/services/daily_quality_agent/"
+    test_path: "tests/v9/services/"
+    last_verified: "2026-05-10"
+    notes: ""
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-ADMIN — ADMIN CONSOLE, OVERRIDES
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-ADMIN-001
+    name: "Admin/Operator Console — spec browser + editor + notes + history"
+    category: ADMIN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP M-1"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "BIG GAP — entirely missing. Needs backend/v9/services/admin_console/ + /admin route"
+
+  - id: REQ-ADMIN-002
+    name: "Manual override controls — risk cap override for next trade"
+    category: ADMIN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP M-2"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Audit log required for who/when/why"
+
+  - id: REQ-ADMIN-003
+    name: "System enable/disable per phase — toggle without code change"
+    category: ADMIN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP M-3"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Per-system toggle for SHADOW/DEMO/LIVE"
+
+  - id: REQ-ADMIN-004
+    name: "Session journal / EOD review — daily reflection panel"
+    category: ADMIN
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP M-4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "What went right/wrong today + lesson tags"
+
+  - id: REQ-ADMIN-005
+    name: "Spec change diff viewer — alert when LOCKED spec updated"
+    category: ADMIN
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP M-5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Diff of yaml before/after + acknowledge button"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-UI — DASHBOARD LAYOUT, TABS, PANELS
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-UI-001
+    name: "Left tabs navigation — 9 tabs (Hebrew labels)"
+    category: UI
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 3"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-1 — LEFT TABS entirely missing"
+
+  - id: REQ-UI-002
+    name: "Chart volume time-axis alignment with candles"
+    category: UI
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 4 alignment rule"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-2 — volume X-axis not synced"
+
+  - id: REQ-UI-003
+    name: "Trade markers on candles — mode border + system fill + outcome icon"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 4 trade markers"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-3 — Phase 7.2"
+
+  - id: REQ-UI-004
+    name: "Active pattern overlay — visual region for building patterns"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 4 active pattern overlay"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-4 — Phase 7.2"
+
+  - id: REQ-UI-005
+    name: "Predicted vs Actual panel (TAB 9)"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 3 TAB 9"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-5 — depends on REQ-DATA-004/005"
+
+  - id: REQ-UI-006
+    name: "Per-system PnL tracker in Trade tab (SHADOW parallel)"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 3 TAB 1"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-6 — Phase 7.2"
+
+  - id: REQ-UI-007
+    name: "Remove obsolete formula UI (Weights: Vegas 30%...)"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 3 TAB 1 REMOVED"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-7 — formula rejected, must be removed"
+
+  - id: REQ-UI-008
+    name: "Mock Mode toggle — synthetic data for off-hours dev"
+    category: UI
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 9"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "GAP U-8 — Phase 7.4"
+
+  - id: REQ-UI-009
+    name: "100% browser zoom without overflow"
+    category: UI
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP U-9"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Currently requires 75% zoom"
+
+  - id: REQ-UI-010
+    name: "Bottom system bar — 6 panels with dot/mode/content per system"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 6"
+    status: IMPLEMENTED
+    owner_worker: "W10"
+    code_path: "frontend/v9/src/v9/components/panels/"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "Panels rendering live signal status"
+
+  - id: REQ-UI-011
+    name: "Right-side level badges — POC/VAH/VAL/PDH/PDL/ONH/ONL/OPEN"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 5"
+    status: IMPLEMENTED
+    owner_worker: "W10"
+    code_path: "frontend/v9/src/v9/components/chart/"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "Working as-is"
+
+  - id: REQ-UI-012
+    name: "Top bar — MES price, day type, session, mode, time"
+    category: UI
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 2"
+    status: IMPLEMENTED
+    owner_worker: "W10"
+    code_path: "frontend/v9/src/v9/components/layout/TopBar.tsx"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: ""
+
+  - id: REQ-UI-013
+    name: "Color scheme — system colors, mode colors, outcome colors"
+    category: UI
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 7"
+    status: IMPLEMENTED
+    owner_worker: "W10"
+    code_path: "frontend/v9/src/v9/"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: ""
+
+  - id: REQ-UI-014
+    name: "Chart interactions — click candle popup, drag zoom, resize"
+    category: UI
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "1saLdFQ_gqmcTCModM3RQZQ5Tt6mcBzN6pJ1_6fVEK58"
+      section: "Section 8"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Phase 7"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-EXPLAIN — TOOLTIPS, NARRATIVES, POST-MORTEMS
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-EXPLAIN-001
+    name: "Why this day type? — decision tree path highlight"
+    category: EXPLAIN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP E-1"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Depends on REQ-DATA-008 (decision path logging)"
+
+  - id: REQ-EXPLAIN-002
+    name: "Why setup blocked? — specific threshold/value per block reason"
+    category: EXPLAIN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP E-2"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Currently generic, needs specific score/value with target"
+
+  - id: REQ-EXPLAIN-003
+    name: "Per-indicator explanations (? button in Data tab)"
+    category: EXPLAIN
+    severity: MEDIUM
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP E-3"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "? button exists but content TBD"
+
+  - id: REQ-EXPLAIN-004
+    name: "Trade post-mortem — auto-generated narrative from cross_context"
+    category: EXPLAIN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP E-4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Depends on REQ-DATA-002 + REQ-DATA-004"
+
+  - id: REQ-EXPLAIN-005
+    name: "Pattern definitions glossary — diagrams per pattern"
+    category: EXPLAIN
+    severity: LOW
+    source:
+      type: drive_doc
+      doc_id: "12-42kSgfzSN7uHsnr2F8Iw1FE-SQwkn2CAZa0sziTAI"
+      section: "GAP E-5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: ""
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-INFRA — DLL, BRIDGE, BACKEND, RENDER, LATENCY
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-INFRA-001
+    name: "Latency L1 — Sierra export interval 3s -> 0.5s"
+    category: INFRA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 4 Violation #1"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Michael UI click in Sierra DLL Inputs In:2. Blocks SIM"
+
+  - id: REQ-INFRA-002
+    name: "Latency L2 — Bridge fsevents watcher (polling -> watchdog)"
+    category: INFRA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 4 Violation #2"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "bridge/json_bridge.py"
+    test_path: null
+    last_verified: null
+    notes: "Currently mtime polling every 2s. Blocks SIM"
+
+  - id: REQ-INFRA-003
+    name: "Latency L3 — Frontend WebSocket push (REST poll -> WS)"
+    category: INFRA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 4 Violation #3"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "frontend/v9/src/v9/lib/"
+    test_path: null
+    last_verified: null
+    notes: "Blocks SIM"
+
+  - id: REQ-INFRA-004
+    name: "Latency L4 — Bridge -> Backend persistent WS (HTTPS per cycle)"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 4 Violation #4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "bridge/json_bridge.py"
+    test_path: null
+    last_verified: null
+    notes: "~100ms TLS handshake per batch"
+
+  - id: REQ-INFRA-005
+    name: "E2E latency budget — SHADOW <=1000ms, SIM <=500ms, LIVE <=300ms"
+    category: INFRA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 3"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Current E2E ~6230ms. Target ~350ms"
+
+  - id: REQ-INFRA-006
+    name: "Latency measurement chain — T0-T5 timestamp instrumentation"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 6"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Phase 3.5 — backend instrumentation"
+
+  - id: REQ-INFRA-007
+    name: "DLL v9.2.0 deployed (memory safety caps)"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "V-Audit Findings"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "sc_study/"
+    test_path: null
+    last_verified: null
+    notes: "v9.1.2 quarantined. v9.2.0 not deployed to disk"
+
+  - id: REQ-INFRA-008
+    name: "WS auth token — append ?token= in frontend websocket.ts"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "VA-4"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "frontend/v9/src/v9/lib/"
+    test_path: null
+    last_verified: null
+    notes: "0% WS frontend connectivity"
+
+  - id: REQ-INFRA-009
+    name: "publish_event() on 5 POST routes (footprint/vol_profile/imbalance/stacked/delta)"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "VA-5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "backend/v9/"
+    test_path: null
+    last_verified: null
+    notes: ""
+
+  - id: REQ-INFRA-010
+    name: "Unify Redis protocol — Upstash REST vs redis:// pub/sub"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "VA-6"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Bridge uses Upstash REST, ws_manager expects redis://"
+
+  - id: REQ-INFRA-011
+    name: "Wire 3 missing WS channels (woodies, tpo, signals)"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "VA-7"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: ""
+
+  - id: REQ-INFRA-012
+    name: "Fix dir -> direction naming in DLL+WS+Bridge"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "VA-10"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "4 layers affected"
+
+  - id: REQ-INFRA-013
+    name: "5min.json + tpo.json data sources in Bridge from SCID"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "VA-9"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: "bridge/"
+    test_path: null
+    last_verified: null
+    notes: "Bridge streams exist but no DLL data source"
+
+  - id: REQ-INFRA-014
+    name: "DLL memory leak prevention — monolithic build pipeline"
+    category: INFRA
+    severity: CRITICAL
+    source:
+      type: local_file
+      doc_id: ".claude/MASTER_DEV_SKILL.md"
+      section: "MEMORY LEAK PATTERNS"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: "scripts/build_monolithic_cpp.sh"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "Monolith generator with verification. Sierra hit 123 GB — never again"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-INFRA — CREDENTIALS & SECURITY
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-INFRA-020
+    name: "Credentials access skill — .env + Keychain + SSH patterns"
+    category: INFRA
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1gJzthhg7WKNUWtDOphNtV8RhrsXP4b02ICZOr8FXty4"
+      section: "Sections 3-4"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: "scripts/credentials_self_test.sh"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "Self-test script exists and documented"
+
+  - id: REQ-INFRA-021
+    name: "Secret leak detection — token format regex + immediate actions"
+    category: INFRA
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1gJzthhg7WKNUWtDOphNtV8RhrsXP4b02ICZOr8FXty4"
+      section: "Section 8"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "Documented in SKILL. Enforcement via CC behavior"
+
+  # ═══════════════════════════════════════════════════════════════════
+  # REQ-GOVERN — POLICIES, PRINCIPLES, GATES
+  # ═══════════════════════════════════════════════════════════════════
+
+  - id: REQ-GOVERN-001
+    name: "Data Integrity Principle — 100% data quality non-negotiable"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1EXCgoE7XxcDzhtXxa3_QwEP7qLncWSLT9GsiY7q-KWQ"
+      section: "Sections 1-3"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: "scripts/data_integrity_audit.sh"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "LOCKED principle. Audit script exists"
+
+  - id: REQ-GOVERN-002
+    name: "Data Integrity phase transition checks — SHADOW/SIM/LIVE gates"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1EXCgoE7XxcDzhtXxa3_QwEP7qLncWSLT9GsiY7q-KWQ"
+      section: "Section 4"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: "scripts/data_integrity_audit.sh"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "Before SHADOW: all 6 systems verified; footprint real bid/ask"
+
+  - id: REQ-GOVERN-003
+    name: "Data Integrity detection checklist — grep for fallback/approximat/TBD"
+    category: GOVERN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1EXCgoE7XxcDzhtXxa3_QwEP7qLncWSLT9GsiY7q-KWQ"
+      section: "Section 6"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: "scripts/data_integrity_audit.sh"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: ""
+
+  - id: REQ-GOVERN-004
+    name: "Footprint VAP — real bid/ask split (not proportional)"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1EXCgoE7XxcDzhtXxa3_QwEP7qLncWSLT9GsiY7q-KWQ"
+      section: "Section 7 Violation #1"
+    status: VERIFIED
+    owner_worker: null
+    code_path: "bridge/"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "RESOLVED — VAP_PYTHON_RECOMPUTE reads SCID ticks. bid=167 ask=458"
+
+  - id: REQ-GOVERN-010
+    name: "Latency Optimization Principle — E2E <=500ms production"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 1"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Current E2E ~6230ms. LOCKED principle"
+
+  - id: REQ-GOVERN-011
+    name: "Latency phase transition gates — SHADOW/SIM/LIVE latency budgets"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1BT-JGAz-CRDlNTEiYprAwAYWn-sNcs9SRfO3Wyq9YEc"
+      section: "Section 5"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: ""
+
+  - id: REQ-GOVERN-020
+    name: "End-to-end smoke test principle — no DONE without browser test"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1Ldb_f-qgWJ8eB8WTq7VeGtojeETrs_v2zu5dQaTyPKM"
+      section: "Full document"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "LOCKED principle. Anti-pattern #22"
+
+  - id: REQ-GOVERN-021
+    name: "Smoke test per layer — frontend/backend/bridge/WS templates"
+    category: GOVERN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1Ldb_f-qgWJ8eB8WTq7VeGtojeETrs_v2zu5dQaTyPKM"
+      section: "Standard Smoke Tests Per Layer"
+    status: IMPLEMENTED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "Templates documented in LOCKED doc"
+
+  - id: REQ-GOVERN-030
+    name: "R3 Spec Compliance Validator — drift <15%/10%/5% per phase"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "12wcayLIK0SyHFrG5GkXhwAs28x0mHHlEGLSVsqYsbb8"
+      section: "Section 3"
+    status: IMPLEMENTED
+    owner_worker: "R3"
+    code_path: "scripts/spec_compliance_audit.sh"
+    test_path: "tests/v9/compliance/"
+    last_verified: "2026-05-10"
+    notes: "Current drift 26.3% > 15% SHADOW threshold. BLOCKED"
+
+  - id: REQ-GOVERN-031
+    name: "Per-system compliance manifest — 6 YAML files"
+    category: GOVERN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "12wcayLIK0SyHFrG5GkXhwAs28x0mHHlEGLSVsqYsbb8"
+      section: "Section 3.2"
+    status: IMPLEMENTED
+    owner_worker: "R3"
+    code_path: "backend/v9/systems/*/compliance_manifest.yaml"
+    test_path: null
+    last_verified: "2026-05-10"
+    notes: "All 6 manifests exist and synced"
+
+  - id: REQ-GOVERN-032
+    name: "Predicted vs Actual phase gates — get_prediction() for SHADOW"
+    category: GOVERN
+    severity: HIGH
+    source:
+      type: drive_doc
+      doc_id: "1aapYSPj3IV57Ft3b-KYAqi0Ynkr6ZrIx1Qqri3I5qXg"
+      section: "Section 7"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Before SHADOW: all 6 systems implement get_prediction()"
+
+  - id: REQ-GOVERN-033
+    name: "Smoke test phase gates — dashboard loads, no console errors"
+    category: GOVERN
+    severity: CRITICAL
+    source:
+      type: drive_doc
+      doc_id: "1Ldb_f-qgWJ8eB8WTq7VeGtojeETrs_v2zu5dQaTyPKM"
+      section: "Phase Transition Gates"
+    status: SPECIFIED
+    owner_worker: null
+    code_path: null
+    test_path: null
+    last_verified: null
+    notes: "Before SHADOW: browser loads + API + WS. Before LIVE: 7-day soak"
