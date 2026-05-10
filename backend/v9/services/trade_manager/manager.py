@@ -147,6 +147,9 @@ class TradeManager:
         machine = self._get_machine(trade)
         hit_ts = fill_ts or datetime.now(timezone.utc)
 
+        # Capture cross-system snapshot at target hit (per spec Section 2.2)
+        self._append_snapshot(trade, f"{target.lower()}_hit")
+
         if target == "T1":
             machine.transition(TradeState.PARTIAL)
             trade.state = TradeState.PARTIAL.value
@@ -182,6 +185,9 @@ class TradeManager:
 
         hit_ts = fill_ts or datetime.now(timezone.utc)
 
+        # Capture cross-system snapshot at stop hit (per spec Section 2.2)
+        self._append_snapshot(trade, "stop_hit")
+
         machine.transition(TradeState.CLOSED)
         trade.state = TradeState.CLOSED.value
         trade.stop_hit_ts = hit_ts
@@ -205,6 +211,9 @@ class TradeManager:
         """Manual close — any active state -> CLOSED."""
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
+
+        # Capture cross-system snapshot at close (per spec Section 2.2)
+        self._append_snapshot(trade, "close")
 
         machine.transition(TradeState.CLOSED)
         trade.state = TradeState.CLOSED.value
@@ -233,6 +242,24 @@ class TradeManager:
         return query.all()
 
     # ── internal helpers ──────────────────────────────────────────
+
+    def _append_snapshot(self, trade: V9Trade, trigger: str) -> None:
+        """Append a cross-system snapshot to trade.cross_context.
+
+        Per spec V1.1 Section 2.2: cross_context is an ARRAY of snapshots,
+        one per trade event (entry, t1_hit, t2_hit, t3_hit, stop_hit, close).
+        """
+        if self._snapshot is None:
+            return
+        snapshot = self._snapshot.capture(
+            trigger, firing_system_id=trade.firing_system,
+        )
+        if trade.cross_context is None:
+            trade.cross_context = []
+        # SQLAlchemy JSON mutation: must reassign to flag dirty
+        ctx = list(trade.cross_context)
+        ctx.append(snapshot)
+        trade.cross_context = ctx
 
     def _get_trade(self, trade_id: int) -> V9Trade:
         trade = self._db.query(V9Trade).filter(V9Trade.id == trade_id).first()
