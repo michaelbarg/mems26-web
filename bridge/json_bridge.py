@@ -58,15 +58,20 @@ def main():
             active = sum(1 for s in instances if s.last_update_ts > 0)
             newest = max((s.last_update_ts for s in instances), default=0)
             age = int(now - newest) if newest > 0 else -1
+            total_pushes = sum(s.push_count for s in instances)
+            total_errors = sum(s.error_count for s in instances)
             if age < 0:
-                logger.info("[heartbeat] alive — no data received yet, streams=%d/%d",
-                            active, len(instances))
+                logger.info("[heartbeat] alive — no data received yet, streams=%d/%d "
+                            "total_pushes=%d total_errors=%d",
+                            active, len(instances), total_pushes, total_errors)
             elif age > 300:
                 logger.info("[heartbeat] alive — market likely closed (data %ds old), "
-                            "streams=%d/%d", age, active, len(instances))
+                            "streams=%d/%d total_pushes=%d total_errors=%d",
+                            age, active, len(instances), total_pushes, total_errors)
             else:
-                logger.info("[heartbeat] alive — newest_data_age=%ds streams=%d/%d",
-                            age, active, len(instances))
+                logger.info("[heartbeat] alive — newest_data_age=%ds streams=%d/%d "
+                            "total_pushes=%d total_errors=%d",
+                            age, active, len(instances), total_pushes, total_errors)
 
     hb_thread = threading.Thread(target=heartbeat_loop, name="heartbeat", daemon=True)
     hb_thread.start()
@@ -84,10 +89,9 @@ def main():
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
 
-    # Keep main thread alive
-    for t in threads:
-        while t.is_alive():
-            t.join(timeout=1)
+    # Keep main thread alive — monitor ALL threads uniformly
+    while any(t.is_alive() for t in threads):
+        time.sleep(1)
 
 
 if __name__ == "__main__":
