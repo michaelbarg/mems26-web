@@ -12,6 +12,7 @@ from .trade_log import V9TradeManagementLog
 from .daily_quality import V9DailyQualityReport
 from .system_configs import V9SystemConfig
 from .account_status import V9AccountStatus
+from .audit import AuditEvent
 
 __all__ = [
     "V9Bar5Min",
@@ -26,4 +27,5 @@ __all__ = [
     "V9DailyQualityReport",
     "V9SystemConfig",
     "V9AccountStatus",
+    "AuditEvent",
 ]
