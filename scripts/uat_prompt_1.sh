@@ -172,11 +172,12 @@ fi
 # CHECK 11: Unit tests pass
 # ═══════════════════════════════════════════════════════════════
 echo "  Running pytest tests/event_bus/ ..."
-if python3 -m pytest "$REPO_ROOT/tests/event_bus/" -q --tb=no 2>/dev/null | tail -1 | grep -q "passed"; then
-    test_line=$(python3 -m pytest "$REPO_ROOT/tests/event_bus/" -q --tb=no 2>/dev/null | tail -1)
+test_output=$(cd "$REPO_ROOT" && python3 -m pytest tests/event_bus/ -q --tb=no 2>&1) || true
+test_line=$(echo "$test_output" | grep -E "[0-9]+ passed" | tail -1)
+if [[ "$test_line" == *"passed"* ]] && [[ "$test_line" != *"failed"* ]]; then
     report_result "unit_tests_event_bus" "all_pass" "$test_line" "PASS"
 else
-    report_result "unit_tests_event_bus" "all_pass" "failures" "FAIL"
+    report_result "unit_tests_event_bus" "all_pass" "${test_line:-no_output}" "FAIL"
 fi
 
 # ═══════════════════════════════════════════════════════════════
