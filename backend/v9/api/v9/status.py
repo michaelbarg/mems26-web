@@ -199,9 +199,34 @@ def _check_day_type() -> dict:
         return {"running": False, "current_type": None}
 
 
+def _check_hydration() -> dict:
+    """Check hydration status for bar ingestion + systems (D-077)."""
+    result = {"bar_ingestion": {"running": False, "bars_in_db": 0}, "systems": {}}
+    try:
+        from backend.v9.services.bar_ingestion import bar_ingestion_service
+        result["bar_ingestion"] = {
+            "running": bar_ingestion_service.is_running,
+            "bars_in_db": bar_ingestion_service.bars_in_db,
+        }
+    except Exception:
+        pass
+    try:
+        from backend.v9.systems.day_type.hydration import hydrate_day_type
+        hr = hydrate_day_type()
+        result["systems"]["day_type"] = {
+            "hydrated": hr.success,
+            "reached_state": hr.reached_state,
+            "confidence": hr.confidence,
+            "notes": hr.notes,
+        }
+    except Exception:
+        result["systems"]["day_type"] = {"hydrated": False, "error": "import_failed"}
+    return result
+
+
 @router.get("/api/v9/status")
 def system_status():
-    """7-layer health dashboard for MEMS26."""
+    """8-layer health dashboard for MEMS26."""
     return {
         "ts": time.time(),
         "sierra": _check_sierra(),
@@ -211,4 +236,5 @@ def system_status():
         "frontend": _check_frontend(),
         "audit": _check_audit(),
         "day_type": _check_day_type(),
+        "hydration": _check_hydration(),
     }
