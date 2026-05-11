@@ -43,7 +43,7 @@ class LivePriceStream:
         self._file_changed = threading.Event()
         self._observer: Optional[object] = None
         self._last_mtime: float = 0
-        self._last_ts: Optional[int] = None
+        self._last_sig = None  # (mtime, price) dedup tuple
         self._correlation_id: str = ""
         # Public metrics (compatible with bridge heartbeat)
         self.last_update_ts: float = 0
@@ -141,22 +141,23 @@ class LivePriceStream:
         if data is None:
             return
 
-        # Dedup by ts field
-        ts = data.get("ts")
-        if ts and ts == self._last_ts:
+        # Dedup on (mtime, price) — NOT ts alone.
+        # DLL ts is time(nullptr) = seconds resolution, so multiple
+        # 200ms ticks share the same ts. mtime is sub-second.
+        price = data.get("price")
+        sig = (mtime, price)
+        if sig == self._last_sig:
             return
+        self._last_sig = sig
 
         self._last_mtime = mtime
-        self._last_ts = ts
         self.last_update_ts = time.time()
         self.push_count += 1
         self.last_push_ts = time.time()
 
-        # Publish to Event Bus
         self._publish_to_event_bus(data)
 
-        # Log every N ticks
-        if self.push_count % LOG_EVERY_N == 0:
+        if self.push_count % 20 == 0:
             logger.info(
                 "[%s] %d ticks pushed — price=%.2f corr=%s",
                 self.name, self.push_count,
