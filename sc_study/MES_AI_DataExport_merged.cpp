@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.2.0 monolith for Sierra Chart remote build
-// Generated 2026-05-10 17:59:28 by build_monolithic_cpp.sh
+// Generated 2026-05-11 11:12:22 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -1084,6 +1084,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef V9TickRev12       = sc.Input[6];
     SCInputRef V9Lookback        = sc.Input[7];
     SCInputRef V9WoodiesHistory  = sc.Input[8];
+    SCInputRef LivePriceEnabled  = sc.Input[9];
+    SCInputRef LivePriceIntervalMs = sc.Input[10];
 
     if (sc.SetDefaults)
     {
@@ -1127,6 +1129,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         V9WoodiesHistory.Name = "V9 Woodies 30min History Bars";
         V9WoodiesHistory.SetInt(50);
 
+        LivePriceEnabled.Name = "Live Price Export (1=on)";
+        LivePriceEnabled.SetInt(1);
+
+        LivePriceIntervalMs.Name = "Live Price Interval (ms)";
+        LivePriceIntervalMs.SetInt(200);
+
         // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
         // (unbounded VAP storage per bar). Footprint export now uses fallback
         // distribution path which is bounded and safe.
@@ -1158,6 +1166,36 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sum_v  += v;
     }
     VWAP[idx] = (sum_v > 0) ? sum_pv / sum_v : cp;
+
+    // ── Live Price Export (fast path — own throttle) ─────────
+    // Runs every LivePriceIntervalMs (default 200ms), separate from
+    // the main 3-second export. Minimal JSON, no heap allocs.
+    if (LivePriceEnabled.GetInt() == 1)
+    {
+        static long long lastLivePriceMs = 0;
+        long long nowMs = (long long)time(nullptr) * 1000;
+        // Approximate ms from time_t (1-second resolution).
+        // For sub-second: use sc.CurrentSystemDateTime if available.
+        int intervalMs = LivePriceIntervalMs.GetInt();
+        if (intervalMs < 50) intervalMs = 50;  // safety floor
+        if ((nowMs - lastLivePriceMs) >= intervalMs || lastLivePriceMs == 0)
+        {
+            lastLivePriceMs = nowMs;
+            const char* v9dir = V9ExportPath.GetString();
+            // Build minimal JSON inline — no ostringstream, no alloc
+            char buf[256];
+            int len = snprintf(buf, sizeof(buf),
+                "{\"price\":%.2f,\"ts\":%lld,\"bid\":%.2f,\"ask\":%.2f,\"vol\":%.0f}\n",
+                cp, (long long)time(nullptr),
+                sc.Bid, sc.Ask, sc.Volume[idx]);
+            if (len > 0 && len < (int)sizeof(buf))
+            {
+                std::string path = std::string(v9dir) + "live_price.json";
+                std::ofstream f(path.c_str());
+                if (f.is_open()) { f.write(buf, len); f.close(); }
+            }
+        }
+    }
 
     // ══ THROTTLE (EARLY — before heavy computation) ══════════
     // CVD + VWAP subgraph writes above run every bar (required for
