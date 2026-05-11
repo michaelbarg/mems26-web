@@ -1,5 +1,6 @@
 """V9 API: Bar data endpoints — receives Bridge pushes for all bar types."""
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional, List, Dict
 from fastapi import APIRouter, Depends, Query, HTTPException
@@ -13,6 +14,27 @@ from backend.v9.api.v9.ws_manager import (
     publish_event, CHANNEL_BARS_5MIN, CHANNEL_BARS_TICK_REVERSAL,
     CHANNEL_BARS_WOODIES, CHANNEL_LEVELS,
 )
+
+logger = logging.getLogger(__name__)
+
+# EventDispatcher instance — set at startup by app initialization.
+# Module-level reference so all endpoint handlers can route bars.
+_event_dispatcher = None
+
+
+def set_event_dispatcher(dispatcher) -> None:
+    """Called once at startup to inject the EventDispatcher instance."""
+    global _event_dispatcher
+    _event_dispatcher = dispatcher
+
+
+def _dispatch(stream_name: str, bar_data: dict) -> None:
+    """Route a bar to EventDispatcher if available."""
+    if _event_dispatcher is not None:
+        try:
+            _event_dispatcher.on_bar_received(stream_name, bar_data)
+        except Exception:
+            logger.exception("[bars] dispatch to EventDispatcher failed for stream %s", stream_name)
 
 router = APIRouter(prefix="/api/v9/bars", tags=["v9-bars"])
 
@@ -130,6 +152,9 @@ def post_bars_5min(
         "last": {"o": bars[-1].o, "h": bars[-1].h, "l": bars[-1].l,
                  "c": bars[-1].c, "vol": bars[-1].vol} if bars else {},
     })
+    # Route last bar to EventDispatcher (5min bars derive from cumulative_delta)
+    if bars:
+        _dispatch("cumulative_delta", bars[-1].dict())
     return {"ok": True, "inserted": len(created)}
 
 
@@ -160,6 +185,10 @@ def post_tick_reversal(
     publish_event(CHANNEL_BARS_TICK_REVERSAL, {
         "count": created, "tick_count": tick_count,
     })
+    # Route last bar to EventDispatcher
+    if payload.bars:
+        stream = "tick_reversal_%d" % tick_count
+        _dispatch(stream, payload.bars[-1])
     return {"ok": True, "inserted": created, "tick_count": tick_count}
 
 
@@ -187,6 +216,9 @@ def post_footprint(
         db.add(row)
         created += 1
     db.commit()
+    # Route last bar to EventDispatcher
+    if payload.bars:
+        _dispatch("footprint", payload.bars[-1])
     return {"ok": True, "inserted": created, "type": "footprint"}
 
 
@@ -218,6 +250,9 @@ def post_volume_profile(
         else:
             skipped += 1
     db.commit()
+    # Route last bar to EventDispatcher
+    if payload.bars:
+        _dispatch("volume_profile", payload.bars[-1])
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "volume_profile"}
 
 
@@ -303,6 +338,9 @@ def post_cumulative_delta(
         else:
             skipped += 1
     db.commit()
+    # Route last bar to EventDispatcher
+    if payload.bars:
+        _dispatch("cumulative_delta", payload.bars[-1])
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "cumulative_delta"}
 
 
@@ -339,6 +377,9 @@ def post_woodies(
         created += 1
     db.commit()
     publish_event(CHANNEL_BARS_WOODIES, {"count": created})
+    # Route last bar to EventDispatcher
+    if payload.bars:
+        _dispatch("woodies_30min", payload.bars[-1])
     return {"ok": True, "inserted": created, "type": "woodies"}
 
 
@@ -363,6 +404,9 @@ def post_tpo(
         created += 1
     db.commit()
     publish_event(CHANNEL_LEVELS, {"count": created, "type": "tpo"})
+    # Route last bar to EventDispatcher (TPO shares volume_profile stream)
+    if payload.bars:
+        _dispatch("volume_profile", payload.bars[-1])
     return {"ok": True, "inserted": created, "type": "tpo"}
 
 

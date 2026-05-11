@@ -10,7 +10,7 @@ import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.v9.app import v9_router
+from backend.v9.app import v9_router, init_event_dispatcher
 
 # ── App ──────────────────────────────────────────────────────
 
@@ -35,6 +35,13 @@ app.add_middleware(
 # ── Mount V9 routes ──────────────────────────────────────────
 
 app.include_router(v9_router)
+
+
+@app.on_event("startup")
+def _startup_event_dispatcher():
+    """Initialize EventDispatcher with all 6 systems at unified app startup."""
+    init_event_dispatcher()
+
 
 # ── Health (unified) ─────────────────────────────────────────
 
