@@ -7,6 +7,7 @@ import logging
 
 from fastapi import APIRouter, FastAPI
 from backend.v9.api.v9 import bars, signals, markers, trades, configs, websocket, health_streams, trade_commands, status, audit, spec_compliance
+from backend.v9.systems.day_type.api import router as day_type_router
 from backend.v9.ws.router import router as ws_event_bus_router
 
 logger = logging.getLogger(__name__)
@@ -25,6 +26,7 @@ v9_router.include_router(ws_event_bus_router)
 v9_router.include_router(status.router)
 v9_router.include_router(audit.router)
 v9_router.include_router(spec_compliance.router)
+v9_router.include_router(day_type_router)
 
 
 @v9_router.get("/api/v9/health")

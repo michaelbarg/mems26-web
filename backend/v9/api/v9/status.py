@@ -177,9 +177,31 @@ def _check_audit() -> dict:
         return {"running": False, "events_in_db": 0}
 
 
+def _check_day_type() -> dict:
+    """Check Day Type system status."""
+    try:
+        from backend.v9.systems.day_type.api import _get_engine
+        from backend.v9.systems.day_type.schemas import BarInput
+        engine = _get_engine()
+        state = engine._build_state(
+            BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
+        )
+        dt_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
+        status_val = state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state)
+        return {
+            "running": True,
+            "current_type": dt_val,
+            "status": status_val,
+            "confidence": state.confidence,
+            "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+        }
+    except Exception:
+        return {"running": False, "current_type": None}
+
+
 @router.get("/api/v9/status")
 def system_status():
-    """6-layer health dashboard for MEMS26."""
+    """7-layer health dashboard for MEMS26."""
     return {
         "ts": time.time(),
         "sierra": _check_sierra(),
@@ -188,4 +210,5 @@ def system_status():
         "ws": _check_ws(),
         "frontend": _check_frontend(),
         "audit": _check_audit(),
+        "day_type": _check_day_type(),
     }

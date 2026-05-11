@@ -1,9 +1,10 @@
-"""Day Type Engine API — GET state, GET history, POST process."""
+"""Day Type Engine API — GET state, GET history, POST process, GET current."""
 
 from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from backend.v9.db.session import get_db
@@ -14,7 +15,7 @@ from .schemas import (
 )
 from .state_machine import DayTypeStateMachine
 
-router = APIRouter(prefix="/v9/day_type", tags=["v9-day-type"])
+router = APIRouter(prefix="/api/v9/day_type", tags=["v9-day-type"])
 
 # Module-level state machine instance (reset daily by bridge)
 _engine: Optional[DayTypeStateMachine] = None
@@ -74,6 +75,38 @@ def get_history(
         ))
 
     return DayTypeHistoryResponse(items=items, count=len(items))
+
+
+@router.get("/current")
+def get_current():
+    """Simplified current classification for TopBar/frontend."""
+    engine = _get_engine()
+    state = engine._build_state(
+        BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
+    )
+    return {
+        "day_type": state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
+        "status": state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state),
+        "confidence": state.confidence,
+        "ib_width": state.ib_width.value if hasattr(state.ib_width, 'value') else str(state.ib_width),
+        "opening_type": state.opening_type.value if hasattr(state.opening_type, 'value') else str(state.opening_type),
+        "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+    }
+
+
+@router.get("/stats")
+def get_stats(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db)):
+    """Day type distribution over last N days."""
+    rows = (
+        db.query(V9DayTypeState.day_type, func.count(V9DayTypeState.id))
+        .filter(V9DayTypeState.lock_state == "LOCKED")
+        .group_by(V9DayTypeState.day_type)
+        .all()
+    )
+    return {
+        "distribution": {dt: count for dt, count in rows},
+        "total_days": sum(count for _, count in rows),
+    }
 
 
 @router.post("/process", response_model=ProcessBarResponse)
