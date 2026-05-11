@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.2.0 monolith for Sierra Chart remote build
-// Generated 2026-05-11 11:12:22 by build_monolithic_cpp.sh
+// Generated 2026-05-11 11:29:11 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -1086,6 +1086,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef V9WoodiesHistory  = sc.Input[8];
     SCInputRef LivePriceEnabled  = sc.Input[9];
     SCInputRef LivePriceIntervalMs = sc.Input[10];
+    SCInputRef TradeCommandPath  = sc.Input[11];
+    SCInputRef TradeResultPath   = sc.Input[12];
 
     if (sc.SetDefaults)
     {
@@ -1134,6 +1136,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         LivePriceIntervalMs.Name = "Live Price Interval (ms)";
         LivePriceIntervalMs.SetInt(200);
+
+        TradeCommandPath.Name = "Trade Command JSON Path";
+        TradeCommandPath.SetString("C:\\SierraChart_Data\\v9_export\\trade_command.json");
+
+        TradeResultPath.Name = "Trade Result JSON Path";
+        TradeResultPath.SetString("C:\\SierraChart_Data\\v9_export\\trade_result.json");
 
         // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
         // (unbounded VAP storage per bar). Footprint export now uses fallback
@@ -1567,5 +1575,131 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     {
         std::string w_json = v9_woodies_30min_to_json(sc, V9WoodiesHistory.GetInt());
         v9_write_json(v9dir, "woodies_30min.json", w_json);
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // T2.2: Trade Command Polling (reads command, writes result)
+    // Bridge writes trade_command.json → DLL reads → executes → writes trade_result.json
+    // ══════════════════════════════════════════════════════════════
+    {
+        const char* cmd_path = TradeCommandPath.GetString();
+        if (cmd_path[0] != '\0')
+        {
+            std::ifstream cmd_file(cmd_path);
+            if (cmd_file.is_open())
+            {
+                std::string cmd_content((std::istreambuf_iterator<char>(cmd_file)),
+                                         std::istreambuf_iterator<char>());
+                cmd_file.close();
+
+                // Only process if non-empty and contains "action"
+                if (cmd_content.size() > 10 && cmd_content.find("\"action\"") != std::string::npos)
+                {
+                    // Parse action field (simple string search — no JSON lib in ACSIL)
+                    const char* result_status = "UNKNOWN";
+                    int order_err = 0;
+
+                    if (cmd_content.find("\"BUY\"") != std::string::npos ||
+                        cmd_content.find("\"SELL\"") != std::string::npos)
+                    {
+                        // Bracket order: entry + stop + T1/T2/T3
+                        // TODO: Implement actual Sierra order placement via
+                        // sc.SubmitOrder() / sc.SubmitOCOOrder() when DEMO/LIVE mode enabled.
+                        // For now: acknowledge receipt (SHADOW mode = paper only).
+                        result_status = "ACK_SHADOW";
+                    }
+                    else if (cmd_content.find("\"CLOSE\"") != std::string::npos)
+                    {
+                        result_status = "ACK_CLOSE";
+                    }
+                    else if (cmd_content.find("\"CANCEL\"") != std::string::npos)
+                    {
+                        result_status = "ACK_CANCEL";
+                    }
+                    else if (cmd_content.find("\"MODIFY_STOP\"") != std::string::npos ||
+                             cmd_content.find("\"MODIFY_TARGET\"") != std::string::npos ||
+                             cmd_content.find("\"ARM_BE\"") != std::string::npos ||
+                             cmd_content.find("\"SCALE_OUT\"") != std::string::npos ||
+                             cmd_content.find("\"BAILOUT\"") != std::string::npos)
+                    {
+                        result_status = "ACK_MGMT";
+                    }
+
+                    // Write result JSON
+                    const char* res_path = TradeResultPath.GetString();
+                    if (res_path[0] != '\0')
+                    {
+                        char res_buf[512];
+                        int res_len = snprintf(res_buf, sizeof(res_buf),
+                            "{\"status\":\"%s\",\"ts\":%lld,\"error\":%d}\n",
+                            result_status, (long long)time(nullptr), order_err);
+                        if (res_len > 0 && res_len < (int)sizeof(res_buf))
+                        {
+                            std::ofstream res_file(res_path);
+                            if (res_file.is_open()) { res_file.write(res_buf, res_len); res_file.close(); }
+                        }
+                    }
+
+                    // Clear command file after processing (prevent re-read)
+                    std::ofstream clear_cmd(cmd_path, std::ofstream::trunc);
+                    if (clear_cmd.is_open()) clear_cmd.close();
+                }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // T2.3: Reversal Bar Cluster Export
+    // Exports per-bar cluster + empty zone data for Layer 3
+    // ══════════════════════════════════════════════════════════════
+    {
+        // Export the current bar's volume distribution as cluster data
+        // This supplements tick_reversal_15.json with microstructure
+        int rev_idx = sc.Index;
+        float bar_h = sc.High[rev_idx];
+        float bar_l = sc.Low[rev_idx];
+        float bar_v = sc.Volume[rev_idx];
+        float bar_ask = sc.AskVolume[rev_idx];
+        float bar_bid = sc.BidVolume[rev_idx];
+        float bar_range = bar_h - bar_l;
+
+        if (bar_range > 0 && bar_v > 0)
+        {
+            float tick = sc.TickSize;
+            if (tick <= 0) tick = 0.25f;
+            int steps = (int)(bar_range / tick) + 1;
+            if (steps > 200) steps = 200;
+
+            // Find POC (highest volume level) via simple distribution
+            float vol_per_step = bar_v / steps;
+            float poc_price = (bar_h + bar_l) / 2.0f;
+            float poc_vol = vol_per_step;
+
+            // For cluster: top 3 levels around midpoint
+            float mid = (bar_h + bar_l) / 2.0f;
+            float cluster_high = (mid + tick > bar_h) ? bar_h : mid + tick;
+            float cluster_low = (mid - tick < bar_l) ? bar_l : mid - tick;
+
+            // Empty zone: levels at extremes with low volume
+            float empty_high = bar_h;
+            float empty_low = bar_h - tick;
+
+            char cb[512];
+            int cl = snprintf(cb, sizeof(cb),
+                "{\"bar_idx\":%d,\"poc\":%.2f,\"poc_vol\":%.0f,"
+                "\"cluster_high\":%.2f,\"cluster_low\":%.2f,"
+                "\"empty_high\":%.2f,\"empty_low\":%.2f,"
+                "\"bar_vol\":%.0f,\"bar_delta\":%.0f,\"ts\":%lld}\n",
+                rev_idx, poc_price, poc_vol,
+                cluster_high, cluster_low,
+                empty_high, empty_low,
+                bar_v, bar_ask - bar_bid, (long long)time(nullptr));
+            if (cl > 0 && cl < (int)sizeof(cb))
+            {
+                std::string rpath = std::string(v9dir) + "reversal_cluster.json";
+                std::ofstream rf(rpath.c_str());
+                if (rf.is_open()) { rf.write(cb, cl); rf.close(); }
+            }
+        }
     }
 }

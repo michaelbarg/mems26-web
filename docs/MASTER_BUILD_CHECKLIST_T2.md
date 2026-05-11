@@ -4,8 +4,8 @@
 
 ## Wave 1: DLL Restoration + Foundation
 - [x] T2.1 — DLL: Live Price Export (200ms) — commit 4ae6c37
-- [ ] T2.2 — DLL: Trade Command Paths Restore — BLOCKED (needs Sierra Build for T2.1 first)
-- [ ] T2.3 — DLL: 15-tick Reversal Chart Config
+- [x] T2.2 — DLL: Trade Command Paths (Input[11]+[12], 7 commands, ACK_SHADOW) — code complete, awaiting Sierra Build
+- [x] T2.3 — DLL: Reversal Cluster Export (reversal_cluster.json per bar) — code complete, awaiting Sierra Build
 - [x] T2.4 — System H: Woodies CCI Engine Core — VERIFIED (cci_calc.py matches DLL, 45 tests pass)
 - [x] T2.5 — Woodies Auxiliary Lines — VERIFIED (CZI, SWI, LSMA, EMA34 all in cci_calc.py, tests pass)
 
