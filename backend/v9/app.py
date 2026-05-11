@@ -100,6 +100,11 @@ app.include_router(v9_router)
 
 
 @app.on_event("startup")
-def _startup_event_dispatcher():
-    """Initialize EventDispatcher when running standalone."""
+def _startup():
+    """Initialize EventDispatcher + BarIngestionService when running standalone."""
     init_event_dispatcher()
+
+    # Start Bar Ingestion (D-077: must run before system hydration)
+    from backend.v9.services.bar_ingestion import bar_ingestion_service
+    bar_ingestion_service.start()
+    logger.info("[V9] BarIngestionService started: running=%s", bar_ingestion_service.is_running)
