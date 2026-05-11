@@ -44,7 +44,7 @@ export function LeftTabs() {
   const activeTab = useLayoutStore((s) => s.activeTab);
   const setActiveTab = useLayoutStore((s) => s.setActiveTab);
 
-  const ActiveComponent = TAB_COMPONENTS[activeTab];
+  const ActiveComponent = TAB_COMPONENTS[activeTab] ?? TAB_COMPONENTS.trader;
 
   return (
     <div
@@ -73,7 +73,7 @@ export function LeftTabs() {
 
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto p-2" dir="ltr">
-        <ActiveComponent />
+        {ActiveComponent ? <ActiveComponent /> : null}
       </div>
     </div>
   );
