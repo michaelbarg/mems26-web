@@ -236,6 +236,47 @@ class BaseV9Stream:
         self._redis_set(f"{key}:latest", payload)
         self._redis_lpush(key, payload)
 
+        # Update mems26:latest with live price from any stream that has OHLC data
+        self._update_latest_price(data)
+
+    def _update_latest_price(self, data: dict):
+        """Update mems26:latest Redis key with live price if OHLC data is present.
+
+        Extracts price from the 'close' field of the data payload. Streams that
+        carry OHLC data (cumulative_delta, woodies_30min, tick_reversal, 5min, etc.)
+        will update this key on every push cycle (~3s when market is open).
+
+        The top bar reads this key to display the current price.
+        """
+        # Try multiple field names for close price
+        price = data.get("close") or data.get("last") or data.get("price")
+
+        # For streams with nested bar data (e.g. {"bars": [...]})
+        if price is None and "bars" in data and isinstance(data["bars"], list) and data["bars"]:
+            last_bar = data["bars"][-1]
+            price = last_bar.get("close") or last_bar.get("last") or last_bar.get("price")
+
+        # For footprint stream with bid/ask
+        bid = data.get("bid")
+        ask = data.get("ask")
+
+        if price is None:
+            return  # This stream does not carry price data
+
+        try:
+            price = float(price)
+        except (TypeError, ValueError):
+            return
+
+        latest_payload = json.dumps({
+            "price": price,
+            "ts": int(time.time()),
+            "bid": float(bid) if bid is not None else None,
+            "ask": float(ask) if ask is not None else None,
+            "source": self.name,
+        })
+        self._redis_set("mems26:latest", latest_payload)
+
     def _redis_set(self, key: str, value: str):
         self._redis_cmd(["SET", key, value])
 
