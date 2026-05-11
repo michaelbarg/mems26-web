@@ -38,6 +38,11 @@ class EventDispatcher:
         self._routing_table: Dict[str, List[BaseSystem]] = defaultdict(list)
         self._systems: Dict[int, BaseSystem] = {}
         self._lock = threading.Lock()
+        self._stream_health = None
+
+    def set_stream_health(self, service) -> None:
+        """Inject StreamHealthService for dispatch tracking."""
+        self._stream_health = service
 
     def register_system(self, system: BaseSystem) -> None:
         """Register a system and add it to the routing table.
@@ -91,6 +96,8 @@ class EventDispatcher:
             )
             try:
                 result = system.analyze(stream_name, bar)
+                if self._stream_health is not None:
+                    self._stream_health.record_dispatch(stream_name, system.system_id)
                 if result is not None and isinstance(result, Signal):
                     logger.info(
                         "[EventDispatcher] signal from system %d (%s): %s %s",

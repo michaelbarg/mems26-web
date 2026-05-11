@@ -21,11 +21,20 @@ logger = logging.getLogger(__name__)
 # Module-level reference so all endpoint handlers can route bars.
 _event_dispatcher = None
 
+# StreamHealthService instance — set at startup.
+_stream_health = None
+
 
 def set_event_dispatcher(dispatcher) -> None:
     """Called once at startup to inject the EventDispatcher instance."""
     global _event_dispatcher
     _event_dispatcher = dispatcher
+
+
+def set_stream_health(service) -> None:
+    """Called once at startup to inject the StreamHealthService instance."""
+    global _stream_health
+    _stream_health = service
 
 
 def _dispatch(stream_name: str, bar_data: dict) -> None:
@@ -35,6 +44,24 @@ def _dispatch(stream_name: str, bar_data: dict) -> None:
             _event_dispatcher.on_bar_received(stream_name, bar_data)
         except Exception:
             logger.exception("[bars] dispatch to EventDispatcher failed for stream %s", stream_name)
+
+
+def _record_push(stream_name: str) -> None:
+    """Record a successful push in StreamHealthService."""
+    if _stream_health is not None:
+        try:
+            _stream_health.record_push(stream_name)
+        except Exception:
+            pass
+
+
+def _record_error(stream_name: str, error: str) -> None:
+    """Record an error in StreamHealthService."""
+    if _stream_health is not None:
+        try:
+            _stream_health.record_error(stream_name, error)
+        except Exception:
+            pass
 
 router = APIRouter(prefix="/api/v9/bars", tags=["v9-bars"])
 
@@ -155,6 +182,7 @@ def post_bars_5min(
     # Route last bar to EventDispatcher (5min bars derive from cumulative_delta)
     if bars:
         _dispatch("cumulative_delta", bars[-1].dict())
+    _record_push("5min")
     return {"ok": True, "inserted": len(created)}
 
 
@@ -189,6 +217,7 @@ def post_tick_reversal(
     if payload.bars:
         stream = "tick_reversal_%d" % tick_count
         _dispatch(stream, payload.bars[-1])
+        _record_push(stream)
     return {"ok": True, "inserted": created, "tick_count": tick_count}
 
 
@@ -219,6 +248,7 @@ def post_footprint(
     # Route last bar to EventDispatcher
     if payload.bars:
         _dispatch("footprint", payload.bars[-1])
+    _record_push("footprint")
     return {"ok": True, "inserted": created, "type": "footprint"}
 
 
@@ -253,6 +283,7 @@ def post_volume_profile(
     # Route last bar to EventDispatcher
     if payload.bars:
         _dispatch("volume_profile", payload.bars[-1])
+    _record_push("volume_profile")
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "volume_profile"}
 
 
@@ -284,6 +315,7 @@ def post_imbalance(
         db.add(signal)
         created += 1
     db.commit()
+    _record_push("imbalance_flags")
     return {"ok": True, "inserted": created, "type": "imbalance",
             "total_buy": payload.total_buy_imbalances,
             "total_sell": payload.total_sell_imbalances}
@@ -310,6 +342,7 @@ def post_stacked_imbalance(
         db.add(signal)
         created += 1
     db.commit()
+    _record_push("stacked_imbalances")
     return {"ok": True, "inserted": created, "type": "stacked_imbalance"}
 
 
@@ -341,6 +374,7 @@ def post_cumulative_delta(
     # Route last bar to EventDispatcher
     if payload.bars:
         _dispatch("cumulative_delta", payload.bars[-1])
+    _record_push("cumulative_delta")
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "cumulative_delta"}
 
 
@@ -380,6 +414,7 @@ def post_woodies(
     # Route last bar to EventDispatcher
     if payload.bars:
         _dispatch("woodies_30min", payload.bars[-1])
+    _record_push("woodies_30min")
     return {"ok": True, "inserted": created, "type": "woodies"}
 
 
@@ -407,6 +442,7 @@ def post_tpo(
     # Route last bar to EventDispatcher (TPO shares volume_profile stream)
     if payload.bars:
         _dispatch("volume_profile", payload.bars[-1])
+    _record_push("tpo")
     return {"ok": True, "inserted": created, "type": "tpo"}
 
 

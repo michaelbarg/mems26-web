@@ -6,6 +6,7 @@ import { VolumePanel } from '../volume/VolumePanel';
 import { SystemPanelsBar } from '../panels/SystemPanelsBar';
 import { SettingsDrawer } from '../settings/SettingsDrawer';
 import { LeftTabs } from '../sidebar/LeftTabs';
+import { StreamHealthPanel } from '../health/StreamHealthPanel';
 import { useLayoutStore } from '../../stores/layoutStore';
 
 export function DashboardLayout() {
@@ -14,6 +15,7 @@ export function DashboardLayout() {
   return (
     <div className="h-screen w-screen flex flex-col" style={{ background: 'var(--bg-primary)' }}>
       <TopBar />
+      <StreamHealthPanel />
       <div className="flex-1 flex min-h-0">
         {/* Left Tabs Sidebar — 240px fixed */}
         <LeftTabs />
