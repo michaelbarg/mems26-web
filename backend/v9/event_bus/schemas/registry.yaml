@@ -1,0 +1,168 @@
+# MEMS26 Event Schema Registry — all event types for the Event Bus
+# Source of truth for event shapes. Used by:
+#   - Python Pydantic models (backend/v9/event_bus/schemas/*.py)
+#   - TypeScript types (generated via scripts/generate_ts_types.py)
+
+version: "1.0"
+
+events:
+
+  # ── Price events ──────────────────────────────────────────
+  price.tick:
+    description: "Live price tick from Sierra Chart DLL (every ~200ms)"
+    channel: "mems26:events:price.tick"
+    fields:
+      price:
+        type: float
+        required: true
+        description: "Current price (last trade)"
+      ts_ms:
+        type: int
+        required: true
+        description: "Timestamp in milliseconds"
+      bid:
+        type: float
+        required: false
+        description: "Current bid price"
+      ask:
+        type: float
+        required: false
+        description: "Current ask price"
+      last_size:
+        type: float
+        required: false
+        description: "Volume of last trade"
+      spread:
+        type: float
+        required: false
+        description: "ask - bid"
+
+  price.snapshot:
+    description: "Periodic price snapshot with derived fields (every 1s)"
+    channel: "mems26:events:price.snapshot"
+    fields:
+      price:
+        type: float
+        required: true
+      ts_ms:
+        type: int
+        required: true
+      bid:
+        type: float
+        required: false
+      ask:
+        type: float
+        required: false
+      vwap:
+        type: float
+        required: false
+      session_high:
+        type: float
+        required: false
+      session_low:
+        type: float
+        required: false
+
+  # ── Bar events ────────────────────────────────────────────
+  bar.5min:
+    description: "5-minute OHLCV bar"
+    channel: "mems26:events:bar.5min"
+    fields:
+      ts:
+        type: str
+        required: true
+      open:
+        type: float
+        required: true
+      high:
+        type: float
+        required: true
+      low:
+        type: float
+        required: true
+      close:
+        type: float
+        required: true
+      volume:
+        type: float
+        required: true
+      delta:
+        type: float
+        required: false
+
+  bar.tick_reversal:
+    description: "Tick reversal bar (15-tick or 12-tick)"
+    channel: "mems26:events:bar.tick_reversal"
+    fields:
+      tick_size:
+        type: int
+        required: true
+      ts:
+        type: str
+        required: true
+      open:
+        type: float
+        required: true
+      high:
+        type: float
+        required: true
+      low:
+        type: float
+        required: true
+      close:
+        type: float
+        required: true
+      volume:
+        type: float
+        required: true
+      delta:
+        type: float
+        required: false
+      direction:
+        type: int
+        required: false
+
+  # ── Signal events ─────────────────────────────────────────
+  signal.fired:
+    description: "A trading system fired a signal"
+    channel: "mems26:events:signal.fired"
+    fields:
+      system_id:
+        type: int
+        required: true
+      direction:
+        type: str
+        required: true
+      classification:
+        type: str
+        required: true
+      confidence:
+        type: float
+        required: true
+      entry_price:
+        type: float
+        required: false
+      stop:
+        type: float
+        required: false
+      targets:
+        type: list
+        required: false
+
+  # ── System events ─────────────────────────────────────────
+  system.health:
+    description: "System health heartbeat"
+    channel: "mems26:events:system.health"
+    fields:
+      component:
+        type: str
+        required: true
+      status:
+        type: str
+        required: true
+      ts_ms:
+        type: int
+        required: true
+      details:
+        type: dict
+        required: false
