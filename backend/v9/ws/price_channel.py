@@ -15,6 +15,19 @@ router = APIRouter(tags=["v9-ws-price"])
 BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "michael-mems26-2026")
 
 
+@router.get("/api/v9/ws/status", tags=["v9-ws-price"])
+def ws_status():
+    """Diagnostic: shows WS endpoint status (WebSocket routes don't appear in /openapi.json)."""
+    return {
+        "endpoints": ["/ws/v9/price"],
+        "clients": len(price_ws_manager._clients),
+        "relay_running": (
+            price_ws_manager._relay_task is not None
+            and not price_ws_manager._relay_task.done()
+        ) if price_ws_manager._relay_task else False,
+    }
+
+
 @router.websocket("/ws/v9/price")
 async def ws_price(
     websocket: WebSocket,
