@@ -6,6 +6,7 @@ import { VolumePanel } from '../volume/VolumePanel';
 import { SystemPanelsBar } from '../panels/SystemPanelsBar';
 import { SettingsDrawer } from '../settings/SettingsDrawer';
 import { LeftTabs } from '../sidebar/LeftTabs';
+import { PriceDebugConsole } from '../PriceDebugConsole';
 import { useLayoutStore } from '../../stores/layoutStore';
 
 export function DashboardLayout() {
@@ -33,6 +34,7 @@ export function DashboardLayout() {
         </div>
       </div>
       {settingsOpen && <SettingsDrawer />}
+      <PriceDebugConsole />
     </div>
   );
 }

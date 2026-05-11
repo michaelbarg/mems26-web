@@ -71,4 +71,5 @@ export const WS_CHANNELS = {
   TRADES: '/ws/v9/trades',
   LEVELS: '/ws/v9/levels',
   ACCOUNT: '/ws/v9/account',
+  PRICE: '/ws/v9/price',
 } as const;
