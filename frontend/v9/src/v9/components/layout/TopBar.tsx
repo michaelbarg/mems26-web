@@ -2,16 +2,16 @@
 import { useMemo } from 'react';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useTradeStore } from '../../stores/tradeStore';
-import { useMarketStore } from '../../stores/marketStore';
 import { useSystemStore } from '../../stores/systemStore';
+import { PriceDisplay } from '../topbar/PriceDisplay';
+import { PriceMeta } from '../topbar/PriceMeta';
+import { ConnectionIndicator } from '../topbar/ConnectionIndicator';
 import Link from 'next/link';
 
 export function TopBar() {
   const { activeChartType, setActiveChartType, togglePanels, panelsCollapsed } = useLayoutStore();
   const accountStatus = useTradeStore((s) => s.accountStatus);
   const trades = useTradeStore((s) => s.trades);
-  const bars = useMarketStore((s) => s.bars5min);
-  const lastBar = bars[bars.length - 1];
   const allSignals = useSystemStore((s) => s.signals);
 
   // Day Type from System 1 latest signal
@@ -47,7 +47,7 @@ export function TopBar() {
 
   return (
     <div
-      className="h-[48px] flex items-center justify-between px-4 border-b shrink-0"
+      className="h-[40px] flex items-center justify-between px-4 border-b shrink-0"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
     >
       {/* Left: Symbol + Day Type + Killzone */}
@@ -85,21 +85,15 @@ export function TopBar() {
         </div>
       </div>
 
-      {/* Center: Last Price */}
-      <div className="flex items-center gap-4">
-        {lastBar && (
-          <>
-            <span className="text-lg font-mono font-bold" style={{
-              color: lastBar.c >= lastBar.o ? 'var(--green)' : 'var(--red)',
-            }}>
-              {lastBar.c.toFixed(2)}
-            </span>
-          </>
-        )}
+      {/* Center: Live Price from Event Bus */}
+      <div className="flex items-center gap-3">
+        <PriceDisplay />
+        <PriceMeta />
       </div>
 
-      {/* Right: Mode PnL + Nav */}
+      {/* Right: Connection + Mode PnL + Nav */}
       <div className="flex items-center gap-3">
+        <ConnectionIndicator />
         <div className="flex items-center gap-2 text-xs">
           {accountStatus ? (
             <>

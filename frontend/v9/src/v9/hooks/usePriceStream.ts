@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { PriceTickEvent } from '../types/events';
+import { usePriceStore } from '../stores/priceStore';
 
 const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000';
 const TOKEN = process.env.NEXT_PUBLIC_BRIDGE_TOKEN || 'michael-mems26-2026';
@@ -13,8 +14,8 @@ interface PriceStreamState {
 
 /**
  * Hook that connects to /ws/v9/price and streams price.tick events.
+ * Feeds into priceStore (Zustand) for TopBar consumption.
  * Reconnects with exponential backoff on disconnect.
- * Logs each event to DevTools console.
  */
 export function usePriceStream(): PriceStreamState {
   const [state, setState] = useState<PriceStreamState>({
@@ -35,6 +36,7 @@ export function usePriceStream(): PriceStreamState {
 
     ws.onopen = () => {
       reconnectAttempt.current = 0;
+      usePriceStore.getState().setConnected(true);
       setState((prev) => ({ ...prev, connected: true }));
       console.log('[MEMS26] Price stream connected');
     };
@@ -49,6 +51,9 @@ export function usePriceStream(): PriceStreamState {
         if (msg.type === 'price.tick' && msg.data) {
           const tick = msg.data as PriceTickEvent;
           tickCountRef.current += 1;
+
+          // Feed into Zustand store for TopBar
+          usePriceStore.getState().onTick(tick);
 
           // Log to DevTools console
           console.log(
@@ -67,6 +72,7 @@ export function usePriceStream(): PriceStreamState {
     };
 
     ws.onclose = () => {
+      usePriceStore.getState().setConnected(false);
       setState((prev) => ({ ...prev, connected: false }));
       wsRef.current = null;
 
