@@ -2,23 +2,38 @@
 
 AP-SY01: Every system MUST extend this class.
 AP-A01: Architecture consistency enforced here.
+AP-A03/A04: hydrate() enforced per D-077 Symmetry Principle.
 
 Per D-041 (Per-System Independence):
   Each system owns its own analysis, events, and persistence.
 Per D-073 (Decision vs Context Flow):
   FIRING systems publish entry decisions.
   OBSERVING systems publish context that FIRING systems may read.
-  NOTE: Day Type is FIRING in that it "fires" its classification
-  (publishes own decision output), even though it doesn't generate
-  trade entries. Its output is consumed as context by other systems.
+Per D-077 (Symmetry Principle):
+  Every system supports 3-phase lifecycle:
+  1. INITIALIZATION (hydrate) — catch up on startup from DB
+  2. STEADY-STATE (live) — process incoming events
+  3. RECOVERY (re-hydrate) — re-sync after gap
 """
 
 import abc
 import logging
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger("mems26.systems")
+
+
+@dataclass
+class HydrationResult:
+    """Result of system hydration on startup (D-077)."""
+    success: bool
+    reached_state: str  # e.g. "WAITING_OPEN", "IB_LOCKED", "READY"
+    bars_replayed: int = 0
+    confidence: float = 0.0
+    notes: str = ""
+    error: Optional[str] = None
 
 
 class SystemType(str, Enum):
@@ -38,7 +53,7 @@ class BaseV9TradingSystem(abc.ABC):
 
     Subclasses must implement:
       - process(event): handle an incoming event
-      - publish(event_data): publish output event to Event Bus
+      - hydrate(): startup initialization from DB (D-077)
     """
 
     system_id: int = 0
@@ -46,6 +61,15 @@ class BaseV9TradingSystem(abc.ABC):
     color: str = "#888888"
     system_type: SystemType = SystemType.OBSERVING
     subscribed_channels: List[str] = []
+
+    @abc.abstractmethod
+    def hydrate(self) -> HydrationResult:
+        """Called ONCE on startup BEFORE entering live stream.
+
+        Must be idempotent. Must complete in < 30s.
+        Loads prior state from DB to reach current session state.
+        """
+        ...
 
     @abc.abstractmethod
     def process(self, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
