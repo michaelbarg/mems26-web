@@ -41,3 +41,9 @@ html, body {
 [data-panel-resize-handle-id]:hover {
   background: var(--sys1) !important;
 }
+
+/* Design System Animations */
+@keyframes pulseFire {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
