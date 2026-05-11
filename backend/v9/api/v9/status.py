@@ -147,9 +147,39 @@ def _check_frontend() -> dict:
         return {"reachable": False, "status": 0}
 
 
+def _check_audit() -> dict:
+    """Check audit consumer status."""
+    try:
+        from backend.v9.audit.runner import get_consumer
+        consumer = get_consumer()
+        if consumer and consumer.is_running:
+            lag = time.time() - consumer.last_write_ts if consumer.last_write_ts > 0 else -1
+            return {
+                "running": True,
+                "events_written": consumer.events_written,
+                "events_skipped": consumer.events_skipped,
+                "errors": consumer.errors,
+                "lag_seconds": round(lag, 1),
+                "events_per_minute": round(consumer.events_per_minute, 1),
+            }
+    except Exception:
+        pass
+    # Fallback: check if audit_events table has recent rows
+    try:
+        from backend.v9.db.session import SessionLocal
+        from backend.v9.db.models.audit import AuditEvent
+        from sqlalchemy import func
+        db = SessionLocal()
+        count = db.query(func.count(AuditEvent.id)).scalar() or 0
+        db.close()
+        return {"running": False, "events_in_db": count}
+    except Exception:
+        return {"running": False, "events_in_db": 0}
+
+
 @router.get("/api/v9/status")
 def system_status():
-    """5-layer health dashboard for MEMS26."""
+    """6-layer health dashboard for MEMS26."""
     return {
         "ts": time.time(),
         "sierra": _check_sierra(),
@@ -157,4 +187,5 @@ def system_status():
         "event_bus": _check_event_bus(),
         "ws": _check_ws(),
         "frontend": _check_frontend(),
+        "audit": _check_audit(),
     }
