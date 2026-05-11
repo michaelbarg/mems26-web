@@ -6,6 +6,8 @@ import { VolumePanel } from '../volume/VolumePanel';
 import { SystemPanelsBar } from '../panels/SystemPanelsBar';
 import { SettingsDrawer } from '../settings/SettingsDrawer';
 import { LeftTabs } from '../sidebar/LeftTabs';
+import { SidePanel } from './SidePanel';
+import { Layer0Strip } from './Layer0Strip';
 import { PriceDebugConsole } from '../PriceDebugConsole';
 import { useLayoutStore } from '../../stores/layoutStore';
 
@@ -15,6 +17,7 @@ export function DashboardLayout() {
   return (
     <div className="h-screen w-screen flex flex-col" style={{ background: 'var(--bg-primary)' }}>
       <TopBar />
+      <Layer0Strip />
       <div className="flex-1 flex min-h-0">
         {/* Left Tabs Sidebar — 240px fixed */}
         <LeftTabs />
@@ -32,6 +35,9 @@ export function DashboardLayout() {
           </Group>
           {!panelsCollapsed && <SystemPanelsBar />}
         </div>
+
+        {/* Right: Side Panel — Switcher + Lens */}
+        <SidePanel />
       </div>
       {settingsOpen && <SettingsDrawer />}
       <PriceDebugConsole />
