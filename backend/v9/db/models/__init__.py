@@ -13,6 +13,12 @@ from .daily_quality import V9DailyQualityReport
 from .system_configs import V9SystemConfig
 from .account_status import V9AccountStatus
 from .audit import AuditEvent
+from .day_type_history import V9DayTypeHistory
+from .five_min_setups import V9FiveMinSetup
+from .footprint_markers import V9FootprintMarker
+from .woodies_patterns import V9WoodiesPattern
+from .tpo_history import V9TpoHistory
+from .killzone_log import V9KillzoneLog
 
 __all__ = [
     "V9Bar5Min",
@@ -28,4 +34,10 @@ __all__ = [
     "V9SystemConfig",
     "V9AccountStatus",
     "AuditEvent",
+    "V9DayTypeHistory",
+    "V9FiveMinSetup",
+    "V9FootprintMarker",
+    "V9WoodiesPattern",
+    "V9TpoHistory",
+    "V9KillzoneLog",
 ]
