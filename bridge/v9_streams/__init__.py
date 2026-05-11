@@ -8,8 +8,10 @@ from .cumulative_delta_stream import CumulativeDeltaStream
 from .woodies_30min_stream import Woodies30MinStream
 from .tpo_stream import TpoStream
 from .bars_5min_stream import Bars5MinStream
+from .live_price_stream import LivePriceStream
 
 ALL_STREAMS = [
+    LivePriceStream,
     TickReversal15Stream,
     TickReversal12Stream,
     FootprintStream,
