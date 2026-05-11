@@ -22,6 +22,7 @@ CHANNEL_SIGNALS = "v9:signals:{system_id}"
 CHANNEL_TRADES = "v9:trades"
 CHANNEL_ACCOUNT = "v9:account"
 CHANNEL_LEVELS = "v9:levels"
+CHANNEL_PRICE = "v9:price"
 
 
 def get_redis_client():

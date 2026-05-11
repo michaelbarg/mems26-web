@@ -6,7 +6,8 @@ Can be run standalone OR mounted into the unified backend (backend.main).
 import logging
 
 from fastapi import APIRouter, FastAPI
-from backend.v9.api.v9 import bars, signals, markers, trades, configs, websocket, health_streams
+from backend.v9.api.v9 import bars, signals, markers, trades, configs, websocket, health_streams, trade_commands
+from backend.v9.ws.router import router as ws_event_bus_router
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,8 @@ v9_router.include_router(trades.router)
 v9_router.include_router(configs.router)
 v9_router.include_router(websocket.router)
 v9_router.include_router(health_streams.router)
+v9_router.include_router(trade_commands.router)
+v9_router.include_router(ws_event_bus_router)
 
 
 @v9_router.get("/api/v9/health")
