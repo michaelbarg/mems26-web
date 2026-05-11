@@ -1,5 +1,5 @@
-import { DashboardLayout } from '@/v9/components/layout/DashboardLayout';
+import { V9Dashboard } from '@/v9/components/layout/V9Dashboard';
 
 export default function DashboardPage() {
-  return <DashboardLayout />;
+  return <V9Dashboard />;
 }
