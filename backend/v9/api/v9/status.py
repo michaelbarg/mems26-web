@@ -58,18 +58,30 @@ def _check_sierra() -> dict:
 
 
 def _check_bridge() -> dict:
-    """Check bridge status via Redis heartbeat keys."""
-    # Bridge streams write heartbeat keys like v9:stream_name:heartbeat
-    streams = [
-        "v9:live_price", "v9:tick_reversal_15", "v9:tick_reversal_12",
-        "v9:footprint", "v9:volume_profile", "v9:imbalance_flags",
-        "v9:stacked_imbalances", "v9:cumulative_delta", "v9:woodies_30min",
-        "v9:tpo", "v9:bars_5min",
+    """Check bridge status via Redis heartbeat keys.
+
+    BaseV9Stream writes heartbeat to {redis_key}:heartbeat every 30s.
+    redis_key format: mems26:v9:<stream_name>
+    LivePriceStream publishes to Event Bus directly (no heartbeat key),
+    so we also check the price stream XLEN as a proxy.
+    """
+    # Actual redis_key values from bridge/v9_streams/*.py
+    stream_keys = [
+        "mems26:v9:tick_reversal_15",
+        "mems26:v9:tick_reversal_12",
+        "mems26:v9:footprint",
+        "mems26:v9:volume_profile",
+        "mems26:v9:imbalance",
+        "mems26:v9:stacked_imbalance",
+        "mems26:v9:cumulative_delta",
+        "mems26:v9:woodies",
+        "mems26:v9:tpo",
+        "mems26:v9:bars_5min",
     ]
     active = 0
     errors = 0
-    for stream in streams:
-        hb = _redis_cmd(["GET", f"{stream}:heartbeat"])
+    for key in stream_keys:
+        hb = _redis_cmd(["GET", f"{key}:heartbeat"])
         if hb is not None:
             try:
                 age = time.time() - int(hb)
@@ -78,10 +90,19 @@ def _check_bridge() -> dict:
             except (ValueError, TypeError):
                 errors += 1
 
+    # LivePriceStream check: XLEN of price.tick stream as proxy
+    price_xlen = _redis_cmd(["XLEN", "mems26:events:price.tick"])
+    live_price_active = price_xlen is not None and int(price_xlen) > 0
+
+    if live_price_active:
+        active += 1
+
+    total = len(stream_keys) + 1  # +1 for live_price
+
     return {
         "running": active > 0,
         "streams_active": active,
-        "streams_total": len(streams),
+        "streams_total": total,
         "errors": errors,
     }
 
