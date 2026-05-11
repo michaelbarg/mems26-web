@@ -97,16 +97,19 @@ def get_current():
 @router.get("/stats")
 def get_stats(days: int = Query(30, ge=1, le=365), db: Session = Depends(get_db)):
     """Day type distribution over last N days."""
-    rows = (
-        db.query(V9DayTypeState.day_type, func.count(V9DayTypeState.id))
-        .filter(V9DayTypeState.lock_state == "LOCKED")
-        .group_by(V9DayTypeState.day_type)
-        .all()
-    )
-    return {
-        "distribution": {dt: count for dt, count in rows},
-        "total_days": sum(count for _, count in rows),
-    }
+    try:
+        rows = (
+            db.query(V9DayTypeState.day_type, func.count(V9DayTypeState.id))
+            .filter(V9DayTypeState.lock_state == "LOCKED")
+            .group_by(V9DayTypeState.day_type)
+            .all()
+        )
+        return {
+            "distribution": {dt: count for dt, count in rows},
+            "total_days": sum(count for _, count in rows),
+        }
+    except Exception:
+        return {"distribution": {}, "total_days": 0}
 
 
 @router.post("/process", response_model=ProcessBarResponse)
