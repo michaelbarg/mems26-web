@@ -18,5 +18,11 @@
   ```
   Both files should have mtime < 5 seconds old during market hours.
 
+### STEP 2: Verify live_price.json is being written (Prompt 1)
+- Prerequisite: STEP 1 completed
+- Check: `ls -la ~/SierraChart_Data/v9_export/live_price.json`
+- Expected: file updates every ~200ms during market hours
+- If missing: ensure "Live Price Export (1=on)" is set to 1 in study inputs
+
 ## COMPLETED
 (none yet)
