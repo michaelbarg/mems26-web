@@ -1,43 +1,43 @@
 'use client';
 import { useLayoutStore, type TabId } from '../../stores/layoutStore';
-import { TradeTab } from './tabs/TradeTab';
-import { SignalTab } from './tabs/SignalTab';
+import { TraderTab } from './tabs/TraderTab';
+import { MarketTab } from './tabs/MarketTab';
 import { SetupsTab } from './tabs/SetupsTab';
-import { PatternsTab } from './tabs/PatternsTab';
-import { DataTab } from './tabs/DataTab';
-import { OrdersTab } from './tabs/OrdersTab';
+import { SystemsTab } from './tabs/SystemsTab';
 import { DayTab } from './tabs/DayTab';
-import { StatsTab } from './tabs/StatsTab';
-import { PredActualTab } from './tabs/PredActualTab';
+import { DecisionsTab } from './tabs/DecisionsTab';
+import { PatternsTab } from './tabs/PatternsTab';
+import { PerformanceTab } from './tabs/PerformanceTab';
+import { PredictionsTab } from './tabs/PredictionsTab';
 
 interface TabDef {
   id: TabId;
   label: string;
-  shortcut: number; // 1-9
+  shortcut: number;
 }
 
 const TABS: TabDef[] = [
-  { id: 'trade',       label: '\u05DE\u05E1\u05D7\u05E8',       shortcut: 1 },
-  { id: 'signal',      label: '\u05E1\u05D9\u05D2\u05E0\u05DC',      shortcut: 2 },
+  { id: 'trader',      label: '\u05E1\u05D5\u05D7\u05E8',       shortcut: 1 },
+  { id: 'market',      label: '\u05E9\u05D5\u05E7',        shortcut: 2 },
   { id: 'setups',      label: '\u05E1\u05D8\u05D0\u05E4\u05D9\u05DD',      shortcut: 3 },
-  { id: 'patterns',    label: '\u05EA\u05D1\u05E0\u05D9\u05D5\u05EA',    shortcut: 4 },
-  { id: 'data',        label: '\u05E0\u05EA\u05D5\u05E0\u05D9\u05DD',        shortcut: 5 },
-  { id: 'orders',      label: '\u05E4\u05E7\u05D5\u05D3\u05D5\u05EA',      shortcut: 6 },
-  { id: 'day',         label: '\u05D9\u05D5\u05DD',         shortcut: 7 },
-  { id: 'stats',       label: '\u05E1\u05D8\u05D8\u05D9\u05E1\u05D8\u05D9\u05E7\u05D4',       shortcut: 8 },
-  { id: 'pred_actual', label: 'Pred/Actual', shortcut: 9 },
+  { id: 'systems',     label: '\u05DE\u05E2\u05E8\u05DB\u05D5\u05EA',     shortcut: 4 },
+  { id: 'day',         label: '\u05D9\u05D5\u05DD',         shortcut: 5 },
+  { id: 'decisions',   label: '\u05D4\u05D7\u05DC\u05D8\u05D5\u05EA',   shortcut: 6 },
+  { id: 'patterns',    label: '\u05EA\u05D1\u05E0\u05D9\u05D5\u05EA',    shortcut: 7 },
+  { id: 'performance', label: '\u05D1\u05D9\u05E6\u05D5\u05E2\u05D9\u05DD',  shortcut: 8 },
+  { id: 'predictions', label: '\u05EA\u05D7\u05D6\u05D9\u05D5\u05EA',  shortcut: 9 },
 ];
 
 const TAB_COMPONENTS: Record<TabId, React.FC> = {
-  trade: TradeTab,
-  signal: SignalTab,
+  trader: TraderTab,
+  market: MarketTab,
   setups: SetupsTab,
-  patterns: PatternsTab,
-  data: DataTab,
-  orders: OrdersTab,
+  systems: SystemsTab,
   day: DayTab,
-  stats: StatsTab,
-  pred_actual: PredActualTab,
+  decisions: DecisionsTab,
+  patterns: PatternsTab,
+  performance: PerformanceTab,
+  predictions: PredictionsTab,
 };
 
 export function LeftTabs() {

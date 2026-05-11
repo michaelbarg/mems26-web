@@ -47,7 +47,7 @@ export function TopBar() {
 
   return (
     <div
-      className="h-[40px] flex items-center justify-between px-4 border-b shrink-0"
+      className="h-[48px] flex items-center justify-between px-4 border-b shrink-0"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
     >
       {/* Left: Symbol + Day Type + Killzone */}
