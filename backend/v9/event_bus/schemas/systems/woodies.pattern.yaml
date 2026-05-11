@@ -1,0 +1,43 @@
+# System 4 — Woodies CCI Pattern Event
+# Publishes when a Woodies pattern is detected.
+
+event_type: "system.woodies.pattern"
+channel: "mems26:events:system.woodies.pattern"
+system_id: 4
+
+fields:
+  ts:
+    type: str
+    required: true
+  pattern:
+    type: str
+    required: true
+    description: "ZLR | TLB | TT | GB100 | VEGAS | GHOST | FAMIR | HTLB"
+  direction:
+    type: str
+    required: true
+    description: "LONG | SHORT"
+  group:
+    type: str
+    required: true
+    description: "CONTINUATION | REVERSAL"
+  confidence:
+    type: float
+    required: true
+  cci_value:
+    type: float
+    required: true
+    description: "CCI-14 value at detection"
+  trend_state:
+    type: str
+    required: true
+    description: "Current Woodies trend state"
+  entry_price:
+    type: float
+    required: false
+  stop_price:
+    type: float
+    required: false
+  reasoning_notes:
+    type: str
+    required: false

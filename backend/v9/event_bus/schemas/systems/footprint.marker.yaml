@@ -1,0 +1,47 @@
+# System 3 — Footprint Marker Event
+# Publishes when footprint analysis detects a pattern.
+# OBSERVING system: never fires entries, provides context.
+
+event_type: "system.footprint.marker"
+channel: "mems26:events:system.footprint.marker"
+system_id: 3
+
+fields:
+  ts:
+    type: str
+    required: true
+  classification:
+    type: str
+    required: true
+    description: "NO_SETUP | TACTICAL | STRATEGIC"
+  cluster:
+    type: dict
+    required: false
+    description: "{top, bottom, volume, delta}"
+  empty_zone:
+    type: dict
+    required: false
+    description: "{top, bottom}"
+  context:
+    type: str
+    required: false
+    description: "Textual context description"
+  pattern:
+    type: str
+    required: false
+    description: "Named pattern if recognized"
+  zohar_signals:
+    type: list
+    required: false
+    description: "Zohar-specific signal objects"
+  industry_signals:
+    type: list
+    required: false
+    description: "Standard industry signal objects"
+  confluence_total:
+    type: int
+    required: false
+    description: "Total confluence score"
+  reasoning_notes:
+    type: str
+    required: false

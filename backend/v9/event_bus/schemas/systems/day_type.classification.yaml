@@ -1,0 +1,49 @@
+# System 1 — Day Type Classification Event
+# Publishes when day type is determined, updated, or locked.
+# D-073: Day Type "fires" its classification (context output).
+
+event_type: "system.day_type.classification"
+channel: "mems26:events:system.day_type.classification"
+system_id: 1
+
+fields:
+  ts:
+    type: str
+    required: true
+    description: "ISO timestamp of classification"
+  day_type:
+    type: str
+    required: true
+    description: "Enum: TREND_UP, TREND_DOWN, RANGE, ROTATIONAL, BREAKOUT, EXPAND"
+  status:
+    type: str
+    required: true
+    description: "FORMING | LOCKED | UNCLEAR"
+  confidence:
+    type: float
+    required: true
+    description: "0.0 - 1.0"
+  ib_high:
+    type: float
+    required: true
+    description: "Initial Balance high"
+  ib_low:
+    type: float
+    required: true
+    description: "Initial Balance low"
+  ib_width_ticks:
+    type: int
+    required: true
+    description: "IB width in ticks"
+  opening_type:
+    type: str
+    required: true
+    description: "OD | OTD | ORR | OA_IN | OA_OUT"
+  locked_at:
+    type: str
+    required: false
+    description: "ISO timestamp when status became LOCKED"
+  reasoning_notes:
+    type: str
+    required: false
+    description: "Audit trail: why this classification (AP-SY02)"

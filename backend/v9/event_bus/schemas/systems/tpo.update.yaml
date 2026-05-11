@@ -1,0 +1,48 @@
+# System 5 — TPO Profile Update Event
+# Publishes updated Market Profile data.
+# OBSERVING system: never fires entries, provides context.
+
+event_type: "system.tpo.update"
+channel: "mems26:events:system.tpo.update"
+system_id: 5
+
+fields:
+  ts:
+    type: str
+    required: true
+  poc:
+    type: float
+    required: true
+    description: "Point of Control"
+  vah:
+    type: float
+    required: true
+    description: "Value Area High"
+  val:
+    type: float
+    required: true
+    description: "Value Area Low"
+  ib_high:
+    type: float
+    required: true
+    description: "Initial Balance High"
+  ib_low:
+    type: float
+    required: true
+    description: "Initial Balance Low"
+  single_prints:
+    type: list
+    required: false
+    description: "List of {price, direction} single print zones"
+  tails:
+    type: list
+    required: false
+    description: "List of {price, direction} tail zones"
+  profile_shape:
+    type: str
+    required: false
+    description: "P | b | D | B (Market Profile shapes)"
+  poc_migration_direction:
+    type: str
+    required: false
+    description: "UP | DOWN | FLAT"

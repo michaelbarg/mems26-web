@@ -1,0 +1,49 @@
+# System 2 — 5-Min Pattern Setup Event
+# Publishes when a trade setup is detected on the 5-min chart.
+
+event_type: "system.five_min.setup"
+channel: "mems26:events:system.five_min.setup"
+system_id: 2
+
+fields:
+  ts:
+    type: str
+    required: true
+  pattern:
+    type: str
+    required: true
+    description: "Pattern name (e.g. BREAKOUT, PULLBACK, REVERSAL)"
+  direction:
+    type: str
+    required: true
+    description: "LONG | SHORT | NONE"
+  entry_price:
+    type: float
+    required: true
+  stop_price:
+    type: float
+    required: true
+  t1_price:
+    type: float
+    required: false
+  t2_price:
+    type: float
+    required: false
+  time_stop_min:
+    type: int
+    required: false
+    description: "Time-based stop in minutes"
+  confidence:
+    type: float
+    required: true
+  reads_day_type:
+    type: bool
+    required: true
+    description: "Whether day type was consulted for this setup"
+  reads_context_systems:
+    type: list
+    required: false
+    description: "List of system IDs whose context was read"
+  reasoning_notes:
+    type: str
+    required: false

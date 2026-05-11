@@ -1,0 +1,36 @@
+# System 6 — Killzone Update Event
+# Publishes when session phase or quality changes.
+# OBSERVING system (gate): controls whether firing systems can execute.
+
+event_type: "system.killzone.update"
+channel: "mems26:events:system.killzone.update"
+system_id: 6
+
+fields:
+  ts:
+    type: str
+    required: true
+  current_killzone:
+    type: str
+    required: true
+    description: "OPEN | AM_SESSION | MIDDAY | PM_SESSION | CLOSE | OVERNIGHT"
+  quality:
+    type: str
+    required: true
+    description: "A | B | C | D (session quality grade)"
+  sizing_modifier:
+    type: float
+    required: true
+    description: "1.0 for A, 0.75 for B, 0.5 for C, 0.0 for D"
+  is_blocked:
+    type: bool
+    required: true
+    description: "Whether trading is currently blocked"
+  next_zone:
+    type: str
+    required: false
+    description: "Next killzone name"
+  time_to_next_min:
+    type: int
+    required: false
+    description: "Minutes until next killzone transition"
