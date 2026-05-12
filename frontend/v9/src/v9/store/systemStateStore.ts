@@ -76,6 +76,16 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
         });
       }
     } catch {}
-    // Systems 5-6: placeholder until Prompts 8-9
+    try {
+      const tpo = await fetch(`${API_BASE}/api/v9/tpo/current`).then((r) => r.json()).catch(() => null);
+      if (tpo) {
+        update(5, {
+          state: tpo.profile_shape ?? 'NA',
+          subState: tpo.session_type ?? null,
+          confidence: tpo.letter_count ? Math.min(tpo.letter_count / 13, 1) : 0,
+        });
+      }
+    } catch {}
+    // System 6: placeholder until Prompt 9
   },
 }));

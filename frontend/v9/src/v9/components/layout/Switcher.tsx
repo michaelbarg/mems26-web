@@ -4,6 +4,7 @@ import { DayTypePill } from '../systems/DayTypePill';
 import { FiveMinPill } from '../systems/FiveMinPill';
 import { FootprintPill } from '../systems/FootprintPill';
 import { WoodiesPill } from '../systems/WoodiesPill';
+import { TPOPill } from '../systems/TPOPill';
 import { OBSERVING_SYSTEMS } from '../../design/system_colors';
 import { COLORS } from '../../design/tokens';
 import type { PillState } from '../atoms/Pill';
@@ -34,7 +35,8 @@ export function Switcher({ selectedSystem, onSelectSystem }: SwitcherProps) {
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
           <FootprintPill isSelected={selectedSystem === 3} onSelect={() => onSelectSystem(3)} />
-          {OBSERVING_SYSTEMS.filter(id => id !== 3).map((id) => (
+          <TPOPill isSelected={selectedSystem === 5} onSelect={() => onSelectSystem(5)} />
+          {OBSERVING_SYSTEMS.filter(id => id !== 3 && id !== 5).map((id) => (
             <SwitcherSlot
               key={id}
               systemId={id}
