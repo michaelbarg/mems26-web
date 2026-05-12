@@ -35,17 +35,25 @@ def set_bar_router(router) -> None:
 
 
 def _route_bar(bar_type: str, bar_data: dict) -> None:
-    """Route a bar to BarRouter if available (fire-and-forget async)."""
+    """Route a bar to BarRouter if available.
+
+    Sync wrapper that schedules async publish on the running event loop.
+    D1.9.2: fixed to actually deliver bar data.
+    """
     if _bar_router is not None:
         import asyncio
         try:
             loop = asyncio.get_event_loop()
-            if loop.is_running():
-                loop.create_task(_bar_router.publish(bar_type, bar_data))
-            else:
-                asyncio.run(_bar_router.publish(bar_type, bar_data))
-        except Exception:
-            logger.debug("[bars] BarRouter publish skipped for %s", bar_type)
+            asyncio.ensure_future(_bar_router.publish(bar_type, bar_data), loop=loop)
+        except RuntimeError:
+            # No running event loop — fallback to thread-safe call
+            try:
+                import threading
+                def _bg():
+                    asyncio.run(_bar_router.publish(bar_type, bar_data))
+                threading.Thread(target=_bg, daemon=True).start()
+            except Exception:
+                logger.debug("[bars] BarRouter publish skipped for %s", bar_type)
 
 
 def set_event_dispatcher(dispatcher) -> None:
@@ -275,7 +283,7 @@ def post_footprint(
     if payload.bars:
         _dispatch("footprint", payload.bars[-1])
     _record_push("footprint")
-    _route_bar("footprint", {"ts": ""})
+    _route_bar("footprint", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {"ok": True, "inserted": created, "type": "footprint"}
 
 
@@ -311,7 +319,7 @@ def post_volume_profile(
     if payload.bars:
         _dispatch("volume_profile", payload.bars[-1])
     _record_push("volume_profile")
-    _route_bar("volume_profile", {"ts": ""})
+    _route_bar("volume_profile", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "volume_profile"}
 
 
@@ -344,6 +352,7 @@ def post_imbalance(
         created += 1
     db.commit()
     _record_push("imbalance_flags")
+    _route_bar("imbalance", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {"ok": True, "inserted": created, "type": "imbalance",
             "total_buy": payload.total_buy_imbalances,
             "total_sell": payload.total_sell_imbalances}
@@ -371,6 +380,7 @@ def post_stacked_imbalance(
         created += 1
     db.commit()
     _record_push("stacked_imbalances")
+    _route_bar("stacked_imbalance", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {"ok": True, "inserted": created, "type": "stacked_imbalance"}
 
 
@@ -403,7 +413,7 @@ def post_cumulative_delta(
     if payload.bars:
         _dispatch("cumulative_delta", payload.bars[-1])
     _record_push("cumulative_delta")
-    _route_bar("cumulative_delta", {"ts": ""})
+    _route_bar("cumulative_delta", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "cumulative_delta"}
 
 
@@ -444,6 +454,7 @@ def post_woodies(
     if payload.bars:
         _dispatch("woodies_30min", payload.bars[-1])
     _record_push("woodies_30min")
+    _route_bar("woodies", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {"ok": True, "inserted": created, "type": "woodies"}
 
 
@@ -472,7 +483,7 @@ def post_tpo(
     if payload.bars:
         _dispatch("volume_profile", payload.bars[-1])
     _record_push("tpo")
-    _route_bar("tpo", {"ts": ""})
+    _route_bar("tpo", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {"ok": True, "inserted": created, "type": "tpo"}
 
 
