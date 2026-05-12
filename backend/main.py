@@ -51,8 +51,22 @@ def _startup():
     _logger.info("[Main] BarIngestionService started: running=%s", bar_ingestion_service.is_running)
 
     # Start 5-min Bar Aggregator (Principle 10: data-driven, always-on)
-    from backend.v9.services.bar_aggregator_5min import FiveMinAggregator, five_min_aggregator
+    from backend.v9.services.bar_aggregator_5min import five_min_aggregator
     _logger.info("[Main] FiveMinAggregator initialized: bars_closed=%d", five_min_aggregator.bars_closed)
+
+    # BarRouter: central bar distribution (D1.6)
+    from backend.v9.services.bar_router import BarRouter
+    bar_router = BarRouter()
+    app.state.bar_router = bar_router
+
+    # Wire BarRouter into bars API module
+    from backend.v9.api.v9.bars import set_bar_router
+    set_bar_router(bar_router)
+
+    # Subscribe 5-min aggregator to tick_reversal_15 via BarRouter
+    bar_router.subscribe("tick_reversal_15", five_min_aggregator.on_bar_event)
+
+    _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
 
 # ── Health (unified) ─────────────────────────────────────────
