@@ -4,6 +4,7 @@ import { Switcher } from './Switcher';
 import { Lens } from '../molecules/Lens';
 import { DayTypeLensContent } from '../systems/DayTypeLensContent';
 import { FiveMinLensContent } from '../systems/FiveMinLensContent';
+import { FootprintLensContent } from '../systems/FootprintLensContent';
 import { COLORS, SIZES } from '../../design/tokens';
 import { SYSTEM_META } from '../../design/system_colors';
 
@@ -49,6 +50,8 @@ export function SidePanel() {
           <LensWithCustomContent systemId={1} ContentComponent={DayTypeLensContent} />
         ) : selectedSystem === 2 ? (
           <LensWithCustomContent systemId={2} ContentComponent={FiveMinLensContent} />
+        ) : selectedSystem === 3 ? (
+          <LensWithCustomContent systemId={3} ContentComponent={FootprintLensContent} />
         ) : (
           <Lens systemId={selectedSystem} />
         )}

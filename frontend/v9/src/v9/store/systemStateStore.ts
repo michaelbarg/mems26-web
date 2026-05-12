@@ -56,6 +56,16 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
         });
       }
     } catch {}
-    // Systems 3-6: placeholder until Prompts 6-9
+    try {
+      const fp = await fetch(`${API_BASE}/api/v9/footprint/current`).then((r) => r.json()).catch(() => null);
+      if (fp) {
+        update(3, {
+          state: fp.last_classification ?? 'NO_SETUP',
+          subState: fp.last_pattern ?? null,
+          confidence: fp.last_confluence ? fp.last_confluence / 10 : 0,
+        });
+      }
+    } catch {}
+    // Systems 4-6: placeholder until Prompts 7-9
   },
 }));

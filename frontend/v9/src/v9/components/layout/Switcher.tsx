@@ -2,6 +2,7 @@
 import { SwitcherSlot } from '../molecules/SwitcherSlot';
 import { DayTypePill } from '../systems/DayTypePill';
 import { FiveMinPill } from '../systems/FiveMinPill';
+import { FootprintPill } from '../systems/FootprintPill';
 import { OBSERVING_SYSTEMS } from '../../design/system_colors';
 import { COLORS } from '../../design/tokens';
 import type { PillState } from '../atoms/Pill';
@@ -36,7 +37,8 @@ export function Switcher({ selectedSystem, onSelectSystem }: SwitcherProps) {
           Observing — context
         </div>
         <div style={{ display: 'flex', gap: 6 }}>
-          {OBSERVING_SYSTEMS.map((id) => (
+          <FootprintPill isSelected={selectedSystem === 3} onSelect={() => onSelectSystem(3)} />
+          {OBSERVING_SYSTEMS.filter(id => id !== 3).map((id) => (
             <SwitcherSlot
               key={id}
               systemId={id}
