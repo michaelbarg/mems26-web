@@ -112,5 +112,18 @@ class BaseV9TradingSystem(abc.ABC):
         """Return list of Event Bus channels this system subscribes to."""
         return self.subscribed_channels
 
+    def subscribed_bar_types(self) -> List[str]:
+        """Override in subclass to declare bar types consumed via BarRouter."""
+        return []
+
+    async def process_bar(self, event) -> None:
+        """Override in subclass to process incoming bars from BarRouter."""
+        pass
+
+    async def register_subscriptions(self, bar_router) -> None:
+        """Register this system's bar subscriptions with the BarRouter."""
+        for bar_type in self.subscribed_bar_types():
+            bar_router.subscribe(bar_type, self.process_bar)
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.system_id} name={self.name} type={self.system_type.value}>"

@@ -172,6 +172,13 @@ class FiveMinSystem(BaseV9TradingSystem):
         # Store for context — used by confluence scoring
         return None
 
+    def subscribed_bar_types(self):
+        return ["5min"]
+
+    async def process_bar(self, event) -> None:
+        """Process a 5-min bar from BarRouter."""
+        self.buffer_size += 1
+
     def get_state(self) -> dict:
         """Current system state for API/status."""
         return {
