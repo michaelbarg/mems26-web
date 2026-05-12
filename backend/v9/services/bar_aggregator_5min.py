@@ -140,26 +140,40 @@ class FiveMinAggregator:
 
 
 def _on_bar_close_default(bar: Bar5Min) -> None:
-    """Default bar close handler: persist to DB via BarIngestionService."""
+    """Default bar close handler: persist to DB + publish via BarRouter."""
+    bar_dict = {
+        "ts": bar.start_ts.isoformat() if hasattr(bar.start_ts, 'isoformat') else str(bar.start_ts),
+        "open": bar.open,
+        "high": bar.high,
+        "low": bar.low,
+        "close": bar.close,
+        "volume": bar.volume,
+        "delta": 0,
+        "symbol": "MES",
+        "session": bar.session,
+    }
+    # 1. Persist to DB
     try:
         from backend.v9.services.bar_ingestion import bar_ingestion_service
-        bar_ingestion_service.ingest_bar({
-            "ts": bar.start_ts,
-            "open": bar.open,
-            "high": bar.high,
-            "low": bar.low,
-            "close": bar.close,
-            "volume": bar.volume,
-            "delta": 0,
-            "symbol": "MES",
-        })
-        logger.info(
-            "[Aggregator] Bar closed: %s O=%.2f H=%.2f L=%.2f C=%.2f V=%d session=%s",
-            bar.start_ts.strftime("%H:%M"), bar.open, bar.high, bar.low,
-            bar.close, bar.volume, bar.session,
-        )
+        bar_ingestion_service.ingest_bar(bar_dict)
     except Exception as e:
         logger.error("[Aggregator] Bar persist error: %s", e)
+
+    # 2. Publish via BarRouter so FiveMinSystem receives it (D2.5.4)
+    try:
+        from backend.v9.api.v9.bars import _bar_router
+        if _bar_router is not None:
+            import asyncio
+            asyncio.ensure_future(_bar_router.publish("5min", bar_dict))
+    except Exception as e:
+        logger.debug("[Aggregator] BarRouter publish skipped: %s", e)
+
+    logger.info(
+        "[Aggregator] Bar closed: %s O=%.2f H=%.2f L=%.2f C=%.2f V=%d session=%s",
+        bar.start_ts.strftime("%H:%M") if hasattr(bar.start_ts, 'strftime') else str(bar.start_ts),
+        bar.open, bar.high, bar.low,
+        bar.close, bar.volume, bar.session,
+    )
 
 
 # Singleton
