@@ -19,6 +19,7 @@ from .footprint_markers import V9FootprintMarker
 from .woodies_patterns import V9WoodiesPattern
 from .tpo_history import V9TpoHistory
 from .killzone_log import V9KillzoneLog
+from .five_min_state import V9FiveMinState
 
 __all__ = [
     "V9Bar5Min",
@@ -40,4 +41,5 @@ __all__ = [
     "V9WoodiesPattern",
     "V9TpoHistory",
     "V9KillzoneLog",
+    "V9FiveMinState",
 ]

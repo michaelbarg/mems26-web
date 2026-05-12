@@ -221,6 +221,19 @@ def _check_hydration() -> dict:
         }
     except Exception:
         result["systems"]["day_type"] = {"hydrated": False, "error": "import_failed"}
+    try:
+        from backend.v9.systems.five_min.five_min_system import FiveMinSystem
+        fm = FiveMinSystem()
+        hr = fm.hydrate()
+        state = fm.get_state()
+        result["systems"]["five_min"] = {
+            "hydrated": hr.success,
+            "reached_state": hr.reached_state,
+            "mode": state.get("mode"),
+            "notes": hr.notes,
+        }
+    except Exception:
+        result["systems"]["five_min"] = {"hydrated": False, "error": "import_failed"}
     return result
 
 

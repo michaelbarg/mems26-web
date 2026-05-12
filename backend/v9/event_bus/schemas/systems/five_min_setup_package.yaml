@@ -1,0 +1,62 @@
+# System 2 — 5-min Setup Package Event (D-079)
+# Published when a pattern is detected and classified.
+# Consumed by System 3 (Footprint) for confluence scoring.
+
+event_type: "system.five_min.setup_package"
+channel: "mems26:events:system.five_min.setup_package"
+system_id: 2
+version: "v1"
+
+fields:
+  ts:
+    type: str
+    required: true
+  system:
+    type: str
+    required: true
+    description: "Always '5min'"
+  mode:
+    type: str
+    required: true
+    description: "FIRST_HOUR_TACTICAL | DAY_TYPE_MODE"
+  pattern_detected:
+    type: str
+    required: false
+    description: "Pattern name or null"
+  pattern_state:
+    type: str
+    required: false
+    description: "FORMING | INTACT | BROKEN"
+  opening_type:
+    type: str
+    required: false
+  confluence_score:
+    type: int
+    required: true
+    description: "1-4"
+  classification:
+    type: str
+    required: true
+    description: "TACTICAL | TACTICAL+ | TACTICAL+_STRONG"
+  sizing:
+    type: str
+    required: true
+    description: "MIN | MIN-HALF | HALF"
+  targets:
+    type: dict
+    required: false
+    description: "{t1, t2, t3}"
+  time_limit_minutes:
+    type: int
+    required: false
+  marker:
+    type: str
+    required: false
+    description: "FIRST_HOUR_TACTICAL | DAY_TYPE_PATTERN"
+  confidence:
+    type: float
+    required: true
+  reasoning_notes:
+    type: str
+    required: false
+    description: "AP-SY02 compliance"
