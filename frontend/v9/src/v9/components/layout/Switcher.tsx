@@ -5,6 +5,7 @@ import { FiveMinPill } from '../systems/FiveMinPill';
 import { FootprintPill } from '../systems/FootprintPill';
 import { WoodiesPill } from '../systems/WoodiesPill';
 import { TPOPill } from '../systems/TPOPill';
+import { KillzonePill } from '../systems/KillzonePill';
 import { OBSERVING_SYSTEMS } from '../../design/system_colors';
 import { COLORS } from '../../design/tokens';
 import type { PillState } from '../atoms/Pill';
@@ -36,15 +37,7 @@ export function Switcher({ selectedSystem, onSelectSystem }: SwitcherProps) {
         <div style={{ display: 'flex', gap: 6 }}>
           <FootprintPill isSelected={selectedSystem === 3} onSelect={() => onSelectSystem(3)} />
           <TPOPill isSelected={selectedSystem === 5} onSelect={() => onSelectSystem(5)} />
-          {OBSERVING_SYSTEMS.filter(id => id !== 3 && id !== 5).map((id) => (
-            <SwitcherSlot
-              key={id}
-              systemId={id}
-              state={'idle' as PillState}
-              isSelected={selectedSystem === id}
-              onSelect={() => onSelectSystem(id)}
-            />
-          ))}
+          <KillzonePill isSelected={selectedSystem === 6} onSelect={() => onSelectSystem(6)} />
         </div>
       </div>
     </div>

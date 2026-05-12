@@ -7,6 +7,7 @@ import { FiveMinLensContent } from '../systems/FiveMinLensContent';
 import { FootprintLensContent } from '../systems/FootprintLensContent';
 import { WoodiesLensContent } from '../systems/WoodiesLensContent';
 import { TPOLensContent } from '../systems/TPOLensContent';
+import { KillzoneLensContent } from '../systems/KillzoneLensContent';
 import { COLORS, SIZES } from '../../design/tokens';
 import { SYSTEM_META } from '../../design/system_colors';
 
@@ -58,6 +59,8 @@ export function SidePanel() {
           <LensWithCustomContent systemId={4} ContentComponent={WoodiesLensContent} />
         ) : selectedSystem === 5 ? (
           <LensWithCustomContent systemId={5} ContentComponent={TPOLensContent} />
+        ) : selectedSystem === 6 ? (
+          <LensWithCustomContent systemId={6} ContentComponent={KillzoneLensContent} />
         ) : (
           <Lens systemId={selectedSystem} />
         )}

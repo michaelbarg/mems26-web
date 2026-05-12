@@ -86,6 +86,16 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
         });
       }
     } catch {}
-    // System 6: placeholder until Prompt 9
+    try {
+      const kz = await fetch(`${API_BASE}/api/v9/killzone/current`).then((r) => r.json()).catch(() => null);
+      if (kz) {
+        const cz = kz.current_zone || {};
+        update(6, {
+          state: cz.name ?? 'UNKNOWN',
+          subState: cz.edge_class ?? null,
+          confidence: cz.edge_class === 'high' ? 1 : cz.edge_class === 'medium' ? 0.5 : 0.2,
+        });
+      }
+    } catch {}
   },
 }));
