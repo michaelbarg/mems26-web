@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { usePriceStore } from '../../stores/priceStore';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -8,15 +8,53 @@ interface Bar { ts: string; o: number; h: number; l: number; c: number; v: numbe
 interface TpoState { poc: number | null; vah: number | null; val: number | null; ib_high: number | null; ib_low: number | null; hydrated: boolean }
 interface KzState { current_zone: { name: string; edge_class: string; minutes_remaining: number } }
 
-const W = 800, H = 280;
-const ML = 8, MR = 62, MT = 28, MB = 4;
+const W = 800, H = 310;  // +30 for volume strip
+const ML = 8, MR = 62, MT = 28, MB = 32;  // MB includes volume strip
 const CW = W - ML - MR, CH = H - MT - MB;
+const VOL_H = 28;
+const VOL_Y = H - MB + 2;  // Volume strip starts here
 
 export function ChartV5a() {
   const [bars, setBars] = useState<Bar[]>([]);
   const [tpo, setTpo] = useState<TpoState | null>(null);
   const [kz, setKz] = useState<KzState | null>(null);
   const price = usePriceStore((s) => s.price);
+  const direction = usePriceStore((s) => s.direction);
+  const tickCount = usePriceStore((s) => s.tickCount);
+
+  // PRC flash state
+  const [prcFlash, setPrcFlash] = useState(false);
+  const prevTickRef = useRef(tickCount);
+  useEffect(() => {
+    if (tickCount !== prevTickRef.current && price != null) {
+      prevTickRef.current = tickCount;
+      setPrcFlash(true);
+      const t = setTimeout(() => setPrcFlash(false), 200);
+      return () => clearTimeout(t);
+    }
+  }, [tickCount, price]);
+
+  // Forming bar state
+  const [formingBar, setFormingBar] = useState<Bar | null>(null);
+  useEffect(() => {
+    if (price == null) return;
+    setFormingBar(prev => {
+      // Floor to 5-min boundary
+      const now = new Date();
+      const min5 = Math.floor(now.getMinutes() / 5) * 5;
+      const slotTs = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(min5).padStart(2,'0')}:00`;
+      if (!prev || prev.ts !== slotTs) {
+        return { ts: slotTs, o: price, h: price, l: price, c: price, v: 1 };
+      }
+      return {
+        ...prev,
+        h: Math.max(prev.h, price),
+        l: Math.min(prev.l, price),
+        c: price,
+        v: prev.v + 1,
+      };
+    });
+  }, [price, tickCount]);
 
   // Fetch bars
   useEffect(() => {
@@ -36,69 +74,83 @@ export function ChartV5a() {
     f(); const id = setInterval(f, 30000); return () => clearInterval(id);
   }, []);
 
-  // Price range from bars
+  // All bars = closed + forming
+  const allBars = useMemo(() => {
+    const result = [...bars];
+    if (formingBar) result.push(formingBar);
+    return result;
+  }, [bars, formingBar]);
+
+  // Price range from all bars
   const { pMin, pMax } = useMemo(() => {
-    if (bars.length === 0) {
+    if (allBars.length === 0) {
       const p = price ?? 7400;
       return { pMin: p - 10, pMax: p + 10 };
     }
     let lo = Infinity, hi = -Infinity;
-    for (const b of bars) { if (b.l < lo) lo = b.l; if (b.h > hi) hi = b.h; }
+    for (const b of allBars) { if (b.l < lo) lo = b.l; if (b.h > hi) hi = b.h; }
+    if (price != null) { if (price < lo) lo = price; if (price > hi) hi = price; }
     return { pMin: lo - 1, pMax: hi + 1 };
-  }, [bars, price]);
+  }, [allBars, price]);
 
   const yOf = (p: number) => MT + (1 - (p - pMin) / (pMax - pMin)) * CH;
-  const barW = bars.length > 0 ? Math.min(14, CW / bars.length - 1) : 12;
+  const barW = allBars.length > 0 ? Math.min(14, CW / allBars.length - 1) : 12;
+  const maxVol = Math.max(1, ...allBars.map(b => b.v || 1));
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', minHeight: 280, background: '#0a0a0a' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', minHeight: 310, background: '#0a0a0a' }}>
       {/* Grid */}
       {[0.25, 0.5, 0.75].map(f => (
         <line key={f} x1={ML} y1={MT + f * CH} x2={W - MR} y2={MT + f * CH} stroke="#1a1a1a" strokeWidth={0.5} />
       ))}
 
-      {/* 5-min candles */}
-      {bars.map((b, i) => {
-        const x = ML + (i / bars.length) * CW + barW / 2;
+      {/* 5-min candles + forming bar */}
+      {allBars.map((b, i) => {
+        const x = ML + (i / allBars.length) * CW + barW / 2;
         const bull = b.c >= b.o;
         const bodyTop = yOf(bull ? b.c : b.o);
         const bodyBot = yOf(bull ? b.o : b.c);
         const bodyH = Math.max(1, bodyBot - bodyTop);
+        const isForming = i === allBars.length - 1 && formingBar != null;
         return (
           <g key={i}>
             <line x1={x} y1={yOf(b.h)} x2={x} y2={yOf(b.l)} stroke={bull ? '#16a34a' : '#dc2626'} strokeWidth={0.5} />
-            <rect x={x - barW / 2} y={bodyTop} width={barW} height={bodyH} fill={bull ? '#16a34a' : '#dc2626'} opacity={0.85} rx={0.5} />
+            <rect x={x - barW / 2} y={bodyTop} width={barW} height={bodyH}
+              fill={bull ? '#16a34a' : '#dc2626'} opacity={isForming ? 0.95 : 0.85} rx={0.5}
+              stroke={isForming ? '#facc15' : 'none'} strokeWidth={isForming ? 0.5 : 0} />
           </g>
         );
       })}
 
+      {/* Volume strip background */}
+      <rect x={ML} y={VOL_Y} width={CW} height={VOL_H} fill="#0d0d0d" />
+      <line x1={ML} y1={VOL_Y} x2={W - MR} y2={VOL_Y} stroke="#1a1a1a" strokeWidth={0.5} />
+
+      {/* Volume bars */}
+      {allBars.map((b, i) => {
+        const x = ML + (i / allBars.length) * CW + barW / 2;
+        const vol = b.v || 0;
+        const volH = Math.max(1, (vol / maxVol) * (VOL_H - 2));
+        const bull = b.c >= b.o;
+        return (
+          <rect key={`v${i}`} x={x - barW / 2} y={VOL_Y + VOL_H - volH} width={barW} height={volH}
+            fill={bull ? '#16a34a' : '#dc2626'} opacity={0.6} rx={0.5} />
+        );
+      })}
+
       {/* TPO POC line */}
-      {tpo?.poc != null && (
-        <line x1={ML} y1={yOf(tpo.poc)} x2={W - MR} y2={yOf(tpo.poc)} stroke="#ec4899" strokeWidth={1.8} opacity={0.95} />
-      )}
-      {/* TPO VAH dashed */}
-      {tpo?.vah != null && (
-        <line x1={ML} y1={yOf(tpo.vah)} x2={W - MR} y2={yOf(tpo.vah)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />
-      )}
-      {/* TPO VAL dashed */}
-      {tpo?.val != null && (
-        <line x1={ML} y1={yOf(tpo.val)} x2={W - MR} y2={yOf(tpo.val)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />
-      )}
+      {tpo?.poc != null && <line x1={ML} y1={yOf(tpo.poc)} x2={W - MR} y2={yOf(tpo.poc)} stroke="#ec4899" strokeWidth={1.8} opacity={0.95} />}
+      {tpo?.vah != null && <line x1={ML} y1={yOf(tpo.vah)} x2={W - MR} y2={yOf(tpo.vah)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />}
+      {tpo?.val != null && <line x1={ML} y1={yOf(tpo.val)} x2={W - MR} y2={yOf(tpo.val)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />}
 
       {/* Current price line */}
-      {price != null && (
-        <line x1={ML} y1={yOf(price)} x2={W - MR} y2={yOf(price)} stroke="#facc15" strokeWidth={0.4} opacity={0.4} />
-      )}
+      {price != null && <line x1={ML} y1={yOf(price)} x2={W - MR} y2={yOf(price)} stroke="#facc15" strokeWidth={0.4} opacity={0.4} />}
 
-      {/* IB H/L placeholders */}
-      {tpo?.ib_high != null && (
-        <line x1={ML} y1={yOf(tpo.ib_high)} x2={W - MR} y2={yOf(tpo.ib_high)} stroke="#4ade80" strokeWidth={0.7} opacity={0.5} />
-      )}
-      {tpo?.ib_low != null && (
-        <line x1={ML} y1={yOf(tpo.ib_low)} x2={W - MR} y2={yOf(tpo.ib_low)} stroke="#4ade80" strokeWidth={0.7} opacity={0.5} />
-      )}
+      {/* IB H/L */}
+      {tpo?.ib_high != null && <line x1={ML} y1={yOf(tpo.ib_high)} x2={W - MR} y2={yOf(tpo.ib_high)} stroke="#4ade80" strokeWidth={0.7} opacity={0.5} />}
+      {tpo?.ib_low != null && <line x1={ML} y1={yOf(tpo.ib_low)} x2={W - MR} y2={yOf(tpo.ib_low)} stroke="#4ade80" strokeWidth={0.7} opacity={0.5} />}
 
-      {/* TR countdown badge (top-left) */}
+      {/* TR countdown badge */}
       {kz?.current_zone && (
         <g>
           <rect x={12} y={6} width={90} height={16} rx={3} fill="rgba(249,115,22,0.12)" stroke="#f97316" strokeWidth={0.5} />
@@ -108,33 +160,43 @@ export function ChartV5a() {
         </g>
       )}
 
-      {/* Right price scale */}
-      {(() => {
-        const labels: { price: number | null; label: string; fill: string; text: string; solid?: boolean }[] = [
-          { price: tpo?.ib_high ?? null, label: 'IB H', fill: 'rgba(74,222,128,0.15)', text: '#4ade80' },
-          { price: tpo?.vah ?? null, label: 'VAH', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
-          { price: price ?? null, label: 'PRC', fill: '#facc15', text: '#0a0a0a', solid: true },
-          { price: tpo?.poc ?? null, label: 'POC', fill: '#ec4899', text: '#fff', solid: true },
-          { price: tpo?.val ?? null, label: 'VAL', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
-          { price: tpo?.ib_low ?? null, label: 'IB L', fill: 'rgba(74,222,128,0.15)', text: '#4ade80' },
-        ];
-        return labels.map((l, i) => {
-          if (l.price == null) return null;
-          const y = yOf(l.price);
-          if (y < MT || y > H - MB) return null;
-          return (
-            <g key={l.label}>
-              <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill={l.fill} opacity={l.solid ? 1 : 0.8} />
-              <text x={W - MR + 5} y={y + 3} fontSize={9} fill={l.text} fontFamily="ui-monospace, monospace" fontWeight={500}>
-                {l.label} {l.price.toFixed(2)}
-              </text>
-            </g>
-          );
-        });
+      {/* Right price scale — PRC pill (live, flashing) */}
+      {price != null && (() => {
+        const y = yOf(price);
+        if (y < MT || y > H - MB) return null;
+        return (
+          <g>
+            <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill="#facc15" opacity={prcFlash ? 0.6 : 1} />
+            <text x={W - MR + 5} y={y + 3} fontSize={9} fill="#0a0a0a" fontFamily="ui-monospace, monospace" fontWeight={600}>
+              PRC {price.toFixed(2)}
+            </text>
+          </g>
+        );
       })()}
 
+      {/* Right price scale — other labels */}
+      {[
+        { price: tpo?.ib_high, label: 'IB H', fill: 'rgba(74,222,128,0.15)', text: '#4ade80' },
+        { price: tpo?.vah, label: 'VAH', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
+        { price: tpo?.poc, label: 'POC', fill: '#ec4899', text: '#fff' },
+        { price: tpo?.val, label: 'VAL', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
+        { price: tpo?.ib_low, label: 'IB L', fill: 'rgba(74,222,128,0.15)', text: '#4ade80' },
+      ].map(l => {
+        if (l.price == null) return null;
+        const y = yOf(l.price);
+        if (y < MT || y > H - MB) return null;
+        return (
+          <g key={l.label}>
+            <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill={l.fill} opacity={0.8} />
+            <text x={W - MR + 5} y={y + 3} fontSize={9} fill={l.text} fontFamily="ui-monospace, monospace" fontWeight={500}>
+              {l.label} {l.price.toFixed(2)}
+            </text>
+          </g>
+        );
+      })}
+
       {/* No bars message */}
-      {bars.length === 0 && (
+      {allBars.length === 0 && (
         <text x={W / 2} y={H / 2} textAnchor="middle" fontSize={12} fill="#737373">No bars yet</text>
       )}
     </svg>
