@@ -50,6 +50,10 @@ def _startup():
     bar_ingestion_service.start()
     _logger.info("[Main] BarIngestionService started: running=%s", bar_ingestion_service.is_running)
 
+    # Start 5-min Bar Aggregator (Principle 10: data-driven, always-on)
+    from backend.v9.services.bar_aggregator_5min import FiveMinAggregator, five_min_aggregator
+    _logger.info("[Main] FiveMinAggregator initialized: bars_closed=%d", five_min_aggregator.bars_closed)
+
 
 # ── Health (unified) ─────────────────────────────────────────
 
