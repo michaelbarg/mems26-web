@@ -66,6 +66,18 @@ def _startup():
     # Subscribe 5-min aggregator to tick_reversal_15 via BarRouter
     bar_router.subscribe("tick_reversal_15", five_min_aggregator.on_bar_event)
 
+    # D1.9.3: Instantiate + register systems via BarRouter
+    try:
+        from backend.v9.systems.five_min.five_min_system import FiveMinSystem
+        five_min_system = FiveMinSystem()
+        app.state.five_min_system = five_min_system
+        five_min_system.hydrate()
+        for bt in five_min_system.subscribed_bar_types():
+            bar_router.subscribe(bt, five_min_system.process_bar)
+        _logger.info("[Main] FiveMinSystem hydrated + subscribed: %s", five_min_system.subscribed_bar_types())
+    except Exception as e:
+        _logger.error("[Main] FiveMinSystem startup failed: %s", e)
+
     _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
     # Historical Replay: warm system buffers from DB (D2.2)
