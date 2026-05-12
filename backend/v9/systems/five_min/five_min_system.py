@@ -1,6 +1,7 @@
 """FiveMinSystem — 5-min Decision Maker with full D-077 lifecycle.
 
-Implements hydrate() for 4 cold start scenarios (Addendum Section 1).
+Implements hydrate() for cold start scenarios (Addendum Section 1).
+Uses SessionClassifier (D-083) — never raw time checks.
 Integrates with existing chart_5min/ detector and pattern library.
 """
 
@@ -9,6 +10,7 @@ from datetime import date, datetime, timezone, timedelta
 from typing import Any, Dict, List, Optional
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
+from backend.v9.common.session_classifier import SessionClassifier, Session
 from backend.v9.db.session import SessionLocal
 from backend.v9.db.models.five_min_state import V9FiveMinState
 
@@ -19,7 +21,9 @@ class FiveMinMode:
     WAITING_OPEN = "WAITING_OPEN"
     FIRST_HOUR_TACTICAL = "FIRST_HOUR_TACTICAL"
     DAY_TYPE_MODE = "DAY_TYPE_MODE"
-    MARKET_CLOSED = "MARKET_CLOSED"
+    OVERNIGHT_MODE = "OVERNIGHT_MODE"
+    WEEKEND = "WEEKEND"
+    MAINTENANCE = "MAINTENANCE"
     RECOVERING = "RECOVERING"
     LIVE_ONLY = "LIVE_ONLY"
 
@@ -37,6 +41,7 @@ class FiveMinSystem(BaseV9TradingSystem):
     ]
 
     def __init__(self):
+        self.session_classifier = SessionClassifier()
         self.mode = FiveMinMode.WAITING_OPEN
         self.buffer_size = 0
         self.opening_type: Optional[str] = None
@@ -47,22 +52,30 @@ class FiveMinSystem(BaseV9TradingSystem):
         self._hydrated = False
 
     def hydrate(self) -> HydrationResult:
-        """D-077: 4 cold start scenarios per Spec Addendum Section 1."""
+        """D-077 hydration using SessionClassifier (D-083)."""
         try:
-            now = datetime.now(timezone(timedelta(hours=-4)))  # ET
-            hour, minute = now.hour, now.minute
-            session_min = (hour - 9) * 60 + (minute - 30)
+            info = self.session_classifier.classify()
+            session = info.session
 
-            # Scenario D: Market closed (after 16:00 or before 09:00)
-            if hour >= 16 or hour < 9:
-                self.mode = FiveMinMode.MARKET_CLOSED
+            # Non-trading sessions
+            if session == Session.WEEKEND:
+                self.mode = FiveMinMode.WEEKEND
                 self._hydrated = True
-                return HydrationResult(
-                    success=True,
-                    reached_state=FiveMinMode.MARKET_CLOSED,
-                    bars_replayed=0,
-                    notes="Market closed, awaiting next session",
-                )
+                return HydrationResult(success=True, reached_state=FiveMinMode.WEEKEND,
+                                       notes="Weekend, no trading")
+
+            if session == Session.MAINTENANCE:
+                self.mode = FiveMinMode.MAINTENANCE
+                self._hydrated = True
+                return HydrationResult(success=True, reached_state=FiveMinMode.MAINTENANCE,
+                                       notes="Daily maintenance window")
+
+            # Globex sessions (overnight, pre-market, after-hours)
+            if session in (Session.OVERNIGHT, Session.PRE_MARKET, Session.AFTER_HOURS):
+                self.mode = FiveMinMode.OVERNIGHT_MODE
+                self._hydrated = True
+                return HydrationResult(success=True, reached_state=FiveMinMode.OVERNIGHT_MODE,
+                                       notes=f"Globex session: {session.value}")
 
             # Try to load today's state from DB
             db = SessionLocal()
@@ -77,27 +90,17 @@ class FiveMinSystem(BaseV9TradingSystem):
             bars_count = 0
             try:
                 from backend.v9.services.bar_ingestion import bar_ingestion_service
-                from datetime import datetime as dt
-                today_open = dt(now.year, now.month, now.day, 9, 30,
-                                tzinfo=timezone(timedelta(hours=-4)))
+                import pytz
+                ET = pytz.timezone('America/New_York')
+                now_et = datetime.now(ET)
+                today_open = now_et.replace(hour=9, minute=30, second=0, microsecond=0)
                 bars = bar_ingestion_service.get_bars_since(today_open)
                 bars_count = len(bars)
             except Exception:
                 pass
 
-            # Scenario A: Pre-open (< 09:30 ET)
-            if hour < 9 or (hour == 9 and minute < 30):
-                self.mode = FiveMinMode.WAITING_OPEN
-                self._hydrated = True
-                return HydrationResult(
-                    success=True,
-                    reached_state=FiveMinMode.WAITING_OPEN,
-                    bars_replayed=0,
-                    notes="Pre-open, ready for 09:30",
-                )
-
-            # Scenario B: Mid-first-hour (09:30-10:30 ET)
-            if session_min < 60:
+            # Cash open / First hour
+            if session in (Session.CASH_OPEN, Session.FIRST_HOUR):
                 self.mode = FiveMinMode.FIRST_HOUR_TACTICAL
                 self.buffer_size = bars_count
                 if state:
@@ -148,15 +151,15 @@ class FiveMinSystem(BaseV9TradingSystem):
         """Process a closed 5-min bar."""
         self.buffer_size += 1
 
-        # Mode transition at 10:30 ET (D-080: time-based)
+        # Mode transition via SessionClassifier (D-080 + D-083)
         ts = event.get("ts_ms") or event.get("ts")
         if ts and isinstance(ts, (int, float)):
             bar_time = datetime.fromtimestamp(
                 ts / 1000 if ts > 1e12 else ts,
                 tz=timezone(timedelta(hours=-4))
             )
-            session_min = (bar_time.hour - 9) * 60 + (bar_time.minute - 30)
-            if session_min >= 60 and self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
+            info = self.session_classifier.classify(bar_time)
+            if info.session == Session.CASH_HOURS and self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
                 self.mode = FiveMinMode.DAY_TYPE_MODE
                 logger.info("[FiveMin] Mode transition: FIRST_HOUR -> DAY_TYPE_MODE at %s", bar_time)
 

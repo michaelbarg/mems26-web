@@ -27,6 +27,9 @@ export function Layer0Strip() {
           const mode = d.mode ?? null;
           if (mode === 'FIRST_HOUR_TACTICAL') setFiveMinMode('FH-TACT');
           else if (mode === 'DAY_TYPE_MODE') setFiveMinMode('DT-MODE');
+          else if (mode === 'OVERNIGHT_MODE') setFiveMinMode('OVERNIGHT');
+          else if (mode === 'WEEKEND') setFiveMinMode('WEEKEND');
+          else if (mode === 'MAINTENANCE') setFiveMinMode('MAINT');
           else if (mode === 'MARKET_CLOSED') setFiveMinMode('CLOSED');
           else setFiveMinMode(mode);
         })

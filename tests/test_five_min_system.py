@@ -49,7 +49,9 @@ class TestFiveMinHydration:
             FiveMinMode.WAITING_OPEN,
             FiveMinMode.FIRST_HOUR_TACTICAL,
             FiveMinMode.DAY_TYPE_MODE,
-            FiveMinMode.MARKET_CLOSED,
+            FiveMinMode.OVERNIGHT_MODE,
+            FiveMinMode.WEEKEND,
+            FiveMinMode.MAINTENANCE,
             FiveMinMode.LIVE_ONLY,
         ]
 

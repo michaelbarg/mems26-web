@@ -237,11 +237,29 @@ def _check_hydration() -> dict:
     return result
 
 
+def _check_session() -> dict:
+    """Current trading session via SessionClassifier (D-083)."""
+    try:
+        from backend.v9.common.session_classifier import SessionClassifier
+        sc = SessionClassifier()
+        info = sc.classify()
+        return {
+            "current": info.session.value,
+            "et_time": info.et_time.isoformat(),
+            "is_trading_active": info.is_trading_active,
+            "is_globex": sc.is_globex(info.session),
+            "is_cash": sc.is_cash(info.session),
+        }
+    except Exception:
+        return {"current": "UNKNOWN", "error": "classifier_failed"}
+
+
 @router.get("/api/v9/status")
 def system_status():
-    """8-layer health dashboard for MEMS26."""
+    """9-layer health dashboard for MEMS26."""
     return {
         "ts": time.time(),
+        "session": _check_session(),
         "sierra": _check_sierra(),
         "bridge": _check_bridge(),
         "event_bus": _check_event_bus(),
