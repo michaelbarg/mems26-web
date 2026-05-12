@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Switcher } from './Switcher';
 import { Lens } from '../molecules/Lens';
 import { DayTypeLensContent } from '../systems/DayTypeLensContent';
+import { FiveMinLensContent } from '../systems/FiveMinLensContent';
 import { COLORS, SIZES } from '../../design/tokens';
 import { SYSTEM_META } from '../../design/system_colors';
 
@@ -45,7 +46,9 @@ export function SidePanel() {
       {/* Lens */}
       <div style={{ flex: 1, overflow: 'auto', padding: 6 }}>
         {selectedSystem === 1 ? (
-          <LensWithDayType systemId={selectedSystem} />
+          <LensWithCustomContent systemId={1} ContentComponent={DayTypeLensContent} />
+        ) : selectedSystem === 2 ? (
+          <LensWithCustomContent systemId={2} ContentComponent={FiveMinLensContent} />
         ) : (
           <Lens systemId={selectedSystem} />
         )}
@@ -54,8 +57,11 @@ export function SidePanel() {
   );
 }
 
-/** Lens with Day Type custom content for System 1 */
-function LensWithDayType({ systemId }: { systemId: number }) {
+/** Lens with custom content component for any system */
+function LensWithCustomContent({ systemId, ContentComponent }: {
+  systemId: number;
+  ContentComponent: React.ComponentType<{ activeTab: string }>;
+}) {
   const [activeTab, setActiveTab] = useState('Now');
   const meta = SYSTEM_META[systemId];
   if (!meta) return null;
@@ -100,7 +106,7 @@ function LensWithDayType({ systemId }: { systemId: number }) {
         </div>
       </div>
       <div style={{ padding: SIZES.lensPadding }}>
-        <DayTypeLensContent activeTab={activeTab} />
+        <ContentComponent activeTab={activeTab} />
       </div>
     </div>
   );
