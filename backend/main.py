@@ -38,7 +38,7 @@ app.include_router(v9_router)
 
 
 @app.on_event("startup")
-def _startup():
+async def _startup():
     """Initialize EventDispatcher + BarIngestionService at unified app startup."""
     import logging
     _logger = logging.getLogger("mems26")
@@ -93,17 +93,13 @@ def _startup():
     _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
     # Historical Replay: warm system buffers from DB (D2.2)
-    import asyncio
     from backend.v9.services.historical_replay import HistoricalReplay
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "mems26_local.db")
-    if not os.path.exists(db_path):
-        db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+    db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     historical = HistoricalReplay(db_path=db_path, bar_router=bar_router)
     app.state.historical_replay = historical
     try:
         _logger.info("[Main] HistoricalReplay: starting 12h warmup...")
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(historical.warm_all_systems(hours=12))
+        await historical.warm_all_systems(hours=12)
         _logger.info("[Main] HistoricalReplay stats: %s", historical.get_stats())
     except Exception as e:
         _logger.error("[Main] HistoricalReplay failed (non-fatal): %s", e)
