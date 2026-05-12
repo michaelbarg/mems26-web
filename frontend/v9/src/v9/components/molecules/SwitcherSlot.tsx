@@ -6,10 +6,11 @@ interface SwitcherSlotProps {
   systemId: number;
   state?: PillState;
   isSelected?: boolean;
+  stateLabel?: string | null;
   onSelect?: (systemId: number) => void;
 }
 
-export function SwitcherSlot({ systemId, state = 'idle', isSelected = false, onSelect }: SwitcherSlotProps) {
+export function SwitcherSlot({ systemId, state = 'idle', isSelected = false, stateLabel, onSelect }: SwitcherSlotProps) {
   const meta = SYSTEM_META[systemId];
   if (!meta) return null;
 
@@ -25,6 +26,22 @@ export function SwitcherSlot({ systemId, state = 'idle', isSelected = false, onS
       }}
     >
       <Pill systemId={systemId} state={pillState} onClick={() => onSelect?.(systemId)} />
+      {stateLabel != null && (
+        <span style={{
+          fontSize: 6,
+          color: meta.color,
+          fontWeight: 500,
+          lineHeight: 1,
+          textAlign: 'center',
+          maxWidth: 44,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+          opacity: 0.7,
+        }}>
+          {stateLabel}
+        </span>
+      )}
       <span style={{
         fontSize: 8,
         color: isSelected ? meta.color : '#737373',

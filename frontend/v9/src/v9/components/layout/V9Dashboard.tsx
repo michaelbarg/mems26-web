@@ -4,10 +4,12 @@ import { Layer0Strip } from './Layer0Strip';
 import { SidePanel } from './SidePanel';
 import { PriceDebugConsole } from '../PriceDebugConsole';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
+import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { COLORS } from '../../design/tokens';
 
 export function V9Dashboard() {
   useSystemEvents();
+  useSystemStatePolling(2000);
 
   return (
     <div
