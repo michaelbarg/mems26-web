@@ -78,6 +78,18 @@ def _startup():
     except Exception as e:
         _logger.error("[Main] FiveMinSystem startup failed: %s", e)
 
+    # 6.4: Instantiate + register FootprintSystem via BarRouter
+    try:
+        from backend.v9.systems.footprint.footprint_system import FootprintSystem
+        footprint_system = FootprintSystem()
+        app.state.footprint_system = footprint_system
+        footprint_system.hydrate()
+        for bt in footprint_system.subscribed_bar_types():
+            bar_router.subscribe(bt, footprint_system.process_bar)
+        _logger.info("[Main] FootprintSystem hydrated + subscribed: %s", footprint_system.subscribed_bar_types())
+    except Exception as e:
+        _logger.error("[Main] FootprintSystem startup failed: %s", e)
+
     _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
     # Historical Replay: warm system buffers from DB (D2.2)
