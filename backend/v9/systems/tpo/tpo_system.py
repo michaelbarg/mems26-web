@@ -36,6 +36,9 @@ class TPOSystem(BaseV9TradingSystem):
         self.ib_high: Optional[float] = None
         self.ib_low: Optional[float] = None
         self.ib_locked = False
+        self._ib_width: Optional[float] = None
+        self._ib_class: Optional[str] = None
+        self._ib_locked_ts: Optional[str] = None
         self.current_state = {
             "running": False,
             "hydrated": False,
@@ -48,6 +51,9 @@ class TPOSystem(BaseV9TradingSystem):
             "ib_high": None,
             "ib_low": None,
             "ib_locked": False,
+            "ib_width": None,
+            "ib_class": None,
+            "ib_locked_ts": None,
             "letter_count": 0,
             "buffer_size": 0,
             "bars_processed_today": 0,
@@ -97,6 +103,9 @@ class TPOSystem(BaseV9TradingSystem):
             if session_id != self.current_session_id:
                 self._open_session(session_id, session_type, today, ts_str)
 
+            # IB tracking (P3.2)
+            self._update_ib(bar, session)
+
             # Add bar to profile
             high = bar.get("high", bar.get("h", 0))
             low = bar.get("low", bar.get("l", 0))
@@ -142,6 +151,9 @@ class TPOSystem(BaseV9TradingSystem):
                     "ib_high": self.ib_high,
                     "ib_low": self.ib_low,
                     "ib_locked": self.ib_locked,
+                    "ib_width": self._ib_width,
+                    "ib_class": self._ib_class,
+                    "ib_locked_ts": self._ib_locked_ts,
                     "letter_count": self.current_letter_idx + 1,
                     "buffer_size": len(self.bar_buffer),
                     "bars_processed_today": self.current_state["bars_processed_today"] + 1,
@@ -155,6 +167,63 @@ class TPOSystem(BaseV9TradingSystem):
 
         except Exception as e:
             logger.error(f"TPOSystem.process_bar error: {e}", exc_info=True)
+
+    def _update_ib(self, bar: dict, session: str) -> None:
+        """Update IB tracking during 09:30-10:30 ET cash session."""
+        from datetime import time as _time
+        # Only track IB during cash session
+        if session not in ("CASH_OPEN", "FIRST_HOUR"):
+            # After first hour, lock if not already locked
+            if session == "CASH_HOURS" and self.ib_high is not None and not self.ib_locked:
+                self.ib_locked = True
+                self._ib_locked_ts = datetime.now(pytz.timezone('America/New_York')).isoformat() if 'pytz' in dir() else datetime.utcnow().isoformat()
+                self._ib_width = (self.ib_high - self.ib_low) if self.ib_low else 0
+                self._ib_class = self._classify_ib_width(self._ib_width)
+                self._persist_ib_to_session()
+                logger.info("[TPO] IB LOCKED: H=%.2f L=%.2f W=%.2f class=%s",
+                            self.ib_high, self.ib_low, self._ib_width, self._ib_class)
+            return
+
+        if self.ib_locked:
+            return
+
+        bar_high = float(bar.get("high", bar.get("h", 0)))
+        bar_low = float(bar.get("low", bar.get("l", 0)))
+        if bar_high <= 0 or bar_low <= 0:
+            return
+
+        if self.ib_high is None:
+            self.ib_high = bar_high
+            self.ib_low = bar_low
+        else:
+            self.ib_high = max(self.ib_high, bar_high)
+            self.ib_low = min(self.ib_low, bar_low)
+
+    @staticmethod
+    def _classify_ib_width(width: float) -> str:
+        """Mind Over Markets thresholds."""
+        if width < 15.0:
+            return "NARROW"
+        if width <= 25.0:
+            return "MEDIUM"
+        return "WIDE"
+
+    def _persist_ib_to_session(self):
+        """Write IB fields to current session row."""
+        if not self.current_session_id:
+            return
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute(
+                """UPDATE v9_tpo_sessions SET ib_high=?, ib_low=?, ib_width=?,
+                   ib_class=?, ib_locked=1, ib_locked_ts=? WHERE session_id=?""",
+                (self.ib_high, self.ib_low, self._ib_width, self._ib_class,
+                 self._ib_locked_ts, self.current_session_id)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.warning(f"TPO IB persist failed: {e}")
 
     def _open_session(self, session_id, session_type, today, ts_str):
         self.current_session_id = session_id
