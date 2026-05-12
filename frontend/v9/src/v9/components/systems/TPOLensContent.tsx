@@ -19,7 +19,8 @@ export function TPOLensContent({ activeTab }: { activeTab: string }) {
           POC: {raw.poc?.toFixed(2) ?? '—'} | VAH: {raw.vah?.toFixed(2) ?? '—'} | VAL: {raw.val?.toFixed(2) ?? '—'}
         </div>
         <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
-          IB: {raw.ib_high?.toFixed(2) ?? '—'} / {raw.ib_low?.toFixed(2) ?? '—'} {raw.ib_locked ? '(LOCKED)' : ''}
+          IB: {raw.ib_high?.toFixed(2) ?? '—'} / {raw.ib_low?.toFixed(2) ?? '—'}
+          {raw.ib_locked ? ` (LOCKED · ${raw.ib_class ?? '—'} · ${raw.ib_width?.toFixed(1) ?? '—'}pt)` : ''}
         </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>OBSERVER — publishes POC/VAH/VAL to Day Type</div>
       </div>
