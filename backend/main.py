@@ -102,6 +102,18 @@ async def _startup():
     except Exception as e:
         _logger.error("[Main] WoodiesSystem startup failed: %s", e)
 
+    # 8.3: Instantiate + register TPOSystem via BarRouter
+    try:
+        from backend.v9.systems.tpo.tpo_system import TPOSystem
+        tpo_system = TPOSystem()
+        app.state.tpo_system = tpo_system
+        tpo_system.hydrate()
+        for bt in tpo_system.subscribed_bar_types():
+            bar_router.subscribe(bt, tpo_system.process_bar)
+        _logger.info("[Main] TPOSystem hydrated + subscribed: %s", tpo_system.subscribed_bar_types())
+    except Exception as e:
+        _logger.error("[Main] TPOSystem startup failed: %s", e)
+
     _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
     # Historical Replay: warm system buffers from DB (D2.2)
