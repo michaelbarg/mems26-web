@@ -24,6 +24,29 @@ _event_dispatcher = None
 # StreamHealthService instance — set at startup.
 _stream_health = None
 
+# BarRouter instance — set at startup (D1.3)
+_bar_router = None
+
+
+def set_bar_router(router) -> None:
+    """Called once at startup to inject the BarRouter instance."""
+    global _bar_router
+    _bar_router = router
+
+
+def _route_bar(bar_type: str, bar_data: dict) -> None:
+    """Route a bar to BarRouter if available (fire-and-forget async)."""
+    if _bar_router is not None:
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                loop.create_task(_bar_router.publish(bar_type, bar_data))
+            else:
+                asyncio.run(_bar_router.publish(bar_type, bar_data))
+        except Exception:
+            logger.debug("[bars] BarRouter publish skipped for %s", bar_type)
+
 
 def set_event_dispatcher(dispatcher) -> None:
     """Called once at startup to inject the EventDispatcher instance."""
@@ -183,6 +206,8 @@ def post_bars_5min(
     if bars:
         _dispatch("cumulative_delta", bars[-1].dict())
     _record_push("5min")
+    if bars:
+        _route_bar("5min", bars[-1].dict() if hasattr(bars[-1], 'dict') else {"ts": str(bars[-1].ts)})
     return {"ok": True, "inserted": len(created)}
 
 
@@ -218,6 +243,7 @@ def post_tick_reversal(
         stream = "tick_reversal_%d" % tick_count
         _dispatch(stream, payload.bars[-1])
         _record_push(stream)
+        _route_bar(stream, payload.bars[-1] if isinstance(payload.bars[-1], dict) else {"ts": ""})
     return {"ok": True, "inserted": created, "tick_count": tick_count}
 
 
@@ -249,6 +275,7 @@ def post_footprint(
     if payload.bars:
         _dispatch("footprint", payload.bars[-1])
     _record_push("footprint")
+    _route_bar("footprint", {"ts": ""})
     return {"ok": True, "inserted": created, "type": "footprint"}
 
 
@@ -284,6 +311,7 @@ def post_volume_profile(
     if payload.bars:
         _dispatch("volume_profile", payload.bars[-1])
     _record_push("volume_profile")
+    _route_bar("volume_profile", {"ts": ""})
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "volume_profile"}
 
 
@@ -375,6 +403,7 @@ def post_cumulative_delta(
     if payload.bars:
         _dispatch("cumulative_delta", payload.bars[-1])
     _record_push("cumulative_delta")
+    _route_bar("cumulative_delta", {"ts": ""})
     return {"ok": True, "updated": updated, "skipped": skipped, "type": "cumulative_delta"}
 
 
@@ -443,6 +472,7 @@ def post_tpo(
     if payload.bars:
         _dispatch("volume_profile", payload.bars[-1])
     _record_push("tpo")
+    _route_bar("tpo", {"ts": ""})
     return {"ok": True, "inserted": created, "type": "tpo"}
 
 
