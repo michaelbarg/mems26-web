@@ -3,6 +3,7 @@ import { SwitcherSlot } from '../molecules/SwitcherSlot';
 import { DayTypePill } from '../systems/DayTypePill';
 import { FiveMinPill } from '../systems/FiveMinPill';
 import { FootprintPill } from '../systems/FootprintPill';
+import { WoodiesPill } from '../systems/WoodiesPill';
 import { OBSERVING_SYSTEMS } from '../../design/system_colors';
 import { COLORS } from '../../design/tokens';
 import type { PillState } from '../atoms/Pill';
@@ -23,12 +24,7 @@ export function Switcher({ selectedSystem, onSelectSystem }: SwitcherProps) {
         <div style={{ display: 'flex', gap: 6 }}>
           <DayTypePill isSelected={selectedSystem === 1} onSelect={() => onSelectSystem(1)} />
           <FiveMinPill isSelected={selectedSystem === 2} onSelect={() => onSelectSystem(2)} />
-          <SwitcherSlot
-            systemId={4}
-            state={'idle' as PillState}
-            isSelected={selectedSystem === 4}
-            onSelect={() => onSelectSystem(4)}
-          />
+          <WoodiesPill isSelected={selectedSystem === 4} onSelect={() => onSelectSystem(4)} />
         </div>
       </div>
       {/* Observing row */}

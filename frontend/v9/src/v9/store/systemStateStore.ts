@@ -66,6 +66,16 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
         });
       }
     } catch {}
-    // Systems 4-6: placeholder until Prompts 7-9
+    try {
+      const wo = await fetch(`${API_BASE}/api/v9/woodies/current`).then((r) => r.json()).catch(() => null);
+      if (wo) {
+        update(4, {
+          state: wo.signal ?? 'NEUTRAL',
+          subState: wo.direction ?? null,
+          confidence: wo.strength ? wo.strength / 3 : 0,
+        });
+      }
+    } catch {}
+    // Systems 5-6: placeholder until Prompts 8-9
   },
 }));

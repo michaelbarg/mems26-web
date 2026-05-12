@@ -90,6 +90,18 @@ async def _startup():
     except Exception as e:
         _logger.error("[Main] FootprintSystem startup failed: %s", e)
 
+    # 7.4: Instantiate + register WoodiesSystem via BarRouter
+    try:
+        from backend.v9.systems.woodies.woodies_system import WoodiesSystem
+        woodies_system = WoodiesSystem()
+        app.state.woodies_system = woodies_system
+        woodies_system.hydrate()
+        for bt in woodies_system.subscribed_bar_types():
+            bar_router.subscribe(bt, woodies_system.process_bar)
+        _logger.info("[Main] WoodiesSystem hydrated + subscribed: %s", woodies_system.subscribed_bar_types())
+    except Exception as e:
+        _logger.error("[Main] WoodiesSystem startup failed: %s", e)
+
     _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
     # Historical Replay: warm system buffers from DB (D2.2)

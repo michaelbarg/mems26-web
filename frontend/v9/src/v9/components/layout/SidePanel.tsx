@@ -5,6 +5,7 @@ import { Lens } from '../molecules/Lens';
 import { DayTypeLensContent } from '../systems/DayTypeLensContent';
 import { FiveMinLensContent } from '../systems/FiveMinLensContent';
 import { FootprintLensContent } from '../systems/FootprintLensContent';
+import { WoodiesLensContent } from '../systems/WoodiesLensContent';
 import { COLORS, SIZES } from '../../design/tokens';
 import { SYSTEM_META } from '../../design/system_colors';
 
@@ -52,6 +53,8 @@ export function SidePanel() {
           <LensWithCustomContent systemId={2} ContentComponent={FiveMinLensContent} />
         ) : selectedSystem === 3 ? (
           <LensWithCustomContent systemId={3} ContentComponent={FootprintLensContent} />
+        ) : selectedSystem === 4 ? (
+          <LensWithCustomContent systemId={4} ContentComponent={WoodiesLensContent} />
         ) : (
           <Lens systemId={selectedSystem} />
         )}
