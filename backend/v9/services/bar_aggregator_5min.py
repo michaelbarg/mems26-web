@@ -141,8 +141,29 @@ class FiveMinAggregator:
 
 def _on_bar_close_default(bar: Bar5Min) -> None:
     """Default bar close handler: persist to DB + publish via BarRouter."""
+    # DB needs datetime object; BarRouter consumers accept ISO string
+    ts_dt = bar.start_ts  # already a datetime from FiveMinAggregator
+    ts_str = bar.start_ts.isoformat() if hasattr(bar.start_ts, 'isoformat') else str(bar.start_ts)
+
+    # 1. Persist to DB (ts as datetime — SQLite DateTime column requirement)
+    try:
+        from backend.v9.services.bar_ingestion import bar_ingestion_service
+        bar_ingestion_service.ingest_bar({
+            "ts": ts_dt,
+            "open": bar.open,
+            "high": bar.high,
+            "low": bar.low,
+            "close": bar.close,
+            "volume": bar.volume,
+            "delta": 0,
+            "symbol": "MES",
+        })
+    except Exception as e:
+        logger.error("[Aggregator] Bar persist error: %s", e)
+
+    # 2. Publish via BarRouter (ts as string — fine for downstream)
     bar_dict = {
-        "ts": bar.start_ts.isoformat() if hasattr(bar.start_ts, 'isoformat') else str(bar.start_ts),
+        "ts": ts_str,
         "open": bar.open,
         "high": bar.high,
         "low": bar.low,
@@ -152,14 +173,6 @@ def _on_bar_close_default(bar: Bar5Min) -> None:
         "symbol": "MES",
         "session": bar.session,
     }
-    # 1. Persist to DB
-    try:
-        from backend.v9.services.bar_ingestion import bar_ingestion_service
-        bar_ingestion_service.ingest_bar(bar_dict)
-    except Exception as e:
-        logger.error("[Aggregator] Bar persist error: %s", e)
-
-    # 2. Publish via BarRouter so FiveMinSystem receives it (D2.5.4)
     try:
         from backend.v9.api.v9.bars import _bar_router
         if _bar_router is not None:
