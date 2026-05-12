@@ -111,6 +111,25 @@ class FiveMinAggregator:
                     return closed
         return None
 
+    async def on_bar_event(self, event) -> None:
+        """Called by BarRouter when tick_reversal bar arrives.
+
+        Treats each tick_reversal close as a virtual tick for aggregation.
+        """
+        payload = event.payload
+        try:
+            ts_str = str(event.ts).replace("Z", "+00:00")
+            ts = datetime.fromisoformat(ts_str)
+        except Exception:
+            ts = datetime.now(ET)
+
+        price = payload.get("close") or payload.get("c") or payload.get("price") or 0
+        size = payload.get("volume") or payload.get("v") or 1
+
+        if price > 0:
+            tick = TickEvent(ts=ts, price=float(price), size=int(size))
+            self.on_tick(tick)
+
     def get_status(self) -> dict:
         return {
             "ticks_processed": self.ticks_processed,
