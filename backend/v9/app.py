@@ -11,6 +11,7 @@ from backend.v9.systems.day_type.api import router as day_type_router
 from backend.v9.api.v9.five_min.routes import router as five_min_router
 from backend.v9.api.v9.footprint.routes import router as footprint_router
 from backend.v9.api.v9.woodies.routes import router as woodies_router
+from backend.v9.api.v9.tpo_routes import router as tpo_api_router
 from backend.v9.ws.router import router as ws_event_bus_router
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,7 @@ v9_router.include_router(day_type_router)
 v9_router.include_router(five_min_router)
 v9_router.include_router(footprint_router)
 v9_router.include_router(woodies_router)
+v9_router.include_router(tpo_api_router)
 
 
 @v9_router.get("/api/v9/health")
