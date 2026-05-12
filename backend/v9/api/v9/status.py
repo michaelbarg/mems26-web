@@ -254,9 +254,20 @@ def _check_session() -> dict:
         return {"current": "UNKNOWN", "error": "classifier_failed"}
 
 
+def _check_bar_router() -> dict:
+    """BarRouter stats (D1.7)."""
+    try:
+        from backend.v9.api.v9.bars import _bar_router
+        if _bar_router:
+            return _bar_router.get_stats()
+    except Exception:
+        pass
+    return {"available": False}
+
+
 @router.get("/api/v9/status")
 def system_status():
-    """9-layer health dashboard for MEMS26."""
+    """10-layer health dashboard for MEMS26."""
     return {
         "ts": time.time(),
         "session": _check_session(),
@@ -268,4 +279,5 @@ def system_status():
         "audit": _check_audit(),
         "day_type": _check_day_type(),
         "hydration": _check_hydration(),
+        "bar_router": _check_bar_router(),
     }
