@@ -9,6 +9,7 @@ export interface SystemState {
   subState: string | null;
   confidence: number;
   lastUpdate: number;
+  raw?: Record<string, any>;
 }
 
 interface SystemStateStore {
@@ -83,6 +84,7 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
           state: tpo.profile_shape ?? 'NA',
           subState: tpo.session_type ?? null,
           confidence: tpo.letter_count ? Math.min(tpo.letter_count / 13, 1) : 0,
+          raw: tpo,
         });
       }
     } catch {}
@@ -94,6 +96,7 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
           state: cz.name ?? 'UNKNOWN',
           subState: cz.edge_class ?? null,
           confidence: cz.edge_class === 'high' ? 1 : cz.edge_class === 'medium' ? 0.5 : 0.2,
+          raw: kz,
         });
       }
     } catch {}
