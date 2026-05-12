@@ -114,6 +114,24 @@ async def _startup():
     except Exception as e:
         _logger.error("[Main] TPOSystem startup failed: %s", e)
 
+    # 9.2: Instantiate KillzoneSystem (time-based, no bar subscriptions)
+    try:
+        import asyncio as _aio
+        from backend.v9.systems.killzone.killzone_system import KillzoneSystem
+        killzone_system = KillzoneSystem()
+        app.state.killzone_system = killzone_system
+        killzone_system.hydrate()
+        _logger.info("[Main] KillzoneSystem hydrated: %s", killzone_system.current_state.get("current_zone", {}).get("name"))
+
+        async def _killzone_loop():
+            while True:
+                await killzone_system.tick()
+                await _aio.sleep(30)
+        _aio.ensure_future(_killzone_loop())
+        _logger.info("[Main] KillzoneSystem tick loop started (30s)")
+    except Exception as e:
+        _logger.error("[Main] KillzoneSystem startup failed: %s", e)
+
     _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
     # Historical Replay: warm system buffers from DB (D2.2)
