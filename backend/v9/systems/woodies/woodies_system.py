@@ -154,6 +154,78 @@ class WoodiesSystem(BaseV9TradingSystem):
 
         return "NEUTRAL", None, 0
 
+    def _check_trend_persistence(self):
+        """TT: 6-bar CCI persistence above/below zero."""
+        cci_history = self._cci_history[-6:] if len(self._cci_history) >= 6 else self._cci_history
+        if len(cci_history) < 6:
+            return (None, len(cci_history))
+        all_positive = all(v > 0 for v in cci_history)
+        all_negative = all(v < 0 for v in cci_history)
+        if all_positive:
+            return ("TT_BULL", 6)
+        if all_negative:
+            return ("TT_BEAR", 6)
+        return (None, 0)
+
+    def _check_zlr(self):
+        """ZLR: CCI approaches zero then rejects back in trend direction."""
+        if len(self._cci_history) < 3:
+            return None
+        prev2, prev1, cur = self._cci_history[-3:]
+        # Bull ZLR: was negative, crossed positive, stays in CZI zone bouncing up
+        if prev2 < 0 and prev1 > 0 and 0 < cur < 100 and cur > prev1 * 0.5:
+            return "ZLR_BULL"
+        # Bear ZLR: was positive, crossed negative, stays in CZI zone dropping
+        if prev2 > 0 and prev1 < 0 and -100 < cur < 0 and cur < prev1 * 0.5:
+            return "ZLR_BEAR"
+        return None
+
+    def _check_tlb(self):
+        """TLB: CCI breaks projected trendline by >20 points."""
+        if len(self._cci_history) < 6:
+            return None
+        window = self._cci_history[-6:]
+        cur = window[-1]
+        slope = (window[-2] - window[0]) / 5
+        projected = window[-2] + slope
+        if window[-2] < 0 and cur > projected + 20:
+            return "TLB_BULL"
+        if window[-2] > 0 and cur < projected - 20:
+            return "TLB_BEAR"
+        return None
+
+    def _fire_signal(self, signal_name, bar_ts, event, cci_value, prev_cci, reasoning):
+        """Persist a core pattern signal (TT/ZLR/TLB) to DB."""
+        mode = getattr(event, 'mode', 'LIVE')
+        if mode != "LIVE":
+            return
+        self._last_signal = signal_name
+        direction = "LONG" if "BULL" in signal_name else "SHORT"
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute(
+                """INSERT INTO v9_woodies_signals
+                (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
+                 reasoning, session, created_at, czi_state, swi_state,
+                 persistence_bars, signal_type_core, signal_confidence)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    bar_ts, None,
+                    cci_value, prev_cci, signal_name, direction, 4,
+                    f"CCI {prev_cci:.1f} -> {cci_value:.1f} = {reasoning}" if prev_cci is not None else f"CCI={cci_value:.1f} {reasoning}",
+                    getattr(event, 'session', 'UNKNOWN'),
+                    datetime.utcnow().isoformat(),
+                    self._last_czi, self._last_swi,
+                    min(len(self._cci_history), 20),
+                    signal_name, 0.75,
+                ),
+            )
+            conn.commit()
+            conn.close()
+            logger.info("[Woodies] %s signal fired: CCI=%.1f czi=%s swi=%s", signal_name, cci_value, self._last_czi, self._last_swi)
+        except Exception as e:
+            logger.warning(f"Woodies core signal write failed: {e}")
+
     def _write_signal(self, event, current, previous, signal_type, direction, strength):
         try:
             conn = sqlite3.connect(self.db_path)
