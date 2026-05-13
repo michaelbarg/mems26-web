@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { SYSTEM_META } from '../../design/system_colors';
 import { SIZES, COLORS } from '../../design/tokens';
+import { EmptyState } from '../atoms/EmptyState';
 
 const TABS = ['Now', 'Plan', 'Shadow', 'Hist', 'Chart'] as const;
 type LensTab = typeof TABS[number];
@@ -59,15 +60,28 @@ export function Lens({ systemId }: LensProps) {
         </div>
       </div>
 
-      {/* Tab content — placeholder for Prompts 4-9 */}
+      {/* Tab content */}
       <div style={{
         padding: SIZES.lensPadding,
         minHeight: 60,
-        color: COLORS.textTertiary,
-        fontSize: 9,
-        textAlign: 'center',
       }}>
-        {meta.name} / {activeTab}
+        {activeTab === 'Now' && (
+          <div style={{ color: COLORS.textTertiary, fontSize: 9, textAlign: 'center' }}>
+            {meta.name} / Now
+          </div>
+        )}
+        {activeTab === 'Plan' && (
+          <EmptyState badge="P" title="Coming in Wave 3" description="System plan + entry conditions." />
+        )}
+        {activeTab === 'Shadow' && (
+          <EmptyState badge="S" title="Coming after Day 14" description="7d performance: WR, R, Net." />
+        )}
+        {activeTab === 'Hist' && (
+          <EmptyState badge="H" title="Coming with backfill" description="Last 30d events + trades." />
+        )}
+        {activeTab === 'Chart' && (
+          <EmptyState badge="C" title="Coming in Phase 4" description="System-specific visualizations." />
+        )}
       </div>
     </div>
   );
