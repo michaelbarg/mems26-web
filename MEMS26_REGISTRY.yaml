@@ -1572,3 +1572,9 @@ requirements:
     - "onMouseDown/Move drag pan handlers"
     - "All 7 pill labels (IB H/VAH/PRC/POC/STP/VAL/IB L) in unified array"
     - "SVG split: Group 1 zoomable, Group 2 anchored"
+- id: REQ-PA1-6
+  name: "Dynamic chart Y/X scales + axis labels"
+  status: IMPLEMENTED
+  owner_worker: PA1-6
+  spec: Cockpit V5 §3.4
+  notes: "yScale from bars min/max + 5% padding. Right axis 5pt MES intervals. Time labels at adaptive intervals."
