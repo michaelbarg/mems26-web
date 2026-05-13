@@ -83,10 +83,15 @@ export function ChartV5a() {
     });
   }, [price, tickCount]);
 
-  // Fetch bars
+  // Fetch bars (PA1-1: 60 candles on mount + 5s refresh per Cockpit V5 §3.4)
   useEffect(() => {
-    const f = () => fetch(`${API}/api/v9/chart/bars5min?limit=60`).then(r => r.json()).then(d => { if (Array.isArray(d)) setBars(d); }).catch(() => {});
-    f(); const id = setInterval(f, 30000); return () => clearInterval(id);
+    const fetchBars = () => fetch(`${API}/api/v9/chart/bars5min?limit=60`)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setBars(d); })
+      .catch(() => {});
+    fetchBars();
+    const id = setInterval(fetchBars, 5000);
+    return () => clearInterval(id);
   }, []);
 
   // Fetch TPO

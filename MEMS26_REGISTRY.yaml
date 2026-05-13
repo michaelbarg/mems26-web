@@ -1548,3 +1548,13 @@ requirements:
   owner_worker: P-FIX-COMBINED
   code_path: backend/v9/systems/woodies/woodies_system.py
   notes: "API now returns timeframe field for frontend consumption."
+- id: REQ-PA1-1
+  name: "Backfill historical candles on mount (>=60)"
+  status: IMPLEMENTED
+  owner_worker: PA1-1
+  spec: Cockpit V5 §3.4
+  acceptance:
+    - "API /api/v9/chart/bars5min?limit=60 returns >=50"
+    - "DB v9_bars_5min >= 60 rows"
+    - "Chart visually shows >=50 candles"
+  rollback_sha_file: /tmp/wave_a1_rollback_sha
