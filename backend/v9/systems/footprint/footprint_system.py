@@ -32,6 +32,11 @@ class FootprintSystem(BaseV9TradingSystem):
         self._last_amt: Optional[float] = None
         self._total_vol: float = 0
         self._total_trades: int = 0
+        # Initiative/Reactive (P-FP-2)
+        self._recent_bars: List[Dict] = []
+        self._last_initiative_type: Optional[str] = None
+        self._last_reactive: Optional[bool] = None
+        self._last_combined_class: Optional[str] = None
         self.current_state = {
             "running": False,
             "hydrated": False,
@@ -47,6 +52,9 @@ class FootprintSystem(BaseV9TradingSystem):
             "dominance": None,
             "cot": 0,
             "amt": None,
+            "initiative_type": None,
+            "reactive_flag": None,
+            "combined_class": None,
         }
 
     def subscribed_bar_types(self) -> List[str]:
@@ -101,6 +109,18 @@ class FootprintSystem(BaseV9TradingSystem):
             self.current_state["dominance"] = self._last_dominance
             self.current_state["cot"] = self._cumulative_delta
             self.current_state["amt"] = self._last_amt
+
+            # Initiative/Reactive (P-FP-2.2)
+            init_type, reactive, combined = self._classify_initiative_reactive(bar)
+            self._last_initiative_type = init_type
+            self._last_reactive = reactive
+            self._last_combined_class = combined
+            self._recent_bars.append(bar)
+            if len(self._recent_bars) > 20:
+                self._recent_bars = self._recent_bars[-20:]
+            self.current_state["initiative_type"] = init_type
+            self.current_state["reactive_flag"] = reactive
+            self.current_state["combined_class"] = combined
             mode = getattr(event, 'mode', 'LIVE')
             if mode == "LIVE":
                 self._write_journal(event, bar, cluster, empty, ctx, pattern, signals, confluence, classification)
@@ -108,6 +128,34 @@ class FootprintSystem(BaseV9TradingSystem):
                     self._write_setup(event, bar, classification, pattern, confluence)
         except Exception as e:
             logger.error(f"FootprintSystem.process_bar error: {e}", exc_info=True)
+
+    def _classify_initiative_reactive(self, bar: dict) -> tuple:
+        """Initiative vs Reactive per MP_SPEC_V1. (P-FP-2.2)"""
+        lookback = self._recent_bars[-10:] if len(self._recent_bars) >= 10 else self._recent_bars
+        if not lookback or len(lookback) < 5:
+            return ("NEUTRAL", True, "BALANCED")
+        prev_max_high = max(b.get("high", b.get("h", 0)) for b in lookback)
+        prev_min_low = min(b.get("low", b.get("l", float('inf'))) for b in lookback)
+        cur_high = bar.get("high", bar.get("h", 0))
+        cur_low = bar.get("low", bar.get("l", 0))
+        if cur_high > prev_max_high:
+            init_type, reactive = "INITIATIVE_UP", False
+        elif cur_low < prev_min_low:
+            init_type, reactive = "INITIATIVE_DOWN", False
+        else:
+            init_type, reactive = "NEUTRAL", True
+        dom = self._last_dominance
+        if init_type == "INITIATIVE_UP" and dom == "BUYER_DOMINATE":
+            combined = "BUYER_INITIATIVE"
+        elif init_type == "INITIATIVE_DOWN" and dom == "SELLER_DOMINATE":
+            combined = "SELLER_INITIATIVE"
+        elif reactive and dom == "BUYER_DOMINATE":
+            combined = "BUYER_REACTIVE"
+        elif reactive and dom == "SELLER_DOMINATE":
+            combined = "SELLER_REACTIVE"
+        else:
+            combined = "BALANCED"
+        return (init_type, reactive, combined)
 
     def _classify_forces_in_bar(self, bar: dict) -> Optional[Dict]:
         """Map Sierra ask_vol/bid_vol to aggressive flow. Passive = NULL (no L2)."""

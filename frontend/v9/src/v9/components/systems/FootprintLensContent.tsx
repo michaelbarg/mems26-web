@@ -33,6 +33,9 @@ export function FootprintLensContent({ activeTab }: { activeTab: string }) {
         <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
           Dominance: {raw.dominance ?? '—'} | AMT: {raw.amt?.toFixed(2) ?? '—'}
         </div>
+        <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
+          Combined: {raw.combined_class ?? '—'} | Init: {raw.initiative_type ?? '—'} | Reactive: {raw.reactive_flag != null ? (raw.reactive_flag ? 'Yes' : 'No') : '—'}
+        </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>STANDALONE observer — no trade decisions</div>
       </div>
     );
