@@ -35,6 +35,7 @@ class WoodiesSystem(BaseV9TradingSystem):
         self.max_buffer = 50
         self._active_patterns: List[PatternResult] = []
         self.current_state: Dict = {
+            "timeframe": "30min",
             "running": False,
             "hydrated": False,
             "cci_14": None,
