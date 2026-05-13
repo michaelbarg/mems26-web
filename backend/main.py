@@ -114,6 +114,77 @@ async def _startup():
     except Exception as e:
         _logger.error("[Main] TPOSystem startup failed: %s", e)
 
+    # P5.1.2: Subscribe DayTypeStateMachine to BarRouter 5min
+    try:
+        from backend.v9.systems.day_type.state_machine import DayTypeStateMachine
+        from backend.v9.systems.day_type.schemas import BarInput
+        import time as _time_mod
+
+        day_type_machine = DayTypeStateMachine()
+        app.state.day_type_machine = day_type_machine
+
+        async def _day_type_on_bar(event):
+            """Bridge BarRouter event to DayTypeStateMachine.process_bar."""
+            bar = event.payload if hasattr(event, 'payload') else event
+            try:
+                # Read IB from TPO state (P5.1.3: single source of truth)
+                tpo_sys = getattr(app.state, 'tpo_system', None)
+                ib_h = tpo_sys.ib_high if tpo_sys else None
+                ib_l = tpo_sys.ib_low if tpo_sys else None
+
+                # Read opening type from TPO (P5.1.4)
+                opening_type = "UNKNOWN"
+                if tpo_sys:
+                    tpo_state = tpo_sys.get_current()
+                    opening_type = tpo_state.get("opening_type", "NA")
+
+                bar_input = BarInput(
+                    ts=_time_mod.time(),
+                    session_min=0,  # computed by state machine internally
+                    open=float(bar.get("open", bar.get("o", 0))),
+                    high=float(bar.get("high", bar.get("h", 0))),
+                    low=float(bar.get("low", bar.get("l", 0))),
+                    close=float(bar.get("close", bar.get("c", 0))),
+                    volume=float(bar.get("volume", bar.get("v", 0))),
+                    ib_high=ib_h,
+                    ib_low=ib_l,
+                )
+                state = day_type_machine.process_bar(bar_input)
+
+                # Persist to v9_day_type_state (P5.1.2)
+                try:
+                    import sqlite3
+                    from datetime import datetime, timezone
+                    conn = sqlite3.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
+                    conn.execute(
+                        """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
+                           ib_width_class, opening_type, behavior, lock_state, created_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            datetime.now(timezone.utc).isoformat(),
+                            state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+                            state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
+                            state.day_type.value if state.lock_state == "LOCKED" else None,
+                            state.confidence,
+                            state.ib_width.value if hasattr(state.ib_width, 'value') else None,
+                            opening_type,
+                            state.behavior.value if hasattr(state.behavior, 'value') else None,
+                            state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state),
+                            datetime.now(timezone.utc).isoformat(),
+                        )
+                    )
+                    conn.commit()
+                    conn.close()
+                except Exception as db_err:
+                    _logger.debug("[DayType] DB persist skipped: %s", db_err)
+            except Exception as e:
+                _logger.debug("[DayType] process_bar error: %s", e)
+
+        bar_router.subscribe("5min", _day_type_on_bar)
+        _logger.info("[Main] DayTypeStateMachine subscribed to 5min via BarRouter")
+    except Exception as e:
+        _logger.error("[Main] DayTypeStateMachine startup failed: %s", e)
+
     # 9.2: Instantiate KillzoneSystem (time-based, no bar subscriptions)
     try:
         import asyncio as _aio
