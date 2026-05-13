@@ -39,6 +39,17 @@ class TPOSystem(BaseV9TradingSystem):
         self._ib_width: Optional[float] = None
         self._ib_class: Optional[str] = None
         self._ib_locked_ts: Optional[str] = None
+        # POC Migration (P-TPO-A.2)
+        self._previous_poc: Optional[float] = None
+        self._poc_stuck_since: Optional[datetime] = None
+        self._poc_migration: Optional[Dict] = None
+        self._previous_direction: Optional[str] = None
+        # HVN/LVN (P-TPO-A.3)
+        self._hvn_zones: List[Dict] = []
+        self._lvn_zones: List[Dict] = []
+        self._previous_hvn_count: int = -1
+        # Volume Cluster (P-TPO-A.4)
+        self._volume_cluster: Optional[Dict] = None
         self.current_state = {
             "running": False,
             "hydrated": False,
@@ -54,6 +65,10 @@ class TPOSystem(BaseV9TradingSystem):
             "ib_width": None,
             "ib_class": None,
             "ib_locked_ts": None,
+            "poc_migration": None,
+            "hvn_zones": [],
+            "lvn_zones": [],
+            "volume_cluster": None,
             "letter_count": 0,
             "buffer_size": 0,
             "bars_processed_today": 0,
@@ -141,6 +156,15 @@ class TPOSystem(BaseV9TradingSystem):
                 # Shape detection
                 shape = self._detect_shape()
 
+                # POC Migration (P-TPO-A.2)
+                if poc is not None:
+                    now_dt = datetime.utcnow()
+                    self._poc_migration = self._update_poc_migration(poc, now_dt)
+
+                # HVN/LVN + Volume Cluster (P-TPO-A.3/A.4) — compute from profile
+                self._hvn_zones, self._lvn_zones = self._compute_volume_nodes_from_profile()
+                self._volume_cluster = self._compute_volume_cluster_from_profile()
+
                 # Update state
                 self.current_state.update({
                     "session_type": session_type,
@@ -154,6 +178,10 @@ class TPOSystem(BaseV9TradingSystem):
                     "ib_width": self._ib_width,
                     "ib_class": self._ib_class,
                     "ib_locked_ts": self._ib_locked_ts,
+                    "poc_migration": self._poc_migration,
+                    "hvn_zones": self._hvn_zones,
+                    "lvn_zones": self._lvn_zones,
+                    "volume_cluster": self._volume_cluster,
                     "letter_count": self.current_letter_idx + 1,
                     "buffer_size": len(self.bar_buffer),
                     "bars_processed_today": self.current_state["bars_processed_today"] + 1,
@@ -167,6 +195,68 @@ class TPOSystem(BaseV9TradingSystem):
 
         except Exception as e:
             logger.error(f"TPOSystem.process_bar error: {e}", exc_info=True)
+
+    def _update_poc_migration(self, current_poc: float, bar_ts: datetime) -> Dict:
+        """POC migration tracker per MP_SPEC_V1. (P-TPO-A.2)"""
+        STUCK_THRESHOLD = 0.5
+        prev_poc = self._previous_poc
+        if prev_poc is None:
+            self._previous_poc = current_poc
+            self._poc_stuck_since = bar_ts
+            return {"direction": "STUCK", "magnitude_pts": 0.0, "stuck_minutes": 0, "previous_poc": None}
+
+        delta = current_poc - prev_poc
+        mag = abs(delta)
+        if mag <= STUCK_THRESHOLD:
+            direction = "STUCK"
+            stuck_min = int((bar_ts - self._poc_stuck_since).total_seconds() / 60) if self._poc_stuck_since else 0
+        elif delta > 0:
+            direction = "UP"
+            stuck_min = 0
+            self._poc_stuck_since = bar_ts
+        else:
+            direction = "DOWN"
+            stuck_min = 0
+            self._poc_stuck_since = bar_ts
+
+        self._previous_poc = current_poc
+        return {"direction": direction, "magnitude_pts": round(mag, 2), "stuck_minutes": stuck_min, "previous_poc": round(prev_poc, 2)}
+
+    def _compute_volume_nodes_from_profile(self) -> tuple:
+        """HVN/LVN from TPO profile letter counts. (P-TPO-A.3)"""
+        if not self.profile or len(self.profile) < 5:
+            return [], []
+        counts = [(float(k), len(v)) for k, v in self.profile.items()]
+        vols = sorted([c for _, c in counts])
+        n = len(vols)
+        p80 = vols[int(0.8 * n)] if n > 5 else vols[-1]
+        p60 = vols[int(0.6 * n)] if n > 5 else vols[-1]
+        p10 = vols[max(0, int(0.1 * n))]
+        p25 = vols[max(0, int(0.25 * n))]
+
+        hvn, lvn = [], []
+        for price, count in counts:
+            if count >= p80:
+                hvn.append({"price": price, "type": "PRIMARY_HVN", "letters": count})
+            elif count >= p60:
+                hvn.append({"price": price, "type": "SECONDARY_HVN", "letters": count})
+            if count <= p10:
+                lvn.append({"price": price, "type": "PRIMARY_LVN", "letters": count})
+            elif count <= p25:
+                lvn.append({"price": price, "type": "SECONDARY_LVN", "letters": count})
+        return hvn, lvn
+
+    def _compute_volume_cluster_from_profile(self) -> Optional[Dict]:
+        """Top 3 prices by letter count + weighted center. (P-TPO-A.4)"""
+        if not self.profile:
+            return None
+        counts = sorted([(float(k), len(v)) for k, v in self.profile.items()], key=lambda x: x[1], reverse=True)
+        top3 = counts[:3]
+        if not top3:
+            return None
+        total = sum(c for _, c in top3)
+        center = sum(p * c for p, c in top3) / total if total > 0 else None
+        return {"prices": sorted([round(p, 2) for p, _ in top3]), "center": round(center, 2) if center else None}
 
     def _update_ib(self, bar: dict, session: str) -> None:
         """Update IB tracking during 09:30-10:30 ET cash session."""
