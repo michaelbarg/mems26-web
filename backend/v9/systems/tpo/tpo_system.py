@@ -80,17 +80,45 @@ class TPOSystem(BaseV9TradingSystem):
     def hydrate(self) -> HydrationResult:
         self.current_state["running"] = True
         self.current_state["hydrated"] = True
-        # Try to load today's session
+        # Try to load today's session — PA2-D2: restore IB state on restart
         try:
             conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM v9_tpo_sessions WHERE trading_date=? ORDER BY id DESC LIMIT 1",
                 (date.today().isoformat(),)
             ).fetchone()
             conn.close()
             if row:
+                r = dict(row)
+                # Restore IB state from DB (PA2-D2: critical for post-restart)
+                if r.get("ib_high") is not None and r.get("ib_low") is not None:
+                    self.ib_high = float(r["ib_high"])
+                    self.ib_low = float(r["ib_low"])
+                    if r.get("ib_locked"):
+                        self.ib_locked = True
+                        self._ib_width = self.ib_high - self.ib_low
+                        self._ib_class = self._classify_ib_width(self._ib_width)
+                        self._ib_locked_ts = r.get("ib_locked_ts")
+                    self.current_state.update({
+                        "ib_high": self.ib_high,
+                        "ib_low": self.ib_low,
+                        "ib_locked": self.ib_locked,
+                        "ib_width": self._ib_width,
+                        "ib_class": self._ib_class,
+                        "ib_locked_ts": self._ib_locked_ts,
+                    })
+                    logger.info("[TPO] Hydrated IB from DB: H=%.2f L=%.2f locked=%s W=%s",
+                                self.ib_high, self.ib_low, self.ib_locked, self._ib_width)
+                # Restore POC/VAH/VAL
+                if r.get("poc_price") is not None:
+                    self.current_state["poc"] = float(r["poc_price"])
+                if r.get("vah_price") is not None:
+                    self.current_state["vah"] = float(r["vah_price"])
+                if r.get("val_price") is not None:
+                    self.current_state["val"] = float(r["val_price"])
                 return HydrationResult(success=True, reached_state="RESUMED",
-                                       notes="Loaded existing session from DB")
+                                       notes=f"Loaded session from DB: IB locked={self.ib_locked}")
         except Exception as e:
             logger.warning(f"TPO hydrate DB read failed: {e}")
         return HydrationResult(success=True, reached_state="ACTIVE",
@@ -259,8 +287,43 @@ class TPOSystem(BaseV9TradingSystem):
         return {"prices": sorted([round(p, 2) for p, _ in top3]), "center": round(center, 2) if center else None}
 
     def _update_ib(self, bar: dict, session: str) -> None:
-        """Update IB tracking during 09:30-10:30 ET cash session."""
+        """Update IB tracking during 09:30-10:30 ET cash session.
+
+        PA2-D2: If restarted after IB period, force lock from DB/existing values.
+        """
         from datetime import time as _time
+        # PA2-D2: Post-restart IB recovery — if past IB period and have values, force lock
+        if not self.ib_locked and session in ("CASH_HOURS", "AFTER_HOURS"):
+            if self.ib_high is not None and self.ib_low is not None:
+                self.ib_locked = True
+                self._ib_width = self.ib_high - self.ib_low
+                self._ib_class = self._classify_ib_width(self._ib_width)
+                self._ib_locked_ts = datetime.utcnow().isoformat()
+                logger.info("[TPO] IB lock RECOVERED post-restart: H=%.2f L=%.2f W=%.2f class=%s",
+                            self.ib_high, self.ib_low, self._ib_width, self._ib_class)
+                self._persist_ib_to_session()
+                return
+            # No IB values yet — try loading from today's DB session
+            try:
+                conn = sqlite3.connect(self.db_path)
+                row = conn.execute(
+                    "SELECT ib_high, ib_low FROM v9_tpo_sessions WHERE trading_date=? AND ib_high IS NOT NULL ORDER BY id DESC LIMIT 1",
+                    (date.today().isoformat(),)
+                ).fetchone()
+                conn.close()
+                if row and row[0] is not None and row[1] is not None:
+                    self.ib_high = float(row[0])
+                    self.ib_low = float(row[1])
+                    self.ib_locked = True
+                    self._ib_width = self.ib_high - self.ib_low
+                    self._ib_class = self._classify_ib_width(self._ib_width)
+                    self._ib_locked_ts = datetime.utcnow().isoformat()
+                    logger.info("[TPO] IB lock RECOVERED from DB: H=%.2f L=%.2f W=%.2f class=%s",
+                                self.ib_high, self.ib_low, self._ib_width, self._ib_class)
+                    return
+            except Exception as e:
+                logger.debug("[TPO] IB DB recovery failed: %s", e)
+
         # Only track IB during cash session
         if session not in ("CASH_OPEN", "FIRST_HOUR"):
             # After first hour, lock if not already locked
