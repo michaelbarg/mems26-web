@@ -114,6 +114,16 @@ async def _startup():
     except Exception as e:
         _logger.error("[Main] TPOSystem startup failed: %s", e)
 
+    # P-15TR.4: ReversalBarHandler subscribes to tick_reversal_15
+    try:
+        from backend.v9.systems.reversal import ReversalBarHandler
+        reversal_handler = ReversalBarHandler()
+        app.state.reversal_handler = reversal_handler
+        reversal_handler.subscribe(bar_router)
+        _logger.info("[Main] ReversalBarHandler subscribed to tick_reversal_15")
+    except Exception as e:
+        _logger.error("[Main] ReversalBarHandler startup failed: %s", e)
+
     # P5.1.2: Subscribe DayTypeStateMachine to BarRouter 5min
     try:
         from backend.v9.systems.day_type.state_machine import DayTypeStateMachine
