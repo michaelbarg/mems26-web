@@ -199,8 +199,8 @@ export function ChartV5a() {
       {price != null && <line x1={ML} y1={yOf(price)} x2={W - MR} y2={yOf(price)} stroke="#facc15" strokeWidth={0.4} opacity={0.4} />}
 
       {/* IB H/L */}
-      {tpo?.ib_high != null && <line x1={ML} y1={yOf(tpo.ib_high)} x2={W - MR} y2={yOf(tpo.ib_high)} stroke="#4ade80" strokeWidth={0.7} opacity={0.5} />}
-      {tpo?.ib_low != null && <line x1={ML} y1={yOf(tpo.ib_low)} x2={W - MR} y2={yOf(tpo.ib_low)} stroke="#4ade80" strokeWidth={0.7} opacity={0.5} />}
+      {tpo?.ib_high != null && <line x1={ML} y1={yOf(tpo.ib_high)} x2={W - MR} y2={yOf(tpo.ib_high)} stroke="#4ade80" strokeWidth={0.8} opacity={0.5} />}
+      {tpo?.ib_low != null && <line x1={ML} y1={yOf(tpo.ib_low)} x2={W - MR} y2={yOf(tpo.ib_low)} stroke="#4ade80" strokeWidth={0.8} opacity={0.5} />}
 
       {/* TR countdown badge */}
       {kz?.current_zone && (
@@ -228,11 +228,11 @@ export function ChartV5a() {
 
       {/* Right price scale — other labels */}
       {[
-        { price: tpo?.ib_high, label: 'IB H', fill: 'rgba(74,222,128,0.15)', text: '#4ade80' },
+        { price: tpo?.ib_high, label: 'IB H', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
         { price: tpo?.vah, label: 'VAH', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
         { price: tpo?.poc, label: 'POC', fill: '#ec4899', text: '#fff' },
         { price: tpo?.val, label: 'VAL', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
-        { price: tpo?.ib_low, label: 'IB L', fill: 'rgba(74,222,128,0.15)', text: '#4ade80' },
+        { price: tpo?.ib_low, label: 'IB L', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
       ].map(l => {
         if (l.price == null) return null;
         const y = yOf(l.price);
