@@ -1558,3 +1558,17 @@ requirements:
     - "DB v9_bars_5min >= 60 rows"
     - "Chart visually shows >=50 candles"
   rollback_sha_file: /tmp/wave_a1_rollback_sha
+
+- id: REQ-PA1-4-5
+  name: "Right scale collision resolver + wheel zoom + drag pan"
+  category: FRONTEND
+  severity: HIGH
+  status: IMPLEMENTED
+  owner_worker: PA1-4-5
+  spec_source: Cockpit V5 §4.7 + UX flow inference
+  acceptance_criteria:
+    - "resolvePillCollisions inline present with minSpacing=15"
+    - "onWheel handler with zoom limits 0.5x-5.0x"
+    - "onMouseDown/Move drag pan handlers"
+    - "All 7 pill labels (IB H/VAH/PRC/POC/STP/VAL/IB L) in unified array"
+    - "SVG split: Group 1 zoomable, Group 2 anchored"
