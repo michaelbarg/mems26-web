@@ -6,7 +6,10 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface Bar { ts: string; o: number; h: number; l: number; c: number; v: number }
 interface TpoState { poc: number | null; vah: number | null; val: number | null; ib_high: number | null; ib_low: number | null; hydrated: boolean }
-interface TpoSession { poc_price: number | null; vah_price: number | null; val_price: number | null }
+interface TpoSession {
+  poc_price: number | null; vah_price: number | null; val_price: number | null;
+  opened_ts: string | null; closed_ts: string | null;
+}
 interface KzState { current_zone: { name: string; edge_class: string; minutes_remaining: number } }
 interface FireState { sys2_firing: boolean; sys4_firing: boolean; sys1_firing: boolean }
 interface FpState { last_classification: string; hydrated: boolean }
@@ -184,8 +187,43 @@ export function ChartV5a() {
   const barW = allBars.length > 0 ? Math.min(14, CW / allBars.length - 1) : 12;
   const maxVol = Math.max(1, ...allBars.map(b => b.v || 1));
 
+  // Pan/Zoom state (PA1-5)
+  const [zoomLevel, setZoomLevel] = useState(1.0);
+  const [panOffsetX, setPanOffsetX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStartX, setDragStartX] = useState(0);
+  const [panAtDragStart, setPanAtDragStart] = useState(0);
+
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.95 : 1.05;
+    setZoomLevel(prev => Math.max(0.5, Math.min(5.0, prev * delta)));
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStartX(e.clientX);
+    setPanAtDragStart(panOffsetX);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    setPanOffsetX(panAtDragStart + dx / zoomLevel);
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', minHeight: 310, background: '#0a0a0a' }}>
+    <svg viewBox={`0 0 ${W} ${H}`}
+      onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      style={{ width: '100%', height: '100%', minHeight: 310, background: '#0a0a0a', cursor: isDragging ? 'grabbing' : 'grab' }}>
+      {/* Group 1: Zoomable/pannable chart content (PA1-5) */}
+      <g transform={`translate(${panOffsetX}, 0) scale(${zoomLevel}, 1)`}>
       {/* Grid */}
       {[0.25, 0.5, 0.75].map(f => (
         <line key={f} x1={ML} y1={MT + f * CH} x2={W - MR} y2={MT + f * CH} stroke="#1a1a1a" strokeWidth={0.5} />
@@ -326,6 +364,9 @@ export function ChartV5a() {
       {tpo?.ib_high != null && <line x1={ML} y1={yOf(tpo.ib_high)} x2={W - MR} y2={yOf(tpo.ib_high)} stroke="#4ade80" strokeWidth={0.8} opacity={0.5} />}
       {tpo?.ib_low != null && <line x1={ML} y1={yOf(tpo.ib_low)} x2={W - MR} y2={yOf(tpo.ib_low)} stroke="#4ade80" strokeWidth={0.8} opacity={0.5} />}
 
+      </g>{/* End Group 1: zoomable/pannable */}
+
+      {/* Group 2: Anchored to edges (badges + right-scale pills) */}
       {/* TR countdown badge */}
       {kz?.current_zone && (
         <g>
@@ -346,7 +387,7 @@ export function ChartV5a() {
         const rawPills = [
           { label: 'IB H', y: tpo?.ib_high != null ? yOf(tpo.ib_high) : null, priceVal: tpo?.ib_high, fill: 'rgba(6,78,59,0.30)', text: '#4ade80', fontWeight: 500 },
           { label: 'VAH',  y: tpo?.vah != null ? yOf(tpo.vah) : null,         priceVal: tpo?.vah,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
-          { label: 'PRC',  y: price != null ? yOf(price) : null,              priceVal: price,        fill: '#facc15', text: '#0a0a0a', fontWeight: 600 },
+          { label: 'PRC',  y: price != null ? yOf(price) : null,              priceVal: price ?? null, fill: '#facc15', text: '#0a0a0a', fontWeight: 600 },
           { label: 'POC',  y: tpo?.poc != null ? yOf(tpo.poc) : null,         priceVal: tpo?.poc,     fill: '#ec4899', text: '#fff',    fontWeight: 500 },
           { label: 'STP',  y: stpY,                                           priceVal: null,         fill: 'rgba(239,68,68,0.15)', text: '#ef4444', fontWeight: 500 },
           { label: 'VAL',  y: tpo?.val != null ? yOf(tpo.val) : null,         priceVal: tpo?.val,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
@@ -360,7 +401,7 @@ export function ChartV5a() {
         // Collision resolver: sort by Y, push down when overlap (PA1-4)
         const minSpacing = 15;
         const sorted = [...visible].sort((a, b) => a.y - b.y);
-        const resolved: { y: number; yOriginal: number; label: string; priceVal: number | null; fill: string; text: string; fontWeight: number }[] = [];
+        const resolved: { y: number; yOriginal: number; label: string; priceVal: number | null | undefined; fill: string; text: string; fontWeight: number }[] = [];
         let lastY = -Infinity;
         for (const pill of sorted) {
           const yAdj = Math.max(pill.y, lastY + minSpacing);
