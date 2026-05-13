@@ -39,20 +39,30 @@ const VA_STEPS = [
 ];
 
 
-/** Map session time range to bar-index X coords (Option B: time-scoped). */
+/** Parse bar or session timestamp to epoch ms (handles both formats). */
+function toEpoch(ts: string): number {
+  // Bar ts: "2026-05-12 11:20:00.000000" — replace space with T for ISO parse
+  // Session ts: "2026-05-13T11:35:00-04:00" — already ISO
+  return new Date(ts.replace(' ', 'T')).getTime();
+}
+
+/** Map session time range to bar-index X coords (PA1.5-1: fixed 3 bugs). */
 function sessionXRange(s: TpoSession, bars: {ts:string}[], ml: number, cw: number): [number,number]|null {
   if (!bars.length) return null;
-  const openTs = s.opened_ts || bars[0].ts;
-  const closeTs = s.closed_ts;
+  const openMs = s.opened_ts ? toEpoch(s.opened_ts) : toEpoch(bars[0].ts);
+  // null closed_ts = current session → extend to last bar
+  const closeMs = s.closed_ts ? toEpoch(s.closed_ts) : toEpoch(bars[bars.length - 1].ts);
   let fi = 0, li = bars.length - 1;
-  for (let i = 0; i < bars.length; i++) { if (bars[i].ts >= openTs) { fi = i; break; } }
-  if (closeTs) { for (let i = bars.length - 1; i >= 0; i--) { if (bars[i].ts <= closeTs) { li = i; break; } } }
+  for (let i = 0; i < bars.length; i++) { if (toEpoch(bars[i].ts) >= openMs) { fi = i; break; } }
+  for (let i = bars.length - 1; i >= 0; i--) { if (toEpoch(bars[i].ts) <= closeMs) { li = i; break; } }
+  if (fi > li) return null;
   return [ml + (fi / bars.length) * cw, ml + ((li + 1) / bars.length) * cw];
 }
 
 function renderSteppedPOC(sessions: TpoSession[], bars: {ts:string}[], fallback: number|null,
   ml: number, mr: number, w: number, cw: number, yOf: (p:number)=>number) {
-  const l5 = sessions.slice(-5);
+  const sorted = [...sessions].sort((a, b) => toEpoch(a.opened_ts || '0') - toEpoch(b.opened_ts || '0'));
+  const l5 = sorted.slice(-5);
   if (!l5.length && fallback != null)
     return [<line key="poc-fb" x1={ml} y1={yOf(fallback)} x2={w-mr} y2={yOf(fallback)} stroke="#ec4899" strokeWidth={1.9} opacity={0.95}/>];
   const off = POC_STEPS.length - l5.length;
@@ -75,7 +85,8 @@ function renderSteppedPOC(sessions: TpoSession[], bars: {ts:string}[], fallback:
 
 function renderSteppedVAH(sessions: TpoSession[], bars: {ts:string}[], fallback: number|null,
   ml: number, mr: number, w: number, cw: number, yOf: (p:number)=>number) {
-  const l5 = sessions.slice(-5);
+  const sorted = [...sessions].sort((a, b) => toEpoch(a.opened_ts || '0') - toEpoch(b.opened_ts || '0'));
+  const l5 = sorted.slice(-5);
   if (!l5.length && fallback != null)
     return [<line key="vah-fb" x1={ml} y1={yOf(fallback)} x2={w-mr} y2={yOf(fallback)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3"/>];
   const off = VA_STEPS.length - l5.length;
@@ -89,7 +100,8 @@ function renderSteppedVAH(sessions: TpoSession[], bars: {ts:string}[], fallback:
 
 function renderSteppedVAL(sessions: TpoSession[], bars: {ts:string}[], fallback: number|null,
   ml: number, mr: number, w: number, cw: number, yOf: (p:number)=>number) {
-  const l5 = sessions.slice(-5);
+  const sorted = [...sessions].sort((a, b) => toEpoch(a.opened_ts || '0') - toEpoch(b.opened_ts || '0'));
+  const l5 = sorted.slice(-5);
   if (!l5.length && fallback != null)
     return [<line key="val-fb" x1={ml} y1={yOf(fallback)} x2={w-mr} y2={yOf(fallback)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3"/>];
   const off = VA_STEPS.length - l5.length;
