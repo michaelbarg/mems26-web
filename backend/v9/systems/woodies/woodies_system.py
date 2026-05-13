@@ -232,14 +232,17 @@ class WoodiesSystem(BaseV9TradingSystem):
             conn.execute(
                 """INSERT OR IGNORE INTO v9_woodies_signals
                 (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
-                 reasoning, session, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 reasoning, session, created_at,
+                 czi_state, swi_state, persistence_bars)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     getattr(event, 'ts', ''), getattr(event, 'bar_id', ''),
                     current, previous, signal_type, direction, strength,
                     f"CCI {previous:.1f} -> {current:.1f} = {signal_type}" if previous is not None else f"CCI={current:.1f}",
                     getattr(event, 'session', 'UNKNOWN'),
                     datetime.utcnow().isoformat(),
+                    self._last_czi, self._last_swi,
+                    min(len(self._cci_history), 20),
                 ),
             )
             conn.commit()
@@ -248,4 +251,9 @@ class WoodiesSystem(BaseV9TradingSystem):
             logger.warning(f"Woodies signal write failed: {e}")
 
     def get_current(self) -> dict:
-        return dict(self.current_state)
+        state = dict(self.current_state)
+        state["czi_state"] = self._last_czi
+        state["swi_state"] = self._last_swi
+        state["persistence_bars"] = min(len(self._cci_history), 20)
+        state["last_signal_type"] = getattr(self, '_last_signal', None)
+        return state
