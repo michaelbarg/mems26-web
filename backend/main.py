@@ -255,6 +255,22 @@ async def _startup():
     except Exception as e:
         _logger.error("[Main] TradingGateway startup failed: %s", e)
 
+    # PG1-1: BarLevelDetector — glue between BarRouter and W11 TradeManager
+    try:
+        from backend.v9.db.session import SessionLocal
+        from backend.v9.services.trade_manager import TradeManager
+        from backend.v9.services.trade_manager.bar_level_detector import BarLevelDetector
+
+        tm_db = SessionLocal()
+        trade_manager = TradeManager(db=tm_db)
+        bar_level_detector = BarLevelDetector(trade_manager=trade_manager)
+        bar_level_detector.subscribe(bar_router)
+        app.state.trade_manager = trade_manager
+        app.state.bar_level_detector = bar_level_detector
+        _logger.info("[Main] BarLevelDetector subscribed to 5min — SHADOW trades will auto-close")
+    except Exception as e:
+        _logger.error("[Main] BarLevelDetector startup failed: %s", e)
+
     # Historical Replay: warm system buffers from DB (D2.2)
     from backend.v9.services.historical_replay import HistoricalReplay
     db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
