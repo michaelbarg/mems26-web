@@ -43,7 +43,7 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
       if (dt) {
         update(1, {
           state: dt.day_type ?? 'UNKNOWN',
-          confidence: dt.confidence ?? 0,
+          confidence: (dt.confidence ?? 0) > 1 ? (dt.confidence / 100) : (dt.confidence ?? 0),
         });
       }
     } catch {}

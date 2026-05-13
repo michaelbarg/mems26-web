@@ -404,13 +404,13 @@ export function ChartV5a() {
         const stpY = pocY != null && valY != null ? (pocY + valY) / 2 : (pocY ?? H / 2) + 14;
 
         const rawPills = [
-          { label: 'IB H', y: tpo?.ib_high != null ? yOf(tpo.ib_high) : null, priceVal: tpo?.ib_high, fill: 'rgba(6,78,59,0.30)', text: '#4ade80', fontWeight: 500 },
+          { label: 'IB H', y: tpo?.ib_high != null ? yOf(tpo.ib_high) : null, priceVal: tpo?.ib_high, fill: 'rgba(74,222,128,0.15)', text: '#4ade80', fontWeight: 500 },
           { label: 'VAH',  y: tpo?.vah != null ? yOf(tpo.vah) : null,         priceVal: tpo?.vah,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
           { label: 'PRC',  y: price != null ? yOf(price) : null,              priceVal: price ?? null, fill: '#facc15', text: '#0a0a0a', fontWeight: 600 },
           { label: 'POC',  y: tpo?.poc != null ? yOf(tpo.poc) : null,         priceVal: tpo?.poc,     fill: '#ec4899', text: '#fff',    fontWeight: 500 },
-          { label: 'STP',  y: stpY,                                           priceVal: null,         fill: 'rgba(239,68,68,0.15)', text: '#ef4444', fontWeight: 500 },
+          { label: 'STP',  y: stpY,                                           priceVal: null,         fill: 'rgba(220,38,38,0.15)', text: '#dc2626', fontWeight: 500 },
           { label: 'VAL',  y: tpo?.val != null ? yOf(tpo.val) : null,         priceVal: tpo?.val,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
-          { label: 'IB L', y: tpo?.ib_low != null ? yOf(tpo.ib_low) : null,   priceVal: tpo?.ib_low,  fill: 'rgba(6,78,59,0.30)', text: '#4ade80', fontWeight: 500 },
+          { label: 'IB L', y: tpo?.ib_low != null ? yOf(tpo.ib_low) : null,   priceVal: tpo?.ib_low,  fill: 'rgba(74,222,128,0.15)', text: '#4ade80', fontWeight: 500 },
         ];
 
         // Filter to visible pills

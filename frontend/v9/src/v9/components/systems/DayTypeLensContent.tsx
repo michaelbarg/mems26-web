@@ -7,11 +7,18 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface DayTypeCurrent {
   day_type: string;
-  status: string;
   confidence: number;
-  ib_width: string;
-  opening_type: string;
-  stage: string;
+  classified: boolean;
+  // V1 classifier fields
+  ib_h: number | null;
+  ib_l: number | null;
+  ib_range: number | null;
+  extension_ratio: number | null;
+  // State machine fields (may not be present in V1 response)
+  status?: string;
+  opening_type?: string;
+  stage?: string;
+  ib_width?: string;
 }
 
 interface LensContentProps {
@@ -37,16 +44,20 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
             {current?.day_type?.replace('_', ' ') ?? 'Loading...'}
           </span>
           <span style={{ fontSize: 9, color: COLORS.textTertiary }}>
-            {current?.status ?? ''}
+            {current?.status ?? (current?.classified ? 'CLASSIFIED' : 'PENDING')}
           </span>
         </div>
         {current && (
           <>
             <div style={{ fontSize: 9, color: COLORS.textSecondary }}>
-              Confidence: {(current.confidence * 100).toFixed(0)}%
+              Confidence: {current.confidence > 1 ? current.confidence.toFixed(0) : (current.confidence * 100).toFixed(0)}%
             </div>
             <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
-              IB: {current.ib_width} | Opening: {current.opening_type} | Stage: {current.stage}
+              IB: {current.ib_h != null && current.ib_l != null
+                ? `${current.ib_h.toFixed(2)} - ${current.ib_l.toFixed(2)} (${current.ib_range?.toFixed(1) ?? '—'} pt)`
+                : '—'}
+              {' | '}Opening: {current.opening_type || '—'}
+              {' | '}Stage: {current.stage || '—'}
             </div>
           </>
         )}
