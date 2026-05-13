@@ -464,22 +464,32 @@ export function ChartV5a() {
         return labels;
       })()}
 
-      {/* PA1-6: Bottom time axis labels */}
+      {/* PA1-6 + PA3-2: Bottom time axis labels (sorted + deduped + ET timezone) */}
       {(() => {
         if (allBars.length < 2) return null;
         const labelEvery = allBars.length <= 15 ? 3 : allBars.length <= 30 ? 6 : 12;
-        return allBars.map((b, i) => {
-          if (i % labelEvery !== 0) return null;
-          const x = ML + (i / allBars.length) * CW + barW / 2;
-          const ts = b.ts;
-          let timeStr = '';
-          try {
-            const d = new Date(ts.replace(' ', 'T'));
-            timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
-          } catch { timeStr = ts.slice(11, 16); }
+        const etFmt = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false,
+        });
+        // Build tick candidates sorted by index (bars already time-ordered)
+        const ticks: { i: number; ms: number; label: string }[] = [];
+        for (let i = 0; i < allBars.length; i++) {
+          if (i % labelEvery !== 0) continue;
+          const ms = toEpoch(allBars[i].ts);
+          const label = etFmt.format(ms);
+          ticks.push({ i, ms, label });
+        }
+        // Sort by timestamp (guard against out-of-order bars)
+        ticks.sort((a, b) => a.ms - b.ms);
+        // Dedup: skip if same label as previous (within 60s)
+        const deduped = ticks.filter((t, idx) =>
+          idx === 0 || t.label !== ticks[idx - 1].label
+        );
+        return deduped.map(t => {
+          const x = ML + (t.i / allBars.length) * CW + barW / 2;
           return (
-            <text key={`tx-${i}`} x={x} y={H - 2} fontSize={8} fill="#525252"
-              textAnchor="middle" fontFamily="ui-monospace, monospace">{timeStr}</text>
+            <text key={`tx-${t.i}`} x={x} y={H - 2} fontSize={8} fill="#525252"
+              textAnchor="middle" fontFamily="ui-monospace, monospace">{t.label}</text>
           );
         });
       })()}
