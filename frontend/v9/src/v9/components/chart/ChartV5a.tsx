@@ -38,6 +38,69 @@ const VA_STEPS = [
   { width: 0.5, opacity: 0.55 },  // period 0 (current)
 ];
 
+
+/** Map session time range to bar-index X coords (Option B: time-scoped). */
+function sessionXRange(s: TpoSession, bars: {ts:string}[], ml: number, cw: number): [number,number]|null {
+  if (!bars.length) return null;
+  const openTs = s.opened_ts || bars[0].ts;
+  const closeTs = s.closed_ts;
+  let fi = 0, li = bars.length - 1;
+  for (let i = 0; i < bars.length; i++) { if (bars[i].ts >= openTs) { fi = i; break; } }
+  if (closeTs) { for (let i = bars.length - 1; i >= 0; i--) { if (bars[i].ts <= closeTs) { li = i; break; } } }
+  return [ml + (fi / bars.length) * cw, ml + ((li + 1) / bars.length) * cw];
+}
+
+function renderSteppedPOC(sessions: TpoSession[], bars: {ts:string}[], fallback: number|null,
+  ml: number, mr: number, w: number, cw: number, yOf: (p:number)=>number) {
+  const l5 = sessions.slice(-5);
+  if (!l5.length && fallback != null)
+    return [<line key="poc-fb" x1={ml} y1={yOf(fallback)} x2={w-mr} y2={yOf(fallback)} stroke="#ec4899" strokeWidth={1.9} opacity={0.95}/>];
+  const off = POC_STEPS.length - l5.length;
+  const out: React.ReactNode[] = [];
+  l5.forEach((s,i) => {
+    if (s.poc_price == null) return;
+    const st = POC_STEPS[off+i]; if (!st) return;
+    const r = sessionXRange(s,bars,ml,cw); if (!r) return;
+    out.push(<line key={`poc-${i}`} x1={r[0]} y1={yOf(s.poc_price)} x2={r[1]} y2={yOf(s.poc_price)} stroke="#ec4899" strokeWidth={st.width} opacity={st.opacity}/>);
+    if (i < l5.length-1) {
+      const nx = l5[i+1];
+      if (nx.poc_price != null && nx.poc_price !== s.poc_price) {
+        const age = (l5.length-1-i)/4;
+        out.push(<line key={`poct-${i}`} x1={r[1]} y1={yOf(s.poc_price)} x2={r[1]} y2={yOf(nx.poc_price)} stroke="#ec4899" strokeWidth={0.6+age*0.3} opacity={0.75-age*0.45} strokeDasharray="2 2"/>);
+      }
+    }
+  });
+  return out;
+}
+
+function renderSteppedVAH(sessions: TpoSession[], bars: {ts:string}[], fallback: number|null,
+  ml: number, mr: number, w: number, cw: number, yOf: (p:number)=>number) {
+  const l5 = sessions.slice(-5);
+  if (!l5.length && fallback != null)
+    return [<line key="vah-fb" x1={ml} y1={yOf(fallback)} x2={w-mr} y2={yOf(fallback)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3"/>];
+  const off = VA_STEPS.length - l5.length;
+  return l5.map((s,i) => {
+    if (s.vah_price == null) return null;
+    const st = VA_STEPS[off+i]; if (!st) return null;
+    const r = sessionXRange(s,bars,ml,cw); if (!r) return null;
+    return <line key={`vah-${i}`} x1={r[0]} y1={yOf(s.vah_price)} x2={r[1]} y2={yOf(s.vah_price)} stroke="#ec4899" strokeWidth={st.width} opacity={st.opacity} strokeDasharray="3 3"/>;
+  }).filter(Boolean);
+}
+
+function renderSteppedVAL(sessions: TpoSession[], bars: {ts:string}[], fallback: number|null,
+  ml: number, mr: number, w: number, cw: number, yOf: (p:number)=>number) {
+  const l5 = sessions.slice(-5);
+  if (!l5.length && fallback != null)
+    return [<line key="val-fb" x1={ml} y1={yOf(fallback)} x2={w-mr} y2={yOf(fallback)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3"/>];
+  const off = VA_STEPS.length - l5.length;
+  return l5.map((s,i) => {
+    if (s.val_price == null) return null;
+    const st = VA_STEPS[off+i]; if (!st) return null;
+    const r = sessionXRange(s,bars,ml,cw); if (!r) return null;
+    return <line key={`val-${i}`} x1={r[0]} y1={yOf(s.val_price)} x2={r[1]} y2={yOf(s.val_price)} stroke="#ec4899" strokeWidth={st.width} opacity={st.opacity} strokeDasharray="3 3"/>;
+  }).filter(Boolean);
+}
+
 const W = 800, H = 310;  // +30 for volume strip
 const ML = 8, MR = 62, MT = 28, MB = 32;  // MB includes volume strip
 const CW = W - ML - MR, CH = H - MT - MB;
@@ -291,71 +354,14 @@ export function ChartV5a() {
         );
       })}
 
-      {/* TPO Stepped POC (5 periods, fading) */}
-      {(() => {
-        const pocPrices = tpoSessions
-          .map(s => s.poc_price)
-          .filter((p): p is number => p != null);
-        // If no sessions but current TPO has POC, use that as period 0
-        if (pocPrices.length === 0 && tpo?.poc != null) pocPrices.push(tpo.poc);
-        if (pocPrices.length === 0) return null;
-        // Pad to align: last = period 0 (current)
-        const offset = POC_STEPS.length - pocPrices.length;
-        return pocPrices.map((poc, i) => {
-          const step = POC_STEPS[offset + i];
-          if (!step) return null;
-          return <line key={`poc-${i}`} x1={ML} y1={yOf(poc)} x2={W - MR} y2={yOf(poc)}
-            stroke="#ec4899" strokeWidth={step.width} opacity={step.opacity} />;
-        });
-      })()}
+      {/* TPO Stepped POC (5 periods, time-scoped) */}
+      {renderSteppedPOC(tpoSessions, allBars, tpo?.poc ?? null, ML, MR, W, CW, yOf)}
 
-      {/* TPO Stepped VAH (5 periods, fading, dashed) */}
-      {(() => {
-        const vahPrices = tpoSessions.map(s => s.vah_price).filter((p): p is number => p != null);
-        if (vahPrices.length === 0 && tpo?.vah != null) vahPrices.push(tpo.vah);
-        if (vahPrices.length === 0) return null;
-        const offset = VA_STEPS.length - vahPrices.length;
-        return vahPrices.map((vah, i) => {
-          const step = VA_STEPS[offset + i];
-          if (!step) return null;
-          return <line key={`vah-${i}`} x1={ML} y1={yOf(vah)} x2={W - MR} y2={yOf(vah)}
-            stroke="#ec4899" strokeWidth={step.width} opacity={step.opacity} strokeDasharray="3 3" />;
-        });
-      })()}
+      {/* TPO Stepped VAH (time-scoped, dashed) */}
+      {renderSteppedVAH(tpoSessions, allBars, tpo?.vah ?? null, ML, MR, W, CW, yOf)}
 
-      {/* TPO Stepped VAL (5 periods, fading, dashed) */}
-      {(() => {
-        const valPrices = tpoSessions.map(s => s.val_price).filter((p): p is number => p != null);
-        if (valPrices.length === 0 && tpo?.val != null) valPrices.push(tpo.val);
-        if (valPrices.length === 0) return null;
-        const offset = VA_STEPS.length - valPrices.length;
-        return valPrices.map((val, i) => {
-          const step = VA_STEPS[offset + i];
-          if (!step) return null;
-          return <line key={`val-${i}`} x1={ML} y1={yOf(val)} x2={W - MR} y2={yOf(val)}
-            stroke="#ec4899" strokeWidth={step.width} opacity={step.opacity} strokeDasharray="3 3" />;
-        });
-      })()}
-
-      {/* POC transition verticals (dashed magenta) */}
-      {(() => {
-        const pocPrices = tpoSessions
-          .map(s => s.poc_price)
-          .filter((p): p is number => p != null);
-        if (pocPrices.length < 2) return null;
-        return pocPrices.slice(1).map((poc, i) => {
-          const prev = pocPrices[i];
-          if (prev === poc) return null;
-          // Place transition at roughly the session boundary
-          const x = ML + ((i + 1) / pocPrices.length) * CW;
-          return <line key={`poct-${i}`} x1={x} y1={yOf(prev)} x2={x} y2={yOf(poc)}
-            stroke="#ec4899" strokeWidth={0.6} opacity={0.35} strokeDasharray="2 2" />;
-        });
-      })()}
-
-      {/* VAH/VAL lines */}
-      {tpo?.vah != null && <line x1={ML} y1={yOf(tpo.vah)} x2={W - MR} y2={yOf(tpo.vah)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />}
-      {tpo?.val != null && <line x1={ML} y1={yOf(tpo.val)} x2={W - MR} y2={yOf(tpo.val)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />}
+            {/* TPO Stepped VAL (time-scoped, dashed) */}
+      {renderSteppedVAL(tpoSessions, allBars, tpo?.val ?? null, ML, MR, W, CW, yOf)}
 
       {/* Current price line */}
       {price != null && <line x1={ML} y1={yOf(price)} x2={W - MR} y2={yOf(price)} stroke="#facc15" strokeWidth={0.4} opacity={0.4} />}
