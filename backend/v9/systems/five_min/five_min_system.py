@@ -172,12 +172,177 @@ class FiveMinSystem(BaseV9TradingSystem):
         # Store for context — used by confluence scoring
         return None
 
+    # ── Footprint helpers ──
+
+    def _get_cot_from_footprint(self) -> Optional[float]:
+        """Read COT (cumulative delta) from Footprint System 3."""
+        import requests
+        try:
+            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
+            return r.json().get("cot")
+        except Exception:
+            return None
+
+    def _get_amt_from_footprint(self) -> Optional[float]:
+        """Read AMT (90-min average) from Footprint System 3."""
+        import requests
+        try:
+            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
+            return r.json().get("amt")
+        except Exception:
+            return None
+
+    # ── Pattern detectors (Constitution V3 Layer 1 T1) ──
+
+    def _detect_reactive(self, bars_5m: List[Dict]) -> tuple:
+        """Reactive 4-bar pattern per Constitution V3.
+
+        LONG (seller weakness):
+          Bar 1: sellers dominate (bearish close + high vol)
+          Bar 2: 90% volume drop vs Bar 1
+          Bar 3: buyer belly (bullish close) + POC_VOL rising
+          Bar 4: confirmation (bullish close)
+          COT > AMT required.
+
+        SHORT: Mirror of LONG.
+        Returns (direction, confidence, info) or (None, 0, {}).
+        """
+        if len(bars_5m) < 4:
+            return (None, 0, {})
+
+        b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
+        cur_cot = self._get_cot_from_footprint()
+        cur_amt = self._get_amt_from_footprint()
+        if cur_cot is None or cur_amt is None:
+            return (None, 0, {})
+
+        b1_vol = b1.get("v", 0) or 0
+        b2_vol = b2.get("v", 0) or 0
+
+        # Reactive LONG
+        b1_sellers = b1["c"] < b1["o"] and b1_vol > 0
+        b2_drop = b2_vol <= b1_vol * 0.10 if b1_vol > 0 else False  # 90% drop
+        b3_buyers = b3["c"] > b3["o"]
+        b4_confirm = b4["c"] > b4["o"]
+        cot_above_amt = cur_cot > cur_amt
+
+        if b1_sellers and b2_drop and b3_buyers and b4_confirm and cot_above_amt:
+            return ("LONG", 0.75, {"kind": "REACTIVE", "stage": 4})
+
+        # Reactive SHORT (mirror)
+        b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
+        b3_sellers = b3["c"] < b3["o"]
+        b4_confirm_s = b4["c"] < b4["o"]
+        cot_below_amt = cur_cot < cur_amt
+
+        if b1_buyers and b2_drop and b3_sellers and b4_confirm_s and cot_below_amt:
+            return ("SHORT", 0.75, {"kind": "REACTIVE", "stage": 4})
+
+        return (None, 0, {})
+
+    def _detect_initiative(self, bars_5m: List[Dict]) -> tuple:
+        """Initiative 4-bar pattern per Constitution V3.
+
+        LONG:
+          Bar 1: initial expansion (6-7 ticks = 1.5-1.75 MES points)
+          Bar 2: test (Higher Low / POC return)
+          Bar 3: joining (range > Bar 1 range)
+          Bar 4: second test = entry
+          COT < AMT required.
+
+        SHORT: Mirror of LONG.
+        Returns (direction, confidence, info) or (None, 0, {}).
+        """
+        if len(bars_5m) < 4:
+            return (None, 0, {})
+
+        b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
+        cur_cot = self._get_cot_from_footprint()
+        cur_amt = self._get_amt_from_footprint()
+        if cur_cot is None or cur_amt is None:
+            return (None, 0, {})
+
+        b1_range = b1["h"] - b1["l"]
+        b1_expansion = 1.5 <= b1_range <= 1.75  # 6-7 ticks MES
+        b3_range = b3["h"] - b3["l"]
+        b3_joining = b3_range > b1_range
+
+        # Initiative LONG
+        b1_bull = b1["c"] > b1["o"]
+        b2_higher_low = b2["l"] > b1["l"]
+        b4_test = b4["l"] >= b2["l"]
+        cot_below_amt = cur_cot < cur_amt
+
+        if b1_bull and b1_expansion and b2_higher_low and b3_joining and b4_test and cot_below_amt:
+            return ("LONG", 0.80, {"kind": "INITIATIVE", "stage": 4})
+
+        # Initiative SHORT (mirror)
+        b1_bear = b1["c"] < b1["o"]
+        b2_lower_high = b2["h"] < b1["h"]
+        b4_test_s = b4["h"] <= b2["h"]
+        cot_above_amt = cur_cot > cur_amt
+
+        if b1_bear and b1_expansion and b2_lower_high and b3_joining and b4_test_s and cot_above_amt:
+            return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4})
+
+        return (None, 0, {})
+
+    # ── Bar processing ──
+
     def subscribed_bar_types(self):
         return ["5min"]
 
+    _bar_buffer: List[Dict] = []
+
     async def process_bar(self, event) -> None:
-        """Process a 5-min bar from BarRouter."""
+        """Process a 5-min bar from BarRouter. Runs Reactive + Initiative detectors."""
+        bar = event if isinstance(event, dict) else {}
         self.buffer_size += 1
+        self._bar_buffer.append(bar)
+        if len(self._bar_buffer) > 20:
+            self._bar_buffer = self._bar_buffer[-20:]
+
+        # Run pattern detectors
+        direction, conf, info = self._detect_reactive(self._bar_buffer)
+        if not direction:
+            direction, conf, info = self._detect_initiative(self._bar_buffer)
+
+        if direction:
+            kind = info.get("kind", "UNKNOWN")
+            entry_price = bar.get("c", 0)
+            # Stop: opposite extreme + 2pt 🟡 default("to-calibrate-in-SHADOW")
+            stop_price = (bar.get("l", entry_price) - 2.0) if direction == "LONG" else (bar.get("h", entry_price) + 2.0)
+
+            self.last_pattern = f"{kind}_{direction}"
+            self.last_classification = kind
+            self.last_confluence = int(conf * 100)
+
+            logger.info("[FiveMin] FIRE: %s %s (conf=%.2f, COT=%s, AMT=%s)",
+                        kind, direction, conf,
+                        self._get_cot_from_footprint(), self._get_amt_from_footprint())
+
+            # Persist to DB
+            try:
+                db = SessionLocal()
+                from backend.v9.db.models.five_min_state import V9FiveMinSetup
+                setup = V9FiveMinSetup(
+                    ts=datetime.now(timezone.utc),
+                    pattern=f"{kind}_{direction}",
+                    direction=direction,
+                    entry_price=entry_price,
+                    stop_price=stop_price,
+                    confidence=conf,
+                    pattern_type=f"{kind}_{direction}",
+                    setup_kind=kind,
+                    bar_stage=info.get("stage", 4),
+                    cot_at_fire=self._get_cot_from_footprint(),
+                    amt_at_fire=self._get_amt_from_footprint(),
+                )
+                db.add(setup)
+                db.commit()
+                db.close()
+            except Exception as e:
+                logger.warning("[FiveMin] DB persist error: %s", e)
 
     def get_state(self) -> dict:
         """Current system state for API/status."""

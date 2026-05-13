@@ -21,4 +21,9 @@ class V9FiveMinSetup(Base):
     confidence = Column(Float, nullable=False)
     day_type_at_fire = Column(String(32), nullable=True)
     killzone_at_fire = Column(String(32), nullable=True)
+    pattern_type = Column(String(48), nullable=True)
+    setup_kind = Column(String(16), nullable=True)  # REACTIVE or INITIATIVE
+    bar_stage = Column(Integer, nullable=True)       # which bar in pattern (1-4)
+    cot_at_fire = Column(Float, nullable=True)
+    amt_at_fire = Column(Float, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
