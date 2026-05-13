@@ -28,6 +28,9 @@ class WoodiesSystem(BaseV9TradingSystem):
         self.max_buffer = 50
         self.cci_period = 14
         self.last_cci: Optional[float] = None
+        self._last_czi: Optional[str] = None
+        self._last_swi: Optional[str] = None
+        self._cci_history: List[float] = []
         self.current_state = {
             "running": False,
             "hydrated": False,
@@ -70,6 +73,16 @@ class WoodiesSystem(BaseV9TradingSystem):
             prev_cci = self.last_cci
             signal_type, direction, strength = self._classify_signal(cci_value, prev_cci)
 
+            # P-WCC-CORE.2: Zero Line context
+            czi, swi = self._classify_zero_line_context(cci_value)
+            self._last_czi = czi
+            self._last_swi = swi
+
+            # P-WCC-CORE.3: CCI history for persistence/pattern checks
+            self._cci_history.append(cci_value)
+            if len(self._cci_history) > 20:
+                self._cci_history = self._cci_history[-20:]
+
             self.current_state.update({
                 "cci_current": round(cci_value, 2),
                 "cci_previous": round(prev_cci, 2) if prev_cci is not None else None,
@@ -77,15 +90,40 @@ class WoodiesSystem(BaseV9TradingSystem):
                 "direction": direction,
                 "strength": strength,
                 "buffer_size": len(self.bar_buffer),
+                "czi_state": czi,
+                "swi_state": swi,
+                "persistence_bars": min(len(self._cci_history), 20),
             })
 
             self.last_cci = cci_value
+            bar_ts = getattr(event, 'ts', '')
+
+            # P-WCC-CORE.3: TT 6-bar persistence
+            tt_signal, tt_bars = self._check_trend_persistence()
+            if tt_signal:
+                self._fire_signal(tt_signal, bar_ts, event, cci_value, prev_cci, f"TT 6-bar trend ({tt_bars} bars)")
+
+            # P-WCC-CORE.4: ZLR
+            zlr = self._check_zlr()
+            if zlr:
+                self._fire_signal(zlr, bar_ts, event, cci_value, prev_cci, "Zero Line Reject")
+
+            # P-WCC-CORE.5: TLB
+            tlb = self._check_tlb()
+            if tlb:
+                self._fire_signal(tlb, bar_ts, event, cci_value, prev_cci, "Trend Line Break")
 
             mode = getattr(event, 'mode', 'LIVE')
             if mode == "LIVE" and signal_type != "NEUTRAL":
                 self._write_signal(event, cci_value, prev_cci, signal_type, direction, strength)
         except Exception as e:
             logger.error(f"WoodiesSystem.process_bar error: {e}", exc_info=True)
+
+    def _classify_zero_line_context(self, cci_val: float) -> tuple:
+        """CZI ±100 / SWI ±200 zone classification."""
+        czi = "CZI" if -100 < cci_val < 100 else "TREND_ZONE"
+        swi = "SWI" if abs(cci_val) >= 200 else "NORMAL"
+        return (czi, swi)
 
     def _classify_signal(self, current: float, previous: Optional[float]):
         if previous is None:
