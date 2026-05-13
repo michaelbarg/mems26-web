@@ -1476,3 +1476,29 @@ requirements:
   owner_worker: W2-P-LAYER0
   code_path: backend/v9/systems/layer0/
   notes: "🟡 Vegas flip counting + IB breakout window = defaults."
+
+- id: REQ-S-15TR-HANDLER
+  name: "15-tick reversal bar handler + cluster + empty zone per D-047"
+  category: SYSTEM
+  severity: CRITICAL
+  source:
+    type: drive_doc
+    doc_id: 1K9Dsx_ydIDtPonXXF6MXF-OrUsWG0OuD4pn3bElPDcM
+    section: "D-047 + Layer 3 Entry Execution"
+  status: IMPLEMENTED
+  owner_worker: W3-P-15TR
+  code_path: backend/v9/systems/reversal/
+  notes: "🟡 Empty zone threshold = 20% default. Requires volume_per_price in bar."
+
+- id: REQ-S-TG-GATEWAY
+  name: "Trading Gateway 3-mode routing per 3-Mode Spec V3 §8"
+  category: SYSTEM
+  severity: CRITICAL
+  source:
+    type: drive_doc
+    doc_id: 1F9KWXpSplBsPHhLu2erlMbHDQp4EmqmV4T00U9NYHyM
+    section: "§8 Implementation Detail"
+  status: IMPLEMENTED
+  owner_worker: W3-P-TG
+  code_path: backend/v9/gateway/
+  notes: "🟡 Demo/Live executors = stubs. SHADOW only for now."
