@@ -308,26 +308,46 @@ export function ChartV5a() {
         );
       })()}
 
-      {/* Right price scale — other labels */}
-      {[
-        { price: tpo?.ib_high, label: 'IB H', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
-        { price: tpo?.vah, label: 'VAH', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
-        { price: tpo?.poc, label: 'POC', fill: '#ec4899', text: '#fff' },
-        { price: tpo?.val, label: 'VAL', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
-        { price: tpo?.ib_low, label: 'IB L', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
-      ].map(l => {
-        if (l.price == null) return null;
-        const y = yOf(l.price);
-        if (y < MT || y > H - MB) return null;
-        return (
-          <g key={l.label}>
-            <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill={l.fill} opacity={0.8} />
-            <text x={W - MR + 5} y={y + 3} fontSize={9} fill={l.text} fontFamily="ui-monospace, monospace" fontWeight={500}>
-              {l.label} {l.price.toFixed(2)}
-            </text>
-          </g>
-        );
-      })}
+      {/* Right price scale — 7 pills (Sierra-style, ordered by Y coordinate) */}
+      {(() => {
+        const pills = [
+          { price: tpo?.ib_high ?? null, label: 'IB H', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
+          { price: tpo?.vah ?? null, label: 'VAH', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
+          { price: tpo?.poc ?? null, label: 'POC', fill: '#ec4899', text: '#fff' },
+          { price: null as number | null, label: 'STP', fill: 'rgba(239,68,68,0.15)', text: '#ef4444' }, // placeholder until active trade
+          { price: tpo?.val ?? null, label: 'VAL', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
+          { price: tpo?.ib_low ?? null, label: 'IB L', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
+        ];
+        return pills.map(l => {
+          // STP always shows "—" until active trade
+          if (l.label === 'STP') {
+            // Position STP between POC and VAL (midpoint or fixed offset)
+            const pocY = tpo?.poc != null ? yOf(tpo.poc) : null;
+            const valY = tpo?.val != null ? yOf(tpo.val) : null;
+            const y = pocY != null && valY != null ? (pocY + valY) / 2 : (pocY ?? H / 2) + 14;
+            if (y < MT || y > H - MB) return null;
+            return (
+              <g key="STP">
+                <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill={l.fill} opacity={0.8} />
+                <text x={W - MR + 5} y={y + 3} fontSize={9} fill={l.text} fontFamily="ui-monospace, monospace" fontWeight={500}>
+                  STP —
+                </text>
+              </g>
+            );
+          }
+          if (l.price == null) return null;
+          const y = yOf(l.price);
+          if (y < MT || y > H - MB) return null;
+          return (
+            <g key={l.label}>
+              <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill={l.fill} opacity={0.8} />
+              <text x={W - MR + 5} y={y + 3} fontSize={9} fill={l.text} fontFamily="ui-monospace, monospace" fontWeight={500}>
+                {l.label} {l.price.toFixed(2)}
+              </text>
+            </g>
+          );
+        });
+      })()}
 
       {/* No bars message */}
       {allBars.length === 0 && (
