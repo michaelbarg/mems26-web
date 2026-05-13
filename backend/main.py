@@ -122,6 +122,7 @@ async def _startup():
 
         day_type_machine = DayTypeStateMachine()
         app.state.day_type_machine = day_type_machine
+        _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
 
         async def _day_type_on_bar(event):
             """Bridge BarRouter event to DayTypeStateMachine.process_bar."""
@@ -177,6 +178,28 @@ async def _startup():
                     conn.close()
                 except Exception as db_err:
                     _logger.debug("[DayType] DB persist skipped: %s", db_err)
+
+                # P5.1.5: Publish on classification CHANGE only
+                dt_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
+                if dt_val != _prev_day_type["value"]:
+                    _logger.info("[DayType] Classification changed: %s -> %s (conf=%.2f)",
+                                 _prev_day_type["value"], dt_val, state.confidence)
+                    _prev_day_type["value"] = dt_val
+                    try:
+                        await bar_router.publish("day_type_classification", {
+                            "ts": datetime.now(timezone.utc).isoformat(),
+                            "day_type": dt_val,
+                            "status": state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state),
+                            "confidence": state.confidence,
+                            "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+                            "ib_high": ib_h,
+                            "ib_low": ib_l,
+                            "ib_class": state.ib_width.value if hasattr(state.ib_width, 'value') else None,
+                            "opening_type": opening_type,
+                            "previous_day_type": _prev_day_type["value"],
+                        })
+                    except Exception:
+                        pass
             except Exception as e:
                 _logger.debug("[DayType] process_bar error: %s", e)
 
