@@ -336,59 +336,53 @@ export function ChartV5a() {
         </g>
       )}
 
-      {/* Right price scale — PRC pill (live, flashing) */}
-      {price != null && (() => {
-        const y = yOf(price);
-        if (y < MT || y > H - MB) return null;
-        return (
-          <g>
-            <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill="#facc15" opacity={prcFlash ? 0.6 : 1} />
-            <text x={W - MR + 5} y={y + 3} fontSize={9} fill="#0a0a0a" fontFamily="ui-monospace, monospace" fontWeight={600}>
-              PRC {price.toFixed(2)}
+      {/* Right price scale — 7 pills with collision resolver (PA1-4) */}
+      {(() => {
+        // Build all 7 pills: IB H, VAH, PRC, POC, STP, VAL, IB L
+        const pocY = tpo?.poc != null ? yOf(tpo.poc) : null;
+        const valY = tpo?.val != null ? yOf(tpo.val) : null;
+        const stpY = pocY != null && valY != null ? (pocY + valY) / 2 : (pocY ?? H / 2) + 14;
+
+        const rawPills = [
+          { label: 'IB H', y: tpo?.ib_high != null ? yOf(tpo.ib_high) : null, priceVal: tpo?.ib_high, fill: 'rgba(6,78,59,0.30)', text: '#4ade80', fontWeight: 500 },
+          { label: 'VAH',  y: tpo?.vah != null ? yOf(tpo.vah) : null,         priceVal: tpo?.vah,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
+          { label: 'PRC',  y: price != null ? yOf(price) : null,              priceVal: price,        fill: '#facc15', text: '#0a0a0a', fontWeight: 600 },
+          { label: 'POC',  y: tpo?.poc != null ? yOf(tpo.poc) : null,         priceVal: tpo?.poc,     fill: '#ec4899', text: '#fff',    fontWeight: 500 },
+          { label: 'STP',  y: stpY,                                           priceVal: null,         fill: 'rgba(239,68,68,0.15)', text: '#ef4444', fontWeight: 500 },
+          { label: 'VAL',  y: tpo?.val != null ? yOf(tpo.val) : null,         priceVal: tpo?.val,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
+          { label: 'IB L', y: tpo?.ib_low != null ? yOf(tpo.ib_low) : null,   priceVal: tpo?.ib_low,  fill: 'rgba(6,78,59,0.30)', text: '#4ade80', fontWeight: 500 },
+        ];
+
+        // Filter to visible pills
+        const visible = rawPills.filter(p => p.y != null && p.y >= MT && p.y <= H - MB) as
+          (typeof rawPills[number] & { y: number })[];
+
+        // Collision resolver: sort by Y, push down when overlap (PA1-4)
+        const minSpacing = 15;
+        const sorted = [...visible].sort((a, b) => a.y - b.y);
+        const resolved: { y: number; yOriginal: number; label: string; priceVal: number | null; fill: string; text: string; fontWeight: number }[] = [];
+        let lastY = -Infinity;
+        for (const pill of sorted) {
+          const yAdj = Math.max(pill.y, lastY + minSpacing);
+          resolved.push({ ...pill, yOriginal: pill.y, y: yAdj });
+          lastY = yAdj;
+        }
+
+        return resolved.map(p => (
+          <g key={p.label}>
+            {/* Connector line when pill shifted from true price */}
+            {Math.abs(p.y - p.yOriginal) > 1 && (
+              <line x1={W - MR + 1} y1={p.yOriginal} x2={W - MR + 1} y2={p.y}
+                stroke={p.text} strokeWidth={0.5} opacity={0.3} />
+            )}
+            <rect x={W - MR + 2} y={p.y - 7} width={56} height={14} rx={2}
+              fill={p.fill} opacity={p.label === 'PRC' ? (prcFlash ? 0.6 : 1) : 0.8} />
+            <text x={W - MR + 5} y={p.y + 3} fontSize={9} fill={p.text}
+              fontFamily="ui-monospace, monospace" fontWeight={p.fontWeight}>
+              {p.label} {p.priceVal != null ? p.priceVal.toFixed(2) : '—'}
             </text>
           </g>
-        );
-      })()}
-
-      {/* Right price scale — 7 pills (Sierra-style, ordered by Y coordinate) */}
-      {(() => {
-        const pills = [
-          { price: tpo?.ib_high ?? null, label: 'IB H', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
-          { price: tpo?.vah ?? null, label: 'VAH', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
-          { price: tpo?.poc ?? null, label: 'POC', fill: '#ec4899', text: '#fff' },
-          { price: null as number | null, label: 'STP', fill: 'rgba(239,68,68,0.15)', text: '#ef4444' }, // placeholder until active trade
-          { price: tpo?.val ?? null, label: 'VAL', fill: 'rgba(236,72,153,0.15)', text: '#ec4899' },
-          { price: tpo?.ib_low ?? null, label: 'IB L', fill: 'rgba(6,78,59,0.30)', text: '#4ade80' },
-        ];
-        return pills.map(l => {
-          // STP always shows "—" until active trade
-          if (l.label === 'STP') {
-            // Position STP between POC and VAL (midpoint or fixed offset)
-            const pocY = tpo?.poc != null ? yOf(tpo.poc) : null;
-            const valY = tpo?.val != null ? yOf(tpo.val) : null;
-            const y = pocY != null && valY != null ? (pocY + valY) / 2 : (pocY ?? H / 2) + 14;
-            if (y < MT || y > H - MB) return null;
-            return (
-              <g key="STP">
-                <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill={l.fill} opacity={0.8} />
-                <text x={W - MR + 5} y={y + 3} fontSize={9} fill={l.text} fontFamily="ui-monospace, monospace" fontWeight={500}>
-                  STP —
-                </text>
-              </g>
-            );
-          }
-          if (l.price == null) return null;
-          const y = yOf(l.price);
-          if (y < MT || y > H - MB) return null;
-          return (
-            <g key={l.label}>
-              <rect x={W - MR + 2} y={y - 7} width={56} height={14} rx={2} fill={l.fill} opacity={0.8} />
-              <text x={W - MR + 5} y={y + 3} fontSize={9} fill={l.text} fontFamily="ui-monospace, monospace" fontWeight={500}>
-                {l.label} {l.price.toFixed(2)}
-              </text>
-            </g>
-          );
-        });
+        ));
       })()}
 
       {/* No bars message */}
