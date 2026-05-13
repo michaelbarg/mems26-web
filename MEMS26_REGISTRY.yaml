@@ -1514,3 +1514,37 @@ requirements:
   owner_worker: P-DLL-30MIN-DIAG
   code_path: bridge/v9_streams/woodies_30min_stream.py, backend/v9/api/v9/bars.py
   notes: "DLL already emits 50 bars with all studies. 4 disconnects block flow: (1) export dir mismatch, (2) history vs bars key, (3) topic woodies vs woodies_30min, (4) nested OHLC not flattened. See /tmp/dll_30min_strategy.md"
+- id: REQ-FIX-DLL-WIRING
+  name: "DLL 30-min pipeline wiring fixes (4 disconnects)"
+  category: DATA
+  severity: CRITICAL
+  source:
+    type: diagnostic
+    ref: "/tmp/dll_30min_strategy.md"
+    section: "D-048 Woodies on 30-MIN"
+  status: IMPLEMENTED
+  owner_worker: P-FIX-COMBINED
+  code_path: scripts/start_all.sh + backend/v9/api/v9/bars.py
+  notes: "4 wiring fixes: export dir, JSON key, topic, OHLC flatten."
+- id: REQ-S-WOODIES-ZLR-STAGE1
+  name: "ZLR Stage 1 threshold corrected to CCI >= 200 per D.10"
+  category: SYSTEM
+  severity: HIGH
+  source:
+    type: constitution
+    section: "V2 D.10"
+  status: IMPLEMENTED
+  owner_worker: P-FIX-COMBINED
+  code_path: backend/v9/systems/woodies/patterns/zlr.py
+  notes: "Was CCI > 100 (Stage 2 zone). Now CCI >= 200 per D.10 verbatim."
+- id: REQ-API-WOODIES-TIMEFRAME
+  name: "Expose timeframe=30min in /api/v9/woodies/current"
+  category: SYSTEM
+  severity: MEDIUM
+  source:
+    type: constitution
+    section: "D-048 LOCKED"
+  status: IMPLEMENTED
+  owner_worker: P-FIX-COMBINED
+  code_path: backend/v9/systems/woodies/woodies_system.py
+  notes: "API now returns timeframe field for frontend consumption."
