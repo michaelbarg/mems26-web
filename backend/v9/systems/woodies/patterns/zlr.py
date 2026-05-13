@@ -34,13 +34,15 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
     prev = cci_history[-2]
     bar = bars[-1]
 
-    # ZLR UP: find most recent bar where CCI > +100 within lookback
+    # ZLR UP Stage 1: find bar where CCI >= 200 (D.10: "CCI >= 200, 6+ bars above ZL")
     for i in range(n - 2, max(n - LOOKBACK - 2, -1), -1):
-        if cci_history[i] > 100:
+        if cci_history[i] >= 200:
+            # Stage 2: pullback below 100, NOT below -100
             pulled = any(
-                -50 <= cci_history[j] <= 100
+                -100 < cci_history[j] <= 100
                 for j in range(i + 1, n - 1)
             )
+            # Stage 3: sharp reversal up, CCI bouncing back
             if pulled and current > prev and 0 < current < 200:
                 bars_since = n - 1 - i
                 entry = bar.close
@@ -64,11 +66,12 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 )
             break
 
-    # ZLR DOWN: find most recent bar where CCI < -100 within lookback
+    # ZLR DOWN Stage 1: find bar where CCI <= -200 (D.10 mirror)
     for i in range(n - 2, max(n - LOOKBACK - 2, -1), -1):
-        if cci_history[i] < -100:
+        if cci_history[i] <= -200:
+            # Stage 2: pullback above -100, NOT above +100
             pulled = any(
-                -100 <= cci_history[j] <= 50
+                -100 <= cci_history[j] < 100
                 for j in range(i + 1, n - 1)
             )
             if pulled and current < prev and -200 < current < 0:
@@ -107,12 +110,12 @@ def detect_zlr(cci_history: list, bar_index: int, ts: float,
     current = cci_history[-1]
     prev = cci_history[-2]
 
-    # ZLR UP
+    # ZLR UP Stage 1: CCI >= 200 (D.10)
     for i in range(n - 2, max(n - LOOKBACK - 1, -1), -1):
-        if cci_history[i] > 100:
+        if cci_history[i] >= 200:
             bars_since = n - 1 - i
             pulled = any(
-                -50 <= cci_history[j] <= 100
+                -100 < cci_history[j] <= 100
                 for j in range(i + 1, n - 1)
             )
             if pulled and current > prev and 0 < current < 200:
@@ -124,12 +127,12 @@ def detect_zlr(cci_history: list, bar_index: int, ts: float,
                 )
             break
 
-    # ZLR DOWN
+    # ZLR DOWN Stage 1: CCI <= -200 (D.10 mirror)
     for i in range(n - 2, max(n - LOOKBACK - 1, -1), -1):
-        if cci_history[i] < -100:
+        if cci_history[i] <= -200:
             bars_since = n - 1 - i
             pulled = any(
-                -100 <= cci_history[j] <= 50
+                -100 <= cci_history[j] < 100
                 for j in range(i + 1, n - 1)
             )
             if pulled and current < prev and -200 < current < 0:
