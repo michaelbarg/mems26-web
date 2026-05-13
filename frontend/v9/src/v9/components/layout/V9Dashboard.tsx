@@ -1,16 +1,58 @@
 'use client';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { TopBar } from './TopBar';
 import { Layer0Strip } from './Layer0Strip';
 import { SidePanel } from './SidePanel';
 import { PriceDebugConsole } from '../PriceDebugConsole';
 import { ChartV5a } from '../chart/ChartV5a';
+import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
+import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { COLORS } from '../../design/tokens';
 
+const STORAGE_KEY = 'chart-height-v5c';
+const MIN_H = 200, DEFAULT_H = 480, MAX_H = 800;
+const PRESETS = { Min: 240, Md: 480, Max: 720 } as const;
+
+function clamp(v: number) { return Math.max(MIN_H, Math.min(MAX_H, v)); }
+
 export function V9Dashboard() {
   useSystemEvents();
   useSystemStatePolling(2000);
+
+  // Chart height with localStorage persistence
+  const [chartH, setChartH] = useState(() => {
+    if (typeof window === 'undefined') return DEFAULT_H;
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    return saved ? clamp(Number(saved)) : DEFAULT_H;
+  });
+  const persistH = useCallback((h: number) => {
+    const clamped = clamp(h);
+    setChartH(clamped);
+    window.localStorage.setItem(STORAGE_KEY, String(clamped));
+  }, []);
+
+  // Drag handle
+  const dragging = useRef(false);
+  const startY = useRef(0);
+  const startH = useRef(DEFAULT_H);
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    dragging.current = true;
+    startY.current = e.clientY;
+    startH.current = chartH;
+    e.preventDefault();
+  }, [chartH]);
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!dragging.current) return;
+      persistH(startH.current + (e.clientY - startY.current));
+    };
+    const onUp = () => { dragging.current = false; };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+  }, [persistH]);
 
   return (
     <div
@@ -20,8 +62,41 @@ export function V9Dashboard() {
       <TopBar />
       <Layer0Strip />
       <div className="flex flex-1 min-h-0">
-        <div className="flex-1 min-h-0" style={{ minHeight: 280 }}>
-          <ChartV5a />
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Chart area with dynamic height */}
+          <div style={{ height: chartH, minHeight: MIN_H }}>
+            <ChartV5a />
+          </div>
+
+          {/* Drag handle + presets */}
+          <div className="flex items-center" style={{ userSelect: 'none' }}>
+            <div
+              onMouseDown={onMouseDown}
+              style={{
+                flex: 1, height: 5, cursor: 'ns-resize',
+                background: dragging.current ? COLORS.borderFaint : 'transparent',
+                borderTop: `1px solid ${COLORS.borderFaint}`,
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.background = COLORS.borderFaint)}
+              onMouseLeave={e => { if (!dragging.current) e.currentTarget.style.background = 'transparent'; }}
+            />
+            <div className="flex gap-1 px-2">
+              {(Object.entries(PRESETS) as [string, number][]).map(([label, h]) => (
+                <button key={label} onClick={() => persistH(h)}
+                  style={{
+                    fontSize: 9, padding: '1px 6px', borderRadius: 3, cursor: 'pointer', border: 'none',
+                    background: chartH === h ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: chartH === h ? '#e5e5e5' : '#525252',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Strips below chart */}
+          <TradeHistoryStrip />
+          <ShadowSoakStrip />
         </div>
         <SidePanel />
       </div>
