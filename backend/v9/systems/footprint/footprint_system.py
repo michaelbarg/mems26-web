@@ -23,6 +23,15 @@ class FootprintSystem(BaseV9TradingSystem):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
         self.bar_buffer: List[Dict[str, Any]] = []
         self.max_buffer = 30
+        # Aggressive flow tracking (P-FP-1 v3)
+        self._last_forces: Optional[Dict] = None
+        self._last_forces_source: Optional[str] = None
+        self._last_delta: Optional[float] = None
+        self._last_dominance: Optional[str] = None
+        self._cumulative_delta: float = 0
+        self._last_amt: Optional[float] = None
+        self._total_vol: float = 0
+        self._total_trades: int = 0
         self.current_state = {
             "running": False,
             "hydrated": False,
@@ -31,6 +40,13 @@ class FootprintSystem(BaseV9TradingSystem):
             "last_confluence": 0,
             "bars_processed_today": 0,
             "buffer_size": 0,
+            "aggressive_flow": None,
+            "forces_source": None,
+            "delta": None,
+            "cumulative_delta": 0,
+            "dominance": None,
+            "cot": 0,
+            "amt": None,
         }
 
     def subscribed_bar_types(self) -> List[str]:
@@ -69,11 +85,22 @@ class FootprintSystem(BaseV9TradingSystem):
                 int(ctx.otf_state in (2, 3)),
             ]) + sum(int(v) for v in signals.values())
             classification = self._classify(confluence, pattern)
+
+            # Aggressive flow (P-FP-1 v3)
+            self._update_flow(bar)
+
             self.current_state["last_classification"] = classification
             self.current_state["last_pattern"] = pattern
             self.current_state["last_confluence"] = confluence
             self.current_state["bars_processed_today"] += 1
             self.current_state["buffer_size"] = len(self.bar_buffer)
+            self.current_state["aggressive_flow"] = self._last_forces
+            self.current_state["forces_source"] = self._last_forces_source
+            self.current_state["delta"] = self._last_delta
+            self.current_state["cumulative_delta"] = self._cumulative_delta
+            self.current_state["dominance"] = self._last_dominance
+            self.current_state["cot"] = self._cumulative_delta
+            self.current_state["amt"] = self._last_amt
             mode = getattr(event, 'mode', 'LIVE')
             if mode == "LIVE":
                 self._write_journal(event, bar, cluster, empty, ctx, pattern, signals, confluence, classification)
@@ -81,6 +108,50 @@ class FootprintSystem(BaseV9TradingSystem):
                     self._write_setup(event, bar, classification, pattern, confluence)
         except Exception as e:
             logger.error(f"FootprintSystem.process_bar error: {e}", exc_info=True)
+
+    def _classify_forces_in_bar(self, bar: dict) -> Optional[Dict]:
+        """Map Sierra ask_vol/bid_vol to aggressive flow. Passive = NULL (no L2)."""
+        ask_vol = bar.get("ask_vol")
+        bid_vol = bar.get("bid_vol")
+        if ask_vol is None or bid_vol is None:
+            return None
+        return {
+            "agg_buy_vol": float(ask_vol or 0),
+            "agg_sell_vol": float(bid_vol or 0),
+            "pas_buy_vol": None,
+            "pas_sell_vol": None,
+            "source": "SIERRA_AGG_ONLY",
+        }
+
+    def _update_flow(self, bar: dict) -> None:
+        """Compute dominance + delta + COT + AMT from aggressive flow."""
+        forces = self._classify_forces_in_bar(bar)
+        if forces is None:
+            self._last_forces = None
+            self._last_delta = None
+            self._last_dominance = None
+            return
+        self._last_forces = forces
+        self._last_forces_source = forces["source"]
+
+        agg_buy = forces["agg_buy_vol"]
+        agg_sell = forces["agg_sell_vol"]
+        delta = agg_buy - agg_sell
+        self._cumulative_delta += delta
+        self._last_delta = delta
+
+        if agg_buy > 1.5 * agg_sell and agg_buy > 0:
+            self._last_dominance = "BUYER_DOMINATE"
+        elif agg_sell > 1.5 * agg_buy and agg_sell > 0:
+            self._last_dominance = "SELLER_DOMINATE"
+        else:
+            self._last_dominance = "BALANCED"
+
+        trade_count = int(bar.get("trade_count") or bar.get("ticks_count") or bar.get("n") or 1)
+        total_vol = float(bar.get("v") or bar.get("volume") or 0)
+        self._last_amt = total_vol / max(trade_count, 1)
+        self._total_vol += total_vol
+        self._total_trades += trade_count
 
     def _detect_pattern(self, ctx) -> Optional[str]:
         if ctx.accumulation and ctx.jumps_count >= 3:
