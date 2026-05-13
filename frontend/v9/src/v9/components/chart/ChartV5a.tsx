@@ -234,7 +234,7 @@ export function ChartV5a() {
     return result;
   }, [bars, formingBar]);
 
-  // Price range from all bars
+  // Price range from all bars (PA1-6: 5% padding for breathing room)
   const { pMin, pMax } = useMemo(() => {
     if (allBars.length === 0) {
       const p = price ?? 7400;
@@ -243,7 +243,8 @@ export function ChartV5a() {
     let lo = Infinity, hi = -Infinity;
     for (const b of allBars) { if (b.l < lo) lo = b.l; if (b.h > hi) hi = b.h; }
     if (price != null) { if (price < lo) lo = price; if (price > hi) hi = price; }
-    return { pMin: lo - 1, pMax: hi + 1 };
+    const range = hi - lo || 1;
+    return { pMin: lo - range * 0.05, pMax: hi + range * 0.05 };
   }, [allBars, price]);
 
   const yOf = (p: number) => MT + (1 - (p - pMin) / (pMax - pMin)) * CH;
@@ -430,6 +431,45 @@ export function ChartV5a() {
             </text>
           </g>
         ));
+      })()}
+
+      {/* PA1-6: Right price axis labels (5pt MES intervals) */}
+      {(() => {
+        const step = 5;
+        const startP = Math.ceil(pMin / step) * step;
+        const labels: React.ReactNode[] = [];
+        for (let p = startP; p <= pMax; p += step) {
+          const y = yOf(p);
+          if (y < MT + 6 || y > H - MB - 4) continue;
+          labels.push(
+            <g key={`py-${p}`}>
+              <line x1={ML} y1={y} x2={W - MR} y2={y} stroke="#1a1a1a" strokeWidth={0.3} />
+              <text x={W - MR + 4} y={y + 3} fontSize={8} fill="#525252"
+                fontFamily="ui-monospace, monospace">{p.toFixed(0)}</text>
+            </g>
+          );
+        }
+        return labels;
+      })()}
+
+      {/* PA1-6: Bottom time axis labels */}
+      {(() => {
+        if (allBars.length < 2) return null;
+        const labelEvery = allBars.length <= 15 ? 3 : allBars.length <= 30 ? 6 : 12;
+        return allBars.map((b, i) => {
+          if (i % labelEvery !== 0) return null;
+          const x = ML + (i / allBars.length) * CW + barW / 2;
+          const ts = b.ts;
+          let timeStr = '';
+          try {
+            const d = new Date(ts.replace(' ', 'T'));
+            timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+          } catch { timeStr = ts.slice(11, 16); }
+          return (
+            <text key={`tx-${i}`} x={x} y={H - 2} fontSize={8} fill="#525252"
+              textAnchor="middle" fontFamily="ui-monospace, monospace">{timeStr}</text>
+          );
+        });
       })()}
 
       {/* No bars message */}
