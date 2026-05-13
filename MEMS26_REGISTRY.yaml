@@ -1450,3 +1450,29 @@ requirements:
     test_path: null
     last_verified: null
     notes: "Before SHADOW: browser loads + API + WS. Before LIVE: 7-day soak"
+
+- id: REQ-S-5MIN-PATTERNS
+  name: "5-Min Reactive + Initiative 4-bar patterns per Constitution V3 T1"
+  category: SYSTEM
+  severity: CRITICAL
+  source:
+    type: drive_doc
+    doc_id: 1K9Dsx_ydIDtPonXXF6MXF-OrUsWG0OuD4pn3bElPDcM
+    section: "Layer 1 T1 (5-min Number Bar Pattern)"
+  status: IMPLEMENTED
+  owner_worker: W2-P-5M-1-v2
+  code_path: backend/v9/systems/five_min/
+  notes: "Stop placement = 🟡 default (opposite extreme + 2pt)."
+
+- id: REQ-S-LAYER0-CHOP
+  name: "Layer-0 Chop Score 6 indicators per Constitution V3 L0"
+  category: SYSTEM
+  severity: HIGH
+  source:
+    type: drive_doc
+    doc_id: 1K9Dsx_ydIDtPonXXF6MXF-OrUsWG0OuD4pn3bElPDcM
+    section: "Layer 0 Market State Gate"
+  status: IMPLEMENTED
+  owner_worker: W2-P-LAYER0
+  code_path: backend/v9/systems/layer0/
+  notes: "🟡 Vegas flip counting + IB breakout window = defaults."
