@@ -306,6 +306,72 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         return (None, 0, {})
 
+    # ── Sizing (Cockpit V5 LOCKED — per-system internal only) ──
+
+    def calculate_size(self, pattern_state: dict) -> str:
+        """System 2 per-system internal sizing decision.
+
+        Spec: Cockpit V5 LOCKED — NOT composite, S2 inputs ONLY.
+        ⛔ NO killzone/day_type/footprint/tpo/woodies/layer_0 inputs.
+        ✅ Only: bars_formed, pattern_type, direction, COT, AMT, location_vs_poc_vol.
+
+        Returns: 'full' (3 contracts) | 'half' (2 contracts) | 'reject' (0)
+        """
+        bars_formed = pattern_state.get("bars_formed", 0)
+        if bars_formed < 3:
+            return "reject"  # Pattern not mature enough
+
+        cot = pattern_state.get("cot", 0) or 0
+        amt = pattern_state.get("amt", 0) or 0
+        direction = pattern_state.get("direction")
+
+        # COT/AMT alignment check (direction-dependent)
+        if direction == "LONG":
+            cot_amt_ok = cot > amt
+            cot_amt_strong = amt > 0 and cot > amt * 1.2  # 🟡 1.2x threshold
+        elif direction == "SHORT":
+            cot_amt_ok = cot < amt
+            cot_amt_strong = amt > 0 and cot < amt * 0.8  # 🟡 0.8x threshold
+        else:
+            return "reject"
+
+        if not cot_amt_ok:
+            return "reject"  # No flow support for direction
+
+        location = pattern_state.get("location_vs_poc_vol", "far")  # at / near / far
+
+        # Pristine: 4 bars + strong flow + at POC → full (3 contracts)
+        if bars_formed == 4 and cot_amt_strong and location == "at":
+            return "full"
+
+        # Solid: 3+ bars + flow ok + near/at POC → half (2 contracts)
+        if bars_formed >= 3 and cot_amt_ok and location in ("at", "near"):
+            return "half"
+
+        return "reject"
+
+    def _compute_location_vs_poc(self, bar: dict) -> str:
+        """Determine bar location relative to POC volume level (S2 internal).
+
+        Uses TPO POC from current state (already available in tpo/current).
+        🟡 Thresholds: 'at' ≤ 1.0pt, 'near' ≤ 3.0pt, else 'far'.
+        """
+        try:
+            import requests
+            tpo = requests.get("http://localhost:8000/api/v9/tpo/current", timeout=2).json()
+            poc = tpo.get("poc")
+            if poc is None:
+                return "far"
+            bar_mid = (bar.get("h", 0) + bar.get("l", 0)) / 2
+            dist = abs(bar_mid - poc)
+            if dist <= 1.0:   # 🟡 default
+                return "at"
+            elif dist <= 3.0:  # 🟡 default
+                return "near"
+            return "far"
+        except Exception:
+            return "far"
+
     # ── Bar processing ──
 
     def subscribed_bar_types(self):
@@ -332,13 +398,25 @@ class FiveMinSystem(BaseV9TradingSystem):
             # Stop: opposite extreme + 2pt 🟡 default("to-calibrate-in-SHADOW")
             stop_price = (bar.get("l", entry_price) - 2.0) if direction == "LONG" else (bar.get("h", entry_price) + 2.0)
 
+            # Sizing decision (Cockpit V5 — S2 internal only)
+            cot_val = info.get("cot") or self._get_cot_from_footprint() or 0
+            amt_val = info.get("amt") or self._get_amt_from_footprint() or 0
+            location = self._compute_location_vs_poc(bar)
+            sizing = self.calculate_size({
+                "bars_formed": info.get("stage", 4),
+                "pattern_type": kind.lower(),
+                "direction": direction,
+                "cot": cot_val,
+                "amt": amt_val,
+                "location_vs_poc_vol": location,
+            })
+
             self.last_pattern = f"{kind}_{direction}"
             self.last_classification = kind
             self.last_confluence = int(conf * 100)
 
-            logger.info("[FiveMin] FIRE: %s %s (conf=%.2f, COT=%s, AMT=%s)",
-                        kind, direction, conf,
-                        self._get_cot_from_footprint(), self._get_amt_from_footprint())
+            logger.info("[FiveMin] FIRE: %s %s (conf=%.2f, size=%s, COT=%.1f, AMT=%.1f, loc=%s)",
+                        kind, direction, conf, sizing, cot_val, amt_val, location)
 
             # Persist to DB
             try:
