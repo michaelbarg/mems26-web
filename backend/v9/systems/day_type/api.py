@@ -77,9 +77,138 @@ def get_history(
     return DayTypeHistoryResponse(items=items, count=len(items))
 
 
+def _classify_v1_from_tpo() -> dict:
+    """V1 simple classifier — reads IB + bars from TPO system.
+
+    Rules (🟡 thresholds: CAL-006=1.5x, CAL-007=0.3x — calibrate post-SHADOW):
+      Both sides breached   → NEUTRAL
+      Neither breached      → NORMAL
+      Extension > 1.5x IB  → TREND_NORMAL
+      Extension < 0.3x IB  → NONTREND
+      Single side moderate  → VARIATION
+    """
+    import requests
+    try:
+        tpo = requests.get("http://localhost:8000/api/v9/tpo/current", timeout=2).json()
+    except Exception:
+        return {"day_type": "UNKNOWN", "confidence": 0, "ib_h": None, "ib_l": None,
+                "ib_range": None, "extension_ratio": None, "classified": False}
+
+    ib_h = tpo.get("ib_high")
+    ib_l = tpo.get("ib_low")
+    ib_locked = tpo.get("ib_locked", False)
+
+    if not ib_locked or ib_h is None or ib_l is None:
+        return {"day_type": "UNKNOWN", "confidence": 0, "ib_h": ib_h, "ib_l": ib_l,
+                "ib_range": None, "extension_ratio": None, "classified": False}
+
+    ib_range = ib_h - ib_l
+    if ib_range <= 0:
+        return {"day_type": "UNKNOWN", "confidence": 0, "ib_h": ib_h, "ib_l": ib_l,
+                "ib_range": 0, "extension_ratio": None, "classified": False}
+
+    # Read bars for post-IB extension
+    try:
+        bars = requests.get("http://localhost:8000/api/v9/chart/bars5min?limit=60", timeout=2).json()
+    except Exception:
+        bars = []
+
+    if not isinstance(bars, list) or not bars:
+        return {"day_type": "UNKNOWN", "confidence": 0, "ib_h": ib_h, "ib_l": ib_l,
+                "ib_range": ib_range, "extension_ratio": None, "classified": False}
+
+    post_ib_high = max(b.get("h", 0) for b in bars)
+    post_ib_low = min(b.get("l", float("inf")) for b in bars)
+    extension_up = max(0, post_ib_high - ib_h)
+    extension_down = max(0, ib_l - post_ib_low)
+    max_extension = max(extension_up, extension_down)
+    extension_ratio = max_extension / ib_range
+
+    ib_breached_up = post_ib_high > ib_h
+    ib_breached_down = post_ib_low < ib_l
+    both_sides = ib_breached_up and ib_breached_down
+
+    # Classification (🟡 V1 rules — CAL-006/007)
+    if both_sides:
+        day_type = "Neutral"
+        conf = 60
+    elif not ib_breached_up and not ib_breached_down:
+        day_type = "Normal"
+        conf = 70
+    elif extension_ratio > 1.5:  # 🟡 CAL-006
+        day_type = "Trend_Normal"
+        conf = 65
+    elif extension_ratio < 0.3:  # 🟡 CAL-007
+        day_type = "Nontrend"
+        conf = 55
+    else:
+        day_type = "Variation"
+        conf = 60
+
+    return {
+        "day_type": day_type, "confidence": conf,
+        "ib_h": ib_h, "ib_l": ib_l, "ib_range": round(ib_range, 2),
+        "extension_ratio": round(extension_ratio, 3), "classified": True,
+    }
+
+
+# Module-level cache for today's classification
+_today_classification: Optional[dict] = None
+_today_date: Optional[str] = None
+
+
 @router.get("/current")
 def get_current():
-    """Simplified current classification for TopBar/frontend."""
+    """Current Day Type classification (V1 simple rules from TPO).
+
+    Falls back to state machine if V1 can't classify.
+    Persists to v9_day_type_history on first successful classification.
+    """
+    global _today_classification, _today_date
+    from datetime import date
+
+    today = date.today().isoformat()
+
+    # Return cached if already classified today
+    if _today_date == today and _today_classification and _today_classification.get("classified"):
+        return _today_classification
+
+    # Try V1 classifier
+    result = _classify_v1_from_tpo()
+
+    if result.get("classified"):
+        _today_classification = result
+        _today_date = today
+
+        # Persist to DB (once per day)
+        try:
+            from backend.v9.db.session import SessionLocal
+            from backend.v9.db.models.day_type_history import V9DayTypeHistory
+            db = SessionLocal()
+            existing = db.query(V9DayTypeHistory).filter(
+                V9DayTypeHistory.date == date.today()
+            ).first()
+            if not existing:
+                row = V9DayTypeHistory(
+                    date=date.today(),
+                    day_type=result["day_type"],
+                    status="LOCKED",
+                    confidence=result["confidence"],
+                    ib_high=result["ib_h"],
+                    ib_low=result["ib_l"],
+                    ib_width_ticks=int(result["ib_range"] * 4) if result["ib_range"] else None,
+                    reasoning_notes=f"V1 rules: ext_ratio={result['extension_ratio']}",
+                )
+                db.add(row)
+                db.commit()
+            db.close()
+        except Exception as e:
+            import logging
+            logging.getLogger("mems26.day_type").warning("V1 persist error: %s", e)
+
+        return result
+
+    # Fallback to state machine
     engine = _get_engine()
     state = engine._build_state(
         BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
@@ -91,6 +220,7 @@ def get_current():
         "ib_width": state.ib_width.value if hasattr(state.ib_width, 'value') else str(state.ib_width),
         "opening_type": state.opening_type.value if hasattr(state.opening_type, 'value') else str(state.opening_type),
         "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+        "classified": False,
     }
 
 

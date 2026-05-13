@@ -36,12 +36,18 @@ export function TopBar() {
     f(); const id = setInterval(f, 5000); return () => clearInterval(id);
   }, []);
 
-  // Day Type from System 1 latest signal
-  const dayType = useMemo(() => {
-    const sys1 = allSignals.filter((s) => s.system_id === 1);
-    const latest = sys1[sys1.length - 1];
-    return (latest?.payload?.day_type as string) || '\u2014';
-  }, [allSignals]);
+  // Day Type from V1 classifier (PA2-1)
+  const DT_LABELS: Record<string, string> = {
+    Trend_Normal: 'TRD', Trend_DD: 'TDD', Variation: 'VAR',
+    Neutral: 'NEU', Normal: 'NOR', Nontrend: 'NTR', UNKNOWN: '\u2014',
+  };
+  const [dayTypeRaw, setDayTypeRaw] = useState('UNKNOWN');
+  useEffect(() => {
+    const f = () => fetch(`${API}/api/v9/day_type/current`).then(r => r.json())
+      .then(d => setDayTypeRaw(d.day_type || 'UNKNOWN')).catch(() => {});
+    f(); const id = setInterval(f, 10000); return () => clearInterval(id);
+  }, []);
+  const dayType = DT_LABELS[dayTypeRaw] || dayTypeRaw;
 
   // Killzone from System 6 latest signal
   const killzone = useMemo(() => {

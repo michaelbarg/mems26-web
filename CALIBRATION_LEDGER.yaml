@@ -1,0 +1,15 @@
+# MEMS26 V9 — Calibration Ledger
+# 🟡 = invented default, calibrate after N sessions of SHADOW data
+# Status: UNCALIBRATED → CALIBRATED (after data confirms)
+
+- id: CAL-006
+  what: "Day Type 1.5x extension threshold (TREND_NORMAL)"
+  default: 1.5
+  source: "PA2-1 invented V1"
+  calibrate_after: 10 sessions
+
+- id: CAL-007
+  what: "Day Type 0.3x extension threshold (NONTREND)"
+  default: 0.3
+  source: "PA2-1 invented V1"
+  calibrate_after: 10 sessions

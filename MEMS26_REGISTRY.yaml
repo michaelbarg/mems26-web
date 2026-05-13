@@ -1587,3 +1587,13 @@ requirements:
   owner_worker: PA2-2
   spec_source: Cockpit V5 §3.4 Switcher
   notes: "4 fixes: 5-Min reads pattern/IDLE, FP reads dominance, Woodies adds 8 pattern abbrevs, TPO reads poc_migration.direction. KZ already correct."
+
+- id: REQ-PA2-1
+  name: "Day Type classifier — 6 types, IB-based, V1 rules"
+  category: SYSTEM
+  severity: CRITICAL
+  status: IMPLEMENTED
+  owner_worker: PA2-1
+  code_path: backend/v9/systems/day_type/api.py
+  spec_source: "Constitution V3 Layer 2 + Part 6"
+  notes: "🟡 thresholds: 1.5x ratio for TREND (CAL-006), 0.3x for NONTREND (CAL-007). TREND_DD deferred to V2."
