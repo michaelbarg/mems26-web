@@ -47,3 +47,11 @@ html, body {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.72; }
 }
+
+@keyframes pulsePill {
+  0%   { box-shadow: 0 0 0 0 var(--pill-color, #888); }
+  50%  { box-shadow: 0 0 0 4px var(--pill-color, #888); opacity: 0.85; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.animate-pulse-pill { animation: pulsePill 600ms ease-out;
+}

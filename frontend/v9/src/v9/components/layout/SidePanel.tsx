@@ -8,6 +8,7 @@ import { FootprintLensContent } from '../systems/FootprintLensContent';
 import { WoodiesLensContent } from '../systems/WoodiesLensContent';
 import { TPOLensContent } from '../systems/TPOLensContent';
 import { KillzoneLensContent } from '../systems/KillzoneLensContent';
+import { ActiveTradeCard } from '../sidepanel/ActiveTradeCard';
 import { COLORS, SIZES } from '../../design/tokens';
 import { SYSTEM_META } from '../../design/system_colors';
 
@@ -27,20 +28,8 @@ export function SidePanel() {
         flexShrink: 0,
       }}
     >
-      {/* Active Trade placeholder */}
-      <div style={{
-        padding: 8,
-        borderBottom: `1px solid ${COLORS.borderFaint}`,
-        color: COLORS.textTertiary,
-        fontSize: 9,
-        textAlign: 'center',
-        minHeight: 40,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
-        No Active Trade
-      </div>
+      {/* Active Trade Card */}
+      <ActiveTradeCard />
 
       {/* Switcher */}
       <div style={{ borderBottom: `1px solid ${COLORS.borderFaint}` }}>
