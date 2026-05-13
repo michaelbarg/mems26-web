@@ -26,6 +26,15 @@ const POC_STEPS = [
   { width: 1.9, opacity: 0.95 },  // period 0 (current)
 ];
 
+// VAH/VAL historical per Spec V1 §4.5: 0.4px dashed, opacity 0.22-0.40 → 0.55 current
+const VA_STEPS = [
+  { width: 0.4, opacity: 0.22 },  // period -4
+  { width: 0.4, opacity: 0.28 },  // period -3
+  { width: 0.4, opacity: 0.34 },  // period -2
+  { width: 0.4, opacity: 0.40 },  // period -1
+  { width: 0.5, opacity: 0.55 },  // period 0 (current)
+];
+
 const W = 800, H = 310;  // +30 for volume strip
 const ML = 8, MR = 62, MT = 28, MB = 32;  // MB includes volume strip
 const CW = W - ML - MR, CH = H - MT - MB;
@@ -254,6 +263,34 @@ export function ChartV5a() {
           if (!step) return null;
           return <line key={`poc-${i}`} x1={ML} y1={yOf(poc)} x2={W - MR} y2={yOf(poc)}
             stroke="#ec4899" strokeWidth={step.width} opacity={step.opacity} />;
+        });
+      })()}
+
+      {/* TPO Stepped VAH (5 periods, fading, dashed) */}
+      {(() => {
+        const vahPrices = tpoSessions.map(s => s.vah_price).filter((p): p is number => p != null);
+        if (vahPrices.length === 0 && tpo?.vah != null) vahPrices.push(tpo.vah);
+        if (vahPrices.length === 0) return null;
+        const offset = VA_STEPS.length - vahPrices.length;
+        return vahPrices.map((vah, i) => {
+          const step = VA_STEPS[offset + i];
+          if (!step) return null;
+          return <line key={`vah-${i}`} x1={ML} y1={yOf(vah)} x2={W - MR} y2={yOf(vah)}
+            stroke="#ec4899" strokeWidth={step.width} opacity={step.opacity} strokeDasharray="3 3" />;
+        });
+      })()}
+
+      {/* TPO Stepped VAL (5 periods, fading, dashed) */}
+      {(() => {
+        const valPrices = tpoSessions.map(s => s.val_price).filter((p): p is number => p != null);
+        if (valPrices.length === 0 && tpo?.val != null) valPrices.push(tpo.val);
+        if (valPrices.length === 0) return null;
+        const offset = VA_STEPS.length - valPrices.length;
+        return valPrices.map((val, i) => {
+          const step = VA_STEPS[offset + i];
+          if (!step) return null;
+          return <line key={`val-${i}`} x1={ML} y1={yOf(val)} x2={W - MR} y2={yOf(val)}
+            stroke="#ec4899" strokeWidth={step.width} opacity={step.opacity} strokeDasharray="3 3" />;
         });
       })()}
 
