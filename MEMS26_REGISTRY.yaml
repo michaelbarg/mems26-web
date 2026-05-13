@@ -1634,3 +1634,10 @@ requirements:
   owner_worker: PG2-2
   spec_source: Cockpit V5 §4.5 + §4.7
   notes: "PRC line upgraded 0.4px→1px, 0.4→0.85 opacity. Stop line red dashed when active trade. STP pill wired to stop_price."
+- id: REQ-P-ACTIVATE
+  name: "SHADOW mode activation — Phase DELTA"
+  status: IMPLEMENTED
+  owner_worker: P-ACTIVATE
+  spec_source: 3-Mode V3 §8 SHADOW
+  pre_check: V-WAVE-A2 + V-WAVE-G1 + V-WAVE-A2.5 + V-WAVE-A3 all VERIFIED
+  notes: "ENV MEMS26_MODE=shadow. /api/v9/status exposes mode field. TopBar reads it. Gateway + ShadowExecutor already built (P-TG)."

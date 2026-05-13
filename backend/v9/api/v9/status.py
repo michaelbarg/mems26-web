@@ -268,8 +268,11 @@ def _check_bar_router() -> dict:
 @router.get("/api/v9/status")
 def system_status():
     """10-layer health dashboard for MEMS26."""
+    import os
+    trading_mode = os.getenv("MEMS26_MODE", "shadow")
     return {
         "ts": time.time(),
+        "mode": trading_mode,
         "session": _check_session(),
         "sierra": _check_sierra(),
         "bridge": _check_bridge(),
