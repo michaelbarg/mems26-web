@@ -12,10 +12,12 @@ const STORAGE_KEY = 'mems26:debug:visible';
 export function PriceDebugConsole() {
   const { connected, lastTick, tickCount } = usePriceStream();
 
-  const [visible, setVisible] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem(STORAGE_KEY) === 'true';
-  });
+  const [visible, setVisible] = useState(false);
+
+  // Hydrate from localStorage on mount (avoids SSR mismatch)
+  useEffect(() => {
+    if (localStorage.getItem(STORAGE_KEY) === 'true') setVisible(true);
+  }, []);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
