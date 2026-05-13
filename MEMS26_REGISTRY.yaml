@@ -1502,3 +1502,15 @@ requirements:
   owner_worker: W3-P-TG
   code_path: backend/v9/gateway/
   notes: "🟡 Demo/Live executors = stubs. SHADOW only for now."
+- id: REQ-DIAG-DLL-30MIN
+  name: "DLL 30-min emission diagnostic — 4 pipeline disconnects found"
+  category: DATA
+  severity: CRITICAL
+  source:
+    type: drive_doc
+    doc_id: 1K9Dsx_ydIDtPonXXF6MXF-OrUsWG0OuD4pn3bElPDcM
+    section: "D-048 — Woodies on 30-MIN"
+  status: DIAGNOSTIC_COMPLETE
+  owner_worker: P-DLL-30MIN-DIAG
+  code_path: bridge/v9_streams/woodies_30min_stream.py, backend/v9/api/v9/bars.py
+  notes: "DLL already emits 50 bars with all studies. 4 disconnects block flow: (1) export dir mismatch, (2) history vs bars key, (3) topic woodies vs woodies_30min, (4) nested OHLC not flattened. See /tmp/dll_30min_strategy.md"
