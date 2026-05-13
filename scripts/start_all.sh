@@ -26,7 +26,7 @@ else
 #!/bin/bash
 cd /Users/michael/Downloads/mems26_web_git
 [ -f .env ] && set -a && source .env && set +a
-export V9_EXPORT_DIR="${V9_EXPORT_DIR:-/Users/michael/SierraChart/Data/v9_export}"
+export V9_EXPORT_DIR="${V9_EXPORT_DIR:-/Users/michael/SierraChart_Data/v9_export}"
 export CLOUD_URL="${CLOUD_URL:-https://mems26-web.onrender.com}"
 export BRIDGE_TOKEN="${BRIDGE_TOKEN:-michael-mems26-2026}"
 echo "=== Bridge starting at $(date) ===" >> /tmp/bridge.log
