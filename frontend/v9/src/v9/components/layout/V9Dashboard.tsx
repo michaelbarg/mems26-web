@@ -21,16 +21,18 @@ export function V9Dashboard() {
   useSystemEvents();
   useSystemStatePolling(2000);
 
-  // Chart height with localStorage persistence
-  const [chartH, setChartH] = useState(() => {
-    if (typeof window === 'undefined') return DEFAULT_H;
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    return saved ? clamp(Number(saved)) : DEFAULT_H;
-  });
+  // Chart height — SSR-stable default, hydrate from localStorage on mount
+  const [chartH, setChartH] = useState(DEFAULT_H);
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) setChartH(clamp(Number(saved)));
+    setHydrated(true);
+  }, []);
   const persistH = useCallback((h: number) => {
     const clamped = clamp(h);
     setChartH(clamped);
-    window.localStorage.setItem(STORAGE_KEY, String(clamped));
+    localStorage.setItem(STORAGE_KEY, String(clamped));
   }, []);
 
   // Drag handle
@@ -86,8 +88,8 @@ export function V9Dashboard() {
                 <button key={label} onClick={() => persistH(h)}
                   style={{
                     fontSize: 9, padding: '1px 6px', borderRadius: 3, cursor: 'pointer', border: 'none',
-                    background: chartH === h ? 'rgba(255,255,255,0.12)' : 'transparent',
-                    color: chartH === h ? '#e5e5e5' : '#525252',
+                    background: hydrated && chartH === h ? 'rgba(255,255,255,0.12)' : 'transparent',
+                    color: hydrated && chartH === h ? '#e5e5e5' : '#525252',
                   }}
                 >{label}</button>
               ))}
