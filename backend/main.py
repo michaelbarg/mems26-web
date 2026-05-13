@@ -238,6 +238,23 @@ async def _startup():
 
     _logger.info("[Main] BarRouter created: %s", bar_router.get_stats())
 
+    # P-TG.5: TradingGateway initialization
+    try:
+        from backend.v9.gateway import TradingGateway
+        trading_gateway = TradingGateway()
+        # Wire system registry for cross-context snapshots
+        system_registry = {}
+        for attr_name in ("day_type_machine", "five_min_system", "footprint_system",
+                          "woodies_system", "tpo_system", "killzone_system"):
+            sys_ref = getattr(app.state, attr_name, None)
+            if sys_ref:
+                system_registry[attr_name] = sys_ref
+        trading_gateway.set_system_registry(system_registry)
+        app.state.trading_gateway = trading_gateway
+        _logger.info("[Main] TradingGateway initialized: %s", trading_gateway.get_status())
+    except Exception as e:
+        _logger.error("[Main] TradingGateway startup failed: %s", e)
+
     # Historical Replay: warm system buffers from DB (D2.2)
     from backend.v9.services.historical_replay import HistoricalReplay
     db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
