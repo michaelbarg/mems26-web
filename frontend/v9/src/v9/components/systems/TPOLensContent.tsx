@@ -22,6 +22,15 @@ export function TPOLensContent({ activeTab }: { activeTab: string }) {
           IB: {raw.ib_high?.toFixed(2) ?? '—'} / {raw.ib_low?.toFixed(2) ?? '—'}
           {raw.ib_locked ? ` (LOCKED · ${raw.ib_class ?? '—'} · ${raw.ib_width?.toFixed(1) ?? '—'}pt)` : ''}
         </div>
+        <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
+          POC Migration: {raw.poc_migration?.direction ?? '—'} · {raw.poc_migration?.magnitude_pts ?? '—'}pt · stuck {raw.poc_migration?.stuck_minutes ?? 0}m
+        </div>
+        <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
+          HVN/LVN: {(raw.hvn_zones?.length ?? 0)} HVN / {(raw.lvn_zones?.length ?? 0)} LVN
+        </div>
+        <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
+          Vol Cluster: {raw.volume_cluster?.center?.toFixed(2) ?? '—'} ({(raw.volume_cluster?.prices?.length ?? 0)} prices)
+        </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>OBSERVER — publishes POC/VAH/VAL to Day Type</div>
       </div>
     );
