@@ -1618,3 +1618,13 @@ requirements:
     - hvn_zones (PRIMARY_HVN/SECONDARY_HVN with price+letters)
     - lvn_zones (PRIMARY_LVN/SECONDARY_LVN/GAP_LVN)
     - volume_cluster (top 3 prices + center)
+
+- id: REQ-PG2-1
+  name: "Active Trade Card C1/C2/C3 detailed rows"
+  category: FRONTEND
+  severity: CRITICAL
+  status: IMPLEMENTED
+  owner_worker: PG2-1
+  code_path: "frontend/v9/src/v9/components/sidepanel/ActiveTradeCard.tsx + backend/v9/api/v9/trades.py"
+  spec_source: "Cockpit V5 §3 Q5"
+  notes: "Uses v9_trades flat t1/t2/t3 columns (no trade_contracts table). Polls /api/v9/trades/active every 2s."

@@ -51,6 +51,74 @@ class TradeLogIn(BaseModel):
     value: Optional[dict] = None
 
 
+@router.get("/active")
+def get_active_trade(db: Session = Depends(get_db)):
+    """Return the current active trade with C1/C2/C3 contract details.
+
+    Derives per-contract status from t1/t2/t3 + hit timestamps.
+    MES: 1 point = $5 per contract.
+    """
+    trade = (
+        db.query(V9Trade)
+        .filter(V9Trade.state.in_(["FILLED", "PARTIAL", "OPEN"]))
+        .order_by(V9Trade.entry_ts.desc())
+        .first()
+    )
+    if not trade:
+        return None
+
+    entry = trade.entry_price or 0
+    stop = trade.stop or 0
+    is_long = trade.direction == "LONG"
+    mul = 1.0 if is_long else -1.0
+    risk_pts = abs(entry - stop) if entry and stop else 1.0
+    risk_usd = risk_pts * 5.0  # MES $5/point
+
+    def _contract(label, target, hit_ts, smart_be=False):
+        status = "HIT_TARGET" if hit_ts else ("HIT_STOP" if trade.stop_hit_ts else "OPEN")
+        if hit_ts:
+            pnl = (target - entry) * mul * 5.0
+        elif trade.stop_hit_ts:
+            pnl = (stop - entry) * mul * 5.0
+        else:
+            pnl = 0.0
+        r = pnl / risk_usd if risk_usd > 0 else 0.0
+        return {
+            "id": label,
+            "target_price": target,
+            "status": status,
+            "pnl": round(pnl, 2),
+            "r": round(r, 2),
+            "exit_ts": hit_ts.isoformat() if hit_ts else None,
+            "smart_be": smart_be,
+        }
+
+    contracts = [
+        _contract("C1", trade.t1, trade.t1_hit_ts),
+        _contract("C2", trade.t2, trade.t2_hit_ts,
+                  smart_be=(trade.t1_hit_ts is not None and trade.t2_hit_ts is None)),
+        _contract("C3", trade.t3, trade.t3_hit_ts),
+    ]
+
+    hits = sum(1 for c in contracts if c["status"] == "HIT_TARGET")
+    total_pnl = sum(c["pnl"] for c in contracts)
+    total_r = sum(c["r"] for c in contracts)
+
+    return {
+        "trade_id": trade.id,
+        "direction": trade.direction,
+        "entry_price": entry,
+        "entry_ts": trade.entry_ts.isoformat() if trade.entry_ts else None,
+        "stop_price": stop,
+        "state": trade.state,
+        "contracts": contracts,
+        "hits": hits,
+        "total_pnl": round(total_pnl, 2),
+        "total_r": round(total_r, 2),
+        "summary": f"{hits}/3 hit",
+    }
+
+
 @router.post("")
 def create_trade(
     trade: TradeIn,
