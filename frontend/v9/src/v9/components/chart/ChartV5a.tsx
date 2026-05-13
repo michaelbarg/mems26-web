@@ -6,7 +6,16 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 interface Bar { ts: string; o: number; h: number; l: number; c: number; v: number }
 interface TpoState { poc: number | null; vah: number | null; val: number | null; ib_high: number | null; ib_low: number | null; hydrated: boolean }
+interface TpoSession { poc_price: number | null; vah_price: number | null; val_price: number | null }
 interface KzState { current_zone: { name: string; edge_class: string; minutes_remaining: number } }
+
+const POC_STEPS = [
+  { width: 1.0, opacity: 0.28 },  // period -4 (oldest)
+  { width: 1.0, opacity: 0.40 },  // period -3
+  { width: 1.1, opacity: 0.52 },  // period -2
+  { width: 1.3, opacity: 0.65 },  // period -1
+  { width: 1.9, opacity: 0.95 },  // period 0 (current)
+];
 
 const W = 800, H = 310;  // +30 for volume strip
 const ML = 8, MR = 62, MT = 28, MB = 32;  // MB includes volume strip
@@ -66,6 +75,16 @@ export function ChartV5a() {
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/tpo/current`).then(r => r.json()).then(setTpo).catch(() => {});
     f(); const id = setInterval(f, 2000); return () => clearInterval(id);
+  }, []);
+
+  // Fetch TPO sessions (for stepped POC)
+  const [tpoSessions, setTpoSessions] = useState<TpoSession[]>([]);
+  useEffect(() => {
+    const f = () => fetch(`${API}/api/v9/tpo/sessions`).then(r => r.json()).then(d => {
+      const sessions = Array.isArray(d) ? d : d?.sessions || [];
+      setTpoSessions(sessions.slice(-5));
+    }).catch(() => {});
+    f(); const id = setInterval(f, 30000); return () => clearInterval(id);
   }, []);
 
   // Fetch Killzone
@@ -138,8 +157,41 @@ export function ChartV5a() {
         );
       })}
 
-      {/* TPO POC line */}
-      {tpo?.poc != null && <line x1={ML} y1={yOf(tpo.poc)} x2={W - MR} y2={yOf(tpo.poc)} stroke="#ec4899" strokeWidth={1.8} opacity={0.95} />}
+      {/* TPO Stepped POC (5 periods, fading) */}
+      {(() => {
+        const pocPrices = tpoSessions
+          .map(s => s.poc_price)
+          .filter((p): p is number => p != null);
+        // If no sessions but current TPO has POC, use that as period 0
+        if (pocPrices.length === 0 && tpo?.poc != null) pocPrices.push(tpo.poc);
+        if (pocPrices.length === 0) return null;
+        // Pad to align: last = period 0 (current)
+        const offset = POC_STEPS.length - pocPrices.length;
+        return pocPrices.map((poc, i) => {
+          const step = POC_STEPS[offset + i];
+          if (!step) return null;
+          return <line key={`poc-${i}`} x1={ML} y1={yOf(poc)} x2={W - MR} y2={yOf(poc)}
+            stroke="#ec4899" strokeWidth={step.width} opacity={step.opacity} />;
+        });
+      })()}
+
+      {/* POC transition verticals (dashed magenta) */}
+      {(() => {
+        const pocPrices = tpoSessions
+          .map(s => s.poc_price)
+          .filter((p): p is number => p != null);
+        if (pocPrices.length < 2) return null;
+        return pocPrices.slice(1).map((poc, i) => {
+          const prev = pocPrices[i];
+          if (prev === poc) return null;
+          // Place transition at roughly the session boundary
+          const x = ML + ((i + 1) / pocPrices.length) * CW;
+          return <line key={`poct-${i}`} x1={x} y1={yOf(prev)} x2={x} y2={yOf(poc)}
+            stroke="#ec4899" strokeWidth={0.6} opacity={0.35} strokeDasharray="2 2" />;
+        });
+      })()}
+
+      {/* VAH/VAL lines */}
       {tpo?.vah != null && <line x1={ML} y1={yOf(tpo.vah)} x2={W - MR} y2={yOf(tpo.vah)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />}
       {tpo?.val != null && <line x1={ML} y1={yOf(tpo.val)} x2={W - MR} y2={yOf(tpo.val)} stroke="#ec4899" strokeWidth={0.5} opacity={0.55} strokeDasharray="3 3" />}
 
