@@ -1,80 +1,62 @@
 'use client';
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { COLORS, SIZES } from '../../design/tokens';
-import { systemColor } from '../../design/system_colors';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface Indicators {
-  dayType: string | null;
-  confidence: number;
-  killzone: string | null;
-  ibClass: string | null;
-  openingType: string | null;
-  cotTrend: 'UP' | 'DOWN' | 'FLAT' | null;
-  pocMigration: string | null;
-  dominance: string | null;
+interface ChopScore {
+  vegas_flips_60m: number | null;
+  cci_zl_crossings_30m: number | null;
+  poc_migration_stuck: boolean | null;
+  ib_breakouts_recent: number | null;
+  range_atr_ratio: number | null;
+  poc_vwap_distance: number | null;
 }
 
-function Chip({ label, value, color }: { label: string; value: string | null; color: string }) {
+function Chip({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <span style={{
       fontSize: 9, fontWeight: 500, padding: '1px 6px', borderRadius: 3,
       background: 'rgba(255,255,255,0.04)', color,
     }}>
-      {label} <b>{value ?? '\u2014'}</b>
+      {label} <b>{value}</b>
     </span>
   );
 }
 
 export function Layer0Strip() {
-  const [ind, setInd] = useState<Indicators>({
-    dayType: null, confidence: 0, killzone: null, ibClass: null,
-    openingType: null, cotTrend: null, pocMigration: null, dominance: null,
+  const [chop, setChop] = useState<ChopScore>({
+    vegas_flips_60m: null, cci_zl_crossings_30m: null, poc_migration_stuck: null,
+    ib_breakouts_recent: null, range_atr_ratio: null, poc_vwap_distance: null,
   });
-  const [prevDelta, setPrevDelta] = useState<number | null>(null);
+  const [news, setNews] = useState<string | null>(null);
 
   useEffect(() => {
     const poll = async () => {
       try {
-        const [dt, kz, tpo, fp] = await Promise.allSettled([
-          fetch(`${API}/api/v9/day_type/current`).then(r => r.json()),
-          fetch(`${API}/api/v9/killzone/current`).then(r => r.json()),
-          fetch(`${API}/api/v9/tpo/current`).then(r => r.json()),
-          fetch(`${API}/api/v9/footprint/current`).then(r => r.json()),
-        ]);
-        const dtD = dt.status === 'fulfilled' ? dt.value : {};
-        const kzD = kz.status === 'fulfilled' ? kz.value : {};
-        const tpoD = tpo.status === 'fulfilled' ? tpo.value : {};
-        const fpD = fp.status === 'fulfilled' ? fp.value : {};
-
-        // COT Trend: derive from cumulative_delta change
-        const currentDelta = fpD.cumulative_delta ?? 0;
-        let cotTrend: 'UP' | 'DOWN' | 'FLAT' | null = null;
-        if (prevDelta != null) {
-          const diff = currentDelta - prevDelta;
-          cotTrend = diff > 5 ? 'UP' : diff < -5 ? 'DOWN' : 'FLAT';
+        // Try chop_score endpoint (built by W2 P-LAYER0 — may not exist yet)
+        const resp = await fetch(`${API}/api/v9/chop_score/current`).catch(() => null);
+        if (resp && resp.ok) {
+          const d = await resp.json();
+          setChop({
+            vegas_flips_60m: d.vegas_flips_60m ?? null,
+            cci_zl_crossings_30m: d.cci_zl_crossings_30m ?? null,
+            poc_migration_stuck: d.poc_migration_stuck ?? null,
+            ib_breakouts_recent: d.ib_breakouts_recent ?? null,
+            range_atr_ratio: d.range_atr_ratio ?? null,
+            poc_vwap_distance: d.poc_vwap_distance ?? null,
+          });
+          setNews(d.news_window ?? null);
         }
-        setPrevDelta(currentDelta);
-
-        setInd({
-          dayType: dtD.day_type?.replace('_', ' ') ?? dtD.state?.day_type?.replace('_', ' ') ?? null,
-          confidence: dtD.confidence ?? dtD.state?.confidence ?? 0,
-          killzone: kzD.current_zone?.name ?? null,
-          ibClass: tpoD.ib_class ?? null,
-          openingType: tpoD.opening_type ?? null,
-          cotTrend,
-          pocMigration: tpoD.poc_migration?.direction ?? tpoD.poc_migration ?? null,
-          dominance: fpD.dominance ?? null,
-        });
-      } catch { /* silent */ }
+      } catch { /* silent — endpoint may not exist yet */ }
     };
     poll();
     const id = setInterval(poll, 5000);
     return () => clearInterval(id);
-  }, [prevDelta]);
+  }, []);
 
-  const cotColor = ind.cotTrend === 'UP' ? '#16a34a' : ind.cotTrend === 'DOWN' ? '#dc2626' : '#737373';
+  const fmt = (v: number | null, dec = 0) => v != null ? v.toFixed(dec) : '\u2014';
+  const boolFmt = (v: boolean | null) => v == null ? '\u2014' : v ? 'YES' : 'no';
 
   return (
     <div
@@ -92,24 +74,20 @@ export function Layer0Strip() {
         flexShrink: 0,
       }}
     >
-      {/* 7 indicators left-aligned */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <Chip label="Day" value={ind.dayType} color={systemColor(1)} />
-        {ind.confidence > 0 && (
-          <span style={{ fontSize: 8, color: COLORS.textTertiary }}>{(ind.confidence * 100).toFixed(0)}%</span>
-        )}
-        <Chip label="KZ" value={ind.killzone} color={systemColor(6) || '#f97316'} />
-        <Chip label="IB" value={ind.ibClass} color="#4ade80" />
-        <Chip label="Open" value={ind.openingType} color="#a78bfa" />
-        <Chip label="COT" value={ind.cotTrend} color={cotColor} />
-        <Chip label="POC" value={ind.pocMigration} color="#ec4899" />
-        <Chip label="Dom" value={ind.dominance} color="#06b6d4" />
+      {/* 6 Chop Score indicators per Constitution V3 Layer 0 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <Chip label="VF" value={fmt(chop.vegas_flips_60m)} color="#f97316" />
+        <Chip label="ZLx" value={fmt(chop.cci_zl_crossings_30m)} color="#06b6d4" />
+        <Chip label="POC" value={boolFmt(chop.poc_migration_stuck)} color="#ec4899" />
+        <Chip label="IBx" value={fmt(chop.ib_breakouts_recent)} color="#4ade80" />
+        <Chip label="R/A" value={fmt(chop.range_atr_ratio, 2)} color="#a78bfa" />
+        <Chip label="P-V" value={fmt(chop.poc_vwap_distance, 1)} color="#facc15" />
       </div>
 
-      {/* News window (right side — placeholder) */}
+      {/* News window */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ fontSize: 9, color: '#525252', fontFamily: 'ui-monospace, monospace' }}>
-          News —
+        <span style={{ fontSize: 9, color: news === 'upcoming' ? '#f59e0b' : news === 'recent' ? '#dc2626' : '#525252', fontFamily: 'ui-monospace' }}>
+          News {news === 'upcoming' ? '\u25B2' : news === 'recent' ? '\u25BC' : '\u2014'}
         </span>
       </div>
     </div>
