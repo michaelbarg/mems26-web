@@ -1603,3 +1603,18 @@ requirements:
   owner_worker: PA2-3
   spec_source: Cockpit V5 §4.7
   notes: "G-N7 confidence 60 not 6000. G-N8 IB H/L wired. G-N10 IB pills light green, STP exact red."
+
+- id: REQ-P-TPO-A
+  name: "TPO Enrichments — POC migration + HVN/LVN + Volume Cluster"
+  category: SYSTEM
+  severity: HIGH
+  status: IMPLEMENTED
+  owner_worker: "prior session (rediscovered 2026-05-13)"
+  code_path: backend/v9/systems/tpo/tpo_system.py
+  spec_source: "MEMS26_MP_SPEC_V1 + Sprint 4 Day 5+6"
+  verification: "P-TPO-A.0 diagnostic confirmed all fields live"
+  fields:
+    - poc_migration (direction/magnitude_pts/stuck_minutes/previous_poc)
+    - hvn_zones (PRIMARY_HVN/SECONDARY_HVN with price+letters)
+    - lvn_zones (PRIMARY_LVN/SECONDARY_LVN/GAP_LVN)
+    - volume_cluster (top 3 prices + center)
