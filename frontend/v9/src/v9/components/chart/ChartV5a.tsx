@@ -8,6 +8,13 @@ interface Bar { ts: string; o: number; h: number; l: number; c: number; v: numbe
 interface TpoState { poc: number | null; vah: number | null; val: number | null; ib_high: number | null; ib_low: number | null; hydrated: boolean }
 interface TpoSession { poc_price: number | null; vah_price: number | null; val_price: number | null }
 interface KzState { current_zone: { name: string; edge_class: string; minutes_remaining: number } }
+interface FireState { sys2_firing: boolean; sys4_firing: boolean; sys1_firing: boolean }
+
+const FIRE_COLORS: Record<string, string> = {
+  sys2: '#06b6d4', // cyan — 5-Min
+  sys4: '#f97316', // orange — Woodies
+  sys1: '#6366f1', // indigo — Day Type
+};
 
 const POC_STEPS = [
   { width: 1.0, opacity: 0.28 },  // period -4 (oldest)
@@ -87,6 +94,37 @@ export function ChartV5a() {
     f(); const id = setInterval(f, 30000); return () => clearInterval(id);
   }, []);
 
+  // Fetch firing system states (for candle coloring)
+  const [fires, setFires] = useState<FireState>({ sys2_firing: false, sys4_firing: false, sys1_firing: false });
+  useEffect(() => {
+    const f = async () => {
+      try {
+        const [woodRes, dtRes] = await Promise.allSettled([
+          fetch(`${API}/api/v9/woodies/signals`).then(r => r.json()),
+          fetch(`${API}/api/v9/day_type/state`).then(r => r.json()),
+        ]);
+        const wood = woodRes.status === 'fulfilled' ? woodRes.value : null;
+        const dt = dtRes.status === 'fulfilled' ? dtRes.value : null;
+        // Woodies: sys4 fires on ZLR/TLB signals
+        const woodEntries = wood?.entries || [];
+        const sys4 = woodEntries.length > 0 && ['ZLR', 'TLB', 'GB100', 'GHOST_BAR'].includes(woodEntries[woodEntries.length - 1]?.signal_type);
+        // Day Type: sys1 fires when confidence > 0.7 and stage >= B2
+        const dtState = dt?.state || {};
+        const sys1 = dtState.confidence > 0.7 && dtState.stage && dtState.stage >= 'B2';
+        setFires({ sys2_firing: false, sys4_firing: sys4, sys1_firing: sys1 });
+      } catch { /* silent */ }
+    };
+    f(); const id = setInterval(f, 5000); return () => clearInterval(id);
+  }, []);
+
+  // Determine candle color for the forming bar
+  const fireColor = useMemo(() => {
+    if (fires.sys2_firing) return FIRE_COLORS.sys2;
+    if (fires.sys4_firing) return FIRE_COLORS.sys4;
+    if (fires.sys1_firing) return FIRE_COLORS.sys1;
+    return null;
+  }, [fires]);
+
   // Fetch Killzone
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/killzone/current`).then(r => r.json()).then(setKz).catch(() => {});
@@ -131,11 +169,14 @@ export function ChartV5a() {
         const bodyBot = yOf(bull ? b.o : b.c);
         const bodyH = Math.max(1, bodyBot - bodyTop);
         const isForming = i === allBars.length - 1 && formingBar != null;
+        // System-colored candles: fire color on forming bar, normal on closed
+        const candleColor = (isForming && fireColor) ? fireColor : (bull ? '#16a34a' : '#dc2626');
+        const candleOpacity = (isForming && fireColor) ? 0.85 : (isForming ? 0.95 : 0.85);
         return (
           <g key={i}>
-            <line x1={x} y1={yOf(b.h)} x2={x} y2={yOf(b.l)} stroke={bull ? '#16a34a' : '#dc2626'} strokeWidth={0.5} />
+            <line x1={x} y1={yOf(b.h)} x2={x} y2={yOf(b.l)} stroke={candleColor} strokeWidth={0.5} />
             <rect x={x - barW / 2} y={bodyTop} width={barW} height={bodyH}
-              fill={bull ? '#16a34a' : '#dc2626'} opacity={isForming ? 0.95 : 0.85} rx={0.5}
+              fill={candleColor} opacity={candleOpacity} rx={0.5}
               stroke={isForming ? '#facc15' : 'none'} strokeWidth={isForming ? 0.5 : 0} />
           </g>
         );
