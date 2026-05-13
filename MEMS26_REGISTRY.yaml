@@ -1628,3 +1628,9 @@ requirements:
   code_path: "frontend/v9/src/v9/components/sidepanel/ActiveTradeCard.tsx + backend/v9/api/v9/trades.py"
   spec_source: "Cockpit V5 §3 Q5"
   notes: "Uses v9_trades flat t1/t2/t3 columns (no trade_contracts table). Polls /api/v9/trades/active every 2s."
+- id: REQ-PG2-2
+  name: "Chart overlays: yellow Current Price line + red dashed Stop line"
+  status: IMPLEMENTED
+  owner_worker: PG2-2
+  spec_source: Cockpit V5 §4.5 + §4.7
+  notes: "PRC line upgraded 0.4px→1px, 0.4→0.85 opacity. Stop line red dashed when active trade. STP pill wired to stop_price."

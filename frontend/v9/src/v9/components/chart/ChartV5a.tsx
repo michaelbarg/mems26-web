@@ -11,6 +11,7 @@ interface TpoSession {
   opened_ts: string | null; closed_ts: string | null;
 }
 interface KzState { current_zone: { name: string; edge_class: string; minutes_remaining: number } }
+interface ActiveTrade { stop_price: number | null; entry_price: number | null; direction: string | null }
 interface FireState { sys2_firing: boolean; sys4_firing: boolean; sys1_firing: boolean }
 interface FpState { last_classification: string; hydrated: boolean }
 interface ObserverMarkers { fp_classified: boolean; tpo_active: boolean; kz_transition: boolean }
@@ -239,6 +240,26 @@ export function ChartV5a() {
     f(); const id = setInterval(f, 30000); return () => clearInterval(id);
   }, []);
 
+  // PG2-2: Active trade state (for stop line + STP pill)
+  const [activeTrade, setActiveTrade] = useState<ActiveTrade | null>(null);
+  useEffect(() => {
+    const f = () => fetch(`${API}/api/v9/gateway/status`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.shadow_active_count > 0 || d.demo_slot || d.live_slot) {
+          setActiveTrade({
+            stop_price: d.shadow_stop ?? d.demo_stop ?? d.live_stop ?? null,
+            entry_price: d.shadow_entry ?? d.demo_entry ?? d.live_entry ?? null,
+            direction: d.shadow_direction ?? d.demo_direction ?? d.live_direction ?? null,
+          });
+        } else {
+          setActiveTrade(null);
+        }
+      })
+      .catch(() => {});
+    f(); const id = setInterval(f, 2000); return () => clearInterval(id);
+  }, []);
+
   // All bars = closed + forming
   const allBars = useMemo(() => {
     const result = [...bars];
@@ -376,8 +397,14 @@ export function ChartV5a() {
             {/* TPO Stepped VAL (time-scoped, dashed) */}
       {renderSteppedVAL(tpoSessions, allBars, tpo?.val ?? null, ML, MR, W, CW, yOf)}
 
-      {/* Current price line */}
-      {price != null && <line x1={ML} y1={yOf(price)} x2={W - MR} y2={yOf(price)} stroke="#facc15" strokeWidth={0.4} opacity={0.4} />}
+      {/* Current price line (PG2-2: upgraded to Spec §4.5 — 1px solid, 0.85 opacity) */}
+      {price != null && <line x1={ML} y1={yOf(price)} x2={W - MR} y2={yOf(price)} stroke="#facc15" strokeWidth={1} opacity={0.85} />}
+
+      {/* Stop line (PG2-2: red dashed, only when active trade) */}
+      {activeTrade?.stop_price != null && (
+        <line x1={ML} y1={yOf(activeTrade.stop_price)} x2={W - MR} y2={yOf(activeTrade.stop_price)}
+          stroke="#dc2626" strokeWidth={1} opacity={0.9} strokeDasharray="6 4" />
+      )}
 
       {/* IB H/L */}
       {tpo?.ib_high != null && <line x1={ML} y1={yOf(tpo.ib_high)} x2={W - MR} y2={yOf(tpo.ib_high)} stroke="#4ade80" strokeWidth={0.8} opacity={0.5} />}
@@ -401,14 +428,16 @@ export function ChartV5a() {
         // Build all 7 pills: IB H, VAH, PRC, POC, STP, VAL, IB L
         const pocY = tpo?.poc != null ? yOf(tpo.poc) : null;
         const valY = tpo?.val != null ? yOf(tpo.val) : null;
-        const stpY = pocY != null && valY != null ? (pocY + valY) / 2 : (pocY ?? H / 2) + 14;
+        // STP pill: use active trade stop_price if available, else midpoint placeholder
+        const stopPrice = activeTrade?.stop_price ?? null;
+        const stpY = stopPrice != null ? yOf(stopPrice) : (pocY != null && valY != null ? (pocY + valY) / 2 : (pocY ?? H / 2) + 14);
 
         const rawPills = [
           { label: 'IB H', y: tpo?.ib_high != null ? yOf(tpo.ib_high) : null, priceVal: tpo?.ib_high, fill: 'rgba(74,222,128,0.15)', text: '#4ade80', fontWeight: 500 },
           { label: 'VAH',  y: tpo?.vah != null ? yOf(tpo.vah) : null,         priceVal: tpo?.vah,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
           { label: 'PRC',  y: price != null ? yOf(price) : null,              priceVal: price ?? null, fill: '#facc15', text: '#0a0a0a', fontWeight: 600 },
           { label: 'POC',  y: tpo?.poc != null ? yOf(tpo.poc) : null,         priceVal: tpo?.poc,     fill: '#ec4899', text: '#fff',    fontWeight: 500 },
-          { label: 'STP',  y: stpY,                                           priceVal: null,         fill: 'rgba(220,38,38,0.15)', text: '#dc2626', fontWeight: 500 },
+          { label: 'STP',  y: stpY,                                           priceVal: stopPrice,    fill: 'rgba(220,38,38,0.15)', text: '#dc2626', fontWeight: 500 },
           { label: 'VAL',  y: tpo?.val != null ? yOf(tpo.val) : null,         priceVal: tpo?.val,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
           { label: 'IB L', y: tpo?.ib_low != null ? yOf(tpo.ib_low) : null,   priceVal: tpo?.ib_low,  fill: 'rgba(74,222,128,0.15)', text: '#4ade80', fontWeight: 500 },
         ];
