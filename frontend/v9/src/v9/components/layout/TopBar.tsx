@@ -13,7 +13,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const MODE_STYLES: Record<string, { bg: string; border: string; text: string; label: string }> = {
   SHADOW: { bg: 'rgba(120,53,15,0.40)', border: '#b45309', text: '#fde68a', label: 'SHADOW SOAK' },
   SIM:    { bg: 'rgba(30,58,138,0.40)', border: '#1d4ed8', text: '#bfdbfe', label: 'SIM' },
-  LIVE:   { bg: 'rgba(6,78,59,0.40)', border: '#047857', text: '#a7f3d0', label: 'LIVE' },
+  LIVE:   { bg: 'rgba(127,29,29,0.40)', border: '#dc2626', text: '#fca5a5', label: 'LIVE' },
 };
 
 export function TopBar() {
