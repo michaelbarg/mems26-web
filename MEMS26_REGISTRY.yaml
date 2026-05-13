@@ -1578,3 +1578,12 @@ requirements:
   owner_worker: PA1-6
   spec: Cockpit V5 §3.4
   notes: "yScale from bars min/max + 5% padding. Right axis 5pt MES intervals. Time labels at adaptive intervals."
+
+- id: REQ-PA2-2
+  name: "5 systems pills — meaningful labels"
+  category: FRONTEND
+  severity: HIGH
+  status: IMPLEMENTED
+  owner_worker: PA2-2
+  spec_source: Cockpit V5 §3.4 Switcher
+  notes: "4 fixes: 5-Min reads pattern/IDLE, FP reads dominance, Woodies adds 8 pattern abbrevs, TPO reads poc_migration.direction. KZ already correct."

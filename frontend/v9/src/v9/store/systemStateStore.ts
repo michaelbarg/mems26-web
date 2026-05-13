@@ -51,9 +51,10 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
       const fm = await fetch(`${API_BASE}/api/v9/five_min/current`).then((r) => r.json()).catch(() => null);
       if (fm) {
         update(2, {
-          state: fm.mode ?? 'UNKNOWN',
-          subState: fm.last_pattern ?? null,
+          state: fm.last_pattern ?? fm.mode ?? 'UNKNOWN',
+          subState: fm.mode ?? null,
           confidence: fm.last_confluence ? fm.last_confluence / 4 : 0,
+          raw: fm,
         });
       }
     } catch {}
@@ -61,8 +62,8 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
       const fp = await fetch(`${API_BASE}/api/v9/footprint/current`).then((r) => r.json()).catch(() => null);
       if (fp) {
         update(3, {
-          state: fp.last_classification ?? 'NO_SETUP',
-          subState: fp.last_pattern ?? null,
+          state: fp.dominance ?? fp.combined_class ?? fp.last_classification ?? 'NO_SETUP',
+          subState: fp.initiative_type ?? null,
           confidence: fp.last_confluence ? fp.last_confluence / 10 : 0,
           raw: fp,
         });
@@ -71,18 +72,22 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
     try {
       const wo = await fetch(`${API_BASE}/api/v9/woodies/current`).then((r) => r.json()).catch(() => null);
       if (wo) {
+        const patterns = wo.active_patterns;
+        const topPattern = Array.isArray(patterns) && patterns.length > 0 ? patterns[0].pattern_id : null;
         update(4, {
-          state: wo.signal ?? 'NEUTRAL',
+          state: topPattern ?? wo.last_signal_type ?? wo.signal ?? 'NEUTRAL',
           subState: wo.direction ?? null,
           confidence: wo.strength ? wo.strength / 3 : 0,
+          raw: wo,
         });
       }
     } catch {}
     try {
       const tpo = await fetch(`${API_BASE}/api/v9/tpo/current`).then((r) => r.json()).catch(() => null);
       if (tpo) {
+        const migDir = tpo.poc_migration?.direction ?? null;
         update(5, {
-          state: tpo.profile_shape ?? 'NA',
+          state: migDir ?? tpo.profile_shape ?? 'NA',
           subState: tpo.session_type ?? null,
           confidence: tpo.letter_count ? Math.min(tpo.letter_count / 13, 1) : 0,
           raw: tpo,

@@ -8,6 +8,10 @@ const ABBREV: Record<string, string> = {
   TREND_BULL: 'TR+', TREND_BEAR: 'TR-',
   OB_ENTER: 'OB', OB_EXIT: 'OBx', OS_ENTER: 'OS', OS_EXIT: 'OSx',
   OVERBOUGHT: 'OB!', OVERSOLD: 'OS!',
+  ZLR: 'ZLR', ZLR_BULL: 'ZLR+', ZLR_BEAR: 'ZLR-',
+  TLB: 'TLB', TLB_BULL: 'TLB+', TLB_BEAR: 'TLB-',
+  TT: 'TT', TT_BULL: 'TT+', TT_BEAR: 'TT-',
+  GB100: 'GB', GHOST: 'GHO', FAMIR: 'FAM', HTLB: 'HTL', VEGAS: 'VEG',
 };
 
 export function WoodiesPill({ isSelected = false, onSelect }: { isSelected?: boolean; onSelect?: () => void }) {
