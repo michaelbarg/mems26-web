@@ -1,12 +1,38 @@
 'use client';
+import { useState, useEffect } from 'react';
 import { usePriceStream } from '../hooks/usePriceStream';
 
+const STORAGE_KEY = 'mems26:debug:visible';
+
 /**
- * Temporary debug panel — shows live price ticks from the Event Bus.
- * Displays in bottom-right corner. Remove after Prompt 1 verification.
+ * Debug panel — shows live price ticks from the Event Bus.
+ * Hidden by default. Toggle with Cmd+Shift+D (Mac) / Ctrl+Shift+D (Win).
+ * Visibility persists in localStorage.
  */
 export function PriceDebugConsole() {
   const { connected, lastTick, tickCount } = usePriceStream();
+
+  const [visible, setVisible] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(STORAGE_KEY) === 'true';
+  });
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        setVisible(prev => {
+          const next = !prev;
+          window.localStorage.setItem(STORAGE_KEY, String(next));
+          return next;
+        });
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  if (!visible) return null;
 
   return (
     <div
