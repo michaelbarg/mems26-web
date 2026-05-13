@@ -187,7 +187,7 @@ export function ChartV5a() {
         const isForming = i === allBars.length - 1 && formingBar != null;
         // System-colored candles: fire color on forming bar, normal on closed
         const candleColor = (isForming && fireColor) ? fireColor : (bull ? '#16a34a' : '#dc2626');
-        const candleOpacity = (isForming && fireColor) ? 0.85 : (isForming ? 0.95 : 0.85);
+        const candleOpacity = (isForming && fireColor) ? 0.95 : (isForming ? 0.95 : 0.85);
         return (
           <g key={i}>
             <line x1={x} y1={yOf(b.h)} x2={x} y2={yOf(b.l)} stroke={candleColor} strokeWidth={0.5} />
