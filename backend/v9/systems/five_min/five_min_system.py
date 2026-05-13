@@ -7,6 +7,7 @@ Integrates with existing chart_5min/ detector and pattern library.
 
 import logging
 from datetime import date, datetime, timezone, timedelta
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
@@ -86,18 +87,36 @@ class FiveMinSystem(BaseV9TradingSystem):
             finally:
                 db.close()
 
-            # Load bars for replay count
+            # Load bars from DB and replay into _bar_buffer (P-WAVE-D3)
             bars_count = 0
             try:
-                from backend.v9.services.bar_ingestion import bar_ingestion_service
-                import pytz
-                ET = pytz.timezone('America/New_York')
-                now_et = datetime.now(ET)
-                today_open = now_et.replace(hour=9, minute=30, second=0, microsecond=0)
-                bars = bar_ingestion_service.get_bars_since(today_open)
-                bars_count = len(bars)
-            except Exception:
-                pass
+                import sqlite3 as _sql
+                _db_path = str(Path(__file__).resolve().parent.parent.parent.parent / "data" / "mems26_local.db")
+                _conn = _sql.connect(_db_path)
+                _conn.row_factory = _sql.Row
+                rows = _conn.execute(
+                    "SELECT * FROM v9_bars_5min ORDER BY ts DESC LIMIT 60"
+                ).fetchall()
+                _conn.close()
+                # Replay oldest-first into buffer (no persist)
+                for row in reversed(rows):
+                    r = dict(row)
+                    bar = {
+                        "ts": r.get("ts", ""),
+                        "o": float(r.get("open", 0)),
+                        "h": float(r.get("high", 0)),
+                        "l": float(r.get("low", 0)),
+                        "c": float(r.get("close", 0)),
+                        "v": int(r.get("volume", 0)),
+                    }
+                    self._bar_buffer.append(bar)
+                bars_count = len(rows)
+                if len(self._bar_buffer) > 20:
+                    self._bar_buffer = self._bar_buffer[-20:]
+                logger.info("[FiveMin] Hydrated %d bars from DB, buffer_size=%d",
+                            bars_count, len(self._bar_buffer))
+            except Exception as e:
+                logger.warning("[FiveMin] DB bar replay failed: %s", e)
 
             # Cash open / First hour
             if session in (Session.CASH_OPEN, Session.FIRST_HOUR):

@@ -1641,3 +1641,13 @@ requirements:
   spec_source: 3-Mode V3 §8 SHADOW
   pre_check: V-WAVE-A2 + V-WAVE-G1 + V-WAVE-A2.5 + V-WAVE-A3 all VERIFIED
   notes: "ENV MEMS26_MODE=shadow. /api/v9/status exposes mode field. TopBar reads it. Gateway + ShadowExecutor already built (P-TG)."
+
+- id: REQ-P-WAVE-D3
+  name: "Historical Replay — G-039 — hydrate systems on startup"
+  category: SYSTEM
+  severity: CRITICAL
+  status: IMPLEMENTED
+  owner_worker: P-WAVE-D3
+  spec_source: "Master Gap Catalog G-039"
+  unblocks: "P-ACTIVATE SHADOW"
+  notes: "5-Min: DB replay 60 bars into _bar_buffer. Footprint: restore cumulative_delta from journal. Woodies+TPO already hydrated."

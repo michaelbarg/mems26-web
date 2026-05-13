@@ -63,11 +63,37 @@ class FootprintSystem(BaseV9TradingSystem):
     def hydrate(self) -> HydrationResult:
         self.current_state["running"] = True
         self.current_state["hydrated"] = True
+
+        # P-WAVE-D3: Restore cumulative_delta from last journal entry
+        restored_delta = 0.0
+        try:
+            import sqlite3 as _sql
+            from pathlib import Path as _P
+            _db = str(_P(__file__).resolve().parent.parent.parent.parent / "data" / "mems26_local.db")
+            conn = _sql.connect(_db)
+            row = conn.execute(
+                "SELECT cumulative_delta FROM v9_footprint_journal ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+            if row and row[0]:
+                restored_delta = float(row[0])
+                self._cumulative_delta = restored_delta
+                self.current_state["cumulative_delta"] = restored_delta
+                self.current_state["cot"] = restored_delta
+            # Also count today's bars for context
+            count = conn.execute(
+                "SELECT COUNT(*) FROM v9_footprint_journal WHERE date(created_at) = date('now')"
+            ).fetchone()[0]
+            conn.close()
+            logger.info("[Footprint] Hydrated: cumulative_delta=%.1f, today_bars=%d",
+                        restored_delta, count)
+        except Exception as e:
+            logger.warning("[Footprint] Hydration restore failed: %s", e)
+
         return HydrationResult(
             success=True,
             reached_state="ACTIVE",
             confidence=1.0,
-            notes="Footprint observer ready; subscribed via BarRouter",
+            notes=f"Footprint ready; cumulative_delta restored to {restored_delta:.1f}",
         )
 
     def process(self, event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
