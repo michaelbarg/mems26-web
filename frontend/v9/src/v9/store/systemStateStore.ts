@@ -64,6 +64,7 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
           state: fp.last_classification ?? 'NO_SETUP',
           subState: fp.last_pattern ?? null,
           confidence: fp.last_confluence ? fp.last_confluence / 10 : 0,
+          raw: fp,
         });
       }
     } catch {}
