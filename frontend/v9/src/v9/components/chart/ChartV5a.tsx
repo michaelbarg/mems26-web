@@ -9,6 +9,8 @@ interface TpoState { poc: number | null; vah: number | null; val: number | null;
 interface TpoSession { poc_price: number | null; vah_price: number | null; val_price: number | null }
 interface KzState { current_zone: { name: string; edge_class: string; minutes_remaining: number } }
 interface FireState { sys2_firing: boolean; sys4_firing: boolean; sys1_firing: boolean }
+interface FpState { last_classification: string; hydrated: boolean }
+interface ObserverMarkers { fp_classified: boolean; tpo_active: boolean; kz_transition: boolean }
 
 const FIRE_COLORS: Record<string, string> = {
   sys2: '#06b6d4', // cyan — 5-Min
@@ -125,6 +127,20 @@ export function ChartV5a() {
     return null;
   }, [fires]);
 
+  // Fetch Footprint observer state
+  const [fpState, setFpState] = useState<FpState | null>(null);
+  useEffect(() => {
+    const f = () => fetch(`${API}/api/v9/footprint/current`).then(r => r.json()).then(setFpState).catch(() => {});
+    f(); const id = setInterval(f, 5000); return () => clearInterval(id);
+  }, []);
+
+  // Observer markers derived state
+  const observers = useMemo<ObserverMarkers>(() => ({
+    fp_classified: fpState?.last_classification != null && fpState.last_classification !== 'NO_SETUP',
+    tpo_active: (tpo?.hydrated ?? false) && (tpo?.poc != null),
+    kz_transition: kz?.current_zone != null,
+  }), [fpState, tpo, kz]);
+
   // Fetch Killzone
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/killzone/current`).then(r => r.json()).then(setKz).catch(() => {});
@@ -181,6 +197,31 @@ export function ChartV5a() {
           </g>
         );
       })}
+
+      {/* Observer markers on last bar */}
+      {allBars.length > 0 && (() => {
+        const lastIdx = allBars.length - 1;
+        const lastBar = allBars[lastIdx];
+        const x = ML + (lastIdx / allBars.length) * CW + barW / 2;
+        return (
+          <g>
+            {/* System 3 (Footprint): purple triangle above wick */}
+            {observers.fp_classified && (
+              <polygon points={`${x},${yOf(lastBar.h) - 6} ${x - 3},${yOf(lastBar.h) - 2} ${x + 3},${yOf(lastBar.h) - 2}`}
+                fill="#a855f7" opacity={0.7} />
+            )}
+            {/* System 5 (TPO): yellow dot below wick */}
+            {observers.tpo_active && (
+              <circle cx={x} cy={yOf(lastBar.l) + 5} r={2} fill="#facc15" opacity={0.6} />
+            )}
+            {/* System 6 (Killzone): teal underline on time axis */}
+            {observers.kz_transition && (
+              <line x1={x - barW / 2} y1={H - MB + 1} x2={x + barW / 2} y2={H - MB + 1}
+                stroke="#2dd4bf" strokeWidth={2} opacity={0.5} />
+            )}
+          </g>
+        );
+      })()}
 
       {/* Volume strip background */}
       <rect x={ML} y={VOL_Y} width={CW} height={VOL_H} fill="#0d0d0d" />
