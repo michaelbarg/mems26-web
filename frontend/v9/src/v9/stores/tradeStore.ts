@@ -38,7 +38,7 @@ export const useTradeStore = create<TradeState>((set, get) => ({
   },
   selectedTradeId: null,
 
-  setTrades: (trades) => set({ trades }),
+  setTrades: (trades) => set({ trades: Array.isArray(trades) ? trades : [] }),
   addTrade: (trade) => set((state) => ({ trades: [trade, ...state.trades] })),
   updateTrade: (trade) => set((state) => ({
     trades: state.trades.map((t) => (t.id === trade.id ? trade : t)),
