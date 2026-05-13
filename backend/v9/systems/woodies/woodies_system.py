@@ -282,5 +282,66 @@ class WoodiesSystem(BaseV9TradingSystem):
         except Exception as e:
             logger.warning("[Woodies] Pattern persist failed: %s", e)
 
+    # Constitution V2 PART 6 — pattern tier map
+    PATTERN_TIER = {
+        'ZLR':   'high',    # Premier continuation
+        'TT':    'high',    # Tony Trade
+        'GB100': 'high',    # Deep pullback continuation
+        'VEGAS': 'medium',  # Cup & Handle reversal
+        'GHOST': 'medium',  # Head & Shoulders
+        'FAMIR': 'medium',  # Failed ZLR (reversal)
+        'HTLB':  'medium',  # Hooked TLB
+        'TLB':   'low',     # Standalone = LOW per spec
+    }
+
+    def calculate_size(self, pattern_name: str, direction: str) -> str:
+        """S4 per-system internal sizing. Cockpit V5 LOCKED + Constitution V2 PART 6.
+
+        Uses ONLY S4 internal data: pattern tier + SWI/CZI/TCCI/LSMA/EMA34.
+        NO cross-system inputs.
+
+        Returns: 'full' (3 contracts) | 'half' (2) | 'reject'
+        """
+        base_tier = self.PATTERN_TIER.get(pattern_name, 'low')
+
+        # Auxiliary alignment checks (direction-aware, from current studies)
+        st = self.current_state
+        cci_14 = st.get("cci_14") or 0
+        tcci = st.get("cci_6_tcci") or 0
+        swi = st.get("swi_value") or 0
+        czi = st.get("czi_value") or 0
+        lsma = st.get("lsma_value") or 0
+        ema34 = st.get("ema_34") or 0
+        last_close = self._closes[-1] if self._closes else 0
+
+        is_long = direction == "LONG"
+
+        # SWI aligned: positive for LONG, negative for SHORT
+        swi_aligned = (swi > 0) if is_long else (swi < 0)
+
+        # CZI aligned: positive for LONG, negative for SHORT
+        czi_aligned = (czi > 0) if is_long else (czi < 0)
+
+        # TCCI leads CCI14 in trade direction
+        tcci_leading = (tcci > cci_14) if is_long else (tcci < cci_14)
+
+        aux_count = sum([swi_aligned, czi_aligned, tcci_leading])
+
+        # Trend context: LSMA + EMA34 alignment
+        lsma_ok = (last_close > lsma) if is_long else (last_close < lsma)
+        ema34_ok = (last_close > ema34) if is_long else (last_close < ema34)
+        trend_ok = lsma_ok and ema34_ok
+
+        # Decision tree
+        if base_tier == 'high' and aux_count >= 3 and trend_ok:
+            return 'full'    # 3 contracts — pristine setup
+        elif base_tier in ('high', 'medium') and aux_count >= 2:
+            return 'half'    # 2 contracts — solid
+        elif base_tier == 'low':
+            # TLB standalone = LOW — only allow with strong auxiliary
+            return 'half' if aux_count >= 2 else 'reject'
+        else:
+            return 'reject'
+
     def get_current(self) -> dict:
         return dict(self.current_state)
