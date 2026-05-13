@@ -169,6 +169,12 @@ class WoodiesPayload(BaseModel):
     version: Optional[str] = None
     export_ts: Optional[float] = None
     bars: List[Dict] = []
+    history: List[Dict] = []  # DLL uses "history" key
+
+    @property
+    def all_bars(self) -> List[Dict]:
+        """DLL exports 'history', Bridge may send 'bars'. Accept both."""
+        return self.bars if self.bars else self.history
 
 
 class TpoPayload(BaseModel):
@@ -425,16 +431,19 @@ def post_woodies(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
+    bars = payload.all_bars  # Fix 2: accept both "history" and "bars" keys
     created = 0
-    for bar in payload.bars:
+    last_flat = None
+    for bar in bars:
         ohlc = bar.get("ohlc", {})
+        o = ohlc.get("o", bar.get("o", 0))
+        h = ohlc.get("h", bar.get("h", 0))
+        l = ohlc.get("l", bar.get("l", 0))
+        c = ohlc.get("c", bar.get("c", 0))
+        vol = ohlc.get("vol", bar.get("vol", 0))
         row = V9Bar30MinWoodies(
             ts=_ts_from_unix(bar.get("ts")),
-            open=ohlc.get("o", bar.get("o", 0)),
-            high=ohlc.get("h", bar.get("h", 0)),
-            low=ohlc.get("l", bar.get("l", 0)),
-            close=ohlc.get("c", bar.get("c", 0)),
-            volume=ohlc.get("vol", bar.get("vol", 0)),
+            open=o, high=h, low=l, close=c, volume=vol,
             cci_14=bar.get("cci_14"),
             cci_6_tcci=bar.get("cci_6_tcci"),
             lsma_value=bar.get("lsma_value"),
@@ -448,13 +457,24 @@ def post_woodies(
         )
         db.add(row)
         created += 1
+        # Fix 4: build flat bar dict for BarRouter (process_bar expects flat keys)
+        last_flat = {
+            "ts": bar.get("ts"), "open": o, "high": h, "low": l, "close": c,
+            "volume": vol, "cci_14": bar.get("cci_14"),
+            "cci_6_tcci": bar.get("cci_6_tcci"), "ema_34": bar.get("ema_34"),
+            "lsma_value": bar.get("lsma_value"), "swi_value": bar.get("swi_value"),
+            "czi_value": bar.get("czi_value"), "trend_state": bar.get("trend_state"),
+            "predictor_next_cci": bar.get("predictor_next_cci"),
+        }
     db.commit()
     publish_event(CHANNEL_BARS_WOODIES, {"count": created})
     # Route last bar to EventDispatcher
-    if payload.bars:
-        _dispatch("woodies_30min", payload.bars[-1])
+    if bars:
+        _dispatch("woodies_30min", bars[-1])
     _record_push("woodies_30min")
-    _route_bar("woodies", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
+    # Fix 3: topic "woodies_30min" (was "woodies") + Fix 4: flat bar dict
+    if last_flat:
+        _route_bar("woodies_30min", last_flat)
     return {"ok": True, "inserted": created, "type": "woodies"}
 
 
