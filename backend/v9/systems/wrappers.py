@@ -222,7 +222,7 @@ class TickReversalSystem(BaseSystem):
             self._detect_all_signals(self._recent_bars, footprint_data=footprint_data)
 
         except Exception:
-            logger.exception("[TickReversalSystem] analyze failed for stream %s", stream_name)
+            logger.exception("[Footprint/S3] analyze failed for stream %s", stream_name)
 
         # Observer: never returns a trade signal
         return None
