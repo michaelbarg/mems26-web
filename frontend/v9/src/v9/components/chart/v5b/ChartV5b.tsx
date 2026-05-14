@@ -1,0 +1,217 @@
+'use client';
+import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
+import { useEffect, useRef, useState, useCallback } from 'react';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
+const TF_ENDPOINTS: Record<string, string> = {
+  '3m': 'bars3m', '5m': 'bars5min', '15m': 'bars15m', '30m': 'bars30m', '1h': 'bars1h',
+};
+
+function tsToUnix(ts: string): number {
+  return Math.floor(new Date(ts.replace(' ', 'T')).getTime() / 1000);
+}
+
+export function ChartV5b() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const volumeRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const linesRef = useRef<any[]>([]);
+  const [activeTf, setActiveTf] = useState('5m');
+  const [kzLabel, setKzLabel] = useState('MKT');
+
+  // Create chart once
+  useEffect(() => {
+    if (!containerRef.current || chartRef.current) return;
+
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: '#0a0a0a' },
+        textColor: '#a3a3a3',
+        fontSize: 10,
+        fontFamily: 'ui-monospace, monospace',
+      },
+      grid: {
+        vertLines: { color: '#1a1a1a', style: 1 },
+        horzLines: { color: '#1a1a1a', style: 1 },
+      },
+      rightPriceScale: {
+        borderColor: '#262626',
+        scaleMargins: { top: 0.05, bottom: 0.2 },
+      },
+      timeScale: {
+        borderColor: '#262626',
+        timeVisible: true,
+        secondsVisible: false,
+      },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: { color: '#525252', style: 3, width: 1, labelBackgroundColor: '#06b6d4' },
+        horzLine: { color: '#525252', style: 3, width: 1, labelBackgroundColor: '#06b6d4' },
+      },
+    });
+
+    const candles = chart.addSeries(CandlestickSeries, {
+      upColor: '#16a34a',
+      downColor: '#dc2626',
+      borderUpColor: '#16a34a',
+      borderDownColor: '#dc2626',
+      wickUpColor: '#16a34a',
+      wickDownColor: '#dc2626',
+    });
+
+    const volume = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: 'volume' },
+      priceScaleId: 'vol',
+    });
+    chart.priceScale('vol').applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
+    chartRef.current = chart;
+    candleRef.current = candles;
+    volumeRef.current = volume;
+
+    const ro = new ResizeObserver(([entry]) => {
+      chart.resize(entry.contentRect.width, entry.contentRect.height);
+    });
+    ro.observe(containerRef.current);
+
+    return () => { ro.disconnect(); chart.remove(); chartRef.current = null; };
+  }, []);
+
+  // Fetch bars on TF change
+  const loadBars = useCallback(async (tf: string) => {
+    if (!candleRef.current || !volumeRef.current) return;
+    const ep = TF_ENDPOINTS[tf] || 'bars5min';
+    try {
+      const res = await fetch(`${API}/api/v9/chart/${ep}?limit=240`);
+      const raw = await res.json();
+      const bars = Array.isArray(raw) ? raw : [];
+      if (!bars.length) return;
+
+      const cData = bars.map((b: any) => ({
+        time: tsToUnix(b.ts) as any,
+        open: b.open ?? b.o,
+        high: b.high ?? b.h,
+        low: b.low ?? b.l,
+        close: b.close ?? b.c,
+      }));
+      const vData = bars.map((b: any) => ({
+        time: tsToUnix(b.ts) as any,
+        value: b.volume ?? b.v ?? 0,
+        color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)',
+      }));
+
+      candleRef.current.setData(cData);
+      volumeRef.current.setData(vData);
+      chartRef.current?.timeScale().fitContent();
+    } catch (e) {
+      console.error('ChartV5b load error:', e);
+    }
+  }, []);
+
+  useEffect(() => { loadBars(activeTf); }, [activeTf, loadBars]);
+
+  // Real-time poll (every 2s — update last bar)
+  useEffect(() => {
+    if (!candleRef.current) return;
+    const id = setInterval(async () => {
+      const ep = TF_ENDPOINTS[activeTf] || 'bars5min';
+      try {
+        const res = await fetch(`${API}/api/v9/chart/${ep}?limit=1`);
+        const raw = await res.json();
+        const bars = Array.isArray(raw) ? raw : [];
+        if (!bars.length) return;
+        const b = bars[bars.length - 1];
+        const time = tsToUnix(b.ts) as any;
+        candleRef.current?.update({ time, open: b.open ?? b.o, high: b.high ?? b.h, low: b.low ?? b.l, close: b.close ?? b.c });
+        volumeRef.current?.update({ time, value: b.volume ?? b.v ?? 0, color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
+      } catch {}
+    }, 2000);
+    return () => clearInterval(id);
+  }, [activeTf]);
+
+  // TPO levels (VAH/POC/VAL/IB H/IB L)
+  useEffect(() => {
+    if (!candleRef.current) return;
+    const loadLevels = async () => {
+      try {
+        const res = await fetch(`${API}/api/v9/tpo/current`);
+        const d = await res.json();
+        // Remove old lines
+        linesRef.current.forEach(l => { try { candleRef.current?.removePriceLine(l); } catch {} });
+        linesRef.current = [];
+        const levels = [
+          { title: 'POC', price: d.poc, color: '#ec4899', lineWidth: 2 },
+          { title: 'VAH', price: d.vah, color: '#a855f7', lineWidth: 1 },
+          { title: 'VAL', price: d.val, color: '#a855f7', lineWidth: 1 },
+          { title: 'IB H', price: d.ib_high, color: '#4ade80', lineWidth: 1 },
+          { title: 'IB L', price: d.ib_low, color: '#4ade80', lineWidth: 1 },
+        ];
+        levels.forEach(l => {
+          if (l.price && candleRef.current) {
+            const line = candleRef.current.createPriceLine({
+              price: l.price, color: l.color, lineWidth: l.lineWidth as any,
+              lineStyle: 2, axisLabelVisible: true, title: l.title,
+            });
+            linesRef.current.push(line);
+          }
+        });
+      } catch {}
+    };
+    loadLevels();
+    const id = setInterval(loadLevels, 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Killzone label
+  useEffect(() => {
+    const f = () => fetch(`${API}/api/v9/killzone/current`).then(r => r.json())
+      .then(d => setKzLabel(d?.current_zone?.name || 'MKT')).catch(() => {});
+    f(); const id = setInterval(f, 30000); return () => clearInterval(id);
+  }, []);
+
+  // TR countdown
+  const [trText, setTrText] = useState('0:00');
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const min5 = Math.floor(now.getMinutes() / 5) * 5 + 5;
+      const nb = new Date(now); nb.setMinutes(min5, 0, 0);
+      if (nb <= now) nb.setMinutes(nb.getMinutes() + 5);
+      const s = Math.max(0, Math.floor((nb.getTime() - now.getTime()) / 1000));
+      setTrText(`${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+    };
+    tick(); const id = setInterval(tick, 1000); return () => clearInterval(id);
+  }, []);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+      {/* TF selector row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 0',
+        background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', flexShrink: 0, gap: 4 }}>
+        <span suppressHydrationWarning style={{
+          fontSize: 9, padding: '2px 8px', borderRadius: 3, fontFamily: 'ui-monospace, monospace',
+          background: '#141414', border: '1px solid #f97316', color: '#f97316', fontWeight: 600,
+        }}>{kzLabel} · {trText}</span>
+        <span style={{ color: '#333', fontSize: 9 }}>|</span>
+        {['3m','5m','15m','30m','1h'].map(tf => (
+          <button key={tf} data-testid={`tf-btn-${tf}`} suppressHydrationWarning
+            onClick={() => setActiveTf(tf)}
+            style={{ fontSize: 9, padding: '2px 8px',
+              border: tf === activeTf ? '1px solid #06b6d4' : '1px solid transparent',
+              borderRadius: 3, cursor: 'pointer',
+              background: tf === activeTf ? 'rgba(6,180,212,0.15)' : 'transparent',
+              color: tf === activeTf ? '#06b6d4' : '#525252',
+              fontWeight: tf === activeTf ? 600 : 400,
+            }}>{tf}</button>
+        ))}
+      </div>
+      {/* Chart container — lightweight-charts fills this */}
+      <div ref={containerRef} data-testid="chart-v5b"
+        style={{ flex: 1, minHeight: 200, position: 'relative' }} />
+    </div>
+  );
+}
