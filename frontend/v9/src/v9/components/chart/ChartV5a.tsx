@@ -12,7 +12,7 @@ interface TpoSession {
 }
 interface KzState { current_zone: { name: string; edge_class: string; minutes_remaining: number } }
 interface ActiveTrade { stop_price: number | null; entry_price: number | null; direction: string | null }
-interface FireState { sys2_firing: boolean; sys4_firing: boolean; sys1_firing: boolean }
+interface FireState { sys2_firing: boolean; sys4_firing: boolean; sys1_firing: boolean; armed_system: string | null }
 interface FpState { last_classification: string; hydrated: boolean }
 interface ObserverMarkers { fp_classified: boolean; tpo_active: boolean; kz_transition: boolean }
 
@@ -167,7 +167,8 @@ export function ChartV5a() {
   // Fetch bars (PA1-1: 60 candles on mount + 5s refresh per Cockpit V5 §3.4)
   // Wave A1.5: 5s poll merges new bars on the right without clobbering pan-loaded history
   useEffect(() => {
-    const fetchBars = () => fetch(`${API}/api/v9/chart/bars5min?limit=60`)
+    // W5-ι.1: fetch 120 bars to ensure ≥50 visible after filtering
+    const fetchBars = () => fetch(`${API}/api/v9/chart/bars5min?limit=120`)
       .then(r => r.json())
       .then(d => {
         if (!Array.isArray(d)) return;
@@ -229,7 +230,7 @@ export function ChartV5a() {
   }, []);
 
   // Fetch firing system states (for candle coloring)
-  const [fires, setFires] = useState<FireState>({ sys2_firing: false, sys4_firing: false, sys1_firing: false });
+  const [fires, setFires] = useState<FireState>({ sys2_firing: false, sys4_firing: false, sys1_firing: false, armed_system: null });
   useEffect(() => {
     const f = async () => {
       try {
@@ -245,7 +246,9 @@ export function ChartV5a() {
         // Day Type: sys1 fires when confidence > 0.7 and stage >= B2
         const dtState = dt?.state || {};
         const sys1 = dtState.confidence > 0.7 && dtState.stage && dtState.stage >= 'B2';
-        setFires({ sys2_firing: false, sys4_firing: sys4, sys1_firing: sys1 });
+        // W5-ι.4: detect armed (pre-fire) state for halo
+        const armed = (!sys4 && woodEntries.length > 0) ? 'sys4' : null;
+        setFires({ sys2_firing: false, sys4_firing: sys4, sys1_firing: sys1, armed_system: armed });
       } catch { /* silent */ }
     };
     f(); const id = setInterval(f, 5000); return () => clearInterval(id);
@@ -323,6 +326,10 @@ export function ChartV5a() {
   const barW = allBars.length > 0 ? Math.min(14, CW / allBars.length - 1) : 12;
   const maxVol = Math.max(1, ...allBars.map(b => b.v || 1));
 
+  // W5-ι.8: Crosshair state (handler defined after pan/zoom)
+  const [crosshair, setCrosshair] = useState<{ x: number; y: number; barIdx: number } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
   // Pan/Zoom state (PA1-5)
   const [zoomLevel, setZoomLevel] = useState(1.0);
   const [panOffsetX, setPanOffsetX] = useState(0);
@@ -356,13 +363,29 @@ export function ChartV5a() {
 
   const handleMouseUp = () => setIsDragging(false);
 
+  // W5-ι.8: Crosshair handler (after isDragging is declared)
+  const handleCrosshairMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging || !svgRef.current || allBars.length === 0) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const scaleX = W / rect.width;
+    const scaleY = H / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const barIdx = Math.round(((mx - ML) / CW) * allBars.length - 0.5);
+    if (barIdx >= 0 && barIdx < allBars.length && mx >= ML && mx <= W - MR && my >= MT && my <= H - MB) {
+      setCrosshair({ x: mx, y: my, barIdx });
+    } else {
+      setCrosshair(null);
+    }
+  }, [allBars, isDragging]);
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`}
+    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
+      onMouseMove={(e) => { handleMouseMove(e); handleCrosshairMove(e); }}
       onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
+      onMouseLeave={() => { handleMouseUp(); setCrosshair(null); }}
       style={{ width: '100%', height: '100%', minHeight: 310, background: '#0a0a0a', cursor: isDragging ? 'grabbing' : 'grab' }}>
       {/* Group 1: Zoomable/pannable chart content (PA1-5) */}
       <g transform={`translate(${panOffsetX}, 0) scale(${zoomLevel}, 1)`}>
@@ -370,6 +393,25 @@ export function ChartV5a() {
       {[0.25, 0.5, 0.75].map(f => (
         <line key={f} x1={ML} y1={MT + f * CH} x2={W - MR} y2={MT + f * CH} stroke="#1a1a1a" strokeWidth={0.5} />
       ))}
+
+      {/* W5-ι.5: Trade tint background during active trade */}
+      {activeTrade?.entry_price != null && (() => {
+        // Find entry bar index (closest price match)
+        let entryIdx = allBars.length - 10; // fallback: last 10 bars
+        for (let i = allBars.length - 1; i >= 0; i--) {
+          if (Math.abs(allBars[i].c - (activeTrade.entry_price ?? 0)) < 2) {
+            entryIdx = i; break;
+          }
+        }
+        if (entryIdx < 0) entryIdx = 0;
+        const x1 = ML + (entryIdx / allBars.length) * CW;
+        const x2 = ML + CW; // to current
+        const tintColor = activeTrade.direction === 'SHORT' ? '#dc2626' : '#16a34a';
+        return (
+          <rect x={x1} y={MT} width={x2 - x1} height={CH}
+            fill={tintColor} opacity={0.06} />
+        );
+      })()}
 
       {/* 5-min candles + forming bar */}
       {allBars.map((b, i) => {
@@ -382,12 +424,19 @@ export function ChartV5a() {
         // System-colored candles: fire color on forming bar, normal on closed
         const candleColor = (isForming && fireColor) ? fireColor : (bull ? '#16a34a' : '#dc2626');
         const candleOpacity = (isForming && fireColor) ? 0.95 : (isForming ? 0.95 : 0.85);
+        // W5-ι.4: Armed candle halo — dashed border at system color 0.3 opacity
+        const armedColor = isForming && fires.armed_system ? (FIRE_COLORS[fires.armed_system] || null) : null;
         return (
           <g key={i}>
             <line x1={x} y1={yOf(b.h)} x2={x} y2={yOf(b.l)} stroke={candleColor} strokeWidth={0.5} />
             <rect x={x - barW / 2} y={bodyTop} width={barW} height={bodyH}
               fill={candleColor} opacity={candleOpacity} rx={0.5}
               stroke={isForming ? '#facc15' : 'none'} strokeWidth={isForming ? 0.5 : 0} />
+            {armedColor && !fireColor && (
+              <rect x={x - barW / 2 - 1.5} y={bodyTop - 1.5} width={barW + 3} height={bodyH + 3}
+                fill="none" stroke={armedColor} strokeWidth={1.5} strokeDasharray="3 2"
+                opacity={0.3} rx={1.5} />
+            )}
           </g>
         );
       })}
@@ -595,6 +644,35 @@ export function ChartV5a() {
               textAnchor="middle" fontFamily="ui-monospace, monospace">{t.label}</text>
           );
         });
+      })()}
+
+      {/* W5-ι.8: Crosshair lines + OHLCV tooltip */}
+      {crosshair && (() => {
+        const b = allBars[crosshair.barIdx];
+        if (!b) return null;
+        const bx = ML + (crosshair.barIdx / allBars.length) * CW + barW / 2;
+        return (
+          <g>
+            {/* Vertical crosshair */}
+            <line x1={bx} y1={MT} x2={bx} y2={H - MB} stroke="#555" strokeWidth={0.5} strokeDasharray="2 2" />
+            {/* Horizontal crosshair */}
+            <line x1={ML} y1={crosshair.y} x2={W - MR} y2={crosshair.y} stroke="#555" strokeWidth={0.5} strokeDasharray="2 2" />
+            {/* OHLCV tooltip */}
+            <rect x={bx + 8} y={MT + 2} width={105} height={52} rx={3} fill="#1a1a1a" opacity={0.92} stroke="#333" strokeWidth={0.5} />
+            <text x={bx + 13} y={MT + 14} fontSize={8} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+              O {b.o.toFixed(2)}  H {b.h.toFixed(2)}
+            </text>
+            <text x={bx + 13} y={MT + 25} fontSize={8} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+              L {b.l.toFixed(2)}  C {b.c.toFixed(2)}
+            </text>
+            <text x={bx + 13} y={MT + 36} fontSize={8} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+              V {b.v.toLocaleString()}
+            </text>
+            <text x={bx + 13} y={MT + 47} fontSize={7} fill="#737373" fontFamily="ui-monospace, monospace">
+              {b.ts.slice(11, 16)} ET
+            </text>
+          </g>
+        );
       })()}
 
       {/* No bars message */}
