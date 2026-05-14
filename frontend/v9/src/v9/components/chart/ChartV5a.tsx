@@ -410,7 +410,22 @@ export function ChartV5a() {
   return (
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
     {/* ξ.3: Timeframe selector bar */}
-    <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0', background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 0', background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', flexShrink: 0, gap: 4 }}>
+      {/* ADD-2: Session timer pill in TF row */}
+      <span data-testid="session-timer-pill" suppressHydrationWarning style={{
+        fontSize: 9, padding: '2px 8px', borderRadius: 3, fontFamily: 'ui-monospace, monospace',
+        background: '#141414', border: '1px solid #f97316', color: '#f97316', fontWeight: 600, flexShrink: 0,
+      }}>
+        {kz?.current_zone?.name || 'MKT'} · {(() => {
+          const now = new Date();
+          const min5 = Math.floor(now.getMinutes() / 5) * 5 + 5;
+          const nb = new Date(now); nb.setMinutes(min5, 0, 0);
+          if (nb <= now) nb.setMinutes(nb.getMinutes() + 5);
+          const s = Math.max(0, Math.floor((nb.getTime() - now.getTime()) / 1000));
+          return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+        })()}
+      </span>
+      <span style={{ color: '#333', fontSize: 9 }}>|</span>
       {['3m','5m','15m','30m','1h'].map(tf => (
         <button key={tf} data-testid={`tf-btn-${tf}`} suppressHydrationWarning
           onClick={() => { setActiveTf(tf); localStorage.setItem('mems26:chart:tf', tf); }}
@@ -596,16 +611,8 @@ export function ChartV5a() {
       </g>{/* End Group 1: zoomable/pannable */}
 
       {/* Group 2: Anchored to edges (badges + right-scale pills) */}
-      {/* TR countdown badge — time-to-next-bar (μ.5) */}
-      {(() => {
-        const now = new Date();
-        const min5 = Math.floor(now.getMinutes() / 5) * 5 + 5;
-        const nextBar = new Date(now);
-        nextBar.setMinutes(min5, 0, 0);
-        if (nextBar <= now) nextBar.setMinutes(nextBar.getMinutes() + 5);
-        const secsLeft = Math.max(0, Math.floor((nextBar.getTime() - now.getTime()) / 1000));
-        const mm = Math.floor(secsLeft / 60);
-        const ss = secsLeft % 60;
+      {/* TR countdown badge — MOVED to TF row (ADD-2) */}
+      {false && (() => {
         const label = kz?.current_zone?.name || 'MKT';
         return (
           <g>
