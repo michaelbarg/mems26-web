@@ -50,10 +50,10 @@ export function TradeHistoryStrip() {
   };
 
   return (
-    <div style={{
-      height: 18, background: COLORS.bgSurface2 || '#111111',  // V5 V1.1: 18px
+    <div data-testid="strip-trade-history" style={{
+      height: 18, background: '#0a0a0a',
       borderTop: `1px solid ${COLORS.borderFaint}`,
-      display: 'flex', alignItems: 'center', paddingLeft: 8, gap: 2,
+      display: 'flex', alignItems: 'center', padding: '0 8px', gap: 2,
       overflow: 'hidden',
     }}>
       <span style={{ fontSize: 8, color: '#525252', fontFamily: 'ui-monospace, monospace', marginRight: 4, flexShrink: 0 }}>
