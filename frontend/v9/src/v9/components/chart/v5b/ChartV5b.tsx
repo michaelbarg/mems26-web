@@ -18,6 +18,9 @@ export function ChartV5b() {
   const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const linesRef = useRef<any[]>([]);
+  const earliestTsRef = useRef<string | null>(null);
+  const loadingHistoryRef = useRef(false);
+  const allBarsRef = useRef<any[]>([]);
   const [activeTf, setActiveTf] = useState('5m');
   const [kzLabel, setKzLabel] = useState('MKT');
 
@@ -104,8 +107,10 @@ export function ChartV5b() {
         color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)',
       }));
 
+      allBarsRef.current = bars;
       candleRef.current.setData(cData);
       volumeRef.current.setData(vData);
+      earliestTsRef.current = bars[0]?.ts || null;
       chartRef.current?.timeScale().fitContent();
     } catch (e) {
       console.error('ChartV5b load error:', e);
@@ -133,6 +138,47 @@ export function ChartV5b() {
     return () => clearInterval(id);
   }, [activeTf]);
 
+  // Historical scroll-back: load older bars when user pans left
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const onRangeChange = (range: any) => {
+      if (!range || loadingHistoryRef.current || !earliestTsRef.current) return;
+      if (allBarsRef.current.length >= 2000) return; // cap memory
+      // If visible left edge is within 20 bars of loaded start → fetch more
+      if (range.from < 20 && allBarsRef.current.length < 2000) {
+        loadingHistoryRef.current = true;
+        const ep = TF_ENDPOINTS[activeTf] || 'bars5min';
+        fetch(`${API}/api/v9/chart/${ep}?limit=240&before=${encodeURIComponent(earliestTsRef.current!)}`)
+          .then(r => r.json())
+          .then(raw => {
+            const older = Array.isArray(raw) ? raw : [];
+            if (!older.length) { loadingHistoryRef.current = false; return; }
+            // Prepend + dedup by timestamp
+            const existing = new Set(allBarsRef.current.map((b: any) => b.ts));
+            const fresh = older.filter((b: any) => !existing.has(b.ts));
+            const merged = [...fresh, ...allBarsRef.current];
+            allBarsRef.current = merged;
+            earliestTsRef.current = merged[0]?.ts || earliestTsRef.current;
+            // Re-set full data (sorted time-ascending)
+            candleRef.current?.setData(merged.map((b: any) => ({
+              time: tsToUnix(b.ts) as any,
+              open: b.open ?? b.o, high: b.high ?? b.h,
+              low: b.low ?? b.l, close: b.close ?? b.c,
+            })));
+            volumeRef.current?.setData(merged.map((b: any) => ({
+              time: tsToUnix(b.ts) as any,
+              value: b.volume ?? b.v ?? 0,
+              color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)',
+            })));
+            loadingHistoryRef.current = false;
+          })
+          .catch(() => { loadingHistoryRef.current = false; });
+      }
+    };
+    chartRef.current.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
+    return () => { try { chartRef.current?.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange); } catch {} };
+  }, [activeTf]);
+
   // TPO levels (VAH/POC/VAL/IB H/IB L)
   useEffect(() => {
     if (!candleRef.current) return;
@@ -143,18 +189,29 @@ export function ChartV5b() {
         // Remove old lines
         linesRef.current.forEach(l => { try { candleRef.current?.removePriceLine(l); } catch {} });
         linesRef.current = [];
+        // POC migration arrow per Cockpit V5 §4.7
+        const migDir = d.poc_migration?.direction;
+        const pocArrow = migDir === 'UP' ? ' ↑' : migDir === 'DOWN' ? ' ↓' : '';
+
+        // Cockpit V5 §4.5 + §4.7 spec-compliant levels
         const levels = [
-          { title: 'POC', price: d.poc, color: '#ec4899', lineWidth: 2 },
-          { title: 'VAH', price: d.vah, color: '#a855f7', lineWidth: 1 },
-          { title: 'VAL', price: d.val, color: '#a855f7', lineWidth: 1 },
-          { title: 'IB H', price: d.ib_high, color: '#4ade80', lineWidth: 1 },
-          { title: 'IB L', price: d.ib_low, color: '#4ade80', lineWidth: 1 },
+          // POC: 2px solid magenta, opacity 0.95 (§4.5)
+          { title: `POC${pocArrow}`, price: d.poc, color: '#ec4899', lineWidth: 2, lineStyle: 0 /* Solid */ },
+          // VAH/VAL: 1px dashed magenta (0.5px not available, use 1), opacity 0.55 (§4.5)
+          { title: 'VAH', price: d.vah, color: '#ec4899', lineWidth: 1, lineStyle: 2 /* Dashed */ },
+          { title: 'VAL', price: d.val, color: '#ec4899', lineWidth: 1, lineStyle: 2 /* Dashed */ },
+          // IB H/L: 1px light green #4ade80 (§4.5: 0.7-0.8px solid, opacity 0.5)
+          // lineStyle: Solid when locked, Dashed when building (09:30-10:30 ET)
+          { title: 'IB H', price: d.ib_high, color: '#4ade80', lineWidth: 1,
+            lineStyle: d.ib_locked ? 0 /* Solid */ : 2 /* Dashed — building */ },
+          { title: 'IB L', price: d.ib_low, color: '#4ade80', lineWidth: 1,
+            lineStyle: d.ib_locked ? 0 : 2 },
         ];
         levels.forEach(l => {
           if (l.price && candleRef.current) {
             const line = candleRef.current.createPriceLine({
               price: l.price, color: l.color, lineWidth: l.lineWidth as any,
-              lineStyle: 2, axisLabelVisible: true, title: l.title,
+              lineStyle: l.lineStyle, axisLabelVisible: true, title: l.title,
             });
             linesRef.current.push(line);
           }
