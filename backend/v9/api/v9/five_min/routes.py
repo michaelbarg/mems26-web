@@ -29,6 +29,21 @@ def get_setups():
     return {"setups": [], "count": 0}
 
 
+@router.get("/fire")
+def get_fire():
+    """Latest fire state — last pattern detection result."""
+    sys = _get_system()
+    state = sys.get_state()
+    return {
+        "fired": state.get("last_pattern") is not None,
+        "pattern": state.get("last_pattern"),
+        "confluence": state.get("last_confluence", 0),
+        "mode": state.get("mode"),
+        "reasoning_notes": sys.current_state.get("last_reasoning_notes", "")
+            if hasattr(sys, 'current_state') and isinstance(getattr(sys, 'current_state', None), dict) else "",
+    }
+
+
 @router.get("/stats")
 def get_stats():
     """System counters."""

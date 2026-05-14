@@ -193,6 +193,55 @@ class FiveMinSystem(BaseV9TradingSystem):
 
     # ── Footprint helpers ──
 
+    def _get_belly_from_footprint(self) -> Optional[bool]:
+        """Read belly_ratio_dominant from Footprint System 3.
+
+        True if buyers dominate bottom of recent bar (belly forming).
+        Falls back to None (not False) if unavailable — explicit per §6.7.
+        """
+        import requests
+        try:
+            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
+            data = r.json()
+            val = data.get("belly_ratio_dominant")
+            if val is not None:
+                return bool(val)
+            return None
+        except Exception:
+            return None
+
+    def _poc_vol_rising(self, bars: List[Dict], n: int = 3) -> bool:
+        """Check if POC price level is rising across last N bars.
+
+        Per V3 T1: POC_VOL rising = volume POC moving up across bars.
+        Uses TPO POC as proxy (V3 D-046 distinction acknowledged 🟡).
+        """
+        if len(bars) < n:
+            return False
+        recent = bars[-n:]
+        poc_prices = []
+        for b in recent:
+            poc = b.get("poc_vol") or b.get("poc")
+            if poc is None:
+                # Estimate POC as VWAP proxy: weighted midpoint
+                poc = (b.get("h", 0) + b.get("l", 0) + b.get("c", 0)) / 3
+            poc_prices.append(poc)
+        # Rising = each >= previous
+        return all(poc_prices[i] >= poc_prices[i - 1] for i in range(1, len(poc_prices)))
+
+    def _poc_vol_falling(self, bars: List[Dict], n: int = 3) -> bool:
+        """Check if POC price level is falling across last N bars (SHORT mirror)."""
+        if len(bars) < n:
+            return False
+        recent = bars[-n:]
+        poc_prices = []
+        for b in recent:
+            poc = b.get("poc_vol") or b.get("poc")
+            if poc is None:
+                poc = (b.get("h", 0) + b.get("l", 0) + b.get("c", 0)) / 3
+            poc_prices.append(poc)
+        return all(poc_prices[i] <= poc_prices[i - 1] for i in range(1, len(poc_prices)))
+
     def _get_cot_from_footprint(self) -> Optional[float]:
         """Read COT (cumulative delta) from Footprint System 3."""
         import requests
@@ -238,24 +287,32 @@ class FiveMinSystem(BaseV9TradingSystem):
         b1_vol = b1.get("v", 0) or 0
         b2_vol = b2.get("v", 0) or 0
 
+        # Belly confirmation from Footprint (W3-α gap 1)
+        belly = self._get_belly_from_footprint()
+
         # Reactive LONG
         b1_sellers = b1["c"] < b1["o"] and b1_vol > 0
         b2_drop = b2_vol <= b1_vol * 0.10 if b1_vol > 0 else False  # 90% drop
         b3_buyers = b3["c"] > b3["o"]
+        b3_belly = belly is not False  # True or None (unavailable) both pass
         b4_confirm = b4["c"] > b4["o"]
         cot_above_amt = cur_cot > cur_amt
+        poc_rising = self._poc_vol_rising(bars_5m[-3:])  # W3-α gap 3
 
-        if b1_sellers and b2_drop and b3_buyers and b4_confirm and cot_above_amt:
-            return ("LONG", 0.75, {"kind": "REACTIVE", "stage": 4})
+        if b1_sellers and b2_drop and b3_buyers and b3_belly and b4_confirm and cot_above_amt:
+            return ("LONG", 0.80 if poc_rising else 0.75,
+                    {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_rising": poc_rising})
 
         # Reactive SHORT (mirror)
         b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
         b3_sellers = b3["c"] < b3["o"]
         b4_confirm_s = b4["c"] < b4["o"]
         cot_below_amt = cur_cot < cur_amt
+        poc_falling = self._poc_vol_falling(bars_5m[-3:])
 
-        if b1_buyers and b2_drop and b3_sellers and b4_confirm_s and cot_below_amt:
-            return ("SHORT", 0.75, {"kind": "REACTIVE", "stage": 4})
+        if b1_buyers and b2_drop and b3_sellers and b3_belly and b4_confirm_s and cot_below_amt:
+            return ("SHORT", 0.80 if poc_falling else 0.75,
+                    {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_falling": poc_falling})
 
         return (None, 0, {})
 

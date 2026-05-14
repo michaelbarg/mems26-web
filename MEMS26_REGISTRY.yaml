@@ -1728,6 +1728,16 @@ requirements:
   notes: "Cluster + empty zone modules pre-existed in backend/v9/layer3/. Handoff wrapper created in services/layer3/handoff.py. 5/5 tests pass."
   closes: V3 Part 5 MISSING #3 #4 #5
 
+- id: REQ-W3-alpha
+  name: "S2 Five-Min — belly + POC_VOL rising + /fire endpoint (verified gaps only)"
+  category: SYSTEM
+  severity: CRITICAL
+  status: IMPLEMENTED
+  owner_worker: W3-α
+  spec_source: "V3 Part 1 Layer 1 T1"
+  code_path: backend/v9/systems/five_min/five_min_system.py
+  notes: "AUDIT: 90% pre-existing. 3 gaps filled: (1) belly from footprint, (2) POC_VOL rising/falling, (3) /fire endpoint. 14/14 tests pass."
+
 - id: REQ-W3-beta
   name: "S4 Woodies — Direction Change Detector (verified gap only)"
   category: SYSTEM
