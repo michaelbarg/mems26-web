@@ -36,8 +36,11 @@ export function SidePanel() {
         <Switcher selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} />
       </div>
 
-      {/* Lens */}
-      <div style={{ flex: 1, overflow: 'auto', padding: 6 }}>
+      {/* Lens — header tint per selected system (κ.5 §4.4) */}
+      <div style={{
+        flex: 1, overflow: 'auto', padding: 6,
+        borderTop: `2px solid ${SYSTEM_META[selectedSystem]?.color || COLORS.borderFaint}`,
+      }}>
         {selectedSystem === 1 ? (
           <LensWithCustomContent systemId={1} ContentComponent={DayTypeLensContent} />
         ) : selectedSystem === 2 ? (

@@ -67,7 +67,12 @@ export function ActiveTradeCard() {
   }
 
   const dirColor = trade.direction === 'LONG' ? COLORS.bull : COLORS.bear;
-  const borderColor = trade.total_pnl > 0 ? COLORS.bull : trade.total_pnl < 0 ? COLORS.bear : '#eab308';
+  // §3.6 5-state: Idle(no card) / Armed(yellow) / Active(green/red) / JustClosed(gray)
+  const cardState = trade.hits > 0 || trade.total_pnl !== 0 ? 'Active' : 'Armed';
+  const borderColor = cardState === 'Armed' ? '#eab308'
+    : trade.total_pnl > 0 ? COLORS.bull
+    : trade.total_pnl < 0 ? COLORS.bear
+    : '#eab308';
   const entryTime = trade.entry_ts ? new Date(trade.entry_ts).toLocaleTimeString('en-US', {
     timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false,
   }) : '';
@@ -138,6 +143,30 @@ export function ActiveTradeCard() {
         }}>
           ${trade.total_pnl.toFixed(0)} ({trade.total_r.toFixed(1)}R)
         </span>
+      </div>
+
+      {/* §3.5 Flow 5: Exit + Move Stop buttons */}
+      <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
+        <button
+          onClick={() => { if (confirm('Exit all contracts?')) fetch(`${API}/api/v9/trades/${trade.trade_id}/exit`, { method: 'POST' }).catch(() => {}); }}
+          style={{
+            flex: 1, fontSize: 9, padding: '3px 0', borderRadius: 3, cursor: 'pointer',
+            border: '1px solid #dc2626', background: 'rgba(220,38,38,0.12)', color: '#dc2626',
+          }}
+        >Exit</button>
+        <button
+          onClick={() => {
+            const ticks = prompt('Move stop by N ticks (positive=tighter):');
+            if (ticks) fetch(`${API}/api/v9/trades/${trade.trade_id}/move_stop`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ticks: Number(ticks) }),
+            }).catch(() => {});
+          }}
+          style={{
+            flex: 1, fontSize: 9, padding: '3px 0', borderRadius: 3, cursor: 'pointer',
+            border: `1px solid ${COLORS.borderFaint}`, background: 'transparent', color: COLORS.textTertiary,
+          }}
+        >Move Stop</button>
       </div>
     </div>
   );

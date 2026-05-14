@@ -1763,3 +1763,21 @@ requirements:
   spec_source: "V3 Part 1 Layer 4"
   code_path: backend/v9/services/layer4/
   notes: "5 modules. Reads W3-β (direction_change_detector) + W3-γ (targets_table). Wave 4-A (Smart BE/Trail/Lock-in/Time Decay/Reversal Exit) verified still active. 18/18 tests pass."
+
+- id: REQ-W5-iota
+  name: "Chart canvas — bars fix + armed halo + trade tint + crosshair"
+  category: FRONTEND
+  severity: HIGH
+  status: IMPLEMENTED
+  owner_worker: W5-ι
+  spec_source: "V5 §4.5 §4.6 §4.9 + Q1 + Q4"
+  code_path: frontend/v9/src/v9/components/chart/ChartV5a.tsx
+  notes: "AUDIT: 6/10 pre-existing. 4 gaps filled: (1) bars 60→120 limit, (2) armed halo dashed border, (3) trade tint green/red bg, (4) crosshair + OHLCV tooltip. Build clean."
+
+- id: REQ-W5-kappa
+  name: "Side Panel — 5-state + Exit/MoveStop + Lens tint + Layer-0 chop pill + SS"
+  category: FRONTEND
+  severity: HIGH
+  status: IMPLEMENTED
+  spec_source: "V5 §3.4 §3.6 §4.4 §4.8"
+  notes: "ActiveTradeCard already had C1/C2/C3 (PG2-1). Added 5-state border, Exit/MoveStop buttons, Lens header tint, chop state pill, suffering side pill."

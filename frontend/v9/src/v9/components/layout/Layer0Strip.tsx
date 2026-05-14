@@ -30,25 +30,38 @@ export function Layer0Strip() {
     ib_breakouts_recent: null, range_atr_ratio: null, poc_vwap_distance: null,
   });
   const [news, setNews] = useState<string | null>(null);
+  const [chopScore, setChopScore] = useState<number | null>(null);
+  const [chopState, setChopState] = useState<string | null>(null);
+  const [sufferingSide, setSufferingSide] = useState<string | null>(null);
 
   useEffect(() => {
     const poll = async () => {
       try {
-        // Try chop_score endpoint (built by W2 P-LAYER0 — may not exist yet)
-        const resp = await fetch(`${API}/api/v9/chop_score/current`).catch(() => null);
+        const resp = await fetch(`${API}/api/v9/layer0/state`).catch(() => null);
         if (resp && resp.ok) {
           const d = await resp.json();
+          const ind = d.indicators || d;
           setChop({
-            vegas_flips_60m: d.vegas_flips_60m ?? null,
-            cci_zl_crossings_30m: d.cci_zl_crossings_30m ?? null,
-            poc_migration_stuck: d.poc_migration_stuck ?? null,
-            ib_breakouts_recent: d.ib_breakouts_recent ?? null,
-            range_atr_ratio: d.range_atr_ratio ?? null,
-            poc_vwap_distance: d.poc_vwap_distance ?? null,
+            vegas_flips_60m: ind.vegas_flips_60m ?? null,
+            cci_zl_crossings_30m: ind.cci_zl_crossings_30m ?? null,
+            poc_migration_stuck: ind.poc_migration_stuck ?? null,
+            ib_breakouts_recent: ind.ib_breakouts_recent ?? null,
+            range_atr_ratio: ind.range_atr_ratio ?? null,
+            poc_vwap_distance: ind.poc_vwap_distance ?? null,
           });
+          setChopScore(d.chop_score ?? null);
+          setChopState(d.state ?? null);
           setNews(d.news_window ?? null);
         }
-      } catch { /* silent — endpoint may not exist yet */ }
+      } catch { /* silent */ }
+      // Suffering Side from veto endpoint
+      try {
+        const vr = await fetch(`${API}/api/v9/veto/state`).catch(() => null);
+        if (vr && vr.ok) {
+          const v = await vr.json();
+          setSufferingSide(v.suffering_side ?? null);
+        }
+      } catch { /* silent */ }
     };
     poll();
     const id = setInterval(poll, 5000);
@@ -84,8 +97,33 @@ export function Layer0Strip() {
         <Chip label="P-V" value={fmt(chop.poc_vwap_distance, 1)} color="#facc15" />
       </div>
 
-      {/* News window */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+      {/* κ.6: Chop Score + State pill + κ.7: Suffering Side + News */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        {/* Chop state pill */}
+        {chopState && (() => {
+          const stateColors: Record<string, string> = {
+            SEARCHING: '#dc2626', RESPECTING: '#16a34a', EXPANDING: '#3b82f6', FOUND: '#f59e0b',
+          };
+          return (
+            <span style={{
+              fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 3,
+              background: `${stateColors[chopState] || '#525252'}20`,
+              color: stateColors[chopState] || '#525252',
+            }}>
+              {chopScore != null ? `${chopScore.toFixed(0)} ` : ''}{chopState}
+            </span>
+          );
+        })()}
+        {/* Suffering Side pill */}
+        {sufferingSide && sufferingSide !== 'NONE' && (
+          <span style={{
+            fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 3,
+            background: 'rgba(168,85,247,0.15)', color: '#a855f7',
+          }}>
+            SS {sufferingSide}
+          </span>
+        )}
+        {/* News window */}
         <span style={{ fontSize: 9, color: news === 'upcoming' ? '#f59e0b' : news === 'recent' ? '#dc2626' : '#525252', fontFamily: 'ui-monospace' }}>
           News {news === 'upcoming' ? '\u25B2' : news === 'recent' ? '\u25BC' : '\u2014'}
         </span>
