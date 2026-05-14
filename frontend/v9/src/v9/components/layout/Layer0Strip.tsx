@@ -115,15 +115,19 @@ export function Layer0Strip() {
             </span>
           );
         })()}
-        {/* Suffering Side pill */}
-        {sufferingSide && sufferingSide !== 'NONE' && (
-          <span style={{
-            fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 3,
-            background: 'rgba(168,85,247,0.15)', color: '#a855f7',
+        {/* Suffering Side pill — per Pixel Spec §2.2 */}
+        <span
+          data-testid="l0-ss-pill"
+          style={{
+            height: 20, padding: '2px 6px', borderRadius: 10,
+            fontSize: 10, fontWeight: 600, fontFamily: 'ui-monospace, monospace',
+            background: sufferingSide === 'LONG' ? 'rgba(220,38,38,0.2)'
+                       : sufferingSide === 'SHORT' ? 'rgba(22,163,74,0.2)'
+                       : 'rgba(82,82,82,0.2)',
+            color: '#fff',
           }}>
-            SS {sufferingSide}
-          </span>
-        )}
+          SS: {sufferingSide ?? 'NONE'}
+        </span>
         {/* News window */}
         <span style={{ fontSize: 9, color: news === 'upcoming' ? '#f59e0b' : news === 'recent' ? '#dc2626' : '#525252', fontFamily: 'ui-monospace' }}>
           News {news === 'upcoming' ? '\u25B2' : news === 'recent' ? '\u25BC' : '\u2014'}
