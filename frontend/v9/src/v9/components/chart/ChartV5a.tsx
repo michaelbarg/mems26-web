@@ -179,7 +179,7 @@ export function ChartV5a() {
     const fetchBars = () => fetch(`${API}/api/v9/chart/${ep}?limit=120`)
       .then(r => r.json())
       .then(d => {
-        if (!Array.isArray(d)) return;
+        if (!Array.isArray(d) || d.length === 0) return; // σ.7: don't shred chart if TF empty
         setBars(prev => {
           if (prev.length === 0) return d;
           // Merge: keep older pan-loaded bars, append any new ones from poll
@@ -339,7 +339,8 @@ export function ChartV5a() {
 
   const yOf = (p: number) => MT + (1 - (p - pMin) / (pMax - pMin)) * CH;
   // π.4: bar width 8-14px (min 8, not 1px at high bar counts)
-  const barW = allBars.length > 0 ? Math.max(8, Math.min(14, CW / allBars.length * 0.7)) : 12;
+  // σ.5: V5 §4.5 bar width 12-14px at Md zoom
+  const barW = allBars.length > 0 ? Math.max(12, Math.min(14, CW / allBars.length * 0.8)) : 12;
   const maxVol = Math.max(1, ...allBars.map(b => b.v || 1));
 
   // W5-ι.8: Crosshair state (handler defined after pan/zoom)
@@ -436,6 +437,7 @@ export function ChartV5a() {
       onMouseMove={(e) => { handleMouseMove(e); handleCrosshairMove(e); }}
       onMouseUp={handleMouseUp}
       onMouseLeave={() => { handleMouseUp(); setCrosshair(null); }}
+      onDoubleClick={() => { setYZoomFactor(1.0); setZoomLevel(1.0); setPanOffsetX(0); }}
       style={{ flex: 1, width: '100%', minHeight: 290, background: '#0a0a0a', cursor: isDragging ? 'grabbing' : 'grab' }}>
       {/* Group 1: Zoomable/pannable chart content (PA1-5) */}
       <g transform={`translate(${panOffsetX}, 0) scale(${zoomLevel}, 1)`}>

@@ -1822,3 +1822,10 @@ requirements:
   severity: CRITICAL
   status: IMPLEMENTED
   spec_source: "Chrome audit #4 + User reqs #1 #2 #4"
+
+- id: REQ-W5.6-sigma
+  name: "Mount verification + barW 12-14 + Y-zoom dbl-click reset + 1h fallback"
+  category: FRONTEND
+  severity: HIGH
+  status: IMPLEMENTED
+  spec_source: "Chrome audit #5 + V5 §4.5"
