@@ -27,7 +27,7 @@ export function Lens({ systemId }: LensProps) {
     >
       {/* Sticky header with system color tint */}
       <div style={{
-        background: `${meta.color}14`, // 0.08 opacity
+        background: `${meta.color}2e`, // 0.18 opacity per V5 §4.4
         padding: '4px 0 0 0',
         position: 'sticky',
         top: 0,

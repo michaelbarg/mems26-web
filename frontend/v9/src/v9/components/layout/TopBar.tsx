@@ -12,9 +12,9 @@ import { LibraryModal } from '../banners/LibraryModal';
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 const MODE_STYLES: Record<string, { bg: string; border: string; text: string; label: string }> = {
-  SHADOW: { bg: 'rgba(120,53,15,0.40)', border: '#b45309', text: '#fde68a', label: 'SHADOW SOAK' },
-  SIM:    { bg: 'rgba(30,58,138,0.40)', border: '#1d4ed8', text: '#bfdbfe', label: 'SIM' },
-  LIVE:   { bg: 'rgba(127,29,29,0.40)', border: '#dc2626', text: '#fca5a5', label: 'LIVE' },
+  SHADOW: { bg: 'rgba(250,204,21,0.12)', border: '#facc15', text: '#facc15', label: 'SHADOW' },  // V5 §4.1 yellow
+  SIM:    { bg: 'rgba(6,182,212,0.12)', border: '#06b6d4', text: '#06b6d4', label: 'DEMO' },     // V5 §4.1 cyan
+  LIVE:   { bg: 'rgba(220,38,38,0.12)', border: '#dc2626', text: '#fca5a5', label: 'LIVE' },     // V5 §4.1 red
 };
 
 export function TopBar() {
@@ -43,9 +43,10 @@ export function TopBar() {
     Neutral: 'NEU', Normal: 'NOR', Nontrend: 'NTR', UNKNOWN: '\u2014',
   };
   const [dayTypeRaw, setDayTypeRaw] = useState('UNKNOWN');
+  const [dayTypeConf, setDayTypeConf] = useState(0);
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/day_type/current`).then(r => r.json())
-      .then(d => setDayTypeRaw(d.day_type || 'UNKNOWN')).catch(() => {});
+      .then(d => { setDayTypeRaw(d.day_type || 'UNKNOWN'); setDayTypeConf(d.confidence ?? 0); }).catch(() => {});
     f(); const id = setInterval(f, 10000); return () => clearInterval(id);
   }, []);
   const dayType = DT_LABELS[dayTypeRaw] || dayTypeRaw;
@@ -97,8 +98,12 @@ export function TopBar() {
         <span className="font-bold text-sm tracking-wider" style={{ color: '#58a6ff' }}>
           MES
         </span>
-        <span className="text-xs font-medium" style={{ color: '#58a6ff' }}>
-          {dayType}
+        <span style={{
+          fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
+          background: 'rgba(99,102,241,0.15)', color: '#818cf8',
+          fontFamily: 'ui-monospace, monospace',
+        }}>
+          {dayType} {dayTypeConf > 0 ? `${dayTypeConf}%` : ''}
         </span>
         <span className="text-xs" style={{ color: killzone.open ? '#56d364' : '#f85149' }}>
           {killzone.zone} {killzone.open ? 'OPEN' : 'CLOSED'}
