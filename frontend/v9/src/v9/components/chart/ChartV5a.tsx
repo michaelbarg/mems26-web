@@ -611,19 +611,7 @@ export function ChartV5a() {
       </g>{/* End Group 1: zoomable/pannable */}
 
       {/* Group 2: Anchored to edges (badges + right-scale pills) */}
-      {/* TR countdown badge — MOVED to TF row (ADD-2) */}
-      {false && (() => {
-        const label = kz?.current_zone?.name || 'MKT';
-        return (
-          <g>
-            <rect x={12} y={6} width={100} height={16} rx={3} fill="rgba(255,149,0,0.12)" stroke="#ff9500" strokeWidth={0.5} />
-            <text x={16} y={17} fontSize={10} fill="#ff9500" fontFamily="ui-monospace, monospace" fontWeight={500}
-              suppressHydrationWarning>
-              {label} · {mm}:{String(ss).padStart(2, '0')}
-            </text>
-          </g>
-        );
-      })()}
+      {/* TR countdown badge — MOVED to TF row (ADD-2). ChartV5a deprecated by W5.13. */}
 
       {/* Right price scale — 7 pills with collision resolver (PA1-4) */}
       {(() => {
@@ -818,7 +806,7 @@ export function ChartV5a() {
         <g data-testid="crosshair-y-label">
           <rect x={W - MR + 1} y={crosshair.y - 9} width={50} height={18} rx={3} fill="#06b6d4" />
           <text x={W - MR + 5} y={crosshair.y + 3} fontSize={9} fill="#fff"
-            fontFamily="ui-monospace, monospace">{yOf ? ((pMax - (crosshair.y - MT) / CH * (pMax - pMin))).toFixed(2) : ''}</text>
+            fontFamily="ui-monospace, monospace">{((pMax - (crosshair.y - MT) / CH * (pMax - pMin))).toFixed(2)}</text>
         </g>
       )}
 
