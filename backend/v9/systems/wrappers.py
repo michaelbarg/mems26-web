@@ -5,10 +5,12 @@ Each wrapper:
 - Implements analyze() by calling the existing detection/analysis code
 - Gracefully handles missing data (returns None, never crashes)
 
-System roles:
-  Firing (can generate trade Signals): DayType (1), Chart5Min (2), Woodies (4)
-  Observer (no trade signals):         TickReversal (3), TPO (5)
-  Gate (time-based control):           Killzone (6)
+System roles per Master Matrix V1.0:
+  Firing (can generate trade Signals): 5-Min (2), Footprint (3), Woodies (4)
+  Observer (no trade signals):         DayType (1), TPO (5), Killzone (6)
+
+NOTE: TickReversal is an Entry Mechanism (15-tick reversal bar), NOT a system.
+      System 3 = Footprint (per Constitution V3 D-049).
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════
-# System 1: DayType — Firing
+# System 1: DayType — OBSERVING (per Master Matrix V1.0)
 # ═══════════════════════════════════════════════════════════════════
 
 class DayTypeSystem(BaseSystem):
@@ -167,20 +169,21 @@ class Chart5MinSystem(BaseSystem):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# System 3: TickReversal — Observer (no trade signals)
+# System 3: Footprint — FIRING (per Master Matrix V1.0 / Constitution V3 D-049)
 # ═══════════════════════════════════════════════════════════════════
 
 class TickReversalSystem(BaseSystem):
-    """System 3: Tick reversal / footprint observer.
+    """System 3: Footprint (order flow analysis) — FIRING system.
 
     Subscribed to tick_reversal_15, tick_reversal_12, and footprint streams.
-    Detects patterns and signals but does NOT generate trade Signals.
-    Returns None always — results stored as markers/context only.
+    Detects absorption, stacked imbalance, sweep-return, exhaustion signals.
+    NOTE: class name kept as TickReversalSystem for backward compat with
+    EventDispatcher registration. System 3 = Footprint per Master Matrix.
     """
 
     subscribed_streams: List[str] = ["tick_reversal_15", "tick_reversal_12", "footprint"]
     system_id: int = 3
-    name: str = "tick_reversal"
+    name: str = "footprint"
 
     def __init__(self) -> None:
         from backend.v9.systems.tick_reversal.signal_engine import detect_all_signals
