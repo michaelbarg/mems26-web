@@ -10,6 +10,7 @@ import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { BannerStack } from '../banners/BannerStack';
+import { SoundProvider } from '../sounds/SoundProvider';
 import { COLORS } from '../../design/tokens';
 
 const STORAGE_KEY = 'chart-height-v5c';
@@ -63,6 +64,7 @@ export function V9Dashboard() {
       style={{ background: COLORS.bgBase }}
     >
       <BannerStack />
+      <SoundProvider />
       <TopBar />
       <Layer0Strip />
       <div className="flex flex-1 min-h-0">

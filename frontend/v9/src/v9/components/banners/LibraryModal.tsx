@@ -27,7 +27,7 @@ export function LibraryModal({ onClose }: LibraryModalProps) {
         background: COLORS.bgSurface3, border: `1px solid ${COLORS.borderSecondary}`,
         borderRadius: 8, padding: 0, maxWidth: 480, width: '90%', maxHeight: '70vh',
         overflow: 'hidden', display: 'flex', flexDirection: 'column',
-      }} onClick={e => e.stopPropagation()}>
+      }} role="dialog" aria-modal="true" aria-label="Library" onClick={e => e.stopPropagation()}>
         {/* Tab bar */}
         <div style={{ display: 'flex', borderBottom: `1px solid ${COLORS.borderFaint}` }}>
           {TABS.map(t => (

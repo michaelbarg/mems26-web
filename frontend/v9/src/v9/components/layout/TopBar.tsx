@@ -51,6 +51,14 @@ export function TopBar() {
   }, []);
   const dayType = DT_LABELS[dayTypeRaw] || dayTypeRaw;
 
+  // WR today (ν.2)
+  const [wrToday, setWrToday] = useState<number | null>(null);
+  useEffect(() => {
+    const f = () => fetch(`${API}/api/v9/shadow/today_wr`).then(r => r.json())
+      .then(d => setWrToday(d.wr_pct ?? d.win_rate ?? null)).catch(() => {});
+    f(); const id = setInterval(f, 30000); return () => clearInterval(id);
+  }, []);
+
   // Killzone from System 6 latest signal
   const killzone = useMemo(() => {
     const sys6 = allSignals.filter((s) => s.system_id === 6);
@@ -80,8 +88,9 @@ export function TopBar() {
       className="h-[40px] flex items-center justify-between px-4 border-b shrink-0"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
     >
-      {/* Left: Mode badge + Symbol + Day Type + Killzone */}
+      {/* Left: Connection + Mode badge + Symbol + Day Type + Killzone */}
       <div className="flex items-center gap-4">
+        <ConnectionIndicator />
         {/* Mode badge */}
         {(() => {
           const ms = MODE_STYLES[mode] || MODE_STYLES.SHADOW;
@@ -171,6 +180,16 @@ export function TopBar() {
           📚
         </button>
         <ConnectionIndicator />
+        {wrToday != null && (
+          <span style={{
+            fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 3,
+            background: wrToday >= 50 ? 'rgba(22,163,74,0.15)' : 'rgba(220,38,38,0.15)',
+            color: wrToday >= 50 ? '#16a34a' : '#dc2626',
+            fontFamily: 'ui-monospace, monospace',
+          }}>
+            WR {wrToday.toFixed(0)}%
+          </span>
+        )}
         <div className="flex items-center gap-2 text-xs">
           {accountStatus ? (
             <>
