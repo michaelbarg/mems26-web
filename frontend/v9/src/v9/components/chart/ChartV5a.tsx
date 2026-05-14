@@ -168,10 +168,12 @@ export function ChartV5a() {
   const TF_ENDPOINTS: Record<string, string> = {
     '3m': 'bars3m', '5m': 'bars5min', '15m': 'bars15m', '30m': 'bars30m', '1h': 'bars1h',
   };
-  const [activeTf, setActiveTf] = useState(() => {
-    if (typeof window === 'undefined') return '5m';
-    return localStorage.getItem('mems26:chart:tf') || '5m';
-  });
+  // W5.8.1: SSR-safe init (avoids hydration mismatch on TF buttons)
+  const [activeTf, setActiveTf] = useState('5m');
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('mems26:chart:tf') : null;
+    if (saved && saved !== '5m') setActiveTf(saved);
+  }, []);
 
   // Fetch bars — endpoint depends on activeTf
   useEffect(() => {
