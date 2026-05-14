@@ -4,7 +4,8 @@ import { TopBar } from './TopBar';
 import { Layer0Strip } from './Layer0Strip';
 import { SidePanel } from './SidePanel';
 import { PriceDebugConsole } from '../PriceDebugConsole';
-import { ChartV5a } from '../chart/ChartV5a';
+// import { ChartV5a } from '../chart/ChartV5a';  // W5.13: kept as backup
+import { ChartV5b } from '../chart/v5b/ChartV5b';
 import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
@@ -71,7 +72,7 @@ export function V9Dashboard() {
         <div className="flex-1 flex flex-col min-h-0">
           {/* Chart area — flex-1 fills vertical space, min-height from drag */}
           <div style={{ flex: 1, minHeight: MIN_H, height: chartH, overflow: 'hidden' }}>
-            <ChartV5a />
+            <ChartV5b />
           </div>
 
           {/* Drag handle + presets */}
