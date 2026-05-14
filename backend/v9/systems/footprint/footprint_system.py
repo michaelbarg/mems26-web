@@ -1,4 +1,4 @@
-"""System 3 — Footprint + Tick Reversal Engine (STANDALONE observer)."""
+"""System 3 — Footprint + Tick Reversal Engine (FIRING per Constitution V3 T3)."""
 import json
 import logging
 import sqlite3
@@ -9,6 +9,7 @@ from backend.v9.systems.base.trading_system import BaseV9TradingSystem, Hydratio
 from .detectors import (
     detect_cluster, detect_empty_zones, analyze_context, compute_signals,
 )
+from .signals import detect_absorption, detect_stacked_imbalance
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ class FootprintSystem(BaseV9TradingSystem):
     system_id = 3
     name = "footprint"
     color = "#a855f7"
-    system_type = SystemType.OBSERVING
+    system_type = SystemType.FIRING
 
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
@@ -147,11 +148,19 @@ class FootprintSystem(BaseV9TradingSystem):
             self.current_state["initiative_type"] = init_type
             self.current_state["reactive_flag"] = reactive
             self.current_state["combined_class"] = combined
+            # T3 Firing: check absorption + stacked imbalance signals
+            t3_signal = self._check_firing_signals(bar)
+            if t3_signal:
+                self.current_state["last_signal"] = t3_signal
+
             mode = getattr(event, 'mode', 'LIVE')
             if mode == "LIVE":
                 self._write_journal(event, bar, cluster, empty, ctx, pattern, signals, confluence, classification)
                 if classification != "NO_SETUP":
                     self._write_setup(event, bar, classification, pattern, confluence)
+                # T3: Fire if signal detected and size != reject
+                if t3_signal:
+                    self._fire(t3_signal, bar, event)
         except Exception as e:
             logger.error(f"FootprintSystem.process_bar error: {e}", exc_info=True)
 
@@ -280,5 +289,107 @@ class FootprintSystem(BaseV9TradingSystem):
         except Exception as e:
             logger.warning(f"Footprint setup write failed: {e}")
 
+    # ── T3 Firing: Absorption + Stacked Imbalance (Wave S3-T3) ──
+
+    def _check_firing_signals(self, bar: dict) -> Optional[Dict]:
+        """Run T3 signal detectors. Returns strongest signal or None."""
+        footprint_levels = bar.get("footprint", {}).get("levels", [])
+
+        # Absorption: uses bar buffer (last N bars)
+        absorption = detect_absorption(self.bar_buffer, bar)
+
+        # Stacked Imbalance: uses footprint cell levels from current bar
+        stacked = detect_stacked_imbalance(footprint_levels, bar)
+
+        # Return strongest signal (absorption > stacked by default)
+        if absorption and stacked:
+            return absorption if absorption["strength"] >= stacked["strength"] else stacked
+        return absorption or stacked
+
+    def calculate_size(self, signal: dict) -> str:
+        """System 3 per-system internal sizing — Footprint inputs ONLY.
+
+        NO composite cross-system formula (CORR-23 enforced).
+        Uses ONLY: signal strength, delta alignment, dominance, initiative type.
+
+        Returns: 'full' (3 contracts) | 'half' (2) | 'reject' (0)
+        """
+        strength = signal.get("strength", 0)
+        direction = signal.get("direction")
+        if not direction or strength <= 0:
+            return "reject"
+
+        # Delta alignment: cumulative delta supports direction
+        delta = self._cumulative_delta or 0
+        delta_aligned = (delta > 0 and direction == "LONG") or (delta < 0 and direction == "SHORT")
+
+        # Dominance alignment
+        dom = self._last_dominance or "BALANCED"
+        dom_aligned = (dom == "BUYER_DOMINATE" and direction == "LONG") or \
+                      (dom == "SELLER_DOMINATE" and direction == "SHORT")
+
+        # Initiative alignment
+        init = self._last_initiative_type or "NEUTRAL"
+        init_aligned = (init == "INITIATIVE_UP" and direction == "LONG") or \
+                       (init == "INITIATIVE_DOWN" and direction == "SHORT")
+
+        aux_count = sum([delta_aligned, dom_aligned, init_aligned])
+
+        # Decision tree (per-system, like S2/S4 Wave H pattern)
+        if strength >= 0.6 and aux_count >= 3:
+            return "full"    # 3 contracts — pristine
+        elif strength >= 0.4 and aux_count >= 2:
+            return "half"    # 2 contracts — solid
+        elif strength >= 0.3 and aux_count >= 1:
+            return "half"    # 2 contracts — acceptable
+        else:
+            return "reject"
+
+    def _fire(self, signal: dict, bar: dict, event) -> None:
+        """Fire a trade decision from Footprint signal + size."""
+        size = self.calculate_size(signal)
+        if size == "reject":
+            return
+
+        self._last_fire = {
+            "signal": signal["signal"],
+            "direction": signal["direction"],
+            "size": size,
+            "qty": 3 if size == "full" else 2,
+            "level": signal.get("level"),
+            "strength": signal.get("strength"),
+            "evidence": signal.get("evidence"),
+            "ts": datetime.utcnow().isoformat(),
+        }
+        self.current_state["last_fire"] = self._last_fire
+
+        # Persist to DB
+        try:
+            conn = sqlite3.connect(self.db_path)
+            conn.execute(
+                """INSERT INTO v9_footprint_setups
+                (ts, bar_id, classification, pattern, confluence, entry_price, stop_price, session, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    datetime.utcnow().isoformat(),
+                    getattr(event, 'bar_id', None),
+                    f"FIRE_{signal['signal'].upper()}",
+                    signal["signal"],
+                    int(signal["strength"] * 10),
+                    signal.get("level"),
+                    None,
+                    getattr(event, 'session', 'UNKNOWN'),
+                    datetime.utcnow().isoformat(),
+                ),
+            )
+            conn.commit()
+            conn.close()
+            logger.info("[Footprint] FIRE: %s %s size=%s strength=%.2f",
+                        signal["signal"], signal["direction"], size, signal["strength"])
+        except Exception as e:
+            logger.warning("[Footprint] Fire persist failed: %s", e)
+
     def get_current(self) -> dict:
-        return dict(self.current_state)
+        state = dict(self.current_state)
+        state["last_fire"] = getattr(self, '_last_fire', None)
+        return state

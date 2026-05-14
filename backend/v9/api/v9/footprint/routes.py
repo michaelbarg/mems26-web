@@ -13,6 +13,17 @@ async def footprint_current(request: Request):
     return sys.get_current()
 
 
+@router.get("/fire")
+async def footprint_fire(request: Request):
+    """Latest fire state from T3 signals (absorption + stacked imbalance)."""
+    sys = getattr(request.app.state, "footprint_system", None)
+    if sys is None:
+        return {"fired": False, "error": "FootprintSystem not initialized"}
+    state = sys.get_current()
+    last_fire = state.get("last_fire")
+    return {"fired": last_fire is not None, "fire": last_fire}
+
+
 @router.get("/journal")
 async def footprint_journal(request: Request, limit: int = 20):
     db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
