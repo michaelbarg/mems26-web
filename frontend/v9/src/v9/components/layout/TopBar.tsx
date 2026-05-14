@@ -184,7 +184,7 @@ export function TopBar() {
         {wrToday != null && (
           <span style={{
             fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 12,
-            height: 24,
+            height: 24, flexShrink: 0, whiteSpace: 'nowrap',
             background: wrToday >= 50 ? 'rgba(22,163,74,0.15)' : wrToday === 0 ? 'rgba(82,82,82,0.15)' : 'rgba(220,38,38,0.15)',
             color: '#fff',
             border: `1px solid ${wrToday >= 50 ? '#16a34a' : wrToday === 0 ? '#525252' : '#dc2626'}`,
