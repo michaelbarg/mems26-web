@@ -7,6 +7,7 @@ import { PriceDisplay } from '../topbar/PriceDisplay';
 import { PriceMeta } from '../topbar/PriceMeta';
 import { ConnectionIndicator } from '../topbar/ConnectionIndicator';
 import Link from 'next/link';
+import { LibraryModal } from '../banners/LibraryModal';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -213,29 +214,7 @@ export function TopBar() {
         </button>
       </div>
       {/* Playbook modal */}
-      {showPlaybook && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 999, display: 'flex',
-          alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.6)',
-        }} onClick={() => setShowPlaybook(false)}>
-          <div style={{
-            background: '#1a1a1a', border: '1px solid #333', borderRadius: 8,
-            padding: 24, maxWidth: 400, width: '90%',
-          }} onClick={e => e.stopPropagation()}>
-            <h3 style={{ color: '#e5e5e5', fontSize: 16, marginBottom: 12 }}>📘 Playbook (coming)</h3>
-            <p style={{ color: '#737373', fontSize: 13, lineHeight: 1.5 }}>
-              Day Type playbooks + setup templates per system will live here.
-              Awaiting P-PLAYBOOK prompt.
-            </p>
-            <button onClick={() => setShowPlaybook(false)}
-              style={{ marginTop: 16, padding: '4px 16px', borderRadius: 4, border: '1px solid #333',
-                background: '#262626', color: '#a3a3a3', cursor: 'pointer', fontSize: 12 }}>
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      {showPlaybook && <LibraryModal onClose={() => setShowPlaybook(false)} />}
     </div>
   );
 }
