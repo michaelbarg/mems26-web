@@ -35,6 +35,11 @@ export function TPOLensContent({ activeTab }: { activeTab: string }) {
       </div>
     );
   }
+  if (activeTab === 'Plan') {
+    const { TpoPlan } = require('../sidepanel/lens/plan/TpoPlan');
+    return <TpoPlan />;
+  }
+
   return (
     <div style={{ fontSize: 9, color: COLORS.textTertiary, textAlign: 'center', padding: 8 }}>
       {activeTab} — coming in later prompts

@@ -66,11 +66,8 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
   }
 
   if (activeTab === 'Plan') {
-    return (
-      <div style={{ fontSize: 9, color: COLORS.textTertiary, textAlign: 'center', padding: 8 }}>
-        Locks at 10:30 ET based on IB Width + Opening Type
-      </div>
-    );
+    const { DayTypePlan } = require('../sidepanel/lens/plan/DayTypePlan');
+    return <DayTypePlan />;
   }
 
   if (activeTab === 'Hist') {

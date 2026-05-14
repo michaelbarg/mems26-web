@@ -27,6 +27,11 @@ export function KillzoneLensContent({ activeTab }: { activeTab: string }) {
       </div>
     );
   }
+  if (activeTab === 'Plan') {
+    const { KillzonePlan } = require('../sidepanel/lens/plan/KillzonePlan');
+    return <KillzonePlan />;
+  }
+
   return (
     <div style={{ fontSize: 9, color: COLORS.textTertiary, textAlign: 'center', padding: 8 }}>
       {activeTab} — coming in later prompts

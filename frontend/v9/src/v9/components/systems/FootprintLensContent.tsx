@@ -40,6 +40,11 @@ export function FootprintLensContent({ activeTab }: { activeTab: string }) {
       </div>
     );
   }
+  if (activeTab === 'Plan') {
+    const { FootprintPlan } = require('../sidepanel/lens/plan/FootprintPlan');
+    return <FootprintPlan />;
+  }
+
   return (
     <div style={{ fontSize: 9, color: COLORS.textTertiary, textAlign: 'center', padding: 8 }}>
       {activeTab} — coming in later prompts

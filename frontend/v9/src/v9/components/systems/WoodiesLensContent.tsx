@@ -21,6 +21,11 @@ export function WoodiesLensContent({ activeTab }: { activeTab: string }) {
       </div>
     );
   }
+  if (activeTab === 'Plan') {
+    const { WoodiesPlan } = require('../sidepanel/lens/plan/WoodiesPlan');
+    return <WoodiesPlan />;
+  }
+
   return (
     <div style={{ fontSize: 9, color: COLORS.textTertiary, textAlign: 'center', padding: 8 }}>
       {activeTab} — coming in later prompts

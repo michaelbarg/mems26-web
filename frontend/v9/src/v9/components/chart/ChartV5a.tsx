@@ -114,11 +114,13 @@ function renderSteppedVAL(sessions: TpoSession[], bars: {ts:string}[], fallback:
   }).filter(Boolean);
 }
 
-const W = 860, H = 310;  // +30 for volume strip (wider for 120px gutter)
-const ML = 8, MR = 120, MT = 28, MB = 32;  // MR=120px right gutter per V5 §4.7
+const W = 860, H = 330;  // +20 for cumDelta + 28 for volume strip
+const ML = 8, MR = 120, MT = 28, MB = 52;  // MB includes cumDelta(20) + volume(28) + gaps
 const CW = W - ML - MR, CH = H - MT - MB;
+const CD_H = 18;  // CumDelta strip height
+const CD_Y = H - MB + 2;  // CumDelta strip starts here
 const VOL_H = 28;
-const VOL_Y = H - MB + 2;  // Volume strip starts here
+const VOL_Y = CD_Y + CD_H + 2;  // Volume strip below cumDelta
 
 export function ChartV5a() {
   const [bars, setBars] = useState<Bar[]>([]);
@@ -415,6 +417,35 @@ export function ChartV5a() {
         );
       })()}
 
+      {/* η.J1: CumDelta histogram strip */}
+      <rect x={ML} y={CD_Y} width={CW} height={CD_H} fill="#0a0a0a" />
+      <line x1={ML} y1={CD_Y} x2={W - MR} y2={CD_Y} stroke="#1a1a1a" strokeWidth={0.5} />
+      {(() => {
+        // Compute cumulative delta per bar (running sum of buy-sell volume proxy)
+        let cumDelta = 0;
+        const deltas: number[] = [];
+        for (const b of allBars) {
+          const delta = b.c >= b.o ? (b.v || 1) : -(b.v || 1);
+          cumDelta += delta;
+          deltas.push(cumDelta);
+        }
+        const maxAbs = Math.max(1, ...deltas.map(d => Math.abs(d)));
+        return deltas.map((d, i) => {
+          const x = ML + (i / allBars.length) * CW + barW / 2;
+          const h = Math.max(1, (Math.abs(d) / maxAbs) * (CD_H / 2 - 1));
+          const mid = CD_Y + CD_H / 2;
+          return (
+            <rect key={`cd${i}`}
+              x={x - barW / 2} y={d >= 0 ? mid - h : mid}
+              width={barW} height={h}
+              fill={d >= 0 ? '#16a34a' : '#dc2626'} opacity={0.5} rx={0.5} />
+          );
+        });
+      })()}
+      {/* CumDelta zero line */}
+      <line x1={ML} y1={CD_Y + CD_H / 2} x2={W - MR} y2={CD_Y + CD_H / 2}
+        stroke="#333" strokeWidth={0.3} />
+
       {/* Volume strip background */}
       <rect x={ML} y={VOL_Y} width={CW} height={VOL_H} fill="#0d0d0d" />
       <line x1={ML} y1={VOL_Y} x2={W - MR} y2={VOL_Y} stroke="#1a1a1a" strokeWidth={0.5} />
@@ -476,13 +507,13 @@ export function ChartV5a() {
         const stpY = stopPrice != null ? yOf(stopPrice) : (pocY != null && valY != null ? (pocY + valY) / 2 : (pocY ?? H / 2) + 14);
 
         const rawPills = [
-          { label: 'IB H', y: tpo?.ib_high != null ? yOf(tpo.ib_high) : null, priceVal: tpo?.ib_high, fill: 'rgba(74,222,128,0.15)', text: '#4ade80', fontWeight: 500 },
-          { label: 'VAH',  y: tpo?.vah != null ? yOf(tpo.vah) : null,         priceVal: tpo?.vah,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
+          { label: 'IB H', y: tpo?.ib_high != null ? yOf(tpo.ib_high) : null, priceVal: tpo?.ib_high, fill: '#064e3b', text: '#4ade80', fontWeight: 500 },
+          { label: 'VAH',  y: tpo?.vah != null ? yOf(tpo.vah) : null,         priceVal: tpo?.vah,     fill: '#4a1942', text: '#ec4899', fontWeight: 500 },
           { label: 'PRC',  y: price != null ? yOf(price) : null,              priceVal: price ?? null, fill: '#facc15', text: '#0a0a0a', fontWeight: 600 },
           { label: 'POC',  y: tpo?.poc != null ? yOf(tpo.poc) : null,         priceVal: tpo?.poc,     fill: '#ec4899', text: '#fff',    fontWeight: 500 },
-          { label: 'STP',  y: stpY,                                           priceVal: stopPrice,    fill: 'rgba(220,38,38,0.15)', text: '#dc2626', fontWeight: 500 },
-          { label: 'VAL',  y: tpo?.val != null ? yOf(tpo.val) : null,         priceVal: tpo?.val,     fill: 'rgba(236,72,153,0.15)', text: '#ec4899', fontWeight: 500 },
-          { label: 'IB L', y: tpo?.ib_low != null ? yOf(tpo.ib_low) : null,   priceVal: tpo?.ib_low,  fill: 'rgba(74,222,128,0.15)', text: '#4ade80', fontWeight: 500 },
+          { label: 'STP',  y: stpY,                                           priceVal: stopPrice,    fill: '#450a0a', text: '#dc2626', fontWeight: 500 },
+          { label: 'VAL',  y: tpo?.val != null ? yOf(tpo.val) : null,         priceVal: tpo?.val,     fill: '#4a1942', text: '#ec4899', fontWeight: 500 },
+          { label: 'IB L', y: tpo?.ib_low != null ? yOf(tpo.ib_low) : null,   priceVal: tpo?.ib_low,  fill: '#064e3b', text: '#4ade80', fontWeight: 500 },
         ];
 
         // Filter to visible pills

@@ -159,6 +159,11 @@ export function TopBar() {
           style={{ fontSize: 16, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>
           📘
         </button>
+        {/* Library icon (η.J4 — V5 §3.4) */}
+        <button onClick={() => setShowPlaybook(true)} title="Library (Journal / Spec / Settings)"
+          style={{ fontSize: 16, cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}>
+          📚
+        </button>
         <ConnectionIndicator />
         <div className="flex items-center gap-2 text-xs">
           {accountStatus ? (

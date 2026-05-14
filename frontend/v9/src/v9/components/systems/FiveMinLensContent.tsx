@@ -55,11 +55,8 @@ export function FiveMinLensContent({ activeTab }: LensContentProps) {
   }
 
   if (activeTab === 'Plan') {
-    return (
-      <div style={{ fontSize: 9, color: COLORS.textTertiary, padding: 8 }}>
-        Setup classification, targets, sizing — populates on pattern detection
-      </div>
-    );
+    const { FiveMinPlan } = require('../sidepanel/lens/plan/FiveMinPlan');
+    return <FiveMinPlan />;
   }
 
   if (activeTab === 'Hist') {
