@@ -39,16 +39,19 @@ export function TradeHistoryStrip() {
     return () => clearInterval(id);
   }, []);
 
-  const segmentColor = (outcome: string) => {
-    if (outcome === 'WIN') return '#16a34a';
-    if (outcome === 'LOSS') return '#dc2626';
-    if (outcome === 'OPEN') return '#06b6d4';
-    return '#525252'; // BE
+  // V5 V1.1 trade colors + opacity
+  const segmentStyle = (outcome: string) => {
+    if (outcome === 'WIN') return { color: '#16a34a', opacity: 0.75 };
+    if (outcome === 'LOSS') return { color: '#dc2626', opacity: 0.5 };
+    if (outcome === 'BE') return { color: '#facc15', opacity: 0.6 };
+    if (outcome === 'TO') return { color: '#404040', opacity: 0.7 };  // timeout
+    if (outcome === 'OPEN') return { color: '#06b6d4', opacity: 0.8 };
+    return { color: '#525252', opacity: 0.5 };
   };
 
   return (
     <div style={{
-      height: 14, background: COLORS.bgSurface2 || '#111111',
+      height: 18, background: COLORS.bgSurface2 || '#111111',  // V5 V1.1: 18px
       borderTop: `1px solid ${COLORS.borderFaint}`,
       display: 'flex', alignItems: 'center', paddingLeft: 8, gap: 2,
       overflow: 'hidden',
@@ -61,18 +64,21 @@ export function TradeHistoryStrip() {
           No trades yet
         </span>
       ) : (
-        trades.map((t, i) => (
-          <div key={t.id || i}
-            title={`${t.direction} ${t.outcome} ${t.pnl != null ? '$' + t.pnl.toFixed(0) : ''} — ${t.entry_ts.slice(11, 16)}`}
-            style={{
-              flex: 1, minWidth: 8, maxWidth: 40,
-              height: 8, borderRadius: 1,
-              background: segmentColor(t.outcome),
-              opacity: 0.7,
-              cursor: 'default',
-            }}
-          />
-        ))
+        trades.map((t, i) => {
+          const s = segmentStyle(t.outcome);
+          return (
+            <div key={t.id || i}
+              title={`${t.direction} ${t.outcome} ${t.pnl != null ? '$' + t.pnl.toFixed(0) : ''} — ${t.entry_ts.slice(11, 16)}`}
+              style={{
+                flex: 1, minWidth: 8, maxWidth: 40,
+                height: 10, borderRadius: 1,
+                background: s.color,
+                opacity: s.opacity,
+                cursor: 'default',
+              }}
+            />
+          );
+        })
       )}
     </div>
   );

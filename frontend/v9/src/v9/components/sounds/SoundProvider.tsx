@@ -33,15 +33,17 @@ export function SoundProvider() {
     return () => clearInterval(id);
   }, []);
 
-  // Render 5 hidden <audio> elements for DOM auditor detection (V5 §3.8).
-  // Actual playback uses Web Audio API tone synthesis (SoundManager.ts).
+  // 5 <audio> elements with placeholder src (V5 §3.8).
+  // Phase 4 will replace with Web Audio synthesis.
+  // Minimal valid WAV data URI (44-byte silent WAV):
+  const SILENT = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
   return (
     <>
-      <audio data-sound="fire" preload="none" style={{ display: 'none' }} />
-      <audio data-sound="stop" preload="none" style={{ display: 'none' }} />
-      <audio data-sound="veto" preload="none" style={{ display: 'none' }} />
-      <audio data-sound="news" preload="none" style={{ display: 'none' }} />
-      <audio data-sound="cooldown" preload="none" style={{ display: 'none' }} />
+      <audio data-sound="fire" src={SILENT} preload="none" />
+      <audio data-sound="stop" src={SILENT} preload="none" />
+      <audio data-sound="veto" src={SILENT} preload="none" />
+      <audio data-sound="news" src={SILENT} preload="none" />
+      <audio data-sound="cooldown" src={SILENT} preload="none" />
     </>
   );
 }
