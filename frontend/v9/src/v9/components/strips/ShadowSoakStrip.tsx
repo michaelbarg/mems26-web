@@ -51,7 +51,7 @@ export function ShadowSoakStrip() {
 
   return (
     <div data-testid="strip-shadow-soak" style={{
-      height: 22, background: '#0a0a0a',
+      height: 22, minHeight: 22, flexShrink: 0, background: '#0a0a0a',
       borderTop: `1px solid ${COLORS.borderFaint}`,
       display: 'flex', alignItems: 'center', paddingLeft: 8, gap: 12,
       overflow: 'hidden', fontFamily: 'ui-monospace, monospace',
