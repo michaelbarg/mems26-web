@@ -1677,3 +1677,26 @@ requirements:
   owner_worker: Wave-A1.6-WorkerB
   spec_source: Constitution V3 Part 3 Layer 2 + Bootstrap Red Flag #4
   notes: "RTH session gate added to V1 classifier. Stale cache cleared on date boundary. Q2 TPO sanity: VAH>VAL by 55.5pt — OK."
+
+- id: REQ-WAVE1-G1
+  name: "Day Type pre-IB gate — PENDING state + session reset"
+  status: IMPLEMENTED
+  owner_worker: Wave1-γ
+  spec_source: Constitution V3 Part 3 Layer 2
+  code_path: backend/v9/systems/day_type/api.py
+  notes: "γ.1: reset_engine() on day boundary. γ.2: PENDING with stage (PRE_IB/IB_BUILDING) instead of UNKNOWN pre-lock. State machine fallback also gated."
+
+- id: REQ-WAVE1-G3
+  name: "TPO sanity check Q2 — VAH>VAL+5pt"
+  status: VERIFIED
+  owner_worker: Wave1-γ
+  spec_source: MEGA-PROMPT V9.1.6-CORE γ.3
+  notes: "2026-05-14: VAH=7463.25 VAL=7407.75 spread=55.5pt > 5pt. PASS. No VAH==VAL==POC bug."
+
+- id: REQ-WAVE1-G4
+  name: "Layer 0 Chop Score 4-state classifier + /api/v9/layer0/state"
+  status: IMPLEMENTED
+  owner_worker: Wave1-γ
+  spec_source: Constitution V3 D-044
+  code_path: backend/v9/systems/layer0/chop_score.py
+  notes: "4-state: SEARCHING(>=75)/RESPECTING(50-74)/EXPANDING(25-49)/FOUND(<25). Endpoint GET /api/v9/layer0/state. CORR-23 exempt."

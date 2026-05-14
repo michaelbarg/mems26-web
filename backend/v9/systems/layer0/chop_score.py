@@ -155,8 +155,26 @@ def compute_composite(indicators: dict) -> float:
     return round(score * 100, 1)
 
 
+def classify_state(chop_score: float) -> str:
+    """4-state classifier per Constitution V3 D-044.
+
+    >=75 → SEARCHING (high chop — no directional signal)
+    50-74 → RESPECTING (mid chop — levels holding)
+    25-49 → EXPANDING (low chop — range expanding, trending)
+    <25  → FOUND (clean directional move)
+    """
+    if chop_score >= 75:
+        return "SEARCHING"
+    elif chop_score >= 50:
+        return "RESPECTING"
+    elif chop_score >= 25:
+        return "EXPANDING"
+    else:
+        return "FOUND"
+
+
 def get_chop_score() -> dict:
-    """Compute all 6 indicators + composite score."""
+    """Compute all 6 indicators + composite score + 4-state."""
     indicators = {
         "vegas_flips_60m": compute_vegas_flips_60m(),
         "cci_zl_crossings_30m": compute_cci_zl_crossings_30m(),
@@ -165,5 +183,10 @@ def get_chop_score() -> dict:
         "range_atr_ratio": compute_range_atr_ratio(),
         "poc_vwap_distance": compute_poc_vwap_distance(),
     }
-    indicators["composite_score"] = compute_composite(indicators)
-    return indicators
+    score = compute_composite(indicators)
+    return {
+        "chop_score": score,
+        "state": classify_state(score),
+        "indicators": indicators,
+        "computed_at": datetime.now(timezone.utc).isoformat(),
+    }

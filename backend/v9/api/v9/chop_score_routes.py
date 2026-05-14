@@ -1,12 +1,23 @@
-"""API routes for Chop Score (Layer 0, Constitution V3)."""
+"""API routes for Chop Score / Layer 0 state (Constitution V3 D-044)."""
 
 from fastapi import APIRouter
 
-router = APIRouter(prefix="/api/v9/chop_score", tags=["chop-score"])
+router = APIRouter(tags=["layer0"])
 
 
-@router.get("/current")
+@router.get("/api/v9/chop_score/current")
 def chop_score_current():
-    """Return all 6 Chop Score indicators + composite."""
+    """Return all 6 Chop Score indicators + composite + 4-state."""
+    from backend.v9.systems.layer0.chop_score import get_chop_score
+    return get_chop_score()
+
+
+@router.get("/api/v9/layer0/state")
+def layer0_state():
+    """Layer 0 market state — γ.4 spec endpoint.
+
+    Shape: {chop_score: 0-100, state: SEARCHING|RESPECTING|EXPANDING|FOUND,
+            indicators: {...}, computed_at: iso_ts}
+    """
     from backend.v9.systems.layer0.chop_score import get_chop_score
     return get_chop_score()

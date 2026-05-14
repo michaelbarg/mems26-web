@@ -115,8 +115,14 @@ def _classify_v1_from_tpo() -> dict:
     ib_locked = tpo.get("ib_locked", False)
 
     if not ib_locked or ib_h is None or ib_l is None:
-        return {"day_type": "UNKNOWN", "confidence": 0, "ib_h": ib_h, "ib_l": ib_l,
-                "ib_range": None, "extension_ratio": None, "classified": False}
+        # γ.2: Return PENDING with stage info, not UNKNOWN (Constitution V3 Part 3 Layer 2)
+        if ib_h is not None and ib_l is not None:
+            stage = "IB_BUILDING"
+        else:
+            stage = "PRE_IB"
+        return {"day_type": "PENDING", "confidence": 0, "ib_h": ib_h, "ib_l": ib_l,
+                "ib_range": None, "extension_ratio": None, "classified": False,
+                "stage": stage, "reason": "Awaiting IB lock @ 10:30 ET"}
 
     ib_range = ib_h - ib_l
     if ib_range <= 0:
@@ -185,10 +191,11 @@ def get_current():
 
     today = date.today().isoformat()
 
-    # Clear stale cache from previous day
+    # γ.1: Clear stale cache AND reset engine on new trading day
     if _today_date and _today_date != today:
         _today_classification = None
         _today_date = None
+        reset_engine()  # CASE A: prevent state carry-over from previous session
 
     # Return cached if already classified today
     if _today_date == today and _today_classification and _today_classification.get("classified"):
@@ -229,8 +236,17 @@ def get_current():
 
         return result
 
-    # Fallback to state machine
+    # γ.1: Fallback — if V1 can't classify, return PENDING (not stale state machine data)
+    # State machine may carry stale classification from previous session
     engine = _get_engine()
+    if not engine.ib_locked:
+        # Pre-IB: deterministic PENDING state
+        return {
+            "day_type": "PENDING", "confidence": 0,
+            "stage": "PRE_IB" if engine.bar_count == 0 else "IB_BUILDING",
+            "reason": "Awaiting IB lock @ 10:30 ET",
+            "classified": False,
+        }
     state = engine._build_state(
         BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
     )
