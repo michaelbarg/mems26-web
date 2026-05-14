@@ -166,7 +166,7 @@ export function ChartV5a() {
 
   // π.1: Active timeframe state
   const TF_ENDPOINTS: Record<string, string> = {
-    '1m': 'bars1m', '5m': 'bars5min', '15m': 'bars15m', '1H': 'bars1H', 'D': 'barsD',
+    '3m': 'bars3m', '5m': 'bars5min', '15m': 'bars15m', '30m': 'bars30m', '1h': 'bars1h',
   };
   const [activeTf, setActiveTf] = useState(() => {
     if (typeof window === 'undefined') return '5m';
@@ -406,23 +406,28 @@ export function ChartV5a() {
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
     {/* ξ.3: Timeframe selector bar */}
     <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0', background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
-      {['1m','5m','15m','1H','D'].map(tf => (
+      {['3m','5m','15m','30m','1h'].map(tf => (
         <button key={tf} onClick={() => { setActiveTf(tf); localStorage.setItem('mems26:chart:tf', tf); }}
-          style={{ fontSize: 9, padding: '1px 8px', border: 'none', borderRadius: 3, cursor: 'pointer',
-          background: tf === activeTf ? 'rgba(255,255,255,0.12)' : 'transparent',
-          color: tf === activeTf ? '#e5e5e5' : '#525252', marginRight: 2 }}>{tf}</button>
+          style={{ fontSize: 9, padding: '2px 8px', border: 'none', borderRadius: 3, cursor: 'pointer',
+          background: tf === activeTf ? 'rgba(255,255,255,0.15)' : 'transparent',
+          color: tf === activeTf ? '#e5e5e5' : '#525252',
+          fontWeight: tf === activeTf ? 600 : 400, marginRight: 2 }}>{tf}</button>
       ))}
-      <span style={{ color: '#333', fontSize: 9, margin: '0 4px' }}>|</span>
+      <span style={{ color: '#333', fontSize: 9, margin: '0 6px' }}>|</span>
+      {/* Live/Replay — cyan filled when LIVE */}
       {['Live','Replay'].map(f => (
-        <button key={f} style={{ fontSize: 9, padding: '1px 6px', border: 'none', borderRadius: 3, cursor: 'pointer',
-          background: f === 'Live' ? 'rgba(255,255,255,0.12)' : 'transparent',
-          color: f === 'Live' ? '#e5e5e5' : '#525252', marginRight: 2 }}>{f}</button>
+        <button key={f} style={{ fontSize: 9, padding: '2px 6px', border: 'none', borderRadius: 3, cursor: 'pointer',
+          background: f === 'Live' ? 'rgba(6,182,212,0.25)' : 'transparent',
+          color: f === 'Live' ? '#06b6d4' : '#525252',
+          fontWeight: f === 'Live' ? 600 : 400, marginRight: 2 }}>{f}</button>
       ))}
-      <span style={{ color: '#333', fontSize: 9, margin: '0 4px' }}>|</span>
+      <span style={{ color: '#333', fontSize: 9, margin: '0 6px' }}>|</span>
+      {/* RTH/24h — yellow filled when 24h */}
       {['RTH','24h'].map(s => (
-        <button key={s} style={{ fontSize: 9, padding: '1px 6px', border: 'none', borderRadius: 3, cursor: 'pointer',
-          background: s === '24h' ? 'rgba(255,255,255,0.12)' : 'transparent',
-          color: s === '24h' ? '#e5e5e5' : '#525252', marginRight: 2 }}>{s}</button>
+        <button key={s} style={{ fontSize: 9, padding: '2px 6px', border: 'none', borderRadius: 3, cursor: 'pointer',
+          background: s === '24h' ? 'rgba(250,204,21,0.20)' : 'transparent',
+          color: s === '24h' ? '#facc15' : '#525252',
+          fontWeight: s === '24h' ? 600 : 400, marginRight: 2 }}>{s}</button>
       ))}
     </div>
     <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}

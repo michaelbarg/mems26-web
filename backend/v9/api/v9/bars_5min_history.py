@@ -63,9 +63,9 @@ def _aggregate_bars(bars_5m: list, period_minutes: int) -> list:
     return result
 
 
-@router.get("/api/v9/chart/bars1m")
-def get_bars_1m(limit: int = Query(120, le=500)):
-    """1-min bars — stub returns 5-min bars (1-min not stored yet)."""
+@router.get("/api/v9/chart/bars3m")
+def get_bars_3m(limit: int = Query(120, le=500)):
+    """3-min bars — returns 5-min bars as proxy (3-min not stored)."""
     return get_bars_5min(limit=limit)
 
 
@@ -76,15 +76,15 @@ def get_bars_15m(limit: int = Query(60, le=200)):
     return _aggregate_bars(raw, 15)
 
 
-@router.get("/api/v9/chart/bars1H")
+@router.get("/api/v9/chart/bars30m")
+def get_bars_30m(limit: int = Query(60, le=200)):
+    """30-min bars aggregated from 5-min."""
+    raw = get_bars_5min(limit=min(limit * 6, 600))
+    return _aggregate_bars(raw, 30)
+
+
+@router.get("/api/v9/chart/bars1h")
 def get_bars_1h(limit: int = Query(48, le=200)):
     """1-hour bars aggregated from 5-min."""
     raw = get_bars_5min(limit=min(limit * 12, 600))
     return _aggregate_bars(raw, 60)
-
-
-@router.get("/api/v9/chart/barsD")
-def get_bars_daily(limit: int = Query(30, le=100)):
-    """Daily bars aggregated from 5-min (RTH session)."""
-    raw = get_bars_5min(limit=min(limit * 78, 600))  # 78 × 5min = 6.5h RTH
-    return _aggregate_bars(raw, 390)  # full session as 1 bar
