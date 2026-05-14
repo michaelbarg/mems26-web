@@ -1802,3 +1802,11 @@ requirements:
   severity: CRITICAL
   status: IMPLEMENTED
   spec_source: "User req 14/5 + V5 §4.5-4.7 + Chrome audit bugs #2/4/17"
+
+- id: REQ-W5.3-xi
+  name: "Chart Core — timeframe selector mounted + TR hydration fix"
+  category: FRONTEND
+  severity: CRITICAL
+  status: IMPLEMENTED
+  spec_source: "Chrome audit 14/5 priorities 1-4 + User req #18"
+  notes: "OHLC rendering code correct — 357:6 issue is DATA (all bullish bars), not rendering."

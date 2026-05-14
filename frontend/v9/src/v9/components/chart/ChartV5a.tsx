@@ -380,13 +380,34 @@ export function ChartV5a() {
   }, [allBars, isDragging]);
 
   return (
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    {/* ξ.3: Timeframe selector bar */}
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0', background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
+      {['1m','5m','15m','1H','D'].map(tf => (
+        <button key={tf} style={{ fontSize: 9, padding: '1px 8px', border: 'none', borderRadius: 3, cursor: 'pointer',
+          background: tf === '5m' ? 'rgba(255,255,255,0.12)' : 'transparent',
+          color: tf === '5m' ? '#e5e5e5' : '#525252', marginRight: 2 }}>{tf}</button>
+      ))}
+      <span style={{ color: '#333', fontSize: 9, margin: '0 4px' }}>|</span>
+      {['Live','Replay'].map(f => (
+        <button key={f} style={{ fontSize: 9, padding: '1px 6px', border: 'none', borderRadius: 3, cursor: 'pointer',
+          background: f === 'Live' ? 'rgba(255,255,255,0.12)' : 'transparent',
+          color: f === 'Live' ? '#e5e5e5' : '#525252', marginRight: 2 }}>{f}</button>
+      ))}
+      <span style={{ color: '#333', fontSize: 9, margin: '0 4px' }}>|</span>
+      {['RTH','24h'].map(s => (
+        <button key={s} style={{ fontSize: 9, padding: '1px 6px', border: 'none', borderRadius: 3, cursor: 'pointer',
+          background: s === '24h' ? 'rgba(255,255,255,0.12)' : 'transparent',
+          color: s === '24h' ? '#e5e5e5' : '#525252', marginRight: 2 }}>{s}</button>
+      ))}
+    </div>
     <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={(e) => { handleMouseMove(e); handleCrosshairMove(e); }}
       onMouseUp={handleMouseUp}
       onMouseLeave={() => { handleMouseUp(); setCrosshair(null); }}
-      style={{ width: '100%', height: '100%', minHeight: 310, background: '#0a0a0a', cursor: isDragging ? 'grabbing' : 'grab' }}>
+      style={{ flex: 1, width: '100%', minHeight: 290, background: '#0a0a0a', cursor: isDragging ? 'grabbing' : 'grab' }}>
       {/* Group 1: Zoomable/pannable chart content (PA1-5) */}
       <g transform={`translate(${panOffsetX}, 0) scale(${zoomLevel}, 1)`}>
       {/* Grid */}
@@ -550,7 +571,8 @@ export function ChartV5a() {
         return (
           <g>
             <rect x={12} y={6} width={100} height={16} rx={3} fill="rgba(255,149,0,0.12)" stroke="#ff9500" strokeWidth={0.5} />
-            <text x={16} y={17} fontSize={10} fill="#ff9500" fontFamily="ui-monospace, monospace" fontWeight={500}>
+            <text x={16} y={17} fontSize={10} fill="#ff9500" fontFamily="ui-monospace, monospace" fontWeight={500}
+              suppressHydrationWarning>
               {label} · {mm}:{String(ss).padStart(2, '0')}
             </text>
           </g>
@@ -691,5 +713,6 @@ export function ChartV5a() {
         <text x={W / 2} y={H / 2} textAnchor="middle" fontSize={12} fill="#737373">No bars yet</text>
       )}
     </svg>
+    </div>
   );
 }
