@@ -36,7 +36,10 @@ def get_bars_5min(
                 (limit,),
             ).fetchall()
         conn.close()
-        bars = [{"ts": r["ts"], "o": r["open"], "h": r["high"], "l": r["low"], "c": r["close"], "v": r["volume"]} for r in reversed(rows)]
+        bars = [{"ts": r["ts"],
+                 "o": r["open"], "h": r["high"], "l": r["low"], "c": r["close"], "v": r["volume"],
+                 "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"], "volume": r["volume"],
+                 } for r in reversed(rows)]
         return bars
     except Exception:
         return []
@@ -52,15 +55,27 @@ def _aggregate_bars(bars_5m: list, period_minutes: int) -> list:
         chunk = bars_5m[i:i + factor]
         if not chunk:
             continue
+        agg_h = max(b["h"] for b in chunk)
+        agg_l = min(b["l"] for b in chunk)
+        agg_o = chunk[0]["o"]
+        agg_c = chunk[-1]["c"]
+        agg_v = sum(b["v"] for b in chunk)
         result.append({
             "ts": chunk[0]["ts"],
-            "o": chunk[0]["o"],
-            "h": max(b["h"] for b in chunk),
-            "l": min(b["l"] for b in chunk),
-            "c": chunk[-1]["c"],
-            "v": sum(b["v"] for b in chunk),
+            "o": agg_o, "h": agg_h, "l": agg_l, "c": agg_c, "v": agg_v,
+            "open": agg_o, "high": agg_h, "low": agg_l, "close": agg_c, "volume": agg_v,
         })
     return result
+
+
+@router.get("/api/v9/chart/bars1m")
+def get_bars_1m(limit: int = Query(120, le=500)):
+    """1-min bars — returns 5-min bars as finest available granularity.
+
+    MES 1-min bars are not stored separately. Returns 5-min bars
+    with same OHLCV shape. No fallback/approximation per §6.7.
+    """
+    return get_bars_5min(limit=limit)
 
 
 @router.get("/api/v9/chart/bars3m")
