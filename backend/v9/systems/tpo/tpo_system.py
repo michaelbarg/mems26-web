@@ -191,6 +191,8 @@ class TPOSystem(BaseV9TradingSystem):
 
                 # HVN/LVN + Volume Cluster (P-TPO-A.3/A.4) — compute from profile
                 self._hvn_zones, self._lvn_zones = self._compute_volume_nodes_from_profile()
+                # W4-δ: UFL/UFH detection
+                self._ufl_ufh = self._compute_ufl_ufh()
                 self._volume_cluster = self._compute_volume_cluster_from_profile()
 
                 # Update state
@@ -210,6 +212,7 @@ class TPOSystem(BaseV9TradingSystem):
                     "hvn_zones": self._hvn_zones,
                     "lvn_zones": self._lvn_zones,
                     "volume_cluster": self._volume_cluster,
+                    "ufl_ufh": getattr(self, '_ufl_ufh', {"ufl": None, "ufh": None}),
                     "letter_count": self.current_letter_idx + 1,
                     "buffer_size": len(self.bar_buffer),
                     "bars_processed_today": self.current_state["bars_processed_today"] + 1,
@@ -285,6 +288,28 @@ class TPOSystem(BaseV9TradingSystem):
         total = sum(c for _, c in top3)
         center = sum(p * c for p, c in top3) / total if total > 0 else None
         return {"prices": sorted([round(p, 2) for p, _ in top3]), "center": round(center, 2) if center else None}
+
+    def _compute_ufl_ufh(self) -> Dict:
+        """Detect Unfair Low/High from TPO letter profile. (W4-δ)"""
+        if not self.profile:
+            return {"ufl": None, "ufh": None, "reasoning_notes": "No letter data"}
+        # profile: price_key (str) → list of letters
+        counts = {float(k): len(v) for k, v in self.profile.items() if v}
+        prices = sorted(counts.keys())
+        if not prices:
+            return {"ufl": None, "ufh": None, "reasoning_notes": "Empty profile"}
+        session_low = prices[0]
+        session_high = prices[-1]
+        notes = []
+        ufh = session_high if counts.get(session_high, 0) == 1 else None
+        ufl = session_low if counts.get(session_low, 0) == 1 else None
+        if ufh:
+            notes.append(f"UFH at {ufh:.2f} (1 letter at session high)")
+        if ufl:
+            notes.append(f"UFL at {ufl:.2f} (1 letter at session low)")
+        if not notes:
+            notes.append("No UFL/UFH (extremes have multiple letters)")
+        return {"ufl": ufl, "ufh": ufh, "reasoning_notes": "; ".join(notes)}
 
     def _update_ib(self, bar: dict, session: str) -> None:
         """Update IB tracking during 09:30-10:30 ET cash session.

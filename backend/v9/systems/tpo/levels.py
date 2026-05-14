@@ -186,3 +186,46 @@ def compute_tails(
         selling_tail = 0
 
     return buying_tail, selling_tail
+
+
+def detect_ufl_ufh(
+    levels: Dict[str, TPOLevel],
+    session_low: Optional[float],
+    session_high: Optional[float],
+) -> Dict[str, Optional[float]]:
+    """Detect Unfair Low (UFL) and Unfair High (UFH).
+
+    Per V3 Layer 2: UFL/UFH = single-letter close at session extreme.
+    A single TPO letter at the extreme price means the market moved
+    there and left immediately — "unfair" price, likely to be revisited.
+
+    Per AP-SY02: includes reasoning_notes.
+
+    Returns: {"ufl": price|None, "ufh": price|None, "reasoning_notes": str}
+    """
+    if not levels or session_low is None or session_high is None:
+        return {"ufl": None, "ufh": None, "reasoning_notes": "No data for UFL/UFH"}
+
+    price_to_count = {lvl.price: lvl.count for lvl in levels.values()}
+    notes_parts = []
+
+    # UFH: single letter at session high
+    high_count = price_to_count.get(session_high, 0)
+    ufh = session_high if high_count == 1 else None
+    if ufh:
+        notes_parts.append(f"UFH at {ufh:.2f} (1 letter at session high)")
+
+    # UFL: single letter at session low
+    low_count = price_to_count.get(session_low, 0)
+    ufl = session_low if low_count == 1 else None
+    if ufl:
+        notes_parts.append(f"UFL at {ufl:.2f} (1 letter at session low)")
+
+    if not notes_parts:
+        notes_parts.append("No UFL/UFH (extremes have multiple letters)")
+
+    return {
+        "ufl": ufl,
+        "ufh": ufh,
+        "reasoning_notes": "; ".join(notes_parts),
+    }
