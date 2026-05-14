@@ -1720,3 +1720,10 @@ requirements:
   owner_worker: Wave5-W1
   spec_source: V3 D-044 + V-WAVE-CORE V5/V9 partials + AP-SY02
   closes: Audit G.1 G.2 + V-WAVE-CORE V5/V9
+- id: REQ-W2b
+  name: "Wave 5 W2b — Layer 3 backend (cluster + empty zone + handoff)"
+  status: IMPLEMENTED
+  owner_worker: Wave5-W2b
+  spec_source: Constitution V3 D-047 + Part 1 Layer 3
+  notes: "Cluster + empty zone modules pre-existed in backend/v9/layer3/. Handoff wrapper created in services/layer3/handoff.py. 5/5 tests pass."
+  closes: V3 Part 5 MISSING #3 #4 #5
