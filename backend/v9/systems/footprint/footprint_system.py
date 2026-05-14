@@ -9,7 +9,7 @@ from backend.v9.systems.base.trading_system import BaseV9TradingSystem, Hydratio
 from .detectors import (
     detect_cluster, detect_empty_zones, analyze_context, compute_signals,
 )
-from .signals import detect_absorption, detect_stacked_imbalance
+from .signals import detect_absorption, detect_stacked_imbalance, detect_sweep_return, detect_exhaustion
 
 logger = logging.getLogger(__name__)
 
@@ -295,16 +295,33 @@ class FootprintSystem(BaseV9TradingSystem):
         """Run T3 signal detectors. Returns strongest signal or None."""
         footprint_levels = bar.get("footprint", {}).get("levels", [])
 
+        candidates = []
+
         # Absorption: uses bar buffer (last N bars)
         absorption = detect_absorption(self.bar_buffer, bar)
+        if absorption:
+            candidates.append(absorption)
 
         # Stacked Imbalance: uses footprint cell levels from current bar
         stacked = detect_stacked_imbalance(footprint_levels, bar)
+        if stacked:
+            candidates.append(stacked)
 
-        # Return strongest signal (absorption > stacked by default)
-        if absorption and stacked:
-            return absorption if absorption["strength"] >= stacked["strength"] else stacked
-        return absorption or stacked
+        # Sweep-Return: liquidity sweep through extreme + return inside range
+        sweep = detect_sweep_return(self.bar_buffer, bar)
+        if sweep:
+            candidates.append(sweep)
+
+        # Exhaustion: directional bar with diminishing volume
+        exhaustion = detect_exhaustion(self.bar_buffer, bar)
+        if exhaustion:
+            candidates.append(exhaustion)
+
+        if not candidates:
+            return None
+
+        # Return strongest signal by strength
+        return max(candidates, key=lambda s: s["strength"])
 
     def calculate_size(self, signal: dict) -> str:
         """System 3 per-system internal sizing — Footprint inputs ONLY.

@@ -15,7 +15,7 @@ async def footprint_current(request: Request):
 
 @router.get("/fire")
 async def footprint_fire(request: Request):
-    """Latest fire state from T3 signals (absorption + stacked imbalance)."""
+    """Latest fire state from T3 signals (absorption / stacked_imbalance / sweep_return / exhaustion)."""
     sys = getattr(request.app.state, "footprint_system", None)
     if sys is None:
         return {"fired": False, "error": "FootprintSystem not initialized"}
