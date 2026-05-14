@@ -45,7 +45,7 @@ PLAYBOOK_TEMPLATES: Dict[DayType, dict] = {
     DayType.Trend_Normal: {
         "strategy": "TREND_FOLLOW",
         "sizing": "AGGRESSIVE",
-        "time_stop_min": 45,
+        "time_stop_min": 0,  # V3: no time stop for Trend Normal
         "key_rules": [
             "Trade with the trend direction",
             "Add on pullbacks to VWAP/EMA",
@@ -56,7 +56,7 @@ PLAYBOOK_TEMPLATES: Dict[DayType, dict] = {
     DayType.Trend_DD: {
         "strategy": "TREND_FOLLOW_EXTENDED",
         "sizing": "AGGRESSIVE",
-        "time_stop_min": 60,
+        "time_stop_min": 90,  # V3: 90min for Trend DD
         "key_rules": [
             "Double-distribution day — expect two value areas",
             "Enter on initial drive, hold through IB",
@@ -66,8 +66,8 @@ PLAYBOOK_TEMPLATES: Dict[DayType, dict] = {
     },
     DayType.Variation: {
         "strategy": "BREAKOUT_FADE",
-        "sizing": "STANDARD",
-        "time_stop_min": 30,
+        "sizing": "FULL",
+        "time_stop_min": 60,  # V3: 60min for Variation
         "key_rules": [
             "Initial move may reverse — wait for confirmation",
             "Trade the reversal after failed extension",
@@ -88,8 +88,8 @@ PLAYBOOK_TEMPLATES: Dict[DayType, dict] = {
     },
     DayType.Neutral: {
         "strategy": "FADE_EXTREMES",
-        "sizing": "SMALL",
-        "time_stop_min": 20,
+        "sizing": "HALF",
+        "time_stop_min": 45,  # V3: 45min for Neutral
         "key_rules": [
             "Very narrow range — reduce expectations",
             "Fade extreme ticks only",
@@ -99,8 +99,8 @@ PLAYBOOK_TEMPLATES: Dict[DayType, dict] = {
     },
     DayType.Nontrend: {
         "strategy": "SCALP_ONLY",
-        "sizing": "SMALL",
-        "time_stop_min": 15,
+        "sizing": "MIN",
+        "time_stop_min": 20,  # V3: 20min for Nontrend
         "key_rules": [
             "No directional bias — scalp only",
             "Quick in/out, tight stops",
