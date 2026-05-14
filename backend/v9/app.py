@@ -17,6 +17,7 @@ from backend.v9.api.v9.bars_5min_history import router as bars_5min_history_rout
 from backend.v9.api.v9.reversal_routes import router as reversal_api_router
 from backend.v9.api.v9.chop_score_routes import router as chop_score_router
 from backend.v9.api.v9.gateway_routes import router as gateway_api_router
+from backend.v9.api.v9.shadow_routes import router as shadow_api_router
 from backend.v9.ws.router import router as ws_event_bus_router
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ v9_router.include_router(bars_5min_history_router)
 v9_router.include_router(reversal_api_router)
 v9_router.include_router(chop_score_router)
 v9_router.include_router(gateway_api_router)
+v9_router.include_router(shadow_api_router)
 
 
 @v9_router.get("/api/v9/health")

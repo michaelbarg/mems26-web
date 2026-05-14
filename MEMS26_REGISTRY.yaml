@@ -1790,3 +1790,8 @@ requirements:
   owner_worker: W5-λ
   spec_source: "V5 §3.3 §3.7 §3.8 + Q2"
   notes: "AUDIT: SoundManager + VolumeDragHandle + BannerStack + CumDelta all pre-existing. 3 fixes: (1) TradeHistory segments, (2) ShadowSoak Day X/30 + WR%, (3) BannerStack mounted in Dashboard."
+- id: REQ-W5.1
+  name: "Backend stubs for SSV/WR/health (closes Chrome audit #14-16)"
+  status: IMPLEMENTED
+  spec_source: Chrome audit 2026-05-14 + V5 §3.10 status dots
+  notes: "/api/v9/veto/state reads gateway SSV. /api/v9/shadow/today_wr reads v9_trades. /api/v9/<sys>/health per-system."
