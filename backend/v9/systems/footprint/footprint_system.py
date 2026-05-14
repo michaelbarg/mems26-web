@@ -368,6 +368,12 @@ class FootprintSystem(BaseV9TradingSystem):
         if size == "reject":
             return
 
+        # ζ.H1: reasoning_notes (AP-SY02)
+        reasoning_notes = (f"{signal['signal']} {signal['direction']} size={size}: "
+                           f"strength={signal.get('strength', 0):.2f}, "
+                           f"delta_aligned={'Y' if (self._cumulative_delta or 0) > 0 and signal['direction'] == 'LONG' or (self._cumulative_delta or 0) < 0 and signal['direction'] == 'SHORT' else 'N'}, "
+                           f"dom={self._last_dominance}, init={self._last_initiative_type}")
+
         self._last_fire = {
             "signal": signal["signal"],
             "direction": signal["direction"],
@@ -376,9 +382,11 @@ class FootprintSystem(BaseV9TradingSystem):
             "level": signal.get("level"),
             "strength": signal.get("strength"),
             "evidence": signal.get("evidence"),
+            "reasoning_notes": reasoning_notes,
             "ts": datetime.utcnow().isoformat(),
         }
         self.current_state["last_fire"] = self._last_fire
+        self.current_state["last_reasoning_notes"] = reasoning_notes
 
         # Persist to DB
         try:

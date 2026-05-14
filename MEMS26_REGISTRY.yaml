@@ -1700,3 +1700,17 @@ requirements:
   spec_source: Constitution V3 D-044
   code_path: backend/v9/systems/layer0/chop_score.py
   notes: "4-state: SEARCHING(>=75)/RESPECTING(50-74)/EXPANDING(25-49)/FOUND(<25). Endpoint GET /api/v9/layer0/state. CORR-23 exempt."
+- id: REQ-WAVE4-ZETA
+  name: "Wave 4 Worker ζ — risk filters + entry + trade mgmt + gating + reasoning"
+  status: IMPLEMENTED
+  owner_worker: Wave4-ζ
+  components:
+    - "A.4 2-Stop Cooldown (30min block)"
+    - "A.5 Cluster Guard D-037 (5 in 60s)"
+    - "B.2 Suffering Side Veto D-049"
+    - "C.2 Trailing stop on T3 fill"
+    - "C.4 Lock-in at 2R"
+    - "C.6 Time decay (10 bars)"
+    - "C.7 Reversal signal exit"
+    - "F.2 Layer 0 chop gating in firing pipeline"
+    - "H.1 reasoning_notes in S2/S3/S4"

@@ -28,6 +28,20 @@ class RouteSetupIn(BaseModel):
     t3: Optional[float] = 0.0
 
 
+@router.get("/risk")
+async def gateway_risk(request: Request):
+    """ζ.A4/A5/B2: Risk filter states (cooldown, cluster guard, SSV)."""
+    gw = getattr(request.app.state, "trading_gateway", None)
+    if gw is None:
+        return {"error": "TradingGateway not initialized"}
+    return {
+        "cooldown": gw.cooldown.get_state(),
+        "cluster_guard": gw.cluster_guard.get_state(),
+        "ssv": gw.ssv.get_state(),
+        "chop_state": gw._get_chop_state(),
+    }
+
+
 @router.post("/route_setup")
 async def gateway_route_setup(request: Request, payload: RouteSetupIn):
     """Manually route a trade setup through the gateway (for testing)."""

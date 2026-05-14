@@ -16,6 +16,8 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from .risk_checks import passes_strict_checks
+from .cooldown import CooldownManager, ClusterGuard
+from .suffering_side_veto import SufferingSideVeto
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +38,10 @@ class TradingGateway:
         self._daily_trades: int = 0
         self._daily_pnl: float = 0.0
         self._consecutive_losses: int = 0
+        # ζ.A4 + ζ.A5 + ζ.B2: risk filters
+        self.cooldown = CooldownManager()
+        self.cluster_guard = ClusterGuard()
+        self.ssv = SufferingSideVeto()
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""
@@ -65,7 +71,32 @@ class TradingGateway:
             Dict summarizing what happened in each mode.
         """
         cross_context = self._capture_cross_context()
-        result = {"shadow": None, "demo": None, "live": None}
+        result = {"shadow": None, "demo": None, "live": None, "blocked_by": None}
+
+        # ζ.A5: Cluster guard — record attempt
+        self.cluster_guard.record_attempt()
+
+        # ζ.A4 + ζ.A5 + ζ.B2: pre-trade risk gates
+        direction = setup.get("direction", "")
+        if self.cooldown.is_blocked():
+            result["blocked_by"] = "cooldown"
+            logger.info("[Gateway] BLOCKED by 2-stop cooldown")
+            return result
+        if self.cluster_guard.is_blocked():
+            result["blocked_by"] = "cluster_guard"
+            logger.info("[Gateway] BLOCKED by cluster guard D-037")
+            return result
+        if self.ssv.check_veto(direction):
+            result["blocked_by"] = "suffering_side_veto"
+            logger.info("[Gateway] BLOCKED by SSV D-049: %s is suffering side", direction)
+            return result
+
+        # ζ.F2: Layer 0 chop gating
+        chop_state = self._get_chop_state()
+        if chop_state == "SEARCHING":
+            result["blocked_by"] = "chop_searching"
+            logger.info("[Gateway] BLOCKED by Layer 0: chop_state=SEARCHING (high chop)")
+            return result
 
         # SHADOW: always log, unlimited slots
         shadow_trade = self._execute_shadow(setup, system_id, cross_context)
@@ -94,11 +125,37 @@ class TradingGateway:
 
         return result
 
+    def _get_chop_state(self) -> str:
+        """ζ.F2: Read Layer 0 chop state for gating."""
+        try:
+            import requests
+            resp = requests.get("http://localhost:8000/api/v9/chop_score/current", timeout=2).json()
+            score = resp.get("composite_score")
+            if score is None:
+                return "UNKNOWN"
+            if score >= 75:
+                return "SEARCHING"
+            elif score >= 50:
+                return "RESPECTING"
+            elif score >= 25:
+                return "EXPANDING"
+            else:
+                return "FOUND"
+        except Exception:
+            return "UNKNOWN"
+
     def on_trade_close(self, trade: dict) -> None:
-        """Handle trade closure — free slots, update daily stats."""
+        """Handle trade closure — free slots, update daily stats, update risk filters."""
         trade_id = trade.get("trade_id")
         mode = trade.get("mode")
         pnl = trade.get("pnl_usd", 0.0)
+        outcome = trade.get("outcome", "WIN" if pnl >= 0 else "STOP")
+        direction = trade.get("direction", "")
+
+        # ζ.A4: cooldown tracking
+        self.cooldown.on_trade_close(outcome)
+        # ζ.B2: SSV tracking
+        self.ssv.record_outcome(direction, outcome)
 
         if self.demo_slot and self.demo_slot.get("trade_id") == trade_id:
             self.demo_slot = None
@@ -136,6 +193,10 @@ class TradingGateway:
             "consecutive_losses": self._consecutive_losses,
             "demo_enabled_systems": sorted(self._demo_enabled_systems),
             "live_enabled_systems": sorted(self._live_enabled_systems),
+            "cooldown": self.cooldown.get_state(),
+            "cluster_guard": self.cluster_guard.get_state(),
+            "ssv": self.ssv.get_state(),
+            "chop_state": self._get_chop_state(),
         }
 
     # ── Internal ──

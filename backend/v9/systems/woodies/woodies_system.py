@@ -178,6 +178,12 @@ class WoodiesSystem(BaseV9TradingSystem):
                 direction = best.direction
                 strength = int(best.confidence * 4)
                 classification = "STRATEGIC" if best.group == "REVERSAL" else "TACTICAL"
+                # ζ.H1: reasoning_notes (AP-SY02)
+                sizing = self.calculate_size(signal, direction)
+                reasoning_notes = (f"{signal} {direction} size={sizing}: "
+                                   f"CCI={studies['cci_14']:.1f}, trend={studies['trend_state']}, "
+                                   f"conf={best.confidence:.2f}, group={best.group}")
+                self.current_state["last_reasoning_notes"] = reasoning_notes
 
             # Update current state
             self.current_state.update({

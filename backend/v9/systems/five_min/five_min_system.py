@@ -415,6 +415,12 @@ class FiveMinSystem(BaseV9TradingSystem):
             self.last_classification = kind
             self.last_confluence = int(conf * 100)
 
+            # ζ.H1: reasoning_notes (AP-SY02)
+            reasoning_notes = (f"{kind} {direction} size={sizing}: "
+                               f"{info.get('stage',4)}-bar pattern, COT={cot_val:.0f} vs AMT={amt_val:.0f}, "
+                               f"location={location}")
+            self.current_state["last_reasoning_notes"] = reasoning_notes
+
             logger.info("[FiveMin] FIRE: %s %s (conf=%.2f, size=%s, COT=%.1f, AMT=%.1f, loc=%s)",
                         kind, direction, conf, sizing, cot_val, amt_val, location)
 
