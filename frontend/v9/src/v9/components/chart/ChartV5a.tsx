@@ -342,7 +342,9 @@ export function ChartV5a() {
   const yOf = (p: number) => MT + (1 - (p - pMin) / (pMax - pMin)) * CH;
   // π.4: bar width 8-14px (min 8, not 1px at high bar counts)
   // σ.5: V5 §4.5 bar width 12-14px at Md zoom
-  const barW = allBars.length > 0 ? Math.max(12, Math.min(14, CW / allBars.length * 0.8)) : 12;
+  // ADD-1: responsive width with guaranteed 1px gap (no overlap)
+  const slotW = allBars.length > 0 ? CW / allBars.length : 14;
+  const barW = Math.max(2, Math.min(14, slotW * 0.75));
   const maxVol = Math.max(1, ...allBars.map(b => b.v || 1));
 
   // W5-ι.8: Crosshair state (handler defined after pan/zoom)
