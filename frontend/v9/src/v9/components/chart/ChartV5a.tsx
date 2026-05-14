@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import { usePriceStore } from '../../stores/priceStore';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -163,15 +163,52 @@ export function ChartV5a() {
   }, [price, tickCount]);
 
   // Fetch bars (PA1-1: 60 candles on mount + 5s refresh per Cockpit V5 §3.4)
+  // Wave A1.5: 5s poll merges new bars on the right without clobbering pan-loaded history
   useEffect(() => {
     const fetchBars = () => fetch(`${API}/api/v9/chart/bars5min?limit=60`)
       .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setBars(d); })
+      .then(d => {
+        if (!Array.isArray(d)) return;
+        setBars(prev => {
+          if (prev.length === 0) return d;
+          // Merge: keep older pan-loaded bars, append any new ones from poll
+          const existing = new Set(prev.map(b => b.ts));
+          const fresh = d.filter((b: Bar) => !existing.has(b.ts));
+          return fresh.length > 0 ? [...prev, ...fresh] : prev;
+        });
+      })
       .catch(() => {});
     fetchBars();
     const id = setInterval(fetchBars, 5000);
     return () => clearInterval(id);
   }, []);
+
+  // Wave A1.5: Pan-to-load older bars
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [hasMoreHistory, setHasMoreHistory] = useState(true);
+
+  const fetchOlderBars = useCallback(async () => {
+    if (isLoadingOlder || !hasMoreHistory || bars.length === 0) return;
+    const oldestTs = bars[0].ts;
+    setIsLoadingOlder(true);
+    try {
+      const resp = await fetch(`${API}/api/v9/chart/bars5min?before=${encodeURIComponent(oldestTs)}&limit=60`);
+      const data = await resp.json();
+      const newBars: Bar[] = Array.isArray(data) ? data : [];
+      if (newBars.length === 0) {
+        setHasMoreHistory(false);
+        return;
+      }
+      const existing = new Set(bars.map(b => b.ts));
+      const deduped = newBars.filter(b => !existing.has(b.ts));
+      if (deduped.length > 0) {
+        setBars(prev => [...deduped, ...prev]);
+      }
+      if (newBars.length < 60) setHasMoreHistory(false);
+    } catch { /* silent */ } finally {
+      setIsLoadingOlder(false);
+    }
+  }, [isLoadingOlder, hasMoreHistory, bars]);
 
   // Fetch TPO
   useEffect(() => {
@@ -306,7 +343,13 @@ export function ChartV5a() {
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     const dx = e.clientX - dragStartX;
-    setPanOffsetX(panAtDragStart + dx / zoomLevel);
+    const newPan = panAtDragStart + dx / zoomLevel;
+    setPanOffsetX(newPan);
+    // Wave A1.5: pan-to-load — when user drags right past the oldest bar, fetch more
+    const chartContentWidth = allBars.length * (barW + 1) * zoomLevel;
+    if (newPan > chartContentWidth - CW * 0.8 && hasMoreHistory && !isLoadingOlder) {
+      fetchOlderBars();
+    }
   };
 
   const handleMouseUp = () => setIsDragging(false);

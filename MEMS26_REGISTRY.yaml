@@ -1651,3 +1651,10 @@ requirements:
   spec_source: "Master Gap Catalog G-039"
   unblocks: "P-ACTIVATE SHADOW"
   notes: "5-Min: DB replay 60 bars into _bar_buffer. Footprint: restore cumulative_delta from journal. Woodies+TPO already hydrated."
+- id: REQ-WAVE-A1.5
+  name: "Chart pan-to-load historical bars"
+  status: IMPLEMENTED
+  owner_worker: Wave-A1.5
+  spec_source: Cockpit V5 + Constitution V3 SD-005 c
+  path: /api/v9/chart/bars5min?before=<ts>&limit=60
+  notes: "Cursor-based pagination. 252 bars in DB. Pan left = fetch older 60. Dedup by ts."
