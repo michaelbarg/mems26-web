@@ -536,15 +536,26 @@ export function ChartV5a() {
       </g>{/* End Group 1: zoomable/pannable */}
 
       {/* Group 2: Anchored to edges (badges + right-scale pills) */}
-      {/* TR countdown badge */}
-      {kz?.current_zone && (
-        <g>
-          <rect x={12} y={6} width={90} height={16} rx={3} fill="rgba(249,115,22,0.12)" stroke="#f97316" strokeWidth={0.5} />
-          <text x={16} y={17} fontSize={10} fill="#f97316" fontFamily="ui-monospace, monospace" fontWeight={500}>
-            {kz.current_zone.name} · {kz.current_zone.minutes_remaining}m
-          </text>
-        </g>
-      )}
+      {/* TR countdown badge — time-to-next-bar (μ.5) */}
+      {(() => {
+        const now = new Date();
+        const min5 = Math.floor(now.getMinutes() / 5) * 5 + 5;
+        const nextBar = new Date(now);
+        nextBar.setMinutes(min5, 0, 0);
+        if (nextBar <= now) nextBar.setMinutes(nextBar.getMinutes() + 5);
+        const secsLeft = Math.max(0, Math.floor((nextBar.getTime() - now.getTime()) / 1000));
+        const mm = Math.floor(secsLeft / 60);
+        const ss = secsLeft % 60;
+        const label = kz?.current_zone?.name || 'MKT';
+        return (
+          <g>
+            <rect x={12} y={6} width={100} height={16} rx={3} fill="rgba(255,149,0,0.12)" stroke="#ff9500" strokeWidth={0.5} />
+            <text x={16} y={17} fontSize={10} fill="#ff9500" fontFamily="ui-monospace, monospace" fontWeight={500}>
+              {label} · {mm}:{String(ss).padStart(2, '0')}
+            </text>
+          </g>
+        );
+      })()}
 
       {/* Right price scale — 7 pills with collision resolver (PA1-4) */}
       {(() => {

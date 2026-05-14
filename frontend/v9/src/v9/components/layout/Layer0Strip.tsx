@@ -104,11 +104,12 @@ export function Layer0Strip() {
           const stateColors: Record<string, string> = {
             SEARCHING: '#dc2626', RESPECTING: '#16a34a', EXPANDING: '#3b82f6', FOUND: '#f59e0b',
           };
+          const isFound = chopState === 'FOUND';
           return (
             <span style={{
-              fontSize: 8, fontWeight: 600, padding: '1px 5px', borderRadius: 3,
-              background: `${stateColors[chopState] || '#525252'}20`,
-              color: stateColors[chopState] || '#525252',
+              fontSize: 8, fontWeight: 700, padding: '1px 6px', borderRadius: 3,
+              background: stateColors[chopState] || '#525252',
+              color: isFound ? '#0a0a0a' : '#ffffff',
             }}>
               {chopScore != null ? `${chopScore.toFixed(0)} ` : ''}{chopState}
             </span>

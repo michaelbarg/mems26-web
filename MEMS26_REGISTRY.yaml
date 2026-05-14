@@ -1795,3 +1795,10 @@ requirements:
   status: IMPLEMENTED
   spec_source: Chrome audit 2026-05-14 + V5 §3.10 status dots
   notes: "/api/v9/veto/state reads gateway SSV. /api/v9/shadow/today_wr reads v9_trades. /api/v9/<sys>/health per-system."
+
+- id: REQ-W5.2-mu
+  name: "Chart rebuild — timeframe filter + TR countdown + L0 pill bg"
+  category: FRONTEND
+  severity: CRITICAL
+  status: IMPLEMENTED
+  spec_source: "User req 14/5 + V5 §4.5-4.7 + Chrome audit bugs #2/4/17"
