@@ -408,10 +408,12 @@ export function ChartV5a() {
     {/* ξ.3: Timeframe selector bar */}
     <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0', background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
       {['3m','5m','15m','30m','1h'].map(tf => (
-        <button key={tf} onClick={() => { setActiveTf(tf); localStorage.setItem('mems26:chart:tf', tf); }}
-          style={{ fontSize: 9, padding: '2px 8px', border: 'none', borderRadius: 3, cursor: 'pointer',
-          background: tf === activeTf ? 'rgba(255,255,255,0.15)' : 'transparent',
-          color: tf === activeTf ? '#e5e5e5' : '#525252',
+        <button key={tf} data-testid={`tf-btn-${tf}`}
+          onClick={() => { setActiveTf(tf); localStorage.setItem('mems26:chart:tf', tf); }}
+          style={{ fontSize: 9, padding: '2px 8px', border: tf === activeTf ? '1px solid #06b6d4' : '1px solid transparent',
+          borderRadius: 3, cursor: 'pointer',
+          background: tf === activeTf ? 'rgba(6,180,212,0.15)' : 'transparent',
+          color: tf === activeTf ? '#06b6d4' : '#525252',
           fontWeight: tf === activeTf ? 600 : 400, marginRight: 2 }}>{tf}</button>
       ))}
       <span style={{ color: '#333', fontSize: 9, margin: '0 6px' }}>|</span>
@@ -431,7 +433,7 @@ export function ChartV5a() {
           fontWeight: s === '24h' ? 600 : 400, marginRight: 2 }}>{s}</button>
       ))}
     </div>
-    <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`}
+    <svg ref={svgRef} data-testid="chart-svg" viewBox={`0 0 ${W} ${H}`}
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={(e) => { handleMouseMove(e); handleCrosshairMove(e); }}
