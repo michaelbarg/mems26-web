@@ -58,6 +58,24 @@ async def shadow_today_wr():
 
 # ── W5.1.C: /api/v9/<system>/health (per-system status dots) ──
 
+@router.get("/api/v9/shadow/soak_progress")
+async def shadow_soak_progress():
+    """Shadow soak progress — Day N/30 + WR stats."""
+    from datetime import date
+    # SHADOW start date — first day mode was set to shadow
+    start_date = date(2026, 5, 14)  # hard-coded for now
+    today = date.today()
+    day_n = max(1, (today - start_date).days + 1)
+    return {
+        "day": min(day_n, 30),
+        "total_days": 30,
+        "wr_7d": 0.0,
+        "wr_30d": 0.0,
+        "trades_today": 0,
+        "reasoning_notes": f"Shadow soak Day {min(day_n, 30)}/30",
+    }
+
+
 SYSTEM_NAMES = {
     "day_type": 1, "five_min": 2, "footprint": 3,
     "woodies": 4, "tpo": 5, "killzone": 6,

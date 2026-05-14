@@ -24,7 +24,7 @@ export function ShadowSoakStrip() {
   }, []);
 
   useEffect(() => {
-    if (mode !== 'SHADOW') return;
+    if (mode && mode.toUpperCase() !== 'SHADOW') return;
     const fetchSoak = () => {
       fetch(`${API}/api/v9/shadow/soak_progress`)
         .then(r => r.json())
@@ -42,18 +42,19 @@ export function ShadowSoakStrip() {
     return () => clearInterval(id);
   }, [mode]);
 
-  if (mode !== 'SHADOW') return null;
+  // Always render in SHADOW (current mode). Hide only if explicitly non-SHADOW
+  if (mode && mode.toUpperCase() !== 'SHADOW') return null;
 
   const day = soak?.day ?? 1;
   const total = soak?.total_days ?? 30;
   const pct = Math.min(100, (day / total) * 100);
 
   return (
-    <div style={{
-      height: 22, background: COLORS.bgSurface2 || '#111111',
+    <div data-testid="strip-shadow-soak" style={{
+      height: 22, background: '#0a0a0a',
       borderTop: `1px solid ${COLORS.borderFaint}`,
-      display: 'flex', alignItems: 'center', paddingLeft: 8, gap: 8,
-      overflow: 'hidden',
+      display: 'flex', alignItems: 'center', paddingLeft: 8, gap: 12,
+      overflow: 'hidden', fontFamily: 'ui-monospace, monospace',
     }}>
       {/* Day X/30 label */}
       <span style={{ fontSize: 9, color: '#facc15', fontFamily: 'ui-monospace, monospace', fontWeight: 600, flexShrink: 0 }}>
