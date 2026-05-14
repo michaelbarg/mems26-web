@@ -725,20 +725,39 @@ export function ChartV5a() {
             <line x1={bx} y1={MT} x2={bx} y2={H - MB} stroke="#555" strokeWidth={0.5} strokeDasharray="2 2" />
             {/* Horizontal crosshair */}
             <line x1={ML} y1={crosshair.y} x2={W - MR} y2={crosshair.y} stroke="#555" strokeWidth={0.5} strokeDasharray="2 2" />
-            {/* OHLCV tooltip */}
-            <rect x={bx + 8} y={MT + 2} width={105} height={52} rx={3} fill="#1a1a1a" opacity={0.92} stroke="#333" strokeWidth={0.5} />
-            <text x={bx + 13} y={MT + 14} fontSize={8} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
-              O {b.o.toFixed(2)}  H {b.h.toFixed(2)}
-            </text>
-            <text x={bx + 13} y={MT + 25} fontSize={8} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
-              L {b.l.toFixed(2)}  C {b.c.toFixed(2)}
-            </text>
-            <text x={bx + 13} y={MT + 36} fontSize={8} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
-              V {b.v.toLocaleString()}
-            </text>
-            <text x={bx + 13} y={MT + 47} fontSize={7} fill="#737373" fontFamily="ui-monospace, monospace">
-              {b.ts.slice(11, 16)} ET
-            </text>
+            {/* OHLCV tooltip — D-068 §2.5: 7 lines with Δ */}
+            {(() => {
+              const delta = b.c - b.o;
+              const tx = bx + barW + 10 > W - MR - 170 ? bx - 170 : bx + 10;
+              return (
+                <g data-testid="chart-ohlcv-tooltip">
+                  <rect x={tx} y={MT + 2} width={160} height={88} rx={4}
+                    fill="#141414" opacity={0.95} stroke="#404040" strokeWidth={0.5} />
+                  <text x={tx + 6} y={MT + 14} fontSize={9} fill="#737373" fontFamily="ui-monospace, monospace">
+                    {b.ts.slice(11, 16)} ET
+                  </text>
+                  <text x={tx + 6} y={MT + 26} fontSize={9} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+                    O: {b.o.toFixed(2)}
+                  </text>
+                  <text x={tx + 6} y={MT + 38} fontSize={9} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+                    H: {b.h.toFixed(2)}
+                  </text>
+                  <text x={tx + 6} y={MT + 50} fontSize={9} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+                    L: {b.l.toFixed(2)}
+                  </text>
+                  <text x={tx + 6} y={MT + 62} fontSize={9} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+                    C: {b.c.toFixed(2)}
+                  </text>
+                  <text x={tx + 6} y={MT + 74} fontSize={9} fill="#a3a3a3" fontFamily="ui-monospace, monospace">
+                    V: {b.v.toLocaleString()}
+                  </text>
+                  <text x={tx + 6} y={MT + 86} fontSize={9} fill={delta >= 0 ? '#16a34a' : '#dc2626'}
+                    fontFamily="ui-monospace, monospace">
+                    Δ: {delta >= 0 ? '+' : ''}{delta.toFixed(2)}
+                  </text>
+                </g>
+              );
+            })()}
           </g>
         );
       })()}
