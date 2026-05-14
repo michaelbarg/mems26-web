@@ -119,23 +119,60 @@ export function ChartV5b() {
 
   useEffect(() => { loadBars(activeTf); }, [activeTf, loadBars]);
 
-  // Real-time poll (every 2s — update last bar)
+  // Real-time: live_price tick every 1s → update forming bar
+  const formingBarRef = useRef<{ time: number; open: number; high: number; low: number; close: number; vol: number } | null>(null);
+
   useEffect(() => {
     if (!candleRef.current) return;
-    const id = setInterval(async () => {
+
+    // Compute TF bucket in seconds (5m=300, 15m=900, etc.)
+    const tfSeconds: Record<string, number> = { '3m': 180, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600 };
+    const bucketSize = tfSeconds[activeTf] || 300;
+
+    const livePoll = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/api/v9/live_price`);
+        const data = await res.json();
+        const price = data.price;
+        if (!price) return;
+
+        const nowSec = Math.floor(Date.now() / 1000);
+        const bucket = Math.floor(nowSec / bucketSize) * bucketSize;
+
+        const fb = formingBarRef.current;
+        if (fb && fb.time === bucket) {
+          // Update existing forming bar
+          fb.high = Math.max(fb.high, price);
+          fb.low = Math.min(fb.low, price);
+          fb.close = price;
+          fb.vol += 1;
+        } else {
+          // New bucket — start fresh forming bar
+          formingBarRef.current = { time: bucket, open: price, high: price, low: price, close: price, vol: 1 };
+        }
+
+        const bar = formingBarRef.current!;
+        candleRef.current?.update({ time: bar.time as any, open: bar.open, high: bar.high, low: bar.low, close: bar.close });
+        volumeRef.current?.update({ time: bar.time as any, value: bar.vol, color: bar.close >= bar.open ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
+      } catch {}
+    }, 1000);
+
+    // Finalized bars poll every 5s — replaces historical bars with DB truth
+    const barsPoll = setInterval(async () => {
       const ep = TF_ENDPOINTS[activeTf] || 'bars5min';
       try {
-        const res = await fetch(`${API}/api/v9/chart/${ep}?limit=1`);
+        const res = await fetch(`${API}/api/v9/chart/${ep}?limit=3`);
         const raw = await res.json();
         const bars = Array.isArray(raw) ? raw : [];
-        if (!bars.length) return;
-        const b = bars[bars.length - 1];
-        const time = tsToUnix(b.ts) as any;
-        candleRef.current?.update({ time, open: b.open ?? b.o, high: b.high ?? b.h, low: b.low ?? b.l, close: b.close ?? b.c });
-        volumeRef.current?.update({ time, value: b.volume ?? b.v ?? 0, color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
+        for (const b of bars) {
+          const time = tsToUnix(b.ts) as any;
+          candleRef.current?.update({ time, open: b.open ?? b.o, high: b.high ?? b.h, low: b.low ?? b.l, close: b.close ?? b.c });
+          volumeRef.current?.update({ time, value: b.volume ?? b.v ?? 0, color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
+        }
       } catch {}
-    }, 2000);
-    return () => clearInterval(id);
+    }, 5000);
+
+    return () => { clearInterval(livePoll); clearInterval(barsPoll); };
   }, [activeTf]);
 
   // Historical scroll-back: load older bars when user pans left
