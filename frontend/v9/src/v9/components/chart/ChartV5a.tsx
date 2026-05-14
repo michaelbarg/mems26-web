@@ -164,11 +164,19 @@ export function ChartV5a() {
     });
   }, [price, tickCount]);
 
-  // Fetch bars (PA1-1: 60 candles on mount + 5s refresh per Cockpit V5 §3.4)
-  // Wave A1.5: 5s poll merges new bars on the right without clobbering pan-loaded history
+  // π.1: Active timeframe state
+  const TF_ENDPOINTS: Record<string, string> = {
+    '1m': 'bars1m', '5m': 'bars5min', '15m': 'bars15m', '1H': 'bars1H', 'D': 'barsD',
+  };
+  const [activeTf, setActiveTf] = useState(() => {
+    if (typeof window === 'undefined') return '5m';
+    return localStorage.getItem('mems26:chart:tf') || '5m';
+  });
+
+  // Fetch bars — endpoint depends on activeTf
   useEffect(() => {
-    // W5-ι.1: fetch 120 bars to ensure ≥50 visible after filtering
-    const fetchBars = () => fetch(`${API}/api/v9/chart/bars5min?limit=120`)
+    const ep = TF_ENDPOINTS[activeTf] || 'bars5min';
+    const fetchBars = () => fetch(`${API}/api/v9/chart/${ep}?limit=120`)
       .then(r => r.json())
       .then(d => {
         if (!Array.isArray(d)) return;
@@ -181,10 +189,11 @@ export function ChartV5a() {
         });
       })
       .catch(() => {});
+    setBars([]); // Reset on TF change
     fetchBars();
     const id = setInterval(fetchBars, 5000);
     return () => clearInterval(id);
-  }, []);
+  }, [activeTf]);
 
   // Wave A1.5: Pan-to-load older bars
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -309,6 +318,9 @@ export function ChartV5a() {
     return result;
   }, [bars, formingBar]);
 
+  // π.2: Y-zoom state (Ctrl+wheel zooms price axis, plain wheel zooms X)
+  const [yZoomFactor, setYZoomFactor] = useState(1.0);
+
   // Price range from all bars (PA1-6: 5% padding for breathing room)
   const { pMin, pMax } = useMemo(() => {
     if (allBars.length === 0) {
@@ -319,11 +331,15 @@ export function ChartV5a() {
     for (const b of allBars) { if (b.l < lo) lo = b.l; if (b.h > hi) hi = b.h; }
     if (price != null) { if (price < lo) lo = price; if (price > hi) hi = price; }
     const range = hi - lo || 1;
-    return { pMin: lo - range * 0.05, pMax: hi + range * 0.05 };
-  }, [allBars, price]);
+    const padding = range * 0.05 * yZoomFactor;
+    const center = (hi + lo) / 2;
+    const halfRange = (range / 2 + padding) * yZoomFactor;
+    return { pMin: center - halfRange, pMax: center + halfRange };
+  }, [allBars, price, yZoomFactor]);
 
   const yOf = (p: number) => MT + (1 - (p - pMin) / (pMax - pMin)) * CH;
-  const barW = allBars.length > 0 ? Math.min(14, CW / allBars.length - 1) : 12;
+  // π.4: bar width 8-14px (min 8, not 1px at high bar counts)
+  const barW = allBars.length > 0 ? Math.max(8, Math.min(14, CW / allBars.length * 0.7)) : 12;
   const maxVol = Math.max(1, ...allBars.map(b => b.v || 1));
 
   // W5-ι.8: Crosshair state (handler defined after pan/zoom)
@@ -339,8 +355,15 @@ export function ChartV5a() {
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.95 : 1.05;
-    setZoomLevel(prev => Math.max(0.5, Math.min(5.0, prev * delta)));
+    if (e.ctrlKey || e.metaKey) {
+      // Y-zoom: expand/contract price range around center
+      const factor = e.deltaY > 0 ? 1.08 : 0.92;
+      setYZoomFactor(prev => Math.max(0.3, Math.min(5.0, prev * factor)));
+    } else {
+      // X-zoom (existing)
+      const delta = e.deltaY > 0 ? 0.95 : 1.05;
+      setZoomLevel(prev => Math.max(0.5, Math.min(5.0, prev * delta)));
+    }
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -384,9 +407,10 @@ export function ChartV5a() {
     {/* ξ.3: Timeframe selector bar */}
     <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0', background: '#0d0d0d', borderBottom: '1px solid #1a1a1a', flexShrink: 0 }}>
       {['1m','5m','15m','1H','D'].map(tf => (
-        <button key={tf} style={{ fontSize: 9, padding: '1px 8px', border: 'none', borderRadius: 3, cursor: 'pointer',
-          background: tf === '5m' ? 'rgba(255,255,255,0.12)' : 'transparent',
-          color: tf === '5m' ? '#e5e5e5' : '#525252', marginRight: 2 }}>{tf}</button>
+        <button key={tf} onClick={() => { setActiveTf(tf); localStorage.setItem('mems26:chart:tf', tf); }}
+          style={{ fontSize: 9, padding: '1px 8px', border: 'none', borderRadius: 3, cursor: 'pointer',
+          background: tf === activeTf ? 'rgba(255,255,255,0.12)' : 'transparent',
+          color: tf === activeTf ? '#e5e5e5' : '#525252', marginRight: 2 }}>{tf}</button>
       ))}
       <span style={{ color: '#333', fontSize: 9, margin: '0 4px' }}>|</span>
       {['Live','Replay'].map(f => (

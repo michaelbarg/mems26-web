@@ -1815,3 +1815,10 @@ requirements:
   status: IMPLEMENTED
   spec_source: Chrome audit root cause diagnostic 14/5
   notes: "bar_ingestion: UPSERT on (ts,symbol). aggregator: cap volume to 10K. DB: 942→169 rows (cleaned duplicates + session-cumulative)."
+
+- id: REQ-W5.5-pi
+  name: "Chart interactivity — TF routes + click handlers + Y-zoom + bar width"
+  category: FRONTEND
+  severity: CRITICAL
+  status: IMPLEMENTED
+  spec_source: "Chrome audit #4 + User reqs #1 #2 #4"
