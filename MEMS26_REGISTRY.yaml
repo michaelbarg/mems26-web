@@ -1753,3 +1753,13 @@ requirements:
   status: IMPLEMENTED
   spec_source: "V3 Part 1 Layer 2"
   notes: "AUDIT: Tails + Single Print already built. Only UFL/UFH genuinely missing."
+
+- id: REQ-W4-zeta
+  name: "L4 Don't-Give-Back — SWI + CCI flat + TCCI exit + MFE peak + targets verify"
+  category: SYSTEM
+  severity: CRITICAL
+  status: IMPLEMENTED
+  owner_worker: W4-ζ
+  spec_source: "V3 Part 1 Layer 4"
+  code_path: backend/v9/services/layer4/
+  notes: "5 modules. Reads W3-β (direction_change_detector) + W3-γ (targets_table). Wave 4-A (Smart BE/Trail/Lock-in/Time Decay/Reversal Exit) verified still active. 18/18 tests pass."
