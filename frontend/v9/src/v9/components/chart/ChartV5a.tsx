@@ -741,6 +741,73 @@ export function ChartV5a() {
         );
       })()}
 
+      {/* D-068 §2.1: Y-axis drag region (right gutter) */}
+      <g data-testid="chart-yaxis-region" cursor="ns-resize"
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          const startY = e.clientY;
+          const startFactor = yZoomFactor;
+          const onMove = (me: MouseEvent) => {
+            const dy = me.clientY - startY;
+            const factor = Math.max(0.3, Math.min(5.0, startFactor * (1 + dy * 0.005)));
+            setYZoomFactor(factor);
+          };
+          const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        }}>
+        <rect x={W - MR} y={MT} width={MR} height={CH} fill="transparent" />
+      </g>
+
+      {/* D-068 §2.2: X-axis drag region (bottom) */}
+      <g data-testid="chart-xaxis-region" cursor="ew-resize"
+        onMouseDown={(e) => {
+          e.stopPropagation();
+          const startX = e.clientX;
+          const startZoom = zoomLevel;
+          const onMove = (me: MouseEvent) => {
+            const dx = me.clientX - startX;
+            const factor = Math.max(0.5, Math.min(5.0, startZoom * (1 + dx * 0.003)));
+            setZoomLevel(factor);
+          };
+          const onUp = () => { document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onUp);
+        }}>
+        <rect x={ML} y={H - MB} width={CW} height={MB} fill="transparent" />
+      </g>
+
+      {/* D-068 §2.6: Auto-fit button (visible when manually zoomed) */}
+      {(yZoomFactor !== 1.0 || zoomLevel !== 1.0) && (
+        <g data-testid="chart-auto-fit-btn" cursor="pointer"
+          onClick={() => { setYZoomFactor(1.0); setZoomLevel(1.0); setPanOffsetX(0); }}>
+          <rect x={W - MR - 50} y={H - MB - 22} width={44} height={18} rx={4}
+            fill="#141414" stroke="#404040" strokeWidth={0.5} />
+          <text x={W - MR - 28} y={H - MB - 10} fontSize={9} fill="#06b6d4"
+            textAnchor="middle" fontFamily="ui-monospace, monospace">↺ Auto</text>
+        </g>
+      )}
+
+      {/* D-068 §2.4: Crosshair Y-label (cyan) */}
+      {crosshair && (
+        <g data-testid="crosshair-y-label">
+          <rect x={W - MR + 1} y={crosshair.y - 9} width={50} height={18} rx={3} fill="#06b6d4" />
+          <text x={W - MR + 5} y={crosshair.y + 3} fontSize={9} fill="#fff"
+            fontFamily="ui-monospace, monospace">{yOf ? ((pMax - (crosshair.y - MT) / CH * (pMax - pMin))).toFixed(2) : ''}</text>
+        </g>
+      )}
+
+      {/* D-068 §2.4: Crosshair X-label (cyan) */}
+      {crosshair && allBars[crosshair.barIdx] && (
+        <g data-testid="crosshair-x-label">
+          <rect x={ML + (crosshair.barIdx / allBars.length) * CW + barW / 2 - 25} y={H - MB + 2}
+            width={50} height={16} rx={3} fill="#06b6d4" />
+          <text x={ML + (crosshair.barIdx / allBars.length) * CW + barW / 2} y={H - MB + 13}
+            fontSize={8} fill="#fff" textAnchor="middle"
+            fontFamily="ui-monospace, monospace">{allBars[crosshair.barIdx].ts.slice(11, 16)}</text>
+        </g>
+      )}
+
       {/* No bars message */}
       {allBars.length === 0 && (
         <text x={W / 2} y={H / 2} textAnchor="middle" fontSize={12} fill="#737373">No bars yet</text>
