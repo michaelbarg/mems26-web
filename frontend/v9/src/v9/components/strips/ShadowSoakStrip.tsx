@@ -4,23 +4,18 @@ import { COLORS } from '../../design/tokens';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface ShadowEvent {
-  ts: string;
-  system: 'sys1' | 'sys2' | 'sys4';
-  details?: string;
+interface SoakProgress {
+  day: number;
+  total_days: number;
+  wr_7d: number | null;
+  wr_30d: number | null;
+  trades_today: number;
 }
-
-const SYS_MARKERS: Record<string, { shape: string; color: string }> = {
-  sys1: { shape: '\u25C6', color: '#6366f1' },  // indigo diamond
-  sys2: { shape: '\u25A0', color: '#06b6d4' },  // cyan square
-  sys4: { shape: '\u25CF', color: '#f97316' },  // orange circle
-};
 
 export function ShadowSoakStrip() {
   const [mode, setMode] = useState<string>('');
-  const [events, setEvents] = useState<ShadowEvent[]>([]);
+  const [soak, setSoak] = useState<SoakProgress | null>(null);
 
-  // Check mode
   useEffect(() => {
     fetch(`${API}/api/v9/status`)
       .then(r => r.json())
@@ -28,40 +23,64 @@ export function ShadowSoakStrip() {
       .catch(() => {});
   }, []);
 
-  // Fetch shadow events
   useEffect(() => {
     if (mode !== 'SHADOW') return;
-    fetch(`${API}/api/v9/shadow/events`)
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setEvents(d); })
-      .catch(() => {}); // endpoint may not exist yet
+    const fetchSoak = () => {
+      fetch(`${API}/api/v9/shadow/soak_progress`)
+        .then(r => r.json())
+        .then(d => setSoak({
+          day: d?.day ?? 1,
+          total_days: d?.total_days ?? 30,
+          wr_7d: d?.wr_7d ?? null,
+          wr_30d: d?.wr_30d ?? null,
+          trades_today: d?.trades_today ?? 0,
+        }))
+        .catch(() => setSoak({ day: 1, total_days: 30, wr_7d: null, wr_30d: null, trades_today: 0 }));
+    };
+    fetchSoak();
+    const id = setInterval(fetchSoak, 60000);
+    return () => clearInterval(id);
   }, [mode]);
 
-  // Only render in SHADOW mode
   if (mode !== 'SHADOW') return null;
+
+  const day = soak?.day ?? 1;
+  const total = soak?.total_days ?? 30;
+  const pct = Math.min(100, (day / total) * 100);
 
   return (
     <div style={{
       height: 22, background: COLORS.bgSurface2 || '#111111',
       borderTop: `1px solid ${COLORS.borderFaint}`,
-      display: 'flex', alignItems: 'center', paddingLeft: 8,
+      display: 'flex', alignItems: 'center', paddingLeft: 8, gap: 8,
       overflow: 'hidden',
     }}>
-      {events.length === 0 ? (
-        <span style={{ fontSize: 9, color: '#525252', fontFamily: 'ui-monospace, monospace' }}>
-          SHADOW — no setups detected
+      {/* Day X/30 label */}
+      <span style={{ fontSize: 9, color: '#facc15', fontFamily: 'ui-monospace, monospace', fontWeight: 600, flexShrink: 0 }}>
+        Day {day}/{total}
+      </span>
+
+      {/* Progress bar */}
+      <div style={{ flex: 1, maxWidth: 120, height: 6, background: '#1a1a1a', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ width: `${pct}%`, height: '100%', background: '#facc15', borderRadius: 3, transition: 'width 0.5s' }} />
+      </div>
+
+      {/* WR indicators */}
+      {soak?.wr_7d != null && (
+        <span style={{ fontSize: 8, color: soak.wr_7d >= 50 ? '#16a34a' : '#dc2626', fontFamily: 'ui-monospace, monospace' }}>
+          7d:{soak.wr_7d.toFixed(0)}%
         </span>
-      ) : (
-        events.map((e, i) => {
-          const m = SYS_MARKERS[e.system] || { shape: '?', color: '#737373' };
-          return (
-            <span key={i} title={`${e.system} @ ${e.ts} — ${e.details || ''}`}
-              style={{ fontSize: 10, color: m.color, marginRight: 4, cursor: 'default' }}>
-              {m.shape}
-            </span>
-          );
-        })
       )}
+      {soak?.wr_30d != null && (
+        <span style={{ fontSize: 8, color: soak.wr_30d >= 50 ? '#16a34a' : '#dc2626', fontFamily: 'ui-monospace, monospace' }}>
+          30d:{soak.wr_30d.toFixed(0)}%
+        </span>
+      )}
+
+      {/* Trades today count */}
+      <span style={{ fontSize: 8, color: '#525252', fontFamily: 'ui-monospace, monospace' }}>
+        {soak?.trades_today ?? 0} trades
+      </span>
     </div>
   );
 }

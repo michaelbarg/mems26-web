@@ -9,6 +9,7 @@ import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
+import { BannerStack } from '../banners/BannerStack';
 import { COLORS } from '../../design/tokens';
 
 const STORAGE_KEY = 'chart-height-v5c';
@@ -61,6 +62,7 @@ export function V9Dashboard() {
       className="flex flex-col h-screen"
       style={{ background: COLORS.bgBase }}
     >
+      <BannerStack />
       <TopBar />
       <Layer0Strip />
       <div className="flex flex-1 min-h-0">

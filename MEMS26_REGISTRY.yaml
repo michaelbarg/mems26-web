@@ -1781,3 +1781,12 @@ requirements:
   status: IMPLEMENTED
   spec_source: "V5 §3.4 §3.6 §4.4 §4.8"
   notes: "ActiveTradeCard already had C1/C2/C3 (PG2-1). Added 5-state border, Exit/MoveStop buttons, Lens header tint, chop state pill, suffering side pill."
+
+- id: REQ-W5-lambda
+  name: "Strips + Sounds + Banners — trade history + shadow soak + banner mount"
+  category: FRONTEND
+  severity: HIGH
+  status: IMPLEMENTED
+  owner_worker: W5-λ
+  spec_source: "V5 §3.3 §3.7 §3.8 + Q2"
+  notes: "AUDIT: SoundManager + VolumeDragHandle + BannerStack + CumDelta all pre-existing. 3 fixes: (1) TradeHistory segments, (2) ShadowSoak Day X/30 + WR%, (3) BannerStack mounted in Dashboard."
