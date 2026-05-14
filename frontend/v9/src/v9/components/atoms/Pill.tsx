@@ -2,7 +2,7 @@
 import { SYSTEM_META } from '../../design/system_colors';
 import { SIZES } from '../../design/tokens';
 
-export type PillState = 'idle' | 'armed' | 'fired' | 'selected';
+export type PillState = 'idle' | 'armed' | 'fired' | 'selected' | 'healthy' | 'warn' | 'error';
 
 interface PillProps {
   systemId: number;
@@ -15,6 +15,9 @@ const DOT_COLORS: Record<string, string> = {
   armed: '#facc15',
   fired: '#16a34a',
   selected: '#e5e5e5',
+  healthy: '#16a34a',
+  warn: '#facc15',
+  error: '#dc2626',
 };
 
 export function Pill({ systemId, state = 'idle', onClick }: PillProps) {

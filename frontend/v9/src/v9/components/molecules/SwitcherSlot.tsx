@@ -1,6 +1,7 @@
 'use client';
 import { Pill, type PillState } from '../atoms/Pill';
 import { SYSTEM_META } from '../../design/system_colors';
+import { useSystemStateStore } from '../../store/systemStateStore';
 
 interface SwitcherSlotProps {
   systemId: number;
@@ -10,11 +11,14 @@ interface SwitcherSlotProps {
   onSelect?: (systemId: number) => void;
 }
 
-export function SwitcherSlot({ systemId, state = 'idle', isSelected = false, stateLabel, onSelect }: SwitcherSlotProps) {
+export function SwitcherSlot({ systemId, state, isSelected = false, stateLabel, onSelect }: SwitcherSlotProps) {
   const meta = SYSTEM_META[systemId];
+  const health = useSystemStateStore((s) => s.systems[systemId]?.health ?? 'unknown');
   if (!meta) return null;
 
-  const pillState: PillState = isSelected ? 'selected' : state;
+  // Priority: selected > explicit state > health-derived
+  const healthState: PillState = health === 'healthy' ? 'healthy' : health === 'warn' ? 'warn' : health === 'error' ? 'error' : 'idle';
+  const pillState: PillState = isSelected ? 'selected' : (state ?? healthState);
 
   return (
     <div

@@ -1,7 +1,7 @@
 'use client';
 import { SwitcherSlot } from '../molecules/SwitcherSlot';
 import { useSystemStateStore } from '../../store/systemStateStore';
-import type { PillState } from '../atoms/Pill';
+
 
 interface FiveMinPillProps {
   isSelected?: boolean;
@@ -26,7 +26,7 @@ export function FiveMinPill({ isSelected = false, onSelect }: FiveMinPillProps) 
   return (
     <SwitcherSlot
       systemId={2}
-      state={'idle' as PillState}
+      
       isSelected={isSelected}
       stateLabel={label}
       onSelect={onSelect ? () => onSelect() : undefined}

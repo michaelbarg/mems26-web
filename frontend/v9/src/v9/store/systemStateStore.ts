@@ -2,6 +2,8 @@ import { create } from 'zustand';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
+export type HealthStatus = 'healthy' | 'warn' | 'error' | 'unknown';
+
 export interface SystemState {
   id: number;
   name: string;
@@ -9,6 +11,7 @@ export interface SystemState {
   subState: string | null;
   confidence: number;
   lastUpdate: number;
+  health: HealthStatus;
   raw?: Record<string, any>;
 }
 
@@ -20,12 +23,12 @@ interface SystemStateStore {
 
 export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
   systems: {
-    1: { id: 1, name: 'Day Type',  state: null, subState: null, confidence: 0, lastUpdate: 0 },
-    2: { id: 2, name: '5-Min',     state: null, subState: null, confidence: 0, lastUpdate: 0 },
-    3: { id: 3, name: 'Footprint', state: null, subState: null, confidence: 0, lastUpdate: 0 },
-    4: { id: 4, name: 'Woodies',   state: null, subState: null, confidence: 0, lastUpdate: 0 },
-    5: { id: 5, name: 'TPO',       state: null, subState: null, confidence: 0, lastUpdate: 0 },
-    6: { id: 6, name: 'Killzone',  state: null, subState: null, confidence: 0, lastUpdate: 0 },
+    1: { id: 1, name: 'Day Type',  state: null, subState: null, confidence: 0, lastUpdate: 0, health: 'unknown' },
+    2: { id: 2, name: '5-Min',     state: null, subState: null, confidence: 0, lastUpdate: 0, health: 'unknown' },
+    3: { id: 3, name: 'Footprint', state: null, subState: null, confidence: 0, lastUpdate: 0, health: 'unknown' },
+    4: { id: 4, name: 'Woodies',   state: null, subState: null, confidence: 0, lastUpdate: 0, health: 'unknown' },
+    5: { id: 5, name: 'TPO',       state: null, subState: null, confidence: 0, lastUpdate: 0, health: 'unknown' },
+    6: { id: 6, name: 'Killzone',  state: null, subState: null, confidence: 0, lastUpdate: 0, health: 'unknown' },
   },
 
   updateSystem: (id, patch) =>
@@ -106,5 +109,17 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
         });
       }
     } catch {}
+
+    // Health check for all 6 systems (ο.5: status dots colored)
+    const sysNames: Record<number, string> = { 1: 'day_type', 2: 'five_min', 3: 'footprint', 4: 'woodies', 5: 'tpo', 6: 'killzone' };
+    for (const [idStr, sysName] of Object.entries(sysNames)) {
+      try {
+        const h = await fetch(`${API_BASE}/api/v9/${sysName}/health`).then(r => r.json()).catch(() => null);
+        if (h) {
+          const status = h.status === 'healthy' ? 'healthy' : h.status === 'warn' ? 'warn' : h.status === 'error' ? 'error' : 'unknown';
+          update(Number(idStr), { health: status as HealthStatus });
+        }
+      } catch {}
+    }
   },
 }));

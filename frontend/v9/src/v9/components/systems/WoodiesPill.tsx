@@ -1,7 +1,7 @@
 'use client';
 import { SwitcherSlot } from '../molecules/SwitcherSlot';
 import { useSystemStateStore } from '../../store/systemStateStore';
-import type { PillState } from '../atoms/Pill';
+
 
 const ABBREV: Record<string, string> = {
   NEUTRAL: 'NEUT', ZLC_BULL: 'ZLC+', ZLC_BEAR: 'ZLC-',
@@ -21,7 +21,7 @@ export function WoodiesPill({ isSelected = false, onSelect }: { isSelected?: boo
   return (
     <SwitcherSlot
       systemId={4}
-      state={'idle' as PillState}
+      
       isSelected={isSelected}
       stateLabel={label}
       onSelect={onSelect ? () => onSelect() : undefined}

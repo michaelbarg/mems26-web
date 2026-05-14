@@ -1,7 +1,7 @@
 'use client';
 import { SwitcherSlot } from '../molecules/SwitcherSlot';
 import { useSystemStateStore } from '../../store/systemStateStore';
-import type { PillState } from '../atoms/Pill';
+
 
 const MIG_ABBREV: Record<string, string> = {
   UP: '\u2191', DOWN: '\u2193', STUCK: '=', NA: '\u2014',
@@ -15,7 +15,7 @@ export function TPOPill({ isSelected = false, onSelect }: { isSelected?: boolean
   return (
     <SwitcherSlot
       systemId={5}
-      state={'idle' as PillState}
+      
       isSelected={isSelected}
       stateLabel={label}
       onSelect={onSelect ? () => onSelect() : undefined}
