@@ -699,7 +699,10 @@ export function ChartV5a() {
           let timeStr = '';
           try {
             const d = new Date(b.ts.replace(' ', 'T'));
-            timeStr = `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            const hh = String(d.getHours()).padStart(2,'0');
+            const mm = String(d.getMinutes()).padStart(2,'0');
+            // FIX 6: 1h uses HH:00, others use HH:MM
+            timeStr = activeTf === '1h' ? `${hh}:00` : `${hh}:${mm}`;
           } catch { timeStr = b.ts.slice(11, 16); }
           return (
             <text key={`tx-${i}`} x={x} y={H - 2} fontSize={8} fill="#525252"

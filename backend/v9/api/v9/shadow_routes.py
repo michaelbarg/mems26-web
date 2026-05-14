@@ -127,20 +127,20 @@ def _get_system_health(system_name: str, request: Request) -> dict:
         age = -1
 
     if not running:
-        status = "error"
-        notes = f"{system_name} not running"
-    elif bars > 0 and (age < 60 or age == -1):
+        status = "warn"
+        notes = f"{system_name} idle (not running — may be outside session)"
+    elif bars > 0 and (age < 120 or age == -1):
         status = "healthy"
         notes = f"{system_name}: {bars} bars processed, data fresh"
-    elif bars > 0 and age < 300:
+    elif bars > 0 and age < 600:
         status = "warn"
         notes = f"{system_name}: data {age}s old"
     elif bars > 0:
-        status = "error"
-        notes = f"{system_name}: data stale ({age}s)"
-    else:
         status = "warn"
-        notes = f"{system_name}: running but no signals yet"
+        notes = f"{system_name}: data stale ({age}s) — outside session?"
+    else:
+        status = "healthy"
+        notes = f"{system_name}: running, awaiting first signal"
 
     return {
         "status": status,
