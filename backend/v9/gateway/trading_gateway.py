@@ -130,7 +130,7 @@ class TradingGateway:
         try:
             import requests
             resp = requests.get("http://localhost:8000/api/v9/chop_score/current", timeout=2).json()
-            score = resp.get("composite_score")
+            score = resp.get("chop_score") or resp.get("composite_score")
             if score is None:
                 return "UNKNOWN"
             if score >= 75:

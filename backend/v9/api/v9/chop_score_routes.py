@@ -15,7 +15,8 @@ def chop_score_current():
     data = get_chop_score()
     # Flatten indicators to top level (frontend reads d.vegas_flips_60m etc.)
     indicators = data.get("indicators", {})
-    return {**indicators, "composite_score": data["chop_score"],
+    return {**indicators, "chop_score": data["chop_score"],
+            "composite_score": data["chop_score"],  # backward compat — to be removed Wave 2
             "state": data["state"], "computed_at": data["computed_at"]}
 
 
