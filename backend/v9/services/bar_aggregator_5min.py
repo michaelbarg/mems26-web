@@ -124,10 +124,14 @@ class FiveMinAggregator:
             ts = datetime.now(ET)
 
         price = payload.get("close") or payload.get("c") or payload.get("price") or 0
-        size = payload.get("volume") or payload.get("v") or 1
+        # W5.4: Use per-bar volume (NOT cumulative session volume)
+        # tick_reversal bars report their own bar volume, not session total
+        raw_vol = payload.get("volume") or payload.get("v") or payload.get("vol") or 1
+        # Cap to realistic per-tick volume (reversal bar is ~1 virtual tick)
+        size = min(int(raw_vol), 10000) if raw_vol else 1
 
         if price > 0:
-            tick = TickEvent(ts=ts, price=float(price), size=int(size))
+            tick = TickEvent(ts=ts, price=float(price), size=size)
             self.on_tick(tick)
 
     def get_status(self) -> dict:

@@ -46,20 +46,38 @@ class BarIngestionService:
         self._running = False
 
     def ingest_bar(self, bar_data: dict) -> None:
-        """Persist a single bar to DB. Idempotent via merge."""
+        """Persist a single bar to DB. UPSERT on (ts, symbol) — no duplicates."""
         db = SessionLocal()
         try:
-            bar = V9Bar5Min(
-                ts=bar_data.get("ts", datetime.now(timezone.utc)),
-                symbol=bar_data.get("symbol", "MES"),
-                open=bar_data["open"],
-                high=bar_data["high"],
-                low=bar_data["low"],
-                close=bar_data["close"],
-                volume=bar_data.get("volume", 0),
-                cumulative_delta=bar_data.get("delta"),
-            )
-            db.add(bar)
+            ts = bar_data.get("ts", datetime.now(timezone.utc))
+            symbol = bar_data.get("symbol", "MES")
+
+            # Check for existing bar at same timestamp (UPSERT logic)
+            existing = db.query(V9Bar5Min).filter(
+                V9Bar5Min.ts == ts,
+                V9Bar5Min.symbol == symbol,
+            ).first()
+
+            if existing:
+                # Update in place (last write wins)
+                existing.open = bar_data["open"]
+                existing.high = bar_data["high"]
+                existing.low = bar_data["low"]
+                existing.close = bar_data["close"]
+                existing.volume = bar_data.get("volume", 0)
+                existing.cumulative_delta = bar_data.get("delta")
+            else:
+                bar = V9Bar5Min(
+                    ts=ts, symbol=symbol,
+                    open=bar_data["open"],
+                    high=bar_data["high"],
+                    low=bar_data["low"],
+                    close=bar_data["close"],
+                    volume=bar_data.get("volume", 0),
+                    cumulative_delta=bar_data.get("delta"),
+                )
+                db.add(bar)
+
             db.commit()
             self._bars_ingested += 1
         except Exception:
