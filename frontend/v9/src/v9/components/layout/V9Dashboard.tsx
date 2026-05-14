@@ -69,8 +69,8 @@ export function V9Dashboard() {
       <Layer0Strip />
       <div className="flex flex-1 min-h-0">
         <div className="flex-1 flex flex-col min-h-0">
-          {/* Chart area with dynamic height */}
-          <div style={{ height: chartH, minHeight: MIN_H }}>
+          {/* Chart area — flex-1 fills vertical space, min-height from drag */}
+          <div style={{ flex: 1, minHeight: MIN_H, height: chartH, overflow: 'hidden' }}>
             <ChartV5a />
           </div>
 
