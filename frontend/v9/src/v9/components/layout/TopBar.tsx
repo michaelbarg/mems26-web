@@ -55,7 +55,7 @@ export function TopBar() {
   const [wrToday, setWrToday] = useState<number | null>(null);
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/shadow/today_wr`).then(r => r.json())
-      .then(d => setWrToday(d.wr_pct ?? d.win_rate ?? null)).catch(() => {});
+      .then(d => setWrToday(d.today_wr_pct ?? d.wr_pct ?? d.win_rate ?? null)).catch(() => {});
     f(); const id = setInterval(f, 30000); return () => clearInterval(id);
   }, []);
 
@@ -85,6 +85,7 @@ export function TopBar() {
 
   return (
     <div
+      data-testid="topbar"
       className="h-[40px] flex items-center justify-between px-4 border-b shrink-0"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
     >
@@ -182,12 +183,15 @@ export function TopBar() {
         <ConnectionIndicator />
         {wrToday != null && (
           <span style={{
-            fontSize: 10, fontWeight: 600, padding: '1px 5px', borderRadius: 3,
-            background: wrToday >= 50 ? 'rgba(22,163,74,0.15)' : 'rgba(220,38,38,0.15)',
-            color: wrToday >= 50 ? '#16a34a' : '#dc2626',
+            fontSize: 11, fontWeight: 600, padding: '4px 8px', borderRadius: 12,
+            height: 24,
+            background: wrToday >= 50 ? 'rgba(22,163,74,0.15)' : wrToday === 0 ? 'rgba(82,82,82,0.15)' : 'rgba(220,38,38,0.15)',
+            color: '#fff',
+            border: `1px solid ${wrToday >= 50 ? '#16a34a' : wrToday === 0 ? '#525252' : '#dc2626'}`,
             fontFamily: 'ui-monospace, monospace',
-          }}>
-            WR {wrToday.toFixed(0)}%
+          }}
+          data-testid="topbar-wr-pill">
+            WR: {wrToday.toFixed(0)}%
           </span>
         )}
         <div className="flex items-center gap-2 text-xs">
