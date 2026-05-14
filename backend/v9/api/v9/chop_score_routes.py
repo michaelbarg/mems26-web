@@ -7,9 +7,16 @@ router = APIRouter(tags=["layer0"])
 
 @router.get("/api/v9/chop_score/current")
 def chop_score_current():
-    """Return all 6 Chop Score indicators + composite + 4-state."""
+    """Return all 6 Chop Score indicators + composite + 4-state.
+
+    Flattened: indicators promoted to top level for frontend Layer0Strip.
+    """
     from backend.v9.systems.layer0.chop_score import get_chop_score
-    return get_chop_score()
+    data = get_chop_score()
+    # Flatten indicators to top level (frontend reads d.vegas_flips_60m etc.)
+    indicators = data.get("indicators", {})
+    return {**indicators, "composite_score": data["chop_score"],
+            "state": data["state"], "computed_at": data["computed_at"]}
 
 
 @router.get("/api/v9/layer0/state")

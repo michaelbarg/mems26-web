@@ -66,12 +66,11 @@ class FootprintSystem(BaseV9TradingSystem):
         self.current_state["hydrated"] = True
 
         # P-WAVE-D3: Restore cumulative_delta from last journal entry
+        # W1.1: use self.db_path (absolute) instead of __file__ relative traversal
         restored_delta = 0.0
         try:
             import sqlite3 as _sql
-            from pathlib import Path as _P
-            _db = str(_P(__file__).resolve().parent.parent.parent.parent / "data" / "mems26_local.db")
-            conn = _sql.connect(_db)
+            conn = _sql.connect(self.db_path)
             row = conn.execute(
                 "SELECT cumulative_delta FROM v9_footprint_journal ORDER BY id DESC LIMIT 1"
             ).fetchone()

@@ -1714,3 +1714,9 @@ requirements:
     - "C.7 Reversal signal exit"
     - "F.2 Layer 0 chop gating in firing pipeline"
     - "H.1 reasoning_notes in S2/S3/S4"
+- id: REQ-W1
+  name: "Wave 5 W1 — S3 bug fixes (hydration + VAP recompute + reasoning_notes + L0 keys)"
+  status: IMPLEMENTED
+  owner_worker: Wave5-W1
+  spec_source: V3 D-044 + V-WAVE-CORE V5/V9 partials + AP-SY02
+  closes: Audit G.1 G.2 + V-WAVE-CORE V5/V9

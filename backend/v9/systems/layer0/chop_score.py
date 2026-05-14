@@ -184,9 +184,18 @@ def get_chop_score() -> dict:
         "poc_vwap_distance": compute_poc_vwap_distance(),
     }
     score = compute_composite(indicators)
+    # W1.4: abbrev aliases per V3 D-044 (keep long-form for backward compat)
+    abbrev = {
+        "VF": indicators["vegas_flips_60m"],
+        "ZLx": indicators["cci_zl_crossings_30m"],
+        "POC": indicators["poc_migration_stuck"],
+        "IBx": indicators["ib_breakouts_recent"],
+        "R/A": indicators["range_atr_ratio"],
+        "P-V": indicators["poc_vwap_distance"],
+    }
     return {
         "chop_score": score,
         "state": classify_state(score),
-        "indicators": indicators,
+        "indicators": {**indicators, **abbrev},
         "computed_at": datetime.now(timezone.utc).isoformat(),
     }
