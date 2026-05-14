@@ -552,6 +552,7 @@ export function ChartV5a() {
         stroke="#333" strokeWidth={0.3} />
 
       {/* Volume strip background */}
+      <g data-testid="strip-volume">
       <rect x={ML} y={VOL_Y} width={CW} height={VOL_H} fill="#0d0d0d" />
       <line x1={ML} y1={VOL_Y} x2={W - MR} y2={VOL_Y} stroke="#1a1a1a" strokeWidth={0.5} />
 
@@ -566,6 +567,7 @@ export function ChartV5a() {
             fill={bull ? '#16a34a' : '#dc2626'} opacity={0.6} rx={0.5} />
         );
       })}
+      </g>{/* end strip-volume */}
 
       {/* TPO Stepped POC (5 periods, time-scoped) */}
       {renderSteppedPOC(tpoSessions, allBars, tpo?.poc ?? null, ML, MR, W, CW, yOf)}
