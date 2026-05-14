@@ -51,7 +51,7 @@ export function TradeHistoryStrip() {
 
   return (
     <div data-testid="strip-trade-history" style={{
-      height: 18, background: '#0a0a0a',
+      height: 18, minHeight: 18, flexShrink: 0, background: '#0a0a0a',
       borderTop: `1px solid ${COLORS.borderFaint}`,
       display: 'flex', alignItems: 'center', padding: '0 8px', gap: 2,
       overflow: 'hidden',
