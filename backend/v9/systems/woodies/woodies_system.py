@@ -15,6 +15,7 @@ from backend.v9.systems.base.trading_system import BaseV9TradingSystem, Hydratio
 from backend.v9.systems.woodies.cci_calc import compute_all_studies
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult
 from backend.v9.systems.woodies.pattern_engine import detect_all_patterns, PATTERN_IDS
+from backend.v9.systems.woodies.direction_change_detector import detect_from_buffer as detect_direction_change
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +165,13 @@ class WoodiesSystem(BaseV9TradingSystem):
             # Run 8-pattern engine
             patterns = detect_all_patterns(self._bar_buffer)
             self._active_patterns = patterns
+
+            # W3-β: Direction Change detection (TCCI crosses CCI14)
+            dir_change = detect_direction_change(self._bar_buffer)
+            if dir_change:
+                self.current_state["last_direction_change"] = dir_change
+                logger.info("[Woodies] Direction change: %s — %s",
+                            dir_change["direction"], dir_change["reasoning_notes"])
 
             # Classify overall state
             signal = "NEUTRAL"

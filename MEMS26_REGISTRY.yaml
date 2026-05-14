@@ -1727,3 +1727,11 @@ requirements:
   spec_source: Constitution V3 D-047 + Part 1 Layer 3
   notes: "Cluster + empty zone modules pre-existed in backend/v9/layer3/. Handoff wrapper created in services/layer3/handoff.py. 5/5 tests pass."
   closes: V3 Part 5 MISSING #3 #4 #5
+
+- id: REQ-W3-beta
+  name: "S4 Woodies — Direction Change Detector (verified gap only)"
+  category: SYSTEM
+  severity: HIGH
+  status: IMPLEMENTED
+  spec_source: "V3 Part 1 Layer 1 T2 + Part 5 #16"
+  notes: "AUDIT found 95% already built. Only direction_change_detector.py genuinely missing."
