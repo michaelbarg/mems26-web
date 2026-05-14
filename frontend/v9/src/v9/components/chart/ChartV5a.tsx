@@ -114,8 +114,8 @@ function renderSteppedVAL(sessions: TpoSession[], bars: {ts:string}[], fallback:
   }).filter(Boolean);
 }
 
-const W = 800, H = 310;  // +30 for volume strip
-const ML = 8, MR = 62, MT = 28, MB = 32;  // MB includes volume strip
+const W = 860, H = 310;  // +30 for volume strip (wider for 120px gutter)
+const ML = 8, MR = 120, MT = 28, MB = 32;  // MR=120px right gutter per V5 §4.7
 const CW = W - ML - MR, CH = H - MT - MB;
 const VOL_H = 28;
 const VOL_Y = H - MB + 2;  // Volume strip starts here
@@ -507,7 +507,7 @@ export function ChartV5a() {
               <line x1={W - MR + 1} y1={p.yOriginal} x2={W - MR + 1} y2={p.y}
                 stroke={p.text} strokeWidth={0.5} opacity={0.3} />
             )}
-            <rect x={W - MR + 2} y={p.y - 7} width={56} height={14} rx={2}
+            <rect x={W - MR + 2} y={p.y - 7} width={108} height={14} rx={2}
               fill={p.fill} opacity={p.label === 'PRC' ? (prcFlash ? 0.6 : 1) : 0.8} />
             <text x={W - MR + 5} y={p.y + 3} fontSize={9} fill={p.text}
               fontFamily="ui-monospace, monospace" fontWeight={p.fontWeight}>

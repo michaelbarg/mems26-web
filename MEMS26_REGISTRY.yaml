@@ -1665,3 +1665,15 @@ requirements:
   spec_source: Constitution V3 Layer 1 T3 + Cockpit V5
   notes: "SystemType changed OBSERVING→FIRING. detect_absorption + detect_stacked_imbalance in signals/. calculate_size per-system (CORR-23 clean). /api/v9/footprint/fire endpoint."
   unblocks: Footprint firing pipeline (Worker B adds Sweep-Return + Exhaustion)
+- id: REQ-WAVE-A1.6-A
+  name: "Chart UI compliance — right scale 120px gutter"
+  status: IMPLEMENTED
+  owner_worker: Wave-A1.6-WorkerA
+  spec_source: Cockpit V5 §4.7
+  notes: "MR widened 62→120px. Pill width 56→108px. Volume strip already below candles (no-op). CumDelta renderer not found — deferred."
+- id: REQ-WAVE-A1.6-B
+  name: "Day Type pre-IB gate fix — SHADOW data integrity"
+  status: IMPLEMENTED
+  owner_worker: Wave-A1.6-WorkerB
+  spec_source: Constitution V3 Part 3 Layer 2 + Bootstrap Red Flag #4
+  notes: "RTH session gate added to V1 classifier. Stale cache cleared on date boundary. Q2 TPO sanity: VAH>VAL by 55.5pt — OK."

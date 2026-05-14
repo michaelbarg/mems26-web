@@ -86,8 +86,24 @@ def _classify_v1_from_tpo() -> dict:
       Extension > 1.5x IB  → TREND_NORMAL
       Extension < 0.3x IB  → NONTREND
       Single side moderate  → VARIATION
+
+    Gate (Wave A1.6 Worker B): only classify during RTH cash session.
+    Pre-RTH classification violates Constitution V3 Part 3 Layer 2.
     """
     import requests
+
+    # Session gate: only classify during RTH (Bootstrap Red Flag #4)
+    try:
+        kz = requests.get("http://localhost:8000/api/v9/killzone/current", timeout=2).json()
+        zone_name = kz.get("current_zone", {}).get("name", "UNKNOWN")
+        rth_zones = {"NY_OPEN", "MIDDAY", "NY_PM"}
+        if zone_name not in rth_zones:
+            return {"day_type": "PENDING", "confidence": 0, "ib_h": None, "ib_l": None,
+                    "ib_range": None, "extension_ratio": None, "classified": False,
+                    "stage": f"PRE_RTH ({zone_name})", "reason": "Awaiting RTH session for IB lock"}
+    except Exception:
+        pass  # If killzone unavailable, fall through to IB lock check
+
     try:
         tpo = requests.get("http://localhost:8000/api/v9/tpo/current", timeout=2).json()
     except Exception:
@@ -168,6 +184,11 @@ def get_current():
     from datetime import date
 
     today = date.today().isoformat()
+
+    # Clear stale cache from previous day
+    if _today_date and _today_date != today:
+        _today_classification = None
+        _today_date = None
 
     # Return cached if already classified today
     if _today_date == today and _today_classification and _today_classification.get("classified"):
