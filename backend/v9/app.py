@@ -20,6 +20,7 @@ from backend.v9.api.v9.gateway_routes import router as gateway_api_router
 from backend.v9.api.v9.shadow_routes import router as shadow_api_router
 from backend.v9.systems.behavior_phase.routes import router as behavior_phase_router
 from backend.v9.api.v9.price_routes import router as price_api_router
+from backend.v9.api.v9.clock_routes import router as clock_api_router
 from backend.v9.ws.router import router as ws_event_bus_router
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ v9_router.include_router(gateway_api_router)
 v9_router.include_router(shadow_api_router)
 v9_router.include_router(behavior_phase_router)
 v9_router.include_router(price_api_router)
+v9_router.include_router(clock_api_router)
 
 
 @v9_router.get("/api/v9/health")
