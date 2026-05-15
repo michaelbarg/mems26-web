@@ -128,11 +128,14 @@ async def _startup():
     try:
         from backend.v9.systems.day_type.state_machine import DayTypeStateMachine
         from backend.v9.systems.day_type.schemas import BarInput
+        from backend.v9.systems.day_type.consumer import DayTypeConsumer
+        from backend.v9.db.session import SessionLocal
         from backend.v9.services.market_clock import now_et
         import time as _time_mod
 
         day_type_machine = DayTypeStateMachine()
         app.state.day_type_machine = day_type_machine
+        _day_type_consumer = DayTypeConsumer(SessionLocal)
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
 
         async def _day_type_on_bar(event):
@@ -194,6 +197,28 @@ async def _startup():
                     conn.close()
                 except Exception as db_err:
                     _logger.debug("[DayType] DB persist skipped: %s", db_err)
+
+                # V9: Persist to v9_day_type_history via DayTypeConsumer (3a-S4)
+                try:
+                    classification = day_type_machine.to_classification()
+                    if classification is not None:
+                        _day_type_consumer.consume({
+                            "timestamp": classification.timestamp.isoformat(),
+                            "day_type": classification.day_type.value,
+                            "probability": classification.probability,
+                            "directional_certainty": classification.directional_certainty,
+                            "trading_confidence": classification.trading_confidence,
+                            "ib_h": classification.ib_h,
+                            "ib_l": classification.ib_l,
+                            "ib_width": classification.ib_width,
+                            "ib_width_class": classification.ib_width_class,
+                            "opening_type": classification.opening_type,
+                            "last_updated_at": classification.last_updated_at.isoformat(),
+                            "reasoning_notes": classification.reasoning_notes,
+                            "active_zohar_rules": classification.active_zohar_rules,
+                        })
+                except Exception as consumer_err:
+                    _logger.debug("[DayType] V9 consumer persist skipped: %s", consumer_err)
 
                 # P5.1.5: Publish on classification CHANGE only
                 dt_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
