@@ -1,0 +1,16 @@
+event_type: "volume.spike"
+version: 1
+description: "Published when VolumeSpikeDetector detects z >= 2.0 on a 5-min bar"
+publisher: "shared/volume_spike.py"
+consumers:
+  - "systems/day_type"
+  - "systems/footprint"
+  - "systems/five_min"
+schema:
+  timestamp: "datetime"
+  bar_volume: "int"
+  rolling_mean: "float"
+  rolling_stddev: "float"
+  z_score: "float"
+  is_spike: "bool"
+  bar_index_in_session: "int"
