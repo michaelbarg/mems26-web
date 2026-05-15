@@ -77,7 +77,7 @@ class DayTypeSystem(BaseSystem):
             state = self._machine.process_bar(bar_input)
 
             # Generate signal when locked with playbook
-            if state.lock_state.value in ("LOCKED", "LOCKED_LOW_CONF") and state.playbook is not None:
+            if state.lock_state in ("LOCKED", "LOCKED_LOW_CONF") and state.playbook is not None:
                 direction = "LONG"
                 if state.behavior.value in ("TRENDING_DOWN",):
                     direction = "SHORT"
@@ -91,7 +91,7 @@ class DayTypeSystem(BaseSystem):
                     metadata={
                         "stage": state.stage.value,
                         "playbook_strategy": state.playbook.strategy,
-                        "lock_state": state.lock_state.value,
+                        "lock_state": state.lock_state,
                     },
                 )
 

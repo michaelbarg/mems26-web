@@ -8,7 +8,7 @@ and full-flow scenarios.
 import pytest
 
 from backend.v9.systems.day_type.schemas import (
-    BarInput, DayType, OpeningType, IBWidth, Stage, LockState,
+    BarInput, DayType, OpeningType, IBWidth, Stage,
     Behavior, RangeCategory, FailedExtensionType,
 )
 from backend.v9.systems.day_type.detector import (
@@ -385,7 +385,7 @@ class TestStateMachineStages:
         sm = DayTypeStateMachine()
         assert sm.stage == Stage.A1
         assert sm.day_type == DayType.UNKNOWN
-        assert sm.lock_state == LockState.PENDING
+        assert sm.lock_state == "PENDING"
 
     def test_a1_pre_open(self):
         sm = DayTypeStateMachine()
@@ -475,7 +475,7 @@ class TestStateMachineStages:
 
         bar = make_bar(session_min=120)
         sm._stage_c1(bar)
-        assert sm.lock_state in (LockState.LOCKED, LockState.LOCKED_LOW_CONF)
+        assert sm.lock_state in ("LOCKED", "LOCKED_LOW_CONF")
 
     def test_c1_lock_by_consecutive_votes(self):
         sm = DayTypeStateMachine()
@@ -489,7 +489,7 @@ class TestStateMachineStages:
 
         bar = make_bar(session_min=120)
         sm._stage_c1(bar)
-        assert sm.lock_state == LockState.LOCKED_LOW_CONF
+        assert sm.lock_state == "LOCKED_LOW_CONF"
 
     def test_c1_lock_by_time(self):
         sm = DayTypeStateMachine()
@@ -502,13 +502,13 @@ class TestStateMachineStages:
 
         bar = make_bar(session_min=210)  # 13:00 ET
         sm._stage_c1(bar)
-        assert sm.lock_state == LockState.LOCKED_LOW_CONF
+        assert sm.lock_state == "LOCKED_LOW_CONF"
 
     def test_c3_playbook(self):
         sm = DayTypeStateMachine()
         sm.stage = Stage.C3
         sm.day_type = DayType.Trend_Normal
-        sm.lock_state = LockState.LOCKED
+        sm.lock_state = "LOCKED"
 
         bar = make_bar(session_min=250)
         sm._stage_c3(bar)
@@ -715,7 +715,7 @@ class TestFullFlowScenarios:
         # Set up locked state manually
         sm.stage = Stage.C3
         sm.day_type = DayType.Trend_Normal
-        sm.lock_state = LockState.LOCKED
+        sm.lock_state = "LOCKED"
         sm.confidence = 0.90
         sm.ib_locked = True
         sm.ib_high = 4520
@@ -732,7 +732,7 @@ class TestFullFlowScenarios:
         state = sm.process_bar(bar)
 
         # Should have unlocked for re-eval
-        assert sm.lock_state == LockState.PENDING
+        assert sm.lock_state == "PENDING"
 
 
 # ── Edge Cases ───────────────────────────────────────────────────────────

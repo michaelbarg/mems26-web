@@ -180,7 +180,7 @@ async def _startup():
                             state.ib_width.value if hasattr(state.ib_width, 'value') else None,
                             opening_type,
                             state.behavior.value if hasattr(state.behavior, 'value') else None,
-                            state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state),
+                            str(state.lock_state),
                             datetime.now(timezone.utc).isoformat(),
                         )
                     )
@@ -199,7 +199,7 @@ async def _startup():
                         await bar_router.publish("day_type_classification", {
                             "ts": datetime.now(timezone.utc).isoformat(),
                             "day_type": dt_val,
-                            "status": state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state),
+                            "status": str(state.lock_state),
                             "confidence": state.confidence,
                             "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
                             "ib_high": ib_h,

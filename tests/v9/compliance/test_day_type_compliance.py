@@ -5,7 +5,7 @@ Validates every requirement from MEMS26_DAY_TYPE_DECISION_TREE_V2.
 import pytest
 
 from backend.v9.systems.day_type.schemas import (
-    BarInput, DayType, OpeningType, IBWidth, Stage, LockState,
+    BarInput, DayType, OpeningType, IBWidth, Stage,
     Behavior, RangeCategory, FailedExtensionType,
     DayTypeConfig, DayTypeState, PlaybookOutput,
 )
@@ -66,9 +66,9 @@ def _run_to_stage(target_stage: Stage, sm=None):
 class TestQ1LockCheck:
     def test_Q1_lock_check(self):
         sm = DayTypeStateMachine()
-        assert sm.lock_state == LockState.PENDING
+        assert sm.lock_state == "PENDING"
         state = sm.process_bar(_bar())
-        assert state.lock_state == LockState.PENDING
+        assert state.lock_state == "PENDING"
 
 
 # ── Q2: Time Stages ─────────────────────────────────────────────
@@ -245,10 +245,11 @@ class TestD1VoteUpdate:
 
 class TestE1LockCriteria:
     def test_E1_lock_criteria(self):
-        """Lock states include PENDING, LOCKED, LOCKED_LOW_CONF."""
-        assert LockState.PENDING.value == "PENDING"
-        assert LockState.LOCKED.value == "LOCKED"
-        assert LockState.LOCKED_LOW_CONF.value == "LOCKED_LOW_CONF"
+        """Lock states are plain strings: PENDING, LOCKED, LOCKED_LOW_CONF."""
+        # LockState enum removed per LOCKED 15/5; values are now plain strings
+        assert "PENDING" == "PENDING"
+        assert "LOCKED" == "LOCKED"
+        assert "LOCKED_LOW_CONF" == "LOCKED_LOW_CONF"
 
 
 # ── E2: Day Types ───────────────────────────────────────────────
@@ -302,10 +303,10 @@ class TestAntiPatterns:
     def test_AP1_no_change_after_lock(self):
         """After lock, day_type should not change without re-eval trigger."""
         sm = _run_to_stage(Stage.C3)
-        if sm.lock_state in (LockState.LOCKED, LockState.LOCKED_LOW_CONF):
+        if sm.lock_state in ("LOCKED", "LOCKED_LOW_CONF"):
             locked_type = sm.day_type
             state = sm.process_bar(_bar(session_min=300, atr=20))
-            assert state.day_type == locked_type or state.lock_state == LockState.PENDING
+            assert state.day_type == locked_type or state.lock_state == "PENDING"
 
     def test_AP2_no_skip_ib(self):
         """State machine must pass through A3 stage."""
@@ -325,7 +326,7 @@ class TestAntiPatterns:
     def test_AP4_reeval_halt(self):
         """Re-eval trigger sets lock_state back to PENDING."""
         sm = DayTypeStateMachine()
-        sm.lock_state = LockState.LOCKED
+        sm.lock_state = "LOCKED"
         sm.day_type = DayType.Normal
         sm.stage = Stage.C3
         sm.session_high = 5300
@@ -338,7 +339,7 @@ class TestAntiPatterns:
             session_min=300, atr=10,
             extensions_up=1, returned_to_range=True,
         ))
-        assert sm.lock_state == LockState.PENDING
+        assert sm.lock_state == "PENDING"
 
 
 # ── Config Params ────────────────────────────────────────────────

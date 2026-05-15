@@ -26,5 +26,5 @@ schema:
 locked_decisions:
   - "Hybrid approach LOCKED 15/5 PM (option D)"
   - "No status enum in V9 output (FORMING/LOCKED/UNCLEAR REJECTED)"
-  - "LockState enum still in DayTypeState (legacy, removed in 3a-S5)"
+  - "LockState enum removed from schemas.py (3a-S5 C1), lock_state is plain string"
   - "probability = max(matrix_cell_probabilities), no weighted average"

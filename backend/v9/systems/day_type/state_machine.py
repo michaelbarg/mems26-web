@@ -14,11 +14,16 @@ from datetime import datetime, timezone
 from typing import List, Optional, Dict
 
 from .schemas import (
-    BarInput, DayType, OpeningType, IBWidth, Stage, LockState,
+    BarInput, DayType, OpeningType, IBWidth, Stage,
     Behavior, RangeCategory, FailedExtensionType,
     PreOpenContext, OpeningDetection, IBClassification,
     VoteRecord, PlaybookOutput, DayTypeState, DayTypeConfig,
 )
+
+# Internal lock state constants (LockState enum removed per LOCKED 15/5)
+_LOCK_PENDING = "PENDING"
+_LOCK_LOCKED = "LOCKED"
+_LOCK_LOW_CONF = "LOCKED_LOW_CONF"
 from .detector import (
     classify_ib_width, detect_opening_type, detect_behavior,
     detect_failed_extension, classify_range, calculate_confidence,
@@ -210,7 +215,7 @@ class DayTypeStateMachine:
         self.stage: Stage = Stage.A1
         self.day_type: DayType = DayType.UNKNOWN
         self.confidence: float = 0.0
-        self.lock_state: LockState = LockState.PENDING
+        self.lock_state: str = _LOCK_PENDING
 
         # A1
         self.pre_open: Optional[PreOpenContext] = None
@@ -283,7 +288,7 @@ class DayTypeStateMachine:
             self._stage_c3(bar)
 
         # If already locked, check re-eval triggers
-        if self.lock_state in (LockState.LOCKED, LockState.LOCKED_LOW_CONF):
+        if self.lock_state in (_LOCK_LOCKED, _LOCK_LOW_CONF):
             self._check_reeval(bar)
 
         state = self._build_state(bar)
@@ -540,7 +545,7 @@ class DayTypeStateMachine:
         - same vote 2x consecutive, OR
         - session_min >= 210 (13:00 ET)
         """
-        if self.lock_state != LockState.PENDING:
+        if self.lock_state != _LOCK_PENDING:
             self.stage = Stage.C2
             return
 
@@ -568,9 +573,9 @@ class DayTypeStateMachine:
 
         if should_lock:
             if self.confidence >= conf_threshold:
-                self.lock_state = LockState.LOCKED
+                self.lock_state = _LOCK_LOCKED
             else:
-                self.lock_state = LockState.LOCKED_LOW_CONF
+                self.lock_state = _LOCK_LOW_CONF
         else:
             # Go back to B2 for more development
             self.stage = Stage.B2
@@ -607,7 +612,7 @@ class DayTypeStateMachine:
 
         failed_ext_post_lock = (
             self.failed_extension != FailedExtensionType.NONE
-            and self.lock_state in (LockState.LOCKED, LockState.LOCKED_LOW_CONF)
+            and self.lock_state in (_LOCK_LOCKED, _LOCK_LOW_CONF)
         )
 
         # Check if range exceeds expectations
@@ -630,7 +635,7 @@ class DayTypeStateMachine:
         )
 
         if should_reeval:
-            self.lock_state = LockState.PENDING
+            self.lock_state = _LOCK_PENDING
             self.stage = Stage.B2
             self.playbook = None
 

@@ -298,7 +298,7 @@ def get_current():
     )
     return {
         "day_type": state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
-        "status": state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state),
+        "status": str(state.lock_state),
         "confidence": state.confidence,
         "ib_width": state.ib_width.value if hasattr(state.ib_width, 'value') else str(state.ib_width),
         "opening_type": state.opening_type.value if hasattr(state.opening_type, 'value') else str(state.opening_type),
@@ -347,7 +347,7 @@ def process_bar(bar: BarInput, db: Session = Depends(get_db)):
         ib_width_class=state.ib_width.value if state.ib_width else None,
         opening_type=state.opening_type.value if state.opening_type else None,
         behavior=state.behavior.value if state.behavior else None,
-        lock_state=state.lock_state.value if state.lock_state else None,
+        lock_state=state.lock_state or None,
         meta=state.meta,
     )
     db.add(record)

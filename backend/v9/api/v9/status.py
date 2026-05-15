@@ -187,7 +187,7 @@ def _check_day_type() -> dict:
             BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
         )
         dt_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
-        status_val = state.lock_state.value if hasattr(state.lock_state, 'value') else str(state.lock_state)
+        status_val = str(state.lock_state)
         return {
             "running": True,
             "current_type": dt_val,

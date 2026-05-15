@@ -49,12 +49,6 @@ class Stage(str, Enum):
     C3 = "C3"
 
 
-class LockState(str, Enum):
-    PENDING = "PENDING"
-    LOCKED = "LOCKED"
-    LOCKED_LOW_CONF = "LOCKED_LOW_CONF"
-
-
 class Behavior(str, Enum):
     TRENDING_UP = "TRENDING_UP"
     TRENDING_DOWN = "TRENDING_DOWN"
@@ -167,7 +161,7 @@ class DayTypeState(BaseModel):
     stage: Stage = Stage.A1
     day_type: DayType = DayType.UNKNOWN
     confidence: float = 0.0
-    lock_state: LockState = LockState.PENDING
+    lock_state: str = "PENDING"
     opening_type: OpeningType = OpeningType.UNKNOWN
     ib_width: IBWidth = IBWidth.UNKNOWN
     behavior: Behavior = Behavior.DEVELOPING
