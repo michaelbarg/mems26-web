@@ -34,6 +34,12 @@ class IBWidth(str, Enum):
 
 
 class Stage(str, Enum):
+    """Internal stage tracking for state machine progression.
+
+    Not part of V9 public output (DayTypeClassification).
+    Used only by state_machine.py for 13-stage A1->C3 pipeline.
+    Retained for backward compat with existing callers/tests.
+    """
     A1 = "A1"
     A2 = "A2"
     A3 = "A3"
@@ -157,8 +163,12 @@ class PlaybookOutput(BaseModel):
 # ── Main State ───────────────────────────────────────────────────────────
 
 class DayTypeState(BaseModel):
-    """Full state output of the Day Type Engine."""
-    stage: Stage = Stage.A1
+    """Full state output of the Day Type Engine.
+
+    V9 public output uses DayTypeClassification (via to_classification()).
+    stage is internal-only (state machine progression tracking).
+    """
+    stage: Stage = Stage.A1  # Internal: not in V9 DayTypeClassification output
     day_type: DayType = DayType.UNKNOWN
     confidence: float = 0.0
     lock_state: str = "PENDING"
