@@ -128,6 +128,7 @@ async def _startup():
     try:
         from backend.v9.systems.day_type.state_machine import DayTypeStateMachine
         from backend.v9.systems.day_type.schemas import BarInput
+        from backend.v9.services.market_clock import now_et
         import time as _time_mod
 
         day_type_machine = DayTypeStateMachine()
@@ -149,9 +150,14 @@ async def _startup():
                     tpo_state = tpo_sys.get_current()
                     opening_type = tpo_state.get("opening_type", "NA")
 
+                # Compute session_min from current ET time (RTH open = 09:30 ET)
+                et_now = now_et()
+                rth_open = et_now.replace(hour=9, minute=30, second=0, microsecond=0)
+                _session_min = max(0, int((et_now - rth_open).total_seconds() / 60))
+
                 bar_input = BarInput(
                     ts=_time_mod.time(),
-                    session_min=0,  # computed by state machine internally
+                    session_min=_session_min,
                     open=float(bar.get("open", bar.get("o", 0))),
                     high=float(bar.get("high", bar.get("h", 0))),
                     low=float(bar.get("low", bar.get("l", 0))),
