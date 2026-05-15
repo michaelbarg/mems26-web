@@ -46,35 +46,70 @@ def get_state():
     return DayTypeStateResponse(state=state)
 
 
-@router.get("/history", response_model=DayTypeHistoryResponse)
-def get_history(
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    db: Session = Depends(get_db),
-):
-    """Return recent day type state history from DB."""
-    rows = (
-        db.query(V9DayTypeState)
-        .order_by(V9DayTypeState.ts.desc())
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+@router.get("/history")
+def get_history(limit: int = Query(20, ge=1, le=100)):
+    """Return recent day type state history from DB (raw sqlite3 for reliability)."""
+    import sqlite3
+    DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT ts, stage, day_type, confidence, lock_state, opening_type, ib_width_class, behavior FROM v9_day_type_state ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+        conn.close()
+        items = [
+            {
+                "ts": r["ts"],
+                "stage": r["stage"] or "A1",
+                "day_type": r["day_type"] or "UNKNOWN",
+                "confidence": float(r["confidence"] or 0),
+                "lock_state": r["lock_state"] or "PENDING",
+                "opening_type": r["opening_type"] or "UNKNOWN",
+                "ib_width": r["ib_width_class"] or "UNKNOWN",
+                "behavior": r["behavior"] or "DEVELOPING",
+            }
+            for r in rows
+        ]
+        return {"items": items, "count": len(items)}
+    except Exception as e:
+        return {"items": [], "count": 0, "error": str(e)}
 
-    items = []
-    for row in rows:
-        items.append(DayTypeState(
-            stage=row.stage,
-            day_type=row.day_type or "UNKNOWN",
-            confidence=row.confidence or 0.0,
-            lock_state=row.lock_state or "PENDING",
-            opening_type=row.opening_type or "UNKNOWN",
-            ib_width=row.ib_width_class or "UNKNOWN",
-            behavior=row.behavior or "DEVELOPING",
-            meta=row.meta or {},
-        ))
 
-    return DayTypeHistoryResponse(items=items, count=len(items))
+def _get_state_machine_classification() -> Optional[dict]:
+    """Read state machine classification from v9_day_type_state DB (primary path per D-071).
+
+    Returns dict with all 6 day types possible, or None if not classified yet.
+    """
+    import sqlite3
+    DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM v9_day_type_state WHERE lock_state='LOCKED' AND date(ts)=date('now') ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+        conn.close()
+        if not row:
+            return None
+        r = dict(row)
+        dt = r.get("day_type", "UNKNOWN")
+        if dt == "UNKNOWN":
+            return None
+        conf = r.get("confidence", 0)
+        return {
+            "day_type": dt,
+            "confidence": conf if isinstance(conf, (int, float)) else 0,
+            "stage": r.get("stage", ""),
+            "ib_width": r.get("ib_width_class", "UNKNOWN"),
+            "opening_type": r.get("opening_type", "UNKNOWN"),
+            "lock_state": r.get("lock_state", "PENDING"),
+            "classified": True,
+            "source": "state_machine",
+        }
+    except Exception:
+        return None
 
 
 def _classify_v1_from_tpo() -> dict:
@@ -181,27 +216,38 @@ _today_date: Optional[str] = None
 
 @router.get("/current")
 def get_current():
-    """Current Day Type classification (V1 simple rules from TPO).
+    """Current Day Type classification — state machine primary, V1 fallback (D-071).
 
-    Falls back to state machine if V1 can't classify.
-    Persists to v9_day_type_history on first successful classification.
+    State machine provides all 6 types (incl Trend_DD).
+    V1 classifier is fallback-only (5 types, simpler rules).
     """
     global _today_classification, _today_date
     from datetime import date
+    import requests
 
     today = date.today().isoformat()
 
-    # γ.1: Clear stale cache AND reset engine on new trading day
+    # Clear stale cache on new trading day
     if _today_date and _today_date != today:
         _today_classification = None
         _today_date = None
-        reset_engine()  # CASE A: prevent state carry-over from previous session
+        reset_engine()
 
     # Return cached if already classified today
     if _today_date == today and _today_classification and _today_classification.get("classified"):
         return _today_classification
 
-    # Try V1 classifier
+    # PRIMARY: Try state machine (via app.state.day_type_machine set by main.py)
+    try:
+        sm_result = _get_state_machine_classification()
+        if sm_result and sm_result.get("classified"):
+            _today_classification = sm_result
+            _today_date = today
+            return sm_result
+    except Exception:
+        pass
+
+    # FALLBACK: V1 simple classifier (D-071)
     result = _classify_v1_from_tpo()
 
     if result.get("classified"):
