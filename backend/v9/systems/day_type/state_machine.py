@@ -32,31 +32,7 @@ from .detector import (
 from .triggers import TriggerEvent, TriggerType
 from .zohar_rules import ZoharRulesEngine, RuleVerdict
 from .extensions import ExtensionTracker
-
-# ── Decision Matrix (B1) ────────────────────────────────────────────────
-# Key: (OpeningType, IBWidth) → DayType
-DECISION_MATRIX: Dict[tuple, DayType] = {
-    # V2 spec: highest-probability day type per Opening Type × IB Width
-    (OpeningType.OPEN_DRIVE, IBWidth.NARROW):   DayType.Trend_Normal,   # 60% per spec
-    (OpeningType.OPEN_DRIVE, IBWidth.MEDIUM):   DayType.Trend_Normal,   # 70%
-    (OpeningType.OPEN_DRIVE, IBWidth.WIDE):     DayType.Trend_Normal,   # 50%
-
-    (OpeningType.OPEN_TEST_DRIVE, IBWidth.NARROW):  DayType.Trend_DD,   # 40% per spec
-    (OpeningType.OPEN_TEST_DRIVE, IBWidth.MEDIUM):  DayType.Trend_Normal,  # 50%
-    (OpeningType.OPEN_TEST_DRIVE, IBWidth.WIDE):    DayType.Variation,  # 50%
-
-    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.NARROW):  DayType.Variation,  # 40%
-    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.MEDIUM):  DayType.Variation,  # 50%
-    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.WIDE):    DayType.Normal,     # 50%
-
-    (OpeningType.OPEN_AUCTION_IN, IBWidth.NARROW):  DayType.Nontrend,   # 50%
-    (OpeningType.OPEN_AUCTION_IN, IBWidth.MEDIUM):  DayType.Normal,     # 40% per spec
-    (OpeningType.OPEN_AUCTION_IN, IBWidth.WIDE):    DayType.Normal,     # 50%
-
-    (OpeningType.OPEN_AUCTION_OUT, IBWidth.NARROW):  DayType.Trend_DD,     # 50%
-    (OpeningType.OPEN_AUCTION_OUT, IBWidth.MEDIUM):  DayType.Trend_DD,     # 40%
-    (OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE):    DayType.Trend_Normal, # 40% per spec
-}
+from .decision_matrix import DECISION_MATRIX  # Single source (extracted in 3a-S5 C3)
 
 # ── Playbook Templates (C3) ─────────────────────────────────────────────
 PLAYBOOK_TEMPLATES: Dict[DayType, dict] = {

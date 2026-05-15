@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, '/Users/michael/Downloads/mems26_web_git')
 
 from backend.v9.systems.day_type.schemas import DayType, OpeningType, IBWidth
-from backend.v9.systems.day_type.state_machine import DECISION_MATRIX
+from backend.v9.systems.day_type.decision_matrix import DECISION_MATRIX
 
 
 def test_all_six_day_types_reachable():

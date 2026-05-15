@@ -1,15 +1,40 @@
-"""DecisionMatrix wrapper around DECISION_MATRIX dict.
+"""DecisionMatrix — single source of truth for day type probabilities.
 
-LOCKED 15/5 (Hybrid approach · option D):
-- DECISION_MATRIX dict stays inline in state_machine.py (will be extracted in 3a-S5)
-- This module provides V9 interface: get_probabilities(opening_type, width_class)
-- Wraps the existing dict · zero data duplication
+LOCKED 15/5 (Hybrid approach, option D):
+- DECISION_MATRIX dict defined here (extracted from state_machine.py in 3a-S5 C3)
+- V9 interface: DecisionMatrix.get_probabilities(opening_type, width_class)
+- state_machine.py imports DECISION_MATRIX from this module
 """
 
 from typing import Dict
 
-from .state_machine import DECISION_MATRIX
 from .schemas import OpeningType, IBWidth, DayType
+
+
+# ── Decision Matrix (B1) ────────────────────────────────────────────────
+# Key: (OpeningType, IBWidth) -> DayType
+# Source: V2 spec, highest-probability day type per Opening Type x IB Width
+DECISION_MATRIX: Dict[tuple, DayType] = {
+    (OpeningType.OPEN_DRIVE, IBWidth.NARROW):   DayType.Trend_Normal,   # 60% per spec
+    (OpeningType.OPEN_DRIVE, IBWidth.MEDIUM):   DayType.Trend_Normal,   # 70%
+    (OpeningType.OPEN_DRIVE, IBWidth.WIDE):     DayType.Trend_Normal,   # 50%
+
+    (OpeningType.OPEN_TEST_DRIVE, IBWidth.NARROW):  DayType.Trend_DD,   # 40% per spec
+    (OpeningType.OPEN_TEST_DRIVE, IBWidth.MEDIUM):  DayType.Trend_Normal,  # 50%
+    (OpeningType.OPEN_TEST_DRIVE, IBWidth.WIDE):    DayType.Variation,  # 50%
+
+    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.NARROW):  DayType.Variation,  # 40%
+    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.MEDIUM):  DayType.Variation,  # 50%
+    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.WIDE):    DayType.Normal,     # 50%
+
+    (OpeningType.OPEN_AUCTION_IN, IBWidth.NARROW):  DayType.Nontrend,   # 50%
+    (OpeningType.OPEN_AUCTION_IN, IBWidth.MEDIUM):  DayType.Normal,     # 40% per spec
+    (OpeningType.OPEN_AUCTION_IN, IBWidth.WIDE):    DayType.Normal,     # 50%
+
+    (OpeningType.OPEN_AUCTION_OUT, IBWidth.NARROW):  DayType.Trend_DD,     # 50%
+    (OpeningType.OPEN_AUCTION_OUT, IBWidth.MEDIUM):  DayType.Trend_DD,     # 40%
+    (OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE):    DayType.Trend_Normal, # 40% per spec
+}
 
 
 # Short-form names accepted by get_probabilities (Mind Over Markets convention)
@@ -26,7 +51,7 @@ class DecisionMatrix:
     """V9 interface for day type probabilities by (opening_type, width_class).
 
     Source: PROMPT 3a-S3 Section B (LOCKED 15/5)
-    Backed by existing DECISION_MATRIX dict in state_machine.py.
+    Backed by DECISION_MATRIX dict defined above.
     """
 
     def get_probabilities(
@@ -51,7 +76,7 @@ class DecisionMatrix:
             else str(width_class)
         ).upper()
 
-        # Resolve short-form names (od → OPEN_DRIVE)
+        # Resolve short-form names (od -> OPEN_DRIVE)
         ot_upper = _SHORT_TO_OPENING.get(ot_raw.lower(), ot_raw.upper())
 
         # Look up enums
@@ -65,7 +90,6 @@ class DecisionMatrix:
         if key not in DECISION_MATRIX:
             return {dt.value.lower(): 1.0 / 6.0 for dt in DayType if dt != DayType.UNKNOWN}
 
-        # DECISION_MATRIX maps (OpeningType, IBWidth) -> DayType (winning type)
         # Build probability distribution: winner gets 0.7, others share 0.3
         winning_dt = DECISION_MATRIX[key]
         non_winners = [dt for dt in DayType if dt != DayType.UNKNOWN and dt != winning_dt]
