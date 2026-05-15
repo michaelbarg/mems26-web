@@ -1,0 +1,30 @@
+event_type: day_type.classification
+version: 1
+description: V9 output of DayTypeStateMachine.to_classification() or on_trigger()
+publisher: systems/day_type/state_machine.py (DayTypeStateMachine.to_classification)
+consumers:
+  - persistence (3a-S4 DayTypeConsumer)
+  - api (3a-S4 endpoints)
+  - dashboard (UI, pending designer)
+  - systems/five_min (System 2, future)
+  - systems/footprint (System 3, future)
+  - systems/woodies (System 4, future)
+schema:
+  timestamp: datetime ISO 8601 ET
+  day_type: enum [trend_normal, trend_dd, variation, normal, neutral, nontrend]
+  probability: float (0.0-1.0)
+  directional_certainty: enum [HIGH, MEDIUM, LOW]
+  trading_confidence: enum [HIGH, MEDIUM, LOW]
+  ib_h: optional float
+  ib_l: optional float
+  ib_width: optional float
+  ib_width_class: optional enum [NARROW, MEDIUM, WIDE]
+  opening_type: optional enum [OPEN_DRIVE, OPEN_TEST_DRIVE, OPEN_REJECTION_REVERSE, OPEN_AUCTION_IN, OPEN_AUCTION_OUT]
+  last_updated_at: datetime ISO 8601 ET
+  reasoning_notes: string
+  active_zohar_rules: array of strings
+locked_decisions:
+  - "Hybrid approach LOCKED 15/5 PM (option D)"
+  - "No status enum in V9 output (FORMING/LOCKED/UNCLEAR REJECTED)"
+  - "LockState enum still in DayTypeState (legacy, removed in 3a-S5)"
+  - "probability = max(matrix_cell_probabilities), no weighted average"
