@@ -1,0 +1,16 @@
+event_type: "cvd.context"
+version: 1
+description: "Published every 5-min bar close with CVD vs Price classification"
+publisher: "shared/cvd_context.py"
+consumers:
+  - "systems/day_type"
+  - "systems/footprint"
+  - "systems/five_min"
+schema:
+  timestamp: "datetime"
+  state: "CVDState enum (8 values)"
+  price_delta_bar: "float"
+  cvd_value: "float"
+  cvd_slope: "float"
+  has_volume_spike: "bool"
+  reasoning: "str"
