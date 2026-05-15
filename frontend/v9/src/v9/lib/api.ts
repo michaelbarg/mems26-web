@@ -49,6 +49,30 @@ export const fetchTradeById = (id: number) =>
 export const fetchConfigs = () =>
   apiFetch<any[]>(`/api/v9/configs`);
 
+// V9 Day Type classification (3a-S4 endpoint)
+export interface DayTypeV9Response {
+  classified: boolean;
+  session_date: string;
+  data: {
+    session_date: string;
+    day_type: string;
+    probability: number | null;
+    directional_certainty: string | null;
+    trading_confidence: string | null;
+    ib_h: number | null;
+    ib_l: number | null;
+    ib_width: number | null;
+    ib_width_class: string | null;
+    opening_type: string | null;
+    last_updated_at: string | null;
+    reasoning_notes: string | null;
+    active_zohar_rules: string[];
+  } | null;
+}
+
+export const fetchDayTypeV9 = () =>
+  apiFetch<DayTypeV9Response>(`/api/v9/day_type/v9/current`);
+
 export const fetchConfig = (systemId: number, mode: string) =>
   apiFetch<any>(`/api/v9/configs/${systemId}/${mode}`);
 

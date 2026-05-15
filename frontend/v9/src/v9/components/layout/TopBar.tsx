@@ -37,16 +37,29 @@ export function TopBar() {
     f(); const id = setInterval(f, 5000); return () => clearInterval(id);
   }, []);
 
-  // Day Type from V1 classifier (PA2-1)
+  // Day Type from V9 classifier (3a-S4 endpoint, falls back to V1)
   const DT_LABELS: Record<string, string> = {
     Trend_Normal: 'TRD', Trend_DD: 'TDD', Variation: 'VAR',
     Neutral: 'NEU', Normal: 'NOR', Nontrend: 'NTR', UNKNOWN: '\u2014',
+    trend_normal: 'TRD', trend_dd: 'TDD', variation: 'VAR',
+    neutral: 'NEU', normal: 'NOR', nontrend: 'NTR',
   };
   const [dayTypeRaw, setDayTypeRaw] = useState('UNKNOWN');
   const [dayTypeConf, setDayTypeConf] = useState(0);
+  const [dayTypeDir, setDayTypeDir] = useState<string | null>(null);
   useEffect(() => {
-    const f = () => fetch(`${API}/api/v9/day_type/current`).then(r => r.json())
-      .then(d => { setDayTypeRaw(d.day_type || 'UNKNOWN'); setDayTypeConf(d.confidence ?? 0); }).catch(() => {});
+    const f = () => fetch(`${API}/api/v9/day_type/v9/current`).then(r => r.json())
+      .then(d => {
+        if (d?.data) {
+          setDayTypeRaw(d.data.day_type || 'UNKNOWN');
+          setDayTypeConf(d.data.probability != null ? Math.round(d.data.probability * 100) : 0);
+          setDayTypeDir(d.data.directional_certainty || null);
+        } else {
+          // Fallback to V1 endpoint
+          return fetch(`${API}/api/v9/day_type/current`).then(r2 => r2.json())
+            .then(d2 => { setDayTypeRaw(d2.day_type || 'UNKNOWN'); setDayTypeConf(d2.confidence ?? 0); });
+        }
+      }).catch(() => {});
     f(); const id = setInterval(f, 10000); return () => clearInterval(id);
   }, []);
   const dayType = DT_LABELS[dayTypeRaw] || dayTypeRaw;
@@ -113,7 +126,7 @@ export function TopBar() {
           background: 'rgba(99,102,241,0.15)', color: '#818cf8',
           fontFamily: 'ui-monospace, monospace',
         }}>
-          {dayType} {dayTypeConf > 0 ? `${dayTypeConf}%` : ''}
+          {dayType} {dayTypeConf > 0 ? `${dayTypeConf}%` : ''}{dayTypeDir ? ` ${dayTypeDir[0]}` : ''}
         </span>
         <span className="text-xs" style={{ color: killzone.open ? '#56d364' : '#f85149' }}>
           {killzone.zone} {killzone.open ? 'OPEN' : 'CLOSED'}

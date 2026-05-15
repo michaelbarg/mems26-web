@@ -42,12 +42,22 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
   fetchAllStates: async () => {
     const update = get().updateSystem;
     try {
-      const dt = await fetch(`${API_BASE}/api/v9/day_type/current`).then((r) => r.json()).catch(() => null);
-      if (dt) {
+      const dtV9 = await fetch(`${API_BASE}/api/v9/day_type/v9/current`).then((r) => r.json()).catch(() => null);
+      if (dtV9?.data) {
         update(1, {
-          state: dt.day_type ?? 'UNKNOWN',
-          confidence: (dt.confidence ?? 0) > 1 ? (dt.confidence / 100) : (dt.confidence ?? 0),
+          state: dtV9.data.day_type ?? 'UNKNOWN',
+          confidence: dtV9.data.probability ?? 0,
+          raw: dtV9.data,
         });
+      } else {
+        // Fallback to V1 endpoint
+        const dt = await fetch(`${API_BASE}/api/v9/day_type/current`).then((r) => r.json()).catch(() => null);
+        if (dt) {
+          update(1, {
+            state: dt.day_type ?? 'UNKNOWN',
+            confidence: (dt.confidence ?? 0) > 1 ? (dt.confidence / 100) : (dt.confidence ?? 0),
+          });
+        }
       }
     } catch {}
     try {
