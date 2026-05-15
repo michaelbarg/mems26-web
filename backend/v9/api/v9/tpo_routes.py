@@ -52,3 +52,51 @@ async def tpo_sessions(request: Request, date: str = ""):
         return {"sessions": [dict(r) for r in rows]}
     except Exception as e:
         return {"sessions": [], "error": str(e)}
+
+
+@router.get("/previous_day")
+async def tpo_previous_day():
+    """Previous trading day TPO summary (POC/VAH/VAL/IB/shape) from v9_tpo_sessions DB.
+
+    Uses market_clock.get_previous_trading_day to skip weekends + holidays (D-070).
+    """
+    from backend.v9.services.market_clock import get_previous_trading_day
+    db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+
+    prev_date = get_previous_trading_day()
+
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT * FROM v9_tpo_sessions WHERE trading_date=? AND session_type='CASH' ORDER BY id DESC LIMIT 1",
+            (prev_date.isoformat(),),
+        ).fetchone()
+        conn.close()
+
+        if not row:
+            return {
+                "session_date": prev_date.isoformat(),
+                "found": False,
+                "poc": None, "vah": None, "val": None,
+                "ib_high": None, "ib_low": None, "ib_width": None,
+                "profile_shape": None, "opening_type": None,
+            }
+
+        r = dict(row)
+        return {
+            "session_date": prev_date.isoformat(),
+            "found": True,
+            "poc": r.get("poc_price"),
+            "vah": r.get("vah_price"),
+            "val": r.get("val_price"),
+            "ib_high": r.get("ib_high"),
+            "ib_low": r.get("ib_low"),
+            "ib_width": r.get("ib_width"),
+            "profile_shape": r.get("profile_shape"),
+            "opening_type": r.get("opening_type"),
+            "range_high": r.get("range_high"),
+            "range_low": r.get("range_low"),
+        }
+    except Exception as e:
+        return {"session_date": prev_date.isoformat(), "found": False, "error": str(e)}
