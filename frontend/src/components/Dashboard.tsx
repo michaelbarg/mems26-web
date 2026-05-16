@@ -61,6 +61,9 @@ function normalizeCandle(c: any): Candle | null {
 const G = '#22c55e', Y = '#f59e0b', R = '#ef5350';
 const scoreCol = (s:number) => s >= 7 ? G : s >= 5 ? Y : R;
 const CANDLE_SEC = 180; // 3 minute candles
+const SETUP_ALERT_SCORE_THRESHOLD = 80;
+const SETUP_ALERT_SOUND_PATH = '/sounds/setup-alert.wav';
+type SetupAlertPermission = NotificationPermission | 'unsupported';
 
 // ── Detected Setup — סטאפ שזוהה ונשמר ─────────────────────────────────────
 interface DetectedSetup {
@@ -1620,7 +1623,17 @@ function MiniLight({ col }: { col: string }) {
 }
 
 // ── Zone A: Top Bar ───────────────────────────────────────────────────────────
-function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem, newsGuard, entryMode, onVersionClick }:{ live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean; systemOn:boolean; onToggleSystem:()=>void; newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] }; entryMode?:{mode:string;gates?:any}|null; onVersionClick?:()=>void }) {
+function TopBar({
+  live, connected, onAskAI, aiLoading, systemOn, onToggleSystem,
+  newsGuard, entryMode, onVersionClick, setupAlertsEnabled,
+  setupAlertPermission, onToggleSetupAlerts,
+}:{
+  live:MarketData|null; connected:boolean; onAskAI:()=>void; aiLoading:boolean;
+  systemOn:boolean; onToggleSystem:()=>void;
+  newsGuard?:{ state:string; available:boolean; active_event:any; events_today:number; events:any[] };
+  entryMode?:{mode:string;gates?:any}|null; onVersionClick?:()=>void;
+  setupAlertsEnabled:boolean; setupAlertPermission:SetupAlertPermission; onToggleSetupAlerts:()=>void;
+}) {
   const [time, setTime] = useState('');
   useEffect(() => {
     const t = setInterval(() => {
@@ -1632,6 +1645,13 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem,
   const price = live?.price ?? 0;
   const phase = live?.session?.phase ?? '—';
   const phaseCol = phase === 'RTH' ? G : phase === 'OVERNIGHT' ? Y : '#60a5fa';
+  const alertsGranted = setupAlertPermission === 'granted';
+  const alertsBlocked = setupAlertPermission === 'denied';
+  const alertsUnsupported = setupAlertPermission === 'unsupported';
+  const alertsCol = setupAlertsEnabled ? (alertsGranted ? G : Y) : alertsBlocked ? R : '#6b7280';
+  const alertsLabel = setupAlertsEnabled
+    ? (alertsGranted ? '🔔 Alerts ON' : '🔔 Sound ON')
+    : alertsBlocked ? '🔕 Blocked' : '🔕 Alerts';
 
   return (
     <div style={{ display:'flex', alignItems:'center', gap:16, padding:'10px 16px', background:'#111827', borderRadius:8, border:'1px solid #1e2738', flexWrap:'wrap' }}>
@@ -1715,6 +1735,19 @@ function TopBar({ live, connected, onAskAI, aiLoading, systemOn, onToggleSystem,
         ) : (
           <>⚡ שאל AI עכשיו</>
         )}
+      </button>
+
+      <button
+        onClick={onToggleSetupAlerts}
+        title={`${setupAlertsEnabled ? 'Disable' : 'Enable'} sound and browser notifications for setup score >= ${SETUP_ALERT_SCORE_THRESHOLD}${alertsUnsupported ? ' (browser notifications unsupported)' : ''}`}
+        style={{
+          display:'flex', alignItems:'center', gap:6,
+          padding:'6px 12px', borderRadius:8, fontSize:14, fontWeight:800,
+          background:`${alertsCol}22`, color:alertsCol, border:`1px solid ${alertsCol}44`,
+          cursor:'pointer', fontFamily:'inherit', transition:'all .2s',
+        }}
+      >
+        {alertsLabel}
       </button>
 
       <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:16 }}>
@@ -4247,10 +4280,76 @@ export default function Dashboard() {
   }, [systemOn]);
   const [tradeToast,setTradeToast]=useState<{msg:string;color:string}|null>(null);
   const [stopWarning,setStopWarning]=useState<{dist:number;stop:number;price:number}|null>(null);
+  const [setupAlertsEnabled,setSetupAlertsEnabled]=useState(false);
+  const [setupAlertPermission,setSetupAlertPermission]=useState<SetupAlertPermission>('unsupported');
   const [checklistSetup, setChecklistSetup] = useState<ChecklistSetup | null>(null);
   const [wsCB, setWsCB] = useState<{ allowed: boolean; reason: string } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const prevSigRef=useRef<string>('');
+  const setupAlertAudioRef=useRef<HTMLAudioElement|null>(null);
+  const setupAlertsEnabledRef=useRef(setupAlertsEnabled);
+  const alertedSetupIdsRef=useRef<Set<string>>(new Set());
+
+  useEffect(()=>{setupAlertsEnabledRef.current=setupAlertsEnabled;},[setupAlertsEnabled]);
+
+  useEffect(()=>{
+    if(typeof window==='undefined') return;
+    setSetupAlertPermission('Notification' in window ? Notification.permission : 'unsupported');
+    const audio=new Audio(SETUP_ALERT_SOUND_PATH);
+    audio.preload='auto';
+    setupAlertAudioRef.current=audio;
+    return()=>{setupAlertAudioRef.current=null;};
+  },[]);
+
+  const handleToggleSetupAlerts=useCallback(async()=>{
+    if(setupAlertsEnabled){
+      setSetupAlertsEnabled(false);
+      return;
+    }
+
+    if(typeof window!=='undefined' && 'Notification' in window){
+      let permission:SetupAlertPermission=Notification.permission;
+      if(permission==='default') permission=await Notification.requestPermission();
+      setSetupAlertPermission(permission);
+    } else {
+      setSetupAlertPermission('unsupported');
+    }
+
+    const audio=setupAlertAudioRef.current ?? new Audio(SETUP_ALERT_SOUND_PATH);
+    setupAlertAudioRef.current=audio;
+    audio.currentTime=0;
+    try{
+      await audio.play();
+      audio.pause();
+      audio.currentTime=0;
+    }catch{}
+    setSetupAlertsEnabled(true);
+  },[setupAlertsEnabled]);
+
+  const triggerSetupAlert=useCallback((setup:DetectedSetup)=>{
+    if(!setupAlertsEnabledRef.current || setup.score<SETUP_ALERT_SCORE_THRESHOLD) return;
+    if(alertedSetupIdsRef.current.has(setup.id)) return;
+    alertedSetupIdsRef.current.add(setup.id);
+
+    const dirLabel=setup.dir==='long'?'LONG':'SHORT';
+    const msg=`${dirLabel} ${setup.score}% ${setup.type} @ ${setup.levelName}`;
+    setTradeToast({msg:`🔔 ${msg}`,color:setup.dir==='long'?G:R});
+    window.setTimeout(()=>setTradeToast(null),5000);
+
+    const audio=setupAlertAudioRef.current ?? new Audio(SETUP_ALERT_SOUND_PATH);
+    setupAlertAudioRef.current=audio;
+    audio.currentTime=0;
+    void audio.play().catch(()=>{});
+
+    if(typeof window!=='undefined' && 'Notification' in window && Notification.permission==='granted'){
+      new Notification('MEMS26 setup alert', {
+        body:`${msg} | Entry ${setup.entry.toFixed(2)} Stop ${setup.stop.toFixed(2)}`,
+        tag:setup.id,
+        renotify:true,
+        silent:true,
+      });
+    }
+  },[]);
 
   const askAI=useCallback(async()=>{
     if(aiLoading) return;
@@ -4586,6 +4685,7 @@ export default function Dashboard() {
     };
 
     setDetectedSetups(prev => [newSetup, ...prev].slice(0, 50)); // max 50 setups
+    triggerSetupAlert(newSetup);
   }, [live?.price, live?.bar?.delta]);
 
   // ── Update setup status based on price ──────────────────
@@ -4804,7 +4904,20 @@ export default function Dashboard() {
 
       {/* TopBar */}
       <div style={{flexShrink:0,padding:'6px 12px',borderBottom:'1px solid #1e2738'}}>
-        <TopBar live={live} connected={connected} onAskAI={askAI} aiLoading={aiLoading} systemOn={systemOn} onToggleSystem={()=>setSystemOn(p=>!p)} newsGuard={newsGuard} entryMode={entryMode} onVersionClick={()=>setShowVersionModal(true)} />
+        <TopBar
+          live={live}
+          connected={connected}
+          onAskAI={askAI}
+          aiLoading={aiLoading}
+          systemOn={systemOn}
+          onToggleSystem={()=>setSystemOn(p=>!p)}
+          newsGuard={newsGuard}
+          entryMode={entryMode}
+          onVersionClick={()=>setShowVersionModal(true)}
+          setupAlertsEnabled={setupAlertsEnabled}
+          setupAlertPermission={setupAlertPermission}
+          onToggleSetupAlerts={handleToggleSetupAlerts}
+        />
         {(entryMode?.mode === 'DEMO' || entryMode?.mode === 'RESEARCH') && entryMode.gates && (
           <div style={{fontSize:10,color:'#f59e0b88',marginTop:3,fontFamily:'monospace'}}>
             DEMO Gates: RelVol&gt;={entryMode.gates.relvol} &middot; FVG&lt;={entryMode.gates.fvg}pt &middot; Sweep&gt;={entryMode.gates.sweep}pt &middot; Killzone=tag
