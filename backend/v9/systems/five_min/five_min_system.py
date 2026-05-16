@@ -346,20 +346,28 @@ class FiveMinSystem(BaseV9TradingSystem):
         # Initiative LONG
         b1_bull = b1["c"] > b1["o"]
         b2_higher_low = b2["l"] > b1["l"]
+        # POC return alt: Bar -2 returns to POC_VOL (within 0.5pt tolerance)
+        b2_poc = b2.get("poc_vol") or b2.get("poc")
+        b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= 0.5
+        b2_test = b2_higher_low or b2_poc_return
         b4_test = b4["l"] >= b2["l"]
         cot_below_amt = cur_cot < cur_amt
 
-        if b1_bull and b1_expansion and b2_higher_low and b3_joining and b4_test and cot_below_amt:
-            return ("LONG", 0.80, {"kind": "INITIATIVE", "stage": 4})
+        if b1_bull and b1_expansion and b2_test and b3_joining and b4_test and cot_below_amt:
+            return ("LONG", 0.80, {"kind": "INITIATIVE", "stage": 4,
+                                   "b2_alt": "poc_return" if b2_poc_return else "higher_low"})
 
         # Initiative SHORT (mirror)
         b1_bear = b1["c"] < b1["o"]
         b2_lower_high = b2["h"] < b1["h"]
+        b2_poc_return_s = b2_poc is not None and abs(b2["c"] - b2_poc) <= 0.5
+        b2_test_s = b2_lower_high or b2_poc_return_s
         b4_test_s = b4["h"] <= b2["h"]
         cot_above_amt = cur_cot > cur_amt
 
-        if b1_bear and b1_expansion and b2_lower_high and b3_joining and b4_test_s and cot_above_amt:
-            return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4})
+        if b1_bear and b1_expansion and b2_test_s and b3_joining and b4_test_s and cot_above_amt:
+            return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4,
+                                    "b2_alt": "poc_return" if b2_poc_return_s else "lower_high"})
 
         return (None, 0, {})
 
