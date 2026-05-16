@@ -6,3 +6,5 @@ __pycache__/
 .coverage
 data/
 .DS_Store
+bridge/start_bridge.sh
+frontend/v9/test-results/
