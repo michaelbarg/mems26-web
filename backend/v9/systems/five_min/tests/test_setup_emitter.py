@@ -18,7 +18,7 @@ def test_emit_valid_long():
     assert setup.sizing_contracts == 3
 
 
-def test_emit_rejects_low_quality():
+def test_emit_reduces_low_quality_without_rejecting():
     setup = emit_t1_setup(
         'REACTIVE_LONG', 'LONG',
         entry_price=5280.0, stop_price=5278.0,  # outside value area
@@ -26,7 +26,9 @@ def test_emit_rejects_low_quality():
         bar_index=100,
         tpo_data={"poc": 5250.0, "vah": 5260.0, "val": 5240.0},
     )
-    assert setup is None  # LOW quality → skip
+    assert setup is not None
+    assert setup.quality_tier == 'LOW'
+    assert setup.sizing_contracts == 1
 
 
 def test_emit_rejects_invalid_rr():

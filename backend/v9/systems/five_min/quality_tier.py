@@ -3,7 +3,7 @@
 Per Constitution V3 §Layer 2 Quality Tier:
   HIGH (3 contracts): price at POC/VAH/VAL (strong reference)
   MEDIUM (2 contracts): price within value area but not at key level
-  LOW (0 contracts = skip): price outside value area, no reference
+  LOW (1 contract): price outside value area, no reference
 
 Location source: S5 TPO endpoint /api/v9/tpo/current.
 """
@@ -49,8 +49,8 @@ def get_quality_tier(
     if val <= price <= vah:
         return ('MEDIUM', 2)
 
-    # LOW: price outside value area
-    return ('LOW', 0)
+    # LOW: advisory quality context only. It reduces size but does not hard-block.
+    return ('LOW', 1)
 
 
 def _fetch_tpo() -> Optional[dict]:

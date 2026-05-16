@@ -1,4 +1,4 @@
-"""Prompt 25 — Cross-System Integration Proof.
+"""Prompt 25b — Cross-System Integration Proof.
 
 Proves end-to-end integration between S1-S6 systems without enabling SHADOW/DEMO/LIVE.
 Each test verifies a specific integration contract.
@@ -7,7 +7,49 @@ import sys
 sys.path.insert(0, '/Users/michael/Downloads/mems26_web_git')
 
 from unittest.mock import patch, MagicMock
-import json
+
+
+def _woodies_ctx(*, touchpoints=None, fire_setup=None):
+    from backend.v9.systems.woodies.decision_tree import WoodiesDecisionContext
+    from backend.v9.systems.woodies.schemas import PatternResult
+
+    return WoodiesDecisionContext(
+        bars=[],
+        studies={
+            "cci_14": 50,
+            "cci_6_tcci": 55,
+            "ema_34": 7449,
+            "lsma_value": 7449,
+            "swi_value": 25,
+            "czi_value": 10,
+            "trend_state": "BLUE",
+            "predictor_next_cci": 52,
+        },
+        patterns=[PatternResult(
+            detected=True,
+            pattern_id="ZLR",
+            direction="LONG",
+            confidence=0.8,
+            group="CONTINUATION",
+            entry_price=7450,
+            stop=7448,
+            targets=[7452, 7454],
+        )],
+        classification="TACTICAL",
+        direction="LONG",
+        sizing="full",
+        current_state={"trend_state": "BLUE"},
+        fire_setup=fire_setup or {
+            "direction": "LONG",
+            "entry_price": 7450,
+            "stop_price": 7448,
+            "t1_price": 7452,
+            "t2_price": 7454,
+            "time_stop_minutes": 60,
+            "confidence": 80,
+        },
+        touchpoints=touchpoints,
+    )
 
 
 # ── 1. S1 Day Type context consumed by S4 Woodies ──
@@ -19,26 +61,19 @@ def test_s4_a4_queries_day_type():
     assert "day_type" in TOUCHPOINT_ENDPOINTS["day_type"]
 
 
-def test_s4_a4_blocks_on_day_type_unavailable():
-    """When S1 is unavailable, S4 A4 reports it in unavailable list."""
+def test_s4_a4_records_unavailable_context_as_advisory():
+    """Unavailable S1/S5/S6 context is visible but does not block routing."""
     from backend.v9.systems.woodies.decision_tree import (
-        WoodiesDecisionTree, WoodiesDecisionContext, StageStatus,
+        WoodiesDecisionTree, StageStatus,
     )
-    from backend.v9.systems.woodies.schemas import PatternResult
 
-    ctx = WoodiesDecisionContext(
-        bars=[], studies={"trend_state": "BLUE"},
-        patterns=[PatternResult(detected=True, pattern_id="ZLR", direction="LONG",
-                               confidence=0.8, group="CONTINUATION",
-                               entry_price=7450, stop=7448, targets=[7452])],
-        classification="TACTICAL", direction="LONG", sizing="full",
-        current_state={"trend_state": "BLUE"}, touchpoints=None,
-    )
     tree = WoodiesDecisionTree()
     with patch("requests.get", side_effect=Exception("conn refused")):
-        result = tree.evaluate_bar(ctx)
+        result = tree.evaluate_bar(_woodies_ctx(touchpoints=None))
     a4 = next(r for r in result["pre_fire"] if r["stage_id"] == "A4")
-    assert a4["status"] in (StageStatus.FAIL, StageStatus.PENDING)
+    assert a4["status"] == StageStatus.PASS
+    assert a4["details"]["unavailable"]
+    assert result["ready_to_route"] is True
 
 
 # ── 2. S5 TPO context consumed by S4 ──
@@ -49,37 +84,31 @@ def test_s4_a4_queries_tpo():
     assert "tpo" in TOUCHPOINT_ENDPOINTS
 
 
-# ── 3. S6 Killzone blocks S4 during WEEKEND ──
+# ── 3. S6 Killzone is advisory context ──
 
-def test_s4_a4_killzone_blocks_weekend():
-    """When killzone=WEEKEND, S4 A4 reports block."""
+def test_s4_a4_unfavorable_context_is_advisory_not_blocking():
+    """S1/S5/S6 unfavorable states are consumed in reason tree without hard block."""
     from backend.v9.systems.woodies.decision_tree import (
-        WoodiesDecisionTree, WoodiesDecisionContext, StageStatus,
+        WoodiesDecisionTree, StageStatus,
     )
-    from backend.v9.systems.woodies.schemas import PatternResult
 
-    # Provide touchpoints with killzone=WEEKEND
     touchpoints = {
-        "day_type": {"classified": True, "data": {"day_type": "Normal"}},
-        "tpo": {"poc": 7450, "vah": 7460, "val": 7440},
+        "day_type": {"classified": False, "data": {"day_type": "PENDING"}},
+        "tpo": {"running": False, "poc": None, "vah": None, "val": None},
         "veto": {"veto_active": False},
         "killzone": {"current_zone": {"name": "WEEKEND", "edge_class": "none"}},
         "layer0": {"state": "EXPANDING", "chop_score": 30},
     }
-    ctx = WoodiesDecisionContext(
-        bars=[], studies={"trend_state": "BLUE"},
-        patterns=[PatternResult(detected=True, pattern_id="ZLR", direction="LONG",
-                               confidence=0.8, group="CONTINUATION",
-                               entry_price=7450, stop=7448, targets=[7452])],
-        classification="TACTICAL", direction="LONG", sizing="full",
-        current_state={"trend_state": "BLUE"}, touchpoints=touchpoints,
-    )
     tree = WoodiesDecisionTree()
-    result = tree.evaluate_bar(ctx)
-    # Should NOT be ready_to_route (killzone blocks)
-    assert result["ready_to_route"] is False
+    result = tree.evaluate_bar(_woodies_ctx(touchpoints=touchpoints))
     a4 = next(r for r in result["pre_fire"] if r["stage_id"] == "A4")
-    assert a4["status"] == StageStatus.FAIL
+    assert a4["status"] == StageStatus.PASS
+    assert "day_type:not_classified" in a4["details"]["advisories"]
+    assert "tpo:not_running" in a4["details"]["advisories"]
+    assert "killzone:WEEKEND" in a4["details"]["advisories"]
+    assert "A4" not in result["failed_stages"]
+    assert "A4" not in result["pending_stages"]
+    assert result["ready_to_route"] is True
 
 
 # ── 4. S2 fires through pre_fire_validator ──
@@ -104,15 +133,16 @@ def test_s2_gateway_only_when_setup_valid():
     assert gw.route_setup.call_count == 0
 
 
-# ── 6. S4 gateway routing gated by ready_to_route ──
+# ── 6. S4 gateway routing gated by explicit pre_fire ──
 
 def test_s4_gateway_gated_by_decision_tree():
-    """S4 only routes when decision_tree ready_to_route=True."""
-    from backend.v9.systems.woodies.woodies_system import WoodiesSystem
+    """S4 /fire routes only after explicit pre_fire validation."""
+    from backend.v9.api.v9.woodies.routes import woodies_fire
     import inspect
-    source = inspect.getsource(WoodiesSystem.process_bar)
-    assert 'ready_to_route' in source
+    source = inspect.getsource(woodies_fire)
+    assert 'validate_fire' in source
     assert 'route_setup' in source
+    assert source.index('validate_fire') < source.index('route_setup')
 
 
 # ── 7. Blocked setups do not route ──
@@ -120,31 +150,40 @@ def test_s4_gateway_gated_by_decision_tree():
 def test_blocked_s2_does_not_route():
     """S2 pre_fire rejection → no gateway call."""
     from backend.v9.systems.five_min.setup_emitter import emit_t1_setup
-    # LOW quality (outside value area) → returns None → no routing
+
+    class Rejected:
+        valid = False
+        fail_reason = "explicit pre_fire rejection"
+
     with patch("backend.v9.systems.five_min.setup_emitter.get_quality_tier",
-               return_value=("LOW", 0)):
+               return_value=("HIGH", 3)), \
+         patch("backend.v9.systems.five_min.setup_emitter.validate_fire",
+               return_value=Rejected()):
         result = emit_t1_setup(
             "REACTIVE_LONG", "LONG",
             entry_price=7450, stop_price=7448,
             t1_price=7452, t2_price=7454,
             bar_index=10, day_type="Normal", current_price=7450,
         )
-    assert result is None  # rejected → caller doesn't route
+    assert result is None  # explicit pre_fire rejection → caller doesn't route
 
 
 # ── 8. Reason tree visible ──
 
 def test_s4_fire_shows_decision_stages():
-    """S4 /fire endpoint returns decision_tree stages with reasons."""
-    import requests
-    r = requests.get("http://localhost:8000/api/v9/woodies/fire", timeout=5)
-    assert r.status_code == 200
-    data = r.json()
-    # Must have decision_tree field
-    assert "decision_tree" in data
-    dt = data["decision_tree"]
-    # Should have pre_fire array (even if empty on weekend)
-    assert "pre_fire" in dt or isinstance(dt, dict)
+    """S4 reason tree exposes A4 advisory context and pre_fire stages."""
+    from backend.v9.systems.woodies.decision_tree import WoodiesDecisionTree
+
+    result = WoodiesDecisionTree().evaluate_bar(_woodies_ctx(touchpoints={
+        "day_type": {"classified": False, "data": {"day_type": "PENDING"}},
+        "tpo": {"running": True, "poc": 7450, "vah": 7460, "val": 7440},
+        "veto": {"veto_active": False},
+        "killzone": {"current_zone": {"name": "WEEKEND", "edge_class": "none"}},
+        "layer0": {"state": "EXPANDING", "chop_score": 30},
+    }))
+    assert "pre_fire" in result
+    a4 = next(r for r in result["pre_fire"] if r["stage_id"] == "A4")
+    assert a4["details"]["advisories"]
 
 
 # ── 9. BarLevelDetector can close trades ──

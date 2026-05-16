@@ -20,4 +20,4 @@ def test_low_outside_value():
     tpo = {"poc": 5250.0, "vah": 5260.0, "val": 5240.0}
     tier, contracts = get_quality_tier(5275.0, tpo_data=tpo)
     assert tier == 'LOW'
-    assert contracts == 0
+    assert contracts == 1

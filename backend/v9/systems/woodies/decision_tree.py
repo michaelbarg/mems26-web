@@ -147,31 +147,35 @@ def _a4_touchpoints(ctx: WoodiesDecisionContext) -> StageResult:
         return StageResult("A4", StageStatus.SKIP, "no setup needs touch-points", owner=StageOwner.TOUCHPOINT)
 
     touchpoints, unavailable = _load_touchpoints(ctx)
+    advisories = _touchpoint_advisories(ctx, touchpoints)
+    detail = {
+        "advisories": advisories,
+        "unavailable": unavailable,
+        "touchpoints": touchpoints,
+    }
     if unavailable:
         return StageResult(
             "A4",
-            StageStatus.PENDING,
-            f"touch-point context unavailable: {', '.join(unavailable)}",
+            StageStatus.PASS,
+            f"touch-point advisory context degraded: {', '.join(unavailable)}",
             owner=StageOwner.TOUCHPOINT,
-            details={"unavailable": unavailable, "touchpoints": touchpoints},
+            details=detail,
         )
-
-    blocks = _touchpoint_blocks(ctx, touchpoints)
-    if blocks:
+    if advisories:
         return StageResult(
             "A4",
-            StageStatus.FAIL,
-            f"touch-point blocks: {', '.join(blocks)}",
+            StageStatus.PASS,
+            f"touch-point advisory context recorded: {', '.join(advisories)}",
             owner=StageOwner.TOUCHPOINT,
-            details={"blocks": blocks, "touchpoints": touchpoints},
+            details=detail,
         )
 
     return StageResult(
         "A4",
         StageStatus.PASS,
-        "touch-points OK: day_type/tpo/veto/killzone/layer0",
+        "touch-point advisory context OK: day_type/tpo/veto/killzone/layer0",
         owner=StageOwner.TOUCHPOINT,
-        details={"touchpoints": touchpoints},
+        details=detail,
     )
 
 
@@ -209,44 +213,45 @@ def _missing_touchpoints(touchpoints: Dict[str, Any]) -> List[str]:
     return missing
 
 
-def _touchpoint_blocks(ctx: WoodiesDecisionContext, touchpoints: Dict[str, Any]) -> List[str]:
-    blocks: List[str] = []
+def _touchpoint_advisories(ctx: WoodiesDecisionContext, touchpoints: Dict[str, Any]) -> List[str]:
+    """Collect touch-point context signals without turning them into route blockers."""
+    advisories: List[str] = []
 
-    day_type = touchpoints["day_type"]
+    day_type = touchpoints.get("day_type") or {}
     if day_type.get("classified") is not True:
-        blocks.append("day_type:not_classified")
+        advisories.append("day_type:not_classified")
     elif not _day_type_name(day_type):
-        blocks.append("day_type:missing_day_type")
+        advisories.append("day_type:missing_day_type")
 
-    tpo = touchpoints["tpo"]
+    tpo = touchpoints.get("tpo") or {}
     if tpo.get("running") is False:
-        blocks.append("tpo:not_running")
+        advisories.append("tpo:not_running")
     missing_tpo = [field for field in ("poc", "vah", "val") if tpo.get(field) is None]
     if missing_tpo:
-        blocks.append(f"tpo:missing_{'/'.join(missing_tpo)}")
+        advisories.append(f"tpo:missing_{'/'.join(missing_tpo)}")
 
-    veto = touchpoints["veto"]
+    veto = touchpoints.get("veto") or {}
     suffering_side = str(veto.get("suffering_side") or "NONE").upper()
     if veto.get("veto_active") and ctx.direction and suffering_side == ctx.direction.upper():
-        blocks.append(f"veto:{ctx.direction.upper()}")
+        advisories.append(f"veto:{ctx.direction.upper()}")
 
-    killzone = touchpoints["killzone"]
+    killzone = touchpoints.get("killzone") or {}
     zone = killzone.get("current_zone") or {}
     zone_name = str(zone.get("name") or "UNKNOWN").upper()
     edge_class = str(zone.get("edge_class") or "none").lower()
     if killzone.get("running") is False:
-        blocks.append("killzone:not_running")
+        advisories.append("killzone:not_running")
     elif zone_name in {"CLOSED", "WEEKEND", "UNKNOWN"} or edge_class == "none":
-        blocks.append(f"killzone:{zone_name}")
+        advisories.append(f"killzone:{zone_name}")
 
-    layer0 = touchpoints["layer0"]
+    layer0 = touchpoints.get("layer0") or {}
     layer0_state = str(layer0.get("state") or "").upper()
     if not layer0_state:
-        blocks.append("layer0:missing_state")
+        advisories.append("layer0:missing_state")
     elif layer0_state == "SEARCHING":
-        blocks.append("layer0:SEARCHING")
+        advisories.append("layer0:SEARCHING")
 
-    return blocks
+    return advisories
 
 
 def _day_type_name(day_type: Dict[str, Any]) -> Optional[str]:

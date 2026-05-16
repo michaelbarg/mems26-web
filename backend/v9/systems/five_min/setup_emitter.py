@@ -42,10 +42,9 @@ def emit_t1_setup(
     price_for_tier = current_price or entry_price
     quality_tier, sizing = get_quality_tier(price_for_tier, tpo_data=tpo_data)
 
-    # Skip if LOW quality (sizing=0)
-    if sizing == 0:
-        logger.info("[S2] Quality LOW (outside value area) — skipping fire")
-        return None
+    # S5 TPO quality is advisory context. It may reduce size, but only the
+    # explicit pre_fire validator below can reject the setup at this layer.
+    sizing = max(1, sizing)
 
     # Time stop from Day Type
     time_stop = get_time_stop(day_type)

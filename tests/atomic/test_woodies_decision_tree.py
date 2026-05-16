@@ -146,7 +146,7 @@ def test_a4_touchpoints_pass_when_context_available():
     assert summary["ready_to_route"] is True
 
 
-def test_a4_missing_context_stays_pending_and_blocks_route():
+def test_a4_missing_context_is_advisory_and_allows_route():
     tree = WoodiesDecisionTree()
     ctx = WoodiesDecisionContext(
         bars=[_bar()],
@@ -161,10 +161,11 @@ def test_a4_missing_context_stays_pending_and_blocks_route():
     )
     summary = tree.evaluate_bar(ctx)
     a4 = next(r for r in summary["pre_fire"] if r["stage_id"] == "A4")
-    assert a4["status"] == StageStatus.PENDING
-    assert "touch-point context unavailable" in a4["message"]
-    assert summary["pending_stages"] == ["A4"]
-    assert summary["ready_to_route"] is False
+    assert a4["status"] == StageStatus.PASS
+    assert "touch-point advisory context degraded" in a4["message"]
+    assert a4["details"]["unavailable"]
+    assert summary["pending_stages"] == []
+    assert summary["ready_to_route"] is True
 
 
 def test_ready_to_route_false_when_prefire_fails():
@@ -185,7 +186,7 @@ def test_ready_to_route_false_when_prefire_fails():
     assert summary["ready_to_route"] is False
 
 
-def test_shadow_env_does_not_bypass_missing_touchpoints(monkeypatch):
+def test_shadow_env_does_not_change_advisory_touchpoints(monkeypatch):
     monkeypatch.setenv("MEMS26_MODE", "shadow")
     tree = WoodiesDecisionTree()
     ctx = WoodiesDecisionContext(
@@ -200,5 +201,7 @@ def test_shadow_env_does_not_bypass_missing_touchpoints(monkeypatch):
         touchpoints={},
     )
     summary = tree.evaluate_bar(ctx)
-    assert "A4" in summary["pending_stages"]
-    assert summary["ready_to_route"] is False
+    a4 = next(r for r in summary["pre_fire"] if r["stage_id"] == "A4")
+    assert a4["status"] == StageStatus.PASS
+    assert "A4" not in summary["pending_stages"]
+    assert summary["ready_to_route"] is True

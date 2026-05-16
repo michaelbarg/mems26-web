@@ -2,8 +2,8 @@
 
 Tests verify:
   1. process_bar invokes decision_tree A1-A7
-  2. A4 blocks when touchpoints unsafe
-  3. valid setup with gateway routes only after decision_tree passes
+  2. A4 records touchpoints as advisory context
+  3. valid setup with gateway routes only after explicit gates pass
   4. B1-B14 are explicitly DELEGATED (not stub/unknown)
   5. entry_phase/active_phase not invoked at runtime
 """
@@ -48,31 +48,50 @@ def test_b_stages_not_stub():
             f"{r.stage_id} still returns STUB: {r.message}"
 
 
-def test_a4_blocks_when_unavailable():
-    """A4 returns FAIL/PENDING when touchpoints unavailable."""
+def test_a4_records_unavailable_as_advisory():
+    """A4 returns PASS and records unavailable touchpoints as advisory context."""
     from backend.v9.systems.woodies.decision_tree import WoodiesDecisionContext
     from backend.v9.systems.woodies.schemas import PatternResult
 
     ctx = WoodiesDecisionContext(
-        bars=[], studies={"trend_state": "BLUE"},
+        bars=[],
+        studies={
+            "cci_14": 50,
+            "cci_6_tcci": 55,
+            "ema_34": 7449,
+            "lsma_value": 7449,
+            "swi_value": 25,
+            "czi_value": 10,
+            "trend_state": "BLUE",
+            "predictor_next_cci": 52,
+        },
         patterns=[PatternResult(
             detected=True, pattern_id="ZLR", direction="LONG",
             confidence=0.8, group="CONTINUATION",
-            entry_price=7450, stop=7448, targets=[7452]
+            entry_price=7450, stop=7448, targets=[7452, 7454]
         )],
         classification="TACTICAL", direction="LONG", sizing="full",
         current_state={"trend_state": "BLUE"},
+        fire_setup={
+            "direction": "LONG",
+            "entry_price": 7450,
+            "stop_price": 7448,
+            "t1_price": 7452,
+            "t2_price": 7454,
+            "time_stop_minutes": 60,
+            "confidence": 80,
+        },
         touchpoints=None,  # will HTTP-fetch; may fail
     )
     tree = WoodiesDecisionTree()
     # Patch requests to simulate endpoint failure
     with patch("requests.get", side_effect=Exception("connection refused")):
         result = tree.evaluate_bar(ctx)
-    # A4 should FAIL or PENDING (not PASS)
     a4_results = [r for r in result["pre_fire"] if r["stage_id"] == "A4"]
     assert len(a4_results) == 1
-    assert a4_results[0]["status"] in (StageStatus.FAIL, StageStatus.PENDING), \
-        f"A4 should block, got {a4_results[0]['status']}"
+    assert a4_results[0]["status"] == StageStatus.PASS
+    assert a4_results[0]["details"]["unavailable"]
+    assert result["ready_to_route"] is True
 
 
 def test_gateway_only_routes_when_ready_to_route():
