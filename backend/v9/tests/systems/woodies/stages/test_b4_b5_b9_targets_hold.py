@@ -40,12 +40,41 @@ class TestB4PocMigration:
         )
         assert result.suffering_flip_warning == "NONE"
 
-    def test_ufl_bypasses(self):
+    def test_ufl_bypasses_long(self):
+        """LONG + price<POC + in UFL → bypass (no warning)."""
         result = B4PocMigrationQuery().evaluate(
             direction="LONG", current_price=7170, poc_location=7400,
             ufl_ufh={"ufl": 7172, "ufh": 7475},
         )
         assert result.suffering_flip_warning == "NONE"
+        assert result.action == "HOLD"
+
+    def test_ufh_bypasses_short(self):
+        """SHORT + price>POC + in UFH → bypass (no warning)."""
+        result = B4PocMigrationQuery().evaluate(
+            direction="SHORT", current_price=7476, poc_location=7400,
+            ufl_ufh={"ufl": 7172, "ufh": 7475},
+        )
+        assert result.suffering_flip_warning == "NONE"
+        assert result.action == "HOLD"
+
+    def test_long_below_poc_not_in_ufl_warns(self):
+        """LONG + price<POC + NOT in UFL → SUFFERING_FLIP + TIGHTEN."""
+        result = B4PocMigrationQuery().evaluate(
+            direction="LONG", current_price=7300, poc_location=7400,
+            ufl_ufh={"ufl": 7172, "ufh": 7475},
+        )
+        assert result.suffering_flip_warning == "SUFFERING_FLIP"
+        assert result.action == "TIGHTEN"
+
+    def test_short_above_poc_not_in_ufh_warns(self):
+        """SHORT + price>POC + NOT in UFH → SUFFERING_FLIP + TIGHTEN."""
+        result = B4PocMigrationQuery().evaluate(
+            direction="SHORT", current_price=7410, poc_location=7400,
+            ufl_ufh={"ufl": 7172, "ufh": 7475},
+        )
+        assert result.suffering_flip_warning == "SUFFERING_FLIP"
+        assert result.action == "TIGHTEN"
 
     def test_degraded_mode(self):
         result = B4PocMigrationQuery().evaluate()

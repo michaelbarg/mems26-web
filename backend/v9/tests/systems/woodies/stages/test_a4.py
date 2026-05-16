@@ -90,6 +90,31 @@ class TestUflUfhBypass:
         assert result.bypass_active == "UFH"
 
 
+    def test_no_suffering_in_ufl_still_none(self, stage):
+        """No suffering side at all + in UFL → NONE (no suffering anyway)."""
+        result = stage.evaluate(
+            entry_direction="LONG",
+            current_price=7170.0,
+            poc_location=7400.0,
+            suffering_side=None,
+            ufl_ufh={"ufl": 7172.0, "ufh": 7475.0},
+        )
+        assert result.bypass_active == "UFL"
+        assert result.suffering_warning == "NONE"
+
+    def test_suffering_not_in_bypass_zone_warns(self, stage):
+        """Suffering matches direction + NOT in UFL/UFH → warning fires."""
+        result = stage.evaluate(
+            entry_direction="LONG",
+            current_price=7300.0,
+            poc_location=7400.0,
+            suffering_side="BUYERS",
+            ufl_ufh={"ufl": 7172.0, "ufh": 7475.0},
+        )
+        assert result.bypass_active == "NONE"
+        assert result.suffering_warning == "SUFFERING_SIDE"
+
+
 class TestDegradedMode:
     def test_no_data_returns_initiative(self, stage):
         result = stage.evaluate()
