@@ -216,95 +216,52 @@ _today_date: Optional[str] = None
 
 @router.get("/current")
 def get_current():
-    """Current Day Type classification — state machine primary, V1 fallback (D-071).
+    """Current Day Type classification — V9 canonical source (Prompt 20).
 
-    State machine provides all 6 types (incl Trend_DD).
-    V1 classifier is fallback-only (5 types, simpler rules).
+    Priority order:
+      1. V9 state machine (app.state.day_type_machine) — live in-memory
+      2. V9 DB (v9_day_type_history for today) — persisted classification
+      3. V1 fallback (only if V9 has never classified today)
+
+    Shape: always returns {day_type, confidence, stage, classified, ...}
     """
-    global _today_classification, _today_date
-    from datetime import date
     import requests
+    from datetime import date
 
     today = date.today().isoformat()
 
-    # Clear stale cache on new trading day
-    if _today_date and _today_date != today:
-        _today_classification = None
-        _today_date = None
-        reset_engine()
+    # ── SOURCE 1: V9 state machine via /v9/current (canonical per Prompt 20) ──
+    try:
+        v9_resp = requests.get("http://localhost:8000/api/v9/day_type/v9/current", timeout=2).json()
+        if v9_resp.get("classified") and v9_resp.get("data"):
+            d = v9_resp["data"]
+            return {
+                "day_type": d.get("day_type", "UNKNOWN"),
+                "confidence": int((d.get("probability") or 0) * 100),
+                "ib_h": d.get("ib_h"),
+                "ib_l": d.get("ib_l"),
+                "ib_range": (d["ib_h"] - d["ib_l"]) if d.get("ib_h") and d.get("ib_l") else None,
+                "extension_ratio": None,
+                "classified": True,
+                "stage": "C3",
+                "opening_type": d.get("opening_type"),
+                "ib_width_class": d.get("ib_width_class"),
+                "source": "v9",
+            }
+    except Exception:
+        pass
 
-    # Return cached if already classified today
-    if _today_date == today and _today_classification and _today_classification.get("classified"):
-        return _today_classification
-
-    # PRIMARY: Try state machine (via app.state.day_type_machine set by main.py)
+    # ── SOURCE 2: State machine DB (LOCKED row today) ──
     try:
         sm_result = _get_state_machine_classification()
         if sm_result and sm_result.get("classified"):
-            _today_classification = sm_result
-            _today_date = today
             return sm_result
     except Exception:
         pass
 
-    # FALLBACK: V1 simple classifier (D-071)
+    # ── SOURCE 3: V1 fallback (pre-IB / pre-RTH states) ──
     result = _classify_v1_from_tpo()
-
-    if result.get("classified"):
-        _today_classification = result
-        _today_date = today
-
-        # Persist to DB (once per day)
-        try:
-            from backend.v9.db.session import SessionLocal
-            from backend.v9.db.models.day_type_history import V9DayTypeHistory
-            db = SessionLocal()
-            existing = db.query(V9DayTypeHistory).filter(
-                V9DayTypeHistory.date == date.today()
-            ).first()
-            if not existing:
-                row = V9DayTypeHistory(
-                    date=date.today(),
-                    day_type=result["day_type"],
-                    status="LOCKED",
-                    confidence=result["confidence"],
-                    ib_high=result["ib_h"],
-                    ib_low=result["ib_l"],
-                    ib_width_ticks=int(result["ib_range"] * 4) if result["ib_range"] else None,
-                    reasoning_notes=f"V1 rules: ext_ratio={result['extension_ratio']}",
-                )
-                db.add(row)
-                db.commit()
-            db.close()
-        except Exception as e:
-            import logging
-            logging.getLogger("mems26.day_type").warning("V1 persist error: %s", e)
-
-        return result
-
-    # γ.1: Fallback — if V1 can't classify, return PENDING (not stale state machine data)
-    # State machine may carry stale classification from previous session
-    engine = _get_engine()
-    if not engine.ib_locked:
-        # Pre-IB: deterministic PENDING state
-        return {
-            "day_type": "PENDING", "confidence": 0,
-            "stage": "PRE_IB" if engine.bar_count == 0 else "IB_BUILDING",
-            "reason": "Awaiting IB lock @ 10:30 ET",
-            "classified": False,
-        }
-    state = engine._build_state(
-        BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
-    )
-    return {
-        "day_type": state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
-        "status": str(state.lock_state),
-        "confidence": state.confidence,
-        "ib_width": state.ib_width.value if hasattr(state.ib_width, 'value') else str(state.ib_width),
-        "opening_type": state.opening_type.value if hasattr(state.opening_type, 'value') else str(state.opening_type),
-        "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
-        "classified": False,
-    }
+    return result
 
 
 @router.get("/stats")

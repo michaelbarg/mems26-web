@@ -12,7 +12,7 @@
 
 | System | Readiness | Tests | Key Issue |
 |--------|-----------|-------|-----------|
-| S1 Day Type | **PARTIAL** | 37/37 | V1 and V9 classifiers disagree; pd_* not wired |
+| S1 Day Type | **READY** | 37/37 | V9 canonical; /current now prefers V9 source (Prompt 20) |
 | S2 Five-Min | **READY** | 65/65 | — |
 | S3 Footprint | **READY** | 22/22 | — |
 | S4 Woodies | **READY** | 36/36 | A4 wired (Prompt 18); correctly blocks weekends; fires during RTH |
@@ -186,8 +186,8 @@
 
 | Category | Count |
 |----------|-------|
-| READY | **5** (S2, S3, S4, S5, S6) |
-| PARTIAL | **1** (S1) |
+| READY | **6** (S1, S2, S3, S4, S5, S6) |
+| PARTIAL | **0** |
 | NOT READY | **0** |
 
 ---
@@ -200,37 +200,37 @@
 | 2 | S1 | pd_* not wired from bridge | LOW | NO — affects pre-open context only |
 | 3 | ~~S4~~ | ~~decision_tree A4 blocks ready_to_route~~ | ~~HIGH~~ | **CLOSED (Prompt 18)** |
 
-**S1 is the only remaining PARTIAL system.** It classifies correctly via V9 path but the legacy V1 endpoint produces stale/conflicting output. This does not block SHADOW (V9 is canonical).
+**All 6 systems READY.** S1 fixed in Prompt 20: `/current` now prefers V9 canonical source.
 
 ---
 
-## Weakest Link: S1 Day Type
+## Resolved: S1 Day Type (Prompt 20)
 
-S1 produces two outputs that disagree:
-- V1 (`/day_type/current`): `Nontrend` conf=55 ib_range=300 (stale/wrong)
-- V9 (`/day_type/v9/current`): `Variation` prob=0.38 ib_width=18 (correct)
+`/api/v9/day_type/current` now uses priority:
+1. V9 state machine (via `/v9/current`) — live classification
+2. State machine DB (LOCKED row for today)
+3. V1 fallback (only pre-IB/pre-RTH states)
 
-Downstream consumers (S4 touch-points, targets_table, L4 time-stops) use the V1 endpoint.
-If they read "Nontrend" instead of "Variation," time-stop is 20min instead of 60min.
+Downstream consumers reading `/current` will get V9 classification.
+V1 path only activates when V9 hasn't classified yet (pre-IB = returns PENDING correctly).
 
-**Risk:** Wrong Day Type → wrong target scheme → premature time-stop on valid trades.
+**Remaining minor:** `pd_*` not wired from bridge (affects A1 pre-open context accuracy, non-blocking).
 
 ---
 
 ## Recommended Next Prompts
 
 ```
-Prompt 20: S1 V1/V9 reconciliation — single source of truth
-           Make /day_type/current return V9 classification
-           (fixes downstream consumers reading stale V1 data)
-
 Prompt 21: S1 pd_* wiring from Bridge
-           (completes A1 pre-open context for full accuracy)
+           (completes A1 pre-open context for full accuracy — non-blocking)
 
 Prompt 22: RTH live validation
            Run during Monday 9:30–11:30 ET with Sierra live
            Verify all 3 firing systems produce SHADOW trades
            Confirm BarLevelDetector closes them correctly
+
+Prompt 23: SHADOW Day 1/30 activation
+           All 6 systems READY — enable shadow trade accumulation
 ```
 
 ---
