@@ -139,12 +139,14 @@ async def _startup():
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
 
         def _load_previous_day_context():
-            """D-070 + Prompt 21: Previous Day source for DayType A1.
+            """D-070 + Prompt 21b: Previous Day source for DayType A1.
 
-            Source priority:
-              1. v9_tpo_sessions (CASH session): range_high/range_low/poc_price
-              2. v9_bars_5min (daily max(high)/min(low)/last close): fallback when TPO lacks range
-              3. Empty dict if no data available (explicit degraded — no fake values)
+            pd_close = last bar close of previous trading day (from v9_bars_5min).
+                       NOT poc_price. POC is a volume concept, not session close.
+            pd_high  = session high (TPO range_high preferred, bars max(high) fallback).
+            pd_low   = session low  (TPO range_low preferred, bars min(low) fallback).
+
+            Returns empty dict if data unavailable (explicit degraded — no fake values).
             """
             try:
                 import sqlite3
@@ -155,31 +157,29 @@ async def _startup():
                 conn = sqlite3.connect(db_path)
                 conn.row_factory = sqlite3.Row
 
-                # Source 1: TPO sessions
-                row = conn.execute(
-                    """SELECT range_high, range_low, val_price, vah_price, poc_price
+                # pd_close: ALWAYS from v9_bars_5min last bar close (not POC)
+                bars_row = conn.execute(
+                    """SELECT max(high) as hi, min(low) as lo,
+                              (SELECT close FROM v9_bars_5min WHERE date(ts)=? ORDER BY ts DESC LIMIT 1) as last_c
+                       FROM v9_bars_5min WHERE date(ts)=?""",
+                    (prev_date, prev_date),
+                ).fetchone()
+
+                pd_close = bars_row["last_c"] if bars_row else None
+                bars_high = bars_row["hi"] if bars_row else None
+                bars_low = bars_row["lo"] if bars_row else None
+
+                # pd_high/pd_low: TPO session range preferred, bars fallback
+                tpo_row = conn.execute(
+                    """SELECT range_high, range_low
                        FROM v9_tpo_sessions
                        WHERE trading_date=? AND session_type='CASH'
                        ORDER BY id DESC LIMIT 1""",
                     (prev_date,),
                 ).fetchone()
 
-                pd_high = row["range_high"] if row else None
-                pd_low = row["range_low"] if row else None
-                pd_close = (row["poc_price"] or row["val_price"] or row["vah_price"]) if row else None
-
-                # Source 2: v9_bars_5min fallback for range when TPO lacks it
-                if pd_high is None or pd_low is None:
-                    bars_row = conn.execute(
-                        """SELECT max(high) as hi, min(low) as lo,
-                                  (SELECT close FROM v9_bars_5min WHERE date(ts)=? ORDER BY ts DESC LIMIT 1) as last_c
-                           FROM v9_bars_5min WHERE date(ts)=?""",
-                        (prev_date, prev_date),
-                    ).fetchone()
-                    if bars_row:
-                        pd_high = pd_high or bars_row["hi"]
-                        pd_low = pd_low or bars_row["lo"]
-                        pd_close = pd_close or bars_row["last_c"]
+                pd_high = (tpo_row["range_high"] if tpo_row else None) or bars_high
+                pd_low = (tpo_row["range_low"] if tpo_row else None) or bars_low
 
                 conn.close()
 

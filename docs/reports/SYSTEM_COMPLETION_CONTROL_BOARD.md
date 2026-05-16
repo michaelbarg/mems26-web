@@ -12,7 +12,7 @@
 
 | System | Readiness | Tests | Key Issue |
 |--------|-----------|-------|-----------|
-| S1 Day Type | **READY** | 37/37 | V9 canonical; /current now prefers V9 source (Prompt 20) |
+| S1 Day Type | **READY** | 37/37 + 8 pd_* | V9 canonical (Prompt 20b); pd_close from bars not POC (Prompt 21b) |
 | S2 Five-Min | **READY** | 65/65 | — |
 | S3 Footprint | **READY** | 22/22 | — |
 | S4 Woodies | **READY** | 36/36 | A4 wired (Prompt 18); correctly blocks weekends; fires during RTH |
@@ -41,7 +41,7 @@
 - 5 direct tests prove V9 wins, V1 demoted, backward compat, no SHADOW/DEMO/LIVE
 
 **Remaining minor (non-blocking):**
-- ~~`pd_high`/`pd_low`/`pd_close` not populated~~ **FIXED (Prompt 21)** — sourced from v9_bars_5min fallback
+- ~~`pd_high`/`pd_low`/`pd_close` not populated~~ **FIXED (Prompt 21b)** — pd_close from bars last close (NOT poc); pd_high/pd_low from bars fallback. 8 tests prove correctness.
 
 **Files:**
 - `backend/v9/systems/day_type/api.py` — canonical `/current` handler
@@ -217,7 +217,7 @@
 Downstream consumers reading `/current` will get V9 classification.
 V1 path only activates when V9 hasn't classified yet (pre-IB = returns PENDING correctly).
 
-**Remaining minor:** `pd_*` not wired from bridge (affects A1 pre-open context accuracy, non-blocking).
+**No remaining issues.** pd_* fully wired (Prompt 21b). pd_close=7418 from bars (not poc=7444).
 
 ---
 
