@@ -8,14 +8,29 @@ router = APIRouter(tags=["clock"])
 @router.get("/api/v9/clock/now")
 def get_clock_now():
     """Current market time with session info, DST, holidays."""
-    now_et = mc.now_et()
-    now_utc = mc.now_utc()
-    s = mc.get_session_info()
+    clock = mc.current_clock_state()
+    if clock.status != mc.ClockStatus.READY:
+        return {
+            "mode": clock.mode.value,
+            "status": clock.status.value,
+            "source": clock.source,
+            "reason": clock.reason,
+            "now_utc": None,
+            "now_et": None,
+            "updated_at_utc": clock.updated_at_utc.isoformat() if clock.updated_at_utc else None,
+        }
+
+    now_et = clock.require_now_et()
+    now_utc = clock.require_now_utc()
+    s = mc.get_session_info(now_et)
 
     sec_ib = max(0, int((s["ib_end_utc"] - now_utc).total_seconds()))
     sec_close = max(0, int((s["rth_close_utc"] - now_utc).total_seconds()))
 
     return {
+        "mode": clock.mode.value,
+        "status": clock.status.value,
+        "source": clock.source,
         "now_utc": now_utc.isoformat(),
         "now_et": now_et.isoformat(),
         "tz_offset_hours": now_et.utcoffset().total_seconds() / 3600,

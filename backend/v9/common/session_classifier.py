@@ -13,6 +13,7 @@ from enum import Enum
 from typing import Optional
 
 import pytz
+from backend.v9.services.market_clock import now_et
 
 
 class Session(str, Enum):
@@ -45,7 +46,7 @@ class SessionClassifier:
 
     def classify(self, now: Optional[datetime] = None) -> SessionInfo:
         if now is None:
-            now = datetime.now(self.ET)
+            now = now_et()
         elif now.tzinfo is None:
             now = self.ET.localize(now)
         else:

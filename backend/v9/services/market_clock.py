@@ -2,8 +2,16 @@
 
 All time-aware logic should use this module. No hardcoded times elsewhere.
 Uses zoneinfo (Python 3.9+) for DST-correct Eastern Time.
+
+Prompt 26a adds Replay Clock Mode: in REPLAY, current market time is the
+latest ingested Sierra/replay bar timestamp. The service never silently falls
+back to the machine clock while REPLAY is enabled.
 """
-from datetime import datetime, time, date, timedelta
+from dataclasses import dataclass
+from datetime import datetime, time, date, timedelta, timezone
+from enum import Enum
+import os
+from typing import Optional, Union
 from zoneinfo import ZoneInfo
 
 ET = ZoneInfo("America/New_York")
@@ -35,11 +43,159 @@ HALF_DAYS_2026 = {
 }
 
 
+class ClockMode(str, Enum):
+    REALTIME = "REALTIME"
+    REPLAY = "REPLAY"
+
+
+class ClockStatus(str, Enum):
+    READY = "READY"
+    PENDING = "PENDING"
+
+
+class MarketClockPendingError(RuntimeError):
+    """Raised when REPLAY mode has no authoritative replay timestamp yet."""
+
+
+@dataclass(frozen=True)
+class ClockSnapshot:
+    mode: ClockMode
+    status: ClockStatus
+    now_utc: Optional[datetime]
+    now_et: Optional[datetime]
+    source: str
+    reason: Optional[str] = None
+    updated_at_utc: Optional[datetime] = None
+
+    def require_now_et(self) -> datetime:
+        if self.now_et is None:
+            raise MarketClockPendingError(self.reason or "market clock pending")
+        return self.now_et
+
+    def require_now_utc(self) -> datetime:
+        if self.now_utc is None:
+            raise MarketClockPendingError(self.reason or "market clock pending")
+        return self.now_utc
+
+
+def _normalize_mode(mode: Union[str, ClockMode]) -> ClockMode:
+    if isinstance(mode, ClockMode):
+        return mode
+    return ClockMode(str(mode).upper())
+
+
+def parse_market_timestamp(value) -> Optional[datetime]:
+    """Parse Sierra/API timestamp inputs into timezone-aware UTC datetimes."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, (int, float)):
+        dt = datetime.fromtimestamp(float(value), tz=timezone.utc)
+    else:
+        raw = str(value)
+        try:
+            dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        except ValueError:
+            try:
+                dt = datetime.fromtimestamp(float(raw), tz=timezone.utc)
+            except (TypeError, ValueError):
+                return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    return dt.astimezone(UTC)
+
+
+class MarketClock:
+    """Central market clock with REALTIME and REPLAY modes."""
+
+    def __init__(self, mode: Union[str, ClockMode, None] = None):
+        self._mode = _normalize_mode(mode or os.getenv("MEMS26_CLOCK_MODE", "REALTIME"))
+        self._replay_ts_utc: Optional[datetime] = None
+        self._replay_source: Optional[str] = None
+        self._replay_updated_at_utc: Optional[datetime] = None
+
+    @property
+    def mode(self) -> ClockMode:
+        return self._mode
+
+    def set_mode(self, mode: Union[str, ClockMode]) -> None:
+        self._mode = _normalize_mode(mode)
+
+    def reset_replay_timestamp(self) -> None:
+        self._replay_ts_utc = None
+        self._replay_source = None
+        self._replay_updated_at_utc = None
+
+    def update_replay_timestamp(self, ts, source: str = "bar") -> ClockSnapshot:
+        parsed = parse_market_timestamp(ts)
+        if parsed is None:
+            return self.current()
+        self._replay_ts_utc = parsed
+        self._replay_source = source
+        self._replay_updated_at_utc = datetime.now(UTC)
+        return self.current()
+
+    def current(self) -> ClockSnapshot:
+        if self._mode == ClockMode.REALTIME:
+            now = datetime.now(UTC)
+            return ClockSnapshot(
+                mode=self._mode,
+                status=ClockStatus.READY,
+                now_utc=now,
+                now_et=now.astimezone(ET),
+                source="system_clock",
+            )
+
+        if self._replay_ts_utc is None:
+            return ClockSnapshot(
+                mode=self._mode,
+                status=ClockStatus.PENDING,
+                now_utc=None,
+                now_et=None,
+                source=self._replay_source or "replay_bar",
+                reason="replay_clock_enabled_but_no_replay_timestamp",
+                updated_at_utc=self._replay_updated_at_utc,
+            )
+
+        return ClockSnapshot(
+            mode=self._mode,
+            status=ClockStatus.READY,
+            now_utc=self._replay_ts_utc,
+            now_et=self._replay_ts_utc.astimezone(ET),
+            source=self._replay_source or "replay_bar",
+            updated_at_utc=self._replay_updated_at_utc,
+        )
+
+
+_CLOCK = MarketClock()
+
+
+def get_clock() -> MarketClock:
+    return _CLOCK
+
+
+def set_clock_mode(mode: Union[str, ClockMode]) -> None:
+    _CLOCK.set_mode(mode)
+
+
+def update_replay_timestamp(ts, source: str = "bar") -> ClockSnapshot:
+    return _CLOCK.update_replay_timestamp(ts, source=source)
+
+
+def reset_replay_timestamp() -> None:
+    _CLOCK.reset_replay_timestamp()
+
+
+def current_clock_state() -> ClockSnapshot:
+    return _CLOCK.current()
+
+
 def now_et() -> datetime:
-    return datetime.now(ET)
+    return _CLOCK.current().require_now_et()
 
 def now_utc() -> datetime:
-    return datetime.now(UTC)
+    return _CLOCK.current().require_now_utc()
 
 def is_rth_open(dt: datetime = None) -> bool:
     et = (dt or now_et()).astimezone(ET)
@@ -64,6 +220,11 @@ def is_half_day(d: date) -> bool:
 
 def get_session_date(dt: datetime = None) -> date:
     return (dt or now_et()).astimezone(ET).date()
+
+def minutes_since_rth_open(dt: datetime = None) -> int:
+    et = (dt or now_et()).astimezone(ET)
+    rth_open = datetime.combine(et.date(), RTH_OPEN, tzinfo=ET)
+    return max(0, int((et - rth_open).total_seconds() / 60))
 
 def get_previous_trading_day(d: date = None) -> date:
     d = d or now_et().date()

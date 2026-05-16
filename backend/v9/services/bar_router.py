@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Any, Callable, Dict, List
 
 from backend.v9.common.session_classifier import SessionClassifier
+from backend.v9.services import market_clock
 
 logger = logging.getLogger(__name__)
 
@@ -38,9 +39,11 @@ class BarRouter:
         self._stats["received"] += 1
         try:
             ts = bar_data.get("ts") or datetime.utcnow().isoformat()
+            ts_dt = market_clock.parse_market_timestamp(ts)
+            if ts_dt is not None:
+                market_clock.update_replay_timestamp(ts_dt, source=f"bar_router.{bar_type}")
             try:
-                ts_dt = datetime.fromisoformat(str(ts).replace("Z", "+00:00"))
-                session = self.session_clf.classify(ts_dt).session.value
+                session = self.session_clf.classify(ts_dt).session.value if ts_dt is not None else "UNKNOWN"
             except Exception:
                 session = "UNKNOWN"
 

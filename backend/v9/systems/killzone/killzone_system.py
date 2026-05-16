@@ -4,16 +4,13 @@ Does NOT consume bars. Ticks every 30s via asyncio scheduler.
 Publishes zone transitions on change.
 """
 import logging
-from datetime import datetime
 from typing import Dict, List, Optional
 
-import pytz
-
+from backend.v9.services import market_clock
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
 from .definitions import current_killzone, next_killzone
 
 logger = logging.getLogger(__name__)
-ET = pytz.timezone('America/New_York')
 
 
 class KillzoneSystem(BaseV9TradingSystem):
@@ -28,6 +25,9 @@ class KillzoneSystem(BaseV9TradingSystem):
         self.current_state = {
             "running": False,
             "hydrated": False,
+            "clock_status": None,
+            "clock_mode": None,
+            "clock_reason": None,
             "current_zone": {},
             "next_zone": {},
             "last_transition_ts": None,
@@ -37,13 +37,33 @@ class KillzoneSystem(BaseV9TradingSystem):
         return []  # Killzone does NOT consume bars
 
     def hydrate(self) -> HydrationResult:
-        now_et = datetime.now(ET)
+        clock = market_clock.current_clock_state()
+        if clock.status != market_clock.ClockStatus.READY:
+            self.current_state.update({
+                "running": False,
+                "hydrated": False,
+                "clock_status": clock.status.value,
+                "clock_mode": clock.mode.value,
+                "clock_reason": clock.reason,
+            })
+            return HydrationResult(
+                success=False,
+                reached_state="CLOCK_PENDING",
+                confidence=0.0,
+                notes=clock.reason or "Market clock pending",
+                error=clock.reason,
+            )
+
+        now_et = clock.require_now_et()
         cz = current_killzone(now_et)
         nz = next_killzone(now_et)
         self._last_zone_name = cz["name"]
         self.current_state.update({
             "running": True,
             "hydrated": True,
+            "clock_status": clock.status.value,
+            "clock_mode": clock.mode.value,
+            "clock_reason": None,
             "current_zone": cz,
             "next_zone": nz,
         })
@@ -63,7 +83,17 @@ class KillzoneSystem(BaseV9TradingSystem):
     async def tick(self) -> None:
         """Called every 30s by scheduler. Recomputes zone, detects transitions."""
         try:
-            now_et = datetime.now(ET)
+            clock = market_clock.current_clock_state()
+            if clock.status != market_clock.ClockStatus.READY:
+                self.current_state.update({
+                    "running": False,
+                    "clock_status": clock.status.value,
+                    "clock_mode": clock.mode.value,
+                    "clock_reason": clock.reason,
+                })
+                return
+
+            now_et = clock.require_now_et()
             cz = current_killzone(now_et)
             nz = next_killzone(now_et)
 
@@ -77,6 +107,10 @@ class KillzoneSystem(BaseV9TradingSystem):
                 self._last_transition_ts = now_et.isoformat()
 
             self.current_state.update({
+                "running": True,
+                "clock_status": clock.status.value,
+                "clock_mode": clock.mode.value,
+                "clock_reason": None,
                 "current_zone": cz,
                 "next_zone": nz,
                 "last_transition_ts": self._last_transition_ts,

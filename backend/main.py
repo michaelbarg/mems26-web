@@ -202,8 +202,7 @@ async def _startup():
         from backend.v9.systems.day_type.schemas import BarInput
         from backend.v9.systems.day_type.consumer import DayTypeConsumer
         from backend.v9.db.session import SessionLocal
-        from backend.v9.services.market_clock import now_et
-        import time as _time_mod
+        from backend.v9.services.market_clock import minutes_since_rth_open, now_et
 
         day_type_machine = DayTypeStateMachine()
         app.state.day_type_machine = day_type_machine
@@ -232,14 +231,13 @@ async def _startup():
                     tpo_state = tpo_sys.get_current()
                     opening_type = tpo_state.get("opening_type", "NA")
 
-                # Compute session_min from current ET time (RTH open = 09:30 ET)
+                # Compute session_min from the central market clock (replay-aware).
                 et_now = now_et()
-                rth_open = et_now.replace(hour=9, minute=30, second=0, microsecond=0)
-                _session_min = max(0, int((et_now - rth_open).total_seconds() / 60))
+                _session_min = minutes_since_rth_open(et_now)
                 pd_ctx = _load_previous_day_context_for_startup()
 
                 bar_input = BarInput(
-                    ts=_time_mod.time(),
+                    ts=et_now.timestamp(),
                     session_min=_session_min,
                     open=float(bar.get("open", bar.get("o", 0))),
                     high=float(bar.get("high", bar.get("h", 0))),
