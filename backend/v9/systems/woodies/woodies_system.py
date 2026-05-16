@@ -16,6 +16,7 @@ from backend.v9.systems.woodies.cci_calc import compute_all_studies
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult
 from backend.v9.systems.woodies.pattern_engine import detect_all_patterns, PATTERN_IDS
 from backend.v9.systems.woodies.direction_change_detector import detect_from_buffer as detect_direction_change
+from backend.v9.systems.woodies.decision_tree import WoodiesDecisionContext, WoodiesDecisionTree
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ class WoodiesSystem(BaseV9TradingSystem):
         self._bar_buffer: List[WoodiesBar] = []
         self.max_buffer = 50
         self._active_patterns: List[PatternResult] = []
+        self._decision_tree = WoodiesDecisionTree()
         self.current_state: Dict = {
             "timeframe": "30min",
             "running": False,
@@ -53,6 +55,9 @@ class WoodiesSystem(BaseV9TradingSystem):
             "buffer_size": 0,
             "active_patterns": [],
             "classification": "NO_SETUP",
+            "decision_tree": {},
+            "entry_classification_spec": None,
+            "ready_to_route": False,
         }
 
     def subscribed_bar_types(self) -> List[str]:
@@ -181,6 +186,7 @@ class WoodiesSystem(BaseV9TradingSystem):
             direction = None
             strength = 0
             classification = "NO_SETUP"
+            sizing = "reject"
 
             if patterns:
                 # Highest-confidence pattern wins
@@ -189,12 +195,38 @@ class WoodiesSystem(BaseV9TradingSystem):
                 direction = best.direction
                 strength = int(best.confidence * 4)
                 classification = "STRATEGIC" if best.group == "REVERSAL" else "TACTICAL"
-                # ζ.H1: reasoning_notes (AP-SY02)
                 sizing = self.calculate_size(signal, direction)
+                # ζ.H1: reasoning_notes (AP-SY02)
                 reasoning_notes = (f"{signal} {direction} size={sizing}: "
                                    f"CCI={studies['cci_14']:.1f}, trend={studies['trend_state']}, "
                                    f"conf={best.confidence:.2f}, group={best.group}")
                 self.current_state["last_reasoning_notes"] = reasoning_notes
+
+            fire_setup = None
+            if patterns and direction and sizing != "reject":
+                best = max(patterns, key=lambda p: p.confidence)
+                if best.entry_price and best.stop and best.targets and len(best.targets) >= 2:
+                    fire_setup = {
+                        "direction": direction,
+                        "entry_price": best.entry_price,
+                        "stop_price": best.stop,
+                        "t1_price": best.targets[0],
+                        "t2_price": best.targets[1],
+                        "time_stop_minutes": 90,
+                        "confidence": int(best.confidence * 100),
+                    }
+
+            dt_ctx = WoodiesDecisionContext(
+                bars=list(self._bar_buffer),
+                studies=studies,
+                patterns=patterns,
+                classification=classification,
+                direction=direction,
+                sizing=sizing,
+                current_state=self.current_state,
+                fire_setup=fire_setup,
+            )
+            dt_summary = self._decision_tree.evaluate_bar(dt_ctx)
 
             # Update current state
             self.current_state.update({
@@ -223,6 +255,9 @@ class WoodiesSystem(BaseV9TradingSystem):
                     }
                     for p in patterns
                 ],
+                "decision_tree": dt_summary,
+                "entry_classification_spec": dt_summary.get("entry_classification_spec"),
+                "ready_to_route": dt_summary.get("ready_to_route", False),
             })
 
             # Persist patterns to DB (LIVE mode only)

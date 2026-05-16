@@ -146,6 +146,7 @@ def compute_all_studies(
             "cci_14": 0, "cci_6_tcci": 0, "ema_34": 0, "lsma_value": 0,
             "lsma_above_price": False, "swi_value": 0, "czi_value": 0,
             "trend_state": "GRAY", "predictor_next_cci": 0,
+            "zlr_detected": False, "zlr_direction": "NONE",
         }
 
     cci14 = calc_cci(highs, lows, closes, 14)
@@ -158,6 +159,9 @@ def compute_all_studies(
     czi = calc_chopzone(highs, lows, closes, ema34)
     trend = calc_trend_state(cci14, cci14_prev, swi)
     predictor = calc_predictor(cci14, cci14_prev)
+    zlr_detected, zlr_direction = _detect_zlr_from_series(
+        calc_cci_series(highs, lows, closes, 14)
+    )
 
     return {
         "cci_14": round(cci14, 2),
@@ -169,4 +173,26 @@ def compute_all_studies(
         "czi_value": round(czi, 2),
         "trend_state": trend,
         "predictor_next_cci": round(predictor, 2),
+        "zlr_detected": zlr_detected,
+        "zlr_direction": zlr_direction,
     }
+
+
+def _detect_zlr_from_series(cci_series: List[float]) -> Tuple[bool, str]:
+    """Lightweight ZLR flag for study output parity with DLL.
+
+    The dedicated ZLR pattern detector remains the trading implementation. This
+    helper only exposes Study #10/#11 in compute_all_studies.
+    """
+    if len(cci_series) < 6:
+        return False, "NONE"
+    cur = cci_series[-1]
+    prev = cci_series[-2]
+    lookback = cci_series[-12:]
+    had_up_extreme = any(v > 100 for v in lookback[:-1])
+    had_down_extreme = any(v < -100 for v in lookback[:-1])
+    if had_up_extreme and prev > -50 and cur > prev and cur > 0:
+        return True, "UP"
+    if had_down_extreme and prev < 50 and cur < prev and cur < 0:
+        return True, "DOWN"
+    return False, "NONE"

@@ -3,7 +3,31 @@ system_name: woodies
 spec_title: MEMS26_WOODIES_SPEC_V1_DERIVED
 spec_drive_id: 1NtKDNZNVwWi8Dio_C-42Yj0c6DPFGEfnFSo3Vx4rp0k
 spec_version: V1.0
-manifest_last_synced: "2026-05-10"
+manifest_last_synced: "2026-05-16"
+
+# Option B — 21-stage decision tree (D-067 hybrid: B1–B14 delegated)
+decision_tree_stages:
+  - {id: A1, name: "Trend Gate", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
+  - {id: A2, name: "Study Validity", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
+  - {id: A3, name: "Pattern Detection", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
+  - {id: A4, name: "Touch-Points", phase: pre_fire, owner: touchpoint_api, status: PENDING}
+  - {id: A5, name: "Auxiliary Alignment", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
+  - {id: A6, name: "Entry Classification", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
+  - {id: A7, name: "Universal Checks", phase: pre_fire, owner: pre_fire_validator, status: IMPLEMENTED}
+  - {id: B1, name: "Active stop discipline", phase: active, owner: trade_manager, status: DELEGATED_EXTERNAL}
+  - {id: B2, name: "Break-even T1", phase: active, owner: trade_manager, status: DELEGATED_EXTERNAL}
+  - {id: B3, name: "Scale C1", phase: active, owner: trade_manager, status: DELEGATED_EXTERNAL}
+  - {id: B4, name: "Scale C2", phase: active, owner: trade_manager, status: DELEGATED_EXTERNAL}
+  - {id: B5, name: "Scale C3", phase: active, owner: trade_manager, status: DELEGATED_EXTERNAL}
+  - {id: B6, name: "Time stop", phase: active, owner: trade_manager, status: DELEGATED_EXTERNAL}
+  - {id: B7, name: "EOD flatten", phase: active, owner: trading_gateway, status: DELEGATED_EXTERNAL}
+  - {id: B8, name: "SWI tighten", phase: active, owner: layer4, status: DELEGATED_EXTERNAL}
+  - {id: B9, name: "CCI flat tighten", phase: active, owner: layer4, status: DELEGATED_EXTERNAL}
+  - {id: B10, name: "TCCI cross exit", phase: active, owner: layer4, status: DELEGATED_EXTERNAL}
+  - {id: B11, name: "MFE peak tighten", phase: active, owner: layer4, status: DELEGATED_EXTERNAL}
+  - {id: B12, name: "Day-type targets verify", phase: active, owner: layer4, status: DELEGATED_EXTERNAL}
+  - {id: B13, name: "Direction-change exit", phase: active, owner: woodies, status: DELEGATED_EXTERNAL}
+  - {id: B14, name: "Cluster management", phase: active, owner: trade_manager, status: DELEGATED_EXTERNAL}
 
 decision_tree_nodes:
   - id: STUDY_COMPUTE
@@ -131,9 +155,10 @@ anti_patterns:
     test: tests/v9/compliance/test_woodies_compliance.py::test_AP2_dll_source
 
 summary:
-  total_requirements: 24
-  implemented: 24
-  partial: 0
+  total_requirements: 45
+  implemented: 30
+  partial: 1
   missing: 0
+  delegated_external: 14
   drift_pct: 0.0
-  notes: "All 8 patterns implemented with detect(bars, context)->PatternResult interface"
+  notes: "21-stage decision_tree.py (Option B). Patterns 8/8+HFE. A4 touch-points PENDING. B1-B14 delegated per D-067."

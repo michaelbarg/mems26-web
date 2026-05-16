@@ -55,7 +55,9 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
     price_lows = [(i, v) for i, v, t in price_swings if t == "L"]
     cci_lows = [(i, v) for i, v, t in cci_swings if t == "L"]
 
-    # Bearish VEGAS: price HH, CCI LH
+    # Bearish VEGAS: price HH, CCI LH. This uses the second most recent swing
+    # and the most recent swing to require a double divergence structure rather
+    # than a single-bar mismatch.
     if len(price_highs) >= 2 and len(cci_highs) >= 2:
         p1, p2 = price_highs[-2], price_highs[-1]
         c1, c2 = cci_highs[-2], cci_highs[-1]
@@ -80,7 +82,9 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 details={"price_hh": True, "cci_lh": True},
             )
 
-    # Bullish VEGAS: price LL, CCI HL
+    # Bullish VEGAS: price LL, CCI HL. This uses the second most recent swing
+    # and the most recent swing to require a double divergence structure rather
+    # than a single-bar mismatch.
     if len(price_lows) >= 2 and len(cci_lows) >= 2:
         p1, p2 = price_lows[-2], price_lows[-1]
         c1, c2 = cci_lows[-2], cci_lows[-1]
@@ -110,7 +114,11 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
 
 def detect_vegas(cci_history: list, bar_index: int, ts: float,
                  price_closes: list = None, **kwargs) -> Optional[PatternSignal]:
-    """Legacy interface for backward compatibility with detector.py."""
+    """Legacy interface for backward compatibility with detector.py.
+
+    Uses the second most recent swing and most recent swing, which is the
+    double divergence structure required by the VEGAS spec.
+    """
     if price_closes is None or len(price_closes) < LOOKBACK or len(cci_history) < LOOKBACK:
         return None
 
