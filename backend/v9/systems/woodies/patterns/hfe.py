@@ -37,7 +37,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> Optional[P
     Fallback: Python compute if DLL fields not populated.
     """
     if len(bars) < 4:
-        return None
+        return PatternResult(detected=False, pattern_id=PATTERN_ID)
 
     current = bars[-1]
     cci_now = current.cci_14
@@ -146,4 +146,4 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> Optional[P
                     },
                 )
 
-    return None
+    return PatternResult(detected=False, pattern_id=PATTERN_ID)

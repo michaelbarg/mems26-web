@@ -34,9 +34,9 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
     prev = cci_history[-2]
     bar = bars[-1]
 
-    # ZLR UP Stage 1: find bar where CCI >= 200 (D.10: "CCI >= 200, 6+ bars above ZL")
+    # ZLR UP Stage 1: find bar where CCI >= 100 (trend-side extreme per DTV1 § A3)
     for i in range(n - 2, max(n - LOOKBACK - 2, -1), -1):
-        if cci_history[i] >= 200:
+        if cci_history[i] >= 100:
             # Stage 2: pullback below 100, NOT below -100
             pulled = any(
                 -100 < cci_history[j] <= 100
@@ -66,9 +66,9 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 )
             break
 
-    # ZLR DOWN Stage 1: find bar where CCI <= -200 (D.10 mirror)
+    # ZLR DOWN Stage 1: find bar where CCI <= -100 (trend-side extreme per DTV1 § A3)
     for i in range(n - 2, max(n - LOOKBACK - 2, -1), -1):
-        if cci_history[i] <= -200:
+        if cci_history[i] <= -100:
             # Stage 2: pullback above -100, NOT above +100
             pulled = any(
                 -100 <= cci_history[j] < 100
@@ -110,9 +110,9 @@ def detect_zlr(cci_history: list, bar_index: int, ts: float,
     current = cci_history[-1]
     prev = cci_history[-2]
 
-    # ZLR UP Stage 1: CCI >= 200 (D.10)
+    # ZLR UP Stage 1: CCI >= 100 (DTV1 § A3)
     for i in range(n - 2, max(n - LOOKBACK - 1, -1), -1):
-        if cci_history[i] >= 200:
+        if cci_history[i] >= 100:
             bars_since = n - 1 - i
             pulled = any(
                 -100 < cci_history[j] <= 100
@@ -127,9 +127,9 @@ def detect_zlr(cci_history: list, bar_index: int, ts: float,
                 )
             break
 
-    # ZLR DOWN Stage 1: CCI <= -200 (D.10 mirror)
+    # ZLR DOWN Stage 1: CCI <= -100 (DTV1 § A3)
     for i in range(n - 2, max(n - LOOKBACK - 1, -1), -1):
-        if cci_history[i] <= -200:
+        if cci_history[i] <= -100:
             bars_since = n - 1 - i
             pulled = any(
                 -100 <= cci_history[j] < 100

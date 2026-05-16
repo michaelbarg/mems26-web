@@ -540,12 +540,12 @@ class TestDetectAllPatterns:
         results = detect_all_patterns(bars, context=ctx)
         assert isinstance(results, list)
 
-    def test_all_8_detectors_registered(self):
-        assert len(ALL_PATTERN_DETECTORS) == 8
+    def test_all_9_detectors_registered(self):
+        assert len(ALL_PATTERN_DETECTORS) == 9
 
     def test_pattern_ids_complete(self):
         from backend.v9.systems.woodies.pattern_engine import PATTERN_IDS
-        expected = {"ZLR", "TLB", "TT", "GB100", "VEGAS", "GHOST", "FAMIR", "HTLB"}
+        expected = {"ZLR", "TLB", "TT", "GB100", "VEGAS", "GHOST", "FAMIR", "HTLB", "HFE"}
         assert set(PATTERN_IDS) == expected
 
     def test_continuation_vs_reversal(self):
@@ -553,7 +553,7 @@ class TestDetectAllPatterns:
             CONTINUATION_PATTERNS, REVERSAL_PATTERNS,
         )
         assert len(CONTINUATION_PATTERNS) == 4
-        assert len(REVERSAL_PATTERNS) == 4
+        assert len(REVERSAL_PATTERNS) == 5  # includes HFE
         assert CONTINUATION_PATTERNS & REVERSAL_PATTERNS == set()
 
 

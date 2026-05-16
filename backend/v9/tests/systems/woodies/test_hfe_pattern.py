@@ -45,7 +45,7 @@ def test_no_hfe_when_no_extreme():
     """CCI stays in ±100 range → no HFE."""
     bars = [_bar(30), _bar(50), _bar(80), _bar(60), _bar(40)]
     result = detect(bars)
-    assert result is None
+    assert result.detected is False
 
 
 def test_no_hfe_when_no_hook():
@@ -55,14 +55,14 @@ def test_no_hfe_when_no_hook():
         _bar(-210), _bar(-205),  # stays near extreme, no real hook
     ]
     result = detect(bars)
-    assert result is None  # hook_distance < 50
+    assert result.detected is False  # hook_distance < 50
 
 
 def test_no_hfe_insufficient_bars():
     """Less than 4 bars → no detection."""
     bars = [_bar(-220), _bar(-100)]
     result = detect(bars)
-    assert result is None
+    assert result.detected is False
 
 
 if __name__ == "__main__":
