@@ -14,13 +14,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from backend.v9.api.v9.auth import verify_bridge_token
+from backend.v9.services.sierra_command import command_file, signals_dir, write_trade_command
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v9/trade", tags=["v9-trade-commands"])
 
-SIGNALS_DIR = Path("/tmp/mems26_signals")
-COMMAND_FILE = SIGNALS_DIR / "trade_command.json"
+SIGNALS_DIR = signals_dir()
+COMMAND_FILE = command_file()
 RESULT_FILE = SIGNALS_DIR / "trade_result.json"
 
 VALID_ACTIONS = {"BUY", "SELL", "CANCEL", "MODIFY", "STATUS", "FLATTEN"}
@@ -54,25 +55,16 @@ def submit_trade_command(
             detail=f"Invalid action: {action}. Valid: {', '.join(sorted(VALID_ACTIONS))}",
         )
 
-    command = {
-        "action": action,
-        "trade_id": cmd.trade_id,
-        "price": cmd.price,
-        "contracts": cmd.contracts,
-        "stop_price": cmd.stop_price,
-        "target_price": cmd.target_price,
-        "sierra_bracket_id": cmd.sierra_bracket_id,
-        "context": cmd.context,
-        "ts_submitted": time.time(),
-    }
-
-    # Ensure signals directory exists
-    SIGNALS_DIR.mkdir(parents=True, exist_ok=True)
-
-    # Write command file
     try:
-        with open(COMMAND_FILE, "w") as f:
-            json.dump(command, f, indent=2)
+        command = write_trade_command(
+            action=action,
+            trade_id=cmd.trade_id,
+            price=cmd.price,
+            contracts=cmd.contracts,
+            stop_price=cmd.stop_price,
+            target_price=cmd.target_price,
+            context={**(cmd.context or {}), "sierra_bracket_id": cmd.sierra_bracket_id},
+        )
         logger.info(f"[trade_cmd_api] Command written: {action} trade_id={cmd.trade_id}")
     except IOError as e:
         raise HTTPException(status_code=500, detail=f"Failed to write command: {e}")

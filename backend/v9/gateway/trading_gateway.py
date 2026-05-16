@@ -18,6 +18,7 @@ from typing import Dict, List, Optional
 from .risk_checks import passes_strict_checks
 from .cooldown import CooldownManager, ClusterGuard
 from .suffering_side_veto import SufferingSideVeto
+from backend.v9.services.sierra_command import command_from_setup
 
 logger = logging.getLogger(__name__)
 
@@ -216,9 +217,16 @@ class TradingGateway:
         return trade
 
     def _execute_demo(self, setup: dict, system_id: int, cross_context: dict) -> dict:
-        """DEMO: log intent, persist — no Sierra connection yet."""
+        """DEMO: persist and write Sierra SIM command file."""
         trade = self._build_trade("demo", setup, system_id, cross_context)
         self._persist_trade(trade)
+        command = command_from_setup(
+            setup,
+            trade_id=trade["trade_id"],
+            account="PA-APEX-125218-01",
+            mode="demo",
+        )
+        trade["sierra_command"] = command
         logger.info("[Gateway] DEMO trade: %s %s system=%d",
                      trade["direction"], trade.get("classification", ""), system_id)
         return trade

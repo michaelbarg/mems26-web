@@ -8,6 +8,7 @@ import logging
 from typing import Any, Dict
 
 from backend.v9.services.trade_manager.manager import TradeManager
+from backend.v9.services.sierra_command import command_from_setup
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +36,12 @@ class DemoExecutor:
             trade_id: The ID of the created demo trade.
         """
         trade_id = self._trade_manager.accept_setup(setup, mode="demo")
+        command_from_setup(
+            setup,
+            trade_id=str(trade_id),
+            account=SIERRA_DEMO_ACCOUNT,
+            mode="demo",
+        )
         logger.info(
             "DEMO trade %d created: sys=%d dir=%s account=%s",
             trade_id,
