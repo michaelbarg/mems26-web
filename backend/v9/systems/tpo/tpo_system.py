@@ -10,6 +10,7 @@ from typing import List, Optional, Dict, Any
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
 from backend.v9.common.session_classifier import SessionClassifier, Session
+from backend.v9.services.market_clock import now_utc as _market_now_utc
 
 logger = logging.getLogger(__name__)
 
@@ -186,7 +187,7 @@ class TPOSystem(BaseV9TradingSystem):
 
                 # POC Migration (P-TPO-A.2)
                 if poc is not None:
-                    now_dt = datetime.utcnow()
+                    now_dt = _market_now_utc()  # Prompt 26b: replay-safe
                     self._poc_migration = self._update_poc_migration(poc, now_dt)
 
                 # HVN/LVN + Volume Cluster (P-TPO-A.3/A.4) — compute from profile
@@ -372,7 +373,7 @@ class TPOSystem(BaseV9TradingSystem):
                 self.ib_locked = True
                 self._ib_width = self.ib_high - self.ib_low
                 self._ib_class = self._classify_ib_width(self._ib_width)
-                self._ib_locked_ts = datetime.utcnow().isoformat()
+                self._ib_locked_ts = _market_now_utc().isoformat()  # Prompt 26b: replay-safe
                 logger.info("[TPO] IB lock RECOVERED post-restart: H=%.2f L=%.2f W=%.2f class=%s",
                             self.ib_high, self.ib_low, self._ib_width, self._ib_class)
                 self._persist_ib_to_session()
@@ -391,7 +392,7 @@ class TPOSystem(BaseV9TradingSystem):
                     self.ib_locked = True
                     self._ib_width = self.ib_high - self.ib_low
                     self._ib_class = self._classify_ib_width(self._ib_width)
-                    self._ib_locked_ts = datetime.utcnow().isoformat()
+                    self._ib_locked_ts = _market_now_utc().isoformat()  # Prompt 26b: replay-safe
                     logger.info("[TPO] IB lock RECOVERED from DB: H=%.2f L=%.2f W=%.2f class=%s",
                                 self.ib_high, self.ib_low, self._ib_width, self._ib_class)
                     return
@@ -403,7 +404,7 @@ class TPOSystem(BaseV9TradingSystem):
             # After first hour, lock if not already locked
             if session == "CASH_HOURS" and self.ib_high is not None and not self.ib_locked:
                 self.ib_locked = True
-                self._ib_locked_ts = datetime.now(pytz.timezone('America/New_York')).isoformat() if 'pytz' in dir() else datetime.utcnow().isoformat()
+                self._ib_locked_ts = _market_now_utc().isoformat()  # Prompt 26b: replay-safe
                 self._ib_width = (self.ib_high - self.ib_low) if self.ib_low else 0
                 self._ib_class = self._classify_ib_width(self._ib_width)
                 self._persist_ib_to_session()

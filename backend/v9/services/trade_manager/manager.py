@@ -13,6 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy.orm import Session
+from backend.v9.services.market_clock import now_utc as _market_now_utc
 
 from backend.v9.db.models.trades import V9Trade
 from backend.v9.services.trade_manager.state_machine import (
@@ -124,7 +125,7 @@ class TradeManager:
         machine.transition(TradeState.FILLED)
         trade.state = TradeState.FILLED.value
         trade.entry_price = fill_price
-        trade.entry_ts = datetime.now(timezone.utc)
+        trade.entry_ts = _market_now_utc()  # Prompt 26b: market time
 
         self._db.flush()
 
@@ -145,7 +146,7 @@ class TradeManager:
 
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
-        hit_ts = fill_ts or datetime.now(timezone.utc)
+        hit_ts = fill_ts or _market_now_utc()  # Prompt 26b: market time
 
         # Capture cross-system snapshot at target hit (per spec Section 2.2)
         self._append_snapshot(trade, f"{target.lower()}_hit")
@@ -183,7 +184,7 @@ class TradeManager:
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
 
-        hit_ts = fill_ts or datetime.now(timezone.utc)
+        hit_ts = fill_ts or _market_now_utc()  # Prompt 26b: market time
 
         # Capture cross-system snapshot at stop hit (per spec Section 2.2)
         self._append_snapshot(trade, "stop_hit")
@@ -217,7 +218,7 @@ class TradeManager:
 
         machine.transition(TradeState.CLOSED)
         trade.state = TradeState.CLOSED.value
-        trade.exit_ts = datetime.now(timezone.utc)
+        trade.exit_ts = _market_now_utc()  # Prompt 26b: market time
         trade.exit_reason = reason
 
         self._calculate_pnl(trade)
