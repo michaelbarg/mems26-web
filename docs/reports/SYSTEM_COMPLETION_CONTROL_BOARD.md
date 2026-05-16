@@ -1,10 +1,12 @@
 # System Completion Control Board
 
-**Date:** 2026-05-16 (updated after Prompt 18 A4 fix)  
+**Date:** 2026-05-16 (final reconciliation — Prompt 24)  
 **Authority:** Master Index V2  
 **Purpose:** Score whether each system produces reliable information  
 **Scope:** System correctness only — NOT SHADOW/DEMO/LIVE activation  
-**Last commit:** Prompt 21c — S1 pd_* degraded/pending proof + loader source tests
+**Last commit:** `f3197c8` Prompt 23 — S4 Woodies runtime contract  
+**HEAD:** `f3197c8` on `stabilize/mems26-local-truth-2026-05-16`  
+**Tests verified:** 369 pass (atomic + compliance) at time of writing
 
 ---
 
@@ -19,7 +21,9 @@
 | S5 TPO | **READY** | 9/9 | — |
 | S6 Killzone | **READY** | 24/24 | — |
 
-**Change from Prompt 17:** S4 upgraded PARTIAL → READY (A4 now functional)
+**READY means:** System produces reliable information for its role.  
+**READY does NOT mean:** LIVE-ready, production-hardened, or latency-optimized.  
+All 6 systems upgraded to READY through Prompts 14–23.
 
 ---
 
@@ -198,44 +202,93 @@
 
 ---
 
-## Remaining Issues
+## Closed Issues (Prompts 14–23)
 
-| # | System | Issue | Severity | Blocks SHADOW? |
-|---|--------|-------|----------|----------------|
-| 1 | S1 | V1/V9 classifier disagreement | MEDIUM | NO — V9 is canonical, V1 is legacy |
-| 2 | ~~S1~~ | ~~Prompt 21c pd_* degraded/pending + loader source proof~~ | ~~HIGH~~ | **CLOSED (Prompt 21c)** — tests prove degraded/pending and loader sources |
-| 3 | ~~S4~~ | ~~decision_tree A4 blocks ready_to_route~~ | ~~HIGH~~ | **CLOSED (Prompt 18)** |
-
-**All 6 systems READY.** Prompt 20 made `/current` prefer V9 canonical source; Prompt 21c now proves previous-day context integrity.
-
----
-
-## Resolved: S1 Day Type (Prompt 20)
-
-`/api/v9/day_type/current` now uses priority:
-1. V9 state machine (via `/v9/current`) — live classification
-2. State machine DB (LOCKED row for today)
-3. V1 fallback (only pre-IB/pre-RTH states)
-
-Downstream consumers reading `/current` will get V9 classification.
-V1 path only activates when V9 hasn't classified yet (pre-IB = returns PENDING correctly).
-
-**No remaining S1 pd_* issue:** degraded/pending behavior and direct loader source tests pass.
+| # | Issue | Closed by |
+|---|-------|-----------|
+| 1 | S2+S4 fire → gateway not routed | Prompt 14 |
+| 2 | S1 INDETERMINATE test drift | Prompt 15 |
+| 3 | S4 A4 touch-points PENDING | Prompt 18 |
+| 4 | S1 V1/V9 disagreement | Prompt 20b |
+| 5 | S1 pd_close from POC (wrong source) | Prompt 21b |
+| 6 | S1 pd_* degraded/pending not explicit | Prompt 21c |
+| 7 | S4 B1-B14 STUB ambiguity | Prompt 23 |
+| 8 | S3 fire → pre_fire → gateway not wired | Prompt (b076cb6) |
 
 ---
 
-## Recommended Next Prompts
+## Remaining Blockers
+
+### Before SHADOW can accumulate meaningful data:
+
+| Blocker | Type | Status |
+|---------|------|--------|
+| RTH live validation (Sierra + Bridge + all 3 firing systems) | Integration | PENDING — requires market hours |
+| Replay Clock Mode for offline testing | Tooling | PENDING — not yet built |
+| SHADOW/DEMO/LIVE not enabled | Policy | INTENTIONAL — awaiting Michael gate |
+
+### Before DEMO can be considered:
+
+| Blocker | Type | Status |
+|---------|------|--------|
+| 7+ days SHADOW soak with ≥20 trades closed | Evidence | NOT STARTED |
+| DemoExecutor connected to Sierra sim | Infrastructure | STUB |
+| Layer 3 entry (15-tick reversal cluster + empty zone) E2E | Integration | Code exists, not live-tested |
+
+### Before LIVE can be considered:
+
+| Blocker | Type | Status |
+|---------|------|--------|
+| 30-day SHADOW soak (WR ≥ 50%, max DD ≤ $500) | Evidence | NOT STARTED |
+| LiveExecutor connected to Sierra real | Infrastructure | STUB |
+| Risk caps ($250/day, 5 trades, 14:30 ET cutoff) validated | Operations | Code exists, not live-tested |
+| Michael manual UAT approval | Policy | REQUIRED |
+
+---
+
+## What "READY" Means vs What It Does Not
+
+**READY means:**
+- System reliably classifies/detects/computes its domain
+- API endpoints return correct data for all documented states
+- Tests prove correctness including edge cases
+- Gateway routing wired for firing systems (S2/S3/S4)
+- Pre-fire validation prevents unsafe setups
+
+**READY does NOT mean:**
+- Tested with live market data end-to-end
+- Latency profiled under production load
+- DEMO/LIVE hardened (Sierra bracket orders)
+- 30-day soak evidence accumulated
+- Production deployment verified
+
+---
+
+## Activation Path
 
 ```
-Prompt 22: RTH live validation
-           Run during Monday 9:30–11:30 ET with Sierra live
-           Verify all 3 firing systems produce SHADOW trades
-           Confirm BarLevelDetector closes them correctly
+Current state: 6/6 READY · mode=shadow · no trades accumulating (weekend)
 
-Prompt 23: SHADOW Day 1/30 activation
-           All 6 systems READY — enable shadow trade accumulation
+Step 1: RTH validation (Monday 9:30 ET with Sierra live)
+  → Verify 3 firing systems produce shadow trades
+  → Verify BarLevelDetector closes them (T1/T2/T3)
+  → Verify PnL calculated correctly
+
+Step 2: SHADOW accumulation (7-30 days)
+  → Daily WR tracked
+  → Max drawdown monitored
+  → Pattern quality assessed
+
+Step 3: DEMO (after soak evidence)
+  → DemoExecutor connected to Sierra sim
+  → Layer 3 entry tested with real fills
+
+Step 4: LIVE (after demo success + Michael approval)
+  → LiveExecutor connected
+  → Risk caps enforced live
+  → Manual UAT gate
 ```
 
 ---
 
-*Generated: Prompt 17 — System Completion Control Board. No code changes. No push.*
+*Final reconciliation: Prompt 24. No code changes. No push. No SHADOW/DEMO/LIVE enabled.*
