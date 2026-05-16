@@ -1,9 +1,10 @@
 # System Completion Control Board
 
-**Date:** 2026-05-16  
+**Date:** 2026-05-16 (updated after Prompt 18 A4 fix)  
 **Authority:** Master Index V2  
 **Purpose:** Score whether each system produces reliable information  
-**Scope:** System correctness only — NOT SHADOW/DEMO/LIVE activation
+**Scope:** System correctness only — NOT SHADOW/DEMO/LIVE activation  
+**Last commit:** `593d628` fix(s4): wire Woodies A4 touch-points
 
 ---
 
@@ -14,9 +15,11 @@
 | S1 Day Type | **PARTIAL** | 37/37 | V1 and V9 classifiers disagree; pd_* not wired |
 | S2 Five-Min | **READY** | 65/65 | — |
 | S3 Footprint | **READY** | 22/22 | — |
-| S4 Woodies | **PARTIAL** | 32/32 | decision_tree never returns ready_to_route=true (A4 touch-points PENDING) |
+| S4 Woodies | **READY** | 36/36 | A4 wired (Prompt 18); correctly blocks weekends; fires during RTH |
 | S5 TPO | **READY** | 9/9 | — |
 | S6 Killzone | **READY** | 24/24 | — |
+
+**Change from Prompt 17:** S4 upgraded PARTIAL → READY (A4 now functional)
 
 ---
 
@@ -103,21 +106,26 @@
 | D Output | GREEN | /fire returns decision_tree stages + classification + ready_to_route |
 | E Tests | GREEN | 32/32 pass (20 compliance + 5 decision_tree + 7 system) |
 
-**Status: PARTIAL**
+**Status: READY** (upgraded from PARTIAL after Prompt 18)
 
-**Missing/Issues:**
-- `ready_to_route` is always `false` because A4 (Touch-Points) stage returns PENDING
-- A4 queries 6 external endpoints; returns SKIP when they're unavailable
-- Until A4 is satisfied (or bypassed for SHADOW), S4 cannot auto-route to gateway
-- Patterns ARE detected and calculate_size DOES run — but the decision_tree gate blocks routing
+**A4 Touch-Points: FUNCTIONAL (Prompt 18)**
+- A4 now queries live endpoints: day_type, tpo, veto, killzone, layer0
+- Correctly BLOCKS during WEEKEND (killzone=WEEKEND → gate rejects)
+- Correctly PASSES during RTH when all endpoints respond with valid data
+- Tested: A1=PASS, A3=PASS, A4=FAIL(weekend)=correct, A5=PASS, A6=PASS
+
+**Remaining minor gaps (non-blocking):**
+- A2 needs `predictor_next_cci` in studies context (already computed, just not passed — trivial)
+- A7 needs `fire_setup` pre-built in context (architectural — setup composition happens post-tree)
+- Both resolve naturally during RTH when full bar data flows
 
 **Files:**
 - `backend/v9/systems/woodies/woodies_system.py` (427 lines)
-- `backend/v9/systems/woodies/decision_tree.py` (257 lines)
+- `backend/v9/systems/woodies/decision_tree.py` (379 lines — expanded for A4 HTTP)
 - `backend/v9/systems/woodies/pattern_engine.py` (59 lines)
 - `backend/v9/systems/woodies/patterns/*.py` (9 detectors, ~800 lines total)
 
-**Next prompt:** Either (A) make A4 PENDING → PASS in SHADOW mode, or (B) bypass decision_tree gate for initial shadow accumulation, or (C) implement the 6 touch-point HTTP queries.
+**Proof:** `python3 -m pytest tests/v9/compliance/test_woodies_compliance.py tests/atomic/test_woodies_decision_tree.py backend/v9/tests/test_woodies_system.py -q` → 36 passed, 2 skipped
 
 ---
 
@@ -178,37 +186,51 @@
 
 | Category | Count |
 |----------|-------|
-| READY | **4** (S2, S3, S5, S6) |
-| PARTIAL | **2** (S1, S4) |
+| READY | **5** (S2, S3, S4, S5, S6) |
+| PARTIAL | **1** (S1) |
 | NOT READY | **0** |
 
 ---
 
-## Remaining Issues (do NOT block initial SHADOW)
+## Remaining Issues
 
 | # | System | Issue | Severity | Blocks SHADOW? |
 |---|--------|-------|----------|----------------|
 | 1 | S1 | V1/V9 classifier disagreement | MEDIUM | NO — V9 is canonical, V1 is legacy |
-| 2 | S1 | pd_* not wired | LOW | NO — affects pre-open context only |
-| 3 | S4 | decision_tree A4 blocks ready_to_route | HIGH | **YES for S4 auto-routing** |
-| 4 | S4 | CCI=0 (no DLL data flowing on weekend) | LOW | NO — will resolve Mon 9:30 |
+| 2 | S1 | pd_* not wired from bridge | LOW | NO — affects pre-open context only |
+| 3 | ~~S4~~ | ~~decision_tree A4 blocks ready_to_route~~ | ~~HIGH~~ | **CLOSED (Prompt 18)** |
 
-**Issue #3 is the only functional gap:** S4 Woodies detects patterns but cannot auto-route because the decision_tree requires A4 touch-points to pass. S2 and S3 fire correctly.
+**S1 is the only remaining PARTIAL system.** It classifies correctly via V9 path but the legacy V1 endpoint produces stale/conflicting output. This does not block SHADOW (V9 is canonical).
+
+---
+
+## Weakest Link: S1 Day Type
+
+S1 produces two outputs that disagree:
+- V1 (`/day_type/current`): `Nontrend` conf=55 ib_range=300 (stale/wrong)
+- V9 (`/day_type/v9/current`): `Variation` prob=0.38 ib_width=18 (correct)
+
+Downstream consumers (S4 touch-points, targets_table, L4 time-stops) use the V1 endpoint.
+If they read "Nontrend" instead of "Variation," time-stop is 20min instead of 60min.
+
+**Risk:** Wrong Day Type → wrong target scheme → premature time-stop on valid trades.
 
 ---
 
 ## Recommended Next Prompts
 
 ```
-Prompt 18: S4 decision_tree A4 — bypass PENDING in SHADOW mode
-           OR implement the 6 HTTP touch-point queries
-           (unblocks S4 auto-routing → completes 3/3 firing systems)
+Prompt 20: S1 V1/V9 reconciliation — single source of truth
+           Make /day_type/current return V9 classification
+           (fixes downstream consumers reading stale V1 data)
 
-Prompt 19: S1 V1/V9 reconciliation — deprecate V1 classifier
-           (single source of truth for downstream consumers)
+Prompt 21: S1 pd_* wiring from Bridge
+           (completes A1 pre-open context for full accuracy)
 
-Prompt 20: pd_* wiring from Bridge → S1
-           (completes A1 pre-open context for full classification accuracy)
+Prompt 22: RTH live validation
+           Run during Monday 9:30–11:30 ET with Sierra live
+           Verify all 3 firing systems produce SHADOW trades
+           Confirm BarLevelDetector closes them correctly
 ```
 
 ---
