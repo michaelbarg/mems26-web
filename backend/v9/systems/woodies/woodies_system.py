@@ -29,6 +29,7 @@ class WoodiesSystem(BaseV9TradingSystem):
 
     def __init__(self, db_path: str = None):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+        self._gateway = None  # injected post-init via set_gateway()
         # Raw OHLCV buffers for study computation
         self._highs: List[float] = []
         self._lows: List[float] = []
@@ -59,6 +60,10 @@ class WoodiesSystem(BaseV9TradingSystem):
             "entry_classification_spec": None,
             "ready_to_route": False,
         }
+
+    def set_gateway(self, gateway) -> None:
+        """Inject TradingGateway for auto-routing fire signals (Prompt 14)."""
+        self._gateway = gateway
 
     def subscribed_bar_types(self) -> List[str]:
         return ["woodies_5min"]
@@ -259,6 +264,29 @@ class WoodiesSystem(BaseV9TradingSystem):
                 "entry_classification_spec": dt_summary.get("entry_classification_spec"),
                 "ready_to_route": dt_summary.get("ready_to_route", False),
             })
+
+            # Prompt 14: auto-route to TradingGateway when ready
+            if dt_summary.get("ready_to_route") and self._gateway and patterns:
+                best = max(patterns, key=lambda p: p.confidence)
+                sizing = self.calculate_size(best.pattern_id, best.direction or "LONG")
+                if sizing != "reject":
+                    setup = {
+                        "firing_system": 4,
+                        "direction": best.direction or "LONG",
+                        "classification": best.pattern_id,
+                        "confidence": best.confidence,
+                        "entry_price": best.entry_price,
+                        "stop": best.stop or 0.0,
+                        "t1": (best.targets or [0])[0] if best.targets else 0.0,
+                        "t2": (best.targets or [0, 0])[1] if best.targets and len(best.targets) > 1 else 0.0,
+                        "t3": (best.targets or [0, 0, 0])[2] if best.targets and len(best.targets) > 2 else 0.0,
+                        "metadata": {"pattern": best.pattern_id, "sizing": sizing},
+                    }
+                    try:
+                        self._gateway.route_setup(setup, 4)
+                        logger.info("[Woodies] Auto-routed: %s %s size=%s", best.pattern_id, best.direction, sizing)
+                    except Exception as e:
+                        logger.warning("[Woodies] Gateway route_setup failed: %s", e)
 
             # Persist patterns to DB (LIVE mode only)
             mode = getattr(event, 'mode', bar.get('mode', 'LIVE'))

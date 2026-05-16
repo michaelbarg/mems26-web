@@ -320,6 +320,14 @@ async def _startup():
         trading_gateway.set_system_registry(system_registry)
         app.state.trading_gateway = trading_gateway
         _logger.info("[Main] TradingGateway initialized: %s", trading_gateway.get_status())
+
+        # Prompt 14: inject gateway into S2 + S4 for auto-routing fire signals
+        if hasattr(app.state, 'five_min_system') and app.state.five_min_system:
+            app.state.five_min_system.set_gateway(trading_gateway)
+            _logger.info("[Main] S2 FiveMinSystem → gateway injected")
+        if hasattr(app.state, 'woodies_system') and app.state.woodies_system:
+            app.state.woodies_system.set_gateway(trading_gateway)
+            _logger.info("[Main] S4 WoodiesSystem → gateway injected")
     except Exception as e:
         _logger.error("[Main] TradingGateway startup failed: %s", e)
 

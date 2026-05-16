@@ -43,6 +43,7 @@ class FiveMinSystem(BaseV9TradingSystem):
     ]
 
     def __init__(self):
+        self._gateway = None  # injected post-init via set_gateway() (Prompt 14)
         self.session_classifier = SessionClassifier()
         self.mode = FiveMinMode.WAITING_OPEN
         self.buffer_size = 0
@@ -52,6 +53,10 @@ class FiveMinSystem(BaseV9TradingSystem):
         self.last_classification: Optional[str] = None
         self.choppiness_score: int = 0
         self._hydrated = False
+
+    def set_gateway(self, gateway) -> None:
+        """Inject TradingGateway for auto-routing fire signals (Prompt 14)."""
+        self._gateway = gateway
 
     def hydrate(self) -> HydrationResult:
         """D-077 hydration using SessionClassifier (D-083)."""
@@ -532,8 +537,26 @@ class FiveMinSystem(BaseV9TradingSystem):
                     day_type=self.opening_type,
                     current_price=entry_price,
                 )
-                if t1_setup:
-                    logger.info("[FiveMin] T1Setup emitted: %s → gateway SHADOW", pattern_name)
+                if t1_setup and self._gateway:
+                    gateway_setup = {
+                        "firing_system": 2,
+                        "direction": t1_setup.direction,
+                        "classification": t1_setup.pattern_name,
+                        "confidence": t1_setup.confidence / 100.0,
+                        "entry_price": t1_setup.entry_price,
+                        "stop": t1_setup.stop_price or 0.0,
+                        "t1": t1_setup.t1_price or 0.0,
+                        "t2": t1_setup.t2_price or 0.0,
+                        "t3": 0.0,
+                        "metadata": {"pattern": t1_setup.pattern_name, "sizing": t1_setup.sizing_contracts},
+                    }
+                    try:
+                        self._gateway.route_setup(gateway_setup, 2)
+                        logger.info("[FiveMin] Auto-routed: %s %s → gateway SHADOW", pattern_name, direction)
+                    except Exception as gw_err:
+                        logger.warning("[FiveMin] Gateway route_setup failed: %s", gw_err)
+                elif t1_setup:
+                    logger.info("[FiveMin] T1Setup emitted but no gateway injected: %s", pattern_name)
             except Exception as emit_err:
                 logger.error("[FiveMin] emit_t1_setup failed (non-fatal): %s", emit_err)
 
