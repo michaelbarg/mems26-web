@@ -18,6 +18,7 @@ from backend.v9.api.v9.reversal_routes import router as reversal_api_router
 from backend.v9.api.v9.chop_score_routes import router as chop_score_router
 from backend.v9.api.v9.gateway_routes import router as gateway_api_router
 from backend.v9.api.v9.shadow_routes import router as shadow_api_router
+from backend.v9.api.v9.pre_fire_routes import router as pre_fire_router
 from backend.v9.systems.behavior_phase.routes import router as behavior_phase_router
 from backend.v9.api.v9.price_routes import router as price_api_router
 from backend.v9.api.v9.clock_routes import router as clock_api_router
@@ -52,6 +53,7 @@ v9_router.include_router(reversal_api_router)
 v9_router.include_router(chop_score_router)
 v9_router.include_router(gateway_api_router)
 v9_router.include_router(shadow_api_router)
+v9_router.include_router(pre_fire_router)
 v9_router.include_router(behavior_phase_router)
 v9_router.include_router(price_api_router)
 v9_router.include_router(clock_api_router)
