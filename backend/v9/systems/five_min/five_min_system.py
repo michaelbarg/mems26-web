@@ -447,7 +447,12 @@ class FiveMinSystem(BaseV9TradingSystem):
 
     async def process_bar(self, event) -> None:
         """Process a 5-min bar from BarRouter. Runs Reactive + Initiative detectors."""
-        bar = event if isinstance(event, dict) else {}
+        bar = dict(event.payload) if hasattr(event, "payload") else (event if isinstance(event, dict) else {})
+        bar.setdefault("o", bar.get("open", 0))
+        bar.setdefault("h", bar.get("high", 0))
+        bar.setdefault("l", bar.get("low", 0))
+        bar.setdefault("c", bar.get("close", 0))
+        bar.setdefault("vol", bar.get("volume", 0))
         self.buffer_size += 1
         self._bar_buffer.append(bar)
         if len(self._bar_buffer) > 20:

@@ -1,8 +1,8 @@
-"""System 4 — Woodies CCI Decision Maker (5-min bars + 9 patterns).
+"""System 4 — Woodies CCI Decision Maker (30-min bars + 8 patterns).
 
-Subscribes to woodies_5min bars via BarRouter (D-074: migrated from 30-min).
+Subscribes to woodies_30min bars via BarRouter (D-048).
 Computes all 11 Woodies studies per bar via cci_calc.compute_all_studies().
-Runs 9-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE).
+Runs 8-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB).
 Publishes signal events independently.
 """
 import json
@@ -38,7 +38,7 @@ class WoodiesSystem(BaseV9TradingSystem):
         self._active_patterns: List[PatternResult] = []
         self._decision_tree = WoodiesDecisionTree()
         self.current_state: Dict = {
-            "timeframe": "30min",
+            "timeframe": "5min",
             "running": False,
             "hydrated": False,
             "cci_14": None,
@@ -61,7 +61,7 @@ class WoodiesSystem(BaseV9TradingSystem):
         }
 
     def subscribed_bar_types(self) -> List[str]:
-        return ["woodies_5min"]  # D-074: migrated from woodies_30min
+        return ["woodies_5min"]
 
     def hydrate(self) -> HydrationResult:
         """Load last N bars from v9_bars_5min_woodies for warm start."""
@@ -271,11 +271,11 @@ class WoodiesSystem(BaseV9TradingSystem):
             logger.error("[Woodies] process_bar error: %s", e, exc_info=True)
 
     def _persist_bar(self, ts, o, h, l, c, v, studies):
-        """Write enriched bar to v9_bars_5min_woodies."""
+        """Write enriched bar to v9_bars_30min_woodies."""
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute(
-                """INSERT INTO v9_bars_5min_woodies
+                """INSERT INTO v9_bars_30min_woodies
                 (ts, symbol, open, high, low, close, volume,
                  cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
                  ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction)
