@@ -10,7 +10,7 @@ decision_tree_stages:
   - {id: A1, name: "Trend Gate", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
   - {id: A2, name: "Study Validity", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
   - {id: A3, name: "Pattern Detection", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
-  - {id: A4, name: "Touch-Points", phase: pre_fire, owner: touchpoint_api, status: PENDING}
+  - {id: A4, name: "Touch-Points", phase: pre_fire, owner: touchpoint_api, status: IMPLEMENTED}
   - {id: A5, name: "Auxiliary Alignment", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
   - {id: A6, name: "Entry Classification", phase: pre_fire, owner: woodies, status: IMPLEMENTED}
   - {id: A7, name: "Universal Checks", phase: pre_fire, owner: pre_fire_validator, status: IMPLEMENTED}
@@ -156,9 +156,9 @@ anti_patterns:
 
 summary:
   total_requirements: 45
-  implemented: 30
-  partial: 1
+  implemented: 31
+  partial: 0
   missing: 0
   delegated_external: 14
   drift_pct: 0.0
-  notes: "21-stage decision_tree.py (Option B). Patterns 8/8+HFE. A4 touch-points PENDING. B1-B14 delegated per D-067."
+  notes: "21-stage decision_tree.py (Option B). Patterns 8/8+HFE. A4 touch-points HTTP-wired with explicit PENDING/FAIL blocks. B1-B14 delegated per D-067."

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from backend.v9.systems.woodies.schemas import PatternResult, WoodiesBar
 
@@ -66,6 +66,7 @@ class WoodiesDecisionContext:
     sizing: str  # full | half | reject
     current_state: Dict[str, Any]
     fire_setup: Optional[Dict[str, Any]] = None  # when routing to gateway
+    touchpoints: Optional[Dict[str, Any]] = None
 
 
 # Canonical 21 stages per Master Index / WAVE1_S4_AUDIT
@@ -103,6 +104,14 @@ STAGE_DEFINITIONS: List[StageDefinition] = [
 
 STAGE_BY_ID: Dict[str, StageDefinition] = {s.stage_id: s for s in STAGE_DEFINITIONS}
 
+TOUCHPOINT_ENDPOINTS: Dict[str, str] = {
+    "day_type": "http://localhost:8000/api/v9/day_type/v9/current",
+    "tpo": "http://localhost:8000/api/v9/tpo/current",
+    "veto": "http://localhost:8000/api/v9/veto/state",
+    "killzone": "http://localhost:8000/api/v9/killzone/current",
+    "layer0": "http://localhost:8000/api/v9/layer0/state",
+}
+
 
 def _a1_trend_gate(ctx: WoodiesDecisionContext) -> StageResult:
     trend = (ctx.studies.get("trend_state") or "GRAY").upper()
@@ -134,14 +143,117 @@ def _a3_pattern_detect(ctx: WoodiesDecisionContext) -> StageResult:
 
 
 def _a4_touchpoints(ctx: WoodiesDecisionContext) -> StageResult:
-    # Wave 1 B: structure only — HTTP wiring is Wave 1b
+    if not ctx.patterns:
+        return StageResult("A4", StageStatus.SKIP, "no setup needs touch-points", owner=StageOwner.TOUCHPOINT)
+
+    touchpoints, unavailable = _load_touchpoints(ctx)
+    if unavailable:
+        return StageResult(
+            "A4",
+            StageStatus.PENDING,
+            f"touch-point context unavailable: {', '.join(unavailable)}",
+            owner=StageOwner.TOUCHPOINT,
+            details={"unavailable": unavailable, "touchpoints": touchpoints},
+        )
+
+    blocks = _touchpoint_blocks(ctx, touchpoints)
+    if blocks:
+        return StageResult(
+            "A4",
+            StageStatus.FAIL,
+            f"touch-point blocks: {', '.join(blocks)}",
+            owner=StageOwner.TOUCHPOINT,
+            details={"blocks": blocks, "touchpoints": touchpoints},
+        )
+
     return StageResult(
         "A4",
-        StageStatus.PENDING,
-        "touch-points not HTTP-wired yet (day_type/tpo/killzone/layer0)",
+        StageStatus.PASS,
+        "touch-points OK: day_type/tpo/veto/killzone/layer0",
         owner=StageOwner.TOUCHPOINT,
-        details={"endpoints": ["/api/v9/day_type/v9/current", "/api/v9/tpo/current", "/api/v9/killzone/current"]},
+        details={"touchpoints": touchpoints},
     )
+
+
+def _load_touchpoints(ctx: WoodiesDecisionContext) -> Tuple[Dict[str, Any], List[str]]:
+    if ctx.touchpoints is not None:
+        return dict(ctx.touchpoints), _missing_touchpoints(ctx.touchpoints)
+
+    fetched: Dict[str, Any] = {}
+    unavailable: List[str] = []
+    for name, url in TOUCHPOINT_ENDPOINTS.items():
+        try:
+            import requests
+
+            resp = requests.get(url, timeout=2)
+            if resp.status_code != 200:
+                unavailable.append(f"{name}:http_{resp.status_code}")
+                continue
+            data = resp.json()
+            fetched[name] = data
+            if isinstance(data, dict) and data.get("error"):
+                unavailable.append(f"{name}:{data.get('error')}")
+        except Exception as exc:
+            unavailable.append(f"{name}:{exc}")
+
+    unavailable.extend(item for item in _missing_touchpoints(fetched) if item not in unavailable)
+    return fetched, unavailable
+
+
+def _missing_touchpoints(touchpoints: Dict[str, Any]) -> List[str]:
+    missing: List[str] = []
+    for name in TOUCHPOINT_ENDPOINTS:
+        data = touchpoints.get(name)
+        if not isinstance(data, dict):
+            missing.append(f"{name}:missing")
+    return missing
+
+
+def _touchpoint_blocks(ctx: WoodiesDecisionContext, touchpoints: Dict[str, Any]) -> List[str]:
+    blocks: List[str] = []
+
+    day_type = touchpoints["day_type"]
+    if day_type.get("classified") is not True:
+        blocks.append("day_type:not_classified")
+    elif not _day_type_name(day_type):
+        blocks.append("day_type:missing_day_type")
+
+    tpo = touchpoints["tpo"]
+    if tpo.get("running") is False:
+        blocks.append("tpo:not_running")
+    missing_tpo = [field for field in ("poc", "vah", "val") if tpo.get(field) is None]
+    if missing_tpo:
+        blocks.append(f"tpo:missing_{'/'.join(missing_tpo)}")
+
+    veto = touchpoints["veto"]
+    suffering_side = str(veto.get("suffering_side") or "NONE").upper()
+    if veto.get("veto_active") and ctx.direction and suffering_side == ctx.direction.upper():
+        blocks.append(f"veto:{ctx.direction.upper()}")
+
+    killzone = touchpoints["killzone"]
+    zone = killzone.get("current_zone") or {}
+    zone_name = str(zone.get("name") or "UNKNOWN").upper()
+    edge_class = str(zone.get("edge_class") or "none").lower()
+    if killzone.get("running") is False:
+        blocks.append("killzone:not_running")
+    elif zone_name in {"CLOSED", "WEEKEND", "UNKNOWN"} or edge_class == "none":
+        blocks.append(f"killzone:{zone_name}")
+
+    layer0 = touchpoints["layer0"]
+    layer0_state = str(layer0.get("state") or "").upper()
+    if not layer0_state:
+        blocks.append("layer0:missing_state")
+    elif layer0_state == "SEARCHING":
+        blocks.append("layer0:SEARCHING")
+
+    return blocks
+
+
+def _day_type_name(day_type: Dict[str, Any]) -> Optional[str]:
+    data = day_type.get("data")
+    if isinstance(data, dict):
+        return data.get("day_type")
+    return day_type.get("day_type")
 
 
 def _a5_auxiliary(ctx: WoodiesDecisionContext) -> StageResult:
@@ -170,6 +282,13 @@ def _a6_entry_class(ctx: WoodiesDecisionContext) -> StageResult:
 def _a7_universal(ctx: WoodiesDecisionContext) -> StageResult:
     setup = ctx.fire_setup
     if not setup:
+        if ctx.patterns and ctx.sizing != "reject":
+            return StageResult(
+                "A7",
+                StageStatus.FAIL,
+                "missing fire_setup for routable pattern",
+                owner=StageOwner.PREFIRE,
+            )
         return StageResult(
             "A7",
             StageStatus.SKIP,
@@ -241,11 +360,13 @@ class WoodiesDecisionTree:
         pre = self.run_pre_fire(ctx)
         active = self.run_active_trade()
         failed = [r.stage_id for r in pre if r.status == StageStatus.FAIL]
+        pending = [r.stage_id for r in pre if r.status == StageStatus.PENDING]
         return {
             "pre_fire": [r.__dict__ for r in pre],
             "active_trade": [r.__dict__ for r in active],
-            "ready_to_route": len(failed) == 0 and bool(ctx.patterns) and ctx.sizing != "reject",
+            "ready_to_route": not failed and not pending and bool(ctx.patterns) and ctx.sizing != "reject",
             "failed_stages": failed,
+            "pending_stages": pending,
             "entry_classification_spec": next(
                 (r.details.get("spec_classification") for r in pre if r.stage_id == "A6"),
                 None,
