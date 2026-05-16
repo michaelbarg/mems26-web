@@ -1,14 +1,12 @@
-"""Stage B1 — Stop Check (PROMPT 2 · 2.3 stub).
+"""Stage B1 — Stop Check (PROMPT 3 · 3.4).
 
 Purpose: Check if stop has been hit.
 Reference: Decision Tree V1 § Section 5 · B1
 Type: Woodies Core
 Priority Class: ABSOLUTE_EXIT (highest)
-Logic: PROMPT 3
 """
 
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -35,6 +33,11 @@ class B1StopCheck:
         stop_price: float,
         direction: str,
     ) -> B1Output:
-        """Evaluate stop check. STUB: returns no stop hit."""
-        # STUB: real logic in PROMPT 3
+        """Evaluate stop check per Decision Tree V1 § B1."""
+        if direction == "LONG" and current_price <= stop_price:
+            return B1Output(stop_hit=True, action="CLOSE_ALL")
+
+        if direction == "SHORT" and current_price >= stop_price:
+            return B1Output(stop_hit=True, action="CLOSE_ALL")
+
         return B1Output(stop_hit=False, action="HOLD")
