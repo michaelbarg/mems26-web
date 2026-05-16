@@ -1635,10 +1635,16 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         v9_write_json(v9dir, "cumulative_delta.json", cd_json);
     }
 
-    // ── Export 8: Woodies CCI 30-min (all 11 studies + patterns) ──
+    // ── Export 8: Woodies CCI 30-min (legacy — kept for replay) ──
     {
         std::string w_json = v9_woodies_30min_to_json(sc, V9WoodiesHistory.GetInt());
         v9_write_json(v9dir, "woodies_30min.json", w_json);
+    }
+
+    // ── Export 8b: Woodies CCI 5-min (D-074: primary S4 stream) ──
+    {
+        std::string w5_json = v9_woodies_5min_to_json(sc, V9WoodiesHistory.GetInt());
+        v9_write_json(v9dir, "woodies_5min.json", w5_json);
     }
 
     // ══════════════════════════════════════════════════════════════
