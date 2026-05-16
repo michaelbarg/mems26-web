@@ -32,15 +32,48 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> Optional[P
     - CCI(14) reaches ±200 within last 6-12 bars
     - Then hooks back toward zero line
     - Current CCI moving in hook direction (confirmation)
+
+    Primary: reads hfe_detected/hfe_direction from DLL JSON (via WoodiesBar fields).
+    Fallback: Python compute if DLL fields not populated.
     """
     if len(bars) < 4:
         return None
 
     current = bars[-1]
     cci_now = current.cci_14
-    cci_prev = bars[-2].cci_14
 
-    # Search last LOOKBACK bars for extreme
+    # ── PRIMARY: DLL JSON detection (consistent with ZLR pattern) ──
+    if getattr(current, 'hfe_detected', False) and getattr(current, 'hfe_direction', 'NONE') != 'NONE':
+        direction = "LONG" if current.hfe_direction == "UP" else "SHORT"
+        bars_ago = getattr(current, 'hfe_extreme_bars_ago', 0)
+        entry_price = current.close
+        if direction == "LONG":
+            stop_price = current.low - STOP_TICKS * TICK_SIZE
+            targets = [entry_price + TARGET1_TICKS * TICK_SIZE, entry_price + TARGET2_TICKS * TICK_SIZE]
+        else:
+            stop_price = current.high + STOP_TICKS * TICK_SIZE
+            targets = [entry_price - TARGET1_TICKS * TICK_SIZE, entry_price - TARGET2_TICKS * TICK_SIZE]
+        return PatternResult(
+            detected=True,
+            pattern_id=PATTERN_ID,
+            group=GROUP,
+            direction=direction,
+            confidence=0.7,
+            entry_price=entry_price,
+            stop=stop_price,
+            targets=targets,
+            cci_at_signal=cci_now,
+            bar_index=len(bars) - 1,
+            ts=0,
+            details={
+                "source": "DLL",
+                "hfe_extreme_bars_ago": bars_ago,
+                "reasoning_notes": f"HFE {current.hfe_direction}: DLL detected, extreme {bars_ago} bars ago, CCI={cci_now:.0f}",
+            },
+        )
+
+    # ── FALLBACK: Python compute (if DLL fields not populated) ──
+    cci_prev = bars[-2].cci_14
     search_window = bars[-min(LOOKBACK, len(bars)):]
     cci_history = [b.cci_14 for b in search_window]
 
@@ -72,7 +105,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> Optional[P
                     bar_index=len(bars) - 1,
                     ts=0,
                     details={
-                        "extreme_cci": round(min_cci, 2),
+                        "source": "Python_fallback", "extreme_cci": round(min_cci, 2),
                         "hook_distance": round(hook_distance, 2),
                         "bars_since_extreme": bars_since_extreme,
                         "reasoning_notes": (
@@ -103,7 +136,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> Optional[P
                     bar_index=len(bars) - 1,
                     ts=0,
                     details={
-                        "extreme_cci": round(max_cci, 2),
+                        "source": "Python_fallback", "extreme_cci": round(max_cci, 2),
                         "hook_distance": round(hook_distance, 2),
                         "bars_since_extreme": bars_since_extreme,
                         "reasoning_notes": (

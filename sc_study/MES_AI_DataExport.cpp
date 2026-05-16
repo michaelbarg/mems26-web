@@ -1,4 +1,4 @@
-// MES_AI_DataExport.cpp — v9.2.0 (VAP loop cap + MaintainVolumeAtPriceData off)
+// MES_AI_DataExport.cpp — v9.3.0 (HFE pattern #9 added · v9.2 archived)
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
 // REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
@@ -40,7 +40,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.2.0";
+        sc.GraphName        = "MES AI Data Export v9.3.0";
         sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;

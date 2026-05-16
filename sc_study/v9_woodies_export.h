@@ -1,6 +1,8 @@
 // v9_woodies_export.h — MEMS26 V9 Woodies CCI export (30-min synthetic bars)
+// Version: v9.3
+// Updated: 2026-05-16 (HFE pattern added · pattern #9 of 9)
 // Computes CCI-14, TCCI-6, LSMA-25, EMA-34, Sidewinder, ChopZone,
-// trend state, CCI predictor, and ZLR detection from 3-min chart bars.
+// trend state, CCI predictor, ZLR + HFE detection from 3-min chart bars.
 // ACSIL-safe: uses v9_max/v9_min/v9_abs, no std::max/min.
 #pragma once
 

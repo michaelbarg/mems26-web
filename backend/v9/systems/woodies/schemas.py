@@ -27,6 +27,9 @@ class WoodiesBar(BaseModel):
     predictor_next_cci: float = 0
     zlr_detected: bool = False
     zlr_direction: str = "NONE"
+    hfe_detected: bool = False
+    hfe_direction: str = "NONE"
+    hfe_extreme_bars_ago: int = 0
 
     @property
     def o(self) -> float:

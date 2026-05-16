@@ -91,6 +91,9 @@ class WoodiesSystem(BaseV9TradingSystem):
                     czi_value=float(r.get("czi_value") or 0),
                     trend_state=r.get("trend_state") or "GRAY",
                     predictor_next_cci=float(r.get("predictor_next_cci") or 0),
+                    hfe_detected=bool(r.get("hfe_detected", False)),
+                    hfe_direction=r.get("hfe_direction") or "NONE",
+                    hfe_extreme_bars_ago=int(r.get("hfe_extreme_bars_ago") or 0),
                 )
                 self._bar_buffer.append(wb)
                 loaded += 1
