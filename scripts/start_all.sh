@@ -17,6 +17,9 @@ info() { echo -e "${BLUE}ℹ️${NC}  $1"; }
 cd /Users/michael/Downloads/mems26_web_git
 [ -f .env ] && set -a && source .env && set +a
 
+ulimit -n 10240 2>/dev/null || true
+info "ulimit -n = $(ulimit -n) (need >=4096 to avoid Watchpack EMFILE)"
+
 # ═══ BRIDGE ═══
 echo -e "${BLUE}━━━ Bridge ━━━${NC}"
 if pgrep -f "json_bridge.py" > /dev/null 2>&1; then
@@ -24,6 +27,7 @@ if pgrep -f "json_bridge.py" > /dev/null 2>&1; then
 else
   cat > /tmp/start_bridge.sh << 'BRIDGE_EOF'
 #!/bin/bash
+ulimit -n 10240 2>/dev/null || true
 cd /Users/michael/Downloads/mems26_web_git
 [ -f .env ] && set -a && source .env && set +a
 export V9_EXPORT_DIR="${V9_EXPORT_DIR:-/Users/michael/SierraChart_Data/v9_export}"
@@ -49,7 +53,7 @@ echo -e "${BLUE}━━━ Backend ━━━${NC}"
 if pgrep -f "uvicorn backend" > /dev/null 2>&1; then
   ok "Backend already running (port 8000)"
 else
-  screen -dmS mems26_backend bash -c "cd /Users/michael/Downloads/mems26_web_git && [ -f .env ] && set -a && source .env && set +a; python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 2>&1 | tee /tmp/backend.log"
+  screen -dmS mems26_backend bash -c "ulimit -n 10240 2>/dev/null; cd /Users/michael/Downloads/mems26_web_git && [ -f .env ] && set -a && source .env && set +a; python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 2>&1 | tee /tmp/backend.log"
   sleep 5
   if pgrep -f "uvicorn backend" > /dev/null 2>&1; then
     ok "Backend started (port 8000)"
@@ -64,7 +68,7 @@ echo -e "${BLUE}━━━ Frontend ━━━${NC}"
 if pgrep -f "next dev" > /dev/null 2>&1; then
   ok "Frontend already running (port 3000)"
 else
-  screen -dmS mems26_frontend bash -c "cd /Users/michael/Downloads/mems26_web_git/frontend/v9 && npm run dev 2>&1 | tee /tmp/frontend.log"
+  screen -dmS mems26_frontend bash -c "ulimit -n 10240 2>/dev/null; cd /Users/michael/Downloads/mems26_web_git/frontend/v9 && WATCHPACK_POLLING=true CHOKIDAR_USEPOLLING=true CHOKIDAR_INTERVAL=1000 npm run dev 2>&1 | tee /tmp/frontend.log"
   info "Waiting for Next.js to compile..."
   for i in $(seq 1 10); do
     sleep 3
