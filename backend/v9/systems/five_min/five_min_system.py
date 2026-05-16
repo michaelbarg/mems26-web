@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
 from backend.v9.common.session_classifier import SessionClassifier, Session
 from backend.v9.db.session import SessionLocal
+from backend.v9.systems.five_min.setup_emitter import emit_t1_setup
 from backend.v9.db.models.five_min_state import V9FiveMinState
 
 logger = logging.getLogger("mems26.systems.five_min")
@@ -511,6 +512,25 @@ class FiveMinSystem(BaseV9TradingSystem):
                 db.close()
             except Exception as e:
                 logger.warning("[FiveMin] DB persist error: %s", e)
+
+            # Phase 5.5: Wire to setup_emitter → gateway (SHADOW auto-fire)
+            try:
+                pattern_name = f"{kind}_{direction}"
+                t1_risk = abs(entry_price - stop_price)
+                t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
+                t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
+                t1_setup = emit_t1_setup(
+                    pattern_name, direction,
+                    entry_price=entry_price, stop_price=stop_price,
+                    t1_price=t1_price, t2_price=t2_price,
+                    bar_index=self.buffer_size,
+                    day_type=self.opening_type,
+                    current_price=entry_price,
+                )
+                if t1_setup:
+                    logger.info("[FiveMin] T1Setup emitted: %s → gateway SHADOW", pattern_name)
+            except Exception as emit_err:
+                logger.error("[FiveMin] emit_t1_setup failed (non-fatal): %s", emit_err)
 
     def get_state(self) -> dict:
         """Current system state for API/status."""
