@@ -146,6 +146,7 @@ class TestComputeAllStudies:
             "cci_14", "cci_6_tcci", "ema_34", "lsma_value",
             "lsma_above_price", "swi_value", "czi_value",
             "trend_state", "predictor_next_cci",
+            "zlr_detected", "zlr_direction",  # Added in D-074 5-min migration
         }
         assert set(result.keys()) == expected_keys
 

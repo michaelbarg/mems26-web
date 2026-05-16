@@ -4,7 +4,10 @@ Routes through A1 → A7 per YAML config order.
 Each stage runs, output feeds next stage.
 Returns a TerminalState: SKIP, BUY, or SELL.
 
-STUB: Returns SKIP for now (logic in PROMPT 3).
+STATUS (Prompt 23): NOT the active runtime path.
+  Active runtime: WoodiesSystem.process_bar() → decision_tree.evaluate_bar() → gateway.
+  This module is an ALTERNATIVE YAML-driven orchestrator.
+  Kept for future migration to full 21-stage internal architecture.
 Reference: Decision Tree V1 § Section 4.
 """
 

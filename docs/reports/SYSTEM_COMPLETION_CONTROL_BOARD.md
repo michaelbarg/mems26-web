@@ -15,7 +15,7 @@
 | S1 Day Type | **READY** | 14 pd_* + 47 regression | Prompt 21c proves degraded/pending on missing pd_* and loader source precedence |
 | S2 Five-Min | **READY** | 65/65 | — |
 | S3 Footprint | **READY** | 22/22 | — |
-| S4 Woodies | **READY** | 36/36 | A4 wired (Prompt 18); correctly blocks weekends; fires during RTH |
+| S4 Woodies | **READY** | 92 across 6 suites | Runtime contract proven (Prompt 23): A1-A7 live, B1-B14 DELEGATED, gateway routes |
 | S5 TPO | **READY** | 9/9 | — |
 | S6 Killzone | **READY** | 24/24 | — |
 
@@ -106,7 +106,7 @@
 |-----|-------|----------|
 | A Data | GREEN | D-074 migrated to 5-min; subscribes woodies_5min; buffer=9 bars |
 | B Detection | GREEN | 9 patterns via pattern_engine; calculate_size per V2 PART 6 tier map |
-| C Decision | YELLOW | decision_tree evaluates A1-A7 stages but **never reaches ready_to_route=true** (A4 touch-points PENDING, causes early SKIP) |
+| C Decision | GREEN | decision_tree A1-A7 + A4 touchpoints wired + B1-B14 DELEGATED (Prompt 23 proven) |
 | D Output | GREEN | /fire returns decision_tree stages + classification + ready_to_route |
 | E Tests | GREEN | 32/32 pass (20 compliance + 5 decision_tree + 7 system) |
 
@@ -118,10 +118,12 @@
 - Correctly PASSES during RTH when all endpoints respond with valid data
 - Tested: A1=PASS, A3=PASS, A4=FAIL(weekend)=correct, A5=PASS, A6=PASS
 
-**Remaining minor gaps (non-blocking):**
-- A2 needs `predictor_next_cci` in studies context (already computed, just not passed — trivial)
-- A7 needs `fire_setup` pre-built in context (architectural — setup composition happens post-tree)
-- Both resolve naturally during RTH when full bar data flows
+**Runtime contract (Prompt 23):**
+- A1-A7: live runtime via decision_tree.evaluate_bar() in process_bar
+- B1-B14: explicitly DELEGATED to trade_manager/layer4/gateway (14 stages, all DELEGATED status)
+- entry_phase.py / active_phase.py: alternative YAML orchestrators, NOT active runtime
+- Gateway routing: Prompt 14 wires route_setup when ready_to_route=true
+- 6 runtime contract tests prove: delegation, no stubs, A4 blocks, gateway gated
 
 **Files:**
 - `backend/v9/systems/woodies/woodies_system.py` (427 lines)

@@ -7,7 +7,10 @@ Routes through B1 → B14 per priority hierarchy:
 Within same priority class, YAML order determines.
 Highest-priority action wins; others skipped that bar.
 
-STUB: Returns HOLD for all evaluations (logic in PROMPT 3).
+STATUS (Prompt 23): NOT the active runtime path.
+  Active runtime: B1-B14 are DELEGATED to services/trade_manager + services/layer4.
+  This module is an ALTERNATIVE YAML-driven orchestrator.
+  BarLevelDetector handles hit detection; layer4 rules handle tighten/trail/exit.
 Reference: Decision Tree V1 § Section 5.
 """
 
