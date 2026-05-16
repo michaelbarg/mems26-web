@@ -1,0 +1,13 @@
+=== Service Status ===
+  /health → 200
+  /api/v9/health → 200
+
+=== 6 Systems ===
+  day_type → 200
+  five_min → 200
+  footprint → 200
+  woodies → 200
+  tpo → 200
+  killzone → 200
+
+✅ All systems responding
