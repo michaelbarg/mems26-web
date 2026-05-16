@@ -3,6 +3,11 @@
 ## V1.0 · 2026-05-10 · DERIVED from DLL + audit (no separate spec existed)
 ## Status: DERIVED — per §6.5 auto-resolution
 
+> **D-074 update (2026-05-16):** S4 Woodies runtime target is **5-minute
+> bars**, not the legacy 30-minute synthetic pipeline described below. Existing
+> 30-minute sections remain as historical implementation notes until the
+> dedicated 5-minute migration prompt updates DLL, Bridge, DB, backend, and UI.
+
 ---
 
 ## SECTION 1 — IDENTITY
@@ -20,7 +25,8 @@ System ID: 4
 
 System 4 is an independent FIRING system that:
 
-1. Receives 30-minute synthetic Woodies bars from DLL (via bridge)
+1. Receives Woodies bars from DLL/Bridge. Target runtime per D-074: 5-minute
+   bars. Legacy implementation: 30-minute synthetic bars.
 2. Computes 11 CCI-based studies per bar
 3. Detects 8 Woodies CCI patterns (4 continuation + 4 reversal)
 4. Classifies setups and fires trades independently
@@ -31,8 +37,10 @@ System 4 is an independent FIRING system that:
 ## SECTION 3 — INPUTS
 
 From Sierra Chart DLL (sole source):
-- File: `woodies_30min.json`
-- Bar period: 30 minutes (10 × 3-min chart bars aggregated)
+- Target file: `woodies_5min.json` (D-074)
+- Legacy file: `woodies_30min.json`
+- Target bar period: 5 minutes
+- Legacy bar period: 30 minutes (10 × 3-min chart bars aggregated)
 - Configurable history depth via Input[8] (default: 50 bars)
 
 ---

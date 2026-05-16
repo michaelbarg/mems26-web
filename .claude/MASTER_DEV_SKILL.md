@@ -27,6 +27,14 @@ Observers (no execution):
 Sierra accounts: DEMO=PA-APEX-125218-01, LIVE=APEX-125218-13
 LIVE caps: $250/day, 5 trades, 2 contracts, no after 14:30 ET
 
+## LOCKED DECISION D-074 — WOODIES 5-MINUTE
+- S4 Woodies runtime target is 5-minute bars, NOT the legacy `woodies_30min`
+  pipeline.
+- New Woodies execution work should target `woodies_5min` naming unless the
+  task is explicitly legacy compatibility.
+- Current code still contains `woodies_30min` references and must be migrated in
+  a dedicated prompt before treating S4 as complete.
+
 ## STATE
 DONE: W1, W1.5, W2, W2.5, W3, W4, W5, W6, W7, W8, W9, W10
 OPEN BUGS:
@@ -117,14 +125,16 @@ day_type, chart_5min, tick_reversal, woodies, tpo, killzone
 Bridge streams = DLL filenames:
 tick_reversal_15.json, tick_reversal_12.json, footprint.json,
 volume_profile.json, imbalance_flags.json, stacked_imbalances.json,
-cumulative_delta.json, woodies_30min.json, tpo.json, 5min.json
+cumulative_delta.json, woodies_5min.json (target per D-074; legacy:
+woodies_30min.json), tpo.json, 5min.json
 
 Redis keys: mems26:v9:{stream_name}
 - imbalance_flags → mems26:v9:imbalance (RENAMED)
 - stacked_imbalances → mems26:v9:stacked_imbalance (singular!)
 
 DB tables (v9_ prefix):
-v9_bars_5min, v9_bars_tick_reversal, v9_bars_30min_woodies,
+v9_bars_5min, v9_bars_tick_reversal, v9_bars_5min_woodies (target per D-074;
+legacy: v9_bars_30min_woodies),
 v9_tpo_data, v9_system_signals, v9_system_markers, v9_trades,
 v9_trade_management_log, v9_daily_quality_reports,
 v9_system_configs, v9_account_status
