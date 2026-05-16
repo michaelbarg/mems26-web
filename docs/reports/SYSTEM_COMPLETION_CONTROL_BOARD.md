@@ -27,26 +27,29 @@
 
 | Dim | Score | Evidence |
 |-----|-------|----------|
-| A Data | GREEN | Subscribes 5min via BarRouter; IB tracked from TPO; /current returns classified state |
-| B Detection | YELLOW | V1 classifier + V9 state machine both active — **they disagree** (V1=Nontrend, V9=Variation on same session) |
+| A Data | GREEN | Subscribes 5min via BarRouter; IB tracked from TPO; /current returns V9 state |
+| B Detection | GREEN | V9 state machine canonical; V1 demoted to pre-IB fallback only (Prompt 20b) |
 | C Decision | GREEN | Pre-IB gate works (PENDING until 10:30 ET); decision_matrix covers all OpeningType×IBWidth |
-| D Output | GREEN | V9 endpoint returns 13-field DayTypeClassification with reasoning_notes |
-| E Tests | GREEN | 37/37 pass (classifier + targets + e2e + state_machine) |
+| D Output | GREEN | /current returns V9 classification with backward-compatible fields; source="v9" |
+| E Tests | GREEN | 5/5 canonical V9 tests + 6 classifier + 8 e2e + 28 compliance = all pass |
 
-**Status: PARTIAL**
+**Status: READY** (fixed in Prompt 20 + 20b)
 
-**Missing/Issues:**
-- V1 (`/day_type/current`) and V9 (`/day_type/v9/current`) produce different classifications
-- `pd_high`/`pd_low`/`pd_close` not populated from bridge (A1 pre-open context incomplete)
-- V1 path shows `ib_range=300` which is unrealistic for MES (suggests stale/wrong data source)
+**What was fixed:**
+- `/current` now prefers V9 source (live state machine → DB → V1 demoted)
+- V1 cannot produce `classified=True` — demoted to `source="v1_demoted"` with explicit reason
+- 5 direct tests prove V9 wins, V1 demoted, backward compat, no SHADOW/DEMO/LIVE
+
+**Remaining minor (non-blocking):**
+- `pd_high`/`pd_low`/`pd_close` not populated from bridge (A1 pre-open context)
 
 **Files:**
+- `backend/v9/systems/day_type/api.py` — canonical `/current` handler
 - `backend/v9/systems/day_type/state_machine.py` (825 lines)
 - `backend/v9/systems/day_type/decision_matrix.py` (134 lines)
-- `backend/v9/systems/day_type/detector.py` (277 lines)
-- `backend/v9/systems/day_type/targets_table.py` (128 lines)
+- `backend/v9/tests/test_day_type_canonical_v9.py` — 5 proof tests
 
-**Next prompt:** Reconcile V1/V9 classifiers — single source of truth. Wire pd_* from bridge.
+**Proof:** `python3 -m pytest backend/v9/tests/test_day_type_canonical_v9.py -q` → 5 passed
 
 ---
 

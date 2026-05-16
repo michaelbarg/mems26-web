@@ -259,8 +259,15 @@ def get_current():
     except Exception:
         pass
 
-    # ── SOURCE 3: V1 fallback (pre-IB / pre-RTH states) ──
+    # ── SOURCE 3: V1 for pre-IB/pre-RTH gating ONLY (Prompt 20b) ──
+    # V1 may NOT produce a classified=True result; it only provides PENDING states.
+    # If V9 hasn't classified today, the system is not yet ready — return PENDING.
     result = _classify_v1_from_tpo()
+    if result.get("classified"):
+        # V1 would classify — but V9 is canonical. Demote to PENDING with reason.
+        result["classified"] = False
+        result["source"] = "v1_demoted"
+        result["reason"] = "V9 has not classified today; V1 result available but not canonical"
     return result
 
 
