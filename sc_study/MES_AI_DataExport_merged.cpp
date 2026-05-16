@@ -1,5 +1,5 @@
-// MES_AI_DataExport_merged.cpp — v9.2.0 monolith for Sierra Chart remote build
-// Generated 2026-05-16 11:30:36 by build_monolithic_cpp.sh
+// MES_AI_DataExport_merged.cpp — v9.3.0 monolith for Sierra Chart remote build
+// Generated 2026-05-16 12:06:15 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -709,8 +709,10 @@ inline std::string v9_cumulative_delta_to_json(
 
 // ====== v9_woodies_export.h (inlined) ======
 // v9_woodies_export.h — MEMS26 V9 Woodies CCI export (30-min synthetic bars)
+// Version: v9.3
+// Updated: 2026-05-16 (HFE pattern added · pattern #9 of 9)
 // Computes CCI-14, TCCI-6, LSMA-25, EMA-34, Sidewinder, ChopZone,
-// trend state, CCI predictor, and ZLR detection from 3-min chart bars.
+// trend state, CCI predictor, ZLR + HFE detection from 3-min chart bars.
 // ACSIL-safe: uses v9_max/v9_min/v9_abs, no std::max/min.
 
 
@@ -1116,7 +1118,7 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
 struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
 
 // ====== MES_AI_DataExport.cpp main function ======
-// MES_AI_DataExport.cpp — v9.2.0 (VAP loop cap + MaintainVolumeAtPriceData off)
+// MES_AI_DataExport.cpp — v9.3.0 (HFE pattern #9 added · v9.2 archived)
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
 // REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
@@ -1153,7 +1155,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.2.0";
+        sc.GraphName        = "MES AI Data Export v9.3.0";
         sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
