@@ -1,0 +1,139 @@
+# Woodies Decision Tree V1 — Configuration Block
+# Source: Decision Tree V1 § Section 2
+# Engine reads stage order from here. Edit to reorder/disable stages.
+#
+# Types:
+#   woodies_core  — independent Woodies decision
+#   touch_point   — advisory query to Multi-System (blocking always false)
+#
+# Priority classes (active phase only, highest wins):
+#   ABSOLUTE_EXIT > STRATEGIC_EXIT > ADVISORY_EXIT > TIME_EXIT >
+#   TARGET > TIGHTEN > PARTIAL > TRAIL > NO_ACTION
+
+woodies_tree_v1:
+
+  entry_phase:
+    - id: A1_strategic_gate
+      type: woodies_core
+      enabled: true
+      reorder_priority: 1
+
+    - id: A2_day_type_query
+      type: touch_point
+      enabled: true
+      reorder_priority: 2
+      target_system: multi_system
+      query: day_type
+      blocking: false
+
+    - id: A3_pattern_detection
+      type: woodies_core
+      enabled: true
+      reorder_priority: 3
+
+    - id: A4_poc_suffering_query
+      type: touch_point
+      enabled: true
+      reorder_priority: 4
+      target_system: multi_system
+      query: [poc_location, suffering_side]
+      blocking: false
+
+    - id: A5_otf_clarity_query
+      type: touch_point
+      enabled: true
+      reorder_priority: 5
+      target_system: multi_system
+      query: otf_clarity_state
+      blocking: false
+
+    - id: A6_entry_classification
+      type: woodies_core
+      enabled: true
+      reorder_priority: 6
+
+    - id: A7_universal_checks
+      type: woodies_core
+      enabled: true
+      reorder_priority: 7
+
+  active_phase:
+    - id: B1_stop_check
+      type: woodies_core
+      enabled: true
+      priority_class: ABSOLUTE_EXIT
+
+    - id: B2_eod_check
+      type: woodies_core
+      enabled: true
+      priority_class: ABSOLUTE_EXIT
+
+    - id: B3_color_flip
+      type: woodies_core
+      enabled: true
+      priority_class: STRATEGIC_EXIT
+
+    - id: B4_poc_migration_query
+      type: touch_point
+      enabled: true
+      target_system: multi_system
+      query: poc_migration
+      blocking: false
+      priority_class: ADVISORY_EXIT
+
+    - id: B5_otf_mid_trade_query
+      type: touch_point
+      enabled: true
+      target_system: multi_system
+      query: otf_clarity_state
+      blocking: false
+      priority_class: ADVISORY_EXIT
+
+    - id: B6_news_window
+      type: woodies_core
+      enabled: true
+      priority_class: ABSOLUTE_EXIT
+
+    - id: B7_time_stop
+      type: woodies_core
+      enabled: true
+      priority_class: TIME_EXIT
+
+    - id: B8_counter_pattern
+      type: woodies_core
+      enabled: true
+      priority_class: TIGHTEN
+
+    - id: B9_market_state_query
+      type: touch_point
+      enabled: true
+      target_system: multi_system
+      query: market_state
+      blocking: false
+      priority_class: PARTIAL
+
+    - id: B10_t1_milestone
+      type: woodies_core
+      enabled: true
+      priority_class: TARGET
+
+    - id: B11_t2_milestone
+      type: woodies_core
+      enabled: true
+      priority_class: TARGET
+
+    - id: B12_t3_milestone
+      type: woodies_core
+      enabled: true
+      priority_class: TARGET
+
+    - id: B13_trail_check
+      type: woodies_core
+      enabled: true
+      priority_class: TRAIL
+
+    - id: B14_hold
+      type: woodies_core
+      enabled: true
+      priority_class: NO_ACTION
+      always_last: true
