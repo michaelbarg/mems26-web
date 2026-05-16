@@ -109,6 +109,8 @@ class OpeningBehavior(BaseModel):
     direction_5min: Optional[str] = None
     distance_pts: float = 0.0
     reversal_detected: bool = False
+    behavior_type: str = "UNKNOWN"
+    classification: str = "UNKNOWN"
 
 
 class TPOProfile(BaseModel):
@@ -151,6 +153,9 @@ class TPOProfile(BaseModel):
     hvn_prices: List[float] = []
     lvn_prices: List[float] = []
     naked_pocs: List[float] = []
+    naked_poc_touched_today: List[float] = []
+    naked_poc_status: Dict[str, str] = {}
+    incomplete_letters: List[str] = []
 
     # Intent (Stage E)
     intent: Intent = Intent.NONE

@@ -1,0 +1,57 @@
+system_id: 2
+system_name: five_min
+spec_title: MEMS26_5MIN_T1_DECISION_MAKER
+spec_version: V3.3
+manifest_last_synced: "2026-05-16"
+
+decision_tree_nodes:
+  - id: T1_SCHEMA
+    name: "D-041 T1Setup output schema"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/five_min/output_schema.py
+
+  - id: REACTIVE_PATTERNS
+    name: "Reactive LONG/SHORT 4-bar patterns"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/five_min/five_min_system.py
+
+  - id: INITIATIVE_PATTERNS
+    name: "Initiative LONG/SHORT 4-bar patterns"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/five_min/five_min_system.py
+
+  - id: COT_AMT
+    name: "COT/AMT standalone computation"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/five_min/cot_amt.py
+
+  - id: SR_PROXIMITY
+    name: "S/R proximity gate"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/five_min/sr_proximity.py
+
+  - id: L3_WIRE
+    name: "Layer 3 cluster/empty-zone exact entry"
+    status: PARTIAL
+    evidence: backend/v9/systems/five_min/setup_wrapper.py
+    notes: "Provisional flag remains when cluster/empty-zone is missing."
+
+  - id: FIRE_ROUTE
+    name: "/api/v9/five_min/fire"
+    status: IMPLEMENTED
+    evidence: backend/v9/api/v9/five_min/routes.py
+
+anti_patterns:
+  - id: AP1
+    description: "MUST NOT bypass pre_fire_validator when routing a setup"
+    status: PARTIAL
+    notes: "Verify during Prompt 9/10 integration."
+
+summary:
+  total_requirements: 8
+  implemented: 6
+  partial: 2
+  missing: 0
+  drift_pct: 12.5
+  notes: "Own manifest created to replace reliance on legacy chart_5min manifest."
+

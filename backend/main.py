@@ -138,6 +138,39 @@ async def _startup():
         _day_type_consumer = DayTypeConsumer(SessionLocal)
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
 
+        def _load_previous_day_context():
+            """D-070: Previous Day source for DayType A1.
+
+            Alpha source is v9_tpo_sessions (previous CASH session). Falls back
+            to empty values if the TPO session row is unavailable.
+            """
+            try:
+                import sqlite3
+                from backend.v9.services.market_clock import get_previous_trading_day
+
+                prev_date = get_previous_trading_day().isoformat()
+                conn = sqlite3.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
+                conn.row_factory = sqlite3.Row
+                row = conn.execute(
+                    """SELECT range_high, range_low, val_price, vah_price, poc_price
+                       FROM v9_tpo_sessions
+                       WHERE trading_date=? AND session_type='CASH'
+                       ORDER BY id DESC LIMIT 1""",
+                    (prev_date,),
+                ).fetchone()
+                conn.close()
+                if not row:
+                    return {}
+                return {
+                    "pd_high": row["range_high"],
+                    "pd_low": row["range_low"],
+                    # D-070 beta fallback until previous settlement/close is persisted.
+                    "pd_close": row["poc_price"] or row["val_price"] or row["vah_price"],
+                }
+            except Exception as pd_err:
+                _logger.debug("[DayType] previous day context unavailable: %s", pd_err)
+                return {}
+
         async def _day_type_on_bar(event):
             """Bridge BarRouter event to DayTypeStateMachine.process_bar."""
             bar = event.payload if hasattr(event, 'payload') else event
@@ -157,6 +190,7 @@ async def _startup():
                 et_now = now_et()
                 rth_open = et_now.replace(hour=9, minute=30, second=0, microsecond=0)
                 _session_min = max(0, int((et_now - rth_open).total_seconds() / 60))
+                pd_ctx = _load_previous_day_context()
 
                 bar_input = BarInput(
                     ts=_time_mod.time(),
@@ -166,6 +200,9 @@ async def _startup():
                     low=float(bar.get("low", bar.get("l", 0))),
                     close=float(bar.get("close", bar.get("c", 0))),
                     volume=float(bar.get("volume", bar.get("v", 0))),
+                    pd_high=pd_ctx.get("pd_high"),
+                    pd_low=pd_ctx.get("pd_low"),
+                    pd_close=pd_ctx.get("pd_close"),
                     ib_high=ib_h,
                     ib_low=ib_l,
                 )

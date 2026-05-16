@@ -1,6 +1,6 @@
 """Killzone detector — O(1) zone lookup from UTC datetime."""
 
-from datetime import datetime, timezone
+from datetime import datetime, time, timezone
 from zoneinfo import ZoneInfo
 from typing import Optional
 
@@ -47,6 +47,8 @@ def get_killzone_status(
     block_last_15min: bool = True,
     is_trading_day: bool = True,
     is_holiday_half_day: bool = False,
+    news_events: Optional[list] = None,
+    news_block_minutes: int = 15,
 ) -> dict:
     """Full killzone status output per spec Section 4.
 
@@ -56,7 +58,7 @@ def get_killzone_status(
         now_utc = datetime.now(timezone.utc)
 
     now_et = now_utc.astimezone(ET)
-    zone = get_current_zone(now_utc)
+    zone = _get_half_day_zone(now_et) if is_holiday_half_day else get_current_zone(now_utc)
 
     # Calculate time_in_zone and time_to_next
     from datetime import timedelta
@@ -90,6 +92,9 @@ def get_killzone_status(
     if not is_trading_day:
         is_blocked = True
         block_reason = "holiday"
+    elif _is_near_news(now_utc, news_events, news_block_minutes):
+        is_blocked = True
+        block_reason = "news_block"
     elif zone.name == "LUNCH" and not trade_in_lunch:
         is_blocked = True
         block_reason = "lunch_blocked"
@@ -111,7 +116,8 @@ def get_killzone_status(
         is_blocked = True
         block_reason = "last_15min_blocked"
 
-    # Half-day scaling (close at 13:00 ET)
+    # Half-day hard close at 13:00 ET. Earlier in the day, zones are scaled by
+    # _get_half_day_zone rather than just using normal RTH times.
     if is_holiday_half_day and now_et.hour >= 13:
         is_blocked = True
         block_reason = "half_day_closed"
@@ -133,3 +139,52 @@ def get_killzone_status(
         "is_trading_day": is_trading_day,
         "session_phase": zone.session_phase,
     }
+
+
+def _get_half_day_zone(now_et: datetime) -> Zone:
+    """Scaled half-day zones for 09:30-13:00 ET sessions.
+
+    This intentionally keeps the same 11-zone vocabulary while compressing the
+    regular cash-session progression into the early close.
+    """
+    t = now_et.time()
+    if t < time(9, 30):
+        return ZONE_BY_NAME["PRE_MARKET"]
+    if time(9, 30) <= t < time(9, 38):
+        return ZONE_BY_NAME["NY_OPEN_VOLATILITY"]
+    if time(9, 38) <= t < time(10, 0):
+        return ZONE_BY_NAME["NY_OPEN_IB"]
+    if time(10, 0) <= t < time(10, 30):
+        return ZONE_BY_NAME["NY_PRIME"]
+    if time(10, 30) <= t < time(11, 0):
+        return ZONE_BY_NAME["PRE_LUNCH"]
+    if time(11, 0) <= t < time(11, 30):
+        return ZONE_BY_NAME["LUNCH"]
+    if time(11, 30) <= t < time(12, 15):
+        return ZONE_BY_NAME["PM_PRIME"]
+    if time(12, 15) <= t < time(13, 0):
+        return ZONE_BY_NAME["CLOSE_APPROACH"]
+    return ZONE_BY_NAME["AFTER_HOURS"]
+
+
+def _is_near_news(now_utc: datetime, news_events: Optional[list], window_min: int) -> bool:
+    if not news_events:
+        return False
+    for event in news_events:
+        event_ts = None
+        if isinstance(event, datetime):
+            event_ts = event
+        elif isinstance(event, dict):
+            event_ts = event.get("ts") or event.get("timestamp") or event.get("time")
+        if isinstance(event_ts, str):
+            try:
+                event_ts = datetime.fromisoformat(event_ts.replace("Z", "+00:00"))
+            except ValueError:
+                event_ts = None
+        if isinstance(event_ts, datetime):
+            if event_ts.tzinfo is None:
+                event_ts = event_ts.replace(tzinfo=timezone.utc)
+            delta_min = abs((now_utc - event_ts.astimezone(timezone.utc)).total_seconds()) / 60
+            if delta_min <= window_min:
+                return True
+    return False

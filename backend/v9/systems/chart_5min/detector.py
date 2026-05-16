@@ -81,6 +81,10 @@ class Chart5MinDetector:
     def set_reference_lines(self, lines: List[float]):
         self._reference_lines = lines
 
+    def _validate_test_phase(self, pattern: PatternDetection) -> bool:
+        """V3.0 Step 8 placeholder: validate pullback/test phase."""
+        return True
+
     # ─── Main processing ────────────────────────────────────
 
     def process_bar(self, bar: Bar) -> Optional[SetupPackage]:

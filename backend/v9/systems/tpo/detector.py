@@ -14,6 +14,7 @@ Profile shapes (per Dalton / Mind Over Markets):
   NEUTRAL     — Both extensions (upper + lower)
 """
 
+from datetime import datetime
 from typing import Optional
 from .schemas import (
     TPOProfile, TPOConfig, ProfileShape, MigrationPattern,
@@ -24,6 +25,7 @@ from .schemas import (
 def classify_shape(
     profile: TPOProfile,
     config: TPOConfig,
+    current_time: Optional[datetime] = None,
 ) -> TPOProfile:
     """Stage D1/D2: Classify profile shape from TPO distribution.
 

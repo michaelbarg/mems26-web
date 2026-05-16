@@ -1,0 +1,55 @@
+system_id: 3
+system_name: footprint
+spec_title: MEMS26_FOOTPRINT_T3_STANDALONE
+spec_version: V3
+manifest_last_synced: "2026-05-16"
+
+decision_tree_nodes:
+  - id: SIGNAL_ABSORPTION
+    name: "Absorption signal detector"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/footprint/signals/absorption.py
+
+  - id: SIGNAL_STACKED_IMBALANCE
+    name: "Stacked imbalance signal detector"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/footprint/signals/stacked_imbalance.py
+
+  - id: SIGNAL_SWEEP_RETURN
+    name: "Sweep-return signal detector"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/footprint/signals/sweep_return.py
+
+  - id: SIGNAL_EXHAUSTION
+    name: "Exhaustion signal detector"
+    status: IMPLEMENTED
+    evidence: backend/v9/systems/footprint/signals/exhaustion.py
+
+  - id: FIRE_ROUTE
+    name: "/api/v9/footprint/fire"
+    status: IMPLEMENTED
+    evidence: backend/v9/api/v9/footprint/routes.py
+
+  - id: PREFIRE_WIRE
+    name: "pre_fire_validator on /fire"
+    status: PARTIAL
+    notes: "GET /fire reports latest state; routing validation is not wired yet."
+
+  - id: SEVEN_STAGE_PIPELINE
+    name: "Spec 7-stage pipeline"
+    status: PARTIAL
+    notes: "Current implementation is signal-based. Needs acceptance or adapter."
+
+anti_patterns:
+  - id: AP1
+    description: "Footprint MUST remain standalone per D-072"
+    status: IMPLEMENTED
+
+summary:
+  total_requirements: 8
+  implemented: 6
+  partial: 2
+  missing: 0
+  drift_pct: 25.0
+  notes: "Own manifest created; tick_reversal remains entry mechanism, not S3 system identity."
+

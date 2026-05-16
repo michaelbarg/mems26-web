@@ -18,6 +18,15 @@ from . import detector
 router = APIRouter(prefix="/api/v9/tpo", tags=["tpo"])
 
 
+def publish_opening_behavior(opening: dict) -> bool:
+    """Publish opening behavior snapshot.
+
+    Placeholder hook for Redis/event-bus wiring; returns False when no publisher
+    is configured.
+    """
+    return False
+
+
 def _build_profile_from_bars(
     bars: List[V9TpoBar],
     config: TPOConfig,

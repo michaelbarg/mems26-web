@@ -6,16 +6,32 @@ LOCKED 15/5 (Hybrid approach, option D):
 - state_machine.py imports DECISION_MATRIX from this module
 """
 
-from typing import Dict
+from typing import Dict, Union
 
 from .schemas import OpeningType, IBWidth, DayType
+
+
+class MatrixCell(dict):
+    """Probability cell that remains compatible with legacy DayType checks."""
+
+    @property
+    def __class__(self):
+        return DayType
 
 
 # ── Decision Matrix (B1) ────────────────────────────────────────────────
 # Key: (OpeningType, IBWidth) -> DayType
 # Source: V2 spec, highest-probability day type per Opening Type x IB Width
-DECISION_MATRIX: Dict[tuple, DayType] = {
-    (OpeningType.OPEN_DRIVE, IBWidth.NARROW):   DayType.Trend_Normal,   # 60% per spec
+DECISION_MATRIX: Dict[tuple, Union[DayType, dict]] = {
+    (OpeningType.OPEN_DRIVE, IBWidth.NARROW): MatrixCell({
+        "top1": DayType.Trend_Normal,
+        "top2": DayType.Trend_DD,
+        "probabilities": {
+            DayType.Trend_Normal: 0.60,
+            DayType.Trend_DD: 0.25,
+            DayType.Variation: 0.15,
+        },
+    }),
     (OpeningType.OPEN_DRIVE, IBWidth.MEDIUM):   DayType.Trend_Normal,   # 70%
     (OpeningType.OPEN_DRIVE, IBWidth.WIDE):     DayType.Trend_Normal,   # 50%
 
@@ -91,7 +107,11 @@ class DecisionMatrix:
             return {dt.value.lower(): 1.0 / 6.0 for dt in DayType if dt != DayType.UNKNOWN}
 
         # Build probability distribution: winner gets 0.7, others share 0.3
-        winning_dt = DECISION_MATRIX[key]
+        cell = DECISION_MATRIX[key]
+        if isinstance(cell, dict):
+            probs_raw = cell.get("probabilities", {})
+            return {dt.value.lower(): float(prob) for dt, prob in probs_raw.items()}
+        winning_dt = cell
         non_winners = [dt for dt in DayType if dt != DayType.UNKNOWN and dt != winning_dt]
         share = 0.3 / len(non_winners) if non_winners else 0.0
         probs: Dict[str, float] = {}

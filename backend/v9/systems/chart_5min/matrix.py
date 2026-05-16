@@ -14,6 +14,8 @@ class TradeManagement:
     """Output of matrix lookup."""
     t1_reason: str
     t1_contracts: int = 1
+    t1_price: Optional[float] = None
+    t1_level: Optional[str] = None
     t2_reason: Optional[str] = None
     t2_contracts: int = 0
     t3_reason: Optional[str] = None
@@ -286,8 +288,10 @@ def lookup_matrix(
     # Group B/C geometric patterns get moderate defaults
     if day_type == "NONTREND":
         return TradeManagement(
-            t1_reason="3_5_ticks", t1_contracts=1,
+            t1_reason="", t1_contracts=0,
             time_stop_min=20, sizing="MIN",
+            blocked=True,
+            block_reason="NONTREND blocks strategic pattern",
         )
 
     return TradeManagement(

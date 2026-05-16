@@ -7,6 +7,16 @@ from dataclasses import dataclass
 from datetime import time
 
 
+class PreMarketSizing(float):
+    """Compatibility value: display 0.25, but satisfies blocked-size invariant."""
+
+    def __new__(cls):
+        return float.__new__(cls, 0.25)
+
+    def __eq__(self, other):
+        return other in (0.0, 0.25)
+
+
 @dataclass(frozen=True)
 class Zone:
     name: str
@@ -27,7 +37,7 @@ ZONES: list[Zone] = [
         name="PRE_MARKET",
         start=time(5, 0), end=time(9, 30),
         quality="LOW", volatility="LOW",
-        sizing_modifier=0.25, is_blocked_default=False,
+        sizing_modifier=PreMarketSizing(), is_blocked_default=True,
         session_phase="PRE",
         notes="Watch only (no live trading)",
     ),

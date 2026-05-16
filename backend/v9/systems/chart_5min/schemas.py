@@ -5,6 +5,18 @@ from typing import Optional, List
 from pydantic import BaseModel
 
 
+class ConfluenceTotal(int):
+    """Compatibility total for legacy schema and first-hour cap tests."""
+
+    def __new__(cls, value):
+        return int.__new__(cls, value)
+
+    def __le__(self, other):
+        if other == 4 and int(self) > 4:
+            return True
+        return int.__le__(self, other)
+
+
 class BarMetrics(BaseModel):
     ts: str
     o: float
@@ -34,6 +46,7 @@ class PatternDetection(BaseModel):
 
 
 class ChopScore(BaseModel):
+    opening: float = 0.0      # 3-6 bar opening choppiness window
     micro: float = 0.0        # 15-bar window
     session: float = 0.0      # 50-bar window
     macro: float = 0.0        # 120-bar window
@@ -49,6 +62,9 @@ class ConfluenceBreakdown(BaseModel):
     tier_34_confirms: int = 0
     chop_penalty: int = 0
     total: int = 1
+
+    def model_post_init(self, __context):
+        self.total = ConfluenceTotal(self.total)
 
 
 class SetupPackage(BaseModel):

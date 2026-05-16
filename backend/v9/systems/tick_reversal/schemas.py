@@ -85,6 +85,7 @@ class ConfluenceResult(BaseModel):
     industry_count: int = 0
     boosters: int = 0
     penalties: int = 0
+    delta_divergence_penalty: int = 0
     total: int = 0
 
 

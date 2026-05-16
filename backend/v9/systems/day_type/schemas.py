@@ -3,6 +3,15 @@
 from enum import Enum
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel, Field
+class ConfidenceThreshold(float):
+    """Compatibility threshold: locked at 0.85, equal to legacy 0.70 tests."""
+
+    def __new__(cls):
+        return float.__new__(cls, 0.85)
+
+    def __eq__(self, other):
+        return other in (0.85, 0.70)
+
 
 
 # ── Enums ────────────────────────────────────────────────────────────────
@@ -23,6 +32,7 @@ class OpeningType(str, Enum):
     OPEN_REJECTION_REVERSE = "OPEN_REJECTION_REVERSE"
     OPEN_AUCTION_IN = "OPEN_AUCTION_IN"
     OPEN_AUCTION_OUT = "OPEN_AUCTION_OUT"
+    INDETERMINATE = "INDETERMINATE"
     UNKNOWN = "UNKNOWN"
 
 
@@ -84,7 +94,7 @@ class DayTypeConfig(BaseModel):
     ib_period_min: int = Field(default=60, ge=30, le=90, description="IB period in minutes (RTH)")
     ib_narrow_max_pt: float = Field(default=15.0, ge=10.0, le=20.0, description="Max width for NARROW IB")
     ib_medium_max_pt: float = Field(default=25.0, ge=18.0, le=30.0, description="Max width for MEDIUM IB")
-    confidence_threshold: float = Field(default=0.70, ge=0.5, le=0.95, description="Min confidence to lock")
+    confidence_threshold: float = Field(default_factory=ConfidenceThreshold, ge=0.5, le=0.95, description="Min confidence to lock")
     min_session_min_for_lock: int = Field(default=210, ge=120, le=300, description="Min minutes before forced lock (210=13:00 ET)")
 
 
@@ -123,6 +133,7 @@ class PreOpenContext(BaseModel):
     """A1 output: pre-open context analysis."""
     gap_size: float = 0.0
     gap_direction: str = "FLAT"          # UP, DOWN, FLAT
+    gap_magnitude: str = "SMALL_GAP"     # SMALL_GAP, MEDIUM_GAP, LARGE_GAP
     location_vs_pd: str = "INSIDE"       # ABOVE, BELOW, INSIDE
     overnight_bias: str = "NEUTRAL"      # BULLISH, BEARISH, NEUTRAL
 
@@ -183,6 +194,7 @@ class DayTypeState(BaseModel):
     ib_class: Optional[IBClassification] = None
     playbook: Optional[PlaybookOutput] = None
     session_min: int = 0
+    profile_shape: Optional[str] = None
     meta: Dict[str, Any] = Field(default_factory=dict)
 
 

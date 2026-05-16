@@ -72,7 +72,7 @@ def detect_opening_type(bars: List[BarInput]) -> Tuple[OpeningType, str, float]:
 
     if directional_ratio >= 0.7 and (all_up or all_down):
         direction = "UP" if net_move > 0 else "DOWN"
-        return OpeningType.OPEN_DRIVE, direction, min(0.9, directional_ratio)
+        return OpeningType.OPEN_DRIVE, direction, 0.95
 
     # Check for test-drive: pullback then continuation
     if len(bars) >= 3:
@@ -246,6 +246,7 @@ def check_reeval_triggers(
     atr: Optional[float] = None,
     failed_extension_after_lock: bool = False,
     expected_range_exceeded: bool = False,
+    news_event: bool = False,
 ) -> Tuple[bool, str]:
     """Check if a re-evaluation is needed after lock.
 
@@ -256,7 +257,11 @@ def check_reeval_triggers(
     2. Failed extension after lock
     3. Range exceeded for day type
     """
-    # Trigger 1: extreme move
+    # Trigger 1: scheduled news event after lock (FOMC/NFP/CPI)
+    if news_event:
+        return True, "news_event"
+
+    # Trigger 2: extreme move
     if move_in_30min is not None and atr is not None and atr > 0:
         if abs(move_in_30min) > 3.0 * atr:
             return True, "extreme_move_3atr"

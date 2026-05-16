@@ -277,6 +277,7 @@ class DayTypeStateMachine:
         """A1: Pre-Open Context — gap, location vs PD, overnight bias."""
         gap_size = 0.0
         gap_direction = "FLAT"
+        gap_magnitude = "SMALL_GAP"
         location_vs_pd = "INSIDE"
         overnight_bias = "NEUTRAL"
 
@@ -286,6 +287,12 @@ class DayTypeStateMachine:
                 gap_direction = "UP"
             elif gap_size < -2.0:
                 gap_direction = "DOWN"
+            if bar.atr and bar.atr > 0:
+                ratio = abs(gap_size) / bar.atr
+                if ratio >= 1.0:
+                    gap_magnitude = "LARGE_GAP"
+                elif ratio >= 0.3:
+                    gap_magnitude = "MEDIUM_GAP"
 
         if bar.pd_high is not None and bar.pd_low is not None:
             if bar.open > bar.pd_high:
@@ -303,6 +310,7 @@ class DayTypeStateMachine:
         self.pre_open = PreOpenContext(
             gap_size=gap_size,
             gap_direction=gap_direction,
+            gap_magnitude=gap_magnitude,
             location_vs_pd=location_vs_pd,
             overnight_bias=overnight_bias,
         )
@@ -368,7 +376,8 @@ class DayTypeStateMachine:
             return
 
         key = (self.opening.opening_type, self.ib_class.ib_width)
-        voted_type = DECISION_MATRIX.get(key, DayType.Normal)
+        matrix_cell = DECISION_MATRIX.get(key, DayType.Normal)
+        voted_type = matrix_cell.get("top1", DayType.Normal) if isinstance(matrix_cell, dict) else matrix_cell
 
         vote = VoteRecord(
             day_type=voted_type,
@@ -635,11 +644,13 @@ class DayTypeStateMachine:
             ib_class=self.ib_class,
             playbook=self.playbook,
             session_min=bar.session_min,
+            profile_shape="UNKNOWN",
             meta={
                 "bar_count": self.bar_count,
                 "session_high": self.session_high,
                 "session_low": self.session_low,
                 "consecutive_same_vote": self.consecutive_same_vote,
+                "profile_shape": "UNKNOWN",
             },
         )
 

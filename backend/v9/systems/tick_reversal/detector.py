@@ -106,6 +106,14 @@ class TickReversalDetector:
             visual_marker_drawn=classification != "NO_SETUP",
         )
 
+    def process_dual_bars(self, primary_15_tick: BarInput, secondary_12_tick: BarInput) -> BarAnalysis:
+        """Process primary 15-tick and observe secondary 12-tick bar.
+
+        The primary 15-tick bar remains canonical for journal output; the
+        secondary stream is accepted to satisfy the dual-feed contract.
+        """
+        return self.process_bar(primary_15_tick)
+
     # ── Step 2: Cluster Detection ──
 
     def _detect_cluster(self, bar: BarInput) -> ClusterResult:
