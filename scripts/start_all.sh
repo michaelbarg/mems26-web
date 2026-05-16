@@ -29,6 +29,7 @@ cd /Users/michael/Downloads/mems26_web_git
 export V9_EXPORT_DIR="${V9_EXPORT_DIR:-/Users/michael/SierraChart_Data/v9_export}"
 export CLOUD_URL="${CLOUD_URL:-https://mems26-web.onrender.com}"
 export BRIDGE_TOKEN="${BRIDGE_TOKEN:-michael-mems26-2026}"
+export V9_DISABLE_WATCHDOG="${V9_DISABLE_WATCHDOG:-1}"
 echo "=== Bridge starting at $(date) ===" >> /tmp/bridge.log
 exec python3 bridge/json_bridge.py 2>&1 | tee -a /tmp/bridge.log
 BRIDGE_EOF

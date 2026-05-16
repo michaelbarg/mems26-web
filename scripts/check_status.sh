@@ -18,6 +18,8 @@ warn() { echo -e "${YELLOW}🟡${NC} $1"; }
 info() { echo -e "${BLUE}ℹ️${NC}  $1"; }
 
 cd /Users/michael/Downloads/mems26_web_git 2>/dev/null
+[ -f .env ] && set -a && source .env && set +a 2>/dev/null
+EXPORT_DIR="${V9_EXPORT_DIR:-/Users/michael/SierraChart_Data/v9_export}"
 
 # ═══ 1. SIERRA CHART
 echo -e "${BLUE}━━━ Sierra Chart ━━━${NC}"
@@ -27,7 +29,7 @@ else
   info "Sierra not running (normal when market closed)"
 fi
 
-NEWEST_JSON=$(ls -t ~/SierraChart/Data/v9_export/*.json 2>/dev/null | head -1)
+NEWEST_JSON=$(ls -t "$EXPORT_DIR"/*.json 2>/dev/null | head -1)
 if [ -n "$NEWEST_JSON" ]; then
   AGE=$(($(date +%s) - $(stat -f %m "$NEWEST_JSON" 2>/dev/null || echo 0)))
   if [ $AGE -lt 30 ]; then
@@ -133,7 +135,6 @@ echo ""
 
 # ═══ 6. REDIS
 echo -e "${BLUE}━━━ Redis (Upstash) ━━━${NC}"
-[ -f .env ] && set -a && source .env && set +a 2>/dev/null
 if [ -n "$UPSTASH_REDIS_REST_URL" ] && [ -n "$UPSTASH_REDIS_REST_TOKEN" ]; then
   REDIS_RESP=$(curl -s -m 3 -X POST -H "Authorization: Bearer $UPSTASH_REDIS_REST_TOKEN" \
     -H "Content-Type: application/json" \

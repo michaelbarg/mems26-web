@@ -17,12 +17,13 @@ logger = logging.getLogger("v9_bridge")
 
 # ── Try watchdog for fsevents ──
 _WATCHDOG_AVAILABLE = False
-try:
-    from watchdog.observers import Observer
-    from watchdog.events import FileSystemEventHandler
-    _WATCHDOG_AVAILABLE = True
-except ImportError:
-    pass
+if os.getenv("V9_DISABLE_WATCHDOG", "").lower() not in ("1", "true", "yes"):
+    try:
+        from watchdog.observers import Observer
+        from watchdog.events import FileSystemEventHandler
+        _WATCHDOG_AVAILABLE = True
+    except ImportError:
+        pass
 
 EXPORT_DIR = os.getenv("V9_EXPORT_DIR", "/Users/michael/SierraChart_Data/v9_export")
 REDIS_URL = os.getenv("UPSTASH_REDIS_REST_URL", "")

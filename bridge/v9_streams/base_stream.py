@@ -18,15 +18,18 @@ import urllib.error
 
 logger = logging.getLogger("v9_bridge")
 
-# ── Try to import watchdog for fsevents file watching (latency #L2) ──
+# ── Try to import watchdog for file watching (latency #L2) ──
 _WATCHDOG_AVAILABLE = False
-try:
-    from watchdog.observers import Observer
-    from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileCreatedEvent
-    _WATCHDOG_AVAILABLE = True
-    logger.info("watchdog available — using fsevents file watching (latency #L2 resolved)")
-except ImportError:
-    logger.warning("watchdog not installed — falling back to mtime polling (latency #L2 active)")
+if os.getenv("V9_DISABLE_WATCHDOG", "").lower() in ("1", "true", "yes"):
+    logger.warning("watchdog disabled via V9_DISABLE_WATCHDOG — using mtime polling")
+else:
+    try:
+        from watchdog.observers import Observer
+        from watchdog.events import FileSystemEventHandler, FileModifiedEvent, FileCreatedEvent
+        _WATCHDOG_AVAILABLE = True
+        logger.info("watchdog available — using fsevents file watching (latency #L2 resolved)")
+    except ImportError:
+        logger.warning("watchdog not installed — falling back to mtime polling (latency #L2 active)")
 
 EXPORT_DIR = os.getenv("V9_EXPORT_DIR", "/Users/michael/SierraChart_Data/v9_export")
 REDIS_URL = os.getenv("UPSTASH_REDIS_REST_URL", "")
