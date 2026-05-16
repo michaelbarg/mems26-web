@@ -1,10 +1,9 @@
-"""Stage B3 — Color Flip Check (PROMPT 2 · 2.3 stub).
+"""Stage B3 — Color Flip Check (PROMPT 3 · 3.5).
 
 Purpose: Detect if Strategic Gate (color) flipped against position.
 Reference: Decision Tree V1 § Section 5 · B3
 Type: Woodies Core (Strategic Gate broken)
 Priority Class: STRATEGIC_EXIT
-Logic: PROMPT 3
 """
 
 from dataclasses import dataclass
@@ -35,7 +34,22 @@ class B3ColorFlip:
         current_color: str,
         entry_color: str,
         direction: str,
+        degradation_bars: int = 0,
+        degradation_action: str = "TIGHTEN",
     ) -> B3Output:
-        """Evaluate color flip. STUB: returns no flip."""
-        # STUB: real logic in PROMPT 3
+        """Evaluate color flip per Decision Tree V1 § B3."""
+        # Direct flip: BLUE→RED or RED→BLUE against position
+        if direction == "LONG" and entry_color == "BLUE" and current_color == "RED":
+            return B3Output(flip_detected=True, action="CLOSE_ALL")
+
+        if direction == "SHORT" and entry_color == "RED" and current_color == "BLUE":
+            return B3Output(flip_detected=True, action="CLOSE_ALL")
+
+        # Degradation: YELLOW or GREY (configurable response)
+        if current_color in ("YELLOW", "GREY"):
+            action = degradation_action  # default TIGHTEN, configurable to EXIT
+            if degradation_action == "EXIT":
+                return B3Output(flip_detected=True, action="CLOSE_ALL")
+            return B3Output(flip_detected=False, action="TIGHTEN")
+
         return B3Output(flip_detected=False, action="HOLD")

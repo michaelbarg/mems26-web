@@ -1,14 +1,16 @@
-"""Stage B7 — Time Stop (PROMPT 2 · 2.3 stub).
+"""Stage B7 — Time Stop (PROMPT 3 · 3.5).
 
 Purpose: Exit if no T1 hit within time threshold (no momentum).
 Reference: Decision Tree V1 § Section 5 · B7
 Type: Woodies Core
 Priority Class: TIME_EXIT
-Logic: PROMPT 3
 """
 
 from dataclasses import dataclass
 from typing import Optional
+
+# Default time stop threshold
+TIME_STOP_MINUTES = 60
 
 
 @dataclass
@@ -30,10 +32,17 @@ class B7TimeStop:
 
     def evaluate(
         self,
+        elapsed_minutes: float = 0.0,
+        t1_hit: bool = False,
         entry_timestamp: Optional[str] = None,
         current_timestamp: Optional[str] = None,
-        t1_hit: bool = False,
     ) -> B7Output:
-        """Evaluate time stop. STUB: returns no time stop."""
-        # STUB: real logic in PROMPT 3
-        return B7Output(time_stop_hit=False, action="HOLD", elapsed_minutes=0.0)
+        """Evaluate time stop per Decision Tree V1 § B7."""
+        if t1_hit:
+            # T1 already hit → no time stop
+            return B7Output(time_stop_hit=False, action="HOLD", elapsed_minutes=elapsed_minutes)
+
+        if elapsed_minutes >= TIME_STOP_MINUTES:
+            return B7Output(time_stop_hit=True, action="CLOSE_ALL", elapsed_minutes=elapsed_minutes)
+
+        return B7Output(time_stop_hit=False, action="HOLD", elapsed_minutes=elapsed_minutes)
