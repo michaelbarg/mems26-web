@@ -1,15 +1,17 @@
-"""Stage B5 — OTF Clarity Mid-Trade · Touch-Point (PROMPT 2 · 2.3 stub).
+"""Stage B5 — OTF Clarity Mid-Trade · Touch-Point (PROMPT 3 · 3.6).
 
 Purpose: Check if OTF state degraded to State 4 mid-trade.
 Reference: Decision Tree V1 § Section 5 · B5
 Type: Touch-Point (advisory only · NEVER auto-exits)
 Priority Class: ADVISORY_EXIT
 Blocking: false
-Logic: PROMPT 3
 """
 
+import logging
 from dataclasses import dataclass
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -24,7 +26,7 @@ class B5OtfMidTradeQuery:
 
     Queries /api/v9/tpo/current (otf_clarity).
     State 4 (UNCLEAR) → NO_CLARITY_MID_TRADE warning.
-    Default action: tighten stop (NOT auto-exit).
+    Default action: tighten stop (NOT auto-exit — RULE 14).
 
     Degraded mode: skip entirely
     """
@@ -35,6 +37,15 @@ class B5OtfMidTradeQuery:
         self,
         otf_clarity: Optional[str] = None,
     ) -> B5Output:
-        """Evaluate OTF mid-trade. STUB: returns NONE/HOLD."""
-        # STUB: real logic in PROMPT 3
+        """Evaluate OTF mid-trade per Decision Tree V1 § B5.
+
+        Advisory only — default action TIGHTEN, NEVER auto-exit.
+        """
+        if otf_clarity is None:
+            logger.debug("[B5] OTF clarity unavailable — degraded mode (skip)")
+            return B5Output(clarity_warning="NONE", action="HOLD")
+
+        if otf_clarity == "UNCLEAR":
+            return B5Output(clarity_warning="NO_CLARITY_MID_TRADE", action="TIGHTEN")
+
         return B5Output(clarity_warning="NONE", action="HOLD")

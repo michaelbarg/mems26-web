@@ -1,4 +1,4 @@
-"""Stage B14 — Hold (PROMPT 2 · 2.3 stub).
+"""Stage B14 — Hold (PROMPT 3 · 3.6).
 
 Purpose: Default state when no other stage triggers an action.
 Reference: Decision Tree V1 § Section 5 · B14
@@ -27,5 +27,5 @@ class B14Hold:
     priority_class = "NO_ACTION"
 
     def evaluate(self) -> B14Output:
-        """Evaluate hold. Always returns HOLD."""
+        """Evaluate hold per Decision Tree V1 § B14. Always returns HOLD."""
         return B14Output(action="HOLD")
