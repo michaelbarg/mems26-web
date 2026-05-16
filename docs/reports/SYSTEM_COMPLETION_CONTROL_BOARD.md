@@ -41,7 +41,7 @@
 - 5 direct tests prove V9 wins, V1 demoted, backward compat, no SHADOW/DEMO/LIVE
 
 **Remaining minor (non-blocking):**
-- `pd_high`/`pd_low`/`pd_close` not populated from bridge (A1 pre-open context)
+- ~~`pd_high`/`pd_low`/`pd_close` not populated~~ **FIXED (Prompt 21)** — sourced from v9_bars_5min fallback
 
 **Files:**
 - `backend/v9/systems/day_type/api.py` — canonical `/current` handler
@@ -200,7 +200,7 @@
 | # | System | Issue | Severity | Blocks SHADOW? |
 |---|--------|-------|----------|----------------|
 | 1 | S1 | V1/V9 classifier disagreement | MEDIUM | NO — V9 is canonical, V1 is legacy |
-| 2 | S1 | pd_* not wired from bridge | LOW | NO — affects pre-open context only |
+| 2 | ~~S1~~ | ~~pd_* not wired~~ | ~~LOW~~ | **CLOSED (Prompt 21)** — bars fallback provides pd_high/pd_low/pd_close |
 | 3 | ~~S4~~ | ~~decision_tree A4 blocks ready_to_route~~ | ~~HIGH~~ | **CLOSED (Prompt 18)** |
 
 **All 6 systems READY.** S1 fixed in Prompt 20: `/current` now prefers V9 canonical source.

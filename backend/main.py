@@ -139,18 +139,23 @@ async def _startup():
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
 
         def _load_previous_day_context():
-            """D-070: Previous Day source for DayType A1.
+            """D-070 + Prompt 21: Previous Day source for DayType A1.
 
-            Alpha source is v9_tpo_sessions (previous CASH session). Falls back
-            to empty values if the TPO session row is unavailable.
+            Source priority:
+              1. v9_tpo_sessions (CASH session): range_high/range_low/poc_price
+              2. v9_bars_5min (daily max(high)/min(low)/last close): fallback when TPO lacks range
+              3. Empty dict if no data available (explicit degraded — no fake values)
             """
             try:
                 import sqlite3
                 from backend.v9.services.market_clock import get_previous_trading_day
 
                 prev_date = get_previous_trading_day().isoformat()
-                conn = sqlite3.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
+                db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+                conn = sqlite3.connect(db_path)
                 conn.row_factory = sqlite3.Row
+
+                # Source 1: TPO sessions
                 row = conn.execute(
                     """SELECT range_high, range_low, val_price, vah_price, poc_price
                        FROM v9_tpo_sessions
@@ -158,14 +163,33 @@ async def _startup():
                        ORDER BY id DESC LIMIT 1""",
                     (prev_date,),
                 ).fetchone()
+
+                pd_high = row["range_high"] if row else None
+                pd_low = row["range_low"] if row else None
+                pd_close = (row["poc_price"] or row["val_price"] or row["vah_price"]) if row else None
+
+                # Source 2: v9_bars_5min fallback for range when TPO lacks it
+                if pd_high is None or pd_low is None:
+                    bars_row = conn.execute(
+                        """SELECT max(high) as hi, min(low) as lo,
+                                  (SELECT close FROM v9_bars_5min WHERE date(ts)=? ORDER BY ts DESC LIMIT 1) as last_c
+                           FROM v9_bars_5min WHERE date(ts)=?""",
+                        (prev_date, prev_date),
+                    ).fetchone()
+                    if bars_row:
+                        pd_high = pd_high or bars_row["hi"]
+                        pd_low = pd_low or bars_row["lo"]
+                        pd_close = pd_close or bars_row["last_c"]
+
                 conn.close()
-                if not row:
+
+                if pd_high is None and pd_low is None and pd_close is None:
                     return {}
+
                 return {
-                    "pd_high": row["range_high"],
-                    "pd_low": row["range_low"],
-                    # D-070 beta fallback until previous settlement/close is persisted.
-                    "pd_close": row["poc_price"] or row["val_price"] or row["vah_price"],
+                    "pd_high": pd_high,
+                    "pd_low": pd_low,
+                    "pd_close": pd_close,
                 }
             except Exception as pd_err:
                 _logger.debug("[DayType] previous day context unavailable: %s", pd_err)
