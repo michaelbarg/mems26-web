@@ -16,6 +16,7 @@ os.environ.setdefault("UPSTASH_REDIS_REST_TOKEN", "")
 from bridge.v9_streams import (
     ALL_STREAMS,
     Woodies30MinStream,
+    Woodies5MinStream,
     TpoStream,
     Bars5MinStream,
     TickReversal15Stream,
@@ -31,34 +32,34 @@ class TestStreamRegistry:
 
     def test_new_streams_in_registry(self):
         names = [s.name for s in ALL_STREAMS]
-        assert "woodies_30min" in names
+        assert "woodies_5min" in names
         assert "tpo" in names
         assert "bars_5min" in names
 
 
-class TestWoodies30MinStream:
+class TestWoodies5MinStream:
     """Woodies 30-min stream tests."""
 
     def test_class_attrs(self):
-        s = Woodies30MinStream()
-        assert s.name == "woodies_30min"
-        assert s.filename == "woodies_30min.json"
-        assert s.redis_key == "mems26:v9:woodies"
-        assert s.api_path == "/api/v9/bars/woodies"
+        s = Woodies5MinStream()
+        assert s.name == "woodies_5min"
+        assert s.filename == "woodies_5min.json"
+        assert s.redis_key == "mems26:v9:woodies_5min"
+        assert s.api_path == "/api/v9/bars/woodies_5min"
 
     def test_filepath(self):
         with patch.dict(os.environ, {"V9_EXPORT_DIR": "/tmp/test_export"}):
             from bridge.v9_streams.base_stream import EXPORT_DIR
-            s = Woodies30MinStream()
+            s = Woodies5MinStream()
             # filepath is computed from EXPORT_DIR module-level constant
-            assert s.filename == "woodies_30min.json"
+            assert s.filename == "woodies_5min.json"
 
     def test_reads_file_and_pushes(self, tmp_path):
         """Test that _tick reads the file and pushes when export_ts changes."""
-        s = Woodies30MinStream()
-        export_file = tmp_path / "woodies_30min.json"
+        s = Woodies5MinStream()
+        export_file = tmp_path / "woodies_5min.json"
         payload = {
-            "type": "woodies_30min",
+            "type": "woodies_5min",
             "export_ts": 1715300000.0,
             "bar_count": 2,
             "history": [
@@ -82,7 +83,7 @@ class TestWoodies30MinStream:
         with patch.object(type(s), "filepath", new_callable=lambda: property(lambda self: export_file)):
             data = s._read_file()
             assert data is not None
-            assert data["type"] == "woodies_30min"
+            assert data["type"] == "woodies_5min"
             assert data["bar_count"] == 2
             assert len(data["history"]) == 2
             assert data["history"][0]["trend_state"] == "BLUE"
@@ -164,7 +165,7 @@ class TestBaseStreamBehavior:
     """Test inherited base behavior for new streams."""
 
     @pytest.mark.parametrize("StreamClass,expected_name", [
-        (Woodies30MinStream, "woodies_30min"),
+        (Woodies5MinStream, "woodies_5min"),
         (TpoStream, "tpo"),
         (Bars5MinStream, "bars_5min"),
     ])
@@ -205,8 +206,8 @@ class TestBaseStreamBehavior:
 
     def test_tick_skips_same_export_ts(self, tmp_path):
         """If export_ts hasn't changed, _tick skips."""
-        s = Woodies30MinStream()
-        export_file = tmp_path / "woodies_30min.json"
+        s = Woodies5MinStream()
+        export_file = tmp_path / "woodies_5min.json"
         export_file.write_text(json.dumps({"export_ts": 99.0, "history": []}))
 
         with patch.object(type(s), "filepath", new_callable=lambda: property(lambda self: export_file)):
@@ -218,8 +219,8 @@ class TestBaseStreamBehavior:
 
     def test_tick_pushes_on_new_data(self, tmp_path):
         """On new export_ts, _tick pushes to Redis and API."""
-        s = Woodies30MinStream()
-        export_file = tmp_path / "woodies_30min.json"
+        s = Woodies5MinStream()
+        export_file = tmp_path / "woodies_5min.json"
         export_file.write_text(json.dumps({"export_ts": 100.0, "history": [{"ts": 1}]}))
 
         with patch.object(type(s), "filepath", new_callable=lambda: property(lambda self: export_file)):

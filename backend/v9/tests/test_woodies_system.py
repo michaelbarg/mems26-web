@@ -61,4 +61,4 @@ def test_woodies_extends_base():
 def test_woodies_subscribes():
     from backend.v9.systems.woodies.woodies_system import WoodiesSystem
     sys = WoodiesSystem()
-    assert "woodies_30min" in sys.subscribed_bar_types()
+    assert "woodies_5min" in sys.subscribed_bar_types()  # D-074

@@ -27,6 +27,7 @@ STREAM_NAMES: List[str] = [
     "stacked_imbalances",
     "cumulative_delta",
     "woodies_30min",
+    "woodies_5min",  # D-074: primary S4 stream
     "tpo",
     "5min",
 ]

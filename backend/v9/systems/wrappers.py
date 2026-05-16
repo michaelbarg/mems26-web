@@ -235,11 +235,11 @@ class TickReversalSystem(BaseSystem):
 class WoodiesSystem(BaseSystem):
     """System 4: Woodies CCI pattern detection.
 
-    Subscribed to woodies_30min stream.
+    Subscribed to woodies_5min stream (D-074).
     Runs 8 CCI pattern detectors and generates trade signals.
     """
 
-    subscribed_streams: List[str] = ["woodies_30min"]
+    subscribed_streams: List[str] = ["woodies_5min"]
     system_id: int = 4
     name: str = "woodies"
 

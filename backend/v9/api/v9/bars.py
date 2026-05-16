@@ -478,6 +478,69 @@ def post_woodies(
     return {"ok": True, "inserted": created, "type": "woodies"}
 
 
+# ── POST /api/v9/bars/woodies_5min (D-074: primary S4 path) ──
+
+@router.post("/woodies_5min")
+def post_woodies_5min(
+    payload: WoodiesPayload,
+    db: Session = Depends(get_db),
+    _token: str = Depends(verify_bridge_token),
+):
+    """D-074: Woodies 5-min bars — primary S4 data path.
+
+    Same payload shape as /woodies (legacy 30-min) but persisted to
+    v9_bars_5min_woodies and routed as topic 'woodies_5min'.
+    """
+    bars = payload.all_bars
+    if not bars:
+        return {"ok": True, "inserted": 0, "type": "woodies_5min"}
+    created = 0
+    last_flat = None
+    for bar in bars:
+        ohlc = bar.get("ohlc", {})
+        o = ohlc.get("o", bar.get("o", bar.get("open", 0)))
+        h = ohlc.get("h", bar.get("h", bar.get("high", 0)))
+        l = ohlc.get("l", bar.get("l", bar.get("low", 0)))
+        c = ohlc.get("c", bar.get("c", bar.get("close", 0)))
+        vol = ohlc.get("vol", bar.get("vol", bar.get("volume", 0)))
+        # Persist to v9_bars_5min_woodies (dedicated table per D-074)
+        import sqlite3 as _sql
+        try:
+            conn = _sql.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
+            conn.execute(
+                """INSERT INTO v9_bars_5min_woodies
+                (ts, open, high, low, close, volume, cci_14, cci_6_tcci,
+                 lsma_value, swi_value, czi_value, ema_34, trend_state,
+                 predictor_next_cci, zlr_detected, zlr_direction)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    bar.get("ts", ""), o, h, l, c, vol,
+                    bar.get("cci_14"), bar.get("cci_6_tcci"),
+                    bar.get("lsma_value"), bar.get("swi_value"),
+                    bar.get("czi_value"), bar.get("ema_34"),
+                    bar.get("trend_state"), bar.get("predictor_next_cci"),
+                    bar.get("zlr_detected", False), bar.get("zlr_direction"),
+                ),
+            )
+            conn.commit()
+            conn.close()
+            created += 1
+        except Exception:
+            pass
+        last_flat = {
+            "ts": bar.get("ts"), "open": o, "high": h, "low": l, "close": c,
+            "volume": vol, "cci_14": bar.get("cci_14"),
+            "cci_6_tcci": bar.get("cci_6_tcci"), "ema_34": bar.get("ema_34"),
+            "lsma_value": bar.get("lsma_value"), "swi_value": bar.get("swi_value"),
+            "czi_value": bar.get("czi_value"), "trend_state": bar.get("trend_state"),
+            "predictor_next_cci": bar.get("predictor_next_cci"),
+        }
+    _record_push("woodies_5min")
+    if last_flat:
+        _route_bar("woodies_5min", last_flat)
+    return {"ok": True, "inserted": created, "type": "woodies_5min"}
+
+
 # ── POST /api/v9/bars/tpo ──
 
 @router.post("/tpo")

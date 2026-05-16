@@ -1,8 +1,8 @@
-"""System 4 — Woodies CCI Decision Maker (30-min bars + 8 patterns).
+"""System 4 — Woodies CCI Decision Maker (5-min bars + 9 patterns).
 
-Subscribes to woodies_30min bars via BarRouter (D-048).
+Subscribes to woodies_5min bars via BarRouter (D-074: migrated from 30-min).
 Computes all 11 Woodies studies per bar via cci_calc.compute_all_studies().
-Runs 8-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB).
+Runs 9-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE).
 Publishes signal events independently.
 """
 import json
@@ -61,16 +61,16 @@ class WoodiesSystem(BaseV9TradingSystem):
         }
 
     def subscribed_bar_types(self) -> List[str]:
-        return ["woodies_30min"]
+        return ["woodies_5min"]  # D-074: migrated from woodies_30min
 
     def hydrate(self) -> HydrationResult:
-        """Load last N bars from v9_bars_30min_woodies for warm start."""
+        """Load last N bars from v9_bars_5min_woodies for warm start."""
         loaded = 0
         try:
             conn = sqlite3.connect(self.db_path)
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
-                "SELECT * FROM v9_bars_30min_woodies ORDER BY ts DESC LIMIT ?",
+                "SELECT * FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",
                 (self.max_buffer,),
             ).fetchall()
             conn.close()
@@ -122,7 +122,7 @@ class WoodiesSystem(BaseV9TradingSystem):
             success=True,
             reached_state="ACTIVE",
             confidence=1.0,
-            notes=f"Woodies CCI ready; hydrated {loaded} bars from DB; subscribed to woodies_30min",
+            notes=f"Woodies CCI ready; hydrated {loaded} bars from DB; subscribed to woodies_5min",
         )
 
     def process(self, event: Dict) -> Optional[Dict]:
@@ -271,11 +271,11 @@ class WoodiesSystem(BaseV9TradingSystem):
             logger.error("[Woodies] process_bar error: %s", e, exc_info=True)
 
     def _persist_bar(self, ts, o, h, l, c, v, studies):
-        """Write enriched bar to v9_bars_30min_woodies."""
+        """Write enriched bar to v9_bars_5min_woodies."""
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute(
-                """INSERT INTO v9_bars_30min_woodies
+                """INSERT INTO v9_bars_5min_woodies
                 (ts, symbol, open, high, low, close, volume,
                  cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
                  ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction)

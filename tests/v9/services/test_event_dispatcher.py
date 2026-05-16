@@ -27,7 +27,7 @@ from backend.v9.services.event_dispatcher.dispatcher import EventDispatcher
 
 class FiringSystemStub(BaseSystem):
     """Stub firing system that returns a Signal on analyze()."""
-    subscribed_streams = ["woodies_30min"]
+    subscribed_streams = ["woodies_5min"]
     system_id = 4
     name = "woodies_stub"
 
@@ -114,8 +114,8 @@ class TestRegisterSystem:
         dispatcher.register_system(system)
 
         table = dispatcher.get_routing_table()
-        assert "woodies_30min" in table
-        assert 4 in table["woodies_30min"]
+        assert "woodies_5min" in table
+        assert 4 in table["woodies_5min"]
 
     def test_multiple_systems_registered(self):
         dispatcher = EventDispatcher()
@@ -123,7 +123,7 @@ class TestRegisterSystem:
         dispatcher.register_system(ObserverStub())
 
         table = dispatcher.get_routing_table()
-        assert 4 in table["woodies_30min"]
+        assert 4 in table["woodies_5min"]
         assert 3 in table["tick_reversal_15"]
         assert 3 in table["tick_reversal_12"]
         assert 3 in table["footprint"]
@@ -144,7 +144,7 @@ class TestRegisterSystem:
         dispatcher.register_system(system)
 
         table = dispatcher.get_routing_table()
-        assert len(table["woodies_30min"]) == 1
+        assert len(table["woodies_5min"]) == 1
 
     def test_gate_no_streams(self):
         dispatcher = EventDispatcher()
@@ -168,10 +168,10 @@ class TestRouteBarToCorrectSystem:
         dispatcher.register_system(observer)
 
         bar = {"ts": 1234, "o": 100, "h": 101, "l": 99, "c": 100.5}
-        dispatcher.on_bar_received("woodies_30min", bar)
+        dispatcher.on_bar_received("woodies_5min", bar)
 
         assert len(woodies.calls) == 1
-        assert woodies.calls[0] == ("woodies_30min", bar)
+        assert woodies.calls[0] == ("woodies_5min", bar)
         assert len(observer.calls) == 0
 
     def test_tick_reversal_bar_only_to_tick_reversal(self):
@@ -235,7 +235,7 @@ class TestSignalForwardedToGateway:
         system = FiringSystemStub(signal=signal)
         dispatcher.register_system(system)
 
-        dispatcher.on_bar_received("woodies_30min", {"ts": 1})
+        dispatcher.on_bar_received("woodies_5min", {"ts": 1})
 
         mock_gateway.route_setup.assert_called_once()
         call_args = mock_gateway.route_setup.call_args
@@ -259,7 +259,7 @@ class TestSignalForwardedToGateway:
         dispatcher.register_system(system)
 
         # Should not raise
-        signals = dispatcher.on_bar_received("woodies_30min", {"ts": 1})
+        signals = dispatcher.on_bar_received("woodies_5min", {"ts": 1})
         assert len(signals) == 1
 
     def test_gateway_error_doesnt_crash(self):
@@ -274,7 +274,7 @@ class TestSignalForwardedToGateway:
         dispatcher.register_system(system)
 
         # Should not raise even though gateway errors
-        signals = dispatcher.on_bar_received("woodies_30min", {"ts": 1})
+        signals = dispatcher.on_bar_received("woodies_5min", {"ts": 1})
         assert len(signals) == 1
 
     def test_signal_returned_in_list(self):
@@ -285,7 +285,7 @@ class TestSignalForwardedToGateway:
         system = FiringSystemStub(signal=signal)
         dispatcher.register_system(system)
 
-        result = dispatcher.on_bar_received("woodies_30min", {"ts": 1})
+        result = dispatcher.on_bar_received("woodies_5min", {"ts": 1})
         assert len(result) == 1
         assert result[0].direction == "SHORT"
         assert result[0].classification == "ZLR"
@@ -472,7 +472,7 @@ class TestRealWrappers:
         assert DayTypeSystem.subscribed_streams == ["cumulative_delta", "volume_profile"]
         assert Chart5MinSystem.subscribed_streams == ["cumulative_delta"]
         assert TickReversalSystem.subscribed_streams == ["tick_reversal_15", "tick_reversal_12", "footprint"]
-        assert WoodiesSystem.subscribed_streams == ["woodies_30min"]
+        assert WoodiesSystem.subscribed_streams == ["woodies_5min"]
         assert TPOSystem.subscribed_streams == ["volume_profile"]
         assert KillzoneSystem.subscribed_streams == []
 
@@ -489,7 +489,7 @@ class TestRealWrappers:
         table = dispatcher.get_routing_table()
         assert sorted(table["cumulative_delta"]) == [1, 2]
         assert sorted(table["volume_profile"]) == [1, 5]
-        assert table["woodies_30min"] == [4]
+        assert table["woodies_5min"] == [4]
         assert table["tick_reversal_15"] == [3]
         assert table["tick_reversal_12"] == [3]
         assert table["footprint"] == [3]
