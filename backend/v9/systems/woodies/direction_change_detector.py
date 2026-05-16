@@ -67,8 +67,16 @@ def detect_from_buffer(bar_buffer: List) -> Optional[Dict]:
     if len(bar_buffer) < 2:
         return None
     history = [
-        {"cci_14": getattr(b, "cci_14", None) or b.get("cci_14"),
-         "tcci": getattr(b, "cci_6_tcci", None) or b.get("cci_6_tcci")}
+        {"cci_14": _read_bar_value(b, "cci_14"),
+         "tcci": _read_bar_value(b, "cci_6_tcci")}
         for b in bar_buffer[-2:]
     ]
     return detect(history)
+
+
+def _read_bar_value(bar, field: str):
+    if hasattr(bar, field):
+        return getattr(bar, field)
+    if isinstance(bar, dict):
+        return bar.get(field)
+    return None

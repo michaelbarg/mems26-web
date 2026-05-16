@@ -53,7 +53,7 @@ def detect_all_patterns(
     results = []
     for detector in _DETECTORS:
         result = detector(bars, context)
-        if result.detected:
+        if result is not None and result.detected:
             results.append(result)
 
     return results
