@@ -22,7 +22,7 @@ from backend.v9.systems.day_type.detector import (
 # ── Helpers ──────────────────────────────────────────────────────
 
 def _bar(session_min=0, o=5250, h=5252, l=5248, c=5251,
-         pd_high=None, pd_low=None, pd_close=None,
+         pd_high=5260, pd_low=5240, pd_close=5250,
          overnight_high=None, overnight_low=None,
          atr=None, ib_high=None, ib_low=None,
          extensions_up=0, extensions_down=0, returned_to_range=False):

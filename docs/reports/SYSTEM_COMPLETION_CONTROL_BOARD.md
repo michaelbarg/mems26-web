@@ -4,7 +4,7 @@
 **Authority:** Master Index V2  
 **Purpose:** Score whether each system produces reliable information  
 **Scope:** System correctness only — NOT SHADOW/DEMO/LIVE activation  
-**Last commit:** `593d628` fix(s4): wire Woodies A4 touch-points
+**Last commit:** Prompt 21c — S1 pd_* degraded/pending proof + loader source tests
 
 ---
 
@@ -12,7 +12,7 @@
 
 | System | Readiness | Tests | Key Issue |
 |--------|-----------|-------|-----------|
-| S1 Day Type | **READY** | 37/37 + 8 pd_* | V9 canonical (Prompt 20b); pd_close from bars not POC (Prompt 21b) |
+| S1 Day Type | **READY** | 14 pd_* + 47 regression | Prompt 21c proves degraded/pending on missing pd_* and loader source precedence |
 | S2 Five-Min | **READY** | 65/65 | — |
 | S3 Footprint | **READY** | 22/22 | — |
 | S4 Woodies | **READY** | 36/36 | A4 wired (Prompt 18); correctly blocks weekends; fires during RTH |
@@ -33,15 +33,16 @@
 | D Output | GREEN | /current returns V9 classification with backward-compatible fields; source="v9" |
 | E Tests | GREEN | 5/5 canonical V9 tests + 6 classifier + 8 e2e + 28 compliance = all pass |
 
-**Status: READY** (fixed in Prompt 20 + 20b)
+**Status: READY** (Prompt 21c proof complete)
 
 **What was fixed:**
 - `/current` now prefers V9 source (live state machine → DB → V1 demoted)
 - V1 cannot produce `classified=True` — demoted to `source="v1_demoted"` with explicit reason
 - 5 direct tests prove V9 wins, V1 demoted, backward compat, no SHADOW/DEMO/LIVE
 
-**Remaining minor (non-blocking):**
-- ~~`pd_high`/`pd_low`/`pd_close` not populated~~ **FIXED (Prompt 21b)** — pd_close from bars last close (NOT poc); pd_high/pd_low from bars fallback. 8 tests prove correctness.
+**Prompt 21c proof:**
+- Missing `pd_high`/`pd_low`/`pd_close` now returns explicit `DEGRADED/PENDING` A1 state instead of neutral defaults.
+- Direct loader tests prove `pd_close` comes from `v9_bars_5min` last close, TPO range is preferred for `pd_high`/`pd_low`, bars max/min is the fallback, and no-source output is clearly degraded.
 
 **Files:**
 - `backend/v9/systems/day_type/api.py` — canonical `/current` handler
@@ -200,10 +201,10 @@
 | # | System | Issue | Severity | Blocks SHADOW? |
 |---|--------|-------|----------|----------------|
 | 1 | S1 | V1/V9 classifier disagreement | MEDIUM | NO — V9 is canonical, V1 is legacy |
-| 2 | ~~S1~~ | ~~pd_* not wired~~ | ~~LOW~~ | **CLOSED (Prompt 21)** — bars fallback provides pd_high/pd_low/pd_close |
+| 2 | ~~S1~~ | ~~Prompt 21c pd_* degraded/pending + loader source proof~~ | ~~HIGH~~ | **CLOSED (Prompt 21c)** — tests prove degraded/pending and loader sources |
 | 3 | ~~S4~~ | ~~decision_tree A4 blocks ready_to_route~~ | ~~HIGH~~ | **CLOSED (Prompt 18)** |
 
-**All 6 systems READY.** S1 fixed in Prompt 20: `/current` now prefers V9 canonical source.
+**All 6 systems READY.** Prompt 20 made `/current` prefer V9 canonical source; Prompt 21c now proves previous-day context integrity.
 
 ---
 
@@ -217,16 +218,13 @@
 Downstream consumers reading `/current` will get V9 classification.
 V1 path only activates when V9 hasn't classified yet (pre-IB = returns PENDING correctly).
 
-**No remaining issues.** pd_* fully wired (Prompt 21b). pd_close=7418 from bars (not poc=7444).
+**No remaining S1 pd_* issue:** degraded/pending behavior and direct loader source tests pass.
 
 ---
 
 ## Recommended Next Prompts
 
 ```
-Prompt 21: S1 pd_* wiring from Bridge
-           (completes A1 pre-open context for full accuracy — non-blocking)
-
 Prompt 22: RTH live validation
            Run during Monday 9:30–11:30 ET with Sierra live
            Verify all 3 firing systems produce SHADOW trades

@@ -195,6 +195,9 @@ class DayTypeStateMachine:
 
         # A1
         self.pre_open: Optional[PreOpenContext] = None
+        self.pd_context_status: str = "PENDING"
+        self.pd_degraded_reason: Optional[str] = None
+        self.missing_pd_fields: List[str] = []
         # A2
         self.opening: Optional[OpeningDetection] = None
         self.opening_bars: List[BarInput] = []
@@ -275,11 +278,50 @@ class DayTypeStateMachine:
 
     def _stage_a1(self, bar: BarInput):
         """A1: Pre-Open Context — gap, location vs PD, overnight bias."""
+        missing_pd = [
+            field_name
+            for field_name in ("pd_high", "pd_low", "pd_close")
+            if getattr(bar, field_name) is None
+        ]
+
+        if missing_pd:
+            overnight_bias = "UNKNOWN"
+            if bar.overnight_high is not None and bar.overnight_low is not None:
+                on_mid = (bar.overnight_high + bar.overnight_low) / 2.0
+                if bar.open > on_mid:
+                    overnight_bias = "BULLISH"
+                elif bar.open < on_mid:
+                    overnight_bias = "BEARISH"
+                else:
+                    overnight_bias = "NEUTRAL"
+
+            self.pd_context_status = "DEGRADED"
+            self.pd_degraded_reason = "missing_previous_day_context"
+            self.missing_pd_fields = missing_pd
+            self.pre_open = PreOpenContext(
+                gap_size=None,
+                gap_direction="UNKNOWN",
+                gap_magnitude="UNKNOWN",
+                location_vs_pd="UNKNOWN",
+                overnight_bias=overnight_bias,
+                pd_context_status=self.pd_context_status,
+                degraded_reason=self.pd_degraded_reason,
+                missing_pd_fields=list(missing_pd),
+            )
+            self.stage = Stage.A1
+            self.day_type = DayType.UNKNOWN
+            self.confidence = 0.0
+            self.lock_state = _LOCK_PENDING
+            return
+
         gap_size = 0.0
         gap_direction = "FLAT"
         gap_magnitude = "SMALL_GAP"
         location_vs_pd = "INSIDE"
         overnight_bias = "NEUTRAL"
+        self.pd_context_status = "OK"
+        self.pd_degraded_reason = None
+        self.missing_pd_fields = []
 
         if bar.pd_close is not None:
             gap_size = bar.open - bar.pd_close
@@ -313,6 +355,9 @@ class DayTypeStateMachine:
             gap_magnitude=gap_magnitude,
             location_vs_pd=location_vs_pd,
             overnight_bias=overnight_bias,
+            pd_context_status=self.pd_context_status,
+            degraded_reason=self.pd_degraded_reason,
+            missing_pd_fields=list(self.missing_pd_fields),
         )
         self.stage = Stage.A2
 
@@ -651,6 +696,9 @@ class DayTypeStateMachine:
                 "session_low": self.session_low,
                 "consecutive_same_vote": self.consecutive_same_vote,
                 "profile_shape": "UNKNOWN",
+                "pd_context_status": self.pd_context_status,
+                "pd_degraded_reason": self.pd_degraded_reason,
+                "missing_pd_fields": list(self.missing_pd_fields),
             },
         )
 

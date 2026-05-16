@@ -6,11 +6,83 @@ Entry point for Render:
 
 import os
 import time
+import sqlite3
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.v9.app import v9_router, init_event_dispatcher
+
+DEFAULT_LOCAL_DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+
+
+def _missing_pd_context(missing_fields):
+    return {
+        "pd_high": None,
+        "pd_low": None,
+        "pd_close": None,
+        "pd_context_status": "DEGRADED",
+        "degraded_reason": "missing_previous_day_context",
+        "missing_pd_fields": list(missing_fields),
+    }
+
+
+def _load_previous_day_context(db_path=DEFAULT_LOCAL_DB_PATH, previous_trading_day=None):
+    """Load previous-day context for DayType A1 without inventing defaults.
+
+    pd_close is always sourced from the last previous-day 5-minute bar close.
+    TPO range is preferred for pd_high/pd_low, with bars max/min as fallback.
+    """
+    from backend.v9.services.market_clock import get_previous_trading_day
+
+    prev_date = (
+        previous_trading_day.isoformat()
+        if hasattr(previous_trading_day, "isoformat")
+        else previous_trading_day
+    ) or get_previous_trading_day().isoformat()
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        bars_row = conn.execute(
+            """SELECT max(high) as hi, min(low) as lo,
+                      (SELECT close FROM v9_bars_5min
+                       WHERE date(ts)=?
+                       ORDER BY ts DESC LIMIT 1) as last_c
+               FROM v9_bars_5min WHERE date(ts)=?""",
+            (prev_date, prev_date),
+        ).fetchone()
+
+        pd_close = bars_row["last_c"] if bars_row else None
+        bars_high = bars_row["hi"] if bars_row else None
+        bars_low = bars_row["lo"] if bars_row else None
+
+        tpo_row = conn.execute(
+            """SELECT range_high, range_low
+               FROM v9_tpo_sessions
+               WHERE trading_date=? AND session_type='CASH'
+               ORDER BY id DESC LIMIT 1""",
+            (prev_date,),
+        ).fetchone()
+
+        pd_high = (tpo_row["range_high"] if tpo_row else None) or bars_high
+        pd_low = (tpo_row["range_low"] if tpo_row else None) or bars_low
+    finally:
+        conn.close()
+
+    context = {"pd_high": pd_high, "pd_low": pd_low, "pd_close": pd_close}
+    missing_fields = [field for field, value in context.items() if value is None]
+    if missing_fields:
+        degraded = _missing_pd_context(missing_fields)
+        degraded.update(context)
+        return degraded
+
+    return {
+        **context,
+        "pd_context_status": "OK",
+        "degraded_reason": None,
+        "missing_pd_fields": [],
+    }
 
 # ── App ──────────────────────────────────────────────────────
 
@@ -138,62 +210,12 @@ async def _startup():
         _day_type_consumer = DayTypeConsumer(SessionLocal)
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
 
-        def _load_previous_day_context():
-            """D-070 + Prompt 21b: Previous Day source for DayType A1.
-
-            pd_close = last bar close of previous trading day (from v9_bars_5min).
-                       NOT poc_price. POC is a volume concept, not session close.
-            pd_high  = session high (TPO range_high preferred, bars max(high) fallback).
-            pd_low   = session low  (TPO range_low preferred, bars min(low) fallback).
-
-            Returns empty dict if data unavailable (explicit degraded — no fake values).
-            """
+        def _load_previous_day_context_for_startup():
             try:
-                import sqlite3
-                from backend.v9.services.market_clock import get_previous_trading_day
-
-                prev_date = get_previous_trading_day().isoformat()
-                db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
-                conn = sqlite3.connect(db_path)
-                conn.row_factory = sqlite3.Row
-
-                # pd_close: ALWAYS from v9_bars_5min last bar close (not POC)
-                bars_row = conn.execute(
-                    """SELECT max(high) as hi, min(low) as lo,
-                              (SELECT close FROM v9_bars_5min WHERE date(ts)=? ORDER BY ts DESC LIMIT 1) as last_c
-                       FROM v9_bars_5min WHERE date(ts)=?""",
-                    (prev_date, prev_date),
-                ).fetchone()
-
-                pd_close = bars_row["last_c"] if bars_row else None
-                bars_high = bars_row["hi"] if bars_row else None
-                bars_low = bars_row["lo"] if bars_row else None
-
-                # pd_high/pd_low: TPO session range preferred, bars fallback
-                tpo_row = conn.execute(
-                    """SELECT range_high, range_low
-                       FROM v9_tpo_sessions
-                       WHERE trading_date=? AND session_type='CASH'
-                       ORDER BY id DESC LIMIT 1""",
-                    (prev_date,),
-                ).fetchone()
-
-                pd_high = (tpo_row["range_high"] if tpo_row else None) or bars_high
-                pd_low = (tpo_row["range_low"] if tpo_row else None) or bars_low
-
-                conn.close()
-
-                if pd_high is None and pd_low is None and pd_close is None:
-                    return {}
-
-                return {
-                    "pd_high": pd_high,
-                    "pd_low": pd_low,
-                    "pd_close": pd_close,
-                }
+                return _load_previous_day_context()
             except Exception as pd_err:
                 _logger.debug("[DayType] previous day context unavailable: %s", pd_err)
-                return {}
+                return _missing_pd_context(("pd_high", "pd_low", "pd_close"))
 
         async def _day_type_on_bar(event):
             """Bridge BarRouter event to DayTypeStateMachine.process_bar."""
@@ -214,7 +236,7 @@ async def _startup():
                 et_now = now_et()
                 rth_open = et_now.replace(hour=9, minute=30, second=0, microsecond=0)
                 _session_min = max(0, int((et_now - rth_open).total_seconds() / 60))
-                pd_ctx = _load_previous_day_context()
+                pd_ctx = _load_previous_day_context_for_startup()
 
                 bar_input = BarInput(
                     ts=_time_mod.time(),

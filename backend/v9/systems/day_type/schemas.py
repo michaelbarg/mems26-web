@@ -131,11 +131,14 @@ class BarInput(BaseModel):
 
 class PreOpenContext(BaseModel):
     """A1 output: pre-open context analysis."""
-    gap_size: float = 0.0
-    gap_direction: str = "FLAT"          # UP, DOWN, FLAT
-    gap_magnitude: str = "SMALL_GAP"     # SMALL_GAP, MEDIUM_GAP, LARGE_GAP
-    location_vs_pd: str = "INSIDE"       # ABOVE, BELOW, INSIDE
-    overnight_bias: str = "NEUTRAL"      # BULLISH, BEARISH, NEUTRAL
+    gap_size: Optional[float] = None
+    gap_direction: str = "UNKNOWN"       # UP, DOWN, FLAT, UNKNOWN
+    gap_magnitude: str = "UNKNOWN"       # SMALL_GAP, MEDIUM_GAP, LARGE_GAP, UNKNOWN
+    location_vs_pd: str = "UNKNOWN"      # ABOVE, BELOW, INSIDE, UNKNOWN
+    overnight_bias: str = "UNKNOWN"      # BULLISH, BEARISH, NEUTRAL, UNKNOWN
+    pd_context_status: str = "PENDING"   # OK, DEGRADED, PENDING
+    degraded_reason: Optional[str] = None
+    missing_pd_fields: List[str] = Field(default_factory=list)
 
 
 class OpeningDetection(BaseModel):
