@@ -64,6 +64,21 @@ Format:
 - Pass: `:white_check_mark: Prompt N UAT — ALL PASS`
 - Fail: `:x: Prompt N UAT — FAILED at: <first failure>`
 
+### One-Way Ops Summaries
+
+The repo now supports three one-way Slack notifications:
+
+| Trigger | Script | Message |
+|---------|--------|---------|
+| Any commit without prompt number | `scripts/post-commit-hook.sh` | Commit hash + UAT skipped |
+| Prompt commit with UAT script | `scripts/post-commit-hook.sh` | UAT pass/fail + first failure |
+| BLOCKED report | `scripts/report_blocked.sh docs/reports/BLOCKED.md` | First 12 lines of BLOCKED file |
+
+Generic notifier: `scripts/slack_notify.sh "Title" "Body" "good|warn|fail|info"`.
+
+Secrets rule: webhook values stay in environment only. Do not commit `.env` or
+webhook URLs.
+
 ## Performance Budget
 
 - Each individual check: < 5 seconds

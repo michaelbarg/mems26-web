@@ -37,7 +37,15 @@ if [[ -z "$PROMPT_NUM" ]]; then
 fi
 
 if [[ -z "$PROMPT_NUM" ]]; then
-    # No prompt detected — skip UAT
+    # No prompt detected — send a lightweight commit summary if Slack is enabled.
+    if [[ -x "$SCRIPTS_DIR/slack_notify.sh" ]]; then
+        COMMIT_SHORT=$(git log -1 --pretty=%h)
+        BRANCH=$(git branch --show-current)
+        "$SCRIPTS_DIR/slack_notify.sh" \
+            "MEMS26 commit" \
+            "Branch: \`${BRANCH}\` Commit: \`${COMMIT_SHORT}\`\nNo prompt number detected; UAT skipped." \
+            "info"
+    fi
     exit 0
 fi
 
@@ -46,12 +54,20 @@ UAT_SCRIPT="$SCRIPTS_DIR/uat_prompt_${PROMPT_NUM}.sh"
 
 if [[ ! -x "$UAT_SCRIPT" ]]; then
     echo "[post-commit] No UAT script for Prompt $PROMPT_NUM ($UAT_SCRIPT)"
+    if [[ -x "$SCRIPTS_DIR/slack_notify.sh" ]]; then
+        COMMIT_SHORT=$(git log -1 --pretty=%h)
+        BRANCH=$(git branch --show-current)
+        "$SCRIPTS_DIR/slack_notify.sh" \
+            "Prompt ${PROMPT_NUM} committed — no UAT script" \
+            "Branch: \`${BRANCH}\` Commit: \`${COMMIT_SHORT}\`\nMissing executable: \`${UAT_SCRIPT}\`" \
+            "warn"
+    fi
     exit 0
 fi
 
 # ── Run UAT ───────────────────────────────────────────────────
 echo "[post-commit] Running UAT for Prompt $PROMPT_NUM..."
-UAT_OUTPUT=$("$UAT_SCRIPT" --skip-sierra --skip-wait 2>&1) || true
+UAT_OUTPUT=$("$UAT_SCRIPT" --skip-sierra --skip-wait 2>&1)
 UAT_EXIT=$?
 
 # Extract summary line
