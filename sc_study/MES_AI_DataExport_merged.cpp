@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.2.0 monolith for Sierra Chart remote build
-// Generated 2026-05-11 11:29:11 by build_monolithic_cpp.sh
+// Generated 2026-05-16 11:30:36 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -936,6 +936,59 @@ inline ZLRResult v9_detect_zlr(const float* cci_hist, int n, int lookback)
     return r;
 }
 
+// ── HFE (Hook From Extreme) detection ──
+// CCI reaches ±200 within lookback, then hooks back toward zero line
+// HFE UP:   CCI hit -200 or below → hooks up (LONG candidate)
+// HFE DOWN: CCI hit +200 or above → hooks down (SHORT candidate)
+struct HFEResult {
+    bool detected;
+    const char* direction;  // "UP", "DOWN", or "NONE"
+    int extreme_bars_ago;   // how many bars since the ±200 extreme
+};
+
+inline HFEResult v9_detect_hfe(const float* cci_hist, int n, int lookback)
+{
+    HFEResult r = {false, "NONE", 0};
+    if (n < 4) return r;
+
+    float current = cci_hist[n - 1];
+    float prev    = cci_hist[n - 2];
+    int search_start = v9_max_i(0, n - lookback);
+
+    // Search for negative extreme (CCI <= -200)
+    for (int i = n - 3; i >= search_start; i--) {
+        if (cci_hist[i] <= -200.0f) {
+            int bars_ago = n - 1 - i;
+            float hook_distance = current - cci_hist[i];
+            // Hook: moved at least 50 points back AND current rising
+            if (hook_distance >= 50.0f && current > prev) {
+                r.detected = true;
+                r.direction = "UP";
+                r.extreme_bars_ago = bars_ago;
+                return r;
+            }
+            break;  // only check first (most recent) extreme
+        }
+    }
+
+    // Search for positive extreme (CCI >= +200)
+    for (int i = n - 3; i >= search_start; i--) {
+        if (cci_hist[i] >= 200.0f) {
+            int bars_ago = n - 1 - i;
+            float hook_distance = cci_hist[i] - current;
+            if (hook_distance >= 50.0f && current < prev) {
+                r.detected = true;
+                r.direction = "DOWN";
+                r.extreme_bars_ago = bars_ago;
+                return r;
+            }
+            break;
+        }
+    }
+
+    return r;
+}
+
 // ══════════════════════════════════════════════════════════════
 // Master export: woodies_30min.json
 // ══════════════════════════════════════════════════════════════
@@ -981,6 +1034,8 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
 
         // ZLR detection using history up to this bar (no copy — pointer + count)
         ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), bi + 1, 12);
+        // HFE detection (pattern #9)
+        HFEResult hfe = v9_detect_hfe(cci14_hist.data(), bi + 1, 12);
 
         j << "{";
         json_long(j, "ts", bars[bi].timestamp, false);
@@ -1002,6 +1057,9 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         json_float(j, "predictor_next_cci", predictor);
         json_bool(j, "zlr_detected", zlr.detected);
         json_str(j, "zlr_direction", zlr.direction);
+        json_bool(j, "hfe_detected", hfe.detected);
+        json_str(j, "hfe_direction", hfe.direction);
+        json_int(j, "hfe_extreme_bars_ago", hfe.extreme_bars_ago);
         j << "}";
     }
     j << "]";
@@ -1020,6 +1078,7 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         float predictor = v9_cci_predictor(cci14, cci14_prev);
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
         ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), (int)cci14_hist.size(), 12);
+        HFEResult hfe = v9_detect_hfe(cci14_hist.data(), (int)cci14_hist.size(), 12);
 
         j << ",\"current_bar\":{";
         json_long(j, "ts", bars[ci].timestamp, false);
@@ -1041,6 +1100,9 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
         json_float(j, "predictor_next_cci", predictor);
         json_bool(j, "zlr_detected", zlr.detected);
         json_str(j, "zlr_direction", zlr.direction);
+        json_bool(j, "hfe_detected", hfe.detected);
+        json_str(j, "hfe_direction", hfe.direction);
+        json_int(j, "hfe_extreme_bars_ago", hfe.extreme_bars_ago);
         json_float(j, "cci_14_prev", cci14_prev);
         json_float(j, "cci_14_3ago", cci14_3ago);
         j << "}";

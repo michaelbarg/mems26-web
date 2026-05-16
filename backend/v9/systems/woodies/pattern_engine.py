@@ -14,9 +14,9 @@ from typing import List, Optional
 
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult
 from backend.v9.systems.woodies.patterns import zlr, tlb, tt, gb100
-from backend.v9.systems.woodies.patterns import vegas, ghost, famir, htlb
+from backend.v9.systems.woodies.patterns import vegas, ghost, famir, htlb, hfe
 
-# All 8 detector functions: detect(bars, context) -> PatternResult
+# All 9 detector functions: detect(bars, context) -> PatternResult
 _DETECTORS = [
     zlr.detect,
     tlb.detect,
@@ -26,11 +26,12 @@ _DETECTORS = [
     ghost.detect,
     famir.detect,
     htlb.detect,
+    hfe.detect,
 ]
 
-PATTERN_IDS = ["ZLR", "TLB", "TT", "GB100", "VEGAS", "GHOST", "FAMIR", "HTLB"]
+PATTERN_IDS = ["ZLR", "TLB", "TT", "GB100", "VEGAS", "GHOST", "FAMIR", "HTLB", "HFE"]
 CONTINUATION_PATTERNS = {"ZLR", "TLB", "TT", "GB100"}
-REVERSAL_PATTERNS = {"VEGAS", "GHOST", "FAMIR", "HTLB"}
+REVERSAL_PATTERNS = {"VEGAS", "GHOST", "FAMIR", "HTLB", "HFE"}
 
 
 def detect_all_patterns(
