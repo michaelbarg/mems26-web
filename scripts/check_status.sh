@@ -82,10 +82,11 @@ echo ""
 
 # ═══ 3. BACKEND
 echo -e "${BLUE}━━━ Backend (localhost:8000) ━━━${NC}"
-if pgrep -f "uvicorn backend" > /dev/null 2>&1; then
+BACKEND_HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" -m 3 http://localhost:8000/health 2>/dev/null)
+V9_HEALTH=$(curl -s -m 3 http://localhost:8000/api/v9/health 2>/dev/null)
+if pgrep -f "uvicorn backend" > /dev/null 2>&1 || [ "$BACKEND_HEALTH_CODE" = "200" ]; then
   ok "Backend running"
-  HEALTH=$(curl -s -m 3 http://localhost:8000/health 2>/dev/null)
-  if echo "$HEALTH" | grep -q "v9_mounted"; then
+  if echo "$V9_HEALTH" | grep -q '"status"[[:space:]]*:[[:space:]]*"ok"'; then
     ok "V9 routes mounted"
   else
     warn "Backend up but V9 not mounted"
