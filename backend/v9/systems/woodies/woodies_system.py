@@ -1,8 +1,8 @@
-"""System 4 — Woodies CCI Decision Maker (30-min bars + 8 patterns).
+"""System 4 — Woodies CCI Decision Maker (5-min bars + 9 patterns).
 
-Subscribes to woodies_30min bars via BarRouter (D-048).
+Subscribes to woodies_5min bars via BarRouter (D-074).
 Computes all 11 Woodies studies per bar via cci_calc.compute_all_studies().
-Runs 8-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB).
+Runs 9-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE).
 Publishes signal events independently.
 """
 import json
@@ -129,7 +129,7 @@ class WoodiesSystem(BaseV9TradingSystem):
         return None
 
     async def process_bar(self, event) -> None:
-        """Process a 30-min bar: compute studies, detect patterns, persist."""
+        """Process a 5-min Woodies bar: compute studies, detect patterns, persist."""
         try:
             bar = dict(event.payload) if hasattr(event, 'payload') else dict(event)
 
@@ -271,17 +271,17 @@ class WoodiesSystem(BaseV9TradingSystem):
             logger.error("[Woodies] process_bar error: %s", e, exc_info=True)
 
     def _persist_bar(self, ts, o, h, l, c, v, studies):
-        """Write enriched bar to v9_bars_30min_woodies."""
+        """Write enriched bar to v9_bars_5min_woodies."""
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute(
-                """INSERT INTO v9_bars_30min_woodies
-                (ts, symbol, open, high, low, close, volume,
+                """INSERT INTO v9_bars_5min_woodies
+                (ts, open, high, low, close, volume,
                  cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
                  ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    datetime.now(timezone.utc).isoformat(), "MES",
+                    datetime.now(timezone.utc).isoformat(),
                     o, h, l, c, int(v),
                     studies["cci_14"], studies["cci_6_tcci"],
                     studies["lsma_value"], studies["swi_value"], studies["czi_value"],
