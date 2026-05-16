@@ -50,6 +50,11 @@ DECISION_MATRIX: Dict[tuple, Union[DayType, dict]] = {
     (OpeningType.OPEN_AUCTION_OUT, IBWidth.NARROW):  DayType.Trend_DD,     # 50%
     (OpeningType.OPEN_AUCTION_OUT, IBWidth.MEDIUM):  DayType.Trend_DD,     # 40%
     (OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE):    DayType.Trend_Normal, # 40% per spec
+
+    # INDETERMINATE: opening not clearly classified — default to Normal (Prompt 15)
+    (OpeningType.INDETERMINATE, IBWidth.NARROW):  DayType.Normal,
+    (OpeningType.INDETERMINATE, IBWidth.MEDIUM):  DayType.Normal,
+    (OpeningType.INDETERMINATE, IBWidth.WIDE):    DayType.Normal,
 }
 
 
@@ -110,7 +115,11 @@ class DecisionMatrix:
         cell = DECISION_MATRIX[key]
         if isinstance(cell, dict):
             probs_raw = cell.get("probabilities", {})
-            return {dt.value.lower(): float(prob) for dt, prob in probs_raw.items()}
+            # Always return all 6 day types (missing = 0.0)
+            result = {dt.value.lower(): 0.0 for dt in DayType if dt != DayType.UNKNOWN}
+            for dt, prob in probs_raw.items():
+                result[dt.value.lower()] = float(prob)
+            return result
         winning_dt = cell
         non_winners = [dt for dt in DayType if dt != DayType.UNKNOWN and dt != winning_dt]
         share = 0.3 / len(non_winners) if non_winners else 0.0

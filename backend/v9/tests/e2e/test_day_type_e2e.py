@@ -170,8 +170,12 @@ def test_e2e_decision_matrix_all_combos():
             # Winner should match DECISION_MATRIX
             winner_str = max(probs, key=lambda k: probs[k])
             expected_dt = DECISION_MATRIX[(ot, w)]
-            assert winner_str == expected_dt.value.lower(), (
-                f"Expected {expected_dt.value.lower()} for {ot}+{w}, got {winner_str}"
+            if isinstance(expected_dt, dict):
+                expected_name = expected_dt.get("top1", DayType.UNKNOWN).value.lower()
+            else:
+                expected_name = expected_dt.value.lower()
+            assert winner_str == expected_name, (
+                f"Expected {expected_name} for {ot}+{w}, got {winner_str}"
             )
 
 
