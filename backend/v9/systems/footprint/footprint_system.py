@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
+from backend.v9.shared.pre_fire_validator import FireRequest, validate_fire
 from .detectors import (
     detect_cluster, detect_empty_zones, analyze_context, compute_signals,
 )
@@ -22,6 +23,7 @@ class FootprintSystem(BaseV9TradingSystem):
 
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+        self._gateway = None  # injected post-init via set_gateway() (Prompt 22-alt)
         self.bar_buffer: List[Dict[str, Any]] = []
         self.max_buffer = 30
         # Aggressive flow tracking (P-FP-1 v3)
@@ -57,6 +59,10 @@ class FootprintSystem(BaseV9TradingSystem):
             "reactive_flag": None,
             "combined_class": None,
         }
+
+    def set_gateway(self, gateway) -> None:
+        """Inject TradingGateway for validated T3 fire routing."""
+        self._gateway = gateway
 
     def subscribed_bar_types(self) -> List[str]:
         return ["tick_reversal_15", "tick_reversal_12"]
@@ -384,6 +390,45 @@ class FootprintSystem(BaseV9TradingSystem):
             "reasoning_notes": reasoning_notes,
             "ts": datetime.utcnow().isoformat(),
         }
+        pre_fire_req = self._build_pre_fire_request(signal, bar)
+        pre_fire = validate_fire(pre_fire_req)
+        self._last_fire["pre_fire"] = self._serialize_pre_fire(pre_fire)
+        if not pre_fire.valid:
+            self._last_fire["routed"] = False
+            self._last_fire["blocked_by"] = "pre_fire_validator"
+            self._last_fire["route_reason"] = pre_fire.fail_reason
+            self.current_state["last_fire"] = self._last_fire
+            self.current_state["last_reasoning_notes"] = reasoning_notes
+            logger.info("[Footprint] FIRE blocked by pre_fire_validator: %s", pre_fire.fail_reason)
+            return
+
+        gateway_payload = self._build_gateway_payload(signal, bar, size, pre_fire_req)
+        self._last_fire["gateway_setup"] = gateway_payload
+        if self._gateway is None:
+            self._last_fire["routed"] = False
+            self._last_fire["blocked_by"] = "trading_gateway"
+            self._last_fire["route_reason"] = "TradingGateway not injected"
+            self.current_state["last_fire"] = self._last_fire
+            self.current_state["last_reasoning_notes"] = reasoning_notes
+            logger.info("[Footprint] FIRE validated but no gateway injected: %s", signal["signal"])
+            return
+
+        try:
+            gateway_result = self._gateway.route_setup(gateway_payload, 3)
+            self._last_fire["routed"] = True
+            self._last_fire["blocked_by"] = gateway_result.get("blocked_by") if isinstance(gateway_result, dict) else None
+            self._last_fire["route_reason"] = (
+                self._last_fire["blocked_by"] or "routed_to_trading_gateway"
+            )
+            self._last_fire["gateway"] = gateway_result
+            logger.info("[Footprint] FIRE routed to gateway: %s %s size=%s",
+                        signal["signal"], signal["direction"], size)
+        except Exception as gw_err:
+            self._last_fire["routed"] = False
+            self._last_fire["blocked_by"] = "trading_gateway"
+            self._last_fire["route_reason"] = str(gw_err)
+            logger.warning("[Footprint] Gateway route_setup failed: %s", gw_err)
+
         self.current_state["last_fire"] = self._last_fire
         self.current_state["last_reasoning_notes"] = reasoning_notes
 
@@ -412,6 +457,63 @@ class FootprintSystem(BaseV9TradingSystem):
                         signal["signal"], signal["direction"], size, signal["strength"])
         except Exception as e:
             logger.warning("[Footprint] Fire persist failed: %s", e)
+
+    def _build_pre_fire_request(self, signal: dict, bar: dict) -> FireRequest:
+        direction = signal["direction"]
+        entry = float(signal.get("level") or bar.get("close", bar.get("c", 0)) or 0)
+        high = float(bar.get("high", bar.get("h", entry)) or entry)
+        low = float(bar.get("low", bar.get("l", entry)) or entry)
+        tick = float(bar.get("tick_size", 0.25) or 0.25)
+
+        if direction == "LONG":
+            stop = min(low, entry - tick)
+            risk = max(entry - stop, tick)
+            t1 = entry + risk
+            t2 = entry + (2 * risk)
+        else:
+            stop = max(high, entry + tick)
+            risk = max(stop - entry, tick)
+            t1 = entry - risk
+            t2 = entry - (2 * risk)
+
+        confidence = max(0, min(100, int(round(float(signal.get("strength", 0)) * 100))))
+        return FireRequest(
+            system_id="T3_FOOTPRINT",
+            direction=direction,
+            entry_price=entry,
+            stop_price=stop,
+            t1_price=t1,
+            t2_price=t2,
+            time_stop_minutes=15,
+            confidence=confidence,
+        )
+
+    def _build_gateway_payload(self, signal: dict, bar: dict, size: str, pre_fire_req: FireRequest) -> dict:
+        return {
+            "firing_system": 3,
+            "direction": signal["direction"],
+            "classification": f"FIRE_{signal['signal'].upper()}",
+            "confidence": pre_fire_req.confidence / 100.0,
+            "entry_price": pre_fire_req.entry_price,
+            "stop": pre_fire_req.stop_price,
+            "t1": pre_fire_req.t1_price,
+            "t2": pre_fire_req.t2_price,
+            "t3": 0.0,
+            "metadata": {
+                "source": "footprint_auto_fire",
+                "signal": signal["signal"],
+                "size": size,
+                "qty": 3 if size == "full" else 2,
+                "level": signal.get("level"),
+                "evidence": signal.get("evidence"),
+                "bar_id": bar.get("bar_id"),
+            },
+        }
+
+    def _serialize_pre_fire(self, pre_fire) -> dict:
+        if hasattr(pre_fire, "model_dump"):
+            return pre_fire.model_dump()
+        return pre_fire.dict()
 
     def get_current(self) -> dict:
         state = dict(self.current_state)

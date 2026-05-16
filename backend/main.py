@@ -367,10 +367,13 @@ async def _startup():
         app.state.trading_gateway = trading_gateway
         _logger.info("[Main] TradingGateway initialized: %s", trading_gateway.get_status())
 
-        # Prompt 14: inject gateway into S2 + S4 for auto-routing fire signals
+        # Prompt 14/22-alt: inject gateway into firing systems for validated auto-routing
         if hasattr(app.state, 'five_min_system') and app.state.five_min_system:
             app.state.five_min_system.set_gateway(trading_gateway)
             _logger.info("[Main] S2 FiveMinSystem → gateway injected")
+        if hasattr(app.state, 'footprint_system') and app.state.footprint_system:
+            app.state.footprint_system.set_gateway(trading_gateway)
+            _logger.info("[Main] S3 FootprintSystem → gateway injected")
         if hasattr(app.state, 'woodies_system') and app.state.woodies_system:
             app.state.woodies_system.set_gateway(trading_gateway)
             _logger.info("[Main] S4 WoodiesSystem → gateway injected")

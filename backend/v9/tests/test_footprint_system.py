@@ -1,6 +1,17 @@
 """Tests for FootprintSystem."""
 import pytest
+from types import SimpleNamespace
+
 from backend.v9.systems.footprint.detectors import detect_cluster, detect_empty_zones, analyze_context
+
+
+class FakeGateway:
+    def __init__(self):
+        self.calls = []
+
+    def route_setup(self, setup, system_id):
+        self.calls.append((setup, system_id))
+        return {"shadow": "s3-shadow-1", "demo": None, "live": None, "blocked_by": None}
 
 
 def test_cluster_detected_strong_poc():
@@ -56,3 +67,96 @@ def test_footprint_subscribes_tick_reversal():
     from backend.v9.systems.footprint.footprint_system import FootprintSystem
     sys = FootprintSystem()
     assert "tick_reversal_15" in sys.subscribed_bar_types()
+
+
+def _ready_system(tmp_path):
+    from backend.v9.systems.footprint.footprint_system import FootprintSystem
+
+    sys = FootprintSystem(db_path=str(tmp_path / "missing.db"))
+    sys._cumulative_delta = 120
+    sys._last_dominance = "BUYER_DOMINATE"
+    sys._last_initiative_type = "INITIATIVE_UP"
+    return sys
+
+
+def _long_signal():
+    return {
+        "signal": "stacked_imbalance",
+        "direction": "LONG",
+        "level": 100.0,
+        "strength": 0.75,
+        "evidence": {"stack_count": 4},
+    }
+
+
+def _long_bar():
+    return {
+        "bar_id": "s3-test-bar",
+        "open": 99.5,
+        "high": 101.0,
+        "low": 99.0,
+        "close": 100.0,
+        "tick_size": 0.25,
+    }
+
+
+def test_s3_valid_fire_routes_through_gateway_after_pre_fire(tmp_path):
+    sys = _ready_system(tmp_path)
+    gw = FakeGateway()
+    sys.set_gateway(gw)
+
+    sys._fire(_long_signal(), _long_bar(), SimpleNamespace(bar_id="s3-test-bar", session="RTH"))
+
+    assert len(gw.calls) == 1
+    setup, system_id = gw.calls[0]
+    assert system_id == 3
+    assert setup["firing_system"] == 3
+    assert setup["direction"] == "LONG"
+    assert setup["metadata"]["source"] == "footprint_auto_fire"
+
+    last_fire = sys.get_current()["last_fire"]
+    assert last_fire["pre_fire"]["valid"] is True
+    assert last_fire["routed"] is True
+    assert last_fire["blocked_by"] is None
+    assert last_fire["route_reason"] == "routed_to_trading_gateway"
+    assert last_fire["gateway"]["shadow"] == "s3-shadow-1"
+    assert last_fire["gateway"]["demo"] is None
+    assert last_fire["gateway"]["live"] is None
+
+
+def test_s3_pre_fire_block_does_not_route(monkeypatch, tmp_path):
+    from backend.v9.systems.footprint import footprint_system as footprint_module
+
+    sys = _ready_system(tmp_path)
+    gw = FakeGateway()
+    sys.set_gateway(gw)
+
+    monkeypatch.setattr(
+        footprint_module,
+        "validate_fire",
+        lambda _req: SimpleNamespace(
+            valid=False,
+            fail_reason="LONG: stop must be < entry",
+            dict=lambda: {"valid": False, "fail_reason": "LONG: stop must be < entry"},
+        ),
+    )
+
+    sys._fire(_long_signal(), _long_bar(), SimpleNamespace(bar_id="s3-test-bar", session="RTH"))
+
+    assert gw.calls == []
+    last_fire = sys.get_current()["last_fire"]
+    assert last_fire["routed"] is False
+    assert last_fire["blocked_by"] == "pre_fire_validator"
+    assert last_fire["route_reason"] == "LONG: stop must be < entry"
+
+
+def test_s3_gateway_injection_does_not_enable_demo_or_live():
+    from backend.v9.gateway.trading_gateway import TradingGateway
+    from backend.v9.systems.footprint.footprint_system import FootprintSystem
+
+    gw = TradingGateway()
+    sys = FootprintSystem()
+    sys.set_gateway(gw)
+
+    assert gw._demo_enabled_systems == set()
+    assert gw._live_enabled_systems == set()
