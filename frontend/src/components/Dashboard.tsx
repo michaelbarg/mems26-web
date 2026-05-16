@@ -4345,7 +4345,6 @@ export default function Dashboard() {
       new Notification('MEMS26 setup alert', {
         body:`${msg} | Entry ${setup.entry.toFixed(2)} Stop ${setup.stop.toFixed(2)}`,
         tag:setup.id,
-        renotify:true,
         silent:true,
       });
     }
