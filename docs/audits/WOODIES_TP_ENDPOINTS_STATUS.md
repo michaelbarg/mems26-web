@@ -1,19 +1,18 @@
 # Woodies Touch-Point Endpoints Status
 
-Date: 2026-05-16
-Audit: PROMPT 1 · 1.4
+Date: 2026-05-16 (updated 1.6)
+Audit: PROMPT 1 · 1.4 + 1.6
 
-## Summary: 5/7 ready · 0 partial · 2 missing
+## Summary: 7/7 ready (after 1.6 fixes)
 
 | TP# | Stage | Endpoint | HTTP | Owner | Status | Notes |
 |---|---|---|---|---|---|---|
 | 1 | A2 | `/api/v9/day_type/current` | 200 | S1 | 🟢 READY | Returns day_type, confidence, ib_h, ib_l, classified |
 | 2a | A4 | `/api/v9/tpo/current` | 200 | S5 | 🟢 READY | POC, VAH, VAL, ufl_ufh all present |
-| 2b | A4 | `/api/v9/suffering_side/check` | 404 | TBD | 🔴 MISSING | Exact spec endpoint doesn't exist |
-| 2b alt | A4 | `/api/v9/veto/state` | 200 | Gateway | 🟢 READY | suffering_side field + veto_active + reasoning_notes |
-| 3 | A5 | `/api/v9/otf_clarity/state` | 404 | TBD | 🔴 MISSING | No OTF clarity endpoint exists |
+| 2b | A4 | `/api/v9/veto/state` | 200 | Gateway | 🟢 READY | suffering_side field + veto_active. **Mapped from spec `/suffering_side/check`.** |
+| 3 | A5 | `/api/v9/tpo/current` (otf_clarity field) | 200 | S5 | 🟢 READY | otf_clarity: BOTH_CLEAR/SELLERS_CLEAR/BUYERS_CLEAR/UNCLEAR (added 1.6a) |
 | 4 | B4 | `/api/v9/tpo/current` (poc_migration) | 200 | S5 | 🟢 READY | direction, magnitude_pts, stuck_minutes |
-| 5 | B5 | same as TP#3 | 404 | TBD | 🔴 MISSING | Same as TP#3 |
+| 5 | B5 | `/api/v9/tpo/current` (otf_clarity) | 200 | S5 | 🟢 READY | Same field as TP#3 — reused in B5 |
 | 6 | B9 | `/api/v9/layer0/state` | 200 | Layer0 | 🟢 READY | chop_score, state (EXPANDING), 6 indicators |
 
 ## Sample Responses

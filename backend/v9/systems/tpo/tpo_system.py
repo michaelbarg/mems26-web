@@ -213,6 +213,7 @@ class TPOSystem(BaseV9TradingSystem):
                     "lvn_zones": self._lvn_zones,
                     "volume_cluster": self._volume_cluster,
                     "ufl_ufh": getattr(self, '_ufl_ufh', {"ufl": None, "ufh": None}),
+                    "otf_clarity": self._compute_otf_clarity(),
                     "letter_count": self.current_letter_idx + 1,
                     "buffer_size": len(self.bar_buffer),
                     "bars_processed_today": self.current_state["bars_processed_today"] + 1,
@@ -310,6 +311,54 @@ class TPOSystem(BaseV9TradingSystem):
         if not notes:
             notes.append("No UFL/UFH (extremes have multiple letters)")
         return {"ufl": ufl, "ufh": ufh, "reasoning_notes": "; ".join(notes)}
+
+    def _compute_otf_clarity(self) -> str:
+        """Compute OTF Clarity from TPO profile tails (PROMPT 1 · 1.6a).
+
+        Per tpo/schemas.py OTFClarity enum:
+          BOTH_CLEAR:    buying + selling tail → all trades OK
+          SELLERS_CLEAR: selling tail only → LONG preferred
+          BUYERS_CLEAR:  buying tail only → SHORT preferred
+          UNCLEAR:       neither tail → no clear direction
+
+        Tails: consecutive single-letter levels at session extremes.
+        Buying tail = at session LOW (buyers rejected lower).
+        Selling tail = at session HIGH (sellers rejected higher).
+        """
+        if not self.profile:
+            return "UNCLEAR"
+        counts = {float(k): len(v) for k, v in self.profile.items() if v}
+        if not counts:
+            return "UNCLEAR"
+        prices = sorted(counts.keys())
+
+        # Count buying tail (from bottom, consecutive single-letter)
+        buying_tail = 0
+        for p in prices:
+            if counts.get(p, 0) <= 1:
+                buying_tail += 1
+            else:
+                break
+
+        # Count selling tail (from top, consecutive single-letter)
+        selling_tail = 0
+        for p in reversed(prices):
+            if counts.get(p, 0) <= 1:
+                selling_tail += 1
+            else:
+                break
+
+        MIN_TAIL = 2  # minimum letters for a valid tail
+        has_buying = buying_tail >= MIN_TAIL
+        has_selling = selling_tail >= MIN_TAIL
+
+        if has_buying and has_selling:
+            return "BOTH_CLEAR"
+        elif has_selling:
+            return "SELLERS_CLEAR"
+        elif has_buying:
+            return "BUYERS_CLEAR"
+        return "UNCLEAR"
 
     def _update_ib(self, bar: dict, session: str) -> None:
         """Update IB tracking during 09:30-10:30 ET cash session.
