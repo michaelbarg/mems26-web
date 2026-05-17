@@ -1,12 +1,12 @@
 """Bar integrity validator — Python mirror of frontend looksOk().
 
 Single source of truth for OHLC sanity checks. Used by:
-- bar_ingestion.py (ingest path, defense in depth)
 - bars.py POST /api/v9/bars/5min (HTTP push path, primary gate)
 - bars_5min_history.py GET /api/v9/chart/bars5min (query-time filter)
 
 The heuristic mirrors frontend/v9/src/v9/components/chart/v5b/ChartV5b.tsx
-function looksOk(b) exactly, so client and server agree on what "good" means.
+function looksOk(b) plus an additional bar-range check that catches
+displaced-body outliers the wick check alone cannot detect.
 """
 
 import logging
@@ -16,6 +16,13 @@ logger = logging.getLogger("mems26.bar_integrity")
 
 # Maximum wick-to-body ratio (2% — matches frontend looksOk)
 MAX_WICK_RATIO = 0.02
+
+# Maximum bar range (high-low)/low.  For MES 5-min bars, 2% = ~148 pts at
+# price 7400 — far beyond normal volatility (typical ATR ~10-20 pts/bar).
+# Require both ratio and absolute range so low-price unit tests do not become
+# false positives.
+MAX_BAR_RANGE_RATIO = 0.02
+MAX_BAR_RANGE_POINTS = 20.0
 
 
 def bar_is_valid(
@@ -27,7 +34,6 @@ def bar_is_valid(
     """Check whether an OHLC bar passes integrity checks.
 
     Returns (True, None) if valid, or (False, reason_string) if invalid.
-    Mirrors the frontend looksOk() heuristic identically.
     """
     # Null / non-positive checks
     if open is None or high is None or low is None or close is None:
@@ -48,5 +54,12 @@ def bar_is_valid(
     body_top = max(open, close)
     if body_top > 0 and (high - body_top) / body_top > MAX_WICK_RATIO:
         return False, "high_wick_exceeds_2pct"
+
+    # Bar range check: (high - low) / low must not exceed MAX_BAR_RANGE_RATIO
+    # when the absolute span is also large. Catches displaced-body outliers
+    # where wick checks pass but the full candle range is impossible.
+    bar_range = high - low
+    if low > 0 and bar_range > MAX_BAR_RANGE_POINTS and bar_range / low > MAX_BAR_RANGE_RATIO:
+        return False, "bar_range_exceeds_2pct"
 
     return True, None

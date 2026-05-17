@@ -2,9 +2,14 @@
 
 Supports 1m/3m/5min/15m/30m/1h with cursor-based pagination (Wave A1.5).
 """
+import logging
 from typing import Optional
 from fastapi import APIRouter, Query
 import sqlite3
+
+from backend.v9.services.bar_integrity import bar_is_valid
+
+logger = logging.getLogger("mems26.bars_5min_history")
 
 router = APIRouter(tags=["v9-bars-history"])
 
@@ -12,26 +17,44 @@ DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 
 def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
-    """Internal: fetch 5-min bars from DB. Used by all timeframe routes."""
-    limit = min(max(limit, 1), 600)
+    """Internal: fetch 5-min bars from DB. Used by all timeframe routes.
+
+    Defense-in-depth: filters out any bar that fails bar_is_valid() so
+    bad data never reaches the client even if it slipped past ingestion.
+    """
+    # Over-fetch to account for filtered rows
+    fetch_limit = min(max(limit, 1), 600) + 20
     try:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         if before:
             rows = conn.execute(
                 "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE ts < ? ORDER BY ts DESC LIMIT ?",
-                (before, limit),
+                (before, fetch_limit),
             ).fetchall()
         else:
             rows = conn.execute(
                 "SELECT ts, open, high, low, close, volume FROM v9_bars_5min ORDER BY ts DESC LIMIT ?",
-                (limit,),
+                (fetch_limit,),
             ).fetchall()
         conn.close()
-        return [{"ts": r["ts"],
-                 "o": r["open"], "h": r["high"], "l": r["low"], "c": r["close"], "v": r["volume"],
-                 "open": r["open"], "high": r["high"], "low": r["low"], "close": r["close"], "volume": r["volume"],
-                 } for r in reversed(rows)]
+        result = []
+        filtered = 0
+        for r in reversed(rows):
+            o, h, l, c = r["open"], r["high"], r["low"], r["close"]
+            ok, reason = bar_is_valid(open=o, high=h, low=l, close=c)
+            if not ok:
+                filtered += 1
+                logger.debug("[bars_5min_history] filtered bar ts=%s reason=%s", r["ts"], reason)
+                continue
+            result.append({
+                "ts": r["ts"],
+                "o": o, "h": h, "l": l, "c": c, "v": r["volume"],
+                "open": o, "high": h, "low": l, "close": c, "volume": r["volume"],
+            })
+        if filtered:
+            logger.info("[bars_5min_history] filtered %d bad bars from response", filtered)
+        return result[:limit]
     except Exception:
         return []
 

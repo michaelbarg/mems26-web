@@ -46,10 +46,11 @@ class TestBarIsValid:
 
     def test_bad_bar_id_1197(self):
         """id=1197: O=7462.25 H=7463 L=7180.25 C=7180.25 — huge body, tiny wicks.
-        looksOk passes this (body=min(O,C)=7180.25, low=7180.25, wick=0).
-        This bar is cleaned up by explicit ID deletion, not the validator."""
+        The server validator catches this via the explicit bar-range check.
+        """
         ok, reason = bar_is_valid(open=7462.25, high=7463.0, low=7180.25, close=7180.25)
-        assert ok is True  # looksOk doesn't catch wide-body bars
+        assert ok is False
+        assert reason == "bar_range_exceeds_2pct"
 
     def test_bad_bar_id_1207(self):
         """Exact reproduction of id=1207."""
@@ -60,9 +61,11 @@ class TestBarIsValid:
     def test_bad_bar_id_1208(self):
         """id=1208: O=7264.75 H=7462.75 L=7172.5 C=7460.0 — wide body, small wick.
         body=min(7264.75,7460)=7264.75; (7264.75-7172.5)/7264.75=0.0127 < 0.02.
-        Cleaned up by explicit ID deletion, not the validator."""
+        The server validator catches this via the explicit bar-range check.
+        """
         ok, reason = bar_is_valid(open=7264.75, high=7462.75, low=7172.5, close=7460.0)
-        assert ok is True  # looksOk doesn't catch this — wick ratio under 2%
+        assert ok is False
+        assert reason == "bar_range_exceeds_2pct"
 
     def test_tight_bar_passes(self):
         """A bar with very small wicks (within 2% tolerance) passes."""

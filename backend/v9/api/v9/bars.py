@@ -14,6 +14,7 @@ from backend.v9.api.v9.ws_manager import (
     publish_event, CHANNEL_BARS_5MIN, CHANNEL_BARS_TICK_REVERSAL,
     CHANNEL_BARS_WOODIES, CHANNEL_LEVELS,
 )
+from backend.v9.services.bar_integrity import bar_is_valid
 
 logger = logging.getLogger(__name__)
 
@@ -199,7 +200,17 @@ def post_bars_5min(
     _token: str = Depends(verify_bridge_token),
 ):
     created = []
+    rejected = 0
+    last_valid_bar = None
     for bar in bars:
+        ok, reason = bar_is_valid(open=bar.o, high=bar.h, low=bar.l, close=bar.c)
+        if not ok:
+            logger.warning(
+                "[bars/5min] rejected bar: o=%.2f h=%.2f l=%.2f c=%.2f reason=%s",
+                bar.o, bar.h, bar.l, bar.c, reason,
+            )
+            rejected += 1
+            continue
         row = V9Bar5Min(
             ts=_ts_from_unix(bar.ts),
             symbol=bar.symbol,
@@ -210,19 +221,21 @@ def post_bars_5min(
         )
         db.add(row)
         created.append(row)
+        last_valid_bar = bar
     db.commit()
     publish_event(CHANNEL_BARS_5MIN, {
         "count": len(created),
-        "last": {"o": bars[-1].o, "h": bars[-1].h, "l": bars[-1].l,
-                 "c": bars[-1].c, "vol": bars[-1].vol} if bars else {},
+        "rejected": rejected,
+        "last": {"o": last_valid_bar.o, "h": last_valid_bar.h, "l": last_valid_bar.l,
+                 "c": last_valid_bar.c, "vol": last_valid_bar.vol} if last_valid_bar else {},
     })
     # Route last bar to EventDispatcher (5min bars derive from cumulative_delta)
-    if bars:
-        _dispatch("cumulative_delta", bars[-1].dict())
+    if last_valid_bar:
+        _dispatch("cumulative_delta", last_valid_bar.dict())
     _record_push("5min")
-    if bars:
-        _route_bar("5min", bars[-1].dict() if hasattr(bars[-1], 'dict') else {"ts": str(bars[-1].ts)})
-    return {"ok": True, "inserted": len(created)}
+    if last_valid_bar:
+        _route_bar("5min", last_valid_bar.dict() if hasattr(last_valid_bar, 'dict') else {"ts": str(last_valid_bar.ts)})
+    return {"ok": True, "inserted": len(created), "rejected": rejected}
 
 
 # ── POST /api/v9/bars/tick_reversal?tick_count=15 ──

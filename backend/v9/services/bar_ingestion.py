@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from backend.v9.db.session import SessionLocal
 from backend.v9.db.models.bars_5min import V9Bar5Min
+from backend.v9.services.bar_integrity import bar_is_valid
 
 logger = logging.getLogger("mems26.bar_ingestion")
 
@@ -45,8 +46,23 @@ class BarIngestionService:
     def stop(self) -> None:
         self._running = False
 
-    def ingest_bar(self, bar_data: dict) -> None:
+    def ingest_bar(self, bar_data: dict) -> bool:
         """Persist a single bar to DB. UPSERT on (ts, symbol) — no duplicates."""
+        ok, reason = bar_is_valid(
+            open=bar_data.get("open"),
+            high=bar_data.get("high"),
+            low=bar_data.get("low"),
+            close=bar_data.get("close"),
+        )
+        if not ok:
+            logger.warning(
+                "[BarIngestion] Rejected invalid bar ts=%s symbol=%s reason=%s",
+                bar_data.get("ts"),
+                bar_data.get("symbol", "MES"),
+                reason,
+            )
+            return False
+
         db = SessionLocal()
         try:
             ts = bar_data.get("ts", datetime.now(timezone.utc))
@@ -80,9 +96,11 @@ class BarIngestionService:
 
             db.commit()
             self._bars_ingested += 1
+            return True
         except Exception:
             db.rollback()
             logger.exception("[BarIngestion] Failed to ingest bar")
+            return False
         finally:
             db.close()
 
