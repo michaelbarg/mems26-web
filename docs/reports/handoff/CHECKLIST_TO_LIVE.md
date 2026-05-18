@@ -62,7 +62,7 @@
 - [x] **P28.4** — `pytest tests/v9/ -q` ירוק מלא
   - GREEN: after triage and Michael policy clarification, `1244 passed, 1 skipped`.
 
-**🛑 שער יציאה Phase 1 → 2:** Michael מאשר שה-replay נקי. אם כשל — לא ממשיכים ל-P29.
+**שער יציאה Phase 1 → 2:** APPROVED by Michael 2026-05-18. P29 Master Review completed; P29 may start offline only.
 
 ---
 
@@ -70,17 +70,19 @@
 
 לכל תרחיש: fixture/replay source, expected outcome, reason tree, PASS/FAIL מתועד.
 
-- [ ] **P29.1** — Trending day
-- [ ] **P29.2** — Balance / non-trend
-- [ ] **P29.3** — Opening drive
-- [ ] **P29.4** — S2 Five-Min setup
-- [ ] **P29.5** — S3 Footprint setup
-- [ ] **P29.6** — S4 Woodies setup
-- [ ] **P29.7** — Killzone context change
-- [ ] **P29.8** — TPO context / location
-- [ ] **P29.9** — Missing / degraded data
-- [ ] **P29.10** — Pre-fire / risk block
-- [ ] **P29.report** — `docs/reports/PROMPT29_SCENARIO_PACK.md` עם 10/10
+- [x] **P29.1** — Trending day
+- [x] **P29.2** — Balance / non-trend
+- [x] **P29.3** — Opening drive
+- [x] **P29.4** — S2 Five-Min setup
+- [x] **P29.5** — S3 Footprint setup
+  - GREEN after approved gateway contract fix: firing systems `{2,3,4}`.
+- [x] **P29.6** — S4 Woodies setup
+- [x] **P29.7** — Killzone context change
+- [x] **P29.8** — TPO context / location
+- [x] **P29.9** — Missing / degraded data
+- [x] **P29.10** — Pre-fire / risk block
+- [x] **P29.report** — `docs/reports/PROMPT29_REPLAY_SCENARIO_PACK.md` עם 10/10 offline contract pack.
+  - Evidence: P29+gateway targeted `33 passed`; full `tests/v9/`: `1255 passed, 1 skipped`.
 
 **🛑 שער יציאה Phase 2 → 3:** 10/10 עוברים עם reason trees ניתנים לביקורת. אין DEMO/LIVE writes.
 

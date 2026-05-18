@@ -1,0 +1,388 @@
+[
+  {
+    "id": "P29.1",
+    "name": "Trending day",
+    "source": "offline_fixture:p29/trending_day",
+    "day_type": {
+      "opening_type": "OPEN_DRIVE",
+      "ib_width": "NARROW",
+      "expected_top1": "Trend_Normal",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Trend_Normal probability leads",
+      "S5": "price above POC / initiative context",
+      "S6": "NY_PRIME observational tag"
+    },
+    "killzone": {
+      "et": "2026-06-15T10:45:00",
+      "expected_zone": "NY_PRIME",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "S4",
+      "system_id": 4,
+      "pre_fire_system_id": "T2_WOODIES",
+      "direction": "LONG",
+      "entry_price": 7420.0,
+      "stop_price": 7415.0,
+      "t1_price": 7425.0,
+      "t2_price": 7435.0,
+      "time_stop_minutes": 90,
+      "confidence": 82,
+      "expected_pre_fire_valid": true,
+      "expected_route": "shadow_only"
+    },
+    "reason_tree": [
+      "S1 trend context supports with-trend setup",
+      "S4 Woodies 5-min firing system provides setup",
+      "S5/S6 context recorded as advisory, not hard block",
+      "pre_fire passes price/risk contract"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.2",
+    "name": "Balance / non-trend",
+    "source": "offline_fixture:p29/balance_nontrend",
+    "day_type": {
+      "opening_type": "OPEN_AUCTION_IN",
+      "ib_width": "NARROW",
+      "expected_top1": "Nontrend",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Nontrend context",
+      "S5": "balanced profile around POC",
+      "S6": "LUNCH tag only"
+    },
+    "killzone": {
+      "et": "2026-06-15T12:30:00",
+      "expected_zone": "LUNCH",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "NONE",
+      "system_id": null,
+      "expected_route": "no_fire"
+    },
+    "reason_tree": [
+      "S1 nontrend context reduces conviction",
+      "No S2/S3/S4 setup is expected",
+      "S6 lunch is advisory under D-061, not a hard zone block"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.3",
+    "name": "Opening drive",
+    "source": "offline_fixture:p29/opening_drive",
+    "day_type": {
+      "opening_type": "OPEN_DRIVE",
+      "ib_width": "MEDIUM",
+      "expected_top1": "Trend_Normal",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Open drive maps to Trend_Normal",
+      "S5": "IB extension context",
+      "S6": "NY_OPEN_IB tag"
+    },
+    "killzone": {
+      "et": "2026-06-15T09:50:00",
+      "expected_zone": "NY_OPEN_IB",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "S2",
+      "system_id": 2,
+      "pre_fire_system_id": "T1_NUMBER_BAR",
+      "direction": "LONG",
+      "entry_price": 7410.0,
+      "stop_price": 7405.0,
+      "t1_price": 7415.0,
+      "t2_price": 7422.5,
+      "time_stop_minutes": 60,
+      "confidence": 78,
+      "expected_pre_fire_valid": true,
+      "expected_route": "shadow_only"
+    },
+    "reason_tree": [
+      "S2 5-min setup fires in opening-drive context",
+      "Layer 0/2 context is advisory in this offline pack",
+      "pre_fire passes before routing"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.4",
+    "name": "S2 Five-Min setup",
+    "source": "offline_fixture:p29/s2_five_min_setup",
+    "day_type": {
+      "opening_type": "OPEN_TEST_DRIVE",
+      "ib_width": "MEDIUM",
+      "expected_top1": "Trend_Normal",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Trend_Normal top1",
+      "S5": "TPO location supportive",
+      "S6": "PM_PRIME tag"
+    },
+    "killzone": {
+      "et": "2026-06-15T14:15:00",
+      "expected_zone": "PM_PRIME",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "S2",
+      "system_id": 2,
+      "pre_fire_system_id": "T1_NUMBER_BAR",
+      "direction": "SHORT",
+      "entry_price": 7440.0,
+      "stop_price": 7445.0,
+      "t1_price": 7435.0,
+      "t2_price": 7427.5,
+      "time_stop_minutes": 45,
+      "confidence": 76,
+      "expected_pre_fire_valid": true,
+      "expected_route": "shadow_only"
+    },
+    "reason_tree": [
+      "S2 is a firing system",
+      "SHORT price ladder is valid",
+      "pre_fire passes and DEMO/LIVE remain disabled"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.5",
+    "name": "S3 Footprint setup",
+    "source": "offline_fixture:p29/s3_footprint_setup",
+    "day_type": {
+      "opening_type": "OPEN_REJECTION_REVERSE",
+      "ib_width": "MEDIUM",
+      "expected_top1": "Variation",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Variation context",
+      "S5": "location near value edge",
+      "S6": "PM_RECOVERY tag"
+    },
+    "killzone": {
+      "et": "2026-06-15T13:15:00",
+      "expected_zone": "PM_RECOVERY",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "S3",
+      "system_id": 3,
+      "pre_fire_system_id": "T3_FOOTPRINT",
+      "direction": "LONG",
+      "entry_price": 7402.5,
+      "stop_price": 7397.5,
+      "t1_price": 7407.5,
+      "t2_price": 7415.0,
+      "time_stop_minutes": 60,
+      "confidence": 80,
+      "expected_pre_fire_valid": true,
+      "expected_route": "shadow_only"
+    },
+    "reason_tree": [
+      "S3 Footprint is a firing system",
+      "Variation context is advisory",
+      "pre_fire validates risk/reward and target ordering"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.6",
+    "name": "S4 Woodies setup",
+    "source": "offline_fixture:p29/s4_woodies_setup",
+    "day_type": {
+      "opening_type": "OPEN_AUCTION_OUT",
+      "ib_width": "WIDE",
+      "expected_top1": "Trend_Normal",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Trend_Normal context",
+      "S5": "initiative profile",
+      "S6": "NY_PRIME tag"
+    },
+    "killzone": {
+      "et": "2026-06-15T10:35:00",
+      "expected_zone": "NY_PRIME",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "S4",
+      "system_id": 4,
+      "pre_fire_system_id": "T2_WOODIES",
+      "direction": "LONG",
+      "entry_price": 7450.0,
+      "stop_price": 7445.0,
+      "t1_price": 7455.0,
+      "t2_price": 7465.0,
+      "time_stop_minutes": 90,
+      "confidence": 86,
+      "expected_pre_fire_valid": true,
+      "expected_route": "shadow_only",
+      "required_stream": "woodies_5min"
+    },
+    "reason_tree": [
+      "D-074 requires S4 runtime on woodies_5min",
+      "Woodies is a firing system",
+      "pre_fire passes and route remains shadow-only in offline mock"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.7",
+    "name": "Killzone context change",
+    "source": "offline_fixture:p29/killzone_context_change",
+    "day_type": {
+      "opening_type": "OPEN_AUCTION_IN",
+      "ib_width": "MEDIUM",
+      "expected_top1": "Normal",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Normal context",
+      "S5": "balanced location",
+      "S6": "CLOSE_FINAL tag only"
+    },
+    "killzone": {
+      "et": "2026-06-15T15:50:00",
+      "expected_zone": "CLOSE_FINAL",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "NONE",
+      "system_id": null,
+      "expected_route": "no_fire"
+    },
+    "reason_tree": [
+      "S6 zone transition is captured as context",
+      "D-061 prevents zone label alone from hard-blocking",
+      "No firing setup is expected in this scenario"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.8",
+    "name": "TPO context / location",
+    "source": "offline_fixture:p29/tpo_context_location",
+    "day_type": {
+      "opening_type": "OPEN_REJECTION_REVERSE",
+      "ib_width": "WIDE",
+      "expected_top1": "Normal",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Normal context",
+      "S5": "POC/VAH/VAL computed from fixture",
+      "S6": "NY_PRIME tag"
+    },
+    "tpo_profile": {
+      "prices_by_letter": {
+        "A": [7400.0, 7400.25, 7400.5],
+        "B": [7400.5, 7400.75, 7401.0],
+        "C": [7400.5, 7400.75, 7401.25],
+        "D": [7400.5, 7401.0, 7401.5]
+      },
+      "expected_poc": 7400.5
+    },
+    "killzone": {
+      "et": "2026-06-15T10:45:00",
+      "expected_zone": "NY_PRIME",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "NONE",
+      "system_id": null,
+      "expected_route": "no_fire"
+    },
+    "reason_tree": [
+      "S5 computes location context offline",
+      "TPO location is advisory context",
+      "No firing setup is expected"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.9",
+    "name": "Missing / degraded data",
+    "source": "offline_fixture:p29/missing_degraded_data",
+    "day_type": {
+      "opening_type": "UNKNOWN",
+      "ib_width": "UNKNOWN",
+      "expected_top1": "UNKNOWN",
+      "missing_prior_day": true
+    },
+    "advisory_context": {
+      "S1": "A1 / UNKNOWN / DEGRADED",
+      "S5": "not evaluated",
+      "S6": "context available but not sufficient"
+    },
+    "killzone": {
+      "et": "2026-06-15T10:45:00",
+      "expected_zone": "NY_PRIME",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "NONE",
+      "system_id": null,
+      "expected_route": "no_fire"
+    },
+    "reason_tree": [
+      "Missing prior-day context keeps S1 degraded",
+      "P29 must not mark Day Type tradable when previous-day context is missing",
+      "No firing setup is routed"
+    ],
+    "expected_result": "PASS"
+  },
+  {
+    "id": "P29.10",
+    "name": "Pre-fire / risk block",
+    "source": "offline_fixture:p29/pre_fire_risk_block",
+    "day_type": {
+      "opening_type": "OPEN_DRIVE",
+      "ib_width": "NARROW",
+      "expected_top1": "Trend_Normal",
+      "missing_prior_day": false
+    },
+    "advisory_context": {
+      "S1": "Trend context",
+      "S5": "supportive but advisory",
+      "S6": "NY_PRIME tag"
+    },
+    "killzone": {
+      "et": "2026-06-15T10:45:00",
+      "expected_zone": "NY_PRIME",
+      "expected_blocked": false
+    },
+    "firing": {
+      "system": "S2",
+      "system_id": 2,
+      "pre_fire_system_id": "T1_NUMBER_BAR",
+      "direction": "LONG",
+      "entry_price": 7420.0,
+      "stop_price": 7415.0,
+      "t1_price": 7423.0,
+      "t2_price": 7428.0,
+      "time_stop_minutes": 60,
+      "confidence": 75,
+      "expected_pre_fire_valid": false,
+      "expected_block_reason_contains": "R:R < 1.0",
+      "expected_route": "blocked"
+    },
+    "reason_tree": [
+      "Setup candidate exists",
+      "pre_fire rejects because reward/risk is below 1.0",
+      "Blocked setup is not routed to gateway"
+    ],
+    "expected_result": "PASS"
+  }
+]

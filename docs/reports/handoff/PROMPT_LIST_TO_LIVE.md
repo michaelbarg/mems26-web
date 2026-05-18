@@ -114,12 +114,14 @@ Companion documents:
 ## Phase 2 — Replay scenario pack
 
 ### P29 — Replay Scenario Pack (10 scenarios)
+**Status:** DONE — GREEN. Report: `docs/reports/PROMPT29_REPLAY_SCENARIO_PACK.md`
 **Phase:** 2 Replay validation
 **Preconditions:** P28 GREEN on clean data.
 **Goal:** Validate the full pipeline against 10 historical scenarios, each documenting input stream, expected S1/S5/S6 advisory context, expected S2/S3/S4 firing behavior, expected reason tree, expected route/block outcome, and pass/fail criteria.
 **Deliverable:** `docs/reports/PROMPT29_REPLAY_SCENARIO_PACK.md` with sub-sections P29.1..P29.10 (Trend day, Balance/Nontrend, Opening drive, S2 Five-Min setup, S3 Footprint/Reversal setup, S4 Woodies pattern, Killzone context change, TPO location/value context, Missing data/degraded, pre_fire/risk-blocked setup).
 **Exit criteria:** 10/10 PASS; reason trees auditable per scenario; no DEMO/LIVE path engaged.
 **Notes / risks:** Each scenario should be reproducible from a fixture in `tests/v9/replay/` or from the existing `data/` historical bars. Keep `MEMS26_CLOCK_MODE=REPLAY`.
+**Evidence:** Offline fixture pack under `tests/v9/replay/fixtures/p29/`; targeted P29+gateway suite `33 passed`; full `tests/v9/` `1255 passed, 1 skipped`. Approved gateway contract fix aligned firing systems to S2/S3/S4 (`{2,3,4}`).
 
 ---
 

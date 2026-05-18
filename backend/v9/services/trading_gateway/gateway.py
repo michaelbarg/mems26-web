@@ -1,6 +1,6 @@
 """W13 Trading Gateway — 3-mode routing layer.
 
-Routes setups from firing systems (1, 2, 4) to three independent layers:
+Routes setups from firing systems (2, 3, 4) to three independent layers:
   SHADOW: parallel, no caps, no slot limit — runs ALL setups
   DEMO:   ONE slot, first-wins, Sierra demo account PA-APEX-125218-01
   LIVE:   ONE slot, first-wins + W14 risk caps, Sierra live account APEX-125218-13
@@ -23,8 +23,8 @@ from backend.v9.services.trading_gateway.executors.live import LiveExecutor
 
 logger = logging.getLogger(__name__)
 
-# Valid firing systems per SKILL
-FIRING_SYSTEMS = frozenset({1, 2, 4})
+# Valid firing systems per Master Index V2: S2 Five-Min, S3 Footprint, S4 Woodies.
+FIRING_SYSTEMS = frozenset({2, 3, 4})
 
 # Maximum shadow trades kept in memory before oldest are dropped.
 # Prevents unbounded growth. Closed shadow trades are in DB regardless.
@@ -78,7 +78,7 @@ class TradingGateway:
 
         Args:
             setup: Trade setup dict (firing_system, direction, stop, t1, t2, t3).
-            system_id: The firing system ID (1, 2, or 4).
+            system_id: The firing system ID (2, 3, or 4).
 
         Returns:
             Dict with keys:

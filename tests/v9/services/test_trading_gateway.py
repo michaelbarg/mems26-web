@@ -22,7 +22,7 @@ from backend.v9.services.risk_validator.validator import AccountState, RiskValid
 
 # ── fixtures ─────────────────────────────────────────────────────────
 
-def _make_setup(system_id: int = 1, direction: str = "LONG") -> Dict[str, Any]:
+def _make_setup(system_id: int = 2, direction: str = "LONG") -> Dict[str, Any]:
     """Create a minimal valid setup dict."""
     return {
         "firing_system": system_id,
@@ -85,7 +85,7 @@ class TestShadowAlwaysParallel:
         gw = _make_gateway(demo_enabled=False, live_enabled=False)
 
         results = []
-        for sys_id in [1, 2, 4, 1, 2]:
+        for sys_id in [2, 3, 4, 2, 3]:
             r = gw.route_setup(_make_setup(system_id=sys_id), system_id=sys_id)
             results.append(r)
 
@@ -101,7 +101,7 @@ class TestShadowAlwaysParallel:
         gw = _make_gateway(demo_enabled=False, live_enabled=False)
 
         for _ in range(10):
-            r = gw.route_setup(_make_setup(), system_id=1)
+            r = gw.route_setup(_make_setup(), system_id=2)
             assert r["shadow_trade_id"] > 0
             assert r["rejections"] == []
 
@@ -109,7 +109,7 @@ class TestShadowAlwaysParallel:
         """SHADOW accepts LONG and SHORT simultaneously."""
         gw = _make_gateway(demo_enabled=False, live_enabled=False)
 
-        r1 = gw.route_setup(_make_setup(direction="LONG"), system_id=1)
+        r1 = gw.route_setup(_make_setup(direction="LONG"), system_id=3)
         r2 = gw.route_setup(_make_setup(direction="SHORT"), system_id=4)
 
         assert r1["shadow_trade_id"] > 0
@@ -125,7 +125,7 @@ class TestDemoFirstWins:
         """First setup gets demo slot, second is rejected."""
         gw = _make_gateway(demo_enabled=True, live_enabled=False)
 
-        r1 = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r1 = gw.route_setup(_make_setup(system_id=3), system_id=3)
         r2 = gw.route_setup(_make_setup(system_id=2), system_id=2)
 
         # First gets demo
@@ -142,7 +142,7 @@ class TestDemoFirstWins:
         """Slot stays occupied until release_slot called."""
         gw = _make_gateway(demo_enabled=True, live_enabled=False)
 
-        r1 = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r1 = gw.route_setup(_make_setup(system_id=3), system_id=3)
         demo_id = r1["demo_trade_id"]
 
         # Slot is occupied
@@ -171,7 +171,7 @@ class TestDemoFirstWins:
         """Releasing with wrong trade_id returns False."""
         gw = _make_gateway(demo_enabled=True, live_enabled=False)
 
-        r1 = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r1 = gw.route_setup(_make_setup(system_id=3), system_id=3)
         demo_id = r1["demo_trade_id"]
 
         released = gw.release_slot("demo", demo_id + 999)
@@ -191,7 +191,7 @@ class TestLiveRiskGated:
         """W14 check_setup is called before LIVE trade creation."""
         gw = _make_gateway(demo_enabled=False, live_enabled=True)
 
-        r = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r = gw.route_setup(_make_setup(system_id=3), system_id=3)
 
         assert r["live_trade_id"] is not None
         gw._risk_validator.check_setup.assert_called_once()
@@ -203,7 +203,7 @@ class TestLiveRiskGated:
             False, "Daily loss cap reached: $250.00 >= $250.00"
         )
 
-        r = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r = gw.route_setup(_make_setup(system_id=3), system_id=3)
 
         # Shadow still created
         assert r["shadow_trade_id"] > 0
@@ -217,7 +217,7 @@ class TestLiveRiskGated:
         """First setup gets live slot, second rejected."""
         gw = _make_gateway(demo_enabled=False, live_enabled=True)
 
-        r1 = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r1 = gw.route_setup(_make_setup(system_id=3), system_id=3)
         r2 = gw.route_setup(_make_setup(system_id=2), system_id=2)
 
         assert r1["live_trade_id"] is not None
@@ -230,7 +230,7 @@ class TestLiveRiskGated:
         """Releasing live slot allows next setup through."""
         gw = _make_gateway(demo_enabled=False, live_enabled=True)
 
-        r1 = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r1 = gw.route_setup(_make_setup(system_id=3), system_id=3)
         live_id = r1["live_trade_id"]
 
         gw.release_slot("live", live_id)
@@ -259,16 +259,16 @@ class TestDualLayer:
     def test_routing_per_section_4(self):
         """Full routing flow matching spec Section 4 pseudo-code.
 
-        11:00 -- System 1 LONG -> SHADOW + DEMO (slot locked)
+        11:00 -- System 3 LONG -> SHADOW + DEMO (slot locked)
         11:05 -- System 2 LONG -> SHADOW + DEMO rejected
-        11:30 -- System 1 DEMO closes -> slot unlocked
+        11:30 -- System 3 DEMO closes -> slot unlocked
         11:32 -- System 4 SHORT -> SHADOW + DEMO (slot acquired)
         """
         gw = _make_gateway(demo_enabled=True, live_enabled=False)
 
-        # 11:00 — System 1 fires LONG
+        # 11:00 — System 3 fires LONG
         r1 = gw.route_setup(
-            _make_setup(system_id=1, direction="LONG"), system_id=1
+            _make_setup(system_id=3, direction="LONG"), system_id=3
         )
         assert r1["shadow_trade_id"] > 0
         assert r1["demo_trade_id"] is not None
@@ -282,7 +282,7 @@ class TestDualLayer:
         assert r2["demo_trade_id"] is None
         assert any(r["mode"] == "demo" for r in r2["rejections"])
 
-        # 11:30 — System 1 demo trade closes
+        # 11:30 — System 3 demo trade closes
         gw.release_slot("demo", demo_1_id)
 
         # 11:32 — System 4 fires SHORT, gets demo slot
@@ -306,7 +306,7 @@ class TestSlotManagement:
         """Releasing slot allows next setup through."""
         gw = _make_gateway(demo_enabled=True, live_enabled=True)
 
-        r1 = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r1 = gw.route_setup(_make_setup(system_id=3), system_id=3)
         demo_id = r1["demo_trade_id"]
         live_id = r1["live_trade_id"]
 
@@ -340,13 +340,13 @@ class TestSlotManagement:
         """Routing with invalid system_id raises ValueError."""
         gw = _make_gateway()
         with pytest.raises(ValueError, match="Invalid system_id"):
-            gw.route_setup(_make_setup(), system_id=3)
+            gw.route_setup(_make_setup(), system_id=1)
 
     def test_triple_layer(self):
         """All three layers active: SHADOW + DEMO + LIVE."""
         gw = _make_gateway(demo_enabled=True, live_enabled=True)
 
-        r = gw.route_setup(_make_setup(system_id=1), system_id=1)
+        r = gw.route_setup(_make_setup(system_id=3), system_id=3)
 
         assert r["shadow_trade_id"] > 0
         assert r["demo_trade_id"] is not None
@@ -367,11 +367,11 @@ class TestExecutors:
         tm.accept_setup.return_value = 42
         executor = ShadowExecutor(tm)
 
-        trade_id = executor.execute(_make_setup(system_id=1))
+        trade_id = executor.execute(_make_setup(system_id=3))
 
         assert trade_id == 42
         tm.accept_setup.assert_called_once_with(
-            _make_setup(system_id=1), mode="shadow"
+            _make_setup(system_id=3), mode="shadow"
         )
 
     def test_demo_executor(self):
@@ -408,7 +408,7 @@ class TestExecutors:
         rv.check_setup.return_value = (False, "Max trades/day reached: 5 >= 5")
         executor = LiveExecutor(tm, rv)
 
-        allowed, trade_id, reason = executor.execute(_make_setup(system_id=1))
+        allowed, trade_id, reason = executor.execute(_make_setup(system_id=3))
 
         assert allowed is False
         assert trade_id == 0
