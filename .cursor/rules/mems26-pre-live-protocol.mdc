@@ -22,13 +22,17 @@ strategic stop.
 
 1. **Read the current code.** Do not propose a change based on memory.
    Use the Read tool to confirm the actual state of the file.
-2. **Verify the hypothesis with data.** Run a DB query, read a log,
+2. **Audit what already exists.** Before adding a component, endpoint,
+   schema, report, or UI surface, search/read the existing repo surface and
+   classify it as KEEP / ADAPT / REPLACE / DEFER. Do not build blind or create
+   parallel duplicate implementations when an existing module can be adapted.
+3. **Verify the hypothesis with data.** Run a DB query, read a log,
    write a one-shot probe — collect concrete evidence the bug exists
    AS DESCRIBED before touching code.
-3. **Confirm the fix is not already there.** P27.5d Option A was a
+4. **Confirm the fix is not already there.** P27.5d Option A was a
    waste because WAL + busy_timeout were already configured. Always
    grep / Read the relevant file first.
-4. **Bound the blast radius.** Smallest change that addresses the root
+5. **Bound the blast radius.** Smallest change that addresses the root
    cause. No "while I'm here" refactors.
 
 ## After Any Fix — Mandatory UAT Axes

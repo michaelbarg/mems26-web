@@ -12,6 +12,10 @@ We are heading to LIVE futures trading. Apply minimum-mistakes discipline:
   P27.5d Option A — proposing a fix already in the code.
 - **Read the current code** before proposing any change. No edits from
   memory.
+- **Audit existing surfaces before building.** Before adding a component,
+  endpoint, schema, report, or UI surface, search/read what already exists and
+  classify it as KEEP / ADAPT / REPLACE / DEFER. Do not work blind or create a
+  duplicate implementation when existing code can be adapted.
 - **Smallest correct change.** No "while I'm here" refactors. Add a
   regression test for every bug fix.
 - **Verify the four UAT axes** for any data/chart endpoint:
