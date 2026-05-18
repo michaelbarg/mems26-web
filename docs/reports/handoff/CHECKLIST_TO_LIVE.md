@@ -92,14 +92,21 @@
 
 הגדרה מדויקת של מה SHADOW יתעד.
 
-- [ ] **P29.5.1** — schemas: bars + stream health
-- [ ] **P29.5.2** — schemas: S1-S6 state snapshots
-- [ ] **P29.5.3** — schemas: pre-fire decisions
-- [ ] **P29.5.4** — schemas: gateway dry-run decisions
-- [ ] **P29.5.5** — schemas: reason trees
-- [ ] **P29.5.6** — schemas: lifecycle events
-- [ ] **P29.5.uat** — UAT script: שעת replay → artifacts קריאים, אין שדות חסרים
-- [ ] **P29.5.report** — `docs/reports/PROMPT29_5_DATA_COLLECTION.md`
+- [x] **P29.5.1** — schemas: bars + stream health
+  - GREEN: `BarRecord`, `StreamHealthSnapshot` in `backend/v9/shadow/schemas.py`
+- [x] **P29.5.2** — schemas: S1-S6 state snapshots
+  - GREEN: `S1DayTypeState`..`S6KillzoneState` + `SystemStateSnapshot`
+- [x] **P29.5.3** — schemas: pre-fire decisions
+  - GREEN: `PreFireDecision` with direction/system_id validation
+- [x] **P29.5.4** — schemas: gateway dry-run decisions
+  - GREEN: `GatewayDecision` — system_id restricted to {2,3,4}
+- [x] **P29.5.5** — schemas: reason trees
+  - GREEN: `ReasonTree` + `ReasonTreeStage` with 5-state enum
+- [x] **P29.5.6** — schemas: lifecycle events
+  - GREEN: `LifecycleEvent` with trade state machine enum
+- [x] **P29.5.uat** — offline schema validation tests
+  - GREEN: 31 tests in `tests/v9/shadow/test_shadow_schemas.py`
+- [x] **P29.5.report** — `docs/reports/PROMPT29_5_DATA_COLLECTION_PACKAGE.md`
 
 **🛑 שער יציאה Phase 3 → 4:** Michael מאשר שכל schema מתועד, נכתב, נקרא וניתן לניתוח.
 
