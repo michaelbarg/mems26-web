@@ -33,6 +33,13 @@ Under frontend load, backend endpoints exhibited high latency (2-4s) due to:
 | `TopBar.tsx` | Removed separate 10s `day_type/v9/current` poll. TopBar now reads from `systemStateStore` (already polled by `useSystemStatePolling`). Added in-flight guard to status polling. |
 | `systemStateStore.ts` | Added `_fetchInFlight` guard — `fetchAllStates()` skips if previous call hasn't returned yet. Prevents overlapping request batches. |
 
+Post-review hardening:
+
+- `_fetchInFlight` is now released in `finally`, so an unexpected exception
+  cannot permanently disable system-state polling until page refresh.
+- `systemStateStore.ts` now passes targeted ESLint after replacing the local
+  `raw` type from `any` to `unknown`.
+
 ## Tests
 
 Backend (no regressions):
@@ -43,7 +50,9 @@ python3 -m pytest tests/v9/ -q → 1288 passed, 1 skipped
 Frontend lint (changed files only):
 ```
 npx eslint ChartV5b.tsx systemStateStore.ts TopBar.tsx
-→ 18 errors (all pre-existing @typescript-eslint/no-explicit-any, not from P30.4 changes)
+→ 17 errors in ChartV5b.tsx (pre-existing @typescript-eslint/no-explicit-any)
+npx eslint systemStateStore.ts
+→ PASS
 ```
 
 ## Live Latency (with frontend open)
