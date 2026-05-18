@@ -1,8 +1,8 @@
 **Status:** living document — supersedes `NEXT_CHAT_PROMPT.md` for sessions on/after 2026-05-17
-**Last updated:** 2026-05-17 23:55 UTC+3 (verified live)
+**Last updated:** 2026-05-18 (P27.5f closeout + P27.5z docs sync)
 **Author:** Cursor (Opus 4.7) + Claude Code
 
-# NEXT_CHAT_PROMPT — MEMS26 → SHADOW (post P27.5a/c/d/e)
+# NEXT_CHAT_PROMPT — MEMS26 → SHADOW (post P27.5a/c/d/e/f)
 
 > Paste the block under "PASTE FROM HERE" verbatim into a fresh chat (any reasonable model). The agent must read the four authoritative spec docs (see §0 below) **before** acting. Do not skip §0; it is the source of every naming / scope / governance decision.
 
@@ -88,27 +88,29 @@ Modes (strict order, no jumps): **SHADOW** (log-only) → **DEMO** (Sierra Sim, 
 | DB | 556 rows in `v9_bars_5min`, 7 today | sqlite query |
 | Branch | `stabilize/mems26-local-truth-2026-05-16` | 12 modified + 6 untracked since `cfd5796` |
 
-### §4. What shipped in the P27.5* series (already on disk, **not yet committed**)
+### §4. What shipped in the P27.5* series
 
 - **P27.5a** — Backend bar integrity (`bar_is_valid` filters bad OHLC; `_fetch_bars_5min` over-fetches and slices `[-limit:]` to keep the **newest** rows). Regression test added. Report: `docs/reports/PROMPT_27_5A_BAD_BAR_FIX.md`.
 - **P27.5d** — Bar dispatch latency. `FootprintSystem.process_bar` reuses a persistent WAL connection instead of `sqlite3.connect()` per bar. `BarRouter` instrumented (`SLOW handler` warning >100ms; total dispatch warning >50ms). Report: `docs/reports/PROMPT_27_5D_BAR_DISPATCH_LATENCY.md`.
 - **P27.5c** — `5min` topic dispatch fix. `BarRouter.bind_main_loop()` + `BarRouter.publish_threadsafe()` (uses `asyncio.run_coroutine_threadsafe`). All callers (`bars.py:_route_bar`, `bar_aggregator_5min:_on_bar_close_default`) switched. Proof: `tpo.bars_processed_today` increments. Tests: `tests/v9/services/test_bar_router_threadsafe.py` (2). Report: `docs/reports/PROMPT_27_5C_5MIN_DISPATCH_FIX.md`.
 - **P27.5e** — Live partial-bar topic. `FiveMinAggregator.on_tick` publishes `"5min.partial"` at 1 Hz (`is_partial=True`) for the in-progress bar; no subscribers yet (opt-in for Phase 6 decision engine). Tests: `tests/v9/services/test_aggregator_partial_publish.py` (2).
+- **P27.5f** — Five-min route instance fix. `routes.py` rewired to use `request.app.state.five_min_system` instead of a separate module-level `FiveMinSystem()`. Returns 503 if system not initialized. 8 regression tests added. Report: `docs/reports/PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md`.
 - **Local-only bridge enforcement** — `LaunchAgent`, `start_all.sh`, `base_stream.py` all hard-set `CLOUD_URL=http://localhost:8000`; `URLError` promoted from `debug` to rate-limited `warning`.
 
-Files modified (uncommitted): `.cursor/rules/mems26-stability.mdc`, `CLAUDE.md`, `backend/main.py`, `backend/v9/api/v9/bars.py`, `backend/v9/api/v9/bars_5min_history.py`, `backend/v9/services/bar_aggregator_5min.py`, `backend/v9/services/bar_router.py`, `backend/v9/systems/footprint/footprint_system.py`, `bridge/v9_streams/base_stream.py`, `docs/reports/PROMPT_27_5A_BAD_BAR_FIX.md`, `scripts/start_all.sh`, `tests/v9/api/test_chart_bars5min_integrity.py`. Untracked: `.cursor/rules/mems26-pre-live-protocol.mdc`, `docs/reports/POST_REBOOT_BRINGUP_2026-05-17.md`, `docs/reports/PROMPT_27_5C_5MIN_DISPATCH_FIX.md`, `docs/reports/PROMPT_27_5D_BAR_DISPATCH_LATENCY.md`, `tests/v9/services/test_aggregator_partial_publish.py`, `tests/v9/services/test_bar_router_threadsafe.py`.
+Git note: verify `git status -sb` before any new work. Do not assume this handoff's file list is current after a commit/push.
 
 ### §5. Known pre-existing issues (NOT in current scope)
 
-1. **`/api/v9/five_min/current` route uses a separate `FiveMinSystem()` instance** that is not the one registered in `BarRouter`. It will report `buffer_size=0` even when the registered instance is processing bars. Open as a fresh P-ID before SHADOW.
-2. **`SYSTEM_COMPLETION_CONTROL_BOARD.md`** does not yet surface the P27.5* fixes. Update it after the next bridge-running RTH soak (Phase 1 below).
+1. ~~`/api/v9/five_min/current` route uses a separate `FiveMinSystem()` instance`~~ — **FIXED in P27.5f** (GREEN). Route now uses `request.app.state.five_min_system`. Report: `PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md`.
+2. ~~`SYSTEM_COMPLETION_CONTROL_BOARD.md` does not yet surface the P27.5* fixes~~ — **FIXED in P27.5z** (GREEN). Pipeline integrity section added.
+3. **P27.5b `live_price.age_ms < 60000`** — DEFERRED. Requires RTH with bridge running. Cannot validate during weekend.
 
 ### §6. Outstanding work to SHADOW (7 phases)
 
 Order is fixed. Do **not** skip a gate.
 
-1. **P27.5z — Refresh control board + handoff docs.** Update `SYSTEM_COMPLETION_CONTROL_BOARD.md` to reflect P27.5a/c/d/e and add the pipeline-integrity gate. Commit the entire P27.5* series in one atomic commit. Run full test suite (`pytest -q`) — all green required.
-2. **Phase 1 — Replay Smoke (P28).** Restart bridge, run Sierra Replay across one full RTH session, verify all 4 UAT axes on every endpoint, verify `tpo.bars_processed_today` increments to expected count, verify `BarRouter` logs no `SLOW handler` warnings.
+1. **P27.5b — Live-price freshness during RTH.** Start bridge only when Michael explicitly asks for RTH/live validation; verify `/api/v9/live_price age_ms < 60000` for 10 consecutive checks. If it fails, diagnose bridge stream/cache root cause before editing.
+2. **Phase 1 — Replay Smoke (P28).** After P27.5b is GREEN and Michael approves the Phase 0 gate, run Sierra Replay across one full RTH session, verify all 4 UAT axes on every endpoint, verify `tpo.bars_processed_today` increments to expected count, verify `BarRouter` logs no `SLOW handler` warnings.
 3. **Phase 2 — Replay Scenario Pack (10 scenarios).** Trend, range, gap, lunch chop, FOMC, etc. Each scenario produces a numbered report. Stop and ask Michael at any anomaly.
 4. **Phase 3 — Data Collection Package.** Wire SHADOW-mode logs that capture every signal + decision tree state for Michael's review. No orders.
 5. **Phase 4 — Frontend Design for SHADOW supervision.** Dashboard fit for genuine human supervision (not "looks fine"). Define what Michael needs to see: live signals, near-misses, decision-tree stage, system votes, gate state.
@@ -162,7 +164,9 @@ pytest -q tests/v9/services/test_bar_router_threadsafe.py tests/v9/services/test
 
 ### §9. First action for the new chat
 
-> Read §0 (authoritative spec) and the four sibling reports (`PROMPT_27_5A`, `PROMPT_27_5C`, `PROMPT_27_5D`, `POST_REBOOT_BRINGUP_2026-05-17`). Run §8 verification commands and confirm the live status in §3 still holds. Then execute **P27.5z — Refresh control board + handoff docs + atomic commit of P27.5* series**, before moving to Phase 1 (Replay Smoke).
+> P27.5a/c/d/e/f are GREEN. P27.5z docs sync is complete. The remaining Phase 0 item is **P27.5b** (live_price freshness), which requires RTH with bridge running.
+>
+> **Next step:** Wait for RTH (Sunday evening futures open or Monday 9:30 ET). Start bridge, then run P27.5b UAT: `curl -s http://127.0.0.1:8000/api/v9/live_price` must return `age_ms < 60000` for 10 consecutive checks. If P27.5b passes, Phase 0 is complete and Phase 1 (Replay Smoke) can begin.
 
 If any §8 result disagrees with §3, **stop** and produce a discrepancy report — do not patch silently.
 

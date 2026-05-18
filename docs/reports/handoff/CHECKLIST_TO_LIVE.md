@@ -16,10 +16,9 @@
 
 ---
 
-## מצב נוכחי (2026-05-18 00:48)
+## מצב נוכחי (2026-05-18)
 
-- Phase 0-4 backend infrastructure done.
-- בעבודה: **P27.5f** (CC) — five_min route instance bug.
+- Phase 0 backend data integrity: P27.5a/c/d/e/f/z GREEN, P27.5b DEFERRED (RTH).
 - Bridge OFF (baseline שקט). Sierra OFF (סופ"ש).
 
 ---
@@ -34,12 +33,12 @@
   - GREEN: connection reuse, 0 dispatches >50ms ב-soak.
 - [x] **P27.5e** — `5min.partial` topic ב-1Hz throttle
   - GREEN: throttle test עובר. אין subscribers עדיין (Phase 6).
-- [ ] **P27.5f** — `/api/v9/five_min/current` instance bug ← **בעבודה אצל CC**
-  - GATE: `buffer_size > 0` חי + regression test שמוודא שימוש ב-`app.state.five_min_system`.
+- [x] **P27.5f** — `/api/v9/five_min/current` instance bug
+  - GREEN: route uses `app.state.five_min_system`, 28/28 targeted tests passed, live endpoint HTTP 200, `hydrated=true`, latency<100ms. Report: `PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md`.
 - [ ] **P27.5b** — `live_price.age_ms < 60000` בזמן RTH ← **DEFERRED**
   - GATE: יום מסחר ראשון (יום א'), חי, `age_ms < 60s` ל-≥5 דקות רצוף.
-- [ ] **P27.5z** — רענון control board + handoff docs אחרי P27.5f+P27.5b
-  - GATE: `SYSTEM_COMPLETION_CONTROL_BOARD.md` + `PROMPT_LIST_TO_LIVE.md` מסונכרנים.
+- [x] **P27.5z** — רענון control board + handoff docs אחרי P27.5f
+  - GREEN: `CHECKLIST_TO_LIVE.md`, `PROMPT_LIST_TO_LIVE.md`, `NEXT_CHAT_PROMPT_2026-05-17.md`, `SYSTEM_COMPLETION_CONTROL_BOARD.md` מסונכרנים (2026-05-18). P27.5b remains DEFERRED — docs sync does not depend on it.
 
 **🛑 שער יציאה Phase 0 → 1:** Michael מאשר ש-6 ה-P27.5x ירוקים (כולל P27.5b חי).
 

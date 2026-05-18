@@ -1,26 +1,31 @@
-"""5-min System API endpoints."""
+"""5-min System API endpoints.
 
-from fastapi import APIRouter
+All handlers read from app.state.five_min_system — the single instance
+created by backend.main, hydrated, and wired to BarRouter.  Never create
+a separate FiveMinSystem here.
+"""
+
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/api/v9/five_min", tags=["v9-five-min"])
 
-# Module-level system instance
-_system = None
 
-
-def _get_system():
-    global _system
-    if _system is None:
-        from backend.v9.systems.five_min.five_min_system import FiveMinSystem
-        _system = FiveMinSystem()
-        _system.hydrate()
-    return _system
+def _get_system(request: Request):
+    """Return the live FiveMinSystem or None."""
+    return getattr(request.app.state, "five_min_system", None)
 
 
 @router.get("/current")
-def get_current():
+def get_current(request: Request):
     """Current 5-min system state."""
-    return _get_system().get_state()
+    sys = _get_system(request)
+    if sys is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "FiveMinSystem not initialized"},
+        )
+    return sys.get_state()
 
 
 @router.get("/setups")
@@ -30,9 +35,14 @@ def get_setups():
 
 
 @router.get("/fire")
-def get_fire():
+def get_fire(request: Request):
     """Latest fire state — last pattern detection result."""
-    sys = _get_system()
+    sys = _get_system(request)
+    if sys is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "FiveMinSystem not initialized"},
+        )
     state = sys.get_state()
     return {
         "fired": state.get("last_pattern") is not None,
@@ -45,9 +55,14 @@ def get_fire():
 
 
 @router.get("/stats")
-def get_stats():
+def get_stats(request: Request):
     """System counters."""
-    sys = _get_system()
+    sys = _get_system(request)
+    if sys is None:
+        return JSONResponse(
+            status_code=503,
+            content={"error": "FiveMinSystem not initialized"},
+        )
     return {
         "mode": sys.mode,
         "buffer_size": sys.buffer_size,

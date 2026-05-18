@@ -1,6 +1,6 @@
 # System Completion Control Board
 
-**Date:** 2026-05-16 (final reconciliation — Prompt 24)  
+**Date:** 2026-05-18 (updated — P27.5z docs sync)  
 **Authority:** Master Index V2  
 **Purpose:** Score whether each system produces reliable information  
 **Scope:** System correctness only — NOT SHADOW/DEMO/LIVE activation  
@@ -214,6 +214,23 @@ All 6 systems upgraded to READY through Prompts 14–23.
 | 6 | S1 pd_* degraded/pending not explicit | Prompt 21c |
 | 7 | S4 B1-B14 STUB ambiguity | Prompt 23 |
 | 8 | S3 fire → pre_fire → gateway not wired | Prompt (b076cb6) |
+| 9 | S2 five_min route used separate FiveMinSystem | P27.5f |
+| 10 | Bad bars in bars5min endpoint | P27.5a |
+| 11 | BarRouter publish not threadsafe | P27.5c |
+| 12 | Footprint dispatch latency >50ms | P27.5d |
+
+---
+
+## Pipeline Integrity (P27.5 series — 2026-05-18)
+
+| ID | Fix | Status | Evidence |
+|----|-----|--------|----------|
+| P27.5a | Bad bars in `/api/v9/chart/bars5min` | GREEN | count=240, bad_count=0, last_ts=MAX(ts), latency<5ms |
+| P27.5c | `publish_threadsafe` in BarRouter | GREEN | `tpo.bars_processed_today=2` live; 4 new tests pass |
+| P27.5d | Footprint bar dispatch latency <50ms | GREEN | Connection reuse; 0 dispatches >50ms in soak |
+| P27.5e | `5min.partial` topic 1Hz throttle | GREEN | Throttle test passes; no subscribers yet (Phase 6) |
+| P27.5f | `/api/v9/five_min/current` instance bug | GREEN | Route uses `app.state.five_min_system`; 28/28 tests; HTTP 200, hydrated=true |
+| P27.5b | `live_price.age_ms < 60000` during RTH | DEFERRED | Requires RTH with bridge running |
 
 ---
 
@@ -223,8 +240,9 @@ All 6 systems upgraded to READY through Prompts 14–23.
 
 | Blocker | Type | Status |
 |---------|------|--------|
+| P27.5b live_price freshness during RTH | Integration | DEFERRED — requires market hours with bridge running |
 | RTH live validation (Sierra + Bridge + all 3 firing systems) | Integration | PENDING — requires market hours |
-| Replay Clock Mode for offline testing | Tooling | PENDING — not yet built |
+| Replay Clock Mode for offline testing | Tooling | DONE — wired in P26a/b |
 | SHADOW/DEMO/LIVE not enabled | Policy | INTENTIONAL — awaiting Michael gate |
 
 ### Before DEMO can be considered:
@@ -291,4 +309,4 @@ Step 4: LIVE (after demo success + Michael approval)
 
 ---
 
-*Final reconciliation: Prompt 24. No code changes. No push. No SHADOW/DEMO/LIVE enabled.*
+*Last update: P27.5z docs sync (2026-05-18). Pipeline integrity section added. No code changes. No push. No SHADOW/DEMO/LIVE enabled.*

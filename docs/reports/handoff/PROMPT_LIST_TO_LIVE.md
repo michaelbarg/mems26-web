@@ -1,5 +1,5 @@
 **Status:** living document — update as the project advances
-**Last updated:** 2026-05-16
+**Last updated:** 2026-05-18
 **Author:** Cursor multitask session
 
 # PROMPT_LIST_TO_LIVE — ordered prompts from "right now" to LIVE
@@ -15,9 +15,10 @@ Companion documents:
 
 ---
 
-## Phase 0 — Backend data integrity (P27.5a → c)
+## Phase 0 — Backend data integrity (P27.5a → f)
 
 ### P27.5a — Backend bad-bar fix in `/api/v9/chart/bars5min`
+**Status:** DONE — GREEN. Report: `docs/reports/PROMPT_27_5A_BAD_BAR_FIX.md`
 **Phase:** 0 Backend data integrity
 **Preconditions:** Bridge + Backend + Frontend healthy via `bash scripts/check_status.sh`; HEAD == `419f4cc` or later on `stabilize/mems26-local-truth-2026-05-16`; working tree clean.
 **Goal:** Eliminate outlier rows returned by `/api/v9/chart/bars5min` (observed: bars with `low≈7172.5`/`7180.25` while surrounding window is `~7440–7476`, a ~300-point cliff). Client-side `looksOk` filter must become defense-in-depth, not the source of truth.
@@ -31,6 +32,7 @@ Companion documents:
 ---
 
 ### P27.5b — Live-price freshness fix in `/api/v9/live_price`
+**Status:** DEFERRED — requires RTH live validation. Cannot verify `age_ms < 60000` during weekend/off-hours.
 **Phase:** 0 Backend data integrity
 **Preconditions:** P27.5a DONE.
 **Goal:** During RTH, `/api/v9/live_price` must return `age_ms < 60 000`. Observed in session 2026-05-16: `age_ms ≈ 64 minutes`. Client now drops anything `> 60s`, but the source pipeline must produce a fresh tick.
@@ -44,6 +46,7 @@ Companion documents:
 ---
 
 ### P27.5c — TPO aggregator daily roll-over fix (`bars_processed_today=0`)
+**Status:** DONE — GREEN. Report: `docs/reports/PROMPT_27_5C_5MIN_DISPATCH_FIX.md`
 **Phase:** 0 Backend data integrity
 **Preconditions:** P27.5a + P27.5b DONE.
 **Goal:** `/api/v9/tpo/current` must report `bars_processed_today > 0` during RTH and a reasonable carry-over over the weekend. Observed: `bars_processed_today=0`, implying the daily aggregator never ran today.
@@ -56,12 +59,41 @@ Companion documents:
 
 ---
 
-### P27.5z — SCB + handoff refresh
+### P27.5d — Footprint bar dispatch latency <50ms
+**Status:** DONE — GREEN. Report: `docs/reports/PROMPT_27_5D_BAR_DISPATCH_LATENCY.md`
 **Phase:** 0 Backend data integrity
-**Preconditions:** P27.5a + b + c DONE.
-**Goal:** Update [`../SYSTEM_COMPLETION_CONTROL_BOARD.md`](../SYSTEM_COMPLETION_CONTROL_BOARD.md) "Remaining Blockers → Before SHADOW" to reflect the three fixes; mark the three issues in [`NEXT_CHAT_PROMPT.md`](./NEXT_CHAT_PROMPT.md) and `GANTT_TO_LIVE.md` as DONE.
+**Preconditions:** P27.5a DONE.
+**Goal:** Ensure `FootprintSystem.process_bar` latency stays under 50ms by reusing a persistent WAL-mode SQLite connection instead of opening per bar.
+**Exit criteria:** 0 dispatches >50ms during soak; `BarRouter` SLOW handler warning instrumented.
+
+---
+
+### P27.5e — `5min.partial` topic at 1Hz throttle
+**Status:** DONE — GREEN. No separate report (verified in P27.5c soak).
+**Phase:** 0 Backend data integrity
+**Preconditions:** P27.5c DONE.
+**Goal:** `FiveMinAggregator.on_tick` publishes `"5min.partial"` at 1Hz (`is_partial=True`) for in-progress bars. No subscribers yet (opt-in for Phase 6).
+**Exit criteria:** Throttle test passes; no unintended subscribers.
+
+---
+
+### P27.5f — `/api/v9/five_min/current` instance bug
+**Status:** DONE — GREEN. Report: `docs/reports/PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md`
+**Phase:** 0 Backend data integrity
+**Preconditions:** P27.5a DONE.
+**Goal:** Fix route to use `request.app.state.five_min_system` (the live instance wired to BarRouter) instead of creating a separate module-level `FiveMinSystem()`.
+**Deliverable:** `docs/reports/PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md` + `tests/v9/api/test_five_min_routes.py` (8 regression tests).
+**Exit criteria:** Route uses `app.state.five_min_system`; 503 on missing instance; 28/28 targeted tests pass; live endpoint HTTP 200, `hydrated=true`.
+
+---
+
+### P27.5z — SCB + handoff refresh
+**Status:** DONE — GREEN. Docs synced 2026-05-18. P27.5b remains DEFERRED until RTH.
+**Phase:** 0 Backend data integrity
+**Preconditions:** P27.5a/c/d/e/f DONE.
+**Goal:** Update `SYSTEM_COMPLETION_CONTROL_BOARD.md`, `CHECKLIST_TO_LIVE.md`, `PROMPT_LIST_TO_LIVE.md`, `NEXT_CHAT_PROMPT_2026-05-17.md` to reflect all P27.5 fixes.
 **Deliverable:** Updated docs.
-**Exit criteria:** All three documents agree; no stale "PARTIAL" markers for the three issues.
+**Exit criteria:** All documents agree; no stale "PARTIAL" markers for completed issues.
 **Notes / risks:** Pure documentation; no source changes.
 
 ---
