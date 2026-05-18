@@ -36,7 +36,9 @@
 - [x] **P27.5f** — `/api/v9/five_min/current` instance bug
   - GREEN: route uses `app.state.five_min_system`, 28/28 targeted tests passed, live endpoint HTTP 200, `hydrated=true`, latency<100ms. Report: `PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md`.
 - [ ] **P27.5b** — `live_price.age_ms < 60000` בזמן RTH ← **DEFERRED**
-  - GATE: יום מסחר ראשון (יום א'), חי, `age_ms < 60s` ל-≥5 דקות רצוף.
+  - GATE: Sierra running + `bash scripts/uat_prompt_27_5b_live_price.sh` → 10/10 PASS.
+  - UAT package ready: script + report template. Route reads DLL file directly (no bridge in path).
+  - To run: `bash scripts/uat_prompt_27_5b_live_price.sh` during RTH with Sierra open.
 - [x] **P27.5z** — רענון control board + handoff docs אחרי P27.5f
   - GREEN: `CHECKLIST_TO_LIVE.md`, `PROMPT_LIST_TO_LIVE.md`, `NEXT_CHAT_PROMPT_2026-05-17.md`, `SYSTEM_COMPLETION_CONTROL_BOARD.md` מסונכרנים (2026-05-18). P27.5b remains DEFERRED — docs sync does not depend on it.
 
