@@ -1,8 +1,8 @@
 # P30.3 — Status Endpoint + Hydration Overlay
 
 **Date:** 2026-05-18  
-**Status:** CODE GREEN / LIVE RESTART PENDING  
-**No services started or restarted. No bridge action. No SHADOW/DEMO/LIVE activation. No trade command writes.**
+**Status:** PARTIAL GREEN — status code hardened; live frontend-load latency remains P30.4 blocker  
+**Backend was restarted with `.env` after approval. No bridge action. No SHADOW/DEMO/LIVE activation. No trade command writes.**
 
 ---
 
@@ -13,17 +13,19 @@ P30.3 addressed the operational blocker found in P30.2:
 - `/api/v9/status` could exceed the operator-dashboard latency budget because
   `_check_bridge()` performed many synchronous Upstash Redis REST calls, each
   previously allowed to wait up to 3 seconds.
-- The status endpoint now uses a bounded Redis timeout and a total bridge-health
-  budget. If Redis is slow, bridge status returns a partial health result instead
-  of blocking the whole dashboard.
+- The status endpoint now uses a bounded Redis timeout, a total bridge-health
+  budget, and a total endpoint budget. If Redis or another layer is slow, that
+  layer returns an explicit `timeout` result instead of blocking the whole
+  dashboard.
 - The React hydration overlay observed during browser automation was rechecked
   and identified as a Cursor browser-tool artifact from injected
   `data-cursor-ref` attributes, not a MEMS26 UI defect. No application UI code
   change was kept for this.
 
-The already-running backend did not auto-reload the Python code. A live
-`/api/v9/status` probe still timed out after the code fix, so live endpoint
-verification requires an approved backend restart/reload.
+After backend restart, `/api/v9/status` returned `200`, but live latency under
+the already-open frontend load remained above the operator target. Follow-up
+audit points to frontend request amplification and duplicated polling as the
+next blocker.
 
 ---
 
@@ -38,13 +40,16 @@ Changed `backend/v9/api/v9/status.py` only:
   is exceeded.
 - Added `streams_checked` and `partial` fields so degraded Redis visibility is
   explicit, not silent.
+- Added `V9_STATUS_ENDPOINT_BUDGET_S`, default `0.9`.
+- Changed `system_status()` to run independent health checks in parallel and mark
+  late checks as `{"available": false, "status": "timeout"}`.
 
 New regression test:
 
 - `tests/v9/api/test_status_endpoint_budget.py`
 
-The test monkeypatches Redis calls to be slow and verifies `_check_bridge()`
-returns quickly with `partial=true`.
+The tests monkeypatch Redis/status checks to be slow and verify `_check_bridge()`
+and `system_status()` return within budget with explicit timeout/partial fields.
 
 ---
 
@@ -54,7 +59,7 @@ Targeted tests:
 
 ```text
 python3 -m pytest tests/v9/api/test_status_endpoint_budget.py -q
-1 passed
+2 passed
 ```
 
 Related targeted suite:
@@ -89,27 +94,53 @@ Frontend hydration recheck:
 
 ## Live Verification Status
 
-Live direct probe after the code change:
+Initial live direct probe before backend reload:
 
 ```text
 GET http://127.0.0.1:8000/api/v9/status
 ERR timeout after 5011.93ms
 ```
 
+After approved backend restart with `.env`, the backend loaded the code and
+served `/api/v9/status` with explicit timeout warnings for slow Redis-backed
+layers:
+
+```text
+WARNING [status] check timed out: bridge
+WARNING [status] check timed out: event_bus
+GET /api/v9/status HTTP/1.1 200 OK
+```
+
+However, under the already-open frontend load, direct probe latency was still
+not operator-green:
+
+```text
+/api/v9/health: 3764.96ms, then 79.29ms, 59.15ms
+/api/v9/status: 4467.76ms, 4420.31ms, 2504.20ms
+/api/v9/live_price: 2017.34ms, 1952.58ms, 2044.10ms
+```
+
 Interpretation:
 
-- The running backend did not reload the changed `status.py`.
-- Code and tests are GREEN.
-- Live `/api/v9/status` cannot be declared GREEN until the backend is restarted
-  or reloaded and the endpoint is probed again.
+- P30.3 fixed the status endpoint's internal timeout behavior.
+- The remaining blocker is broader backend responsiveness under frontend polling
+  load, not only `/api/v9/status`.
+- CC read-only audit identified duplicated/high-frequency frontend polling:
+  `ChartV5b` polls `/api/v9/live_price` every 1s despite an existing price
+  WebSocket store; `TopBar` and `BannerStack` both poll `/api/v9/status`; and
+  `useSystemStatePolling(2000)` triggers many system/current requests.
 
 ---
 
 ## Next Required Step
 
-Ask Michael before restarting backend. After approval:
+Open P30.4 — frontend polling/backend responsiveness:
 
-1. Restart/reload backend only. Do not start bridge unless explicitly requested.
-2. Probe `/api/v9/status` and require latency under the documented threshold.
-3. Re-run browser visual proof and confirm no app-caused hydration overlay.
-4. Update this report with live latency evidence.
+1. Remove duplicated `/api/v9/live_price` polling from `ChartV5b` and use the
+   existing `priceStore`/WebSocket path.
+2. Add in-flight guards or shared status state so `/api/v9/status` polling does
+   not overlap between UI components.
+3. Re-measure `/api/v9/status`, `/api/v9/live_price`, chart endpoints, and
+   system endpoints with the frontend open.
+4. Only call the cockpit visual gate GREEN if status latency is under target and
+   bars5min still passes quality/recency/cardinality/latency.

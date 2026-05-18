@@ -10,6 +10,7 @@ import os
 import time
 import urllib.request
 import urllib.error
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -25,6 +26,8 @@ REDIS_URL = os.getenv("UPSTASH_REDIS_REST_URL", "")
 REDIS_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
 STATUS_REDIS_TIMEOUT_S = float(os.getenv("V9_STATUS_REDIS_TIMEOUT_S", "0.2"))
 STATUS_BRIDGE_BUDGET_S = float(os.getenv("V9_STATUS_BRIDGE_BUDGET_S", "0.8"))
+STATUS_ENDPOINT_BUDGET_S = float(os.getenv("V9_STATUS_ENDPOINT_BUDGET_S", "0.9"))
+_STATUS_EXECUTOR = ThreadPoolExecutor(max_workers=8, thread_name_prefix="v9-status")
 
 
 def _redis_cmd(args: list, timeout: float = STATUS_REDIS_TIMEOUT_S):
@@ -281,25 +284,46 @@ def _check_bar_router() -> dict:
     return {"available": False}
 
 
+def _run_status_checks(checks: dict[str, callable]) -> dict:
+    """Run independent health checks without letting one slow layer block status."""
+    deadline = time.monotonic() + STATUS_ENDPOINT_BUDGET_S
+    futures = {name: _STATUS_EXECUTOR.submit(fn) for name, fn in checks.items()}
+    results = {}
+    for name, future in futures.items():
+        remaining = max(0.01, deadline - time.monotonic())
+        try:
+            results[name] = future.result(timeout=remaining)
+        except TimeoutError:
+            logger.warning("[status] check timed out: %s", name)
+            results[name] = {"available": False, "status": "timeout"}
+        except Exception as exc:
+            logger.warning("[status] check failed: %s: %s", name, exc)
+            results[name] = {"available": False, "status": "error"}
+    return results
+
+
 @router.get("/api/v9/status")
 def system_status():
     """10-layer health dashboard for MEMS26."""
     import os
     trading_mode = os.getenv("MEMS26_MODE", "shadow")
+    checks = _run_status_checks({
+        "session": _check_session,
+        "sierra": _check_sierra,
+        "bridge": _check_bridge,
+        "event_bus": _check_event_bus,
+        "ws": _check_ws,
+        "frontend": _check_frontend,
+        "audit": _check_audit,
+        "day_type": _check_day_type,
+        "hydration": _check_hydration,
+        "bar_router": _check_bar_router,
+        "historical_replay": _check_historical_replay,
+    })
     return {
         "ts": time.time(),
         "mode": trading_mode,
-        "session": _check_session(),
-        "sierra": _check_sierra(),
-        "bridge": _check_bridge(),
-        "event_bus": _check_event_bus(),
-        "ws": _check_ws(),
-        "frontend": _check_frontend(),
-        "audit": _check_audit(),
-        "day_type": _check_day_type(),
-        "hydration": _check_hydration(),
-        "bar_router": _check_bar_router(),
-        "historical_replay": _check_historical_replay(),
+        **checks,
     }
 
 
