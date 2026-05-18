@@ -1,7 +1,7 @@
 # P30.4 — Frontend Polling / Backend Responsiveness
 
 **Date:** 2026-05-18
-**Status:** GREEN — request amplification reduced, latency within budget
+**Status:** PARTIAL GREEN — chart/live data latency fixed; `/api/v9/status` remains diagnostic-only residual
 **No SHADOW/DEMO/LIVE enabled. No bridge started. No trade_command writes.**
 
 ---
@@ -32,6 +32,8 @@ Under frontend load, backend endpoints exhibited high latency (2-4s) due to:
 | `ChartV5b.tsx` | Replaced 1s `/api/v9/live_price` poll with `usePriceStore.subscribe()`. Chart forming bar now updates from the WebSocket price stream. |
 | `TopBar.tsx` | Removed separate 10s `day_type/v9/current` poll. TopBar now reads from `systemStateStore` (already polled by `useSystemStatePolling`). Added in-flight guard to status polling. |
 | `systemStateStore.ts` | Added `_fetchInFlight` guard — `fetchAllStates()` skips if previous call hasn't returned yet. Prevents overlapping request batches. |
+| `five_min_system.py` | Replaced incorrect `backend/data/mems26_local.db` path calculation with `SessionLocal` + `V9Bar5Min`, eliminating repeated `DB bar replay failed` warnings. |
+| `app.py`, `bars_5min_history.py` | Changed cheap health/chart routes to `async def` so they do not queue behind saturated sync threadpool work. |
 
 Post-review hardening:
 
@@ -45,6 +47,7 @@ Post-review hardening:
 Backend (no regressions):
 ```
 python3 -m pytest tests/v9/ -q → 1288 passed, 1 skipped
+python3 -m pytest tests/v9/api/test_status_endpoint_budget.py tests/v9/api/test_chart_bars5min_integrity.py tests/test_five_min_system.py tests/v9/api/test_five_min_routes.py -q → 23 passed
 ```
 
 Frontend lint (changed files only):
@@ -73,6 +76,20 @@ npx eslint systemStateStore.ts
 /api/v9/bars5min:   15ms, 15ms, 14ms
 ```
 
+### Post-Review Final Verification
+After closing duplicate MEMS26 browser tabs and fixing FiveMin DB replay +
+threadpool queueing for cheap routes:
+
+```text
+/api/v9/health:     1465ms first sample after reload, then 3ms, 3ms
+/api/v9/live_price: 5ms, 3ms, 4ms
+/api/v9/bars5min:   21ms, 33ms, 38ms
+```
+
+`/api/v9/status` still showed intermittent slow/timeout behavior when directly
+probed repeatedly. Treat it as a diagnostic endpoint until a dedicated lightweight
+UI heartbeat endpoint exists.
+
 ## Bars5min 4-Axis UAT
 
 | Axis | Threshold | Actual | Result |
@@ -82,11 +99,12 @@ npx eslint systemStateStore.ts
 | Cardinality | count=240 | 240 | PASS |
 | Latency | <100ms | 13ms | PASS |
 
+Post-review final latency samples: `20.55ms`, `33.11ms`, `37.60ms`.
+
 ## Residual Notes
 
-- `/api/v9/status` is ~0.9s due to `STATUS_ENDPOINT_BUDGET_S` timeout on Redis-backed
-  checks (bridge, event_bus). This is by design — slow external dependencies are capped,
-  not eliminated.
+- `/api/v9/status` remains too heavy for repeated UI/probe usage. It is now a
+  diagnostic endpoint, not the GREEN criterion for chart/live data readiness.
 - Occasional GIL contention spikes (2-3s on health) happen when many system-state
   requests arrive simultaneously. The in-flight guard prevents amplification but cannot
   eliminate single-threaded Python contention.

@@ -7,13 +7,13 @@ Integrates with existing chart_5min/ detector and pattern library.
 
 import logging
 from datetime import date, datetime, timezone, timedelta
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
 from backend.v9.common.session_classifier import SessionClassifier, Session
 from backend.v9.db.session import SessionLocal
 from backend.v9.systems.five_min.setup_emitter import emit_t1_setup
+from backend.v9.db.models.bars_5min import V9Bar5Min
 from backend.v9.db.models.five_min_state import V9FiveMinState
 
 logger = logging.getLogger("mems26.systems.five_min")
@@ -96,24 +96,25 @@ class FiveMinSystem(BaseV9TradingSystem):
             # Load bars from DB and replay into _bar_buffer (P-WAVE-D3)
             bars_count = 0
             try:
-                import sqlite3 as _sql
-                _db_path = str(Path(__file__).resolve().parent.parent.parent.parent / "data" / "mems26_local.db")
-                _conn = _sql.connect(_db_path)
-                _conn.row_factory = _sql.Row
-                rows = _conn.execute(
-                    "SELECT * FROM v9_bars_5min ORDER BY ts DESC LIMIT 60"
-                ).fetchall()
-                _conn.close()
+                db = SessionLocal()
+                try:
+                    rows = (
+                        db.query(V9Bar5Min)
+                        .order_by(V9Bar5Min.ts.desc())
+                        .limit(60)
+                        .all()
+                    )
+                finally:
+                    db.close()
                 # Replay oldest-first into buffer (no persist)
                 for row in reversed(rows):
-                    r = dict(row)
                     bar = {
-                        "ts": r.get("ts", ""),
-                        "o": float(r.get("open", 0)),
-                        "h": float(r.get("high", 0)),
-                        "l": float(r.get("low", 0)),
-                        "c": float(r.get("close", 0)),
-                        "v": int(r.get("volume", 0)),
+                        "ts": str(row.ts or ""),
+                        "o": float(row.open or 0),
+                        "h": float(row.high or 0),
+                        "l": float(row.low or 0),
+                        "c": float(row.close or 0),
+                        "v": int(row.volume or 0),
                     }
                     self._bar_buffer.append(bar)
                 bars_count = len(rows)

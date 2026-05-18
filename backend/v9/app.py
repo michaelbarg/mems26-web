@@ -62,7 +62,7 @@ v9_router.include_router(day_type_v9_router)
 
 
 @v9_router.get("/api/v9/health")
-def v9_health():
+async def v9_health():
     return {"status": "ok", "version": "v9.0.0"}
 
 

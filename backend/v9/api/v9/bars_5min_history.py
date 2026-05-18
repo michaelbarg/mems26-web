@@ -88,7 +88,7 @@ def _aggregate_bars(bars_5m: list, period_minutes: int) -> list:
 # ── Endpoints ──
 
 @router.get("/api/v9/chart/bars5min")
-def get_bars_5min(
+async def get_bars_5min(
     limit: int = Query(60, le=600),
     before: Optional[str] = Query(None, description="ISO timestamp — fetch bars BEFORE this ts"),
 ):
@@ -97,33 +97,33 @@ def get_bars_5min(
 
 
 @router.get("/api/v9/chart/bars1m")
-def get_bars_1m(limit: int = Query(120, le=600), before: Optional[str] = Query(None)):
+async def get_bars_1m(limit: int = Query(120, le=600), before: Optional[str] = Query(None)):
     """1-min bars — returns 5-min as finest available."""
     return _fetch_bars_5min(limit=limit, before=before)
 
 
 @router.get("/api/v9/chart/bars3m")
-def get_bars_3m(limit: int = Query(120, le=600), before: Optional[str] = Query(None)):
+async def get_bars_3m(limit: int = Query(120, le=600), before: Optional[str] = Query(None)):
     """3-min bars — returns 5-min as proxy."""
     return _fetch_bars_5min(limit=limit, before=before)
 
 
 @router.get("/api/v9/chart/bars15m")
-def get_bars_15m(limit: int = Query(60, le=200), before: Optional[str] = Query(None)):
+async def get_bars_15m(limit: int = Query(60, le=200), before: Optional[str] = Query(None)):
     """15-min bars aggregated from 5-min."""
     raw = _fetch_bars_5min(limit=limit * 3, before=before)
     return _aggregate_bars(raw, 15)
 
 
 @router.get("/api/v9/chart/bars30m")
-def get_bars_30m(limit: int = Query(48, le=200), before: Optional[str] = Query(None)):
+async def get_bars_30m(limit: int = Query(48, le=200), before: Optional[str] = Query(None)):
     """30-min bars aggregated from 5-min."""
     raw = _fetch_bars_5min(limit=limit * 6, before=before)
     return _aggregate_bars(raw, 30)
 
 
 @router.get("/api/v9/chart/bars1h")
-def get_bars_1h(limit: int = Query(24, le=200), before: Optional[str] = Query(None)):
+async def get_bars_1h(limit: int = Query(24, le=200), before: Optional[str] = Query(None)):
     """1-hour bars aggregated from 5-min."""
     raw = _fetch_bars_5min(limit=limit * 12, before=before)
     return _aggregate_bars(raw, 60)
