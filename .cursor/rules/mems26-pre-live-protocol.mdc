@@ -1,0 +1,121 @@
+---
+description: Pre-LIVE agent protocol for MEMS26 — minimum-mistakes operating rules
+alwaysApply: true
+---
+
+# MEMS26 Pre-LIVE Agent Protocol
+
+We are taking MEMS26 to LIVE futures trading. Every mistake from now on
+costs Michael real time, real money, or system trust. This protocol is
+mandatory; re-read it at the start of every session and after any
+strategic stop.
+
+## Mindset
+
+- We are NOT in research mode. We are in safe-bring-up mode.
+- Every code change is a potential production bug.
+- "Defense in depth" only counts if EACH layer is tested independently.
+- Silent error handling (debug-level logs on failure paths, swallowed
+  exceptions) is forbidden between now and LIVE.
+
+## Before Any Fix — Mandatory 4-Step Verification
+
+1. **Read the current code.** Do not propose a change based on memory.
+   Use the Read tool to confirm the actual state of the file.
+2. **Verify the hypothesis with data.** Run a DB query, read a log,
+   write a one-shot probe — collect concrete evidence the bug exists
+   AS DESCRIBED before touching code.
+3. **Confirm the fix is not already there.** P27.5d Option A was a
+   waste because WAL + busy_timeout were already configured. Always
+   grep / Read the relevant file first.
+4. **Bound the blast radius.** Smallest change that addresses the root
+   cause. No "while I'm here" refactors.
+
+## After Any Fix — Mandatory UAT Axes
+
+For data/chart endpoints, every UAT must verify ALL of these (not just
+the one bug we fixed):
+
+- **Quality:** the specific bad-data condition is gone (e.g. `bad_count=0`).
+- **Recency:** `endpoint.latest_ts == DB.MAX(ts)` — newest data is reachable.
+- **Cardinality:** `len(rows) == requested_limit` — no silent truncation.
+- **Latency:** response time stays under the documented threshold.
+
+P27.5a originally only checked Quality and shipped a regression that
+hid the 20 newest bars (Cardinality + Recency failed). Never again.
+
+## When Stuck — Diagnostic Discipline
+
+- If the same diagnostic command fails 2× in the sandbox, change tactic
+  (different tool, different angle) — do not repeat hoping for a
+  different result.
+- If the sandbox blocks an action 2× (`screen`, `pgrep`, `pkill`,
+  process spawn), **immediately delegate to Claude Code** with a tight
+  prompt instead of asking Michael to manually run the same command.
+- If a hypothesis is not confirmed by data within ~5 minutes of work,
+  stop, write down what was learned, ask Michael which direction.
+
+## Process Discipline
+
+- **One thread at a time.** Finish + report before opening the next.
+  Today we bounced between bridge config, P27.5a hotfix, /api/v9/status
+  timeout, TPO empty, and footprint streams — and lost a workday.
+- **Update reports the moment state changes.** Do not let
+  `docs/reports/PROMPT_*.md` go stale while we move on.
+- **Strategic stops are mandatory** at any of:
+  - Phase gate transition (Phase N → N+1).
+  - Discovery that contradicts the current plan (e.g. P27.5b not the
+    real blocker, P27.5d found instead).
+  - Any change that affects trading logic or risk surface.
+
+## Delegation to Claude Code
+
+CC has access to a real terminal without the sandbox restrictions.
+Delegate to CC when:
+
+- Service bring-up, kill -9, screen sessions, launchctl operations.
+- Live measurement / soak runs (multi-minute observation windows).
+- Report drafting from raw test/UAT output.
+
+The Cursor agent (this file) keeps:
+
+- Code reading and editing.
+- Strategic decisions and stop/go gating.
+- UAT analysis (the four axes above).
+- Verification of CC's work against the four UAT axes.
+
+## Concrete Mistakes Log (2026-05-17)
+
+Read these so we don't repeat them.
+
+1. **Slice bug in P27.5a hotfix** — `result[:limit]` instead of
+   `result[-limit:]` after `reversed(rows)` silently dropped the
+   20 newest bars. UAT only checked `bad_count=0`. Fix included
+   regression test in `tests/v9/api/test_chart_bars5min_integrity.py`.
+2. **Proposed WAL + busy_timeout** as P27.5d Option A without reading
+   `backend/v9/db/session.py`, where it had been configured for weeks.
+3. **Ran `bash scripts/start_all.sh` from the sandbox** repeatedly and
+   reported "Bridge failed" instead of recognizing the sandbox cannot
+   spawn `screen` sessions. Wasted ~20 minutes before delegating to CC.
+4. **Believed a CC report at face value** that said `streams=12/12`
+   when the heartbeat actually showed `streams=9/12` and three streams
+   had `pushes=0`. Always re-verify CC's reports against raw evidence.
+5. **Did not update the P27.5a report** for hours after the live UAT
+   passed and the bad rows were deleted. Reports must follow state.
+6. **Promoted hypothesized fix to code** before confirming the
+   diagnosis (added `error_count` and warning logs to `_push_api`
+   before proving CLOUD_URL was the cause). Diagnose first, fix
+   second.
+
+## Pre-LIVE Checklist for Every P-ID
+
+Before declaring a P-ID GREEN:
+
+- [ ] Code change is the smallest correct fix.
+- [ ] All four UAT axes (quality / recency / cardinality / latency) verified live.
+- [ ] Regression test added under `tests/v9/...`.
+- [ ] Targeted test suite passes (`pytest tests/v9/... -q`).
+- [ ] Report `docs/reports/PROMPT_<id>.md` reflects post-UAT reality, not pre-UAT plan.
+- [ ] Bridge / backend / DB state explicitly recorded in the report.
+- [ ] No new `logger.debug` on failure paths — anything that hides a
+      bridge or backend error must be `warning` or `error` with rate-limit.

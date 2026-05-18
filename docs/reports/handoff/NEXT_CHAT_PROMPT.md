@@ -1,6 +1,8 @@
-**Status:** living document — update as the project advances
+**Status:** SUPERSEDED for sessions on/after 2026-05-17 — see [`NEXT_CHAT_PROMPT_2026-05-17.md`](./NEXT_CHAT_PROMPT_2026-05-17.md)
 **Last updated:** 2026-05-16
 **Author:** Cursor multitask session
+
+> **Note:** This file is kept for history only. The canonical handoff for the **post-P27.5a/c/d/e** state, with **Master Index V2** properly referenced as authoritative spec, is `NEXT_CHAT_PROMPT_2026-05-17.md` in this same folder.
 
 # NEXT_CHAT_PROMPT — MEMS26 autonomous trading
 

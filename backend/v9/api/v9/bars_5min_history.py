@@ -54,7 +54,10 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
             })
         if filtered:
             logger.info("[bars_5min_history] filtered %d bad bars from response", filtered)
-        return result[:limit]
+        # Keep the NEWEST `limit` rows after filtering. `result` is ordered
+        # oldest→newest; slicing [-limit:] preserves the most recent bars
+        # (the over-fetch buffer of +20 lives at the front, not the back).
+        return result[-limit:]
     except Exception:
         return []
 

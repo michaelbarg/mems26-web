@@ -36,25 +36,9 @@ def set_bar_router(router) -> None:
 
 
 def _route_bar(bar_type: str, bar_data: dict) -> None:
-    """Route a bar to BarRouter if available.
-
-    Sync wrapper that schedules async publish on the running event loop.
-    D1.9.2: fixed to actually deliver bar data.
-    """
+    """Route a bar to BarRouter via thread-safe publish (P27.5c fix)."""
     if _bar_router is not None:
-        import asyncio
-        try:
-            loop = asyncio.get_event_loop()
-            asyncio.ensure_future(_bar_router.publish(bar_type, bar_data), loop=loop)
-        except RuntimeError:
-            # No running event loop — fallback to thread-safe call
-            try:
-                import threading
-                def _bg():
-                    asyncio.run(_bar_router.publish(bar_type, bar_data))
-                threading.Thread(target=_bg, daemon=True).start()
-            except Exception:
-                logger.debug("[bars] BarRouter publish skipped for %s", bar_type)
+        _bar_router.publish_threadsafe(bar_type, bar_data)
 
 
 def set_event_dispatcher(dispatcher) -> None:

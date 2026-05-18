@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-17  
 **Scope:** `/api/v9/chart/bars5min` backend bad-bar integrity  
-**Status:** Code + tests complete; live backend restart still required for endpoint UAT
+**Status:** GREEN — code + tests + live backend UAT all green; bad DB rows removed.
 
 ## Root Cause
 
@@ -39,11 +39,13 @@ Implemented backend-side integrity enforcement:
   - Filters invalid historical rows before returning chart data.
   - This is defense-in-depth for bad rows already present in the DB.
 
-No existing DB rows were deleted or modified in this prompt.
+After UAT, the three confirmed bad rows were also deleted from the local DB (see DB Cleanup section).
 
 ## Evidence
 
-Before code reload, the live backend process still returns the three known bad rows:
+### Before — code reload pending
+
+The pre-restart backend process still returned the three known bad rows:
 
 ```text
 live_endpoint_count 240
@@ -55,14 +57,38 @@ live_endpoint_bad [
 ]
 ```
 
-Calling the updated backend fetch function directly against the same DB filters those rows:
+Calling the updated backend fetch function directly against the same DB already filtered those rows:
 
 ```text
 direct_fetch_count 240
 direct_fetch_bad_count 0
 ```
 
-The live endpoint will require a backend restart/reload before endpoint UAT can show the new behavior.
+### After — backend restarted, bad rows deleted
+
+Backend was restarted manually by Michael (orphaned PID could not be killed from the agent sandbox). Live endpoint UAT after restart:
+
+```text
+GET http://127.0.0.1:8000/api/v9/chart/bars5min?limit=240
+live_endpoint_count 240
+live_endpoint_bad_count 0
+```
+
+Local DB after explicit cleanup of the three known bad rows:
+
+```text
+SELECT COUNT(*) FROM v9_bars_5min
+  WHERE (high - low) > 20 AND (high - low) / low > 0.02;
+-> 0
+
+SELECT COUNT(*) FROM v9_bars_5min;
+-> 549
+
+SELECT MAX(ts) FROM v9_bars_5min;
+-> 2026-05-16 11:05:00.000000
+```
+
+The latest `ts` (2026-05-16 11:05) reflects the last fully ingested replay session before the post-reboot downtime; new bars will resume once the backend is back up alongside the bridge.
 
 ## Tests
 
@@ -85,24 +111,18 @@ PYTHONPATH="/Users/michael/Downloads/mems26_web_git" python3 -m pytest \
 9 passed in 0.79s
 ```
 
-## Remaining UAT
+## UAT Result
 
-Do not consider P27.5a fully closed until backend is restarted and the live endpoint returns clean data:
+P27.5a is closed:
 
-```bash
-curl -s "http://127.0.0.1:8000/api/v9/chart/bars5min?limit=240"
-```
+- Live endpoint returns `bad_count = 0` for `limit=240`.
+- DB query for the same impossible-range pattern returns `0` rows.
+- No client-side filter is required for the three previously-known bad bars.
 
-Expected after backend reload:
+## DB Cleanup Decision (resolved)
 
-- `0` rows with `high - low > 20` and `(high - low) / low > 0.02`.
-- No client-side filter should be required for these three known bad bars.
+The three previously-confirmed bad rows were deleted from `data/mems26_local.db` after the live UAT passed. Going forward:
 
-## DB Cleanup Decision
-
-The bad rows still exist in the local DB. They are now filtered from backend history reads once the backend reloads, and future ingestion paths reject similar rows.
-
-Recommended next decision before long replay/SHADOW evidence:
-
-- Keep raw bad rows for audit and rely on server-side filtering, or
-- Add a separate quarantine/delete script with explicit approval.
+- Backend ingestion (`bars.py`, `bar_ingestion.py`) rejects invalid OHLC bars before any DB write.
+- Backend history (`bars_5min_history.py`) over-fetches and filters with `bar_is_valid` as defense-in-depth.
+- No client-side `looksOk` patch is needed for new ingest.

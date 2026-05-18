@@ -23,6 +23,7 @@ class FootprintSystem(BaseV9TradingSystem):
 
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+        self._conn: Optional[sqlite3.Connection] = None
         self._gateway = None  # injected post-init via set_gateway() (Prompt 22-alt)
         self.bar_buffer: List[Dict[str, Any]] = []
         self.max_buffer = 30
@@ -59,6 +60,14 @@ class FootprintSystem(BaseV9TradingSystem):
             "reactive_flag": None,
             "combined_class": None,
         }
+
+    def _get_conn(self) -> sqlite3.Connection:
+        """Reuse a single WAL-mode connection to avoid per-bar open/close overhead."""
+        if self._conn is None:
+            self._conn = sqlite3.connect(self.db_path, timeout=5)
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA busy_timeout=3000")
+        return self._conn
 
     def set_gateway(self, gateway) -> None:
         """Inject TradingGateway for validated T3 fire routing."""
@@ -255,7 +264,7 @@ class FootprintSystem(BaseV9TradingSystem):
 
     def _write_journal(self, event, bar, cluster, empty, ctx, pattern, signals, confluence, classification):
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.execute(
                 "INSERT OR IGNORE INTO v9_footprint_journal (ts, bar_id, cluster_data, empty_zone_data, accumulation, jumps_count, jumps_direction, otf_state, pattern_detected, zohar_signals, industry_signals, confluence_total, classification, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -272,13 +281,13 @@ class FootprintSystem(BaseV9TradingSystem):
                 ),
             )
             conn.commit()
-            conn.close()
         except Exception as e:
             logger.warning(f"Footprint journal write failed: {e}")
+            self._conn = None
 
     def _write_setup(self, event, bar, classification, pattern, confluence):
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.execute(
                 "INSERT INTO v9_footprint_setups (ts, classification, pattern_type, direction, confluence, entry_price, stop_price, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
@@ -290,9 +299,9 @@ class FootprintSystem(BaseV9TradingSystem):
                 ),
             )
             conn.commit()
-            conn.close()
         except Exception as e:
             logger.warning(f"Footprint setup write failed: {e}")
+            self._conn = None
 
     # ── T3 Firing: Absorption + Stacked Imbalance (Wave S3-T3) ──
 
@@ -434,7 +443,7 @@ class FootprintSystem(BaseV9TradingSystem):
 
         # Persist to DB
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = self._get_conn()
             conn.execute(
                 """INSERT INTO v9_footprint_setups
                 (ts, bar_id, classification, pattern, confluence, entry_price, stop_price, session, created_at)
@@ -452,11 +461,11 @@ class FootprintSystem(BaseV9TradingSystem):
                 ),
             )
             conn.commit()
-            conn.close()
             logger.info("[Footprint] FIRE: %s %s size=%s strength=%.2f",
                         signal["signal"], signal["direction"], size, signal["strength"])
         except Exception as e:
             logger.warning("[Footprint] Fire persist failed: %s", e)
+            self._conn = None
 
     def _build_pre_fire_request(self, signal: dict, bar: dict) -> FireRequest:
         direction = signal["direction"]

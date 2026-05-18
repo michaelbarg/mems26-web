@@ -48,6 +48,7 @@ class FiveMinAggregator:
         self._lock = threading.Lock()
         self.bars_closed = 0
         self.ticks_processed = 0
+        self._last_partial_publish_ts: float = 0.0
 
     def _bar_start_for(self, ts: datetime) -> datetime:
         ts_et = ts.astimezone(ET) if ts.tzinfo else ET.localize(ts)
@@ -90,6 +91,28 @@ class FiveMinAggregator:
 
         if closed and self.on_bar_close:
             self.on_bar_close(closed)
+
+        # P27.5e: Publish partial bar at 1 Hz for Phase 6 decision engine
+        if not closed and self.current_bar is not None:
+            import time as _time
+            now = _time.time()
+            if now - self._last_partial_publish_ts >= 1.0:
+                self._last_partial_publish_ts = now
+                from backend.v9.api.v9.bars import _bar_router
+                if _bar_router is not None:
+                    bar = self.current_bar
+                    partial_dict = {
+                        "ts": bar.start_ts.isoformat() if hasattr(bar.start_ts, 'isoformat') else str(bar.start_ts),
+                        "open": bar.open,
+                        "high": bar.high,
+                        "low": bar.low,
+                        "close": bar.close,
+                        "volume": bar.volume,
+                        "is_partial": True,
+                        "symbol": "MES",
+                        "session": bar.session,
+                    }
+                    _bar_router.publish_threadsafe("5min.partial", partial_dict)
 
         return closed
 
@@ -177,13 +200,9 @@ def _on_bar_close_default(bar: Bar5Min) -> None:
         "symbol": "MES",
         "session": bar.session,
     }
-    try:
-        from backend.v9.api.v9.bars import _bar_router
-        if _bar_router is not None:
-            import asyncio
-            asyncio.ensure_future(_bar_router.publish("5min", bar_dict))
-    except Exception as e:
-        logger.debug("[Aggregator] BarRouter publish skipped: %s", e)
+    from backend.v9.api.v9.bars import _bar_router
+    if _bar_router is not None:
+        _bar_router.publish_threadsafe("5min", bar_dict)
 
     logger.info(
         "[Aggregator] Bar closed: %s O=%.2f H=%.2f L=%.2f C=%.2f V=%d session=%s",

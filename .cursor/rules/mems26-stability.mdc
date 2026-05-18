@@ -5,6 +5,13 @@ alwaysApply: true
 
 # MEMS26 Stability Guardrails
 
+- **Bridge is local-only.** The bridge must push to `http://localhost:8000`
+  only. Never to `mems26-web.onrender.com` or any cloud/remote host.
+  `CLOUD_URL` is hard-set to `http://localhost:8000` in the LaunchAgent,
+  `scripts/start_all.sh`, and `bridge/v9_streams/base_stream.py` (which
+  refuses to start with a non-local `CLOUD_URL`). Do not relax this.
+- If `[<stream>] API push FAILED to https://...` appears in
+  `/tmp/bridge.err.log`, stop the bridge and ask Michael; config drift.
 - Do not change `~/Library/LaunchAgents/com.mems26.bridge.plist` back to
   `KeepAlive=true`; use conditional `KeepAlive` with `SuccessfulExit=false`.
 - Keep `V9_DISABLE_WATCHDOG="${V9_DISABLE_WATCHDOG:-1}"` in the bridge
@@ -14,3 +21,7 @@ alwaysApply: true
 - Before starting services, check for existing listeners on `127.0.0.1:3000`
   and `127.0.0.1:8000`.
 - Do not commit `*.pyc` or `__pycache__/` files.
+- At the end of every prompt, fix, UAT, or phase gate, ask Claude Code to
+  prepare or update the report before moving on. Prefer Claude Code for report
+  drafting; the main agent should focus on implementation, verification, and
+  strategic stop/go questions.

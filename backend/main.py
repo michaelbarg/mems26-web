@@ -127,8 +127,10 @@ async def _startup():
     _logger.info("[Main] FiveMinAggregator initialized: bars_closed=%d", five_min_aggregator.bars_closed)
 
     # BarRouter: central bar distribution (D1.6)
+    import asyncio as _asyncio
     from backend.v9.services.bar_router import BarRouter
     bar_router = BarRouter()
+    bar_router.bind_main_loop(_asyncio.get_running_loop())
     app.state.bar_router = bar_router
 
     # Wire BarRouter into bars API module

@@ -34,7 +34,14 @@ else:
 EXPORT_DIR = os.getenv("V9_EXPORT_DIR", "/Users/michael/SierraChart_Data/v9_export")
 REDIS_URL = os.getenv("UPSTASH_REDIS_REST_URL", "")
 REDIS_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
-CLOUD_URL = os.getenv("CLOUD_URL", "https://mems26-web.onrender.com")
+# Bridge Local-Only Rule: default to local backend. Any non-localhost CLOUD_URL
+# is rejected at startup so we never silently push to render again. See CLAUDE.md.
+CLOUD_URL = os.getenv("CLOUD_URL", "http://localhost:8000")
+if "localhost" not in CLOUD_URL and "127.0.0.1" not in CLOUD_URL:
+    raise RuntimeError(
+        f"CLOUD_URL must be local (localhost or 127.0.0.1). Got: {CLOUD_URL}. "
+        "Set CLOUD_URL=http://localhost:8000 in .env or unset to use default."
+    )
 BRIDGE_TOKEN = os.getenv("BRIDGE_TOKEN", "")
 if not BRIDGE_TOKEN:
     raise RuntimeError(
@@ -313,6 +320,9 @@ class BaseV9Stream:
 
     def _push_api(self, data: dict):
         url = f"{CLOUD_URL}{self.api_path}"
+        if not getattr(self, "_logged_push_url", False):
+            logger.info(f"[{self.name}] API push target: {url}")
+            self._logged_push_url = True
         try:
             body = json.dumps(data).encode()
             req = urllib.request.Request(
@@ -327,7 +337,12 @@ class BaseV9Stream:
             with urllib.request.urlopen(req, timeout=15) as resp:
                 logger.debug(f"[{self.name}] API push OK: {resp.status}")
         except urllib.error.URLError as e:
-            logger.debug(f"[{self.name}] API push error (W3 placeholder): {e}")
+            self.error_count += 1
+            if self.error_count <= 3 or self.error_count % 50 == 0:
+                logger.warning(
+                    f"[{self.name}] API push FAILED to {url}: {e} "
+                    f"(error_count={self.error_count})"
+                )
 
     def _send_heartbeat(self):
         ts = int(time.time())

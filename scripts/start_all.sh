@@ -31,7 +31,9 @@ ulimit -n 10240 2>/dev/null || true
 cd /Users/michael/Downloads/mems26_web_git
 [ -f .env ] && set -a && source .env && set +a
 export V9_EXPORT_DIR="${V9_EXPORT_DIR:-/Users/michael/SierraChart_Data/v9_export}"
-export CLOUD_URL="${CLOUD_URL:-https://mems26-web.onrender.com}"
+# CLOUD_URL is FORCED to localhost. Bridge must NEVER push to render or any
+# external endpoint. See CLAUDE.md "Bridge Local-Only Rule".
+export CLOUD_URL="http://localhost:8000"
 export BRIDGE_TOKEN="${BRIDGE_TOKEN:-michael-mems26-2026}"
 export V9_DISABLE_WATCHDOG="${V9_DISABLE_WATCHDOG:-1}"
 echo "=== Bridge starting at $(date) ===" >> /tmp/bridge.log

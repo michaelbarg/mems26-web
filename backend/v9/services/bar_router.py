@@ -3,10 +3,12 @@
 Receives bars from API endpoints, dispatches to subscribers + Event Bus.
 Session is tagged on each event (Principle 10).
 """
+import asyncio
 import logging
+import time
 from dataclasses import dataclass, asdict
 from datetime import datetime
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from backend.v9.common.session_classifier import SessionClassifier
 from backend.v9.services import market_clock
@@ -30,6 +32,23 @@ class BarRouter:
         self.session_clf = SessionClassifier()
         self._subscribers: Dict[str, List[Callable]] = {}
         self._stats = {"received": 0, "dispatched": 0, "published_to_bus": 0, "failed": 0}
+        self._main_loop: Optional[asyncio.AbstractEventLoop] = None
+
+    def bind_main_loop(self, loop: asyncio.AbstractEventLoop) -> None:
+        """Capture FastAPI's running event loop for thread-safe publishing."""
+        self._main_loop = loop
+        logger.info("BarRouter: bound to main event loop")
+
+    def publish_threadsafe(self, bar_type: str, bar_data: dict, mode: str = "LIVE") -> None:
+        """Schedule publish on the main event loop from any thread. Fire-and-forget."""
+        if self._main_loop is not None and self._main_loop.is_running():
+            asyncio.run_coroutine_threadsafe(self.publish(bar_type, bar_data, mode), self._main_loop)
+        else:
+            logger.warning("BarRouter: main_loop not bound/running, falling back to thread for %s", bar_type)
+            import threading
+            def _bg():
+                asyncio.run(self.publish(bar_type, bar_data, mode))
+            threading.Thread(target=_bg, daemon=True).start()
 
     def subscribe(self, bar_type: str, handler: Callable):
         self._subscribers.setdefault(bar_type, []).append(handler)
@@ -56,13 +75,23 @@ class BarRouter:
                 mode=mode,
             )
 
+            publish_start = time.perf_counter()
             for handler in self._subscribers.get(bar_type, []):
                 try:
+                    h_start = time.perf_counter()
                     await handler(event)
+                    h_ms = (time.perf_counter() - h_start) * 1000
                     self._stats["dispatched"] += 1
+                    if h_ms > 100:
+                        logger.warning(f"BarRouter: SLOW handler {handler.__qualname__} took {h_ms:.1f}ms")
                 except Exception as e:
                     logger.error(f"BarRouter: handler {handler.__qualname__} failed: {e}", exc_info=True)
                     self._stats["failed"] += 1
+            total_ms = (time.perf_counter() - publish_start) * 1000
+            if total_ms > 50:
+                logger.warning(f"BarRouter: dispatch total {total_ms:.1f}ms for {bar_type}")
+            elif total_ms > 10:
+                logger.info(f"BarRouter: dispatch {total_ms:.1f}ms for {bar_type}")
 
             if self.event_bus:
                 try:
