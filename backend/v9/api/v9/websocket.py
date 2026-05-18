@@ -99,7 +99,7 @@ def _snapshot_signals(db: Session, system_id: int, limit: int = 20) -> list:
 def _snapshot_trades(db: Session, limit: int = 20) -> list:
     rows = db.query(V9Trade).order_by(V9Trade.entry_ts.desc()).limit(limit).all()
     return [
-        {"id": r.id, "mode": r.mode, "system": r.dominant_system,
+        {"id": r.id, "mode": r.mode, "system": r.firing_system,
          "direction": r.direction,
          "entry_ts": r.entry_ts.isoformat() if r.entry_ts else None,
          "entry_price": r.entry_price,

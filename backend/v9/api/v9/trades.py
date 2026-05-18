@@ -22,7 +22,8 @@ def _ts(unix_ts) -> Optional[datetime]:
 
 class TradeIn(BaseModel):
     mode: str
-    dominant_system: int
+    dominant_system: Optional[int] = None
+    firing_system: Optional[int] = None
     direction: str
     entry_ts: Optional[float] = None
     entry_price: Optional[float] = None
@@ -125,35 +126,38 @@ def create_trade(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
+    firing_system = trade.firing_system or trade.dominant_system
+    if firing_system is None:
+        raise HTTPException(status_code=422, detail="firing_system or dominant_system is required")
+
     row = V9Trade(
         mode=trade.mode,
-        dominant_system=trade.dominant_system,
+        firing_system=firing_system,
         direction=trade.direction,
         entry_ts=_ts(trade.entry_ts),
         entry_price=trade.entry_price,
-        stop_initial=trade.stop_initial,
-        stop_final=trade.stop_final,
-        t1_price=trade.t1_price,
-        t1_filled_at=_ts(trade.t1_filled_at),
-        t2_price=trade.t2_price,
-        t2_filled_at=_ts(trade.t2_filled_at),
-        t3_price=trade.t3_price,
+        stop=trade.stop_initial or trade.stop_final,
+        t1=trade.t1_price,
+        t1_hit_ts=_ts(trade.t1_filled_at),
+        t2=trade.t2_price,
+        t2_hit_ts=_ts(trade.t2_filled_at),
+        t3=trade.t3_price,
         exit_ts=_ts(trade.exit_ts),
         exit_price=trade.exit_price,
         exit_reason=trade.exit_reason,
         pnl_usd=trade.pnl_usd,
         pnl_r=trade.pnl_r,
         outcome=trade.outcome,
-        quality_review=trade.quality_review,
+        quality=trade.quality_review,
         sierra_bracket_id=trade.sierra_bracket_id,
-        context_json=trade.context_json,
+        cross_context=trade.context_json,
     )
     db.add(row)
     db.commit()
     db.refresh(row)
     publish_event(CHANNEL_TRADES, {
         "trade_id": row.id, "mode": row.mode,
-        "direction": row.direction, "system": row.dominant_system,
+        "direction": row.direction, "system": row.firing_system,
     })
     return {"ok": True, "trade_id": row.id}
 
@@ -162,6 +166,7 @@ def create_trade(
 def get_trades(
     mode: Optional[str] = None,
     dominant_system: Optional[int] = None,
+    firing_system: Optional[int] = None,
     limit: int = Query(50, le=200),
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
@@ -169,11 +174,12 @@ def get_trades(
     q = db.query(V9Trade)
     if mode:
         q = q.filter(V9Trade.mode == mode)
-    if dominant_system is not None:
-        q = q.filter(V9Trade.dominant_system == dominant_system)
+    system_filter = firing_system if firing_system is not None else dominant_system
+    if system_filter is not None:
+        q = q.filter(V9Trade.firing_system == system_filter)
     rows = q.order_by(V9Trade.entry_ts.desc()).limit(limit).all()
     return {"trades": [
-        {"id": r.id, "mode": r.mode, "system": r.dominant_system,
+        {"id": r.id, "mode": r.mode, "system": r.firing_system,
          "direction": r.direction,
          "entry_ts": r.entry_ts.isoformat() if r.entry_ts else None,
          "entry_price": r.entry_price,
@@ -200,22 +206,22 @@ def get_trade(
     return {
         "trade": {
             "id": trade.id, "mode": trade.mode,
-            "system": trade.dominant_system, "direction": trade.direction,
+            "system": trade.firing_system, "direction": trade.direction,
             "entry_ts": trade.entry_ts.isoformat() if trade.entry_ts else None,
             "entry_price": trade.entry_price,
-            "stop_initial": trade.stop_initial, "stop_final": trade.stop_final,
-            "t1_price": trade.t1_price,
-            "t1_filled_at": trade.t1_filled_at.isoformat() if trade.t1_filled_at else None,
-            "t2_price": trade.t2_price,
-            "t2_filled_at": trade.t2_filled_at.isoformat() if trade.t2_filled_at else None,
-            "t3_price": trade.t3_price,
+            "stop_initial": trade.stop, "stop_final": trade.stop,
+            "t1_price": trade.t1,
+            "t1_filled_at": trade.t1_hit_ts.isoformat() if trade.t1_hit_ts else None,
+            "t2_price": trade.t2,
+            "t2_filled_at": trade.t2_hit_ts.isoformat() if trade.t2_hit_ts else None,
+            "t3_price": trade.t3,
             "exit_ts": trade.exit_ts.isoformat() if trade.exit_ts else None,
             "exit_price": trade.exit_price, "exit_reason": trade.exit_reason,
             "pnl_usd": trade.pnl_usd, "pnl_r": trade.pnl_r,
             "outcome": trade.outcome,
-            "quality_review": trade.quality_review,
+            "quality_review": trade.quality,
             "sierra_bracket_id": trade.sierra_bracket_id,
-            "context_json": trade.context_json,
+            "context_json": trade.cross_context,
         },
         "management_log": [
             {"id": l.id, "ts": l.ts.isoformat(), "action": l.action, "value": l.value}

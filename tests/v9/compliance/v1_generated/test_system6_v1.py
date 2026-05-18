@@ -34,20 +34,14 @@ class TestNewsEventQualityOverride:
 # -- GAP: PRE_MARKET should be blocked for live trading ---
 
 class TestPreMarketBlocking:
-    """Spec Section 3: PRE_MARKET notes say 'Watch only (no live trading)'.
-    Code sets is_blocked_default=False with sizing=0.25.
-    For LIVE mode, PRE_MARKET should be blocked.
+    """D-061 overrides Cockpit V5 §3.3: Killzone is observational/tag-only.
+    PRE_MARKET is not a zone-level hard block; manager/calendar controls trading.
     """
 
-    def test_pre_market_blocked_by_default(self):
-        """Spec: PRE_MARKET should be blocked (watch only, no live trading)."""
+    def test_pre_market_observational_by_default(self):
+        """D-061: PRE_MARKET should not be blocked by zone label."""
         zone = ZONE_BY_NAME["PRE_MARKET"]
-        # Spec says "Watch only (no live trading)" = should be blocked
-        # Code has is_blocked_default=False
-        assert zone.is_blocked_default is True, (
-            f"Spec: PRE_MARKET = 'Watch only (no live trading)'. "
-            f"is_blocked_default should be True, got {zone.is_blocked_default}"
-        )
+        assert zone.is_blocked_default is False
 
 
 # -- GAP: Half-day zone time scaling ---
@@ -98,15 +92,15 @@ class TestZoneDefinitionsMatchSpec:
         zone = ZONE_BY_NAME["NY_PRIME"]
         assert zone.quality == "HIGH"
 
-    def test_lunch_blocked_default(self):
-        """Spec: LUNCH blocked by default."""
+    def test_lunch_observational_default(self):
+        """D-061: LUNCH is a tag, not a hard block."""
         zone = ZONE_BY_NAME["LUNCH"]
-        assert zone.is_blocked_default is True
+        assert zone.is_blocked_default is False
 
-    def test_close_final_blocked_default(self):
-        """Spec: CLOSE_FINAL blocked by default."""
+    def test_close_final_observational_default(self):
+        """D-061: CLOSE_FINAL is a tag, not a hard block."""
         zone = ZONE_BY_NAME["CLOSE_FINAL"]
-        assert zone.is_blocked_default is True
+        assert zone.is_blocked_default is False
 
     def test_pm_prime_sizing_full(self):
         """Spec: PM_PRIME sizing = 1.0 (FULL)."""

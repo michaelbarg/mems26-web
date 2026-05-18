@@ -194,7 +194,7 @@ class TestWSSnapshotWithData:
 
         session = TestSession()
         trade = V9Trade(
-            mode="SHADOW", dominant_system=1, direction="LONG",
+            mode="SHADOW", firing_system=1, direction="LONG",
             entry_ts=datetime(2026, 5, 10, 14, 30, tzinfo=timezone.utc),
             entry_price=5412.50,
         )

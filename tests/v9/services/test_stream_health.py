@@ -80,9 +80,9 @@ def test_error_count_tracked(svc):
     assert tpo["color"] == "yellow"
 
 
-def test_get_all_streams_returns_10(svc):
+def test_get_all_streams_returns_canonical_streams(svc):
     result = svc.get_all_streams()
-    assert len(result["streams"]) == 10
+    assert len(result["streams"]) == len(STREAM_NAMES)
     names = {s["name"] for s in result["streams"]}
     assert names == set(STREAM_NAMES)
 

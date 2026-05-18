@@ -94,15 +94,13 @@ class TestSizing:
 
 class TestBlocked:
     def test_blocked(self):
-        """Default block status per spec."""
-        assert ZONE_BY_NAME["LUNCH"].is_blocked_default is True
-        assert ZONE_BY_NAME["CLOSE_FINAL"].is_blocked_default is True
-        assert ZONE_BY_NAME["AFTER_HOURS"].is_blocked_default is True
-        assert ZONE_BY_NAME["NY_PRIME"].is_blocked_default is False
+        """D-061: zones are observational; they do not hard block by default."""
+        for zone in ZONE_BY_NAME.values():
+            assert zone.is_blocked_default is False
 
-    def test_lunch_blocked(self):
+    def test_lunch_observational(self):
         status = get_killzone_status(_utc_from_et(12, 30))
-        assert status["is_blocked"] is True
+        assert status["is_blocked"] is False
         assert status["current_killzone"] == "LUNCH"
 
     def test_lunch_override(self):
@@ -125,7 +123,7 @@ class TestTimeCalc:
 class TestGate:
     def test_gate(self):
         assert is_gate_open(_utc_from_et(10, 45)) is True
-        assert is_gate_open(_utc_from_et(12, 30)) is False
+        assert is_gate_open(_utc_from_et(12, 30)) is True
 
     def test_gate_quality_filter(self):
         assert is_gate_open(_utc_from_et(10, 45), min_quality="HIGH") is True

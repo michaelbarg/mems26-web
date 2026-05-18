@@ -1,7 +1,7 @@
 """StreamHealthService — in-memory per-stream health tracking.
 
 Tracks push timestamps, error counts, and dispatch timestamps for all
-10 Bridge streams.  Computes a traffic-light status per stream:
+canonical Bridge streams.  Computes a traffic-light status per stream:
     GREEN  — last push < 10s, no recent errors
     YELLOW — last push 10-60s OR errors present
     RED    — last push > 60s OR never received
@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Canonical stream names (per MASTER_DEV_SKILL naming conventions)
 STREAM_NAMES: List[str] = [
+    "live_price",
     "tick_reversal_15",
     "tick_reversal_12",
     "footprint",
@@ -57,7 +58,7 @@ class _StreamState:
 
 
 class StreamHealthService:
-    """In-memory health tracker for all 10 Bridge streams."""
+    """In-memory health tracker for all canonical Bridge streams."""
 
     def __init__(self) -> None:
         self._lock = threading.Lock()

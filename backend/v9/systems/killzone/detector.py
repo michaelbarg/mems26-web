@@ -41,6 +41,7 @@ def get_current_zone(now_utc: Optional[datetime] = None) -> Zone:
 def get_killzone_status(
     now_utc: Optional[datetime] = None,
     *,
+    manager_enabled: bool = True,
     trade_in_lunch: bool = False,
     trade_in_close: bool = True,
     block_first_15min: bool = False,
@@ -85,28 +86,20 @@ def get_killzone_status(
         next_start_dt += timedelta(days=1)
     time_to_next_min = max(0, int((next_start_dt - now_et).total_seconds() / 60))
 
-    # Blocked logic
-    is_blocked = zone.is_blocked_default
+    # D-061: Killzone is observational/tag context. Zone labels do not hard
+    # block trading; hard blocks come from calendar/manager/news controls.
+    is_blocked = False
     block_reason = None
 
     if not is_trading_day:
         is_blocked = True
         block_reason = "holiday"
+    elif not manager_enabled:
+        is_blocked = True
+        block_reason = "manager_disabled"
     elif _is_near_news(now_utc, news_events, news_block_minutes):
         is_blocked = True
         block_reason = "news_block"
-    elif zone.name == "LUNCH" and not trade_in_lunch:
-        is_blocked = True
-        block_reason = "lunch_blocked"
-    elif zone.name == "LUNCH" and trade_in_lunch:
-        is_blocked = False
-    elif zone.name in ("CLOSE_APPROACH", "CLOSE_FINAL") and not trade_in_close:
-        is_blocked = True
-        block_reason = "close_blocked"
-    elif zone.name == "CLOSE_FINAL" and trade_in_close:
-        # trade_in_close=True allows CLOSE_APPROACH but CLOSE_FINAL stays blocked
-        is_blocked = True
-        block_reason = "close_final"
 
     # First/last 15-min blocks within any zone
     if block_first_15min and time_in_zone_min < 15 and zone.name == "NY_OPEN_VOLATILITY":

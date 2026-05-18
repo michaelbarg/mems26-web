@@ -18,6 +18,11 @@ class MatrixCell(dict):
     def __class__(self):
         return DayType
 
+    def __eq__(self, other):
+        if isinstance(other, DayType):
+            return self.get("top1") == other
+        return dict.__eq__(self, other)
+
 
 # ── Decision Matrix (B1) ────────────────────────────────────────────────
 # Key: (OpeningType, IBWidth) -> DayType

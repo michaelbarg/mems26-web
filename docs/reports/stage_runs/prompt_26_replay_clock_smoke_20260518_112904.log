@@ -1,0 +1,10 @@
+=== Replay Clock Smoke Test ===
+.....                                                                    [100%]
+5 passed in 1.03s
+
+=== Market Clock Module ===
+Mode: REALTIME
+Status: READY
+now_et: 2026-05-18 04:29:06.987212-04:00
+
+✅ Replay clock smoke passed

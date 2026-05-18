@@ -9,6 +9,7 @@ from .detector import get_killzone_status
 def is_gate_open(
     now_utc: Optional[datetime] = None,
     *,
+    manager_enabled: bool = True,
     trade_in_lunch: bool = False,
     trade_in_close: bool = True,
     block_first_15min: bool = False,
@@ -19,10 +20,12 @@ def is_gate_open(
 ) -> bool:
     """Return True if trading is allowed right now.
 
-    Checks: not blocked, quality >= min_quality, sizing > 0.
+    Checks: not blocked by calendar/manager/news, quality >= min_quality.
+    Per D-061, zone sizing is advisory and does not hard block by itself.
     """
     status = get_killzone_status(
         now_utc,
+        manager_enabled=manager_enabled,
         trade_in_lunch=trade_in_lunch,
         trade_in_close=trade_in_close,
         block_first_15min=block_first_15min,
@@ -32,8 +35,6 @@ def is_gate_open(
     )
 
     if status["is_blocked"]:
-        return False
-    if status["sizing_modifier"] <= 0.0:
         return False
 
     # Quality gate

@@ -94,10 +94,10 @@ def test_marker_save_load(db):
 
 def test_trade_with_log(db):
     trade = V9Trade(
-        mode="SHADOW", dominant_system=1, direction="LONG",
+        mode="SHADOW", firing_system=1, direction="LONG",
         entry_ts=datetime(2026, 5, 9, 14, 30, tzinfo=timezone.utc),
-        entry_price=5412.50, stop_initial=5408.00,
-        t1_price=5416.00,
+        entry_price=5412.50, stop=5408.00,
+        t1=5416.00,
     )
     db.add(trade)
     db.commit()

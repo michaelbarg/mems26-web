@@ -754,7 +754,10 @@ class TestEdgeCases:
         sm = DayTypeStateMachine()
         bar = make_bar(session_min=0)
         state = sm.process_bar(bar)
-        assert state.stage != Stage.A1  # Should have advanced past A1
+        assert state.stage == Stage.A1
+        assert state.day_type == DayType.UNKNOWN
+        assert state.meta["pd_context_status"] == "DEGRADED"
+        assert state.meta["pd_degraded_reason"] == "missing_previous_day_context"
 
     def test_very_large_ib(self):
         """Very large IB range should classify as WIDE."""

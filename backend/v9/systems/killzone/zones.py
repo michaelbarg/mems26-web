@@ -1,6 +1,7 @@
 """11 Killzone definitions per MEMS26_KILLZONE_SPEC_V1.
 
 All times are Eastern Time (America/New_York) — DST-aware.
+Per D-061, zones are observational tags; they do not hard-block trades.
 """
 
 from dataclasses import dataclass
@@ -37,9 +38,9 @@ ZONES: list[Zone] = [
         name="PRE_MARKET",
         start=time(5, 0), end=time(9, 30),
         quality="LOW", volatility="LOW",
-        sizing_modifier=PreMarketSizing(), is_blocked_default=True,
+        sizing_modifier=PreMarketSizing(), is_blocked_default=False,
         session_phase="PRE",
-        notes="Watch only (no live trading)",
+        notes="Observational pre-market tag; manager/calendar controls trading",
     ),
     Zone(
         name="NY_OPEN_VOLATILITY",
@@ -77,7 +78,7 @@ ZONES: list[Zone] = [
         name="LUNCH",
         start=time(12, 0), end=time(13, 0),
         quality="LOW", volatility="LOW",
-        sizing_modifier=0.0, is_blocked_default=True,
+        sizing_modifier=0.0, is_blocked_default=False,
         session_phase="MID",
         notes="Choppy / whipsaw / low liquidity",
     ),
@@ -109,7 +110,7 @@ ZONES: list[Zone] = [
         name="CLOSE_FINAL",
         start=time(15, 45), end=time(16, 0),
         quality="LOW", volatility="VERY_HIGH",
-        sizing_modifier=0.0, is_blocked_default=True,
+        sizing_modifier=0.0, is_blocked_default=False,
         session_phase="CLOSE",
         notes="MOC orders / whipsaw / no new entries",
     ),
@@ -117,7 +118,7 @@ ZONES: list[Zone] = [
         name="AFTER_HOURS",
         start=time(16, 0), end=time(5, 0),  # wraps midnight
         quality="OFF", volatility="LOW",
-        sizing_modifier=0.0, is_blocked_default=True,
+        sizing_modifier=0.0, is_blocked_default=False,
         session_phase="CLOSED",
         notes="Out of session / no trading",
     ),

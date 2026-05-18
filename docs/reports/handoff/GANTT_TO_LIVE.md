@@ -20,8 +20,8 @@ Companion documents:
 
 | Phase | Description | Prompts | Depends on | Status | Exit criteria |
 |---|---|---|---|---|---|
-| **0. Backend data integrity** | Close P27.5 pipeline issues before replay/SHADOW (`bars5min`, `live_price`, TPO, dispatch latency, partial bars, five_min route instance, docs sync) | P27.5a/b/c/d/e/f/z | nothing | **IN PROGRESS** — P27.5a/c/d/e/f/z GREEN; P27.5b DEFERRED until RTH | P27.5b proves `/live_price age_ms < 60000` during RTH; then Michael explicitly approves Phase 0 → Phase 1 |
-| **1. Replay smoke run** | Re-run Prompt 28 after Phase 0 is fully green; prove the replay clock + all 6 systems still pass against the cleaned data path | P28 (re-run) | Phase 0 + Michael gate | **WAITING** | All 11 checks PASS on cleaned data; report `PROMPT28_REPLAY_SMOKE_RUN.md` refreshed |
+| **0. Backend data integrity** | Close P27.5 pipeline issues before replay/SHADOW (`bars5min`, `live_price`, TPO, dispatch latency, partial bars, five_min route instance, docs sync) | P27.5a/b/c/d/e/f/z | nothing | **DONE — gate approved 2026-05-18** | P27.5b proved `/live_price age_ms < 60000` with 10/10 live Sierra samples; Michael approved Phase 0 → Phase 1 |
+| **1. Replay smoke run** | Re-run Prompt 28 after Phase 0 is fully green; prove the replay clock + all 6 systems still pass against the cleaned data path | P28 (re-run) | Phase 0 + Michael gate | **GREEN — waiting Phase 1 → Phase 2 gate** | Smoke checks PASS; full `tests/v9/` PASS (`1244 passed, 1 skipped`); Michael must explicitly approve Phase 1 → Phase 2 |
 | **2. Replay scenario pack** | Inject 10 historical scenarios (trend / balance / opening drive / S2 / S3 / S4 / killzone change / TPO context / degraded / pre_fire block) and verify expected reason trees and route/block outcomes | P29 | Phase 1 | NOT STARTED | All 10 scenarios pass; `docs/reports/PROMPT29_REPLAY_SCENARIO_PACK.md` exists |
 | **3. Data collection package** | Define and wire the storage/log contract for everything we will collect during SHADOW (bars per stream, per-system state, pre_fire decisions, gateway dry-run decisions, reason trees, lifecycle events) | P29.5 | Phase 2 | NOT STARTED | Schema + sinks documented and exercised by a 1-hour replay run that produces parseable artifacts |
 | **4. Frontend polish (optional, deferrable)** | Decide if SystemPanelsBar / Volume comes back in a new form; UI/UX evaluation now that the chart is a single pane; design package for handoff to a designer | P-UI-1..P-UI-3 | Phase 3 (data shape known) | DEFERRED | UI spec frozen for SHADOW dashboard; chart, banners, side panel, strips finalized |
@@ -46,8 +46,8 @@ gantt
     P27.5a bad-bar root cause + fix             :done, crit, p275a, 0, 3
     P27.5a UAT (quality/recency/cardinality/latency) :done, p275aU, after p275a, 1
     section /live_price
-    P27.5b stale price root cause + fix         :active, crit, p275b, after p275aU, 3
-    P27.5b UAT (RTH freshness < 60s)            :crit, p275bU, after p275b, 1
+    P27.5b stale price root cause + fix         :done, crit, p275b, after p275aU, 3
+    P27.5b UAT (freshness < 60s, 10/10 PASS)   :done, crit, p275bU, after p275b, 1
     section /tpo/current
     P27.5c publish_threadsafe + TPO feed        :done, crit, p275c, after p275aU, 3
     P27.5c UAT (bars_processed_today > 0)       :done, p275cU, after p275c, 1

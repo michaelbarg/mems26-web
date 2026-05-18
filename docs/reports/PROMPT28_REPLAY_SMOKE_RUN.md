@@ -1,8 +1,9 @@
-# Prompt 28: Replay Smoke Run
+# Prompt 28: Replay Smoke Run — Post-P27.5 Rerun
 
-**Date:** 2026-05-16  
-**HEAD:** `d8246a9` (Prompt 27)  
-**No SHADOW/DEMO/LIVE enabled.**
+**Date:** 2026-05-18  
+**HEAD:** `2466a66`  
+**Status:** GREEN — smoke PASS, full `tests/v9/` suite PASS  
+**No SHADOW/DEMO/LIVE enabled. No bridge start/stop. No trade command writes.**
 
 ---
 
@@ -10,16 +11,44 @@
 
 | # | Command | Result |
 |---|---------|--------|
-| 1 | `git status` | Clean |
-| 2 | `bash scripts/stages/status_check.sh` | ✅ All 6 systems 200 |
-| 3 | `bash scripts/stages/prompt_26_replay_clock_smoke.sh` | ✅ 5/5 tests pass |
-| 4 | Verify clock mode transition (Python) | ✅ REALTIME→REPLAY→PENDING→READY→REALTIME |
-| 5 | Verify replay timestamp becomes now_et | ✅ now_et = replay time (not wall clock) |
-| 6 | S1 Day Type responds | ✅ day_type=Variation classified=True |
-| 7 | S5 TPO responds | ✅ poc=7478.25 running=True |
-| 8 | S6 Killzone uses clock | ✅ zone=WEEKEND (correct for current wall time) |
-| 9 | S2/S3/S4 fire endpoints | ✅ all 200 |
-| 10 | No DEMO/LIVE active | ✅ demo_enabled=[] live_enabled=[] |
+| 1 | `git status --short --branch` | Branch `stabilize/mems26-local-truth-2026-05-16`, ahead 2, docs/logs dirty from this session |
+| 2 | `bash scripts/run_stage.sh status_check` | PASS — health + all 6 systems 200 |
+| 3 | `bash scripts/run_stage.sh prompt_26_replay_clock_smoke` | PASS — 5/5 tests, clock `REALTIME`, status `READY` |
+| 4 | Post-P27.5 endpoint verification probe | PASS — bars/live_price/TPO/five_min/fire endpoints healthy |
+| 5 | Gateway status probe | PASS for mode safety — `demo_enabled_systems=[]`, `live_enabled_systems=[]`, slots `None` |
+| 6 | Targeted pytest suite | PASS — 33/33 |
+| 7 | `bash scripts/run_stage.sh prompt_27_replay_plan` | PASS — plan exists + 11/11 integration tests |
+| 8 | `python3 -m pytest tests/v9/ -q` | Initial FAIL — 9 failed, 1234 passed, 1 skipped |
+| 9 | Safe triage fixes for trade schema + stream counts | PASS — targeted 5/5 |
+| 10 | `python3 -m pytest tests/v9/ -q` rerun | FAIL — 4 failed, 1239 passed, 1 skipped |
+| 11 | Apply Michael policy clarification for Day Type/Killzone | PASS — Day Type requires prior-day context; D-061 makes Killzone observational/tag-only |
+| 12 | `python3 -m pytest tests/v9/ -q` final | PASS — 1244 passed, 1 skipped |
+
+Stage logs:
+- `docs/reports/stage_runs/status_check_20260518_112858.log`
+- `docs/reports/stage_runs/prompt_26_replay_clock_smoke_20260518_112904.log`
+- `docs/reports/stage_runs/prompt_27_replay_plan_20260518_113019.log`
+
+---
+
+## Post-P27.5 Endpoint Evidence
+
+| Check | Evidence | Status |
+|-------|----------|--------|
+| `/api/v9/chart/bars5min?limit=240` | HTTP 200, latency 48.4ms, count=240, bad_count=0, `last_ts == DB MAX(ts) == 2026-05-17 16:15:00.000000` | PASS |
+| `/api/v9/live_price` | HTTP 200, latency 6.3ms, price=7413.0, age_ms=704, valid JSON | PASS |
+| `/api/v9/tpo/current` | HTTP 200, latency 5.2ms, `bars_processed_today=2`, `running=True`, `poc=7522.0` | PASS |
+| `/api/v9/five_min/current` | HTTP 200, latency 2.1ms, `hydrated=True`, `mode=WEEKEND` | PASS |
+| `/api/v9/five_min/fire` | HTTP 200, `fired=False` | PASS |
+| `/api/v9/footprint/fire` | HTTP 200, `fired=False` | PASS |
+| `/api/v9/woodies/fire` | HTTP 200, `fired=False` | PASS |
+| `/api/v9/killzone/current` | HTTP 200, `running=True`, `clock_mode=REALTIME`, current zone `LONDON` | PASS |
+| `/api/v9/clock/now` | HTTP 200, mode `REALTIME`, status `READY`, `is_rth_open=False` | PASS |
+| `/api/v9/gateway/status` | HTTP 200, `demo_enabled_systems=[]`, `live_enabled_systems=[]`, `demo_slot=None`, `live_slot=None`, `shadow_active_count=0` | PASS for mode safety |
+
+Watch item: `/api/v9/gateway/status` consistently returned in ~2.0s. This did
+not violate the P28 mode-safety check, but should be tracked if gateway status
+latency becomes operationally important.
 
 ---
 
@@ -27,61 +56,63 @@
 
 | # | Check | Status |
 |---|-------|--------|
-| 1 | Backend health 200 | ✅ PASS |
-| 2 | MarketClock enters REPLAY mode | ✅ PASS |
-| 3 | REPLAY status=PENDING until bar arrives | ✅ PASS |
-| 4 | update_replay_timestamp → now_et becomes replay time | ✅ PASS |
-| 5 | reset → back to REALTIME | ✅ PASS |
-| 6 | S1 responds with classification | ✅ PASS |
-| 7 | S5 TPO responds | ✅ PASS |
-| 8 | S6 Killzone responds | ✅ PASS |
-| 9 | S2/S3/S4 fire endpoints 200 | ✅ PASS |
-| 10 | No DEMO/LIVE command path active | ✅ PASS |
-| 11 | Bar router has correct subscribers | ✅ PASS (tick_reversal_15:3, 5min:4, tick_reversal_12:1, woodies_5min:1) |
+| 1 | Backend health 200 | PASS |
+| 2 | All 6 system current endpoints 200 | PASS |
+| 3 | Replay clock smoke tests | PASS — 5/5 |
+| 4 | MarketClock module state | PASS — `REALTIME`, `READY` |
+| 5 | bars5min quality | PASS — bad_count=0 |
+| 6 | bars5min cardinality | PASS — count=240 |
+| 7 | bars5min recency | PASS — endpoint last_ts equals DB MAX(ts) |
+| 8 | live_price freshness | PASS — age_ms=704 in post-P27.5 probe; P27.5b 10/10 PASS |
+| 9 | TPO current responds | PASS — running=True, bars_processed_today=2 |
+| 10 | five_min current uses live instance | PASS — hydrated=True |
+| 11 | S2/S3/S4 fire state endpoints 200 | PASS |
+| 12 | No DEMO/LIVE command path active | PASS — enabled lists empty, slots None |
+| 13 | Targeted regression tests | PASS — 33/33 |
+| 14 | Replay plan integration stage | PASS — 11/11 |
+| 15 | Full `tests/v9/` suite | PASS — 1244 passed, 1 skipped |
 
-**Result: 11/11 PASS**
+**Result: P28 GREEN.**
 
 ---
 
-## Key Observations
+## Scope Note
 
-1. **Clock mode transition works end-to-end:**
-   - REALTIME → REPLAY (set_mode) → PENDING (no bar yet) → READY (after update_replay_timestamp)
-   - now_et() returns replay time, not wall clock
-   - Reset returns to REALTIME cleanly
+The repository currently exposes three stage scripts:
 
-2. **All consumers use market_clock:**
-   - TPO: `_market_now_utc()` for IB lock + POC migration
-   - TradeManager: `_market_now_utc()` for entry_ts/hit_ts/exit_ts
-   - SessionClassifier, Killzone, DayType: via `now_et()` in main.py
+- `scripts/stages/status_check.sh`
+- `scripts/stages/prompt_26_replay_clock_smoke.sh`
+- `scripts/stages/prompt_27_replay_plan.sh`
 
-3. **Bridge is running but idle:**
-   - streams_active=1 (Sierra not running on weekend)
-   - bar_router.received=0 (no new bars)
-   - This is correct weekend behavior
-
-4. **S1 Day Type classified from V9:**
-   - day_type=Variation, stage=C3 (from v9_day_type_history)
-   - Source is V9 canonical (not stale V1)
+There is no separate full-session historical replay stage script in
+`scripts/stages/`. This report therefore records the completed P28 smoke rerun
+against the available automation, plus the post-P27.5 endpoint checks. It does
+not claim that a new full-session replay injector was created or run.
 
 ---
 
 ## Failures/Blockers
 
-**None.** All checks pass. System is ready for Prompt 29 Replay Scenario Pack.
+Full `tests/v9/` initially failed with 9 failures. Triage results:
+
+| Failing area | Resolution |
+|--------------|------------|
+| Trade model/API compatibility | Fixed route/WebSocket mapping from legacy `dominant_system` payloads to current `firing_system` schema. |
+| Stream count expectations | Aligned stream health with canonical bridge registry by adding `live_price`; tests now assert canonical count. |
+| Day Type policy | Per Michael clarification: prior-day context is required for trading. Missing PD remains `A1` / `UNKNOWN` / `DEGRADED`; test updated. MatrixCell keeps V2 probabilities and supports top1 compatibility. |
+| Killzone policy | Per Michael clarification: D-061 is authoritative. Killzone zones are observational/tag context, not hard blockers; hard blocks come from trading calendar, manager disable, news/risk/mode controls. |
+
+Final full-suite result: `1244 passed, 1 skipped`.
+
+Residual watch item:
+- Gateway status latency was ~2.0s across three samples.
 
 ---
 
-## Ready for Prompt 29: YES
+## Ready for Prompt 29
 
-The replay clock infrastructure is proven:
-- Mode transitions work
-- Timestamp injection works
-- All consumers use market_clock
-- No DEMO/LIVE paths active
-- Stage runner works for automation
-
-Next: Prompt 29 — Replay Scenario Pack (inject historical bars, verify full system response)
+**Technically ready pending Michael's Phase 1 → Phase 2 approval.** Do not
+start P29 until Michael explicitly approves the Phase 1 exit gate.
 
 ---
 

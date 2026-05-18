@@ -18,8 +18,10 @@
 
 ## מצב נוכחי (2026-05-18)
 
-- Phase 0 backend data integrity: P27.5a/c/d/e/f/z GREEN, P27.5b DEFERRED (RTH).
-- Bridge OFF (baseline שקט). Sierra OFF (סופ"ש).
+- Phase 0 backend data integrity: P27.5a/b/c/d/e/f/z GREEN.
+- P27.5b: 10/10 PASS with Sierra writing live_price.json; max age_ms=982ms, latency 1-6ms.
+- Phase 1 remains WAITING until Michael explicitly approves Phase 0 → Phase 1.
+- Bridge not required for `/api/v9/live_price` endpoint; do not start bridge/replay without explicit approval.
 
 ---
 
@@ -35,25 +37,30 @@
   - GREEN: throttle test עובר. אין subscribers עדיין (Phase 6).
 - [x] **P27.5f** — `/api/v9/five_min/current` instance bug
   - GREEN: route uses `app.state.five_min_system`, 28/28 targeted tests passed, live endpoint HTTP 200, `hydrated=true`, latency<100ms. Report: `PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md`.
-- [ ] **P27.5b** — `live_price.age_ms < 60000` בזמן RTH ← **DEFERRED**
-  - GATE: Sierra running + `bash scripts/uat_prompt_27_5b_live_price.sh` → 10/10 PASS.
-  - UAT package ready: script + report template. Route reads DLL file directly (no bridge in path).
-  - To run: `bash scripts/uat_prompt_27_5b_live_price.sh` during RTH with Sierra open.
+- [x] **P27.5b** — `live_price.age_ms < 60000`
+  - GREEN: `bash scripts/uat_prompt_27_5b_live_price.sh` → 10/10 PASS, `age_ms=178-982ms`, latency `1-6ms`, valid JSON.
+  - Route reads DLL file directly from `/Users/michael/SierraChart_Data/v9_export/live_price.json`; bridge not in endpoint path.
 - [x] **P27.5z** — רענון control board + handoff docs אחרי P27.5f
-  - GREEN: `CHECKLIST_TO_LIVE.md`, `PROMPT_LIST_TO_LIVE.md`, `NEXT_CHAT_PROMPT_2026-05-17.md`, `SYSTEM_COMPLETION_CONTROL_BOARD.md` מסונכרנים (2026-05-18). P27.5b remains DEFERRED — docs sync does not depend on it.
+  - GREEN: `CHECKLIST_TO_LIVE.md`, `PROMPT_LIST_TO_LIVE.md`, `NEXT_CHAT_PROMPT_2026-05-17.md`, `SYSTEM_COMPLETION_CONTROL_BOARD.md` מסונכרנים (2026-05-18).
 
-**🛑 שער יציאה Phase 0 → 1:** Michael מאשר ש-6 ה-P27.5x ירוקים (כולל P27.5b חי).
+**שער יציאה Phase 0 → 1:** APPROVED by Michael 2026-05-18 11:28 UTC+3. All P27.5a/b/c/d/e/f/z are GREEN; Phase 1 may begin.
 
 ---
 
 ## Phase 1 — Replay Smoke על נתונים נקיים
 
-- [ ] **P28.1** — `scripts/run_stage.sh status_check` על backend חי
-- [ ] **P28.2** — replay smoke מלא לפי `PROMPT28_REPLAY_SMOKE_RUN.md`
+> Prep package: `docs/reports/PROMPT28_REPLAY_SMOKE_RERUN_PREP.md` (runbook + 16 acceptance criteria + stale assumptions mapped)
+
+- [x] **P28.1** — `scripts/run_stage.sh status_check` על backend חי
+  - PASS: health + all 6 systems 200.
+- [x] **P28.2** — replay smoke לפי ה-stage automation הקיים
   - אימות: כל 6 המערכות (S1-S6) מפיקות פלט replay צפוי
   - אימות: אין שגיאות `pre_fire_validator`
-- [ ] **P28.3** — עדכון `PROMPT28_REPLAY_SMOKE_RUN.md` עם post-fix evidence
-- [ ] **P28.4** — `pytest tests/v9/ -q` ירוק מלא
+  - אימות חדש: P27.5a/c/f checks (bars integrity, TPO increment, five_min hydrated)
+  - PASS: `prompt_26_replay_clock_smoke` 5/5, endpoint checks PASS, `prompt_27_replay_plan` 11/11.
+- [x] **P28.3** — עדכון `PROMPT28_REPLAY_SMOKE_RUN.md` עם post-fix evidence
+- [x] **P28.4** — `pytest tests/v9/ -q` ירוק מלא
+  - GREEN: after triage and Michael policy clarification, `1244 passed, 1 skipped`.
 
 **🛑 שער יציאה Phase 1 → 2:** Michael מאשר שה-replay נקי. אם כשל — לא ממשיכים ל-P29.
 

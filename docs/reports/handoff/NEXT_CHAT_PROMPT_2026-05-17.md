@@ -74,17 +74,17 @@ Data flow: **Sierra Chart (ACSIL DLL) → `bridge/json_bridge.py` → FastAPI `b
 
 Modes (strict order, no jumps): **SHADOW** (log-only) → **DEMO** (Sierra Sim, ONE slot first-wins) → **LIVE** (real money, ONE slot, hard caps).
 
-### §3. Live status (verified 2026-05-17 23:50 UTC+3)
+### §3. Live status (verified 2026-05-18 11:50 UTC+3)
 
 | Component | State | Evidence |
 |---|---|---|
 | Backend `:8000` | ✅ Running | `/api/v9/health` 200 OK |
 | Frontend `:3000` | ✅ Running | screen `mems26_frontend` |
-| Bridge | ⚠️ **STOPPED** | quiet baseline after P27.5d/c soak; restart before any RTH or replay validation |
-| `live_price` | ⚠️ Stale `age_ms ≈ 46 min` | expected because bridge stopped; will recover on bridge restart |
+| Bridge | ⚠️ **Not required for P27.5b endpoint** | `/api/v9/live_price` reads Sierra file directly; restart only with explicit approval for replay/full validation |
+| `live_price` | ✅ Fresh | `scripts/uat_prompt_27_5b_live_price.sh` 10/10 PASS, `age_ms=178-982ms`, latency `1-6ms` |
 | `chart/bars5min?limit=240` | ✅ Quality + Recency + Cardinality verified | `count=240`, `last_ts = DB MAX(ts) = 2026-05-17 16:15:00` |
 | `tpo/current.bars_processed_today` | ✅ `2` (was `0`) | proves P27.5c `publish_threadsafe` actually delivers |
-| Tests | ✅ 20/20 pass | `pytest tests/v9/services/test_bar_router_threadsafe.py tests/v9/services/test_aggregator_partial_publish.py tests/v9/api/test_chart_bars5min_integrity.py tests/v9/services/test_bar_integrity.py` |
+| Tests | ✅ `tests/v9/` pass | `1244 passed, 1 skipped` after P28 triage |
 | DB | 556 rows in `v9_bars_5min`, 7 today | sqlite query |
 | Branch | `stabilize/mems26-local-truth-2026-05-16` | 12 modified + 6 untracked since `cfd5796` |
 
@@ -103,22 +103,21 @@ Git note: verify `git status -sb` before any new work. Do not assume this handof
 
 1. ~~`/api/v9/five_min/current` route uses a separate `FiveMinSystem()` instance`~~ — **FIXED in P27.5f** (GREEN). Route now uses `request.app.state.five_min_system`. Report: `PROMPT_27_5F_FIVE_MIN_ROUTE_INSTANCE_FIX.md`.
 2. ~~`SYSTEM_COMPLETION_CONTROL_BOARD.md` does not yet surface the P27.5* fixes~~ — **FIXED in P27.5z** (GREEN). Pipeline integrity section added.
-3. **P27.5b `live_price.age_ms < 60000`** — DEFERRED. Requires RTH with bridge running. Cannot validate during weekend.
+3. ~~**P27.5b `live_price.age_ms < 60000`**~~ — **FIXED/GREEN**. 10/10 live Sierra samples fresh; report `PROMPT_27_5B_LIVE_PRICE_FIX.md`.
 
 ### §6. Outstanding work to SHADOW (7 phases)
 
 Order is fixed. Do **not** skip a gate.
 
-1. **P27.5b — Live-price freshness during RTH.** Start bridge only when Michael explicitly asks for RTH/live validation; verify `/api/v9/live_price age_ms < 60000` for 10 consecutive checks. If it fails, diagnose bridge stream/cache root cause before editing.
-2. **Phase 1 — Replay Smoke (P28).** After P27.5b is GREEN and Michael approves the Phase 0 gate, run Sierra Replay across one full RTH session, verify all 4 UAT axes on every endpoint, verify `tpo.bars_processed_today` increments to expected count, verify `BarRouter` logs no `SLOW handler` warnings.
-3. **Phase 2 — Replay Scenario Pack (10 scenarios).** Trend, range, gap, lunch chop, FOMC, etc. Each scenario produces a numbered report. Stop and ask Michael at any anomaly.
-4. **Phase 3 — Data Collection Package.** Wire SHADOW-mode logs that capture every signal + decision tree state for Michael's review. No orders.
-5. **Phase 4 — Frontend Design for SHADOW supervision.** Dashboard fit for genuine human supervision (not "looks fine"). Define what Michael needs to see: live signals, near-misses, decision-tree stage, system votes, gate state.
-6. **Phase 4.5 — SHADOW Readiness Gates** (all three required, GREEN, signed off):
+1. **Phase 1 → Phase 2 gate.** P28 is GREEN (`tests/v9/`: 1244 passed, 1 skipped). Stop and get Michael's explicit approval before starting P29.
+2. **Phase 2 — Replay Scenario Pack (10 scenarios).** Trend, range, gap, lunch chop, FOMC, etc. Each scenario produces a numbered report. Stop and ask Michael at any anomaly.
+3. **Phase 3 — Data Collection Package.** Wire SHADOW-mode logs that capture every signal + decision tree state for Michael's review. No orders.
+4. **Phase 4 — Frontend Design for SHADOW supervision.** Dashboard fit for genuine human supervision (not "looks fine"). Define what Michael needs to see: live signals, near-misses, decision-tree stage, system votes, gate state.
+5. **Phase 4.5 — SHADOW Readiness Gates** (all three required, GREEN, signed off):
    - **Accuracy Gate** — every data path validated end-to-end on at least 2 sessions of replay.
    - **Decision Tree Gate** — A1–A7 + B-stages firing per Master Index V2 spec; signal log inspectable.
    - **Design Gate** — dashboard approved by Michael for genuine supervision.
-7. **Phase 5 — SHADOW Activation.** Flip mode, log only, run for the agreed soak period. Strategic review (Phase 6.0 in the master plan) before extending.
+6. **Phase 5 — SHADOW Activation.** Flip mode, log only, run for the agreed soak period. Strategic review (Phase 6.0 in the master plan) before extending.
 
 After SHADOW passes its soak: **Phase 6 (DEMO)** then **Phase 7 (LIVE)** — both gated by Michael.
 
@@ -164,9 +163,9 @@ pytest -q tests/v9/services/test_bar_router_threadsafe.py tests/v9/services/test
 
 ### §9. First action for the new chat
 
-> P27.5a/c/d/e/f are GREEN. P27.5z docs sync is complete. The remaining Phase 0 item is **P27.5b** (live_price freshness), which requires RTH with bridge running.
+> P27.5a/b/c/d/e/f/z are GREEN and P28 is GREEN. `tests/v9/` passed: 1244 passed, 1 skipped.
 >
-> **Next step:** Wait for RTH (Sunday evening futures open or Monday 9:30 ET). Start bridge, then run P27.5b UAT: `curl -s http://127.0.0.1:8000/api/v9/live_price` must return `age_ms < 60000` for 10 consecutive checks. If P27.5b passes, Phase 0 is complete and Phase 1 (Replay Smoke) can begin.
+> **Next step:** stop at the Phase 1 → Phase 2 gate. Do not start P29 until Michael explicitly approves the gate.
 
 If any §8 result disagrees with §3, **stop** and produce a discrepancy report — do not patch silently.
 

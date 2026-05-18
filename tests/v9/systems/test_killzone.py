@@ -68,12 +68,8 @@ class TestZoneDefinitions:
             assert z.sizing_modifier == expected[z.name], f"{z.name} sizing wrong"
 
     def test_blocked_defaults(self):
-        blocked = {"LUNCH", "CLOSE_FINAL", "AFTER_HOURS"}
         for z in ZONES:
-            if z.name in blocked:
-                assert z.is_blocked_default, f"{z.name} should be blocked"
-            else:
-                assert not z.is_blocked_default, f"{z.name} should not be blocked"
+            assert not z.is_blocked_default, f"{z.name} should be observational only"
 
     def test_quality_values(self):
         for z in ZONES:
@@ -283,12 +279,12 @@ class TestKillzoneStatus:
         assert s["next_zone"] == "PRE_LUNCH"
         assert s["time_in_zone_min"] == 23
 
-    def test_lunch_blocked_default(self):
+    def test_lunch_observational_not_blocked(self):
         s = get_killzone_status(_utc_from_et(*self.DAY, 12, 30))
         assert s["current_killzone"] == "LUNCH"
-        assert s["is_blocked"] is True
+        assert s["is_blocked"] is False
         assert s["sizing_modifier"] == 0.0
-        assert s["block_reason"] == "lunch_blocked"
+        assert s["block_reason"] is None
 
     def test_lunch_unblocked_with_config(self):
         s = get_killzone_status(
@@ -299,13 +295,13 @@ class TestKillzoneStatus:
         assert s["is_blocked"] is False
         assert s["sizing_modifier"] == 0.0  # quality LOW => still 0.0 sizing from zone
 
-    def test_close_final_always_blocked(self):
+    def test_close_final_observational_not_blocked(self):
         s = get_killzone_status(
             _utc_from_et(*self.DAY, 15, 50),
             trade_in_close=True,
         )
-        assert s["is_blocked"] is True
-        assert s["block_reason"] == "close_final"
+        assert s["is_blocked"] is False
+        assert s["block_reason"] is None
 
     def test_holiday_blocks_all(self):
         s = get_killzone_status(
@@ -339,7 +335,7 @@ class TestKillzoneStatus:
     def test_after_hours_status(self):
         s = get_killzone_status(_utc_from_et(*self.DAY, 20, 0))
         assert s["current_killzone"] == "AFTER_HOURS"
-        assert s["is_blocked"] is True
+        assert s["is_blocked"] is False
         assert s["quality"] == "OFF"
 
 
@@ -353,20 +349,26 @@ class TestGate:
     def test_gate_open_ny_prime(self):
         assert is_gate_open(_utc_from_et(*self.DAY, 10, 45)) is True
 
-    def test_gate_closed_lunch(self):
-        assert is_gate_open(_utc_from_et(*self.DAY, 12, 30)) is False
+    def test_gate_open_lunch_by_d061(self):
+        assert is_gate_open(_utc_from_et(*self.DAY, 12, 30)) is True
 
     def test_gate_closed_after_hours(self):
         assert is_gate_open(_utc_from_et(*self.DAY, 20, 0)) is False
 
-    def test_gate_closed_close_final(self):
-        assert is_gate_open(_utc_from_et(*self.DAY, 15, 50)) is False
+    def test_gate_open_close_final_by_d061(self):
+        assert is_gate_open(_utc_from_et(*self.DAY, 15, 50)) is True
 
     def test_gate_open_pre_market_low_quality(self):
-        # PRE_MARKET quality=LOW, min_quality=LOW -> open
+        # D-061: PRE_MARKET is observational; manager/calendar controls hard blocks.
         assert is_gate_open(
-            _utc_from_et(*self.DAY, 7, 0), min_quality="LOW"
+            _utc_from_et(*self.DAY, 7, 0),
+            min_quality="LOW",
         ) is True
+
+    def test_gate_closed_when_manager_disabled(self):
+        assert is_gate_open(
+            _utc_from_et(*self.DAY, 7, 0), min_quality="LOW", manager_enabled=False
+        ) is False
 
     def test_gate_closed_pre_market_high_quality(self):
         # PRE_MARKET quality=LOW, min_quality=HIGH -> closed
@@ -392,7 +394,7 @@ class TestGate:
     def test_gate_lunch_override(self):
         assert is_gate_open(
             _utc_from_et(*self.DAY, 12, 30), trade_in_lunch=True
-        ) is False  # Still false — sizing=0 for LUNCH zone
+        ) is True
 
     def test_gate_block_first_15min(self):
         assert is_gate_open(

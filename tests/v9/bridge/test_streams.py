@@ -25,10 +25,10 @@ from bridge.v9_streams import (
 
 
 class TestStreamRegistry:
-    """Verify all 10 streams are registered."""
+    """Verify all bridge streams are registered."""
 
     def test_all_streams_count(self):
-        assert len(ALL_STREAMS) == 10
+        assert len(ALL_STREAMS) == 12
 
     def test_new_streams_in_registry(self):
         names = [s.name for s in ALL_STREAMS]

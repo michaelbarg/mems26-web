@@ -230,7 +230,7 @@ All 6 systems upgraded to READY through Prompts 14–23.
 | P27.5d | Footprint bar dispatch latency <50ms | GREEN | Connection reuse; 0 dispatches >50ms in soak |
 | P27.5e | `5min.partial` topic 1Hz throttle | GREEN | Throttle test passes; no subscribers yet (Phase 6) |
 | P27.5f | `/api/v9/five_min/current` instance bug | GREEN | Route uses `app.state.five_min_system`; 28/28 tests; HTTP 200, hydrated=true |
-| P27.5b | `live_price.age_ms < 60000` during RTH | DEFERRED | Requires RTH with bridge running |
+| P27.5b | `live_price.age_ms < 60000` | GREEN | 10/10 PASS with Sierra writing; `age_ms=178-982ms`, latency `1-6ms`; bridge not in endpoint path |
 
 ---
 
@@ -240,9 +240,9 @@ All 6 systems upgraded to READY through Prompts 14–23.
 
 | Blocker | Type | Status |
 |---------|------|--------|
-| P27.5b live_price freshness during RTH | Integration | DEFERRED — requires market hours with bridge running |
+| P27.5b live_price freshness | Integration | GREEN — direct endpoint fresh with Sierra writing |
 | RTH live validation (Sierra + Bridge + all 3 firing systems) | Integration | PENDING — requires market hours |
-| Replay Clock Mode for offline testing | Tooling | DONE — wired in P26a/b |
+| Replay Smoke P28 | Tooling | GREEN — smoke PASS, `tests/v9/`: 1244 passed, 1 skipped |
 | SHADOW/DEMO/LIVE not enabled | Policy | INTENTIONAL — awaiting Michael gate |
 
 ### Before DEMO can be considered:
