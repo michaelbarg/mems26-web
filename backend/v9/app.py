@@ -66,6 +66,40 @@ async def v9_health():
     return {"status": "ok", "version": "v9.0.0"}
 
 
+@v9_router.get("/api/v9/cockpit/heartbeat")
+async def cockpit_heartbeat():
+    """Lightweight heartbeat for cockpit UI — no Redis, no external calls.
+
+    Returns cheap local truth only: backend alive, mode, timestamp,
+    live_price file age, and WS client count (all in-memory).
+    Target: <20ms.
+    """
+    import os
+    import time
+    from backend.v9.ws.manager import price_ws_manager
+
+    mode = os.getenv("MEMS26_MODE", "shadow")
+    now = time.time()
+
+    # Live price file age (cheap stat call, no file read)
+    live_price_path = os.path.join(
+        os.getenv("V9_EXPORT_DIR", "/Users/michael/SierraChart_Data/v9_export"),
+        "live_price.json",
+    )
+    try:
+        price_file_age_ms = int((now - os.path.getmtime(live_price_path)) * 1000)
+    except OSError:
+        price_file_age_ms = -1  # file missing
+
+    return {
+        "alive": True,
+        "mode": mode,
+        "ts": now,
+        "price_file_age_ms": price_file_age_ms,
+        "ws_clients": len(price_ws_manager._clients),
+    }
+
+
 # ── EventDispatcher initialization ──────────────────────────────
 
 def init_event_dispatcher(gateway=None):

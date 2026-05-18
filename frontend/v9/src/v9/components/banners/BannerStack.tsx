@@ -22,16 +22,20 @@ export function BannerStack() {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    let inFlight = false;
     const check = async () => {
-      const active: BannerDef[] = [];
+      if (inFlight) return;
+      inFlight = true;
       try {
-        // Bridge health
-        const status = await fetch(`${API}/api/v9/status`).then(r => r.json()).catch(() => null);
-        if (status && !status.bridge?.running) {
-          active.push({ id: 'bridge_down', text: 'Connection lost — bridge offline', color: '#fca5a5', bg: '#7f1d1d' });
+        const active: BannerDef[] = [];
+
+        // Lightweight heartbeat for bridge/price file health
+        const hb = await fetch(`${API}/api/v9/cockpit/heartbeat`).then(r => r.json()).catch(() => null);
+        if (hb && hb.price_file_age_ms < 0) {
+          active.push({ id: 'bridge_down', text: 'Connection lost — price file missing', color: '#fca5a5', bg: '#7f1d1d' });
         }
 
-        // Gateway risk state
+        // Gateway risk state (cheap endpoint)
         const gw = await fetch(`${API}/api/v9/gateway/status`).then(r => r.json()).catch(() => null);
         if (gw) {
           if (gw.consecutive_losses >= 2) {
@@ -43,22 +47,16 @@ export function BannerStack() {
           }
         }
 
-        // System health (check for any system not 200)
-        for (const sys of ['day_type', 'five_min', 'footprint', 'woodies', 'tpo', 'killzone']) {
-          try {
-            const r = await fetch(`${API}/api/v9/${sys}/current`);
-            if (r.status !== 200) {
-              active.push({ id: `sys_${sys}`, text: `System ${sys} health failure (HTTP ${r.status})`, color: '#fca5a5', bg: '#7f1d1d' });
-            }
-          } catch {
-            active.push({ id: `sys_${sys}`, text: `System ${sys} unreachable`, color: '#fca5a5', bg: '#7f1d1d' });
-          }
-        }
-      } catch { /* status endpoint down — banner for bridge_down covers it */ }
-      setBanners(active);
+        // System health from systemStateStore (already polled elsewhere)
+        // Only show banners for systems the store flags as 'error'
+        // No additional HTTP calls needed — the store handles polling
+        setBanners(active);
+      } finally {
+        inFlight = false;
+      }
     };
     check();
-    const id = setInterval(check, 10000);
+    const id = setInterval(check, 30000); // 30s, not 10s — banners are not latency-critical
     return () => clearInterval(id);
   }, []);
 

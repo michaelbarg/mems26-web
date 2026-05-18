@@ -24,20 +24,21 @@ export function TopBar() {
   const trades = useTradeStore((s) => s.trades);
   const allSignals = useSystemStore((s) => s.signals);
 
-  // Mode + backend health
+  // Mode + backend health — lightweight heartbeat (no Redis)
   const [mode, setMode] = useState('SHADOW');
-  const [backendHealth, setBackendHealth] = useState<{ subscribers: number; bridgeOk: boolean } | null>(null);
+  const [backendHealth, setBackendHealth] = useState<{ wsClients: number; priceFileOk: boolean } | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
   useEffect(() => {
     let inFlight = false;
     const f = () => {
       if (inFlight) return;
       inFlight = true;
-      fetch(`${API}/api/v9/status`).then(r => r.json()).then(d => {
-        setMode(d.mode || d.trading_mode || 'SHADOW');
-        const subs = d.bar_router?.subscribers || {};
-        const total = Object.values(subs).reduce((a: number, b) => a + (b as number), 0);
-        setBackendHealth({ subscribers: total, bridgeOk: d.bridge?.connected ?? (total > 0) });
+      fetch(`${API}/api/v9/cockpit/heartbeat`).then(r => r.json()).then(d => {
+        setMode(d.mode || 'SHADOW');
+        setBackendHealth({
+          wsClients: d.ws_clients ?? 0,
+          priceFileOk: d.price_file_age_ms >= 0 && d.price_file_age_ms < 120000,
+        });
       }).catch(() => {}).finally(() => { inFlight = false; });
     };
     f(); const id = setInterval(f, 5000); return () => clearInterval(id);
@@ -156,11 +157,11 @@ export function TopBar() {
       {/* Right: Status dots + Cap + Connection + Mode PnL + Nav */}
       <div className="flex items-center gap-3">
         {/* Status dots */}
-        <div className="flex items-center gap-1" title={backendHealth ? `Backend: ${backendHealth.subscribers} subs` : 'Unknown'}>
+        <div className="flex items-center gap-1" title={backendHealth ? `WS: ${backendHealth.wsClients} clients` : 'Unknown'}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
-            background: backendHealth?.bridgeOk ? '#16a34a' : (backendHealth ? '#eab308' : '#525252') }} />
+            background: backendHealth?.priceFileOk ? '#16a34a' : (backendHealth ? '#eab308' : '#525252') }} />
           <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
-            background: backendHealth && backendHealth.subscribers > 0 ? '#16a34a' : (backendHealth ? '#dc2626' : '#525252') }} />
+            background: backendHealth && backendHealth.wsClients > 0 ? '#16a34a' : (backendHealth ? '#dc2626' : '#525252') }} />
         </div>
         {/* Cap indicator */}
         <div style={{ width: 80, position: 'relative' }} title={`$${stats.shadowPnl.toFixed(0)} / $200`}>
