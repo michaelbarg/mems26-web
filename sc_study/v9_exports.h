@@ -139,6 +139,108 @@ inline std::string v9_tick_reversal_to_json(
 }
 
 // ─────────────────────────────────────────────────────────────
+// 1b. Canonical 5-minute OHLCV bars (System 2 history feed)
+// ─────────────────────────────────────────────────────────────
+// Builds real 5-minute buckets from the chart bars and writes the contract
+// expected by bridge/v9_streams/bars_5min_stream.py.
+
+inline long long v9_sc_datetime_to_unix(SCDateTime dt)
+{
+    // Sierra SCDateTime uses the same day-serial epoch as Excel/OLE.
+    double serial = dt.GetAsDouble();
+    return (long long)((serial - 25569.0) * 86400.0 + 0.5);
+}
+
+inline std::vector<V9FiveMinBar> v9_build_5min_ohlcv_bars(
+    SCStudyInterfaceRef sc, int lookback_bars)
+{
+    std::vector<V9FiveMinBar> bars;
+    if (sc.Index < 0) return bars;
+
+    int start = v9_max_i(0, sc.Index - lookback_bars);
+    long long current_bucket = -1;
+    V9FiveMinBar current;
+
+    for (int i = start; i <= sc.Index; i++)
+    {
+        long long raw_ts = v9_sc_datetime_to_unix(sc.BaseDateTimeIn[i]);
+        if (raw_ts <= 0) continue;
+        long long bucket = raw_ts - (raw_ts % 300);
+
+        float o = sc.Open[i];
+        float h = sc.High[i];
+        float l = sc.Low[i];
+        float c = sc.Close[i];
+        float v = sc.Volume[i];
+        float d = sc.AskVolume[i] - sc.BidVolume[i];
+
+        if (current_bucket != bucket)
+        {
+            if (current_bucket >= 0) bars.push_back(current);
+            current_bucket = bucket;
+            current.ts = bucket;
+            current.open = o;
+            current.high = h;
+            current.low = l;
+            current.close = c;
+            current.volume = v;
+            current.poc_vol = 0;
+            current.vah = 0;
+            current.val = 0;
+            current.cumulative_delta = d;
+        }
+        else
+        {
+            current.high = v9_max(current.high, h);
+            current.low = v9_min(current.low, l);
+            current.close = c;
+            current.volume += v;
+            current.cumulative_delta += d;
+        }
+    }
+
+    if (current_bucket >= 0) bars.push_back(current);
+    return bars;
+}
+
+inline std::string v9_5min_bars_to_json(
+    const std::vector<V9FiveMinBar>& bars)
+{
+    std::ostringstream j;
+    j << std::fixed << std::setprecision(2);
+    j << "{";
+    json_str(j, "type", "5min", false);
+    json_str(j, "version", V9_VERSION);
+    json_long(j, "export_ts", (long long)time(nullptr));
+    json_int(j, "bar_count", (int)bars.size());
+    j << ",\"bars\":[";
+
+    for (size_t i = 0; i < bars.size(); i++) {
+        if (i > 0) j << ",";
+        const V9FiveMinBar& b = bars[i];
+        j << "{";
+        json_long(j, "ts", b.ts, false);
+        json_float(j, "o", b.open);
+        json_float(j, "h", b.high);
+        json_float(j, "l", b.low);
+        json_float(j, "c", b.close);
+        json_float(j, "vol", b.volume);
+        json_float(j, "poc_vol", b.poc_vol);
+        json_float(j, "vah", b.vah);
+        json_float(j, "val", b.val);
+        json_float(j, "cumulative_delta", b.cumulative_delta);
+        j << "}";
+    }
+    j << "]}";
+    return j.str();
+}
+
+inline std::string v9_5min_to_json(SCStudyInterfaceRef sc, int lookback_bars)
+{
+    return v9_5min_bars_to_json(v9_build_5min_ohlcv_bars(sc, lookback_bars));
+}
+
+// ─────────────────────────────────────────────────────────────
 // 2. Footprint per bar (Bid×Ask per price level)
 // ─────────────────────────────────────────────────────────────
 // For each chart bar, breaks down volume by price level (tick increments).

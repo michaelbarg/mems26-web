@@ -160,6 +160,31 @@ class TestBars5MinStream:
             assert len(data["bars"]) == 2
             assert data["bars"][0]["vol"] == 250
 
+    def test_push_api_posts_bars_array(self):
+        s = Bars5MinStream()
+        payload = {
+            "type": "5min",
+            "export_ts": 1715300000.0,
+            "bars": [
+                {"ts": 1715299800.0, "o": 5400.0, "h": 5405.0, "l": 5398.0, "c": 5403.0, "vol": 250}
+            ],
+        }
+
+        class _Resp:
+            status = 200
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        with patch("bridge.v9_streams.base_stream.urllib.request.urlopen", return_value=_Resp()) as mock_urlopen:
+            s._push_api(payload)
+
+        req = mock_urlopen.call_args.args[0]
+        assert json.loads(req.data.decode()) == payload["bars"]
+
 
 class TestBaseStreamBehavior:
     """Test inherited base behavior for new streams."""

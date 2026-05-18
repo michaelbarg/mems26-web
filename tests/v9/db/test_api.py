@@ -2,6 +2,7 @@
 
 import time
 from .conftest import BRIDGE_HEADERS
+from backend.v9.db.models import V9Bar5Min
 
 
 def test_health(client):
@@ -21,6 +22,28 @@ def test_auth_bad_token(client):
         headers={"Authorization": "Bearer wrong-token"},
     )
     assert r.status_code == 403
+
+
+def test_post_5min_upserts_same_timestamp(client, db):
+    ts = 1715299800.0
+    payload = [
+        {"ts": ts, "symbol": "MES", "o": 5400.0, "h": 5405.0, "l": 5398.0, "c": 5403.0, "vol": 250},
+    ]
+
+    r1 = client.post("/api/v9/bars/5min", json=payload, headers=BRIDGE_HEADERS)
+    assert r1.status_code == 200
+    assert r1.json()["inserted"] == 1
+
+    payload[0]["c"] = 5404.25
+    payload[0]["vol"] = 300
+    r2 = client.post("/api/v9/bars/5min", json=payload, headers=BRIDGE_HEADERS)
+    assert r2.status_code == 200
+    assert r2.json()["inserted"] == 0
+
+    rows = db.query(V9Bar5Min).all()
+    assert len(rows) == 1
+    assert rows[0].close == 5404.25
+    assert rows[0].volume == 300
 
 
 def test_post_tick_reversal(client):

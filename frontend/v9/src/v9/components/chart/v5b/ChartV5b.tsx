@@ -4,13 +4,21 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePriceStore } from '../../../stores/priceStore';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const INITIAL_BAR_LIMIT = 600;
 
 const TF_ENDPOINTS: Record<string, string> = {
   '3m': 'bars3m', '5m': 'bars5min', '15m': 'bars15m', '30m': 'bars30m', '1h': 'bars1h',
 };
 
+const TF_SECONDS: Record<string, number> = { '3m': 180, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600 };
+
 function tsToUnix(ts: string): number {
   return Math.floor(new Date(ts.replace(' ', 'T')).getTime() / 1000);
+}
+
+function latestBarUnix(bars: Array<{ ts?: string }>): number | null {
+  const last = bars[bars.length - 1];
+  return last?.ts ? tsToUnix(last.ts) : null;
 }
 
 export function ChartV5b() {
@@ -20,6 +28,7 @@ export function ChartV5b() {
   const volumeRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const linesRef = useRef<any[]>([]);
   const earliestTsRef = useRef<string | null>(null);
+  const latestTsRef = useRef<number | null>(null);
   const loadingHistoryRef = useRef(false);
   const allBarsRef = useRef<any[]>([]);
   const [activeTf, setActiveTf] = useState('5m');
@@ -90,7 +99,7 @@ export function ChartV5b() {
     if (!candleRef.current || !volumeRef.current) return;
     const ep = TF_ENDPOINTS[tf] || 'bars5min';
     try {
-      const res = await fetch(`${API}/api/v9/chart/${ep}?limit=240`);
+      const res = await fetch(`${API}/api/v9/chart/${ep}?limit=${INITIAL_BAR_LIMIT}`);
       const raw = await res.json();
       const bars = Array.isArray(raw) ? raw : [];
       if (!bars.length) return;
@@ -109,6 +118,8 @@ export function ChartV5b() {
       }));
 
       allBarsRef.current = bars;
+      latestTsRef.current = latestBarUnix(bars);
+      formingBarRef.current = null;
       candleRef.current.setData(cData);
       volumeRef.current.setData(vData);
       earliestTsRef.current = bars[0]?.ts || null;
@@ -126,9 +137,7 @@ export function ChartV5b() {
   useEffect(() => {
     if (!candleRef.current) return;
 
-    // Compute TF bucket in seconds (5m=300, 15m=900, etc.)
-    const tfSeconds: Record<string, number> = { '3m': 180, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600 };
-    const bucketSize = tfSeconds[activeTf] || 300;
+    const bucketSize = TF_SECONDS[activeTf] || 300;
 
     // Subscribe to priceStore (fed by WebSocket) instead of polling /api/v9/live_price
     const unsubPrice = usePriceStore.subscribe((state) => {
@@ -137,6 +146,12 @@ export function ChartV5b() {
 
       const nowSec = Math.floor(Date.now() / 1000);
       const bucket = Math.floor(nowSec / bucketSize) * bucketSize;
+      const latestTs = latestTsRef.current;
+      if (!latestTs || bucket - latestTs > bucketSize * 3) {
+        // Do not draw a detached "now" candle when historical DB bars are stale.
+        formingBarRef.current = null;
+        return;
+      }
 
       const fb = formingBarRef.current;
       if (fb && fb.time === bucket) {
@@ -160,6 +175,8 @@ export function ChartV5b() {
         const res = await fetch(`${API}/api/v9/chart/${ep}?limit=3`);
         const raw = await res.json();
         const bars = Array.isArray(raw) ? raw : [];
+        const latest = latestBarUnix(bars);
+        if (latest) latestTsRef.current = Math.max(latestTsRef.current ?? latest, latest);
         for (const b of bars) {
           const time = tsToUnix(b.ts) as any;
           candleRef.current?.update({ time, open: b.open ?? b.o, high: b.high ?? b.h, low: b.low ?? b.l, close: b.close ?? b.c });

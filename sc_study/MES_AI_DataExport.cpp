@@ -465,6 +465,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     int v9_lookback = V9Lookback.GetInt();
     float v9_imb_threshold = 2.5f;  // 250% ratio for imbalance detection
 
+    // ── Export 0: Canonical 5-minute OHLCV history for bars_5min bridge ──
+    {
+        int five_min_lookback = v9_min_i(v9_max_i(v9_lookback * 3, 600), 2000);
+        std::string bars5_json = v9_5min_to_json(sc, five_min_lookback);
+        v9_write_json(v9dir, "5min.json", bars5_json);
+    }
+
     // ── Export 1: Tick Reversal 15-tick ──
     if (V9TickRev15.GetInt() == 1)
     {

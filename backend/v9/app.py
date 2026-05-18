@@ -4,8 +4,9 @@ Can be run standalone OR mounted into the unified backend (backend.main).
 """
 
 import logging
+from typing import Optional
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, FastAPI, Request
 from backend.v9.api.v9 import bars, signals, markers, trades, configs, websocket, health_streams, trade_commands, status, audit, spec_compliance
 from backend.v9.systems.day_type.api import router as day_type_router
 from backend.v9.api.v9.five_min.routes import router as five_min_router
@@ -97,6 +98,163 @@ async def cockpit_heartbeat():
         "ts": now,
         "price_file_age_ms": price_file_age_ms,
         "ws_clients": len(price_ws_manager._clients),
+    }
+
+
+def _health_from_running(running: bool) -> str:
+    return "healthy" if running else "unknown"
+
+
+def _system_payload(
+    system_id: int,
+    name: str,
+    *,
+    state=None,
+    sub_state=None,
+    confidence: float = 0,
+    health: str = "unknown",
+    raw: Optional[dict] = None,
+) -> dict:
+    return {
+        "id": system_id,
+        "name": name,
+        "state": state,
+        "subState": sub_state,
+        "confidence": confidence,
+        "health": health,
+        "raw": raw or {},
+    }
+
+
+@v9_router.get("/api/v9/cockpit/systems-snapshot")
+async def cockpit_systems_snapshot(request: Request):
+    """Single lightweight snapshot for S1-S6 cockpit state polling.
+
+    No Redis, no Upstash, no HTTP self-calls, and no /api/v9/status dependency.
+    This replaces the frontend's 12-request polling batch with one local read.
+    """
+    import time
+
+    systems = {
+        1: _system_payload(1, "Day Type"),
+        2: _system_payload(2, "5-Min"),
+        3: _system_payload(3, "Footprint"),
+        4: _system_payload(4, "Woodies"),
+        5: _system_payload(5, "TPO"),
+        6: _system_payload(6, "Killzone"),
+    }
+
+    try:
+        day_type_machine = getattr(request.app.state, "day_type_machine", None)
+        if day_type_machine is not None:
+            classification = day_type_machine.to_classification()
+            if classification is not None:
+                raw = {
+                    "day_type": classification.day_type.value,
+                    "probability": classification.probability,
+                    "directional_certainty": classification.directional_certainty,
+                    "trading_confidence": classification.trading_confidence,
+                }
+                systems[1] = _system_payload(
+                    1,
+                    "Day Type",
+                    state=raw["day_type"],
+                    confidence=raw["probability"] or 0,
+                    health="healthy",
+                    raw=raw,
+                )
+    except Exception:
+        pass
+
+    try:
+        sys = getattr(request.app.state, "five_min_system", None)
+        if sys is not None:
+            current = sys.get_state()
+            systems[2] = _system_payload(
+                2,
+                "5-Min",
+                state=current.get("last_pattern") or current.get("mode") or "UNKNOWN",
+                sub_state=current.get("mode"),
+                confidence=(current.get("last_confluence") or 0) / 4,
+                health=_health_from_running(bool(current.get("running", True))),
+                raw=current,
+            )
+    except Exception:
+        pass
+
+    try:
+        sys = getattr(request.app.state, "footprint_system", None)
+        if sys is not None:
+            current = sys.get_current()
+            systems[3] = _system_payload(
+                3,
+                "Footprint",
+                state=current.get("dominance") or current.get("combined_class") or current.get("last_classification") or "NO_SETUP",
+                sub_state=current.get("initiative_type"),
+                confidence=(current.get("last_confluence") or 0) / 10,
+                health=_health_from_running(bool(current.get("running", True))),
+                raw=current,
+            )
+    except Exception:
+        pass
+
+    try:
+        sys = getattr(request.app.state, "woodies_system", None)
+        if sys is not None:
+            current = sys.get_current()
+            patterns = current.get("active_patterns")
+            top_pattern = patterns[0].get("pattern_id") if isinstance(patterns, list) and patterns else None
+            systems[4] = _system_payload(
+                4,
+                "Woodies",
+                state=top_pattern or current.get("last_signal_type") or current.get("signal") or "NEUTRAL",
+                sub_state=current.get("direction"),
+                confidence=(current.get("strength") or 0) / 3,
+                health=_health_from_running(bool(current.get("running", True))),
+                raw=current,
+            )
+    except Exception:
+        pass
+
+    try:
+        sys = getattr(request.app.state, "tpo_system", None)
+        if sys is not None:
+            current = sys.get_current()
+            migration = current.get("poc_migration") or {}
+            systems[5] = _system_payload(
+                5,
+                "TPO",
+                state=migration.get("direction") or current.get("profile_shape") or "NA",
+                sub_state=current.get("session_type"),
+                confidence=min((current.get("letter_count") or 0) / 13, 1),
+                health=_health_from_running(bool(current.get("running", True))),
+                raw=current,
+            )
+    except Exception:
+        pass
+
+    try:
+        sys = getattr(request.app.state, "killzone_system", None)
+        if sys is not None:
+            current = sys.get_current()
+            zone = current.get("current_zone") or {}
+            edge_class = zone.get("edge_class")
+            systems[6] = _system_payload(
+                6,
+                "Killzone",
+                state=zone.get("name") or "UNKNOWN",
+                sub_state=edge_class,
+                confidence=1 if edge_class == "high" else 0.5 if edge_class == "medium" else 0.2,
+                health=_health_from_running(bool(current.get("running", True))),
+                raw=current,
+            )
+    except Exception:
+        pass
+
+    return {
+        "ts": time.time(),
+        "systems": systems,
+        "count": len(systems),
     }
 
 

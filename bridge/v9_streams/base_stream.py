@@ -324,7 +324,8 @@ class BaseV9Stream:
             logger.info(f"[{self.name}] API push target: {url}")
             self._logged_push_url = True
         try:
-            body = json.dumps(data).encode()
+            payload = data.get("bars") if self.api_path.endswith("/bars/5min") and isinstance(data.get("bars"), list) else data
+            body = json.dumps(payload).encode()
             req = urllib.request.Request(
                 url,
                 data=body,

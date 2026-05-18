@@ -38,6 +38,20 @@ struct TickReversalBar {
     long long timestamp;
 };
 
+// ── 5-minute OHLCV bar ──
+struct V9FiveMinBar {
+    long long ts;       // Unix timestamp, bucket start
+    float open;
+    float high;
+    float low;
+    float close;
+    float volume;
+    float poc_vol;
+    float vah;
+    float val;
+    float cumulative_delta;
+};
+
 // ── Footprint price level ──
 struct FootprintLevel {
     float price;

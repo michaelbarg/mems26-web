@@ -195,16 +195,24 @@ def post_bars_5min(
             )
             rejected += 1
             continue
-        row = V9Bar5Min(
-            ts=_ts_from_unix(bar.ts),
-            symbol=bar.symbol,
-            open=bar.o, high=bar.h, low=bar.l, close=bar.c,
-            volume=bar.vol,
-            poc_vol=bar.poc_vol, vah=bar.vah, val=bar.val,
-            cumulative_delta=bar.cumulative_delta,
-        )
-        db.add(row)
-        created.append(row)
+        ts = _ts_from_unix(bar.ts)
+        row = db.query(V9Bar5Min).filter(
+            V9Bar5Min.ts == ts,
+            V9Bar5Min.symbol == bar.symbol,
+        ).first()
+        if row is None:
+            row = V9Bar5Min(ts=ts, symbol=bar.symbol)
+            db.add(row)
+            created.append(row)
+        row.open = bar.o
+        row.high = bar.h
+        row.low = bar.l
+        row.close = bar.c
+        row.volume = bar.vol
+        row.poc_vol = bar.poc_vol
+        row.vah = bar.vah
+        row.val = bar.val
+        row.cumulative_delta = bar.cumulative_delta
         last_valid_bar = bar
     db.commit()
     publish_event(CHANNEL_BARS_5MIN, {

@@ -58,7 +58,8 @@ def api_post(cloud_url: str, bridge_token: str, path: str, data: dict) -> bool:
     """POST data to FastAPI endpoint. Returns True on success."""
     url = f"{cloud_url}{path}"
     try:
-        body = json.dumps(data).encode()
+        payload = data.get("bars") if path.endswith("/bars/5min") and isinstance(data.get("bars"), list) else data
+        body = json.dumps(payload).encode()
         req = urllib.request.Request(
             url,
             data=body,

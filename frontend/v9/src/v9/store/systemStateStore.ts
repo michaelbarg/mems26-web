@@ -46,6 +46,16 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
     _fetchInFlight = true;
     const update = get().updateSystem;
     try {
+      const snapshot = await fetch(`${API_BASE}/api/v9/cockpit/systems-snapshot`)
+        .then((r) => (r.ok ? r.json() : null))
+        .catch(() => null);
+      if (snapshot?.systems) {
+        for (const [idStr, system] of Object.entries(snapshot.systems as Record<string, Partial<SystemState>>)) {
+          update(Number(idStr), system);
+        }
+        return;
+      }
+
       try {
         const dtV9 = await fetch(`${API_BASE}/api/v9/day_type/v9/current`).then((r) => r.json()).catch(() => null);
         if (dtV9?.data) {
