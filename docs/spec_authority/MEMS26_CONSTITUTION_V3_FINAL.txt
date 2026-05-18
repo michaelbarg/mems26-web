@@ -1,0 +1,755 @@
+# MEMS26 — CONSTITUTION V3 FINAL 
+## האפיון הסופי המלא — 9 May 2026 
+ 
+ 
+**Status:** Locked & Confirmed by Michael 
+**Source:** 6 Zohar documents + 10 chartbook files + Codebase INVENTORY + Trading reality 
+**מטרה:** Foundation לכל ה-implementation שיבוא 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+HEADLINE — מה הסיכום 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+🎯 Primary Entry Mechanism: 15-tick Reversal Bars (Sierra) 
+🎯 Secondary: 12-tick Reversal Bars 
+🎯 Setup Source: Number Bar (Footprint) על reversal bars 
+🎯 Strategic Confirmation: Woodies CCI Panel (30-min) 
+🎯 Macro Context: TPO Profile (daily) 
+🎯 Day Setup: Volume Profile + IB + Cumulative Delta 
+🎯 Trading: ESH4 + MESH4 (Apex accounts) 
+🎯 Trade Config: 2 Targets With Common Stop 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 1 — הארכיטקטורה ה-4 שכבות 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## LAYER 0: Market State Gate 
+מסנן ראשון לפני כל החלטה. 
+ 
+ 
+States: 
+- 🟢 RESPECTING (מכבד) — בתוך VA, Reactive OK 
+- 🟡 EXPANDING (מרחיב) — פורץ, Initiative OK 
+- 🔴 SEARCHING (מחפש/דשדוש) — NO TRADES 
+- 🟢 FOUND (מצא) — value חדש, Reactive OK 
+ 
+ 
+Chop Score 0-100 (composite): 
+- Vegas flips (last 60min) 
+- CCI Zero Line crossings (30min) 
+- POC Migration STUCK 
+- IB breakout outcomes 
+- Range vs ATR ratio 
+- POC distance from VWAP 
+ 
+ 
+Default: log only initially (Phase 3), block when data confirms. 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## LAYER 1: SETUP IDENTIFICATION 
+ 
+ 
+### T1: 5-min Number Bar Pattern (Reactive/Initiative) 
+פועל על סגירת בר 5 דקות, דורש multi-bar pattern (3-4 ברים). 
+ 
+ 
+**Reactive LONG (חולשת מוכרים):** 
+- בר 1: מוכרים שולטים, מגיע לתמיכה 
+- בר 2: drop 90% volume מוכרים 
+- בר 3: בטן קונים נוצרת + POC_VOL עולה 
+- בר 4: confirmation 
+- COT > AMT (cumulative buyers above 90-min average) 
+ 
+ 
+**Reactive SHORT:** Mirror 
+ 
+ 
+**Initiative LONG:** 
+- בר 1: הרחבה ראשונה (6-7 ticks) 
+- בר 2: בחינה (Higher Low / חזרה ל-POC) 
+- בר 3: הצטרפות (גדולה מ-1) 
+- בר 4: בחינה שנייה = entry 
+- COT < AMT (no counter pressure) 
+ 
+ 
+**Initiative SHORT:** Mirror 
+ 
+ 
+### T2: Woodies CCI Patterns (30-min) 
+על BUTTOM_RIGHT chart (30-min bars). 
+ 
+ 
+8 Patterns (כבר ב-DLL): 
+- Group A (Continuation): ZLR, TLB, TT, GB100 
+- Group B (Reversal): VEGAS, GHOST, FAMIR, HTLB 
+ 
+ 
+Plus Sierra Studies זמינים: 
+- WoodiesZLR (auto-detect ZLR) 
+- CCIPredictor (predicts next CCI value) 
+- WoodieCCITrend2 (trend state machine) 
+- Sidewinder (SWI ±200) 
+- ChopZone (CZI ±100) 
+- LSMA + EMA34 (Strategic/Tactical) 
+ 
+ 
+### T3: Footprint Signals (Number Bar) 
+על Number Bar chart (reversal-based). 
+ 
+ 
+Signals: 
+- Absorption at level (large opposing volume rejected) 
+- Stacked Imbalance (3+ consecutive 250%+ levels) 
+- Sweep + return (wick beyond level + reversal) 
+- Exhaustion at extreme (zero print) 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## LAYER 2: QUALITY (Filter + Tier) 
+ 
+ 
+### Day Type — מאיזה סוג היום? 
+6 Day Types (לפי IB Width Matrix MES): 
+- Trend Normal 
+- Trend DD 
+- Variation (~70% of days) 
+- Neutral (close-extreme / close-center) 
+- Normal 
+- Nontrend 
+ 
+ 
+### Location — איפה במרחב? 
+- POC_TPO position (above/below/at) 
+- VAH/VAL distance 
+- UFL/UFH (Unfair Low/High) — TBD 
+- PDH/PDL/ON levels 
+- Tail (3+ TPO letters) 
+- Single Print 
+- IB extension status 
+ 
+ 
+### Quality Tier 
+HIGH → 3 contracts (full size) 
+MEDIUM → 2 contracts (half) 
+LOW → SKIP 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## LAYER 3: ENTRY EXECUTION (15-tick Reversal Bars!) 
+ 
+ 
+### Primary Mechanism: 15-tick Reversal Bars 
+Sierra Chart Type: reversal,15,0 
+Each bar = 15-tick price reversal 
+ 
+ 
+**Process:** 
+1. Setup identified by Layer 1 (T1/T2/T3) 
+2. Wait for matching 15-tick reversal bar 
+3. Identify cluster in the bar (Volume Profile per bar) 
+4. Entry = above cluster (LONG) / below cluster (SHORT) 
+5. Stop = empty zone (low volume area) 
+ 
+ 
+**Cluster Identification:** 
+- Yellow POC of bar = primary cluster 
+- 3 consecutive levels with most volume = secondary 
+- Highest density of bid/ask volume 
+ 
+ 
+**Empty Zone Identification:** 
+- Levels below cluster with volume < threshold 
+- Single print zones 
+- Gap in footprint 
+ 
+ 
+### Secondary: 12-tick Reversal Bars 
+Used in specific conditions (TBD by Michael). 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## LAYER 4: TRADE MANAGEMENT 
+"לא להחזיר כסף לשוק" — Active management. 
+ 
+ 
+### Entry 
+- 2 Targets With Common Stop (Sierra config used) 
+- Position: 1-3 contracts (per Quality Tier) 
+ 
+ 
+### Targets per Day Type 
+| Day Type | T1 | T2 | T3 | Time Stop | 
+|----------|----|----|----|-----------| 
+| Trend Normal | 1R | 2R+TPO | 4R+ trail | none | 
+| Variation | 1R | 2.5R | trail | 60min | 
+| Normal Day | 1R | POC | NO T3 | 30min | 
+| Trend DD | 1R | open | 4R cap | 90min | 
+| Neutral | 1R | extreme | NO T3 | 45min | 
+| Nontrend | 1R | NO T2 | NO T3 | 20min | 
+ 
+ 
+### Risk Management Rules ("Don't give back") 
+- T1 hit → BE on remaining 
+- SWI red → tighten stop 
+- CCI flat 3+ bars → tighten stop 
+- TCCI crosses CCI14 → exit 
+- Direction Change detected → exit 
+- MFE peak protection (after 80% of T2 → tighten) 
+- Time decay → tighten stop 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 2 — Sierra Chart Layout (אישור מהקבצים) 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+```
+┌──────────────────────┬──────────────────────┐
+│  TOP_LEFT            │  TOP_RIGHT           │
+│  ─────────           │  ─────────           │
+│  Day Context:        │  Currently empty     │
+│  • Volume Profile    │  (in chartbook)      │
+│  • Initial Balance   │                      │
+│  • Cumulative Delta  │                      │
+│  • Daily/Weekly      │                      │
+│  • PDH/PDL Lines     │                      │
+├──────────────────────┼──────────────────────┤
+│  BUTTOM_LEFT         │  BUTTOM_RIGHT        │
+│  ─────────           │  ─────────           │
+│  ENTRY EXECUTION:    │  STRATEGIC CONFIRM:  │
+│  • 15-TICK REVERSAL  │  • 30-MIN bars       │
+│  • Volume Profile    │  • Woodies CCI 14    │
+│  • Cluster detect    │  • CCI Predictor     │
+│  • Daily Lines       │  • WoodiesZLR        │
+│  • Entry above       │  • Sidewinder        │
+│    cluster           │  • ChopZone          │
+│  • Stop in empty     │  • LSMA + EMA34      │
+│    zone              │  • CountDownTimer    │
+└──────────────────────┴──────────────────────┘
+
+
+Plus separate windows:
+- 4K Master: TPO + Footprint (12-tick reversal historical)
+- Number Bar charts (BidVolumeVsAskVolume)
+- Cumulative Delta charts ("culmative", "Culmative 2")
+- Michael MAC chart
+```
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 3 — Sierra Studies בשימוש 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## Studies on Charts 
+| Study | Where | Purpose | 
+|-------|-------|---------| 
+| Volume | Most charts | Bar volume | 
+| Volume Profile (VAP) | Most charts | POC_VOL/VAH/VAL | 
+| InitialBalance | TOP_LEFT | IB tracking | 
+| CumulativeDeltaBarsVolume | Multiple | CVD running | 
+| BidVolumeVersusAskVolume | newer charts | Per-price footprint | 
+| CountDownTimer | newer charts | Bar countdown | 
+| HighLowForTimePeriodExtendedLines | Multiple | PDH/PDL/ON lines | 
+| PeriodOHLCVariablePeriod | Multiple | Daily/Weekly OHLC | 
+| TPO Profile | Master/Michael TPO | Market Profile | 
+ 
+ 
+## Woodies CCI Suite (BUTTOM_RIGHT, 30-min) 
+| Study | Purpose | 
+|-------|---------| 
+| WoodieCCITrend2 | Trend state machine | 
+| CommodityChannelIndex (×2) | CCI 14 + CCI 6 | 
+| LSMAAboveBelow | LSMA position | 
+| Sidewinder | SWI (±200) | 
+| ChopZone | CZI (±100) | 
+| WoodiesPanel | Composite display | 
+| CCIPredictor | Predicts next CCI | 
+| WoodiesZLR | Auto-detect ZLR | 
+| WoodiesEMA | EMA 34 | 
+| MovingAverageLeastSquares | LSMA line | 
+ 
+ 
+## Trading Configuration 
+- 2TargetsWithCommonStop (Sierra config file) 
+- Symbols: ESH4.CME + MESH4.CME 
+- Accounts: PA-APEX-125218-01, APEX-125218-13 (Apex Trader Funding) 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 4 — POC Disambiguation (CRITICAL) 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+**POC_VOL** (Volume POC): 
+- Primary POC for OFA tactics 
+- Cluster identification 
+- Reactive/Initiative trigger logic 
+- Per-bar POC in reversal bars 
+- "כל פעם שמוזכר POC במסמכי OFA הכוונה היא ל POC VOLUME" (זוהר) 
+ 
+ 
+**POC_TPO** (TPO POC): 
+- Day Type classification 
+- Value Area High/Low 
+- Single Print + Tail detection 
+- IB extension analysis 
+- Macro day context 
+ 
+ 
+DLL already separates them: 
+- market_profile.poc → POC_VOL 
+- tpo.current_day.poc_price → POC_TPO 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 5 — מה קיים ב-CODEBASE 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## ✅ EXISTS — לא לבנות מחדש (19 רכיבים) 
+ 
+ 
+### DLL (sc_study/MES_AI_DataExport.cpp, 2,228 שורות) 
+- CVD, VWAP, CCI14, CCI6, EMA144, EMA169 
+- Volume Profile (POC/VAH/VAL) 
+- TPO + Previous Day TPO 
+- Footprint (200 bars) 
+- Order Flow (absorption, sweep, exhaustion) 
+- Stacked Imbalances 
+- MTF candles (3m/5m/15m/30m/60m) 
+- POC Migration tracking 
+- Buyers/Sellers Belly 
+- Opening Type state machine 
+- Triggers (FVG/SWEEP/REVERSAL) 
+- Trade commands (BUY/SELL/MODIFY/CLOSE/BE) 
+- 8 Woodies CCI patterns! (turbo/zlr/hook/hist_color) 
+ 
+ 
+### Bridge (5,110 שורות) 
+- Real-time pipeline 
+- 11-gate Shadow Trading Engine 
+- 3-Pillar Evaluation 
+- News Guard 
+- Pattern Scanner 
+- MTF candle aggregation 
+ 
+ 
+### Backend (7,171 שורות) 
+- 54 endpoints 
+- Trade execution lifecycle 
+- Shadow simulator 
+- Outcome worker 
+- DB: 10,563 attempts + 1,973 setups closed 
+ 
+ 
+### Frontend (12,148 שורות, 26 components) 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## ⚠️ BROKEN — לזרוק/להחליף 
+ 
+ 
+1. Quality Score V1 — anti-correlation Pearson -0.44 
+2. Day Type Classifier — dual confusion (V3 vs V4) 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## 🔴 MISSING — לבנות 
+ 
+ 
+### Critical 
+1. 15-tick reversal bar reading (NEW! לא קיים בDLL) 
+2. Per-bar Volume Profile from reversal bars (NEW) 
+3. Cluster detection in reversal bar (NEW) 
+4. Empty zone detection for stop placement (NEW) 
+5. Setup → Entry handoff logic (NEW) 
+6. CCIPredictor reading (קיים ב-Sierra, לא נצרך ב-DLL) 
+7. WoodiesZLR reading (קיים ב-Sierra, לא נצרך) 
+8. Layer 0 Market State Gate 
+9. Quality Scorer V2 (replace V1) 
+10. Per-System architecture 
+11. UFL/UFH primitive 
+12. Tail Detection 
+13. Cluster Detection 
+14. COT/AMT (cumulative slope) 
+15. Behavior Phase 
+16. Direction Change Detector 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 6 — Per-System Architecture (D-041) 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## עקרון יסוד 
+"מערכת שלא יודעת לקבל החלטה — לא רלוונטית" 
+ 
+ 
+כל system חייב לתת: 
+- Direction (LONG/SHORT/NONE) 
+- Entry price 
+- Stop price 
+- T1/T2 prices (with common stop) 
+- Time stop 
+- Confidence score (0-100) 
+ 
+ 
+## רשימת Decision-Maker Systems 
+✅ T1: 5-min Number Bar Pattern 
+✅ T2: Woodies CCI (30-min) 
+✅ T3: Footprint Signals (Number Bar on reversal) 
+ 
+ 
+## רשימת Filters/Playbooks (לא decision makers) 
+- Day Type → Quality + Playbook 
+- Location → Quality 
+- Layer 0 Market State → Filter 
+- Suffering Side → Veto 
+- OTF Clarity → Filter 
+- Behavior Phase → Context 
+ 
+ 
+## Entry Mechanism (לא system עצמאי) 
+- 15-tick Reversal Bars 
+- 12-tick Reversal Bars (alternative) 
+- Cluster + Empty zone 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 7 — Database Schema 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## Table: per_system_attempts 
+ 
+ 
+```sql
+CREATE TABLE per_system_attempts (
+  id BIGSERIAL PRIMARY KEY,
+  ts TIMESTAMP NOT NULL,
+  system_id VARCHAR(20) NOT NULL,  -- T1_NUMBER_BAR, T2_WOODIES, T3_FOOTPRINT
+  pattern_name VARCHAR(50),
+  direction VARCHAR(5) NOT NULL,
+  entry_price DECIMAL(10,2) NOT NULL,
+  stop_price DECIMAL(10,2) NOT NULL,
+  t1_price DECIMAL(10,2),
+  t2_price DECIMAL(10,2),
+  time_stop_minutes INT,
+  confidence INT,
+  
+  -- Entry mechanism details
+  entry_bar_type VARCHAR(20),        -- "reversal_15", "reversal_12"
+  cluster_top DECIMAL(10,2),
+  cluster_bottom DECIMAL(10,2),
+  empty_zone_top DECIMAL(10,2),
+  empty_zone_bottom DECIMAL(10,2),
+  
+  -- Context at firing
+  market_state VARCHAR(20),
+  chop_score INT,
+  day_type VARCHAR(30),
+  location VARCHAR(50),
+  killzone VARCHAR(20),
+  
+  -- Multi-system context
+  agreed_with_systems VARCHAR(100),
+  conflicting_with_systems VARCHAR(100),
+  
+  -- Outcome (filled by worker)
+  t1_hit BOOLEAN,
+  t2_hit BOOLEAN,
+  stopped_out BOOLEAN,
+  close_reason VARCHAR(30),
+  pnl_simulated DECIMAL(10,2),
+  duration_minutes INT,
+  mfe DECIMAL(10,2),
+  mae DECIMAL(10,2),
+  
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+
+CREATE INDEX idx_per_system_ts ON per_system_attempts(ts);
+CREATE INDEX idx_per_system_id ON per_system_attempts(system_id);
+CREATE INDEX idx_per_system_outcome ON per_system_attempts(close_reason);
+```
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 8 — תוכנית פיתוח 5 שלבים 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## PHASE 0: Specs Lock (יום 1-2 = 9-10 May) 
+8 specs נכתבים: 
+1. Per-System Architecture (Master) 
+2. T1 — 5-min Number Bar Pattern 
+3. T2 — Woodies CCI Integration (30-min) 
+4. T3 — Footprint Triggers 
+5. Quality Scorer V2 
+6. Trade Management ("Don't give back") 
+7. DB Schema 
+8. Frontend Architecture 
+ 
+ 
+Plus: 
+- 15-tick Reversal Bar Detector spec 
+- Cluster Detection algorithm 
+- Empty Zone Detection algorithm 
+ 
+ 
+## PHASE 1: Parallel Development (יום 3-7 = 11-15 May) 
+3 CC windows במקביל: 
+ 
+ 
+**Window 1: DLL Updates** 
+- Read CCIPredictor subgraph 
+- Read WoodiesZLR subgraph 
+- Add 15-tick reversal bar aggregation 
+- Add per-bar Volume Profile from reversal bars 
+- Tests 
+ 
+ 
+**Window 2: Backend Per-System** 
+- Per-system architecture (T1/T2/T3 base classes) 
+- Quality Scorer V2 
+- Layer 0 Market State Gate 
+- Cluster + Empty zone detection 
+- DB migrations 
+- Tests 
+ 
+ 
+**Window 3: Frontend** 
+- 4-quadrant layout 
+- T1Panel, T2Panel, T3Panel 
+- MarketStatePanel 
+- MultiSystemPanel 
+- Cleanup of old code (Quality V1, Day Type V3) 
+ 
+ 
+## PHASE 2: Integration (יום 8-9 = 16-17 May) 
+- Sequential integration 
+- End-to-end tests 
+- Bug fixing 
+- Sierra re-add Study 
+ 
+ 
+## PHASE 3: Shadow Mode (יום 10-14 = 18-22 May) 
+- All systems running, log only 
+- 5+ days data collection 
+- Per-system attempts logged 
+ 
+ 
+## PHASE 4: EOD Analysis (יום 15+ = 23 May+) 
+- Single-feature correlation 
+- Combo performance 
+- Day-type cross-tabs 
+- Threshold optimization 
+ 
+ 
+## PHASE 5: LIVE Activation (יום 21+ = 29 May+) 
+- Based on data findings 
+- Active execution 
+- Risk Management active 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 9 — 46 DECISIONS LOCKED 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+D-001 → D-040: ראה Master Handoff V1 + V2 
+ 
+ 
+🆕 D-041: Per-System Decision Maker Principle 
+🆕 D-042: Schema-First Parallel Development 
+🆕 D-043: 5-Phase Development Plan 
+🆕 D-044: Layer 0 Market State Gate 
+🆕 D-045: Per-System Shadow Logging 
+🆕 D-046: POC Disambiguation (POC_VOL vs POC_TPO) 
+ 
+ 
+🆕 D-047 (חדש): Entry Mechanism = 15-tick Reversal Bars 
+- Primary: reversal,15,0 
+- Secondary: reversal,12,0 
+- Cluster identification + Empty zone for stop 
+ 
+ 
+🆕 D-048: Woodies CCI on 30-MIN 
+- Strategic confirmation, not 5-min 
+- Use Sierra's CCIPredictor + WoodiesZLR studies 
+ 
+ 
+🆕 D-049: 4-Layer Architecture 
+- Layer 0: Market State Gate 
+- Layer 1: Setup Identification (T1/T2/T3) 
+- Layer 2: Quality (Day Type + Location) 
+- Layer 3: Entry Execution (15-tick reversal) 
+- Layer 4: Trade Management (Don't give back) 
+ 
+ 
+🆕 D-050: Sierra Studies Wire-Up 
+Read these from DLL/JSON output: 
+- BidVolumeVersusAskVolume (per-price footprint) 
+- CumulativeDeltaBarsVolume 
+- CCIPredictor 
+- WoodiesZLR 
+- HighLowForTimePeriodExtendedLines 
+- PeriodOHLCVariablePeriod 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 10 — Open Questions (Defaults set) 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+1. ✅ 15-tick primary, 12-tick secondary (אישר מייקל) 
+2. ✅ Woodies CCI on 30-min (אישר מייקל) 
+3. ✅ Number Bar = primary footprint source 
+4. ❓ Multiple triggers same direction → DEFAULT: cross-reference 
+5. ❓ Conflicting triggers → DEFAULT: log both, no trade 
+6. ❓ Time window for agreement → DEFAULT: 5 min 
+7. ❓ Statistical significance → DEFAULT: n>=30 
+8. ❓ Cluster threshold → TBD (data-driven) 
+9. ❓ Empty zone threshold → TBD (data-driven) 
+10. ❓ Risk Management exact rules → TBD (PHASE 0 SPEC 6) 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 11 — Anti-Patterns 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## Technical (Sierra/DLL) 
+- std::max/min are macros — use ternary 
+- SCT_OSC_REJECTED doesn't exist — use SCT_OSC_ERROR 
+- GetPersistentSCString (not GetPersistentString) 
+- TPO subgraphs 1-indexed 
+- Mac paths only 
+- Re-add Study after each DLL build mandatory 
+- Bridge restart after DLL changes mandatory 
+ 
+ 
+## Logical 
+- POC ≠ POC — always specify _VOL or _TPO 
+- MFE bug (use close_reason/pnl) 
+- Score 70+ broken (anti-correlation) 
+- 90% LONG bias = Suffering Side violations 
+- BE-on-C1 invites stop hunts 
+- V3 day types don't match Zohar's 6 
+- Day Type = playbook, not trigger 
+ 
+ 
+## Architectural 
+- All-conditions-must-pass = sequential gate trap 
+- Score-based thresholds arbitrary 
+- Belly=Direction wrong (must be measurement) 
+- Snapshot volume wrong (must be cumulative) 
+- 5-min not the only timeframe (15-tick reversal exists) 
+- Wait-for-all-systems-to-agree = no entry ever 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 12 — Infrastructure 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+- Sierra Chart DLL v7.14.2 
+- Bridge: /Users/michael/Downloads/mems26_web_git/bridge 
+- Backend: https://mems26-web.onrender.com 
+- Frontend: blasttt.com (Netlify) 
+- DB: PostgreSQL on Render 
+- Redis: Upstash 
+- Repo: github.com/michaelbarg/mems26-web (PRIVATE) 
+- Branch: feature/sprint4-schema-lock 
+- Last commit: 2fe1a54 (INVENTORY) 
+ 
+ 
+## Trading 
+- Symbols: ESH4.CME + MESH4.CME 
+- Accounts: PA-APEX-125218-01 + APEX-125218-13 
+- Trade Config: 2TargetsWithCommonStop 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 13 — מסמכים שיש 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+1. MEMS26_CONSTITUTION_V2 (Drive) 
+2. MEMS26_CONSTITUTION_V2_UPDATED (Drive) 
+3. CC_PROMPT_INVENTORY_V8_1_0 (Drive) 
+4. INVENTORY_2026-05-08.md (Repo) 
+5. MEMS26_MASTER_HANDOFF_8MAY_FINAL (Drive) 
+6. MEMS26_MASTER_HANDOFF_V2_EOD (Drive) 
+7. CC_PROMPT_CHARTBOOK_INVENTORY_V8_6_0 (Drive) 
+8. MEMS26_CHARTBOOK_ANALYSIS_9MAY (Drive) 
+9. **MEMS26_CONSTITUTION_V3_FINAL (זה — המסמך הסופי)** 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+PART 14 — מתי מתחילים 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+## Today (Saturday, 9 May) 
+- ✅ Constitution V3 FINAL approved 
+- ✅ Architecture locked 
+- 🔜 Begin SPEC 1 (Per-System Architecture) 
+- 🔜 Begin SPEC 9 (15-tick Reversal Bar Detector) 
+ 
+ 
+## Sunday-Monday (10-11 May) 
+- Complete remaining specs 
+- Prepare CC prompts for parallel work 
+ 
+ 
+## Tuesday-Friday (12-15 May) 
+- Phase 1: Parallel Development 
+- 3 CC windows running 
+ 
+ 
+## Following week (16-22 May) 
+- Phase 2: Integration 
+- Phase 3: Shadow Mode begins 
+ 
+ 
+## End May 
+- Phase 4-5: Analysis + LIVE preparation 
+ 
+ 
+═══════════════════════════════════════════════════════════════════ 
+END OF CONSTITUTION V3 FINAL 
+═══════════════════════════════════════════════════════════════════ 
+ 
+ 
+🎯 השלוש החלטות הסופיות שכבר נסגרו: 
+1. ✅ 15-tick primary, 12-tick secondary entry 
+2. ✅ Woodies CCI on 30-min strategic 
+3. ✅ 4-Layer Architecture finalized 
+ 
+ 
+🎯 המסמך הזה הוא ה-source of truth עכשיו. 
+ כל החלטה אחרי זה מתעדכנת ב-V3. 
+ לא נחזור אחורה לV1/V2. 
+ 
+ 
+═══════════════════════════════════════════════════════════════════
