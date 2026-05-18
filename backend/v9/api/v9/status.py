@@ -23,9 +23,11 @@ LIVE_PRICE_JSON = Path(
 
 REDIS_URL = os.getenv("UPSTASH_REDIS_REST_URL", "")
 REDIS_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "")
+STATUS_REDIS_TIMEOUT_S = float(os.getenv("V9_STATUS_REDIS_TIMEOUT_S", "0.2"))
+STATUS_BRIDGE_BUDGET_S = float(os.getenv("V9_STATUS_BRIDGE_BUDGET_S", "0.8"))
 
 
-def _redis_cmd(args: list):
+def _redis_cmd(args: list, timeout: float = STATUS_REDIS_TIMEOUT_S):
     """Quick Redis command via Upstash REST."""
     if not REDIS_URL or not REDIS_TOKEN:
         return None
@@ -40,7 +42,7 @@ def _redis_cmd(args: list):
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=3) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode()).get("result")
     except Exception:
         return None
@@ -78,10 +80,17 @@ def _check_bridge() -> dict:
         "mems26:v9:tpo",
         "mems26:v9:bars_5min",
     ]
+    started = time.monotonic()
     active = 0
     errors = 0
+    checked = 0
+    partial = False
     for key in stream_keys:
+        if time.monotonic() - started > STATUS_BRIDGE_BUDGET_S:
+            partial = True
+            break
         hb = _redis_cmd(["GET", f"{key}:heartbeat"])
+        checked += 1
         if hb is not None:
             try:
                 age = time.time() - int(hb)
@@ -91,8 +100,13 @@ def _check_bridge() -> dict:
                 errors += 1
 
     # LivePriceStream check: XLEN of price.tick stream as proxy
-    price_xlen = _redis_cmd(["XLEN", "mems26:events:price.tick"])
-    live_price_active = price_xlen is not None and int(price_xlen) > 0
+    price_xlen = None
+    live_price_active = False
+    if time.monotonic() - started <= STATUS_BRIDGE_BUDGET_S:
+        price_xlen = _redis_cmd(["XLEN", "mems26:events:price.tick"])
+        live_price_active = price_xlen is not None and int(price_xlen) > 0
+    else:
+        partial = True
 
     if live_price_active:
         active += 1
@@ -103,6 +117,8 @@ def _check_bridge() -> dict:
         "running": active > 0,
         "streams_active": active,
         "streams_total": total,
+        "streams_checked": checked + (1 if price_xlen is not None else 0),
+        "partial": partial,
         "errors": errors,
     }
 
