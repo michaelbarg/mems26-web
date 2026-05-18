@@ -21,6 +21,8 @@ interface SystemStateStore {
   fetchAllStates: () => Promise<void>;
 }
 
+let _fetchInFlight = false;
+
 export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
   systems: {
     1: { id: 1, name: 'Day Type',  state: null, subState: null, confidence: 0, lastUpdate: 0, health: 'unknown' },
@@ -40,6 +42,8 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
     })),
 
   fetchAllStates: async () => {
+    if (_fetchInFlight) return; // Prevent overlapping polls when backend is slow
+    _fetchInFlight = true;
     const update = get().updateSystem;
     try {
       const dtV9 = await fetch(`${API_BASE}/api/v9/day_type/v9/current`).then((r) => r.json()).catch(() => null);
@@ -131,5 +135,6 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
         }
       } catch {}
     }
+    _fetchInFlight = false;
   },
 }));

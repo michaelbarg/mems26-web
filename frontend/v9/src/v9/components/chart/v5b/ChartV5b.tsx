@@ -1,6 +1,7 @@
 'use client';
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { usePriceStore } from '../../../stores/priceStore';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -129,33 +130,28 @@ export function ChartV5b() {
     const tfSeconds: Record<string, number> = { '3m': 180, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600 };
     const bucketSize = tfSeconds[activeTf] || 300;
 
-    const livePoll = setInterval(async () => {
-      try {
-        const res = await fetch(`${API}/api/v9/live_price`);
-        const data = await res.json();
-        const price = data.price;
-        if (!price) return;
+    // Subscribe to priceStore (fed by WebSocket) instead of polling /api/v9/live_price
+    const unsubPrice = usePriceStore.subscribe((state) => {
+      const price = state.price;
+      if (!price || !candleRef.current) return;
 
-        const nowSec = Math.floor(Date.now() / 1000);
-        const bucket = Math.floor(nowSec / bucketSize) * bucketSize;
+      const nowSec = Math.floor(Date.now() / 1000);
+      const bucket = Math.floor(nowSec / bucketSize) * bucketSize;
 
-        const fb = formingBarRef.current;
-        if (fb && fb.time === bucket) {
-          // Update existing forming bar
-          fb.high = Math.max(fb.high, price);
-          fb.low = Math.min(fb.low, price);
-          fb.close = price;
-          fb.vol += 1;
-        } else {
-          // New bucket — start fresh forming bar
-          formingBarRef.current = { time: bucket, open: price, high: price, low: price, close: price, vol: 1 };
-        }
+      const fb = formingBarRef.current;
+      if (fb && fb.time === bucket) {
+        fb.high = Math.max(fb.high, price);
+        fb.low = Math.min(fb.low, price);
+        fb.close = price;
+        fb.vol += 1;
+      } else {
+        formingBarRef.current = { time: bucket, open: price, high: price, low: price, close: price, vol: 1 };
+      }
 
-        const bar = formingBarRef.current!;
-        candleRef.current?.update({ time: bar.time as any, open: bar.open, high: bar.high, low: bar.low, close: bar.close });
-        volumeRef.current?.update({ time: bar.time as any, value: bar.vol, color: bar.close >= bar.open ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
-      } catch {}
-    }, 1000);
+      const bar = formingBarRef.current!;
+      candleRef.current?.update({ time: bar.time as any, open: bar.open, high: bar.high, low: bar.low, close: bar.close });
+      volumeRef.current?.update({ time: bar.time as any, value: bar.vol, color: bar.close >= bar.open ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
+    });
 
     // Finalized bars poll every 5s — replaces historical bars with DB truth
     const barsPoll = setInterval(async () => {
@@ -172,7 +168,7 @@ export function ChartV5b() {
       } catch {}
     }, 5000);
 
-    return () => { clearInterval(livePoll); clearInterval(barsPoll); };
+    return () => { unsubPrice(); clearInterval(barsPoll); };
   }, [activeTf]);
 
   // Historical scroll-back: load older bars when user pans left

@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useTradeStore } from '../../stores/tradeStore';
 import { useSystemStore } from '../../stores/systemStore';
+import { useSystemStateStore } from '../../store/systemStateStore';
 import { PriceDisplay } from '../topbar/PriceDisplay';
 import { PriceMeta } from '../topbar/PriceMeta';
 import { ConnectionIndicator } from '../topbar/ConnectionIndicator';
@@ -28,40 +29,31 @@ export function TopBar() {
   const [backendHealth, setBackendHealth] = useState<{ subscribers: number; bridgeOk: boolean } | null>(null);
   const [showPlaybook, setShowPlaybook] = useState(false);
   useEffect(() => {
-    const f = () => fetch(`${API}/api/v9/status`).then(r => r.json()).then(d => {
-      setMode(d.mode || d.trading_mode || 'SHADOW');
-      const subs = d.bar_router?.subscribers || {};
-      const total = Object.values(subs).reduce((a: number, b) => a + (b as number), 0);
-      setBackendHealth({ subscribers: total, bridgeOk: d.bridge?.connected ?? (total > 0) });
-    }).catch(() => {});
+    let inFlight = false;
+    const f = () => {
+      if (inFlight) return;
+      inFlight = true;
+      fetch(`${API}/api/v9/status`).then(r => r.json()).then(d => {
+        setMode(d.mode || d.trading_mode || 'SHADOW');
+        const subs = d.bar_router?.subscribers || {};
+        const total = Object.values(subs).reduce((a: number, b) => a + (b as number), 0);
+        setBackendHealth({ subscribers: total, bridgeOk: d.bridge?.connected ?? (total > 0) });
+      }).catch(() => {}).finally(() => { inFlight = false; });
+    };
     f(); const id = setInterval(f, 5000); return () => clearInterval(id);
   }, []);
 
-  // Day Type from V9 classifier (3a-S4 endpoint, falls back to V1)
+  // Day Type — read from systemStateStore (already polled by useSystemStatePolling)
   const DT_LABELS: Record<string, string> = {
     Trend_Normal: 'TRD', Trend_DD: 'TDD', Variation: 'VAR',
     Neutral: 'NEU', Normal: 'NOR', Nontrend: 'NTR', UNKNOWN: '\u2014',
     trend_normal: 'TRD', trend_dd: 'TDD', variation: 'VAR',
     neutral: 'NEU', normal: 'NOR', nontrend: 'NTR',
   };
-  const [dayTypeRaw, setDayTypeRaw] = useState('UNKNOWN');
-  const [dayTypeConf, setDayTypeConf] = useState(0);
-  const [dayTypeDir, setDayTypeDir] = useState<string | null>(null);
-  useEffect(() => {
-    const f = () => fetch(`${API}/api/v9/day_type/v9/current`).then(r => r.json())
-      .then(d => {
-        if (d?.data) {
-          setDayTypeRaw(d.data.day_type || 'UNKNOWN');
-          setDayTypeConf(d.data.probability != null ? Math.round(d.data.probability * 100) : 0);
-          setDayTypeDir(d.data.directional_certainty || null);
-        } else {
-          // Fallback to V1 endpoint
-          return fetch(`${API}/api/v9/day_type/current`).then(r2 => r2.json())
-            .then(d2 => { setDayTypeRaw(d2.day_type || 'UNKNOWN'); setDayTypeConf(d2.confidence ?? 0); });
-        }
-      }).catch(() => {});
-    f(); const id = setInterval(f, 10000); return () => clearInterval(id);
-  }, []);
+  const dtSystem = useSystemStateStore((s) => s.systems[1]);
+  const dayTypeRaw = dtSystem?.state ?? 'UNKNOWN';
+  const dayTypeConf = dtSystem?.confidence != null ? Math.round(dtSystem.confidence * 100) : 0;
+  const dayTypeDir = dtSystem?.raw?.directional_certainty ?? null;
   const dayType = DT_LABELS[dayTypeRaw] || dayTypeRaw;
 
   // WR today (ν.2)
