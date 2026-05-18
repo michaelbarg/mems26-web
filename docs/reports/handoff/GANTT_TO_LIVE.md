@@ -1,5 +1,5 @@
 **Status:** living document — update as the project advances
-**Last updated:** 2026-05-16
+**Last updated:** 2026-05-18
 **Author:** Cursor multitask session
 
 # GANTT_TO_LIVE — MEMS26 → real-money trading
@@ -20,8 +20,8 @@ Companion documents:
 
 | Phase | Description | Prompts | Depends on | Status | Exit criteria |
 |---|---|---|---|---|---|
-| **0. Backend data integrity** | Fix three pipeline bugs found 2026-05-16 (bad bars in `/chart/bars5min`, stale `live_price`, TPO `bars_processed_today=0`) | P27.5a, P27.5b, P27.5c | nothing | **IN PROGRESS** (identified, not fixed) | Three endpoints return clean, fresh, complete data during RTH and over weekend; SCB updated; no client-side `looksOk`/stale-price guards needed for correctness (kept as defense in depth) |
-| **1. Replay smoke run** | Re-run Prompt 28 after P27.5 fixes; prove the replay clock + all 6 systems still pass against the cleaned data path | P28 (re-run) | Phase 0 | **PARTIAL** (11/11 PASS on 2026-05-16, but on dirty bars) | All 11 checks PASS on cleaned data; report `PROMPT28_REPLAY_SMOKE_RUN.md` refreshed |
+| **0. Backend data integrity** | Close P27.5 pipeline issues before replay/SHADOW (`bars5min`, `live_price`, TPO, dispatch latency, partial bars, five_min route instance, docs sync) | P27.5a/b/c/d/e/f/z | nothing | **IN PROGRESS** — P27.5a/c/d/e/f/z GREEN; P27.5b DEFERRED until RTH | P27.5b proves `/live_price age_ms < 60000` during RTH; then Michael explicitly approves Phase 0 → Phase 1 |
+| **1. Replay smoke run** | Re-run Prompt 28 after Phase 0 is fully green; prove the replay clock + all 6 systems still pass against the cleaned data path | P28 (re-run) | Phase 0 + Michael gate | **WAITING** | All 11 checks PASS on cleaned data; report `PROMPT28_REPLAY_SMOKE_RUN.md` refreshed |
 | **2. Replay scenario pack** | Inject 10 historical scenarios (trend / balance / opening drive / S2 / S3 / S4 / killzone change / TPO context / degraded / pre_fire block) and verify expected reason trees and route/block outcomes | P29 | Phase 1 | NOT STARTED | All 10 scenarios pass; `docs/reports/PROMPT29_REPLAY_SCENARIO_PACK.md` exists |
 | **3. Data collection package** | Define and wire the storage/log contract for everything we will collect during SHADOW (bars per stream, per-system state, pre_fire decisions, gateway dry-run decisions, reason trees, lifecycle events) | P29.5 | Phase 2 | NOT STARTED | Schema + sinks documented and exercised by a 1-hour replay run that produces parseable artifacts |
 | **4. Frontend polish (optional, deferrable)** | Decide if SystemPanelsBar / Volume comes back in a new form; UI/UX evaluation now that the chart is a single pane; design package for handoff to a designer | P-UI-1..P-UI-3 | Phase 3 (data shape known) | DEFERRED | UI spec frozen for SHADOW dashboard; chart, banners, side panel, strips finalized |
@@ -39,20 +39,25 @@ Companion documents:
 
 ```mermaid
 gantt
-    title Phase 0 — Backend data integrity (must finish before SHADOW)
+    title Phase 0 — Backend data integrity (must finish before replay/SHADOW)
     dateFormat  X
     axisFormat  %s
     section /chart/bars5min
-    P27.5a bad-bar root cause + fix             :crit, p275a, 0, 3
-    P27.5a UAT (replay + RTH spot check)        :p275aU, after p275a, 1
+    P27.5a bad-bar root cause + fix             :done, crit, p275a, 0, 3
+    P27.5a UAT (quality/recency/cardinality/latency) :done, p275aU, after p275a, 1
     section /live_price
-    P27.5b stale price root cause + fix         :crit, p275b, after p275a, 3
-    P27.5b UAT (RTH freshness < 60s)            :p275bU, after p275b, 1
+    P27.5b stale price root cause + fix         :active, crit, p275b, after p275aU, 3
+    P27.5b UAT (RTH freshness < 60s)            :crit, p275bU, after p275b, 1
     section /tpo/current
-    P27.5c TPO aggregator daily-roll fix        :crit, p275c, after p275b, 3
-    P27.5c UAT (bars_processed_today > 0)       :p275cU, after p275c, 1
+    P27.5c publish_threadsafe + TPO feed        :done, crit, p275c, after p275aU, 3
+    P27.5c UAT (bars_processed_today > 0)       :done, p275cU, after p275c, 1
+    section Dispatch/latency
+    P27.5d Footprint dispatch latency           :done, p275d, after p275cU, 2
+    P27.5e 5min.partial 1Hz topic               :done, p275e, after p275d, 1
+    section five_min routes
+    P27.5f route instance fix                   :done, p275f, after p275e, 1
     section Board
-    SCB refresh + handoff docs update           :p275z, after p275cU, 1
+    P27.5z SCB + handoff docs sync              :done, p275z, after p275f, 1
 ```
 
 ---
