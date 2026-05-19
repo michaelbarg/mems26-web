@@ -42,7 +42,13 @@ class TestStreamRegistry:
 
     def test_bars_5min_only_flag_selects_single_stream(self):
         selected = json_bridge.select_streams(["--bars-5min-only"])
-        assert [s.name for s in selected] == ["bars_5min"]
+        names = {s.name for s in selected}
+        assert names == {"bars_5min"}
+
+    def test_cockpit_minimal_streams(self):
+        selected = json_bridge.select_streams(["--cockpit-minimal"])
+        names = {s.name for s in selected}
+        assert names == {"bars_5min", "woodies_5min"}
 
     def test_streams_arg_selects_named_streams(self):
         selected = json_bridge.select_streams(["--streams=bars_5min,live_price"])

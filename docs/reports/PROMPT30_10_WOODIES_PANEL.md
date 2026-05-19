@@ -15,23 +15,22 @@
 | Tests | `tests/v9/api/test_woodies_chart_routes.py` (3 passed) |
 | Lens | Woodies → Chart tab points to panel |
 
-## Bridge (optional)
-
-Panel does **not** require bridge (file read like TPO/CVD). For S4 system hydration:
+## Bridge (cockpit-minimal)
 
 ```bash
-cd bridge && CLOUD_URL=http://localhost:8000 V9_SKIP_HISTORY=1 \
-  python3 json_bridge.py --streams=bars_5min,woodies_5min
+cd bridge && CLOUD_URL=http://localhost:8000 V9_SKIP_HISTORY=1 V9_DISABLE_WATCHDOG=1 \
+  python3 json_bridge.py --cockpit-minimal
 ```
 
-## UAT
+(`bars_5min` + `woodies_5min` only — not P30.11 full bridge.)
 
-```bash
-# After backend restart (new route)
-curl -s "http://127.0.0.1:8000/api/v9/woodies/chart?limit=30" | python3 -m json.tool | head -25
+## UAT (2026-05-19 live)
+
 ```
-
-Browser: `http://127.0.0.1:3000` → **5m** → teal panel bottom-left with CCI title.
+GET /api/v9/woodies/chart?limit=30 → 30/30, bad=0, 25ms, source=sierra_woodies_5min_json
+Browser: Woodies CCI panel visible, title [CCI:-143.95] matches API
+pytest: test_woodies_chart_routes + bridge Woodies5Min PASS
+```
 
 ## Deferred (not blocking GREEN)
 

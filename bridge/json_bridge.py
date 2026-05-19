@@ -26,6 +26,10 @@ def _requested_stream_names(argv):
     if "--bars-5min-only" in argv:
         return {"bars_5min"}
 
+    if "--cockpit-minimal" in argv:
+        # P30 chart + Woodies panel: bars + S4 CCI (no full 12-stream bridge)
+        return {"bars_5min", "woodies_5min"}
+
     for arg in argv:
         if arg.startswith("--streams="):
             names = arg.split("=", 1)[1]
