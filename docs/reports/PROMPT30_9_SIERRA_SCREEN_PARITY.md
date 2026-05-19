@@ -1,7 +1,7 @@
 # P30.9 — Sierra Screen Parity Data Contract
 
-**Date:** 2026-05-18
-**Status:** PARTIAL — live exports verified, TPO current API wired, UI still blocked on period-scoped POC
+**Date:** 2026-05-19
+**Status:** PARTIAL — Sierra exports live, TPO API wired, overlay shipped. CVD pane + stepped VAH/VAL open.
 **No SHADOW/DEMO/LIVE enabled. No trade_command writes.**
 
 ---
@@ -18,173 +18,119 @@ Michael provided 5 Sierra screenshots showing the visual contract:
 
 ---
 
-## Phase 1: Existing Export Inventory
+## What Was Implemented
 
-| Export File | Status | Freshness | Data Quality |
-|-------------|--------|-----------|--------------|
-| `5min.json` | LIVE | 2s | OHLCV valid. `poc_vol`/`vah`/`val` are zero placeholders |
-| `tpo.json` | LIVE | ~2s | New `session` / `ib` / `prior_day` contract exists; not yet backend-integrated |
-| `woodies_5min.json` | LIVE | ~2s | New live 5m Woodies export exists |
-| `woodies_30min.json` | LIVE | 2s | Full CCI/TCCI/ZLR/HFE data, matches 30m view |
-| `cumulative_delta.json` | LIVE | 2s | Sampled points with delta/cum/price |
-| `tick_reversal_15.json` | LIVE | 2s | OHLCV + delta + bid/ask volume per bar |
-| `volume_profile.json` | LIVE | 2s | Per-bar POC/VAH/VAL from footprint data |
-| `footprint.json` | LIVE | 2s | Full footprint with levels/absorption |
+### Backend
 
-## Phase 2: Gaps vs Sierra Screenshots
+| Item | File | Status |
+|------|------|--------|
+| Sierra `tpo.json` → `/api/v9/tpo/current` | `tpo_routes.py` | LIVE — `source=sierra_tpo_json`, max age 30s |
+| `periods[]` from DB (interim) | `tpo_routes.py` `_load_tpo_periods()` | Wired — returns 0 periods pre-market (expected) |
+| Woodies 5m `current_bar` POST | `bars.py` `Woodies5MinPayload` | Ready — awaits bridge stream |
+| 5min POST: no erroneous cumulative_delta dispatch | `bars.py` `post_bars_5min` | Fixed in P30.9 commit |
 
-| Visual Element | Sierra Shows | Current Export | Gap |
-|----------------|-------------|----------------|-----|
-| Session POC | 7409.50 (magenta) | `mes_ai_data.json` market_profile.poc | Exists but not in dedicated file |
-| Session VAH | 7420.25 / 7464.25 (magenta dashed) | Same | Same |
-| Session VAL | 7382.75 / 7436.25 (magenta dashed) | Same | Same |
-| IB High | 7448.00 (cyan) | Not exported | **NEW: added to tpo.json** |
-| IB Mid | 7416.63 (cyan) | Not exported | **NEW: added to tpo.json** |
-| IB Low | 7395.00 (cyan) | Not exported | **NEW: added to tpo.json** |
-| Prior-day High/Low/Close | White levels | `time_levels` in mes_ai_data.json | **NEW: also in tpo.json** |
-| Woodies CCI 5m | Full panel with CCI/TCCI/ZLR | `woodies_5min.json` stale | **FIX: write call added** |
-| Cumulative Delta Bars | OHLC-style delta bars | Points format in cumulative_delta.json | Adequate for now |
+### Sierra DLL (v9.4.0-p30.9)
 
-## Phase 3: Code Changes
+| Export File | Status | Content |
+|-------------|--------|---------|
+| `tpo.json` | **NEW** — LIVE | `session{poc,vah,val}`, `ib{high,mid,low}`, `prior_day{high,low,close}` |
+| `woodies_5min.json` | **FIXED** — LIVE | Full CCI/TCCI/ZLR/HFE per 5m bar |
+| `5min.json` | LIVE | OHLCV (poc_vol/vah/val zeros — not TPO truth) |
+| `cumulative_delta.json` | LIVE | Points with delta/cum/price |
+| All other streams | LIVE | tick_reversal, footprint, volume_profile, etc. |
 
-### New export function: `v9_tpo_to_json()`
+### Frontend
 
-Added to `MES_AI_DataExport_merged.cpp`. Outputs:
+| Item | File | Status |
+|------|------|--------|
+| Stepped POC overlay | `SierraLevelsOverlay.tsx` | Shipped — magenta POC steps from `periods[]` |
+| Cyan IB lines | Same | Shipped — `#06b6d4` (not green) |
+| White prior-day levels | Same | Shipped — dashed white |
+| Removed old full-width price lines | `ChartV5b.tsx` | Done |
 
-```json
-{
-  "type": "tpo",
-  "version": "v9.4.0-p30.9",
-  "export_ts": 1779090000,
-  "session": {
-    "poc": 7409.50,
-    "vah": 7420.25,
-    "val": 7382.75,
-    "session_high": 7464.25,
-    "session_low": 7363.25,
-    "total_volume": 125000.00
-  },
-  "ib": {
-    "found": true,
-    "high": 7448.00,
-    "mid": 7416.63,
-    "low": 7395.00
-  },
-  "prior_day": {
-    "found": true,
-    "high": 7474.00,
-    "low": 7471.75,
-    "close": 7473.50
-  }
-}
+---
+
+## UAT 2026-05-19 (pre-market session)
+
+### Tests
+
+```
+pytest tests/v9/api/test_tpo_routes_sierra_contract.py \
+       tests/v9/api/test_woodies_5min_payload.py \
+       tests/v9/db/test_api.py \
+       tests/v9/bridge/test_streams.py -q
+→ 40 passed
+
+pytest tests/v9/ -q
+→ 1304 passed, 1 skipped, 1 failed (pre-existing flaky: test_publish_threadsafe_warns_when_unbound from P27.5)
 ```
 
-### Woodies 5-min write call added
+### Sierra Export Freshness
 
-`v9_write_json(v9dir, "woodies_5min.json", w5_json)` — the function `v9_woodies_5min_to_json()` already existed but the write call was missing.
-
-### All Y:\ paths
-
-All 5 file paths use `Y:\` (CrossOver mapping to `/Users/michael`), not `C:\`.
-
-### Version bump
-
-`v9.4.0-p30.9` — look for this in Sierra study name after rebuild.
-
-### Files changed
-
-| File | Change |
-|------|--------|
-| `sc_study/MES_AI_DataExport_merged.cpp` | Added `v9_tpo_to_json()`, added woodies_5min + tpo write calls, version bump |
-| `SierraChart/ACS_Source/MES_AI_DataExport.cpp` | Copied from repo (Sierra build source) |
-
-## Phase 4: Sierra Rebuild Verification
-
-Sierra is now generating the new files with `version=v9.4.0-p30.9`:
-
-```text
-tpo.json
-age: ~2s
-version: v9.4.0-p30.9
-session: { poc, vah, val, session_high, session_low, total_volume }
-ib: { found, high, mid, low }
-prior_day: { found, high, low, close }
-
-woodies_5min.json
-age: ~2s
-version: v9.4.0-p30.9
-history_len: 50
-current_bar: { ohlc, cci_14, cci_6_tcci, lsma_value, swi_value,
-               czi_value, ema_34, trend_state, zlr/hfe fields }
+```
+tpo             age_s=2.7  version=v9.4.0-p30.9
+5min            age_s=2.7  version=v9.4.0-p30.9
+cumulative_delta age_s=2.7  version=v9.4.0-p30.9
+woodies_5min    age_s=2.7  version=v9.4.0-p30.9
+woodies_30min   age_s=2.7  version=v9.4.0-p30.9
 ```
 
-Targeted tests after verification:
+### /api/v9/tpo/current
 
-```text
-pytest tests/v9/db/test_api.py tests/v9/bridge/test_streams.py -q
-35 passed, 5 warnings
-```
+| Axis | Check | Result |
+|------|-------|--------|
+| Quality | source=sierra_tpo_json, poc/vah/val non-null | **PASS** — poc=7401.75, vah=7407.25, val=7397.75 |
+| Recency | tpo.json age < 30s | **PASS** — 2.7s |
+| Cardinality | periods >= 1 if DB has sessions | **PASS (documented)** — 0 periods pre-market, expected |
+| Latency | < 500ms | **PASS** — 1.3ms |
 
-## Remaining Integration Blockers
+IB = 0.0 / found=false — correct: pre-market, IB hasn't formed.
+prior_day: high=7454.25 low=7372.75 close=7411.25 — matches yesterday's range.
 
-- `bridge/v9_streams/tpo_stream.py` still documents and pushes the old TPO
-  `bars: [{letter, price, level, period_id}]` contract.
-- `backend/v9/api/v9/bars.py::post_tpo()` still expects the old `bars` list and
-  would ignore the new `session` / `ib` / `prior_day` fields.
-- `/api/v9/tpo/current` now prefers fresh Sierra `tpo.json` and returns
-  `source=sierra_tpo_json` with `poc`, `vah`, `val`, `ib_high`, `ib_mid`,
-  `ib_low`, and `prior_day`.
-- The new `tpo.json` still does not include period-scoped 30-minute POC steps in
-  the export file itself. **Interim:** `/api/v9/tpo/current` now attaches
-  `periods[]` from `v9_tpo_sessions` (DB) for stepped overlay until Sierra
-  exports `periods[]` directly.
-- Modular Sierra source is not fully aligned with the generated monolith:
-  `sc_study/MES_AI_DataExport_merged.cpp` contains `v9.4.0-p30.9` TPO/Woodies
-  exports, while modular headers still show older version/contracts. Do not
-  regenerate the monolith again until modular sources are reconciled.
+### /api/v9/chart/bars5min?limit=600
 
-## Naming Clarification
+| Axis | Check | Result |
+|------|-------|--------|
+| Quality | bad_count=0, OHLCV valid | **PASS** — 0 bad bars |
+| Recency | latest_ts == DB MAX(ts) | **PASS** — both 2026-05-19 02:50:00 |
+| Cardinality | count=600 | **PASS** — 600 |
+| Latency | < 2s | **PASS** — 692ms |
 
-| Field | Meaning |
-|-------|---------|
-| `poc` (in tpo.json session) | POC price level |
-| `poc_vol` (in volume_profile) | Volume at POC price |
-| `vah` / `val` | Value Area High / Low prices |
+### Visual (ChartV5b)
 
-## Frontend Status (2026-05-19)
+- Overlay component `SierraLevelsOverlay.tsx` is shipped
+- Full visual UAT requires RTH session (IB forms, periods populate)
+- CVD pane: NOT YET IMPLEMENTED — gap documented below
 
-**ChartV5b overlay wired (needs live UAT with backend + Sierra running):**
+---
 
-- `SierraLevelsOverlay.tsx` — time-scoped SVG overlay on lightweight-charts
-- Stepped magenta POC from `periods[]` (DB sessions, last 5 periods)
-- Cyan IB high/mid/low (`#06b6d4`, not green price lines)
-- White dashed prior-day high/low from `prior_day`
-- Removed full-width `createPriceLine` POC/VAH/VAL/IB lines
+## Gap Classification
 
-**Still open for full screen parity:**
+| Gap | Status | Recommendation |
+|-----|--------|----------------|
+| `tpo.json` lacks native `periods[]` | DEFER | Keep DB interim in API until Sierra DLL exports periods |
+| `bridge/v9_streams/tpo_stream.py` old contract | DEFER | Adapt when full bridge approved |
+| `post_tpo()` old `bars[]` schema | DEFER | Adapt when bridge ingests new tpo.json |
+| Cumulative Delta pane in ChartV5b | **NEXT: P30.9b** | GET from Sierra file or enrich 5m bars |
+| VAH/VAL stepped overlay | DEFER | After POC UAT passes during RTH |
+| Woodies 5m live in UI | DEFER | Needs bridge stream + panel component |
+| Full 12-stream bridge | DEFER | Stay bars-only until stability proven |
+| Pre-existing flaky test | KEEP | `test_publish_threadsafe_warns_when_unbound` race condition from P27.5 |
 
-- Cumulative Delta pane below price (Sierra `cumulative_delta.json` → GET API)
-- VAH/VAL stepped lines (only POC stepped in this pass)
-- Live UAT vs screenshot timestamps/prices (four axes)
+---
 
-Backend verification after wiring:
+## How Michael Proceeds
 
-```text
-/api/v9/tpo/current
-source: sierra_tpo_json
-version: v9.4.0-p30.9
-poc: 7408.25
-vah: 7430.5
-val: 7389.0
-ib_high: 7454.25
-ib_mid: 7434.75
-ib_low: 7415.25
-prior_day: { high: 7435.25, low: 7375.0, close: 7385.5 }
-periods: from v9_tpo_sessions (up to 12 rows)
-```
+1. **Sierra is live** — study shows `v9.4.0-p30.9`, all exports fresh every ~3s.
+2. **Backend + frontend running** — port 8000 and 3000 confirmed.
+3. **Bridge** — narrow `--bars-5min-only` mode only. Do NOT start full 12-stream bridge.
+4. **During RTH** — verify `/api/v9/tpo/current` shows `ib.found=true` with correct IB levels. Compare to Sierra screenshot.
+5. **ChartV5b overlay** — open cockpit, verify stepped magenta POC / cyan IB / white prior-day appear. Visual compare vs Sierra at same timestamp.
+6. **If data axes pass during RTH** → P30.9 upgrades to GREEN for data contract.
+7. **Next single thread: P30.9b** — Cumulative Delta pane + GET API from Sierra `cumulative_delta.json`.
+8. **Do NOT advance to LIVE trading** until full P30 phase gate passes.
 
-**Woodies 5m:** `Woodies5MinPayload` accepts `current_bar`-only Sierra contract;
-bridge `post_woodies_5min` ready when narrow bridge includes `woodies_5min` stream.
+---
 
 ## Safety
 
@@ -192,3 +138,4 @@ bridge `post_woodies_5min` ready when narrow bridge includes `woodies_5min` stre
 - No trade_command.json written
 - Bridge remains local-only (`CLOUD_URL=http://localhost:8000`)
 - Full bridge NOT started — narrow `--bars-5min-only` mode only
+- No LaunchAgent or plist changes
