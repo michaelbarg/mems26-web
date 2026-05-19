@@ -1,6 +1,7 @@
 # P30 Roadmap — Cockpit Visual Parity
 
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-19  
+**Replay head (G1 UAT):** `2026-05-18 10:30:00 ET`
 
 | P-ID | Title | Status | Evidence | Blocker |
 |------|-------|--------|----------|---------|

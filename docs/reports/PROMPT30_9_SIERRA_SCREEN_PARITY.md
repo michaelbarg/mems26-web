@@ -166,11 +166,12 @@ ib.found=false → api ib_high/ib_low null (expected pre-IB)
 
 ### G1 UAT (2026-05-19 — replay session 2026-05-18)
 
+**Replay head (Sierra): `2026-05-18 10:30:00 ET`** — IB lock at end of initial balance window.
+
 ```
 Sierra tpo.json: ib.found=true high=7454.25 low=7415.25
 API tpo/current: ib_locked=true parity poc/vah/val/ib_high/ib_low 5/5 PASS
 Browser: cyan IB line visible, TopBar IBx active
-5min.json last bar: 2026-05-18 06:30 ET (replay head; tpo IB from full chart array)
 ```
 pytest: test_tpo_routes_sierra_contract + test_cumulative_delta_routes + test_chart_bars5min_integrity → 10 passed
 pytest: test_backend_responsive_under_load → PASS

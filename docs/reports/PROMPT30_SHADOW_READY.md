@@ -2,6 +2,7 @@
 
 **Date:** 2026-05-19  
 **Branch:** `stabilize/mems26-local-truth-2026-05-16`  
+**Replay head (G1):** `2026-05-18 10:30:00 ET`  
 **Verdict:** **GREEN** — SHADOW soak go
 
 ---
