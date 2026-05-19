@@ -39,6 +39,7 @@ export function ChartV5b() {
   const earliestTsRef = useRef<string | null>(null);
   const latestTsRef = useRef<number | null>(null);
   const loadingHistoryRef = useRef(false);
+  const skipRangeEventsRef = useRef(2);
   const allBarsRef = useRef<any[]>([]);
   const [activeTf, setActiveTf] = useState('5m');
   const [kzLabel, setKzLabel] = useState('MKT');
@@ -233,10 +234,14 @@ export function ChartV5b() {
   useEffect(() => {
     if (!chartRef.current) return;
     const onRangeChange = (range: any) => {
+      if (skipRangeEventsRef.current > 0) {
+        skipRangeEventsRef.current -= 1;
+        return;
+      }
       if (!range || loadingHistoryRef.current || !earliestTsRef.current) return;
       if (allBarsRef.current.length >= 2000) return; // cap memory
-      // If visible left edge is within 20 bars of loaded start → fetch more
-      if (range.from < 20 && allBarsRef.current.length < 2000) {
+      // User panned near left edge → fetch older bars (not on initial fitContent)
+      if (range.from < 20 && range.from >= 0 && allBarsRef.current.length < 2000) {
         loadingHistoryRef.current = true;
         const ep = TF_ENDPOINTS[activeTf] || 'bars5min';
         fetch(`${API}/api/v9/chart/${ep}?limit=240&before=${encodeURIComponent(earliestTsRef.current!)}`)

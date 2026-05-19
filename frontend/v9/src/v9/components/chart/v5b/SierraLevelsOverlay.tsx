@@ -143,6 +143,28 @@ export function SierraLevelsOverlay({
         width: st.width,
         opacity: st.opacity,
       });
+      if (s.vah_price != null) {
+        out.push({
+          price: s.vah_price,
+          t0: range.t0,
+          t1: range.t1,
+          color: '#ec4899',
+          width: 0.8,
+          opacity: st.opacity * 0.85,
+          dash: '3 3',
+        });
+      }
+      if (s.val_price != null) {
+        out.push({
+          price: s.val_price,
+          t0: range.t0,
+          t1: range.t1,
+          color: '#ec4899',
+          width: 0.8,
+          opacity: st.opacity * 0.85,
+          dash: '3 3',
+        });
+      }
     });
 
     if (tpo.poc != null) {

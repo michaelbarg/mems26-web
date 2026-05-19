@@ -10,12 +10,14 @@ import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
+import { usePriceStream } from '../../hooks/usePriceStream';
+import { useLivePricePoll } from '../../hooks/useLivePricePoll';
 import { BannerStack } from '../banners/BannerStack';
 import { SoundProvider } from '../sounds/SoundProvider';
 import { COLORS } from '../../design/tokens';
 
 const STORAGE_KEY = 'chart-height-v5c';
-const MIN_H = 200, DEFAULT_H = 480, MAX_H = 800;
+const MIN_H = 200, DEFAULT_H = 720, MAX_H = 800;
 const PRESETS = { Min: 240, Md: 480, Max: 720 } as const;
 
 function clamp(v: number) { return Math.max(MIN_H, Math.min(MAX_H, v)); }
@@ -23,6 +25,8 @@ function clamp(v: number) { return Math.max(MIN_H, Math.min(MAX_H, v)); }
 export function V9Dashboard() {
   useSystemEvents();
   useSystemStatePolling(2000);
+  usePriceStream();
+  useLivePricePoll(true);
 
   // Chart height — SSR-stable default, hydrate from localStorage on mount
   const [chartH, setChartH] = useState(DEFAULT_H);

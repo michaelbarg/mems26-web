@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { usePriceStream } from '../hooks/usePriceStream';
+import { usePriceStore } from '../stores/priceStore';
 
 const STORAGE_KEY = 'mems26:debug:visible';
 
@@ -10,7 +10,13 @@ const STORAGE_KEY = 'mems26:debug:visible';
  * Visibility persists in localStorage.
  */
 export function PriceDebugConsole() {
-  const { connected, lastTick, tickCount } = usePriceStream();
+  const connected = usePriceStore((s) => s.connected);
+  const lastUpdateMs = usePriceStore((s) => s.lastUpdateMs);
+  const price = usePriceStore((s) => s.price);
+  const bid = usePriceStore((s) => s.bid);
+  const ask = usePriceStore((s) => s.ask);
+  const tickCount = usePriceStore((s) => s.tickCount);
+  const lastTick = price != null ? { price, ts_ms: lastUpdateMs ?? undefined, bid, ask } : null;
 
   const [visible, setVisible] = useState(false);
 
