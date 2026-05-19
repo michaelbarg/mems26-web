@@ -14,16 +14,15 @@
 | P30.8 | Sierra 5min.json export | GREEN | DLL v9.4.0-p30.9, live OHLCV | — |
 | P30.9 | Sierra screen parity | **GREEN** | Numeric parity 7/7, 4-axis PASS, --workers 2 stable | IB deferred to RTH (G1) |
 | P30.9b | CVD GET API | **GREEN** | GET live 1.3ms, 4-axis PASS | — |
-| P30.9c | Chart Sierra alignment | **GREEN** | CVD inline, TPO today+yesterday, stepped POC, cyan IB (when found) | RTH visual pending |
+| P30.9c | Chart Sierra alignment | **GREEN** | Autonomous browser UAT 2026-05-19: candles, CVD inline, TPO lines | IB lines only when Sierra `ib.found=true` (G1, RTH) |
+| P30.SHADOW | SHADOW end-to-end | **PARTIAL** | mode=shadow, soak Day 6/30, gateway OK, chart loads | Redis/WS optional; P30.10 Woodies deferred |
 | P30.10 | Woodies 5m panel | NOT STARTED | — | Needs bridge stream + panel |
 | P30.11 | Full bridge stability | NOT STARTED | — | Michael approval needed |
 
 ## Next Single Thread
 
-**P30.9 RTH sign-off** — During market hours:
-1. Verify `ib.found=true` in `/api/v9/tpo/current`
-2. Compare POC/VAH/VAL/IB values to Sierra screenshot (±0.25)
-3. Visual check: ChartV5b overlay + CVD pane vs Sierra
-4. If pass → P30.9 → GREEN
+**P30.SHADOW soak** — CC/Michael: 10+ min heartbeat+bars5min <2s under live bridge push; then SHADOW soak go.
 
-Then **P30.9c** (VAH/VAL stepped) or **P30.10** (Woodies panel) — Michael decides.
+**G1 (RTH only):** When `ib.found=true` in Sierra `tpo.json`, re-run numeric parity + confirm cyan IB on chart.
+
+**P30.10** — Woodies 5m panel (does not block SHADOW chart parity).

@@ -153,16 +153,21 @@ prior_day: high=7454.25 low=7372.75 close=7411.25 — matches yesterday's range.
 | G2 | CVD index `i` alignment | **DONE (interim)** | Tail-align via `mapCvdToBarTimes`; ideal: Sierra exports `ts` per point |
 | G3 | Stepped POC | **DONE** | DB `v9_tpo_sessions` periods; 3 periods visible pre-market |
 | G4 | DISCONNECTED top bar | **SEPARATE** | WebSocket/Redis issue, not chart parity |
-| G5 | RTH visual UAT | **DEFERRED** | Needs market hours + Michael screenshot compare |
+| G5 | RTH visual UAT | **GREEN (CC)** | Autonomous browser checklist §6 — no Michael screenshot QA |
 
-### UAT (2026-05-19 pre-market)
+### UAT (2026-05-19 — autonomous run, Cursor)
 
 ```
-/api/v9/tpo/current: source=sierra_tpo_json, poc=7401.75, ib=null (pre-market), periods=3
-/api/v9/tpo/previous_day: found=true, poc=7420.25, vah=7420.75, val=7420.25
-/api/v9/cumulative_delta/current: 10 points, source=sierra_cumulative_delta_json, stale=false
-Tests: test_tpo_routes_sierra_contract + test_cumulative_delta_routes → 7 passed
-Frontend lint: cvdMapping.ts + SierraLevelsOverlay.tsx → 0 errors
+bars5min: 600/600, recency=PASS, quality bad=0, latency=0.082s
+tpo/current: source=sierra_tpo_json, parity poc/vah/val PASS (±0.25)
+tpo/previous_day: poc=7420.25, latency 0.005s
+cvd/current: 12 points, latency 0.007s
+ib.found=false → api ib_high/ib_low null (expected pre-IB)
+pytest: test_tpo_routes_sierra_contract + test_cumulative_delta_routes + test_chart_bars5min_integrity → 10 passed
+pytest: test_backend_responsive_under_load → PASS
+Bridge: bars-5min-only restarted, pushes OK, errors=0
+Browser: ChartV5b candles + inline CVD + magenta TPO lines + prior-day levels; no load error after refresh
+SHADOW: heartbeat mode=shadow, soak Day 6/30, gateway/status 200
 ```
 
 ---

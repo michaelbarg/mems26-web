@@ -5,6 +5,8 @@
 **Branch:** `stabilize/mems26-local-truth-2026-05-16`  
 **Michael does NOT run visual QA.** CC owns bring-up, bridge, API 4-axis UAT, browser checklist, and numeric parity vs Sierra exports + design spec.
 
+**Last autonomous run (Cursor 2026-05-19):** §4–§6 GREEN; bridge bars-only running; P30.SHADOW PARTIAL (soak go pending 10+ min evidence). G1 IB deferred until Sierra `ib.found=true` at RTH.
+
 ---
 
 ## §0 — What Michael is NOT doing
