@@ -2,12 +2,16 @@
 """MEMS26 V9 JSON Bridge — reads DLL exports, pushes to Redis + FastAPI."""
 
 import logging
+import os
 import signal
 import sys
 import time
 import threading
 
-from v9_streams import ALL_STREAMS
+try:
+    from v9_streams import ALL_STREAMS
+except ModuleNotFoundError:
+    from .v9_streams import ALL_STREAMS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,15 +21,52 @@ logging.basicConfig(
 logger = logging.getLogger("v9_bridge")
 
 
+def _requested_stream_names(argv):
+    """Return explicit stream names from CLI/env, or None for all streams."""
+    if "--bars-5min-only" in argv:
+        return {"bars_5min"}
+
+    for arg in argv:
+        if arg.startswith("--streams="):
+            names = arg.split("=", 1)[1]
+            return {name.strip() for name in names.split(",") if name.strip()}
+
+    env_names = os.getenv("V9_STREAMS", "")
+    if env_names.strip():
+        return {name.strip() for name in env_names.split(",") if name.strip()}
+
+    return None
+
+
+def select_streams(argv=None):
+    """Select bridge streams without changing the default all-stream behavior."""
+    argv = sys.argv[1:] if argv is None else argv
+    requested = _requested_stream_names(argv)
+    if requested is None:
+        return ALL_STREAMS
+
+    by_name = {StreamClass.name: StreamClass for StreamClass in ALL_STREAMS}
+    unknown = sorted(requested - set(by_name))
+    if unknown:
+        raise SystemExit(
+            "Unknown stream(s): "
+            + ", ".join(unknown)
+            + ". Available: "
+            + ", ".join(sorted(by_name))
+        )
+    return [by_name[name] for name in sorted(requested)]
+
+
 def main():
     history_only = "--history-only" in sys.argv
+    stream_classes = select_streams()
 
     if history_only:
         logger.info("MEMS26 V9 Bridge — history-only mode (backfill then exit)")
     else:
-        logger.info("MEMS26 V9 Bridge starting — %d streams", len(ALL_STREAMS))
+        logger.info("MEMS26 V9 Bridge starting — %d streams", len(stream_classes))
 
-    instances = [StreamClass() for StreamClass in ALL_STREAMS]
+    instances = [StreamClass() for StreamClass in stream_classes]
 
     if history_only:
         for stream in instances:

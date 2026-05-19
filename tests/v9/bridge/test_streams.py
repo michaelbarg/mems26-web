@@ -22,6 +22,7 @@ from bridge.v9_streams import (
     TickReversal15Stream,
     FootprintStream,
 )
+from bridge import json_bridge
 
 
 class TestStreamRegistry:
@@ -35,6 +36,22 @@ class TestStreamRegistry:
         assert "woodies_5min" in names
         assert "tpo" in names
         assert "bars_5min" in names
+
+    def test_default_selects_all_streams(self):
+        assert json_bridge.select_streams([]) == ALL_STREAMS
+
+    def test_bars_5min_only_flag_selects_single_stream(self):
+        selected = json_bridge.select_streams(["--bars-5min-only"])
+        assert [s.name for s in selected] == ["bars_5min"]
+
+    def test_streams_arg_selects_named_streams(self):
+        selected = json_bridge.select_streams(["--streams=bars_5min,live_price"])
+        assert [s.name for s in selected] == ["bars_5min", "live_price"]
+
+    def test_unknown_stream_exits_with_available_names(self):
+        with pytest.raises(SystemExit) as exc:
+            json_bridge.select_streams(["--streams=does_not_exist"])
+        assert "Unknown stream(s): does_not_exist" in str(exc.value)
 
 
 class TestWoodies5MinStream:
@@ -160,13 +177,14 @@ class TestBars5MinStream:
             assert len(data["bars"]) == 2
             assert data["bars"][0]["vol"] == 250
 
-    def test_push_api_posts_bars_array(self):
+    def test_push_api_posts_latest_bar_array(self):
         s = Bars5MinStream()
         payload = {
             "type": "5min",
             "export_ts": 1715300000.0,
             "bars": [
-                {"ts": 1715299800.0, "o": 5400.0, "h": 5405.0, "l": 5398.0, "c": 5403.0, "vol": 250}
+                {"ts": 1715299500.0, "o": 5396.0, "h": 5401.0, "l": 5395.0, "c": 5400.0, "vol": 180},
+                {"ts": 1715299800.0, "o": 5400.0, "h": 5405.0, "l": 5398.0, "c": 5403.0, "vol": 250},
             ],
         }
 
@@ -183,7 +201,7 @@ class TestBars5MinStream:
             s._push_api(payload)
 
         req = mock_urlopen.call_args.args[0]
-        assert json.loads(req.data.decode()) == payload["bars"]
+        assert json.loads(req.data.decode()) == [payload["bars"][-1]]
 
 
 class TestBaseStreamBehavior:

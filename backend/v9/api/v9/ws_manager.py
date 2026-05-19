@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 import time
 from typing import Dict, Set
@@ -11,6 +12,8 @@ import redis
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 HEARTBEAT_INTERVAL = 30  # seconds
+logger = logging.getLogger(__name__)
+_last_publish_warning_ts = 0.0
 
 # Redis channel names
 CHANNEL_BARS_5MIN = "v9:bars:5min"
@@ -27,18 +30,27 @@ CHANNEL_PRICE = "v9:price"
 
 def get_redis_client():
     """Get a synchronous Redis client for publishing."""
-    return redis.from_url(REDIS_URL, decode_responses=True)
+    return redis.from_url(
+        REDIS_URL,
+        decode_responses=True,
+        socket_connect_timeout=0.2,
+        socket_timeout=0.2,
+    )
 
 
 def publish_event(channel: str, data: dict):
     """Publish an event to a Redis channel. Called from POST endpoints."""
+    global _last_publish_warning_ts
     try:
         r = get_redis_client()
         r.publish(channel, json.dumps(data))
         r.close()
-    except Exception:
-        # Redis unavailable — degrade gracefully (no WS updates, but API still works)
-        pass
+    except Exception as exc:
+        # Redis is optional for API ingestion, but failures must be visible.
+        now = time.time()
+        if now - _last_publish_warning_ts > 60:
+            logger.warning("[ws_manager] Redis publish failed for %s: %s", channel, exc)
+            _last_publish_warning_ts = now
 
 
 class ConnectionManager:

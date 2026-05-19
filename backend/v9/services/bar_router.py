@@ -40,15 +40,13 @@ class BarRouter:
         logger.info("BarRouter: bound to main event loop")
 
     def publish_threadsafe(self, bar_type: str, bar_data: dict, mode: str = "LIVE") -> None:
-        """Schedule publish on the main event loop from any thread. Fire-and-forget."""
-        if self._main_loop is not None and self._main_loop.is_running():
-            asyncio.run_coroutine_threadsafe(self.publish(bar_type, bar_data, mode), self._main_loop)
-        else:
-            logger.warning("BarRouter: main_loop not bound/running, falling back to thread for %s", bar_type)
-            import threading
-            def _bg():
-                asyncio.run(self.publish(bar_type, bar_data, mode))
-            threading.Thread(target=_bg, daemon=True).start()
+        """Publish from a background thread so slow handlers never block FastAPI."""
+        import threading
+
+        def _bg():
+            asyncio.run(self.publish(bar_type, bar_data, mode))
+
+        threading.Thread(target=_bg, name=f"bar-router-{bar_type}", daemon=True).start()
 
     def subscribe(self, bar_type: str, handler: Callable):
         self._subscribers.setdefault(bar_type, []).append(handler)

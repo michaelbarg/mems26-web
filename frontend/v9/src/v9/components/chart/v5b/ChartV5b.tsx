@@ -2,6 +2,7 @@
 import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePriceStore } from '../../../stores/priceStore';
+import { SierraLevelsOverlay, type TpoOverlayData } from './SierraLevelsOverlay';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const INITIAL_BAR_LIMIT = 600;
@@ -22,11 +23,14 @@ function latestBarUnix(bars: Array<{ ts?: string }>): number | null {
 }
 
 export function ChartV5b() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volumeRef = useRef<ISeriesApi<'Histogram'> | null>(null);
-  const linesRef = useRef<any[]>([]);
+  const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+  const [barsForOverlay, setBarsForOverlay] = useState<Array<{ ts: string }>>([]);
+  const [tpoOverlay, setTpoOverlay] = useState<TpoOverlayData | null>(null);
   const earliestTsRef = useRef<string | null>(null);
   const latestTsRef = useRef<number | null>(null);
   const loadingHistoryRef = useRef(false);
@@ -94,6 +98,18 @@ export function ChartV5b() {
     return () => { ro.disconnect(); chart.remove(); chartRef.current = null; };
   }, []);
 
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setOverlaySize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      });
+    });
+    ro.observe(wrapperRef.current);
+    return () => ro.disconnect();
+  }, []);
+
   // Fetch bars on TF change
   const loadBars = useCallback(async (tf: string) => {
     if (!candleRef.current || !volumeRef.current) return;
@@ -118,6 +134,7 @@ export function ChartV5b() {
       }));
 
       allBarsRef.current = bars;
+      setBarsForOverlay(bars.map((b: { ts: string }) => ({ ts: b.ts })));
       latestTsRef.current = latestBarUnix(bars);
       formingBarRef.current = null;
       candleRef.current.setData(cData);
@@ -208,6 +225,7 @@ export function ChartV5b() {
             const fresh = older.filter((b: any) => !existing.has(b.ts));
             const merged = [...fresh, ...allBarsRef.current];
             allBarsRef.current = merged;
+            setBarsForOverlay(merged.map((b: { ts: string }) => ({ ts: b.ts })));
             earliestTsRef.current = merged[0]?.ts || earliestTsRef.current;
             // Re-set full data (sorted time-ascending)
             candleRef.current?.setData(merged.map((b: any) => ({
@@ -229,44 +247,23 @@ export function ChartV5b() {
     return () => { try { chartRef.current?.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange); } catch {} };
   }, [activeTf]);
 
-  // TPO levels (VAH/POC/VAL/IB H/IB L)
+  // Sierra TPO overlay: stepped POC, cyan IB, white prior-day (not full-width price lines)
   useEffect(() => {
-    if (!candleRef.current) return;
     const loadLevels = async () => {
       try {
         const res = await fetch(`${API}/api/v9/tpo/current`);
         const d = await res.json();
-        // Remove old lines
-        linesRef.current.forEach(l => { try { candleRef.current?.removePriceLine(l); } catch {} });
-        linesRef.current = [];
-        // POC migration arrow per Cockpit V5 §4.7
-        const migDir = d.poc_migration?.direction;
-        const pocArrow = migDir === 'UP' ? ' ↑' : migDir === 'DOWN' ? ' ↓' : '';
-
-        // Cockpit V5 §4.5 + §4.7 spec-compliant levels
-        const levels = [
-          // POC: 2px solid magenta, opacity 0.95 (§4.5)
-          { title: `POC${pocArrow}`, price: d.poc, color: '#ec4899', lineWidth: 2, lineStyle: 0 /* Solid */ },
-          // VAH/VAL: 1px dashed magenta (0.5px not available, use 1), opacity 0.55 (§4.5)
-          { title: 'VAH', price: d.vah, color: '#ec4899', lineWidth: 1, lineStyle: 2 /* Dashed */ },
-          { title: 'VAL', price: d.val, color: '#ec4899', lineWidth: 1, lineStyle: 2 /* Dashed */ },
-          // IB H/L: 1px light green #4ade80 (§4.5: 0.7-0.8px solid, opacity 0.5)
-          // lineStyle: Solid when locked, Dashed when building (09:30-10:30 ET)
-          { title: 'IB H', price: d.ib_high, color: '#4ade80', lineWidth: 1,
-            lineStyle: d.ib_locked ? 0 /* Solid */ : 2 /* Dashed — building */ },
-          { title: 'IB L', price: d.ib_low, color: '#4ade80', lineWidth: 1,
-            lineStyle: d.ib_locked ? 0 : 2 },
-        ];
-        levels.forEach(l => {
-          if (l.price && candleRef.current) {
-            const line = candleRef.current.createPriceLine({
-              price: l.price, color: l.color, lineWidth: l.lineWidth as any,
-              lineStyle: l.lineStyle, axisLabelVisible: true, title: l.title,
-            });
-            linesRef.current.push(line);
-          }
+        setTpoOverlay({
+          poc: d.poc,
+          periods: d.periods,
+          ib_high: d.ib_high,
+          ib_mid: d.ib_mid,
+          ib_low: d.ib_low,
+          prior_day: d.prior_day,
         });
-      } catch {}
+      } catch {
+        /* keep last overlay on transient errors */
+      }
     };
     loadLevels();
     const id = setInterval(loadLevels, 30000);
@@ -316,9 +313,19 @@ export function ChartV5b() {
             }}>{tf}</button>
         ))}
       </div>
-      {/* Chart container — lightweight-charts fills this */}
-      <div ref={containerRef} data-testid="chart-v5b"
-        style={{ flex: 1, minHeight: 200, position: 'relative' }} />
+      {/* Chart + Sierra overlay (stepped POC / cyan IB / prior-day) */}
+      <div ref={wrapperRef} data-testid="chart-v5b"
+        style={{ flex: 1, minHeight: 200, position: 'relative' }}>
+        <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+        <SierraLevelsOverlay
+          chartRef={chartRef}
+          candleRef={candleRef}
+          bars={barsForOverlay}
+          tpo={tpoOverlay}
+          width={overlaySize.width}
+          height={overlaySize.height}
+        />
+      </div>
     </div>
   );
 }

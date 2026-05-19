@@ -154,12 +154,37 @@ class WoodiesPayload(BaseModel):
     version: Optional[str] = None
     export_ts: Optional[float] = None
     bars: List[Dict] = []
-    history: List[Dict] = []  # DLL uses "history" key
+    history: List[Dict] = []
+    current_bar: Optional[Dict] = None
 
     @property
     def all_bars(self) -> List[Dict]:
-        """DLL exports 'history', Bridge may send 'bars'. Accept both."""
-        return self.bars if self.bars else self.history
+        if self.bars:
+            return self.bars
+        if self.history:
+            return self.history
+        if self.current_bar:
+            return [self.current_bar]
+        return []
+
+
+class Woodies5MinPayload(BaseModel):
+    type: str = "woodies_5min"
+    version: Optional[str] = None
+    export_ts: Optional[float] = None
+    bars: List[Dict] = []
+    history: List[Dict] = []
+    current_bar: Optional[Dict] = None
+
+    @property
+    def all_bars(self) -> List[Dict]:
+        if self.bars:
+            return self.bars
+        if self.history:
+            return self.history
+        if self.current_bar:
+            return [self.current_bar]
+        return []
 
 
 class TpoPayload(BaseModel):
@@ -221,11 +246,8 @@ def post_bars_5min(
         "last": {"o": last_valid_bar.o, "h": last_valid_bar.h, "l": last_valid_bar.l,
                  "c": last_valid_bar.c, "vol": last_valid_bar.vol} if last_valid_bar else {},
     })
-    # Route last bar to EventDispatcher (5min bars derive from cumulative_delta)
-    if last_valid_bar:
-        _dispatch("cumulative_delta", last_valid_bar.dict())
     _record_push("5min")
-    if last_valid_bar:
+    if last_valid_bar and created:
         _route_bar("5min", last_valid_bar.dict() if hasattr(last_valid_bar, 'dict') else {"ts": str(last_valid_bar.ts)})
     return {"ok": True, "inserted": len(created), "rejected": rejected}
 
@@ -487,7 +509,7 @@ def post_woodies(
 
 @router.post("/woodies_5min")
 def post_woodies_5min(
-    payload: WoodiesPayload,
+    payload: Woodies5MinPayload,
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):

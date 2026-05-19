@@ -150,13 +150,18 @@ class BaseV9Stream:
     def start(self):
         logger.info(f"[{self.name}] Starting stream — watching {self.filepath}")
 
-        # Historical backfill before going live (V8 parity)
-        try:
-            loaded = self.historical_load()
-            if loaded:
-                logger.info(f"[{self.name}] Historical backfill complete")
-        except Exception as e:
-            logger.warning(f"[{self.name}] Historical backfill failed: {e}")
+        # Historical backfill before going live (V8 parity). For narrow live
+        # bring-up, allow skipping this so a stream can follow Sierra's tail
+        # without re-posting a large history file on startup.
+        if os.getenv("V9_SKIP_HISTORY", "").lower() in ("1", "true", "yes"):
+            logger.info(f"[{self.name}] Historical backfill skipped via V9_SKIP_HISTORY")
+        else:
+            try:
+                loaded = self.historical_load()
+                if loaded:
+                    logger.info(f"[{self.name}] Historical backfill complete")
+            except Exception as e:
+                logger.warning(f"[{self.name}] Historical backfill failed: {e}")
 
         # Try watchdog/fsevents first (latency #L2), fall back to polling
         use_watchdog = self._start_watchdog()

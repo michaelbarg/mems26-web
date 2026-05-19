@@ -27,3 +27,17 @@ class Bars5MinStream(BaseV9Stream):
     filename = "5min.json"
     redis_key = "mems26:v9:bars_5min"
     api_path = "/api/v9/bars/5min"
+
+    def _push_api(self, data: dict):
+        """Live 5min export contains full history; push only the latest bar.
+
+        Full-history ingestion is handled by historical_load()/--history-only.
+        During live polling Sierra rewrites 5min.json every few seconds with
+        hundreds of bars, and re-posting the whole file can saturate backend.
+        """
+        bars = data.get("bars")
+        if isinstance(bars, list) and bars:
+            latest_only = dict(data)
+            latest_only["bars"] = [bars[-1]]
+            return super()._push_api(latest_only)
+        return super()._push_api(data)
