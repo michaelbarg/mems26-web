@@ -263,6 +263,8 @@ class WoodiesSystem(BaseV9TradingSystem):
                 "decision_tree": dt_summary,
                 "entry_classification_spec": dt_summary.get("entry_classification_spec"),
                 "ready_to_route": dt_summary.get("ready_to_route", False),
+                "failed_stages": dt_summary.get("failed_stages", []),
+                "pending_stages": dt_summary.get("pending_stages", []),
             })
 
             # Prompt 14: auto-route to TradingGateway when ready

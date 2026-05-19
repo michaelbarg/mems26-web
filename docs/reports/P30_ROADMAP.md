@@ -18,6 +18,7 @@
 | P30.9c | Chart Sierra alignment | **GREEN** | Autonomous browser UAT 2026-05-19: candles, CVD inline, TPO lines | IB lines only when Sierra `ib.found=true` (G1, RTH) |
 | P30.SHADOW | SHADOW end-to-end | **GREEN** | 2026-05-19: 11m soak 22/22 probes under 2s; mode=shadow; gateway/soak APIs; browser SHADOW+Day6/30 | G1 IB @ RTH; P30.10 Woodies deferred |
 | P30.10 | Woodies 5m panel | **GREEN** | GET /woodies/chart + WoodiesCciPanel on 5m chart | Full Sierra 1:1 polish deferred |
+| P30.10b | Plan tab live (§5.8) | **GREEN** | `SystemPlanLive` S1–S6, RTL Hebrew detail, snapshot UAT; see `PROMPT30_10b_PLAN_LIVE.md` | Michael browser sign-off; §5.3 designer 1:1 deferred |
 | P30.11 | Full bridge stability | NOT STARTED | — | Michael approval needed |
 
 ## Next Single Thread

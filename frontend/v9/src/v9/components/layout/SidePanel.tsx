@@ -109,7 +109,7 @@ function LensWithCustomContent({ systemId, ContentComponent }: {
           ))}
         </div>
       </div>
-      <div style={{ padding: SIZES.lensPadding }}>
+      <div style={{ padding: activeTab === 'Plan' ? 4 : SIZES.lensPadding }}>
         <ContentComponent activeTab={activeTab} />
       </div>
     </div>

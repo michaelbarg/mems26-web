@@ -53,6 +53,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         self.last_classification: Optional[str] = None
         self.choppiness_score: int = 0
         self._hydrated = False
+        self.current_state: Dict[str, Any] = {}
 
     def set_gateway(self, gateway) -> None:
         """Inject TradingGateway for auto-routing fire signals (Prompt 14)."""
@@ -572,4 +573,5 @@ class FiveMinSystem(BaseV9TradingSystem):
             "last_pattern": self.last_pattern,
             "last_confluence": self.last_confluence,
             "last_classification": self.last_classification,
+            "last_reasoning_notes": self.current_state.get("last_reasoning_notes"),
         }
