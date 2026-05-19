@@ -32,7 +32,7 @@ Finish **Sierra 5m chart parity**: CVD on chart time axis (not separate pane), T
 | G2 | **CVD index `i`** | Sierra + mapping | Points use Sierra bar index `i`, not DB ts — tail-align is interim; ideal: export `ts` per CVD point in DLL |
 | G3 | **Stepped POC** | DB `v9_tpo_sessions` | Needs clean 30m rows with valid `closed_ts`; consider Sierra `periods[]` in `tpo.json` |
 | G4 | **DISCONNECTED** top bar | WebSocket | `usePriceStream` / Redis — separate from chart; do not confuse with TPO |
-| G5 | **RTH visual UAT** | Michael | Screenshot ChartV5b vs Sierra same timestamp |
+| G5 | **RTH visual UAT** | CC | Browser checklist §6 in `PROMPT30_AUTONOMOUS_PARITY_CC_MEGA_PROMPT.md`; screenshot only on FAIL |
 
 ---
 

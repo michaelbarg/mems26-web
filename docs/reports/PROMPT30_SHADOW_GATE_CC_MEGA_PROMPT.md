@@ -37,7 +37,7 @@ Close every **BLOCKED** item from P30.0–P30.9c so Michael can run **SHADOW** w
 | Phase | Gate | Owner today | Done when |
 |-------|------|-------------|-----------|
 | P30.8 | 5min.json → DB → chart | CC verify | 600 bars, 4-axis UAT GREEN |
-| P30.9 | TPO API + overlay | CC + Michael visual | Sierra 5m match ±0.25 |
+| P30.9 | TPO API + overlay | CC autonomous UAT | Sierra 5m match ±0.25 (`PROMPT30_AUTONOMOUS_PARITY_CC_MEGA_PROMPT.md`) |
 | P30.9b/c | CVD inline + TPO today/yesterday | Cursor done | CVD on time axis, lines visible |
 | P30.10 | Woodies 5m panel | CC | CCI panel OR defer with Michael OK |
 | **P30.SHADOW** | SHADOW end-to-end | **CC primary** | TopBar SHADOW, systems fire, soak, no hangs |
@@ -67,7 +67,9 @@ python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 ---
 
-## §5 — Visual parity (Michael sign-off required)
+## §5 — Visual parity (CC autonomous — see `PROMPT30_AUTONOMOUS_PARITY_CC_MEGA_PROMPT.md`)
+
+Michael does **not** run screenshot QA. CC runs API 4-axis + numeric Sierra parity + browser checklist; Michael only gets SHADOW soak go/no-go when all rows PASS.
 
 ### Sierra reference (Michael's screens)
 
