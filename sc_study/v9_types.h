@@ -18,7 +18,7 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.3.0";  // HFE pattern #9 added 2026-05-16
+static const char* V9_VERSION = "v9.3.1-p30.8";  // P30.8: canonical 5min.json export
 
 // ── Export directory ──
 static const char* V9_EXPORT_DIR = "C:\\SierraChart_Data\\v9_export\\";
