@@ -15,14 +15,14 @@
 | P30.9 | Sierra screen parity | **GREEN** | Numeric parity 7/7, 4-axis PASS, --workers 2 stable | IB deferred to RTH (G1) |
 | P30.9b | CVD GET API | **GREEN** | GET live 1.3ms, 4-axis PASS | — |
 | P30.9c | Chart Sierra alignment | **GREEN** | Autonomous browser UAT 2026-05-19: candles, CVD inline, TPO lines | IB lines only when Sierra `ib.found=true` (G1, RTH) |
-| P30.SHADOW | SHADOW end-to-end | **PARTIAL** | mode=shadow, soak Day 6/30, gateway OK, chart loads | Redis/WS optional; P30.10 Woodies deferred |
+| P30.SHADOW | SHADOW end-to-end | **GREEN** | 2026-05-19: 11m soak 22/22 probes under 2s; mode=shadow; gateway/soak APIs; browser SHADOW+Day6/30 | G1 IB @ RTH; P30.10 Woodies deferred |
 | P30.10 | Woodies 5m panel | NOT STARTED | — | Needs bridge stream + panel |
 | P30.11 | Full bridge stability | NOT STARTED | — | Michael approval needed |
 
 ## Next Single Thread
 
-**P30.SHADOW soak** — CC/Michael: 10+ min heartbeat+bars5min <2s under live bridge push; then SHADOW soak go.
-
 **G1 (RTH only):** When `ib.found=true` in Sierra `tpo.json`, re-run numeric parity + confirm cyan IB on chart.
 
-**P30.10** — Woodies 5m panel (does not block SHADOW chart parity).
+**P30.10** — Woodies 5m panel (Michael OK or after G1).
+
+**P30.11** — Full 12-stream bridge (explicit Michael approval only).

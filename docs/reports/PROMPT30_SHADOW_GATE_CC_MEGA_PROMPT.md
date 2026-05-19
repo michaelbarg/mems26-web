@@ -40,7 +40,7 @@ Close every **BLOCKED** item from P30.0–P30.9c so Michael can run **SHADOW** w
 | P30.9 | TPO API + overlay | CC autonomous UAT | Sierra 5m match ±0.25 (`PROMPT30_AUTONOMOUS_PARITY_CC_MEGA_PROMPT.md`) |
 | P30.9b/c | CVD inline + TPO today/yesterday | Cursor done | CVD on time axis, lines visible |
 | P30.10 | Woodies 5m panel | CC | CCI panel OR defer with Michael OK |
-| **P30.SHADOW** | SHADOW end-to-end | **CC primary** | TopBar SHADOW, systems fire, soak, no hangs |
+| **P30.SHADOW** | SHADOW end-to-end | **GREEN** (2026-05-19) | 22/22 soak probes; see `PROMPT30_SHADOW_READY.md` |
 | P30.11 | Full bridge | **DEFER** unless Michael says go |
 
 ---
