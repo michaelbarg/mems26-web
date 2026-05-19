@@ -1,7 +1,7 @@
 # P30.9 — Sierra Screen Parity Data Contract
 
 **Date:** 2026-05-19
-**Status:** PARTIAL — Sierra exports live, TPO API wired, overlay shipped. CVD pane + stepped VAH/VAL open.
+**Status:** GREEN (data contract) — Sierra numeric parity 7/7, 4-axis UAT all PASS, backend stable with --workers 2. IB deferred to RTH (G1).
 **No SHADOW/DEMO/LIVE enabled. No trade_command writes.**
 
 ---
