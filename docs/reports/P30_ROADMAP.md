@@ -12,14 +12,18 @@
 | P30.5 | Cockpit heartbeat | GREEN | `/api/v9/cockpit/heartbeat` <20ms | — |
 | P30.6-7 | Chart history + rendering | GREEN | 600 bars, scroll-back, 4-axis UAT | — |
 | P30.8 | Sierra 5min.json export | GREEN | DLL v9.4.0-p30.9, live OHLCV | — |
-| P30.9 | Sierra screen parity | **PARTIAL** | TPO API wired, overlay shipped | CVD pane missing, RTH visual pending |
-| P30.9b | CVD pane + GET API | **NEXT** | — | Needs GET from Sierra file |
+| P30.9 | Sierra screen parity | **PARTIAL** | TPO API + overlay shipped | RTH visual pending for full GREEN |
+| P30.9b | CVD pane + GET API | **GREEN** | GET live 1.3ms, 4-axis PASS, pane shipped | — |
+| P30.9c | VAH/VAL stepped lines | NOT STARTED | — | After RTH POC UAT |
 | P30.10 | Woodies 5m panel | NOT STARTED | — | Needs bridge stream + panel |
 | P30.11 | Full bridge stability | NOT STARTED | — | Michael approval needed |
 
 ## Next Single Thread
 
-**P30.9b — Cumulative Delta pane** below price chart:
-- Add GET API reading from Sierra `cumulative_delta.json`
-- Render as candlestick-style delta bars in ChartV5b
-- No bridge stream needed (direct file read like live_price)
+**P30.9 RTH sign-off** — During market hours:
+1. Verify `ib.found=true` in `/api/v9/tpo/current`
+2. Compare POC/VAH/VAL/IB values to Sierra screenshot (±0.25)
+3. Visual check: ChartV5b overlay + CVD pane vs Sierra
+4. If pass → P30.9 → GREEN
+
+Then **P30.9c** (VAH/VAL stepped) or **P30.10** (Woodies panel) — Michael decides.

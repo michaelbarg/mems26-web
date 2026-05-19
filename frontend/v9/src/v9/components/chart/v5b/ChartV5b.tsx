@@ -3,6 +3,7 @@ import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, Candlesti
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePriceStore } from '../../../stores/priceStore';
 import { SierraLevelsOverlay, type TpoOverlayData } from './SierraLevelsOverlay';
+import { CumulativeDeltaPane } from './CumulativeDeltaPane';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const INITIAL_BAR_LIMIT = 600;
@@ -326,6 +327,8 @@ export function ChartV5b() {
           height={overlaySize.height}
         />
       </div>
+      {/* Cumulative Delta pane — Sierra screenshot contract #1 */}
+      <CumulativeDeltaPane />
     </div>
   );
 }
