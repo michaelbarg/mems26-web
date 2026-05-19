@@ -12,7 +12,7 @@
 | P30.5 | Cockpit heartbeat | GREEN | `/api/v9/cockpit/heartbeat` <20ms | — |
 | P30.6-7 | Chart history + rendering | GREEN | 600 bars, scroll-back, 4-axis UAT | — |
 | P30.8 | Sierra 5min.json export | GREEN | DLL v9.4.0-p30.9, live OHLCV | — |
-| P30.9 | Sierra screen parity | **GREEN** | Numeric parity 7/7, 4-axis PASS, --workers 2 stable | IB deferred to RTH (G1) |
+| P30.9 | Sierra screen parity | **GREEN** | Numeric parity 7/7 + G1 IB 5/5 (2026-05-18 replay) | — |
 | P30.9b | CVD GET API | **GREEN** | GET live 1.3ms, 4-axis PASS | — |
 | P30.9c | Chart Sierra alignment | **GREEN** | Autonomous browser UAT 2026-05-19: candles, CVD inline, TPO lines | IB lines only when Sierra `ib.found=true` (G1, RTH) |
 | P30.SHADOW | SHADOW end-to-end | **GREEN** | 2026-05-19: 11m soak 22/22 probes under 2s; mode=shadow; gateway/soak APIs; browser SHADOW+Day6/30 | G1 IB @ RTH; P30.10 Woodies deferred |
@@ -21,8 +21,6 @@
 
 ## Next Single Thread
 
-**G1 (RTH only):** When `ib.found=true` in Sierra `tpo.json`, re-run numeric parity + confirm cyan IB on chart.
-
-**P30.10** — Woodies 5m panel (Michael OK or after G1).
+**P30.10** — Woodies 5m panel (Michael OK).
 
 **P30.11** — Full 12-stream bridge (explicit Michael approval only).

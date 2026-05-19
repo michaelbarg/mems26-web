@@ -149,7 +149,7 @@ prior_day: high=7454.25 low=7372.75 close=7411.25 — matches yesterday's range.
 
 | ID | Gap | Status | Notes |
 |----|-----|--------|-------|
-| G1 | IB lines missing | **DEFERRED** | `ib.found=false` pre-market; verify after 10:30 ET RTH |
+| G1 | IB lines missing | **GREEN** | 2026-05-19 replay: `ib.found=true`, parity ib_high/low ±0.25, cockpit cyan IB + `IBx` |
 | G2 | CVD index `i` alignment | **DONE (interim)** | Tail-align via `mapCvdToBarTimes`; ideal: Sierra exports `ts` per point |
 | G3 | Stepped POC | **DONE** | DB `v9_tpo_sessions` periods; 3 periods visible pre-market |
 | G4 | DISCONNECTED top bar | **SEPARATE** | WebSocket/Redis issue, not chart parity |
@@ -163,6 +163,15 @@ tpo/current: source=sierra_tpo_json, parity poc/vah/val PASS (±0.25)
 tpo/previous_day: poc=7420.25, latency 0.005s
 cvd/current: 12 points, latency 0.007s
 ib.found=false → api ib_high/ib_low null (expected pre-IB)
+
+### G1 UAT (2026-05-19 — replay session 2026-05-18)
+
+```
+Sierra tpo.json: ib.found=true high=7454.25 low=7415.25
+API tpo/current: ib_locked=true parity poc/vah/val/ib_high/ib_low 5/5 PASS
+Browser: cyan IB line visible, TopBar IBx active
+5min.json last bar: 2026-05-18 06:30 ET (replay head; tpo IB from full chart array)
+```
 pytest: test_tpo_routes_sierra_contract + test_cumulative_delta_routes + test_chart_bars5min_integrity → 10 passed
 pytest: test_backend_responsive_under_load → PASS
 Bridge: bars-5min-only restarted, pushes OK, errors=0

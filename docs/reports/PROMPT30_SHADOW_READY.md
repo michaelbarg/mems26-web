@@ -35,7 +35,7 @@
 | TopBar SHADOW highlighted, LIVE greyed | ✓ |
 | Shadow tab + OVERNIGHT MODE + Day 6/30 footer | ✓ |
 | No LIVE arm / gateway live_slot null | ✓ |
-| Cyan IB | N/A (`ib.found=false` pre-RTH) |
+| Cyan IB | **PASS** (G1 2026-05-19: `ib.found=true`, ib 7454.25/7415.25, chart cyan line) |
 
 **Note:** One transient `ChartV5b load error: Failed to fetch` on stale tab during HMR; fresh load at `http://127.0.0.1:3000` rendered chart. WS price reconnects are non-blocking (live_price poll).
 
@@ -43,7 +43,7 @@
 
 ## Deferred (not SHADOW blockers)
 
-- **G1 IB** — re-run parity + cyan lines when Sierra `tpo.json` has `ib.found: true` (RTH).
+- **G1 IB** — **GREEN** (replay 2026-05-18 session; see `PROMPT30_9_SIERRA_SCREEN_PARITY.md` G1 row).
 - **P30.10 Woodies** — CCI panel needs `woodies_5min` stream.
 - **P30.11** — full 12-stream bridge.
 - **Redis/WS** — optional; document if DISCONNECTED appears with stale poll.
