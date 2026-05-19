@@ -43,16 +43,32 @@ def _normalize_bar(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     cci_14 = raw.get("cci_14")
     if cci_14 is None:
         return None
+    def _f(key: str) -> Optional[float]:
+        v = raw.get(key)
+        if v is None:
+            return None
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
     return {
         "ts_unix": ts_unix,
         "ts": datetime.fromtimestamp(ts_unix, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "cci_14": float(cci_14),
-        "cci_6_tcci": float(raw["cci_6_tcci"]) if raw.get("cci_6_tcci") is not None else None,
+        "cci_14_prev": _f("cci_14_prev"),
+        "cci_6_tcci": _f("cci_6_tcci"),
         "trend_state": raw.get("trend_state") or "GRAY",
         "trend_color": TREND_COLORS.get(raw.get("trend_state") or "GRAY", TREND_COLORS["GRAY"]),
         "zlr_detected": bool(raw.get("zlr_detected")),
         "zlr_direction": raw.get("zlr_direction"),
+        "hfe_detected": bool(raw.get("hfe_detected")),
         "close": float(ohlc.get("c")) if ohlc.get("c") is not None else None,
+        "high": float(ohlc.get("h")) if ohlc.get("h") is not None else None,
+        "low": float(ohlc.get("l")) if ohlc.get("l") is not None else None,
+        "lsma_value": _f("lsma_value"),
+        "predictor_next_cci": _f("predictor_next_cci"),
+        "swi_value": _f("swi_value"),
     }
 
 

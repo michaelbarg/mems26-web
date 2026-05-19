@@ -285,10 +285,31 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "metadata": {"pattern": best.pattern_id, "sizing": sizing},
                     }
                     try:
-                        self._gateway.route_setup(setup, 4)
-                        logger.info("[Woodies] Auto-routed: %s %s size=%s", best.pattern_id, best.direction, sizing)
+                        route_result = self._gateway.route_setup(setup, 4)
+                        self.current_state["last_route"] = route_result
+                        if route_result.get("blocked_by"):
+                            logger.warning(
+                                "[Woodies] Gateway blocked: %s", route_result.get("blocked_by")
+                            )
+                        elif route_result.get("shadow"):
+                            logger.info(
+                                "[Woodies] SHADOW recorded: %s %s size=%s id=%s",
+                                best.pattern_id, best.direction, sizing, route_result.get("shadow"),
+                            )
                     except Exception as e:
+                        self.current_state["last_route"] = {"error": str(e)}
                         logger.warning("[Woodies] Gateway route_setup failed: %s", e)
+            else:
+                if not dt_summary.get("ready_to_route"):
+                    self.current_state["last_route"] = {
+                        "skipped": True,
+                        "reason": "not_ready_to_route",
+                        "failed_stages": dt_summary.get("failed_stages", []),
+                    }
+                elif not self._gateway:
+                    self.current_state["last_route"] = {"skipped": True, "reason": "no_gateway"}
+                elif not patterns:
+                    self.current_state["last_route"] = {"skipped": True, "reason": "no_patterns"}
 
             # Persist patterns to DB (LIVE mode only)
             mode = getattr(event, 'mode', bar.get('mode', 'LIVE'))

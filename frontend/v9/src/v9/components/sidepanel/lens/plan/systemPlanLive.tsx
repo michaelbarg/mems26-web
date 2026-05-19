@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useSystemStateStore, type HealthStatus, type SystemState } from '../../../../store/systemStateStore';
 import { COLORS } from '../../../../design/tokens';
 import { SYSTEM_META, type SystemMeta } from '../../../../design/system_colors';
@@ -14,6 +14,15 @@ import {
   type FireRowStatus,
   type PlanLifecycle,
 } from './planHelp';
+import {
+  diagnoseFiringSystem,
+  diagnoseWoodies,
+  lifecycleFromDiagnosis,
+  type FireDiagnosis,
+  type GatewaySnap,
+} from './planFireDiagnosis';
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export type { FireRowStatus, PlanLifecycle };
 
@@ -429,6 +438,59 @@ function PlanDetail({
   );
 }
 
+function FireDiagnosisPanel({
+  diagnosis,
+  onSelect,
+  selected,
+}: {
+  diagnosis: FireDiagnosis;
+  onSelect: () => void;
+  selected: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      style={{
+        width: '100%',
+        marginBottom: COMPACT.gap,
+        padding: 6,
+        borderRadius: 4,
+        border: selected ? `1px solid ${COLORS.borderPrimary}` : `1px solid ${COLORS.borderTertiary}`,
+        background: COLORS.bgSurface5,
+        cursor: 'pointer',
+        ...PLAN_RTL_STYLE,
+      }}
+    >
+      <div style={{ fontSize: 8, fontWeight: 700, color: COLORS.warning, marginBottom: 4 }}>
+        סטאפ וירי — לחץ לפירוט
+      </div>
+      <div style={{ fontSize: 9, color: COLORS.textPrimary, fontWeight: 600, marginBottom: 3 }}>
+        {diagnosis.setupLine}
+      </div>
+      <div style={{ fontSize: 8, color: COLORS.textTertiary, marginBottom: 4, whiteSpace: 'pre-wrap' }}>
+        {diagnosis.treeLine}
+      </div>
+      {diagnosis.whyNotFire.length > 0 && (
+        <div style={{ fontSize: 8, color: COLORS.bear, marginBottom: 2 }}>
+          <span style={{ fontWeight: 700 }}>למה לא ירה: </span>
+          {diagnosis.whyNotFire[0]}
+        </div>
+      )}
+      {diagnosis.whyNotFire.length === 0 && diagnosis.situation === 'ROUTED_SHADOW' && (
+        <div style={{ fontSize: 8, color: COLORS.bull }}>
+          נרשם ב-SHADOW — אין הוראת ברוקר
+        </div>
+      )}
+      {diagnosis.wouldFireWhen[0] && (
+        <div style={{ fontSize: 7, color: COLORS.textDim, marginTop: 2 }}>
+          יירה כש: {diagnosis.wouldFireWhen[0]}
+        </div>
+      )}
+    </button>
+  );
+}
+
 function ClickableRow({
   row: r,
   selected,
@@ -486,16 +548,47 @@ export function SystemPlanLive({
   spec?: ReactNode;
 }) {
   const sys = useSystemStateStore((s) => s.systems[systemId]);
+  const kzRaw = useSystemStateStore((s) => s.systems[6]?.raw) as Record<string, unknown> | undefined;
   const meta = SYSTEM_META[systemId];
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [gateway, setGateway] = useState<GatewaySnap | null>(null);
+
+  useEffect(() => {
+    if (!meta || meta.type !== 'FIRING') return;
+    const load = () => {
+      fetch(`${API}/api/v9/gateway/status`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setGateway(d))
+        .catch(() => setGateway(null));
+    };
+    load();
+    const id = setInterval(load, 3000);
+    return () => clearInterval(id);
+  }, [meta?.type, systemId]);
 
   if (!sys || !meta) return null;
 
   const raw = (sys.raw ?? {}) as Record<string, unknown>;
-  const { lifecycle, building, buildingHelp, progress, fireRows, stateDetail } = buildPlan(meta, sys);
+  const killzoneOpen =
+    kzRaw?.gate_open === true || kzRaw?.is_open === true
+      ? true
+      : kzRaw?.gate_open === false || kzRaw?.is_open === false
+        ? false
+        : null;
+
+  const diagnosis: FireDiagnosis | null =
+    meta.type === 'FIRING'
+      ? meta.id === 4
+        ? diagnoseWoodies(raw, gateway, killzoneOpen)
+        : diagnoseFiringSystem(meta.id, raw, gateway)
+      : null;
+
+  const { lifecycle: planLifecycle, building, buildingHelp, progress, fireRows, stateDetail } =
+    buildPlan(meta, sys);
+  const lifecycle =
+    diagnosis != null ? lifecycleFromDiagnosis(diagnosis, sys.health) : planLifecycle;
   const accent = meta.color;
-  const stateLabel =
-    lifecycle === 'READY' && meta.id === 4 && raw.ready_to_route ? 'READY' : lifecycle;
+  const stateLabel = diagnosis?.badgeLabel ?? planLifecycle;
   const age = ageSec(sys.lastUpdate);
   const healthDot =
     sys.health === 'healthy' ? COLORS.bull : sys.health === 'error' ? COLORS.bear : COLORS.warning;
@@ -507,13 +600,42 @@ export function SystemPlanLive({
   let detailStatus = '';
   let detailBody = '';
 
-  if (selectedId === 'state') {
+  if (selectedId === 'diagnosis' && diagnosis) {
+    detailTitle = 'סטאפ וירי';
+    detailBody = [
+      diagnosis.identifiedLine,
+      '',
+      diagnosis.treeLine,
+      '',
+      diagnosis.whyNotFire.length
+        ? `למה לא ירה:\n${diagnosis.whyNotFire.map((w) => `• ${w}`).join('\n')}`
+        : 'לא חסום כרגע — בדוק אם נרשם SHADOW.',
+      '',
+      diagnosis.wouldFireWhen.length
+        ? `מתי יירה:\n${diagnosis.wouldFireWhen.map((w) => `• ${w}`).join('\n')}`
+        : '',
+      raw.last_route
+        ? `\nlast_route: ${JSON.stringify(raw.last_route).slice(0, 200)}`
+        : '',
+    ].join('\n');
+  } else if (selectedId === 'state') {
     const h = LIFECYCLE_HELP[lifecycle];
-    detailTitle = h.title;
+    detailTitle = diagnosis?.badgeLabel ?? h.title;
     detailStatus = STATUS_HELP[
       lifecycle === 'BLOCKED' ? 'block' : lifecycle === 'READY' ? 'ok' : 'wait'
     ];
-    detailBody = `${h.measures}\n\n${h.meaning}${stateDetail ? `\n\nעכשיו: ${stateDetail}` : ''}`;
+    detailBody = diagnosis
+      ? [
+          diagnosis.setupLine,
+          diagnosis.treeLine,
+          '',
+          diagnosis.whyNotFire.length
+            ? `למה לא ירה:\n${diagnosis.whyNotFire.join('\n')}`
+            : 'העץ מאשר — ייתכן שנרשם SHADOW.',
+          '',
+          h.meaning,
+        ].join('\n')
+      : `${h.measures}\n\n${h.meaning}${stateDetail ? `\n\nעכשיו: ${stateDetail}` : ''}`;
   } else if (selectedId === 'building') {
     detailTitle = 'BUILDING';
     detailBody = `${SECTION_HELP.building.measures}\n\n${buildingHelp}\n\nהתקדמות: ${progress}%`;
@@ -562,6 +684,14 @@ export function SystemPlanLive({
           {meta.type === 'FIRING' ? 'FIR' : 'OBS'}
         </span>
       </div>
+
+      {diagnosis && (
+        <FireDiagnosisPanel
+          diagnosis={diagnosis}
+          selected={selectedId === 'diagnosis'}
+          onSelect={() => toggle('diagnosis')}
+        />
+      )}
 
       <div style={{ marginBottom: COMPACT.gap }}>
         <SectionLabel hint="לחץ badge">STATE</SectionLabel>
