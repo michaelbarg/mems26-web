@@ -14,7 +14,8 @@ export function WoodiesLensContent({ activeTab }: { activeTab: string }) {
         <div style={{ fontSize: 9, color: COLORS.textSecondary }}>
           Signal: {state?.state || '—'} | Dir: {state?.subState || 'none'}
         </div>
-        <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
+        <div
+          style={{ fontSize: 9, color: COLORS.textTertiary }}>
           Strength: {Math.round((state?.confidence || 0) * 3)}/3
         </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>FIRING — STANDALONE (no Day Type input)</div>
@@ -24,6 +25,13 @@ export function WoodiesLensContent({ activeTab }: { activeTab: string }) {
   if (activeTab === 'Plan') {
     const { WoodiesPlan } = require('../sidepanel/lens/plan/WoodiesPlan');
     return <WoodiesPlan />;
+  }
+  if (activeTab === 'Chart') {
+    return (
+      <div style={{ fontSize: 9, color: COLORS.textTertiary, padding: 4 }}>
+        CCI panel on 5m chart (bottom-left). Data: Sierra woodies_5min.json via /api/v9/woodies/chart.
+      </div>
+    );
   }
 
   return (

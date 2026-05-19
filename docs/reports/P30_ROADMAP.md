@@ -17,11 +17,11 @@
 | P30.9b | CVD GET API | **GREEN** | GET live 1.3ms, 4-axis PASS | — |
 | P30.9c | Chart Sierra alignment | **GREEN** | Autonomous browser UAT 2026-05-19: candles, CVD inline, TPO lines | IB lines only when Sierra `ib.found=true` (G1, RTH) |
 | P30.SHADOW | SHADOW end-to-end | **GREEN** | 2026-05-19: 11m soak 22/22 probes under 2s; mode=shadow; gateway/soak APIs; browser SHADOW+Day6/30 | G1 IB @ RTH; P30.10 Woodies deferred |
-| P30.10 | Woodies 5m panel | NOT STARTED | — | Needs bridge stream + panel |
+| P30.10 | Woodies 5m panel | **GREEN** | GET /woodies/chart + WoodiesCciPanel on 5m chart | Full Sierra 1:1 polish deferred |
 | P30.11 | Full bridge stability | NOT STARTED | — | Michael approval needed |
 
 ## Next Single Thread
 
-**P30.10** — Woodies 5m panel (Michael OK).
-
 **P30.11** — Full 12-stream bridge (explicit Michael approval only).
+
+Optional: `python3 bridge/json_bridge.py --streams=bars_5min,woodies_5min` for WoodiesSystem DB path (panel reads Sierra file directly).

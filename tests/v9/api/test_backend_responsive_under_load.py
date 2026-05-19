@@ -17,6 +17,7 @@ _CRITICAL_GETS = (
     "/api/v9/chart/bars5min?limit=10",
     "/api/v9/tpo/current",
     "/api/v9/cumulative_delta/current",
+    "/api/v9/woodies/chart?limit=10",
 )
 
 
