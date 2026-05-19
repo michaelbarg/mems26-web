@@ -13,15 +13,24 @@ export type TpoPeriod = {
 
 export type TpoOverlayData = {
   poc?: number | null;
+  vah?: number | null;
+  val?: number | null;
   periods?: TpoPeriod[];
   ib_high?: number | null;
   ib_mid?: number | null;
   ib_low?: number | null;
+  ib_locked?: boolean;
   prior_day?: {
     found?: boolean;
     high?: number | null;
     low?: number | null;
     close?: number | null;
+  };
+  previous_session?: {
+    found?: boolean;
+    poc?: number | null;
+    vah?: number | null;
+    val?: number | null;
   };
 };
 
@@ -44,23 +53,34 @@ function tsToUnix(ts: string): number {
   return Math.floor(toEpoch(ts) / 1000);
 }
 
-function sessionXRange(
-  s: TpoPeriod,
-  bars: BarPoint[],
-): { t0: number; t1: number } | null {
+function chartSpan(bars: BarPoint[]): { t0: number; t1: number; firstMs: number; lastMs: number } | null {
   if (!bars.length) return null;
-  const openMs = s.opened_ts ? toEpoch(s.opened_ts) : toEpoch(bars[0].ts);
-  const closeMs = s.closed_ts ? toEpoch(s.closed_ts) : toEpoch(bars[bars.length - 1].ts);
+  const firstMs = toEpoch(bars[0].ts);
+  const lastMs = toEpoch(bars[bars.length - 1].ts);
+  return { t0: tsToUnix(bars[0].ts), t1: tsToUnix(bars[bars.length - 1].ts), firstMs, lastMs };
+}
+
+function sessionXRange(s: TpoPeriod, bars: BarPoint[]): { t0: number; t1: number } | null {
+  if (!bars.length || !s.opened_ts) return null;
+  const span = chartSpan(bars);
+  if (!span) return null;
+  const openMs = toEpoch(s.opened_ts);
+  const closeMs = s.closed_ts ? toEpoch(s.closed_ts) : span.lastMs;
+  if (openMs > span.lastMs) return null;
+  const effOpen = Math.max(openMs, span.firstMs);
+  const effClose = Math.min(closeMs, span.lastMs);
+  if (effOpen > effClose) return null;
+
   let fi = 0;
   let li = bars.length - 1;
   for (let i = 0; i < bars.length; i++) {
-    if (toEpoch(bars[i].ts) >= openMs) {
+    if (toEpoch(bars[i].ts) >= effOpen) {
       fi = i;
       break;
     }
   }
   for (let i = bars.length - 1; i >= 0; i--) {
-    if (toEpoch(bars[i].ts) <= closeMs) {
+    if (toEpoch(bars[i].ts) <= effClose) {
       li = i;
       break;
     }
@@ -100,11 +120,13 @@ export function SierraLevelsOverlay({
 
   const plan = useMemo(() => {
     if (!tpo || !bars.length) return [];
+    const span = chartSpan(bars);
+    if (!span) return [];
     const out: Array<Omit<Segment, 'x1' | 'x2' | 'y'> & { price: number; t0?: number; t1?: number }> = [];
 
-    const periods = [...(tpo.periods ?? [])].sort(
-      (a, b) => toEpoch(a.opened_ts ?? '0') - toEpoch(b.opened_ts ?? '0'),
-    );
+    const periods = [...(tpo.periods ?? [])]
+      .filter((p) => sessionXRange(p, bars) != null)
+      .sort((a, b) => toEpoch(a.opened_ts ?? '0') - toEpoch(b.opened_ts ?? '0'));
     const last5 = periods.slice(-5);
     const off = POC_STEPS.length - last5.length;
     last5.forEach((s, i) => {
@@ -112,27 +134,72 @@ export function SierraLevelsOverlay({
       const st = POC_STEPS[off + i];
       if (!st) return;
       const range = sessionXRange(s, bars);
+      if (!range) return;
       out.push({
         price: s.poc_price,
-        t0: range?.t0,
-        t1: range?.t1,
+        t0: range.t0,
+        t1: range.t1,
         color: '#ec4899',
         width: st.width,
         opacity: st.opacity,
       });
     });
-    if (!last5.length && tpo.poc != null) {
+
+    if (tpo.poc != null) {
       out.push({
         price: tpo.poc,
+        t0: span.t0,
+        t1: span.t1,
         color: '#ec4899',
-        width: 1.9,
-        opacity: 0.95,
+        width: 1.2,
+        opacity: 0.45,
+        dash: '6 3',
       });
+    }
+    if (tpo.vah != null) {
+      out.push({
+        price: tpo.vah,
+        t0: span.t0,
+        t1: span.t1,
+        color: '#ec4899',
+        width: 1,
+        opacity: 0.55,
+        dash: '3 3',
+      });
+    }
+    if (tpo.val != null) {
+      out.push({
+        price: tpo.val,
+        t0: span.t0,
+        t1: span.t1,
+        color: '#ec4899',
+        width: 1,
+        opacity: 0.55,
+        dash: '3 3',
+      });
+    }
+
+    const prev = tpo.previous_session;
+    if (prev?.found) {
+      for (const price of [prev.poc, prev.vah, prev.val]) {
+        if (price == null) continue;
+        out.push({
+          price,
+          t0: span.t0,
+          t1: span.t1,
+          color: '#e2e8f0',
+          width: 1,
+          opacity: 0.5,
+          dash: '2 4',
+        });
+      }
     }
 
     if (tpo.prior_day?.found && tpo.prior_day.high != null) {
       out.push({
         price: tpo.prior_day.high,
+        t0: span.t0,
+        t1: span.t1,
         color: '#f8fafc',
         width: 1,
         opacity: 0.85,
@@ -142,21 +209,48 @@ export function SierraLevelsOverlay({
     if (tpo.prior_day?.found && tpo.prior_day.low != null) {
       out.push({
         price: tpo.prior_day.low,
+        t0: span.t0,
+        t1: span.t1,
         color: '#f8fafc',
         width: 1,
         opacity: 0.85,
         dash: '4 4',
       });
     }
-    if (tpo.ib_high != null) {
-      out.push({ price: tpo.ib_high, color: '#06b6d4', width: 1, opacity: 0.7 });
+
+    if (tpo.ib_locked && tpo.ib_high != null && tpo.ib_high > 0) {
+      out.push({
+        price: tpo.ib_high,
+        t0: span.t0,
+        t1: span.t1,
+        color: '#06b6d4',
+        width: 1,
+        opacity: 0.7,
+      });
     }
-    if (tpo.ib_mid != null) {
-      out.push({ price: tpo.ib_mid, color: '#06b6d4', width: 1, opacity: 0.55, dash: '2 2' });
+    if (tpo.ib_locked && tpo.ib_mid != null && tpo.ib_mid > 0) {
+      out.push({
+        price: tpo.ib_mid,
+        t0: span.t0,
+        t1: span.t1,
+        color: '#06b6d4',
+        width: 1,
+        opacity: 0.55,
+        dash: '2 2',
+      });
     }
-    if (tpo.ib_low != null) {
-      out.push({ price: tpo.ib_low, color: '#06b6d4', width: 1, opacity: 0.55, dash: '2 2' });
+    if (tpo.ib_locked && tpo.ib_low != null && tpo.ib_low > 0) {
+      out.push({
+        price: tpo.ib_low,
+        t0: span.t0,
+        t1: span.t1,
+        color: '#06b6d4',
+        width: 1,
+        opacity: 0.55,
+        dash: '2 2',
+      });
     }
+
     return out;
   }, [bars, tpo]);
 
@@ -170,8 +264,6 @@ export function SierraLevelsOverlay({
 
     const rebuild = () => {
       const ts = chart.timeScale();
-      const first = bars.length ? tsToUnix(bars[0].ts) : null;
-      const last = bars.length ? tsToUnix(bars[bars.length - 1].ts) : null;
       const built: Segment[] = [];
 
       for (const p of plan) {
@@ -183,9 +275,6 @@ export function SierraLevelsOverlay({
         if (p.t0 != null && p.t1 != null) {
           x1 = ts.timeToCoordinate(p.t0 as Time);
           x2 = ts.timeToCoordinate(p.t1 as Time);
-        } else if (first != null && last != null) {
-          x1 = ts.timeToCoordinate(first as Time);
-          x2 = ts.timeToCoordinate(last as Time);
         }
         if (x1 == null || x2 == null) continue;
         built.push({
@@ -228,6 +317,7 @@ export function SierraLevelsOverlay({
         position: 'absolute',
         left: 0,
         top: 0,
+        zIndex: 10,
         pointerEvents: 'none',
         overflow: 'hidden',
       }}

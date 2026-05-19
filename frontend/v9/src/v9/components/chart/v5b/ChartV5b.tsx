@@ -1,9 +1,12 @@
 'use client';
-import { createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi, CandlestickSeries, HistogramSeries } from 'lightweight-charts';
+import {
+  createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi,
+  CandlestickSeries, HistogramSeries, LineSeries,
+} from 'lightweight-charts';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { usePriceStore } from '../../../stores/priceStore';
 import { SierraLevelsOverlay, type TpoOverlayData } from './SierraLevelsOverlay';
-import { CumulativeDeltaPane } from './CumulativeDeltaPane';
+import { mapCvdToBarTimes, type CvdPoint } from './cvdMapping';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const INITIAL_BAR_LIMIT = 600;
@@ -28,7 +31,8 @@ export function ChartV5b() {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const volumeRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const cvdHistRef = useRef<ISeriesApi<'Histogram'> | null>(null);
+  const cvdLineRef = useRef<ISeriesApi<'Line'> | null>(null);
   const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
   const [barsForOverlay, setBarsForOverlay] = useState<Array<{ ts: string }>>([]);
   const [tpoOverlay, setTpoOverlay] = useState<TpoOverlayData | null>(null);
@@ -56,7 +60,7 @@ export function ChartV5b() {
       },
       rightPriceScale: {
         borderColor: '#262626',
-        scaleMargins: { top: 0.05, bottom: 0.2 },
+        scaleMargins: { top: 0.05, bottom: 0.22 },
       },
       timeScale: {
         borderColor: '#262626',
@@ -79,17 +83,26 @@ export function ChartV5b() {
       wickDownColor: '#dc2626',
     });
 
-    const volume = chart.addSeries(HistogramSeries, {
+    const cvdHist = chart.addSeries(HistogramSeries, {
       priceFormat: { type: 'volume' },
-      priceScaleId: 'vol',
+      priceScaleId: 'cvd',
     });
-    chart.priceScale('vol').applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
+    const cvdLine = chart.addSeries(LineSeries, {
+      color: '#06b6d4',
+      lineWidth: 1,
+      priceScaleId: 'cvd',
+      priceLineVisible: false,
+      lastValueVisible: false,
+      crosshairMarkerVisible: false,
+    });
+    chart.priceScale('cvd').applyOptions({
+      scaleMargins: { top: 0.78, bottom: 0 },
     });
 
     chartRef.current = chart;
     candleRef.current = candles;
-    volumeRef.current = volume;
+    cvdHistRef.current = cvdHist;
+    cvdLineRef.current = cvdLine;
 
     const ro = new ResizeObserver(([entry]) => {
       chart.resize(entry.contentRect.width, entry.contentRect.height);
@@ -111,9 +124,26 @@ export function ChartV5b() {
     return () => ro.disconnect();
   }, []);
 
+  const applyCvdToChart = useCallback(async (bars: Array<{ ts: string }>) => {
+    if (!cvdHistRef.current || !cvdLineRef.current || !bars.length) return;
+    try {
+      const res = await fetch(`${API}/api/v9/cumulative_delta/current`);
+      const d = await res.json();
+      const points = (d.points ?? []) as CvdPoint[];
+      if (!points.length) return;
+      const { hist, line } = mapCvdToBarTimes(bars, points);
+      if (hist.length) {
+        cvdHistRef.current.setData(hist as any);
+        cvdLineRef.current.setData(line as any);
+      }
+    } catch {
+      /* keep last CVD on transient errors */
+    }
+  }, []);
+
   // Fetch bars on TF change
   const loadBars = useCallback(async (tf: string) => {
-    if (!candleRef.current || !volumeRef.current) return;
+    if (!candleRef.current) return;
     const ep = TF_ENDPOINTS[tf] || 'bars5min';
     try {
       const res = await fetch(`${API}/api/v9/chart/${ep}?limit=${INITIAL_BAR_LIMIT}`);
@@ -128,24 +158,18 @@ export function ChartV5b() {
         low: b.low ?? b.l,
         close: b.close ?? b.c,
       }));
-      const vData = bars.map((b: any) => ({
-        time: tsToUnix(b.ts) as any,
-        value: b.volume ?? b.v ?? 0,
-        color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)',
-      }));
-
       allBarsRef.current = bars;
       setBarsForOverlay(bars.map((b: { ts: string }) => ({ ts: b.ts })));
       latestTsRef.current = latestBarUnix(bars);
       formingBarRef.current = null;
       candleRef.current.setData(cData);
-      volumeRef.current.setData(vData);
+      await applyCvdToChart(bars);
       earliestTsRef.current = bars[0]?.ts || null;
       chartRef.current?.timeScale().fitContent();
     } catch (e) {
       console.error('ChartV5b load error:', e);
     }
-  }, []);
+  }, [applyCvdToChart]);
 
   useEffect(() => { loadBars(activeTf); }, [activeTf, loadBars]);
 
@@ -183,7 +207,6 @@ export function ChartV5b() {
 
       const bar = formingBarRef.current!;
       candleRef.current?.update({ time: bar.time as any, open: bar.open, high: bar.high, low: bar.low, close: bar.close });
-      volumeRef.current?.update({ time: bar.time as any, value: bar.vol, color: bar.close >= bar.open ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
     });
 
     // Finalized bars poll every 5s — replaces historical bars with DB truth
@@ -198,13 +221,13 @@ export function ChartV5b() {
         for (const b of bars) {
           const time = tsToUnix(b.ts) as any;
           candleRef.current?.update({ time, open: b.open ?? b.o, high: b.high ?? b.h, low: b.low ?? b.l, close: b.close ?? b.c });
-          volumeRef.current?.update({ time, value: b.volume ?? b.v ?? 0, color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)' });
         }
+        if (allBarsRef.current.length) applyCvdToChart(allBarsRef.current);
       } catch {}
     }, 5000);
 
     return () => { unsubPrice(); clearInterval(barsPoll); };
-  }, [activeTf]);
+  }, [activeTf, applyCvdToChart]);
 
   // Historical scroll-back: load older bars when user pans left
   useEffect(() => {
@@ -234,11 +257,7 @@ export function ChartV5b() {
               open: b.open ?? b.o, high: b.high ?? b.h,
               low: b.low ?? b.l, close: b.close ?? b.c,
             })));
-            volumeRef.current?.setData(merged.map((b: any) => ({
-              time: tsToUnix(b.ts) as any,
-              value: b.volume ?? b.v ?? 0,
-              color: (b.close ?? b.c) >= (b.open ?? b.o) ? 'rgba(22,163,74,0.5)' : 'rgba(220,38,38,0.5)',
-            })));
+            applyCvdToChart(merged);
             loadingHistoryRef.current = false;
           })
           .catch(() => { loadingHistoryRef.current = false; });
@@ -246,28 +265,38 @@ export function ChartV5b() {
     };
     chartRef.current.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
     return () => { try { chartRef.current?.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange); } catch {} };
-  }, [activeTf]);
+  }, [activeTf, applyCvdToChart]);
 
   // Sierra TPO overlay: stepped POC, cyan IB, white prior-day (not full-width price lines)
   useEffect(() => {
     const loadLevels = async () => {
       try {
-        const res = await fetch(`${API}/api/v9/tpo/current`);
-        const d = await res.json();
+        const [curRes, prevRes] = await Promise.all([
+          fetch(`${API}/api/v9/tpo/current`),
+          fetch(`${API}/api/v9/tpo/previous_day`),
+        ]);
+        const d = await curRes.json();
+        const prev = await prevRes.json();
         setTpoOverlay({
           poc: d.poc,
+          vah: d.vah,
+          val: d.val,
           periods: d.periods,
           ib_high: d.ib_high,
           ib_mid: d.ib_mid,
           ib_low: d.ib_low,
+          ib_locked: d.ib_locked,
           prior_day: d.prior_day,
+          previous_session: prev?.found
+            ? { found: true, poc: prev.poc, vah: prev.vah, val: prev.val }
+            : { found: false },
         });
       } catch {
         /* keep last overlay on transient errors */
       }
     };
     loadLevels();
-    const id = setInterval(loadLevels, 30000);
+    const id = setInterval(loadLevels, 10000);
     return () => clearInterval(id);
   }, []);
 
@@ -327,8 +356,6 @@ export function ChartV5b() {
           height={overlaySize.height}
         />
       </div>
-      {/* Cumulative Delta pane — Sierra screenshot contract #1 */}
-      <CumulativeDeltaPane />
     </div>
   );
 }

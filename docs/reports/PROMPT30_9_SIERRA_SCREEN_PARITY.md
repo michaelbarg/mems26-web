@@ -132,6 +132,41 @@ prior_day: high=7454.25 low=7372.75 close=7411.25 — matches yesterday's range.
 
 ---
 
+## P30.9c — Chart Sierra Alignment (2026-05-19)
+
+### Changes (Cursor)
+
+- **CVD**: Moved from separate `CumulativeDeltaPane` below chart to inline CVD scale
+  on the same lightweight-charts instance. `cvdMapping.ts` tail-aligns Sierra points
+  to loaded bars. Green/red histogram + cyan cumulative line on shared time axis.
+- **TPO overlay**: z-index: 10. Session POC/VAH/VAL (magenta). Previous-day
+  POC/VAH/VAL from `/api/v9/tpo/previous_day` (silver dashed). Prior-day high/low (white).
+  IB only when `ib_locked=true` and price > 0.
+- **Backend**: `ib_*` returns null when `ib.found=false`. `periods[]` filtered to last 48h.
+- **Removed**: Separate `CumulativeDeltaPane` component (not time-aligned).
+
+### Gap Status
+
+| ID | Gap | Status | Notes |
+|----|-----|--------|-------|
+| G1 | IB lines missing | **DEFERRED** | `ib.found=false` pre-market; verify after 10:30 ET RTH |
+| G2 | CVD index `i` alignment | **DONE (interim)** | Tail-align via `mapCvdToBarTimes`; ideal: Sierra exports `ts` per point |
+| G3 | Stepped POC | **DONE** | DB `v9_tpo_sessions` periods; 3 periods visible pre-market |
+| G4 | DISCONNECTED top bar | **SEPARATE** | WebSocket/Redis issue, not chart parity |
+| G5 | RTH visual UAT | **DEFERRED** | Needs market hours + Michael screenshot compare |
+
+### UAT (2026-05-19 pre-market)
+
+```
+/api/v9/tpo/current: source=sierra_tpo_json, poc=7401.75, ib=null (pre-market), periods=3
+/api/v9/tpo/previous_day: found=true, poc=7420.25, vah=7420.75, val=7420.25
+/api/v9/cumulative_delta/current: 10 points, source=sierra_cumulative_delta_json, stale=false
+Tests: test_tpo_routes_sierra_contract + test_cumulative_delta_routes → 7 passed
+Frontend lint: cvdMapping.ts + SierraLevelsOverlay.tsx → 0 errors
+```
+
+---
+
 ## Safety
 
 - No SHADOW/DEMO/LIVE enabled

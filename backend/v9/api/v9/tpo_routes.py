@@ -25,6 +25,22 @@ def _norm_session_ts(ts) -> Optional[str]:
     return str(ts)
 
 
+def _session_ts_epoch(ts) -> Optional[float]:
+    if ts is None:
+        return None
+    if isinstance(ts, (int, float)):
+        return float(ts)
+    try:
+        from datetime import datetime
+
+        s = str(ts).replace(" ", "T")
+        if s.endswith("Z"):
+            return datetime.fromisoformat(s.replace("Z", "+00:00")).timestamp()
+        return datetime.fromisoformat(s).timestamp()
+    except Exception:
+        return None
+
+
 def _load_tpo_periods(limit: int = 12) -> list:
     """Recent TPO session slices for stepped POC overlay (30m periods from DB)."""
     try:
@@ -36,17 +52,24 @@ def _load_tpo_periods(limit: int = 12) -> list:
             (limit,),
         ).fetchall()
         conn.close()
-        return [
-            {
-                "opened_ts": _norm_session_ts(r["opened_ts"]),
-                "closed_ts": _norm_session_ts(r["closed_ts"]),
-                "poc_price": r["poc_price"],
-                "vah_price": r["vah_price"],
-                "val_price": r["val_price"],
-            }
-            for r in rows
-            if r["poc_price"] is not None
-        ]
+        cutoff = time.time() - 48 * 3600
+        out = []
+        for r in rows:
+            if r["poc_price"] is None:
+                continue
+            opened_epoch = _session_ts_epoch(r["opened_ts"])
+            if opened_epoch is not None and opened_epoch < cutoff:
+                continue
+            out.append(
+                {
+                    "opened_ts": _norm_session_ts(r["opened_ts"]),
+                    "closed_ts": _norm_session_ts(r["closed_ts"]),
+                    "poc_price": r["poc_price"],
+                    "vah_price": r["vah_price"],
+                    "val_price": r["val_price"],
+                }
+            )
+        return out
     except Exception as e:
         logger.warning("[tpo] failed to load periods: %s", e)
         return []
@@ -57,9 +80,10 @@ def _normalize_sierra_tpo(data: dict, age_s: float) -> dict:
     ib = data.get("ib") or {}
     prior_day = data.get("prior_day") or {}
 
-    ib_high = ib.get("high")
-    ib_low = ib.get("low")
-    ib_mid = ib.get("mid")
+    ib_found = bool(ib.get("found"))
+    ib_high = ib.get("high") if ib_found else None
+    ib_low = ib.get("low") if ib_found else None
+    ib_mid = ib.get("mid") if ib_found else None
     ib_width = None
     if ib_high is not None and ib_low is not None:
         ib_width = ib_high - ib_low
@@ -81,7 +105,7 @@ def _normalize_sierra_tpo(data: dict, age_s: float) -> dict:
         "ib_high": ib_high,
         "ib_mid": ib_mid,
         "ib_low": ib_low,
-        "ib_locked": bool(ib.get("found")),
+        "ib_locked": ib_found,
         "ib_width": ib_width,
         "prior_day": {
             "found": bool(prior_day.get("found")),

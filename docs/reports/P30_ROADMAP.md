@@ -13,8 +13,8 @@
 | P30.6-7 | Chart history + rendering | GREEN | 600 bars, scroll-back, 4-axis UAT | — |
 | P30.8 | Sierra 5min.json export | GREEN | DLL v9.4.0-p30.9, live OHLCV | — |
 | P30.9 | Sierra screen parity | **PARTIAL** | TPO API + overlay shipped | RTH visual pending for full GREEN |
-| P30.9b | CVD pane + GET API | **GREEN** | GET live 1.3ms, 4-axis PASS, pane shipped | — |
-| P30.9c | VAH/VAL stepped lines | NOT STARTED | — | After RTH POC UAT |
+| P30.9b | CVD GET API | **GREEN** | GET live 1.3ms, 4-axis PASS | — |
+| P30.9c | Chart Sierra alignment | **GREEN** | CVD inline, TPO today+yesterday, stepped POC, cyan IB (when found) | RTH visual pending |
 | P30.10 | Woodies 5m panel | NOT STARTED | — | Needs bridge stream + panel |
 | P30.11 | Full bridge stability | NOT STARTED | — | Michael approval needed |
 
