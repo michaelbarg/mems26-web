@@ -74,10 +74,7 @@ class TradingGateway:
         cross_context = self._capture_cross_context()
         result = {"shadow": None, "demo": None, "live": None, "blocked_by": None}
 
-        # ζ.A5: Cluster guard — record attempt
-        self.cluster_guard.record_attempt()
-
-        # ζ.A4 + ζ.A5 + ζ.B2: pre-trade risk gates
+        # ζ.A4 + ζ.A5 + ζ.B2 + ζ.F2: pre-trade risk gates (GW-02: no record_attempt before PASS)
         direction = setup.get("direction", "")
         if self.cooldown.is_blocked():
             result["blocked_by"] = "cooldown"
@@ -92,12 +89,14 @@ class TradingGateway:
             logger.info("[Gateway] BLOCKED by SSV D-049: %s is suffering side", direction)
             return result
 
-        # ζ.F2: Layer 0 chop gating
         chop_state = self._get_chop_state()
         if chop_state == "SEARCHING":
             result["blocked_by"] = "chop_searching"
             logger.info("[Gateway] BLOCKED by Layer 0: chop_state=SEARCHING (high chop)")
             return result
+
+        # ζ.A5: Cluster guard — count only setups that passed all gates (GW-02)
+        self.cluster_guard.record_attempt()
 
         # SHADOW: always log, unlimited slots
         shadow_trade = self._execute_shadow(setup, system_id, cross_context)
@@ -127,21 +126,20 @@ class TradingGateway:
         return result
 
     def _get_chop_state(self) -> str:
-        """ζ.F2: Read Layer 0 chop state for gating."""
+        """ζ.F2: Read Layer 0 chop state for gating (direct compute — no self-HTTP)."""
         try:
-            import requests
-            resp = requests.get("http://localhost:8000/api/v9/chop_score/current", timeout=2).json()
-            score = resp.get("chop_score")
+            from backend.v9.systems.layer0.chop_score import get_chop_score
+
+            data = get_chop_score()
+            state = data.get("state")
+            if state:
+                return str(state)
+            score = data.get("chop_score")
             if score is None:
                 return "UNKNOWN"
-            if score >= 75:
-                return "SEARCHING"
-            elif score >= 50:
-                return "RESPECTING"
-            elif score >= 25:
-                return "EXPANDING"
-            else:
-                return "FOUND"
+            from backend.v9.systems.layer0.chop_score import classify_state
+
+            return classify_state(float(score))
         except Exception:
             return "UNKNOWN"
 
