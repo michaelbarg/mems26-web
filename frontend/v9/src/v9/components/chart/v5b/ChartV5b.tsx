@@ -64,64 +64,69 @@ function isSaneMesPrice(price: number, anchor: number | null): boolean {
   return true;
 }
 
+const OHLC_EPS = 0.01;
+
+function rawOhlcFromBar(b: any): OhlcBar | null {
+  const open = Number(b.open ?? b.o);
+  const high = Number(b.high ?? b.h);
+  const low = Number(b.low ?? b.l);
+  const close = Number(b.close ?? b.c);
+  if (![open, high, low, close].every(Number.isFinite)) return null;
+  return { open, high, low, close };
+}
+
 /**
- * Bridge sometimes rewrites only `close` while H/L stay pinned to an old spike
- * (same H/L across many bars → thin vertical "ghost" rails). Clamp using only
- * the bar's own O/H/L/C — no invented prices.
+ * Bridge/DB sometimes rewrites only `close` while H/L stay pinned (7411.25 /
+ * 7358.0 across many bars). Detect against the previous **raw** DB bar — not
+ * the sanitized one (otherwise sticky detection breaks after the first clamp).
+ * Invalid bars are **rejected** (skipped), not clamped into display.
  */
 function sanitizeOhlc(
   raw: { open?: number; high?: number; low?: number; close?: number; o?: number; h?: number; l?: number; c?: number },
-  prev?: OhlcBar | null,
+  prevRaw?: OhlcBar | null,
 ): OhlcBar | null {
   const open = Number(raw.open ?? raw.o);
   const close = Number(raw.close ?? raw.c);
-  let high = Number(raw.high ?? raw.h);
-  let low = Number(raw.low ?? raw.l);
-  if (![open, high, low, close].every(Number.isFinite)) return null;
+  const highIn = Number(raw.high ?? raw.h);
+  const lowIn = Number(raw.low ?? raw.l);
+  if (![open, highIn, lowIn, close].every(Number.isFinite)) return null;
 
-  high = Math.max(open, close, high);
-  low = Math.min(open, close, low);
+  if (
+    prevRaw &&
+    Math.abs(highIn - prevRaw.high) < OHLC_EPS &&
+    Math.abs(lowIn - prevRaw.low) < OHLC_EPS &&
+    (Math.abs(open - prevRaw.open) > OHLC_EPS || Math.abs(close - prevRaw.close) > OHLC_EPS)
+  ) {
+    console.warn('[ChartV5b] rejected sticky H/L rail bar', {
+      open,
+      close,
+      high: highIn,
+      low: lowIn,
+      prevClose: prevRaw.close,
+    });
+    return null;
+  }
+
+  let high = Math.max(open, close, highIn);
+  let low = Math.min(open, close, lowIn);
+  const span = high - low;
+  if (span > MAX_BAR_SPAN_PTS) {
+    console.warn('[ChartV5b] rejected oversized bar span', { open, close, span });
+    return null;
+  }
 
   const bodyTop = Math.max(open, close);
   const bodyBot = Math.min(open, close);
-  const body = bodyTop - bodyBot;
-
-  if (
-    prev &&
-    high === prev.high &&
-    low === prev.low &&
-    (open !== prev.open || close !== prev.close)
-  ) {
-    console.warn('[ChartV5b] clamped sticky H/L rail on bar', { open, close, high, low });
-    high = bodyTop;
-    low = bodyBot;
-  } else {
-    if (high - bodyTop > MAX_WICK_PTS) high = bodyTop + MAX_WICK_PTS;
-    if (bodyBot - low > MAX_WICK_PTS) low = bodyBot - MAX_WICK_PTS;
-    const span = high - low;
-    if (body < 8 && span > body + MAX_WICK_PTS * 2) {
-      high = bodyTop + MAX_WICK_PTS;
-      low = bodyBot - MAX_WICK_PTS;
-    }
-  }
-
-  if (high - low > MAX_BAR_SPAN_PTS) {
-    console.warn('[ChartV5b] clamped oversized bar span', {
-      open,
-      close,
-      span: high - low,
-    });
-    high = bodyTop + MAX_WICK_PTS;
-    low = bodyBot - MAX_WICK_PTS;
-  }
+  if (high - bodyTop > MAX_WICK_PTS) high = bodyTop + MAX_WICK_PTS;
+  if (bodyBot - low > MAX_WICK_PTS) low = bodyBot - MAX_WICK_PTS;
 
   return { open, high, low, close };
 }
 
-function rawBarToOhlc(b: any, prev?: OhlcBar | null): OhlcBar | null {
+function rawBarToOhlc(b: any, prevRaw?: OhlcBar | null): OhlcBar | null {
   return sanitizeOhlc(
     { open: b.open ?? b.o, high: b.high ?? b.h, low: b.low ?? b.l, close: b.close ?? b.c },
-    prev,
+    prevRaw,
   );
 }
 
@@ -185,11 +190,9 @@ export function ChartV5b() {
       });
       return false;
     }
-    const prev =
-      last !== null && allBarsRef.current.length
-        ? rawBarToOhlc(allBarsRef.current[allBarsRef.current.length - 1])
-        : null;
-    const clean = sanitizeOhlc(bar, prev);
+    const lastDb = allBarsRef.current[allBarsRef.current.length - 1];
+    const prevRaw = lastDb ? rawOhlcFromBar(lastDb) : null;
+    const clean = sanitizeOhlc(bar, prevRaw);
     if (!clean) return false;
     try {
       series.update({ time: t as any, ...clean });
@@ -328,13 +331,22 @@ export function ChartV5b() {
         (a: any, b: any) => tsToUnix(a.ts) - tsToUnix(b.ts),
       );
       const cData: Array<{ time: number; open: number; high: number; low: number; close: number }> = [];
-      let prevOhlc: OhlcBar | null = null;
+      let prevRaw: OhlcBar | null = null;
+      let rejectedBars = 0;
       for (const b of sortedFull) {
         const t = tsToUnix(b.ts);
-        const ohlc = rawBarToOhlc(b, prevOhlc);
-        if (!Number.isFinite(t) || !ohlc) continue;
+        const ohlc = rawBarToOhlc(b, prevRaw);
+        const raw = rawOhlcFromBar(b);
+        if (raw) prevRaw = raw;
+        if (!Number.isFinite(t)) continue;
+        if (!ohlc) {
+          rejectedBars += 1;
+          continue;
+        }
         cData.push({ time: t, ...ohlc });
-        prevOhlc = ohlc;
+      }
+      if (rejectedBars > 0) {
+        console.warn(`[ChartV5b] rejected ${rejectedBars} corrupt bar(s) from API (sticky H/L or span)`);
       }
       if (!cData.length) return;
 
@@ -514,13 +526,14 @@ export function ChartV5b() {
             setBarsForOverlay(merged.map((b: { ts: string }) => ({ ts: b.ts })));
             earliestTsRef.current = merged[0]?.ts || earliestTsRef.current;
             const histData: Array<{ time: any; open: number; high: number; low: number; close: number }> = [];
-            let prevHist: OhlcBar | null = null;
+            let prevHistRaw: OhlcBar | null = null;
             for (const b of merged) {
               const t = tsToUnix(b.ts);
-              const ohlc = rawBarToOhlc(b, prevHist);
+              const ohlc = rawBarToOhlc(b, prevHistRaw);
+              const raw = rawOhlcFromBar(b);
+              if (raw) prevHistRaw = raw;
               if (!Number.isFinite(t) || !ohlc) continue;
               histData.push({ time: t as any, ...ohlc });
-              prevHist = ohlc;
             }
             candleRef.current?.setData(histData);
             lastBarTimeRef.current =
