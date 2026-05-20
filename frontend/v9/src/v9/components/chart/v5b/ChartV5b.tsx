@@ -216,7 +216,7 @@ export function ChartV5b() {
       const chart = chartRef.current;
       if (!series || !chart || !data) return 0;
       extendAutoscaleForTpo(series, data);
-      const nToday = syncTpoPriceLines(series, data);
+      const nToday = syncTpoPriceLines(chart, data, 0);
       const nYday = syncYesterdayTpoLines(chart, data, 0);
       const n = nToday + nYday;
       if (n > 0) refitPriceScaleForTpo(series);

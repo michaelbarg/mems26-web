@@ -242,6 +242,7 @@ export function collectTpoPrices(tpo: TpoOverlayData | null): number[] {
 }
 
 const lineStore = new WeakMap<ISeriesApi<'Candlestick'>, IPriceLine[]>();
+const lineStore2 = new WeakMap<IChartApi, ISeriesApi<'Line'>[]>();
 const horizStore = new WeakMap<IChartApi, ISeriesApi<'Line'>[]>();
 
 /** Full-width TPO rules on the price pane (survives candle setData better than price lines alone). */
@@ -302,42 +303,66 @@ export function syncTpoHorizontals(
   return plan.length;
 }
 
-/** Today (pink) price lines only — full width, locked to price by chart engine. */
+/** Today (pink) lines — time-bounded from RTH open (09:30 ET) to now. */
 export function syncTpoPriceLines(
-  series: ISeriesApi<'Candlestick'> | null,
+  chart: IChartApi | null,
   tpo: TpoOverlayData | null,
+  paneIndex: number,
 ): number {
-  if (!series) return 0;
-  const prev = lineStore.get(series) ?? [];
-  for (const line of prev) {
-    try {
-      series.removePriceLine(line);
-    } catch {
-      /* noop */
-    }
+  if (!chart) return 0;
+
+  // Remove previous today series
+  const prev = lineStore2.get(chart) ?? [];
+  for (const s of prev) {
+    try { chart.removeSeries(s); } catch { /* noop */ }
   }
-  const next: IPriceLine[] = [];
+
   const plan = buildTpoPlan(tpo);
-  // Only today (pink) — yesterday uses time-bounded LineSeries
-  for (const lv of plan) {
-    if (lv.session !== 'today') continue;
+  const todayLevels = plan.filter((lv) => lv.session === 'today');
+  if (!todayLevels.length) { lineStore2.set(chart, []); return 0; }
+
+  // RTH open: today 09:30 ET
+  const nowSec = Math.floor(Date.now() / 1000);
+  let rthOpen: number;
+  try {
+    const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const etMidnight = new Date(et);
+    etMidnight.setHours(0, 0, 0, 0);
+    const midnightUnix = Math.floor(etMidnight.getTime() / 1000);
+    rthOpen = midnightUnix + 9 * 3600 + 30 * 60; // 09:30 ET today
+  } catch {
+    rthOpen = nowSec - 7 * 3600; // fallback
+  }
+
+  const t0 = rthOpen as Time;
+  const t1 = (nowSec + 300) as Time;
+
+  const next: ISeriesApi<'Line'>[] = [];
+  for (const lv of todayLevels) {
     try {
-      next.push(
-        series.createPriceLine({
-          price: lv.price,
+      const s = chart.addSeries(
+        LineSeries,
+        {
           color: lv.color,
           lineWidth: (lv.width >= 2 ? 2 : 1) as LineWidth,
           lineStyle: lv.dashed ? LineStyle.Dashed : LineStyle.Solid,
-          axisLabelVisible: false,
+          crosshairMarkerVisible: false,
+          lastValueVisible: false,
+          priceLineVisible: false,
           title: '',
-        }),
+        },
+        paneIndex,
       );
+      s.setData([
+        { time: t0, value: lv.price },
+        { time: t1, value: lv.price },
+      ]);
+      next.push(s);
     } catch (e) {
-      console.error('[TPO] createPriceLine failed', lv, e);
+      console.error('[TPO] today line series failed', lv, e);
     }
   }
-  lineStore.set(series, next);
-  console.info('[TPO] syncTpoPriceLines', { count: next.length, prices: plan.map((p) => p.price) });
+  lineStore2.set(chart, next);
   return next.length;
 }
 
