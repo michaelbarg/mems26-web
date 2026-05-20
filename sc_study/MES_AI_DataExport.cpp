@@ -616,36 +616,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (arr.GetArraySize() > idx && idx > 0) sierra.cci_14_prev = arr[idx - 1];
         }
 
-        // DIAGNOSTIC: dump all subgraphs for each study to find correct indices
-        if (sierra.valid) {
-            std::ostringstream diag;
-            diag << std::fixed << std::setprecision(2);
-            diag << "{\"idx\":" << idx << ",\"studies\":{";
-            int study_ids[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
-            const char* study_names[] = {
-                "CCI_Trend","LSMA","EMA","CCI14","LSMA_AboveBelow",
-                "Sidewinder","ChopZone","CountDown","WoodiesPanel",
-                "CCI6_TCCI","CCI_Predictor","PivotPoints","ZLR_System"};
-            bool first_study = true;
-            for (int si = 0; si < 13; si++) {
-                if (!first_study) diag << ",";
-                first_study = false;
-                diag << "\"ID" << study_ids[si] << "_" << study_names[si] << "\":{";
-                bool first_sg = true;
-                for (int sg = 0; sg < 16; sg++) {
-                    SCFloatArray sg_arr;
-                    sc.GetStudyArrayFromChartUsingID(wc, study_ids[si], sg, sg_arr);
-                    float val = (sg_arr.GetArraySize() > idx) ? sg_arr[idx] : -99999;
-                    if (val == -99999 || val == 0) continue;
-                    if (!first_sg) diag << ",";
-                    first_sg = false;
-                    diag << "\"SG" << sg << "\":" << val;
-                }
-                diag << "}";
-            }
-            diag << "}}";
-            v9_write_json(v9dir, "woodies_diag.json", diag.str());
-        }
 
         std::string w5_json = v9_woodies_5min_to_json(
             sc, V9WoodiesHistory.GetInt(),
