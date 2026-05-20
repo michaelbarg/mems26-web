@@ -43,6 +43,62 @@ function latestBarUnix(bars: Array<{ ts?: string }>): number | null {
   return last?.ts ? tsToUnix(last.ts) : null;
 }
 
+type OhlcBar = { open: number; high: number; low: number; close: number };
+
+/** Max wick extension (MES points) beyond the candle body for display. */
+const MAX_WICK_PTS = 12;
+
+/**
+ * Bridge sometimes rewrites only `close` while H/L stay pinned to an old spike
+ * (same H/L across many bars → thin vertical "ghost" rails). Clamp using only
+ * the bar's own O/H/L/C — no invented prices.
+ */
+function sanitizeOhlc(
+  raw: { open?: number; high?: number; low?: number; close?: number; o?: number; h?: number; l?: number; c?: number },
+  prev?: OhlcBar | null,
+): OhlcBar | null {
+  const open = Number(raw.open ?? raw.o);
+  const close = Number(raw.close ?? raw.c);
+  let high = Number(raw.high ?? raw.h);
+  let low = Number(raw.low ?? raw.l);
+  if (![open, high, low, close].every(Number.isFinite)) return null;
+
+  high = Math.max(open, close, high);
+  low = Math.min(open, close, low);
+
+  const bodyTop = Math.max(open, close);
+  const bodyBot = Math.min(open, close);
+  const body = bodyTop - bodyBot;
+
+  if (
+    prev &&
+    high === prev.high &&
+    low === prev.low &&
+    (open !== prev.open || close !== prev.close)
+  ) {
+    console.warn('[ChartV5b] clamped sticky H/L rail on bar', { open, close, high, low });
+    high = bodyTop;
+    low = bodyBot;
+  } else {
+    if (high - bodyTop > MAX_WICK_PTS) high = bodyTop + MAX_WICK_PTS;
+    if (bodyBot - low > MAX_WICK_PTS) low = bodyBot - MAX_WICK_PTS;
+    const span = high - low;
+    if (body < 8 && span > body + MAX_WICK_PTS * 2) {
+      high = bodyTop + MAX_WICK_PTS;
+      low = bodyBot - MAX_WICK_PTS;
+    }
+  }
+
+  return { open, high, low, close };
+}
+
+function rawBarToOhlc(b: any, prev?: OhlcBar | null): OhlcBar | null {
+  return sanitizeOhlc(
+    { open: b.open ?? b.o, high: b.high ?? b.h, low: b.low ?? b.l, close: b.close ?? b.c },
+    prev,
+  );
+}
+
 export function ChartV5b() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,8 +149,14 @@ export function ChartV5b() {
       });
       return false;
     }
+    const prev =
+      last !== null && allBarsRef.current.length
+        ? rawBarToOhlc(allBarsRef.current[allBarsRef.current.length - 1])
+        : null;
+    const clean = sanitizeOhlc(bar, prev);
+    if (!clean) return false;
     try {
-      series.update({ time: t as any, open: bar.open, high: bar.high, low: bar.low, close: bar.close });
+      series.update({ time: t as any, ...clean });
       if (last === null || t >= last) lastBarTimeRef.current = t;
       return true;
     } catch (e) {
@@ -222,54 +284,45 @@ export function ChartV5b() {
       const bars = Array.isArray(raw) ? raw : [];
       if (!bars.length) return;
 
-      const cDataRaw = bars.map((b: any) => ({
-        time: tsToUnix(b.ts) as any,
-        open: b.open ?? b.o,
-        high: b.high ?? b.h,
-        low: b.low ?? b.l,
-        close: b.close ?? b.c,
-      }));
-      // Dedup by `time` (DB sometimes ships two rows for the same minute when
-      // a bar is rewritten mid-poll). Last value wins because the bridge POSTs
-      // the rewrite after the first version. lightweight-charts throws
-      // "data must be asc ordered by time" on a duplicate and aborts the
-      // whole setData call — that was producing the "only 3 bars visible"
-      // symptom. Also enforce strictly ascending time after dedup.
-      const dedupMap = new Map<number, (typeof cDataRaw)[number]>();
-      for (const c of cDataRaw) {
-        if (Number.isFinite(c.time)) dedupMap.set(Number(c.time), c);
-      }
-      const cData = Array.from(dedupMap.values()).sort(
-        (a, b) => Number(a.time) - Number(b.time),
+      const tsToFullBar = new Map<string, any>();
+      for (const b of bars) tsToFullBar.set(b.ts, b);
+      const sortedFull = Array.from(tsToFullBar.values()).sort(
+        (a: any, b: any) => tsToUnix(a.ts) - tsToUnix(b.ts),
       );
-      if (cData.length !== cDataRaw.length) {
-        console.warn(
-          `[ChartV5b] dedup removed ${cDataRaw.length - cData.length} duplicate bar(s)`,
-        );
+      const cData: Array<{ time: number; open: number; high: number; low: number; close: number }> = [];
+      let prevOhlc: OhlcBar | null = null;
+      for (const b of sortedFull) {
+        const t = tsToUnix(b.ts);
+        const ohlc = rawBarToOhlc(b, prevOhlc);
+        if (!Number.isFinite(t) || !ohlc) continue;
+        cData.push({ time: t, ...ohlc });
+        prevOhlc = ohlc;
       }
-      // Mirror dedup back into the overlay bars list so SierraLevelsOverlay
-      // and CvdChartPane don't compute against duplicate ts values either.
-      const tsToBar = new Map<string, { ts: string }>();
-      for (const b of bars) tsToBar.set(b.ts, { ts: b.ts });
-      const dedupedBars = Array.from(tsToBar.values()).sort(
-        (a, b) => tsToUnix(a.ts) - tsToUnix(b.ts),
-      );
+      if (!cData.length) return;
 
-      allBarsRef.current = dedupedBars;
-      setBarsForOverlay(dedupedBars);
-      latestTsRef.current = latestBarUnix(dedupedBars);
+      allBarsRef.current = sortedFull;
+      setBarsForOverlay(sortedFull.map((b: any) => ({ ts: b.ts })));
+      latestTsRef.current = latestBarUnix(sortedFull);
       formingBarRef.current = null;
-      candleRef.current.setData(cData);
+      candleRef.current.setData(
+        cData.map((c) => ({
+          time: c.time as any,
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+        })),
+      );
       lastBarTimeRef.current =
         cData.length > 0 ? Number(cData[cData.length - 1].time) : null;
-      earliestTsRef.current = dedupedBars[0]?.ts || null;
+      earliestTsRef.current = sortedFull[0]?.ts || null;
       // Default view shows the most recent 60 bars (5 h of 5 m, 3 h of 3 m, 15 h of 15 m).
       // fitContent on 600 bars produced a sub-1-px-per-candle view that the
       // CVD sync then mirrored onto a 17 h window — user saw 10 price candles
       // and only 2 CVD candles. Lazy-load handler in this file still fetches
       // older data when the user pans left.
       const DEFAULT_VISIBLE = 60;
-      const last = cData.length - 1;
+      const last = cData.length - 1; // index of newest sanitized bar
       if (last >= 0) {
         const from = Math.max(0, last - DEFAULT_VISIBLE + 1);
         chartRef.current?.timeScale().setVisibleLogicalRange({ from, to: last });
@@ -314,7 +367,39 @@ export function ChartV5b() {
         fb.close = price;
         fb.vol += 1;
       } else {
-        formingBarRef.current = { time: bucket, open: price, high: price, low: price, close: price, vol: 1 };
+        const lastDb = allBarsRef.current[allBarsRef.current.length - 1];
+        const lastT = lastDb?.ts ? tsToUnix(lastDb.ts) : null;
+        if (lastDb && lastT === bucket) {
+          const seeded = rawBarToOhlc(lastDb);
+          if (seeded) {
+            formingBarRef.current = {
+              time: bucket,
+              open: seeded.open,
+              high: Math.max(seeded.high, price),
+              low: Math.min(seeded.low, price),
+              close: price,
+              vol: 1,
+            };
+          } else {
+            formingBarRef.current = {
+              time: bucket,
+              open: price,
+              high: price,
+              low: price,
+              close: price,
+              vol: 1,
+            };
+          }
+        } else {
+          formingBarRef.current = {
+            time: bucket,
+            open: price,
+            high: price,
+            low: price,
+            close: price,
+            vol: 1,
+          };
+        }
       }
 
       const bar = formingBarRef.current!;
@@ -382,14 +467,15 @@ export function ChartV5b() {
             allBarsRef.current = merged;
             setBarsForOverlay(merged.map((b: { ts: string }) => ({ ts: b.ts })));
             earliestTsRef.current = merged[0]?.ts || earliestTsRef.current;
-            // Re-set full data (sorted time-ascending)
-            const histData = merged.map((b: any) => ({
-              time: tsToUnix(b.ts) as any,
-              open: b.open ?? b.o,
-              high: b.high ?? b.h,
-              low: b.low ?? b.l,
-              close: b.close ?? b.c,
-            }));
+            const histData: Array<{ time: any; open: number; high: number; low: number; close: number }> = [];
+            let prevHist: OhlcBar | null = null;
+            for (const b of merged) {
+              const t = tsToUnix(b.ts);
+              const ohlc = rawBarToOhlc(b, prevHist);
+              if (!Number.isFinite(t) || !ohlc) continue;
+              histData.push({ time: t as any, ...ohlc });
+              prevHist = ohlc;
+            }
             candleRef.current?.setData(histData);
             lastBarTimeRef.current =
               histData.length > 0 ? Number(histData[histData.length - 1].time) : null;
