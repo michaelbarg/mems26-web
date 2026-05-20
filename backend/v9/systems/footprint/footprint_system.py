@@ -64,7 +64,9 @@ class FootprintSystem(BaseV9TradingSystem):
     def _get_conn(self) -> sqlite3.Connection:
         """Reuse a single WAL-mode connection to avoid per-bar open/close overhead."""
         if self._conn is None:
-            self._conn = sqlite3.connect(self.db_path, timeout=5)
+            self._conn = sqlite3.connect(
+                self.db_path, timeout=5, check_same_thread=False
+            )
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.execute("PRAGMA busy_timeout=3000")
         return self._conn
