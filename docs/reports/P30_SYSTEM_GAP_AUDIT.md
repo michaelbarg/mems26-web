@@ -151,6 +151,21 @@
 | Gateway LIVE mode | 🔴 | Michael | Decision required |
 | | | | |
 
+### Cursor suggested additions (override / delete — not approved)
+
+| Item | Suggested | Owner | Rationale |
+|------|-----------|-------|-----------|
+| **L4 risk audit** (#14 firewall, kill switch) | 🔴 LIVE blocker | Michael + Cursor | Inbox L5 WAIT on L4 |
+| **Gateway `cluster_guard` blocks SHADOW** | 🔴 | Cursor | Tree green but no shadow trade; `trading_gateway.py` |
+| **6-agent fire/spec audit** (#16) | 🟡 | 6 agents | `P30_ORCHESTRATION_FIRE_AUDIT` — read-only |
+| **Bridge stream 12/12 + TPO push errors** | 🟡 | CC | Gap audit §2 |
+| **Woodies A4 touchpoints empty/degraded** | 🟡 | CC/Cursor | Routing quality vs spec |
+| **CCI Predictor / trend from Sierra vs computed** | 🟢 post-LIVE | CC | Protocol §1 — verify only unless drift in RTH |
+| **DLL G2 `previous_session` in tpo.json** | 🟡 | CC | If yesterday lines wrong on chart |
+| **Design / HUD layout changes** | ⚪ defer | — | Michael: no approval |
+
+Aligns with: `P30_SIERRA_STUDY_PROTOCOL.md`, inbox §7a, `PROMPT30_10b_PLAN_LIVE_FULL_REPORT_HE.md`.
+
 ---
 
-**Michael:** סמן מה דחוף, מה יכול לחכות, ומה לא רלוונטי ל-LIVE.
+**Michael:** סמן מה דחוף, מה יכול לחכות, ומה לא רלוונטי ל-LIVE. שלח ל-CC/Cursor את הטבלה המעודכנת כשמוכן.
