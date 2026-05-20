@@ -6,6 +6,7 @@ import type { IChartApi } from 'lightweight-charts';
 let mainChart: IChartApi | null = null;
 let volumeChart: IChartApi | null = null;
 let syncing = false;
+let syncUnlockRaf: number | null = null;
 
 function syncTimeScales(source: IChartApi, target: IChartApi) {
   if (syncing) return;
@@ -18,7 +19,16 @@ function syncTimeScales(source: IChartApi, target: IChartApi) {
   } catch {
     // ignore sync errors during init
   }
-  syncing = false;
+  if (syncUnlockRaf != null) cancelAnimationFrame(syncUnlockRaf);
+  syncUnlockRaf = requestAnimationFrame(() => {
+    syncing = false;
+    syncUnlockRaf = null;
+  });
+}
+
+/** Push main chart's visible window to the volume/CVD chart (e.g. after setData). */
+export function syncVolumeFromMain() {
+  if (mainChart && volumeChart) syncTimeScales(mainChart, volumeChart);
 }
 
 export function registerMainChart(chart: IChartApi) {
