@@ -82,6 +82,12 @@ if [ "${1:-}" = "--deploy" ]; then
     if [ -d "$(dirname "$DEPLOY_TARGET")" ]; then
         cp "$OUTFILE" "$DEPLOY_TARGET"
         echo "DEPLOYED to $DEPLOY_TARGET"
+        # Stale copy confuses Remote Build (duplicate SCDLLName, old p30.8 body).
+        STALE_MERGED="$(dirname "$DEPLOY_TARGET")/MES_AI_DataExport_merged.cpp"
+        if [ -f "$STALE_MERGED" ]; then
+            mv "$STALE_MERGED" "${STALE_MERGED}.disabled-$(date +%Y%m%d%H%M%S)"
+            echo "MOVED stale $STALE_MERGED aside (use MES_AI_DataExport.cpp only)"
+        fi
     else
         echo "WARN: $DEPLOY_TARGET dir not found, skipping deploy"
     fi

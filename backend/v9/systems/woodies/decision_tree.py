@@ -7,11 +7,16 @@ Master Index V2 · Woodies Decision Tree V1.
 """
 from __future__ import annotations
 
+import asyncio
+import logging
+import time
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from backend.v9.systems.woodies.schemas import PatternResult, WoodiesBar
+
+logger = logging.getLogger(__name__)
 
 
 class StageOwner(str, Enum):
@@ -112,6 +117,60 @@ TOUCHPOINT_ENDPOINTS: Dict[str, str] = {
     "layer0": "http://localhost:8000/api/v9/layer0/state",
 }
 
+# Per-request timeout for touch-point HTTP fetches.
+# Defense-in-depth: with 5 sequential endpoints, the worst-case wall-clock is
+# bounded at 5 * TOUCHPOINTS_REQUEST_TIMEOUT_S. The previous 2.0s allowed a
+# 10s+ stall per bar when endpoints were unresponsive — see
+# docs/reports/PROMPT_P30_WOODIES_SYSTEM_SLOW_HANDLER.md.
+TOUCHPOINTS_REQUEST_TIMEOUT_S: float = 0.5
+
+
+def _is_in_event_loop() -> bool:
+    """True when the current thread is running an asyncio event loop.
+
+    Synchronous HTTP self-calls inside an event loop deadlock the FastAPI
+    BarRouter pipeline: the loop is blocked waiting for HTTP responses that
+    can't be served because the loop is blocked. We use this to disable the
+    blocking fetch in any async path; callers in async contexts must
+    pre-fetch via ``await asyncio.to_thread(_fetch_touchpoints_now)`` and pass
+    the result in via ``WoodiesDecisionContext.touchpoints``.
+    """
+    try:
+        asyncio.get_running_loop()
+        return True
+    except RuntimeError:
+        return False
+
+
+def _fetch_touchpoints_now() -> Tuple[Dict[str, Any], List[str]]:
+    """Synchronously fetch all touch-point endpoints over HTTP.
+
+    Must NOT be invoked from a thread that has a running asyncio event loop;
+    callers in async contexts should wrap in ``asyncio.to_thread``. The
+    blocking ``requests.get`` calls are intentional — this function is the
+    single sync surface that both the test suite and the async pre-fetch
+    helper rely on.
+    """
+    fetched: Dict[str, Any] = {}
+    unavailable: List[str] = []
+    for name, url in TOUCHPOINT_ENDPOINTS.items():
+        try:
+            import requests
+
+            resp = requests.get(url, timeout=TOUCHPOINTS_REQUEST_TIMEOUT_S)
+            if resp.status_code != 200:
+                unavailable.append(f"{name}:http_{resp.status_code}")
+                continue
+            data = resp.json()
+            fetched[name] = data
+            if isinstance(data, dict) and data.get("error"):
+                unavailable.append(f"{name}:{data.get('error')}")
+        except Exception as exc:
+            unavailable.append(f"{name}:{exc}")
+
+    unavailable.extend(item for item in _missing_touchpoints(fetched) if item not in unavailable)
+    return fetched, unavailable
+
 
 def _a1_trend_gate(ctx: WoodiesDecisionContext) -> StageResult:
     trend = (ctx.studies.get("trend_state") or "GRAY").upper()
@@ -183,25 +242,17 @@ def _load_touchpoints(ctx: WoodiesDecisionContext) -> Tuple[Dict[str, Any], List
     if ctx.touchpoints is not None:
         return dict(ctx.touchpoints), _missing_touchpoints(ctx.touchpoints)
 
-    fetched: Dict[str, Any] = {}
-    unavailable: List[str] = []
-    for name, url in TOUCHPOINT_ENDPOINTS.items():
-        try:
-            import requests
+    # 2026-05-20: never issue blocking HTTP self-calls from within an event
+    # loop. WoodiesSystem.process_bar runs inside BarRouter's event loop and
+    # used to spend 10s+ here on 5 sequential requests.get() to localhost
+    # (5 * 2s timeout) that deadlocked FastAPI. Async callers must pre-fetch
+    # via _fetch_touchpoints_now() inside asyncio.to_thread and pass the
+    # result via ctx.touchpoints. See:
+    # docs/reports/PROMPT_P30_WOODIES_SYSTEM_SLOW_HANDLER.md
+    if _is_in_event_loop():
+        return {}, [f"{name}:in_event_loop" for name in TOUCHPOINT_ENDPOINTS]
 
-            resp = requests.get(url, timeout=2)
-            if resp.status_code != 200:
-                unavailable.append(f"{name}:http_{resp.status_code}")
-                continue
-            data = resp.json()
-            fetched[name] = data
-            if isinstance(data, dict) and data.get("error"):
-                unavailable.append(f"{name}:{data.get('error')}")
-        except Exception as exc:
-            unavailable.append(f"{name}:{exc}")
-
-    unavailable.extend(item for item in _missing_touchpoints(fetched) if item not in unavailable)
-    return fetched, unavailable
+    return _fetch_touchpoints_now()
 
 
 def _missing_touchpoints(touchpoints: Dict[str, Any]) -> List[str]:

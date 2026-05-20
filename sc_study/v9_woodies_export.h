@@ -1,6 +1,7 @@
 // v9_woodies_export.h — MEMS26 V9 Woodies CCI export (30-min synthetic bars)
-// Version: v9.3
-// Updated: 2026-05-16 (HFE pattern added · pattern #9 of 9)
+// Version: v9.3.1-p30.10
+// Updated: 2026-05-19 (P30.10 HUD: ccidiff H/mid/L, predictor H/L, prev_ohlc, low angle)
+// ProjHigh/ProjLow: require Sierra study subgraphs — see docs/handoff export matrix.
 // Computes CCI-14, TCCI-6, LSMA-25, EMA-34, Sidewinder, ChopZone,
 // trend state, CCI predictor, ZLR + HFE detection from 3-min chart bars.
 // ACSIL-safe: uses v9_max/v9_min/v9_abs, no std::max/min.
@@ -74,6 +75,43 @@ inline float v9_calc_cci(const std::vector<Woodies30MinBar>& bars, int end_idx, 
     float mean_dev = 0;
     for (int i = end_idx - period + 1; i <= end_idx; i++) {
         float tp = (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
+        mean_dev += v9_abs(tp - sma_tp);
+    }
+    mean_dev /= period;
+
+    if (mean_dev < 0.0001f) return 0;
+    return (tp_current - sma_tp) / (0.015f * mean_dev);
+}
+
+// ── CCI at bar High / Low / Close anchor (Woodies CCIDiff H/mid/L) ──
+// 'H'|'L'|'C': last bar TP uses (2H+L)/3, (H+2L)/3, or standard HLC/3.
+inline float v9_tp_for_anchor(const Woodies30MinBar& bar, char anchor)
+{
+    if (anchor == 'H') return (2.0f * bar.high + bar.low) / 3.0f;
+    if (anchor == 'L') return (bar.high + 2.0f * bar.low) / 3.0f;
+    return (bar.high + bar.low + bar.close) / 3.0f;
+}
+
+inline float v9_calc_cci_at_anchor(
+    const std::vector<Woodies30MinBar>& bars, int end_idx, int period, char anchor)
+{
+    if (end_idx < period - 1 || end_idx >= (int)bars.size()) return 0;
+
+    float sum_tp = 0;
+    for (int i = end_idx - period + 1; i <= end_idx; i++) {
+        float tp = (i == end_idx)
+            ? v9_tp_for_anchor(bars[i], anchor)
+            : (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
+        sum_tp += tp;
+    }
+    float sma_tp = sum_tp / period;
+    float tp_current = v9_tp_for_anchor(bars[end_idx], anchor);
+
+    float mean_dev = 0;
+    for (int i = end_idx - period + 1; i <= end_idx; i++) {
+        float tp = (i == end_idx)
+            ? v9_tp_for_anchor(bars[i], anchor)
+            : (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
         mean_dev += v9_abs(tp - sma_tp);
     }
     mean_dev /= period;
@@ -168,6 +206,42 @@ inline float v9_cci_predictor(float cci_current, float cci_prev)
 {
     // Simple: next = current + (current - prev)
     return cci_current + (cci_current - cci_prev);
+}
+
+// ── HUD JSON fields (P30.10): CCIDiff, predictor H/L, prev OHLC, low angle ──
+// proj_hi / proj_lo: Daily Projected High-Low (G1), passed from caller via study read.
+inline void v9_woodies_json_hud_fields(
+    std::ostringstream& j,
+    const std::vector<Woodies30MinBar>& bars,
+    int bi)
+{
+    float cci14_c = v9_calc_cci_at_anchor(bars, bi, 14, 'C');
+    float cci6_c  = v9_calc_cci_at_anchor(bars, bi, 6, 'C');
+    float cci14_h = v9_calc_cci_at_anchor(bars, bi, 14, 'H');
+    float cci6_h  = v9_calc_cci_at_anchor(bars, bi, 6, 'H');
+    float cci14_l = v9_calc_cci_at_anchor(bars, bi, 14, 'L');
+    float cci6_l  = v9_calc_cci_at_anchor(bars, bi, 6, 'L');
+
+    json_float(j, "ccidiff", cci14_c - cci6_c);
+    json_float(j, "ccidiff_h", cci14_h - cci6_h);
+    json_float(j, "ccidiff_l", cci14_l - cci6_l);
+
+    float cci14_prev_h = (bi > 0) ? v9_calc_cci_at_anchor(bars, bi - 1, 14, 'H') : 0;
+    float cci14_prev_l = (bi > 0) ? v9_calc_cci_at_anchor(bars, bi - 1, 14, 'L') : 0;
+    json_float(j, "predictor_cci_high", v9_cci_predictor(cci14_h, cci14_prev_h));
+    json_float(j, "predictor_cci_low", v9_cci_predictor(cci14_l, cci14_prev_l));
+
+    if (bi > 0) {
+        j << ",\"prev_ohlc\":{";
+        json_float(j, "o", bars[bi - 1].open, false);
+        json_float(j, "h", bars[bi - 1].high);
+        json_float(j, "l", bars[bi - 1].low);
+        json_float(j, "c", bars[bi - 1].close);
+        j << "}";
+        float low_delta = bars[bi].low - bars[bi - 1].low;
+        json_float(j, "low_prev_angle",
+            (float)(std::atan2((double)low_delta, 2.0) * 180.0 / 3.141592653589793));
+    }
 }
 
 // ── ZLR (Zero Line Reject) detection ──
@@ -322,7 +396,8 @@ inline std::vector<Woodies30MinBar> v9_build_5min_bars(
     return bars;
 }
 
-inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_history)
+inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_history,
+                                            float proj_hi = 0, float proj_lo = 0)
 {
     std::vector<Woodies30MinBar> bars = v9_build_5min_bars(sc, max_history + 10);
     int n = (int)bars.size();
@@ -385,6 +460,7 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         json_bool(j, "hfe_detected", hfe.detected);
         json_str(j, "hfe_direction", hfe.direction);
         json_int(j, "hfe_extreme_bars_ago", hfe.extreme_bars_ago);
+        v9_woodies_json_hud_fields(j, bars, bi);
         j << "}";
     }
     j << "]";
@@ -430,6 +506,12 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         json_int(j, "hfe_extreme_bars_ago", hfe.extreme_bars_ago);
         json_float(j, "cci_14_prev", cci14_prev);
         json_float(j, "cci_14_3ago", cci14_3ago);
+        v9_woodies_json_hud_fields(j, bars, ci);
+        // G1: Daily Projected High-Low (from Sierra study, passed by caller)
+        if (proj_hi != 0) json_float(j, "proj_hi", proj_hi);
+        else { j << ",\"proj_hi\":null"; }
+        if (proj_lo != 0) json_float(j, "proj_lo", proj_lo);
+        else { j << ",\"proj_lo\":null"; }
         j << "}";
     }
 

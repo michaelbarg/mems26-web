@@ -1,5 +1,5 @@
-// MES_AI_DataExport_merged.cpp — v9.3.1 monolith for Sierra Chart remote build
-// Generated 2026-05-18 21:03:46 by build_monolithic_cpp.sh
+// MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
+// Generated 2026-05-20 15:54:09 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -26,10 +26,10 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.4.0-p30.9";  // P30.8: canonical 5min.json export
+static const char* V9_VERSION = "v9.4.2-p30.11";  // P30.11: G1 proj H/L, G2 TPO validation, G4 va_ok+session_date
 
 // ── Export directory ──
-static const char* V9_EXPORT_DIR = "Y:\\SierraChart_Data\\v9_export\\";
+static const char* V9_EXPORT_DIR = "/Users/michael/SierraChart_Data/v9_export/";
 
 // ── Tick reversal bar ──
 struct TickReversalBar {
@@ -783,8 +783,22 @@ inline std::string v9_cumulative_delta_to_json(
     float running = 0;
     float peak = 0, trough = 0;
 
+    // SCDateTime → unix epoch (UTC): excel days since 1899-12-30,
+    // 25569 days between 1899-12-30 and 1970-01-01.
+    auto sc_to_unix = [&](int idx) -> long long {
+        double scdt = sc.BaseDateTimeIn[idx].GetAsDouble();
+        return (long long)((scdt - 25569.0) * 86400.0);
+    };
+
     j << ",\"points\":[";
     bool first = true;
+    // P30 (2026-05-20): emit ONE point per host-chart bar (not every 5th).
+    // Cockpit CVD pane needs 5-min granularity because the host chart is a
+    // 5-min Globex 24h chart; the old `% 5 == 0` filter produced 25-min
+    // candles that the user reported as "wrong period". File-size cost is
+    // ~5× (≈10 KB for a 24h Globex session) — negligible vs the alignment win.
+    // Also emit explicit `t` (unix UTC sec) per point so the backend stops
+    // having to guess `output_interval` (was V9_CVD_PERIOD_S fallback).
     for (int i = session_start; i <= sc.Index; i++) {
         float d = sc.AskVolume[i] - sc.BidVolume[i];
         running += d;
@@ -792,19 +806,20 @@ inline std::string v9_cumulative_delta_to_json(
         peak   = v9_max(peak, running);
         trough = v9_min(trough, running);
 
-        // Only emit every 5th point to keep file small
-        if ((i - session_start) % 5 == 0 || i == sc.Index) {
-            if (!first) j << ",";
-            first = false;
-            j << "{";
-            json_int(j, "i", i, false);
-            json_float(j, "d", d);
-            json_float(j, "cum", running);
-            json_float(j, "p", sc.Close[i]);
-            j << "}";
-        }
+        if (!first) j << ",";
+        first = false;
+        j << "{";
+        json_int(j, "i", i, false);
+        json_long(j, "t", sc_to_unix(i));
+        json_float(j, "d", d);
+        json_float(j, "cum", running);
+        json_float(j, "p", sc.Close[i]);
+        j << "}";
     }
     j << "]";
+
+    // Top-level cadence hint for the frontend (300 = 5 min host bar).
+    json_int(j, "output_interval", 300);
 
     json_float(j, "current_delta", running);
     json_float(j, "session_delta", running);  // same as current — all session-anchored
@@ -825,8 +840,9 @@ inline std::string v9_cumulative_delta_to_json(
 
 // ====== v9_woodies_export.h (inlined) ======
 // v9_woodies_export.h — MEMS26 V9 Woodies CCI export (30-min synthetic bars)
-// Version: v9.3
-// Updated: 2026-05-16 (HFE pattern added · pattern #9 of 9)
+// Version: v9.3.1-p30.10
+// Updated: 2026-05-19 (P30.10 HUD: ccidiff H/mid/L, predictor H/L, prev_ohlc, low angle)
+// ProjHigh/ProjLow: require Sierra study subgraphs — see docs/handoff export matrix.
 // Computes CCI-14, TCCI-6, LSMA-25, EMA-34, Sidewinder, ChopZone,
 // trend state, CCI predictor, ZLR + HFE detection from 3-min chart bars.
 // ACSIL-safe: uses v9_max/v9_min/v9_abs, no std::max/min.
@@ -896,6 +912,43 @@ inline float v9_calc_cci(const std::vector<Woodies30MinBar>& bars, int end_idx, 
     float mean_dev = 0;
     for (int i = end_idx - period + 1; i <= end_idx; i++) {
         float tp = (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
+        mean_dev += v9_abs(tp - sma_tp);
+    }
+    mean_dev /= period;
+
+    if (mean_dev < 0.0001f) return 0;
+    return (tp_current - sma_tp) / (0.015f * mean_dev);
+}
+
+// ── CCI at bar High / Low / Close anchor (Woodies CCIDiff H/mid/L) ──
+// 'H'|'L'|'C': last bar TP uses (2H+L)/3, (H+2L)/3, or standard HLC/3.
+inline float v9_tp_for_anchor(const Woodies30MinBar& bar, char anchor)
+{
+    if (anchor == 'H') return (2.0f * bar.high + bar.low) / 3.0f;
+    if (anchor == 'L') return (bar.high + 2.0f * bar.low) / 3.0f;
+    return (bar.high + bar.low + bar.close) / 3.0f;
+}
+
+inline float v9_calc_cci_at_anchor(
+    const std::vector<Woodies30MinBar>& bars, int end_idx, int period, char anchor)
+{
+    if (end_idx < period - 1 || end_idx >= (int)bars.size()) return 0;
+
+    float sum_tp = 0;
+    for (int i = end_idx - period + 1; i <= end_idx; i++) {
+        float tp = (i == end_idx)
+            ? v9_tp_for_anchor(bars[i], anchor)
+            : (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
+        sum_tp += tp;
+    }
+    float sma_tp = sum_tp / period;
+    float tp_current = v9_tp_for_anchor(bars[end_idx], anchor);
+
+    float mean_dev = 0;
+    for (int i = end_idx - period + 1; i <= end_idx; i++) {
+        float tp = (i == end_idx)
+            ? v9_tp_for_anchor(bars[i], anchor)
+            : (bars[i].high + bars[i].low + bars[i].close) / 3.0f;
         mean_dev += v9_abs(tp - sma_tp);
     }
     mean_dev /= period;
@@ -990,6 +1043,42 @@ inline float v9_cci_predictor(float cci_current, float cci_prev)
 {
     // Simple: next = current + (current - prev)
     return cci_current + (cci_current - cci_prev);
+}
+
+// ── HUD JSON fields (P30.10): CCIDiff, predictor H/L, prev OHLC, low angle ──
+// proj_hi / proj_lo: Daily Projected High-Low (G1), passed from caller via study read.
+inline void v9_woodies_json_hud_fields(
+    std::ostringstream& j,
+    const std::vector<Woodies30MinBar>& bars,
+    int bi)
+{
+    float cci14_c = v9_calc_cci_at_anchor(bars, bi, 14, 'C');
+    float cci6_c  = v9_calc_cci_at_anchor(bars, bi, 6, 'C');
+    float cci14_h = v9_calc_cci_at_anchor(bars, bi, 14, 'H');
+    float cci6_h  = v9_calc_cci_at_anchor(bars, bi, 6, 'H');
+    float cci14_l = v9_calc_cci_at_anchor(bars, bi, 14, 'L');
+    float cci6_l  = v9_calc_cci_at_anchor(bars, bi, 6, 'L');
+
+    json_float(j, "ccidiff", cci14_c - cci6_c);
+    json_float(j, "ccidiff_h", cci14_h - cci6_h);
+    json_float(j, "ccidiff_l", cci14_l - cci6_l);
+
+    float cci14_prev_h = (bi > 0) ? v9_calc_cci_at_anchor(bars, bi - 1, 14, 'H') : 0;
+    float cci14_prev_l = (bi > 0) ? v9_calc_cci_at_anchor(bars, bi - 1, 14, 'L') : 0;
+    json_float(j, "predictor_cci_high", v9_cci_predictor(cci14_h, cci14_prev_h));
+    json_float(j, "predictor_cci_low", v9_cci_predictor(cci14_l, cci14_prev_l));
+
+    if (bi > 0) {
+        j << ",\"prev_ohlc\":{";
+        json_float(j, "o", bars[bi - 1].open, false);
+        json_float(j, "h", bars[bi - 1].high);
+        json_float(j, "l", bars[bi - 1].low);
+        json_float(j, "c", bars[bi - 1].close);
+        j << "}";
+        float low_delta = bars[bi].low - bars[bi - 1].low;
+        json_float(j, "low_prev_angle",
+            (float)(std::atan2((double)low_delta, 2.0) * 180.0 / 3.141592653589793));
+    }
 }
 
 // ── ZLR (Zero Line Reject) detection ──
@@ -1144,7 +1233,8 @@ inline std::vector<Woodies30MinBar> v9_build_5min_bars(
     return bars;
 }
 
-inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_history)
+inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_history,
+                                            float proj_hi = 0, float proj_lo = 0)
 {
     std::vector<Woodies30MinBar> bars = v9_build_5min_bars(sc, max_history + 10);
     int n = (int)bars.size();
@@ -1207,6 +1297,7 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         json_bool(j, "hfe_detected", hfe.detected);
         json_str(j, "hfe_direction", hfe.direction);
         json_int(j, "hfe_extreme_bars_ago", hfe.extreme_bars_ago);
+        v9_woodies_json_hud_fields(j, bars, bi);
         j << "}";
     }
     j << "]";
@@ -1252,131 +1343,14 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         json_int(j, "hfe_extreme_bars_ago", hfe.extreme_bars_ago);
         json_float(j, "cci_14_prev", cci14_prev);
         json_float(j, "cci_14_3ago", cci14_3ago);
+        v9_woodies_json_hud_fields(j, bars, ci);
+        // G1: Daily Projected High-Low (from Sierra study, passed by caller)
+        if (proj_hi != 0) json_float(j, "proj_hi", proj_hi);
+        else { j << ",\"proj_hi\":null"; }
+        if (proj_lo != 0) json_float(j, "proj_lo", proj_lo);
+        else { j << ",\"proj_lo\":null"; }
         j << "}";
     }
-
-    j << "}";
-    return j.str();
-}
-
-// ══════════════════════════════════════════════════════════════
-// Master export: tpo.json — session TPO levels for cockpit
-// ══════════════════════════════════════════════════════════════
-
-inline std::string v9_tpo_to_json(SCStudyInterfaceRef sc, float va_pct)
-{
-    int idx = sc.Index;
-    SCDateTime now_dt = sc.BaseDateTimeIn[idx];
-    SCDateTime today = now_dt.GetDate();
-
-    // ── Current session: POC / VAH / VAL ──
-    float session_high = sc.High[idx], session_low = sc.Low[idx];
-    float total_vol = 0;
-    std::map<int,float> price_vol_map;
-
-    for (int i = idx; i >= 0; i--) {
-        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
-        if (bd < today) break;
-        float bh = sc.High[i], bl = sc.Low[i], bv = sc.Volume[i];
-        if (bh > session_high) session_high = bh;
-        if (bl < session_low) session_low = bl;
-        total_vol += bv;
-        int steps = (int)((bh - bl) / 0.25f) + 1;
-        if (steps > 1000) steps = 1000;
-        float vps = bv / steps;
-        for (float p = bl; p <= bh + 0.001f && steps > 0; p += 0.25f, steps--)
-            price_vol_map[(int)(p * 4)] += vps;
-    }
-
-    float poc = sc.Close[idx], max_vol = 0;
-    for (auto& kv : price_vol_map)
-        if (kv.second > max_vol) { max_vol = kv.second; poc = kv.first / 4.0f; }
-
-    float va_target = total_vol * (va_pct / 100.0f);
-    float va_vol = max_vol, vah = poc, val = poc;
-    auto itu = price_vol_map.upper_bound((int)(poc * 4));
-    auto itd = price_vol_map.lower_bound((int)(poc * 4));
-    while (va_vol < va_target) {
-        float up = (itu != price_vol_map.end()) ? itu->second : 0;
-        float dn = (itd != price_vol_map.begin()) ? std::prev(itd)->second : 0;
-        if (up >= dn && itu != price_vol_map.end()) { va_vol += up; vah = itu->first / 4.0f; ++itu; }
-        else if (itd != price_vol_map.begin()) { --itd; va_vol += itd->second; val = itd->first / 4.0f; }
-        else break;
-    }
-
-    // ── IB (Initial Balance): first 60 min of RTH session ──
-    // RTH for MES starts at 9:30 ET = 16:30 UTC (Sierra exchange time)
-    float ib_high = 0, ib_low = 0;
-    bool ib_found = false;
-    for (int i = 0; i <= idx; i++) {
-        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
-        if (bd != today) continue;
-        int h = sc.BaseDateTimeIn[i].GetHour();
-        int m = sc.BaseDateTimeIn[i].GetMinute();
-        int mins = h * 60 + m;
-        // Sierra exchange time: 9:30 = 570, 10:30 = 630
-        if (mins >= 570 && mins < 630) {
-            if (!ib_found) { ib_high = sc.High[i]; ib_low = sc.Low[i]; ib_found = true; }
-            else {
-                if (sc.High[i] > ib_high) ib_high = sc.High[i];
-                if (sc.Low[i] < ib_low) ib_low = sc.Low[i];
-            }
-        }
-    }
-    float ib_mid = ib_found ? (ib_high + ib_low) / 2.0f : 0;
-
-    // ── Prior-day levels ──
-    float pd_high = 0, pd_low = 0, pd_close = 0;
-    bool pd_found = false;
-    for (int i = idx - 1; i >= 0; i--) {
-        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
-        if (bd < today) {
-            if (!pd_found) { pd_high = sc.High[i]; pd_low = sc.Low[i]; pd_close = sc.Close[i]; pd_found = true; }
-            else if (bd == sc.BaseDateTimeIn[i + 1].GetDate()) {
-                // Same prior day — continue expanding range
-                // Actually, we already found the first prior-day bar, keep scanning backward
-            }
-            // Scan all bars of previous day
-            SCDateTime prev_date = sc.BaseDateTimeIn[i].GetDate();
-            for (int k = i; k >= 0; k--) {
-                if (sc.BaseDateTimeIn[k].GetDate() != prev_date) break;
-                if (sc.High[k] > pd_high) pd_high = sc.High[k];
-                if (sc.Low[k] < pd_low) pd_low = sc.Low[k];
-            }
-            break;
-        }
-    }
-
-    // ── Build JSON ──
-    std::ostringstream j;
-    j << std::fixed << std::setprecision(2);
-    j << "{";
-    json_str(j, "type", "tpo", false);
-    json_str(j, "version", V9_VERSION);
-    json_long(j, "export_ts", (long long)time(nullptr));
-
-    j << ",\"session\":{";
-    json_float(j, "poc", poc, false);
-    json_float(j, "vah", vah);
-    json_float(j, "val", val);
-    json_float(j, "session_high", session_high);
-    json_float(j, "session_low", session_low);
-    json_float(j, "total_volume", total_vol);
-    j << "}";
-
-    j << ",\"ib\":{";
-    json_bool(j, "found", ib_found, false);
-    json_float(j, "high", ib_high);
-    json_float(j, "mid", ib_mid);
-    json_float(j, "low", ib_low);
-    j << "}";
-
-    j << ",\"prior_day\":{";
-    json_bool(j, "found", pd_found, false);
-    json_float(j, "high", pd_high);
-    json_float(j, "low", pd_low);
-    json_float(j, "close", pd_close);
-    j << "}";
 
     j << "}";
     return j.str();
@@ -1509,7 +1483,7 @@ inline std::string v9_woodies_30min_to_json(SCStudyInterfaceRef sc, int max_hist
 struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
 
 // ====== MES_AI_DataExport.cpp main function ======
-// MES_AI_DataExport.cpp — v9.4.0-p30.9 (canonical 5min.json export)
+// MES_AI_DataExport.cpp — v9.4.2-p30.11 (G1/G2/G4: proj H/L, TPO validation, va_ok)
 // Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
 // REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
 // מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
@@ -1543,10 +1517,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef LivePriceIntervalMs = sc.Input[10];
     SCInputRef TradeCommandPath  = sc.Input[11];
     SCInputRef TradeResultPath   = sc.Input[12];
+    SCInputRef TPOYesterdayStudyID = sc.Input[13];  // Sierra Study ID:1 (TPO VA Lines, ref=1)
+    SCInputRef TPOTodayStudyID     = sc.Input[14];  // Sierra Study ID:3 (TPO VA Lines, ref=0, developing)
+    SCInputRef IBStudyID           = sc.Input[15];   // Sierra Study ID:6 (Initial Balance)
+    SCInputRef ProjHLStudyID       = sc.Input[16];   // Sierra Study ID for Daily Projected High-Low
+    SCInputRef TPOChartNumber      = sc.Input[17];   // Chart # where TPO studies live (0 = same chart)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.4.0-p30.9";
+        sc.GraphName        = "MES AI Data Export v9.4.2-p30.11";
         sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -1560,7 +1539,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         VWAP.PrimaryColor = COLOR_YELLOW;
 
         ExportPath.Name = "Export JSON Path";
-        ExportPath.SetString("Y:\\SierraChart2\\Data\\mes_ai_data.json");
+        ExportPath.SetString("/Users/michael/SierraChart_Data/v9_export/mes_ai_data.json");
 
         ExportIntervalSec.Name = "Export Interval (seconds)";
         ExportIntervalSec.SetInt(3);
@@ -1572,7 +1551,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         ImbalanceRatio.SetFloat(3.0f);
 
         V9ExportPath.Name = "V9 Export Directory";
-        V9ExportPath.SetString("Y:\\SierraChart_Data\\v9_export\\");
+        V9ExportPath.SetString("/Users/michael/SierraChart_Data/v9_export/");
 
         V9TickRev15.Name = "V9 Tick Reversal 15-tick (1=on)";
         V9TickRev15.SetInt(1);
@@ -1593,10 +1572,25 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         LivePriceIntervalMs.SetInt(200);
 
         TradeCommandPath.Name = "Trade Command JSON Path";
-        TradeCommandPath.SetString("Y:\\SierraChart_Data\\v9_export\\trade_command.json");
+        TradeCommandPath.SetString("/Users/michael/SierraChart_Data/v9_export/trade_command.json");
 
         TradeResultPath.Name = "Trade Result JSON Path";
-        TradeResultPath.SetString("Y:\\SierraChart_Data\\v9_export\\trade_result.json");
+        TradeResultPath.SetString("/Users/michael/SierraChart_Data/v9_export/trade_result.json");
+
+        TPOYesterdayStudyID.Name = "TPO Yesterday Study ID (Sierra)";
+        TPOYesterdayStudyID.SetInt(1);  // Study ID:1 — TPO Value Area Lines, ref=1
+
+        TPOTodayStudyID.Name = "TPO Today Study ID (Sierra)";
+        TPOTodayStudyID.SetInt(3);  // Study ID:3 — TPO Value Area Lines, ref=0, developing
+
+        IBStudyID.Name = "Initial Balance Study ID (Sierra)";
+        IBStudyID.SetInt(6);  // Study ID:6 — Initial Balance
+
+        ProjHLStudyID.Name = "Projected High-Low Study ID (Sierra)";
+        ProjHLStudyID.SetInt(0);  // 0 = disabled; set to Sierra Study ID when study is on chart
+
+        TPOChartNumber.Name = "TPO Chart Number (0=same chart)";
+        TPOChartNumber.SetInt(0);  // Set to the chart # where TPO/IB studies live
 
         // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
         // (unbounded VAP storage per bar). Footprint export now uses fallback
@@ -2039,16 +2033,183 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         v9_write_json(v9dir, "woodies_30min.json", w_json);
     }
 
-    // ── Export 8b: Woodies CCI 5-min (D-074: primary S4 stream) ──
+    // ── Export 8b: Woodies CCI 5-min (D-074: primary S4 / Cockpit panel) ──
     {
-        std::string w5_json = v9_woodies_5min_to_json(sc, V9WoodiesHistory.GetInt());
+        // G1: Read Daily Projected High-Low from Sierra study (if configured)
+        float proj_hi = 0, proj_lo = 0;
+        int proj_study_id = ProjHLStudyID.GetInt();
+        if (proj_study_id > 0) {
+            SCFloatArray proj_h_arr, proj_l_arr;
+            // Subgraph 0 = Projected High, Subgraph 1 = Projected Low
+            sc.GetStudyArrayFromChartUsingID(sc.ChartNumber, proj_study_id, 0, proj_h_arr);
+            sc.GetStudyArrayFromChartUsingID(sc.ChartNumber, proj_study_id, 1, proj_l_arr);
+            if (proj_h_arr.GetArraySize() > idx && proj_h_arr[idx] != 0)
+                proj_hi = proj_h_arr[idx];
+            if (proj_l_arr.GetArraySize() > idx && proj_l_arr[idx] != 0)
+                proj_lo = proj_l_arr[idx];
+        }
+        std::string w5_json = v9_woodies_5min_to_json(sc, V9WoodiesHistory.GetInt(), proj_hi, proj_lo);
         v9_write_json(v9dir, "woodies_5min.json", w5_json);
     }
 
-    // ── Export 9: TPO session levels (POC/VAH/VAL/IB/prior-day) ──
+    // ── Export 9: TPO session levels from Sierra native studies ──
+    // Reads POC/VAH/VAL from Sierra TPO Value Area Lines (IDs 1, 3)
+    // and IB from Initial Balance (ID 6) via GetStudyArrayFromChartUsingID.
     {
-        std::string tpo_json = v9_tpo_to_json(sc, VAPercent.GetFloat());
-        v9_write_json(v9dir, "tpo.json", tpo_json);
+        int tpo_yday_id = TPOYesterdayStudyID.GetInt();
+        int tpo_today_id = TPOTodayStudyID.GetInt();
+        int ib_study_id  = IBStudyID.GetInt();
+        int tpo_chart = TPOChartNumber.GetInt();
+        int chart_num = (tpo_chart > 0) ? tpo_chart : sc.ChartNumber;
+
+        // Sierra TPO Value Area Lines subgraph indices (Sierra internal):
+        //   SG1 = POC, SG2 = VAH, SG3 = VAL
+        // Sierra Initial Balance subgraph indices:
+        //   SG1 = IB High, SG2 = IB Low
+        // These are 0-based in ACSIL: SG1=0, SG2=1, SG3=2
+
+        std::ostringstream j;
+        j << std::fixed << std::setprecision(2);
+        j << "{";
+        json_str(j, "type", "tpo", false);
+        json_str(j, "version", V9_VERSION);
+        json_long(j, "export_ts", (long long)time(nullptr));
+
+        // ── Today's developing TPO (Study ID:3, ref=0) ──
+        SCFloatArray today_poc, today_vah, today_val;
+        bool today_ok = false;
+        float t_poc = 0, t_vah = 0, t_val = 0;
+        if (tpo_today_id > 0) {
+            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 0, today_poc);
+            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 1, today_vah);
+            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 2, today_val);
+            if (today_poc.GetArraySize() > idx && today_poc[idx] != 0) {
+                t_poc = today_poc[idx];
+                t_vah = (today_vah.GetArraySize() > idx) ? today_vah[idx] : 0;
+                t_val = (today_val.GetArraySize() > idx) ? today_val[idx] : 0;
+                today_ok = true;
+            }
+        }
+
+        // Session high/low from chart data (today only)
+        float ses_high = sc.High[idx], ses_low = sc.Low[idx];
+        for (int i = idx; i >= 0; i--) {
+            if (sc.BaseDateTimeIn[i].GetDate() < today) break;
+            if (sc.High[i] > ses_high) ses_high = sc.High[i];
+            if (sc.Low[i] < ses_low)  ses_low  = sc.Low[i];
+        }
+
+        // G4: va_ok = true only if Sierra TPO study produced valid values
+        bool va_ok = today_ok
+            && t_poc > 3000 && t_poc < 10000
+            && t_vah > 3000 && t_vah < 10000
+            && t_val > 3000 && t_val < 10000
+            && t_vah >= t_val;
+
+        // Session date as "YYYY-MM-DD" (from current wall-clock time)
+        char ses_date_buf[16] = {0};
+        {
+            time_t t_now = time(nullptr);
+            struct tm tm_now;
+            localtime_s(&tm_now, &t_now);
+            snprintf(ses_date_buf, sizeof(ses_date_buf), "%04d-%02d-%02d",
+                     tm_now.tm_year + 1900, tm_now.tm_mon + 1, tm_now.tm_mday);
+        }
+
+        j << ",\"session\":{";
+        json_float(j, "poc", t_poc, false);
+        json_float(j, "vah", t_vah);
+        json_float(j, "val", t_val);
+        json_bool(j, "va_ok", va_ok);
+        json_str(j, "session_date", ses_date_buf);
+        json_float(j, "session_high", ses_high);
+        json_float(j, "session_low", ses_low);
+        json_float(j, "total_volume", 0);  // placeholder until we sum
+        j << "}";
+
+        // ── Initial Balance (Study ID:6) ──
+        SCFloatArray ib_high_arr, ib_low_arr;
+        float ib_h = 0, ib_l = 0;
+        bool ib_found = false;
+        if (ib_study_id > 0) {
+            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 0, ib_high_arr);
+            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 1, ib_low_arr);
+            if (ib_high_arr.GetArraySize() > idx && ib_high_arr[idx] != 0) {
+                ib_h = ib_high_arr[idx];
+                ib_l = (ib_low_arr.GetArraySize() > idx) ? ib_low_arr[idx] : 0;
+                ib_found = (ib_h > 0 && ib_l > 0);
+            }
+        }
+        float ib_mid = ib_found ? (ib_h + ib_l) / 2.0f : 0;
+
+        j << ",\"ib\":{";
+        json_bool(j, "found", ib_found, false);
+        json_float(j, "high", ib_h);
+        json_float(j, "mid", ib_mid);
+        json_float(j, "low", ib_l);
+        j << "}";
+
+        // ── Yesterday's locked TPO (Study ID:1, ref=1) ──
+        SCFloatArray yday_poc, yday_vah, yday_val;
+        float y_poc = 0, y_vah = 0, y_val = 0;
+        bool yday_ok = false;
+        if (tpo_yday_id > 0) {
+            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 0, yday_poc);
+            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 1, yday_vah);
+            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 2, yday_val);
+            if (yday_poc.GetArraySize() > idx && yday_poc[idx] != 0) {
+                y_poc = yday_poc[idx];
+                y_vah = (yday_vah.GetArraySize() > idx) ? yday_vah[idx] : 0;
+                y_val = (yday_val.GetArraySize() > idx) ? yday_val[idx] : 0;
+                yday_ok = true;
+            }
+        }
+
+        // Prior-day high/low/close from chart data
+        float pd_high = 0, pd_low = 0, pd_close = 0;
+        bool pd_found = false;
+        for (int i = idx - 1; i >= 0; i--) {
+            SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
+            if (bd < today && !pd_found) {
+                pd_high = sc.High[i]; pd_low = sc.Low[i]; pd_close = sc.Close[i];
+                SCDateTime prev_date = bd;
+                for (int k = i; k >= 0; k--) {
+                    if (sc.BaseDateTimeIn[k].GetDate() != prev_date) break;
+                    if (sc.High[k] > pd_high) pd_high = sc.High[k];
+                    if (sc.Low[k] < pd_low) pd_low = sc.Low[k];
+                }
+                pd_found = true;
+                break;
+            }
+        }
+
+        j << ",\"prior_day\":{";
+        json_bool(j, "found", pd_found, false);
+        json_float(j, "high", pd_high);
+        json_float(j, "low", pd_low);
+        json_float(j, "close", pd_close);
+        j << "}";
+
+        // G2: Validate previous_session values — reject corrupt Sierra output
+        // (e.g. poc=-76624, val=0). Valid MES range: 3000–10000.
+        bool y_valid = yday_ok
+            && y_poc > 3000 && y_poc < 10000
+            && y_vah > 3000 && y_vah < 10000
+            && y_val > 3000 && y_val < 10000
+            && y_vah >= y_val;
+        if (!y_valid) {
+            y_poc = 0; y_vah = 0; y_val = 0;
+        }
+
+        j << ",\"previous_session\":{";
+        json_bool(j, "found", y_valid, false);
+        json_float(j, "poc", y_poc);
+        json_float(j, "vah", y_vah);
+        json_float(j, "val", y_val);
+        j << "}";
+
+        j << "}";
+        v9_write_json(v9dir, "tpo.json", j.str());
     }
 
     // ══════════════════════════════════════════════════════════════

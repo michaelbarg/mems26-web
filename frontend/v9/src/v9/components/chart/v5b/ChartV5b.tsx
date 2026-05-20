@@ -1,21 +1,63 @@
 'use client';
 import {
-  createChart, ColorType, CrosshairMode, IChartApi, ISeriesApi,
+  createChart,
+  ColorType,
+  CrosshairMode,
+  IChartApi,
+  ISeriesApi,
   CandlestickSeries,
 } from 'lightweight-charts';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Group, Panel, Separator } from 'react-resizable-panels';
 import { usePriceStore } from '../../../stores/priceStore';
-import { registerMainChart, unregisterMainChart, syncVolumeFromMain } from '../../../stores/chartSyncStore';
-import { SierraLevelsOverlay, type TpoOverlayData } from './SierraLevelsOverlay';
-import { CvdChartPane, loadCvdPanelDefaultPct, saveCvdPanelPct } from './CvdChartPane';
+import { SierraLevelsOverlay } from './SierraLevelsOverlay';
+import {
+  buildTpoPlan,
+  collectTpoPrices,
+  extendAutoscaleForTpo,
+  isValidMesTpoPrice,
+  refitPriceScaleForTpo,
+  resolveTodayLevels,
+  syncTpoPriceLines,
+  syncYesterdayTpoLines,
+  type TpoOverlayData,
+} from './tpoLevels';
+import { useMarketStore } from '../../../stores/marketStore';
+import {
+  applyCvdSeriesData,
+  applyPaneStretchFactors,
+  CVD_PANE_DOWN,
+  CVD_PANE_HEADER_BG,
+  CVD_PANE_HEADER_TEXT,
+  CVD_PANE_PRICE_LINE,
+  CVD_PANE_UP,
+  loadCvdPanelDefaultPct,
+  paneHeightsFromChart,
+  saveCvdPanelPct,
+  type CvdAlignBar,
+} from './CvdChartPane';
+import type { CvdPoint } from './cvdMapping';
 import { WoodiesCciPanel } from '../woodies/WoodiesCciPanel';
 import { WoodiesPanelTab } from '../woodies/WoodiesPanelTab';
+import { TpoContinuityOverlay } from './TpoContinuityOverlay';
 
 const LS_WOODIES_OPEN = 'mems26-woodies-panel-open';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const INITIAL_BAR_LIMIT = 600;
+const CVD_POLL_MS = 5000;
+const TPO_RTH_REFRESH_MS = 30 * 60 * 1000;
+const TPO_OFF_HOURS_REFRESH_MS = 10 * 60 * 1000;
+
+/** US equities RTH 09:30–16:00 ET (for 30-min TPO refresh). */
+function isRthSessionNow(): boolean {
+  try {
+    const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const mins = et.getHours() * 60 + et.getMinutes();
+    return mins >= 9 * 60 + 30 && mins < 16 * 60;
+  } catch {
+    return false;
+  }
+}
 
 const TF_ENDPOINTS: Record<string, string> = {
   '3m': 'bars3m', '5m': 'bars5min', '15m': 'bars15m', '30m': 'bars30m', '1h': 'bars1h',
@@ -135,9 +177,20 @@ export function ChartV5b() {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const [candleSeries, setCandleSeries] = useState<ISeriesApi<'Candlestick'> | null>(null);
+  const cvdSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const lastCvdPctRef = useRef(loadCvdPanelDefaultPct());
   const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+  const [pricePaneH, setPricePaneH] = useState(0);
+  const [cvdPaneH, setCvdPaneH] = useState(0);
+  const [cvdHeader, setCvdHeader] = useState('Cumulative Delta Bars - Volume');
   const [barsForOverlay, setBarsForOverlay] = useState<Array<{ ts: string }>>([]);
+  /** Bar times actually on the price series — drives CVD 1:1 slots (incl. live bar). */
+  const barsForCvdRef = useRef<CvdAlignBar[]>([]);
+  const [barsForCvd, setBarsForCvd] = useState<CvdAlignBar[]>([]);
   const [tpoOverlay, setTpoOverlay] = useState<TpoOverlayData | null>(null);
+  const tpoOverlayRef = useRef<TpoOverlayData | null>(null);
+  const setMarketLevels = useMarketStore((s) => s.setLevels);
   const earliestTsRef = useRef<string | null>(null);
   const latestTsRef = useRef<number | null>(null);
   const loadingHistoryRef = useRef(false);
@@ -156,19 +209,27 @@ export function ChartV5b() {
     vol: number;
   } | null>(null);
   const [activeTf, setActiveTf] = useState('5m');
+
+  const applyTpoToChart = useCallback(
+    (data: TpoOverlayData | null) => {
+      const series = candleRef.current;
+      const chart = chartRef.current;
+      if (!series || !chart || !data) return 0;
+      extendAutoscaleForTpo(series, data);
+      const nToday = syncTpoPriceLines(series, data);
+      const nYday = syncYesterdayTpoLines(chart, data, 0);
+      const n = nToday + nYday;
+      if (n > 0) refitPriceScaleForTpo(series);
+      return n;
+    },
+    [],
+  );
+
   const [kzLabel, setKzLabel] = useState('MKT');
-  const [woodiesOpen, setWoodiesOpen] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem(LS_WOODIES_OPEN) === '1';
-  });
-  // P30 (2026-05-20): live CVD pane height %. Drives which pane owns the
-  // shared time axis: below `CVD_AXIS_OWN_MIN_PCT` the CVD pane is too
-  // short to show its own labels usefully, so we restore the price pane's
-  // bottom axis. At or above the threshold the CVD pane keeps the axis.
-  // Initialized SSR-stable via loadCvdPanelDefaultPct (localStorage).
-  const [cvdPanelPct, setCvdPanelPct] = useState<number>(() => loadCvdPanelDefaultPct());
-  const CVD_AXIS_OWN_MIN_PCT = 14;
-  const cvdOwnsAxis = cvdPanelPct >= CVD_AXIS_OWN_MIN_PCT;
+  const [woodiesOpen, setWoodiesOpen] = useState(false);
+  useEffect(() => {
+    setWoodiesOpen(localStorage.getItem(LS_WOODIES_OPEN) === '1');
+  }, []);
 
   const updateCandle = useCallback((bar: {
     time: number;
@@ -196,7 +257,16 @@ export function ChartV5b() {
     if (!clean) return false;
     try {
       series.update({ time: t as any, ...clean });
-      if (last === null || t >= last) lastBarTimeRef.current = t;
+      if (last === null || t >= last) {
+        lastBarTimeRef.current = t;
+        const cvdList = barsForCvdRef.current;
+        const lastCvd = cvdList[cvdList.length - 1];
+        if (!lastCvd || (lastCvd.t ?? 0) < t) {
+          const next = [...cvdList, { ts: String(t), t }];
+          barsForCvdRef.current = next;
+          setBarsForCvd(next);
+        }
+      }
       return true;
     } catch (e) {
       console.warn('[ChartV5b] series.update failed', e);
@@ -212,9 +282,12 @@ export function ChartV5b() {
     });
   }, []);
 
-  // Create chart once
+  // TASK A: one chart, two panes — shared timeScale (pixel-aligned candles ↔ CVD).
   useEffect(() => {
     if (!containerRef.current || chartRef.current) return;
+
+    const cvdPct = loadCvdPanelDefaultPct();
+    lastCvdPctRef.current = cvdPct;
 
     const chart = createChart(containerRef.current, {
       layout: {
@@ -222,6 +295,11 @@ export function ChartV5b() {
         textColor: '#a3a3a3',
         fontSize: 10,
         fontFamily: 'ui-monospace, monospace',
+        panes: {
+          enableResize: true,
+          separatorColor: '#fb950b',
+          separatorHoverColor: 'rgba(251, 149, 11, 0.25)',
+        },
       },
       grid: {
         vertLines: { color: '#1a1a1a', style: 1 },
@@ -229,25 +307,13 @@ export function ChartV5b() {
       },
       rightPriceScale: {
         borderColor: '#262626',
-        // Breathing room top & bottom so candles don't get smashed against
-        // the pane edges when the time axis is hidden. Without the bottom
-        // padding the last candle scrapes the bottom of the pane and
-        // distorts visually.
-        scaleMargins: { top: 0.08, bottom: 0.12 },
+        minimumWidth: 72,
       },
       timeScale: {
-        // P30 (2026-05-20): default ON so the time axis is ALWAYS visible —
-        // including when the CVD pane is collapsed or dragged to a height
-        // too small to render its own labels. The CVD pane's mount effect
-        // (and ChartV5b's cvdPanelPct watcher) hides this axis when the
-        // CVD pane is large enough to own the cockpit's shared time axis.
         visible: true,
         borderColor: '#262626',
         timeVisible: true,
         secondsVisible: false,
-        // P30 alignment guarantee: lightweight-charts defaults rightOffset
-        // to 0, but pin it explicitly so a future global default change
-        // can't drift the two panes' candle positions apart.
         rightOffset: 0,
       },
       crosshair: {
@@ -257,61 +323,136 @@ export function ChartV5b() {
       },
     });
 
-    const candles = chart.addSeries(CandlestickSeries, {
-      upColor: '#16a34a',
-      downColor: '#dc2626',
-      borderUpColor: '#16a34a',
-      borderDownColor: '#dc2626',
-      wickUpColor: '#16a34a',
-      wickDownColor: '#dc2626',
+    const candles = chart.addSeries(
+      CandlestickSeries,
+      {
+        upColor: '#16a34a',
+        downColor: '#dc2626',
+        borderUpColor: '#16a34a',
+        borderDownColor: '#dc2626',
+        wickUpColor: '#16a34a',
+        wickDownColor: '#dc2626',
+      },
+      0,
+    );
+
+    // Sierra {d,cum,t} → cumulative delta candles (open=prev cum, close=cum).
+    const cvdSeries = chart.addSeries(
+      CandlestickSeries,
+      {
+        upColor: CVD_PANE_UP,
+        downColor: CVD_PANE_DOWN,
+        borderUpColor: CVD_PANE_UP,
+        borderDownColor: CVD_PANE_DOWN,
+        wickUpColor: CVD_PANE_UP,
+        wickDownColor: CVD_PANE_DOWN,
+        priceLineVisible: true,
+        priceLineColor: CVD_PANE_PRICE_LINE,
+        priceLineWidth: 1,
+        lastValueVisible: true,
+      },
+      1,
+    );
+
+    applyPaneStretchFactors(chart, cvdPct);
+
+    // Shared time scale still misaligns if each pane's right scale gutter differs.
+    const scaleWidth = 80; // keep in sync with SierraLevelsOverlay PRICE_SCALE_W
+    candles.priceScale().applyOptions({
+      minimumWidth: scaleWidth,
+      scaleMargins: { top: 0.08, bottom: 0.12 },
+    });
+    cvdSeries.priceScale().applyOptions({
+      minimumWidth: scaleWidth,
+      scaleMargins: { top: 0.1, bottom: 0.25 },
     });
 
     chartRef.current = chart;
     candleRef.current = candles;
-    registerMainChart(chart);
+    setCandleSeries(candles);
+    cvdSeriesRef.current = cvdSeries;
+    if (tpoOverlayRef.current) applyTpoToChart(tpoOverlayRef.current);
+
+    const syncPaneOverlay = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      const { pricePaneH: pH, cvdPaneH: cH, cvdPct: pct } = paneHeightsFromChart(chart);
+      setPricePaneH(pH);
+      setCvdPaneH(cH);
+      setOverlaySize({ width: el.clientWidth, height: pH > 0 ? pH : el.clientHeight });
+      if (Math.abs(pct - lastCvdPctRef.current) >= 1) {
+        lastCvdPctRef.current = pct;
+        saveCvdPanelPct(pct);
+      }
+    };
+
+    const syncLayout = (w: number, h: number) => {
+      chart.resize(w, h);
+      syncPaneOverlay();
+    };
 
     const ro = new ResizeObserver(([entry]) => {
-      chart.resize(entry.contentRect.width, entry.contentRect.height);
+      syncLayout(entry.contentRect.width, entry.contentRect.height);
     });
     ro.observe(containerRef.current);
 
+    // Dragging the orange pane separator resizes pane divs, not the outer container.
+    let paneRo: ResizeObserver | null = null;
+    const attachPaneObservers = () => {
+      const paneEls = chart
+        .panes()
+        .map((p) => p.getHTMLElement())
+        .filter((el): el is HTMLElement => el != null);
+      if (!paneEls.length) {
+        requestAnimationFrame(attachPaneObservers);
+        return;
+      }
+      paneRo = new ResizeObserver(() => syncPaneOverlay());
+      paneEls.forEach((el) => paneRo!.observe(el));
+      syncPaneOverlay();
+    };
+    requestAnimationFrame(attachPaneObservers);
+
+    let paneTrackRaf = 0;
+    let lastTrackedPaneH = -1;
+    const trackPaneHeights = () => {
+      const pH = chart.panes()[0]?.getHeight() ?? 0;
+      if (pH !== lastTrackedPaneH) {
+        lastTrackedPaneH = pH;
+        syncPaneOverlay();
+      }
+      paneTrackRaf = requestAnimationFrame(trackPaneHeights);
+    };
+    paneTrackRaf = requestAnimationFrame(trackPaneHeights);
+
+    syncLayout(containerRef.current.clientWidth, containerRef.current.clientHeight);
+
     return () => {
+      cancelAnimationFrame(paneTrackRaf);
+      paneRo?.disconnect();
       ro.disconnect();
-      unregisterMainChart();
       chart.remove();
       chartRef.current = null;
+      candleRef.current = null;
+      setCandleSeries(null);
+      cvdSeriesRef.current = null;
     };
   }, []);
 
-  useEffect(() => {
-    if (!wrapperRef.current) return;
-    const ro = new ResizeObserver(([entry]) => {
-      setOverlaySize({
-        width: entry.contentRect.width,
-        height: entry.contentRect.height,
-      });
-    });
-    ro.observe(wrapperRef.current);
-    return () => ro.disconnect();
-  }, []);
-
-  // P30 (2026-05-20): keep the time axis visible in every CVD pane state.
-  // Apply price-chart axis visibility = !cvdOwnsAxis so exactly one axis is
-  // visible at any moment (avoids the duplicate-axis seam between the two
-  // panes when both are normal-height, and restores the price-pane axis
-  // when the CVD pane is dragged below the useful-height threshold).
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
+  const fetchCvd = useCallback(async () => {
+    const series = cvdSeriesRef.current;
+    const barList = barsForCvdRef.current;
+    if (!series || !barList.length) return;
     try {
-      chart.timeScale().applyOptions({ visible: !cvdOwnsAxis });
+      const res = await fetch(`${API}/api/v9/cumulative_delta/current`);
+      const d = await res.json();
+      const rawPoints = (d.points ?? []) as CvdPoint[];
+      const hdr = applyCvdSeriesData(series, barList, rawPoints, activeTf);
+      setCvdHeader(hdr);
     } catch {
-      /* chart not ready */
+      /* keep last CVD paint */
     }
-  }, [cvdOwnsAxis]);
-
-  const cvdDefaultPct = loadCvdPanelDefaultPct();
-  const priceDefaultPct = 100 - cvdDefaultPct;
+  }, [activeTf]);
 
   // Fetch bars on TF change
   const loadBars = useCallback(async (tf: string) => {
@@ -331,6 +472,7 @@ export function ChartV5b() {
         (a: any, b: any) => tsToUnix(a.ts) - tsToUnix(b.ts),
       );
       const cData: Array<{ time: number; open: number; high: number; low: number; close: number }> = [];
+      const cvdBars: CvdAlignBar[] = [];
       let prevRaw: OhlcBar | null = null;
       let rejectedBars = 0;
       for (const b of sortedFull) {
@@ -344,6 +486,7 @@ export function ChartV5b() {
           continue;
         }
         cData.push({ time: t, ...ohlc });
+        cvdBars.push({ ts: b.ts, t });
       }
       if (rejectedBars > 0) {
         console.warn(`[ChartV5b] rejected ${rejectedBars} corrupt bar(s) from API (sticky H/L or span)`);
@@ -351,8 +494,10 @@ export function ChartV5b() {
       if (!cData.length) return;
 
       allBarsRef.current = sortedFull;
-      setBarsForOverlay(sortedFull.map((b: any) => ({ ts: b.ts })));
-      latestTsRef.current = latestBarUnix(sortedFull);
+      setBarsForOverlay(cvdBars.map((b) => ({ ts: b.ts })));
+      barsForCvdRef.current = cvdBars;
+      setBarsForCvd(cvdBars);
+      latestTsRef.current = latestBarUnix(cvdBars);
       formingBarRef.current = null;
       candleRef.current.setData(
         cData.map((c) => ({
@@ -374,20 +519,34 @@ export function ChartV5b() {
       // older data when the user pans left.
       const DEFAULT_VISIBLE = 60;
       const last = cData.length - 1; // index of newest sanitized bar
+      const bucketSize = TF_SECONDS[tf] || 300;
+      const nowBucket = Math.floor(Date.now() / 1000 / bucketSize) * bucketSize;
       if (last >= 0) {
-        const from = Math.max(0, last - DEFAULT_VISIBLE + 1);
-        chartRef.current?.timeScale().setVisibleLogicalRange({ from, to: last });
-        syncVolumeFromMain();
+        const fromIdx = Math.max(0, last - DEFAULT_VISIBLE + 1);
+        const fromTime = cData[fromIdx].time as any;
+        const toTime = Math.max(cData[last].time, nowBucket) as any;
+        chartRef.current?.timeScale().setVisibleRange({ from: fromTime, to: toTime });
       } else {
         chartRef.current?.timeScale().fitContent();
-        syncVolumeFromMain();
       }
+      void fetchCvd();
+      if (tpoOverlayRef.current) applyTpoToChart(tpoOverlayRef.current);
     } catch (e) {
       console.error('ChartV5b load error:', e);
     }
-  }, []);
+  }, [applyTpoToChart, fetchCvd]);
 
   useEffect(() => { loadBars(activeTf); }, [activeTf, loadBars]);
+
+  useEffect(() => {
+    void fetchCvd();
+  }, [barsForCvd, fetchCvd]);
+
+  useEffect(() => {
+    void fetchCvd();
+    const id = setInterval(() => void fetchCvd(), CVD_POLL_MS);
+    return () => clearInterval(id);
+  }, [fetchCvd]);
 
   const applyLiveTickToFormingBar = (price: number, bucket: number, bucketSize: number) => {
     const lastDb = allBarsRef.current[allBarsRef.current.length - 1];
@@ -538,6 +697,7 @@ export function ChartV5b() {
             candleRef.current?.setData(histData);
             lastBarTimeRef.current =
               histData.length > 0 ? Number(histData[histData.length - 1].time) : null;
+            if (tpoOverlayRef.current) applyTpoToChart(tpoOverlayRef.current);
             loadingHistoryRef.current = false;
           })
           .catch(() => { loadingHistoryRef.current = false; });
@@ -545,47 +705,99 @@ export function ChartV5b() {
     };
     chartRef.current.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
     return () => { try { chartRef.current?.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange); } catch {} };
-  }, [activeTf]);
+  }, [activeTf, applyTpoToChart]);
 
-  // Sierra TPO overlay: stepped POC, cyan IB, white prior-day (not full-width price lines)
+  // TASK C: six TPO lines — hydrate from DB/periods when Sierra JSON has corrupt zeros.
   useEffect(() => {
     const loadLevels = async () => {
       try {
-        const curRes = await fetch(`${API}/api/v9/tpo/current`);
+        const [curRes, prevDayRes] = await Promise.all([
+          fetch(`${API}/api/v9/tpo/current`),
+          fetch(`${API}/api/v9/tpo/previous_day`),
+        ]);
         const d = await curRes.json();
-        const prev = d.previous_session;
-        setTpoOverlay({
+        const prevDay = await prevDayRes.json();
+
+        // Prefer previous_session from /current (DLL reads Sierra TPO study).
+        // Fall back to /previous_day only if DLL values are invalid.
+        const rawPrev = d.previous_session as TpoOverlayData['previous_session'] | undefined;
+        let yPoc = rawPrev?.poc;
+        let yVah = rawPrev?.vah;
+        let yVal = rawPrev?.val;
+        if (
+          !isValidMesTpoPrice(yPoc) ||
+          !isValidMesTpoPrice(yVah) ||
+          !isValidMesTpoPrice(yVal)
+        ) {
+          if (prevDay?.found) {
+            if (!isValidMesTpoPrice(yPoc)) yPoc = prevDay.poc;
+            if (!isValidMesTpoPrice(yVah)) yVah = prevDay.vah;
+            if (!isValidMesTpoPrice(yVal)) yVal = prevDay.val;
+          }
+        }
+        const yOpen = rawPrev?.opened_ts ?? null;
+        const yClose = rawPrev?.closed_ts ?? null;
+
+        const hasPrevPrices =
+          isValidMesTpoPrice(yPoc) || isValidMesTpoPrice(yVah) || isValidMesTpoPrice(yVal);
+
+        const overlayPayload: TpoOverlayData = {
           poc: d.poc,
           vah: d.vah,
           val: d.val,
-          session_va_ok: d.session_va_ok,
-          periods: d.periods,
-          ib_high: d.ib_high,
-          ib_mid: d.ib_mid,
-          ib_low: d.ib_low,
-          ib_locked: d.ib_locked,
-          ib_found: d.ib_locked ?? Boolean(d.ib_high),
-          stale: d.stale,
-          prior_day: d.prior_day,
-          previous_session: prev?.found
+          periods: (d.periods ?? []) as TpoOverlayData['periods'],
+          session_opened_ts: d.session_opened_ts ?? d.opened_ts ?? null,
+          previous_session: hasPrevPrices
             ? {
                 found: true,
-                poc: prev.poc,
-                vah: prev.vah,
-                val: prev.val,
-                opened_ts: prev.opened_ts ?? null,
-                closed_ts: prev.closed_ts ?? null,
+                poc: yPoc,
+                vah: yVah,
+                val: yVal,
+                opened_ts: yOpen,
+                closed_ts: yClose,
               }
             : { found: false },
+        };
+        tpoOverlayRef.current = overlayPayload;
+        setTpoOverlay(overlayPayload);
+        const todayLv = resolveTodayLevels(overlayPayload);
+        setMarketLevels({
+          currentPOC: todayLv.poc,
+          currentVAH: todayLv.vah,
+          currentVAL: todayLv.val,
         });
-      } catch {
-        /* keep last overlay on transient errors */
+        const lineCount = applyTpoToChart(overlayPayload);
+        console.info('[ChartV5b] TPO loaded', {
+          raw: { poc: d.poc, vah: d.vah, val: d.val },
+          hydrated: todayLv,
+          plotPrices: collectTpoPrices(overlayPayload),
+          lineCount,
+          prevFound: hasPrevPrices,
+        });
+      } catch (e) {
+        console.warn('[ChartV5b] TPO load failed', e);
       }
     };
     loadLevels();
-    const id = setInterval(loadLevels, 10000);
-    return () => clearInterval(id);
-  }, []);
+    let refreshId: ReturnType<typeof setInterval> | undefined;
+    const armRefresh = () => {
+      if (refreshId) clearInterval(refreshId);
+      refreshId = setInterval(
+        loadLevels,
+        isRthSessionNow() ? TPO_RTH_REFRESH_MS : TPO_OFF_HOURS_REFRESH_MS,
+      );
+    };
+    armRefresh();
+    const modeTick = setInterval(armRefresh, 60_000);
+    return () => {
+      if (refreshId) clearInterval(refreshId);
+      clearInterval(modeTick);
+    };
+  }, [applyTpoToChart]);
+
+  useEffect(() => {
+    if (tpoOverlay) applyTpoToChart(tpoOverlay);
+  }, [applyTpoToChart, candleSeries, tpoOverlay]);
 
   // Killzone label
   useEffect(() => {
@@ -664,55 +876,60 @@ export function ChartV5b() {
           ▶|
         </button>
       </div>
-      <Group orientation="vertical" style={{ flex: 1, minHeight: 200 }}>
-        <Panel id="price-pane" defaultSize={priceDefaultPct} minSize={35}>
+      <div
+        ref={wrapperRef}
+        data-testid="chart-v5b-unified"
+        style={{ flex: 1, minHeight: 200, position: 'relative', width: '100%' }}
+      >
+        <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
+        <SierraLevelsOverlay
+          chartRef={chartRef}
+          candleSeries={candleSeries}
+          tpo={tpoOverlay}
+          width={overlaySize.width}
+          height={overlaySize.height}
+        />
+        <TpoContinuityOverlay
+          chart={chartRef.current}
+          tpo={tpoOverlay}
+          paneIndex={0}
+        />
+        {pricePaneH > 0 && cvdPaneH > 20 && (
           <div
-            ref={wrapperRef}
-            data-testid="chart-v5b-price"
-            style={{ position: 'relative', width: '100%', height: '100%' }}
+            data-testid="cvd-chart-header"
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 80,
+              top: pricePaneH,
+              height: 18,
+              padding: '2px 8px',
+              fontSize: 9,
+              fontFamily: 'ui-monospace, monospace',
+              color: CVD_PANE_HEADER_TEXT,
+              background: CVD_PANE_HEADER_BG,
+              borderLeft: `3px solid ${CVD_PANE_PRICE_LINE}`,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              zIndex: 11,
+              pointerEvents: 'none',
+            }}
           >
-            <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
-            <SierraLevelsOverlay
-              chartRef={chartRef}
-              candleRef={candleRef}
-              bars={barsForOverlay}
-              tpo={tpoOverlay}
-              width={overlaySize.width}
-              height={overlaySize.height}
-            />
-            {activeTf === '5m' && (
-              <WoodiesPanelTab open={woodiesOpen} onToggle={toggleWoodiesPanel} />
-            )}
-            <WoodiesCciPanel
-              visible={activeTf === '5m' && woodiesOpen}
-              onVisibilityChange={(open) => {
-                setWoodiesOpen(open);
-                localStorage.setItem(LS_WOODIES_OPEN, open ? '1' : '0');
-              }}
-            />
+            {cvdHeader}
           </div>
-        </Panel>
-        <Separator className="h-[4px] cursor-row-resize bg-[#1a1a1a] hover:bg-[#fb950b]" />
-        <Panel
-          id="cvd-pane"
-          defaultSize={cvdDefaultPct}
-          minSize={12}
-          maxSize={55}
-          onResize={(size) => {
-            const pct = size.asPercentage;
-            if (!Number.isFinite(pct)) return;
-            setCvdPanelPct(pct);
-            saveCvdPanelPct(pct);
+        )}
+        {activeTf === '5m' && (
+          <WoodiesPanelTab open={woodiesOpen} onToggle={toggleWoodiesPanel} />
+        )}
+        <WoodiesCciPanel
+          visible={activeTf === '5m' && woodiesOpen}
+          onVisibilityChange={(open) => {
+            setWoodiesOpen(open);
+            localStorage.setItem(LS_WOODIES_OPEN, open ? '1' : '0');
           }}
-        >
-          <CvdChartPane
-            bars={barsForOverlay}
-            priceChartRef={chartRef}
-            activeTf={activeTf}
-            axisVisible={cvdOwnsAxis}
-          />
-        </Panel>
-      </Group>
+        />
+      </div>
     </div>
   );
 }

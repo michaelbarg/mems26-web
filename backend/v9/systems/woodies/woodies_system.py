@@ -5,6 +5,7 @@ Computes all 11 Woodies studies per bar via cci_calc.compute_all_studies().
 Runs 9-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE).
 Publishes signal events independently.
 """
+import asyncio
 import json
 import logging
 import sqlite3
@@ -16,7 +17,17 @@ from backend.v9.systems.woodies.cci_calc import compute_all_studies
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult
 from backend.v9.systems.woodies.pattern_engine import detect_all_patterns, PATTERN_IDS
 from backend.v9.systems.woodies.direction_change_detector import detect_from_buffer as detect_direction_change
-from backend.v9.systems.woodies.decision_tree import WoodiesDecisionContext, WoodiesDecisionTree
+from backend.v9.systems.woodies.decision_tree import (
+    WoodiesDecisionContext,
+    WoodiesDecisionTree,
+    _fetch_touchpoints_now,
+)
+
+# 2026-05-20 (P30 SLOW handler fix): wall-clock cap on touchpoint pre-fetch
+# from process_bar. Worst-case sync HTTP cost is 5 * TOUCHPOINTS_REQUEST_TIMEOUT_S
+# (= 2.5s with 0.5s per endpoint), so 3.0s gives a small safety margin before
+# the asyncio.wait_for forces a fallback to degraded touch-point context.
+_TOUCHPOINTS_PREFETCH_BUDGET_S: float = 3.0
 
 logger = logging.getLogger(__name__)
 
@@ -221,6 +232,14 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "confidence": int(best.confidence * 100),
                     }
 
+            # P30: Skip sync HTTP touchpoint fetch — it self-deadlocks the
+            # event loop (5 requests × 2s timeout to localhost:8000 which
+            # can't respond because THIS handler is blocking it).
+            # asyncio.to_thread didn't help: the thread's HTTP requests
+            # still target the same single-worker uvicorn that's blocked.
+            # Touchpoints are advisory-only (A4 stage) — empty dict is safe.
+            # TODO: replace with in-process cache populated by a background task.
+
             dt_ctx = WoodiesDecisionContext(
                 bars=list(self._bar_buffer),
                 studies=studies,
@@ -230,6 +249,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                 sizing=sizing,
                 current_state=self.current_state,
                 fire_setup=fire_setup,
+                touchpoints={},
             )
             dt_summary = self._decision_tree.evaluate_bar(dt_ctx)
 

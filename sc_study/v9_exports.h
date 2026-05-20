@@ -651,8 +651,22 @@ inline std::string v9_cumulative_delta_to_json(
     float running = 0;
     float peak = 0, trough = 0;
 
+    // SCDateTime → unix epoch (UTC): excel days since 1899-12-30,
+    // 25569 days between 1899-12-30 and 1970-01-01.
+    auto sc_to_unix = [&](int idx) -> long long {
+        double scdt = sc.BaseDateTimeIn[idx].GetAsDouble();
+        return (long long)((scdt - 25569.0) * 86400.0);
+    };
+
     j << ",\"points\":[";
     bool first = true;
+    // P30 (2026-05-20): emit ONE point per host-chart bar (not every 5th).
+    // Cockpit CVD pane needs 5-min granularity because the host chart is a
+    // 5-min Globex 24h chart; the old `% 5 == 0` filter produced 25-min
+    // candles that the user reported as "wrong period". File-size cost is
+    // ~5× (≈10 KB for a 24h Globex session) — negligible vs the alignment win.
+    // Also emit explicit `t` (unix UTC sec) per point so the backend stops
+    // having to guess `output_interval` (was V9_CVD_PERIOD_S fallback).
     for (int i = session_start; i <= sc.Index; i++) {
         float d = sc.AskVolume[i] - sc.BidVolume[i];
         running += d;
@@ -660,19 +674,20 @@ inline std::string v9_cumulative_delta_to_json(
         peak   = v9_max(peak, running);
         trough = v9_min(trough, running);
 
-        // Only emit every 5th point to keep file small
-        if ((i - session_start) % 5 == 0 || i == sc.Index) {
-            if (!first) j << ",";
-            first = false;
-            j << "{";
-            json_int(j, "i", i, false);
-            json_float(j, "d", d);
-            json_float(j, "cum", running);
-            json_float(j, "p", sc.Close[i]);
-            j << "}";
-        }
+        if (!first) j << ",";
+        first = false;
+        j << "{";
+        json_int(j, "i", i, false);
+        json_long(j, "t", sc_to_unix(i));
+        json_float(j, "d", d);
+        json_float(j, "cum", running);
+        json_float(j, "p", sc.Close[i]);
+        j << "}";
     }
     j << "]";
+
+    // Top-level cadence hint for the frontend (300 = 5 min host bar).
+    json_int(j, "output_interval", 300);
 
     json_float(j, "current_delta", running);
     json_float(j, "session_delta", running);  // same as current — all session-anchored

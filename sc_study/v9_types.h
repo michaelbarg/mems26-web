@@ -18,10 +18,10 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.3.1-p30.8";  // P30.8: canonical 5min.json export
+static const char* V9_VERSION = "v9.4.2-p30.11";  // P30.11: G1 proj H/L, G2 TPO validation, G4 va_ok+session_date
 
 // ── Export directory ──
-static const char* V9_EXPORT_DIR = "C:\\SierraChart_Data\\v9_export\\";
+static const char* V9_EXPORT_DIR = "/Users/michael/SierraChart_Data/v9_export/";
 
 // ── Tick reversal bar ──
 struct TickReversalBar {
