@@ -42,6 +42,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef IBStudyID           = sc.Input[15];   // Sierra Study ID:6 (Initial Balance)
     SCInputRef ProjHLStudyID       = sc.Input[16];   // Sierra Study ID for Daily Projected High-Low
     SCInputRef TPOChartNumber      = sc.Input[17];   // Chart # where TPO studies live (0 = same chart)
+    SCInputRef WoodiesChartNumber  = sc.Input[18];   // Chart # where Woodies studies live (0 = same chart)
 
     if (sc.SetDefaults)
     {
@@ -111,6 +112,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         TPOChartNumber.Name = "TPO Chart Number (0=same chart)";
         TPOChartNumber.SetInt(0);  // Set to the chart # where TPO/IB studies live
+
+        WoodiesChartNumber.Name = "Woodies Chart Number (0=same chart)";
+        WoodiesChartNumber.SetInt(0);  // Set to the chart # where Woodies studies live
 
         // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
         // (unbounded VAP storage per bar). Footprint export now uses fallback
@@ -554,21 +558,98 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
 
     // ── Export 8b: Woodies CCI 5-min (D-074: primary S4 / Cockpit panel) ──
+    // Read all Woodies indicators from Sierra native studies for exact match.
+    // Study IDs from Sierra chart (see docs/runbooks/SIERRA_DLL_OPS.md):
+    //   ID:4  = CCI-14           (SG0)
+    //   ID:10 = CCI-6 / TCCI     (SG0)
+    //   ID:3  = Woodies EMA      (SG0)
+    //   ID:2  = LSMA             (SG0)
+    //   ID:6  = Sidewinder       (SG0)
+    //   ID:7  = Chop Zone        (SG0)
+    //   ID:12 = Pivot Points     (SG4=proj_hi, SG5=proj_lo)
+    //   ID:11 = CCI Predictor    (SG0=hi, SG1=lo)
     {
-        // G1: Read Daily Projected High-Low from Sierra study (if configured)
-        float proj_hi = 0, proj_lo = 0;
-        int proj_study_id = ProjHLStudyID.GetInt();
-        if (proj_study_id > 0) {
-            SCFloatArray proj_h_arr, proj_l_arr;
-            // Subgraph 0 = Projected High, Subgraph 1 = Projected Low
-            sc.GetStudyArrayFromChartUsingID(sc.ChartNumber, proj_study_id, 0, proj_h_arr);
-            sc.GetStudyArrayFromChartUsingID(sc.ChartNumber, proj_study_id, 1, proj_l_arr);
-            if (proj_h_arr.GetArraySize() > idx && proj_h_arr[idx] != 0)
-                proj_hi = proj_h_arr[idx];
-            if (proj_l_arr.GetArraySize() > idx && proj_l_arr[idx] != 0)
-                proj_lo = proj_l_arr[idx];
+        int w_chart = WoodiesChartNumber.GetInt();
+        int wc = (w_chart > 0) ? w_chart : sc.ChartNumber;
+
+        WoodiesSierraStudies sierra = {false, 0,0,0,0,0,0,0,0,0,0};
+
+        if (w_chart > 0) {
+            sierra.valid = true;
+            SCFloatArray arr;
+
+            // CCI-14 (Study ID:4, SG0)
+            sc.GetStudyArrayFromChartUsingID(wc, 4, 0, arr);
+            if (arr.GetArraySize() > idx) sierra.cci_14 = arr[idx];
+
+            // CCI-6 / TCCI (Study ID:10, SG0)
+            sc.GetStudyArrayFromChartUsingID(wc, 10, 0, arr);
+            if (arr.GetArraySize() > idx) sierra.cci_6 = arr[idx];
+
+            // Woodies EMA (Study ID:3, SG0)
+            sc.GetStudyArrayFromChartUsingID(wc, 3, 0, arr);
+            if (arr.GetArraySize() > idx) sierra.ema_34 = arr[idx];
+
+            // LSMA (Study ID:2, SG0)
+            sc.GetStudyArrayFromChartUsingID(wc, 2, 0, arr);
+            if (arr.GetArraySize() > idx) sierra.lsma_25 = arr[idx];
+
+            // Sidewinder (Study ID:6, SG5 = actual SWI value)
+            // SG0/SG1 are ±200 reference lines, SG5 is the computed value
+            sc.GetStudyArrayFromChartUsingID(wc, 6, 5, arr);
+            if (arr.GetArraySize() > idx) sierra.sidewinder = arr[idx];
+
+            // Chop Zone (Study ID:7, SG2 = angle value)
+            // SG0/SG1 are ±100 reference lines, SG2 is the computed angle
+            sc.GetStudyArrayFromChartUsingID(wc, 7, 2, arr);
+            if (arr.GetArraySize() > idx) sierra.chopzone = arr[idx];
+
+            // ProjHigh/ProjLow from Woodies Panel (Study ID:9, SG1/SG2)
+            // NOT from Pivot Points — the Panel study holds these values
+            sc.GetStudyArrayFromChartUsingID(wc, 9, 1, arr);
+            if (arr.GetArraySize() > idx) sierra.proj_hi = arr[idx];
+            sc.GetStudyArrayFromChartUsingID(wc, 9, 2, arr);
+            if (arr.GetArraySize() > idx) sierra.proj_lo = arr[idx];
+
+            // CCI-14 previous bar (for predictor + trend accuracy)
+            sc.GetStudyArrayFromChartUsingID(wc, 4, 0, arr);
+            if (arr.GetArraySize() > idx && idx > 0) sierra.cci_14_prev = arr[idx - 1];
         }
-        std::string w5_json = v9_woodies_5min_to_json(sc, V9WoodiesHistory.GetInt(), proj_hi, proj_lo);
+
+        // DIAGNOSTIC: dump all subgraphs for each study to find correct indices
+        if (sierra.valid) {
+            std::ostringstream diag;
+            diag << std::fixed << std::setprecision(2);
+            diag << "{\"idx\":" << idx << ",\"studies\":{";
+            int study_ids[] = {1,2,3,4,5,6,7,8,9,10,11,12,13};
+            const char* study_names[] = {
+                "CCI_Trend","LSMA","EMA","CCI14","LSMA_AboveBelow",
+                "Sidewinder","ChopZone","CountDown","WoodiesPanel",
+                "CCI6_TCCI","CCI_Predictor","PivotPoints","ZLR_System"};
+            bool first_study = true;
+            for (int si = 0; si < 13; si++) {
+                if (!first_study) diag << ",";
+                first_study = false;
+                diag << "\"ID" << study_ids[si] << "_" << study_names[si] << "\":{";
+                bool first_sg = true;
+                for (int sg = 0; sg < 16; sg++) {
+                    SCFloatArray sg_arr;
+                    sc.GetStudyArrayFromChartUsingID(wc, study_ids[si], sg, sg_arr);
+                    float val = (sg_arr.GetArraySize() > idx) ? sg_arr[idx] : -99999;
+                    if (val == -99999 || val == 0) continue;
+                    if (!first_sg) diag << ",";
+                    first_sg = false;
+                    diag << "\"SG" << sg << "\":" << val;
+                }
+                diag << "}";
+            }
+            diag << "}}";
+            v9_write_json(v9dir, "woodies_diag.json", diag.str());
+        }
+
+        std::string w5_json = v9_woodies_5min_to_json(
+            sc, V9WoodiesHistory.GetInt(),
+            sierra.valid ? &sierra : nullptr);
         v9_write_json(v9dir, "woodies_5min.json", w5_json);
     }
 

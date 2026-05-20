@@ -11,6 +11,22 @@
 #include "v9_types.h"
 #include <cmath>
 
+// ── Sierra study readings for current bar (replaces computed values) ──
+struct WoodiesSierraStudies {
+    bool valid;         // true if read from Sierra succeeded
+    float cci_14;       // Study ID:4 (CCI period=14) SG0
+    float cci_6;        // Study ID:10 (CCI period=6 / TCCI) SG0
+    float ema_34;       // Study ID:3 (Woodies EMA) SG0
+    float lsma_25;      // Study ID:2 (LSMA / Moving Average - Linear Regression) SG0
+    float sidewinder;   // Study ID:6 (Sidewinder) SG0
+    float chopzone;     // Study ID:7 (Chop Zone) SG0
+    float proj_hi;      // Study ID:9 (Woodies Panel) SG1 — projected high
+    float proj_lo;      // Study ID:9 (Woodies Panel) SG2 — projected low
+    float predictor_hi; // computed from Sierra CCI values
+    float predictor_lo; // computed from Sierra CCI values
+    float cci_14_prev;  // CCI-14 one bar back (for predictor + trend)
+};
+
 // ── 30-min bar aggregated from 3-min chart bars (10 bars per period) ──
 static const int WOODIES_30MIN_PERIOD = 10;  // 10 × 3-min = 30 min
 
@@ -397,7 +413,7 @@ inline std::vector<Woodies30MinBar> v9_build_5min_bars(
 }
 
 inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_history,
-                                            float proj_hi = 0, float proj_lo = 0)
+                                            const WoodiesSierraStudies* sierra = nullptr)
 {
     std::vector<Woodies30MinBar> bars = v9_build_5min_bars(sc, max_history + 10);
     int n = (int)bars.size();
@@ -465,9 +481,10 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
     }
     j << "]";
 
-    // current_bar (last)
+    // current_bar (last) — use Sierra study values when available
     if (n > 0) {
         int ci = n - 1;
+        // Computed values (fallback)
         float cci14     = v9_calc_cci(bars, ci, 14);
         float cci6      = v9_calc_cci(bars, ci, 6);
         float ema34     = v9_calc_ema(bars, ci, 34);
@@ -477,6 +494,28 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         float swi       = v9_calc_sidewinder(cci14, cci14_3ago);
         float czi       = v9_calc_chopzone(bars, ci, ema34);
         float predictor = v9_cci_predictor(cci14, cci14_prev);
+
+        // Override with Sierra native study values when available
+        float s_proj_hi = 0, s_proj_lo = 0;
+        float s_ccidiff = 0;
+        if (sierra && sierra->valid) {
+            if (sierra->cci_14 != 0)    cci14  = sierra->cci_14;
+            if (sierra->cci_6 != 0)     cci6   = sierra->cci_6;
+            if (sierra->ema_34 != 0)    ema34  = sierra->ema_34;
+            if (sierra->lsma_25 != 0)   lsma25 = sierra->lsma_25;
+            if (sierra->sidewinder != 0) swi   = sierra->sidewinder;
+            if (sierra->chopzone != 0)  czi    = sierra->chopzone;
+            s_proj_hi = sierra->proj_hi;
+            s_proj_lo = sierra->proj_lo;
+            // CCIDiff from Sierra = CCI14 - CCI6 (exact Sierra values)
+            s_ccidiff = sierra->cci_14 - sierra->cci_6;
+            // Predictor from Sierra CCI (linear extrapolation)
+            if (sierra->cci_14_prev != 0) {
+                cci14_prev = sierra->cci_14_prev;
+                predictor = v9_cci_predictor(cci14, cci14_prev);
+            }
+        }
+
         const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
         ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), (int)cci14_hist.size(), 12);
         HFEResult hfe = v9_detect_hfe(cci14_hist.data(), (int)cci14_hist.size(), 12);
@@ -507,11 +546,18 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         json_float(j, "cci_14_prev", cci14_prev);
         json_float(j, "cci_14_3ago", cci14_3ago);
         v9_woodies_json_hud_fields(j, bars, ci);
-        // G1: Daily Projected High-Low (from Sierra study, passed by caller)
-        if (proj_hi != 0) json_float(j, "proj_hi", proj_hi);
+        // Override CCIDiff with Sierra-accurate values when available
+        if (sierra && sierra->valid && s_ccidiff != 0) {
+            json_float(j, "ccidiff", s_ccidiff);
+            json_float(j, "ccidiff_h", s_ccidiff);
+            json_float(j, "ccidiff_l", s_ccidiff);
+        }
+        // Projected High-Low (from Woodies Panel study)
+        if (s_proj_hi != 0) json_float(j, "proj_hi", s_proj_hi);
         else { j << ",\"proj_hi\":null"; }
-        if (proj_lo != 0) json_float(j, "proj_lo", proj_lo);
+        if (s_proj_lo != 0) json_float(j, "proj_lo", s_proj_lo);
         else { j << ",\"proj_lo\":null"; }
+        json_bool(j, "sierra_source", sierra != nullptr && sierra->valid);
         j << "}";
     }
 
