@@ -47,6 +47,22 @@ type OhlcBar = { open: number; high: number; low: number; close: number };
 
 /** Max wick extension (MES points) beyond the candle body for display. */
 const MAX_WICK_PTS = 12;
+/** Hard cap on total H-L span for one 5m MES bar (ghost rails are ~53pts). */
+const MAX_BAR_SPAN_PTS = 40;
+const MES_PRICE_MIN = 3000;
+const MES_PRICE_MAX = 10000;
+/** Reject tick prices farther than this from the anchor close (bad WS rows). */
+const MAX_TICK_DEVIATION_PTS = 80;
+
+function isSaneMesPrice(price: number, anchor: number | null): boolean {
+  if (!Number.isFinite(price) || price < MES_PRICE_MIN || price > MES_PRICE_MAX) {
+    return false;
+  }
+  if (anchor != null && Math.abs(price - anchor) > MAX_TICK_DEVIATION_PTS) {
+    return false;
+  }
+  return true;
+}
 
 /**
  * Bridge sometimes rewrites only `close` while H/L stay pinned to an old spike
@@ -89,6 +105,16 @@ function sanitizeOhlc(
     }
   }
 
+  if (high - low > MAX_BAR_SPAN_PTS) {
+    console.warn('[ChartV5b] clamped oversized bar span', {
+      open,
+      close,
+      span: high - low,
+    });
+    high = bodyTop + MAX_WICK_PTS;
+    low = bodyBot - MAX_WICK_PTS;
+  }
+
   return { open, high, low, close };
 }
 
@@ -114,6 +140,16 @@ export function ChartV5b() {
   const allBarsRef = useRef<any[]>([]);
   /** Last candle time on the series — guards stale WS ticks / poll rows (TASK B). */
   const lastBarTimeRef = useRef<number | null>(null);
+  /** Block live updates until initial setData completes (prevents refresh glitches). */
+  const barsLoadedRef = useRef(false);
+  const formingBarRef = useRef<{
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    vol: number;
+  } | null>(null);
   const [activeTf, setActiveTf] = useState('5m');
   const [kzLabel, setKzLabel] = useState('MKT');
   const [woodiesOpen, setWoodiesOpen] = useState(() => {
@@ -277,6 +313,8 @@ export function ChartV5b() {
   // Fetch bars on TF change
   const loadBars = useCallback(async (tf: string) => {
     if (!candleRef.current) return;
+    barsLoadedRef.current = false;
+    formingBarRef.current = null;
     const ep = TF_ENDPOINTS[tf] || 'bars5min';
     try {
       const res = await fetch(`${API}/api/v9/chart/${ep}?limit=${INITIAL_BAR_LIMIT}`);
@@ -315,6 +353,7 @@ export function ChartV5b() {
       );
       lastBarTimeRef.current =
         cData.length > 0 ? Number(cData[cData.length - 1].time) : null;
+      barsLoadedRef.current = true;
       earliestTsRef.current = sortedFull[0]?.ts || null;
       // Default view shows the most recent 60 bars (5 h of 5 m, 3 h of 3 m, 15 h of 15 m).
       // fitContent on 600 bars produced a sub-1-px-per-candle view that the
@@ -338,72 +377,79 @@ export function ChartV5b() {
 
   useEffect(() => { loadBars(activeTf); }, [activeTf, loadBars]);
 
-  // Real-time: live_price tick every 1s → update forming bar
-  const formingBarRef = useRef<{ time: number; open: number; high: number; low: number; close: number; vol: number } | null>(null);
+  const applyLiveTickToFormingBar = (price: number, bucket: number, bucketSize: number) => {
+    const lastDb = allBarsRef.current[allBarsRef.current.length - 1];
+    const lastSanitized = lastDb ? rawBarToOhlc(lastDb) : null;
+    const anchor =
+      formingBarRef.current?.close ??
+      lastSanitized?.close ??
+      (lastSanitized ? (lastSanitized.open + lastSanitized.close) / 2 : null);
+
+    if (!isSaneMesPrice(price, anchor)) {
+      console.warn('[ChartV5b] dropped insane tick price', { price, anchor, bucket });
+      return;
+    }
+
+    const lastT = lastDb?.ts ? tsToUnix(lastDb.ts) : null;
+    const lastBarT = lastBarTimeRef.current;
+    if (lastBarT != null && bucket < lastBarT) return;
+    if (lastBarT != null && bucket > lastBarT + bucketSize) {
+      console.warn('[ChartV5b] dropped tick bucket too far ahead', {
+        bucket,
+        lastBarT,
+        gap: bucket - lastBarT,
+      });
+      return;
+    }
+
+    let fb = formingBarRef.current;
+    if (!fb || fb.time !== bucket) {
+      if (lastDb && lastT === bucket && lastSanitized) {
+        fb = {
+          time: bucket,
+          open: lastSanitized.open,
+          high: lastSanitized.high,
+          low: lastSanitized.low,
+          close: lastSanitized.close,
+          vol: 0,
+        };
+      } else {
+        fb = { time: bucket, open: price, high: price, low: price, close: price, vol: 0 };
+      }
+      formingBarRef.current = fb;
+    }
+
+    fb.close = price;
+    const bodyTop = Math.max(fb.open, fb.close);
+    const bodyBot = Math.min(fb.open, fb.close);
+    fb.high = Math.min(Math.max(fb.high, price), bodyTop + MAX_WICK_PTS);
+    fb.low = Math.max(Math.min(fb.low, price), bodyBot - MAX_WICK_PTS);
+
+    updateCandle(fb);
+  };
 
   useEffect(() => {
     if (!candleRef.current) return;
 
     const bucketSize = TF_SECONDS[activeTf] || 300;
+    let lastSeenPrice: number | null = null;
 
-    // Subscribe to priceStore (fed by WebSocket) instead of polling /api/v9/live_price
     const unsubPrice = usePriceStore.subscribe((state) => {
+      if (!barsLoadedRef.current || !candleRef.current) return;
+
       const price = state.price;
-      if (!price || !candleRef.current) return;
+      if (price == null || price === lastSeenPrice) return;
+      lastSeenPrice = price;
 
       const nowSec = Math.floor(Date.now() / 1000);
       const bucket = Math.floor(nowSec / bucketSize) * bucketSize;
       const latestTs = latestTsRef.current;
       if (!latestTs || bucket - latestTs > bucketSize * 3) {
-        // Do not draw a detached "now" candle when historical DB bars are stale.
         formingBarRef.current = null;
         return;
       }
 
-      const fb = formingBarRef.current;
-      if (fb && fb.time === bucket) {
-        fb.high = Math.max(fb.high, price);
-        fb.low = Math.min(fb.low, price);
-        fb.close = price;
-        fb.vol += 1;
-      } else {
-        const lastDb = allBarsRef.current[allBarsRef.current.length - 1];
-        const lastT = lastDb?.ts ? tsToUnix(lastDb.ts) : null;
-        if (lastDb && lastT === bucket) {
-          const seeded = rawBarToOhlc(lastDb);
-          if (seeded) {
-            formingBarRef.current = {
-              time: bucket,
-              open: seeded.open,
-              high: Math.max(seeded.high, price),
-              low: Math.min(seeded.low, price),
-              close: price,
-              vol: 1,
-            };
-          } else {
-            formingBarRef.current = {
-              time: bucket,
-              open: price,
-              high: price,
-              low: price,
-              close: price,
-              vol: 1,
-            };
-          }
-        } else {
-          formingBarRef.current = {
-            time: bucket,
-            open: price,
-            high: price,
-            low: price,
-            close: price,
-            vol: 1,
-          };
-        }
-      }
-
-      const bar = formingBarRef.current!;
-      updateCandle(bar);
+      applyLiveTickToFormingBar(price, bucket, bucketSize);
     });
 
     // Finalized bars poll every 5s — replaces historical bars with DB truth.
