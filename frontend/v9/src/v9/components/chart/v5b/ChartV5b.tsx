@@ -56,6 +56,8 @@ export function ChartV5b() {
   const loadingHistoryRef = useRef(false);
   const skipRangeEventsRef = useRef(2);
   const allBarsRef = useRef<any[]>([]);
+  /** Last candle time on the series — guards stale WS ticks / poll rows (TASK B). */
+  const lastBarTimeRef = useRef<number | null>(null);
   const [activeTf, setActiveTf] = useState('5m');
   const [kzLabel, setKzLabel] = useState('MKT');
   const [woodiesOpen, setWoodiesOpen] = useState(() => {
@@ -70,6 +72,36 @@ export function ChartV5b() {
   const [cvdPanelPct, setCvdPanelPct] = useState<number>(() => loadCvdPanelDefaultPct());
   const CVD_AXIS_OWN_MIN_PCT = 14;
   const cvdOwnsAxis = cvdPanelPct >= CVD_AXIS_OWN_MIN_PCT;
+
+  const updateCandle = useCallback((bar: {
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+  }): boolean => {
+    const series = candleRef.current;
+    if (!series) return false;
+    const t = Number(bar.time);
+    if (!Number.isFinite(t)) return false;
+    const last = lastBarTimeRef.current;
+    if (last !== null && t < last) {
+      console.warn('[ChartV5b] dropped stale bar update', {
+        tickTime: t,
+        lastTime: last,
+        diffSec: last - t,
+      });
+      return false;
+    }
+    try {
+      series.update({ time: t as any, open: bar.open, high: bar.high, low: bar.low, close: bar.close });
+      if (last === null || t >= last) lastBarTimeRef.current = t;
+      return true;
+    } catch (e) {
+      console.warn('[ChartV5b] series.update failed', e);
+      return false;
+    }
+  }, []); // refs only — safe across activeTf changes
 
   const toggleWoodiesPanel = useCallback(() => {
     setWoodiesOpen((open) => {
@@ -228,6 +260,8 @@ export function ChartV5b() {
       latestTsRef.current = latestBarUnix(dedupedBars);
       formingBarRef.current = null;
       candleRef.current.setData(cData);
+      lastBarTimeRef.current =
+        cData.length > 0 ? Number(cData[cData.length - 1].time) : null;
       earliestTsRef.current = dedupedBars[0]?.ts || null;
       // Default view shows the most recent 60 bars (5 h of 5 m, 3 h of 3 m, 15 h of 15 m).
       // fitContent on 600 bars produced a sub-1-px-per-candle view that the
@@ -284,7 +318,7 @@ export function ChartV5b() {
       }
 
       const bar = formingBarRef.current!;
-      candleRef.current?.update({ time: bar.time as any, open: bar.open, high: bar.high, low: bar.low, close: bar.close });
+      updateCandle(bar);
     });
 
     // Finalized bars poll every 5s — replaces historical bars with DB truth.
@@ -308,8 +342,8 @@ export function ChartV5b() {
           .filter(Boolean)
           .sort((a: any, b: any) => a._t - b._t);
         for (const b of sorted) {
-          candleRef.current?.update({
-            time: b._t as any,
+          updateCandle({
+            time: b._t,
             open: b.open ?? b.o,
             high: b.high ?? b.h,
             low: b.low ?? b.l,
@@ -349,11 +383,16 @@ export function ChartV5b() {
             setBarsForOverlay(merged.map((b: { ts: string }) => ({ ts: b.ts })));
             earliestTsRef.current = merged[0]?.ts || earliestTsRef.current;
             // Re-set full data (sorted time-ascending)
-            candleRef.current?.setData(merged.map((b: any) => ({
+            const histData = merged.map((b: any) => ({
               time: tsToUnix(b.ts) as any,
-              open: b.open ?? b.o, high: b.high ?? b.h,
-              low: b.low ?? b.l, close: b.close ?? b.c,
-            })));
+              open: b.open ?? b.o,
+              high: b.high ?? b.h,
+              low: b.low ?? b.l,
+              close: b.close ?? b.c,
+            }));
+            candleRef.current?.setData(histData);
+            lastBarTimeRef.current =
+              histData.length > 0 ? Number(histData[histData.length - 1].time) : null;
             loadingHistoryRef.current = false;
           })
           .catch(() => { loadingHistoryRef.current = false; });
