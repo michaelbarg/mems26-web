@@ -44,6 +44,7 @@ class FiveMinSystem(BaseV9TradingSystem):
 
     def __init__(self):
         self._gateway = None  # injected post-init via set_gateway() (Prompt 14)
+        self._footprint_system = None  # injected post-init via set_footprint_system() (P31-02b)
         self.session_classifier = SessionClassifier()
         self.mode = FiveMinMode.WAITING_OPEN
         self.buffer_size = 0
@@ -58,6 +59,17 @@ class FiveMinSystem(BaseV9TradingSystem):
     def set_gateway(self, gateway) -> None:
         """Inject TradingGateway for auto-routing fire signals (Prompt 14)."""
         self._gateway = gateway
+
+    def set_footprint_system(self, footprint_system) -> None:
+        """Inject FootprintSystem for in-process cot/amt/belly reads (P31-02b).
+
+        Without injection, the helpers below fall back to HTTP self-calls
+        (`requests.get http://localhost:8000/api/v9/footprint/current`) which
+        are the documented root cause of the 8s SLOW handler — see
+        docs/handoff/P31_TASK_BOARD.md §6.1. With injection, the same data
+        is read in-process in <1ms.
+        """
+        self._footprint_system = footprint_system
 
     def hydrate(self) -> HydrationResult:
         """D-077 hydration using SessionClassifier (D-083)."""
@@ -201,22 +213,37 @@ class FiveMinSystem(BaseV9TradingSystem):
 
     # ── Footprint helpers ──
 
+    def _footprint_state(self) -> Dict[str, Any]:
+        """In-process footprint state if injected, else HTTP fallback (P31-02b).
+
+        Production wires this via FiveMinSystem.set_footprint_system at startup.
+        Tests inject a mock. The HTTP fallback preserves backward compatibility
+        for instances created without the wire-up — slow but functional.
+        """
+        if self._footprint_system is not None:
+            try:
+                state = self._footprint_system.get_current()
+                return state if isinstance(state, dict) else {}
+            except Exception:
+                return {}
+        # Legacy fallback — slow self-call to FastAPI (~900ms × ... = the 8s SLOW)
+        try:
+            import requests
+            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
+            return r.json() if r.ok else {}
+        except Exception:
+            return {}
+
     def _get_belly_from_footprint(self) -> Optional[bool]:
         """Read belly_ratio_dominant from Footprint System 3.
 
         True if buyers dominate bottom of recent bar (belly forming).
         Falls back to None (not False) if unavailable — explicit per §6.7.
         """
-        import requests
-        try:
-            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
-            data = r.json()
-            val = data.get("belly_ratio_dominant")
-            if val is not None:
-                return bool(val)
+        val = self._footprint_state().get("belly_ratio_dominant")
+        if val is None:
             return None
-        except Exception:
-            return None
+        return bool(val)
 
     def _poc_vol_rising(self, bars: List[Dict], n: int = 3) -> bool:
         """Check if POC price level is rising across last N bars.
@@ -252,21 +279,11 @@ class FiveMinSystem(BaseV9TradingSystem):
 
     def _get_cot_from_footprint(self) -> Optional[float]:
         """Read COT (cumulative delta) from Footprint System 3."""
-        import requests
-        try:
-            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
-            return r.json().get("cot")
-        except Exception:
-            return None
+        return self._footprint_state().get("cot")
 
     def _get_amt_from_footprint(self) -> Optional[float]:
         """Read AMT (90-min average) from Footprint System 3."""
-        import requests
-        try:
-            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
-            return r.json().get("amt")
-        except Exception:
-            return None
+        return self._footprint_state().get("amt")
 
     # ── Pattern detectors (Constitution V3 Layer 1 T1) ──
 
@@ -426,12 +443,24 @@ class FiveMinSystem(BaseV9TradingSystem):
     def _compute_location_vs_poc(self, bar: dict) -> str:
         """Determine bar location relative to POC volume level (S2 internal).
 
-        Uses TPO POC from current state (already available in tpo/current).
+        Uses TPO POC from Sierra export (same source as /api/v9/tpo/current).
         🟡 Thresholds: 'at' ≤ 1.0pt, 'near' ≤ 3.0pt, else 'far'.
+
+        P31-02b: was a synchronous HTTP self-call to /api/v9/tpo/current
+        (timeout=2s). Now reads the Sierra tpo.json file directly — same
+        source the route uses, but bypasses HTTP roundtrip + JSON serialize
+        + FastAPI loop contention. Falls back to HTTP if file load fails.
         """
         try:
-            import requests
-            tpo = requests.get("http://localhost:8000/api/v9/tpo/current", timeout=2).json()
+            try:
+                from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+                tpo = _load_sierra_tpo() or {}
+            except Exception:
+                # Fallback to HTTP if Sierra file path lookup fails
+                import requests
+                tpo = requests.get(
+                    "http://localhost:8000/api/v9/tpo/current", timeout=2
+                ).json() or {}
             poc = tpo.get("poc")
             if poc is None:
                 return "far"
