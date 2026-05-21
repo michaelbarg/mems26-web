@@ -68,3 +68,61 @@ def test_publish_threadsafe_warns_when_unbound(caplog):
 
     assert "main_loop not bound" in caplog.text
     assert handler.called, "Fallback thread should still deliver"
+
+
+def test_publish_threadsafe_no_thread_leak_when_loop_bound():
+    """P31-02 regression: with main_loop bound + running, 50 publish_threadsafe
+    calls must not spawn ANY new `bar-router-*` threads.
+
+    Previous implementation (`threading.Thread + asyncio.run`) spawned 1 thread
+    per call. Synthetic UAT 2026-05-21 reached 93 threads in 4 minutes and the
+    backend became unresponsive to new TCP connections.
+    """
+    from backend.v9.services.bar_router import BarRouter
+
+    loop = asyncio.new_event_loop()
+
+    def _run_loop():
+        asyncio.set_event_loop(loop)
+        loop.run_forever()
+
+    loop_thread = threading.Thread(target=_run_loop, daemon=True, name="test-loop-runner")
+    loop_thread.start()
+
+    deadline = time.time() + 1.0
+    while not loop.is_running() and time.time() < deadline:
+        time.sleep(0.01)
+    assert loop.is_running(), "test loop did not start"
+
+    try:
+        router = BarRouter()
+        handler = AsyncMock(__qualname__="no_leak_handler")
+        router.subscribe("topic", handler)
+        router.bind_main_loop(loop)
+
+        def _bar_router_thread_count() -> int:
+            return sum(1 for t in threading.enumerate() if t.name.startswith("bar-router-"))
+
+        before = _bar_router_thread_count()
+
+        N = 50
+        for i in range(N):
+            router.publish_threadsafe("topic", {"i": i})
+
+        deadline = time.time() + 3.0
+        while handler.call_count < N and time.time() < deadline:
+            time.sleep(0.02)
+
+        after = _bar_router_thread_count()
+
+        leaked = after - before
+        assert leaked == 0, (
+            f"Thread leak: {leaked} new bar-router-* threads after {N} publishes; "
+            f"main_loop should absorb them via run_coroutine_threadsafe"
+        )
+        assert handler.call_count == N, (
+            f"Expected {N} handler invocations, got {handler.call_count}"
+        )
+    finally:
+        loop.call_soon_threadsafe(loop.stop)
+        loop_thread.join(timeout=1.0)
