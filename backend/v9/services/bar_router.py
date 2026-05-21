@@ -40,13 +40,34 @@ class BarRouter:
         logger.info("BarRouter: bound to main event loop")
 
     def publish_threadsafe(self, bar_type: str, bar_data: dict, mode: str = "LIVE") -> None:
-        """Publish from a background thread so slow handlers never block FastAPI."""
+        """Schedule publish on the captured FastAPI loop from any thread.
+
+        P31-02 hotfix (2026-05-21): the previous implementation spawned a fresh
+        OS thread + new asyncio loop (`threading.Thread` + `asyncio.run`) on every
+        bar push. Under bridge load this leaked ~1 thread per 5min push (synthetic
+        UAT reached 93 threads in 4 minutes; backend HTTP became unresponsive on
+        new TCP connections). `run_coroutine_threadsafe` schedules the coroutine
+        on the long-lived FastAPI loop instead — no thread/loop creation per bar.
+        """
+        if self._main_loop is not None and self._main_loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                self.publish(bar_type, bar_data, mode),
+                self._main_loop,
+            )
+            return
+
+        logger.warning(
+            "BarRouter.publish_threadsafe: main_loop not bound or not running — "
+            "falling back to thread+asyncio.run for %s (should not happen in production)",
+            bar_type,
+        )
         import threading
 
-        def _bg():
-            asyncio.run(self.publish(bar_type, bar_data, mode))
-
-        threading.Thread(target=_bg, name=f"bar-router-{bar_type}", daemon=True).start()
+        threading.Thread(
+            target=lambda: asyncio.run(self.publish(bar_type, bar_data, mode)),
+            name=f"bar-router-{bar_type}",
+            daemon=True,
+        ).start()
 
     def subscribe(self, bar_type: str, handler: Callable):
         self._subscribers.setdefault(bar_type, []).append(handler)
