@@ -12,6 +12,7 @@ Composite score: weighted blend 🟡 default weights, to-calibrate-in-SHADOW.
 """
 
 import logging
+import time
 from datetime import datetime, timezone
 
 import requests
@@ -19,6 +20,18 @@ import requests
 logger = logging.getLogger("mems26.layer0.chop_score")
 
 API = "http://localhost:8000"
+
+# P31 §11 — HTTP self-call cache to prevent 18s SLOW handler in
+# gateway.route_setup → _get_chop_state → get_chop_score → 6 × requests.get.
+# Same pattern as §6 (FiveMin) — see PROMPT_P31_JOURNAL_PNL_AND_S2.md.
+# Cache TTL is short enough that chop_state stays responsive (5min bars
+# arrive every 1-3 minutes during RTH) but long enough that a single
+# pattern fire doesn't trigger 6 fresh self-calls. timeout dropped from
+# 3s → 0.5s so even a cache miss with backend congestion caps at 3s total
+# (6 × 0.5s), not 18s.
+_FETCH_CACHE: dict = {}      # endpoint → (ts, payload)
+_FETCH_CACHE_TTL_S = 5.0
+_FETCH_TIMEOUT_S = 0.5
 # 🟡 default thresholds — to-calibrate-in-SHADOW
 POC_STUCK_MINUTES = 5
 ATR_PERIOD = 14
@@ -35,12 +48,20 @@ WEIGHTS = {
 
 
 def _fetch_json(endpoint: str, default=None):
+    # P31 §11 — short-TTL cache + tight timeout (see module header).
+    now = time.time()
+    cached = _FETCH_CACHE.get(endpoint)
+    if cached and (now - cached[0]) < _FETCH_CACHE_TTL_S:
+        return cached[1]
     try:
-        r = requests.get(f"{API}{endpoint}", timeout=3)
+        r = requests.get(f"{API}{endpoint}", timeout=_FETCH_TIMEOUT_S)
         if r.status_code == 200:
-            return r.json()
+            payload = r.json()
+            _FETCH_CACHE[endpoint] = (now, payload)
+            return payload
     except Exception:
         pass
+    # On failure, return default but DON'T cache it — let next call retry.
     return default
 
 
