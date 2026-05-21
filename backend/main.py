@@ -377,6 +377,13 @@ async def _startup():
         if hasattr(app.state, 'woodies_system') and app.state.woodies_system:
             app.state.woodies_system.set_gateway(trading_gateway)
             _logger.info("[Main] S4 WoodiesSystem → gateway injected")
+
+        # P31-02b: inject FootprintSystem into FiveMinSystem so process_bar
+        # reads cot/amt/belly in-process (~1ms) instead of HTTP self-calls (~8s).
+        if hasattr(app.state, 'five_min_system') and app.state.five_min_system \
+           and hasattr(app.state, 'footprint_system') and app.state.footprint_system:
+            app.state.five_min_system.set_footprint_system(app.state.footprint_system)
+            _logger.info("[Main] S2 FiveMinSystem ← footprint_system injected (P31-02b)")
     except Exception as e:
         _logger.error("[Main] TradingGateway startup failed: %s", e)
 
