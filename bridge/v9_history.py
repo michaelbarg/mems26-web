@@ -31,6 +31,67 @@ HISTORY_MAX_AGE_H = float(os.getenv("V9_HISTORY_MAX_AGE_H", "168"))  # 1 week de
 SC_HISTORY_DAYS = int(os.getenv("SC_HISTORY_DAYS", "30"))
 BATCH_SIZE = int(os.getenv("V9_HISTORY_BATCH_SIZE", "50"))
 
+# ── P31 §9 — Chicago-TS workaround (mirror of base_stream.py) ──
+# DLL bug: bar.ts is Chicago wall-clock encoded as unix UTC. Re-interpret
+# as Chicago tz → convert to true UTC. Remove when CC ships DLL fix.
+# Keep this in sync with base_stream.py:_fix_chicago_bar_ts.
+_DISABLE_CHICAGO_TS_FIX = os.getenv("V9_DISABLE_CHICAGO_TS_FIX", "").lower() in (
+    "1", "true", "yes",
+)
+try:
+    from zoneinfo import ZoneInfo
+    _CHICAGO_TZ = ZoneInfo("America/Chicago")
+    _CHICAGO_TZ_USES_LOCALIZE = False
+except ImportError:  # pragma: no cover
+    try:
+        import pytz
+        _CHICAGO_TZ = pytz.timezone("America/Chicago")
+        _CHICAGO_TZ_USES_LOCALIZE = True
+    except ImportError:
+        _CHICAGO_TZ = None
+        _CHICAGO_TZ_USES_LOCALIZE = False
+
+_BUGGY_TS_KEYS = ("bars", "history", "profiles", "levels")
+_BUGGY_TS_SINGLE = ("current_bar",)
+
+
+def _chicago_to_utc(ts):
+    if ts is None or _CHICAGO_TZ is None:
+        return ts
+    try:
+        t = float(ts)
+    except (TypeError, ValueError):
+        return ts
+    from datetime import datetime
+    naive = datetime.utcfromtimestamp(t)
+    if _CHICAGO_TZ_USES_LOCALIZE:
+        aware = _CHICAGO_TZ.localize(naive)  # type: ignore[attr-defined]
+    else:
+        aware = naive.replace(tzinfo=_CHICAGO_TZ)
+    fixed = int(aware.timestamp())
+    return float(fixed) if isinstance(ts, float) else fixed
+
+
+def fix_chicago_bar_ts(data: dict) -> dict:
+    """In-place TS fix for historical loads. Same semantics as
+    BaseV9Stream._fix_chicago_bar_ts."""
+    if _DISABLE_CHICAGO_TS_FIX or not isinstance(data, dict):
+        return data
+    try:
+        for key in _BUGGY_TS_KEYS:
+            arr = data.get(key)
+            if isinstance(arr, list):
+                for item in arr:
+                    if isinstance(item, dict) and "ts" in item:
+                        item["ts"] = _chicago_to_utc(item["ts"])
+        for key in _BUGGY_TS_SINGLE:
+            item = data.get(key)
+            if isinstance(item, dict) and "ts" in item:
+                item["ts"] = _chicago_to_utc(item["ts"])
+    except Exception as e:
+        logger.warning(f"Chicago TS fix error: {e}")
+    return data
+
 
 def redis_cmd(redis_url: str, redis_token: str, args: list) -> Optional[dict]:
     """Execute a single Redis REST command. Returns parsed JSON or None."""
@@ -118,6 +179,9 @@ def historical_load(
     except (json.JSONDecodeError, IOError) as e:
         logger.warning(f"[{stream_name}] History: read error: {e}")
         return False
+
+    # P31 §9 — fix DLL TZ encoding bug before pushing to Redis / backend
+    data = fix_chicago_bar_ts(data)
 
     export_ts = data.get("export_ts", 0)
 

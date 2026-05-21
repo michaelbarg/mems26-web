@@ -55,6 +55,37 @@ RETRY_DELAY = 5.0
 MAX_BACKOFF = 300.0  # 5 minutes max backoff
 HEARTBEAT_INTERVAL = 30.0
 
+# ── P31 §9 — Chicago-TS workaround flag ──
+# DLL bug (sc_study/v9_exports.h:147-152): v9_sc_datetime_to_unix converts
+# Sierra SCDateTime via Excel-serial math, but SCDateTime is stored in the
+# CHART's TZ (Chicago for MES). Result: bar.ts is Chicago-wall-clock encoded
+# as unix seconds — ~5h behind real UTC (CDT) or 6h (CST).
+#
+# This bridge re-interprets each bar.ts as Chicago local time and converts to
+# true UTC before pushing to backend. Once CC ships the DLL fix (Sierra Remote
+# Build + Reload Study), set V9_DISABLE_CHICAGO_TS_FIX=1 in .env to bypass,
+# then remove this code in a cleanup pass.
+_DISABLE_CHICAGO_TS_FIX = os.getenv("V9_DISABLE_CHICAGO_TS_FIX", "").lower() in (
+    "1", "true", "yes",
+)
+try:
+    from zoneinfo import ZoneInfo  # Python 3.9+ stdlib
+    _CHICAGO_TZ = ZoneInfo("America/Chicago")
+    _CHICAGO_TZ_USES_LOCALIZE = False
+except ImportError:  # pragma: no cover — fallback for ancient Pythons
+    try:
+        import pytz
+        _CHICAGO_TZ = pytz.timezone("America/Chicago")
+        _CHICAGO_TZ_USES_LOCALIZE = True
+    except ImportError:
+        _CHICAGO_TZ = None
+        _CHICAGO_TZ_USES_LOCALIZE = False
+        if not _DISABLE_CHICAGO_TS_FIX:
+            logger.error(
+                "Neither zoneinfo nor pytz available — Chicago TS fix disabled. "
+                "Bars will be 5h behind real UTC until DLL is patched."
+            )
+
 
 class BaseV9Stream:
     """Base class for v9 DLL export stream readers."""
@@ -229,6 +260,8 @@ class BaseV9Stream:
 
         logger.info(f"[{self.name}] New data — export_ts={export_ts} "
                      f"(push #{self.push_count})")
+        # P31 §9 — fix DLL TZ encoding bug before any downstream push
+        data = self._fix_chicago_bar_ts(data)
         self._push_redis(data)
         self._push_api(data)
 
@@ -239,6 +272,54 @@ class BaseV9Stream:
         except (json.JSONDecodeError, IOError) as e:
             logger.warning(f"[{self.name}] Read error: {e}")
             return None
+
+    # ── P31 §9 — DLL TZ workaround ──
+    # Mutates data in place AND returns it so callers can re-assign.
+    # Subclasses that have bar.ts in different keys (e.g. levels[]) can
+    # extend BUGGY_TS_KEYS / BUGGY_TS_SINGLE.
+    BUGGY_TS_KEYS = ("bars", "history", "profiles", "levels")
+    BUGGY_TS_SINGLE = ("current_bar",)
+
+    @staticmethod
+    def _chicago_to_utc(ts):
+        """Re-interpret a Chicago-wall-clock unix value as true UTC unix."""
+        if ts is None or _CHICAGO_TZ is None:
+            return ts
+        try:
+            t = float(ts)
+        except (TypeError, ValueError):
+            return ts
+        from datetime import datetime
+        naive = datetime.utcfromtimestamp(t)
+        if _CHICAGO_TZ_USES_LOCALIZE:  # pytz
+            aware = _CHICAGO_TZ.localize(naive)  # type: ignore[attr-defined]
+        else:  # zoneinfo
+            aware = naive.replace(tzinfo=_CHICAGO_TZ)
+        fixed = int(aware.timestamp())
+        # Preserve original type (int stays int, float stays float)
+        return float(fixed) if isinstance(ts, float) else fixed
+
+    def _fix_chicago_bar_ts(self, data: dict) -> dict:
+        """Walk known bar containers and convert each bar.ts from buggy
+        Chicago-wall-clock encoding to real UTC unix. Top-level fields
+        like export_ts use time(nullptr) in the DLL and are NOT touched.
+        """
+        if _DISABLE_CHICAGO_TS_FIX or not isinstance(data, dict):
+            return data
+        try:
+            for key in self.BUGGY_TS_KEYS:
+                arr = data.get(key)
+                if isinstance(arr, list):
+                    for item in arr:
+                        if isinstance(item, dict) and "ts" in item:
+                            item["ts"] = self._chicago_to_utc(item["ts"])
+            for key in self.BUGGY_TS_SINGLE:
+                item = data.get(key)
+                if isinstance(item, dict) and "ts" in item:
+                    item["ts"] = self._chicago_to_utc(item["ts"])
+        except Exception as e:  # never crash the stream on a TS bug
+            logger.warning(f"[{self.name}] Chicago TS fix error: {e}")
+        return data
 
     def _push_redis(self, data: dict):
         if not REDIS_URL or not REDIS_TOKEN:
