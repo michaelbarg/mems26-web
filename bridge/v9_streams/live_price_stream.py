@@ -156,6 +156,7 @@ class LivePriceStream:
         self.push_count += 1
         self.last_push_ts = time.time()
 
+        self._publish_to_local_backend(data)
         self._publish_to_event_bus(data)
 
         if self.push_count % 20 == 0:
@@ -172,6 +173,32 @@ class LivePriceStream:
         except (json.JSONDecodeError, IOError) as e:
             logger.warning("[%s] Read error: %s", self.name, e)
             return None
+
+    def _publish_to_local_backend(self, data: dict):
+        """POST tick to localhost:8000 — backend caches + broadcasts via WS.
+
+        Fire-and-forget with tight timeout (0.3s). Failure is silent because
+        the GET /api/v9/live_price fallback reads the file directly.
+        """
+        try:
+            import urllib.request as _req
+            body = json.dumps({
+                "price": data.get("price", 0),
+                "ts": data.get("ts"),
+                "bid": data.get("bid"),
+                "ask": data.get("ask"),
+                "vol": data.get("vol"),
+            }).encode()
+            req = _req.Request(
+                "http://localhost:8000/api/v9/live_price",
+                data=body,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            with _req.urlopen(req, timeout=0.3):
+                pass
+        except Exception:
+            pass
 
     def _publish_to_event_bus(self, data: dict):
         """Publish price.tick event to Redis Streams via Upstash REST."""

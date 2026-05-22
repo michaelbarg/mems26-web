@@ -13,7 +13,7 @@ import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { usePriceStream } from '../../hooks/usePriceStream';
 import { useLivePricePoll } from '../../hooks/useLivePricePoll';
 import { BannerStack } from '../banners/BannerStack';
-import { SoundProvider } from '../sounds/SoundProvider';
+import { SystemControlPanel } from '../controls/SystemControlPanel';
 import { COLORS } from '../../design/tokens';
 
 const STORAGE_KEY = 'chart-height-v5c';
@@ -24,7 +24,9 @@ function clamp(v: number) { return Math.max(MIN_H, Math.min(MAX_H, v)); }
 
 export function V9Dashboard() {
   useSystemEvents();
-  useSystemStatePolling(2000);
+  // P30 FORENSICS: 5s is the floor — fires/ZLR need <5s visibility.
+  // Do NOT increase past 5000 without Michael's approval.
+  useSystemStatePolling(5000);
   usePriceStream();
   useLivePricePoll(true);
 
@@ -69,7 +71,7 @@ export function V9Dashboard() {
       style={{ background: COLORS.bgBase }}
     >
       <BannerStack />
-      <SoundProvider />
+
       <TopBar />
       <Layer0Strip />
       <div className="flex flex-1 min-h-0">
@@ -112,6 +114,7 @@ export function V9Dashboard() {
         <SidePanel />
       </div>
       <PriceDebugConsole />
+      <SystemControlPanel />
     </div>
   );
 }

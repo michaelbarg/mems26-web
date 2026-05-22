@@ -67,20 +67,44 @@ def test_footprint_state_uses_injected_system_no_http():
     assert state == {"cot": 150.0, "amt": 100.0, "belly_ratio_dominant": True}
 
 
-def test_get_cot_from_footprint_uses_injected_system_no_http():
+_SIERRA_READ_PATH = "backend.v9.systems.five_min.five_min_system.read_cumulative_delta"
+
+
+def test_get_cot_from_footprint_falls_back_to_injected_when_no_sierra_file():
+    """When Sierra CDV file is unavailable, fall back to injected footprint COT."""
     sys = _make_sys()
     sys.set_footprint_system(_mock_footprint({"cot": 42.0}))
 
-    with patch("requests.get", side_effect=AssertionError("HTTP call must not happen when injected")):
+    with patch(_SIERRA_READ_PATH, return_value=None), \
+         patch("requests.get", side_effect=AssertionError("HTTP call must not happen when injected")):
         assert sys._get_cot_from_footprint() == 42.0
 
 
-def test_get_amt_from_footprint_uses_injected_system_no_http():
+def test_get_amt_from_footprint_falls_back_to_injected_when_no_sierra_file():
+    """When Sierra CDV file is unavailable, fall back to injected footprint AMT."""
     sys = _make_sys()
     sys.set_footprint_system(_mock_footprint({"amt": 33.5}))
 
-    with patch("requests.get", side_effect=AssertionError("HTTP call must not happen when injected")):
+    with patch(_SIERRA_READ_PATH, return_value=None), \
+         patch("requests.get", side_effect=AssertionError("HTTP call must not happen when injected")):
         assert sys._get_amt_from_footprint() == 33.5
+
+
+def test_cot_amt_from_sierra_preferred_over_footprint():
+    """_get_cot/amt prefer Sierra CDV file when available (spec: COT_AMT node)."""
+    sys = _make_sys()
+    sys.set_footprint_system(_mock_footprint({"cot": 99999.0, "amt": 99999.0}))
+
+    cdv_points = [{"cum": -500.0}, {"cum": -600.0}, {"cum": -700.0}]
+    mock_data = {"points": cdv_points}
+    with patch(_SIERRA_READ_PATH, return_value=mock_data), \
+         patch("requests.get", side_effect=AssertionError("HTTP must not happen")):
+        cot = sys._get_cot_from_footprint()
+        amt = sys._get_amt_from_footprint()
+
+    assert cot == -700.0, f"Expected Sierra COT -700 got {cot}"
+    # AMT = mean of last 18 (all 3 here) = (-500 + -600 + -700) / 3 = -600
+    assert abs(amt - (-600.0)) < 0.01, f"Expected Sierra AMT -600 got {amt}"
 
 
 def test_get_belly_from_footprint_uses_injected_system_no_http():
@@ -126,6 +150,9 @@ def test_legacy_path_no_injection_falls_back_to_requests():
 def test_process_bar_with_injected_footprint_makes_no_http_calls():
     """Full process_bar with a 4-bar Reactive LONG buffer + injected footprint
     must NOT make any HTTP calls (proves the 8s SLOW root cause is fixed when wire-up active).
+
+    Sierra CDV file is mocked to return cot=150/amt=100 so the same fire
+    condition is met without needing a real cumulative_delta.json.
     """
     sys = _make_sys()
     sys.set_footprint_system(_mock_footprint({
@@ -135,9 +162,13 @@ def test_process_bar_with_injected_footprint_makes_no_http_calls():
     }))
     sys._bar_buffer = _reactive_long_bars()[:-1]
 
+    # Mock Sierra CDV file to provide cot=150, amt=100 (same as footprint mock)
+    # so the Reactive LONG condition fires. Points: last cum=150, mean=~100.
+    cdv_mock = {"points": [{"cum": 50.0}, {"cum": 100.0}, {"cum": 150.0}]}
+
     with patch("requests.get", side_effect=AssertionError(
         "process_bar made an HTTP self-call — P31-02b regression"
-    )):
+    )), patch(_SIERRA_READ_PATH, return_value=cdv_mock):
         # Patch out the gateway and DB persist so this test stays unit-scoped.
         with patch("backend.v9.systems.five_min.five_min_system.emit_t1_setup",
                    return_value=MagicMock(pattern_name="REACTIVE_LONG",

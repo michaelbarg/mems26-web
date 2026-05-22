@@ -13,6 +13,7 @@ from backend.v9.systems.base.trading_system import BaseV9TradingSystem, Hydratio
 from backend.v9.common.session_classifier import SessionClassifier, Session
 from backend.v9.db.session import SessionLocal
 from backend.v9.systems.five_min.setup_emitter import emit_t1_setup
+from backend.v9.systems.five_min.cot_amt import read_cumulative_delta, compute_cot, compute_amt
 from backend.v9.db.models.bars_5min import V9Bar5Min
 from backend.v9.db.models.five_min_state import V9FiveMinState
 
@@ -277,12 +278,38 @@ class FiveMinSystem(BaseV9TradingSystem):
             poc_prices.append(poc)
         return all(poc_prices[i] <= poc_prices[i - 1] for i in range(1, len(poc_prices)))
 
+    def _cot_amt_from_sierra(self) -> tuple:
+        """Read COT and AMT from Sierra cumulative_delta.json (spec-compliant).
+
+        Spec (Constitution V3 §T1): COT = Sierra session CDV (latest cumulative
+        value), AMT = 90-min rolling average of CDV points. This is the correct
+        source per compliance_manifest.yaml COT_AMT node and cot_amt.py.
+
+        Returns (cot, amt) or (None, None) if the file is unavailable.
+        """
+        try:
+            data = read_cumulative_delta()
+            if not data:
+                return (None, None)
+            pts = data.get("points") or data.get("bars") or []
+            if not pts:
+                return (None, None)
+            return (compute_cot(pts), compute_amt(pts))
+        except Exception:
+            return (None, None)
+
     def _get_cot_from_footprint(self) -> Optional[float]:
-        """Read COT (cumulative delta) from Footprint System 3."""
+        """COT — Sierra CDV preferred; footprint in-process as fallback."""
+        cot, _ = self._cot_amt_from_sierra()
+        if cot is not None:
+            return cot
         return self._footprint_state().get("cot")
 
     def _get_amt_from_footprint(self) -> Optional[float]:
-        """Read AMT (90-min average) from Footprint System 3."""
+        """AMT — Sierra CDV rolling avg preferred; footprint in-process as fallback."""
+        _, amt = self._cot_amt_from_sierra()
+        if amt is not None:
+            return amt
         return self._footprint_state().get("amt")
 
     # ── Pattern detectors (Constitution V3 Layer 1 T1) ──
@@ -482,8 +509,36 @@ class FiveMinSystem(BaseV9TradingSystem):
     _bar_buffer: List[Dict] = []
 
     async def process_bar(self, event) -> None:
-        """Process a 5-min bar from BarRouter. Runs Reactive + Initiative detectors."""
+        """Process a 5-min bar from BarRouter. Runs Reactive + Initiative detectors.
+
+        Spec (AGENT_S2 §SHOULD_BLOCK): no pattern detection or firing during
+        OVERNIGHT_MODE, MAINTENANCE, or WEEKEND — only buffer the bar for
+        session context.
+        """
         bar = dict(event.payload) if hasattr(event, "payload") else (event if isinstance(event, dict) else {})
+
+        # Live session transition: advance out of OVERNIGHT_MODE when RTH opens.
+        # hydrate() sets mode at startup — if backend started pre-RTH this check
+        # promotes mode automatically on the first RTH bar without a restart.
+        if self.mode == FiveMinMode.OVERNIGHT_MODE:
+            try:
+                info = self.session_classifier.classify()
+                if info.session in (Session.CASH_OPEN, Session.FIRST_HOUR):
+                    self.mode = FiveMinMode.FIRST_HOUR_TACTICAL
+                    logger.info("[FiveMin] Mode transition OVERNIGHT → FIRST_HOUR_TACTICAL (live bar)")
+                elif info.session == Session.CASH_HOURS:
+                    self.mode = FiveMinMode.DAY_TYPE_MODE
+                    logger.info("[FiveMin] Mode transition OVERNIGHT → DAY_TYPE_MODE (live bar)")
+            except Exception:
+                pass
+
+        # Spec: S2 must not fire outside trading sessions
+        if self.mode in (FiveMinMode.OVERNIGHT_MODE, FiveMinMode.MAINTENANCE, FiveMinMode.WEEKEND):
+            self.buffer_size += 1
+            self._bar_buffer.append(bar)
+            if len(self._bar_buffer) > 20:
+                self._bar_buffer = self._bar_buffer[-20:]
+            return
         bar.setdefault("o", bar.get("open", 0))
         bar.setdefault("h", bar.get("high", 0))
         bar.setdefault("l", bar.get("low", 0))

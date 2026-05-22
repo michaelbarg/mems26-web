@@ -391,6 +391,23 @@ async def _startup():
         if gw is not None and hasattr(gw, "set_trade_manager"):
             gw.set_trade_manager(trade_manager)
             _logger.info("[Main] TradingGateway → TradeManager wired for SHADOW PnL")
+
+        # P-WS.1: inject main loop into TradeEventEmitter for WS broadcast
+        try:
+            from backend.v9.services.trade_manager.events import set_trade_events_loop
+            set_trade_events_loop(asyncio.get_event_loop())
+            _logger.info("[Main] TradeEventEmitter ← main loop injected (WS push active)")
+        except Exception as _e:
+            _logger.warning("[Main] TradeEventEmitter loop injection failed: %s", _e)
+
+        # P-CHOP.1: start background chop_score cache refresher (30s interval)
+        # Prevents 3s event-loop block on cold-cache Woodies fires.
+        try:
+            from backend.v9.systems.layer0.chop_score import start_background_refresher
+            start_background_refresher(interval_s=30.0)
+            _logger.info("[Main] chop_score background refresher started (30s)")
+        except Exception as _e:
+            _logger.warning("[Main] chop_score refresher start failed: %s", _e)
     except Exception as e:
         _logger.error("[Main] BarLevelDetector startup failed: %s", e)
 

@@ -43,10 +43,15 @@ class TradingGateway:
         self.cooldown = CooldownManager()
         self.cluster_guard = ClusterGuard()
         self.ssv = SufferingSideVeto()
+        self._trade_manager = None
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""
         self._system_registry = registry
+
+    def set_trade_manager(self, trade_manager) -> None:
+        """W11 TradeManager — SHADOW lifecycle + PnL via BarLevelDetector."""
+        self._trade_manager = trade_manager
 
     def enable_demo(self, system_id: int) -> None:
         self._demo_enabled_systems.add(system_id)
@@ -80,10 +85,6 @@ class TradingGateway:
             result["blocked_by"] = "cooldown"
             logger.info("[Gateway] BLOCKED by 2-stop cooldown")
             return result
-        if self.cluster_guard.is_blocked():
-            result["blocked_by"] = "cluster_guard"
-            logger.info("[Gateway] BLOCKED by cluster guard D-037")
-            return result
         if self.ssv.check_veto(direction):
             result["blocked_by"] = "suffering_side_veto"
             logger.info("[Gateway] BLOCKED by SSV D-049: %s is suffering side", direction)
@@ -95,15 +96,25 @@ class TradingGateway:
             logger.info("[Gateway] BLOCKED by Layer 0: chop_state=SEARCHING (high chop)")
             return result
 
-        # ζ.A5: Cluster guard — count only setups that passed all gates (GW-02)
-        self.cluster_guard.record_attempt()
+        # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
+        cluster_blocked = self.cluster_guard.is_blocked()
+        if not cluster_blocked:
+            # ζ.A5: count only setups that passed cooldown/SSV/chop (GW-02)
+            self.cluster_guard.record_attempt()
 
-        # SHADOW: always log, unlimited slots
+        # SHADOW: always log when past hard gates, unlimited slots
         shadow_trade = self._execute_shadow(setup, system_id, cross_context)
         self.shadow_trades.append(shadow_trade)
         if len(self.shadow_trades) > 500:
             self.shadow_trades = self.shadow_trades[-300:]
         result["shadow"] = shadow_trade["trade_id"]
+
+        if cluster_blocked:
+            result["blocked_by"] = "cluster_guard"
+            logger.info(
+                "[Gateway] SHADOW recorded; DEMO/LIVE blocked by cluster guard D-037"
+            )
+            return result
 
         # DEMO: single slot
         if self._is_demo_enabled(system_id):
@@ -207,11 +218,52 @@ class TradingGateway:
         return system_id in self._live_enabled_systems
 
     def _execute_shadow(self, setup: dict, system_id: int, cross_context: dict) -> dict:
-        """SHADOW: persist trade record only, no Sierra order."""
+        """SHADOW: TradeManager row + auto-close on 5min bars (PnL in v9_trades)."""
+        if self._trade_manager is not None:
+            entry = setup.get("entry_price")
+            tm_setup = {
+                "firing_system": system_id,
+                "direction": setup.get("direction", "LONG"),
+                "stop": setup.get("stop", 0.0),
+                "t1": setup.get("t1", 0.0),
+                "t2": setup.get("t2", 0.0),
+                "t3": setup.get("t3", 0.0),
+                "entry_price": entry,
+                "classification": setup.get("classification", ""),
+                "confidence": setup.get("confidence", 0.0),
+                "metadata": setup.get("metadata") or {},
+                "trigger": (
+                    setup.get("classification")
+                    or (setup.get("metadata") or {}).get("pattern")
+                    or (setup.get("metadata") or {}).get("signal")
+                ),
+                "cross_context": cross_context,
+            }
+            trade_id = self._trade_manager.accept_setup(tm_setup, "shadow")
+            if entry is not None:
+                self._trade_manager.on_fill(trade_id, float(entry))
+            try:
+                self._trade_manager._db.commit()
+            except Exception as commit_err:
+                logger.warning("[Gateway] SHADOW trade commit failed: %s", commit_err)
+            logger.info(
+                "[Gateway] SHADOW trade TM id=%d: %s %s system=%d",
+                trade_id, tm_setup["direction"], setup.get("classification", ""), system_id,
+            )
+            return {
+                "trade_id": str(trade_id),
+                "mode": "shadow",
+                "firing_system": system_id,
+                "direction": tm_setup["direction"],
+                "state": "FILLED",
+                "entry_price": entry,
+                "entry_ts": datetime.now(timezone.utc).isoformat(),
+            }
+
         trade = self._build_trade("shadow", setup, system_id, cross_context)
         self._persist_trade(trade)
-        logger.info("[Gateway] SHADOW trade: %s %s system=%d",
-                     trade["direction"], trade.get("classification", ""), system_id)
+        logger.info("[Gateway] SHADOW trade (legacy persist): %s system=%d",
+                     trade["direction"], system_id)
         return trade
 
     def _execute_demo(self, setup: dict, system_id: int, cross_context: dict) -> dict:
@@ -281,7 +333,7 @@ class TradingGateway:
                     trade["mode"], trade["firing_system"], trade["direction"],
                     trade["state"], trade["entry_ts"], trade["entry_price"],
                     trade["stop"], trade["t1"], trade["t2"], trade["t3"],
-                    json.dumps(trade["cross_context"]),
+                    json.dumps(trade["cross_context"], default=str),
                     datetime.now(timezone.utc).isoformat(),
                 ),
             )

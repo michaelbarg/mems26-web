@@ -1,7 +1,6 @@
 'use client';
 import { useState } from 'react';
 import { COLORS } from '../../design/tokens';
-import { getSoundSettings, setMuted, setVolume } from '../sounds/SoundManager';
 
 const TABS = ['Journal', 'Spec', 'Settings'] as const;
 type LibTab = typeof TABS[number];
@@ -90,35 +89,9 @@ function SpecTab() {
 }
 
 function SettingsTab() {
-  const settings = typeof window !== 'undefined' ? getSoundSettings() : { muted: false, volume: 0.5 };
-  const [muted, setMutedState] = useState(settings.muted);
-  const [vol, setVol] = useState(settings.volume);
-
   return (
     <div style={{ color: COLORS.textTertiary, fontSize: 12, lineHeight: 1.6 }}>
       <div style={{ fontWeight: 600, color: COLORS.textSecondary, marginBottom: 12 }}>Settings</div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <label style={{ fontSize: 11, color: COLORS.textSecondary, minWidth: 60 }}>Sound</label>
-        <button onClick={() => { const next = !muted; setMutedState(next); setMuted(next); }}
-          style={{
-            padding: '2px 10px', borderRadius: 4, fontSize: 11, cursor: 'pointer',
-            border: `1px solid ${COLORS.borderSecondary}`,
-            background: muted ? COLORS.bgSurface5 : '#16a34a22',
-            color: muted ? COLORS.textDisabled : '#16a34a',
-          }}>
-          {muted ? 'Muted' : 'On'}
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <label style={{ fontSize: 11, color: COLORS.textSecondary, minWidth: 60 }}>Volume</label>
-        <input type="range" min="0" max="100" value={vol * 100}
-          onChange={e => { const v = parseInt(e.target.value) / 100; setVol(v); setVolume(v); }}
-          style={{ flex: 1 }} />
-        <span style={{ fontSize: 10, color: COLORS.textDisabled, minWidth: 30 }}>{Math.round(vol * 100)}%</span>
-      </div>
-
       <div style={{ fontSize: 10, color: COLORS.textDisabled, marginTop: 16 }}>
         Debug panel: Cmd+Shift+D (Mac) / Ctrl+Shift+D (Win)
       </div>

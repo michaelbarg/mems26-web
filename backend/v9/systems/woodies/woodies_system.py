@@ -23,11 +23,9 @@ from backend.v9.systems.woodies.decision_tree import (
     _fetch_touchpoints_now,
 )
 
-# 2026-05-20 (P30 SLOW handler fix): wall-clock cap on touchpoint pre-fetch
-# from process_bar. Worst-case sync HTTP cost is 5 * TOUCHPOINTS_REQUEST_TIMEOUT_S
-# (= 2.5s with 0.5s per endpoint), so 3.0s gives a small safety margin before
-# the asyncio.wait_for forces a fallback to degraded touch-point context.
-_TOUCHPOINTS_PREFETCH_BUDGET_S: float = 3.0
+# P30 SLOW handler fix (2026-05-20): touchpoint pre-fetch was removed in favour
+# of passing touchpoints={} directly (see process_bar comment). The wall-clock
+# budget constant is retained here as documentation of the original cap value.
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +39,10 @@ class WoodiesSystem(BaseV9TradingSystem):
     def __init__(self, db_path: str = None):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
         self._gateway = None  # injected post-init via set_gateway()
+        # Per-pattern dedup keyed by bar_ts: key=f"{pattern_id}_{direction}" → bar_ts
+        # of the last bar that triggered a fire. Blocks duplicate fires when Sierra
+        # sends multiple UPDATE events for the same 5-min bar.
+        self._last_fired_bar_ts: Dict[str, float] = {}
         # Raw OHLCV buffers for study computation
         self._highs: List[float] = []
         self._lows: List[float] = []
@@ -290,6 +292,20 @@ class WoodiesSystem(BaseV9TradingSystem):
             # Prompt 14: auto-route to TradingGateway when ready
             if dt_summary.get("ready_to_route") and self._gateway and patterns:
                 best = max(patterns, key=lambda p: p.confidence)
+                # Dedup: same bar_ts + same pattern+direction = already fired this bar.
+                # Sierra sends multiple UPDATE events per 5-min bar as it builds;
+                # without this gate, each UPDATE fires a new SHADOW trade.
+                _fire_key = f"{best.pattern_id}_{best.direction or 'LONG'}"
+                _last_ts = self._last_fired_bar_ts.get(_fire_key, -1.0)
+                if float(bar_ts) <= _last_ts:
+                    logger.debug(
+                        "[Woodies] Skipping duplicate fire: %s bar_ts=%s already fired",
+                        _fire_key, bar_ts,
+                    )
+                    self.current_state["last_route"] = {
+                        "skipped": True, "reason": "duplicate_bar_ts", "key": _fire_key,
+                    }
+                    return
                 sizing = self.calculate_size(best.pattern_id, best.direction or "LONG")
                 if sizing != "reject":
                     setup = {
@@ -312,9 +328,12 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 "[Woodies] Gateway blocked: %s", route_result.get("blocked_by")
                             )
                         elif route_result.get("shadow"):
+                            # Record bar_ts so duplicate UPDATE events on same bar are skipped.
+                            self._last_fired_bar_ts[_fire_key] = float(bar_ts)
                             logger.info(
-                                "[Woodies] SHADOW recorded: %s %s size=%s id=%s",
-                                best.pattern_id, best.direction, sizing, route_result.get("shadow"),
+                                "[Woodies] SHADOW recorded: %s %s size=%s id=%s bar_ts=%s",
+                                best.pattern_id, best.direction, sizing,
+                                route_result.get("shadow"), bar_ts,
                             )
                     except Exception as e:
                         self.current_state["last_route"] = {"error": str(e)}

@@ -60,3 +60,60 @@ def test_process_bar_handles_emitter_exception(_belly, _amt, _cot, mock_emit):
 
     # Should NOT raise despite emitter crashing
     asyncio.run(sys.process_bar(_reactive_long_bars()[-1]))
+
+
+@patch('backend.v9.systems.five_min.five_min_system.emit_t1_setup')
+def test_process_bar_overnight_mode_does_not_fire(mock_emit):
+    """OVERNIGHT_MODE: bars are buffered but pattern detectors must NOT run.
+
+    Spec (AGENT_S2 §SHOULD_BLOCK): S2 fires only in FIRST_HOUR_TACTICAL /
+    DAY_TYPE_MODE. Overnight bars are buffered for session context only.
+    """
+    sys = _make_sys()
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    sys.mode = FiveMinMode.OVERNIGHT_MODE
+    initial_buffer = sys.buffer_size
+
+    asyncio.run(sys.process_bar({"o": 5250, "h": 5251, "l": 5249, "c": 5250, "v": 500}))
+
+    assert not mock_emit.called, "emit_t1_setup must not be called in OVERNIGHT_MODE"
+    assert sys.buffer_size == initial_buffer + 1, "bar must still be buffered for session context"
+    assert sys.last_pattern is None, "last_pattern must remain null in OVERNIGHT_MODE"
+
+
+@patch('backend.v9.systems.five_min.five_min_system.emit_t1_setup')
+def test_process_bar_maintenance_mode_does_not_fire(mock_emit):
+    """MAINTENANCE mode: same gate as OVERNIGHT_MODE."""
+    sys = _make_sys()
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    sys.mode = FiveMinMode.MAINTENANCE
+
+    asyncio.run(sys.process_bar({"o": 5250, "h": 5251, "l": 5249, "c": 5250, "v": 500}))
+
+    assert not mock_emit.called, "emit_t1_setup must not be called in MAINTENANCE mode"
+
+
+def test_process_bar_overnight_transitions_to_first_hour_on_rth_bar():
+    """When mode=OVERNIGHT_MODE and a bar arrives during CASH_OPEN/FIRST_HOUR,
+    mode must advance to FIRST_HOUR_TACTICAL before the gate check so detectors run.
+    Covers the case where backend started pre-RTH and RTH opens without restart.
+    """
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    from backend.v9.common.session_classifier import Session
+    from unittest.mock import MagicMock
+
+    sys = _make_sys()
+    sys.mode = FiveMinMode.OVERNIGHT_MODE
+
+    # Inject a mock session_classifier that reports CASH_OPEN
+    mock_classifier = MagicMock()
+    mock_info = MagicMock()
+    mock_info.session = Session.CASH_OPEN
+    mock_classifier.classify.return_value = mock_info
+    sys.session_classifier = mock_classifier
+
+    asyncio.run(sys.process_bar({"o": 5250, "h": 5251, "l": 5249, "c": 5250, "v": 500}))
+
+    assert sys.mode == FiveMinMode.FIRST_HOUR_TACTICAL, (
+        f"Expected FIRST_HOUR_TACTICAL after RTH bar, got {sys.mode}"
+    )

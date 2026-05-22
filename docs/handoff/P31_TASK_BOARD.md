@@ -1,4 +1,4 @@
-# P31 — לוח עבודה (מעודכן 2026-05-21 בוקר)
+# P31 — לוח עבודה (מעודכן 2026-05-22 צהריים — Phase 1 + Phase 2 + Issue B + B1 ✓)
 
 **מטרה:** יומן SHADOW עם P&L נכון (כניסה + C1/C2/C3 + סטופ), מערכת 5 דקות רצה, קוקפיט מעודכן תמיד — **ואז** gate ל-SHADOW soak → DEMO → LIVE.
 
@@ -12,10 +12,10 @@
 
 | שדה | ערך |
 |-----|-----|
-| **ברכה אחרונה** | ☀️ **צהריים טובים** — 2026-05-21 |
-| **נקודת ציון** | **P31 P0** — קוד journal/excursion/legs ירוק; ממתין UI eyeball + RTH ל-S2/PAT |
-| **אחוז גס ל-LIVE** | ~**60%** תשתית (P30 + P31 code complete) · **0%** SHADOW soak רשמי · **0%** LIVE |
-| **הצעד הבא** | **המתנה ל-pattern fire חי** כדי לאמת trade insert סוף-לסוף; בינתיים: Michael בעין על `localhost:3000/journal` + trade 697 · CC §9 Option A (DLL canonical fix — לא דחוף) |
+| **ברכה אחרונה** | 🌞 **אחר הצהריים** — 2026-05-22 17:33 IL |
+| **נקודת ציון** | **S2 FIRED ✅ RTH אושר ע"י Michael**. S2: FIRST_HOUR_TACTICAL מ-16:30:15 IL · COT/AMT ← Sierra CDV · 83/83 tests. S4: Woodies SLOW תוקן (chop_score 3051ms→20ms). Backend PID **83496**. **IB source bug נמצא:** cockpit מראה IBH 7508/IBL 7501 אבל Sierra מראה ~7518/~7490 — IB בא מ-TPO system (ישן), צריך מ-v9_bars_5min (RTH max/min). CC עובד על זה. **IB live feature נוסף (Cursor 17:33 IL):** state_machine מפרסם DEVELOPING IB בזמן A3. |
+| **אחוז גס ל-LIVE** | ~**77%** (S2 ירה ✅ · S4 תוקן ✅ · IB live בעבודה) · **0%** SHADOW soak · **0%** LIVE |
+| **הצעד הבא** | (1) CC — IB source fix (v9_bars_5min RTH max/min במקום tpo_sys) · (2) P31-01 UAT — עסקת S2 נסגרת → DB=curl=UI · (3) P31-PAT — `woodies/current` active_patterns |
 
 ```
 P30 baseline ✅ ──► P31 P0 ◄── אתה כאן ──► SHADOW soak ⬜ ──► DEMO ⬜ ──► LIVE ⬜
@@ -27,15 +27,23 @@ P30 baseline ✅ ──► P31 P0 ◄── אתה כאן ──► SHADOW soak 
 
 | רכיב | סטטוס | הערה |
 |------|--------|------|
-| Backend `:8000` | 🟢 | uvicorn PID **89458** (Cursor 16:18 restart; טען §10 json_serializer + cherry-pick 3ed6a84 thread-leak fix). FiveMin SLOW + Woodies SLOW + JSON errors **כולם נעלמו** |
-| Frontend `:3000` | 🟢 | next dev PID 31297 — מקבל 200 |
-| Bridge | 🟢 | `python3 bridge/json_bridge.py` (PID 60596) — כל 12 הזרמים פעילים · §9 workaround פעיל (Chicago→UTC) |
-| **Sierra stream** | 🟢 | **§8 sub-RESOLVED 14:40:** Sierra חי (Chicago TZ). **§9 bridge workaround פעיל** (Cursor 14:55) — DB ts תואם זמן אמת ✓. CC לעבור ל-Option A (DLL canonical fix) — לא דחוף |
-| P&L ב-DB (`TradeManager`) | 🟢 | Smart-BE + `initial_stop`; trade 697 ✅; ממתין עסקה נוספת ב-RTH |
-| Journal `/trades/log` | 🟢 | **0.02s** / 21 rows `limit=50` (Cursor 2026-05-21 צהריים) · trade 697 API=DB=$56.25 ✅ · range/legs/MFE/MAE/duration מוחזרים ✅ |
-| **מערכת 5 דקות (S2)** | 🟢 | **§6 RESOLVED 15:55 (Other Chat):** commits `12b376f` + `0f5960d` החליפו HTTP self-calls ב-in-process refs. SLOW handler 8000ms → 62-231ms (mean 106ms = **75× faster**). אומת live ב-PID 82330 |
-| **Woodies (S4)** | 🟢 | **§10 RESOLVED 16:18 (Cursor):** root cause לא HTTP self-calls אלא SQLAlchemy JSON encoder ש-failed על datetime ב-`quality.metadata`/`cross_context`. תיקון: `_json_serializer` עם `default=str` ב-`db/session.py`. SLOW 18s → **62.9ms** (290× faster). 0 שגיאות JSON. ראה §10 |
-| **Bar Router thread leak** | 🟢 | **P31-02c RESOLVED 16:18:** cherry-pick `43f5399` → commit `3ed6a84` — `publish_threadsafe` משתמש ב-`run_coroutine_threadsafe`. בטוח עכשיו כי §6+§10 הסירו את ה-blocking. test PASS |
+| Backend `:8000` | 🟢 | uvicorn PID **52505** (CC restart 16:11 IL — טען S2 audit Fix 1+2+3 על קוד Phase 1+2+Issue B+B1) · Health 25ms |
+| Frontend `:3000` | 🟢 | next dev PID **26120** — hot-reload פיק את ה-SystemControlPanel ⚙ |
+| Bridge | 🟢 | `python3 bridge/json_bridge.py` (PID 55100) · כל 12 הזרמים · §9 workaround פעיל |
+| **Sierra stream** | 🟢 | §9 bridge workaround פעיל. CC ל-Option A (DLL canonical fix) — לא דחוף |
+| P&L ב-DB (`TradeManager`) | 🟢 | Smart-BE + `initial_stop` · ממתין עסקה ב-RTH |
+| Journal `/trades/log` | 🟢 | 0.02s / 21 rows |
+| **מערכת 5 דקות (S2)** | 🟢 | §6 RESOLVED · 75× faster |
+| **Woodies (S4)** | 🟢 | §10 RESOLVED · 290× faster · 0 JSON errors |
+| **Bar Router thread leak** | 🟢 | P31-02c RESOLVED |
+| **COT session reset (P31-STRAT-S3 #2)** | 🟢 | CC 2026-05-22 · commit `dcae75d` |
+| **AMT fix (P31-STRAT-S3 #3+#3b)** | 🟢 | **CC 2026-05-22 12:10 IL — VERIFIED LIVE.** AMT 0.0 → **4,016** (90-min rolling avg) · COT 46 (cross-session) → **-172,728** (session-scoped) · bars 4 → 315 growing. Commits `dcae75d` + `63934f7` (footprint_system.py) + uncommitted `_cot_amt_from_sierra()` in five_min_system.py (Constitution V3 §T1 spec). **S2 יכול עכשיו להעריך `cot > amt`/`cot < amt` באמת**. ייאומת ב-RTH 16:30/17:30 IL |
+| **Issue B (POC stepped lines)** | 🟡 | **Frontend + Backend ready (Cursor 2026-05-22 AM/PM).** Pre-RTH = no pink lines (expected); white yesterday lines should render from `previous_session`. **UAT ב-RTH 16:30/17:30 IL** ⏳ |
+| **TPO B1 — TPOHistorySnapshotter** | 🟢 | **NEW today.** Async task fires at 30-min ET boundaries during RTH. Writes `v9_tpo_history`. Catch-up on startup. 18 tests PASS. `grep tpo_snapshotter /tmp/backend.log` |
+| **Phase 1 — EOD archiver auto + dedicated INSERTs** | 🟢 | **NEW today.** Auto-fires 15:55 ET via `EODArchiveScheduler` · 14/14 files in `~/v9_archive/2026-05-22/` (225KB) · 90-day prune · `v9_bars_volume_profile` 36 rows w/ full profile JSON · `v9_bars_cumulative_delta` 44 rows · VP zeros bug **FIXED** (32 ברים עם vah/val/poc_vol אמיתיים, היה 0 בכולם). 15+11 tests PASS |
+| **Phase 2 — gap-fill + admin/UI** | 🟢 | **NEW today.** `history_loader.py` (5min/CVD/VP, Chicago→UTC shift, idempotent) · 7 admin endpoints under `/api/v9/admin/` · `SystemControlPanel.tsx` — ⚙ System floating button bottom-right · 4 buttons (הפעלה/כיבוי/ריסטרט/Gap-fill) · auto-gap-fill בהפעלה. 16 tests PASS |
+| **תיקונים ב-bars.py** | 🟢 | VP schema: `profiles[]` (היה `bars[]`) · CVD schema: `points[]` · SImb schema: `stacks[]` · כל ה-3 שמרו `bars` כ-backward-compat. כל ה-4 handlers (VP/CVD/Imb/SImb) עכשיו גם INSERTים לטבלאות הייעודיות. `wrappers.py::TPOSystem.analyze` תומך ברשימה+dict שתי הצורות של `levels` |
+| **Frontend polling floors (P30 Forensics)** | 🟢 | **CC #1 2026-05-22 09:11 IL:** V9Dashboard 2s→5s, SoundProvider 5s→10s. טבלת floors מקובעת ב-`CLAUDE.md` |
 | לוח עבודה זה | 🟢 | גאנט + מפקח נתונים — §1–§3 |
 
 ---
@@ -229,6 +237,10 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 | `[~]` | **P31-03** cockpit SHADOW | ActiveTradeCard כבר מציג pattern/trigger + C1–C3 — Michael: `localhost:3000` |
 | `[ ]` | **P31-PAT** תבניות + סטופ אוטונומי | RTH+ · [מטריצה](./P31_PATTERN_STOP_AUTONOMY_MATRIX.md) |
 | `[~]` | **P31-05** עמודות C1/C2/C3 ביומן | `[x]` טבלה + API `initial_stop` · `[ ]` UAT אחרי restart |
+| `[x]` | **P31-PERF-A** `/trades`: Pattern column (badge לחיץ) + PatternPerformanceStrip (Win%/Net$/Avg/Exp/PF/LONG/SHORT) | Cursor 2026-05-21 ערב · 8/8 pytest PASS (`test_pattern_performance_strip.py`) |
+| `[x]` | **P31-PERF-B** `/trades`: 3 פילטרים — Overlap (parallel/seq) · LIVE-eligible (sequential gating) · Confluence (systems agree) | Cursor 2026-05-21 ערב · 12/12 pytest PASS (`test_trade_aux_status.py`) · אומת חי בדפדפן |
+| `[x]` | **P31-PERF-C** Cursor: RCA-1 patch — S6 (Killzone) direction-aware ב-`_system_agrees` | `trade_context.py:252-255` תוקן (edge=high→`d=="SHORT"`, edge=low→`d=="LONG"`). 5 reg tests חדשים + 5 ישנים = **10/10 PASS** · Cursor 2026-05-22 11:15 IL · ממתין backend restart + UAT Confluence filter (צפי 40-150 במקום 3) |
+| `[ ]` | **P31-PERF-D** CC: RCA-2 — cross_context publishers ל-S1/S2/S5 (כל אחד prompt נפרד) | אחרי PERF-C ירוק; ראה RCA section "Where to patch each" |
 
 **אם "לא זיהתה תבנית"** → קודם [P31-PAT-1](./P31_PATTERN_STOP_AUTONOMY_MATRIX.md#5-מה-עושים-עכשיו--סדר-עבודה-p31) (האם `active_patterns` / `failed_stages` ב-API), לא עיצוב UI.
 
@@ -398,6 +410,32 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 
 ---
 
+## P3 — לפני DEMO (לא pre-LIVE — דחוי)
+
+| ID | משימה | תלות |
+|----|--------|------|
+| **P31-DEMO-A** | **תיוג session-market לכל trade** — נגזר מ-`entry_ts` ב-frontend (כמו `tradeAuxStatus`): `ASIA` (19:00-03:00 ET) · `LONDON` (03:00-08:00 ET) · `LDN_NY_OVERLAP` (08:00-09:30 ET) · `RTH` (09:30-16:00 ET) · `POST` (16:00-19:00 ET) · `WEEKEND` · `HOLIDAY`. **אומת 2026-05-22:** `entry_ts` ב-100% כיסוי + UTC עקבי → **0 מיגרציה / 0 שינוי backend נדרש**. הצורך: לפלח ביצועי תבניות לפי שוק פעיל לפני DEMO | P31-PERF-A/B (data ready) |
+| **P31-DEMO-B** | **PatternPerformanceStrip עם session filter** — הוסף dropdown ב-`/trades`: All / RTH only / Non-RTH / Asia / London / RTH+overlap. בלי זה, ה-WR שאנחנו רואים אינו רלוונטי ל-LIVE decisions | P31-DEMO-A |
+| **P31-DEMO-C** | **חקירה דחויה: GB100 ב-RTH 4.3% WR** (1/23 wins, −$645). מועמד נכבד לכיבוי ב-DEMO/LIVE. דורש בדיקה האם זה bug בלוגיקה או שכלי שלא עובד ב-RTH-noise | P31-DEMO-B |
+| **P31-DEMO-D** | **חידת VEGAS** — 43.4% WR ב-RTH (−$810) לעומת 61.2% ב-non-RTH (+$360). תאוריה: ranges קטנים עובדים בנפח Asia/EU, נשברים ב-RTH bursts. דורש מבחן: עוד 100 RTH trades, ואז החלטה | P31-DEMO-B |
+| **P31-DEMO-E** | **ZLR ב-RTH 8.6%** (3/35 wins, −$915) — בנוסף ל-RCA confluence bug, נראה שגם הלוגיקה ההכרזתית עצמה חלשה. דורש בדיקה אם זה stop נמוך מדי או pattern detection רחב מדי | P31-DEMO-B |
+
+**הערה:** P31 כרגע ממוקד pre-LIVE infra (journal/S2/cockpit/confluence). הממצאים ב-P3 נוגעים לאיכות **בחירת trades**, לא לאיכות **תשתית** — DEMO זה הזמן לטפל בהם. עד אז, **המערכת תמשיך לירות תמיד** וכל trades יישמרו ל-SHADOW journal.
+
+### תקציר הראיות (סקירה 2026-05-22 בוקר על 1,186 shadow trades)
+
+| תקופה | Trades | WR | Net $ |
+|---|---|---|---|
+| RTH (09:30-16:00 ET) | 360 (30%) | 36.1% | −$5,537 |
+| Post (16:00-20:00 ET) | 235 (20%) | — | — |
+| Overnight (20:00-04:00 ET) | 564 (48%) | — | — |
+| Pre (04:00-09:30 ET) | 17 (1%) | — | — |
+| **Total non-RTH** | 826 (70%) | 44.0% | −$5,777 |
+
+**RTH WR נמוך יותר מ-non-RTH (36% vs 44%)** — counter-intuitive, מצריך בדיקה בDEMO. ייתכן שזה נובע ממדגם של תבניות חלשות ב-RTH (GB100, ZLR) שמטים את האחוז.
+
+---
+
 ## 5. פרומפטים ל-Claude Code (העתקה)
 
 ### CC-A — בוקר: מצב שירותים + 6 מערכות + נתונים
@@ -451,7 +489,8 @@ grep -E "FiveMin|bars_5min|S2|BarRouter" /tmp/backend.log | tail -40
 
 **2026-05-20:** journalApi; STOP_HIT P&L; task board.  
 **2026-05-21 בוקר:** גאנט + מפקח §2–3; pytest STOP_HIT PASS; BarRouter INSERT-only מאושר בקריאה.  
-**2026-05-21 צהריים (Cursor):** journal/excursion/legs/context הושלמו בקוד · 14 pytest PASS (`test_trade_excursion`, `test_trade_context`, `test_journal_excursion`, `test_journal_compat_sql`, `test_journal_compat_routes`) · 4 צירי UAT על `/trades/log` ירוקים (Quality DB↔API · Recency `MAX(id)=697` · Cardinality 21=21 · Latency 0.02s) · נמצא issue קוסמטי: מפתח כפול `day_type` ב-`_v9_row_to_journal` (תוקן באותו סשן).
+**2026-05-21 צהריים (Cursor):** journal/excursion/legs/context הושלמו בקוד · 14 pytest PASS (`test_trade_excursion`, `test_trade_context`, `test_journal_excursion`, `test_journal_compat_sql`, `test_journal_compat_routes`) · 4 צירי UAT על `/trades/log` ירוקים (Quality DB↔API · Recency `MAX(id)=697` · Cardinality 21=21 · Latency 0.02s) · נמצא issue קוסמטי: מפתח כפול `day_type` ב-`_v9_row_to_journal` (תוקן באותו סשן).  
+**2026-05-21 ערב (Cursor + Michael):** הרחבת `/trades` UI עם 2 כלים חדשים: (a) **PatternPerformanceStrip** — טבלת סיכום per-pattern עם Win%/Net$/Avg W/Avg L/Expectancy/PF + פיצול LONG/SHORT, לחיצה מסננת; הציפה ש-**ZLR=7.1% WR**, **GB100=10%**, **GHOST=62.5% אבל R:R שלילי**, **FAMIR יחיד ברווח**. (b) **3 פילטרים חדשים** — Overlap (parallel/sequential by entry∩exit time), LIVE-eligible (sequential gating סימולציה — רק עסקה שאכן נכנסה חוסמת את הבאות), Confluence (systems_agreement). הריצה של "LIVE-eligible + All systems agree" החזירה **3 trades בלבד מ-200** → חשף 2 באגים ב-`backend/v9/services/trade_context.py::_system_agrees`: **S6 (Killzone) עיוור לכיוון** (edge=high→True, edge=low→False ללא תלות ב-LONG/SHORT, 154/200 disagree spurious) + **S1/S2/S5 blobs ריקים ב-cross_context** (publishers לא משדרים). 20/20 pytest PASS חדשים (`test_pattern_performance_strip` 8 + `test_trade_aux_status` 12). דוח RCA מלא עם fix plan + acceptance criteria: [`docs/reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md`](../reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md). **לא תוקן בעצמי** — מחכה לאישור Michael ולהעברה ל-CC.
 
 ### 🚨 §6 — `FiveMinSystem.process_bar` SLOW 8s + thread leak (synthetic firing 2026-05-21 14:13)
 
@@ -605,6 +644,14 @@ backend restarted: PID **50472** → **82330** (after `pkill -9 -f "uvicorn back
 | 2026-05-21 | 15:30 | Cursor | **§6.3 P31-02b commit `12b376f`:** `FiveMinSystem.set_footprint_system()` setter + `_footprint_state()` helper שמעדיף in-process על HTTP. גם `_compute_location_vs_poc` קורא `_load_sierra_tpo()` ישיר. 9 בדיקות חדשות + 74 קיימות PASS · graceful HTTP fallback נשמר אם ה-wire-up עוד לא הוחל. **חסר:** 4 שורות wire-up ב-`backend/main.py` להפעלה בפועל — ראה §6.3 | Michael: לאשר commit של main.py wire-up (4 שורות, אבל הקובץ מכיל גם 100+ שורות מסשנים קודמים) |
 | 2026-05-21 | 15:43 | Cursor | **§6.3 wire-up commit `0f5960d`:** Approach K (partial staging non-interactive) — backup PRIOR/WIRED ל-`/tmp/`, reset main.py ל-HEAD, StrReplace זהה ל-baseline, commit נקי של **7 שורות בלבד** (`1 file changed, 7 insertions(+)`), restore WIRED ל-working tree. אומת: diff עכשיו מראה רק 100+ שורות מסשנים קודמים, ה-7 שלי ב-HEAD. 86/87 pytest PASS (כשלון יחיד pre-existing — `test_publish_threadsafe_warns_when_unbound`, ירוק רק עם re-apply של commit `43f5399` שהוחזר) | restart backend → POST סינתטי לאימות (process_bar < 100ms) → אז P31-02c (re-apply thread-leak fix) באישור Michael |
 | 2026-05-21 | 15:55 | Cursor + Michael | **§6.5 P31-02b LIVE VERIFIED ✅** — restart backend (PID 50472 → 82330 אחרי `pkill -9 -f uvicorn`). 7 dispatches של 5min ב-30 שניות ראשונות, **כולם 62-231ms (ממוצע ~106ms)** מ-8000ms. **0 SLOW warnings** של `FiveMinSystem.process_bar` מאז restart. S4 ירוי: trade_id=701 GB100 SHORT נרשם live. גילויים נלווים (out of scope): `WoodiesSystem.process_bar` 18s (אותו דפוס HTTP self-calls), datetime JSON error ב-`v9_trades` INSERT, `[Main]` log prefix נעלם פרה-existing | P31-02c: re-apply commit `43f5399` באישור (handler עכשיו לא יחסום main loop) |
+| 2026-05-21 | 19:00 | Cursor + Michael | **P31-PERF-A `/trades` Pattern summary** — נוסף `frontend/v9/src/v9/components/trades/PatternPerformanceStrip.tsx` + Pattern column badge ב-`TradesTable.tsx` (לחיצה מסננת). מציג Win%/Net$/Avg W/L/Exp$/PF + פיצול LONG/SHORT לכל תבנית. ZLR=7.1%, GB100=10%, GHOST=62.5% אבל R:R שלילי, FAMIR לבד ברווח. 8/8 pytest PASS (`test_pattern_performance_strip.py`) | המשך עם 3 פילטרים → §11 |
+| 2026-05-21 | 20:00 | Cursor + Michael | **P31-PERF-B 3 פילטרים** — `tradeAuxStatus.ts` חישוב per-trade: `isParallel` (time overlap), `liveEligible` (sequential gating — רק עסקה שאכן נלקחה חוסמת), `confluence` (systems_agreement). הוספה ל-`tradeStore`+`TradeFilters`. אומת חי בדפדפן: 200→97 trades עם LIVE-eligible only. **12/12 pytest PASS** (`test_trade_aux_status.py`). **חשף 2 באגים →** דוח RCA נכתב: `docs/reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md` | **CC: P31-PERF-C (S6 direction-aware fix) — 30-45 דק'**, ראה §11 |
+| 2026-05-22 | 08:30 | Cursor + Michael | **תגלית: 70% מה-trades לא ב-RTH** — analysis על 1,186 shadow trades חשף: 30% RTH, 48% Overnight, 20% Post-market, 1% Pre. WR ב-RTH (36.1%) **נמוך** מ-non-RTH (44.0%) — counter-intuitive. דרק-RTH: **GB100 4.3% WR (1/23)**, **ZLR 8.6% (3/35)**, **VEGAS 43% RTH vs 61% non-RTH**. TLB אדיש (42% בשניהם). Michael: לא לטפל ב-pre-LIVE, להעביר ל-DEMO. נוספו P31-DEMO-A..E ב-§P3 חדש בלוח | P31-DEMO-A..E (post-LIVE infra) · המערכת תמשיך לירות תמיד ל-SHADOW עד DEMO |
+| 2026-05-22 | 09:30 | Cursor + Michael | **חקירה אסטרטגית: רק 1 מ-3 firing systems יורה** — דוח [`PROMPT_P31_SYSTEMS_FIRING_STRATEGY.md`](../reports/PROMPT_P31_SYSTEMS_FIRING_STRATEGY.md) כתב מצב לכל מערכת + עצי החלטות + targets per pattern (ZLR: stop=8 ticks, T1=12, T2=24, T3=0). Michael decisions: **S1=observer** (Master Matrix), **S3=firing** (לתקן). **3 באגים זוהו ב-S3**: (a) `_fire` חסום בתוך `if mode == "LIVE":` block — מונע ירי SHADOW · (b) AMT הוא per-bar instant ולא 90-min rolling · (c) COT לא reset יומי, נצבר היסטורית ל-−144K. תוקן: `frontend/v9/src/v9/types/index.ts` SYSTEM_ROLES (S1: firing→observer, S3: observer→firing). פרומפט מוכן ל-CC: [`CC_S3_S2_FIRING_FIX_PROMPT.md`](./agents/CC_S3_S2_FIRING_FIX_PROMPT.md) | CC: P31-STRAT-S3 — 3 fixes ב-`footprint_system.py` (~90 דק') · UAT 4-axis ב-RTH |
+| 2026-05-22 | 10:15 | CC → Cursor + Michael | **CC חלקי + תיקון אסטרטגי:** CC תיקן **רק Bug #3** (COT session-aware ב-`footprint_system.py::hydrate`) + הוסיף `SessionClassifier.current_session_open_utc()` + 4/4 pytest PASS (`test_footprint_cot_session.py`). **לא commit'ed, לא דוח, לא Bug #1/#2.** Cursor גילה **סתירה אסטרטגית קריטית:** D-082 (LOCKED, V3 spec) קובע ש-**S3=Observer בלבד**, ו-D-086 (2026-05-20 LOCKED) דוחה את ה-fix ל-post-SHADOW. ה-Compass artifact של Michael מאשר: "S3 ננעלו כ-Observer per D-082". כלומר **Bug #1 (`if mode=='LIVE'`) הוא לא באג** — זה safety net מכוון. תוקן: `types.ts` S3→observer חזרה. רק AMT (Bug #2) ו-COT (Bug #3) צריך תיקון, כ-S3 הוא provider של data ל-S2 | (1) commit CC's Bug #3 fix · (2) Bug #2 AMT rolling — לחקור אם CC ימשיך או Cursor יעשה |
+| 2026-05-22 | 10:35 | Cursor | **שני commits אטומיים:** `dcae75d` fix(footprint): COT session reset + AMT 90-min rolling [P31-STRAT-S3 #2+#3] · `2bc6796` fix(types): SYSTEM_ROLES — S3=observer per D-082, S1=observer per Matrix · co-authored עם Claude Code לBug #3 · **12/12 pytest PASS** (4 cot + 8 amt) · Bug #1 דחוי לpost-SHADOW per D-086 (לא נגעתי). פרומפט CC ל-restart + UAT 4-axis מוכן: [`CC_S3_S2_RESTART_UAT_PROMPT.md`](./agents/CC_S3_S2_RESTART_UAT_PROMPT.md) | CC: backend restart + UAT 4-axis · אחריו: Phase B 3-5 ימי SHADOW data ב-RTH |
+| 2026-05-22 | 11:15 | Cursor | **P31-PERF-C ✅ RCA-1 fix** — `_system_agrees(sid=6)` ב-`trade_context.py:252-255`: `edge=high→d=="SHORT"`, `edge=low→d=="LONG"` (היה: True/False עיוור לכיוון). 5 reg tests חדשים + 5 ישנים = **10/10 pytest PASS**. לוח עודכן. | CC: backend restart + UAT `/trades` Confluence filter (צפי 40-150 במקום 3) · אחריו: P31-PERF-D (S1/S2/S5 publishers) |
+| 2026-05-22 | 12:04 | Cursor | **S2 Audit DONE — 2 fixes** · Fix 1: `cot_amt.py` → `five_min_system.py` COT/AMT — COT עבר מ-+93,523 (footprint cumulative מהפעלה) ל--1,791 (Sierra CDV session · כיוון נכון). AMT עבר מ-0.0 ל--1,245 (rolling avg CDV). · Fix 2: OVERNIGHT_MODE gate ב-`process_bar` (+ UI BLOCKED) — S2 לא תירה overnight. **82/82 pytest PASS** · 0 regressions בroader sweep. ממתין backend restart + RTH UAT. | backend restart → five_min/current check → RTH: S2 fire UAT · אחריו: S4 audit (Woodies) |
 
 ---
 
@@ -854,10 +901,202 @@ P31 §9 — DLL TZ fix (canonical).
 
 ---
 
+## §11 — Confluence bug ב-cockpit (Cursor 2026-05-21 ערב) — pre-LIVE blocker
+
+נחשף ע"י הפילטר Confluence החדש ב-`/trades`. ההפעלת "LIVE-eligible + All systems agree" החזירה **3/200 = 1.5%**, מה שלא ייתכן.
+
+**מקור הבעיה ידוע, fix קטן (4 שורות):**
+
+```249:256:backend/v9/services/trade_context.py
+    if sid == 6:
+        cz = blob.get("current_zone") if isinstance(blob.get("current_zone"), dict) else blob
+        edge = cz.get("edge_class") if isinstance(cz, dict) else None
+        if edge == "high":
+            return True       # ← agree לכל direction
+        if edge == "low":
+            return False      # ← disagree לכל direction
+        return None
+```
+
+הLogic ל-S6 מסתכל רק על `edge_class` בלי להשוות ל-`direction`. ב-200 trades האחרונים: 155 trades עם `edge=low` נדחקים ל-`disagree` אוטומטית — כולל 73 LONG-off-the-low שהם fade קלאסי. זה לבד אחראי על 154/154 מ-S6 disagree.
+
+**הריצה לאחר הfix צריכה להחזיר ~40-150 trades במקום 3.**
+
+**מה לא לעשות:** **לא לבנות veto LIVE על `systems_agreement.S6.agree=False` כל עוד הbug שם** — חצי מהfades הלגיטימיים יקראו "disagree" שווא.
+
+**מי מתקן:** CC (P31-PERF-C). דרך פעולה מלאה + acceptance test ב-[`PROMPT_P31_CONFLUENCE_FILTER_RCA.md`](../reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md).
+
+**RCA-2 (פחות דחוף, P31-PERF-D):** S1 (Day Type), S2 (5-Min), S5 (TPO `poc_migration`) — blobs ריקים ב-`cross_context` (אף פעם לא משדרים מה-publisher לרישום הgateway). זה לא חוסם את "All systems agree" (כי neutral עובר את הסף), אבל מונע confluence "חזק" אמיתי. כל אחד prompt נפרד.
+
+---
+
+## §12 — Issue B (POC stepped lines) — DONE 2026-05-22
+
+**תלונה Michael (2026-05-21 ערב):** *"POC והקווים שלו לא מופיעים כראוי, צריכים להופיע בכל הזמן של מסחר רציף."*
+
+**הבהרה (2026-05-22 09:30 IL):** הקווים הוורודים צריכים להיות מ-RTH open עד RTH close, **stepped כל 30 דקות** כמו Sierra Study ID:3 (developing TPO).
+
+**Root cause:**
+- ה-DLL כותב רק `session.poc/vah/val` יחיד (live current). אין `periods[]` היסטורי ב-`tpo.json` כלל.
+- ה-`v9_tpo_history` היה ריק (טבלה קיימת בסכמה — אף פעם לא נכתב לה).
+- Frontend (`TpoContinuityOverlay`) הוכן ל-stepped אבל אין נתונים. `TpoContinuityOverlay::periodToUnix` היה בו bug שצירף `-04:00` גם ל-strings עם `+00:00` קיים → `NaN` → סינון שקט (P31-FE-TPO-1).
+
+**CC #2 המלצה (10:45 ET):** **B1** — Backend snapshot job → `v9_tpo_history`. LOC=~105, risk=LOW, fidelity=HIGH, ~3h.
+
+**מה shipped (Cursor 2026-05-22):**
+
+| חלק | קבצים |
+|------|--------|
+| **Frontend (AM 08:51)** | `tpoLevels.ts` — `parseSierraTsToMs` exported · `TpoContinuityOverlay.tsx` — uses shared parser · 5 tests ב-`test_tpo_stepped_lines.py` |
+| **Migration** | `017_v9_tpo_history_unique_ts.sql` — UNIQUE INDEX `ux_v9_tpo_history_ts` |
+| **Snapshotter** | `backend/v9/services/tpo_history_snapshotter.py` (חדש) — async task, 30-min ET boundaries, RTH gate, 120s stale check, startup catch-up |
+| **API switch** | `tpo_routes.py::_load_tpo_periods` מעדיף `v9_tpo_history` (per-letter), fallback ל-`v9_tpo_sessions` (daily legacy) |
+| **Main startup hook** | `backend/main.py` — `snapshotter.start()` בהפעלה |
+| **Tests** | 18 בdcamiş tests ב-`tests/v9/services/test_tpo_history_snapshotter.py` (slot math, RTH gate, stale, IB found, idempotency) |
+| **UAT script** | `scripts/uat_tpo_stepped_lines.sh` — 4 axes + `--watch` |
+
+**אימות live (12:00 IL):**
+- Snapshotter פעיל: `grep tpo_snapshotter /tmp/backend.log` → `[tpo_snapshotter] task started — interval=30min` ✓
+- `v9_tpo_history` ריק (pre-RTH, expected) — ייכתב ב-16:30 או 17:30 IL
+- API fallback ל-`v9_tpo_sessions` עובד (4 שורות legacy)
+
+**UAT pending ב-RTH:**
+- 4 axes script ב-`scripts/uat_tpo_stepped_lines.sh`
+- מצב צפוי: 13 שורות עד 16:00 ET (letters A→M), step כל 30 דקות בצ'ארט
+
+**Michael notes (11:42 IL): "POC lines still not visible correctly"** — קודם RTH, רק קווי yesterday הלבנים אמורים להיראות. ייבדק חי ב-16:30/17:30 IL.
+
+---
+
+## §13 — Phase 1 + Phase 2 — Unified history architecture (Michael 2026-05-22)
+
+**הבקשה (Michael 2026-05-22 09:51 IL):** *"אם כבר נוגעים אני רוצה שהכל יהיה אחיד — נקח היסטוריה לכל הנתונים. אם המערכת היתה כבויה לשעה — אין צורך בטעינה מלאה, רק להשלים את החסר ולהמשיך."*
+
+**CC #3 ארכיטקטורה (10:45 ET, `docs/handoff/CC_UNIFIED_HISTORY_ARCHITECTURE_SPEC.md`):**
+
+| תת-שאלה | בחירה | למה |
+|---------|--------|------|
+| מאיפה היסטוריה | **B** — EOD archiver הקיים, מורחב | קיים, אפס DLL touch |
+| Gap detection | **α** — `MAX(ts)` per table | פשוט, ב-index |
+| מי EOD trigger | **ii** — FastAPI lifecycle | אותו pattern כמו snapshotter |
+| Manual replay | `POST /api/v9/history/replay?from=X&to=Y` | מטפל ב"השלם מתאריך" |
+
+**Phase 1 — Archiver + dedicated INSERTs (Cursor 10:00–11:00 IL):**
+
+| sub-phase | קבצים | תוצאה |
+|------------|--------|--------|
+| 1.A | `eod_archiver.py` (+4 קבצים: live_price/tick_reversal_12/tick_reversal_15/reversal_cluster) · `eod_archive_scheduler.py` (חדש) · startup hook | Auto-archive 15:55 ET · 90-day prune · 14/14 files ב-`/v9_archive/2026-05-22/` (225KB) |
+| 1.B | `bars.py::VolumeProfilePayload` (+`profiles[]`) · `post_volume_profile` (positional match) | **5min vah/val/poc_vol עכשיו אמיתיים** (32 ברים non-zero, היו 0). `v9_bars_volume_profile` 31+ שורות עם **full profile JSON** (per-price-level detail, ~25KB/bar) |
+| 1.C | `CumulativeDeltaPayload` (+`points[]`) · `post_cumulative_delta` | `v9_bars_cumulative_delta` 34+ שורות live (`cvd_<i>` bar_ids) |
+| 1.D | `StackedImbalancePayload` (+`stacks[]`) · `post_stacked_imbalance` | schema עובד, 0 שורות (Sierra לא מייצא overnight — יתמלא ב-RTH) |
+| 1.E | `post_imbalance` (+dedicated INSERT) | INSERT לטבלה הייעודית בנוסף ל-system_signals |
+| 1.F | `wrappers.py::TPOSystem.analyze` — תמיכה ב-list+dict ל-`levels` | מנע crash אחרי dispatch ל-VP profile |
+| 1.G | Tests (15+11) | 26 חדשים PASS |
+
+**Phase 2 — Gap-fill + admin + UI (Cursor 11:00–11:40 IL):**
+
+| sub-phase | קבצים | תוצאה |
+|------------|--------|--------|
+| 2.A | `backend/v9/services/history_loader.py` (חדש, ~360 LOC) | 3 streams (5min/CVD/VP) · **Chicago→UTC shift תואם לbridge §9** · idempotent (INSERT OR IGNORE על UNIQUE) |
+| 2.B | `backend/v9/api/v9/admin_routes.py` (חדש) | 7 endpoints: services/{status, start, stop, restart} · history/{gap_fill, last_gap_fill, db_state} · archive_state |
+| 2.C | `main.py` startup hook | Auto gap-fill בהפעלה — Michael's "see all data when turning on" ✓ |
+| 2.D | `frontend/v9/src/v9/components/controls/SystemControlPanel.tsx` (חדש) | Floating ⚙ System bottom-right · RTL Hebrew · 4 sections (Services/Gap-fill/DB state/Archive) · 4 buttons: ▶ הפעלה / ◼ כיבוי / ↻ ריסטרט / ⬇ Gap-fill |
+| 2.E | Tests (16) | 16 history_loader tests PASS |
+| 2.F | Restart + verify | Admin endpoints מחזירים JSON תקין · gap-fill idempotent (0 duplicates) |
+
+**באג מסוכן שנתפס:** ה-history_loader התחיל בלי Chicago→UTC shift → כתב timestamps שונים מ-live POST → **601 duplicates ב-v9_bars_5min** (UNIQUE לא ראה דמיון). תיקנתי + ניקיתי + הוספתי anti-regression test (`test_history_loader.py::test_format_matches_live_post_no_duplicates`). שיעור pre-LIVE: **ts format drift = duplicate factory**.
+
+**Stream coverage:**
+- ✅ 5min, CVD, VP — בTSREAMS עם UNIQUE → idempotent gap-fill
+- ❌ Footprint, Woodies 5min/30min, tick_reversal — אין UNIQUE constraint; gap-fill יוצר duplicates. מודר מ-STREAMS. הטבלאות האלה עם מיליוני שורות מ-live POST, לא חסר.
+
+**Total tests today:** 63/63 חדשים PASS · 1059/1064 broader sweep (5 pre-existing failures, ללא אחד חדש שלי)
+
+---
+
+## §14 — Next chat: system-by-system audit S1-S6 (Michael's instruction 2026-05-22 11:42 IL)
+
+> *"לעבור מערכת מערכת לראות מה היא עושה טכנית, מה היא צריכה לעשות, ולבצע 2 תיקונים: אחד בהגדרות שלה ואחד תיקונים אם לא עובדת."*
+
+**הסוכן הנכנס יבצע** עבור כל אחת מ-6 המערכות:
+
+| Sys | תפקיד | קוד | ספצ |
+|-----|--------|------|------|
+| S1 | Day Type · OBSERVER | `backend/v9/systems/day_type/` | `docs/handoff/agents/AGENT_S1_DAYTYPE_OBSERVER_SPEC.md` |
+| S2 | Five Min · **FIRING** | `backend/v9/systems/five_min/` | `docs/handoff/agents/AGENT_S2_FIVEMIN_T1_FIRE_SPEC.md` |
+| S3 | Footprint · **FIRING** | `backend/v9/systems/footprint/` | `docs/handoff/agents/AGENT_S3_FOOTPRINT_T3_FIRE_SPEC.md` |
+| S4 | Woodies CCI · **FIRING** | `backend/v9/systems/woodies/` | `docs/handoff/agents/AGENT_S4_WOODIES_T2_FIRE_SPEC.md` |
+| S5 | TPO/VP · OBSERVER | `backend/v9/systems/tpo/` | `docs/handoff/agents/AGENT_S5_TPO_OBSERVER_SPEC.md` |
+| S6 | Killzone · GATE | `backend/v9/systems/killzone/` | `docs/handoff/agents/AGENT_S6_KILLZONE_OBSERVER_SPEC.md` |
+
+**לכל מערכת — template חובה:**
+
+```
+## S<N> — <name>
+
+### What it does TECHNICALLY (code audit)
+- <paragraph from code reading + DB live state + logs>
+
+### What it SHOULD do (spec)
+- <bullets from AGENT_S<N>_*.md>
+
+### Gap analysis
+| Behavior | Code today | Spec | Status (✅/⚠️/❌) |
+
+### Fix 1 — settings (configuration / thresholds / windows)
+- File · Change · Reason
+
+### Fix 2 — bugs (if not working)
+- File · Change · Regression test
+
+### Acceptance (4 UAT axes)
+- Quality / Recency / Cardinality / Latency
+- Where it appears in cockpit
+```
+
+**סדר מומלץ (impact-ranked):**
+1. **S2 Five-Min** — FIRING workhorse · **AMT bug תוקן 12:10 IL** (CC) — האודיט יתמקד עכשיו בpattern detection (reactive/initiative), opening_type, mode transitions
+2. **S4 Woodies CCI** — FIRING · pattern detection + Gateway routing
+3. **S3 Footprint** — FIRING · cluster_guard gating · COT/AMT machinery עובד ✓
+4. **S1 Day Type** — OBSERVER · `v9_day_type_state` C3 transitions ב-RTH
+5. **S5 TPO** — OBSERVER · אחרי B1 snapshotter ימלא `v9_tpo_history`
+6. **S6 Killzone** — GATE · RCA-1 (§11) — fix כבר ב-trade_context.py, ממתין UAT live
+
+**אילוצים:** smallest correct change · one thread at a time · no DLL changes unless Michael authorizes · regression test per fix · update task board between systems.
+
+**הפרומפט המלא לצ'אט הבא נמסר ב-chat (Cursor 2026-05-22 11:55 IL) — לא נשמר בקובץ לבקשת Michael.**
+
+### S2 Audit — DONE 2026-05-22 12:04 IL
+
+| Fix | קובץ | שינוי | בדיקות |
+|-----|------|--------|---------|
+| **Fix 1 — settings: COT/AMT ← Sierra CDV** | `five_min_system.py` | Import `cot_amt.py` · `_cot_amt_from_sierra()` helper · `_get_cot/amt_from_footprint` מעדיפים Sierra CDV (`cot=-1791, amt=-1245`) → fallback ל-footprint אם קובץ לא זמין. לפני: footprint COT=+93523 (צבירה מהפעלה, כיוון הפוך). אחרי: CDV session `-1791 < AMT -1245` = regime BELOW (נכון) | 3 tests חדשים ב-`test_in_process_footprint.py` |
+| **Fix 2 — bug: OVERNIGHT_MODE gate** | `five_min_system.py` + `planFireDiagnosis.ts` + `test_plan_fire_diagnosis_contract.py` | `process_bar` מחזיר מוקדם ב-OVERNIGHT/MAINTENANCE/WEEKEND (bar נצבר לbuffer, גלאים לא רצים). UI: OVERNIGHT_MODE → GATEWAY_BLOCK → lifecycle BLOCKED. לפני: S2 יכולה לירות overnight. | 2 tests חדשים: `test_s2_overnight_mode_is_blocked_not_scanning`, `test_process_bar_overnight_mode_does_not_fire` |
+
+**82/82 S2 tests PASS · 0 regressions**
+
+**UAT pending (RTH):**
+- `mode` עובר מ-OVERNIGHT_MODE ל-FIRST_HOUR_TACTICAL בפתיחת RTH
+- `COT != 93523` (לא footprint) · `AMT != 0` (Sierra CDV rolling avg)
+- S2 יורה pattern + routes ל-SHADOW gateway
+
+---
+
 ## קישורים
 
 - `docs/reports/P30_ROAD_START_TO_LIVE.md` — שלבים עד LIVE
 - `docs/architecture/for_designer/01_ARCHITECTURE.md` — 6 מערכות + דיאגרמה
 - `docs/handoff/P30_AGENT_INBOX_PRE_LIVE.md` — פרוטוקול
-- `CLAUDE.md` — guardrails (bridge local-only)
-- `docs/reports/PROMPT_P30_WOODIES_SYSTEM_SLOW_HANDLER.md` — דוח קודם של slow handler ב-Woodies (להשוואה לתופעת FiveMin)
+- `CLAUDE.md` — guardrails (bridge local-only · polling floors · Sierra DLL maintenance)
+- `docs/reports/PROMPT_P30_WOODIES_SYSTEM_SLOW_HANDLER.md` — דוח קודם של slow handler ב-Woodies
+- **[`docs/reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md`](../reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md)** — RCA + fix plan ל-§11 (S6 Killzone direction bug + S1/S2/S5 publishers)
+
+**P31 Phase 1 + 2 (2026-05-22) — תיעוד:**
+- [`CC_INVESTIGATE_TPO_STEPPED_PERIODS.md`](./CC_INVESTIGATE_TPO_STEPPED_PERIODS.md) — Cursor's prompt ל-CC #2 (Issue B path selection)
+- [`CC_INVESTIGATE_UNIFIED_HISTORY_ARCHITECTURE.md`](./CC_INVESTIGATE_UNIFIED_HISTORY_ARCHITECTURE.md) — Cursor's prompt ל-CC #3 (uniform history architecture)
+- [`CC_UNIFIED_HISTORY_ARCHITECTURE_SPEC.md`](./CC_UNIFIED_HISTORY_ARCHITECTURE_SPEC.md) — **CC #3 deliverable** עם 4 path decisions + per-stream plan + 3 phases
+- [`CC_UPDATE_P31_TASK_BOARD_2026-05-22_AM.md`](./CC_UPDATE_P31_TASK_BOARD_2026-05-22_AM.md) — task board update spec (לא רץ ב-CC, Cursor עדכן ישירות)
+- `scripts/uat_tpo_stepped_lines.sh` — UAT script ל-RTH 17:30 IL
+- `backend/v9/services/{tpo_history_snapshotter,eod_archive_scheduler,history_loader}.py` — 3 background services
+- `backend/v9/api/v9/admin_routes.py` — 7 operator endpoints
+- `frontend/v9/src/v9/components/controls/SystemControlPanel.tsx` — ⚙ System floating panel

@@ -11,7 +11,9 @@ Reads from existing systems to compute:
 Composite score: weighted blend 🟡 default weights, to-calibrate-in-SHADOW.
 """
 
+import asyncio
 import logging
+import threading
 import time
 from datetime import datetime, timezone
 
@@ -30,7 +32,12 @@ API = "http://localhost:8000"
 # 3s → 0.5s so even a cache miss with backend congestion caps at 3s total
 # (6 × 0.5s), not 18s.
 _FETCH_CACHE: dict = {}      # endpoint → (ts, payload)
-_FETCH_CACHE_TTL_S = 5.0
+# TTL=300s: chop metrics use 30-60min windows — 5min update cadence is enough.
+# On a cache miss, all 6 HTTP self-calls timeout (event loop is blocked by the
+# same coroutine that called route_setup), each costing 0.5s → 3s total.
+# Caching successful AND failed (default) results prevents the block repeating
+# on every pattern fire within the TTL window.  Only one 3s block per 5 min.
+_FETCH_CACHE_TTL_S = 300.0
 _FETCH_TIMEOUT_S = 0.5
 # 🟡 default thresholds — to-calibrate-in-SHADOW
 POC_STUCK_MINUTES = 5
@@ -61,7 +68,10 @@ def _fetch_json(endpoint: str, default=None):
             return payload
     except Exception:
         pass
-    # On failure, return default but DON'T cache it — let next call retry.
+    # Cache failures too (using the default value) so repeated self-call
+    # timeouts don't re-block the event loop on every pattern fire.
+    # Use a short failure TTL (10s) so live data refreshes when available.
+    _FETCH_CACHE[endpoint] = (now - _FETCH_CACHE_TTL_S + 10.0, default)
     return default
 
 
@@ -220,3 +230,45 @@ def get_chop_score() -> dict:
         "indicators": {**indicators, **abbrev},
         "computed_at": datetime.now(timezone.utc).isoformat(),
     }
+
+
+# ── Background cache refresher ────────────────────────────────────────────────
+
+_refresher_thread: "threading.Thread | None" = None
+_refresher_stop = threading.Event()
+
+
+def _refresh_loop(interval_s: float = 30.0) -> None:
+    """Pre-populate _FETCH_CACHE every `interval_s` seconds from a worker thread.
+
+    Running in a thread (not the event loop) means the HTTP self-calls don't
+    block the FastAPI event loop. By the time Woodies fires a pattern and calls
+    _get_chop_state(), the cache is already warm → 0ms instead of 3s.
+    """
+    logger.info("[chop_score] background refresher started (interval=%.0fs)", interval_s)
+    while not _refresher_stop.wait(interval_s):
+        try:
+            get_chop_score()
+            logger.debug("[chop_score] background refresh OK")
+        except Exception as exc:
+            logger.debug("[chop_score] background refresh error (non-fatal): %s", exc)
+    logger.info("[chop_score] background refresher stopped")
+
+
+def start_background_refresher(interval_s: float = 30.0) -> None:
+    """Start the background cache-warming thread. Safe to call multiple times."""
+    global _refresher_thread
+    if _refresher_thread is not None and _refresher_thread.is_alive():
+        return
+    _refresher_stop.clear()
+    _refresher_thread = threading.Thread(
+        target=_refresh_loop,
+        args=(interval_s,),
+        name="chop-score-refresher",
+        daemon=True,
+    )
+    _refresher_thread.start()
+
+
+def stop_background_refresher() -> None:
+    _refresher_stop.set()

@@ -1,14 +1,35 @@
-"""Trade event emitter — publishes lifecycle events to Redis pub/sub.
+"""Trade event emitter — publishes lifecycle events to Redis pub/sub and WS.
 
 Channel: v9:trades:events
+WS:      /ws/v9/price (same manager, type="trade.event")
 """
 
+import asyncio
 import json
 import logging
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional, Protocol
 
 logger = logging.getLogger(__name__)
+
+# Main asyncio loop — injected at startup so synchronous emit() can
+# schedule WS broadcasts without blocking the calling thread.
+_main_loop: Optional[asyncio.AbstractEventLoop] = None
+
+
+def set_trade_events_loop(loop: asyncio.AbstractEventLoop) -> None:
+    """Called at startup to inject the FastAPI event loop for WS broadcasts."""
+    global _main_loop
+    _main_loop = loop
+
+
+async def _broadcast_trade_event(payload: dict) -> None:
+    """Broadcast trade event to all WS clients (price manager reused)."""
+    try:
+        from backend.v9.ws.manager import price_ws_manager
+        await price_ws_manager.broadcast({"type": "trade.event", "data": payload})
+    except Exception:
+        pass
 
 # Redis channel for trade lifecycle events
 TRADE_EVENTS_CHANNEL = "v9:trades:events"
@@ -54,5 +75,11 @@ class TradeEventEmitter:
                 logger.exception("Failed to publish trade event: %s", event_type)
         else:
             logger.debug("Trade event (no Redis): %s", message)
+
+        # WS broadcast — fire-and-forget on main loop
+        if _main_loop is not None and _main_loop.is_running():
+            asyncio.run_coroutine_threadsafe(
+                _broadcast_trade_event(payload), _main_loop
+            )
 
         return payload
