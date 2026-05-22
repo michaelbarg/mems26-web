@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 NOW_FALLBACK_SKEW_S = 5
-MAX_OPEN_WINDOW_S = 30 * 60  # mirror of tradeAuxStatus.ts constant
+MAX_OPEN_WINDOW_S = 2 * 60 * 60  # 2h cap — mirror of tradeAuxStatus.ts
 
 
 def _parse_iso(ts: Optional[str]) -> Optional[float]:
@@ -57,15 +57,11 @@ def _windows(trades: List[Dict[str, Any]], now: float) -> List[Tuple[int, float,
         if start is None:
             continue
         exit_ = _parse_iso(t.get("exit_ts"))
-        # Mirror of tradeAuxStatus.ts: PARTIAL/PENDING stuck trades capped at
-        # 30 min; active OPEN/FILLED trades extend to now.
-        is_stuck = not t.get("exit_ts") and t.get("state") in ("PARTIAL", "PENDING")
+        # Mirror of tradeAuxStatus.ts: all trades without exit_ts capped at 2h.
         if exit_ is not None:
             end = max(exit_, start)
-        elif is_stuck:
-            end = min(start + MAX_OPEN_WINDOW_S, now)
         else:
-            end = now
+            end = min(start + MAX_OPEN_WINDOW_S, now)
         out.append((t["id"], start, end))
     return out
 

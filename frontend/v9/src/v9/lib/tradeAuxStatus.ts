@@ -24,10 +24,12 @@ export interface TradeAuxStatus {
 }
 
 const NOW_FALLBACK_SKEW_S = 5; // be conservative for still-open trades
-// Cap open/partial trade windows at 30 min from entry.
-// Without this, PARTIAL trades with no exit_ts extend to "now" and
-// incorrectly mark every subsequent trade as parallel.
-const MAX_OPEN_WINDOW_S = 30 * 60;
+// Cap trades with no exit_ts at 2 hours from entry. Without this, stuck
+// OPEN/PARTIAL trades from earlier in the session create windows extending
+// all the way to "now" and mark every subsequent trade as parallel.
+// 2h is generous enough to capture genuine concurrency (typical trade <30min)
+// while eliminating false positives from trades stuck open all day.
+const MAX_OPEN_WINDOW_S = 2 * 60 * 60;
 
 function parseIso(ts: string | null | undefined): number | null {
   if (!ts) return null;
@@ -52,14 +54,12 @@ function buildWindows(trades: Trade[], now: number): Window[] {
     const start = parseIso(t.entry_ts);
     if (start === null) continue;
     const exit = parseIso(t.exit_ts);
-    // PARTIAL/PENDING with no exit_ts are "stuck" trades whose real close
-    // time is unknown; cap their window at 30 min so they don't mark every
-    // later trade as parallel. OPEN/FILLED with no exit_ts are genuinely
-    // active → extend to now (current behaviour).
-    const isStuck = !t.exit_ts && (t.state === 'PARTIAL' || t.state === 'PENDING');
+    // All trades without exit_ts are capped at 2 hours from entry.
+    // This covers OPEN, FILLED, PARTIAL, PENDING — any state where
+    // the trade is "stuck" without a recorded close time.
     const end = exit !== null
       ? Math.max(exit, start)
-      : isStuck ? Math.min(start + MAX_OPEN_WINDOW_S, now) : now;
+      : Math.min(start + MAX_OPEN_WINDOW_S, now);
     out.push({ id: t.id, start, end });
   }
   return out;
