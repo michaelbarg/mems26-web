@@ -34,6 +34,15 @@ class FootprintSystem(BaseV9TradingSystem):
         self._last_dominance: Optional[str] = None
         self._cumulative_delta: float = 0
         self._last_amt: Optional[float] = None
+        # P31-STRAT-S3 #2 (2026-05-22): AMT is a 90-min rolling average of per-bar
+        # vol/trade_count, not an instant per-bar reading. Without this rolling
+        # window, S2 5-Min's `cot > amt` / `cot < amt` fire conditions compare
+        # an accumulated COT (or 0) against a single-bar number that jumps
+        # randomly 0..300+, and so S2 effectively never fires.
+        # tick_reversal bars are variable-length; 18 bars approximates 90 min
+        # in normal flow but degrades to "last 18 bars" in quiet sessions.
+        self._amt_window: List[float] = []
+        self._AMT_WINDOW_BARS: int = 18
         self._total_vol: float = 0
         self._total_trades: int = 0
         # Initiative/Reactive (P-FP-2)
@@ -82,20 +91,36 @@ class FootprintSystem(BaseV9TradingSystem):
         self.current_state["running"] = True
         self.current_state["hydrated"] = True
 
-        # P-WAVE-D3: Restore cumulative_delta from last journal entry
-        # W1.1: use self.db_path (absolute) instead of __file__ relative traversal
+        # P31: Session-aware COT hydration.
+        # COT is a per-session field — only restore if the last journal entry
+        # is from the current Globex session (opens 18:00 ET daily).
         restored_delta = 0.0
         try:
             import sqlite3 as _sql
+            from datetime import datetime, timezone
+            from backend.v9.common.session_classifier import SessionClassifier
+
+            sc = SessionClassifier()
+            session_open = sc.current_session_open_utc()
+
             conn = _sql.connect(self.db_path)
             row = conn.execute(
-                "SELECT cumulative_delta FROM v9_footprint_journal ORDER BY id DESC LIMIT 1"
+                "SELECT cumulative_delta, created_at FROM v9_footprint_journal ORDER BY id DESC LIMIT 1"
             ).fetchone()
             if row and row[0]:
-                restored_delta = float(row[0])
-                self._cumulative_delta = restored_delta
-                self.current_state["cumulative_delta"] = restored_delta
-                self.current_state["cot"] = restored_delta
+                last_ts_str = row[1]
+                last_ts = datetime.fromisoformat(last_ts_str.replace("Z", "+00:00"))
+                if last_ts.tzinfo is None:
+                    last_ts = last_ts.replace(tzinfo=timezone.utc)
+                if last_ts >= session_open:
+                    restored_delta = float(row[0])
+                    self._cumulative_delta = restored_delta
+                    self.current_state["cumulative_delta"] = restored_delta
+                    self.current_state["cot"] = restored_delta
+                    logger.info("[Footprint] Hydrated COT from current session: %.1f", restored_delta)
+                else:
+                    logger.info("[Footprint] Last journal is from previous session — starting COT at 0")
+                    self._cumulative_delta = 0.0
             # Also count today's bars for context
             count = conn.execute(
                 "SELECT COUNT(*) FROM v9_footprint_journal WHERE date(created_at) = date('now')"
@@ -248,7 +273,14 @@ class FootprintSystem(BaseV9TradingSystem):
 
         trade_count = int(bar.get("trade_count") or bar.get("ticks_count") or bar.get("n") or 1)
         total_vol = float(bar.get("v") or bar.get("volume") or 0)
-        self._last_amt = total_vol / max(trade_count, 1)
+        # Per-bar AMT, then rolling 90-min average — see __init__ comment.
+        per_bar_amt = total_vol / max(trade_count, 1)
+        self._amt_window.append(per_bar_amt)
+        if len(self._amt_window) > self._AMT_WINDOW_BARS:
+            self._amt_window = self._amt_window[-self._AMT_WINDOW_BARS:]
+        self._last_amt = (
+            sum(self._amt_window) / len(self._amt_window) if self._amt_window else 0.0
+        )
         self._total_vol += total_vol
         self._total_trades += trade_count
 

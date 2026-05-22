@@ -8,7 +8,7 @@ WEEKEND (Fri 17:00 - Sun 18:00 ET) and MAINTENANCE (17:00-18:00 ET daily).
 """
 
 from dataclasses import dataclass
-from datetime import datetime, time
+from datetime import datetime, time, timedelta, timezone
 from enum import Enum
 from typing import Optional
 
@@ -106,3 +106,23 @@ class SessionClassifier:
 
     def is_cash(self, session: Session) -> bool:
         return session in (Session.CASH_OPEN, Session.FIRST_HOUR, Session.CASH_HOURS)
+
+    def current_session_open_utc(self, now: Optional[datetime] = None) -> datetime:
+        """Return the most recent Globex session open (18:00 ET) as UTC datetime.
+
+        Globex session opens at 18:00 ET each trading day.
+        If now is before 18:00 ET, the session opened yesterday at 18:00 ET.
+        If now is at or after 18:00 ET, the session opened today at 18:00 ET.
+        """
+        if now is None:
+            now = now_et()
+        elif now.tzinfo is None:
+            now = self.ET.localize(now)
+        else:
+            now = now.astimezone(self.ET)
+
+        session_open_et = now.replace(hour=18, minute=0, second=0, microsecond=0)
+        if now.time() < time(18, 0):
+            session_open_et -= timedelta(days=1)
+
+        return session_open_et.astimezone(timezone.utc)
