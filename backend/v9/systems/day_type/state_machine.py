@@ -673,6 +673,9 @@ class DayTypeStateMachine:
 
     def _build_state(self, bar: BarInput) -> DayTypeState:
         """Build the DayTypeState output."""
+        ib_h_live = self.ib_high if self.ib_high > 0 else None
+        ib_l_live = self.ib_low if self.ib_low < float("inf") else None
+        ib_range_live = round(ib_h_live - ib_l_live, 2) if (ib_h_live is not None and ib_l_live is not None) else None
         return DayTypeState(
             stage=self.stage,
             day_type=self.day_type,
@@ -699,10 +702,33 @@ class DayTypeStateMachine:
                 "pd_context_status": self.pd_context_status,
                 "pd_degraded_reason": self.pd_degraded_reason,
                 "missing_pd_fields": list(self.missing_pd_fields),
+                # IB live tracking (available from first A3 bar, before A4 lock)
+                "ib_high_live": ib_h_live,
+                "ib_low_live": ib_l_live,
+                "ib_range_live": ib_range_live,
+                "ib_locked": self.ib_locked,
             },
         )
 
     # ── V9 Enhancement Methods (Hybrid, LOCKED 15/5 option D) ───────────
+
+    def get_current(self) -> dict:
+        """Snapshot for cross-context capture at trade fire time (RCA-2)."""
+        if self._last_state is None:
+            return {"running": False}
+        s = self._last_state
+        return {
+            "running": True,
+            "day_type": s.day_type.value,
+            "confidence": round(s.confidence, 3),
+            "lock_state": s.lock_state,
+            "stage": s.stage.value if s.stage else None,
+            "opening_type": s.opening_type.value if s.opening_type else None,
+            "ib_width": s.ib_width.value if s.ib_width else None,
+            "ib_high_live": s.meta.get("ib_high_live"),
+            "ib_low_live": s.meta.get("ib_low_live"),
+            "ib_locked": s.meta.get("ib_locked", False),
+        }
 
     def update_cvd_state(self, cvd_state_value: str) -> None:
         """V9: called when CVDContextClassifier publishes new state."""
@@ -840,7 +866,33 @@ class DayTypeStateMachine:
         if self._last_state.opening_type == OpeningType.UNKNOWN:
             return None
         if self._last_state.ib_width == IBWidth.UNKNOWN:
-            return None
+            # During A3: IB is still developing — return partial classification
+            # with live values so the cockpit can display IB size in real time.
+            ib_h_live = self._last_state.meta.get("ib_high_live")
+            ib_l_live = self._last_state.meta.get("ib_low_live")
+            ib_r_live = self._last_state.meta.get("ib_range_live")
+            if ib_h_live is None or ib_l_live is None:
+                return None  # IB tracking not started yet (pre-A3)
+            now = datetime.now(tz=timezone.utc)
+            opening = self._last_state.opening_type
+            return DayTypeClassification(
+                timestamp=now,
+                day_type=DayType.UNKNOWN,
+                probability=0.0,
+                directional_certainty="LOW",
+                trading_confidence="LOW",
+                ib_h=ib_h_live,
+                ib_l=ib_l_live,
+                ib_width=ib_r_live,
+                ib_width_class="DEVELOPING",
+                opening_type=opening.value if opening != OpeningType.UNKNOWN else None,
+                last_updated_at=now,
+                reasoning_notes=(
+                    f"IB developing: h={ib_h_live} l={ib_l_live}"
+                    f" range={ib_r_live} session_min={self._last_state.session_min}"
+                ),
+                active_zohar_rules=[],
+            )
 
         winning_type = self._last_state.day_type
         if winning_type == DayType.UNKNOWN:

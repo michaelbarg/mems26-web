@@ -41,8 +41,11 @@ def get_current():
             return {"classified": False, "session_date": today, "data": None}
 
         r = dict(row)
+        is_developing = r.get("ib_width_class") == "DEVELOPING"
+        is_classified = (not is_developing) and r.get("day_type") not in (None, "UNKNOWN")
         return {
-            "classified": True,
+            "classified": is_classified,
+            "developing": is_developing,
             "session_date": today,
             "data": _row_to_v9_dict(r),
         }
@@ -133,16 +136,24 @@ def _row_to_v9_dict(r: dict) -> dict:
     if probability is None and r.get("confidence") is not None:
         probability = r["confidence"] / 100.0 if r["confidence"] > 1 else r["confidence"]
 
+    ib_h = r.get("ib_high")
+    ib_l = r.get("ib_low")
+    ib_width_class = r.get("ib_width_class")
+    ib_range = round(ib_h - ib_l, 2) if (ib_h is not None and ib_l is not None) else None
+    ib_locked = ib_width_class not in (None, "DEVELOPING", "UNKNOWN")
+
     return {
         "session_date": r.get("date"),
         "day_type": r.get("day_type"),
         "probability": probability,
         "directional_certainty": directional,
         "trading_confidence": trading,
-        "ib_h": r.get("ib_high"),
-        "ib_l": r.get("ib_low"),
+        "ib_h": ib_h,
+        "ib_l": ib_l,
         "ib_width": r.get("ib_width"),
-        "ib_width_class": r.get("ib_width_class"),
+        "ib_range": ib_range,
+        "ib_width_class": ib_width_class,
+        "ib_locked": ib_locked,
         "opening_type": r.get("opening_type"),
         "last_updated_at": r.get("last_updated_at"),
         "reasoning_notes": r.get("reasoning_notes"),

@@ -659,3 +659,7 @@ class FiveMinSystem(BaseV9TradingSystem):
             "last_classification": self.last_classification,
             "last_reasoning_notes": self.current_state.get("last_reasoning_notes"),
         }
+
+    def get_current(self) -> dict:
+        """Snapshot for cross-context capture at trade fire time (RCA-2)."""
+        return self.get_state()
