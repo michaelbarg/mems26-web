@@ -272,7 +272,7 @@ class FootprintSystem(BaseV9TradingSystem):
             self._last_dominance = "BALANCED"
 
         trade_count = int(bar.get("trade_count") or bar.get("ticks_count") or bar.get("n") or 1)
-        total_vol = float(bar.get("v") or bar.get("volume") or 0)
+        total_vol = float(bar.get("vol") or bar.get("v") or bar.get("volume") or 0)
         # Per-bar AMT, then rolling 90-min average — see __init__ comment.
         per_bar_amt = total_vol / max(trade_count, 1)
         self._amt_window.append(per_bar_amt)

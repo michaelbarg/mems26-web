@@ -102,6 +102,15 @@ def test_amt_handles_missing_volume_field(fp: FootprintSystem) -> None:
     assert fp._last_amt == pytest.approx(5.0)
 
 
+def test_amt_reads_sierra_vol_field(fp: FootprintSystem) -> None:
+    """Tick reversal bars from Sierra use 'vol', not 'v' or 'volume'.
+    Regression test for P31-STRAT-S3 field-name fix (CC 2026-05-22)."""
+    sierra_bar = {"ask_vol": 1043.0, "bid_vol": 1089.0, "vol": 2132.0, "trade_count": 15}
+    fp._update_flow(sierra_bar)
+    assert fp._last_amt == pytest.approx(2132.0 / 15)
+    assert fp._last_amt > 0, "AMT must not be 0 when vol field is present"
+
+
 def test_amt_skips_bars_with_no_classifiable_forces(fp: FootprintSystem) -> None:
     """If `_classify_forces_in_bar` returns None (no ask/bid volume),
     `_update_flow` exits early and the window is untouched."""
