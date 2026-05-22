@@ -4,6 +4,7 @@ Entry point for Render:
     web: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
 """
 
+import asyncio
 import os
 import time
 import sqlite3
@@ -12,77 +13,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.v9.app import v9_router, init_event_dispatcher
+from backend.v9.api.journal_compat_routes import router as journal_compat_router
+from backend.v9.systems.day_type.prev_day import (
+    load_previous_day_context as _load_previous_day_context,
+    missing_pd_context as _missing_pd_context,
+)
 
 DEFAULT_LOCAL_DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
-
-
-def _missing_pd_context(missing_fields):
-    return {
-        "pd_high": None,
-        "pd_low": None,
-        "pd_close": None,
-        "pd_context_status": "DEGRADED",
-        "degraded_reason": "missing_previous_day_context",
-        "missing_pd_fields": list(missing_fields),
-    }
-
-
-def _load_previous_day_context(db_path=DEFAULT_LOCAL_DB_PATH, previous_trading_day=None):
-    """Load previous-day context for DayType A1 without inventing defaults.
-
-    pd_close is always sourced from the last previous-day 5-minute bar close.
-    TPO range is preferred for pd_high/pd_low, with bars max/min as fallback.
-    """
-    from backend.v9.services.market_clock import get_previous_trading_day
-
-    prev_date = (
-        previous_trading_day.isoformat()
-        if hasattr(previous_trading_day, "isoformat")
-        else previous_trading_day
-    ) or get_previous_trading_day().isoformat()
-
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    try:
-        bars_row = conn.execute(
-            """SELECT max(high) as hi, min(low) as lo,
-                      (SELECT close FROM v9_bars_5min
-                       WHERE date(ts)=?
-                       ORDER BY ts DESC LIMIT 1) as last_c
-               FROM v9_bars_5min WHERE date(ts)=?""",
-            (prev_date, prev_date),
-        ).fetchone()
-
-        pd_close = bars_row["last_c"] if bars_row else None
-        bars_high = bars_row["hi"] if bars_row else None
-        bars_low = bars_row["lo"] if bars_row else None
-
-        tpo_row = conn.execute(
-            """SELECT range_high, range_low
-               FROM v9_tpo_sessions
-               WHERE trading_date=? AND session_type='CASH'
-               ORDER BY id DESC LIMIT 1""",
-            (prev_date,),
-        ).fetchone()
-
-        pd_high = (tpo_row["range_high"] if tpo_row else None) or bars_high
-        pd_low = (tpo_row["range_low"] if tpo_row else None) or bars_low
-    finally:
-        conn.close()
-
-    context = {"pd_high": pd_high, "pd_low": pd_low, "pd_close": pd_close}
-    missing_fields = [field for field, value in context.items() if value is None]
-    if missing_fields:
-        degraded = _missing_pd_context(missing_fields)
-        degraded.update(context)
-        return degraded
-
-    return {
-        **context,
-        "pd_context_status": "OK",
-        "degraded_reason": None,
-        "missing_pd_fields": [],
-    }
 
 # ── App ──────────────────────────────────────────────────────
 
@@ -107,6 +44,7 @@ app.add_middleware(
 # ── Mount V9 routes ──────────────────────────────────────────
 
 app.include_router(v9_router)
+app.include_router(journal_compat_router)
 
 
 @app.on_event("startup")
@@ -201,10 +139,12 @@ async def _startup():
     # P5.1.2: Subscribe DayTypeStateMachine to BarRouter 5min
     try:
         from backend.v9.systems.day_type.state_machine import DayTypeStateMachine
-        from backend.v9.systems.day_type.schemas import BarInput
+        from backend.v9.systems.day_type.schemas import BarInput, IBClassification, Stage
+        from backend.v9.systems.day_type.detector import classify_ib_width
         from backend.v9.systems.day_type.consumer import DayTypeConsumer
         from backend.v9.db.session import SessionLocal
         from backend.v9.services.market_clock import minutes_since_rth_open, now_et
+        from backend.v9.api.v9.day_type_seed import maybe_seed_ib_from_tpo
 
         day_type_machine = DayTypeStateMachine()
         app.state.day_type_machine = day_type_machine
@@ -215,17 +155,41 @@ async def _startup():
             try:
                 return _load_previous_day_context()
             except Exception as pd_err:
-                _logger.debug("[DayType] previous day context unavailable: %s", pd_err)
+                _logger.warning("[DayType] previous day context unavailable: %s", pd_err)
                 return _missing_pd_context(("pd_high", "pd_low", "pd_close"))
 
         async def _day_type_on_bar(event):
             """Bridge BarRouter event to DayTypeStateMachine.process_bar."""
             bar = event.payload if hasattr(event, 'payload') else event
             try:
-                # Read IB from TPO state (P5.1.3: single source of truth)
+                # Read IB from v9_bars_5min (P31 IB source fix: bars are
+                # more current than TPOSystem which can lag behind Sierra).
+                # IB = first 60 min of RTH (09:30-10:30 ET).
                 tpo_sys = getattr(app.state, 'tpo_system', None)
-                ib_h = tpo_sys.ib_high if tpo_sys else None
-                ib_l = tpo_sys.ib_low if tpo_sys else None
+                ib_h, ib_l = None, None
+                try:
+                    from datetime import datetime, time as _time, timedelta
+                    from zoneinfo import ZoneInfo
+                    _et = ZoneInfo("America/New_York")
+                    today_et = datetime.now(_et).date()
+                    rth_open = datetime.combine(today_et, _time(9, 30), tzinfo=_et)
+                    ib_end = rth_open + timedelta(hours=1)
+                    rth_open_str = rth_open.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%d %H:%M:%S")
+                    ib_end_str = ib_end.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%d %H:%M:%S")
+                    import sqlite3 as _sql3
+                    _conn = _sql3.connect(DEFAULT_LOCAL_DB_PATH)
+                    _row = _conn.execute(
+                        "SELECT MAX(high), MIN(low) FROM v9_bars_5min "
+                        "WHERE symbol='MES' AND ts >= ? AND ts < ?",
+                        (rth_open_str, ib_end_str),
+                    ).fetchone()
+                    _conn.close()
+                    if _row and _row[0] is not None:
+                        ib_h, ib_l = float(_row[0]), float(_row[1])
+                except Exception as _ib_err:
+                    _logger.warning("[DayType] IB from bars failed: %s — falling back to TPO", _ib_err)
+                    ib_h = tpo_sys.ib_high if tpo_sys else None
+                    ib_l = tpo_sys.ib_low if tpo_sys else None
 
                 # Read opening type from TPO (P5.1.4)
                 opening_type = "UNKNOWN"
@@ -251,6 +215,21 @@ async def _startup():
                     pd_close=pd_ctx.get("pd_close"),
                     ib_high=ib_h,
                     ib_low=ib_l,
+                )
+                # Mid-session restart guard (P30 C1): when the FastAPI process
+                # restarts after RTH 10:30, the fresh machine would otherwise
+                # land at stage A3, see session_min >= ib_period_min and lock
+                # IB from a single 5-min bar (~5 pt → NARROW), which steered
+                # 2026-05-19 to a wrong Nontrend verdict. Seed IB from TPO's
+                # already-locked values and skip to B1 in that scenario.
+                tpo_ib_locked = bool(getattr(tpo_sys, "ib_locked", False)) if tpo_sys else False
+                maybe_seed_ib_from_tpo(
+                    machine=day_type_machine,
+                    session_min=_session_min,
+                    tpo_ib_locked=tpo_ib_locked,
+                    tpo_ib_high=ib_h,
+                    tpo_ib_low=ib_l,
+                    logger=_logger,
                 )
                 state = day_type_machine.process_bar(bar_input)
 
@@ -299,9 +278,17 @@ async def _startup():
                             "last_updated_at": classification.last_updated_at.isoformat(),
                             "reasoning_notes": classification.reasoning_notes,
                             "active_zohar_rules": classification.active_zohar_rules,
+                            # P31 §C: pass the state machine's lock_state so the
+                            # V1-legacy `status` column reflects PENDING vs LOCKED
+                            # instead of being hardcoded to LOCKED.
+                            "lock_state": str(state.lock_state),
                         })
                 except Exception as consumer_err:
-                    _logger.debug("[DayType] V9 consumer persist skipped: %s", consumer_err)
+                    # P31 §C: was logger.debug — silent failures hid a schema-drift
+                    # IntegrityError (status/confidence NOT NULL) for weeks.
+                    _logger.warning(
+                        "[DayType] V9 consumer persist failed: %s", consumer_err
+                    )
 
                 # P5.1.5: Publish on classification CHANGE only
                 dt_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
@@ -400,6 +387,10 @@ async def _startup():
         app.state.trade_manager = trade_manager
         app.state.bar_level_detector = bar_level_detector
         _logger.info("[Main] BarLevelDetector subscribed to 5min — SHADOW trades will auto-close")
+        gw = getattr(app.state, "trading_gateway", None)
+        if gw is not None and hasattr(gw, "set_trade_manager"):
+            gw.set_trade_manager(trade_manager)
+            _logger.info("[Main] TradingGateway → TradeManager wired for SHADOW PnL")
     except Exception as e:
         _logger.error("[Main] BarLevelDetector startup failed: %s", e)
 
@@ -408,12 +399,76 @@ async def _startup():
     db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     historical = HistoricalReplay(db_path=db_path, bar_router=bar_router)
     app.state.historical_replay = historical
-    try:
-        _logger.info("[Main] HistoricalReplay: starting 12h warmup...")
-        await historical.warm_all_systems(hours=12)
-        _logger.info("[Main] HistoricalReplay stats: %s", historical.get_stats())
-    except Exception as e:
-        _logger.error("[Main] HistoricalReplay failed (non-fatal): %s", e)
+    # P30 2026-05-20: warm_all_systems replays ~144 5-min bars through
+    # BarRouter. Even as `asyncio.create_task` the published events run their
+    # sync handlers (e.g. `BarLevelDetector.on_bar` at 5–11 s each because
+    # of a `InvalidRequestError: session is in committed state` regression)
+    # on the same event loop — the FastAPI startup phase never completes
+    # and the server never binds port 8000. Skip by default so the cockpit
+    # comes up instantly. Re-enable per-deploy by exporting V9_DO_WARMUP=1.
+    if os.getenv("V9_DO_WARMUP", "").lower() in ("1", "true", "yes"):
+        async def _run_warmup():
+            try:
+                _logger.info("[Main] HistoricalReplay: starting 12h warmup (background)...")
+                await historical.warm_all_systems(hours=12)
+                _logger.info("[Main] HistoricalReplay stats: %s", historical.get_stats())
+            except Exception as e:
+                _logger.error("[Main] HistoricalReplay failed (non-fatal): %s", e)
+        asyncio.create_task(_run_warmup())
+    else:
+        _logger.info("[Main] HistoricalReplay: skipped at startup (V9_DO_WARMUP not set)")
+
+    # P31 Issue B — TPO history snapshotter (writes v9_tpo_history every 30-min
+    # RTH boundary so the chart's pink line can step like Sierra Study ID:3).
+    # See backend/v9/services/tpo_history_snapshotter.py and
+    # docs/handoff/CC_INVESTIGATE_TPO_STEPPED_PERIODS.md (CC #2 path B1).
+    if os.getenv("V9_DISABLE_TPO_SNAPSHOTTER", "").lower() not in ("1", "true", "yes"):
+        try:
+            from backend.v9.services.tpo_history_snapshotter import get_snapshotter
+            snapshotter = get_snapshotter()
+            snapshotter.start()
+            app.state.tpo_history_snapshotter = snapshotter
+            _logger.info("[Main] TPOHistorySnapshotter started")
+        except Exception as e:
+            _logger.error("[Main] TPOHistorySnapshotter startup failed (non-fatal): %s", e)
+    else:
+        _logger.info("[Main] TPOHistorySnapshotter: disabled via V9_DISABLE_TPO_SNAPSHOTTER")
+
+    # P31 Phase 1 — EOD archive scheduler (auto-fires at 15:55 ET on trading
+    # days; runs 90-day retention prune after each archive). Selected per
+    # docs/handoff/CC_UNIFIED_HISTORY_ARCHITECTURE_SPEC.md path (ii).
+    if os.getenv("V9_DISABLE_EOD_SCHEDULER", "").lower() not in ("1", "true", "yes"):
+        try:
+            from backend.v9.services.eod_archive_scheduler import get_scheduler as _get_eod_sched
+            eod_scheduler = _get_eod_sched()
+            eod_scheduler.start()
+            app.state.eod_archive_scheduler = eod_scheduler
+            _logger.info("[Main] EODArchiveScheduler started")
+        except Exception as e:
+            _logger.error("[Main] EODArchiveScheduler startup failed (non-fatal): %s", e)
+    else:
+        _logger.info("[Main] EODArchiveScheduler: disabled via V9_DISABLE_EOD_SCHEDULER")
+
+    # P31 Phase 2 — Startup gap-fill (Michael 2026-05-22 "I want to see all
+    # the data already in the dashboard when we turn on"). Reads rolling
+    # Sierra exports for 5min/CVD/VP and INSERT-OR-IGNOREs anything newer
+    # than MAX(ts). Idempotent — safe to re-run. Bounded by export size.
+    if os.getenv("V9_DISABLE_HISTORY_LOADER", "").lower() not in ("1", "true", "yes"):
+        try:
+            from backend.v9.services.history_loader import get_loader as _get_history_loader
+            loader = _get_history_loader()
+            summary = loader.run_gap_fill(reason="startup")
+            app.state.history_loader = loader
+            app.state.history_last_gap_fill = summary
+            _logger.warning(  # WARNING so it survives uvicorn filter
+                "[Main] history_loader startup gap-fill elapsed=%.2fs streams=%d",
+                summary.get("elapsed_s", 0.0),
+                len(summary.get("streams", {})),
+            )
+        except Exception as e:
+            _logger.error("[Main] history_loader startup failed (non-fatal): %s", e)
+    else:
+        _logger.info("[Main] history_loader: disabled via V9_DISABLE_HISTORY_LOADER")
 
 
 # ── Health (unified) ─────────────────────────────────────────
