@@ -91,6 +91,22 @@ export interface SystemMarker {
 
 export type TradeOutcome = 'WIN' | 'LOSS' | 'SCRATCH' | 'OPEN';
 
+export interface ContractPnlLeg {
+  id: string;
+  status: string;
+  exit_price?: number;
+  pnl_usd: number;
+  pnl_r?: number | null;
+}
+
+export interface SystemAgreement {
+  id: number;
+  name: string;
+  agree: boolean | null;
+  is_firing: boolean;
+  hint?: string | null;
+}
+
 // ── Trade types (GET /api/v9/trades) ──
 
 export interface Trade {
@@ -98,15 +114,48 @@ export interface Trade {
   mode: string;
   system: number;
   direction: string;
+  state?: string | null;
   entry_ts: string | null;
   entry_price: number | null;
+  stop?: number | null;
+  stop_initial?: number | null;
+  /** initial | BE@entry — Smart BE overwrites stop column */
+  stop_note?: string | null;
+  /** T1_NO_BE when T1 hit but stop never moved to entry */
+  stop_issue?: string | null;
+  systems_agreement?: SystemAgreement[];
+  t1?: number | null;
+  t2?: number | null;
+  t3?: number | null;
+  t1_hit?: boolean;
+  t2_hit?: boolean;
+  t3_hit?: boolean;
   exit_ts: string | null;
   exit_price: number | null;
   exit_reason: string | null;
   pnl_usd: number | null;
   pnl_r: number | null;
+  /** closed | partial (realized C1/C2) | open */
+  pnl_mode?: string | null;
+  contracts_pnl?: ContractPnlLeg[] | null;
+  /** From v9_bars_5min between entry and exit (5m resolution). */
+  price_high?: number | null;
+  price_low?: number | null;
+  mfe_pts?: number | null;
+  mae_pts?: number | null;
+  /** Closest approach to T1 in points (0 = touched). */
+  t1_closest_pts?: number | null;
+  /** Distance to T1 at MFE peak price. */
+  t1_at_mfe_pts?: number | null;
+  t1_reached?: boolean | null;
+  bars_count?: number | null;
   outcome: string | null;
   sierra_bracket_id: string | null;
+  pattern_id?: string | null;
+  trigger?: string | null;
+  classification?: string | null;
+  day_type?: string | null;
+  confidence?: number | null;
 }
 
 export interface TradeDetailed extends Trade {
@@ -170,8 +219,15 @@ export const SYSTEM_NAMES: Record<SystemId, string> = {
   6: 'Killzone',
 };
 
+// Source of truth: D-082 (S3 Observer-only spec V3) + D-086 (S3 firing
+// violation deferred to post-SHADOW). S1 confirmed Observer per Master
+// Matrix V1.0 in `backend/v9/systems/wrappers.py:8-14`.
+// 2026-05-22: corrected S1 (was 'firing'), S3 stays 'observer' per D-082.
+// The `wrappers.py` Master Matrix is older than D-082; D-082+D-086 take
+// precedence. S3 has firing CODE (route_setup at line 426) but is treated
+// as Observer for spec/UI/audit purposes until V4 dual-role spec lands.
 export const SYSTEM_ROLES: Record<SystemId, 'firing' | 'observer' | 'gate'> = {
-  1: 'firing',
+  1: 'observer',
   2: 'firing',
   3: 'observer',
   4: 'firing',
