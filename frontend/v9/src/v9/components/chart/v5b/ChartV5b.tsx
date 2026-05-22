@@ -702,11 +702,19 @@ export function ChartV5b() {
             close: b.close ?? b.c,
           });
         }
+        // "Follow the price" refresh — re-anchor the yesterday white
+        // lines' right edge to `now + 5min` so they extend with each new
+        // candle instead of stalling between 30-min TPO refreshes.
+        // `applyTpoToChart` is idempotent on the yesterday series
+        // (setData reuse path in syncYesterdayTpoLines), so the 10 s
+        // cadence is cheap. Pink lines self-tick inside
+        // TpoContinuityOverlay (independent of this poll).
+        if (tpoOverlayRef.current) applyTpoToChart(tpoOverlayRef.current);
       } catch {}
     }, 10000);
 
     return () => { unsubPrice(); clearInterval(barsPoll); };
-  }, [activeTf]);
+  }, [activeTf, applyTpoToChart, updateCandle]);
 
   // Historical scroll-back: load older bars when user pans left
   useEffect(() => {

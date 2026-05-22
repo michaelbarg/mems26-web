@@ -491,9 +491,13 @@ function todayRthWindowUnix(): { open: number; close: number } {
  *    2. `createPriceLine` (infinite horizontal) → too wide; user explicitly
  *       said "still infinite" (2026-05-22 17:32 IL).
  *
- *  This implementation: `LineSeries` with **dense points every 5 min**
- *  across the RTH window. Dense data circumvents the bar-gap truncation
- *  bug and produces a solid horizontal line strictly bounded to today.
+ *  Idempotent reuse: when the level count and current series count match,
+ *  this function **reuses the existing series** via `setData` instead of
+ *  removing and recreating them. That makes it safe to call at sub-second
+ *  cadence (the 10 s bars-poll hooks it for "follow the price" — Michael
+ *  2026-05-22 18:24 IL "they have a 2-bar delay"). Recreating LineSeries
+ *  every tick would either flicker or thrash memory; setData on the same
+ *  series is a no-op render when the data is unchanged.
  */
 export function syncYesterdayTpoLines(
   chart: IChartApi | null,
@@ -502,15 +506,20 @@ export function syncYesterdayTpoLines(
   paneIndex: number,
 ): number {
   if (!chart) return 0;
-
-  const prev = yesterdayLineSeriesStore.get(chart) ?? [];
-  for (const s of prev) {
-    try { chart.removeSeries(s); } catch { /* noop */ }
-  }
+  // Suppress unused-var lint on candleSeries — kept in the signature so the
+  // ChartV5b caller's contract is unchanged and future updates that need to
+  // anchor to candle priceScale won't require a new prop.
+  void candleSeries;
 
   const plan = buildTpoPlan(tpo);
   const ydayLevels = plan.filter((lv) => lv.session === 'yesterday');
+  const existing = yesterdayLineSeriesStore.get(chart) ?? [];
+
+  // Off-RTH / no levels — clean up any leftover series and exit.
   if (!ydayLevels.length) {
+    for (const s of existing) {
+      try { chart.removeSeries(s); } catch { /* noop */ }
+    }
     yesterdayLineSeriesStore.set(chart, []);
     return 0;
   }
@@ -521,7 +530,7 @@ export function syncYesterdayTpoLines(
   // tail of the window. Building 78+ points across 09:30→16:00 ET keeps
   // the horizontal line visible end-to-end.
   const STEP_SEC = 300;
-  const points: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => {
+  const pointsPerLevel: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => {
     const series: Array<{ time: Time; value: number }> = [];
     for (let t = open; t <= close; t += STEP_SEC) {
       series.push({ time: t as Time, value: lv.price });
@@ -529,6 +538,30 @@ export function syncYesterdayTpoLines(
     return series;
   });
 
+  // Fast path: reuse existing series when the count matches. setData
+  // replaces the data without recreating the underlying canvas object
+  // — no flicker, no memory churn, safe to call at 10 s cadence.
+  if (existing.length === ydayLevels.length) {
+    ydayLevels.forEach((lv, idx) => {
+      try {
+        existing[idx].applyOptions({
+          color: lv.color,
+          lineWidth: (lv.width >= 2 ? 2 : 1) as LineWidth,
+          lineStyle: lv.dashed ? LineStyle.Dashed : LineStyle.Solid,
+        });
+        existing[idx].setData(pointsPerLevel[idx]);
+      } catch (e) {
+        console.error('[TPO] yesterday LineSeries reuse-update failed', lv, e);
+      }
+    });
+    return existing.length;
+  }
+
+  // Slow path: level count changed (mount, HMR, or session rotation).
+  // Tear down the prior series and recreate fresh.
+  for (const s of existing) {
+    try { chart.removeSeries(s); } catch { /* noop */ }
+  }
   const next: ISeriesApi<'Line'>[] = [];
   ydayLevels.forEach((lv, idx) => {
     try {
@@ -551,17 +584,13 @@ export function syncYesterdayTpoLines(
         },
         paneIndex,
       );
-      s.setData(points[idx]);
+      s.setData(pointsPerLevel[idx]);
       next.push(s);
     } catch (e) {
-      console.error('[TPO] yesterday LineSeries failed', lv, e);
+      console.error('[TPO] yesterday LineSeries create failed', lv, e);
     }
   });
   yesterdayLineSeriesStore.set(chart, next);
-  // Suppress unused-var lint on candleSeries — kept in the signature so the
-  // ChartV5b caller's contract is unchanged and future updates that need to
-  // anchor to candle priceScale won't require a new prop.
-  void candleSeries;
   return next.length;
 }
 

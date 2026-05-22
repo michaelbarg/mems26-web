@@ -251,3 +251,85 @@ def test_yesterday_store_survives_hmr():
         "Lazy init pattern preserves any pre-existing global from a "
         "prior module load (the whole point of the HMR-safe cache)."
     )
+
+
+def test_yesterday_sync_is_idempotent_for_repeated_ticks():
+    """`syncYesterdayTpoLines` must reuse existing LineSeries via `setData`
+    when the level count is unchanged. Without reuse, the 10 s "follow
+    the price" tick in ChartV5b's barsPoll would tear down and recreate
+    the canvas series on every tick → flicker + memory churn (Michael
+    2026-05-22 18:24 IL: "find a solution that's efficient without delay").
+    """
+    src = _read(TPO_LEVELS)
+    func = src.split("export function syncYesterdayTpoLines")[1]
+    body = func.split("export function")[0]
+    assert "existing.length === ydayLevels.length" in body, (
+        "Must compare current series count to level count and reuse "
+        "when matched — that's the no-flicker fast path."
+    )
+    assert "existing[idx].setData" in body, (
+        "Reuse must call setData on the existing series (not addSeries) "
+        "so the lightweight-charts canvas stays mounted."
+    )
+    assert "existing[idx].applyOptions" in body, (
+        "Reuse must also refresh color/width/style in case the plan "
+        "switched (e.g., DST flip or session rotation)."
+    )
+
+
+def test_continuity_overlay_self_ticks_every_10s():
+    """`TpoContinuityOverlay` must drive its own re-render at ≤15 s
+    cadence so the stepped pink right edge tracks the live tape. Without
+    a self-tick, the right edge stalls between 30-min TPO refreshes →
+    1–2 bar lag (Michael 2026-05-22 18:24 IL).
+    """
+    src = _read(CONTINUITY)
+    assert "useState" in src and "setTick" in src, (
+        "Component must own a tick state to drive periodic re-renders."
+    )
+    assert "setInterval(() => setTick" in src, (
+        "Tick state must be incremented by a setInterval (the periodic "
+        "driver) — without it the right edge never updates between "
+        "tpo-prop changes."
+    )
+    # 10 s matches the bars-poll cadence in ChartV5b so price + TPO
+    # advance in lockstep. Allow 5..15 s (5 = SoundProvider floor;
+    # 15 = max acceptable lag = 0.5 bar). Hard-coded 10000 keeps it
+    # crisp; anything outside is a regression.
+    assert "10_000" in src or "10000" in src, (
+        "Tick interval should be 10 s to match the bars-poll cadence "
+        "in ChartV5b.tsx::barsPoll."
+    )
+    # Reuse path is mandatory for the same reason syncYesterdayTpoLines
+    # has one — recreating series every 10 s flickers.
+    assert "seriesRef.current.length === slices.length" in src, (
+        "Pink series must be reused via setData when active level "
+        "count is unchanged — prevents flicker on every tick."
+    )
+
+
+def test_continuity_overlay_separates_unmount_cleanup():
+    """The original component returned a cleanup function from the
+    series-building effect, which on a tick re-run **destroyed** the
+    series before the next render rebuilt them — net effect was the
+    same flicker the reuse path tries to avoid. Cleanup must live in a
+    separate effect keyed only on `chart` so it runs on real unmount.
+    """
+    src = _read(CONTINUITY)
+    # The series-building effect must NOT return a cleanup function
+    # (otherwise React fires it on every tick). Look for the pattern
+    # of an effect that explicitly avoids return.
+    builder = src.split("useEffect(() => {")[1]
+    builder_body = builder.split("}, [chart, tpo, paneIndex, tick]);")[0]
+    # builder body should not have a `return () =>` inside its main path
+    # (we permit early `return;` for guard clauses).
+    assert "return () => {" not in builder_body, (
+        "Series-building effect must not return a cleanup — that would "
+        "tear down series on every tick, defeating the reuse path. "
+        "Cleanup belongs in a separate `useEffect` keyed on chart."
+    )
+    # And there must be a separate cleanup-only effect on `[chart]`.
+    assert "}, [chart]);" in src, (
+        "Must declare a separate cleanup useEffect keyed on chart so "
+        "removal only happens on unmount or chart swap."
+    )
