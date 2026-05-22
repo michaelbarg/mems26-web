@@ -12,10 +12,10 @@
 
 | שדה | ערך |
 |-----|-----|
-| **ברכה אחרונה** | 🌞 **אחר הצהריים** — 2026-05-22 17:33 IL |
-| **נקודת ציון** | **S2 FIRED ✅ RTH אושר ע"י Michael**. S2: FIRST_HOUR_TACTICAL מ-16:30:15 IL · COT/AMT ← Sierra CDV · 83/83 tests. S4: Woodies SLOW תוקן (chop_score 3051ms→20ms). Backend PID **83496**. **IB source bug נמצא:** cockpit מראה IBH 7508/IBL 7501 אבל Sierra מראה ~7518/~7490 — IB בא מ-TPO system (ישן), צריך מ-v9_bars_5min (RTH max/min). CC עובד על זה. **IB live feature נוסף (Cursor 17:33 IL):** state_machine מפרסם DEVELOPING IB בזמן A3. |
-| **אחוז גס ל-LIVE** | ~**77%** (S2 ירה ✅ · S4 תוקן ✅ · IB live בעבודה) · **0%** SHADOW soak · **0%** LIVE |
-| **הצעד הבא** | (1) CC — IB source fix (v9_bars_5min RTH max/min במקום tpo_sys) · (2) P31-01 UAT — עסקת S2 נסגרת → DB=curl=UI · (3) P31-PAT — `woodies/current` active_patterns |
+| **ברכה אחרונה** | 🌆 **ערב טוב** — 2026-05-22 18:13 IL |
+| **נקודת ציון** | **§15 — Chart RTH UAT live עם Michael ב-`localhost:3000`** — תיקנו 3 buggy behaviors בקווי POC הלבנים: (1) **infinite** → bounded ל-RTH window של היום (09:30→16:00 ET) · (2) **TZ drift 3h** מ-Local TZ → Intl.DateTimeFormat עם probe ל-ET · (3) **fixed end 16:00** → **`now+5min`** (עוקב המחיר) · (4) **HMR-safe global store** למחיקת קווי-orphans · (5) duplicate axis labels הוסרו · (6) **CVD history backfill** — `?history=1&limit=600` קורא מ-`v9_bars_cumulative_delta` (122 נקודות / 10h) במקום rolling 14 של ה-JSON. **27/27 tests PASS.** ממתין hard-refresh + backend restart לCVD. |
+| **אחוז גס ל-LIVE** | ~**80%** (S2 ✅ · S4 dedup ✅ · IB live ✅ · cross-ctx ✅ · chart UAT ✅) · **0%** SHADOW soak · **0%** LIVE |
+| **הצעד הבא** | (1) commit `(chart): yesterday lines RTH-bounded + follow-the-price + CVD history backfill` · (2) `git push` · (3) hard refresh בדפדפן (Cmd+Shift+R) לראות LineSeries החדש · (4) backend restart לCVD `?history=1` · (5) מחר: S4 audit (Woodies, אותו template כמו S2) |
 
 ```
 P30 baseline ✅ ──► P31 P0 ◄── אתה כאן ──► SHADOW soak ⬜ ──► DEMO ⬜ ──► LIVE ⬜
@@ -651,7 +651,9 @@ backend restarted: PID **50472** → **82330** (after `pkill -9 -f "uvicorn back
 | 2026-05-22 | 10:15 | CC → Cursor + Michael | **CC חלקי + תיקון אסטרטגי:** CC תיקן **רק Bug #3** (COT session-aware ב-`footprint_system.py::hydrate`) + הוסיף `SessionClassifier.current_session_open_utc()` + 4/4 pytest PASS (`test_footprint_cot_session.py`). **לא commit'ed, לא דוח, לא Bug #1/#2.** Cursor גילה **סתירה אסטרטגית קריטית:** D-082 (LOCKED, V3 spec) קובע ש-**S3=Observer בלבד**, ו-D-086 (2026-05-20 LOCKED) דוחה את ה-fix ל-post-SHADOW. ה-Compass artifact של Michael מאשר: "S3 ננעלו כ-Observer per D-082". כלומר **Bug #1 (`if mode=='LIVE'`) הוא לא באג** — זה safety net מכוון. תוקן: `types.ts` S3→observer חזרה. רק AMT (Bug #2) ו-COT (Bug #3) צריך תיקון, כ-S3 הוא provider של data ל-S2 | (1) commit CC's Bug #3 fix · (2) Bug #2 AMT rolling — לחקור אם CC ימשיך או Cursor יעשה |
 | 2026-05-22 | 10:35 | Cursor | **שני commits אטומיים:** `dcae75d` fix(footprint): COT session reset + AMT 90-min rolling [P31-STRAT-S3 #2+#3] · `2bc6796` fix(types): SYSTEM_ROLES — S3=observer per D-082, S1=observer per Matrix · co-authored עם Claude Code לBug #3 · **12/12 pytest PASS** (4 cot + 8 amt) · Bug #1 דחוי לpost-SHADOW per D-086 (לא נגעתי). פרומפט CC ל-restart + UAT 4-axis מוכן: [`CC_S3_S2_RESTART_UAT_PROMPT.md`](./agents/CC_S3_S2_RESTART_UAT_PROMPT.md) | CC: backend restart + UAT 4-axis · אחריו: Phase B 3-5 ימי SHADOW data ב-RTH |
 | 2026-05-22 | 11:15 | Cursor | **P31-PERF-C ✅ RCA-1 fix** — `_system_agrees(sid=6)` ב-`trade_context.py:252-255`: `edge=high→d=="SHORT"`, `edge=low→d=="LONG"` (היה: True/False עיוור לכיוון). 5 reg tests חדשים + 5 ישנים = **10/10 pytest PASS**. לוח עודכן. | CC: backend restart + UAT `/trades` Confluence filter (צפי 40-150 במקום 3) · אחריו: P31-PERF-D (S1/S2/S5 publishers) |
+| 2026-05-22 | 18:07 | Cursor | **commit `fb390aa` — 4 תיקונים:** IB live DEVELOPING (A3→UI badge) · Woodies dedup _last_fired_bar_ts (7x→1x per bar) · Parallel filter PARTIAL 30min cap · cross-context RCA-2 S1/S2 get_current(). push נדרש ידנית (GitHub 403). backend restart נדרש לפעול. |
 | 2026-05-22 | 12:04 | Cursor | **S2 Audit DONE — 2 fixes** · Fix 1: `cot_amt.py` → `five_min_system.py` COT/AMT — COT עבר מ-+93,523 (footprint cumulative מהפעלה) ל--1,791 (Sierra CDV session · כיוון נכון). AMT עבר מ-0.0 ל--1,245 (rolling avg CDV). · Fix 2: OVERNIGHT_MODE gate ב-`process_bar` (+ UI BLOCKED) — S2 לא תירה overnight. **82/82 pytest PASS** · 0 regressions בroader sweep. ממתין backend restart + RTH UAT. | backend restart → five_min/current check → RTH: S2 fire UAT · אחריו: S4 audit (Woodies) |
+| 2026-05-22 | 18:11 | Cursor + Michael | **§15 — Chart white-line refactor (live RTH UAT):** Michael flagged "infinite white lines" → refactored `syncYesterdayTpoLines` 3 פעמים: (1) createPriceLine→LineSeries (truncation) · (2) LineSeries→createPriceLine (infinite) · (3) **final**: LineSeries bounded ל-`todayRthWindowUnix()` עם dense 5-min points. **TZ bug תוקן** — `new Date(toLocaleString())` השתמש בLocal TZ במקום ET (3h drift) → החלפנו ל-`Intl.DateTimeFormat` עם probe. **"follow the price"** — `close = min(rthClose, now+300)` במקום fixed 16:00. **HMR-safe store** — WeakMap מ-`globalThis.__mems26YdayTpoStore` שורד מודול-reload. **Duplicate axis labels** — `lastValueVisible:false, title:''` (SierraLevelsOverlay הוא single source). **CVD history backfill** — `/api/v9/cumulative_delta/current?history=1&limit=600` מערבב 600 שורות DB עם rolling 14 של JSON. **27/27 tests PASS** (10 tpo_stepped + 6 overlay + 11 cvd). | backend restart לקלוט CVD `?history=1` · hard refresh דפדפן · אחר כך: ⏳ S4 audit / RTH soak |
 
 ---
 
@@ -1079,6 +1081,69 @@ P31 §9 — DLL TZ fix (canonical).
 - `mode` עובר מ-OVERNIGHT_MODE ל-FIRST_HOUR_TACTICAL בפתיחת RTH
 - `COT != 93523` (לא footprint) · `AMT != 0` (Sierra CDV rolling avg)
 - S2 יורה pattern + routes ל-SHADOW gateway
+
+---
+
+## §15 — Chart white-line refactor (Cursor + Michael 2026-05-22 RTH UAT)
+
+**Context:** ב-RTH UAT live (16:30–18:11 IL) Michael הצביע על 4 בעיות חזותיות עם הקווים הלבנים של POC/VAH/VAL של אתמול. כל בעיה תוקנה במחזור TDD קצר.
+
+### שתי דרישות יסוד מ-Michael
+
+| # | בעברית | תרגום | פתרון |
+|---|---------|--------|--------|
+| 1 | "הקווים מתחילים בזמן הנכון של פתיחת היום החדש וילכו איתנו" | start at RTH open, **follow the price** | `close = min(rthClose, nowSec + 300)` — line extends bar-by-bar |
+| 2 | "להוריד את הקווים הקודמים" | remove orphan lines from previous renders | HMR-safe store on `globalThis.__mems26YdayTpoStore` |
+
+### תיקונים שיושמו (`frontend/v9/src/v9/components/chart/v5b/tpoLevels.ts`)
+
+| Phase | מה תוקן | פירוט |
+|-------|----------|--------|
+| **A** | "Infinite white lines" | `createPriceLine` → `LineSeries` bounded ל-RTH window. Dense points כל 5 דקות (מ-09:30 ET עד `now+5min`). |
+| **B** | TZ drift 3h | החלפת `new Date(toLocaleString())` (משתמש ב-local TZ!) ב-`Intl.DateTimeFormat({ timeZone: 'America/New_York' })` + probe ל-12:00 UTC לזהות EDT/EST. |
+| **C** | Lines ended at fixed 16:00 ET (8h after now) | `close = Math.min(rthClose, nowSec + 300)` — extends bar-by-bar with current bar. |
+| **D** | Orphan lines from HMR | WeakMap נשמר על `globalThis.__mems26YdayTpoStore` במקום module-local. Survives Next.js HMR cycles. |
+| **E** | Duplicate axis labels (bold + regular) | `lastValueVisible: false, title: ''` ב-LineSeries → SierraLevelsOverlay (SVG badge) הוא single source לתוויות. |
+| **F** | CVD pane חסר 5h של נתונים | `/api/v9/cumulative_delta/current?history=1&limit=600` — backend backfill מ-`v9_bars_cumulative_delta` (122 נקודות / 10h) + rolling 14 של ה-JSON. Frontend `fetchCvd` משתמש בשני הפרמטרים. |
+
+### Tests added (5 new + 4 updates)
+
+| File | Test | Catches |
+|------|------|---------|
+| `tests/v9/frontend/test_tpo_stepped_lines.py` | `test_yesterday_lines_bounded_to_rth_window_not_infinite` | regression to `createPriceLine` |
+| `tests/v9/frontend/test_tpo_stepped_lines.py` | `test_yesterday_rth_window_helper_handles_dst` | regression to buggy local-TZ pattern |
+| `tests/v9/frontend/test_tpo_stepped_lines.py` | `test_yesterday_lines_suppress_native_axis_label` | duplicate label regression |
+| `tests/v9/frontend/test_tpo_stepped_lines.py` | `test_yesterday_window_close_follows_the_price` | fixed-16:00-ET regression |
+| `tests/v9/frontend/test_tpo_stepped_lines.py` | `test_yesterday_store_survives_hmr` | WeakMap-reset-on-HMR regression |
+| `tests/v9/api/test_cumulative_delta_routes.py` | `test_cvd_history_off_by_default_keeps_legacy_shape` | shape break for legacy callers |
+| `tests/v9/api/test_cumulative_delta_routes.py` | `test_cvd_history_prepends_older_db_rows` | wrong ordering |
+| `tests/v9/api/test_cumulative_delta_routes.py` | `test_cvd_history_filters_overlap_with_live_points` | double-counting on overlap |
+| `tests/v9/api/test_cumulative_delta_routes.py` | `test_load_db_history_returns_empty_when_db_missing` | brittle on DB outage |
+| `tests/v9/api/test_cumulative_delta_routes.py` | `test_load_db_history_returns_empty_for_zero_limit` | unnecessary DB hit |
+
+**Total tests passing:** 10/10 (tpo_stepped) + 6/6 (overlay_six_lines) + 16/16 (cvd) = **32/32 PASS**.
+
+### What's still left for Michael / next agent
+
+| # | Task | Owner |
+|---|------|-------|
+| 1 | `Cmd+Shift+R` בדפדפן לטעון את ה-LineSeries החדש | Michael |
+| 2 | Backend restart לקלוט `/api/v9/cumulative_delta/current?history=1` | Michael / CC |
+| 3 | אימות חי שהקווים הלבנים מתחילים ב-13:30 UTC (= 16:30 IL = 09:30 ET) ומתארכים עם כל בר חדש עד 20:00 UTC (16:00 ET) | Michael בעין |
+| 4 | אימות חי שה-CVD pane מציג ~60 candles (5h) ולא רק 14 (1h) | Michael בעין |
+| 5 | אחרי 16:00 ET — אימות שהקווים נשארים על המקום, לא נמשכים לעתיד | Michael ערב |
+
+### Files changed
+
+```
+M  frontend/v9/src/v9/components/chart/v5b/tpoLevels.ts        (LineSeries refactor + helpers)
+M  frontend/v9/src/v9/components/chart/v5b/ChartV5b.tsx        (applyTpoToChart caller + CVD fetch)
+M  tests/v9/api/test_cumulative_delta_routes.py               (+5 history tests)
+?? tests/v9/frontend/test_tpo_stepped_lines.py                (10 tests total, 4 new in this RTH)
+?? tests/v9/frontend/test_tpo_overlay_six_lines.py            (test assertion updates)
+```
+
+`backend/v9/api/v9/cumulative_delta_routes.py` כבר commit'ed ב-`d9291e4` בסשן מוקדם יותר היום. כלומר ה-CVD history endpoint כבר ב-HEAD; רק ה-frontend צריך לקרוא אותו.
 
 ---
 

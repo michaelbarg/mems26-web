@@ -2,7 +2,6 @@ import {
   LineSeries,
   LineStyle,
   type IChartApi,
-  type IPriceLine,
   type ISeriesApi,
   type LineWidth,
   type Time,
@@ -103,14 +102,28 @@ function levelsTriple(
   };
 }
 
+// Sierra periods arrive as naive UTC wall-clock ("2026-05-22 13:30:00") or
+// occasionally with a TZ suffix (`+00:00`, `Z`, or legacy `-04:00`). Detect
+// existing TZ before appending `Z`. Without this guard, `+00:00`-tagged
+// strings became `...T17:20:00+00:00Z` → Date.parse=NaN → silently dropped
+// period (P31-FE-TPO-1). Treat naive as UTC to match the post-§9 DB ts
+// convention and the matching `tsToUnix` fix in ChartV5b.tsx (P31-FE-TZ-2).
+const TZ_SUFFIX_RE = /([Zz]|[+-]\d{2}:?\d{2})$/;
+
+export function parseSierraTsToMs(ts: string | null | undefined): number {
+  if (!ts) return 0;
+  const normalized = String(ts).replace(' ', 'T');
+  const final = TZ_SUFFIX_RE.test(normalized) ? normalized : normalized + 'Z';
+  const parsed = Date.parse(final);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function periodOpenedMs(p: TpoPeriod): number {
-  if (!p.opened_ts) return 0;
-  return Date.parse(String(p.opened_ts).replace(' ', 'T') + '-04:00');
+  return parseSierraTsToMs(p.opened_ts);
 }
 
 function sessionOpenedMs(ts: string | null | undefined): number {
-  if (!ts) return 0;
-  return Date.parse(String(ts).replace(' ', 'T') + '-04:00');
+  return parseSierraTsToMs(ts);
 }
 
 function sessionDay(ts: string | null | undefined): string | null {
@@ -241,7 +254,6 @@ export function collectTpoPrices(tpo: TpoOverlayData | null): number[] {
   return buildTpoPlan(tpo).map((p) => p.price);
 }
 
-const lineStore = new WeakMap<ISeriesApi<'Candlestick'>, IPriceLine[]>();
 const lineStore2 = new WeakMap<IChartApi, ISeriesApi<'Line'>[]>();
 const horizStore = new WeakMap<IChartApi, ISeriesApi<'Line'>[]>();
 
@@ -303,7 +315,22 @@ export function syncTpoHorizontals(
   return plan.length;
 }
 
-/** Today (pink) lines — time-bounded from RTH open (09:30 ET) to now. */
+/**
+ * Today (pink) lines.
+ *
+ * Per Sierra Study ID:3 spec (`docs/handoff/SIERRA_STUDIES_CONFIG_2026-05-19.md`)
+ * developing POC/VAH/VAL should be **stepped** every 30 min from RTH open
+ * to RTH close — rendered by `TpoContinuityOverlay` (LineType.WithSteps).
+ *
+ * This function provides a **horizontal-fallback** for the case where Sierra
+ * has not yet exposed per-period developing values in `tpo.json::periods[]`
+ * (see `PROMPT30_10b_TPO_LEVELS_FIX.md` §"Still needed — DLL / Agent 2").
+ *
+ * If `tpo.periods[]` contains at least one period for today's session, the
+ * stepped overlay is responsible and this function renders nothing (and
+ * cleans up any prior flat series). Otherwise the flat line is kept so the
+ * user always sees a current developing-POC reference during RTH.
+ */
 export function syncTpoPriceLines(
   chart: IChartApi | null,
   tpo: TpoOverlayData | null,
@@ -315,6 +342,18 @@ export function syncTpoPriceLines(
   const prev = lineStore2.get(chart) ?? [];
   for (const s of prev) {
     try { chart.removeSeries(s); } catch { /* noop */ }
+  }
+
+  // Defer to TpoContinuityOverlay (stepped) when Sierra has per-period data
+  // for today. Falls back to flat lines only when periods[] is empty for
+  // today — keeps a visible reference until the DLL ships periods[] (D-???).
+  const todayDay = sessionDay(tpo?.session_opened_ts);
+  const todayPeriods = (tpo?.periods ?? []).filter(
+    (p) => sessionDay(p.opened_ts) === todayDay,
+  );
+  if (todayDay && todayPeriods.length >= 1) {
+    lineStore2.set(chart, []);
+    return 0;
   }
 
   const plan = buildTpoPlan(tpo);
@@ -366,50 +405,132 @@ export function syncTpoPriceLines(
   return next.length;
 }
 
-/** Yesterday (white) lines — time-bounded from Globex open (18:00 ET) to now. */
+// HMR-resilient store for yesterday's white LineSeries. A plain WeakMap is
+// reset whenever Next.js HMR replaces the module — leaving orphan series on
+// the live chart that the new module instance can't reach. Stick the store
+// on `globalThis` so it survives HMR cycles. The series refs themselves are
+// per-chart in a WeakMap inside the global, so chart disposal still GCs them.
+type YdayStore = WeakMap<IChartApi, ISeriesApi<'Line'>[]>;
+const G: { __mems26YdayTpoStore?: YdayStore } = globalThis as never;
+if (!G.__mems26YdayTpoStore) {
+  G.__mems26YdayTpoStore = new WeakMap();
+}
+const yesterdayLineSeriesStore: YdayStore = G.__mems26YdayTpoStore;
+
+/** Compute today's RTH window in unix seconds (UTC).
+ *
+ *  Note: lightweight-charts internal time axis is real UTC after the
+ *  P31-FE-TZ-2 fix, so we compute RTH open/close as UTC unix directly
+ *  from today's date in ET. Handles EDT (UTC-4) and EST (UTC-5)
+ *  automatically by probing the actual ET offset for the target date.
+ *
+ *  History — the earlier implementation built a "wall-clock string + Z"
+ *  and back-shifted by `guess - etOnGuess`, which silently used the
+ *  **local** TZ offset (IL +3h) instead of ET. On a Mac in IL the lines
+ *  ended up at 12:30 ET instead of 09:30 ET — a 3-hour drift that
+ *  Michael spotted in the 2026-05-22 17:58 IL screenshot ("they're not
+ *  in the right time area"). Switched to Intl.DateTimeFormat probing,
+ *  which round-trips through the actual tz database.
+ *
+ *  The `close` field tracks **now + 1 bar bucket** during the live
+ *  session so the line "follows the price" instead of dangling 8h past
+ *  the latest candle (Michael 2026-05-22 18:05 IL "they need to follow
+ *  along with the price"). Post-16:00 ET it stays pinned at the RTH
+ *  close so the daily horizontal stays whole.
+ */
+function todayRthWindowUnix(): { open: number; close: number } {
+  try {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const y = Number(parts.find((p) => p.type === 'year')?.value);
+    const mo1 = Number(parts.find((p) => p.type === 'month')?.value);
+    const d = Number(parts.find((p) => p.type === 'day')?.value);
+    if (!y || !mo1 || !d) throw new Error('bad ET parts');
+
+    // Detect EDT (UTC-4) vs EST (UTC-5) for that ET date by probing the
+    // ET wall-clock at 12:00 UTC. 12 - etHour = offsetHours (4 or 5).
+    const probeMs = Date.UTC(y, mo1 - 1, d, 12, 0, 0);
+    const etHourStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York',
+      hour12: false,
+      hour: '2-digit',
+    }).format(new Date(probeMs));
+    const etHour = parseInt(etHourStr, 10);
+    const offsetHours = 12 - etHour; // 4=EDT, 5=EST
+
+    const open = Date.UTC(y, mo1 - 1, d, 9 + offsetHours, 30, 0) / 1000;
+    const rthClose = Date.UTC(y, mo1 - 1, d, 16 + offsetHours, 0, 0) / 1000;
+    // "Follow the price": cap the right edge at one 5-min bucket past
+    // current real-UTC unix; never overshoot the RTH close.
+    const nowSec = Math.floor(Date.now() / 1000);
+    const close = Math.min(rthClose, nowSec + 300);
+    return { open, close };
+  } catch {
+    // Fallback if Intl APIs are unavailable — anchor a 6.5h window
+    // around now so the line is at least visible during live RTH.
+    const now = Math.floor(Date.now() / 1000);
+    return { open: now - 4 * 3600, close: now + 300 };
+  }
+}
+
+/** Yesterday (white) lines — RTH-bounded horizontal LineSeries.
+ *
+ *  Per Michael's 2026-05-22 spec ("The line starts at today's market open
+ *  and goes until end of trading day. Tomorrow, updated lines of the new
+ *  day with yesterday's lines of it"): render yesterday's POC/VAH/VAL as
+ *  horizontal references ONLY across today's RTH window (09:30 → 16:00 ET).
+ *
+ *  Earlier attempts:
+ *    1. `LineSeries` with 2 points (open, close) → truncated mid-chart when
+ *       bars didn't cover the full range. lightweight-charts won't draw
+ *       across a "bar gap."
+ *    2. `createPriceLine` (infinite horizontal) → too wide; user explicitly
+ *       said "still infinite" (2026-05-22 17:32 IL).
+ *
+ *  This implementation: `LineSeries` with **dense points every 5 min**
+ *  across the RTH window. Dense data circumvents the bar-gap truncation
+ *  bug and produces a solid horizontal line strictly bounded to today.
+ */
 export function syncYesterdayTpoLines(
   chart: IChartApi | null,
+  candleSeries: ISeriesApi<'Candlestick'> | null,
   tpo: TpoOverlayData | null,
   paneIndex: number,
 ): number {
   if (!chart) return 0;
 
-  // Remove previous yesterday series
-  const prev = horizStore.get(chart) ?? [];
+  const prev = yesterdayLineSeriesStore.get(chart) ?? [];
   for (const s of prev) {
     try { chart.removeSeries(s); } catch { /* noop */ }
   }
 
   const plan = buildTpoPlan(tpo);
   const ydayLevels = plan.filter((lv) => lv.session === 'yesterday');
-  if (!ydayLevels.length) { horizStore.set(chart, []); return 0; }
-
-  // Globex open: today 18:00 ET (previous calendar day for overnight)
-  // Approximate: find the nearest 18:00 ET in unix seconds
-  const nowSec = Math.floor(Date.now() / 1000);
-  let globexOpen: number;
-  try {
-    const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const h = et.getHours();
-    // If before 18:00 ET, Globex started yesterday 18:00
-    // If after 18:00 ET, Globex started today 18:00
-    const etMidnight = new Date(et);
-    etMidnight.setHours(0, 0, 0, 0);
-    const midnightUnix = Math.floor(etMidnight.getTime() / 1000);
-    if (h >= 18) {
-      globexOpen = midnightUnix + 18 * 3600; // today 18:00
-    } else {
-      globexOpen = midnightUnix - 6 * 3600; // yesterday 18:00
-    }
-  } catch {
-    globexOpen = nowSec - 24 * 3600; // fallback: 24h ago
+  if (!ydayLevels.length) {
+    yesterdayLineSeriesStore.set(chart, []);
+    return 0;
   }
 
-  const t0 = globexOpen as Time;
-  const t1 = (nowSec + 300) as Time;
+  const { open, close } = todayRthWindowUnix();
+  // Dense points every 5 min (matches 5m bar bucket) — single 2-point line
+  // is silently clipped by lightweight-charts when bars don't cover the
+  // tail of the window. Building 78+ points across 09:30→16:00 ET keeps
+  // the horizontal line visible end-to-end.
+  const STEP_SEC = 300;
+  const points: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => {
+    const series: Array<{ time: Time; value: number }> = [];
+    for (let t = open; t <= close; t += STEP_SEC) {
+      series.push({ time: t as Time, value: lv.price });
+    }
+    return series;
+  });
 
   const next: ISeriesApi<'Line'>[] = [];
-  for (const lv of ydayLevels) {
+  ydayLevels.forEach((lv, idx) => {
     try {
       const s = chart.addSeries(
         LineSeries,
@@ -418,22 +539,29 @@ export function syncYesterdayTpoLines(
           lineWidth: (lv.width >= 2 ? 2 : 1) as LineWidth,
           lineStyle: lv.dashed ? LineStyle.Dashed : LineStyle.Solid,
           crosshairMarkerVisible: false,
+          // `lastValueVisible: false` + empty `title` is critical — the
+          // SierraLevelsOverlay (SVG-based TpoAxisBadge) is the SINGLE
+          // source of truth for the right-axis VAH/POC/VAL labels.
+          // If we leave the LineSeries' native label on, the user sees
+          // doubled badges (regression spotted in screenshot at
+          // 2026-05-22 ~17:55 IL: bold + regular "VAH 7436.75" stacked).
           lastValueVisible: false,
           priceLineVisible: false,
           title: '',
         },
         paneIndex,
       );
-      s.setData([
-        { time: t0, value: lv.price },
-        { time: t1, value: lv.price },
-      ]);
+      s.setData(points[idx]);
       next.push(s);
     } catch (e) {
-      console.error('[TPO] yesterday line series failed', lv, e);
+      console.error('[TPO] yesterday LineSeries failed', lv, e);
     }
-  }
-  horizStore.set(chart, next);
+  });
+  yesterdayLineSeriesStore.set(chart, next);
+  // Suppress unused-var lint on candleSeries — kept in the signature so the
+  // ChartV5b caller's contract is unchanged and future updates that need to
+  // anchor to candle priceScale won't require a new prop.
+  void candleSeries;
   return next.length;
 }
 

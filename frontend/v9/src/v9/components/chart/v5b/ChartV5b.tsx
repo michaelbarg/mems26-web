@@ -44,7 +44,19 @@ const LS_WOODIES_OPEN = 'mems26-woodies-panel-open';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const INITIAL_BAR_LIMIT = 600;
-const CVD_POLL_MS = 5000;
+const CHART_FETCH_TIMEOUT_MS = 90_000;
+
+/** Avoid browser "Failed to fetch" when backend is busy (Woodies/bar handlers). */
+async function chartFetch(path: string, timeoutMs = CHART_FETCH_TIMEOUT_MS): Promise<Response> {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(`${API}${path}`, { signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+const CVD_POLL_MS = 10000;
 const TPO_RTH_REFRESH_MS = 30 * 60 * 1000;
 const TPO_OFF_HOURS_REFRESH_MS = 10 * 60 * 1000;
 
@@ -76,8 +88,19 @@ const TF_SECONDS: Record<string, number> = { '3m': 180, '5m': 300, '15m': 900, '
  * Trade-off: this falls back to EDT and is wrong by 1 hour during EST
  * (winter Nov-Mar). Acceptable until the API ships `ts_unix` directly.
  */
+/**
+ * P31-FE-TZ-2 fix (2026-05-22 RTH UAT): post-§9 the DB stores bar `ts` as
+ * real UTC wall-clock strings (e.g., RTH-open = `"2026-05-22 13:30:00..."`).
+ * The legacy `-04:00` shim re-interpreted them as ET, inflating every bar
+ * by 4 h on the chart's internal time axis. That mis-aligned the
+ * price pane against CVD (which uses raw UTC unix), and shifted TPO
+ * pink lines 4 h to the right of the actual RTH-open candle. Parse as
+ * UTC (`Z`) — bars now sit at the same chart-internal unix as the
+ * underlying real-UTC moment, the chart's local-TZ formatter shows IL
+ * labels naturally, and RTH-open at real 13:30 UTC = display 16:30 IL.
+ */
 function tsToUnix(ts: string): number {
-  return Math.floor(new Date(ts.replace(' ', 'T') + '-04:00').getTime() / 1000);
+  return Math.floor(new Date(ts.replace(' ', 'T') + 'Z').getTime() / 1000);
 }
 
 function latestBarUnix(bars: Array<{ ts?: string }>): number | null {
@@ -217,7 +240,13 @@ export function ChartV5b() {
       if (!series || !chart || !data) return 0;
       extendAutoscaleForTpo(series, data);
       const nToday = syncTpoPriceLines(chart, data, 0);
-      const nYday = syncYesterdayTpoLines(chart, data, 0);
+      // Yesterday white POC/VAH/VAL — Sierra-style RTH-bounded references.
+      // Spans today's 09:30→16:00 ET only (NOT infinite), refreshed tomorrow
+      // when yesterday's values rotate. Dense 5-min LineSeries points avoid
+      // lightweight-charts' "bar-gap" truncation that bit the 2-point
+      // version. Replaced `createPriceLine` (infinite horizontal) on
+      // 2026-05-22 PM after Michael's RTH-window spec.
+      const nYday = syncYesterdayTpoLines(chart, series, data, 0);
       const n = nToday + nYday;
       if (n > 0) refitPriceScaleForTpo(series);
       return n;
@@ -444,7 +473,11 @@ export function ChartV5b() {
     const barList = barsForCvdRef.current;
     if (!series || !barList.length) return;
     try {
-      const res = await fetch(`${API}/api/v9/cumulative_delta/current`);
+      // `history=1` backfills CVD points from v9_bars_cumulative_delta so
+      // the CVD pane renders the full chart window (5h @ 5m default), not
+      // just the rolling ~14-point JSON tail. Without this the older 46
+      // bars showed empty CVD candles (Michael 2026-05-22 17:32 IL).
+      const res = await fetch(`${API}/api/v9/cumulative_delta/current?history=1&limit=600`);
       const d = await res.json();
       const rawPoints = (d.points ?? []) as CvdPoint[];
       const hdr = applyCvdSeriesData(series, barList, rawPoints, activeTf);
@@ -460,9 +493,26 @@ export function ChartV5b() {
     barsLoadedRef.current = false;
     formingBarRef.current = null;
     const ep = TF_ENDPOINTS[tf] || 'bars5min';
+    const path = `/api/v9/chart/${ep}?limit=${INITIAL_BAR_LIMIT}`;
     try {
-      const res = await fetch(`${API}/api/v9/chart/${ep}?limit=${INITIAL_BAR_LIMIT}`);
-      const raw = await res.json();
+      let res: Response | null = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          res = await chartFetch(path);
+          break;
+        } catch (err) {
+          if (attempt === 0) {
+            console.warn('[ChartV5b] bars fetch retry after:', err);
+            await new Promise((r) => setTimeout(r, 2000));
+            continue;
+          }
+          throw err;
+        }
+      }
+      if (!res!.ok) {
+        throw new Error(`bars HTTP ${res!.status}`);
+      }
+      const raw = await res!.json();
       const bars = Array.isArray(raw) ? raw : [];
       if (!bars.length) return;
 
@@ -631,7 +681,7 @@ export function ChartV5b() {
     const barsPoll = setInterval(async () => {
       const ep = TF_ENDPOINTS[activeTf] || 'bars5min';
       try {
-        const res = await fetch(`${API}/api/v9/chart/${ep}?limit=3`);
+        const res = await chartFetch(`/api/v9/chart/${ep}?limit=3`, 15_000);
         const raw = await res.json();
         const bars = Array.isArray(raw) ? raw : [];
         const latest = latestBarUnix(bars);
@@ -653,7 +703,7 @@ export function ChartV5b() {
           });
         }
       } catch {}
-    }, 5000);
+    }, 10000);
 
     return () => { unsubPrice(); clearInterval(barsPoll); };
   }, [activeTf]);
@@ -803,7 +853,7 @@ export function ChartV5b() {
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/killzone/current`).then(r => r.json())
       .then(d => setKzLabel(d?.current_zone?.name || 'MKT')).catch(() => {});
-    f(); const id = setInterval(f, 30000); return () => clearInterval(id);
+    f(); const id = setInterval(f, 60000); return () => clearInterval(id);
   }, []);
 
   // TR countdown
