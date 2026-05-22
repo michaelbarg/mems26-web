@@ -168,8 +168,29 @@ class WoodiesSystem(BaseV9TradingSystem):
                 self._lows = self._lows[-self.max_buffer:]
                 self._closes = self._closes[-self.max_buffer:]
 
-            # Compute all 11 studies using full price history
-            studies = compute_all_studies(self._highs, self._lows, self._closes)
+            # Use Sierra DLL study values when present (source of truth per CLAUDE.md).
+            # The DLL computes CCI/EMA/LSMA from full history → far more accurate than
+            # our 50-bar local buffer. Fall back to local compute only if DLL values absent.
+            if bar.get("cci_14") is not None:
+                studies = {
+                    "cci_14": float(bar.get("cci_14") or 0),
+                    "cci_6_tcci": float(bar.get("cci_6_tcci") or 0),
+                    "ema_34": float(bar.get("ema_34") or 0),
+                    "lsma_value": float(bar.get("lsma_value") or 0),
+                    "lsma_above_price": bool(bar.get("lsma_above_price", False)),
+                    "swi_value": float(bar.get("swi_value") or 0),
+                    "czi_value": float(bar.get("czi_value") or 0),
+                    "trend_state": str(bar.get("trend_state") or "GRAY"),
+                    "predictor_next_cci": float(bar.get("predictor_next_cci") or 0),
+                    "hfe_detected": bool(bar.get("hfe_detected", False)),
+                    "hfe_direction": str(bar.get("hfe_direction") or "NONE"),
+                    "hfe_extreme_bars_ago": int(bar.get("hfe_extreme_bars_ago") or 0),
+                    "zlr_detected": bool(bar.get("zlr_detected", False)),
+                    "zlr_direction": str(bar.get("zlr_direction") or "NONE"),
+                }
+            else:
+                # Fallback: compute locally (pre-DLL or test bars without study values)
+                studies = compute_all_studies(self._highs, self._lows, self._closes)
 
             # Build WoodiesBar for pattern engine
             bar_ts = bar.get("ts", 0)
