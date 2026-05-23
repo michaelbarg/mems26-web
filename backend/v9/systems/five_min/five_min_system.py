@@ -347,10 +347,12 @@ class FiveMinSystem(BaseV9TradingSystem):
         b3_buyers = b3["c"] > b3["o"]
         b3_belly = belly is not False  # True or None (unavailable) both pass
         b4_confirm = b4["c"] > b4["o"]
+        b4_close_above_b3_high = b4["c"] > b3["h"]  # Entry signal per Master Summary Sheet 2
         cot_above_amt = cur_cot > cur_amt
         poc_rising = self._poc_vol_rising(bars_5m[-3:])  # W3-α gap 3
 
-        if b1_sellers and b2_drop and b3_buyers and b3_belly and b4_confirm and cot_above_amt:
+        if (b1_sellers and b2_drop and b3_buyers and b3_belly
+                and b4_confirm and b4_close_above_b3_high and cot_above_amt):
             return ("LONG", 0.80 if poc_rising else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_rising": poc_rising})
 
@@ -358,10 +360,12 @@ class FiveMinSystem(BaseV9TradingSystem):
         b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
         b3_sellers = b3["c"] < b3["o"]
         b4_confirm_s = b4["c"] < b4["o"]
+        b4_close_below_b3_low = b4["c"] < b3["l"]  # Entry signal per Master Summary Sheet 2
         cot_below_amt = cur_cot < cur_amt
         poc_falling = self._poc_vol_falling(bars_5m[-3:])
 
-        if b1_buyers and b2_drop and b3_sellers and b3_belly and b4_confirm_s and cot_below_amt:
+        if (b1_buyers and b2_drop and b3_sellers and b3_belly
+                and b4_confirm_s and b4_close_below_b3_low and cot_below_amt):
             return ("SHORT", 0.80 if poc_falling else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_falling": poc_falling})
 
@@ -404,7 +408,10 @@ class FiveMinSystem(BaseV9TradingSystem):
         b4_test = b4["l"] >= b2["l"]
         cot_below_amt = cur_cot < cur_amt
 
-        if b1_bull and b1_expansion and b2_test and b3_joining and b4_test and cot_below_amt:
+        b4_close_above_b1_high = b4["c"] > b1["h"]  # Entry signal per Master Summary Sheet 2
+
+        if (b1_bull and b1_expansion and b2_test and b3_joining and b4_test
+                and b4_close_above_b1_high and cot_below_amt):
             return ("LONG", 0.80, {"kind": "INITIATIVE", "stage": 4,
                                    "b2_alt": "poc_return" if b2_poc_return else "higher_low"})
 
@@ -414,9 +421,11 @@ class FiveMinSystem(BaseV9TradingSystem):
         b2_poc_return_s = b2_poc is not None and abs(b2["c"] - b2_poc) <= 0.5
         b2_test_s = b2_lower_high or b2_poc_return_s
         b4_test_s = b4["h"] <= b2["h"]
+        b4_close_below_b1_low = b4["c"] < b1["l"]  # Entry signal per Master Summary Sheet 2
         cot_above_amt = cur_cot > cur_amt
 
-        if b1_bear and b1_expansion and b2_test_s and b3_joining and b4_test_s and cot_above_amt:
+        if (b1_bear and b1_expansion and b2_test_s and b3_joining and b4_test_s
+                and b4_close_below_b1_low and cot_above_amt):
             return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4,
                                     "b2_alt": "poc_return" if b2_poc_return_s else "lower_high"})
 
@@ -560,7 +569,8 @@ class FiveMinSystem(BaseV9TradingSystem):
             from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_today_typical
             structural_anchor = bar.get("l", entry_price) if direction == "LONG" else bar.get("h", entry_price)
             today_typical = compute_today_typical(self._bar_buffer)  # uses today's bars in buffer
-            family = "Reactive" if kind in ("REACTIVE_LONG", "REACTIVE_SHORT") else "OFA"  # Initiative → OFA
+            # Map detector `kind` ("REACTIVE" / "INITIATIVE") to D-091 family taxonomy.
+            family = "Reactive" if kind == "REACTIVE" else "OFA"  # INITIATIVE → OFA family (D-091)
             stop_comp = compute_stop(
                 entry_price=entry_price,
                 direction=direction,
