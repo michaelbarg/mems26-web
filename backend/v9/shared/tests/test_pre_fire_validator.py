@@ -60,3 +60,67 @@ def test_invalid_system_id():
             t1_price=5252.0, t2_price=5254.0,
             time_stop_minutes=60, confidence=75,
         )
+
+
+# ── Pkg 2bc · 8 new negative tests ──────────────────────────────
+
+
+def test_pydantic_rejects_invalid_direction():
+    with pytest.raises(ValidationError):
+        FireRequest(system_id='T1_NUMBER_BAR', direction='UP',
+                    entry_price=100, stop_price=99, t1_price=101, t2_price=102,
+                    time_stop_minutes=60, confidence=75)
+
+
+def test_pydantic_rejects_confidence_negative():
+    with pytest.raises(ValidationError):
+        FireRequest(system_id='T1_NUMBER_BAR', direction='LONG',
+                    entry_price=100, stop_price=99, t1_price=101, t2_price=102,
+                    time_stop_minutes=60, confidence=-1)
+
+
+def test_pydantic_rejects_confidence_above_100():
+    with pytest.raises(ValidationError):
+        FireRequest(system_id='T1_NUMBER_BAR', direction='LONG',
+                    entry_price=100, stop_price=99, t1_price=101, t2_price=102,
+                    time_stop_minutes=60, confidence=101)
+
+
+def test_pydantic_rejects_time_stop_zero():
+    with pytest.raises(ValidationError):
+        FireRequest(system_id='T1_NUMBER_BAR', direction='LONG',
+                    entry_price=100, stop_price=99, t1_price=101, t2_price=102,
+                    time_stop_minutes=0, confidence=75)
+
+
+def test_pydantic_rejects_time_stop_above_180():
+    with pytest.raises(ValidationError):
+        FireRequest(system_id='T1_NUMBER_BAR', direction='LONG',
+                    entry_price=100, stop_price=99, t1_price=101, t2_price=102,
+                    time_stop_minutes=181, confidence=75)
+
+
+def test_invalid_t1_ordering_long_equal():
+    req = FireRequest(system_id='T1_NUMBER_BAR', direction='LONG',
+                      entry_price=100, stop_price=99, t1_price=100, t2_price=102,
+                      time_stop_minutes=60, confidence=75)
+    resp = validate_fire(req)
+    assert resp.valid is False
+    assert "entry < t1 < t2" in resp.fail_reason
+
+
+def test_invalid_t1_ordering_short_equal():
+    req = FireRequest(system_id='T1_NUMBER_BAR', direction='SHORT',
+                      entry_price=100, stop_price=101, t1_price=100, t2_price=98,
+                      time_stop_minutes=60, confidence=75)
+    resp = validate_fire(req)
+    assert resp.valid is False
+    assert "entry > t1 > t2" in resp.fail_reason
+
+
+def test_invalid_t2_equal_t1():
+    req = FireRequest(system_id='T1_NUMBER_BAR', direction='LONG',
+                      entry_price=100, stop_price=99, t1_price=101, t2_price=101,
+                      time_stop_minutes=60, confidence=75)
+    resp = validate_fire(req)
+    assert resp.valid is False

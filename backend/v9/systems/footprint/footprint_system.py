@@ -28,6 +28,8 @@ class FootprintSystem(BaseV9TradingSystem):
         self.bar_buffer: List[Dict[str, Any]] = []
         self.max_buffer = 30
         # Aggressive flow tracking (P-FP-1 v3)
+        self._forces_history: List[Dict[str, Any]] = []  # Pkg 2bc · last 7 bars (oldest→newest)
+        self._FORCES_HISTORY_CAP: int = 7
         self._last_forces: Optional[Dict] = None
         self._last_forces_source: Optional[str] = None
         self._last_delta: Optional[float] = None
@@ -172,6 +174,7 @@ class FootprintSystem(BaseV9TradingSystem):
             self.current_state["buffer_size"] = len(self.bar_buffer)
             self.current_state["aggressive_flow"] = self._last_forces
             self.current_state["forces_source"] = self._last_forces_source
+            self.current_state["forces_history"] = list(self._forces_history)  # Pkg 2bc · copy to avoid aliasing
             self.current_state["delta"] = self._last_delta
             self.current_state["cumulative_delta"] = self._cumulative_delta
             self.current_state["dominance"] = self._last_dominance
@@ -257,6 +260,14 @@ class FootprintSystem(BaseV9TradingSystem):
             return
         self._last_forces = forces
         self._last_forces_source = forces["source"]
+        # Pkg 2bc · maintain forces history (cap at 7)
+        self._forces_history.append({
+            "ts": bar.get("ts"),
+            "ask_vol": forces["agg_buy_vol"],
+            "bid_vol": forces["agg_sell_vol"],
+        })
+        if len(self._forces_history) > self._FORCES_HISTORY_CAP:
+            self._forces_history = self._forces_history[-self._FORCES_HISTORY_CAP:]
 
         agg_buy = forces["agg_buy_vol"]
         agg_sell = forces["agg_sell_vol"]

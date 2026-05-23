@@ -160,3 +160,32 @@ def test_s3_gateway_injection_does_not_enable_demo_or_live():
 
     assert gw._demo_enabled_systems == set()
     assert gw._live_enabled_systems == set()
+
+
+# ── Pkg 2bc · forces_history tests ───────────────────────────────
+
+
+def test_forces_history_starts_empty():
+    from backend.v9.systems.footprint.footprint_system import FootprintSystem
+    sys = FootprintSystem()
+    assert sys._forces_history == []
+
+
+def test_forces_history_capped_at_7():
+    from backend.v9.systems.footprint.footprint_system import FootprintSystem
+    sys = FootprintSystem()
+    # Simulate 10 entries via direct append
+    for i in range(10):
+        sys._forces_history.append({"ts": i, "ask_vol": 100 + i, "bid_vol": 50 + i})
+        if len(sys._forces_history) > sys._FORCES_HISTORY_CAP:
+            sys._forces_history = sys._forces_history[-sys._FORCES_HISTORY_CAP:]
+    assert len(sys._forces_history) == 7
+    assert sys._forces_history[0]["ts"] == 3  # oldest = bar 4 (0-indexed)
+
+
+def test_forces_history_exposed_via_current_state():
+    from backend.v9.systems.footprint.footprint_system import FootprintSystem
+    sys = FootprintSystem()
+    sys._forces_history = [{"ts": 1, "ask_vol": 100, "bid_vol": 50}]
+    sys.current_state["forces_history"] = list(sys._forces_history)
+    assert sys.current_state["forces_history"] == [{"ts": 1, "ask_vol": 100, "bid_vol": 50}]

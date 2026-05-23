@@ -18,6 +18,16 @@ from backend.v9.db.models.five_min_state import V9FiveMinState
 
 logger = logging.getLogger("mems26.systems.five_min")
 
+# Pkg 2bc · OFA configuration (config-driven thresholds per Master Sheet 7)
+DROP_THRESHOLD_PCT: float = 0.10               # bar 2 vol ≤ 10% of bar 1 vol (90% drop)
+EXPANSION_MIN_PT: float = 1.5                  # Initiative bar 1 range min (points)
+EXPANSION_MAX_PT: float = 1.75                 # Initiative bar 1 range max (points)
+POC_RETURN_TOLERANCE_PT: float = 0.5           # Initiative bar 2 POC return tolerance
+MIN_BARS_REQUIRED: int = 7                     # 4 pattern + 3 lookback (Pkg 2bc)
+LOOKBACK_BARS: int = 3                         # bars before bar 1 to check "normal" volume
+LOOKBACK_MAX_VOL_RATIO: float = 0.6            # max(lookback_3bars.volume) / bar1.volume < this
+BELLY_DOMINANCE_RATIO: float = 1.5             # bar 3 buy/sell ratio threshold for Reactive
+
 
 class FiveMinMode:
     WAITING_OPEN = "WAITING_OPEN"
@@ -245,6 +255,32 @@ class FiveMinSystem(BaseV9TradingSystem):
             return None
         return bool(val)
 
+    def _get_belly_ratio_from_footprint(self, direction: str) -> Optional[float]:
+        """Pkg 2bc · compute belly dominance ratio for bar 3 from forces_history.
+
+        LONG belly: ratio = ask_vol / bid_vol (buyers dominate).
+        SHORT belly: ratio = bid_vol / ask_vol (sellers dominate).
+
+        Returns None if history unavailable — caller SKIPS check (graceful degradation).
+        """
+        state = self._footprint_state()
+        history = state.get("forces_history") or []
+        if len(history) < 2:
+            return None
+        bar3 = history[-2]  # bar 3 (one bar ago · current bar is bar 4)
+        ask = bar3.get("ask_vol")
+        bid = bar3.get("bid_vol")
+        if ask is None or bid is None:
+            return None
+        if direction == "LONG":
+            if bid <= 0:
+                return None
+            return ask / bid
+        else:  # SHORT
+            if ask <= 0:
+                return None
+            return bid / ask
+
     def _poc_vol_rising(self, bars: List[Dict], n: int = 3) -> bool:
         """Check if POC price level is rising across last N bars.
 
@@ -326,7 +362,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         SHORT: Mirror of LONG.
         Returns (direction, confidence, info) or (None, 0, {}).
         """
-        if len(bars_5m) < 4:
+        if len(bars_5m) < MIN_BARS_REQUIRED:
             return (None, 0, {})
 
         b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
@@ -343,7 +379,7 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         # Reactive LONG
         b1_sellers = b1["c"] < b1["o"] and b1_vol > 0
-        b2_drop = b2_vol <= b1_vol * 0.10 if b1_vol > 0 else False  # 90% drop
+        b2_drop = b2_vol <= b1_vol * DROP_THRESHOLD_PCT if b1_vol > 0 else False
         b3_buyers = b3["c"] > b3["o"]
         b3_belly = belly is not False  # True or None (unavailable) both pass
         b4_confirm = b4["c"] > b4["o"]
@@ -351,10 +387,22 @@ class FiveMinSystem(BaseV9TradingSystem):
         cot_above_amt = cur_cot > cur_amt
         poc_rising = self._poc_vol_rising(bars_5m[-3:])  # W3-α gap 3
 
+        # Pkg 2bc · lookback: 3 bars before bar 1 must show quiet volume
+        lookback = bars_5m[-MIN_BARS_REQUIRED:-(MIN_BARS_REQUIRED - LOOKBACK_BARS)]
+        lookback_quiet = (
+            all(b.get("v", 0) > 0 for b in lookback) and
+            max(b.get("v", 0) for b in lookback) < b1_vol * LOOKBACK_MAX_VOL_RATIO
+        )
+        # Pkg 2bc · belly dominance ratio (graceful degradation)
+        belly_ratio = self._get_belly_ratio_from_footprint("LONG")
+        belly_ratio_ok = (belly_ratio is None) or (belly_ratio >= BELLY_DOMINANCE_RATIO)
+
         if (b1_sellers and b2_drop and b3_buyers and b3_belly
-                and b4_confirm and b4_close_above_b3_high and cot_above_amt):
+                and b4_confirm and b4_close_above_b3_high and cot_above_amt
+                and lookback_quiet and belly_ratio_ok):
             return ("LONG", 0.80 if poc_rising else 0.75,
-                    {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_rising": poc_rising})
+                    {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_rising": poc_rising,
+                     "belly_ratio": belly_ratio})
 
         # Reactive SHORT (mirror)
         b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
@@ -364,10 +412,16 @@ class FiveMinSystem(BaseV9TradingSystem):
         cot_below_amt = cur_cot < cur_amt
         poc_falling = self._poc_vol_falling(bars_5m[-3:])
 
+        # Pkg 2bc · lookback + belly for SHORT
+        belly_ratio_s = self._get_belly_ratio_from_footprint("SHORT")
+        belly_ratio_ok_s = (belly_ratio_s is None) or (belly_ratio_s >= BELLY_DOMINANCE_RATIO)
+
         if (b1_buyers and b2_drop and b3_sellers and b3_belly
-                and b4_confirm_s and b4_close_below_b3_low and cot_below_amt):
+                and b4_confirm_s and b4_close_below_b3_low and cot_below_amt
+                and lookback_quiet and belly_ratio_ok_s):
             return ("SHORT", 0.80 if poc_falling else 0.75,
-                    {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_falling": poc_falling})
+                    {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_falling": poc_falling,
+                     "belly_ratio": belly_ratio_s})
 
         return (None, 0, {})
 
@@ -384,7 +438,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         SHORT: Mirror of LONG.
         Returns (direction, confidence, info) or (None, 0, {}).
         """
-        if len(bars_5m) < 4:
+        if len(bars_5m) < MIN_BARS_REQUIRED:
             return (None, 0, {})
 
         b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
@@ -393,39 +447,47 @@ class FiveMinSystem(BaseV9TradingSystem):
         if cur_cot is None or cur_amt is None:
             return (None, 0, {})
 
+        b1_vol = b1.get("v", 0) or 0
         b1_range = b1["h"] - b1["l"]
-        b1_expansion = 1.5 <= b1_range <= 1.75  # 6-7 ticks MES
+        b1_expansion = EXPANSION_MIN_PT <= b1_range <= EXPANSION_MAX_PT
         b3_range = b3["h"] - b3["l"]
         b3_joining = b3_range > b1_range
 
         # Initiative LONG
         b1_bull = b1["c"] > b1["o"]
         b2_higher_low = b2["l"] > b1["l"]
-        # POC return alt: Bar -2 returns to POC_VOL (within 0.5pt tolerance)
+        # POC return alt: Bar -2 returns to POC_VOL (within tolerance)
         b2_poc = b2.get("poc_vol") or b2.get("poc")
-        b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= 0.5
+        b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= POC_RETURN_TOLERANCE_PT
         b2_test = b2_higher_low or b2_poc_return
         b4_test = b4["l"] >= b2["l"]
         cot_below_amt = cur_cot < cur_amt
 
         b4_close_above_b1_high = b4["c"] > b1["h"]  # Entry signal per Master Summary Sheet 2
 
+        # Pkg 2bc · lookback (no belly check for Initiative)
+        lookback = bars_5m[-MIN_BARS_REQUIRED:-(MIN_BARS_REQUIRED - LOOKBACK_BARS)]
+        lookback_quiet = (
+            all(b.get("v", 0) > 0 for b in lookback) and
+            max(b.get("v", 0) for b in lookback) < b1_vol * LOOKBACK_MAX_VOL_RATIO
+        ) if b1_vol > 0 else False
+
         if (b1_bull and b1_expansion and b2_test and b3_joining and b4_test
-                and b4_close_above_b1_high and cot_below_amt):
+                and b4_close_above_b1_high and cot_below_amt and lookback_quiet):
             return ("LONG", 0.80, {"kind": "INITIATIVE", "stage": 4,
                                    "b2_alt": "poc_return" if b2_poc_return else "higher_low"})
 
         # Initiative SHORT (mirror)
         b1_bear = b1["c"] < b1["o"]
         b2_lower_high = b2["h"] < b1["h"]
-        b2_poc_return_s = b2_poc is not None and abs(b2["c"] - b2_poc) <= 0.5
+        b2_poc_return_s = b2_poc is not None and abs(b2["c"] - b2_poc) <= POC_RETURN_TOLERANCE_PT
         b2_test_s = b2_lower_high or b2_poc_return_s
         b4_test_s = b4["h"] <= b2["h"]
         b4_close_below_b1_low = b4["c"] < b1["l"]  # Entry signal per Master Summary Sheet 2
         cot_above_amt = cur_cot > cur_amt
 
         if (b1_bear and b1_expansion and b2_test_s and b3_joining and b4_test_s
-                and b4_close_below_b1_low and cot_above_amt):
+                and b4_close_below_b1_low and cot_above_amt and lookback_quiet):
             return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4,
                                     "b2_alt": "poc_return" if b2_poc_return_s else "lower_high"})
 
