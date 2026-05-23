@@ -3,13 +3,16 @@
 # Lesson #17/#18: SCDLLName + sierrachart.h MUST be in first 10 lines
 #
 # Usage: ./scripts/build_monolithic_cpp.sh [--deploy]
-#   --deploy: also copy to ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp
+#   --deploy: copy monolith to every known Sierra ACS_Source install
 
 set -euo pipefail
 
 SRCDIR="$(cd "$(dirname "$0")/../sc_study" && pwd)"
 OUTFILE="$SRCDIR/MES_AI_DataExport_merged.cpp"
-DEPLOY_TARGET="$HOME/SierraChart/ACS_Source/MES_AI_DataExport.cpp"
+DEPLOY_TARGETS=(
+  "$HOME/SierraChart/ACS_Source/MES_AI_DataExport.cpp"
+  "$HOME/SierraChart2/ACS_Source/MES_AI_DataExport.cpp"
+)
 
 echo "=== Monolith Generator v9.2.0 ==="
 echo "Source: $SRCDIR"
@@ -79,17 +82,24 @@ echo "OK: $LINES lines, SCDLLName@line$SCDLL_LINE, 1x sierrachart.h, ${V920_COUN
 
 # Deploy if requested
 if [ "${1:-}" = "--deploy" ]; then
-    if [ -d "$(dirname "$DEPLOY_TARGET")" ]; then
-        cp "$OUTFILE" "$DEPLOY_TARGET"
-        echo "DEPLOYED to $DEPLOY_TARGET"
-        # Stale copy confuses Remote Build (duplicate SCDLLName, old p30.8 body).
-        STALE_MERGED="$(dirname "$DEPLOY_TARGET")/MES_AI_DataExport_merged.cpp"
-        if [ -f "$STALE_MERGED" ]; then
-            mv "$STALE_MERGED" "${STALE_MERGED}.disabled-$(date +%Y%m%d%H%M%S)"
-            echo "MOVED stale $STALE_MERGED aside (use MES_AI_DataExport.cpp only)"
+    deployed=0
+    for DEPLOY_TARGET in "${DEPLOY_TARGETS[@]}"; do
+        if [ -d "$(dirname "$DEPLOY_TARGET")" ]; then
+            cp "$OUTFILE" "$DEPLOY_TARGET"
+            echo "DEPLOYED to $DEPLOY_TARGET"
+            deployed=1
+            # Stale copy confuses Remote Build (duplicate SCDLLName, old p30.8 body).
+            STALE_MERGED="$(dirname "$DEPLOY_TARGET")/MES_AI_DataExport_merged.cpp"
+            if [ -f "$STALE_MERGED" ]; then
+                mv "$STALE_MERGED" "${STALE_MERGED}.disabled-$(date +%Y%m%d%H%M%S)"
+                echo "MOVED stale $STALE_MERGED aside (use MES_AI_DataExport.cpp only)"
+            fi
+        else
+            echo "SKIP: $(dirname "$DEPLOY_TARGET") not found"
         fi
-    else
-        echo "WARN: $DEPLOY_TARGET dir not found, skipping deploy"
+    done
+    if [ "$deployed" -eq 0 ]; then
+        echo "WARN: no ACS_Source targets found" >&2
     fi
 fi
 

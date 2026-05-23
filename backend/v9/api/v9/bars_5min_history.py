@@ -2,6 +2,7 @@
 
 Supports 1m/3m/5min/15m/30m/1h with cursor-based pagination (Wave A1.5).
 """
+import asyncio
 import logging
 from typing import Optional
 from fastapi import APIRouter, Query
@@ -93,37 +94,37 @@ async def get_bars_5min(
     before: Optional[str] = Query(None, description="ISO timestamp — fetch bars BEFORE this ts"),
 ):
     """Return 5-min bars, oldest first."""
-    return _fetch_bars_5min(limit=limit, before=before)
+    return await asyncio.to_thread(_fetch_bars_5min, limit, before)
 
 
 @router.get("/api/v9/chart/bars1m")
 async def get_bars_1m(limit: int = Query(120, le=600), before: Optional[str] = Query(None)):
     """1-min bars — returns 5-min as finest available."""
-    return _fetch_bars_5min(limit=limit, before=before)
+    return await asyncio.to_thread(_fetch_bars_5min, limit, before)
 
 
 @router.get("/api/v9/chart/bars3m")
 async def get_bars_3m(limit: int = Query(120, le=600), before: Optional[str] = Query(None)):
     """3-min bars — returns 5-min as proxy."""
-    return _fetch_bars_5min(limit=limit, before=before)
+    return await asyncio.to_thread(_fetch_bars_5min, limit, before)
 
 
 @router.get("/api/v9/chart/bars15m")
 async def get_bars_15m(limit: int = Query(60, le=200), before: Optional[str] = Query(None)):
     """15-min bars aggregated from 5-min."""
-    raw = _fetch_bars_5min(limit=limit * 3, before=before)
+    raw = await asyncio.to_thread(_fetch_bars_5min, limit * 3, before)
     return _aggregate_bars(raw, 15)
 
 
 @router.get("/api/v9/chart/bars30m")
 async def get_bars_30m(limit: int = Query(48, le=200), before: Optional[str] = Query(None)):
     """30-min bars aggregated from 5-min."""
-    raw = _fetch_bars_5min(limit=limit * 6, before=before)
+    raw = await asyncio.to_thread(_fetch_bars_5min, limit * 6, before)
     return _aggregate_bars(raw, 30)
 
 
 @router.get("/api/v9/chart/bars1h")
 async def get_bars_1h(limit: int = Query(24, le=200), before: Optional[str] = Query(None)):
     """1-hour bars aggregated from 5-min."""
-    raw = _fetch_bars_5min(limit=limit * 12, before=before)
+    raw = await asyncio.to_thread(_fetch_bars_5min, limit * 12, before)
     return _aggregate_bars(raw, 60)

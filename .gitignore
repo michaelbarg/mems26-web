@@ -6,5 +6,7 @@ __pycache__/
 .coverage
 data/
 .DS_Store
+docs/drive/.sync_state.json
+docs/drive/.sync_log.jsonl
 bridge/start_bridge.sh
 frontend/v9/test-results/

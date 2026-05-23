@@ -32,18 +32,73 @@ def test_normalize_sierra_tpo_contract():
     assert normalized["ib_low"] == 7415.25
     assert normalized["ib_width"] == 39.0
     assert normalized["prior_day"]["high"] == 7435.25
+    assert normalized["session_va_ok"] is True
+    assert normalized["ib_found"] is True
 
 
-def test_load_sierra_tpo_rejects_stale_file(tmp_path):
+def test_load_sierra_tpo_serves_stale_file_with_flag(tmp_path):
     export_path = tmp_path / "tpo.json"
-    export_path.write_text(json.dumps({"type": "tpo", "session": {}}))
+    export_path.write_text(
+        json.dumps(
+            {
+                "type": "tpo",
+                "session": {"poc": 7411.25, "vah": 7428.5, "val": 7390.75},
+                "ib": {"found": True, "high": 7378.75, "mid": 7366.25, "low": 7353.75},
+            }
+        )
+    )
     old_ts = time.time() - 120
     export_path.touch()
     import os
 
     os.utime(export_path, (old_ts, old_ts))
 
-    assert tpo_routes._load_sierra_tpo(export_path, max_age_s=1) is None
+    loaded = tpo_routes._load_sierra_tpo(export_path, max_age_s=1)
+    assert loaded is not None
+    assert loaded["stale"] is True
+    assert loaded["poc"] == 7411.25
+    assert loaded["session_va_ok"] is True
+
+
+def test_va_spread_rejects_collapsed_session():
+    assert tpo_routes._va_spread_ok(7392.5, 7393.5, 7392.5) is False
+    assert tpo_routes._va_spread_ok(7411.25, 7428.5, 7390.75) is True
+
+
+def test_normalize_emits_session_opened_ts_for_rth_anchor():
+    """Frontend POC line anchors at RTH open; backend must always provide it.
+
+    Sierra `tpo.json` currently omits `session.opened_ts`, so the backend
+    computes 09:30 ET of the current trading day. Without this anchor the
+    pink current-day POC starts at the first visible bar instead of RTH
+    open — root cause of the "POC not big from RTH start" complaint.
+    """
+    data = {
+        "type": "tpo",
+        "session": {"poc": 7408.25, "vah": 7430.50, "val": 7388.50},
+        "ib": {"found": True, "high": 7454.25, "mid": 7434.75, "low": 7415.25},
+        "prior_day": {"found": True, "high": 7435.25, "low": 7375.0, "close": 7385.5},
+    }
+    normalized = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+    assert normalized["session_opened_ts"] is not None
+    assert normalized["session_opened_ts"].endswith(" 09:30:00")
+
+
+def test_normalize_prefers_export_session_opened_ts_when_present():
+    """If Sierra DLL ever exports session.opened_ts, honour it verbatim."""
+    data = {
+        "type": "tpo",
+        "session": {
+            "poc": 7408.25,
+            "vah": 7430.50,
+            "val": 7388.50,
+            "opened_ts": "2026-05-19T09:30:00-04:00",
+        },
+        "ib": {"found": True, "high": 7454.25, "mid": 7434.75, "low": 7415.25},
+        "prior_day": {"found": False},
+    }
+    normalized = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+    assert normalized["session_opened_ts"] == "2026-05-19 09:30:00"
 
 
 def test_load_tpo_periods_normalizes_unix_ts(monkeypatch):

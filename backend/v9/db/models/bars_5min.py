@@ -1,6 +1,6 @@
 """V9 model: 5-minute OHLCV bars."""
 
-from sqlalchemy import Column, String, Float, Integer, DateTime
+from sqlalchemy import Column, String, Float, Integer, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from backend.v9.db.session import Base
 from backend.v9.db.models._types import BigIntPK
@@ -8,6 +8,12 @@ from backend.v9.db.models._types import BigIntPK
 
 class V9Bar5Min(Base):
     __tablename__ = "v9_bars_5min"
+    # P30 G8 (2026-05-20): enforce per-bar uniqueness so the bridge can't
+    # race two concurrent POSTs into duplicate rows. Backing migration in
+    # `backend/v9/db/migrations/versions/V9_011_bars_5min_unique_ts_symbol.sql`.
+    __table_args__ = (
+        UniqueConstraint("ts", "symbol", name="ux_v9_bars_5min_ts_symbol"),
+    )
 
     id = Column(BigIntPK, primary_key=True, autoincrement=True)
     ts = Column(DateTime(timezone=True), nullable=False, index=True)

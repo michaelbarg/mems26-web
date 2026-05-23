@@ -2,9 +2,10 @@
 
 import json
 import logging
+import math
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -37,6 +38,9 @@ def _normalize_bar(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
     try:
         ts_unix = int(float(ts))
+        # DLL TZ bug (§9): timestamps are Chicago wall-clock encoded as UTC.
+        # Add 5h (CDT) to get real UTC. Same fix as bridge/_fix_chicago_bar_ts().
+        ts_unix += 5 * 3600
     except (TypeError, ValueError):
         return None
     ohlc = raw.get("ohlc") or {}
@@ -52,12 +56,31 @@ def _normalize_bar(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         except (TypeError, ValueError):
             return None
 
+    prev_ohlc = raw.get("prev_ohlc")
+    prev_high = prev_low = prev_open = prev_close = None
+    if isinstance(prev_ohlc, dict):
+        try:
+            prev_open = float(prev_ohlc["o"]) if prev_ohlc.get("o") is not None else None
+            prev_high = float(prev_ohlc["h"]) if prev_ohlc.get("h") is not None else None
+            prev_low = float(prev_ohlc["l"]) if prev_ohlc.get("l") is not None else None
+            prev_close = float(prev_ohlc["c"]) if prev_ohlc.get("c") is not None else None
+        except (KeyError, TypeError, ValueError):
+            pass
+
+    cci_6 = _f("cci_6_tcci")
+    ccidiff = _f("ccidiff")
+    if ccidiff is None and cci_6 is not None:
+        ccidiff = round(float(cci_14) - cci_6, 2)
+
     return {
         "ts_unix": ts_unix,
         "ts": datetime.fromtimestamp(ts_unix, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         "cci_14": float(cci_14),
         "cci_14_prev": _f("cci_14_prev"),
-        "cci_6_tcci": _f("cci_6_tcci"),
+        "cci_6_tcci": cci_6,
+        "ccidiff": ccidiff,
+        "ccidiff_h": _f("ccidiff_h"),
+        "ccidiff_l": _f("ccidiff_l"),
         "trend_state": raw.get("trend_state") or "GRAY",
         "trend_color": TREND_COLORS.get(raw.get("trend_state") or "GRAY", TREND_COLORS["GRAY"]),
         "zlr_detected": bool(raw.get("zlr_detected")),
@@ -67,8 +90,138 @@ def _normalize_bar(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "high": float(ohlc.get("h")) if ohlc.get("h") is not None else None,
         "low": float(ohlc.get("l")) if ohlc.get("l") is not None else None,
         "lsma_value": _f("lsma_value"),
+        "lsma_above_price": bool(raw.get("lsma_above_price")),
         "predictor_next_cci": _f("predictor_next_cci"),
+        "predictor_cci_high": _f("predictor_cci_high"),
+        "predictor_cci_low": _f("predictor_cci_low"),
+        "proj_hi": _f("proj_hi"),
+        "proj_lo": _f("proj_lo"),
+        "low_prev_angle": _f("low_prev_angle"),
         "swi_value": _f("swi_value"),
+        "czi_value": _f("czi_value"),
+        "ema_34": _f("ema_34"),
+        "cci_14_3ago": _f("cci_14_3ago"),
+        "open": float(ohlc.get("o")) if ohlc.get("o") is not None else None,
+        "hfe_direction": raw.get("hfe_direction"),
+        "prev_high": prev_high,
+        "prev_low": prev_low,
+        "prev_open": prev_open,
+        "prev_close": prev_close,
+    }
+
+
+def _attach_prev_ohlc_from_window(bar: Dict[str, Any], prev_bar: Optional[Dict[str, Any]]) -> None:
+    """Fill prev-bar OHLC when export omitted prev_ohlc but history is available."""
+    if prev_bar is None or bar.get("prev_high") is not None:
+        return
+    for key, src in (
+        ("prev_high", "high"),
+        ("prev_low", "low"),
+        ("prev_open", "open"),
+        ("prev_close", "close"),
+    ):
+        if bar.get(key) is None and prev_bar.get(src) is not None:
+            bar[key] = prev_bar[src]
+
+
+def _enrich_bar_projections(bar: Dict[str, Any], recent: List[Dict[str, Any]]) -> None:
+    """Derive ccidiff and Low-Prev/Cur angle from bar data only.
+
+    Sierra DLL owns ProjHi/ProjLo (Pivot Points subgraphs). When the export
+    omits them we leave them None so the HUD renders "—" — never invent a
+    Projection value from a rolling High/Low window, which would change
+    every request and mislead the trader (see P30 root-cause: 7702.75 vs
+    7408.25 came from this fallback).
+    """
+    if bar.get("low_prev_angle") is None and len(recent) >= 2:
+        cur, prev = recent[-1], recent[-2]
+        if cur.get("low") is not None and prev.get("low") is not None:
+            bar["low_prev_angle"] = round(
+                float(math.degrees(math.atan2(cur["low"] - prev["low"], 2.0))), 1
+            )
+    if bar.get("ccidiff") is None:
+        cci = bar.get("cci_14")
+        tcci = bar.get("cci_6_tcci")
+        if cci is not None and tcci is not None:
+            bar["ccidiff"] = round(float(cci) - float(tcci), 2)
+
+
+def _parse_sierra_payload(data: Dict[str, Any], age_s: float) -> Dict[str, Any]:
+    history = data.get("history") or data.get("bars") or []
+    current = data.get("current_bar")
+    bar_period_s = (data.get("bar_period_minutes") or 5) * 60
+
+    # 1. Normalize history bars
+    normalized: List[Dict[str, Any]] = []
+    for raw in history:
+        bar = _normalize_bar(raw)
+        if bar:
+            normalized.append(bar)
+
+    # 2. DLL bug: all history bars share the same ts (current export time).
+    #    Reconstruct by counting backwards from the anchor before merging
+    #    current_bar so the ts comparison below works correctly.
+    ts_bug_detected = False
+    if len(normalized) > 1:
+        ts_vals = [b["ts_unix"] for b in normalized]
+        if len(set(ts_vals)) == 1:
+            ts_bug_detected = True
+            anchor = ts_vals[-1]
+            n = len(normalized)
+            for i, bar in enumerate(normalized):
+                reconstructed = anchor - (n - 1 - i) * bar_period_s
+                bar["ts_unix"] = reconstructed
+                bar["ts"] = datetime.fromtimestamp(reconstructed, tz=timezone.utc).strftime(
+                    "%Y-%m-%d %H:%M:%S"
+                )
+            logger.info(
+                "[Woodies chart] Reconstructed %d bar timestamps (DLL ts bug): %s → %s",
+                n, normalized[0]["ts"], normalized[-1]["ts"],
+            )
+
+    # 3. Merge current_bar (live building bar)
+    if current:
+        cur = _normalize_bar(current)
+        if cur:
+            if not normalized:
+                normalized.append(cur)
+            elif ts_bug_detected:
+                # All history rows share export-time ts; current_bar is the live
+                # tick of the building bar — replace tail, do not append a phantom bar.
+                cur["ts_unix"] = normalized[-1]["ts_unix"]
+                cur["ts"] = normalized[-1]["ts"]
+                normalized[-1] = cur
+            elif normalized[-1]["ts_unix"] == cur["ts_unix"]:
+                # Building 5m bar: Sierra ticks update current_bar, history lag.
+                normalized[-1] = cur
+            elif normalized[-1]["ts_unix"] < cur["ts_unix"]:
+                normalized.append(cur)
+
+    for i, bar in enumerate(normalized):
+        if i > 0:
+            _attach_prev_ohlc_from_window(bar, normalized[i - 1])
+        window = normalized[max(0, i - 12) : i + 1]
+        _enrich_bar_projections(bar, window)
+    # current_bar = enriched tail of normalized[] (not a fresh _normalize_bar(current)).
+    current_out = normalized[-1] if normalized else None
+    study_caption = data.get("study_caption") or data.get("study_params")
+    if isinstance(study_caption, dict):
+        study_caption = None
+    if not study_caption:
+        period = data.get("bar_period_minutes")
+        period_s = f"{int(period)}m" if period is not None else "5m"
+        study_caption = f"(6, 5, 14, 100, HLC Avg) · {period_s}"
+
+    return {
+        "source": "sierra_woodies_5min_json",
+        "version": data.get("version"),
+        "export_ts": data.get("export_ts"),
+        "bar_period_minutes": data.get("bar_period_minutes"),
+        "study_caption": study_caption,
+        "age_s": round(age_s, 1),
+        "stale": False,
+        "bars": normalized,
+        "current_bar": current_out,
     }
 
 
@@ -78,39 +231,19 @@ def _load_sierra_woodies(export_path: Path, max_age_s: float) -> Optional[Dict[s
         return None
     try:
         age_s = time.time() - export_path.stat().st_mtime
-        if age_s > max_age_s:
-            logger.warning(
-                "[Woodies chart] stale export age=%.1fs > %.1fs", age_s, max_age_s
-            )
-            return {
-                "source": "sierra_woodies_5min_json",
-                "stale": True,
-                "age_s": round(age_s, 1),
-                "error": f"File stale ({age_s:.0f}s > {max_age_s:.0f}s)",
-                "bars": [],
-            }
+        stale = age_s > max_age_s
         with open(export_path, "r") as f:
             data = json.load(f)
-        history = data.get("history") or data.get("bars") or []
-        current = data.get("current_bar")
-        normalized: List[Dict[str, Any]] = []
-        for raw in history:
-            bar = _normalize_bar(raw)
-            if bar:
-                normalized.append(bar)
-        if current:
-            cur = _normalize_bar(current)
-            if cur and (not normalized or normalized[-1]["ts_unix"] != cur["ts_unix"]):
-                normalized.append(cur)
-        return {
-            "source": "sierra_woodies_5min_json",
-            "version": data.get("version"),
-            "export_ts": data.get("export_ts"),
-            "age_s": round(age_s, 1),
-            "stale": False,
-            "bars": normalized,
-            "current_bar": _normalize_bar(current) if current else (normalized[-1] if normalized else None),
-        }
+        payload = _parse_sierra_payload(data, age_s)
+        if stale:
+            logger.warning(
+                "[Woodies chart] stale export age=%.1fs > %.1fs (serving bars for display)",
+                age_s,
+                max_age_s,
+            )
+            payload["stale"] = True
+            payload["error"] = f"File stale ({age_s:.0f}s > {max_age_s:.0f}s)"
+        return payload
     except json.JSONDecodeError:
         logger.warning("[Woodies chart] JSON parse error")
         return None
@@ -120,7 +253,7 @@ def _load_sierra_woodies(export_path: Path, max_age_s: float) -> Optional[Dict[s
 
 
 @router.get("/api/v9/woodies/chart")
-async def woodies_chart(limit: int = Query(30, ge=1, le=120)):
+async def woodies_chart(limit: int = Query(50, ge=1, le=200)):
     """Return last N Woodies 5m CCI bars from Sierra export for chart panel."""
     payload = _load_sierra_woodies(EXPORT_PATH, MAX_AGE_S)
     if payload is None:

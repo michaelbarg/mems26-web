@@ -220,7 +220,29 @@ class TestAcceptSetup:
         assert trade.t1 == 5250.0
         assert trade.t2 == 5255.0
         assert trade.t3 == 5260.0
-        assert trade.cross_context == {"sys2": "neutral", "sys4": "bullish"}
+        assert isinstance(trade.cross_context, list)
+        assert trade.cross_context[0]["systems"] == {"sys2": "neutral", "sys4": "bullish"}
+        assert trade.quality["trigger"] == "system_1"
+
+    def test_accept_setup_persists_pattern_and_trigger(self, manager, db):
+        setup = {
+            "firing_system": 1,
+            "direction": "LONG",
+            "stop": 5240.0,
+            "t1": 5250.0,
+            "t2": 5255.0,
+            "t3": 5260.0,
+            "classification": "TACTICAL",
+            "confidence": 0.9,
+            "metadata": {"pattern": "CCI_CROSS_UP", "group": "woodies"},
+            "trigger": "FIRE_LONG",
+            "cross_context": {"woodies_system": {"signal": "CCI_CROSS_UP"}},
+        }
+        tid = manager.accept_setup(setup, "shadow")
+        trade = db.query(V9Trade).filter(V9Trade.id == tid).first()
+        assert trade.quality["metadata"]["pattern"] == "CCI_CROSS_UP"
+        assert trade.quality["trigger"] == "FIRE_LONG"
+        assert trade.cross_context[0]["classification"] == "TACTICAL"
 
     def test_invalid_mode(self, manager, sample_setup):
         with pytest.raises(ValueError, match="Invalid mode"):
@@ -303,6 +325,7 @@ class TestTargetHits:
         # SQLite strips timezone — compare naive
         assert trade.t1_hit_ts.replace(tzinfo=None) == ts.replace(tzinfo=None)
         assert trade.state == "PARTIAL"
+        assert trade.stop == 5245.0  # Smart BE after T1 → entry price
 
     def test_t2_hit_no_state_change(self, manager, db, sample_setup):
         tid = manager.accept_setup(sample_setup, "shadow")
@@ -325,6 +348,19 @@ class TestTargetHits:
         assert trade.state == "CLOSED"
         assert trade.exit_reason == "T3_HIT"
         assert trade.outcome == "WIN"
+
+    def test_t3_hit_with_zero_t3_does_not_explode_pnl(self, manager, db, sample_setup):
+        """P30: Sierra sends t3=0 when unused — must not price contracts at 0."""
+        setup = {**sample_setup, "t3": 0.0}
+        tid = manager.accept_setup(setup, "shadow")
+        manager.on_fill(tid, 5245.0)
+        manager.on_target_hit(tid, "T1")
+        manager.on_target_hit(tid, "T2")
+        manager.on_target_hit(tid, "T3")
+
+        trade = db.query(V9Trade).filter(V9Trade.id == tid).first()
+        assert trade.pnl_usd is not None
+        assert abs(trade.pnl_usd) < 10_000
 
     def test_invalid_target_name(self, manager, sample_setup):
         tid = manager.accept_setup(sample_setup, "shadow")
@@ -358,6 +394,19 @@ class TestStopHit:
         trade = db.query(V9Trade).filter(V9Trade.id == tid).first()
         assert trade.state == "CLOSED"
         assert trade.exit_reason == "STOP_HIT"
+
+    def test_stop_after_t1_partial_pnl(self, manager, db, sample_setup):
+        """C1 @ T1, C2/C3 @ stop — not all three at stop."""
+        tid = manager.accept_setup(sample_setup, "shadow")
+        manager.on_fill(tid, 5245.0)
+        manager.on_target_hit(tid, "T1")
+        manager.on_stop_hit(tid)
+
+        trade = db.query(V9Trade).filter(V9Trade.id == tid).first()
+        # Smart BE after T1 moves stop to entry; stop hit closes c2/c3 at BE (0), c1 @ T1 (+25)
+        assert trade.pnl_usd == 25.0
+        q = trade.quality if isinstance(trade.quality, dict) else {}
+        assert q.get("initial_stop") == 5240.0
 
 
 class TestPnlCalculation:

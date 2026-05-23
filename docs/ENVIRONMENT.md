@@ -47,3 +47,5 @@ next, react, react-dom, zustand, @tanstack/react-query, lightweight-charts, luci
 - NO Windows paths — use `/Users/michael/...` (AP-T03)
 - NO `sc.GetPersistentString` — use `sc.GetPersistentSCString` (AP-T04)
 - Build: Analysis menu -> Build Advanced Custom Study DLL
+
+**Full ops (paths, deploy, study Inputs, pitfalls):** [`docs/runbooks/SIERRA_DLL_OPS.md`](runbooks/SIERRA_DLL_OPS.md) — CC updates after cross-checking other logs.

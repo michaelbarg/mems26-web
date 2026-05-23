@@ -6,7 +6,7 @@ Uses in-memory SQLite for isolation.
 import pytest
 from datetime import date, datetime, timezone
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 from backend.v9.db.session import Base
@@ -21,6 +21,49 @@ def db_session_factory():
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine)
     return factory
+
+
+@pytest.fixture
+def prod_schema_session_factory():
+    """In-memory SQLite that mirrors the **production** schema drift.
+
+    Migration 014 (``014_day_type_v9_columns.sql``) explicitly notes that
+    SQLite cannot ALTER COLUMN to drop NOT NULL, so the live SQLite DB still
+    carries ``status NOT NULL`` and ``confidence NOT NULL`` even though the
+    SQLAlchemy model marks them ``nullable=True``. This fixture rebuilds the
+    table from raw DDL so the test surface matches the prod schema and
+    catches the P31 §C regression (silent IntegrityError that left
+    ``v9_day_type_history`` empty for the entire trading session).
+    """
+    engine = create_engine("sqlite:///:memory:")
+    with engine.begin() as conn:
+        conn.execute(text(
+            """
+            CREATE TABLE v9_day_type_history (
+                id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                date DATE NOT NULL UNIQUE,
+                day_type VARCHAR(32) NOT NULL,
+                status VARCHAR(16) NOT NULL,
+                confidence FLOAT NOT NULL,
+                ib_high FLOAT,
+                ib_low FLOAT,
+                ib_width_ticks INTEGER,
+                opening_type VARCHAR(16),
+                locked_at DATETIME,
+                reasoning_notes VARCHAR(1024),
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                probability FLOAT,
+                directional_certainty VARCHAR(8),
+                trading_confidence VARCHAR(8),
+                ib_width FLOAT,
+                ib_width_class VARCHAR(8),
+                active_zohar_rules JSON DEFAULT '[]',
+                last_updated_at DATETIME,
+                updated_at DATETIME
+            )
+            """
+        ))
+    return sessionmaker(bind=engine)
 
 
 def _make_event(
@@ -157,3 +200,115 @@ def test_consume_accepts_datetime_object(db_session_factory):
     assert row is not None
     assert row.date == date(2026, 5, 15)
     session.close()
+
+
+# ── P31 §C: schema-drift regression — status + confidence NOT NULL ──
+
+
+def test_consume_populates_legacy_status_and_confidence(db_session_factory):
+    """V1-legacy ``status`` + ``confidence`` columns must always be set so the
+    production DB (which still enforces NOT NULL on both — see migration 014
+    header) cannot reject the UPSERT with IntegrityError.
+    """
+    consumer = DayTypeConsumer(db_session_factory)
+    consumer.consume(_make_event(probability=0.7))
+
+    session = db_session_factory()
+    row = session.query(V9DayTypeHistory).first()
+    assert row is not None
+    assert row.status is not None and row.status != ""
+    assert row.confidence is not None
+    # Probability 0.7 → confidence 70.0 (V1 percentage convention).
+    assert row.confidence == pytest.approx(70.0)
+    session.close()
+
+
+def test_consume_maps_lock_state_to_legacy_status(db_session_factory):
+    """When the caller (main._day_type_on_bar) passes ``lock_state`` the
+    legacy ``status`` column should mirror it; otherwise default to LOCKED.
+    """
+    consumer = DayTypeConsumer(db_session_factory)
+    consumer.consume(_make_event(lock_state="PENDING", probability=0.4))
+
+    session = db_session_factory()
+    row = session.query(V9DayTypeHistory).first()
+    assert row.status == "PENDING"
+    assert row.confidence == pytest.approx(40.0)
+    session.close()
+
+
+def test_consume_succeeds_against_prod_not_null_schema(prod_schema_session_factory):
+    """Regression: against the live production schema (status NOT NULL,
+    confidence NOT NULL), the UPSERT must succeed — not raise IntegrityError.
+
+    Before the P31 §C fix this test would have failed with
+    ``sqlite3.IntegrityError: NOT NULL constraint failed:
+    v9_day_type_history.status`` and the live trading session would silently
+    accumulate no day_type history rows for the entire day.
+    """
+    consumer = DayTypeConsumer(prod_schema_session_factory)
+    event = _make_event(
+        day_type="Nontrend",
+        probability=0.5,
+        lock_state="PENDING",
+    )
+
+    consumer.consume(event)
+
+    session = prod_schema_session_factory()
+    try:
+        rows = session.execute(
+            text("SELECT date, day_type, status, confidence, probability FROM v9_day_type_history")
+        ).fetchall()
+        assert len(rows) == 1
+        r = rows[0]
+        assert r[1] == "Nontrend"
+        assert r[2] == "PENDING"
+        assert r[3] == pytest.approx(50.0)
+        assert r[4] == pytest.approx(0.5)
+    finally:
+        session.close()
+
+
+def test_consume_handles_missing_probability_against_prod_schema(
+    prod_schema_session_factory,
+):
+    """Even with a missing probability the legacy ``confidence`` defaults
+    to 0.0 instead of NULL so prod schema does not reject the row.
+    """
+    consumer = DayTypeConsumer(prod_schema_session_factory)
+    event = _make_event()
+    event["probability"] = None
+
+    consumer.consume(event)
+
+    session = prod_schema_session_factory()
+    try:
+        row = session.execute(
+            text("SELECT status, confidence FROM v9_day_type_history")
+        ).fetchone()
+        assert row[0] == "LOCKED"
+        assert row[1] == pytest.approx(0.0)
+    finally:
+        session.close()
+
+
+def test_consume_upserts_against_prod_schema(prod_schema_session_factory):
+    """UPSERT must update the same row twice under prod NOT NULL constraints."""
+    consumer = DayTypeConsumer(prod_schema_session_factory)
+    consumer.consume(_make_event(day_type="Normal", probability=0.5, lock_state="PENDING"))
+    consumer.consume(
+        _make_event(day_type="Variation", probability=0.8, lock_state="LOCKED")
+    )
+
+    session = prod_schema_session_factory()
+    try:
+        rows = session.execute(
+            text("SELECT day_type, status, confidence FROM v9_day_type_history")
+        ).fetchall()
+        assert len(rows) == 1  # UPSERT preserved
+        assert rows[0][0] == "Variation"
+        assert rows[0][1] == "LOCKED"
+        assert rows[0][2] == pytest.approx(80.0)
+    finally:
+        session.close()

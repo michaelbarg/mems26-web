@@ -27,6 +27,8 @@ from backend.v9.api.v9.open_type_routes import router as open_type_api_router
 from backend.v9.api.v9.day_type_v9_routes import router as day_type_v9_router
 from backend.v9.api.v9.cumulative_delta_routes import router as cvd_api_router
 from backend.v9.api.v9.woodies_chart_routes import router as woodies_chart_router
+from backend.v9.api.v9.history_routes import router as history_api_router
+from backend.v9.api.v9.admin_routes import router as admin_api_router
 from backend.v9.ws.router import router as ws_event_bus_router
 
 logger = logging.getLogger(__name__)
@@ -64,6 +66,8 @@ v9_router.include_router(open_type_api_router)
 v9_router.include_router(day_type_v9_router)
 v9_router.include_router(cvd_api_router)
 v9_router.include_router(woodies_chart_router)
+v9_router.include_router(history_api_router)
+v9_router.include_router(admin_api_router)
 
 
 @v9_router.get("/api/v9/health")

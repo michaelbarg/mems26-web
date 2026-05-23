@@ -21,6 +21,7 @@ from bridge.v9_streams import (
     Bars5MinStream,
     TickReversal15Stream,
     FootprintStream,
+    CumulativeDeltaStream,
 )
 from bridge import json_bridge
 
@@ -279,3 +280,126 @@ class TestBaseStreamBehavior:
                 mock_redis.assert_called_once()
                 mock_api.assert_called_once()
                 assert s._last_export_ts == 100.0
+
+
+# ── P31 §A: CVD `points[].t` Chicago→UTC fix ─────────────────────────────
+
+class TestCumulativeDeltaChicagoTsFix:
+    """Regression for the P31 §A bug: the §9 bridge workaround rewrites
+    `bars[].ts` / `history[].ts` etc. but NOT `points[].t` (different field
+    name AND different container). CVD points kept Chicago-wall-clock-as-UTC
+    encoding → frontend CVD candles rendered ~5h behind the price bars on the
+    shared chart timeScale. Override in CumulativeDeltaStream must also touch
+    `points[].t`.
+    """
+
+    def test_class_attrs(self):
+        s = CumulativeDeltaStream()
+        assert s.name == "cumulative_delta"
+        assert s.filename == "cumulative_delta.json"
+
+    def test_fix_chicago_bar_ts_rewrites_points_t(self, monkeypatch):
+        """Points with `t` field must be converted from Chicago→UTC."""
+        # Force the workaround on regardless of env.
+        monkeypatch.setattr(
+            "bridge.v9_streams.base_stream._DISABLE_CHICAGO_TS_FIX", False
+        )
+        s = CumulativeDeltaStream()
+        # A Chicago-wall-clock unix value (10:00 Chicago encoded as UTC).
+        # Real meaning is 10:00 CDT = 15:00 UTC; bug stores it as if it were
+        # 10:00 UTC = 1779360000.
+        chicago_encoded = 1779360000
+        data = {
+            "type": "cumulative_delta",
+            "export_ts": 1779360000.0,
+            "points": [
+                {"i": 1, "t": chicago_encoded, "d": 10.0, "cum": 10.0, "p": 7430.0},
+                {"i": 2, "t": chicago_encoded + 300, "d": -5.0, "cum": 5.0, "p": 7429.0},
+            ],
+        }
+
+        fixed = s._fix_chicago_bar_ts(data)
+
+        # Every point's `t` should be shifted forward by the Chicago offset
+        # (4h CDT for May or 5h CST), so the new value must be > original.
+        for pt in fixed["points"]:
+            assert pt["t"] > chicago_encoded, (
+                f"point.t={pt['t']} not shifted from Chicago-encoded "
+                f"{chicago_encoded}; check _chicago_to_utc()"
+            )
+        # The two points must still be 300s apart after the shift.
+        assert fixed["points"][1]["t"] - fixed["points"][0]["t"] == 300
+
+    def test_fix_chicago_bar_ts_preserves_other_fields(self, monkeypatch):
+        """Non-`t` fields on each point must pass through unchanged."""
+        monkeypatch.setattr(
+            "bridge.v9_streams.base_stream._DISABLE_CHICAGO_TS_FIX", False
+        )
+        s = CumulativeDeltaStream()
+        data = {
+            "type": "cumulative_delta",
+            "export_ts": 1779360000.0,
+            "points": [
+                {"i": 7, "t": 1779360000, "d": 12.5, "cum": 99.5, "p": 7430.75},
+            ],
+        }
+        fixed = s._fix_chicago_bar_ts(data)
+        pt = fixed["points"][0]
+        assert pt["i"] == 7
+        assert pt["d"] == 12.5
+        assert pt["cum"] == 99.5
+        assert pt["p"] == 7430.75
+
+    def test_fix_chicago_bar_ts_no_op_when_disabled(self, monkeypatch):
+        """`V9_DISABLE_CHICAGO_TS_FIX=1` must short-circuit the fix so the DLL
+        canonical fix (§9 Option A) can ship without bridge churn.
+        """
+        monkeypatch.setattr(
+            "bridge.v9_streams.base_stream._DISABLE_CHICAGO_TS_FIX", True
+        )
+        s = CumulativeDeltaStream()
+        original_t = 1779360000
+        data = {
+            "type": "cumulative_delta",
+            "points": [{"i": 1, "t": original_t, "d": 0.0, "cum": 0.0, "p": 7400.0}],
+        }
+        fixed = s._fix_chicago_bar_ts(data)
+        assert fixed["points"][0]["t"] == original_t
+
+    def test_fix_chicago_bar_ts_tolerates_missing_points(self, monkeypatch):
+        """Payload without `points` (or non-list) must not crash."""
+        monkeypatch.setattr(
+            "bridge.v9_streams.base_stream._DISABLE_CHICAGO_TS_FIX", False
+        )
+        s = CumulativeDeltaStream()
+        # No `points` key
+        data1 = {"type": "cumulative_delta", "export_ts": 1.0}
+        assert s._fix_chicago_bar_ts(data1) is data1
+        # `points` is not a list
+        data2 = {"type": "cumulative_delta", "points": "oops"}
+        assert s._fix_chicago_bar_ts(data2) is data2
+        # `points` is list of non-dicts
+        data3 = {"type": "cumulative_delta", "points": [1, 2, 3]}
+        assert s._fix_chicago_bar_ts(data3) is data3
+        # `points` items missing `t` key
+        data4 = {"type": "cumulative_delta", "points": [{"i": 1, "d": 0.0}]}
+        result = s._fix_chicago_bar_ts(data4)
+        assert result["points"][0] == {"i": 1, "d": 0.0}
+
+    def test_fix_chicago_bar_ts_also_rewrites_bars_ts(self, monkeypatch):
+        """Regression — the base class behavior for `bars[].ts` must still
+        apply even though we overrode the hook (we call ``super()`` first).
+        """
+        monkeypatch.setattr(
+            "bridge.v9_streams.base_stream._DISABLE_CHICAGO_TS_FIX", False
+        )
+        s = CumulativeDeltaStream()
+        original_ts = 1779360000
+        data = {
+            "type": "cumulative_delta",
+            "bars": [{"ts": original_ts, "o": 7400.0}],
+            "points": [{"i": 1, "t": original_ts, "d": 0.0, "cum": 0.0, "p": 7400.0}],
+        }
+        fixed = s._fix_chicago_bar_ts(data)
+        assert fixed["bars"][0]["ts"] > original_ts
+        assert fixed["points"][0]["t"] > original_ts

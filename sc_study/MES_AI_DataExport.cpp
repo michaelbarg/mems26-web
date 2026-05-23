@@ -619,7 +619,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         std::string w5_json = v9_woodies_5min_to_json(
             sc, V9WoodiesHistory.GetInt(),
-            sierra.valid ? &sierra : nullptr);
+            sierra.valid ? &sierra : nullptr,
+            wc, ProjHLStudyID.GetInt());
         v9_write_json(v9dir, "woodies_5min.json", w5_json);
     }
 

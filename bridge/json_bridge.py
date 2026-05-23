@@ -13,6 +13,11 @@ try:
 except ModuleNotFoundError:
     from .v9_streams import ALL_STREAMS
 
+try:
+    from v9_startup import wipe_today_bars_if_requested
+except ModuleNotFoundError:
+    from .v9_startup import wipe_today_bars_if_requested
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -69,6 +74,15 @@ def main():
         logger.info("MEMS26 V9 Bridge — history-only mode (backfill then exit)")
     else:
         logger.info("MEMS26 V9 Bridge starting — %d streams", len(stream_classes))
+
+    # P30 (2026-05-20): opt-in wipe of today's bars BEFORE any stream starts.
+    # Default behaviour is unchanged (flag off). When the flag is set the
+    # wipe restricts to ts >= today 00:00 ET so multi-day TPO / Day Type
+    # windows stay intact. Failure to wipe must not block startup.
+    try:
+        wipe_today_bars_if_requested()
+    except Exception as e:  # belt-and-braces — module-level try/except already swallows
+        logger.warning("[BRIDGE STARTUP] wipe-today hook raised: %s — continuing startup", e)
 
     instances = [StreamClass() for StreamClass in stream_classes]
 

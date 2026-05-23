@@ -44,10 +44,27 @@ class DayTypeConsumer:
             timestamp, day_type, probability, directional_certainty,
             trading_confidence, ib_h, ib_l, ib_width, ib_width_class,
             opening_type, last_updated_at, reasoning_notes, active_zohar_rules
+
+        Optional V1-legacy fields (also accepted to avoid NOT NULL drift between
+        the SQLAlchemy model and the production SQLite schema — see migration
+        014 comment): ``lock_state`` ("LOCKED" / "LOCKED_LOW_CONF" / "PENDING").
         """
         session_date = self._extract_session_date(
             classification_event["timestamp"]
         )
+
+        # P31 §C fix: the production v9_day_type_history schema still carries
+        # `status NOT NULL` and `confidence NOT NULL` (migration 014 noted that
+        # SQLite cannot ALTER COLUMN to drop NOT NULL — see header comment).
+        # The SQLAlchemy model marks both as nullable=True, so the in-memory
+        # test DB created via Base.metadata.create_all() lets nulls through,
+        # but the live SQLite DB rejects them with IntegrityError. The error
+        # was being swallowed by `_logger.debug` in main._day_type_on_bar,
+        # so v9_day_type_history stayed empty and the V9 day_type API endpoint
+        # always returned `classified: false` → V1 demoted. Always populate
+        # both legacy columns so the live UPSERT cannot drift again.
+        legacy_status = self._map_legacy_status(classification_event)
+        legacy_confidence = self._map_legacy_confidence(classification_event)
 
         session: Session = self._db_session_factory()
         try:
@@ -60,6 +77,8 @@ class DayTypeConsumer:
             if existing is not None:
                 # UPDATE existing row
                 existing.day_type = classification_event["day_type"]
+                existing.status = legacy_status
+                existing.confidence = legacy_confidence
                 existing.probability = classification_event["probability"]
                 existing.directional_certainty = classification_event["directional_certainty"]
                 existing.trading_confidence = classification_event["trading_confidence"]
@@ -81,6 +100,8 @@ class DayTypeConsumer:
                 row = V9DayTypeHistory(
                     date=session_date,
                     day_type=classification_event["day_type"],
+                    status=legacy_status,
+                    confidence=legacy_confidence,
                     probability=classification_event["probability"],
                     directional_certainty=classification_event["directional_certainty"],
                     trading_confidence=classification_event["trading_confidence"],
@@ -130,3 +151,36 @@ class DayTypeConsumer:
         if isinstance(value, str):
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
         return value
+
+    @staticmethod
+    def _map_legacy_status(classification_event: dict) -> str:
+        """Map V9 classification to V1-legacy ``status`` (NOT NULL in prod DB).
+
+        Accepts an optional ``lock_state`` key in the event (``"LOCKED"`` /
+        ``"LOCKED_LOW_CONF"`` / ``"PENDING"``) and falls back to ``"LOCKED"``
+        because ``to_classification()`` only returns a non-None value once the
+        state machine has produced a usable classification — at that point the
+        row is publishable to the V9 API even if the internal lock has not yet
+        fired (the API treats row-existence as ``classified=True``).
+        """
+        lock_state = classification_event.get("lock_state")
+        if lock_state in ("LOCKED", "LOCKED_LOW_CONF", "PENDING"):
+            return str(lock_state)
+        return "LOCKED"
+
+    @staticmethod
+    def _map_legacy_confidence(classification_event: dict) -> float:
+        """Map V9 ``probability`` (0..1) to V1-legacy ``confidence`` (0..100).
+
+        Mirrors the reverse mapping in ``day_type_v9_routes._row_to_v9_dict``
+        which converts V1 ``confidence`` back to V9 ``probability``. Defaults
+        to ``0.0`` if probability is missing; never returns ``None`` because
+        the production schema declares ``confidence FLOAT NOT NULL``.
+        """
+        probability = classification_event.get("probability")
+        if probability is None:
+            return 0.0
+        try:
+            return round(float(probability) * 100.0, 2)
+        except (TypeError, ValueError):
+            return 0.0

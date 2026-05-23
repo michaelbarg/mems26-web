@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-05-20 16:59:30 by build_monolithic_cpp.sh
+// Generated 2026-05-22 21:19:46 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -903,7 +903,10 @@ inline std::vector<Woodies30MinBar> v9_build_30min_bars(
             bar.ask_vol += sc.AskVolume[i];
             bar.bid_vol += sc.BidVolume[i];
         }
-        bar.timestamp = (long long)time(nullptr);
+        {
+            long long raw_ts = v9_sc_datetime_to_unix(sc.BaseDateTimeIn[b]);
+            bar.timestamp = raw_ts > 0 ? (raw_ts - (raw_ts % 300)) : (long long)time(nullptr);
+        }
         bars.push_back(bar);
     }
     return bars;
@@ -1215,7 +1218,7 @@ inline HFEResult v9_detect_hfe(const float* cci_hist, int n, int lookback)
 // ══════════════════════════════════════════════════════════════
 // D-074: 5-min Woodies export (2 × 3-min chart bars ≈ 6 min)
 // ══════════════════════════════════════════════════════════════
-static const int WOODIES_5MIN_PERIOD = 2;  // 2 × 3-min = ~5-6 min
+static const int WOODIES_5MIN_PERIOD = 1;  // 1:1 with chart bar (5-min chart)
 
 inline std::vector<Woodies30MinBar> v9_build_5min_bars(
     SCStudyInterfaceRef sc, int max_bars)
@@ -1243,23 +1246,66 @@ inline std::vector<Woodies30MinBar> v9_build_5min_bars(
             bar.ask_vol += sc.AskVolume[i];
             bar.bid_vol += sc.BidVolume[i];
         }
-        bar.timestamp = (long long)time(nullptr);
+        {
+            long long raw_ts = v9_sc_datetime_to_unix(sc.BaseDateTimeIn[b]);
+            bar.timestamp = raw_ts > 0 ? (raw_ts - (raw_ts % 300)) : (long long)time(nullptr);
+        }
         bars.push_back(bar);
     }
     return bars;
 }
 
 inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_history,
-                                            const WoodiesSierraStudies* sierra = nullptr)
+                                            const WoodiesSierraStudies* sierra = nullptr,
+                                            int woodies_chart = 0, int proj_study_id = 0)
 {
     std::vector<Woodies30MinBar> bars = v9_build_5min_bars(sc, max_history + 10);
     int n = (int)bars.size();
 
-    // Pre-compute CCI-14 history for ZLR/HFE detection
+    // ── Sierra study arrays for ALL bars ──
+    // Key: use GetContainingIndexForDateTimeIndex to map DLL bar index → chart #12 bar index
+    int wc = (woodies_chart > 0) ? woodies_chart : 0;
+    SCFloatArray s_cci14_arr, s_cci6_arr, s_ema34_arr, s_lsma25_arr;
+    SCFloatArray s_swi_arr, s_czi_arr, s_proj_hi_arr, s_proj_lo_arr;
+    SCFloatArray s_trend_up_arr, s_trend_down_arr, s_trend_neutral_arr;
+    SCFloatArray s_pred_hi_arr, s_pred_lo_arr;
+    bool have_sierra = false;
+    if (wc > 0) {
+        sc.GetStudyArrayFromChartUsingID(wc, 4, 0, s_cci14_arr);    // CCI-14
+        sc.GetStudyArrayFromChartUsingID(wc, 10, 0, s_cci6_arr);    // TCCI
+        sc.GetStudyArrayFromChartUsingID(wc, 3, 0, s_ema34_arr);    // EMA-34
+        sc.GetStudyArrayFromChartUsingID(wc, 2, 0, s_lsma25_arr);   // LSMA
+        sc.GetStudyArrayFromChartUsingID(wc, 6, 5, s_swi_arr);      // Sidewinder
+        sc.GetStudyArrayFromChartUsingID(wc, 7, 2, s_czi_arr);      // ChopZone
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 1, s_trend_up_arr); // TrendUp
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 2, s_trend_down_arr);
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 3, s_trend_neutral_arr);
+        sc.GetStudyArrayFromChartUsingID(wc, 11, 0, s_pred_hi_arr); // CCI Predictor SG0
+        sc.GetStudyArrayFromChartUsingID(wc, 11, 1, s_pred_lo_arr); // CCI Predictor SG1
+        have_sierra = (s_cci14_arr.GetArraySize() > 0);
+        if (proj_study_id > 0) {
+            sc.GetStudyArrayFromChartUsingID(wc, proj_study_id, 1, s_proj_hi_arr);
+            sc.GetStudyArrayFromChartUsingID(wc, proj_study_id, 2, s_proj_lo_arr);
+        }
+    }
+
+    // Helper: read Sierra float at mapped index, 0 if unavailable
+    #define S_VAL(arr, idx) ((idx) >= 0 && (idx) < (arr).GetArraySize() ? (arr)[(idx)] : 0.0f)
+
+    // Map DLL bar index → Woodies chart bar index using Sierra's cross-chart mapping
+    // GetContainingIndexForDateTimeIndex maps a datetime index from THIS chart to target chart
+    auto mapIdx = [&](int dll_bar_idx) -> int {
+        if (!have_sierra || wc == 0 || wc == sc.ChartNumber) return dll_bar_idx;
+        return sc.GetContainingIndexForDateTimeIndex(wc, dll_bar_idx);
+    };
+
+    // Pre-compute CCI-14 history for ZLR/HFE detection — Sierra when available
     std::vector<float> cci14_hist;
     cci14_hist.reserve(n);
     for (int i = 0; i < n; i++) {
-        cci14_hist.push_back(v9_calc_cci(bars, i, 14));
+        int mi = mapIdx(bars[i].chart_bar_start);
+        float sv = S_VAL(s_cci14_arr, mi);
+        cci14_hist.push_back((have_sierra && sv != 0) ? sv : v9_calc_cci(bars, i, 14));
     }
 
     std::ostringstream j;
@@ -1277,18 +1323,52 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
     for (int bi = history_start; bi < n; bi++) {
         if (bi > history_start) j << ",";
 
-        float cci14     = v9_calc_cci(bars, bi, 14);
-        float cci6      = v9_calc_cci(bars, bi, 6);
-        float ema34     = v9_calc_ema(bars, bi, 34);
-        float lsma25    = v9_calc_lsma(bars, bi, 25);
-        float cci14_prev = (bi > 0) ? v9_calc_cci(bars, bi - 1, 14) : 0;
-        float cci14_3ago = (bi >= 3) ? v9_calc_cci(bars, bi - 3, 14) : 0;
-        float swi       = v9_calc_sidewinder(cci14, cci14_3ago);
-        float czi       = v9_calc_chopzone(bars, bi, ema34);
-        float predictor = v9_cci_predictor(cci14, cci14_prev);
-        const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
+        int mi = mapIdx(bars[bi].chart_bar_start);  // mapped index in Woodies chart
+
+        // Sierra native values with local fallback
+        float cci14, cci6, ema34, lsma25, swi, czi;
+        if (have_sierra) {
+            float sv;
+            sv = S_VAL(s_cci14_arr, mi);  cci14  = (sv != 0) ? sv : v9_calc_cci(bars, bi, 14);
+            sv = S_VAL(s_cci6_arr, mi);   cci6   = (sv != 0) ? sv : v9_calc_cci(bars, bi, 6);
+            sv = S_VAL(s_ema34_arr, mi);  ema34  = (sv != 0) ? sv : v9_calc_ema(bars, bi, 34);
+            sv = S_VAL(s_lsma25_arr, mi); lsma25 = (sv != 0) ? sv : v9_calc_lsma(bars, bi, 25);
+            swi = S_VAL(s_swi_arr, mi);
+            czi = S_VAL(s_czi_arr, mi);
+        } else {
+            cci14  = v9_calc_cci(bars, bi, 14);
+            cci6   = v9_calc_cci(bars, bi, 6);
+            ema34  = v9_calc_ema(bars, bi, 34);
+            lsma25 = v9_calc_lsma(bars, bi, 25);
+            swi    = v9_calc_sidewinder(cci14, (bi >= 3) ? v9_calc_cci(bars, bi-3, 14) : 0);
+            czi    = v9_calc_chopzone(bars, bi, ema34);
+        }
+        float cci14_prev = (bi > 0) ? cci14_hist[bi - 1] : 0;
+        // CCI Predictor from Sierra Study ID:11 (SG0=high, SG1=low)
+        float pred_hi = S_VAL(s_pred_hi_arr, mi);
+        float pred_lo = S_VAL(s_pred_lo_arr, mi);
+        float predictor = (pred_hi != 0) ? pred_hi : v9_cci_predictor(cci14, cci14_prev);
+
+        // Trend from Sierra native (Study ID:1 TrendUp/Down/Neutral)
+        const char* trend;
+        if (have_sierra && s_trend_up_arr.GetArraySize() > mi) {
+            float tu = S_VAL(s_trend_up_arr, mi);
+            float td = S_VAL(s_trend_down_arr, mi);
+            float tn = S_VAL(s_trend_neutral_arr, mi);
+            if (tu != 0)      trend = "RED";
+            else if (td != 0) trend = "YELLOW";
+            else if (tn != 0) trend = "BLUE";
+            else               trend = "GRAY";
+        } else {
+            trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
+        }
+
         ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), bi + 1, 12);
         HFEResult hfe = v9_detect_hfe(cci14_hist.data(), bi + 1, 12);
+
+        // Proj from Pivot Points (daily = same value for all bars today)
+        float phi = S_VAL(s_proj_hi_arr, mi);
+        float plo = S_VAL(s_proj_lo_arr, mi);
 
         j << "{";
         json_long(j, "ts", bars[bi].timestamp, false);
@@ -1308,11 +1388,17 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         json_float(j, "ema_34", ema34);
         json_str(j, "trend_state", trend);
         json_float(j, "predictor_next_cci", predictor);
+        if (pred_hi != 0) json_float(j, "predictor_cci_high", pred_hi);
+        if (pred_lo != 0) json_float(j, "predictor_cci_low", pred_lo);
         json_bool(j, "zlr_detected", zlr.detected);
         json_str(j, "zlr_direction", zlr.direction);
         json_bool(j, "hfe_detected", hfe.detected);
         json_str(j, "hfe_direction", hfe.direction);
         json_int(j, "hfe_extreme_bars_ago", hfe.extreme_bars_ago);
+        if (phi != 0) json_float(j, "proj_hi", phi);
+        else { j << ",\"proj_hi\":null"; }
+        if (plo != 0) json_float(j, "proj_lo", plo);
+        else { j << ",\"proj_lo\":null"; }
         v9_woodies_json_hud_fields(j, bars, bi);
         j << "}";
     }
@@ -1342,6 +1428,7 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
             if (sierra->lsma_25 != 0)   lsma25 = sierra->lsma_25;
             if (sierra->sidewinder != 0) swi   = sierra->sidewinder;
             if (sierra->chopzone != 0)  czi    = sierra->chopzone;
+            // proj from Woodies Panel — usually 0; prefer Pivot Points study below
             s_proj_hi = sierra->proj_hi;
             s_proj_lo = sierra->proj_lo;
             // CCIDiff from Sierra = CCI14 - CCI6 (exact Sierra values)
@@ -1353,7 +1440,25 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
             }
         }
 
-        const char* trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
+        // Trend + proj from Sierra via mapped index
+        int cb_mi = mapIdx(bars[ci].chart_bar_start);
+        const char* trend;
+        if (have_sierra && s_trend_up_arr.GetArraySize() > cb_mi) {
+            float tu = S_VAL(s_trend_up_arr, cb_mi);
+            float td = S_VAL(s_trend_down_arr, cb_mi);
+            float tn = S_VAL(s_trend_neutral_arr, cb_mi);
+            if (tu != 0)      trend = "RED";
+            else if (td != 0) trend = "YELLOW";
+            else if (tn != 0) trend = "BLUE";
+            else               trend = "GRAY";
+        } else {
+            trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
+        }
+        if (s_proj_hi == 0) {
+            s_proj_hi = S_VAL(s_proj_hi_arr, cb_mi);
+            s_proj_lo = S_VAL(s_proj_lo_arr, cb_mi);
+        }
+
         ZLRResult zlr = v9_detect_zlr(cci14_hist.data(), (int)cci14_hist.size(), 12);
         HFEResult hfe = v9_detect_hfe(cci14_hist.data(), (int)cci14_hist.size(), 12);
 
@@ -1395,8 +1500,54 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         if (s_proj_lo != 0) json_float(j, "proj_lo", s_proj_lo);
         else { j << ",\"proj_lo\":null"; }
         json_bool(j, "sierra_source", sierra != nullptr && sierra->valid);
+        // Debug: array sizes and trend arrays availability
+        json_int(j, "_dbg_cci14_arr_size", s_cci14_arr.GetArraySize());
+        json_int(j, "_dbg_trend_up_arr_size", s_trend_up_arr.GetArraySize());
+        json_int(j, "_dbg_chart_bar_idx", bars[ci].chart_bar_start);
+        json_int(j, "_dbg_total_chart_bars", sc.Index + 1);
+
+        // ── DEBUG: dump raw Sierra subgraph values for current bar ──
+        // Remove after subgraph mapping is confirmed correct.
+        if (wc > 0) {
+            int dbg_idx = bars[ci].chart_bar_start;
+            j << ",\"_debug\":{";
+            // Study ID:1 (Woodies CCI Trend) — dump SG0 through SG9
+            j << "\"study1_woodies_trend\":{";
+            for (int sg = 0; sg <= 9; sg++) {
+                SCFloatArray dbg_arr;
+                sc.GetStudyArrayFromChartUsingID(wc, 1, sg, dbg_arr);
+                float val = (dbg_idx >= 0 && dbg_idx < dbg_arr.GetArraySize()) ? dbg_arr[dbg_idx] : -999;
+                if (sg > 0) j << ",";
+                j << "\"SG" << sg << "\":" << val;
+            }
+            j << "}";
+            // Study ID:9 (Woodies Panel) — dump SG0 through SG5
+            j << ",\"study9_panel\":{";
+            for (int sg = 0; sg <= 5; sg++) {
+                SCFloatArray dbg_arr;
+                sc.GetStudyArrayFromChartUsingID(wc, 9, sg, dbg_arr);
+                float val = (dbg_idx >= 0 && dbg_idx < dbg_arr.GetArraySize()) ? dbg_arr[dbg_idx] : -999;
+                if (sg > 0) j << ",";
+                j << "\"SG" << sg << "\":" << val;
+            }
+            j << "}";
+            // Study ID:12 (Pivot Points-Daily) — dump SG0 through SG9
+            j << ",\"study12_pivot\":{";
+            for (int sg = 0; sg <= 9; sg++) {
+                SCFloatArray dbg_arr;
+                sc.GetStudyArrayFromChartUsingID(wc, 12, sg, dbg_arr);
+                float val = (dbg_idx >= 0 && dbg_idx < dbg_arr.GetArraySize()) ? dbg_arr[dbg_idx] : -999;
+                if (sg > 0) j << ",";
+                j << "\"SG" << sg << "\":" << val;
+            }
+            j << "}";
+            j << "}";
+        }
+
         j << "}";
     }
+
+    #undef S_VAL
 
     j << "}";
     return j.str();
@@ -2145,7 +2296,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         std::string w5_json = v9_woodies_5min_to_json(
             sc, V9WoodiesHistory.GetInt(),
-            sierra.valid ? &sierra : nullptr);
+            sierra.valid ? &sierra : nullptr,
+            wc, ProjHLStudyID.GetInt());
         v9_write_json(v9dir, "woodies_5min.json", w5_json);
     }
 

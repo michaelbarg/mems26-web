@@ -5,9 +5,15 @@ Each wrapper:
 - Implements analyze() by calling the existing detection/analysis code
 - Gracefully handles missing data (returns None, never crashes)
 
-System roles per Master Matrix V1.0:
+System roles per Master Matrix V1.0 (restored by D-089, 2026-05-23):
   Firing (can generate trade Signals): 5-Min (2), Footprint (3), Woodies (4)
   Observer (no trade signals):         DayType (1), TPO (5), Killzone (6)
+
+D-089 supersedes D-082 (S3 Observer-only) + D-086 (S3 SHADOW firing tolerated,
+"revisit before LIVE"). The 3 firing systems are now canonical: S2, S3, S4.
+Decision doc: docs/decisions/D-089_S3_FIRING_LOCKED.md
+NOTE: `if mode == "LIVE":` safety net in `footprint/footprint_system.py::_fire()`
+      remains KEEP until Michael explicitly removes it (no removal pre-SHADOW).
 
 NOTE: TickReversal is an Entry Mechanism (15-tick reversal bar), NOT a system.
       System 3 = Footprint (per Constitution V3 D-049).
@@ -330,13 +336,46 @@ class TPOSystem(BaseSystem):
         self.val: Optional[float] = None
 
     def analyze(self, stream_name: str, bar: dict) -> Optional[Signal]:
-        """Update POC/VAH/VAL from volume profile data. Observer: returns None."""
+        """Update POC/VAH/VAL from volume profile data. Observer: returns None.
+
+        Accepts two shapes for ``b['levels']``:
+          1. Legacy dict ``{price_str: {price, letters}}`` (pre-2026-05-22).
+          2. Sierra-canonical list ``[{p, v, pct, poc, va}, ...]`` (current
+             ``volume_profile.json::profiles[].levels``). Normalized here so
+             a single downstream code path produces the POC/VAH/VAL.
+
+        Previously this method assumed dict — when the bars POST handler
+        started dispatching the actual Sierra-shape profile entries on
+        2026-05-22, this raised ``AttributeError: 'list' object has no
+        attribute 'items'`` (P31 Phase 1 regression — fixed inline).
+        """
         try:
             bars_data = bar.get("bars", [bar])
             for b in bars_data:
                 levels_raw = b.get("levels", {})
                 if not levels_raw:
                     continue
+
+                # Normalize Sierra list shape into the legacy dict shape so
+                # the rest of the loop stays identical.
+                if isinstance(levels_raw, list):
+                    converted: dict = {}
+                    for entry in levels_raw:
+                        if not isinstance(entry, dict):
+                            continue
+                        price = entry.get("p")
+                        if price is None:
+                            continue
+                        # Sierra doesn't expose TPO letters per price — use a
+                        # synthetic single-letter list so `_compute_poc` /
+                        # `_compute_value_area` still vote by volume.
+                        vol = entry.get("v") or 0
+                        letters_count = max(1, int(vol))
+                        converted[str(price)] = {
+                            "price": float(price),
+                            "letters": ["A"] * letters_count,
+                        }
+                    levels_raw = converted
 
                 levels = {}
                 for key, val in levels_raw.items():

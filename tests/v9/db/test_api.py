@@ -1,6 +1,8 @@
 """Tests: V9 API endpoints — simulates Bridge pushes."""
 
 import time
+from unittest.mock import patch
+
 from .conftest import BRIDGE_HEADERS
 from backend.v9.db.models import V9Bar5Min
 
@@ -44,6 +46,28 @@ def test_post_5min_upserts_same_timestamp(client, db):
     assert len(rows) == 1
     assert rows[0].close == 5404.25
     assert rows[0].volume == 300
+
+
+def test_post_5min_routes_bar_on_update(client, db):
+    """P31-02: BarRouter must see live bar updates, not only INSERT."""
+    ts = 1715299900.0
+    payload = [
+        {"ts": ts, "symbol": "MES", "o": 5400.0, "h": 5405.0, "l": 5398.0, "c": 5403.0, "vol": 250},
+    ]
+    with patch("backend.v9.api.v9.bars._route_bar") as route:
+        r1 = client.post("/api/v9/bars/5min", json=payload, headers=BRIDGE_HEADERS)
+        assert r1.status_code == 200
+        assert route.call_count == 1
+
+        payload[0]["c"] = 5404.25
+        r2 = client.post("/api/v9/bars/5min", json=payload, headers=BRIDGE_HEADERS)
+        assert r2.status_code == 200
+        assert r2.json()["inserted"] == 0
+        assert route.call_count == 2
+        bar_type, bar_payload = route.call_args_list[-1][0]
+        assert bar_type == "5min"
+        assert bar_payload["close"] == 5404.25
+        assert bar_payload["c"] == 5404.25
 
 
 def test_post_tick_reversal(client):

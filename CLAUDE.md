@@ -3,6 +3,20 @@
 This repository controls the local MEMS26 trading stack. Treat post-reboot
 stability settings as production safety controls.
 
+## Sierra real-time data (**DONE** — Michael 2026-05-20)
+
+Sierra DLL + time-axis fixes are **already shipped** (see inbox §2). §7a is
+**anti-regression**: do not change `sc_study/`, bridge, or market-data routes
+without reading `docs/handoff/P30_AGENT_INBOX_PRE_LIVE.md` §7a and verifying
+live exports under `~/SierraChart_Data/v9_export/`.
+
+**Source of truth:** live values come from **Sierra Chart exports**, through
+the bridge into the API/DB — not from backend or frontend synthesizing OHLC,
+TPO, CVD, or Woodies study fields. Allowed: normalize, dedup, display TZ,
+trading logic on ingested bars. Forbidden without explicit approval: inventing
+`proj_*`, synthetic time grids, or rolling-window price levels when the DLL
+omits them.
+
 ## Pre-LIVE Discipline (mandatory)
 
 We are heading to LIVE futures trading. Apply minimum-mistakes discipline:
@@ -72,6 +86,24 @@ The Cursor agent's full protocol is in
 export V9_DISABLE_WATCHDOG="${V9_DISABLE_WATCHDOG:-1}"
 ```
 
+## Frontend Polling Floors (P30 Forensics — Michael approved)
+
+Do NOT increase these intervals without Michael's explicit approval.
+The backend is single-worker uvicorn; aggressive polling chokes it.
+These values are the tested safe floor — fast enough for trading,
+slow enough to keep health <100ms.
+
+| Component | File | Interval | Reason |
+|-----------|------|----------|--------|
+| `useSystemStatePolling` | `V9Dashboard.tsx` | **5000ms** | Fires/ZLR need <5s visibility |
+| `SoundProvider` | `SoundProvider.tsx` | **10000ms** | Fire ding must reach trader <10s |
+| `useLivePricePoll` | `useLivePricePoll.ts` | **5000ms** | WS fallback only — skips when WS connected |
+| `WoodiesCciPanel` | `WoodiesCciPanel.tsx` | **5000ms** | CCI chart updates on 5-min bars |
+| `StreamHealthPanel` | `StreamHealthPanel.tsx` | **15000ms** | Diagnostic only |
+| `Layer0Strip` | `Layer0Strip.tsx` | **15000ms** | Chop score changes slowly |
+| `TopBar` heartbeat | `TopBar.tsx` | **15000ms** | Health indicator |
+| `TradeHistoryStrip` | `TradeHistoryStrip.tsx` | **30000ms** | History, not real-time |
+
 ## Service Bring-Up
 
 - Do not start MEMS26 services unless explicitly asked.
@@ -85,6 +117,13 @@ export V9_DISABLE_WATCHDOG="${V9_DISABLE_WATCHDOG:-1}"
 - Do not commit Python bytecode (`*.pyc`) or `__pycache__/` files.
 - If bytecode appears in git status, treat it as generated state unless the
   user explicitly asks to preserve it.
+
+## Sierra DLL (CC maintenance)
+
+- Canonical ops log: `docs/runbooks/SIERRA_DLL_OPS.md`
+- Before editing: cross-check `docs/PROMPT_1_HOTFIX_REPORT.md`, `docs/ENVIRONMENT.md`, `docs/reports/PROMPT30_8_5MIN_JSON_EXPORT.md`, this handoff’s P30 sections.
+- Deploy path: `sc_study/` → `./scripts/build_monolithic_cpp.sh --deploy` → `~/SierraChart/ACS_Source/MES_AI_DataExport.cpp` → Remote Build → reload study.
+- Study **Input 4** (`V9 Export Directory`) persists per chart in Sierra UI — Mac path `/Users/michael/SierraChart_Data/v9_export/`.
 
 ## Reporting Workflow
 
