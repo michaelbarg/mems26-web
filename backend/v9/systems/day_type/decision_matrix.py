@@ -80,10 +80,13 @@ class DecisionMatrix:
     Backed by DECISION_MATRIX dict defined above.
     """
 
+    # Active day types for probability distribution (excludes UNKNOWN + deprecated Neutral)
+    _ACTIVE_TYPES = [dt for dt in DayType if dt not in (DayType.UNKNOWN, DayType.Neutral)]
+
     def get_probabilities(
         self, opening_type: str, width_class: str
     ) -> Dict[str, float]:
-        """Return probability distribution across all 6 day types.
+        """Return probability distribution across all 7 day types.
 
         Args:
             opening_type: enum value or short name (e.g., "OPEN_DRIVE" or "od")
@@ -93,6 +96,9 @@ class DecisionMatrix:
             Dict mapping day_type string (lowercase) to probability (0.0-1.0).
             Winner gets 0.7, others share 0.3.
         """
+        active = self._ACTIVE_TYPES
+        n = len(active)
+
         ot_raw = (
             opening_type.value if hasattr(opening_type, "value")
             else str(opening_type)
@@ -110,28 +116,26 @@ class DecisionMatrix:
             ot_enum = OpeningType(ot_upper)
             wc_enum = IBWidth(wc_raw)
         except ValueError:
-            return {dt.value.lower(): 1.0 / 6.0 for dt in DayType if dt != DayType.UNKNOWN}
+            return {dt.value.lower(): 1.0 / n for dt in active}
 
         key = (ot_enum, wc_enum)
         if key not in DECISION_MATRIX:
-            return {dt.value.lower(): 1.0 / 6.0 for dt in DayType if dt != DayType.UNKNOWN}
+            return {dt.value.lower(): 1.0 / n for dt in active}
 
         # Build probability distribution: winner gets 0.7, others share 0.3
         cell = DECISION_MATRIX[key]
         if isinstance(cell, dict):
             probs_raw = cell.get("probabilities", {})
-            # Always return all 6 day types (missing = 0.0)
-            result = {dt.value.lower(): 0.0 for dt in DayType if dt != DayType.UNKNOWN}
+            # Always return all 7 active day types (missing = 0.0)
+            result = {dt.value.lower(): 0.0 for dt in active}
             for dt, prob in probs_raw.items():
                 result[dt.value.lower()] = float(prob)
             return result
         winning_dt = cell
-        non_winners = [dt for dt in DayType if dt != DayType.UNKNOWN and dt != winning_dt]
+        non_winners = [dt for dt in active if dt != winning_dt]
         share = 0.3 / len(non_winners) if non_winners else 0.0
         probs: Dict[str, float] = {}
-        for dt in DayType:
-            if dt == DayType.UNKNOWN:
-                continue
+        for dt in active:
             if dt == winning_dt:
                 probs[dt.value.lower()] = 0.7
             else:

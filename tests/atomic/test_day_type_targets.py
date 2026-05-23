@@ -5,10 +5,11 @@ sys.path.insert(0, '/Users/michael/Downloads/mems26_web_git')
 from backend.v9.systems.day_type.targets_table import get_targets, DAY_TYPES
 
 
-def test_all_six_types_present():
+def test_all_seven_types_present():
     assert DAY_TYPES == {
         "Trend_Normal", "Trend_DD", "Variation",
-        "Normal", "Neutral", "Nontrend",
+        "Normal", "Neutral_Extreme", "Neutral_Center",
+        "Nontrend",
     }
 
 
@@ -43,7 +44,7 @@ def test_normal_poc_target():
 
 
 def test_neutral_extreme_target():
-    t = get_targets("Neutral")
+    t = get_targets("Neutral_Extreme")
     assert t["t2"] == "extreme"
     assert t["t3"] is None
     assert t["time_stop_minutes"] == 45
@@ -51,11 +52,12 @@ def test_neutral_extreme_target():
 
 def test_nontrend_strict():
     t = get_targets("Nontrend")
-    assert t["t1"] == "1R"
+    assert t["no_trade"] is True
+    assert t["t1"] is None
     assert t["t2"] is None
     assert t["t3"] is None
-    assert t["time_stop_minutes"] == 20
-    assert t["contracts"] == 1
+    assert t["time_stop_minutes"] is None
+    assert t["contracts"] == 0
 
 
 def test_uppercase_alias():

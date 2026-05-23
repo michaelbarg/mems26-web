@@ -80,7 +80,7 @@ def get_history(limit: int = Query(20, ge=1, le=100)):
 def _get_state_machine_classification() -> Optional[dict]:
     """Read state machine classification from v9_day_type_state DB (primary path per D-071).
 
-    Returns dict with all 6 day types possible, or None if not classified yet.
+    Returns dict with all 7 day types possible, or None if not classified yet.
     """
     import sqlite3
     DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
@@ -190,9 +190,10 @@ def _classify_v1_from_tpo() -> dict:
         from backend.v9.systems.day_type.neutral_classifier import classify_neutral_subtype
         from backend.v9.systems.day_type.prev_day import load_tpo_previous_day_summary
         prev_day = load_tpo_previous_day_summary()
-        # session_open_price = first bar open; session_date from bars context
+        # session_open_price = first bar open; session_date from market clock
         _session_open = bars[0].get("o", bars[0].get("open")) if bars else None
-        _session_date_str = None
+        from backend.v9.services.market_clock import now_et
+        _session_date_str = now_et().date().isoformat()
         subtype = classify_neutral_subtype(
             session_open_price=_session_open,
             prev_vah=prev_day.get("vah"),

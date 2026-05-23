@@ -95,7 +95,7 @@ def test_decision_matrix_get_probabilities_returns_dict():
     dm = DecisionMatrix()
     probs = dm.get_probabilities(opening_type="od", width_class="NARROW")
     assert isinstance(probs, dict)
-    assert len(probs) == 6
+    assert len(probs) == 7
     assert sum(probs.values()) == pytest.approx(1.0, abs=0.01)
 
 

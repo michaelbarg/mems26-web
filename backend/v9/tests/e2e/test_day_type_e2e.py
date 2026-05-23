@@ -162,7 +162,7 @@ def test_e2e_decision_matrix_all_combos():
     for ot in openings:
         for w in widths:
             probs = dm.get_probabilities(ot.value, w.value)
-            assert len(probs) == 6, f"Expected 6 types for {ot}+{w}"
+            assert len(probs) == 7, f"Expected 7 types for {ot}+{w}"
             total = sum(probs.values())
             assert total == pytest.approx(1.0, abs=0.01), (
                 f"Probabilities sum to {total} for {ot}+{w}"
