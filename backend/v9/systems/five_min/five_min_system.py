@@ -2,7 +2,6 @@
 
 Implements hydrate() for cold start scenarios (Addendum Section 1).
 Uses SessionClassifier (D-083) — never raw time checks.
-Integrates with existing chart_5min/ detector and pattern library.
 """
 
 import logging
@@ -557,8 +556,22 @@ class FiveMinSystem(BaseV9TradingSystem):
         if direction:
             kind = info.get("kind", "UNKNOWN")
             entry_price = bar.get("c", 0)
-            # Stop: opposite extreme + 2pt 🟡 default("to-calibrate-in-SHADOW")
-            stop_price = (bar.get("l", entry_price) - 2.0) if direction == "LONG" else (bar.get("h", entry_price) + 2.0)
+            # Stop: 3-layer adaptive (D-091 §Adaptive Stop Engine · corrected 2026-05-23)
+            from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_today_typical
+            structural_anchor = bar.get("l", entry_price) if direction == "LONG" else bar.get("h", entry_price)
+            today_typical = compute_today_typical(self._bar_buffer)  # uses today's bars in buffer
+            family = "Reactive" if kind in ("REACTIVE_LONG", "REACTIVE_SHORT") else "OFA"  # Initiative → OFA
+            stop_comp = compute_stop(
+                entry_price=entry_price,
+                direction=direction,
+                structural_anchor=structural_anchor,
+                family=family,
+                today_typical=today_typical,
+            )
+            stop_price = stop_comp.stop_price
+            if stop_comp.reduce_size_signal:
+                logger.info("[FiveMin] adaptive_stop reduce_size: family=%s · A_tighter_than_B", family)
+                # actual size reduction handled in Pkg 3c · for now just log
 
             # Sizing decision (Cockpit V5 — S2 internal only)
             cot_val = info.get("cot") or self._get_cot_from_footprint() or 0
