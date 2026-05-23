@@ -1,8 +1,9 @@
 """V9 API: Trades + management log CRUD."""
 
+import logging
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -10,6 +11,18 @@ from backend.v9.db.session import get_db
 from backend.v9.db.models import V9Trade, V9TradeManagementLog
 from backend.v9.api.v9.auth import verify_bridge_token
 from backend.v9.api.v9.ws_manager import publish_event, CHANNEL_TRADES
+from backend.v9.services.trade_context import (
+    extract_trade_display,
+    extract_trade_systems_panel,
+    extract_system_agreement,
+    extract_trade_insight,
+    compute_trade_pnl,
+    _stop_initial_from_trade,
+)
+from backend.v9.services.trade_excursion import compute_trade_excursion
+from backend.v9.services.trade_manager.state_machine import TradeState, InvalidTransition
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v9/trades", tags=["v9-trades"])
 
@@ -50,6 +63,145 @@ class TradeLogIn(BaseModel):
     ts: Optional[float] = None
     action: str
     value: Optional[dict] = None
+
+
+class TradeExitIn(BaseModel):
+    """Manual close from cockpit — optional mark-to-market exit price."""
+    exit_price: Optional[float] = None
+    reason: str = "manual"
+
+
+def _trade_manager(request: Request):
+    tm = getattr(request.app.state, "trade_manager", None)
+    if tm is None:
+        raise HTTPException(status_code=503, detail="TradeManager not available")
+    return tm
+
+
+def _stop_note(r: V9Trade) -> Optional[str]:
+    """How stop relates to entry after management (Smart BE overwrites stop)."""
+    if r.entry_price is None or r.stop is None:
+        return None
+    if r.t1_hit_ts is not None and abs(float(r.stop) - float(r.entry_price)) < 0.5:
+        return "BE@entry"
+    return "initial"
+
+
+def _stop_issue(r: V9Trade) -> Optional[str]:
+    """UAT flag when T1 hit but stop was not moved to breakeven."""
+    if r.t1_hit_ts is None or r.entry_price is None or r.stop is None:
+        return None
+    if abs(float(r.stop) - float(r.entry_price)) < 0.5:
+        return None
+    return "T1_NO_BE"
+
+
+def _trade_list_row(r: V9Trade, db: Optional[Session] = None) -> dict:
+    """Shared fields for trades table / recent strip."""
+    row = {
+        "id": r.id,
+        "mode": r.mode,
+        "system": r.firing_system,
+        "direction": r.direction,
+        "state": r.state,
+        "entry_ts": r.entry_ts.isoformat() if r.entry_ts else None,
+        "entry_price": r.entry_price,
+        "stop": r.stop,
+        "stop_initial": _stop_initial_from_trade(r),
+        "stop_note": _stop_note(r),
+        "stop_issue": _stop_issue(r),
+        "systems_agreement": extract_system_agreement(r),
+        "t1": r.t1,
+        "t2": r.t2,
+        "t3": r.t3,
+        "t1_hit": r.t1_hit_ts is not None,
+        "t2_hit": r.t2_hit_ts is not None,
+        "t3_hit": r.t3_hit_ts is not None,
+        "exit_ts": r.exit_ts.isoformat() if r.exit_ts else None,
+        "exit_price": r.exit_price,
+        "exit_reason": r.exit_reason,
+        "pnl_usd": r.pnl_usd,
+        "pnl_r": r.pnl_r,
+        "outcome": r.outcome,
+        "sierra_bracket_id": r.sierra_bracket_id,
+    }
+    row.update(extract_trade_display(r))
+    pnl = compute_trade_pnl(r)
+    row["pnl_usd"] = pnl["pnl_usd"]
+    row["pnl_r"] = pnl["pnl_r"]
+    row["pnl_mode"] = pnl["pnl_mode"]
+    row["contracts_pnl"] = pnl["contracts_pnl"]
+    if db is not None:
+        row.update(compute_trade_excursion(r, db))
+    return row
+
+
+@router.post("/{trade_id}/exit")
+def exit_trade(
+    trade_id: int,
+    request: Request,
+    body: TradeExitIn = TradeExitIn(),
+):
+    """Manual close — wires cockpit Exit button to TradeManager.close_trade."""
+    tm = _trade_manager(request)
+    try:
+        trade = tm._get_trade(trade_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail=f"Trade {trade_id} not found")
+
+    if trade.state == TradeState.CLOSED.value:
+        return {
+            "ok": True,
+            "trade_id": trade_id,
+            "already_closed": True,
+            "state": trade.state,
+            "exit_reason": trade.exit_reason,
+            "pnl_usd": trade.pnl_usd,
+            "outcome": trade.outcome,
+        }
+
+    if body.exit_price is not None:
+        trade.exit_price = float(body.exit_price)
+    elif trade.exit_price is None and trade.entry_price is not None:
+        trade.exit_price = float(trade.entry_price)
+
+    try:
+        tm.close_trade(trade_id, body.reason)
+    except InvalidTransition as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("[trades] exit failed trade_id=%s: %s", trade_id, exc, exc_info=True)
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    try:
+        tm._db.commit()
+    except Exception as exc:
+        logger.error("[trades] exit commit failed trade_id=%s: %s", trade_id, exc)
+        raise HTTPException(status_code=500, detail="Failed to persist trade close") from exc
+
+    trade = tm._get_trade(trade_id)
+    publish_event(CHANNEL_TRADES, {
+        "trade_id": trade.id,
+        "mode": trade.mode,
+        "direction": trade.direction,
+        "system": trade.firing_system,
+        "state": trade.state,
+        "exit_reason": trade.exit_reason,
+        "pnl_usd": trade.pnl_usd,
+        "outcome": trade.outcome,
+    })
+    return {
+        "ok": True,
+        "trade_id": trade_id,
+        "state": trade.state,
+        "exit_reason": trade.exit_reason,
+        "exit_price": trade.exit_price,
+        "pnl_usd": trade.pnl_usd,
+        "pnl_r": trade.pnl_r,
+        "outcome": trade.outcome,
+    }
 
 
 @router.get("/active")
@@ -105,6 +257,8 @@ def get_active_trade(db: Session = Depends(get_db)):
     total_pnl = sum(c["pnl"] for c in contracts)
     total_r = sum(c["r"] for c in contracts)
 
+    display = extract_trade_display(trade)
+    systems_panel = extract_trade_systems_panel(trade)
     return {
         "trade_id": trade.id,
         "direction": trade.direction,
@@ -112,11 +266,14 @@ def get_active_trade(db: Session = Depends(get_db)):
         "entry_ts": trade.entry_ts.isoformat() if trade.entry_ts else None,
         "stop_price": stop,
         "state": trade.state,
+        "firing_system": trade.firing_system,
         "contracts": contracts,
         "hits": hits,
         "total_pnl": round(total_pnl, 2),
         "total_r": round(total_r, 2),
         "summary": f"{hits}/3 hit",
+        **display,
+        **systems_panel,
     }
 
 
@@ -178,51 +335,55 @@ def get_trades(
     if system_filter is not None:
         q = q.filter(V9Trade.firing_system == system_filter)
     rows = q.order_by(V9Trade.entry_ts.desc()).limit(limit).all()
-    return {"trades": [
-        {"id": r.id, "mode": r.mode, "system": r.firing_system,
-         "direction": r.direction,
-         "entry_ts": r.entry_ts.isoformat() if r.entry_ts else None,
-         "entry_price": r.entry_price,
-         "exit_ts": r.exit_ts.isoformat() if r.exit_ts else None,
-         "exit_price": r.exit_price, "exit_reason": r.exit_reason,
-         "pnl_usd": r.pnl_usd, "pnl_r": r.pnl_r, "outcome": r.outcome,
-         "sierra_bracket_id": r.sierra_bracket_id}
-        for r in rows
-    ]}
+    return {"trades": [_trade_list_row(r, db) for r in rows]}
+
+
+@router.get("/recent")
+def get_recent_trades(
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Read-only feed for the cockpit's TradeHistoryStrip.
+
+    P30 2026-05-20: the frontend has polled `/api/v9/trades/recent` every 5 s
+    forever, but no route existed — FastAPI routed it to
+    `/api/v9/trades/{trade_id}` with `trade_id='recent'` and returned 422.
+    The console was getting flooded (40+ errors per minute) and the
+    `useConnection` indicator interpreted the failures as DISCONNECTED.
+    Token-less because this is read-only display data, mirroring
+    `/active` which is also auth-free for cockpit consumption.
+    """
+    rows = (
+        db.query(V9Trade)
+        .order_by(V9Trade.entry_ts.desc().nullslast(), V9Trade.id.desc())
+        .limit(limit)
+        .all()
+    )
+    return [_trade_list_row(r, db) for r in rows]
 
 
 @router.get("/{trade_id}")
 def get_trade(
     trade_id: int,
     db: Session = Depends(get_db),
-    _token: str = Depends(verify_bridge_token),
 ):
+    """Read-only trade detail + entry insight (P31 /trades expand panel).
+
+    Token-less like ``/recent`` — display-only; mutations stay behind
+    ``verify_bridge_token``.
+    """
     trade = db.get(V9Trade,trade_id)
     if not trade:
         raise HTTPException(status_code=404, detail="Trade not found")
     logs = db.query(V9TradeManagementLog).filter(
         V9TradeManagementLog.trade_id == trade_id
     ).order_by(V9TradeManagementLog.ts).all()
+    row = _trade_list_row(trade, db)
+    row["quality_review"] = trade.quality
+    row["context_json"] = trade.cross_context
     return {
-        "trade": {
-            "id": trade.id, "mode": trade.mode,
-            "system": trade.firing_system, "direction": trade.direction,
-            "entry_ts": trade.entry_ts.isoformat() if trade.entry_ts else None,
-            "entry_price": trade.entry_price,
-            "stop_initial": trade.stop, "stop_final": trade.stop,
-            "t1_price": trade.t1,
-            "t1_filled_at": trade.t1_hit_ts.isoformat() if trade.t1_hit_ts else None,
-            "t2_price": trade.t2,
-            "t2_filled_at": trade.t2_hit_ts.isoformat() if trade.t2_hit_ts else None,
-            "t3_price": trade.t3,
-            "exit_ts": trade.exit_ts.isoformat() if trade.exit_ts else None,
-            "exit_price": trade.exit_price, "exit_reason": trade.exit_reason,
-            "pnl_usd": trade.pnl_usd, "pnl_r": trade.pnl_r,
-            "outcome": trade.outcome,
-            "quality_review": trade.quality,
-            "sierra_bracket_id": trade.sierra_bracket_id,
-            "context_json": trade.cross_context,
-        },
+        "trade": row,
+        "insight": extract_trade_insight(trade),
         "management_log": [
             {"id": l.id, "ts": l.ts.isoformat(), "action": l.action, "value": l.value}
             for l in logs

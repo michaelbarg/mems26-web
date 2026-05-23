@@ -3,12 +3,13 @@ import { useEffect } from 'react';
 import { useTradeStore } from '../../stores/tradeStore';
 import { fetchTrades } from '../../lib/api';
 import { TradesTable } from './TradesTable';
-import { TradeDetailsModal } from './TradeDetailsModal';
 import { TradeFilters } from './TradeFilters';
+import { TradesSummaryStrip } from './TradesSummaryStrip';
+import { PatternPerformanceStrip } from './PatternPerformanceStrip';
 import Link from 'next/link';
 
 export function TradesView() {
-  const { setTrades, selectedTradeId } = useTradeStore();
+  const { setTrades } = useTradeStore();
 
   useEffect(() => {
     fetchTrades()
@@ -30,10 +31,11 @@ export function TradesView() {
         </div>
       </div>
       <TradeFilters />
+      <TradesSummaryStrip />
+      <PatternPerformanceStrip />
       <div className="flex-1 overflow-auto">
         <TradesTable />
       </div>
-      {selectedTradeId !== null && <TradeDetailsModal />}
     </div>
   );
 }

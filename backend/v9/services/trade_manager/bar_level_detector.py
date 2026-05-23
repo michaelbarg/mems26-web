@@ -72,7 +72,12 @@ class BarLevelDetector:
             active = self._tm.get_active_trades()
 
             for trade in active:
-                if trade.state not in (TradeState.FILLED.value, TradeState.PARTIAL.value):
+                # Legacy DB rows may use state="OPEN" (cockpit alias for FILLED)
+                if trade.state not in (
+                    TradeState.FILLED.value,
+                    TradeState.PARTIAL.value,
+                    "OPEN",
+                ):
                     continue
                 if trade.entry_price is None:
                     continue
@@ -97,6 +102,11 @@ class BarLevelDetector:
                 for target_name, target_price, hit_ts in targets:
                     if target_price is None or hit_ts is not None:
                         continue  # skip if no target or already hit
+                    try:
+                        if float(target_price) <= 0:
+                            continue  # Sierra unused T2/T3 slot
+                    except (TypeError, ValueError):
+                        continue
                     if (direction == "LONG" and bar_high >= target_price) or \
                        (direction == "SHORT" and bar_low <= target_price):
                         self._tm.on_target_hit(trade.id, target_name, fill_ts=bar_ts)

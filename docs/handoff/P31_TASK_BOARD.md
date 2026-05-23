@@ -1,4 +1,4 @@
-# P31 — לוח עבודה (מעודכן 2026-05-22 צהריים — Phase 1 + Phase 2 + Issue B + B1 ✓)
+# P31 — לוח עבודה (מעודכן 2026-05-22 ערב — Phase 1 + Phase 2 + Issue B + T2 Woodies CCI ✓)
 
 **מטרה:** יומן SHADOW עם P&L נכון (כניסה + C1/C2/C3 + סטופ), מערכת 5 דקות רצה, קוקפיט מעודכן תמיד — **ואז** gate ל-SHADOW soak → DEMO → LIVE.
 
@@ -12,10 +12,12 @@
 
 | שדה | ערך |
 |-----|-----|
-| **ברכה אחרונה** | 🌆 **ערב טוב** — 2026-05-22 18:13 IL |
-| **נקודת ציון** | **§15 — Chart RTH UAT live עם Michael ב-`localhost:3000`** — תיקנו 3 buggy behaviors בקווי POC הלבנים: (1) **infinite** → bounded ל-RTH window של היום (09:30→16:00 ET) · (2) **TZ drift 3h** מ-Local TZ → Intl.DateTimeFormat עם probe ל-ET · (3) **fixed end 16:00** → **`now+5min`** (עוקב המחיר) · (4) **HMR-safe global store** למחיקת קווי-orphans · (5) duplicate axis labels הוסרו · (6) **CVD history backfill** — `?history=1&limit=600` קורא מ-`v9_bars_cumulative_delta` (122 נקודות / 10h) במקום rolling 14 של ה-JSON. **27/27 tests PASS.** ממתין hard-refresh + backend restart לCVD. |
-| **אחוז גס ל-LIVE** | ~**80%** (S2 ✅ · S4 dedup ✅ · IB live ✅ · cross-ctx ✅ · chart UAT ✅) · **0%** SHADOW soak · **0%** LIVE |
-| **הצעד הבא** | (1) commit `(chart): yesterday lines RTH-bounded + follow-the-price + CVD history backfill` · (2) `git push` · (3) hard refresh בדפדפן (Cmd+Shift+R) לראות LineSeries החדש · (4) backend restart לCVD `?history=1` · (5) מחר: S4 audit (Woodies, אותו template כמו S2) |
+| **ברכה אחרונה** | 🌅 **בוקר טוב** — 2026-05-23 (סטטוס שירותים: בדוק מקומי) |
+| **נקודת ציון** | **P31 לפני P-S0** — ערב 22.5: Issue B ✅ · P31-02 S2 ✅ · T2 Woodies CCI ✅ · `/trades` insight+Exit (OPEN state fix בקוד — דורש restart backend). **§15** Chart/CVD — UAT חלקי. |
+| **הצעד הבא (בוקר)** | (1) **העלה stack** — backend `:8000` + frontend `:3000` + bridge (לא רץ כרגע בבדיקה) · (2) **P31-01** P&L UAT ב-`/trades` ב-RTH · (3) **P31-PAT** תבנית אחת מול Sierra · (4) gate **P-S0** |
+| _(נקודת ציון קודמת)_ | **§15 — Chart RTH UAT live עם Michael ב-`localhost:3000`** — תיקנו 3 buggy behaviors בקווי POC הלבנים: (1) **infinite** → bounded ל-RTH window של היום (09:30→16:00 ET) · (2) **TZ drift 3h** מ-Local TZ → Intl.DateTimeFormat עם probe ל-ET · (3) **fixed end 16:00** → **`now+5min`** (עוקב המחיר) · (4) **HMR-safe global store** למחיקת קווי-orphans · (5) duplicate axis labels הוסרו · (6) **CVD history backfill** — `?history=1&limit=600` קורא מ-`v9_bars_cumulative_delta` (122 נקודות / 10h) במקום rolling 14 של ה-JSON. **27/27 tests PASS.** ממתין hard-refresh + backend restart לCVD. |
+| **אחוז גס ל-LIVE** | ~**82%** (S2 ✅ · S4 dedup ✅ · IB live ✅ · cross-ctx ✅ · Woodies CCI chart ✅ · COT session reset ✅ · proj_hi/proj_lo ✅) · **0%** SHADOW soak · **0%** LIVE |
+| **הצעד הבא (ארכיון ערב)** | Sierra reload study · `git push` · P30 forensics Strategy D |
 
 ```
 P30 baseline ✅ ──► P31 P0 ◄── אתה כאן ──► SHADOW soak ⬜ ──► DEMO ⬜ ──► LIVE ⬜
@@ -33,12 +35,12 @@ P30 baseline ✅ ──► P31 P0 ◄── אתה כאן ──► SHADOW soak 
 | **Sierra stream** | 🟢 | §9 bridge workaround פעיל. CC ל-Option A (DLL canonical fix) — לא דחוף |
 | P&L ב-DB (`TradeManager`) | 🟢 | Smart-BE + `initial_stop` · ממתין עסקה ב-RTH |
 | Journal `/trades/log` | 🟢 | 0.02s / 21 rows |
-| **מערכת 5 דקות (S2)** | 🟢 | §6 RESOLVED · 75× faster |
-| **Woodies (S4)** | 🟢 | §10 RESOLVED · 290× faster · 0 JSON errors |
+| **מערכת 5 דקות (S2)** | 🟢 | **P31-02 UAT ✅** (2026-05-22 ערב) · §6 RESOLVED · BarRouter UPDATE · 02b/c · S2 audit · dispatch 12–28ms |
+| **Woodies (S4)** | 🟢 | §10 RESOLVED · 290× faster · 0 JSON errors · **T2 CCI pipeline ✅** [`PROMPT_P31_T2_WOODIES_CCI_CLOSE.md`](../reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md) |
 | **Bar Router thread leak** | 🟢 | P31-02c RESOLVED |
 | **COT session reset (P31-STRAT-S3 #2)** | 🟢 | CC 2026-05-22 · commit `dcae75d` |
 | **AMT fix (P31-STRAT-S3 #3+#3b)** | 🟢 | **CC 2026-05-22 12:10 IL — VERIFIED LIVE.** AMT 0.0 → **4,016** (90-min rolling avg) · COT 46 (cross-session) → **-172,728** (session-scoped) · bars 4 → 315 growing. Commits `dcae75d` + `63934f7` (footprint_system.py) + uncommitted `_cot_amt_from_sierra()` in five_min_system.py (Constitution V3 §T1 spec). **S2 יכול עכשיו להעריך `cot > amt`/`cot < amt` באמת**. ייאומת ב-RTH 16:30/17:30 IL |
-| **Issue B (POC stepped lines)** | 🟡 | **Frontend + Backend ready (Cursor 2026-05-22 AM/PM).** Pre-RTH = no pink lines (expected); white yesterday lines should render from `previous_session`. **UAT ב-RTH 16:30/17:30 IL** ⏳ |
+| **Issue B (POC stepped lines)** | 🟢 | **UAT RTH ✅** — Michael 2026-05-22 ערב: קווים ורודים stepped (POC/VAH/VAL) מאומתים מול Sierra Study ID:3. B1 snapshotter → `v9_tpo_history` → API `periods[]` → `TpoContinuityOverlay`. Pre-RTH = אין ורוד (expected). |
 | **TPO B1 — TPOHistorySnapshotter** | 🟢 | **NEW today.** Async task fires at 30-min ET boundaries during RTH. Writes `v9_tpo_history`. Catch-up on startup. 18 tests PASS. `grep tpo_snapshotter /tmp/backend.log` |
 | **Phase 1 — EOD archiver auto + dedicated INSERTs** | 🟢 | **NEW today.** Auto-fires 15:55 ET via `EODArchiveScheduler` · 14/14 files in `~/v9_archive/2026-05-22/` (225KB) · 90-day prune · `v9_bars_volume_profile` 36 rows w/ full profile JSON · `v9_bars_cumulative_delta` 44 rows · VP zeros bug **FIXED** (32 ברים עם vah/val/poc_vol אמיתיים, היה 0 בכולם). 15+11 tests PASS |
 | **Phase 2 — gap-fill + admin/UI** | 🟢 | **NEW today.** `history_loader.py` (5min/CVD/VP, Chicago→UTC shift, idempotent) · 7 admin endpoints under `/api/v9/admin/` · `SystemControlPanel.tsx` — ⚙ System floating button bottom-right · 4 buttons (הפעלה/כיבוי/ריסטרט/Gap-fill) · auto-gap-fill בהפעלה. 16 tests PASS |
@@ -78,7 +80,7 @@ gantt
     section NowP31
     P31_01 PnL UAT        :active, p3101, 2026-05-21, 2d
     P31_04 journal        :active, p3104, 2026-05-21, 1d
-    P31_02 S2 five min    :active, p3102, 2026-05-21, 3d
+    P31_02 S2 five min    :done, p3102, 2026-05-21, 2026-05-22
     P31_03 cockpit        :active, p3103, 2026-05-22, 1d
     section ShadowGate
     P_S0 activate         :active, ps0, after p3102, 1d
@@ -116,7 +118,7 @@ gantt
 | **Now P31** | | | | |
 | P31-01 PnL UAT | סגירת SHADOW → DB=curl=UI | 🟡 `[~]` | **RTH+** | אתר עלה; ממתין סגירת עסקה |
 | P31-04 journal | `limit=50`, מהירות log | 🟡 `[ ]` | **לא** | limit בקוד `[x]` · latency `[ ]` |
-| P31-02 S2 | BarRouter UPDATE + 5min | 🔴 | **RTH+** | `5min.json` חי; בלי Sierra אין אבחון אמיתי |
+| P31-02 S2 | BarRouter UPDATE + 5min | ✅ | **UAT RTH ✅** Michael 2026-05-22 ערב · P31-02b/c + S2 audit (COT/AMT Sierra, overnight gate) · BarRouter 12–28ms · buffer 523 · 143 pytest PASS |
 | P31-03 cockpit | trigger/pattern ב-UI | ⬜ | אופצ / **RTH** | צפייה ב-DB=אופצ; עסקה פעילה חיה=RTH+ |
 | **Shadow gate** | | | | |
 | P-S0 | הפעלת מצב SHADOW | ⬜ | **RTH+** | וידוא 6 מערכות עם נתונים חיים |
@@ -231,9 +233,10 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 | סימון | משימה | Sierra |
 |--------|--------|--------|
 | `[x]` | **OPS** bring-up 8000+3000 | לא |
-| `[~]` | **P31-01** P&L UAT | RTH+ · קוד+DB+API ירוק (trade 697 $56.25) · ממתין Michael בעין ב-`/journal` + Exit חדש ב-RTH |
+| `[~]` | **P31-01** P&L UAT | RTH+ · קוד+DB+API ירוק (trade 697 $56.25) · ממתין Michael בעין ב-**`/trades`** + Exit חדש ב-RTH |
 | `[~]` | **P31-04** journal מהיר | לא · latency 0.02s ✅ · range/MFE/MAE/legs ב-API ✅ · ממתין Michael בעין ב-UI |
-| `[~]` | **P31-02** S2 — BarRouter UPDATE בקוד | restart + RTH UAT |
+| `[x]` | **P31-02** S2 — BarRouter UPDATE + RTH UAT | Michael 2026-05-22 ערב |
+| `[x]` | **P31-T2** Woodies CCI pipeline (Sierra-native chart) | CC 2026-05-22 · [`PROMPT_P31_T2_WOODIES_CCI_CLOSE.md`](../reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md) |
 | `[~]` | **P31-03** cockpit SHADOW | ActiveTradeCard כבר מציג pattern/trigger + C1–C3 — Michael: `localhost:3000` |
 | `[ ]` | **P31-PAT** תבניות + סטופ אוטונומי | RTH+ · [מטריצה](./P31_PATTERN_STOP_AUTONOMY_MATRIX.md) |
 | `[~]` | **P31-05** עמודות C1/C2/C3 ביומן | `[x]` טבלה + API `initial_stop` · `[ ]` UAT אחרי restart |
@@ -248,7 +251,7 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 
 | סימון | משימה | מי |
 |--------|--------|-----|
-| `[~]` | **P31-02** BarRouter UPDATE (קוד) | Cursor — בוצע; צריך restart backend + UAT ב-RTH |
+| `[x]` | **P31-02** BarRouter UPDATE + S2 RTH UAT | §6.5 + S2 audit + Michael ערב |
 | `[x]` | **OPS** backend `:8000` | PID **45069** — Cursor restart 2026-05-21 |
 | `[~]` | **P31-04** `time curl /trades/log?limit=50` | CC (אחרי restart) |
 | `[ ]` | **P31-03** קוקפיט על נתונים ישנים ב-DB | Michael — `localhost:3000` |
@@ -298,7 +301,7 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 | # | מי | פעולה | Sierra |
 |---|-----|--------|--------|
 | 1 | **CC** | CC-B: restart backend + migration 016 + `time curl /trades/log?limit=50` | לא |
-| 2 | **Michael** | `Cmd+Shift+R` → `/journal` + קוקפיט — היסטוריה (P31-03) | אופצ |
+| 2 | **Michael** | `Cmd+Shift+R` → **`/trades`** + קוקפיט — היסטוריה (P31-03) | אופצ |
 | 3 | **CC** | CC-A: `systems-snapshot` + `health/streams` + mtime `5min.json` | אופצ |
 | 4 | **Michael** | Sierra פתוחה, DLL, Bridge ירוק | **RTH+** |
 | 5 | **Michael+CC** | תבנית אחת → CC-PAT-1 → `route_setup` SHADOW → Exit → P31-01 curl | **RTH+** |
@@ -311,7 +314,7 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 | תנאי | חובה |
 |------|------|
 | P31-04 | curl &lt; ~5s |
-| P31-02 | restart + לפחות בר 5min אחד עבר ל-S2 (לוג) |
+| P31-02 | ✅ restart + BarRouter dispatch + RTH UAT (Michael ערב) |
 | P31-01 | עסקה אחת T1→stop, P&L תואם |
 | P31-PAT | `active_patterns` תואם Sierra (פעם אחת) |
 
@@ -337,7 +340,7 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 - [x] **restart backend** — PID **45069** (2026-05-21 ~14:00 ET)
 - [x] עסקת SHADOW אחת סגורה — **trade 697** (LONG · entry 7429.25 · T1+T2 · exit `manual` · DB `pnl_usd=56.25`)
 - [x] `curl /trades/log?types=shadow&limit=50` ↔ DB (trade 697 `pnl_usd=56.25` תואם · 21 rows · 0.02s) — Cursor 2026-05-21 צהריים
-- [ ] Journal UI — Michael בעין על `/journal` ו-`/trades` (trade 697 — Hi 7446.75, Lo 7426.25, MFE 17.5, MAE 3.0, ENTRY/T1/T2/EXIT)
+- [ ] Journal UI — Michael בעין על **`/trades`** בלבד (trade 697 — Hi/Lo, MFE/MAE, legs, insight S1–S6)
 - [ ] עסקה שנייה סגורה ב-RTH (T1 → סטופ אמיתי) לחיזוק UAT
 
 ---
@@ -359,15 +362,18 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 
 ---
 
-### `[~]` P31-02 — S2 חמש דקות
+### `[x]` P31-02 — S2 חמש דקות — **DONE 2026-05-22 ערב**
 
-**Sierra:** **RTH+** ל-UAT ירי; הקוד לא דורש שוק
+**Sierra:** **RTH+** — UAT מאומת (Michael)
 
 - [x] תיקון `bars.py` — BarRouter על UPDATE (לא רק INSERT)
 - [x] regression: `test_post_5min_routes_bar_on_update`
-- [x] restart backend — PID **45069**
-- [ ] CC-C: `five_min/current` + לוג S2 ב-RTH
-- [ ] UAT: S2 יורה + BarLevelDetector סוגר עסקאות
+- [x] P31-02b in-process footprint (לא HTTP self-calls) + wire-up `main.py`
+- [x] P31-02c thread-leak + Woodies JSON datetime fix
+- [x] §6.5 live: dispatch 62–231ms (לא 8s)
+- [x] S2 audit Fix 1+2: COT/AMT מ-Sierra CDV · OVERNIGHT_MODE gate
+- [x] CC-C + RTH: `five_min/current` running/hydrated · `BarRouter: dispatch … for 5min` 12–28ms בלוג
+- [x] UAT RTH: S2 path + ירי (Michael 2026-05-22 ערב)
 
 ---
 
@@ -385,7 +391,7 @@ curl -s http://127.0.0.1:8000/api/v9/health/streams
 - [ ] CC-PAT-1: בזמן תבנית ב-Sierra — `woodies/current` מראה `active_patterns`?
 - [ ] אם ריק: רשום `failed_stages` (A1/A3/A6/A7) + `buffer_size`
 - [ ] VEGAS דורש **≥20** ברים Woodies — לא 5 ברים
-- [ ] אחרי זיהוי: `route_setup` → SHADOW; יציאה = BarRouter 5min (תלוי P31-02)
+- [ ] אחרי זיהוי: `route_setup` → SHADOW; יציאה = BarRouter 5min (P31-02 ✅)
 
 ---
 
@@ -653,6 +659,11 @@ backend restarted: PID **50472** → **82330** (after `pkill -9 -f "uvicorn back
 | 2026-05-22 | 11:15 | Cursor | **P31-PERF-C ✅ RCA-1 fix** — `_system_agrees(sid=6)` ב-`trade_context.py:252-255`: `edge=high→d=="SHORT"`, `edge=low→d=="LONG"` (היה: True/False עיוור לכיוון). 5 reg tests חדשים + 5 ישנים = **10/10 pytest PASS**. לוח עודכן. | CC: backend restart + UAT `/trades` Confluence filter (צפי 40-150 במקום 3) · אחריו: P31-PERF-D (S1/S2/S5 publishers) |
 | 2026-05-22 | 18:07 | Cursor | **commit `fb390aa` — 4 תיקונים:** IB live DEVELOPING (A3→UI badge) · Woodies dedup _last_fired_bar_ts (7x→1x per bar) · Parallel filter PARTIAL 30min cap · cross-context RCA-2 S1/S2 get_current(). push נדרש ידנית (GitHub 403). backend restart נדרש לפעול. |
 | 2026-05-22 | 12:04 | Cursor | **S2 Audit DONE — 2 fixes** · Fix 1: `cot_amt.py` → `five_min_system.py` COT/AMT — COT עבר מ-+93,523 (footprint cumulative מהפעלה) ל--1,791 (Sierra CDV session · כיוון נכון). AMT עבר מ-0.0 ל--1,245 (rolling avg CDV). · Fix 2: OVERNIGHT_MODE gate ב-`process_bar` (+ UI BLOCKED) — S2 לא תירה overnight. **82/82 pytest PASS** · 0 regressions בroader sweep. ממתין backend restart + RTH UAT. | backend restart → five_min/current check → RTH: S2 fire UAT · אחריו: S4 audit (Woodies) |
+| 2026-05-22 | 18:57 | Cursor | **Woodies CCI chart:** timestamp reconstruction (DLL ts bug) · current_bar slot separation · limit 50→200 · frontend max 60→200. API CCI עכשיו זהה לSierra. proj_hi/proj_lo שלח ל-CC (DLL). IB source fix שלח ל-CC (v9_bars_5min) | Sierra reload study · git push |
+| 2026-05-22 | 19:30 | CC | **P30 Forensics + Strategy D polling fix + DLL proj_hi/proj_lo:** (1) 6 forensics reports written · (2) Frontend polling reduced 5.3→~1.0 req/s · (3) COT session reset (Bug #3) + test · (4) DLL `v9_woodies_export.h` — added `proj_hi`/`proj_lo` pivot fields to history bars · (5) Build+deploy 2443 lines OK · (6) IB fix verified (already done by Cursor) · (7) Backend restart OK · (8) git push failed (GitHub 403) — Michael needs to push manually | Michael: `git push` + Sierra reload study |
+| 2026-05-22 | ערב | CC | **P31-T2 Woodies CCI ✅** — Wave 0 audit + Wave 1: DLL 5min + Sierra native arrays (CCI/TCCI/trend/proj_hi/proj_lo) · frontend colors/scale/HFE · אפס שינוי backend/bridge. דוח: [`PROMPT_P31_T2_WOODIES_CCI_CLOSE.md`](../reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md) | S4 §14: pattern fire UAT · cleanup `_debug` ב-DLL (אופצ) |
+| 2026-05-22 | ערב | Michael | **P31-02 UAT ✅** — S2/BarRouter/5min: UPDATE routing, 02b/c perf, S2 audit COT/AMT+overnight gate, RTH ירי מאומת. BarRouter dispatch 12–28ms. | P31-01 P&L · P31-03 cockpit |
+| 2026-05-22 | ערב | Michael | **Issue B UAT ✅** — קווים ורודים TPO stepped (POC/VAH/VAL) מאומתים ב-RTH מול Sierra. B1 path סגור. | §15 white lines / CVD restart אם נשאר פתוח |
 | 2026-05-22 | 18:11 | Cursor + Michael | **§15 — Chart white-line refactor (live RTH UAT):** Michael flagged "infinite white lines" → refactored `syncYesterdayTpoLines` 3 פעמים: (1) createPriceLine→LineSeries (truncation) · (2) LineSeries→createPriceLine (infinite) · (3) **final**: LineSeries bounded ל-`todayRthWindowUnix()` עם dense 5-min points. **TZ bug תוקן** — `new Date(toLocaleString())` השתמש בLocal TZ במקום ET (3h drift) → החלפנו ל-`Intl.DateTimeFormat` עם probe. **"follow the price"** — `close = min(rthClose, now+300)` במקום fixed 16:00. **HMR-safe store** — WeakMap מ-`globalThis.__mems26YdayTpoStore` שורד מודול-reload. **Duplicate axis labels** — `lastValueVisible:false, title:''` (SierraLevelsOverlay הוא single source). **CVD history backfill** — `/api/v9/cumulative_delta/current?history=1&limit=600` מערבב 600 שורות DB עם rolling 14 של JSON. **27/27 tests PASS** (10 tpo_stepped + 6 overlay + 11 cvd). | backend restart לקלוט CVD `?history=1` · hard refresh דפדפן · אחר כך: ⏳ S4 audit / RTH soak |
 
 ---
@@ -962,11 +973,12 @@ P31 §9 — DLL TZ fix (canonical).
 - `v9_tpo_history` ריק (pre-RTH, expected) — ייכתב ב-16:30 או 17:30 IL
 - API fallback ל-`v9_tpo_sessions` עובד (4 שורות legacy)
 
-**UAT pending ב-RTH:**
-- 4 axes script ב-`scripts/uat_tpo_stepped_lines.sh`
-- מצב צפוי: 13 שורות עד 16:00 ET (letters A→M), step כל 30 דקות בצ'ארט
+**UAT RTH ✅ (Michael 2026-05-22 ערב):**
+- קווים ורודים stepped מ-09:30 ET עד now, step כל ~30 דק — מאומת מול Sierra
+- 4 axes: `bash scripts/uat_tpo_stepped_lines.sh` (אופציונלי לרגרסיה)
+- §15 (קווים לבנים + CVD history) נפרד — עדיין ממתין restart/refresh אם לא נסגר
 
-**Michael notes (11:42 IL): "POC lines still not visible correctly"** — קודם RTH, רק קווי yesterday הלבנים אמורים להיראות. ייבדק חי ב-16:30/17:30 IL.
+**הערה היסטורית (11:42 IL, pre-RTH):** "POC lines still not visible" — צפוי לפני RTH; נסגר ב-UAT RTH.
 
 ---
 
@@ -1058,10 +1070,10 @@ P31 §9 — DLL TZ fix (canonical).
 
 **סדר מומלץ (impact-ranked):**
 1. **S2 Five-Min** — FIRING workhorse · **AMT bug תוקן 12:10 IL** (CC) — האודיט יתמקד עכשיו בpattern detection (reactive/initiative), opening_type, mode transitions
-2. **S4 Woodies CCI** — FIRING · pattern detection + Gateway routing
+2. **S4 Woodies CCI** — FIRING · **T2 chart pipeline ✅** ([`PROMPT_P31_T2_WOODIES_CCI_CLOSE.md`](../reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md)) · נשאר: pattern detection + Gateway routing UAT
 3. **S3 Footprint** — FIRING · cluster_guard gating · COT/AMT machinery עובד ✓
 4. **S1 Day Type** — OBSERVER · `v9_day_type_state` C3 transitions ב-RTH
-5. **S5 TPO** — OBSERVER · אחרי B1 snapshotter ימלא `v9_tpo_history`
+5. **S5 TPO** — OBSERVER · B1 + Issue B UAT ✅ (`v9_tpo_history` → stepped pink lines)
 6. **S6 Killzone** — GATE · RCA-1 (§11) — fix כבר ב-trade_context.py, ממתין UAT live
 
 **אילוצים:** smallest correct change · one thread at a time · no DLL changes unless Michael authorizes · regression test per fix · update task board between systems.
@@ -1077,10 +1089,7 @@ P31 §9 — DLL TZ fix (canonical).
 
 **82/82 S2 tests PASS · 0 regressions**
 
-**UAT pending (RTH):**
-- `mode` עובר מ-OVERNIGHT_MODE ל-FIRST_HOUR_TACTICAL בפתיחת RTH
-- `COT != 93523` (לא footprint) · `AMT != 0` (Sierra CDV rolling avg)
-- S2 יורה pattern + routes ל-SHADOW gateway
+**UAT RTH ✅ (Michael 2026-05-22 ערב):** mode/COT/AMT/ירי — מאומת ב-RTH. רגרסיה: `pytest tests/v9/db/test_api.py::test_post_5min_routes_bar_on_update` + `backend/v9/systems/five_min/tests/`.
 
 ---
 
@@ -1147,6 +1156,28 @@ M  tests/v9/api/test_cumulative_delta_routes.py               (+5 history tests)
 
 ---
 
+## §16 — T2 Woodies CCI pipeline — DONE 2026-05-22 (CC)
+
+**דוח סגירה:** [`docs/reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md`](../reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md)  
+**סטטוס:** ✅ **CLOSED** — Wave 0 audit + Wave 1 fixes (Michael + CC)
+
+**מה נסגר (Sierra → DLL → JSON → frontend, ללא backend/bridge):**
+
+| שכבה | שינוי עיקרי |
+|------|-------------|
+| DLL `v9_woodies_export.h` | ברים 5min · ערכים מ-Sierra (`GetStudyArrayFromChartUsingID`) · trend מ-Study ID:1 · `proj_hi`/`proj_lo` מ-Pivot Daily ID:12 |
+| `MES_AI_DataExport.cpp` | מעביר `woodies_chart` + `proj_study_id` ל-export |
+| Frontend `woodiesDesignerSpec.ts` / `WoodiesCciPanel.tsx` | צבעי CCI/TCCI כמו Sierra · scale ±250 · HFE markers |
+| Sierra Inputs (ידני) | History 200 · Proj study ID=12 |
+
+**אימות (מהדוח):** CCI diff=0 vs Sierra · histogram colors · proj 50/50 bars · ZLR/HFE · cross-chart index mapping.
+
+**לא ב-scope (נשאר ב-§14 S4 audit):** Woodies **firing** / `active_patterns` / Gateway `route_setup` — זה לוגיקת S4, לא פאנל CCI.
+
+**Cleanup אופציונלי (לא חוסם):** הסרת `_debug` מ-DLL · fine-tune SG trend colors ב-RTH.
+
+---
+
 ## קישורים
 
 - `docs/reports/P30_ROAD_START_TO_LIVE.md` — שלבים עד LIVE
@@ -1154,6 +1185,8 @@ M  tests/v9/api/test_cumulative_delta_routes.py               (+5 history tests)
 - `docs/handoff/P30_AGENT_INBOX_PRE_LIVE.md` — פרוטוקול
 - `CLAUDE.md` — guardrails (bridge local-only · polling floors · Sierra DLL maintenance)
 - `docs/reports/PROMPT_P30_WOODIES_SYSTEM_SLOW_HANDLER.md` — דוח קודם של slow handler ב-Woodies
+- **[`docs/reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md`](../reports/PROMPT_P31_T2_WOODIES_CCI_CLOSE.md)** — **§16** T2 Woodies CCI pipeline סגור (DLL + frontend, Sierra-native)
+- `docs/reports/WOODIES_PIPELINE_AUDIT_V1.md` — Wave 0 audit (מקור ל-T2)
 - **[`docs/reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md`](../reports/PROMPT_P31_CONFLUENCE_FILTER_RCA.md)** — RCA + fix plan ל-§11 (S6 Killzone direction bug + S1/S2/S5 publishers)
 
 **P31 Phase 1 + 2 (2026-05-22) — תיעוד:**

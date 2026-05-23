@@ -74,15 +74,53 @@ export function TradeFilters() {
         className="text-xs px-2 py-1 rounded border"
         style={{ background: 'var(--bg-primary)', borderColor: 'var(--border)', color: 'var(--text-primary)', width: '140px' }}
       />
+      <div className="basis-full mt-1" />
+      <FilterSelect
+        label="Overlap"
+        title="Parallel = overlapped another trade in time. Sequential = ran alone."
+        value={filters.overlap}
+        options={[
+          { value: 'all', label: 'All trades' },
+          { value: 'parallel', label: 'Parallel only (overlapping)' },
+          { value: 'sequential', label: 'Sequential only (no overlap)' },
+        ]}
+        onChange={(v) => setFilters({ overlap: v as 'all' | 'parallel' | 'sequential' })}
+      />
+      <FilterSelect
+        label="LIVE-eligible"
+        title="Sequential gating: simulates LIVE (max 1 open trade). Eligible = would have fired. Skipped = blocked by an earlier open trade."
+        value={filters.liveGated}
+        options={[
+          { value: 'all', label: 'All (no gating)' },
+          { value: 'eligible', label: 'LIVE-eligible only' },
+          { value: 'skipped', label: 'Skipped by LIVE-gate' },
+        ]}
+        onChange={(v) => setFilters({ liveGated: v as 'all' | 'eligible' | 'skipped' })}
+      />
+      <FilterSelect
+        label="Confluence"
+        title="systems_agreement at entry. Agree = no system opposes direction. Disagree = at least one system votes against."
+        value={filters.confluence}
+        options={[
+          { value: 'all', label: 'Any confluence' },
+          { value: 'agree', label: 'All systems agree' },
+          { value: 'disagree', label: '≥1 system opposes' },
+        ]}
+        onChange={(v) => setFilters({ confluence: v as 'all' | 'agree' | 'disagree' })}
+      />
     </div>
   );
 }
 
-function FilterSelect({ label, value, options, onChange }: {
-  label: string; value: string; options: { value: string; label: string }[]; onChange: (v: string) => void;
+function FilterSelect({ label, title, value, options, onChange }: {
+  label: string;
+  title?: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
 }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1" title={title}>
       <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{label}:</span>
       <select
         value={value}

@@ -21,6 +21,29 @@ from backend.v9.services.trade_manager.state_machine import (
     TradeState,
     TradeStateMachine,
 )
+
+# Legacy gateway / cockpit rows use state="OPEN" (not in TradeState enum).
+_ACTIVE_TRADE_STATES = frozenset({
+    TradeState.FILLED.value,
+    TradeState.PARTIAL.value,
+    "OPEN",
+})
+
+
+def _coerce_trade_state(raw: Optional[str]) -> TradeState:
+    """Map DB state strings to TradeStateMachine values."""
+    if not raw:
+        return TradeState.PENDING
+    if raw == "OPEN":
+        return TradeState.FILLED
+    try:
+        return TradeState(raw)
+    except ValueError:
+        logger.warning(
+            "[TradeManager] unknown trade.state=%r — treating as FILLED for transitions",
+            raw,
+        )
+        return TradeState.FILLED
 from backend.v9.services.trade_manager.events import TradeEventEmitter
 from backend.v9.services.snapshot_service.snapshot import CrossSystemSnapshotService
 
@@ -77,13 +100,41 @@ class TradeManager:
         if direction not in ("LONG", "SHORT"):
             raise ValueError(f"Invalid direction: {direction}")
 
-        # Capture cross-system snapshot at entry (per spec Section 2.4)
-        cross_ctx = setup.get("cross_context")
+        meta = dict(setup.get("metadata")) if isinstance(setup.get("metadata"), dict) else {}
+        if setup.get("stop") is not None:
+            meta["stop_initial"] = float(setup["stop"])
+        classification = setup.get("classification") or meta.get("pattern") or meta.get("signal")
+        trigger = (
+            setup.get("trigger")
+            or classification
+            or meta.get("pattern")
+            or meta.get("signal")
+            or f"system_{firing_system}"
+        )
+        quality = {
+            "classification": classification,
+            "confidence": setup.get("confidence"),
+            "metadata": meta,
+            "trigger": trigger,
+            "blocked_by": setup.get("blocked_by"),
+        }
+
+        registry_ctx = setup.get("cross_context")
+        systems_at_entry = registry_ctx if isinstance(registry_ctx, dict) else {}
+        cross_ctx: list = [
+            {
+                "trigger": trigger,
+                "classification": classification,
+                "confidence": setup.get("confidence"),
+                "metadata": meta,
+                "systems": systems_at_entry,
+            }
+        ]
         if self._snapshot is not None:
             snapshot = self._snapshot.capture(
                 "entry", firing_system_id=firing_system,
             )
-            cross_ctx = [snapshot]
+            cross_ctx.append(snapshot)
 
         trade = V9Trade(
             mode=mode,
@@ -97,6 +148,7 @@ class TradeManager:
             t2=setup["t2"],
             t3=setup["t3"],
             cross_context=cross_ctx,
+            quality=quality,
         )
 
         self._db.add(trade)
@@ -155,8 +207,11 @@ class TradeManager:
             machine.transition(TradeState.PARTIAL)
             trade.state = TradeState.PARTIAL.value
             trade.t1_hit_ts = hit_ts
+            self._apply_smart_be_after_t1(trade)
+            self._calculate_pnl(trade)
         elif target == "T2":
             trade.t2_hit_ts = hit_ts
+            self._calculate_pnl(trade)
         elif target == "T3":
             machine.transition(TradeState.CLOSED)
             trade.state = TradeState.CLOSED.value
@@ -174,6 +229,37 @@ class TradeManager:
             "ts": hit_ts.isoformat(),
             "state": trade.state,
         })
+
+    def _initial_stop(self, trade: V9Trade) -> Optional[float]:
+        """Risk denominator uses pre–smart-BE stop when stop was moved to entry."""
+        q = trade.quality if isinstance(trade.quality, dict) else {}
+        raw = q.get("initial_stop")
+        if raw is not None:
+            try:
+                return float(raw)
+            except (TypeError, ValueError):
+                pass
+        return self._valid_target(trade.stop)
+
+    def _apply_smart_be_after_t1(self, trade: V9Trade) -> None:
+        """Move stop to entry after T1 (C1) — was only in unused ActiveTradeMonitor."""
+        if trade.entry_price is None:
+            return
+        try:
+            if abs(float(trade.stop) - float(trade.entry_price)) < 0.25:
+                return
+        except (TypeError, ValueError):
+            return
+        q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+        if "initial_stop" not in q and trade.stop is not None:
+            q["initial_stop"] = float(trade.stop)
+        trade.quality = q
+        trade.stop = float(trade.entry_price)
+        logger.info(
+            "[TradeManager] Smart BE after T1: trade %s stop -> %.2f",
+            trade.id,
+            trade.stop,
+        )
 
     def on_stop_hit(
         self,
@@ -234,9 +320,22 @@ class TradeManager:
         })
 
     def get_active_trades(self, mode: Optional[str] = None) -> List[V9Trade]:
-        """Return all non-CLOSED trades, optionally filtered by mode."""
+        """Return all non-CLOSED trades, optionally filtered by mode.
+
+        P30 2026-05-20: the session reaches a "committed" state after any
+        write inside the same TradeManager, and a subsequent
+        `query.all()` raises `InvalidRequestError: This session is in
+        'committed' state; no further SQL can be emitted within this
+        transaction.` Call `expire_all()` to reset the session into a
+        usable state before issuing a fresh query.
+        """
+        try:
+            self._db.expire_all()
+        except Exception:
+            # Best-effort — even if expire fails, fall through to query.
+            pass
         query = self._db.query(V9Trade).filter(
-            V9Trade.state != TradeState.CLOSED.value
+            V9Trade.state.in_(_ACTIVE_TRADE_STATES)
         )
         if mode is not None:
             query = query.filter(V9Trade.mode == mode)
@@ -271,15 +370,26 @@ class TradeManager:
     def _get_machine(self, trade: V9Trade) -> TradeStateMachine:
         """Get or restore the state machine for a trade."""
         if trade.id not in self._machines:
-            # Restore from DB state (e.g., after restart)
+            # Restore from DB state (e.g., after restart or legacy OPEN rows)
             self._machines[trade.id] = TradeStateMachine(
-                TradeState(trade.state)
+                _coerce_trade_state(trade.state)
             )
         return self._machines[trade.id]
 
     def _cleanup_machine(self, trade_id: int) -> None:
         """Remove state machine for closed trade — prevents unbounded growth."""
         self._machines.pop(trade_id, None)
+
+    @staticmethod
+    def _valid_target(price: Optional[float]) -> Optional[float]:
+        """Sierra setups often send 0 for unused T2/T3 — must not enter PnL math."""
+        if price is None:
+            return None
+        try:
+            p = float(price)
+        except (TypeError, ValueError):
+            return None
+        return p if p > 0 else None
 
     def _calculate_pnl(self, trade: V9Trade) -> None:
         """Calculate PnL per-contract. MES = $5/point.
@@ -294,22 +404,45 @@ class TradeManager:
             return
 
         direction_mult = 1.0 if trade.direction == "LONG" else -1.0
+        t1 = self._valid_target(trade.t1)
+        t2 = self._valid_target(trade.t2)
+        t3 = self._valid_target(trade.t3)
+        stop = self._valid_target(trade.stop)
 
         # Determine per-contract exit prices based on what was hit
         contract_exits: List[float] = []
 
-        if trade.exit_reason == "STOP_HIT":
-            # All 3 contracts exit at stop
-            contract_exits = [trade.stop, trade.stop, trade.stop]
+        if trade.state == TradeState.PARTIAL.value and not trade.exit_reason:
+            total_pnl = 0.0
+            hits = 0
+            for target, hit_ts in ((t1, trade.t1_hit_ts), (t2, trade.t2_hit_ts)):
+                if hit_ts is not None and target is not None:
+                    total_pnl += (target - trade.entry_price) * direction_mult * MES_POINT_VALUE
+                    hits += 1
+            trade.pnl_usd = round(total_pnl, 2)
+            risk_stop = self._initial_stop(trade)
+            if risk_stop is not None and hits > 0:
+                risk_per_contract = abs(trade.entry_price - risk_stop) * MES_POINT_VALUE
+                if risk_per_contract > 0:
+                    trade.pnl_r = round(total_pnl / (hits * risk_per_contract), 2)
+            return
+
+        if trade.exit_reason == "STOP_HIT" and stop is not None:
+            contract_exits = [
+                t1 if trade.t1_hit_ts and t1 is not None else stop,
+                t2 if trade.t2_hit_ts and t2 is not None else stop,
+                t3 if trade.t3_hit_ts and t3 is not None else stop,
+            ]
         elif trade.exit_reason == "T3_HIT":
-            # c1@T1, c2@T2, c3@T3
-            contract_exits = [trade.t1, trade.t2, trade.t3]
+            exit_p = self._valid_target(trade.exit_price) or trade.entry_price
+            c1 = t1 if trade.t1_hit_ts and t1 is not None else exit_p
+            c2 = t2 if trade.t2_hit_ts and t2 is not None else exit_p
+            c3 = t3 if (trade.t3_hit_ts and t3 is not None) else exit_p
+            contract_exits = [c1, c2, c3]
         else:
-            # Manual close or partial — use whatever exit_price is set
             exit_p = trade.exit_price or trade.entry_price
-            # c1 at T1 if hit, else exit_p; c2 at T2 if hit, else exit_p
-            c1 = trade.t1 if trade.t1_hit_ts else exit_p
-            c2 = trade.t2 if trade.t2_hit_ts else exit_p
+            c1 = t1 if trade.t1_hit_ts and t1 is not None else exit_p
+            c2 = t2 if trade.t2_hit_ts and t2 is not None else exit_p
             c3 = exit_p
             contract_exits = [c1, c2, c3]
 
@@ -320,11 +453,11 @@ class TradeManager:
 
         trade.pnl_usd = round(total_pnl, 2)
 
-        # pnl_r = risk-reward ratio (PnL / initial risk per contract)
-        if trade.stop is not None and trade.entry_price is not None:
-            risk_per_contract = abs(trade.entry_price - trade.stop) * MES_POINT_VALUE
+        # pnl_r = PnL / (3 contracts × initial risk per contract)
+        risk_stop = self._initial_stop(trade)
+        if risk_stop is not None and trade.entry_price is not None:
+            risk_per_contract = abs(trade.entry_price - risk_stop) * MES_POINT_VALUE
             if risk_per_contract > 0:
-                # Total risk = 3 contracts * risk_per_contract
                 total_risk = 3 * risk_per_contract
                 trade.pnl_r = round(total_pnl / total_risk, 2)
 

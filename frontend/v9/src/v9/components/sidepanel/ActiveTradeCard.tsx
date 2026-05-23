@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { SYSTEM_META } from '../../design/system_colors';
+import { exitTrade, fetchActiveTrade, getApiBase } from '../../lib/api';
+import { fmtTimeET, fmtTimeIL } from '../../lib/tradeTime';
 
 interface Contract {
   id: string;
@@ -13,17 +14,42 @@ interface Contract {
   smart_be: boolean;
 }
 
+interface TradeSystemChip {
+  id: number;
+  name: string;
+  role: string;
+  involved: boolean;
+  is_firing: boolean;
+  hint?: string | null;
+  entry_price?: number | null;
+}
+
 interface ActiveTrade {
   trade_id: number;
   direction: 'LONG' | 'SHORT';
   entry_price: number;
   entry_ts: string | null;
   stop_price: number;
+  firing_system?: number;
+  systems?: TradeSystemChip[];
   contracts: Contract[];
   hits: number;
   total_pnl: number;
   total_r: number;
   summary: string;
+  pattern_id?: string | null;
+  trigger?: string | null;
+  classification?: string | null;
+  day_type?: string | null;
+}
+
+export type ActiveTradeContext = {
+  firingSystemId: number;
+  entryPrice: number;
+} | null;
+
+interface ActiveTradeCardProps {
+  onTradeContext?: (ctx: ActiveTradeContext) => void;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -33,16 +59,26 @@ const STATUS_COLORS: Record<string, string> = {
   BE: '#eab308',
 };
 
-export function ActiveTradeCard() {
+export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
   const [trade, setTrade] = useState<ActiveTrade | null>(null);
 
+  const refreshActiveTrade = () => {
+    fetchActiveTrade().then((d) => {
+      const t = d && d.trade_id ? (d as unknown as ActiveTrade) : null;
+      setTrade(t);
+      if (onTradeContext) {
+        onTradeContext(
+          t?.firing_system
+            ? { firingSystemId: t.firing_system, entryPrice: t.entry_price }
+            : null,
+        );
+      }
+    });
+  };
+
   useEffect(() => {
-    const poll = () => fetch(`${API}/api/v9/trades/active`)
-      .then(r => r.json())
-      .then(d => setTrade(d && d.trade_id ? d : null))
-      .catch(() => {});
-    poll();
-    const id = setInterval(poll, 2000);
+    refreshActiveTrade();
+    const id = setInterval(refreshActiveTrade, 10000);
     return () => clearInterval(id);
   }, []);
 
@@ -73,9 +109,8 @@ export function ActiveTradeCard() {
     : trade.total_pnl > 0 ? COLORS.bull
     : trade.total_pnl < 0 ? COLORS.bear
     : '#eab308';
-  const entryTime = trade.entry_ts ? new Date(trade.entry_ts).toLocaleTimeString('en-US', {
-    timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false,
-  }) : '';
+  const entryTimeEt = trade.entry_ts ? fmtTimeET(trade.entry_ts) : '';
+  const entryTimeIl = trade.entry_ts ? fmtTimeIL(trade.entry_ts) : '';
 
   return (
     <div style={{
@@ -95,8 +130,61 @@ export function ActiveTradeCard() {
             {trade.entry_price.toFixed(2)}
           </span>
         </div>
-        <span style={{ fontSize: 8, color: COLORS.textTertiary }}>{entryTime} ET</span>
+        <span
+          style={{ fontSize: 8, color: COLORS.textTertiary, fontFamily: 'ui-monospace', textAlign: 'right' }}
+          title="Trade entry — New York / Israel"
+        >
+          {entryTimeEt} ET
+          {entryTimeIl && (
+            <>
+              {' · '}
+              <span style={{ color: COLORS.textDim }}>{entryTimeIl} IL</span>
+            </>
+          )}
+        </span>
       </div>
+
+      {(trade.pattern_id || trade.trigger) && (
+        <div style={{ fontSize: 8, color: COLORS.textTertiary, marginBottom: 4, lineHeight: 1.3 }}>
+          {trade.pattern_id && <span style={{ fontFamily: 'ui-monospace' }}>{trade.pattern_id}</span>}
+          {trade.pattern_id && trade.trigger && ' · '}
+          {trade.trigger && <span>{trade.trigger}</span>}
+          {trade.day_type && <span> · {trade.day_type}</span>}
+        </div>
+      )}
+
+      {trade.systems && trade.systems.length > 0 && (
+        <div style={{ marginBottom: 6 }}>
+          <div style={{ fontSize: 7, color: COLORS.textDim, marginBottom: 3, textTransform: 'uppercase' }}>
+            Systems at entry
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+            {trade.systems.filter((s) => s.involved).map((s) => {
+              const color = SYSTEM_META[s.id]?.color ?? '#888';
+              return (
+                <span
+                  key={s.id}
+                  title={s.hint ?? s.name}
+                  style={{
+                    fontSize: 7,
+                    padding: '2px 4px',
+                    borderRadius: 3,
+                    border: `1px solid ${s.is_firing ? color : COLORS.borderFaint}`,
+                    background: s.is_firing ? `${color}22` : 'transparent',
+                    color: s.is_firing ? color : COLORS.textTertiary,
+                    fontWeight: s.is_firing ? 700 : 500,
+                    fontFamily: 'ui-monospace',
+                  }}
+                >
+                  S{s.id}
+                  {s.hint ? ` ${String(s.hint).slice(0, 8)}` : ''}
+                  {s.is_firing && s.entry_price != null ? ` @${s.entry_price.toFixed(2)}` : ''}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* C1/C2/C3 rows */}
       {trade.contracts.map(c => {
@@ -148,7 +236,25 @@ export function ActiveTradeCard() {
       {/* §3.5 Flow 5: Exit + Move Stop buttons */}
       <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
         <button
-          onClick={() => { if (confirm('Exit all contracts?')) fetch(`${API}/api/v9/trades/${trade.trade_id}/exit`, { method: 'POST' }).catch(() => {}); }}
+          onClick={async () => {
+            if (!confirm('Exit all contracts?')) return;
+            const tid = trade.trade_id;
+            if (tid == null || Number.isNaN(Number(tid))) {
+              alert('Exit failed — missing trade_id');
+              return;
+            }
+            const result = await exitTrade(Number(tid), { reason: 'manual' });
+            if (!result.ok) {
+              console.error('[ActiveTradeCard] exit failed', result.status, result.error);
+              const hint =
+                result.status === 0
+                  ? `Cannot reach backend at ${getApiBase()} — is uvicorn on :8000?`
+                  : `Exit failed (${result.status}): ${result.error ?? 'unknown'}`;
+              alert(hint);
+              return;
+            }
+            refreshActiveTrade();
+          }}
           style={{
             flex: 1, fontSize: 9, padding: '3px 0', borderRadius: 3, cursor: 'pointer',
             border: '1px solid #dc2626', background: 'rgba(220,38,38,0.12)', color: '#dc2626',
@@ -157,10 +263,9 @@ export function ActiveTradeCard() {
         <button
           onClick={() => {
             const ticks = prompt('Move stop by N ticks (positive=tighter):');
-            if (ticks) fetch(`${API}/api/v9/trades/${trade.trade_id}/move_stop`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ticks: Number(ticks) }),
-            }).catch(() => {});
+            if (ticks) {
+              alert('Move Stop is not wired to the API yet — use Sierra or manual stop update.');
+            }
           }}
           style={{
             flex: 1, fontSize: 9, padding: '3px 0', borderRadius: 3, cursor: 'pointer',
