@@ -24,7 +24,8 @@ class T1Setup(BaseModel):
     stop_price: float = Field(gt=0)
     t1_price: float = Field(gt=0)
     t2_price: float = Field(gt=0)
-    time_stop_minutes: int = Field(ge=1, le=180)
+    t3_price: Optional[float] = Field(default=None, gt=0)
+    time_stop_minutes: Optional[int] = Field(default=None, ge=1, le=180)
     confidence: int = Field(ge=0, le=100)
 
     # Bar context

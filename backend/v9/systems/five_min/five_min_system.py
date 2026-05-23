@@ -59,6 +59,9 @@ class FiveMinSystem(BaseV9TradingSystem):
         self.mode = FiveMinMode.WAITING_OPEN
         self.buffer_size = 0
         self.opening_type: Optional[str] = None
+        self.current_day_type: Optional[str] = None  # Stream 2 · D-091.Q1 NeuE/NeuC source
+        self._nt_skip_count: int = 0                 # Stream 2 · D-091.Q2 SHADOW counter
+        self._nt_skip_last_log_ts: float = 0.0       # Rate-limit anchor for NT skip log
         self.last_pattern: Optional[str] = None
         self.last_confluence: int = 0
         self.last_classification: Optional[str] = None
@@ -115,6 +118,32 @@ class FiveMinSystem(BaseV9TradingSystem):
                 ).first()
             finally:
                 db.close()
+
+            # Stream 2 · hydrate current_day_type from v9_day_type_state (D-091.Q1)
+            try:
+                from backend.v9.systems.day_type.models import V9DayTypeState
+                from sqlalchemy import func
+                db = SessionLocal()
+                try:
+                    _latest_dt = (
+                        db.query(V9DayTypeState)
+                        .filter(func.date(V9DayTypeState.ts) == func.current_date())
+                        .order_by(V9DayTypeState.id.desc())
+                        .first()
+                    )
+                    if _latest_dt is not None and _latest_dt.day_type:
+                        self.current_day_type = _latest_dt.day_type
+                        logger.info(
+                            "[FiveMin] Hydrated current_day_type=%s from v9_day_type_state",
+                            self.current_day_type,
+                        )
+                finally:
+                    db.close()
+            except Exception as _hydrate_err:
+                logger.warning(
+                    "[FiveMin] day_type hydrate failed: %s · live updates will populate",
+                    _hydrate_err,
+                )
 
             # Load bars from DB and replay into _bar_buffer (P-WAVE-D3)
             bars_count = 0
@@ -217,8 +246,17 @@ class FiveMinSystem(BaseV9TradingSystem):
         return None
 
     def _on_day_type_update(self, event: dict) -> None:
-        """Handle Day Type classification update."""
-        # Store for context — used by confluence scoring
+        """Handle Day Type classification update (Stream 2 · D-091)."""
+        payload = event.get("payload", {}) if isinstance(event, dict) else {}
+        new_dt = payload.get("day_type") or payload.get("classification")
+        if new_dt and isinstance(new_dt, str):
+            if new_dt != self.current_day_type:
+                logger.info(
+                    "[FiveMin] current_day_type: %s → %s",
+                    self.current_day_type,
+                    new_dt,
+                )
+            self.current_day_type = new_dt
         return None
 
     # ── Footprint helpers ──
@@ -619,6 +657,19 @@ class FiveMinSystem(BaseV9TradingSystem):
         if len(self._bar_buffer) > 20:
             self._bar_buffer = self._bar_buffer[-20:]
 
+        # D-091.Q2 · NT NO_TRADE early-skip (CPU efficiency + emit-layer defense)
+        if self.current_day_type == "Nontrend":
+            self._nt_skip_count += 1
+            import time as _time
+            _now = _time.monotonic()
+            if _now - self._nt_skip_last_log_ts >= 60.0:  # rate-limit 1/min
+                logger.info(
+                    "[S2] NT NO_TRADE skip · cumulative=%d · D-091.Q2",
+                    self._nt_skip_count,
+                )
+                self._nt_skip_last_log_ts = _now
+            return
+
         # Run pattern detectors
         direction, conf, info = self._detect_reactive(self._bar_buffer)
         if not direction:
@@ -697,15 +748,34 @@ class FiveMinSystem(BaseV9TradingSystem):
             # Phase 5.5: Wire to setup_emitter → gateway (SHADOW auto-fire)
             try:
                 pattern_name = f"{kind}_{direction}"
+                # Stream 2 · resolve targets per day_type (D-091.Q1)
+                from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type
+                _targets = compute_targets_for_day_type(
+                    day_type=self.current_day_type,
+                    entry_price=entry_price,
+                    stop_price=stop_price,
+                    direction=direction,
+                )
                 t1_risk = abs(entry_price - stop_price)
-                t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
-                t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
+                if _targets is not None:
+                    t1_price = _targets["t1_price"]
+                    t2_price = _targets.get("t2_price") or (
+                        (entry_price + 2 * t1_risk) if direction == "LONG"
+                        else (entry_price - 2 * t1_risk)
+                    )
+                    t3_price = _targets.get("t3_price")
+                else:
+                    t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
+                    t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
+                    t3_price = None
+
                 t1_setup = emit_t1_setup(
                     pattern_name, direction,
                     entry_price=entry_price, stop_price=stop_price,
                     t1_price=t1_price, t2_price=t2_price,
                     bar_index=self.buffer_size,
-                    day_type=self.opening_type,
+                    day_type=self.current_day_type,
+                    t3_price=t3_price,
                     current_price=entry_price,
                 )
                 if t1_setup and self._gateway:

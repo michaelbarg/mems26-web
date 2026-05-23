@@ -150,6 +150,19 @@ def _get_system_health(system_name: str, request: Request) -> dict:
     }
 
 
+@router.get("/api/v9/five_min/nt_skip_stats")
+def get_nt_skip_stats(request: Request):
+    """Return cumulative count of NT NO_TRADE skips (D-091.Q2 SHADOW counter)."""
+    fm = getattr(request.app.state, "five_min_system", None)
+    if fm is None:
+        return {"available": False, "reason": "five_min_system not on app.state"}
+    return {
+        "available": True,
+        "nt_skip_count": getattr(fm, "_nt_skip_count", 0),
+        "current_day_type": getattr(fm, "current_day_type", None),
+    }
+
+
 @router.get("/api/v9/{system_name}/health")
 async def system_health(system_name: str, request: Request):
     """Per-system health status for UI status dots."""

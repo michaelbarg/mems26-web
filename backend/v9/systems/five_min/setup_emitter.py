@@ -30,6 +30,7 @@ def emit_t1_setup(
     bar_index: int,
     *,
     day_type: Optional[str] = None,
+    t3_price: Optional[float] = None,
     current_price: Optional[float] = None,
     tpo_data: Optional[dict] = None,
 ) -> Optional[T1Setup]:
@@ -38,6 +39,17 @@ def emit_t1_setup(
     Returns T1Setup if valid, None if validation fails.
     Caller is responsible for routing to gateway (mode-dependent).
     """
+    # D-091.Q2 defense-in-depth: refuse NT setups at emit layer
+    if day_type:
+        from backend.v9.systems.day_type.targets_table import get_targets as _get_targets
+        _targets = _get_targets(day_type)
+        if _targets is not None and _targets.get("no_trade", False):
+            logger.warning(
+                "[S2] emit_t1_setup refused: day_type=%s is NO_TRADE (D-091.Q2)",
+                day_type,
+            )
+            return None
+
     # Quality tier from TPO location
     price_for_tier = current_price or entry_price
     quality_tier, sizing = get_quality_tier(price_for_tier, tpo_data=tpo_data)
@@ -49,7 +61,7 @@ def emit_t1_setup(
     # Time stop from Day Type
     time_stop = get_time_stop(day_type)
 
-    # Build T1Setup
+    # Build T1Setup (time_stop_minutes now Optional · t3_price NEW)
     setup = T1Setup(
         pattern_name=pattern_name,
         direction=direction,
@@ -57,6 +69,7 @@ def emit_t1_setup(
         stop_price=stop_price,
         t1_price=t1_price,
         t2_price=t2_price,
+        t3_price=t3_price,
         time_stop_minutes=time_stop,
         confidence=75,  # base confidence from pattern detection
         bar_index=bar_index,
@@ -68,6 +81,8 @@ def emit_t1_setup(
     )
 
     # Validate via pre_fire_validator (M18 · D-063)
+    # time_stop_minutes is Optional (None for Trend_Normal) — use 180 as passthrough for validator
+    _ts_for_validator = setup.time_stop_minutes if setup.time_stop_minutes is not None else 180
     req = FireRequest(
         system_id=setup.system_id,
         direction=setup.direction,
@@ -75,7 +90,7 @@ def emit_t1_setup(
         stop_price=setup.stop_price,
         t1_price=setup.t1_price,
         t2_price=setup.t2_price,
-        time_stop_minutes=setup.time_stop_minutes,
+        time_stop_minutes=_ts_for_validator,
         confidence=setup.confidence,
     )
     resp = validate_fire(req)
