@@ -34,7 +34,7 @@ def _make_redis_with_data():
             "ib_range": {"high": 5252.0, "low": 5244.0},
             "rotation_count": 3,
         }),
-        "mems26:v9:chart_5min:latest": json.dumps({
+        "mems26:v9:five_min:latest": json.dumps({
             "active_patterns": ["3BR"], "last_signal": "LONG",
             "current_bar": {"o": 5246.0, "h": 5247.25, "l": 5245.5, "c": 5246.75},
         }),
@@ -198,7 +198,7 @@ class TestSystemFieldsSpec:
                       "open_range", "ib_range", "rotation_count"):
             assert field in sys1, f"System 1 missing field: {field}"
 
-    def test_system2_chart_5min_fields(self):
+    def test_system2_five_min_fields(self):
         svc = CrossSystemSnapshotService(redis_client=_make_redis_with_data())
         result = svc.capture("entry", firing_system_id=2)
         sys2 = result["systems"]["2"]
@@ -487,8 +487,8 @@ class TestSystemNamesMapping:
     def test_system_1_is_day_type(self):
         assert SYSTEM_NAMES[1] == "day_type"
 
-    def test_system_2_is_chart_5min(self):
-        assert SYSTEM_NAMES[2] == "chart_5min"
+    def test_system_2_is_five_min(self):
+        assert SYSTEM_NAMES[2] == "five_min"
 
     def test_system_3_is_tick_reversal(self):
         assert SYSTEM_NAMES[3] == "tick_reversal"

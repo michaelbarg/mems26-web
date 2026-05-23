@@ -53,5 +53,5 @@ summary:
   partial: 2
   missing: 0
   drift_pct: 12.5
-  notes: "Own manifest created to replace reliance on legacy chart_5min manifest."
+  notes: "Own manifest for Path A canonical · supersedes legacy chart_5min manifest per D-090."
 

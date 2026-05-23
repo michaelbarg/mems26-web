@@ -7,7 +7,7 @@ Per MEMS26_SPEC_COMPLIANCE_AND_CROSS_SYSTEM_SNAPSHOT_LOCKED V1.1 Section 2.4:
 - Returns dict ready for V9Trade.cross_context
 
 System mapping (per MASTER_DEV_SKILL):
-  1: day_type, 2: chart_5min, 3: tick_reversal, 4: woodies, 5: tpo, 6: killzone
+  1: day_type, 2: five_min, 3: tick_reversal, 4: woodies, 5: tpo, 6: killzone
 """
 
 import json
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # System ID to Redis key name mapping (per MASTER_DEV_SKILL naming conventions)
 SYSTEM_NAMES: Dict[int, str] = {
     1: "day_type",
-    2: "chart_5min",
+    2: "five_min",
     3: "tick_reversal",
     4: "woodies",
     5: "tpo",

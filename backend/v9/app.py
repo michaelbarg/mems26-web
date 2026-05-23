@@ -269,7 +269,7 @@ async def cockpit_systems_snapshot(request: Request):
 # ── EventDispatcher initialization ──────────────────────────────
 
 def init_event_dispatcher(gateway=None):
-    """Initialize EventDispatcher with all 6 systems and wire into bars API.
+    """Initialize EventDispatcher with all 5 systems and wire into bars API.
 
     Called at startup (from backend.main or standalone).
     Returns the dispatcher instance for inspection/testing.
@@ -277,7 +277,7 @@ def init_event_dispatcher(gateway=None):
     from backend.v9.services.event_dispatcher import EventDispatcher
     from backend.v9.services.stream_health import StreamHealthService
     from backend.v9.systems.wrappers import (
-        DayTypeSystem, Chart5MinSystem, TickReversalSystem,
+        DayTypeSystem, TickReversalSystem,
         WoodiesSystem, TPOSystem, KillzoneSystem,
     )
     from backend.v9.api.v9.bars import set_event_dispatcher, set_stream_health
@@ -289,10 +289,9 @@ def init_event_dispatcher(gateway=None):
     dispatcher = EventDispatcher(gateway=gateway)
     dispatcher.set_stream_health(stream_health)
 
-    # Register all 6 systems
+    # Register all 5 systems (Chart5MinSystem removed per D-090)
     systems = [
         DayTypeSystem(),
-        Chart5MinSystem(),
         TickReversalSystem(),
         WoodiesSystem(),
         TPOSystem(),

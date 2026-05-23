@@ -448,12 +448,11 @@ class TestRealWrappers:
 
     def test_all_wrappers_import(self):
         from backend.v9.systems.wrappers import (
-            DayTypeSystem, Chart5MinSystem, TickReversalSystem,
+            DayTypeSystem, TickReversalSystem,
             WoodiesSystem, TPOSystem, KillzoneSystem,
         )
         systems = [
             DayTypeSystem(),
-            Chart5MinSystem(),
             TickReversalSystem(),
             WoodiesSystem(),
             TPOSystem(),
@@ -466,11 +465,10 @@ class TestRealWrappers:
 
     def test_wrapper_subscriptions(self):
         from backend.v9.systems.wrappers import (
-            DayTypeSystem, Chart5MinSystem, TickReversalSystem,
+            DayTypeSystem, TickReversalSystem,
             WoodiesSystem, TPOSystem, KillzoneSystem,
         )
         assert DayTypeSystem.subscribed_streams == ["cumulative_delta", "volume_profile"]
-        assert Chart5MinSystem.subscribed_streams == ["cumulative_delta"]
         assert TickReversalSystem.subscribed_streams == ["tick_reversal_15", "tick_reversal_12", "footprint"]
         assert WoodiesSystem.subscribed_streams == ["woodies_5min"]
         assert TPOSystem.subscribed_streams == ["volume_profile"]
@@ -478,16 +476,16 @@ class TestRealWrappers:
 
     def test_full_dispatcher_wiring(self):
         from backend.v9.systems.wrappers import (
-            DayTypeSystem, Chart5MinSystem, TickReversalSystem,
+            DayTypeSystem, TickReversalSystem,
             WoodiesSystem, TPOSystem, KillzoneSystem,
         )
         dispatcher = EventDispatcher()
-        for sys_cls in [DayTypeSystem, Chart5MinSystem, TickReversalSystem,
+        for sys_cls in [DayTypeSystem, TickReversalSystem,
                         WoodiesSystem, TPOSystem, KillzoneSystem]:
             dispatcher.register_system(sys_cls())
 
         table = dispatcher.get_routing_table()
-        assert sorted(table["cumulative_delta"]) == [1, 2]
+        assert table["cumulative_delta"] == [1]
         assert sorted(table["volume_profile"]) == [1, 5]
         assert table["woodies_5min"] == [4]
         assert table["tick_reversal_15"] == [3]
@@ -495,7 +493,7 @@ class TestRealWrappers:
         assert table["footprint"] == [3]
 
         registered = dispatcher.get_registered_systems()
-        assert len(registered) == 6
+        assert len(registered) == 5
 
     def test_observer_returns_none_on_real_bar(self):
         from backend.v9.systems.wrappers import TickReversalSystem

@@ -21,7 +21,7 @@ class EventDispatcher:
     Usage:
         dispatcher = EventDispatcher(gateway=trading_gateway)
         dispatcher.register_system(day_type_system)
-        dispatcher.register_system(chart_5min_system)
+        dispatcher.register_system(footprint_system)
         ...
         # On every Bridge POST:
         dispatcher.on_bar_received("cumulative_delta", bar_dict)
