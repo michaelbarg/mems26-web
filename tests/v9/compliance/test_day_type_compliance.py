@@ -256,15 +256,19 @@ class TestE1LockCriteria:
 
 class TestE2DayTypes:
     def test_E2_day_types(self):
-        """6 day types + UNKNOWN must exist."""
+        """7 day types + UNKNOWN per EXIT_V6."""
         names = [dt.value for dt in DayType]
-        for expected in ["Trend_Normal", "Trend_DD", "Variation", "Normal", "Neutral", "Nontrend"]:
-            assert expected in names
+        for expected in [
+            "Trend_Normal", "Trend_DD", "Variation",
+            "Normal", "Neutral_Extreme", "Neutral_Center", "Nontrend",
+        ]:
+            assert expected in names, f"Missing: {expected}"
+        assert "Neutral" in names, "Legacy 'Neutral' must remain as deprecated alias"
 
     def test_E2_playbooks(self):
-        """Every non-UNKNOWN day type has a playbook template."""
+        """Every non-UNKNOWN, non-deprecated day type has a playbook template."""
         for dt in DayType:
-            if dt == DayType.UNKNOWN:
+            if dt in (DayType.UNKNOWN, DayType.Neutral):
                 continue
             assert dt in PLAYBOOK_TEMPLATES, f"Missing playbook for {dt}"
 

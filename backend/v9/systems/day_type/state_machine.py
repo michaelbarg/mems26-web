@@ -80,15 +80,26 @@ PLAYBOOK_TEMPLATES: Dict[DayType, dict] = {
             "Take profits at mid-range / VWAP",
         ],
     },
-    DayType.Neutral: {
+    DayType.Neutral_Extreme: {
         "strategy": "FADE_EXTREMES",
         "sizing": "HALF",
-        "time_stop_min": 45,  # V3: 45min for Neutral
+        "time_stop_min": 45,
         "key_rules": [
-            "Very narrow range — reduce expectations",
-            "Fade extreme ticks only",
-            "Keep position size small",
-            "Consider sitting out if range <10 pts",
+            "Open at VA edge — wider expected range",
+            "Fade extreme ticks back toward POC",
+            "45min window before Type C exit (DD path)",
+            "Half size · 1 contract",
+        ],
+    },
+    DayType.Neutral_Center: {
+        "strategy": "FADE_EXTREMES",
+        "sizing": "HALF",
+        "time_stop_min": 30,
+        "key_rules": [
+            "Open inside VA — narrower expected range",
+            "Fade extremes · expect rotation around POC",
+            "30min window before Type C exit",
+            "Half size · 1 contract",
         ],
     },
     DayType.Nontrend: {
@@ -136,7 +147,8 @@ DAY_TYPE_LOOKUP: Dict[DayType, Dict[str, str]] = {
     DayType.Trend_DD:     {"directional": "MEDIUM", "trading": "MEDIUM"},
     DayType.Variation:    {"directional": "MEDIUM", "trading": "HIGH"},
     DayType.Normal:       {"directional": "LOW",    "trading": "HIGH"},
-    DayType.Neutral:      {"directional": "LOW",    "trading": "HIGH"},
+    DayType.Neutral_Extreme: {"directional": "LOW", "trading": "HIGH"},
+    DayType.Neutral_Center:  {"directional": "LOW", "trading": "HIGH"},
     DayType.Nontrend:     {"directional": "LOW",    "trading": "MEDIUM"},
 }
 
@@ -547,7 +559,7 @@ class DayTypeStateMachine:
             return self.behavior in (Behavior.TRENDING_UP, Behavior.TRENDING_DOWN)
         if dt == DayType.Variation:
             return self.behavior == Behavior.FAILED_EXTENSION
-        if dt in (DayType.Normal, DayType.Neutral):
+        if dt in (DayType.Normal, DayType.Neutral_Extreme, DayType.Neutral_Center, DayType.Neutral):
             return self.behavior in (Behavior.DEVELOPING, Behavior.COMPRESSED)
         if dt == DayType.Nontrend:
             return self.behavior == Behavior.COMPRESSED
@@ -561,7 +573,7 @@ class DayTypeStateMachine:
             return self.range_category in (RangeCategory.NORMAL, RangeCategory.EXPANDED)
         if dt == DayType.Normal:
             return self.range_category == RangeCategory.NORMAL
-        if dt in (DayType.Neutral, DayType.Nontrend):
+        if dt in (DayType.Neutral_Extreme, DayType.Neutral_Center, DayType.Neutral, DayType.Nontrend):
             return self.range_category in (RangeCategory.COMPRESSED, RangeCategory.NORMAL)
         return True
 
@@ -650,7 +662,7 @@ class DayTypeStateMachine:
         current_range = self.session_high - self.session_low
         if atr and atr > 0:
             ratio = current_range / atr
-            if self.day_type in (DayType.Nontrend, DayType.Neutral) and ratio > 1.5:
+            if self.day_type in (DayType.Nontrend, DayType.Neutral_Extreme, DayType.Neutral_Center, DayType.Neutral) and ratio > 1.5:
                 expected_exceeded = True
             if self.day_type == DayType.Normal and ratio > 2.0:
                 expected_exceeded = True

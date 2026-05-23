@@ -117,10 +117,11 @@ class ZoharRulesEngine:
         extensions_up: int,
         extensions_down: int,
     ) -> RuleVerdict:
-        """Delta rule: Both-side extension → NEUTRAL.
+        """Delta rule: Both-side extension → NEUTRAL (NeuE or NeuC per D-091.Q1).
 
         If price has extended beyond both IB high and IB low,
-        the day should be classified as NEUTRAL (no directional conviction).
+        the day should be classified as Neutral subtype (no directional conviction).
+        NeuE/NeuC classification done downstream by neutral_classifier.py.
 
         Source: Mind Over Markets p.87 — "Extensions in both directions
         during a single session indicate a Neutral day structure."

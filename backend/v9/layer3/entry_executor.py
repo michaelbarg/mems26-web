@@ -58,8 +58,10 @@ DAY_TYPE_TARGETS = {
     "Trend_DD":     TargetConfig(t1_r=1.0, t2_r=2.5, t3_r=4.0, sizing="FULL", contracts=2),
     "Variation":    TargetConfig(t1_r=1.0, t2_r=2.5, time_stop_min=60, sizing="FULL", contracts=2),
     "Normal":       TargetConfig(t1_r=1.0, t2_r=2.0, time_stop_min=30, sizing="HALF", contracts=1),
-    "Neutral":      TargetConfig(t1_r=0.75, time_stop_min=30, sizing="HALF", contracts=1),
-    "Nontrend":     TargetConfig(t1_r=0.5, time_stop_min=20, sizing="MIN", contracts=1),
+    "Neutral_Extreme": TargetConfig(t1_r=0.75, time_stop_min=45, sizing="HALF", contracts=1),
+    "Neutral_Center":  TargetConfig(t1_r=0.75, time_stop_min=30, sizing="HALF", contracts=1),
+    "Neutral":         TargetConfig(t1_r=0.75, time_stop_min=30, sizing="HALF", contracts=1),  # DEPRECATED
+    "Nontrend":        TargetConfig(t1_r=0.5, time_stop_min=20, sizing="MIN", contracts=1),
 }
 
 

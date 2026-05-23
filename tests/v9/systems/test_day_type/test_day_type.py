@@ -526,8 +526,8 @@ from backend.v9.systems.day_type.schemas import VoteRecord
 class TestPlaybookTemplates:
     def test_all_day_types_have_playbook(self):
         for dt in DayType:
-            if dt == DayType.UNKNOWN:
-                continue
+            if dt in (DayType.UNKNOWN, DayType.Neutral):
+                continue  # Neutral deprecated per D-091.Q1 · NeuE/NeuC replace it
             assert dt in PLAYBOOK_TEMPLATES, f"Missing playbook for {dt}"
 
     def test_trend_normal_playbook(self):

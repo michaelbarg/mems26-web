@@ -100,8 +100,8 @@ decision_tree_nodes:
   - id: E2
     name: "Final Day Type Output (7 types)"
     branches: [NORMAL, NORMAL_VARIATION, TREND_NORMAL, TREND_DD, NONTREND, NEUTRAL_CENTER, NEUTRAL_EXTREME]
-    status: PARTIAL
-    notes: "6 types implemented (Neutral_Center and Neutral_Extreme merged into Neutral)"
+    status: IMPLEMENTED
+    notes: "7 types per D-091.Q1 (NeuE/NeuC split via neutral_classifier · NT no_trade=True · legacy Neutral deprecated alias)"
     test: tests/v9/compliance/test_day_type_compliance.py::test_E2_day_types
 
   - id: Q16
@@ -115,7 +115,7 @@ output_fields:
   - name: day_type
     type: string
     required: true
-    enum: [Trend_Normal, Trend_DD, Variation, Normal, Neutral, Nontrend, UNKNOWN]
+    enum: [Trend_Normal, Trend_DD, Variation, Normal, Neutral_Extreme, Neutral_Center, Neutral, Nontrend, UNKNOWN]
     status: IMPLEMENTED
 
   - name: confidence

@@ -187,7 +187,19 @@ def _classify_v1_from_tpo() -> dict:
 
     # Classification (🟡 V1 rules — CAL-006/007)
     if both_sides:
-        day_type = "Neutral"
+        from backend.v9.systems.day_type.neutral_classifier import classify_neutral_subtype
+        from backend.v9.systems.day_type.prev_day import load_tpo_previous_day_summary
+        prev_day = load_tpo_previous_day_summary()
+        # session_open_price = first bar open; session_date from bars context
+        _session_open = bars[0].get("o", bars[0].get("open")) if bars else None
+        _session_date_str = None
+        subtype = classify_neutral_subtype(
+            session_open_price=_session_open,
+            prev_vah=prev_day.get("vah"),
+            prev_val=prev_day.get("val"),
+            session_date=_session_date_str,
+        )
+        day_type = subtype.value
         conf = 60
     elif not ib_breached_up and not ib_breached_down:
         day_type = "Normal"

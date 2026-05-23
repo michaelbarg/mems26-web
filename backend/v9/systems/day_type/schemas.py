@@ -21,8 +21,10 @@ class DayType(str, Enum):
     Trend_DD = "Trend_DD"
     Variation = "Variation"
     Normal = "Normal"
-    Neutral = "Neutral"
-    Nontrend = "Nontrend"
+    Neutral_Extreme = "Neutral_Extreme"   # NEW · 45min · open at VA edge (D-091.Q1)
+    Neutral_Center = "Neutral_Center"     # NEW · 30min · open inside VA (D-091.Q1)
+    Neutral = "Neutral"                   # DEPRECATED · legacy DB rows · maps to NeuC
+    Nontrend = "Nontrend"                 # NO TRADE per EXIT_V6 + D-091
     UNKNOWN = "UNKNOWN"
 
 
