@@ -43,9 +43,26 @@ def evaluate(trade: Dict, current_day_type: str) -> Optional[Dict]:
     entry_time = entry_targets.get("time_stop_minutes")
     current_time = current_targets.get("time_stop_minutes")
 
+    current_no_trade = current_targets.get("no_trade", False)
+    entry_no_trade = entry_targets.get("no_trade", False)
+
     more_restrictive = False
-    if current_time is not None and (entry_time is None or current_time < entry_time):
+    if current_no_trade and not entry_no_trade:
+        more_restrictive = True  # NO_TRADE is the tightest possible
+    elif current_time is not None and (entry_time is None or current_time < entry_time):
         more_restrictive = True
+
+    if current_no_trade:
+        notes = (
+            f"Day re-classified to {current_day_type} (NO TRADE) — EXIT current position. "
+            f"Entry was {entry_day_type} (time stop {entry_time}min)."
+        )
+    else:
+        notes = (
+            f"Day Type changed: {entry_day_type} → {current_day_type}. "
+            f"Time stop: {entry_time}min → {current_time}min. "
+            f"{'TIGHTER scheme — consider adjusting targets.' if more_restrictive else 'Looser scheme — original targets still valid.'}"
+        )
 
     return {
         "action": "WARN",
@@ -55,9 +72,5 @@ def evaluate(trade: Dict, current_day_type: str) -> Optional[Dict]:
         "entry_time_stop": entry_time,
         "current_time_stop": current_time,
         "more_restrictive": more_restrictive,
-        "reasoning_notes": (
-            f"Day Type changed: {entry_day_type} → {current_day_type}. "
-            f"Time stop: {entry_time}min → {current_time}min. "
-            f"{'TIGHTER scheme — consider adjusting targets.' if more_restrictive else 'Looser scheme — original targets still valid.'}"
-        ),
+        "reasoning_notes": notes,
     }
