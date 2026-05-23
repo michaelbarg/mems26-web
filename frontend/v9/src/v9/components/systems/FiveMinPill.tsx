@@ -6,6 +6,8 @@ import { useSystemStateStore } from '../../store/systemStateStore';
 interface FiveMinPillProps {
   isSelected?: boolean;
   onSelect?: () => void;
+  isTradeFiring?: boolean;
+  tradeEntryPrice?: number | null;
 }
 
 const MODE_ABBREV: Record<string, string> = {
@@ -18,7 +20,12 @@ const PATTERN_ABBREV: Record<string, string> = {
   INITIATIVE_LONG: 'I-L', INITIATIVE_SHORT: 'I-S',
 };
 
-export function FiveMinPill({ isSelected = false, onSelect }: FiveMinPillProps) {
+export function FiveMinPill({
+  isSelected = false,
+  onSelect,
+  isTradeFiring = false,
+  tradeEntryPrice = null,
+}: FiveMinPillProps) {
   const sysState = useSystemStateStore((s) => s.systems[2]);
   const raw = sysState.state ?? '';
   const label = PATTERN_ABBREV[raw] ?? MODE_ABBREV[raw] ?? (raw ? raw.slice(0, 4) : 'IDLE');
@@ -26,8 +33,9 @@ export function FiveMinPill({ isSelected = false, onSelect }: FiveMinPillProps) 
   return (
     <SwitcherSlot
       systemId={2}
-      
       isSelected={isSelected}
+      isTradeFiring={isTradeFiring}
+      tradeEntryPrice={tradeEntryPrice}
       stateLabel={label}
       onSelect={onSelect ? () => onSelect() : undefined}
     />

@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import { fetchRecentTrades } from '../../lib/api';
+import { fmtTimeETIL } from '../../lib/tradeTime';
 
 interface TradeSummary {
   id: number;
@@ -11,31 +11,32 @@ interface TradeSummary {
   exit_ts: string | null;
   pnl: number | null;
   outcome: string; // WIN / LOSS / BE / OPEN
+  pattern_id?: string | null;
+  trigger?: string | null;
 }
 
 export function TradeHistoryStrip() {
   const [trades, setTrades] = useState<TradeSummary[]>([]);
 
   useEffect(() => {
-    const fetchTrades = () => {
-      fetch(`${API}/api/v9/trades/recent`)
-        .then(r => r.json())
-        .then(d => {
-          if (Array.isArray(d)) {
-            setTrades(d.map((t: any) => ({
-              id: t.id ?? 0,
-              direction: t.direction ?? 'LONG',
-              entry_ts: t.entry_ts ?? t.ts ?? '',
-              exit_ts: t.exit_ts ?? null,
-              pnl: t.pnl ?? t.realized_pnl ?? null,
-              outcome: t.pnl > 0 ? 'WIN' : t.pnl < 0 ? 'LOSS' : t.pnl === 0 ? 'BE' : 'OPEN',
-            })));
-          }
-        })
-        .catch(() => {});
+    const load = () => {
+      fetchRecentTrades(20).then((rows) => {
+        setTrades(
+          rows.map((t) => ({
+            id: (t.id as number) ?? 0,
+            direction: (t.direction as string) ?? 'LONG',
+            entry_ts: (t.entry_ts as string) ?? '',
+            exit_ts: (t.exit_ts as string | null) ?? null,
+            pnl: (t.pnl_usd as number | null) ?? null,
+            outcome: (t.outcome as string) ?? 'OPEN',
+            pattern_id: (t.pattern_id as string | null) ?? null,
+            trigger: (t.trigger as string | null) ?? null,
+          })),
+        );
+      });
     };
-    fetchTrades();
-    const id = setInterval(fetchTrades, 10000);
+    load();
+    const id = setInterval(load, 30000);
     return () => clearInterval(id);
   }, []);
 
@@ -68,7 +69,14 @@ export function TradeHistoryStrip() {
           const s = segmentStyle(t.outcome);
           return (
             <div key={t.id || i}
-              title={`${t.direction} ${t.outcome} ${t.pnl != null ? '$' + t.pnl.toFixed(0) : ''} — ${t.entry_ts.slice(11, 16)}`}
+              title={[
+                `#${t.id} ${t.direction}`,
+                t.pattern_id,
+                t.trigger,
+                t.outcome,
+                t.pnl != null ? `$${t.pnl.toFixed(0)}` : '',
+                t.entry_ts ? fmtTimeETIL(t.entry_ts) : '',
+              ].filter(Boolean).join(' · ')}
               style={{
                 flex: 1, minWidth: 8, maxWidth: 40,
                 height: 10, borderRadius: 1,

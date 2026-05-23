@@ -14,6 +14,7 @@ import { SYSTEM_META } from '../../design/system_colors';
 
 export function SidePanel() {
   const [selectedSystem, setSelectedSystem] = useState(1);
+  const [tradeCtx, setTradeCtx] = useState<{ firingSystemId: number; entryPrice: number } | null>(null);
 
   return (
     <div
@@ -29,11 +30,16 @@ export function SidePanel() {
       }}
     >
       {/* Active Trade Card */}
-      <ActiveTradeCard />
+      <ActiveTradeCard onTradeContext={setTradeCtx} />
 
       {/* Switcher */}
       <div style={{ borderBottom: `1px solid ${COLORS.borderFaint}` }}>
-        <Switcher selectedSystem={selectedSystem} onSelectSystem={setSelectedSystem} />
+        <Switcher
+          selectedSystem={selectedSystem}
+          onSelectSystem={setSelectedSystem}
+          tradeFiringSystemId={tradeCtx?.firingSystemId ?? null}
+          tradeEntryPrice={tradeCtx?.entryPrice ?? null}
+        />
       </div>
 
       {/* Lens — header tint per selected system (κ.5 §4.4) */}

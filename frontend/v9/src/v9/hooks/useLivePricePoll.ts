@@ -11,8 +11,10 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
  * Keeps priceStore fresh so chart + ConnectionIndicator show LIVE/STALE not DISCONNECTED.
  */
 export function useLivePricePoll(enabled = true) {
+  const wsConnected = usePriceStore((s) => s.connected);
+
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || wsConnected) return;
     let inFlight = false;
     const poll = async () => {
       if (inFlight) return;
@@ -40,7 +42,7 @@ export function useLivePricePoll(enabled = true) {
       }
     };
     poll();
-    const id = setInterval(poll, 1000);
+    const id = setInterval(poll, 5000);
     return () => clearInterval(id);
-  }, [enabled]);
+  }, [enabled, wsConnected]);
 }

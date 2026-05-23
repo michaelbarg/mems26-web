@@ -50,7 +50,7 @@ export function MarketTab() {
 
   useEffect(() => {
     fetchHealth();
-    const interval = setInterval(fetchHealth, 5000);
+    const interval = setInterval(fetchHealth, 15000);
     return () => clearInterval(interval);
   }, [fetchHealth]);
 

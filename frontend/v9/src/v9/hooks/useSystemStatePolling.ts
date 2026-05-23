@@ -2,7 +2,7 @@
 import { useEffect } from 'react';
 import { useSystemStateStore } from '../store/systemStateStore';
 
-export function useSystemStatePolling(intervalMs = 2000) {
+export function useSystemStatePolling(intervalMs = 5000) {
   const fetchAllStates = useSystemStateStore((s) => s.fetchAllStates);
 
   useEffect(() => {

@@ -1,33 +1,22 @@
 'use client';
 
-import {
-  ColorType,
-  createChart,
-  CrosshairMode,
-  type IChartApi,
-  CandlestickSeries,
-  type CandlestickData,
-  type ISeriesApi,
-  type Time,
-  type WhitespaceData,
+import type {
+  CandlestickData,
+  HistogramData,
+  ISeriesApi,
+  Time,
+  WhitespaceData,
 } from 'lightweight-charts';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   aggregateCvdPoints,
+  alignCvdPointTimesToPriceBars,
   densifyCvdPoints,
   tsToUnix,
   type CvdPoint,
 } from './cvdMapping';
-import { registerVolumeChart, unregisterVolumeChart } from '../../../stores/chartSyncStore';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const POLL_MS = 5000;
 const LS_CVD_PANEL = 'mems26-cvd-panel-pct';
 
-/**
- * Bucket size (seconds) per TF — must match TF_SECONDS in ChartV5b. Drives
- * CVD aggregation so the CVD candle period mirrors the price chart's TF.
- */
 const TF_BUCKET_SECONDS: Record<string, number> = {
   '3m': 180,
   '5m': 300,
@@ -36,31 +25,83 @@ const TF_BUCKET_SECONDS: Record<string, number> = {
   '1h': 3600,
 };
 
-/**
- * Build the CVD candle series, ALIGNED 1:1 with the price chart's bars.
- *
- * P30 (2026-05-20) alignment guarantee:
- *   lightweight-charts auto-computes barSpacing = chartWidth / N where
- *   N is the candle count in the visible range. If price and CVD have
- *   different N in the same range, their candles render at different
- *   widths and the bottom pane no longer lines up under the top pane.
- *   This was the cockpit symptom — CVD bars compressed or stretched
- *   relative to price bars when CVD points were sparser than bars
- *   (e.g. first session of the day before CVD started, or any host
- *   bar slot where the DLL skipped a point).
- *
- * Strategy:
- *   - When CVD points carry their own `t` (canonical post-v9.4.2 DLL),
- *     iterate over PRICE BARS and emit one entry per bar's timestamp.
- *     Carry the cumulative-delta value forward from the latest CVD
- *     point at or before the bar; emit `WhitespaceData` for bars that
- *     are strictly before the first CVD point so the time slot is
- *     reserved on the X-axis but no misleading zero candle is drawn.
- *   - Legacy fallback (no `t`): pair by index against the last N bars,
- *     identical to the pre-v9.4.2 behaviour.
- */
-function cumOhlcSeries(
-  bars: Array<{ ts: string }>,
+export type CvdAlignBar = { ts: string; t?: number };
+export type CvdRenderMode = 'histogram' | 'ohlc';
+
+/** CVD shelf green — distinct from price candles (#16a34a). */
+export const CVD_PANE_UP = '#34d399';
+export const CVD_PANE_DOWN = '#f87171';
+export const CVD_PANE_PRICE_LINE = '#34d399';
+export const CVD_PANE_HEADER_BG = 'rgba(52, 211, 153, 0.14)';
+export const CVD_PANE_HEADER_TEXT = '#6ee7b7';
+
+const HIST_UP = 'rgba(52, 211, 153, 0.88)';
+const HIST_DOWN = 'rgba(248, 113, 113, 0.88)';
+
+function barUnix(bar: CvdAlignBar): number {
+  return typeof bar.t === 'number' ? bar.t : tsToUnix(bar.ts);
+}
+
+/** Sierra /api/v9/cumulative_delta/current ships {i,d,cum,p,t} — not OHLC. */
+export function cvdPointsUseOhlc(raw: unknown[]): boolean {
+  if (!Array.isArray(raw) || raw.length === 0) return false;
+  const p = raw[0] as Record<string, unknown>;
+  const long = ['open', 'high', 'low', 'close'] as const;
+  const short = ['o', 'h', 'l', 'c'] as const;
+  return (
+    long.every((k) => typeof p[k] === 'number' && Number.isFinite(p[k] as number)) ||
+    short.every((k) => typeof p[k] === 'number' && Number.isFinite(p[k] as number))
+  );
+}
+
+export function resolveCvdRenderMode(raw: unknown[]): CvdRenderMode {
+  // Sierra ships {d,cum,t} — render as cumulative delta candles, not volume histogram.
+  if (cvdPointsUseOhlc(raw)) return 'ohlc';
+  return 'ohlc';
+}
+
+function normalizePoints(rawPoints: CvdPoint[], activeTf: string): CvdPoint[] {
+  const bucketSeconds = TF_BUCKET_SECONDS[activeTf] ?? 300;
+  const denseRaw = densifyCvdPoints(rawPoints, 300);
+  return aggregateCvdPoints(denseRaw, bucketSeconds);
+}
+
+/** Per-bar delta histogram aligned 1:1 with price bar times. */
+export function buildCvdHistogramData(
+  barList: CvdAlignBar[],
+  rawPoints: CvdPoint[],
+  activeTf: string,
+): Array<HistogramData<Time> | WhitespaceData<Time>> {
+  if (!rawPoints.length || !barList.length) return [];
+  const bucketSeconds = TF_BUCKET_SECONDS[activeTf] ?? 300;
+  const points = normalizePoints(rawPoints, activeTf);
+  const pointsByT = new Map<number, CvdPoint>();
+  for (const p of points) {
+    if (typeof p.t === 'number') pointsByT.set(p.t, p);
+  }
+
+  const out: Array<HistogramData<Time> | WhitespaceData<Time>> = [];
+  for (const bar of barList) {
+    const barT = barUnix(bar);
+    if (!Number.isFinite(barT)) continue;
+    const bucketT = Math.floor(barT / bucketSeconds) * bucketSeconds;
+    const pt = pointsByT.get(bucketT);
+    if (!pt || !Number.isFinite(pt.d)) {
+      out.push({ time: barT as Time });
+      continue;
+    }
+    out.push({
+      time: barT as Time,
+      value: Math.abs(pt.d),
+      color: pt.d >= 0 ? HIST_UP : HIST_DOWN,
+    });
+  }
+  return out;
+}
+
+/** Legacy OHLC-style candles from cumulative series (only when API ships OHLC). */
+export function cumOhlcSeries(
+  bars: CvdAlignBar[],
   points: CvdPoint[],
 ): Array<CandlestickData<Time> | WhitespaceData<Time>> {
   if (!points.length) return [];
@@ -76,7 +117,7 @@ function cumOhlcSeries(
       const open = prevCum;
       const close = pt.cum;
       return {
-        time: tsToUnix(bSlice[idx].ts) as Time,
+        time: barUnix(bSlice[idx]) as Time,
         open,
         high: Math.max(open, close),
         low: Math.min(open, close),
@@ -113,7 +154,7 @@ function cumOhlcSeries(
   let lastCum: number | null = null;
   let prevClose: number | null = null;
   for (const bar of bars) {
-    const barT = tsToUnix(bar.ts);
+    const barT = barUnix(bar);
     if (!Number.isFinite(barT)) continue;
     if (barT < firstCvdT) {
       out.push({ time: barT as Time });
@@ -141,222 +182,57 @@ function cumOhlcSeries(
   return out;
 }
 
-type Props = {
-  bars: Array<{ ts: string }>;
-  priceChartRef: React.RefObject<IChartApi | null>;
-  /** Active timeframe (3m/5m/15m/30m/1h). Drives CVD aggregation. */
-  activeTf?: string;
-  /**
-   * P30 (2026-05-20): parent controls which pane owns the cockpit's shared
-   * time axis. When false, the CVD chart hides its own axis labels (parent
-   * has restored the price chart's axis because the CVD pane is too small
-   * to display labels usefully). Default true preserves prior behaviour.
-   */
-  axisVisible?: boolean;
-};
-
-export function CvdChartPane({
-  bars,
-  priceChartRef,
-  activeTf = '5m',
-  axisVisible = true,
-}: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
-  const [header, setHeader] = useState('Cumulative Delta Bars - Volume');
-
-  const fittedRef = useRef(false);
-  const applyData = useCallback(
-    (barList: Array<{ ts: string }>, points: CvdPoint[]) => {
-      if (!seriesRef.current || !points.length) return;
-      const candles = cumOhlcSeries(barList, points);
-      if (!candles.length) return;
-      seriesRef.current.setData(candles);
-      if (!fittedRef.current) {
-        fittedRef.current = true;
-        const price = priceChartRef.current;
-        const cvd = chartRef.current;
-        if (price && cvd) {
-          try {
-            const range = price.timeScale().getVisibleLogicalRange();
-            if (range) cvd.timeScale().setVisibleLogicalRange(range);
-          } catch {
-            cvd.timeScale().fitContent();
-          }
-        } else {
-          chartRef.current?.timeScale().fitContent();
-        }
-      }
-      // P30 (2026-05-20): scan back for the most recent real candle. The
-      // tail of `candles` may now be `WhitespaceData` (when bars run ahead
-      // of the latest CVD point) which has no OHLC fields — `last.open`
-      // would explode at runtime otherwise.
-      let lastOhlc: CandlestickData<Time> | null = null;
-      for (let i = candles.length - 1; i >= 0; i -= 1) {
-        const c = candles[i] as CandlestickData<Time>;
-        if (typeof c.open === 'number') {
-          lastOhlc = c;
-          break;
-        }
-      }
-      if (lastOhlc) {
-        setHeader(
-          `Cumulative Delta Bars - Volume  Open: ${lastOhlc.open.toFixed(0)}  High: ${lastOhlc.high.toFixed(0)}  Low: ${lastOhlc.low.toFixed(0)}  Close: ${lastOhlc.close.toFixed(0)}`,
-        );
-      }
-    },
-    [priceChartRef],
-  );
-
-  const bucketSeconds = useMemo(() => TF_BUCKET_SECONDS[activeTf] ?? 300, [activeTf]);
-
-  const fetchCvd = useCallback(async () => {
-    if (!seriesRef.current) return;
-    try {
-      const res = await fetch(`${API}/api/v9/cumulative_delta/current`);
-      const d = await res.json();
-      const rawPoints = (d.points ?? []) as CvdPoint[];
-      if (!rawPoints.length || !bars.length) return;
-      // Two-step normalization so a CVD candle is always exactly one TF
-      // wide, matching the price candle width visually:
-      //   1. densify  — fill 5-min slots when DLL still emits 25-min points
-      //                  (pre-Remote-Build legacy DLL); no-op once DLL emits
-      //                  one point per host bar.
-      //   2. aggregate — collapse to the active TF's bucket. For 5 m this
-      //                  is essentially a passthrough; for 15 m / 30 m / 1 h
-      //                  it folds multiple buckets into one candle.
-      const denseRaw = densifyCvdPoints(rawPoints, 300);
-      const points = aggregateCvdPoints(denseRaw, bucketSeconds);
-      applyData(bars, points);
-    } catch {
-      /* keep last */
+export function cvdHeaderFromCandles(
+  candles: Array<CandlestickData<Time> | WhitespaceData<Time>>,
+): string {
+  for (let i = candles.length - 1; i >= 0; i -= 1) {
+    const c = candles[i] as CandlestickData<Time>;
+    if (typeof c.open === 'number') {
+      return `Cumulative Delta Bars - Volume  Open: ${c.open.toFixed(0)}  High: ${c.high.toFixed(0)}  Low: ${c.low.toFixed(0)}  Close: ${c.close.toFixed(0)}`;
     }
-  }, [applyData, bars, bucketSeconds]);
+  }
+  return 'Cumulative Delta Bars - Volume';
+}
 
-  useEffect(() => {
-    if (!containerRef.current || chartRef.current) return;
+export function applyCvdSeriesData(
+  series: ISeriesApi<'Candlestick'> | null,
+  barList: CvdAlignBar[],
+  rawPoints: CvdPoint[],
+  activeTf: string,
+): string {
+  if (!series || !rawPoints.length || !barList.length) return 'Cumulative Delta Bars - Volume';
 
-    const chart = createChart(containerRef.current, {
-      layout: {
-        background: { type: ColorType.Solid, color: '#0a0a0a' },
-        textColor: '#a3a3a3',
-        fontSize: 10,
-        fontFamily: 'ui-monospace, monospace',
-      },
-      grid: {
-        vertLines: { color: '#1a1a1a', style: 1 },
-        horzLines: { color: '#1a1a1a', style: 1 },
-      },
-      rightPriceScale: {
-        borderColor: '#262626',
-        // Leave room for the shared time axis at the bottom of this pane.
-        scaleMargins: { top: 0.1, bottom: 0.25 },
-      },
-      timeScale: {
-        // The cockpit's shared time axis lives here when this pane is tall
-        // enough to render labels — the parent flips visibility off when
-        // the user shrinks this pane below the useful-height threshold.
-        visible: axisVisible,
-        borderVisible: true,
-        borderColor: '#262626',
-        timeVisible: true,
-        secondsVisible: false,
-        // P30 alignment guarantee: pin to 0 (lightweight-charts default)
-        // so future global default drift can't push CVD candles out of
-        // line with price candles.
-        rightOffset: 0,
-      },
-      crosshair: { mode: CrosshairMode.Normal },
-    });
-
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: '#16a34a',
-      downColor: '#dc2626',
-      borderUpColor: '#16a34a',
-      borderDownColor: '#dc2626',
-      wickUpColor: '#16a34a',
-      wickDownColor: '#dc2626',
-      priceLineVisible: false,
-      lastValueVisible: true,
-    });
-
-    chartRef.current = chart;
-    seriesRef.current = series;
-    registerVolumeChart(chart);
-
-    const ro = new ResizeObserver(([entry]) => {
-      chart.resize(entry.contentRect.width, entry.contentRect.height);
-    });
-    ro.observe(containerRef.current);
-
-    return () => {
-      ro.disconnect();
-      unregisterVolumeChart();
-      chart.remove();
-      chartRef.current = null;
-      seriesRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-    try {
-      chart.timeScale().applyOptions({ visible: axisVisible });
-    } catch {
-      /* chart not ready */
+  const aligned = alignCvdPointTimesToPriceBars(rawPoints, barList);
+  const normalized = normalizePoints(aligned, activeTf);
+  const candles = cumOhlcSeries(barList, normalized);
+  if (!candles.length) return 'Cumulative Delta Bars - Volume';
+  series.setData(candles);
+  const lastBar = barList[barList.length - 1];
+  const lastBarT = barUnix(lastBar);
+  let lastCvdT: number | null = null;
+  for (let i = candles.length - 1; i >= 0; i -= 1) {
+    const c = candles[i];
+    if (typeof (c as { open?: number }).open === 'number') {
+      lastCvdT = Number((c as { time: number }).time);
+      break;
     }
-  }, [axisVisible]);
-
-  useEffect(() => {
-    fetchCvd();
-    const id = setInterval(fetchCvd, POLL_MS);
-    return () => clearInterval(id);
-  }, [fetchCvd]);
-
-  useEffect(() => {
-    fetchCvd();
-  }, [bars, fetchCvd]);
-
-  // Re-fit the pane to the new bucket period on TF change so the user sees
-  // the new candle layout immediately (otherwise the time-sync would hold
-  // the previous TF's window until the next pan).
-  useEffect(() => {
-    fittedRef.current = false;
-    fetchCvd();
-  }, [activeTf, fetchCvd]);
-
-  return (
-    <div
-      data-testid="cvd-chart-pane"
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        height: '100%',
-        minHeight: 80,
-        background: '#0a0a0a',
-        borderTop: '1px solid #262626',
-      }}
-    >
-      <div
-        style={{
-          flexShrink: 0,
-          padding: '2px 8px',
-          fontSize: 9,
-          fontFamily: 'ui-monospace, monospace',
-          color: '#94a3b8',
-          borderBottom: '1px solid #1a1a1a',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {header}
-      </div>
-      <div ref={containerRef} style={{ flex: 1, minHeight: 60 }} />
-    </div>
-  );
+  }
+  const et = (u: number | null) =>
+    u == null
+      ? '—'
+      : new Date(u * 1000).toLocaleString('en-US', {
+          timeZone: 'America/New_York',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+        });
+  console.info('[ChartV5b] CVD align check', {
+    lastBarEt: et(lastBarT),
+    lastCvdEt: et(lastCvdT),
+    deltaSec: lastBarT != null && lastCvdT != null ? lastBarT - lastCvdT : null,
+    aligned: lastBarT != null && lastCvdT != null && Math.abs(lastBarT - lastCvdT) < 60,
+  });
+  return cvdHeaderFromCandles(candles);
 }
 
 export function loadCvdPanelDefaultPct(): number {
@@ -367,4 +243,35 @@ export function loadCvdPanelDefaultPct(): number {
 
 export function saveCvdPanelPct(pct: number) {
   localStorage.setItem(LS_CVD_PANEL, String(Math.round(pct)));
+}
+
+export function applyPaneStretchFactors(
+  chart: { panes: () => Array<{ setStretchFactor: (n: number) => void; getHeight: () => number }> },
+  cvdPct: number,
+) {
+  const panes = chart.panes();
+  if (panes.length < 2) return;
+  const top = Math.max(35, 100 - cvdPct);
+  const bot = Math.max(12, cvdPct);
+  panes[0].setStretchFactor(top);
+  panes[1].setStretchFactor(bot);
+}
+
+export function paneHeightsFromChart(chart: {
+  panes: () => Array<{ getHeight: () => number }>;
+}): {
+  pricePaneH: number;
+  cvdPaneH: number;
+  cvdPct: number;
+} {
+  const panes = chart.panes();
+  if (panes.length < 2) {
+    const pct = loadCvdPanelDefaultPct();
+    return { pricePaneH: 0, cvdPaneH: 0, cvdPct: pct };
+  }
+  const h0 = panes[0].getHeight();
+  const h1 = panes[1].getHeight();
+  const total = h0 + h1;
+  const cvdPct = total > 0 ? Math.round((h1 / total) * 100) : loadCvdPanelDefaultPct();
+  return { pricePaneH: h0, cvdPaneH: h1, cvdPct };
 }

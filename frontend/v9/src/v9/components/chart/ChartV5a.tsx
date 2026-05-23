@@ -193,7 +193,7 @@ export function ChartV5a() {
       .catch(() => {});
     setBars([]); // Reset on TF change
     fetchBars();
-    const id = setInterval(fetchBars, 5000);
+    const id = setInterval(fetchBars, 10000);
     return () => clearInterval(id);
   }, [activeTf]);
 
@@ -227,7 +227,7 @@ export function ChartV5a() {
   // Fetch TPO
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/tpo/current`).then(r => r.json()).then(setTpo).catch(() => {});
-    f(); const id = setInterval(f, 2000); return () => clearInterval(id);
+    f(); const id = setInterval(f, 10000); return () => clearInterval(id);
   }, []);
 
   // Fetch TPO sessions (for stepped POC)
@@ -262,7 +262,7 @@ export function ChartV5a() {
         setFires({ sys2_firing: false, sys4_firing: sys4, sys1_firing: sys1, armed_system: armed });
       } catch { /* silent */ }
     };
-    f(); const id = setInterval(f, 5000); return () => clearInterval(id);
+    f(); const id = setInterval(f, 10000); return () => clearInterval(id);
   }, []);
 
   // Determine candle color for the forming bar
@@ -277,7 +277,7 @@ export function ChartV5a() {
   const [fpState, setFpState] = useState<FpState | null>(null);
   useEffect(() => {
     const f = () => fetch(`${API}/api/v9/footprint/current`).then(r => r.json()).then(setFpState).catch(() => {});
-    f(); const id = setInterval(f, 5000); return () => clearInterval(id);
+    f(); const id = setInterval(f, 10000); return () => clearInterval(id);
   }, []);
 
   // Observer markers derived state
@@ -310,7 +310,7 @@ export function ChartV5a() {
         }
       })
       .catch(() => {});
-    f(); const id = setInterval(f, 2000); return () => clearInterval(id);
+    f(); const id = setInterval(f, 10000); return () => clearInterval(id);
   }, []);
 
   // All bars = closed + forming

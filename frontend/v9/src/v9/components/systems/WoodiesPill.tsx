@@ -14,15 +14,26 @@ const ABBREV: Record<string, string> = {
   GB100: 'GB', GHOST: 'GHO', FAMIR: 'FAM', HTLB: 'HTL', VEGAS: 'VEG',
 };
 
-export function WoodiesPill({ isSelected = false, onSelect }: { isSelected?: boolean; onSelect?: () => void }) {
+export function WoodiesPill({
+  isSelected = false,
+  onSelect,
+  isTradeFiring = false,
+  tradeEntryPrice = null,
+}: {
+  isSelected?: boolean;
+  onSelect?: () => void;
+  isTradeFiring?: boolean;
+  tradeEntryPrice?: number | null;
+}) {
   const sysState = useSystemStateStore((s) => s.systems[4]);
   const label = sysState.state ? (ABBREV[sysState.state] ?? sysState.state.slice(0, 4)) : '—';
 
   return (
     <SwitcherSlot
       systemId={4}
-      
       isSelected={isSelected}
+      isTradeFiring={isTradeFiring}
+      tradeEntryPrice={tradeEntryPrice}
       stateLabel={label}
       onSelect={onSelect ? () => onSelect() : undefined}
     />

@@ -269,17 +269,45 @@ export function diagnoseFiringSystem(
   if (systemId === 4) {
     return diagnoseWoodies(raw, gateway, null);
   }
+
+  if (systemId === 2) {
+    const mode = String(raw.mode ?? '');
+    if (mode === 'MAINTENANCE' || mode === 'WEEKEND' || mode === 'OVERNIGHT_MODE') {
+      return {
+        situation: 'GATEWAY_BLOCK',
+        badgeLabel: `חסום · ${mode}`,
+        setupLine: `מצב מערכת: ${mode}`,
+        identifiedLine: String(raw.last_reasoning_notes ?? raw.opening_type ?? '—'),
+        treeLine: 'מיקום בעץ: S2 לא פעילה — ממתינה לחלון מסחר / יום מסחר',
+        whyNotFire: [`מצב ${mode} — אין זיהוי דפוסים ואין ירי.`],
+        wouldFireWhen: ['כש-mode יחזור ל-FIRST_HOUR_TACTICAL או DAY_TYPE_MODE.'],
+      };
+    }
+  }
+
   const pattern = raw.last_pattern ?? raw.combined_class ?? raw.last_classification;
   const failed = raw.last_fire as Record<string, unknown> | undefined;
+  if (failed?.blocked_by) {
+    const block = String(failed.blocked_by);
+    return {
+      situation: 'TREE_FAIL',
+      badgeLabel: `חסום · ${block}`,
+      setupLine: pattern ? `סטאפ: ${pattern}` : 'אין סטאפ מזוהה',
+      identifiedLine: String(failed.route_reason ?? failed.blocked_by),
+      treeLine: 'מיקום בעץ: ניסיון ירי אחרון נחסם ב-pre_fire / gateway',
+      whyNotFire: [String(failed.route_reason ?? failed.blocked_by)],
+      wouldFireWhen: ['כשהחסימה ב-last_fire תתנקה בבר הבא.'],
+      primaryStage: block,
+    };
+  }
+
   return {
     situation: pattern ? 'PATTERN_WAIT' : 'NO_SETUP',
     badgeLabel: pattern ? String(pattern) : 'אין תבנית',
     setupLine: pattern ? `סטאפ: ${pattern}` : 'אין סטאפ מזוהה',
     identifiedLine: String(raw.last_reasoning_notes ?? raw.mode ?? '—'),
     treeLine: 'מיקום בעץ: מערכת ללא עץ A1–A7 מלא ב-UI (רק Woodies)',
-    whyNotFire: failed?.blocked_by
-      ? [String(failed.route_reason ?? failed.blocked_by)]
-      : ['בדוק שורות TO FIRE למטה.'],
+    whyNotFire: ['בדוק שורות TO FIRE למטה.'],
     wouldFireWhen: ['כשהתנאים ב-TO FIRE ירוקים ו-Gateway פנוי.'],
   };
 }

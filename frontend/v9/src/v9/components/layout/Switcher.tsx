@@ -13,9 +13,17 @@ import type { PillState } from '../atoms/Pill';
 interface SwitcherProps {
   selectedSystem: number;
   onSelectSystem: (id: number) => void;
+  /** System that opened the active trade (highlights pill + entry) */
+  tradeFiringSystemId?: number | null;
+  tradeEntryPrice?: number | null;
 }
 
-export function Switcher({ selectedSystem, onSelectSystem }: SwitcherProps) {
+export function Switcher({
+  selectedSystem,
+  onSelectSystem,
+  tradeFiringSystemId = null,
+  tradeEntryPrice = null,
+}: SwitcherProps) {
   return (
     <div style={{ padding: '6px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
       {/* Firing row — S2/S3/S4 per Constitution V3 D-049 (T1/T3/T2) */}
@@ -24,9 +32,24 @@ export function Switcher({ selectedSystem, onSelectSystem }: SwitcherProps) {
           Firing — entry decisions
         </div>
         <div style={{ display: 'flex', gap: 6, minHeight: 32 }}>
-          <FiveMinPill isSelected={selectedSystem === 2} onSelect={() => onSelectSystem(2)} />
-          <FootprintPill isSelected={selectedSystem === 3} onSelect={() => onSelectSystem(3)} />
-          <WoodiesPill isSelected={selectedSystem === 4} onSelect={() => onSelectSystem(4)} />
+          <FiveMinPill
+            isSelected={selectedSystem === 2}
+            onSelect={() => onSelectSystem(2)}
+            isTradeFiring={tradeFiringSystemId === 2}
+            tradeEntryPrice={tradeFiringSystemId === 2 ? tradeEntryPrice : null}
+          />
+          <FootprintPill
+            isSelected={selectedSystem === 3}
+            onSelect={() => onSelectSystem(3)}
+            isTradeFiring={tradeFiringSystemId === 3}
+            tradeEntryPrice={tradeFiringSystemId === 3 ? tradeEntryPrice : null}
+          />
+          <WoodiesPill
+            isSelected={selectedSystem === 4}
+            onSelect={() => onSelectSystem(4)}
+            isTradeFiring={tradeFiringSystemId === 4}
+            tradeEntryPrice={tradeFiringSystemId === 4 ? tradeEntryPrice : null}
+          />
         </div>
       </div>
       {/* Observing row — S1/S5/S6 per Constitution V3 D-049 */}

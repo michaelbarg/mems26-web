@@ -219,17 +219,17 @@ export const SYSTEM_NAMES: Record<SystemId, string> = {
   6: 'Killzone',
 };
 
-// Source of truth: D-082 (S3 Observer-only spec V3) + D-086 (S3 firing
-// violation deferred to post-SHADOW). S1 confirmed Observer per Master
-// Matrix V1.0 in `backend/v9/systems/wrappers.py:8-14`.
-// 2026-05-22: corrected S1 (was 'firing'), S3 stays 'observer' per D-082.
-// The `wrappers.py` Master Matrix is older than D-082; D-082+D-086 take
-// precedence. S3 has firing CODE (route_setup at line 426) but is treated
-// as Observer for spec/UI/audit purposes until V4 dual-role spec lands.
+// Source of truth: D-089 (S3 Footprint = FIRING, locked 2026-05-23 by Michael)
+// which SUPERSEDES D-082 (S3 Observer-only per V3 spec) and D-086 (S3 SHADOW
+// firing tolerated, "revisit before LIVE"). Restores Master Matrix V1.0
+// designation in `backend/v9/systems/wrappers.py:8-14`. The 3 firing
+// systems are canonical: S2, S3, S4. S1 stays Observer per Master Matrix.
+// Decision doc: docs/decisions/D-089_S3_FIRING_LOCKED.md
+// Registry doc: docs/reports/MEMS26_SYSTEMS_DECISIONS_REGISTRY_2026-05-23.md
 export const SYSTEM_ROLES: Record<SystemId, 'firing' | 'observer' | 'gate'> = {
   1: 'observer',
   2: 'firing',
-  3: 'observer',
+  3: 'firing',
   4: 'firing',
   5: 'observer',
   6: 'gate',

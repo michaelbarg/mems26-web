@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const POLL_MS = 5000;
+const POLL_MS = 10000;
 const PANE_HEIGHT = 100;
 
 interface CvdPoint {

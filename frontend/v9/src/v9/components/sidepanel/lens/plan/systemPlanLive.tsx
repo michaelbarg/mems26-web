@@ -57,6 +57,18 @@ const DOT: Record<FireRowStatus, string> = {
   block: '●',
 };
 
+const LIFECYCLE_RANK: Record<PlanLifecycle, number> = {
+  SCANNING: 0,
+  APPROACHING: 1,
+  READY: 2,
+  FIRING: 3,
+  BLOCKED: 4,
+};
+
+function maxLifecycle(a: PlanLifecycle, b: PlanLifecycle): PlanLifecycle {
+  return LIFECYCLE_RANK[a] >= LIFECYCLE_RANK[b] ? a : b;
+}
+
 const COMPACT = {
   pad: 6,
   gap: 5,
@@ -562,7 +574,7 @@ export function SystemPlanLive({
         .catch(() => setGateway(null));
     };
     load();
-    const id = setInterval(load, 3000);
+    const id = setInterval(load, 15000);
     return () => clearInterval(id);
   }, [meta?.type, systemId]);
 
@@ -586,7 +598,12 @@ export function SystemPlanLive({
   const { lifecycle: planLifecycle, building, buildingHelp, progress, fireRows, stateDetail } =
     buildPlan(meta, sys);
   const lifecycle =
-    diagnosis != null ? lifecycleFromDiagnosis(diagnosis, sys.health) : planLifecycle;
+    diagnosis != null
+      ? maxLifecycle(
+          planLifecycle,
+          lifecycleFromDiagnosis(diagnosis, sys.health),
+        )
+      : planLifecycle;
   const accent = meta.color;
   const stateLabel = diagnosis?.badgeLabel ?? planLifecycle;
   const age = ageSec(sys.lastUpdate);

@@ -1,5 +1,8 @@
 import type { IChartApi } from 'lightweight-charts';
 
+// Legacy two-chart sync (VolumePanel / ChartArea). ChartV5b uses one chart +
+// two native panes (shared timeScale) — do not register V5b here.
+
 // Lightweight registry for syncing chart time scales.
 // Not a Zustand store — uses plain refs to avoid re-renders.
 
@@ -12,9 +15,13 @@ function syncTimeScales(source: IChartApi, target: IChartApi) {
   if (syncing) return;
   syncing = true;
   try {
-    const range = source.timeScale().getVisibleLogicalRange();
+    // Time-based sync (not logical index). Price and CVD have different bar
+    // counts (rejected OHLC rows, live forming bar, CVD whitespace) so the
+    // same logical index maps to different timestamps — caused CVD axis
+    // ending ~25 min before the price pane.
+    const range = source.timeScale().getVisibleRange();
     if (range) {
-      target.timeScale().setVisibleLogicalRange(range);
+      target.timeScale().setVisibleRange(range);
     }
   } catch {
     // ignore sync errors during init
@@ -33,7 +40,7 @@ export function syncVolumeFromMain() {
 
 export function registerMainChart(chart: IChartApi) {
   mainChart = chart;
-  chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+  chart.timeScale().subscribeVisibleTimeRangeChange(() => {
     if (volumeChart) syncTimeScales(chart, volumeChart);
   });
   // Initial sync if volume already registered
@@ -44,7 +51,7 @@ export function registerMainChart(chart: IChartApi) {
 
 export function registerVolumeChart(chart: IChartApi) {
   volumeChart = chart;
-  chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+  chart.timeScale().subscribeVisibleTimeRangeChange(() => {
     if (mainChart) syncTimeScales(chart, mainChart);
   });
   // Initial sync from main
