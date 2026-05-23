@@ -6,7 +6,7 @@ import { useSystemStore } from '../../stores/systemStore';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useWebSocket } from '../../hooks/useWebSocket';
 import { WS_CHANNELS } from '../../lib/websocket';
-import { fetchBars5min, fetchTickReversalBars, fetchMarkers, fetchSignals, fetchTrades } from '../../lib/api';
+import { fetchBars5min, fetchTickReversalBars, fetchMarkers, fetchSignals, fetchTrades, fetchRecentTrades } from '../../lib/api';
 import { generateMockBars, generateMockSignals, generateMockLevels } from '../../lib/mockData';
 import { useTradeStore } from '../../stores/tradeStore';
 import { TPOLines } from './TPOLines';
@@ -131,7 +131,7 @@ export function ChartArea() {
           signals = generateMockSignals();
         }
         setSignals(signals);
-        setTrades(Array.isArray(allTrades) ? allTrades : []);
+        setTrades(Array.isArray(allTrades) ? (allTrades as any[]) : []);
       } catch (err) {
         console.error('Failed to load chart data:', err);
         // Last resort fallback
@@ -147,6 +147,17 @@ export function ChartArea() {
     }
     loadData();
   }, [activeChartType, setBars5min, setMarkers, setSignals, setTrades]);
+
+  useEffect(() => {
+    const refresh = () => {
+      fetchRecentTrades(30)
+        .then((rows: any[]) => { if (rows.length) setTrades(rows); })
+        .catch(() => fetchTrades().then((rows: any[]) => { if (rows.length) setTrades(rows); }));
+    };
+    refresh();
+    const id = setInterval(refresh, 10000);
+    return () => clearInterval(id);
+  }, [setTrades]);
 
   // WebSocket for real-time bars
   const wsChannel = activeChartType === '5min' ? WS_CHANNELS.BARS_5MIN : WS_CHANNELS.BARS_TICK_REVERSAL;

@@ -604,7 +604,7 @@ export function extendAutoscaleForTpo(
     return;
   }
   series.applyOptions({
-    autoscaleInfoProvider: (original) => {
+    autoscaleInfoProvider: (original: any) => {
       const base = original();
       const mn = Math.min(...tpoPrices);
       const mx = Math.max(...tpoPrices);

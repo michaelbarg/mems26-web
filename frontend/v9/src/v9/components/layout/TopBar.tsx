@@ -41,7 +41,7 @@ export function TopBar() {
         });
       }).catch(() => {}).finally(() => { inFlight = false; });
     };
-    f(); const id = setInterval(f, 5000); return () => clearInterval(id);
+    f(); const id = setInterval(f, 15000); return () => clearInterval(id);
   }, []);
 
   // Day Type — read from systemStateStore (already polled by useSystemStatePolling)
@@ -54,7 +54,7 @@ export function TopBar() {
   const dtSystem = useSystemStateStore((s) => s.systems[1]);
   const dayTypeRaw = dtSystem?.state ?? 'UNKNOWN';
   const dayTypeConf = dtSystem?.confidence != null ? Math.round(dtSystem.confidence * 100) : 0;
-  const dayTypeDir = dtSystem?.raw?.directional_certainty ?? null;
+  const dayTypeDir: any = dtSystem?.raw?.directional_certainty ?? null;
   const dayType = DT_LABELS[dayTypeRaw] || dayTypeRaw;
 
   // WR today (ν.2)
