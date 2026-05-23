@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import List, Optional, Dict
+from typing import Any, List, Optional, Dict
 
 from .schemas import (
     BarInput, DayType, OpeningType, IBWidth, Stage,
@@ -198,6 +198,7 @@ class DayTypeStateMachine:
         zohar_engine: Optional[ZoharRulesEngine] = None,
         extension_tracker: Optional[ExtensionTracker] = None,
         decision_matrix: Optional[object] = None,
+        prev_day_summary: Optional[Dict[str, Any]] = None,
     ):
         self.config = config or DayTypeConfig()
         self.stage: Stage = Stage.A1
@@ -210,6 +211,12 @@ class DayTypeStateMachine:
         self.pd_context_status: str = "PENDING"
         self.pd_degraded_reason: Optional[str] = None
         self.missing_pd_fields: List[str] = []
+        # Stream 1.5 · prev_day context for NeuE/NeuC classification (D-091.Q1)
+        _pds = prev_day_summary or {}
+        self.prev_vah: Optional[float] = _pds.get("vah")
+        self.prev_val: Optional[float] = _pds.get("val")
+        self.session_date: Optional[str] = _pds.get("session_date")
+        self.session_open_price: Optional[float] = None  # captured in _stage_a1
         # A2
         self.opening: Optional[OpeningDetection] = None
         self.opening_bars: List[BarInput] = []
@@ -290,6 +297,8 @@ class DayTypeStateMachine:
 
     def _stage_a1(self, bar: BarInput):
         """A1: Pre-Open Context — gap, location vs PD, overnight bias."""
+        if self.session_open_price is None:
+            self.session_open_price = bar.open
         missing_pd = [
             field_name
             for field_name in ("pd_high", "pd_low", "pd_close")
@@ -544,7 +553,13 @@ class DayTypeStateMachine:
         if self.behavior == Behavior.COMPRESSED:
             if self.range_category == RangeCategory.COMPRESSED:
                 return DayType.Nontrend
-            return DayType.Neutral
+            from backend.v9.systems.day_type.neutral_classifier import classify_neutral_subtype
+            return classify_neutral_subtype(
+                session_open_price=self.session_open_price,
+                prev_vah=self.prev_vah,
+                prev_val=self.prev_val,
+                session_date=self.session_date,
+            )
 
         if self.behavior in (Behavior.TRENDING_UP, Behavior.TRENDING_DOWN):
             if self.range_category in (RangeCategory.EXPANDED, RangeCategory.EXTREME):

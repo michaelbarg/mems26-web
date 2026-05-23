@@ -145,8 +145,26 @@ async def _startup():
         from backend.v9.db.session import SessionLocal
         from backend.v9.services.market_clock import minutes_since_rth_open, now_et
         from backend.v9.api.v9.day_type_seed import maybe_seed_ib_from_tpo
+        from backend.v9.systems.day_type.prev_day import load_tpo_previous_day_summary
 
-        day_type_machine = DayTypeStateMachine()
+        try:
+            _prev_day_tpo = load_tpo_previous_day_summary()
+            _prev_day_summary_for_machine = {
+                "vah": _prev_day_tpo.get("vah"),
+                "val": _prev_day_tpo.get("val"),
+                # session_date = TODAY's trading session date (ET); it's the rate-limit
+                # key inside classify_neutral_subtype, NOT the previous-day date.
+                # Matches Stream 1 fix-up (api.py, commit a58ee61).
+                "session_date": now_et().date().isoformat(),
+            }
+        except Exception as _pds_err:
+            _logger.warning(
+                "[DayType] prev_day_summary load failed: %s · NeuE/NeuC will fall back to NeuC",
+                _pds_err,
+            )
+            _prev_day_summary_for_machine = None
+
+        day_type_machine = DayTypeStateMachine(prev_day_summary=_prev_day_summary_for_machine)
         app.state.day_type_machine = day_type_machine
         _day_type_consumer = DayTypeConsumer(SessionLocal)
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
