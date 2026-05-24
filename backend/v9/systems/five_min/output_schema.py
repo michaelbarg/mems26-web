@@ -10,7 +10,11 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 
 
-PatternName = Literal['REACTIVE_LONG', 'REACTIVE_SHORT', 'INITIATIVE_LONG', 'INITIATIVE_SHORT']
+PatternName = Literal[
+    'REACTIVE_LONG', 'REACTIVE_SHORT',
+    'INITIATIVE_LONG', 'INITIATIVE_SHORT',
+    'INVERSE_HNS_LONG', 'HNS_TOP_SHORT',
+]
 
 
 class T1Setup(BaseModel):

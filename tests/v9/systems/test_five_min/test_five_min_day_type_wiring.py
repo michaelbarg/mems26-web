@@ -107,3 +107,70 @@ def test_emit_t1_setup_accepts_none_time_stop():
     )
     assert result is not None
     assert result.time_stop_minutes is None
+
+
+# ── Pkg 5a · H&S integration tests ──
+
+
+def test_hns_skipped_on_nt_day_type():
+    """H&S detectors should not be reached when day_type=Nontrend (NT skip gate)."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    from unittest.mock import patch as _patch
+    fm = FiveMinSystem()
+    fm.current_day_type = "Nontrend"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    with _patch("backend.v9.systems.five_min.patterns.head_shoulders.detect_inverse_hns") as mock_inv:
+        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_inv.assert_not_called()
+
+
+def test_hns_skipped_on_tn_day_type():
+    """Trend_Normal is NOT in H&S eligible set."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Trend_Normal"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    # Feed bars but no OFA fire → chart pattern chain should be gated out
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.patterns.head_shoulders.detect_inverse_hns") as mock_inv:
+                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_inv.assert_not_called()
+
+
+def test_hns_skipped_on_first_hour_mode():
+    """FIRST_HOUR_TACTICAL mode should NOT trigger chart patterns even on NeuE."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Neutral_Extreme"
+    fm.mode = FiveMinMode.FIRST_HOUR_TACTICAL
+    fm._bar_buffer = []
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.patterns.head_shoulders.detect_inverse_hns") as mock_inv:
+                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_inv.assert_not_called()
+
+
+def test_inverse_hns_emits_t1setup_on_neuc():
+    """INVERSE_HNS_LONG T1Setup has pattern-measure targets and NeuC time_stop=30."""
+    result = emit_t1_setup(
+        pattern_name="INVERSE_HNS_LONG",
+        direction="LONG",
+        entry_price=4500,
+        stop_price=4498.0,
+        t1_price=4510,       # R:R = 10/2 = 5.0 · well above 1.0
+        t2_price=4514.8,
+        bar_index=42,
+        day_type="Neutral_Center",
+        t3_price=None,
+    )
+    assert result is not None
+    assert result.pattern_name == "INVERSE_HNS_LONG"
+    assert result.t3_price is None
+    assert result.time_stop_minutes == 30

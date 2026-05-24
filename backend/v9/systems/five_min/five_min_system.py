@@ -15,6 +15,7 @@ from backend.v9.systems.five_min.setup_emitter import emit_t1_setup
 from backend.v9.systems.five_min.cot_amt import read_cumulative_delta, compute_cot, compute_amt
 from backend.v9.db.models.bars_5min import V9Bar5Min
 from backend.v9.db.models.five_min_state import V9FiveMinState
+from backend.v9.systems.five_min.patterns.head_shoulders import detect_inverse_hns, detect_hns_top
 
 logger = logging.getLogger("mems26.systems.five_min")
 
@@ -675,15 +676,31 @@ class FiveMinSystem(BaseV9TradingSystem):
         if not direction:
             direction, conf, info = self._detect_initiative(self._bar_buffer)
 
+        # Pkg 5a · chart patterns (Stage 3 + day-type gated · D-091 §5+§6)
+        if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
+            if self.current_day_type in (
+                "Neutral_Extreme", "Neutral_Center", "Normal", "Variation",
+            ):
+                direction, conf, info = detect_inverse_hns(self._bar_buffer)
+                if not direction:
+                    direction, conf, info = detect_hns_top(self._bar_buffer)
+
         if direction:
             kind = info.get("kind", "UNKNOWN")
             entry_price = bar.get("c", 0)
             # Stop: 3-layer adaptive (D-091 §Adaptive Stop Engine · corrected 2026-05-23)
             from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_today_typical
-            structural_anchor = bar.get("l", entry_price) if direction == "LONG" else bar.get("h", entry_price)
             today_typical = compute_today_typical(self._bar_buffer)  # uses today's bars in buffer
-            # Map detector `kind` ("REACTIVE" / "INITIATIVE") to D-091 family taxonomy.
-            family = "Reactive" if kind == "REACTIVE" else "OFA"  # INITIATIVE → OFA family (D-091)
+            # Pkg 5a · chart pattern routing (kinds: INVERSE_HNS / HNS_TOP)
+            if kind in ("INVERSE_HNS", "HNS_TOP"):
+                family = "HnS"
+                structural_anchor = info["structural_anchor"]
+            else:
+                family = "Reactive" if kind == "REACTIVE" else "OFA"
+                structural_anchor = (
+                    bar.get("l", entry_price) if direction == "LONG"
+                    else bar.get("h", entry_price)
+                )
             stop_comp = compute_stop(
                 entry_price=entry_price,
                 direction=direction,
@@ -748,26 +765,35 @@ class FiveMinSystem(BaseV9TradingSystem):
             # Phase 5.5: Wire to setup_emitter → gateway (SHADOW auto-fire)
             try:
                 pattern_name = f"{kind}_{direction}"
-                # Stream 2 · resolve targets per day_type (D-091.Q1)
-                from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type
-                _targets = compute_targets_for_day_type(
-                    day_type=self.current_day_type,
-                    entry_price=entry_price,
-                    stop_price=stop_price,
-                    direction=direction,
-                )
-                t1_risk = abs(entry_price - stop_price)
-                if _targets is not None:
-                    t1_price = _targets["t1_price"]
-                    t2_price = _targets.get("t2_price") or (
-                        (entry_price + 2 * t1_risk) if direction == "LONG"
-                        else (entry_price - 2 * t1_risk)
-                    )
-                    t3_price = _targets.get("t3_price")
+
+                # Pkg 5a · chart patterns use pattern-measure targets (NOT R-based)
+                if kind in ("INVERSE_HNS", "HNS_TOP"):
+                    pm = info["pattern_measure"]  # positive (head-to-neckline depth)
+                    sign = 1.0 if direction == "LONG" else -1.0
+                    t1_price = entry_price + sign * 0.50 * pm
+                    t2_price = entry_price + sign * 0.74 * pm
+                    t3_price = None  # trail per day type · Pkg 6 enforces
                 else:
-                    t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
-                    t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
-                    t3_price = None
+                    # Existing OFA path · resolve targets per day_type
+                    from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type
+                    _targets = compute_targets_for_day_type(
+                        day_type=self.current_day_type,
+                        entry_price=entry_price,
+                        stop_price=stop_price,
+                        direction=direction,
+                    )
+                    t1_risk = abs(entry_price - stop_price)
+                    if _targets is not None:
+                        t1_price = _targets["t1_price"]
+                        t2_price = _targets.get("t2_price") or (
+                            (entry_price + 2 * t1_risk) if direction == "LONG"
+                            else (entry_price - 2 * t1_risk)
+                        )
+                        t3_price = _targets.get("t3_price")
+                    else:
+                        t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
+                        t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
+                        t3_price = None
 
                 t1_setup = emit_t1_setup(
                     pattern_name, direction,
