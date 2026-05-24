@@ -34,6 +34,11 @@ class T1Setup(BaseModel):
     time_stop_minutes: Optional[int] = Field(default=None, ge=1, le=180)
     confidence: int = Field(ge=0, le=100)
 
+    # Pkg 3c · contract split (per D-091 §Contract Distribution)
+    t1_pct: float = Field(ge=0.0, le=1.0, default=0.0)
+    t2_pct: float = Field(ge=0.0, le=1.0, default=0.0)
+    t3_pct: float = Field(ge=0.0, le=1.0, default=0.0)
+
     # Bar context
     bar_index: int = Field(ge=0)
     fired_at: datetime

@@ -15,6 +15,7 @@ from typing import Optional, Literal
 from .output_schema import T1Setup, PatternName
 from .quality_tier import get_quality_tier
 from .time_stop_mapper import get_time_stop
+from .contract_split import get_contract_split
 from backend.v9.shared.pre_fire_validator import FireRequest, validate_fire
 
 logger = logging.getLogger(__name__)
@@ -61,6 +62,9 @@ def emit_t1_setup(
     # Time stop from Day Type
     time_stop = get_time_stop(day_type)
 
+    # Pkg 3c · contract split per pattern
+    t1_pct, t2_pct, t3_pct = get_contract_split(pattern_name)
+
     # Build T1Setup (time_stop_minutes now Optional · t3_price NEW)
     setup = T1Setup(
         pattern_name=pattern_name,
@@ -72,6 +76,9 @@ def emit_t1_setup(
         t3_price=t3_price,
         time_stop_minutes=time_stop,
         confidence=75,  # base confidence from pattern detection
+        t1_pct=t1_pct,
+        t2_pct=t2_pct,
+        t3_pct=t3_pct,
         bar_index=bar_index,
         fired_at=datetime.now(timezone.utc),
         quality_tier=quality_tier,
