@@ -174,3 +174,26 @@ def get_targets(day_type: str) -> Optional[Dict]:
         canonical = "Neutral_Center"
 
     return _TARGETS.get(canonical)
+
+
+def resolve_trail_config(day_type: str, pattern_name: Optional[str]) -> dict:
+    """Resolve trail config with pattern override (D-094 §3.A hybrid).
+
+    If (day_type, pattern_family) has an override, merge it on top of the
+    base targets_table config. Otherwise return base config unchanged.
+    """
+    from backend.v9.systems.five_min.atr_caps import (
+        TRAIL_OVERRIDE_BY_PATTERN,
+        _pattern_to_family,
+    )
+    base = _TARGETS.get(day_type, {}).copy()
+    if pattern_name is None:
+        return base
+    family = _pattern_to_family(pattern_name)
+    if family is None:
+        return base
+    override = TRAIL_OVERRIDE_BY_PATTERN.get((day_type, family))
+    if override is None:
+        return base
+    base.update(override)
+    return base

@@ -75,3 +75,43 @@ class TestTargetsTableV6:
         """Unknown day type → None (not silent default)."""
         t = get_targets("Banana")
         assert t is None
+
+
+# ── Pkg 3b-1 · resolve_trail_config tests ──
+
+
+class TestResolveTrailConfig:
+    """D-094 §3.A · hybrid trail override resolution."""
+
+    def test_resolve_trail_config_tdd_initiative_overrides_to_6r_trail(self):
+        from backend.v9.systems.day_type.targets_table import resolve_trail_config
+        r = resolve_trail_config("Trend_DD", "INITIATIVE")
+        assert r["t3"] == "6R+trail"
+        assert r["trail_after_t2"] is True
+
+    def test_resolve_trail_config_tdd_reactive_uses_base(self):
+        from backend.v9.systems.day_type.targets_table import resolve_trail_config
+        r = resolve_trail_config("Trend_DD", "REACTIVE")
+        assert r.get("t3") != "6R+trail"
+
+    def test_resolve_trail_config_normal_initiative_uses_base(self):
+        from backend.v9.systems.day_type.targets_table import resolve_trail_config
+        r = resolve_trail_config("Normal", "INITIATIVE")
+        assert r.get("t3") is None  # Normal has no T3
+
+    def test_resolve_trail_config_unknown_pattern_uses_base(self):
+        from backend.v9.systems.day_type.targets_table import resolve_trail_config
+        r = resolve_trail_config("Trend_DD", "BANANA")
+        base = get_targets("Trend_DD")
+        assert r["t3"] == base["t3"]
+
+    def test_resolve_trail_config_none_pattern_uses_base(self):
+        from backend.v9.systems.day_type.targets_table import resolve_trail_config
+        r = resolve_trail_config("Trend_DD", None)
+        base = get_targets("Trend_DD")
+        assert r["t3"] == base["t3"]
+
+    def test_resolve_trail_config_unknown_day_type_returns_empty(self):
+        from backend.v9.systems.day_type.targets_table import resolve_trail_config
+        r = resolve_trail_config("BANANA_DAY", "INITIATIVE")
+        assert r == {}

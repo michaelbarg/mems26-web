@@ -325,7 +325,7 @@ class TestTargetHits:
         # SQLite strips timezone — compare naive
         assert trade.t1_hit_ts.replace(tzinfo=None) == ts.replace(tzinfo=None)
         assert trade.state == "PARTIAL"
-        assert trade.stop == 5245.0  # Smart BE after T1 → entry price
+        assert trade.stop == 5245.25  # Smart BE+1T after T1 → entry + 0.25 (D-094 Gap 1)
 
     def test_t2_hit_no_state_change(self, manager, db, sample_setup):
         tid = manager.accept_setup(sample_setup, "shadow")
@@ -403,8 +403,8 @@ class TestStopHit:
         manager.on_stop_hit(tid)
 
         trade = db.query(V9Trade).filter(V9Trade.id == tid).first()
-        # Smart BE after T1 moves stop to entry; stop hit closes c2/c3 at BE (0), c1 @ T1 (+25)
-        assert trade.pnl_usd == 25.0
+        # Smart BE+1T after T1 moves stop to entry+0.25; c2/c3 @ BE+1T (+1.25 each), c1 @ T1 (+25)
+        assert trade.pnl_usd == pytest.approx(27.5, abs=0.1)
         q = trade.quality if isinstance(trade.quality, dict) else {}
         assert q.get("initial_stop") == 5240.0
 
@@ -600,3 +600,76 @@ class TestDBPersistence:
     def test_trade_not_found(self, manager):
         with pytest.raises(ValueError, match="not found"):
             manager.on_fill(999, 5245.0)
+
+
+# ── Pkg 3b-1 · BE+1T tests ──────────────────────────────────────
+
+
+class TestSmartBEPlusOneTick:
+    """D-094 Gap 1 · stop moves to entry +/- 1T after T1 hit."""
+
+    def test_be_plus_1t_long_moves_to_entry_plus_025(self, manager, sample_setup):
+        sample_setup["entry_price"] = 100.0
+        sample_setup["stop"] = 99.0
+        tid = manager.accept_setup(sample_setup, "shadow")
+        manager.on_fill(tid, 100.0)
+        manager.on_target_hit(tid, "T1")
+        trade = manager._get_trade(tid)
+        assert float(trade.stop) == pytest.approx(100.25, abs=0.01)
+
+    def test_be_plus_1t_short_moves_to_entry_minus_025(self, manager, short_setup):
+        short_setup["entry_price"] = 100.0
+        short_setup["stop"] = 101.0
+        tid = manager.accept_setup(short_setup, "shadow")
+        manager.on_fill(tid, 100.0)
+        manager.on_target_hit(tid, "T1")
+        trade = manager._get_trade(tid)
+        assert float(trade.stop) == pytest.approx(99.75, abs=0.01)
+
+    def test_be_plus_1t_idempotent_if_already_set(self, manager, sample_setup):
+        sample_setup["entry_price"] = 100.0
+        sample_setup["stop"] = 99.0
+        tid = manager.accept_setup(sample_setup, "shadow")
+        manager.on_fill(tid, 100.0)
+        manager.on_target_hit(tid, "T1")
+        trade = manager._get_trade(tid)
+        ctx_len = len(trade.cross_context) if trade.cross_context else 0
+        # Second call should be no-op
+        manager._apply_smart_be_after_t1(trade)
+        assert float(trade.stop) == pytest.approx(100.25, abs=0.01)
+        new_len = len(trade.cross_context) if trade.cross_context else 0
+        assert new_len == ctx_len  # no duplicate audit
+
+    def test_be_plus_1t_never_widens(self, manager, sample_setup):
+        """LONG · stop already at 100.50 (tighter than BE+1T=100.25) → no change."""
+        sample_setup["entry_price"] = 100.0
+        sample_setup["stop"] = 100.50
+        tid = manager.accept_setup(sample_setup, "shadow")
+        manager.on_fill(tid, 100.0)
+        trade = manager._get_trade(tid)
+        trade.stop = 100.50  # already tighter than BE+1T
+        manager._apply_smart_be_after_t1(trade)
+        assert float(trade.stop) == pytest.approx(100.50, abs=0.01)
+
+    def test_be_plus_1t_logs_cross_context(self, manager, sample_setup):
+        sample_setup["entry_price"] = 100.0
+        sample_setup["stop"] = 99.0
+        tid = manager.accept_setup(sample_setup, "shadow")
+        manager.on_fill(tid, 100.0)
+        manager.on_target_hit(tid, "T1")
+        trade = manager._get_trade(tid)
+        stop_moves = [e for e in (trade.cross_context or []) if isinstance(e, dict) and e.get("event") == "stop_move"]
+        assert len(stop_moves) >= 1
+        assert stop_moves[-1]["reason"] == "BE+1T after T1 hit"
+        assert stop_moves[-1]["to"] == pytest.approx(100.25, abs=0.01)
+
+    def test_be_plus_1t_cross_context_serializes(self, manager, sample_setup):
+        import json
+        sample_setup["entry_price"] = 100.0
+        sample_setup["stop"] = 99.0
+        tid = manager.accept_setup(sample_setup, "shadow")
+        manager.on_fill(tid, 100.0)
+        manager.on_target_hit(tid, "T1")
+        trade = manager._get_trade(tid)
+        serialized = json.dumps(trade.cross_context, default=str)
+        assert "BE+1T" in serialized

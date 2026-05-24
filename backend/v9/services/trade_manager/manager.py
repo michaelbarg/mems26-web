@@ -151,6 +151,18 @@ class TradeManager:
             quality=quality,
         )
 
+        # D-094 §3.A · capture resolved trail config (overrides + base)
+        _day_type = meta.get("day_type")
+        _pattern = meta.get("pattern") or classification
+        if _day_type and _pattern:
+            try:
+                from backend.v9.systems.day_type.targets_table import resolve_trail_config
+                cfg = resolve_trail_config(_day_type, _pattern)
+                quality["trail_after_t2"] = cfg.get("trail_after_t2", False)
+                quality["t3_label"] = cfg.get("t3")
+            except Exception:
+                pass  # trail config resolution is advisory — do not block trade creation
+
         self._db.add(trade)
         self._db.flush()  # get the id
 
@@ -242,23 +254,59 @@ class TradeManager:
         return self._valid_target(trade.stop)
 
     def _apply_smart_be_after_t1(self, trade: V9Trade) -> None:
-        """Move stop to entry after T1 (C1) — was only in unused ActiveTradeMonitor."""
+        """Move stop to BE+1T after T1 hit · D-094 Gap 1 fix.
+
+        OLD behavior: stop = entry (BE) — too tight, no slippage room.
+        NEW behavior: stop = entry + 1T (LONG) or entry - 1T (SHORT) per Sheet C.
+
+        Idempotent: if stop is ALREADY at BE+1T or tighter, no-op (Gap 13 'never widen').
+        """
+        from backend.v9.systems.five_min.constants import MES_TICK_SIZE
         if trade.entry_price is None:
             return
-        try:
-            if abs(float(trade.stop) - float(trade.entry_price)) < 0.25:
-                return
-        except (TypeError, ValueError):
-            return
+        direction = (trade.direction or "").upper()
+        entry = float(trade.entry_price)
+        tick = MES_TICK_SIZE
+
+        # Save initial stop before any move
         q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
         if "initial_stop" not in q and trade.stop is not None:
             q["initial_stop"] = float(trade.stop)
-        trade.quality = q
-        trade.stop = float(trade.entry_price)
+            trade.quality = q
+
+        stop_before = float(trade.stop) if trade.stop is not None else None
+
+        if direction == "LONG":
+            target_stop = entry + tick
+            if trade.stop is not None and float(trade.stop) >= target_stop:
+                return  # Already at or tighter than BE+1T
+            trade.stop = target_stop
+        elif direction == "SHORT":
+            target_stop = entry - tick
+            if trade.stop is not None and float(trade.stop) <= target_stop:
+                return  # Already at or tighter than BE+1T
+            trade.stop = target_stop
+        else:
+            logger.warning(
+                "[TradeManager] _apply_smart_be_after_t1 unknown direction=%s · trade_id=%s",
+                direction, getattr(trade, "id", "?"),
+            )
+            return
+
+        # cross_context audit per Gap 11 (reassign list to trigger SQLAlchemy dirty tracking)
+        audit_entry = {
+            "event": "stop_move",
+            "from": stop_before,
+            "to": float(trade.stop),
+            "reason": "BE+1T after T1 hit",
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(audit_entry)
+        trade.cross_context = ctx
+
         logger.info(
-            "[TradeManager] Smart BE after T1: trade %s stop -> %.2f",
-            trade.id,
-            trade.stop,
+            "[TradeManager] Smart BE+1T after T1: trade %s stop %.2f -> %.2f",
+            trade.id, stop_before if stop_before else 0, trade.stop,
         )
 
     def on_stop_hit(
