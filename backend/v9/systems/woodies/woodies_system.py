@@ -508,3 +508,51 @@ class WoodiesSystem(BaseV9TradingSystem):
 
     def get_current(self) -> dict:
         return dict(self.current_state)
+
+    def get_layer4_context(self) -> dict:
+        """Return Layer 4 context dict for TrailEngine._apply_layer4().
+
+        Returns:
+            {
+                "swi": {"value": float, "color": str},
+                "cci_history": List[float],   # CCI14 values, oldest first
+                "direction_change_event": Optional[dict],
+                "current_bar_ts": Optional[str],
+            }
+        """
+        from backend.v9.systems.woodies.direction_change_detector import detect_from_buffer
+
+        # SWI state from current_state
+        swi_value = self.current_state.get("swi_value") or 0.0
+        if swi_value > 0:
+            swi_color = "green"
+        elif swi_value < 0:
+            swi_color = "red"
+        else:
+            swi_color = "gray"
+
+        swi = {"value": swi_value, "color": swi_color}
+
+        # CCI14 history from bar_buffer
+        cci_history = [
+            b.cci_14 if hasattr(b, "cci_14") else (b.get("cci_14") if isinstance(b, dict) else 0.0)
+            for b in self._bar_buffer
+        ]
+
+        # Direction change from last 2 bars in buffer
+        direction_change_event = detect_from_buffer(self._bar_buffer)
+
+        # Current bar timestamp from last bar in buffer
+        current_bar_ts: Optional[str] = None
+        if self._bar_buffer:
+            last = self._bar_buffer[-1]
+            ts_val = last.ts if hasattr(last, "ts") else (last.get("ts") if isinstance(last, dict) else None)
+            if ts_val is not None:
+                current_bar_ts = str(ts_val)
+
+        return {
+            "swi": swi,
+            "cci_history": cci_history,
+            "direction_change_event": direction_change_event,
+            "current_bar_ts": current_bar_ts,
+        }
