@@ -78,6 +78,7 @@ class TradeManager:
         self._snapshot = snapshot_service
         # Active state machines keyed by trade_id — bounded by active trades
         self._machines: Dict[int, TradeStateMachine] = {}
+        self._fill_locks: set = set()  # Pkg 3b-2 · Sierra fill lock (LOCK 3)
 
     def accept_setup(
         self,
@@ -154,6 +155,9 @@ class TradeManager:
         # D-094 §3.A · capture resolved trail config (overrides + base)
         _day_type = meta.get("day_type")
         _pattern = meta.get("pattern") or classification
+        # Pkg 3b Stream 2 · always write keys (may be None for legacy trades)
+        quality["day_type"] = _day_type
+        quality["pattern_name"] = _pattern
         if _day_type and _pattern:
             try:
                 from backend.v9.systems.day_type.targets_table import resolve_trail_config
@@ -388,6 +392,64 @@ class TradeManager:
         if mode is not None:
             query = query.filter(V9Trade.mode == mode)
         return query.all()
+
+    # ── trail-engine API (D-094 Gap 9 · Pkg 3b Stream 2) ───────────
+
+    def list_trades_past_t1(self, mode: Optional[str] = None) -> List[V9Trade]:
+        """All non-CLOSED trades that have hit T1 (state == PARTIAL)."""
+        try:
+            self._db.expire_all()
+        except Exception:
+            pass
+        query = self._db.query(V9Trade).filter(
+            V9Trade.state == TradeState.PARTIAL.value,
+            V9Trade.t1_hit_ts.isnot(None),
+        )
+        if mode is not None:
+            query = query.filter(V9Trade.mode == mode)
+        return query.all()
+
+    def update_stop_with_audit(
+        self,
+        trade_id: int,
+        new_stop: float,
+        reason: str,
+        bar_ts: str,
+    ) -> None:
+        """Move stop with cross_context audit append (D-094 Gap 11)."""
+        trade = self._get_trade(trade_id)
+        if trade is None:
+            logger.warning("[TradeManager] update_stop_with_audit trade %s not found", trade_id)
+            return
+        stop_before = float(trade.stop) if trade.stop is not None else None
+        entry = {
+            "event": "stop_move",
+            "from": stop_before,
+            "to": float(new_stop),
+            "reason": reason,
+            "bar_ts": bar_ts,
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(entry)
+        trade.cross_context = ctx
+        trade.stop = float(new_stop)
+        self._db.flush()
+        logger.info(
+            "[TradeManager] trail stop move: trade %s %.2f -> %.2f (%s)",
+            trade_id, stop_before if stop_before else 0.0, new_stop, reason,
+        )
+
+    def acquire_fill_lock(self, trade_id: int) -> None:
+        """Mark trade as receiving a Sierra fill — TrailEngine will skip."""
+        self._fill_locks.add(trade_id)
+
+    def release_fill_lock(self, trade_id: int) -> None:
+        """Release lock after Sierra fill processed."""
+        self._fill_locks.discard(trade_id)
+
+    def is_fill_locked(self, trade_id: int) -> bool:
+        """Query lock state (TrailEngine concurrency guard)."""
+        return trade_id in self._fill_locks
 
     # ── internal helpers ──────────────────────────────────────────
 
