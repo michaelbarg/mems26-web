@@ -436,3 +436,98 @@ def test_bull_flag_side_of_entry_guard_q5():
     )
     assert result is not None
     assert abs(result.t2_price - 4525) > abs(result.t1_price - 4525)  # Q5 monotonicity
+
+
+# ── G4 UAT · Pkg 5a+5b · Chart Pattern Integration Tests ──
+
+
+def test_chart_pattern_inverse_hns_fires_t1setup():
+    """G4 Axis 1 · Inverse H&S fires on Variation with correct payload."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    from tests.v9.systems.test_five_min.test_head_shoulders import _build_inverse_hns_bars
+
+    fm = FiveMinSystem()
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm.current_day_type = "Variation"
+
+    bars = _build_inverse_hns_bars(ls_low=4500, head_low=4490, rs_low=4500)
+    fm._bar_buffer = bars[:-1]
+    breakout_bar = bars[-1]
+
+    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+
+    assert fm.last_pattern == "INVERSE_HNS_LONG", \
+        f"Quality FAIL · last_pattern={fm.last_pattern}"
+    assert fm.last_classification == "INVERSE_HNS"
+
+    # Verify no double-fire on 3 follow-up bars
+    for i in range(3):
+        follow = {"o": 4515 + i, "h": 4516 + i, "l": 4514 + i, "c": 4515 + i, "v": 1000}
+        fm.last_pattern = None  # reset to detect re-fire
+        asyncio.get_event_loop().run_until_complete(fm.process_bar(follow))
+    # After 3 follow-ups, _bar_buffer has shifted — pattern should NOT re-fire
+    # (buffer now contains follow-up bars, not the original H&S shape)
+
+
+def test_chart_pattern_hns_top_fires_t1setup():
+    """G4 Axis 1 · H&S Top fires on Variation with correct payload."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    from tests.v9.systems.test_five_min.test_head_shoulders import _build_hns_top_bars
+
+    fm = FiveMinSystem()
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm.current_day_type = "Variation"
+
+    bars = _build_hns_top_bars(ls_high=4500, head_high=4510, rs_high=4500)
+    fm._bar_buffer = bars[:-1]
+    breakout_bar = bars[-1]
+
+    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+
+    assert fm.last_pattern == "HNS_TOP_SHORT", \
+        f"Quality FAIL · last_pattern={fm.last_pattern}"
+    assert fm.last_classification == "HNS_TOP"
+
+
+def test_chart_pattern_double_bottom_ee_fires_t1setup():
+    """G4 Axis 1 · Double Bottom Eve&Eve fires on NeuC with x0.66 haircut."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    from tests.v9.systems.test_five_min.test_double_bt import _build_double_bottom_ee
+
+    fm = FiveMinSystem()
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm.current_day_type = "Normal"  # in reversal gate
+
+    bars = _build_double_bottom_ee(t1_low=4490.0, t2_low=4490.0)
+    fm._bar_buffer = bars[:-1]
+    breakout_bar = bars[-1]
+
+    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+
+    assert fm.last_pattern == "DOUBLE_BOTTOM_EE_LONG", \
+        f"Quality FAIL · last_pattern={fm.last_pattern}"
+    assert fm.last_classification == "DOUBLE_BOTTOM_EE"
+
+
+def test_chart_pattern_double_top_aa_fires_t1setup():
+    """G4 Axis 1 · Double Top Adam&Adam fires on Variation with x0.74 haircut."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    from tests.v9.systems.test_five_min.test_double_bt import _build_double_top_aa
+
+    fm = FiveMinSystem()
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm.current_day_type = "Variation"
+
+    bars = _build_double_top_aa(p1_high=4510.0, p2_high=4510.0)
+    fm._bar_buffer = bars[:-1]
+    breakout_bar = bars[-1]
+
+    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+
+    assert fm.last_pattern == "DOUBLE_TOP_AA_SHORT", \
+        f"Quality FAIL · last_pattern={fm.last_pattern}"
+    assert fm.last_classification == "DOUBLE_TOP_AA"
