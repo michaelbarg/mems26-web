@@ -17,6 +17,8 @@ from backend.v9.db.models.bars_5min import V9Bar5Min
 from backend.v9.db.models.five_min_state import V9FiveMinState
 from backend.v9.systems.five_min.patterns.head_shoulders import detect_inverse_hns, detect_hns_top
 from backend.v9.systems.five_min.patterns.double_bt import detect_double_bottom_ee, detect_double_top_aa
+from backend.v9.systems.five_min.patterns.flags import detect_bull_flag, detect_bear_flag
+from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
 
 logger = logging.getLogger("mems26.systems.five_min")
 
@@ -691,6 +693,16 @@ class FiveMinSystem(BaseV9TradingSystem):
                 if not direction:
                     direction, conf, info = detect_double_top_aa(self._bar_buffer)
 
+        # Pkg 5c · Flag patterns (continuation · Stage 3 + Q5 EXPANDED day-type gate · D-091 §9+§10 + Q5)
+        if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
+            if self.current_day_type in (
+                "Trend_Normal", "Trend_DD", "Variation",
+                "Neutral_Extreme", "Normal",
+            ):
+                direction, conf, info = detect_bull_flag(self._bar_buffer)
+                if not direction:
+                    direction, conf, info = detect_bear_flag(self._bar_buffer)
+
         if direction:
             kind = info.get("kind", "UNKNOWN")
             entry_price = bar.get("c", 0)
@@ -703,6 +715,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                 structural_anchor = info["structural_anchor"]
             elif kind in ("DOUBLE_BOTTOM_EE", "DOUBLE_TOP_AA"):
                 family = "Double_BT"
+                structural_anchor = info["structural_anchor"]
+            elif kind in ("BULL_FLAG", "BEAR_FLAG"):
+                family = "Flag"
                 structural_anchor = info["structural_anchor"]
             else:
                 family = "Reactive" if kind == "REACTIVE" else "OFA"
@@ -792,6 +807,59 @@ class FiveMinSystem(BaseV9TradingSystem):
                     t1_price = entry_price - 0.50 * pm
                     t2_price = entry_price - 0.74 * pm   # x0.74 haircut (D-091 §T2)
                     t3_price = None
+                elif kind in ("BULL_FLAG", "BEAR_FLAG"):
+                    # Pkg 5c · Q5 Path C day-type-conditional T2 (LOCKED D-091.Q5 · 24/5 18:45 IL)
+                    pole = info["pattern_measure"]
+                    sign = 1.0 if direction == "LONG" else -1.0
+                    t1_price = entry_price + sign * 0.50 * pole
+                    t3_price = None  # continuation · no T3 leg · 50/50 split
+
+                    full_pole = entry_price + sign * pole
+                    stop_dist = abs(entry_price - stop_price)
+
+                    _tpo_refs: dict = {}
+                    try:
+                        _tpo_refs = _load_sierra_tpo() or {}
+                    except Exception as _e:
+                        logger.warning("[FiveMin] Pkg 5c · Sierra TPO read failed for Flag T2: %s", _e)
+
+                    dt = self.current_day_type
+                    trail_active = False
+                    if dt in ("Trend_Normal", "Variation"):
+                        t2_price = full_pole
+                        trail_active = True
+                    elif dt == "Trend_DD":
+                        cap_4r = entry_price + sign * 4.0 * stop_dist
+                        t2_price = min(full_pole, cap_4r) if sign > 0 else max(full_pole, cap_4r)
+                    elif dt == "Neutral_Extreme":
+                        va_ref = _tpo_refs.get("vah") if direction == "LONG" else _tpo_refs.get("val")
+                        if va_ref is None or va_ref <= 0:
+                            logger.warning("[FiveMin] Pkg 5c · NeuE T2 fallback · VAH/VAL unavailable · using full_pole")
+                            t2_price = full_pole
+                        else:
+                            t2_price = float(va_ref)
+                    elif dt == "Normal":
+                        poc_ref = _tpo_refs.get("poc")
+                        if poc_ref is None or poc_ref <= 0:
+                            logger.warning("[FiveMin] Pkg 5c · Norm T2 fallback · POC unavailable · using full_pole")
+                            t2_price = full_pole
+                        else:
+                            t2_price = float(poc_ref)
+                    else:
+                        logger.warning("[FiveMin] Pkg 5c · unexpected day_type=%s reached Flag T2 fork", dt)
+                        t2_price = full_pole
+
+                    # Side-of-entry guard · Q5 monotonicity enforcement
+                    if (direction == "LONG" and t2_price <= entry_price) or \
+                       (direction == "SHORT" and t2_price >= entry_price):
+                        logger.warning(
+                            "[FiveMin] Pkg 5c · T2 ref behind entry (dt=%s · t2=%.2f · entry=%.2f · dir=%s) · "
+                            "falling back to full_pole",
+                            dt, t2_price, entry_price, direction,
+                        )
+                        t2_price = full_pole
+
+                    info["trail_active"] = trail_active
                 else:
                     # Existing OFA path · resolve targets per day_type
                     from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type

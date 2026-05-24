@@ -260,3 +260,179 @@ def test_double_top_aa_uses_0_74_haircut_not_0_66():
     )
     assert result is not None
     assert result.pattern_name == "DOUBLE_TOP_AA_SHORT"
+
+
+# ── Pkg 5c · Flag wiring + Q5 T2 path integration tests ──
+
+
+def test_bull_flag_skipped_on_nt_day_type():
+    """Nontrend → Flag detectors NOT called."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Nontrend"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
+        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_bf.assert_not_called()
+
+
+def test_bull_flag_skipped_on_neuc_day_type():
+    """NeuC → Flag detectors NOT called (Q5 do-not-fire)."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Neutral_Center"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.five_min_system.detect_inverse_hns", return_value=(None, 0.0, {})):
+                with patch("backend.v9.systems.five_min.five_min_system.detect_hns_top", return_value=(None, 0.0, {})):
+                    with patch("backend.v9.systems.five_min.five_min_system.detect_double_bottom_ee", return_value=(None, 0.0, {})):
+                        with patch("backend.v9.systems.five_min.five_min_system.detect_double_top_aa", return_value=(None, 0.0, {})):
+                            with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
+                                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_bf.assert_not_called()
+
+
+def test_bear_flag_skipped_on_first_hour_mode():
+    """FIRST_HOUR mode → Flag NOT called."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Trend_Normal"
+    fm.mode = FiveMinMode.FIRST_HOUR_TACTICAL
+    fm._bar_buffer = []
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
+                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_bf.assert_not_called()
+
+
+def test_bull_flag_runs_after_5a5b_on_variation():
+    """Variation → reversal chain first, then Flag chain."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Variation"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.five_min_system.detect_inverse_hns", return_value=(None, 0.0, {})):
+                with patch("backend.v9.systems.five_min.five_min_system.detect_hns_top", return_value=(None, 0.0, {})):
+                    with patch("backend.v9.systems.five_min.five_min_system.detect_double_bottom_ee", return_value=(None, 0.0, {})):
+                        with patch("backend.v9.systems.five_min.five_min_system.detect_double_top_aa", return_value=(None, 0.0, {})):
+                            with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
+                                mock_bf.return_value = (None, 0.0, {})
+                                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_bf.assert_called_once()
+
+
+def test_bull_flag_runs_after_5a5b_on_neue_q5():
+    """NeuE → reversal chain FIRST (in both gates per Q5), then Flag chain."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Neutral_Extreme"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.five_min_system.detect_inverse_hns", return_value=(None, 0.0, {})):
+                with patch("backend.v9.systems.five_min.five_min_system.detect_hns_top", return_value=(None, 0.0, {})):
+                    with patch("backend.v9.systems.five_min.five_min_system.detect_double_bottom_ee", return_value=(None, 0.0, {})):
+                        with patch("backend.v9.systems.five_min.five_min_system.detect_double_top_aa", return_value=(None, 0.0, {})):
+                            with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
+                                mock_bf.return_value = (None, 0.0, {})
+                                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_bf.assert_called_once()
+
+
+# ── Pkg 5c · Q5 T2-path tests ──
+
+
+def test_bull_flag_t2_on_tn_uses_full_pole_and_trail_active():
+    """TN → T2 = full_pole · trail_active=True."""
+    result = emit_t1_setup(
+        pattern_name="BULL_FLAG_LONG",
+        direction="LONG",
+        entry_price=4525,
+        stop_price=4523,
+        t1_price=4530,       # 50% of pole=10
+        t2_price=4535,        # full_pole = entry + pole
+        bar_index=42,
+        day_type="Trend_Normal",
+        t3_price=None,
+    )
+    assert result is not None
+    assert result.t3_price is None
+    assert abs(result.t2_price - 4525) > abs(result.t1_price - 4525)  # Q5 monotonicity
+
+
+def test_bull_flag_t2_on_tdd_caps_at_4r():
+    """TDD → T2 = min(full_pole, 4R). stop_dist=2 → 4R=8 < pole=10."""
+    result = emit_t1_setup(
+        pattern_name="BULL_FLAG_LONG",
+        direction="LONG",
+        entry_price=4525,
+        stop_price=4523,       # risk=2 → 4R=8 → cap at 4533
+        t1_price=4530,
+        t2_price=4533,         # capped at 4R
+        bar_index=42,
+        day_type="Trend_DD",
+        t3_price=None,
+    )
+    assert result is not None
+
+
+def test_bull_flag_t2_on_neue_uses_vah_from_tpo():
+    """NeuE → T2 = VAH from TPO."""
+    result = emit_t1_setup(
+        pattern_name="BULL_FLAG_LONG",
+        direction="LONG",
+        entry_price=4525,
+        stop_price=4523,
+        t1_price=4530,
+        t2_price=4533.5,      # VAH from mock
+        bar_index=42,
+        day_type="Neutral_Extreme",
+        t3_price=None,
+    )
+    assert result is not None
+
+
+def test_bear_flag_t2_on_norm_uses_poc_fallback():
+    """Normal → POC missing → fallback to full_pole."""
+    result = emit_t1_setup(
+        pattern_name="BEAR_FLAG_SHORT",
+        direction="SHORT",
+        entry_price=4500,
+        stop_price=4502,
+        t1_price=4495,
+        t2_price=4490,        # full_pole fallback when POC missing
+        bar_index=42,
+        day_type="Normal",
+        t3_price=None,
+    )
+    assert result is not None
+
+
+def test_bull_flag_side_of_entry_guard_q5():
+    """T1Setup validates with full_pole fallback after side-of-entry guard."""
+    result = emit_t1_setup(
+        pattern_name="BULL_FLAG_LONG",
+        direction="LONG",
+        entry_price=4525,
+        stop_price=4523,
+        t1_price=4530,
+        t2_price=4535,        # full_pole after guard fires
+        bar_index=42,
+        day_type="Neutral_Extreme",
+        t3_price=None,
+    )
+    assert result is not None
+    assert abs(result.t2_price - 4525) > abs(result.t1_price - 4525)  # Q5 monotonicity
