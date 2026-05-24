@@ -16,6 +16,7 @@ from backend.v9.systems.five_min.cot_amt import read_cumulative_delta, compute_c
 from backend.v9.db.models.bars_5min import V9Bar5Min
 from backend.v9.db.models.five_min_state import V9FiveMinState
 from backend.v9.systems.five_min.patterns.head_shoulders import detect_inverse_hns, detect_hns_top
+from backend.v9.systems.five_min.patterns.double_bt import detect_double_bottom_ee, detect_double_top_aa
 
 logger = logging.getLogger("mems26.systems.five_min")
 
@@ -684,6 +685,11 @@ class FiveMinSystem(BaseV9TradingSystem):
                 direction, conf, info = detect_inverse_hns(self._bar_buffer)
                 if not direction:
                     direction, conf, info = detect_hns_top(self._bar_buffer)
+                # Pkg 5b · Double Bottom + Double Top (after H&S in chain)
+                if not direction:
+                    direction, conf, info = detect_double_bottom_ee(self._bar_buffer)
+                if not direction:
+                    direction, conf, info = detect_double_top_aa(self._bar_buffer)
 
         if direction:
             kind = info.get("kind", "UNKNOWN")
@@ -691,9 +697,12 @@ class FiveMinSystem(BaseV9TradingSystem):
             # Stop: 3-layer adaptive (D-091 §Adaptive Stop Engine · corrected 2026-05-23)
             from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_today_typical
             today_typical = compute_today_typical(self._bar_buffer)  # uses today's bars in buffer
-            # Pkg 5a · chart pattern routing (kinds: INVERSE_HNS / HNS_TOP)
+            # Pkg 5a + 5b · chart pattern routing
             if kind in ("INVERSE_HNS", "HNS_TOP"):
                 family = "HnS"
+                structural_anchor = info["structural_anchor"]
+            elif kind in ("DOUBLE_BOTTOM_EE", "DOUBLE_TOP_AA"):
+                family = "Double_BT"
                 structural_anchor = info["structural_anchor"]
             else:
                 family = "Reactive" if kind == "REACTIVE" else "OFA"
@@ -766,13 +775,23 @@ class FiveMinSystem(BaseV9TradingSystem):
             try:
                 pattern_name = f"{kind}_{direction}"
 
-                # Pkg 5a · chart patterns use pattern-measure targets (NOT R-based)
+                # Pkg 5a + 5b · chart patterns use pattern-measure targets (NOT R-based)
                 if kind in ("INVERSE_HNS", "HNS_TOP"):
                     pm = info["pattern_measure"]  # positive (head-to-neckline depth)
                     sign = 1.0 if direction == "LONG" else -1.0
                     t1_price = entry_price + sign * 0.50 * pm
                     t2_price = entry_price + sign * 0.74 * pm
                     t3_price = None  # trail per day type · Pkg 6 enforces
+                elif kind == "DOUBLE_BOTTOM_EE":
+                    pm = info["pattern_measure"]
+                    t1_price = entry_price + 0.50 * pm
+                    t2_price = entry_price + 0.66 * pm   # x0.66 haircut (D-091 §T2)
+                    t3_price = None  # trail per day type · Pkg 6 enforces
+                elif kind == "DOUBLE_TOP_AA":
+                    pm = info["pattern_measure"]
+                    t1_price = entry_price - 0.50 * pm
+                    t2_price = entry_price - 0.74 * pm   # x0.74 haircut (D-091 §T2)
+                    t3_price = None
                 else:
                     # Existing OFA path · resolve targets per day_type
                     from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type

@@ -174,3 +174,89 @@ def test_inverse_hns_emits_t1setup_on_neuc():
     assert result.pattern_name == "INVERSE_HNS_LONG"
     assert result.t3_price is None
     assert result.time_stop_minutes == 30
+
+
+# ── Pkg 5b · Double Bottom/Top integration tests ──
+
+
+def test_double_bt_skipped_on_nt_day_type():
+    """Double Bottom/Top detectors not reached when day_type=Nontrend."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Nontrend"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    with patch("backend.v9.systems.five_min.patterns.double_bt.detect_double_bottom_ee") as mock_db:
+        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_db.assert_not_called()
+
+
+def test_double_bt_skipped_on_tn_day_type():
+    """Trend_Normal is NOT in eligible set for chart patterns."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Trend_Normal"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.patterns.double_bt.detect_double_bottom_ee") as mock_db:
+                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_db.assert_not_called()
+
+
+def test_double_bt_runs_after_hns_in_chain():
+    """If H&S returns None, then double_bt detectors called."""
+    import asyncio
+    from backend.v9.systems.five_min.five_min_system import FiveMinMode
+    fm = FiveMinSystem()
+    fm.current_day_type = "Normal"
+    fm.mode = FiveMinMode.DAY_TYPE_MODE
+    fm._bar_buffer = []
+    # Patch at the module level where five_min_system imported them
+    with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
+        with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
+            with patch("backend.v9.systems.five_min.five_min_system.detect_inverse_hns", return_value=(None, 0.0, {})):
+                with patch("backend.v9.systems.five_min.five_min_system.detect_hns_top", return_value=(None, 0.0, {})):
+                    with patch("backend.v9.systems.five_min.five_min_system.detect_double_bottom_ee") as mock_db:
+                        mock_db.return_value = (None, 0.0, {})
+                        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+    mock_db.assert_called_once()
+
+
+def test_double_bottom_ee_emits_t1setup_on_neuc():
+    """DOUBLE_BOTTOM_EE_LONG with x0.66 haircut on NeuC."""
+    result = emit_t1_setup(
+        pattern_name="DOUBLE_BOTTOM_EE_LONG",
+        direction="LONG",
+        entry_price=4500,
+        stop_price=4498.0,       # risk=2 · reward=10 · R:R=5.0
+        t1_price=4510,
+        t2_price=4513.2,
+        bar_index=42,
+        day_type="Neutral_Center",
+        t3_price=None,
+    )
+    assert result is not None
+    assert result.pattern_name == "DOUBLE_BOTTOM_EE_LONG"
+    assert result.t3_price is None
+    assert result.time_stop_minutes == 30
+
+
+def test_double_top_aa_uses_0_74_haircut_not_0_66():
+    """DOUBLE_TOP_AA_SHORT uses x0.74 haircut (NOT x0.66)."""
+    result = emit_t1_setup(
+        pattern_name="DOUBLE_TOP_AA_SHORT",
+        direction="SHORT",
+        entry_price=4500,
+        stop_price=4502.0,       # risk=2 · reward=10 · R:R=5.0
+        t1_price=4490,
+        t2_price=4485.2,
+        bar_index=42,
+        day_type="Neutral_Center",
+        t3_price=None,
+    )
+    assert result is not None
+    assert result.pattern_name == "DOUBLE_TOP_AA_SHORT"
