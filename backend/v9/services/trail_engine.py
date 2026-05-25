@@ -24,6 +24,8 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List, Optional
 
+from backend.v9.services.trade_manager.rules import get_registered_rules, Layer4Context
+from backend.v9.services.trade_manager.rules.base import PRE_TIGHTEN, POST_TIGHTEN
 from backend.v9.systems.five_min.atr_caps import (
     ATR_MULTIPLIERS,
     _pattern_to_family,
@@ -544,17 +546,15 @@ class TrailEngine:
         }
 
     def _apply_layer4(self, trade, bar: Dict[str, Any], bar_ts: str) -> None:
-        """Run 5 Layer 4 services in D-094 order.
+        """Run registered RiskRules via extensible registry — S2_TRADEMGR_HOOKS_V1.
 
         D-094 §3.B.3 step (c): services are stateless — each call to evaluate()
-        is independent. The tightest TIGHTEN_STOP wins; EXIT routes immediately.
+        is independent. The tightest TIGHTEN_STOP wins; EXIT short-circuits.
 
-        Services (D-094 §3.B.3 order):
-          1. mfe_peak_tighten (universal)
-          2. cci_flat_tighten (S4 only · needs cci_history)
-          3. tcci_cross_exit (S4 only · EXIT short-circuits)
-          4. swi_tighten (universal · uses Woodies snapshot if available)
-          5. day_type_targets_verify (universal · LAST)
+        Rules are retrieved from the registry sorted by order:
+          PRE_TIGHTEN  (order 1-4): collect TIGHTEN candidates, EXIT short-circuits
+          _apply_tightest_stop between phases
+          POST_TIGHTEN (order 5):   routed to _handle_day_type_action
         """
         # Guard: skip if fill-locked
         if self._tm.is_fill_locked(trade.id):
@@ -574,74 +574,58 @@ class TrailEngine:
             except Exception as exc:
                 logger.warning("[TrailEngine] woodies_provider failed: %s", exc)
 
-        swi = woodies_ctx.get("swi") or {}
-        cci_history: List[float] = woodies_ctx.get("cci_history") or []
+        # Extract individual context fields from woodies_ctx
+        cci_history = woodies_ctx.get("cci_history")
         direction_change_event = woodies_ctx.get("direction_change_event")
+        swi = woodies_ctx.get("swi")
         current_day_type = self._fetch_current_day_type()
 
-        # Import Layer 4 service modules (frozen — DO NOT modify)
-        from backend.v9.services.layer4 import tcci_cross_exit
-        from backend.v9.services.layer4 import mfe_peak_tighten
-        from backend.v9.services.layer4 import cci_flat_tighten
-        from backend.v9.services.layer4 import swi_tighten
-        from backend.v9.services.layer4 import day_type_targets_verify
+        # Build immutable Layer4Context from woodies_ctx fields
+        ctx = Layer4Context(
+            cci_history=cci_history,
+            direction_change_event=direction_change_event,
+            swi=swi,
+            current_day_type=current_day_type,
+        )
 
         candidate_stops: List[Dict] = []
 
-        # 1. MFE peak tighten (universal)
-        try:
-            result = mfe_peak_tighten.evaluate(trade_dict)
-            if result and result.get("action") == "TIGHTEN_STOP" and result.get("new_stop") is not None:
-                candidate_stops.append(result)
-        except Exception as exc:
-            logger.warning("[TrailEngine] mfe_peak_tighten failed trade=%s: %s", trade.id, exc)
-
-        # 2. CCI flat tighten (S4 only · needs cci_history)
-        if cci_history and len(cci_history) >= 3:
+        # PRE_TIGHTEN phase — collect TIGHTEN candidates; EXIT short-circuits
+        for rule in get_registered_rules():
+            if rule.phase != PRE_TIGHTEN:
+                continue
             try:
-                result = cci_flat_tighten.evaluate(trade_dict, cci_history)
-                if result and result.get("action") == "TIGHTEN_STOP" and result.get("new_stop") is not None:
-                    candidate_stops.append(result)
-            except Exception as exc:
-                logger.warning("[TrailEngine] cci_flat_tighten failed trade=%s: %s", trade.id, exc)
-
-        # 3. TCCI cross exit (S4 only · EXIT short-circuits)
-        if direction_change_event:
-            try:
-                result = tcci_cross_exit.evaluate(trade_dict, direction_change_event)
-                if result and result.get("action") == "EXIT":
+                result = rule.evaluate(trade_dict, ctx)
+                if result is None:
+                    continue
+                if result.get("action") == "EXIT":
                     self._append_cross_context(trade, {
                         "event": "layer4_exit",
-                        "rule": "TCCI_CROSS",
+                        "rule": rule.name,
                         "bar_ts": bar_ts,
                         "notes": result.get("reasoning_notes"),
                     })
-                    self._tm.close_trade(trade.id, "TCCI_CROSS_AGAINST_TRADE")
+                    self._tm.close_trade(trade.id, f"{rule.name}_AGAINST_TRADE")
                     return
-            except Exception as exc:
-                logger.warning("[TrailEngine] tcci_cross_exit failed trade=%s: %s", trade.id, exc)
-
-        # 4. SWI tighten (universal · uses Woodies snapshot if available)
-        if swi and swi.get("value") is not None:
-            try:
-                result = swi_tighten.evaluate(trade_dict, swi)
-                if result and result.get("action") == "TIGHTEN_STOP" and result.get("new_stop") is not None:
+                if result.get("action") == "TIGHTEN_STOP" and result.get("new_stop") is not None:
                     candidate_stops.append(result)
             except Exception as exc:
-                logger.warning("[TrailEngine] swi_tighten failed trade=%s: %s", trade.id, exc)
+                logger.warning("[TrailEngine] rule %s failed trade=%s: %s", rule.name, trade.id, exc)
 
-        # Apply TIGHTEST candidate stop (Gap 13 · tightens only · v4 Patch A)
+        # Apply tightest candidate stop between phases (Gap 13 · tightens only · v4 Patch A)
         if candidate_stops:
             self._apply_tightest_stop(trade, candidate_stops, bar_ts)
 
-        # 5. Day type targets verify (universal · LAST per §3.B.3)
-        if current_day_type:
+        # POST_TIGHTEN phase — route each result to _handle_day_type_action
+        for rule in get_registered_rules():
+            if rule.phase != POST_TIGHTEN:
+                continue
             try:
-                result = day_type_targets_verify.evaluate(trade_dict, current_day_type)
+                result = rule.evaluate(trade_dict, ctx)
                 if result:
                     self._handle_day_type_action(trade, result, bar_ts)
             except Exception as exc:
-                logger.warning("[TrailEngine] day_type_targets_verify failed trade=%s: %s", trade.id, exc)
+                logger.warning("[TrailEngine] rule %s failed trade=%s: %s", rule.name, trade.id, exc)
 
     def _apply_tightest_stop(
         self,
