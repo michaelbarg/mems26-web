@@ -4,7 +4,10 @@ import time
 from backend.v9.api.v9 import tpo_routes
 
 
-def test_normalize_sierra_tpo_contract():
+def test_normalize_sierra_tpo_contract(monkeypatch):
+    # P31 IB accuracy fix overrides DLL IB with v9_bars_5min DB read.
+    # This test verifies DLL contract — disable the override here.
+    monkeypatch.setattr(tpo_routes, "_ib_from_bars", lambda: None)
     data = {
         "type": "tpo",
         "version": "v9.4.0-p30.9",
@@ -104,13 +107,22 @@ def test_normalize_prefers_export_session_opened_ts_when_present():
 def test_load_tpo_periods_normalizes_unix_ts(monkeypatch):
     import sqlite3
 
+    # Skip history path so sessions fallback runs with our FakeConn
+    monkeypatch.setattr(tpo_routes, "_load_periods_from_history", lambda **kw: [])
+
+    import time as _time
+    # Use a recent timestamp (within 48h cutoff) so the filter doesn't reject
+    recent_epoch = int(_time.time()) - 3600  # 1 hour ago
+
     class FakeConn:
+        row_factory = None
+
         def execute(self, *args, **kwargs):
             class R:
-                def fetchall(self):
+                def fetchall(self_inner):
                     return [
                         {
-                            "opened_ts": 1779141600,
+                            "opened_ts": recent_epoch,
                             "closed_ts": None,
                             "poc_price": 7415.25,
                             "vah_price": 7420.0,
