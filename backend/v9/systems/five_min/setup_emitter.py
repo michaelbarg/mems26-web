@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Optional, Literal
 
 from .output_schema import T1Setup, PatternName
-from .quality_tier import get_quality_tier
+from .quality_tier import get_quality_tier_v2
 from .time_stop_mapper import get_time_stop
 from .contract_split import get_contract_split
 from backend.v9.shared.pre_fire_validator import FireRequest, validate_fire
@@ -51,13 +51,20 @@ def emit_t1_setup(
             )
             return None
 
-    # Quality tier from TPO location
+    # Quality tier + sizing from Auth Table V1 (pattern x day_type x tier)
     price_for_tier = current_price or entry_price
-    quality_tier, sizing = get_quality_tier(price_for_tier, tpo_data=tpo_data)
+    _day_type = day_type if day_type else "Neutral_Center"
+    verdict, quality_tier, sizing = get_quality_tier_v2(
+        pattern_name, _day_type, price_for_tier, tpo_data=tpo_data,
+    )
 
-    # S5 TPO quality is advisory context. It may reduce size, but only the
-    # explicit pre_fire validator below can reject the setup at this layer.
-    sizing = max(1, sizing)
+    # SKIP verdict short-circuits (Lock #2)
+    if verdict == 'SKIP':
+        logger.info(
+            "[S2] T1Setup skipped: pattern=%s day_type=%s tier=%s · Auth Table SKIP",
+            pattern_name, _day_type, quality_tier,
+        )
+        return None
 
     # Time stop from Day Type
     time_stop = get_time_stop(day_type)

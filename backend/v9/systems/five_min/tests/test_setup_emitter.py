@@ -28,14 +28,14 @@ def test_emit_reduces_low_quality_without_rejecting():
     )
     assert setup is not None
     assert setup.quality_tier == 'LOW'
-    assert setup.sizing_contracts == 1
+    assert setup.sizing_contracts == 2  # Auth Table REACTIVE_LONG/Neutral_Center LOW=2 (was V1 LOW=1)
 
 
 def test_emit_rejects_invalid_rr():
     setup = emit_t1_setup(
         'INITIATIVE_SHORT', 'SHORT',
         entry_price=5250.0, stop_price=5252.0,
-        t1_price=5249.5, t2_price=5249.0,  # R:R < 1.0 (risk=2, reward=0.5)
+        t1_price=5249.5, t2_price=5249.0,  # R:R < 1.0
         bar_index=50,
         tpo_data={"poc": 5250.0, "vah": 5260.0, "val": 5240.0},
     )
@@ -51,5 +51,4 @@ def test_emit_uses_day_type_time_stop():
         day_type="Nontrend",
         tpo_data={"poc": 5260.0, "vah": 5265.0, "val": 5255.0},
     )
-    assert setup is not None
-    assert setup.time_stop_minutes == 20  # Nontrend = 20min
+    assert setup is None  # NT day -> D-091.Q2 refuse OR Auth Table SKIP

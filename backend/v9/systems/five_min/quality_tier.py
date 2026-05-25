@@ -1,64 +1,82 @@
-"""Quality Tier — consume S5 /tpo/current for location-based sizing.
+"""Quality Tier V2 · Auth Table V1 (pattern x day_type x tier) -> contracts.
 
-Per Constitution V3 §Layer 2 Quality Tier:
-  HIGH (3 contracts): price at POC/VAH/VAL (strong reference)
-  MEDIUM (2 contracts): price within value area but not at key level
-  LOW (1 contract): price outside value area, no reference
+V1 signature retained as DeprecationWarning wrapper (Lock #6).
+Production must use get_quality_tier_v2.
 
-Location source: S5 TPO endpoint /api/v9/tpo/current.
+Pkg 8 · Quality V2 · Phase A mechanical · DEMO+ parametric calibration.
 """
 from __future__ import annotations
 
+import logging
+import warnings
 from typing import Literal, Optional, Tuple
 
 import requests
 
+from backend.v9.systems.five_min.auth_table_v1 import get_auth_cell
 
-TPO_ENDPOINT = "http://localhost:8000/api/v9/tpo/current"
-PROXIMITY_PT = 2.0  # within 2 points of key level = "at" level
+logger = logging.getLogger(__name__)
+
+TPO_ENDPOINT: str = "http://localhost:8000/api/v9/tpo/current"
+TPO_TIMEOUT_S: float = 2.0
+PROXIMITY_PT: float = 2.0
+
+QualityVerdict = Literal['FULL', 'REDUCED', 'SKIP']
+QualityTier = Literal['HIGH', 'MEDIUM', 'LOW']
+
+_V1_TIER_TO_CONTRACTS: dict = {'HIGH': 3, 'MEDIUM': 2, 'LOW': 1}
 
 
-def get_quality_tier(
-    price: float,
-    *,
-    tpo_data: Optional[dict] = None,
-) -> Tuple[Literal['HIGH', 'MEDIUM', 'LOW'], int]:
-    """Determine quality tier based on price location vs TPO levels.
-
-    Returns (tier, sizing_contracts).
-    """
+def _classify_tier(price: float, tpo_data: Optional[dict]) -> QualityTier:
     if tpo_data is None:
-        tpo_data = _fetch_tpo()
-    if tpo_data is None:
-        return ('MEDIUM', 2)  # fallback when TPO unavailable
-
+        return 'MEDIUM'
     poc = tpo_data.get("poc") or tpo_data.get("poc_tpo")
     vah = tpo_data.get("vah")
     val = tpo_data.get("val")
-
     if poc is None or vah is None or val is None:
-        return ('MEDIUM', 2)
-
-    # HIGH: price at POC, VAH, or VAL (within PROXIMITY_PT)
-    key_levels = [poc, vah, val]
-    for level in key_levels:
+        return 'MEDIUM'
+    for level in (poc, vah, val):
         if level is not None and abs(price - level) <= PROXIMITY_PT:
-            return ('HIGH', 3)
-
-    # MEDIUM: price within value area (between VAL and VAH)
+            return 'HIGH'
     if val <= price <= vah:
-        return ('MEDIUM', 2)
-
-    # LOW: advisory quality context only. It reduces size but does not hard-block.
-    return ('LOW', 1)
+        return 'MEDIUM'
+    return 'LOW'
 
 
 def _fetch_tpo() -> Optional[dict]:
-    """Fetch TPO state from S5 endpoint."""
     try:
-        r = requests.get(TPO_ENDPOINT, timeout=2)
+        r = requests.get(TPO_ENDPOINT, timeout=TPO_TIMEOUT_S)
         if r.status_code == 200:
             return r.json()
-    except Exception:
-        pass
+        logger.warning("[Pkg8/quality_tier] TPO status=%d · falling back to MEDIUM", r.status_code)
+    except Exception as e:
+        logger.warning("[Pkg8/quality_tier] TPO fetch failed: %s · falling back to MEDIUM", e)
     return None
+
+
+def get_quality_tier_v2(
+    pattern_name: str, day_type: str, price: float,
+    *, tpo_data: Optional[dict] = None,
+) -> Tuple[QualityVerdict, QualityTier, int]:
+    """Return (verdict, tier, contracts) for (pattern x day_type x tier) cell."""
+    if tpo_data is None:
+        tpo_data = _fetch_tpo()
+    tier: QualityTier = _classify_tier(price, tpo_data)
+    verdict, high_c, med_c, low_c = get_auth_cell(pattern_name, day_type)
+    contracts: int = {'HIGH': high_c, 'MEDIUM': med_c, 'LOW': low_c}[tier]
+    return (verdict, tier, contracts)
+
+
+def get_quality_tier(
+    price: float, *, tpo_data: Optional[dict] = None,
+) -> Tuple[QualityTier, int]:
+    """DEPRECATED · V1 wrapper · use get_quality_tier_v2."""
+    warnings.warn(
+        "get_quality_tier() is deprecated · use get_quality_tier_v2(pattern_name, day_type, "
+        "price, ...) per S2_AUTH_TABLE_V1.md §7.",
+        DeprecationWarning, stacklevel=2,
+    )
+    if tpo_data is None:
+        tpo_data = _fetch_tpo()
+    tier: QualityTier = _classify_tier(price, tpo_data)
+    return (tier, _V1_TIER_TO_CONTRACTS[tier])
