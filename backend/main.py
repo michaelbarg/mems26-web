@@ -169,6 +169,7 @@ async def _startup():
         app.state.day_type_machine = day_type_machine
         _day_type_consumer = DayTypeConsumer(SessionLocal)
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
+        _prev_bar_ts = {"value": None}  # dedup guard: skip re-processing same bar (4B fix)
 
         def _load_previous_day_context_for_startup():
             try:
@@ -180,6 +181,12 @@ async def _startup():
         async def _day_type_on_bar(event):
             """Bridge BarRouter event to DayTypeStateMachine.process_bar."""
             bar = event.payload if hasattr(event, 'payload') else event
+            # 4B dedup: bridge republishes the same bar ~41× per 5min interval
+            # (every file-poll mtime change). Skip if bar ts unchanged.
+            bar_ts = bar.get("ts")
+            if bar_ts is not None and bar_ts == _prev_bar_ts["value"]:
+                return
+            _prev_bar_ts["value"] = bar_ts
             try:
                 # Read IB from v9_bars_5min (P31 IB source fix: bars are
                 # more current than TPOSystem which can lag behind Sierra).
