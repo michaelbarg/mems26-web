@@ -531,3 +531,31 @@ def test_chart_pattern_double_top_aa_fires_t1setup():
     assert fm.last_pattern == "DOUBLE_TOP_AA_SHORT", \
         f"Quality FAIL · last_pattern={fm.last_pattern}"
     assert fm.last_classification == "DOUBLE_TOP_AA"
+
+
+# ── Memorial Day fix #1 · opening_type wiring ──
+
+
+def test_on_day_type_update_sets_opening_type():
+    """_on_day_type_update extracts opening_type from event payload."""
+    fm = FiveMinSystem()
+    assert fm.opening_type is None
+    fm._on_day_type_update({
+        "payload": {
+            "day_type": "Trend_Normal",
+            "opening_type": "OPEN_DRIVE",
+        },
+    })
+    assert fm.current_day_type == "Trend_Normal"
+    assert fm.opening_type == "OPEN_DRIVE"
+
+
+def test_on_day_type_update_opening_type_absent_no_overwrite():
+    """If payload lacks opening_type, existing value preserved."""
+    fm = FiveMinSystem()
+    fm.opening_type = "OPEN_AUCTION_IN"
+    fm._on_day_type_update({
+        "payload": {"day_type": "Variation"},
+    })
+    assert fm.current_day_type == "Variation"
+    assert fm.opening_type == "OPEN_AUCTION_IN"  # preserved

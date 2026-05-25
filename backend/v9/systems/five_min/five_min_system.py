@@ -261,6 +261,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                     new_dt,
                 )
             self.current_day_type = new_dt
+        new_ot = payload.get("opening_type")
+        if new_ot and isinstance(new_ot, str):
+            self.opening_type = new_ot
         return None
 
     # ── Footprint helpers ──
