@@ -561,20 +561,30 @@ def test_on_day_type_update_opening_type_absent_no_overwrite():
     assert fm.opening_type == "OPEN_AUCTION_IN"  # preserved
 
 
-# ── Memorial Day fix #4A · on_day_type_event async wrapper ──
+# ── Memorial Day fix #4A.1 · on_day_type_event async wrapper (corrective) ──
 
 
-def test_on_day_type_event_extracts_data_from_bar_event():
-    """on_day_type_event unwraps BarEvent .data attr and delegates to sync handler."""
+def test_on_day_type_event_extracts_payload_from_real_bar_event():
+    """4A.1 regression guard — wrapper MUST unwrap REAL BarEvent.payload.
+
+    The prior #4A implementation read `event.data` which does not exist on
+    the production BarEvent dataclass. The test passed against a fake with
+    `.data` but the wrapper no-op'd in production. This test instantiates
+    the actual `bar_router.BarEvent` so the same regression cannot recur.
+    """
     import asyncio
-
-    class FakeBarEvent:
-        def __init__(self, data):
-            self.data = data
+    from backend.v9.services.bar_router import BarEvent
 
     fm = FiveMinSystem()
-    event = FakeBarEvent({"payload": {"day_type": "Variation", "opening_type": "OPEN_DRIVE"}})
-    asyncio.run(fm.on_day_type_event(event))
+    real_event = BarEvent(
+        bar_type="day_type_classification",
+        bar_id="dt-2026-05-25T17:00:00",
+        ts="2026-05-25T17:00:00+00:00",
+        payload={"day_type": "Variation", "opening_type": "OPEN_DRIVE"},
+        session="CASH_HOURS",
+        mode="LIVE",
+    )
+    asyncio.run(fm.on_day_type_event(real_event))
     assert fm.current_day_type == "Variation"
     assert fm.opening_type == "OPEN_DRIVE"
 
@@ -586,3 +596,15 @@ def test_on_day_type_event_accepts_plain_dict():
     fm = FiveMinSystem()
     asyncio.run(fm.on_day_type_event({"payload": {"day_type": "Normal"}}))
     assert fm.current_day_type == "Normal"
+
+
+def test_on_day_type_event_ignores_unsupported_event(caplog):
+    """4A.1 defensive — non-dict / non-BarEvent inputs warn and no-op."""
+    import asyncio
+    import logging as _logging
+
+    fm = FiveMinSystem()
+    with caplog.at_level(_logging.WARNING):
+        asyncio.run(fm.on_day_type_event(object()))
+    assert fm.current_day_type is None
+    assert any("unsupported event type" in r.getMessage() for r in caplog.records)

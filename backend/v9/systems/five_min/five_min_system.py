@@ -269,12 +269,26 @@ class FiveMinSystem(BaseV9TradingSystem):
     async def on_day_type_event(self, event) -> None:
         """Async wrapper for bar_router day_type_classification events.
 
-        BarRouter delivers BarEvent objects; extract .data dict and delegate
-        to the sync _on_day_type_update method.  Also accepts plain dicts
-        for testing convenience.
+        Memorial Day fix #4A.1 (corrective): BarRouter's `BarEvent` dataclass
+        (`backend/v9/services/bar_router.py:19-26`) exposes the inner data on
+        `.payload` — NOT `.data`. The prior implementation read `.data`, which
+        does not exist on the real `BarEvent`, so the wrapper silently no-op'd
+        in production despite passing tests that used a fake `.data` attr.
+
+        `_on_day_type_update` expects `{"payload": {...}}`, so we wrap
+        `event.payload` accordingly. Plain dicts are accepted as-is for
+        testing convenience.
         """
-        payload = getattr(event, "data", event) if not isinstance(event, dict) else event
-        self._on_day_type_update(payload)
+        if isinstance(event, dict):
+            self._on_day_type_update(event)
+            return
+        if hasattr(event, "payload"):
+            self._on_day_type_update({"payload": event.payload})
+            return
+        logger.warning(
+            "[FiveMin] on_day_type_event: unsupported event type %s — ignored",
+            type(event).__name__,
+        )
 
     # ── Footprint helpers ──
 
