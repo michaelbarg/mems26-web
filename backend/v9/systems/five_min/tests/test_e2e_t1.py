@@ -23,6 +23,9 @@ ET = ZoneInfo("America/New_York")
 
 def _bars_reactive_long():
     return [
+        {"o": 5249, "h": 5249, "l": 5249, "c": 5249, "v": 300},
+        {"o": 5249, "h": 5249, "l": 5249, "c": 5249, "v": 300},
+        {"o": 5249, "h": 5249, "l": 5249, "c": 5249, "v": 300},
         {"o": 5250, "h": 5250, "l": 5247, "c": 5247.5, "v": 1000},
         {"o": 5248, "h": 5248, "l": 5247, "c": 5247.75, "v": 80},
         {"o": 5247.25, "h": 5249, "l": 5247.25, "c": 5248.75, "v": 800},
@@ -32,6 +35,9 @@ def _bars_reactive_long():
 
 def _bars_initiative_long():
     return [
+        {"o": 5246, "h": 5246, "l": 5246, "c": 5246, "v": 200},
+        {"o": 5246, "h": 5246, "l": 5246, "c": 5246, "v": 200},
+        {"o": 5246, "h": 5246, "l": 5246, "c": 5246, "v": 200},
         {"o": 5247, "h": 5248.75, "l": 5247, "c": 5248.50, "v": 600},
         {"o": 5248, "h": 5248.50, "l": 5247.25, "c": 5247.75, "v": 400},
         {"o": 5247.50, "h": 5249.50, "l": 5247.50, "c": 5249, "v": 700},
@@ -49,7 +55,8 @@ class TestE2EScenarios:
     @patch.object(FiveMinSystem, '_get_cot_from_footprint', return_value=150.0)
     @patch.object(FiveMinSystem, '_get_amt_from_footprint', return_value=100.0)
     @patch.object(FiveMinSystem, '_get_belly_from_footprint', return_value=True)
-    def test_reactive_long_full_pipeline(self, _b, _a, _c):
+    @patch.object(FiveMinSystem, '_get_belly_ratio_from_footprint', return_value=2.0)
+    def test_reactive_long_full_pipeline(self, _br, _b, _a, _c):
         sys = FiveMinSystem()
         direction, conf, info = sys._detect_reactive(_bars_reactive_long())
         assert direction == "LONG"
@@ -76,9 +83,13 @@ class TestE2EScenarios:
     @patch.object(FiveMinSystem, '_get_cot_from_footprint', return_value=50.0)
     @patch.object(FiveMinSystem, '_get_amt_from_footprint', return_value=100.0)
     @patch.object(FiveMinSystem, '_get_belly_from_footprint', return_value=True)
-    def test_reactive_short_mirror(self, _b, _a, _c):
+    @patch.object(FiveMinSystem, '_get_belly_ratio_from_footprint', return_value=2.0)
+    def test_reactive_short_mirror(self, _br, _b, _a, _c):
         sys = FiveMinSystem()
         bars = [
+            {"o": 5248, "h": 5248, "l": 5248, "c": 5248, "v": 300},
+            {"o": 5248, "h": 5248, "l": 5248, "c": 5248, "v": 300},
+            {"o": 5248, "h": 5248, "l": 5248, "c": 5248, "v": 300},
             {"o": 5247, "h": 5250, "l": 5247, "c": 5249.5, "v": 1000},
             {"o": 5249, "h": 5249, "l": 5248, "c": 5248.25, "v": 90},
             {"o": 5249, "h": 5249, "l": 5247, "c": 5247.5, "v": 800},
@@ -102,6 +113,9 @@ class TestE2EScenarios:
     def test_initiative_long_poc_return_alt(self, _a, _c):
         sys = FiveMinSystem()
         bars = [
+            {"o": 5246, "h": 5246, "l": 5246, "c": 5246, "v": 200},
+            {"o": 5246, "h": 5246, "l": 5246, "c": 5246, "v": 200},
+            {"o": 5246, "h": 5246, "l": 5246, "c": 5246, "v": 200},
             {"o": 5247, "h": 5248.75, "l": 5247, "c": 5248.50, "v": 600},
             {"o": 5248, "h": 5248.50, "l": 5246.5, "c": 5247.0, "v": 400, "poc_vol": 5247.0},
             {"o": 5247.0, "h": 5249.50, "l": 5247.0, "c": 5249, "v": 700},

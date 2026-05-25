@@ -6,8 +6,11 @@ from backend.v9.systems.five_min.five_min_system import FiveMinSystem
 
 
 def _reactive_long_bars():
-    """4 bars matching Reactive LONG criteria."""
+    """7 bars: 3 lookback + 4 pattern matching Reactive LONG criteria."""
     return [
+        {"o": 5249, "h": 5249, "l": 5249, "c": 5249, "v": 300},
+        {"o": 5249, "h": 5249, "l": 5249, "c": 5249, "v": 300},
+        {"o": 5249, "h": 5249, "l": 5249, "c": 5249, "v": 300},
         {"o": 5250, "h": 5250, "l": 5247, "c": 5247.5, "v": 1000},
         {"o": 5248, "h": 5248, "l": 5247, "c": 5247.75, "v": 80},
         {"o": 5247.25, "h": 5249, "l": 5247.25, "c": 5248.75, "v": 800},
@@ -31,7 +34,8 @@ def _make_sys():
 @patch.object(FiveMinSystem, '_get_cot_from_footprint', return_value=150.0)
 @patch.object(FiveMinSystem, '_get_amt_from_footprint', return_value=100.0)
 @patch.object(FiveMinSystem, '_get_belly_from_footprint', return_value=True)
-def test_process_bar_emits_setup_on_pattern_match(_belly, _amt, _cot, mock_emit):
+@patch.object(FiveMinSystem, '_get_belly_ratio_from_footprint', return_value=2.0)
+def test_process_bar_emits_setup_on_pattern_match(_br, _belly, _amt, _cot, mock_emit):
     """When pattern fires → emit_t1_setup called."""
     mock_emit.return_value = MagicMock(pattern_name='REACTIVE_LONG')
     sys = _make_sys()
@@ -53,7 +57,8 @@ def test_process_bar_no_emit_on_no_pattern(mock_emit):
 @patch.object(FiveMinSystem, '_get_cot_from_footprint', return_value=150.0)
 @patch.object(FiveMinSystem, '_get_amt_from_footprint', return_value=100.0)
 @patch.object(FiveMinSystem, '_get_belly_from_footprint', return_value=True)
-def test_process_bar_handles_emitter_exception(_belly, _amt, _cot, mock_emit):
+@patch.object(FiveMinSystem, '_get_belly_ratio_from_footprint', return_value=2.0)
+def test_process_bar_handles_emitter_exception(_br, _belly, _amt, _cot, mock_emit):
     """Emitter raises → process_bar doesn't crash."""
     sys = _make_sys()
     sys._bar_buffer = _reactive_long_bars()[:-1]
