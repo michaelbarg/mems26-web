@@ -10,3 +10,11 @@ docs/drive/.sync_state.json
 docs/drive/.sync_log.jsonl
 bridge/start_bridge.sh
 frontend/v9/test-results/
+
+# Local SQLite dev DB (do not commit generated state)
+backend/v9/v9.db
+*.db-shm
+*.db-wal
+
+# Build artifact from build_monolithic_cpp.sh
+sc_study/MES_AI_DataExport_merged.cpp
