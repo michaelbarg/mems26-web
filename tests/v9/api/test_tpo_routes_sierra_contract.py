@@ -127,3 +127,54 @@ def test_load_tpo_periods_normalizes_unix_ts(monkeypatch):
     periods = tpo_routes._load_tpo_periods(limit=1)
     assert periods[0]["poc_price"] == 7415.25
     assert periods[0]["opened_ts"].startswith("2026-")
+
+
+def test_normalize_rejects_invalid_va_without_synthesis(monkeypatch, caplog):
+    """Memorial Day fix #3 · CLAUDE.md compliance.
+
+    When Sierra session VA is invalid, backend MUST return poc=None.
+    It must NOT silently substitute stale DB period data.
+    """
+    import logging
+
+    stale_periods = [
+        {"poc_price": 7501.5, "vah_price": 7517.5, "val_price": 7485.5,
+         "opened_ts": "2026-05-22 09:30:00", "closed_ts": "2026-05-22 16:00:00"},
+    ]
+    monkeypatch.setattr(tpo_routes, "_load_tpo_periods", lambda *a, **k: stale_periods)
+
+    data = {
+        "type": "tpo",
+        "session": {"poc": 0.0, "vah": 0.0, "val": 0.0, "va_ok": False},
+        "ib": {"found": False, "high": 0, "mid": 0, "low": 0},
+        "prior_day": {"found": False},
+    }
+
+    with caplog.at_level(logging.WARNING, logger="backend.v9.api.v9.tpo_routes"):
+        normalized = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+
+    assert normalized["poc"] is None, "synthesis leaked: poc should be None"
+    assert normalized["vah"] is None, "synthesis leaked: vah should be None"
+    assert normalized["val"] is None, "synthesis leaked: val should be None"
+    assert normalized["session_va_ok"] is False
+    assert any(
+        "Sierra session VA invalid" in r.message and "rejecting" in r.message
+        for r in caplog.records
+    ), "expected warning log on rejection"
+
+
+def test_normalize_valid_va_unchanged_by_fix3(monkeypatch):
+    """Regression: Fix #3 must NOT affect the happy path."""
+    monkeypatch.setattr(tpo_routes, "_load_tpo_periods", lambda *a, **k: [
+        {"poc_price": 9999.0, "vah_price": 9999.0, "val_price": 9999.0}
+    ])
+    data = {
+        "type": "tpo",
+        "session": {"poc": 7559.5, "vah": 7563.5, "val": 7555.75},
+        "ib": {"found": True, "high": 7570, "mid": 7562, "low": 7554},
+        "prior_day": {"found": True, "high": 7524, "low": 7478.75, "close": 7484.25},
+    }
+    normalized = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+    assert normalized["poc"] == 7559.5
+    assert normalized["session_va_ok"] is True
+    assert normalized["poc"] != 9999.0

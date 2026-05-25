@@ -343,14 +343,17 @@ def _normalize_sierra_tpo(data: dict, age_s: float, *, stale: bool = False) -> d
     poc, vah, val = session.get("poc"), session.get("vah"), session.get("val")
     session_va_ok = _va_spread_ok(poc, vah, val)
     if not session_va_ok:
-        for period in reversed(_load_tpo_periods()):
-            ppoc = period.get("poc_price")
-            pvah = period.get("vah_price")
-            pval = period.get("val_price")
-            if _va_spread_ok(ppoc, pvah, pval):
-                poc, vah, val = ppoc, pvah, pval
-                session_va_ok = True
-                break
+        # Memorial Day fix #3: reject-and-warn (was: silent synthesis from DB).
+        # Per CLAUDE.md "Source of truth: live values come from Sierra Chart
+        # exports ... not from backend ... synthesizing OHLC, TPO, CVD, or
+        # Woodies study fields." When Sierra session VA is invalid, return
+        # None and let downstream consumers handle the degraded state.
+        logger.warning(
+            "[tpo] Sierra session VA invalid (poc=%r vah=%r val=%r) — "
+            "rejecting · NO synthesis from DB",
+            poc, vah, val,
+        )
+        poc, vah, val = None, None, None
 
     session_opened_ts = _norm_session_ts(
         session.get("opened_ts") or data.get("session_opened_ts")
