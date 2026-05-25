@@ -1,6 +1,6 @@
 # Status Board · Pre-LIVE Pipeline V2
 
-**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-25 15:15 IL · **Phase A 15/15 ✅ COMPLETE** (4a/4b deferred per D-095 · Phase A Consolidation Pkg G3 verified · 0 test failures remain in `five_min/tests/`)
+**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-25 15:35 IL · **Phase A 15/15 ✅ COMPLETE** (4a/4b deferred per D-095 · all 14 packages G3 PASS · CC reports for Pkg 6 + Consolidation committed `da4804b` + `8e98010` · 0 test failures remain in `five_min/tests/`)
 **Plan:** `docs/plans/PRE_LIVE_PIPELINE_2026-05-23.md` V2
 
 מעודכן רק כש-state ממש משתנה.
@@ -55,7 +55,7 @@
 
 ## Pipeline 1 · S2 D-091 · Phase A (Pre-SHADOW Build)
 
-### Build queue (13 packages · 4a+4b DEFERRED per D-095 25/5 11:18)
+### Build queue (14 packages · 4a+4b DEFERRED per D-095 25/5 11:18) · **15/15 ✅ COMPLETE 25/5 15:22**
 
 
 | Pkg             | Name                                                                                                                           | G0 spec                                           | G1 prompt                         | G2 CC                                                      | G3 review                                             | G4 UAT                            | G5 soak                       | G6 promote |
@@ -78,7 +78,8 @@
 | 5b              | Double Bottom + Top                                                                                                            | ✅ lock 3 + Master Sheet 2 trading spec (24/5 17:57) | ✅ Cursor handoff ready 24/5 18:00 (`DESKTOP_PKG5B_DBDT_HANDOFF.md`) | ✅ 24/5 18:35 commit `2c001a2`                              | ✅ 24/5 18:50 G3 PASS 10/10 (Cursor · first-try clean) | ⏳ Scaffolding G3 PASS 24/5 21:00 (shared with 5a · commit `31e493e`) | ⬜                             | ⬜          |
 | 5c              | Bull Flag + Bear Flag                                                                                                          | ✅ lock 3 + D-091.Q5 Path C (24/5 18:45) + Master Sheet 2 (24/5 16:27) | ✅ Cursor v2 handoff ready 24/5 19:00 (`DESKTOP_PKG5C_FLAGS_HANDOFF.md`) | ✅ 24/5 19:19 commit `427d687`                              | ✅ 24/5 19:30 G3 PASS 12/12 (Cursor · first-try clean · Q5 Path C verbatim) | ⬜ G4 pending Michael smoke trade  | ⬜                             | ⬜          |
 | 8               | Quality V2 · Auth Table V1 (pattern × day_type × tier sizing)                                                                    | ✅ 25/5 12:22 · `S2_AUTH_TABLE_V1.md` LOCKED      | ✅ 25/5 12:25 · Cursor handoff ready (`DESKTOP_PKG8_QUALITY_V2_HANDOFF.md`) | ✅ 25/5 13:00 commits `9bc3925` + `773f056` (+341/-58 · 7 files) | ✅ 25/5 13:20 G3 PASS (Cursor · 41 tests · 70 cells verified · Lock #1-8 all PASS) | ⬜ G4 pending post-RTH              | ⬜                             | ⬜          |
-| **6**           | **TradeManager extensible (LAST)**                                                                                             | ✅ 25/5 13:57 · `S2_TRADEMGR_HOOKS_V1.md` LOCKED (Q9.1-Q9.4 all approved) | ✅ 25/5 14:05 · Cursor handoff ready (`DESKTOP_PKG6_TRADEMGR_HANDOFF.md`) | ✅ 25/5 14:28 commit `77dd4cf` (+887/-54 · 13 files · 39 tests) + `ed76e78` (rename fix · name collision with existing `test_trade_manager.py`) | ⏳ Cursor G3 verified 25/5 14:35 · CC report pending  | ⬜                                 | ⬜                             | ⬜          |
+| **6**           | **TradeManager extensible**                                                                                                    | ✅ 25/5 13:57 · `S2_TRADEMGR_HOOKS_V1.md` LOCKED (Q9.1-Q9.4 all approved) | ✅ 25/5 14:05 · Cursor handoff ready (`DESKTOP_PKG6_TRADEMGR_HANDOFF.md`) | ✅ 25/5 14:28 commit `77dd4cf` (+887/-54 · 13 files · 39 tests) + `ed76e78` (rename fix · name collision with existing `test_trade_manager.py`) | ✅ 25/5 14:35 G3 PASS (Cursor verified · 10/10 acceptance · 39/39 new tests · D-095 zero-diff · `docs/reports/PKG6_G3_PASS_2026-05-25.md` commit `da4804b`) | ⬜ G4 pending post-RTH              | ⬜                             | ⬜          |
+| **Consolidation** | **Phase A Consolidation · stale-fixture repair (LAST · 15th)**                                                              | ✅ 25/5 14:55 · `DESKTOP_PHASE_A_CONSOLIDATION_STALE_FIXTURES_HANDOFF.md` (Cursor verify-first) | ✅ 25/5 14:55 · Cursor handoff ready | ✅ 25/5 15:11 commit `799e00c` (+30/-5 · 3 test files · 18 tests · zero production diff) | ✅ 25/5 15:15 G3 PASS (Cursor verified · 7/7 acceptance · 6 originally-failing tests now PASS · regression sweep identical 30/1562) · `docs/reports/PHASE_A_CONSOLIDATION_G3_PASS_2026-05-25.md` commit `8e98010` | n/a (test-only fix · no LIVE behavior change) | n/a                           | ⬜          |
 
 
 ---
