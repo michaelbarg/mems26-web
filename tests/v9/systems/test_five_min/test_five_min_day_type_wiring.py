@@ -42,7 +42,7 @@ def test_nt_skip_increments_counter():
     fm._bar_buffer = []
     bar = _make_bar()
     for _ in range(3):
-        asyncio.get_event_loop().run_until_complete(fm.process_bar(bar))
+        asyncio.run(fm.process_bar(bar))
     assert fm._nt_skip_count == 3
 
 
@@ -56,7 +56,7 @@ def test_nt_skip_counter_accumulates_across_bars():
     fm._bar_buffer = []
     bar = _make_bar()
     for _ in range(10):
-        asyncio.get_event_loop().run_until_complete(fm.process_bar(bar))
+        asyncio.run(fm.process_bar(bar))
     assert fm._nt_skip_count == 10
     # Bars still buffered (gate is after buffering)
     assert len(fm._bar_buffer) > 0
@@ -122,7 +122,7 @@ def test_hns_skipped_on_nt_day_type():
     fm.mode = FiveMinMode.DAY_TYPE_MODE
     fm._bar_buffer = []
     with _patch("backend.v9.systems.five_min.patterns.head_shoulders.detect_inverse_hns") as mock_inv:
-        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+        asyncio.run(fm.process_bar(_make_bar()))
     mock_inv.assert_not_called()
 
 
@@ -138,7 +138,7 @@ def test_hns_skipped_on_tn_day_type():
     with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
         with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
             with patch("backend.v9.systems.five_min.patterns.head_shoulders.detect_inverse_hns") as mock_inv:
-                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                asyncio.run(fm.process_bar(_make_bar()))
     mock_inv.assert_not_called()
 
 
@@ -153,7 +153,7 @@ def test_hns_skipped_on_first_hour_mode():
     with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
         with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
             with patch("backend.v9.systems.five_min.patterns.head_shoulders.detect_inverse_hns") as mock_inv:
-                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                asyncio.run(fm.process_bar(_make_bar()))
     mock_inv.assert_not_called()
 
 
@@ -188,7 +188,7 @@ def test_double_bt_skipped_on_nt_day_type():
     fm.mode = FiveMinMode.DAY_TYPE_MODE
     fm._bar_buffer = []
     with patch("backend.v9.systems.five_min.patterns.double_bt.detect_double_bottom_ee") as mock_db:
-        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+        asyncio.run(fm.process_bar(_make_bar()))
     mock_db.assert_not_called()
 
 
@@ -203,7 +203,7 @@ def test_double_bt_skipped_on_tn_day_type():
     with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
         with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
             with patch("backend.v9.systems.five_min.patterns.double_bt.detect_double_bottom_ee") as mock_db:
-                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                asyncio.run(fm.process_bar(_make_bar()))
     mock_db.assert_not_called()
 
 
@@ -222,7 +222,7 @@ def test_double_bt_runs_after_hns_in_chain():
                 with patch("backend.v9.systems.five_min.five_min_system.detect_hns_top", return_value=(None, 0.0, {})):
                     with patch("backend.v9.systems.five_min.five_min_system.detect_double_bottom_ee") as mock_db:
                         mock_db.return_value = (None, 0.0, {})
-                        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                        asyncio.run(fm.process_bar(_make_bar()))
     mock_db.assert_called_once()
 
 
@@ -274,7 +274,7 @@ def test_bull_flag_skipped_on_nt_day_type():
     fm.mode = FiveMinMode.DAY_TYPE_MODE
     fm._bar_buffer = []
     with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
-        asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+        asyncio.run(fm.process_bar(_make_bar()))
     mock_bf.assert_not_called()
 
 
@@ -293,7 +293,7 @@ def test_bull_flag_skipped_on_neuc_day_type():
                     with patch("backend.v9.systems.five_min.five_min_system.detect_double_bottom_ee", return_value=(None, 0.0, {})):
                         with patch("backend.v9.systems.five_min.five_min_system.detect_double_top_aa", return_value=(None, 0.0, {})):
                             with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
-                                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                                asyncio.run(fm.process_bar(_make_bar()))
     mock_bf.assert_not_called()
 
 
@@ -308,7 +308,7 @@ def test_bear_flag_skipped_on_first_hour_mode():
     with patch.object(fm, "_detect_reactive", return_value=(None, 0, {})):
         with patch.object(fm, "_detect_initiative", return_value=(None, 0, {})):
             with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
-                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                asyncio.run(fm.process_bar(_make_bar()))
     mock_bf.assert_not_called()
 
 
@@ -328,7 +328,7 @@ def test_bull_flag_runs_after_5a5b_on_variation():
                         with patch("backend.v9.systems.five_min.five_min_system.detect_double_top_aa", return_value=(None, 0.0, {})):
                             with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
                                 mock_bf.return_value = (None, 0.0, {})
-                                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                                asyncio.run(fm.process_bar(_make_bar()))
     mock_bf.assert_called_once()
 
 
@@ -348,7 +348,7 @@ def test_bull_flag_runs_after_5a5b_on_neue_q5():
                         with patch("backend.v9.systems.five_min.five_min_system.detect_double_top_aa", return_value=(None, 0.0, {})):
                             with patch("backend.v9.systems.five_min.five_min_system.detect_bull_flag") as mock_bf:
                                 mock_bf.return_value = (None, 0.0, {})
-                                asyncio.get_event_loop().run_until_complete(fm.process_bar(_make_bar()))
+                                asyncio.run(fm.process_bar(_make_bar()))
     mock_bf.assert_called_once()
 
 
@@ -455,7 +455,7 @@ def test_chart_pattern_inverse_hns_fires_t1setup():
     fm._bar_buffer = bars[:-1]
     breakout_bar = bars[-1]
 
-    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+    asyncio.run(fm.process_bar(breakout_bar))
 
     assert fm.last_pattern == "INVERSE_HNS_LONG", \
         f"Quality FAIL · last_pattern={fm.last_pattern}"
@@ -465,7 +465,7 @@ def test_chart_pattern_inverse_hns_fires_t1setup():
     for i in range(3):
         follow = {"o": 4515 + i, "h": 4516 + i, "l": 4514 + i, "c": 4515 + i, "v": 1000}
         fm.last_pattern = None  # reset to detect re-fire
-        asyncio.get_event_loop().run_until_complete(fm.process_bar(follow))
+        asyncio.run(fm.process_bar(follow))
     # After 3 follow-ups, _bar_buffer has shifted — pattern should NOT re-fire
     # (buffer now contains follow-up bars, not the original H&S shape)
 
@@ -484,7 +484,7 @@ def test_chart_pattern_hns_top_fires_t1setup():
     fm._bar_buffer = bars[:-1]
     breakout_bar = bars[-1]
 
-    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+    asyncio.run(fm.process_bar(breakout_bar))
 
     assert fm.last_pattern == "HNS_TOP_SHORT", \
         f"Quality FAIL · last_pattern={fm.last_pattern}"
@@ -505,7 +505,7 @@ def test_chart_pattern_double_bottom_ee_fires_t1setup():
     fm._bar_buffer = bars[:-1]
     breakout_bar = bars[-1]
 
-    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+    asyncio.run(fm.process_bar(breakout_bar))
 
     assert fm.last_pattern == "DOUBLE_BOTTOM_EE_LONG", \
         f"Quality FAIL · last_pattern={fm.last_pattern}"
@@ -526,7 +526,7 @@ def test_chart_pattern_double_top_aa_fires_t1setup():
     fm._bar_buffer = bars[:-1]
     breakout_bar = bars[-1]
 
-    asyncio.get_event_loop().run_until_complete(fm.process_bar(breakout_bar))
+    asyncio.run(fm.process_bar(breakout_bar))
 
     assert fm.last_pattern == "DOUBLE_TOP_AA_SHORT", \
         f"Quality FAIL · last_pattern={fm.last_pattern}"
