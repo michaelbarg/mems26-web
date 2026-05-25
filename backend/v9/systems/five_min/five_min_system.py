@@ -266,6 +266,16 @@ class FiveMinSystem(BaseV9TradingSystem):
             self.opening_type = new_ot
         return None
 
+    async def on_day_type_event(self, event) -> None:
+        """Async wrapper for bar_router day_type_classification events.
+
+        BarRouter delivers BarEvent objects; extract .data dict and delegate
+        to the sync _on_day_type_update method.  Also accepts plain dicts
+        for testing convenience.
+        """
+        payload = getattr(event, "data", event) if not isinstance(event, dict) else event
+        self._on_day_type_update(payload)
+
     # ── Footprint helpers ──
 
     def _footprint_state(self) -> Dict[str, Any]:

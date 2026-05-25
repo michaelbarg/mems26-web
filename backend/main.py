@@ -86,6 +86,7 @@ async def _startup():
         five_min_system.hydrate()
         for bt in five_min_system.subscribed_bar_types():
             bar_router.subscribe(bt, five_min_system.process_bar)
+        bar_router.subscribe("day_type_classification", five_min_system.on_day_type_event)
         _logger.info("[Main] FiveMinSystem hydrated + subscribed: %s", five_min_system.subscribed_bar_types())
     except Exception as e:
         _logger.error("[Main] FiveMinSystem startup failed: %s", e)

@@ -559,3 +559,30 @@ def test_on_day_type_update_opening_type_absent_no_overwrite():
     })
     assert fm.current_day_type == "Variation"
     assert fm.opening_type == "OPEN_AUCTION_IN"  # preserved
+
+
+# ── Memorial Day fix #4A · on_day_type_event async wrapper ──
+
+
+def test_on_day_type_event_extracts_data_from_bar_event():
+    """on_day_type_event unwraps BarEvent .data attr and delegates to sync handler."""
+    import asyncio
+
+    class FakeBarEvent:
+        def __init__(self, data):
+            self.data = data
+
+    fm = FiveMinSystem()
+    event = FakeBarEvent({"payload": {"day_type": "Variation", "opening_type": "OPEN_DRIVE"}})
+    asyncio.run(fm.on_day_type_event(event))
+    assert fm.current_day_type == "Variation"
+    assert fm.opening_type == "OPEN_DRIVE"
+
+
+def test_on_day_type_event_accepts_plain_dict():
+    """on_day_type_event also works with a plain dict (testing convenience)."""
+    import asyncio
+
+    fm = FiveMinSystem()
+    asyncio.run(fm.on_day_type_event({"payload": {"day_type": "Normal"}}))
+    assert fm.current_day_type == "Normal"
