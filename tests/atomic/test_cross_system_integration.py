@@ -155,8 +155,8 @@ def test_blocked_s2_does_not_route():
         valid = False
         fail_reason = "explicit pre_fire rejection"
 
-    with patch("backend.v9.systems.five_min.setup_emitter.get_quality_tier",
-               return_value=("HIGH", 3)), \
+    with patch("backend.v9.systems.five_min.setup_emitter.get_quality_tier_v2",
+               return_value=("FULL", "HIGH", 3)), \
          patch("backend.v9.systems.five_min.setup_emitter.validate_fire",
                return_value=Rejected()):
         result = emit_t1_setup(
