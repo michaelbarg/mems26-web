@@ -634,11 +634,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         int tpo_chart = TPOChartNumber.GetInt();
         int chart_num = (tpo_chart > 0) ? tpo_chart : sc.ChartNumber;
 
-        // Sierra TPO Value Area Lines subgraph indices (Sierra internal):
-        //   SG1 = POC, SG2 = VAH, SG3 = VAL
-        // Sierra Initial Balance subgraph indices:
-        //   SG1 = IB High, SG2 = IB Low
-        // These are 0-based in ACSIL: SG1=0, SG2=1, SG3=2
+        // Sierra TPO Value Area Lines subgraph layout (verified Sierra UI 2026-05-25):
+        //   UI SG1 = TPO POC  (ACSIL idx 0)
+        //   UI SG2 = TPO VAH  (ACSIL idx 1)
+        //   UI SG3 = TPO VAL  (ACSIL idx 2)
+        // Sierra Initial Balance subgraph layout (verified Sierra UI 2026-05-25):
+        //   UI SG7 = IB High  (ACSIL idx 6)  — NOT SG1 as previously documented
+        //   UI SG8 = IB Mid   (ACSIL idx 7)  — we compute mid as (high+low)/2 instead
+        //   UI SG9 = IB Low   (ACSIL idx 8)  — NOT SG2 as previously documented
+        // Reference: docs/forensics/SIERRA_UI_EVIDENCE_2026-05-25.md
 
         std::ostringstream j;
         j << std::fixed << std::setprecision(2);
@@ -688,6 +692,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                      tm_now.tm_year + 1900, tm_now.tm_mon + 1, tm_now.tm_mday);
         }
 
+        // G2 (Memorial Day fix): reset session values to 0 when va_ok=false
+        // Mirrors previous_session pattern at line 765-774 — prevents
+        // garbage like poc=-89088 from leaking into tpo.json.
+        if (!va_ok) {
+            t_poc = 0; t_vah = 0; t_val = 0;
+        }
+
         j << ",\"session\":{";
         json_float(j, "poc", t_poc, false);
         json_float(j, "vah", t_vah);
@@ -704,8 +715,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         float ib_h = 0, ib_l = 0;
         bool ib_found = false;
         if (ib_study_id > 0) {
-            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 0, ib_high_arr);
-            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 1, ib_low_arr);
+            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 6, ib_high_arr);
+            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 8, ib_low_arr);
             if (ib_high_arr.GetArraySize() > idx && ib_high_arr[idx] != 0) {
                 ib_h = ib_high_arr[idx];
                 ib_l = (ib_low_arr.GetArraySize() > idx) ? ib_low_arr[idx] : 0;
