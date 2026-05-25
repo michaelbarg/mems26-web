@@ -1,6 +1,6 @@
 # Status Board · Pre-LIVE Pipeline V2
 
-**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-25 20:55 IL · **EMERGENCY FIX SESSION 4/4 COMPLETE (after 4A.1 corrective)** — Memorial Day Streams A+B GREEN · Stream C wiring GREEN after Fix #4A.1 (`598b3a9` introduced `.data` typo · Cursor caught & corrected) · Fix #4B still OPEN (CC's "change-guard" diagnosis was incorrect · 41× DB writes per bar persist · defer to tomorrow) · Fix #4C observation-only (LOCKED_LOW_CONF deferred) · Pipeline 2 G0 audit UNBLOCKED · Layer 4 UAT for #3 + #4A.1 deferred to pre-market.
+**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-25 21:15 IL · **EMERGENCY FIX SESSION CLOSED · 12 commits pushed** — Memorial Day Streams A+B+C GREEN live · #4A.1 (`9e698aa` Cursor corrective for CC's `.data` typo in `598b3a9`) · #4B (`87a47ae` CC dedup guard · root cause Hypothesis B confirmed · bridge republishes ~41× per bar resolved via closure-scoped `_prev_bar_ts` skip · investigation doc `docs/handoff/MEMORIAL_DAY_4B_INVESTIGATION_2026-05-25.md`) · #4C observation only (LOCKED_LOW_CONF re-measure deferred) · v9.db + merged.cpp gitignored (`84f731f`) · Forensics + mega-prompt committed (`5bab369`, `179e13c`) · Layer 4 UAT (4 axes) deferred to **2026-05-26 06:00 IL pre-market** · Pipeline 2 G0 audit UNBLOCKED · next-chat handoff at `docs/handoff/NEXT_CHAT_CONTINUATION_2026-05-26_AM.md`.
 **Plan:** `docs/plans/PRE_LIVE_PIPELINE_2026-05-23.md` V2
 
 מעודכן רק כש-state ממש משתנה.
