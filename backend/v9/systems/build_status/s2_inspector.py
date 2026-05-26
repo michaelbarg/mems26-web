@@ -12,6 +12,7 @@ from typing import Optional, List
 
 from .types import PatternStatus, Component, SystemStatus, DataFreshness, GlobalGate
 from .auth_table_lookup import S2_PATTERN_IDS, lookup_auth_cell, is_skip
+from .s2_pattern_probe import probe_pattern as _probe_pattern
 
 logger = logging.getLogger(__name__)
 
@@ -184,10 +185,9 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             value="NT → all patterns blocked" if is_nt else "OK",
         ))
 
-        # Detection sub-layer — probe pattern geometry
-        from .s2_pattern_probe import probe_pattern
-        probe_components = probe_pattern(pid, bar_buffer, five_min_system)
-        components.extend(probe_components)
+        # detection sub-layer — geometric probe per pattern
+        probe_comps = _probe_pattern(pid, bar_buffer, five_min_system)
+        components.extend(probe_comps)
 
         # Determine status
         fired_today = pid in today_fires
@@ -208,19 +208,17 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
         elif all(c.present for c in components):
             status = "armed"
             label = "🟡 Armed"
-            reason = "All data requirements met — awaiting pattern trigger"
+            # Find first failing probe component for better reason
+            failing_probe = next((c for c in probe_comps if not c.present), None)
+            if failing_probe:
+                reason = f"Awaiting trigger: {failing_probe.stage}.{failing_probe.key} — {failing_probe.value}"
+            else:
+                reason = "All conditions met — awaiting trigger signal"
         else:
             status = "blocked"
             label = "❌ Blocked"
             blockers_list = [f"{c.stage}.{c.key}" for c in components if not c.present]
-            # Show first failing probe step as reason if it's the detection layer
-            probe_blockers = [b for b in blockers_list if b.startswith("detection.")]
-            if probe_blockers:
-                first_probe_fail = probe_blockers[0]
-                fail_comp = next((c for c in components if f"{c.stage}.{c.key}" == first_probe_fail), None)
-                reason = f"{first_probe_fail}: {fail_comp.value}" if fail_comp else f"Missing: {', '.join(blockers_list)}"
-            else:
-                reason = f"Missing: {', '.join(blockers_list)}"
+            reason = f"Missing: {', '.join(blockers_list)}"
 
         blockers = [f"{c.stage}.{c.key}" for c in components if not c.present]
 

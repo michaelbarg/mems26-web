@@ -49,6 +49,7 @@ from backend.v9.systems.five_min.five_min_system import (
     MIN_BARS_REQUIRED as OFA_MIN_BARS_REQ,
     DROP_THRESHOLD_PCT,
     EXPANSION_MIN_PT, EXPANSION_MAX_PT,
+    POC_RETURN_TOLERANCE_PT,
     LOOKBACK_BARS, LOOKBACK_MAX_VOL_RATIO,
 )
 
@@ -622,7 +623,7 @@ def _probe_reactive_long(bars: list) -> List[Component]:
         stage="detection", key="belly_cot_amt",
         spec="COT > AMT + belly confirmation (footprint-dependent)",
         present=True,
-        value="footprint-dependent · not probed (live system has access)",
+        value="footprint-dependent · not probed here",
     ))
     return components
 
@@ -708,7 +709,7 @@ def _probe_reactive_short(bars: list) -> List[Component]:
         stage="detection", key="belly_cot_amt",
         spec="COT < AMT + belly confirmation (footprint-dependent)",
         present=True,
-        value="footprint-dependent · not probed (live system has access)",
+        value="footprint-dependent · not probed here",
     ))
     return components
 
@@ -757,7 +758,7 @@ def _probe_initiative_long(bars: list) -> List[Component]:
     # Step 4: b2_test
     b2_higher_low = b2["l"] > b1["l"]
     b2_poc = b2.get("poc_vol") or b2.get("poc")
-    b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= 0.5
+    b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= POC_RETURN_TOLERANCE_PT
     ok = b2_higher_low or b2_poc_return
     components.append(Component(
         stage="detection", key="b2_test",
@@ -791,12 +792,32 @@ def _probe_initiative_long(bars: list) -> List[Component]:
     if not ok:
         return components
 
+    # Step 7: lookback_quiet
+    b1_vol = b1.get("v", 0) or 0
+    lookback = bars[-OFA_MIN_BARS_REQ:-(OFA_MIN_BARS_REQ - LOOKBACK_BARS)]
+    if lookback and b1_vol > 0:
+        max_lb_vol = max(b.get("v", 0) for b in lookback)
+        thresh = b1_vol * LOOKBACK_MAX_VOL_RATIO
+        ok = max_lb_vol < thresh
+    else:
+        max_lb_vol = 0
+        thresh = 0
+        ok = False
+    components.append(Component(
+        stage="detection", key="lookback_quiet",
+        spec=f"max(lookback {LOOKBACK_BARS} bars vol) < b1_vol × {LOOKBACK_MAX_VOL_RATIO}",
+        present=ok,
+        value=f"lookback_max={max_lb_vol} · threshold={thresh:.0f} {'✓' if ok else '✗'}",
+    ))
+    if not ok:
+        return components
+
     # Footprint-dependent
     components.append(Component(
         stage="detection", key="cot_amt",
         spec="COT < AMT (footprint-dependent)",
         present=True,
-        value="footprint-dependent · not probed (live system has access)",
+        value="footprint-dependent · not probed here",
     ))
     return components
 
@@ -839,7 +860,7 @@ def _probe_initiative_short(bars: list) -> List[Component]:
 
     b2_lower_high = b2["h"] < b1["h"]
     b2_poc = b2.get("poc_vol") or b2.get("poc")
-    b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= 0.5
+    b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= POC_RETURN_TOLERANCE_PT
     ok = b2_lower_high or b2_poc_return
     components.append(Component(
         stage="detection", key="b2_test",
@@ -871,10 +892,30 @@ def _probe_initiative_short(bars: list) -> List[Component]:
     if not ok:
         return components
 
+    # Step 7: lookback_quiet
+    b1_vol = b1.get("v", 0) or 0
+    lookback = bars[-OFA_MIN_BARS_REQ:-(OFA_MIN_BARS_REQ - LOOKBACK_BARS)]
+    if lookback and b1_vol > 0:
+        max_lb_vol = max(b.get("v", 0) for b in lookback)
+        thresh = b1_vol * LOOKBACK_MAX_VOL_RATIO
+        ok = max_lb_vol < thresh
+    else:
+        max_lb_vol = 0
+        thresh = 0
+        ok = False
+    components.append(Component(
+        stage="detection", key="lookback_quiet",
+        spec=f"max(lookback {LOOKBACK_BARS} bars vol) < b1_vol × {LOOKBACK_MAX_VOL_RATIO}",
+        present=ok,
+        value=f"lookback_max={max_lb_vol} · threshold={thresh:.0f} {'✓' if ok else '✗'}",
+    ))
+    if not ok:
+        return components
+
     components.append(Component(
         stage="detection", key="cot_amt",
         spec="COT > AMT (footprint-dependent)",
         present=True,
-        value="footprint-dependent · not probed (live system has access)",
+        value="footprint-dependent · not probed here",
     ))
     return components
