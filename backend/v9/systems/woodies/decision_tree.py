@@ -174,6 +174,12 @@ def _fetch_touchpoints_now() -> Tuple[Dict[str, Any], List[str]]:
 
 def _a1_trend_gate(ctx: WoodiesDecisionContext) -> StageResult:
     trend = (ctx.studies.get("trend_state") or "GRAY").upper()
+    # Normalize GREY → GRAY (D-092 spelling)
+    if trend == "GREY":
+        trend = "GRAY"
+    # YELLOW blocks ALL 9 patterns per P-W5 LOCK A
+    if trend == "YELLOW":
+        return StageResult("A1", StageStatus.FAIL, "trend YELLOW — BLOCK ALL per P-W5")
     if not ctx.patterns:
         return StageResult("A1", StageStatus.SKIP, "no patterns")
     if trend == "GRAY" and ctx.patterns:
