@@ -184,6 +184,11 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             value="NT → all patterns blocked" if is_nt else "OK",
         ))
 
+        # Detection sub-layer — probe pattern geometry
+        from .s2_pattern_probe import probe_pattern
+        probe_components = probe_pattern(pid, bar_buffer, five_min_system)
+        components.extend(probe_components)
+
         # Determine status
         fired_today = pid in today_fires
         last_fire_ts = today_fires.get(pid)
@@ -208,7 +213,14 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             status = "blocked"
             label = "❌ Blocked"
             blockers_list = [f"{c.stage}.{c.key}" for c in components if not c.present]
-            reason = f"Missing: {', '.join(blockers_list)}"
+            # Show first failing probe step as reason if it's the detection layer
+            probe_blockers = [b for b in blockers_list if b.startswith("detection.")]
+            if probe_blockers:
+                first_probe_fail = probe_blockers[0]
+                fail_comp = next((c for c in components if f"{c.stage}.{c.key}" == first_probe_fail), None)
+                reason = f"{first_probe_fail}: {fail_comp.value}" if fail_comp else f"Missing: {', '.join(blockers_list)}"
+            else:
+                reason = f"Missing: {', '.join(blockers_list)}"
 
         blockers = [f"{c.stage}.{c.key}" for c in components if not c.present]
 
