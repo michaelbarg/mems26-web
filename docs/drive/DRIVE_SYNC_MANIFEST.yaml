@@ -1,0 +1,68 @@
+# MEMS26 Drive sync manifest — expanded by drive_sync_upload.py
+# Parent folder: MEMS26_DRIVE_MIRROR_FOLDER_ID in .env
+
+version: 1
+updated: "2026-05-20"
+
+# Drive subfolder names (created under mirror root)
+folders:
+  spec_authority: spec_authority
+  reports_p30: reports/P30
+  reports_prompt30: reports/PROMPT30
+  reports_prompt_p30: reports/PROMPT_P30
+  reports_shadow: reports/shadow
+  handoff: handoff
+  handoff_agents: handoff/agents
+  decisions: decisions
+  docs_root: docs
+
+# Glob patterns relative to repo root (POSIX globs)
+include:
+  - docs/spec_authority/*.md
+  - docs/spec_authority/*.markdown
+  - docs/spec_authority/*.txt
+  - docs/reports/P30_*.md
+  - docs/reports/PROMPT30_*.md
+  - docs/reports/PROMPT_P30_*.md
+  - docs/reports/shadow/*.md
+  - docs/reports/shadow/README.md
+  - docs/handoff/P30_*.md
+  - docs/handoff/CC_*.md
+  - docs/handoff/INVESTIGATE_*.md
+  - docs/handoff/SIERRA_*.md
+  - docs/handoff/P30_ORCHESTRATION_*.md
+  - docs/handoff/agents/WAVE_*.md
+  - docs/handoff/agents/AGENT_*.md
+  - docs/handoff/agents/WAVE_INDEX.md
+  - docs/handoff/agents/AGENT_DRIVE_SYNC.md
+  - docs/decisions/D-*.md
+  - docs/P30_MISSING_COMPONENTS_VERIFY.md
+
+# Optional — enable after Michael confirms asset upload size
+# include_assets:
+#   - docs/handoff/assets/woodies/*.png
+
+exclude:
+  - "**/.DS_Store"
+  - "**/*~"
+
+# Map path prefix → Drive subfolder key (from folders:)
+routing:
+  - prefix: docs/spec_authority/
+    folder: spec_authority
+  - prefix: docs/reports/P30_
+    folder: reports_p30
+  - prefix: docs/reports/PROMPT30_
+    folder: reports_prompt30
+  - prefix: docs/reports/PROMPT_P30_
+    folder: reports_prompt_p30
+  - prefix: docs/reports/shadow/
+    folder: reports_shadow
+  - prefix: docs/handoff/agents/
+    folder: handoff_agents
+  - prefix: docs/handoff/
+    folder: handoff
+  - prefix: docs/decisions/
+    folder: decisions
+  - prefix: docs/
+    folder: docs_root

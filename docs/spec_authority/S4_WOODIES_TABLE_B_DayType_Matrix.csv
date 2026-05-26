@@ -1,0 +1,154 @@
+Sheet B — Day-Type Matrix · 9 patterns × 7 day types = 63 cells,,,,,,,
+Each cell: V=Verdict (✅/⚠️/❌) · E=Entry hint · T1=Target reference · Per D-091 + Dalton Mind Over Markets day-type taxonomy,,,,,,,
+"Pattern
+תבנית","TN
+Trend Normal
+מגמה רגילה","TDD
+Trend Double Distribution
+מגמה מורחבת","NV
+Normal Variation (~70%)
+ואריאציה","NeuE
+Neutral Extreme
+ניטרלי קיצוני","NeuC
+Neutral Center
+ניטרלי מרכז","Norm
+Normal (rotation)
+רגיל","NT
+Non-Trend
+ללא מגמה"
+1 · ZLR (CONT),"✅
+E: Take in trend direction of opening drive — highest-confidence CONT in TN
+T1: R-multiple / IB extension","✅
+E: Take after 2nd distribution; align with extension
+T1: R-multiple / opposite IB","⚠️
+E: Only in IB-extension direction; skip if no Stage-1 ±200 touch
+T1: R-multiple / VWAP","❌
+E: CCI extremes clipped — Stage-1 ±200 rarely forms
+T1: —","⚠️
+E: Only on mini-trend leg in rotation; small sample
+T1: POC","⚠️
+E: Inside developed VA only; scalp size
+T1: POC","❌
+E: IB-EW; CCI never achieves 6-bar trend lock (Liran Stage 1 fails)
+T1: —"
+2 · TLB (CONT),"✅
+E: Combine with ZLR for confluence
+T1: R-multiple / opposite IB","✅
+E: Use at 2nd-distribution onset
+T1: R-multiple / opposite IB","⚠️
+E: Only with ZLR confluence; standalone rare
+T1: R-multiple","❌
+E: Trendlines invalid without trend
+T1: —","⚠️
+E: Mini-trendlines inside VA only
+T1: POC","⚠️
+E: Range scalp only
+T1: POC","❌
+E: No trend = no trendline anchor
+T1: —"
+3 · TT (CONT),"✅
+E: TT made for TN-style trends — 3–9 bar pause then continuation
+T1: R-multiple / IB extension","✅
+E: 90-min cap aligns with TT's window
+T1: R-multiple / opposite IB","⚠️
+E: Only IB-extension direction; trend must be BLUE/RED
+T1: R-multiple","❌
+E: Wood: TT requires BLUE/RED, never GRAY
+T1: —","⚠️
+E: Rare; mini-trend within VA only
+T1: POC","⚠️
+E: Scalp only
+T1: POC","❌
+E: No trend
+T1: —"
+4 · GB100 (CONT),"✅
+E: Deeper-pullback CONT works in TN's narrow IB
+T1: R-multiple / IB extension","✅
+E: After first distribution completes
+T1: R-multiple / opposite IB","⚠️
+E: Only in IB-extension direction
+T1: R-multiple","❌
+E: ±100 crossings are noise in neutral days
+T1: —","⚠️
+E: Rare
+T1: POC","⚠️
+E: Range scalp
+T1: POC","❌
+E: No trend
+T1: —"
+5 · VEGAS (REV),"❌
+E: Trend strong = cup/handle gets crushed
+T1: —","❌
+E: Extension dominates; reversal fails
+T1: —","⚠️
+E: End-of-session IB-extension exhaustion only
+T1: Measure×0.6 / VWAP","✅
+E: NeuE is REV's home — fade IB-extreme
+T1: Measure×0.6 / opposite IB","✅
+E: Range edges = ideal VEGAS
+T1: Measure×0.5 / opposite VA","✅
+E: Fade VA edges
+T1: Measure×0.5 / POC","❌
+E: Not enough swing range to form cup
+T1: —"
+6 · GHOST (REV),"❌
+E: H&S in CCI gets steamrolled
+T1: —","❌
+E: 2nd-distribution = no H&S formation
+T1: —","⚠️
+E: Late-session H&S at IB-extension only
+T1: Measure×0.6 / VWAP","✅
+E: GHOST at extreme = highest-quality REV
+T1: Measure×0.6 / opposite IB","✅
+E: Rotation creates classic 3-peak structure
+T1: Measure×0.5 / opposite VA","✅
+E: VA-edge GHOST
+T1: Measure×0.5 / POC","❌
+E: No swing structure
+T1: —"
+7 · FAMIR (REV),"❌
+E: ZLR doesn't fail in strong TN
+T1: —","❌
+E: TDD extension doesn't permit Stage-3 failure
+T1: —","⚠️
+E: After failed ZLR at IB-extension reversal
+T1: R-multiple / opposite IB","✅
+E: FAMIR's natural habitat — failed CONT at extreme = REV
+T1: R-multiple / opposite IB","✅
+E: Failed CONT in rotation
+T1: R-multiple / opposite VA","✅
+E: VA-edge failure → FAMIR
+T1: R-multiple / POC","❌
+E: No prior ZLR to fail
+T1: —"
+8 · HTLB (REV-ish),"⚠️
+E: With-trend HTLB only (skip counter-trend)
+T1: R-multiple","⚠️
+E: With-trend after 2nd distribution
+T1: R-multiple","⚠️
+E: IB-extension direction only
+T1: R-multiple","✅
+E: Horizontal at ±100/200 = classic NeuE level
+T1: Opposite ±100 / ZL","✅
+E: VA-edge horizontal
+T1: POC","✅
+E: POC-edge horizontal
+T1: POC","❌
+E: No ≥2 touches develop in NT
+T1: —"
+9 · HFE (REV),"❌
+E: Hook in strong trend = trap (Wood: HFE is exit signal, not entry)
+T1: —","❌
+E: Trend continues past extreme
+T1: —","⚠️
+E: Only with daily/weekly level confluence
+T1: R-multiple","✅
+E: NeuE at IB-extension extreme = textbook HFE
+T1: Opposite ±100 / ZL","⚠️
+E: Only at clear ±200 with VA-edge confluence
+T1: POC","⚠️
+E: Only at clear ±200 with VA-edge confluence
+T1: POC","❌
+E: No ±200 reached in NT
+T1: —"
+"Anti-day-type summary: CONT (1–4) fail in NeuE/NT (Liran Stage-1 cannot form) · REV (5–9) fail in TN/TDD (trend persistence overwhelms reversal) · ALL 9 fail in NT per Dalton (~6.81% of days, no directional conviction).",,,,,,,

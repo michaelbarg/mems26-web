@@ -1,0 +1,121 @@
+MEMS26 V9 — S4 Woodies CCI Pattern Setup · MES 5-min RTH · 9 Patterns · 2026-05-23,,,,,,,,,,,,
+Tick = 0.25 · $1.25/tick · ATR-14 5-min ≈ 8–16 ticks (normal vol) · Bilingual EN/HE per Liran/Zohar manual · Owner: Michael Barg,,,,,,,,,,,,
+# · Name · שם,"Group
+קבוצה","Entry 📍
+כניסה","Stop 🛑
+סטופ",T1 🎯,T2 / T3 🎯,"Filters 🕐
+פילטרים","First-hour 🌅
+שעה ראשונה","Data needs 📊
+נתונים","Source quality 🎯
+איכות מקור","Author 📚
+מחבר","Stats / Hit-rate
+סטטיסטיקה","Failure mode
+כשל אופייני"
+"1 · ZLR
+Zero Line Reject
+אפס-קו",CONT,"Buy-stop 1T above Stage-3 reversal bar high. Long: CCI 0–210 at close, prev bar CCI in (−100, +100), SWI yellow/green, CZI light-blue last 3 bars, TCCI leads back up. Mirror short.
+Liran Stage 3: ≥10–25 CCI unit jump from prev bar.","3T below signal-bar low
+Cap: 1.0×ATR-14 (≈8–16T)
+Floor: 4T","+4T ≈ 1.0R
+(Liran T1; +5T if net-vol confirms)","T2 = ±200 cross opposite
+T3 = ±100 cross opposite or trail
+R ≈ 2.0–3.0",RTH only · skip 12:00–13:30 ET · FOMC ±90min (NY Fed 2013) · trend BLUE/RED only · NOT YELLOW/GRAY · min bar 14,⚠️ bar 14+,"CCI-14, TCCI-6, SWI, CZI, EMA-34, LSMA, trend_state",🟡,"Ken Wood (def)
+Joel Rensink (refine)
+Liran/Zohar (stages)","🔴 NO_STATS
+Wood-community: ""could be the only Woodies trade for your career"" (J. Gannon)
+SHADOW required
+39 ZLR test failures unresolved (P-W3)",CCI re-enters extreme zone within 3 bars · pullback >12 bars (CCI memory fades)
+"2 · TLB
+Trend Line Break
+קו-מגמה שבירה",CONT,Buy-stop 1T above bar closing through trendline drawn over ≥2 CCI peaks/valleys. Code: linreg slope<−2 + cci>predicted+10 + cci>prev (LONG). Preferably 1 anchor past ±100.,"3T below signal-bar low
+Cap: 1.0×ATR-14
+Floor: 4T",+4T ≈ 1.0R,"T2 = next CCI swing extreme (≈±200)
+T3 = ZL cross opposite
+R ≈ 1.5–2.5",RTH · lunch skip · FOMC skip · trend BLUE/RED · min bar 14,⚠️ bar 14+,"CCI-14, TCCI-6 (anchors), trend_state, predictor_next_cci",🟡,"Ken Wood
+Liran (rare-standalone)","🔴 NO_STATS
+Liran: ""rarely standalone, usually combined"" — edge in combo
+SHADOW required",False breakout (CCI re-crosses line within 2 bars) · trendline anchored on <2 valid touches
+"3 · TT
+Tony Trade / Turbo Touch
+טוני",CONT,"Buy-stop 1T above bar where CCI-14 AND TCCI-6 both close above ZL (long), AND price bar closes above EMA-34. Stage-1 trend required. Stage-2 pause: 3–9 bars below ZL, NOT crossing −100 (Liran: not crossing −50 strengthens).","3T below signal-bar low
+Cap: 1.0×ATR-14
+Floor: 4T",+4T ≈ 1.0R,"T2 = +200 cross
+T3 = ZL opposite
+R ≈ 1.5–2.5",RTH · lunch skip · FOMC skip · BLUE/RED only (Wood: never GRAY/YELLOW) · TCCI gap >5 CCI (Rensink) · min bar 14,⚠️ bar 14+,"CCI-14, TCCI-6 (>5 gap), EMA-34, trend_state",🟡,"Ken Wood (named for Tony Holden / TONYUK)
+Rensink (>5 CCI gap)
+Liran (3–9 bar + ±50 strengthening)","🔴 NO_STATS
+Fixed confidence (P-W8 normalization needed)
+SHADOW required",TCCI cross <5 CCI gap = incomplete · Stage-2 pause exceeds 9 bars = different pattern
+"4 · GB100
+Ghost Bar at ±100
+GB100 חציית ±100",CONT,Buy-stop 1T above bar that crosses +100 back to trend (long). Like ZLR but deeper/faster pullback that crossed ±100. CZI must be light-blue (long) / brown (short). CCI does NOT stay >6 bars opposite side of ZL.,"3T below signal-bar low
+Cap: 1.2×ATR-14 (deeper pullback)
+Floor: 4T",+4T ≈ 1.0R,"T2 = +200 cross
+T3 = ZL opposite
+R ≈ 1.5–3.0",RTH · lunch skip · FOMC skip · BLUE/RED only (NOT YELLOW = fake breakout) · CZI alignment mandatory · min bar 14,⚠️ bar 14+,"CCI-14, CZI, trend_state",🟡,"Ken Wood
+Liran (CZI + 6-bar rule)","🔴 NO_STATS
+SHADOW required","Pullback >6 bars opposite ZL → trend flipped, not pullback (Liran) · YELLOW state = fake breakout"
+"5 · VEGAS
+Divergence / Cup-and-Handle
+וגאס",REV,Long: CCI reached ≤−200 → reverse to ≥−100 (cup) → form higher-low or horizontal ≥3 bars (handle) → enter on break of swing high between cup & handle. Code: SHORT = price HH + CCI LH; swing min 2 bars (Liran: ≥5 bars between swings).,"3T beyond last swing extreme (REV rule)
+Cap: 1.5×ATR-14
+Floor: 4T","Measure × 0.5 (cup-height in CCI × ~1 MES pt / 25 CCI)
+≈ 16T for 200-CCI cup","T2 = Measure × 0.6 (Bulkowski-style haircut)
+T3 = Trail to ZL opposite
+R ≈ 1.8–3.5",RTH · lunch skip · FOMC skip · works in NeuE/NeuC/Norm only · min bar 20,"❌ <bar 20
+⚠️ bar 20+","CCI-14, EMA-34, price swings, trend_state",🔴 (chart-pattern analog),"Ken Wood
+Liran (""cup & handle on oscillator"")
+Bulkowski (analog only)","🔴 NO_STATS
+By analogy to Bulkowski Eve&Eve Double Bottom (price-chart daily, NOT CCI 5-min):
+• 12% failure rate
+• 50% avg rise · 65% throwback · 65% meeting target
+• rank 5/39 · N=952
+SHADOW required",Divergence in strong trend = trap · swings <5 bars apart = noise not divergence
+"6 · GHOST
+CCI Head-and-Shoulders
+רוח",REV,"3 CCI peaks (short) / troughs (long). Diagonal neckline between shoulders, preferably sloping toward ZL. Right-shoulder height ≤ first-shoulder. Head size irrelevant (Liran). Entire pattern above ZL (short) / below ZL (long). Enter on neckline break.","3T beyond right-shoulder extreme
+Cap: 1.5×ATR-14
+Floor: 4T","Measure × 0.5 (head-to-neckline CCI × coefficient)
+≈ 16T at 200 CCI head depth","T2 = Measure × 0.6
+T3 = trail to opposite extreme
+R ≈ 1.6–3.0",RTH · lunch skip · FOMC skip · NeuE/NeuC/Norm · min bar 20,"❌ <bar 20
+⚠️ bar 20+","CCI-14, trend_state",🔴 (chart-pattern analog),"Ken Wood (""you gotta love a Ghost"")
+Liran (head-size irrelevant)
+Bulkowski (analog only)","🔴 NO_STATS
+By analogy to Bulkowski H&S Top (price-chart daily, NOT CCI):
+• 19% failure rate
+• 16% avg decline · 68% pullback · 51% meeting target
+• rank 9/36 · N>2,800
+SHADOW required",Trend persistence steamrolls H&S · right-shoulder exceeds first = invalidated
+"7 · FAMIR
+Failed ZLR at ±200
+פאמיר",REV,"Right after ZLR Stage-3, ZLR fails and CCI breaks sharply opposite within ±50 zone (strongest). Code: SHORT = max(5 bars)∈[170,210) + cur<prev + cur<max−20. LSMA must support: ZL green (long) / red (short).","Above failed-ZLR signal bar high (flip stop)
+Cap: 1.5×ATR-14
+Floor: 4T",+4T ≈ 1.0R,"T2 = opposite ±100
+T3 = opposite ±200 or ZL re-cross
+R ≈ 1.5–2.8",RTH · lunch skip · FOMC skip · LSMA agreement mandatory · prior ZLR required · min bar 14,"⚠️ bar 14+
+(rare in first hour — needs prior ZLR fire)","CCI-14, LSMA, lsma_above_price, trend_state",🟡,"Ken Wood
+Liran (""mentally hardest pattern"")","🔴 NO_STATS
+Mental difficulty = under-traded pattern
+SHADOW required",LSMA not aligned at entry · failure outside ±50 zone = weaker setup
+"8 · HTLB
+Horizontal Trend Line Break
+קו אופקי",REV,"Horizontal line drawn over ≥2 touches (tolerance 15 CCI). Long: prev ≤ resistance AND cur > resistance+5. Liran: long-line sits in [−100, −200]; short-line in [+100, +200]. Identifies end of Stage 1.","3T below horizontal-breakout bar low
+Cap: 1.2×ATR-14
+Floor: 4T",+4T ≈ 1.0R,"T2 = opposite ±100
+T3 = ZL
+R ≈ 1.4–2.8",RTH · lunch skip · FOMC skip · ≥2 touches mandatory · min bar 15,⚠️ bar 15+,"CCI-14, TCCI-6, trend_state",🟡,"Ken Wood
+Liran (zone definition)","🔴 NO_STATS
+SHADOW required","<2 touches = single bounce, not level · breakout retraces within 2 bars"
+"9 · HFE
+Hook From Extreme
+וו מקצה",REV,"PRIMARY: DLL hfe_detected. FALLBACK Python: min/max in window 12 ≤−200 or ≥+200, bars_since_extreme ∈ [2,12], hook ≥ 50, cur in hook direction. Liran: only PART of cases hint at trend end — best with daily/weekly/yesterday H-L or VAH/VAL confluence.","3T beyond extreme bar high (short) / low (long)
+Cap: 1.5×ATR-14
+Floor: 4T",+4T ≈ 1.0R,"T2 = opposite ±100
+T3 = ZL
+R ≈ 1.4–2.5",RTH · lunch skip · FOMC skip · daily/weekly level confluence STRONGLY preferred · min bar 14,"❌ <bar 14
+⚠️ bar 14+ (with level confluence only)","CCI-14, bars_since_extreme, hook magnitude, daily H-L / VAH-VAL (external)",🔴 (no Wood doctrine — MEMS26-internal),"Community-derived
+MEMS26-internal
+Liran (level-confluence)","🔴 NO_STATS
+J. Gannon (wealthv.com): ""~50% success but R>>L"" — anecdote, not measurement
+SHADOW required (caveat #5)","Hook without daily-level confluence = trap · bars_since_extreme out of [2,12] = invalid"

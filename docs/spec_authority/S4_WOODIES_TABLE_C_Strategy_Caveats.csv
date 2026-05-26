@@ -1,0 +1,79 @@
+Sheet C — Strategy & Caveats · cross-pattern,,
+,,
+§6.1  Stop Strategy · אסטרטגיית סטופ,,
+,Primary rule · CONT,"2–3 ticks beyond entry-bar low (long) / high (short) — Liran's ""momentum trade"" rule. Patterns: ZLR, TLB, TT, GB100."
+,Primary rule · REV,Beyond the last swing extreme — for VEGAS: cup low · GHOST: right shoulder · FAMIR: failed-ZLR signal bar · HTLB: horizontal breakout bar · HFE: extreme bar.
+,ATR cap · CONT (ZLR/TLB/TT),1.0 × ATR-14 (5-min) → ≈ 8–16 ticks in normal vol (daily ATR 40–55 pts).
+,ATR cap · medium (GB100/HTLB),1.2 × ATR-14 → ≈ 10–20 ticks.
+,ATR cap · REV (VEGAS/GHOST/FAMIR/HFE),1.5 × ATR-14 → ≈ 12–24 ticks.
+,Floor,Never tighter than 4 ticks (MES tick-noise floor; 1T = 0.25pt = $1.25).
+,Trail logic,After T1: move stop to breakeven + 1T. After T2: trail to last-bar low/high per Liran ladder. Also trail when TCCI crosses CCI-14 against position.
+,,
+§6.2  Target Strategy · אסטרטגיית יעדים,,
+,"CCI-based scaffold (ZLR, GB100, HFE)",T1 = 1R (4 ticks) · T2 = 2R · T3 = 4R or trail.
+,"CCI pattern-measure rule (VEGAS, GHOST)",Cup/H&S height in CCI × MES coefficient. Derived: ~1 MES pt / 25 CCI units in normal vol. 200 CCI depth ≈ 8 pts ≈ 32 ticks. Apply 50–60% haircut per Bulkowski target-meeting rates.
+,"REV R-multiples (FAMIR, HTLB)",R:R 1.4–2.8 (mid between pure CONT and pure REV).
+,Liran's exit ladder,T1 = 4T (or 5T if net-vol confirms) → ±200 cross opposite → ±100 cross opposite → ZL cross opposite (close all) → SWI turns red → contradicting/new-trend pattern → CCI-14 flat ≥3 bars → TCCI crosses CCI-14 against (trail to last bar low/high).
+,Default exit distribution,50% T1 / 30% T2 / 20% trail — matches S2 file default.
+,,
+§6.3  Trend State Handling (4 states · BLUE/RED/YELLOW/GRAY),,
+,BLUE — uptrend confirmed,"CCI > 50 + prev > 0 + SWI > 20. Liran: ≥6 bars above ZL with ≥1 bar >+100, ideally >+200. → CONT patterns FIRE, REV patterns BLOCK."
+,RED — downtrend confirmed,"Mirror of BLUE. → CONT patterns FIRE, REV patterns BLOCK."
+,YELLOW — TRANSITION (5th opposite bar),"P-W5 OPEN: researcher's read = BLOCK ALL 9 PATTERNS. Either old trend is dying (CONT invalid) or new trend not locked (REV premature). Wood transcripts: ""WSI = Wait, Sit, Inspect."" A1 gate handling only GRAY is incomplete vs Spec V1's 4-state design."
+,GRAY — chop / no trend,"BLOCK by default, or require confidence > 0.55 per current code. Matches Liran: ""market off"" = don't trade."
+,,
+§6.4  Caveats per Source · הסתייגויות לפי מקור,,
+,"Ken Wood (woodiescciclub.com, DVD 1999–2008)","1) ZLR is highest-confidence pattern — ""could create excellent profits for your entire career.""  2) TT requires BLUE/RED only; never GRAY/YELLOW.  3) WSI = ""Wait, Sit, Inspect"" when CCI is choppy."
+,Joel Rensink (community educator),1) TT works only when TCCI fully crossed (>5 CCI gap).  2) ZLR fails after >12-bar pullback — CCI memory fades.  3) Don't trade ZLR if signal bar CCI exceeds 120 (chasing).
+,Donald Lambert / Larry Williams (CCI inventor 1980),1) CCI ±200 crossings are RARE by design — Lambert set 0.015 constant so ~70–80% of CCI values fall between −100 and +100.  2) Divergence at ±200 has highest edge.  3) CCI on daily timeframes is original use case; intraday 5-min is regime shift.
+,"Linda Raschke (Street Smarts, 1996)","1) CCI flat (range < 50) for 3+ bars = NO TRADE.  2) Combine momentum oscillators with ADX, not in isolation."
+,Constance Brown (Technical Analysis Prof.),"1) Brown's RSI range-rule adapts to CCI: in uptrend, ""overbought"" CCI is higher than +100.  2) Failed retests (FAMIR analog) = strong reversal signal."
+,"Liran/Zohar Leibovich (Hebrew Manual, Nov 2016)","1) TT staying 3–9 bars Stage-2 is critical — outside window = different pattern.  2) Not crossing ±50 in Stage-2 strengthens.  3) FAMIR is mentally hardest — requires exiting losing ZLR and reversing.  4) Risk ladder: ZL → ±100 → ±200 → T1.  5) ⚠️ Entry-timing windows (Conservative/Normal/Aggressive) are Zohar's framework, not original Wood doctrine."
+,Thomas Bulkowski (chart-pattern caveats ONLY),"1) Pullback/throwback rates 65–68% for H&S and double-bottom analogs — applies only as ANALOGY.  2) Eve&Eve Double Bottom: 12% failure / 50% rise / rank 5/39 — ANALOGY only.  3) Bulkowski does NOT cover CCI patterns directly. Analogies are price-chart daily stock, not CCI 5-min futures."
+,,
+§6.5  CCI-specific Anti-Patterns · אנטי-תבניות,,
+,AP1,ZLR after >12-bar pullback — CCI memory fades (Rensink).
+,AP2,GB100 in YELLOW state — fake breakout (Wood).
+,AP3,"VEGAS without 5+ bars between swings — noise, not divergence (Liran)."
+,AP4,HTLB with <2 touches on horizontal — single bounce ≠ level.
+,AP5,"HFE without bars_since_extreme ∈ [2, 12] — out-of-range hook (MEMS26 code constraint)."
+,AP6,"GB100 where CCI stays >6 bars opposite ZL during pullback — trend has flipped, not a pullback (Liran)."
+,AP7,TT with TCCI gap < 5 CCI units — incomplete cross (Rensink).
+,AP8,Any CCI pattern when CCI is flat (range < 50) for ≥3 bars (Raschke).
+,AP9,FAMIR without LSMA agreement at entry (ZL color must match direction) — Wood and Liran both.
+,,
+§6.6  Day-Type Sensitivities · Q&A,,
+,Q: ZLR fires false in NeuE?,YES. NeuE clips CCI extremes so Liran Stage-1 (≥1 bar >+200) rarely forms. Trend not strong enough for Stage-3 resumption. → ❌ in NeuE.
+,Q: TT survives in NV (variation)?,CONDITIONALLY. NV is most common day (~70% spec; Dalton 41.77%). TT works ONLY in IB-extension direction; counter-extension TT fails. → ⚠️ NV.
+,Q: GHOST resolves in NT?,NO. NT lacks swing structure (3 distinct peaks) needed to form CCI H&S. → ❌ NT.
+,Q: VEGAS works in TN?,"NO. Cup-and-handle reversal overwhelmed by trend persistence. Wood community uses VEGAS for trend-CHANGE, which cannot occur in confirmed TN. → ❌ TN."
+,,
+§6.7  Strategic Open Questions (P-W series),,
+,P-W1,DTV1 verbatim (docs/MEMS26_WOODIES_DECISION_TREE_V1.md) — paste to repo for cross-check vs Canvas mirror. Researcher's read: Internal task; no public literature input. OPEN.
+,P-W2,"HFE dual-path — DLL-only canonical, or keep Python fallback for LIVE? Researcher's read: HFE has zero Wood/Rensink doctrine; definition is MEMS26-internal. Keep Python fallback as audit/canonical until DLL is independently validated against a non-MEMS26 reference (none exists). Suggest: DLL=primary, Python=audit/fallback, log divergences for SHADOW analysis."
+,P-W3,"39 ZLR test failures — root cause? Researcher's read: Internal. Given Liran's Stage-1 requires ≥6 bars above ZL with ≥1 bar >+200, failures likely cluster where Stage-1 wasn't fully met (BLUE state declared but no >+200 touch). Audit test fixtures for Stage-1 completeness BEFORE assuming regression."
+,P-W4,JSON 18s bug (gateway._persist_trade datetime serialization) — fixed in production? Researcher's read: Pure internal; no public literature applies.
+,P-W5,"Trend YELLOW — block fire or pass through? Researcher's read: BLOCK. Wood = WSI (""Wait, Sit, Inspect""). Liran explicit: YELLOW means ""next bar will flip"" — neither old trend (CONT invalid) nor new trend (REV premature) is actionable. A1 gate must extend to block YELLOW."
+,P-W6,"Priority Dispatcher when 2 patterns fire same bar — max(confidence) or DTV1-spec rule? Researcher's read: Liran's hierarchy is implicit — CONT ""for beginners"" / highest base rate; REV ""for experienced traders."" Same-direction confluence (ZLR+TLB) = take higher confidence. Opposite-direction (ZLR long + GHOST short) → Stage-1 trend gate breaks tie: CONT wins in BLUE/RED. Recommend DTV1-spec hierarchical rule over plain max()."
+,P-W7,"6th touch-point identity — Master Index says 6, Canvas A4 shows 5 (day_type/tpo/veto/killzone/layer0). Researcher's read: Internal documentation reconciliation; no public literature."
+,P-W8,"Confidence formulas — 5 dynamic + 4 fixed — normalize before max()? Researcher's read: YES, NORMALIZE. Mixing dynamic [0,1]-scaled with fixed point-values creates dispatcher bias. Normalize all 9 to [0,1] via z-score or min-max before any max() comparison."
+,P-W9,"YAML config loader for thresholds — V1 default static or YAML-driven? Researcher's read: Liran's manual implies pattern-specific thresholds (TT 3–9 bars; VEGAS ≥3 handle bars; FAMIR ±50 zone strongest). Hard-coding is fragile — recommend YAML-driven loader for V1, current defaults locked as ""Liran baseline"" profile."
+,P-W10,"All-9 keep policy (V1) vs SHADOW-data-driven drop (post-SHADOW)? Researcher's read: Keep all 9 through V1 SHADOW. Drop threshold: N≥500 SHADOW trades AND E[R] < 0 AND hit-rate T1 < 35%. Promote 🔴→🟢 threshold: N≥500 AND E[R] > 0 AND hit-rate T1 > 40%. Liran does not advocate dropping any of the 9 — treats them as complete taxonomy. Decision data-driven, not doctrine-driven."
+,,
+§8  Researcher's Caveats — Must Flag Explicitly,,
+,⚠️ 1,Ken Wood's original work is largely 1999–2008 chat-room transcripts — not peer-reviewed.
+,⚠️ 2,NO Bulkowski-equivalent stats exist for CCI patterns. Statistical backing is weaker than S2. Do not invent stats.
+,⚠️ 3,Woodies CCI developed for forex/stocks daily — application to MES 5-min is a regime shift. Wood himself uses CCI-20 (not 14) for daily+.
+,⚠️ 4,TCCI (CCI-6) is a Woodies addition not in Lambert's original CCI (1980). TT is Wood-specific.
+,⚠️ 5,HFE has NO Wood/Rensink documentation as MEMS26 codes it — MEMS26-internal variant. Statistical backing from SHADOW data only.
+,⚠️ 6,"Sidewinder (SWI) is Wood-specific — thresholds (>20 / <−20) from Wood transcripts only, no non-Wood source."
+,⚠️ 7,"The 39 ZLR test failures (Master Index 16/5) are UNRESOLVED. Do not assume ZLR is ""working perfectly"" without addressing P-W3."
+,⚠️ 8,"The Hebrew manual by Liran is an INTERPRETATION of Wood's work, not Wood himself. Liran/Zohar additions (entry timing windows, +210 cap, ±50 strengthening rule, ""mentally hardest"" framing) are interpretation, NOT original Wood doctrine."
+,⚠️ 9,"Bulkowski analogies for GHOST and VEGAS are price-chart daily — NOT CCI 5-min futures. 12%/19% failure rates and 65%/68% throwback rates apply to stocks, not MES intraday CCI."
+,⚠️ 10,"Day-type assignments use Dalton's published frequencies (Normal Variation 41.77%, Trend 18.99%, Neutral 30.21%, Non-Trend 6.81%, Normal 2.43%) which are stock-index data and may not match MES 5-min RTH 2026 distribution precisely."
+,,
+§REC  Recommendations — Stage Path,,
+,Stage 1 — NOW,Build s4_woodies_pattern_tables.xlsx. All 9 patterns 🔴 NO_STATS with analogies inline. Date-stamped header. Liran cited per pattern row.
+,Stage 2 — Next 2 weeks,"SHADOW data extraction. Per-pattern query: SELECT * FROM v9_trades WHERE firing_system=4 AND pattern_name='X'. Compute hit-rate T1/T2, median MFE/MAE, E[R], failure mode. Promote 🔴→🟢 if N≥500 AND E[R]>0 AND hit-rate T1 > 40%."
+,Stage 3 — Address P-W,"Fix P-W3 first (audit ZLR fixtures for Stage-1 completeness). Extend A1 gate to block YELLOW (P-W5). Normalize all 9 confidence scores to [0,1] (P-W8). Build YAML threshold loader (P-W9)."
+,Stage 4 — Beyond V1,Re-run SHADOW after each threshold change. Decide P-W10 (keep vs drop) only after SHADOW phase completes per Stage 2 thresholds.
