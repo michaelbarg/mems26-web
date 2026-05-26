@@ -62,7 +62,10 @@ Build a complete Sierra order routing path in **9 packages** under "Pipeline 5".
 
 - **D-093.Q1 · Gateway canonicality** — CC performs a 4-step audit of `backend/v9/gateway/` vs `backend/v9/services/trading_gateway/`, produces a recommendation report `docs/reports/P5_0_GATEWAY_AUDIT.md`, then Michael selects canonical. **DO NOT delete either path** without Michael's explicit lock.
   - 🆕 **Research recommendation (2026-05-24):** Canonical = `backend/v9/services/trading_gateway/` (W11 `TradeManager` + W14 `RiskValidator` pre-integrated — exactly the risk plumbing LIVE requires). Run both in SHADOW for 1 week to assert byte-equal `trade_command.json`, then cut over and freeze legacy as read-only. See research §3.3. **Awaiting Michael lock.**
-- **D-093.Q2 · Sierra DEMO account** — Michael will provide the DEMO account identifier before P5-1 execution. **DO NOT** assume `PA-APEX-125218-01` (the legacy account hardcoded in `trading_gateway.py:276`) is correct.
+- **D-093.Q2 · Sierra DEMO account** — 🔒 **LOCKED 2026-05-26 12:44 IL · Michael Barg**
+  - Live account: **IronBeam · Teton CME Routing [trading]**
+  - DEMO/Simulation account: **IronBeam · Teton CME Routing [simulation]** (or `[sim]` — verify exact label in Sierra Chart Trade Account settings before P5-1 execution)
+  - P5-1 must use the `[simulation]` route identifier · NOT `PA-APEX-125218-01` (legacy placeholder · wrong)
 
 **Locked items (no further decisions needed):**
 

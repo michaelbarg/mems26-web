@@ -149,8 +149,8 @@
 
 | Q        | Decision                                                                | Trigger                     | Status |
 | -------- | ----------------------------------------------------------------------- | --------------------------- | ------ |
-| D-093.Q1 | Gateway canonical: `backend/v9/gateway/` OR `services/trading_gateway/` | After CC P5-0a audit report | ⬜      |
-| D-093.Q2 | Sierra DEMO account identifier (not PA-APEX-125218-01 — placeholder)    | Before P5-1 execution       | ⬜      |
+| D-093.Q1 | Gateway canonical: `backend/v9/gateway/` OR `services/trading_gateway/` | After CC P5-0a audit report | ⏳ P5-0 audit in progress (Desktop meta-prompt sent) |
+| D-093.Q2 | Sierra DEMO account identifier                                           | Before P5-1 execution       | ✅ **LOCKED 26/5 12:44 IL** · IronBeam · Teton CME Routing [simulation] · verify exact label before P5-1 |
 
 
 ### Build queue (9 packages · ~9.5 CC days)
@@ -158,14 +158,14 @@
 
 | Pkg  | Name                                          | G0 spec       | G1 prompt | G2 CC | G3 review | G4 UAT | G5 soak | G6 promote |
 | ---- | --------------------------------------------- | ------------- | --------- | ----- | --------- | ------ | ------- | ---------- |
-| P5-0 | Gateway reconciliation (verify-first)         | ✅ D-093       | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
-| P5-1 | DLL `sc.SubmitOCOOrder()` (DEMO)              | ⏳ pending Q2  | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
+| P5-0 | Gateway reconciliation (verify-first)         | ✅ D-093       | ⏳ meta-prompt sent to Desktop 26/5 | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
+| P5-1 | DLL `sc.BuyEntry/SellEntry` + Attached Orders (DEMO) | ✅ D-093 · Q2 LOCKED 26/5 | ⏳ meta-prompt sent to Desktop 26/5 · pending Q1 lock | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
 | P5-2 | DLL result mapping                            | ⬜ (deps P5-1) | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
 | P5-3 | Backend LIVE wiring                           | ⬜ (deps P5-1) | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
 | P5-4 | Position reconciliation                       | ⬜ (deps P5-2) | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
 | P5-5 | Order modification                            | ⬜ (deps P5-2) | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
-| P5-6 | Heartbeat + watchdog                          | ⬜ (deps P5-2) | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
-| P5-7 | Bridge integration                            | ✅ D-093       | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
+| P5-6 | Heartbeat + watchdog                          | ✅ D-093       | ⏳ meta-prompt sent to Desktop 26/5 | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
+| P5-7 | Bridge integration                            | ✅ D-093       | ⏳ meta-prompt sent to Desktop 26/5 | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
 | P5-8 | End-to-end UAT (SHADOW + DEMO + LIVE-on-demo) | ⬜ (deps all)  | ⬜         | ⬜     | ⬜         | ⬜      | ⬜       | ⬜          |
 
 
