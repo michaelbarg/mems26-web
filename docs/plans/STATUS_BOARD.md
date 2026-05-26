@@ -44,11 +44,17 @@
 
 | Criterion                                                     | Status |
 | ------------------------------------------------------------- | ------ |
-| Phase A all packages SHADOW-soak completed (0-3, 5, 8, 6 = 13 pkgs + Consolidation = 14 · 4a+4b deferred per D-095) | ⏳ build done · G4 UAT pending |
+| Phase A all packages SHADOW-soak completed (0-3, 5, 8, 6 = 13 pkgs + Consolidation = 14 · 4a+4b deferred per D-095) | ⏳ build done · G4 UAT pending RTH 16:30 IL · meta-prompt sent to Desktop |
 | pytest tests/v9/ green                                        | ✅ **WAIVER GRANTED 26/5 12:25 IL** · 1694 pass · 21 pre-existing failures in legacy/non-trading code · 4 groups: (A) 7× tpo_history_snapshotter TZ bug · (B) 8× W11 snapshot schema drift · (C) 2× legacy trade_manager DBPersistence · (D) 3× woodies_dedup isolation + 1× frontend journal file missing · none affect S2 trading path · Pkg 0–8+6 Phase A code all green |
-| UAT 4 axes on /cockpit/systems-snapshot                       | ⬜      |
-| 60min ירוק · zero open warnings                               | ⬜      |
-| Michael sign-off                                              | ⬜      |
+| Pkg 5a Axis 2 (Recency)                                       | ✅ **FIXED 26/5 12:02 IL** · commit `7433d52` · setup.ts = bar timestamp · mini-G3 PASS 932/932 |
+| Pkg 0 Redis decision                                          | ✅ **CLOSED 26/5 12:15 IL** · no blocking action · legacy keys dead · cleanup deferred to post-SHADOW |
+| UAT 4 axes on /cockpit/systems-snapshot                       | ⬜ pending RTH 16:30 IL |
+| L4-2 Recency (TPO)                                            | ⬜ pending RTH 16:30 IL |
+| L4-3 Cardinality (Five-Min bars)                              | ⬜ pending RTH 16:30 IL |
+| L4-4 Latency (all endpoints)                                  | ⬜ pending RTH 16:30 IL |
+| G4 smoke trades (Pkgs 1, 2a, 2bc, 3a, 3b, 5a, 5b, 5c, 8, 6) | ⬜ pending RTH · CC scaffolding via Desktop meta-prompt |
+| 60min ירוק · zero open warnings                               | ⬜ pending post-UAT soak |
+| Michael sign-off                                              | ⬜ pending all above |
 
 
 ---
