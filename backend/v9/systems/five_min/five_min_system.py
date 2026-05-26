@@ -795,7 +795,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                 db = SessionLocal()
                 from backend.v9.db.models.five_min_state import V9FiveMinSetup
                 setup = V9FiveMinSetup(
-                    ts=datetime.now(timezone.utc),
+                    ts=datetime.fromtimestamp(bar.get("ts", 0), tz=timezone.utc),
                     pattern=f"{kind}_{direction}",
                     direction=direction,
                     entry_price=entry_price,
