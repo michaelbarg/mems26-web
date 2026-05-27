@@ -5,9 +5,6 @@
 # Override here to tune without code changes.
 
 pattern_dispatcher:
-  # Minimum R_t1 to consider a pattern (0.0 = accept all)
-  min_r_t1_threshold: 0.0
-
   # Tie-break field when R_t1 is equal
   tie_breaker: "raw_confidence"
 
@@ -20,8 +17,14 @@ pattern_dispatcher:
   # If any pattern has r_t1=None, fall back to max(confidence)
   r_t1_missing_fallback: true
 
-  # Log each dispatch decision at INFO level
-  log_dispatch_decisions: false
+  # Log each dispatch decision at INFO level (enabled for shadow visibility)
+  log_dispatch_decisions: true
+
+  # Minimum R_t1 for LIVE mode (set to 1.0 before going LIVE)
+  # SHADOW: 0.0 (accept all for observation)
+  # LIVE recommendation: 1.0 (reward ≥ risk at T1)
+  # Changing this value does not require a code deploy.
+  min_r_t1_threshold: 0.0
 
 # W-10 Time Stop — Registry #11 LIVE blocker
 # Enforces maximum trade duration. null/0 disables (kill switch).

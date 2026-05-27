@@ -42,7 +42,8 @@ def _build_system_with_history(bars: int = 50) -> WoodiesSystem:
     in-memory OHLCV buffers are seeded directly so that ``compute_all_studies``
     has enough history to return non-zero CCI/EMA values.
     """
-    sys_ = WoodiesSystem(db_path=_NONEXISTENT_DB)
+    # rth_only=False: perf tests use synthetic timestamps not tied to real sessions
+    sys_ = WoodiesSystem(db_path=_NONEXISTENT_DB, rth_only=False)
     base = 7400.0
     for i in range(bars):
         sys_._highs.append(base + 1.0)

@@ -31,13 +31,14 @@ def _make_gateway(shadow_id: int = 99) -> MagicMock:
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 class TestWoodiesDedupBarTs:
 
     def _system_with_gateway(self) -> tuple:
-        sys = WoodiesSystem()
+        # rth_only=False: dedup tests use synthetic timestamps not tied to real sessions
+        sys = WoodiesSystem(rth_only=False)
         gw = _make_gateway()
         sys.set_gateway(gw)
         return sys, gw
@@ -105,7 +106,7 @@ class TestWoodiesDedupBarTs:
         assert sys._last_fired_bar_ts.get("HFE_LONG") < BAR_TS_2
 
     def test_last_fired_bar_ts_dict_initialized_empty(self):
-        sys = WoodiesSystem()
+        sys = WoodiesSystem(rth_only=False)
         assert hasattr(sys, "_last_fired_bar_ts")
         assert isinstance(sys._last_fired_bar_ts, dict)
         assert len(sys._last_fired_bar_ts) == 0

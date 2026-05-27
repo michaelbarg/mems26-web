@@ -8,8 +8,9 @@ Publishes signal events independently.
 import asyncio
 import json
 import logging
+import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, time as dtime, timezone
 from typing import List, Optional, Dict
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
@@ -32,6 +33,38 @@ from backend.v9.systems.woodies.decision_tree import (
 
 logger = logging.getLogger(__name__)
 
+# RTH gate: set V9_WOODIES_RTH_ONLY=0 to allow overnight bars (test / replay only)
+_RTH_ONLY = os.getenv("V9_WOODIES_RTH_ONLY", "1").lower() not in ("0", "false", "no")
+# RTH window: 09:30–16:00 ET (inclusive of close bar)
+_RTH_START = dtime(9, 30)
+_RTH_END = dtime(16, 0)
+
+try:
+    from zoneinfo import ZoneInfo as _ZI
+    _ET_TZ = _ZI("America/New_York")
+except ImportError:
+    try:
+        import pytz as _pytz
+        _ET_TZ = _pytz.timezone("America/New_York")
+    except ImportError:
+        _ET_TZ = None
+
+
+def _is_rth_bar(bar_ts: float) -> bool:
+    """Return True if bar_ts (UTC unix seconds) falls within RTH (09:30–16:00 ET).
+
+    Fail-open: returns True if timestamp is zero/unknown or timezone unavailable.
+    """
+    if not bar_ts or _ET_TZ is None:
+        return True
+    try:
+        dt = datetime.fromtimestamp(bar_ts, tz=_ET_TZ)
+        t = dtime(dt.hour, dt.minute)
+        return _RTH_START <= t <= _RTH_END
+    except Exception:
+        return True
+
+
 # Module-level dispatcher instance (W-8)
 _pattern_dispatcher = PatternDispatcher()
 
@@ -42,9 +75,11 @@ class WoodiesSystem(BaseV9TradingSystem):
     color = "#f97316"
     system_type = SystemType.FIRING
 
-    def __init__(self, db_path: str = None):
+    def __init__(self, db_path: str = None, rth_only: bool = None):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
         self._gateway = None  # injected post-init via set_gateway()
+        # RTH gate: instance-level override for tests. Defaults to module-level env var.
+        self._rth_only: bool = _RTH_ONLY if rth_only is None else rth_only
         # Per-pattern dedup keyed by bar_ts: key=f"{pattern_id}_{direction}" → bar_ts
         # of the last bar that triggered a fire. Blocks duplicate fires when Sierra
         # sends multiple UPDATE events for the same 5-min bar.
@@ -214,6 +249,16 @@ class WoodiesSystem(BaseV9TradingSystem):
                     bar_ts = datetime.fromisoformat(bar_ts.replace("Z", "+00:00")).timestamp()
                 except Exception:
                     bar_ts = 0
+
+            # RTH gate (filter-F17): skip non-RTH bars to prevent overnight/globex fires.
+            # Disable via V9_WOODIES_RTH_ONLY=0 env var or rth_only=False constructor arg.
+            if self._rth_only and not _is_rth_bar(float(bar_ts)):
+                logger.debug(
+                    "[Woodies] RTH gate: skipping non-RTH bar ts=%s", bar_ts
+                )
+                # Still run time-stop checks on any open trades
+                self._check_time_stops()
+                return
 
             wb = WoodiesBar(
                 ts=float(bar_ts),
