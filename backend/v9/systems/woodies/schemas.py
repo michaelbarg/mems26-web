@@ -1,7 +1,21 @@
 """Pydantic schemas for Woodies CCI data."""
 
+from enum import Enum
 from typing import Optional, List
 from pydantic import BaseModel
+
+
+class PatternId(str, Enum):
+    """All 9 Woodies CCI patterns per Decision Tree V1."""
+    ZLR = "ZLR"
+    TLB = "TLB"
+    TT = "TT"
+    GB100 = "GB100"
+    VEGAS = "VEGAS"
+    GHOST = "GHOST"
+    FAMIR = "FAMIR"
+    HTLB = "HTLB"
+    HFE = "HFE"
 
 
 class WoodiesBar(BaseModel):
@@ -55,9 +69,11 @@ class WoodiesBar(BaseModel):
 class PatternResult(BaseModel):
     """Result of a pattern detection — includes trading fields."""
     detected: bool
-    pattern_id: str         # ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB
+    pattern_id: str         # ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE
     direction: str = "NEUTRAL"  # LONG, SHORT, NEUTRAL
     confidence: float = 0.0     # 0.0-1.0
+    raw_confidence: Optional[float] = None  # alias — same value as confidence
+    r_t1: Optional[float] = None  # R_t1 = (t1 - entry) / (entry - stop), always positive
     entry_price: float = 0.0
     stop: float = 0.0
     targets: List[float] = []

@@ -13,10 +13,14 @@ def generate_trend_blue_sequence(bars=30, base_price=7400.0):
     """Scenario 1: CCI sustained positive (BLUE trend) → ZLR pattern.
 
     30 bars with CCI > 0, creating BLUE color for strategic gate.
+    At least 1 bar exceeds CCI > +200 (Liran Stage-1 requirement per W-6).
     """
     result = []
     for i in range(bars):
         cci = 50 + (i * 2)  # steadily rising CCI above zero
+        # Ensure at least 1 bar crosses +200 for Stage-1 validity
+        if i == bars - 2:
+            cci = max(cci, 210)
         result.append(WoodiesBar(
             ts=1000.0 + i * 1800,
             open=base_price + i * 0.5,

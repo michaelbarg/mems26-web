@@ -8,6 +8,8 @@ Trend states per D-092 §Trend State (4 states):
   BLUE   — uptrend confirmed → LONG allowed
   RED    — downtrend confirmed → SHORT allowed
   YELLOW — transition (5th opposite bar) → BLOCK ALL per P-W5 LOCK A
+           (Algorithm 2: sustained-persistence. See also cci_calc.py Algorithm 1.)
+           Defense-in-depth rationale: docs/notes/YELLOW_DETECTION.md
   GRAY   — chop / no trend → BLOCK (or confidence > 0.55 gate)
 """
 

@@ -23,7 +23,7 @@ class B3ColorFlip:
     Detects if color flipped against position:
     LONG+BLUE → RED = FLIP → CLOSE ALL
     SHORT+RED → BLUE = FLIP → CLOSE ALL
-    YELLOW/GREY for N bars = DEGRADATION (configurable: TIGHTEN or EXIT)
+    YELLOW/GRAY for N bars = DEGRADATION (configurable: TIGHTEN or EXIT)
     Terminal: CLOSE ALL — Strategic Exit
     """
 
@@ -45,8 +45,8 @@ class B3ColorFlip:
         if direction == "SHORT" and entry_color == "RED" and current_color == "BLUE":
             return B3Output(flip_detected=True, action="CLOSE_ALL")
 
-        # Degradation: YELLOW or GREY (configurable response)
-        if current_color in ("YELLOW", "GREY"):
+        # Degradation: YELLOW or GRAY (configurable response)
+        if current_color in ("YELLOW", "GRAY"):
             action = degradation_action  # default TIGHTEN, configurable to EXIT
             if degradation_action == "EXIT":
                 return B3Output(flip_detected=True, action="CLOSE_ALL")

@@ -1,0 +1,275 @@
+# Day-Type Matrix — 9 patterns × 7 day types = 63 cells
+# Source: docs/spec_authority/S4_WOODIES_TABLE_B_DayType_Matrix.csv
+# Per D-091 + Dalton Mind Over Markets day-type taxonomy
+# DO NOT EDIT — regenerate from CSV source of truth
+
+patterns:
+  ZLR:
+    TN:
+      verdict: "✅"
+      entry_hint: "Take in trend direction of opening drive — highest-confidence CONT in TN"
+      t1_ref: "R-multiple / IB extension"
+    TDD:
+      verdict: "✅"
+      entry_hint: "Take after 2nd distribution; align with extension"
+      t1_ref: "R-multiple / opposite IB"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "Only in IB-extension direction; skip if no Stage-1 ±200 touch"
+      t1_ref: "R-multiple / VWAP"
+    NeuE:
+      verdict: "❌"
+      entry_hint: "CCI extremes clipped — Stage-1 ±200 rarely forms"
+      t1_ref: "—"
+    NeuC:
+      verdict: "⚠️"
+      entry_hint: "Only on mini-trend leg in rotation; small sample"
+      t1_ref: "POC"
+    Norm:
+      verdict: "⚠️"
+      entry_hint: "Inside developed VA only; scalp size"
+      t1_ref: "POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "IB-EW; CCI never achieves 6-bar trend lock (Liran Stage 1 fails)"
+      t1_ref: "—"
+
+  TLB:
+    TN:
+      verdict: "✅"
+      entry_hint: "Combine with ZLR for confluence"
+      t1_ref: "R-multiple / opposite IB"
+    TDD:
+      verdict: "✅"
+      entry_hint: "Use at 2nd-distribution onset"
+      t1_ref: "R-multiple / opposite IB"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "Only with ZLR confluence; standalone rare"
+      t1_ref: "R-multiple"
+    NeuE:
+      verdict: "❌"
+      entry_hint: "Trendlines invalid without trend"
+      t1_ref: "—"
+    NeuC:
+      verdict: "⚠️"
+      entry_hint: "Mini-trendlines inside VA only"
+      t1_ref: "POC"
+    Norm:
+      verdict: "⚠️"
+      entry_hint: "Range scalp only"
+      t1_ref: "POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "No trend = no trendline anchor"
+      t1_ref: "—"
+
+  TT:
+    TN:
+      verdict: "✅"
+      entry_hint: "TT made for TN-style trends — 3–9 bar pause then continuation"
+      t1_ref: "R-multiple / IB extension"
+    TDD:
+      verdict: "✅"
+      entry_hint: "90-min cap aligns with TT's window"
+      t1_ref: "R-multiple / opposite IB"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "Only IB-extension direction; trend must be BLUE/RED"
+      t1_ref: "R-multiple"
+    NeuE:
+      verdict: "❌"
+      entry_hint: "Wood: TT requires BLUE/RED, never GRAY"
+      t1_ref: "—"
+    NeuC:
+      verdict: "⚠️"
+      entry_hint: "Rare; mini-trend within VA only"
+      t1_ref: "POC"
+    Norm:
+      verdict: "⚠️"
+      entry_hint: "Scalp only"
+      t1_ref: "POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "No trend"
+      t1_ref: "—"
+
+  GB100:
+    TN:
+      verdict: "✅"
+      entry_hint: "Deeper-pullback CONT works in TN's narrow IB"
+      t1_ref: "R-multiple / IB extension"
+    TDD:
+      verdict: "✅"
+      entry_hint: "After first distribution completes"
+      t1_ref: "R-multiple / opposite IB"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "Only in IB-extension direction"
+      t1_ref: "R-multiple"
+    NeuE:
+      verdict: "❌"
+      entry_hint: "±100 crossings are noise in neutral days"
+      t1_ref: "—"
+    NeuC:
+      verdict: "⚠️"
+      entry_hint: "Rare"
+      t1_ref: "POC"
+    Norm:
+      verdict: "⚠️"
+      entry_hint: "Range scalp"
+      t1_ref: "POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "No trend"
+      t1_ref: "—"
+
+  VEGAS:
+    TN:
+      verdict: "❌"
+      entry_hint: "Trend strong = cup/handle gets crushed"
+      t1_ref: "—"
+    TDD:
+      verdict: "❌"
+      entry_hint: "Extension dominates; reversal fails"
+      t1_ref: "—"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "End-of-session IB-extension exhaustion only"
+      t1_ref: "Measure×0.6 / VWAP"
+    NeuE:
+      verdict: "✅"
+      entry_hint: "NeuE is REV's home — fade IB-extreme"
+      t1_ref: "Measure×0.6 / opposite IB"
+    NeuC:
+      verdict: "✅"
+      entry_hint: "Range edges = ideal VEGAS"
+      t1_ref: "Measure×0.5 / opposite VA"
+    Norm:
+      verdict: "✅"
+      entry_hint: "Fade VA edges"
+      t1_ref: "Measure×0.5 / POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "Not enough swing range to form cup"
+      t1_ref: "—"
+
+  GHOST:
+    TN:
+      verdict: "❌"
+      entry_hint: "H&S in CCI gets steamrolled"
+      t1_ref: "—"
+    TDD:
+      verdict: "❌"
+      entry_hint: "2nd-distribution = no H&S formation"
+      t1_ref: "—"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "Late-session H&S at IB-extension only"
+      t1_ref: "Measure×0.6 / VWAP"
+    NeuE:
+      verdict: "✅"
+      entry_hint: "GHOST at extreme = highest-quality REV"
+      t1_ref: "Measure×0.6 / opposite IB"
+    NeuC:
+      verdict: "✅"
+      entry_hint: "Rotation creates classic 3-peak structure"
+      t1_ref: "Measure×0.5 / opposite VA"
+    Norm:
+      verdict: "✅"
+      entry_hint: "VA-edge GHOST"
+      t1_ref: "Measure×0.5 / POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "No swing structure"
+      t1_ref: "—"
+
+  FAMIR:
+    TN:
+      verdict: "❌"
+      entry_hint: "ZLR doesn't fail in strong TN"
+      t1_ref: "—"
+    TDD:
+      verdict: "❌"
+      entry_hint: "TDD extension doesn't permit Stage-3 failure"
+      t1_ref: "—"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "After failed ZLR at IB-extension reversal"
+      t1_ref: "R-multiple / opposite IB"
+    NeuE:
+      verdict: "✅"
+      entry_hint: "FAMIR's natural habitat — failed CONT at extreme = REV"
+      t1_ref: "R-multiple / opposite IB"
+    NeuC:
+      verdict: "✅"
+      entry_hint: "Failed CONT in rotation"
+      t1_ref: "R-multiple / opposite VA"
+    Norm:
+      verdict: "✅"
+      entry_hint: "VA-edge failure → FAMIR"
+      t1_ref: "R-multiple / POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "No prior ZLR to fail"
+      t1_ref: "—"
+
+  HTLB:
+    TN:
+      verdict: "⚠️"
+      entry_hint: "With-trend HTLB only (skip counter-trend)"
+      t1_ref: "R-multiple"
+    TDD:
+      verdict: "⚠️"
+      entry_hint: "With-trend after 2nd distribution"
+      t1_ref: "R-multiple"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "IB-extension direction only"
+      t1_ref: "R-multiple"
+    NeuE:
+      verdict: "✅"
+      entry_hint: "Horizontal at ±100/200 = classic NeuE level"
+      t1_ref: "Opposite ±100 / ZL"
+    NeuC:
+      verdict: "✅"
+      entry_hint: "VA-edge horizontal"
+      t1_ref: "POC"
+    Norm:
+      verdict: "✅"
+      entry_hint: "POC-edge horizontal"
+      t1_ref: "POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "No ≥2 touches develop in NT"
+      t1_ref: "—"
+
+  HFE:
+    TN:
+      verdict: "❌"
+      entry_hint: "Hook in strong trend = trap (Wood: HFE is exit signal, not entry)"
+      t1_ref: "—"
+    TDD:
+      verdict: "❌"
+      entry_hint: "Trend continues past extreme"
+      t1_ref: "—"
+    NV:
+      verdict: "⚠️"
+      entry_hint: "Only with daily/weekly level confluence"
+      t1_ref: "R-multiple"
+    NeuE:
+      verdict: "✅"
+      entry_hint: "NeuE at IB-extension extreme = textbook HFE"
+      t1_ref: "Opposite ±100 / ZL"
+    NeuC:
+      verdict: "⚠️"
+      entry_hint: "Only at clear ±200 with VA-edge confluence"
+      t1_ref: "POC"
+    Norm:
+      verdict: "⚠️"
+      entry_hint: "Only at clear ±200 with VA-edge confluence"
+      t1_ref: "POC"
+    NT:
+      verdict: "❌"
+      entry_hint: "No ±200 reached in NT"
+      t1_ref: "—"

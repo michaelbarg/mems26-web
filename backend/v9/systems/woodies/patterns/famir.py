@@ -8,21 +8,55 @@ Spec reference: MEMS26_WOODIES_SPEC_V1_DERIVED Section 5 (B3).
 
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult, PatternSignal
+from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
+from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
 
 THRESHOLD = 200
 NEAR_THRESHOLD = 170  # "approaching" the +/-200 level
 PATTERN_ID = "FAMIR"
 GROUP = "REVERSAL"
+_PATTERN_GROUP = PatternGroup.REV
 TICK_SIZE = 0.25
 STOP_TICKS = 10
 TARGET1_TICKS = 14
 TARGET2_TICKS = 28
+_T1_TICKS = 4
+
+
+def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:
+    if len(bars) < 14:
+        return 0.0
+    trs = []
+    for i, bar in enumerate(bars):
+        if i == 0:
+            trs.append(bar.high - bar.low)
+        else:
+            prev_c = bars[i - 1].close
+            trs.append(max(bar.high - bar.low, abs(bar.high - prev_c), abs(bar.low - prev_c)))
+    atr = sum(trs[:14]) / 14
+    for tr in trs[14:]:
+        atr = ((atr * 13) + tr) / 14
+    return atr / tick_size
+
+
+def _compute_r_t1(entry_price: float, stop_price: float,
+                  tick_size: float = TICK_SIZE, t1_ticks: int = _T1_TICKS) -> Optional[float]:
+    risk = abs(entry_price - stop_price)
+    if risk < 1e-9:
+        return None
+    return (t1_ticks * tick_size) / risk
 
 
 def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternResult:
     """Detect FAMIR pattern from WoodiesBar list."""
     if len(bars) < 5:
         return PatternResult(detected=False, pattern_id=PATTERN_ID)
+
+    # ── AP8: universal CCI flat check ──
+    ap8 = AntiPatternChecker.check_ap8_cci_flat(bars)
+    if ap8.blocked:
+        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                             details={"reject_reason": ap8.reason})
 
     bar = bars[-1]
     current = bar.cci_14
@@ -34,13 +68,33 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
     # FAMIR SHORT: CCI approached +200 but failed, now dropping
     if max_recent >= NEAR_THRESHOLD and max_recent < THRESHOLD + 10:
         if current < prev and current < max_recent - 20:
+            # ── AP9: FAMIR LSMA mismatch ──
+            ap9 = AntiPatternChecker.check_ap9_famir_lsma(bars, direction="SHORT")
+            if ap9.blocked:
+                return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                     details={"reject_reason": ap9.reason})
             entry = bar.close
-            stop = entry + STOP_TICKS * TICK_SIZE
+            swing_anchor = max(b.high for b in bars[-5:])
+            atr_ticks = _compute_atr14_ticks(bars)
+            if atr_ticks > 0:
+                stop_result = compute_stop(
+                    direction="SHORT", entry_bar=bar, swing_anchor=swing_anchor,
+                    pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
+                )
+                stop = stop_result.stop_price
+                stop_layer = stop_result.layer_applied
+            else:
+                stop = entry + STOP_TICKS * TICK_SIZE
+                stop_layer = "primary"
+            r_t1 = _compute_r_t1(entry, stop)
+            conf = min(0.8, 0.5 + (THRESHOLD - max_recent) / 100)
             return PatternResult(
                 detected=True,
                 pattern_id=PATTERN_ID,
                 direction="SHORT",
-                confidence=min(0.8, 0.5 + (THRESHOLD - max_recent) / 100),
+                confidence=conf,
+                raw_confidence=conf,
+                r_t1=r_t1,
                 entry_price=entry,
                 stop=stop,
                 targets=[
@@ -52,19 +106,40 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
                 details={"peak_cci": round(max_recent, 2),
-                         "distance_from_200": round(THRESHOLD - max_recent, 2)},
+                         "distance_from_200": round(THRESHOLD - max_recent, 2),
+                         "stop_layer_applied": stop_layer},
             )
 
     # FAMIR LONG: CCI approached -200 but failed, now rising
     if min_recent <= -NEAR_THRESHOLD and min_recent > -(THRESHOLD + 10):
         if current > prev and current > min_recent + 20:
+            # ── AP9: FAMIR LSMA mismatch ──
+            ap9 = AntiPatternChecker.check_ap9_famir_lsma(bars, direction="LONG")
+            if ap9.blocked:
+                return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                     details={"reject_reason": ap9.reason})
             entry = bar.close
-            stop = entry - STOP_TICKS * TICK_SIZE
+            swing_anchor = min(b.low for b in bars[-5:])
+            atr_ticks = _compute_atr14_ticks(bars)
+            if atr_ticks > 0:
+                stop_result = compute_stop(
+                    direction="LONG", entry_bar=bar, swing_anchor=swing_anchor,
+                    pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
+                )
+                stop = stop_result.stop_price
+                stop_layer = stop_result.layer_applied
+            else:
+                stop = entry - STOP_TICKS * TICK_SIZE
+                stop_layer = "primary"
+            r_t1 = _compute_r_t1(entry, stop)
+            conf = min(0.8, 0.5 + (THRESHOLD - abs(min_recent)) / 100)
             return PatternResult(
                 detected=True,
                 pattern_id=PATTERN_ID,
                 direction="LONG",
-                confidence=min(0.8, 0.5 + (THRESHOLD - abs(min_recent)) / 100),
+                confidence=conf,
+                raw_confidence=conf,
+                r_t1=r_t1,
                 entry_price=entry,
                 stop=stop,
                 targets=[
@@ -76,7 +151,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
                 details={"trough_cci": round(min_recent, 2),
-                         "distance_from_n200": round(THRESHOLD - abs(min_recent), 2)},
+                         "distance_from_n200": round(THRESHOLD - abs(min_recent), 2),
+                         "stop_layer_applied": stop_layer},
             )
 
     return PatternResult(detected=False, pattern_id=PATTERN_ID)

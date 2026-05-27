@@ -118,7 +118,12 @@ def calc_chopzone(highs: List[float], lows: List[float],
 
 
 def calc_trend_state(cci14: float, cci14_prev: float, swi: float) -> str:
-    """Trend state matching DLL: BLUE/RED/YELLOW/GRAY."""
+    """Trend state matching DLL: BLUE/RED/YELLOW/GRAY.
+
+    YELLOW detection: simple zero-crossing (Algorithm 1).
+    See also a1_strategic_gate.py (Algorithm 2: 5th-bar persistence).
+    Defense-in-depth rationale documented in docs/notes/YELLOW_DETECTION.md.
+    """
     if cci14 > 50 and cci14_prev > 0 and swi > 20:
         return "BLUE"
     if cci14 < -50 and cci14_prev < 0 and swi < -20:

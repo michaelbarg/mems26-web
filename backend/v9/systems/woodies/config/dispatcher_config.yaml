@@ -1,0 +1,24 @@
+# Pattern Dispatcher Config (W-8)
+# Two-tier R_t1 pattern selection — Phase B tuning template.
+#
+# These values match the Python DEFAULT_CONFIG in pattern_dispatcher.py.
+# Override here to tune without code changes.
+
+pattern_dispatcher:
+  # Minimum R_t1 to consider a pattern (0.0 = accept all)
+  min_r_t1_threshold: 0.0
+
+  # Tie-break field when R_t1 is equal
+  tie_breaker: "raw_confidence"
+
+  # GRAY trend: use max R_t1 across all families (vs reject)
+  gray_fallback_enabled: true
+
+  # Raise ValueError on YELLOW (P-W5 should block before dispatch)
+  yellow_assertion: true
+
+  # If any pattern has r_t1=None, fall back to max(confidence)
+  r_t1_missing_fallback: true
+
+  # Log each dispatch decision at INFO level
+  log_dispatch_decisions: false

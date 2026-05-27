@@ -9,15 +9,48 @@ Spec reference: MEMS26_WOODIES_SPEC_V1_DERIVED Section 5 (A1).
 
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult, PatternSignal
+from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
+from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
 
 LOOKBACK = 12
 PATTERN_ID = "ZLR"
 GROUP = "CONTINUATION"
+_PATTERN_GROUP = PatternGroup.CONT_TIGHT
 # MES tick size for stop/target computation
 TICK_SIZE = 0.25
 STOP_TICKS = 8
 TARGET1_TICKS = 12
 TARGET2_TICKS = 24
+_T1_TICKS = 4  # T1 for R_t1 computation
+
+
+def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:
+    """Compute ATR-14 from bars in ticks."""
+    if len(bars) < 14:
+        return 0.0
+    trs = []
+    for i, bar in enumerate(bars):
+        if i == 0:
+            trs.append(bar.high - bar.low)
+        else:
+            prev_c = bars[i - 1].close
+            tr = max(bar.high - bar.low, abs(bar.high - prev_c), abs(bar.low - prev_c))
+            trs.append(tr)
+    # Wilder's smoothing
+    atr = sum(trs[:14]) / 14
+    for tr in trs[14:]:
+        atr = ((atr * 13) + tr) / 14
+    return atr / tick_size
+
+
+def _compute_r_t1(entry_price: float, stop_price: float, direction: str,
+                  tick_size: float = TICK_SIZE, t1_ticks: int = _T1_TICKS) -> Optional[float]:
+    """Compute R_t1 = (t1_price - entry_price) / (entry_price - stop_price). Always positive."""
+    risk = abs(entry_price - stop_price)
+    if risk < 1e-9:
+        return None
+    t1_distance = t1_ticks * tick_size
+    return t1_distance / risk
 
 
 def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternResult:
@@ -28,6 +61,18 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
     n = len(bars)
     if n < LOOKBACK + 1:
         return PatternResult(detected=False, pattern_id=PATTERN_ID)
+
+    # ── AP8: universal CCI flat check ──
+    ap8 = AntiPatternChecker.check_ap8_cci_flat(bars)
+    if ap8.blocked:
+        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                             details={"reject_reason": ap8.reason})
+
+    # ── AP1: ZLR pullback too long ──
+    ap1 = AntiPatternChecker.check_ap1_zlr_pullback(bars)
+    if ap1.blocked:
+        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                             details={"reject_reason": ap1.reason})
 
     cci_history = [b.cci_14 for b in bars]
     current = cci_history[-1]
@@ -46,12 +91,28 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
             if pulled and current > prev and 0 < current < 200:
                 bars_since = n - 1 - i
                 entry = bar.close
-                stop = entry - STOP_TICKS * TICK_SIZE
+                # ATR-based stop (W-6)
+                atr_ticks = _compute_atr14_ticks(bars)
+                if atr_ticks > 0:
+                    stop_result = compute_stop(
+                        direction="LONG", entry_bar=bar, swing_anchor=None,
+                        pattern_group=_PATTERN_GROUP, atr_14=atr_ticks,
+                        tick_size=TICK_SIZE,
+                    )
+                    stop = stop_result.stop_price
+                    stop_layer = stop_result.layer_applied
+                else:
+                    stop = entry - STOP_TICKS * TICK_SIZE
+                    stop_layer = "primary"
+                r_t1 = _compute_r_t1(entry, stop, "LONG")
+                conf = min(0.9, 0.5 + current / 400)
                 return PatternResult(
                     detected=True,
                     pattern_id=PATTERN_ID,
                     direction="LONG",
-                    confidence=min(0.9, 0.5 + current / 400),
+                    confidence=conf,
+                    raw_confidence=conf,
+                    r_t1=r_t1,
                     entry_price=entry,
                     stop=stop,
                     targets=[
@@ -62,7 +123,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                     cci_at_signal=current,
                     bar_index=n - 1,
                     ts=bar.ts,
-                    details={"bars_since_extreme": bars_since},
+                    details={"bars_since_extreme": bars_since, "stop_layer_applied": stop_layer},
                 )
             break
 
@@ -77,12 +138,28 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
             if pulled and current < prev and -200 < current < 0:
                 bars_since = n - 1 - i
                 entry = bar.close
-                stop = entry + STOP_TICKS * TICK_SIZE
+                # ATR-based stop (W-6)
+                atr_ticks = _compute_atr14_ticks(bars)
+                if atr_ticks > 0:
+                    stop_result = compute_stop(
+                        direction="SHORT", entry_bar=bar, swing_anchor=None,
+                        pattern_group=_PATTERN_GROUP, atr_14=atr_ticks,
+                        tick_size=TICK_SIZE,
+                    )
+                    stop = stop_result.stop_price
+                    stop_layer = stop_result.layer_applied
+                else:
+                    stop = entry + STOP_TICKS * TICK_SIZE
+                    stop_layer = "primary"
+                r_t1 = _compute_r_t1(entry, stop, "SHORT")
+                conf = min(0.9, 0.5 + abs(current) / 400)
                 return PatternResult(
                     detected=True,
                     pattern_id=PATTERN_ID,
                     direction="SHORT",
-                    confidence=min(0.9, 0.5 + abs(current) / 400),
+                    confidence=conf,
+                    raw_confidence=conf,
+                    r_t1=r_t1,
                     entry_price=entry,
                     stop=stop,
                     targets=[
@@ -93,7 +170,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                     cci_at_signal=current,
                     bar_index=n - 1,
                     ts=bar.ts,
-                    details={"bars_since_extreme": bars_since},
+                    details={"bars_since_extreme": bars_since, "stop_layer_applied": stop_layer},
                 )
             break
 

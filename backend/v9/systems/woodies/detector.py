@@ -1,4 +1,9 @@
-"""Woodies CCI pattern detector — runs all 8 patterns against bar history."""
+"""Woodies CCI pattern detector — runs all 8 legacy patterns against bar history.
+
+DEPRECATED (W-6): Use pattern_engine.py / detect_all_patterns() for the canonical
+9-pattern WoodiesBar interface. This module is retained for api.py backward
+compatibility only. Migration to pattern_engine.py is planned for Phase B.
+"""
 
 from typing import List, Optional
 from backend.v9.systems.woodies.cci_calc import (

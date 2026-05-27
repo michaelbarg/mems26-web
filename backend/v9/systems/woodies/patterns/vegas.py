@@ -9,14 +9,42 @@ Spec reference: MEMS26_WOODIES_SPEC_V1_DERIVED Section 5 (B1).
 
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult, PatternSignal
+from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
+from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
 
 LOOKBACK = 20
 PATTERN_ID = "VEGAS"
 GROUP = "REVERSAL"
+_PATTERN_GROUP = PatternGroup.REV
 TICK_SIZE = 0.25
 STOP_TICKS = 12
 TARGET1_TICKS = 16
 TARGET2_TICKS = 32
+_T1_TICKS = 4  # default if no measure available
+
+
+def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:
+    if len(bars) < 14:
+        return 0.0
+    trs = []
+    for i, bar in enumerate(bars):
+        if i == 0:
+            trs.append(bar.high - bar.low)
+        else:
+            prev_c = bars[i - 1].close
+            trs.append(max(bar.high - bar.low, abs(bar.high - prev_c), abs(bar.low - prev_c)))
+    atr = sum(trs[:14]) / 14
+    for tr in trs[14:]:
+        atr = ((atr * 13) + tr) / 14
+    return atr / tick_size
+
+
+def _compute_r_t1(entry_price: float, stop_price: float,
+                  tick_size: float = TICK_SIZE, t1_ticks: int = _T1_TICKS) -> Optional[float]:
+    risk = abs(entry_price - stop_price)
+    if risk < 1e-9:
+        return None
+    return (t1_ticks * tick_size) / risk
 
 
 def _find_swings(values: List[float], min_swing: int = 3) -> list:
@@ -42,6 +70,12 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
     if len(bars) < LOOKBACK:
         return PatternResult(detected=False, pattern_id=PATTERN_ID)
 
+    # ── AP8: universal CCI flat check ──
+    ap8 = AntiPatternChecker.check_ap8_cci_flat(bars)
+    if ap8.blocked:
+        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                             details={"reject_reason": ap8.reason})
+
     window_bars = bars[-LOOKBACK:]
     window_cci = [b.cci_14 for b in window_bars]
     window_price = [b.close for b in window_bars]
@@ -62,13 +96,35 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
         p1, p2 = price_highs[-2], price_highs[-1]
         c1, c2 = cci_highs[-2], cci_highs[-1]
         if p2[1] > p1[1] and c2[1] < c1[1]:
+            # ── AP3: VEGAS swings too close ──
+            _swing_lo = min(p1[0], p2[0])
+            _swing_hi = max(p1[0], p2[0])
+            ap3 = AntiPatternChecker.check_ap3_vegas_swings(bars, _swing_lo, _swing_hi)
+            if ap3.blocked:
+                return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                     details={"reject_reason": ap3.reason})
             entry = bar.close
-            stop = entry + STOP_TICKS * TICK_SIZE
+            # swing_anchor = most recent price swing high for REV stop
+            swing_anchor = max(b.high for b in bars[-LOOKBACK:])
+            atr_ticks = _compute_atr14_ticks(bars)
+            if atr_ticks > 0:
+                stop_result = compute_stop(
+                    direction="SHORT", entry_bar=bar, swing_anchor=swing_anchor,
+                    pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
+                )
+                stop = stop_result.stop_price
+                stop_layer = stop_result.layer_applied
+            else:
+                stop = entry + STOP_TICKS * TICK_SIZE
+                stop_layer = "primary"
+            r_t1 = _compute_r_t1(entry, stop)
             return PatternResult(
                 detected=True,
                 pattern_id=PATTERN_ID,
                 direction="SHORT",
                 confidence=0.75,
+                raw_confidence=0.75,
+                r_t1=r_t1,
                 entry_price=entry,
                 stop=stop,
                 targets=[
@@ -79,7 +135,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 cci_at_signal=bar.cci_14,
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
-                details={"price_hh": True, "cci_lh": True},
+                details={"price_hh": True, "cci_lh": True, "swing_anchor": swing_anchor,
+                         "stop_layer_applied": stop_layer},
             )
 
     # Bullish VEGAS: price LL, CCI HL. This uses the second most recent swing
@@ -89,13 +146,34 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
         p1, p2 = price_lows[-2], price_lows[-1]
         c1, c2 = cci_lows[-2], cci_lows[-1]
         if p2[1] < p1[1] and c2[1] > c1[1]:
+            # ── AP3: VEGAS swings too close ──
+            _swing_lo = min(p1[0], p2[0])
+            _swing_hi = max(p1[0], p2[0])
+            ap3 = AntiPatternChecker.check_ap3_vegas_swings(bars, _swing_lo, _swing_hi)
+            if ap3.blocked:
+                return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                     details={"reject_reason": ap3.reason})
             entry = bar.close
-            stop = entry - STOP_TICKS * TICK_SIZE
+            swing_anchor = min(b.low for b in bars[-LOOKBACK:])
+            atr_ticks = _compute_atr14_ticks(bars)
+            if atr_ticks > 0:
+                stop_result = compute_stop(
+                    direction="LONG", entry_bar=bar, swing_anchor=swing_anchor,
+                    pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
+                )
+                stop = stop_result.stop_price
+                stop_layer = stop_result.layer_applied
+            else:
+                stop = entry - STOP_TICKS * TICK_SIZE
+                stop_layer = "primary"
+            r_t1 = _compute_r_t1(entry, stop)
             return PatternResult(
                 detected=True,
                 pattern_id=PATTERN_ID,
                 direction="LONG",
                 confidence=0.75,
+                raw_confidence=0.75,
+                r_t1=r_t1,
                 entry_price=entry,
                 stop=stop,
                 targets=[
@@ -106,7 +184,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 cci_at_signal=bar.cci_14,
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
-                details={"price_ll": True, "cci_hl": True},
+                details={"price_ll": True, "cci_hl": True, "swing_anchor": swing_anchor,
+                         "stop_layer_applied": stop_layer},
             )
 
     return PatternResult(detected=False, pattern_id=PATTERN_ID)

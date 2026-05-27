@@ -9,19 +9,59 @@ Spec reference: MEMS26_WOODIES_SPEC_V1_DERIVED Section 5 (A3).
 
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult, PatternSignal
+from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
+from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
 
 PATTERN_ID = "TT"
 GROUP = "CONTINUATION"
+_PATTERN_GROUP = PatternGroup.CONT_TIGHT
 TICK_SIZE = 0.25
 STOP_TICKS = 8
 TARGET1_TICKS = 12
 TARGET2_TICKS = 20
+_T1_TICKS = 4
+
+
+def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:
+    if len(bars) < 14:
+        return 0.0
+    trs = []
+    for i, bar in enumerate(bars):
+        if i == 0:
+            trs.append(bar.high - bar.low)
+        else:
+            prev_c = bars[i - 1].close
+            trs.append(max(bar.high - bar.low, abs(bar.high - prev_c), abs(bar.low - prev_c)))
+    atr = sum(trs[:14]) / 14
+    for tr in trs[14:]:
+        atr = ((atr * 13) + tr) / 14
+    return atr / tick_size
+
+
+def _compute_r_t1(entry_price: float, stop_price: float,
+                  tick_size: float = TICK_SIZE, t1_ticks: int = _T1_TICKS) -> Optional[float]:
+    risk = abs(entry_price - stop_price)
+    if risk < 1e-9:
+        return None
+    return (t1_ticks * tick_size) / risk
 
 
 def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternResult:
     """Detect TT pattern from WoodiesBar list."""
     if len(bars) < 3:
         return PatternResult(detected=False, pattern_id=PATTERN_ID)
+
+    # ── AP8: universal CCI flat check ──
+    ap8 = AntiPatternChecker.check_ap8_cci_flat(bars)
+    if ap8.blocked:
+        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                             details={"reject_reason": ap8.reason})
+
+    # ── AP7: TT TCCI divergence gap ──
+    ap7 = AntiPatternChecker.check_ap7_tt_divergence_gap(bars[-1])
+    if ap7.blocked:
+        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                             details={"reject_reason": ap7.reason})
 
     bar = bars[-1]
     bar_prev = bars[-2]
@@ -41,12 +81,25 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
         was_above = (cci6_prev2 > bar_prev2.cci_14 + 10)
         if touched and bounced and was_above:
             entry = bar.close
-            stop = entry - STOP_TICKS * TICK_SIZE
+            atr_ticks = _compute_atr14_ticks(bars)
+            if atr_ticks > 0:
+                stop_result = compute_stop(
+                    direction="LONG", entry_bar=bar, swing_anchor=None,
+                    pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
+                )
+                stop = stop_result.stop_price
+                stop_layer = stop_result.layer_applied
+            else:
+                stop = entry - STOP_TICKS * TICK_SIZE
+                stop_layer = "primary"
+            r_t1 = _compute_r_t1(entry, stop)
             return PatternResult(
                 detected=True,
                 pattern_id=PATTERN_ID,
                 direction="LONG",
                 confidence=0.7,
+                raw_confidence=0.7,
+                r_t1=r_t1,
                 entry_price=entry,
                 stop=stop,
                 targets=[
@@ -57,7 +110,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 cci_at_signal=cci14,
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
-                details={"cci6": round(cci6, 2), "gap": round(cci6 - cci14, 2)},
+                details={"cci6": round(cci6, 2), "gap": round(cci6 - cci14, 2),
+                         "stop_layer_applied": stop_layer},
             )
 
     # TT SHORT: trend RED, TCCI touched CCI-14 from below then dropped
@@ -67,12 +121,25 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
         was_below = (cci6_prev2 < bar_prev2.cci_14 - 10)
         if touched and bounced and was_below:
             entry = bar.close
-            stop = entry + STOP_TICKS * TICK_SIZE
+            atr_ticks = _compute_atr14_ticks(bars)
+            if atr_ticks > 0:
+                stop_result = compute_stop(
+                    direction="SHORT", entry_bar=bar, swing_anchor=None,
+                    pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
+                )
+                stop = stop_result.stop_price
+                stop_layer = stop_result.layer_applied
+            else:
+                stop = entry + STOP_TICKS * TICK_SIZE
+                stop_layer = "primary"
+            r_t1 = _compute_r_t1(entry, stop)
             return PatternResult(
                 detected=True,
                 pattern_id=PATTERN_ID,
                 direction="SHORT",
                 confidence=0.7,
+                raw_confidence=0.7,
+                r_t1=r_t1,
                 entry_price=entry,
                 stop=stop,
                 targets=[
@@ -83,7 +150,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 cci_at_signal=cci14,
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
-                details={"cci6": round(cci6, 2), "gap": round(cci6 - cci14, 2)},
+                details={"cci6": round(cci6, 2), "gap": round(cci6 - cci14, 2),
+                         "stop_layer_applied": stop_layer},
             )
 
     return PatternResult(detected=False, pattern_id=PATTERN_ID)

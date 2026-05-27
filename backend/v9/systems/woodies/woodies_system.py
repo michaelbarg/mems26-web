@@ -16,7 +16,9 @@ from backend.v9.systems.base.trading_system import BaseV9TradingSystem, Hydratio
 from backend.v9.systems.woodies.cci_calc import compute_all_studies
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult
 from backend.v9.systems.woodies.pattern_engine import detect_all_patterns, PATTERN_IDS
+from backend.v9.systems.woodies.pattern_dispatcher import PatternDispatcher
 from backend.v9.systems.woodies.direction_change_detector import detect_from_buffer as detect_direction_change
+from backend.v9.systems.woodies.stages.a1_strategic_gate import TrendState
 from backend.v9.systems.woodies.decision_tree import (
     WoodiesDecisionContext,
     WoodiesDecisionTree,
@@ -28,6 +30,9 @@ from backend.v9.systems.woodies.decision_tree import (
 # budget constant is retained here as documentation of the original cap value.
 
 logger = logging.getLogger(__name__)
+
+# Module-level dispatcher instance (W-8)
+_pattern_dispatcher = PatternDispatcher()
 
 
 class WoodiesSystem(BaseV9TradingSystem):
@@ -209,7 +214,7 @@ class WoodiesSystem(BaseV9TradingSystem):
             if len(self._bar_buffer) > self.max_buffer:
                 self._bar_buffer = self._bar_buffer[-self.max_buffer:]
 
-            # Run 8-pattern engine
+            # Run 9-pattern engine
             patterns = detect_all_patterns(self._bar_buffer)
             self._active_patterns = patterns
 
@@ -228,8 +233,16 @@ class WoodiesSystem(BaseV9TradingSystem):
             sizing = "reject"
 
             if patterns:
-                # Highest-confidence pattern wins
-                best = max(patterns, key=lambda p: p.confidence)
+                # W-8: Two-tier R_t1 dispatch replaces naive max(confidence)
+                trend_state_str = (self.current_state.get("trend_state") or "GRAY").upper()
+                try:
+                    _ts = TrendState(trend_state_str)
+                except ValueError:
+                    _ts = TrendState.GRAY
+                dispatch_result = _pattern_dispatcher.select_winner(patterns, _ts)
+                best = dispatch_result.winner
+                if best is None:
+                    best = max(patterns, key=lambda p: p.confidence)  # safety net
                 signal = best.pattern_id
                 direction = best.direction
                 strength = int(best.confidence * 4)
@@ -243,7 +256,7 @@ class WoodiesSystem(BaseV9TradingSystem):
 
             fire_setup = None
             if patterns and direction and sizing != "reject":
-                best = max(patterns, key=lambda p: p.confidence)
+                # best already set by W-8 dispatcher above
                 if best.entry_price and best.stop and best.targets and len(best.targets) >= 2:
                     fire_setup = {
                         "direction": direction,
@@ -312,7 +325,7 @@ class WoodiesSystem(BaseV9TradingSystem):
 
             # Prompt 14: auto-route to TradingGateway when ready
             if dt_summary.get("ready_to_route") and self._gateway and patterns:
-                best = max(patterns, key=lambda p: p.confidence)
+                # best already set by W-8 dispatcher above
                 # Dedup: same bar_ts + same pattern+direction = already fired this bar.
                 # Sierra sends multiple UPDATE events per 5-min bar as it builds;
                 # without this gate, each UPDATE fires a new SHADOW trade.

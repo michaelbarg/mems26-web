@@ -37,10 +37,10 @@ decision_tree_nodes:
     test: tests/v9/compliance/test_woodies_compliance.py::test_study_computation
 
   - id: PATTERN_DETECT
-    name: "Detect 8 Woodies patterns (4 continuation + 4 reversal)"
-    branches: [ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, NONE]
+    name: "Detect 9 Woodies patterns (4 continuation + 5 reversal)"
+    branches: [ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE, NONE]
     status: IMPLEMENTED
-    notes: "All 8 detectors implemented with WoodiesBar interface + legacy compat"
+    notes: "All 9 detectors implemented with WoodiesBar interface + legacy compat. HFE added W-4."
     test: tests/v9/systems/test_woodies_patterns.py
 
   - id: CLASSIFY
@@ -141,6 +141,7 @@ patterns:
   - {id: B2, name: GHOST, group: REVERSAL, status: IMPLEMENTED}
   - {id: B3, name: FAMIR, group: REVERSAL, status: IMPLEMENTED}
   - {id: B4, name: HTLB, group: REVERSAL, status: IMPLEMENTED}
+  - {id: B5, name: HFE, group: REVERSAL, status: IMPLEMENTED, notes: "W-4 DLL-primary with AP5 enforcement"}
 
 anti_patterns:
   - id: AP1

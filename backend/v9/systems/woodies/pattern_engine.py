@@ -1,10 +1,10 @@
-"""Woodies CCI unified pattern detection -- 8 CCI pattern detectors.
+"""Woodies CCI unified pattern detection -- 9 CCI pattern detectors.
 
 Entry point: detect_all_patterns(bars, context) -> list[PatternResult]
 
-8 patterns:
+9 patterns:
   Continuation (Group A): ZLR, TLB, TT, GB100
-  Reversal (Group B):     VEGAS, GHOST, FAMIR, HTLB
+  Reversal (Group B):     VEGAS, GHOST, FAMIR, HTLB, HFE
 
 Each pattern uses CCI-14, TCCI (CCI-6), and optionally EMA-34
 from Woodies methodology per MEMS26_WOODIES_SPEC_V1_DERIVED.
@@ -38,7 +38,7 @@ def detect_all_patterns(
     bars: List[WoodiesBar],
     context: Optional[dict] = None,
 ) -> List[PatternResult]:
-    """Run all 8 pattern detectors on the bar history.
+    """Run all 9 pattern detectors on the bar history.
 
     Args:
         bars: List of WoodiesBar objects (oldest first).

@@ -29,7 +29,7 @@ def make_bar(ts=1000.0, close=5250.0, high=5252.0, low=5248.0,
 
 
 def make_bars_from_cci(cci_values, base_close=5250.0, step=0.5,
-                       trend_state="GRAY", cci6_values=None):
+                       trend_state="GRAY", cci6_values=None, **kwargs):
     """Build list of WoodiesBar from CCI-14 values."""
     bars = []
     for i, cci in enumerate(cci_values):
@@ -39,6 +39,7 @@ def make_bars_from_cci(cci_values, base_close=5250.0, step=0.5,
             ts=1000.0 + i * 1800,
             close=c, high=c + 1.5, low=c - 1.0, open_=c - 0.25,
             cci_14=cci, cci_6_tcci=cci6, trend_state=trend_state,
+            **kwargs,
         ))
     return bars
 
@@ -89,7 +90,7 @@ class TestWoodiesBarProperties:
 
 class TestZLR:
     def test_zlr_up_detected(self):
-        cci = [0] * 5 + [120, 130, 110, 60, 50, 40, 55, 80]
+        cci = [0] * 5 + [120, 130, 110, 60, 50, 20, 55, 100]
         bars = make_bars_from_cci(cci)
         result = zlr.detect(bars)
         assert result.detected is True
@@ -103,7 +104,7 @@ class TestZLR:
         assert result.targets[0] > result.entry_price
 
     def test_zlr_down_detected(self):
-        cci = [0] * 5 + [-120, -130, -110, -60, -50, -40, -55, -80]
+        cci = [0] * 5 + [-120, -130, -110, -60, -50, -20, -55, -100]
         bars = make_bars_from_cci(cci)
         result = zlr.detect(bars)
         assert result.detected is True
@@ -123,13 +124,13 @@ class TestZLR:
         assert result.detected is False
 
     def test_zlr_confidence_range(self):
-        cci = [0] * 5 + [120, 130, 110, 60, 50, 40, 55, 80]
+        cci = [0] * 5 + [120, 130, 110, 60, 50, 20, 55, 100]
         bars = make_bars_from_cci(cci)
         result = zlr.detect(bars)
         assert 0.0 < result.confidence <= 0.9
 
     def test_zlr_details_present(self):
-        cci = [0] * 5 + [120, 130, 110, 60, 50, 40, 55, 80]
+        cci = [0] * 5 + [120, 130, 110, 60, 50, 20, 55, 100]
         bars = make_bars_from_cci(cci)
         result = zlr.detect(bars)
         assert result.details is not None
@@ -182,7 +183,7 @@ class TestTLB:
 
 class TestTT:
     def test_tt_long_detected(self):
-        cci14_vals = [80, 85, 90, 95, 100, 100, 90, 95, 100]
+        cci14_vals = [80, 85, 90, 95, 100, 100, 50, 95, 100]
         cci6_vals = [110, 115, 120, 125, 130, 120, 110, 100, 120]
         bars = []
         for i in range(len(cci14_vals)):
@@ -199,7 +200,7 @@ class TestTT:
         assert result.group == "CONTINUATION"
 
     def test_tt_short_detected(self):
-        cci14_vals = [-80, -85, -90, -95, -100, -100, -90, -95, -100]
+        cci14_vals = [-80, -85, -90, -95, -100, -100, -50, -95, -100]
         cci6_vals = [-110, -115, -120, -125, -130, -120, -110, -100, -120]
         bars = []
         for i in range(len(cci14_vals)):
@@ -237,7 +238,7 @@ class TestTT:
 
 class TestGB100:
     def test_gb100_long_detected(self):
-        cci = [50, 60, 70, 80, 90, 95, 99, 120]
+        cci = [50, 60, 70, 80, 90, 65, 99, 120]
         bars = make_bars_from_cci(cci, trend_state="BLUE")
         result = gb100.detect(bars)
         assert result.detected is True
@@ -246,7 +247,7 @@ class TestGB100:
         assert result.group == "CONTINUATION"
 
     def test_gb100_short_detected(self):
-        cci = [-50, -60, -70, -80, -90, -95, -99, -120]
+        cci = [-50, -60, -70, -80, -90, -65, -99, -120]
         bars = make_bars_from_cci(cci, trend_state="RED")
         result = gb100.detect(bars)
         assert result.detected is True
@@ -270,7 +271,7 @@ class TestGB100:
         assert result.detected is False
 
     def test_gb100_entry_and_targets(self):
-        cci = [50, 60, 70, 80, 90, 95, 99, 120]
+        cci = [50, 60, 70, 80, 90, 65, 99, 120]
         bars = make_bars_from_cci(cci, trend_state="BLUE")
         result = gb100.detect(bars)
         assert result.entry_price > 0
@@ -293,7 +294,7 @@ class TestVEGAS:
             ]
             cci = [
                 50, 80, 120, 140, 150, 140, 100, 60, 30, 10,
-                30, 60, 100, 115, 120, 115, 90, 60, 50, 40,
+                30, 60, 100, 115, 120, 115, 90, 60, 50, -10,
             ]
         else:
             # Price LL, CCI HL
@@ -303,7 +304,7 @@ class TestVEGAS:
             ]
             cci = [
                 -50, -80, -120, -140, -150, -140, -100, -60, -30, -10,
-                -30, -60, -100, -115, -120, -115, -90, -60, -50, -40,
+                -30, -60, -100, -115, -120, -115, -90, -60, -50, 10,
             ]
         # Pad with 5 prefix bars
         price = [price[0]] * 5 + price
@@ -355,8 +356,9 @@ class TestVEGAS:
 class TestGHOST:
     def test_ghost_bearish_detected(self):
         # Three CCI peaks: left=120, head=180, right=100, then drops
+        # Last 3 CCI must have range >= 50 for AP8
         cci = [50, 80, 120, 80, 60, 100, 180, 100, 60, 40,
-               70, 100, 70, 40, 30, 20, 10, 5, 0, -10]
+               70, 100, 70, 40, 30, 20, 10, -50, 0, -10]
         bars = make_bars_from_cci(cci)
         result = ghost.detect(bars)
         assert result.detected is True
@@ -366,8 +368,9 @@ class TestGHOST:
 
     def test_ghost_bullish_detected(self):
         # Three CCI troughs: left=-120, head=-180, right=-100, then rises
+        # Last 3 CCI must have range >= 50 for AP8
         cci = [-50, -80, -120, -80, -60, -100, -180, -100, -60, -40,
-               -70, -100, -70, -40, -30, -20, -10, -5, 0, 10]
+               -70, -100, -70, -40, -30, -20, -10, 50, 0, 10]
         bars = make_bars_from_cci(cci)
         result = ghost.detect(bars)
         assert result.detected is True
@@ -399,8 +402,8 @@ class TestGHOST:
 
 class TestFAMIR:
     def test_famir_short_detected(self):
-        cci = [100, 130, 160, 180, 185, 175, 160, 140]
-        bars = make_bars_from_cci(cci)
+        cci = [100, 130, 160, 180, 185, 175, 150, 120]
+        bars = make_bars_from_cci(cci, lsma_above_price=True)
         result = famir.detect(bars)
         assert result.detected is True
         assert result.pattern_id == "FAMIR"
@@ -408,7 +411,7 @@ class TestFAMIR:
         assert result.group == "REVERSAL"
 
     def test_famir_long_detected(self):
-        cci = [-100, -130, -160, -180, -185, -175, -160, -140]
+        cci = [-100, -130, -160, -180, -185, -175, -150, -120]
         bars = make_bars_from_cci(cci)
         result = famir.detect(bars)
         assert result.detected is True
@@ -433,8 +436,8 @@ class TestFAMIR:
         assert result.detected is False
 
     def test_famir_stop_and_targets_short(self):
-        cci = [100, 130, 160, 180, 185, 175, 160, 140]
-        bars = make_bars_from_cci(cci)
+        cci = [100, 130, 160, 180, 185, 175, 150, 120]
+        bars = make_bars_from_cci(cci, lsma_above_price=True)
         result = famir.detect(bars)
         assert result.stop > result.entry_price  # SHORT stop above entry
         assert len(result.targets) == 2
@@ -442,7 +445,7 @@ class TestFAMIR:
             assert t < result.entry_price
 
     def test_famir_stop_and_targets_long(self):
-        cci = [-100, -130, -160, -180, -185, -175, -160, -140]
+        cci = [-100, -130, -160, -180, -185, -175, -150, -120]
         bars = make_bars_from_cci(cci)
         result = famir.detect(bars)
         assert result.stop < result.entry_price  # LONG stop below entry
@@ -520,15 +523,15 @@ class TestDetectAllPatterns:
             assert r.detected is True
 
     def test_zlr_detected_via_all(self):
-        cci = [0] * 5 + [120, 130, 110, 60, 50, 40, 55, 80]
+        cci = [0] * 5 + [120, 130, 110, 60, 50, 20, 55, 100]
         bars = make_bars_from_cci(cci)
         results = detect_all_patterns(bars)
         zlr_results = [r for r in results if r.pattern_id == "ZLR"]
         assert len(zlr_results) >= 1
 
     def test_famir_detected_via_all(self):
-        cci = [100, 130, 160, 180, 185, 175, 160, 140]
-        bars = make_bars_from_cci(cci)
+        cci = [100, 130, 160, 180, 185, 175, 150, 120]
+        bars = make_bars_from_cci(cci, lsma_above_price=True)
         results = detect_all_patterns(bars)
         famir_results = [r for r in results if r.pattern_id == "FAMIR"]
         assert len(famir_results) >= 1
@@ -564,7 +567,7 @@ class TestLegacyInterface:
 
     def test_legacy_zlr(self):
         from backend.v9.systems.woodies.patterns.zlr import detect_zlr
-        cci = [0] * 5 + [120, 130, 110, 60, 50, 40, 55, 80]
+        cci = [0] * 5 + [120, 130, 110, 60, 50, 20, 55, 100]
         result = detect_zlr(cci, bar_index=12, ts=1000.0)
         assert result is not None
         assert result.pattern == "ZLR"
@@ -585,7 +588,7 @@ class TestLegacyInterface:
 
     def test_legacy_famir(self):
         from backend.v9.systems.woodies.patterns.famir import detect_famir
-        cci = [100, 130, 160, 180, 185, 175, 160, 140]
+        cci = [100, 130, 160, 180, 185, 175, 150, 120]
         result = detect_famir(cci, bar_index=7, ts=1000.0)
         assert result is not None
         assert result.pattern == "FAMIR"
