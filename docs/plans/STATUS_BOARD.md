@@ -179,15 +179,33 @@
 
 ---
 
+## Pipeline 2 · Shadow Data Quality Gate
+
+**Audit 27/5 10:20 IL** — before LIVE or DEMO enable, shadow data must pass quality review.
+
+| Date | Trades | W/L | PnL | Status |
+| ---- | ------ | --- | --- | ------ |
+| 2026-05-21 | 633 | 260/373 | -$6,534 | ⚠️ **SUSPECT BACKTEST** · 100 trades/hr uniform · avg_stop=1.5pts |
+| 2026-05-22 | 1,830 | 736/1,094 | -$21,670 | ⚠️ **SUSPECT BACKTEST** · 100 trades/hr 24h straight · 736 zero-stop entries |
+| 2026-05-23 | 9 | 9/0 | +$375 | ✅ looks real · avg_stop=0 (pre-ATR-stop code) |
+| 2026-05-25 | 145 | 64/81 | -$303 | 🟡 real but high fire-rate (145/day = 12/hr) · avg_stop=1.55pts |
+| 2026-05-26 | 74 | 32/42 | -$224 | 🟡 real but 74/day = 6/hr · avg_stop=1.54pts |
+| 2026-05-27 | 1 | 0/1 | -$15 | ✅ |
+
+**Michael decision needed:**
+- (a) Delete 21/5 + 22/5 backtest rows (2,463 trades, -$28K phantom loss)
+- (b) Investigate 25/5-26/5 high fire-rate (dedup issue? 145 trades/day is too many)
+- (c) Minimum 200 clean post-fix SHADOW trades needed before LIVE quality assessment
+
 ## DEMO gate
 
 
 | Criterion                                 | Status |
 | ----------------------------------------- | ------ |
 | All Phase A packages SHADOW passed        | ⬜      |
-| D-092 (S4) done                           | ⬜      |
+| D-092 (S4) done                           | ✅ Pipeline 2 complete · W-10 LIVE block cleared |
 | S1 + S3 verify closed                     | ⬜      |
-| ≥40 SHADOW trades on firing pattern combo | ⬜      |
+| ≥40 SHADOW trades on firing pattern combo | 🟡 data audit required first (see above) |
 | Zero open warnings 24h                    | ⬜      |
 
 
