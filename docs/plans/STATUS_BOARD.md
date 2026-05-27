@@ -113,8 +113,13 @@
 | ✅ 25/5 16:30 | **All 10 P-W locks closed** — `docs/handoff/MEGA_PROMPT_PW_DECISIONS_INTAKE.md` §Locked Decisions · audit passed (formulas direction-agnostic · no circular deps · pre-LIVE protocol compliant)                                                                                                   |
 | ✅ 25/5 16:50 | **v2 FINAL · all 3 gaps resolved** — Gap 1 DTV1 saved to `docs/MEMS26_WOODIES_DECISION_TREE_V1.md` (1085 LOC · MD5-verified · matches Michael upload) · Gap 2 P-W6 typo fix `RED → CONT wins` (was `REV wins` · unreachable branch · D-092 unchanged) · Gap 3 confidence formulas code-as-truth KEEP (Registry §5 verified) · Cursor follow-ups #1+#6 ✅ DONE |
 | ✅ 25/5 16:50 | Registry §5 row 9 (HFE) updated · "להחליט: DLL only או keep Python fallback" → "🔒 P-W2 lock 25/5 · B · DLL primary · Python audit-only · DLL down → no HFE"                                                                                                                                       |
-| ⏳ queued     | **Pipeline 2 G0 audit** — `backend/v9/systems/woodies/` KEEP/ADAPT/REPLACE/DEFER classification (17 .py files vs DTV1 + Sheets A/B/C + 10 P-W locks) · **unblocked · ready to start**                                                                                                              |
-| ⏳ queued     | Pipeline 2 package list in PRE_LIVE_PIPELINE (10 pkgs · TBD after G0 audit)                                                                                                                                                                                                                       |
+| ✅ 27/5 08:58 | **G3 PASS (Cursor)** · commit `2e14400` · W-0..W-8 LOCKED (9/10) · W-9 LEGIT BLOCK (S2 Pkg 6 RiskRule + Liran doctrine missing) · 210 new tests + 912 regression · 0 new failures · PatternDispatcher wired `woodies_system.py:242` · AP8 universal wired · atr_stop wired all patterns · raw_confidence UNCHANGED |
+| ✅ 27/5 09:00 | **Michael decisions locked:** W-9→defer Pipeline 3 · W-10 Time stop→add to Pipeline 2 (~1.5d CC) · W-11 Partial exit→defer Pipeline 3 · Finding #15 YELLOW edge→Phase B |
+| 🟡 SHADOW     | **SHADOW: APPROVED** · paper-trading ready · 9 patterns firing via R_t1 dispatcher |
+| 🔴 LIVE BLOCK | **W-10 Time stop NOT enforced** (Registry #11 `time_stop_minutes` field exists · enforcement missing) · **MUST complete before LIVE** |
+| ⏳ pending    | **W-10 mega-prompt** → CC ~1.5 days · `time_stop_minutes` enforcement throughout trade lifecycle |
+| ⏳ pending    | **CC verification batch** (`CC_FINAL_VERIFICATION_BATCH_2026-05-26.md` · §9.2 ❓ items · WIRED layer) |
+| ⏳ pending    | **SHADOW data review** ≥200 trades · Phase B R_t1 + raw_confidence distribution check |
 
 
 ---
