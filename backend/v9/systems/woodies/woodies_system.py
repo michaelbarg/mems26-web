@@ -19,6 +19,7 @@ from backend.v9.systems.woodies.pattern_engine import detect_all_patterns, PATTE
 from backend.v9.systems.woodies.pattern_dispatcher import PatternDispatcher
 from backend.v9.systems.woodies.direction_change_detector import detect_from_buffer as detect_direction_change
 from backend.v9.systems.woodies.stages.a1_strategic_gate import TrendState
+from backend.v9.systems.woodies.time_stop import TimeStopEnforcer, load_time_stop_config
 from backend.v9.systems.woodies.decision_tree import (
     WoodiesDecisionContext,
     WoodiesDecisionTree,
@@ -56,6 +57,14 @@ class WoodiesSystem(BaseV9TradingSystem):
         self.max_buffer = 50
         self._active_patterns: List[PatternResult] = []
         self._decision_tree = WoodiesDecisionTree()
+        # W-10: Time stop enforcement (Registry #11)
+        ts_cfg = load_time_stop_config()
+        self._time_stop_enforcer = TimeStopEnforcer(
+            time_stop_minutes=ts_cfg["time_stop_minutes"],
+            tick_minutes=ts_cfg["tick_minutes"],
+        )
+        self._bar_count: int = 0
+        self._open_fire_records: Dict[str, dict] = {}  # trade_id → {entry_bar_count, pattern_id}
         self.current_state: Dict = {
             "timeframe": "5min",
             "running": False,
@@ -154,6 +163,7 @@ class WoodiesSystem(BaseV9TradingSystem):
     async def process_bar(self, event) -> None:
         """Process a 5-min Woodies bar: compute studies, detect patterns, persist."""
         try:
+            self._bar_count += 1
             bar = dict(event.payload) if hasattr(event, 'payload') else dict(event)
 
             h = float(bar.get("high", bar.get("h", 0)))
@@ -372,6 +382,12 @@ class WoodiesSystem(BaseV9TradingSystem):
                         elif route_result.get("shadow"):
                             # Record bar_ts so duplicate UPDATE events on same bar are skipped.
                             self._last_fired_bar_ts[_fire_key] = float(bar_ts)
+                            # W-10: track open fire for time stop enforcement
+                            shadow_id = str(route_result["shadow"])
+                            self._open_fire_records[shadow_id] = {
+                                "entry_bar_count": self._bar_count,
+                                "pattern_id": best.pattern_id,
+                            }
                             logger.info(
                                 "[Woodies] SHADOW recorded: %s %s size=%s id=%s bar_ts=%s",
                                 best.pattern_id, best.direction, sizing,
@@ -391,6 +407,9 @@ class WoodiesSystem(BaseV9TradingSystem):
                     self.current_state["last_route"] = {"skipped": True, "reason": "no_gateway"}
                 elif not patterns:
                     self.current_state["last_route"] = {"skipped": True, "reason": "no_patterns"}
+
+            # W-10: time stop enforcement on all tracked open fires
+            self._check_time_stops()
 
             # Persist patterns to DB (LIVE mode only)
             mode = getattr(event, 'mode', bar.get('mode', 'LIVE'))
@@ -465,6 +484,42 @@ class WoodiesSystem(BaseV9TradingSystem):
             )
         except Exception as e:
             logger.warning("[Woodies] Pattern persist failed: %s", e)
+
+    def _check_time_stops(self) -> None:
+        """W-10: Check all tracked open fires for time stop expiry.
+
+        For each open fire, compute bars_open and check against limit.
+        If fired: close via trade_manager (if available), remove from tracking.
+        Idempotent: already-closed trades are removed silently.
+        """
+        if not self._open_fire_records:
+            return
+
+        to_remove = []
+        for trade_id, record in self._open_fire_records.items():
+            bars_open = self._bar_count - record["entry_bar_count"]
+            result = self._time_stop_enforcer.check(
+                bars_open=bars_open,
+                pattern_id=record["pattern_id"],
+                trade_id=trade_id,
+            )
+            if result.fired:
+                # Attempt close via gateway → trade_manager
+                tm = getattr(self._gateway, '_trade_manager', None) if self._gateway else None
+                if tm is not None:
+                    try:
+                        tm.close_trade(int(trade_id), "TIME_STOP")
+                        tm._db.commit()
+                    except Exception as exc:
+                        # Trade may already be closed (idempotent) or ID invalid
+                        logger.debug(
+                            "[woodies] TIME_STOP close_trade(%s) skipped: %s",
+                            trade_id, exc,
+                        )
+                to_remove.append(trade_id)
+
+        for tid in to_remove:
+            del self._open_fire_records[tid]
 
     # Constitution V2 PART 6 — pattern tier map
     PATTERN_TIER = {
