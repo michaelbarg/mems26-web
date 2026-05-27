@@ -232,13 +232,21 @@ class WoodiesSystem(BaseV9TradingSystem):
             classification = "NO_SETUP"
             sizing = "reject"
 
+            # F-16: resolve trend state before dispatch — needed for YELLOW guard below
+            trend_state_str = (self.current_state.get("trend_state") or "GRAY").upper()
+            try:
+                _ts = TrendState(trend_state_str)
+            except ValueError:
+                _ts = TrendState.GRAY
+            # P-W5 LOCK A: YELLOW blocks all 9 patterns. detect_all_patterns runs
+            # unconditionally; we drop here rather than letting select_winner raise
+            # ValueError into the outer except handler (F-16 fix).
+            if patterns and _ts == TrendState.YELLOW:
+                logger.warning("[Woodies] YELLOW state — %d pattern(s) blocked (P-W5 LOCK A)", len(patterns))
+                patterns = []
+
             if patterns:
                 # W-8: Two-tier R_t1 dispatch replaces naive max(confidence)
-                trend_state_str = (self.current_state.get("trend_state") or "GRAY").upper()
-                try:
-                    _ts = TrendState(trend_state_str)
-                except ValueError:
-                    _ts = TrendState.GRAY
                 dispatch_result = _pattern_dispatcher.select_winner(patterns, _ts)
                 best = dispatch_result.winner
                 if best is None:
