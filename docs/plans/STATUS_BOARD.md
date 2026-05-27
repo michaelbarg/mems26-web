@@ -116,8 +116,8 @@
 | ✅ 27/5 08:58 | **G3 PASS (Cursor)** · commit `2e14400` · W-0..W-8 LOCKED (9/10) · W-9 LEGIT BLOCK (S2 Pkg 6 RiskRule + Liran doctrine missing) · 210 new tests + 912 regression · 0 new failures · PatternDispatcher wired `woodies_system.py:242` · AP8 universal wired · atr_stop wired all patterns · raw_confidence UNCHANGED |
 | ✅ 27/5 09:00 | **Michael decisions locked:** W-9→defer Pipeline 3 · W-10 Time stop→add to Pipeline 2 (~1.5d CC) · W-11 Partial exit→defer Pipeline 3 · Finding #15 YELLOW edge→Phase B |
 | 🟡 SHADOW     | **SHADOW: APPROVED** · paper-trading ready · 9 patterns firing via R_t1 dispatcher |
-| 🔴 LIVE BLOCK | **W-10 Time stop NOT enforced** (Registry #11 `time_stop_minutes` field exists · enforcement missing) · **MUST complete before LIVE** |
-| ⏳ pending    | **W-10 mega-prompt** → CC ~1.5 days · `time_stop_minutes` enforcement throughout trade lifecycle |
+| ✅ LIVE BLOCK CLEARED | **W-10 Time stop ENFORCED** (Registry #11) · `TimeStopEnforcer` fires per-bar · WARNING log · gateway close |
+| ✅ 27/5 10:18 | **W-10 DONE** · commit `210e1ca` · `time_stop.py` + wiring + 35 tests · G3 PASS · 947/947 regression |
 | ⏳ pending    | **CC verification batch** (`CC_FINAL_VERIFICATION_BATCH_2026-05-26.md` · §9.2 ❓ items · WIRED layer) |
 | ⏳ pending    | **SHADOW data review** ≥200 trades · Phase B R_t1 + raw_confidence distribution check |
 
