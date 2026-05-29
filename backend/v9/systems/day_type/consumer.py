@@ -136,14 +136,27 @@ class DayTypeConsumer:
 
     @staticmethod
     def _extract_session_date(timestamp):
-        """Extract date from timestamp (ISO string or datetime)."""
+        """Extract trading session date from timestamp.
+
+        Uses ET (America/New_York) date, not UTC date. This prevents
+        overnight bars (e.g. 20:00 ET = 00:00 UTC next day) from creating
+        a new day_type_history row with stale values before RTH opens.
+        """
         if isinstance(timestamp, str):
             ts = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
         elif isinstance(timestamp, datetime):
             ts = timestamp
         else:
             raise ValueError(f"Unsupported timestamp type: {type(timestamp)}")
-        return ts.date()
+        try:
+            from zoneinfo import ZoneInfo
+            _et = ZoneInfo("America/New_York")
+        except ImportError:
+            import pytz
+            _et = pytz.timezone("America/New_York")
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=_et)
+        return ts.astimezone(_et).date()
 
     @staticmethod
     def _parse_datetime(value):
