@@ -8,6 +8,7 @@ import sqlite3
 from datetime import date, datetime, timezone
 from typing import Optional
 
+from backend.v9.common.trading_date import et_today
 from .types import PatternStatus, Component, SystemStatus, DataFreshness
 from .row_helpers import make_freshness, freshness_now
 
@@ -27,7 +28,7 @@ def inspect(day_type_machine=None) -> SystemStatus:
         name="S1 · Day Type Classification",
     )
 
-    today = date.today().isoformat()
+    today = et_today().isoformat()
     row = None
 
     try:

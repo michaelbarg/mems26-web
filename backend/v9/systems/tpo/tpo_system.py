@@ -6,6 +6,8 @@ Subscribes to 5min via BarRouter.
 import logging
 import sqlite3
 from datetime import datetime, date
+
+from backend.v9.common.trading_date import et_today
 from typing import List, Optional, Dict, Any
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
@@ -87,7 +89,7 @@ class TPOSystem(BaseV9TradingSystem):
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM v9_tpo_sessions WHERE trading_date=? ORDER BY id DESC LIMIT 1",
-                (date.today().isoformat(),)
+                (et_today().isoformat(),)
             ).fetchone()
             conn.close()
             if row:
@@ -140,7 +142,7 @@ class TPOSystem(BaseV9TradingSystem):
 
             # Determine session type
             session_type = "CASH" if session in ("CASH_OPEN", "FIRST_HOUR", "CASH_HOURS") else "GLOBEX"
-            today = date.today().isoformat()
+            today = et_today().isoformat()
             session_id = f"{session_type}_{today}"
 
             # New session?

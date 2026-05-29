@@ -10,6 +10,7 @@ import sqlite3
 from datetime import date, datetime, time as _time, timezone
 from typing import Optional
 
+from backend.v9.common.trading_date import et_today
 from .types import PatternStatus, Component, SystemStatus, DataFreshness
 from .auth_table_lookup import WOODIES_PATTERN_IDS
 from .row_helpers import (
@@ -154,7 +155,7 @@ def inspect(woodies_system=None) -> SystemStatus:
         _wconn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
         _wrow = _wconn.execute(
             "SELECT day_type FROM v9_day_type_history WHERE date = ? LIMIT 1",
-            (date.today().isoformat(),),
+            (et_today().isoformat(),),
         ).fetchone()
         _wconn.close()
         _woodies_day_type = _wrow[0] if _wrow else None

@@ -28,6 +28,7 @@ from zoneinfo import ZoneInfo
 from fastapi import APIRouter
 
 from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+from backend.v9.common.trading_date import et_today
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,8 @@ def _day_type_row() -> Optional[dict]:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
             "SELECT day_type, opening_type FROM v9_day_type_history "
-            "WHERE date = date('now') LIMIT 1"
+            "WHERE date = ? LIMIT 1",
+            (et_today().isoformat(),),
         ).fetchone()
         conn.close()
         return dict(row) if row else None
@@ -253,8 +255,8 @@ def _globex_range(rth_open_et: datetime) -> tuple[Optional[float], Optional[floa
         row = conn.execute(
             "SELECT MIN(low) AS g_low, MAX(high) AS g_high, COUNT(*) AS n "
             "FROM v9_bars_5min "
-            "WHERE symbol='MES' AND date(ts) = date('now') AND ts < ?",
-            (rth_utc,),
+            "WHERE symbol='MES' AND date(ts) = ? AND ts < ?",
+            (et_today().isoformat(), rth_utc),
         ).fetchone()
         conn.close()
         if not row or not row[2]:

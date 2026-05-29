@@ -28,6 +28,8 @@ import sqlite3
 from datetime import date as _date, datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
+from backend.v9.common.trading_date import et_today as _et_today
+
 from .types import Freshness, FreshnessSource
 
 logger = logging.getLogger(__name__)
@@ -309,7 +311,7 @@ def fires_today(
     if now is None:
         now = datetime.now(timezone.utc)
     if today is None:
-        today = _date.today().isoformat()
+        today = _et_today().isoformat()
     key = (int(firing_system), today)
 
     cached = _FIRES_TODAY_CACHE.get(key)

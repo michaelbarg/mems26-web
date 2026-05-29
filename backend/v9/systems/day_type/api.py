@@ -3,6 +3,8 @@
 from datetime import datetime, timezone
 from typing import Optional
 
+from backend.v9.common.trading_date import et_today
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -88,7 +90,8 @@ def _get_state_machine_classification() -> Optional[dict]:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM v9_day_type_state WHERE lock_state='LOCKED' AND date(ts)=date('now') ORDER BY id DESC LIMIT 1"
+            "SELECT * FROM v9_day_type_state WHERE lock_state='LOCKED' AND date(ts)=? ORDER BY id DESC LIMIT 1",
+            (et_today().isoformat(),),
         ).fetchone()
         conn.close()
         if not row:
@@ -239,9 +242,7 @@ def get_current():
     Shape: always returns {day_type, confidence, stage, classified, ...}
     """
     import requests
-    from datetime import date
-
-    today = date.today().isoformat()
+    today = et_today().isoformat()
 
     # ── SOURCE 1: V9 state machine via /v9/current (canonical per Prompt 20) ──
     try:

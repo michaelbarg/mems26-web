@@ -8,6 +8,7 @@ Full Day Type hydration (PD data, TPO inputs) deferred to PROMPT 5.1
 import logging
 from datetime import date
 
+from backend.v9.common.trading_date import et_today
 from backend.v9.systems.base.trading_system import HydrationResult
 from backend.v9.db.session import SessionLocal
 
@@ -19,7 +20,7 @@ def hydrate_day_type() -> HydrationResult:
     try:
         from backend.v9.db.models.day_type_history import V9DayTypeHistory
         db = SessionLocal()
-        today = date.today()
+        today = et_today()
         latest = (
             db.query(V9DayTypeHistory)
             .filter(V9DayTypeHistory.date == today)

@@ -9,6 +9,8 @@ import logging
 import sqlite3
 import time
 from datetime import date, datetime, timezone
+
+from backend.v9.common.trading_date import et_today
 from typing import Optional, List
 
 from .types import BuildStatusResponse, SystemStatus, RTBSession
@@ -65,7 +67,7 @@ class BuildStatusAggregator:
         Returns day_type string (e.g. "Neutral_Center") or None if not yet classified.
         Read-only sqlite3 URI per constraint (g).
         """
-        today = date.today().isoformat()
+        today = et_today().isoformat()
         try:
             conn = sqlite3.connect(
                 f"file:{self._db_path}?mode=ro&immutable=1", uri=True
@@ -201,7 +203,7 @@ class BuildStatusAggregator:
         return BuildStatusResponse(
             ts=now_utc.isoformat(),
             build_version="v1",
-            session_date=date.today().isoformat(),
+            session_date=et_today().isoformat(),
             rtb_session=rtb,
             systems=result_systems,
             errors=errors,

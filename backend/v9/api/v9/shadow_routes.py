@@ -7,6 +7,8 @@ import time
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request
 
+from backend.v9.common.trading_date import et_today
+
 router = APIRouter(tags=["shadow"])
 
 DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
@@ -35,7 +37,8 @@ async def shadow_today_wr():
     try:
         conn = sqlite3.connect(DB_PATH)
         rows = conn.execute(
-            "SELECT outcome FROM v9_trades WHERE date(created_at) = date('now') AND outcome IS NOT NULL"
+            "SELECT outcome FROM v9_trades WHERE date(created_at) = ? AND outcome IS NOT NULL",
+            (et_today().isoformat(),)
         ).fetchall()
         conn.close()
     except Exception:
@@ -64,7 +67,7 @@ async def shadow_soak_progress():
     from datetime import date
     # SHADOW start date — first day mode was set to shadow
     start_date = date(2026, 5, 14)  # hard-coded for now
-    today = date.today()
+    today = et_today()
     day_n = max(1, (today - start_date).days + 1)
     return {
         "day": min(day_n, 30),

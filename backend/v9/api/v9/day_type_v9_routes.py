@@ -10,8 +10,10 @@ Endpoints:
 """
 
 import sqlite3
-from datetime import date
+from datetime import date, timedelta
 from typing import Optional
+
+from backend.v9.common.trading_date import et_today
 
 from fastapi import APIRouter, Query
 
@@ -27,7 +29,7 @@ def get_current():
     Returns the V9 row for today's session_date, or null if not yet classified.
     Uses V9 columns (probability, directional_certainty, trading_confidence).
     """
-    today = date.today().isoformat()
+    today = et_today().isoformat()
     try:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
@@ -84,13 +86,14 @@ def get_stats(days: int = Query(30, ge=1, le=365)):
     try:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
+        cutoff = (et_today() - timedelta(days=days)).isoformat()
         rows = conn.execute(
             """SELECT day_type, COUNT(*) as cnt
                FROM v9_day_type_history
-               WHERE date >= date('now', ?)
+               WHERE date >= ?
                GROUP BY day_type
                ORDER BY cnt DESC""",
-            (f"-{days} days",),
+            (cutoff,),
         ).fetchall()
         conn.close()
 

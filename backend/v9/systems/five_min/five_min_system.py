@@ -6,6 +6,8 @@ Uses SessionClassifier (D-083) — never raw time checks.
 
 import logging
 from datetime import date, datetime, timezone, timedelta
+
+from backend.v9.common.trading_date import et_today
 from typing import Any, Dict, List, Optional
 
 from backend.v9.systems.base.trading_system import BaseV9TradingSystem, HydrationResult, SystemType
@@ -121,7 +123,7 @@ class FiveMinSystem(BaseV9TradingSystem):
             db = SessionLocal()
             try:
                 state = db.query(V9FiveMinState).filter(
-                    V9FiveMinState.session_date == date.today()
+                    V9FiveMinState.session_date == et_today()
                 ).first()
             finally:
                 db.close()
