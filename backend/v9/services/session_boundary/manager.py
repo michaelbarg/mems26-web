@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import sqlite3
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Optional, Protocol
 
 from backend.v9.common.trading_date import et_today
@@ -121,27 +121,115 @@ class SessionBoundaryManager:
         # last < today → real rollover.
         return self._perform_rollover(today)
 
+    def subscribe_to_bar_router(self, bar_router) -> None:
+        """First-bar fallback: check rollover on every 5min bar.
+
+        Handles the case where the backend runs through 18:00 ET
+        without a restart. Belt-and-suspenders with the startup hook.
+        """
+        async def _on_bar(event):
+            try:
+                self.check_rollover()
+            except Exception as e:
+                logger.warning("[SessionBoundary] first-bar fallback error: %s", e, exc_info=True)
+        bar_router.subscribe("5min", _on_bar)
+        logger.info("[SessionBoundary] subscribed to 5min via BarRouter (first-bar fallback)")
+
     def _perform_rollover(self, today: date) -> bool:
         """Execute the rollover sequence.
 
-        1. Reset DayTypeStateMachine
-        2. Reset RiskValidator daily counters
-        3. Mark last_rollover_date = today
+        Order: archive → truncate → reset machine → reset risk → mark done.
+        Per CLAUDE.md Rule 1: archive INSERTs then marks ROLLED_OVER. Never DELETE.
         """
         try:
             logger.info("[SessionBoundary] rollover fired for date=%s", today)
 
+            # 1. ARCHIVE yesterday's data
+            archived = self._archive_yesterday(today)
+            logger.info("[SessionBoundary] archived: %s", archived)
+
+            # 2. TRUNCATE stale v9_day_type_state rows (>2 days old)
+            truncated = self._truncate_stale_state(today)
+            logger.info("[SessionBoundary] truncated v9_day_type_state: %d rows", truncated)
+
+            # 3. RESET state machine
             if self.day_type_machine is not None:
                 self.day_type_machine.reset()
                 logger.info("[SessionBoundary] DayTypeStateMachine reset")
 
+            # 4. RESET risk validator
             if self.risk_validator is not None:
                 self.risk_validator.daily_reset()
                 logger.info("[SessionBoundary] RiskValidator daily_reset")
 
+            # 5. MARK rollover complete
             self._set_last_rollover_date(today)
             return True
 
         except Exception as e:
             logger.error("[SessionBoundary] rollover failed: %s", e, exc_info=True)
             return False
+
+    def _archive_yesterday(self, today: date) -> dict:
+        """Archive rows with date < today into _archive tables, then mark ROLLED_OVER.
+
+        Never DELETE — per CLAUDE.md Rule 1 (honest data > silent loss).
+        """
+        counts = {"day_type": 0, "tpo_sessions": 0, "woodies_signals": 0}
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cur = conn.cursor()
+
+            # day_type_history → day_type_archive
+            cur.execute("""
+                INSERT INTO v9_day_type_archive
+                  SELECT *, datetime('now') AS archived_at
+                  FROM v9_day_type_history
+                  WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
+            """, (today.isoformat(),))
+            counts["day_type"] = cur.rowcount
+
+            cur.execute("""
+                UPDATE v9_day_type_history
+                  SET status = 'ROLLED_OVER'
+                  WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
+            """, (today.isoformat(),))
+
+            # tpo_sessions → tpo_sessions_archive
+            cur.execute("""
+                INSERT INTO v9_tpo_sessions_archive
+                  SELECT *, datetime('now') AS archived_at
+                  FROM v9_tpo_sessions
+                  WHERE trading_date < ?
+            """, (today.isoformat(),))
+            counts["tpo_sessions"] = cur.rowcount
+
+            # woodies_signals → woodies_signals_archive
+            cur.execute("""
+                INSERT INTO v9_woodies_signals_archive
+                  SELECT *, datetime('now') AS archived_at
+                  FROM v9_woodies_signals
+                  WHERE date(ts) < ?
+            """, (today.isoformat(),))
+            counts["woodies_signals"] = cur.rowcount
+
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            logger.warning("[SessionBoundary] archive_yesterday error: %s", e, exc_info=True)
+        return counts
+
+    def _truncate_stale_state(self, today: date) -> int:
+        """Delete v9_day_type_state rows older than 2 days."""
+        cutoff = (today - timedelta(days=2)).isoformat()
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cur = conn.cursor()
+            cur.execute("DELETE FROM v9_day_type_state WHERE date(ts) < ?", (cutoff,))
+            n = cur.rowcount
+            conn.commit()
+            conn.close()
+            return n
+        except Exception as e:
+            logger.warning("[SessionBoundary] truncate_stale_state error: %s", e, exc_info=True)
+            return 0

@@ -344,14 +344,16 @@ async def _startup():
             from backend.v9.services.risk_validator import RiskValidator
             risk_validator = RiskValidator()
             app.state.risk_validator = risk_validator
+            _sbm_db = os.path.join(os.path.dirname(__file__), '..', 'data', 'mems26_local.db')
             sbm = SessionBoundaryManager(
-                db_path="/Users/michael/Downloads/mems26_web_git/data/mems26_local.db",
+                db_path=_sbm_db,
                 day_type_machine=day_type_machine,
                 risk_validator=risk_validator,
             )
             rolled = sbm.check_rollover()
+            sbm.subscribe_to_bar_router(bar_router)
             app.state.session_boundary_manager = sbm
-            _logger.info("[Main] SessionBoundaryManager: rollover=%s (risk_validator wired)", rolled)
+            _logger.info("[Main] SessionBoundaryManager: rollover=%s (risk_validator + bar_router wired)", rolled)
         except Exception as sbm_err:
             _logger.warning("[Main] SessionBoundaryManager startup failed (non-fatal): %s", sbm_err)
     except Exception as e:
