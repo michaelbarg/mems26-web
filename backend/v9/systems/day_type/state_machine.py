@@ -306,13 +306,6 @@ class DayTypeStateMachine:
 
         Returns updated DayTypeState.
         """
-        # Dedup: bridge pushes same bar ~20x while building. Only count
-        # and process stage transitions on new bar timestamps.
-        bar_ts = getattr(bar, 'ts', None)
-        if bar_ts is not None and bar_ts == self._last_bar_ts:
-            return self._last_state if self._last_state is not None else self._build_state(bar)
-        self._last_bar_ts = bar_ts
-
         self.bar_count += 1
 
         # Track session range (all bars) + split Globex vs RTH
