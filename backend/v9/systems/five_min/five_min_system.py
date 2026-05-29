@@ -112,6 +112,38 @@ class FiveMinSystem(BaseV9TradingSystem):
                 return HydrationResult(success=True, reached_state=FiveMinMode.MAINTENANCE,
                                        notes="Daily maintenance window")
 
+            # Stream 2 · hydrate current_day_type from v9_day_type_state (D-091.Q1)
+            # Moved BEFORE overnight early-return so current_day_type is populated
+            # even during Globex sessions (P31-F).
+            # Uses 24h sliding window instead of func.current_date() to avoid
+            # UTC vs ET date boundary mismatch (Fix #6 case b, 2026-05-28).
+            try:
+                from backend.v9.systems.day_type.models import V9DayTypeState
+                db = SessionLocal()
+                try:
+                    _cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+                    _latest_dt = (
+                        db.query(V9DayTypeState)
+                        .filter(V9DayTypeState.ts >= _cutoff)
+                        .order_by(V9DayTypeState.id.desc())
+                        .first()
+                    )
+                    if (_latest_dt is not None
+                            and _latest_dt.day_type
+                            and _latest_dt.day_type != "UNKNOWN"):
+                        self.current_day_type = _latest_dt.day_type
+                        logger.info(
+                            "[FiveMin] Hydrated current_day_type=%s from v9_day_type_state",
+                            self.current_day_type,
+                        )
+                finally:
+                    db.close()
+            except Exception as _hydrate_err:
+                logger.warning(
+                    "[FiveMin] day_type hydrate failed: %s · live updates will populate",
+                    _hydrate_err,
+                )
+
             # Globex sessions (overnight, pre-market, after-hours)
             if session in (Session.OVERNIGHT, Session.PRE_MARKET, Session.AFTER_HOURS):
                 self.mode = FiveMinMode.OVERNIGHT_MODE
@@ -127,34 +159,6 @@ class FiveMinSystem(BaseV9TradingSystem):
                 ).first()
             finally:
                 db.close()
-
-            # Stream 2 · hydrate current_day_type from v9_day_type_state (D-091.Q1)
-            # Uses 24h sliding window instead of func.current_date() to avoid
-            # UTC vs ET date boundary mismatch (Fix #6 case b, 2026-05-28).
-            try:
-                from backend.v9.systems.day_type.models import V9DayTypeState
-                db = SessionLocal()
-                try:
-                    _cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-                    _latest_dt = (
-                        db.query(V9DayTypeState)
-                        .filter(V9DayTypeState.ts >= _cutoff)
-                        .order_by(V9DayTypeState.id.desc())
-                        .first()
-                    )
-                    if _latest_dt is not None and _latest_dt.day_type:
-                        self.current_day_type = _latest_dt.day_type
-                        logger.info(
-                            "[FiveMin] Hydrated current_day_type=%s from v9_day_type_state",
-                            self.current_day_type,
-                        )
-                finally:
-                    db.close()
-            except Exception as _hydrate_err:
-                logger.warning(
-                    "[FiveMin] day_type hydrate failed: %s · live updates will populate",
-                    _hydrate_err,
-                )
 
             # Load bars from DB and replay into _bar_buffer (P-WAVE-D3)
             bars_count = 0
