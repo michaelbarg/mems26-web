@@ -37,6 +37,21 @@ class DayTypeConsumer:
     def __init__(self, db_session_factory):
         self._db_session_factory = db_session_factory
 
+    @staticmethod
+    def _should_gate_write(event: dict) -> bool:
+        """P31-A: refuse UPSERT when classification is UNKNOWN/PENDING.
+
+        Overnight Globex bars produce UNKNOWN/PENDING events that would
+        overwrite yesterday's locked classification with garbage. Gate
+        them here so the DB row stays clean until RTH produces a real
+        classification.
+        """
+        day_type = event.get("day_type")
+        lock_state = event.get("lock_state", "")
+        if day_type in (None, "", "UNKNOWN") and lock_state == "PENDING":
+            return True
+        return False
+
     def consume(self, classification_event: dict) -> None:
         """UPSERT into v9_day_type_history keyed by session_date.
 
@@ -49,6 +64,15 @@ class DayTypeConsumer:
         the SQLAlchemy model and the production SQLite schema — see migration
         014 comment): ``lock_state`` ("LOCKED" / "LOCKED_LOW_CONF" / "PENDING").
         """
+        # P31-A: gate — refuse UNKNOWN/PENDING writes (overnight noise)
+        if self._should_gate_write(classification_event):
+            logger.debug(
+                "DayTypeConsumer gate: refusing UNKNOWN/PENDING write (day_type=%s lock_state=%s)",
+                classification_event.get("day_type"),
+                classification_event.get("lock_state"),
+            )
+            return
+
         session_date = self._extract_session_date(
             classification_event["timestamp"]
         )
