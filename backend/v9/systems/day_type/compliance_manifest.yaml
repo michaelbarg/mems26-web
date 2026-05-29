@@ -127,7 +127,7 @@ output_fields:
   - name: lock_state
     type: string
     required: true
-    enum: [PENDING, LOCKED, LOCKED_LOW_CONF]
+    enum: [PENDING, LOCKED, LOCKED_LOW_CONF, DEVELOPING, ROLLED_OVER]
     status: IMPLEMENTED
 
   - name: opening_type
