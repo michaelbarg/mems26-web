@@ -34,7 +34,7 @@ def get_current():
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM v9_day_type_history WHERE date = ? LIMIT 1",
+            "SELECT * FROM v9_day_type_history WHERE date = ? AND COALESCE(status, '') != 'ROLLED_OVER' LIMIT 1",
             (today,),
         ).fetchone()
         conn.close()

@@ -70,7 +70,7 @@ def _day_type_row() -> Optional[dict]:
         conn.row_factory = sqlite3.Row
         row = conn.execute(
             "SELECT day_type, opening_type FROM v9_day_type_history "
-            "WHERE date = ? LIMIT 1",
+            "WHERE date = ? AND COALESCE(status, '') != 'ROLLED_OVER' LIMIT 1",
             (et_today().isoformat(),),
         ).fetchone()
         conn.close()
