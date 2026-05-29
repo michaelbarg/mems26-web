@@ -238,11 +238,13 @@ def _load_previous_cash_session() -> Optional[dict]:
     try:
         conn = sqlite3.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
         conn.row_factory = sqlite3.Row
+        from backend.v9.common.trading_date import et_today as _et_today
         row = conn.execute(
             "SELECT trading_date, poc_price, vah_price, val_price, opened_ts, closed_ts "
             "FROM v9_tpo_sessions WHERE session_type='CASH' AND poc_price IS NOT NULL "
-            "AND trading_date < date('now') "
-            "ORDER BY id DESC LIMIT 1"
+            "AND trading_date < ? "
+            "ORDER BY id DESC LIMIT 1",
+            (_et_today().isoformat(),),
         ).fetchone()
         conn.close()
         if not row or row["poc_price"] is None:

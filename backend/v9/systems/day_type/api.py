@@ -90,7 +90,7 @@ def _get_state_machine_classification() -> Optional[dict]:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM v9_day_type_state WHERE lock_state='LOCKED' AND lock_state != 'ROLLED_OVER' AND date(ts)=? ORDER BY id DESC LIMIT 1",
+            "SELECT * FROM v9_day_type_state WHERE lock_state='LOCKED' AND date(ts)=? ORDER BY id DESC LIMIT 1",
             (et_today().isoformat(),),
         ).fetchone()
         conn.close()

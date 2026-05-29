@@ -124,8 +124,10 @@ class FootprintSystem(BaseV9TradingSystem):
                     logger.info("[Footprint] Last journal is from previous session — starting COT at 0")
                     self._cumulative_delta = 0.0
             # Also count today's bars for context
+            from backend.v9.common.trading_date import et_today
             count = conn.execute(
-                "SELECT COUNT(*) FROM v9_footprint_journal WHERE date(created_at) = date('now')"
+                "SELECT COUNT(*) FROM v9_footprint_journal WHERE date(created_at) = ?",
+                (et_today().isoformat(),),
             ).fetchone()[0]
             conn.close()
             logger.info("[Footprint] Hydrated: cumulative_delta=%.1f, today_bars=%d",
