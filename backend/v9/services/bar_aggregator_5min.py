@@ -7,7 +7,7 @@ Bars are built ALWAYS when ticks flow. Session is a tag, not a gate.
 import logging
 import threading
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Callable, Optional
 
 import pytz
@@ -53,7 +53,8 @@ class FiveMinAggregator:
     def _bar_start_for(self, ts: datetime) -> datetime:
         ts_et = ts.astimezone(ET) if ts.tzinfo else ET.localize(ts)
         minute_floor = (ts_et.minute // 5) * 5
-        return ts_et.replace(minute=minute_floor, second=0, microsecond=0)
+        bar_start_et = ts_et.replace(minute=minute_floor, second=0, microsecond=0)
+        return bar_start_et.astimezone(timezone.utc)  # store as UTC, not ET
 
     def on_tick(self, tick: TickEvent) -> Optional[Bar5Min]:
         """Process a tick. Returns closed bar if boundary crossed, else None."""

@@ -68,6 +68,15 @@ class BarIngestionService:
             ts = bar_data.get("ts", datetime.now(timezone.utc))
             symbol = bar_data.get("symbol", "MES")
 
+            # Guard: reject bars with ts > now + 2 minutes (future-ts bug)
+            if isinstance(ts, datetime):
+                _ts_check = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+                if _ts_check > datetime.now(timezone.utc) + timedelta(minutes=2):
+                    logger.warning(
+                        "[BarIngestion] Rejected FUTURE bar ts=%s (now+2m guard)", ts
+                    )
+                    return False
+
             # Check for existing bar at same timestamp (UPSERT logic)
             existing = db.query(V9Bar5Min).filter(
                 V9Bar5Min.ts == ts,
