@@ -161,6 +161,57 @@ Trades #603 ו-#652 עברו את T1 (exit price > T1) אבל `t1_hit_ts` ריק
 |---|------|-------|
 | 11 | **S2 Initiative threshold [1.5-1.75]** | 0/44 bars עברו. Average range=6.12. צריך התאמה ל-MES |
 | 12 | **S2 Reactive 90% vol drop** | קורה 2% מהזמן. שקול 80% |
+
+---
+
+## 7b. מחקר Thresholds קבועים → יחסיים (לפני Shadow הבא)
+
+### שלושה thresholds ב-S2 שבנויים על מספרים קבועים (נקודות) במקום יחסיים:
+
+#### 1. `EXPANSION_MIN_PT = 1.5` / `EXPANSION_MAX_PT = 1.75` (Initiative)
+- **מה זה:** טווח range של Bar 1 ב-Initiative pattern (6-7 ticks MES)
+- **למה בעייתי:** קבוע — לא מתאים ליום volatile (ATR 80) או שקט (ATR 30)
+- **היום:** 0/44 bars עברו. ממוצע range=6.12 pts, פי 4 מהנדרש
+- **🔬 מחקר נדרש:** 
+  - חישוב ATR-5min היומי על 30 ימות מסחר אחרונים
+  - מציאת ratio: `expansion_range / ATR_5min` שנותן ~1.5 pts ב-ATR רגיל
+  - המרה: `EXPANSION_MIN = ATR_5min × 0.25` / `MAX = ATR_5min × 0.30` (לדוגמה)
+  - בדיקה: כמה bars/יום היו עוברים עם threshold יחסי vs קבוע
+
+#### 2. `POC_RETURN_TOLERANCE_PT = 0.5` (Initiative b2 POC return)
+- **מה זה:** מרחק מקסימלי מ-POC שנחשב "חזרה ל-POC" (2 ticks)
+- **למה בעייתי:** ביום volatile, 0.5 pts הוא כלום. ביום שקט — הרבה
+- **🔬 מחקר נדרש:**
+  - חישוב average bar range של 5-min bars
+  - המרה: `POC_TOLERANCE = avg_bar_range × 0.15` (לדוגמה)
+  - בדיקה: כמה Initiative setups היו מזוהים עם tolerance יחסי
+
+#### 3. `DROP_THRESHOLD_PCT = 0.10` (Reactive 90% vol drop)
+- **מה זה:** Bar 2 volume ≤ 10% של Bar 1 — **כבר יחסי** אבל אולי **קיצוני מדי**
+- **היום:** 2% מהבarים עוברים. Closest ratio=0.15 (85% drop)
+- **🔬 מחקר נדרש:**
+  - סטטיסטיקה על 30 יום: כמה bars עוברים ב-10%, 15%, 20%, 25%
+  - בכמה מהם ה-pattern המלא (b1→b4) היה מתקיים
+  - מציאת sweet spot בין סלקטיביות (פחות false positives) לבין יכולת ירי
+
+### דרך ביצוע המחקר (מחר)
+```bash
+# 1. ATR-5min על 30 יום
+sqlite3 data/mems26_local.db "
+  SELECT date(ts) as day, 
+         AVG(high-low) as avg_range,
+         COUNT(*) as bars
+  FROM v9_bars_5min 
+  WHERE symbol='MES' AND ts > datetime('now','-30 days')
+  GROUP BY date(ts) ORDER BY day DESC LIMIT 30
+"
+
+# 2. Volume drop distribution (30 יום)
+# כמה bars עם drop ≤10%, ≤15%, ≤20%, ≤25%?
+
+# 3. Backtest Initiative עם threshold יחסי
+# כמה setups היו מזוהים עם expansion = ATR×0.25-0.30?
+```
 | 13 | **Frontend polling 15s → 5s** | `WoodiesCciPanel.tsx:1107` — CLAUDE.md floor הוא 5s |
 | 14 | **pnl_r חישוב UI** | DB=1.5R, UI=60R — באג תצוגה |
 | 15 | **Demo trades open לא נסגרים** | #604 עדיין OPEN — BarLevelDetector לא מנהל demo |
