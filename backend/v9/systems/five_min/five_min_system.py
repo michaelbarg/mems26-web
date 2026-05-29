@@ -252,9 +252,10 @@ class FiveMinSystem(BaseV9TradingSystem):
         # Mode transition via SessionClassifier (D-080 + D-083)
         ts = event.get("ts_ms") or event.get("ts")
         if ts and isinstance(ts, (int, float)):
+            from zoneinfo import ZoneInfo
             bar_time = datetime.fromtimestamp(
                 ts / 1000 if ts > 1e12 else ts,
-                tz=timezone(timedelta(hours=-4))
+                tz=ZoneInfo("America/New_York"),
             )
             info = self.session_classifier.classify(bar_time)
             if info.session == Session.CASH_HOURS and self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:

@@ -179,7 +179,10 @@ class DayTypeConsumer:
             import pytz
             _et = pytz.timezone("America/New_York")
         if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=_et)
+            # Naive timestamps from the state machine are UTC (market_clock).
+            # Attach UTC first, then convert to ET for date extraction.
+            from datetime import timezone as _tz
+            ts = ts.replace(tzinfo=_tz.utc)
         return ts.astimezone(_et).date()
 
     @staticmethod
