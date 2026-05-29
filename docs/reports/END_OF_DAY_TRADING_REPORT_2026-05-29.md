@@ -131,7 +131,96 @@ Trades #603 ו-#652 עברו את T1 (exit price > T1) אבל `t1_hit_ts` ריק
 
 ---
 
-## 7. Open Issues for Tomorrow
+---
+
+## 7. צ'קליסט תיקונים ושיפורים (לביצוע)
+
+### 🔴 קריטי — לפני LIVE
+
+| # | נושא | מערכת | תיאור | קובץ |
+|---|------|-------|-------|------|
+| 1 | **TIME_STOP Woodies dedup שבור** | S4 | `_last_bar_ts_for_count` משווה ts מדויק (milliseconds), כל push = ts חדש → bar_count מנופח → TIME_STOP fires ב-32 דקות במקום 90 | `woodies_system.py:207` |
+| 2 | **T1 hit לא נתפס** | Trade Manager | BarLevelDetector subscribes ל-`5min` לא `woodies_5min` → לא רואה bars של S4 → T1/T2 לא נרשמים → Smart BE לא מופעל | `bar_level_detector.py:38` |
+| 3 | **Footprint burst — 550 trades/יום** | S3 | אין dedup לפי (price-level + bar_ts). כל update = trade חדש. 30× באותה דקה | `footprint_system.py:426` |
+| 4 | **12 fake PARTIAL @5900** | Trades | entry=5900, stop=5900.25, t1=5910 — מחירי seed/test. מקור לא מזוהה | `v9_trades` |
+| 5 | **Bars 5min — פערים אחרי restart** | S2 | Bridge שולח רק latest bar. Restart מאבד history. צריך backfill מ-Sierra export | `bars_5min_stream.py:41` |
+| 6 | **S1 restart מאפס state** | S1 | Restart תוך RTH = IB/opening/classification הולכים לאיבוד. seed logic לא מספיק | `state_machine.py reset()` |
+
+### 🟡 גבוה — משפיע על דיוק
+
+| # | נושא | מערכת | תיאור |
+|---|------|-------|-------|
+| 7 | **S1 confidence 0.68 < 0.70** | S1 | לא ננעל כל היום. שקול הורדת threshold ל-0.65 או forced lock מוקדם יותר |
+| 8 | **Opening type = INDETERMINATE** | S1 | A2 קיבל 3 pushes ב-4 שניות (לא 3 bars אמיתיים). dedup per-system בA2 |
+| 9 | **v9_five_min_state ריקה** | S2 | המערכת קוראת אבל לא כותבת. Frontend/status רואה ריק |
+| 10 | **Stop risk 5-8 ticks** | S4 | צפוף ל-MES עם ATR ~50. שקול ATR-based stop |
+
+### 🟢 שיפורים — איכות חיים
+
+| # | נושא | תיאור |
+|---|------|-------|
+| 11 | **S2 Initiative threshold [1.5-1.75]** | 0/44 bars עברו. Average range=6.12. צריך התאמה ל-MES |
+| 12 | **S2 Reactive 90% vol drop** | קורה 2% מהזמן. שקול 80% |
+| 13 | **Frontend polling 15s → 5s** | `WoodiesCciPanel.tsx:1107` — CLAUDE.md floor הוא 5s |
+| 14 | **pnl_r חישוב UI** | DB=1.5R, UI=60R — באג תצוגה |
+| 15 | **Demo trades open לא נסגרים** | #604 עדיין OPEN — BarLevelDetector לא מנהל demo |
+
+---
+
+## 8. נתוני טרום מסחר (Pre-Market) — מה חסר
+
+### מה Sierra מספקת pre-RTH (Globex)
+| נתון | זמין? | מקור | שימוש |
+|------|-------|------|-------|
+| Globex High/Low | ✅ | `tpo.json` session block | S1 A1 pre-open context |
+| Previous Day POC/VAH/VAL | ✅ | `tpo.json` prior_day block | S1 A1 + key_levels |
+| Previous Day High/Low/Close | ✅ | `prev_day.py` | S1 opening detection |
+| Overnight volume profile | ✅ | `volume_profile.json` | לא מנוצל |
+| **Globex CCI** | ❌ | Woodies chart = RTH only | CCI לא מחושב pre-RTH |
+| **Pre-market imbalances** | ✅ | `imbalance_flags.json` | S3 footprint — אבל לא מסונן ל-RTH |
+| **Yesterday IB** | ⚠️ | DLL Input 19 (לא מחובר) | key_levels prev_day |
+
+### מה צריך לבנות
+1. **Pre-RTH dashboard strip** — Globex H/L + PD POC/VAH/VAL + overnight range
+2. **Gap analysis** — Open vs PD close, Open vs PD POC
+3. **Overnight activity bias** — volume profile shape pre-RTH
+4. **Session context for S1** — feed A1 stage with pre-open data (כבר חלקית מחובר)
+
+---
+
+## 9. מערכת 3 (Footprint/Imbalance) — מה חסר
+
+### מה קיים
+- `footprint_system.py` — מזהה imbalance levels, fires ל-gateway
+- Bridge streams: `footprint.json`, `tick_reversal_12/15.json`, `imbalance_flags.json`, `stacked_imbalances.json`
+- DB: `v9_bars_footprint` (615K rows), `v9_bars_tick_reversal` (16M rows)
+- COT/AMT provider — מזין S2
+
+### מה חסר (אין "עץ החלטות")
+| # | חוסר | השפעה | עדיפות |
+|---|------|-------|--------|
+| 1 | **אין Decision Tree** | S3 fires כל imbalance ללא filtering → 550 trades רעש/יום | 🔴 |
+| 2 | **אין dedup per-level** | אותה רמה fires 30× בדקה | 🔴 |
+| 3 | **אין RTH gate** | fires גם ב-overnight (06:xx, 18:xx) | 🔴 |
+| 4 | **אין sizing logic** | כל fire = אותו size, בלי alignment check | 🟡 |
+| 5 | **אין anti-patterns** | S4 יש AP1-AP9, S3 אין שום AP | 🟡 |
+| 6 | **אין pattern spec** | אין מסמך שמגדיר מתי imbalance = setup אמיתי vs רעש | 🔴 |
+| 7 | **COT/AMT quality** | S3 מספק COT/AMT ל-S2, אבל הערכים random-like (footprint_system.py:41-43) | 🔴 |
+| 8 | **`v9_footprint_signals` לא קיים** | אין טבלת signals נפרדת — fires ישירות ל-gateway | 🟡 |
+| 9 | **tick_reversal TZ shift +6h** | ts עתידי ב-DB (bridge TZ fix לא applied on this stream) | 🟡 |
+| 10 | **אין tests** | `tests/v9/systems/footprint/` לא קיים | 🟡 |
+
+### מה צריך לבנות (עץ S3)
+1. **Pattern spec** — מתי stacked imbalance = actionable setup
+2. **Decision tree stages** — A1 (market context) → A2 (level detection) → A3 (confirmation) → fire
+3. **Dedup** — per (price_level, bar_ts, direction)
+4. **RTH gate** — F17-style כמו ב-Woodies
+5. **COT/AMT provider fix** — ערכים אמיתיים מ-cumulative_delta, לא random
+6. **Regression tests**
+
+---
+
+## 10. Open Issues for Tomorrow
 
 1. **TIME_STOP Woodies dedup** — needs 5min-boundary rounding, not exact ts
 2. **BarLevelDetector T1 detection** — subscribes to 5min, not woodies_5min
