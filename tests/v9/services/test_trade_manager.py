@@ -249,7 +249,7 @@ class TestAcceptSetup:
             manager.accept_setup(sample_setup, "paper")
 
     def test_invalid_firing_system(self, manager):
-        setup = {"firing_system": 3, "direction": "LONG", "stop": 0, "t1": 0, "t2": 0, "t3": 0}
+        setup = {"firing_system": 99, "direction": "LONG", "stop": 0, "t1": 0, "t2": 0, "t3": 0}
         with pytest.raises(ValueError, match="Invalid firing_system"):
             manager.accept_setup(setup, "shadow")
 
