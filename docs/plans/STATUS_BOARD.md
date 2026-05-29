@@ -1,17 +1,155 @@
 # Status Board · Pre-LIVE Pipeline V2
 
-**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-28 21:50 IL ·
+**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-29 16:22 IL (שישי — SHABBAT CLOSE) ·
 
-- **2026-05-28 21:50 IL · W-10 TimeStopEnforcer DISABLED (Option B · Michael)** — `dispatcher_config.yaml::time_stop.time_stop_minutes = null` activates kill switch; Constitution V3 Layer 4 (`bar_level_detector._check_time_stop` + `TIME_STOP_BY_DAY_TYPE`) is now sole TIME_STOP authority. Resolves Bugs A + D from `DIAGNOSIS_TRADE_LIFECYCLE_BUGS_2026-05-28.md`. 6 new tests pass (`tests/v9/systems/woodies/test_w10_time_stop_disabled.py` · `tests/v9/services/trade_manager/test_layer4_time_stop_authority.py`); 7 pre-existing tests skipped with explicit reason. Awaits backend restart. See `docs/reports/AMENDMENTS_LOG.md` 2026-05-28 entry.
+---
+
+## 📋 סיכום יום שישי 2026-05-29 — מה הושלם היום
+
+| # | משימה | סטטוס | commit |
+|---|-------|--------|--------|
+| P31 | Daily Reset/Archive backend (8 tasks A-H) | ✅ CC DONE | multiple |
+| P31.1 | Fix-up 9 gaps (T1-T6 · 101 tests) | ✅ CC+Cursor DONE | multiple |
+| DLL Frozen-Tail | mapIdx clamp-detect patch · DLL rebuilt v9.4.3-p31.1 | ✅ DONE (UAT pending RTH) | ada6c88 |
+| Backend routing | current_bar override S4 gets live SWI/CCI | ✅ DONE | in ada6c88 |
+| Bug E | stop_hit_ts < entry_ts — entry guard in BarLevelDetector | ✅ DONE | e3b986c |
+| S2 None warn | current_day_type=None logged (rate-limited 1/min) | ✅ DONE | e3b986c |
+| Readiness Check | CC_MEGA_PROMPT_SYSTEM_READINESS_CHECK_2026-05-29.md | ✅ WRITTEN | — |
+| Backend recovery | backend was down — restarted screen session | ✅ DONE | — |
+
+**Test count (end of day):** 7/7 trade_manager · 4/4 DLL regression · 2/2 bar routing · 101/101 P31.1 · 17/17 day_type · all green.
+
+---
+
+## 🔴 OPEN FOR SUNDAY — לפי עדיפות
+
+### 🔴 LIVE BLOCKER (לא ניתן ל-LIVE בלי זה)
+| # | פריט | מה חסר |
+|---|------|---------|
+| DLL UAT | frozen-tail fix — RTH live verify | פתח Sierra, הרץ Phase B של readiness check בין 16:30–23:00 IL ראשון |
+
+### 🟠 HIGH — לפני LIVE
+| # | פריט | קובץ |
+|---|------|------|
+| Bug C | stop/target hit recorded at bar-open instead of actual fill price (PnL impact) | `bar_level_detector.py` |
+| Item #3 (runtime) | S2 warning קיים — אבל האם hydration מגיע בזמן? לאמת live | logs ב-Phase B |
+| P32 | Bridge TZ fix + sot_health cleanup | `docs/handoff/CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` — כתוב, טרם נשלח |
+
+### 🟡 MED — קודם LIVE (לא בלוקר)
+| # | פריט |
+|---|------|
+| Item #6 | `min_r_t1_threshold` — parameterized test 0/0.5/1.0 |
+| Item #7 | Day-type matrix A2 advisory — לא enforced |
+| Item #8 | Lunch skip 12:00-13:30 ET |
+| Item #9 | FOMC ±90min skip |
+| Item #10 | sentinel 2099 rows ב-`v9_bars_5min_woodies` |
+
+### ⏳ PENDING PHASES (Daily Reset / Demo)
+| Phase | תוכן | תלות |
+|-------|------|------|
+| Phase 3 | Archive endpoints `/api/v9/archive/...` | prompt לא נכתב |
+| Phase 4 | DemoReadiness UI panel + test chain | תלוי Phase 3 |
+| Phase 5 | UAT end-to-end + sign-off | תלוי Phase 4 |
+| Tiered Fire Status | Plan A++ — design ב-§13 | deployment phase TBD |
+
+---
+
+## ⚡ CC QUEUE — לשבוע הבא
+
+| # | קובץ | סטטוס |
+|---|------|--------|
+| 1 | `CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` | ⏳ כתוב, לא נשלח |
+| 2 | Phase 3 prompt (archive endpoints) | ⏳ לא נכתב |
+| 3 | Phase 4 prompt (DemoReadiness UI) | ⏳ תלוי Phase 3 |
+
+---
+
+## ✅ COMPLETED HANDOFFS (ארכיון)
+
+1. ✅ `CC_HANDOFF_S4_CURRENT_BAR_ROUTING_FIX_2026-05-28.md` — DONE 20:14 28/5
+2. ✅ `CC_HANDOFF_TRADE_LIFECYCLE_BUGS_2026-05-28.md` — Bugs A+D RESOLVED
+3. ✅ Build Status `fired_today` from DB — DONE 21:19 28/5 (110/110 tests)
+4. ✅ `CC_IMPLEMENT_P31_DAILY_RESET_2026-05-29.md` — DONE (8 tasks A-H)
+5. ✅ `CC_IMPLEMENT_P31_1_FIXUP_2026-05-29.md` — DONE (T1-T6 · 101 tests)
+6. ✅ DLL Frozen-Tail Parts 1+2+3 — DONE (v9.4.3-p31.1 · 4 tests · RTH UAT pending)
+
+---
+
+## 🔁 BRING-UP CHECKLIST (ראשון בוקר, לפני RTH)
+
+```
+□ 1. screen -r mems26_backend  (verify running)
+□ 2. curl http://localhost:8000/health
+□ 3. python3 scripts/sot_health.py --strict
+□ 4. בדוק session rollover: v9_session_meta.last_rollover_date == היום ET
+□ 5. Sierra Chart פתוח, Chart 12 (Woodies) פעיל
+□ 6. DLL Input 19 = 12 ב-MES_AI_DataExport study
+□ 7. הרץ Phase A מ: docs/handoff/CC_MEGA_PROMPT_SYSTEM_READINESS_CHECK_2026-05-29.md
+□ 8. לאחר 09:30 ET: Phase B — אמת IB lock + CCI לא frozen
+```
+
+---
+
+- **2026-05-29 14:00 IL · P31 + P31.1 Daily Reset / Archive backend complete** — Bug B RESOLVED. 101/101 tests. Backend recovered. See `docs/reports/P31_1_FIXUP_FINAL_2026-05-29.md`. Phase 3/4/5 pending.
+- 2026-05-28 21:50 IL · W-10 TimeStopEnforcer DISABLED (Option B · Michael) — Layer 4 sole TIME_STOP authority. Commit `dispatcher_config.yaml`. 6 tests pass.
 
 ## ⚡ ACTIVE HANDOFFS (CC queue)
 
-1. ✅ **`docs/handoff/CC_HANDOFF_S4_CURRENT_BAR_ROUTING_FIX_2026-05-28.md`** — DONE 20:14 (S4 fired 13:45 ET, verified)
-2. 🔴 **`docs/handoff/CC_HANDOFF_TRADE_LIFECYCLE_BUGS_2026-05-28.md`** — **NEW** (Phase 1 diagnosis-only · 5 bugs in TIME_STOP / stop direction / T1-stop tracking / PnL / default ts)
-3. **`docs/handoff/OPEN_ITEMS_PRE_LIVE_2026-05-28.md`** — full pre-LIVE backlog (5 blockers · 8 quality items · open questions for Michael)
-4. ✅ Build Status `fired_today` from DB — DONE 21:19 (subagent · 110/110 tests · awaits restart)
+7. ⏳ **`docs/handoff/CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md`** — written, NOT sent (Bridge tick_reversal TZ + sot_health 4 tasks)
+8. ⏳ **Phase 3 prompt** — archive endpoints (`/api/v9/archive/...`) — not yet drafted
+9. ⏳ **Phase 4 prompt** — DemoReadiness UI panel + test chain — depends on Phase 3
+10. ⏳ **Tiered Fire Status (Plan A++)** — design done in `DAILY_RESET_AND_ARCHIVE_DESIGN.md` §13; deployment phase TBD
 
 
+
+---
+
+## 2026-05-29 · P31 + P31.1 Daily Reset / Archive Backend (14:00 IL)
+
+**Bug being closed:** Bug B — frontend dashboard showed yesterday's `day_type` (`Normal · LOCKED_LOW_CONF · 0.68`) pre-market on 29/5 because:
+1. Consumer wrote `UNKNOWN/PENDING` rows for 29/5 at 22:00 ET on 28/5 (TZ-naive `date.today()` in IL evening).
+2. No filter on `lock_state='ROLLED_OVER'` in `/api/v9/day_type/v9/current` + `/api/v9/key_levels` + V1 compat.
+3. `SessionBoundaryManager` did not exist — no daily reset/archive cycle.
+
+| # | Action | Result |
+|---|--------|--------|
+| 1 | **Cursor pending fix (T1.4)** | ✅ Reset row 11 to `UNKNOWN/PENDING/conf=0` with explicit `reasoning_notes` audit trail; design doc + 5 open questions sent to Michael |
+| 2 | **Michael decisions** | ✅ globex_open boundary · plus_replay archiving · all_three test chain · rely_on_existing isolation · diagnose_plus_pending_fix today |
+| 3 | **Cursor design (P-T1.5)** | ✅ `docs/plans/DAILY_RESET_AND_ARCHIVE_DESIGN.md` (17 sections incl. consumer write gate · 570f10d overlap · Bug 04 hydrate · CC consult acceptance) |
+| 4 | **CC audit (P31a)** | ✅ `docs/reports/CC_AUDIT_DAILY_RESET_2026-05-29.md` confirmed 9 design points + flagged 4 boundary semantics + 3 split decisions |
+| 5 | **CC consult (P31b)** | ✅ `docs/reports/CC_CONSULT_P31_2026-05-29.md` advisory on §13 boundaries → adopted into §17 of design |
+| 6 | **P31 implementation prompt** | ✅ `docs/handoff/CC_IMPLEMENT_P31_DAILY_RESET_2026-05-29.md` — 8 tasks A-H · CC executed + reported in `P31_DAILY_RESET_FINAL_2026-05-29.md` |
+| 7 | **Cursor inquiry — 9 gaps surfaced** | ✅ `docs/handoff/CC_INQUIRY_P31_GAPS_2026-05-29.md` → CC self-assessment: working from memory, didn't run migration on live DB, prioritised shipping over verification (CLAUDE.md violations) |
+| 8 | **P31.1 fix-up prompt** | ✅ `docs/handoff/CC_IMPLEMENT_P31_1_FIXUP_2026-05-29.md` — 6 tasks T1-T6 · raw UAT mandatory in commit messages |
+| 9 | **CC P31.1 execution** | ✅ 6 commits (T1: ground-state-safe rollover · T2: migration on `mems26_local.db` + missing items · T3: SBM first-bar fallback + archive + truncate · T4: 2 SQLite `date('now')` + main.py path · T5: 4 missing test files · T6: final report) · `P31_1_FIXUP_FINAL_2026-05-29.md` |
+| 10 | **Cursor verification (14:00 IL)** | ✅ **101/101 tests pass** (41 new P31/P31.1 + 60 regression in `day_type/`+`woodies/`+`test_time_stop`) · M19 schema applied · all 6 endpoints 200 OK · consumer write gate verified live (row 11 `last_updated_at=06:59:21` unchanged after backend ran 7h) |
+| 11 | **Backend recovery** | ✅ `screen mems26_backend` started 13:40 IL · port 8000 listening · `BRIDGE_TOKEN` loaded from `.env` (was down since 28/5 19:59 — operator gap, not P31 regression) |
+| 12 | **UAT 4-axis** | ✅ Quality (no UNKNOWN written by consumer) · Recency (session_date=29/5 ET) · Cardinality (no row leakage) · Latency (`/v9/current`=3ms · `/key_levels`=9ms · `/tpo/current`=5ms · `/status`=825ms) |
+
+**Schema delta (Migration 019):**
+- 4 archive tables: `v9_day_type_archive` · `v9_tpo_sessions_archive` · `v9_woodies_signals_archive` · `v9_build_status_archive`
+- `v9_session_meta(last_rollover_date, ...)` — seeded with today, no reset on first run (P31.1-T1)
+- 5 `is_synthetic INTEGER NOT NULL DEFAULT 0` columns: `v9_bars_5min` · `v9_woodies_signals` · `v9_trades` · `v9_audit_events` · `v9_five_min_setups`
+
+**Code delta highlights:**
+- `backend/v9/common/trading_date.py` — new `et_today()` utility (TZ-aware America/New_York)
+- `backend/v9/services/session_boundary/manager.py` — new `SessionBoundaryManager` (idempotent, ground-state-safe, first-bar subscriber, archive on rollover, truncate stale state)
+- `backend/v9/systems/day_type/consumer.py` — `_should_gate_write()` blocks `UNKNOWN/PENDING` writes
+- `backend/v9/api/v9/day_type_v9_routes.py` + `key_levels_routes.py` + `day_type/api.py` — `lock_state != 'ROLLED_OVER'` filter
+- `backend/v9/systems/five_min/five_min_system.py` — day_type hydrate moved before overnight early-return
+
+**Open follow-ups (not blockers):**
+- `backend/main.py:22` `DEFAULT_LOCAL_DB_PATH` still hardcoded (renamed but value unchanged — out of P31.1 scope)
+- `backend/v9/systems/day_type/api.py:55,88` hardcoded paths remain (out of P31.1 scope)
+- Pre-existing `pytest_plugins = ["tests.v9.db.conftest"]` in `tests/v9/api/conftest.py:3` — blocks running `tests/v9/api/` + `tests/v9/db/` together; workaround: run in 4 isolated groups
+- CC's P31.1 final report did not paste raw UAT (CLAUDE.md Rule 5 violation, discipline-only)
+
+**Phase plan progress:**
+- ✅ **Phase 1** Diagnose + Design + Pending fix
+- ✅ **Phase 2** Backend reset + archive (P31 + P31.1)
+- ⏳ **Phase 3** Archive endpoints (`/api/v9/archive/sessions/{date}` etc.) — not started
+- ⏳ **Phase 4** DemoReadiness UI panel + test chain — depends on Phase 3
+- ⏳ **Phase 5** End-to-end UAT + sign-off
 
 ---
 
