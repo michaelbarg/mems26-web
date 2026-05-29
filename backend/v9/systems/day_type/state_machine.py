@@ -252,6 +252,51 @@ class DayTypeStateMachine:
         self._active_zohar_rules: List[str] = []
         self._last_state: Optional[DayTypeState] = None
 
+    def reset(self) -> None:
+        """Reset all mutable state to __init__ defaults.
+
+        Called by SessionBoundaryManager at 18:00 ET rollover.
+        After reset(), to_classification() returns None until new RTH data arrives.
+        """
+        self.stage = Stage.A1
+        self.day_type = DayType.UNKNOWN
+        self.confidence = 0.0
+        self.lock_state = _LOCK_PENDING
+        # A1
+        self.pre_open = None
+        self.pd_context_status = "PENDING"
+        self.pd_degraded_reason = None
+        self.missing_pd_fields = []
+        self.session_open_price = None
+        # A2
+        self.opening = None
+        self.opening_bars = []
+        # A3-A4
+        self.ib_high = 0.0
+        self.ib_low = float("inf")
+        self.ib_class = None
+        self.ib_locked = False
+        # B1+
+        self.vote_history = []
+        self.behavior = Behavior.DEVELOPING
+        self.range_category = RangeCategory.NORMAL
+        self.failed_extension = FailedExtensionType.NONE
+        self.playbook = None
+        # Tracking
+        self.session_high = 0.0
+        self.session_low = float("inf")
+        self.globex_h = 0.0
+        self.globex_l = float("inf")
+        self.rth_session_h = 0.0
+        self.rth_session_l = float("inf")
+        self.bar_count = 0
+        self.consecutive_same_vote = 0
+        # V9 collaborator state
+        self._latest_cvd_state = None
+        self._max_tpo_row_width = 0
+        self._active_zohar_rules = []
+        self._last_state = None
+
     # ── Main Entry ───────────────────────────────────────────────────────
 
     def process_bar(self, bar: BarInput) -> DayTypeState:

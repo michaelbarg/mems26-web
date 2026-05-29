@@ -337,6 +337,19 @@ async def _startup():
 
         bar_router.subscribe("5min", _day_type_on_bar)
         _logger.info("[Main] DayTypeStateMachine subscribed to 5min via BarRouter")
+
+        # P31-B: SessionBoundaryManager — idempotent daily reset at startup
+        try:
+            from backend.v9.services.session_boundary import SessionBoundaryManager
+            sbm = SessionBoundaryManager(
+                db_path="/Users/michael/Downloads/mems26_web_git/data/mems26_local.db",
+                day_type_machine=day_type_machine,
+            )
+            rolled = sbm.check_rollover()
+            app.state.session_boundary_manager = sbm
+            _logger.info("[Main] SessionBoundaryManager: rollover=%s", rolled)
+        except Exception as sbm_err:
+            _logger.warning("[Main] SessionBoundaryManager startup failed (non-fatal): %s", sbm_err)
     except Exception as e:
         _logger.error("[Main] DayTypeStateMachine startup failed: %s", e)
 
