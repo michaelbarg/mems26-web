@@ -7,11 +7,21 @@ Decision tree stages: MEMS26_WOODIES_DECISION_TREE_V1.md A1..A7, B1..B14
 
 import logging
 import sqlite3
-from datetime import datetime, timezone
+from datetime import date, datetime, time as _time, timezone
 from typing import Optional
 
 from .types import PatternStatus, Component, SystemStatus, DataFreshness
 from .auth_table_lookup import WOODIES_PATTERN_IDS
+from .row_helpers import (
+    fires_today,
+    freshness_now,
+    latest_valid_db_ts,
+    make_freshness,
+)
+
+# firing_system enum value for Woodies CCI (S4), per
+# `backend/v9/services/trade_manager/manager.py` write path.
+_FIRING_SYSTEM_WOODIES = 4
 
 logger = logging.getLogger(__name__)
 
@@ -83,24 +93,31 @@ def inspect(woodies_system=None) -> SystemStatus:
     system.hydrated = state.get("hydrated", False)
     system.mode = None  # Woodies has no mode field per woodies_system.py
 
-    # Data freshness: last Woodies bar from DB
+    # Data freshness: latest non-future Woodies bar.
+    #
+    # ROOT CAUSE OF THE -2,291,025,250s (~-72y) LAG BUG:
+    #   `v9_bars_5min_woodies` has sentinel rows with ts="2099-01-02 04:00:00"
+    #   (placeholder writes from a stalled bridge stream). The old query
+    #   `SELECT MAX(ts) FROM v9_bars_5min_woodies` lex-sorts text, so those
+    #   sentinel "2099-..." strings beat every real ISO ts → bar_dt is a
+    #   datetime in 2099 → (now - bar_dt) ≈ -72 years.
+    # FIX (inspector only — no underlying table mutation):
+    #   `latest_valid_db_ts` scans the latest 50 rows ordered DESC and
+    #   picks the first one whose ts parses to a non-future moment.
     last_bar_ts = None
     lag_seconds = None
+    fires_dict: dict = {}
     try:
         conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
-        row = conn.execute(
-            "SELECT MAX(ts) FROM v9_bars_5min_woodies"
-        ).fetchone()
+        last_bar_ts, _, lag_seconds = latest_valid_db_ts(
+            conn, "v9_bars_5min_woodies"
+        )
+        # Authoritative "fired today" surface — read v9_trades, NOT the
+        # momentary in-memory active_patterns. See module-level note on
+        # the frozen-tail bug: 1s after a fire active_patterns=[] and the
+        # old inspector reverted the row to status="armed".
+        fires_dict = fires_today(conn, _FIRING_SYSTEM_WOODIES)
         conn.close()
-        if row and row[0]:
-            last_bar_ts = str(row[0])
-            try:
-                bar_dt = datetime.fromisoformat(str(row[0]).replace("Z", "+00:00"))
-                if bar_dt.tzinfo is None:
-                    bar_dt = bar_dt.replace(tzinfo=timezone.utc)
-                lag_seconds = (datetime.now(timezone.utc) - bar_dt).total_seconds()
-            except (ValueError, TypeError):
-                pass
     except Exception as e:
         logger.warning("[BuildStatus/Woodies] DB read for freshness failed: %s", e)
 
@@ -120,6 +137,30 @@ def inspect(woodies_system=None) -> SystemStatus:
     active_patterns_raw = state.get("active_patterns", [])
     ready_to_route = state.get("ready_to_route", False)
     decision_tree = state.get("decision_tree", {})
+
+    # RTH gate: is the system configured for RTH-only AND are we currently in RTH?
+    _rth_only = getattr(woodies_system, "_rth_only", True)
+    try:
+        from zoneinfo import ZoneInfo
+        _et_now = datetime.now(ZoneInfo("America/New_York"))
+        _in_rth = _time(9, 30) <= _et_now.time() < _time(16, 0)
+    except Exception:
+        _in_rth = False
+    rth_gate_ok = (not _rth_only) or _in_rth  # passes if RTH-only is disabled OR we're in RTH
+
+    # Day type context: read today's day_type from DB for Woodies matrix display
+    _woodies_day_type = None
+    try:
+        _wconn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
+        _wrow = _wconn.execute(
+            "SELECT day_type FROM v9_day_type_history WHERE date = ? LIMIT 1",
+            (date.today().isoformat(),),
+        ).fetchone()
+        _wconn.close()
+        _woodies_day_type = _wrow[0] if _wrow else None
+    except Exception:
+        pass
+    _dt_known = _woodies_day_type not in (None, "UNKNOWN")
 
     cci_present = cci_14 is not None
     tcci_present = tcci is not None
@@ -141,6 +182,20 @@ def inspect(woodies_system=None) -> SystemStatus:
     # "GREY/YELLOW → stand aside"
     trend_ok = trend_state in _TRADING_TREND_STATES
 
+    # Pre-compute per-row freshness anchors.
+    # `bar_fresh`   — DB-derived recency.
+    # `state_fresh` — in-memory WoodiesSystem state (drives CCI / patterns);
+    #                 anchored at the same bar ts.
+    # `eval_fresh`  — inspector wall-clock for rows synthesized here
+    #                 (rth_gate, day_type_gate from a separate DB row).
+    bar_fresh = (
+        make_freshness(last_bar_ts, "db") if last_bar_ts else freshness_now("db")
+    )
+    state_fresh = (
+        make_freshness(last_bar_ts, "in_memory") if last_bar_ts else freshness_now("in_memory")
+    )
+    eval_fresh = freshness_now("inspector_eval")
+
     for pid in WOODIES_PATTERN_IDS:
         engine_id = _SPEC_ID_TO_ENGINE.get(pid, pid.upper())
         components = []
@@ -153,6 +208,9 @@ def inspect(woodies_system=None) -> SystemStatus:
             spec="state.cci_14 is not None",
             present=cci_present,
             value=f"CCI14={cci_14:.2f}" if cci_14 is not None else "None",
+            live=f"{cci_14:.2f}" if cci_14 is not None else "null",
+            required="!= null",
+            freshness=state_fresh,
         ))
 
         # Stage: data — tcci_present
@@ -163,6 +221,9 @@ def inspect(woodies_system=None) -> SystemStatus:
             spec="state.cci_6_tcci is not None",
             present=tcci_present,
             value=f"TCCI={tcci:.2f}" if tcci is not None else "None",
+            live=f"{tcci:.2f}" if tcci is not None else "null",
+            required="!= null",
+            freshness=state_fresh,
         ))
 
         # Stage: data — 5min bar recency
@@ -172,6 +233,9 @@ def inspect(woodies_system=None) -> SystemStatus:
             spec="max(ts) from v9_bars_5min_woodies within last 6 min",
             present=fresh,
             value=f"lag={round(lag_seconds, 0)}s" if lag_seconds is not None else "unknown",
+            live=f"{round(lag_seconds, 1)}s" if lag_seconds is not None else "unknown",
+            required="<= 360s",
+            freshness=bar_fresh,
         ))
 
         # Stage: stage_a1 — strategic gate
@@ -182,6 +246,40 @@ def inspect(woodies_system=None) -> SystemStatus:
             spec="trend_state in {BLUE, RED} (color veto from A1)",
             present=trend_ok,
             value=f"trend_state={trend_state}",
+            live=str(trend_state),
+            required="in {BLUE, RED}",
+            freshness=state_fresh,
+        ))
+
+        # Stage: stage_a1 — RTH gate (F-17: bars only processed in RTH)
+        _rth_live = (
+            "in_rth" if _in_rth
+            else ("pre_post_rth" if _rth_only else "rth_only=OFF")
+        )
+        components.append(Component(
+            stage="stage_a1",
+            key="rth_gate",
+            spec="RTH filter active — 09:30–16:00 ET only",
+            present=rth_gate_ok,
+            value=(
+                "in RTH" if _in_rth
+                else ("pre/post RTH" if _rth_only else "rth_only=OFF")
+            ),
+            live=_rth_live,
+            required="in_rth OR rth_only=OFF",
+            freshness=eval_fresh,
+        ))
+
+        # Stage: stage_a1 — day_type_gate (Woodies matrix authorization)
+        components.append(Component(
+            stage="stage_a1",
+            key="day_type_gate",
+            spec="day_type classified (not UNKNOWN) for Woodies matrix",
+            present=_dt_known,
+            value=str(_woodies_day_type) if _woodies_day_type else "UNKNOWN",
+            live=str(_woodies_day_type) if _woodies_day_type is not None else "null",
+            required="not in {None, UNKNOWN}",
+            freshness=freshness_now("db"),
         ))
 
         # Stage: detection — pattern_specific
@@ -193,6 +291,9 @@ def inspect(woodies_system=None) -> SystemStatus:
             spec=f"pattern_id={pid} in state.active_patterns",
             present=pattern_detected,
             value=f"active={pattern_detected} · engine_id={engine_id}",
+            live=str(pattern_detected),
+            required="== True",
+            freshness=state_fresh,
         ))
 
         # Stage: sizing — confidence_score
@@ -217,6 +318,9 @@ def inspect(woodies_system=None) -> SystemStatus:
             spec="pattern.confidence >= 0.5",
             present=conf_ok,
             value=f"conf={best_conf:.3f}" if best_conf is not None else "not active",
+            live=f"{float(best_conf):.4f}" if best_conf is not None else "null",
+            required=">= 0.5",
+            freshness=state_fresh,
         ))
 
         # Stage: exit_rules — ready_to_route
@@ -228,7 +332,18 @@ def inspect(woodies_system=None) -> SystemStatus:
             spec="state.ready_to_route == True and pattern active",
             present=route_present,
             value="✅" if route_present else "not ready",
+            live=f"ready_to_route={ready_to_route}, active={pattern_detected}",
+            required="ready_to_route == True AND active == True",
+            freshness=state_fresh,
         ))
+
+        # History wins over momentary state: a fire from v9_trades earlier
+        # today is the authoritative "fired today" signal even if
+        # active_patterns has since cleared (the frozen-tail bug repro).
+        fire_entry = fires_dict.get(engine_id)
+        fired_today = fire_entry is not None
+        last_fire_str = fire_entry["last_ts"] if fire_entry else None
+        currently_firing = pattern_detected and route_present
 
         # Determine status
         blockers = [f"{c.stage}.{c.key}" for c in components if not c.present]
@@ -237,6 +352,20 @@ def inspect(woodies_system=None) -> SystemStatus:
             status = "unknown"
             label = "❓ Unknown"
             reason = "CCI-14 not computed — insufficient bar history"
+        elif fired_today and currently_firing:
+            status = "fired"
+            label = "🟢 Firing now"
+            reason = (
+                f"{pid} firing now · fired_today=True · "
+                f"last_fire_ts={last_fire_str}"
+            )
+        elif fired_today:
+            status = "fired"
+            label = "✅ Fired today"
+            reason = (
+                f"{pid} fired earlier today at {last_fire_str} "
+                f"(v9_trades, firing_system=4) · count={fire_entry['count']}"
+            )
         elif not trend_ok:
             # MEMS26_WOODIES_DECISION_TREE_V1.md §4 A1: GREY/YELLOW = stand aside
             status = "blocked"
@@ -245,9 +374,11 @@ def inspect(woodies_system=None) -> SystemStatus:
                 f"Stage A1 veto: trend_state={trend_state} "
                 "(GREY/YELLOW/INDETERMINATE — Woodies WSI rule)"
             )
-        elif pattern_detected and route_present:
+        elif currently_firing:
+            # Race window: pattern emitting now but v9_trades insert not yet
+            # visible to this RO connection. Surface as firing immediately.
             status = "fired"
-            label = "✅ Fired"
+            label = "🟢 Firing now"
             reason = (
                 f"{pid} detected · ready_to_route=True · "
                 f"conf={best_conf:.3f}" if best_conf is not None else f"{pid} ready"
@@ -271,10 +402,17 @@ def inspect(woodies_system=None) -> SystemStatus:
             status=status,
             label=label,
             reason=reason,
-            fired_today=pattern_detected and ready_to_route,
-            last_fire_ts=None,  # Woodies fires are not persisted per-pattern by table
+            fired_today=fired_today,
+            last_fire_ts=last_fire_str,
             components=components,
             blockers=blockers,
         ))
+
+    # System-level aggregation: sum per-pattern counts, max per-pattern ts.
+    # Driven by the SAME fires_dict so the system header can never disagree
+    # with the per-pattern roll-up.
+    system.fired_today_count = sum(v["count"] for v in fires_dict.values())
+    last_ts_candidates = [v["last_ts"] for v in fires_dict.values() if v.get("last_ts")]
+    system.last_fire_ts = max(last_ts_candidates) if last_ts_candidates else None
 
     return system

@@ -170,14 +170,13 @@ class TPOSystem(BaseV9TradingSystem):
                 if len(self.bar_buffer) % 6 == 0:
                     self.current_letter_idx += 1
 
-                # IB tracking (first 12 bars = 60 min)
-                if not self.ib_locked:
-                    if self.ib_high is None or high > self.ib_high:
-                        self.ib_high = high
-                    if self.ib_low is None or low < self.ib_low:
-                        self.ib_low = low
-                    if self.current_state["bars_processed_today"] >= 12:
-                        self.ib_locked = True
+                # IB intentionally NOT tracked here — Sierra Study ID:6 is
+                # the source of truth (handled in self._update_ib() called
+                # at line 151). Pre-LIVE source-of-truth cleanup
+                # (2026-05-28): removed the second bar-based IB accumulator
+                # which was overwriting Sierra's locked IB with running
+                # session_high/low values (e.g. 7574/7525.5 instead of the
+                # real 7543.75/7522.0 IB). See _update_ib() docstring.
 
                 # Compute POC / VAH / VAL
                 poc, vah, val = self._compute_levels()
@@ -362,70 +361,64 @@ class TPOSystem(BaseV9TradingSystem):
         return "UNCLEAR"
 
     def _update_ib(self, bar: dict, session: str) -> None:
-        """Update IB tracking during 09:30-10:30 ET cash session.
+        """IB authoritative source: Sierra Study ID:6 via tpo.json.
 
-        PA2-D2: If restarted after IB period, force lock from DB/existing values.
+        Pre-LIVE source-of-truth cleanup (2026-05-28):
+        - Removed in-process MAX/MIN computation from incoming 5min bars
+          (used to write divergent values to v9_tpo_sessions.ib_*).
+        - Removed DB recovery fallback (was perpetuating bad data across
+          restarts).
+        - IB now comes from `_load_sierra_tpo()['ib_high'|'ib_low'|'ib_width']`
+          and is persisted to v9_tpo_sessions whenever Sierra reports a
+          locked IB (ib_found=true).
+
+        Side-effects:
+        - Sets self.ib_high / self.ib_low / self._ib_width / self._ib_class
+        - Sets self.ib_locked when Sierra Study locked (10:30 ET onward)
+        - Persists to v9_tpo_sessions row on transition to locked
         """
-        from datetime import time as _time
-        # PA2-D2: Post-restart IB recovery — if past IB period and have values, force lock
-        if not self.ib_locked and session in ("CASH_HOURS", "AFTER_HOURS"):
-            if self.ib_high is not None and self.ib_low is not None:
-                self.ib_locked = True
-                self._ib_width = self.ib_high - self.ib_low
-                self._ib_class = self._classify_ib_width(self._ib_width)
-                self._ib_locked_ts = _market_now_utc().isoformat()  # Prompt 26b: replay-safe
-                logger.info("[TPO] IB lock RECOVERED post-restart: H=%.2f L=%.2f W=%.2f class=%s",
-                            self.ib_high, self.ib_low, self._ib_width, self._ib_class)
-                self._persist_ib_to_session()
-                return
-            # No IB values yet — try loading from today's DB session
-            try:
-                conn = sqlite3.connect(self.db_path)
-                row = conn.execute(
-                    "SELECT ib_high, ib_low FROM v9_tpo_sessions WHERE trading_date=? AND ib_high IS NOT NULL ORDER BY id DESC LIMIT 1",
-                    (date.today().isoformat(),)
-                ).fetchone()
-                conn.close()
-                if row and row[0] is not None and row[1] is not None:
-                    self.ib_high = float(row[0])
-                    self.ib_low = float(row[1])
-                    self.ib_locked = True
-                    self._ib_width = self.ib_high - self.ib_low
-                    self._ib_class = self._classify_ib_width(self._ib_width)
-                    self._ib_locked_ts = _market_now_utc().isoformat()  # Prompt 26b: replay-safe
-                    logger.info("[TPO] IB lock RECOVERED from DB: H=%.2f L=%.2f W=%.2f class=%s",
-                                self.ib_high, self.ib_low, self._ib_width, self._ib_class)
-                    return
-            except Exception as e:
-                logger.debug("[TPO] IB DB recovery failed: %s", e)
-
-        # Only track IB during cash session
-        if session not in ("CASH_OPEN", "FIRST_HOUR"):
-            # After first hour, lock if not already locked
-            if session == "CASH_HOURS" and self.ib_high is not None and not self.ib_locked:
-                self.ib_locked = True
-                self._ib_locked_ts = _market_now_utc().isoformat()  # Prompt 26b: replay-safe
-                self._ib_width = (self.ib_high - self.ib_low) if self.ib_low else 0
-                self._ib_class = self._classify_ib_width(self._ib_width)
-                self._persist_ib_to_session()
-                logger.info("[TPO] IB LOCKED: H=%.2f L=%.2f W=%.2f class=%s",
-                            self.ib_high, self.ib_low, self._ib_width, self._ib_class)
+        try:
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            sierra = _load_sierra_tpo() or {}
+        except Exception as e:
+            logger.debug("[TPO] Sierra tpo.json load failed for IB update: %s", e)
             return
 
-        if self.ib_locked:
+        if not sierra.get("ib_found"):
+            return  # Pre-RTH or Sierra Study not yet emitting → leave NULL
+
+        try:
+            ib_high = float(sierra.get("ib_high"))
+            ib_low = float(sierra.get("ib_low"))
+        except (TypeError, ValueError):
+            return
+        if ib_high <= 0 or ib_low <= 0 or ib_high < ib_low:
             return
 
-        bar_high = float(bar.get("high", bar.get("h", 0)))
-        bar_low = float(bar.get("low", bar.get("l", 0)))
-        if bar_high <= 0 or bar_low <= 0:
-            return
+        prev_high, prev_low = self.ib_high, self.ib_low
+        self.ib_high = ib_high
+        self.ib_low = ib_low
+        self._ib_width = ib_high - ib_low
+        self._ib_class = self._classify_ib_width(self._ib_width)
 
-        if self.ib_high is None:
-            self.ib_high = bar_high
-            self.ib_low = bar_low
-        else:
-            self.ib_high = max(self.ib_high, bar_high)
-            self.ib_low = min(self.ib_low, bar_low)
+        # Sierra's `ib_locked` is True once the Study finishes the 09:30-10:30
+        # window. We mirror that flag so downstream consumers (A4, A2) see
+        # the same lock state Sierra shows on chart.
+        was_locked = self.ib_locked
+        self.ib_locked = bool(sierra.get("ib_locked"))
+        if self.ib_locked and not self._ib_locked_ts:
+            self._ib_locked_ts = _market_now_utc().isoformat()
+        # Persist on lock transition OR whenever Sierra reports new values
+        # (covers Michael's "1:1 tracking" requirement — if Sierra changes IB
+        # mid-session because the study was re-configured, DB follows).
+        if self.ib_locked != was_locked or prev_high != ib_high or prev_low != ib_low:
+            self._persist_ib_to_session()
+        if self.ib_locked and not was_locked:
+            logger.info("[TPO] IB LOCKED (from Sierra): H=%.2f L=%.2f W=%.2f class=%s",
+                        self.ib_high, self.ib_low, self._ib_width, self._ib_class)
+        elif prev_high != ib_high or prev_low != ib_low:
+            logger.info("[TPO] IB updated from Sierra: H=%.2f L=%.2f W=%.2f class=%s",
+                        self.ib_high, self.ib_low, self._ib_width, self._ib_class)
 
     @staticmethod
     def _classify_ib_width(width: float) -> str:
@@ -437,16 +430,24 @@ class TPOSystem(BaseV9TradingSystem):
         return "WIDE"
 
     def _persist_ib_to_session(self):
-        """Write IB fields to current session row."""
+        """Write Sierra-sourced IB fields to current session row.
+
+        Mirrors Sierra 1:1 (pre-LIVE "doesn't lock the way it locked"
+        requirement 2026-05-28). Always called from `_update_ib()` after
+        Sierra emits a real IB (`ib_found=true`), so we never write NULL/0
+        here — Sierra-silent path is handled by the COALESCE-guarded
+        `_persist_session()`.
+        """
         if not self.current_session_id:
             return
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute(
                 """UPDATE v9_tpo_sessions SET ib_high=?, ib_low=?, ib_width=?,
-                   ib_class=?, ib_locked=1, ib_locked_ts=? WHERE session_id=?""",
+                   ib_class=?, ib_locked=?, ib_locked_ts=COALESCE(?, ib_locked_ts)
+                   WHERE session_id=?""",
                 (self.ib_high, self.ib_low, self._ib_width, self._ib_class,
-                 self._ib_locked_ts, self.current_session_id)
+                 int(self.ib_locked), self._ib_locked_ts, self.current_session_id)
             )
             conn.commit()
             conn.close()
@@ -454,13 +455,28 @@ class TPOSystem(BaseV9TradingSystem):
             logger.warning(f"TPO IB persist failed: {e}")
 
     def _open_session(self, session_id, session_type, today, ts_str):
+        # Pre-LIVE "doesn't lock the way it locked" (2026-05-28):
+        # Only reset IB state when the trading_date changes. Switching session
+        # type within the same trading_date (e.g. GLOBEX→CASH at 09:30 ET, or
+        # a re-open due to bridge resubscribe) must NOT wipe a Sierra-emitted
+        # locked IB. Sierra is the source of truth; in-memory cache mirrors it.
+        prev_session_id = self.current_session_id
+        prev_trading_date = (
+            prev_session_id.split("_", 1)[1]
+            if prev_session_id and "_" in prev_session_id
+            else None
+        )
         self.current_session_id = session_id
         self.current_session_type = session_type
         self.profile = {}
         self.current_letter_idx = 0
-        self.ib_high = None
-        self.ib_low = None
-        self.ib_locked = False
+        if prev_trading_date != today:
+            self.ib_high = None
+            self.ib_low = None
+            self.ib_locked = False
+            self._ib_width = None
+            self._ib_class = None
+            self._ib_locked_ts = None
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute(
@@ -525,14 +541,28 @@ class TPOSystem(BaseV9TradingSystem):
         return "neutral"
 
     def _persist_session(self, session_id, session_type, today, poc, vah, val, shape):
+        # Pre-LIVE "doesn't lock the way it locked" (2026-05-28):
+        # Use COALESCE on IB columns so a transient `self.ib_*=None` (e.g.
+        # Sierra Study cleared subgraphs post-lock) does NOT wipe a previously
+        # captured Sierra-emitted locked IB. _update_ib() always overwrites
+        # the row when Sierra emits a real IB, so 1:1 tracking is preserved;
+        # this only prevents data loss when Sierra goes silent.
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute(
-                """UPDATE v9_tpo_sessions SET poc_price=?, vah_price=?, val_price=?,
-                   profile_shape=?, ib_high=?, ib_low=?, ib_locked=?, letter_count=?
+                """UPDATE v9_tpo_sessions SET
+                       poc_price=?, vah_price=?, val_price=?, profile_shape=?,
+                       ib_high=COALESCE(?, ib_high),
+                       ib_low=COALESCE(?, ib_low),
+                       ib_locked=CASE WHEN ? IS NULL THEN ib_locked ELSE ? END,
+                       letter_count=?
                    WHERE session_id=?""",
-                (poc, vah, val, shape, self.ib_high, self.ib_low, int(self.ib_locked),
-                 self.current_letter_idx + 1, session_id)
+                (
+                    poc, vah, val, shape,
+                    self.ib_high, self.ib_low,
+                    self.ib_high, int(self.ib_locked),
+                    self.current_letter_idx + 1, session_id,
+                )
             )
             conn.commit()
             conn.close()

@@ -70,7 +70,7 @@ def real_woodies_system():
 
 @pytest.fixture
 def temp_db_with_five_min_setups(tmp_path):
-    """Temp SQLite DB with v9_five_min_setups and v9_bars_5min tables.
+    """Temp SQLite DB with v9_five_min_setups, v9_bars_5min, v9_trades tables.
 
     Used by tests that need to simulate S2 pattern fires.
     Returns (db_path, today_str).
@@ -117,6 +117,17 @@ def temp_db_with_five_min_setups(tmp_path):
         )
     """)
     conn.execute("""
+        CREATE TABLE v9_trades (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            mode TEXT NOT NULL DEFAULT 'live',
+            firing_system INTEGER NOT NULL,
+            direction TEXT NOT NULL DEFAULT 'LONG',
+            state TEXT NOT NULL DEFAULT 'CLOSED',
+            entry_ts TEXT,
+            cross_context TEXT
+        )
+    """)
+    conn.execute("""
         CREATE TABLE v9_day_type_history (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             date TEXT NOT NULL,
@@ -143,14 +154,36 @@ def temp_db_with_five_min_setups(tmp_path):
 
 @pytest.fixture
 def temp_db_with_today_fire(temp_db_with_five_min_setups):
-    """Temp DB with one REACTIVE_LONG fire inserted for today."""
+    """Temp DB with one REACTIVE_LONG fire inserted for today.
+
+    Post-2026-05-28: fires_today() reads `v9_trades.firing_system=2` as the
+    authoritative source, NOT `v9_five_min_setups`. We insert BOTH so
+    legacy assertions on the detection-time table still hold while the
+    inspector's new "fired today" surface lights up.
+    """
+    import json
     db_path, today = temp_db_with_five_min_setups
     now_ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+    entry_ts_iso = datetime.now(timezone.utc).isoformat()
+
+    cross_context = json.dumps([{
+        "trigger": "REACTIVE_LONG",
+        "classification": "REACTIVE_LONG",
+        "metadata": {"pattern": "REACTIVE_LONG"},
+        "systems": {"five_min_system": {
+            "last_pattern": "REACTIVE_LONG",
+        }},
+    }])
 
     conn = sqlite3.connect(db_path)
     conn.execute(
         "INSERT INTO v9_five_min_setups (ts, pattern, direction, entry_price, stop_price, confidence) VALUES (?,?,?,?,?,?)",
         (now_ts, "REACTIVE_LONG", "LONG", 4700.0, 4698.0, 75.0),
+    )
+    conn.execute(
+        "INSERT INTO v9_trades (firing_system, direction, entry_ts, cross_context) "
+        "VALUES (?,?,?,?)",
+        (2, "LONG", entry_ts_iso, cross_context),
     )
     conn.commit()
     conn.close()

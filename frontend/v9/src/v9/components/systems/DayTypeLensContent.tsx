@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
+import { KeyLevelsCard } from './KeyLevelsCard';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -23,6 +24,16 @@ interface DayTypeV9Data {
   active_zohar_rules: string[];
 }
 
+interface LiveMeta {
+  globex_h: number | null;
+  globex_l: number | null;
+  rth_session_h: number | null;
+  rth_session_l: number | null;
+  ib_high_live: number | null;
+  ib_low_live: number | null;
+  ib_locked: boolean;
+}
+
 interface LensContentProps {
   activeTab: string;
 }
@@ -31,6 +42,7 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
   const [current, setCurrent] = useState<DayTypeV9Data | null>(null);
   const [classified, setClassified] = useState(false);
   const [developing, setDeveloping] = useState(false);
+  const [liveMeta, setLiveMeta] = useState<LiveMeta | null>(null);
   const color = systemColor(1);
 
   useEffect(() => {
@@ -40,6 +52,22 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
         setClassified(d?.classified ?? false);
         setDeveloping(d?.developing ?? false);
         setCurrent(d?.data ?? null);
+      })
+      .catch(() => {});
+    // Fetch live state meta for Globex/RTH session ranges
+    fetch(`${API_BASE}/api/v9/day_type/state`)
+      .then((r) => r.json())
+      .then((d) => {
+        const m = d?.state?.meta ?? {};
+        setLiveMeta({
+          globex_h: m.globex_h ?? null,
+          globex_l: m.globex_l ?? null,
+          rth_session_h: m.rth_session_h ?? null,
+          rth_session_l: m.rth_session_l ?? null,
+          ib_high_live: m.ib_high_live ?? null,
+          ib_low_live: m.ib_low_live ?? null,
+          ib_locked: m.ib_locked ?? false,
+        });
       })
       .catch(() => {});
   }, [activeTab]);
@@ -110,6 +138,32 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
                 <span style={{ marginLeft: 8 }}>{current.ib_width_class}</span>
               )}
             </div>
+            {liveMeta && (liveMeta.globex_h != null || liveMeta.globex_l != null) && (
+              <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
+                <span style={{ color: '#94A3B8' }}>Globex: </span>
+                {liveMeta.globex_h != null ? liveMeta.globex_h.toFixed(2) : '\u2014'}
+                {' / '}
+                {liveMeta.globex_l != null ? liveMeta.globex_l.toFixed(2) : '\u2014'}
+                {liveMeta.globex_h != null && liveMeta.globex_l != null && (
+                  <span style={{ marginLeft: 4, color: '#94A3B8' }}>
+                    ({(liveMeta.globex_h - liveMeta.globex_l).toFixed(1)} pt)
+                  </span>
+                )}
+              </div>
+            )}
+            {liveMeta && (liveMeta.rth_session_h != null || liveMeta.rth_session_l != null) && (
+              <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
+                <span style={{ color: '#94A3B8' }}>RTH: </span>
+                {liveMeta.rth_session_h != null ? liveMeta.rth_session_h.toFixed(2) : '\u2014'}
+                {' / '}
+                {liveMeta.rth_session_l != null ? liveMeta.rth_session_l.toFixed(2) : '\u2014'}
+                {liveMeta.rth_session_h != null && liveMeta.rth_session_l != null && (
+                  <span style={{ marginLeft: 4, color: '#94A3B8' }}>
+                    ({(liveMeta.rth_session_h - liveMeta.rth_session_l).toFixed(1)} pt)
+                  </span>
+                )}
+              </div>
+            )}
             {current.active_zohar_rules && current.active_zohar_rules.length > 0 && (
               <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
                 Zohar: {current.active_zohar_rules.join(', ')}
@@ -117,6 +171,7 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
             )}
           </>
         )}
+        <KeyLevelsCard />
       </div>
     );
   }

@@ -13,12 +13,28 @@ export type PatternStatus =
   | 'not_applicable'
   | 'unknown';
 
+export type FreshnessSource =
+  | 'sierra_export'
+  | 'db'
+  | 'in_memory'
+  | 'inspector_eval';
+
+export interface Freshness {
+  ts: string | null;
+  lag_s: number | null;
+  source: FreshnessSource | null;
+}
+
 export interface Component {
   stage: string;
   key: string;
   spec: string;
   present: boolean;
   value: string;
+  // Additive fields (backend v1.1+). Older payloads may omit them.
+  live?: string | null;
+  required?: string | null;
+  freshness?: Freshness | null;
 }
 
 export interface Pattern {
@@ -45,6 +61,10 @@ export interface SystemGate {
   spec: string;
   present: boolean;
   value: string;
+  // Additive fields (backend v1.1+). Older payloads may omit them.
+  live?: string | null;
+  required?: string | null;
+  freshness?: Freshness | null;
 }
 
 export interface SystemBlock {
@@ -56,6 +76,12 @@ export interface SystemBlock {
   data_freshness: DataFreshness;
   global_gates: SystemGate[];
   patterns: Pattern[];
+  // Aggregate of today's fires across all patterns (backend v1.2+).
+  // Source: row_helpers.fires_today() reading v9_trades.firing_system.
+  // UI surfaces these in the system header so the trader sees "S4 fired
+  // 2× today, last 13:45 ET" without scanning every pattern row.
+  fired_today_count?: number;
+  last_fire_ts?: string | null;
 }
 
 export interface RtbSession {

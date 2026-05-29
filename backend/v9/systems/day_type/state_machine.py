@@ -231,9 +231,15 @@ class DayTypeStateMachine:
         self.range_category: RangeCategory = RangeCategory.NORMAL
         self.failed_extension: FailedExtensionType = FailedExtensionType.NONE
         self.playbook: Optional[PlaybookOutput] = None
-        # Tracking
+        # Tracking — overall session (all bars)
         self.session_high: float = 0.0
         self.session_low: float = float("inf")
+        # Tracking — Globex range (pre-RTH bars, is_rth=False)
+        self.globex_h: float = 0.0
+        self.globex_l: float = float("inf")
+        # Tracking — RTH session range (RTH bars only, is_rth=True)
+        self.rth_session_h: float = 0.0
+        self.rth_session_l: float = float("inf")
         self.bar_count: int = 0
         self.consecutive_same_vote: int = 0
 
@@ -255,9 +261,15 @@ class DayTypeStateMachine:
         """
         self.bar_count += 1
 
-        # Track session range
+        # Track session range (all bars) + split Globex vs RTH
         self.session_high = max(self.session_high, bar.high)
         self.session_low = min(self.session_low, bar.low)
+        if bar.is_rth:
+            self.rth_session_h = max(self.rth_session_h, bar.high)
+            self.rth_session_l = min(self.rth_session_l, bar.low)
+        else:
+            self.globex_h = max(self.globex_h, bar.high)
+            self.globex_l = min(self.globex_l, bar.low)
 
         prev_stage = self.stage
 
@@ -383,7 +395,9 @@ class DayTypeStateMachine:
         self.stage = Stage.A2
 
     def _stage_a2(self, bar: BarInput):
-        """A2: Opening Type Detection — accumulate first few bars."""
+        """A2: Opening Type Detection — accumulate first few RTH bars only."""
+        if not bar.is_rth:
+            return  # Globex bars must not count toward opening type detection
         self.opening_bars.append(bar)
 
         # Need at least 3 bars (15 min on 5-min chart) for detection
@@ -397,26 +411,48 @@ class DayTypeStateMachine:
             self.stage = Stage.A3
 
     def _stage_a3(self, bar: BarInput):
-        """A3: IB Tracking — track IB high/low during 09:30-10:30."""
-        # Use provided IB data if available, otherwise track from bars
+        """A3: IB Tracking — accept Sierra Study ID:6 IB only.
+
+        Pre-LIVE cleanup (2026-05-28): removed bars-derived IB fallback
+        (`max(self.ib_high, bar.high)`). When `bar.ib_high/ib_low` are None
+        (Sierra reports `ib.found=false`, e.g. pre-RTH or Study not loaded),
+        we keep the running values untouched and stay in stage A3 until
+        Sierra supplies IB. This guarantees DB IB == Sierra Study IB.
+        """
+        if not bar.is_rth:
+            return  # Pre-RTH (Globex) bars must not contaminate the RTH IB
         if bar.ib_high is not None:
             self.ib_high = max(self.ib_high, bar.ib_high)
-        else:
-            self.ib_high = max(self.ib_high, bar.high)
-
         if bar.ib_low is not None:
             self.ib_low = min(self.ib_low, bar.ib_low)
-        else:
-            self.ib_low = min(self.ib_low, bar.low)
 
         # IB closes at configured duration (default 60 min = 09:30-10:30)
         if bar.session_min >= self.config.ib_period_min:
             self.stage = Stage.A4
 
     def _stage_a4(self, bar: BarInput):
-        """A4: IB Lock & Width Classification."""
-        if self.ib_low == float("inf"):
-            self.ib_low = bar.low
+        """A4: IB Lock & Width Classification.
+
+        Pre-LIVE source-of-truth cleanup (2026-05-28):
+        - Removed `if self.ib_low == inf: self.ib_low = bar.low` fallback,
+          which polluted v9_day_type_history with `ib_high=0.0
+          ib_low=<bar.low>` whenever Sierra Study 6 went silent before A3
+          had captured both sides. The bar.low fallback IS bar synthesis
+          and violates the source-of-truth rule.
+        - When Sierra IB is incomplete (self.ib_high==0 OR
+          self.ib_low==inf) we STAY in A4 and re-poll Sierra on the next
+          bar via `_stage_a3` — which is invoked again because we don't
+          advance the stage. This is a loud failure (classification halts)
+          instead of silent garbage (wrong IB written to DB).
+        """
+        ib_high_set = self.ib_high not in (0.0, None) and self.ib_high > 0
+        ib_low_set = self.ib_low != float("inf") and self.ib_low is not None
+        if not (ib_high_set and ib_low_set):
+            # Sierra IB never arrived. Drop back to A3 so the next bar can
+            # re-attempt picking up Sierra's locked IB. Classification
+            # cannot proceed without authoritative IB.
+            self.stage = Stage.A3
+            return
 
         ib_range = self.ib_high - self.ib_low
         ib_width = classify_ib_width(
@@ -723,7 +759,7 @@ class DayTypeStateMachine:
             meta={
                 "bar_count": self.bar_count,
                 "session_high": self.session_high,
-                "session_low": self.session_low,
+                "session_low": self.session_low if self.session_low < float("inf") else None,
                 "consecutive_same_vote": self.consecutive_same_vote,
                 "profile_shape": "UNKNOWN",
                 "pd_context_status": self.pd_context_status,
@@ -734,6 +770,11 @@ class DayTypeStateMachine:
                 "ib_low_live": ib_l_live,
                 "ib_range_live": ib_range_live,
                 "ib_locked": self.ib_locked,
+                # Separate Globex and RTH session ranges
+                "globex_h": self.globex_h if self.globex_h > 0 else None,
+                "globex_l": self.globex_l if self.globex_l < float("inf") else None,
+                "rth_session_h": self.rth_session_h if self.rth_session_h > 0 else None,
+                "rth_session_l": self.rth_session_l if self.rth_session_l < float("inf") else None,
             },
         )
 

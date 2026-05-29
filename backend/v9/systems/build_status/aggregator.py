@@ -12,7 +12,7 @@ from datetime import date, datetime, timezone
 from typing import Optional, List
 
 from .types import BuildStatusResponse, SystemStatus, RTBSession
-from . import s2_inspector, woodies_inspector, day_type_inspector
+from . import s2_inspector, woodies_inspector, day_type_inspector, bridge_inspector
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class BuildStatusAggregator:
         and emit a partial result with that system marked status: 'unknown' and errors: [...]"
         """
         if systems is None:
-            systems = ["five_min", "woodies", "day_type"]
+            systems = ["bridge", "five_min", "woodies", "day_type"]
 
         now_utc = datetime.now(timezone.utc)
         errors: List[str] = []
@@ -115,6 +115,24 @@ class BuildStatusAggregator:
         day_type_str = self._get_current_day_type()
 
         result_systems: List[SystemStatus] = []
+
+        # ── Bridge Live Feed ────────────────────────────────────────────────
+        if "bridge" in systems:
+            try:
+                br_sys = bridge_inspector.inspect(db_path=self._db_path)
+                result_systems.append(br_sys)
+            except Exception as e:
+                _rate_limited_warn(
+                    "agg_bridge_inspector",
+                    f"[BuildStatus/Agg] bridge_inspector.inspect() raised: {e}",
+                )
+                errors.append(f"bridge_inspector failed: {e}")
+                result_systems.append(SystemStatus(
+                    id="bridge",
+                    name="Bridge · Live Data Feed",
+                    running=False,
+                    hydrated=False,
+                ))
 
         # ── S2 Five-Minute ──────────────────────────────────────────────────
         if "five_min" in systems:

@@ -2,6 +2,7 @@
 import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
+import { KeyLevelsCard } from './KeyLevelsCard';
 
 export function TPOLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[5]);
@@ -32,6 +33,7 @@ export function TPOLensContent({ activeTab }: { activeTab: string }) {
           Vol Cluster: {raw.volume_cluster?.center?.toFixed(2) ?? '—'} ({(raw.volume_cluster?.prices?.length ?? 0)} prices)
         </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>OBSERVER — publishes POC/VAH/VAL to Day Type</div>
+        <KeyLevelsCard />
       </div>
     );
   }

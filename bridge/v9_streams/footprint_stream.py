@@ -53,5 +53,7 @@ class FootprintStream(BaseV9Stream):
             self.name, new_ticks, data["bar_count"], data["cumulative_delta"],
         )
 
+        self.push_count += 1
+        self.last_push_ts = time.time()
         self._push_redis(data)
         self._push_api(data)

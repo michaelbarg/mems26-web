@@ -2,6 +2,7 @@
 import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
+import { KeyLevelsCard } from './KeyLevelsCard';
 
 export function KillzoneLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[6]);
@@ -24,6 +25,7 @@ export function KillzoneLensContent({ activeTab }: { activeTab: string }) {
           Next: {nz.name || '—'} in {nz.starts_in_minutes ?? '—'} min
         </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>OBSERVER — session quality gate for other systems</div>
+        <KeyLevelsCard />
       </div>
     );
   }

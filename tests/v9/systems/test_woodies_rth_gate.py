@@ -164,8 +164,12 @@ class TestWoodiesRthGate:
         assert "42" in sys._open_fire_records
 
     def test_overnight_bar_time_stop_fires_when_expired(self):
-        """Overnight bar still fires time stop if trade has exceeded limit."""
+        """Overnight bar still fires time stop if trade has exceeded limit.
+
+        W-10 re-enabled 2026-05-28 evening (Option B REVERSED).
+        """
         sys = WoodiesSystem(rth_only=True)
+        sys._closes = [5500.0]  # Bug D fix: need closes for exit_price
         sys._open_fire_records["99"] = {"entry_bar_count": 0, "pattern_id": "TLB"}
         sys._bar_count = 18  # already at bar_count=18 before processing
         _run(sys.process_bar(_make_bar(_overnight_ts())))

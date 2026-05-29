@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
+import { KeyLevelsCard } from './KeyLevelsCard';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -50,6 +51,7 @@ export function FiveMinLensContent({ activeTab }: LensContentProps) {
             </div>
           </>
         )}
+        <KeyLevelsCard />
       </div>
     );
   }

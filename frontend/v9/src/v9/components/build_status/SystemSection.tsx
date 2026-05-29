@@ -38,6 +38,57 @@ function StatusDot({ ok, label }: { ok: boolean; label: string }) {
   );
 }
 
+function formatLastFireET(ts: string | null | undefined): string | null {
+  if (!ts) return null;
+  try {
+    const d = new Date(ts);
+    // ET wall-clock for the trader; matches the rest of the dashboard.
+    return d.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/New_York',
+    });
+  } catch {
+    return null;
+  }
+}
+
+function FireSummary({ system }: { system: SystemBlock }) {
+  const count = system.fired_today_count ?? 0;
+  if (count <= 0) {
+    return (
+      <span
+        style={{
+          fontSize: 9,
+          fontFamily: 'ui-monospace, monospace',
+          color: COLORS.textTertiary,
+          padding: '1px 6px',
+          borderRadius: 3,
+          background: COLORS.bgSurface2,
+        }}
+      >
+        0 fires today
+      </span>
+    );
+  }
+  const lastEt = formatLastFireET(system.last_fire_ts);
+  return (
+    <span
+      title={system.last_fire_ts ?? undefined}
+      style={{
+        fontSize: 9,
+        fontFamily: 'ui-monospace, monospace',
+        color: COLORS.bull,
+        padding: '1px 6px',
+        borderRadius: 3,
+        background: '#0e3a1f',
+      }}
+    >
+      ✓ {count}× fired{lastEt ? ` · last ${lastEt} ET` : ''}
+    </span>
+  );
+}
+
 export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -45,7 +96,9 @@ export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) 
     ? system.patterns.filter((p) => p.status === 'blocked' || p.status === 'vetoed' || (p.blockers && p.blockers.length > 0))
     : system.patterns;
 
-  const firedCount = system.patterns.filter((p) => p.fired_today).length;
+  // Per-pattern roll-up (distinct patterns that fired) — separate from the
+  // backend-supplied fired_today_count which sums multi-pattern fires.
+  const firedPatternCount = system.patterns.filter((p) => p.fired_today).length;
   const blockedCount = system.patterns.filter((p) => p.status === 'blocked' || p.status === 'vetoed').length;
 
   return (
@@ -85,9 +138,10 @@ export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) 
         <StatusDot ok={system.running} label={`run ${system.running ? 'on' : 'off'}`} />
         <StatusDot ok={system.hydrated} label={`hyd ${system.hydrated ? 'ok' : 'no'}`} />
         <FreshnessIndicator system={system} />
+        <FireSummary system={system} />
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 10, color: COLORS.textTertiary, fontFamily: 'ui-monospace, monospace' }}>
-          {system.patterns.length} patterns · {firedCount} fired · {blockedCount} blocked
+          {system.patterns.length} patterns · {firedPatternCount} fired · {blockedCount} blocked
           {showOnlyBlockers && visiblePatterns.length !== system.patterns.length && (
             <span style={{ color: COLORS.warning, marginLeft: 6 }}>
               (filtered to {visiblePatterns.length})

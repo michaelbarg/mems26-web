@@ -43,6 +43,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef ProjHLStudyID       = sc.Input[16];   // Sierra Study ID for Daily Projected High-Low
     SCInputRef TPOChartNumber      = sc.Input[17];   // Chart # where TPO studies live (0 = same chart)
     SCInputRef WoodiesChartNumber  = sc.Input[18];   // Chart # where Woodies studies live (0 = same chart)
+    SCInputRef YesterdayIBStudyID  = sc.Input[19];   // Sierra Study ID for Yesterday's Initial Balance (0 = disabled)
 
     if (sc.SetDefaults)
     {
@@ -115,6 +116,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         WoodiesChartNumber.Name = "Woodies Chart Number (0=same chart)";
         WoodiesChartNumber.SetInt(0);  // Set to the chart # where Woodies studies live
+
+        YesterdayIBStudyID.Name = "Yesterday Initial Balance Study ID (Sierra)";
+        YesterdayIBStudyID.SetInt(0);  // 0 = disabled; set to Sierra Study ID of the IB study configured for the previous session
 
         // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
         // (unbounded VAP storage per bar). Footprint export now uses fallback
@@ -784,11 +788,41 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             y_poc = 0; y_vah = 0; y_val = 0;
         }
 
+        // ── Yesterday Initial Balance (Step 9, 2026-05-28) ──
+        // Same subgraph layout as today's IB study (Study ID:6):
+        //   ACSIL idx 6 = IB High, idx 8 = IB Low.
+        // The Sierra Study ID is configured via Input 19 (default 0 = disabled).
+        // When disabled or invalid, emit 0 so backend can treat as null.
+        int y_ib_study_id = YesterdayIBStudyID.GetInt();
+        float y_ib_h = 0, y_ib_l = 0;
+        bool y_ib_found = false;
+        if (y_ib_study_id > 0) {
+            SCFloatArray y_ib_high_arr, y_ib_low_arr;
+            sc.GetStudyArrayFromChartUsingID(chart_num, y_ib_study_id, 6, y_ib_high_arr);
+            sc.GetStudyArrayFromChartUsingID(chart_num, y_ib_study_id, 8, y_ib_low_arr);
+            if (y_ib_high_arr.GetArraySize() > idx && y_ib_high_arr[idx] != 0) {
+                y_ib_h = y_ib_high_arr[idx];
+                y_ib_l = (y_ib_low_arr.GetArraySize() > idx) ? y_ib_low_arr[idx] : 0;
+                // MES range validation — reject corrupt Sierra output
+                bool y_ib_ok = y_ib_h > 3000 && y_ib_h < 10000
+                            && y_ib_l > 3000 && y_ib_l < 10000
+                            && y_ib_h >= y_ib_l;
+                if (y_ib_ok) {
+                    y_ib_found = true;
+                } else {
+                    y_ib_h = 0; y_ib_l = 0;
+                }
+            }
+        }
+
         j << ",\"previous_session\":{";
         json_bool(j, "found", y_valid, false);
         json_float(j, "poc", y_poc);
         json_float(j, "vah", y_vah);
         json_float(j, "val", y_val);
+        json_bool(j, "ib_found", y_ib_found);
+        json_float(j, "ib_high", y_ib_h);
+        json_float(j, "ib_low", y_ib_l);
         j << "}";
 
         j << "}";

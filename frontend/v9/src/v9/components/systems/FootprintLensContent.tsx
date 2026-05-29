@@ -2,6 +2,7 @@
 import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
+import { KeyLevelsCard } from './KeyLevelsCard';
 
 export function FootprintLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[3]);
@@ -37,6 +38,7 @@ export function FootprintLensContent({ activeTab }: { activeTab: string }) {
           Combined: {raw.combined_class ?? '—'} | Init: {raw.initiative_type ?? '—'} | Reactive: {raw.reactive_flag != null ? (raw.reactive_flag ? 'Yes' : 'No') : '—'}
         </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>STANDALONE observer — no trade decisions</div>
+        <KeyLevelsCard />
       </div>
     );
   }

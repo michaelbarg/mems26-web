@@ -8,6 +8,28 @@ from pydantic import BaseModel, Field
 
 StatusEnum = Literal["fired", "armed", "blocked", "vetoed", "not_applicable", "unknown"]
 
+# Tracks where a row's `live` value came from so the UI can flag stale sources.
+FreshnessSource = Literal["sierra_export", "db", "in_memory", "inspector_eval"]
+
+
+class Freshness(BaseModel):
+    """When the `live` value backing a row was sampled.
+
+    `ts`     — ISO8601 of the underlying data point (e.g. the bar that
+               drove a CCI value, or `last_updated_at` of a DB row, or
+               the inspector wall-clock for synthesized values).
+    `lag_s`  — seconds between `ts` and the time the inspector evaluated
+               the row. Always >= 0 when populated; None when the source
+               timestamp was missing or could not be reconciled (e.g. a
+               future ts indicating corrupt data — see
+               build_status/row_helpers.parse_ts_to_utc).
+    `source` — provenance tag, used for UI tooltip and debugging.
+    """
+
+    ts: Optional[str] = None
+    lag_s: Optional[float] = None
+    source: Optional[FreshnessSource] = None
+
 
 class Component(BaseModel):
     stage: str
@@ -15,6 +37,11 @@ class Component(BaseModel):
     spec: str
     present: bool
     value: Optional[str] = None
+    # New (additive): machine-friendly value/threshold pair + per-row freshness.
+    # All three are Optional to keep older consumers / tests working unchanged.
+    live: Optional[str] = None
+    required: Optional[str] = None
+    freshness: Optional[Freshness] = None
 
 
 class DataFreshness(BaseModel):
@@ -29,6 +56,11 @@ class GlobalGate(BaseModel):
     spec: str
     present: bool
     value: Optional[str] = None
+    # Same additive shape as Component so the bridge stream rows render
+    # identically to per-pattern component rows.
+    live: Optional[str] = None
+    required: Optional[str] = None
+    freshness: Optional[Freshness] = None
 
 
 class PatternStatus(BaseModel):
@@ -52,6 +84,12 @@ class SystemStatus(BaseModel):
     data_freshness: DataFreshness = Field(default_factory=DataFreshness)
     global_gates: List[GlobalGate] = Field(default_factory=list)
     patterns: List[PatternStatus] = Field(default_factory=list)
+    # System-level aggregate of today's fires, derived from v9_trades by
+    # the inspector. UI uses these for the "S4 fired 2× today, last 13:45 ET"
+    # header without scanning every pattern. Pre-LIVE: source-of-truth is the
+    # DB, not the in-memory dedup dict — see row_helpers.fires_today().
+    fired_today_count: int = 0
+    last_fire_ts: Optional[str] = None
 
 
 class RTBSession(BaseModel):

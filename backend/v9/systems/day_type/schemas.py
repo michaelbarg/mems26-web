@@ -105,12 +105,17 @@ class DayTypeConfig(BaseModel):
 class BarInput(BaseModel):
     """Single bar input to the Day Type Engine."""
     ts: float                                   # epoch seconds
-    session_min: int                            # minutes since 09:30 ET
+    session_min: int                            # minutes since 09:30 ET (clamped to 0 pre-RTH)
     open: float
     high: float
     low: float
     close: float
     volume: float = 0
+    # is_rth: True when the bar falls inside RTH (09:30-16:00 ET).
+    # Defaults to True for backward compat with tests (tests use session_min
+    # to drive state, not real timestamps).  main.py sets this from the actual
+    # wall-clock timestamp so overnight Globex bars are excluded from A2/A3.
+    is_rth: bool = True
     # Previous day context (A1)
     pd_high: Optional[float] = None
     pd_low: Optional[float] = None

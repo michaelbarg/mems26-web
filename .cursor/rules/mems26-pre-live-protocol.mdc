@@ -107,9 +107,104 @@ Read these so we don't repeat them.
 5. **Did not update the P27.5a report** for hours after the live UAT
    passed and the bad rows were deleted. Reports must follow state.
 6. **Promoted hypothesized fix to code** before confirming the
-   diagnosis (added `error_count` and warning logs to `_push_api`
-   before proving CLOUD_URL was the cause). Diagnose first, fix
-   second.
+ diagnosis (added `error_count` and warning logs to `_push_api`
+ before proving CLOUD_URL was the cause). Diagnose first, fix
+ second.
+
+## Concrete Mistakes Log (2026-05-28)
+
+7. **Re-added a synthesis fallback** (`_ib_from_bars()` as Priority 2 in
+ `backend/v9/api/v9/tpo_routes.py::_normalize_sierra_tpo`) when Michael
+ said "don't touch the DLL". This wrote `ib_found=true, ib_locked=true`
+ against a non-Sierra number — fooling every downstream consumer
+ (`/api/v9/tpo/current`, `/api/v9/key_levels`, `v9_tpo_sessions`,
+ `v9_day_type_history`, the seed function). CLAUDE.md is explicit:
+ *"Forbidden without explicit approval: inventing proj_*, synthetic
+ time grids, or rolling-window price levels when the DLL omits them."*
+ **Correct behavior:** return `ib_high=None`, `ib_source="missing"`,
+ let the UI fail honestly. **Rule:** when the user says "don't touch
+ X", ask *"what's the honest failure mode that doesn't synthesize?"*
+ — never *"how do I work around the gap with derived data?"*
+
+8. **Trusted a UI screenshot as ground truth** without doing bar-math
+ first. Michael's Sierra UI showed `IB=7574 / 7525.5` but `SELECT
+ MAX(high), MIN(low) FROM v9_bars_5min WHERE ts IN <09:30-10:30 ET>`
+ returned `7583.5 / 7575.0`. The mismatch was caught only after running
+ the query independently. **Rule:** before treating any numeric "ground
+ truth" claim as authoritative — UI screenshot, spec doc, user
+ assertion — run the equivalent DB query / bar-math and confirm the
+ number is reachable from raw data. If it isn't, ask before patching.
+
+9. **REPEAT of Mistake #4** — trusted CC's "should be fixed" claim on
+ the `/api/v9/status.day_type=PENDING` enum sync without re-verifying
+ live. It remained open for ~5h because nobody ran the API call.
+ Escalation: CC's "fixed" claims now require a pasted command +
+ raw output (`curl … | jq …`) before being accepted by the Cursor
+ agent. No exceptions.
+
+10. **Did not verify the timezone of clock-time spec inputs** before
+ computing windows. Sierra IB Study Inputs read `Start Time: 09:30:00 /
+ End Time: 10:29:00` — but the chart's TZ (CT vs ET) determines what
+ window this maps to. Almost shipped a fix on the assumption it was ET.
+ **Rule:** any spec value written as `HH:MM:SS` MUST have its TZ
+ confirmed (chart settings, code constant, or explicit user
+ confirmation) before being used in a WHERE-clause window.
+
+11. **Missed the `min/max` aggregator amplifier downstream** in
+ `state_machine._stage_a3`. After cleaning the `bar.high/low` fallback
+ (correct fix), I missed that the cumulative
+ `self.ib_low = min(self.ib_low, bar.ib_low)` would latch the lowest
+ synthetic value forever once an upstream synthesis bug fed it one.
+ **Rule:** when fixing a synthesis path, audit every downstream
+ aggregator (`min/max/sum/Counter/append`) for amplification. A bad
+ number injected once is forever if a `min`/`max` is downstream.
+
+## Source-of-Truth Discipline (added 2026-05-28)
+
+Permanent rules derived from today's mistakes. These apply to **every**
+data path, not just IB.
+
+### Rule 1 — Honest failure > synthetic value
+When the canonical source (Sierra DLL, Sierra Study, ingested bar)
+is silent or missing a field, propagate `None` / explicit "missing"
+to the consumer. **Never** synthesize from a different source and
+mark the synthesis with the canonical-source's "found" flag. The
+correct downstream behavior is for the UI to render "missing" or for
+the consumer to refuse to fire.
+
+Anti-pattern to grep for and remove on sight:
+```python
+if not sierra.get("found"):
+    derived = compute_from_bars(...)   # ⚠ synthesis
+    return {"found": True, "value": derived, "source": "derived"}
+```
+The `"found": True` is the lie. Either drop the `"found"` flag and
+add a `"source"` discriminator that consumers gate on, or return
+`{"found": False, "value": None}`.
+
+### Rule 2 — Verify before you trust
+Before treating any numeric "ground truth" as authoritative
+(screenshots included), run the equivalent DB / bar-math query and
+confirm the number is reachable from raw data in the expected window.
+If it isn't, **stop and ask** before patching.
+
+### Rule 3 — `min`/`max` aggregators are amplifiers
+Treat every `min`/`max` (and `sum`/`Counter`/`append`) over a stream
+as a regression risk for any upstream synthesis bug. When auditing a
+synthesis fix, walk one hop downstream and verify the aggregator's
+input invariants still hold.
+
+### Rule 4 — TZ ambiguity is forbidden in spec inputs
+Any `HH:MM:SS` spec value (Sierra Inputs, YAML config, code constant,
+SQL window) MUST carry its TZ either in the value itself, in an
+adjacent comment, or via an explicit conversion at the boundary. No
+"assumed UTC" / "assumed local". A new mistake category if found.
+
+### Rule 5 — Verification quote, not assertion
+When CC (or any subagent) claims something is "fixed" / "should
+work" / "passes the four UAT axes", the Cursor agent's reply is
+*"paste the command + raw output"*, not *"confirmed, moving on"*.
+This is Mistake #9 made permanent.
 
 ## Pre-LIVE Checklist for Every P-ID
 

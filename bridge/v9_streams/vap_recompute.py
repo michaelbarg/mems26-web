@@ -200,7 +200,7 @@ class VAPRecomputer:
 
     def __init__(self, scid_path: Optional[str] = None):
         self.scid_path = scid_path or os.path.expanduser(
-            "~/SierraChart/Data/MESH26_FUT_CME.scid"
+            "~/SierraChart/Data/MESM26_FUT_CME.scid"
         )
         self.bars: deque = deque(maxlen=MAX_BARS)
         self._current_bar: Optional[FootprintBar] = None

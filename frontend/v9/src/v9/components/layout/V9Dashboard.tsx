@@ -9,6 +9,7 @@ import { PriceDebugConsole } from '../PriceDebugConsole';
 import { ChartV5b } from '../chart/v5b/ChartV5b';
 import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
+import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
@@ -82,6 +83,7 @@ export function V9Dashboard() {
         <>
           <TopBar />
           <Layer0Strip />
+          <KeyLevelsStrip />
           <div className="flex flex-1 min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
               {/* Chart area — flex-1 fills vertical space, min-height from drag */}

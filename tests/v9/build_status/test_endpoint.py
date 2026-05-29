@@ -227,7 +227,13 @@ def test_endpoint_includes_data_freshness_block(
         assert hasattr(df, "lag_seconds")
         assert hasattr(df, "fresh")
         assert hasattr(df, "threshold_seconds")
-        assert df.threshold_seconds == 360
+        # Per-system threshold — bridge uses 90s (tighter live-feed gate),
+        # S2/Woodies/DayType inspectors use 360s (one 5-min bar + margin).
+        # Source: bridge_inspector.py and the *_inspector.py defaults.
+        assert df.threshold_seconds in (90, 360), (
+            f"System {sys_status.id} has unexpected threshold "
+            f"{df.threshold_seconds}; expected 90 (bridge) or 360 (5min)"
+        )
 
 
 # ── Test 14 ──────────────────────────────────────────────────────────────────

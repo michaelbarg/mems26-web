@@ -5,10 +5,11 @@ Source: BUILD_STATUS_ENDPOINT_DESIGN.md §4.3
 
 import logging
 import sqlite3
-from datetime import date
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from .types import PatternStatus, Component, SystemStatus, DataFreshness
+from .row_helpers import make_freshness, freshness_now
 
 logger = logging.getLogger(__name__)
 
@@ -96,8 +97,20 @@ def inspect(day_type_machine=None) -> SystemStatus:
     ib_h = r.get("ib_high")
     ib_l = r.get("ib_low")
     ib_locked = ib_width_class not in (None, "DEVELOPING", "UNKNOWN")
+    ib_range_pts = round(ib_h - ib_l, 2) if (ib_h is not None and ib_l is not None) else None
+    trading_conf = r.get("trading_confidence")
 
-    # Build 7 components per §4.3
+    _DRIVE_TYPES = {"OPEN_DRIVE", "OPEN_TEST_DRIVE"}
+    opening_run = opening_type in _DRIVE_TYPES if opening_type else False
+
+    # All Day Type rows are sourced from the same v9_day_type_history row;
+    # use `last_updated_at` as the freshness anchor so the UI can see when
+    # the classifier last touched today's row. Inspector-eval fallback
+    # ensures the row still has a Freshness object when the DB column is null.
+    _row_freshness = (
+        make_freshness(last_updated, "db") if last_updated else freshness_now("db")
+    )
+
     components = [
         Component(
             stage="data",
@@ -105,6 +118,9 @@ def inspect(day_type_machine=None) -> SystemStatus:
             spec="IB range locked (width_class ≠ DEVELOPING)",
             present=ib_locked,
             value=f"ib_width_class={ib_width_class}" if ib_width_class else "not set",
+            live=str(ib_width_class) if ib_width_class is not None else "null",
+            required="not in {None, DEVELOPING, UNKNOWN}",
+            freshness=_row_freshness,
         ),
         Component(
             stage="data",
@@ -112,6 +128,43 @@ def inspect(day_type_machine=None) -> SystemStatus:
             spec="opening_type not null",
             present=opening_type is not None and opening_type != "UNKNOWN",
             value=str(opening_type) if opening_type else "not set",
+            live=str(opening_type) if opening_type is not None else "null",
+            required="not in {None, UNKNOWN}",
+            freshness=_row_freshness,
+        ),
+        Component(
+            stage="data",
+            key="opening_run_detected",
+            spec="opening run detected (OPEN_DRIVE or OPEN_TEST_DRIVE)",
+            present=opening_run,
+            value=str(opening_type) if opening_run else f"{opening_type or 'not set'} (not a run)",
+            live=str(opening_type) if opening_type is not None else "null",
+            required="in {OPEN_DRIVE, OPEN_TEST_DRIVE}",
+            freshness=_row_freshness,
+        ),
+        Component(
+            stage="data",
+            key="ib_range_pts",
+            spec="IB range in points (context: NARROW <15 / MEDIUM 15-25 / WIDE >25)",
+            present=ib_range_pts is not None,
+            value=(
+                f"{ib_range_pts:.1f} pt → {ib_width_class}"
+                if ib_range_pts is not None
+                else "not yet available"
+            ),
+            live=f"{ib_range_pts:.2f}" if ib_range_pts is not None else "null",
+            required="!= null",
+            freshness=_row_freshness,
+        ),
+        Component(
+            stage="classification",
+            key="trading_confidence",
+            spec="trading_confidence set (HIGH / MEDIUM / LOW)",
+            present=trading_conf is not None and str(trading_conf) not in ("", "None"),
+            value=str(trading_conf) if trading_conf is not None else "not set",
+            live=str(trading_conf) if trading_conf is not None else "null",
+            required="in {HIGH, MEDIUM, LOW}",
+            freshness=_row_freshness,
         ),
         Component(
             stage="classification",
@@ -119,6 +172,9 @@ def inspect(day_type_machine=None) -> SystemStatus:
             spec="day_type classified (not UNKNOWN, not null)",
             present=day_type_val not in (None, "UNKNOWN"),
             value=str(day_type_val) if day_type_val else "not set",
+            live=str(day_type_val) if day_type_val is not None else "null",
+            required="not in {None, UNKNOWN}",
+            freshness=_row_freshness,
         ),
         Component(
             stage="classification",
@@ -126,6 +182,9 @@ def inspect(day_type_machine=None) -> SystemStatus:
             spec="probability ≥ 0.55 (per spec)",
             present=probability is not None and float(probability) >= 0.55,
             value=f"{float(probability):.2f}" if probability is not None else "not set",
+            live=f"{float(probability):.4f}" if probability is not None else "null",
+            required=">= 0.55",
+            freshness=_row_freshness,
         ),
         Component(
             stage="classification",
@@ -133,6 +192,9 @@ def inspect(day_type_machine=None) -> SystemStatus:
             spec="directional_certainty ≥ threshold",
             present=directional is not None and float(directional) > 0,
             value=f"{float(directional):.2f}" if directional is not None else "not set",
+            live=f"{float(directional):.4f}" if directional is not None else "null",
+            required="> 0.0",
+            freshness=_row_freshness,
         ),
         Component(
             stage="classification",
@@ -140,6 +202,9 @@ def inspect(day_type_machine=None) -> SystemStatus:
             spec="len(active_zohar_rules) > 0",
             present=len(zohar_rules) > 0,
             value=f"{len(zohar_rules)} rules" if zohar_rules else "none",
+            live=str(len(zohar_rules)),
+            required="> 0",
+            freshness=_row_freshness,
         ),
         Component(
             stage="classification",
@@ -147,6 +212,9 @@ def inspect(day_type_machine=None) -> SystemStatus:
             spec="developing == false (IB locked, classification stable)",
             present=not is_developing,
             value="developing" if is_developing else "stable",
+            live="developing" if is_developing else "stable",
+            required="== stable",
+            freshness=_row_freshness,
         ),
     ]
 

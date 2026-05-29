@@ -2,6 +2,7 @@
 import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
+import { KeyLevelsCard } from './KeyLevelsCard';
 
 export function WoodiesLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[4]);
@@ -32,6 +33,7 @@ export function WoodiesLensContent({ activeTab }: { activeTab: string }) {
           {String(raw.classification ?? 'NO_SETUP')} · buffer {String(raw.buffer_size ?? 0)}
         </div>
         <div style={{ fontSize: 8, color: COLORS.textDim }}>FIRING — Plan tab shows A1–A7 tree</div>
+        <KeyLevelsCard />
       </div>
     );
   }
