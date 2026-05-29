@@ -24,10 +24,24 @@ def tmp_db():
 
 class TestRolloverIdempotency:
 
-    def test_first_call_performs_rollover(self, tmp_db):
-        """First check_rollover() on a fresh DB should perform rollover."""
+    def test_first_run_seeds_without_reset(self, tmp_db):
+        """P31.1-T1: fresh DB → seed last_rollover_date, do NOT reset machine."""
         machine = MagicMock()
         sbm = SessionBoundaryManager(db_path=tmp_db, day_type_machine=machine)
+
+        with patch("backend.v9.services.session_boundary.manager.et_today",
+                   return_value=date(2026, 5, 28)):
+            result = sbm.check_rollover()
+
+        assert result is False  # seed, not rollover
+        machine.reset.assert_not_called()
+
+    def test_real_rollover_triggers_reset(self, tmp_db):
+        """When last < today, a real rollover fires and resets machine."""
+        machine = MagicMock()
+        sbm = SessionBoundaryManager(db_path=tmp_db, day_type_machine=machine)
+        # Seed for yesterday
+        sbm._set_last_rollover_date(date(2026, 5, 27))
 
         with patch("backend.v9.services.session_boundary.manager.et_today",
                    return_value=date(2026, 5, 28)):
@@ -40,22 +54,22 @@ class TestRolloverIdempotency:
         """Second check_rollover() on the same day must be a no-op."""
         machine = MagicMock()
         sbm = SessionBoundaryManager(db_path=tmp_db, day_type_machine=machine)
-        fake_date = date(2026, 5, 28)
+        sbm._set_last_rollover_date(date(2026, 5, 27))
 
         with patch("backend.v9.services.session_boundary.manager.et_today",
-                   return_value=fake_date):
+                   return_value=date(2026, 5, 28)):
             first = sbm.check_rollover()
             second = sbm.check_rollover()
 
         assert first is True
         assert second is False
-        # reset called exactly once, not twice
         machine.reset.assert_called_once()
 
     def test_new_day_triggers_rollover_again(self, tmp_db):
         """Next day should trigger a new rollover."""
         machine = MagicMock()
         sbm = SessionBoundaryManager(db_path=tmp_db, day_type_machine=machine)
+        sbm._set_last_rollover_date(date(2026, 5, 27))
 
         with patch("backend.v9.services.session_boundary.manager.et_today",
                    return_value=date(2026, 5, 28)):
@@ -74,20 +88,20 @@ class TestRolloverIdempotency:
 
         with patch("backend.v9.services.session_boundary.manager.et_today",
                    return_value=date(2026, 5, 28)):
-            sbm.check_rollover()
+            sbm.check_rollover()  # seeds
 
         conn = sqlite3.connect(tmp_db)
         row = conn.execute(
             "SELECT value FROM v9_session_meta WHERE key='last_rollover_date'"
         ).fetchone()
         conn.close()
-
         assert row is not None
         assert row[0] == "2026-05-28"
 
     def test_rollover_without_machine_succeeds(self, tmp_db):
-        """Rollover works even without a day_type_machine (graceful degradation)."""
+        """Rollover works even without a day_type_machine."""
         sbm = SessionBoundaryManager(db_path=tmp_db)
+        sbm._set_last_rollover_date(date(2026, 5, 27))
 
         with patch("backend.v9.services.session_boundary.manager.et_today",
                    return_value=date(2026, 5, 28)):
@@ -102,6 +116,7 @@ class TestRolloverIdempotency:
         sbm = SessionBoundaryManager(
             db_path=tmp_db, day_type_machine=machine, risk_validator=risk
         )
+        sbm._set_last_rollover_date(date(2026, 5, 27))
 
         with patch("backend.v9.services.session_boundary.manager.et_today",
                    return_value=date(2026, 5, 28)):

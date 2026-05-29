@@ -99,14 +99,26 @@ class SessionBoundaryManager:
 
         Returns True if rollover was performed, False if already up-to-date.
         Idempotent: calling twice on the same day is a no-op.
+
+        FIRST RUN (last=None): seed without resetting. A fresh DB or
+        test DB should not trigger a state-machine wipe just because
+        there is no rollover history yet. (P31.1-T1 fix for Finding #2.)
         """
         today = et_today()
         last = self._get_last_rollover_date()
 
-        if last is not None and last >= today:
+        # FIRST RUN — no rollover history. Seed and skip.
+        if last is None:
+            logger.info("[SessionBoundary] first run on %s — seeding (no reset)", today)
+            self._set_last_rollover_date(today)
+            return False
+
+        # Already rolled over today — no-op.
+        if last >= today:
             logger.debug("[SessionBoundary] already rolled over for %s", today)
             return False
 
+        # last < today → real rollover.
         return self._perform_rollover(today)
 
     def _perform_rollover(self, today: date) -> bool:
