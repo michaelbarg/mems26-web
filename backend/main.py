@@ -279,7 +279,7 @@ async def _startup():
                     conn.commit()
                     conn.close()
                 except Exception as db_err:
-                    _logger.debug("[DayType] DB persist skipped: %s", db_err)
+                    _logger.warning("[DayType] DB persist skipped: %s", db_err, exc_info=True)
 
                 # V9: Persist to v9_day_type_history via DayTypeConsumer (3a-S4)
                 try:
@@ -333,7 +333,7 @@ async def _startup():
                     except Exception:
                         pass
             except Exception as e:
-                _logger.debug("[DayType] process_bar error: %s", e)
+                _logger.warning("[DayType] process_bar error: %s", e, exc_info=True)
 
         bar_router.subscribe("5min", _day_type_on_bar)
         _logger.info("[Main] DayTypeStateMachine subscribed to 5min via BarRouter")
