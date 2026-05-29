@@ -242,6 +242,7 @@ class DayTypeStateMachine:
         self.rth_session_l: float = float("inf")
         self.bar_count: int = 0
         self.consecutive_same_vote: int = 0
+        self._last_bar_ts: Optional[float] = None  # dedup: skip duplicate pushes
 
         # V9 optional collaborators (Hybrid, LOCKED 15/5 option D)
         self._zohar_engine: Optional[ZoharRulesEngine] = zohar_engine
@@ -296,6 +297,7 @@ class DayTypeStateMachine:
         self._max_tpo_row_width = 0
         self._active_zohar_rules = []
         self._last_state = None
+        self._last_bar_ts = None
 
     # ── Main Entry ───────────────────────────────────────────────────────
 
@@ -304,6 +306,13 @@ class DayTypeStateMachine:
 
         Returns updated DayTypeState.
         """
+        # Dedup: bridge pushes same bar ~20x while building. Only count
+        # and process stage transitions on new bar timestamps.
+        bar_ts = getattr(bar, 'ts', None)
+        if bar_ts is not None and bar_ts == self._last_bar_ts:
+            return self._last_state if self._last_state is not None else self._build_state(bar)
+        self._last_bar_ts = bar_ts
+
         self.bar_count += 1
 
         # Track session range (all bars) + split Globex vs RTH

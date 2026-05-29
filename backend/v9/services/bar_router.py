@@ -31,9 +31,8 @@ class BarRouter:
         self.event_bus = event_bus
         self.session_clf = SessionClassifier()
         self._subscribers: Dict[str, List[Callable]] = {}
-        self._stats = {"received": 0, "dispatched": 0, "published_to_bus": 0, "failed": 0, "deduped": 0}
+        self._stats = {"received": 0, "dispatched": 0, "published_to_bus": 0, "failed": 0}
         self._main_loop: Optional[asyncio.AbstractEventLoop] = None
-        self._last_ts: Dict[str, str] = {}  # per-topic dedup: topic → last dispatched ts
 
     def bind_main_loop(self, loop: asyncio.AbstractEventLoop) -> None:
         """Capture FastAPI's running event loop for thread-safe publishing."""
@@ -78,15 +77,6 @@ class BarRouter:
         self._stats["received"] += 1
         try:
             ts = bar_data.get("ts") or datetime.utcnow().isoformat()
-
-            # Per-topic dedup: skip if same ts as last dispatch for this topic.
-            # The bridge pushes every ~3s with the same building bar — subscribers
-            # must see each closed bar exactly once, not 20× per 5-min bar.
-            ts_key = str(ts)
-            if ts_key == self._last_ts.get(bar_type):
-                self._stats["deduped"] += 1
-                return
-            self._last_ts[bar_type] = ts_key
             ts_dt = market_clock.parse_market_timestamp(ts)
             if ts_dt is not None:
                 market_clock.update_replay_timestamp(ts_dt, source=f"bar_router.{bar_type}")

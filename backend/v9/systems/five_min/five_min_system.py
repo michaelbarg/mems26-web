@@ -75,6 +75,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         self.last_classification: Optional[str] = None
         self.choppiness_score: int = 0
         self._fhb = FirstHourBuffer()      # First Hour Buffer — bar-count gate
+        self._last_bar_ts_for_count: Optional[str] = None  # dedup: count bars, not pushes
         self._hydrated = False
         self.current_state: Dict[str, Any] = {}
 
@@ -708,10 +709,24 @@ class FiveMinSystem(BaseV9TradingSystem):
         bar.setdefault("c", bar.get("close", 0))
         bar.setdefault("vol", bar.get("volume", 0))
         bar.setdefault("v", bar.get("vol", bar.get("volume", 0)))
-        self.buffer_size += 1
-        self._bar_buffer.append(bar)
-        if len(self._bar_buffer) > 20:
-            self._bar_buffer = self._bar_buffer[-20:]
+
+        # Dedup: bridge pushes same bar ~20x while building. Buffer always
+        # updates (latest OHLC), but bar counting + FHB + pattern detection
+        # only run on genuinely new bar timestamps.
+        _bar_ts = str(bar.get("ts", ""))
+        is_new_bar = _bar_ts != self._last_bar_ts_for_count
+        if is_new_bar:
+            self._last_bar_ts_for_count = _bar_ts
+            self.buffer_size += 1
+            self._bar_buffer.append(bar)
+            if len(self._bar_buffer) > 20:
+                self._bar_buffer = self._bar_buffer[-20:]
+        elif self._bar_buffer:
+            # Same bar — update last buffer entry with latest OHLC
+            self._bar_buffer[-1] = bar
+
+        if not is_new_bar:
+            return  # duplicate push — skip counting, FHB, pattern detection
 
         # First Hour Buffer: advance bar count + compute choppiness from RTH bars
         if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
