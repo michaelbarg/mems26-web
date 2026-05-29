@@ -15,7 +15,7 @@ from typing import Optional
 
 DB_PATH = os.environ.get(
     "V9_DB_PATH",
-    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "data", "v9.db"),
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..", "data", "mems26_local.db"),
 )
 
 
@@ -118,7 +118,19 @@ def migrate(db_path: Optional[str] = None) -> None:
     """)
     print("[019] v9_woodies_signals_archive: OK")
 
-    # ── 5-8. is_synthetic columns ────────────────────────────────────
+    # ── 5. v9_build_status_archive ──────────────────────────────────
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS v9_build_status_archive (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            trading_date TEXT NOT NULL,
+            snapshot_ts  TEXT NOT NULL,
+            payload_json TEXT NOT NULL,
+            archived_at  TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    print("[019] v9_build_status_archive: OK")
+
+    # ── 6-10. is_synthetic columns ───────────────────────────────────
     # ALTER TABLE ADD COLUMN fails if column already exists in SQLite.
     # Catch "duplicate column name" for idempotency.
     alter_statements = [
@@ -126,6 +138,7 @@ def migrate(db_path: Optional[str] = None) -> None:
         "ALTER TABLE v9_woodies_signals ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE v9_trades ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0",
         "ALTER TABLE v9_five_min_setups ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0",
+        "ALTER TABLE v9_audit_events ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0",
     ]
 
     for stmt in alter_statements:
