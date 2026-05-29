@@ -55,13 +55,14 @@ RETRY_DELAY = 5.0
 MAX_BACKOFF = 300.0  # 5 minutes max backoff
 HEARTBEAT_INTERVAL = 30.0
 
-# ── P31 §9 — Chicago-TS workaround flag ──
+# ── P31 §9 — Sierra TZ workaround flag ──
 # DLL bug (sc_study/v9_exports.h:147-152): v9_sc_datetime_to_unix converts
 # Sierra SCDateTime via Excel-serial math, but SCDateTime is stored in the
-# CHART's TZ (Chicago for MES). Result: bar.ts is Chicago-wall-clock encoded
-# as unix seconds — ~5h behind real UTC (CDT) or 6h (CST).
+# CHART's TZ (New York/ET for MES — confirmed by Michael 2026-05-28).
+# Result: bar.ts is ET-wall-clock encoded as unix seconds — ~4h behind real
+# UTC (EDT) or 5h (EST).
 #
-# This bridge re-interprets each bar.ts as Chicago local time and converts to
+# This bridge re-interprets each bar.ts as ET local time and converts to
 # true UTC before pushing to backend. Once CC ships the DLL fix (Sierra Remote
 # Build + Reload Study), set V9_DISABLE_CHICAGO_TS_FIX=1 in .env to bypass,
 # then remove this code in a cleanup pass.
@@ -70,20 +71,20 @@ _DISABLE_CHICAGO_TS_FIX = os.getenv("V9_DISABLE_CHICAGO_TS_FIX", "").lower() in 
 )
 try:
     from zoneinfo import ZoneInfo  # Python 3.9+ stdlib
-    _CHICAGO_TZ = ZoneInfo("America/Chicago")
+    _CHICAGO_TZ = ZoneInfo("America/New_York")
     _CHICAGO_TZ_USES_LOCALIZE = False
 except ImportError:  # pragma: no cover — fallback for ancient Pythons
     try:
         import pytz
-        _CHICAGO_TZ = pytz.timezone("America/Chicago")
+        _CHICAGO_TZ = pytz.timezone("America/New_York")
         _CHICAGO_TZ_USES_LOCALIZE = True
     except ImportError:
         _CHICAGO_TZ = None
         _CHICAGO_TZ_USES_LOCALIZE = False
         if not _DISABLE_CHICAGO_TS_FIX:
             logger.error(
-                "Neither zoneinfo nor pytz available — Chicago TS fix disabled. "
-                "Bars will be 5h behind real UTC until DLL is patched."
+                "Neither zoneinfo nor pytz available — Sierra TZ fix disabled. "
+                "Bars will be 4h behind real UTC until DLL is patched."
             )
 
 
@@ -282,7 +283,11 @@ class BaseV9Stream:
 
     @staticmethod
     def _chicago_to_utc(ts):
-        """Re-interpret a Chicago-wall-clock unix value as true UTC unix."""
+        """Re-interpret a Sierra-TZ-wall-clock unix value as true UTC unix.
+
+        Sierra chart TZ = America/New_York (confirmed 2026-05-28).
+        Name kept as _chicago_to_utc for backward compatibility.
+        """
         if ts is None or _CHICAGO_TZ is None:
             return ts
         try:

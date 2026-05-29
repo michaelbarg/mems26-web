@@ -38,9 +38,10 @@ def _normalize_bar(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         return None
     try:
         ts_unix = int(float(ts))
-        # DLL TZ bug (§9): timestamps are Chicago wall-clock encoded as UTC.
-        # Add 5h (CDT) to get real UTC. Same fix as bridge/_fix_chicago_bar_ts().
-        ts_unix += 5 * 3600
+        # DLL TZ bug (§9): timestamps are Sierra-TZ wall-clock encoded as UTC.
+        # DST-aware conversion via bridge's _chicago_to_utc (America/New_York).
+        from bridge.v9_streams.base_stream import BaseV9Stream
+        ts_unix = BaseV9Stream._chicago_to_utc(ts_unix)
     except (TypeError, ValueError):
         return None
     ohlc = raw.get("ohlc") or {}

@@ -92,13 +92,17 @@ class WoodiesSystem(BaseV9TradingSystem):
         self.max_buffer = 50
         self._active_patterns: List[PatternResult] = []
         self._decision_tree = WoodiesDecisionTree()
-        # W-10: Time stop enforcement (Registry #11)
+        # W-10: Time stop enforcement (Registry #11) — RE-ENABLED 2026-05-28 evening.
+        # Option B REVERSED: W-10 is sole TIME_STOP authority. Bug A (per-push
+        # increment) fixed via _last_bar_ts_for_count. Bug D (exit_price=NULL)
+        # fixed: exit_price set from _closes[-1] before close_trade().
         ts_cfg = load_time_stop_config()
         self._time_stop_enforcer = TimeStopEnforcer(
             time_stop_minutes=ts_cfg["time_stop_minutes"],
             tick_minutes=ts_cfg["tick_minutes"],
         )
         self._bar_count: int = 0
+        self._last_bar_ts_for_count: Optional[float] = None
         self._open_fire_records: Dict[str, dict] = {}  # trade_id → {entry_bar_count, pattern_id}
         self.current_state: Dict = {
             "timeframe": "5min",
@@ -198,8 +202,11 @@ class WoodiesSystem(BaseV9TradingSystem):
     async def process_bar(self, event) -> None:
         """Process a 5-min Woodies bar: compute studies, detect patterns, persist."""
         try:
-            self._bar_count += 1
             bar = dict(event.payload) if hasattr(event, 'payload') else dict(event)
+            _bar_ts_key = bar.get("ts")
+            if _bar_ts_key is not None and _bar_ts_key != self._last_bar_ts_for_count:
+                self._bar_count += 1
+                self._last_bar_ts_for_count = _bar_ts_key
 
             h = float(bar.get("high", bar.get("h", 0)))
             l = float(bar.get("low", bar.get("l", 0)))
@@ -534,8 +541,16 @@ class WoodiesSystem(BaseV9TradingSystem):
         """W-10: Check all tracked open fires for time stop expiry.
 
         For each open fire, compute bars_open and check against limit.
-        If fired: close via trade_manager (if available), remove from tracking.
+        If fired: set exit_price = last close, then close via trade_manager.
         Idempotent: already-closed trades are removed silently.
+
+        ──────────────────────────────────────────────────────────────────
+        2026-05-28 evening · RE-ENABLED (Option B REVERSED · Michael).
+        ──────────────────────────────────────────────────────────────────
+        W-10 (Registry #11) is the SOLE TIME_STOP authority. Layer 4 time
+        stop code removed from bar_level_detector.py. Bug A fixed: _bar_count
+        increments only on new bar ts. Bug D fixed: exit_price set from
+        self._closes[-1] before close_trade().
         """
         if not self._open_fire_records:
             return
@@ -551,7 +566,28 @@ class WoodiesSystem(BaseV9TradingSystem):
             if result.fired:
                 # Attempt close via gateway → trade_manager
                 tm = getattr(self._gateway, '_trade_manager', None) if self._gateway else None
+
+                if not self._closes:
+                    logger.warning(
+                        "[woodies] TIME_STOP fired but _closes is empty — skipping close "
+                        "for trade %s (no exit_price available)", trade_id,
+                    )
+                    to_remove.append(trade_id)
+                    continue
+
                 if tm is not None:
+                    try:
+                        trade_obj = tm._get_trade(int(trade_id))
+                        if trade_obj is not None:
+                            trade_obj.exit_price = float(self._closes[-1])
+                    except Exception as exc:
+                        logger.warning(
+                            "[woodies] TIME_STOP exit_price set failed for trade %s: %s",
+                            trade_id, exc,
+                        )
+                        to_remove.append(trade_id)
+                        continue
+
                     try:
                         tm.close_trade(int(trade_id), "TIME_STOP")
                         tm._db.commit()

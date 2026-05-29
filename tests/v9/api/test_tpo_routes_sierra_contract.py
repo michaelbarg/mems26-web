@@ -1,13 +1,12 @@
 import json
 import time
 
+import pytest
+
 from backend.v9.api.v9 import tpo_routes
 
 
-def test_normalize_sierra_tpo_contract(monkeypatch):
-    # P31 IB accuracy fix overrides DLL IB with v9_bars_5min DB read.
-    # This test verifies DLL contract — disable the override here.
-    monkeypatch.setattr(tpo_routes, "_ib_from_bars", lambda: None)
+def test_normalize_sierra_tpo_contract():
     data = {
         "type": "tpo",
         "version": "v9.4.0-p30.9",
@@ -175,6 +174,90 @@ def test_normalize_rejects_invalid_va_without_synthesis(monkeypatch, caplog):
     ), "expected warning log on rejection"
 
 
+def test_previous_session_passes_through_y_ib_when_dll_reports_it(monkeypatch):
+    """Step 9 (2026-05-28): DLL Input 19 → previous_session.ib_high/ib_low.
+
+    When Sierra DLL emits ``previous_session.ib_found=true`` with valid
+    MES-range high/low, the normalized previous_session must surface them
+    unchanged. No synthesis, no DB merge for IB.
+    """
+    monkeypatch.setattr(tpo_routes, "_load_previous_cash_session", lambda: None)
+    data = {
+        "type": "tpo",
+        "session": {"poc": 7559.5, "vah": 7563.5, "val": 7555.75},
+        "ib": {"found": True, "high": 7570, "mid": 7562, "low": 7554},
+        "prior_day": {"found": True, "high": 7524, "low": 7478.75, "close": 7484.25},
+        "previous_session": {
+            "found": True,
+            "poc": 7535.25,
+            "vah": 7549.75,
+            "val": 7520.75,
+            "ib_found": True,
+            "ib_high": 7545.50,
+            "ib_low": 7522.25,
+        },
+    }
+    normalized = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+    prev = normalized["previous_session"]
+    assert prev is not None
+    assert prev["ib_high"] == 7545.50
+    assert prev["ib_low"] == 7522.25
+    assert prev["ib_found"] is True
+
+
+def test_previous_session_y_ib_missing_when_dll_disabled(monkeypatch):
+    """Step 9: when Sierra Input 19 is 0 (default), DLL emits ib_found=false
+    and ib_high/ib_low=0. Backend must surface NULL, never synthesise."""
+    monkeypatch.setattr(tpo_routes, "_load_previous_cash_session", lambda: None)
+    data = {
+        "type": "tpo",
+        "session": {"poc": 7559.5, "vah": 7563.5, "val": 7555.75},
+        "ib": {"found": False, "high": 0, "mid": 0, "low": 0},
+        "prior_day": {"found": True, "high": 7524, "low": 7478.75, "close": 7484.25},
+        "previous_session": {
+            "found": True,
+            "poc": 7535.25,
+            "vah": 7549.75,
+            "val": 7520.75,
+            "ib_found": False,
+            "ib_high": 0,
+            "ib_low": 0,
+        },
+    }
+    normalized = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+    prev = normalized["previous_session"]
+    assert prev is not None
+    assert prev["ib_high"] is None
+    assert prev["ib_low"] is None
+    assert prev["ib_found"] is False
+
+
+def test_previous_session_y_ib_rejects_out_of_range(monkeypatch):
+    """Step 9: corrupt Y IB (e.g. -89088 like Memorial Day session VA) must
+    be rejected by the same MES range guard, never leaking into the API."""
+    monkeypatch.setattr(tpo_routes, "_load_previous_cash_session", lambda: None)
+    data = {
+        "type": "tpo",
+        "session": {"poc": 7559.5, "vah": 7563.5, "val": 7555.75},
+        "ib": {"found": False},
+        "prior_day": {"found": False},
+        "previous_session": {
+            "found": True,
+            "poc": 7535.25,
+            "vah": 7549.75,
+            "val": 7520.75,
+            "ib_found": True,
+            "ib_high": -89088,
+            "ib_low": 0,
+        },
+    }
+    normalized = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+    prev = normalized["previous_session"]
+    assert prev is not None
+    assert prev["ib_high"] is None
+    assert prev["ib_low"] is None
+
+
 def test_normalize_valid_va_unchanged_by_fix3(monkeypatch):
     """Regression: Fix #3 must NOT affect the happy path."""
     monkeypatch.setattr(tpo_routes, "_load_tpo_periods", lambda *a, **k: [
@@ -190,3 +273,61 @@ def test_normalize_valid_va_unchanged_by_fix3(monkeypatch):
     assert normalized["poc"] == 7559.5
     assert normalized["session_va_ok"] is True
     assert normalized["poc"] != 9999.0
+
+
+# ──────────────────────────────────────────────────────────────────────
+# IB sourcing — Sierra-live preferred, v9_bars_5min fallback approved by
+# Michael 2026-05-28 18:31 IDT ("don't touch DLL — use the data we have").
+# ──────────────────────────────────────────────────────────────────────
+
+def test_sierra_change_tracks_within_one_cycle():
+    """When Sierra emits a NEW IB value, normalize must follow verbatim."""
+
+    def normalize(ib_high, ib_low):
+        return tpo_routes._normalize_sierra_tpo({
+            "type": "tpo",
+            "session": {"poc": 7551.0, "vah": 7574.0, "val": 7541.0},
+            "ib": {"found": True, "high": ib_high, "mid": (ib_high + ib_low) / 2,
+                   "low": ib_low},
+            "prior_day": {"found": False},
+        }, age_s=1.0)
+
+    n1 = normalize(7543.75, 7522.0)
+    n2 = normalize(7555.0, 7530.0)
+    assert n1["ib_high"] == 7543.75 and n1["ib_low"] == 7522.0
+    assert n2["ib_high"] == 7555.0 and n2["ib_low"] == 7530.0
+    assert n1["ib_source"] == "sierra_live"
+
+
+def test_sierra_silent_returns_missing():
+    """Sierra `ib_found=false` → ib_source='missing', no synthesis.
+
+    _ib_from_bars() deleted per 2026-05-28 evening revocation. IB only
+    from Sierra Initial Balance Study. See AMENDMENTS_LOG.md.
+    """
+    data = {
+        "type": "tpo",
+        "session": {"poc": 7561.5, "vah": 7574.0, "val": 7544.75},
+        "ib": {"found": False, "high": 0.0, "mid": 0.0, "low": 0.0},
+        "prior_day": {"found": False},
+    }
+    n = tpo_routes._normalize_sierra_tpo(data, age_s=2.0)
+    assert n["ib_found"] is False
+    assert n["ib_high"] is None
+    assert n["ib_low"] is None
+    assert n["ib_width"] is None
+    assert n["ib_source"] == "missing"
+
+
+def test_sierra_live_ib_source():
+    """Sierra-live IB is the only source (no bars fallback)."""
+    data = {
+        "type": "tpo",
+        "session": {"poc": 7551.0, "vah": 7574.0, "val": 7541.0},
+        "ib": {"found": True, "high": 7543.75, "mid": 7532.88, "low": 7522.0},
+        "prior_day": {"found": False},
+    }
+    n = tpo_routes._normalize_sierra_tpo(data, age_s=1.0)
+    assert n["ib_high"] == 7543.75
+    assert n["ib_low"] == 7522.0
+    assert n["ib_source"] == "sierra_live"

@@ -52,6 +52,57 @@ We are heading to LIVE futures trading. Apply minimum-mistakes discipline:
 The Cursor agent's full protocol is in
 `.cursor/rules/mems26-pre-live-protocol.mdc`. Same rules apply here.
 
+## Source-of-Truth Discipline (added 2026-05-28)
+
+Today's IB ground-truth investigation surfaced 5 new permanent rules.
+These apply to **every** data path — not just IB. Full mistakes log
++ rationale lives in `.cursor/rules/mems26-pre-live-protocol.mdc` §
+*Concrete Mistakes Log (2026-05-28)* and § *Source-of-Truth Discipline*.
+
+### Rule 1 — Honest failure > synthetic value
+When the canonical source (Sierra DLL, Sierra Study, ingested bar) is
+silent or missing a field, propagate `None` / `"missing"` to the
+consumer. **Never** synthesize from a different source and mark the
+synthesis with the canonical-source's "found" flag. Example
+anti-pattern (forbidden):
+```python
+if not sierra.get("found"):
+    derived = compute_from_bars(...)
+    return {"found": True, "value": derived, "source": "derived"}
+                # ^^^^^^^^^^^^ the lie
+```
+Correct: `return {"found": False, "value": None}` and let the UI render
+"missing". CLAUDE.md's existing rule (§ Sierra real-time data) already
+forbids inventing `proj_*`, synthetic time grids, or rolling-window
+levels when the DLL omits them — this rule makes that prohibition
+universal across all sources.
+
+### Rule 2 — Verify before you trust
+Before treating any numeric "ground truth" claim as authoritative — UI
+screenshot, spec doc, user assertion, CC report — run the equivalent
+DB / bar-math query and confirm the number is reachable from raw data
+in the expected window. If it isn't, stop and ask before patching.
+
+### Rule 3 — `min`/`max` aggregators are amplifiers
+Treat every `min`/`max` (and `sum`/`Counter`/`append`) over a stream
+as a regression risk for any upstream synthesis bug. When auditing a
+synthesis fix, walk one hop downstream and verify the aggregator's
+input invariants still hold. A single bad value injected into a
+`min`/`max` is forever.
+
+### Rule 4 — TZ ambiguity is forbidden in spec inputs
+Any `HH:MM:SS` spec value (Sierra Inputs, YAML config, code constant,
+SQL window) MUST carry its TZ either in the value itself, in an
+adjacent comment, or via an explicit conversion at the boundary. No
+"assumed UTC" / "assumed local".
+
+### Rule 5 — Verification quote, not assertion
+When CC (or any subagent) claims something is "fixed" / "should work" /
+"passes the four UAT axes", the response is *"paste the command + raw
+output"*, not *"confirmed, moving on"*. This applies symmetrically:
+when Cursor reports a fix to CC for audit, Cursor must also paste raw
+verification, not just claim status.
+
 ## Bridge Local-Only Rule
 
 - The bridge MUST push only to `http://localhost:8000`. Never to

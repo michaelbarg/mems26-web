@@ -185,7 +185,10 @@ class TestYamlConfig:
         assert enforcer.check(bars_open=100, pattern_id="ZLR").fired is False
 
     def test_real_dispatcher_config_has_time_stop(self):
-        """Verify the actual dispatcher_config.yaml has time_stop section."""
+        """Verify the actual dispatcher_config.yaml has time_stop section.
+
+        W-10 re-enabled 2026-05-28 evening (Option B REVERSED).
+        """
         real_path = (
             Path(__file__).parent.parent.parent.parent
             / "backend" / "v9" / "systems" / "woodies" / "config" / "dispatcher_config.yaml"
@@ -232,7 +235,10 @@ class TestIdempotency:
 
 
 class TestWoodiesSystemTimeStopWiring:
-    """Test #16: Integration — verify WoodiesSystem has time stop wired."""
+    """Test #16: Integration — verify WoodiesSystem has time stop wired.
+
+    W-10 re-enabled 2026-05-28 evening (Option B REVERSED).
+    """
 
     def test_system_has_time_stop_enforcer(self):
         """WoodiesSystem.__init__ creates TimeStopEnforcer."""
@@ -265,6 +271,7 @@ class TestWoodiesSystemTimeStopWiring:
         from backend.v9.systems.woodies.woodies_system import WoodiesSystem
 
         system = WoodiesSystem(db_path=":memory:")
+        system._closes = [5500.0]  # Bug D fix: need closes for exit_price
         # Simulate: trade opened at bar 5
         system._open_fire_records["42"] = {
             "entry_bar_count": 5,
@@ -295,7 +302,11 @@ class TestWoodiesSystemTimeStopWiring:
         from backend.v9.systems.woodies.woodies_system import WoodiesSystem
 
         system = WoodiesSystem(db_path=":memory:")
+        system._closes = [5500.0]  # Bug D fix: need closes for exit_price
+        mock_trade = MagicMock()
+        mock_trade.exit_price = None
         mock_tm = MagicMock()
+        mock_tm._get_trade.return_value = mock_trade
         mock_gateway = MagicMock()
         mock_gateway._trade_manager = mock_tm
         system._gateway = mock_gateway
@@ -309,13 +320,18 @@ class TestWoodiesSystemTimeStopWiring:
 
         mock_tm.close_trade.assert_called_once_with(99, "TIME_STOP")
         assert "99" not in system._open_fire_records
+        assert mock_trade.exit_price == 5500.0
 
     def test_check_time_stops_handles_close_error_gracefully(self):
         """If close_trade raises (e.g. already closed), trade still removed."""
         from backend.v9.systems.woodies.woodies_system import WoodiesSystem
 
         system = WoodiesSystem(db_path=":memory:")
+        system._closes = [5500.0]
+        mock_trade = MagicMock()
+        mock_trade.exit_price = None
         mock_tm = MagicMock()
+        mock_tm._get_trade.return_value = mock_trade
         mock_tm.close_trade.side_effect = Exception("already closed")
         mock_gateway = MagicMock()
         mock_gateway._trade_manager = mock_tm
@@ -335,6 +351,7 @@ class TestWoodiesSystemTimeStopWiring:
         from backend.v9.systems.woodies.woodies_system import WoodiesSystem
 
         system = WoodiesSystem(db_path=":memory:")
+        system._closes = [5500.0]
         system._open_fire_records["77"] = {
             "entry_bar_count": 2,
             "pattern_id": "FAMIR",

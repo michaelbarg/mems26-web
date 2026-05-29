@@ -188,34 +188,22 @@ async def _startup():
                 return
             _prev_bar_ts["value"] = bar_ts
             try:
-                # Read IB from v9_bars_5min (P31 IB source fix: bars are
-                # more current than TPOSystem which can lag behind Sierra).
-                # IB = first 60 min of RTH (09:30-10:30 ET).
+                # IB source of truth: Sierra Study ID:6 via tpo.json.
+                # Pre-LIVE cleanup (2026-05-28): removed inline v9_bars_5min
+                # synthesis ("P31 IB source fix") — that was a CLAUDE.md
+                # violation and produced IB values that disagreed with
+                # Sierra Chart on screen. NULL pre-RTH is correct behaviour;
+                # the state machine ignores NULL IB and stays in stage A3.
                 tpo_sys = getattr(app.state, 'tpo_system', None)
                 ib_h, ib_l = None, None
                 try:
-                    from datetime import datetime, time as _time, timedelta
-                    from zoneinfo import ZoneInfo
-                    _et = ZoneInfo("America/New_York")
-                    today_et = datetime.now(_et).date()
-                    rth_open = datetime.combine(today_et, _time(9, 30), tzinfo=_et)
-                    ib_end = rth_open + timedelta(hours=1)
-                    rth_open_str = rth_open.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%d %H:%M:%S")
-                    ib_end_str = ib_end.astimezone(ZoneInfo("UTC")).strftime("%Y-%m-%d %H:%M:%S")
-                    import sqlite3 as _sql3
-                    _conn = _sql3.connect(DEFAULT_LOCAL_DB_PATH)
-                    _row = _conn.execute(
-                        "SELECT MAX(high), MIN(low) FROM v9_bars_5min "
-                        "WHERE symbol='MES' AND ts >= ? AND ts < ?",
-                        (rth_open_str, ib_end_str),
-                    ).fetchone()
-                    _conn.close()
-                    if _row and _row[0] is not None:
-                        ib_h, ib_l = float(_row[0]), float(_row[1])
+                    from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+                    _sierra_tpo = _load_sierra_tpo() or {}
+                    if _sierra_tpo.get("ib_found"):
+                        ib_h = _sierra_tpo.get("ib_high")
+                        ib_l = _sierra_tpo.get("ib_low")
                 except Exception as _ib_err:
-                    _logger.warning("[DayType] IB from bars failed: %s — falling back to TPO", _ib_err)
-                    ib_h = tpo_sys.ib_high if tpo_sys else None
-                    ib_l = tpo_sys.ib_low if tpo_sys else None
+                    _logger.warning("[DayType] Sierra IB load failed: %s", _ib_err)
 
                 # Read opening type from TPO (P5.1.4)
                 opening_type = "UNKNOWN"
@@ -226,11 +214,18 @@ async def _startup():
                 # Compute session_min from the central market clock (replay-aware).
                 et_now = now_et()
                 _session_min = minutes_since_rth_open(et_now)
+                # is_rth: True only for bars that fall inside 09:30–16:00 ET.
+                # minutes_since_rth_open clamps to 0 pre-RTH so session_min
+                # alone cannot distinguish an overnight bar from the 09:30 bar.
+                from datetime import time as _time_cls
+                _et_t = et_now.time()
+                _is_rth_bar = _time_cls(9, 30) <= _et_t < _time_cls(16, 0)
                 pd_ctx = _load_previous_day_context_for_startup()
 
                 bar_input = BarInput(
                     ts=et_now.timestamp(),
                     session_min=_session_min,
+                    is_rth=_is_rth_bar,
                     open=float(bar.get("open", bar.get("o", 0))),
                     high=float(bar.get("high", bar.get("h", 0))),
                     low=float(bar.get("low", bar.get("l", 0))),
@@ -390,6 +385,11 @@ async def _startup():
         if hasattr(app.state, 'woodies_system') and app.state.woodies_system:
             app.state.woodies_system.set_gateway(trading_gateway)
             _logger.info("[Main] S4 WoodiesSystem → gateway injected")
+
+        # Enable DEMO mode for S2 and S4 (Shadow → Demo → Live progression)
+        trading_gateway.enable_demo(2)   # S2 FiveMin patterns
+        trading_gateway.enable_demo(4)   # S4 Woodies CCI
+        _logger.info("[Main] Demo mode enabled: systems [2, 4]")
 
         # P31-02b: inject FootprintSystem into FiveMinSystem so process_bar
         # reads cot/amt/belly in-process (~1ms) instead of HTTP self-calls (~8s).

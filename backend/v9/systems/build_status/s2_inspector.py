@@ -13,6 +13,16 @@ from typing import Optional, List
 from .types import PatternStatus, Component, SystemStatus, DataFreshness, GlobalGate
 from .auth_table_lookup import S2_PATTERN_IDS, lookup_auth_cell, is_skip
 from .s2_pattern_probe import probe_pattern as _probe_pattern
+from .row_helpers import (
+    fires_today,
+    freshness_now,
+    latest_valid_db_ts,
+    make_freshness,
+)
+
+# firing_system enum value for the S2 Five-Minute setup emitter
+# (`backend/v9/services/trade_manager/manager.py` write path).
+_FIRING_SYSTEM_FIVE_MIN = 2
 
 logger = logging.getLogger(__name__)
 
@@ -64,22 +74,19 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     system.hydrated = state.get("hydrated", False)
     system.mode = state.get("mode")
 
-    # Data freshness: last bar timestamp from DB
+    # Data freshness: latest non-future bar from DB (lex-sorted MAX(ts)
+    # would be poisoned by sentinel future rows — use latest_valid_db_ts).
     last_bar_ts = None
     lag_seconds = None
     try:
         conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
-        row = conn.execute("SELECT MAX(ts) FROM v9_bars_5min WHERE symbol='MES'").fetchone()
+        last_bar_ts, _, lag_seconds = latest_valid_db_ts(
+            conn,
+            "v9_bars_5min",
+            where="symbol = ?",
+            params=("MES",),
+        )
         conn.close()
-        if row and row[0]:
-            last_bar_ts = str(row[0])
-            try:
-                bar_dt = datetime.fromisoformat(str(row[0]).replace("Z", "+00:00"))
-                if bar_dt.tzinfo is None:
-                    bar_dt = bar_dt.replace(tzinfo=timezone.utc)
-                lag_seconds = (datetime.now(timezone.utc) - bar_dt).total_seconds()
-            except (ValueError, TypeError):
-                pass
     except Exception as e:
         logger.warning("[BuildStatus/S2] DB read for freshness failed: %s", e)
 
@@ -96,6 +103,24 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     bar_buffer = getattr(five_min_system, "_bar_buffer", [])
     actual_buffer_size = len(bar_buffer) if bar_buffer else buffer_size
 
+    # Mode context (must be resolved BEFORE fhb_eligible since fhb gate
+    # short-circuits to eligible once we're past the first hour).
+    mode_val = state.get("mode")
+    mode_str = mode_val.value if hasattr(mode_val, "value") else str(mode_val) if mode_val else "UNKNOWN"
+    mode_trading = mode_str in ("FIRST_HOUR_TACTICAL", "DAY_TYPE_MODE", "INTRADAY")
+
+    # FHB state — from wired FirstHourBuffer instance
+    _fhb = getattr(five_min_system, "_fhb", None)
+    fhb_state_val = _fhb.state.value if _fhb is not None else "UNKNOWN"
+    fhb_bar_count = _fhb.bar_count if _fhb is not None else 0
+    # FHB blocks when ACCUMULATING (< bar 4); all other states are eligible for at least some patterns.
+    # After first hour (DAY_TYPE_MODE / INTRADAY), FHB is no longer relevant — treat as eligible.
+    fhb_eligible = mode_str in ("DAY_TYPE_MODE", "INTRADAY") or fhb_state_val not in ("ACCUMULATING", "UNKNOWN")
+
+    # Choppiness score — lower is better (trending); ≥70 = choppy market
+    choppiness_score = getattr(five_min_system, "choppiness_score", 0)
+    chop_ok = choppiness_score < 70
+
     # Global gates
     is_nt = day_type_str == "Nontrend" if day_type_str else False
     system.global_gates.append(GlobalGate(
@@ -103,37 +128,55 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
         spec="DayType != Nontrend",
         present=not is_nt,
         value=day_type_str or "unknown",
+        live=day_type_str or "unknown",
+        required="!= Nontrend",
+        freshness=freshness_now("db"),
     ))
 
-    # Load today's fires from v9_five_min_setups
-    today_fires = {}
+    # Authoritative "fired today" surface — read v9_trades filtered by
+    # firing_system=2 (S2 setup emitter), NOT the momentary in-memory state.
+    # v9_five_min_setups is the DETECTION-time table (last_signal_ts); the
+    # routed FIRE is the v9_trades insert that the trade_manager performs
+    # after auth-table approval. Using v9_trades keeps S2 consistent with
+    # Woodies and avoids reporting detections that the manager ultimately
+    # vetoed.
+    fires_dict: dict = {}
     try:
         conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
-        conn.row_factory = sqlite3.Row
-        today_str = date.today().isoformat()
-        rows = conn.execute(
-            "SELECT pattern, ts FROM v9_five_min_setups WHERE DATE(ts) = ? ORDER BY ts DESC",
-            (today_str,),
-        ).fetchall()
+        fires_dict = fires_today(conn, _FIRING_SYSTEM_FIVE_MIN)
         conn.close()
-        for r in rows:
-            p = r["pattern"]
-            if p not in today_fires:
-                today_fires[p] = str(r["ts"])
     except Exception as e:
         logger.warning("[BuildStatus/S2] DB read for fires failed: %s", e)
+
+    # Pre-compute freshness anchors used across every pattern row.
+    # - `bar_fresh` reflects the actual last bar in the DB → DB source.
+    # - `state_fresh` reflects the in-memory FiveMinSystem snapshot →
+    #   anchored at the same bar (in-memory state advances per bar).
+    # - `eval_fresh` is the inspector wall-clock for synthesized rows.
+    bar_fresh = (
+        make_freshness(last_bar_ts, "db") if last_bar_ts else freshness_now("db")
+    )
+    state_fresh = (
+        make_freshness(last_bar_ts, "in_memory") if last_bar_ts else freshness_now("in_memory")
+    )
+    eval_fresh = freshness_now("inspector_eval")
 
     # Build per-pattern status
     for pid in S2_PATTERN_IDS:
         components = []
 
         # data: five_min_bar_recency
+        # `live` is the actual lag value (the thing being checked);
+        # `required` is the threshold the check enforces.
         components.append(Component(
             stage="data",
             key="five_min_bar_recency",
             spec="max(ts) within last 6 min",
             present=fresh,
             value=f"lag={round(lag_seconds, 0)}s" if lag_seconds is not None else "unknown",
+            live=f"{round(lag_seconds, 1)}s" if lag_seconds is not None else "unknown",
+            required="<= 360s",
+            freshness=bar_fresh,
         ))
 
         # data: cci_14_history (≥14 5-min bars buffered)
@@ -144,6 +187,9 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             spec="≥14 5-min bars buffered",
             present=cci_ok,
             value=f"buffer={actual_buffer_size}",
+            live=str(actual_buffer_size),
+            required=">= 14",
+            freshness=state_fresh,
         ))
 
         # day_type_gate: day_type_known
@@ -153,6 +199,9 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             spec="v9_day_type_history today row classified",
             present=day_type_str is not None and day_type_str != "UNKNOWN",
             value=day_type_str or "unknown",
+            live=day_type_str if day_type_str is not None else "null",
+            required="not in {None, UNKNOWN}",
+            freshness=freshness_now("db"),
         ))
 
         # day_type_gate: auth_table_cell
@@ -166,6 +215,9 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
                 spec=f"S2_AUTH_TABLE_V1[{pid}][{day_type_str}] ≠ SKIP",
                 present=not cell_skip,
                 value=f"{verdict} {cell[1]}/{cell[2]}/{cell[3]}",
+                live=verdict,
+                required="!= SKIP",
+                freshness=eval_fresh,
             ))
         else:
             components.append(Component(
@@ -174,6 +226,9 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
                 spec=f"S2_AUTH_TABLE_V1[{pid}][?] ≠ SKIP",
                 present=False,
                 value="day_type unknown — cannot evaluate",
+                live="day_type=unknown",
+                required="!= SKIP",
+                freshness=eval_fresh,
             ))
 
         # day_type_gate: nt_skip
@@ -183,20 +238,75 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             spec="not Nontrend day type",
             present=not is_nt,
             value="NT → all patterns blocked" if is_nt else "OK",
+            live=day_type_str if day_type_str is not None else "null",
+            required="!= Nontrend",
+            freshness=eval_fresh,
+        ))
+
+        # data: mode_context — must be in trading window (FHT or INTRADAY)
+        components.append(Component(
+            stage="data",
+            key="mode_context",
+            spec="FiveMinMode in {FIRST_HOUR_TACTICAL, INTRADAY}",
+            present=mode_trading,
+            value=mode_str,
+            live=mode_str,
+            required="in {FIRST_HOUR_TACTICAL, INTRADAY}",
+            freshness=state_fresh,
+        ))
+
+        # data: fhb_eligible — First Hour Buffer gate
+        components.append(Component(
+            stage="data",
+            key="fhb_eligible",
+            spec="FHB state not ACCUMULATING (bars 4+ since RTH open)",
+            present=fhb_eligible,
+            value=f"fhb={fhb_state_val} bar={fhb_bar_count}",
+            live=f"{fhb_state_val}@bar{fhb_bar_count}",
+            required="not in {ACCUMULATING, UNKNOWN}",
+            freshness=state_fresh,
+        ))
+
+        # data: choppiness_ok — choppiness score < 70
+        components.append(Component(
+            stage="data",
+            key="choppiness_ok",
+            spec="choppiness_score < 70 (trending, not choppy)",
+            present=chop_ok,
+            value=f"chop={choppiness_score}",
+            live=str(choppiness_score),
+            required="< 70",
+            freshness=state_fresh,
         ))
 
         # detection sub-layer — geometric probe per pattern
         probe_comps = _probe_pattern(pid, bar_buffer, five_min_system)
+        # Enrich probe rows with live/required/freshness. The probe module
+        # returns rows whose `value` already contains the live measurement
+        # and whose `spec` contains the threshold; we mirror them into the
+        # explicit machine-friendly columns and anchor freshness to the
+        # latest in-memory bar (probes operate on the bar buffer).
+        for _pc in probe_comps:
+            if _pc.live is None:
+                _pc.live = _pc.value
+            if _pc.required is None:
+                _pc.required = _pc.spec
+            if _pc.freshness is None:
+                _pc.freshness = state_fresh
         components.extend(probe_comps)
 
-        # Determine status
-        fired_today = pid in today_fires
-        last_fire_ts = today_fires.get(pid)
+        # Determine status — history (v9_trades) wins over momentary state.
+        fire_entry = fires_dict.get(pid)
+        fired_today = fire_entry is not None
+        last_fire_ts = fire_entry["last_ts"] if fire_entry else None
 
         if fired_today:
             status = "fired"
-            label = "✅ Fired"
-            reason = f"Setup emitted today at {last_fire_ts}"
+            label = "✅ Fired today"
+            reason = (
+                f"Setup fired today at {last_fire_ts} "
+                f"(v9_trades, firing_system=2) · count={fire_entry['count']}"
+            )
         elif is_nt:
             status = "vetoed"
             label = "🟠 Vetoed"
@@ -233,5 +343,10 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             components=components,
             blockers=blockers,
         ))
+
+    # System-level aggregation: sum per-pattern counts, max per-pattern ts.
+    system.fired_today_count = sum(v["count"] for v in fires_dict.values())
+    last_ts_candidates = [v["last_ts"] for v in fires_dict.values() if v.get("last_ts")]
+    system.last_fire_ts = max(last_ts_candidates) if last_ts_candidates else None
 
     return system

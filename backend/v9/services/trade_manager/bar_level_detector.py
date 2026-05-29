@@ -2,9 +2,11 @@
 
 Subscribes to 5min bars via BarRouter. On each bar, iterates all active
 (FILLED/PARTIAL) trades and checks if bar.high/low crossed any target or stop.
-Calls existing TradeManager.on_target_hit() / on_stop_hit() / close_trade().
+Calls existing TradeManager.on_target_hit() / on_stop_hit().
 
-Also implements Day Type time-based exits per Constitution V3 Layer 4.
+TIME_STOP exits are handled by W-10 (WoodiesSystem._check_time_stops),
+not here. Layer 4 time stop code removed 2026-05-28 evening per Michael's
+directive (Option B REVERSED — W-10 is sole TIME_STOP authority).
 
 This is the CRITICAL missing piece that makes SHADOW trades close automatically.
 """
@@ -18,16 +20,6 @@ from backend.v9.services.trade_manager.state_machine import TradeState
 
 logger = logging.getLogger(__name__)
 
-# Constitution V3 Layer 4: time-based exit per Day Type (minutes)
-TIME_STOP_BY_DAY_TYPE = {
-    "TREND_NORMAL": None,   # no time stop
-    "VARIATION": 60,
-    "NORMAL": 30,
-    "TREND_DD": 90,
-    "NEUTRAL": 45,
-    "NONTREND": 20,
-}
-
 
 class BarLevelDetector:
     """Per-bar hit detection for active trades.
@@ -35,7 +27,6 @@ class BarLevelDetector:
     Subscribes to BarRouter '5min' channel. On each bar:
       1. Check stop (adverse fill priority)
       2. Check T1 → T2 → T3 sequentially
-      3. Check time-based exit per Day Type
     """
 
     def __init__(self, trade_manager: TradeManager):
@@ -58,7 +49,6 @@ class BarLevelDetector:
 
             bar_high = float(bar_data.get("high", bar_data.get("h", 0)))
             bar_low = float(bar_data.get("low", bar_data.get("l", 0)))
-            bar_close = float(bar_data.get("close", bar_data.get("c", 0)))
             bar_ts_raw = bar_data.get("ts", "")
 
             # Parse bar timestamp
@@ -113,56 +103,10 @@ class BarLevelDetector:
                         logger.info("[BarLevelDetector] %s HIT: trade %d at %.2f",
                                     target_name, trade.id, target_price)
 
-                # 3. Time-based exit per Day Type
-                if self._check_time_stop(trade, bar_ts):
-                    # Reload trade state — may have been partially closed above
-                    refreshed = self._tm._get_trade(trade.id)
-                    if refreshed.state != TradeState.CLOSED.value:
-                        refreshed.exit_price = bar_close
-                        self._tm.close_trade(trade.id, "TIME_STOP")
-                        logger.info("[BarLevelDetector] TIME STOP: trade %d after limit",
-                                    trade.id)
-
             self._tm._db.commit()
 
         except Exception as e:
             logger.error("[BarLevelDetector] on_bar error: %s", e, exc_info=True)
-
-    def _check_time_stop(self, trade, bar_ts: Optional[datetime]) -> bool:
-        """Check if trade exceeded Day Type time limit."""
-        if bar_ts is None or trade.entry_ts is None:
-            return False
-
-        # Get day_type from cross_context
-        day_type = None
-        ctx = trade.cross_context
-        if isinstance(ctx, list) and ctx:
-            entry_ctx = ctx[0] if isinstance(ctx[0], dict) else {}
-            day_type = entry_ctx.get("day_type", {}).get("day_type") if isinstance(entry_ctx.get("day_type"), dict) else entry_ctx.get("day_type")
-        elif isinstance(ctx, dict):
-            day_type = ctx.get("day_type")
-
-        if day_type is None:
-            return False
-
-        limit = TIME_STOP_BY_DAY_TYPE.get(day_type)
-        if limit is None:
-            return False
-
-        entry_ts = trade.entry_ts
-        if isinstance(entry_ts, str):
-            try:
-                entry_ts = datetime.fromisoformat(entry_ts)
-            except ValueError:
-                return False
-
-        if entry_ts.tzinfo is None:
-            entry_ts = entry_ts.replace(tzinfo=timezone.utc)
-        if bar_ts.tzinfo is None:
-            bar_ts = bar_ts.replace(tzinfo=timezone.utc)
-
-        elapsed_minutes = (bar_ts - entry_ts).total_seconds() / 60
-        return elapsed_minutes >= limit
 
     def _parse_ts(self, ts_raw) -> Optional[datetime]:
         """Parse timestamp from bar data."""

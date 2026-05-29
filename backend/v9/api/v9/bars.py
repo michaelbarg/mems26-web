@@ -816,8 +816,10 @@ def post_woodies_5min(
                 """INSERT INTO v9_bars_5min_woodies
                 (ts, open, high, low, close, volume, cci_14, cci_6_tcci,
                  lsma_value, swi_value, czi_value, ema_34, trend_state,
-                 predictor_next_cci, zlr_detected, zlr_direction)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                 predictor_next_cci, zlr_detected, zlr_direction,
+                 proj_hi, proj_lo, hfe_detected, hfe_direction, hfe_extreme_bars_ago,
+                 lsma_above_price)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     bar.get("ts", ""), o, h, l, c, vol,
                     bar.get("cci_14"), bar.get("cci_6_tcci"),
@@ -825,6 +827,11 @@ def post_woodies_5min(
                     bar.get("czi_value"), bar.get("ema_34"),
                     bar.get("trend_state"), bar.get("predictor_next_cci"),
                     bar.get("zlr_detected", False), bar.get("zlr_direction"),
+                    bar.get("proj_hi"), bar.get("proj_lo"),
+                    1 if bar.get("hfe_detected") else 0,
+                    bar.get("hfe_direction") or "NONE",
+                    int(bar.get("hfe_extreme_bars_ago") or 0),
+                    1 if bar.get("lsma_above_price") else 0,
                 ),
             )
             conn.commit()
@@ -841,6 +848,34 @@ def post_woodies_5min(
             "predictor_next_cci": bar.get("predictor_next_cci"),
         }
     _record_push("woodies_5min")
+
+    # === BEGIN current_bar routing override (Cursor audit §6 rank-2 fix) ===
+    # `history[-1]` is FROZEN for the last ~13 bars per the DLL
+    # `GetContainingIndexForDateTimeIndex` clamp (see
+    # AUDIT_S2_S4_LIVE_FORENSICS_2026-05-28 §3). `current_bar` carries LIVE
+    # Sierra study values via direct `arr[idx]` read in MES_AI_DataExport.cpp.
+    # Prefer it for routing to S4 so calculate_size() sees live SWI/TCCI.
+    if payload.current_bar:
+        _cb = payload.current_bar
+        _cb_ohlc = _cb.get("ohlc", {}) or {}
+        last_flat = {
+            "ts": _cb.get("ts"),
+            "open":   _cb_ohlc.get("o",   _cb.get("o",   _cb.get("open",   0))),
+            "high":   _cb_ohlc.get("h",   _cb.get("h",   _cb.get("high",   0))),
+            "low":    _cb_ohlc.get("l",   _cb.get("l",   _cb.get("low",    0))),
+            "close":  _cb_ohlc.get("c",   _cb.get("c",   _cb.get("close",  0))),
+            "volume": _cb_ohlc.get("vol", _cb.get("vol", _cb.get("volume", 0))),
+            "cci_14":             _cb.get("cci_14"),
+            "cci_6_tcci":         _cb.get("cci_6_tcci"),
+            "ema_34":             _cb.get("ema_34"),
+            "lsma_value":         _cb.get("lsma_value"),
+            "swi_value":          _cb.get("swi_value"),
+            "czi_value":          _cb.get("czi_value"),
+            "trend_state":        _cb.get("trend_state"),
+            "predictor_next_cci": _cb.get("predictor_next_cci"),
+        }
+    # === END override ===
+
     if last_flat:
         _route_bar("woodies_5min", last_flat)
     return {"ok": True, "inserted": created, "type": "woodies_5min"}

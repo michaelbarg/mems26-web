@@ -18,6 +18,8 @@ from backend.v9.db.models.five_min_state import V9FiveMinState
 from backend.v9.systems.five_min.patterns.head_shoulders import detect_inverse_hns, detect_hns_top
 from backend.v9.systems.five_min.patterns.double_bt import detect_double_bottom_ee, detect_double_top_aa
 from backend.v9.systems.five_min.patterns.flags import detect_bull_flag, detect_bear_flag
+from backend.v9.systems.five_min.first_hour_buffer import FirstHourBuffer
+from backend.v9.systems.five_min.choppiness import compute_choppiness
 from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
 
 logger = logging.getLogger("mems26.systems.five_min")
@@ -70,6 +72,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         self.last_confluence: int = 0
         self.last_classification: Optional[str] = None
         self.choppiness_score: int = 0
+        self._fhb = FirstHourBuffer()      # First Hour Buffer — bar-count gate
         self._hydrated = False
         self.current_state: Dict[str, Any] = {}
 
@@ -124,14 +127,16 @@ class FiveMinSystem(BaseV9TradingSystem):
                 db.close()
 
             # Stream 2 · hydrate current_day_type from v9_day_type_state (D-091.Q1)
+            # Uses 24h sliding window instead of func.current_date() to avoid
+            # UTC vs ET date boundary mismatch (Fix #6 case b, 2026-05-28).
             try:
                 from backend.v9.systems.day_type.models import V9DayTypeState
-                from sqlalchemy import func
                 db = SessionLocal()
                 try:
+                    _cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
                     _latest_dt = (
                         db.query(V9DayTypeState)
-                        .filter(func.date(V9DayTypeState.ts) == func.current_date())
+                        .filter(V9DayTypeState.ts >= _cutoff)
                         .order_by(V9DayTypeState.id.desc())
                         .first()
                     )
@@ -198,6 +203,10 @@ class FiveMinSystem(BaseV9TradingSystem):
 
             # Scenario C: Post-lock (10:30+ ET)
             self.mode = FiveMinMode.DAY_TYPE_MODE
+            # FHB: first hour is over — mark as COMPLETE so inspector shows correct state
+            from backend.v9.systems.five_min.first_hour_buffer import BufferState
+            self._fhb._bar_count = 13
+            self._fhb._state = BufferState.COMPLETE
             if state:
                 self.opening_type = state.opening_type
                 self.choppiness_score = state.choppiness_score or 0
@@ -664,10 +673,19 @@ class FiveMinSystem(BaseV9TradingSystem):
                 info = self.session_classifier.classify()
                 if info.session in (Session.CASH_OPEN, Session.FIRST_HOUR):
                     self.mode = FiveMinMode.FIRST_HOUR_TACTICAL
+                    self._fhb.reset()
                     logger.info("[FiveMin] Mode transition OVERNIGHT → FIRST_HOUR_TACTICAL (live bar)")
                 elif info.session == Session.CASH_HOURS:
                     self.mode = FiveMinMode.DAY_TYPE_MODE
                     logger.info("[FiveMin] Mode transition OVERNIGHT → DAY_TYPE_MODE (live bar)")
+            except Exception:
+                pass
+        elif self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
+            try:
+                info = self.session_classifier.classify()
+                if info.session == Session.CASH_HOURS:
+                    self.mode = FiveMinMode.DAY_TYPE_MODE
+                    logger.info("[FiveMin] Mode transition: FIRST_HOUR_TACTICAL → DAY_TYPE_MODE (live bar)")
             except Exception:
                 pass
 
@@ -683,10 +701,17 @@ class FiveMinSystem(BaseV9TradingSystem):
         bar.setdefault("l", bar.get("low", 0))
         bar.setdefault("c", bar.get("close", 0))
         bar.setdefault("vol", bar.get("volume", 0))
+        bar.setdefault("v", bar.get("vol", bar.get("volume", 0)))
         self.buffer_size += 1
         self._bar_buffer.append(bar)
         if len(self._bar_buffer) > 20:
             self._bar_buffer = self._bar_buffer[-20:]
+
+        # First Hour Buffer: advance bar count + compute choppiness from RTH bars
+        if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
+            self._fhb.on_bar()
+            rth_bars = self._bar_buffer[-self._fhb.bar_count:]
+            self.choppiness_score = int(compute_choppiness(rth_bars))
 
         # D-091.Q2 · NT NO_TRADE early-skip (CPU efficiency + emit-layer defense)
         if self.current_day_type == "Nontrend":
@@ -729,6 +754,17 @@ class FiveMinSystem(BaseV9TradingSystem):
                 direction, conf, info = detect_bull_flag(self._bar_buffer)
                 if not direction:
                     direction, conf, info = detect_bear_flag(self._bar_buffer)
+
+        # First Hour Buffer eligibility gate (Tree V3.3 §Stage B)
+        if direction and self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
+            kind_check = info.get("kind", "UNKNOWN")
+            fhb_key = f"{kind_check}_{direction}"
+            if not self._fhb.is_pattern_eligible(fhb_key):
+                logger.info(
+                    "[FiveMin] FHB gate: %s blocked (fhb_state=%s bar=%d)",
+                    fhb_key, self._fhb.state.value, self._fhb.bar_count,
+                )
+                direction = None
 
         if direction:
             kind = info.get("kind", "UNKNOWN")

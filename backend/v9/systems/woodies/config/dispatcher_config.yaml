@@ -28,6 +28,12 @@ pattern_dispatcher:
 
 # W-10 Time Stop — Registry #11 LIVE blocker
 # Enforces maximum trade duration. null/0 disables (kill switch).
+#
+# 2026-05-28 evening (M.B. decision · Option B REVERSED): W-10 RE-ENABLED.
+# W-10 is sole TIME_STOP authority (Registry #11). Layer 4 time stop code
+# removed from bar_level_detector.py. Bug A (bar count per push) fixed:
+# _bar_count increments only on new bar ts. Bug D (exit_price=NULL) fixed:
+# exit_price set from _closes[-1] before close_trade().
 time_stop:
-  time_stop_minutes: 90       # Registry #11 default · 90 min = 18 bars on 5-min
+  time_stop_minutes: 90        # 90 min / 5 min bars = 18 bars limit
   tick_minutes: 5              # bar duration for limit_bars computation

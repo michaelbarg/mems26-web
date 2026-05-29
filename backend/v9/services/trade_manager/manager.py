@@ -94,7 +94,7 @@ class TradeManager:
             raise ValueError(f"Invalid mode: {mode}")
 
         firing_system = setup["firing_system"]
-        if firing_system not in (1, 2, 4):
+        if firing_system not in (1, 2, 3, 4):
             raise ValueError(f"Invalid firing_system: {firing_system}")
 
         direction = setup["direction"]

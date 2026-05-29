@@ -7,7 +7,7 @@ import os
 from pathlib import Path
 import sqlite3
 import time
-from typing import Optional, Tuple
+from typing import Optional
 from zoneinfo import ZoneInfo
 
 router = APIRouter(prefix="/api/v9/tpo", tags=["tpo"])
@@ -210,11 +210,24 @@ def _parse_previous_session_block(raw: dict) -> Optional[dict]:
     poc, vah, val = raw.get("poc"), raw.get("vah"), raw.get("val")
     if poc is None and vah is None and val is None:
         return None
+    # Step 9 (2026-05-28): DLL emits previous_session.ib_high/ib_low when
+    # Sierra Input 19 (Yesterday IB Study ID) points at a configured study.
+    # Treat 0/None or `ib_found:false` as missing (no synthesis).
+    ib_found = bool(raw.get("ib_found"))
+    ib_high = raw.get("ib_high") if ib_found else None
+    ib_low = raw.get("ib_low") if ib_found else None
+    if not _mes_price_ok(ib_high):
+        ib_high = None
+    if not _mes_price_ok(ib_low):
+        ib_low = None
     return {
         "found": True,
         "poc": poc,
         "vah": vah,
         "val": val,
+        "ib_high": ib_high,
+        "ib_low": ib_low,
+        "ib_found": ib_high is not None and ib_low is not None,
         "opened_ts": _norm_session_ts(raw.get("opened_ts")),
         "closed_ts": _norm_session_ts(raw.get("closed_ts")),
     }
@@ -228,6 +241,7 @@ def _load_previous_cash_session() -> Optional[dict]:
         row = conn.execute(
             "SELECT trading_date, poc_price, vah_price, val_price, opened_ts, closed_ts "
             "FROM v9_tpo_sessions WHERE session_type='CASH' AND poc_price IS NOT NULL "
+            "AND trading_date < date('now') "
             "ORDER BY id DESC LIMIT 1"
         ).fetchone()
         conn.close()
@@ -268,12 +282,22 @@ def _merge_previous_session(raw: Optional[dict]) -> Optional[dict]:
     """Prefer DB cash session when Sierra previous_session block has corrupt prices."""
     db = _load_previous_cash_session()
     if not raw or raw.get("found") is False:
+        # Step 9: DB cash session has no IB data — fall through with ib_*=None.
+        if db is not None:
+            db.setdefault("ib_high", None)
+            db.setdefault("ib_low", None)
+            db.setdefault("ib_found", False)
         return db
     out = {
         "found": True,
         "poc": raw.get("poc"),
         "vah": raw.get("vah"),
         "val": raw.get("val"),
+        # Step 9 (2026-05-28): pass-through Sierra Y IB. DB has no IB data,
+        # so we never synthesise — None when DLL did not export it.
+        "ib_high": raw.get("ib_high"),
+        "ib_low": raw.get("ib_low"),
+        "ib_found": bool(raw.get("ib_found")),
         "opened_ts": _norm_session_ts(raw.get("opened_ts")),
         "closed_ts": _norm_session_ts(raw.get("closed_ts")),
     }
@@ -286,33 +310,14 @@ def _merge_previous_session(raw: Optional[dict]) -> Optional[dict]:
                 out[key] = db[key]
     if _va_spread_ok(out.get("poc"), out.get("vah"), out.get("val")):
         return out
-    return db if db and _va_spread_ok(db.get("poc"), db.get("vah"), db.get("val")) else out
+    if db and _va_spread_ok(db.get("poc"), db.get("vah"), db.get("val")):
+        # Falling back to DB → drop any Sierra IB to avoid mixing sources.
+        db.setdefault("ib_high", None)
+        db.setdefault("ib_low", None)
+        db.setdefault("ib_found", False)
+        return db
+    return out
 
-
-def _ib_from_bars() -> Optional[Tuple[float, float]]:
-    """IB high/low from v9_bars_5min for today's 09:30-10:30 ET window.
-
-    Returns (ib_high, ib_low) or None if no bars in window yet.
-    More accurate than tpo.json because bars update every 5 min from Sierra.
-    """
-    try:
-        today_et = datetime.now(_ET).date()
-        rth_open = datetime.combine(today_et, _time(9, 30), tzinfo=_ET)
-        ib_end = rth_open + timedelta(hours=1)
-        rth_utc = rth_open.astimezone(_UTC).strftime("%Y-%m-%d %H:%M:%S")
-        ib_utc = ib_end.astimezone(_UTC).strftime("%Y-%m-%d %H:%M:%S")
-        conn = sqlite3.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
-        row = conn.execute(
-            "SELECT MAX(high), MIN(low) FROM v9_bars_5min "
-            "WHERE symbol='MES' AND ts >= ? AND ts < ?",
-            (rth_utc, ib_utc),
-        ).fetchone()
-        conn.close()
-        if row and row[0] is not None and row[1] is not None:
-            return (float(row[0]), float(row[1]))
-    except Exception as e:
-        logger.warning("[tpo] IB from bars failed: %s", e)
-    return None
 
 
 def _normalize_sierra_tpo(data: dict, age_s: float, *, stale: bool = False) -> dict:
@@ -323,18 +328,19 @@ def _normalize_sierra_tpo(data: dict, age_s: float, *, stale: bool = False) -> d
         _parse_previous_session_block(data.get("previous_session") or data.get("prior_session") or {})
     )
 
+    # IB source: Sierra Initial Balance Study only (2026-05-28 evening revocation).
+    # No bars-derived synthesis — per CLAUDE.md Rule 1 (honest failure > synthetic value).
     ib_found = bool(ib.get("found"))
-    ib_high = ib.get("high") if ib_found else None
-    ib_low = ib.get("low") if ib_found else None
-    ib_mid = ib.get("mid") if ib_found else None
-
-    # P31 IB accuracy fix: override DLL IB with v9_bars_5min which tracks
-    # Sierra tick-by-tick and is always current. DLL tpo.json ib can lag.
-    bars_ib = _ib_from_bars()
-    if bars_ib is not None:
-        ib_high, ib_low = bars_ib
-        ib_found = True
-        ib_mid = (ib_high + ib_low) / 2.0
+    if ib_found:
+        ib_high = ib.get("high")
+        ib_low = ib.get("low")
+        ib_mid = ib.get("mid")
+        ib_source = "sierra_live"
+    else:
+        ib_high = None
+        ib_low = None
+        ib_mid = None
+        ib_source = "missing"
 
     ib_width = None
     if ib_high is not None and ib_low is not None:
@@ -382,6 +388,7 @@ def _normalize_sierra_tpo(data: dict, age_s: float, *, stale: bool = False) -> d
         "ib_locked": ib_found,
         "ib_found": ib_found,
         "ib_width": ib_width,
+        "ib_source": ib_source,
         "prior_day": {
             "found": bool(prior_day.get("found")),
             "high": prior_day.get("high"),
