@@ -455,11 +455,18 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
     // Helper: read Sierra float at mapped index, 0 if unavailable
     #define S_VAL(arr, idx) ((idx) >= 0 && (idx) < (arr).GetArraySize() ? (arr)[(idx)] : 0.0f)
 
-    // Map DLL bar index → Woodies chart bar index using Sierra's cross-chart mapping
-    // GetContainingIndexForDateTimeIndex maps a datetime index from THIS chart to target chart
+    // Map DLL bar index → Woodies chart bar index using Sierra's cross-chart mapping.
+    // Clamp-detection: if two consecutive bars map to the same Woodies index, the
+    // cross-chart mapping has hit its boundary — fall back to direct index so the
+    // sv==0 local fallback produces live (non-frozen) Python-computed values.
     auto mapIdx = [&](int dll_bar_idx) -> int {
         if (!have_sierra || wc == 0 || wc == sc.ChartNumber) return dll_bar_idx;
-        return sc.GetContainingIndexForDateTimeIndex(wc, dll_bar_idx);
+        int mi = sc.GetContainingIndexForDateTimeIndex(wc, dll_bar_idx);
+        if (dll_bar_idx > 0) {
+            int mi_prev = sc.GetContainingIndexForDateTimeIndex(wc, dll_bar_idx - 1);
+            if (mi == mi_prev) return dll_bar_idx;  // clamped: fall back to local
+        }
+        return mi;
     };
 
     // Pre-compute CCI-14 history for ZLR/HFE detection — Sierra when available

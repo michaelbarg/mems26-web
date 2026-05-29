@@ -18,7 +18,7 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.4.2-p30.11";  // P30.11: G1 proj H/L, G2 TPO validation, G4 va_ok+session_date
+static const char* V9_VERSION = "v9.4.3-p31.1";  // P31.1: mapIdx clamp-detect (frozen-tail fix)
 
 // ── Export directory ──
 static const char* V9_EXPORT_DIR = "/Users/michael/SierraChart_Data/v9_export/";
