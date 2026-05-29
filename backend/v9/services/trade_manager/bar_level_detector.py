@@ -72,6 +72,17 @@ class BarLevelDetector:
                 if trade.entry_price is None:
                     continue
 
+                # Skip bars that started before the trade was opened.
+                # Without this guard, a bar pushed after its close-time can be
+                # applied to a trade that was opened during or after that bar —
+                # recording a fill_ts (stop/target) that precedes entry_ts.
+                if bar_ts is not None and trade.entry_ts is not None:
+                    trade_entry = trade.entry_ts
+                    if not hasattr(trade_entry, "tzinfo"):
+                        trade_entry = None  # can't compare naive vs aware safely
+                    if trade_entry is not None and bar_ts < trade_entry:
+                        continue
+
                 direction = trade.direction
                 stop = trade.stop
 

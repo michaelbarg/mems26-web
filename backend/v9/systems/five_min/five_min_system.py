@@ -739,6 +739,16 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         # Pkg 5a · chart patterns (Stage 3 + day-type gated · D-091 §5+§6)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
+            if self.current_day_type is None:
+                import time as _time_mod
+                _now = _time_mod.monotonic()
+                if _now - getattr(self, "_dt_none_last_warn_ts", 0.0) >= 60.0:
+                    logger.warning(
+                        "[FiveMin] current_day_type is None in DAY_TYPE_MODE — "
+                        "Pkg 5a/5b/5c chart patterns are silently skipped. "
+                        "Check hydrate() or S1 event delivery."
+                    )
+                    self._dt_none_last_warn_ts = _now
             if self.current_day_type in (
                 "Neutral_Extreme", "Neutral_Center", "Normal", "Variation",
             ):
