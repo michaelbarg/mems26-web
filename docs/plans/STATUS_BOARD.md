@@ -1,3 +1,4 @@
+
 # Status Board · Pre-LIVE Pipeline V2
 
 **Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-30 (Cowork verification pass · Shabbat — market closed) ·
@@ -52,9 +53,9 @@
 | ✅ TIME_STOP (S4) | Fixed: floor bar_ts to 5-min boundary (epoch%300) + ISO-ts parser. Regression: 40 pushes same bucket → count=1. | `93a5dbf`, `e75caa6` |
 | ✅ T1 not detected (S4) | Fixed: BarLevelDetector subscribes to woodies_5min + cross-channel dedup. | `9410279` |
 | ✅ Footprint burst (S3) | Fixed: dedup per (level, direction, bar_ts). Needs RTH verify. | `79a7640` |
-| ✅ Fake PARTIAL @5900 | Root: gateway hardcoded DB_PATH → tests write to prod DB. Fixed: DATABASE_URL. 15 rows flagged is_synthetic=1. | `65f00e5` |
-| 5min restart gaps · EOD 29/5 | Bridge שולח רק latest bar → restart מאבד history; דרוש backfill מ-Sierra export | `bars_5min_stream.py:41` · EOD §7 |
-| S1 restart resets state · EOD 29/5 | restart תוך RTH מאבד IB/opening/classification; seed logic לא מספיק | `state_machine.py reset()` · EOD §7 |
+| ✅ Fake PARTIAL @5900 | Root: gateway hardcoded DB_PATH → tests write to prod DB. Fixed: DATABASE_URL + test isolation conftest. 18 rows flagged is_synthetic=1 (844-861). | `65f00e5`, `c204021` |
+| ✅ 5min restart gaps | Fixed: backfill from MAX(ts) on first push after restart. | `bffad29` |
+| ✅ S1 restart resets state | Fixed: day_type_seed loads opening_type/day_type/confidence from v9_day_type_history instead of forcing INDETERMINATE. | `7316289` |
 
 ### 🟡 MED — קודם LIVE (לא בלוקר)
 | # | פריט |
@@ -121,6 +122,8 @@
 
 ---
 
+- **2026-05-30 · Michael: NEWS handling PARKED** — do not work on news (calendar/feed/options) now; finish all approved items first. Resume later. Remaining APPROVED-but-unfinished for CC: (1) **R2-8 part 2** — test-DB isolation in `tests/conftest.py` (currently missing → @5900 recurs; mark rows 847-861 `is_synthetic=1`); (2) **R2-9** — restart recovery (`day_type_seed.py` load opening_type from DB + `bars_5min_stream.py` backfill). Everything else in R2/P32 committed & verified.
+- **2026-05-30 · Cowork verified CC's R2+P32 commits — 2 issues surfaced** — CC committed (git lock cleared): R2-3 ISO-ts floor (`e75caa6`), R2-4 day_type fixtures (`0ee2657`), R2-5 api conftest (`19d6456`), R2-6 TPO test (`7e80626`), R2-8 gateway DB_PATH→DATABASE_URL (`65f00e5`), + P32-I/J/K/L. **Verified:** tick_reversal future-ts = **0** (§1.10 DONE). 844-846 marked `is_synthetic=1` (§1.8 approval executed ✓). **🔴 ISSUE 1 — @5900 RECURS:** 15 NEW rows 847-861 `is_synthetic=0`. Gateway DB_PATH fix alone does NOT isolate tests — `DATABASE_URL` defaults to the live DB (`db/session.py:14`), so tests still write to it. **R2-8 part-2 (conftest temp-DB isolation) was NOT done** → still bleeding. **⚠️ ISSUE 2 — TPO TZ:** `7e80626` changed the TEST to expect UTC (not ET) for `slot_start_ts_str`, classifying as fixture-drift — needs confirm that UTC is the intended TZ (Pre-LIVE Rule 4) or it masks a regression. **R2-9 (restart recovery) NOT started.**
 - **2026-05-30 · Michael APPROVED §1.15 (restart recovery — simplified)** — root: `day_type_seed.py:111` hardcodes `opening_type=INDETERMINATE` on seed instead of loading the persisted value (proof: 27/5 saved OPEN_DRIVE but seed would flip to INDETERMINATE). Approved design (no replay, no 13:00 rule): (1) MANDATORY 5min bar backfill on restart (`bars_5min_stream.py` `_first_push`); (2) S1 loads `opening_type`/`day_type`/`lock_state` from today's `v9_day_type_history` row (`date==et_today()`, not ROLLED_OVER), IB/range stay from Sierra; only if no row → real INDETERMINATE (degrades to Normal). Replay + 13:00-skip dropped as over-engineering. → mega-prompt R2-9. Plan: `RESTART_RECOVERY_PLAN_2026-05-30.md` v2.
 - **2026-05-30 · Michael APPROVED §1.8** — mark rows 844-846 `is_synthetic=1` (backup first, NOT delete). CC to execute `UPDATE v9_trades SET is_synthetic=1 WHERE id IN (844,845,846)` after `cp data/mems26_local.db data/...bak`, paired with R2-8 gateway DB-path fix so it stops recurring. Verify: `COUNT(*) WHERE entry_price=5900 AND is_synthetic=0` = 0.
 - **2026-05-30 · Cowork read-only diagnoses (no-decision): §1.3 + §1.14 largely resolved** — §1.3 pre_fire: verified `validate_fire` IS called in all 3 fire paths (S3 `footprint_system.py:462`, S4 `woodies/decision_tree.py` A7, S2 `five_min/setup_emitter.py:110`) before gateway route — SYSTEM_REVIEW #3 ("standalone route only") is outdated; only cosmetic docstring/dup-route cleanup left. §1.14 status enum: `status.py:_check_day_type` returns live `lock_state`; DB shows `LOCKED_LOW_CONF` (not PENDING) — mapping in place; residual stale-PENDING is a restart/hydration artifact (→ §1.15), verify live after restart-seed.
