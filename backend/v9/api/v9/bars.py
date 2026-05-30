@@ -1,7 +1,7 @@
 """V9 API: Bar data endpoints — receives Bridge pushes for all bar types."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
@@ -303,6 +303,11 @@ def post_bars_5min(
             rejected += 1
             continue
         ts = _ts_from_unix(bar.ts)
+        # Guard: reject bars with ts > now + 2 minutes (mirror bar_ingestion guard)
+        if ts > datetime.now(timezone.utc) + timedelta(minutes=2):
+            logger.warning("[bars/5min] Rejected FUTURE bar ts=%s (now+2m guard)", ts)
+            rejected += 1
+            continue
         row = db.query(V9Bar5Min).filter(
             V9Bar5Min.ts == ts,
             V9Bar5Min.symbol == bar.symbol,
@@ -799,8 +804,23 @@ def post_woodies_5min(
     bars = payload.all_bars
     if not bars:
         return {"ok": True, "inserted": 0, "type": "woodies_5min"}
+
+    # Frozen-tail fix: when current_bar exists AND history is present,
+    # override history[-1] study fields with current_bar's live Sierra values.
+    # history[-1] may have frozen values from DLL mapIdx clamp (cross-chart
+    # mapping boundary), while current_bar reads directly via arr[idx].
+    _study_keys = ("cci_14", "cci_6_tcci", "ema_34", "lsma_value", "swi_value",
+                   "czi_value", "trend_state", "predictor_next_cci")
+    if payload.current_bar and payload.history and len(bars) == len(payload.history):
+        cb = payload.current_bar
+        last = bars[-1]
+        for k in _study_keys:
+            if cb.get(k) is not None:
+                last[k] = cb[k]
+
     created = 0
     last_flat = None
+    _prev_studies = None  # stale detection
     for bar in bars:
         ohlc = bar.get("ohlc", {})
         o = ohlc.get("o", bar.get("o", bar.get("open", 0)))
@@ -808,6 +828,16 @@ def post_woodies_5min(
         l = ohlc.get("l", bar.get("l", bar.get("low", 0)))
         c = ohlc.get("c", bar.get("c", bar.get("close", 0)))
         vol = ohlc.get("vol", bar.get("vol", bar.get("volume", 0)))
+        # Stale detection: if all 6 study fields are identical to the previous
+        # bar, this is likely a frozen-tail artifact from DLL mapIdx clamp.
+        # Skip the DB write to avoid polluting the table with frozen duplicates.
+        _cur_studies = (bar.get("cci_14"), bar.get("swi_value"), bar.get("czi_value"),
+                        bar.get("ema_34"), bar.get("lsma_value"), bar.get("cci_6_tcci"))
+        if _prev_studies is not None and _cur_studies == _prev_studies:
+            logger.debug("[woodies_5min] Skipping stale bar ts=%s (frozen studies)", bar.get("ts"))
+            continue
+        _prev_studies = _cur_studies
+
         # Persist to v9_bars_5min_woodies (dedicated table per D-074)
         import sqlite3 as _sql
         try:
