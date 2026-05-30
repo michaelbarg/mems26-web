@@ -403,8 +403,8 @@ SYSTEMS: list[SystemSpec] = [
         ],
         db_tables=[
             ("v9_trades", "entry_ts"),
-            ("v9_trade_management_log", "ts"),
-            ("v9_audit_events", "ts_ms"),
+            # TODO(P-future): wire v9_trade_management_log + v9_audit_events
+            # writers (audit report 05, 2026-05-29: zero rows, zero writers).
         ],
         api_endpoints=["/api/v9/trades/active"],
     ),
