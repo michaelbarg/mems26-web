@@ -328,7 +328,7 @@ def get_trades(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    q = db.query(V9Trade)
+    q = db.query(V9Trade).filter(V9Trade.is_synthetic == 0)
     if mode:
         q = q.filter(V9Trade.mode == mode)
     system_filter = firing_system if firing_system is not None else dominant_system
@@ -355,6 +355,7 @@ def get_recent_trades(
     """
     rows = (
         db.query(V9Trade)
+        .filter(V9Trade.is_synthetic == 0)
         .order_by(V9Trade.entry_ts.desc().nullslast(), V9Trade.id.desc())
         .limit(limit)
         .all()

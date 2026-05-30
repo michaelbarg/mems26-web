@@ -3,7 +3,7 @@
 Section 6 of 3-Mode Trading Spec V3 FINAL.
 """
 
-from sqlalchemy import Column, String, Float, Integer, DateTime
+from sqlalchemy import Column, String, Float, Integer, DateTime, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.v9.db.session import Base
@@ -55,6 +55,9 @@ class V9Trade(Base):
 
     # Sierra bracket reference
     sierra_bracket_id = Column(String(50))
+
+    # Synthetic/test data flag (migration 019)
+    is_synthetic = Column(Integer, nullable=False, default=0)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
