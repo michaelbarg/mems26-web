@@ -96,22 +96,67 @@ def maybe_seed_ib_from_tpo(
         ib_width=ib_width,
     )
     machine.ib_locked = True
-    # P31 §C followup: B1 returns early when ``machine.opening is None`` so
-    # jumping straight to B1 without seeding a synthetic opening leaves the
-    # machine permanently stuck at ``stage=B1, day_type=UNKNOWN`` — the next
-    # process_bar call would just keep running ``_stage_b1`` and returning.
-    # We can't reconstruct the original Opening Type from a restart that
-    # missed RTH open, so default to INDETERMINATE which the decision matrix
-    # resolves to ``DayType.Normal`` (see ``decision_matrix.py``: that's the
-    # explicit "opening not clearly classified" fallback). This lets B1 cast
-    # a real vote and B2-B6 progress normally; later behavior (failed
-    # extension, trend, compression) can still rescore the verdict.
+    # Restart recovery (v2, Michael-approved 2026-05-30):
+    # Load opening_type / day_type / lock_state / confidence from today's
+    # v9_day_type_history row instead of forcing INDETERMINATE. Only fall
+    # back to INDETERMINATE if no saved row exists for today.
+    _loaded_opening = None
+    try:
+        from backend.v9.common.trading_date import et_today
+        from backend.v9.db.session import SessionLocal
+        from backend.v9.systems.day_type.schemas import DayType
+        from sqlalchemy import text as _text
+        _db = SessionLocal()
+        _today = et_today().isoformat()
+        _row = _db.execute(
+            _text(
+                "SELECT opening_type, day_type, confidence "
+                "FROM v9_day_type_history "
+                "WHERE date = :d AND status != 'ROLLED_OVER' "
+                "ORDER BY last_updated_at DESC LIMIT 1"
+            ),
+            {"d": _today},
+        ).fetchone()
+        _db.close()
+        if _row and _row[0]:
+            _ot_str = _row[0]
+            try:
+                _ot = OpeningType(_ot_str)
+            except ValueError:
+                _ot = OpeningType.INDETERMINATE
+            _loaded_opening = _ot
+            # Also restore day_type + confidence if available
+            if _row[1]:
+                try:
+                    machine.day_type = DayType(_row[1])
+                except ValueError:
+                    pass
+            if _row[2] is not None:
+                machine.confidence = float(_row[2]) / 100.0  # DB stores 0-100
+            if logger is not None:
+                logger.info(
+                    "[DayType] restart recovery: loaded opening_type=%s day_type=%s "
+                    "conf=%.2f from v9_day_type_history (date=%s)",
+                    _ot_str, _row[1], machine.confidence, _today,
+                )
+    except Exception as _e:
+        if logger is not None:
+            logger.warning("[DayType] restart recovery DB load failed: %s", _e)
+
     if machine.opening is None:
-        machine.opening = OpeningDetection(
-            opening_type=OpeningType.INDETERMINATE,
-            drive_direction="NEUTRAL",
-            confidence=0.0,
-        )
+        if _loaded_opening is not None:
+            machine.opening = OpeningDetection(
+                opening_type=_loaded_opening,
+                drive_direction="NEUTRAL",
+                confidence=0.4,
+            )
+        else:
+            # No saved row for today — true INDETERMINATE (degrades to Normal)
+            machine.opening = OpeningDetection(
+                opening_type=OpeningType.INDETERMINATE,
+                drive_direction="NEUTRAL",
+                confidence=0.0,
+            )
     machine.stage = Stage.B1
 
     if logger is not None:
