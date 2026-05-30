@@ -99,13 +99,16 @@ class TestSlotMath:
     @pytest.mark.parametrize(
         "h, m, expected_min",
         [
-            (9, 30, "09:30"),
-            (9, 45, "09:30"),
-            (10, 0, "10:00"),
-            (10, 14, "10:00"),
-            (10, 29, "10:00"),
-            (10, 30, "10:30"),
-            (15, 59, "15:30"),
+            # slot_start_ts_str returns UTC wall-clock (ET+4 in EDT).
+            # The bars table stores real UTC; chart tsToUnix parses both
+            # through the same ET offset, so TPO markers must also use UTC.
+            (9, 30, "13:30"),
+            (9, 45, "13:30"),
+            (10, 0, "14:00"),
+            (10, 14, "14:00"),
+            (10, 29, "14:00"),
+            (10, 30, "14:30"),
+            (15, 59, "19:30"),
         ],
     )
     def test_slot_start_ts_str_rounds_down(self, h, m, expected_min):
