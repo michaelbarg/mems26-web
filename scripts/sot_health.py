@@ -289,7 +289,7 @@ SYSTEMS: list[SystemSpec] = [
             ("v9_bars_tick_reversal", "ts"),
             ("v9_bars_imbalance", "ts"),
         ],
-        api_endpoints=["/api/v9/chart/bars5min", "/api/v9/health"],
+        api_endpoints=["/api/v9/chart/bars5min", "/api/v9/health", "/api/v9/footprint/current"],
     ),
     SystemSpec(
         sid="S5_TPO",
