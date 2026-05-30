@@ -22,7 +22,11 @@ from backend.v9.services.sierra_command import command_from_setup
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+import os as _os
+# Use the same DATABASE_URL as db/session.py — no more hardcoded path.
+# Tests can override via DATABASE_URL or db_path constructor arg.
+_DB_URL = _os.environ.get("DATABASE_URL", "sqlite:///./data/mems26_local.db")
+DB_PATH = _DB_URL.replace("sqlite:///", "") if _DB_URL.startswith("sqlite") else "./data/mems26_local.db"
 
 
 class TradingGateway:
