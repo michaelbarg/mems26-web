@@ -305,12 +305,13 @@ SYSTEMS: list[SystemSpec] = [
         sierra_files=["tpo.json"],
         computed=[
             "S5 IB-from-Sierra normalization (no fallback synthesis)",
-            "session-aware POC/VAH/VAL persistence to v9_tpo_sessions",
+            "session-aware POC/VAH/VAL persistence to v9_tpo_history (B1 snapshotter)",
         ],
         db_tables=[
-            ("v9_tpo_sessions", "opened_ts"),
-            ("v9_tpo_bars", "ts"),
+            # v9_tpo_sessions removed (P32-J): last write 2026-04-29 (30 days dead).
+            # Replaced by v9_tpo_history (B1 snapshotter).
             ("v9_tpo_history", "ts"),
+            ("v9_tpo_bars", "ts"),
         ],
         api_endpoints=["/api/v9/tpo/current", "/api/v9/key_levels"],
     ),
