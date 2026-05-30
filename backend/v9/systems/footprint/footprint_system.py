@@ -36,6 +36,8 @@ class FootprintSystem(BaseV9TradingSystem):
         self._last_dominance: Optional[str] = None
         self._cumulative_delta: float = 0
         self._last_amt: Optional[float] = None
+        # Dedup: track (price_level, bar_ts) to prevent burst-firing on Sierra UPDATE events
+        self._fired_level_bar: Dict[str, float] = {}  # key="level_direction" → last bar_ts fired
         # P31-STRAT-S3 #2 (2026-05-22): AMT is a 90-min rolling average of per-bar
         # vol/trade_count, not an instant per-bar reading. Without this rolling
         # window, S2 5-Min's `cot > amt` / `cot < amt` fire conditions compare
@@ -425,6 +427,16 @@ class FootprintSystem(BaseV9TradingSystem):
 
     def _fire(self, signal: dict, bar: dict, event) -> None:
         """Fire a trade decision from Footprint signal + size."""
+        # Dedup: prevent burst-firing on same (level, direction, bar_ts).
+        # Sierra sends multiple UPDATE events per bar; without this gate
+        # ~20-30 duplicate trades fire per minute at the same price.
+        bar_ts = bar.get("ts") or bar.get("bar_ts") or ""
+        level = signal.get("level", 0)
+        dedup_key = f"{level}_{signal['direction']}"
+        last_bar_ts = self._fired_level_bar.get(dedup_key)
+        if last_bar_ts is not None and str(bar_ts) <= str(last_bar_ts):
+            logger.debug("[Footprint] Dedup: skipping %s bar_ts=%s (already fired)", dedup_key, bar_ts)
+            return
         size = self.calculate_size(signal)
         if size == "reject":
             return
@@ -477,6 +489,8 @@ class FootprintSystem(BaseV9TradingSystem):
                 self._last_fire["blocked_by"] or "routed_to_trading_gateway"
             )
             self._last_fire["gateway"] = gateway_result
+            # Record dedup on successful route (even if gateway blocked — signal was processed)
+            self._fired_level_bar[dedup_key] = str(bar_ts)
             logger.info("[Footprint] FIRE routed to gateway: %s %s size=%s",
                         signal["signal"], signal["direction"], size)
         except Exception as gw_err:
