@@ -32,11 +32,13 @@ class BarLevelDetector:
     def __init__(self, trade_manager: TradeManager):
         self._tm = trade_manager
         self._bars_processed = 0
+        self._last_bar_ts_processed: str = ""  # dedup across 5min + woodies_5min
 
     def subscribe(self, bar_router) -> None:
-        """Register with BarRouter for 5min bar events."""
+        """Register with BarRouter for 5min + woodies_5min bar events."""
         bar_router.subscribe("5min", self.on_bar)
-        logger.info("[BarLevelDetector] subscribed to 5min via BarRouter")
+        bar_router.subscribe("woodies_5min", self.on_bar)
+        logger.info("[BarLevelDetector] subscribed to 5min + woodies_5min via BarRouter")
 
     async def on_bar(self, event) -> None:
         """Process a 5-min bar: check all active trades for hits."""
@@ -53,6 +55,12 @@ class BarLevelDetector:
 
             # Parse bar timestamp
             bar_ts = self._parse_ts(bar_ts_raw)
+
+            # Dedup: same bar_ts from both 5min and woodies_5min channels
+            _ts_key = str(bar_ts_raw)[:16]  # floor to minute
+            if _ts_key == self._last_bar_ts_processed and _ts_key:
+                return
+            self._last_bar_ts_processed = _ts_key
 
             mode = getattr(event, "mode", "LIVE")
             if mode != "LIVE":
