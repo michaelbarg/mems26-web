@@ -203,7 +203,18 @@ class WoodiesSystem(BaseV9TradingSystem):
         """Process a 5-min Woodies bar: compute studies, detect patterns, persist."""
         try:
             bar = dict(event.payload) if hasattr(event, 'payload') else dict(event)
-            _bar_ts_key = bar.get("ts")
+            # Floor ts to 5-min boundary for dedup — Sierra sends multiple
+            # pushes per bar (each with unique ms/fractional ts). Without flooring,
+            # _bar_count inflates and TIME_STOP fires at ~32 min instead of 90.
+            _raw_ts = bar.get("ts")
+            if _raw_ts is not None:
+                try:
+                    _ts_num = float(_raw_ts)
+                    _bar_ts_key = int(_ts_num - (_ts_num % 300))  # floor to 5-min
+                except (TypeError, ValueError):
+                    _bar_ts_key = str(_raw_ts)[:16]  # fallback: truncate to minute
+            else:
+                _bar_ts_key = None
             if _bar_ts_key is not None and _bar_ts_key != self._last_bar_ts_for_count:
                 self._bar_count += 1
                 self._last_bar_ts_for_count = _bar_ts_key
