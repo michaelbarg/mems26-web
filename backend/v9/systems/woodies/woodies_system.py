@@ -212,7 +212,16 @@ class WoodiesSystem(BaseV9TradingSystem):
                     _ts_num = float(_raw_ts)
                     _bar_ts_key = int(_ts_num - (_ts_num % 300))  # floor to 5-min
                 except (TypeError, ValueError):
-                    _bar_ts_key = str(_raw_ts)[:16]  # fallback: truncate to minute
+                    # ISO string: parse to epoch then floor to 5-min bucket
+                    try:
+                        from datetime import datetime as _dt, timezone as _tz
+                        _parsed = _dt.fromisoformat(str(_raw_ts).replace("Z", "+00:00"))
+                        if _parsed.tzinfo is None:
+                            _parsed = _parsed.replace(tzinfo=_tz.utc)
+                        _ep = _parsed.timestamp()
+                        _bar_ts_key = int(_ep - (_ep % 300))
+                    except (ValueError, TypeError):
+                        _bar_ts_key = str(_raw_ts)[:16]  # last resort: minute
             else:
                 _bar_ts_key = None
             if _bar_ts_key is not None and _bar_ts_key != self._last_bar_ts_for_count:
