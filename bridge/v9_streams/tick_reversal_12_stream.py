@@ -8,3 +8,5 @@ class TickReversal12Stream(BaseV9Stream):
     filename = "tick_reversal_12.json"
     redis_key = "mems26:v9:tick_reversal_12"
     api_path = "/api/v9/bars/tick_reversal?tick_count=12"
+    # DLL uses time(nullptr) for tick_reversal bars — already real UTC.
+    SKIP_CHICAGO_TS_FIX = True

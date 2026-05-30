@@ -96,6 +96,11 @@ class BaseV9Stream:
     redis_key: str = ""
     api_path: str = ""
 
+    # Streams whose DLL uses time(nullptr) (already real UTC) must set
+    # this to True to skip the ET→UTC re-interpretation in _fix_chicago_bar_ts.
+    # Streams that use v9_sc_datetime_to_unix (NY wall-clock) keep the default False.
+    SKIP_CHICAGO_TS_FIX: bool = False
+
     def __init__(self):
         self._stop = threading.Event()
         self._last_mtime: float = 0
@@ -309,7 +314,7 @@ class BaseV9Stream:
         Chicago-wall-clock encoding to real UTC unix. Top-level fields
         like export_ts use time(nullptr) in the DLL and are NOT touched.
         """
-        if _DISABLE_CHICAGO_TS_FIX or not isinstance(data, dict):
+        if _DISABLE_CHICAGO_TS_FIX or self.SKIP_CHICAGO_TS_FIX or not isinstance(data, dict):
             return data
         try:
             for key in self.BUGGY_TS_KEYS:
