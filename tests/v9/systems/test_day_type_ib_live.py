@@ -13,7 +13,12 @@ from backend.v9.systems.day_type.schemas import BarInput, DayType, IBWidth
 
 
 def _bar(session_min: int, high: float, low: float, open_: float = 0.0, close: float = 0.0,
-         pd_high: float = 5850.0, pd_low: float = 5800.0, pd_close: float = 5820.0, **kwargs) -> BarInput:
+         pd_high: float = 5850.0, pd_low: float = 5800.0, pd_close: float = 5820.0,
+         ib_high: float = None, ib_low: float = None, **kwargs) -> BarInput:
+    # Source-of-truth (2026-05-28): IB comes from Sierra (bar.ib_high/ib_low),
+    # NOT derived from bar.high/low. A3/A4 read bar.ib_* only. Fixtures must
+    # supply Sierra IB or the machine correctly refuses to lock. Default IB to
+    # this bar's high/low so the developing→lock path mirrors live Sierra feed.
     return BarInput(
         ts=1700000000.0 + session_min * 60,
         session_min=session_min,
@@ -24,6 +29,8 @@ def _bar(session_min: int, high: float, low: float, open_: float = 0.0, close: f
         pd_high=pd_high,
         pd_low=pd_low,
         pd_close=pd_close,
+        ib_high=ib_high if ib_high is not None else high,
+        ib_low=ib_low if ib_low is not None else low,
         **kwargs,
     )
 

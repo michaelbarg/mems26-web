@@ -31,6 +31,11 @@ def make_bar(**kwargs) -> BarInput:
         volume=1000,
     )
     defaults.update(kwargs)
+    # A4 IB lock requires Sierra IB (source-of-truth, 2026-05-28).
+    # Default ib_high/ib_low to bar high/low so tests that feed bars
+    # through A3→A4 see IB data and don't stall at A3.
+    defaults.setdefault("ib_high", defaults["high"])
+    defaults.setdefault("ib_low", defaults["low"])
     return BarInput(**defaults)
 
 
