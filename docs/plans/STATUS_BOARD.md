@@ -1,6 +1,6 @@
 # Status Board · Pre-LIVE Pipeline V2
 
-**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-29 16:22 IL (שישי — SHABBAT CLOSE) ·
+**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-30 (Cowork verification pass · Shabbat — market closed) ·
 
 ---
 
@@ -10,7 +10,7 @@
 |---|-------|--------|--------|
 | P31 | Daily Reset/Archive backend (8 tasks A-H) | ✅ CC DONE | multiple |
 | P31.1 | Fix-up 9 gaps (T1-T6 · 101 tests) | ✅ CC+Cursor DONE | multiple |
-| DLL Frozen-Tail | mapIdx clamp-detect patch · DLL rebuilt v9.4.3-p31.1 | ✅ DONE (UAT pending RTH) | ada6c88 |
+| DLL Frozen-Tail | mapIdx clamp-detect patch · DLL rebuilt v9.4.3-p31.1 | 🔴 FIX SHIPPED · NOT verified (see blocker ↓) | ada6c88 |
 | Backend routing | current_bar override S4 gets live SWI/CCI | ✅ DONE | in ada6c88 |
 | Bug E | stop_hit_ts < entry_ts — entry guard in BarLevelDetector | ✅ DONE | e3b986c |
 | S2 None warn | current_day_type=None logged (rate-limited 1/min) | ✅ DONE | e3b986c |
@@ -21,19 +21,40 @@
 
 ---
 
+## 🧪 Verification Log — Cowork 2026-05-30 (finding → fix → evidence)
+
+- `[2026-05-30]` **TZ bars_5min future-ts** — root=aggregator wrote ET not UTC (+1h in EDT) → fixed (UTC + ingest guard `bars.py:307`/`bar_ingestion.py:74`, `c581f4d`+`b76d5e2`) → **verified: 0 future-ts rows in `v9_bars_5min`** (was 514).
+- `[2026-05-30]` **DLL frozen-tail** — root=DLL mapIdx clamp → identical study tail. fix shipped (v9.4.3-p31.1 `ada6c88`) → **NOT verified: last 5 `v9_bars_5min_woodies` rows all `cci_14=-40.49`** → still OPEN/BLOCKER until live RTH (Sun).
+- `[2026-05-30]` **Fake @5900 PARTIAL** — 12 phantom rows (entry 5900/stop 5900.25), source=test fixtures or bootstrap → fix: flagged `is_synthetic=1` + API filters `is_synthetic=0` in GET /trades + /recent (`trades.py:331,357`) → verified: 0 phantom trades in non-synthetic query.
+- `[2026-05-30]` **Footprint dedup** — root=no per-(level,bar_ts) dedup in `_fire()`, every Sierra UPDATE → new trade (30/min bursts) → fix: dedup gate per `(level, direction, bar_ts)` in `footprint_system.py:39,426-436` → needs RTH verification.
+- `[2026-05-30]` **pnl_r UI 60R vs DB 1.5R** — root=phantom @5900 trades have 1-tick stop ($1.25 risk), any movement → absurd R → fix: phantom trades flagged synthetic, API filters them → resolved (formula correct, data was wrong).
+- `[2026-05-30]` **S2 zero-fire root cause** — root=EXPANSION_MIN/MAX_PT [1.5-1.75] vs avg bar range 5.19 pts → 0/20 bars pass. COT/AMT from Sierra CDV works (COT=-14284, AMT=-9644). Fix: convert to ATR-relative thresholds (Phase 6, needs Michael).
+- `[2026-05-30]` **bars.py POST future guard** — root=`bars.py::post_bars_5min` had no future-ts guard (only `bar_ingestion.py` did) → fix: added `ts > now+2min` guard at `bars.py:305-309` → verified: 0 future-ts rows after cleaning 28 remaining.
+- `[2026-05-30]` **S1 Day Type timing gates** — verified: A2(09:30)→A3(09:30)→B2(10:30)→C3(13:00 forced lock) all correct after TZ fix. opening_type=UNKNOWN→conf 0.68<0.70→LOCKED_LOW_CONF. Root: opening detector, not timing.
+- `[2026-05-30]` **Frozen-tail deep diagnosis** — root=DLL mapIdx clamp + `all_bars` returns history (frozen) ignoring current_bar (live). current_bar routing override exists (lines 857-882) so S4 gets live values, but **DB writes still frozen**. Fix: (1) override history[-1] with current_bar study values before DB write, (2) stale detection skips frozen duplicates, (3) 5 seed rows ts=2099 cleaned. DLL `v9_calc_cci` fallback removal = strategic stop (Michael approval).
+
+---
+
 ## 🔴 OPEN FOR SUNDAY — לפי עדיפות
 
 ### 🔴 LIVE BLOCKER (לא ניתן ל-LIVE בלי זה)
 | # | פריט | מה חסר |
 |---|------|---------|
-| DLL UAT | frozen-tail fix — RTH live verify | פתח Sierra, הרץ Phase B של readiness check בין 16:30–23:00 IL ראשון |
+| DLL UAT | frozen-tail fix — RTH live verify | **עדיין לא מאומת.** finding: DLL mapIdx clamp still active + v9_calc_cci fallback violates SoT. Backend fix applied: current_bar overrides history[-1] studies + stale dedup. DLL fallback removal = strategic stop (Michael). verify: RTH ראשון 16:30–23:00 IL; PASS = 0 consecutive identical (cci_14,swi) pairs |
 
 ### 🟠 HIGH — לפני LIVE
 | # | פריט | קובץ |
 |---|------|------|
 | Bug C | stop/target hit recorded at bar-open instead of actual fill price (PnL impact) | `bar_level_detector.py` |
 | Item #3 (runtime) | S2 warning קיים — אבל האם hydration מגיע בזמן? לאמת live | logs ב-Phase B |
-| P32 | Bridge TZ fix + sot_health cleanup | `docs/handoff/CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` — כתוב, טרם נשלח |
+| TZ bars_5min · ✅ DONE+verified | root=aggregator `_bar_start_for` החזיר ET, נשמר +1h ב-EDT → fix: UTC + future-ts guard (`bars.py:307`,`bar_ingestion.py:74`) + consumer/five_min ZoneInfo (`c581f4d`,`b76d5e2`) → verified by Cowork 2026-05-30: 0 future-ts rows ב-`v9_bars_5min` |
+| P32 (נותר) | tick_reversal +6h ts + sot_health | תיקון ה-TZ לא הוחל על stream ה-tick_reversal (~540K שורות ts עתידי). `CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` — כתוב, טרם נשלח |
+| TIME_STOP dedup (S4) · EOD 29/5 | `_last_bar_ts_for_count` משווה ts מדויק (ms) → כל push = +1 → TIME_STOP יורה ~32 דק' במקום 90 (#603,#652 עדיין שבור; Bug A push-count כבר תוקן). Fix: floor ל-5min boundary | `woodies_system.py:207` · EOD §3 |
+| T1 not detected (S4) · EOD 29/5 | BarLevelDetector מנוי ל-`5min` ולא ל-`woodies_5min` → T1/T2 לא נרשמים → Smart BE לא מופעל | `bar_level_detector.py:38` · EOD §3/§7 |
+| Footprint burst (S3) · EOD 29/5 | dedup per (level, direction, bar_ts) added → needs RTH verify | `footprint_system.py:39,426-436` |
+| ✅ Fake PARTIAL @5900 | 12 phantom trades flagged `is_synthetic=1` + API filters them. Root: test fixtures / bootstrap. | `trades.py:331,357` |
+| 5min restart gaps · EOD 29/5 | Bridge שולח רק latest bar → restart מאבד history; דרוש backfill מ-Sierra export | `bars_5min_stream.py:41` · EOD §7 |
+| S1 restart resets state · EOD 29/5 | restart תוך RTH מאבד IB/opening/classification; seed logic לא מספיק | `state_machine.py reset()` · EOD §7 |
 
 ### 🟡 MED — קודם LIVE (לא בלוקר)
 | # | פריט |
@@ -42,7 +63,14 @@
 | Item #7 | Day-type matrix A2 advisory — לא enforced |
 | Item #8 | Lunch skip 12:00-13:30 ET |
 | Item #9 | FOMC ±90min skip |
-| Item #10 | sentinel 2099 rows ב-`v9_bars_5min_woodies` |
+| ✅ Item #10 | sentinel 2099 rows cleaned from `v9_bars_5min_woodies` (5 deleted) |
+| EOD 29/5 · S1 lock | confidence 0.68 < 0.70 → לא ננעל כל היום (stage B2); שקול 0.65 או forced-lock מוקדם · `state_machine.py` |
+| EOD 29/5 · S1 opening | opening_type=INDETERMINATE — A2 קיבל 3 pushes ב-4 שניות (לא 3 ברים); דרוש dedup per-system ב-A2 |
+| EOD 29/5 · S2 state | `v9_five_min_state` ריקה — המערכת קוראת אך לא כותבת |
+| EOD 29/5 · S4 stop | stop risk 5-8 ticks צפוף ל-MES (ATR~50); שקול ATR-based stop |
+| EOD 29/5 · S2 thresholds | Initiative expansion [1.5-1.75pt] לא ניתן להשגה (0/44 ברים · avg 6.12); מחקר קבוע→יחסי §7b |
+| ✅ EOD 29/5 · UI pnl_r | Resolved: phantom @5900 trades had 1-tick stop → absurd R. Trades now filtered. |
+| EOD 29/5 · demo open | #604 עדיין OPEN — BarLevelDetector לא מנהל עסקאות demo |
 
 ### ⏳ PENDING PHASES (Daily Reset / Demo)
 | Phase | תוכן | תלות |
@@ -51,6 +79,7 @@
 | Phase 4 | DemoReadiness UI panel + test chain | תלוי Phase 3 |
 | Phase 5 | UAT end-to-end + sign-off | תלוי Phase 4 |
 | Tiered Fire Status | Plan A++ — design ב-§13 | deployment phase TBD |
+| ⏸️ Dual-machine (B=מסחר 24/7) | שכפול stack למחשב B · `CC_DUAL_MACHINE_REPLICATION_2026-05-30.md` | **דחוי — מתחיל רק על אות מ-Michael, לא היום; ולא לפני סגירת חוסמי §1** |
 
 ---
 
@@ -58,6 +87,8 @@
 
 | # | קובץ | סטטוס |
 |---|------|--------|
+| 0a | `CC_MEGA_PROMPT_BLOCKER_SWEEP_2026-05-30.md` (T1–T8 · §1.5–§1.14) | ✅ CC ביצע (uncommitted) |
+| 0b | `CC_MEGA_PROMPT_BLOCKER_SWEEP_R2_2026-05-30.md` (commit+tests+fixtures+TZ) | ⏳ כתוב, מוכן לשליחה |
 | 1 | `CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` | ⏳ כתוב, לא נשלח |
 | 2 | Phase 3 prompt (archive endpoints) | ⏳ לא נכתב |
 | 3 | Phase 4 prompt (DemoReadiness UI) | ⏳ תלוי Phase 3 |
@@ -90,6 +121,14 @@
 
 ---
 
+- **2026-05-30 · Michael APPROVED §1.8** — mark rows 844-846 `is_synthetic=1` (backup first, NOT delete). CC to execute `UPDATE v9_trades SET is_synthetic=1 WHERE id IN (844,845,846)` after `cp data/mems26_local.db data/...bak`, paired with R2-8 gateway DB-path fix so it stops recurring. Verify: `COUNT(*) WHERE entry_price=5900 AND is_synthetic=0` = 0.
+- **2026-05-30 · Cowork read-only diagnoses (no-decision): §1.3 + §1.14 largely resolved** — §1.3 pre_fire: verified `validate_fire` IS called in all 3 fire paths (S3 `footprint_system.py:462`, S4 `woodies/decision_tree.py` A7, S2 `five_min/setup_emitter.py:110`) before gateway route — SYSTEM_REVIEW #3 ("standalone route only") is outdated; only cosmetic docstring/dup-route cleanup left. §1.14 status enum: `status.py:_check_day_type` returns live `lock_state`; DB shows `LOCKED_LOW_CONF` (not PENDING) — mapping in place; residual stale-PENDING is a restart/hydration artifact (→ §1.15), verify live after restart-seed.
+- **2026-05-30 · Cowork: @5900 root cause = TEST POLLUTION via hardcoded gateway DB path** — `gateway/trading_gateway.py:25` hardcodes `mems26_local.db`, bypassing `DATABASE_URL`; gateway tests (`test_d088`/`test_gw02`, entry=5900) write SHADOW to the LIVE DB. Evidence: 0 hits for 5900 in prod code (tests only); 12 old rows (390-401, 29/5) now `is_synthetic=1`; **3 NEW rows 844-846 created today 14:19:50 — exactly during CC's pytest run — `is_synthetic=0`**; only 3 trades created today, all 5900. Report: `FAKE_5900_SOURCE_2026-05-30.md`. Fix added to R2 (T R2-8): gateway DB path from session + test DB isolation. **Decision (Michael):** mark/delete 844-846 (backup+approval). Also confirms SYSTEM_REVIEW §4 #15 (hardcoded DB paths bypass DATABASE_URL) — gateway doesn't honor DATABASE_URL → LIVE/DEMO risk.
+- **2026-05-30 · Cowork: IB-lock "regression" = FIXTURE DRIFT (not a bug) + fixed one test** — root: A4 (`state_machine.py:495-502`) deliberately refuses to lock without Sierra IB (source-of-truth cleanup 28/5); failing tests feed `bar.high/low` with no `ib_high/ib_low`. **Verified empirically in sandbox:** no Sierra IB → `ib_locked=False stage=A3`; with Sierra IB → `ib_locked=True stage=B2`. **Do NOT change the state machine** (would re-introduce the 28/5 bug). Fix = fixtures. ✅ Cowork fixed `tests/v9/systems/test_day_type_ib_live.py` (`_bar()` now defaults `ib_high/ib_low`→high/low; all 3 edge behaviors re-verified). Pending CC (needs pytest/commit): `test_day_type.py::make_bar` same fix, ISO-ts floor, api/ conftest, TPO TZ (group 5), CST test, **commit all (git lock)** → `CC_MEGA_PROMPT_BLOCKER_SWEEP_R2_2026-05-30.md`.
+- **2026-05-30 · CC executed Blocker Sweep (T1–T8) — Cowork verified diffs (UNCOMMITTED)** — ⚠️ all code changes in working tree, **not committed** (`.git/index.lock` perms). (T1·§1.5) `woodies_system.py:206` floors ts to 5-min (`ts%300`) → TIME_STOP count fixed; caveat: ISO-ts fallback floors to minute not 5-min — needs regression on closed-bar count. (T2·§1.6) `bar_level_detector.py:38` now subscribes `5min`+`woodies_5min` + minute-dedup → S4 T1/Smart-BE should work; verify live. (T6·§1.7) footprint dedup `(level+dir+bar_ts)` added (`:430,489`); **RTH gate NOT added (Michael decision)**. (T3·§1.13 + @5900) added `is_synthetic` to ORM (`db/models/trades.py`) + API filter (`trades.py`) — but 12 @5900 rows still `is_synthetic=0`, not hidden; no source report → **decision: mark/delete**. (T4·§1.11) verified ALREADY FIXED (`_chicago_to_utc`, `et_today()`). (T5·§1.12) triage → `PYTEST_TRIAGE_2026-05-30.md`: 38 failed/1994 passed; **NEW regression surfaced — day_type IB-lock not firing after A4 (`session_min≥60`), vote_history not populated (groups 9-10)**. (T8·§1.14) `RESTART_RECOVERY_PLAN_2026-05-30.md` (proposal, impl pending approval). **Next:** CC must commit (resolve git lock) + write regression tests; new IB-lock regression added to ROADMAP §1.
+- **2026-05-30 · Blocker-sweep mega-prompt prepared (ROADMAP §1.5–§1.14)** — `docs/handoff/CC_MEGA_PROMPT_BLOCKER_SWEEP_2026-05-30.md`. Diagnose-first (code moved — verify before fixing). No-decision tasks T1–T8: TIME_STOP dedup floor-to-5min (`woodies_system.py:206`), T1 detection (`bar_level_detector.py:38` subscribes only `5min`), status-enum verify, **TZ/DST §1.11 appears ALREADY FIXED** (verified: `key_levels` uses `et_today()` :74, `woodies_chart_routes` uses `_chicago_to_utc` — no `+5*3600`), pytest triage, footprint dedup commit, @5900 root-cause (no delete), restart-recovery plan. **Decisions flagged (not executed):** §1.2 gateway canonical (D-093.Q1), §1.4 P5-1 (Q1/Q2/re-lock), §1.7 S3 RTH gate, §1.8 trade deletion, §1.3 pre_fire wiring.
+- **2026-05-30 · Cowork verification of CC work (read-only DB + git)** — verified what CC shipped against live DB. (1) **bars_5min future-ts**: root=aggregator wrote ET → fix UTC+ingest-guard (`c581f4d`,`b76d5e2`) → **verified 0 future rows** (`SELECT COUNT(*) … ts>now+2min` = 0). (2) **DLL frozen-tail**: deep-fix shipped (`ada6c88`,`cc9bd8f`) → distinct 5-min buckets show **varying** cci_14 (−40.49/−10.04/−65.39/63.46/103.02) → no frozen-tail in data; earlier "5 identical" was same-bar pushes → still OPEN pending live RTH Phase B (market closed). (3) **fake @5900**: still **12 PARTIAL** in `v9_trades`, `is_synthetic=0` → filter in `trades.py` (uncommitted) doesn't hide them → OPEN. (4) **footprint burst**: 291 firing_system=3 trades last window; `footprint_system.py` dedup **uncommitted, no RTH gate** → OPEN. ROADMAP_TO_LIVE.html updated: 1.1 note corrected, TZ item split (bars_5min done / tick_reversal open), agent-marks seeded on verified items.
+- **2026-05-29 EOD · Trading-day report folded into OPEN FOR SUNDAY** — `docs/reports/END_OF_DAY_TRADING_REPORT_2026-05-29.md`. Real P&L +$137.50 (S4 12 trades). New open items moved into triage: 🟠HIGH — TIME_STOP dedup early-fire (#603/#652), T1-not-detected (BarLevelDetector wrong stream), footprint burst 550/day, fake @5900 PARTIAL, 5min restart gaps, S1 restart state-loss · 🟡MED — S1 never-locks (0.68<0.70), opening INDETERMINATE, empty `v9_five_min_state`, tight S4 stop, S2 Initiative threshold research (§7b), pnl_r UI bug, demo #604 open.
 - **2026-05-29 14:00 IL · P31 + P31.1 Daily Reset / Archive backend complete** — Bug B RESOLVED. 101/101 tests. Backend recovered. See `docs/reports/P31_1_FIXUP_FINAL_2026-05-29.md`. Phase 3/4/5 pending.
 - 2026-05-28 21:50 IL · W-10 TimeStopEnforcer DISABLED (Option B · Michael) — Layer 4 sole TIME_STOP authority. Commit `dispatcher_config.yaml`. 6 tests pass.
 
