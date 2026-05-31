@@ -39,27 +39,28 @@ def test_flag_off_no_deltas(monkeypatch):
     assert shadow == {}
 
 
-# ---------- Flag ON: shadow labels computed ----------
+# ---------- Flag ON: CVD becomes live classification ----------
 
-def test_flag_on_drive_shadow(monkeypatch):
+def test_flag_on_drive_live(monkeypatch):
     _set_flag(monkeypatch, True)
     from backend.v9.systems.day_type.detector import detect_opening_type_cvd
-    # Strong directional deltas (all positive) → PE high → shadow DRIVE
+    # Strong directional deltas (all positive) → PE high → CVD=DRIVE → live OPEN_DRIVE
     ot, d, c, shadow = detect_opening_type_cvd(
         _drive_bars(), footprint_deltas=[100, 150, 200],
     )
-    # Original result still OPEN_DRIVE
+    # CVD DRIVE replaces original as live result
     assert ot == OpeningType.OPEN_DRIVE
     assert shadow["shadow_label"] == "DRIVE"
+    assert shadow["cvd_is_live"] is True
     assert shadow["cvd_pe"] is not None
     assert shadow["cvd_pe"] > 0.6
     assert shadow["original_label"] == "OPEN_DRIVE"
 
 
-def test_flag_on_auction_shadow(monkeypatch):
+def test_flag_on_auction_live(monkeypatch):
     _set_flag(monkeypatch, True)
     from backend.v9.systems.day_type.detector import detect_opening_type_cvd
-    # Mixed deltas, low net → AUCTION shadow
+    # Mixed deltas, low net → CVD=AUCTION → live OPEN_AUCTION_IN
     bars = [
         BarInput(ts=1, session_min=0, open=5200, high=5202, low=5198, close=5199,
                  pd_high=5210, pd_low=5190),
@@ -70,11 +71,13 @@ def test_flag_on_auction_shadow(monkeypatch):
     ot, d, c, shadow = detect_opening_type_cvd(
         bars, footprint_deltas=[10, -10],
     )
+    assert ot == OpeningType.OPEN_AUCTION_IN  # CVD is now live
     assert shadow["shadow_label"] == "AUCTION"
+    assert shadow["cvd_is_live"] is True
     assert shadow["cvd_net_ratio"] < 0.15
 
 
-def test_flag_on_rejection_shadow(monkeypatch):
+def test_flag_on_rejection_live(monkeypatch):
     _set_flag(monkeypatch, True)
     from backend.v9.systems.day_type.detector import detect_opening_type_cvd
     # Price goes DOWN overall but CVD net is positive → divergence
@@ -87,9 +90,11 @@ def test_flag_on_rejection_shadow(monkeypatch):
     ot, d, c, shadow = detect_opening_type_cvd(
         bars, footprint_deltas=[200, 150, -80, -50],
     )
+    assert ot == OpeningType.OPEN_REJECTION_REVERSE  # CVD is now live
     assert shadow["cvd_sign_flip"] is True
     assert shadow["cvd_divergence"] is True
     assert shadow["shadow_label"] == "REJECTION_REVERSE"
+    assert shadow["cvd_is_live"] is True
 
 
 # ---------- Flag ON but no deltas: fallback ----------

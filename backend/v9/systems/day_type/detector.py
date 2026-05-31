@@ -342,7 +342,24 @@ def detect_opening_type_cvd(
         "original_confidence": round(original_conf, 3),
     }
 
-    # Return original result (live path unchanged) + shadow for logging
+    # CVD LIVE mode: when flag ON and CVD produced a classification,
+    # the CVD label REPLACES the price-based classification as the live result.
+    # This feeds into DECISION_MATRIX → day_type → playbook.
+    _CVD_LABEL_TO_OPENING = {
+        "DRIVE": OpeningType.OPEN_DRIVE,
+        "AUCTION": OpeningType.OPEN_AUCTION_IN,
+        "REJECTION_REVERSE": OpeningType.OPEN_REJECTION_REVERSE,
+    }
+
+    if shadow_label != "UNKNOWN" and shadow_label in _CVD_LABEL_TO_OPENING:
+        live_ot = _CVD_LABEL_TO_OPENING[shadow_label]
+        live_dir = "UP" if net_cvd > 0 else ("DOWN" if net_cvd < 0 else "NEUTRAL")
+        live_conf = shadow_conf
+        shadow["cvd_is_live"] = True
+        return live_ot, live_dir, live_conf, shadow
+
+    # CVD inconclusive → fall back to price-based classification
+    shadow["cvd_is_live"] = False
     return original_ot, original_dir, original_conf, shadow
 
 
