@@ -2,6 +2,17 @@
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Any
 
+# S3 ATR-relative range (E2E 2/2 · shadow only)
+from backend.v9.shared.atr import S3_RELATIVE  # noqa: E402
+_RANGE_ATR_K = 1.0  # prior: 1.0 × ATR5m
+
+
+def get_range_ticks(atr_5m: Optional[float] = None) -> float:
+    """Accumulation range threshold — ATR-relative when flag ON."""
+    if S3_RELATIVE and atr_5m is not None:
+        return _RANGE_ATR_K * atr_5m
+    return 15.0  # original absolute default
+
 
 @dataclass
 class ClusterResult:

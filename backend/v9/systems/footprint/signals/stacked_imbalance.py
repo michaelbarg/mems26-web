@@ -20,6 +20,17 @@ STACK_N = 3  # minimum consecutive imbalanced levels
 IMB_THRESHOLD = 2.5  # Sierra default imbalance ratio (ask/bid or bid/ask)
 MIN_LEVEL_VOL = 10  # minimum volume at level to count
 
+# S3 volume-relative MIN_LEVEL_VOL (E2E 2/2 · shadow only)
+from backend.v9.shared.atr import S3_RELATIVE  # noqa: E402
+_MIN_VOL_MEDIAN_K = 0.3  # prior: 0.3 × median_level_vol
+
+
+def get_min_level_vol(median_level_vol: float = 0.0) -> float:
+    """Min volume at level — volume-relative when flag ON, not ATR-based."""
+    if S3_RELATIVE and median_level_vol > 0:
+        return _MIN_VOL_MEDIAN_K * median_level_vol
+    return MIN_LEVEL_VOL
+
 
 def detect_stacked_imbalance(
     footprint_levels: List[Dict],
