@@ -56,10 +56,18 @@ DECISION_MATRIX: Dict[tuple, Union[DayType, dict]] = {
     (OpeningType.OPEN_AUCTION_OUT, IBWidth.MEDIUM):  DayType.Trend_DD,     # 40%
     (OpeningType.OPEN_AUCTION_OUT, IBWidth.WIDE):    DayType.Trend_Normal, # 40% per spec
 
+    # EXTREME IB width (E2E 2/2 · S1_IB_WIDTH_ATR · priors = same as WIDE)
+    (OpeningType.OPEN_DRIVE, IBWidth.EXTREME):              DayType.Trend_Normal,
+    (OpeningType.OPEN_TEST_DRIVE, IBWidth.EXTREME):         DayType.Variation,
+    (OpeningType.OPEN_REJECTION_REVERSE, IBWidth.EXTREME):  DayType.Normal,
+    (OpeningType.OPEN_AUCTION_IN, IBWidth.EXTREME):         DayType.Normal,
+    (OpeningType.OPEN_AUCTION_OUT, IBWidth.EXTREME):        DayType.Trend_Normal,
+
     # INDETERMINATE: opening not clearly classified — default to Normal (Prompt 15)
     (OpeningType.INDETERMINATE, IBWidth.NARROW):  DayType.Normal,
     (OpeningType.INDETERMINATE, IBWidth.MEDIUM):  DayType.Normal,
     (OpeningType.INDETERMINATE, IBWidth.WIDE):    DayType.Normal,
+    (OpeningType.INDETERMINATE, IBWidth.EXTREME): DayType.Normal,
 }
 
 

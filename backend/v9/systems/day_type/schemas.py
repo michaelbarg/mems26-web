@@ -39,9 +39,10 @@ class OpeningType(str, Enum):
 
 
 class IBWidth(str, Enum):
-    NARROW = "NARROW"      # <15 pt
-    MEDIUM = "MEDIUM"      # 15-20 pt
-    WIDE = "WIDE"          # >20 pt
+    NARROW = "NARROW"      # <15 pt (absolute) / <0.5 ATR (relative)
+    MEDIUM = "MEDIUM"      # 15-20 pt / 0.5-1.0 ATR
+    WIDE = "WIDE"          # >20 pt / 1.0-1.5 ATR
+    EXTREME = "EXTREME"    # (relative only) >1.5 ATR — E2E 2/2 S1_IB_WIDTH_ATR
     UNKNOWN = "UNKNOWN"
 
 

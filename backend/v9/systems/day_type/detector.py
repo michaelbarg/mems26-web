@@ -31,6 +31,89 @@ def classify_ib_width(
         return IBWidth.WIDE
 
 
+# ── S1 ATR-relative IB width (E2E 2/2 · shadow only) ────────────────────
+
+from backend.v9.shared.atr import S1_IB_WIDTH_ATR, S1_DAYTYPE_STAGING  # noqa: E402
+
+# ATR-relative IB width tiers (priors)
+_IB_NARROW_ATR_MAX = 0.5    # < 0.5 ATR
+_IB_NORMAL_ATR_MAX = 1.0    # 0.5–1.0 ATR
+_IB_WIDE_ATR_MAX = 1.5      # 1.0–1.5 ATR
+                              # > 1.5 ATR = EXTREME
+
+# Staged confidence caps (priors)
+_CONF_CAP_30MIN = 0.60      # 30-min checkpoint: initial (≤60%)
+_CONF_CAP_60MIN = 1.0       # 60-min (10:30): IB lock, full confidence
+_C_PERIOD_START_MIN = 60     # C-period starts at session_min=60 (10:30 ET)
+_C_PERIOD_END_MIN = 90       # C-period ends at session_min=90 (11:00 ET)
+_REEVAL_RETRACE_HOLD = 0.25  # retrace <25% → hold classification
+_REEVAL_RETRACE_REDIAG = 0.50  # retrace ≥50% → re-diagnose
+
+
+def classify_ib_width_atr(
+    ib_range_pt: float,
+    atr_daily: Optional[float] = None,
+    narrow_max: float = 15.0,
+    medium_max: float = 25.0,
+) -> IBWidth:
+    """IB width classification — ATR-relative when flag ON.
+
+    Flag OFF: original classify_ib_width (absolute points).
+    Flag ON + ATR available: IB_range/ATR14_daily in 4 tiers.
+    Flag ON + ATR None: fallback to absolute.
+    """
+    if S1_IB_WIDTH_ATR and atr_daily is not None and atr_daily > 0:
+        ratio = ib_range_pt / atr_daily
+        if ratio < _IB_NARROW_ATR_MAX:
+            return IBWidth.NARROW
+        elif ratio < _IB_NORMAL_ATR_MAX:
+            return IBWidth.MEDIUM
+        elif ratio < _IB_WIDE_ATR_MAX:
+            return IBWidth.WIDE
+        else:
+            return IBWidth.EXTREME
+    return classify_ib_width(ib_range_pt, narrow_max, medium_max)
+
+
+def cap_confidence_staged(
+    confidence: float,
+    session_min: int,
+) -> float:
+    """Cap confidence by session stage — staged model when flag ON.
+
+    Flag OFF: returns confidence unchanged.
+    Flag ON: caps at 60% before 60-min mark (IB lock), full after.
+    """
+    if not S1_DAYTYPE_STAGING:
+        return confidence
+    if session_min < _C_PERIOD_START_MIN:
+        return min(confidence, _CONF_CAP_30MIN)
+    return confidence
+
+
+def check_c_period_reeval(
+    session_min: int,
+    retrace_depth: float,
+) -> Optional[str]:
+    """C-period (10:30–11:00) validation — staged model when flag ON.
+
+    Flag OFF: returns None (no action).
+    Flag ON: checks retrace depth during C-period.
+
+    Returns:
+        None = no action, "HOLD" = hold classification, "RE_DIAGNOSE" = re-diagnose
+    """
+    if not S1_DAYTYPE_STAGING:
+        return None
+    if session_min < _C_PERIOD_START_MIN or session_min > _C_PERIOD_END_MIN:
+        return None
+    if retrace_depth < _REEVAL_RETRACE_HOLD:
+        return "HOLD"
+    elif retrace_depth >= _REEVAL_RETRACE_REDIAG:
+        return "RE_DIAGNOSE"
+    return None  # between 25-50%: no forced action
+
+
 # ── Opening Type Detection ───────────────────────────────────────────────
 
 def detect_opening_type(bars: List[BarInput]) -> Tuple[OpeningType, str, float]:
