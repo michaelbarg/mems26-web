@@ -1,0 +1,13 @@
+{
+  "_comment": "Golden snapshot of S3 absolute thresholds — flag OFF must reproduce these exactly",
+  "_created": "2026-05-31",
+  "stacked_imbalance": {
+    "STACK_N": 3,
+    "IMB_THRESHOLD": 2.5,
+    "MIN_LEVEL_VOL": 10
+  },
+  "detectors": {
+    "range_ticks": 15.0,
+    "min_acc_bars": 5
+  }
+}
