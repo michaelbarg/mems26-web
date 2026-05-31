@@ -97,6 +97,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         self.last_confluence: int = 0
         self.last_classification: Optional[str] = None
         self.choppiness_score: int = 0
+        self._current_atr_5m: _Opt[float] = None  # D-094: rolling ATR for relative thresholds
         self._fhb = FirstHourBuffer()      # First Hour Buffer — bar-count gate
         self._last_bar_ts_for_count: Optional[str] = None  # dedup: count bars, not pushes
         self._hydrated = False
@@ -558,7 +559,8 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         b1_vol = b1.get("v", 0) or 0
         b1_range = b1["h"] - b1["l"]
-        b1_expansion = EXPANSION_MIN_PT <= b1_range <= EXPANSION_MAX_PT
+        _exp_min, _exp_max = get_expansion_range(self._current_atr_5m)
+        b1_expansion = _exp_min <= b1_range <= _exp_max
         b3_range = b3["h"] - b3["l"]
         b3_joining = b3_range > b1_range
 
@@ -567,7 +569,8 @@ class FiveMinSystem(BaseV9TradingSystem):
         b2_higher_low = b2["l"] > b1["l"]
         # POC return alt: Bar -2 returns to POC_VOL (within tolerance)
         b2_poc = b2.get("poc_vol") or b2.get("poc")
-        b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= POC_RETURN_TOLERANCE_PT
+        _poc_tol = get_poc_return_tolerance(self._current_atr_5m)
+        b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= _poc_tol
         b2_test = b2_higher_low or b2_poc_return
         b4_test = b4["l"] >= b2["l"]
         cot_below_amt = cur_cot < cur_amt
@@ -589,7 +592,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         # Initiative SHORT (mirror)
         b1_bear = b1["c"] < b1["o"]
         b2_lower_high = b2["h"] < b1["h"]
-        b2_poc_return_s = b2_poc is not None and abs(b2["c"] - b2_poc) <= POC_RETURN_TOLERANCE_PT
+        b2_poc_return_s = b2_poc is not None and abs(b2["c"] - b2_poc) <= _poc_tol
         b2_test_s = b2_lower_high or b2_poc_return_s
         b4_test_s = b4["h"] <= b2["h"]
         b4_close_below_b1_low = b4["c"] < b1["l"]  # Entry signal per Master Summary Sheet 2
@@ -751,6 +754,10 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         if not is_new_bar:
             return  # duplicate push — skip counting, FHB, pattern detection
+
+        # Update rolling ATR-14 from bar buffer (for relative thresholds)
+        from backend.v9.shared.atr import atr_5min as _compute_atr_5m
+        self._current_atr_5m = _compute_atr_5m(self._bar_buffer, period=14)
 
         # First Hour Buffer: advance bar count + compute choppiness from RTH bars
         if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:

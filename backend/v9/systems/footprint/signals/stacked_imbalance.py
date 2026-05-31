@@ -35,6 +35,7 @@ def get_min_level_vol(median_level_vol: float = 0.0) -> float:
 def detect_stacked_imbalance(
     footprint_levels: List[Dict],
     bar: Dict,
+    median_level_vol: float = 0.0,
 ) -> Optional[Dict]:
     """Detect stacked imbalance from footprint price levels.
 
@@ -43,12 +44,15 @@ def detect_stacked_imbalance(
             sorted by price ascending. Can come from bar["footprint"]["levels"]
             or from Sierra DLL footprint export.
         bar: the current bar dict (for context — close price, direction)
+        median_level_vol: median volume per level (for S3_RELATIVE flag).
 
     Returns:
         Signal dict or None.
     """
     if not footprint_levels or len(footprint_levels) < STACK_N:
         return None
+
+    _min_vol = get_min_level_vol(median_level_vol)
 
     # Scan for consecutive buy-dominated levels (ask > bid * threshold)
     buy_run = 0
@@ -66,7 +70,7 @@ def detect_stacked_imbalance(
         ask_v = float(level.get("ask_vol", level.get("agg_buy_vol", 0)) or 0)
         bid_v = float(level.get("bid_vol", level.get("agg_sell_vol", 0)) or 0)
 
-        if ask_v < MIN_LEVEL_VOL and bid_v < MIN_LEVEL_VOL:
+        if ask_v < _min_vol and bid_v < _min_vol:
             buy_run = 0
             sell_run = 0
             continue

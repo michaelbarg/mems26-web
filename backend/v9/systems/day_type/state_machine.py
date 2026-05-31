@@ -25,7 +25,9 @@ _LOCK_PENDING = "PENDING"
 _LOCK_LOCKED = "LOCKED"
 _LOCK_LOW_CONF = "LOCKED_LOW_CONF"
 from .detector import (
-    classify_ib_width, detect_opening_type, detect_behavior,
+    classify_ib_width, detect_opening_type, detect_opening_type_cvd,
+    classify_ib_width_atr, cap_confidence_staged,
+    detect_behavior,
     detect_failed_extension, classify_range, calculate_confidence,
     check_reeval_triggers,
 )
@@ -449,12 +451,20 @@ class DayTypeStateMachine:
 
         # Need at least 3 bars (15 min on 5-min chart) for detection
         if len(self.opening_bars) >= 3:
-            otype, direction, conf = detect_opening_type(self.opening_bars)
+            # D-094: CVD-enhanced detection (flag S1_CVD_OPENING)
+            # footprint_deltas from bar delta field (source-of-truth when available)
+            _deltas = [b.volume for b in self.opening_bars if hasattr(b, 'volume')]
+            _fp_deltas = None  # TODO: wire footprint deltas when available from bar events
+            otype, direction, conf, _shadow = detect_opening_type_cvd(
+                self.opening_bars, footprint_deltas=_fp_deltas,
+            )
             self.opening = OpeningDetection(
                 opening_type=otype,
                 drive_direction=direction,
                 confidence=conf,
             )
+            if _shadow:
+                self.meta["cvd_opening_shadow"] = _shadow
             self.stage = Stage.A3
 
     def _stage_a3(self, bar: BarInput):
@@ -502,8 +512,11 @@ class DayTypeStateMachine:
             return
 
         ib_range = self.ib_high - self.ib_low
-        ib_width = classify_ib_width(
+        # D-094: ATR-relative IB width when flag ON (uses daily ATR from bar.atr)
+        _atr_daily = getattr(self, '_last_atr_daily', None)
+        ib_width = classify_ib_width_atr(
             ib_range,
+            atr_daily=_atr_daily,
             narrow_max=self.config.ib_narrow_max_pt,
             medium_max=self.config.ib_medium_max_pt,
         )
@@ -681,7 +694,7 @@ class DayTypeStateMachine:
         """C1: Lock criteria check.
 
         Lock when:
-        - confidence >= 0.70 (per spec §S2 confidence_threshold), OR
+        - confidence >= 0.85 (config.confidence_threshold · ConfidenceThreshold default), OR
         - same vote 2x consecutive, OR
         - session_min >= 210 (13:00 ET)
         """
