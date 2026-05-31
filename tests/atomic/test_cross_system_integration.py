@@ -188,14 +188,24 @@ def test_s4_fire_shows_decision_stages():
 
 # ── 9. BarLevelDetector can close trades ──
 
-def test_bar_level_detector_closes_trades():
+def test_bar_level_detector_closes_trades(tmp_path):
     """BarLevelDetector closes SHADOW trades on T1/T2/T3 hit."""
     from backend.v9.services.trade_manager.bar_level_detector import BarLevelDetector
     from backend.v9.services.trade_manager import TradeManager
-    from backend.v9.db.session import SessionLocal
+    from backend.v9.db.session import Base
+    import backend.v9.db.models  # noqa: F401 — register models
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
     import asyncio
+    from datetime import datetime, timezone, timedelta
 
-    db = SessionLocal()
+    # Isolated temp DB for this test
+    db_path = str(tmp_path / "test_bld.db")
+    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
+    Session = sessionmaker(bind=engine)
+    db = Session()
+
     tm = TradeManager(db=db)
     detector = BarLevelDetector(trade_manager=tm)
 
@@ -206,11 +216,14 @@ def test_bar_level_detector_closes_trades():
         "entry_price": 7450.0,
     }, mode="shadow")
     tm.on_fill(trade_id, 7450.0)
+    db.commit()
 
-    # Bar that hits T1
+    # Bar that hits T1 — ts must be AFTER entry_ts (entry guard)
+    future_ts = (datetime.now(timezone.utc) + timedelta(seconds=10)).isoformat()
+
     class FakeEvent:
         mode = "LIVE"
-        payload = {"ts": "2026-05-16T10:00:00", "high": 7456.0, "low": 7449.0,
+        payload = {"ts": future_ts, "high": 7456.0, "low": 7449.0,
                    "close": 7455.0, "open": 7450.0}
     asyncio.run(detector.on_bar(FakeEvent()))
 
@@ -218,9 +231,8 @@ def test_bar_level_detector_closes_trades():
     assert trade.t1_hit_ts is not None, "T1 should be hit"
     assert trade.state == "PARTIAL"
 
-    # Cleanup
-    db.rollback()
     db.close()
+    engine.dispose()
 
 
 # ── 10. No SHADOW/DEMO/LIVE activation ──

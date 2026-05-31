@@ -285,14 +285,22 @@ class TestTradeEventSnapshotCapture:
     @staticmethod
     def _find_trade(trade_store, filter_args):
         """Extract trade_id from SQLAlchemy filter clause and look up."""
-        # filter_args[0] is a BinaryExpression like V9Trade.id == 1
-        # We can get .right to extract the value
         if filter_args:
             clause = filter_args[0]
             try:
-                trade_id = clause.right.value
-                return trade_store.get(trade_id)
-            except AttributeError:
+                # SQLAlchemy BinaryExpression: clause.right is BindParameter
+                right = clause.right
+                trade_id = getattr(right, 'value', None) or getattr(right, 'effective_value', None)
+                if trade_id is not None and trade_id in trade_store:
+                    return trade_store[trade_id]
+            except (AttributeError, TypeError):
+                pass
+            # Try .in_() style (for get_active_trades)
+            try:
+                if hasattr(clause, 'clauses'):
+                    # It's an in_() — return all matching
+                    return None
+            except (AttributeError, TypeError):
                 pass
         # Fallback: return last trade added
         if trade_store:
@@ -359,10 +367,12 @@ class TestTradeEventSnapshotCapture:
 
         assert len(trade.cross_context) > initial_count, \
             "T1 hit did not append snapshot"
-        last = trade.cross_context[-1]
-        assert last["trigger"] == "t1_hit"
-        assert "systems" in last
-        assert "market" in last
+        # Find snapshot by trigger (state machine may also append transition logs)
+        snapshot = self._find_snapshot(trade.cross_context, "t1_hit")
+        assert snapshot is not None, \
+            f"t1_hit snapshot not found. Triggers: {[e.get('trigger', 'N/A') for e in trade.cross_context]}"
+        assert "systems" in snapshot
+        assert "market" in snapshot
 
     def test_t2_hit_captures_snapshot(self):
         """on_target_hit('T2') must append snapshot with trigger='t2_hit'."""
