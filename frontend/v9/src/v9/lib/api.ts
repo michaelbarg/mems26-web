@@ -160,7 +160,7 @@ export function mapTradeRow(t: Record<string, unknown>) {
   return { ...t, pnl_usd: pnl, outcome, system, mode };
 }
 
-export const fetchTrades = async (mode?: string, limit = 200) => {
+export const fetchTrades = async (mode?: string, limit = 500) => {
   const qs = new URLSearchParams();
   if (mode) qs.set('mode', mode.toLowerCase());
   qs.set('limit', String(limit));

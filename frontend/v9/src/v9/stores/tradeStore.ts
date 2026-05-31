@@ -43,7 +43,7 @@ interface TradeState {
 }
 
 const DEFAULT_FILTERS: TradeFilters = {
-  mode: 'SHADOW',
+  mode: 'ALL',
   systemId: 'ALL',
   outcome: 'ALL',
   dateFrom: null,
@@ -95,8 +95,11 @@ export const useTradeStore = create<TradeState>((set, get) => ({
       if (filters.mode !== 'ALL' && t.mode !== filters.mode) return false;
       if (filters.systemId !== 'ALL' && t.system !== filters.systemId) return false;
       if (filters.outcome !== 'ALL' && t.outcome !== filters.outcome) return false;
-      if (filters.dateFrom && (t.entry_ts ?? '') < filters.dateFrom) return false;
-      if (filters.dateTo && (t.entry_ts ?? '') > filters.dateTo) return false;
+      if (filters.dateFrom || filters.dateTo) {
+        const entryDate = t.entry_ts ? t.entry_ts.slice(0, 10) : '';
+        if (filters.dateFrom && entryDate < filters.dateFrom) return false;
+        if (filters.dateTo && entryDate > filters.dateTo) return false;
+      }
       if (filters.pattern) {
         const needle = filters.pattern.toLowerCase();
         const hay = [t.pattern_id, t.trigger, t.classification, t.direction]

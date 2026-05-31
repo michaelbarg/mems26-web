@@ -24,7 +24,7 @@ export function TradesSummaryStrip() {
     const partialCount = trades.filter((t) => t.pnl_mode === 'partial').length;
     const wins = withPnl.filter((t) => (t.pnl_usd ?? 0) > 0);
     const losses = withPnl.filter((t) => (t.pnl_usd ?? 0) < 0);
-    const scratch = withPnl.filter((t) => (t.pnl_usd ?? 0) === 0);
+    const scratch = closed.filter((t) => (t.pnl_usd ?? 0) === 0);
     const open = trades.filter((t) => t.outcome === 'OPEN' || ['FILLED', 'PARTIAL', 'PENDING'].includes(t.state ?? ''));
 
     const bySystem: Record<number, { count: number; pnl: number; wins: number; losses: number }> = {};
@@ -44,15 +44,23 @@ export function TradesSummaryStrip() {
       .filter((r) => r.count > 0)
       .sort((a, b) => b.count - a.count);
 
+    const wCount = wins.length;
+    const lCount = losses.length;
+    const decided = wCount + lCount;
+    const winRate = decided > 0 ? (wCount / decided) * 100 : null;
+    const totalR = withPnl.reduce((acc, t) => acc + ((t as any).pnl_r ?? 0), 0);
+
     return {
       total: sumPnl(trades.filter((t) => t.pnl_usd != null)),
       partialCount,
       closedCount: closed.length,
       tradeCount: trades.length,
-      wins: wins.length,
-      losses: losses.length,
+      wins: wCount,
+      losses: lCount,
       scratch: scratch.length,
       open: open.length,
+      winRate,
+      totalR,
       systemRows,
     };
   }, [trades]);
@@ -80,6 +88,16 @@ export function TradesSummaryStrip() {
           <StatChip label="Losses" value={String(stats.losses)} color="var(--red)" />
           <StatChip label="Scratch" value={String(stats.scratch)} color="var(--text-secondary)" />
           <StatChip label="Open" value={String(stats.open)} color="var(--sys1)" />
+          <StatChip
+            label="Win Rate"
+            value={stats.winRate != null ? `${stats.winRate.toFixed(1)}%` : '—'}
+            color={stats.winRate != null && stats.winRate >= 50 ? 'var(--green)' : 'var(--text-secondary)'}
+          />
+          <StatChip
+            label="Total R"
+            value={stats.totalR !== 0 ? `${stats.totalR >= 0 ? '+' : ''}${stats.totalR.toFixed(2)}` : '—'}
+            color={pnlColor(stats.totalR)}
+          />
         </div>
       </div>
       <div className="text-[10px] uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>

@@ -324,7 +324,7 @@ def get_trades(
     mode: Optional[str] = None,
     dominant_system: Optional[int] = None,
     firing_system: Optional[int] = None,
-    limit: int = Query(50, le=200),
+    limit: int = Query(50, le=1000),
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
@@ -334,8 +334,9 @@ def get_trades(
     system_filter = firing_system if firing_system is not None else dominant_system
     if system_filter is not None:
         q = q.filter(V9Trade.firing_system == system_filter)
+    total = q.count()
     rows = q.order_by(V9Trade.entry_ts.desc()).limit(limit).all()
-    return {"trades": [_trade_list_row(r, db) for r in rows]}
+    return {"trades": [_trade_list_row(r, db) for r in rows], "total": total, "truncated": total > limit}
 
 
 @router.get("/recent")
