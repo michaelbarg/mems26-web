@@ -1,0 +1,42 @@
+{
+  "_comment": "Golden snapshot of S2 absolute thresholds — flag OFF must reproduce these exactly",
+  "_created": "2026-05-31",
+  "five_min_system": {
+    "EXPANSION_MIN_PT": 1.5,
+    "EXPANSION_MAX_PT": 1.75,
+    "POC_RETURN_TOLERANCE_PT": 0.5,
+    "DROP_THRESHOLD_PCT": 0.10,
+    "LOOKBACK_MAX_VOL_RATIO": 0.6,
+    "BELLY_DOMINANCE_RATIO": 1.5,
+    "MIN_BARS_REQUIRED": 7,
+    "LOOKBACK_BARS": 3
+  },
+  "quality_tier": {
+    "PROXIMITY_PT": 2.0
+  },
+  "sr_proximity": {
+    "DEFAULT_PROXIMITY_TICKS": 5
+  },
+  "adaptive_stop": {
+    "FLOOR_TICKS": 4,
+    "MES_TICK": 0.25
+  },
+  "patterns_flags": {
+    "POLE_MIN_HEIGHT_TICKS": 16,
+    "FLAG_MAX_RETRACE_PCT": 0.50,
+    "POLE_DIRECTIONAL_PCT": 0.60,
+    "POLE_MIN_BARS": 5,
+    "POLE_MAX_BARS": 15,
+    "FLAG_MIN_BARS": 3,
+    "FLAG_MAX_BARS": 8
+  },
+  "patterns_head_shoulders": {
+    "HEAD_MIN_EXT_TICKS": 2,
+    "SHOULDER_SYM_PCT": 0.05
+  },
+  "patterns_double_bt": {
+    "TROUGH_TOLERANCE_TICKS": 2,
+    "TROUGH_SYM_PCT": 0.03,
+    "NECKLINE_MIN_RISE_PCT": 0.10
+  }
+}
