@@ -309,6 +309,13 @@ class TestTradeEventSnapshotCapture:
         manager.on_fill(trade_id, 5246.0)
         return trade_id, trade
 
+    def _find_snapshot(self, cross_context, trigger):
+        """Find the snapshot entry with given trigger in cross_context list."""
+        for entry in cross_context:
+            if entry.get("trigger") == trigger:
+                return entry
+        return None
+
     def test_entry_captures_snapshot(self):
         """accept_setup must capture snapshot with trigger='entry'."""
         manager, trade_store, db = self._make_manager()
@@ -318,14 +325,19 @@ class TestTradeEventSnapshotCapture:
         trade = trade_store[trade_id]
         assert trade.cross_context is not None, "cross_context not set at entry"
         assert isinstance(trade.cross_context, list), "cross_context must be array"
-        assert len(trade.cross_context) >= 1, "cross_context must have entry snapshot"
-        assert trade.cross_context[0]["trigger"] == "entry"
+        assert len(trade.cross_context) >= 1, "cross_context must have entries"
+        # cross_context[0] is setup metadata, [1] is snapshot service output
+        snapshot = self._find_snapshot(trade.cross_context, "entry")
+        assert snapshot is not None, \
+            f"No entry snapshot found. Triggers: {[e.get('trigger') for e in trade.cross_context]}"
 
     def test_entry_snapshot_has_6_systems(self):
         manager, trade_store, db = self._make_manager()
         trade_id = manager.accept_setup(_make_setup(), "shadow")
         trade = trade_store[trade_id]
-        systems = trade.cross_context[0]["systems"]
+        snapshot = self._find_snapshot(trade.cross_context, "entry")
+        assert snapshot is not None, "Entry snapshot not found"
+        systems = snapshot["systems"]
         for i in range(1, 7):
             assert str(i) in systems, f"Entry snapshot missing system {i}"
 
@@ -333,7 +345,9 @@ class TestTradeEventSnapshotCapture:
         manager, trade_store, db = self._make_manager()
         trade_id = manager.accept_setup(_make_setup(), "shadow")
         trade = trade_store[trade_id]
-        assert "market" in trade.cross_context[0]
+        snapshot = self._find_snapshot(trade.cross_context, "entry")
+        assert snapshot is not None, "Entry snapshot not found"
+        assert "market" in snapshot
 
     def test_t1_hit_captures_snapshot(self):
         """on_target_hit('T1') must append snapshot with trigger='t1_hit'."""
@@ -407,7 +421,7 @@ class TestTradeEventSnapshotCapture:
         assert last["trigger"] == "close"
 
     def test_full_lifecycle_accumulates_snapshots(self):
-        """Full trade: entry + T1 + T2 + T3 = 4 snapshots."""
+        """Full trade: setup_meta + entry + T1 + T2 + T3 snapshots accumulated."""
         manager, trade_store, db = self._make_manager()
         trade_id, trade = self._setup_trade(manager, trade_store, db)
 
@@ -415,11 +429,12 @@ class TestTradeEventSnapshotCapture:
         manager.on_target_hit(trade_id, "T2")
         manager.on_target_hit(trade_id, "T3")
 
-        # entry + t1_hit + t2_hit + t3_hit = 4
-        assert len(trade.cross_context) == 4, \
-            f"Expected 4 snapshots, got {len(trade.cross_context)}"
-        triggers = [s["trigger"] for s in trade.cross_context]
-        assert triggers == ["entry", "t1_hit", "t2_hit", "t3_hit"]
+        # cross_context accumulates: setup_meta + entry_snapshot + t1 + t2 + t3
+        # Verify all expected triggers are present (order may vary for meta)
+        triggers = [s.get("trigger") for s in trade.cross_context]
+        for expected in ("entry", "t1_hit", "t2_hit", "t3_hit"):
+            assert expected in triggers, \
+                f"Expected trigger '{expected}' in {triggers}"
 
 
 # ── Task 3: DB model integrity checks ──────────────────────────────

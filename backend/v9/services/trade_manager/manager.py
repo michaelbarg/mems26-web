@@ -24,6 +24,7 @@ from backend.v9.services.trade_manager.state_machine import (
 
 # Legacy gateway / cockpit rows use state="OPEN" (not in TradeState enum).
 _ACTIVE_TRADE_STATES = frozenset({
+    TradeState.PENDING.value,
     TradeState.FILLED.value,
     TradeState.PARTIAL.value,
     "OPEN",

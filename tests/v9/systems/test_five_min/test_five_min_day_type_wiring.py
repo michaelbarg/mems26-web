@@ -40,8 +40,10 @@ def test_nt_skip_increments_counter():
     fm.current_day_type = "Nontrend"
     fm.mode = FiveMinMode.DAY_TYPE_MODE
     fm._bar_buffer = []
-    bar = _make_bar()
-    for _ in range(3):
+    # Each bar needs a unique ts to pass dedup gate
+    for i in range(3):
+        bar = _make_bar()
+        bar["ts"] = f"2026-05-31T10:{i:02d}:00"
         asyncio.run(fm.process_bar(bar))
     assert fm._nt_skip_count == 3
 
@@ -54,8 +56,9 @@ def test_nt_skip_counter_accumulates_across_bars():
     fm.current_day_type = "Nontrend"
     fm.mode = FiveMinMode.DAY_TYPE_MODE
     fm._bar_buffer = []
-    bar = _make_bar()
-    for _ in range(10):
+    for i in range(10):
+        bar = _make_bar()
+        bar["ts"] = f"2026-05-31T10:{i:02d}:00"
         asyncio.run(fm.process_bar(bar))
     assert fm._nt_skip_count == 10
     # Bars still buffered (gate is after buffering)

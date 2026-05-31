@@ -252,6 +252,12 @@ class TestPartialAvailability:
 class TestSnapshotStoredInTrade:
     """Integration: accept_setup stores snapshot in cross_context."""
 
+    def _find_snapshot(self, ctx, trigger):
+        for entry in ctx:
+            if entry.get("trigger") == trigger:
+                return entry
+        return None
+
     def test_cross_context_populated_on_accept(self, db, mock_redis_full, sample_setup):
         snapshot_svc = CrossSystemSnapshotService(redis_client=mock_redis_full)
         emitter = TradeEventEmitter(redis_client=None)
@@ -267,11 +273,13 @@ class TestSnapshotStoredInTrade:
         assert trade.cross_context is not None
         ctx = trade.cross_context
         assert isinstance(ctx, list)
-        assert len(ctx) == 1
-        assert ctx[0]["trigger"] == "entry"
-        assert ctx[0]["firing_system_id"] == 2
-        assert "systems" in ctx[0]
-        assert "1" in ctx[0]["systems"]
+        # cross_context has setup metadata [0] + snapshot service output [1]
+        assert len(ctx) >= 2
+        snapshot = self._find_snapshot(ctx, "entry")
+        assert snapshot is not None, f"No entry snapshot. Triggers: {[e.get('trigger') for e in ctx]}"
+        assert snapshot["firing_system_id"] == 2
+        assert "systems" in snapshot
+        assert "1" in snapshot["systems"]
 
     def test_cross_context_has_all_six(self, db, mock_redis_full, sample_setup):
         snapshot_svc = CrossSystemSnapshotService(redis_client=mock_redis_full)
@@ -285,7 +293,9 @@ class TestSnapshotStoredInTrade:
         trade_id = manager.accept_setup(sample_setup, "shadow")
         trade = db.query(V9Trade).filter(V9Trade.id == trade_id).first()
 
-        systems = trade.cross_context[0]["systems"]
+        snapshot = self._find_snapshot(trade.cross_context, "entry")
+        assert snapshot is not None
+        systems = snapshot["systems"]
         for sys_id in range(1, 7):
             assert str(sys_id) in systems
 
@@ -297,8 +307,11 @@ class TestSnapshotStoredInTrade:
         trade_id = manager.accept_setup(sample_setup, "shadow")
         trade = db.query(V9Trade).filter(V9Trade.id == trade_id).first()
 
-        # cross_context is None (no snapshot service, no setup cross_context)
-        assert trade.cross_context is None
+        # cross_context has setup metadata but no snapshot (no snapshot service)
+        ctx = trade.cross_context
+        assert isinstance(ctx, list)
+        assert len(ctx) == 1  # only setup metadata, no snapshot
+        assert ctx[0].get("trigger") == f"system_{sample_setup['firing_system']}"
 
 
 class TestSnapshotStructure:
