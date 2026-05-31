@@ -1,0 +1,12 @@
+{
+  "_comment": "Golden snapshot of S1 opening detection — flag OFF must reproduce these exactly",
+  "_created": "2026-05-31",
+  "opening_types": ["OPEN_DRIVE", "OPEN_TEST_DRIVE", "OPEN_REJECTION_REVERSE", "OPEN_AUCTION_IN", "OPEN_AUCTION_OUT", "INDETERMINATE", "UNKNOWN"],
+  "detect_opening_type": {
+    "drive_directional_ratio_threshold": 0.7,
+    "test_drive_pullback_min": 0.2,
+    "test_drive_pullback_max": 0.6,
+    "rejection_reverse_ratio": 0.5
+  },
+  "gap_magnitudes": ["SMALL_GAP", "MEDIUM_GAP", "LARGE_GAP", "UNKNOWN"]
+}
