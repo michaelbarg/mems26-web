@@ -17,6 +17,17 @@ import json
 DEFAULT_PROXIMITY_TICKS = 5  # MES tick = 0.25 pt · 5 ticks = 1.25 pt
 VP_FILE = Path("/Users/michael/SierraChart_Data/v9_export/volume_profile.json")
 
+# S2 ATR-relative proximity (E2E 2/2 · shadow only)
+from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
+_SR_PROXIMITY_ATR_K = 1.25  # prior: 1.25×ATR5m
+
+
+def get_proximity_ticks(atr_5m=None, tick_size: float = 0.25) -> int:
+    """S/R proximity tolerance in ticks — ATR-relative when flag ON."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        return max(1, round(_SR_PROXIMITY_ATR_K * atr_5m / tick_size))
+    return DEFAULT_PROXIMITY_TICKS
+
 
 def get_sr_levels() -> Optional[dict]:
     """Read S/R levels from Sierra volume_profile export.

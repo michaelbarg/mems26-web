@@ -36,6 +36,17 @@ PEAK_MAX_WIDTH_BARS = 2
 NECKLINE_MIN_RISE_PCT = 0.10
 TICK_SIZE = 0.25
 
+# S2 ATR-relative trough tolerance (E2E 2/2 · shadow only)
+from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
+_TROUGH_TOL_ATR_K = 0.75  # prior: 0.75×ATR5m
+
+
+def get_trough_tolerance(atr_5m=None) -> float:
+    """Trough width tolerance in points — ATR-relative when flag ON."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        return _TROUGH_TOL_ATR_K * atr_5m
+    return TICK_SIZE * 2  # original: 2 ticks = 0.50pt
+
 Direction = Literal["LONG", "SHORT"]
 
 _last_warn_ts: Dict[str, float] = {}

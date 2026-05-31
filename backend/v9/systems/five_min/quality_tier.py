@@ -21,6 +21,17 @@ TPO_ENDPOINT: str = "http://localhost:8000/api/v9/tpo/current"
 TPO_TIMEOUT_S: float = 2.0
 PROXIMITY_PT: float = 2.0
 
+# S2 ATR-relative proximity (E2E 2/2 · shadow only)
+from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
+_PROXIMITY_ATR_K = 1.25  # prior: 1.25×ATR5m
+
+
+def get_proximity_pt(atr_5m=None) -> float:
+    """Proximity threshold in points — ATR-relative when flag ON."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        return _PROXIMITY_ATR_K * atr_5m
+    return PROXIMITY_PT
+
 QualityVerdict = Literal['FULL', 'REDUCED', 'SKIP']
 QualityTier = Literal['HIGH', 'MEDIUM', 'LOW']
 

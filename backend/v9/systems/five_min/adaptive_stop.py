@@ -18,6 +18,21 @@ logger = logging.getLogger(__name__)
 
 MES_TICK = 0.25
 FLOOR_TICKS = 4
+FLOOR_TICKS_MIN_BACKSTOP = 4  # absolute minimum regardless of ATR
+
+# S2 ATR-relative floor (E2E 2/2 · shadow only)
+from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
+_FLOOR_ATR_K = 1.75  # prior: 1.75×ATR5m
+
+
+def get_floor_ticks(atr_5m=None) -> int:
+    """Floor distance in ticks — ATR-relative with absolute backstop when flag ON."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        atr_ticks = max(1, round(_FLOOR_ATR_K * atr_5m / MES_TICK))
+        return max(atr_ticks, FLOOR_TICKS_MIN_BACKSTOP)
+    return FLOOR_TICKS
+
+
 ATR_MULTIPLIERS = {
     "Reactive": 1.0,
     "OFA": 1.5,

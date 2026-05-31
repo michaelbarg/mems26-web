@@ -40,6 +40,25 @@ FLAG_MAX_BARS = 8
 FLAG_MAX_RETRACE_PCT = 0.50
 TICK_SIZE = 0.25
 
+# S2 ATR-relative pole/flag (E2E 2/2 · shadow only)
+from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
+_POLE_MIN_ATR_K = 5.5   # pole ≥ 5.5×ATR
+_FLAG_MAX_ATR_K = 2.5    # flag ≤ 2.5×ATR
+
+
+def get_pole_min_height_ticks(atr_5m=None) -> int:
+    """Pole minimum height in ticks — ATR-relative when flag ON."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        return max(1, round(_POLE_MIN_ATR_K * atr_5m / TICK_SIZE))
+    return POLE_MIN_HEIGHT_TICKS
+
+
+def get_flag_max_height_ticks(atr_5m=None) -> int:
+    """Flag max height in ticks (retrace ceiling) — ATR-relative when flag ON."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        return max(1, round(_FLAG_MAX_ATR_K * atr_5m / TICK_SIZE))
+    return None  # caller uses FLAG_MAX_RETRACE_PCT when None
+
 Direction = Literal["LONG", "SHORT"]
 
 _last_warn_ts: Dict[str, float] = {}

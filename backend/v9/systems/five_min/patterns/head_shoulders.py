@@ -30,6 +30,19 @@ SHOULDER_SYM_PCT = 0.05
 HEAD_MIN_EXT_TICKS = 2
 TICK_SIZE = 0.25
 
+# S2 ATR-relative head extension (E2E 2/2 · shadow only)
+# Head extension proportional to pattern height rather than fixed ticks
+from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
+_HEAD_EXT_PATTERN_RATIO = 0.15  # head extends ≥ 15% of shoulder-to-head height
+
+
+def get_head_min_ext_ticks(pattern_height: float = 0.0, atr_5m=None) -> int:
+    """Head minimum extension in ticks — proportional when flag ON."""
+    if S2_ATR_RELATIVE and pattern_height > 0:
+        ext_pts = _HEAD_EXT_PATTERN_RATIO * pattern_height
+        return max(1, round(ext_pts / TICK_SIZE))
+    return HEAD_MIN_EXT_TICKS
+
 Direction = Literal["LONG", "SHORT"]
 
 # Rate limiter for warning logs (1/min per category)

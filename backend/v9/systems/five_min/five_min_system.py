@@ -36,6 +36,29 @@ LOOKBACK_BARS: int = 3                         # bars before bar 1 to check "nor
 LOOKBACK_MAX_VOL_RATIO: float = 0.6            # max(lookback_3bars.volume) / bar1.volume < this
 BELLY_DOMINANCE_RATIO: float = 1.5             # bar 3 buy/sell ratio threshold for Reactive
 
+# ── S2 ATR-relative thresholds (E2E 2/2 · shadow only) ──
+from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
+from typing import Optional as _Opt  # noqa: E402
+
+# ATR-relative multipliers (priors — to be calibrated during soak)
+_EXPANSION_MIN_ATR_K = 1.5   # bar_range ≥ 1.5×ATR5m
+_EXPANSION_MAX_ATR_K = 2.0   # bar_range ≤ 2.0×ATR5m
+_POC_RETURN_ATR_K = 0.2      # POC return tolerance ~0.2×ATR5m
+
+
+def get_expansion_range(atr_5m: _Opt[float] = None):
+    """Return (min_pt, max_pt) for Initiative expansion gate."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        return (_EXPANSION_MIN_ATR_K * atr_5m, _EXPANSION_MAX_ATR_K * atr_5m)
+    return (EXPANSION_MIN_PT, EXPANSION_MAX_PT)
+
+
+def get_poc_return_tolerance(atr_5m: _Opt[float] = None) -> float:
+    """Return POC return tolerance in points."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        return _POC_RETURN_ATR_K * atr_5m
+    return POC_RETURN_TOLERANCE_PT
+
 
 class FiveMinMode:
     WAITING_OPEN = "WAITING_OPEN"
