@@ -108,6 +108,161 @@ def detect_opening_type(bars: List[BarInput]) -> Tuple[OpeningType, str, float]:
         return OpeningType.OPEN_AUCTION_IN, "NEUTRAL", 0.4
 
 
+# ── CVD-Based Opening Detection (E2E 2/2 · flag S1_CVD_OPENING · shadow only) ──
+
+from backend.v9.shared.atr import S1_CVD_OPENING  # noqa: E402
+
+# Priors — to be calibrated during soak
+_DRIVE_PE_THRESHOLD = 0.65       # PE_30 > 0.65 for DRIVE
+_DRIVE_RANGE_EXP_MIN = 1.0      # range expansion > 1.0 for DRIVE
+_AUCTION_NET_CVD_RATIO = 0.15   # |net_CVD|/total_vol < 0.15 for AUCTION
+_AUCTION_PE_MAX = 0.25           # PE < 0.25 for AUCTION
+_REJECTION_CVD_FLIP = True       # CVD sign flip required for REJECTION
+
+# Gap classification tiers: gap/ATR14_daily
+_GAP_TINY_MAX = 0.25
+_GAP_SMALL_MAX = 0.50
+_GAP_MEDIUM_MAX = 1.0
+
+
+def classify_gap_atr(gap_size: float, atr_daily: Optional[float]) -> str:
+    """Classify gap as Tiny/Small/Medium/Large relative to daily ATR.
+
+    Returns gap tier string. Uses absolute fallback when ATR unavailable.
+    """
+    if atr_daily is None or atr_daily <= 0:
+        # Fallback: absolute classification
+        ag = abs(gap_size)
+        if ag < 3.0:
+            return "TINY"
+        elif ag < 6.0:
+            return "SMALL"
+        elif ag < 12.0:
+            return "MEDIUM"
+        return "LARGE"
+
+    ratio = abs(gap_size) / atr_daily
+    if ratio < _GAP_TINY_MAX:
+        return "TINY"
+    elif ratio < _GAP_SMALL_MAX:
+        return "SMALL"
+    elif ratio < _GAP_MEDIUM_MAX:
+        return "MEDIUM"
+    return "LARGE"
+
+
+def _compute_pe(deltas: List[float]) -> Optional[float]:
+    """Participation Efficiency: net_CVD / sum(|delta|). None if no data."""
+    if not deltas:
+        return None
+    total_abs = sum(abs(d) for d in deltas)
+    if total_abs == 0:
+        return None
+    net = sum(deltas)
+    return net / total_abs
+
+
+def _detect_divergence(price_direction: float, cvd_direction: float) -> bool:
+    """Price and CVD moving in opposite directions."""
+    if price_direction == 0 or cvd_direction == 0:
+        return False
+    return (price_direction > 0) != (cvd_direction > 0)
+
+
+def detect_opening_type_cvd(
+    bars: List[BarInput],
+    footprint_deltas: Optional[List[float]] = None,
+    atr_daily: Optional[float] = None,
+) -> Tuple[OpeningType, str, float, dict]:
+    """CVD-enhanced opening type detection (two-stage model).
+
+    When S1_CVD_OPENING is OFF, delegates to original detect_opening_type
+    and returns empty shadow dict.
+
+    When ON, computes PE/DE/divergence from footprint deltas and produces
+    a shadow label alongside the original result.
+
+    Args:
+        bars: opening bars (BarInput list)
+        footprint_deltas: per-bar delta values from v9_bars_footprint.delta,
+                         reset-aware within session. None = no CVD data.
+        atr_daily: ATR14 daily for gap classification. None = use absolute.
+
+    Returns:
+        (opening_type, direction, confidence, shadow_dict)
+        shadow_dict contains CVD metrics when flag ON, empty when OFF.
+    """
+    # Original detection (always runs — this is the live path)
+    original_ot, original_dir, original_conf = detect_opening_type(bars)
+
+    if not S1_CVD_OPENING or footprint_deltas is None or len(footprint_deltas) < 2:
+        return original_ot, original_dir, original_conf, {}
+
+    # --- Shadow path: CVD analysis (flag ON, does NOT replace live result) ---
+    pe = _compute_pe(footprint_deltas)
+    net_cvd = sum(footprint_deltas) if footprint_deltas else 0.0
+    total_vol = sum(abs(d) for d in footprint_deltas) if footprint_deltas else 0.0
+    net_cvd_ratio = abs(net_cvd) / total_vol if total_vol > 0 else 0.0
+
+    # Price direction from bars
+    if bars:
+        price_move = bars[-1].close - bars[0].open
+    else:
+        price_move = 0.0
+
+    cvd_sign_flip = False
+    if len(footprint_deltas) >= 3:
+        first_half = sum(footprint_deltas[:len(footprint_deltas) // 2])
+        second_half = sum(footprint_deltas[len(footprint_deltas) // 2:])
+        cvd_sign_flip = (first_half > 0) != (second_half > 0)
+
+    divergence = _detect_divergence(price_move, net_cvd)
+
+    # Compute range expansion
+    if bars:
+        total_range = max(b.high for b in bars) - min(b.low for b in bars)
+    else:
+        total_range = 0.0
+
+    # Shadow label
+    shadow_label = "UNKNOWN"
+    shadow_conf = 0.0
+
+    if pe is not None and pe > _DRIVE_PE_THRESHOLD and total_range > 0 and not divergence:
+        shadow_label = "DRIVE"
+        shadow_conf = min(0.95, 0.7 + pe * 0.3)
+    elif net_cvd_ratio < _AUCTION_NET_CVD_RATIO and (pe is None or abs(pe) < _AUCTION_PE_MAX):
+        shadow_label = "AUCTION"
+        shadow_conf = 0.5
+    elif cvd_sign_flip and divergence:
+        shadow_label = "REJECTION_REVERSE"
+        shadow_conf = 0.6
+
+    # Gap classification (separate dimension)
+    gap_size = None
+    gap_tier = None
+    if bars and bars[0].pd_close is not None:
+        gap_size = bars[0].open - bars[0].pd_close
+        gap_tier = classify_gap_atr(gap_size, atr_daily)
+
+    shadow = {
+        "cvd_pe": round(pe, 4) if pe is not None else None,
+        "cvd_net": round(net_cvd, 2),
+        "cvd_net_ratio": round(net_cvd_ratio, 4),
+        "cvd_sign_flip": cvd_sign_flip,
+        "cvd_divergence": divergence,
+        "shadow_label": shadow_label,
+        "shadow_confidence": round(shadow_conf, 3),
+        "gap_size": round(gap_size, 2) if gap_size is not None else None,
+        "gap_tier": gap_tier,
+        "original_label": original_ot.value,
+        "original_confidence": round(original_conf, 3),
+    }
+
+    # Return original result (live path unchanged) + shadow for logging
+    return original_ot, original_dir, original_conf, shadow
+
+
 # ── Behavior Detection ──────────────────────────────────────────────────
 
 def detect_behavior(
