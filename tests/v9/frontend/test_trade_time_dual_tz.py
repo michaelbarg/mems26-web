@@ -39,6 +39,10 @@ def test_trades_table_when_column_shows_il_alongside_et():
     assert " IL" in src, "IL label visible in the When cell"
 
 
+import pytest
+
+
+@pytest.mark.skipif(not JOURNAL.exists(), reason="journal/page.tsx removed — test target no longer exists")
 def test_journal_time_column_uses_dual_tz_helper():
     src = JOURNAL.read_text(encoding="utf-8")
     assert "from '@/v9/lib/tradeTime'" in src

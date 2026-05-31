@@ -17,7 +17,8 @@ def test_gateway_reads_chop_score_key():
     """Gateway _get_chop_state reads 'chop_score' as primary key."""
     with open("backend/v9/gateway/trading_gateway.py") as f:
         content = f.read()
-    assert 'resp.get("chop_score")' in content, "Gateway should read chop_score key"
+    # Refactored from HTTP (resp.get) to direct import (data.get)
+    assert 'data.get("chop_score")' in content, "Gateway should read chop_score key"
 
 
 def test_chop_api_exposes_chop_score_key():

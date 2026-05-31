@@ -135,10 +135,12 @@ class TestConfidenceCalculation:
 class TestDayTypeEnums:
     def test_all_six_types(self):
         types = [e.value for e in DayType if e != DayType.UNKNOWN]
-        assert len(types) == 6
+        # V9 adds Neutral_Extreme, Neutral_Center; keeps deprecated Neutral
+        assert len(types) == 8
         assert "Trend_Normal" in types
         assert "Variation" in types
 
     def test_opening_types(self):
         types = [e.value for e in OpeningType if e != OpeningType.UNKNOWN]
-        assert len(types) == 5
+        # V9 adds INDETERMINATE
+        assert len(types) == 6

@@ -55,7 +55,7 @@ class TestTPOSessionIdUsesEtToday:
                 mock_sql.connect.return_value = mock_conn
 
                 import asyncio
-                asyncio.get_event_loop().run_until_complete(tpo.process_bar(mock_event))
+                asyncio.run(tpo.process_bar(mock_event))
 
                 # session_id should be keyed on the ET date, not UTC date
                 assert tpo.current_session_id is not None
@@ -83,7 +83,7 @@ class TestTPOSessionIdUsesEtToday:
                 mock_sql.connect.return_value = mock_conn
 
                 import asyncio
-                asyncio.get_event_loop().run_until_complete(tpo.process_bar(mock_event))
+                asyncio.run(tpo.process_bar(mock_event))
 
                 # Dict events don't have .session attr → defaults to GLOBEX
                 assert tpo.current_session_id == "GLOBEX_2026-06-02"

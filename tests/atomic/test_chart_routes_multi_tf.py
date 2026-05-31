@@ -1,8 +1,26 @@
-"""W5.6-tau -- multi-tf chart routes return 200 + OHLCV shape"""
+"""W5.6-tau -- multi-tf chart routes return 200 + OHLCV shape.
+
+Integration tests — require a running backend on localhost:8000.
+Skipped automatically when backend is not reachable.
+"""
 import sys
 sys.path.insert(0, '/Users/michael/Downloads/mems26_web_git')
 import requests
 import pytest
+
+
+def _backend_reachable():
+    try:
+        requests.get("http://localhost:8000/health", timeout=2)
+        return True
+    except Exception:
+        return False
+
+
+pytestmark = pytest.mark.skipif(
+    not _backend_reachable(),
+    reason="Backend not running on localhost:8000 — integration test skipped",
+)
 
 
 @pytest.mark.parametrize("tf", ['1m', '5min', '15m', '30m', '1h'])
