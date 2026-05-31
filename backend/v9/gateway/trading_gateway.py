@@ -48,6 +48,12 @@ class TradingGateway:
         self.cluster_guard = ClusterGuard()
         self.ssv = SufferingSideVeto()
         self._trade_manager = None
+        # D-094: R:R fire selection (flag OFF = first-wins, flag ON = same-bar buffering)
+        import os
+        self._rr_selection_enabled = os.environ.get(
+            "RR_FIRE_SELECTION", ""
+        ).lower() in ("1", "true", "yes")
+        self._slot_candidates: List[Dict] = []  # buffered DEMO/LIVE candidates
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""
@@ -120,25 +126,103 @@ class TradingGateway:
             )
             return result
 
-        # DEMO: single slot
-        if self._is_demo_enabled(system_id):
-            if self.demo_slot is None:
-                demo_trade = self._execute_demo(setup, system_id, cross_context)
-                self.demo_slot = demo_trade
-                result["demo"] = demo_trade["trade_id"]
-            else:
-                logger.info("[Gateway] DEMO slot occupied, skipping system %d setup", system_id)
+        # DEMO/LIVE: D-094 R:R selection or first-wins
+        if self._rr_selection_enabled:
+            # Buffer candidate for bar-close flush (slot NOT filled yet)
+            candidate = {
+                "setup": setup,
+                "system_id": system_id,
+                "cross_context": cross_context,
+                "result_ref": result,
+            }
+            if self._is_demo_enabled(system_id) or self._is_live_enabled(system_id):
+                if self.demo_slot is None or self.live_slot is None:
+                    self._slot_candidates.append(candidate)
+                    logger.info(
+                        "[Gateway] D-094 buffered: system=%d classification=%s (awaiting bar-close flush)",
+                        system_id, setup.get("classification", "?"),
+                    )
+                else:
+                    logger.info("[Gateway] D-094: all slots occupied, skipping system %d", system_id)
+        else:
+            # Original first-wins logic (flag OFF)
+            # DEMO: single slot
+            if self._is_demo_enabled(system_id):
+                if self.demo_slot is None:
+                    demo_trade = self._execute_demo(setup, system_id, cross_context)
+                    self.demo_slot = demo_trade
+                    result["demo"] = demo_trade["trade_id"]
+                else:
+                    logger.info("[Gateway] DEMO slot occupied, skipping system %d setup", system_id)
 
-        # LIVE: single slot + strict risk checks
-        if self._is_live_enabled(system_id):
-            if self.live_slot is None and passes_strict_checks(setup, "live", self):
-                live_trade = self._execute_live(setup, system_id, cross_context)
-                self.live_slot = live_trade
-                result["live"] = live_trade["trade_id"]
-            elif self.live_slot is not None:
-                logger.info("[Gateway] LIVE slot occupied, skipping system %d setup", system_id)
+            # LIVE: single slot + strict risk checks
+            if self._is_live_enabled(system_id):
+                if self.live_slot is None and passes_strict_checks(setup, "live", self):
+                    live_trade = self._execute_live(setup, system_id, cross_context)
+                    self.live_slot = live_trade
+                    result["live"] = live_trade["trade_id"]
+                elif self.live_slot is not None:
+                    logger.info("[Gateway] LIVE slot occupied, skipping system %d setup", system_id)
 
         return result
+
+    async def on_bar_close(self, event=None) -> None:
+        """D-094: Flush buffered candidates at bar close — select winner by R:R.
+
+        Called by BarRouter on new 5min bar (= previous bar closed).
+        Only active when RR_FIRE_SELECTION flag is ON.
+        """
+        if not self._rr_selection_enabled or not self._slot_candidates:
+            return
+
+        from backend.v9.gateway.rr_score import compute_rr_score
+
+        candidates = self._slot_candidates
+        self._slot_candidates = []
+
+        # Score each candidate
+        scored = []
+        for c in candidates:
+            rr = compute_rr_score(c["setup"])
+            confidence = c["setup"].get("confidence", 0.0)
+            system_id = c["system_id"]
+            scored.append((rr or 0.0, confidence, -system_id, c))
+
+        # Sort: highest R:R → highest confidence → lowest system_id (tie-break)
+        scored.sort(key=lambda x: (x[0], x[1], x[2]), reverse=True)
+
+        winner = scored[0][3] if scored else None
+
+        if winner:
+            setup = winner["setup"]
+            system_id = winner["system_id"]
+            cross_context = winner["cross_context"]
+
+            # DEMO slot fill
+            if self._is_demo_enabled(system_id) and self.demo_slot is None:
+                demo_trade = self._execute_demo(setup, system_id, cross_context)
+                self.demo_slot = demo_trade
+                logger.info(
+                    "[Gateway] D-094 WINNER: system=%d R:R=%.2f classification=%s → DEMO slot filled",
+                    system_id, scored[0][0], setup.get("classification", "?"),
+                )
+
+            # LIVE slot fill
+            if self._is_live_enabled(system_id) and self.live_slot is None:
+                if passes_strict_checks(setup, "live", self):
+                    live_trade = self._execute_live(setup, system_id, cross_context)
+                    self.live_slot = live_trade
+                    logger.info(
+                        "[Gateway] D-094 WINNER: system=%d R:R=%.2f → LIVE slot filled",
+                        system_id, scored[0][0],
+                    )
+
+        # Log outranked candidates
+        for i, (rr, conf, neg_sys, c) in enumerate(scored[1:], 1):
+            logger.info(
+                "[Gateway] D-094 OUTRANKED #%d: system=%d R:R=%.2f classification=%s",
+                i, c["system_id"], rr, c["setup"].get("classification", "?"),
+            )
 
     def _get_chop_state(self) -> str:
         """ζ.F2: Read Layer 0 chop state for gating (direct compute — no self-HTTP)."""
