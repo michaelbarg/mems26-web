@@ -1,0 +1,15 @@
+{
+  "_comment": "Golden snapshot of S1 daytype — flag OFF must reproduce these exactly",
+  "_created": "2026-05-31",
+  "ib_width_enum": ["NARROW", "MEDIUM", "WIDE", "UNKNOWN"],
+  "classify_ib_width_defaults": {
+    "narrow_max": 15.0,
+    "medium_max": 25.0
+  },
+  "confidence_components": {
+    "base": 0.10,
+    "stability_max": 0.40,
+    "behavior_agreement": 0.30,
+    "range_alignment": 0.20
+  }
+}
