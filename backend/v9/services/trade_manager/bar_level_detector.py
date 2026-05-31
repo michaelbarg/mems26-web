@@ -86,9 +86,12 @@ class BarLevelDetector:
                 # recording a fill_ts (stop/target) that precedes entry_ts.
                 if bar_ts is not None and trade.entry_ts is not None:
                     trade_entry = trade.entry_ts
-                    if not hasattr(trade_entry, "tzinfo"):
-                        trade_entry = None  # can't compare naive vs aware safely
-                    if trade_entry is not None and bar_ts < trade_entry:
+                    # SQLite strips tzinfo on read — normalize to aware UTC (Pattern A)
+                    if trade_entry.tzinfo is None:
+                        trade_entry = trade_entry.replace(tzinfo=timezone.utc)
+                    if bar_ts.tzinfo is None:
+                        bar_ts = bar_ts.replace(tzinfo=timezone.utc)
+                    if bar_ts < trade_entry:
                         continue
 
                 direction = trade.direction
