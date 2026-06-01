@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from backend.v9.services.market_clock import now_utc as _market_now_utc
 
 from backend.v9.db.models.trades import V9Trade
+from backend.v9.db.models.trade_log import V9TradeManagementLog
 from backend.v9.services.trade_manager.state_machine import (
     InvalidTransition,
     TradeState,
@@ -80,6 +81,18 @@ class TradeManager:
         # Active state machines keyed by trade_id — bounded by active trades
         self._machines: Dict[int, TradeStateMachine] = {}
         self._fill_locks: set = set()  # Pkg 3b-2 · Sierra fill lock (LOCK 3)
+
+    def _log_management(self, trade_id: int, action: str, value: Optional[Dict] = None) -> None:
+        """Write to V9TradeManagementLog — observability for trades page timeline."""
+        try:
+            self._db.add(V9TradeManagementLog(
+                trade_id=trade_id,
+                ts=datetime.now(timezone.utc),
+                action=action,
+                value=value,
+            ))
+        except Exception as e:
+            logger.debug("[TradeManager] management_log write failed: %s", e)
 
     def accept_setup(
         self,
@@ -224,10 +237,12 @@ class TradeManager:
             machine.transition(TradeState.PARTIAL)
             trade.state = TradeState.PARTIAL.value
             trade.t1_hit_ts = hit_ts
+            self._log_management(trade_id, "T1_HIT", {"ts": hit_ts.isoformat()})
             self._apply_smart_be_after_t1(trade)
             self._calculate_pnl(trade)
         elif target == "T2":
             trade.t2_hit_ts = hit_ts
+            self._log_management(trade_id, "T2_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)
         elif target == "T3":
             machine.transition(TradeState.CLOSED)
@@ -235,6 +250,7 @@ class TradeManager:
             trade.t3_hit_ts = hit_ts
             trade.exit_ts = hit_ts
             trade.exit_reason = "T3_HIT"
+            self._log_management(trade_id, "T3_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)
             self._set_outcome(trade)
             self._cleanup_machine(trade_id)
@@ -308,6 +324,7 @@ class TradeManager:
         ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
         ctx.append(audit_entry)
         trade.cross_context = ctx
+        self._log_management(trade.id, "SMART_BE", {"from": stop_before, "to": float(trade.stop)})
 
         logger.info(
             "[TradeManager] Smart BE+1T after T1: trade %s stop %.2f -> %.2f",
@@ -334,6 +351,7 @@ class TradeManager:
         trade.exit_ts = hit_ts
         trade.exit_price = trade.stop
         trade.exit_reason = "STOP_HIT"
+        self._log_management(trade_id, "STOP_HIT", {"ts": hit_ts.isoformat(), "stop": float(trade.stop) if trade.stop else None})
 
         self._calculate_pnl(trade)
         self._set_outcome(trade)
@@ -434,6 +452,7 @@ class TradeManager:
         ctx.append(entry)
         trade.cross_context = ctx
         trade.stop = float(new_stop)
+        self._log_management(trade_id, "STOP_MOVE", {"from": stop_before, "to": float(new_stop), "reason": reason})
         self._db.flush()
         logger.info(
             "[TradeManager] trail stop move: trade %s %.2f -> %.2f (%s)",

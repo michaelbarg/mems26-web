@@ -30,7 +30,7 @@ class TestStreamRegistry:
     """Verify all bridge streams are registered."""
 
     def test_all_streams_count(self):
-        assert len(ALL_STREAMS) == 12
+        assert len(ALL_STREAMS) == 14  # +2: bars_5min_continuous, cvd_continuous (chart #5)
 
     def test_new_streams_in_registry(self):
         names = [s.name for s in ALL_STREAMS]
