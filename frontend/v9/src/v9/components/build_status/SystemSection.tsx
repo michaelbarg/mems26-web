@@ -99,6 +99,7 @@ export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) 
   // Per-pattern roll-up (distinct patterns that fired) — separate from the
   // backend-supplied fired_today_count which sums multi-pattern fires.
   const firedPatternCount = system.patterns.filter((p) => p.fired_today).length;
+  const armedCount = system.patterns.filter((p) => p.status === 'armed').length;
   const blockedCount = system.patterns.filter((p) => p.status === 'blocked' || p.status === 'vetoed').length;
 
   return (
@@ -141,7 +142,7 @@ export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) 
         <FireSummary system={system} />
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 10, color: COLORS.textTertiary, fontFamily: 'ui-monospace, monospace' }}>
-          {system.patterns.length} patterns · {firedPatternCount} fired · {blockedCount} blocked
+          {system.patterns.length} patterns · {firedPatternCount} fired · {armedCount} armed · {blockedCount} blocked
           {showOnlyBlockers && visiblePatterns.length !== system.patterns.length && (
             <span style={{ color: COLORS.warning, marginLeft: 6 }}>
               (filtered to {visiblePatterns.length})

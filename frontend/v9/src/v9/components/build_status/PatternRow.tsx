@@ -52,11 +52,29 @@ export function PatternRow({ pattern, initiallyExpanded = false }: PatternRowPro
         <td style={{ padding: '6px 8px', width: 110 }}>
           <StatusPill status={pattern.status} label={pattern.label} />
         </td>
-        <td style={{ padding: '6px 8px', color: COLORS.textSecondary, fontSize: 11 }}>
-          {pattern.reason}
-          {hasBlockers && (
-            <div style={{ marginTop: 2, fontSize: 9, color: COLORS.bearLight, fontFamily: 'ui-monospace, monospace' }}>
-              blockers: {pattern.blockers.join(' · ')}
+        <td style={{ padding: '6px 8px', fontSize: 11 }}>
+          <div style={{ color: COLORS.textSecondary }}>{pattern.reason}</div>
+          {/* Quick summary: show live values of key components inline */}
+          {pattern.components && pattern.components.length > 0 && (
+            <div style={{ marginTop: 3, display: 'flex', flexWrap: 'wrap', gap: '3px 8px' }}>
+              {pattern.components
+                .filter((c: any) => c.stage === 'detection' || !c.present)
+                .slice(0, 4)
+                .map((c: any, i: number) => (
+                  <span
+                    key={i}
+                    style={{
+                      fontSize: 9,
+                      fontFamily: 'ui-monospace, monospace',
+                      padding: '1px 4px',
+                      borderRadius: 2,
+                      background: c.present ? 'rgba(86,211,100,0.1)' : 'rgba(248,81,73,0.1)',
+                      color: c.present ? COLORS.bull : COLORS.bearLight,
+                    }}
+                  >
+                    {c.present ? '✓' : '✕'} {c.key}: {(c.live || c.value || '').toString().slice(0, 40)}
+                  </span>
+                ))}
             </div>
           )}
         </td>
