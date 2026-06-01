@@ -668,6 +668,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         json_long(j, "export_ts", (long long)time(nullptr));
 
         // ── Today's developing TPO (Study ID:3, ref=0) ──
+        // BUG FIX: use LAST element of study array (same cross-chart index
+        // fix as Woodies — sc.Index is host chart, not target chart).
         SCFloatArray today_poc, today_vah, today_val;
         bool today_ok = false;
         float t_poc = 0, t_vah = 0, t_val = 0;
@@ -675,10 +677,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 0, today_poc);
             sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 1, today_vah);
             sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 2, today_val);
-            if (today_poc.GetArraySize() > idx && today_poc[idx] != 0) {
-                t_poc = today_poc[idx];
-                t_vah = (today_vah.GetArraySize() > idx) ? today_vah[idx] : 0;
-                t_val = (today_val.GetArraySize() > idx) ? today_val[idx] : 0;
+            int tl = today_poc.GetArraySize() - 1;
+            if (tl >= 0 && today_poc[tl] != 0) {
+                t_poc = today_poc[tl];
+                t_vah = (today_vah.GetArraySize() > tl) ? today_vah[tl] : 0;
+                t_val = (today_val.GetArraySize() > tl) ? today_val[tl] : 0;
                 today_ok = true;
             }
         }
@@ -733,9 +736,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         if (ib_study_id > 0) {
             sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 6, ib_high_arr);
             sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 8, ib_low_arr);
-            if (ib_high_arr.GetArraySize() > idx && ib_high_arr[idx] != 0) {
-                ib_h = ib_high_arr[idx];
-                ib_l = (ib_low_arr.GetArraySize() > idx) ? ib_low_arr[idx] : 0;
+            int il = ib_high_arr.GetArraySize() - 1;
+            if (il >= 0 && ib_high_arr[il] != 0) {
+                ib_h = ib_high_arr[il];
+                ib_l = (ib_low_arr.GetArraySize() > il) ? ib_low_arr[il] : 0;
                 ib_found = (ib_h > 0 && ib_l > 0);
             }
         }
@@ -756,10 +760,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 0, yday_poc);
             sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 1, yday_vah);
             sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 2, yday_val);
-            if (yday_poc.GetArraySize() > idx && yday_poc[idx] != 0) {
-                y_poc = yday_poc[idx];
-                y_vah = (yday_vah.GetArraySize() > idx) ? yday_vah[idx] : 0;
-                y_val = (yday_val.GetArraySize() > idx) ? yday_val[idx] : 0;
+            int yl = yday_poc.GetArraySize() - 1;
+            if (yl >= 0 && yday_poc[yl] != 0) {
+                y_poc = yday_poc[yl];
+                y_vah = (yday_vah.GetArraySize() > yl) ? yday_vah[yl] : 0;
+                y_val = (yday_val.GetArraySize() > yl) ? yday_val[yl] : 0;
                 yday_ok = true;
             }
         }
@@ -812,9 +817,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             SCFloatArray y_ib_high_arr, y_ib_low_arr;
             sc.GetStudyArrayFromChartUsingID(chart_num, y_ib_study_id, 6, y_ib_high_arr);
             sc.GetStudyArrayFromChartUsingID(chart_num, y_ib_study_id, 8, y_ib_low_arr);
-            if (y_ib_high_arr.GetArraySize() > idx && y_ib_high_arr[idx] != 0) {
-                y_ib_h = y_ib_high_arr[idx];
-                y_ib_l = (y_ib_low_arr.GetArraySize() > idx) ? y_ib_low_arr[idx] : 0;
+            int yil = y_ib_high_arr.GetArraySize() - 1;
+            if (yil >= 0 && y_ib_high_arr[yil] != 0) {
+                y_ib_h = y_ib_high_arr[yil];
+                y_ib_l = (y_ib_low_arr.GetArraySize() > yil) ? y_ib_low_arr[yil] : 0;
                 // MES range validation — reject corrupt Sierra output
                 bool y_ib_ok = y_ib_h > 3000 && y_ib_h < 10000
                             && y_ib_l > 3000 && y_ib_l < 10000
