@@ -775,6 +775,11 @@ def post_woodies(
             "lsma_value": bar.get("lsma_value"), "swi_value": bar.get("swi_value"),
             "czi_value": bar.get("czi_value"), "trend_state": bar.get("trend_state"),
             "predictor_next_cci": bar.get("predictor_next_cci"),
+            "zlr_detected": bar.get("zlr_detected", False),
+            "zlr_direction": bar.get("zlr_direction", "NONE"),
+            "hfe_detected": bar.get("hfe_detected", False),
+            "hfe_direction": bar.get("hfe_direction", "NONE"),
+            "hfe_extreme_bars_ago": bar.get("hfe_extreme_bars_ago", 0),
         }
     db.commit()
     publish_event(CHANNEL_BARS_WOODIES, {"count": created})
@@ -876,6 +881,11 @@ def post_woodies_5min(
             "lsma_value": bar.get("lsma_value"), "swi_value": bar.get("swi_value"),
             "czi_value": bar.get("czi_value"), "trend_state": bar.get("trend_state"),
             "predictor_next_cci": bar.get("predictor_next_cci"),
+            "zlr_detected": bar.get("zlr_detected", False),
+            "zlr_direction": bar.get("zlr_direction", "NONE"),
+            "hfe_detected": bar.get("hfe_detected", False),
+            "hfe_direction": bar.get("hfe_direction", "NONE"),
+            "hfe_extreme_bars_ago": bar.get("hfe_extreme_bars_ago", 0),
         }
     _record_push("woodies_5min")
 
@@ -903,6 +913,11 @@ def post_woodies_5min(
             "czi_value":          _cb.get("czi_value"),
             "trend_state":        _cb.get("trend_state"),
             "predictor_next_cci": _cb.get("predictor_next_cci"),
+            "zlr_detected":       _cb.get("zlr_detected", False),
+            "zlr_direction":      _cb.get("zlr_direction", "NONE"),
+            "hfe_detected":       _cb.get("hfe_detected", False),
+            "hfe_direction":      _cb.get("hfe_direction", "NONE"),
+            "hfe_extreme_bars_ago": _cb.get("hfe_extreme_bars_ago", 0),
         }
     # === END override ===
 
