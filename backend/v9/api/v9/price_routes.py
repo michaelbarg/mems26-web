@@ -32,6 +32,22 @@ class LivePriceTick(BaseModel):
     vol: Optional[float] = None
 
 
+def _best_price(chart_price: float, bid: Optional[float], ask: Optional[float]) -> float:
+    """Use bid/ask midpoint when chart close is stale (overnight/session gap).
+
+    DLL writes price=sc.Close[idx] (chart bar close, tied to session setting).
+    During overnight, this can lag behind the real market by 20+ points.
+    sc.Bid/sc.Ask are always real-time L1 quotes.
+
+    Threshold: if price is >2pt away from midpoint, use midpoint.
+    """
+    if bid is not None and ask is not None and bid > 0 and ask > 0:
+        mid = round((bid + ask) / 2, 2)
+        if abs(chart_price - mid) > 2.0:
+            return mid
+    return chart_price
+
+
 @router.post("/api/v9/live_price")
 async def post_live_price(tick: LivePriceTick, request: Request):
     """Bridge pushes Sierra tick here — cache + broadcast to WS clients.
@@ -42,8 +58,11 @@ async def post_live_price(tick: LivePriceTick, request: Request):
     now = time.time()
     ts_ms = int((tick.ts or now) * 1000)
 
+    # Use bid/ask midpoint when sc.Close is stale (overnight session gap)
+    effective_price = _best_price(tick.price, tick.bid, tick.ask)
+
     _price_cache = {
-        "price": tick.price,
+        "price": effective_price,
         "bid": tick.bid,
         "ask": tick.ask,
         "volume": tick.vol,
@@ -65,7 +84,7 @@ async def post_live_price(tick: LivePriceTick, request: Request):
         await price_ws_manager.broadcast({
             "type": "price.tick",
             "data": {
-                "price": tick.price,
+                "price": effective_price,
                 "bid": tick.bid,
                 "ask": tick.ask,
                 "last_size": tick.vol,
@@ -99,8 +118,10 @@ async def live_price():
         age_ms = int((now - mtime) * 1000)
         with open(LIVE_PRICE_PATH, "r") as f:
             data = json.load(f)
+        raw_price = data.get("price") or 0
+        file_price = _best_price(raw_price, data.get("bid"), data.get("ask"))
         return {
-            "price": data.get("price"),
+            "price": file_price,
             "bid": data.get("bid"),
             "ask": data.get("ask"),
             "volume": data.get("vol") or data.get("volume"),

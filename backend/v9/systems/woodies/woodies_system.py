@@ -494,17 +494,22 @@ class WoodiesSystem(BaseV9TradingSystem):
             logger.error("[Woodies] process_bar error: %s", e, exc_info=True)
 
     def _persist_bar(self, ts, o, h, l, c, v, studies):
-        """Write enriched bar to v9_bars_5min_woodies."""
+        """Write enriched bar to v9_bars_5min_woodies.
+
+        Uses the bar's actual timestamp (not current time) for UNIQUE dedup.
+        INSERT OR REPLACE updates existing bars with newer study values.
+        """
+        bar_ts = str(ts) if ts else datetime.now(timezone.utc).isoformat()
         try:
             conn = sqlite3.connect(self.db_path)
             conn.execute(
-                """INSERT INTO v9_bars_5min_woodies
-                (ts, open, high, low, close, volume,
+                """INSERT OR REPLACE INTO v9_bars_5min_woodies
+                (ts, symbol, open, high, low, close, volume,
                  cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
                  ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    datetime.now(timezone.utc).isoformat(),
+                    bar_ts, "MES",
                     o, h, l, c, int(v),
                     studies["cci_14"], studies["cci_6_tcci"],
                     studies["lsma_value"], studies["swi_value"], studies["czi_value"],

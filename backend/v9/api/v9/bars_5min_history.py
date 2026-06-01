@@ -20,44 +20,73 @@ DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
     """Internal: fetch 5-min bars from DB. Used by all timeframe routes.
 
-    Defense-in-depth: filters out any bar that fails bar_is_valid() so
-    bad data never reaches the client even if it slipped past ingestion.
+    Merges two sources for continuity (Option C):
+      1. v9_bars_5min (primary — ingested from bridge 5min.json)
+      2. v9_bars_5min_woodies (fallback — has overnight/24-6 coverage)
+
+    When v9_bars_5min has gaps (backend downtime, RTH-only export),
+    fills from Woodies. Filters flat stale bars (O=H=L=C with high volume).
     """
-    # Over-fetch to account for filtered rows
     fetch_limit = min(max(limit, 1), 600) + 20
     try:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
+
+        # Primary: v9_bars_5min
         if before:
-            rows = conn.execute(
+            rows_5m = conn.execute(
                 "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE ts < ? ORDER BY ts DESC LIMIT ?",
                 (before, fetch_limit),
             ).fetchall()
         else:
-            rows = conn.execute(
+            rows_5m = conn.execute(
                 "SELECT ts, open, high, low, close, volume FROM v9_bars_5min ORDER BY ts DESC LIMIT ?",
                 (fetch_limit,),
             ).fetchall()
+
+        # Fallback: v9_bars_5min_woodies (better overnight coverage)
+        if before:
+            rows_w = conn.execute(
+                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies WHERE ts < ? ORDER BY ts DESC LIMIT ?",
+                (before, fetch_limit),
+            ).fetchall()
+        else:
+            rows_w = conn.execute(
+                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",
+                (fetch_limit,),
+            ).fetchall()
         conn.close()
+
+        # Merge: index primary by ts, fill gaps from woodies
+        by_ts = {}
+        for r in rows_5m:
+            by_ts[r["ts"]] = dict(r)
+        for r in rows_w:
+            ts = r["ts"]
+            if ts not in by_ts:
+                by_ts[ts] = dict(r)
+
+        # Sort oldest first, validate, filter flat stale bars
         result = []
         filtered = 0
-        for r in reversed(rows):
+        for ts in sorted(by_ts.keys()):
+            r = by_ts[ts]
             o, h, l, c = r["open"], r["high"], r["low"], r["close"]
             ok, reason = bar_is_valid(open=o, high=h, low=l, close=c)
             if not ok:
                 filtered += 1
-                logger.debug("[bars_5min_history] filtered bar ts=%s reason=%s", r["ts"], reason)
+                continue
+            # Filter flat stale bars: O=H=L=C with unreasonably high volume
+            if o == h == l == c and (r.get("volume") or 0) > 10000:
+                filtered += 1
                 continue
             result.append({
-                "ts": r["ts"],
-                "o": o, "h": h, "l": l, "c": c, "v": r["volume"],
-                "open": o, "high": h, "low": l, "close": c, "volume": r["volume"],
+                "ts": ts,
+                "o": o, "h": h, "l": l, "c": c, "v": r.get("volume") or 0,
+                "open": o, "high": h, "low": l, "close": c, "volume": r.get("volume") or 0,
             })
         if filtered:
-            logger.info("[bars_5min_history] filtered %d bad bars from response", filtered)
-        # Keep the NEWEST `limit` rows after filtering. `result` is ordered
-        # oldest→newest; slicing [-limit:] preserves the most recent bars
-        # (the over-fetch buffer of +20 lives at the front, not the back).
+            logger.info("[bars_5min_history] filtered %d bad/stale bars from response", filtered)
         return result[-limit:]
     except Exception:
         return []
