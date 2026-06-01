@@ -90,12 +90,14 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     except Exception as e:
         logger.warning("[BuildStatus/S2] DB read for freshness failed: %s", e)
 
-    fresh = lag_seconds is not None and lag_seconds < 360
+    # 5-min bars close every 300s; lag up to 600s between closes is normal.
+    # Threshold 660s = 1 full bar period + 60s grace (not "stale" between closes).
+    fresh = lag_seconds is not None and lag_seconds < 660
     system.data_freshness = DataFreshness(
         last_bar_ts=last_bar_ts,
         lag_seconds=round(lag_seconds, 1) if lag_seconds is not None else None,
         fresh=fresh,
-        threshold_seconds=360,
+        threshold_seconds=660,
     )
 
     # Buffer size for CCI check

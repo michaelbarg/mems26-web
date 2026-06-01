@@ -122,12 +122,12 @@ def inspect(woodies_system=None) -> SystemStatus:
     except Exception as e:
         logger.warning("[BuildStatus/Woodies] DB read for freshness failed: %s", e)
 
-    fresh = lag_seconds is not None and lag_seconds < 360
+    fresh = lag_seconds is not None and lag_seconds < 660
     system.data_freshness = DataFreshness(
         last_bar_ts=last_bar_ts,
         lag_seconds=round(lag_seconds, 1) if lag_seconds is not None else None,
         fresh=fresh,
-        threshold_seconds=360,
+        threshold_seconds=660,
     )
 
     # Extract key state fields from WoodiesSystem.current_state
