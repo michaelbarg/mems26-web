@@ -249,6 +249,35 @@ def inspect(day_type_machine=None) -> SystemStatus:
         except Exception:
             pass
 
+    # D-S1DYN: Shadow reclassification chain (would-be transitions)
+    try:
+        import sqlite3 as _sql3
+        _shadow_conn = _sql3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
+        _shadow_rows = _shadow_conn.execute(
+            "SELECT from_type, to_type, trigger, e_up, e_dn, r_total, price, session_min "
+            "FROM v9_day_type_shadow_transitions WHERE session_date = ? ORDER BY ts",
+            (today,),
+        ).fetchall()
+        _shadow_conn.close()
+        if _shadow_rows:
+            _chain_parts = []
+            for sr in _shadow_rows:
+                _chain_parts.append(f"{sr[0]}→{sr[1]} @min{sr[7]} (E↑{sr[3]:.2f} E↓{sr[4]:.2f} R={sr[5]:.2f} p={sr[6]:.0f})")
+            _shadow_chain = " · ".join(_chain_parts)
+            _shadow_current = _shadow_rows[-1][1]  # latest would-be type
+            components.append(Component(
+                stage="shadow_reclass",
+                key="dynamic_day_type",
+                spec="D-S1DYN: IB-relative would-be classification (shadow, not live)",
+                present=True,
+                value=f"Shadow: {_shadow_current} (live: {day_type_val or 'UNKNOWN'})",
+                live=_shadow_chain,
+                required="informational — compare to live day_type",
+                freshness=_row_freshness,
+            ))
+    except Exception:
+        pass
+
     # Determine status per §4.3
     if is_classified and probability is not None and float(probability) >= 0.55:
         status = "fired"
