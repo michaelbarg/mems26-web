@@ -388,11 +388,23 @@ async def woodies_chart(limit: int = Query(50, ge=1, le=200)):
     out = {**payload, "bars": tail, "requested_limit": limit, "cardinality": len(tail)}
     if tail:
         out["latest_ts_unix"] = tail[-1]["ts_unix"]
+
+    # Content-based staleness: if latest bar is from a previous session,
+    # mark studies as stale even though the file was recently written.
+    # Chart 12 is RTH-only → studies freeze overnight.
+    if tail:
+        latest_ts = tail[-1].get("ts_unix", 0)
+        content_age_s = time.time() - latest_ts if latest_ts > 0 else 0
+        if content_age_s > 3600:  # >1h since last bar = previous session
+            bar_date = tail[-1].get("ts", "")[:10] if tail[-1].get("ts") else "?"
+            out["studies_stale"] = True
+            out["studies_badge"] = f"Last RTH \u00b7 {bar_date}"
+
     # Inject corrected live price (bid/ask midpoint) for HUD display
     live = _get_live_price()
     if live is not None:
         out["live_price"] = live
-        # Also update current_bar.close to the live price so the HUD
+        # Update current_bar.close to the live price so the HUD
         # shows the real market price, not the stale sc.Close
         if out.get("current_bar"):
             out["current_bar"]["close"] = live
