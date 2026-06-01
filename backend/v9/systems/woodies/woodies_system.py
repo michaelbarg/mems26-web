@@ -296,8 +296,40 @@ class WoodiesSystem(BaseV9TradingSystem):
             if len(self._bar_buffer) > self.max_buffer:
                 self._bar_buffer = self._bar_buffer[-self.max_buffer:]
 
-            # Run 9-pattern engine
+            # Run 9-pattern engine — DLL flags as primary, Python detectors as fallback.
+            # DLL computes on full Sierra history (thousands of bars) → more accurate
+            # than 50-bar Python buffer. Michael approved 2026-06-01.
             patterns = detect_all_patterns(self._bar_buffer)
+
+            # DLL-detected patterns: if DLL flags ZLR/HFE and Python missed it,
+            # trust the DLL (source-of-truth per CLAUDE.md §Sierra real-time data).
+            _dll_pattern_ids = {p.pattern_id for p in patterns}
+            if wb.zlr_detected and "ZLR" not in _dll_pattern_ids:
+                from backend.v9.systems.woodies.schemas import PatternResult
+                _zlr_dir = "LONG" if wb.zlr_direction == "UP" else "SHORT" if wb.zlr_direction == "DOWN" else None
+                if _zlr_dir:
+                    patterns.append(PatternResult(
+                        detected=True, pattern_id="ZLR", direction=_zlr_dir,
+                        confidence=0.65, raw_confidence=0.65,
+                        entry_price=wb.close, stop=None, targets=[],
+                        group="CONTINUATION", cci_at_signal=wb.cci_14,
+                        bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
+                        details={"source": "dll_flag", "zlr_direction": wb.zlr_direction},
+                    ))
+            if wb.hfe_detected and "HFE" not in _dll_pattern_ids:
+                from backend.v9.systems.woodies.schemas import PatternResult
+                _hfe_dir = "LONG" if wb.hfe_direction == "UP" else "SHORT" if wb.hfe_direction == "DOWN" else None
+                if _hfe_dir:
+                    patterns.append(PatternResult(
+                        detected=True, pattern_id="HFE", direction=_hfe_dir,
+                        confidence=0.60, raw_confidence=0.60,
+                        entry_price=wb.close, stop=None, targets=[],
+                        group="REVERSAL", cci_at_signal=wb.cci_14,
+                        bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
+                        details={"source": "dll_flag", "hfe_direction": wb.hfe_direction,
+                                 "hfe_extreme_bars_ago": wb.hfe_extreme_bars_ago},
+                    ))
+
             self._active_patterns = patterns
 
             # W3-β: Direction Change detection (TCCI crosses CCI14)
