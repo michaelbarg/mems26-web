@@ -181,7 +181,26 @@ export function TradesTable() {
                       );
                     })()}
                   </td>
-                  <td className={TD} style={{ color: 'var(--text-secondary)' }}>{t.state ?? '\u2014'}</td>
+                  <td className={TD}>
+                    {(() => {
+                      const s = t.state ?? '';
+                      const o = t.outcome;
+                      const stateColor = o === 'WIN' ? 'var(--green)'
+                        : o === 'LOSS' ? 'var(--red)'
+                        : s === 'OPEN' || s === 'FILLED' || s === 'PARTIAL' ? '#3b82f6'
+                        : 'var(--text-secondary)';
+                      return (
+                        <span style={{ color: stateColor, fontWeight: 600, fontSize: 10 }}>
+                          {s || '\u2014'}
+                          {t.stop_issue === 'T1_NO_BE' && (
+                            <span style={{ marginLeft: 3, color: '#eab308', fontSize: 8, fontWeight: 700 }} title="T1 hit without breakeven stop">
+                              T1_NO_BE
+                            </span>
+                          )}
+                        </span>
+                      );
+                    })()}
+                  </td>
                 </tr>
                 {open && (
                   <tr className="border-b" style={{ borderColor: 'var(--border)' }}>

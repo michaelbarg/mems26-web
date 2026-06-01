@@ -287,19 +287,46 @@ export function TradeDetailsModal() {
             )}
           </section>
 
-          {logs.length > 0 && (
-            <section>
-              <h3 className="text-[10px] uppercase mb-1" style={{ color: 'var(--text-muted)' }}>Management log</h3>
-              <ul className="space-y-0.5 max-h-24 overflow-y-auto" style={{ color: 'var(--text-secondary)' }}>
-                {logs.map((l, i) => (
-                  <li key={i}>
-                    <span style={{ color: 'var(--text-muted)' }}>{l.ts ? fmtTimeETIL(l.ts) : '?'}</span>{' '}
-                    {l.action}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
+          <section>
+            <h3 className="text-[10px] uppercase mb-1" style={{ color: 'var(--text-muted)' }}>
+              Trade Timeline {logs.length === 0 && <span style={{ color: 'var(--text-muted)' }}>(awaiting RTH data)</span>}
+            </h3>
+            <div className="space-y-1 max-h-48 overflow-y-auto" style={{ fontSize: 11, borderLeft: '2px solid var(--border)', paddingLeft: 8 }}>
+              {/* Entry */}
+              <div style={{ color: 'var(--text-secondary)' }}>
+                <span style={{ color: '#56d364', fontWeight: 600 }}>ENTRY</span>{' '}
+                <span style={{ color: 'var(--text-muted)' }}>{t.entry_ts ? fmtTimeETIL(t.entry_ts) : ''}</span>{' '}
+                @ {t.entry_price?.toFixed(2)}
+              </div>
+              {/* Management log entries */}
+              {logs.map((l, i) => {
+                const val = typeof l.value === 'object' && l.value ? l.value as Record<string, unknown> : {};
+                const actionColors: Record<string, string> = {
+                  STOP_MOVE: '#d97706', SMART_BE: '#3b82f6', T1_HIT: '#56d364',
+                  T2_HIT: '#56d364', T3_HIT: '#56d364', STOP_HIT: '#f85149',
+                };
+                const color = actionColors[l.action] || 'var(--text-secondary)';
+                const detail = l.action === 'STOP_MOVE' || l.action === 'SMART_BE'
+                  ? ` ${Number(val.from ?? 0).toFixed(2)} → ${Number(val.to ?? 0).toFixed(2)}${val.reason ? ` (${val.reason})` : ''}`
+                  : '';
+                return (
+                  <div key={i} style={{ color: 'var(--text-secondary)' }}>
+                    <span style={{ color, fontWeight: 600 }}>{l.action}</span>{' '}
+                    <span style={{ color: 'var(--text-muted)' }}>{l.ts ? fmtTimeETIL(l.ts) : ''}</span>
+                    {detail && <span>{detail}</span>}
+                  </div>
+                );
+              })}
+              {/* Exit */}
+              {t.exit_ts && (
+                <div style={{ color: 'var(--text-secondary)' }}>
+                  <span style={{ color: '#f85149', fontWeight: 600 }}>EXIT</span>{' '}
+                  <span style={{ color: 'var(--text-muted)' }}>{fmtTimeETIL(t.exit_ts)}</span>{' '}
+                  @ {t.exit_price?.toFixed(2)} ({t.exit_reason})
+                </div>
+              )}
+            </div>
+          </section>
         </div>
       </div>
     </>
