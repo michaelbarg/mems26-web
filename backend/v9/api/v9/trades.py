@@ -124,6 +124,7 @@ def _trade_list_row(r: V9Trade, db: Optional[Session] = None) -> dict:
         "pnl_r": r.pnl_r,
         "outcome": r.outcome,
         "sierra_bracket_id": r.sierra_bracket_id,
+        "is_synthetic": bool(r.is_synthetic),
     }
     row.update(extract_trade_display(r))
     pnl = compute_trade_pnl(r)
@@ -328,7 +329,8 @@ def get_trades(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    q = db.query(V9Trade).filter(V9Trade.is_synthetic == 0)
+    # Include synthetic trades (shown with badge); was previously hidden
+    q = db.query(V9Trade)
     if mode:
         q = q.filter(V9Trade.mode == mode)
     system_filter = firing_system if firing_system is not None else dominant_system
@@ -356,7 +358,6 @@ def get_recent_trades(
     """
     rows = (
         db.query(V9Trade)
-        .filter(V9Trade.is_synthetic == 0)
         .order_by(V9Trade.entry_ts.desc().nullslast(), V9Trade.id.desc())
         .limit(limit)
         .all()

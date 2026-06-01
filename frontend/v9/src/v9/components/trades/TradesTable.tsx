@@ -49,19 +49,42 @@ export function TradesTable() {
                   className="border-b cursor-pointer hover:bg-[var(--bg-secondary)]"
                   style={{
                     borderColor: 'var(--border)',
-                    color: 'var(--text-primary)',
+                    color: t.is_synthetic ? 'var(--text-muted)' : 'var(--text-primary)',
                     background: open
                       ? 'rgba(255,255,255,0.04)'
-                      : t.stop_issue
-                        ? 'rgba(234,179,8,0.06)'
-                        : undefined,
+                      : t.is_synthetic
+                        ? 'rgba(234,179,8,0.03)'
+                        : t.stop_issue
+                          ? 'rgba(234,179,8,0.06)'
+                          : undefined,
+                    opacity: t.is_synthetic ? 0.6 : 1,
                   }}
                   onClick={() => toggleExpandedTradeId(t.id)}
                 >
                   <td className={`${TD} w-6 text-center`} style={{ color: 'var(--text-muted)' }}>
                     {open ? '\u25bc' : '\u25b6'}
                   </td>
-                  <td className={TD} style={{ color: 'var(--text-muted)' }}>{t.id}</td>
+                  <td className={TD} style={{ color: 'var(--text-muted)' }}>
+                    {t.id}
+                    {t.is_synthetic && (
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          marginLeft: 4,
+                          padding: '0 3px',
+                          fontSize: 8,
+                          fontWeight: 700,
+                          borderRadius: 2,
+                          background: 'rgba(234,179,8,0.2)',
+                          color: '#d97706',
+                          border: '1px solid rgba(234,179,8,0.3)',
+                          verticalAlign: 'middle',
+                        }}
+                      >
+                        TEST
+                      </span>
+                    )}
+                  </td>
                   <td className={TD} style={{ color: 'var(--text-secondary)' }}>
                     {(() => {
                       const w = tradeWhen(t.entry_ts);

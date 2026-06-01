@@ -151,6 +151,7 @@ export interface Trade {
   bars_count?: number | null;
   outcome: string | null;
   sierra_bracket_id: string | null;
+  is_synthetic?: boolean;
   pattern_id?: string | null;
   trigger?: string | null;
   classification?: string | null;

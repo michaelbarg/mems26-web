@@ -19,16 +19,18 @@ export function TradesSummaryStrip() {
   const trades = filteredTrades();
 
   const stats = useMemo(() => {
-    const closed = trades.filter((t) => t.state === 'CLOSED' || (t.pnl_usd != null && t.outcome !== 'OPEN'));
-    const withPnl = trades.filter((t) => t.pnl_usd != null && t.pnl_usd !== 0);
-    const partialCount = trades.filter((t) => t.pnl_mode === 'partial').length;
+    // Exclude synthetic from all aggregates (shown with badge but not counted in stats)
+    const real = trades.filter((t) => !t.is_synthetic);
+    const closed = real.filter((t) => t.state === 'CLOSED' || (t.pnl_usd != null && t.outcome !== 'OPEN'));
+    const withPnl = real.filter((t) => t.pnl_usd != null && t.pnl_usd !== 0);
+    const partialCount = real.filter((t) => t.pnl_mode === 'partial').length;
     const wins = withPnl.filter((t) => (t.pnl_usd ?? 0) > 0);
     const losses = withPnl.filter((t) => (t.pnl_usd ?? 0) < 0);
     const scratch = closed.filter((t) => (t.pnl_usd ?? 0) === 0);
-    const open = trades.filter((t) => t.outcome === 'OPEN' || ['FILLED', 'PARTIAL', 'PENDING'].includes(t.state ?? ''));
+    const open = real.filter((t) => t.outcome === 'OPEN' || ['FILLED', 'PARTIAL', 'PENDING'].includes(t.state ?? ''));
 
     const bySystem: Record<number, { count: number; pnl: number; wins: number; losses: number }> = {};
-    for (const t of trades) {
+    for (const t of real) {
       const sid = (t.system as number) || 0;
       if (!bySystem[sid]) bySystem[sid] = { count: 0, pnl: 0, wins: 0, losses: 0 };
       bySystem[sid].count += 1;
@@ -51,10 +53,11 @@ export function TradesSummaryStrip() {
     const totalR = withPnl.reduce((acc, t) => acc + ((t as any).pnl_r ?? 0), 0);
 
     return {
-      total: sumPnl(trades.filter((t) => t.pnl_usd != null)),
+      total: sumPnl(real.filter((t) => t.pnl_usd != null)),
       partialCount,
       closedCount: closed.length,
-      tradeCount: trades.length,
+      tradeCount: real.length,
+      syntheticCount: trades.length - real.length,
       wins: wCount,
       losses: lCount,
       scratch: scratch.length,
