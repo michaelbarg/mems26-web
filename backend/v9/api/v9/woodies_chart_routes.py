@@ -338,12 +338,24 @@ def _load_woodies_from_db(limit: int) -> Optional[Dict[str, Any]]:
     }
 
 
+def _get_live_price() -> Optional[float]:
+    """Get the corrected live price (bid/ask midpoint when stale) from price cache."""
+    try:
+        from backend.v9.api.v9.price_routes import _price_cache, _price_cache_ts
+        if _price_cache and _price_cache_ts and (time.time() - _price_cache_ts) < 10.0:
+            return _price_cache.get("price")
+    except Exception:
+        pass
+    return None
+
+
 @router.get("/api/v9/woodies/chart")
 async def woodies_chart(limit: int = Query(50, ge=1, le=200)):
     """Return last N Woodies 5m CCI bars from Sierra export for chart panel.
 
     Falls back to DB (v9_bars_5min_woodies) when Sierra export is empty/stale
     (overnight, weekend). DB bars are display-only — firing gates remain RTH-locked.
+    Includes `live_price` field (corrected bid/ask midpoint) for HUD display.
     """
     payload = _load_sierra_woodies(EXPORT_PATH, MAX_AGE_S)
     if payload is None:
@@ -365,10 +377,23 @@ async def woodies_chart(limit: int = Query(50, ge=1, le=200)):
         db_payload = _load_woodies_from_db(limit)
         if db_payload:
             db_payload["requested_limit"] = limit
+            live = _get_live_price()
+            if live is not None:
+                db_payload["live_price"] = live
+                if db_payload.get("current_bar"):
+                    db_payload["current_bar"]["close"] = live
             return db_payload
 
     tail = bars[-limit:] if len(bars) > limit else bars
     out = {**payload, "bars": tail, "requested_limit": limit, "cardinality": len(tail)}
     if tail:
         out["latest_ts_unix"] = tail[-1]["ts_unix"]
+    # Inject corrected live price (bid/ask midpoint) for HUD display
+    live = _get_live_price()
+    if live is not None:
+        out["live_price"] = live
+        # Also update current_bar.close to the live price so the HUD
+        # shows the real market price, not the stale sc.Close
+        if out.get("current_bar"):
+            out["current_bar"]["close"] = live
     return out
