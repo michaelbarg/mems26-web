@@ -59,13 +59,13 @@ class ShadowReclassifier:
         Returns the new shadow_type if changed, None if unchanged.
         Does NOT modify any live state — shadow log only.
         """
-        if self.ib_w <= 0:
+        if self.ib_w <= 0 or session_high <= 0 or session_low is None or session_low <= 0:
             return None
 
         # D-S1DYN: IB extension metrics
         e_up = max(0, session_high - self.ib_h) / self.ib_w
         e_dn = max(0, self.ib_l - session_low) / self.ib_w
-        r_total = (session_high - session_low) / self.ib_w
+        r_total = (session_high - session_low) / self.ib_w if session_high > session_low else 0
 
         # Determine dominant side
         e_dom = max(e_up, e_dn)
