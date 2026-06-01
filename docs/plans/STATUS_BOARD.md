@@ -1,7 +1,18 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
-**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-06-01 (CC — connectivity + OOH bars + hydration fixed) ·
+**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-06-01 (CC — bar continuity + live price + dedup) ·
+
+---
+
+## 📋 2026-06-01 (session 2) — Bar Continuity + Live Price
+
+| # | Item | Root Cause | Fix | Verification |
+|---|------|-----------|-----|-------------|
+| S0 | Live price stuck 7590.50 | `sc.Close[idx]` = RTH bar close, frozen overnight; bid/ask = live L1 | `_best_price()` uses bid/ask midpoint when >2pt divergence | price=7612.12 (was 7590.50) |
+| S1a | Flat stale bars in v9_bars_5min | FiveMinAggregator builds from stale sc.Close → O=H=L=C=7590.5 | Filter: reject bars where O=H=L=C AND volume>10k | 8 flat bars deleted |
+| S1b | WoodiesSystem persist duplication | `_persist_bar` used `datetime.now()` as ts → unique row every 3s push | Use bars actual DLL ts + INSERT OR REPLACE | 1247 dupes deleted; 301 unique, 0 dupes |
+| S2 | Chart endpoint gaps | Only read v9_bars_5min (sparse); ignored v9_bars_5min_woodies (dense) | Merge both tables in `_fetch_bars_5min()` | 5 bars returned with real prices |
 
 ---
 
@@ -114,7 +125,10 @@
   - **למה "2556 passed" הטעה:** טסטי flag-ON (`test_s3_relative.py`, `test_s1_daytype_relative.py`) בודקים את ה-helpers **בבידוד** (`get_min_level_vol(median_level_vol=100.0)`, `cap_confidence_staged(...)`) — אף טסט לא מאמת שהנתיב המשולב דרך הצרכן האמיתי קורא להם עם ערכים חיים. golden flag-OFF זהה = נכון אך חסר-משמעות (הענף היחסי לא מגיע דרך הקוד החי).
   - **משמעות תפעולית:** התנאי המחייב "A לפני איסוף SHADOW" **לא מולא**. הדלקת הדגלים + הרצת SHADOW מחר תאסוף על לוגיקה ישנה ב-S3/IB-width/CVD/staging — בדיוק הכשל שה-audit נועד למנוע. **רק S2 expansion יכייל נכון.**
   - **נדרש:** סבב-2 wiring שמזין את הצרכנים האמיתיים (median_level_vol מחושב→`detect_stacked_imbalance`; `get_range_ticks`→`analyze_context`; footprint deltas→`_stage_a2`; `_last_atr_daily` מאוכלס; `cap_confidence_staged` בלולאת ה-confidence) + טסט אינטגרציה flag-ON דרך הצרכן (לא בידוד) + Part B. ⚠️ strategic-stop: מקור ה-`median_level_vol`/`atr_daily`/footprint-deltas בנתיב החי דורש החלטת plumbing — לאשר עם Michael לפני מימוש. evidence: `git show f3caa89` + grep callers (פלט גולמי בשיחת Cowork).
-- `[2026-05-31]` **דגלים מתים בענפי זיהוי (finding · Cowork) → פרומפט wiring נשלח ל-CC (בביצוע).** audit (3 סוכני מחקר על קוד+אפיון) מצא: `S2_ATR_RELATIVE` **מת ב-OFA** (`_detect_initiative` עדיין על קבועים 1.5-1.75pt; helpers יחסיים לא נקראים) · `S3_RELATIVE` **מת בזיהוי** (`get_min_level_vol`/`get_range_ticks` מוגדרים, לא נקראים; MIN_LEVEL_VOL=10/range=15 קשיחים). גם `reduce_size_signal` רק נרשם, לא מקטין סייז. **משמעות: SHADOW יאסוף נתוני כיול על הלוגיקה הישנה בענפים אלה.** פרומפט: `CC_PROMPT_CALIBRATION_WIRING_2026-05-31.md` (חלק A wiring + חלק B scaffolding). ⚠️ **סדר חובה: A לרוץ לפני איסוף SHADOW מחר.** פערים נוספים (לא חוסמי-כיול): S4 A4 advisory-only · A1 מלא לא נקרא · ZLR ±100 מול ±50 · HFE→low tier. מקור: `MEMS26_PIPELINE_FLOW.html` (עצי החלטה + פערים).
+- `[2026-06-01]` **מחיר זמן-אמת תקוע + נרות לא רציפים (finding · Michael+צילום) → פרומפט diagnose-first נשלח (בביצוע).** המחיר החי תקוע על **7590.50** בעוד האמיתי ~**7614** (הנרות זזו, מקור ה-live קפא — כנראה `live_price.json`/`mes_ai_data.json` לא מתרענן בעוד stream Woodies כן). + סדרת 5-דק' לא רציפה (export RTH-only + lag ~332s + גבול-session). פרומפט: `CC_PROMPT_BAR_CONTINUITY_2026-06-01.md` (שלב 0 מחיר · שלב 1-2 רציפות · diagnose-first · אפס סינתוז · היסטורי לא מזין ירי).
+- `[2026-06-01]` **🔴 calibration-wiring מנופח — רק S2 מחווט, S3+S1 עדיין מתים (תיקון לאחר verify-before-trust).** אימות Rule 5 (`f3caa89`) + הצלבת Cowork: **S2_ATR_RELATIVE** מחווט באמת (`_detect_initiative` קורא `get_expansion_range`, מחזיר 1.5-2×ATR). **S3_RELATIVE מת:** `footprint_system.py:369` קורא `detect_stacked_imbalance(levels, bar)` **בלי `median_level_vol`** → default 0.0 → `get_min_level_vol` מחזיר תמיד 10 (הדגל לא נכנס). **S1_IB_WIDTH_ATR/S1_CVD_OPENING/S1_DAYTYPE_STAGING — עדיין מתים** (f3caa89). **Part B (scaffolding מטריקות-כיול) לא בוצע.** ⚠️ **נדרש סבב-2 wiring לפני איסוף SHADOW** — אחרת נאסוף על לוגיקה ישנה ב-S3+S1. (הטעות הקודמת שלי: ראיתי קריאה לפונקציה אך לא שהארגומנט לא מועבר — מחזק [[full-decision-pipeline-wiring]].)
+- `[2026-06-01]` **המערכת לא עבדה → אובחן ותוקן (איכותי, מאומת).** שורש: **ה-backend מת ב-10:38** (אין LaunchAgent → אין auto-restart) → DISCONNECTED + הכל ריק (לא באג עמוק). תוקן (`0bc2d0f`): backend LaunchAgent (KeepAlive מותנה) · `timedelta` import (`bar_ingestion.py:8` → v9_bars_5min 7→609) · TZ history `Chicago→New_York` (`v9_history.py:43,48`) · archive schema (רשימת עמודות מפורשת → 30 sessions, מחזיר Y IB ב-RTH) · Woodies dedup (UNIQUE(ts), 26,250→970) · **נרות overnight = Option C** (`_load_woodies_from_db` ב-woodies_chart_routes, "LAST SESSION" badge, **תצוגה בלבד**) · hydration inventory ב-startup. **אימות Cowork (Rule 5):** health 200 alive · timedelta מיובא · 6 שערי RTH אומתו בקוד (five_min OVERNIGHT_MODE :697 · woodies `_is_rth_bar` :282 · state_machine `if not bar.is_rth` :448,479) · OOH בנתיב chart בלבד · **דאשבורד חי בצילום: 0 fires · 10 blocked · OVERNIGHT_MODE · CCI buffer 20 ברים · RTH closed +260m**. נדחה: Full warmup (TPO handler 988ms/bar), Sierra 24h (Option A — שינוי UI). ⚠️ watch: 5-min freshness lag ~332s (stale 6m) overnight. דוח: `FIX_CONNECTIVITY_OOH_HYDRATION_2026-06-01.md`.
+- `[2026-05-31]` **דגלים מתים בענפי זיהוי (finding · Cowork) → פרומפט wiring נשלח ל-CC.** ⚠️ **בוצע חלקית בלבד — רק S2 מחווט; S3+S1 עדיין מתים, Part B לא בוצע (ראה שורת 2026-06-01 · `f3caa89`). נדרש סבב-2.** audit (3 סוכני מחקר על קוד+אפיון) מצא: `S2_ATR_RELATIVE` **מת ב-OFA** (`_detect_initiative` עדיין על קבועים 1.5-1.75pt; helpers יחסיים לא נקראים) · `S3_RELATIVE` **מת בזיהוי** (`get_min_level_vol`/`get_range_ticks` מוגדרים, לא נקראים; MIN_LEVEL_VOL=10/range=15 קשיחים). גם `reduce_size_signal` רק נרשם, לא מקטין סייז. **משמעות: SHADOW יאסוף נתוני כיול על הלוגיקה הישנה בענפים אלה.** פרומפט: `CC_PROMPT_CALIBRATION_WIRING_2026-05-31.md` (חלק A wiring + חלק B scaffolding). ⚠️ **סדר חובה: A לרוץ לפני איסוף SHADOW מחר.** פערים נוספים (לא חוסמי-כיול): S4 A4 advisory-only · A1 מלא לא נקרא · ZLR ±100 מול ±50 · HFE→low tier. מקור: `MEMS26_PIPELINE_FLOW.html` (עצי החלטה + פערים).
 - `[2026-05-31]` **5 דגלי SHADOW הודלקו ב-`.env`** (Michael — להדליק לפני האיסוף): `S2_ATR_RELATIVE`, `S3_RELATIVE`, `S1_CVD_OPENING`, `S1_IB_WIDTH_ATR`, `S1_DAYTYPE_STAGING` = true. נקראים ב-import (`shared/atr.py`) → **דורש (re)start של ה-backend כדי לחול** (יחול בהעלאת הסטאק מחר). ⚠️ משנה התנהגות SHADOW (CVD מחליף סיווג פתיחה · day_type מדורג · IB/expansion יחסיים) → לצפות בקצב ירי/התפלגויות. החזרה per-flag: false+restart. monitoring/revert plan: `CC_PROMPT_ENABLE_FLAGS_SHADOW_2026-05-31.md`.
 - `[2026-05-31]` **D-094 R:R selection — מומש (flag OFF).** `612a665`. `rr_score.py` (`compute_rr_score`=Σ(|tgt−entry|×split)/|entry−stop|) + `trading_gateway.py` buffer `_slot_candidates`+`on_bar_close()` flush. flag-OFF=first-wins (golden verified); flag-ON=highest-R:R + tie-break (conf→sys_id→arrival); SHADOW לא מושפע. evidence: `D094_RR_SELECTION_IMPL_2026-05-31.md` — golden flag-OFF passes, 13 טסטים חדשים, **2548 passed / 0 failed**. ⏳ הפעלה: `RR_FIRE_SELECTION=true` + wire `bar_router.subscribe("5min", gw.on_bar_close)` ב-main.py (טרם חווט).
 - `[2026-05-31]` **GAP-3/GAP-4/Auth-Table — הכרעות Michael ננעלו.** (1) **D-094 R:R selection = Option A** (R:R גבוה זוכה) **+ same-bar flush**; SHADOW לא מושפע → `docs/decisions/D-094` LOCKED. (2) **GAP-4 MAX_CONTRACTS = per-trade, max 5** (מ-2 dead → 5 + אכיפה הגנתית); **רצפת min-3 בוטלה** — הטבלה כפי שהוקלדה. (3) **Auth Table V2** (טווח 0-5, 70 תאים נעולים) — אסימטריית INITIATIVE L/S מכוונת. פרומפט מימוש: `docs/handoff/CC_PROMPT_AUTH_TABLE_V2_MAXCONTRACTS_2026-05-31.md`. D-094 impl = thread נפרד.
@@ -191,34 +205,42 @@
 
 ---
 
-## ⚡ CC QUEUE — סטטוס פרומפטים (עודכן 2026-05-31)
+## ⚡ CC QUEUE — סטטוס פרומפטים (עודכן 2026-06-01)
 
-### ✅ בוצעו (31/5)
+### ✅ בוצעו ואומתו
 | קובץ | תוצר |
 |------|------|
 | `CC_MEGA_PROMPT_GAP3_MAXCONTRACTS_ZLR_2026-05-31.md` | GAP-3 טיוטת D-094 · GAP-4 audit · GAP-6 RESOLVED |
-| `CC_PROMPT_VERIFY_PIPELINE_DOC_2026-05-31.md` | parity verify · Phase 0-4 = 100% · 2 drifts תוקנו |
+| `CC_PROMPT_VERIFY_PIPELINE_DOC_2026-05-31.md` | parity · Phase 0-4 = 100% · 2 drifts תוקנו |
 | `CC_PROMPT_D094_RR_SELECTION_IMPL_2026-05-31.md` | **D-094 מומש** (`612a665`, flag OFF, 2548 passed) |
+| `CC_PROMPT_CALIBRATION_WIRING_2026-05-31.md` | ⚠️ **בוצע חלקית (`f3caa89`, מנופח):** רק S2_ATR_RELATIVE מחווט. **S3_RELATIVE מת** (`footprint_system.py:369` לא מעביר `median_level_vol`→get_min_level_vol מחזיר 10). **S1_IB_WIDTH_ATR/CVD/DAYTYPE עדיין מתים.** Part B לא בוצע. → **נדרש סבב-2 לפני SHADOW** |
+| `CC_PROMPT_DIAGNOSE_ONLY_CONNECTIVITY_OOH_2026-06-01.md` | אבחון READ-ONLY · שורש=backend מת + timedelta + archive + TZ + RTH-only export |
+| `CC_PROMPT_FIX_CONNECTIVITY_OOH_HYDRATION_2026-06-01.md` | **תוקן** (`0bc2d0f`): LaunchAgent · timedelta · TZ · archive · woodies dedup · OOH Option C · hydration. אומת: health 200, 6 שערי RTH, דאשבורד חי |
 
-### 🟡 מוכנים — לא נוצלו (לשליחה מחר)
+### 🚀 נשלח · בביצוע (Michael שלח 1/6)
+| קובץ | תוכן |
+|------|------|
+| `CC_PROMPT_BAR_CONTINUITY_2026-06-01.md` | שלב 0: **מחיר זמן-אמת תקוע** (7590.50 מול ~7614 אמיתי) · שלב 1-2: רציפות נרות (פערים) · diagnose-first |
+
+### 🟡 מוכנים — לא נוצלו
 | קובץ | סטטוס / תלות |
 |------|--------------|
-| `CC_PROMPT_AUTH_TABLE_V2_MAXCONTRACTS_2026-05-31.md` | מוכן · Auth Table V2 (0-5) + MAX_CONTRACTS=5 · שינוי sizing |
-| `CC_PROMPT_TRADES_PAGE_AUDIT_EXPAND_2026-05-31.md` | מוכן · ביקורת+הרחבה עמוד trades · חלק C דורש SHADOW חי |
-| `CC_PROMPT_ENABLE_FLAGS_SHADOW_2026-05-31.md` | מוכן · הדלקת 5 דגלים · **דורש שרת רץ** |
+| `CC_PROMPT_CALIBRATION_WIRING_ROUND2_2026-06-01.md` | **חוסם כיול · לרוץ לפני איסוף SHADOW** · משלים S3_RELATIVE (median_level_vol) + 3 דגלי S1 + Part B · diagnose-first · flag-OFF=golden |
+| `CC_PROMPT_AUTH_TABLE_V2_MAXCONTRACTS_2026-05-31.md` | Auth Table V2 (0-5) + MAX_CONTRACTS=5 · שינוי sizing |
+| `CC_PROMPT_TRADES_PAGE_AUDIT_EXPAND_2026-05-31.md` | ביקורת+הרחבת עמוד trades · חלק C דורש SHADOW חי |
 
-### ⏳ פעולת המשך (לא פרומפט)
-- **הפעלת D-094:** `export RR_FIRE_SELECTION=true` + wire `bar_router.subscribe("5min", gw.on_bar_close)` ב-`main.py`. כרגע flag OFF, on_bar_close קיים אך לא מחווט.
-- **פרומפט מימוש D-094** טרם נכתב? לא — בוצע. **פרומפט הפעלה/soak** של D-094 ב-SHADOW טרם נכתב.
+### ⏳ פעולות המשך (לא פרומפט)
+- **הפעלת D-094:** `RR_FIRE_SELECTION=true` + wire `on_bar_close` ב-`main.py` (כרגע OFF). פרומפט הפעלה/soak — טרם נכתב.
+- **5 דגלי SHADOW** — הודלקו ב-`.env` + **מחווטים בקוד** (calibration-wiring); יחולו ב-restart.
 
-### 📝 כתובים/לא-כתובים (תור ישן)
-| # | קובץ | סטטוס |
-|---|------|--------|
-| 0b | `CC_MEGA_PROMPT_BLOCKER_SWEEP_R2_2026-05-30.md` | ⏳ כתוב — לבדוק אם נצרך (רוב §1 בוצע) |
-| 1 | `CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` | ⏳ כתוב, לא נשלח |
-| 2 | Phase 3 prompt (archive endpoints) | ⏳ לא נכתב |
-| 3 | Phase 4 prompt (DemoReadiness UI) | ⏳ לא נכתב · תלוי Phase 3 |
-| — | `CC_DUAL_MACHINE_REPLICATION_2026-05-30.md` | ⏸️ דחוי (Michael — לא עד אות) |
+### 📝 תור ישן / נדחה / superseded
+| קובץ | סטטוס |
+|------|--------|
+| `CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` | כתוב, לא נשלח |
+| `CC_MEGA_PROMPT_BLOCKER_SWEEP_R2_2026-05-30.md` | כתוב — לבדוק אם נצרך |
+| Phase 3 (archive endpoints) / Phase 4 (DemoReadiness UI) | לא נכתבו |
+| `..._DIAGNOSE_FIX_CONNECTIVITY...` + `..._FIX_OOH_RESTART_HYDRATION_DRAFT` | superseded ע"י `FIX_CONNECTIVITY_OOH_HYDRATION` |
+| `CC_DUAL_MACHINE_REPLICATION_2026-05-30.md` | ⏸️ דחוי (Michael — לא עד אות) |
 
 ---
 
