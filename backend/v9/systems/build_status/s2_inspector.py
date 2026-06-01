@@ -93,6 +93,14 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     # 5-min bars close every 300s; lag up to 600s between closes is normal.
     # Threshold 660s = 1 full bar period + 60s grace (not "stale" between closes).
     fresh = lag_seconds is not None and lag_seconds < 660
+    # Fallback: if in-memory system has a buffer, data is live
+    if not fresh and five_min_system is not None:
+        try:
+            _s = five_min_system.get_state() if hasattr(five_min_system, 'get_state') else {}
+            if isinstance(_s, dict) and (_s.get("buffer_size") or 0) > 0:
+                fresh = True
+        except Exception:
+            pass
     system.data_freshness = DataFreshness(
         last_bar_ts=last_bar_ts,
         lag_seconds=round(lag_seconds, 1) if lag_seconds is not None else None,
@@ -317,20 +325,29 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             status = "blocked"
             label = "❌ Blocked"
             reason = f"Auth Table SKIP for {pid} × {day_type_str}"
-        elif all(c.present for c in components):
-            status = "armed"
-            label = "🟡 Armed"
-            # Find first failing probe component for better reason
-            failing_probe = next((c for c in probe_comps if not c.present), None)
-            if failing_probe:
-                reason = f"Awaiting trigger: {failing_probe.stage}.{failing_probe.key} — {failing_probe.value}"
-            else:
-                reason = "All conditions met — awaiting trigger signal"
         else:
-            status = "blocked"
-            label = "❌ Blocked"
-            blockers_list = [f"{c.stage}.{c.key}" for c in components if not c.present]
-            reason = f"Missing: {', '.join(blockers_list)}"
+            # Separate infrastructure (data + gates) from detection (pattern trigger)
+            infra_comps = [c for c in components if c.stage in ("data", "day_type_gate")]
+            detect_comps = [c for c in components if c.stage == "detection"]
+            infra_ok = all(c.present for c in infra_comps)
+            detect_ok = all(c.present for c in detect_comps)
+
+            if infra_ok and not detect_ok:
+                # Data + gates ready, pattern not detected yet = ARMED
+                status = "armed"
+                label = "🟡 Armed"
+                failing = next((c for c in detect_comps if not c.present), None)
+                reason = f"Awaiting: {failing.key} — {failing.value}" if failing else "Awaiting trigger"
+            elif infra_ok and detect_ok:
+                status = "armed"
+                label = "🟡 Armed"
+                reason = "All conditions met — awaiting trigger signal"
+            else:
+                # Infrastructure missing = truly BLOCKED
+                status = "blocked"
+                label = "❌ Blocked"
+                blockers_list = [f"{c.stage}.{c.key}" for c in infra_comps if not c.present]
+                reason = f"Missing: {', '.join(blockers_list)}" if blockers_list else "Missing data"
 
         blockers = [f"{c.stage}.{c.key}" for c in components if not c.present]
 

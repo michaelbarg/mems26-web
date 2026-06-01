@@ -122,7 +122,15 @@ def inspect(woodies_system=None) -> SystemStatus:
     except Exception as e:
         logger.warning("[BuildStatus/Woodies] DB read for freshness failed: %s", e)
 
+    # Fresh if DB bar is recent OR the in-memory system is running with live CCI
     fresh = lag_seconds is not None and lag_seconds < 660
+    if not fresh and woodies_system is not None:
+        try:
+            _live_state = woodies_system.current_state if hasattr(woodies_system, 'current_state') else {}
+            if isinstance(_live_state, dict) and _live_state.get("cci_14") is not None:
+                fresh = True  # System is processing bars in-memory even if DB write lags
+        except Exception:
+            pass
     system.data_freshness = DataFreshness(
         last_bar_ts=last_bar_ts,
         lag_seconds=round(lag_seconds, 1) if lag_seconds is not None else None,
