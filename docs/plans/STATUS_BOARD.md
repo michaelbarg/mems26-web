@@ -1,7 +1,21 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
-**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-05-30 (Cowork verification pass · Shabbat — market closed) ·
+**Version:** V2 (full restructure 23/5 17:30) · **Updated:** 2026-06-01 (CC — connectivity + OOH bars + hydration fixed) ·
+
+---
+
+## 📋 2026-06-01 — Connectivity + OOH + Hydration (CC diagnostic fix session)
+
+| # | Item | Root Cause | Fix | Verification |
+|---|------|-----------|-----|-------------|
+| P0.1 | Backend dead (DISCONNECTED) | No LaunchAgent for backend — screen session died silently | Created `com.mems26.backend.plist` with KeepAlive | `curl health` → alive, PID 1289 |
+| P0.2 | v9_bars_5min only 7 rows | `timedelta` not imported in `bar_ingestion.py:8` | Added `timedelta` to import | 7 → 609 rows, zero NameError |
+| P0.3 | History gap-fill 1h drift | `v9_history.py:43` used `America/Chicago` | Changed to `America/New_York` | Matches `base_stream.py:74` |
+| P1.4 | Y IB dll_missing | `v9_tpo_sessions_archive` 19 cols vs 27 → `SELECT *` failed | Explicit column list in `_archive_yesterday` | 30 sessions archived, zero error |
+| P1.5 | Woodies 5min 26k dupes | No UNIQUE constraint, no UPSERT, no symbol | UNIQUE(ts), INSERT OR REPLACE, symbol='MES' | 26,250 → 970 unique rows |
+| OOH.6 | No candles overnight | Sierra exports RTH-only bar history | Option C: DB fallback in woodies_chart_routes.py | endpoint serves from DB when export empty |
+| P2.7 | State lost on restart | No hydration inventory | Startup log: CVD/CCI/bars/archive counts | session-bounded CVD, archive populated |
 
 ---
 
@@ -22,10 +36,96 @@
 
 ---
 
+## ⚙️ החלטות תפעוליות (משפיעות על מה שהמערכת מבצעת · Michael 31/5)
+
+1. **תקרת סיכון — אין כרגע.** ⚠️ שער חובה לפני LIVE (P-L0a) — להגדיר לפני כסף אמיתי. SHADOW=בסדר.
+   **MAX_CONTRACTS=5 (Michael 31/5)** — לקבוע + **לאכוף** (GAP-4: כרגע לא נאכף). ⚠️ Auth Table מקס' 3/setup → עסקה לא תעבור 3 אלא אם משנים גם אותו. לאמת אם MAX_CONTRACTS = per-trade או מצטבר/מקבילי.
+   **GAP-3 (מי יורה) — Michael החליט: לבנות חישוב R:R בדולרים** (רווח פוטנציאלי מול הפסד) ולבחור לפיו את היורה. פיצ'ר חדש שמשנה first-wins → **מפרט (D) קודם, אישור, ואז מימוש.** דורש מנגנון buffering (חלון לאיסוף setups מתחרים).
+2. **גודל פוזיציה — באפיון.** לאמת קוד מול אפיון (טבלת-על).
+3. **מי יורה — ⚠️ GAP-3 (HIGH, אומת בטבלת-העל):** "יחס רווח הגבוה" **לא קיים באף מסמך אפיון** — מופיע רק ב-STATUS_BOARD. כל המפרטים הנעולים + הקוד = **first-wins**. הפער = בין הכוונה (יחס-רווח) למה שתועד/נבנה (first-wins). **החלטה דרושה:** להשאיר first-wins או לבנות בחירת יחס-רווח (D חדש + scoring + buffering ב-gateway — פיתוח חדש). מקור: `docs/reports/FULL_PATH_MEGA_TABLE_2026-05-31.md`.
+4. **קידום מצב (SHADOW→DEMO→LIVE) — Michael מחליט ידנית.**
+5. **פילטרי זמן/חדשות (lunch/FOMC) — דחוי, לא עכשיו.**
+6. **k-values — נעולים על priors, כיול אחרי סוף ה-SHADOW.**
+
+## 🧩 Pipeline 5 — צעדים בטוחים בוצעו (2026-05-31)
+
+- **1.12 pytest** — root: `setup_db` חסר ב-`tests/v9/api/conftest.py` → תוקן (import אחד, `f84d631`). +7 (44→37 failed). **37 כשלים → **37→11** (`PYTEST_CLOSE_2026-05-31.md`, `1fc6ae4`): 26 תוקנו. כל 3 החלטות Michael יושמו: #1 cross_context טסטים עודכנו · #2 PENDING הוסף ל-`_ACTIVE_TRADE_STATES` (slot לא נפגע, gateway-level) · #3 NT counter=אותו בר (dedup תקין)→טסט תוקן. **11 נותרים → תוקנו 10 (37→1)** (`PYTEST_GREEN_FINAL_2026-05-31.md`, `457cd1c`): event-loop fixture + temp DB + find-by-trigger (בידוד אמיתי, לא skip). **נשאר 1 — באג לוגיקת-מסחר אמיתי:** `bar_level_detector._parse_ts` משווה naive מול aware → entry guard מדלג → **T1 לא נתפס** (עסקאות לא נסגרות ב-target!). מתחבר ל-1.6 (תיקון 30/5 לא כיסה tz-mismatch). ⚠️ **אבחון הושלם** (`DIAGNOSE_T1_TZ_2026-05-31.md`): שורש = naive-vs-aware ב-`bar_level_detector.py:91` + SQLite מפשיט tzinfo; ה-TypeError **נבלע ב-except שקט** (שורה 127) → T1/T2/stop **לא נתפסים**. **SHADOW חי מושפע — 334 עסקאות פעילות ירו TypeError → ה-detector no-op.** קשר ל-1.6: התיקון מ-30/5 פתר "ברים לא מגיעים", לא את ה-TZ. ⚠️ **משמעות: נתוני SHADOW לסגירת target פגומים → תנאי מקדים לכיול.** המלצת Cowork: Option B (UTC aware, Rule 4) + תיקון ה-except השקט + רגרסיה. **✅ Michael אישר 31/5** (תיקון תקינות, לא שינוי אסטרטגיה) → פרומפט `CC_PROMPT_FIX_T1_TZ_2026-05-31.md` נשלח. היקף מצומצם: נרמול TZ + un-swallow + רגרסיה בלבד; יסגור pytest ל-0 ויפעיל מחדש זיהוי target/stop ב-SHADOW (לתעד backlog סגירות). **audit מערכתי (`TZ_SYSTEMIC_AUDIT_2026-05-31.md`) אישר: הבאג לא systemic — רק האתר הזה; שאר הקוד מוגן (Pattern A/B/C, 20+ מודלים נסרקו). Option 2 (TypeDecorator boundary fix) דחוי ל-P6 כהקשחה עתידית — לא נחוץ עכשיו.** **✅ בוצע 31/5: pytest ירוק לחלוטין (2535 passed, 0 failed)** — fix שורה 89 (Pattern A: `tzinfo is None`→UTC); BarLevelDetector מזהה שוב targets/stops. **✅ אומת 31/5:** (a) ה-except רושם `logger.error(exc_info=True)` — לא שקט, עומד בדרישה; (b) **DB ריק (0 trades)** → אין backlog burst. ה-334 היו מ-session חי קודם. ⚠️ **משמעות: כרגע לא נאספים נתוני SHADOW — השרת לא רץ.** כיול הדגלים מחייב הרצת SHADOW (ברים→עסקאות). בירור: ייתכן DB אופס (`mems26_pre_shadow_reset_*`) — לאשר אם מכוון.
+- **#4 CVD חי — בוצע** (`S1_CVD_LIVE_2026-05-31.md`, `216520d`): ה-CVD מחליף את opening_type החי כשהדגל ON + footprint deltas, fallback למחיר אם חסר, golden regression 71/71, אומת אין נתיב ל-order. ⚠️ הערת "shadow" בפרומפט הדגלים מיושנת — CVD חי עכשיו.
+- **P5-0 Gateway audit** (read-only) → `P5_0_GATEWAY_AUDIT.md`. **המלצה: MERGE** (בסיס Legacy + 5 שערי סיכון + חילוץ RiskValidator מ-New) · confidence HIGH. אישר ממצאי Cowork (New חסר cooldown/SSV/cluster/chop; cutover=רגרסיית סיכון). חשבון parameterized ב-`sierra_command.py` (swap אחד→37138283). dead-code: 5 קבצים (לא למחוק עד P5-2). Apex: `PA-APEX-125218-01` ב-2 מקומות + `APEX-125218-13` (LIVE, מת — אין Apex).
+- **🔒 כל 4 החלטות P5 נעולות (Michael 31/5):** **Q1=MERGE** (Legacy base + חילוץ RiskValidator מ-New) · **Re-lock 1=BuyEntry+Attached** (dev) · **Re-lock 2=ModifyOrder** (dev, P5-4/5) · **Heartbeat=ALERT-ONLY** (אין auto-KILL — נתיב DLL יחיד + false-positive; flatten ידני). **APEX מת** (שני המחרוזות), חשבון יחיד 37138283 (sim/live=toggle). **חוסם 1.2 נסגר בהחלטה.** → P5-1 משוחרר לכתיבה.
+
+## 🚀 בביצוע — 2 מגה-פרומפטים E2E נשלחו (2026-05-31)
+
+הפרומפטים נשלחו לסוכן הקוד לביצוע (סדר תלות: 1 לפני 2):
+- **E2E 1/2** (`docs/handoff/MEGA_E2E_1of2_PIPELINE_TRADES_2026-05-31.md`) — הבסיס:
+  (A) audit סנכרון bridge→backend→DB→build_status→dashboard→trades · (B) אבחון
+  נתיב הטרייד · (C) תיקון באגי עמוד הטריידס (Scratch תמיד 0 / mode=SHADOW default
+  / מסנן תאריך לקסיקלי / חסר WR%+R / truncation 200) · (D) סדרת בדיקות נראות+טריות.
+  מכסה משימות #18 (אבחון טרייד) + #19 (sync audit) + צ'ק-ליסט הטריידס.
+  **✅ חזר GREEN 31/5** (`docs/reports/PIPELINE_TRADES_E2E_2026-05-31.md`): audit סנכרון
+  ללא שברים · אבחון = הצינור תקין, הבאגים בשכבת התצוגה · 5 תיקוני UI עם diffs
+  (scratch, mode→ALL, date filter, WR%+R, limit 200→500/1000+truncated) · 7 טסטי
+  e2e PASSED (פלט גולמי) · 4 כשלים אומתו כ-pre-existing ב-`git stash`. **הסתייגויות:**
+  אימות ברמת endpoint/חוזה, **לא** UI חי (D1/D2 visibility/freshness בפועל) → לאמת
+  ב-SHADOW; C2 (mode→ALL) שינוי UX מכוון; uncommitted (ממתין ל-commit approval).
+- **E2E 2/2** (`docs/handoff/MEGA_E2E_2of2_S1_S2_S3_IMPL_2026-05-31.md`) — מימוש
+  S1/S2/S3 (relative ATR + CVD/PE + day_type מדורג) מאחורי flags כבויים +
+  golden regression + shadow-scoring. **שער:** מתחיל רק אחרי ש-1/2 ירוק.
+  **✅ E2E 1/2 committed (`a3afe49`). ✅ E2E 2/2 הושלם במלואו GREEN 31/5 — כל 4 השלבים.**
+  תשתית ATR Wilder + 5 flags default OFF + golden baseline לכל שלב + מימוש relative.
+  **71/71 טסטים PASSED** (flag OFF=identical / ON / ATR-none+median fallback).
+  שלבים+דוחות+commits: ATR (`1df766b`,6) · S2 (`ebc7f6a`,22, `S1_S2_S3_IMPL`) ·
+  S3 (`87f7553`,11, `S3_IMPL`) · S1-opening (`0c47bb9`,13, `S1_OPENING_IMPL`,
+  shadow-dict original=live) · S1-daytype (`7a64361`,19, `S1_DAYTYPE_IMPL`,
+  IBWidth.EXTREME + staging 60%→IB lock + C-period re-diagnose). אפס נגיעה
+  order/risk/sizing/polling. Cowork אימת — אין תיקונים. **הערות כיול (priors):**
+  gap tiers 0.25/0.50/1.0 מול R01 0.3/0.7/1.2; EXTREME matrix = WIDE placeholder.
+  **החלטות Michael 31/5 (pytest triage):** #1 cross_context=עדכן טסטים ✅ · #2 PENDING=active ✅
+  (בטיחות slot) · #3 NT counter=לוודא distinct-bars ואז להחליט · 8 ordering=תקן infra → נשלח ל-CC.
+  **החלטה 31/5: `S1_CVD_OPENING` → חי (לא shadow)** — ה-CVD/PE יחליף את סיווג הפתיחה החי מקצה-לקצה
+  (→ matrix → day_type → playbook), מאחורי הדגל + fallback למסווג מחיר אם CVD/footprint חסר +
+  golden regression. דורש שינוי מימוש (CC). משנה התנהגות SHADOW → לצפות.
+  **k נעולים על ה-priors מעכשיו** (Michael 31/5 — gap/expansion/PE/EXTREME). אין המתנה ל-soak.
+  התאמה תגובתית: אם סף מתנהג רע ב-SHADOW → לבקש מ-CC המלצה מבוססת-נתונים ולעדכן (re-lock). רשת ביטחון = מעקב + החזרה per-flag.
+  **החלטת Michael 31/5: להדליק את 5 הדגלים מעכשיו ב-SHADOW** (לא להמתין 60 יום) —
+  כיול חי + החזרה per-flag אם מתנהג רע (`docs/handoff/CC_PROMPT_ENABLE_FLAGS_SHADOW_2026-05-31.md`).
+  הערה: `S1_CVD_OPENING`=shadow-scoring (לא משנה סיווג חי, רק רושם להשוואה). k נשארים
+  priors, נעילה לפי הנתונים החיים. **אסור** DEMO/LIVE/order — SHADOW בלבד.
+- כללי בקרה: flags default OFF (כבוי=קוד קיים), גיבוי רגרסיה לפני כל שינוי, שינוי
+  אחד בכל פעם, אפס נגיעה ב-order/risk/sizing/polling, נעילת ערכים אחרי soak+אישור.
+- מקורות מחקר: `RESEARCH_01/02/03_*`, `S1_S2_ATR_NORMALIZATION`, `CALIBRATION_MATRIX_*`.
+
+## ✅ Michael approvals — 2026-05-31 (עקרוני, ממתין לכיול+backtest)
+
+- **S2 (five_min) המרת ספים → ATR יחסי** — ✅ מאושר עקרונית (EXPANSION/POC/PROXIMITY/SR/STOP/POLE/HEAD/double_bt). priors מ-RESEARCH 02; נעילת ערכים אחרי backtest (dollar vs ATR per Davey) + soak.
+- **S3 (footprint) MIN_LEVEL_VOL→נפח, range_ticks→ATR** — ✅ מאושר עקרונית.
+- **סיווג הרצת פתיחה (opening) — PE/CVD + gap קטגוריות + 15→30** — ✅ מאושר עקרונית.
+- **סוג היום (day_type)** — ⏳ ממתין לאישור סופי של המודל (ראה דיון 31/5): 30דק'=סיווג ראשוני, 60דק'=חיזוק+נעילת IB, re-diagnosis מתמשך. הערת Cowork: לפי R03 חלון C-period (10:30–11:00 ≈ "90 דק'") הוא gate האישור החזק ביותר — מוצע שה-"90" יהפוך לשלב ולידציה/אישור (לא סיווג שלישי), שזה בדיוק ה-re-diagnosis שמיכאל ביקש.
+
+## 🧪 Verification Log — Cowork 2026-05-31 (finding → evidence)
+
+- `[2026-06-01]` **🔴 אימות Rule 5 ל-`CALIBRATION_WIRING` (commit `f3caa89`) — הדוח מנופח: 1 מתוך 4 דגלים תוקן בפועל, 3 עדיין מתים (dead wiring חוזר).** הדוח טוען "4 broken paths fixed". הקוד אומר אחרת:
+  - **S2_ATR_RELATIVE = ✅ מחווט באמת.** `_detect_initiative` קורא `get_expansion_range(self._current_atr_5m)`+`get_poc_return_tolerance(...)`; `_current_atr_5m` מחושב מ-`_bar_buffer` בכל בר (`five_min_system.py:758`); helper נשלט בדגל + fallback ל-const כש-ATR=None. flag-OFF זהה. **זה היחיד שיכייל על לוגיקה יחסית.**
+  - **S3_RELATIVE = ❌ עדיין מת.** הצרכן היחיד `footprint_system.py:369` קורא `detect_stacked_imbalance(footprint_levels, bar)` — **לא מעביר `median_level_vol`** → ברירת מחדל 0.0 → `get_min_level_vol(0.0)` מחזיר `MIN_LEVEL_VOL=10` הקשיח גם כשהדגל ON. `get_range_ticks` — **0 callers** (grep: רק ההגדרה). הדגל לא משנה כלום.
+  - **S1_CVD_OPENING = ❌ אינרטי.** `_stage_a2` מעביר `footprint_deltas=None` (קשיח, TODO) → ענף ה-CVD לעולם לא רץ → תמיד fallback למסווג מחיר. המשתנה `_deltas=[b.volume...]` מחושב ונזרק. SHADOW לא יאסוף תוויות CVD.
+  - **S1_IB_WIDTH_ATR = ❌ מת.** `_last_atr_daily` **לא מוקצה באף מקום** (grep: רק `getattr(...,None)` בקריאה `state_machine.py:516`) → `atr_daily=None` תמיד → `classify_ib_width_atr` נופל ל-absolute. הדגל אינרטי.
+  - **S1_DAYTYPE_STAGING = ❌ מת (הדוח הודה "Partial").** `cap_confidence_staged`/`check_c_period_reeval` יובאו אך **לא נקראים** בלולאת confidence/lock.
+  - **Part B (scaffolding כיול) = ❌ לא בוצע** ("Deferred to next prompt"). מטריקות הכיול לא נרשמות. הטענה "no additional code needed" שגויה.
+  - **למה "2556 passed" הטעה:** טסטי flag-ON (`test_s3_relative.py`, `test_s1_daytype_relative.py`) בודקים את ה-helpers **בבידוד** (`get_min_level_vol(median_level_vol=100.0)`, `cap_confidence_staged(...)`) — אף טסט לא מאמת שהנתיב המשולב דרך הצרכן האמיתי קורא להם עם ערכים חיים. golden flag-OFF זהה = נכון אך חסר-משמעות (הענף היחסי לא מגיע דרך הקוד החי).
+  - **משמעות תפעולית:** התנאי המחייב "A לפני איסוף SHADOW" **לא מולא**. הדלקת הדגלים + הרצת SHADOW מחר תאסוף על לוגיקה ישנה ב-S3/IB-width/CVD/staging — בדיוק הכשל שה-audit נועד למנוע. **רק S2 expansion יכייל נכון.**
+  - **נדרש:** סבב-2 wiring שמזין את הצרכנים האמיתיים (median_level_vol מחושב→`detect_stacked_imbalance`; `get_range_ticks`→`analyze_context`; footprint deltas→`_stage_a2`; `_last_atr_daily` מאוכלס; `cap_confidence_staged` בלולאת ה-confidence) + טסט אינטגרציה flag-ON דרך הצרכן (לא בידוד) + Part B. ⚠️ strategic-stop: מקור ה-`median_level_vol`/`atr_daily`/footprint-deltas בנתיב החי דורש החלטת plumbing — לאשר עם Michael לפני מימוש. evidence: `git show f3caa89` + grep callers (פלט גולמי בשיחת Cowork).
+- `[2026-05-31]` **דגלים מתים בענפי זיהוי (finding · Cowork) → פרומפט wiring נשלח ל-CC (בביצוע).** audit (3 סוכני מחקר על קוד+אפיון) מצא: `S2_ATR_RELATIVE` **מת ב-OFA** (`_detect_initiative` עדיין על קבועים 1.5-1.75pt; helpers יחסיים לא נקראים) · `S3_RELATIVE` **מת בזיהוי** (`get_min_level_vol`/`get_range_ticks` מוגדרים, לא נקראים; MIN_LEVEL_VOL=10/range=15 קשיחים). גם `reduce_size_signal` רק נרשם, לא מקטין סייז. **משמעות: SHADOW יאסוף נתוני כיול על הלוגיקה הישנה בענפים אלה.** פרומפט: `CC_PROMPT_CALIBRATION_WIRING_2026-05-31.md` (חלק A wiring + חלק B scaffolding). ⚠️ **סדר חובה: A לרוץ לפני איסוף SHADOW מחר.** פערים נוספים (לא חוסמי-כיול): S4 A4 advisory-only · A1 מלא לא נקרא · ZLR ±100 מול ±50 · HFE→low tier. מקור: `MEMS26_PIPELINE_FLOW.html` (עצי החלטה + פערים).
+- `[2026-05-31]` **5 דגלי SHADOW הודלקו ב-`.env`** (Michael — להדליק לפני האיסוף): `S2_ATR_RELATIVE`, `S3_RELATIVE`, `S1_CVD_OPENING`, `S1_IB_WIDTH_ATR`, `S1_DAYTYPE_STAGING` = true. נקראים ב-import (`shared/atr.py`) → **דורש (re)start של ה-backend כדי לחול** (יחול בהעלאת הסטאק מחר). ⚠️ משנה התנהגות SHADOW (CVD מחליף סיווג פתיחה · day_type מדורג · IB/expansion יחסיים) → לצפות בקצב ירי/התפלגויות. החזרה per-flag: false+restart. monitoring/revert plan: `CC_PROMPT_ENABLE_FLAGS_SHADOW_2026-05-31.md`.
+- `[2026-05-31]` **D-094 R:R selection — מומש (flag OFF).** `612a665`. `rr_score.py` (`compute_rr_score`=Σ(|tgt−entry|×split)/|entry−stop|) + `trading_gateway.py` buffer `_slot_candidates`+`on_bar_close()` flush. flag-OFF=first-wins (golden verified); flag-ON=highest-R:R + tie-break (conf→sys_id→arrival); SHADOW לא מושפע. evidence: `D094_RR_SELECTION_IMPL_2026-05-31.md` — golden flag-OFF passes, 13 טסטים חדשים, **2548 passed / 0 failed**. ⏳ הפעלה: `RR_FIRE_SELECTION=true` + wire `bar_router.subscribe("5min", gw.on_bar_close)` ב-main.py (טרם חווט).
+- `[2026-05-31]` **GAP-3/GAP-4/Auth-Table — הכרעות Michael ננעלו.** (1) **D-094 R:R selection = Option A** (R:R גבוה זוכה) **+ same-bar flush**; SHADOW לא מושפע → `docs/decisions/D-094` LOCKED. (2) **GAP-4 MAX_CONTRACTS = per-trade, max 5** (מ-2 dead → 5 + אכיפה הגנתית); **רצפת min-3 בוטלה** — הטבלה כפי שהוקלדה. (3) **Auth Table V2** (טווח 0-5, 70 תאים נעולים) — אסימטריית INITIATIVE L/S מכוונת. פרומפט מימוש: `docs/handoff/CC_PROMPT_AUTH_TABLE_V2_MAXCONTRACTS_2026-05-31.md`. D-094 impl = thread נפרד.
+- `[2026-05-31]` **GAP-12 (ניהול עסקה) — לא גַּף, נסגר בהחלטה.** `gateway/trade_management.py` C.2/C.4/C.6/C.7 = superseded dead code (0 callers); ניהול-העסקה החי מחוּוט ב-`trail_engine.py::_apply_layer4()` (5 שירותי Layer-4) — נעול D-094 §3.B Option C+ (`1e01c4a`), Pkg 4a/4b נדחו D-095. evidence: grep callers=0 · `_apply_layer4` שורה 548 נקרא בשורה 165. `FULL_PATH_MEGA_TABLE` סימן את הקובץ המת בטעות → תוקן במסמך הצינור.
+- `[2026-05-31]` **מסמך צינור As-built נוצר + אומת.** `docs/reference/MEMS26_PIPELINE_DAYTYPE_TO_TRADE_MGMT_2026-05-31.md` (Phase 0-6). CC parity (`PIPELINE_DOC_PARITY_VERIFY_2026-05-31.md`): Phase 0-4 = 100% match; 2 drifts תוקנו (conf 0.70→0.85 effective per GAP-5; GAP-12 לעיל).
+- `[2026-05-31]` **CVD per-bar זמין ב-DB (חוסם נסגר)** — root question: האם `path_eff=net_CVD/Σ|delta_i|` בר-חישוב היסטורי. evidence (`scripts/research/verify_cvd_atr_availability.py` על `data/mems26_local.db` 10GB, read-only): `v9_bars_5min.cumulative_delta` **200/200 non-null**, span 2026-04-19→05-29; `v9_bars_footprint.delta`+`levels` **200/200 non-null** span 2026-05-12→05-29 (~13 ימי RTH); `v9_bars_tick_reversal` יש `ask_vol/bid_vol/delta/direction`. **מסקנה: אבני הבניין ל-PE קיימות ומאוכלסות.** נותר: (1) `cumulative_delta` כנראה מתאפס בגבול session (קפיצה -14284→-492 ב-20:00) → לחשב PE בתוך חלון session, לא חוצה reset. (2) **אין עמודת ATR** — לגזור מהברים (5-דק' ATR מ-`v9_bars_5min`; אין טבלת daily-ATR).
+
 ## 🧪 Verification Log — Cowork 2026-05-30 (finding → fix → evidence)
 
 - `[2026-05-30]` **TZ bars_5min future-ts** — root=aggregator wrote ET not UTC (+1h in EDT) → fixed (UTC + ingest guard `bars.py:307`/`bar_ingestion.py:74`, `c581f4d`+`b76d5e2`) → **verified: 0 future-ts rows in `v9_bars_5min`** (was 514).
-- `[2026-05-30]` **DLL frozen-tail** — root=DLL mapIdx clamp → identical study tail. fix shipped (v9.4.3-p31.1 `ada6c88`) → **NOT verified: last 5 `v9_bars_5min_woodies` rows all `cci_14=-40.49`** → still OPEN/BLOCKER until live RTH (Sun).
+- `[2026-05-30]` **DLL frozen-tail** — root=DLL mapIdx clamp → identical study tail. fix shipped (v9.4.3-p31.1 `ada6c88`,`cc9bd8f`). **Data check (Cowork 30/5): across DISTINCT 5-min buckets cci_14 VARIES (−40.49/−10.04/−65.39/63.46/103.02) → no frozen-tail in stored data.** Earlier "5 identical −40.49" alarm = same-bar pushes (20:00 bar, expected — NOT distinct bars). Status: code fixed + static data clean, but **still BLOCKER until verified LIVE as bars form in RTH** (weekend=market closed; Rule 5 requires live confirm before closing a LIVE blocker). verify: Sun RTH Phase B — 0 consecutive identical (cci_14,swi) across distinct bars.
 - `[2026-05-30]` **Fake @5900 PARTIAL** — 12 phantom rows (entry 5900/stop 5900.25), source=test fixtures or bootstrap → fix: flagged `is_synthetic=1` + API filters `is_synthetic=0` in GET /trades + /recent (`trades.py:331,357`) → verified: 0 phantom trades in non-synthetic query.
 - `[2026-05-30]` **Footprint dedup** — root=no per-(level,bar_ts) dedup in `_fire()`, every Sierra UPDATE → new trade (30/min bursts) → fix: dedup gate per `(level, direction, bar_ts)` in `footprint_system.py:39,426-436` → needs RTH verification.
 - `[2026-05-30]` **pnl_r UI 60R vs DB 1.5R** — root=phantom @5900 trades have 1-tick stop ($1.25 risk), any movement → absurd R → fix: phantom trades flagged synthetic, API filters them → resolved (formula correct, data was wrong).
@@ -46,10 +146,12 @@
 ### 🟠 HIGH — לפני LIVE
 | # | פריט | קובץ |
 |---|------|------|
+| 31/5 · Trade path שבור | נתיב הטרייד לא עובד (דווח ע"י Michael 31/5). לאבחן: setup_emitter→pre_fire_validator→gateway→executor→DB/UI. ככל הנראה קשור ל-1.4 (order routing stub) / 1.2 (gateway כפול) — לאמת. diagnose-first, לא לתקן עד אישור. **פרומפט אבחון READ-ONLY נכתב (Cowork 31/5): `docs/handoff/DIAGNOSE_TRADE_PATH_LIVE_TRACE.md`** — funnel N1→N6, WS-0 מזהה איזה gateway חי (GAP-8), מבדיל "שבור" מ-SHADOW-in-mem/day_type=NT→SKIP; פלט→`TRADE_PATH_LIVE_TRACE_2026-05-31.md`. **✅ בוצע 31/5** (`DIAGNOSE_TRADE_PATH_LIVE_TRACE_2026-05-31.md`): **כל החוליות CONNECTED** מ-pattern→emit→gateway→TradeManager→DB→API→frontend, ו-BarLevelDetector→target (TZ fixed). ה"שבור" היה באגי תצוגה (Scratch/mode/date) + TZ — כולם תוקנו. 3 ממצאים לא-חוסמים: לוג "Auto-routed" מטעה (קוסמטי), LIVE=stub (מכוון P5), `_on_bar_closed` dead code (שריד). **מוכן ל-SHADOW validation.** | resolved |
+| 31/5 · Sync audit e2e | **✅ בוצע** — מכוסה ע"י FULL_PATH_MEGA_TABLE (30 שלבים, קוד↔אפיון) + live trace. כל החוליות מסונכרנות. | resolved |
 | Bug C | stop/target hit recorded at bar-open instead of actual fill price (PnL impact) | `bar_level_detector.py` |
 | Item #3 (runtime) | S2 warning קיים — אבל האם hydration מגיע בזמן? לאמת live | logs ב-Phase B |
 | TZ bars_5min · ✅ DONE+verified | root=aggregator `_bar_start_for` החזיר ET, נשמר +1h ב-EDT → fix: UTC + future-ts guard (`bars.py:307`,`bar_ingestion.py:74`) + consumer/five_min ZoneInfo (`c581f4d`,`b76d5e2`) → verified by Cowork 2026-05-30: 0 future-ts rows ב-`v9_bars_5min` |
-| P32 (נותר) | tick_reversal +6h ts + sot_health | תיקון ה-TZ לא הוחל על stream ה-tick_reversal (~540K שורות ts עתידי). `CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` — כתוב, טרם נשלח |
+| ✅ P32 | tick_reversal TZ + sot_health cleanup | DONE: stream מדלג על תיקון Chicago (DLL=time(nullptr), `86e8027`) → Cowork אימת 0 future-ts ב-tick_reversal. sot_health: TPO repoint (`b1ea568`), footprint endpoint (`b02fc0c`), orphan tables removed (`e0b8880`). P32-I/J/K/L committed |
 | ✅ TIME_STOP (S4) | Fixed: floor bar_ts to 5-min boundary (epoch%300) + ISO-ts parser. Regression: 40 pushes same bucket → count=1. | `93a5dbf`, `e75caa6` |
 | ✅ T1 not detected (S4) | Fixed: BarLevelDetector subscribes to woodies_5min + cross-channel dedup. | `9410279` |
 | ✅ Footprint burst (S3) | Fixed: dedup per (level, direction, bar_ts). Needs RTH verify. | `79a7640` |
@@ -70,6 +172,11 @@
 | EOD 29/5 · S2 state | `v9_five_min_state` ריקה — המערכת קוראת אך לא כותבת |
 | EOD 29/5 · S4 stop | stop risk 5-8 ticks צפוף ל-MES (ATR~50); שקול ATR-based stop |
 | EOD 29/5 · S2 thresholds | Initiative expansion [1.5-1.75pt] לא ניתן להשגה (0/44 ברים · avg 6.12); מחקר קבוע→יחסי §7b |
+| 31/5 · S1 ספים מוחלטים | רוחב IB 15/25pt + gap ±2pt + delta סף-1 + width >5 + הצבעות ≥2 — לא יחסיים. הצעה: IB+gap → ATR-relative. מחקר → אישור Michael. `detector.py`/`state_machine.py`/`zohar_rules.py` |
+| 31/5 · ATR research DONE (חיצוני) | מחקר best-practice הושלם → `docs/reports/S1_S2_ATR_NORMALIZATION_RESEARCH_2026-05-31.md`. החלטות: **ATR 5-דק' len~10-14 לאות, ~14-20 ל-sizing/stops; לעולם לא ATR יומי**; k לפי פרסנטיל (~70-90) + walk-forward; ספי % (LMW 1.5%) נשארים; ספירות מבניות נשארות שלמות. **תלות חדשה (המלצה בלבד — ❌ לא מאושר, לא לביצוע):** המרת stop ל-ATR הייתה מחייבת vol-based sizing + מפסק $250 + רצפת stop — Michael ביטל 31/5 כמשימה, נשאר רק כהמלצת רקע. עונתיות U-shape → מכפיל time-of-day לפתיחה. **חסר: כיול פנימי על v9_bars_5min (priors בלבד).** |
+| 31/5 · S1 דיוק פתיחה 15/30 | opening מסווג מ-3 ברים (15 דק'); CVD מוזרם אך לא משפיע (רק reasoning_notes `state_machine.py:948`). מחקר: דיוק 15→30 דק' + שילוב CVD בהחלטה |
+| 31/5 · CVD/opening research DONE (RESEARCH 01) | מחקר מעודכן → `docs/reports/RESEARCH_01_CVD_OPENING_FINDINGS_2026-05-31.md` (מחליף OPENING_CVD). `delta=ask_vol−bid_vol`; **PE = net_CVD/Σ|delta_i|** ראשי + DE + EVR + divergence guard. חתימה tick-rule/aggressor (לא BVC). מסווג דו-שלבי: label_15 (09:45, bias) → label_30 (10:00, מחייב). double-break ES: 15-דק' **61%**, 30-דק' **47.9%** (6,142 ימי ES/NQ). gap → 4 קטגוריות ATR14 (Tiny<0.3/Small/Medium/Large>1.2). ספי priors: DRIVE `PE_30>0.65 & range_exp>1.0 & ¬div`. **חוסם: לאמת CVD per-bar ב-DB.** ספים ננעלים אחרי soak SHADOW ~60 ימים. אישור Michael נותר. |
+| 31/5 · S1 day_type 30 דק' | גישה מבוקשת: קביעת סוג-יום לפי 30 הדק' הראשונות ואז ולידציה מתמשכת (במקום forced-lock 13:00). **B3: תקופת IB הקבועה (60 דק') → 3 checkpoints 30/60/90 דק'**, סיווג נבדק בכל אחת. מחקר אינטראקציה עם ספי נעילה |
 | ✅ EOD 29/5 · UI pnl_r | Resolved: phantom @5900 trades had 1-tick stop → absurd R. Trades now filtered. |
 | EOD 29/5 · demo open | #604 עדיין OPEN — BarLevelDetector לא מנהל עסקאות demo |
 
@@ -84,15 +191,34 @@
 
 ---
 
-## ⚡ CC QUEUE — לשבוע הבא
+## ⚡ CC QUEUE — סטטוס פרומפטים (עודכן 2026-05-31)
 
+### ✅ בוצעו (31/5)
+| קובץ | תוצר |
+|------|------|
+| `CC_MEGA_PROMPT_GAP3_MAXCONTRACTS_ZLR_2026-05-31.md` | GAP-3 טיוטת D-094 · GAP-4 audit · GAP-6 RESOLVED |
+| `CC_PROMPT_VERIFY_PIPELINE_DOC_2026-05-31.md` | parity verify · Phase 0-4 = 100% · 2 drifts תוקנו |
+| `CC_PROMPT_D094_RR_SELECTION_IMPL_2026-05-31.md` | **D-094 מומש** (`612a665`, flag OFF, 2548 passed) |
+
+### 🟡 מוכנים — לא נוצלו (לשליחה מחר)
+| קובץ | סטטוס / תלות |
+|------|--------------|
+| `CC_PROMPT_AUTH_TABLE_V2_MAXCONTRACTS_2026-05-31.md` | מוכן · Auth Table V2 (0-5) + MAX_CONTRACTS=5 · שינוי sizing |
+| `CC_PROMPT_TRADES_PAGE_AUDIT_EXPAND_2026-05-31.md` | מוכן · ביקורת+הרחבה עמוד trades · חלק C דורש SHADOW חי |
+| `CC_PROMPT_ENABLE_FLAGS_SHADOW_2026-05-31.md` | מוכן · הדלקת 5 דגלים · **דורש שרת רץ** |
+
+### ⏳ פעולת המשך (לא פרומפט)
+- **הפעלת D-094:** `export RR_FIRE_SELECTION=true` + wire `bar_router.subscribe("5min", gw.on_bar_close)` ב-`main.py`. כרגע flag OFF, on_bar_close קיים אך לא מחווט.
+- **פרומפט מימוש D-094** טרם נכתב? לא — בוצע. **פרומפט הפעלה/soak** של D-094 ב-SHADOW טרם נכתב.
+
+### 📝 כתובים/לא-כתובים (תור ישן)
 | # | קובץ | סטטוס |
 |---|------|--------|
-| 0a | `CC_MEGA_PROMPT_BLOCKER_SWEEP_2026-05-30.md` (T1–T8 · §1.5–§1.14) | ✅ CC ביצע (uncommitted) |
-| 0b | `CC_MEGA_PROMPT_BLOCKER_SWEEP_R2_2026-05-30.md` (commit+tests+fixtures+TZ) | ⏳ כתוב, מוכן לשליחה |
+| 0b | `CC_MEGA_PROMPT_BLOCKER_SWEEP_R2_2026-05-30.md` | ⏳ כתוב — לבדוק אם נצרך (רוב §1 בוצע) |
 | 1 | `CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md` | ⏳ כתוב, לא נשלח |
 | 2 | Phase 3 prompt (archive endpoints) | ⏳ לא נכתב |
-| 3 | Phase 4 prompt (DemoReadiness UI) | ⏳ תלוי Phase 3 |
+| 3 | Phase 4 prompt (DemoReadiness UI) | ⏳ לא נכתב · תלוי Phase 3 |
+| — | `CC_DUAL_MACHINE_REPLICATION_2026-05-30.md` | ⏸️ דחוי (Michael — לא עד אות) |
 
 ---
 
@@ -122,6 +248,7 @@
 
 ---
 
+- **2026-05-30 · Cowork verified R2-8(p2)+R2-9 DONE** — @5900: gateway test isolation added (`tests/v9/gateway/conftest.py` autouse temp DB, `c204021`); all 30 @5900 rows `is_synthetic=1` (verified `COUNT WHERE is_synthetic=0` = 0); CC verified 2 runs → 0 new. §1.8 CLOSED. R2-9: `day_type_seed.py` loads opening_type/day_type/confidence from today's row (`date=et_today()`, `status!='ROLLED_OVER'`, ORDER BY last_updated_at), falls back to INDETERMINATE only if no row (`7316289`); `bars_5min_stream.py` backfill from MAX(ts) first push (`bffad29`). §1.15 CLOSED. **Minor follow-ups (non-blocking):** (a) gateway test isolation is dir-scoped — confirm `tests/v9/api/` (also uses entry=5900) doesn't leak; (b) seed restores `ib_locked=True` but not the full `lock_state` enum from DB. **All approved §1 work now done.** Remaining: §1.2 (gateway canonical decision), §1.16 (S2 thresholds decision), TPO-TZ confirm, RTH-live verifications; NEWS parked.
 - **2026-05-30 · Michael: NEWS handling PARKED** — do not work on news (calendar/feed/options) now; finish all approved items first. Resume later. Remaining APPROVED-but-unfinished for CC: (1) **R2-8 part 2** — test-DB isolation in `tests/conftest.py` (currently missing → @5900 recurs; mark rows 847-861 `is_synthetic=1`); (2) **R2-9** — restart recovery (`day_type_seed.py` load opening_type from DB + `bars_5min_stream.py` backfill). Everything else in R2/P32 committed & verified.
 - **2026-05-30 · Cowork verified CC's R2+P32 commits — 2 issues surfaced** — CC committed (git lock cleared): R2-3 ISO-ts floor (`e75caa6`), R2-4 day_type fixtures (`0ee2657`), R2-5 api conftest (`19d6456`), R2-6 TPO test (`7e80626`), R2-8 gateway DB_PATH→DATABASE_URL (`65f00e5`), + P32-I/J/K/L. **Verified:** tick_reversal future-ts = **0** (§1.10 DONE). 844-846 marked `is_synthetic=1` (§1.8 approval executed ✓). **🔴 ISSUE 1 — @5900 RECURS:** 15 NEW rows 847-861 `is_synthetic=0`. Gateway DB_PATH fix alone does NOT isolate tests — `DATABASE_URL` defaults to the live DB (`db/session.py:14`), so tests still write to it. **R2-8 part-2 (conftest temp-DB isolation) was NOT done** → still bleeding. **⚠️ ISSUE 2 — TPO TZ:** `7e80626` changed the TEST to expect UTC (not ET) for `slot_start_ts_str`, classifying as fixture-drift — needs confirm that UTC is the intended TZ (Pre-LIVE Rule 4) or it masks a regression. **R2-9 (restart recovery) NOT started.**
 - **2026-05-30 · Michael APPROVED §1.15 (restart recovery — simplified)** — root: `day_type_seed.py:111` hardcodes `opening_type=INDETERMINATE` on seed instead of loading the persisted value (proof: 27/5 saved OPEN_DRIVE but seed would flip to INDETERMINATE). Approved design (no replay, no 13:00 rule): (1) MANDATORY 5min bar backfill on restart (`bars_5min_stream.py` `_first_push`); (2) S1 loads `opening_type`/`day_type`/`lock_state` from today's `v9_day_type_history` row (`date==et_today()`, not ROLLED_OVER), IB/range stay from Sierra; only if no row → real INDETERMINATE (degrades to Normal). Replay + 13:00-skip dropped as over-engineering. → mega-prompt R2-9. Plan: `RESTART_RECOVERY_PLAN_2026-05-30.md` v2.
