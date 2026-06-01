@@ -589,42 +589,47 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             sierra.valid = true;
             SCFloatArray arr;
 
+            // BUG FIX: use LAST element of chart 12's study array, not arr[idx].
+            // When the DLL host chart (RTH, 3-min) has fewer bars than chart 12
+            // (24h, 5-min), sc.Index (host) points to the MIDDLE of chart 12's
+            // array, not to the current bar. Reading arr[last] gets the LIVE value.
+            #define W_LAST(a) ((a).GetArraySize() - 1)
+
             // CCI-14 (Study ID:4, SG0)
             sc.GetStudyArrayFromChartUsingID(wc, 4, 0, arr);
-            if (arr.GetArraySize() > idx) sierra.cci_14 = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.cci_14 = arr[W_LAST(arr)];
 
             // CCI-6 / TCCI (Study ID:10, SG0)
             sc.GetStudyArrayFromChartUsingID(wc, 10, 0, arr);
-            if (arr.GetArraySize() > idx) sierra.cci_6 = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.cci_6 = arr[W_LAST(arr)];
 
             // Woodies EMA (Study ID:3, SG0)
             sc.GetStudyArrayFromChartUsingID(wc, 3, 0, arr);
-            if (arr.GetArraySize() > idx) sierra.ema_34 = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.ema_34 = arr[W_LAST(arr)];
 
             // LSMA (Study ID:2, SG0)
             sc.GetStudyArrayFromChartUsingID(wc, 2, 0, arr);
-            if (arr.GetArraySize() > idx) sierra.lsma_25 = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.lsma_25 = arr[W_LAST(arr)];
 
             // Sidewinder (Study ID:6, SG5 = actual SWI value)
-            // SG0/SG1 are ±200 reference lines, SG5 is the computed value
             sc.GetStudyArrayFromChartUsingID(wc, 6, 5, arr);
-            if (arr.GetArraySize() > idx) sierra.sidewinder = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.sidewinder = arr[W_LAST(arr)];
 
             // Chop Zone (Study ID:7, SG2 = angle value)
-            // SG0/SG1 are ±100 reference lines, SG2 is the computed angle
             sc.GetStudyArrayFromChartUsingID(wc, 7, 2, arr);
-            if (arr.GetArraySize() > idx) sierra.chopzone = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.chopzone = arr[W_LAST(arr)];
 
             // ProjHigh/ProjLow from Woodies Panel (Study ID:9, SG1/SG2)
-            // NOT from Pivot Points — the Panel study holds these values
             sc.GetStudyArrayFromChartUsingID(wc, 9, 1, arr);
-            if (arr.GetArraySize() > idx) sierra.proj_hi = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.proj_hi = arr[W_LAST(arr)];
             sc.GetStudyArrayFromChartUsingID(wc, 9, 2, arr);
-            if (arr.GetArraySize() > idx) sierra.proj_lo = arr[idx];
+            if (W_LAST(arr) >= 0) sierra.proj_lo = arr[W_LAST(arr)];
 
             // CCI-14 previous bar (for predictor + trend accuracy)
             sc.GetStudyArrayFromChartUsingID(wc, 4, 0, arr);
-            if (arr.GetArraySize() > idx && idx > 0) sierra.cci_14_prev = arr[idx - 1];
+            if (W_LAST(arr) >= 1) sierra.cci_14_prev = arr[W_LAST(arr) - 1];
+
+            #undef W_LAST
         }
 
 
