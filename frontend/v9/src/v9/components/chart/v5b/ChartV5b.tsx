@@ -549,6 +549,7 @@ export function ChartV5b() {
       setBarsForCvd(cvdBars);
       latestTsRef.current = latestBarUnix(cvdBars);
       formingBarRef.current = null;
+      if (!candleRef.current) return;
       candleRef.current.setData(
         cData.map((c) => ({
           time: c.time as any,
