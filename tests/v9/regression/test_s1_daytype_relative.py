@@ -14,14 +14,16 @@ def _set_flags(monkeypatch, ib_atr: bool = False, staging: bool = False):
 
 # ============ IB Width ATR ============
 
-# ---------- Flag OFF: original classification ----------
+# ---------- Always ratio (Michael 2026-06-01) ----------
 
 def test_ib_width_flag_off(monkeypatch):
+    """Even with flag OFF, classification is now always by IB/ATR ratio."""
     _set_flags(monkeypatch, ib_atr=False)
     from backend.v9.systems.day_type.detector import classify_ib_width_atr
-    assert classify_ib_width_atr(10.0, atr_daily=20.0) == IBWidth.NARROW
-    assert classify_ib_width_atr(20.0, atr_daily=20.0) == IBWidth.MEDIUM
-    assert classify_ib_width_atr(30.0, atr_daily=20.0) == IBWidth.WIDE
+    # IB/ATR ratio: 10/20=0.5→MEDIUM, 20/20=1.0→WIDE, 30/20=1.5→EXTREME
+    assert classify_ib_width_atr(10.0, atr_daily=20.0) == IBWidth.MEDIUM   # 0.5 = boundary
+    assert classify_ib_width_atr(20.0, atr_daily=20.0) == IBWidth.WIDE     # 1.0
+    assert classify_ib_width_atr(30.0, atr_daily=20.0) == IBWidth.EXTREME  # 1.5
 
 
 # ---------- Flag ON: ATR-relative ----------
@@ -49,9 +51,10 @@ def test_ib_width_flag_on_extreme(monkeypatch):
 def test_ib_width_flag_on_no_atr_fallback(monkeypatch):
     _set_flags(monkeypatch, ib_atr=True)
     from backend.v9.systems.day_type.detector import classify_ib_width_atr
-    # No ATR → absolute fallback
-    assert classify_ib_width_atr(10.0, atr_daily=None) == IBWidth.NARROW
-    assert classify_ib_width_atr(20.0, atr_daily=None) == IBWidth.MEDIUM
+    # No ATR → uses default MES ATR (20pt)
+    # 10/20=0.5→MEDIUM, 20/20=1.0→WIDE
+    assert classify_ib_width_atr(10.0, atr_daily=None) == IBWidth.MEDIUM
+    assert classify_ib_width_atr(20.0, atr_daily=None) == IBWidth.WIDE
 
 
 # ============ Staged Confidence ============

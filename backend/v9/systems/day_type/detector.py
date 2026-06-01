@@ -50,29 +50,35 @@ _REEVAL_RETRACE_HOLD = 0.25  # retrace <25% → hold classification
 _REEVAL_RETRACE_REDIAG = 0.50  # retrace ≥50% → re-diagnose
 
 
+_DEFAULT_ATR_MES = 20.0  # MES historical average 5-min ATR (fallback when bars < 5)
+
+
 def classify_ib_width_atr(
     ib_range_pt: float,
     atr_daily: Optional[float] = None,
     narrow_max: float = 15.0,
     medium_max: float = 25.0,
 ) -> IBWidth:
-    """IB width classification — ATR-relative when flag ON.
+    """IB width classification — ALWAYS by IB/ATR ratio (Michael 2026-06-01).
 
-    Flag OFF: original classify_ib_width (absolute points).
-    Flag ON + ATR available: IB_range/ATR14_daily in 4 tiers.
-    Flag ON + ATR None: fallback to absolute.
+    Uses IB_range / ATR14 ratio in 4 tiers:
+      < 0.5 ATR = NARROW
+      0.5–1.0   = MEDIUM
+      1.0–1.5   = WIDE
+      > 1.5     = EXTREME
+
+    When ATR not yet available (< 5 bars), uses MES historical default (20pt).
     """
-    if S1_IB_WIDTH_ATR and atr_daily is not None and atr_daily > 0:
-        ratio = ib_range_pt / atr_daily
-        if ratio < _IB_NARROW_ATR_MAX:
-            return IBWidth.NARROW
-        elif ratio < _IB_NORMAL_ATR_MAX:
-            return IBWidth.MEDIUM
-        elif ratio < _IB_WIDE_ATR_MAX:
-            return IBWidth.WIDE
-        else:
-            return IBWidth.EXTREME
-    return classify_ib_width(ib_range_pt, narrow_max, medium_max)
+    atr = atr_daily if atr_daily is not None and atr_daily > 0 else _DEFAULT_ATR_MES
+    ratio = ib_range_pt / atr
+    if ratio < _IB_NARROW_ATR_MAX:
+        return IBWidth.NARROW
+    elif ratio < _IB_NORMAL_ATR_MAX:
+        return IBWidth.MEDIUM
+    elif ratio < _IB_WIDE_ATR_MAX:
+        return IBWidth.WIDE
+    else:
+        return IBWidth.EXTREME
 
 
 def cap_confidence_staged(
