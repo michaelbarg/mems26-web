@@ -968,20 +968,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         int cont_chart = ContinuousChartNumber.GetInt();
         if (cont_chart > 0)
         {
-            SCFloatArray c5_open, c5_high, c5_low, c5_close, c5_vol, c5_bidvol, c5_askvol;
+            // ACSIL: GetChartBaseData fills ALL base arrays at once into SCGraphData
+            SCGraphData c5_data;
             SCDateTimeArray c5_dt;
 
-            sc.GetChartBaseData(cont_chart, SC_OPEN, c5_open);
-            sc.GetChartBaseData(cont_chart, SC_HIGH, c5_high);
-            sc.GetChartBaseData(cont_chart, SC_LOW, c5_low);
-            sc.GetChartBaseData(cont_chart, SC_LAST, c5_close);
-            sc.GetChartBaseData(cont_chart, SC_VOLUME, c5_vol);
-            sc.GetChartBaseData(cont_chart, SC_BIDVOL, c5_bidvol);
-            sc.GetChartBaseData(cont_chart, SC_ASKVOL, c5_askvol);
+            sc.GetChartBaseData(cont_chart, c5_data);
             sc.GetChartDateTimeArray(cont_chart, c5_dt);
 
-            int c5_size = c5_open.GetArraySize();
-            if (c5_size > 0 && c5_dt.GetArraySize() == c5_size)
+            int c5_size = c5_data[SC_OPEN].GetArraySize();
+            if (c5_size > 0 && c5_dt.GetArraySize() >= c5_size)
             {
                 int lookback = v9_min_i(c5_size, 600);
                 int start = c5_size - lookback;
@@ -1003,11 +998,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     {
                         long long ts = v9_sc_datetime_to_unix(c5_dt[i]);
                         if (ts <= 0) continue;
-                        float o = c5_open[i], h = c5_high[i];
-                        float l = c5_low[i], c = c5_close[i];
-                        float v = c5_vol[i];
-                        float delta = (i < (int)c5_askvol.GetArraySize() && i < (int)c5_bidvol.GetArraySize())
-                                    ? c5_askvol[i] - c5_bidvol[i] : 0;
+                        float o = c5_data[SC_OPEN][i], h = c5_data[SC_HIGH][i];
+                        float l = c5_data[SC_LOW][i], c = c5_data[SC_LAST][i];
+                        float v = c5_data[SC_VOLUME][i];
+                        float delta = (i < (int)c5_data[SC_ASKVOL].GetArraySize() && i < (int)c5_data[SC_BIDVOL].GetArraySize())
+                                    ? c5_data[SC_ASKVOL][i] - c5_data[SC_BIDVOL][i] : 0;
 
                         if (!first) j << ",";
                         first = false;
@@ -1047,8 +1042,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     {
                         long long ts = v9_sc_datetime_to_unix(c5_dt[i]);
                         if (ts <= 0) continue;
-                        float d = (i < (int)c5_askvol.GetArraySize() && i < (int)c5_bidvol.GetArraySize())
-                                ? c5_askvol[i] - c5_bidvol[i] : 0;
+                        float d = (i < (int)c5_data[SC_ASKVOL].GetArraySize() && i < (int)c5_data[SC_BIDVOL].GetArraySize())
+                                ? c5_data[SC_ASKVOL][i] - c5_data[SC_BIDVOL][i] : 0;
                         running += d;
 
                         if (!first) j << ",";
@@ -1057,7 +1052,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         json_long(j, "t", ts, false);
                         json_float(j, "d", d);
                         json_float(j, "cum", running);
-                        json_float(j, "p", c5_close[i]);
+                        json_float(j, "p", c5_data[SC_LAST][i]);
                         j << "}";
                     }
                     j << "]";
