@@ -219,6 +219,36 @@ def inspect(day_type_machine=None) -> SystemStatus:
         ),
     ]
 
+    # Opening type reasoning from live machine (if available)
+    if day_type_machine is not None:
+        try:
+            _m = day_type_machine
+            _opening = getattr(_m, 'opening', None)
+            _meta = getattr(_m, 'meta', {}) or {}
+            _cvd_shadow = _meta.get('cvd_opening_shadow', {})
+            _opening_detail = {}
+            if _opening:
+                _opening_detail = {
+                    "opening_type": str(getattr(_opening, 'opening_type', 'N/A')),
+                    "drive_direction": str(getattr(_opening, 'drive_direction', 'N/A')),
+                    "confidence": float(getattr(_opening, 'confidence', 0)),
+                }
+            if _cvd_shadow:
+                _opening_detail["cvd_shadow"] = _cvd_shadow
+            if _opening_detail:
+                components.append(Component(
+                    stage="opening",
+                    key="opening_reasoning",
+                    spec="How opening_type was determined",
+                    present=True,
+                    value=str(_opening_detail.get('opening_type', 'N/A')),
+                    live=str(_opening_detail),
+                    required="informational",
+                    freshness=_row_freshness,
+                ))
+        except Exception:
+            pass
+
     # Determine status per §4.3
     if is_classified and probability is not None and float(probability) >= 0.55:
         status = "fired"

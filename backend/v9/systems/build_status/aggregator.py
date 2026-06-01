@@ -14,7 +14,7 @@ from backend.v9.common.trading_date import et_today
 from typing import Optional, List
 
 from .types import BuildStatusResponse, SystemStatus, RTBSession
-from . import s2_inspector, woodies_inspector, day_type_inspector, bridge_inspector
+from . import s2_inspector, woodies_inspector, day_type_inspector, bridge_inspector, footprint_inspector
 
 logger = logging.getLogger(__name__)
 
@@ -54,10 +54,12 @@ class BuildStatusAggregator:
         five_min_system=None,
         woodies_system=None,
         day_type_machine=None,
+        footprint_system=None,
         db_path: Optional[str] = None,
     ):
         self._five_min_system = five_min_system
         self._woodies_system = woodies_system
+        self._footprint_system = footprint_system
         self._day_type_machine = day_type_machine
         self._db_path = db_path or DB_PATH
 
@@ -108,7 +110,7 @@ class BuildStatusAggregator:
         and emit a partial result with that system marked status: 'unknown' and errors: [...]"
         """
         if systems is None:
-            systems = ["bridge", "five_min", "woodies", "day_type"]
+            systems = ["bridge", "five_min", "footprint", "woodies", "day_type"]
 
         now_utc = datetime.now(timezone.utc)
         errors: List[str] = []
@@ -173,6 +175,26 @@ class BuildStatusAggregator:
                 result_systems.append(SystemStatus(
                     id="woodies",
                     name="S4 · Woodies CCI Patterns",
+                    running=False,
+                    hydrated=False,
+                ))
+
+        # ── S3 Footprint ────────────────────────────────────────────────────
+        if "footprint" in systems:
+            try:
+                fp_sys = footprint_inspector.inspect(
+                    footprint_system=self._footprint_system,
+                )
+                result_systems.append(fp_sys)
+            except Exception as e:
+                _rate_limited_warn(
+                    "agg_footprint_inspector",
+                    f"[BuildStatus/Agg] footprint_inspector.inspect() raised: {e}",
+                )
+                errors.append(f"footprint_inspector failed: {e}")
+                result_systems.append(SystemStatus(
+                    id="footprint",
+                    name="S3 · Footprint Patterns",
                     running=False,
                     hydrated=False,
                 ))

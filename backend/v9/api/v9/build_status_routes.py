@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/v9/build", tags=["build-status"])
 def get_pattern_status(
     request: Request,
     systems: Optional[str] = Query(
-        default="five_min,woodies,day_type",
+        default="bridge,five_min,footprint,woodies,day_type",
         description="CSV of systems to include: five_min, woodies, day_type",
     ),
     include_history: bool = Query(
@@ -48,6 +48,7 @@ def get_pattern_status(
     five_min_system = getattr(request.app.state, "five_min_system", None)
     woodies_system = getattr(request.app.state, "woodies_system", None)
     day_type_machine = getattr(request.app.state, "day_type_machine", None)
+    footprint_system = getattr(request.app.state, "footprint_system", None)
 
     systems_list = [s.strip() for s in systems.split(",") if s.strip()]
 
@@ -55,6 +56,7 @@ def get_pattern_status(
         five_min_system=five_min_system,
         woodies_system=woodies_system,
         day_type_machine=day_type_machine,
+        footprint_system=footprint_system,
     )
     result = agg.get_status(systems=systems_list)
     return result.model_dump()
