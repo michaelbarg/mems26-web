@@ -16,9 +16,10 @@ def _set_flag(monkeypatch, on: bool):
 # ---------- Flag OFF: absolute values ----------
 
 def test_flag_off_min_level_vol(monkeypatch):
+    """Flag OFF still uses volume-relative (always-relative, Michael 2026-06-01)."""
     _set_flag(monkeypatch, False)
     from backend.v9.systems.footprint.signals.stacked_imbalance import get_min_level_vol
-    assert get_min_level_vol(median_level_vol=100.0) == 10
+    assert get_min_level_vol(median_level_vol=100.0) == 30.0  # 0.3 × 100
 
 
 def test_flag_off_range_ticks(monkeypatch):

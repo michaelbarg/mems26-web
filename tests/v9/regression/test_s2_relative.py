@@ -26,17 +26,19 @@ def _set_flag(monkeypatch, on: bool):
 # ---------- Flag OFF: absolute values ----------
 
 def test_flag_off_expansion(monkeypatch):
+    """Flag OFF still uses ATR-relative (always-relative, Michael 2026-06-01)."""
     _set_flag(monkeypatch, False)
     from backend.v9.systems.five_min.five_min_system import get_expansion_range
     lo, hi = get_expansion_range(atr_5m=2.0)
-    assert lo == 1.5
-    assert hi == 1.75
+    assert lo == 3.0  # 1.5 × 2.0 ATR
+    assert hi == 4.0  # 2.0 × 2.0 ATR
 
 
 def test_flag_off_poc_return(monkeypatch):
+    """Flag OFF still uses ATR-relative (always-relative, Michael 2026-06-01)."""
     _set_flag(monkeypatch, False)
     from backend.v9.systems.five_min.five_min_system import get_poc_return_tolerance
-    assert get_poc_return_tolerance(atr_5m=2.0) == 0.5
+    assert get_poc_return_tolerance(atr_5m=2.0) == 0.4  # 0.2 × 2.0 ATR
 
 
 def test_flag_off_proximity(monkeypatch):
@@ -115,10 +117,11 @@ def test_flag_on_trough_tolerance(monkeypatch):
 # ---------- Flag ON but ATR is None: fallback to absolute ----------
 
 def test_flag_on_atr_none_falls_back(monkeypatch):
+    """ATR=None uses MES default ATR (3.0pt), not absolute fixed values."""
     _set_flag(monkeypatch, True)
     from backend.v9.systems.five_min.five_min_system import get_expansion_range, get_poc_return_tolerance
     from backend.v9.systems.five_min.adaptive_stop import get_floor_ticks
     lo, hi = get_expansion_range(atr_5m=None)
-    assert lo == 1.5 and hi == 1.75
-    assert get_poc_return_tolerance(atr_5m=None) == 0.5
+    assert lo == 4.5 and hi == 6.0  # 1.5×3.0, 2.0×3.0 (default ATR=3.0)
+    assert abs(get_poc_return_tolerance(atr_5m=None) - 0.6) < 0.01  # 0.2×3.0 default
     assert get_floor_ticks(atr_5m=None) == 4

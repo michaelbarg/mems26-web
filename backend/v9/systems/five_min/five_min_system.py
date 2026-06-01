@@ -46,18 +46,25 @@ _EXPANSION_MAX_ATR_K = 2.0   # bar_range ≤ 2.0×ATR5m
 _POC_RETURN_ATR_K = 0.2      # POC return tolerance ~0.2×ATR5m
 
 
+_DEFAULT_ATR_5M = 3.0  # MES 5-min ATR historical fallback (pts)
+
+
 def get_expansion_range(atr_5m: _Opt[float] = None):
-    """Return (min_pt, max_pt) for Initiative expansion gate."""
-    if S2_ATR_RELATIVE and atr_5m is not None:
-        return (_EXPANSION_MIN_ATR_K * atr_5m, _EXPANSION_MAX_ATR_K * atr_5m)
-    return (EXPANSION_MIN_PT, EXPANSION_MAX_PT)
+    """Return (min_pt, max_pt) for Initiative expansion gate.
+
+    ALWAYS ATR-relative (Michael 2026-06-01). Fallback to MES default ATR.
+    """
+    atr = atr_5m if atr_5m is not None and atr_5m > 0 else _DEFAULT_ATR_5M
+    return (_EXPANSION_MIN_ATR_K * atr, _EXPANSION_MAX_ATR_K * atr)
 
 
 def get_poc_return_tolerance(atr_5m: _Opt[float] = None) -> float:
-    """Return POC return tolerance in points."""
-    if S2_ATR_RELATIVE and atr_5m is not None:
-        return _POC_RETURN_ATR_K * atr_5m
-    return POC_RETURN_TOLERANCE_PT
+    """Return POC return tolerance in points.
+
+    ALWAYS ATR-relative (Michael 2026-06-01). Fallback to MES default ATR.
+    """
+    atr = atr_5m if atr_5m is not None and atr_5m > 0 else _DEFAULT_ATR_5M
+    return _POC_RETURN_ATR_K * atr
 
 
 class FiveMinMode:

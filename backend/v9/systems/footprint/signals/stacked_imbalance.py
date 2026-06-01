@@ -26,8 +26,12 @@ _MIN_VOL_MEDIAN_K = 0.3  # prior: 0.3 × median_level_vol
 
 
 def get_min_level_vol(median_level_vol: float = 0.0) -> float:
-    """Min volume at level — volume-relative when flag ON, not ATR-based."""
-    if S3_RELATIVE and median_level_vol > 0:
+    """Min volume at level — ALWAYS volume-relative (Michael 2026-06-01).
+
+    Uses 0.3 × median_level_vol. Falls back to MIN_LEVEL_VOL (10)
+    only when median is 0 (no footprint data).
+    """
+    if median_level_vol > 0:
         return _MIN_VOL_MEDIAN_K * median_level_vol
     return MIN_LEVEL_VOL
 
