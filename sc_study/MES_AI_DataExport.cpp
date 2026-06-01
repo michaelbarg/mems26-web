@@ -582,7 +582,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         WoodiesSierraStudies sierra = {false, 0,0,0,0,0,0,0,0,0,0};
 
-        if (w_chart > 0) {
+        // BUG FIX: was `if (w_chart > 0)` — skipped reading when Input 18 = 0
+        // (0 = same chart = chart 12). Studies ARE on chart 12 and must be read.
+        // wc already defaults to sc.ChartNumber when w_chart == 0.
+        {
             sierra.valid = true;
             SCFloatArray arr;
 
