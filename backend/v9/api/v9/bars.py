@@ -843,15 +843,15 @@ def post_woodies_5min(
         try:
             conn = _sql.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
             conn.execute(
-                """INSERT INTO v9_bars_5min_woodies
-                (ts, open, high, low, close, volume, cci_14, cci_6_tcci,
+                """INSERT OR REPLACE INTO v9_bars_5min_woodies
+                (ts, symbol, open, high, low, close, volume, cci_14, cci_6_tcci,
                  lsma_value, swi_value, czi_value, ema_34, trend_state,
                  predictor_next_cci, zlr_detected, zlr_direction,
                  proj_hi, proj_lo, hfe_detected, hfe_direction, hfe_extreme_bars_ago,
                  lsma_above_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    bar.get("ts", ""), o, h, l, c, vol,
+                    bar.get("ts", ""), "MES", o, h, l, c, vol,
                     bar.get("cci_14"), bar.get("cci_6_tcci"),
                     bar.get("lsma_value"), bar.get("swi_value"),
                     bar.get("czi_value"), bar.get("ema_34"),

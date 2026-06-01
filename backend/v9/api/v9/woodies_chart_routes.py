@@ -253,9 +253,98 @@ def _load_sierra_woodies(export_path: Path, max_age_s: float) -> Optional[Dict[s
         return None
 
 
+def _load_woodies_from_db(limit: int) -> Optional[Dict[str, Any]]:
+    """Fallback: load last N bars from v9_bars_5min_woodies (Option C — OOH display).
+
+    Used when Sierra export is stale/empty (overnight, weekend).
+    Returns display-only bars with source="db_woodies_5min".
+    """
+    import sqlite3
+    db_path = os.getenv(
+        "V9_DB_PATH",
+        "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db",
+    )
+    try:
+        conn = sqlite3.connect(db_path)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """SELECT ts, open, high, low, close, volume,
+                      cci_14, cci_6_tcci, lsma_value, swi_value,
+                      czi_value, ema_34, trend_state, predictor_next_cci,
+                      zlr_detected, zlr_direction, proj_hi, proj_lo,
+                      hfe_detected, hfe_direction, lsma_above_price
+               FROM v9_bars_5min_woodies
+               ORDER BY ts DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+        conn.close()
+    except Exception as e:
+        logger.warning("[Woodies chart] DB fallback failed: %s", e)
+        return None
+
+    if not rows:
+        return None
+
+    bars = []
+    for row in reversed(rows):  # oldest first
+        r = dict(row)
+        try:
+            ts_str = r.get("ts", "")
+            # Parse ISO ts to unix
+            dt = datetime.fromisoformat(str(ts_str).replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            ts_unix = int(dt.timestamp())
+        except (ValueError, TypeError):
+            continue
+        bars.append({
+            "ts_unix": ts_unix,
+            "ts": dt.strftime("%Y-%m-%d %H:%M:%S"),
+            "cci_14": r.get("cci_14"),
+            "cci_6_tcci": r.get("cci_6_tcci"),
+            "ccidiff": round(float(r["cci_14"]) - float(r["cci_6_tcci"]), 2)
+                if r.get("cci_14") is not None and r.get("cci_6_tcci") is not None else None,
+            "trend_state": r.get("trend_state") or "GRAY",
+            "trend_color": TREND_COLORS.get(r.get("trend_state") or "GRAY", TREND_COLORS["GRAY"]),
+            "zlr_detected": bool(r.get("zlr_detected")),
+            "zlr_direction": r.get("zlr_direction"),
+            "hfe_detected": bool(r.get("hfe_detected")),
+            "hfe_direction": r.get("hfe_direction"),
+            "close": r.get("close"),
+            "high": r.get("high"),
+            "low": r.get("low"),
+            "open": r.get("open"),
+            "lsma_value": r.get("lsma_value"),
+            "lsma_above_price": bool(r.get("lsma_above_price")),
+            "predictor_next_cci": r.get("predictor_next_cci"),
+            "proj_hi": r.get("proj_hi"),
+            "proj_lo": r.get("proj_lo"),
+            "swi_value": r.get("swi_value"),
+            "czi_value": r.get("czi_value"),
+            "ema_34": r.get("ema_34"),
+        })
+
+    if not bars:
+        return None
+
+    last_ts = bars[-1]["ts"]
+    return {
+        "source": "db_woodies_5min",
+        "stale": True,
+        "stale_badge": f"LAST SESSION \u00b7 {last_ts[:10]}",
+        "bars": bars,
+        "current_bar": bars[-1],
+        "cardinality": len(bars),
+    }
+
+
 @router.get("/api/v9/woodies/chart")
 async def woodies_chart(limit: int = Query(50, ge=1, le=200)):
-    """Return last N Woodies 5m CCI bars from Sierra export for chart panel."""
+    """Return last N Woodies 5m CCI bars from Sierra export for chart panel.
+
+    Falls back to DB (v9_bars_5min_woodies) when Sierra export is empty/stale
+    (overnight, weekend). DB bars are display-only — firing gates remain RTH-locked.
+    """
     payload = _load_sierra_woodies(EXPORT_PATH, MAX_AGE_S)
     if payload is None:
         return {
@@ -269,6 +358,15 @@ async def woodies_chart(limit: int = Query(50, ge=1, le=200)):
         return payload
 
     bars = payload.get("bars") or []
+
+    # Option C fallback: if Sierra export has no bars (overnight/weekend),
+    # load from DB for display continuity.
+    if not bars:
+        db_payload = _load_woodies_from_db(limit)
+        if db_payload:
+            db_payload["requested_limit"] = limit
+            return db_payload
+
     tail = bars[-limit:] if len(bars) > limit else bars
     out = {**payload, "bars": tail, "requested_limit": limit, "cardinality": len(tail)}
     if tail:

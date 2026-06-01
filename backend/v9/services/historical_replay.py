@@ -99,6 +99,7 @@ class HistoricalReplay:
             ("v9_bars_tick_reversal", "tick_reversal_15"),
             ("v9_bars_footprint", "footprint"),
             ("v9_bars_woodies", "woodies"),
+            ("v9_bars_5min_woodies", "woodies_5min"),
             ("v9_bars_volume_profile", "volume_profile"),
             ("v9_bars_cumulative_delta", "cumulative_delta"),
             ("v9_bars_imbalance", "imbalance"),

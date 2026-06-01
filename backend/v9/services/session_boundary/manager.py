@@ -196,9 +196,18 @@ class SessionBoundaryManager:
             """, (today.isoformat(),))
 
             # tpo_sessions → tpo_sessions_archive
+            # Explicit column list: archive has 19 columns (original schema).
+            # v9_tpo_sessions gained 8 extra columns that archive doesn't have.
             cur.execute("""
                 INSERT INTO v9_tpo_sessions_archive
-                  SELECT *, datetime('now') AS archived_at
+                  (session_id, session_type, trading_date, opened_ts, closed_ts,
+                   poc_price, vah_price, val_price, range_high, range_low,
+                   total_volume, profile_shape, opening_type,
+                   ib_high, ib_low, ib_locked, letter_count, archived_at)
+                  SELECT session_id, session_type, trading_date, opened_ts, closed_ts,
+                         poc_price, vah_price, val_price, range_high, range_low,
+                         total_volume, profile_shape, opening_type,
+                         ib_high, ib_low, ib_locked, letter_count, datetime('now')
                   FROM v9_tpo_sessions
                   WHERE trading_date < ?
             """, (today.isoformat(),))
