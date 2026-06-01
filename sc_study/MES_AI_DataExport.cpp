@@ -44,10 +44,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef TPOChartNumber      = sc.Input[17];   // Chart # where TPO studies live (0 = same chart)
     SCInputRef WoodiesChartNumber  = sc.Input[18];   // Chart # where Woodies studies live (0 = same chart)
     SCInputRef YesterdayIBStudyID  = sc.Input[19];   // Sierra Study ID for Yesterday's Initial Balance (0 = disabled)
+    SCInputRef ContinuousChartNumber = sc.Input[20]; // Chart # for 24h continuous 5-min bars (0 = disabled)
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.4.2-p30.11";
+        sc.GraphName        = "MES AI Data Export v9.4.3-chart5";
         sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
@@ -119,6 +120,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         YesterdayIBStudyID.Name = "Yesterday Initial Balance Study ID (Sierra)";
         YesterdayIBStudyID.SetInt(0);  // 0 = disabled; set to Sierra Study ID of the IB study configured for the previous session
+
+        ContinuousChartNumber.Name = "Continuous 24h Chart Number (0=disabled)";
+        ContinuousChartNumber.SetInt(5);  // Chart #5 = MESM26 5-Min 24h Globex
 
         // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
         // (unbounded VAP storage per bar). Footprint export now uses fallback
@@ -951,6 +955,117 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 std::string rpath = std::string(v9dir) + "reversal_cluster.json";
                 std::ofstream rf(rpath.c_str());
                 if (rf.is_open()) { rf.write(cb, cl); rf.close(); }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Export 10: Continuous 24h 5-min bars + CVD from chart #5
+    // Reads OHLCV + bid/ask volume from a 24h Globex chart (Input 20).
+    // Writes to SEPARATE files — does NOT touch chart #12 RTH exports.
+    // ══════════════════════════════════════════════════════════════
+    {
+        int cont_chart = ContinuousChartNumber.GetInt();
+        if (cont_chart > 0)
+        {
+            SCFloatArray c5_open, c5_high, c5_low, c5_close, c5_vol, c5_bidvol, c5_askvol;
+            SCDateTimeArray c5_dt;
+
+            sc.GetChartBaseData(cont_chart, SC_OPEN, c5_open);
+            sc.GetChartBaseData(cont_chart, SC_HIGH, c5_high);
+            sc.GetChartBaseData(cont_chart, SC_LOW, c5_low);
+            sc.GetChartBaseData(cont_chart, SC_LAST, c5_close);
+            sc.GetChartBaseData(cont_chart, SC_VOLUME, c5_vol);
+            sc.GetChartBaseData(cont_chart, SC_BIDVOL, c5_bidvol);
+            sc.GetChartBaseData(cont_chart, SC_ASKVOL, c5_askvol);
+            sc.GetChartDateTimeArray(cont_chart, c5_dt);
+
+            int c5_size = c5_open.GetArraySize();
+            if (c5_size > 0 && c5_dt.GetArraySize() == c5_size)
+            {
+                int lookback = v9_min_i(c5_size, 600);
+                int start = c5_size - lookback;
+
+                // ── 5min_continuous.json: OHLCV bars ──
+                {
+                    std::ostringstream j;
+                    j << std::fixed << std::setprecision(2);
+                    j << "{";
+                    json_str(j, "type", "5min_continuous", false);
+                    json_str(j, "version", V9_VERSION);
+                    json_long(j, "export_ts", (long long)time(nullptr));
+                    json_int(j, "chart_number", cont_chart);
+                    json_int(j, "total_bars", lookback);
+
+                    j << ",\"bars\":[";
+                    bool first = true;
+                    for (int i = start; i < c5_size; i++)
+                    {
+                        long long ts = v9_sc_datetime_to_unix(c5_dt[i]);
+                        if (ts <= 0) continue;
+                        float o = c5_open[i], h = c5_high[i];
+                        float l = c5_low[i], c = c5_close[i];
+                        float v = c5_vol[i];
+                        float delta = (i < (int)c5_askvol.GetArraySize() && i < (int)c5_bidvol.GetArraySize())
+                                    ? c5_askvol[i] - c5_bidvol[i] : 0;
+
+                        if (!first) j << ",";
+                        first = false;
+                        j << "{";
+                        json_long(j, "ts", ts, false);
+                        json_float(j, "o", o);
+                        json_float(j, "h", h);
+                        json_float(j, "l", l);
+                        json_float(j, "c", c);
+                        json_float(j, "vol", v);
+                        json_float(j, "delta", delta);
+                        j << "}";
+                    }
+                    j << "]";
+                    j << "}";
+                    v9_write_json(v9dir, "5min_continuous.json", j.str());
+                }
+
+                // ── cumulative_delta_continuous.json: session-anchored CVD ──
+                {
+                    // Find session start: 18:00 ET rollover (same as main CVD export).
+                    // For simplicity: anchor to the start of lookback window.
+                    // The bridge/backend handles session reset boundaries.
+                    std::ostringstream j;
+                    j << std::fixed << std::setprecision(2);
+                    j << "{";
+                    json_str(j, "type", "cumulative_delta_continuous", false);
+                    json_str(j, "version", V9_VERSION);
+                    json_long(j, "export_ts", (long long)time(nullptr));
+                    json_int(j, "chart_number", cont_chart);
+                    json_int(j, "output_interval", 300);
+
+                    j << ",\"points\":[";
+                    float running = 0;
+                    bool first = true;
+                    for (int i = start; i < c5_size; i++)
+                    {
+                        long long ts = v9_sc_datetime_to_unix(c5_dt[i]);
+                        if (ts <= 0) continue;
+                        float d = (i < (int)c5_askvol.GetArraySize() && i < (int)c5_bidvol.GetArraySize())
+                                ? c5_askvol[i] - c5_bidvol[i] : 0;
+                        running += d;
+
+                        if (!first) j << ",";
+                        first = false;
+                        j << "{";
+                        json_long(j, "t", ts, false);
+                        json_float(j, "d", d);
+                        json_float(j, "cum", running);
+                        json_float(j, "p", c5_close[i]);
+                        j << "}";
+                    }
+                    j << "]";
+
+                    json_float(j, "current_delta", running);
+                    j << "}";
+                    v9_write_json(v9dir, "cumulative_delta_continuous.json", j.str());
+                }
             }
         }
     }
