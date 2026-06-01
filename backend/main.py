@@ -172,6 +172,10 @@ async def _startup():
         _prev_day_type = {"value": "UNKNOWN"}  # mutable for closure
         _prev_bar_ts = {"value": None}  # dedup guard: skip re-processing same bar (4B fix)
 
+        # D-S1DYN: Shadow reclassifier (IB-relative dynamic chain)
+        from backend.v9.shared.atr import S1_DYNAMIC_RECLASS
+        _shadow_reclass = {"instance": None}  # mutable for closure; created after IB lock
+
         def _load_previous_day_context_for_startup():
             try:
                 return _load_previous_day_context()
@@ -254,6 +258,31 @@ async def _startup():
                     logger=_logger,
                 )
                 state = day_type_machine.process_bar(bar_input)
+
+                # D-S1DYN: Shadow reclassification (IB-relative, log only)
+                if S1_DYNAMIC_RECLASS and day_type_machine.ib_locked:
+                    try:
+                        if _shadow_reclass["instance"] is None:
+                            from backend.v9.systems.day_type.shadow_reclass import ShadowReclassifier
+                            _shadow_reclass["instance"] = ShadowReclassifier(
+                                ib_high=day_type_machine.ib_high,
+                                ib_low=day_type_machine.ib_low,
+                                session_date=now_et().date().isoformat(),
+                            )
+                        _sr = _shadow_reclass["instance"]
+                        # Get session extremes from the machine
+                        _sr.process_bar(
+                            session_high=day_type_machine.rth_session_h or day_type_machine.session_high,
+                            session_low=day_type_machine.rth_session_l or day_type_machine.session_low,
+                            bar_close=bar_input.close,
+                            session_min=_session_min,
+                            vah=None,  # TODO: wire from tpo when available
+                            val=None,
+                            poc=None,
+                            cvd=None,
+                        )
+                    except Exception as _sr_err:
+                        _logger.debug("[D-S1DYN] Shadow reclass error: %s", _sr_err)
 
                 # Persist to v9_day_type_state (P5.1.2)
                 try:

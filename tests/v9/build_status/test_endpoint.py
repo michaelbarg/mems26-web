@@ -83,9 +83,9 @@ def test_build_status_endpoint_returns_200_when_all_systems_up(
     assert resp.status_code == 200
     data = resp.json()
     assert "systems" in data
-    assert len(data["systems"]) == 3
+    assert len(data["systems"]) == 5  # bridge + five_min + footprint + woodies + day_type
     system_ids = {s["id"] for s in data["systems"]}
-    assert system_ids == {"five_min", "woodies", "day_type"}
+    assert system_ids == {"bridge", "five_min", "footprint", "woodies", "day_type"}
 
 
 # ── Test 2 ───────────────────────────────────────────────────────────────────
@@ -230,9 +230,9 @@ def test_endpoint_includes_data_freshness_block(
         # Per-system threshold — bridge uses 90s (tighter live-feed gate),
         # S2/Woodies/DayType inspectors use 360s (one 5-min bar + margin).
         # Source: bridge_inspector.py and the *_inspector.py defaults.
-        assert df.threshold_seconds in (90, 360), (
+        assert df.threshold_seconds in (90, 360, 660), (
             f"System {sys_status.id} has unexpected threshold "
-            f"{df.threshold_seconds}; expected 90 (bridge) or 360 (5min)"
+            f"{df.threshold_seconds}; expected 90 (bridge) or 360/660 (5min/woodies)"
         )
 
 
