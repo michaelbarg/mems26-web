@@ -251,6 +251,10 @@ class DayTypeStateMachine:
         self._extension_tracker: Optional[ExtensionTracker] = extension_tracker
         self._decision_matrix: Optional[object] = decision_matrix
         self._latest_cvd_state: Optional[str] = None
+        self.meta: Dict[str, Any] = {}  # shadow/calibration metadata (CVD opening, etc.)
+        # S1_IB_WIDTH_ATR: rolling ATR-14 from 5-min bar ranges
+        self._bar_ranges: List[float] = []  # last 14 bar ranges (high-low)
+        self._last_atr_daily: Optional[float] = None
         self._max_tpo_row_width: int = 0
         self._active_zohar_rules: List[str] = []
         self._last_state: Optional[DayTypeState] = None
@@ -309,6 +313,15 @@ class DayTypeStateMachine:
         Returns updated DayTypeState.
         """
         self.bar_count += 1
+
+        # S1_IB_WIDTH_ATR: update rolling ATR-14 from bar ranges
+        bar_range = bar.high - bar.low
+        if bar_range > 0:
+            self._bar_ranges.append(bar_range)
+            if len(self._bar_ranges) > 14:
+                self._bar_ranges = self._bar_ranges[-14:]
+            if len(self._bar_ranges) >= 5:
+                self._last_atr_daily = sum(self._bar_ranges) / len(self._bar_ranges)
 
         # Track session range (all bars) + split Globex vs RTH
         self.session_high = max(self.session_high, bar.high)
@@ -453,8 +466,13 @@ class DayTypeStateMachine:
         if len(self.opening_bars) >= 3:
             # D-094: CVD-enhanced detection (flag S1_CVD_OPENING)
             # footprint_deltas from bar delta field (source-of-truth when available)
-            _deltas = [b.volume for b in self.opening_bars if hasattr(b, 'volume')]
-            _fp_deltas = None  # TODO: wire footprint deltas when available from bar events
+            # S1_CVD_OPENING: compute per-bar delta proxy from OHLCV.
+            # sign(close-open) × volume approximates buy/sell imbalance.
+            # Full footprint deltas are preferred when available from DLL.
+            _fp_deltas = []
+            for _b in self.opening_bars:
+                _dir = 1 if _b.close >= _b.open else -1
+                _fp_deltas.append(_dir * _b.volume)
             otype, direction, conf, _shadow = detect_opening_type_cvd(
                 self.opening_bars, footprint_deltas=_fp_deltas,
             )
@@ -743,6 +761,8 @@ class DayTypeStateMachine:
         range_aligned = self._range_aligns_with_type(self.day_type)
 
         self.confidence = calculate_confidence(type_history, behavior_agrees, range_aligned)
+        # S1_DAYTYPE_STAGING: cap confidence by session stage (flag-gated)
+        self.confidence = cap_confidence_staged(self.confidence, bar.session_min)
         self.stage = Stage.C3
 
     def _stage_c3(self, bar: BarInput):

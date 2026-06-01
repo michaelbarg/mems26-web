@@ -366,7 +366,15 @@ class FootprintSystem(BaseV9TradingSystem):
             candidates.append(absorption)
 
         # Stacked Imbalance: uses footprint cell levels from current bar
-        stacked = detect_stacked_imbalance(footprint_levels, bar)
+        # S3_RELATIVE: compute median level volume for volume-relative threshold
+        _median_vol = 0.0
+        if footprint_levels:
+            _vols = [lv.get("bid_vol", 0) + lv.get("ask_vol", 0) for lv in footprint_levels if isinstance(lv, dict)]
+            if _vols:
+                _sorted = sorted(_vols)
+                _mid = len(_sorted) // 2
+                _median_vol = _sorted[_mid] if len(_sorted) % 2 else (_sorted[_mid - 1] + _sorted[_mid]) / 2
+        stacked = detect_stacked_imbalance(footprint_levels, bar, median_level_vol=_median_vol)
         if stacked:
             candidates.append(stacked)
 

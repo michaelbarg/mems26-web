@@ -45,16 +45,21 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
             ).fetchall()
 
         # Fallback: v9_bars_5min_woodies (better overnight coverage)
-        if before:
-            rows_w = conn.execute(
-                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies WHERE ts < ? ORDER BY ts DESC LIMIT ?",
-                (before, fetch_limit),
-            ).fetchall()
-        else:
-            rows_w = conn.execute(
-                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",
-                (fetch_limit,),
-            ).fetchall()
+        # Table may not exist in test DBs — graceful fallback
+        rows_w = []
+        try:
+            if before:
+                rows_w = conn.execute(
+                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies WHERE ts < ? ORDER BY ts DESC LIMIT ?",
+                    (before, fetch_limit),
+                ).fetchall()
+            else:
+                rows_w = conn.execute(
+                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",
+                    (fetch_limit,),
+                ).fetchall()
+        except sqlite3.OperationalError:
+            pass  # table doesn't exist — primary-only mode
         conn.close()
 
         # Merge: index primary by ts, fill gaps from woodies
