@@ -312,27 +312,33 @@ async def _startup():
                         "[DayType] V9 consumer persist failed: %s", consumer_err
                     )
 
-                # P5.1.5: Publish on classification CHANGE only
+                # Publish day_type_classification on every bar (S2 needs opening_type always).
+                # Was: only on change — S2 missed the first event and stayed at opening_type=NA.
                 dt_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
+                # Get opening_type from the machine's classification (not TPO)
+                _machine_opening = "UNKNOWN"
+                if hasattr(day_type_machine, 'opening') and day_type_machine.opening:
+                    _ot = getattr(day_type_machine.opening, 'opening_type', None)
+                    if _ot:
+                        _machine_opening = _ot.value if hasattr(_ot, 'value') else str(_ot)
                 if dt_val != _prev_day_type["value"]:
                     _logger.info("[DayType] Classification changed: %s -> %s (conf=%.2f)",
                                  _prev_day_type["value"], dt_val, state.confidence)
-                    _prev_day_type["value"] = dt_val
-                    try:
-                        await bar_router.publish("day_type_classification", {
-                            "ts": datetime.now(timezone.utc).isoformat(),
-                            "day_type": dt_val,
-                            "status": str(state.lock_state),
-                            "confidence": state.confidence,
-                            "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
-                            "ib_high": ib_h,
-                            "ib_low": ib_l,
-                            "ib_class": state.ib_width.value if hasattr(state.ib_width, 'value') else None,
-                            "opening_type": opening_type,
-                            "previous_day_type": _prev_day_type["value"],
-                        })
-                    except Exception:
-                        pass
+                _prev_day_type["value"] = dt_val
+                try:
+                    await bar_router.publish("day_type_classification", {
+                        "ts": datetime.now(timezone.utc).isoformat(),
+                        "day_type": dt_val,
+                        "status": str(state.lock_state),
+                        "confidence": state.confidence,
+                        "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+                        "ib_high": ib_h,
+                        "ib_low": ib_l,
+                        "ib_class": state.ib_width.value if hasattr(state.ib_width, 'value') else None,
+                        "opening_type": _machine_opening,
+                    })
+                except Exception:
+                    pass
             except Exception as e:
                 _logger.warning("[DayType] process_bar error: %s", e, exc_info=True)
 
