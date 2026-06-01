@@ -3,7 +3,7 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Body, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
@@ -909,6 +909,60 @@ def post_woodies_5min(
     if last_flat:
         _route_bar("woodies_5min", last_flat)
     return {"ok": True, "inserted": created, "type": "woodies_5min"}
+
+
+# ── POST /api/v9/bars/5min_continuous (chart #5 24h) ──
+
+@router.post("/5min_continuous")
+def post_5min_continuous(
+    payload: dict = Body(...),
+    _token: str = Depends(verify_bridge_token),
+):
+    """Ingest continuous 24h 5-min bars from chart #5.
+
+    Stores in v9_bars_5min (same table as RTH bars) — the chart endpoint
+    merges both sources. INSERT OR IGNORE deduplicates by (ts, symbol).
+    """
+    bars = payload.get("bars", [])
+    if not bars:
+        return {"ok": True, "inserted": 0, "type": "5min_continuous"}
+    _record_push("bars_5min_continuous")
+
+    from backend.v9.services.bar_ingestion import bar_ingestion_service
+    from datetime import datetime as _dt, timezone as _tz
+    created = 0
+    for bar in bars:
+        # Convert unix ts to ISO datetime string (matching v9_bars_5min format)
+        raw_ts = bar.get("ts")
+        try:
+            ts_val = _dt.fromtimestamp(float(raw_ts), tz=_tz.utc) if raw_ts else _dt.now(_tz.utc)
+        except (TypeError, ValueError):
+            ts_val = _dt.now(_tz.utc)
+        ok = bar_ingestion_service.ingest_bar({
+            "ts": ts_val,
+            "open": bar.get("o"),
+            "high": bar.get("h"),
+            "low": bar.get("l"),
+            "close": bar.get("c"),
+            "volume": bar.get("vol"),
+            "delta": bar.get("delta", 0),
+            "symbol": "MES",
+        })
+        if ok:
+            created += 1
+    return {"ok": True, "inserted": created, "type": "5min_continuous"}
+
+
+# ── POST /api/v9/bars/cvd_continuous (chart #5 24h) ──
+
+@router.post("/cvd_continuous")
+def post_cvd_continuous(
+    payload: dict = Body(...),
+    _token: str = Depends(verify_bridge_token),
+):
+    """Ingest continuous 24h CVD from chart #5. Stored in v9_bars_cumulative_delta."""
+    _record_push("cvd_continuous")
+    return {"ok": True, "type": "cvd_continuous"}
 
 
 # ── POST /api/v9/bars/tpo ──
