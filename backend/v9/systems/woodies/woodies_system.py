@@ -352,6 +352,16 @@ class WoodiesSystem(BaseV9TradingSystem):
                 _ts = TrendState(trend_state_str)
             except ValueError:
                 _ts = TrendState.GRAY
+
+            # D-WDIAG: Override GRAY/YELLOW to BLUE/RED when |CCI| ≥ 200.
+            # Bars with extreme CCI (±200+) represent strong momentum that
+            # should never be gated by no-trend (GRAY). Audit confirmed 6 bars
+            # with CCI>200 misclassified as GRAY — this is a trend classifier
+            # lag, not true no-trend. Michael approved 2026-06-01.
+            _cci = self.current_state.get("cci_14") or 0
+            if _ts in (TrendState.GRAY, TrendState.YELLOW) and abs(_cci) >= 200:
+                _ts = TrendState.BLUE if _cci > 0 else TrendState.RED
+                self.current_state["trend_state"] = _ts.value
             # P-W5 LOCK A: YELLOW blocks all 9 patterns. detect_all_patterns runs
             # unconditionally; we drop here rather than letting select_winner raise
             # ValueError into the outer except handler (F-16 fix).
