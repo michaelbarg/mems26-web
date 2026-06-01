@@ -53,6 +53,31 @@ def inspect(day_type_machine=None) -> SystemStatus:
     system.running = True
     system.hydrated = row is not None
 
+    # D-OBS: Live inputs from machine + DB
+    from .types import LiveInput, Interpretation
+    if day_type_machine is not None:
+        try:
+            _m = day_type_machine
+            system.live_inputs = [
+                LiveInput(field="ib_high", value=f"{_m.ib_high:.2f}" if _m.ib_high else "—", source="sierra_tpo"),
+                LiveInput(field="ib_low", value=f"{_m.ib_low:.2f}" if _m.ib_low and _m.ib_low != float('inf') else "—", source="sierra_tpo"),
+                LiveInput(field="ib_locked", value=str(_m.ib_locked), source="state_machine"),
+                LiveInput(field="bar_count", value=str(_m.bar_count), source="state_machine"),
+                LiveInput(field="session_high", value=f"{_m.session_high:.2f}" if _m.session_high else "—", source="bar_data"),
+                LiveInput(field="session_low", value=f"{_m.session_low:.2f}" if _m.session_low and _m.session_low != float('inf') else "—", source="bar_data"),
+                LiveInput(field="stage", value=str(_m.stage.value) if hasattr(_m.stage, 'value') else str(_m.stage), source="state_machine"),
+                LiveInput(field="lock_state", value=str(_m.lock_state), source="state_machine"),
+                LiveInput(field="confidence", value=f"{_m.confidence:.2f}", source="state_machine"),
+            ]
+            system.interpretations = [
+                Interpretation(key="day_type", value=str(_m.day_type.value) if hasattr(_m.day_type, 'value') else str(_m.day_type), from_input="voting_engine"),
+                Interpretation(key="opening_type", value=str(getattr(_m.opening, 'opening_type', 'N/A')) if _m.opening else "N/A", from_input="opening_bars"),
+                Interpretation(key="behavior", value=str(_m.behavior.value) if hasattr(_m.behavior, 'value') else str(_m.behavior), from_input="extension_tracking"),
+                Interpretation(key="ib_width_class", value=str(_m.ib_class.width.value) if _m.ib_class and hasattr(_m.ib_class, 'width') else "—", from_input="ib_high+ib_low"),
+            ]
+        except Exception:
+            pass
+
     if row is None:
         system.patterns.append(PatternStatus(
             id="day_type_current",

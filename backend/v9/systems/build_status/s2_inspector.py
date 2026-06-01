@@ -74,6 +74,21 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     system.hydrated = state.get("hydrated", False)
     system.mode = state.get("mode")
 
+    # D-OBS: Populate live inputs + interpretations
+    from .types import LiveInput, Interpretation
+    system.live_inputs = [
+        LiveInput(field="buffer_size", value=str(state.get("buffer_size", 0)), source="in_memory"),
+        LiveInput(field="mode", value=str(state.get("mode")), source="in_memory"),
+        LiveInput(field="opening_type", value=str(state.get("opening_type")), source="S1_classification"),
+        LiveInput(field="last_pattern", value=str(state.get("last_pattern")), source="detection_engine"),
+        LiveInput(field="last_classification", value=str(state.get("last_classification")), source="detection_engine"),
+    ]
+    system.interpretations = [
+        Interpretation(key="mode", value=str(state.get("mode")), from_input="session_time+IB_lock", detail="OVERNIGHT→FIRST_HOUR→DAY_TYPE"),
+        Interpretation(key="day_type_gate", value=f"{day_type_str or 'UNKNOWN'}", from_input="S1_day_type", detail="Controls Auth Table gating"),
+        Interpretation(key="opening_type", value=str(state.get("opening_type")), from_input="S1_classification"),
+    ]
+
     # Data freshness: latest non-future bar from DB (lex-sorted MAX(ts)
     # would be poisoned by sentinel future rows — use latest_valid_db_ts).
     last_bar_ts = None

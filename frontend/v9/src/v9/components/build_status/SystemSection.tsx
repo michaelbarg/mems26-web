@@ -163,6 +163,37 @@ export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) 
         </span>
       </div>
 
+      {/* D-OBS: Live Inputs + Interpretations */}
+      {!collapsed && system.live_inputs && system.live_inputs.length > 0 && (
+        <div style={{ display: 'flex', gap: 12, padding: '6px 12px', borderBottom: `1px solid ${COLORS.borderFaint}`, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 9, color: COLORS.textTertiary, fontWeight: 600, marginBottom: 3, textTransform: 'uppercase' }}>Live Inputs</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>
+              {system.live_inputs.map((inp: any, i: number) => (
+                <span key={i} style={{ fontSize: 10, fontFamily: 'ui-monospace, monospace', color: COLORS.textSecondary }}>
+                  <span style={{ color: COLORS.textTertiary }}>{inp.field}=</span>
+                  <span style={{ color: COLORS.textPrimary }}>{inp.value ?? '—'}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+          {system.interpretations && system.interpretations.length > 0 && (
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <div style={{ fontSize: 9, color: COLORS.textTertiary, fontWeight: 600, marginBottom: 3, textTransform: 'uppercase' }}>Interpretation</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 8px' }}>
+                {system.interpretations.map((interp: any, i: number) => (
+                  <span key={i} style={{ fontSize: 10, fontFamily: 'ui-monospace, monospace', color: COLORS.textSecondary }}>
+                    <span style={{ color: COLORS.bull }}>{interp.key}:</span>{' '}
+                    <span style={{ color: COLORS.textPrimary }}>{interp.value ?? '—'}</span>
+                    {interp.from_input && <span style={{ color: COLORS.textTertiary, fontSize: 8 }}> ←{interp.from_input}</span>}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Patterns table */}
       {!collapsed && (
         <div style={{ overflowX: 'auto' }}>

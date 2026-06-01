@@ -147,6 +147,29 @@ def inspect(woodies_system=None) -> SystemStatus:
     ready_to_route = state.get("ready_to_route", False)
     decision_tree = state.get("decision_tree", {})
 
+    # D-OBS: Populate live inputs from WoodiesSystem state
+    from .types import LiveInput, Interpretation
+    system.live_inputs = [
+        LiveInput(field="cci_14", value=f"{cci_14:.2f}" if cci_14 is not None else "—", source="chart12/study4"),
+        LiveInput(field="cci_6_tcci", value=f"{tcci:.2f}" if tcci is not None else "—", source="chart12/study10"),
+        LiveInput(field="trend_state", value=str(trend_state), source="chart12/woodies"),
+        LiveInput(field="swi_value", value=f"{state.get('swi_value', 0):.1f}", source="chart12/study6"),
+        LiveInput(field="czi_value", value=f"{state.get('czi_value', 0):.1f}", source="chart12/study7"),
+        LiveInput(field="ema_34", value=f"{state.get('ema_34', 0):.2f}", source="chart12/study3"),
+        LiveInput(field="lsma_value", value=f"{state.get('lsma_value', 0):.2f}", source="chart12/study2"),
+        LiveInput(field="predictor_next_cci", value=f"{state.get('predictor_next_cci', 0):.1f}", source="chart12/study11"),
+    ]
+    # D-OBS: Interpretations
+    _trend_meaning = {"BLUE": "uptrend (continuation LONG)", "RED": "downtrend (continuation SHORT)",
+                      "GRAY": "no trend (WSI: wait)", "YELLOW": "transition (WSI: wait)"}
+    _cci_zone = "extreme" if abs(cci_14 or 0) > 100 else "near_ZL" if abs(cci_14 or 0) < 30 else "trending"
+    system.interpretations = [
+        Interpretation(key="trend_direction", value=_trend_meaning.get(trend_state, "unknown"), from_input="trend_state"),
+        Interpretation(key="cci_zone", value=f"{_cci_zone} (CCI={cci_14:.0f})" if cci_14 else "—", from_input="cci_14"),
+        Interpretation(key="active_patterns", value=f"{len(active_patterns_raw)} detected" if active_patterns_raw else "none", from_input="pattern_engine"),
+        Interpretation(key="ready_to_route", value=str(ready_to_route), from_input="decision_tree"),
+    ]
+
     # RTH gate: is the system configured for RTH-only AND are we currently in RTH?
     _rth_only = getattr(woodies_system, "_rth_only", True)
     try:

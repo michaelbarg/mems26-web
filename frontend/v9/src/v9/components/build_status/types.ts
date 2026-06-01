@@ -67,6 +67,23 @@ export interface SystemGate {
   freshness?: Freshness | null;
 }
 
+// D-OBS: Live input field
+export interface LiveInput {
+  field: string;
+  value: string | null;
+  source: string | null;
+  age_s: number | null;
+  fresh: boolean;
+}
+
+// D-OBS: Interpretation
+export interface InterpretationItem {
+  key: string;
+  value: string | null;
+  from_input: string | null;
+  detail: string | null;
+}
+
 export interface SystemBlock {
   id: string;
   name: string;
@@ -74,6 +91,9 @@ export interface SystemBlock {
   hydrated: boolean;
   mode: string;
   data_freshness: DataFreshness;
+  // D-OBS: Live inputs + interpretations
+  live_inputs?: LiveInput[];
+  interpretations?: InterpretationItem[];
   global_gates: SystemGate[];
   patterns: Pattern[];
   // Aggregate of today's fires across all patterns (backend v1.2+).

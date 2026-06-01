@@ -75,6 +75,25 @@ class PatternStatus(BaseModel):
     blockers: List[str] = Field(default_factory=list)
 
 
+# D-OBS: Live input field for observability
+class LiveInput(BaseModel):
+    """Single live data field consumed by a system."""
+    field: str
+    value: Optional[str] = None
+    source: Optional[str] = None  # stream/chart/db
+    age_s: Optional[float] = None
+    fresh: bool = True
+
+
+# D-OBS: Interpretation — what the system derived from inputs
+class Interpretation(BaseModel):
+    """A derived conclusion from live inputs."""
+    key: str
+    value: Optional[str] = None
+    from_input: Optional[str] = None  # which input(s) it was derived from
+    detail: Optional[str] = None
+
+
 class SystemStatus(BaseModel):
     id: str
     name: str
@@ -82,6 +101,9 @@ class SystemStatus(BaseModel):
     hydrated: bool = False
     mode: Optional[str] = None
     data_freshness: DataFreshness = Field(default_factory=DataFreshness)
+    # D-OBS: Live inputs + interpretation
+    live_inputs: List[LiveInput] = Field(default_factory=list)
+    interpretations: List[Interpretation] = Field(default_factory=list)
     global_gates: List[GlobalGate] = Field(default_factory=list)
     patterns: List[PatternStatus] = Field(default_factory=list)
     # System-level aggregate of today's fires, derived from v9_trades by
