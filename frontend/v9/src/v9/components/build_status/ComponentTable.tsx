@@ -8,11 +8,11 @@ interface ComponentTableProps {
 
 const STALE_LAG_S = 60;
 
-function FreshnessPill({ freshness }: { freshness?: Freshness | null }) {
+export function FreshnessPill({ freshness }: { freshness?: Freshness | null }) {
   if (!freshness) return null;
   const lag = freshness.lag_s;
   let label: string;
-  let color = COLORS.textTertiary;
+  let color: string = COLORS.textTertiary;
   let bg: string | undefined;
 
   if (lag === null || lag === undefined) {

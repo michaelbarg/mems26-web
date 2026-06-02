@@ -110,6 +110,22 @@ export interface RtbSession {
   minutes_to_close: number;
 }
 
+// D-RDY: Readiness verdict (backend types.py:123-149)
+export type ReadinessVerdict = 'READY' | 'DEGRADED' | 'BLOCKED';
+
+export interface ReadinessCheck {
+  key: string;
+  passed: boolean;
+  severity: 'block' | 'degrade' | 'info';
+  detail?: string | null;
+}
+
+export interface Readiness {
+  verdict: ReadinessVerdict;
+  reason: string;
+  checks: ReadinessCheck[];
+}
+
 export interface BuildStatusResponse {
   ts: string;
   build_version: string;
@@ -117,4 +133,5 @@ export interface BuildStatusResponse {
   rtb_session: RtbSession;
   systems: SystemBlock[];
   errors: string[];
+  readiness?: Readiness;  // D-RDY
 }

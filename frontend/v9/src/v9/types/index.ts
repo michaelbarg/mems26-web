@@ -89,7 +89,7 @@ export interface SystemMarker {
   payload: Record<string, unknown> | null;
 }
 
-export type TradeOutcome = 'WIN' | 'LOSS' | 'SCRATCH' | 'OPEN';
+export type TradeOutcome = 'WIN' | 'LOSS' | 'BE' | 'SCRATCH' | 'OPEN';
 
 export interface ContractPnlLeg {
   id: string;

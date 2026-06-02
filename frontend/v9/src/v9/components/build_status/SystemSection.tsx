@@ -3,6 +3,7 @@ import { useState } from 'react';
 import type { SystemBlock } from './types';
 import { COLORS } from '../../design/tokens';
 import { PatternRow } from './PatternRow';
+import { FreshnessPill } from './ComponentTable';
 
 interface SystemSectionProps {
   system: SystemBlock;
@@ -162,6 +163,51 @@ export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) 
           {system.mode || '—'}
         </span>
       </div>
+
+      {/* Global Gates (bridge streams) — A1 bug fix */}
+      {!collapsed && system.global_gates && system.global_gates.length > 0 && (
+        <div style={{ padding: '6px 12px', borderBottom: `1px solid ${COLORS.borderFaint}` }}>
+          <div style={{ fontSize: 9, color: COLORS.textTertiary, fontWeight: 600, marginBottom: 4, textTransform: 'uppercase' }}>
+            Stream Gates ({system.global_gates.length})
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: 'ui-monospace, monospace', fontSize: 10 }}>
+            <thead>
+              <tr style={{ color: COLORS.textTertiary, textAlign: 'left' }}>
+                <th style={{ padding: '3px 8px 3px 0', fontWeight: 500, width: 180 }}>Stream</th>
+                <th style={{ padding: '3px 8px', fontWeight: 500, width: 80 }}>Live</th>
+                <th style={{ padding: '3px 8px', fontWeight: 500, width: 100 }}>Required</th>
+                <th style={{ padding: '3px 8px', fontWeight: 500, width: 60, textAlign: 'center' }}>Present</th>
+                <th style={{ padding: '3px 8px', fontWeight: 500 }}>Freshness</th>
+              </tr>
+            </thead>
+            <tbody>
+              {system.global_gates.map((gate, i) => (
+                <tr
+                  key={gate.key}
+                  style={{
+                    color: gate.present ? COLORS.textPrimary : COLORS.bearLight,
+                    borderTop: i > 0 ? `1px solid ${COLORS.borderFaint}` : 'none',
+                  }}
+                >
+                  <td style={{ padding: '3px 8px 3px 0', color: COLORS.textSecondary }}>{gate.key}</td>
+                  <td style={{ padding: '3px 8px', color: COLORS.textPrimary }}>{gate.live ?? '—'}</td>
+                  <td style={{ padding: '3px 8px', color: COLORS.textSecondary }}>{gate.required ?? '—'}</td>
+                  <td style={{ padding: '3px 8px', textAlign: 'center' }}>
+                    {gate.present ? (
+                      <span style={{ color: COLORS.bull }}>✓</span>
+                    ) : (
+                      <span style={{ color: COLORS.bear }}>✕</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '3px 8px' }}>
+                    <FreshnessPill freshness={gate.freshness} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* D-OBS: Live Inputs + Interpretations */}
       {!collapsed && system.live_inputs && system.live_inputs.length > 0 && (

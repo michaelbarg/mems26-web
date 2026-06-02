@@ -41,10 +41,21 @@ export function TradeFilters() {
           { value: 'ALL', label: 'All' },
           { value: 'WIN', label: 'Win' },
           { value: 'LOSS', label: 'Loss' },
+          { value: 'BE', label: 'Breakeven' },
           { value: 'SCRATCH', label: 'Scratch' },
           { value: 'OPEN', label: 'Open' },
         ]}
         onChange={(v) => setFilters({ outcome: v as TradeOutcome | 'ALL' })}
+      />
+      <FilterSelect
+        label="Direction"
+        value={filters.direction || 'ALL'}
+        options={[
+          { value: 'ALL', label: 'All' },
+          { value: 'LONG', label: 'Long' },
+          { value: 'SHORT', label: 'Short' },
+        ]}
+        onChange={(v) => setFilters({ direction: v === 'ALL' ? null : v })}
       />
       <div className="flex items-center gap-1">
         <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>From:</span>
