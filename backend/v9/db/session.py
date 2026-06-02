@@ -69,12 +69,19 @@ Base = declarative_base()
 
 
 def get_db():
-    """FastAPI dependency — yields a DB session, closes on finish."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    """FastAPI dependency — yields a DB session under the global write lock.
+
+    All SQLite writes (both ORM via SessionLocal and raw via safe_writer)
+    are serialized through the same threading.Lock to prevent B-tree
+    corruption from concurrent writes. Root cause fixed 2026-06-02.
+    """
+    from backend.v9.db.safe_writer import _write_lock
+    with _write_lock:
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
 
 def init_db():
