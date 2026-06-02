@@ -184,7 +184,8 @@ async def _startup():
         _prev_bar_ts = {"value": None}  # dedup guard: skip re-processing same bar (4B fix)
 
         # D-S1DYN: Shadow reclassifier (IB-relative dynamic chain)
-        from backend.v9.shared.atr import S1_DYNAMIC_RECLASS
+        import os as _flag_os
+        S1_DYNAMIC_RECLASS = _flag_os.environ.get("S1_DYNAMIC_RECLASS", "").lower() in ("1", "true", "yes")
         _shadow_reclass = {"instance": None}  # mutable for closure; created after IB lock
 
         def _load_previous_day_context_for_startup():
