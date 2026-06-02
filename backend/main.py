@@ -304,9 +304,9 @@ async def _startup():
                             from backend.v9.systems.day_type.state_machine import DayType as _DT
                             _new_dt = None
                             if _sr.shadow_type == "Variation":
-                                _new_dt = _DT.NORMAL_VARIATION
+                                _new_dt = _DT.Variation
                             elif _sr.shadow_type == "Trend":
-                                _new_dt = _DT.TREND_NORMAL
+                                _new_dt = _DT.Trend_Normal
                             if _new_dt is not None and _new_dt != state.day_type:
                                 state.day_type = _new_dt
                                 # Also update machine internal state so to_classification()
