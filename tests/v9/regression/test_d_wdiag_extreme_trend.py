@@ -24,10 +24,10 @@ from backend.v9.systems.woodies.schemas import PatternResult
 
 
 def _set_flag(monkeypatch, on: bool):
-    monkeypatch.setattr(atr_mod, "S4_EXTREME_TREND_RELABEL", on)
+    monkeypatch.setenv("S4_EXTREME_TREND_RELABEL", "true" if on else "")
     # Also patch the imported copy in the production module
     import backend.v9.systems.woodies.trend_relabel as trl
-    monkeypatch.setattr(trl, "S4_EXTREME_TREND_RELABEL", on)
+    pass  # flag() reads os.environ directly
 
 
 def _make_hfe_pattern(direction="SHORT", confidence=0.65):

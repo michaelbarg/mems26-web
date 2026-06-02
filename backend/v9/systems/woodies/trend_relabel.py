@@ -9,7 +9,7 @@ relabels studies["trend_state"] to BLUE (CCI>0) or RED (CCI<0).
 Mutates the studies dict in place.
 """
 
-from backend.v9.shared.atr import S4_EXTREME_TREND_RELABEL
+from backend.v9.shared.atr import flag
 
 
 def apply_extreme_trend_relabel(studies: dict) -> None:
@@ -20,7 +20,7 @@ def apply_extreme_trend_relabel(studies: dict) -> None:
     """
     # D-WDIAG: preserve original trend for A/B comparison (always, even no-op)
     studies["trend_original"] = studies.get("trend_state")
-    if not S4_EXTREME_TREND_RELABEL:
+    if not flag("S4_EXTREME_TREND_RELABEL"):
         return
     trend = studies.get("trend_state")
     if trend not in ("GRAY", "YELLOW", "GREY"):

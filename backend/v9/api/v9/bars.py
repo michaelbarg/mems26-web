@@ -358,6 +358,16 @@ def post_tick_reversal(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
+    # TICK_REVERSAL_DISABLED: skip DB writes (highest-frequency ORM writer → corruption source)
+    from backend.v9.shared.atr import flag
+    if flag("TICK_REVERSAL_DISABLED"):
+        # Still dispatch to BarRouter for S3 (if enabled) but don't persist
+        if payload.bars:
+            stream = "tick_reversal_%d" % tick_count
+            _dispatch(stream, payload.bars[-1])
+            _record_push(stream)
+            _route_bar(stream, payload.bars[-1] if isinstance(payload.bars[-1], dict) else {"ts": ""})
+        return {"ok": True, "inserted": 0, "tick_count": tick_count, "disabled": True}
     created = 0
     for bar in payload.bars:
         row = V9BarTickReversal(

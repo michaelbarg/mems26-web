@@ -15,9 +15,9 @@ import backend.v9.shared.atr as atr_mod
 
 
 def _set_flag(monkeypatch, on: bool):
-    monkeypatch.setattr(atr_mod, "S4_EXTREME_TREND_RELABEL", on)
+    monkeypatch.setenv("S4_EXTREME_TREND_RELABEL", "true" if on else "")
     import backend.v9.systems.woodies.trend_relabel as trl
-    monkeypatch.setattr(trl, "S4_EXTREME_TREND_RELABEL", on)
+    pass  # flag() reads os.environ directly
 
 
 def _make_bar(cci_14=250.0, trend_state="YELLOW", ts=1717340100):

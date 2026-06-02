@@ -532,6 +532,9 @@ class FiveMinSystem(BaseV9TradingSystem):
             all(b.get("v", 0) > 0 for b in lookback) and
             max(b.get("v", 0) for b in lookback) < b1_vol * LOOKBACK_MAX_VOL_RATIO
         )
+        # B1: VSA gate already validates volume drop — lookback redundant
+        if S2_VSA_VOLUME:
+            lookback_quiet = True  # Michael approved 2026-06-02
         # Pkg 2bc · belly dominance ratio (graceful degradation)
         belly_ratio = self._get_belly_ratio_from_footprint("LONG")
         belly_ratio_ok = (belly_ratio is None) or (belly_ratio >= BELLY_DOMINANCE_RATIO)

@@ -15,9 +15,7 @@ import backend.v9.shared.atr as atr_mod
 
 def _set_relabel_off(monkeypatch):
     """Ensure relabel flag OFF so YELLOW stays YELLOW."""
-    monkeypatch.setattr(atr_mod, "S4_EXTREME_TREND_RELABEL", False)
-    import backend.v9.systems.woodies.trend_relabel as trl
-    monkeypatch.setattr(trl, "S4_EXTREME_TREND_RELABEL", False)
+    monkeypatch.setenv("S4_EXTREME_TREND_RELABEL", "")
 
 
 def _make_system():

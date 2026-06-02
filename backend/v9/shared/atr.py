@@ -77,17 +77,27 @@ def atr_daily(daily_bars: List[dict], period: int = 14) -> Optional[float]:
 
 # ---------------------------------------------------------------------------
 # Feature flags — all default OFF (E2E 2/2 §3)
+# Call-time reader: avoids module-import caching when plist exports env vars
+# before exec python. Use flag("NAME") everywhere, not the old constants.
 # ---------------------------------------------------------------------------
 import os
 
-S2_ATR_RELATIVE = os.environ.get("S2_ATR_RELATIVE", "").lower() in ("1", "true", "yes")
-S3_RELATIVE = os.environ.get("S3_RELATIVE", "").lower() in ("1", "true", "yes")
-S1_CVD_OPENING = os.environ.get("S1_CVD_OPENING", "").lower() in ("1", "true", "yes")
-S1_DAYTYPE_STAGING = os.environ.get("S1_DAYTYPE_STAGING", "").lower() in ("1", "true", "yes")
-S1_IB_WIDTH_ATR = os.environ.get("S1_IB_WIDTH_ATR", "").lower() in ("1", "true", "yes")
-S1_DYNAMIC_RECLASS = os.environ.get("S1_DYNAMIC_RECLASS", "").lower() in ("1", "true", "yes")
-S4_EXTREME_TREND_RELABEL = os.environ.get("S4_EXTREME_TREND_RELABEL", "").lower() in ("1", "true", "yes")
-S3_MUTE = os.environ.get("S3_MUTE", "").lower() in ("1", "true", "yes")  # D-S3MUTE
-FOOTPRINT_DISABLED = os.environ.get("FOOTPRINT_DISABLED", "").lower() in ("1", "true", "yes")  # Full S3 disable
-S1_LIVE_RECLASS = os.environ.get("S1_LIVE_RECLASS", "").lower() in ("1", "true", "yes")  # Phase 4: promote shadow→live
-S2_VSA_VOLUME = os.environ.get("S2_VSA_VOLUME", "").lower() in ("1", "true", "yes")  # D-RVX: VSA volume gate
+
+def flag(name: str) -> bool:
+    """Read a feature flag from os.environ at call-time (not import-time)."""
+    return os.environ.get(name, "").lower() in ("1", "true", "yes")
+
+
+# Legacy constants — kept for backward compat with code that imports them.
+# New code should use flag("NAME") directly.
+S2_ATR_RELATIVE = flag("S2_ATR_RELATIVE")
+S3_RELATIVE = flag("S3_RELATIVE")
+S1_CVD_OPENING = flag("S1_CVD_OPENING")
+S1_DAYTYPE_STAGING = flag("S1_DAYTYPE_STAGING")
+S1_IB_WIDTH_ATR = flag("S1_IB_WIDTH_ATR")
+S1_DYNAMIC_RECLASS = flag("S1_DYNAMIC_RECLASS")
+S4_EXTREME_TREND_RELABEL = flag("S4_EXTREME_TREND_RELABEL")
+S3_MUTE = flag("S3_MUTE")
+FOOTPRINT_DISABLED = flag("FOOTPRINT_DISABLED")
+S1_LIVE_RECLASS = flag("S1_LIVE_RECLASS")
+S2_VSA_VOLUME = flag("S2_VSA_VOLUME")
