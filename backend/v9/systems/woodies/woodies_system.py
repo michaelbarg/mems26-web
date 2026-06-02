@@ -356,7 +356,8 @@ class WoodiesSystem(BaseV9TradingSystem):
             sizing = "reject"
 
             # F-16: resolve trend state before dispatch — needed for YELLOW guard below
-            trend_state_str = (self.current_state.get("trend_state") or "GRAY").upper()
+            # D-S4FIX: use studies (current bar, post-relabel) not stale current_state
+            trend_state_str = (studies.get("trend_state") or "GRAY").upper()
             try:
                 _ts = TrendState(trend_state_str)
             except ValueError:
@@ -423,6 +424,7 @@ class WoodiesSystem(BaseV9TradingSystem):
 
             # Update current state
             self.current_state.update({
+                "bar_count": self._bar_count,  # D-S4FIX: expose for Build-Status
                 "cci_14": studies["cci_14"],
                 "cci_6_tcci": studies["cci_6_tcci"],
                 "ema_34": studies["ema_34"],
