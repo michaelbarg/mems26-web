@@ -626,6 +626,10 @@ class FiveMinSystem(BaseV9TradingSystem):
             all(b.get("v", 0) > 0 for b in lookback) and
             max(b.get("v", 0) for b in lookback) < b1_vol * LOOKBACK_MAX_VOL_RATIO
         ) if b1_vol > 0 else False
+        # B1: VSA gate sufficient — bypass lookback for Initiative too
+        from backend.v9.shared.atr import flag as _flag
+        if _flag("S2_VSA_VOLUME"):
+            lookback_quiet = True  # Michael approved 2026-06-02
 
         if (b1_bull and b1_expansion and b2_test and b3_joining and b4_test
                 and b4_close_above_b1_high and cot_below_amt and lookback_quiet):
