@@ -149,15 +149,17 @@ def inspect(woodies_system=None) -> SystemStatus:
 
     # D-OBS: Populate live inputs from WoodiesSystem state
     from .types import LiveInput, Interpretation
+    def _fmt(v, fmt=".2f"):
+        return f"{v:{fmt}}" if v is not None else "—"
     system.live_inputs = [
-        LiveInput(field="cci_14", value=f"{cci_14:.2f}" if cci_14 is not None else "—", source="chart12/study4"),
-        LiveInput(field="cci_6_tcci", value=f"{tcci:.2f}" if tcci is not None else "—", source="chart12/study10"),
+        LiveInput(field="cci_14", value=_fmt(cci_14), source="chart12/study4"),
+        LiveInput(field="cci_6_tcci", value=_fmt(tcci), source="chart12/study10"),
         LiveInput(field="trend_state", value=str(trend_state), source="chart12/woodies"),
-        LiveInput(field="swi_value", value=f"{state.get('swi_value', 0):.1f}", source="chart12/study6"),
-        LiveInput(field="czi_value", value=f"{state.get('czi_value', 0):.1f}", source="chart12/study7"),
-        LiveInput(field="ema_34", value=f"{state.get('ema_34', 0):.2f}", source="chart12/study3"),
-        LiveInput(field="lsma_value", value=f"{state.get('lsma_value', 0):.2f}", source="chart12/study2"),
-        LiveInput(field="predictor_next_cci", value=f"{state.get('predictor_next_cci', 0):.1f}", source="chart12/study11"),
+        LiveInput(field="swi_value", value=_fmt(state.get('swi_value'), ".1f"), source="chart12/study6"),
+        LiveInput(field="czi_value", value=_fmt(state.get('czi_value'), ".1f"), source="chart12/study7"),
+        LiveInput(field="ema_34", value=_fmt(state.get('ema_34')), source="chart12/study3"),
+        LiveInput(field="lsma_value", value=_fmt(state.get('lsma_value')), source="chart12/study2"),
+        LiveInput(field="predictor_next_cci", value=_fmt(state.get('predictor_next_cci'), ".1f"), source="chart12/study11"),
     ]
     # D-OBS: Interpretations
     _trend_meaning = {"BLUE": "uptrend (continuation LONG)", "RED": "downtrend (continuation SHORT)",
@@ -165,7 +167,7 @@ def inspect(woodies_system=None) -> SystemStatus:
     _cci_zone = "extreme" if abs(cci_14 or 0) > 100 else "near_ZL" if abs(cci_14 or 0) < 30 else "trending"
     system.interpretations = [
         Interpretation(key="trend_direction", value=_trend_meaning.get(trend_state, "unknown"), from_input="trend_state"),
-        Interpretation(key="cci_zone", value=f"{_cci_zone} (CCI={cci_14:.0f})" if cci_14 else "—", from_input="cci_14"),
+        Interpretation(key="cci_zone", value=f"{_cci_zone} (CCI={cci_14:.0f})" if cci_14 is not None else "—", from_input="cci_14"),
         Interpretation(key="active_patterns", value=f"{len(active_patterns_raw)} detected" if active_patterns_raw else "none", from_input="pattern_engine"),
         Interpretation(key="ready_to_route", value=str(ready_to_route), from_input="decision_tree"),
     ]
