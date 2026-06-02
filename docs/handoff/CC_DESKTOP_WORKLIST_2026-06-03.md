@@ -190,3 +190,46 @@ S1_LIVE_RECLASS=true
 ```
 
 **להוסיף:** `TICK_REVERSAL_DISABLED=true`
+
+---
+
+## F · פריטים מה-ROADMAP שלא נכנסו ל-worklist (חשוב!)
+
+### מהסעיף "חוסמים פתוחים" (section 1):
+| # | פריט | סטטוס | רלוונטיות למחר |
+|---|------|--------|---------------|
+| F1 | **GAP-4 MAX_CONTRACTS** — sizing per-trade max 5 + Auth Table V2 | פרומפט מוכן | 🟡 לא חוסם SHADOW אבל צריך לפני LIVE |
+| F2 | **D-094 R:R Fire Selection** — committed, flag OFF | מוכן להפעלה | 🟡 אחרי S2 יציב |
+| F3 | **DLL frozen-tail** — אימות חי ב-RTH | code done, needs RTH verify | 🔴 **לאמת מחר** — לוודא שCCI לא קופא |
+| F4 | **T1 hit detection** — committed, uncommitted fix | code ready | 🔴 **לאמת מחר** — Smart BE / T1/T2 targets |
+| F5 | **TIME_STOP dedup** — ts%300 fix | committed but needs verify | 🟡 לוודא שlא מספר ברים מנופח |
+
+### מסעיף SHADOW soak (section 2):
+| # | פריט | סטטוס | רלוונטיות |
+|---|------|--------|-----------|
+| F6 | **UAT 4 צירים** — Quality/Recency/Cardinality/Latency | לא בוצע | 🟡 צריך אחרי RTH מחר |
+| F7 | **EOD review יומי** — WR, drawdown, reason trees | לא מוגדר | 🟡 להגדיר process |
+| F8 | **סקירת תבניות חלשות** — GB100/ZLR/VEGAS | לא בוצע | אחרי 10 ימי soak |
+| F9 | **SHADOW soak ≥10 ימי RTH** | יום 2 מחר | 🟢 ממשיך אוטומטית |
+
+### מסעיף Pipeline 5 (section 3):
+| # | פריט | סטטוס | רלוונטיות |
+|---|------|--------|-----------|
+| F10 | **Sierra order routing** — stubs, לא אמיתי | לא התחיל | ⬜ לא למחר, Pipeline 5 |
+| F11 | **P5-7 TradeCommandHandler** | לא התחיל | ⬜ מקביל |
+| F12 | **P5-6 DLL heartbeat** | לא התחיל | ⬜ מקביל |
+
+### uncommitted code (מ-30/5, Cowork flagged):
+| # | פריט | קובץ | סטטוס |
+|---|------|------|--------|
+| F13 | TIME_STOP woodies dedup (ts%300) | `woodies_system.py:206` | ⚠️ uncommitted |
+| F14 | T1 hit + bar_level_detector | `bar_level_detector.py:38` | ⚠️ uncommitted |
+| F15 | Footprint dedup (level+direction+bar_ts) | `footprint_system.py:430,489` | ⚠️ uncommitted (irrelevant while disabled) |
+
+### נפלו בין הכיסאות:
+| # | פריט | מקור | רלוונטיות |
+|---|------|------|-----------|
+| F16 | **Woodies panel ≠ Sierra overnight** — badge "Last RTH" | roadmap 1b | 🟡 UX, לא חוסם |
+| F17 | **pytest full green** — 87 pass, but need full suite | roadmap 1 | 🟡 לאמת כל tests |
+| F18 | **publish day_type with except:pass** — silent swallow | roadmap 1 wiring | 🟡 לתקן (no-silent-failures) |
+| F19 | **כיול ספים** — ATR k-values, VSA thresholds | after soak | ⬜ אחרי 10+ ימים |
