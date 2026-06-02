@@ -1,10 +1,13 @@
 import { create } from 'zustand';
 import type { Trade, AccountStatus, TradeMode, SystemId, TradeOutcome } from '../types';
 import { computeAuxStatus, type TradeAuxStatus } from '../lib/tradeAuxStatus';
+import { stopMovement, rLevels, durationMinutes } from '../lib/tradeMath';
 
 type OverlapFilter = 'all' | 'parallel' | 'sequential';
 type LiveGateFilter = 'all' | 'eligible' | 'skipped';
 type ConfluenceFilter = 'all' | 'agree' | 'disagree';
+type StopMoveFilter = 'all' | 'moved' | 'static';
+type SortKey = 'new' | 'old' | 'pnl_dn' | 'pnl_up' | 'dur_dn' | 'rr_dn';
 
 interface TradeFilters {
   mode: TradeMode | 'ALL';
@@ -21,6 +24,10 @@ interface TradeFilters {
   confluence: ConfluenceFilter;
   /** Direction filter: LONG / SHORT / null (all). */
   direction: string | null;
+  /** Stop management: moved to BE (SMART_BE) vs stayed at initial stop. */
+  stopMove: StopMoveFilter;
+  /** Row ordering. */
+  sort: SortKey;
 }
 
 interface TradeState {
@@ -31,6 +38,8 @@ interface TradeState {
   filters: TradeFilters;
   /** Row expanded inline (recognition panel); toggle on second click. */
   expandedTradeId: number | null;
+  /** Alias for TradeDetailsModal compatibility. */
+  selectedTradeId: number | null;
 
   setTrades: (trades: Trade[]) => void;
   addTrade: (trade: Trade) => void;
@@ -55,6 +64,8 @@ const DEFAULT_FILTERS: TradeFilters = {
   liveGated: 'all',
   confluence: 'all',
   direction: null,
+  stopMove: 'all',
+  sort: 'new',
 };
 
 function recomputeAux(trades: Trade[]): Map<number, TradeAuxStatus> {
@@ -67,6 +78,7 @@ export const useTradeStore = create<TradeState>((set, get) => ({
   accountStatus: null,
   filters: DEFAULT_FILTERS,
   expandedTradeId: null,
+  selectedTradeId: null,
 
   setTrades: (trades) => {
     const arr = Array.isArray(trades) ? trades : [];
@@ -88,13 +100,13 @@ export const useTradeStore = create<TradeState>((set, get) => ({
     set((state) => ({
       expandedTradeId: state.expandedTradeId === id ? null : id,
     })),
-  setSelectedTradeId: (id) => set({ expandedTradeId: id }),
+  setSelectedTradeId: (id) => set({ expandedTradeId: id, selectedTradeId: id }),
 
   auxFor: (id) => get().auxStatus.get(id),
 
   filteredTrades: () => {
     const { trades, filters, auxStatus } = get();
-    return trades.filter((t) => {
+    const out = trades.filter((t) => {
       if (filters.mode !== 'ALL' && t.mode !== filters.mode) return false;
       if (filters.systemId !== 'ALL' && t.system !== filters.systemId) return false;
       if (filters.outcome !== 'ALL' && t.outcome !== filters.outcome) return false;
@@ -128,7 +140,29 @@ export const useTradeStore = create<TradeState>((set, get) => ({
         if (filters.confluence === 'agree' && conf !== 'agree') return false;
         if (filters.confluence === 'disagree' && conf !== 'disagree') return false;
       }
+      if (filters.stopMove !== 'all') {
+        const sm = stopMovement(t);
+        if (filters.stopMove === 'moved' && sm !== 'moved') return false;
+        if (filters.stopMove === 'static' && sm === 'moved') return false;
+      }
       return true;
     });
+
+    const s = filters.sort;
+    if (s && s !== 'new') {
+      out.sort((a, b) => {
+        switch (s) {
+          case 'old': return a.id - b.id;
+          case 'pnl_dn': return (b.pnl_usd ?? 0) - (a.pnl_usd ?? 0);
+          case 'pnl_up': return (a.pnl_usd ?? 0) - (b.pnl_usd ?? 0);
+          case 'dur_dn': return (durationMinutes(b) ?? 0) - (durationMinutes(a) ?? 0);
+          case 'rr_dn': return (rLevels(b).t2R ?? -Infinity) - (rLevels(a).t2R ?? -Infinity);
+          default: return 0;
+        }
+      });
+    } else {
+      out.sort((a, b) => b.id - a.id); // 'new' — newest first
+    }
+    return out;
   },
 }));
