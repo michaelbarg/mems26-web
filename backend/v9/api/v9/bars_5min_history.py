@@ -96,6 +96,26 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
             })
         if filtered:
             logger.info("[bars_5min_history] filtered %d bad/stale bars from response", filtered)
+
+        # Session filter: drop bars from previous sessions that sort before
+        # today's bars (e.g. 15:15 yesterday < 09:30 today in ts string sort
+        # but chronologically older). Keep only bars from the last contiguous
+        # block — detect gap > 2h as session boundary.
+        if len(result) > 1:
+            clean = [result[-1]]
+            for i in range(len(result) - 2, -1, -1):
+                try:
+                    from datetime import datetime
+                    t1 = datetime.fromisoformat(str(result[i]["ts"]).replace(" ", "T"))
+                    t2 = datetime.fromisoformat(str(result[i + 1]["ts"]).replace(" ", "T"))
+                    gap = abs((t2 - t1).total_seconds())
+                    if gap > 7200:  # 2h gap = session boundary
+                        break
+                    clean.append(result[i])
+                except Exception:
+                    clean.append(result[i])
+            result = list(reversed(clean))
+
         return result[-limit:]
     except Exception as e:
         logger.warning("[bars_5min_history] _fetch_bars_5min failed: %s", e)
