@@ -32,16 +32,15 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
 
-        # Primary: v9_bars_5min — ORDER BY rowid (insertion order = chronological)
-        # ts is ET wall-clock without date rollover, so string sort breaks across sessions
+        # Primary: v9_bars_5min
         if before:
             rows_5m = conn.execute(
-                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE ts < ? ORDER BY rowid DESC LIMIT ?",
+                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE ts < ? ORDER BY ts DESC LIMIT ?",
                 (before, fetch_limit),
             ).fetchall()
         else:
             rows_5m = conn.execute(
-                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min ORDER BY rowid DESC LIMIT ?",
+                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min ORDER BY ts DESC LIMIT ?",
                 (fetch_limit,),
             ).fetchall()
 
@@ -63,29 +62,25 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
             logger.warning("[bars_5min_history] woodies fallback failed (primary-only): %s", e)
         conn.close()
 
-        # Merge: primary bars (rowid order) + woodies fallback for gaps
-        seen_ts = set()
-        all_bars = []
-        for r in reversed(rows_5m):  # reverse to get oldest-first
-            ts = str(r["ts"])
-            if ts not in seen_ts:
-                seen_ts.add(ts)
-                all_bars.append(dict(r))
+        # Merge: index primary by ts, fill gaps from woodies
+        by_ts = {}
+        for r in rows_5m:
+            by_ts[str(r["ts"])] = dict(r)
         for r in rows_w:
             ts = str(r["ts"])
-            if ts not in seen_ts:
+            if ts not in by_ts:
                 rd = dict(r)
                 try:
                     float(rd["open"]); float(rd["high"]); float(rd["low"]); float(rd["close"])
                 except (TypeError, ValueError):
                     continue
-                seen_ts.add(ts)
-                all_bars.append(rd)
+                by_ts[ts] = rd
 
-        # Validate, filter flat stale bars (already oldest-first from rowid order)
+        # Sort oldest first, validate, filter flat stale bars
         result = []
         filtered = 0
-        for r in all_bars:
+        for ts in sorted(by_ts.keys()):
+            r = by_ts[ts]
             o, h, l, c = r["open"], r["high"], r["low"], r["close"]
             ok, reason = bar_is_valid(open=o, high=h, low=l, close=c)
             if not ok:
@@ -95,7 +90,7 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
                 filtered += 1
                 continue
             result.append({
-                "ts": r["ts"],
+                "ts": ts,
                 "o": o, "h": h, "l": l, "c": c, "v": r.get("volume") or 0,
                 "open": o, "high": h, "low": l, "close": c, "volume": r.get("volume") or 0,
             })
