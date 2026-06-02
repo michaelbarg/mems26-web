@@ -48,6 +48,17 @@ app.include_router(v9_router)
 app.include_router(journal_compat_router)
 
 
+@app.on_event("shutdown")
+async def _shutdown():
+    """Graceful shutdown: WAL checkpoint to prevent corruption on restart."""
+    import logging
+    _logger = logging.getLogger("mems26")
+    _logger.info("[Shutdown] WAL checkpoint starting")
+    from backend.v9.db.safe_writer import safe_checkpoint
+    safe_checkpoint()
+    _logger.info("[Shutdown] WAL checkpoint complete — clean exit")
+
+
 @app.on_event("startup")
 async def _startup():
     """Initialize EventDispatcher + BarIngestionService at unified app startup."""
@@ -286,10 +297,9 @@ async def _startup():
 
                 # Persist to v9_day_type_state (P5.1.2)
                 try:
-                    import sqlite3
                     from datetime import datetime, timezone
-                    conn = sqlite3.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
-                    conn.execute(
+                    from backend.v9.db.safe_writer import safe_execute
+                    safe_execute(
                         """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
                            ib_width_class, opening_type, behavior, lock_state, created_at)
                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
@@ -304,10 +314,8 @@ async def _startup():
                             state.behavior.value if hasattr(state.behavior, 'value') else None,
                             str(state.lock_state),
                             datetime.now(timezone.utc).isoformat(),
-                        )
+                        ),
                     )
-                    conn.commit()
-                    conn.close()
                 except Exception as db_err:
                     _logger.warning("[DayType] DB persist skipped: %s", db_err, exc_info=True)
 

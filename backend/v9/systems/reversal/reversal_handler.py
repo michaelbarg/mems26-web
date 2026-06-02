@@ -70,30 +70,26 @@ class ReversalBarHandler:
             logger.error("[ReversalHandler] process_bar error: %s", e, exc_info=True)
 
     def _persist(self, bar_ts, cluster: dict, empty_zone: Optional[dict]) -> None:
-        """Write enrichment to v9_reversal_enrichment."""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """INSERT OR REPLACE INTO v9_reversal_enrichment
-                (bar_ts, bar_type, cluster_top, cluster_bottom, cluster_volume,
-                 empty_zone_top, empty_zone_bottom, empty_zone_volume, poc_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    str(bar_ts),
-                    "tick_reversal_15",
-                    cluster["cluster_top"],
-                    cluster["cluster_bottom"],
-                    cluster["cluster_volume"],
-                    empty_zone["empty_zone_top"] if empty_zone else None,
-                    empty_zone["empty_zone_bottom"] if empty_zone else None,
-                    empty_zone["empty_zone_volume"] if empty_zone else None,
-                    cluster["poc_price"],
-                ),
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning("[ReversalHandler] persist failed: %s", e)
+        """Write enrichment to v9_reversal_enrichment via safe_writer."""
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """INSERT OR REPLACE INTO v9_reversal_enrichment
+            (bar_ts, bar_type, cluster_top, cluster_bottom, cluster_volume,
+             empty_zone_top, empty_zone_bottom, empty_zone_volume, poc_price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                str(bar_ts),
+                "tick_reversal_15",
+                cluster["cluster_top"],
+                cluster["cluster_bottom"],
+                cluster["cluster_volume"],
+                empty_zone["empty_zone_top"] if empty_zone else None,
+                empty_zone["empty_zone_bottom"] if empty_zone else None,
+                empty_zone["empty_zone_volume"] if empty_zone else None,
+                cluster["poc_price"],
+            ),
+            db_path=self.db_path,
+        )
 
     def get_current(self) -> dict:
         """Return latest enrichment + handler stats."""

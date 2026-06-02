@@ -539,73 +539,61 @@ class WoodiesSystem(BaseV9TradingSystem):
             logger.error("[Woodies] process_bar error: %s", e, exc_info=True)
 
     def _persist_bar(self, ts, o, h, l, c, v, studies):
-        """Write enriched bar to v9_bars_5min_woodies.
-
-        Uses the bar's actual timestamp (not current time) for UNIQUE dedup.
-        INSERT OR REPLACE updates existing bars with newer study values.
-        """
+        """Write enriched bar to v9_bars_5min_woodies via safe_writer."""
+        from backend.v9.db.safe_writer import safe_execute
         bar_ts = str(ts) if ts else datetime.now(timezone.utc).isoformat()
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """INSERT OR REPLACE INTO v9_bars_5min_woodies
-                (ts, symbol, open, high, low, close, volume,
-                 cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
-                 ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    bar_ts, "MES",
-                    o, h, l, c, int(v),
-                    studies["cci_14"], studies["cci_6_tcci"],
-                    studies["lsma_value"], studies["swi_value"], studies["czi_value"],
-                    studies["ema_34"], studies["trend_state"], studies["predictor_next_cci"],
-                    False, "NONE",
-                ),
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning("[Woodies] Bar persist failed: %s", e)
+        safe_execute(
+            """INSERT OR REPLACE INTO v9_bars_5min_woodies
+            (ts, symbol, open, high, low, close, volume,
+             cci_14, cci_6_tcci, lsma_value, swi_value, czi_value,
+             ema_34, trend_state, predictor_next_cci, zlr_detected, zlr_direction)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                bar_ts, "MES",
+                o, h, l, c, int(v),
+                studies["cci_14"], studies["cci_6_tcci"],
+                studies["lsma_value"], studies["swi_value"], studies["czi_value"],
+                studies["ema_34"], studies["trend_state"], studies["predictor_next_cci"],
+                False, "NONE",
+            ),
+            db_path=self.db_path,
+        )
 
     def _persist_pattern(self, bar_ts, event, studies, pattern: PatternResult):
-        """Write detected pattern to v9_woodies_signals."""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """INSERT INTO v9_woodies_signals
-                (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
-                 reasoning, session, created_at,
-                 czi_state, swi_state, persistence_bars,
-                 signal_type_core, signal_confidence)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    datetime.now(timezone.utc).isoformat(),
-                    None,
-                    studies["cci_14"],
-                    None,
-                    pattern.pattern_id,
-                    pattern.direction,
-                    int(pattern.confidence * 4),
-                    f"{pattern.pattern_id} {pattern.direction} conf={pattern.confidence:.2f} "
-                    f"CCI={studies['cci_14']:.1f} trend={studies['trend_state']}",
-                    getattr(event, 'session', 'UNKNOWN'),
-                    datetime.now(timezone.utc).isoformat(),
-                    "CZI" if abs(studies["cci_14"]) < 100 else "TREND_ZONE",
-                    "SWI" if abs(studies["cci_14"]) >= 200 else "NORMAL",
-                    len(self._bar_buffer),
-                    pattern.pattern_id,
-                    pattern.confidence,
-                ),
-            )
-            conn.commit()
-            conn.close()
-            logger.info(
-                "[Woodies] Pattern %s %s fired: CCI=%.1f conf=%.2f trend=%s",
-                pattern.pattern_id, pattern.direction,
-                studies["cci_14"], pattern.confidence, studies["trend_state"],
-            )
-        except Exception as e:
-            logger.warning("[Woodies] Pattern persist failed: %s", e)
+        """Write detected pattern to v9_woodies_signals via safe_writer."""
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """INSERT INTO v9_woodies_signals
+            (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
+             reasoning, session, created_at,
+             czi_state, swi_state, persistence_bars,
+             signal_type_core, signal_confidence)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                datetime.now(timezone.utc).isoformat(),
+                None,
+                studies["cci_14"],
+                None,
+                pattern.pattern_id,
+                pattern.direction,
+                int(pattern.confidence * 4),
+                f"{pattern.pattern_id} {pattern.direction} conf={pattern.confidence:.2f} "
+                f"CCI={studies['cci_14']:.1f} trend={studies['trend_state']}",
+                getattr(event, 'session', 'UNKNOWN'),
+                datetime.now(timezone.utc).isoformat(),
+                "CZI" if abs(studies["cci_14"]) < 100 else "TREND_ZONE",
+                "SWI" if abs(studies["cci_14"]) >= 200 else "NORMAL",
+                len(self._bar_buffer),
+                pattern.pattern_id,
+                pattern.confidence,
+            ),
+            db_path=self.db_path,
+        )
+        logger.info(
+            "[Woodies] Pattern %s %s fired: CCI=%.1f conf=%.2f trend=%s",
+            pattern.pattern_id, pattern.direction,
+            studies["cci_14"], pattern.confidence, studies["trend_state"],
+        )
 
     def _check_time_stops(self) -> None:
         """W-10: Check all tracked open fires for time stop expiry.

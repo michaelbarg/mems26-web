@@ -410,42 +410,34 @@ class TradingGateway:
         return ctx
 
     def _persist_trade(self, trade: dict) -> None:
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """INSERT INTO v9_trades
-                (mode, firing_system, direction, state, entry_ts, entry_price,
-                 stop, t1, t2, t3, cross_context, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    trade["mode"], trade["firing_system"], trade["direction"],
-                    trade["state"], trade["entry_ts"], trade["entry_price"],
-                    trade["stop"], trade["t1"], trade["t2"], trade["t3"],
-                    json.dumps(trade["cross_context"], default=str),
-                    datetime.now(timezone.utc).isoformat(),
-                ),
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning("[Gateway] trade persist failed: %s", e)
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """INSERT INTO v9_trades
+            (mode, firing_system, direction, state, entry_ts, entry_price,
+             stop, t1, t2, t3, cross_context, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                trade["mode"], trade["firing_system"], trade["direction"],
+                trade["state"], trade["entry_ts"], trade["entry_price"],
+                trade["stop"], trade["t1"], trade["t2"], trade["t3"],
+                json.dumps(trade["cross_context"], default=str),
+                datetime.now(timezone.utc).isoformat(),
+            ),
+            db_path=self.db_path,
+        )
 
     def _persist_exit(self, trade: dict) -> None:
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """UPDATE v9_trades SET state='CLOSED', exit_ts=?, exit_price=?,
-                   exit_reason=?, pnl_usd=?, pnl_r=?, outcome=?, updated_at=?
-                   WHERE mode=? AND entry_ts=? AND state='OPEN'""",
-                (
-                    trade.get("exit_ts"), trade.get("exit_price"),
-                    trade.get("exit_reason"), trade.get("pnl_usd"),
-                    trade.get("pnl_r"), trade.get("outcome"),
-                    datetime.now(timezone.utc).isoformat(),
-                    trade.get("mode"), trade.get("entry_ts"),
-                ),
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning("[Gateway] exit persist failed: %s", e)
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """UPDATE v9_trades SET state='CLOSED', exit_ts=?, exit_price=?,
+               exit_reason=?, pnl_usd=?, pnl_r=?, outcome=?, updated_at=?
+               WHERE mode=? AND entry_ts=? AND state='OPEN'""",
+            (
+                trade.get("exit_ts"), trade.get("exit_price"),
+                trade.get("exit_reason"), trade.get("pnl_usd"),
+                trade.get("pnl_r"), trade.get("outcome"),
+                datetime.now(timezone.utc).isoformat(),
+                trade.get("mode"), trade.get("entry_ts"),
+            ),
+            db_path=self.db_path,
+        )

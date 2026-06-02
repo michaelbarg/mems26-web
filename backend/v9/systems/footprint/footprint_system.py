@@ -75,7 +75,7 @@ class FootprintSystem(BaseV9TradingSystem):
         }
 
     def _get_conn(self) -> sqlite3.Connection:
-        """Reuse a single WAL-mode connection to avoid per-bar open/close overhead."""
+        """Open a short-lived read connection (writes go through safe_writer)."""
         if self._conn is None:
             self._conn = sqlite3.connect(
                 self.db_path, timeout=5, check_same_thread=False
@@ -312,45 +312,37 @@ class FootprintSystem(BaseV9TradingSystem):
         return "NO_SETUP"
 
     def _write_journal(self, event, bar, cluster, empty, ctx, pattern, signals, confluence, classification):
-        try:
-            conn = self._get_conn()
-            conn.execute(
-                "INSERT OR IGNORE INTO v9_footprint_journal (ts, bar_id, cluster_data, empty_zone_data, accumulation, jumps_count, jumps_direction, otf_state, pattern_detected, zohar_signals, industry_signals, confluence_total, classification, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    getattr(event, 'ts', ''), getattr(event, 'bar_id', ''),
-                    json.dumps({"poc": cluster.yellow_poc_price, "pct": cluster.yellow_poc_pct}),
-                    json.dumps(empty.zones),
-                    int(ctx.accumulation), ctx.jumps_count, ctx.jumps_direction,
-                    ctx.otf_state, pattern,
-                    json.dumps({k: v for k, v in signals.items() if k in ["belly_ratio_dominant", "vol_drop_90pct", "cot_vs_amt_clear", "tick_breach", "poc_migration"]}),
-                    json.dumps({k: v for k, v in signals.items() if k in ["imbalance_250", "stacked_imbalance_3plus", "cumulative_delta_aligned", "exhaustion_zone", "liquidity_sweep"]}),
-                    confluence, classification,
-                    getattr(event, 'session', 'UNKNOWN'),
-                    datetime.utcnow().isoformat(),
-                ),
-            )
-            conn.commit()
-        except Exception as e:
-            logger.warning(f"Footprint journal write failed: {e}")
-            self._conn = None
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            "INSERT OR IGNORE INTO v9_footprint_journal (ts, bar_id, cluster_data, empty_zone_data, accumulation, jumps_count, jumps_direction, otf_state, pattern_detected, zohar_signals, industry_signals, confluence_total, classification, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                getattr(event, 'ts', ''), getattr(event, 'bar_id', ''),
+                json.dumps({"poc": cluster.yellow_poc_price, "pct": cluster.yellow_poc_pct}),
+                json.dumps(empty.zones),
+                int(ctx.accumulation), ctx.jumps_count, ctx.jumps_direction,
+                ctx.otf_state, pattern,
+                json.dumps({k: v for k, v in signals.items() if k in ["belly_ratio_dominant", "vol_drop_90pct", "cot_vs_amt_clear", "tick_breach", "poc_migration"]}),
+                json.dumps({k: v for k, v in signals.items() if k in ["imbalance_250", "stacked_imbalance_3plus", "cumulative_delta_aligned", "exhaustion_zone", "liquidity_sweep"]}),
+                confluence, classification,
+                getattr(event, 'session', 'UNKNOWN'),
+                datetime.utcnow().isoformat(),
+            ),
+            db_path=self.db_path,
+        )
 
     def _write_setup(self, event, bar, classification, pattern, confluence):
-        try:
-            conn = self._get_conn()
-            conn.execute(
-                "INSERT INTO v9_footprint_setups (ts, classification, pattern_type, direction, confluence, entry_price, stop_price, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (
-                    getattr(event, 'ts', ''), classification, pattern,
-                    "LONG" if bar.get("close", 0) > bar.get("open", 0) else "SHORT",
-                    confluence, bar.get("close"), bar.get("low"),
-                    getattr(event, 'session', 'UNKNOWN'),
-                    datetime.utcnow().isoformat(),
-                ),
-            )
-            conn.commit()
-        except Exception as e:
-            logger.warning(f"Footprint setup write failed: {e}")
-            self._conn = None
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            "INSERT INTO v9_footprint_setups (ts, classification, pattern_type, direction, confluence, entry_price, stop_price, session, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                getattr(event, 'ts', ''), classification, pattern,
+                "LONG" if bar.get("close", 0) > bar.get("open", 0) else "SHORT",
+                confluence, bar.get("close"), bar.get("low"),
+                getattr(event, 'session', 'UNKNOWN'),
+                datetime.utcnow().isoformat(),
+            ),
+            db_path=self.db_path,
+        )
 
     # ── T3 Firing: Absorption + Stacked Imbalance (Wave S3-T3) ──
 
@@ -516,30 +508,26 @@ class FootprintSystem(BaseV9TradingSystem):
         self.current_state["last_reasoning_notes"] = reasoning_notes
 
         # Persist to DB
-        try:
-            conn = self._get_conn()
-            conn.execute(
-                """INSERT INTO v9_footprint_setups
-                (ts, bar_id, classification, pattern, confluence, entry_price, stop_price, session, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    datetime.utcnow().isoformat(),
-                    getattr(event, 'bar_id', None),
-                    f"FIRE_{signal['signal'].upper()}",
-                    signal["signal"],
-                    int(signal["strength"] * 10),
-                    signal.get("level"),
-                    None,
-                    getattr(event, 'session', 'UNKNOWN'),
-                    datetime.utcnow().isoformat(),
-                ),
-            )
-            conn.commit()
-            logger.info("[Footprint] FIRE: %s %s size=%s strength=%.2f",
-                        signal["signal"], signal["direction"], size, signal["strength"])
-        except Exception as e:
-            logger.warning("[Footprint] Fire persist failed: %s", e)
-            self._conn = None
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """INSERT INTO v9_footprint_setups
+            (ts, bar_id, classification, pattern, confluence, entry_price, stop_price, session, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                datetime.utcnow().isoformat(),
+                getattr(event, 'bar_id', None),
+                f"FIRE_{signal['signal'].upper()}",
+                signal["signal"],
+                int(signal["strength"] * 10),
+                signal.get("level"),
+                None,
+                getattr(event, 'session', 'UNKNOWN'),
+                datetime.utcnow().isoformat(),
+            ),
+            db_path=self.db_path,
+        )
+        logger.info("[Footprint] FIRE: %s %s size=%s strength=%.2f",
+                    signal["signal"], signal["direction"], size, signal["strength"])
 
     def _build_pre_fire_request(self, signal: dict, bar: dict) -> FireRequest:
         direction = signal["direction"]
