@@ -94,19 +94,20 @@
 <body>
 <div class="wrap">
   <h1>MEMS26 · מפת דרכים ל-LIVE 🚀</h1>
-  <div class="sub">מסמך עבודה חי · עודכן 2026-05-30 (CC Phase 1-7 + frozen-tail deep-fix) · מקור סטטוס: STATUS_BOARD · SYSTEM_REVIEW 29.5 · OPEN_ITEMS 28.5 · META_PROMPT Pipeline 5</div>
+  <div class="sub">מסמך עבודה חי · עודכן 2026-06-02 · 🟢 <b>SHADOW soak יום 2 (RTH 16:30 IL)</b> · 🔬 <b>5 סוכני אבחון 2/6</b> (S2 לא יורה=גייט volume · S1 תקוע=atr None · S4 תקין/יורה · Build-Status global_gates לא מרונדרים · D-RDY לא מומש) → 7 פרומפטי CC מוכנים · wiring patterns-armed תוקן (S2 opening_type + build-status armed/blocked; code-level אומת, runtime→RTH הבא) · 5 דגלי כיול ON ומחווטים (round-2 אומת) · chart #5 מקור רציף (OHLC overnight אמיתי) · IB RTH-only בטוח · backend+LaunchAgent יציב · trades: management-log+synthetic-badge+UX · D-094 flag-OFF · GAP-3/4/6/12 נעולים/נסגרו · <b>Pipeline 5 = חוסם-LIVE הבא</b> · 🆕 Fire-Audit חזותי + 3 החלטות פתוחות (D-RVX/D-S1DYN/D-RDY → <code>docs/plans/DECISION_LEDGER.md</code>) · מקור: STATUS_BOARD</div>
 
   <div class="banner">
     <b>איפה אנחנו:</b> הבנייה (Pipeline 1/2) הושלמה ברובה (~82%). המערכת רצה כ-<b>SHADOW/paper בלבד</b> — אין עדיין נתיב הזמנה אמיתי לברוקר.
     הצעד הבא: לסגור את החוסמים הפתוחים → לפתוח שער <b>SHADOW (P-S0)</b>. במקביל אפשר להתחיל את הכנת שליחת הפקודות לסיארה (Pipeline 5).
+    <div style="margin-top:10px"><a href="MEMS26_PIPELINE_FLOW.html" style="color:var(--accent);text-decoration:none;border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;display:inline-block">🔄 צינור המערכות — מזיהוי יום עד ניהול עסקה →</a></div>
   </div>
 
   <!-- TIMELINE -->
   <div class="timeline" id="tl">
     <div class="ph done"><div class="n">בנייה</div><div class="t">Pipeline 1/2</div><div class="s">✅ הושלם</div></div>
-    <div class="ph prog here"><div class="n">עכשיו</div><div class="t">סגירת חוסמים</div><div class="s">🟡 פעיל</div></div>
-    <div class="ph todo"><div class="n">שער</div><div class="t">SHADOW · P-S0</div><div class="s">⬜ לא החל</div></div>
-    <div class="ph todo"><div class="n">≥10 ימים</div><div class="t">SHADOW soak</div><div class="s">⬜ לא החל</div></div>
+    <div class="ph done"><div class="n">נסגר</div><div class="t">סגירת חוסמים</div><div class="s">✅ הושלם</div></div>
+    <div class="ph done"><div class="n">שער</div><div class="t">SHADOW · P-S0</div><div class="s">✅ sign-off</div></div>
+    <div class="ph prog here"><div class="n">עכשיו · יום 1</div><div class="t">SHADOW soak</div><div class="s">🟡 פעיל</div></div>
     <div class="ph todo"><div class="n">Sim</div><div class="t">DEMO · P-D0</div><div class="s">⬜ לא החל</div></div>
     <div class="ph todo"><div class="n">קדם-טיסה</div><div class="t">LIVE P-L0</div><div class="s">⬜ לא החל</div></div>
     <div class="ph todo"><div class="n">מיקרו</div><div class="t">LIVE P-L1</div><div class="s">⬜ לא החל</div></div>
@@ -130,21 +131,70 @@
     <div class="body">
       <div class="lead">אלה צריכים להיסגר (או להיות מאומתים חי) לפני שפותחים שער SHADOW ובוודאי לפני LIVE.</div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">DLL frozen-tail — אימות חי ב-RTH<span class="tag t-block">BLOCKER</span></div><div class="meta">deep-fix נשלח (<code>ada6c88</code>,<code>cc9bd8f</code> + 30/5). Cowork אימת 30/5: על פני ברי 5-דק' <b>שונים</b> cci_14 משתנה (−40.49/−10.04/−65.39/63.46/103.02) → אין frozen-tail בנתונים. ("5 זהים" קודם = pushes של אותו בר 20:00, תקין). נותר אימות חי ב-RTH (Phase B) — השוק סגור עכשיו.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">Gateway כפול — נעל canonical + חבר RiskValidator<span class="tag t-block">BLOCKER</span></div><div class="meta">המחובר (<code>main.py:365</code>) בלי בדיקת חדשות ובלי position-size. נעל D-093.Q1 וחבר את <code>services/trading_gateway/</code> (W14).</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">wiring — התבניות נדרכות (ARMED) — code-level אומת, runtime→RTH<span class="tag t-high">HIGH · code אומת</span></div><div class="meta">Cowork אימת דוח <code>FIX_WIRING_PATTERNS_ARM</code> מול git+קוד: <b>Bug-1 S2 opening_type</b> (<code>2124411</code>, <code>main.py</code>) — publish של <code>day_type_classification</code> בכל בר + קריאת opening_type מהמכונה ✓ · <b>Bug-3 build-status armed/blocked</b> (<code>f493126</code>) — infra (data/gate) הופרד מ-detection; infra-OK+detection-missing=ARMED ✓ · <b>Bug-2 S4 trend GRAY</b> = לא-באג: <code>_bar_count</code> מאותחל 0 וגדל בכל בר (<code>woodies_system.py:104,227</code>); השערת <code>None</code> הייתה שגויה. ⚠️ <b>runtime עדיין assertion</b> (opening_type=OPEN_AUCTION_IN · 8+8 armed · day-type p=0.68 · trend=BLUE) — לא Rule-5 raw → <b>לאמת חי בפתיחת RTH הבאה</b>. minor: publish ב-main.py עם <code>except:pass</code> (silent swallow).</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">Gateway כפול — נעל canonical + חבר RiskValidator<span class="tag t-block">החלטה נעולה · מימוש ב-P5</span></div><div class="meta">🔒 D-093.Q1 נעול 31/5 = <b>MERGE</b> (בסיס Legacy עם 5 שערי הסיכון + חילוץ RiskValidator מ-New ל-<code>_execute_live()</code>; New→dead אחרי חילוץ). מקור: <code>docs/reports/P5_0_GATEWAY_AUDIT.md</code>. המימוש = Pipeline 5 (P5-2/P5-3). ממתין לאישור Michael.</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">pre_fire_validator — אומת שכן נקרא בכל נתיבי הירי<span class="tag t-block">BLOCKER → נסגר?</span></div><div class="meta">Cowork אימת 30/5: <code>validate_fire</code> נקרא ב-S3 (<code>footprint_system.py:462</code>), S4 (<code>woodies/decision_tree.py</code> A7), S2 (<code>five_min/setup_emitter.py:110</code>) — <b>לפני</b> route לגייטוֵיי. החשש ב-SYSTEM_REVIEW (#3) מיושן. נותר רק ניקוי קוסמטי: docstrings מטעים + route עצמאי כפול. ממתין לאישורך לסגירה.</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">Sierra order routing — נתיב הזמנה אמיתי חסר<span class="tag t-block">BLOCKER</span></div><div class="meta">executors הם stubs; <code>sc.SubmitOrder</code> לא נקרא. נבנה בסעיף 3 (Pipeline 5).</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">TIME_STOP Woodies dedup — תוקן (CC 30/5)<span class="tag t-high">HIGH</span></div><div class="meta">CC ריצף ts ל-5min (<code>ts%300</code>) ב-<code>woodies_system.py:206</code>. <b>uncommitted</b>. ⚠️ ל-ts בפורמט ISO ה-fallback מרצף לדקה ולא ל-5דק' — לאמת ברגרסיה שמספרת ברים סגורים. ממתין לאישורך.</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">T1 hit לא נתפס — תוקן (CC 30/5)<span class="tag t-high">HIGH</span></div><div class="meta">CC הוסיף מנוי ל-<code>woodies_5min</code> + dedup ב-<code>bar_level_detector.py:38</code>. <b>uncommitted</b>. T1/T2 + Smart BE אמורים לעבוד עכשיו ל-S4 — לאמת חי. ממתין לאישורך.</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">Footprint dedup — הוטמע (CC 30/5)<span class="tag t-high">HIGH</span></div><div class="meta">CC הוסיף dedup לפי (level+direction+bar_ts) ב-<code>footprint_system.py:430,489</code>. <b>uncommitted</b>. ⚠️ <b>RTH gate לא נוסף</b> — נשאר להחלטתך (gate = לוגיקת-מסחר). ממתין לאישורך.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">עסקאות @5900 — שורש זוהה + החלטה אושרה<span class="tag t-high">HIGH · אושר 30/5</span></div><div class="meta"><b>שורש:</b> <code>gateway/trading_gateway.py:25</code> מקודד DB קשיח (עוקף DATABASE_URL); טסטי gateway (entry=5900) רושמים SHADOW ל-DB החי. 12 הישנות סומנו <code>is_synthetic=1</code>. דוח: <code>FAKE_5900_SOURCE_2026-05-30.md</code>. <b>✅ Michael אישר 30/5: לסמן 844-846 כ-is_synthetic=1</b> (גיבוי קודם, לא מחיקה). CC לבצע + תיקון נתיב DB (R2-8).</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">עסקאות @5900 — נסגר ✅<span class="tag t-high">HIGH · בוצע</span></div><div class="meta">בידוד DB לטסטים נוסף (<code>tests/v9/gateway/conftest.py</code> autouse → temp DB, <code>c204021</code>). כל 30 השורות @5900 סומנו <code>is_synthetic=1</code> (Cowork אימת: 0 נשארו synthetic=0). CC אימת 2 ריצות → 0 שורות חדשות. <b>מעקב קל:</b> הבידוד ממוקד תיקיית gateway — לאמת שגם tests/v9/api/ לא מזליג.</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">TZ bars_5min future-ts — תוקן + אומת<span class="tag t-high">HIGH</span></div><div class="meta">root=aggregator החזיר ET → fixed UTC+guard (<code>c581f4d</code>,<code>b76d5e2</code>). Cowork אימת 30/5: 0 future rows. ממתין לאישורך.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">TZ tick_reversal — ~540K שורות ts עתידי (P32)<span class="tag t-high">HIGH</span></div><div class="meta">ה-fix לא הוחל על ה-stream הזה · <code>CC_IMPLEMENT_P32_BRIDGE_SOT_2026-05-29.md</code> (כתוב, טרם נשלח)</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">TZ tick_reversal — תוקן (P32-I)<span class="tag t-high">HIGH</span></div><div class="meta">CC: ה-stream מדלג על תיקון Chicago כי ה-DLL משתמש ב-<code>time(nullptr)</code> (<code>86e8027</code>). Cowork אימת 30/5: <b>0 future rows</b>. ממתין לאישורך.</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">פצצות TZ/DST — תוקן + אומת<span class="tag t-high">HIGH</span></div><div class="meta">אומת 30/5: <code>woodies_chart_routes</code> משתמש ב-<code>_chicago_to_utc</code> (אין +5*3600), <code>key_levels</code> משתמש ב-<code>et_today()</code>. נותר רק להוסיף רגרסיית CST. ממתין לאישורך.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">pytest — triage בוצע (38 נכשלים)<span class="tag t-high">HIGH</span></div><div class="meta">CC מיין ב-<code>PYTEST_TRIAGE_2026-05-30.md</code>: is_synthetic regression תוקן; 15 fixture-drift; 3 legacy. api/ חסום ע"י conftest pytest_plugins. נותר לסגור את שער "all green".</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">pytest — triage + תיקונים בוצעו<span class="tag t-high">HIGH</span></div><div class="meta">triage (<code>PYTEST_TRIAGE_2026-05-30.md</code>) + כל התיקונים קומיטו: fixtures day_type (<code>0ee2657</code>), api conftest (<code>19d6456</code>), TPO (<code>7e80626</code>), is_synthetic. <b>נותר רק:</b> ריצת pytest נקייה לאישור "all green" (CC להדביק <code>0 failed</code>). ממתין לאישורך.</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">day_type IB-lock "regression" — זוהה כ-FIXTURE DRIFT (הקוד תקין)<span class="tag t-high">HIGH</span></div><div class="meta">Cowork אבחן 30/5: A4 (<code>state_machine.py:495-502</code>) <b>בכוונה</b> מסרב לנעול בלי Sierra IB (source-of-truth, 28/5). הטסטים מזינים high/low בלי <code>ib_high/ib_low</code> → לא נועל. אומת אמפירית: בלי Sierra IB→A3 (לא נעל) · עם→B2 (נעל). <b>אסור לתקן את ה-state machine</b> (יחזיר את הבאג של 28/5). תיקון = fixture. ✅ Cowork תיקן <code>test_day_type_ib_live.py</code> (אומת). נותר ל-CC: <code>test_day_type.py</code> (<code>make_bar</code>) + הרצת pytest.</div></div></div>
       <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">Status enum sync — מיפוי קיים<span class="tag t-med">MED</span></div><div class="meta">Cowork אימת 30/5: <code>status.py:_check_day_type</code> מחזיר את <code>lock_state</code> החי; ה-DB מראה <code>LOCKED_LOW_CONF</code> (לא PENDING). המיפוי קיים. ה-"PENDING תקוע" = ארטיפקט restart/hydration → מכוסה ע"י 1.15. לאמת חי אחרי restart-seed. ממתין לאישורך.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">5min restart gaps + S1 restart מאפס state<span class="tag t-med">MED</span></div><div class="meta">Bridge שולח רק latest bar → restart מאבד history (backfill מ-Sierra); restart תוך RTH מאבד IB/opening/classification.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">S2 — שינוי חישוב ספים מקבוע ליחסי (ATR)<span class="tag t-med">MED · דורש אישור</span></div><div class="meta">Initiative expansion <code>[1.5-1.75pt]</code> קבוע → 0/44 ברים עברו (avg range 6.12, פי 4). מחקר: <code>EXPANSION = ATR_5min × 0.25-0.30</code>, וכן <code>POC_RETURN_TOLERANCE</code> ו-<code>DROP_THRESHOLD</code> ליחסיים. שינוי לוגיקת-מסחר → אישור Michael. מקור: דוח EOD 29/5 §7b.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">restart recovery — בוצע ✅<span class="tag t-med">MED · בוצע</span></div><div class="meta">CC מימש (R2-9): <code>day_type_seed.py</code> טוען opening_type/day_type/confidence מהשורה של היום (<code>date=et_today()</code>, לא ROLLED_OVER) במקום לכפות INDETERMINATE (<code>7316289</code>); <code>bars_5min_stream.py</code> backfill מ-MAX(ts) בדחיפה ראשונה (<code>bffad29</code>). Cowork אימת את הלוגיקה. <b>מעקב קל:</b> lock_state עצמו לא נטען מה-DB (רק ib_locked=True). ממתין לאישורך.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">S2 — שינוי חישוב ספי expansion מקבוע ליחסי (ATR)<span class="tag t-med">🟢 מומש (E2E 2/2) · דלוק ב-SHADOW</span></div><div class="meta">Initiative expansion <code>[1.5-1.75pt]</code> קבוע → 0/44 ברים. <b>מומש ב-E2E 2/2 שלב S2</b> (<code>S2_ATR_RELATIVE</code>, <code>get_expansion_range</code>, commit <code>ebc7f6a</code>) — זהה לפריט המאוחד "S1/S2/S3 → יחסיים". ⚠️ <b>prior ליישוב בכיול:</b> EOD 29/5 הציע <code>ATR×0.25-0.30</code>, CC מימש <code>1.5-2×ATR5m</code> (RESEARCH 02) — צורות שונות, לנעול בכיול. מקור: דוח EOD 29/5 §7b.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">S1/S2/S3 — המרת ספים מוחלטים → יחסיים (ATR)<span class="tag t-med">✅ סבב-2 בוצע ואומת (1/6)</span></div><div class="meta"><b>✅ סבב-2 (<code>70848a6</code>) חיווט הכל — אומת Cowork 1/6:</b> S3_RELATIVE (<code>footprint_system.py:369</code> מעביר <code>median_level_vol</code>) + S1_IB_WIDTH_ATR (<code>_last_atr_daily</code> מוקצה :324) חיים. נותר רק: כיול ה-k אחרי soak SHADOW. — פרמטרים לא-יחסיים: S1 רוחב IB <code>15/25pt</code>+gap <code>±2pt</code> · S2 EXPANSION <code>1.5/1.75</code>+POC_RET <code>0.5</code>+PROXIMITY <code>2.0</code>+SR <code>5t</code>+FLOOR <code>4t</code>+POLE <code>16t</code>+HEAD <code>2t</code> · S3 <code>range_ticks 15</code>, <code>MIN_LEVEL_VOL 10</code>. <b>מחקר חיצוני הושלם 31/5</b> (<code>docs/reports/S1_S2_ATR_NORMALIZATION_RESEARCH_2026-05-31.md</code>): ATR 5-דק' len~10-14 לאות / ~14-20 ל-sizing, לעולם לא ATR יומי; k לפי פרסנטיל+walk-forward; ספי % נשארים; ספירות מבניות נשארות שלמות. <b>תלות חדשה:</b> המרת stop מחייבת vol-based sizing במקביל (אחרת תקרת §5 P-L0a נשברת). נותר: כיול פנימי על <code>v9_bars_5min</code> → אישור Michael.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">S1 — דיוק סיווג הרצת הפתיחה (15→30) + CVD<span class="tag t-med">✅ סבב-2 בוצע ואומת (1/6)</span></div><div class="meta"><b>✅ סבב-2: footprint_deltas מוזן</b> (<code>state_machine.py:477</code> מעביר _fp_deltas) → ענף CVD רץ כשהדגל ON. נותר: לאמת CVD per-bar ב-DB ב-RTH + כיול ספים אחרי soak. — היום: סיווג מ-3 ברים (15 דק') ב-<code>detect_opening_type</code> על מחיר בלבד (<code>net_move/range≥0.7</code>); CVD מוזרם אך <b>לא משפיע</b> (רק reasoning_notes). <b>RESEARCH 01 הושלם 31/5</b> (<code>docs/reports/RESEARCH_01_CVD_OPENING_FINDINGS_2026-05-31.md</code>): <code>delta=ask−bid</code>; נוסחה ראשית <code>PE=net_CVD/Σ|delta_i|</code> + DE + range_exp + divergence guard; חתימה tick-rule/aggressor (לא BVC); מסווג דו-שלבי label_15(09:45,bias)→label_30(10:00,מחייב); double-break ES 15-דק' <b>61%</b>/30-דק' <b>47.9%</b> (6,142 ימים); gap→4 קטגוריות ATR14; ספי priors DRIVE <code>PE_30&gt;0.65 &amp; range_exp&gt;1.0</code>, ננעלים אחרי soak SHADOW ~60 ימים. <b>חוסם:</b> לאמת CVD per-bar ב-DB. נותר אישור Michael.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">S1 — day_type מדורג (30=ראשוני · 60=נעילת IB · ולידציה מתמשכת)<span class="tag t-med">✅ סבב-2 בוצע ואומת (1/6)</span></div><div class="meta"><b>✅ סבב-2: <code>cap_confidence_staged</code> נקרא</b> (<code>state_machine.py:765</code>) → conf מוגבל לפני 60min כשהדגל ON. נותר: מחקר checkpoints 30/60/90 + כיול. — גישה מבוקשת: לקבוע סוג-יום ראשוני לפי 30 הדק' הראשונות, ומשם ולידציה מתמשכת (במקום נעילה מאוחרת 13:00). <b>B3 — תקופת IP הקבועה (60 דק') נחלקת ל-3 נקודות זמן: 30 / 60 / 90 דק'</b>, שבכל אחת נבדק/מאומת הסיווג (רוחב IB מתפתח + שינוי day_type). עבודת מחקר על האינטראקציה בין ה-checkpoints לספי הנעילה. (R03 כייל: 30דק'=השערה ≤60%, האישור החזק ב-C-period 10:30–11:00.) מקור: Cowork 31/5.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">צינור E2E + עמוד הטריידס — אימות סנכרון + תיקון<span class="tag t-high">🚀 בביצוע · E2E 1/2 · HIGH</span></div><div class="meta">נשלח לביצוע (<code>docs/handoff/MEGA_E2E_1of2_PIPELINE_TRADES_2026-05-31.md</code>): audit סנכרון bridge→backend→DB→build_status→dashboard→trades · אבחון נתיב הטרייד (יש עסקאות אך משהו שגוי) · תיקון באגי עמוד הטריידס (Scratch תמיד 0, mode=SHADOW default, מסנן תאריך לקסיקלי, חסר WR%+R) · סדרת בדיקות נראות+טריות. צ'ק-ליסט: <code>docs/reports/TRADES_PAGE_CHECKLIST_2026-05-31.md</code>. <b>שער לפני E2E 2/2.</b></div></div></div>
+    </div>
+  </section>
+
+  <!-- 1b. החלטות + תור פרומפטים 31/5 -->
+  <section>
+    <div class="head"><span class="dot dot-acc"></span><h2>1b · הכרעות 31/5 + תור פרומפטים CC</h2><span class="mini" data-mini></span><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">הכרעות trading-logic שננעלו היום + מצב הפרומפטים (בוצע / מוכן-לא-נוצל / טרם-נכתב). מקור: STATUS_BOARD §CC QUEUE.</div>
+
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">D-094 · R:R Fire Selection — מומש (flag OFF)<span class="tag t-med">✅ בוצע · ממתין הפעלה</span></div><div class="meta"><code>612a665</code>. <code>rr_score.py</code> + buffer <code>_slot_candidates</code>+<code>on_bar_close()</code>. flag-OFF=first-wins (golden), flag-ON=highest-R:R+tie-break, SHADOW לא מושפע. 2548 passed/0 failed. ⏳ הפעלה: <code>RR_FIRE_SELECTION=true</code> + wire <code>bar_router.subscribe("5min",gw.on_bar_close)</code> ב-main.py.</div></div></div>
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">GAP-4 · MAX_CONTRACTS = per-trade max 5 + Auth Table V2 (0-5)<span class="tag t-med">🔒 נעול · מימוש מחר</span></div><div class="meta">min-3 בוטל (טבלה כפי שהוקלדה). MAX_CONTRACTS 2(dead)→5+אכיפה. פרומפט: <code>CC_PROMPT_AUTH_TABLE_V2_MAXCONTRACTS_2026-05-31.md</code>. ⚠️ מעלה sizing ~1.67× — מתנגש עם תקרת הפסד יומי $250 (שתי עסקאות מפסידות בגודל מלא ≈ $300).</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">GAP-6 ZLR + GAP-12 ניהול-עסקה — נסגרו<span class="tag t-med">✅ resolved</span></div><div class="meta">GAP-6: "39" היה מנופח, בפועל 34 טסטי ZLR עוברים. GAP-12: ניהול-עסקה מחוּוט ב-<code>trail_engine.py::_apply_layer4()</code> (D-094 §3.B/D-095); <code>gateway/trade_management.py</code>=dead code.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">מסמך צינור As-built (זיהוי יום → ניהול עסקה)<span class="tag t-med">✅ נוצר + אומת</span></div><div class="meta"><code>docs/reference/MEMS26_PIPELINE_DAYTYPE_TO_TRADE_MGMT_2026-05-31.md</code>. CC parity: Phase 0-4 = 100% match; 2 drifts תוקנו.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">🔧 חיבור + OOH + hydration — תוקן (1/6)<span class="tag t-med">✅ בוצע · אומת</span></div><div class="meta"><code>0bc2d0f</code>: backend מת→LaunchAgent · timedelta (5min 7→609) · TZ history · archive schema · woodies dedup (26,250→970) · נרות overnight Option C (תצוגה בלבד) · hydration. אומת: health 200, 6 שערי RTH, דאשבורד חי (0 fires · OVERNIGHT_MODE). דוח: <code>FIX_CONNECTIVITY_OOH_HYDRATION_2026-06-01.md</code>.</div></div></div>
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">✅ calibration-wiring סבב-2 — בוצע (4 דגלים מחווטים)<span class="tag t-med">✅ בוצע · אומת</span></div><div class="meta"><code>70848a6</code> (במגה Road-to-SHADOW): S3_RELATIVE+3 דגלי S1 מחווטים. אומת Cowork: <code>footprint_system.py:369-377</code> מחשב <code>_median_vol</code> ומעביר ל-<code>detect_stacked_imbalance</code> (סבב-1 לא העביר → היה מת). golden 2556 passed. הדגלים default OFF — Michael מחליט אם להדליק flag-ON לאיסוף.</div></div></div>
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">🔧 מחיר זמן-אמת + רציפות נרות — תוקן<span class="tag t-med">✅ בוצע · אומת</span></div><div class="meta">מחיר: `_best_price` bid/ask midpoint (sc.Close קפא 7590.50 overnight → 7612.12). dedup root נוסף: woodies persist datetime.now→str(ts) (970→301). chart ממזג שתי טבלאות. פערים אמיתיים ללא סינתוז. <code>BAR_CONTINUITY_2026-06-01.md</code>. ⚠️ מחיר=midpoint (לא Woodies-close).</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">🟠 chart #5 — מקור רציף 24h (Option A)<span class="tag t-med">✅ בוצע · אומת</span></div><div class="meta"><code>3800015</code>+<code>bf54621</code> · DLL <code>v9.4.4-chart5</code>: Input[20] אדיטיבי (0=disabled) + export `5min_continuous.json` — **chart #12 לא נגע** (אומת). נרות overnight OHLC אמיתי (7617.5 לא 7590.5 קפוא), פאנל Woodies=7616.62. <code>CHART5_OPTION_A_IMPL</code>.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">IB — RTH-only אחרי chart #5<span class="tag t-med">✅ אומת · אין זיהום</span></div><div class="meta">ברי <code>5min_continuous</code> ל-DB לתצוגה בלבד (לא דרך BarRouter) + guards <code>is_rth</code> + IB מ-Sierra Study chart #12. IB=None pre-RTH תקין. דרישה: IB מוצג בפרונט אחרי הפתיחה → ב-RTH verification.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">פאנל Woodies ≠ Sierra — אובחן + badge<span class="tag t-med">✅ תוקן · אימות RTH</span></div><div class="meta">שורש: chart 12 RTH-only → מדדי Woodies קפואים על 29/5 ב-overnight (כל השדות מיוצאים, אין חסר). תוקן <code>woodies_chart_routes.py:397</code>: staleness לפי תוכן + badge "Last RTH". ב-RTH יתאם ל-Sierra (לאמת+frozen-tail). Woodies חי overnight → 📅 <b>מחר</b> (סטאדי Woodies ל-chart#5 + cross-chart ב-DLL).</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">עמוד Trades — management-log + synthetic badge + UX<span class="tag t-med">✅ בוצע · UAT ב-RTH</span></div><div class="meta"><code>16efe64</code>+<code>ac393ff</code>+<code>a407d0e</code>: management-log נכתב (STOP_MOVE/BE/targets) → ציר-זמן במודאל · synthetic מוצג עם badge "TEST" (סטטיסטיקות על real בלבד) · צביעת outcome. 7 פילטרים+חישובים אומתו. כיוונון ויזואלי סופי ב-RTH.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">🟢 SHADOW — sign-off + יום 1<span class="tag t-med">✅ נפתח 2026-06-01</span></div><div class="meta">Michael sign-off · flags ON · איסוף מ-RTH 16:30 IL. בדיקת RTH אוטומטית 16:45 (<code>mems26-rth-shadow-check</code>: setups? frozen-tail? IB? מחיר). שער: <code>RTH_VERIFICATION_FULL_PASS</code> ל-16:30.</div></div></div>
+
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">🟡 פרומפטים מוכנים — טרם נוצלו</div><div class="meta"><b>1.</b> <code>CC_PROMPT_AUTH_TABLE_V2_MAXCONTRACTS</code> (sizing) · <b>2.</b> <code>CC_PROMPT_TRADES_PAGE_AUDIT_EXPAND</code> (ביקורת+הרחבת עמוד trades · חלק C דורש SHADOW חי) · <b>3.</b> <code>CC_PROMPT_ENABLE_FLAGS_SHADOW</code> (5 דגלים · דורש שרת רץ).</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox" checked><div class="c"><div class="ttl">✅ CC Master Run 2/6 — 3 DONE, 2 stopped, 1 pending<span class="tag t-med">85/85 tests</span></div><div class="meta"><b>DONE:</b> D-S3MUTE (<code>1c28df7</code>) · S4 dispatcher fix (<code>401d526</code>) · D-RDY readiness verdict (<code>3e2f785</code>) · D-WDIAG trend_original (<code>1e077fa</code>). <b>🛑 STOPPED:</b> S2/D-RVX + S1 Day-Type (trading logic — strategic stop). <b>⏳:</b> Frontend (Build-Status UI + Trades UX). דוח: <code>CC_MASTER_RUN_REPORT_2026-06-02.md</code>.</div></div></div>
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">📝 כתובים/טרם-נכתבו — תור ישן</div><div class="meta"><code>CC_IMPLEMENT_P32_BRIDGE_SOT</code> (כתוב, לא נשלח) · <code>BLOCKER_SWEEP_R2</code> (כתוב — לבדוק אם נצרך) · Phase 3 archive endpoints (לא נכתב) · Phase 4 DemoReadiness UI (לא נכתב) · Dual-machine (דחוי).</div></div></div>
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">⚠️ חוסם איסוף נתונים נקי <span class="tag t-high">עודכן 2/6 · אבחון</span></div><div class="meta">5 סוכני אבחון (2/6) חידדו: (a) <b>S2 לא יורה אי-פעם</b> — לא channel-mismatch (הופרך) אלא גייט volume בלתי-אפשרי (0/1085); (b) <b>S1 day-type תקוע</b> — <code>bar.atr</code> תמיד None → re-eval מת, C3 hard-lock דה-פקטו (round-2 חיווט S3 אך לא את קלט ה-atr של S1); (c) S3 מציף → להשתיק (<code>D-S3MUTE</code>); (d) S4 דווקא <b>תקין ויורה</b>. 7 פרומפטי CC מוכנים (<code>*_2026-06-02.md</code>). סדר מומלץ לפני RTH: trend_original → S3MUTE → S4 → Build-Status; S1/S2 = thread נפרד (logic + strategic-stop).</div></div></div>
+    </div>
+  </section>
+
+  <!-- 1c. Fire-Audit + 3 decisions (Cowork 2026-06-01) -->
+  <section>
+    <div class="head"><span class="dot dot-acc"></span><h2>1c · Fire-Audit חזותי + 3 החלטות פתוחות (Cowork 1/6)</h2><span class="mini" data-mini></span><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">ניתוח חזותי של צילומי Sierra (מה היה צריך לירות) + 2 מחקרים חיצוניים → 3 החלטות trading-logic. כל החלטה נושאת תווית (<code>D-XXX</code>) המפנה לנקודת ההחלטה. פילוסופיה: shadow-first (צופים) → אישור → חיווט live. מקור-אמת מלא: <code>docs/plans/DECISION_LEDGER.md</code>.</div>
+
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">Fire-Audit חזותי (S1/S2/S4 · חלון נראה)<span class="tag t-med">✅ אנליזה בוצעה</span></div><div class="meta">7 מועמדים שהיו צריכים לירות; ZLR UP = conviction הכי גבוה שפוספס; S2 Initiative חסום ע"י S1 Normal קפוא; Reactive מת מסף 0.10. בדיקת תקינות לפני-מסחר עברה (כל שדות המקור מאוכלסים). <code>docs/reports/AGENT_FIRE_AUDIT_VISIBLE_WINDOW_2026-06-01.md</code></div></div></div>
+
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">D-RVX · Reactive volume threshold (90% → יחסי/RVOL)<span class="tag t-med">✅ אושר · 🔬 שורש מעודכן 2/6</span></div><div class="meta"><b>למה:</b> סף 90% בר-מול-בר בלתי-אפשרי ב-5-דק' RTH. <b>🔬 אבחון 2/6:</b> השערת "channel-mismatch" <b>הופרכה</b> (wiring תקין, <code>main.py:88</code>); השורש = גייט volume בלתי-אפשרי מתמטית (<code>five_min_system.py:469-543</code>, 0/1085 זוגות). <b>מוצע:</b> 3 וריאציות צופות A/B/C → build_status + טריידר. prompt חדש: <code>CC_PROMPT_S2_REACTIVE_CANFIRE_2026-06-02.md</code> (מתקן Phase 0, שומר Phases 2-5). ⚠️ logic + strategic-stop (cumulative_delta חי).</div></div></div>
+
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">D-S1DYN · סוג-היום דינמי (Normal→NV→Trend)<span class="tag t-med">🟢 מומש-shadow 1/6 (CC Phase 0-2) · Stage 3 נפרד</span></div><div class="meta"><b>למה:</b> סוג-היום מצב מתפתח, לא תווית קפואה; הקפאה ב-Normal (E_up=1.77, R=2.77) חסמה Initiative של S2; reeval קיים אך ATR-relative ולא IB-relative. <b>מוצע:</b> Stage 1 shadow-log (לא נוגע ב-Auth Table) · convention=total-range. brief: <code>DECISION_BRIEF_S1_DAYTYPE_RECLASSIFICATION_2026-06-01.md</code> · מימוש: מגה-פרומפט S1.</div></div></div>
+
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">D-RDY · Pre-Fire Readiness Gate<span class="tag t-med">✅ אושר · 🔬 אומת לא-מומש 2/6</span></div><div class="meta">שכבת verdict read-only מעל BuildStatusAggregator (PRE_TRADE_PROTOCOL → READY/DEGRADED/BLOCKED). אפס סיכון. <b>🔬 2/6:</b> אומת ש<b>אינו מומש</b> (אין <code>readiness</code> ב-<code>BuildStatusResponse</code>). קופל לתוך פרומפט-העל <code>CC_PROMPT_BUILD_STATUS_MEGA_2026-06-02.md</code> §C.</div></div></div>
+
+      <div class="item" data-cdone="1"><input type="checkbox" checked><div class="c"><div class="ttl">D-WDIAG · Woodies relabel + can-fire + trend_original<span class="tag t-med">🟢 מומש+מאומת · trend_original מומש 2/6</span></div><div class="meta">relabel <code>S4_EXTREME_TREND_RELABEL</code> מומש+מאומת, דגל ON ב-runtime. <b>✅ trend_original מומש (CC 2/6):</b> 2 נגיעות — <code>trend_relabel.py:22</code> שומר original תמיד + <code>woodies_system.py:433</code> מזרים ל-current_state→cross_context. +P3: <code>trade_context.py:342</code> תצוגה. 10/10 pytest, litmus revert-P2→4 RED. נותר: בר ±200 חי ב-RTH.</div></div></div>
     </div>
   </section>
 
@@ -159,8 +209,8 @@
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">דוח אימות S1 Day Type (preflight #6)</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">דוח אימות S3 Footprint (preflight #7)</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">60 דק' ירוק · אפס warnings פתוחים</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">Michael sign-off → פתיחת SHADOW</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">SHADOW soak ≥10 ימי RTH · ≥20 עסקאות</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">Michael sign-off → פתיחת SHADOW<span class="tag t-med">✅ ניתן 2026-06-01</span></div><div class="meta">flags ON · איסוף מ-RTH 16:30 IL. אימות RTH מתוזמן 16:45 + `RTH_VERIFICATION_FULL_PASS`.</div></div></div>
+      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">SHADOW soak ≥10 ימי RTH · ≥20 עסקאות<span class="tag t-high">🟡 יום 1 = 2026-06-01</span></div><div class="meta">הצבירה החלה היום ב-RTH. לעקוב יומי: WR · setups · התפלגויות · frozen-tail.</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">EOD review יומי</div><div class="meta">WR · drawdown · reason trees · slippage</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">סקירת תבניות חלשות ב-RTH</div><div class="meta">GB100 · ZLR · VEGAS (P31-DEMO-C/D/E) — החלטה על כיבוי</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">go / no-go ל-DEMO</div></div></div>
@@ -172,9 +222,9 @@
     <div class="head"><span class="dot dot-acc"></span><h2>3 · שליחת פקודות לסיארה — Pipeline 5 (המגה‑פרומפט)</h2><span class="mini" data-mini></span><span class="chev">▾</span></div>
     <div class="body">
       <div class="lead">המגה‑פרומפט: <code>docs/handoff/META_PROMPT_PIPELINE5_DLL_SIERRA_DEMO_2026-05-26.md</code>. רץ במקביל ל-SHADOW. P5-0/P5-7/P5-6 יכולים להתחיל עכשיו; P5-1 והלאה אחרי נעילת ההחלטות.</div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">נעל D-093.Q1 — איזה Gateway canonical (Legacy / New / Merge)<span class="tag t-block">החלטה</span></div><div class="meta">המלצת המחקר: <code>services/trading_gateway/</code> (W11+W14). ממתין לנעילת Michael.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">נעל D-093.Q2 — מזהה חשבון DEMO בסיארה<span class="tag t-block">החלטה</span></div><div class="meta">לא ה-placeholder <code>PA-APEX-125218-01</code>.</div></div></div>
-      <div class="item"><input type="checkbox"><div class="c"><div class="ttl">נעל re-lock — <code>sc.BuyEntry</code>+Attached Orders מול <code>SubmitOCOOrder</code><span class="tag t-block">החלטה</span></div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">D-093.Q1 — Gateway canonical<span class="tag t-med">🔒 נעול 31/5 = MERGE</span></div><div class="meta">P5-0 audit → New חסר 5 שערי סיכון → <b>MERGE</b>: בסיס Legacy + חילוץ RiskValidator מ-New. מקור: <code>P5_0_GATEWAY_AUDIT</code>.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">D-093.Q2 — חשבון DEMO<span class="tag t-med">🔒 נעול 31/5 = IronBeam 37138283</span></div><div class="meta">אין Apex (שני המחרוזות מתות). אין חשבון לייב נפרד — אותו 37138283 עם global Trade Simulation toggle. hard-gate: <code>GlobalTradeSimulationIsOn()==true</code> לפני כל demo order.</div></div></div>
+      <div class="item" data-cdone="1"><input type="checkbox"><div class="c"><div class="ttl">re-lock — bracket + modify + heartbeat<span class="tag t-med">🔒 נעול 31/5</span></div><div class="meta">bracket=<code>BuyEntry+Attached</code> · modify=<code>ModifyOrder</code> · heartbeat=<b>alert-only</b> (אין auto-KILL, נתיב DLL יחיד). dev decisions, אפס שינוי אסטרטגיה.</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">P5-0 · Gateway audit (KEEP/ADAPT/REPLACE/DEFER)</div><div class="meta">עכשיו · מקביל · audit בלבד → <code>P5_0_GATEWAY_AUDIT.md</code></div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">P5-7 · חיבור TradeCommandHandler ל-bridge startup</div><div class="meta">עכשיו · "just wire" · <code>bridge/trade_commands.py</code> (לא לגעת בו) + health metric</div></div></div>
       <div class="item"><input type="checkbox"><div class="c"><div class="ttl">P5-6 · DLL heartbeat + backend watchdog</div><div class="meta">עכשיו · <code>dll_heartbeat.json</code> כל bar · alert אם stale &gt;30s</div></div></div>
@@ -256,37 +306,40 @@
         mkM.appendChild(cM);mkM.appendChild(document.createTextNode('מיכאל'));
         marks.appendChild(mkC);marks.appendChild(mkM);
         old.replaceWith(marks);
-        if(it.dataset.cdone && !store.seededKeys[num]){store.c[num]=1;store.seededKeys[num]=1;_seedDirty=true;}
-        cC.checked=!!store.c[num]; cM.checked=!!store.m[num];
-        [cC,cM].forEach(cb=>cb.addEventListener('change',()=>{
-          const bag=cb.dataset.actor==='c'?store.c:store.m;
-          if(cb.checked)bag[num]=1; else delete bag[num];
+        cC.checked=(it.dataset.cdone==='1');   // "סוכן" — נקבע מהקובץ (authoritative)
+        cM.checked=!!store.m[num];             // "מיכאל" — אישור משתמש (localStorage)
+        cC.addEventListener('change',()=>{paint();});  // toggle in-session בלבד
+        cM.addEventListener('change',()=>{
+          if(cM.checked)store.m[num]=1; else delete store.m[num];
           save();paint();
-        }));
+        });
       }
     });
   });
   if(_seedDirty){save();}
 
-  function statusOf(num){const c=!!store.c[num],m=!!store.m[num];
+  function statusOf(it){
+    const c=it.querySelector('.mk-c input') && it.querySelector('.mk-c input').checked;
+    const m=it.querySelector('.mk-m input') && it.querySelector('.mk-m input').checked;
     if(m)return['ok','✅ אושר'];
     if(c)return['wait','🟡 בוצע · ממתין לאישורך'];
     return['open','⬜ פתוח'];}
 
   function paint(){
-    let approved=0,total=0;
+    let approved=0,done=0,total=0;
     document.querySelectorAll('.item').forEach(it=>{
-      total++;const num=it.dataset.key;const r=statusOf(num);
+      total++;const r=statusOf(it);
       const st=it.querySelector('.st');if(st){st.className='st st-'+r[0];st.textContent=r[1];}
-      const ok=r[0]==='ok';it.classList.toggle('checked',ok);if(ok)approved++;
+      if(r[0]==='ok'){approved++;done++;} else if(r[0]==='wait'){done++;}
+      it.classList.toggle('checked',r[0]==='ok');
     });
-    const pct=total?Math.round(approved/total*100):0;
+    const pct=total?Math.round(done/total*100):0;
     document.getElementById('ovrbar').style.width=pct+'%';
-    document.getElementById('ovrpct').textContent=approved+' / '+total+' אושרו ('+pct+'%)';
+    document.getElementById('ovrpct').textContent='בוצע '+done+'/'+total+' · אושר '+approved+' ('+pct+'%)';
     document.querySelectorAll('section').forEach(sec=>{
       const items=[...sec.querySelectorAll('.item')];
-      const a=items.filter(it=>statusOf(it.dataset.key)[0]==='ok').length;
-      const mini=sec.querySelector('[data-mini]');if(mini)mini.textContent=a+'/'+items.length;
+      const d=items.filter(it=>statusOf(it)[0]!=='open').length;
+      const mini=sec.querySelector('[data-mini]');if(mini)mini.textContent=d+'/'+items.length;
     });
   }
 
@@ -294,9 +347,9 @@
     if(e.target.closest('input,label'))return;
     h.closest('section').classList.toggle('collapsed');}));
 
-  window.resetAll=function(){if(confirm('לאפס את כל הסימונים (סוכן + מיכאל)?')){
-    store={c:{},m:{},seededKeys:{}};save();
-    document.querySelectorAll('.marks input').forEach(cb=>cb.checked=false);paint();}};
+  window.resetAll=function(){if(confirm('לאפס את אישורי "מיכאל"? (סימוני "סוכן" נקבעים מהקובץ)')){
+    store={m:{}};save();
+    document.querySelectorAll('.mk-m input').forEach(cb=>{cb.checked=false;});paint();}};
 
   paint();
 })();
