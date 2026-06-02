@@ -58,18 +58,24 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
                     "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",
                     (fetch_limit,),
                 ).fetchall()
-        except sqlite3.OperationalError:
-            pass  # table doesn't exist — primary-only mode
+        except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+            logger.warning("[bars_5min_history] woodies fallback failed (primary-only): %s", e)
         conn.close()
 
         # Merge: index primary by ts, fill gaps from woodies
         by_ts = {}
         for r in rows_5m:
-            by_ts[r["ts"]] = dict(r)
+            by_ts[str(r["ts"])] = dict(r)
         for r in rows_w:
-            ts = r["ts"]
+            ts = str(r["ts"])
             if ts not in by_ts:
-                by_ts[ts] = dict(r)
+                rd = dict(r)
+                # Skip woodies rows with non-numeric OHLC (corrupt footprint data)
+                try:
+                    float(rd["open"]); float(rd["high"]); float(rd["low"]); float(rd["close"])
+                except (TypeError, ValueError):
+                    continue
+                by_ts[ts] = rd
 
         # Sort oldest first, validate, filter flat stale bars
         result = []
@@ -93,7 +99,8 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
         if filtered:
             logger.info("[bars_5min_history] filtered %d bad/stale bars from response", filtered)
         return result[-limit:]
-    except Exception:
+    except Exception as e:
+        logger.warning("[bars_5min_history] _fetch_bars_5min failed: %s", e)
         return []
 
 
