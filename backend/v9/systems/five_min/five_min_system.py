@@ -493,7 +493,9 @@ class FiveMinSystem(BaseV9TradingSystem):
         b2_vol = b2.get("v", 0) or 0
 
         # D-RVX: 3-variant volume gate evaluation
-        from backend.v9.shared.atr import S2_VSA_VOLUME
+        # Read flag at call-time (not module-level) so plist env changes take effect
+        import os as _os
+        S2_VSA_VOLUME = _os.environ.get("S2_VSA_VOLUME", "").lower() in ("1", "true", "yes")
         _vol_buf = [b.get("v", 0) or 0 for b in bars_5m[:-3] if (b.get("v", 0) or 0) > 0]
         _rolling_avg = sum(_vol_buf[-20:]) / max(len(_vol_buf[-20:]), 1) if _vol_buf else b1_vol
 

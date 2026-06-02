@@ -293,7 +293,8 @@ async def _startup():
                             cvd=None,
                         )
                         # Phase 4: promote shadow→live day_type (flag-gated, default OFF)
-                        from backend.v9.shared.atr import S1_LIVE_RECLASS
+                        import os as _os
+                        S1_LIVE_RECLASS = _os.environ.get("S1_LIVE_RECLASS", "").lower() in ("1", "true", "yes")
                         if S1_LIVE_RECLASS and _sr.shadow_type != "Normal":
                             _old_type = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
                             from backend.v9.systems.day_type.state_machine import DayType as _DT
