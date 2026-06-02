@@ -68,46 +68,23 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-class _LockedSession:
-    """Wrapper that acquires _write_lock only on commit/flush (write ops).
-
-    GET (read-only) requests never touch the lock → no contention.
-    POST/PUT (write) requests serialize through the same RLock as safe_writer.
-    """
-
-    def __init__(self, session):
-        self._s = session
-
-    def commit(self):
-        from backend.v9.db.safe_writer import _write_lock
-        with _write_lock:
-            self._s.commit()
-
-    def flush(self, objects=None):
-        from backend.v9.db.safe_writer import _write_lock
-        with _write_lock:
-            self._s.flush(objects)
-
-    def close(self):
-        self._s.close()
-
-    def __getattr__(self, name):
-        return getattr(self._s, name)
-
-
 def get_db():
-    """FastAPI dependency — yields a DB session with write-serialized commit.
+    """FastAPI dependency — yields a DB session.
 
-    Reads (query/filter) run without lock. Writes (commit/flush) acquire
-    the global _write_lock shared with safe_writer, preventing concurrent
-    SQLite writes that cause B-tree corruption.
+    SQLite WAL mode + busy_timeout=5000 (set via engine pragma) handle
+    concurrent writes safely. The _LockedSession approach caused deadlocks
+    in uvicorn's single-threaded event loop (one commit() blocked all requests).
+
+    Write serialization for raw sqlite3 callers goes through safe_writer._write_lock.
+    ORM writes rely on WAL's built-in serialization (single WAL writer at a time,
+    busy_timeout waits rather than corrupts). The original corruption was caused by
+    mixing WAL and non-WAL connections — now all connections use WAL.
     """
     db = SessionLocal()
-    wrapped = _LockedSession(db)
     try:
-        yield wrapped
+        yield db
     finally:
-        wrapped.close()
+        db.close()
 
 
 def init_db():
