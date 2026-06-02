@@ -86,3 +86,4 @@ S1_CVD_OPENING = os.environ.get("S1_CVD_OPENING", "").lower() in ("1", "true", "
 S1_DAYTYPE_STAGING = os.environ.get("S1_DAYTYPE_STAGING", "").lower() in ("1", "true", "yes")
 S1_IB_WIDTH_ATR = os.environ.get("S1_IB_WIDTH_ATR", "").lower() in ("1", "true", "yes")
 S1_DYNAMIC_RECLASS = os.environ.get("S1_DYNAMIC_RECLASS", "").lower() in ("1", "true", "yes")
+S4_EXTREME_TREND_RELABEL = os.environ.get("S4_EXTREME_TREND_RELABEL", "").lower() in ("1", "true", "yes")
