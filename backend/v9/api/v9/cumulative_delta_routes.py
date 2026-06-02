@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 EXPORT_PATH = Path(
     os.getenv(
         "V9_CUMDELTA_EXPORT_PATH",
-        "/Users/michael/SierraChart_Data/v9_export/cumulative_delta.json",
+        "/Users/michael/SierraChart_Data/v9_export/cumulative_delta_continuous.json",
     )
 )
 MAX_AGE_S = float(os.getenv("V9_CUMDELTA_MAX_AGE_S", "30"))
