@@ -295,6 +295,9 @@ async def _startup():
                         # Phase 4: promote shadow→live day_type (flag-gated, default OFF)
                         import os as _os
                         S1_LIVE_RECLASS = _os.environ.get("S1_LIVE_RECLASS", "").lower() in ("1", "true", "yes")
+                        _logger.info("[D-S1DYN] Live reclass check: flag=%s shadow=%s live=%s",
+                                     S1_LIVE_RECLASS, _sr.shadow_type,
+                                     state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type))
                         if S1_LIVE_RECLASS and _sr.shadow_type != "Normal":
                             _old_type = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
                             from backend.v9.systems.day_type.state_machine import DayType as _DT
