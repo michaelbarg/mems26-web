@@ -274,11 +274,9 @@ class WoodiesSystem(BaseV9TradingSystem):
             # persist — sees one consistent trend_state. |CCI|>=200 = strong established
             # trend; Sierra GRAY/YELLOW here is transition-lag (audit: 6 bars confirmed).
             # Flag-gated; default OFF = raw Sierra trend.
-            from backend.v9.shared.atr import S4_EXTREME_TREND_RELABEL as _EXTREME_TREND_RELABEL
-            if _EXTREME_TREND_RELABEL and studies.get("trend_state") in ("GRAY", "YELLOW", "GREY"):
-                _cci_val = studies.get("cci_14") or 0
-                if abs(_cci_val) >= 200:
-                    studies["trend_state"] = "BLUE" if _cci_val > 0 else "RED"
+            # D-WDIAG: call shared relabel function (single source of truth)
+            from backend.v9.systems.woodies.trend_relabel import apply_extreme_trend_relabel
+            apply_extreme_trend_relabel(studies)
 
             # Build WoodiesBar for pattern engine
             bar_ts = bar.get("ts", 0)
