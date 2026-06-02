@@ -913,6 +913,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                 "location_vs_poc_vol": location,
             })
 
+            _variant = info.get("variant", "")  # D-RVX
             self.last_pattern = f"{kind}_{direction}"
             self.last_classification = kind
             self.last_confluence = int(conf * 100)
@@ -1065,7 +1066,12 @@ class FiveMinSystem(BaseV9TradingSystem):
                         "t1": t1_setup.t1_price or 0.0,
                         "t2": t1_setup.t2_price or 0.0,
                         "t3": 0.0,
-                        "metadata": {"pattern": t1_setup.pattern_name, "sizing": t1_setup.sizing_contracts},
+                        "metadata": {
+                            "pattern": t1_setup.pattern_name,
+                            "sizing": t1_setup.sizing_contracts,
+                            "variant": info.get("variant"),  # D-RVX: A_VSA/B_RVOL/C_STRICT
+                            "variants_passed": info.get("variants_passed"),
+                        },
                     }
                     try:
                         self._gateway.route_setup(gateway_setup, 2)

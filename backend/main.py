@@ -296,14 +296,20 @@ async def _startup():
                         from backend.v9.shared.atr import S1_LIVE_RECLASS
                         if S1_LIVE_RECLASS and _sr.shadow_type != "Normal":
                             _old_type = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
+                            from backend.v9.systems.day_type.state_machine import DayType as _DT
+                            _new_dt = None
                             if _sr.shadow_type == "Variation":
-                                from backend.v9.systems.day_type.state_machine import DayType as _DT
-                                state.day_type = _DT.NORMAL_VARIATION
-                                _logger.info("[D-S1DYN] LIVE reclass: %s → Normal_Variation (shadow=%s)", _old_type, _sr.shadow_type)
+                                _new_dt = _DT.NORMAL_VARIATION
                             elif _sr.shadow_type == "Trend":
-                                from backend.v9.systems.day_type.state_machine import DayType as _DT
-                                state.day_type = _DT.TREND_NORMAL
-                                _logger.info("[D-S1DYN] LIVE reclass: %s → Trend_Normal (shadow=%s)", _old_type, _sr.shadow_type)
+                                _new_dt = _DT.TREND_NORMAL
+                            if _new_dt is not None and _new_dt != state.day_type:
+                                state.day_type = _new_dt
+                                # Also update machine internal state so to_classification()
+                                # and day_type_history persist the promoted type (anti-dead-wiring)
+                                if hasattr(day_type_machine, '_last_state') and day_type_machine._last_state:
+                                    day_type_machine._last_state.day_type = _new_dt
+                                _logger.info("[D-S1DYN] LIVE reclass: %s → %s (shadow=%s)",
+                                             _old_type, _new_dt.value, _sr.shadow_type)
                     except Exception as _sr_err:
                         _logger.debug("[D-S1DYN] Shadow reclass error: %s", _sr_err)
 
