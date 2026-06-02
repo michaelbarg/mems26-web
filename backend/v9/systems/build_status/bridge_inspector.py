@@ -14,7 +14,7 @@ Each stream is presented as a GlobalGate in the returned SystemStatus.
 import logging
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from .types import SystemStatus, GlobalGate, DataFreshness
@@ -40,27 +40,38 @@ STREAM_CHECKS = [
 
 
 def _parse_ts(ts_raw: str) -> Optional[float]:
-    """Parse various timestamp formats → UTC epoch float. Returns None on failure."""
+    """Parse various timestamp formats → UTC epoch float. Returns None on failure.
+
+    Naive timestamps (no TZ suffix) from v9_bars_5min are ET wall-clock,
+    not UTC. Detect by absence of '+' or 'Z' and apply ET offset.
+    """
     if not ts_raw:
         return None
+
+    # If it has an explicit TZ offset (+00:00 etc.), parse directly
     for fmt in (
         "%Y-%m-%dT%H:%M:%S.%f+00:00",
         "%Y-%m-%dT%H:%M:%S+00:00",
-        "%Y-%m-%d %H:%M:%S.%f",
-        "%Y-%m-%d %H:%M:%S",
         "%Y-%m-%dT%H:%M:%S.%f",
         "%Y-%m-%dT%H:%M:%S",
-        "%Y-%m-%dT%H:%M:%S+%f",
+        "%Y-%m-%d %H:%M:%S.%f",
+        "%Y-%m-%d %H:%M:%S",
     ):
         try:
             dt = datetime.strptime(ts_raw[:26], fmt[:len(ts_raw)])
             if dt.tzinfo is None:
-                dt = dt.replace(tzinfo=timezone.utc)
+                # Naive = ET wall-clock (v9_bars_5min, Sierra export)
+                # Apply America/New_York offset
+                try:
+                    from zoneinfo import ZoneInfo
+                    dt = dt.replace(tzinfo=ZoneInfo("America/New_York"))
+                except ImportError:
+                    # Fallback: assume EDT (UTC-4) in summer
+                    dt = dt.replace(tzinfo=timezone(timedelta(hours=-4)))
             return dt.timestamp()
         except (ValueError, TypeError):
             continue
     try:
-        # Last resort: truncate to 26 chars and try
         return datetime.fromisoformat(ts_raw[:25]).replace(tzinfo=timezone.utc).timestamp()
     except Exception:
         return None
