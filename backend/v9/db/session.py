@@ -68,20 +68,46 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-def get_db():
-    """FastAPI dependency — yields a DB session under the global write lock.
+class _LockedSession:
+    """Wrapper that acquires _write_lock only on commit/flush (write ops).
 
-    All SQLite writes (both ORM via SessionLocal and raw via safe_writer)
-    are serialized through the same threading.Lock to prevent B-tree
-    corruption from concurrent writes. Root cause fixed 2026-06-02.
+    GET (read-only) requests never touch the lock → no contention.
+    POST/PUT (write) requests serialize through the same RLock as safe_writer.
     """
-    from backend.v9.db.safe_writer import _write_lock
-    with _write_lock:
-        db = SessionLocal()
-        try:
-            yield db
-        finally:
-            db.close()
+
+    def __init__(self, session):
+        self._s = session
+
+    def commit(self):
+        from backend.v9.db.safe_writer import _write_lock
+        with _write_lock:
+            self._s.commit()
+
+    def flush(self, objects=None):
+        from backend.v9.db.safe_writer import _write_lock
+        with _write_lock:
+            self._s.flush(objects)
+
+    def close(self):
+        self._s.close()
+
+    def __getattr__(self, name):
+        return getattr(self._s, name)
+
+
+def get_db():
+    """FastAPI dependency — yields a DB session with write-serialized commit.
+
+    Reads (query/filter) run without lock. Writes (commit/flush) acquire
+    the global _write_lock shared with safe_writer, preventing concurrent
+    SQLite writes that cause B-tree corruption.
+    """
+    db = SessionLocal()
+    wrapped = _LockedSession(db)
+    try:
+        yield wrapped
+    finally:
+        wrapped.close()
 
 
 def init_db():

@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
-_write_lock = threading.Lock()
+_write_lock = threading.RLock()  # RLock: safe if ORM handler calls safe_execute
 
 
 def _open_conn(db_path: str) -> sqlite3.Connection:
