@@ -249,10 +249,14 @@ def _compute_readiness(systems: List[SystemStatus], rtb: RTBSession) -> Readines
     sys_map = {s.id: s for s in systems}
 
     # Check 1: bridge streams fresh (block during RTH, info outside)
+    # Only critical streams block — woodies_5min (written by WoodiesSystem, not bridge)
+    # and tpo_bars (empty by design) are excluded.
+    _NON_CRITICAL_STREAMS = {"woodies_5min", "tpo_bars", "footprint"}
     bridge = sys_map.get("bridge")
     if bridge:
-        all_fresh = all(g.present for g in bridge.global_gates) if bridge.global_gates else False
-        dead_gates = [g.key for g in bridge.global_gates if not g.present]
+        critical_gates = [g for g in bridge.global_gates if g.key not in _NON_CRITICAL_STREAMS]
+        all_fresh = all(g.present for g in critical_gates) if critical_gates else True
+        dead_gates = [g.key for g in critical_gates if not g.present]
         severity = "block" if in_rth else "info"
         checks.append(ReadinessCheck(
             key="bridge_streams_fresh",
