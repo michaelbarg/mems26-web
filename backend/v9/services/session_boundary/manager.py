@@ -52,18 +52,13 @@ class SessionBoundaryManager:
 
     def _ensure_table(self) -> None:
         """Create v9_session_meta if it doesn't exist."""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute("""
-                CREATE TABLE IF NOT EXISTS v9_session_meta (
-                    key TEXT PRIMARY KEY,
-                    value TEXT NOT NULL
-                )
-            """)
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning("[SessionBoundary] table creation failed: %s", e)
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute("""
+            CREATE TABLE IF NOT EXISTS v9_session_meta (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        """, db_path=self.db_path)
 
     def _get_last_rollover_date(self) -> Optional[date]:
         """Read last_rollover_date from DB."""
@@ -82,17 +77,13 @@ class SessionBoundaryManager:
 
     def _set_last_rollover_date(self, d: date) -> None:
         """Write last_rollover_date to DB (upsert)."""
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """INSERT INTO v9_session_meta (key, value) VALUES ('last_rollover_date', ?)
-                   ON CONFLICT(key) DO UPDATE SET value = excluded.value""",
-                (d.isoformat(),),
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning("[SessionBoundary] write last_rollover_date failed: %s", e)
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """INSERT INTO v9_session_meta (key, value) VALUES ('last_rollover_date', ?)
+               ON CONFLICT(key) DO UPDATE SET value = excluded.value""",
+            (d.isoformat(),),
+            db_path=self.db_path,
+        )
 
     def check_rollover(self) -> bool:
         """Check if rollover is needed and perform it if so.
@@ -176,69 +167,43 @@ class SessionBoundaryManager:
         Never DELETE — per CLAUDE.md Rule 1 (honest data > silent loss).
         """
         counts = {"day_type": 0, "tpo_sessions": 0, "woodies_signals": 0}
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cur = conn.cursor()
-
-            # day_type_history → day_type_archive
-            cur.execute("""
-                INSERT INTO v9_day_type_archive
-                  SELECT *, datetime('now') AS archived_at
-                  FROM v9_day_type_history
-                  WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
-            """, (today.isoformat(),))
-            counts["day_type"] = cur.rowcount
-
-            cur.execute("""
-                UPDATE v9_day_type_history
-                  SET status = 'ROLLED_OVER'
-                  WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
-            """, (today.isoformat(),))
-
-            # tpo_sessions → tpo_sessions_archive
-            # Explicit column list: archive has 19 columns (original schema).
-            # v9_tpo_sessions gained 8 extra columns that archive doesn't have.
-            cur.execute("""
-                INSERT INTO v9_tpo_sessions_archive
-                  (session_id, session_type, trading_date, opened_ts, closed_ts,
-                   poc_price, vah_price, val_price, range_high, range_low,
-                   total_volume, profile_shape, opening_type,
-                   ib_high, ib_low, ib_locked, letter_count, archived_at)
-                  SELECT session_id, session_type, trading_date, opened_ts, closed_ts,
-                         poc_price, vah_price, val_price, range_high, range_low,
-                         total_volume, profile_shape, opening_type,
-                         ib_high, ib_low, ib_locked, letter_count, datetime('now')
-                  FROM v9_tpo_sessions
-                  WHERE trading_date < ?
-            """, (today.isoformat(),))
-            counts["tpo_sessions"] = cur.rowcount
-
-            # woodies_signals → woodies_signals_archive
-            cur.execute("""
-                INSERT INTO v9_woodies_signals_archive
-                  SELECT *, datetime('now') AS archived_at
-                  FROM v9_woodies_signals
-                  WHERE date(ts) < ?
-            """, (today.isoformat(),))
-            counts["woodies_signals"] = cur.rowcount
-
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning("[SessionBoundary] archive_yesterday error: %s", e, exc_info=True)
+        from backend.v9.db.safe_writer import safe_execute
+        today_iso = today.isoformat()
+        safe_execute("""
+            INSERT INTO v9_day_type_archive
+              SELECT *, datetime('now') AS archived_at
+              FROM v9_day_type_history
+              WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
+        """, (today_iso,), db_path=self.db_path)
+        safe_execute("""
+            UPDATE v9_day_type_history
+              SET status = 'ROLLED_OVER'
+              WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
+        """, (today_iso,), db_path=self.db_path)
+        safe_execute("""
+            INSERT INTO v9_tpo_sessions_archive
+              (session_id, session_type, trading_date, opened_ts, closed_ts,
+               poc_price, vah_price, val_price, range_high, range_low,
+               total_volume, profile_shape, opening_type,
+               ib_high, ib_low, ib_locked, letter_count, archived_at)
+              SELECT session_id, session_type, trading_date, opened_ts, closed_ts,
+                     poc_price, vah_price, val_price, range_high, range_low,
+                     total_volume, profile_shape, opening_type,
+                     ib_high, ib_low, ib_locked, letter_count, datetime('now')
+              FROM v9_tpo_sessions
+              WHERE trading_date < ?
+        """, (today_iso,), db_path=self.db_path)
+        safe_execute("""
+            INSERT INTO v9_woodies_signals_archive
+              SELECT *, datetime('now') AS archived_at
+              FROM v9_woodies_signals
+              WHERE date(ts) < ?
+        """, (today_iso,), db_path=self.db_path)
         return counts
 
     def _truncate_stale_state(self, today: date) -> int:
         """Delete v9_day_type_state rows older than 2 days."""
+        from backend.v9.db.safe_writer import safe_execute
         cutoff = (today - timedelta(days=2)).isoformat()
-        try:
-            conn = sqlite3.connect(self.db_path)
-            cur = conn.cursor()
-            cur.execute("DELETE FROM v9_day_type_state WHERE date(ts) < ?", (cutoff,))
-            n = cur.rowcount
-            conn.commit()
-            conn.close()
-            return n
-        except Exception as e:
-            logger.warning("[SessionBoundary] truncate_stale_state error: %s", e, exc_info=True)
-            return 0
+        safe_execute("DELETE FROM v9_day_type_state WHERE date(ts) < ?", (cutoff,), db_path=self.db_path)
+        return 0  # rowcount not available via safe_execute

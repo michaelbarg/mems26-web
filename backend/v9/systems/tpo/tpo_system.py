@@ -442,19 +442,15 @@ class TPOSystem(BaseV9TradingSystem):
         """
         if not self.current_session_id:
             return
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """UPDATE v9_tpo_sessions SET ib_high=?, ib_low=?, ib_width=?,
-                   ib_class=?, ib_locked=?, ib_locked_ts=COALESCE(?, ib_locked_ts)
-                   WHERE session_id=?""",
-                (self.ib_high, self.ib_low, self._ib_width, self._ib_class,
-                 int(self.ib_locked), self._ib_locked_ts, self.current_session_id)
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning(f"TPO IB persist failed: {e}")
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """UPDATE v9_tpo_sessions SET ib_high=?, ib_low=?, ib_width=?,
+               ib_class=?, ib_locked=?, ib_locked_ts=COALESCE(?, ib_locked_ts)
+               WHERE session_id=?""",
+            (self.ib_high, self.ib_low, self._ib_width, self._ib_class,
+             int(self.ib_locked), self._ib_locked_ts, self.current_session_id),
+            db_path=self.db_path,
+        )
 
     def _open_session(self, session_id, session_type, today, ts_str):
         # Pre-LIVE "doesn't lock the way it locked" (2026-05-28):
@@ -479,16 +475,12 @@ class TPOSystem(BaseV9TradingSystem):
             self._ib_width = None
             self._ib_class = None
             self._ib_locked_ts = None
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                "INSERT OR IGNORE INTO v9_tpo_sessions (session_id, session_type, trading_date, opened_ts) VALUES (?,?,?,?)",
-                (session_id, session_type, today, ts_str)
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning(f"TPO open session failed: {e}")
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            "INSERT OR IGNORE INTO v9_tpo_sessions (session_id, session_type, trading_date, opened_ts) VALUES (?,?,?,?)",
+            (session_id, session_type, today, ts_str),
+            db_path=self.db_path,
+        )
 
     def _compute_levels(self):
         if not self.profile:
@@ -549,39 +541,31 @@ class TPOSystem(BaseV9TradingSystem):
         # captured Sierra-emitted locked IB. _update_ib() always overwrites
         # the row when Sierra emits a real IB, so 1:1 tracking is preserved;
         # this only prevents data loss when Sierra goes silent.
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                """UPDATE v9_tpo_sessions SET
-                       poc_price=?, vah_price=?, val_price=?, profile_shape=?,
-                       ib_high=COALESCE(?, ib_high),
-                       ib_low=COALESCE(?, ib_low),
-                       ib_locked=CASE WHEN ? IS NULL THEN ib_locked ELSE ? END,
-                       letter_count=?
-                   WHERE session_id=?""",
-                (
-                    poc, vah, val, shape,
-                    self.ib_high, self.ib_low,
-                    self.ib_high, int(self.ib_locked),
-                    self.current_letter_idx + 1, session_id,
-                )
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning(f"TPO session persist failed: {e}")
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """UPDATE v9_tpo_sessions SET
+                   poc_price=?, vah_price=?, val_price=?, profile_shape=?,
+                   ib_high=COALESCE(?, ib_high),
+                   ib_low=COALESCE(?, ib_low),
+                   ib_locked=CASE WHEN ? IS NULL THEN ib_locked ELSE ? END,
+                   letter_count=?
+               WHERE session_id=?""",
+            (
+                poc, vah, val, shape,
+                self.ib_high, self.ib_low,
+                self.ib_high, int(self.ib_locked),
+                self.current_letter_idx + 1, session_id,
+            ),
+            db_path=self.db_path,
+        )
 
     def _persist_letter(self, session_id, ts, letter, low, high):
-        try:
-            conn = sqlite3.connect(self.db_path)
-            conn.execute(
-                "INSERT INTO v9_tpo_journal (session_id, ts, letter, price_low, price_high) VALUES (?,?,?,?,?)",
-                (session_id, ts, letter, low, high)
-            )
-            conn.commit()
-            conn.close()
-        except Exception as e:
-            logger.warning(f"TPO letter persist failed: {e}")
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            "INSERT INTO v9_tpo_journal (session_id, ts, letter, price_low, price_high) VALUES (?,?,?,?,?)",
+            (session_id, ts, letter, low, high),
+            db_path=self.db_path,
+        )
 
     def get_current(self) -> dict:
         return dict(self.current_state)

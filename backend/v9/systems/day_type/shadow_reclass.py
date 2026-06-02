@@ -125,27 +125,22 @@ class ShadowReclassifier:
     def _log_transition(self, session_min, from_type, to_type, trigger,
                         e_up, e_dn, r_total, vah, val, poc, cvd, price):
         """Write to v9_day_type_shadow_transitions (DB)."""
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            conn.execute(
-                """INSERT INTO v9_day_type_shadow_transitions
-                   (ts, session_date, session_min, from_type, to_type, trigger,
-                    e_up, e_dn, r_total, ib_w, ib_h, ib_l,
-                    vah, val, poc, cvd, price)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    datetime.now(timezone.utc).isoformat(),
-                    self.session_date, session_min, from_type, to_type, trigger,
-                    round(e_up, 4), round(e_dn, 4), round(r_total, 4),
-                    round(self.ib_w, 2), self.ib_h, self.ib_l,
-                    vah, val, poc, cvd, price,
-                ),
-            )
-            conn.commit()
-            conn.close()
-            logger.info(
-                "[D-S1DYN] Shadow transition: %s → %s (%s) E_up=%.2f E_dn=%.2f R=%.2f",
-                from_type, to_type, trigger, e_up, e_dn, r_total,
-            )
-        except Exception as e:
-            logger.warning("[D-S1DYN] Shadow log write failed: %s", e)
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            """INSERT INTO v9_day_type_shadow_transitions
+               (ts, session_date, session_min, from_type, to_type, trigger,
+                e_up, e_dn, r_total, ib_w, ib_h, ib_l,
+                vah, val, poc, cvd, price)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                datetime.now(timezone.utc).isoformat(),
+                self.session_date, session_min, from_type, to_type, trigger,
+                round(e_up, 4), round(e_dn, 4), round(r_total, 4),
+                round(self.ib_w, 2), self.ib_h, self.ib_l,
+                vah, val, poc, cvd, price,
+            ),
+        )
+        logger.info(
+            "[D-S1DYN] Shadow transition: %s → %s (%s) E_up=%.2f E_dn=%.2f R=%.2f",
+            from_type, to_type, trigger, e_up, e_dn, r_total,
+        )

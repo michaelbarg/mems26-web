@@ -75,14 +75,16 @@ class FootprintSystem(BaseV9TradingSystem):
         }
 
     def _get_conn(self) -> sqlite3.Connection:
-        """Open a short-lived read connection (writes go through safe_writer)."""
-        if self._conn is None:
-            self._conn = sqlite3.connect(
-                self.db_path, timeout=5, check_same_thread=False
-            )
-            self._conn.execute("PRAGMA journal_mode=WAL")
-            self._conn.execute("PRAGMA busy_timeout=3000")
-        return self._conn
+        """Open a short-lived read connection. Writes go through safe_writer.
+
+        No persistent connection — open/close per use to avoid holding
+        read locks that conflict with WAL writes (root cause of 2026-06-02
+        DB corruption).
+        """
+        conn = sqlite3.connect(self.db_path, timeout=5)
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA busy_timeout=3000")
+        return conn
 
     def set_gateway(self, gateway) -> None:
         """Inject TradingGateway for validated T3 fire routing."""

@@ -389,20 +389,22 @@ class HistoryLoader:
             "streams": {},
         }
 
-        conn = sqlite3.connect(self.db_path, timeout=20)
-        try:
-            for file_name, parser_fn, target_table, insert_sql in STREAMS:
-                stream_result = self._gap_fill_stream(
-                    conn=conn,
-                    file_name=file_name,
-                    parser_fn=parser_fn,
-                    target_table=target_table,
-                    insert_sql=insert_sql,
-                )
-                summary["streams"][file_name] = stream_result
-            conn.commit()
-        finally:
-            conn.close()
+        from backend.v9.db.safe_writer import _write_lock, _open_conn
+        with _write_lock:
+            conn = _open_conn(self.db_path)
+            try:
+                for file_name, parser_fn, target_table, insert_sql in STREAMS:
+                    stream_result = self._gap_fill_stream(
+                        conn=conn,
+                        file_name=file_name,
+                        parser_fn=parser_fn,
+                        target_table=target_table,
+                        insert_sql=insert_sql,
+                    )
+                    summary["streams"][file_name] = stream_result
+                conn.commit()
+            finally:
+                conn.close()
 
         summary["elapsed_s"] = round(time.time() - started_at, 3)
         self.last_summary = summary

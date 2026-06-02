@@ -277,17 +277,14 @@ class TPOHistorySnapshotter:
         ib_low: Optional[float],
     ) -> None:
         """INSERT OR REPLACE — idempotent on ``ts`` via ``ux_v9_tpo_history_ts``."""
-        conn = sqlite3.connect(self.db_path, timeout=10)
-        try:
-            conn.execute(
-                "INSERT OR REPLACE INTO v9_tpo_history "
-                "(ts, poc, vah, val, ib_high, ib_low, created_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-                (ts_str, poc, vah, val, ib_high, ib_low),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        from backend.v9.db.safe_writer import safe_execute
+        safe_execute(
+            "INSERT OR REPLACE INTO v9_tpo_history "
+            "(ts, poc, vah, val, ib_high, ib_low, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+            (ts_str, poc, vah, val, ib_high, ib_low),
+            db_path=self.db_path,
+        )
 
     # ------------------------------------------------------------------
     # Slot math (pure functions — exposed for tests)
