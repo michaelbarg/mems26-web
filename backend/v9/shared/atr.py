@@ -88,3 +88,4 @@ S1_IB_WIDTH_ATR = os.environ.get("S1_IB_WIDTH_ATR", "").lower() in ("1", "true",
 S1_DYNAMIC_RECLASS = os.environ.get("S1_DYNAMIC_RECLASS", "").lower() in ("1", "true", "yes")
 S4_EXTREME_TREND_RELABEL = os.environ.get("S4_EXTREME_TREND_RELABEL", "").lower() in ("1", "true", "yes")
 S3_MUTE = os.environ.get("S3_MUTE", "").lower() in ("1", "true", "yes")  # D-S3MUTE
+S2_VSA_VOLUME = os.environ.get("S2_VSA_VOLUME", "").lower() in ("1", "true", "yes")  # D-RVX: VSA volume gate

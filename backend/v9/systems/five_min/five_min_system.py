@@ -488,15 +488,26 @@ class FiveMinSystem(BaseV9TradingSystem):
         if cur_cot is None or cur_amt is None:
             return (None, 0, {})
 
+        b0_vol = bars_5m[-5].get("v", 0) or 0 if len(bars_5m) >= 5 else 0  # D-RVX
         b1_vol = b1.get("v", 0) or 0
         b2_vol = b2.get("v", 0) or 0
+
+        # D-RVX: VSA-faithful volume gate (flag-gated, default OFF = legacy 90% drop)
+        from backend.v9.shared.atr import S2_VSA_VOLUME
+        if S2_VSA_VOLUME and b1_vol > 0:
+            # VSA "no demand/supply": b2 volume lower than both prior bars + below rolling avg
+            _vol_buf = [b.get("v", 0) or 0 for b in bars_5m[:-3] if (b.get("v", 0) or 0) > 0]
+            _rolling_avg = sum(_vol_buf[-20:]) / max(len(_vol_buf[-20:]), 1) if _vol_buf else b1_vol
+            b2_drop = (b2_vol < b1_vol and b2_vol < b0_vol and
+                       b2_vol <= 0.7 * _rolling_avg)
+        else:
+            b2_drop = b2_vol <= b1_vol * DROP_THRESHOLD_PCT if b1_vol > 0 else False
 
         # Belly confirmation from Footprint (W3-α gap 1)
         belly = self._get_belly_from_footprint()
 
         # Reactive LONG
         b1_sellers = b1["c"] < b1["o"] and b1_vol > 0
-        b2_drop = b2_vol <= b1_vol * DROP_THRESHOLD_PCT if b1_vol > 0 else False
         b3_buyers = b3["c"] > b3["o"]
         b3_belly = belly is not False  # True or None (unavailable) both pass
         b4_confirm = b4["c"] > b4["o"]
