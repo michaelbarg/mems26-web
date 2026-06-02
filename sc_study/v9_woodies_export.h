@@ -440,9 +440,11 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         sc.GetStudyArrayFromChartUsingID(wc, 2, 0, s_lsma25_arr);   // LSMA
         sc.GetStudyArrayFromChartUsingID(wc, 6, 5, s_swi_arr);      // Sidewinder
         sc.GetStudyArrayFromChartUsingID(wc, 7, 2, s_czi_arr);      // ChopZone
-        sc.GetStudyArrayFromChartUsingID(wc, 1, 1, s_trend_up_arr); // TrendUp
-        sc.GetStudyArrayFromChartUsingID(wc, 1, 2, s_trend_down_arr);
-        sc.GetStudyArrayFromChartUsingID(wc, 1, 3, s_trend_neutral_arr);
+        // Woodies CCI Trend (Study ID:1): ACSIL subgraphs are 0-based.
+        // UI SG1=TrendUp → ACSIL idx 0, UI SG2=TrendDown → idx 1, UI SG3=TrendNeutral → idx 2
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 0, s_trend_up_arr); // TrendUp (ACSIL SG0)
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 1, s_trend_down_arr); // TrendDown (ACSIL SG1)
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 2, s_trend_neutral_arr); // TrendNeutral (ACSIL SG2)
         sc.GetStudyArrayFromChartUsingID(wc, 11, 0, s_pred_hi_arr); // CCI Predictor SG0
         sc.GetStudyArrayFromChartUsingID(wc, 11, 1, s_pred_lo_arr); // CCI Predictor SG1
         have_sierra = (s_cci14_arr.GetArraySize() > 0);
