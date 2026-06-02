@@ -71,9 +71,9 @@ export function TradeDetailsModal() {
     setLoading(true);
     fetchTradeById(selectedTradeId)
       .then((res) => {
-        if (res?.trade) setDetail(res.trade as Trade);
-        setInsight((res?.insight as TradeInsight) ?? null);
-        setLogs(Array.isArray(res?.management_log) ? res.management_log : []);
+        if (res?.trade) setDetail(res.trade as unknown as Trade);
+        setInsight((res?.insight as unknown as TradeInsight) ?? null);
+        setLogs(Array.isArray(res?.management_log) ? (res.management_log as unknown as MgmtLogRow[]) : []);
       })
       .catch(() => {
         setDetail(null);
