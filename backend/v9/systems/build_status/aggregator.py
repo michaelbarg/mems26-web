@@ -13,7 +13,7 @@ from datetime import date, datetime, timezone
 from backend.v9.common.trading_date import et_today
 from typing import Optional, List
 
-from .types import BuildStatusResponse, SystemStatus, RTBSession
+from .types import BuildStatusResponse, SystemStatus, RTBSession, Readiness, ReadinessCheck
 from . import s2_inspector, woodies_inspector, day_type_inspector, bridge_inspector, footprint_inspector
 
 logger = logging.getLogger(__name__)
@@ -222,6 +222,9 @@ class BuildStatusAggregator:
         # RTB session (simple clock check — no market calendar integration)
         rtb = _compute_rtb_session(now_utc)
 
+        # D-RDY: readiness verdict from PRE_TRADE_PROTOCOL checks
+        readiness = _compute_readiness(result_systems, rtb)
+
         return BuildStatusResponse(
             ts=now_utc.isoformat(),
             build_version="v1",
@@ -229,7 +232,91 @@ class BuildStatusAggregator:
             rtb_session=rtb,
             systems=result_systems,
             errors=errors,
+            readiness=readiness,
         )
+
+
+def _compute_readiness(systems: List[SystemStatus], rtb: RTBSession) -> Readiness:
+    """D-RDY: derive READY/DEGRADED/BLOCKED from system states.
+
+    Maps PRE_TRADE_PROTOCOL Phase 0-4 checks. Read-only — does NOT gate firing.
+    RTH-aware: bridge DEAD outside RTH (09:30-16:00 ET) downgrades to 'info'.
+    """
+    checks: list = []
+    in_rth = rtb.in_session
+
+    # Helper: find system by id
+    sys_map = {s.id: s for s in systems}
+
+    # Check 1: bridge streams fresh (block during RTH, info outside)
+    bridge = sys_map.get("bridge")
+    if bridge:
+        all_fresh = all(g.present for g in bridge.global_gates) if bridge.global_gates else False
+        dead_gates = [g.key for g in bridge.global_gates if not g.present]
+        severity = "block" if in_rth else "info"
+        checks.append(ReadinessCheck(
+            key="bridge_streams_fresh",
+            passed=all_fresh,
+            severity=severity,
+            detail=f"dead: {','.join(dead_gates)}" if dead_gates else None,
+        ))
+
+    # Check 2: S1 day_type classified
+    dt = sys_map.get("day_type")
+    if dt:
+        day_type_val = None
+        for inp in dt.live_inputs:
+            if inp.field == "day_type":
+                day_type_val = inp.value
+                break
+        for interp in dt.interpretations:
+            if interp.key == "day_type" and interp.value:
+                day_type_val = interp.value
+                break
+        classified = day_type_val not in (None, "", "UNKNOWN", "unknown")
+        checks.append(ReadinessCheck(
+            key="s1_day_type_classified",
+            passed=classified,
+            severity="degrade",
+            detail=f"day_type={day_type_val}",
+        ))
+
+    # Check 3: S4 trend not stuck GRAY
+    woodies = sys_map.get("woodies")
+    if woodies:
+        trend_val = None
+        for inp in woodies.live_inputs:
+            if inp.field == "trend_state":
+                trend_val = inp.value
+                break
+        trend_ok = trend_val in ("BLUE", "RED")
+        checks.append(ReadinessCheck(
+            key="s4_trend_not_stuck_gray",
+            passed=trend_ok,
+            severity="degrade",
+            detail=f"trend_state={trend_val}",
+        ))
+
+    # Check 4: in RTH (info only)
+    checks.append(ReadinessCheck(
+        key="in_rth",
+        passed=in_rth,
+        severity="info",
+        detail="RTH 09:30-16:00 ET" if in_rth else "outside RTH",
+    ))
+
+    # Compute verdict
+    has_block_fail = any(not c.passed and c.severity == "block" for c in checks)
+    has_degrade_fail = any(not c.passed and c.severity == "degrade" for c in checks)
+
+    if has_block_fail:
+        first_blocker = next(c for c in checks if not c.passed and c.severity == "block")
+        return Readiness(verdict="BLOCKED", reason=first_blocker.detail or first_blocker.key, checks=checks)
+    elif has_degrade_fail:
+        first_degrader = next(c for c in checks if not c.passed and c.severity == "degrade")
+        return Readiness(verdict="DEGRADED", reason=first_degrader.detail or first_degrader.key, checks=checks)
+    else:
+        return Readiness(verdict="READY", reason="all checks passed", checks=checks)
 
 
 def _compute_rtb_session(now_utc: datetime) -> RTBSession:

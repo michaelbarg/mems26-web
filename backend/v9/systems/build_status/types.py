@@ -120,6 +120,25 @@ class RTBSession(BaseModel):
     minutes_to_close: Optional[int] = None
 
 
+# D-RDY: Operator readiness verdict (observability only — does NOT gate firing)
+ReadinessVerdict = Literal["READY", "DEGRADED", "BLOCKED"]
+
+
+class ReadinessCheck(BaseModel):
+    """Single PRE_TRADE_PROTOCOL check result."""
+    key: str
+    passed: bool
+    severity: Literal["block", "degrade", "info"]
+    detail: Optional[str] = None
+
+
+class Readiness(BaseModel):
+    """Aggregate readiness derived from PRE_TRADE_PROTOCOL checks."""
+    verdict: ReadinessVerdict = "BLOCKED"
+    reason: str = ""
+    checks: List[ReadinessCheck] = Field(default_factory=list)
+
+
 class BuildStatusResponse(BaseModel):
     ts: str
     build_version: str = "v1"
@@ -127,3 +146,4 @@ class BuildStatusResponse(BaseModel):
     rtb_session: RTBSession = Field(default_factory=RTBSession)
     systems: List[SystemStatus] = Field(default_factory=list)
     errors: List[str] = Field(default_factory=list)
+    readiness: Readiness = Field(default_factory=Readiness)  # D-RDY
