@@ -10,10 +10,10 @@
 |---|-------|--------|--------|----------|
 | 1 | D-S3MUTE — השתקת S3 | **DONE** | `1c28df7` | 2/2 passed |
 | 2 | S4 Woodies — dispatcher + bar_count | **DONE** | `401d526` | 3/3 passed |
-| 3 | Build-Status — D-RDY backend | **PARTIAL** | `3e2f785` | 5/5 passed (backend). Frontend + B0 inventory = OPEN |
+| 3 | Build-Status — D-RDY + frontend | **DONE** | `3e2f785` + `0240cab` | 5/5 passed (backend). Frontend: global_gates render + readiness banner + tsc clean |
 | 4 | S2 / D-RVX | **🛑 STOPPED** | — | Strategic stop: trading logic, needs Michael approval |
 | 5 | S1 Day-Type | **🛑 STOPPED** | — | Strategic stop: atr_daily source, needs Michael approval |
-| 6 | Trades UX | **NOT DONE** | — | Frontend-only, needs dev server for verification |
+| 6 | Trades UX — partial | **PARTIAL** | `0240cab` | BE outcome + Direction filter done. Modal wiring + sort + truncation = pending dev server |
 
 ---
 
