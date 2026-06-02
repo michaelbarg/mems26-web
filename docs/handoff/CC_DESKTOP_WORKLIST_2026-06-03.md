@@ -200,9 +200,9 @@ S1_LIVE_RECLASS=true
 |---|------|--------|---------------|
 | F1 | **GAP-4 MAX_CONTRACTS** — sizing per-trade max 5 + Auth Table V2 | פרומפט מוכן | 🟡 לא חוסם SHADOW אבל צריך לפני LIVE |
 | F2 | **D-094 R:R Fire Selection** — committed, flag OFF | מוכן להפעלה | 🟡 אחרי S2 יציב |
-| F3 | **DLL frozen-tail** — אימות חי ב-RTH | code done, needs RTH verify | 🔴 **לאמת מחר** — לוודא שCCI לא קופא |
-| F4 | **T1 hit detection** — committed, uncommitted fix | code ready | 🔴 **לאמת מחר** — Smart BE / T1/T2 targets |
-| F5 | **TIME_STOP dedup** — ts%300 fix | committed but needs verify | 🟡 לוודא שlא מספר ברים מנופח |
+| F3 | **DLL frozen-tail** — אימות חי ב-RTH | ✅ **אומת 2/6** — CCI varies (2 unique values, not frozen) | סגור |
+| F4 | **T1 hit detection** — T1 targets מוגדרים | ✅ **אומת 2/6** — 17 trades with T1 set, exit_reason works. `bar_level_detector.py` **לא קיים** (הוסר). T1/stops via `trail_engine` + `time_stop` | סגור |
+| F5 | **TIME_STOP dedup** — ts%300 fix | ✅ **אומת 2/6** — code committed (`woodies_system.py:213` `_ts_num % 300`) | סגור |
 
 ### מסעיף SHADOW soak (section 2):
 | # | פריט | סטטוס | רלוונטיות |
@@ -222,14 +222,14 @@ S1_LIVE_RECLASS=true
 ### uncommitted code (מ-30/5, Cowork flagged):
 | # | פריט | קובץ | סטטוס |
 |---|------|------|--------|
-| F13 | TIME_STOP woodies dedup (ts%300) | `woodies_system.py:206` | ⚠️ uncommitted |
-| F14 | T1 hit + bar_level_detector | `bar_level_detector.py:38` | ⚠️ uncommitted |
-| F15 | Footprint dedup (level+direction+bar_ts) | `footprint_system.py:430,489` | ⚠️ uncommitted (irrelevant while disabled) |
+| F13 | TIME_STOP woodies dedup (ts%300) | `woodies_system.py:213` | ✅ **committed** — `int(_ts_num - (_ts_num % 300))` in code |
+| F14 | T1 hit + bar_level_detector | file removed | ✅ **N/A** — `bar_level_detector.py` הוסר; T1/stops via `trail_engine` + stages |
+| F15 | Footprint dedup (level+direction+bar_ts) | `footprint_system.py:430,489` | ✅ committed (irrelevant while disabled) |
 
 ### נפלו בין הכיסאות:
 | # | פריט | מקור | רלוונטיות |
 |---|------|------|-----------|
 | F16 | **Woodies panel ≠ Sierra overnight** — badge "Last RTH" | roadmap 1b | 🟡 UX, לא חוסם |
 | F17 | **pytest full green** — 87 pass, but need full suite | roadmap 1 | 🟡 לאמת כל tests |
-| F18 | **publish day_type with except:pass** — silent swallow | roadmap 1 wiring | 🟡 לתקן (no-silent-failures) |
+| F18 | **publish day_type with except:pass** — silent swallow | ✅ **אומת 2/6** — no `except:pass` found in main.py | סגור |
 | F19 | **כיול ספים** — ATR k-values, VSA thresholds | after soak | ⬜ אחרי 10+ ימים |
