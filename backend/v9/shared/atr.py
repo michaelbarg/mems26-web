@@ -89,4 +89,5 @@ S1_DYNAMIC_RECLASS = os.environ.get("S1_DYNAMIC_RECLASS", "").lower() in ("1", "
 S4_EXTREME_TREND_RELABEL = os.environ.get("S4_EXTREME_TREND_RELABEL", "").lower() in ("1", "true", "yes")
 S3_MUTE = os.environ.get("S3_MUTE", "").lower() in ("1", "true", "yes")  # D-S3MUTE
 FOOTPRINT_DISABLED = os.environ.get("FOOTPRINT_DISABLED", "").lower() in ("1", "true", "yes")  # Full S3 disable
+S1_LIVE_RECLASS = os.environ.get("S1_LIVE_RECLASS", "").lower() in ("1", "true", "yes")  # Phase 4: promote shadow→live
 S2_VSA_VOLUME = os.environ.get("S2_VSA_VOLUME", "").lower() in ("1", "true", "yes")  # D-RVX: VSA volume gate

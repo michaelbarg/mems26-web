@@ -292,6 +292,18 @@ async def _startup():
                             poc=None,
                             cvd=None,
                         )
+                        # Phase 4: promote shadow→live day_type (flag-gated, default OFF)
+                        from backend.v9.shared.atr import S1_LIVE_RECLASS
+                        if S1_LIVE_RECLASS and _sr.shadow_type != "Normal":
+                            _old_type = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
+                            if _sr.shadow_type == "Variation":
+                                from backend.v9.systems.day_type.state_machine import DayType as _DT
+                                state.day_type = _DT.NORMAL_VARIATION
+                                _logger.info("[D-S1DYN] LIVE reclass: %s → Normal_Variation (shadow=%s)", _old_type, _sr.shadow_type)
+                            elif _sr.shadow_type == "Trend":
+                                from backend.v9.systems.day_type.state_machine import DayType as _DT
+                                state.day_type = _DT.TREND_NORMAL
+                                _logger.info("[D-S1DYN] LIVE reclass: %s → Trend_Normal (shadow=%s)", _old_type, _sr.shadow_type)
                     except Exception as _sr_err:
                         _logger.debug("[D-S1DYN] Shadow reclass error: %s", _sr_err)
 
