@@ -492,14 +492,23 @@ class FiveMinSystem(BaseV9TradingSystem):
         b1_vol = b1.get("v", 0) or 0
         b2_vol = b2.get("v", 0) or 0
 
-        # D-RVX: VSA-faithful volume gate (flag-gated, default OFF = legacy 90% drop)
+        # D-RVX: 3-variant volume gate evaluation
         from backend.v9.shared.atr import S2_VSA_VOLUME
-        if S2_VSA_VOLUME and b1_vol > 0:
-            # VSA "no demand/supply": b2 volume lower than both prior bars + below rolling avg
-            _vol_buf = [b.get("v", 0) or 0 for b in bars_5m[:-3] if (b.get("v", 0) or 0) > 0]
-            _rolling_avg = sum(_vol_buf[-20:]) / max(len(_vol_buf[-20:]), 1) if _vol_buf else b1_vol
-            b2_drop = (b2_vol < b1_vol and b2_vol < b0_vol and
-                       b2_vol <= 0.7 * _rolling_avg)
+        _vol_buf = [b.get("v", 0) or 0 for b in bars_5m[:-3] if (b.get("v", 0) or 0) > 0]
+        _rolling_avg = sum(_vol_buf[-20:]) / max(len(_vol_buf[-20:]), 1) if _vol_buf else b1_vol
+
+        # Variant A (VSA): lower than both prior bars + below 0.7× rolling avg
+        _vsa_pass = (b2_vol < b1_vol and b2_vol < b0_vol and
+                     b2_vol <= 0.7 * _rolling_avg) if b1_vol > 0 else False
+        # Variant B (RVOL-TOD): below 0.5× rolling avg (stricter, time-normalized proxy)
+        _rvol_pass = (b2_vol <= 0.5 * _rolling_avg) if _rolling_avg > 0 else False
+        # Variant C (Strict): VSA + narrow spread (b2 range < 0.7× ATR)
+        _b2_range = abs(b2.get("h", 0) - b2.get("l", 0))
+        _atr = self._current_atr_5m or 2.0
+        _strict_pass = _vsa_pass and (_b2_range < 0.7 * _atr)
+
+        if S2_VSA_VOLUME:
+            b2_drop = _vsa_pass  # Primary gate: Variant A
         else:
             b2_drop = b2_vol <= b1_vol * DROP_THRESHOLD_PCT if b1_vol > 0 else False
 
@@ -525,12 +534,18 @@ class FiveMinSystem(BaseV9TradingSystem):
         belly_ratio = self._get_belly_ratio_from_footprint("LONG")
         belly_ratio_ok = (belly_ratio is None) or (belly_ratio >= BELLY_DOMINANCE_RATIO)
 
+        # D-RVX: variant tags for A/B/C
+        _variants_long = {"A_VSA": _vsa_pass, "B_RVOL": _rvol_pass, "C_STRICT": _strict_pass}
+
         if (b1_sellers and b2_drop and b3_buyers and b3_belly
                 and b4_confirm and b4_close_above_b3_high and cot_above_amt
                 and lookback_quiet and belly_ratio_ok):
+            _active = [k for k, v in _variants_long.items() if v]
             return ("LONG", 0.80 if poc_rising else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_rising": poc_rising,
-                     "belly_ratio": belly_ratio})
+                     "belly_ratio": belly_ratio,
+                     "variant": _active[0] if _active else "A_VSA",
+                     "variants_passed": _active})
 
         # Reactive SHORT (mirror)
         b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
@@ -544,12 +559,17 @@ class FiveMinSystem(BaseV9TradingSystem):
         belly_ratio_s = self._get_belly_ratio_from_footprint("SHORT")
         belly_ratio_ok_s = (belly_ratio_s is None) or (belly_ratio_s >= BELLY_DOMINANCE_RATIO)
 
+        _variants_short = {"A_VSA": _vsa_pass, "B_RVOL": _rvol_pass, "C_STRICT": _strict_pass}
+
         if (b1_buyers and b2_drop and b3_sellers and b3_belly
                 and b4_confirm_s and b4_close_below_b3_low and cot_below_amt
                 and lookback_quiet and belly_ratio_ok_s):
+            _active_s = [k for k, v in _variants_short.items() if v]
             return ("SHORT", 0.80 if poc_falling else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_falling": poc_falling,
-                     "belly_ratio": belly_ratio_s})
+                     "belly_ratio": belly_ratio_s,
+                     "variant": _active_s[0] if _active_s else "A_VSA",
+                     "variants_passed": _active_s})
 
         return (None, 0, {})
 
