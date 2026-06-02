@@ -150,6 +150,10 @@ class FootprintSystem(BaseV9TradingSystem):
         return None
 
     async def process_bar(self, event) -> None:
+        # FOOTPRINT_DISABLED: skip all processing + writing (not just firing)
+        from backend.v9.shared.atr import FOOTPRINT_DISABLED
+        if FOOTPRINT_DISABLED:
+            return
         try:
             bar = dict(event.payload) if hasattr(event, 'payload') else dict(event)
             self.bar_buffer.append(bar)
