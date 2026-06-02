@@ -97,24 +97,35 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
         if filtered:
             logger.info("[bars_5min_history] filtered %d bad/stale bars from response", filtered)
 
-        # Session filter: drop bars from previous sessions that sort before
-        # today's bars (e.g. 15:15 yesterday < 09:30 today in ts string sort
-        # but chronologically older). Keep only bars from the last contiguous
-        # block — detect gap > 2h as session boundary.
-        if len(result) > 1:
-            clean = [result[-1]]
-            for i in range(len(result) - 2, -1, -1):
-                try:
-                    from datetime import datetime
-                    t1 = datetime.fromisoformat(str(result[i]["ts"]).replace(" ", "T"))
-                    t2 = datetime.fromisoformat(str(result[i + 1]["ts"]).replace(" ", "T"))
-                    gap = abs((t2 - t1).total_seconds())
-                    if gap > 7200:  # 2h gap = session boundary
-                        break
-                    clean.append(result[i])
-                except Exception:
-                    clean.append(result[i])
-            result = list(reversed(clean))
+        # Session filter: keep only bars from the current CME Globex session.
+        # Globex opens 18:00 ET (previous calendar day). Bars with ET time
+        # from a prior session (e.g. 15:15 yesterday) would sort incorrectly
+        # because ts is ET wall-clock string.
+        if result:
+            from datetime import datetime, timedelta
+            try:
+                from zoneinfo import ZoneInfo
+                et = ZoneInfo("America/New_York")
+            except ImportError:
+                et = None
+            if et:
+                now_et = datetime.now(et)
+                # Globex session start: 18:00 ET previous day (or today if after 18:00)
+                if now_et.hour >= 18:
+                    session_start = now_et.replace(hour=18, minute=0, second=0, microsecond=0)
+                else:
+                    session_start = (now_et - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
+                session_start_naive = session_start.replace(tzinfo=None)
+                filtered_session = []
+                for bar in result:
+                    try:
+                        bar_dt = datetime.fromisoformat(str(bar["ts"]).replace(" ", "T").split("+")[0])
+                        if bar_dt >= session_start_naive:
+                            filtered_session.append(bar)
+                    except Exception:
+                        filtered_session.append(bar)  # keep on parse failure
+                if filtered_session:
+                    result = filtered_session
 
         return result[-limit:]
     except Exception as e:

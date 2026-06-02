@@ -751,6 +751,13 @@ def post_woodies(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
+    # 30min_woodies: high-frequency ORM writer → corruption source (same as tick_reversal)
+    from backend.v9.shared.atr import flag
+    if flag("WOODIES_30MIN_DISABLED"):
+        if payload.all_bars:
+            _dispatch("woodies_30min", payload.all_bars[-1] if isinstance(payload.all_bars[-1], dict) else {})
+            _record_push("woodies_30min")
+        return {"ok": True, "inserted": 0, "disabled": True}
     bars = payload.all_bars  # Fix 2: accept both "history" and "bars" keys
     created = 0
     last_flat = None
