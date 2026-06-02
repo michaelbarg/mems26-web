@@ -339,7 +339,7 @@ def _recognition_lines(sid: int, blob: Dict[str, Any]) -> List[str]:
         if blob.get("last_classification"):
             lines.append(f"class={blob['last_classification']}")
     elif sid == 4:
-        for key in ("trend_state", "cci_14", "signal", "classification"):
+        for key in ("trend_state", "trend_original", "cci_14", "signal", "classification"):  # D-WDIAG
             if blob.get(key) is not None:
                 val = blob[key]
                 lines.append(f"{key}={val:.2f}" if isinstance(val, float) else f"{key}={val}")

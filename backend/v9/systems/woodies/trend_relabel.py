@@ -16,7 +16,10 @@ def apply_extreme_trend_relabel(studies: dict) -> None:
     """D-WDIAG: Relabel GRAY/YELLOW → BLUE/RED on extreme CCI (±200+).
 
     Mutates studies["trend_state"] in place. No-op when flag OFF or CCI < 200.
+    Always sets studies["trend_original"] to the pre-relabel value for A/B.
     """
+    # D-WDIAG: preserve original trend for A/B comparison (always, even no-op)
+    studies["trend_original"] = studies.get("trend_state")
     if not S4_EXTREME_TREND_RELABEL:
         return
     trend = studies.get("trend_state")

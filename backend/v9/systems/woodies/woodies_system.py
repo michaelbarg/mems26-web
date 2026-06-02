@@ -430,6 +430,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                 "swi_value": studies["swi_value"],
                 "czi_value": studies["czi_value"],
                 "trend_state": studies["trend_state"],
+                "trend_original": studies.get("trend_original"),  # D-WDIAG: A/B relabel
                 "predictor_next_cci": studies["predictor_next_cci"],
                 "signal": signal,
                 "direction": direction,
