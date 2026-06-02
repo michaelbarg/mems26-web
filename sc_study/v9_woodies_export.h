@@ -519,15 +519,18 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         float pred_lo = S_VAL(s_pred_lo_arr, mi);
         float predictor = (pred_hi != 0) ? pred_hi : v9_cci_predictor(cci14, cci14_prev);
 
-        // Trend from Sierra native (Study ID:1 TrendUp/Down/Neutral)
+        // Trend from Sierra native Woodies CCI Trend subgraphs.
+        // TrendUp = uptrend = BLUE, TrendDown = downtrend = RED.
+        // Use LAST array element (cross-chart index fix) for current bar.
         const char* trend;
-        if (have_sierra && s_trend_up_arr.GetArraySize() > mi) {
-            float tu = S_VAL(s_trend_up_arr, mi);
-            float td = S_VAL(s_trend_down_arr, mi);
-            float tn = S_VAL(s_trend_neutral_arr, mi);
-            if (tu != 0)      trend = "RED";
-            else if (td != 0) trend = "YELLOW";
-            else if (tn != 0) trend = "BLUE";
+        if (have_sierra && s_trend_up_arr.GetArraySize() > 0) {
+            int tl = s_trend_up_arr.GetArraySize() - 1;
+            float tu = s_trend_up_arr[tl];
+            float td = (s_trend_down_arr.GetArraySize() > tl) ? s_trend_down_arr[tl] : 0;
+            float tn = (s_trend_neutral_arr.GetArraySize() > tl) ? s_trend_neutral_arr[tl] : 0;
+            if (tu != 0)      trend = "BLUE";   // TrendUp = BLUE (was inverted to RED)
+            else if (td != 0) trend = "RED";    // TrendDown = RED (was inverted to YELLOW)
+            else if (tn != 0) trend = "GRAY";   // TrendNeutral = GRAY (was inverted to BLUE)
             else               trend = "GRAY";
         } else {
             trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
@@ -613,13 +616,14 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         // Trend + proj from Sierra via mapped index
         int cb_mi = mapIdx(bars[ci].chart_bar_start);
         const char* trend;
-        if (have_sierra && s_trend_up_arr.GetArraySize() > cb_mi) {
-            float tu = S_VAL(s_trend_up_arr, cb_mi);
-            float td = S_VAL(s_trend_down_arr, cb_mi);
-            float tn = S_VAL(s_trend_neutral_arr, cb_mi);
-            if (tu != 0)      trend = "RED";
-            else if (td != 0) trend = "YELLOW";
-            else if (tn != 0) trend = "BLUE";
+        if (have_sierra && s_trend_up_arr.GetArraySize() > 0) {
+            int tl30 = s_trend_up_arr.GetArraySize() - 1;
+            float tu = s_trend_up_arr[tl30];
+            float td = (s_trend_down_arr.GetArraySize() > tl30) ? s_trend_down_arr[tl30] : 0;
+            float tn = (s_trend_neutral_arr.GetArraySize() > tl30) ? s_trend_neutral_arr[tl30] : 0;
+            if (tu != 0)      trend = "BLUE";
+            else if (td != 0) trend = "RED";
+            else if (tn != 0) trend = "GRAY";
             else               trend = "GRAY";
         } else {
             trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
