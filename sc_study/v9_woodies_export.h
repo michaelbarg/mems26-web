@@ -523,16 +523,15 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
 
         // Trend from Sierra native Woodies CCI Trend subgraphs.
         // TrendUp = uptrend = BLUE, TrendDown = downtrend = RED.
-        // Use LAST array element (cross-chart index fix) for current bar.
+        // Use mi (mapped index for THIS bar) for history, LAST for current only.
         const char* trend;
-        if (have_sierra && s_trend_up_arr.GetArraySize() > 0) {
-            int tl = s_trend_up_arr.GetArraySize() - 1;
-            float tu = s_trend_up_arr[tl];
-            float td = (s_trend_down_arr.GetArraySize() > tl) ? s_trend_down_arr[tl] : 0;
-            float tn = (s_trend_neutral_arr.GetArraySize() > tl) ? s_trend_neutral_arr[tl] : 0;
-            if (tu != 0)      trend = "BLUE";   // TrendUp = BLUE (was inverted to RED)
-            else if (td != 0) trend = "RED";    // TrendDown = RED (was inverted to YELLOW)
-            else if (tn != 0) trend = "GRAY";   // TrendNeutral = GRAY (was inverted to BLUE)
+        if (have_sierra && s_trend_up_arr.GetArraySize() > mi && mi >= 0) {
+            float tu = S_VAL(s_trend_up_arr, mi);
+            float td = S_VAL(s_trend_down_arr, mi);
+            float tn = S_VAL(s_trend_neutral_arr, mi);
+            if (tu != 0)      trend = "BLUE";
+            else if (td != 0) trend = "RED";
+            else if (tn != 0) trend = "GRAY";
             else               trend = "GRAY";
         } else {
             trend = v9_woodies_trend_state(cci14, cci14_prev, swi);
