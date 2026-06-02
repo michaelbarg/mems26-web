@@ -435,6 +435,11 @@ class FootprintSystem(BaseV9TradingSystem):
 
     def _fire(self, signal: dict, bar: dict, event) -> None:
         """Fire a trade decision from Footprint signal + size."""
+        # D-S3MUTE: skip all firing when S3 is muted (observability stays)
+        from backend.v9.shared.atr import S3_MUTE
+        if S3_MUTE:
+            logger.debug("[Footprint] S3_MUTE active — skipping fire")
+            return
         # Dedup: prevent burst-firing on same (level, direction, bar_ts).
         # Sierra sends multiple UPDATE events per bar; without this gate
         # ~20-30 duplicate trades fire per minute at the same price.
