@@ -12,7 +12,7 @@ import backend.v9.shared.atr as atr_mod
 
 
 def _set_flag(monkeypatch, on: bool):
-    monkeypatch.setattr(atr_mod, "S2_VSA_VOLUME", on)
+    monkeypatch.setenv("S2_VSA_VOLUME", "true" if on else "")
 
 
 def _make_system():

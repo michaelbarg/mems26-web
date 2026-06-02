@@ -565,12 +565,22 @@ def _probe_reactive_long(bars: list) -> List[Component]:
 
     # Step 3: b2_volume_drop
     b2_vol = b2.get("v", 0) or 0
-    threshold = b1_vol * DROP_THRESHOLD_PCT
-    ok = b2_vol <= threshold if b1_vol > 0 else False
+    import os as _os
+    _vsa_on = _os.environ.get("S2_VSA_VOLUME", "").lower() in ("1", "true", "yes")
+    if _vsa_on:
+        b0_vol = bars[-5].get("v", 0) or 0 if len(bars) >= 5 else 0
+        _vols = [b.get("v", 0) or 0 for b in bars[:-3] if (b.get("v", 0) or 0) > 0]
+        _ravg = sum(_vols[-20:]) / max(len(_vols[-20:]), 1) if _vols else b1_vol
+        ok = (b2_vol < b1_vol and b2_vol < b0_vol and b2_vol <= 0.7 * _ravg) if b1_vol > 0 else False
+        spec_text = f"VSA: b2<b1 & b2<b0 & b2≤0.7×avg({_ravg:.0f})"
+    else:
+        threshold = b1_vol * DROP_THRESHOLD_PCT
+        ok = b2_vol <= threshold if b1_vol > 0 else False
+        spec_text = f"b2.volume ≤ b1.volume × {DROP_THRESHOLD_PCT} (90% drop)"
     ratio = b2_vol / b1_vol if b1_vol > 0 else 0
     components.append(Component(
         stage="detection", key="b2_volume_drop",
-        spec=f"b2.volume ≤ b1.volume × {DROP_THRESHOLD_PCT} (90% drop)",
+        spec=spec_text,
         present=ok,
         value=f"b2_vol={b2_vol} · b1_vol={b1_vol} · ratio={ratio:.2f} {'✓' if ok else '✗'}",
     ))
@@ -734,12 +744,14 @@ def _probe_initiative_long(bars: list) -> List[Component]:
     b1_range = b1["h"] - b1["l"]
 
     # Step 2: b1_expansion
-    ok = EXPANSION_MIN_PT <= b1_range <= EXPANSION_MAX_PT
+    from backend.v9.systems.five_min.five_min_system import get_expansion_range
+    _exp_min, _exp_max = get_expansion_range(None)  # ATR-relative with fallback
+    ok = _exp_min <= b1_range <= _exp_max
     components.append(Component(
         stage="detection", key="b1_expansion",
-        spec=f"b1 range in [{EXPANSION_MIN_PT}, {EXPANSION_MAX_PT}] pts",
+        spec=f"b1 range in [{_exp_min:.1f}, {_exp_max:.1f}] pts (ATR-relative)",
         present=ok,
-        value=f"b1 range={b1_range:.2f} · need [{EXPANSION_MIN_PT}, {EXPANSION_MAX_PT}] {'✓' if ok else '✗'}",
+        value=f"b1 range={b1_range:.2f} · need [{_exp_min:.1f}, {_exp_max:.1f}] {'✓' if ok else '✗'}",
     ))
     if not ok:
         return components
@@ -838,12 +850,14 @@ def _probe_initiative_short(bars: list) -> List[Component]:
     b1, b2, b3, b4 = bars[-4], bars[-3], bars[-2], bars[-1]
     b1_range = b1["h"] - b1["l"]
 
-    ok = EXPANSION_MIN_PT <= b1_range <= EXPANSION_MAX_PT
+    from backend.v9.systems.five_min.five_min_system import get_expansion_range
+    _exp_min, _exp_max = get_expansion_range(None)  # ATR-relative with fallback
+    ok = _exp_min <= b1_range <= _exp_max
     components.append(Component(
         stage="detection", key="b1_expansion",
-        spec=f"b1 range in [{EXPANSION_MIN_PT}, {EXPANSION_MAX_PT}] pts",
+        spec=f"b1 range in [{_exp_min:.1f}, {_exp_max:.1f}] pts (ATR-relative)",
         present=ok,
-        value=f"b1 range={b1_range:.2f} · need [{EXPANSION_MIN_PT}, {EXPANSION_MAX_PT}] {'✓' if ok else '✗'}",
+        value=f"b1 range={b1_range:.2f} · need [{_exp_min:.1f}, {_exp_max:.1f}] {'✓' if ok else '✗'}",
     ))
     if not ok:
         return components
