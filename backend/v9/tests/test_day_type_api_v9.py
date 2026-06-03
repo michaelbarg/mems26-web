@@ -110,7 +110,8 @@ def test_get_current_no_data(client):
 
 
 def test_get_current_with_data(client, tmp_db):
-    today = date.today().isoformat()
+    from backend.v9.common.trading_date import et_today
+    today = et_today().isoformat()
     _insert_row(tmp_db, today, "Trend_Normal", 0.7)
     resp = client.get("/api/v9/day_type/v9/current")
     assert resp.status_code == 200
