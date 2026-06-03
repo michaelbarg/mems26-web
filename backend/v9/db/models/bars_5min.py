@@ -27,5 +27,5 @@ class V9Bar5Min(Base):
     vah = Column(Float)
     val = Column(Float)
     cumulative_delta = Column(Float)
-    is_synthetic = Column(SmallInteger, nullable=False, default=0)
+    is_synthetic = Column(SmallInteger, nullable=False, default=0, server_default="0")
     created_at = Column(DateTime(timezone=True), server_default=func.now())

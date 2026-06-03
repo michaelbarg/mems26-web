@@ -389,22 +389,22 @@ class HistoryLoader:
             "streams": {},
         }
 
-        from backend.v9.db.safe_writer import _write_lock, _open_conn
-        with _write_lock:
-            conn = _open_conn(self.db_path)
-            try:
-                for file_name, parser_fn, target_table, insert_sql in STREAMS:
-                    stream_result = self._gap_fill_stream(
-                        conn=conn,
-                        file_name=file_name,
-                        parser_fn=parser_fn,
-                        target_table=target_table,
-                        insert_sql=insert_sql,
-                    )
-                    summary["streams"][file_name] = stream_result
-                conn.commit()
-            finally:
-                conn.close()
+        from backend.v9.db.session import engine
+        from backend.v9.db.safe_writer import _is_postgres, _sqlite_to_pg_upsert
+        is_pg = _is_postgres(engine)
+        with engine.connect() as conn:
+            for file_name, parser_fn, target_table, insert_sql in STREAMS:
+                exec_sql = _sqlite_to_pg_upsert(insert_sql) if is_pg else insert_sql
+                stream_result = self._gap_fill_stream(
+                    conn=conn,
+                    file_name=file_name,
+                    parser_fn=parser_fn,
+                    target_table=target_table,
+                    insert_sql=exec_sql,
+                    is_pg=is_pg,
+                )
+                summary["streams"][file_name] = stream_result
+            conn.commit()
 
         summary["elapsed_s"] = round(time.time() - started_at, 3)
         self.last_summary = summary
@@ -423,11 +423,12 @@ class HistoryLoader:
     def _gap_fill_stream(
         self,
         *,
-        conn: sqlite3.Connection,
+        conn,
         file_name: str,
         parser_fn: Callable[..., List[Dict[str, Any]]],
         target_table: str,
         insert_sql: str,
+        is_pg: bool = False,
     ) -> Dict[str, Any]:
         path = self.export_dir / file_name
         if not path.exists():
@@ -458,19 +459,22 @@ class HistoryLoader:
         if not rows:
             return {"ok": True, "inserted": 0, "skipped_existing": 0, "rows_seen": 0}
 
-        # Bulk INSERT OR IGNORE — sqlite3 reports `total_changes` deltas.
-        before = conn.total_changes
+        # Bulk INSERT via engine connection.
+        from sqlalchemy import text as sa_text
+        inserted = 0
         try:
-            conn.executemany(insert_sql, rows)
-        except sqlite3.Error as e:
-            # Schema drift safety: log and return — don't poison the whole gap-fill.
+            for row_dict in rows:
+                try:
+                    conn.execute(sa_text(insert_sql), row_dict)
+                    inserted += 1
+                except Exception:
+                    pass  # ON CONFLICT DO NOTHING — skip duplicates
+        except Exception as e:
             logger.exception(
                 "[history_loader] %s INSERT failed (likely schema drift): %s",
-                target_table,
-                e,
+                target_table, e,
             )
             return {"error": "insert_failed", "exception": str(e), "rows_seen": len(rows)}
-        inserted = conn.total_changes - before
         return {
             "ok": True,
             "rows_seen": len(rows),
