@@ -25,11 +25,24 @@ _write_lock = threading.RLock()
 
 
 def _get_engine(db_path: str = None):
-    """Return the app engine, or a one-off engine for a specific path."""
+    """Return the app engine. Ignores db_path when running on Postgres.
+
+    Split-brain fix (2026-06-04): when DATABASE_URL is Postgres, db_path
+    is ignored with a warning — prevents silent writes to a stale SQLite
+    file while reads go to PG. SQLite fallback only for tests that
+    explicitly set DATABASE_URL to sqlite.
+    """
+    from backend.v9.db.session import engine
     if db_path is None:
-        from backend.v9.db.session import engine
         return engine
-    # Explicit db_path = SQLite fallback (tests, migrations)
+    # On Postgres: ignore db_path (would create a rogue SQLite engine)
+    if _is_postgres(engine):
+        logger.warning(
+            "[safe_writer] db_path=%s ignored — using Postgres engine (split-brain guard)",
+            db_path,
+        )
+        return engine
+    # On SQLite: allow explicit db_path (tests use temp DBs)
     from sqlalchemy import create_engine
     return create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
 

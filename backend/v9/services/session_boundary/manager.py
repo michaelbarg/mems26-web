@@ -57,7 +57,7 @@ class SessionBoundaryManager:
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             )
-        """, db_path=self.db_path)
+        """)
 
     def _get_last_rollover_date(self) -> Optional[date]:
         """Read last_rollover_date from DB."""
@@ -80,7 +80,6 @@ class SessionBoundaryManager:
             """INSERT INTO v9_session_meta (key, value) VALUES ('last_rollover_date', ?)
                ON CONFLICT(key) DO UPDATE SET value = excluded.value""",
             (d.isoformat(),),
-            db_path=self.db_path,
         )
 
     def check_rollover(self) -> bool:
@@ -172,12 +171,12 @@ class SessionBoundaryManager:
               SELECT *, CURRENT_TIMESTAMP AS archived_at
               FROM v9_day_type_history
               WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
-        """, (today_iso,), db_path=self.db_path)
+        """, (today_iso,))
         safe_execute("""
             UPDATE v9_day_type_history
               SET status = 'ROLLED_OVER'
               WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
-        """, (today_iso,), db_path=self.db_path)
+        """, (today_iso,))
         safe_execute("""
             INSERT INTO v9_tpo_sessions_archive
               (session_id, session_type, trading_date, opened_ts, closed_ts,
@@ -190,18 +189,18 @@ class SessionBoundaryManager:
                      ib_high, ib_low, ib_locked, letter_count, CURRENT_TIMESTAMP
               FROM v9_tpo_sessions
               WHERE trading_date < ?
-        """, (today_iso,), db_path=self.db_path)
+        """, (today_iso,))
         safe_execute("""
             INSERT INTO v9_woodies_signals_archive
               SELECT *, CURRENT_TIMESTAMP AS archived_at
               FROM v9_woodies_signals
               WHERE date(ts) < ?
-        """, (today_iso,), db_path=self.db_path)
+        """, (today_iso,))
         return counts
 
     def _truncate_stale_state(self, today: date) -> int:
         """Delete v9_day_type_state rows older than 2 days."""
         from backend.v9.db.safe_writer import safe_execute
         cutoff = (today - timedelta(days=2)).isoformat()
-        safe_execute("DELETE FROM v9_day_type_state WHERE date(ts) < ?", (cutoff,), db_path=self.db_path)
+        safe_execute("DELETE FROM v9_day_type_state WHERE date(ts) < ?", (cutoff,))
         return 0  # rowcount not available via safe_execute

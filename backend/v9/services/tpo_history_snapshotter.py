@@ -283,7 +283,6 @@ class TPOHistorySnapshotter:
             "(ts, poc, vah, val, ib_high, ib_low, created_at) "
             "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
             (ts_str, poc, vah, val, ib_high, ib_low),
-            db_path=self.db_path,
         )
 
     # ------------------------------------------------------------------

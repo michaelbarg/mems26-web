@@ -446,7 +446,6 @@ class TPOSystem(BaseV9TradingSystem):
                WHERE session_id=?""",
             (self.ib_high, self.ib_low, self._ib_width, self._ib_class,
              int(self.ib_locked), self._ib_locked_ts, self.current_session_id),
-            db_path=self.db_path,
         )
 
     def _open_session(self, session_id, session_type, today, ts_str):
@@ -476,7 +475,6 @@ class TPOSystem(BaseV9TradingSystem):
         safe_execute(
             "INSERT OR IGNORE INTO v9_tpo_sessions (session_id, session_type, trading_date, opened_ts) VALUES (?,?,?,?)",
             (session_id, session_type, today, ts_str),
-            db_path=self.db_path,
         )
 
     def _compute_levels(self):
@@ -553,7 +551,6 @@ class TPOSystem(BaseV9TradingSystem):
                 self.ib_high, int(self.ib_locked),
                 self.current_letter_idx + 1, session_id,
             ),
-            db_path=self.db_path,
         )
 
     def _persist_letter(self, session_id, ts, letter, low, high):
@@ -561,7 +558,6 @@ class TPOSystem(BaseV9TradingSystem):
         safe_execute(
             "INSERT INTO v9_tpo_journal (session_id, ts, letter, price_low, price_high) VALUES (?,?,?,?,?)",
             (session_id, ts, letter, low, high),
-            db_path=self.db_path,
         )
 
     def get_current(self) -> dict:

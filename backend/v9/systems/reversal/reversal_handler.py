@@ -88,7 +88,6 @@ class ReversalBarHandler:
                 empty_zone["empty_zone_volume"] if empty_zone else None,
                 cluster["poc_price"],
             ),
-            db_path=self.db_path,
         )
 
     def get_current(self) -> dict:

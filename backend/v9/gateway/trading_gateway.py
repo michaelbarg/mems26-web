@@ -423,7 +423,6 @@ class TradingGateway:
                 json.dumps(trade["cross_context"], default=str),
                 datetime.now(timezone.utc).isoformat(),
             ),
-            db_path=self.db_path,
         )
 
     def _persist_exit(self, trade: dict) -> None:
@@ -439,5 +438,4 @@ class TradingGateway:
                 datetime.now(timezone.utc).isoformat(),
                 trade.get("mode"), trade.get("entry_ts"),
             ),
-            db_path=self.db_path,
         )

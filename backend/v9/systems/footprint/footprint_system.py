@@ -323,7 +323,6 @@ class FootprintSystem(BaseV9TradingSystem):
                 getattr(event, 'session', 'UNKNOWN'),
                 datetime.utcnow().isoformat(),
             ),
-            db_path=self.db_path,
         )
 
     def _write_setup(self, event, bar, classification, pattern, confluence):
@@ -337,7 +336,6 @@ class FootprintSystem(BaseV9TradingSystem):
                 getattr(event, 'session', 'UNKNOWN'),
                 datetime.utcnow().isoformat(),
             ),
-            db_path=self.db_path,
         )
 
     # ── T3 Firing: Absorption + Stacked Imbalance (Wave S3-T3) ──
@@ -520,7 +518,6 @@ class FootprintSystem(BaseV9TradingSystem):
                 getattr(event, 'session', 'UNKNOWN'),
                 datetime.utcnow().isoformat(),
             ),
-            db_path=self.db_path,
         )
         logger.info("[Footprint] FIRE: %s %s size=%s strength=%.2f",
                     signal["signal"], signal["direction"], size, signal["strength"])
