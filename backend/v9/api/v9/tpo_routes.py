@@ -98,7 +98,7 @@ def _load_periods_from_history(limit: int = 26) -> list:
     fails. This keeps the fallback path inside ``_load_tpo_periods`` simple.
     """
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT ts, poc, vah, val FROM v9_tpo_history "
@@ -154,7 +154,7 @@ def _load_periods_from_sessions(limit: int = 12) -> list:
     so the chart has *something* to render instead of a blank.
     """
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT opened_ts, closed_ts, poc_price, vah_price, val_price FROM v9_tpo_sessions "
@@ -236,7 +236,7 @@ def _parse_previous_session_block(raw: dict) -> Optional[dict]:
 def _load_previous_cash_session() -> Optional[dict]:
     """Last completed CASH TPO row — white Sierra reference lines (interim until DLL exports previous_session)."""
     try:
-        conn = sqlite3.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
+        conn = sqlite3.connect("file:/Users/michael/Downloads/mems26_web_git/data/mems26_local.db?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         from backend.v9.common.trading_date import et_today as _et_today
         row = conn.execute(
@@ -462,7 +462,7 @@ async def tpo_current(request: Request):
 async def tpo_journal(request: Request, session_id: str = "", limit: int = 50):
     db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         if session_id:
             rows = conn.execute(
@@ -483,7 +483,7 @@ async def tpo_journal(request: Request, session_id: str = "", limit: int = 50):
 async def tpo_sessions(request: Request, date: str = ""):
     db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         if date:
             rows = conn.execute(

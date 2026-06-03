@@ -35,7 +35,7 @@ async def veto_state(request: Request):
 async def shadow_today_wr():
     """Today's shadow trade win rate from v9_trades."""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         rows = conn.execute(
             "SELECT outcome FROM v9_trades WHERE date(created_at) = ? AND outcome IS NOT NULL",
             (et_today().isoformat(),)

@@ -265,7 +265,7 @@ def _load_woodies_from_db(limit: int) -> Optional[Dict[str, Any]]:
         "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db",
     )
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             """SELECT ts, open, high, low, close, volume,

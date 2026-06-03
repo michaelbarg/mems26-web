@@ -29,7 +29,7 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
     """
     fetch_limit = min(max(limit, 1), 600) + 20
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
 
         # Primary: v9_bars_5min

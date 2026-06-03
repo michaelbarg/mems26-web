@@ -43,7 +43,7 @@ def load_previous_day_context(
     pd_high/pd_low: TPO range preferred, 5-min hi/lo fallback.
     """
     prev_date = _resolve_prev_date(previous_trading_day)
-    conn = sqlite3.connect(str(db_path))
+    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
     conn.row_factory = sqlite3.Row
     try:
         bars_row = conn.execute(
@@ -94,7 +94,7 @@ def load_tpo_previous_day_summary(
     """TPO session row for previous trading day (API-shaped, no HTTP)."""
     prev_date = _resolve_prev_date(previous_trading_day)
     try:
-        conn = sqlite3.connect(str(db_path))
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
             "SELECT * FROM v9_tpo_sessions WHERE trading_date=? AND session_type='CASH' ORDER BY id DESC LIMIT 1",

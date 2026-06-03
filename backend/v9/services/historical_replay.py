@@ -23,7 +23,7 @@ class HistoricalReplay:
         self._stats = {"tables_read": 0, "bars_replayed": 0, "failed": 0}
 
     def _connect(self):
-        return sqlite3.connect(self.db_path)
+        return sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
 
     def _get_recent_rows(self, table: str, hours: int = 12) -> List[Dict[str, Any]]:
         """Read last N hours of rows from a bar table."""

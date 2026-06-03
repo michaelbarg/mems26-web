@@ -85,7 +85,7 @@ class TPOSystem(BaseV9TradingSystem):
         self.current_state["hydrated"] = True
         # Try to load today's session — PA2-D2: restore IB state on restart
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
             conn.row_factory = sqlite3.Row
             row = conn.execute(
                 "SELECT * FROM v9_tpo_sessions WHERE trading_date=? ORDER BY id DESC LIMIT 1",

@@ -47,7 +47,7 @@ async def open_type_current():
         from backend.v9.services.market_clock import get_previous_trading_day
         DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         bars_rows = conn.execute(
             "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE date(ts)=? ORDER BY ts LIMIT 12",

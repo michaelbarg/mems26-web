@@ -21,7 +21,7 @@ async def reversal_current(request: Request):
 async def reversal_history(limit: int = 20):
     """Return recent reversal enrichment records."""
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT * FROM v9_reversal_enrichment ORDER BY bar_ts DESC LIMIT ?",

@@ -39,7 +39,7 @@ async def woodies_current(request: Request):
 async def woodies_signals(request: Request, limit: int = 20):
     db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT * FROM v9_woodies_signals ORDER BY id DESC LIMIT ?", (limit,)

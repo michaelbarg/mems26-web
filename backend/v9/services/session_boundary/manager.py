@@ -63,7 +63,7 @@ class SessionBoundaryManager:
     def _get_last_rollover_date(self) -> Optional[date]:
         """Read last_rollover_date from DB."""
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
             row = conn.execute(
                 "SELECT value FROM v9_session_meta WHERE key = 'last_rollover_date'"
             ).fetchone()

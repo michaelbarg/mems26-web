@@ -81,9 +81,7 @@ class FootprintSystem(BaseV9TradingSystem):
         read locks that conflict with WAL writes (root cause of 2026-06-02
         DB corruption).
         """
-        conn = sqlite3.connect(self.db_path, timeout=5)
-        conn.execute("PRAGMA journal_mode=WAL")
-        conn.execute("PRAGMA busy_timeout=3000")
+        conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
         return conn
 
     def set_gateway(self, gateway) -> None:

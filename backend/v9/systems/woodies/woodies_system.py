@@ -138,7 +138,7 @@ class WoodiesSystem(BaseV9TradingSystem):
         """Load last N bars from v9_bars_5min_woodies for warm start."""
         loaded = 0
         try:
-            conn = sqlite3.connect(self.db_path)
+            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
             conn.row_factory = sqlite3.Row
             rows = conn.execute(
                 "SELECT * FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",

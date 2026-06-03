@@ -31,7 +31,7 @@ def get_current():
     """
     today = et_today().isoformat()
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         row = conn.execute(
             "SELECT * FROM v9_day_type_history WHERE date = ? AND COALESCE(status, '') != 'ROLLED_OVER' LIMIT 1",
@@ -63,7 +63,7 @@ def get_history(days: int = Query(30, ge=1, le=365)):
     active_zohar_rules) when available, falls back to V1 fields otherwise.
     """
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
             "SELECT * FROM v9_day_type_history ORDER BY date DESC LIMIT ?",
@@ -84,7 +84,7 @@ def get_stats(days: int = Query(30, ge=1, le=365)):
     Returns count and percentage per day type.
     """
     try:
-        conn = sqlite3.connect(DB_PATH)
+        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
         conn.row_factory = sqlite3.Row
         cutoff = (et_today() - timedelta(days=days)).isoformat()
         rows = conn.execute(

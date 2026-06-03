@@ -214,7 +214,7 @@ def history_db_state(_token: str = Depends(verify_bridge_token)) -> Dict[str, An
     advances the auto-increment id on rejected duplicates — id high
     water is not a reliable row-count proxy.
     """
-    conn = sqlite3.connect(DEFAULT_DB_PATH, timeout=5)
+    conn = sqlite3.connect(f"file:{DEFAULT_DB_PATH}?mode=ro", uri=True, timeout=5)
     try:
         out = {"tables": []}
         for table, ts_col in _DB_STATE_TABLES:
