@@ -18,7 +18,7 @@ inline int   v9_min_i(int a, int b)   { return (a < b) ? a : b; }
 inline float v9_abs(float x)          { return (x < 0) ? -x : x; }
 
 // ── Version ──
-static const char* V9_VERSION = "v9.4.4-chart5";  // chart5: continuous 24h export from cross-chart Input 20
+static const char* V9_VERSION = "v9.4.5-wc-fix";  // fix: bars from chart12 direct, TrendUp SG4, SWI local-computed
 
 // ── Export directory ──
 static const char* V9_EXPORT_DIR = "/Users/michael/SierraChart_Data/v9_export/";

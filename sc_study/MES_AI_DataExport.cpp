@@ -611,8 +611,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             sc.GetStudyArrayFromChartUsingID(wc, 2, 0, arr);
             if (W_LAST(arr) >= 0) sierra.lsma_25 = arr[W_LAST(arr)];
 
-            // Sidewinder (Study ID:6, SG5 = actual SWI value)
-            sc.GetStudyArrayFromChartUsingID(wc, 6, 5, arr);
+            // Sidewinder (Study ID:6, SG1=ACSIL 0 = SW Top = actual SWI value)
+            // Verified 2026-06-02: SG1=SW Top, SG2=SW Bottom, SG3=Flat Color, SG4=Spreadsheet
+            sc.GetStudyArrayFromChartUsingID(wc, 6, 0, arr);
             if (W_LAST(arr) >= 0) sierra.sidewinder = arr[W_LAST(arr)];
 
             // Chop Zone (Study ID:7, SG2 = angle value)

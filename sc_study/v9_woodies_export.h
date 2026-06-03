@@ -422,31 +422,71 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
                                             const WoodiesSierraStudies* sierra = nullptr,
                                             int woodies_chart = 0, int proj_study_id = 0)
 {
-    std::vector<Woodies30MinBar> bars = v9_build_5min_bars(sc, max_history + 10);
+    int wc = (woodies_chart > 0) ? woodies_chart : 0;
+
+    // ── Build bars from chart #12 directly when available ──
+    // This ensures OHLC matches Sierra exactly (same chart, same bars).
+    // Falls back to host chart bars when wc==0 (no cross-chart).
+    std::vector<Woodies30MinBar> bars;
+    bool bars_from_wc = false;
+
+    if (wc > 0) {
+        SCGraphData wc_data;
+        SCDateTimeArray wc_dt;
+        sc.GetChartBaseData(wc, wc_data);
+        sc.GetChartDateTimeArray(wc, wc_dt);
+        int wc_size = wc_data[SC_OPEN].GetArraySize();
+
+        if (wc_size > 0 && wc_dt.GetArraySize() >= wc_size) {
+            bars_from_wc = true;
+            int start = v9_max_i(0, wc_size - (max_history + 10));
+            bars.reserve(wc_size - start);
+            for (int i = start; i < wc_size; i++) {
+                Woodies30MinBar bar;
+                bar.chart_bar_start = i;  // Direct chart #12 index — no mapping needed
+                bar.open   = wc_data[SC_OPEN][i];
+                bar.high   = wc_data[SC_HIGH][i];
+                bar.low    = wc_data[SC_LOW][i];
+                bar.close  = wc_data[SC_LAST][i];
+                bar.volume = wc_data[SC_VOLUME][i];
+                bar.ask_vol = (i < (int)wc_data[SC_ASKVOL].GetArraySize()) ? wc_data[SC_ASKVOL][i] : 0;
+                bar.bid_vol = (i < (int)wc_data[SC_BIDVOL].GetArraySize()) ? wc_data[SC_BIDVOL][i] : 0;
+                long long raw_ts = v9_sc_datetime_to_unix(wc_dt[i]);
+                bar.timestamp = raw_ts > 0 ? (raw_ts - (raw_ts % 300)) : (long long)time(nullptr);
+                bars.push_back(bar);
+            }
+        }
+    }
+
+    if (!bars_from_wc) {
+        bars = v9_build_5min_bars(sc, max_history + 10);
+    }
+
     int n = (int)bars.size();
 
     // ── Sierra study arrays for ALL bars ──
-    // Key: use GetContainingIndexForDateTimeIndex to map DLL bar index → chart #12 bar index
-    int wc = (woodies_chart > 0) ? woodies_chart : 0;
+    // Subgraph indices verified from Sierra UI 2026-06-02 (docs/reference/CHART12_STUDY_MAP.md)
     SCFloatArray s_cci14_arr, s_cci6_arr, s_ema34_arr, s_lsma25_arr;
     SCFloatArray s_swi_arr, s_czi_arr, s_proj_hi_arr, s_proj_lo_arr;
     SCFloatArray s_trend_up_arr, s_trend_down_arr, s_trend_neutral_arr;
     SCFloatArray s_pred_hi_arr, s_pred_lo_arr;
+    SCFloatArray s_ccidiff_arr;  // CCIDiff from Woodies Panel (ID:9 SG1)
     bool have_sierra = false;
     if (wc > 0) {
-        sc.GetStudyArrayFromChartUsingID(wc, 4, 0, s_cci14_arr);    // CCI-14
-        sc.GetStudyArrayFromChartUsingID(wc, 10, 0, s_cci6_arr);    // TCCI
-        sc.GetStudyArrayFromChartUsingID(wc, 3, 0, s_ema34_arr);    // EMA-34
-        sc.GetStudyArrayFromChartUsingID(wc, 2, 0, s_lsma25_arr);   // LSMA
-        sc.GetStudyArrayFromChartUsingID(wc, 6, 5, s_swi_arr);      // Sidewinder
-        sc.GetStudyArrayFromChartUsingID(wc, 7, 2, s_czi_arr);      // ChopZone
-        // Woodies CCI Trend (Study ID:1): ACSIL subgraphs are 0-based.
-        // UI SG1=TrendUp → ACSIL idx 0, UI SG2=TrendDown → idx 1, UI SG3=TrendNeutral → idx 2
-        sc.GetStudyArrayFromChartUsingID(wc, 1, 0, s_trend_up_arr); // TrendUp (ACSIL SG0)
-        sc.GetStudyArrayFromChartUsingID(wc, 1, 1, s_trend_down_arr); // TrendDown (ACSIL SG1)
-        sc.GetStudyArrayFromChartUsingID(wc, 1, 2, s_trend_neutral_arr); // TrendNeutral (ACSIL SG2)
-        sc.GetStudyArrayFromChartUsingID(wc, 11, 0, s_pred_hi_arr); // CCI Predictor SG0
-        sc.GetStudyArrayFromChartUsingID(wc, 11, 1, s_pred_lo_arr); // CCI Predictor SG1
+        sc.GetStudyArrayFromChartUsingID(wc, 4, 0, s_cci14_arr);    // CCI-14 (ID:4 SG1)
+        sc.GetStudyArrayFromChartUsingID(wc, 10, 0, s_cci6_arr);    // TCCI (ID:10 SG1)
+        sc.GetStudyArrayFromChartUsingID(wc, 3, 0, s_ema34_arr);    // EMA-34 (ID:3 SG1)
+        sc.GetStudyArrayFromChartUsingID(wc, 2, 0, s_lsma25_arr);   // LSMA (ID:2 SG1)
+        sc.GetStudyArrayFromChartUsingID(wc, 6, 0, s_swi_arr);      // Sidewinder (ID:6 SG1=SW Top = actual SWI value)
+        sc.GetStudyArrayFromChartUsingID(wc, 7, 2, s_czi_arr);      // ChopZone (ID:7 SG3=Spreadsheet Output)
+        // Woodies CCI Trend (Study ID:1) — verified 2026-06-02:
+        //   SG1(idx0)=CCI value, SG2(idx1)=TrendDown, SG3(idx2)=TrendNeutral, SG4(idx3)=TrendUp
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 3, s_trend_up_arr);      // TrendUp (SG4, ACSIL idx 3)
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 1, s_trend_down_arr);    // TrendDown (SG2, ACSIL idx 1)
+        sc.GetStudyArrayFromChartUsingID(wc, 1, 2, s_trend_neutral_arr); // TrendNeutral (SG3, ACSIL idx 2)
+        sc.GetStudyArrayFromChartUsingID(wc, 11, 0, s_pred_hi_arr); // CCI Predictor (ID:11 SG1)
+        sc.GetStudyArrayFromChartUsingID(wc, 11, 1, s_pred_lo_arr); // CCI Predictor (ID:11 SG2)
+        sc.GetStudyArrayFromChartUsingID(wc, 9, 0, s_ccidiff_arr);  // CCIDiff from Woodies Panel (ID:9 SG1)
         have_sierra = (s_cci14_arr.GetArraySize() > 0);
         if (proj_study_id > 0) {
             sc.GetStudyArrayFromChartUsingID(wc, proj_study_id, 1, s_proj_hi_arr);
@@ -454,21 +494,15 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         }
     }
 
-    // Helper: read Sierra float at mapped index, 0 if unavailable
+    // Helper: read Sierra float at index, 0 if unavailable
     #define S_VAL(arr, idx) ((idx) >= 0 && (idx) < (arr).GetArraySize() ? (arr)[(idx)] : 0.0f)
 
-    // Map DLL bar index → Woodies chart bar index using Sierra's cross-chart mapping.
-    // Clamp-detection: if two consecutive bars map to the same Woodies index, the
-    // cross-chart mapping has hit its boundary — fall back to direct index so the
-    // sv==0 local fallback produces live (non-frozen) Python-computed values.
-    auto mapIdx = [&](int dll_bar_idx) -> int {
-        if (!have_sierra || wc == 0 || wc == sc.ChartNumber) return dll_bar_idx;
-        int mi = sc.GetContainingIndexForDateTimeIndex(wc, dll_bar_idx);
-        if (dll_bar_idx > 0) {
-            int mi_prev = sc.GetContainingIndexForDateTimeIndex(wc, dll_bar_idx - 1);
-            if (mi == mi_prev) return dll_bar_idx;  // clamped: fall back to local
-        }
-        return mi;
+    // When bars come from chart #12, chart_bar_start IS the chart #12 index.
+    // No cross-chart mapping needed. When bars come from host chart, map via datetime.
+    auto mapIdx = [&](int bar_idx) -> int {
+        if (bars_from_wc) return bar_idx;  // Already a chart #12 index
+        if (!have_sierra || wc == 0 || wc == sc.ChartNumber) return bar_idx;
+        return sc.GetContainingIndexForDateTimeIndex(wc, bar_idx);
     };
 
     // Pre-compute CCI-14 history for ZLR/HFE detection — Sierra when available
@@ -495,7 +529,7 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
     for (int bi = history_start; bi < n; bi++) {
         if (bi > history_start) j << ",";
 
-        int mi = mapIdx(bars[bi].chart_bar_start);  // mapped index in Woodies chart
+        int mi = mapIdx(bars[bi].chart_bar_start);  // chart #12 index (direct when bars_from_wc)
 
         // Sierra native values with local fallback
         float cci14, cci6, ema34, lsma25, swi, czi;
@@ -505,7 +539,9 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
             sv = S_VAL(s_cci6_arr, mi);   cci6   = (sv != 0) ? sv : v9_calc_cci(bars, bi, 6);
             sv = S_VAL(s_ema34_arr, mi);  ema34  = (sv != 0) ? sv : v9_calc_ema(bars, bi, 34);
             sv = S_VAL(s_lsma25_arr, mi); lsma25 = (sv != 0) ? sv : v9_calc_lsma(bars, bi, 25);
-            swi = S_VAL(s_swi_arr, mi);
+            // SWI: Study ID:6 does NOT expose numeric SWI value (SG0=+200 ref line).
+            // Always compute locally from CCI values.
+            swi = v9_calc_sidewinder(cci14, (bi >= 3) ? cci14_hist[v9_max_i(0, bi-3)] : 0);
             czi = S_VAL(s_czi_arr, mi);
         } else {
             cci14  = v9_calc_cci(bars, bi, 14);
@@ -574,6 +610,18 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         if (plo != 0) json_float(j, "proj_lo", plo);
         else { j << ",\"proj_lo\":null"; }
         v9_woodies_json_hud_fields(j, bars, bi);
+        // Override CCIDiff with Woodies Panel native values (ID:9 SG1/SG6/SG7)
+        // JSON duplicate keys: last value wins in most parsers.
+        if (have_sierra) {
+            float cd = S_VAL(s_ccidiff_arr, mi);
+            if (cd != 0) json_float(j, "ccidiff", cd);
+            SCFloatArray tmp_h, tmp_l;
+            sc.GetStudyArrayFromChartUsingID(wc, 9, 5, tmp_h);  // CCIDiff H (SG6)
+            sc.GetStudyArrayFromChartUsingID(wc, 9, 6, tmp_l);  // CCIDiff L (SG7)
+            float cdh = S_VAL(tmp_h, mi), cdl = S_VAL(tmp_l, mi);
+            if (cdh != 0) json_float(j, "ccidiff_h", cdh);
+            if (cdl != 0) json_float(j, "ccidiff_l", cdl);
+        }
         j << "}";
     }
     j << "]";
@@ -600,7 +648,8 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
             if (sierra->cci_6 != 0)     cci6   = sierra->cci_6;
             if (sierra->ema_34 != 0)    ema34  = sierra->ema_34;
             if (sierra->lsma_25 != 0)   lsma25 = sierra->lsma_25;
-            if (sierra->sidewinder != 0) swi   = sierra->sidewinder;
+            // SWI: DO NOT override — Study ID:6 returns +200 ref line, not SWI value.
+            // Keep locally computed swi from v9_calc_sidewinder().
             if (sierra->chopzone != 0)  czi    = sierra->chopzone;
             // proj from Woodies Panel — usually 0; prefer Pivot Points study below
             s_proj_hi = sierra->proj_hi;
@@ -614,14 +663,13 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
             }
         }
 
-        // Trend + proj from Sierra via mapped index
-        int cb_mi = mapIdx(bars[ci].chart_bar_start);
+        // Trend + proj from Sierra — use chart #12's LAST index
+        int cb_mi = bars_from_wc ? bars[ci].chart_bar_start : mapIdx(bars[ci].chart_bar_start);
         const char* trend;
-        if (have_sierra && s_trend_up_arr.GetArraySize() > 0) {
-            int tl30 = s_trend_up_arr.GetArraySize() - 1;
-            float tu = s_trend_up_arr[tl30];
-            float td = (s_trend_down_arr.GetArraySize() > tl30) ? s_trend_down_arr[tl30] : 0;
-            float tn = (s_trend_neutral_arr.GetArraySize() > tl30) ? s_trend_neutral_arr[tl30] : 0;
+        if (have_sierra && s_trend_up_arr.GetArraySize() > cb_mi && cb_mi >= 0) {
+            float tu = S_VAL(s_trend_up_arr, cb_mi);
+            float td = S_VAL(s_trend_down_arr, cb_mi);
+            float tn = S_VAL(s_trend_neutral_arr, cb_mi);
             if (tu != 0)      trend = "BLUE";
             else if (td != 0) trend = "RED";
             else if (tn != 0) trend = "GRAY";
@@ -663,11 +711,21 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         json_float(j, "cci_14_prev", cci14_prev);
         json_float(j, "cci_14_3ago", cci14_3ago);
         v9_woodies_json_hud_fields(j, bars, ci);
-        // Override CCIDiff with Sierra-accurate values when available
-        if (sierra && sierra->valid && s_ccidiff != 0) {
-            json_float(j, "ccidiff", s_ccidiff);
-            json_float(j, "ccidiff_h", s_ccidiff);
-            json_float(j, "ccidiff_l", s_ccidiff);
+        // Override CCIDiff with Woodies Panel native value (Study ID:9, SG1)
+        // This matches Sierra's displayed CCIDiff exactly (not computed from separate CCI studies).
+        {
+            float panel_ccidiff = S_VAL(s_ccidiff_arr, cb_mi);
+            if (panel_ccidiff != 0) {
+                json_float(j, "ccidiff", panel_ccidiff);
+            } else if (sierra && sierra->valid && s_ccidiff != 0) {
+                json_float(j, "ccidiff", s_ccidiff);
+            }
+            // CCIDiff H/L from Woodies Panel (ID:9 SG6=CCIDiff H, SG7=CCIDiff L)
+            float panel_cdh = 0, panel_cdl = 0;
+            { SCFloatArray tmp; sc.GetStudyArrayFromChartUsingID(wc, 9, 5, tmp); panel_cdh = S_VAL(tmp, cb_mi); }
+            { SCFloatArray tmp; sc.GetStudyArrayFromChartUsingID(wc, 9, 6, tmp); panel_cdl = S_VAL(tmp, cb_mi); }
+            if (panel_cdh != 0) json_float(j, "ccidiff_h", panel_cdh);
+            if (panel_cdl != 0) json_float(j, "ccidiff_l", panel_cdl);
         }
         // Projected High-Low (from Woodies Panel study)
         if (s_proj_hi != 0) json_float(j, "proj_hi", s_proj_hi);
@@ -678,19 +736,30 @@ inline std::string v9_woodies_5min_to_json(SCStudyInterfaceRef sc, int max_histo
         // Debug: array sizes and trend arrays availability
         json_int(j, "_dbg_cci14_arr_size", s_cci14_arr.GetArraySize());
         json_int(j, "_dbg_trend_up_arr_size", s_trend_up_arr.GetArraySize());
-        json_int(j, "_dbg_chart_bar_idx", bars[ci].chart_bar_start);
-        json_int(j, "_dbg_total_chart_bars", sc.Index + 1);
+        json_int(j, "_dbg_wc_bar_idx", cb_mi);
+        json_int(j, "_dbg_host_chart_bars", sc.Index + 1);
+        json_bool(j, "_dbg_bars_from_wc", bars_from_wc);
 
         // ── DEBUG: dump raw Sierra subgraph values for current bar ──
-        // Remove after subgraph mapping is confirmed correct.
+        // Uses cb_mi (chart #12 index) — correct for cross-chart reads.
         if (wc > 0) {
-            int dbg_idx = bars[ci].chart_bar_start;
+            int dbg_idx = cb_mi;  // chart #12 index (was: host index — BUG)
             j << ",\"_debug\":{";
             // Study ID:1 (Woodies CCI Trend) — dump SG0 through SG9
             j << "\"study1_woodies_trend\":{";
             for (int sg = 0; sg <= 9; sg++) {
                 SCFloatArray dbg_arr;
                 sc.GetStudyArrayFromChartUsingID(wc, 1, sg, dbg_arr);
+                float val = (dbg_idx >= 0 && dbg_idx < dbg_arr.GetArraySize()) ? dbg_arr[dbg_idx] : -999;
+                if (sg > 0) j << ",";
+                j << "\"SG" << sg << "\":" << val;
+            }
+            j << "}";
+            // Study ID:6 (Sidewinder) — dump SG0 through SG3
+            j << ",\"study6_sidewinder\":{";
+            for (int sg = 0; sg <= 3; sg++) {
+                SCFloatArray dbg_arr;
+                sc.GetStudyArrayFromChartUsingID(wc, 6, sg, dbg_arr);
                 float val = (dbg_idx >= 0 && dbg_idx < dbg_arr.GetArraySize()) ? dbg_arr[dbg_idx] : -999;
                 if (sg > 0) j << ",";
                 j << "\"SG" << sg << "\":" << val;
