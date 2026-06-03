@@ -1,6 +1,6 @@
 """V9 model: 5-minute OHLCV bars."""
 
-from sqlalchemy import Column, String, Float, Integer, DateTime, UniqueConstraint
+from sqlalchemy import Column, String, Float, Integer, DateTime, UniqueConstraint, SmallInteger
 from sqlalchemy.sql import func
 from backend.v9.db.session import Base
 from backend.v9.db.models._types import BigIntPK
@@ -27,4 +27,5 @@ class V9Bar5Min(Base):
     vah = Column(Float)
     val = Column(Float)
     cumulative_delta = Column(Float)
+    is_synthetic = Column(SmallInteger, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

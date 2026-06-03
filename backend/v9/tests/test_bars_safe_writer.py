@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS v9_bars_5min (
     vah REAL,
     val REAL,
     cumulative_delta REAL,
+    is_synthetic INTEGER NOT NULL DEFAULT 0,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(ts, symbol)
 );
@@ -198,7 +199,7 @@ class TestPost5Min:
         assert sw.DB_PATH == _tmp_db_path, f"DB_PATH not patched: {sw.DB_PATH}"
 
         resp = client.post("/api/v9/bars/5min", json=[
-            {"ts": 1700000000, "symbol": "MES", "o": 100, "h": 105, "l": 99, "c": 103, "vol": 50}
+            {"ts": 1699972200, "symbol": "MES", "o": 100, "h": 105, "l": 99, "c": 103, "vol": 50}
         ])
         assert resp.status_code == 200, resp.text
         data = resp.json()
@@ -211,11 +212,11 @@ class TestPost5Min:
 
         # Dedup: same ts, different close
         resp2 = client.post("/api/v9/bars/5min", json=[
-            {"ts": 1700000000, "symbol": "MES", "o": 100, "h": 106, "l": 99, "c": 104, "vol": 55}
+            {"ts": 1699972200, "symbol": "MES", "o": 100, "h": 106, "l": 99, "c": 104, "vol": 55}
         ])
         assert resp2.status_code == 200
         # Should still be 1 row (INSERT OR REPLACE)
-        rows2 = _query("SELECT * FROM v9_bars_5min WHERE ts LIKE '%2023-11-14%' AND symbol='MES'")
+        rows2 = _query("SELECT * FROM v9_bars_5min WHERE ts LIKE '%2023-11-14%14:30%' AND symbol='MES'")
         assert len(rows2) == 1
         assert rows2[0]["close"] == 104.0
 
@@ -225,6 +226,37 @@ class TestPost5Min:
         ])
         assert resp.status_code == 200
         assert resp.json()["rejected"] >= 1
+
+
+class TestRthTimeGate:
+    """if reverted → RED because: removing the RTH time-gate lets cumulative
+    settlement bars (vol up to 1M) enter v9_bars_5min, corrupting rolling_avg."""
+
+    def test_outside_rth_rejected(self):
+        """Bar at 17:00 ET (22:00 UTC, outside RTH) must NOT be written."""
+        # 1699999200 = 2023-11-14 22:00 UTC = 17:00 EST (outside RTH 09:30-16:00)
+        resp = client.post("/api/v9/bars/5min", json=[
+            {"ts": 1699999200, "symbol": "MES", "o": 100, "h": 105, "l": 99, "c": 103, "vol": 999999}
+        ])
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["rth_skipped"] >= 1, f"Expected rth_skipped >= 1, got {data}"
+        # Verify the bar was NOT written
+        rows = _query("SELECT * FROM v9_bars_5min WHERE volume = 999999")
+        assert len(rows) == 0, "Settlement-volume bar should not be in DB"
+
+    def test_within_rth_accepted(self):
+        """Bar at 10:00 ET (15:00 UTC in Nov) must be written."""
+        # 1699974000 = 2023-11-14 15:00 UTC = 10:00 EST (within RTH)
+        resp = client.post("/api/v9/bars/5min", json=[
+            {"ts": 1699974000, "symbol": "MES", "o": 5000, "h": 5005, "l": 4998, "c": 5003, "vol": 3000}
+        ])
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["rth_skipped"] == 0
+        assert data["inserted"] >= 1
+        rows = _query("SELECT * FROM v9_bars_5min WHERE volume = 3000")
+        assert len(rows) >= 1
 
 
 class TestPostImbalance:
@@ -315,7 +347,7 @@ class TestPostCumulativeDelta:
     def test_dedicated_table_insert(self):
         resp = client.post("/api/v9/bars/cumulative_delta", json={
             "type": "cumulative_delta",
-            "points": [{"i": 0, "t": 1700000600, "d": 50, "cum": 150, "p": 5000}],
+            "points": [{"i": 0, "t": 1699974600, "d": 50, "cum": 150, "p": 5000}],
         })
         assert resp.status_code == 200
         data = resp.json()

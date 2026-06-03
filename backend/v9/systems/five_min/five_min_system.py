@@ -199,6 +199,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                 try:
                     rows = (
                         db.query(V9Bar5Min)
+                        .filter(V9Bar5Min.is_synthetic == 0)
                         .order_by(V9Bar5Min.ts.desc())
                         .limit(60)
                         .all()

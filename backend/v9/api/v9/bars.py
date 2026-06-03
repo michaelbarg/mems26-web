@@ -13,6 +13,7 @@ from typing import Optional, List, Dict
 from fastapi import APIRouter, Body, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
+from zoneinfo import ZoneInfo
 
 from backend.v9.db.session import get_db
 from backend.v9.db.models import V9Bar5Min, V9BarTickReversal, V9BarFootprint, V9Bar30MinWoodies, V9TpoBar
@@ -23,6 +24,20 @@ from backend.v9.api.v9.ws_manager import (
 )
 from backend.v9.services.bar_integrity import bar_is_valid
 from backend.v9.db.safe_writer import safe_execute, safe_executemany
+
+# ── RTH time-gate (B4 volume fix 2026-06-03) ──
+# RTH = 09:30–16:00 America/New_York.  Bars outside this window from the RTH
+# chart carry cumulative session volume (up to 1M) and must NOT enter v9_bars_5min.
+_ET = ZoneInfo("America/New_York")
+_RTH_START_HOUR, _RTH_START_MIN = 9, 30
+_RTH_END_HOUR, _RTH_END_MIN = 16, 0
+
+
+def _is_within_rth(ts_utc: datetime) -> bool:
+    """Check if a UTC timestamp falls within RTH 09:30–16:00 ET."""
+    ts_et = ts_utc.astimezone(_ET)
+    et_minutes = ts_et.hour * 60 + ts_et.minute
+    return (_RTH_START_HOUR * 60 + _RTH_START_MIN) <= et_minutes < (_RTH_END_HOUR * 60 + _RTH_END_MIN)
 
 logger = logging.getLogger(__name__)
 
@@ -279,6 +294,7 @@ def post_bars_5min(
         }
 
     rows_to_write = []
+    rth_skipped = 0
     for bar in bars:
         ok, reason = bar_is_valid(open=bar.o, high=bar.h, low=bar.l, close=bar.c)
         if not ok:
@@ -292,6 +308,12 @@ def post_bars_5min(
         if ts > datetime.now(timezone.utc) + timedelta(minutes=2):
             logger.warning("[bars/5min] Rejected FUTURE bar ts=%s (now+2m guard)", ts)
             rejected += 1
+            continue
+        # B4 fix: RTH time-gate — only write bars within 09:30–16:00 ET.
+        # Outside RTH, Sierra's RTH chart exports cumulative session volume
+        # (up to 1M) which corrupts rolling_avg and VSA pattern detection.
+        if not _is_within_rth(ts):
+            rth_skipped += 1
             continue
         rows_to_write.append((
             ts.isoformat(), bar.symbol, bar.o, bar.h, bar.l, bar.c,
@@ -316,7 +338,9 @@ def post_bars_5min(
     _record_push("5min")
     if last_valid_bar is not None:
         _route_bar("5min", _flat_5min_for_router(last_valid_bar, _ts_from_unix(last_valid_bar.ts)))
-    return {"ok": True, "inserted": inserted, "rejected": rejected}
+    if rth_skipped:
+        logger.info("[bars/5min] RTH time-gate skipped %d bars outside 09:30-16:00 ET", rth_skipped)
+    return {"ok": True, "inserted": inserted, "rejected": rejected, "rth_skipped": rth_skipped}
 
 
 # ── POST /api/v9/bars/tick_reversal?tick_count=15 ──
@@ -605,17 +629,23 @@ def post_cumulative_delta(
 ):
     """Enrich 5-min bars with running delta + persist to dedicated table.
 
-    DB Root Fix (2026-06-03): enrichment UPDATE and dedicated INSERT through
-    safe_execute.  ORM db.query kept for READ-ONLY positional match.
+    B4 fix (2026-06-03): RTH time-gate — only process CVD points within
+    09:30–16:00 ET, aligned with 5-min bars. Prevents settlement cumulative
+    artifacts from leaking into CVD.
     """
     points = payload.points or payload.bars
     updated = 0
     skipped = 0
     inserted = 0
+    rth_skipped = 0
 
     for pt in points:
         raw_ts = pt.get("t") or pt.get("ts")
         ts = _ts_from_unix(raw_ts)
+        # B4: RTH time-gate for CVD (aligned with 5-min bars)
+        if not _is_within_rth(ts):
+            rth_skipped += 1
+            continue
         window = timedelta(minutes=5)
         # READ-ONLY: find matching 5-min bar for enrichment
         row = (
@@ -866,39 +896,15 @@ def post_5min_continuous(
     payload: dict = Body(...),
     _token: str = Depends(verify_bridge_token),
 ):
-    """Ingest continuous 24h 5-min bars from chart #5.
+    """Continuous 24h 5-min bars from chart #5.
 
-    Stores in v9_bars_5min (same table as RTH bars) — the chart endpoint
-    merges both sources. INSERT OR IGNORE deduplicates by (ts, symbol).
+    B4 fix (2026-06-03): writes to v9_bars_5min DISABLED — RTH chart is the
+    sole source today (all studies attached there). Continuous chart's bars
+    were overwriting RTH per-bar volume with cumulative session volume during
+    settlement. Re-enable when dedicated continuous table is built.
     """
-    bars = payload.get("bars", [])
-    if not bars:
-        return {"ok": True, "inserted": 0, "type": "5min_continuous"}
     _record_push("bars_5min_continuous")
-
-    from backend.v9.services.bar_ingestion import bar_ingestion_service
-    from datetime import datetime as _dt, timezone as _tz
-    created = 0
-    for bar in bars:
-        # Convert unix ts to ISO datetime string (matching v9_bars_5min format)
-        raw_ts = bar.get("ts")
-        try:
-            ts_val = _dt.fromtimestamp(float(raw_ts), tz=_tz.utc) if raw_ts else _dt.now(_tz.utc)
-        except (TypeError, ValueError):
-            ts_val = _dt.now(_tz.utc)
-        ok = bar_ingestion_service.ingest_bar({
-            "ts": ts_val,
-            "open": bar.get("o"),
-            "high": bar.get("h"),
-            "low": bar.get("l"),
-            "close": bar.get("c"),
-            "volume": bar.get("vol"),
-            "delta": bar.get("delta", 0),
-            "symbol": "MES",
-        })
-        if ok:
-            created += 1
-    return {"ok": True, "inserted": created, "type": "5min_continuous"}
+    return {"ok": True, "inserted": 0, "type": "5min_continuous", "disabled": True}
 
 
 # ── POST /api/v9/bars/cvd_continuous (chart #5 24h) ──
