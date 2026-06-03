@@ -4,17 +4,11 @@ Source: DLL export — 5min.json.
 """
 
 import logging
-import sqlite3
 from typing import Optional
 
 from .base_stream import BaseV9Stream
 
 logger = logging.getLogger("mems26.bars_5min_stream")
-
-# Path to local DB for backfill query — same default as db/session.py
-import os as _os
-_DB_PATH = _os.environ.get("DATABASE_URL", "sqlite:///./data/mems26_local.db")
-_DB_PATH = _DB_PATH.replace("sqlite:///", "") if _DB_PATH.startswith("sqlite") else "./data/mems26_local.db"
 
 
 class Bars5MinStream(BaseV9Stream):
@@ -27,21 +21,19 @@ class Bars5MinStream(BaseV9Stream):
         super().__init__()
         self._first_push = True
         self._last_db_ts: Optional[float] = None
-        # Query MAX(ts) from DB on startup for backfill
+        # Query MAX(ts) from DB on startup for backfill (works on SQLite + PG)
         try:
-            conn = sqlite3.connect(_DB_PATH)
-            row = conn.execute("SELECT MAX(ts) FROM v9_bars_5min").fetchone()
-            conn.close()
-            if row and row[0]:
-                # ts is stored as ISO string — parse to epoch for comparison
+            from backend.v9.db.read import read_scalar
+            max_ts = read_scalar("SELECT MAX(ts) FROM v9_bars_5min")
+            if max_ts:
                 from datetime import datetime, timezone
                 try:
-                    dt = datetime.fromisoformat(str(row[0]).replace("Z", "+00:00"))
+                    dt = datetime.fromisoformat(str(max_ts).replace("Z", "+00:00"))
                     if dt.tzinfo is None:
                         dt = dt.replace(tzinfo=timezone.utc)
                     self._last_db_ts = dt.timestamp()
                 except (ValueError, TypeError):
-                    self._last_db_ts = float(row[0]) if isinstance(row[0], (int, float)) else None
+                    self._last_db_ts = float(max_ts) if isinstance(max_ts, (int, float)) else None
             if self._last_db_ts:
                 logger.info("[bars_5min] startup backfill anchor: last_db_ts=%.0f", self._last_db_ts)
         except Exception as e:

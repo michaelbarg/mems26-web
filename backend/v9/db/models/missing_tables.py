@@ -152,22 +152,6 @@ class V9DayTypeShadowTransitions(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
-class V9DayTypeState(Base):
-    __tablename__ = "v9_day_type_state"
-    id = Column(BigIntPK, primary_key=True, autoincrement=True)
-    ts = Column(DateTime, nullable=False, index=True)
-    stage = Column(String(20), nullable=False)
-    day_type = Column(String(20))
-    classification = Column(String(30))
-    confidence = Column(Float)
-    ib_width_class = Column(String(10))
-    opening_type = Column(String(30))
-    behavior = Column(String(30))
-    lock_state = Column(String(20))
-    meta = Column(JsonColumn)
-    created_at = Column(DateTime, server_default=func.now())
-
-
 class V9FootprintJournal(Base):
     __tablename__ = "v9_footprint_journal"
     id = Column(BigIntPK, primary_key=True, autoincrement=True)

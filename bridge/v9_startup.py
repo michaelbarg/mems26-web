@@ -109,48 +109,20 @@ def wipe_today_bars_if_requested(
     if flag not in ("1", "true", "yes"):
         return 0
 
-    db_url = database_url or os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL)
-    db_path = _resolve_sqlite_path(db_url)
-    if db_path is None:
-        logger.warning(
-            "[BRIDGE STARTUP] %s set but DATABASE_URL=%s is not SQLite — wipe skipped",
-            WIPE_FLAG_ENV, db_url,
-        )
-        return 0
-    if not db_path.exists():
-        logger.warning(
-            "[BRIDGE STARTUP] %s set but DB file %s missing — wipe skipped",
-            WIPE_FLAG_ENV, db_path,
-        )
-        return 0
-
     now_et = now_et_fn() if now_et_fn is not None else None
     cutoff = _today_midnight_utc_iso(now_et)
 
     try:
-        # `timeout=5.0` mirrors the backend's busy_timeout (PRAGMA in
-        # backend/v9/db/session.py) so a concurrent backend POST doesn't
-        # surface as `database is locked` during this one-shot DELETE.
-        conn = sqlite3.connect(str(db_path), timeout=5.0)
-        try:
-            cur = conn.execute(
-                f"DELETE FROM {table} WHERE ts >= ?",
-                (cutoff,),
-            )
-            deleted = cur.rowcount or 0
-            conn.commit()
-        finally:
-            conn.close()
-    except sqlite3.OperationalError as e:
-        logger.warning(
-            "[BRIDGE STARTUP] wipe-today DB error: %s — startup continues",
-            e,
+        from backend.v9.db.safe_writer import safe_execute
+        # safe_execute handles both SQLite and Postgres via engine
+        result = safe_execute(
+            f"DELETE FROM {table} WHERE ts >= ?",
+            (cutoff,),
         )
-        return 0
+        deleted = result if result and result > 0 else 0
     except Exception as e:
         logger.warning(
-            "[BRIDGE STARTUP] wipe-today unexpected error: %s — startup continues",
-            e,
+            "[BRIDGE STARTUP] wipe-today error: %s — startup continues", e,
         )
         return 0
 

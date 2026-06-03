@@ -29,7 +29,7 @@ from .missing_tables import (
     V9BarsCumulativeDelta, V9BarsImbalance, V9BarsStackedImbalance,
     V9BarsVolumeProfile, V9BarsWoodies, V9BuildStatusArchive,
     V9ChopScore, V9DayTypeArchive, V9DayTypeShadowTransitions,
-    V9DayTypeState, V9FootprintJournal, V9FootprintSetups,
+    V9FootprintJournal, V9FootprintSetups,
     V9ReversalEnrichment, V9SessionMeta, V9TpoJournal,
     V9TpoSessions, V9TpoSessionsArchive, V9WoodiesSignals,
     V9WoodiesSignalsArchive,
