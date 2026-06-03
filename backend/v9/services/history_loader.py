@@ -129,12 +129,37 @@ def _ts_iso_from_unix(unix_ts: Any, *, fix_chicago: bool = True) -> Optional[str
 SYMBOL_DEFAULT = "MES"
 
 
+def _is_within_rth_iso(ts_iso: str) -> bool:
+    """Check if an ISO UTC timestamp falls within RTH 09:30-16:00 ET.
+
+    Axis 4 fix (2026-06-03): prevents history_loader from ingesting
+    pre-RTH/settlement bars with cumulative session volume.
+    """
+    try:
+        dt_utc = datetime.fromisoformat(ts_iso.replace("Z", "+00:00"))
+        if dt_utc.tzinfo is None:
+            dt_utc = dt_utc.replace(tzinfo=timezone.utc)
+        dt_et = dt_utc.astimezone(ET)
+        et_minutes = dt_et.hour * 60 + dt_et.minute
+        return (9 * 60 + 30) <= et_minutes < (16 * 60)
+    except Exception:
+        return True  # on parse error, let the bar through (don't silently drop)
+
+
 def parse_5min_bars(data: dict) -> List[Dict[str, Any]]:
-    """5min.json → v9_bars_5min ingest rows."""
+    """5min.json → v9_bars_5min ingest rows.
+
+    Axis 4 fix: only ingest bars within RTH 09:30-16:00 ET.
+    Pre-RTH/settlement bars carry cumulative session volume (up to 840K)
+    that contaminates VSA rolling_avg.
+    """
     rows: List[Dict[str, Any]] = []
     for bar in data.get("bars") or []:
         ts_iso = _ts_iso_from_unix(bar.get("ts"))
         if ts_iso is None:
+            continue
+        # RTH gate: same logic as POST /bars/5min (B4 fix)
+        if not _is_within_rth_iso(ts_iso):
             continue
         # Coerce volume from float (Sierra emits 4510.0) to int (DB schema).
         vol_raw = bar.get("vol") or 0
