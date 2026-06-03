@@ -259,25 +259,18 @@ def _load_woodies_from_db(limit: int) -> Optional[Dict[str, Any]]:
     Used when Sierra export is stale/empty (overnight, weekend).
     Returns display-only bars with source="db_woodies_5min".
     """
-    import sqlite3
-    db_path = os.getenv(
-        "V9_DB_PATH",
-        "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db",
-    )
+    from backend.v9.db.read import read_all
     try:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
+        rows = read_all(
             """SELECT ts, open, high, low, close, volume,
                       cci_14, cci_6_tcci, lsma_value, swi_value,
                       czi_value, ema_34, trend_state, predictor_next_cci,
                       zlr_detected, zlr_direction, proj_hi, proj_lo,
                       hfe_detected, hfe_direction, lsma_above_price
                FROM v9_bars_5min_woodies
-               ORDER BY ts DESC LIMIT ?""",
-            (limit,),
-        ).fetchall()
-        conn.close()
+               ORDER BY ts DESC LIMIT :limit""",
+            {"limit": limit},
+        )
     except Exception as e:
         logger.warning("[Woodies chart] DB fallback failed: %s", e)
         return None

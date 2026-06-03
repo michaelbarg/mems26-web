@@ -6,19 +6,17 @@ No self-HTTP calls: per §5.4 "do NOT have the endpoint curl /api/v9/woodies/cur
 """
 
 import logging
-import sqlite3
 import time
 from datetime import date, datetime, timezone
 
 from backend.v9.common.trading_date import et_today
+from backend.v9.db.read import read_one
 from typing import Optional, List
 
 from .types import BuildStatusResponse, SystemStatus, RTBSession, Readiness, ReadinessCheck
 from . import s2_inspector, woodies_inspector, day_type_inspector, bridge_inspector, footprint_inspector
 
 logger = logging.getLogger(__name__)
-
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 _WARN_RATE_ANCHOR: dict = {}  # {key: last_warn_ts} for rate-limiting
 
@@ -61,7 +59,7 @@ class BuildStatusAggregator:
         self._woodies_system = woodies_system
         self._footprint_system = footprint_system
         self._day_type_machine = day_type_machine
-        self._db_path = db_path or DB_PATH
+        self._db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
     def _get_current_day_type(self) -> Optional[str]:
         """Read today's day_type from v9_day_type_history (same SQL as day_type_v9_routes.py).
@@ -71,15 +69,10 @@ class BuildStatusAggregator:
         """
         today = et_today().isoformat()
         try:
-            conn = sqlite3.connect(
-                f"file:{self._db_path}?mode=ro&immutable=1", uri=True
+            row = read_one(
+                "SELECT day_type, ib_width_class FROM v9_day_type_history WHERE date = :date LIMIT 1",
+                {"date": today},
             )
-            conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                "SELECT day_type, ib_width_class FROM v9_day_type_history WHERE date = ? LIMIT 1",
-                (today,),
-            ).fetchone()
-            conn.close()
             if row is None:
                 return None
             ib_width_class = row["ib_width_class"]

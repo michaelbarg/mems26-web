@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import json
 import logging
-import sqlite3
 from datetime import date as _date, datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -152,8 +151,8 @@ def freshness_now(source: FreshnessSource = "inspector_eval",
 
 
 def latest_valid_db_ts(
-    conn: sqlite3.Connection,
-    table: str,
+    conn_or_table,
+    table: str = "",
     *,
     where: str = "",
     params: tuple = (),
@@ -168,21 +167,46 @@ def latest_valid_db_ts(
     non-future moment (within `_FUTURE_SKEW_S`).
 
     Returns (None, None, None) when no usable row exists.
+
+    Accepts either (conn, table, ...) for backward compat or just (table, ...).
+    When first arg is a string (table name), uses read_all helper.
     """
+    from backend.v9.db.read import read_all as _read_all
+
+    # Backward compat: if first arg is a connection object, use second arg as table
+    if isinstance(conn_or_table, str):
+        # Called as latest_valid_db_ts("table_name", ...)
+        _table = conn_or_table
+    else:
+        # Called as latest_valid_db_ts(conn, "table_name", ...)
+        _table = table
+
     if now is None:
         now = datetime.now(timezone.utc)
-    sql = f"SELECT ts FROM {table}"
+    sql = f"SELECT ts FROM {_table}"
     if where:
         sql += f" WHERE {where}"
     sql += f" ORDER BY ts DESC LIMIT {int(lookback)}"
     try:
-        rows = conn.execute(sql, params).fetchall()
-    except sqlite3.Error as e:
-        logger.warning("[BuildStatus/row_helpers] latest_valid_db_ts %s failed: %s", table, e)
+        # Convert positional params to named params for read_all
+        named_params = {}
+        if params:
+            # Replace ? placeholders with :p0, :p1, etc.
+            parts = sql.split("?")
+            new_parts = []
+            for i, part in enumerate(parts):
+                new_parts.append(part)
+                if i < len(parts) - 1:
+                    named_params[f"p{i}"] = params[i]
+                    new_parts.append(f":p{i}")
+            sql = "".join(new_parts)
+        rows = _read_all(sql, named_params)
+    except Exception as e:
+        logger.warning("[BuildStatus/row_helpers] latest_valid_db_ts %s failed: %s", _table, e)
         return None, None, None
 
     for r in rows:
-        raw = r[0] if r else None
+        raw = r.get("ts") if isinstance(r, dict) else None
         if raw is None:
             continue
         parsed = parse_ts_to_utc(raw)
@@ -281,8 +305,8 @@ def clear_fires_today_cache() -> None:
 
 
 def fires_today(
-    conn: sqlite3.Connection,
-    firing_system: int,
+    conn_or_firing_system,
+    firing_system: int = 0,
     *,
     today: Optional[str] = None,
     now: Optional[datetime] = None,
@@ -297,22 +321,24 @@ def fires_today(
         Dict mapping UPPER-CASED pattern_id -> {"count": int, "last_ts": str},
         where `last_ts` is the newest ISO entry_ts seen for that pattern.
         Empty dict on DB error (logged warning) or when no rows match.
-        Rows whose cross_context has no extractable pattern_id (e.g. pure
-        `[{"event": "stop_move", ...}]` lifecycle appends) are skipped —
-        they are NOT separate fires.
 
-    Cached per (firing_system, today) for `_FIRES_TODAY_TTL_S` seconds so
-    consecutive Build Status polls don't re-query v9_trades. Cache keys
-    for non-matching today values are pruned on each call (date change
-    invalidates yesterday's entries automatically).
-
-    Pre-LIVE rule: NO silent failures. SQL errors log warning, return {}.
+    Accepts either (conn, firing_system, ...) for backward compat or just
+    (firing_system, ...) when conn is no longer needed.
     """
+    from backend.v9.db.read import read_all as _read_all
+
+    # Backward compat: if first arg is an int, it's the firing_system directly
+    if isinstance(conn_or_firing_system, int):
+        _firing_system = conn_or_firing_system
+    else:
+        # Called as fires_today(conn, firing_system, ...)
+        _firing_system = firing_system
+
     if now is None:
         now = datetime.now(timezone.utc)
     if today is None:
         today = _et_today().isoformat()
-    key = (int(firing_system), today)
+    key = (int(_firing_system), today)
 
     cached = _FIRES_TODAY_CACHE.get(key)
     if cached is not None:
@@ -326,23 +352,25 @@ def fires_today(
         if k[1] != today:
             _FIRES_TODAY_CACHE.pop(k, None)
 
-    sql = (
-        "SELECT entry_ts, cross_context FROM v9_trades "
-        "WHERE firing_system = ? AND date(entry_ts) = ? "
-        "ORDER BY entry_ts"
-    )
     try:
-        rows = conn.execute(sql, (int(firing_system), today)).fetchall()
-    except sqlite3.Error as e:
+        rows = _read_all(
+            "SELECT entry_ts, cross_context FROM v9_trades "
+            "WHERE firing_system = :firing_system AND date(entry_ts) = :today "
+            "ORDER BY entry_ts",
+            {"firing_system": int(_firing_system), "today": today},
+        )
+    except Exception as e:
         logger.warning(
             "[BuildStatus/row_helpers] fires_today firing_system=%s today=%s failed: %s",
-            firing_system, today, e,
+            _firing_system, today, e,
         )
         _FIRES_TODAY_CACHE[key] = {"fetched_at": now, "data": {}}
         return {}
 
     result: Dict[str, Dict[str, Any]] = {}
-    for entry_ts_raw, cross_context in rows:
+    for row in rows:
+        entry_ts_raw = row["entry_ts"]
+        cross_context = row["cross_context"]
         pids = _extract_pattern_ids_from_cross_context(cross_context)
         if not pids:
             continue

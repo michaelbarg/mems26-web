@@ -2,16 +2,14 @@
 
 Closes Chrome audit bugs #14-16.
 """
-import sqlite3
 import time
 from datetime import datetime, timezone
 from fastapi import APIRouter, Request
 
 from backend.v9.common.trading_date import et_today
+from backend.v9.db.read import read_all
 
 router = APIRouter(tags=["shadow"])
-
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 # ── W5.1.A: /api/v9/veto/state (Suffering Side) ──
 
@@ -34,19 +32,14 @@ async def veto_state(request: Request):
 @router.get("/api/v9/shadow/today_wr")
 async def shadow_today_wr():
     """Today's shadow trade win rate from v9_trades."""
-    try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        rows = conn.execute(
-            "SELECT outcome FROM v9_trades WHERE date(created_at) = ? AND outcome IS NOT NULL",
-            (et_today().isoformat(),)
-        ).fetchall()
-        conn.close()
-    except Exception:
-        rows = []
+    rows = read_all(
+        "SELECT outcome FROM v9_trades WHERE date(created_at) = :today AND outcome IS NOT NULL",
+        {"today": et_today().isoformat()},
+    )
 
     total = len(rows)
-    wins = sum(1 for r in rows if r[0] == "WIN")
-    losses = sum(1 for r in rows if r[0] in ("STOP", "LOSS"))
+    wins = sum(1 for r in rows if r["outcome"] == "WIN")
+    losses = sum(1 for r in rows if r["outcome"] in ("STOP", "LOSS"))
     wr = round(wins / total * 100, 1) if total > 0 else 0.0
 
     return {

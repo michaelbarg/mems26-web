@@ -1,7 +1,6 @@
 """System 3 — Footprint + Tick Reversal Engine (FIRING per Constitution V3 T3)."""
 import json
 import logging
-import sqlite3
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 
@@ -23,7 +22,7 @@ class FootprintSystem(BaseV9TradingSystem):
 
     def __init__(self, db_path: Optional[str] = None):
         self.db_path = db_path or "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
-        self._conn: Optional[sqlite3.Connection] = None
+        self._conn = None
         self._gateway = None  # injected post-init via set_gateway() (Prompt 22-alt)
         self.bar_buffer: List[Dict[str, Any]] = []
         self.max_buffer = 30
@@ -74,15 +73,10 @@ class FootprintSystem(BaseV9TradingSystem):
             "combined_class": None,
         }
 
-    def _get_conn(self) -> sqlite3.Connection:
-        """Open a short-lived read connection. Writes go through safe_writer.
-
-        No persistent connection — open/close per use to avoid holding
-        read locks that conflict with WAL writes (root cause of 2026-06-02
-        DB corruption).
-        """
-        conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
-        return conn
+    def _get_conn(self):
+        """Deprecated — reads now go through backend.v9.db.read helpers."""
+        from backend.v9.db.session import engine
+        return engine.connect()
 
     def set_gateway(self, gateway) -> None:
         """Inject TradingGateway for validated T3 fire routing."""
@@ -100,24 +94,23 @@ class FootprintSystem(BaseV9TradingSystem):
         # is from the current Globex session (opens 18:00 ET daily).
         restored_delta = 0.0
         try:
-            import sqlite3 as _sql
+            from backend.v9.db.read import read_one, read_scalar
             from datetime import datetime, timezone
             from backend.v9.common.session_classifier import SessionClassifier
 
             sc = SessionClassifier()
             session_open = sc.current_session_open_utc()
 
-            conn = _sql.connect(self.db_path)
-            row = conn.execute(
+            row = read_one(
                 "SELECT cumulative_delta, created_at FROM v9_footprint_journal ORDER BY id DESC LIMIT 1"
-            ).fetchone()
-            if row and row[0]:
-                last_ts_str = row[1]
+            )
+            if row and row["cumulative_delta"]:
+                last_ts_str = row["created_at"]
                 last_ts = datetime.fromisoformat(last_ts_str.replace("Z", "+00:00"))
                 if last_ts.tzinfo is None:
                     last_ts = last_ts.replace(tzinfo=timezone.utc)
                 if last_ts >= session_open:
-                    restored_delta = float(row[0])
+                    restored_delta = float(row["cumulative_delta"])
                     self._cumulative_delta = restored_delta
                     self.current_state["cumulative_delta"] = restored_delta
                     self.current_state["cot"] = restored_delta
@@ -127,11 +120,10 @@ class FootprintSystem(BaseV9TradingSystem):
                     self._cumulative_delta = 0.0
             # Also count today's bars for context
             from backend.v9.common.trading_date import et_today
-            count = conn.execute(
-                "SELECT COUNT(*) FROM v9_footprint_journal WHERE date(created_at) = ?",
-                (et_today().isoformat(),),
-            ).fetchone()[0]
-            conn.close()
+            count = read_scalar(
+                "SELECT COUNT(*) FROM v9_footprint_journal WHERE date(created_at) = :today",
+                {"today": et_today().isoformat()},
+            ) or 0
             logger.info("[Footprint] Hydrated: cumulative_delta=%.1f, today_bars=%d",
                         restored_delta, count)
         except Exception as e:

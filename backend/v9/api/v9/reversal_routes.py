@@ -1,11 +1,10 @@
 """API routes for 15-tick reversal bar enrichment (P-15TR.5)."""
 
 from fastapi import APIRouter, Request
-import sqlite3
+
+from backend.v9.db.read import read_all
 
 router = APIRouter(prefix="/api/v9/reversal", tags=["reversal"])
-
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 
 @router.get("/current")
@@ -21,13 +20,10 @@ async def reversal_current(request: Request):
 async def reversal_history(limit: int = 20):
     """Return recent reversal enrichment records."""
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT * FROM v9_reversal_enrichment ORDER BY bar_ts DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        conn.close()
-        return {"entries": [dict(r) for r in rows]}
+        rows = read_all(
+            "SELECT * FROM v9_reversal_enrichment ORDER BY bar_ts DESC LIMIT :limit",
+            {"limit": limit},
+        )
+        return {"entries": rows}
     except Exception as e:
         return {"entries": [], "error": str(e)}

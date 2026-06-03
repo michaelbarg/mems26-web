@@ -12,17 +12,15 @@ Each stream is presented as a GlobalGate in the returned SystemStatus.
 """
 
 import logging
-import sqlite3
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
+from backend.v9.db.read import read_one
 from .types import SystemStatus, GlobalGate, DataFreshness
 from .row_helpers import make_freshness, freshness_now
 
 logger = logging.getLogger(__name__)
-
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 # ── Stream → DB table config ──────────────────────────────────────────────────
 # Each entry: (stream_label, table_name, ts_column, stale_threshold_sec)
@@ -77,18 +75,19 @@ def _parse_ts(ts_raw: str) -> Optional[float]:
         return None
 
 
-def _check_stream(conn: sqlite3.Connection, table: str, ts_col: str, threshold: int) -> dict:
+def _check_stream(table: str, ts_col: str, threshold: int) -> dict:
     """Query a single stream table and return freshness dict."""
     try:
-        row = conn.execute(
+        row = read_one(
             f"SELECT {ts_col} FROM {table} ORDER BY rowid DESC LIMIT 1"
-        ).fetchone()
-        if row is None or row[0] is None:
+        )
+        if row is None or row[ts_col] is None:
             return {"age_sec": None, "status": "DEAD", "last_ts": None}
 
-        epoch = _parse_ts(str(row[0]))
+        raw_val = row[ts_col]
+        epoch = _parse_ts(str(raw_val))
         if epoch is None:
-            return {"age_sec": None, "status": "DEAD", "last_ts": str(row[0])}
+            return {"age_sec": None, "status": "DEAD", "last_ts": str(raw_val)}
 
         age = time.time() - epoch
         # Clamp negative ages to 0 (can happen when DB stores local time as if UTC)
@@ -103,7 +102,7 @@ def _check_stream(conn: sqlite3.Connection, table: str, ts_col: str, threshold: 
             age_display = 0.0
         else:
             status = "DEAD"
-        return {"age_sec": round(age_display, 1), "status": status, "last_ts": str(row[0])[:19]}
+        return {"age_sec": round(age_display, 1), "status": status, "last_ts": str(raw_val)[:19]}
 
     except Exception as e:
         return {"age_sec": None, "status": "ERROR", "last_ts": None, "err": str(e)}
@@ -116,15 +115,12 @@ def inspect(db_path: Optional[str] = None) -> SystemStatus:
       present=True  → FRESH (< 60s)
       present=False → STALE / DEAD / ERROR
     """
-    db = db_path or DB_PATH
     gates: list[GlobalGate] = []
     all_fresh = True
 
     try:
-        conn = sqlite3.connect(f"file:{db}?mode=ro&immutable=1", uri=True, timeout=2)
-
         for label, table, ts_col, threshold in STREAM_CHECKS:
-            result = _check_stream(conn, table, ts_col, threshold)
+            result = _check_stream(table, ts_col, threshold)
             status = result["status"]
             age = result["age_sec"]
             last_ts = result.get("last_ts", "—")
@@ -155,8 +151,6 @@ def inspect(db_path: Optional[str] = None) -> SystemStatus:
                 freshness=_bridge_fresh,
             ))
 
-        conn.close()
-
     except Exception as e:
         logger.warning("[BridgeInspector] DB read failed: %s", e)
         gates.append(GlobalGate(
@@ -179,7 +173,7 @@ def inspect(db_path: Optional[str] = None) -> SystemStatus:
     if gates and gates[0].value:
         # Parse age from first gate (woodies_5min)
         try:
-            first_result = _get_single_age(db, STREAM_CHECKS[0])
+            first_result = _get_single_age(STREAM_CHECKS[0])
             if first_result is not None:
                 data_fresh = DataFreshness(
                     fresh=first_result < 60,
@@ -203,16 +197,14 @@ def inspect(db_path: Optional[str] = None) -> SystemStatus:
     )
 
 
-def _get_single_age(db: str, stream_cfg: tuple) -> Optional[float]:
+def _get_single_age(stream_cfg: tuple) -> Optional[float]:
     _, table, ts_col, _ = stream_cfg
     try:
-        conn = sqlite3.connect(f"file:{db}?mode=ro&immutable=1", uri=True, timeout=2)
-        row = conn.execute(
+        row = read_one(
             f"SELECT {ts_col} FROM {table} ORDER BY rowid DESC LIMIT 1"
-        ).fetchone()
-        conn.close()
-        if row and row[0]:
-            epoch = _parse_ts(str(row[0]))
+        )
+        if row and row[ts_col]:
+            epoch = _parse_ts(str(row[ts_col]))
             if epoch:
                 return time.time() - epoch
     except Exception:

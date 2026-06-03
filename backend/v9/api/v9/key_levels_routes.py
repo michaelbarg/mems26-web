@@ -20,7 +20,6 @@ Polling floor: 15 s (matches Layer0Strip cadence).
 from __future__ import annotations
 
 import logging
-import sqlite3
 from datetime import datetime, time, timedelta
 from typing import Any, Optional
 from zoneinfo import ZoneInfo
@@ -29,12 +28,12 @@ from fastapi import APIRouter
 
 from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
 from backend.v9.common.trading_date import et_today
+from backend.v9.db.read import read_one
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v9/key_levels", tags=["key_levels"])
 
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 _ET = ZoneInfo("America/New_York")
 _UTC = ZoneInfo("UTC")
 
@@ -66,14 +65,11 @@ def _utc_str(dt: datetime) -> str:
 def _day_type_row() -> Optional[dict]:
     """Today's day_type + opening_type from S1 history (UI pills only — NOT IB)."""
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
+        row = read_one(
             "SELECT day_type, opening_type FROM v9_day_type_history "
-            "WHERE date = ? AND COALESCE(status, '') != 'ROLLED_OVER' LIMIT 1",
-            (et_today().isoformat(),),
-        ).fetchone()
-        conn.close()
+            "WHERE date = :date AND COALESCE(status, '') != 'ROLLED_OVER' LIMIT 1",
+            {"date": et_today().isoformat()},
+        )
         return dict(row) if row else None
     except Exception as e:
         logger.warning("[key_levels] day_type read failed: %s", e)
@@ -250,19 +246,17 @@ def _globex_range(rth_open_et: datetime) -> tuple[Optional[float], Optional[floa
     Sierra exports (just aggregated to 5 min by the bridge).
     """
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True, timeout=5)
         rth_utc = _utc_str(rth_open_et)
-        row = conn.execute(
+        row = read_one(
             "SELECT MIN(low) AS g_low, MAX(high) AS g_high, COUNT(*) AS n "
             "FROM v9_bars_5min "
-            "WHERE symbol='MES' AND date(ts) = ? AND ts < ?",
-            (et_today().isoformat(), rth_utc),
-        ).fetchone()
-        conn.close()
-        if not row or not row[2]:
+            "WHERE symbol='MES' AND date(ts) = :today AND ts < :rth_utc",
+            {"today": et_today().isoformat(), "rth_utc": rth_utc},
+        )
+        if not row or not row["n"]:
             return None, None, None
-        g_low = _f(row[0])
-        g_high = _f(row[1])
+        g_low = _f(row["g_low"])
+        g_high = _f(row["g_high"])
         g_range = _f(g_high - g_low) if g_high is not None and g_low is not None else None
         return g_high, g_low, g_range
     except Exception as e:

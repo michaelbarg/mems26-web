@@ -2,8 +2,8 @@ from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
-import sqlite3
 
+from backend.v9.db.read import read_all
 from backend.v9.shared.pre_fire_validator import FireRequest, validate_fire
 
 router = APIRouter(prefix="/api/v9/woodies", tags=["woodies"])
@@ -37,15 +37,12 @@ async def woodies_current(request: Request):
 
 @router.get("/signals")
 async def woodies_signals(request: Request, limit: int = 20):
-    db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     try:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT * FROM v9_woodies_signals ORDER BY id DESC LIMIT ?", (limit,)
-        ).fetchall()
-        conn.close()
-        return {"entries": [dict(r) for r in rows]}
+        rows = read_all(
+            "SELECT * FROM v9_woodies_signals ORDER BY id DESC LIMIT :limit",
+            {"limit": limit},
+        )
+        return {"entries": rows}
     except Exception as e:
         return {"entries": [], "error": str(e)}
 

@@ -9,9 +9,10 @@ Principle 11: end-to-end verified (buffer_size > 0 after replay).
 """
 import json
 import logging
-import sqlite3
 from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
+
+from backend.v9.db.read import read_all
 
 logger = logging.getLogger(__name__)
 
@@ -22,19 +23,12 @@ class HistoricalReplay:
         self.bar_router = bar_router
         self._stats = {"tables_read": 0, "bars_replayed": 0, "failed": 0}
 
-    def _connect(self):
-        return sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
-
     def _get_recent_rows(self, table: str, hours: int = 12) -> List[Dict[str, Any]]:
         """Read last N hours of rows from a bar table."""
-        rows = []
         try:
-            conn = self._connect()
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-
-            cursor.execute(f"PRAGMA table_info({table})")
-            cols = [c[1] for c in cursor.fetchall()]
+            # Discover columns to find the timestamp column
+            col_rows = read_all(f"PRAGMA table_info({table})")
+            cols = [c["name"] for c in col_rows]
 
             ts_col = None
             for candidate in ["ts", "timestamp", "bar_ts", "created_at"]:
@@ -44,23 +38,16 @@ class HistoricalReplay:
 
             if not ts_col:
                 logger.warning(f"HistoricalReplay: no timestamp column in {table}")
-                conn.close()
-                return rows
+                return []
 
             cutoff = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
-            query = f"SELECT * FROM {table} WHERE {ts_col} >= ? ORDER BY {ts_col} ASC"
-            cursor.execute(query, (cutoff,))
-
-            for row in cursor.fetchall():
-                rows.append(dict(row))
-
-            conn.close()
-        except sqlite3.OperationalError as e:
-            logger.warning(f"HistoricalReplay: cannot read {table}: {e}")
+            return read_all(
+                f"SELECT * FROM {table} WHERE {ts_col} >= :cutoff ORDER BY {ts_col} ASC",
+                {"cutoff": cutoff},
+            )
         except Exception as e:
-            logger.error(f"HistoricalReplay: unexpected error reading {table}: {e}")
-
-        return rows
+            logger.warning(f"HistoricalReplay: cannot read {table}: {e}")
+            return []
 
     async def replay_table(self, table: str, bar_type: str, hours: int = 12):
         """Replay rows from one table as a specific bar_type."""

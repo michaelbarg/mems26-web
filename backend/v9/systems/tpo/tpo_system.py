@@ -4,7 +4,6 @@ Builds TPO profile from 5-min bars. Publishes POC/VAH/VAL/shape.
 Subscribes to 5min via BarRouter.
 """
 import logging
-import sqlite3
 from datetime import datetime, date
 
 from backend.v9.common.trading_date import et_today
@@ -85,13 +84,11 @@ class TPOSystem(BaseV9TradingSystem):
         self.current_state["hydrated"] = True
         # Try to load today's session — PA2-D2: restore IB state on restart
         try:
-            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
-            conn.row_factory = sqlite3.Row
-            row = conn.execute(
-                "SELECT * FROM v9_tpo_sessions WHERE trading_date=? ORDER BY id DESC LIMIT 1",
-                (et_today().isoformat(),)
-            ).fetchone()
-            conn.close()
+            from backend.v9.db.read import read_one
+            row = read_one(
+                "SELECT * FROM v9_tpo_sessions WHERE trading_date=:today ORDER BY id DESC LIMIT 1",
+                {"today": et_today().isoformat()},
+            )
             if row:
                 r = dict(row)
                 # Restore IB state from DB (PA2-D2: critical for post-restart)

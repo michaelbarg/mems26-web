@@ -11,7 +11,6 @@ Per design doc section 2.2: calling check_rollover() twice on the same day is a 
 from __future__ import annotations
 
 import logging
-import sqlite3
 from datetime import date, datetime, timedelta
 from typing import Optional, Protocol
 
@@ -63,13 +62,12 @@ class SessionBoundaryManager:
     def _get_last_rollover_date(self) -> Optional[date]:
         """Read last_rollover_date from DB."""
         try:
-            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
-            row = conn.execute(
+            from backend.v9.db.read import read_scalar
+            val = read_scalar(
                 "SELECT value FROM v9_session_meta WHERE key = 'last_rollover_date'"
-            ).fetchone()
-            conn.close()
-            if row and row[0]:
-                return date.fromisoformat(row[0])
+            )
+            if val:
+                return date.fromisoformat(val)
             return None
         except Exception as e:
             logger.warning("[SessionBoundary] read last_rollover_date failed: %s", e)

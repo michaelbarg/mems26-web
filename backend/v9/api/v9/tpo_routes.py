@@ -5,10 +5,11 @@ import json
 import logging
 import os
 from pathlib import Path
-import sqlite3
 import time
 from typing import Optional
 from zoneinfo import ZoneInfo
+
+from backend.v9.db.read import read_all, read_one, read_scalar
 
 router = APIRouter(prefix="/api/v9/tpo", tags=["tpo"])
 _ET = ZoneInfo("America/New_York")
@@ -76,9 +77,6 @@ def _rth_open_ts_today() -> Optional[str]:
         return None
 
 
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
-
-
 def _load_periods_from_history(limit: int = 26) -> list:
     """Per-30-min snapshots from ``v9_tpo_history`` (P31 Issue B / B1 path).
 
@@ -97,19 +95,12 @@ def _load_periods_from_history(limit: int = 26) -> list:
     the table is empty, the schema is unexpected, or any row-level access
     fails. This keeps the fallback path inside ``_load_tpo_periods`` simple.
     """
-    try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT ts, poc, vah, val FROM v9_tpo_history "
-            "WHERE poc IS NOT NULL "
-            "ORDER BY ts DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        conn.close()
-    except Exception as e:
-        logger.warning("[tpo] _load_periods_from_history failed: %s", e)
-        return []
+    rows = read_all(
+        "SELECT ts, poc, vah, val FROM v9_tpo_history "
+        "WHERE poc IS NOT NULL "
+        "ORDER BY ts DESC LIMIT :limit",
+        {"limit": limit},
+    )
 
     out: list = []
     for r in rows:
@@ -153,18 +144,11 @@ def _load_periods_from_sessions(limit: int = 12) -> list:
     half-day where snapshotter was paused). Provides daily-granularity POC
     so the chart has *something* to render instead of a blank.
     """
-    try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT opened_ts, closed_ts, poc_price, vah_price, val_price FROM v9_tpo_sessions "
-            "ORDER BY id DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        conn.close()
-    except Exception as e:
-        logger.warning("[tpo] _load_periods_from_sessions failed: %s", e)
-        return []
+    rows = read_all(
+        "SELECT opened_ts, closed_ts, poc_price, vah_price, val_price FROM v9_tpo_sessions "
+        "ORDER BY id DESC LIMIT :limit",
+        {"limit": limit},
+    )
 
     cutoff = time.time() - 48 * 3600
     out: list = []
@@ -236,17 +220,14 @@ def _parse_previous_session_block(raw: dict) -> Optional[dict]:
 def _load_previous_cash_session() -> Optional[dict]:
     """Last completed CASH TPO row — white Sierra reference lines (interim until DLL exports previous_session)."""
     try:
-        conn = sqlite3.connect("file:/Users/michael/Downloads/mems26_web_git/data/mems26_local.db?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
         from backend.v9.common.trading_date import et_today as _et_today
-        row = conn.execute(
+        row = read_one(
             "SELECT trading_date, poc_price, vah_price, val_price, opened_ts, closed_ts "
             "FROM v9_tpo_sessions WHERE session_type='CASH' AND poc_price IS NOT NULL "
-            "AND trading_date < ? "
+            "AND trading_date < :today "
             "ORDER BY id DESC LIMIT 1",
-            (_et_today().isoformat(),),
-        ).fetchone()
-        conn.close()
+            {"today": _et_today().isoformat()},
+        )
         if not row or row["poc_price"] is None:
             return None
         return {
@@ -460,41 +441,35 @@ async def tpo_current(request: Request):
 
 @router.get("/journal")
 async def tpo_journal(request: Request, session_id: str = "", limit: int = 50):
-    db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     try:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
         if session_id:
-            rows = conn.execute(
-                "SELECT * FROM v9_tpo_journal WHERE session_id=? ORDER BY id DESC LIMIT ?",
-                (session_id, limit)
-            ).fetchall()
+            rows = read_all(
+                "SELECT * FROM v9_tpo_journal WHERE session_id=:session_id ORDER BY id DESC LIMIT :limit",
+                {"session_id": session_id, "limit": limit},
+            )
         else:
-            rows = conn.execute(
-                "SELECT * FROM v9_tpo_journal ORDER BY id DESC LIMIT ?", (limit,)
-            ).fetchall()
-        conn.close()
-        return {"entries": [dict(r) for r in rows]}
+            rows = read_all(
+                "SELECT * FROM v9_tpo_journal ORDER BY id DESC LIMIT :limit",
+                {"limit": limit},
+            )
+        return {"entries": rows}
     except Exception as e:
         return {"entries": [], "error": str(e)}
 
 
 @router.get("/sessions")
 async def tpo_sessions(request: Request, date: str = ""):
-    db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
     try:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
         if date:
-            rows = conn.execute(
-                "SELECT * FROM v9_tpo_sessions WHERE trading_date=?", (date,)
-            ).fetchall()
+            rows = read_all(
+                "SELECT * FROM v9_tpo_sessions WHERE trading_date=:date",
+                {"date": date},
+            )
         else:
-            rows = conn.execute(
+            rows = read_all(
                 "SELECT * FROM v9_tpo_sessions ORDER BY id DESC LIMIT 10"
-            ).fetchall()
-        conn.close()
-        return {"sessions": [dict(r) for r in rows]}
+            )
+        return {"sessions": rows}
     except Exception as e:
         return {"sessions": [], "error": str(e)}
 

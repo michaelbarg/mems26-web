@@ -6,15 +6,13 @@ import asyncio
 import logging
 from typing import Optional
 from fastapi import APIRouter, Query
-import sqlite3
 
+from backend.v9.db.read import read_all
 from backend.v9.services.bar_integrity import bar_is_valid
 
 logger = logging.getLogger("mems26.bars_5min_history")
 
 router = APIRouter(tags=["v9-bars-history"])
-
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 
 def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
@@ -29,38 +27,34 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
     """
     fetch_limit = min(max(limit, 1), 600) + 20
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-
         # Primary: v9_bars_5min
         if before:
-            rows_5m = conn.execute(
-                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE ts < ? ORDER BY ts DESC LIMIT ?",
-                (before, fetch_limit),
-            ).fetchall()
+            rows_5m = read_all(
+                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE ts < :before ORDER BY ts DESC LIMIT :limit",
+                {"before": before, "limit": fetch_limit},
+            )
         else:
-            rows_5m = conn.execute(
-                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min ORDER BY ts DESC LIMIT ?",
-                (fetch_limit,),
-            ).fetchall()
+            rows_5m = read_all(
+                "SELECT ts, open, high, low, close, volume FROM v9_bars_5min ORDER BY ts DESC LIMIT :limit",
+                {"limit": fetch_limit},
+            )
 
         # Fallback: v9_bars_5min_woodies (better overnight coverage)
         # Table may not exist in test DBs — graceful fallback
         rows_w = []
         try:
             if before:
-                rows_w = conn.execute(
-                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies WHERE ts < ? ORDER BY ts DESC LIMIT ?",
-                    (before, fetch_limit),
-                ).fetchall()
+                rows_w = read_all(
+                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies WHERE ts < :before ORDER BY ts DESC LIMIT :limit",
+                    {"before": before, "limit": fetch_limit},
+                )
             else:
-                rows_w = conn.execute(
-                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",
-                    (fetch_limit,),
-                ).fetchall()
-        except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+                rows_w = read_all(
+                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT :limit",
+                    {"limit": fetch_limit},
+                )
+        except Exception as e:
             logger.warning("[bars_5min_history] woodies fallback failed (primary-only): %s", e)
-        conn.close()
 
         # Merge: index primary by ts, fill gaps from woodies
         by_ts = {}

@@ -6,11 +6,11 @@ Decision tree stages: MEMS26_WOODIES_DECISION_TREE_V1.md A1..A7, B1..B14
 """
 
 import logging
-import sqlite3
 from datetime import date, datetime, time as _time, timezone
 from typing import Optional
 
 from backend.v9.common.trading_date import et_today
+from backend.v9.db.read import read_scalar
 from .types import PatternStatus, Component, SystemStatus, DataFreshness
 from .auth_table_lookup import WOODIES_PATTERN_IDS
 from .row_helpers import (
@@ -109,16 +109,14 @@ def inspect(woodies_system=None) -> SystemStatus:
     lag_seconds = None
     fires_dict: dict = {}
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
         last_bar_ts, _, lag_seconds = latest_valid_db_ts(
-            conn, "v9_bars_5min_woodies"
+            "v9_bars_5min_woodies"
         )
         # Authoritative "fired today" surface — read v9_trades, NOT the
         # momentary in-memory active_patterns. See module-level note on
         # the frozen-tail bug: 1s after a fire active_patterns=[] and the
         # old inspector reverted the row to status="armed".
-        fires_dict = fires_today(conn, _FIRING_SYSTEM_WOODIES)
-        conn.close()
+        fires_dict = fires_today(_FIRING_SYSTEM_WOODIES)
     except Exception as e:
         logger.warning("[BuildStatus/Woodies] DB read for freshness failed: %s", e)
 
@@ -185,13 +183,11 @@ def inspect(woodies_system=None) -> SystemStatus:
     # Day type context: read today's day_type from DB for Woodies matrix display
     _woodies_day_type = None
     try:
-        _wconn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
-        _wrow = _wconn.execute(
-            "SELECT day_type FROM v9_day_type_history WHERE date = ? LIMIT 1",
-            (et_today().isoformat(),),
-        ).fetchone()
-        _wconn.close()
-        _woodies_day_type = _wrow[0] if _wrow else None
+        _wrow = read_scalar(
+            "SELECT day_type FROM v9_day_type_history WHERE date = :date LIMIT 1",
+            {"date": et_today().isoformat()},
+        )
+        _woodies_day_type = _wrow
     except Exception:
         pass
     _dt_known = _woodies_day_type not in (None, "UNKNOWN")

@@ -9,7 +9,6 @@ import asyncio
 import json
 import logging
 import os
-import sqlite3
 from datetime import datetime, time as dtime, timezone
 from typing import List, Optional, Dict
 
@@ -136,19 +135,17 @@ class WoodiesSystem(BaseV9TradingSystem):
 
     def hydrate(self) -> HydrationResult:
         """Load last N bars from v9_bars_5min_woodies for warm start."""
+        from backend.v9.db.read import read_all
         loaded = 0
         try:
-            conn = sqlite3.connect(f"file:{self.db_path}?mode=ro", uri=True, timeout=5)
-            conn.row_factory = sqlite3.Row
-            rows = conn.execute(
-                "SELECT * FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT ?",
-                (self.max_buffer,),
-            ).fetchall()
-            conn.close()
+            rows = read_all(
+                "SELECT * FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT :limit",
+                {"limit": self.max_buffer},
+            )
 
             # Reverse to oldest-first
             for row in reversed(rows):
-                r = dict(row)
+                r = row
                 self._highs.append(float(r["high"]))
                 self._lows.append(float(r["low"]))
                 self._closes.append(float(r["close"]))

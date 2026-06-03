@@ -29,7 +29,6 @@ unauthenticated clients.
 from __future__ import annotations
 
 import logging
-import sqlite3
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -42,6 +41,7 @@ from backend.v9.services.history_loader import (
     DEFAULT_DB_PATH,
     get_loader as _get_history_loader,
 )
+from backend.v9.db.read import read_scalar
 from backend.v9.services.tpo_history_snapshotter import (
     get_snapshotter as _get_tpo_snap,
 )
@@ -214,30 +214,29 @@ def history_db_state(_token: str = Depends(verify_bridge_token)) -> Dict[str, An
     advances the auto-increment id on rejected duplicates — id high
     water is not a reliable row-count proxy.
     """
-    conn = sqlite3.connect(f"file:{DEFAULT_DB_PATH}?mode=ro", uri=True, timeout=5)
-    try:
-        out = {"tables": []}
-        for table, ts_col in _DB_STATE_TABLES:
-            try:
-                cur = conn.execute(
-                    f"SELECT COUNT(*) AS c, MAX({ts_col}) AS m FROM {table}"
-                ).fetchone()
-                out["tables"].append(
-                    {
-                        "table": table,
-                        "ts_col": ts_col,
-                        "rows": cur[0],
-                        "max_ts": cur[1],
-                    }
-                )
-            except sqlite3.Error as e:
-                out["tables"].append(
-                    {"table": table, "ts_col": ts_col, "error": str(e)}
-                )
-        out["as_of_utc"] = datetime.utcnow().isoformat() + "Z"
-        return out
-    finally:
-        conn.close()
+    out = {"tables": []}
+    for table, ts_col in _DB_STATE_TABLES:
+        try:
+            row = read_scalar(
+                f"SELECT COUNT(*) FROM {table}"
+            )
+            max_ts = read_scalar(
+                f"SELECT MAX({ts_col}) FROM {table}"
+            )
+            out["tables"].append(
+                {
+                    "table": table,
+                    "ts_col": ts_col,
+                    "rows": row,
+                    "max_ts": max_ts,
+                }
+            )
+        except Exception as e:
+            out["tables"].append(
+                {"table": table, "ts_col": ts_col, "error": str(e)}
+            )
+    out["as_of_utc"] = datetime.utcnow().isoformat() + "Z"
+    return out
 
 
 # ----------------------------------------------------------------------

@@ -43,27 +43,23 @@ async def open_type_current():
 
     # After trigger: classify (direct DB read — no self-referential HTTP)
     try:
-        import sqlite3
+        from backend.v9.db.read import read_all, read_one
         from backend.v9.services.market_clock import get_previous_trading_day
-        DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        bars_rows = conn.execute(
-            "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE date(ts)=? ORDER BY ts LIMIT 12",
-            (today,),
-        ).fetchall()
+        bars_rows = read_all(
+            "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE date(ts)=:today ORDER BY ts LIMIT 12",
+            {"today": today},
+        )
         rth_bars = [{"ts": r["ts"], "o": r["open"], "h": r["high"], "l": r["low"], "c": r["close"], "v": r["volume"]} for r in bars_rows]
 
         open_price = rth_bars[0]["o"] if rth_bars else 0
 
         # Previous day VA
         prev_date = get_previous_trading_day()
-        prev_row = conn.execute(
-            "SELECT poc_price, vah_price, val_price FROM v9_tpo_sessions WHERE trading_date=? AND session_type='CASH' ORDER BY id DESC LIMIT 1",
-            (prev_date.isoformat(),),
-        ).fetchone()
-        conn.close()
+        prev_row = read_one(
+            "SELECT poc_price, vah_price, val_price FROM v9_tpo_sessions WHERE trading_date=:prev_date AND session_type='CASH' ORDER BY id DESC LIMIT 1",
+            {"prev_date": prev_date.isoformat()},
+        )
 
         prev_vah = float(prev_row["vah_price"]) if prev_row and prev_row["vah_price"] else None
         prev_val = float(prev_row["val_price"]) if prev_row and prev_row["val_price"] else None

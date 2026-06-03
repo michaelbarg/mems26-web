@@ -4,11 +4,11 @@ Shared loader for A1 pd_high/pd_low/pd_close and TPO previous-day API.
 """
 from __future__ import annotations
 
-import sqlite3
 from datetime import date
 from pathlib import Path
 from typing import Any, Optional, Union
 
+from backend.v9.db.read import read_all, read_one
 from backend.v9.services.market_clock import get_previous_trading_day
 
 DEFAULT_DB_PATH = Path("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
@@ -43,34 +43,29 @@ def load_previous_day_context(
     pd_high/pd_low: TPO range preferred, 5-min hi/lo fallback.
     """
     prev_date = _resolve_prev_date(previous_trading_day)
-    conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
-    conn.row_factory = sqlite3.Row
-    try:
-        bars_row = conn.execute(
-            """SELECT max(high) as hi, min(low) as lo,
-                      (SELECT close FROM v9_bars_5min
-                       WHERE date(ts)=?
-                       ORDER BY ts DESC LIMIT 1) as last_c
-               FROM v9_bars_5min WHERE date(ts)=?""",
-            (prev_date, prev_date),
-        ).fetchone()
+    bars_row = read_one(
+        """SELECT max(high) as hi, min(low) as lo,
+                  (SELECT close FROM v9_bars_5min
+                   WHERE date(ts)=:prev_date
+                   ORDER BY ts DESC LIMIT 1) as last_c
+           FROM v9_bars_5min WHERE date(ts)=:prev_date""",
+        {"prev_date": prev_date},
+    )
 
-        pd_close = bars_row["last_c"] if bars_row else None
-        bars_high = bars_row["hi"] if bars_row else None
-        bars_low = bars_row["lo"] if bars_row else None
+    pd_close = bars_row["last_c"] if bars_row else None
+    bars_high = bars_row["hi"] if bars_row else None
+    bars_low = bars_row["lo"] if bars_row else None
 
-        tpo_row = conn.execute(
-            """SELECT range_high, range_low
-               FROM v9_tpo_sessions
-               WHERE trading_date=? AND session_type='CASH'
-               ORDER BY id DESC LIMIT 1""",
-            (prev_date,),
-        ).fetchone()
+    tpo_row = read_one(
+        """SELECT range_high, range_low
+           FROM v9_tpo_sessions
+           WHERE trading_date=:prev_date AND session_type='CASH'
+           ORDER BY id DESC LIMIT 1""",
+        {"prev_date": prev_date},
+    )
 
-        pd_high = (tpo_row["range_high"] if tpo_row else None) or bars_high
-        pd_low = (tpo_row["range_low"] if tpo_row else None) or bars_low
-    finally:
-        conn.close()
+    pd_high = (tpo_row["range_high"] if tpo_row else None) or bars_high
+    pd_low = (tpo_row["range_low"] if tpo_row else None) or bars_low
 
     context = {"pd_high": pd_high, "pd_low": pd_low, "pd_close": pd_close}
     missing_fields = [field for field, value in context.items() if value is None]
@@ -94,13 +89,10 @@ def load_tpo_previous_day_summary(
     """TPO session row for previous trading day (API-shaped, no HTTP)."""
     prev_date = _resolve_prev_date(previous_trading_day)
     try:
-        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM v9_tpo_sessions WHERE trading_date=? AND session_type='CASH' ORDER BY id DESC LIMIT 1",
-            (prev_date,),
-        ).fetchone()
-        conn.close()
+        row = read_one(
+            "SELECT * FROM v9_tpo_sessions WHERE trading_date=:prev_date AND session_type='CASH' ORDER BY id DESC LIMIT 1",
+            {"prev_date": prev_date},
+        )
     except Exception as e:
         return {"session_date": prev_date, "found": False, "error": str(e)}
 

@@ -5,7 +5,6 @@ Pattern list: S2_AUTH_TABLE_V1.md §2
 """
 
 import logging
-import sqlite3
 import time
 from datetime import date, datetime, timezone
 from typing import Optional, List
@@ -94,14 +93,11 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     last_bar_ts = None
     lag_seconds = None
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
         last_bar_ts, _, lag_seconds = latest_valid_db_ts(
-            conn,
             "v9_bars_5min",
             where="symbol = ?",
             params=("MES",),
         )
-        conn.close()
     except Exception as e:
         logger.warning("[BuildStatus/S2] DB read for freshness failed: %s", e)
 
@@ -167,9 +163,7 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     # vetoed.
     fires_dict: dict = {}
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
-        fires_dict = fires_today(conn, _FIRING_SYSTEM_FIVE_MIN)
-        conn.close()
+        fires_dict = fires_today(_FIRING_SYSTEM_FIVE_MIN)
     except Exception as e:
         logger.warning("[BuildStatus/S2] DB read for fires failed: %s", e)
 

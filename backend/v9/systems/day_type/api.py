@@ -50,17 +50,13 @@ def get_state():
 
 @router.get("/history")
 def get_history(limit: int = Query(20, ge=1, le=100)):
-    """Return recent day type state history from DB (raw sqlite3 for reliability)."""
-    import sqlite3
-    DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+    """Return recent day type state history from DB."""
+    from backend.v9.db.read import read_all
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT ts, stage, day_type, confidence, lock_state, opening_type, ib_width_class, behavior FROM v9_day_type_state ORDER BY id DESC LIMIT ?",
-            (limit,),
-        ).fetchall()
-        conn.close()
+        rows = read_all(
+            "SELECT ts, stage, day_type, confidence, lock_state, opening_type, ib_width_class, behavior FROM v9_day_type_state ORDER BY id DESC LIMIT :limit",
+            {"limit": limit},
+        )
         items = [
             {
                 "ts": r["ts"],
@@ -84,16 +80,12 @@ def _get_state_machine_classification() -> Optional[dict]:
 
     Returns dict with all 7 day types possible, or None if not classified yet.
     """
-    import sqlite3
-    DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+    from backend.v9.db.read import read_one
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM v9_day_type_state WHERE lock_state='LOCKED' AND date(ts)=? ORDER BY id DESC LIMIT 1",
-            (et_today().isoformat(),),
-        ).fetchone()
-        conn.close()
+        row = read_one(
+            "SELECT * FROM v9_day_type_state WHERE lock_state='LOCKED' AND date(ts)=:today ORDER BY id DESC LIMIT 1",
+            {"today": et_today().isoformat()},
+        )
         if not row:
             return None
         r = dict(row)

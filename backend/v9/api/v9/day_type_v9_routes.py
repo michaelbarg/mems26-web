@@ -9,15 +9,13 @@ Endpoints:
     GET /api/v9/day_type/v9/stats     — distribution + percentages
 """
 
-import sqlite3
 from datetime import date, timedelta
 from typing import Optional
 
 from backend.v9.common.trading_date import et_today
+from backend.v9.db.read import read_all, read_one
 
 from fastapi import APIRouter, Query
-
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 router = APIRouter(prefix="/api/v9/day_type/v9", tags=["v9-day-type-v9"])
 
@@ -31,13 +29,10 @@ def get_current():
     """
     today = et_today().isoformat()
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM v9_day_type_history WHERE date = ? AND COALESCE(status, '') != 'ROLLED_OVER' LIMIT 1",
-            (today,),
-        ).fetchone()
-        conn.close()
+        row = read_one(
+            "SELECT * FROM v9_day_type_history WHERE date = :date AND COALESCE(status, '') != 'ROLLED_OVER' LIMIT 1",
+            {"date": today},
+        )
 
         if row is None:
             return {"classified": False, "session_date": today, "data": None}
@@ -63,13 +58,10 @@ def get_history(days: int = Query(30, ge=1, le=365)):
     active_zohar_rules) when available, falls back to V1 fields otherwise.
     """
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute(
-            "SELECT * FROM v9_day_type_history ORDER BY date DESC LIMIT ?",
-            (days,),
-        ).fetchall()
-        conn.close()
+        rows = read_all(
+            "SELECT * FROM v9_day_type_history ORDER BY date DESC LIMIT :days",
+            {"days": days},
+        )
 
         items = [_row_to_v9_dict(dict(r)) for r in rows]
         return {"items": items, "count": len(items), "days_requested": days}
@@ -84,18 +76,15 @@ def get_stats(days: int = Query(30, ge=1, le=365)):
     Returns count and percentage per day type.
     """
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True, timeout=5)
-        conn.row_factory = sqlite3.Row
         cutoff = (et_today() - timedelta(days=days)).isoformat()
-        rows = conn.execute(
+        rows = read_all(
             """SELECT day_type, COUNT(*) as cnt
                FROM v9_day_type_history
-               WHERE date >= ?
+               WHERE date >= :cutoff
                GROUP BY day_type
                ORDER BY cnt DESC""",
-            (cutoff,),
-        ).fetchall()
-        conn.close()
+            {"cutoff": cutoff},
+        )
 
         total = sum(r["cnt"] for r in rows)
         distribution = {}

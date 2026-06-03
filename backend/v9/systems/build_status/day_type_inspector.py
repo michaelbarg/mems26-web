@@ -4,17 +4,15 @@ Source: BUILD_STATUS_ENDPOINT_DESIGN.md §4.3
 """
 
 import logging
-import sqlite3
 from datetime import date, datetime, timezone
 from typing import Optional
 
 from backend.v9.common.trading_date import et_today
+from backend.v9.db.read import read_all, read_one
 from .types import PatternStatus, Component, SystemStatus, DataFreshness
 from .row_helpers import make_freshness, freshness_now
 
 logger = logging.getLogger(__name__)
-
-DB_PATH = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
 
 
 def inspect(day_type_machine=None) -> SystemStatus:
@@ -32,13 +30,10 @@ def inspect(day_type_machine=None) -> SystemStatus:
     row = None
 
     try:
-        conn = sqlite3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            "SELECT * FROM v9_day_type_history WHERE date = ? LIMIT 1",
-            (today,),
-        ).fetchone()
-        conn.close()
+        row = read_one(
+            "SELECT * FROM v9_day_type_history WHERE date = :date LIMIT 1",
+            {"date": today},
+        )
     except Exception as e:
         logger.warning("[BuildStatus/DayType] DB read failed: %s", e)
         system.patterns.append(PatternStatus(
@@ -276,20 +271,17 @@ def inspect(day_type_machine=None) -> SystemStatus:
 
     # D-S1DYN: Shadow reclassification chain (would-be transitions)
     try:
-        import sqlite3 as _sql3
-        _shadow_conn = _sql3.connect(f"file:{DB_PATH}?mode=ro&immutable=1", uri=True)
-        _shadow_rows = _shadow_conn.execute(
+        _shadow_rows = read_all(
             "SELECT from_type, to_type, trigger, e_up, e_dn, r_total, price, session_min "
-            "FROM v9_day_type_shadow_transitions WHERE session_date = ? ORDER BY ts",
-            (today,),
-        ).fetchall()
-        _shadow_conn.close()
+            "FROM v9_day_type_shadow_transitions WHERE session_date = :today ORDER BY ts",
+            {"today": today},
+        )
         if _shadow_rows:
             _chain_parts = []
             for sr in _shadow_rows:
-                _chain_parts.append(f"{sr[0]}→{sr[1]} @min{sr[7]} (E↑{sr[3]:.2f} E↓{sr[4]:.2f} R={sr[5]:.2f} p={sr[6]:.0f})")
+                _chain_parts.append(f"{sr['from_type']}→{sr['to_type']} @min{sr['session_min']} (E↑{sr['e_up']:.2f} E↓{sr['e_dn']:.2f} R={sr['r_total']:.2f} p={sr['price']:.0f})")
             _shadow_chain = " · ".join(_chain_parts)
-            _shadow_current = _shadow_rows[-1][1]  # latest would-be type
+            _shadow_current = _shadow_rows[-1]["to_type"]  # latest would-be type
             components.append(Component(
                 stage="shadow_reclass",
                 key="dynamic_day_type",
