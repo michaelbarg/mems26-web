@@ -538,7 +538,13 @@ class WoodiesSystem(BaseV9TradingSystem):
     def _persist_bar(self, ts, o, h, l, c, v, studies):
         """Write enriched bar to v9_bars_5min_woodies via safe_writer."""
         from backend.v9.db.safe_writer import safe_execute
-        bar_ts = str(ts) if ts else datetime.now(timezone.utc).isoformat()
+        # Axis 6b fix: convert unix int to ISO timestamp (PG requires timestamp, not int)
+        if ts and isinstance(ts, (int, float)):
+            bar_ts = datetime.fromtimestamp(float(ts), tz=timezone.utc).isoformat()
+        elif ts:
+            bar_ts = str(ts)
+        else:
+            bar_ts = datetime.now(timezone.utc).isoformat()
         safe_execute(
             """INSERT OR REPLACE INTO v9_bars_5min_woodies
             (ts, symbol, open, high, low, close, volume,
@@ -551,9 +557,8 @@ class WoodiesSystem(BaseV9TradingSystem):
                 studies["cci_14"], studies["cci_6_tcci"],
                 studies["lsma_value"], studies["swi_value"], studies["czi_value"],
                 studies["ema_34"], studies["trend_state"], studies["predictor_next_cci"],
-                False, "NONE",
+                0, "NONE",
             ),
-            db_path=self.db_path,
         )
 
     def _persist_pattern(self, bar_ts, event, studies, pattern: PatternResult):
@@ -584,7 +589,6 @@ class WoodiesSystem(BaseV9TradingSystem):
                 pattern.pattern_id,
                 pattern.confidence,
             ),
-            db_path=self.db_path,
         )
         logger.info(
             "[Woodies] Pattern %s %s fired: CCI=%.1f conf=%.2f trend=%s",
