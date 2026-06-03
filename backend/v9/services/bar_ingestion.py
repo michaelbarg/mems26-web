@@ -47,7 +47,13 @@ class BarIngestionService:
         self._running = False
 
     def ingest_bar(self, bar_data: dict) -> bool:
-        """Persist a single bar to DB. UPSERT on (ts, symbol) — no duplicates."""
+        """Persist a single bar to DB via safe_writer INSERT OR REPLACE.
+
+        DB Root Fix (2026-06-03): replaces ORM db.add/db.commit with
+        safe_execute to eliminate concurrent write race.
+        """
+        from backend.v9.db.safe_writer import safe_execute
+
         ok, reason = bar_is_valid(
             open=bar_data.get("open"),
             high=bar_data.get("high"),
@@ -63,55 +69,35 @@ class BarIngestionService:
             )
             return False
 
-        db = SessionLocal()
-        try:
-            ts = bar_data.get("ts", datetime.now(timezone.utc))
-            symbol = bar_data.get("symbol", "MES")
+        ts = bar_data.get("ts", datetime.now(timezone.utc))
+        symbol = bar_data.get("symbol", "MES")
 
-            # Guard: reject bars with ts > now + 2 minutes (future-ts bug)
-            if isinstance(ts, datetime):
-                _ts_check = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
-                if _ts_check > datetime.now(timezone.utc) + timedelta(minutes=2):
-                    logger.warning(
-                        "[BarIngestion] Rejected FUTURE bar ts=%s (now+2m guard)", ts
-                    )
-                    return False
-
-            # Check for existing bar at same timestamp (UPSERT logic)
-            existing = db.query(V9Bar5Min).filter(
-                V9Bar5Min.ts == ts,
-                V9Bar5Min.symbol == symbol,
-            ).first()
-
-            if existing:
-                # Update in place (last write wins)
-                existing.open = bar_data["open"]
-                existing.high = bar_data["high"]
-                existing.low = bar_data["low"]
-                existing.close = bar_data["close"]
-                existing.volume = bar_data.get("volume", 0)
-                existing.cumulative_delta = bar_data.get("delta")
-            else:
-                bar = V9Bar5Min(
-                    ts=ts, symbol=symbol,
-                    open=bar_data["open"],
-                    high=bar_data["high"],
-                    low=bar_data["low"],
-                    close=bar_data["close"],
-                    volume=bar_data.get("volume", 0),
-                    cumulative_delta=bar_data.get("delta"),
+        # Guard: reject bars with ts > now + 2 minutes (future-ts bug)
+        if isinstance(ts, datetime):
+            _ts_check = ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+            if _ts_check > datetime.now(timezone.utc) + timedelta(minutes=2):
+                logger.warning(
+                    "[BarIngestion] Rejected FUTURE bar ts=%s (now+2m guard)", ts
                 )
-                db.add(bar)
+                return False
 
-            db.commit()
+        ts_iso = ts.isoformat() if isinstance(ts, datetime) else str(ts)
+        result = safe_execute(
+            "INSERT OR REPLACE INTO v9_bars_5min "
+            "(ts, symbol, open, high, low, close, volume, cumulative_delta) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                ts_iso, symbol,
+                bar_data["open"], bar_data["high"],
+                bar_data["low"], bar_data["close"],
+                bar_data.get("volume", 0),
+                bar_data.get("delta"),
+            ),
+        )
+        if result is not None:
             self._bars_ingested += 1
             return True
-        except Exception:
-            db.rollback()
-            logger.exception("[BarIngestion] Failed to ingest bar")
-            return False
-        finally:
-            db.close()
+        return False
 
     def get_bars_since(self, since: datetime) -> List[dict]:
         """Query bars since a timestamp. Used by hydrate()."""

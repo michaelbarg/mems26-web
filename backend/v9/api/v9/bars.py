@@ -1,5 +1,12 @@
-"""V9 API: Bar data endpoints — receives Bridge pushes for all bar types."""
+"""V9 API: Bar data endpoints — receives Bridge pushes for all bar types.
 
+DB Root Fix (2026-06-03): ALL writes go through safe_writer (safe_execute /
+safe_executemany) — no ORM db.add/db.commit for writes.  ORM get_db() is kept
+for READ-ONLY queries only (e.g. enrichment lookups).  This eliminates the
+concurrent ORM-vs-raw-sqlite3 write race that caused recurring B-tree corruption.
+"""
+
+import json as _json
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict
@@ -15,6 +22,7 @@ from backend.v9.api.v9.ws_manager import (
     CHANNEL_BARS_WOODIES, CHANNEL_LEVELS,
 )
 from backend.v9.services.bar_integrity import bar_is_valid
+from backend.v9.db.safe_writer import safe_execute, safe_executemany
 
 logger = logging.getLogger(__name__)
 
@@ -249,50 +257,28 @@ def _ts_from_unix(unix_ts) -> datetime:
 @router.post("/5min")
 def post_bars_5min(
     bars: List[Bar5MinIn],
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    """Upsert 5-min OHLC bars by (ts, symbol).
+    """Upsert 5-min OHLC bars by (ts, symbol) via safe_writer.
 
-    P30 G8 (2026-05-20): two concurrent bridge POSTs for the same bar used to
-    race past the SELECT-then-INSERT check and create duplicate rows, which
-    broke `lightweight-charts` (assertion "data must be asc ordered by time").
-    The DB now has a `UNIQUE(ts, symbol)` constraint and this handler catches
-    `IntegrityError` to retry as UPDATE — safe under concurrency.
+    DB Root Fix (2026-06-03): all writes through safe_execute INSERT OR REPLACE.
+    No ORM db.add/db.commit — eliminates concurrent write race that caused
+    B-tree corruption.  The UNIQUE(ts, symbol) constraint handles dedup.
     """
-    from sqlalchemy.exc import IntegrityError
-
-    created = []
+    inserted = 0
     rejected = 0
     last_valid_bar = None
-
-    def _apply_fields(target: V9Bar5Min, src: Bar5MinIn) -> None:
-        target.open = src.o
-        target.high = src.h
-        target.low = src.l
-        target.close = src.c
-        target.volume = src.vol
-        target.poc_vol = src.poc_vol
-        target.vah = src.vah
-        target.val = src.val
-        target.cumulative_delta = src.cumulative_delta
 
     def _flat_5min_for_router(bar: Bar5MinIn, ts) -> dict:
         """Flat keys for FiveMinSystem + BarLevelDetector (P31-02)."""
         return {
             "ts": str(ts),
-            "o": bar.o,
-            "h": bar.h,
-            "l": bar.l,
-            "c": bar.c,
-            "vol": bar.vol,
-            "open": bar.o,
-            "high": bar.h,
-            "low": bar.l,
-            "close": bar.c,
+            "o": bar.o, "h": bar.h, "l": bar.l, "c": bar.c, "vol": bar.vol,
+            "open": bar.o, "high": bar.h, "low": bar.l, "close": bar.c,
             "volume": bar.vol,
         }
 
+    rows_to_write = []
     for bar in bars:
         ok, reason = bar_is_valid(open=bar.o, high=bar.h, low=bar.l, close=bar.c)
         if not ok:
@@ -303,50 +289,34 @@ def post_bars_5min(
             rejected += 1
             continue
         ts = _ts_from_unix(bar.ts)
-        # Guard: reject bars with ts > now + 2 minutes (mirror bar_ingestion guard)
         if ts > datetime.now(timezone.utc) + timedelta(minutes=2):
             logger.warning("[bars/5min] Rejected FUTURE bar ts=%s (now+2m guard)", ts)
             rejected += 1
             continue
-        row = db.query(V9Bar5Min).filter(
-            V9Bar5Min.ts == ts,
-            V9Bar5Min.symbol == bar.symbol,
-        ).first()
-        if row is None:
-            row = V9Bar5Min(ts=ts, symbol=bar.symbol)
-            _apply_fields(row, bar)
-            db.add(row)
-            try:
-                db.flush()  # surface IntegrityError before any further mutation
-                created.append(row)
-            except IntegrityError:
-                db.rollback()
-                # Concurrent insert won the race — fetch the row that was committed
-                # by the other POST and update it with our latest data instead.
-                row = db.query(V9Bar5Min).filter(
-                    V9Bar5Min.ts == ts,
-                    V9Bar5Min.symbol == bar.symbol,
-                ).one()
-                _apply_fields(row, bar)
-                logger.info(
-                    "[bars/5min] race-condition upsert resolved for ts=%s sym=%s",
-                    ts, bar.symbol,
-                )
-        else:
-            _apply_fields(row, bar)
+        rows_to_write.append((
+            ts.isoformat(), bar.symbol, bar.o, bar.h, bar.l, bar.c,
+            bar.vol, bar.poc_vol, bar.vah, bar.val, bar.cumulative_delta,
+        ))
         last_valid_bar = bar
-    db.commit()
+
+    if rows_to_write:
+        inserted = safe_executemany(
+            "INSERT OR REPLACE INTO v9_bars_5min "
+            "(ts, symbol, open, high, low, close, volume, poc_vol, vah, val, cumulative_delta) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows_to_write,
+        )
+
     publish_event(CHANNEL_BARS_5MIN, {
-        "count": len(created),
+        "count": inserted,
         "rejected": rejected,
         "last": {"o": last_valid_bar.o, "h": last_valid_bar.h, "l": last_valid_bar.l,
                  "c": last_valid_bar.c, "vol": last_valid_bar.vol} if last_valid_bar else {},
     })
     _record_push("5min")
-    # P31-02: route on every upsert (INSERT or UPDATE), not only new rows.
     if last_valid_bar is not None:
         _route_bar("5min", _flat_5min_for_router(last_valid_bar, _ts_from_unix(last_valid_bar.ts)))
-    return {"ok": True, "inserted": len(created), "rejected": rejected}
+    return {"ok": True, "inserted": inserted, "rejected": rejected}
 
 
 # ── POST /api/v9/bars/tick_reversal?tick_count=15 ──
@@ -436,32 +406,18 @@ def post_volume_profile(
     _token: str = Depends(verify_bridge_token),
 ):
     """Enrich latest 5-min bars with VP POC/VAH/VAL **and** persist the full
-    per-price-level profile to ``v9_bars_volume_profile`` for backtest replay
-    (Michael 2026-05-22, ``save_full_profile`` choice).
+    per-price-level profile to ``v9_bars_volume_profile`` for backtest replay.
 
-    Sierra's ``volume_profile.json`` carries 31 ``profiles[]`` rows — each is
-    the profile for one 5-min bar, in chronological order. Profiles have
-    ``bar_idx`` but no ``ts``, so we match the last N profiles positionally
-    to the last N rows in ``v9_bars_5min`` (by ``ts DESC``). This is the
-    pragmatic ``Path-B`` (no DLL change) per
-    ``CC_UNIFIED_HISTORY_ARCHITECTURE_SPEC.md``.
-
-    Idempotency: the dedicated table has ``bar_id TEXT UNIQUE``, so INSERTs
-    use ``INSERT OR REPLACE`` keyed on ``bar_id = "vp_<bar_idx>"``.
+    DB Root Fix (2026-06-03): enrichment UPDATEs and dedicated-table INSERTs
+    go through safe_execute.  ORM db.query kept for READ-ONLY positional match.
     """
-    from datetime import timedelta
-    import json as _json
-    from sqlalchemy import text as _sql_text
-
-    profiles = payload.profiles or payload.bars  # backward-compat fallback
+    profiles = payload.profiles or payload.bars
     updated = 0
     skipped = 0
     inserted = 0
 
     if profiles:
-        # Positional match: take the latest len(profiles) rows from
-        # v9_bars_5min (by ts DESC, then reverse so oldest→newest aligns
-        # with profiles oldest→newest).
+        # READ-ONLY: positional match via ORM (no writes through ORM).
         latest_bars = (
             db.query(V9Bar5Min)
             .order_by(V9Bar5Min.ts.desc())
@@ -474,9 +430,13 @@ def post_volume_profile(
         for i, prof in enumerate(profiles[-len(latest_bars):]) if latest_bars else enumerate([]):
             row = latest_bars[i + offset] if i + offset < len(latest_bars) else None
             if row is not None:
-                row.poc_vol = prof.get("poc_vol", row.poc_vol)
-                row.vah = prof.get("vah", row.vah)
-                row.val = prof.get("val", row.val)
+                new_poc = prof.get("poc_vol", row.poc_vol)
+                new_vah = prof.get("vah", row.vah)
+                new_val = prof.get("val", row.val)
+                safe_execute(
+                    "UPDATE v9_bars_5min SET poc_vol=?, vah=?, val=? WHERE id=?",
+                    (new_poc, new_vah, new_val, row.id),
+                )
                 updated += 1
             else:
                 skipped += 1
@@ -485,31 +445,27 @@ def post_volume_profile(
         for prof in profiles:
             bar_idx = prof.get("bar_idx")
             if bar_idx is None:
-                # Sierra always emits bar_idx; missing → corrupt — skip.
                 continue
-            try:
-                db.execute(
-                    _sql_text(
-                        "INSERT OR REPLACE INTO v9_bars_volume_profile "
-                        "(ts, bar_id, profile, poc, vah, val, total_volume, session, created_at) "
-                        "VALUES (:ts, :bar_id, :profile, :poc, :vah, :val, :total_volume, :session, CURRENT_TIMESTAMP)"
-                    ),
-                    {
-                        "ts": _ts_from_unix(payload.export_ts).isoformat(),
-                        "bar_id": f"vp_{bar_idx}",
-                        "profile": _json.dumps(prof.get("levels") or []),
-                        "poc": prof.get("poc"),
-                        "vah": prof.get("vah"),
-                        "val": prof.get("val"),
-                        "total_volume": int(prof.get("total_vol") or 0),
-                        "session": None,
-                    },
-                )
+            result = safe_execute(
+                "INSERT OR REPLACE INTO v9_bars_volume_profile "
+                "(ts, bar_id, profile, poc, vah, val, total_volume, session, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                (
+                    _ts_from_unix(payload.export_ts).isoformat(),
+                    f"vp_{bar_idx}",
+                    _json.dumps(prof.get("levels") or []),
+                    prof.get("poc"),
+                    prof.get("vah"),
+                    prof.get("val"),
+                    int(prof.get("total_vol") or 0),
+                    None,
+                ),
+            )
+            if result is not None:
                 inserted += 1
-            except Exception as e:
-                logger.warning("[VP] dedicated INSERT failed bar_idx=%s: %s", bar_idx, e)
-    db.commit()
-    # Route last profile to EventDispatcher (kept for downstream consumers)
+            else:
+                logger.warning("[VP] dedicated INSERT failed bar_idx=%s", bar_idx)
+
     if profiles:
         _dispatch("volume_profile", profiles[-1])
     _record_push("volume_profile")
@@ -528,63 +484,52 @@ def post_volume_profile(
 @router.post("/imbalance")
 def post_imbalance(
     payload: ImbalancePayload,
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    """Store imbalance flags as system signals (existing path) + INSERT into
-    dedicated ``v9_bars_imbalance`` (new — P31 Phase 1, Michael 2026-05-22
-    ``populate`` choice for the 4 dedicated tables).
-    """
-    from backend.v9.db.models import V9SystemSignal
-    from sqlalchemy import text as _sql_text
+    """Store imbalance flags as system signals + dedicated v9_bars_imbalance.
 
+    DB Root Fix (2026-06-03): all writes through safe_execute.
+    """
     created = 0
     inserted = 0
     for bar in payload.bars:
         ts_iso = _ts_from_unix(bar.get("ts")).isoformat()
-        signal = V9SystemSignal(
-            ts=_ts_from_unix(bar.get("ts")),
-            system_id=3,
-            classification="IMBALANCE",
-            direction=None,
-            payload={
-                "bar_idx": bar.get("bar_idx"),
-                "price": bar.get("price"),
-                "stacked_buy": bar.get("stacked_buy"),
-                "stacked_sell": bar.get("stacked_sell"),
-                "levels": bar.get("levels", []),
-            },
+        signal_payload = _json.dumps({
+            "bar_idx": bar.get("bar_idx"),
+            "price": bar.get("price"),
+            "stacked_buy": bar.get("stacked_buy"),
+            "stacked_sell": bar.get("stacked_sell"),
+            "levels": bar.get("levels", []),
+        })
+        result = safe_execute(
+            "INSERT INTO v9_system_signals (ts, system_id, classification, direction, payload) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (ts_iso, 3, "IMBALANCE", None, signal_payload),
         )
-        db.add(signal)
-        created += 1
+        if result is not None:
+            created += 1
 
         bar_idx = bar.get("bar_idx")
         if bar_idx is not None:
             stacked_buy = bar.get("stacked_buy") or 0
             stacked_sell = bar.get("stacked_sell") or 0
             direction = "BUY" if stacked_buy > stacked_sell else ("SELL" if stacked_sell > stacked_buy else None)
-            try:
-                db.execute(
-                    _sql_text(
-                        "INSERT OR REPLACE INTO v9_bars_imbalance "
-                        "(ts, bar_id, price, ratio, direction, bid_vol, ask_vol, session, created_at) "
-                        "VALUES (:ts, :bar_id, :price, :ratio, :direction, :bid_vol, :ask_vol, :session, CURRENT_TIMESTAMP)"
-                    ),
-                    {
-                        "ts": ts_iso,
-                        "bar_id": f"imb_{bar_idx}",
-                        "price": bar.get("price"),
-                        "ratio": None,  # Sierra doesn't emit a single ratio; derive in analytics if needed
-                        "direction": direction,
-                        "bid_vol": int(stacked_sell) if stacked_sell else None,
-                        "ask_vol": int(stacked_buy) if stacked_buy else None,
-                        "session": None,
-                    },
-                )
+            result = safe_execute(
+                "INSERT OR REPLACE INTO v9_bars_imbalance "
+                "(ts, bar_id, price, ratio, direction, bid_vol, ask_vol, session, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                (
+                    ts_iso, f"imb_{bar_idx}", bar.get("price"), None,
+                    direction,
+                    int(stacked_sell) if stacked_sell else None,
+                    int(stacked_buy) if stacked_buy else None,
+                    None,
+                ),
+            )
+            if result is not None:
                 inserted += 1
-            except Exception as e:
-                logger.warning("[IMB] dedicated INSERT failed bar_idx=%s: %s", bar_idx, e)
-    db.commit()
+            else:
+                logger.warning("[IMB] dedicated INSERT failed bar_idx=%s", bar_idx)
     _record_push("imbalance_flags")
     _route_bar("imbalance", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {
@@ -602,55 +547,44 @@ def post_imbalance(
 @router.post("/stacked_imbalance")
 def post_stacked_imbalance(
     payload: StackedImbalancePayload,
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    """Persist stacked imbalances to ``v9_system_signals`` (existing path) +
-    dedicated ``v9_bars_stacked_imbalance`` (new — Phase 1). The Sierra
-    export uses the key ``stacks[]``; keep ``bars[]`` as fallback for
-    backward compat.
-    """
-    from backend.v9.db.models import V9SystemSignal
-    from sqlalchemy import text as _sql_text
+    """Persist stacked imbalances to v9_system_signals + dedicated table.
 
+    DB Root Fix (2026-06-03): all writes through safe_execute.
+    """
     stacks = payload.stacks or payload.bars
     created = 0
     inserted = 0
     for stack in stacks:
         ts_iso = _ts_from_unix(stack.get("ts")).isoformat()
-        signal = V9SystemSignal(
-            ts=_ts_from_unix(stack.get("ts")),
-            system_id=3,
-            classification="STACKED_IMBALANCE",
-            direction=None,
-            payload=stack,
+        result = safe_execute(
+            "INSERT INTO v9_system_signals (ts, system_id, classification, direction, payload) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (ts_iso, 3, "STACKED_IMBALANCE", None, _json.dumps(stack)),
         )
-        db.add(signal)
-        created += 1
+        if result is not None:
+            created += 1
 
         bar_idx = stack.get("bar_idx") or stack.get("idx")
         if bar_idx is not None:
-            try:
-                db.execute(
-                    _sql_text(
-                        "INSERT OR REPLACE INTO v9_bars_stacked_imbalance "
-                        "(ts, bar_id, count, direction, start_price, end_price, session, created_at) "
-                        "VALUES (:ts, :bar_id, :count, :direction, :start_price, :end_price, :session, CURRENT_TIMESTAMP)"
-                    ),
-                    {
-                        "ts": ts_iso,
-                        "bar_id": f"simb_{bar_idx}",
-                        "count": int(stack.get("count") or stack.get("stack_size") or 0),
-                        "direction": stack.get("direction") or stack.get("side"),
-                        "start_price": stack.get("start_price") or stack.get("low"),
-                        "end_price": stack.get("end_price") or stack.get("high"),
-                        "session": None,
-                    },
-                )
+            result = safe_execute(
+                "INSERT OR REPLACE INTO v9_bars_stacked_imbalance "
+                "(ts, bar_id, count, direction, start_price, end_price, session, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                (
+                    ts_iso, f"simb_{bar_idx}",
+                    int(stack.get("count") or stack.get("stack_size") or 0),
+                    stack.get("direction") or stack.get("side"),
+                    stack.get("start_price") or stack.get("low"),
+                    stack.get("end_price") or stack.get("high"),
+                    None,
+                ),
+            )
+            if result is not None:
                 inserted += 1
-            except Exception as e:
-                logger.warning("[SImb] dedicated INSERT failed bar_idx=%s: %s", bar_idx, e)
-    db.commit()
+            else:
+                logger.warning("[SImb] dedicated INSERT failed bar_idx=%s", bar_idx)
     _record_push("stacked_imbalances")
     _route_bar("stacked_imbalance", payload.dict() if hasattr(payload, "dict") else {"ts": ""})
     return {
@@ -669,35 +603,33 @@ def post_cumulative_delta(
     db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    """Enrich 5-min bars with running delta (existing UPDATE path) **and**
-    persist each point to dedicated ``v9_bars_cumulative_delta``.
+    """Enrich 5-min bars with running delta + persist to dedicated table.
 
-    Sierra emits ``points[]`` with shape ``{i, t, d, cum, p}`` (i=index,
-    t=unix ts, d=per-bar delta, cum=running total, p=close price). Keep
-    ``bars[]`` as fallback for backward compat.
+    DB Root Fix (2026-06-03): enrichment UPDATE and dedicated INSERT through
+    safe_execute.  ORM db.query kept for READ-ONLY positional match.
     """
-    from datetime import timedelta
-    from sqlalchemy import text as _sql_text
-
     points = payload.points or payload.bars
     updated = 0
     skipped = 0
     inserted = 0
 
     for pt in points:
-        # CVD points carry their own ts in `t` (unix seconds). Use that
-        # for ts-windowed enrichment of the matching 5-min bar.
         raw_ts = pt.get("t") or pt.get("ts")
         ts = _ts_from_unix(raw_ts)
         window = timedelta(minutes=5)
+        # READ-ONLY: find matching 5-min bar for enrichment
         row = (
             db.query(V9Bar5Min)
             .filter(V9Bar5Min.ts >= ts - window, V9Bar5Min.ts <= ts + window)
             .order_by(V9Bar5Min.ts)
             .first()
         )
+        cum_value = pt.get("cum") or pt.get("cumulative_delta") or pt.get("delta") or pt.get("d")
         if row:
-            row.cumulative_delta = pt.get("cum") or pt.get("cumulative_delta") or pt.get("delta") or pt.get("d")
+            safe_execute(
+                "UPDATE v9_bars_5min SET cumulative_delta=? WHERE id=?",
+                (cum_value, row.id),
+            )
             updated += 1
         else:
             skipped += 1
@@ -705,31 +637,21 @@ def post_cumulative_delta(
         idx = pt.get("i") if "i" in pt else pt.get("bar_idx")
         delta = pt.get("d") or pt.get("delta")
         cumulative = pt.get("cum") or pt.get("cumulative_delta")
-        price = pt.get("p") or pt.get("price")
         if idx is not None:
-            try:
-                db.execute(
-                    _sql_text(
-                        "INSERT OR REPLACE INTO v9_bars_cumulative_delta "
-                        "(ts, bar_id, delta, cumulative, direction, session, created_at) "
-                        "VALUES (:ts, :bar_id, :delta, :cumulative, :direction, :session, CURRENT_TIMESTAMP)"
-                    ),
-                    {
-                        "ts": ts.isoformat(),
-                        "bar_id": f"cvd_{idx}",
-                        "delta": delta,
-                        "cumulative": cumulative,
-                        "direction": "UP" if (delta or 0) > 0 else ("DOWN" if (delta or 0) < 0 else "FLAT"),
-                        "session": None,
-                    },
-                )
+            result = safe_execute(
+                "INSERT OR REPLACE INTO v9_bars_cumulative_delta "
+                "(ts, bar_id, delta, cumulative, direction, session, created_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+                (
+                    ts.isoformat(), f"cvd_{idx}", delta, cumulative,
+                    "UP" if (delta or 0) > 0 else ("DOWN" if (delta or 0) < 0 else "FLAT"),
+                    None,
+                ),
+            )
+            if result is not None:
                 inserted += 1
-            except Exception as e:
-                logger.warning("[CVD] dedicated INSERT failed idx=%s: %s", idx, e)
-        # `price` is recorded inside cumulative tracker only via session log;
-        # the dedicated schema doesn't carry it. Skip without erroring.
-        _ = price
-    db.commit()
+            else:
+                logger.warning("[CVD] dedicated INSERT failed idx=%s", idx)
     if points:
         _dispatch("cumulative_delta", points[-1])
     _record_push("cumulative_delta")
@@ -748,18 +670,17 @@ def post_cumulative_delta(
 @router.post("/woodies")
 def post_woodies(
     payload: WoodiesPayload,
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    # 30min_woodies: high-frequency ORM writer → corruption source (same as tick_reversal)
+    """DB Root Fix (2026-06-03): all writes through safe_executemany."""
     from backend.v9.shared.atr import flag
     if flag("WOODIES_30MIN_DISABLED"):
         if payload.all_bars:
             _dispatch("woodies_30min", payload.all_bars[-1] if isinstance(payload.all_bars[-1], dict) else {})
             _record_push("woodies_30min")
         return {"ok": True, "inserted": 0, "disabled": True}
-    bars = payload.all_bars  # Fix 2: accept both "history" and "bars" keys
-    created = 0
+    bars = payload.all_bars
+    rows_to_write = []
     last_flat = None
     for bar in bars:
         ohlc = bar.get("ohlc", {})
@@ -768,23 +689,16 @@ def post_woodies(
         l = ohlc.get("l", bar.get("l", 0))
         c = ohlc.get("c", bar.get("c", 0))
         vol = ohlc.get("vol", bar.get("vol", 0))
-        row = V9Bar30MinWoodies(
-            ts=_ts_from_unix(bar.get("ts")),
-            open=o, high=h, low=l, close=c, volume=vol,
-            cci_14=bar.get("cci_14"),
-            cci_6_tcci=bar.get("cci_6_tcci"),
-            lsma_value=bar.get("lsma_value"),
-            swi_value=bar.get("swi_value"),
-            czi_value=bar.get("czi_value"),
-            ema_34=bar.get("ema_34"),
-            trend_state=bar.get("trend_state"),
-            predictor_next_cci=bar.get("predictor_next_cci"),
-            zlr_detected=bar.get("zlr_detected", False),
-            zlr_direction=bar.get("zlr_direction"),
-        )
-        db.add(row)
-        created += 1
-        # Fix 4: build flat bar dict for BarRouter (process_bar expects flat keys)
+        rows_to_write.append((
+            _ts_from_unix(bar.get("ts")).isoformat(), "MES",
+            o, h, l, c, vol,
+            bar.get("cci_14"), bar.get("cci_6_tcci"),
+            bar.get("lsma_value"), bar.get("swi_value"),
+            bar.get("czi_value"), bar.get("ema_34"),
+            bar.get("trend_state"), bar.get("predictor_next_cci"),
+            1 if bar.get("zlr_detected") else 0,
+            bar.get("zlr_direction"),
+        ))
         last_flat = {
             "ts": bar.get("ts"), "open": o, "high": h, "low": l, "close": c,
             "volume": vol, "cci_14": bar.get("cci_14"),
@@ -798,13 +712,20 @@ def post_woodies(
             "hfe_direction": bar.get("hfe_direction", "NONE"),
             "hfe_extreme_bars_ago": bar.get("hfe_extreme_bars_ago", 0),
         }
-    db.commit()
+    created = 0
+    if rows_to_write:
+        created = safe_executemany(
+            "INSERT INTO v9_bars_30min_woodies "
+            "(ts, symbol, open, high, low, close, volume, "
+            "cci_14, cci_6_tcci, lsma_value, swi_value, czi_value, ema_34, "
+            "trend_state, predictor_next_cci, zlr_detected, zlr_direction) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            rows_to_write,
+        )
     publish_event(CHANNEL_BARS_WOODIES, {"count": created})
-    # Route last bar to EventDispatcher
     if bars:
         _dispatch("woodies_30min", bars[-1])
     _record_push("woodies_30min")
-    # Fix 3: topic "woodies_30min" (was "woodies") + Fix 4: flat bar dict
     if last_flat:
         _route_bar("woodies_30min", last_flat)
     return {"ok": True, "inserted": created, "type": "woodies"}
@@ -861,36 +782,31 @@ def post_woodies_5min(
         _prev_studies = _cur_studies
 
         # Persist to v9_bars_5min_woodies (dedicated table per D-074)
-        import sqlite3 as _sql
-        try:
-            conn = _sql.connect("/Users/michael/Downloads/mems26_web_git/data/mems26_local.db")
-            conn.execute(
-                """INSERT OR REPLACE INTO v9_bars_5min_woodies
-                (ts, symbol, open, high, low, close, volume, cci_14, cci_6_tcci,
-                 lsma_value, swi_value, czi_value, ema_34, trend_state,
-                 predictor_next_cci, zlr_detected, zlr_direction,
-                 proj_hi, proj_lo, hfe_detected, hfe_direction, hfe_extreme_bars_ago,
-                 lsma_above_price)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (
-                    bar.get("ts", ""), "MES", o, h, l, c, vol,
-                    bar.get("cci_14"), bar.get("cci_6_tcci"),
-                    bar.get("lsma_value"), bar.get("swi_value"),
-                    bar.get("czi_value"), bar.get("ema_34"),
-                    bar.get("trend_state"), bar.get("predictor_next_cci"),
-                    bar.get("zlr_detected", False), bar.get("zlr_direction"),
-                    bar.get("proj_hi"), bar.get("proj_lo"),
-                    1 if bar.get("hfe_detected") else 0,
-                    bar.get("hfe_direction") or "NONE",
-                    int(bar.get("hfe_extreme_bars_ago") or 0),
-                    1 if bar.get("lsma_above_price") else 0,
-                ),
-            )
-            conn.commit()
-            conn.close()
+        # DB Root Fix (2026-06-03): safe_execute replaces raw sqlite3.connect
+        result = safe_execute(
+            "INSERT OR REPLACE INTO v9_bars_5min_woodies "
+            "(ts, symbol, open, high, low, close, volume, cci_14, cci_6_tcci, "
+            "lsma_value, swi_value, czi_value, ema_34, trend_state, "
+            "predictor_next_cci, zlr_detected, zlr_direction, "
+            "proj_hi, proj_lo, hfe_detected, hfe_direction, hfe_extreme_bars_ago, "
+            "lsma_above_price) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                bar.get("ts", ""), "MES", o, h, l, c, vol,
+                bar.get("cci_14"), bar.get("cci_6_tcci"),
+                bar.get("lsma_value"), bar.get("swi_value"),
+                bar.get("czi_value"), bar.get("ema_34"),
+                bar.get("trend_state"), bar.get("predictor_next_cci"),
+                bar.get("zlr_detected", False), bar.get("zlr_direction"),
+                bar.get("proj_hi"), bar.get("proj_lo"),
+                1 if bar.get("hfe_detected") else 0,
+                bar.get("hfe_direction") or "NONE",
+                int(bar.get("hfe_extreme_bars_ago") or 0),
+                1 if bar.get("lsma_above_price") else 0,
+            ),
+        )
+        if result is not None:
             created += 1
-        except Exception:
-            pass
         last_flat = {
             "ts": bar.get("ts"), "open": o, "high": h, "low": l, "close": c,
             "volume": vol, "cci_14": bar.get("cci_14"),
@@ -1002,23 +918,27 @@ def post_cvd_continuous(
 @router.post("/tpo")
 def post_tpo(
     payload: TpoPayload,
-    db: Session = Depends(get_db),
     _token: str = Depends(verify_bridge_token),
 ):
-    created = 0
+    """DB Root Fix (2026-06-03): all writes through safe_executemany."""
+    rows_to_write = []
     for bar in payload.bars:
-        row = V9TpoBar(
-            ts=_ts_from_unix(bar.get("ts")),
-            letter=bar.get("letter", "A"),
-            price=bar.get("price", 0),
-            level=bar.get("level", 0),
-            period_id=bar.get("period_id", 0),
+        rows_to_write.append((
+            _ts_from_unix(bar.get("ts")).isoformat(),
+            "MES",
+            bar.get("letter", "A"),
+            bar.get("price", 0),
+            bar.get("level", 0),
+            bar.get("period_id", 0),
+        ))
+    created = 0
+    if rows_to_write:
+        created = safe_executemany(
+            "INSERT INTO v9_tpo_bars (ts, symbol, letter, price, level, period_id) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            rows_to_write,
         )
-        db.add(row)
-        created += 1
-    db.commit()
     publish_event(CHANNEL_LEVELS, {"count": created, "type": "tpo"})
-    # Route last bar to EventDispatcher (TPO shares volume_profile stream)
     if payload.bars:
         _dispatch("volume_profile", payload.bars[-1])
     _record_push("tpo")

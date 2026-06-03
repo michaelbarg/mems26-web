@@ -32,12 +32,14 @@ def _open_conn(db_path: str) -> sqlite3.Connection:
 def safe_execute(
     sql: str,
     params: Union[Tuple, Sequence] = (),
-    db_path: str = DB_PATH,
+    db_path: str = None,
 ) -> Optional[int]:
     """Execute a single INSERT/UPDATE/DELETE with serialized write lock.
 
     Returns lastrowid on success, None on failure (logged, not raised).
     """
+    if db_path is None:
+        db_path = DB_PATH
     with _write_lock:
         try:
             conn = _open_conn(db_path)
@@ -58,12 +60,14 @@ def safe_execute(
 def safe_executemany(
     sql: str,
     params_list: List[Union[Tuple, Sequence]],
-    db_path: str = DB_PATH,
+    db_path: str = None,
 ) -> int:
     """Execute a batch INSERT with serialized write lock.
 
     Returns number of rows affected. Logs and returns 0 on failure.
     """
+    if db_path is None:
+        db_path = DB_PATH
     with _write_lock:
         try:
             conn = _open_conn(db_path)
@@ -81,8 +85,10 @@ def safe_executemany(
             return 0
 
 
-def safe_checkpoint(db_path: str = DB_PATH) -> None:
+def safe_checkpoint(db_path: str = None) -> None:
     """WAL checkpoint + truncate for graceful shutdown."""
+    if db_path is None:
+        db_path = DB_PATH
     with _write_lock:
         try:
             conn = _open_conn(db_path)
