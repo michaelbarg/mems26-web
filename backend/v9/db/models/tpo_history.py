@@ -1,6 +1,6 @@
 """V9 model: TPO profile history (System 5)."""
 
-from sqlalchemy import Column, String, Float, DateTime
+from sqlalchemy import Column, String, Float, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from backend.v9.db.session import Base
 from backend.v9.db.models._types import BigIntPK
@@ -8,6 +8,9 @@ from backend.v9.db.models._types import BigIntPK
 
 class V9TpoHistory(Base):
     __tablename__ = "v9_tpo_history"
+    __table_args__ = (
+        UniqueConstraint("ts", name="ux_v9_tpo_history_ts"),
+    )
 
     id = Column(BigIntPK, primary_key=True, autoincrement=True)
     ts = Column(DateTime(timezone=True), nullable=False, index=True)

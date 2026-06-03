@@ -1,6 +1,6 @@
 """V9 model: Woodies CCI bars (D-074: 5-min primary, 30-min legacy)."""
 
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime
+from sqlalchemy import Column, String, Float, Integer, DateTime, UniqueConstraint
 from sqlalchemy.sql import func
 from backend.v9.db.session import Base
 from backend.v9.db.models._types import BigIntPK
@@ -9,6 +9,9 @@ from backend.v9.db.models._types import BigIntPK
 class V9Bar5MinWoodies(Base):
     """D-074: primary S4 table — 5-min Woodies bars."""
     __tablename__ = "v9_bars_5min_woodies"
+    __table_args__ = (
+        UniqueConstraint("ts", "symbol", name="uq_woodies5_ts_symbol"),
+    )
 
     id = Column(BigIntPK, primary_key=True, autoincrement=True)
     ts = Column(DateTime(timezone=True), nullable=False, index=True)
@@ -26,8 +29,14 @@ class V9Bar5MinWoodies(Base):
     ema_34 = Column(Float)
     trend_state = Column(String(10))
     predictor_next_cci = Column(Float)
-    zlr_detected = Column(Boolean, default=False)
+    zlr_detected = Column(Integer, default=0)
     zlr_direction = Column(String(10))
+    proj_hi = Column(Float)
+    proj_lo = Column(Float)
+    hfe_detected = Column(Integer, default=0)
+    hfe_direction = Column(String(10), default="NONE")
+    hfe_extreme_bars_ago = Column(Integer, default=0)
+    lsma_above_price = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -51,6 +60,6 @@ class V9Bar30MinWoodies(Base):
     ema_34 = Column(Float)
     trend_state = Column(String(10))
     predictor_next_cci = Column(Float)
-    zlr_detected = Column(Boolean, default=False)
+    zlr_detected = Column(Integer, default=0)
     zlr_direction = Column(String(10))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
