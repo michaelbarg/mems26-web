@@ -26,8 +26,15 @@ class HistoricalReplay:
     def _get_recent_rows(self, table: str, hours: int = 12) -> List[Dict[str, Any]]:
         """Read last N hours of rows from a bar table."""
         try:
-            # Discover columns to find the timestamp column
-            col_rows = read_all(f"PRAGMA table_info({table})")
+            # Discover columns — works on both SQLite and Postgres
+            col_rows = read_all(
+                "SELECT column_name AS name FROM information_schema.columns "
+                "WHERE table_name = :table ORDER BY ordinal_position",
+                {"table": table},
+            )
+            if not col_rows:
+                # SQLite fallback (PRAGMA not in information_schema)
+                col_rows = read_all(f"PRAGMA table_info({table})")
             cols = [c["name"] for c in col_rows]
 
             ts_col = None

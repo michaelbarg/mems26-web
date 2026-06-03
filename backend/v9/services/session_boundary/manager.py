@@ -169,7 +169,7 @@ class SessionBoundaryManager:
         today_iso = today.isoformat()
         safe_execute("""
             INSERT INTO v9_day_type_archive
-              SELECT *, datetime('now') AS archived_at
+              SELECT *, CURRENT_TIMESTAMP AS archived_at
               FROM v9_day_type_history
               WHERE date < ? AND COALESCE(status, '') != 'ROLLED_OVER'
         """, (today_iso,), db_path=self.db_path)
@@ -187,13 +187,13 @@ class SessionBoundaryManager:
               SELECT session_id, session_type, trading_date, opened_ts, closed_ts,
                      poc_price, vah_price, val_price, range_high, range_low,
                      total_volume, profile_shape, opening_type,
-                     ib_high, ib_low, ib_locked, letter_count, datetime('now')
+                     ib_high, ib_low, ib_locked, letter_count, CURRENT_TIMESTAMP
               FROM v9_tpo_sessions
               WHERE trading_date < ?
         """, (today_iso,), db_path=self.db_path)
         safe_execute("""
             INSERT INTO v9_woodies_signals_archive
-              SELECT *, datetime('now') AS archived_at
+              SELECT *, CURRENT_TIMESTAMP AS archived_at
               FROM v9_woodies_signals
               WHERE date(ts) < ?
         """, (today_iso,), db_path=self.db_path)
