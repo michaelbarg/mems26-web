@@ -133,9 +133,20 @@ CREATE TABLE IF NOT EXISTS v9_bars_5min_woodies (
 """)
 _conn.close()
 
-# Patch before imports
+# Patch engines BEFORE importing bars module
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+
+_test_engine = create_engine(f"sqlite:///{_tmp_db_path}", connect_args={"check_same_thread": False})
+_TestSession = sessionmaker(bind=_test_engine)
+
+# Patch all engine references so safe_writer + db.read use the test DB
 import backend.v9.db.safe_writer as _sw
+import backend.v9.db.read as _read_mod
+import backend.v9.db.session as _session_mod
 _sw.DB_PATH = _tmp_db_path
+_read_mod.engine = _test_engine
+_session_mod.engine = _test_engine
 
 # Now import and wire up the router
 from backend.v9.api.v9.bars import router
@@ -147,14 +158,7 @@ app.include_router(router)
 from backend.v9.api.v9.auth import verify_bridge_token
 app.dependency_overrides[verify_bridge_token] = lambda: "test"
 
-# For endpoints that still use get_db (read-only), provide a real session
 from backend.v9.db.session import get_db
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-_test_engine = create_engine(f"sqlite:///{_tmp_db_path}", connect_args={"check_same_thread": False})
-_TestSession = sessionmaker(bind=_test_engine)
-
 
 def _override_get_db():
     db = _TestSession()

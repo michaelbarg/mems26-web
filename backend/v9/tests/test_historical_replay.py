@@ -1,7 +1,16 @@
-"""Tests for HistoricalReplay."""
+"""Tests for HistoricalReplay.
+
+Postgres migration (2026-06-03): fixture patches db.read.engine so
+HistoricalReplay._get_recent_rows reads from the test DB (not the app DB).
+"""
 import asyncio
 import sqlite3
+from unittest import mock
+
+from sqlalchemy import create_engine
+
 from backend.v9.services.historical_replay import HistoricalReplay
+import backend.v9.db.read as _read_mod
 
 
 def _run(coro):
@@ -15,13 +24,20 @@ class FakeBarRouter:
         self.published.append({"type": bar_type, "mode": mode, "data": bar_data})
 
 
+def _patch_engine(db_path):
+    """Create a test engine for the given SQLite path and return a mock.patch context."""
+    test_engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    return mock.patch.object(_read_mod, "engine", test_engine)
+
+
 class TestHistoricalReplay:
     def test_missing_table_no_crash(self, tmp_path):
         db = str(tmp_path / "test.db")
-        sqlite3.connect(db).close()  # create empty DB
+        sqlite3.connect(db).close()
         router = FakeBarRouter()
         replay = HistoricalReplay(db_path=db, bar_router=router)
-        _run(replay.warm_all_systems(hours=12))
+        with _patch_engine(db):
+            _run(replay.warm_all_systems(hours=12))
         assert router.published == []
 
     def test_replay_publishes_warmup_mode(self, tmp_path):
@@ -37,7 +53,8 @@ class TestHistoricalReplay:
 
         router = FakeBarRouter()
         replay = HistoricalReplay(db_path=db, bar_router=router)
-        _run(replay.replay_table("v9_bars_tick_reversal", "tick_reversal_15", hours=24*365))
+        with _patch_engine(db):
+            _run(replay.replay_table("v9_bars_tick_reversal", "tick_reversal_15", hours=24*365))
 
         assert len(router.published) >= 1
         assert router.published[0]["mode"] == "WARMUP"
@@ -64,7 +81,8 @@ class TestHistoricalReplay:
 
         router = FakeBarRouter()
         replay = HistoricalReplay(db_path=db, bar_router=router)
-        _run(replay.replay_table("v9_bars_footprint", "footprint", hours=24*365))
+        with _patch_engine(db):
+            _run(replay.replay_table("v9_bars_footprint", "footprint", hours=24*365))
 
         assert len(router.published) == 5
         assert replay.get_stats()["bars_replayed"] == 5
