@@ -226,3 +226,54 @@ def load_stop_params() -> Optional[Dict[str, Any]]:
         return None
 
     return data
+
+
+# ── S2 Firing Variant ────────────────────────────────────────────────
+
+_VALID_S2_VARIANTS = {"A_VSA", "B_RVOL", "C_STRICT", "UNION", "INTERSECTION"}
+_S2_DEFAULT = "A_VSA"
+_s2_firing_cache: Optional[str] = None
+_s2_firing_loaded = False
+
+
+def load_s2_firing() -> str:
+    """Load S2 firing variant from s2_firing.yaml.
+
+    Returns one of: A_VSA, B_RVOL, C_STRICT, UNION, INTERSECTION.
+    Default A_VSA = identical to current hardcoded behavior.
+    Invalid/missing → fallback A_VSA + warning.
+    """
+    global _s2_firing_cache, _s2_firing_loaded
+    if _s2_firing_loaded:
+        return _s2_firing_cache  # type: ignore[return-value]
+
+    _s2_firing_loaded = True
+    _s2_firing_cache = _S2_DEFAULT
+
+    data = _load_yaml("s2_firing.yaml")
+    if data is None:
+        return _s2_firing_cache
+
+    variant = data.get("variant")
+    if variant is None:
+        logger.warning("[ConfigLoader] s2_firing: missing 'variant' key — using %s", _S2_DEFAULT)
+        return _s2_firing_cache
+
+    variant_str = str(variant).upper().strip()
+    if variant_str not in _VALID_S2_VARIANTS:
+        logger.warning(
+            "[ConfigLoader] s2_firing: invalid variant '%s' (valid: %s) — using %s",
+            variant, _VALID_S2_VARIANTS, _S2_DEFAULT,
+        )
+        return _s2_firing_cache
+
+    _s2_firing_cache = variant_str
+    logger.info("[ConfigLoader] s2_firing variant: %s", variant_str)
+    return _s2_firing_cache
+
+
+def reset_s2_firing_cache() -> None:
+    """Reset s2_firing cache — for testing only."""
+    global _s2_firing_cache, _s2_firing_loaded
+    _s2_firing_cache = None
+    _s2_firing_loaded = False

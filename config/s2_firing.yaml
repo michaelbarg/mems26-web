@@ -1,0 +1,6 @@
+# D-RVX — S2 Reactive volume-gate variant selector
+# Authority: Michael Barg (D-RVX decision)
+# Default A_VSA = identical to current behavior (commit 5343755).
+# Changing variant = trading-logic change → strategic-stop + Michael approval.
+
+variant: A_VSA   # A_VSA | B_RVOL | C_STRICT | UNION | INTERSECTION

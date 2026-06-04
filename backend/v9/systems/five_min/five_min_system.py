@@ -511,7 +511,14 @@ class FiveMinSystem(BaseV9TradingSystem):
         _strict_pass = _vsa_pass and (_b2_range < 0.7 * _atr)
 
         if S2_VSA_VOLUME:
-            b2_drop = _vsa_pass  # Primary gate: Variant A
+            # D-RVX: variant selector from config/s2_firing.yaml (default A_VSA)
+            from backend.v9.config_loader import load_s2_firing as _load_v
+            _v = _load_v()
+            if   _v == "B_RVOL":        b2_drop = _rvol_pass
+            elif _v == "C_STRICT":      b2_drop = _strict_pass
+            elif _v == "UNION":         b2_drop = _vsa_pass or _rvol_pass or _strict_pass
+            elif _v == "INTERSECTION":  b2_drop = _vsa_pass and _rvol_pass and _strict_pass
+            else:                       b2_drop = _vsa_pass  # A_VSA — identical to pre-change
         else:
             b2_drop = b2_vol <= b1_vol * DROP_THRESHOLD_PCT if b1_vol > 0 else False
 
