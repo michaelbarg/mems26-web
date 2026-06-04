@@ -47,11 +47,17 @@ class BarIngestionService:
         self._running = False
 
     def ingest_bar(self, bar_data: dict) -> bool:
-        """Persist a single bar to DB via safe_writer INSERT OR REPLACE.
+        """No-op: bar persistence is handled exclusively by bars.py POST endpoint.
 
-        DB Root Fix (2026-06-03): replaces ORM db.add/db.commit with
-        safe_execute to eliminate concurrent write race.
+        This method previously duplicated bar writes with wrong TZ offsets
+        (no bridge Chicago fix applied → bars stored 3h early). Disabled
+        2026-06-04 to eliminate the duplicate-bar root cause.
+
+        The bars.py endpoint applies RTH gate + volume guard + Chicago TZ fix.
+        BarRouter still processes bars for system dispatch (FiveMinSystem etc.)
+        but does NOT write to DB through this path.
         """
+        return True  # no-op — bars.py handles persistence
         from backend.v9.db.safe_writer import safe_execute
 
         ok, reason = bar_is_valid(
@@ -81,6 +87,20 @@ class BarIngestionService:
                 )
                 return False
 
+        # Volume guard: reject cumulative session volumes (>100K for 5min MES)
+        vol = bar_data.get("volume", 0)
+        if isinstance(vol, (int, float)) and vol > 100_000:
+            logger.debug("[BarIngestion] Rejected cumulative vol=%s at ts=%s", vol, ts)
+            return False
+
+        # RTH guard: only write bars within 09:30–17:00 ET
+        if isinstance(ts, datetime):
+            from zoneinfo import ZoneInfo
+            _ts_et = (ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)).astimezone(ZoneInfo("America/New_York"))
+            _et_min = _ts_et.hour * 60 + _ts_et.minute
+            if not (570 <= _et_min < 1020):  # 09:30–17:00 ET
+                return False
+
         ts_iso = ts.isoformat() if isinstance(ts, datetime) else str(ts)
         result = safe_execute(
             "INSERT OR REPLACE INTO v9_bars_5min "
@@ -90,7 +110,7 @@ class BarIngestionService:
                 ts_iso, symbol,
                 bar_data["open"], bar_data["high"],
                 bar_data["low"], bar_data["close"],
-                bar_data.get("volume", 0),
+                vol,
                 bar_data.get("delta"),
             ),
         )
