@@ -1,6 +1,169 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+> 🧭 **המשך-צ'אט מתחיל כאן:** `docs/handoff/HANDOFF_NEXT_CHAT_POST_PG_MIGRATION_2026-06-04.md`. מצב: Postgres הוגר; ציר 4+6b תוקנו (`d635b1c`/`20f9df7`, אומת). split-brain נסגר ואומת (`69744bb`) → **כל מחלקת ה-DB סגורה, DB-side GO**. נותרו תנאים שאינם-DB לפתיחת SHADOW: שירותים+feed ב-RTH, flags ON, S2(D-RVX)/S1(bar.atr) firing.
+
+## 📋 2026-06-04 — אבחון S1/S2 firing (rerun על PG, אומת Cowork)
+
+- **✅ אבחון S1/S2 מחדש על PG (CC) — אומת בלתי-תלוי (Cowork, code).** (ריצה ראשונה רצה על SQLite + טעתה לגבי S2 → נדחתה; ריצה זו על PG, ספירות טריות.)
+  **S1:** אין עמודת `atr` ב-`v9_bars_5min` (אומת) → `_check_reeval:784` `atr=bar.atr`=None → re-eval trigger#1+#3 **מתים**; אבל סיווג **חי** דרך `_last_atr_daily` (rolling ranges, `state_machine.py:257,320-324`).
+  **תיקון מינימלי שאומת ע"י Cowork:** `atr = bar.atr or self._last_atr_daily` ב-:784 → מחייה triggers בלי schema/Sierra/bridge. signal-leak אומת: `wrappers.py:91` מחזיר `Signal(system_id=1)` ב-LOCKED_LOW_CONF למרות S1=OBSERVER → **החלטת D-090**. lock_state ב-PG: LOCKED_LOW_CONF=22/PENDING=1, LOCKED(high-conf)=0 (conf max 0.68<0.85).
+  **S2:** הדגל `S2_VSA_VOLUME` **כבוי** → legacy gate (90% drop) פעיל = **0.5% pass** → S2 de-facto מושתק (0 fires/setups/signals ב-PG). 3 וריאציות קיימות ונמדדו על 417 חלונות PG: **A_VSA 22.1% · B_RVOL 20.9% · C_STRICT 11.0% · legacy 0.5%** → **החלטת D-RVX** (להדליק + איזו וריאציה).
+  verification (Cowork): `_last_atr_daily`+`_check_reeval:784` (code) · `wrappers.py:91` Signal · המקור PG (information_schema, ספירות טריות). pass-rates = CC raw על ברי-PG (לא ניתן לחישוב-מחדש מ-sandbox).
+  **החלטות פתוחות ל-Michael:** D-090 (S1 observer/firing) · one-liner re-eval · D-RVX (S2 variant). אלה תנאי-firing ל-SHADOW משמעותי (לא-DB).
+- **✅ 3 תיקוני-firing בוצעו (CC `9cac12f`/`d785b2c`/`5343755`) ואומתו בלתי-תלוי (Cowork, code+git):**
+  S1 (`9cac12f`): fallback `_last_atr_daily` בכל 4 אתרי `bar.atr` (427/590/619/786 — **חיווט מלא**) · D-090 (`d785b2c`): `return None` ב-`wrappers.py` (S1 observer נאכף, classification ממשיך, Signal נחסם) ·
+  S2 (`5343755`): `export S2_VSA_VOLUME=1` (start_all.sh + plist), gate=VSA, תיקון import שבור (היה 0 setups), persist `variant_tag`/`variants_passed` (943-958, + ALTER ב-PG).
+  verification (Cowork): grep 4 אתרי bar.atr עם fallback · `wrappers.py` return None · `start_all.sh:21` export · persist wired. CC: 53/53 + 13/13 + 6/6 tests.
+  **2 הסתייגויות (אומתו, NOT-DONE):** (1) trigger#1 (extreme move) **עדיין חלקי** — `move_30=None` קשיח (`:783`, צריך bar-history window); ה-fallback החייה trigger#3 + סיווגי-ATR בלבד. (2) S2 0 fires ב-PG — **ירי-חי טרם הוכח**; מבחן-אמת = RTH הבא.
+  **3 תנאי-ה-firing שאינם-DB סגורים** (עם ההסתייגויות). נותר ל-P1: bring-up שירותים+feed ב-RTH + אימות ירי-S2 ב-RTH הבא.
+- **✅ חוב-תיעוד נסגר (CC):** `docs/decisions/D-096_S1_OBSERVER_ENFORCED.md` — מתעד את ההחלטה שמומשה ב-`d785b2c` (S1=OBSERVER, `return None` ב-`wrappers.py:88`, classification נשמר, הוראות reversibility). Reference שגויה ל-D-090 תוקנה → D-096 (D-090 תפוס ל-Path A Canonical).
+- **⚠️ OPEN — S1 re-eval trigger#1 (extreme move >3×ATR) חלקי:** `state_machine.py:783` `move_30 = None` hardcoded → trigger#1 לעולם לא יורה גם אחרי תיקון ה-ATR fallback (`9cac12f`). root=`_check_reeval` לא מחזיק bar-history window ולכן לא יכול לחשב move-in-30-min. פתרון מוצע: הוסף `_recent_closes: deque(maxlen=6)` ל-state machine (6 ברי 5-דק' = 30 דק'), חשב `move_30 = abs(bar.close - _recent_closes[0])` ב-`_check_reeval`. **לא לתקן עכשיו** — trigger#2 (failed extension) ו-trigger#3 (range exceeded) **חיים** אחרי `9cac12f`; trigger#1 הוא edge-case (FOMC/NFP-scale moves). **לפני LIVE.**
+
+## 📋 2026-06-04 — 🔴 split-brain: כתיבות עם db_path → SQLite לא PG (Cowork, מבטל SHADOW GO)
+
+- **✅ ציר 4 + 6b תוקנו (CC `d635b1c`/`20f9df7`) ואומת (Cowork, git+code):** axis4 `_is_within_rth_iso` ב-history_loader → `MAX(vol) WHERE is_synthetic=0 = 83,033` (היה 840,016); axis6b woodies ts unix→ISO + `zlr_detected` 0 + **הסרת `db_path`** → woodies נשמר ל-PG.
+- **🔴 ממצא רחב שאומת (Cowork, code-level) — split-brain כתיבה/קריאה:** `safe_writer._get_engine(db_path)` יוצר **SQLite engine לכל `db_path` לא-None**. מחלקות שמאתחלות `self.db_path` לנתיב-SQLite ומעבירות אותו כותבות ל-**SQLite, לא PG**:
+  `trading_gateway.py:426,442` (עסקאות) · `tpo_system.py:449,479,556,564` + `tpo_history_snapshotter:286` · `reversal_handler:91` · `footprint_system:326,340,523` · `session_boundary/manager.py:60,83,175,180,193,199,206` (`v9_day_type_state`/S1).
+  finding=קריאות מ-PG אך כתיבות S1/S3/S4/TPO/gateway ל-SQLite → נתונים נעלמים מ-PG בשקט. ה-soak לא תפס (SQLite קיבל→"0 errors"); audit קרא מ-PG. הטענה ש-session_boundary "works via engine fallback" הופרכה.
+  verification (raw): `_get_engine` `return create_engine(f"sqlite:///{db_path}")`; `grep db_path=self.db_path` → 7 מודולים; ברירות-מחדל = נתיבי-SQLite.
+  fix/solution = `CC_PROMPT_FIX_DBPATH_SPLITBRAIN_2026-06-04.md`: להסיר `db_path` מכל כותבי-הפרודקשן + להקשיח `_get_engine` (PG → התעלם מ-db_path + warning) + lint-guard + אימות פר-מערכת ש-COUNT עולה **ב-PG**.
+  **❌ SHADOW חסום** עד שכל הכתיבות מאומתות ל-PG (לא רק 4+6b).
+- **✅ split-brain נסגר (CC `69744bb`) ואומת בלתי-תלוי (Cowork, code+git) → DB-side GO:**
+  verification (Cowork, raw): `git show --stat 69744bb` = 7 קבצים (19 קריאות safe_execute, הסרת db_path);
+  `grep db_path=self.db_path` בפרודקשן = **0**; `_get_engine` מקשיח — `if _is_postgres(engine): logger.warning(...); return engine`
+  (מתעלם מ-db_path על PG); `bridge_inspector.inspect` קורא דרך `read_one` (PG), ה-db_path שריד לא-בשימוש.
+  CC raw פר-מערכת: TPO 0→1, day_type_state 22→23, reversal 0→1, tpo_history 0→1, **SQLite mtime לא זז**; 488 passed (3 pre-existing woodies).
+  **ממצא Cowork = כל מחלקת ה-DB סגורה ומאומתת: reads+writes על PG, constraints, tests, axis4/6b, split-brain.** נותרו תנאי-מקדים שאינם-DB (ראה למטה).
+  **תנאים שאינם-DB לפתיחת SHADOW משמעותי:** (a) שירותים על PG ב-RTH + feed זורם (frozen-tail watch) · (b) flags ON · (c) S2 יורה (D-RVX variant=Michael) · (d) S1 day-type inputs (bar.atr). S3=MUTE✓ S4=יורה✓.
+
+## 📋 2026-06-04 — ✅ עיצוב-מחדש עמוד Trades לכיול (Cowork, read-only design-research)
+
+- **[2026-06-04] Trades redesign (design-only, לא מומש):** root finding = כל חתכי-הכיול
+  שהטריידר ביקש (pattern/day_type/killzone/confluence) **נגזרים מ-JSON ב-runtime**
+  (`trade_context.py`) או לא קיימים → אי-אפשר GROUP_BY ב-SQL; ובנוסף כל האגרגציה
+  (WR/Exp/equity) מחושבת **צד-לקוח מעל 500 שורות בלבד** (`fetchTrades()` default, ללא mode)
+  → סיכון Cardinality כמו P27.5a. תוצרים: `docs/plans/TRADES_PAGE_REDESIGN_2026-06-03.md`
+  (מסמך+gap-list) · `TRADES_PAGE_REDESIGN_MOCKUP_2026-06-03.html` (mockup סטטי) ·
+  **`TRADES_PAGE_PROTOTYPE_2026-06-03.html` (prototype אינטראקטיבי, tokens אמיתיים מ-globals.css,
+  אגרגציה client-side חיה, drill-down + ציר price/time מדויק — אומת: render ללא שגיאות, BE/Scratch מאוכלסים,
+  השוואת exec-mode הכל מול ירי-אחד 68%→75% win)**. תוספות שביקש Michael שולבו: date-presets (היום-RTH/אתמול/7/30/MTD),
+  Execution-mode (סימולטני מול ירי-אחד = computeAuxStatus קיים), ציר price/time פר-עסקה (עמודות ממשיות),
+  התנהגות-סטופים בתחתית. gap-list ל-backend: G1(root) קיבוע day_type/pattern/killzone כעמודות,
+  G2 `/trades/stats?group_by`, G3 `/trades/equity` (rolling+maxDD שרת-צד), G4 excursion_stats,
+  G5 אכלוס `v9_trade_management_log` (Audit-06-01 F3), G6 TZ למסנן-תאריך. חוב-ידוע:
+  mode=SHADOW ✅כבר ALL, WR%+R ✅נוסף ל-EdgeKpiRow, Scratch⚠️פתוח (ב-TradesSummaryStrip הלא-mounted),
+  מסנן-תאריך לקסיקלי⚠️פתוח. verification (raw, Cowork): `tradeStore.ts:57 mode:'ALL'`;
+  `TradesView` imports ללא EquityCurveStrip/Summary/Table (לא-mounted); `api.ts:165 fetchTrades(limit=500)`;
+  mockup tag-balanced. **read-only — Michael מאשר לפני מימוש.**
+
+## 📋 2026-06-03 (eve) — ✅ הגירת Postgres בוצעה (CC) · ⚠️ אימות-Cowork מצא silent-write באג חוסם-SHADOW
+
+- **שערי-קדם-SHADOW שנפתחו (החלטת Michael, prompts מוכנים):** (1) ירוק 9 טסטים + verify clean —
+  `CC_PROMPT_PG_GREEN_TESTS_2026-06-03.md`. (2) **audit דאשבורד+נתונים, 6 צירים** — `CC_PROMPT_PRE_SHADOW_DASHBOARD_DATA_AUDIT_2026-06-03.md`:
+  wiring כל הפאנלים · עמוד trades מסודר · עמוד build-status · טבלת-נרות (4 צירי UAT) · auth-matrix · חישוב stop+T1–T5.
+  verification-first; כל אי-דיוק בלוגיקת-trading/risk (T1–T5/stop/auth) = strategic-stop ל-Michael, לא תיקון בשקט.
+  SHADOW נפתח רק אחרי שני השערים.
+- **✅ שער-1 (ירוק טסטים) בוצע (CC `f6fabac`) ואומת בלתי-תלוי (Cowork, git):**
+  finding/PASS = הירוק בא מ-fixtures בלבד, **0 שינויי קוד-פרודקשן**. verification (Cowork, raw): `git show --stat f6fabac`
+  → רק 3 קבצי-טסט (`test_bars_safe_writer`/`test_day_type_api_v9`/`test_historical_replay`, 45+/32-); `grep` non-test .py = none.
+  CC: 488 passed, 0 errors. **caveat (לא-חוסם):** נותרו 3 כשלים "pre-existing woodies HFE/B3" — אומת ע"י Cowork שהם **לא רגרסיית-הגירה**:
+  קבצי-הטסט (`test_hfe_pattern`/`test_b3_b7_b8_b13`) נגעו לאחרונה ע"י commits **לפני** ההגירה (`aafb699`/`372cef4`),
+  לא ע"י אף commit הגירה → חוב-טסטים של S4/woodies, למעקב (לא חוסם SHADOW מצד ה-DB). נותר שער-2 (audit 6-צירים).
+
+- **✅ הגירה הושלמה (CC, 6 phases) — אומת בלתי-תלוי ע"י Cowork (code+git):**
+  finding/PASS = corruption class חוסל. PG MVCC, soak 10-דק' = **21,055 דחיפות, 0 שגיאות, 0 deadlocks** (מחליף `integrity backend-כבוי=ok`).
+  verification (Cowork, raw): 5 commits קיימים ב-`git log` (`3fbb71f`/`f97eef6`/`2d22b29`/`04e1eb6`/`28dda30`) · `grep sqlite3.connect backend/v9` = 0 אמיתי
+  (2 hits = הערות) · `bridge/` 0 `.connect` (נותר `import sqlite3` מת) · `__tablename__` 22→40 · `safe_writer` engine-based, lock רק ב-SQLite (`nullcontext` ב-PG) · `db/read.py` קיים.
+  ⚠️ הערה: נתוני-ה-PG החיים (41 טבלאות, ספירות-שורות) **לא** ניתנים לאימות מ-sandbox (PG על ה-Mac) → נשענים על raw של CC; מומלץ 2 שאילתות psql של Michael/CC.
+- **⚠️ 🔴 באג latent שה-soak פספס (Cowork code-level, חוסם-SHADOW):**
+  finding = ה-shim `_sqlite_to_pg_upsert()` (`safe_writer.py:62-114`) **מנחש** conflict-col מרשימת-העמודות. ל-`v9_bars_5min_woodies` (S4!)
+  הוא פולט `ON CONFLICT (ts, symbol)`, אך המודל `V9Bar5MinWoodies` מכיל **רק `__tablename__`** — אין `UniqueConstraint(ts,symbol)` →
+  Postgres זורק "no matching constraint" → `safe_writer` בולע ל-warning → **כל כתיבת בר-woodies 5-דק' נופלת בשקט** (מפר Rule 1).
+  זהה ל-`v9_reversal_enrichment` (`ON CONFLICT (bar_ts)`, אין unique). ה-soak פספס כי ברי woodies_5min נדחו ב-גייט-RTH (0 שורות) → הנתיב לא הורץ.
+  verification (raw): `awk class V9Bar5MinWoodies` → רק `__tablename__`+`ts index`+`symbol non-unique`, אין `__table_args__`; `woodies_system.py:543` כותב `(ts,symbol,...)`.
+  fix/solution = `docs/handoff/CC_PROMPT_PG_UPSERT_CONSTRAINT_FIX_2026-06-03.md`: הוסף UNIQUE תואם לכל יעד-ON-CONFLICT + אודיט כל ~32 האתרים +
+  העדף ON CONFLICT מפורש (פרישת ה-shim) + soak שמריץ woodies_5min RTH-valid (COUNT עולה) + green 9 טסטים. **SHADOW חסום עד שזה עובר.**
+- **✅ תיקון ה-upsert בוצע (CC `2742e4c`) ואומת בלתי-תלוי (Cowork, code-level) → PG GO:**
+  finding/PASS = כל יעדי ה-ON-CONFLICT של ה-shim תואמים כעת constraint אמיתי. verification (Cowork, raw):
+  `awk class V9Bar5MinWoodies` → `__table_args__ = (UniqueConstraint("ts","symbol", name="uq_woodies5_ts_symbol"),)` + `zlr_detected Integer` ✓;
+  `v9_reversal_enrichment.bar_ts = Column(String, primary_key=True)` ✓; אודיט-מלא של כל אתרי ה-shim (5 distinct): 2 REPLACE
+  (woodies→ts,symbol · reversal→bar_ts) **שניהם תואמים**, ו-3 IGNORE (`v9_session_meta`/`v9_footprint_journal`/`v9_tpo_sessions`)
+  → `ON CONFLICT DO NOTHING` bare (תקף תמיד). **0 יעדים לא-תואמים.** CC: direct-write 6 rows + soak 21,807 דחיפות/0 שגיאות
+  (woodies soak count=1 = stale-detection בכוונה, לא constraint). dead `import sqlite3` הוסר מהגשר.
+  **ממצא Cowork = GO ל-SHADOW מצד ה-DB.** residual לא-חוסם (למעקב לפני LIVE): 9 טסטים שדווחו fixture-only (טרם אומת ירוק בלתי-תלוי),
+  fallback ל-SQLite ב-`main.py` hydration (מזהיר malformed, לא-פטאלי), וה-shim עדיין runtime (עובד; להעדיף ON CONFLICT מפורש לפני LIVE).
+  לא ניתן לאמת מ-sandbox: ספירות-שורות PG החיות (PG על ה-Mac) → נשען על raw של CC.
+
+## 📋 2026-06-03 (PM) — 🔴 DB corruption חזר שוב → הכרעת Michael: הגירה ל-Postgres מקומי (root fix)
+
+- **🔴 corruption חזר (P0) — אומת read-only ע"י Cowork, table אותר:**
+  root/finding = `quick_check` (mode=ro) → `Page 76860 btreeInitPage error 11` + `Rowid out of order` (76856–76859);
+  `dbstat` ממפה את העמודים ל-**`v9_bars_footprint`**. הכותב היחיד (לא-טסט) של הטבלה = `POST /api/v9/bars/footprint`
+  (`bars.py:415`) `db.add`+`db.commit()` — **כתיבת-ORM לא-מסורלת העוקפת safe_writer**, על endpoint סינכרוני ב-threadpool.
+  ה-endpoint **לא** מגודר ב-`FOOTPRINT_DISABLED`, וה-flag **לא מיוצא** ב-`start_all.sh`/LaunchAgent/`.env` → footprint
+  **לא באמת מושבת** (סותר את CLAUDE.md). WAL **אחיד** (engine+safe_writer WAL+busy_timeout=5000) → השורש מקביליות-ORM, לא WAL.
+  ⚠️ ה-prompt הקודם (`CC_PROMPT_DB_CORRUPTION_RECURRED`) כיוון לכותבים אחרים (woodies/day_type/five_min) שכותבים טבלאות
+  **אחרות** — היה מפספס את הכותב של הטבלה המושחתת. **הופרך/הוחלף.**
+  verification (raw, Cowork mode=ro): `quick_check` → page 76860 ב-`v9_bars_footprint`; קריאת `v9_bars_5min` → `malformed`
+  (= "אין נרות"); grep: הכותב היחיד הלא-טסט הוא `bars.py:415`; `grep FOOTPRINT_DISABLED scripts/start_all.sh` = ריק.
+  fix/solution = **הכרעת Michael: לא עוד המרת-כותב — הגירה ל-Postgres מקומי כפתרון-שורש.** נתוני-עבר מתכלים → מתחילים נקי.
+  plan: `docs/plans/POSTGRES_MIGRATION_PLAN_2026-06-03.md`; prompt: `docs/handoff/CC_PROMPT_POSTGRES_MIGRATION_2026-06-03.md`
+  (Phase 0→5, שערים פר-שלב). היקף audit: ~22 קריאות raw `mode=ro` + 13 קוראי-safe_writer + `INSERT OR REPLACE`→`ON CONFLICT`
+  + 2 נגיעות-SQLite בגשר; `psycopg2-binary` כבר ב-requirements. גבול: **localhost בלבד, ❌ לא Render/Upstash/prod-PG**.
+  **❌ לא לאסוף SHADOW** עד Phase-5 soak-מקביליות נקי (מחליף את `integrity backend-כבוי=ok` של SQLite).
+
+## 📋 2026-06-03 (RTH) — B4 fix אומת בלתי-תלוי (Cowork) + אבחון feed תקוע
+
+- **✅ B4 (RTH time-gate + is_synthetic) — CC `0ece0fa`, אומת בלתי-תלוי ע"י Cowork (Rule 5, raw output):**
+  finding=RTH chart + continuous chart שניהם כתבו ל-`v9_bars_5min` ב-INSERT OR REPLACE; אחרי 16:00 ET ה-RTH chart ייצא נפח-סשן מצטבר (עד 1M) ודרס נתוני per-bar → זיהם rolling_avg/VSA.
+  fix=time-gate `_is_within_rth` (09:30–16:00 `America/New_York`, DST-safe ZoneInfo) על `/5min` **וגם** `/cumulative_delta`, עם `continue` לפני ה-INSERT (לא רק טסט — מחווט בנתיב ה-ingestion החי, `bars.py:315-317,646-647`); `/5min_continuous`+`/cvd_continuous` מושבתים; FiveMin hydration מסנן `is_synthetic==0` (`five_min_system.py:202`).
+  verification (Cowork, DB read-only mode=ro): `MAX(volume) WHERE is_synthetic=0 = 71832` (תאם טענת CC) · `is_synthetic=1 count = 19`, `NULL=0` · **litmus: 0 שורות is_synthetic=0 עם volume≥500000** (אין דליפה) · טווח-נפח synthetic 126045–1,000,000 (הפרדה נקייה מ-71832 הלגיטימי, אין חפיפה) · גייט DST-safe (`ZoneInfo("America/New_York")` + astimezone) · קוד מאומת `bars.py:36-40` + call-sites · commit קיים ונוגע ב-4 קבצים נכונים. **PASS.**
+  הערה ל-Michael: הגייט הופך את `v9_bars_5min` ל-RTH-only — ברי Globex לילה לא ייקלטו יותר (החלטה נעולה §3 handoff). ברי-לילה קיימים = שאריות pre-gate.
+- **🔴 feed תקוע (#10) — אבחון Cowork (DB-side; Sierra/bridge/backend = Mac-side, מחוץ ל-sandbox):**
+  finding=שתי שכבות. (1) **backend מושבת כרגע** (דוח CC: "Backend restart | Michael — currently stopped") → שום נתון לא יזרום עד restart. (2) עוד **לפני** שהושבת, הברים נעצרו ב-07:15 UTC/03:15 ET בעוד `v9_woodies_signals` (08:16) ו-`v9_day_type_state` (08:08) המשיכו → ה-backend היה חי עד ~08:16 אך **לא קיבל ברים חדשים אחרי 07:15** → השבר **upstream** ל-ingestion (Sierra export או bridge push), לא ב-backend. הגייט החדש (0ece0fa, נוצר 13:45 UTC) **אינו** הסיבה — לא היה קיים ב-07:15.
+  verification (raw): `MAX(ts) v9_bars_5min = 2026-06-03T07:15:00Z` · `cumulative_delta=06:55` · `woodies_signals=08:16:53` · `day_type_state=08:08`. כעת RTH פתוח (≈09:5x ET) → אחרי restart הברים גם יעברו את גייט ה-RTH.
+  **חוסם-SHADOW. צריך אישור Mac-side (Michael/CC):** (a) restart backend · (b) Sierra רץ+מחובר לפיד (export JSONs ב-`~/SierraChart_Data/v9_export/` מתקדמים?) · (c) bridge רץ+דוחף ל-localhost:8000 (`/tmp/bridge.err.log` — אין "API push FAILED"?) · (d) אחרי restart, `v9_bars_5min` MAX(ts) מתקדם תוך דקות ועובר גייט RTH.
+- **🎯 שורש #10 אותר (CC, Mac-side, ~10:15 ET) — frozen-tail ב-Sierra study:** prompt `CC_PROMPT_FEED_BRINGUP_VERIFY_2026-06-03.md`. ראיה: `live_price.json` **חי** (7593.50 @10:11 ET) → פיד-הנתונים עובד · `5min.json` mtime מתקדם **כל 3 ש'** אבל **מערך הברים תקוע ב-05:10 ET** → ה-DLL כותב את הקובץ אך לא מקדם את הברים · bridge רץ+localhost+בריא · backend עלה health=ok · DB MAX(ts)=07:15Z לא מתקדם כי אין ברים חדשים מ-Sierra. **השבר ב-Sierra study, לא ב-bridge/backend** (תואם מסקנת Cowork: upstream ל-ingestion). **fix=Michael:** Sierra UI → Chart #3 → Study Settings → **Reload Study**. ⚠️ frozen-tail חזר למרות תיקון v9.4.5 (`bars-from-chart12`, `816dd1a`) → **למעקב**: אם חוזר תכופות = רגרסיה, לא reload חד-פעמי. verification (post-reload, חוסם-SHADOW): `MAX(ts) v9_bars_5min` מתקדם ב-2 קריאות + בר אחרון בתוך RTH (עובר גייט B4) → task #3.
+- **✅ #10 נסגר — feed חי ואומת בלתי-תלוי (Cowork, 10:42 ET):** אחרי reload (Michael) הברים זרמו (בפיגור קצר — בדיקות 10:24 עדיין ריקות, 10:35 CC ראה זרימה, 10:42 Cowork אישר). raw: `MAX(ts)=2026-06-03T13:40:00Z` (09:40 ET, **מתקדם**) · ברי-RTH 09:30/09:35/09:40 ET vol 12419/11115/3631 **syn=0** (שפוי, לא מנופח) · woodies(14:30)/day_type(14:40)/cvd(13:40) טריים → backend מעבד · גייט B4 עובד על הנתיב החי (0 ברים מנופחים נכתבו). **caveat low-risk:** בר 03:15 ET יחיד (07:15Z) נכתב-מחדש post-cleanup ל-syn=0/vol=879 → re-push/backfill של reload **כנראה לא עובר דרך גייט ה-RTH** (רק הנתיב-החי כן). לא מזיק (vol שפוי, מחוץ ל-RTH, מסונן ע"י לוגיקת-סשן). follow-up אופציונלי: לוודא שהגייט מכסה גם hydration/backfill, לא רק live-tail. **SHADOW: feed=GO; נשאר integrity backend-כבוי בסוף סשן.**
+
+## 📋 2026-06-02 (PM) — Desktop Worklist מגה-פרומפט (Phases 0–3) + ממצא doc-drift ב-DB (Cowork)
+
+CC CLI שלח Worklist לתיקונים למחר; Cowork אימת מול קוד וקיבע הכרעות Michael → **מגה-פרומפט אוטונומי יחיד**
+`docs/handoff/CC_PROMPT_DESKTOP_WORKLIST_FIXES_2026-06-03.md` (Phases 0–3 **+ תיקון נרות frontend**, לפי CC_HANDOFF_CONTRACT).
+**אישור Michael 2/6: ריצה אוטונומית מלאה ללא שערי-אישור** (B5 strategic-stop מבוטל לריצה זו; שאר החוזה + Invariants קשיחים בתוקף).
+פרוטוקול-שער-אוטונומי: שער שנכשל → רכיב OFF + מצב בטוח + תיעוד + המשך לשלבים עצמאיים (לא דוחפים לתוך data מושחת). הקשר: כולו SHADOW (אין נתיב ברוקר). **טרם הורץ.**
+
+- **🔴 ממצא קוד קריטי (root + doc-drift):** `get_db()` (`session.py:71-81`) **אינו** לוקח את `_write_lock` —
+  גישת `_LockedSession` **בוטלה** (deadlock ב-uvicorn single-thread). ה-docstring מפורש: "ORM writes rely on
+  WAL ... busy_timeout waits rather than corrupts". **שורש ה-corruption החוזר של tick_reversal:** כתיבת ORM
+  בתדר-גבוה (`bars.py:375` `db.commit()`) **לא מסורלת** — רק קוראי raw sqlite3 עוברים ב-`safe_writer`.
+  **CLAUDE.md §DB Write-Safety מיושן** (מתאר lock `ec9fe97` שכבר אינו קיים) → צריך תיקון.
+  verification: `session.py:71-81` (קוד) + `safe_writer.py:21` (`_write_lock` רק ל-raw). **אסור להחזיר lock ל-get_db** (deadlock).
+- **פתרון (במגה-פרומפט, queued):** A1 = השבתת tick_reversal (דגל call-time + early-return `bars.py:354` + DROP+VACUUM) →
+  שער `integrity_check` **backend-כבוי**; residual root (כותבי-ORM אחרים לא-מסורלים) מתועד כ-Open, **לא** נפתר ע"י lock.
+  A3/D1 = כל הדגלים (`atr.py:83-93`, `trend_relabel.py:12`) → call-time. B1 = bypass `lookback_quiet`
+  (`five_min_system.py:531-533,622-624`) כש-`S2_VSA_VOLUME`. **B2/B3 ללא שינוי (הכרעת Michael).** B4 = אבחון-בלבד.
+- **הכרעות Michael (2026-06-02):** S2 firing — אשר B1 בלבד; **B2** (`b4>b3.high`) ו-**B3** (`_EXPANSION_MIN_ATR_K=1.5`)
+  נשארים מחמירים. tick_reversal — השבתה + אבחון שורש. ⚠️ B4 עלול לזהם בקטסטי B1/B3 (נפחים 540K-980K) — מעקב אחרי RTH.
+- **✅ Phase 0 הורץ (CC `9a5ed5d`) — אך אימות Cowork בלתי-תלוי מצא over-claim (לא DONE):**
+  **תקין:** A1 tick_reversal early-return call-time (`bars.py`) ✓ · אף צרכן לא מייבא קבועי S2_VSA/S4 קפואים ✓ · integrity backend-כבוי=ok (CC) · 87/87.
+  **🔴 פערים (round-2):** (1) **B1 partial-wiring** — bypass נוסף רק באתר אחד (`five_min_system.py:536-537`); האתר השני (`625`, gates `631/645`) **ללא** bypass → נתיב-תבנית שני של S2 עדיין חסום. (2) **D1 לא הושלם** — רק `trend_relabel` הומר ל-`flag()`; ~9 דגלים (`S2_ATR_RELATIVE`×8, `S3_RELATIVE`, `S3_MUTE`, `FOOTPRINT_DISABLED`, `S1_IB_WIDTH_ATR`, `S1_DAYTYPE_STAGING`, `S1_CVD_OPENING`) עדיין קפואים ב-import; הטענה "✓" שגויה (latent — plist מציל). (3) **B1 ללא טסט** (diff נגע רק ב-3 טסטי S4). solution: `CC_PROMPT_PHASE0_FIXES_ROUND2_2026-06-03.md`. verification: grep `lookback_quiet = True`=1 (צ"ל 2); `from ...atr import S2_ATR_RELATIVE` ×8 קיים.
+- **תיקון אי-דיוק קודם:** frontend **כן** בריפו (`frontend/v9/src/v9/components/chart/v5b/ChartV5b.tsx`); Phase 3 (נרות C1/C2) מפנה אליו ישירות.
+- **✅ דוח Phase 0-3 מלא (CC `1bad5c0`+`7583546`) — אימות Cowork round-3 (לא DONE):**
+  **תוקן בפועל מאז round-2:** B1 מחווט עכשיו ב**שני** האתרים (`five_min_system.py` 537+631, `grep lookback_quiet=True`=2) + טסט אנטי-טאוטולוגי `test_b1_lookback_bypass.py` (litmus "if reverted→RED", flag ON/OFF) — **אבל שניהם UNCOMMITTED** (M+untracked, לא בקומיט `9a5ed5d` שהדוח טען "DONE"). S2_VSA/S1_LIVE_RECLASS call-time (`173c8d6`). A1+integrity+87/87 ✓.
+  **🔴 פערים round-3:** (1) **drift לא-מקומיט** — תיקון B1+טסט ייאבדו אם לא יקומטו. (2) **`sc_study/` שונה על ה-risk-surface** (uncommitted, **לא** מ-Phase 0-3): `MES_AI_DataExport.cpp` SWI SG5→SG0 · `v9_types.h` `v9.4.5-wc-fix` · `v9_woodies_export.h` ~165 שורות → סכנת source≠running-DLL + bundling ב-`git add -A`. (3) **D1 over-claimed** — רק 2 דגלים call-time, ~9 קפואים. (4) **Phase 3 נרות לא מאומת** — filter=היוריסטיקת ">2h gap" ב-`bars_5min_history.py`, אך הפסקת MES ~1h → בימי חול לא מסיר ברי-סשן-קודם; C2 CVD לא בוצע; **אין screenshot**. (5) **B4=artifact מאומת** (DB 930K vs Sierra 72K) → מאשר זיהום כיול VSA/בקטסט.
+  solution: `CC_PROMPT_PHASE0_3_FIXES_ROUND3_2026-06-03.md` (commit B1; sc_study=אבחון-בלבד+החלטת Michael; D1 honest-downgrade; Phase3 session-filter אמיתי+screenshot@RTH).
+- **תיקון אי-דיוק קודם:** frontend **כן** בריפו; CLAUDE.md §DB Write-Safety (uncommitted) טוען get_db נועל — **סותר `session.py:71-81`** (אין lock) → doc-drift, החלטת Michael.
+- **Open:** round-3 (CC) · **החלטת Michael: `sc_study` v9.4.5 — לקמט/לבנות/לזרוק?** · CLAUDE.md doc-drift · re-verify S2 firing + נרות ב-RTH · residual ORM-write root.
+- **🔴 בדיקת מערכת ליום SHADOW (Cowork 2026-06-03 ~03:00 ET) — שער DB לא עבר:** quick_check מהצד (mount, **לא-אוטוריטטיבי**) מראה `Rowid out of order` **למרות** tick_reversal מושבת → ה-residual ORM-write root עדיין משחית. חשד: `cumulative_delta` (CVD, 51,803 שורות, כותב עד 06:55) / `imbalance` — לא-מסורלים (תועד ב-NOT-DONE של CC). + `v9_bars_5min_woodies` תקוע 06-02 08:34 · נפח מקס' 5min=1,000,000 (B4 חי). CC רץ באותו רגע (index.lock; commits `825972f` B1 both-sites+4 tests, `361e5bd` ET session-filter). **go/no-go ליום SHADOW = ❌ עד `integrity_check` backend-כבוי=ok.** solution: `CC_PROMPT_SHADOW_DAY_OPS_2026-06-03.md` (אישור Michael) — שער DB אוטוריטטיבי + טיפול ב-cumulative_delta → pre-trade → איסוף → EOD integrity. נרות-מערכת חיים (readiness/bridge/Sierra) = Mac-side בלבד.
+- **✅ B4 תוקן ואומת (CC `0ece0fa` + Cowork בלתי-תלוי):** טבלה אחת=RTH, time-gate 09:30-16:00 ET (DST-safe zoneinfo) על `/5min`+`/cumulative_delta` · `/5min_continuous`+`/cvd_continuous` disabled · CVD מ-RTH (מיושר, פותר C2) · ניקוי is_synthetic=1 ל-19 ברים → `max vol WHERE is_synthetic=0 = 71,832` (היה 1M) · **VSA מוגן** `five_min_system.py:202 .filter(is_synthetic==0)` · 488 passed · טסטים litmus אמיתיים. אימות per-system S1/S2/S3/S4 — כל השדות מחוברים+מאוכלסים שפוי. קוסמטי: שם study "v9.4.3" (V9_VERSION=v9.4.5 רץ) + In:17/In:19 code-default מול chart. **Open:** טבלה רציפה 24h (#11) · backend restart · `/5min_continuous` disabled עד הטבלה החדשה.
+- **🔴 feed עדיין תקוע** (#10): 5min latest=07:15 UTC (03:15 ET) — לא התקדם → backend/bridge לא קולט. תנאי מקדים ליום SHADOW.
+- **🛠️ החלטת Michael 2026-06-03: תיקון-שורש מלא, ❌ לא אוספים SHADOW היום.** audit Cowork חשף שטענת 2/6 "ALL writes through safe_writer" **שגויה**: ~15 אתרי כתיבת-ORM ב-`bars.py` (כל ה-ingestion: cumulative_delta/imbalance/woodies/tpo/...) + עשרות `sqlite3.connect` גולמיים (`woodies_system:141`, `footprint_system:84`, `tpo_system:88`, `session_boundary:66`) **לא הומרו** → ORM ו-raw מתחרים = `Rowid out of order` נמשך. **root-fix אמיתי:** המרת כל כותב חם ל-`safe_writer` (מנעול יחיד, **לא** lock על get_db=deadlock) + בידוד journals תדר-גבוה ל-`mems26_journals.db` נפרד + rebuild + soak תחת עומס → integrity backend-כבוי=ok. prompt: `CC_PROMPT_DB_ROOT_FIX_FULL_2026-06-03.md` (4 phases, per-phase gate). verification אומתה: אותו עמוד מושחת 96566/rowid 325707 ב-2 בדיקות = השחתה אמיתית, לא mount false-positive.
+- **✅ תיקון-שורש DB — בוצע ואומת (CC `d38444d`/`edab3c0`/`9255bfa`; Cowork בלתי-תלוי):** Phase 1 (כל ה-ingestion ב-`bars.py`→safe_writer, 23 קריאות, 0 ORM-write פעיל) · Phase 2 (0 raw-write connect, קריאות→mode=ro) · Phase 4 (rebuild + **soak 600ש'/21,726 דחיפות/0 שגיאות** → `integrity_check` backend-כבוי=**ok לפני ואחרי**). **Cowork אימת:** ההשחתה 325707/376946 **נעלמה**, quick_check=ok, journals-DB נפרד לא נוצר (Phase 3 deferred=צפוי). **Open:** (1) **~5 כתיבות-ORM בתדר-נמוך** נשארו (`woodies_system:651`, `five_min:957`, `day_type/consumer:147`, 2 APIs) — ה-soak לא בהכרח הפעיל את נתיב עיבוד-הברים → סיכון נמוך, למעקב. (2) Phase 3 journal-isolation דחוי (תוכנית מתועדת, ~2-3ש'). (3) CLAUDE.md §DB Write-Safety — CC מעדכן עכשיו (Cowork יצליב דיוק). (4) `v9_bars_5min_woodies` latest ts=2025-01-01 חריג (תוצר rebuild/backfill?) — לבדוק.
+- **✅ החלטה #1 (sc_study v9.4.5-wc-fix) — אומת, מומלץ COMMIT (CC `CC_DB_ROOT_FIX_AND_SCSTUDY_DIAGNOSE` + Cowork בלתי-תלוי):** v9.4.5 **כבר חי מאז 2/6** (כל 13 ה-export JSONs + DLL built 2/6 11:14). מתקן באגי-נתונים אמיתיים של S4: SWI היה זבל (SG5 לא קיים) → עכשיו **מחושב מקומית** (`v9_woodies_export.h:542-544` `v9_calc_sidewinder`, אומת ע"י Cowork); trend קרא CCI → עכשיו SG4 נכון; bars-from-chart12-direct (`:427`) מבטל frozen-tail. הסתירה SG0/SG4 נפתרה (ההערה ב-`v9_types.h` "SWI SG4" מטעה → לתקן ל-"local-computed"). ⚠️ נתוני S4 מ**לפני** 2/6 = מיפוי שגוי, לא לסמוך. **✅ COMMITTED `816dd1a`** (scoped — רק 3 קבצי sc_study, הערה תוקנה ל-"SWI local-computed", אומת Cowork). החלטה #1 סגורה. revert היה מחזיר את הבאגים → נדחה.
+- **✅ CLAUDE.md §DB Write-Safety — תוקן doc-drift (Cowork):** הוסר "get_db acquires the lock" (שגוי); מתאר עכשיו safe_writer-only + get_db לא נועל (לא להחזיר=deadlock) + residual ORM תדר-נמוך + journals deferred + אימות soak 3/6.
+
 ## 📋 2026-06-02 CC Master Run — 3 phases DONE, 2 strategic-stop, 1 frontend-pending
 
 **CC Master Run** ביצע 3 phases מתוך 6 (85/85 regression tests green):
@@ -24,6 +187,11 @@
   הגייטים נפגשים **0 פעמים**. fix מוצע: לחלץ את גייט bar-2 ל-callable מוזרק + 3 וריאציות יחסיות כצופים.
   verification: `v9_five_min_setups=0 · v9_five_min_state=0 · v9_trades firing_system=2 → 0` all-time (raw).
   prompt: `CC_PROMPT_S2_REACTIVE_CANFIRE_2026-06-02.md` (מתקן Phase 0 של הפרומפטים הקודמים, שומר Phases 2-5).
+  **[2026-06-02 PM] חידוד funnel + ממצא data-quality (Cowork, raw):** funnel היסטורי 1293 חלונות →
+  terminated_at b2_drop:1227 (~95%) · reached_lookback:**0** (lookback_quiet מעולם לא הורץ — אישוש ש-b2_drop
+  הוא ה-blocker, לא lookback). + **חוסם-נתונים חדש:** נפחי close מנופחים 15:15–16:15 (980001/960000/950000…,
+  `is_synthetic=0`, ×50–100 מנורמלי; all-time MAX=980001) מעוותים b2_drop+lookback — לאמת מקור מול Sierra
+  export לפני כיול (strategic-stop §Source-of-Truth). נוסף כ-§D2 לפרומפט. **לא לכייל b2_drop לפני אימות מקור.**
 - **S4 (Woodies) — תקין; "A1 חוסם הכל" הופרך.** S4 **יורה** (`v9_trades firing_system=4`=10, אחרון
   היום `id=384` 07:46); trend מתקדם (BLUE 67/GRAY 34/RED 3/YELLOW 5 ב-109 ברים); bar_count עולה.
   פער אמיתי: **single-source violation** — ה-dispatcher (`woodies_system.py:359,374`) קורא `current_state`
@@ -51,7 +219,22 @@
   הכרעת סתירה מול דוח CC: CC "שורה אחת" שגוי, "4 נגיעות" הגזמה. אמת: `trend_relabel.py` +
   המילון המפורש `woodies_system.py:425-432`; **לא** schema; `trade_context.py:342` אופציונלי).
 
-**Open:** אישור Michael פר-פרומפט · סדר מימוש (מומלץ: D-S3MUTE→S2/D-RVX→שאר) · הקמת מוניטור RTH מתוזמן.
+- **✅ מומש היום (commits, backend נטען מחדש PID 76066 — הכל live):** S3MUTE `1c28df7` · S4 dispatcher+bar_count `401d526` · D-RDY backend `3e2f785` · trend_original `1e077fa` · **frontend** global_gates+readiness banner+BE/Direction filters `0240cab`.
+- **🔴 חוסם DB corruption — חוזר תחת עומס (task #18, פתוח 2026-06-02):** הסימפטום הראשוני: קריאת `bars5min` נכשלה ו-`except Exception: return []` (`bars_5min_history.py:96`) **בלעה בשקט** → 0 נרות → צ'ארט ריק (הפרת "אין כשלים שקטים"). תוקן בקוד (`ea33c2f`: תפיסת `DatabaseError` בנפרד + דילוג OHLC לא-מספרי + warning) + שוקם ה-DB (`.recover`+swap; **סבב שיקום ראשון עדיין היה פגום — נתפס ע"י הצלבת Cowork** `Rowid out of order`; סבב שני יצא נקי, `integrity_check=ok`). **אבל ה-corruption חזר תוך דקות** — אומת: `integrity_check` עם backend **כבוי** עדיין corrupt (Tree 18/35/11 `2nd reference to page`, tick_reversal TEXT-in-ts/NULL-close, 30min_woodies חסר שורות אינדקס). **שורש אמיתי (Cowork אימת בקוד):** כתיבות SQLite מקביליות לא-בטוחות — חיבור **משותף** בין threads (`footprint_system.py:80` `check_same_thread=False`, כתיבה בתדירות גבוהה) + סחף `sqlite3.connect` גולמיים (`woodies_system.py:141/549/573`, `reversal_handler.py:75`, routes) בלי `WAL`/`busy_timeout` עקביים. גודל ה-DB **אינו** הגורם — מקביליות היא. **trades לא נפגעו** (טבלה נפרדת). **פתרון-שורש בתהליך:** `CC_PROMPT_DB_WRITE_SAFETY_ROOT_FIX_2026-06-02.md` — writer יחיד מסודר (queue/lock, אף חיבור משותף) + WAL/busy_timeout עקבי + בידוד tick/footprint ל-store נפרד FIFO-capped + checkpoint ב-SIGTERM (LaunchAgent ל-SIGTERM לא SIGKILL). **שער GO/NO-GO לפני 16:30:** soak תחת עומס + `integrity_check` נשאר `ok` → אוספים היום; אחרת — לא אוספים (נתונים מושחתים גרועים מאין). backend כבוי בינתיים.
+- **🟡 פתוח עקב השיקום (task #17):** היסטוריית 4 טבלאות בר (woodies 5/30, footprint, tick) אבדה → מתמלאת live, צ'ארט דליל. לשחזר מ-Sierra backfill (מקור-אמת), לא מהגיבוי הפגום `.corrupt.bak`.
+
+### CC MEGA FIX — צ'ק-ליסט (`CC_MEGA_FIX_ALL_2026-06-02.md`)
+**החלטה נעולה (Michael):** footprint **מושבת זמנית** (`v9_footprint_journal` = מקור ה-corruption; 1/2/4 לא תלויים בו) עד כמה ימים נקיים של 1/2/4.
+
+- [x] **Phase 1 · יציבות DB — ✅ נסגר 2026-06-02.** **שורש אמיתי: כתיבות SQLAlchemy ORM עקפו את ה-write-lock** (לא רק חיבורים גולמיים). fix: `get_db()` מקבל את ה-lock (`f5568a2`) → צומצם ל-commit-only + RLock (`ec9fe97`, פתר deadlock/חניקה). + footprint מושבת + safe_writer + VACUUM (ניקה carried-over B-tree corruption מהגיבוי). **אומת:** integrity backend-כבוי=ok (CC) + הצלבת Cowork נקייה תחת כתיבה חיה ב-16:57/17:03/17:05 + latency health 45-55ms. (הדוח `CC_DB_WRITE_SAFETY_REPORT` היה מיושן — commit 0afe147/soak-89ש'; המציאות עברה אותו.)
+- [ ] **Phase 2 · streams** — cumulative_delta + imbalance לא נכתבים (~8ש') · tpo_bars ריק (wiring ל-journal במקום לטבלה). (woodies overnight=תקין)
+- [ ] **Phase 3 · S2 Reactive חי** (D-RVX VSA) — וריאציה חיה + observers. 🛑 בחירת וריאציה = Michael.
+- [ ] **Phase 4 · S1 day-type חי** — קידום shadow_reclass ל-live לפי האפיון. ⛔ Auth Table = אישור Michael, default-OFF.
+- [ ] **Phase 5 · S4** — אימות יורה נקי + trend_original על בר ±200.
+- [ ] **Phase 6 · Backfill היסטוריה** מ-Sierra (אחרי DB יציב).
+- [ ] **Phase 7 · מוכנות** — readiness→READY + Pre-Trade.
+
+**Open (לפי עדיפות):** 🔴 **Phase 1 (DB יציב) — שער חוסם להיום** · Phase 2 streams · Phase 3/4 (strategic-stops) · Phase 5-7 · מוניטור RTH מתוזמן. *הצ'ק-ליסט מסומן ✅ אחרי הצלבת Cowork פר-phase.*
 
 ---
 
