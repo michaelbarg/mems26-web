@@ -126,26 +126,25 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
         if filtered:
             logger.info("[bars_5min_history] filtered %d bad/stale bars from response", filtered)
 
-        # Session filter: keep bars from current CME Globex session (18:00 ET prev day).
-        # When continuous table provides data, show the full session (not RTH-only)
-        # to match Sierra chart#5. Tz-aware comparison (epoch-based).
+        # Display filter: RTH-only per session (09:30–16:00 ET), matching
+        # Sierra chart#5 which shows RTH sessions back-to-back without overnight.
+        # Data stays in DB (continuous table has overnight); this is display-only.
         if result:
-            from datetime import timedelta
             try:
                 from zoneinfo import ZoneInfo
                 et = ZoneInfo("America/New_York")
             except ImportError:
                 et = None
             if et:
-                now_et = datetime.now(et)
-                if now_et.hour >= 18:
-                    session_start_et = now_et.replace(hour=18, minute=0, second=0, microsecond=0)
-                else:
-                    session_start_et = (now_et - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
-                session_epoch = int(session_start_et.timestamp())
-                filtered_session = [b for b in result if _to_epoch(b["ts"]) >= session_epoch]
-                if filtered_session:
-                    result = filtered_session
+                filtered_rth = []
+                for bar in result:
+                    bar_epoch = _to_epoch(bar["ts"])
+                    bar_et = datetime.fromtimestamp(bar_epoch, tz=et)
+                    et_min = bar_et.hour * 60 + bar_et.minute
+                    if 570 <= et_min < 960:  # 09:30–16:00 ET = 08:30–15:00 CT
+                        filtered_rth.append(bar)
+                if filtered_rth:
+                    result = filtered_rth
 
         return result[-limit:]
     except Exception as e:
