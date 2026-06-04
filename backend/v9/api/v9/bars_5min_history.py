@@ -56,25 +56,40 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
         except Exception as e:
             logger.warning("[bars_5min_history] woodies fallback failed (primary-only): %s", e)
 
-        # Merge: index primary by ts, fill gaps from woodies
-        by_ts = {}
+        # Merge: index primary by epoch (instant), fill gaps from woodies.
+        # Using epoch (not str(ts)) avoids format-dependent dedup failures.
+        from datetime import datetime, timezone
+        def _to_epoch(ts_val) -> int:
+            """Convert any ts value to UTC epoch for dedup."""
+            if isinstance(ts_val, datetime):
+                return int(ts_val.timestamp())
+            s = str(ts_val).replace(" ", "T")
+            try:
+                dt = datetime.fromisoformat(s)
+                if dt.tzinfo is None:
+                    dt = dt.replace(tzinfo=timezone.utc)
+                return int(dt.timestamp())
+            except (ValueError, TypeError):
+                return hash(s)  # fallback — unique but won't collide
+
+        by_epoch = {}
         for r in rows_5m:
-            by_ts[str(r["ts"])] = dict(r)
+            by_epoch[_to_epoch(r["ts"])] = dict(r)
         for r in rows_w:
-            ts = str(r["ts"])
-            if ts not in by_ts:
+            ep = _to_epoch(r["ts"])
+            if ep not in by_epoch:
                 rd = dict(r)
                 try:
                     float(rd["open"]); float(rd["high"]); float(rd["low"]); float(rd["close"])
                 except (TypeError, ValueError):
                     continue
-                by_ts[ts] = rd
+                by_epoch[ep] = rd
 
         # Sort oldest first, validate, filter flat stale bars
         result = []
         filtered = 0
-        for ts in sorted(by_ts.keys()):
-            r = by_ts[ts]
+        for ep in sorted(by_epoch.keys()):
+            r = by_epoch[ep]
             o, h, l, c = r["open"], r["high"], r["low"], r["close"]
             ok, reason = bar_is_valid(open=o, high=h, low=l, close=c)
             if not ok:
@@ -84,40 +99,30 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
                 filtered += 1
                 continue
             result.append({
-                "ts": ts,
+                "ts": str(r["ts"]),
                 "o": o, "h": h, "l": l, "c": c, "v": r.get("volume") or 0,
                 "open": o, "high": h, "low": l, "close": c, "volume": r.get("volume") or 0,
             })
         if filtered:
             logger.info("[bars_5min_history] filtered %d bad/stale bars from response", filtered)
 
-        # Session filter: keep only bars from the current CME Globex session.
-        # Globex opens 18:00 ET (previous calendar day). Bars with ET time
-        # from a prior session (e.g. 15:15 yesterday) would sort incorrectly
-        # because ts is ET wall-clock string.
+        # Session filter: keep only RTH bars (09:30–17:00 ET = 08:30–16:00 CT).
+        # Sierra Chart #3 is RTH-only — overnight/Globex bars excluded.
+        # Compare in UTC (tz-aware) to handle PG timestamptz correctly.
         if result:
-            from datetime import datetime, timedelta
             try:
                 from zoneinfo import ZoneInfo
                 et = ZoneInfo("America/New_York")
             except ImportError:
                 et = None
             if et:
-                now_et = datetime.now(et)
-                # Globex session start: 18:00 ET previous day (or today if after 18:00)
-                if now_et.hour >= 18:
-                    session_start = now_et.replace(hour=18, minute=0, second=0, microsecond=0)
-                else:
-                    session_start = (now_et - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
-                session_start_naive = session_start.replace(tzinfo=None)
                 filtered_session = []
                 for bar in result:
-                    try:
-                        bar_dt = datetime.fromisoformat(str(bar["ts"]).replace(" ", "T").split("+")[0])
-                        if bar_dt >= session_start_naive:
-                            filtered_session.append(bar)
-                    except Exception:
-                        filtered_session.append(bar)  # keep on parse failure
+                    bar_epoch = _to_epoch(bar["ts"])
+                    bar_et = datetime.fromtimestamp(bar_epoch, tz=et)
+                    et_min = bar_et.hour * 60 + bar_et.minute
+                    if 570 <= et_min < 1020:  # 09:30–17:00 ET
+                        filtered_session.append(bar)
                 if filtered_session:
                     result = filtered_session
 
