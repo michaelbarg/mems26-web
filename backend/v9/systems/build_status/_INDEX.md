@@ -14,5 +14,5 @@
 | `row_helpers.py` | ✅ 3 | 386 | 2026-06-03 | Shared helpers for inspector rows (live / required / freshness). |
 | `s2_inspector.py` | ✅ 1 | 499 | 2026-06-04 | S2 Five-Minute inspector — produces 10 pattern status objects. |
 | `s2_pattern_probe.py` | ✅ 1 | 935 | 2026-06-02 | S2 Pattern Detection Probe — per-pattern geometry sub-conditions. |
-| `types.py` | ✅ 8 | 149 | 2026-06-02 | Pydantic schemas for /api/v9/build/pattern-status response. |
+| `types.py` | ✅ 8 | 185 | 2026-06-04 | Pydantic schemas for /api/v9/build/pattern-status response. |
 | `woodies_inspector.py` | ✅ 1 | 528 | 2026-06-04 | Woodies CCI inspector — produces 9 pattern status objects. |

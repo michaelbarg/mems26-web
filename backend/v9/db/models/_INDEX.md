@@ -6,10 +6,11 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 36 | 2026-06-03 | V9 SQLAlchemy models — all tables use v9_ prefix. |
-| `_types.py` | ✅ 23 | 10 | 2026-05-09 | Shared column types — cross-database compatibility. |
+| `_types.py` | ✅ 24 | 10 | 2026-05-09 | Shared column types — cross-database compatibility. |
 | `account_status.py` | ✅ 1 | 18 | 2026-05-09 | V9 model: Account status. |
 | `audit.py` | ✅ 4 | 25 | 2026-05-11 | V9 model: Audit events — append-only log of all Event Bus events (AP-DB02). |
 | `bars_5min.py` | ✅ 4 | 31 | 2026-06-03 | V9 model: 5-minute OHLCV bars. |
+| `bars_5min_continuous.py` | ⚠️ orphan? | 24 | 2026-06-04 | V9 model: 5-min continuous bars from Sierra chart#5 (24h coverage). |
 | `bars_footprint.py` | ✅ 1 | 26 | 2026-05-10 | V9 model: Footprint bars — separate from tick reversal bars. |
 | `bars_tick_reversal.py` | ✅ 1 | 28 | 2026-05-09 | V9 model: Tick reversal bars (15-tick and 12-tick). |
 | `bars_woodies.py` | ✅ 1 | 65 | 2026-06-03 | V9 model: Woodies CCI bars (D-074: 5-min primary, 30-min legacy). |

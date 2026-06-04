@@ -21,7 +21,7 @@
 | `db_restore.sh` | — | 48 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |
 | `drive_sync_upload.py` | ▶ entry/test | 362 | 2026-05-23 | Upload MEMS26 docs/ mirror to Google Drive per docs/drive/DRIVE_SYNC_MANIFEST.yaml. |
 | `g4_pkg5_latency_probe.py` | ▶ entry/test | 80 | 2026-05-24 | g4_pkg5_latency_probe.py · G4 UAT Axis 4 · process_bar latency measurement. |
-| `gen_index.py` | ▶ entry/test | 343 | — | Generate a living index of the MEMS26 codebase. |
+| `gen_index.py` | ▶ entry/test | 362 | 2026-06-04 | Generate a living index of the MEMS26 codebase. |
 | `generate_ts_types.py` | ▶ entry/test | 93 | 2026-05-11 | Generate TypeScript event types from registry.yaml. |
 | `load_soak_test.py` | ▶ entry/test | 142 | 2026-06-03 | Load soak test — concurrent high-frequency pushes to all hot endpoints. |
 | `patch_woodies_5min_hud.py` | ▶ entry/test | 137 | 2026-05-23 | Patch woodies_5min.json with P30.10 HUD fields (interim until DLL Export 8b is live). |

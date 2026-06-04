@@ -12,4 +12,4 @@
 | `__init__.py` | ▶ entry/test | 1 | 2026-05-09 | V9 database layer — models, session, connection. |
 | `read.py` | ✅ 27 | 66 | 2026-06-03 | Cross-database read helper — works on both SQLite and Postgres. |
 | `safe_writer.py` | ✅ 14 | 224 | 2026-06-04 | Centralized DB write layer — engine-based, works on SQLite and Postgres. |
-| `session.py` | ✅ 55 | 93 | 2026-06-02 | V9 database session — SQLite (local dev) or PostgreSQL (production). |
+| `session.py` | ✅ 56 | 93 | 2026-06-02 | V9 database session — SQLite (local dev) or PostgreSQL (production). |

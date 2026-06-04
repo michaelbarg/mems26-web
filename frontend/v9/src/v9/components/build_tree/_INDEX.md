@@ -5,4 +5,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `BuildTreeView.tsx` | ⚠️ orphan? | 1362 | 2026-06-04 | BuildTreeView — redesigned Build Status page as a decision tree (V2). |
+| `BuildTreeView.tsx` | ✅ 1 | 1362 | 2026-06-04 | BuildTreeView — redesigned Build Status page as a decision tree (V2). |
