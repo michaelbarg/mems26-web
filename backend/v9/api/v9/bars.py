@@ -901,15 +901,51 @@ def post_5min_continuous(
     payload: dict = Body(...),
     _token: str = Depends(verify_bridge_token),
 ):
-    """Continuous 24h 5-min bars from chart #5.
+    """Continuous 24h 5-min bars from chart #5 → v9_bars_5min_continuous.
 
-    B4 fix (2026-06-03): writes to v9_bars_5min DISABLED — RTH chart is the
-    sole source today (all studies attached there). Continuous chart's bars
-    were overwriting RTH per-bar volume with cumulative session volume during
-    settlement. Re-enable when dedicated continuous table is built.
+    Writes to a DEDICATED table (not v9_bars_5min) to avoid contaminating
+    the RTH-only table that S2/VSA depends on. Re-enabled 2026-06-04 after
+    PG migration made concurrent writes safe (MVCC).
     """
     _record_push("bars_5min_continuous")
-    return {"ok": True, "inserted": 0, "type": "5min_continuous", "disabled": True}
+    bars = payload.get("bars") if isinstance(payload, dict) else payload
+    if not isinstance(bars, list):
+        return {"ok": True, "inserted": 0, "type": "5min_continuous"}
+
+    inserted = 0
+    rejected = 0
+    for bar in bars:
+        if not isinstance(bar, dict):
+            continue
+        ts = _ts_from_unix(bar.get("ts"))
+        if ts > datetime.now(timezone.utc) + timedelta(minutes=2):
+            rejected += 1
+            continue
+        try:
+            o = float(bar.get("o", bar.get("open", 0)))
+            h = float(bar.get("h", bar.get("high", 0)))
+            l = float(bar.get("l", bar.get("low", 0)))
+            c = float(bar.get("c", bar.get("close", 0)))
+            v = int(bar.get("vol", bar.get("volume", 0)))
+            delta = bar.get("delta")
+        except (TypeError, ValueError):
+            rejected += 1
+            continue
+        ok, reason = bar_is_valid(open=o, high=h, low=l, close=c)
+        if not ok:
+            rejected += 1
+            continue
+        result = safe_execute(
+            "INSERT OR REPLACE INTO v9_bars_5min_continuous "
+            "(ts, symbol, open, high, low, close, volume, delta) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (ts.isoformat(), "MES", o, h, l, c, v,
+             float(delta) if delta is not None else None),
+        )
+        if result is not None:
+            inserted += 1
+
+    return {"ok": True, "inserted": inserted, "rejected": rejected, "type": "5min_continuous"}
 
 
 # ── POST /api/v9/bars/cvd_continuous (chart #5 24h) ──

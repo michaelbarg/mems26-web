@@ -27,7 +27,24 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
     """
     fetch_limit = min(max(limit, 1), 600) + 20
     try:
-        # Primary: v9_bars_5min
+        # Primary: v9_bars_5min_continuous (Sierra chart#5, 24h coverage, no gaps)
+        # Falls back to v9_bars_5min (RTH) + woodies if continuous is empty.
+        rows_cont = []
+        try:
+            if before:
+                rows_cont = read_all(
+                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_continuous WHERE ts < :before ORDER BY ts DESC LIMIT :limit",
+                    {"before": before, "limit": fetch_limit},
+                )
+            else:
+                rows_cont = read_all(
+                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_continuous ORDER BY ts DESC LIMIT :limit",
+                    {"limit": fetch_limit},
+                )
+        except Exception as e:
+            logger.debug("[bars_5min_history] continuous table not available: %s", e)
+
+        # Fallback sources (used when continuous is empty or for gap-fill)
         if before:
             rows_5m = read_all(
                 "SELECT ts, open, high, low, close, volume FROM v9_bars_5min WHERE ts < :before ORDER BY ts DESC LIMIT :limit",
@@ -39,8 +56,6 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
                 {"limit": fetch_limit},
             )
 
-        # Fallback: v9_bars_5min_woodies (better overnight coverage)
-        # Table may not exist in test DBs — graceful fallback
         rows_w = []
         try:
             if before:
@@ -54,7 +69,7 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
                     {"limit": fetch_limit},
                 )
         except Exception as e:
-            logger.warning("[bars_5min_history] woodies fallback failed (primary-only): %s", e)
+            logger.debug("[bars_5min_history] woodies fallback not available: %s", e)
 
         # Merge: index primary by epoch (instant), fill gaps from woodies.
         # Using epoch (not str(ts)) avoids format-dependent dedup failures.
@@ -73,8 +88,13 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
                 return hash(s)  # fallback — unique but won't collide
 
         by_epoch = {}
-        for r in rows_5m:
+        # Priority: continuous (best coverage) > 5min (RTH) > woodies (fallback)
+        for r in rows_cont:
             by_epoch[_to_epoch(r["ts"])] = dict(r)
+        for r in rows_5m:
+            ep = _to_epoch(r["ts"])
+            if ep not in by_epoch:
+                by_epoch[ep] = dict(r)
         for r in rows_w:
             ep = _to_epoch(r["ts"])
             if ep not in by_epoch:
@@ -106,23 +126,24 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
         if filtered:
             logger.info("[bars_5min_history] filtered %d bad/stale bars from response", filtered)
 
-        # Session filter: keep only RTH bars (09:30–17:00 ET = 08:30–16:00 CT).
-        # Sierra Chart #3 is RTH-only — overnight/Globex bars excluded.
-        # Compare in UTC (tz-aware) to handle PG timestamptz correctly.
+        # Session filter: keep bars from current CME Globex session (18:00 ET prev day).
+        # When continuous table provides data, show the full session (not RTH-only)
+        # to match Sierra chart#5. Tz-aware comparison (epoch-based).
         if result:
+            from datetime import timedelta
             try:
                 from zoneinfo import ZoneInfo
                 et = ZoneInfo("America/New_York")
             except ImportError:
                 et = None
             if et:
-                filtered_session = []
-                for bar in result:
-                    bar_epoch = _to_epoch(bar["ts"])
-                    bar_et = datetime.fromtimestamp(bar_epoch, tz=et)
-                    et_min = bar_et.hour * 60 + bar_et.minute
-                    if 570 <= et_min < 1020:  # 09:30–17:00 ET
-                        filtered_session.append(bar)
+                now_et = datetime.now(et)
+                if now_et.hour >= 18:
+                    session_start_et = now_et.replace(hour=18, minute=0, second=0, microsecond=0)
+                else:
+                    session_start_et = (now_et - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
+                session_epoch = int(session_start_et.timestamp())
+                filtered_session = [b for b in result if _to_epoch(b["ts"]) >= session_epoch]
                 if filtered_session:
                     result = filtered_session
 
