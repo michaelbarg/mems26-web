@@ -1,9 +1,25 @@
 """Pydantic schemas for /api/v9/build/pattern-status response."""
 
+import logging
 from datetime import datetime
 from typing import List, Optional, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+logger = logging.getLogger(__name__)
+
+
+def _coerce_datetime_to_iso(v):
+    """Coerce datetime objects (e.g. from Postgres) to ISO-8601 strings."""
+    if v is None:
+        return v
+    if isinstance(v, datetime):
+        logger.warning("Coercing datetime→str for pydantic field: %s", v)
+        return v.isoformat()
+    if not isinstance(v, str):
+        logger.warning("Unexpected type %s for ISO-string field, casting to str", type(v).__name__)
+        return str(v)
+    return v
 
 
 StatusEnum = Literal["fired", "armed", "blocked", "vetoed", "not_applicable", "unknown"]
@@ -30,6 +46,11 @@ class Freshness(BaseModel):
     lag_s: Optional[float] = None
     source: Optional[FreshnessSource] = None
 
+    @field_validator("ts", mode="before")
+    @classmethod
+    def _coerce_ts(cls, v):
+        return _coerce_datetime_to_iso(v)
+
 
 class Component(BaseModel):
     stage: str
@@ -49,6 +70,11 @@ class DataFreshness(BaseModel):
     lag_seconds: Optional[float] = None
     fresh: bool = False
     threshold_seconds: int = 360
+
+    @field_validator("last_bar_ts", mode="before")
+    @classmethod
+    def _coerce_last_bar_ts(cls, v):
+        return _coerce_datetime_to_iso(v)
 
 
 class GlobalGate(BaseModel):
@@ -73,6 +99,11 @@ class PatternStatus(BaseModel):
     last_fire_ts: Optional[str] = None
     components: List[Component] = Field(default_factory=list)
     blockers: List[str] = Field(default_factory=list)
+
+    @field_validator("last_fire_ts", mode="before")
+    @classmethod
+    def _coerce_last_fire_ts(cls, v):
+        return _coerce_datetime_to_iso(v)
 
 
 # D-OBS: Live input field for observability
@@ -112,6 +143,11 @@ class SystemStatus(BaseModel):
     # DB, not the in-memory dedup dict — see row_helpers.fires_today().
     fired_today_count: int = 0
     last_fire_ts: Optional[str] = None
+
+    @field_validator("last_fire_ts", mode="before")
+    @classmethod
+    def _coerce_last_fire_ts(cls, v):
+        return _coerce_datetime_to_iso(v)
 
 
 class RTBSession(BaseModel):
