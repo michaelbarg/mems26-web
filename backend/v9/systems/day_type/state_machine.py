@@ -424,8 +424,9 @@ class DayTypeStateMachine:
                 gap_direction = "UP"
             elif gap_size < -2.0:
                 gap_direction = "DOWN"
-            if bar.atr and bar.atr > 0:
-                ratio = abs(gap_size) / bar.atr
+            _atr_gap = bar.atr if bar.atr and bar.atr > 0 else self._last_atr_daily
+            if _atr_gap and _atr_gap > 0:
+                ratio = abs(gap_size) / _atr_gap
                 if ratio >= 1.0:
                     gap_magnitude = "LARGE_GAP"
                 elif ratio >= 0.3:
@@ -586,9 +587,10 @@ class DayTypeStateMachine:
     def _stage_b3(self, bar: BarInput):
         """B3: Mid-day Behavior Analysis."""
         range_ratio = 1.0
-        if bar.atr and bar.atr > 0:
+        _atr_b3 = bar.atr if bar.atr and bar.atr > 0 else self._last_atr_daily
+        if _atr_b3 and _atr_b3 > 0:
             current_range = self.session_high - self.session_low
-            range_ratio = current_range / bar.atr
+            range_ratio = current_range / _atr_b3
 
         self.behavior = detect_behavior(
             extensions_up=bar.extensions_up,
@@ -614,7 +616,7 @@ class DayTypeStateMachine:
     def _stage_b5(self, bar: BarInput):
         """B5: Range/ATR Comparison."""
         current_range = self.session_high - self.session_low
-        atr = bar.atr if bar.atr and bar.atr > 0 else current_range
+        atr = bar.atr if bar.atr and bar.atr > 0 else (self._last_atr_daily if self._last_atr_daily and self._last_atr_daily > 0 else current_range)
         self.range_category = classify_range(current_range, atr)
 
     def _stage_b6(self, bar: BarInput):
@@ -781,7 +783,7 @@ class DayTypeStateMachine:
     def _check_reeval(self, bar: BarInput):
         """Check re-eval triggers after lock."""
         move_30 = None  # Would need bar history for this
-        atr = bar.atr
+        atr = bar.atr if bar.atr and bar.atr > 0 else self._last_atr_daily
 
         failed_ext_post_lock = (
             self.failed_extension != FailedExtensionType.NONE
