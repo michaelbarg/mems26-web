@@ -17,6 +17,10 @@ info() { echo -e "${BLUE}ℹ️${NC}  $1"; }
 cd /Users/michael/Downloads/mems26_web_git
 [ -f .env ] && set -a && source .env && set +a
 
+# ORM session must target PG, not SQLite (PG migration 2026-06-03).
+# Without this, session.py:12 falls back to sqlite:///./data/mems26_local.db.
+export DATABASE_URL="postgresql://localhost/mems26"
+
 # S2 volume gate: VSA variant (D-RVX). Reads at call-time in five_min_system.py.
 export S2_VSA_VOLUME=1
 
