@@ -324,6 +324,18 @@ export function ChartV5b() {
     const cvdPct = loadCvdPanelDefaultPct();
     lastCvdPctRef.current = cvdPct;
 
+    // Display x-axis in Chicago time (CT) to match Sierra Chart.
+    // lightweight-charts uses browser local TZ by default. We override
+    // via localization.timeFormatter to show CT times.
+    const fmtCT = (ts: number) => {
+      const d = new Date(ts * 1000);
+      return d.toLocaleTimeString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+    const fmtCTDate = (ts: number) => {
+      const d = new Date(ts * 1000);
+      return d.toLocaleDateString('en-US', { timeZone: 'America/Chicago', month: 'numeric', day: 'numeric' });
+    };
+
     const chart = createChart(containerRef.current, {
       layout: {
         background: { type: ColorType.Solid, color: '#0a0a0a' },
@@ -335,6 +347,9 @@ export function ChartV5b() {
           separatorColor: '#fb950b',
           separatorHoverColor: 'rgba(251, 149, 11, 0.25)',
         },
+      },
+      localization: {
+        timeFormatter: fmtCT,
       },
       grid: {
         vertLines: { color: '#1a1a1a', style: 1 },
@@ -350,6 +365,15 @@ export function ChartV5b() {
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 0,
+        tickMarkFormatter: (time: number) => {
+          const d = new Date(time * 1000);
+          const ct = d.toLocaleString('en-US', { timeZone: 'America/Chicago', hour: '2-digit', minute: '2-digit', hour12: false, month: 'numeric', day: 'numeric' });
+          // Show date only at day boundaries, time otherwise
+          const h = Number(d.toLocaleString('en-US', { timeZone: 'America/Chicago', hour: 'numeric', hour12: false }));
+          const m = Number(d.toLocaleString('en-US', { timeZone: 'America/Chicago', minute: 'numeric' }));
+          if (h === 8 && m <= 30) return fmtCTDate(time);
+          return fmtCT(time);
+        },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
