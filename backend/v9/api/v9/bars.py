@@ -30,7 +30,7 @@ from backend.v9.db.safe_writer import safe_execute, safe_executemany
 # chart carry cumulative session volume (up to 1M) and must NOT enter v9_bars_5min.
 _ET = ZoneInfo("America/New_York")
 _RTH_START_HOUR, _RTH_START_MIN = 9, 30
-_RTH_END_HOUR, _RTH_END_MIN = 16, 0
+_RTH_END_HOUR, _RTH_END_MIN = 17, 0  # 17:00 ET = 16:00 CT — includes post-close bars (vol=0)
 
 
 def _is_within_rth(ts_utc: datetime) -> bool:
@@ -314,6 +314,11 @@ def post_bars_5min(
         # (up to 1M) which corrupts rolling_avg and VSA pattern detection.
         if not _is_within_rth(ts):
             rth_skipped += 1
+            continue
+        # B4 volume guard: reject cumulative session volumes (>100K for 5min MES)
+        if bar.vol > 100_000:
+            logger.debug("[bars/5min] Rejected cumulative vol=%d at ts=%s", bar.vol, ts)
+            rejected += 1
             continue
         rows_to_write.append((
             ts.isoformat(), bar.symbol, bar.o, bar.h, bar.l, bar.c,

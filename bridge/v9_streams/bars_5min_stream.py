@@ -63,7 +63,8 @@ class Bars5MinStream(BaseV9Stream):
         else:
             self._first_push = False
 
-        # Normal mode: send only latest bar
-        latest_only = dict(data)
-        latest_only["bars"] = [bars[-1]]
-        return super()._push_api(latest_only)
+        # Normal mode: send last 3 bars (catches gaps from Sierra adding
+        # multiple bars between pushes). Backend dedup via ON CONFLICT (ts,symbol).
+        tail = dict(data)
+        tail["bars"] = bars[-3:]
+        return super()._push_api(tail)
