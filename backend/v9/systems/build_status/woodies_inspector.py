@@ -326,9 +326,15 @@ def inspect(woodies_system=None) -> SystemStatus:
             freshness=state_fresh,
         ))
 
-        # Stage: sizing — confidence_score
-        # Source: BUILD_STATUS_ENDPOINT_DESIGN.md §4.2 "pattern.confidence >= threshold"
+        # Stage: targets_stop — r_t1, stop, targets from live PatternResult
+        # Replaces the old confidence >= 0.5 proxy with the actual R:R gate.
+        # Source: pattern detectors compute stop/r_t1/targets at detection time.
         best_conf = None
+        _ap_stop = None
+        _ap_r_t1 = None
+        _ap_targets = None
+        _ap_entry = None
+        _ap_direction = None
         for ap in active_patterns_raw:
             if isinstance(ap, dict):
                 apid = ap.get("pattern_id", "")
@@ -337,20 +343,94 @@ def inspect(woodies_system=None) -> SystemStatus:
             if str(apid).upper() == engine_id:
                 if isinstance(ap, dict):
                     best_conf = ap.get("confidence")
+                    _ap_stop = ap.get("stop")
+                    _ap_r_t1 = ap.get("r_t1")
+                    _ap_targets = ap.get("targets")
+                    _ap_entry = ap.get("entry_price")
+                    _ap_direction = ap.get("direction")
                 else:
                     best_conf = getattr(ap, "confidence", None)
+                    _ap_stop = getattr(ap, "stop", None)
+                    _ap_r_t1 = getattr(ap, "r_t1", None)
+                    _ap_targets = getattr(ap, "targets", None)
+                    _ap_entry = getattr(ap, "entry_price", None)
+                    _ap_direction = getattr(ap, "direction", None)
                 break
 
-        conf_ok = best_conf is not None and float(best_conf) >= 0.5
+        # R:R gate (replaces confidence >= 0.5 proxy)
+        # pre_fire_validator enforces R:R >= 1.0; r_t1 from pattern detector
+        _min_r_t1 = 1.0  # pre_fire_validator threshold
+        _r_t1_ok = _ap_r_t1 is not None and float(_ap_r_t1) >= _min_r_t1
+        if pattern_detected and _ap_r_t1 is None:
+            _rr_value = "awaiting backend"
+            _rr_live = "null"
+        elif _ap_r_t1 is not None:
+            _rr_value = f"r_t1={float(_ap_r_t1):.2f} {'≥' if _r_t1_ok else '<'} {_min_r_t1}"
+            _rr_live = f"{float(_ap_r_t1):.4f}"
+        else:
+            _rr_value = "not active"
+            _rr_live = "null"
         components.append(Component(
-            stage="sizing",
-            key="confidence_score",
-            spec="pattern.confidence >= 0.5",
-            present=conf_ok,
-            value=f"conf={best_conf:.3f}" if best_conf is not None else "not active",
-            live=f"{float(best_conf):.4f}" if best_conf is not None else "null",
-            required=">= 0.5",
+            stage="targets_stop",
+            key="r_t1_gate",
+            spec=f"r_t1 >= {_min_r_t1} (pre_fire R:R gate)",
+            present=_r_t1_ok,
+            value=_rr_value,
+            live=_rr_live,
+            required=f">= {_min_r_t1}",
             freshness=state_fresh,
+        ))
+
+        # Stop price
+        _stop_val = f"{float(_ap_stop):.2f}" if _ap_stop is not None else "—"
+        components.append(Component(
+            stage="targets_stop",
+            key="stop_price",
+            spec="pattern.stop (ATR-based per family)",
+            present=_ap_stop is not None,
+            value=f"stop={_stop_val}" + (f" · entry={float(_ap_entry):.2f}" if _ap_entry else ""),
+            live=_stop_val,
+            required="!= null",
+            freshness=state_fresh,
+        ))
+
+        # Targets (t1/t2 from pattern, fixed ticks per pattern type)
+        _tgt_str = "—"
+        if _ap_targets and isinstance(_ap_targets, (list, tuple)) and len(_ap_targets) >= 1:
+            _tgt_str = " / ".join(f"{float(t):.2f}" for t in _ap_targets if t is not None)
+        components.append(Component(
+            stage="targets_stop",
+            key="targets",
+            spec="pattern.targets (t1/t2 per pattern tick table)",
+            present=_ap_targets is not None and len(_ap_targets or []) >= 1,
+            value=f"targets=[{_tgt_str}]",
+            live=_tgt_str,
+            required=">= 1 target",
+            freshness=state_fresh,
+        ))
+
+        # Day-Type Matrix verdict for S4 (✅/⚠️/❌)
+        _dt_verdict = "—"
+        _dt_verdict_ok = False
+        if _woodies_day_type and _woodies_day_type != "UNKNOWN" and pattern_detected:
+            try:
+                from backend.v9.systems.build_status.auth_table_lookup import lookup_auth_cell, is_skip
+                _cell = lookup_auth_cell(pid, _woodies_day_type)
+                _dt_verdict = _cell[0]  # verdict string (GO/SKIP/etc.)
+                _dt_verdict_ok = not is_skip(pid, _woodies_day_type)
+            except (ValueError, Exception):
+                _dt_verdict = "lookup error"
+        elif not _dt_known:
+            _dt_verdict = "day_type unknown"
+        components.append(Component(
+            stage="targets_stop",
+            key="day_type_matrix",
+            spec=f"auth_table[{pid}×{_woodies_day_type or '?'}] verdict",
+            present=_dt_verdict_ok or _dt_verdict == "—",
+            value=f"{_dt_verdict} ({_woodies_day_type})" if _woodies_day_type else _dt_verdict,
+            live=_dt_verdict,
+            required="allowed",
+            freshness=eval_fresh,
         ))
 
         # Stage: exit_rules — ready_to_route

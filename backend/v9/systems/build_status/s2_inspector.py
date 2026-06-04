@@ -314,6 +314,125 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
                 _pc.freshness = state_fresh
         components.extend(probe_comps)
 
+        # Stage: targets_stop — preview stop/targets/r_t1 using the live
+        # engine functions (compute_stop + compute_targets_for_day_type).
+        # Read-only preview, NOT a fire. Computed only when detection passes.
+        _s2_stop = None
+        _s2_r_t1 = None
+        _s2_targets = None
+        _s2_sizing = None
+        _s2_time_stop = None
+        _s2_variant = None
+        detect_comps_pre = [c for c in components if c.stage == "detection"]
+        _all_detect_pass = detect_comps_pre and all(c.present for c in detect_comps_pre)
+        if _all_detect_pass and bar_buffer and len(bar_buffer) >= 4:
+            try:
+                from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_today_typical
+                from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type
+                _b4 = bar_buffer[-1]
+                _entry = _b4.get("c", 0)
+                _direction = "LONG" if "LONG" in pid else "SHORT"
+                # Determine structural anchor per pattern family
+                _kind = pid.split("_")[0] if "_" in pid else pid
+                _family_map = {
+                    "REACTIVE": "Reactive", "INITIATIVE": "OFA",
+                    "BULL": "Flag", "BEAR": "Flag",
+                    "INVERSE": "HnS", "HNS": "HnS",
+                    "DOUBLE": "Double_BT",
+                }
+                _family = _family_map.get(_kind, "Reactive")
+                _anchor = _b4.get("l", _entry) if _direction == "LONG" else _b4.get("h", _entry)
+                _today_typical = compute_today_typical(bar_buffer)
+                _stop_comp = compute_stop(
+                    entry_price=_entry, direction=_direction,
+                    structural_anchor=_anchor, family=_family,
+                    today_typical=_today_typical,
+                )
+                _s2_stop = _stop_comp.stop_price
+                _risk = abs(_entry - _s2_stop)
+                # Targets from day_type_targets (same path as fire-time)
+                _tgt = compute_targets_for_day_type(
+                    day_type=day_type_str, entry_price=_entry,
+                    stop_price=_s2_stop, direction=_direction,
+                )
+                if _tgt:
+                    _s2_targets = {
+                        "t1": _tgt.get("t1_price"),
+                        "t2": _tgt.get("t2_price"),
+                        "t3": _tgt.get("t3_price"),
+                    }
+                    _s2_time_stop = _tgt.get("time_stop_minutes")
+                    _s2_sizing = _tgt.get("sizing_contracts")
+                    _t1_dist = abs(_tgt["t1_price"] - _entry) if _tgt.get("t1_price") else 0
+                    _s2_r_t1 = _t1_dist / _risk if _risk > 0 else None
+                # VSA variant tag from last fire info
+                _s2_variant = state.get("last_classification")
+            except Exception as e:
+                logger.debug("[BuildStatus/S2] targets preview error: %s", e)
+
+        # R:R gate (replaces any implicit proxy — uses actual r_t1)
+        _min_r_t1 = 1.0  # pre_fire_validator threshold
+        _r_t1_ok = _s2_r_t1 is not None and _s2_r_t1 >= _min_r_t1
+        if _all_detect_pass and _s2_r_t1 is None:
+            _rr_val = "awaiting backend"
+        elif _s2_r_t1 is not None:
+            _rr_val = f"r_t1={_s2_r_t1:.2f} {'≥' if _r_t1_ok else '<'} {_min_r_t1}"
+        else:
+            _rr_val = "detection pending"
+        components.append(Component(
+            stage="targets_stop",
+            key="r_t1_gate",
+            spec=f"r_t1 >= {_min_r_t1} (pre_fire R:R gate)",
+            present=_r_t1_ok or not _all_detect_pass,  # don't block if detection not met
+            value=_rr_val,
+            live=f"{_s2_r_t1:.4f}" if _s2_r_t1 is not None else "null",
+            required=f">= {_min_r_t1}",
+            freshness=state_fresh,
+        ))
+
+        # Stop price preview
+        _stop_str = f"{_s2_stop:.2f}" if _s2_stop is not None else "—"
+        components.append(Component(
+            stage="targets_stop",
+            key="stop_price",
+            spec="adaptive_stop (structural/ATR-cap/floor)",
+            present=_s2_stop is not None or not _all_detect_pass,
+            value=f"stop={_stop_str}" + (f" · 1R={abs(_b4.get('c',0)-_s2_stop):.2f}pt" if _s2_stop and bar_buffer else ""),
+            live=_stop_str,
+            required="!= null",
+            freshness=state_fresh,
+        ))
+
+        # Targets preview
+        _tgt_str = "—"
+        if _s2_targets:
+            _parts = [f"t{i+1}={v:.2f}" for i, (k, v) in enumerate(_s2_targets.items()) if v is not None]
+            _tgt_str = " · ".join(_parts) if _parts else "—"
+        components.append(Component(
+            stage="targets_stop",
+            key="targets",
+            spec="day_type_targets (R-based per day type)",
+            present=_s2_targets is not None or not _all_detect_pass,
+            value=_tgt_str,
+            live=_tgt_str,
+            required=">= t1",
+            freshness=state_fresh,
+        ))
+
+        # Sizing + time_stop
+        _sizing_str = str(_s2_sizing) if _s2_sizing is not None else "—"
+        _ts_str = f"{_s2_time_stop}min" if _s2_time_stop is not None else "—"
+        components.append(Component(
+            stage="targets_stop",
+            key="sizing_time_stop",
+            spec="sizing (contracts) + time_stop (minutes) per day type",
+            present=True,
+            value=f"sizing={_sizing_str} · time_stop={_ts_str}",
+            live=f"sizing={_sizing_str}, time_stop={_ts_str}",
+            required="informational",
+            freshness=state_fresh,
+        ))
+
         # Determine status — history (v9_trades) wins over momentary state.
         fire_entry = fires_dict.get(pid)
         fired_today = fire_entry is not None
