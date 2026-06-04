@@ -17,10 +17,12 @@ PATTERN_ID = "VEGAS"
 GROUP = "REVERSAL"
 _PATTERN_GROUP = PatternGroup.REV
 TICK_SIZE = 0.25
-STOP_TICKS = 12
-TARGET1_TICKS = 16
-TARGET2_TICKS = 32
-_T1_TICKS = 4  # default if no measure available
+from ._pattern_ticks import get_ticks as _get_ticks
+_ticks = _get_ticks("VEGAS")
+STOP_TICKS = _ticks["stop_ticks"]       # fallback: 12
+TARGET1_TICKS = _ticks["t1_ticks"]      # fallback: 16
+TARGET2_TICKS = _ticks["t2_ticks"]      # fallback: 32
+_T1_TICKS = 4  # NOT from YAML
 
 
 def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:

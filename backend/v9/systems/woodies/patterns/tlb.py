@@ -17,10 +17,12 @@ PATTERN_ID = "TLB"
 GROUP = "CONTINUATION"
 _PATTERN_GROUP = PatternGroup.CONT_TIGHT
 TICK_SIZE = 0.25
-STOP_TICKS = 10
-TARGET1_TICKS = 15
-TARGET2_TICKS = 30
-_T1_TICKS = 4
+from ._pattern_ticks import get_ticks as _get_ticks
+_ticks = _get_ticks("TLB")
+STOP_TICKS = _ticks["stop_ticks"]       # fallback: 10
+TARGET1_TICKS = _ticks["t1_ticks"]      # fallback: 15
+TARGET2_TICKS = _ticks["t2_ticks"]      # fallback: 30
+_T1_TICKS = 4  # NOT from YAML
 
 
 def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:

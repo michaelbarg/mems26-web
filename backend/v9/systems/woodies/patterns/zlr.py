@@ -18,10 +18,12 @@ GROUP = "CONTINUATION"
 _PATTERN_GROUP = PatternGroup.CONT_TIGHT
 # MES tick size for stop/target computation
 TICK_SIZE = 0.25
-STOP_TICKS = 8
-TARGET1_TICKS = 12
-TARGET2_TICKS = 24
-_T1_TICKS = 4  # T1 for R_t1 computation
+from ._pattern_ticks import get_ticks as _get_ticks
+_ticks = _get_ticks("ZLR")
+STOP_TICKS = _ticks["stop_ticks"]       # fallback: 8
+TARGET1_TICKS = _ticks["t1_ticks"]      # fallback: 12
+TARGET2_TICKS = _ticks["t2_ticks"]      # fallback: 24
+_T1_TICKS = 4  # T1 for R_t1 computation — intentionally NOT from YAML
 
 
 def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:

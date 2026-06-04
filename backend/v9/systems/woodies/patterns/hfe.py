@@ -32,10 +32,12 @@ LOOKBACK = 12  # bars to search for extreme
 EXTREME_THRESHOLD = 200  # CCI must reach +/-200
 HOOK_THRESHOLD = 50  # CCI must hook back at least this far from extreme
 TICK_SIZE = 0.25
-STOP_TICKS = 8
-TARGET1_TICKS = 12
-TARGET2_TICKS = 24
-_T1_TICKS = 4
+from ._pattern_ticks import get_ticks as _get_ticks
+_ticks = _get_ticks("HFE")
+STOP_TICKS = _ticks["stop_ticks"]       # fallback: 8
+TARGET1_TICKS = _ticks["t1_ticks"]      # fallback: 12
+TARGET2_TICKS = _ticks["t2_ticks"]      # fallback: 24
+_T1_TICKS = 4  # NOT from YAML
 
 
 def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:
