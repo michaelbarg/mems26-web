@@ -82,24 +82,10 @@ class DayTypeSystem(BaseSystem):
 
             state = self._machine.process_bar(bar_input)
 
-            # Generate signal when locked with playbook
-            if state.lock_state in ("LOCKED", "LOCKED_LOW_CONF") and state.playbook is not None:
-                direction = "LONG"
-                if state.behavior.value in ("TRENDING_DOWN",):
-                    direction = "SHORT"
-
-                return Signal(
-                    system_id=self.system_id,
-                    classification=state.day_type.value,
-                    direction=direction,
-                    confidence=state.confidence,
-                    entry_price=bar.get("c", bar.get("close")),
-                    metadata={
-                        "stage": state.stage.value,
-                        "playbook_strategy": state.playbook.strategy,
-                        "lock_state": state.lock_state,
-                    },
-                )
+            # D-090: S1 = OBSERVER per Registry — classification continues,
+            # but Signal generation is blocked. Remove this guard to re-enable
+            # S1 firing (requires a new D-decision).
+            return None
 
         except Exception:
             logger.exception("[DayTypeSystem] analyze failed for stream %s", stream_name)
