@@ -100,7 +100,13 @@ const TF_SECONDS: Record<string, number> = { '3m': 180, '5m': 300, '15m': 900, '
  * labels naturally, and RTH-open at real 13:30 UTC = display 16:30 IL.
  */
 function tsToUnix(ts: string): number {
-  return Math.floor(new Date(ts.replace(' ', 'T') + 'Z').getTime() / 1000);
+  // PG returns timestamps with timezone offset ("2026-06-04 17:55:00+03:00").
+  // SQLite returned bare timestamps ("2026-06-04 17:55:00") needing a 'Z' suffix.
+  // Handle both: if the string already contains +/- offset or Z, parse as-is;
+  // otherwise append 'Z' (legacy UTC assumption).
+  const s = ts.replace(' ', 'T');
+  const hasOffset = /[+-]\d{2}:\d{2}$/.test(s) || s.endsWith('Z');
+  return Math.floor(new Date(hasOffset ? s : s + 'Z').getTime() / 1000);
 }
 
 function latestBarUnix(bars: Array<{ ts?: string }>): number | null {

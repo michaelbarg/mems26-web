@@ -149,7 +149,9 @@ export function aggregateCvdPoints(points: CvdPoint[], bucketSeconds: number): C
  * See ChartV5b.tsx::tsToUnix for the matching fix (P31-FE-TZ-2).
  */
 export function tsToUnix(ts: string): number {
-  return Math.floor(new Date(ts.replace(' ', 'T') + 'Z').getTime() / 1000);
+  const s = ts.replace(' ', 'T');
+  const hasOffset = /[+-]\d{2}:\d{2}$/.test(s) || s.endsWith('Z');
+  return Math.floor(new Date(hasOffset ? s : s + 'Z').getTime() / 1000);
 }
 
 /**
