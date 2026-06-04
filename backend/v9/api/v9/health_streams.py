@@ -29,4 +29,8 @@ def get_stream_health():
     """
     if _stream_health_service is None:
         return {"streams": [], "summary": {"green": 0, "yellow": 0, "red": 0, "grey": 0}, "ts": None}
-    return _stream_health_service.get_all_streams()
+    result = _stream_health_service.get_all_streams()
+    # Append frozen-tail watchdog state
+    from backend.v9.services.frozen_tail_watchdog import get_frozen_tail_state
+    result["frozen_tail"] = get_frozen_tail_state()
+    return result

@@ -343,3 +343,13 @@ def _startup():
     from backend.v9.services.bar_ingestion import bar_ingestion_service
     bar_ingestion_service.start()
     logger.info("[V9] BarIngestionService started: running=%s", bar_ingestion_service.is_running)
+
+    # Frozen-tail watchdog (detect + alert, read-only)
+    import asyncio
+    from backend.v9.services.frozen_tail_watchdog import run_watchdog_loop
+    try:
+        loop = asyncio.get_event_loop()
+        loop.create_task(run_watchdog_loop())
+        logger.info("[V9] Frozen-tail watchdog task scheduled")
+    except RuntimeError:
+        logger.warning("[V9] No event loop — frozen-tail watchdog not started (OK in tests)")
