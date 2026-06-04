@@ -71,12 +71,12 @@ _DISABLE_CHICAGO_TS_FIX = os.getenv("V9_DISABLE_CHICAGO_TS_FIX", "").lower() in 
 )
 try:
     from zoneinfo import ZoneInfo  # Python 3.9+ stdlib
-    _CHICAGO_TZ = ZoneInfo("America/New_York")
+    _CHICAGO_TZ = ZoneInfo("America/Chicago")
     _CHICAGO_TZ_USES_LOCALIZE = False
 except ImportError:  # pragma: no cover — fallback for ancient Pythons
     try:
         import pytz
-        _CHICAGO_TZ = pytz.timezone("America/New_York")
+        _CHICAGO_TZ = pytz.timezone("America/Chicago")
         _CHICAGO_TZ_USES_LOCALIZE = True
     except ImportError:
         _CHICAGO_TZ = None
