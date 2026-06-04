@@ -940,7 +940,8 @@ class FiveMinSystem(BaseV9TradingSystem):
             # Persist to DB
             try:
                 db = SessionLocal()
-                from backend.v9.db.models.five_min_state import V9FiveMinSetup
+                from backend.v9.db.models.five_min_setups import V9FiveMinSetup
+                _vp = info.get("variants_passed", [])
                 setup = V9FiveMinSetup(
                     ts=datetime.fromtimestamp(bar.get("ts", 0), tz=timezone.utc),
                     pattern=f"{kind}_{direction}",
@@ -953,6 +954,8 @@ class FiveMinSystem(BaseV9TradingSystem):
                     bar_stage=info.get("stage", 4),
                     cot_at_fire=self._get_cot_from_footprint(),
                     amt_at_fire=self._get_amt_from_footprint(),
+                    variant_tag=info.get("variant", ""),
+                    variants_passed=",".join(_vp) if _vp else "",
                 )
                 db.add(setup)
                 db.commit()
