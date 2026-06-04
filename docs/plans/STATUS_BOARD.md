@@ -1,7 +1,61 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
-> 🧭 **המשך-צ'אט מתחיל כאן:** `docs/handoff/HANDOFF_NEXT_CHAT_POST_PG_MIGRATION_2026-06-04.md`. מצב: Postgres הוגר; ציר 4+6b תוקנו (`d635b1c`/`20f9df7`, אומת). split-brain נסגר ואומת (`69744bb`) → **כל מחלקת ה-DB סגורה, DB-side GO**. נותרו תנאים שאינם-DB לפתיחת SHADOW: שירותים+feed ב-RTH, flags ON, S2(D-RVX)/S1(bar.atr) firing.
+- **[2026-06-04] ✅ PG datetime↔str regression fix (CC):** root=PG returns `datetime` for timestamp columns, `DataFreshness.last_bar_ts: Optional[str]` rejected it → `day_type_inspector` crashed → `day_type=None` → S1 unclassified → S2/S4 day-gate fell. fix=central `field_validator(mode="before")` coercion on `DataFreshness.last_bar_ts`, `PatternStatus.last_fire_ts`, `SystemStatus.last_fire_ts`, `Freshness.ts` in `types.py`. Sibling audit: woodies/s2/bridge inspectors safe (`latest_valid_db_ts` already does `str(raw)`, `fires_today` does `.isoformat()`). Verified: 9/9 pytest green + litmus revert→RED (pydantic `ValidationError: Input should be a valid string`).
+- **[2026-06-04 eve] ✅ אינדקס-קוד חי (CC `a4b1fac`, אומת Cowork):** `scripts/gen_index.py` + 107 `_INDEX.md` פר-ספרייה + `SYSTEM_INDEX.md`. import-graph (py+ts) מסמן שימוש פר-קובץ; orphans 137→**53** אחרי הקשחה (entrypoints/dynamic/streams/Next.js). verification (Cowork): 107 קבצים נמצאו · litmus `adaptive_stop.py ✅2`/`s2_inspector.py ✅1` (לא-orphan, graph תופס) · idempotent (CC: 0-diff בריצה שנייה). **2 orphans-אמת בולטים לבדיקה:** `services/trail_engine.py` (0 refs — dead או missing-wire?) · `archive/confluence.py`. residual: 53 כוללים false-positives של class-instantiation (דורש AST על constructor-calls). להריץ `python3 scripts/gen_index.py` לרענון.
+
+> 🟡 **OPEN (נגיש להמשך) — הגדרת סטופים פר-תבנית×סוג-יום:** טבלת-עבודה לעריכה ב-`docs/plans/MEMS26_STOP_TARGET_PLACEMENT_TABLE_2026-06-04.xlsx` (+ Drive `1IW5SQytZ6iFGcLSVgeE9tKo7BmEqDyFk`). distances/targets/verdict כבר YAML-tunable; ה-**עוגן** קשיח → דורש `stop_anchors.yaml` + loader + 2 עוגנים חדשים (candle-cluster low, extreme-candle edge). כש-Michael יבקש "להגדיר סטופים" — לפתוח את הטבלה. ([[project-stop-target-placement-table]])
+
+## 📋 2026-06-04 eve — ✅ D-RVX: בורר וריאציית S2 → YAML-tunable (CC `e72883c`, אומת Cowork, litmus revert→RED הוכח)
+
+- **✅ knob נחשף — exposure-only, 0 שינוי-התנהגות בברירת-מחדל (אומת בלתי-תלוי, Cowork code+pytest):** commit `e72883c` (4 קבצים) הופך את שער-הירי של S2 ל-YAML.
+  verification (raw): (1) **diff כירורגי** — ב-`five_min_system.py` רק `:513-514` (`b2_drop=_vsa_pass`→selector); `:504-511`(compute)/`:546`/`:570`(fire)/`:516`(legacy) **לא נגעו** (numstat `8/1`). (2) `config_loader.load_s2_firing()` מאמת מול 5 ערכים מותרים, חסר/לא-חוקי→`A_VSA`+warning (No silent failure). (3) הטסט מייבא את **`FiveMinSystem._detect_reactive` האמיתי** (anti-tautological) — בָּרים עם `_rvol_pass=True,_vsa_pass=False`. (4) **6/6 ב-sandbox**. (5) **litmus revert→RED הוכח ע"י Cowork:** כפיית `b2_drop=_vsa_pass` קשיח → `test_variant_b_rvol_fires`+`test_variant_union_fires` **נכשלו** (`None==LONG`); שחזור → 6/6 ירוק. (6) `test_default_a_vsa_zero_change` ירוק = ברירת-מחדל bit-identical.
+- **🟢 5 ערכים זמינים בקונפיג** (`config/s2_firing.yaml` `variant:`): `A_VSA`(ברירת-מחדל, 22.1%) · `B_RVOL`(20.9%) · `C_STRICT`(11.0%) · `UNION`(OR) · `INTERSECTION`(AND).
+- **⏳ ההכרעה עצמה פתוחה ל-Michael (D-RVX):** איזו וריאציה להדליק — **תיבחר מדאטת ה-soak**. שינוי מ-`A_VSA` = trading-logic → strategic-stop + אישור לפני live. עד אז A_VSA פעילה (= ההתנהגות הקיימת, ללא שינוי).
+
+## 📋 2026-06-04 eve — ✅ BuildTreeView מרנדר TARGETS/STOP חי + הוסר de-trust מיושן (CC `66bd45c`, אומת Cowork)
+
+- **✅ רינדור + ניקוי אומתו בלתי-תלוי (Cowork, code+tsc):** commit `66bd45c` (frontend-only, 1 קובץ) סוגר את ה-staleness של P0-2.
+  verification (raw): (1) `TargetsStopLive` (`:605`) קורא `components[stage=="targets_stop"]` מהתגובה החיה, מציג stop/r_t1/targets/sizing/matrix, וחסר/`null`→`⧗ ממתין` — **0 סינתזה** (אין חישוב-מחיר ב-frontend; Rule 1 נשמר). (2) משובץ ב-§6 עם guard `isFiring` בלבד (`:799-801`). (3) **de-trust הוסר:** 0 קריאות חיות ל-`isProxyGate` (נמחק); ⧗-branch ב-ComponentTable/global_gates הוחלף ב-✓/✕ אמיתי; title "⧗ ממתין ל-backend (P0-2)" ירד. (4) **tsc שוחזר ע"י Cowork** (`node_modules` קיים): **0 שגיאות ב-BuildTreeView**; 2 pre-existing בלבד (`PriceDebugConsole.tsx:90`, `api.ts:47`) לא-קשורות.
+- **✅ סתירת-framing מהסשן נסגרה:** BuildTreeView היה **untracked** עד כה (ה-numstat `1362/0` = commit ראשון). כעת committed → מימוש ה-Build-Status redesign מגובה ב-git.
+- **🟡 3 residuals (לא-חוסמי-SHADOW):** (1) CC NOT-DONE#1 — **price-scale ויזואלי** (entry→stop→T1-T3 כפס) נדחה (דורש כל השדות present בו-זמנית → מבחן RTH). (2) CC NOT-DONE#2 — **אין render-test אנטי-טאוטולוגי** (אין jest/testing-library מוגדר); לוגיקת ה-render אומתה ע"י Cowork בקריאת-קוד אך **לא מוגנת בטסט**. (3) **ממצא Cowork — staleness ב-`:1176`:** הערת טבלאות-האפיון עדיין אומרת שהקרנת-$ "⧗ ממתין ל-backend · ה-1R החי חייב להגיע מ-inspector" — אבל ה-1R **כבר הגיע** (P0-2) ו-TargetsStopLive מציג אותו. טקסט מטעה (קוסמטי) → לנסח מחדש: 1R זמין; ה-overlay על הטבלאות הסטטיות הוא enhancement דחוי (#1).
+
+## 📋 2026-06-04 eve — ✅ S4 ticks חוּוטו ל-YAML (CC `e41ac5d`, אומת Cowork) — wiring אמיתי, טסט-litmus חלש
+
+- **✅ wiring אמיתי — אומת בלתי-תלוי (Cowork, reload-proof):** commit `e41ac5d` יצר `woodies/patterns/_pattern_ticks.py` (helper מרכזי, cache + `_DEFAULTS` fallback) ו-9 ה-detectors קוראים ממנו. **0 drift + wiring חי הוכחו ע"י Cowork:**
+  - (A) bind ברירת-מחדל: כל 9 ה-detectors → `STOP_TICKS/TARGET1/2_TICKS` == ערכי-המקור המקוריים (raw: `drift: NONE`).
+  - (B) **litmus אמיתי ש-Cowork הריץ** (מה שהטסט היה צריך לעשות): override YAML `ZLR stop=9` → `reset_cache()` → `importlib.reload(zlr)` → `zlr.STOP_TICKS == 9` (ושוחזר ל-8). **המנוע באמת קורא מה-YAML.** `_T1_TICKS=4` לא נגוע.
+  - pytest `test_config_yaml_roundtrip.py` = **8/8**; regression 33/33 (CC raw).
+- **🟡 residual (B1 anti-tautological) — `test_s4_detector_reads_from_yaml` מטרתו שגויה:** ה-docstring טוען "verifies the detector's STOP_TICKS == 9", אבל הקוד עושה assert על ה-**helper** (`_pattern_ticks.get_ticks("ZLR")==9`) בלבד — **לא** מייבא/reload את `zlr` ולא בודק `zlr.STOP_TICKS`. תוצאה: אם יחזירו (revert) את החיווט בתוך detector לקבוע קשיח — **הטסט עדיין ירוק** → נכשל ב-litmus `revert→RED` ברמת ה-detector. (`test_s4_ticks_yaml_matches_detector_constants` כן קורא `mod.STOP_TICKS` ל-9/9, אבל מכיוון ש-YAML==defaults הוא תופס drift, לא היעדר-wiring.) **✅ תוקן ע"י Cowork (working-tree, טרם committed):** ב-litmus נוסף `importlib.reload(zlr)` + `assert zlr.STOP_TICKS == 9` (+guard `_T1_TICKS==4`) + cleanup-reload ב-finally + docstring עודכן. **revert→RED הוכח (raw):** סימולציה של החזרת `STOP_TICKS=8` קשיח ב-zlr → הטסט **נכשל** (`assert 8 == 9`); לאחר שחזור → 8/8 ירוק. כעת הטסט מגן על החיווט ברמת ה-detector, לא רק ה-helper. (CC/Michael ל-commit.)
+- **סטטוס config-tunable:** S2-stop + auth + targets + min_r_t1 + **S4-ticks** = כעת YAML-authoritative. נותר ל-[[project-config-tunable-stop-exits-contracts]]: לוודא ש**contracts-count** מניע sizing בפועל + exits מלאים + reload-endpoint (NOT-DONE#2) + איחוד `build_status/auth_table_lookup.py` הכפול (NOT-DONE#4).
+
+## 📋 2026-06-04 eve — ✅ config→YAML round-trip הוצלב (CC `182862b`, אומת Cowork בלתי-תלוי)
+
+- **✅ Round-trip equality אומת — 0 שינוי-ערכים (Cowork, code+pytest):** commit `182862b` (HEAD) externalize auth/targets/stop ל-`config/*.yaml` עם fallback ל-const קשיחים.
+  verification (raw): (1) `git diff 8eb5747 182862b` על `auth_table_v1.py`/`targets_table.py` — ה-const-dicts הקשיחים `_AUTH_TABLE_V1`/`_TARGETS` **לא שונו** (רק נוספו loader + `AUTH_TABLE`/`TARGETS` = YAML-או-fallback). (2) deep-equal עצמאי: `load_auth_matrix()` vs `_AUTH_TABLE_V1` = **70/70 cells, 0 mismatch, 0 yaml-extra**; `load_targets()` vs `_TARGETS` = **7/7 day_types, 0 mismatch**. (3) S2 stop ידני מול מקור: `MES_TICK=0.25·FLOOR_TICKS=4·backstop=4·_FLOOR_ATR_K=1.75·ATR_MULTIPLIERS{Reactive1.0/OFA1.5/Flag1.5/Double_BT2.0/HnS2.0}` = זהים ל-YAML. (4) S4: **כל 9 התבניות** (ZLR 8/12/24·TLB 10/15/30·TT 8/12/20·GB100 8/12/24·VEGAS 12/16/32·GHOST 12/16/32·FAMIR 10/14/28·HTLB 10/14/28·HFE 8/12/24) זהות מול קבועי ה-detectors. (5) pytest `test_config_yaml_roundtrip.py` = **6/6** ב-sandbox.
+- **🟡 wiring — מה באמת YAML-authoritative מול mirror-בלבד (ממצא Cowork):**
+  - **חי (YAML מוביל):** S2 `adaptive_stop` (`_try_load_yaml_stop()` נקרא ב-:58) · `auth_table_v1.AUTH_TABLE` · `targets_table.TARGETS` · `pattern_dispatcher min_r_t1_threshold` (:55-63). עריכת ה-YAML **כן** משנה התנהגות.
+  - **❗ אינרטי (mirror-בלבד) — S4 per-pattern ticks:** אף קובץ ב-`woodies/patterns/` לא מייבא `config_loader` (אומת: 0 hits). 9 ה-detectors עדיין קוראים `STOP_TICKS`/`TARGET1/2_TICKS` הקשיחים שלהם. **משמעות:** עריכת `config/stop_params.yaml`→`s4_patterns` **לא תשנה כלום** ב-S4 עד שחיווט 9 הקבצים (NOT-DONE#1). זה הפער מול [[project-config-tunable-stop-exits-contracts]] — stop/exits של S4 **טרם** ניתנים-לכיול-ללא-קוד.
+- **🟡 residual (test-hardening):** `test_stop_params_roundtrip` משווה S4 מול **ליטרלים בטסט** (רק 3/9: ZLR/TLB/VEGAS), לא מול קבועי-המקור. כל drift עתידי ב-YAML-S4 (האינרטי) יעבור ירוק בלי להיתפס. תיקון מוצע: לחזק את הטסט להשוות מול קבועי 9 ה-detectors בפועל (ואז לחווט אותם → YAML authoritative). אומת Cowork שהיום 0 drift, אבל ההגנה חלשה.
+
+## 📋 2026-06-04 eve — ✅ הצלבת 2 תוצרי המעצבים (Trades + Build-Status) מול source-of-truth (Cowork, code+git)
+
+- **✅ Trades redesign — עבר הצלבה (Rule 1 נקי), אומת מול קוד:** `TRADES_PAGE_REDESIGN_2026-06-03.md` לא מסנתז שום שדה.
+  verification (raw): כל השדות הנשענים = עמודות אמיתיות ב-`db/models/trades.py` (`stop,t1,t2,t3,t1-t3_hit_ts,exit_reason,pnl_usd/r,outcome,firing_system`); `killzone`/`day_type` **אינם** עמודות → מסומנים נכון ⛔ "ממתין ל-backend". D-A `tradeStore.ts:57 mode:'ALL'` ✅ (תוקן כפי שנטען); באג-תאריך לקסיקלי D-D `tradeStore.ts:114-118` `entry_ts.slice(0,10)` השוואת-מחרוזת `<`/`>` ✅ פתוח כמתואר; `api/v9/trades.py` routes = exit/active/POST/GET/recent/{id}/log → **אין endpoint אגרגציה** → gap-list G2-G4/G7 אכן נדרשים.
+  **verify-item (לא-חוסם):** G5 "`v9_trade_management_log` לעולם לא נכתב" — קיימת התייחסות ב-`services/trade_manager/manager.py`; לאמת אם זה כותב-שבור לפני סיווג כ-gap קשיח.
+- **✅ Build-Status redesign — עבר הצלבה (Rule 1 נקי) + cull מאומת בטוח:** field-schema מסונכרן verbatim בין CC_PROMPT_P0_2 ↔ gap-list P0-2 ↔ `BuildTreeView.tsx:578`.
+  **cull מאומת (raw — נמנע מ-grep-false-positive בכוונה):** `BuildStatusTab` מותקן **רק** ב-`V9Dashboard.tsx:138` (else-branch); `/build`=`app/build/page.tsx`→`<BuildTreeView/>`; 6 קבצי-DELETE (BuildStatusTab/SystemSection/PatternRow/ComponentTable/StatusPill/ReadinessHeader) reachable רק דרך BuildStatusTab; `BuildTreeView` **מממש inline** `ComponentTable`(:359)/`PatternRow`(:415) ומייבא רק `types.ts` (KEEP) → **cull בטוח**. ההמלצה תקפה, עדיין ממתינה go של Michael.
+- **🟡 ממצא-מפתח (staleness — דורש re-mark):** שני המסמכים (08:37) קודמים ל-P0-2 (`8eb5747`, 11:44 commit). הם מסמנים TARGETS/STOP/r_t1 כ-`⧗ ממתין ל-backend`, אבל ה-backend **כבר פולט** זאת — אומת: `s2_inspector.py:317-426` (preview דרך `compute_stop`+`compute_targets_for_day_type`, `r_t1_gate`) + `woodies_inspector.py:329-364` (`r_t1` מ-`PatternResult`). הפער שנותר = **frontend-render בלבד** (`BuildTreeView.tsx:386` עדיין ⧗ proxy; residual §5 "frontend טרם מרנדר stage targets_stop"). solution: למרק מחדש gap-list P0-2 + spec §4/§6 → **backend=DONE (`8eb5747`), frontend-render=OPEN**.
+- **🟡 סתירת-framing להכרעת Michael:** ה-handoff §1 מתאר את שני המעצבים כ-"read-only, לא מימוש", אך Build-Status **מומש בפועל** כקוד-frontend (`build_tree/BuildTreeView.tsx`, mounted `/build`, **untracked** = טרם committed — `git ls-files build_tree/` ריק). Trades אכן design-only. לא-חוסם, ראוי-ידיעה.
+
+## 📋 2026-06-04 (P0-2) — חשיפת TARGETS/STOP→r_t1 ל-build-status (CC `8eb5747`, אומת Cowork)
+
+- **✅ P0-2 בוצע ואומת בלתי-תלוי (Cowork, code+git) — exposure-only:** commit `8eb5747` = רק `s2_inspector.py`+`woodies_inspector.py` (+119/+100), **0 שינוי מנוע/risk**.
+  s2_inspector **משתמש-מחדש** ב-`compute_stop`+`compute_targets_for_day_type` (לא reimplement/synth). פרוקסי `confidence≥0.5` → `r_t1≥1.0` (סף pre_fire); חסר → "awaiting backend". S4 prospective כבר ב-`PatternResult`; S2 קיבל preview read-only (היה fire-time בלבד). + Day-Type Matrix verdict ל-S4.
+  verification (Cowork): `git show --stat 8eb5747` 2 קבצים; `compute_stop`/`compute_targets` מיובאים ונקראים (s2_inspector:346/354); woodies_inspector `_min_r_t1=1.0`.
+  **3 residuals (אומתו, NOT-DONE):** (1) **consistency חי טרם אומת** — displayed stop/r_t1 == עסקה שנורתה (תלוי-RTH; נוסף לצ'ק-ליסט bring-up). (2) **תבניות-chart S2** (Flag/H&S/Double-BT) משתמשות ב-pattern-measure בזמן-ירי, ה-preview מציג R-based → תצוגה≠מנוע לאותן תבניות (תיקון: למשוך pattern_measure). (3) **`pattern_dispatcher.py:47 min_r_t1_threshold=0.0`** no-op (pre_fire R:R≥1.0 הוא הגייט הקובע) → dead-threshold לחווט/להוציא ל-config (מתחבר ל-[[project-config-tunable-stop-exits-contracts]]).
+
+> 🧭 **המשך-צ'אט מתחיל כאן:** `docs/handoff/HANDOFF_NEXT_CHAT_2026-06-04_EVE.md`. מצב: DB מלא על PG + firing fixes + watchdog + P0-2 — **הכל אומת**. **הצעד המיידי: הצלבת 2 תוצרי המעצבים (Trades + Build-Status) שסיימו וממתינים.** config-YAML המורחב נשלח ל-CC. P1 bring-up ב-RTH = השער לפתיחת SHADOW.
 
 ## 📋 2026-06-04 — אבחון S1/S2 firing (rerun על PG, אומת Cowork)
 
@@ -39,6 +93,30 @@
 
 ## 📋 2026-06-04 — ✅ עיצוב-מחדש עמוד Trades לכיול (Cowork, read-only design-research)
 
+- **[2026-06-04] Trades redesign — scope הוכרע (Michael):** decision = **Frontend‑שלב‑1 עכשיו + G1 במקביל**.
+  finding = "מלא כמו prototype" אי‑אפשר ב‑frontend לבד (killzone‑at‑entry לא נשמר → צריך G1; אגרגציה
+  client‑side רק ≤500 שורות → סיכון Cardinality). solution = שלב‑1 frontend ללא נגיעה ב‑DB/risk/polling
+  + G1 (write‑at‑entry — לא סובל דחייה, אחרת היסטוריה מאבדת killzone/day_type לתמיד). **בעלות (אנטי‑כפילות):**
+  Frontend‑1=סוכן‑Frontend (ADAPT מ‑`PatternPerformanceStrip.tsx`, לא רכיב חדש) · G1=CC · **G2–G7=DEFERRED,
+  ⛔ לא לבנות עד ש‑G1+Frontend‑1 ינחתו.** **חוזה‑ממשק G1** (נקודת‑חיבור מוסכמת מראש → אפס rework):
+  עמודות `day_type_at_entry`/`pattern_id_at_entry`/`session_at_entry`; מקור שותק→NULL; frontend מרנדר
+  "missing — pending G1" ב‑runtime (Rule 1) + ציר killzone אפור מנוטרל עד G1. מקור‑מלא + טבלת‑בעלות:
+  `docs/handoff/HANDOFF_TRADES_PAGE_REDESIGN_NEXT_2026-06-04.md` §5/§5a/§5b. ההכרעה תיעוד‑בלבד, **טרם מומש קוד.**
+- **[2026-06-04] G1 prompt נכתב + תיקון‑דיוק (Cowork, code‑verified, Rule 2):** הטענה "killzone‑at‑entry
+  לא נשמר" **הופרכה** — `trading_gateway._capture_cross_context()` (`:399‑410`) מצלם את כל 6 המערכות
+  (כולל `killzone_system`) ל‑`cross_context` JSON בכניסה ושומר ב‑INSERT (`:414`); `trade_context.py`
+  חולץ משם ב‑runtime → קבור ב‑JSON, לא queryable. ⇒ G1 = **promote JSON→עמודה אינדקסבילית**, ברובו
+  **backfillable** (לא write‑at‑entry "נאבד לתמיד" כפי שנטען קודם). פרומפט עם **verify‑first** (לאמת מול PG
+  מה מאוכלס ב‑cross_context לפני הוספת עמודות) + seam‑map + טסטים anti‑tautological:
+  `docs/handoff/CC_PROMPT_G1_TRADE_ENTRY_CONTEXT_COLUMNS_2026-06-04.md`. verification (raw, Cowork):
+  `trades.py:53‑54` cross_context JSON · `trading_gateway.py:399‑410` snapshot כל 6 · `:414‑426` INSERT ·
+  `trade_context.py:38‑45` registry keys (killzone→killzone_system). טרם מומש קוד.
+- **[2026-06-04] ערכת‑מימוש מסודרת נוצרה (Cowork):** מסמך‑אב `docs/handoff/TRADES_REDESIGN_KIT_2026-06-04.md`
+  (START HERE — החלטה/סדר/בעלות/חוזה/invariants + קישור לכל הקבצים) + פרומפט Frontend שלב‑1
+  `docs/handoff/CC_PROMPT_FRONTEND_PHASE1_TRADES_REDESIGN_2026-06-04.md` (8 פריטים מסודרים, ADAPT מ‑
+  `PatternPerformanceStrip`, ET‑date fix `tradeStore.ts:114‑118`, ציר killzone/day_type gated "pending G1").
+  G1+Frontend רצים במקביל דרך חוזה §5b. verification (raw, Cowork): `tradeStore.ts:114‑118` slice(0,10) לקסיקלי
+  (אומת באג TZ) · `TradesView.tsx:16` fetchTrades() ללא args · `PatternPerformanceStrip.tsx:30,43` patternKey/aggregateByPattern.
 - **[2026-06-04] Trades redesign (design-only, לא מומש):** root finding = כל חתכי-הכיול
   שהטריידר ביקש (pattern/day_type/killzone/confluence) **נגזרים מ-JSON ב-runtime**
   (`trade_context.py`) או לא קיימים → אי-אפשר GROUP_BY ב-SQL; ובנוסף כל האגרגציה

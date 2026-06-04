@@ -17,12 +17,27 @@ from datetime import date
 ROOT = Path(__file__).resolve().parent.parent
 SCAN_DIRS = ["backend", "frontend/v9/src", "bridge", "scripts", "sc_study"]
 EXCLUDE = {"node_modules", "__pycache__", ".next", ".git", ".pytest_cache",
-           "dist", "build", ".venv"}
+           "dist", ".venv"}
+# "build" excluded only as a top-level output dir, not as a Next.js route segment
+EXCLUDE_TOPLEVEL = {"build"}
 CODE_EXT = {".py", ".ts", ".tsx", ".js", ".jsx", ".cpp", ".h", ".sh"}
 INDEX_NAME = "_INDEX.md"
 
 def is_excluded(p: Path) -> bool:
-    return any(part in EXCLUDE for part in p.parts)
+    rel = p.relative_to(ROOT)
+    for part in rel.parts:
+        if part in EXCLUDE:
+            return True
+    # "build" only excluded when it's immediately under a scan-root directory
+    for sd in SCAN_DIRS:
+        sd_path = Path(sd)
+        try:
+            sub = rel.relative_to(sd_path)
+            if sub.parts and sub.parts[0] in EXCLUDE_TOPLEVEL:
+                return True
+        except ValueError:
+            continue
+    return False
 
 
 # ── Purpose extraction ───────────────────────────────────────────────
@@ -235,6 +250,8 @@ PY_ENTRY = re.compile(
 )
 # Bridge streams loaded dynamically by json_bridge.py via __init__.py
 BRIDGE_STREAM = re.compile(r"bridge/v9_streams/\w+_stream\.py$")
+# Bridge top-level modules (loaded by json_bridge.py or LaunchAgent)
+BRIDGE_ENTRY = re.compile(r"^bridge/[^/]+\.py$")
 # DB migration files
 MIGRATION = re.compile(r"/migrations/versions/")
 
@@ -252,6 +269,8 @@ def usage_flag(p):
         return "▶ entry/test"
     if BRIDGE_STREAM.search(rel):
         return "▶ bridge-stream"
+    if BRIDGE_ENTRY.search(rel):
+        return "▶ bridge-module"
     if MIGRATION.search(rel):
         return "▶ migration"
     # app/ directory pages
