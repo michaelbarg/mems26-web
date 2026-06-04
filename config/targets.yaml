@@ -1,0 +1,95 @@
+# Targets per Day Type — R-multiples, time stops, sizing
+# Authority: Constitution V3 Part 1 Layer 4 + EXIT_V6 + D-091.Q1
+# Changing a value = new version + Michael approval. Git tracks.
+
+day_types:
+  Trend_Normal:
+    t1: "1R"
+    t1_r: 1.0
+    t2: "2R+TPO"
+    t2_r: 2.0
+    t3: "4R+trail"
+    t3_r: 4.0
+    time_stop_minutes: null
+    trail_after_t2: true
+    sizing: "AGGRESSIVE"
+    contracts: 3
+    no_trade: false
+
+  Trend_DD:
+    t1: "1R"
+    t1_r: 1.0
+    t2: "open"
+    t2_r: null
+    t3: "4R cap"
+    t3_r: 4.0
+    time_stop_minutes: 90
+    trail_after_t2: false
+    sizing: "AGGRESSIVE"
+    contracts: 3
+    no_trade: false
+
+  Variation:
+    t1: "1R"
+    t1_r: 1.0
+    t2: "2.5R"
+    t2_r: 2.5
+    t3: "trail"
+    t3_r: null
+    time_stop_minutes: 60
+    trail_after_t2: true
+    sizing: "FULL"
+    contracts: 2
+    no_trade: false
+
+  Normal:
+    t1: "1R"
+    t1_r: 1.0
+    t2: "POC"
+    t2_r: null
+    t3: null
+    t3_r: null
+    time_stop_minutes: 30
+    trail_after_t2: false
+    sizing: "HALF"
+    contracts: 1
+    no_trade: false
+
+  Neutral_Extreme:
+    t1: "1R"
+    t1_r: 1.0
+    t2: "extreme"
+    t2_r: null
+    t3: null
+    t3_r: null
+    time_stop_minutes: 45
+    trail_after_t2: false
+    sizing: "HALF"
+    contracts: 1
+    no_trade: false
+
+  Neutral_Center:
+    t1: "1R"
+    t1_r: 1.0
+    t2: "extreme"
+    t2_r: null
+    t3: null
+    t3_r: null
+    time_stop_minutes: 30
+    trail_after_t2: false
+    sizing: "HALF"
+    contracts: 1
+    no_trade: false
+
+  Nontrend:
+    t1: null
+    t1_r: null
+    t2: null
+    t2_r: null
+    t3: null
+    t3_r: null
+    time_stop_minutes: null
+    trail_after_t2: false
+    sizing: null
+    contracts: 0
+    no_trade: true

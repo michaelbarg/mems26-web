@@ -103,6 +103,22 @@ _AUTH_TABLE_V1: Dict[Tuple[str, str], Tuple[QualityVerdict, int, int, int]] = {
     ("BEAR_FLAG_SHORT",      "Nontrend"):        ("SKIP",    0, 0, 0),
 }
 
+# ── YAML override with fallback ──────────────────────────────────────
+def _try_load_yaml_auth() -> Dict[Tuple[str, str], Tuple[QualityVerdict, int, int, int]]:
+    """Attempt to load auth matrix from YAML; return hardcoded fallback on failure."""
+    try:
+        from backend.v9.config_loader import load_auth_matrix
+        loaded = load_auth_matrix()
+        if loaded is not None and len(loaded) == 70:
+            logger.info("[Pkg8/auth_table_v1] loaded %d cells from auth_matrix.yaml", len(loaded))
+            return loaded
+    except Exception as e:
+        logger.warning("[Pkg8/auth_table_v1] YAML load failed (%s) — using hardcoded fallback", e)
+    return _AUTH_TABLE_V1
+
+AUTH_TABLE: Dict[Tuple[str, str], Tuple[QualityVerdict, int, int, int]] = _try_load_yaml_auth()
+
+assert len(AUTH_TABLE) == 70
 assert len(_AUTH_TABLE_V1) == 70
 _pattern_names = set(get_args(PatternName))
 assert {k[0] for k in _AUTH_TABLE_V1} == _pattern_names
@@ -129,4 +145,4 @@ def get_auth_cell(
             "[Pkg8/auth_table_v1] unknown day_type=%r · falling back to Neutral_Center", day_type,
         )
         day_type = "Neutral_Center"
-    return _AUTH_TABLE_V1[(pattern_name, day_type)]
+    return AUTH_TABLE[(pattern_name, day_type)]

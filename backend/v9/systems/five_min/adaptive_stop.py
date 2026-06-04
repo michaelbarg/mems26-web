@@ -16,6 +16,7 @@ from typing import List, Literal, Optional
 
 logger = logging.getLogger(__name__)
 
+# ── Hardcoded defaults (fallback) ────────────────────────────────────
 MES_TICK = 0.25
 FLOOR_TICKS = 4
 FLOOR_TICKS_MIN_BACKSTOP = 4  # absolute minimum regardless of ATR
@@ -24,15 +25,6 @@ FLOOR_TICKS_MIN_BACKSTOP = 4  # absolute minimum regardless of ATR
 from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
 _FLOOR_ATR_K = 1.75  # prior: 1.75×ATR5m
 
-
-def get_floor_ticks(atr_5m=None) -> int:
-    """Floor distance in ticks — ATR-relative with absolute backstop when flag ON."""
-    if S2_ATR_RELATIVE and atr_5m is not None:
-        atr_ticks = max(1, round(_FLOOR_ATR_K * atr_5m / MES_TICK))
-        return max(atr_ticks, FLOOR_TICKS_MIN_BACKSTOP)
-    return FLOOR_TICKS
-
-
 ATR_MULTIPLIERS = {
     "Reactive": 1.0,
     "OFA": 1.5,
@@ -40,6 +32,38 @@ ATR_MULTIPLIERS = {
     "Double_BT": 2.0,
     "HnS": 2.0,
 }
+
+# ── YAML override with fallback ──────────────────────────────────────
+def _try_load_yaml_stop() -> None:
+    """Attempt to load stop params from YAML; override module globals on success."""
+    global MES_TICK, FLOOR_TICKS, FLOOR_TICKS_MIN_BACKSTOP, _FLOOR_ATR_K, ATR_MULTIPLIERS
+    try:
+        from backend.v9.config_loader import load_stop_params
+        data = load_stop_params()
+        if data is None:
+            return
+        s2 = data.get("s2_adaptive", {})
+        if s2:
+            MES_TICK = float(s2.get("mes_tick", MES_TICK))
+            FLOOR_TICKS = int(s2.get("floor_ticks", FLOOR_TICKS))
+            FLOOR_TICKS_MIN_BACKSTOP = int(s2.get("floor_ticks_min_backstop", FLOOR_TICKS_MIN_BACKSTOP))
+            _FLOOR_ATR_K = float(s2.get("floor_atr_k", _FLOOR_ATR_K))
+            atr_mult = s2.get("atr_multipliers")
+            if isinstance(atr_mult, dict) and len(atr_mult) >= 5:
+                ATR_MULTIPLIERS = {k: float(v) for k, v in atr_mult.items()}
+            logger.info("[adaptive_stop] loaded stop params from YAML")
+    except Exception as e:
+        logger.warning("[adaptive_stop] YAML load failed (%s) — using hardcoded", e)
+
+_try_load_yaml_stop()
+
+
+def get_floor_ticks(atr_5m=None) -> int:
+    """Floor distance in ticks — ATR-relative with absolute backstop when flag ON."""
+    if S2_ATR_RELATIVE and atr_5m is not None:
+        atr_ticks = max(1, round(_FLOOR_ATR_K * atr_5m / MES_TICK))
+        return max(atr_ticks, FLOOR_TICKS_MIN_BACKSTOP)
+    return FLOOR_TICKS
 
 
 @dataclass

@@ -1,0 +1,38 @@
+# Stop Parameters — adaptive stop (S2) + layered stop (S4) + R:R gate
+# Authority: D-091 (adaptive stop) + Woodies Spec V1 (pattern ticks)
+# Changing a value = new version + Michael approval. Git tracks.
+
+# ── S2 Adaptive Stop (3-layer) ──
+s2_adaptive:
+  mes_tick: 0.25
+  floor_ticks: 4                   # Layer C: minimum stop distance
+  floor_ticks_min_backstop: 4      # absolute minimum regardless of ATR
+  floor_atr_k: 1.75               # ATR-relative floor multiplier (when S2_ATR_RELATIVE=ON)
+  atr_multipliers:                 # Layer B: ATR cap per pattern family
+    Reactive: 1.0
+    OFA: 1.5
+    Flag: 1.5
+    Double_BT: 2.0
+    HnS: 2.0
+
+# ── S4 Woodies Pattern Ticks (stop/t1/t2 per pattern) ──
+s4_patterns:
+  ZLR:    { stop_ticks: 8,  t1_ticks: 12, t2_ticks: 24 }
+  TLB:    { stop_ticks: 10, t1_ticks: 15, t2_ticks: 30 }
+  TT:     { stop_ticks: 8,  t1_ticks: 12, t2_ticks: 20 }
+  GB100:  { stop_ticks: 8,  t1_ticks: 12, t2_ticks: 24 }
+  VEGAS:  { stop_ticks: 12, t1_ticks: 16, t2_ticks: 32 }
+  GHOST:  { stop_ticks: 12, t1_ticks: 16, t2_ticks: 32 }
+  FAMIR:  { stop_ticks: 10, t1_ticks: 14, t2_ticks: 28 }
+  HTLB:   { stop_ticks: 10, t1_ticks: 14, t2_ticks: 28 }
+  HFE:    { stop_ticks: 8,  t1_ticks: 12, t2_ticks: 24 }
+
+# ── R:R gate ──
+min_r_t1_threshold: 0.0           # pattern_dispatcher threshold (currently no-op)
+
+# ── Guardrails (schema validation) ──
+guardrails:
+  max_stop_ticks: 20              # no pattern may have stop > 20 ticks
+  max_t2_ticks: 50                # no T2 > 50 ticks
+  max_atr_multiplier: 5.0         # ATR cap multiplier ceiling
+  r_multiple_max: 10.0            # no R-multiple > 10

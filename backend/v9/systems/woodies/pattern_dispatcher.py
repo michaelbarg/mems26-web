@@ -52,6 +52,19 @@ DEFAULT_CONFIG = {
     "log_dispatch_decisions": False,
 }
 
+# YAML override for min_r_t1_threshold (from config/stop_params.yaml)
+try:
+    from backend.v9.config_loader import load_stop_params as _load_sp
+    _sp = _load_sp()
+    if _sp is not None and "min_r_t1_threshold" in _sp:
+        DEFAULT_CONFIG["min_r_t1_threshold"] = float(_sp["min_r_t1_threshold"])
+        logging.getLogger(__name__).info(
+            "[pattern_dispatcher] min_r_t1_threshold from YAML: %.2f",
+            DEFAULT_CONFIG["min_r_t1_threshold"],
+        )
+except Exception:
+    pass  # fallback to hardcoded 0.0
+
 _DEFAULT_YAML = Path(__file__).parent / "config" / "dispatcher_config.yaml"
 
 

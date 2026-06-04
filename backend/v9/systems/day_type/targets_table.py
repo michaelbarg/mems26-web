@@ -145,6 +145,21 @@ _ALIASES = {
     "NONTREND": "Nontrend",
 }
 
+# ── YAML override with fallback ──────────────────────────────────────
+def _try_load_yaml_targets() -> Dict[str, Dict]:
+    """Attempt to load targets from YAML; return hardcoded fallback on failure."""
+    try:
+        from backend.v9.config_loader import load_targets
+        loaded = load_targets()
+        if loaded is not None and len(loaded) >= 7:
+            logger.info("[targets_table] loaded %d day_types from targets.yaml", len(loaded))
+            return loaded
+    except Exception as e:
+        logger.warning("[targets_table] YAML load failed (%s) — using hardcoded fallback", e)
+    return _TARGETS
+
+TARGETS: Dict[str, Dict] = _try_load_yaml_targets()
+
 _neutral_deprecation_logged = False
 
 
@@ -173,7 +188,7 @@ def get_targets(day_type: str) -> Optional[Dict]:
         _log_deprecated_neutral_once()
         canonical = "Neutral_Center"
 
-    return _TARGETS.get(canonical)
+    return TARGETS.get(canonical)
 
 
 def resolve_trail_config(day_type: str, pattern_name: Optional[str]) -> dict:
