@@ -32,12 +32,52 @@ _ET = ZoneInfo("America/New_York")
 _RTH_START_HOUR, _RTH_START_MIN = 9, 30
 _RTH_END_HOUR, _RTH_END_MIN = 17, 0  # 17:00 ET = 16:00 CT — includes post-close bars (vol=0)
 
+# ── B-13 staleness guard (2026-06-05) ──
+# Reject bars with ts older than MAX_STALE_AGE from now.  Prevents old/residual
+# bars (e.g. May-6 PG-migration leftovers) from reaching pattern engines.
+# Also rejects bars whose price deviates from the latest known market price by
+# more than STALE_PRICE_BAND points — catches corrupt/phantom prices.
+# VALUES pending Michael's sign-off; these are conservative defaults.
+import os as _os
+MAX_STALE_AGE = timedelta(hours=int(_os.environ.get("MAX_STALE_HOURS", "24")))
+STALE_PRICE_BAND = float(_os.environ.get("STALE_PRICE_BAND", "50"))  # points
+
+# Module-level latest-price tracker (updated on every valid 5min bar ingest)
+_latest_known_price: Optional[float] = None
+_latest_bar_ts: Optional[datetime] = None
+
 
 def _is_within_rth(ts_utc: datetime) -> bool:
     """Check if a UTC timestamp falls within RTH 09:30–16:00 ET."""
     ts_et = ts_utc.astimezone(_ET)
     et_minutes = ts_et.hour * 60 + ts_et.minute
     return (_RTH_START_HOUR * 60 + _RTH_START_MIN) <= et_minutes < (_RTH_END_HOUR * 60 + _RTH_END_MIN)
+
+
+def _is_stale_bar(ts_utc: datetime, close_price: float) -> Optional[str]:
+    """B-13 staleness guard. Returns rejection reason or None if OK.
+
+    Two independent checks (either triggers rejection):
+    (a) ts older than now - MAX_STALE_AGE → stale timestamp
+    (b) close deviates from latest known price by > STALE_PRICE_BAND → off-market
+    """
+    global _latest_known_price, _latest_bar_ts
+    now = datetime.now(timezone.utc)
+
+    # (a) Staleness: bar timestamp too old
+    if ts_utc < now - MAX_STALE_AGE:
+        return f"stale_ts (bar {ts_utc.isoformat()} older than {MAX_STALE_AGE})"
+
+    # (b) Price band: deviation from latest known market price
+    if _latest_known_price is not None and close_price > 0:
+        deviation = abs(close_price - _latest_known_price)
+        if deviation > STALE_PRICE_BAND:
+            return (
+                f"off_market (close={close_price:.2f} vs latest={_latest_known_price:.2f}, "
+                f"deviation={deviation:.1f} > band={STALE_PRICE_BAND})"
+            )
+
+    return None  # OK
 
 logger = logging.getLogger(__name__)
 
@@ -59,9 +99,37 @@ def set_bar_router(router) -> None:
 
 
 def _route_bar(bar_type: str, bar_data: dict) -> None:
-    """Route a bar to BarRouter via thread-safe publish (P27.5c fix)."""
-    if _bar_router is not None:
-        _bar_router.publish_threadsafe(bar_type, bar_data)
+    """Route a bar to BarRouter via thread-safe publish (P27.5c fix).
+
+    B-13: staleness guard applies to ALL routed bars, not just 5min.
+    If the bar's ts is stale or price is off-market, skip routing.
+    """
+    if _bar_router is None:
+        return
+    # B-13: guard routing for bar types that carry OHLC (not aggregate payloads)
+    raw_ts = bar_data.get("ts")
+    close = bar_data.get("close") or bar_data.get("c")
+    if raw_ts is not None and close is not None:
+        try:
+            if isinstance(raw_ts, datetime):
+                ts = raw_ts
+            elif isinstance(raw_ts, str):
+                # Handle ISO string ("2026-06-04 16:55:00+00:00") or epoch string
+                try:
+                    ts = datetime.fromisoformat(raw_ts)
+                except ValueError:
+                    ts = _ts_from_unix(raw_ts)
+            else:
+                ts = _ts_from_unix(raw_ts)
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+            stale = _is_stale_bar(ts, float(close))
+            if stale:
+                logger.warning("[bars/%s] _route_bar BLOCKED stale bar: %s", bar_type, stale)
+                return
+        except (TypeError, ValueError, OSError):
+            pass  # unparseable ts/close — let BarRouter handle
+    _bar_router.publish_threadsafe(bar_type, bar_data)
 
 
 def set_event_dispatcher(dispatcher) -> None:
@@ -341,7 +409,11 @@ def post_bars_5min(
                  "c": last_valid_bar.c, "vol": last_valid_bar.vol} if last_valid_bar else {},
     })
     _record_push("5min")
+    # B-13: update latest-price tracker for staleness guard
     if last_valid_bar is not None:
+        global _latest_known_price, _latest_bar_ts
+        _latest_known_price = last_valid_bar.c
+        _latest_bar_ts = _ts_from_unix(last_valid_bar.ts)
         _route_bar("5min", _flat_5min_for_router(last_valid_bar, _ts_from_unix(last_valid_bar.ts)))
     if rth_skipped:
         logger.info("[bars/5min] RTH time-gate skipped %d bars outside 09:30-16:00 ET", rth_skipped)

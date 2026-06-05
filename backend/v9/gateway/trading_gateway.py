@@ -19,6 +19,8 @@ from .risk_checks import passes_strict_checks
 from .cooldown import CooldownManager, ClusterGuard
 from .suffering_side_veto import SufferingSideVeto
 from backend.v9.services.sierra_command import command_from_setup
+from backend.v9.gateway.session_gate import is_within_firing_window
+from backend.v9.services.trade_context import extract_g1_entry_context
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +90,12 @@ class TradingGateway:
         """
         cross_context = self._capture_cross_context()
         result = {"shadow": None, "demo": None, "live": None, "blocked_by": None}
+
+        # B-13 D3: session firing gate — NO firing outside 08:30–15:00 CT in ANY mode
+        if not is_within_firing_window():
+            result["blocked_by"] = "session_gate_closed"
+            logger.info("[Gateway] BLOCKED by session gate: outside 08:30–15:00 CT (all modes)")
+            return result
 
         # ζ.A4 + ζ.A5 + ζ.B2 + ζ.F2: pre-trade risk gates (GW-02: no record_attempt before PASS)
         direction = setup.get("direction", "")
@@ -309,6 +317,8 @@ class TradingGateway:
         """SHADOW: TradeManager row + auto-close on 5min bars (PnL in v9_trades)."""
         if self._trade_manager is not None:
             entry = setup.get("entry_price")
+            # G1: extract queryable columns from the SAME cross_context snapshot
+            g1 = extract_g1_entry_context(cross_context)
             tm_setup = {
                 "firing_system": system_id,
                 "direction": setup.get("direction", "LONG"),
@@ -326,6 +336,10 @@ class TradingGateway:
                     or (setup.get("metadata") or {}).get("signal")
                 ),
                 "cross_context": cross_context,
+                # G1 promoted columns
+                "day_type_at_entry": g1["day_type_at_entry"],
+                "pattern_id_at_entry": g1["pattern_id_at_entry"],
+                "session_at_entry": g1["session_at_entry"],
             }
             trade_id = self._trade_manager.accept_setup(tm_setup, "shadow")
             if entry is not None:
@@ -378,6 +392,8 @@ class TradingGateway:
         return trade
 
     def _build_trade(self, mode: str, setup: dict, system_id: int, cross_context: dict) -> dict:
+        # G1: extract queryable columns from the SAME cross_context snapshot
+        g1 = extract_g1_entry_context(cross_context)
         return {
             "trade_id": str(uuid.uuid4())[:12],
             "mode": mode,
@@ -394,6 +410,10 @@ class TradingGateway:
             "confidence": setup.get("confidence", 0.0),
             "cross_context": cross_context,
             "metadata": setup.get("metadata", {}),
+            # G1 promoted columns
+            "day_type_at_entry": g1["day_type_at_entry"],
+            "pattern_id_at_entry": g1["pattern_id_at_entry"],
+            "session_at_entry": g1["session_at_entry"],
         }
 
     def _capture_cross_context(self) -> dict:
@@ -414,13 +434,18 @@ class TradingGateway:
         safe_execute(
             """INSERT INTO v9_trades
             (mode, firing_system, direction, state, entry_ts, entry_price,
-             stop, t1, t2, t3, cross_context, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             stop, t1, t2, t3, cross_context,
+             day_type_at_entry, pattern_id_at_entry, session_at_entry,
+             created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 trade["mode"], trade["firing_system"], trade["direction"],
                 trade["state"], trade["entry_ts"], trade["entry_price"],
                 trade["stop"], trade["t1"], trade["t2"], trade["t3"],
                 json.dumps(trade["cross_context"], default=str),
+                trade.get("day_type_at_entry"),
+                trade.get("pattern_id_at_entry"),
+                trade.get("session_at_entry"),
                 datetime.now(timezone.utc).isoformat(),
             ),
         )

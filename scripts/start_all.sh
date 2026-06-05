@@ -24,6 +24,10 @@ export DATABASE_URL="postgresql://localhost/mems26"
 # S2 volume gate: VSA variant (D-RVX). Reads at call-time in five_min_system.py.
 export S2_VSA_VOLUME=1
 
+# D1 (B-13): Mute S3 (footprint) firing — observability stays, no trades.
+# Reverse: set to 0 or unset + restart.
+export S3_MUTE=1
+
 ulimit -n 10240 2>/dev/null || true
 info "ulimit -n = $(ulimit -n) (need >=4096 to avoid Watchpack EMFILE)"
 

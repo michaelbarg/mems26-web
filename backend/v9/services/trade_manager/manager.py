@@ -164,6 +164,10 @@ class TradeManager:
             t3=setup["t3"],
             cross_context=cross_ctx,
             quality=quality,
+            # G1 promoted columns (from gateway's extract_g1_entry_context)
+            day_type_at_entry=setup.get("day_type_at_entry"),
+            pattern_id_at_entry=setup.get("pattern_id_at_entry"),
+            session_at_entry=setup.get("session_at_entry"),
         )
 
         # D-094 §3.A · capture resolved trail config (overrides + base)

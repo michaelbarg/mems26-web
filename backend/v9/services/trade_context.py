@@ -479,6 +479,46 @@ def extract_trade_systems_panel(trade) -> Dict[str, Any]:
     }
 
 
+def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
+    """G1: Extract day_type, pattern_id, session from cross_context at entry.
+
+    Uses the SAME extraction paths as extract_trade_display to ensure the
+    promoted columns match what the UI shows. Silent → None (Rule 1).
+    """
+    systems_map = _systems_blob_at_entry(cross_context)
+
+    # day_type_at_entry: from day_type_machine
+    day_type_blob = systems_map.get("day_type_machine") or {}
+    day_type = (
+        day_type_blob.get("day_type")
+        or day_type_blob.get("state")
+        or None
+    )
+    if day_type and day_type == "UNKNOWN":
+        day_type = None
+
+    # pattern_id_at_entry: from woodies_system active_patterns or quality
+    woodies_blob = systems_map.get("woodies_system") or {}
+    pattern_id = None
+    ap = woodies_blob.get("active_patterns")
+    if isinstance(ap, list) and ap and isinstance(ap[0], dict):
+        pattern_id = ap[0].get("pattern_id") or ap[0].get("pattern")
+    if not pattern_id:
+        pattern_id = woodies_blob.get("classification") or woodies_blob.get("signal")
+    if pattern_id and pattern_id in ("STRATEGIC", "TACTICAL", "NO_SETUP"):
+        pattern_id = None
+
+    # session_at_entry: from killzone_system zone
+    killzone_blob = systems_map.get("killzone_system") or {}
+    session = _snapshot_hint(6, killzone_blob)  # returns zone or state
+
+    return {
+        "day_type_at_entry": str(day_type)[:20] if day_type else None,
+        "pattern_id_at_entry": str(pattern_id)[:40] if pattern_id else None,
+        "session_at_entry": str(session)[:20] if session else None,
+    }
+
+
 def extract_trade_display(trade) -> Dict[str, Any]:
     """Build API/journal fields: PnL, pattern, trigger, day type, system hints."""
     quality = trade.quality if isinstance(trade.quality, dict) else {}

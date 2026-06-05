@@ -56,6 +56,13 @@ class V9Trade(Base):
     # Sierra bracket reference
     sierra_bracket_id = Column(String(50))
 
+    # G1: queryable calibration cuts (promoted from cross_context JSON)
+    # Source: same snapshot as cross_context, populated at entry time.
+    # Silent/missing → NULL (Rule 1: honest failure > synthetic value).
+    day_type_at_entry = Column(String(20), nullable=True, index=True)
+    pattern_id_at_entry = Column(String(40), nullable=True, index=True)
+    session_at_entry = Column(String(20), nullable=True, index=True)
+
     # Synthetic/test data flag (migration 019)
     is_synthetic = Column(Integer, nullable=False, default=0)
 
