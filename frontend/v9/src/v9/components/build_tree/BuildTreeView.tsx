@@ -1349,7 +1349,7 @@ function RightRail({ data, activeDay }: { data: BuildStatusResponse; activeDay: 
   const minLag = Math.min(...data.systems.map((s) => s.data_freshness?.lag_seconds ?? 999));
 
   const rcard: CSSProperties = { background: T.s1, border: `1px solid ${T.line}`, borderRadius: T.r, padding: '14px 16px', marginBottom: 14 };
-  const rcardPend: CSSProperties = { ...rcard, borderStyle: 'dashed', borderColor: '#7c8cff45', background: T.pendD };
+  const rcardPend: CSSProperties = { background: T.pendD, borderTop: '1px dashed #7c8cff45', borderBottom: '1px dashed #7c8cff45', borderLeft: '1px dashed #7c8cff45', borderRight: '1px dashed #7c8cff45', borderRadius: T.r, padding: '14px 16px', marginBottom: 14 };
   const rt: CSSProperties = { fontSize: 10, color: T.tt, textTransform: 'uppercase' as const, letterSpacing: '.8px', fontFamily: MONO, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 };
   const rrow: CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '6px 0', borderBottom: `1px solid ${T.line}`, fontFamily: MONO, fontSize: 12 };
 
@@ -1719,7 +1719,7 @@ function MissingTab() {
           const pc = priColor[m.pri];
           const isP0Full = m.pri === 'P0' && i === 0; // First P0 gets full width
           return (
-            <div key={i} style={{ gridColumn: isP0Full ? '1/-1' : undefined, border: `1px solid ${T.line}`, borderRadius: T.r, background: isP0Full ? T.pendD : T.s1, borderColor: isP0Full ? '#7c8cff45' : T.line, padding: '15px 16px' }}>
+            <div key={i} style={{ gridColumn: isP0Full ? '1/-1' : undefined, borderWidth: 1, borderStyle: isP0Full ? 'dashed' : 'solid', borderColor: isP0Full ? '#7c8cff45' : T.line, borderRadius: T.r, background: isP0Full ? T.pendD : T.s1, padding: '15px 16px' }}>
               <h4 style={{ margin: '0 0 7px', fontSize: 13, color: T.tp, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 9, fontFamily: MONO, fontWeight: 700, padding: '2px 8px', borderRadius: 5, letterSpacing: '.5px', color: pc.fg, background: pc.bg }}>{m.pri}</span>
                 {m.title}
@@ -1777,10 +1777,11 @@ export function BuildTreeView() {
     cursor: 'pointer',
     fontSize: 13,
     fontWeight: 600,
-    border: `1px solid ${tab === id ? T.line : 'transparent'}`,
-    borderBottom: 'none',
+    borderTop: `1px solid ${tab === id ? T.line : 'transparent'}`,
+    borderLeft: `1px solid ${tab === id ? T.line : 'transparent'}`,
+    borderRight: `1px solid ${tab === id ? T.line : 'transparent'}`,
+    borderBottom: tab === id ? `1px solid ${T.s1}` : '1px solid transparent',
     marginBottom: -1,
-    ...(tab === id && { borderBottomColor: T.s1 }),
   });
 
   return (
