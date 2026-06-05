@@ -199,11 +199,11 @@ def test_s4_ticks_yaml_matches_detector_constants():
 
 
 def test_s4_detector_reads_from_yaml(tmp_path):
-    """Litmus: override YAML → detector reads the override (not hardcoded).
+    """Litmus: override YAML → the DETECTOR reads the override (not hardcoded).
 
-    Monkeypatches ZLR stop_ticks 8→9 in YAML, reloads, verifies the
-    detector's STOP_TICKS == 9. If wiring is reverted → RED because
-    the detector would still read its hardcoded 8.
+    Overrides ZLR stop_ticks 8→9 in YAML, then reloads the zlr module and
+    asserts on zlr.STOP_TICKS (the real consumer), not just the helper.
+    If wiring is reverted → RED because zlr would re-bind its hardcoded 8.
     """
     import yaml
     import importlib
@@ -232,16 +232,30 @@ def test_s4_detector_reads_from_yaml(tmp_path):
         if src.exists():
             shutil.copy(src, tmp_path / f)
 
+    import backend.v9.systems.woodies.patterns.zlr as zlr
     try:
         # Reset the cache so it re-reads
         _pattern_ticks.reset_cache()
 
-        # Read through the helper
+        # (1) Helper reads the override
         ticks = _pattern_ticks.get_ticks("ZLR")
         assert ticks["stop_ticks"] == 9, (
             f"Expected ZLR stop_ticks=9 from YAML override, got {ticks['stop_ticks']}. "
-            "If this fails, the detector is NOT reading from YAML (wiring broken)."
+            "If this fails, the helper is NOT reading from YAML."
         )
+
+        # (2) THE REAL LITMUS — the detector itself must bind the override.
+        # Reload zlr so its module-level STOP_TICKS re-binds via get_ticks().
+        # If reverted (detector hardcodes STOP_TICKS=8) → RED here, because
+        # the override would be ignored and zlr.STOP_TICKS would stay 8.
+        importlib.reload(zlr)
+        assert zlr.STOP_TICKS == 9, (
+            f"Expected zlr.STOP_TICKS=9 after YAML override + reload, got {zlr.STOP_TICKS}. "
+            "The DETECTOR is not wired to YAML (it reads a hardcoded constant)."
+        )
+        # _T1_TICKS must remain hardcoded (not from YAML) — invariant guard.
+        assert zlr._T1_TICKS == 4, "regression: _T1_TICKS must stay hardcoded (=4), not from YAML"
     finally:
         cl._CONFIG_DIR = old_dir
         _pattern_ticks.reset_cache()  # restore for other tests
+        importlib.reload(zlr)         # restore zlr.STOP_TICKS to default (8)

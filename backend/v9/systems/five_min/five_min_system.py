@@ -778,6 +778,21 @@ class FiveMinSystem(BaseV9TradingSystem):
             except Exception:
                 pass
 
+        # B-13 D3: DAY_TYPE→OVERNIGHT transition at 15:00 CT (firing close).
+        # Without this, S2 stays armed in DAY_TYPE_MODE through the close and
+        # will fire on any bar that passes BarRouter (including stale/corrupt).
+        if self.mode in (FiveMinMode.DAY_TYPE_MODE, FiveMinMode.FIRST_HOUR_TACTICAL):
+            try:
+                from backend.v9.gateway.session_gate import is_after_firing_close
+                if is_after_firing_close():
+                    logger.info(
+                        "[FiveMin] Mode transition %s → OVERNIGHT_MODE (15:00 CT close)",
+                        self.mode,
+                    )
+                    self.mode = FiveMinMode.OVERNIGHT_MODE
+            except Exception:
+                pass
+
         # Spec: S2 must not fire outside trading sessions
         if self.mode in (FiveMinMode.OVERNIGHT_MODE, FiveMinMode.MAINTENANCE, FiveMinMode.WEEKEND):
             self.buffer_size += 1
@@ -814,11 +829,16 @@ class FiveMinSystem(BaseV9TradingSystem):
         from backend.v9.shared.atr import atr_5min as _compute_atr_5m
         self._current_atr_5m = _compute_atr_5m(self._bar_buffer, period=14)
 
-        # First Hour Buffer: advance bar count + compute choppiness from RTH bars
+        # First Hour Buffer: advance bar count during first hour
         if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
             self._fhb.on_bar()
-            rth_bars = self._bar_buffer[-self._fhb.bar_count:]
-            self.choppiness_score = int(compute_choppiness(rth_bars))
+
+        # Compute choppiness continuously (all modes, not just FIRST_HOUR)
+        # so s2_inspector.choppiness_ok stays fresh in DAY_TYPE_MODE.
+        # Uses last 14 bars (rolling window) for stable measurement.
+        _chop_bars = self._bar_buffer[-14:] if len(self._bar_buffer) >= 5 else self._bar_buffer
+        if _chop_bars:
+            self.choppiness_score = int(compute_choppiness(_chop_bars))
 
         # D-091.Q2 · NT NO_TRADE early-skip (CPU efficiency + emit-layer defense)
         if self.current_day_type == "Nontrend":
