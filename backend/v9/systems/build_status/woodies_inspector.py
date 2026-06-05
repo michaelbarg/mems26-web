@@ -141,6 +141,22 @@ def inspect(woodies_system=None) -> SystemStatus:
     cci_14 = state.get("cci_14")
     tcci = state.get("cci_6_tcci")
     trend_state = state.get("trend_state", "GRAY")
+
+    # I-15 fix: if in-memory state is still at default GRAY (no bars processed),
+    # fall back to the latest DB row's trend_state so the board doesn't show a
+    # stale GRAY that contradicts /woodies/current (which updates after DB replay).
+    if trend_state == "GRAY" and not state.get("bar_count"):
+        try:
+            _db_row = read_one(
+                "SELECT trend_state FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT 1"
+            )
+            if _db_row and _db_row.get("trend_state"):
+                _db_ts = str(_db_row["trend_state"]).upper()
+                if _db_ts in ("BLUE", "RED", "YELLOW", "GRAY"):
+                    trend_state = _db_ts
+                    logger.info("[BuildStatus/Woodies] I-15: fell back to DB trend_state=%s (in-memory not yet populated)", trend_state)
+        except Exception:
+            pass  # DB fallback is best-effort
     active_patterns_raw = state.get("active_patterns", [])
     ready_to_route = state.get("ready_to_route", False)
     decision_tree = state.get("decision_tree", {})
