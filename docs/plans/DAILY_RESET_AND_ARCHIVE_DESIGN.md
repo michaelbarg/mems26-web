@@ -385,25 +385,30 @@ Past trading days  ◀ 23 24 25 26 27 28 ▶
 
 ---
 
-## §4 · Decisions deferred / open questions
+## §4 · Decisions confirmed by Michael (2026-05-29)
 
-1. **Rollover trigger mechanism — launchd vs backend cron vs FastAPI startup-hook?**
-   Recommendation: backend `asyncio.create_task` with sleep_until_18et loop.
-   Pro: fewer moving parts, restarts with backend. Con: silent if backend
-   is down at 18:00 ET — but the first-bar fallback handles that.
+1. **Rollover trigger = FastAPI startup-hook + first-bar fallback.**
+   Backend's `app.on_event("startup")` calls `rollover_if_needed(now_et)`,
+   then registers an `asyncio` watchdog that re-calls it every 60s. The
+   first-bar fallback in `on_bar()` is the safety net for backend-down at
+   18:00 ET. **No launchd plist changes** needed.
 
-2. **Should open trades be force-closed at rollover or carry across?**
-   §2.1 says carry. Michael's call.
+2. **Open trades carry across the 18:00 ET boundary.** This is a rare case
+   — once W-10 (90 min flat) is fixed, no trade should be open past 16:00
+   ET, and definitely not past 18:00 ET. If one is, its `day_type` reference
+   stays = the previous day's classification until W-10 closes it.
 
-3. **What happens to in-flight S2/S4 fire-records during rollover?**
-   §2.1 says reset. But if a fire armed at 17:55 ET hasn't been confirmed by
-   18:01 ET, do we drop it? Recommendation: yes, drop. Risk surface tighter.
+3. **In-flight S2/S4 fire-records are dropped at rollover.** Tighter risk
+   surface. If a fire armed at 17:55 ET wasn't confirmed by 18:01 ET, it
+   gets dropped — the next session re-evaluates fresh.
 
-4. **Archive of `build_status` — full JSON or only patterns that fired?**
-   §2.4 says full JSON snapshot. ~2KB per day. Cheap.
+4. **`build_status` archive = full JSON snapshot.** ~2KB/day × 365 = 730KB.
+   Cheap. Worth retaining for retrospective debugging of "why didn't
+   pattern X fire on date Y".
 
-5. **Demo chain `pattern_test`** — which pattern? Recommendation: FHB
-   (simplest, deterministic, no day_type dependency).
+5. **Demo chain `pattern_test` = Reactive Long.** Tests the full Long path:
+   volume + delta + day_type confluence + 5min state machine. Most
+   representative of real LIVE conditions.
 
 ---
 
@@ -419,7 +424,7 @@ Past trading days  ◀ 23 24 25 26 27 28 ▶
 
 ## §6 · Definition of Done (Phase 5 sign-off)
 
-All 7 of these must be true for Pre-LIVE green-light:
+All 8 of these must be true for Pre-LIVE green-light:
 
 1. ✅ `python3 scripts/sot_health.py --strict` exit 0
 2. ✅ `GET /api/v9/demo_readiness` returns `overall=READY`
@@ -429,3 +434,752 @@ All 7 of these must be true for Pre-LIVE green-light:
 6. ✅ At 18:00 ET observed: rollover fires, archive populated, new PENDING
    row inserted within 60s
 7. ✅ `v9_account_status.mode='DEMO'` enforced — chain test refused if LIVE
+8. ✅ All blast-radius checks in §7 pass (compliance_manifest, callers,
+   migration rollback, UI states) — no orphan/dead code paths
+
+---
+
+## §7 · Blast radius + rollback (Cursor critical review 2026-05-29)
+
+After Cursor reviewed the design, these are the surfaces that change and the
+plan to keep them safe.
+
+### §7.1 What this design touches
+
+| Surface | Change | Risk if mishandled |
+|---|---|---|
+| `v9_day_type_history.status` enum | Add `DEVELOPING`, `ROLLED_OVER` | `compliance_manifest.yaml:130` enum throws validation error |
+| `v9_day_type_history` UPSERT | New rule: only `INSERT` on rollover; in-day = UPDATE | If old code path still UPSERTs at 22:00 ET, the bug returns |
+| `v9_account_status` table | Currently EMPTY (0 rows, no callers) — needs seed | Without seed → chain test always 403 (which is the safer default) |
+| `/day_type/v9/current` & `/key_levels` | Return `PENDING/data:null` when no row | UI verified ✅ — already handles `classified=false` |
+| 4× `date.today().isoformat()` in routes | → `et_today().isoformat()` | If missed, the 22:00 ET → 05:00 IL bug stays |
+| Migration 019 (5 tables + 1 view) | Pure additive | Rollback = `DROP TABLE v9_*_archive; DROP VIEW v9_bars_5min_for_date;` |
+| FastAPI startup hook + 60s watchdog | New asyncio task | If hook crashes → backend won't boot. **Wrap in try/except + log.warning, never raise** |
+| First-bar fallback in `on_bar()` | New idempotent check | Race with startup hook? Both call `rollover_if_needed` which is guarded by `last_rollover_date` in `v9_session_meta` (DB-locked) |
+| `v9_day_type_state` overnight pollution (§14, audit 04 finding) | Truncate stale rows at rollover; S2 `hydrate()` uses 24h sliding window | If `SessionBoundaryManager` doesn't truncate, S2 picks up yesterday's `Normal` from `v9_day_type_state` for first hours after reset |
+| `RiskValidator.daily_reset()` dead code (§7 risk #5, audit §9.1) | Wire into `SessionBoundaryManager.rollover()` | If unwired, `daily_trades_count` and `consecutive_losses` never reset. Currently harmless (shadow mode), **LIVE-mode time bomb** |
+| Consumer write gate (§14, NEW MECHANISM from CC consult) | `DayTypeConsumer.consume()` refuses UPSERT when `day_type==UNKNOWN` and `lock_state==PENDING` | Without this, every overnight Globex bar between midnight ET and RTH open writes a stale-prefilled row. State-machine reset (§2.2) alone is not enough — the consumer must also gate. |
+
+### §7.2 Per-phase rollback procedure
+
+| Phase | Rollback command | Recovery time |
+|---|---|---|
+| Phase 2 (migration only) | `git revert <commit>` + `sqlite3 ... "DROP TABLE v9_session_meta; DROP TABLE v9_day_type_archive; DROP TABLE v9_tpo_sessions_archive; DROP TABLE v9_woodies_signals_archive; DROP TABLE v9_build_status_archive; DROP VIEW v9_bars_5min_for_date;"` + restart backend | 2 min |
+| Phase 2 (code only — endpoints PENDING) | `git revert <commit>` + restart backend. Old `/current` returns yesterday's row (= the bug, but not crash) | 1 min |
+| Phase 3 (archive endpoints) | `git revert <commit>` — pure-additive. Frontend graceful degrades (no archive strip) | 30s |
+| Phase 4 (UI + chain test) | `git revert <commit>` — pure-additive. SOT_HEALTH still works via existing scripts/sot_health.py | 30s |
+
+### §7.3 Tests that must run green before each phase merges
+
+```bash
+# Phase 2 minimum
+pytest tests/v9/api/test_day_type_routes_pending_semantics.py -q
+pytest tests/v9/services/session_boundary/ -q
+pytest tests/v9/db/test_migration_019.py -q
+pytest tests/v9/systems/day_type/test_compliance_manifest_enum.py -q
+pytest tests/v9/api/ -q                        # full API suite no regressions
+
+# Phase 3 minimum
+pytest tests/v9/api/archive/ -q
+
+# Phase 4 minimum
+pytest tests/v9/api/test_demo_readiness.py -q
+pytest tests/v9/services/test_chain_refuses_in_live.py -q
+npm test --prefix frontend/v9                  # frontend tests no regression
+```
+
+### §7.4 Manual smoke checklist (before declaring phase done)
+
+- [ ] `curl /api/v9/day_type/v9/current` after backend restart at 03:00 ET — must return `classified=false, developing=false, status='PENDING'`
+- [ ] `curl /api/v9/key_levels` same time — `today.day_type` must be `null` (not yesterday's value)
+- [ ] DB query `SELECT changes() FROM v9_day_type_history WHERE date=tomorrow_in_ET` after midnight UTC → must be 0
+- [ ] At T+18:00 ET, watch backend logs for `[SessionBoundary] rollover fired for date=YYYY-MM-DD`
+- [ ] After rollover, `SELECT * FROM v9_day_type_archive WHERE trading_date=yesterday` → 1 row
+- [ ] Chain test `POST /api/v9/demo_readiness/test_chain` while `v9_account_status` is empty → 403 "no DEMO mode confirmed"
+
+---
+
+## §8 · Account safety (chain-test only — full LIVE order enforcement deferred)
+
+Michael's decision 2026-05-29: full LIVE order enforcement is deferred to a
+separate P-ID. This phase only needs to ensure the **chain-test endpoints
+cannot trigger anything in LIVE mode**.
+
+### §8.1 What we DO build in this phase
+
+```python
+# backend/v9/api/v9/demo_readiness.py
+def _assert_demo_or_403():
+    """Refuse if account is not in DEMO mode. Empty table = 403 (safe default)."""
+    with db_session() as s:
+        row = s.execute(
+            "SELECT mode FROM v9_account_status ORDER BY ts DESC LIMIT 1"
+        ).fetchone()
+        if row is None or row[0] != "DEMO":
+            raise HTTPException(
+                status_code=403,
+                detail="Chain test refused: account not in DEMO mode. "
+                       "v9_account_status either empty or mode != 'DEMO'."
+            )
+
+@router.post("/test_chain")
+async def test_chain(req: TestChainRequest):
+    _assert_demo_or_403()                  # ← guard 1
+    if not os.environ.get("V9_ALLOW_DEMO_CHAIN_TEST"):
+        raise HTTPException(403, "V9_ALLOW_DEMO_CHAIN_TEST not set")  # ← guard 2
+    ...
+```
+
+Migration 019 includes a seed:
+```sql
+INSERT INTO v9_account_status (mode, daily_pnl, trade_count, margin_used_pct)
+VALUES ('DEMO', 0, 0, 0);
+```
+
+### §8.2 What we explicitly DO NOT build (deferred to next P-ID)
+
+- Order routing to broker (no `order_router` exists yet — `TradeManager` only writes `v9_trades` rows; no broker integration)
+- LIVE → DEMO toggle UI
+- ENV var `V9_ENABLE_LIVE_ORDERS` enforcement on `TradeManager.open_trade`
+- Risk-limit gates per `account.mode`
+
+These belong in **next P-ID = "Pre-LIVE Order-Router Integration"** — separate
+work after this design is shipped.
+
+### §8.3 Why this is enough for now
+
+The system has **no broker integration**. The only side-effect of
+`open_trade()` is an `INSERT INTO v9_trades`. So a chain test cannot trade
+real money even if the safety check fails. The 403 is belt-and-braces — it
+prevents misleading entries in the trades table when `mode=LIVE` is later
+introduced.
+
+---
+
+## §9 · Updates to task list (after §7+§8 review)
+
+These tasks supersede the entries in §3:
+
+### Phase 2 — additions
+
+- **T2.0 NEW** — Migration 019 seeds `v9_account_status` with `mode='DEMO'`.
+- **T2.1 UPDATED** — Migration 019 must include update to
+  `compliance_manifest.yaml:130` enum: `[PENDING, LOCKED, LOCKED_LOW_CONF, DEVELOPING, ROLLED_OVER]`.
+  Validation test asserts every status string the consumer might emit
+  passes the manifest enum.
+- **T2.2 UPDATED** — `SessionBoundaryManager.rollover()` wrapped in
+  try/except. If it raises, log `error` (not `debug`), backend continues to
+  serve traffic. Failed rollover is recoverable on next 60s tick.
+- **T2.6 UPDATED** — Add 3 regression tests:
+  - 22:00 ET on date N → no row exists for date N+1 (Bug A regression)
+  - `et_today()` returns N at 22:00 ET (= 05:00 IL) (Bug B regression)
+  - Migration 019 down-migration succeeds without orphan rows
+- **T2.7 UPDATED** — UAT must verify §7.4 manual smoke checklist.
+
+### Phase 4 — additions
+
+- **T4.8 NEW** — `_assert_demo_or_403()` guard on **all** chain-test
+  endpoints (single_bar / pattern_test / replay). Refuses if
+  `v9_account_status.mode != 'DEMO'`. Tested with empty table (= safe
+  default refuse) and with `mode='LIVE'` (= explicit refuse).
+- **T4.9 NEW** — Frontend banner: if `account.mode != 'DEMO'`, hide the 3
+  chain-test buttons and show "DEMO required". Don't rely on backend 403
+  alone.
+
+---
+
+## §10 · Pre-flight checks (CC must paste raw output before touching code)
+
+CC's Phase 2 consultation doc
+(`docs/reports/CC_AUDIT_DAILY_RESET_CONSULTATION_2026-05-29.md`) MUST contain
+raw paste of these commands. Each section gates the next:
+
+```bash
+# §10.1 — Every TZ-naive date/time use in backend (Bug B blast radius)
+rg "date\.today\(\)|datetime\.now\(\s*\)" backend/v9 -n
+# Expected: 13 matches (current count). Each becomes a fix in T2.5.
+
+# §10.2 — Every writer of v9_day_type_history (Bug A root-cause hunt)
+rg "v9_day_type_history" backend/v9 -n
+rg "DayTypeHistory|day_type_history" backend/v9 -n
+git log -p --all backend/v9 -- "*day_type*" | head -200
+# Goal: identify the call-path that wrote 29/5 row at 22:00 ET 28/5.
+
+# §10.3 — All readers of /current endpoints (= callers of buggy logic)
+rg "day_type/v9/current|/key_levels|/woodies/current|/tpo/current" backend/v9 frontend/v9/src -n
+
+# §10.4 — All UPSERT/INSERT into the 5 archive-source tables
+rg "INSERT.*v9_woodies_signals|INSERT.*v9_tpo_sessions|INSERT.*v9_audit_events|INSERT.*v9_bars_5min" backend/v9 -n
+
+# §10.5 — Confirm no LaunchAgent / cron currently does daily reset
+launchctl list | grep -i "mems26\|day_type\|rollover"
+crontab -l 2>/dev/null | grep -i mems26
+ls ~/Library/LaunchAgents/ | grep -i mems26
+# Expected: only com.mems26.bridge. Anything else → STOP and ask.
+
+# §10.6 — Confirm migration ≥ 019 doesn't already exist
+ls backend/v9/db/migrations/versions/ | sort | tail -5
+# Expected: 018 is the highest. 019 is ours.
+
+# §10.7 — Confirm v9_account_status state (so we know what seed needs)
+sqlite3 data/mems26_local.db "SELECT * FROM v9_account_status;"
+# Expected: empty or 1 row. If many rows → schema needs UNIQUE constraint.
+
+# §10.8 — Confirm WoodiesSignals/Trades/AuditEvents schemas have rowid INTEGER PRIMARY KEY (= safe to ALTER ADD COLUMN)
+sqlite3 data/mems26_local.db "PRAGMA table_info(v9_bars_5min);"
+sqlite3 data/mems26_local.db "PRAGMA table_info(v9_woodies_signals);"
+sqlite3 data/mems26_local.db "PRAGMA table_info(v9_trades);"
+sqlite3 data/mems26_local.db "PRAGMA table_info(v9_audit_events);"
+sqlite3 data/mems26_local.db "PRAGMA table_info(v9_five_min_setups);"
+# Expected: each has `id INTEGER PRIMARY KEY`. ALTER ADD is safe.
+```
+
+**STOP conditions (CC pauses + asks Michael):**
+- §10.5 returns anything beyond `com.mems26.bridge` → unknown automation
+- §10.2 git-blame is inconclusive → CC must NOT guess; ask
+- §10.8 any table missing `id INTEGER PRIMARY KEY` → schema needs migration
+  redesign, not just ALTER ADD
+
+---
+
+## §11 · Sandbox boundary — `is_synthetic` flag (Michael decision: option A)
+
+**Schema rule (mandatory T2.1):**
+
+```sql
+ALTER TABLE v9_bars_5min        ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE v9_woodies_signals  ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE v9_trades           ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE v9_audit_events     ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE v9_five_min_setups  ADD COLUMN is_synthetic INTEGER NOT NULL DEFAULT 0;
+
+-- Indices for fast filter
+CREATE INDEX idx_v9_bars_5min_synthetic   ON v9_bars_5min(is_synthetic, ts);
+CREATE INDEX idx_v9_woodies_signals_synth ON v9_woodies_signals(is_synthetic, ts);
+CREATE INDEX idx_v9_trades_synth          ON v9_trades(is_synthetic, entry_ts);
+```
+
+**Production-query rule (mandatory T2.x — every endpoint):**
+
+Every `SELECT` from these 5 tables MUST include `WHERE is_synthetic = 0`
+(or equivalent named-arg filter in SQLAlchemy). Default behavior is "show
+production data only". Test endpoints opt-in with `?include_synthetic=1`.
+
+```python
+# backend/v9/db/filters.py — new module
+def production_filter(query):
+    return query.where(text("is_synthetic = 0"))
+
+# Every existing query updated:
+query = production_filter(select(V9Bars5min).order_by(V9Bars5min.ts.desc()))
+```
+
+**Test-chain rule (mandatory T4.2-T4.4):**
+
+All 3 chain-test endpoints write rows with `is_synthetic=1`. Response body
+returns the new row IDs:
+
+```python
+@router.post("/test_chain")
+async def test_chain(req: TestChainRequest) -> TestChainResponse:
+    _assert_demo_or_403()
+    ...
+    return TestChainResponse(
+        trace=[...],
+        synthetic_row_ids={
+            "v9_bars_5min": [bar_id],
+            "v9_woodies_signals": [sig_id, ...],
+            "v9_trades": [trade_id],
+            "v9_audit_events": [evt_id, ...],
+        },
+        cleanup_command=f"python3 scripts/clean_synthetic.py --ids {bar_id},...",
+    )
+```
+
+**Archive rule (mandatory T2.3 / T3.x):**
+
+Snapshotter at 18:00 ET filters `is_synthetic=0` on every source query. No
+synthetic row ever reaches `v9_*_archive`. Backfill script for existing
+data: `UPDATE v9_X SET is_synthetic = 0 WHERE is_synthetic IS NULL` (run
+once during migration 019 deploy).
+
+**Cleanup utility (mandatory T2.x):**
+
+`scripts/clean_synthetic.py` — removes ALL `is_synthetic=1` rows from all
+5 tables. Idempotent. Used after manual chain testing or for periodic
+hygiene. Output:
+
+```
+$ python3 scripts/clean_synthetic.py
+Removed 1 row from v9_bars_5min
+Removed 5 rows from v9_woodies_signals
+Removed 1 row from v9_trades
+Removed 12 rows from v9_audit_events
+Removed 0 rows from v9_five_min_setups
+Total: 19 synthetic rows cleaned.
+```
+
+**SOT_HEALTH rule (mandatory T2.6):**
+
+`scripts/sot_health.py` adds `is_synthetic = 0` filter to every DB freshness
+query so synthetic test data never satisfies a freshness check.
+
+**Tests (mandatory T2.6):**
+- Insert `is_synthetic=1` row into `v9_bars_5min`. Production query must
+  return ZERO rows. Synthetic-included query must return 1.
+- Run snapshotter end-to-end with mixed real+synthetic rows. Archive must
+  contain ONLY real.
+- Run `clean_synthetic.py` after a chain test. All synthetic rows removed,
+  no production rows touched.
+
+---
+
+## §12 · Final risk consolidation (Cursor 2026-05-29 final review)
+
+| # | Original risk | Section that mitigates it | Status |
+|---|---|---|---|
+| R1 | 22:00 ET write recurs tonight | §10.2 root-cause hunt; T2.5 priority | Tracked |
+| R2 | 13× `date.today()` / `datetime.now()` no TZ | §10.1 grep gate; T2.5 fix all | Tracked |
+| R3 | startup hook crashes backend | §7.1 wrap in try/except; §9 T2.2 update | Tracked |
+| R4 | legacy `status` enum collision | §9 T2.1 update — extend manifest enum | Tracked |
+| R5 | test chain pollutes prod DB | §11 `is_synthetic` flag | Tracked |
+| R6 | CC scope creep | §10 STOP conditions; §9 commit-per-task | Tracked (process) |
+| R7 | sot_health cross-checks break | §11 includes sot_health update | Tracked |
+| R8 | no backout if Phase 2 breaks | §7.2 per-phase rollback procedure | Tracked |
+
+**Plaster check:** zero plasters remain in this design. Every fix addresses
+root cause. Every behavioral change has a regression test. Every schema
+change is reversible.
+
+**Confidence:** if CC follows this design strictly, no regression in
+existing functionality, no new latent bug surface, and the daily reset
+behavior emerges cleanly.
+
+---
+
+## §13 · ADDITION (Michael 2026-05-29) — Tiered Fire Status (Plan A++)
+
+**Status:** Decision deferred until CC's audit returns. Could land as Phase
+2.5 (between Phase 2 and Phase 3) or as a separate P-ID after the
+daily-reset work merges.
+
+**Goal (Michael's words, translated):** "For every pattern not
+day-type-dependent, show in build_status whether it WOULD have fired given
+no other gates (trading hours, day_type). I want to see the chain working
+and where things are stuck."
+
+### §13.1 — Architecture (4-tier evaluation)
+
+For every pattern (FHB, Reactive Long/Short, Initiative Long/Short, Quiet,
+ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE), the inspector
+evaluates four independent tiers:
+
+```text
+Tier 1 — Bar primitives        (always evaluable)
+  • CCI thresholds
+  • Volume ratios vs avg
+  • Delta cumulative sign
+  • EMA / LSMA / VWAP relative position
+  • Range / ATR ratios
+
+Tier 2 — Pattern logic         (multi-bar, depends on Tier 1)
+  • N of last M bars satisfy condition X
+  • Breakout above bar-K's high
+  • Reversal candle confirmed
+  • Divergence detected
+  • CCI zero-line cross
+
+Tier 3 — Time / Killzone gates (orthogonal to data)
+  • RTH active (09:30–16:00 ET)
+  • Killzone class (NY_OPEN, MIDDAY, POWER_HOUR, OFF)
+  • First-hour eligibility (FHB only)
+
+Tier 4 — Day-type authorization (depends on S1)
+  • auth_table[day_type, pattern] = ALLOWED / SKIP
+  • Risk-budget remaining for this pattern
+  • Confluence requirements per day_type
+```
+
+**Status pill per pattern:**
+
+| Tier reached | Status | UI color |
+|---|---|---|
+| Tier 1 not met | `🔴 INTRINSIC_BLOCKED` (data not there) | red |
+| Tier 1 met, Tier 2 not met | `🟠 BUILDING` (close but not confirmed) | orange |
+| Tier 1+2 met, Tier 3 blocked | `🟡 SHADOW_FIRE` ⭐ (would fire if not for time/killzone) | yellow |
+| Tier 1+2 met, Tier 4 blocked | `🟡 AUTH_DENIED` (would fire if day_type allowed) | yellow |
+| All 4 tiers met | `🟢 LIVE_FIRE` (real fire) | green |
+
+The **`SHADOW_FIRE` pill** is the answer to Michael's question: "is the
+chain working?" If a pattern hits `SHADOW_FIRE` during off-hours, you know
+the bridge → bars → primitives → multi-bar logic chain is healthy.
+
+### §13.2 — Numeric distance to fire (Plan A+ component)
+
+Each Tier 1 / Tier 2 condition exposes a `progress` ratio (0–1):
+
+```python
+{
+  "tier": 1,
+  "condition": "volume_ratio",
+  "current": 1.4,
+  "threshold": 1.5,
+  "progress": 0.93,   # 1.4 / 1.5
+  "met": False
+}
+```
+
+UI renders a tiny progress bar per condition. Patterns approaching fire
+become visible at a glance.
+
+### §13.3 — Shadow Fires journal (Plan A++ component)
+
+New table `v9_shadow_fires` (added in a follow-up migration, e.g. 020):
+
+```sql
+CREATE TABLE v9_shadow_fires (
+    id INTEGER PRIMARY KEY,
+    ts DATETIME NOT NULL,
+    pattern TEXT NOT NULL,
+    direction TEXT NOT NULL,
+    tier_blocked INTEGER NOT NULL CHECK (tier_blocked IN (3, 4)),
+    block_reason TEXT NOT NULL,           -- "RTH_NOT_ACTIVE", "DAY_TYPE_AUTH", etc.
+    bar_ts DATETIME NOT NULL,
+    bar_close FLOAT,
+    primitives_snapshot JSON NOT NULL,    -- Tier 1 conditions at fire moment
+    pattern_logic_snapshot JSON NOT NULL, -- Tier 2 conditions at fire moment
+    is_synthetic INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_shadow_fires_ts ON v9_shadow_fires(ts);
+CREATE INDEX idx_shadow_fires_pattern ON v9_shadow_fires(pattern, direction, ts);
+```
+
+Every time a pattern reaches `SHADOW_FIRE` (T1+T2 met, T3 or T4 blocked),
+a row is inserted. Production query default: `WHERE is_synthetic = 0`
+(per §11).
+
+**Backtest-for-free use case:**
+End-of-day Michael runs:
+```bash
+sqlite3 data/mems26_local.db "
+  SELECT pattern, direction, COUNT(*) as shadow_count, block_reason
+  FROM v9_shadow_fires
+  WHERE date(ts) = date('now')
+  GROUP BY pattern, direction, block_reason
+  ORDER BY shadow_count DESC;
+"
+```
+→ Sees: "Reactive Long shadow-fired 7× today, all blocked at Tier 3 (RTH
+not active)." Knows the pattern logic is healthy, just gated.
+
+### §13.4 — Frontend impact
+
+`frontend/v9/src/v9/components/build_status/`:
+- `ComponentTable.tsx` — add 4 columns (Tier 1 / 2 / 3 / 4) with progress
+  bars per condition
+- New row pill renderer for `SHADOW_FIRE` (yellow with ⭐ icon)
+- New `ShadowFiresStrip.tsx` — yesterday's + today's shadow fire counts
+  per pattern, click → modal with per-fire detail
+
+Estimated: ~4 hours frontend work, ~3 hours backend (inspector
+restructuring), ~1 hour migration.
+
+### §13.5 — Decision matrix (after CC's audit)
+
+CC's audit will tell us:
+1. How structured is the existing inspector? (Tier-1 vs Tier-2 already
+   separated, or all jumbled?)
+2. Are pattern detectors already pure (returning `met / not met`) or do
+   they short-circuit on gate failures?
+3. How many places in the codebase short-circuit on day_type / killzone
+   before evaluating pattern logic? (= work needed to refactor)
+
+Based on those answers, we'll choose:
+
+| If CC reports... | Then... |
+|---|---|
+| Inspector already tier-aware, detectors pure | **Phase 2.5** — small extension, lands inside this work |
+| Inspector tightly coupled to gates, refactor needed | **Separate P-ID** — clean redesign, ~3 days CC |
+| Detectors short-circuit deeply | **Separate P-ID** — bigger refactor, ~5 days CC |
+
+### §13.6 — Out of scope for §13 (always)
+
+- Auto-trading on shadow fires (NEVER — they're informational only)
+- Backtesting with historical data (separate effort, requires bar replay)
+- Cross-symbol shadow fires (single symbol = MES)
+
+---
+
+## §14 · Consumer write gate — NEW MECHANISM (CC consult 2026-05-29)
+
+> **Origin:** `docs/reports/CC_CONSULT_P31_2026-05-29.md` §1.4. CC reversed
+> his audit recommendation (`et_trading_day_18`) after walking the
+> 7 readers of `v9_day_type_history.date`. The actual root-cause of Bug A
+> is **NOT** in `_extract_session_date` — the calendar-date semantic is
+> correct. The bug is that the consumer accepts `UNKNOWN/PENDING`
+> classifications and UPSERTs them, pre-filling tomorrow's row with
+> stale state. **`570f10d` stays.** P31 builds on it; no revert.
+
+### §14.1 The 3-case walk (why `et_trading_day_18` would NOT help)
+
+| Case | Bar (ET) | UTC | `570f10d` writes `date=` | Premature row? |
+|------|----------|-----|--------------------------|----------------|
+| 1 | 14:00 ET 29/5 (RTH) | 18:00 UTC 29/5 | `2026-05-29` | No — RTH, real classification |
+| 2 | 20:00 ET 28/5 (Globex) | 00:00 UTC 29/5 | `2026-05-28` | No — `570f10d` fixed this |
+| 3 | **01:00 ET 29/5** (Globex) | 05:00 UTC 29/5 | `2026-05-29` | **YES — stale row written here** |
+
+In Case 3, `_extract_session_date` is correct (calendar ET = 29/5). The
+`et_trading_day_18` alternative would also return `2026-05-29` (already
+past 18:00 ET on 28/5 = next trading day = 29/5). Both functions agree
+on Case 3 — yet the bug still manifests, because the **state machine
+holds 28/5's classification** (Normal, IB 7583.5/7553.25 from RTH 28/5).
+
+### §14.2 Why `et_trading_day_18` is dangerous (not just "not helpful")
+
+All 7 readers use calendar-date semantics:
+
+```
+day_type_v9_routes.get_current()        — date.today()
+day_type_inspector.inspect()            — date.today().isoformat()
+aggregator._get_current_day_type()      — date.today().isoformat()
+woodies_inspector._day_type_context()   — date.today().isoformat()
+key_levels_routes._day_type_row()       — date('now')   ← SQLite UTC bug
+hydration.hydrate_day_type()            — date.today()
+day_type/api.get_current()              — date.today().isoformat() (V1 compat)
+```
+
+If the writer keys on `et_trading_day_18` while readers query on
+`et_today()` (calendar), there is a **6-hour window every day** (18:00 ET
+→ midnight ET) where the writer stores under `date=tomorrow` while
+readers look for `date=today`. UI shows PENDING for 6 hours despite a
+classification existing. **Migrating all 7 readers to trading-day
+semantics is a much larger blast radius than fixing the consumer gate.**
+
+### §14.3 The fix — two locks together
+
+**Lock 1 — State machine reset at 18:00 ET (T2.2 in Phase 2):**
+
+`SessionBoundaryManager.rollover()` calls `day_type_machine.reset()` at
+the boundary. After reset, `to_classification()` returns `None` until
+new RTH data arrives.
+
+**Lock 2 — Consumer write gate (NEW, T2.2b in Phase 2):**
+
+```python
+# backend/v9/systems/day_type/consumer.py — DayTypeConsumer.consume()
+def consume(self, event: dict) -> None:
+    day_type = event.get("day_type")
+    lock_state = event.get("lock_state", "LOCKED")  # default for back-compat
+    # Refuse non-classifications. Don't pollute v9_day_type_history with PENDING/UNKNOWN.
+    if day_type in (None, "", "UNKNOWN") and lock_state == "PENDING":
+        logger.debug(
+            "[DayTypeConsumer] gated write: day_type=%s lock_state=%s ts=%s",
+            day_type, lock_state, event.get("timestamp")
+        )
+        return
+    # … existing UPSERT logic unchanged
+```
+
+**Why both locks are required:** Lock 1 alone is not enough — even with
+a reset state machine, edge cases exist where `to_classification()` is
+called before a meaningful classification is available (e.g. mid-IB,
+mid-stage-A1). Lock 2 is the defensive backstop. Lock 2 alone is also
+not enough — without reset, the state machine continues feeding yesterday's
+classification on overnight bars, and Lock 2 (which only blocks
+`UNKNOWN/PENDING`) wouldn't catch a `Normal/LOCKED` carry-over.
+
+### §14.4 Test matrix
+
+```python
+# tests/v9/systems/day_type/test_consumer_write_gate.py
+def test_gate_refuses_unknown_pending():
+    # before fix: UPSERT happens; after fix: no DB change
+    consumer.consume({"day_type": "UNKNOWN", "lock_state": "PENDING", ...})
+    assert query_count("SELECT COUNT(*) FROM v9_day_type_history WHERE date=?", today) == 0
+
+def test_gate_allows_locked_classification():
+    consumer.consume({"day_type": "Normal", "lock_state": "LOCKED", "probability": 0.68, ...})
+    assert query_count("SELECT COUNT(*) FROM v9_day_type_history WHERE date=?", today) == 1
+
+def test_gate_allows_locked_low_conf():
+    consumer.consume({"day_type": "Normal", "lock_state": "LOCKED_LOW_CONF", ...})
+    assert query_count(...) == 1
+
+def test_gate_does_not_swallow_real_classifications_on_first_bar_of_rth():
+    # The gate must NOT block the first valid classification after RTH open
+    # Sets up state machine → first valid event → consumer.consume → row written
+    ...
+```
+
+---
+
+## §15 · `570f10d` overlap — what it fixed, what P31 extends
+
+> **Status:** `570f10d` is **on HEAD as of 2026-05-29 09:40 IL**. P31
+> does NOT revert it. P31 extends it with §14 (consumer write gate)
+> + §2.2 (state machine reset).
+
+### §15.1 What `570f10d` did
+
+```python
+# backend/v9/systems/day_type/consumer.py::_extract_session_date
+return ts.astimezone(ZoneInfo("America/New_York")).date()  # was: ts.date()
+```
+
+Removed: `🕐 History` label workaround in `day_type_inspector.py` (patch-on-patch).
+
+Deleted: stale `2026-05-29` row from `v9_day_type_history`.
+
+### §15.2 What it fixed (Case 2)
+
+UTC→ET calendar conversion. `bar @ 20:00 ET 28/5 = 00:00 UTC 29/5` no
+longer writes a row for `date=2026-05-29`. ✅
+
+### §15.3 What it left open (Case 3 — the actual bug Michael saw)
+
+Overnight Globex bars **after midnight ET** still produce premature
+rows. The bar `01:00 ET 29/5` returns `2026-05-29` correctly, but the
+state machine still holds 28/5's classification. The consumer accepts
+the (UNKNOWN or stale Normal) event and writes a row.
+
+### §15.4 P31 is additive — no revert needed
+
+P31's mechanism stack:
+
+```
+┌─────────────────────────────────────────────┐
+│ Mechanism 1 (570f10d, ALREADY ON HEAD):     │
+│   _extract_session_date uses ET calendar    │
+│   → fixes Case 2 (UTC→ET bug)               │
+├─────────────────────────────────────────────┤
+│ Mechanism 2 (P31 §2.2, NEW):                │
+│   State machine reset at 18:00 ET           │
+│   → to_classification() returns None        │
+│     until new data arrives                  │
+├─────────────────────────────────────────────┤
+│ Mechanism 3 (P31 §14, NEW):                 │
+│   Consumer write gate                       │
+│   → refuses UNKNOWN/PENDING UPSERTs         │
+│     (defensive backstop)                    │
+└─────────────────────────────────────────────┘
+```
+
+All 3 must be present for the bug to be fully closed. Each compensates
+for failure modes of the others.
+
+---
+
+## §16 · Bug 04 — `five_min_system.hydrate()` overnight early-return
+
+> **Origin:** `docs/reports/sot_health_audit/04_DAY_TYPE_API_NONE.md`.
+> Audit 04 found `current_day_type=None` in `/api/v9/five_min/current`
+> despite `v9_day_type_history` having a row for today.
+> **Scope:** Item F in P31 task list (audit confirmed F belongs in P31).
+
+### §16.1 Root cause
+
+`backend/v9/systems/five_min/five_min_system.py::hydrate()`:
+
+```python
+def hydrate(self, db_session) -> HydrationResult:
+    session = self._classify_session(now_et)
+    if session in (Session.OVERNIGHT, Session.PRE_MARKET, Session.AFTER_HOURS):
+        self.mode = FiveMinMode.OVERNIGHT_MODE
+        self._hydrated = True
+        return HydrationResult(...)   # ← EARLY RETURN
+    # ↓ day_type hydrate is HERE — never reached during overnight
+    latest = db.query(V9DayTypeState).order_by(V9DayTypeState.id.desc()).first()
+    if latest and latest.day_type:
+        self.current_day_type = latest.day_type
+```
+
+The `current_day_type` field stays at `__init__` default of `None` for
+all overnight/pre-market/after-hours sessions. When backend restarts at
+e.g. 03:00 ET, S2 starts up with `current_day_type=None`.
+
+### §16.2 Impact (which patterns are blocked?)
+
+| Pattern class | Source | Blocked by `None`? |
+|---------------|--------|----------------------|
+| S2 Reactive | `Reactive.evaluate()` checks `current_day_type == "Nontrend"` | No — `None != "Nontrend"` → passes (negative gate) |
+| S2 Initiative | Same negative gate | No |
+| S2 Chart H&S | `current_day_type in ("Neutral_Extreme", "Normal", ...)` | **YES — blocked** |
+| S2 Chart DblBT | Same positive gate | **YES — blocked** |
+| S2 Flags Bull/Bear | `current_day_type in ("Trend_Normal", "Normal", ...)` | **YES — blocked** |
+| S4 (Woodies) | Does not read `current_day_type` | No |
+
+So during pre-RTH **even after S1 classifies during RTH**, S2 chart
+patterns and flags are blocked **until the first `_on_day_type_update`
+event handler fires** (line 266-272). That event arrives only after S1
+locks classification — typically at 10:30 ET (post-IB-lock).
+
+**Effective UX:** between RTH open (09:30 ET) and IB lock (10:30 ET),
+S2 chart + flag patterns are silently blocked even though they could
+theoretically fire on Reactive/Initiative criteria. ~1 hour of dead
+detection every morning.
+
+### §16.3 Fix (one-line reorder)
+
+Move the day_type hydrate block to **before** the session-type early
+return:
+
+```python
+def hydrate(self, db_session) -> HydrationResult:
+    # Hydrate day_type FIRST — works for all session types
+    latest = db.query(V9DayTypeState).order_by(V9DayTypeState.id.desc()).first()
+    if latest and latest.day_type and latest.day_type != "UNKNOWN":
+        self.current_day_type = latest.day_type
+    # Now classify session and do session-specific hydrate
+    session = self._classify_session(now_et)
+    if session in (Session.OVERNIGHT, Session.PRE_MARKET, Session.AFTER_HOURS):
+        self.mode = FiveMinMode.OVERNIGHT_MODE
+        self._hydrated = True
+        return HydrationResult(...)
+    # … existing RTH hydrate ...
+```
+
+### §16.4 Coupling with §14 consumer gate
+
+The day_type hydrate reads from `v9_day_type_state`, NOT from
+`v9_day_type_history`. Audit 04 found 122 `Normal` rows + 133 `UNKNOWN`
+rows for today in `v9_day_type_state` (overnight pollution). After the
+consumer gate (§14) is in place, only valid classifications flow into
+`v9_day_type_state` — but historical pollution remains.
+
+**Action:** `SessionBoundaryManager.rollover()` (T2.2) must also
+truncate or mark stale `v9_day_type_state` rows older than
+`et_today() - 1d`. This couples §16 to §2.2.
+
+### §16.5 Test
+
+```python
+# tests/v9/systems/five_min/test_hydrate_day_type_overnight.py
+def test_hydrate_picks_up_day_type_during_overnight():
+    # Insert v9_day_type_state row with day_type=Normal at 14:00 ET yesterday
+    # Backend restart at 03:00 ET (overnight)
+    # hydrate() → mode=OVERNIGHT_MODE AND current_day_type='Normal'
+    ...
+
+def test_hydrate_skips_unknown_day_type():
+    # Insert v9_day_type_state row with day_type=UNKNOWN at 02:00 ET today
+    # hydrate() → current_day_type stays None (don't pick up garbage)
+    ...
+```
+
+---
+
+## §17 · CC consult acceptance summary (2026-05-29)
+
+CC's consult report (`docs/reports/CC_CONSULT_P31_2026-05-29.md`)
+delivered 5 actionable changes. Cursor accepts all 5:
+
+| # | CC recommendation | Cursor action |
+|---|-------------------|---------------|
+| 1 | Keep `et_calendar_date` for writes (do NOT switch to `et_trading_day_18`) | §14 + §15 added; `570f10d` stays |
+| 2 | Add consumer write gate (refuse UNKNOWN/PENDING) | §14 added (NEW MECHANISM) |
+| 3 | Split P31 (A–H) and P32 (I–L) is clean — no hidden dependency | Confirmed — 2 separate prompts |
+| 4 | Task order A → B → C → G → E → D → F → H | Adopted in P31 prompt |
+| 5 | F (`five_min_system.hydrate()` early-return) belongs in P31, not P32 | §16 added; F kept in P31 |
+
+**Latent bug confirmed by CC's STOP condition:** `key_levels_routes::_day_type_row()` SQLite `date('now')` (UTC) breaks the day_type pill for 4 hours every evening. Item C (in P31 task list) **must** land atomically with item A — not as a follow-up commit.

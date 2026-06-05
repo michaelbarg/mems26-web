@@ -1,6 +1,46 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 📍 2026-06-05 (EOD-agent, 09:25 CT) — pattern-EOD מאוחד + 2 חשודים חדשים
+
+> דוחות: `docs/reports/PATTERN_EOD_2026-06-05.md` · `DESIGNS_2026-06-05.md` · register עודכן.
+
+- **[2026-06-05] 🔴 I-9 cron-TZ נפתח-מחדש:** root=ה-EOD-agent נורה ב-**09:25 CT** (54 דק' לתוך RTH) ולא אחרי 15:00 CT → gating-פנימי מוודא RTH אך לא after-close → הדוח כיסה רק שעה-ראשונה (11 ברים), counterfactual נחתך ל-3 ברים. proposed=trigger→23:05 IL **או** guard `now_ct>=15:00` (D-1). verified by: `TZ=America/Chicago date` → `09:25 CDT` בזמן-ריצה + bars5min last ts=`17:20+03` (09:20 CT).
+- **[2026-06-05] 🔴 I-11 חדש — S3 footprint 0 ברים:** finding=`running+hydrated` אבל `bars_processed_today=0`, buffer=0, flow=null בשני snapshots (09:12+09:24 CT) → אף תבנית-S3 לא דורכת. proposed=CC לאבחן export→bridge→DB (D-2, diagnose-first). verified by: `/api/v9/footprint/current` raw `bars_processed_today:0` ×2.
+- **[2026-06-05] 🟡 I-12 חדש — A5 sizing reject אטום:** finding=`calculate_size=reject` עם `details{}` ריק; הסבר רק ב-`last_reasoning_notes` (`HFE LONG size=reject: CCI=-192.9, trend=RED, group=REVERSAL`); פעל בזמן A4 `context degraded` (day_type missing, I-1). proposed=§1 למלא `details{}` (display/safe) · §2 defer כש-day_type חסר (trading-logic→אישור) (D-4). counterfactual: ה-reject **חסך ≈1R** (HFE LONG מולא 7519.25→stop 7516.75 באותו בר; T1 7522.25 פוספס ב-0.25) → מוצדק. verified by: bars5min replay (17:15/17:20/17:25 IL).
+- **[2026-06-05] I-1 אומת-חי:** A4 ב-HFE dtree=`context degraded: day_type/tpo/killzone/layer0 missing` ב-09:24 CT (נשאר 🔴, CC להצליב atr_daily ב-v9_export).
+- **חלון:** נדרכה=1 (S4 HFE) · נורתה=0 · trades_today=0. S2 detector חי 0-patterns (לגיטימי) · S3 dark (I-11). **דוח חלקי — להריץ שוב אחרי-סגירה.**
+
+## 📍 2026-06-05 — B-13 remediation + G1 columns + clean shadow reset
+
+> 🧭 בּאג-לוג מלא: `docs/reports/BUG_LOG_2026-06-04_05.md`.
+
+**✅ B-13 תוקן (CC, 2026-06-05).** S2 ירה 2× phantom trades (7341/7365) — ברים שאריתיים מ-PG migration May 6, לא ברים פנטומיים.
+- **שורש מאומת (CC psql):** entry_price 7341.00 = exact match close של 2026-05-06 16:30+03; 7365.75 = close של 2026-05-06 20:20+03. 8 ברים ישנים (May 6-12) שרדו migration.
+- **D2 (root fix) — staleness guard:** `_route_bar` blocks bars with stale ts (>24h) or off-market price (>50pts from latest). Old bars still written to DB for chart, but NOT routed to pattern engines. `MAX_STALE_HOURS=24`, `STALE_PRICE_BAND=50` (Michael approved). 6/6 tests GREEN, RED proven.
+- **D3 — session gate 08:30–15:00 CT:** `session_gate.py` canonical firing window. Gateway blocks ALL modes (incl SHADOW) outside window. S2 transitions DAY_TYPE→OVERNIGHT at 15:00 CT. All 3 firing systems (S2/S3/S4) blocked via single choke point. 9/9 tests GREEN, RED proven.
+- **D1 — S3_MUTE=1:** added to `start_all.sh`. Footprint observability stays, no firing.
+- **D4 (price-sanity in pre_fire):** deferred per Michael.
+- **D5 — clean reset:** TRUNCATE v9_trades + v9_bars_5min + _continuous + _woodies + v9_five_min_state. 0 bars below 7450. Soak ≥10min: 0 errors, 0 deadlocks, 0 phantom trades.
+
+**✅ G1 columns (CC, 2026-06-05).** `day_type_at_entry`, `pattern_id_at_entry`, `session_at_entry` — nullable, indexed. Migration 020 applied. Populated at entry from same cross_context snapshot (extract_g1_entry_context). Litmus: missing killzone → NULL (not synthesized). 7/7 tests GREEN. No backfill (trades wiped).
+
+**🔴 פתוחים:** B-11 bridge_inspector rowid (ready) · SQLite-isms scan · Build-cull · S1-POC · chart display (RTH per-session).
+
+**החלטות שהתקבלו בסשן:**
+- **Build-Status cull = אופציה A** (אושר Michael) — Build חי ב-`/build` בלבד. פרומפט: `CC_PROMPT_BUILD_STATUS_CULL_2026-06-04.md`. **טרם בוצע.**
+- **S1 day-type re-eval = "הדבר האמיתי"** (POC/value-area דינמי). נתיב-נתונים = **Sierra** דרך `/api/v9/tpo/current` (Rule 1: found=false→no-reeval). פרומפט: `CC_PROMPT_S1_POC_REEVAL_2026-06-04.md` (flag-gated default OFF). **טרם בוצע.** סף-נדידה = לכייל מ-soak.
+- **D-096 S1=OBSERVER נעול** (אין החלטה פתוחה; firing=פרויקט עתידי). drift נסגר: **S3=firing · Killzone=11**.
+- **D-RVX** — knob נשלח (`e72883c`, ברירת-מחדל A_VSA). בחירת-וריאציה → מ-soak.
+- **הגדרת סטופים** — נדחתה ע"י Michael. טבלה לעריכה מוכנה: `MEMS26_STOP_TARGET_PLACEMENT_TABLE_2026-06-04.xlsx` (+Drive). חסר: `stop_anchors.yaml` + 2 עוגנים חדשים + loader. ([[project-stop-target-placement-table]])
+- **#6 residuals קטנים + #5 post-soak → לפני LIVE** (נדחו).
+
+**✅ commits שאומתו בסשן:** `e41ac5d` S4-ticks · `182862b` config-YAML · `e72883c` S2-variant · `66bd45c` targets_stop · `3820f3b` PG-datetime · `1896a97` continuous-5min · `355a54b` dedup-bars · `a4b1fac`/`5b06899`/`f36e184` index.
+
+**🔴 פתוחים (לפי עדיפות):** B-13 (S2 guardrails+מקור-בר) · **B-11 bridge_inspector `ORDER BY rowid` → `ORDER BY ts`** (פרומפט מוכן בעל-פה; SQLite-ism שובר PG → כל הזרמים no_data/Bridge-OFFLINE שקרי) · **סריקת SQLite-isms** (datetime↔str · rowid · str(ts)-dedup) לפני LIVE · Build-cull · S1-POC · צ'ארט-תצוגה (RTH פר-סשן כמו Sierra chart#5).
+**מצב חי:** גשר רץ ודוחף (PID חי, `/tmp/bridge.err.log` push#50 errors≈0). day_type מסווג (PG-fix עבד). S2 10-armed.
+
+
 - **[2026-06-04] ✅ PG datetime↔str regression fix (CC):** root=PG returns `datetime` for timestamp columns, `DataFreshness.last_bar_ts: Optional[str]` rejected it → `day_type_inspector` crashed → `day_type=None` → S1 unclassified → S2/S4 day-gate fell. fix=central `field_validator(mode="before")` coercion on `DataFreshness.last_bar_ts`, `PatternStatus.last_fire_ts`, `SystemStatus.last_fire_ts`, `Freshness.ts` in `types.py`. Sibling audit: woodies/s2/bridge inspectors safe (`latest_valid_db_ts` already does `str(raw)`, `fires_today` does `.isoformat()`). Verified: 9/9 pytest green + litmus revert→RED (pydantic `ValidationError: Input should be a valid string`).
 - **[2026-06-04 eve] ✅ אינדקס-קוד חי (CC `a4b1fac`, אומת Cowork):** `scripts/gen_index.py` + 107 `_INDEX.md` פר-ספרייה + `SYSTEM_INDEX.md`. import-graph (py+ts) מסמן שימוש פר-קובץ; orphans 137→**53** אחרי הקשחה (entrypoints/dynamic/streams/Next.js). verification (Cowork): 107 קבצים נמצאו · litmus `adaptive_stop.py ✅2`/`s2_inspector.py ✅1` (לא-orphan, graph תופס) · idempotent (CC: 0-diff בריצה שנייה). **2 orphans-אמת בולטים לבדיקה:** `services/trail_engine.py` (0 refs — dead או missing-wire?) · `archive/confluence.py`. residual: 53 כוללים false-positives של class-instantiation (דורש AST על constructor-calls). להריץ `python3 scripts/gen_index.py` לרענון.
 
@@ -55,7 +95,7 @@
   verification (Cowork): `git show --stat 8eb5747` 2 קבצים; `compute_stop`/`compute_targets` מיובאים ונקראים (s2_inspector:346/354); woodies_inspector `_min_r_t1=1.0`.
   **3 residuals (אומתו, NOT-DONE):** (1) **consistency חי טרם אומת** — displayed stop/r_t1 == עסקה שנורתה (תלוי-RTH; נוסף לצ'ק-ליסט bring-up). (2) **תבניות-chart S2** (Flag/H&S/Double-BT) משתמשות ב-pattern-measure בזמן-ירי, ה-preview מציג R-based → תצוגה≠מנוע לאותן תבניות (תיקון: למשוך pattern_measure). (3) **`pattern_dispatcher.py:47 min_r_t1_threshold=0.0`** no-op (pre_fire R:R≥1.0 הוא הגייט הקובע) → dead-threshold לחווט/להוציא ל-config (מתחבר ל-[[project-config-tunable-stop-exits-contracts]]).
 
-> 🧭 **המשך-צ'אט מתחיל כאן:** `docs/handoff/HANDOFF_NEXT_CHAT_2026-06-04_EVE.md`. מצב: DB מלא על PG + firing fixes + watchdog + P0-2 — **הכל אומת**. **הצעד המיידי: הצלבת 2 תוצרי המעצבים (Trades + Build-Status) שסיימו וממתינים.** config-YAML המורחב נשלח ל-CC. P1 bring-up ב-RTH = השער לפתיחת SHADOW.
+> 🧭 **המשך-צ'אט מתחיל כאן:** `docs/handoff/HANDOFF_NEXT_CHAT_2026-06-04_LATE.md`. מצב: DB+firing+watchdog+P0-2(backend+frontend)+config→YAML(auth/targets/stop/S4-ticks/S2-knob)+הצלבת 2 המעצבים — **הכל אומת**. **הצעד המיידי = P1 bring-up ב-RTH** (הגייט לפתיחת SHADOW; אימות ירי-S2 חי + P0-2 consistency). החלטות מאושרות (אומת מול docs/decisions): D-RVX✅ · cull✅(אופ' A `/build`) · S3=Firing✅(D-089) · Killzone=Observer-no-change(D-093). **פתוח באמת: stop-anchor בלבד** (+ post-soak תלוי-דאטה).
 
 ## 📋 2026-06-04 — אבחון S1/S2 firing (rerun על PG, אומת Cowork)
 

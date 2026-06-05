@@ -1,28 +1,34 @@
-# Restart Recovery Plan — 2026-05-30
+# Restart Recovery Plan — 2026-05-30 (v2, Michael-approved)
 
-## Problem 1: 5-min Bar Gaps After Restart
+**עיקרון:** לכל שדה מקור-אמת אחד. בהפעלה מחדש **טוענים מחדש מהמקור הסמכותי —
+לא מחשבים מחדש ולא ממציאים placeholder.** נתוני שוק = Sierra; החלטות S1 = השורה
+השמורה ב-DB (תאריך ET, לא ROLLED_OVER). כשבאמת אין נתון → INDETERMINATE אמיתי
+(יורד ל-Normal), לא ניחוש.
 
-**Root cause:** `Bars5MinStream._push_api()` sends only `bars[-1]` (latest bar) on each poll. After a backend restart mid-RTH, bars between the last DB entry and the current Sierra export are lost.
+## Problem 1 — 5-min bar gaps after restart (MANDATORY)
+**Root:** `Bars5MinStream._push_api()` שולח רק `bars[-1]` בכל poll. אחרי restart
+באמצע RTH, הברים שבין הרשומה האחרונה ב-DB לבין ה-export הנוכחי אובדים לתמיד.
+**Fix:** ב-startup `SELECT MAX(ts) FROM v9_bars_5min`; בדחיפה הראשונה לשלוח את **כל**
+הברים שאחרי ה-ts (backfill), ואז לחזור ל-latest-only (דגל `_first_push`).
+**סטטוס:** חובה (Michael). אין החלטה — תיקון מכני.
 
-**Proposed fix:**
-1. On startup, query `SELECT MAX(ts) FROM v9_bars_5min` to get the last known bar timestamp.
-2. On first `_push_api` call, send all bars from Sierra export where `bar.ts > last_known_ts` instead of just the latest.
-3. After the initial backfill, resume sending only the latest bar.
-
-**Implementation:** Add a `_first_push = True` flag to `Bars5MinStream`. On first push, filter `bars` to those after last DB ts. Set `_first_push = False` after.
-
-## Problem 2: S1 Day Type Resets on Restart
-
-**Root cause:** `state_machine.py:reset()` clears all state (IB, opening, confidence, lock). No `day_type_seed.py` found — hydration exists but only reads from DB history, which may itself be stale or missing opening data.
-
-**Proposed fix:**
-1. On backend restart during RTH, **replay the last N opening bars** from `v9_bars_5min` (N=6, covering 09:30-10:00 ET) through the state machine's A1→A2→A3 stages to reconstruct `opening_type`.
-2. Load IB from `v9_tpo_sessions` or Sierra `tpo.json` export (already ingested).
-3. Load confidence/lock_state from last `v9_day_type_state` row if today's date matches.
-4. Skip replay if we're past forced-lock time (13:00 ET) — just load the locked state from DB.
-
-**Risk:** Replay of bars after IB lock may trigger re-evaluation loop. Mitigate by checking `session_min >= 210` (post-lock) and skipping to C3 directly.
+## Problem 2 — S1 day_type resets on restart (✅ APPROVED v2)
+**Root האמיתי:** `day_type_seed.py:111` **כופה `opening_type=INDETERMINATE`** בהפעלה
+מחדש במקום לטעון את הערך השמור. כך נתון תקין נזרק (הוכחה: 27/5 נשמר OPEN_DRIVE, אך
+seed היה הופך ל-INDETERMINATE).
+**Fix (Michael-approved 2026-05-30) — בלי replay, בלי כלל 13:00:**
+1. IB + טווח → מ-Sierra/TPO (`maybe_seed_ib_from_tpo` — כבר עובד).
+2. `opening_type` / `day_type` / `lock_state` / `confidence` → **לטעון מהשורה של היום
+   ב-`v9_day_type_history`** אם `date == et_today()` ו-`status != 'ROLLED_OVER'`.
+3. רק אם אין שורה כזו → `opening_type=INDETERMINATE` אמיתי (degrades to Normal).
+**מבוטל מהגרסה הקודמת:** replay של 6 ברי פתיחה + דילוג-13:00 — מיותרים ברגע שטוענים
+מה-DB, ומוסיפים סיכון re-eval. נמחקו לפי החלטת Michael.
 
 ## Implementation Priority
+שניהם pre-LIVE ואושרו. Problem 1 (backfill) + Problem 2 (load-from-DB) — מימוש מינימלי
++ regression. אין עוד heuristics להחלטה.
 
-Both fixes are pre-LIVE requirements. Implement after Michael reviews and approves the heuristics (replay window size, when to skip, etc.).
+## אימות
+- restart אחרי שנשמר `OPEN_DRIVE` → לאחר seed `opening_type == 'OPEN_DRIVE'` (לא INDETERMINATE).
+- restart באמצע RTH → אין חורים: ברי 5min רציפים ללא פערים מאז MAX(ts) שלפני הנפילה.
+- אין שורה להיום → INDETERMINATE (לא crash, יורד ל-Normal).

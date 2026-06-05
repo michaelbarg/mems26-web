@@ -61,18 +61,32 @@ Build a complete Sierra order routing path in **9 packages** under "Pipeline 5".
 **Sub-decisions deferred (verify-first):**
 
 - **D-093.Q1 · Gateway canonicality** — CC performs a 4-step audit of `backend/v9/gateway/` vs `backend/v9/services/trading_gateway/`, produces a recommendation report `docs/reports/P5_0_GATEWAY_AUDIT.md`, then Michael selects canonical. **DO NOT delete either path** without Michael's explicit lock.
-  - 🆕 **Research recommendation (2026-05-24):** Canonical = `backend/v9/services/trading_gateway/` (W11 `TradeManager` + W14 `RiskValidator` pre-integrated — exactly the risk plumbing LIVE requires). Run both in SHADOW for 1 week to assert byte-equal `trade_command.json`, then cut over and freeze legacy as read-only. See research §3.3. **Awaiting Michael lock.**
-- **D-093.Q2 · Sierra DEMO account** — 🔒 **LOCKED 2026-05-26 12:44 IL · Michael Barg**
-  - Live account: **IronBeam · Teton CME Routing [trading]**
-  - DEMO/Simulation account: **IronBeam · Teton CME Routing [simulation]** (or `[sim]` — verify exact label in Sierra Chart Trade Account settings before P5-1 execution)
-  - P5-1 must use the `[simulation]` route identifier · NOT `PA-APEX-125218-01` (legacy placeholder · wrong)
+  - 🆕 **Research recommendation (2026-05-24):** Canonical = `backend/v9/services/trading_gateway/` (New). **OVERRIDDEN by P5-0 audit (2026-05-31):** the New path is **missing** the 5 safety gates (cooldown/SSV/cluster/chop/strict) that Legacy runs in production → a cutover would regress safety. See `docs/reports/P5_0_GATEWAY_AUDIT.md`.
+  - 🔒 **LOCKED 2026-05-31 · Michael Barg — canonical = MERGE.** Base = **Legacy** (`backend/v9/gateway/trading_gateway.py`, keeps all 5 safety gates); extract **only** the `RiskValidator` (W14) from New and integrate into Legacy's `_execute_live()`. New gateway + executors become dead code, deleted AFTER the RiskValidator extraction (P5-2). No rewrite — one targeted integration.
+- **D-093.Q2 · Sierra DEMO account** — 🔒 **RE-LOCKED 2026-05-31 · Michael Barg** (corrected to real setup)
+  - Broker/account: **IronBeam · account `37138283` · Teton CME Routing**
+  - **No Apex — confirmed Michael 2026-05-31.** BOTH `PA-APEX-125218-01` (demo
+    placeholder) AND `APEX-125218-13` (the "LIVE account" string found in the New
+    gateway/`executors/live.py`) are DEAD — delete on sight. There is **no separate
+    LIVE account**: live = the SAME account `37138283` with the global Trade
+    Simulation Mode toggle OFF. Sim = same account, toggle ON.
+  - **No separate `[simulation]` route exists.** The selected Service is `Teton CME Routing [trading]` (the LIVE route). Sim vs live is controlled ONLY by Sierra's global **Trade Simulation Mode On** toggle (Trade menu). Same account + same `[trading]` route serve both sim and live — the toggle is the only separator.
+  - **Michael owns the sim/live toggle** (his explicit responsibility, 2026-05-31).
+  - ⚠️ **P5-1 HARD-GATE (mandatory safety):** the DLL MUST validate `sc.GlobalTradeSimulationIsOn() == true` before EVERY demo order and **refuse** if the toggle is off. Because there is no separate sim route, this gate is the ONLY code-level protection against accidentally routing a DEMO order to the live broker. This elevates the D-093 mode-mismatch gotcha from "important" to "critical".
 
 **Locked items (no further decisions needed):**
 
-- 🔄 **PROPOSED RE-LOCK (research §1.1+§5.1):** ACSIL bracket order = `sc.BuyEntry(NewOrder)` / `sc.SellEntry(NewOrder)` with directly-defined Attached Orders (`Target1Offset`/`Stop1Offset` on `s_SCNewOrder`) — **NOT** `sc.SubmitOCOOrder()`. `sc.SubmitOCOOrder()` is reserved for the three native `SCT_ORDERTYPE_OCO_*` parent types (BUY_STOP_SELL_STOP / BUY_LIMIT_SELL_LIMIT / BUY_STOP_LIMIT_SELL_STOP_LIMIT) — not for entry+stop+target brackets (Sierra calls those "Attached Orders"). Awaiting Michael lock. Original lock stands until then.
-- 🔄 **PROPOSED RE-LOCK (research §1.1+§5.3):** Order modification = `sc.ModifyOrder(NewOrder)` (direct modify · preserves exchange queue priority · avoids naked-position race) — **NOT** `sc.CancelOrder() + new sc.SubmitOrder()`. Note: research confirms `sc.SubmitOrder()` does NOT exist in ACSIL · use `sc.BuyEntry`/`sc.SellEntry`/`sc.BuyOrder`/`sc.SellOrder` instead. Awaiting Michael lock.
+- 🔄 **PROPOSED RE-LOCK (research §1.1+§5.1):** ACSIL bracket order = `sc.BuyEntry(NewOrder)` / `sc.SellEntry(NewOrder)` with directly-defined Attached Orders (`Target1Offset`/`Stop1Offset` on `s_SCNewOrder`) — **NOT** `sc.SubmitOCOOrder()`. `sc.SubmitOCOOrder()` is reserved for the three native `SCT_ORDERTYPE_OCO_*` parent types (BUY_STOP_SELL_STOP / BUY_LIMIT_SELL_LIMIT / BUY_STOP_LIMIT_SELL_STOP_LIMIT) — not for entry+stop+target brackets (Sierra calls those "Attached Orders"). 🔒 **LOCKED 2026-05-31 — BuyEntry+Attached** (dev/execution-mechanism decision · no strategy impact · same entry/stop/target).
+- 🔄 **PROPOSED RE-LOCK (research §1.1+§5.3):** Order modification = `sc.ModifyOrder(NewOrder)` (direct modify · preserves exchange queue priority · avoids naked-position race) — **NOT** `sc.CancelOrder() + new sc.SubmitOrder()`. Note: research confirms `sc.SubmitOrder()` does NOT exist in ACSIL · use `sc.BuyEntry`/`sc.SellEntry`/`sc.BuyOrder`/`sc.SellOrder` instead. 🔒 **LOCKED 2026-05-31 — ModifyOrder** (dev/execution-mechanism decision · no strategy impact). Wiring in P5-4/P5-5.
 - Position reconciliation via `sc.PositionData(account)` written to `position_state.json` (new export from DLL).
-- Heartbeat: DLL exports last-seen timestamp; backend alerts if stale > 30s. (🔄 Research §4.3 proposes ladder: 5s emit · 30s stale → WARN if flat / KILL if open position · 120s critical → broker-desk intervention.)
+- Heartbeat: DLL exports last-seen timestamp; backend alerts if stale > 30s.
+  🔒 **LOCKED 2026-05-31 · Michael — ALERT-ONLY (no auto-KILL).** Alerting ladder
+  OK (5s emit · 30s → WARN · 120s → critical), but **NO automated flatten** on
+  stale heartbeat. Rationale: (1) the only order path is the DLL file-bridge — a
+  flatten command can't execute through a dead/stale DLL anyway; (2) avoids
+  false-positive flattening on a transient glitch. On a stale-with-open-position
+  alert, Michael flattens manually (Sierra Flatten button). Revisit auto-KILL only
+  if a redundant order path or Sierra-side auto-flatten is added.
 - Bridge `TradeCommandHandler` is canonical (already complete · just needs wiring on startup).
 - Mode promotion ladder: SHADOW (live now) → DEMO (P5-1 deliverable) → LIVE (P5-8 deliverable).
   - 🆕 **Research mode-toggle map (§1.3):** `sc.SendOrdersToTradeService` MUST match global `Trade Simulation Mode On` — mismatch = silent rejection with only Trade Service Log entry. Bridge MUST validate at boot via `sc.GlobalTradeSimulationIsOn`.

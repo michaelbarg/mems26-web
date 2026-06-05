@@ -1,7 +1,16 @@
 # D-094: R:R Fire Selection (DRAFT — PROPOSED)
 
-**Status:** PROPOSED · awaiting Michael approval  
+**Status:** 🔒 LOCKED 2026-05-31 · Michael Barg  
 **Date:** 2026-05-31  
+
+> **🔒 LOCKED ANSWERS (Michael 31/5):**
+> - **Q1 Metric = Option A · pure R:R** (highest R:R wins; confidence NOT in the score).
+> - **Q3 Buffering = same-bar flush** (collect all `route_setup` within the 5-min bar, select at bar close). SHADOW records immediately, unaffected.
+> - **Q2 floor:** existing `pre_fire_validator` R:R≥1.0 is sufficient — no extra DEMO/LIVE floor.
+> - **Q4 confidence calibration:** moot under Option A (confidence not scored).
+> - **Q5 phase / Q6 MES_POINT_VALUE dedup:** to be set when the implementation prompt is written (separate thread from Auth-Table-V2 / MAX_CONTRACTS).
+> Tie-breaking per §Tie-Breaking below still applies (confidence → lower firing_system → arrival).
+
 **Context:** GAP-3 (FULL_PATH_MEGA_TABLE), STATUS_BOARD §⚙️3  
 **Scope:** Gateway DEMO/LIVE slot fill logic (SHADOW unaffected)
 
