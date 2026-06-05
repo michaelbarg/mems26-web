@@ -49,13 +49,15 @@ def test_wilder_smoothing_applied():
     assert 1.0 < result < 5.0
 
 
-def test_flags_default_off():
-    """Feature flags default to False (OFF)."""
+def test_flag_defaults():
+    """Feature-flag defaults. S2_ATR_RELATIVE is intentionally ON
+    (Michael-approved default-ON for SHADOW, 2026-06-05); the rest stay OFF.
+    Kill-switch preserved: S2_ATR_RELATIVE=0 in env still forces it off."""
     from backend.v9.shared.atr import (
         S2_ATR_RELATIVE, S3_RELATIVE, S1_CVD_OPENING,
         S1_DAYTYPE_STAGING, S1_IB_WIDTH_ATR,
     )
-    assert S2_ATR_RELATIVE is False
+    assert S2_ATR_RELATIVE is True
     assert S3_RELATIVE is False
     assert S1_CVD_OPENING is False
     assert S1_DAYTYPE_STAGING is False
