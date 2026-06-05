@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTradeStore } from '../../stores/tradeStore';
 import { equityCurveByClose, formatUsdAccounting, type EquityPoint } from '../../lib/tradeMath';
 import {
@@ -46,12 +46,19 @@ function CustomTooltip({ active, payload }: any) {
   );
 }
 
+const panelStyle: React.CSSProperties = {
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  background: 'var(--bg-secondary)',
+  padding: '13px 15px',
+  marginTop: 14,
+};
+
 export function EquityCurveStrip() {
   const filteredTrades = useTradeStore((s) => s.filteredTrades);
   const trades = filteredTrades();
   // Ordered by exit_ts (realised close cumulative) — NOT entry_ts.
   const { points, maxDd } = useMemo(() => equityCurveByClose(trades), [trades]);
-  const [open, setOpen] = useState(true);
 
   if (points.length < 1) {
     return null; // no closed trades with P&L
@@ -64,73 +71,56 @@ export function EquityCurveStrip() {
   const curveColor = finalPnl >= 0 ? 'var(--green)' : 'var(--red)';
 
   return (
-    <div
-      className="border-b shrink-0"
-      style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
-    >
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-            Equity Curve (by close)
-          </span>
-          <span className="font-mono text-xs font-bold" style={{ color: finalPnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
-            {formatUsdAccounting(finalPnl)}
-          </span>
-          {maxDd > 0 && (
-            <span className="font-mono text-[10px]" style={{ color: 'var(--red)' }}>
-              max DD {formatUsdAccounting(-maxDd)}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => setOpen((o) => !o)}
-          className="text-[10px] uppercase tracking-wide hover:underline"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          {open ? '▾ Collapse' : '▸ Expand'}
-        </button>
+    <div style={panelStyle}>
+      <h4 style={{ fontSize: 12.5, color: 'var(--text-primary)', marginBottom: 3 }}>
+        Equity by-close + Max DD{' '}
+        <span style={{ fontFamily: 'var(--mono)', fontSize: 12, color: finalPnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
+          {formatUsdAccounting(finalPnl)}
+        </span>
+      </h4>
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginBottom: 11 }}>
+        equityCurveByClose (exit_ts order){maxDd > 0 ? ` -- max DD ${formatUsdAccounting(-maxDd)}` : ''}
       </div>
-      {open && (
-        <div className="px-2 pb-2" style={{ height: 104 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 4, right: 12, bottom: 4, left: 12 }}>
-              <defs>
-                <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={curveColor} stopOpacity={0.22} />
-                  <stop offset="100%" stopColor={curveColor} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.3} />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 9, fill: 'var(--text-muted)', fontFamily: 'ui-monospace, monospace' }}
-                interval="preserveStartEnd"
-                minTickGap={90}
-                tickLine={false}
-                axisLine={{ stroke: 'var(--border)' }}
-              />
-              <YAxis
-                tick={{ fontSize: 9, fill: 'var(--text-muted)', fontFamily: 'ui-monospace, monospace' }}
-                tickFormatter={(v: number) => (v < 0 ? `($${Math.abs(v)})` : `$${v}`)}
-                tickLine={false}
-                axisLine={false}
-                width={58}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <ReferenceLine y={0} stroke="var(--text-muted)" strokeDasharray="4 4" strokeOpacity={0.5} />
-              <Area
-                type="monotone"
-                dataKey="cum"
-                stroke={curveColor}
-                strokeWidth={1.5}
-                fill="url(#equityFill)"
-                dot={false}
-                activeDot={{ r: 3, fill: 'var(--text-primary)', stroke: curveColor, strokeWidth: 1.5 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+
+      <div style={{ height: 150 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={chartData} margin={{ top: 4, right: 12, bottom: 4, left: 12 }}>
+            <defs>
+              <linearGradient id="equityFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={curveColor} stopOpacity={0.22} />
+                <stop offset="100%" stopColor={curveColor} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" strokeOpacity={0.3} />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 9, fill: 'var(--text-muted)', fontFamily: 'ui-monospace, monospace' }}
+              interval="preserveStartEnd"
+              minTickGap={90}
+              tickLine={false}
+              axisLine={{ stroke: 'var(--border)' }}
+            />
+            <YAxis
+              tick={{ fontSize: 9, fill: 'var(--text-muted)', fontFamily: 'ui-monospace, monospace' }}
+              tickFormatter={(v: number) => (v < 0 ? `($${Math.abs(v)})` : `$${v}`)}
+              tickLine={false}
+              axisLine={false}
+              width={58}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine y={0} stroke="var(--text-muted)" strokeDasharray="4 4" strokeOpacity={0.5} />
+            <Area
+              type="monotone"
+              dataKey="cum"
+              stroke={curveColor}
+              strokeWidth={1.5}
+              fill="url(#equityFill)"
+              dot={false}
+              activeDot={{ r: 3, fill: 'var(--text-primary)', stroke: curveColor, strokeWidth: 1.5 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 }

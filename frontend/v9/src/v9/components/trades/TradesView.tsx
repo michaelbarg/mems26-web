@@ -25,51 +25,56 @@ export function TradesView() {
   }, [setTrades]);
 
   return (
-    <div className="h-screen flex flex-col" style={{ background: 'var(--bg-primary)' }}>
-      <div
-        className="h-[40px] flex items-center justify-between px-4 border-b shrink-0"
-        style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif", fontSize: 13 }}>
+      {/* Header */}
+      <header
+        style={{
+          height: 40,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 16px',
+          background: 'var(--bg-secondary)',
+          borderBottom: '1px solid var(--border)',
+        }}
       >
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-sm font-bold tracking-wider" style={{ color: 'var(--sys1)' }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Link href="/" style={{ fontWeight: 700, letterSpacing: 1, color: 'var(--sys1)', fontSize: 13, textDecoration: 'none' }}>
             MEMS26
           </Link>
-          <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>/ Trades</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 11, marginInlineStart: 10 }}>/ Trades</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="text-[10px] hover:underline"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/?view=build_status"
-            className="text-[10px] hover:underline"
-            style={{ color: 'var(--text-secondary)', fontFamily: 'ui-monospace, monospace' }}
-          >
-            Build Status
-          </Link>
+        <div style={{ display: 'flex', gap: 14, fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--text-secondary)' }}>
+          <Link href="/" style={{ color: 'inherit', textDecoration: 'none' }}>Dashboard</Link>
+          <Link href="/?view=build_status" style={{ color: 'inherit', textDecoration: 'none' }}>Build Status</Link>
         </div>
-      </div>
-      <TradeFilters />
-      <ExecModeToggle />
-      <EdgeKpiRow />
-      <PatternPerformanceStrip />
-      <EdgeMatrix />
-      <EquityCurveStrip />
-      <TargetDistStrip />
-      <HeatMaeStrip />
-      <StopBehaviorPanel />
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-auto">
+      </header>
+
+      {/* Main scrollable content */}
+      <div style={{ maxWidth: 1340, margin: '0 auto', padding: '0 16px 60px' }}>
+        <TradeFilters />
+        <ExecModeToggle />
+        <EdgeKpiRow />
+        <PatternPerformanceStrip />
+        <EdgeMatrix />
+
+        {/* Target + Heat two-column */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'start', marginTop: 14 }}>
+          <TargetDistStrip />
+          <HeatMaeStrip />
+        </div>
+
+        <EquityCurveStrip />
+
+        {/* Trade list */}
+        <div style={{ marginTop: 8 }}>
           <TradeCardList />
         </div>
-        <div
-          className="w-[224px] xl:w-[290px] shrink-0 overflow-auto border-r"
-          style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
-        >
+
+        <StopBehaviorPanel />
+
+        {/* Selected trade detail panel */}
+        <div style={{ marginTop: 14, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-secondary)', overflow: 'hidden' }}>
           <SelectedTradePanel />
         </div>
       </div>

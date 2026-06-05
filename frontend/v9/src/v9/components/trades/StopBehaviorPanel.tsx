@@ -3,20 +3,48 @@
  * StopBehaviorPanel — dedicated stop management analysis panel.
  * Shows BE/static/T1_NO_BE distribution from tradeMath.stopMovement.
  * Existing fields only — no synthesis.
+ * Layout: two-column .panel cards matching mockup.
  */
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useTradeStore } from '../../stores/tradeStore';
 import { stopMovement, type StopMovement } from '../../lib/tradeMath';
 
 function fmtPct(n: number, total: number): string {
-  return total > 0 ? `${((n / total) * 100).toFixed(1)}%` : '—';
+  return total > 0 ? `${((n / total) * 100).toFixed(1)}%` : '---';
 }
+function fmtUsd(v: number): string {
+  return v >= 0 ? `+$${v.toFixed(2)}` : `($${Math.abs(v).toFixed(2)})`;
+}
+
+const panelStyle: React.CSSProperties = {
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  background: 'var(--bg-secondary)',
+  padding: '13px 15px',
+};
+
+const hbarStyle: React.CSSProperties = {
+  display: 'grid',
+  gridTemplateColumns: '96px 1fr 64px',
+  alignItems: 'center',
+  gap: 9,
+  marginBottom: 8,
+  fontFamily: 'var(--mono)',
+  fontSize: 11,
+};
+
+const trackStyle: React.CSSProperties = {
+  height: 14,
+  background: 'var(--bg-tertiary)',
+  borderRadius: 3,
+  overflow: 'hidden',
+  boxShadow: 'inset 0 0 0 1px var(--border)',
+};
 
 export function StopBehaviorPanel() {
   const filteredTrades = useTradeStore((s) => s.filteredTrades);
   const allTrades = filteredTrades();
   const trades = useMemo(() => allTrades.filter((t) => !t.is_synthetic && t.pnl_usd != null), [allTrades]);
-  const [open, setOpen] = useState(false);
 
   const stats = useMemo(() => {
     const buckets: Record<StopMovement, { count: number; totalPnl: number; wins: number; losses: number }> = {
@@ -39,62 +67,66 @@ export function StopBehaviorPanel() {
   if (trades.length === 0) return null;
 
   const total = trades.length;
-  const labels: { key: StopMovement; label: string; desc: string; color: string }[] = [
-    { key: 'moved', label: 'BE (moved)', desc: 'Stop moved to breakeven after T1', color: 'var(--green)' },
-    { key: 'static', label: 'Static (-1R)', desc: 'Stop stayed at initial level', color: 'var(--text-secondary)' },
-    { key: 't1_no_be', label: 'T1 no BE', desc: 'T1 hit but stop never moved — calibration issue', color: '#eab308' },
-  ];
+  const noBeLosses = trades.filter((t) => stopMovement(t) === 't1_no_be' && (t.pnl_usd ?? 0) < 0);
+  const noBeLost = noBeLosses.reduce((s, t) => s + (t.pnl_usd ?? 0), 0);
 
   return (
-    <div className="border-b shrink-0" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}>
-      <div className="flex items-center justify-between px-4 py-2">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-            Stop Behavior · {total} trades
-          </span>
-          {labels.map(({ key, label, color }) => (
-            <span key={key} className="font-mono text-[10px]" style={{ color }}>
-              {label}: {stats[key].count} ({fmtPct(stats[key].count, total)})
-            </span>
-          ))}
-        </div>
-        <button onClick={() => setOpen((o) => !o)} className="text-[10px] uppercase tracking-wide hover:underline" style={{ color: 'var(--text-secondary)' }}>
-          {open ? '▾ Collapse' : '▸ Expand'}
-        </button>
+    <div style={{ marginTop: 14 }}>
+      {/* Section label */}
+      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.7, fontFamily: 'var(--mono)', margin: '20px 2px 8px', display: 'flex', alignItems: 'center', gap: 8 }}>
+        Stop Behavior
       </div>
-      {open && (
-        <div className="px-4 pb-2">
-          <div className="grid grid-cols-3 gap-3">
-            {labels.map(({ key, label, desc, color }) => {
-              const b = stats[key];
-              const wr = b.wins + b.losses > 0 ? (b.wins / (b.wins + b.losses)) * 100 : null;
-              return (
-                <div key={key} className="p-2 rounded" style={{ border: '1px solid var(--border)', background: 'var(--bg-primary)' }}>
-                  <div className="text-[11px] font-semibold font-mono" style={{ color }}>{label}</div>
-                  <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{desc}</div>
-                  <div className="mt-2 grid grid-cols-2 gap-1 text-[10px] font-mono">
-                    <span style={{ color: 'var(--text-muted)' }}>Count</span>
-                    <span style={{ color: 'var(--text-primary)' }}>{b.count} ({fmtPct(b.count, total)})</span>
-                    <span style={{ color: 'var(--text-muted)' }}>Win%</span>
-                    <span style={{ color: wr != null && wr >= 50 ? 'var(--green)' : wr != null ? 'var(--red)' : 'var(--text-muted)' }}>
-                      {wr != null ? `${wr.toFixed(1)}%` : '—'}
-                    </span>
-                    <span style={{ color: 'var(--text-muted)' }}>Net $</span>
-                    <span style={{ color: b.totalPnl >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                      {b.totalPnl >= 0 ? '+' : '-'}${Math.abs(b.totalPnl).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignItems: 'start' }}>
+        {/* Left panel: distribution bars */}
+        <div style={panelStyle}>
+          <h4 style={{ fontSize: 12.5, color: 'var(--text-primary)', marginBottom: 3 }}>Stop Management Distribution</h4>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginBottom: 11 }}>
+            stop_initial vs stop / stop_issue
           </div>
-          {stats.t1_no_be.count > 0 && (
-            <div className="mt-2 text-[10px] font-mono p-2 rounded" style={{ background: 'rgba(234,179,8,0.08)', color: '#eab308', border: '1px solid #eab30833' }}>
-              Calibration insight: {stats.t1_no_be.count} trades hit T1 but stop was never moved to breakeven. This represents potential risk reduction if Smart BE was consistently applied.
+
+          <div style={hbarStyle}>
+            <span style={{ color: 'var(--text-secondary)' }}>BE (moved)</span>
+            <div style={trackStyle}>
+              <i style={{ display: 'block', height: '100%', width: `${(stats.moved.count / total) * 100}%`, background: 'var(--green)' }} />
             </div>
-          )}
+            <span style={{ textAlign: 'left', color: 'var(--text-primary)' }}>{stats.moved.count}</span>
+          </div>
+
+          <div style={hbarStyle}>
+            <span style={{ color: 'var(--text-secondary)' }}>static -1R</span>
+            <div style={trackStyle}>
+              <i style={{ display: 'block', height: '100%', width: `${(stats.static.count / total) * 100}%`, background: 'var(--text-secondary)' }} />
+            </div>
+            <span style={{ textAlign: 'left', color: 'var(--text-primary)' }}>{stats.static.count}</span>
+          </div>
+
+          <div style={hbarStyle}>
+            <span style={{ color: 'var(--amber)' }}>T1_NO_BE</span>
+            <div style={trackStyle}>
+              <i style={{ display: 'block', height: '100%', width: `${(stats.t1_no_be.count / total) * 100}%`, background: 'var(--amber)' }} />
+            </div>
+            <span style={{ textAlign: 'left', color: 'var(--amber)' }}>{stats.t1_no_be.count}</span>
+          </div>
         </div>
-      )}
+
+        {/* Right panel: insight */}
+        <div style={panelStyle}>
+          <h4 style={{ fontSize: 12.5, color: 'var(--text-primary)', marginBottom: 3 }}>Calibration Insight</h4>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--mono)', marginBottom: 11 }}>
+            T1 hit but stop never moved to BE
+          </div>
+          <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontFamily: 'var(--mono)', lineHeight: 1.7 }}>
+            <b style={{ color: 'var(--amber)' }}>{stats.t1_no_be.count}</b> trades hit T1 but stop stayed at -1R.
+            {noBeLosses.length > 0 && (
+              <>
+                {' '}Of those, <b style={{ color: 'var(--red)' }}>{noBeLosses.length} became losses</b> = <b style={{ color: 'var(--red)' }}>{fmtUsd(noBeLost)}</b> that
+                could have been prevented with consistent Smart-BE.
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
