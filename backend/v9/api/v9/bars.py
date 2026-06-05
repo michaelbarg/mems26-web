@@ -388,6 +388,15 @@ def post_bars_5min(
             logger.debug("[bars/5min] Rejected cumulative vol=%d at ts=%s", bar.vol, ts)
             rejected += 1
             continue
+        # B-13 write-guard: reject off-market price on FRESH bars (ts within stale window).
+        # Old valid bars (historical chart data) pass through — only fresh bars are checked
+        # so we don't corrupt pattern engines with phantom prices.
+        if ts > datetime.now(timezone.utc) - MAX_STALE_AGE:
+            stale_reason = _is_stale_bar(ts, float(bar.c))
+            if stale_reason:
+                logger.warning("[bars/5min] write-guard BLOCKED: %s ts=%s", stale_reason, ts)
+                rejected += 1
+                continue
         rows_to_write.append((
             ts.isoformat(), bar.symbol, bar.o, bar.h, bar.l, bar.c,
             bar.vol, bar.poc_vol, bar.vah, bar.val, bar.cumulative_delta,
