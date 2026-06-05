@@ -1,3 +1,5 @@
+import type { Trade } from '../types';
+
 /** Local V9 backend — never empty string (breaks fetch → relative /api on :3000). */
 export function getApiBase(): string {
   const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
@@ -160,18 +162,18 @@ export function mapTradeRow(t: Record<string, unknown>) {
   return { ...t, pnl_usd: pnl, outcome, system, mode };
 }
 
-export const fetchTrades = async (mode?: string, limit = 500) => {
+export const fetchTrades = async (mode?: string, limit = 500): Promise<Trade[]> => {
   const qs = new URLSearchParams();
   if (mode) qs.set('mode', mode.toLowerCase());
   qs.set('limit', String(limit));
   const data = await apiFetch<unknown>(`/api/v9/trades?${qs}`);
-  return normalizeTradesPayload(data).map((t) => mapTradeRow(t));
+  return normalizeTradesPayload(data).map((t) => mapTradeRow(t)) as unknown as Trade[];
 };
 
-export const fetchRecentTrades = async (limit = 20) => {
+export const fetchRecentTrades = async (limit = 20): Promise<Trade[]> => {
   const data = await publicApiFetch<unknown[]>(`/api/v9/trades/recent?limit=${limit}`);
   if (!Array.isArray(data)) return [];
-  return data.map((t) => mapTradeRow(t as Record<string, unknown>));
+  return data.map((t) => mapTradeRow(t as Record<string, unknown>)) as unknown as Trade[];
 };
 
 export const fetchActiveTrade = () =>

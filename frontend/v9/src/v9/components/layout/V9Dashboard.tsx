@@ -34,7 +34,14 @@ export function V9Dashboard() {
   useLivePricePoll(true);
 
   // Top-level view switcher · added 2026-05-26 for Build Status tab
-  const [view, setView] = useState<DashboardView>('main');
+  // Support deep-link: /?view=build_status from /trades journal
+  const [view, setView] = useState<DashboardView>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('view') === 'build_status') return 'build_status';
+    }
+    return 'main';
+  });
 
   // Chart height — SSR-stable default, hydrate from localStorage on mount
   const [chartH, setChartH] = useState(DEFAULT_H);

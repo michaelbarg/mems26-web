@@ -3,6 +3,13 @@ import type { Trade, AccountStatus, TradeMode, SystemId, TradeOutcome } from '..
 import { computeAuxStatus, type TradeAuxStatus } from '../lib/tradeAuxStatus';
 import { stopMovement, rLevels, durationMinutes } from '../lib/tradeMath';
 
+/** Convert ISO timestamp to YYYY-MM-DD in America/New_York timezone (DST-safe).
+ *  Uses Intl.DateTimeFormat('en-CA') which natively outputs YYYY-MM-DD. */
+const _etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+function toETDate(ts: string): string {
+  try { return _etFmt.format(new Date(ts)); } catch { return ts.slice(0, 10); }
+}
+
 type OverlapFilter = 'all' | 'parallel' | 'sequential';
 type LiveGateFilter = 'all' | 'eligible' | 'skipped';
 type ConfluenceFilter = 'all' | 'agree' | 'disagree';
@@ -112,7 +119,10 @@ export const useTradeStore = create<TradeState>((set, get) => ({
       if (filters.outcome !== 'ALL' && t.outcome !== filters.outcome) return false;
       if (filters.direction && t.direction !== filters.direction) return false;
       if (filters.dateFrom || filters.dateTo) {
-        const entryDate = t.entry_ts ? t.entry_ts.slice(0, 10) : '';
+        // ET-aware date extraction (G6 fix): convert entry_ts to America/New_York date,
+        // not UTC slice. An afternoon ET trade (e.g. 2026-06-03T23:30:00Z = 19:30 ET)
+        // must fall on the ET date (06-03), not the UTC date (06-04).
+        const entryDate = t.entry_ts ? toETDate(t.entry_ts) : '';
         if (filters.dateFrom && entryDate < filters.dateFrom) return false;
         if (filters.dateTo && entryDate > filters.dateTo) return false;
       }

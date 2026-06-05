@@ -224,6 +224,32 @@ function drawContentCanvas(
 
   const y0 = cciToSpecY(0, opts.cciMax);
   const histW = histogramBarWidth(n);
+
+  // §5.8 — Sidewinder bands: green dots (trending SWI>40) / red dots (flat SWI<20)
+  // around zero line, matching Sierra's Sidewinder visual.
+  bars.forEach((bar, i) => {
+    const swi = bar.swi_value;
+    if (swi != null && Number.isFinite(swi)) {
+      const cx = barCenterX(i, n);
+      const absSWI = Math.abs(swi);
+      // Green = trending (|SWI| > 40), Red = flat/chop (|SWI| < 20), Yellow = transition
+      let dotColor: string;
+      if (absSWI >= 40) dotColor = '#22CC22';      // green — trending
+      else if (absSWI <= 20) dotColor = '#CC2020';  // red — flat/chop
+      else dotColor = '#CCCC20';                     // yellow — transition
+      // Draw small dot above and below zero line
+      ctx.fillStyle = dotColor;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(cx, y0 - 4, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(cx, y0 + 4, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = alpha;
+    }
+  });
+
   bars.forEach((bar, i) => {
     const cx = barCenterX(i, n);
     const y1 = cciToSpecY(bar.cci_14, opts.cciMax);

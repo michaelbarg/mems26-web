@@ -141,7 +141,7 @@ export function PatternPerformanceStrip() {
   const allTrades = filteredTrades();
   // Exclude synthetic from pattern performance aggregates
   const trades = useMemo(() => allTrades.filter((t) => !t.is_synthetic), [allTrades]);
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   const rows = useMemo(() => aggregateByPattern(trades), [trades]);
 

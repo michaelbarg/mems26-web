@@ -287,6 +287,14 @@ export function TradeDetailsModal() {
             )}
           </section>
 
+          {/* Price / time axis — real event points, NOT continuous price line (G7 deferred) */}
+          <section>
+            <h3 className="text-[10px] uppercase tracking-wide mb-2" style={{ color: 'var(--text-muted)' }}>
+              Price / Time Axis
+            </h3>
+            <PriceTimeAxis trade={t} />
+          </section>
+
           <section>
             <h3 className="text-[10px] uppercase mb-1" style={{ color: 'var(--text-muted)' }}>
               Trade Timeline {logs.length === 0 && <span style={{ color: 'var(--text-muted)' }}>(awaiting RTH data)</span>}
@@ -330,6 +338,85 @@ export function TradeDetailsModal() {
         </div>
       </div>
     </>
+  );
+}
+
+/**
+ * PriceTimeAxis — event points on a linear time scale.
+ * Real events only: entry / T1 / T2 / T3 / stop / exit with their timestamps.
+ * NOT a continuous price line (= G7 DEFERRED).
+ */
+function PriceTimeAxis({ trade: t }: { trade: Trade }) {
+  // Collect event points with their timestamps and prices
+  type Evt = { label: string; ts: string; price: number; color: string };
+  const events: Evt[] = [];
+  if (t.entry_ts && t.entry_price != null) events.push({ label: 'Entry', ts: t.entry_ts, price: t.entry_price, color: '#3b82f6' });
+  if (t.stop != null && t.entry_ts) events.push({ label: 'Stop', ts: t.entry_ts, price: t.stop, color: '#f85149' });
+  if (t.t1 != null) events.push({ label: 'T1', ts: '', price: t.t1, color: '#22c55e' });
+  if (t.t2 != null) events.push({ label: 'T2', ts: '', price: t.t2, color: '#4ade80' });
+  if (t.t3 != null) events.push({ label: 'T3', ts: '', price: t.t3, color: '#86efac' });
+  if (t.exit_ts && t.exit_price != null) events.push({ label: 'Exit', ts: t.exit_ts, price: t.exit_price, color: '#d97706' });
+
+  if (events.length < 2) {
+    return <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Insufficient data for price/time axis.</div>;
+  }
+
+  const prices = events.map((e) => e.price);
+  const minP = Math.min(...prices);
+  const maxP = Math.max(...prices);
+  const range = maxP - minP || 1;
+
+  // Time axis from entry to exit (or all events with timestamps)
+  const tsEvents = events.filter((e) => e.ts);
+  const ts0 = tsEvents.length > 0 ? new Date(tsEvents[0].ts).getTime() : 0;
+  const tsN = tsEvents.length > 1 ? new Date(tsEvents[tsEvents.length - 1].ts).getTime() : ts0 + 1;
+  const tRange = tsN - ts0 || 1;
+
+  const W = 560, H = 80, PAD = 24;
+
+  return (
+    <div className="p-2 rounded" style={{ background: 'var(--bg-primary)', overflowX: 'auto' }}>
+      <svg width={W} height={H + PAD * 2} style={{ fontFamily: 'ui-monospace, monospace' }}>
+        {/* price axis labels */}
+        <text x={4} y={PAD + 6} fontSize={8} fill="var(--text-muted)">{maxP.toFixed(2)}</text>
+        <text x={4} y={PAD + H - 2} fontSize={8} fill="var(--text-muted)">{minP.toFixed(2)}</text>
+        {/* events */}
+        {events.map((e, i) => {
+          const x = e.ts && ts0
+            ? PAD + 40 + ((new Date(e.ts).getTime() - ts0) / tRange) * (W - PAD * 2 - 50)
+            : PAD + 40 + ((e.price - minP) / range) * (W - PAD * 2 - 50); // no-ts targets: position by price
+          const y = PAD + H - ((e.price - minP) / range) * H;
+          return (
+            <g key={i}>
+              <circle cx={x} cy={y} r={4} fill={e.color} opacity={0.8} />
+              <text x={x} y={y - 8} fontSize={8} fill={e.color} textAnchor="middle" fontWeight={600}>
+                {e.label}
+              </text>
+              <text x={x} y={y + 14} fontSize={7} fill="var(--text-muted)" textAnchor="middle">
+                {e.price.toFixed(2)}
+              </text>
+              {e.ts && (
+                <text x={x} y={PAD + H + 14} fontSize={7} fill="var(--text-muted)" textAnchor="middle">
+                  {fmtTimeETIL(e.ts)}
+                </text>
+              )}
+            </g>
+          );
+        })}
+        {/* connecting lines */}
+        {events.slice(0, -1).map((e, i) => {
+          const next = events[i + 1];
+          const x1 = e.ts && ts0 ? PAD + 40 + ((new Date(e.ts).getTime() - ts0) / tRange) * (W - PAD * 2 - 50) : PAD + 40 + ((e.price - minP) / range) * (W - PAD * 2 - 50);
+          const y1 = PAD + H - ((e.price - minP) / range) * H;
+          const x2 = next.ts && ts0 ? PAD + 40 + ((new Date(next.ts).getTime() - ts0) / tRange) * (W - PAD * 2 - 50) : PAD + 40 + ((next.price - minP) / range) * (W - PAD * 2 - 50);
+          const y2 = PAD + H - ((next.price - minP) / range) * H;
+          return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--border)" strokeDasharray="3 3" opacity={0.4} />;
+        })}
+      </svg>
+      <div className="text-[9px] mt-1" style={{ color: 'var(--text-muted)' }}>
+        Event points only — continuous price line = G7 DEFERRED. Time axis linear ET.
+      </div>
+    </div>
   );
 }
 

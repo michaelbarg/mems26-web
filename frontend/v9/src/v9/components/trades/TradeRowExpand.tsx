@@ -1,8 +1,20 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import Link from 'next/link';
 import { fetchTradeById } from '../../lib/api';
-import { SYSTEM_COLORS, SYSTEM_NAMES } from '../../types';
+import { SYSTEM_COLORS } from '../../types';
 import type { SystemId, Trade } from '../../types';
+import { useTradeStore } from '../../stores/tradeStore';
+import {
+  rLevels,
+  riskReward,
+  stopMovement,
+  formatUsdAccounting,
+  durationMinutes,
+  formatDuration,
+  cumulativeByClose,
+  cumulativeByOpen,
+} from '../../lib/tradeMath';
 
 interface SystemRecognition {
   id: number;
@@ -46,6 +58,60 @@ function recognitionFromAgreement(trade: Trade): SystemRecognition[] {
   }));
 }
 
+function StopVerdict({ trade }: { trade: Trade }) {
+  const sm = stopMovement(trade);
+  if (sm === 'moved') {
+    return (
+      <span style={{ color: 'var(--green)' }}>
+        ✓ זז ל-BE לפי אפיון (SMART_BE: {trade.stop_initial?.toFixed(2)} → {trade.stop?.toFixed(2)})
+      </span>
+    );
+  }
+  if (sm === 't1_no_be') {
+    return <span style={{ color: '#eab308' }}>⚠ T1 נגע אך הסטופ לא זז (T1_NO_BE)</span>;
+  }
+  return <span style={{ color: 'var(--text-secondary)' }}>סטופ ב-−1R — לא זז</span>;
+}
+
+function TradeDetailBlock({ trade }: { trade: Trade }) {
+  const allTrades = useTradeStore((s) => s.trades);
+  const cumClose = useMemo(() => cumulativeByClose(allTrades).get(trade.id), [allTrades, trade.id]);
+  const cumOpen = useMemo(() => cumulativeByOpen(allTrades).get(trade.id), [allTrades, trade.id]);
+  const L = rLevels(trade);
+  const rr = riskReward(trade);
+  const dur = durationMinutes(trade);
+  const f = (v: number | null | undefined) => (v != null ? v.toFixed(2) : '—');
+  const rtxt = (v: number | null) => (v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(1)}R` : '—');
+
+  const cell = (label: string, value: ReactNode, color?: string) => (
+    <div className="flex justify-between gap-3 py-0.5">
+      <span style={{ color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ color: color ?? 'var(--text-primary)' }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div
+      className="mb-3 p-2 rounded grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-5 gap-y-0.5 text-[11px]"
+      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+    >
+      {cell('כניסה', `${f(trade.entry_price)} · 0`)}
+      {cell('סטופ', `${f(trade.stop_initial ?? trade.stop)} · −1R`, 'var(--red)')}
+      {cell('יציאה', `${f(trade.exit_price)} · ${rtxt(L.exitR)}`, 'var(--sys4)')}
+      {cell('T1 · T2', `${rtxt(L.t1R)} · ${rtxt(L.t2R)}`, 'var(--sys1)')}
+      {cell('סיכון/סיכוי (R:R)', rr && rr.t2 != null ? `1:${rr.t1?.toFixed(1) ?? '—'} (T1) · 1:${rr.t2.toFixed(1)} (T2)` : '—')}
+      {cell('משך', formatDuration(dur))}
+      {cell('P&L', formatUsdAccounting(trade.pnl_usd), trade.pnl_usd != null ? (trade.pnl_usd > 0 ? 'var(--green)' : trade.pnl_usd < 0 ? 'var(--red)' : 'var(--text-secondary)') : 'var(--text-muted)')}
+      {cell('קומ׳ פתיחה', cumOpen != null ? formatUsdAccounting(cumOpen) : '—', cumOpen != null && cumOpen < 0 ? 'var(--red)' : 'var(--green)')}
+      {cell('קומ׳ סגירה', cumClose != null ? formatUsdAccounting(cumClose) : '—', cumClose != null && cumClose < 0 ? 'var(--red)' : 'var(--green)')}
+      <div className="md:col-span-2 lg:col-span-3 pt-1 mt-1 border-t flex justify-between gap-3 py-0.5" style={{ borderColor: 'var(--border)' }}>
+        <span style={{ color: 'var(--text-muted)' }}>ניהול סטופ</span>
+        <span><StopVerdict trade={trade} /></span>
+      </div>
+    </div>
+  );
+}
+
 export function TradeRowExpand({ trade }: { trade: Trade }) {
   const [insight, setInsight] = useState<TradeInsight | null>(null);
   const [loading, setLoading] = useState(true);
@@ -83,6 +149,7 @@ export function TradeRowExpand({ trade }: { trade: Trade }) {
 
   return (
     <div className="px-3 py-3 text-xs font-mono" style={{ background: 'var(--bg-primary)' }}>
+      <TradeDetailBlock trade={trade} />
       {loading && <p style={{ color: 'var(--text-muted)' }}>טוען מה כל מערכת זיהתה בכניסה…</p>}
       {error && !loading && (
         <p style={{ color: 'var(--red)' }}>
@@ -153,6 +220,27 @@ export function TradeRowExpand({ trade }: { trade: Trade }) {
           S2 Five-Min: אם אין שורות למעלה — בדרך כלל לא היה snapshot או המערכת לא הייתה ב-RTH / לא ירתה.
         </p>
       )}
+
+      {/* P5: Journal → Build deep-link */}
+      <div className="mt-3 pt-2 border-t flex items-center gap-3" style={{ borderColor: 'var(--border)' }}>
+        <Link
+          href="/?view=build_status"
+          className="text-[10px] px-2 py-1 rounded hover:opacity-80"
+          style={{
+            background: 'rgba(59,130,246,0.12)',
+            color: 'var(--sys1)',
+            border: '1px solid rgba(59,130,246,0.25)',
+            fontFamily: 'ui-monospace, monospace',
+            fontWeight: 600,
+            textDecoration: 'none',
+          }}
+        >
+          חקור ב-Build Status →
+        </Link>
+        <span className="text-[9px]" style={{ color: 'var(--text-muted)', fontFamily: 'ui-monospace, monospace' }}>
+          S{trade.system} · {fire?.pattern_id || trade.pattern_id || '—'}
+        </span>
+      </div>
     </div>
   );
 }

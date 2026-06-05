@@ -432,7 +432,8 @@ export function buildDataTexts(
   bar: WoodiesChartBar,
   prevBar?: WoodiesChartBar | null,
 ): Record<string, string> {
-  const midDiff = cciMinusTcci(bar);
+  // Use Sierra Panel's CCIDiff when available (bar.ccidiff), fallback to local computation
+  const midDiff = bar.ccidiff ?? cciMinusTcci(bar);
 
   const prevHigh = prevBar?.high ?? bar.prev_high;
   const prevLow = prevBar?.low ?? bar.prev_low;

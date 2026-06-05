@@ -162,6 +162,20 @@ function fmtLag(lag: number | null | undefined): string {
   return `${Math.round(lag / 3600)}h`;
 }
 
+/** 3-tier freshness: FRESH (<60s green), WARMING (60-threshold amber), STALE (>threshold red).
+ * Woodies 5-min data naturally ages to ~300s between bars — that's WARMING, not broken. */
+type FreshTier = 'fresh' | 'warming' | 'stale';
+function freshTier(lag: number | null | undefined, threshold: number): FreshTier {
+  if (lag == null) return 'stale';
+  if (lag < 60) return 'fresh';
+  if (lag < threshold) return 'warming';
+  return 'stale';
+}
+const TIER_COLOR: Record<FreshTier, string> = { fresh: C.bull, warming: C.caution, stale: C.bear };
+const TIER_BG: Record<FreshTier, string> = { fresh: C.bgSurface1, warming: '#2e2410', stale: '#2e1414' };
+const TIER_BORDER: Record<FreshTier, string> = { fresh: C.borderTertiary, warming: '#f5a62345', stale: '#ef444445' };
+const TIER_LABEL: Record<FreshTier, string> = { fresh: 'fresh', warming: 'warming', stale: 'stale' };
+
 function fmtET(ts: string | null | undefined): string {
   if (!ts) return '—';
   try {
@@ -365,10 +379,14 @@ function ComponentTable({ components }: { components: Component[] }) {
             <th style={{ ...th, direction: 'ltr' }}>live</th>
             <th style={{ ...th, textAlign: 'center' }}>present</th>
             <th style={th}>source</th>
+            <th style={{ ...th, textAlign: 'center' }}>freshness</th>
           </tr>
         </thead>
         <tbody>
-          {components.map((c, i) => (
+          {components.map((c, i) => {
+            const cLag = c.freshness?.lag_s;
+            const cTier: FreshTier = cLag == null ? 'stale' : cLag < 60 ? 'fresh' : cLag < 660 ? 'warming' : 'stale';
+            return (
             <tr key={`${c.stage}-${c.key}-${i}`} style={{ borderTop: i > 0 ? `1px solid ${C.borderFaint}` : 'none', color: c.present ? C.textPrimary : C.bearLight }}>
               <td style={{ padding: '3px 8px', color: C.textSecondary }}>{c.stage}</td>
               <td style={{ padding: '3px 8px', color: C.textSecondary }}>{c.key}</td>
@@ -382,8 +400,18 @@ function ComponentTable({ components }: { components: Component[] }) {
                 )}
               </td>
               <td style={{ padding: '3px 8px' }}>{c.freshness?.source ? <SrcPill source={c.freshness.source} /> : <span style={{ color: C.textTertiary }}>—</span>}</td>
+              <td style={{ padding: '3px 8px', textAlign: 'center', fontFamily: MONO, fontSize: 9 }}>
+                {cLag != null ? (
+                  <span style={{ color: TIER_COLOR[cTier], padding: '1px 5px', borderRadius: 3, background: TIER_BG[cTier] }}>
+                    {fmtLag(cLag)}
+                  </span>
+                ) : (
+                  <span style={{ color: C.textTertiary }}>—</span>
+                )}
+              </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -451,65 +479,87 @@ function Legend() {
 /* Global firewall — pre_fire_validator + risk_checks (P0, pending)    */
 /* ------------------------------------------------------------------ */
 
-function GateCard({
-  title,
-  sub,
-  checks,
-  fix,
-}: {
-  title: string;
-  sub: string;
-  checks: string[];
-  fix: ReactNode;
-}) {
-  return (
-    <div style={{ border: `1px dashed ${PEND}55`, borderRadius: 9, background: PEND_BG, padding: '14px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: PEND, flex: '0 0 auto' }} />
-        <span style={{ fontFamily: MONO, fontWeight: 700, fontSize: 13, color: C.textPrimary }}>{title}</span>
-        <Tag kind="pend" />
+// Structured pre_fire_validator checks — 7 gate checks per spec.
+const PRE_FIRE_CHECKS: { key: string; spec: string; required: string; source: string }[] = [
+  { key: 'side_match', spec: 'side == direction from trend', required: 'side ∈ {LONG,SHORT} matches trend_state', source: 'pre_fire_validator.py' },
+  { key: 'ordering', spec: 'entry/stop ordering correct', required: 'LONG: entry>stop · SHORT: entry<stop', source: 'pre_fire_validator.py' },
+  { key: 'r_r_gate', spec: 'R:R ≥ 1.0', required: 'r_t1 >= 1.0', source: 'pre_fire_validator.py' },
+  { key: 'confidence', spec: 'confidence ≥ threshold', required: 'conf >= system.min_conf', source: 'pre_fire_validator.py' },
+  { key: 'time_stop', spec: 'time_stop valid', required: 'min(day,pattern) > 0', source: 'pre_fire_validator.py' },
+  { key: 'not_provisional', spec: 'entry/stop ≠ provisional', required: 'no provisional values', source: 'pre_fire_validator.py' },
+  { key: 'dedup', spec: 'no duplicate fire', required: '!fired_this_bar', source: 'pre_fire_validator.py' },
+];
+
+// Structured risk_checks — LIVE caps per spec.
+const RISK_CHECKS: { key: string; spec: string; required: string; source: string }[] = [
+  { key: 'daily_loss', spec: 'הפסד יומי מצטבר', required: '< $250', source: 'risk_checks.py' },
+  { key: 'max_trades', spec: 'עסקאות ביום', required: '≤ 5', source: 'risk_checks.py' },
+  { key: 'max_contracts', spec: 'חוזים בו-זמנית', required: '≤ 2', source: 'risk_checks.py' },
+  { key: 'cutoff_time', spec: 'שעת חיתוך', required: '< 14:30 ET', source: 'risk_checks.py' },
+  { key: 'consec_losses', spec: 'עצירה אחרי הפסדים רצופים', required: 'consecutive_losses < 2', source: 'risk_checks.py' },
+  { key: 'news_block', spec: 'חסימת חדשות', required: '±10m from high-impact', source: 'risk_checks.py (לא ממומש)' },
+];
+
+function GlobalFirewall({ data }: { data: BuildStatusResponse }) {
+  // Try to extract live pre_fire/risk status from any system that exposes them
+  const allComps = data.systems.flatMap((s) => s.patterns.flatMap((p) => p.components ?? []));
+  const findLive = (key: string) => allComps.find((c) => c.key === key);
+
+  const th: CSSProperties = { padding: '5px 8px', fontWeight: 500, textAlign: 'start', color: C.textTertiary, fontSize: 9, textTransform: 'uppercase' };
+  const td: CSSProperties = { padding: '4px 8px', fontFamily: MONO, fontSize: 10 };
+
+  const renderCheckTable = (checks: typeof PRE_FIRE_CHECKS, label: string, fix: string) => (
+    <div style={{ border: `1px solid ${C.borderFaint}`, borderRadius: 9, background: C.bgSurface1, padding: '14px 16px', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap', marginBottom: 10 }}>
+        <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{label}</span>
+        <Tag kind="pend" label="⧗ ממתין לחשיפה · P0" />
       </div>
-      <div style={{ marginTop: 7, fontSize: 11.5, color: C.textSecondary, lineHeight: 1.6 }}>{sub}</div>
-      <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: '3px 16px', fontFamily: MONO, fontSize: 11, color: C.textSecondary }}>
-        {checks.map((ch, i) => (
-          <span key={i}>
-            <span style={{ color: PEND }}>⧗ </span>
-            {ch}
-          </span>
-        ))}
-      </div>
-      <FixRef pend>{fix}</FixRef>
+      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <thead>
+          <tr>
+            <th style={th}>בדיקה</th>
+            <th style={th}>spec</th>
+            <th style={th}>required</th>
+            <th style={{ ...th, textAlign: 'center' }}>status</th>
+            <th style={th}>source</th>
+          </tr>
+        </thead>
+        <tbody>
+          {checks.map((ch, i) => {
+            const live = findLive(ch.key);
+            const present = live?.present;
+            return (
+              <tr key={ch.key} style={{ borderTop: i > 0 ? `1px solid ${C.borderFaint}` : 'none' }}>
+                <td style={{ ...td, color: C.textSecondary }}>{ch.key}</td>
+                <td style={{ ...td, color: C.textTertiary }}>{ch.spec}</td>
+                <td style={{ ...td, color: C.textTertiary }}>{ch.required}</td>
+                <td style={{ ...td, textAlign: 'center' }}>
+                  {live != null ? (
+                    <span style={{ color: present ? C.bull : C.bear }}>{present ? '✓' : '✕'}</span>
+                  ) : (
+                    <span style={{ color: PEND, fontSize: 9 }}>⧗</span>
+                  )}
+                </td>
+                <td style={{ ...td, color: C.textTertiary, fontSize: 9 }}>{ch.source}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <FixRef pend>
+        חשוף מ-<Path pend>{fix}</Path> → <Path pend>aggregator.py</Path>
+      </FixRef>
     </div>
   );
-}
 
-function GlobalFirewall() {
   return (
     <div style={{ marginTop: 18 }}>
       <SLab>
         שערי-אש גלובליים · חלים על כל מערכת יורה <Tag kind="pend" label="⧗ ממתין · P0" />
       </SLab>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(320px,1fr))', gap: 12 }}>
-        <GateCard
-          title="pre_fire_validator"
-          sub="7 בדיקות שרצות לפני כל ירי, היום רק בתוך כל מערכת — לא נפלטות ל-endpoint. צריך שורת gate גלובלית אחת שמראה אילו עברו."
-          checks={['side תואם', 'ordering נכון', 'R:R ≥ 1.0', 'confidence ≥ סף', 'time_stop תקין', 'entry/stop ≠ provisional', 'dedup (לא כפילות)']}
-          fix={
-            <>
-              חשוף מ-<Path pend>backend/v9/shared/pre_fire_validator.py</Path> → inspector חדש → <Path pend>aggregator.py:106</Path>
-            </>
-          }
-        />
-        <GateCard
-          title="risk_checks · LIVE caps"
-          sub="תקרות הסיכון ל-LIVE — קריטי לפני מסחר אמיתי. כרגע לא מיוצגות בשום מקום בעמוד."
-          checks={['הפסד יומי < $250', '≤ 5 עסקאות/יום', '≤ 2 חוזים', 'חיתוך 14:30 ET', 'STOP אחרי 2 הפסדים רצופים', 'news block ±10m (לא ממומש)']}
-          fix={
-            <>
-              חשוף מ-<Path pend>backend/v9/gateway/risk_checks.py</Path> (news: <Path pend>risk_checks.py:70-74</Path>) → <Path pend>aggregator.py:106</Path>
-            </>
-          }
-        />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(360px,1fr))', gap: 12 }}>
+        {renderCheckTable(PRE_FIRE_CHECKS, 'pre_fire_validator · 7 בדיקות', 'backend/v9/shared/pre_fire_validator.py')}
+        {renderCheckTable(RISK_CHECKS, 'risk_checks · LIVE caps', 'backend/v9/gateway/risk_checks.py')}
       </div>
     </div>
   );
@@ -527,21 +577,27 @@ function SourcesStrip({ systems }: { systems: SystemBlock[] }) {
       <SLab>
         שכבה 0 · מקורות חיים — Sierra → bridge → API <Tag kind="live" label="● חי · data_freshness" />
       </SLab>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(170px,1fr))', gap: 10 }}>
         {sources.map((s) => {
-          const fresh = s.data_freshness?.fresh;
           const lag = s.data_freshness?.lag_seconds;
+          const thresh = s.data_freshness?.threshold_seconds ?? 300;
+          const tier = freshTier(lag, thresh);
           const meta = sysMeta(s.id);
           return (
-            <div key={s.id} style={{ padding: '11px 12px', borderRadius: 9, background: fresh ? C.bgSurface1 : '#2e1414', border: `1px solid ${fresh ? C.borderTertiary : '#ef444445'}` }}>
+            <div key={s.id} style={{ padding: '11px 12px', borderRadius: 9, background: TIER_BG[tier], border: `1px solid ${TIER_BORDER[tier]}` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: MONO, fontSize: 12, color: C.textPrimary, fontWeight: 600 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: fresh ? C.bull : C.bear, flex: '0 0 auto' }} />
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: TIER_COLOR[tier], flex: '0 0 auto' }} />
                 {meta.label.replace(/^S\d+ · /, '')}
               </div>
-              <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 10, color: fresh ? C.bull : C.bear }}>
-                {fresh ? `fresh ${fmtLag(lag)}` : `stale ${fmtLag(lag)}`}
-                <span style={{ color: C.textTertiary }}> · סף {s.data_freshness?.threshold_seconds ?? '—'}s</span>
+              <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 10, color: TIER_COLOR[tier] }}>
+                {TIER_LABEL[tier]} {fmtLag(lag)}
+                <span style={{ color: C.textTertiary }}> · סף {thresh}s</span>
               </div>
+              {tier === 'warming' && (
+                <div style={{ marginTop: 3, fontFamily: MONO, fontSize: 9, color: C.textTertiary }}>
+                  ממתין לבר הבא — נתון תקין
+                </div>
+              )}
             </div>
           );
         })}
@@ -671,7 +727,100 @@ function TargetsStopLive({ patterns }: { patterns: Pattern[] }) {
   );
 }
 
-function SystemBranch({ sys, defaultOpen }: { sys: SystemBlock; defaultOpen?: boolean }) {
+/* ------------------------------------------------------------------ */
+/* Day-Type Matrix verdict for S4 — ✅/⚠️/❌ per pattern×day_type      */
+/* ------------------------------------------------------------------ */
+
+// Woodies pattern families mapped to their day-type compatibility.
+// Source: targets_table.py + atr_caps.py + Day-Type decision matrix.
+const WOODIES_PATTERNS = [
+  'ZLR', 'GB100', 'GB50', 'RB100', 'RB50',
+  'TLB', 'HFE', 'FAMIR', 'GHOST',
+];
+
+/** Map day_type to which pattern families are allowed/limited. */
+function dayTypePatternVerdict(dayType: string | null, patternId: string): '✅' | '⚠️' | '❌' {
+  if (!dayType) return '⚠️'; // unknown day → cautious
+  const d = dayType.toLowerCase();
+  const p = patternId.toUpperCase();
+  // Nontrend = no trade for any pattern
+  if (d === 'nontrend') return '❌';
+  // Trend days: all patterns allowed
+  if (d.startsWith('trend')) return '✅';
+  // Variation: most allowed, GHOST/FAMIR limited
+  if (d === 'variation') return (p === 'GHOST' || p === 'FAMIR') ? '⚠️' : '✅';
+  // Normal: only reactive patterns (ZLR, GB, RB)
+  if (d === 'normal') return (p.startsWith('ZLR') || p.startsWith('GB') || p.startsWith('RB')) ? '✅' : '❌';
+  // Neutral_Extreme / Neutral_Center: only ZLR
+  if (d.startsWith('neutral')) return p.startsWith('ZLR') ? '⚠️' : '❌';
+  return '⚠️';
+}
+
+function entryHint(dayType: string | null): string {
+  if (!dayType) return '—';
+  const d = dayType.toLowerCase();
+  if (d === 'nontrend') return 'NO TRADE';
+  if (d.startsWith('trend_dd')) return 'full bracket · 90m stop · OFA→6R';
+  if (d.startsWith('trend')) return 'full bracket · trail after T2';
+  if (d === 'variation') return '2 contracts · T3 trail · 60m stop';
+  if (d === 'normal') return '1 contract · T2@POC · 30m stop';
+  if (d === 'neutral_extreme') return '1 contract · T2@extreme · 45m · VA edge';
+  if (d === 'neutral_center') return '1 contract · T2@extreme · 30m · inside VA';
+  return '—';
+}
+
+function t1Ref(dayType: string | null): string {
+  if (!dayType) return '—';
+  const dt = DAY_TARGETS.find((d) => d.key === dayType);
+  return dt ? `T1=${dt.t1}` : '—';
+}
+
+function DayTypeMatrixVerdict({ patterns, activeDay }: { patterns: Pattern[]; activeDay: string | null }) {
+  // Show matrix of known Woodies patterns × active day_type
+  const pids = patterns.length > 0
+    ? patterns.map((p) => p.id.replace(/^woodies_/, '').toUpperCase())
+    : WOODIES_PATTERNS;
+
+  const hasMatrix = patterns.some((p) => (p.components ?? []).some((c) => c.key === 'day_type_matrix'));
+
+  return (
+    <Step kind={activeDay ? 'ok' : 'pend'} title={<>Day-Type Matrix · S4 verdict {activeDay ? <Tag kind="live" /> : <Tag kind="pend" />}</>}>
+      {!activeDay ? (
+        <span style={{ color: C.textTertiary }}>Day Type לא סווג — אין verdict.</span>
+      ) : (
+        <div>
+          <div style={{ fontFamily: MONO, fontSize: 11, color: C.textSecondary, marginBottom: 8 }}>
+            יום חי: <b style={{ color: '#5b9bff' }}>{activeDay}</b> · {entryHint(activeDay)} · {t1Ref(activeDay)}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 8px', fontFamily: MONO, fontSize: 11 }}>
+            {pids.map((pid) => {
+              const v = dayTypePatternVerdict(activeDay, pid);
+              // Check if backend provides a live matrix verdict
+              const liveComp = patterns.find((p) => p.id.toUpperCase().includes(pid))
+                ?.components?.find((c) => c.key === 'day_type_matrix');
+              const displayV = liveComp ? (liveComp.present ? '✅' : '❌') : v;
+              const color = displayV === '✅' ? C.bull : displayV === '⚠️' ? C.caution : C.bear;
+              return (
+                <span key={pid} style={{ padding: '3px 8px', borderRadius: 5, border: `1px solid ${C.borderFaint}`, background: C.bgSurface5 }}>
+                  <span style={{ color }}>{displayV}</span>{' '}
+                  <span style={{ color: C.textSecondary }}>{pid}</span>
+                  {liveComp && <SrcPill source="in_memory" />}
+                </span>
+              );
+            })}
+          </div>
+          {!hasMatrix && (
+            <div style={{ marginTop: 6, fontFamily: MONO, fontSize: 10, color: C.textTertiary }}>
+              verdict מחושב מטבלת-אפיון סטטית · backend matrix = <span style={{ color: PEND }}>⧗ ממתין</span>
+            </div>
+          )}
+        </div>
+      )}
+    </Step>
+  );
+}
+
+function SystemBranch({ sys, defaultOpen, activeDay }: { sys: SystemBlock; defaultOpen?: boolean; activeDay: string | null }) {
   const [open, setOpen] = useState(!!defaultOpen);
   const meta = sysMeta(sys.id);
   const isFiring = meta.role === 'firing';
@@ -681,8 +830,9 @@ function SystemBranch({ sys, defaultOpen }: { sys: SystemBlock; defaultOpen?: bo
   const vbBg =
     verdict.kind === 'fired' ? '#0e3a1f' : verdict.kind === 'armed' ? '#2e2410' : verdict.kind === 'blocked' ? '#3a1a1a' : C.bgSurface5;
 
-  const fresh = sys.data_freshness?.fresh;
   const lag = sys.data_freshness?.lag_seconds;
+  const thresh = sys.data_freshness?.threshold_seconds ?? 300;
+  const tier = freshTier(lag, thresh);
   const gates = sys.global_gates ?? [];
   const inputs = sys.live_inputs ?? [];
   const interps = sys.interpretations ?? [];
@@ -703,16 +853,21 @@ function SystemBranch({ sys, defaultOpen }: { sys: SystemBlock; defaultOpen?: bo
         <StatusDot ok={!!sys.running} label={`run ${sys.running ? 'on' : 'off'}`} />
         <StatusDot ok={!!sys.hydrated} label={`hyd ${sys.hydrated ? 'ok' : 'no'}`} />
         <span style={{ flex: 1 }} />
-        <span style={{ fontFamily: MONO, fontSize: 10, color: fresh ? C.bull : C.bear }}>lag {fmtLag(lag)}</span>
+        <span style={{ fontFamily: MONO, fontSize: 10, color: TIER_COLOR[tier] }}>lag {fmtLag(lag)}{tier === 'warming' ? ' ⏳' : ''}</span>
         <span style={{ fontFamily: MONO, fontSize: 11, fontWeight: 700, color: vbColor, background: vbBg, padding: '4px 11px', borderRadius: 6 }}>{verdict.label}</span>
       </div>
 
       {open && (
         <div style={{ borderTop: `1px solid ${C.borderFaint}`, padding: '16px 18px' }}>
           {/* 1 SOURCE */}
-          <Step kind={fresh ? 'ok' : 'bad'} title={<>מקור · stream freshness <Tag kind="live" /></>}>
-            {fresh ? 'טרי' : 'תקוע'} · lag {fmtLag(lag)} · סף {sys.data_freshness?.threshold_seconds ?? '—'}s · last_bar {fmtET(sys.data_freshness?.last_bar_ts)}
-            {!fresh && (
+          <Step kind={tier === 'fresh' ? 'ok' : tier === 'warming' ? 'wait' : 'bad'} title={<>מקור · stream freshness <Tag kind="live" /></>}>
+            <span style={{ color: TIER_COLOR[tier] }}>{tier === 'fresh' ? 'טרי' : tier === 'warming' ? 'ממתין לבר הבא' : 'תקוע'}</span> · lag {fmtLag(lag)} · סף {thresh}s · last_bar {fmtET(sys.data_freshness?.last_bar_ts)}
+            {tier === 'warming' && (
+              <div style={{ marginTop: 4, fontFamily: MONO, fontSize: 10, color: C.textTertiary }}>
+                נתון 5-דקות מתיישן בין ברים — תקין. stale רק מעל {thresh}s.
+              </div>
+            )}
+            {tier === 'stale' && (
               <FixRef>
                 יצוא Sierra תקוע — runbook <Path>docs/runbooks/SIERRA_DLL_OPS.md</Path> · log <Path>/tmp/bridge.err.log</Path>
               </FixRef>
@@ -778,13 +933,18 @@ function SystemBranch({ sys, defaultOpen }: { sys: SystemBlock; defaultOpen?: bo
             )}
             {isFiring && (
               <div style={{ marginTop: 6, color: PEND, fontFamily: MONO, fontSize: 11 }}>
-                ⧗ pre_fire_validator · risk_checks {sys.id === 'woodies' ? '· Day-Type Matrix verdict · A7 · anti-patterns' : sys.id === 'five_min' ? '· S6 Killzone · S/R proximity · COT>AMT' : ''} <Tag kind="pend" />
+                ⧗ {sys.id === 'woodies' ? 'A7 · anti-patterns' : sys.id === 'five_min' ? 'S6 Killzone · S/R proximity · COT>AMT' : 'שערים נוספים'} <Tag kind="pend" />
                 <FixRef pend>
                   שערים אמיתיים ב-<Path pend>{INSPECTOR_PATH[sys.id] ?? 'inspector'}</Path>
                 </FixRef>
               </div>
             )}
           </Step>
+
+          {/* 4.5 DAY-TYPE MATRIX — S4 only: ✅/⚠️/❌ per pattern×day_type */}
+          {sys.id === 'woodies' && (
+            <DayTypeMatrixVerdict patterns={sys.patterns} activeDay={activeDay} />
+          )}
 
           {/* 5 VERDICT */}
           <Step
@@ -820,8 +980,15 @@ function SystemBranch({ sys, defaultOpen }: { sys: SystemBlock; defaultOpen?: bo
 /* Observer / gate cards (S1 live · S5/S6 not wired)                   */
 /* ------------------------------------------------------------------ */
 
-function ObserverCards({ wiredIds }: { wiredIds: Set<string> }) {
+function ObserverCards({ wiredIds, data }: { wiredIds: Set<string>; data: BuildStatusResponse }) {
   const s1Wired = wiredIds.has('day_type');
+  const tpoWired = wiredIds.has('tpo');
+  const kzWired = wiredIds.has('killzone');
+
+  // Extract live data from systems when wired
+  const tpoSys = data.systems.find((s) => s.id === 'tpo');
+  const kzSys = data.systems.find((s) => s.id === 'killzone');
+
   const cards: { id: string; lines: ReactNode; wired: boolean; fix?: ReactNode }[] = [
     {
       id: 'day_type',
@@ -838,33 +1005,75 @@ function ObserverCards({ wiredIds }: { wiredIds: Set<string> }) {
     },
     {
       id: 'tpo',
-      wired: wiredIds.has('tpo'),
-      lines: (
+      wired: tpoWired,
+      lines: tpoWired && tpoSys ? (
+        <>
+          <span style={{ color: C.bull }}>● מחווט</span> <Tag kind="live" />
+          <br />
+          {tpoSys.global_gates.length > 0 ? (
+            <span style={{ fontFamily: MONO, fontSize: 10 }}>
+              {tpoSys.global_gates.map((g) => (
+                <span key={g.key} style={{ marginInlineEnd: 8 }}>
+                  <span style={{ color: g.present ? C.bull : C.bear }}>{g.present ? '✓' : '✕'}</span> {g.key}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <>POC/VAH/VAL · IB · profile_shape · otf_clarity</>
+          )}
+          <br />
+          <span style={{ fontSize: 10, color: C.textTertiary }}>A5 = advisory בלבד (לא חוסם ירי)</span>
+        </>
+      ) : (
         <>
           <span style={{ color: PEND }}>⧗ לא מחווט כלל</span> — חסר <span style={{ direction: 'ltr' }}>tpo_inspector</span>.
           <br />
           POC/VAH/VAL · IB · profile_shape · otf_clarity
+          <br />
+          <span style={{ fontSize: 10, color: C.textTertiary }}>A5 = advisory בלבד (לא חוסם ירי)</span>
         </>
       ),
-      fix: (
+      fix: tpoWired ? undefined : (
         <>
-          צור <Path pend>tpo_inspector.py</Path> → <Path pend>aggregator.py:106</Path>
+          צור <Path pend>tpo_inspector.py</Path> → <Path pend>aggregator.py</Path>
         </>
       ),
     },
     {
       id: 'killzone',
-      wired: wiredIds.has('killzone'),
-      lines: (
+      wired: kzWired,
+      lines: kzWired && kzSys ? (
+        <>
+          <span style={{ color: C.bull }}>● מחווט</span> <Tag kind="live" />
+          <br />
+          {kzSys.global_gates.length > 0 ? (
+            <span style={{ fontFamily: MONO, fontSize: 10 }}>
+              {kzSys.global_gates.map((g) => (
+                <span key={g.key} style={{ marginInlineEnd: 8 }}>
+                  <span style={{ color: g.present ? C.bull : C.bear }}>{g.present ? '✓' : '✕'}</span> {g.key}
+                  {g.live != null && <span style={{ color: C.textTertiary }}> ={g.live}</span>}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <>is_gate_open · quality · sizing_modifier · block_reason</>
+          )}
+          {kzSys.interpretations?.map((it) => (
+            <div key={it.key} style={{ fontFamily: MONO, fontSize: 10, color: C.textSecondary }}>
+              {it.key}: {it.value}
+            </div>
+          ))}
+        </>
+      ) : (
         <>
           <span style={{ color: PEND }}>⧗ לא מחווט כלל</span> — חסר <span style={{ direction: 'ltr' }}>killzone_inspector</span>.
           <br />
           is_gate_open · quality · sizing_modifier · block_reason
         </>
       ),
-      fix: (
+      fix: kzWired ? undefined : (
         <>
-          צור <Path pend>killzone_inspector.py</Path> → <Path pend>aggregator.py:106</Path>
+          צור <Path pend>killzone_inspector.py</Path> → <Path pend>aggregator.py</Path>
         </>
       ),
     },
@@ -1330,14 +1539,14 @@ export function BuildTreeView() {
                     </div>
                   )}
 
-                  <GlobalFirewall />
+                  <GlobalFirewall data={data} />
 
                   <SourcesStrip systems={data.systems} />
 
                   <div style={{ marginTop: 20 }}>
                     <SLab>שכבה 1 · מערכות — לחץ לפתיחת הזרימה (מקור → קלט → פרשנות → שערים → פסיקה → TARGETS/STOP)</SLab>
                     {data.systems.map((sys, i) => (
-                      <SystemBranch key={sys.id} sys={sys} defaultOpen={i === 0} />
+                      <SystemBranch key={sys.id} sys={sys} defaultOpen={i === 0} activeDay={activeDay} />
                     ))}
 
                     {missingSystems.length > 0 && (
@@ -1347,7 +1556,7 @@ export function BuildTreeView() {
                     )}
                   </div>
 
-                  <ObserverCards wiredIds={wiredIds} />
+                  <ObserverCards wiredIds={wiredIds} data={data} />
                 </>
               )}
               {tab === 'integrity' && <IntegrityTab data={data} />}

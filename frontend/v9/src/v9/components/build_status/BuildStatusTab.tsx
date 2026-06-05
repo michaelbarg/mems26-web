@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useBuildStatus } from '../../hooks/useBuildStatus';
 import { COLORS } from '../../design/tokens';
 import { SystemSection } from './SystemSection';
+import { ReadinessHeader } from './ReadinessHeader';
 
 /**
  * Build Status tab — live debug view of why patterns fire / don't fire.
@@ -158,46 +159,8 @@ export function BuildStatusTab() {
             padding: '12px 14px',
           }}
         >
-          {/* D-RDY: Readiness verdict banner */}
-          {(() => {
-            const r = data.readiness;
-            if (!r) {
-              return (
-                <div style={{ padding: '6px 12px', marginBottom: 12, borderRadius: 6, background: COLORS.bgSurface1, border: `1px solid ${COLORS.borderFaint}`, fontSize: 10, color: COLORS.textTertiary, fontFamily: 'ui-monospace, monospace' }}>
-                  readiness: n/a
-                </div>
-              );
-            }
-            const verdictStyles = {
-              READY: { fg: COLORS.bull, bg: '#0e3a1f' },
-              DEGRADED: { fg: COLORS.warning, bg: '#3a280a' },
-              BLOCKED: { fg: COLORS.bear, bg: '#3a1a1a' },
-            };
-            const vs = verdictStyles[r.verdict] || verdictStyles.BLOCKED;
-            return (
-              <div style={{ padding: '8px 12px', marginBottom: 12, borderRadius: 6, background: vs.bg, border: `1px solid ${vs.fg}40`, fontFamily: 'ui-monospace, monospace' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <span style={{ color: vs.fg, fontSize: 13, fontWeight: 700 }}>● {r.verdict}</span>
-                  {r.reason && <span style={{ color: COLORS.textSecondary, fontSize: 10 }}>{r.reason}</span>}
-                </div>
-                {r.checks && r.checks.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 10px' }}>
-                    {r.checks.map((c) => {
-                      const checkColor = !c.passed
-                        ? c.severity === 'block' ? COLORS.bear : COLORS.warning
-                        : COLORS.textTertiary;
-                      const icon = !c.passed ? '✕' : c.severity === 'info' ? 'i' : '✓';
-                      return (
-                        <span key={c.key} title={c.detail ?? undefined} style={{ fontSize: 9, color: checkColor }}>
-                          {icon} {c.key}
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+          {/* D-RDY: Readiness verdict — always first (P4: verdict before metadata) */}
+          <ReadinessHeader readiness={data.readiness} />
 
           <div
             style={{
