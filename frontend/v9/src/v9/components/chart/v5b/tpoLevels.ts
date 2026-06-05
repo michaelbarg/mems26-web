@@ -606,10 +606,11 @@ export function extendAutoscaleForTpo(
   series.applyOptions({
     autoscaleInfoProvider: (original: any) => {
       const base = original();
+      if (tpoPrices.length === 0) return base;
       const mn = Math.min(...tpoPrices);
       const mx = Math.max(...tpoPrices);
-      if (base == null) {
-        return { priceRange: { minValue: mn, maxValue: mx } };
+      if (base == null || base.priceRange == null) {
+        return { priceRange: { minValue: mn, maxValue: mx }, margins: base?.margins };
       }
       return {
         priceRange: {

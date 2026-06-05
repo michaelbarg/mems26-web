@@ -878,9 +878,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                     direction, conf, info = detect_hns_top(self._bar_buffer)
                 # Pkg 5b · Double Bottom + Double Top (after H&S in chain)
                 if not direction:
-                    direction, conf, info = detect_double_bottom_ee(self._bar_buffer)
+                    direction, conf, info = detect_double_bottom_ee(self._bar_buffer, atr_5m=self._current_atr_5m)
                 if not direction:
-                    direction, conf, info = detect_double_top_aa(self._bar_buffer)
+                    direction, conf, info = detect_double_top_aa(self._bar_buffer, atr_5m=self._current_atr_5m)
 
         # Pkg 5c · Flag patterns (continuation · Stage 3 + Q5 EXPANDED day-type gate · D-091 §9+§10 + Q5)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:

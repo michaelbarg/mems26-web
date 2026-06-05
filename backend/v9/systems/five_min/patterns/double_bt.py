@@ -93,9 +93,10 @@ def _swing_highs(bars: List[Dict], lookback: int = PIVOT_LOOKBACK) -> List[Tuple
     return pivots
 
 
-def _trough_width_bars(bars: List[Dict], pivot_idx: int, pivot_low: float) -> int:
+def _trough_width_bars(bars: List[Dict], pivot_idx: int, pivot_low: float,
+                       atr_5m: float = None) -> int:
     """Count consecutive bars at similar low around pivot (Eve = wider)."""
-    tolerance = TICK_SIZE * 2  # 2 ticks (0.50pt) tolerance for "similar low"
+    tolerance = get_trough_tolerance(atr_5m)
     width = 1  # pivot bar itself
     for j in range(pivot_idx - 1, -1, -1):
         if abs(bars[j]["l"] - pivot_low) <= tolerance:
@@ -110,9 +111,10 @@ def _trough_width_bars(bars: List[Dict], pivot_idx: int, pivot_low: float) -> in
     return width
 
 
-def _peak_width_bars(bars: List[Dict], pivot_idx: int, pivot_high: float) -> int:
+def _peak_width_bars(bars: List[Dict], pivot_idx: int, pivot_high: float,
+                     atr_5m: float = None) -> int:
     """Count consecutive bars at similar high around pivot (Adam = narrower)."""
-    tolerance = TICK_SIZE * 2  # 2 ticks
+    tolerance = get_trough_tolerance(atr_5m)
     width = 1
     for j in range(pivot_idx - 1, -1, -1):
         if abs(bars[j]["h"] - pivot_high) <= tolerance:
@@ -162,7 +164,7 @@ def _confidence_double_top(p1: float, p2: float, w1: int, w2: int) -> float:
 # ── Public detectors ──
 
 
-def detect_double_bottom_ee(bars: List[Dict]) -> Tuple[Optional[Direction], float, Dict]:
+def detect_double_bottom_ee(bars: List[Dict], atr_5m: float = None) -> Tuple[Optional[Direction], float, Dict]:
     """Detect Double Bottom (Eve&Eve · bullish reversal).
 
     2 troughs at similar low, both rounded (>= TROUGH_MIN_WIDTH_BARS).
@@ -185,8 +187,8 @@ def detect_double_bottom_ee(bars: List[Dict]) -> Tuple[Optional[Direction], floa
             continue
 
         # Eve variant: both troughs must be wide
-        w1 = _trough_width_bars(window, t1_idx, t1_price)
-        w2 = _trough_width_bars(window, t2_idx, t2_price)
+        w1 = _trough_width_bars(window, t1_idx, t1_price, atr_5m)
+        w2 = _trough_width_bars(window, t2_idx, t2_price, atr_5m)
         if w1 < TROUGH_MIN_WIDTH_BARS or w2 < TROUGH_MIN_WIDTH_BARS:
             continue
 
@@ -228,7 +230,7 @@ def detect_double_bottom_ee(bars: List[Dict]) -> Tuple[Optional[Direction], floa
     return (None, 0.0, {})
 
 
-def detect_double_top_aa(bars: List[Dict]) -> Tuple[Optional[Direction], float, Dict]:
+def detect_double_top_aa(bars: List[Dict], atr_5m: float = None) -> Tuple[Optional[Direction], float, Dict]:
     """Detect Double Top (Adam&Adam · bearish reversal).
 
     2 peaks at similar high, both sharp (<= PEAK_MAX_WIDTH_BARS).
@@ -251,8 +253,8 @@ def detect_double_top_aa(bars: List[Dict]) -> Tuple[Optional[Direction], float, 
             continue
 
         # Adam variant: both peaks must be sharp
-        w1 = _peak_width_bars(window, p1_idx, p1_price)
-        w2 = _peak_width_bars(window, p2_idx, p2_price)
+        w1 = _peak_width_bars(window, p1_idx, p1_price, atr_5m)
+        w2 = _peak_width_bars(window, p2_idx, p2_price, atr_5m)
         if w1 > PEAK_MAX_WIDTH_BARS or w2 > PEAK_MAX_WIDTH_BARS:
             continue
 

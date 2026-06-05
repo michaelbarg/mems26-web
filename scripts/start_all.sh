@@ -28,6 +28,10 @@ export S2_VSA_VOLUME=1
 # Reverse: set to 0 or unset + restart.
 export S3_MUTE=1
 
+# Relative ATR mode for S2 (Michael approved 2026-06-05 for SHADOW).
+# K values not yet calibrated — calibrate from soak ground-truth.
+export S2_ATR_RELATIVE=1
+
 ulimit -n 10240 2>/dev/null || true
 info "ulimit -n = $(ulimit -n) (need >=4096 to avoid Watchpack EMFILE)"
 

@@ -83,14 +83,22 @@ def atr_daily(daily_bars: List[dict], period: int = 14) -> Optional[float]:
 import os
 
 
-def flag(name: str) -> bool:
-    """Read a feature flag from os.environ at call-time (not import-time)."""
-    return os.environ.get(name, "").lower() in ("1", "true", "yes")
+def flag(name: str, default: bool = False) -> bool:
+    """Read a feature flag from os.environ at call-time (not import-time).
+
+    Args:
+        name: Environment variable name.
+        default: Value when env var is not set. Default False (opt-in).
+    """
+    val = os.environ.get(name)
+    if val is None:
+        return default
+    return val.lower() in ("1", "true", "yes")
 
 
 # Legacy constants — kept for backward compat with code that imports them.
 # New code should use flag("NAME") directly.
-S2_ATR_RELATIVE = flag("S2_ATR_RELATIVE")
+S2_ATR_RELATIVE = flag("S2_ATR_RELATIVE", default=True)  # Michael approved ON for SHADOW
 S3_RELATIVE = flag("S3_RELATIVE")
 S1_CVD_OPENING = flag("S1_CVD_OPENING")
 S1_DAYTYPE_STAGING = flag("S1_DAYTYPE_STAGING")

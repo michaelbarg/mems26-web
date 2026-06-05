@@ -1785,7 +1785,7 @@ export function BuildTreeView() {
   });
 
   return (
-    <div dir="rtl" style={{ minHeight: '100vh', background: T.bg, color: T.tp, fontFamily: T.sans, fontSize: 13, lineHeight: 1.5, WebkitFontSmoothing: 'antialiased' } as CSSProperties}>
+    <div dir="rtl" style={{ height: '100vh', overflowY: 'auto', background: T.bg, color: T.tp, fontFamily: T.sans, fontSize: 13, lineHeight: 1.5, WebkitFontSmoothing: 'antialiased' } as CSSProperties}>
       <PulseStyle />
 
       {/* ===== HEADER — sticky, backdrop-filter blur ===== */}
