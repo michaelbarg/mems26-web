@@ -405,6 +405,42 @@ async def _startup():
         bar_router.subscribe("5min", _day_type_on_bar)
         _logger.info("[Main] DayTypeStateMachine subscribed to 5min via BarRouter")
 
+        # Missed-trade detector (observability — should-have-fired)
+        try:
+            from backend.v9.systems.build_status.missed_trade_detector import missed_trade_detector
+            from zoneinfo import ZoneInfo as _ZI
+            _CT = _ZI("America/Chicago")
+
+            async def _missed_trade_on_bar(event):
+                bar = event.payload if hasattr(event, 'payload') else event
+                _ts = now_et()
+                _ct = _ts.astimezone(_CT)
+                s2_state = five_min_system.get_state() if five_min_system else {}
+                s4_state = {}
+                try:
+                    _ws = getattr(app.state, 'woodies_system', None)
+                    if _ws:
+                        s4_state = _ws.current_state or {}
+                except Exception:
+                    pass
+                missed_trade_detector.on_bar(
+                    bar={
+                        "ts_ct": _ct.strftime("%H:%M"),
+                        "open": float(bar.get("open", bar.get("o", 0))),
+                        "high": float(bar.get("high", bar.get("h", 0))),
+                        "low": float(bar.get("low", bar.get("l", 0))),
+                        "close": float(bar.get("close", bar.get("c", 0))),
+                        "volume": float(bar.get("volume", bar.get("v", 0))),
+                    },
+                    s2_state=s2_state,
+                    s4_state=s4_state,
+                )
+
+            bar_router.subscribe("5min", _missed_trade_on_bar)
+            _logger.info("[Main] MissedTradeDetector subscribed to 5min via BarRouter")
+        except Exception as _mtd_err:
+            _logger.warning("[Main] MissedTradeDetector init failed: %s", _mtd_err)
+
         # P31-B + P31-D: SessionBoundaryManager — idempotent daily reset at startup
         try:
             from backend.v9.services.session_boundary import SessionBoundaryManager

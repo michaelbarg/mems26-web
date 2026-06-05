@@ -327,6 +327,17 @@ def system_status():
     }
 
 
+@router.get("/api/v9/missed-trades")
+def get_missed_trades():
+    """Should-Have-Fired candidates for today (observability only)."""
+    try:
+        from backend.v9.systems.build_status.missed_trade_detector import missed_trade_detector
+        candidates = missed_trade_detector.get_candidates()
+        return {"count": len(candidates), "candidates": candidates}
+    except Exception as e:
+        return {"count": 0, "candidates": [], "error": str(e)}
+
+
 def _check_historical_replay() -> dict:
     """HistoricalReplay stats (D2.3)."""
     try:
