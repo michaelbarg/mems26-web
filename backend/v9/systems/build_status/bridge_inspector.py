@@ -79,7 +79,7 @@ def _check_stream(table: str, ts_col: str, threshold: int) -> dict:
     """Query a single stream table and return freshness dict."""
     try:
         row = read_one(
-            f"SELECT {ts_col} FROM {table} ORDER BY rowid DESC LIMIT 1"
+            f"SELECT {ts_col} FROM {table} ORDER BY {ts_col} DESC LIMIT 1"
         )
         if row is None or row[ts_col] is None:
             return {"age_sec": None, "status": "DEAD", "last_ts": None}
@@ -201,7 +201,7 @@ def _get_single_age(stream_cfg: tuple) -> Optional[float]:
     _, table, ts_col, _ = stream_cfg
     try:
         row = read_one(
-            f"SELECT {ts_col} FROM {table} ORDER BY rowid DESC LIMIT 1"
+            f"SELECT {ts_col} FROM {table} ORDER BY {ts_col} DESC LIMIT 1"
         )
         if row and row[ts_col]:
             epoch = _parse_ts(str(row[ts_col]))
