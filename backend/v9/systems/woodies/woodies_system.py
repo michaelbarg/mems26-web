@@ -406,6 +406,24 @@ class WoodiesSystem(BaseV9TradingSystem):
             # Touchpoints are advisory-only (A4 stage) — empty dict is safe.
             # TODO: replace with in-process cache populated by a background task.
 
+            # Populate day_type touchpoint from DB (same source S2 uses via hydrate)
+            _tp = {}
+            try:
+                from backend.v9.db.read import read_one
+                _dt_row = read_one(
+                    "SELECT day_type, confidence, lock_state FROM v9_day_type_state "
+                    "ORDER BY id DESC LIMIT 1", {},
+                )
+                if _dt_row and _dt_row["day_type"] and _dt_row["day_type"] != "UNKNOWN":
+                    _tp["day_type"] = {
+                        "classified": True,
+                        "data": {"day_type": _dt_row["day_type"]},
+                        "day_type": _dt_row["day_type"],
+                        "confidence": float(_dt_row["confidence"] or 0),
+                    }
+            except Exception:
+                pass
+
             dt_ctx = WoodiesDecisionContext(
                 bars=list(self._bar_buffer),
                 studies=studies,
@@ -415,7 +433,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                 sizing=sizing,
                 current_state=self.current_state,
                 fire_setup=fire_setup,
-                touchpoints={},
+                touchpoints=_tp,
             )
             dt_summary = self._decision_tree.evaluate_bar(dt_ctx)
 

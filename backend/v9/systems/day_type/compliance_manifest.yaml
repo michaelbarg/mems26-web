@@ -173,10 +173,10 @@ output_fields:
 
 config_params:
   - name: min_lock_confidence
-    default: 0.70
+    default: 0.85
     spec_default: 0.85
-    status: PARTIAL
-    notes: "Code uses 0.70, spec says 0.85"
+    status: IMPLEMENTED
+    notes: "ConfidenceThreshold() resolves to float(0.85); lock uses >= comparison (state_machine.py:707)"
 
   - name: min_lock_time_minutes
     default: 210

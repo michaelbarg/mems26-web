@@ -36,12 +36,16 @@ logger = logging.getLogger(__name__)
 class DayTypeSystem(BaseSystem):
     """System 1: Day Type classification engine.
 
-    Subscribed to cumulative_delta + volume_profile streams.
-    Uses the 13-stage state machine to classify the trading day,
-    then generates trade signals based on the playbook.
+    REAL S1 path: main.py bar_router.subscribe("5min", _day_type_on_bar)
+    which enriches bars with Sierra IB/session_min and feeds
+    app.state.day_type_machine.process_bar().
+
+    This wrapper is DISCONNECTED — the EventDispatcher subscription to
+    cumulative_delta/volume_profile was a dead path (CVD/VP payloads lack
+    OHLC/IB → BarInput zeros → state machine stuck at A1). See VERIFY_DAYTYPE.
     """
 
-    subscribed_streams: List[str] = ["cumulative_delta", "volume_profile"]
+    subscribed_streams: List[str] = []  # DISCONNECTED — real S1 in main.py
     system_id: int = 1
     name: str = "day_type"
 

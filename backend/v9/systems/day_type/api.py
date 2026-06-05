@@ -14,6 +14,7 @@ from .models import V9DayTypeState
 from .schemas import (
     BarInput, DayTypeState, DayTypeStateResponse,
     DayTypeHistoryResponse, ProcessBarResponse,
+    Stage, DayType, OpeningType, IBWidth, Behavior,
 )
 from .state_machine import DayTypeStateMachine
 
@@ -40,7 +41,32 @@ def reset_engine():
 
 @router.get("/state", response_model=DayTypeStateResponse)
 def get_state():
-    """Return current Day Type Engine state."""
+    """Return current Day Type Engine state.
+
+    Reads from v9_day_type_state DB (populated by main.py day_type_machine)
+    rather than the dead api.py _engine singleton, which never receives bars.
+    """
+    from backend.v9.db.read import read_one
+    try:
+        row = read_one(
+            "SELECT ts, stage, day_type, confidence, lock_state, opening_type, "
+            "ib_width_class, behavior FROM v9_day_type_state ORDER BY id DESC LIMIT 1",
+            {},
+        )
+        if row:
+            state = DayTypeState(
+                stage=Stage(row["stage"]) if row["stage"] else Stage.A1,
+                day_type=DayType(row["day_type"]) if row["day_type"] and row["day_type"] != "UNKNOWN" else DayType.UNKNOWN,
+                confidence=float(row["confidence"] or 0),
+                lock_state=row["lock_state"] or "PENDING",
+                opening_type=OpeningType(row["opening_type"]) if row["opening_type"] and row["opening_type"] != "NA" else OpeningType.UNKNOWN,
+                ib_width=IBWidth(row["ib_width_class"]) if row["ib_width_class"] and row["ib_width_class"] != "UNKNOWN" else IBWidth.UNKNOWN,
+                behavior=Behavior(row["behavior"]) if row["behavior"] else Behavior.DEVELOPING,
+            )
+            return DayTypeStateResponse(state=state)
+    except Exception:
+        pass
+    # Fallback: empty state
     engine = _get_engine()
     state = engine._build_state(
         BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)

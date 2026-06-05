@@ -359,9 +359,8 @@ class DayTypeStateMachine:
         if self.stage == Stage.C3:
             self._stage_c3(bar)
 
-        # If already locked, check re-eval triggers
-        if self.lock_state in (_LOCK_LOCKED, _LOCK_LOW_CONF):
-            self._check_reeval(bar)
+        # Continuous re-eval is now built into C3→B2 loop.
+        # _check_reeval kept for backward compat but no longer gated on lock.
 
         state = self._build_state(bar)
         self._last_state = state  # V9: cache for on_trigger/to_classification
@@ -711,17 +710,17 @@ class DayTypeStateMachine:
     # ── Part C: Final Lock & Output ──────────────────────────────────────
 
     def _stage_c1(self, bar: BarInput):
-        """C1: Lock criteria check.
+        """C1: Confidence assessment + continuous re-eval loop.
 
-        Lock when:
-        - confidence >= 0.85 (config.confidence_threshold · ConfidenceThreshold default), OR
-        - same vote 2x consecutive, OR
-        - session_min >= 210 (13:00 ET)
+        Michael's spec (2026-06-05): day_type is classified continuously
+        and dynamically — no permanent hard lock. After initial vote:
+        - Track confidence level (high >= 0.85, or 2x consecutive same vote)
+        - ALWAYS loop back to B2 for re-evaluation on next bar
+        - day_type can change as market develops
+
+        The lock_state still tracks confidence level for display/consumers
+        but does NOT prevent re-evaluation.
         """
-        if self.lock_state != _LOCK_PENDING:
-            self.stage = Stage.C2
-            return
-
         # Count consecutive same votes
         consec = 0
         if self.vote_history:
@@ -735,24 +734,12 @@ class DayTypeStateMachine:
 
         conf_threshold = self.config.confidence_threshold
 
-        should_lock = False
-
+        # Track confidence level (informational — does NOT prevent re-eval)
         if self.confidence >= conf_threshold:
-            should_lock = True
-        elif consec >= 2:
-            should_lock = True
-        elif bar.session_min >= self.config.min_session_min_for_lock:
-            should_lock = True
-
-        if should_lock:
-            if self.confidence >= conf_threshold:
-                self.lock_state = _LOCK_LOCKED
-            else:
-                self.lock_state = _LOCK_LOW_CONF
-        else:
-            # Go back to B2 for more development
-            self.stage = Stage.B2
-            return
+            self.lock_state = _LOCK_LOCKED
+        elif consec >= 2 or bar.session_min >= self.config.min_session_min_for_lock:
+            self.lock_state = _LOCK_LOW_CONF
+        # else: stays PENDING
 
         self.stage = Stage.C2
 
@@ -778,7 +765,9 @@ class DayTypeStateMachine:
             time_stop_min=template["time_stop_min"],
             key_rules=template["key_rules"],
         )
-        # Stay at C3 — locked state
+        # Continuous re-eval: loop back to B2 for next bar's re-assessment.
+        # Michael spec: day_type changes dynamically as market develops.
+        self.stage = Stage.B2
 
     def _check_reeval(self, bar: BarInput):
         """Check re-eval triggers after lock."""

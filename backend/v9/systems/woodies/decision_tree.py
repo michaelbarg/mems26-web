@@ -319,8 +319,13 @@ def _day_type_name(day_type: Dict[str, Any]) -> Optional[str]:
 
 
 def _a5_auxiliary(ctx: WoodiesDecisionContext) -> StageResult:
+    """A5: Auxiliary alignment — advisory only, NEVER blocks entry.
+
+    Per Decision Tree V1 Core Principles: A5 surfaces sizing warnings
+    but the actual blocking happens at A3 (no pattern) or A7 (pre-fire).
+    """
     if ctx.sizing == "reject":
-        return StageResult("A5", StageStatus.FAIL, "calculate_size=reject")
+        return StageResult("A5", StageStatus.PASS, "advisory:calculate_size=reject")
     return StageResult("A5", StageStatus.PASS, f"sizing={ctx.sizing}")
 
 
