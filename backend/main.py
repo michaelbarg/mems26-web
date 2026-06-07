@@ -13,6 +13,14 @@ from datetime import timedelta
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+# Load .env BEFORE any backend.v9 import — feature flags (e.g. S2_ATR_RELATIVE,
+# S3_RELATIVE, S1_* calibration flags) are read at import time in
+# backend/v9/shared/atr.py. Without this, a launch path that didn't `source .env`
+# (LaunchAgent auto-restart, bare uvicorn) dropped every SHADOW flag to OFF —
+# the 2026-06-06 "flags didn't fire in SHADOW" incident. Explicit env still wins.
+from backend.env_loader import load_dotenv_file as _load_dotenv_file
+_load_dotenv_file(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, ".env"))
+
 from backend.v9.app import v9_router, init_event_dispatcher
 from backend.v9.api.journal_compat_routes import router as journal_compat_router
 from backend.v9.systems.day_type.prev_day import (
