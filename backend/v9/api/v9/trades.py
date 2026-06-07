@@ -114,6 +114,10 @@ def _trade_list_row(r: V9Trade, db: Optional[Session] = None) -> dict:
         "t1": r.t1,
         "t2": r.t2,
         "t3": r.t3,
+        # T3 semantics (from targets_table via manager): "trail" / "4R+trail" / None.
+        # Lets the UI distinguish "no fixed T3 → trail" from a real T3 price.
+        "t3_label": (r.quality or {}).get("t3_label"),
+        "trail_after_t2": (r.quality or {}).get("trail_after_t2"),
         "t1_hit": r.t1_hit_ts is not None,
         "t2_hit": r.t2_hit_ts is not None,
         "t3_hit": r.t3_hit_ts is not None,

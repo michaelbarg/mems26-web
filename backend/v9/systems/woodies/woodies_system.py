@@ -501,7 +501,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "stop": best.stop or 0.0,
                         "t1": (best.targets or [0])[0] if best.targets else 0.0,
                         "t2": (best.targets or [0, 0])[1] if best.targets and len(best.targets) > 1 else 0.0,
-                        "t3": (best.targets or [0, 0, 0])[2] if best.targets and len(best.targets) > 2 else 0.0,
+                        "t3": (best.targets or [0, 0, 0])[2] if best.targets and len(best.targets) > 2 else None,  # None (not 0.0) when pattern has no 3rd target — avoids phantom T3 in monitor
                         "metadata": {"pattern": best.pattern_id, "sizing": sizing},
                     }
                     try:

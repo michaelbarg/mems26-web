@@ -562,7 +562,7 @@ class FootprintSystem(BaseV9TradingSystem):
             "stop": pre_fire_req.stop_price,
             "t1": pre_fire_req.t1_price,
             "t2": pre_fire_req.t2_price,
-            "t3": 0.0,
+            "t3": None,  # footprint has no fixed T3 leg — None (not 0.0) avoids phantom target in monitor
             "metadata": {
                 "source": "footprint_auto_fire",
                 "signal": signal["signal"],

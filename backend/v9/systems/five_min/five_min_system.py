@@ -67,6 +67,35 @@ def get_poc_return_tolerance(atr_5m: _Opt[float] = None) -> float:
     return _POC_RETURN_ATR_K * atr
 
 
+def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
+    """Build the S2→gateway setup dict from a resolved T1Setup.
+
+    Extracted so the bracket-level mapping (esp. T3) is unit-testable.
+    T3 is passed through faithfully: None when the day type has no fixed T3
+    (trail/no-T3 per targets_table), a real price for fixed-T3 days
+    (Trend_Normal=4R, Trend_DD=4R cap). It must NOT be coerced to 0.0 —
+    a 0.0 T3 is treated by active_trade_manager as a phantom (unreachable)
+    target on the C3 leg.
+    """
+    return {
+        "firing_system": 2,
+        "direction": t1_setup.direction,
+        "classification": t1_setup.pattern_name,
+        "confidence": t1_setup.confidence / 100.0,
+        "entry_price": t1_setup.entry_price,
+        "stop": t1_setup.stop_price or 0.0,
+        "t1": t1_setup.t1_price or 0.0,
+        "t2": t1_setup.t2_price or 0.0,
+        "t3": t1_setup.t3_price,  # None when trail/no-T3; real price for TN/TDD
+        "metadata": {
+            "pattern": t1_setup.pattern_name,
+            "sizing": t1_setup.sizing_contracts,
+            "variant": info.get("variant"),  # D-RVX: A_VSA/B_RVOL/C_STRICT
+            "variants_passed": info.get("variants_passed"),
+        },
+    }
+
+
 class FiveMinMode:
     WAITING_OPEN = "WAITING_OPEN"
     FIRST_HOUR_TACTICAL = "FIRST_HOUR_TACTICAL"
@@ -1096,23 +1125,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                     current_price=entry_price,
                 )
                 if t1_setup and self._gateway:
-                    gateway_setup = {
-                        "firing_system": 2,
-                        "direction": t1_setup.direction,
-                        "classification": t1_setup.pattern_name,
-                        "confidence": t1_setup.confidence / 100.0,
-                        "entry_price": t1_setup.entry_price,
-                        "stop": t1_setup.stop_price or 0.0,
-                        "t1": t1_setup.t1_price or 0.0,
-                        "t2": t1_setup.t2_price or 0.0,
-                        "t3": 0.0,
-                        "metadata": {
-                            "pattern": t1_setup.pattern_name,
-                            "sizing": t1_setup.sizing_contracts,
-                            "variant": info.get("variant"),  # D-RVX: A_VSA/B_RVOL/C_STRICT
-                            "variants_passed": info.get("variants_passed"),
-                        },
-                    }
+                    gateway_setup = build_s2_gateway_setup(t1_setup, info)
                     try:
                         self._gateway.route_setup(gateway_setup, 2)
                         logger.info("[FiveMin] Auto-routed: %s %s → gateway SHADOW", pattern_name, direction)
