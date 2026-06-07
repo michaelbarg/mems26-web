@@ -127,6 +127,9 @@ export interface Trade {
   t1?: number | null;
   t2?: number | null;
   t3?: number | null;
+  /** T3 semantics from targets_table: "trail" / "4R+trail" / null. */
+  t3_label?: string | null;
+  trail_after_t2?: boolean | null;
   t1_hit?: boolean;
   t2_hit?: boolean;
   t3_hit?: boolean;

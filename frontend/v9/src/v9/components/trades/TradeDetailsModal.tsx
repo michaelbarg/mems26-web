@@ -352,9 +352,10 @@ function PriceTimeAxis({ trade: t }: { trade: Trade }) {
   const events: Evt[] = [];
   if (t.entry_ts && t.entry_price != null) events.push({ label: 'Entry', ts: t.entry_ts, price: t.entry_price, color: '#3b82f6' });
   if (t.stop != null && t.entry_ts) events.push({ label: 'Stop', ts: t.entry_ts, price: t.stop, color: '#f85149' });
-  if (t.t1 != null) events.push({ label: 'T1', ts: '', price: t.t1, color: '#22c55e' });
-  if (t.t2 != null) events.push({ label: 'T2', ts: '', price: t.t2, color: '#4ade80' });
-  if (t.t3 != null) events.push({ label: 'T3', ts: '', price: t.t3, color: '#86efac' });
+  if (t.t1 != null && t.t1 > 0) events.push({ label: 'T1', ts: '', price: t.t1, color: '#22c55e' });
+  if (t.t2 != null && t.t2 > 0) events.push({ label: 'T2', ts: '', price: t.t2, color: '#4ade80' });
+  // T3 only when a real price exists (trail/no-T3 days store null) — a 0.0 would wreck the price scale.
+  if (t.t3 != null && t.t3 > 0) events.push({ label: 'T3', ts: '', price: t.t3, color: '#86efac' });
   if (t.exit_ts && t.exit_price != null) events.push({ label: 'Exit', ts: t.exit_ts, price: t.exit_price, color: '#d97706' });
 
   if (events.length < 2) {
