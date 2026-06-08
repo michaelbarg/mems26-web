@@ -13,7 +13,7 @@ import urllib.error
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 
 logger = logging.getLogger("mems26.status")
 router = APIRouter(tags=["v9-status"])
@@ -196,26 +196,32 @@ def _check_audit() -> dict:
         return {"running": False, "events_in_db": 0}
 
 
-def _check_day_type() -> dict:
-    """Check Day Type system status."""
+def _check_day_type(machine=None) -> dict:
+    """Read the LIVE in-memory day-type machine (app.state.day_type_machine) —
+    the source of truth per CLAUDE.md.
+
+    Dead-wrapper fix (2026-06-08): the old code called day_type.api._get_engine()
+    — a module-level DayTypeStateMachine() that is NEVER fed bars — and built a
+    state from a zero bar, so it ALWAYS returned UNKNOWN even when the real
+    machine (main.py app.state.day_type_machine, fed by the BarRouter) had
+    classified the day. That made /api/v9/status + readiness lie.
+    """
     try:
-        from backend.v9.systems.day_type.api import _get_engine
-        from backend.v9.systems.day_type.schemas import BarInput
-        engine = _get_engine()
-        state = engine._build_state(
-            BarInput(ts=0, session_min=0, open=0, high=0, low=0, close=0)
-        )
-        dt_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
-        status_val = str(state.lock_state)
+        if machine is None:
+            return {"running": False, "current_type": None, "note": "no live day_type_machine"}
+        dt = getattr(machine, "day_type", None)
+        dt_val = dt.value if hasattr(dt, "value") else (str(dt) if dt is not None else None)
+        st = getattr(machine, "stage", None)
         return {
             "running": True,
             "current_type": dt_val,
-            "status": status_val,
-            "confidence": state.confidence,
-            "stage": state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+            "status": "LOCKED" if getattr(machine, "ib_locked", False) else "developing",
+            "confidence": getattr(machine, "confidence", None),
+            "stage": st.value if hasattr(st, "value") else (str(st) if st is not None else None),
+            "ib_locked": getattr(machine, "ib_locked", False),
         }
-    except Exception:
-        return {"running": False, "current_type": None}
+    except Exception as e:
+        return {"running": False, "current_type": None, "err": str(e)[:120]}
 
 
 def _check_hydration() -> dict:
@@ -303,10 +309,13 @@ def _run_status_checks(checks: dict[str, callable]) -> dict:
 
 
 @router.get("/api/v9/status")
-def system_status():
+def system_status(request: Request):
     """10-layer health dashboard for MEMS26."""
     import os
     trading_mode = os.getenv("MEMS26_MODE", "shadow")
+    # Capture the LIVE machine here (route has app access; the check runs in a
+    # threadpool with no args) — fixes the dead-wrapper UNKNOWN bug.
+    _dt_machine = getattr(request.app.state, "day_type_machine", None)
     checks = _run_status_checks({
         "session": _check_session,
         "sierra": _check_sierra,
@@ -315,7 +324,7 @@ def system_status():
         "ws": _check_ws,
         "frontend": _check_frontend,
         "audit": _check_audit,
-        "day_type": _check_day_type,
+        "day_type": (lambda: _check_day_type(_dt_machine)),
         "hydration": _check_hydration,
         "bar_router": _check_bar_router,
         "historical_replay": _check_historical_replay,
