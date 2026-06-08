@@ -309,27 +309,91 @@ class WoodiesSystem(BaseV9TradingSystem):
 
             # DLL-detected patterns: if DLL flags ZLR/HFE and Python missed it,
             # trust the DLL (source-of-truth per CLAUDE.md §Sierra real-time data).
+            # Compute a real stop (not None/0.0) using the same ATR machinery as
+            # the Python detectors — stop=None crashes PatternResult (schemas.py:78),
+            # stop=0.0 → R:R garbage → blocked by r_t1_gate. Bug #1 fix 2026-06-08.
             _dll_pattern_ids = {p.pattern_id for p in patterns}
-            if wb.zlr_detected and "ZLR" not in _dll_pattern_ids:
+            if (wb.zlr_detected and "ZLR" not in _dll_pattern_ids) or \
+               (wb.hfe_detected and "HFE" not in _dll_pattern_ids):
                 from backend.v9.systems.woodies.schemas import PatternResult
+                from backend.v9.systems.woodies.atr_stop import compute_stop, compute_stop_v2, PatternGroup
+                from backend.v9.shared.atr import flag as _flag
+                # Compute ATR-14 from buffer (same as Python detectors)
+                _dll_atr = 0.0
+                if len(self._bar_buffer) >= 14:
+                    _trs = []
+                    for _i, _b in enumerate(self._bar_buffer):
+                        _br = _b.high - _b.low
+                        if _i > 0:
+                            _pc = self._bar_buffer[_i-1].close
+                            _br = max(_br, abs(_b.high - _pc), abs(_b.low - _pc))
+                        _trs.append(_br)
+                    _dll_atr = sum(_trs[:14]) / 14
+                    for _tr in _trs[14:]:
+                        _dll_atr = ((_dll_atr * 13) + _tr) / 14
+                    _dll_atr = _dll_atr / 0.25  # convert to ticks
+
+            if wb.zlr_detected and "ZLR" not in _dll_pattern_ids:
                 _zlr_dir = "LONG" if wb.zlr_direction == "UP" else "SHORT" if wb.zlr_direction == "DOWN" else None
-                if _zlr_dir:
+                if _zlr_dir and _dll_atr > 0:
+                    _zlr_group = PatternGroup.CONT_TIGHT
+                    if _flag("STOP_ANCHORS_V2"):
+                        from backend.v9.config_loader import load_stop_anchors
+                        from backend.v9.systems.stop_anchors import resolver as SA
+                        _sa_cfg = load_stop_anchors()
+                        if _sa_cfg:
+                            _a = _sa_cfg["anchors"]["ZLR"]
+                            _w_bars = self._bar_buffer[-_a["window"]:]
+                            _struct = SA.resolve_anchor_from_window(_w_bars, _zlr_dir,
+                                        _sa_cfg["principles"]["anchor_offset_ticks"], 0.25)
+                            _v2 = compute_stop_v2(_zlr_dir, wb.close, _struct, _zlr_group, _dll_atr)
+                            _zlr_stop = _v2.stop_price
+                        else:
+                            _sr = compute_stop(_zlr_dir, wb, swing_anchor=None,
+                                               pattern_group=_zlr_group, atr_14=_dll_atr)
+                            _zlr_stop = _sr.stop_price
+                    else:
+                        _sr = compute_stop(_zlr_dir, wb, swing_anchor=None,
+                                           pattern_group=_zlr_group, atr_14=_dll_atr)
+                        _zlr_stop = _sr.stop_price
+                    _zlr_t1 = wb.close + (4 * 0.25 if _zlr_dir == "LONG" else -4 * 0.25)
                     patterns.append(PatternResult(
                         detected=True, pattern_id="ZLR", direction=_zlr_dir,
                         confidence=0.65, raw_confidence=0.65,
-                        entry_price=wb.close, stop=None, targets=[],
+                        entry_price=wb.close, stop=_zlr_stop, targets=[_zlr_t1],
                         group="CONTINUATION", cci_at_signal=wb.cci_14,
                         bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
                         details={"source": "dll_flag", "zlr_direction": wb.zlr_direction},
                     ))
             if wb.hfe_detected and "HFE" not in _dll_pattern_ids:
-                from backend.v9.systems.woodies.schemas import PatternResult
                 _hfe_dir = "LONG" if wb.hfe_direction == "UP" else "SHORT" if wb.hfe_direction == "DOWN" else None
-                if _hfe_dir:
+                if _hfe_dir and _dll_atr > 0:
+                    _hfe_group = PatternGroup.REV
+                    _lb = min(12, len(self._bar_buffer))
+                    _swing = min(b.low for b in self._bar_buffer[-_lb:]) if _hfe_dir == "LONG" \
+                        else max(b.high for b in self._bar_buffer[-_lb:])
+                    if _flag("STOP_ANCHORS_V2"):
+                        from backend.v9.config_loader import load_stop_anchors
+                        from backend.v9.systems.stop_anchors import resolver as SA
+                        _sa_cfg = load_stop_anchors()
+                        if _sa_cfg:
+                            _struct = SA.apply_offset(_swing, _hfe_dir,
+                                        _sa_cfg["principles"]["anchor_offset_ticks"], 0.25)
+                            _v2 = compute_stop_v2(_hfe_dir, wb.close, _struct, _hfe_group, _dll_atr)
+                            _hfe_stop = _v2.stop_price
+                        else:
+                            _sr = compute_stop(_hfe_dir, wb, swing_anchor=_swing,
+                                               pattern_group=_hfe_group, atr_14=_dll_atr)
+                            _hfe_stop = _sr.stop_price
+                    else:
+                        _sr = compute_stop(_hfe_dir, wb, swing_anchor=_swing,
+                                           pattern_group=_hfe_group, atr_14=_dll_atr)
+                        _hfe_stop = _sr.stop_price
+                    _hfe_t1 = wb.close + (4 * 0.25 if _hfe_dir == "LONG" else -4 * 0.25)
                     patterns.append(PatternResult(
                         detected=True, pattern_id="HFE", direction=_hfe_dir,
                         confidence=0.60, raw_confidence=0.60,
-                        entry_price=wb.close, stop=None, targets=[],
+                        entry_price=wb.close, stop=_hfe_stop, targets=[_hfe_t1],
                         group="REVERSAL", cci_at_signal=wb.cci_14,
                         bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
                         details={"source": "dll_flag", "hfe_direction": wb.hfe_direction,
