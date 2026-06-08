@@ -40,31 +40,48 @@ BELLY_DOMINANCE_RATIO: float = 1.5             # bar 3 buy/sell ratio threshold 
 from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402
 from typing import Optional as _Opt  # noqa: E402
 
-# ATR-relative multipliers (priors — to be calibrated during soak)
-_EXPANSION_MIN_ATR_K = 1.5   # bar_range ≥ 1.5×ATR5m
-_EXPANSION_MAX_ATR_K = 2.0   # bar_range ≤ 2.0×ATR5m
-_POC_RETURN_ATR_K = 0.2      # POC return tolerance ~0.2×ATR5m
+# Expansion gate: bar must be notably larger than recent average (Michael 2026-06-08)
+_EXPANSION_MIN_K = 1.3   # bar_range ≥ 1.3 × avg_range (30% above average)
+_EXPANSION_MAX_K = 2.5   # bar_range ≤ 2.5 × avg_range (cap: not a gap bar)
+_EXPANSION_LOOKBACK = 14  # bars to average over
+
+# POC return tolerance — relative to avg bar range
+_POC_RETURN_K = 0.2      # tolerance ~0.2 × avg_range
+
+# Fallback when no bars available
+_DEFAULT_AVG_RANGE = 3.0  # MES 5-min historical average range (pts)
 
 
-_DEFAULT_ATR_5M = 3.0  # MES 5-min ATR historical fallback (pts)
-
-
-def get_expansion_range(atr_5m: _Opt[float] = None):
+def get_expansion_range(bars: _Opt[list] = None, lookback: int = _EXPANSION_LOOKBACK):
     """Return (min_pt, max_pt) for Initiative expansion gate.
 
-    ALWAYS ATR-relative (Michael 2026-06-01). Fallback to MES default ATR.
+    Uses average bar range (h-l) of the last `lookback` bars, not ATR.
+    A bar must be 1.3× the average (notably larger) but not 2.5× (gap bar).
+    Michael 2026-06-08: ratio adapts to average candle size, not fixed ATR×k.
     """
-    atr = atr_5m if atr_5m is not None and atr_5m > 0 else _DEFAULT_ATR_5M
-    return (_EXPANSION_MIN_ATR_K * atr, _EXPANSION_MAX_ATR_K * atr)
+    avg = _DEFAULT_AVG_RANGE
+    if bars and len(bars) >= 3:
+        window = bars[-lookback:]
+        ranges = [b.get("h", b.get("high", 0)) - b.get("l", b.get("low", 0)) for b in window]
+        avg = sum(ranges) / len(ranges) if ranges else _DEFAULT_AVG_RANGE
+    if avg <= 0:
+        avg = _DEFAULT_AVG_RANGE
+    return (_EXPANSION_MIN_K * avg, _EXPANSION_MAX_K * avg)
 
 
-def get_poc_return_tolerance(atr_5m: _Opt[float] = None) -> float:
+def get_poc_return_tolerance(bars: _Opt[list] = None, lookback: int = _EXPANSION_LOOKBACK) -> float:
     """Return POC return tolerance in points.
 
-    ALWAYS ATR-relative (Michael 2026-06-01). Fallback to MES default ATR.
+    Relative to average bar range (Michael 2026-06-08).
     """
-    atr = atr_5m if atr_5m is not None and atr_5m > 0 else _DEFAULT_ATR_5M
-    return _POC_RETURN_ATR_K * atr
+    avg = _DEFAULT_AVG_RANGE
+    if bars and len(bars) >= 3:
+        window = bars[-lookback:]
+        ranges = [b.get("h", b.get("high", 0)) - b.get("l", b.get("low", 0)) for b in window]
+        avg = sum(ranges) / len(ranges) if ranges else _DEFAULT_AVG_RANGE
+    if avg <= 0:
+        avg = _DEFAULT_AVG_RANGE
+    return _POC_RETURN_K * avg
 
 
 def build_s2_gateway_setup(t1_setup, info: dict) -> dict:
@@ -639,7 +656,7 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         b1_vol = b1.get("v", 0) or 0
         b1_range = b1["h"] - b1["l"]
-        _exp_min, _exp_max = get_expansion_range(self._current_atr_5m)
+        _exp_min, _exp_max = get_expansion_range(bars_5m)
         b1_expansion = _exp_min <= b1_range <= _exp_max
         b3_range = b3["h"] - b3["l"]
         b3_joining = b3_range > b1_range
@@ -649,7 +666,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         b2_higher_low = b2["l"] > b1["l"]
         # POC return alt: Bar -2 returns to POC_VOL (within tolerance)
         b2_poc = b2.get("poc_vol") or b2.get("poc")
-        _poc_tol = get_poc_return_tolerance(self._current_atr_5m)
+        _poc_tol = get_poc_return_tolerance(bars_5m)
         b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= _poc_tol
         b2_test = b2_higher_low or b2_poc_return
         b4_test = b4["l"] >= b2["l"]

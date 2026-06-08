@@ -745,7 +745,7 @@ def _probe_initiative_long(bars: list) -> List[Component]:
 
     # Step 2: b1_expansion
     from backend.v9.systems.five_min.five_min_system import get_expansion_range
-    _exp_min, _exp_max = get_expansion_range(None)  # ATR-relative with fallback
+    _exp_min, _exp_max = get_expansion_range(bars)  # avg_range-relative
     ok = _exp_min <= b1_range <= _exp_max
     components.append(Component(
         stage="detection", key="b1_expansion",
@@ -851,7 +851,7 @@ def _probe_initiative_short(bars: list) -> List[Component]:
     b1_range = b1["h"] - b1["l"]
 
     from backend.v9.systems.five_min.five_min_system import get_expansion_range
-    _exp_min, _exp_max = get_expansion_range(None)  # ATR-relative with fallback
+    _exp_min, _exp_max = get_expansion_range(bars)  # avg_range-relative
     ok = _exp_min <= b1_range <= _exp_max
     components.append(Component(
         stage="detection", key="b1_expansion",
