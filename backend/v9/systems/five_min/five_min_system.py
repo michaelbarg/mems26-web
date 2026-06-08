@@ -913,10 +913,16 @@ class FiveMinSystem(BaseV9TradingSystem):
                 self._nt_skip_last_log_ts = _now
             return
 
-        # Run pattern detectors
-        direction, conf, info = self._detect_reactive(self._bar_buffer)
+        # Run pattern detectors on COMPLETED bars only (Bug #3 fix 2026-06-08).
+        # The bridge pushes each bar ~20x while building. Detection runs only on
+        # is_new_bar (first push of a new ts), but at that point bars[-1] is the
+        # NEW bar with partial OHLC (opening tick). bars[-2..-5] are already
+        # complete. Using buffer[:-1] ensures b4 = the last COMPLETED bar, not
+        # the partial one. FHB/ATR/choppiness above still use the full buffer.
+        _det_buf = self._bar_buffer[:-1] if len(self._bar_buffer) >= 8 else self._bar_buffer
+        direction, conf, info = self._detect_reactive(_det_buf)
         if not direction:
-            direction, conf, info = self._detect_initiative(self._bar_buffer)
+            direction, conf, info = self._detect_initiative(_det_buf)
 
         # Pkg 5a · chart patterns (Stage 3 + day-type gated · D-091 §5+§6)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
@@ -933,14 +939,14 @@ class FiveMinSystem(BaseV9TradingSystem):
             if self.current_day_type in (
                 "Neutral_Extreme", "Neutral_Center", "Normal", "Variation",
             ):
-                direction, conf, info = detect_inverse_hns(self._bar_buffer)
+                direction, conf, info = detect_inverse_hns(_det_buf)
                 if not direction:
-                    direction, conf, info = detect_hns_top(self._bar_buffer)
+                    direction, conf, info = detect_hns_top(_det_buf)
                 # Pkg 5b · Double Bottom + Double Top (after H&S in chain)
                 if not direction:
-                    direction, conf, info = detect_double_bottom_ee(self._bar_buffer, atr_5m=self._current_atr_5m)
+                    direction, conf, info = detect_double_bottom_ee(_det_buf, atr_5m=self._current_atr_5m)
                 if not direction:
-                    direction, conf, info = detect_double_top_aa(self._bar_buffer, atr_5m=self._current_atr_5m)
+                    direction, conf, info = detect_double_top_aa(_det_buf, atr_5m=self._current_atr_5m)
 
         # Pkg 5c · Flag patterns (continuation · Stage 3 + Q5 EXPANDED day-type gate · D-091 §9+§10 + Q5)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
@@ -948,9 +954,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                 "Trend_Normal", "Trend_DD", "Variation",
                 "Neutral_Extreme", "Normal",
             ):
-                direction, conf, info = detect_bull_flag(self._bar_buffer)
+                direction, conf, info = detect_bull_flag(_det_buf)
                 if not direction:
-                    direction, conf, info = detect_bear_flag(self._bar_buffer)
+                    direction, conf, info = detect_bear_flag(_det_buf)
 
         # First Hour Buffer eligibility gate (Tree V3.3 §Stage B)
         if direction and self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
@@ -965,7 +971,10 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         if direction:
             kind = info.get("kind", "UNKNOWN")
-            entry_price = bar.get("c", 0)
+            # Entry from the COMPLETED bar (last in detection buffer), not the
+            # partial new bar. Bug #3 fix: consistent with detection window.
+            _completed_bar = _det_buf[-1] if _det_buf else bar
+            entry_price = _completed_bar.get("c", bar.get("c", 0))
             # Stop: 3-layer adaptive (D-091 §Adaptive Stop Engine · corrected 2026-05-23)
             from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_stop_v2 as s2_compute_stop_v2, compute_today_typical
             from backend.v9.shared.atr import flag as _flag
