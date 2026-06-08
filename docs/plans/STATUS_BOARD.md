@@ -26,6 +26,12 @@
 - **#6 frontend :3000 ירד** מאז ה-GO (`fetch localhost:3000` = Failed to fetch) — אין לוח לצלם.
 - אישור: I-11 (footprint 0 ברים, ingest-break) עצמאי מ-I-21 · I-20 (freshness predicate משקר fresh=true על lag 2.7 ימים) · I-19/I-16 לא משחזרים.
 
+**[2026-06-08 09:40 CT — snapshot #3, 70דק' לתוך RTH]** (ראיה: `docs/reports/PATTERN_DIAG_2026-06-08.md` §09:40 + snapshot `docs/reports/snapshots/build_status_2026-06-08_0940CT.html`):
+- **🟢 התקדמות:** ערוץ 5דק'/study **חי** (woodies_5min/5min_bars/footprint-file FRESH 09:40). **day_type סוּוַּג=Trend_Normal** עקבי על 3 משטחים (state+readiness+S2-gate) ⇒ I-1 פיצול-3-כיווני לא משחזר, day_type כבר לא חוסם S2 → ירד 🔴→🟡. השוק התהפך: woodies `cci_14` חצה אפס −154→**+121.6**, trend נכנס ל-**GRAY** (מנוע+לוח מסכימים ⇒ I-15/C-1 לא משחזר, GRAY אמיתי).
+- **🔴 חוסמים נותרים:** verdict=**BLOCKED** root=`tick_reversal` DEAD מ-שישי (session-non-start, I-21 מבודד ל-ערוץ זה). I-11 (footprint file FRESH אך 0 ברים, ingest-break) אישור 15 — עצמאי מוכח שוב. I-16 (choppiness_ok מסומן Missing על 6 תבניות-S2 בעוד chop_state=EXPANDING; score≠gate-flag) — מבודד כעת לחוסם-יחיד. I-22 (pnl_r ~50× inflation) גלוי בערכי-שישי. I-20/I-18 (TZ-mix, fresh=true על lag שלילי -3h) נמשך.
+- **fix מוצע (ל-CC):** (1) tick_reversal — למה לבדו לא עלה ב-08:30 CT; (2) footprint ingest file→bridge→buffer; (3) choppiness_ok — לחווט הדגל הבוליאני מ-chop_state; (4) TZ-normalize גייטים ל-UTC + אכיפת-סף על lag. **verified:** gates+systems+readiness raw בדוח; 8/8 endpoints <200ms (I-19 נקי).
+- **0 fires היום** (trend GRAY חוסם S4, choppiness_ok חוסם S2-מומנטום, feed-dead חוסם S3, auth-skip לגיטימי חוסם S2-day-patterns) ⇒ אין signal שעבר detection-ונחסם → אין counterfactual לחשב.
+
 ---
 
 
