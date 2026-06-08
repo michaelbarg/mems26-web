@@ -936,7 +936,8 @@ class FiveMinSystem(BaseV9TradingSystem):
             kind = info.get("kind", "UNKNOWN")
             entry_price = bar.get("c", 0)
             # Stop: 3-layer adaptive (D-091 §Adaptive Stop Engine · corrected 2026-05-23)
-            from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_today_typical
+            from backend.v9.systems.five_min.adaptive_stop import compute_stop, compute_stop_v2 as s2_compute_stop_v2, compute_today_typical
+            from backend.v9.shared.atr import flag as _flag
             today_typical = compute_today_typical(self._bar_buffer)  # uses today's bars in buffer
             # Pkg 5a + 5b · chart pattern routing
             if kind in ("INVERSE_HNS", "HNS_TOP"):
@@ -954,17 +955,58 @@ class FiveMinSystem(BaseV9TradingSystem):
                     bar.get("l", entry_price) if direction == "LONG"
                     else bar.get("h", entry_price)
                 )
-            stop_comp = compute_stop(
-                entry_price=entry_price,
-                direction=direction,
-                structural_anchor=structural_anchor,
-                family=family,
-                today_typical=today_typical,
-            )
-            stop_price = stop_comp.stop_price
-            if stop_comp.reduce_size_signal:
-                logger.info("[FiveMin] adaptive_stop reduce_size: family=%s · A_tighter_than_B", family)
-                # actual size reduction handled in Pkg 3c · for now just log
+
+            if _flag("STOP_ANCHORS_V2"):
+                from backend.v9.config_loader import load_stop_anchors
+                from backend.v9.systems.stop_anchors import resolver as SA
+                cfg = load_stop_anchors()
+                if cfg:
+                    # Map S2 family → YAML anchor key
+                    _s2_family_key = {
+                        "Reactive": "Reactive", "OFA": "OFA_Initiative",
+                        "Double_BT": "Double_BT", "HnS": "HnS", "Flag": "Flag",
+                    }
+                    a = cfg["anchors"][_s2_family_key[family]]
+                    # Resolve V2 structural stop per anchor type
+                    if a["type"] in ("support_zone", "breakout_bar") and a.get("window"):
+                        # Cluster/breakout: window extreme + 3T offset
+                        window_bars = self._bar_buffer[-a["window"]:]
+                        struct = SA.resolve_anchor_from_window(
+                            window_bars, direction, cfg["principles"]["anchor_offset_ticks"])
+                    else:
+                        # Pattern-provided structural anchor + 3T offset
+                        struct = SA.apply_offset(
+                            structural_anchor, direction, cfg["principles"]["anchor_offset_ticks"])
+                    v2_comp = s2_compute_stop_v2(
+                        entry_price=entry_price,
+                        direction=direction,
+                        structural_stop_price=struct,
+                        family=family,
+                        today_typical=today_typical,
+                    )
+                    stop_price = v2_comp.stop_price
+                    if v2_comp.cap_exceeded:
+                        logger.info("[FiveMin] V2 cap_exceeded: family=%s risk=%dt cap=%dt",
+                                    family, v2_comp.risk_ticks, v2_comp.atr_cap_ticks)
+                else:
+                    # cfg load failed → fallback to legacy
+                    stop_comp = compute_stop(
+                        entry_price=entry_price, direction=direction,
+                        structural_anchor=structural_anchor, family=family,
+                        today_typical=today_typical)
+                    stop_price = stop_comp.stop_price
+            else:
+                stop_comp = compute_stop(
+                    entry_price=entry_price,
+                    direction=direction,
+                    structural_anchor=structural_anchor,
+                    family=family,
+                    today_typical=today_typical,
+                )
+                stop_price = stop_comp.stop_price
+                if stop_comp.reduce_size_signal:
+                    logger.info("[FiveMin] adaptive_stop reduce_size: family=%s · A_tighter_than_B", family)
+                    # actual size reduction handled in Pkg 3c · for now just log
 
             # Sizing decision (Cockpit V5 — S2 internal only)
             cot_val = info.get("cot") or self._get_cot_from_footprint() or 0
