@@ -974,9 +974,16 @@ class FiveMinSystem(BaseV9TradingSystem):
                         struct = SA.resolve_anchor_from_window(
                             window_bars, direction, cfg["principles"]["anchor_offset_ticks"])
                     else:
-                        # Pattern-provided structural anchor + 3T offset
+                        # Pattern-provided structural_anchor already bakes in a
+                        # 1-tick buffer (flags.py/double_bt.py/head_shoulders.py:
+                        # `structure ∓ TICK_SIZE`). Strip it so apply_offset adds
+                        # EXACTLY the spec's 3T from the RAW structure — uniform
+                        # with the window-anchored patterns (else: 4T not 3T).
+                        _tick = SA.MES_TICK
+                        raw_structure = (structural_anchor + _tick) if direction == "LONG" \
+                            else (structural_anchor - _tick)
                         struct = SA.apply_offset(
-                            structural_anchor, direction, cfg["principles"]["anchor_offset_ticks"])
+                            raw_structure, direction, cfg["principles"]["anchor_offset_ticks"])
                     v2_comp = s2_compute_stop_v2(
                         entry_price=entry_price,
                         direction=direction,
