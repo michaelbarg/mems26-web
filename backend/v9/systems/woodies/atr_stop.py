@@ -155,3 +155,63 @@ def compute_stop(
         layer_applied=layer_applied,
         cap_applied=cap_applied,
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Stop-Anchor V2 (STOP_ANCHORS_V2 flag) — structural stop wins, ATR=size gate
+# Spec: config/stop_anchors.yaml (Michael+research 2026-06-07). Flag-gated at
+# the CALL SITE; this function is pure. Legacy compute_stop() is unchanged.
+# ═══════════════════════════════════════════════════════════════════════
+
+@dataclass(frozen=True)
+class StopResultV2:
+    stop_price: float          # = resolved structural anchor (never moved by ATR)
+    risk_ticks: int            # |entry - stop| in ticks (after floor)
+    atr_cap_ticks: int         # the ATR ceiling, for the SIZE gate
+    cap_exceeded: bool         # structural risk > ATR cap → big bar → fewer contracts
+    floor_applied: bool        # structural was inside the floor → pushed to floor
+
+
+def compute_stop_v2(
+    direction: Literal["LONG", "SHORT"],
+    entry_price: float,
+    structural_stop_price: float,   # resolver output: cluster/structure extreme ∓ offset
+    pattern_group: PatternGroup,
+    atr_14: float,                  # in ticks
+    *,
+    tick_size: float = 0.25,
+    floor_ticks: int = DEFAULT_FLOOR_TICKS,
+) -> StopResultV2:
+    """V2 stop: the structural anchor IS the stop (ATR never moves it).
+
+    Difference from legacy compute_stop():
+      - legacy took min(primary, ATR cap) → the cap could pull the stop INTO the
+        bar on a large candle. V2 keeps the structural stop and instead reports
+        cap_exceeded so the sizing layer cuts contracts (the ATR cap becomes a
+        SIZE gate, per Michael 2026-06-07).
+      - the 4-tick floor still applies (never tighter than tick-noise).
+    """
+    if direction not in ("LONG", "SHORT"):
+        raise ValueError(f"direction must be LONG/SHORT, got {direction}")
+    if atr_14 <= 0:
+        raise ValueError("atr_14 must be positive")
+
+    # structural distance from entry, in ticks
+    raw_ticks = int(round(abs(entry_price - structural_stop_price) / tick_size))
+    floor_applied = raw_ticks < floor_ticks
+    risk_ticks = max(raw_ticks, floor_ticks)
+
+    if floor_applied:
+        stop_price = (entry_price - risk_ticks * tick_size) if direction == "LONG" \
+            else (entry_price + risk_ticks * tick_size)
+    else:
+        stop_price = structural_stop_price  # structural wins — untouched
+
+    cap_ticks = int(ATR_CAP_MULTIPLIERS[pattern_group] * atr_14)
+    return StopResultV2(
+        stop_price=round(stop_price, 10),
+        risk_ticks=risk_ticks,
+        atr_cap_ticks=cap_ticks,
+        cap_exceeded=risk_ticks > cap_ticks,   # → size gate downstream
+        floor_applied=floor_applied,
+    )
