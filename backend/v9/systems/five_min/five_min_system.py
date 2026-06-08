@@ -1012,14 +1012,64 @@ class FiveMinSystem(BaseV9TradingSystem):
             cot_val = info.get("cot") or self._get_cot_from_footprint() or 0
             amt_val = info.get("amt") or self._get_amt_from_footprint() or 0
             location = self._compute_location_vs_poc(bar)
-            sizing = self.calculate_size({
-                "bars_formed": info.get("stage", 4),
-                "pattern_type": kind.lower(),
-                "direction": direction,
-                "cot": cot_val,
-                "amt": amt_val,
-                "location_vs_poc_vol": location,
-            })
+            v2_sizing_result = None
+            if _flag("STOP_ANCHORS_V2"):
+                try:
+                    from backend.v9.systems.stop_anchors.sizing import compute_v2_sizing
+                    cfg = load_stop_anchors()
+                    if cfg:
+                        _s2_family_key = {
+                            "Reactive": "Reactive", "OFA": "OFA_Initiative",
+                            "Double_BT": "Double_BT", "HnS": "HnS", "Flag": "Flag",
+                        }
+                        _auth = None
+                        try:
+                            from backend.v9.config_loader import load_auth_matrix
+                            _auth = load_auth_matrix()
+                        except Exception:
+                            pass
+                        _is_rev = kind in ("INVERSE_HNS", "HNS_TOP", "DOUBLE_BOTTOM_EE", "DOUBLE_TOP_AA")
+                        _trend_state = self.current_state.get("trend_state", "GRAY")
+                        _day_has_dir = _trend_state in ("BLUE", "RED")
+                        _with_trend = (
+                            (direction == "LONG" and _trend_state == "BLUE") or
+                            (direction == "SHORT" and _trend_state == "RED")
+                        ) if _day_has_dir else None
+                        v2_sizing_result = compute_v2_sizing(
+                            entry_price=entry_price,
+                            stop_price=stop_price,
+                            direction=direction,
+                            pattern_key=_s2_family_key[family],
+                            day_type=self.current_day_type or "Normal",
+                            confidence_tier="medium",
+                            day_has_direction=_day_has_dir,
+                            trade_with_trend=_with_trend,
+                            value_area_full_traverse=None,
+                            cfg=cfg,
+                            auth_matrix=_auth,
+                            reversal=_is_rev,
+                        )
+                        if v2_sizing_result is None:
+                            logger.info("[FiveMin] V2 sizing: SKIP (auth verdict)")
+                            sizing = "reject"
+                        else:
+                            _c = v2_sizing_result.contracts
+                            sizing = "full" if _c >= 3 else ("half" if _c >= 2 else ("reject" if _c == 0 else "half"))
+                            logger.info("[FiveMin] V2 sizing: %s contracts=%d mode=%s risk=%.1fpt",
+                                        family, _c, v2_sizing_result.mode, v2_sizing_result.risk_points)
+                except Exception as e:
+                    logger.warning("[FiveMin] V2 sizing failed (%s) — falling back to legacy", e)
+                    v2_sizing_result = None
+
+            if v2_sizing_result is None:
+                sizing = self.calculate_size({
+                    "bars_formed": info.get("stage", 4),
+                    "pattern_type": kind.lower(),
+                    "direction": direction,
+                    "cot": cot_val,
+                    "amt": amt_val,
+                    "location_vs_poc_vol": location,
+                })
 
             _variant = info.get("variant", "")  # D-RVX
             self.last_pattern = f"{kind}_{direction}"
@@ -1136,26 +1186,34 @@ class FiveMinSystem(BaseV9TradingSystem):
 
                     info["trail_active"] = trail_active
                 else:
-                    # Existing OFA path · resolve targets per day_type
-                    from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type
-                    _targets = compute_targets_for_day_type(
-                        day_type=self.current_day_type,
-                        entry_price=entry_price,
-                        stop_price=stop_price,
-                        direction=direction,
-                    )
-                    t1_risk = abs(entry_price - stop_price)
-                    if _targets is not None:
-                        t1_price = _targets["t1_price"]
-                        t2_price = _targets.get("t2_price") or (
-                            (entry_price + 2 * t1_risk) if direction == "LONG"
-                            else (entry_price - 2 * t1_risk)
-                        )
-                        t3_price = _targets.get("t3_price")
-                    else:
-                        t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
+                    # V2: use R-ladder T1 for Reactive/OFA when sizing result available
+                    if v2_sizing_result is not None:
+                        t1_price = v2_sizing_result.t1_price
+                        t1_risk = abs(entry_price - stop_price)
                         t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
                         t3_price = None
+                        logger.info("[FiveMin] V2 T1=%.2f (R-ladder) risk=%.1fpt", t1_price, v2_sizing_result.risk_points)
+                    else:
+                        # Existing OFA path · resolve targets per day_type
+                        from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type
+                        _targets = compute_targets_for_day_type(
+                            day_type=self.current_day_type,
+                            entry_price=entry_price,
+                            stop_price=stop_price,
+                            direction=direction,
+                        )
+                        t1_risk = abs(entry_price - stop_price)
+                        if _targets is not None:
+                            t1_price = _targets["t1_price"]
+                            t2_price = _targets.get("t2_price") or (
+                                (entry_price + 2 * t1_risk) if direction == "LONG"
+                                else (entry_price - 2 * t1_risk)
+                            )
+                            t3_price = _targets.get("t3_price")
+                        else:
+                            t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
+                            t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
+                            t3_price = None
 
                 t1_setup = emit_t1_setup(
                     pattern_name, direction,

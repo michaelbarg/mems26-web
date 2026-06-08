@@ -378,6 +378,47 @@ class WoodiesSystem(BaseV9TradingSystem):
                 strength = int(best.confidence * 4)
                 classification = "STRATEGIC" if best.group == "REVERSAL" else "TACTICAL"
                 sizing = self.calculate_size(signal, direction)
+                # V2 sizing override when flag ON
+                from backend.v9.shared.atr import flag as _flag
+                if _flag("STOP_ANCHORS_V2") and best.entry_price and best.stop:
+                    try:
+                        from backend.v9.config_loader import load_stop_anchors, load_auth_matrix
+                        from backend.v9.systems.stop_anchors.sizing import compute_v2_sizing
+                        _sa_cfg = load_stop_anchors()
+                        if _sa_cfg:
+                            _auth = load_auth_matrix()
+                            _trend = studies.get("trend_state", "GRAY")
+                            _day_has_dir = _trend in ("BLUE", "RED")
+                            _with_trend = (
+                                (direction == "LONG" and _trend == "BLUE") or
+                                (direction == "SHORT" and _trend == "RED")
+                            ) if _day_has_dir else None
+                            _is_rev = best.group == "REVERSAL"
+                            _anchor_cfg = _sa_cfg["anchors"].get(signal, {})
+                            _v2s = compute_v2_sizing(
+                                entry_price=best.entry_price,
+                                stop_price=best.stop,
+                                direction=direction,
+                                pattern_key=signal,
+                                day_type=self.current_state.get("day_type", "Normal"),
+                                confidence_tier="medium",
+                                day_has_direction=_day_has_dir,
+                                trade_with_trend=_with_trend,
+                                value_area_full_traverse=None,
+                                cfg=_sa_cfg,
+                                auth_matrix=_auth,
+                                reversal=_is_rev,
+                                ladder_shift=_anchor_cfg.get("t1_ladder_shift", 0),
+                            )
+                            if _v2s is None:
+                                sizing = "reject"
+                            else:
+                                _c = _v2s.contracts
+                                sizing = "full" if _c >= 3 else ("half" if _c >= 2 else ("reject" if _c == 0 else "half"))
+                                logger.info("[Woodies] V2 sizing: %s contracts=%d mode=%s risk=%.1fpt",
+                                            signal, _c, _v2s.mode, _v2s.risk_points)
+                    except Exception as _e:
+                        logger.warning("[Woodies] V2 sizing failed (%s) — using legacy", _e)
                 # ζ.H1: reasoning_notes (AP-SY02)
                 reasoning_notes = (f"{signal} {direction} size={sizing}: "
                                    f"CCI={studies['cci_14']:.1f}, trend={studies['trend_state']}, "
