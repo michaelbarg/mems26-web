@@ -1,6 +1,29 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## ✅ 2026-06-08 (RTH-prep, Cowork+CC) — GO + צ'קליסט-מצב
+
+> מקור: `docs/reports/SYSTEM_START_2026-06-07.txt` (CC, raw) + בדיקות-Cowork חיות (Chrome).
+
+**הערכת-GO לקראת RTH: 🟢 ירוק.** ה-pipeline שלם: Sierra→גשר→backend(Postgres)→frontend.
+
+| # | קריטריון | מצב | ראיה |
+|---|---|---|---|
+| 1 | backend uvicorn יחיד · health ok | ✅ | health 200, uptime |
+| 2 | **DATABASE_URL=postgresql://localhost/mems26** (סוגר חשד-SQLite) | ✅ | `ps eww` בתהליך הרץ |
+| 3 | אין שגיאות sqlite/malformed בלוג | ✅ | `clean` |
+| 4 | דגלי-כיול ON | 🟢 6/7 | S1×3·S2_ATR·S3_RELATIVE·S2_VSA = ON · ⚠️ `S3_MUTE` לא הופיע (משתיק S3-החשוך; לא-חוסם, לאמת) |
+| 5 | גשר דוחף ל-localhost | ✅ | log `push #780` כל הזרמים (status-probe `timeout` = I-19 קוסמטי, לא הגשר) |
+| 6 | frontend :3000 | ✅ | 200 |
+| 7 | Sierra כותבת | ✅ | `active`, fresh<1s |
+
+**נסגר היום:** ✅ חשד-SQLite (DATABASE_URL ב-`.env`) · ✅ באג-דגלי-שישי (`bcdf43e`, אומת חי) · ✅ SPEC-סטופים נעול (14 תבניות, `c2cfd40`) · ✅ T3 חי (restart).
+**פתוח (RTH היום):** I-21 stall (פרומפט-אבחון מוכן) · אימות-ירי-חי S2/S4 · S3_MUTE · I-20/C-6 (דגימת-ts).
+**משימות-בפועל מוכנות (פרומפטים):** `CC_START_SYSTEM` · `CC_PROMPT_I21_I20_RTH_DIAGNOSE` · `CC_PROMPT_P5_0_GATEWAY_AUDIT` · `CC_MASTER_OFFLINE_SWEEP` · מעבר-מחשב: `MIGRATION_TO_NEW_MACHINE` (+ חבילה בהכנה).
+
+---
+
+
 ## 📍 2026-06-05 (eve, Cowork) — עסקאות SHADOW: תצוגת stop/targets + S2 T3 wiring
 
 > מקור: `/api/v9/trades/recent` חי (Chrome) + קריאת-קוד. 2 עסקאות נוצרו (#12 S4 HTLB · #10 S2 BEAR_FLAG), שתיהן day_type=Variation.
