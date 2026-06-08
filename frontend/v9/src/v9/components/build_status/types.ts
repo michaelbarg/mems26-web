@@ -65,6 +65,7 @@ export interface SystemGate {
   live?: string | null;
   required?: string | null;
   freshness?: Freshness | null;
+  critical?: boolean;  // false for muted/not-wired streams (display as disabled, not red)
 }
 
 // D-OBS: Live input field

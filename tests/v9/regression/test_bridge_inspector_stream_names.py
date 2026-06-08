@@ -7,8 +7,8 @@ from backend.v9.systems.build_status.bridge_inspector import STREAM_CHECKS
 from backend.v9.db.read import read_one
 
 
-@pytest.mark.parametrize("label,table,ts_col,threshold", STREAM_CHECKS)
-def test_stream_table_exists_in_db(label, table, ts_col, threshold):
+@pytest.mark.parametrize("label,table,ts_col,threshold,critical", STREAM_CHECKS)
+def test_stream_table_exists_in_db(label, table, ts_col, threshold, critical):
     """Each STREAM_CHECKS table must exist in the DB (Postgres).
     We don't require data — just that the table is queryable."""
     try:

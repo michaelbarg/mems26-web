@@ -25,15 +25,18 @@ logger = logging.getLogger(__name__)
 # ── Stream → DB table config ──────────────────────────────────────────────────
 # Each entry: (stream_label, table_name, ts_column, stale_threshold_sec)
 # Thresholds are generous (bridge fires every 5-15s in RTH).
+# Each entry: (stream_label, table_name, ts_column, stale_threshold_sec, critical)
+# critical=False for muted (S3_MUTE) or not-wired (S5/TPO) streams — these must
+# not show as red BLOCKED in the frontend. Michael 2026-06-08.
 STREAM_CHECKS = [
-    ("woodies_5min",       "v9_bars_5min_woodies",      "ts",         90),
-    ("footprint",          "v9_bars_footprint",          "ts",         90),
-    ("cumulative_delta",   "v9_bars_cumulative_delta",   "ts",        360),
-    ("volume_profile",     "v9_bars_volume_profile",     "ts",        360),
-    ("tick_reversal_15",   "v9_bars_tick_reversal",      "ts",         90),
-    ("imbalance",          "v9_bars_imbalance",          "ts",         90),
-    ("tpo",                "v9_tpo_bars",                "ts",        360),
-    ("bars_5min",          "v9_bars_5min",               "ts",        360),
+    ("woodies_5min",       "v9_bars_5min_woodies",      "ts",         90, True),
+    ("footprint",          "v9_bars_footprint",          "ts",         90, False),  # S3 muted (S3_MUTE=1)
+    ("cumulative_delta",   "v9_bars_cumulative_delta",   "ts",        360, True),
+    ("volume_profile",     "v9_bars_volume_profile",     "ts",        360, True),
+    ("tick_reversal_15",   "v9_bars_tick_reversal",      "ts",         90, False),  # S3 muted
+    ("imbalance",          "v9_bars_imbalance",          "ts",         90, True),
+    ("tpo",                "v9_tpo_bars",                "ts",        360, False),  # S5 not-wired (I-24)
+    ("bars_5min",          "v9_bars_5min",               "ts",        360, True),
 ]
 
 
@@ -119,13 +122,13 @@ def inspect(db_path: Optional[str] = None) -> SystemStatus:
     all_fresh = True
 
     try:
-        for label, table, ts_col, threshold in STREAM_CHECKS:
+        for label, table, ts_col, threshold, critical in STREAM_CHECKS:
             result = _check_stream(table, ts_col, threshold)
             status = result["status"]
             age = result["age_sec"]
             last_ts = result.get("last_ts", "—")
             is_fresh = status == "FRESH"
-            if not is_fresh:
+            if not is_fresh and critical:
                 all_fresh = False
 
             if age is not None:
@@ -141,14 +144,16 @@ def inspect(db_path: Optional[str] = None) -> SystemStatus:
                 make_freshness(last_ts, "sierra_export") if last_ts and last_ts != "—"
                 else freshness_now("sierra_export")
             )
+            _spec = f"Bridge push < {threshold}s" if critical else f"disabled (S3_MUTE/S5)"
             gates.append(GlobalGate(
                 key=label,
-                spec=f"Bridge push < {threshold}s",
-                present=is_fresh,
-                value=value,
+                spec=_spec,
+                present=is_fresh or not critical,  # non-critical always "present" (not red)
+                value=value if critical else f"[disabled] {value}",
                 live=f"{int(age)}s" if age is not None else "no_data",
-                required=f"< {threshold}s",
+                required=f"< {threshold}s" if critical else "disabled",
                 freshness=_bridge_fresh,
+                critical=critical,
             ))
 
     except Exception as e:
@@ -198,7 +203,7 @@ def inspect(db_path: Optional[str] = None) -> SystemStatus:
 
 
 def _get_single_age(stream_cfg: tuple) -> Optional[float]:
-    _, table, ts_col, _ = stream_cfg
+    _, table, ts_col, _threshold, *_ = stream_cfg
     try:
         row = read_one(
             f"SELECT {ts_col} FROM {table} ORDER BY {ts_col} DESC LIMIT 1"

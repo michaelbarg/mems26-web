@@ -87,6 +87,7 @@ class GlobalGate(BaseModel):
     live: Optional[str] = None
     required: Optional[str] = None
     freshness: Optional[Freshness] = None
+    critical: bool = True  # False for muted/not-wired streams (display as disabled, not red)
 
 
 class PatternStatus(BaseModel):

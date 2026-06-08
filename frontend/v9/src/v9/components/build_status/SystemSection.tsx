@@ -181,29 +181,40 @@ export function SystemSection({ system, showOnlyBlockers }: SystemSectionProps) 
               </tr>
             </thead>
             <tbody>
-              {system.global_gates.map((gate, i) => (
+              {system.global_gates.map((gate, i) => {
+                const isDisabled = gate.critical === false;
+                const rowColor = isDisabled
+                  ? COLORS.textTertiary
+                  : gate.present ? COLORS.textPrimary : COLORS.bearLight;
+                return (
                 <tr
                   key={gate.key}
                   style={{
-                    color: gate.present ? COLORS.textPrimary : COLORS.bearLight,
+                    color: rowColor,
                     borderTop: i > 0 ? `1px solid ${COLORS.borderFaint}` : 'none',
+                    opacity: isDisabled ? 0.5 : 1,
                   }}
                 >
-                  <td style={{ padding: '3px 8px 3px 0', color: COLORS.textSecondary }}>{gate.key}</td>
-                  <td style={{ padding: '3px 8px', color: COLORS.textPrimary }}>{gate.live ?? '—'}</td>
-                  <td style={{ padding: '3px 8px', color: COLORS.textSecondary }}>{gate.required ?? '—'}</td>
+                  <td style={{ padding: '3px 8px 3px 0', color: isDisabled ? COLORS.textTertiary : COLORS.textSecondary }}>
+                    {gate.key}{isDisabled ? ' (disabled)' : ''}
+                  </td>
+                  <td style={{ padding: '3px 8px', color: isDisabled ? COLORS.textTertiary : COLORS.textPrimary }}>{gate.live ?? '—'}</td>
+                  <td style={{ padding: '3px 8px', color: isDisabled ? COLORS.textTertiary : COLORS.textSecondary }}>{gate.required ?? '—'}</td>
                   <td style={{ padding: '3px 8px', textAlign: 'center' }}>
-                    {gate.present ? (
+                    {isDisabled ? (
+                      <span style={{ color: COLORS.textTertiary }}>—</span>
+                    ) : gate.present ? (
                       <span style={{ color: COLORS.bull }}>✓</span>
                     ) : (
                       <span style={{ color: COLORS.bear }}>✕</span>
                     )}
                   </td>
                   <td style={{ padding: '3px 8px' }}>
-                    <FreshnessPill freshness={gate.freshness} />
+                    {!isDisabled && <FreshnessPill freshness={gate.freshness} />}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
