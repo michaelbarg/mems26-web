@@ -908,7 +908,8 @@ def post_woodies_5min(
             "lsma_above_price) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
-                bar.get("ts", ""), "MES", o, h, l, c, vol,
+                _ts_from_unix(bar.get("ts", 0)).isoformat() if isinstance(bar.get("ts"), (int, float)) else bar.get("ts", ""),
+                "MES", o, h, l, c, vol,
                 bar.get("cci_14"), bar.get("cci_6_tcci"),
                 bar.get("lsma_value"), bar.get("swi_value"),
                 bar.get("czi_value"), bar.get("ema_34"),

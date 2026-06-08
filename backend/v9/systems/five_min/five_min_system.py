@@ -1137,8 +1137,19 @@ class FiveMinSystem(BaseV9TradingSystem):
                 db = SessionLocal()
                 from backend.v9.db.models.five_min_setups import V9FiveMinSetup
                 _vp = info.get("variants_passed", [])
+                # Bug #2 fix: parse ts robustly (bridge sends ISO string, not epoch)
+                _raw_ts = _completed_bar.get("ts", bar.get("ts", 0))
+                if isinstance(_raw_ts, str):
+                    try:
+                        _fire_ts = datetime.fromisoformat(_raw_ts)
+                    except (ValueError, TypeError):
+                        _fire_ts = datetime.now(timezone.utc)
+                elif isinstance(_raw_ts, (int, float)):
+                    _fire_ts = datetime.fromtimestamp(float(_raw_ts), tz=timezone.utc)
+                else:
+                    _fire_ts = datetime.now(timezone.utc)
                 setup = V9FiveMinSetup(
-                    ts=datetime.fromtimestamp(bar.get("ts", 0), tz=timezone.utc),
+                    ts=_fire_ts,
                     pattern=f"{kind}_{direction}",
                     direction=direction,
                     entry_price=entry_price,
