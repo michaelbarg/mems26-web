@@ -1,15 +1,16 @@
-"""Opening Choppiness scorer — Tree V3.3 §Q4.
+"""Rolling Choppiness scorer — Tree V3.3 §Q4.
 
-Score 0-100 based on first 3-6 bars after open:
+Score 0-100 based on the most recent 3-6 bars (rolling window):
   High score = choppy (rotational, overlapping bars)
   Low score = directional (clean trend)
 
 Components:
-  - Range/ATR ratio (narrow range relative to recent = choppy)
   - Bar direction flips (alternating red/green = choppy)
-  - Body variance (similar-sized bodies = directional, variable = choppy)
+  - Bar overlap ratio (intersecting ranges = choppy)
+  - Body size variance (variable body sizes = choppy)
 
-Used by Confluence to subtract 1 from score when choppy.
+Used by S2 inspector as a gate: choppiness_ok = score < 70.
+Computed continuously in DAY_TYPE_MODE so it stays fresh.
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ def compute_choppiness(bars: List[dict], min_bars: int = 3, max_bars: int = 6) -
     if len(bars) < min_bars:
         return 50.0  # neutral when insufficient data
 
-    window = bars[:max_bars]
+    window = bars[-max_bars:]
     n = len(window)
 
     # Component 1: Direction flips (0-40 points)
