@@ -30,10 +30,10 @@ STREAM_CHECKS = [
     ("footprint",          "v9_bars_footprint",          "ts",         90),
     ("cumulative_delta",   "v9_bars_cumulative_delta",   "ts",        360),
     ("volume_profile",     "v9_bars_volume_profile",     "ts",        360),
-    ("tick_reversal",      "v9_bars_tick_reversal",      "ts",         90),
+    ("tick_reversal_15",   "v9_bars_tick_reversal",      "ts",         90),
     ("imbalance",          "v9_bars_imbalance",          "ts",         90),
-    ("tpo_bars",           "v9_tpo_bars",                "ts",        360),
-    ("5min_bars",          "v9_bars_5min",               "ts",        360),
+    ("tpo",                "v9_tpo_bars",                "ts",        360),
+    ("bars_5min",          "v9_bars_5min",               "ts",        360),
 ]
 
 
