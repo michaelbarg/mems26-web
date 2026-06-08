@@ -277,3 +277,56 @@ def reset_s2_firing_cache() -> None:
     global _s2_firing_cache, _s2_firing_loaded
     _s2_firing_cache = None
     _s2_firing_loaded = False
+
+# ── Stop Anchors V2 (config/stop_anchors.yaml) ───────────────────────
+
+def load_stop_anchors() -> Optional[Dict[str, Any]]:
+    """Load stop_anchors.yaml → validated dict, or None (caller falls back to
+    legacy behavior). Spec + provenance locked by Michael+research 2026-06-07.
+    Gated at the call site by env STOP_ANCHORS_V2 — this loader is inert until
+    the flag is on. Schema-validation rejects an out-of-range config entirely.
+    """
+    data = _load_yaml("stop_anchors.yaml")
+    if data is None:
+        return None
+
+    errors = []
+    g = data.get("guardrails", {})
+    max_contracts = g.get("max_contracts", 3)
+    max_risk = g.get("max_risk_points", 30)
+    t1_min, t1_max = g.get("t1_r_min", 0.2), g.get("t1_r_max", 1.5)
+    off_max = g.get("anchor_offset_ticks_max", 6)
+
+    p = data.get("principles", {})
+    off = p.get("anchor_offset_ticks", 3)
+    if not (0 <= off <= off_max):
+        errors.append(f"anchor_offset_ticks={off} out of range")
+
+    if not (0 < data.get("risk_cap_points", 0) <= max_risk):
+        errors.append(f"risk_cap_points={data.get('risk_cap_points')} out of range")
+
+    for name in ("contract_ladder", "t1_ladder_continuation"):
+        rows = data.get(name)
+        if not isinstance(rows, list) or not rows:
+            errors.append(f"{name}: missing/empty"); continue
+        for r in rows:
+            if "max_risk_points" not in r:
+                errors.append(f"{name}: row missing max_risk_points")
+            if name == "contract_ladder" and not (1 <= r.get("contracts", 0) <= max_contracts):
+                errors.append(f"contract_ladder.contracts={r.get('contracts')} out of range")
+            if name == "t1_ladder_continuation" and not (t1_min <= r.get("t1_r", 0) <= t1_max):
+                errors.append(f"t1_ladder.t1_r={r.get('t1_r')} out of range")
+
+    mc = data.get("mode_caps", {})
+    for k in ("strategic", "tactical"):
+        if not (1 <= mc.get(k, 0) <= max_contracts):
+            errors.append(f"mode_caps.{k}={mc.get(k)} out of range")
+
+    anchors = data.get("anchors", {})
+    if not isinstance(anchors, dict) or len(anchors) < 14:
+        errors.append(f"anchors: expected 14 patterns, got {len(anchors) if isinstance(anchors, dict) else 'non-dict'}")
+
+    if errors:
+        logger.warning("[ConfigLoader] stop_anchors validation errors: %s", errors[:6])
+        return None
+    return data

@@ -1,0 +1,87 @@
+# ═══════════════════════════════════════════════════════════════════════
+# Stop Anchors + T1 Ladder + Contract Sizing — MEMS26 V9
+# נסגר: Michael + מחקר, 2026-06-07. מסומן מקור פר-ערך:
+#   ✅ = החלטת Michael · 🔬 = המלצת-מחקר (אושרה בעיקרון) · 📜 = מקור-אמת קיים
+# כל שינוי-ערך = גרסה חדשה + אישור Michael. Git עוקב.
+# ⚠️ נטען רק כש-STOP_ANCHORS_V2=1 (SHADOW בלבד). דגל כבוי = התנהגות-היום בדיוק.
+# ═══════════════════════════════════════════════════════════════════════
+version: 1
+enabled_flag: STOP_ANCHORS_V2
+
+# ── עקרונות-על (✅ Michael) ──────────────────────────────────────────
+principles:
+  structural_stop_always_wins: true   # ✅ הסטופ המבני תמיד גובר; ATR לא מזיז אותו לתוך הנר
+  atr_cap_role: size_gate              # ✅ תקרת-ATR = שער-גודל בלבד (לא מזיזה סטופ)
+  floor_ticks: 4                       # 📜 רצפת-סטופ קיימת (stop_params)
+  anchor_offset_ticks: 3               # ✅ כל העוגנים: 3 ticks מעבר לקצה-המבני
+
+# ── תקרת-סיכון + סולם-חוזים (✅ Michael) ─────────────────────────────
+risk_cap_points: 25                    # ✅ מקסימום סיכון לחוזה (25 נק' = $125)
+contract_ladder:                       # ✅ חוזים לפי סיכון בנקודות (הזהיר תמיד גובר)
+  - {max_risk_points: 15, contracts: 3}
+  - {max_risk_points: 25, contracts: 2}
+  - {max_risk_points: 999, contracts: 1}   # >25 נק' → חוזה 1
+
+# ── תקרות-מצב: טקטית/אסטרטגית (✅ Michael) ───────────────────────────
+# סיווג נגזר ממקור-אמת: trend_state (כיוון-יום) + auth verdict — לא ערך חדש.
+#   ימי-Trend: עם-המגמה=אסטרטגית · נגד=טקטית (📜 auth: INITIATIVE=FULL, REV=SKIP)
+#   ימי-ערך:   VAH↔VAL מלא=אסטרטגית · POC→קצה=טקטית (✅ Michael)
+mode_caps:
+  strategic: 3                         # ✅ אסטרטגית עד 3 חוזים
+  tactical: 2                          # ✅ טקטית עד 2 חוזים
+
+# חוזים סופי = min(contract_ladder, auth/Table-B, mode_cap)  (✅ הזהיר מבין השלושה)
+
+# ── סולם-T1 לפי סיכון (✅ Michael 3-אזורים · 🔬 מחקר 2-אזורים) ────────
+t1_floor_points: 3                     # ✅ 6א: T1 לעולם לא קרוב מ-3 נק' (חיכוך-עמלות)
+t1_ladder_continuation:                # R-multiple לפי סיכון בנקודות
+  - {max_risk_points: 5,  t1_r: 1.00}  # ✅ Michael
+  - {max_risk_points: 10, t1_r: 0.75}  # ✅ Michael
+  - {max_risk_points: 15, t1_r: 0.65}  # ✅ Michael
+  - {max_risk_points: 20, t1_r: 0.50}  # 🔬 מחקר (אושר)
+  - {max_risk_points: 25, t1_r: 0.40}  # 🔬 מחקר (אושר)
+t1_reversal_multiplier: 0.80           # ✅ תבניות-היפוך: סולם × 0.8 (שמרני יותר)
+
+# ── נר-ענק (>25 נק' סיכון, חוזה 1) (✅/🔬) ───────────────────────────
+giant_candle:
+  applies_over_risk_points: 25
+  target_mode: nearest_of              # 🔬 6ב (אושר): יעד = הקרוב מבין:
+    # 1R · רמה-מבנית (POC/VAH/VAL/PDH/PDL) · 50-75% מהטווח-היומי-שנותר
+  be_move_points: 15                   # ✅ Michael (מאומת Davey 567k: 0.3-0.6R אופטימום)
+  first_spike_only: true               # 🔬 לא לרדוף spike שני/שלישי
+  short_time_stop: false               # 🔬 בלי time-stop קצר (הגרוע במבחן)
+
+# ── BE אחרי T1 (📜 קאנון נשמר — הצעת -2T נדחתה ע"י Michael) ───────────
+be_after_t1: breakeven_plus_1tick      # 📜 Table C §6.1
+
+# ── עוגן פר-תבנית ────────────────────────────────────────────────────
+# type: cluster_low(N) | since_trendline_peak | zl_excursion | swing_extreme |
+#       failed_bar | consolidation_extreme | extreme_bar | breakout_bar |
+#       second_bottom_top | shoulder | flag_low | support_zone
+# כולם -3T (anchor_offset_ticks). window = כמה ברים אחורה.
+anchors:
+  # ── S4 CONT (🔬 מחקר אושר; חלונות לפי מבנה-התבנית) ──
+  ZLR:    {system: S4, group: CONT, type: cluster_low,          window: 4}   # ✅ Michael
+  TLB:    {system: S4, group: CONT, type: since_trendline_peak, window: 8}   # 🔬 משתנה 3-8
+  TT:     {system: S4, group: CONT, type: zl_excursion,         window: 9}   # 🔬 4-9
+  GB100:  {system: S4, group: CONT, type: cluster_low,          window: 6}   # 🔬 חלון-6
+  # ── S4 REV (🔬 עוגני-קיצון נשמרים; HTLB מורחב) ──
+  VEGAS:  {system: S4, group: REV,  type: swing_extreme,        window: null, t1_measure_cap: 0.5}  # 🔬
+  GHOST:  {system: S4, group: REV,  type: shoulder,             window: null, t1_measure_cap: 0.5}  # 🔬 (Bulkowski MEASURED)
+  FAMIR:  {system: S4, group: REV,  type: failed_bar,           window: null}  # 🔬
+  HTLB:   {system: S4, group: REV,  type: consolidation_extreme, window: null} # 🔬 מורחב (לא בר-הפריצה)
+  HFE:    {system: S4, group: REV,  type: extreme_bar,          window: null, t1_ladder_shift: -1}  # 🔬 התבנית-החלשה, מדרגה מטה
+  # ── S2 (🔬 לפי Bulkowski MEASURED) ──
+  Reactive:        {system: S2, type: support_zone,      window: 4}      # 🔬 אשכול/אזור-תמיכה
+  OFA_Initiative:  {system: S2, type: breakout_bar,      window: 1}      # 🔬 ⚠️ נשאר הדוק! (מדוד 5188: הדוק מנצח ב-11%)
+  Double_BT:       {system: S2, type: second_bottom_top, window: null}   # 🔬 מבנה (Bulkowski מפורש)
+  HnS:             {system: S2, type: shoulder,          window: null}   # 🔬 כתף-ימין (לא neckline)
+  Flag:            {system: S2, type: flag_low,          window: null}   # 🔬 ⚠️ שפל-הדגל (לא מוט!)
+
+# ── Guardrails (schema-validation בטעינה) ────────────────────────────
+guardrails:
+  max_contracts: 3
+  max_risk_points: 30          # מעבר לזה = דחיית-config (לא סיכון אמיתי)
+  t1_r_min: 0.2
+  t1_r_max: 1.5
+  anchor_offset_ticks_max: 6
