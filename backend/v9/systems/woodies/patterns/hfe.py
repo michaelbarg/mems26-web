@@ -19,7 +19,8 @@ import time
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult
 from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
-from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
+from backend.v9.systems.woodies.atr_stop import compute_stop, compute_stop_v2, PatternGroup
+from backend.v9.shared.atr import flag as _flag
 from backend.v9.systems.woodies.hfe_divergence_logger import (
     HFEDivergence,
     HFEDivergenceLogger,
@@ -264,7 +265,25 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> Optional[P
     else:
         swing_anchor = max(b.high for b in bars[-min(LOOKBACK, len(bars)):])
     atr_ticks = _compute_atr14_ticks(bars)
-    if atr_ticks > 0:
+    if _flag("STOP_ANCHORS_V2") and atr_ticks > 0:
+        from backend.v9.systems.stop_anchors import resolver as SA
+        from backend.v9.config_loader import load_stop_anchors
+        cfg = load_stop_anchors()
+        if cfg:
+            # extreme_bar: structural = the extreme bar's low/high + 3T offset
+            struct = SA.apply_offset(swing_anchor, direction,
+                                     cfg["principles"]["anchor_offset_ticks"], TICK_SIZE)
+            v2 = compute_stop_v2(direction, entry_price, struct, _PATTERN_GROUP, atr_ticks,
+                                 tick_size=TICK_SIZE)
+            stop_price = v2.stop_price
+            stop_layer = "v2_structural"
+        else:
+            stop_result = compute_stop(
+                direction=direction, entry_bar=current, swing_anchor=swing_anchor,
+                pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE)
+            stop_price = stop_result.stop_price
+            stop_layer = stop_result.layer_applied
+    elif atr_ticks > 0:
         stop_result = compute_stop(
             direction=direction, entry_bar=current, swing_anchor=swing_anchor,
             pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
