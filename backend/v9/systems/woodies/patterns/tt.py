@@ -10,7 +10,8 @@ Spec reference: MEMS26_WOODIES_SPEC_V1_DERIVED Section 5 (A3).
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult, PatternSignal
 from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
-from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
+from backend.v9.systems.woodies.atr_stop import compute_stop, compute_stop_v2, PatternGroup
+from backend.v9.shared.atr import flag as _flag
 
 PATTERN_ID = "TT"
 GROUP = "CONTINUATION"
@@ -84,7 +85,27 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
         if touched and bounced and was_above:
             entry = bar.close
             atr_ticks = _compute_atr14_ticks(bars)
-            if atr_ticks > 0:
+            if _flag("STOP_ANCHORS_V2") and atr_ticks > 0:
+                from backend.v9.config_loader import load_stop_anchors
+                from backend.v9.systems.stop_anchors import resolver as SA
+                cfg = load_stop_anchors()
+                if cfg:
+                    a = cfg["anchors"]["TT"]
+                    # zl_excursion: bars of the excursion (up to window)
+                    window_bars = bars[-min(a["window"], len(bars)):]
+                    struct = SA.resolve_anchor_from_window(
+                        window_bars, "LONG", cfg["principles"]["anchor_offset_ticks"], TICK_SIZE)
+                    v2 = compute_stop_v2("LONG", entry, struct, _PATTERN_GROUP, atr_ticks,
+                                         tick_size=TICK_SIZE)
+                    stop = v2.stop_price
+                    stop_layer = "v2_structural"
+                else:
+                    stop_result = compute_stop(
+                        direction="LONG", entry_bar=bar, swing_anchor=None,
+                        pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE)
+                    stop = stop_result.stop_price
+                    stop_layer = stop_result.layer_applied
+            elif atr_ticks > 0:
                 stop_result = compute_stop(
                     direction="LONG", entry_bar=bar, swing_anchor=None,
                     pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
@@ -124,7 +145,26 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
         if touched and bounced and was_below:
             entry = bar.close
             atr_ticks = _compute_atr14_ticks(bars)
-            if atr_ticks > 0:
+            if _flag("STOP_ANCHORS_V2") and atr_ticks > 0:
+                from backend.v9.config_loader import load_stop_anchors
+                from backend.v9.systems.stop_anchors import resolver as SA
+                cfg = load_stop_anchors()
+                if cfg:
+                    a = cfg["anchors"]["TT"]
+                    window_bars = bars[-min(a["window"], len(bars)):]
+                    struct = SA.resolve_anchor_from_window(
+                        window_bars, "SHORT", cfg["principles"]["anchor_offset_ticks"], TICK_SIZE)
+                    v2 = compute_stop_v2("SHORT", entry, struct, _PATTERN_GROUP, atr_ticks,
+                                         tick_size=TICK_SIZE)
+                    stop = v2.stop_price
+                    stop_layer = "v2_structural"
+                else:
+                    stop_result = compute_stop(
+                        direction="SHORT", entry_bar=bar, swing_anchor=None,
+                        pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE)
+                    stop = stop_result.stop_price
+                    stop_layer = stop_result.layer_applied
+            elif atr_ticks > 0:
                 stop_result = compute_stop(
                     direction="SHORT", entry_bar=bar, swing_anchor=None,
                     pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE,
