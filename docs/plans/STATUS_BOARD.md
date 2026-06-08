@@ -32,7 +32,26 @@
 - **fix מוצע (ל-CC):** (1) tick_reversal — למה לבדו לא עלה ב-08:30 CT; (2) footprint ingest file→bridge→buffer; (3) choppiness_ok — לחווט הדגל הבוליאני מ-chop_state; (4) TZ-normalize גייטים ל-UTC + אכיפת-סף על lag. **verified:** gates+systems+readiness raw בדוח; 8/8 endpoints <200ms (I-19 נקי).
 - **0 fires היום** (trend GRAY חוסם S4, choppiness_ok חוסם S2-מומנטום, feed-dead חוסם S3, auth-skip לגיטימי חוסם S2-day-patterns) ⇒ אין signal שעבר detection-ונחסם → אין counterfactual לחשב.
 
----
+**[2026-06-08 — I-16 choppiness_ok root-fix אומת (CC `4a073c6`, Cowork-verified Rule 5)]**
+- **root:** `compute_choppiness` קרא `bars[:max_bars]` (6 הברים הכי **ישנים** מתוך חלון-14) → הציון נתקע ~75-93 ממבנה-פתיחה ישן ולא התעדכן ⇒ `choppiness_ok=score<70` נכשל על כל 10 תבניות-S2. ההשערה הקודמת בלוח (09:40 "score≠gate-flag / לחווט מ-chop_state") **שגויה** — הציון *כן* היה קלט-הגייט, רק חושב על ברים בייתים.
+- **fix:** שורה אחת `window = bars[-max_bars:]` (חלון מתגלגל אמיתי) + docstring מעודכן (תואם-קוד). 5 טסטים חדשים `tests/v9/regression/test_choppiness_rolling.py`.
+- **verified (raw, Cowork):** הרצתי את `compute_choppiness` ישירות — 5/5 ההנחות עוברות; live-sim: באפר-14 (פתיחה-choppy, מגמתי-עכשיו) → OLD `[:6]`=**75.0** (≥70 חוסם) · NEW `[-6:]`=**35.0** (<70 פותח). (189-regression המלא = על ה-Mac; ה-sandbox חסר sqlalchemy.)
+- **🔴 שאריות פתוחות (anti-partial-wiring):** (1) **גייט-chop #2 לא נגע** — `trading_gateway.py:111` `chop_state=="SEARCHING"→BLOCKED` הוא מטריקה אחרת (Layer0 `chop_score`, לא `choppiness_score`); תיקון CC לא משחרר ירי-SHADOW אם Layer0=SEARCHING. (2) **restart נדרש** — שינוי-קוד; backend חי לא קולט עד אתחול; ב-hydrate הציון נטען מ-DB (`five_min_system:263/280`) עד הבר הבא שמחשב מחדש. (3) **לא disable** — אם הזנב באמת choppy, הגייט עדיין יחסום (נכון/כנה).
+
+**[2026-06-08 — שני שערי-chop כובו (Michael directive, "גם וגם", default-off + CLAUDE.md)]**
+- **directive:** Michael — לכבות את `choppiness_ok` של S2 *וגם* את שער-Layer0 ב-gateway, ולהשאיר כבוי עד אישור מפורש; לתעד ב-CLAUDE.md. **בוצע (Cowork).**
+- **fix:** (a) `s2_inspector.py` — `choppiness_ok` flag-gated `S2_CHOPPINESS_GATE` (default-off ⇒ `chop_ok=True`, הציון עדיין מוצג). (b) `trading_gateway.py:111` — veto `chop_state==SEARCHING` flag-gated `LAYER0_CHOP_GATE` (default-bypass, עדיין מחושב+לוג). שניהם `os.getenv` ב-runtime → דורש **restart**. CLAUDE.md §"Chop Gates (DISABLED)" + טסט `tests/v9/regression/test_chop_gates_disabled.py`.
+- **finding שאומת תוך כדי:** `choppiness_ok` הוא **inspector-only** — `s2_inspector.inspect` מיובא רק ב-`build_status/aggregator.py`; מסלול-הירי האמיתי (five_min emit→trade_manager→gateway) **לא** חוסם על `choppiness_score` כלל. כלומר הוא חסם רק את **תצוגת-הדריכה**, לא ירי-S2 אמיתי. שער-הירי-האמיתי היחיד ל-chop הוא Layer0 ב-gateway (#2).
+- **verified (raw, Cowork; ה-suite המלא = Mac, sandbox חסר sqlalchemy):** `route_setup` עם `_get_chop_state→SEARCHING`: default-off → `blocked_by=None` · `LAYER0_CHOP_GATE=1` → `blocked_by=chop_searching`. לוגיקת-S2: score=93 default-off→pass, flag-on→block.
+- **⚠️ re-enable = שינוי risk-surface** → strategic-stop + אישור-Michael (CLAUDE.md).
+
+**[2026-06-08 — verdict=BLOCKED מדומה מזרם-מושתק תוקן (Michael catch)]**
+- **Michael:** "tick_reversal זה מערכת 3 והוא בכלל לא צריך לעבוד" — נכון. **תיקון טענת-Cowork שגויה:** קודם נטען ש-tick_reversal_15 המת "חוסם ירי" — **לא נכון**.
+- **finding (אומת):** `tick_reversal_15`=System 3 (footprint/tick-reversal, **מושתק** `S3_MUTE=1`); `tpo`=S5 (לא-מחווט, I-24). **אף מערכת-ירי לא צריכה אותם:** S2 נרשם רק `["5min"]`, S4 רק `["woodies_5min"]`. ה-fire-path (`gateway.route_setup` + `PreFireValidator._check_bridge_health`→`live_price.json` בלבד) **לא** בודק אותם. ⇒ המוות שלהם חוסם רק את **verdict-התצוגה**, לא ירי אמיתי.
+- **root:** `aggregator.py:_compute_readiness` `_NON_CRITICAL_STREAMS` הוציא `footprint` (S3) אך **השאיר** `tick_reversal_15` (אותה S3 מושתקת) ו-`tpo` (S5) כקריטיים ⇒ זרם-מושתק גרר את הלוח ל-BLOCKED. חוסר-עקביות.
+- **fix:** הוספתי `tick_reversal_15`+`tpo` ל-`_NON_CRITICAL_STREAMS` (+הערה: re-add רק אם S3 מוסר-השתקה). טסט `tests/v9/regression/test_readiness_noncritical_s3_streams.py`.
+- **verified (raw, Cowork):** `_compute_readiness` אמיתי — dead `tick_reversal_15/tpo/footprint` + fire-path fresh → `bridge_streams_fresh.passed=True` (detail=None) · `bars_5min` מת → `passed=False, detail="dead: bars_5min"` (עדיין חוסם נכון, ו-S3/S5 לא ב-detail). **restart נדרש.**
+- **משמעות:** verdict=BLOCKED של היום היה חלקית **מדומה** (זרם-מושתק). החוסמים האמיתיים לירי = שערי-chop (כובו היום) + trend-gate ל-S4 + detection + כיול. ⇒ המערכת קרובה-לירי יותר ממה ש-BLOCKED הראה. **קשור I-21/I-24.**
 
 
 ## 📍 2026-06-05 (eve, Cowork) — עסקאות SHADOW: תצוגת stop/targets + S2 T3 wiring

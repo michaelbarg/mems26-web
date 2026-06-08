@@ -242,9 +242,18 @@ def _compute_readiness(systems: List[SystemStatus], rtb: RTBSession) -> Readines
     sys_map = {s.id: s for s in systems}
 
     # Check 1: bridge streams fresh (block during RTH, info outside)
-    # Only critical streams block — woodies_5min (written by WoodiesSystem, not bridge)
-    # and tpo_bars (empty by design) are excluded.
-    _NON_CRITICAL_STREAMS = {"woodies_5min", "tpo_bars", "footprint"}
+    # Only streams in the live FIRE PATH block the readiness verdict.
+    # Excluded as NON-critical:
+    #   - woodies_5min — written by WoodiesSystem, not the bridge.
+    #   - tpo_bars / tpo — S5/TPO is intentionally not-wired (I-24); not fire-path.
+    #   - footprint / tick_reversal_15 — System 3 (footprint/tick-reversal) is
+    #     MUTED (S3_MUTE=1) and not in the S2/S4 fire path (S2 subscribes only
+    #     "5min", S4 only "woodies_5min"). A dead S3 stream must NOT drag the
+    #     board to BLOCKED. (Michael 2026-06-08: "tick_reversal זה מערכת 3 והוא
+    #     בכלל לא צריך לעבוד".) Re-add to critical only if S3 is un-muted.
+    _NON_CRITICAL_STREAMS = {
+        "woodies_5min", "tpo_bars", "tpo", "footprint", "tick_reversal_15",
+    }
     bridge = sys_map.get("bridge")
     if bridge:
         critical_gates = [g for g in bridge.global_gates if g.key not in _NON_CRITICAL_STREAMS]

@@ -5,6 +5,7 @@ Pattern list: S2_AUTH_TABLE_V1.md §2
 """
 
 import logging
+import os
 import time
 from datetime import date, datetime, timezone
 from typing import Optional, List
@@ -138,9 +139,14 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
     # After first hour (DAY_TYPE_MODE / INTRADAY), FHB is no longer relevant — treat as eligible.
     fhb_eligible = mode_str in ("DAY_TYPE_MODE", "INTRADAY") or fhb_state_val not in ("ACCUMULATING", "UNKNOWN")
 
-    # Choppiness score — lower is better (trending); ≥70 = choppy market
+    # Choppiness score — lower is better (trending); ≥70 = choppy market.
+    # GATE DISABLED by default (Michael 2026-06-08): choppiness_ok must NOT
+    # block S2 arming until explicit re-approval. Re-enable ONLY by setting
+    # env S2_CHOPPINESS_GATE=1 AND with Michael's explicit approval.
+    # See CLAUDE.md § "S2 Choppiness Gate (disabled — approval to re-enable)".
     choppiness_score = getattr(five_min_system, "choppiness_score", 0)
-    chop_ok = choppiness_score < 70
+    _chop_gate_enabled = os.getenv("S2_CHOPPINESS_GATE", "0").lower() in ("1", "true", "yes")
+    chop_ok = (choppiness_score < 70) if _chop_gate_enabled else True
 
     # Global gates
     is_nt = day_type_str == "Nontrend" if day_type_str else False
@@ -286,15 +292,23 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
             freshness=state_fresh,
         ))
 
-        # data: choppiness_ok — choppiness score < 70
+        # data: choppiness_ok — choppiness score < 70 (GATE DISABLED by default)
         components.append(Component(
             stage="data",
             key="choppiness_ok",
-            spec="choppiness_score < 70 (trending, not choppy)",
+            spec=(
+                "choppiness_score < 70 (trending, not choppy)"
+                if _chop_gate_enabled
+                else "DISABLED (Michael 2026-06-08) — set S2_CHOPPINESS_GATE=1 + approval to re-enable"
+            ),
             present=chop_ok,
-            value=f"chop={choppiness_score}",
+            value=(
+                f"chop={choppiness_score}"
+                if _chop_gate_enabled
+                else f"chop={choppiness_score} · gate DISABLED"
+            ),
             live=str(choppiness_score),
-            required="< 70",
+            required="< 70" if _chop_gate_enabled else "disabled",
             freshness=state_fresh,
         ))
 

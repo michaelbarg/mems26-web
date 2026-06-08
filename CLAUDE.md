@@ -52,6 +52,31 @@ We are heading to LIVE futures trading. Apply minimum-mistakes discipline:
 The Cursor agent's full protocol is in
 `.cursor/rules/mems26-pre-live-protocol.mdc`. Same rules apply here.
 
+## Chop Gates (DISABLED — Michael approval required to re-enable, 2026-06-08)
+
+Both chop gates are turned **OFF by default** per Michael's explicit instruction
+(2026-06-08). They must stay off until Michael **explicitly** approves
+re-enabling. Do NOT re-enable either — in code, config, or `.env` — without that
+approval. These are two **different** metrics; disabling one does not affect the
+other:
+
+1. **S2 `choppiness_ok`** (`backend/v9/systems/build_status/s2_inspector.py`) —
+   the S2 arming/display gate `choppiness_score < 70` (5-bar candle geometry).
+   Inspector/build-status surface only; it never vetoed real S2 fires (the
+   engine computes `choppiness_score` but does not gate fires on it). Now
+   default-pass. Re-enable ONLY via env `S2_CHOPPINESS_GATE=1` **+ Michael
+   approval**.
+2. **Layer-0 chop fire-veto** (`backend/v9/gateway/trading_gateway.py`) —
+   `chop_state == "SEARCHING"` (Layer-0 composite `chop_score`, 6 indicators
+   over 30–60min). System-wide gateway fire-veto for **both S2 and S4**. Now
+   default-bypass (still computed + logged for observability). Re-enable ONLY via
+   env `LAYER0_CHOP_GATE=1` **+ Michael approval**.
+
+Both flags read `os.getenv(...)` at call/route time; a backend **restart** is
+required for the code change to take effect. When either flag is unset (default),
+the gate is disabled. Re-enabling is a trading-risk-surface change → strategic
+stop + Michael sign-off, per Pre-LIVE Discipline.
+
 ## Source-of-Truth Discipline (added 2026-05-28)
 
 Today's IB ground-truth investigation surfaced 5 new permanent rules.
