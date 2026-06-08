@@ -52,6 +52,26 @@ We are heading to LIVE futures trading. Apply minimum-mistakes discipline:
 The Cursor agent's full protocol is in
 `.cursor/rules/mems26-pre-live-protocol.mdc`. Same rules apply here.
 
+## Standing Decisions — PERMANENT until Michael revokes (every agent: CC, Cursor, Cowork)
+
+**All gate-disable / gate-bypass decisions below are PERMANENT and default-ON-in-code
+until Michael explicitly revokes them in writing.** They are deliberate, not bugs.
+
+- **Do NOT re-enable, re-require, "restore", or revert** any default-OFF flag — not in
+  code, config, `.env`, a refactor, a "fix", a merge, or a migration. The disabled
+  behavior is the **code default** (no env var needed), so a restart/clone keeps it off;
+  do not "helpfully" turn it back on.
+- **Do NOT treat a disabled gate as a regression.** If a gate looks "missing", check this
+  section first — it was turned off on purpose.
+- **Re-enabling ANY of them is a trading-risk-surface change** → strategic stop + explicit
+  Michael sign-off. Setting the re-enable env flag (e.g. `S2_REQUIRE_COT_AMT=1`) without
+  that sign-off is forbidden.
+- The flags do not "expire" or auto-reset. "Until further notice" = until Michael says so.
+
+Current standing decisions (2026-06-08): S2 `choppiness_ok` OFF · Layer-0 chop veto OFF ·
+`tick_reversal_15`/`tpo` non-critical for readiness · **S2 ⟂ S3 (COT/AMT not required)**.
+See the per-item sections below for the exact flag + file.
+
 ## Chop Gates (DISABLED — Michael approval required to re-enable, 2026-06-08)
 
 Both chop gates are turned **OFF by default** per Michael's explicit instruction
@@ -76,6 +96,23 @@ Both flags read `os.getenv(...)` at call/route time; a backend **restart** is
 required for the code change to take effect. When either flag is unset (default),
 the gate is disabled. Re-enabling is a trading-risk-surface change → strategic
 stop + Michael sign-off, per Pre-LIVE Discipline.
+
+## S2 ⟂ S3 — COT/AMT gate disabled (Michael 2026-06-08, approval to re-require)
+
+S2 (five-min Reactive/Initiative) is **independent of S3 (footprint) by default**.
+S3 is muted/broken at this stage (`S3_MUTE` / I-11), so the footprint **COT/AMT**
+order-flow confirmation is **NOT required** for S2 fires. In
+`backend/v9/systems/five_min/five_min_system.py` (`_detect_reactive` +
+`_detect_initiative`): the `cur_cot/cur_amt is None → return None` guard and the
+`cot_above_amt`/`cot_below_amt` conditions are bypassed unless env
+`S2_REQUIRE_COT_AMT=1`. When unset (default), S2 fires on price-geometry + volume
+alone. `belly`/`belly_ratio`/`poc_*` were already graceful (None passes), so this
+makes S2 fully S3-independent.
+
+Re-requiring COT/AMT is a **trading-risk-surface change** (re-adds the order-flow
+filter, fewer fires) → set `S2_REQUIRE_COT_AMT=1` **+ Michael approval** +
+backend restart. Verified: with COT/AMT unavailable, flag-unset → Reactive fires;
+flag=1 → no fire (`tests/v9/regression/test_s2_independent_of_s3.py`).
 
 ## Source-of-Truth Discipline (added 2026-05-28)
 

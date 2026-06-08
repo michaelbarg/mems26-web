@@ -532,7 +532,14 @@ class FiveMinSystem(BaseV9TradingSystem):
         b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
         cur_cot = self._get_cot_from_footprint()
         cur_amt = self._get_amt_from_footprint()
-        if cur_cot is None or cur_amt is None:
+        # S2 INDEPENDENT OF S3 (Michael 2026-06-08): COT/AMT (footprint/S3) is
+        # NOT required for S2 fires by default. S3 is muted/broken at this stage
+        # (S3_MUTE / I-11), so S2 must fire on price-geometry + volume alone.
+        # Re-require the order-flow confirmation ONLY via env S2_REQUIRE_COT_AMT=1
+        # + Michael approval. See CLAUDE.md §"S2 ⟂ S3 (COT/AMT gate disabled)".
+        import os as _os
+        _require_cot_amt = _os.environ.get("S2_REQUIRE_COT_AMT", "").lower() in ("1", "true", "yes")
+        if _require_cot_amt and (cur_cot is None or cur_amt is None):
             return (None, 0, {})
 
         b0_vol = bars_5m[-5].get("v", 0) or 0 if len(bars_5m) >= 5 else 0  # D-RVX
@@ -577,7 +584,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         b3_belly = belly is not False  # True or None (unavailable) both pass
         b4_confirm = b4["c"] > b4["o"]
         b4_close_above_b3_high = b4["c"] > b3["h"]  # Entry signal per Master Summary Sheet 2
-        cot_above_amt = cur_cot > cur_amt
+        cot_above_amt = (not _require_cot_amt) or (cur_cot > cur_amt)
         poc_rising = self._poc_vol_rising(bars_5m[-3:])  # W3-α gap 3
 
         # Pkg 2bc · lookback: 3 bars before bar 1 must show quiet volume
@@ -611,7 +618,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         b3_sellers = b3["c"] < b3["o"]
         b4_confirm_s = b4["c"] < b4["o"]
         b4_close_below_b3_low = b4["c"] < b3["l"]  # Entry signal per Master Summary Sheet 2
-        cot_below_amt = cur_cot < cur_amt
+        cot_below_amt = (not _require_cot_amt) or (cur_cot < cur_amt)
         poc_falling = self._poc_vol_falling(bars_5m[-3:])
 
         # Pkg 2bc · lookback + belly for SHORT
@@ -651,7 +658,14 @@ class FiveMinSystem(BaseV9TradingSystem):
         b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
         cur_cot = self._get_cot_from_footprint()
         cur_amt = self._get_amt_from_footprint()
-        if cur_cot is None or cur_amt is None:
+        # S2 INDEPENDENT OF S3 (Michael 2026-06-08): COT/AMT (footprint/S3) is
+        # NOT required for S2 fires by default. S3 is muted/broken at this stage
+        # (S3_MUTE / I-11), so S2 must fire on price-geometry + volume alone.
+        # Re-require the order-flow confirmation ONLY via env S2_REQUIRE_COT_AMT=1
+        # + Michael approval. See CLAUDE.md §"S2 ⟂ S3 (COT/AMT gate disabled)".
+        import os as _os
+        _require_cot_amt = _os.environ.get("S2_REQUIRE_COT_AMT", "").lower() in ("1", "true", "yes")
+        if _require_cot_amt and (cur_cot is None or cur_amt is None):
             return (None, 0, {})
 
         b1_vol = b1.get("v", 0) or 0
@@ -670,7 +684,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         b2_poc_return = b2_poc is not None and abs(b2["c"] - b2_poc) <= _poc_tol
         b2_test = b2_higher_low or b2_poc_return
         b4_test = b4["l"] >= b2["l"]
-        cot_below_amt = cur_cot < cur_amt
+        cot_below_amt = (not _require_cot_amt) or (cur_cot < cur_amt)
 
         b4_close_above_b1_high = b4["c"] > b1["h"]  # Entry signal per Master Summary Sheet 2
 
@@ -697,7 +711,7 @@ class FiveMinSystem(BaseV9TradingSystem):
         b2_test_s = b2_lower_high or b2_poc_return_s
         b4_test_s = b4["h"] <= b2["h"]
         b4_close_below_b1_low = b4["c"] < b1["l"]  # Entry signal per Master Summary Sheet 2
-        cot_above_amt = cur_cot > cur_amt
+        cot_above_amt = (not _require_cot_amt) or (cur_cot > cur_amt)
 
         if (b1_bear and b1_expansion and b2_test_s and b3_joining and b4_test_s
                 and b4_close_below_b1_low and cot_above_amt and lookback_quiet):
