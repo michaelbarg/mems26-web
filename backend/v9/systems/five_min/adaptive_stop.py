@@ -7,6 +7,11 @@ Replaces static `bar.low - 2.0pt` with 3-layer adaptive computation:
 
 LONG  stop is below entry · final = min(max(A, B), floor)   (clamp · never tighter than C)
 SHORT stop is above entry · final = max(min(A, B), floor)   (mirror)
+
+V2 addition (STOP_ANCHORS_V2 flag):
+  compute_stop_v2() — structural stop always wins; ATR cap is a size gate only.
+  Mirrors S4's atr_stop.compute_stop_v2 but uses today_typical × family_mult
+  instead of raw ATR-14 ticks.
 """
 
 import logging
@@ -214,5 +219,79 @@ def compute_stop(
         floor_price=floor_price,
         binding_layer=binding_layer,
         reduce_size_signal=reduce_size_signal,
+        today_typical=today_typical,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Stop-Anchor V2 (STOP_ANCHORS_V2 flag) — structural stop wins, ATR=size gate
+# Mirrors S4's atr_stop.compute_stop_v2 for the S2 five-min system.
+# Spec: config/stop_anchors.yaml. Flag-gated at the CALL SITE; this is pure.
+# Legacy compute_stop() above is unchanged.
+# ═══════════════════════════════════════════════════════════════════════
+
+@dataclass
+class StopComputationV2:
+    """V2 stop output — structural stop wins; ATR is size gate only."""
+    stop_price: float           # = structural anchor (never moved by ATR)
+    risk_ticks: int             # |entry - stop| in ticks (after floor)
+    atr_cap_ticks: int          # the ATR ceiling in ticks, for downstream sizing
+    cap_exceeded: bool          # structural risk > ATR cap → fewer contracts
+    floor_applied: bool         # structural was inside the floor → pushed to floor
+    today_typical: float        # audit: the volatility measure used
+
+
+def compute_stop_v2(
+    *,
+    entry_price: float,
+    direction: Literal["LONG", "SHORT"],
+    structural_stop_price: float,
+    family: Literal["Reactive", "OFA", "Flag", "Double_BT", "HnS"],
+    today_typical: float,
+    atr_5m: Optional[float] = None,
+) -> StopComputationV2:
+    """V2: the structural anchor IS the stop (ATR never moves it).
+
+    Difference from legacy compute_stop():
+      - Legacy takes max(structural, ATR cap) then min(floor) — the cap could
+        pull the stop INTO the bar on a large candle.
+      - V2 keeps the structural stop price and reports cap_exceeded so the
+        sizing layer cuts contracts (ATR cap = SIZE gate, per Michael 2026-06-07).
+      - The 4-tick floor still applies (never tighter than tick-noise).
+
+    Args:
+        entry_price: Trade entry price.
+        direction: "LONG" or "SHORT".
+        structural_stop_price: Resolved anchor from resolver (already offset).
+        family: S2 pattern family (determines ATR multiplier for the cap).
+        today_typical: 75th percentile of today's 5-min bar ranges.
+        atr_5m: Optional 5-min ATR for ATR-relative floor (when S2_ATR_RELATIVE on).
+    """
+    multiplier = ATR_MULTIPLIERS[family]
+    floor = get_floor_ticks(atr_5m)
+
+    # structural distance from entry, in ticks
+    raw_ticks = int(round(abs(entry_price - structural_stop_price) / MES_TICK))
+    floor_applied = raw_ticks < floor
+    risk_ticks = max(raw_ticks, floor)
+
+    if floor_applied:
+        stop_price = (entry_price - risk_ticks * MES_TICK) if direction == "LONG" \
+            else (entry_price + risk_ticks * MES_TICK)
+    else:
+        stop_price = structural_stop_price  # structural wins — untouched
+
+    # ATR cap in ticks (today_typical × family_mult, converted to ticks)
+    if today_typical > 0:
+        atr_cap_ticks = int(multiplier * today_typical / MES_TICK)
+    else:
+        atr_cap_ticks = floor  # degenerate: no cap applied
+
+    return StopComputationV2(
+        stop_price=round(stop_price, 10),
+        risk_ticks=risk_ticks,
+        atr_cap_ticks=atr_cap_ticks,
+        cap_exceeded=risk_ticks > atr_cap_ticks,
+        floor_applied=floor_applied,
         today_typical=today_typical,
     )
