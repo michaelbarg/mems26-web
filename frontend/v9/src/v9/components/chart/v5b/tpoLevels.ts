@@ -526,12 +526,19 @@ export function syncYesterdayTpoLines(
   }
 
   const { open, close } = todayRthWindowUnix();
-  // Dense points every 5 min (matches 5m bar bucket) — single 2-point line
-  // FIX 3: use only 2 endpoints (start + end) instead of dense 78 points.
-  // Dense points showed "+" markers at each data point in lw-charts v5.
-  // 2 points = clean horizontal line, no markers in the middle.
+  // FIX 3B: right edge = last candle time + 5min, not wall-clock.
+  // When feed is stale (RTH closed), Date.now() would project hours ahead.
+  let lastBarTime = close;
+  if (candleSeries) {
+    try {
+      const d = (candleSeries as any).data?.();
+      if (d && d.length > 0) {
+        lastBarTime = Math.min(close, Number(d[d.length - 1].time) + 300);
+      }
+    } catch { /* use close as fallback */ }
+  }
   const nowUnix = Math.floor(Date.now() / 1000);
-  const rightEdge = Math.min(close, nowUnix + 300) as Time;
+  const rightEdge = Math.min(close, lastBarTime, nowUnix + 300) as Time;
   const pointsPerLevel: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => [
     { time: open as Time, value: lv.price },
     { time: rightEdge, value: lv.price },

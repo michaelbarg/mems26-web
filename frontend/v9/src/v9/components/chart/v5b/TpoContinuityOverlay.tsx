@@ -63,7 +63,7 @@ function buildStepData(
     points.push({ time: t as Time, value: price });
   }
 
-  // Extend last point to current time so the step continues to "now"
+  // Extend last point to right edge (already capped by caller to last bar + buffer)
   if (points.length > 0 && nowUnix > 0) {
     const last = points[points.length - 1];
     if (nowUnix > Number(last.time)) {
@@ -132,7 +132,18 @@ export function TpoContinuityOverlay({ chart, tpo, paneIndex = 0 }: Props) {
     // attempted `+ 4*3600` workaround was needed only while the chart
     // applied a stale `-04:00` ET shift; removed once the root TZ-2 fix
     // landed during 2026-05-22 RTH UAT.
-    const nowUnix = Math.floor(Date.now() / 1000);
+    // FIX 3B: cap at the last bar's time, not wall-clock time. When feed is
+    // stale (RTH closed or gap), Date.now() projects hours past the last bar.
+    // Use the latest period's opened_ts + 30min as a proxy for the last bar.
+    const wallNow = Math.floor(Date.now() / 1000);
+    const periods = tpo.periods ?? [];
+    const latestPeriodTs = periods.length > 0
+      ? Math.max(...periods.map(p => periodToUnix(p.opened_ts)).filter(t => t > 0))
+      : 0;
+    // Right edge = latest data + one bar (5min), capped at wall clock
+    const nowUnix = latestPeriodTs > 0
+      ? Math.min(wallNow, latestPeriodTs + 1800 + 300)  // last period + 30min + 5min buffer
+      : wallNow;
 
     const todayDay = sessionDay(tpo.session_opened_ts ?? null);
 
