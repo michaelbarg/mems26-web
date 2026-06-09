@@ -153,6 +153,14 @@ class FiveMinSystem(BaseV9TradingSystem):
         self._current_atr_5m: _Opt[float] = None  # D-094: rolling ATR for relative thresholds
         self._fhb = FirstHourBuffer()      # First Hour Buffer — bar-count gate
         self._last_bar_ts_for_count: Optional[str] = None  # dedup: count bars, not pushes
+        # A2: per-pattern fire dedup (prevents stateless detectors like Double Top
+        # from firing 43x on the same setup). Key = "KIND_DIR", value = bar_count
+        # at last fire. Skip same pattern+direction within cooldown bars.
+        self._fire_dedup: Dict[str, int] = {}
+        _DEDUP_COOLDOWN = {"DOUBLE_TOP_AA": 30, "DOUBLE_BOTTOM_EE": 30,
+                           "INVERSE_HNS": 30, "HNS_TOP": 30,
+                           "BULL_FLAG": 20, "BEAR_FLAG": 20}
+        self._dedup_cooldown = _DEDUP_COOLDOWN
         self._hydrated = False
         self.current_state: Dict[str, Any] = {}
 
@@ -964,6 +972,19 @@ class FiveMinSystem(BaseV9TradingSystem):
                 if not direction:
                     direction, conf, info = detect_bear_flag(_det_buf)
 
+        # A2: per-pattern fire dedup — stateless detectors (Double Top, H&S, Flag)
+        # fire on every bar after breakout. Skip same pattern+direction within cooldown.
+        if direction:
+            _kind = info.get("kind", "UNKNOWN")
+            _dedup_key = f"{_kind}_{direction}"
+            _cooldown = self._dedup_cooldown.get(_kind, 0)
+            if _cooldown > 0:
+                _last = self._fire_dedup.get(_dedup_key)
+                if _last is not None and (self.buffer_size - _last) < _cooldown:
+                    logger.debug("[FiveMin] dedup: %s skipped (fired %d bars ago, cooldown=%d)",
+                                 _dedup_key, self.buffer_size - _last, _cooldown)
+                    direction = None
+
         # First Hour Buffer eligibility gate (Tree V3.3 §Stage B)
         if direction and self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
             kind_check = info.get("kind", "UNKNOWN")
@@ -1137,6 +1158,10 @@ class FiveMinSystem(BaseV9TradingSystem):
 
             logger.info("[FiveMin] FIRE: %s %s (conf=%.2f, size=%s, COT=%.1f, AMT=%.1f, loc=%s)",
                         kind, direction, conf, sizing, cot_val, amt_val, location)
+
+            # A2: record fire in dedup tracker
+            _dedup_key = f"{kind}_{direction}"
+            self._fire_dedup[_dedup_key] = self.buffer_size
 
             # Persist to DB
             try:
