@@ -914,7 +914,7 @@ def post_woodies_5min(
                 bar.get("lsma_value"), bar.get("swi_value"),
                 bar.get("czi_value"), bar.get("ema_34"),
                 bar.get("trend_state"), bar.get("predictor_next_cci"),
-                bar.get("zlr_detected", False), bar.get("zlr_direction"),
+                1 if bar.get("zlr_detected") else 0, bar.get("zlr_direction"),
                 bar.get("proj_hi"), bar.get("proj_lo"),
                 1 if bar.get("hfe_detected") else 0,
                 bar.get("hfe_direction") or "NONE",
