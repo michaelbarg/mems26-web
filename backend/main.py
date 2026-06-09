@@ -230,11 +230,16 @@ async def _startup():
                 except Exception as _ib_err:
                     _logger.warning("[DayType] Sierra IB load failed: %s", _ib_err)
 
-                # Read opening type from TPO (P5.1.4)
+                # Opening type from the state machine (computed in _stage_a2
+                # from the first 3 RTH bars). FIX 1: was reading from TPO
+                # which always returns "NA" (hardcoded in tpo_routes.py:383).
                 opening_type = "UNKNOWN"
-                if tpo_sys:
+                if day_type_machine and day_type_machine.opening:
+                    _ot = day_type_machine.opening.opening_type
+                    opening_type = _ot.value if hasattr(_ot, 'value') else str(_ot)
+                elif tpo_sys:
                     tpo_state = tpo_sys.get_current()
-                    opening_type = tpo_state.get("opening_type", "NA")
+                    opening_type = tpo_state.get("opening_type", "UNKNOWN")
 
                 # Compute session_min from the central market clock (replay-aware).
                 et_now = now_et()
