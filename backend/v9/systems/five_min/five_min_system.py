@@ -1351,6 +1351,13 @@ class FiveMinSystem(BaseV9TradingSystem):
                             t3_price = None
 
                 # _emit_day_type already computed above (FIX 1+5)
+                # FIX 4: pass TPO data in-memory (not HTTP self-call which
+                # deadlocks the single-worker uvicorn → 2s timeout).
+                _tpo_for_emit = None
+                try:
+                    _tpo_for_emit = _load_sierra_tpo()
+                except Exception:
+                    pass
                 t1_setup = emit_t1_setup(
                     pattern_name, direction,
                     entry_price=entry_price, stop_price=stop_price,
@@ -1359,6 +1366,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                     day_type=_emit_day_type,
                     t3_price=t3_price,
                     current_price=entry_price,
+                    tpo_data=_tpo_for_emit,
                 )
                 if t1_setup and self._gateway:
                     gateway_setup = build_s2_gateway_setup(t1_setup, info)
