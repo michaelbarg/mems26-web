@@ -527,20 +527,15 @@ export function syncYesterdayTpoLines(
 
   const { open, close } = todayRthWindowUnix();
   // Dense points every 5 min (matches 5m bar bucket) — single 2-point line
-  // is silently clipped by lightweight-charts when bars don't cover the
-  // tail of the window. Building points up to the current time (not full
-  // RTH close) so yesterday's lines don't extend past the live bar with
-  // "+" markers that look like ghost/flat bars. FIX 3: cap at now+5min.
-  const STEP_SEC = 300;
+  // FIX 3: use only 2 endpoints (start + end) instead of dense 78 points.
+  // Dense points showed "+" markers at each data point in lw-charts v5.
+  // 2 points = clean horizontal line, no markers in the middle.
   const nowUnix = Math.floor(Date.now() / 1000);
-  const rightEdge = Math.min(close, nowUnix + STEP_SEC);
-  const pointsPerLevel: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => {
-    const series: Array<{ time: Time; value: number }> = [];
-    for (let t = open; t <= rightEdge; t += STEP_SEC) {
-      series.push({ time: t as Time, value: lv.price });
-    }
-    return series;
-  });
+  const rightEdge = Math.min(close, nowUnix + 300) as Time;
+  const pointsPerLevel: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => [
+    { time: open as Time, value: lv.price },
+    { time: rightEdge, value: lv.price },
+  ]);
 
   // Fast path: reuse existing series when the count matches. setData
   // replaces the data without recreating the underlying canvas object
@@ -577,7 +572,8 @@ export function syncYesterdayTpoLines(
           lineWidth: (lv.width >= 2 ? 2 : 1) as LineWidth,
           lineStyle: lv.dashed ? LineStyle.Dashed : LineStyle.Solid,
           crosshairMarkerVisible: false,
-          pointMarkersVisible: false,  // FIX 3: hide "+" markers at each data point
+          pointMarkersVisible: false,  // FIX 3: hide "+" markers
+          pointMarkersRadius: 0,       // FIX 3: zero-size fallback
           // `lastValueVisible: false` + empty `title` is critical — the
           // SierraLevelsOverlay (SVG-based TpoAxisBadge) is the SINGLE
           // source of truth for the right-axis VAH/POC/VAL labels.
