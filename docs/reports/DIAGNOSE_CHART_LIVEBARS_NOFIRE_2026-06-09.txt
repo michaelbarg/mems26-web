@@ -1,0 +1,415 @@
+DIAGNOSE_CHART_LIVEBARS_NOFIRE_2026-06-09
+=========================================
+Generated: 2026-06-09 ~17:25 Israel (14:25 UTC / 10:25 ET)
+CC diagnostic-only. No code changes. All evidence is raw.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AXIS A · TABLE/CHART CORRUPTION (CVD BLOW-OUT + DISCONNECTED BAR)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROOT: Two ghost bars in v9_bars_5min with wrong timestamps; CVD values in DB are normal.
+
+A1. v9_bars_5min — only 10-13 rows for today (vs 193 in v9_bars_5min_continuous)
+
+    SQL: SELECT ts, open, close, volume, cumulative_delta FROM v9_bars_5min WHERE ts::date = CURRENT_DATE ORDER BY ts ASC;
+
+     ts                     | open    | close   | volume | cumulative_delta
+    ------------------------+---------+---------+--------+------------------
+     2026-06-09 13:30:00+03 | 7458.5  | 7458.25 | 24875  | 515          ← GHOST
+     2026-06-09 13:35:00+03 | 7458.5  | 7466.75 | 24348  | 3216         ← GHOST
+     2026-06-09 16:30:00+03 | 7458.5  | 7458.25 | 24875  | 5512         ← RTH START (09:30 ET)
+     2026-06-09 16:35:00+03 | 7458.5  | 7466    | 25094  | 7493
+     2026-06-09 16:40:00+03 | 7466    | 7475.25 | 20793  | 12307
+     ... 8 more bars through 17:20+03 ...
+
+A2. Ghost bars are duplicate-OHLC of RTH bars, shifted exactly -3 hours:
+
+    SQL: SELECT ts, extract(epoch from ts), open, close FROM v9_bars_5min WHERE ts::date = '2026-06-09' ORDER BY ts LIMIT 5;
+
+     ts                     | epoch             | open   | close
+    ------------------------+-------------------+--------+---------
+     2026-06-09 13:30:00+03 | 1781001000.000000 | 7458.5 | 7458.25  ← epoch = 10:30 UTC = 06:30 ET (PRE-RTH)
+     2026-06-09 13:35:00+03 | 1781001300.000000 | 7458.5 | 7466.75
+     2026-06-09 16:30:00+03 | 1781011800.000000 | 7458.5 | 7458.25  ← epoch = 13:30 UTC = 09:30 ET (RTH START)
+     2026-06-09 16:35:00+03 | 1781012100.000000 | 7458.5 | 7466
+
+    13:30+03 vs 16:30+03 = exactly 3 hours = UTC+3 (Israel) vs UTC+0 offset.
+    Hypothesis: a bar with ISO ts "2026-06-09T13:30:00" (UTC, no TZ suffix) was written
+    to a `timestamp with time zone` column → PG interpreted as 13:30 Israel = 10:30 UTC.
+    The "real" bar at 16:30+03 = 13:30 UTC = 09:30 ET is correct.
+
+A3. v9_bars_5min_continuous has DIFFERENT prices at 13:30+03 — proves ghost bars are NOT real pre-market data:
+
+     tbl  | ts                     | open    | close   | volume
+    ------+------------------------+---------+---------+--------
+     cont | 2026-06-09 13:30:00+03 | 7449.25 | 7446.75 | 377      ← real pre-market
+     5min | 2026-06-09 13:30:00+03 | 7458.5  | 7458.25 | 24875    ← ghost (RTH copy, wrong ts)
+     cont | 2026-06-09 13:35:00+03 | 7446.75 | 7445.75 | 458      ← real pre-market
+     5min | 2026-06-09 13:35:00+03 | 7458.5  | 7466.75 | 24348    ← ghost
+
+A4. CVD in DB — normal range, no -89,870:
+
+    SQL: SELECT ts, delta, cumulative FROM v9_bars_cumulative_delta WHERE ts::date = CURRENT_DATE ORDER BY ts DESC LIMIT 7;
+
+     ts                        | delta  | cumulative
+    ---------------------------+--------+------------
+     2026-06-09T14:04:59+00:00 |    769 |       3936
+     2026-06-09T14:00:00+00:00 |  -2181 |       3167
+     2026-06-09T13:55:00+00:00 |  -3166 |       5348
+     2026-06-09T13:50:00+00:00 |  -3793 |       8514
+     2026-06-09T13:45:00+00:00 |   4814 |      12307
+     2026-06-09T13:39:59+00:00 |   1981 |       7493
+     2026-06-09T13:35:00+00:00 |   3316 |       5512
+
+    v9_bars_5min.cumulative_delta range: 515 – 12307. No -89,870 in current DB state.
+    The -89,870 from the screenshot is NOT reproducible from current data.
+
+A5. CVD rendering — SEPARATE pane, not on price Y-axis:
+    - frontend/v9/src/v9/components/chart/v5b/CumulativeDeltaPane.tsx:27 —
+      reads from /api/v9/cumulative_delta/current (Sierra file export, not DB)
+    - CvdChartPane.tsx creates a separate chart pane with its own stretch factor
+    - Price and CVD do NOT share Y-axis in the lightweight-charts implementation
+
+A6. Chart display impact: bars_5min_history.py:30-31 reads from v9_bars_5min_continuous
+    FIRST (priority), then v9_bars_5min (fallback), then woodies. With 193 continuous
+    bars vs 10 primary bars, the chart should show continuous data without gaps.
+    The merge dedup is by epoch (line 90–106), so ghost bars with different epochs
+    would create duplicates at the same visual timestamp.
+
+ROOT CAUSE (A): Ghost bars are timezone-stripped RTH bars. The -89,870 CVD value is
+not in current DB data — may have been from an earlier state or a frontend rendering
+artifact (e.g., stacking CVD overlay on price scale in an older chart version).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AXIS B · LIVE BARS NOT BUILDING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROOT: Bars ARE building live during RTH. Pre-RTH stale claim was valid but is
+now resolved. Separate issue: woodies_5min writes are FAILING (type mismatch).
+
+B1. Sierra export — FRESH:
+
+    ls stat: Jun 9 17:02:57 2026 (all 4 files in SierraChart_Data/v9_export/)
+    5min.json: 601 bars, export_ts=1781015014
+    Last 3 bars: ts=1780996200 (09:10 UTC), ts=1780996500 (09:15 UTC), ts=1780996800 (09:20 UTC)
+
+B2. Bridge — PUSHING bars_5min every ~3 seconds:
+
+    /tmp/bridge.err.log (last entries):
+    2026-06-09 17:03:31 [INFO] [bars_5min] New data — export_ts=1781013810 (push #14530)
+    2026-06-09 17:03:33 [INFO] [bars_5min] New data — export_ts=1781013813 (push #14531)
+
+    heartbeat: pushes=14530 errors=16 last_push_age=1s mode=polling
+    bars_5min_continuous: pushes=14359 errors=21
+    All streams: 13/14 active, total_pushes=225086
+
+B3. Ingest — v9_bars_5min gets only RTH bars (by design):
+
+    SQL: SELECT max(ts), count(*) FROM v9_bars_5min WHERE ts::date = CURRENT_DATE;
+     max                    | count
+    ------------------------+-------
+     2026-06-09 17:05:00+03 |    10
+
+    RTH gate at bars.py:383: `if not _is_within_rth(ts): rth_skipped += 1; continue`
+    RTH = 09:30–17:00 ET (bars.py:33). Today's RTH bars start at 16:30+03 Israel = 09:30 ET.
+    10 bars = 50 minutes of RTH (09:30–10:20 ET) — correct at time of query.
+
+    v9_bars_5min_continuous: 193 rows (full 24h, no RTH filter — correct)
+    v9_bars_5min_woodies: only 8 rows (BROKEN — see B4)
+
+B4. BONUS FINDING — v9_bars_5min_woodies writes FAILING:
+
+    /tmp/backend.err.log — FLOODING with:
+    2026-06-09 17:16:48 [WARNING] [safe_writer] execute failed:
+      (psycopg2.errors.DatatypeMismatch) column "zlr_detected" is of type integer
+      but expression is of type boolean
+
+    Every bridge push (~3s × 14+ streams = ~50 warnings/minute).
+    v9_bars_5min_woodies has only 8 rows today vs expected ~50+.
+    PG-migration regression: boolean vs integer type mismatch (I-XX / PG sweep item).
+
+B5. BarRouter — delivering bars to FiveMinSystem:
+
+    /tmp/backend.err.log:
+    2026-06-09 16:30:03 [INFO] [FiveMin] Mode transition OVERNIGHT → FIRST_HOUR_TACTICAL (live bar)
+    2026-06-09 16:30:44 [INFO] [FiveMin] Hydrated 60 bars from DB, buffer_size=20
+
+    FiveMinSystem subscribed to "5min" bar_type (five_min_system.py:812).
+    bars.py:426 routes to BarRouter on every valid 5min write.
+
+VERDICT (B): Live bars ARE flowing during RTH. The "stale" report was from pre-RTH
+(before 16:30+03 Israel). Woodies writes are silently failing (PG type mismatch).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AXIS C · PATTERNS NOT FIRING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROOT: 2 patterns WERE detected + fired. 1 blocked by Auth Table (day_type=UNKNOWN).
+Chart patterns skipped because current_day_type not in allowed set.
+
+C1. Engine DID fire two setups today:
+
+    /tmp/backend.err.log:
+    2026-06-09 16:50:01 [INFO] [FiveMin] FIRE: INITIATIVE LONG (conf=0.80, size=half, COT=12307.0, AMT=1612.3, loc=far)
+    2026-06-09 16:50:03 [INFO] [S2] T1Setup skipped: pattern=INITIATIVE_LONG day_type=UNKNOWN tier=MEDIUM · Auth Table SKIP
+
+    2026-06-09 17:00:03 [INFO] [FiveMin] FIRE: REACTIVE SHORT (conf=0.80, size=half, COT=4936.0, AMT=2836.3, loc=far)
+    (no skip message → REACTIVE_SHORT passed auth table)
+
+C2. v9_five_min_setups — both written:
+
+    SQL: SELECT ts, pattern, direction, entry_price, day_type_at_fire FROM v9_five_min_setups WHERE ts::date = CURRENT_DATE;
+
+     ts                     | pattern         | direction | entry_price | day_type_at_fire
+    ------------------------+-----------------+-----------+-------------+------------------
+     2026-06-09 16:55:00+03 | REACTIVE_SHORT  | SHORT     | 7465.5      | (NULL)
+     2026-06-09 16:45:00+03 | INITIATIVE_LONG | LONG      | 7489        | (NULL)
+
+    day_type_at_fire = NULL on BOTH → engine has no live day_type classification.
+
+C3. Auth Table path for INITIATIVE_LONG:
+
+    setup_emitter.py:56 — day_type="UNKNOWN" (truthy) → _day_type = "UNKNOWN"
+    quality_tier.py:76 → get_auth_cell("INITIATIVE_LONG", "UNKNOWN")
+    auth_table_v1.py:143-147 — "UNKNOWN" not in DAY_TYPES → falls back to "Neutral_Center"
+    auth_table_v1.py:52 — AUTH_TABLE[("INITIATIVE_LONG", "Neutral_Center")] = ("SKIP", 0, 0, 0)
+    → VERDICT: SKIP
+
+    For REACTIVE_SHORT:
+    AUTH_TABLE[("REACTIVE_SHORT", "Neutral_Center")] = ("FULL", 3, 2, 2)
+    → VERDICT: FULL (passes)
+
+C4. Chart patterns (Pkg 5a/5b/5c) — skipped because day_type not in allowed set:
+
+    five_min_system.py:942-943:
+      if self.mode == FiveMinMode.DAY_TYPE_MODE:
+          if self.current_day_type is None:  # warns every 60s
+    five_min_system.py:953:
+      if self.current_day_type in ("Neutral_Extreme", "Neutral_Center", "Normal", "Variation"):
+          # run H&S, Double Bottom/Top, Flags...
+
+    FiveMinSystem._on_day_type_update receives day_type="UNKNOWN" from classification events.
+    "UNKNOWN" is NOT in ("Neutral_Extreme", "Neutral_Center", "Normal", "Variation")
+    → chart pattern chain never entered.
+
+C5. FiveMinSystem mode:
+
+    2026-06-09 16:30:03 [INFO] [FiveMin] Mode transition OVERNIGHT → FIRST_HOUR_TACTICAL
+    No subsequent transition to DAY_TYPE_MODE logged — engine stayed in FIRST_HOUR_TACTICAL.
+    In FIRST_HOUR_TACTICAL mode, Pkg 5a/5b (chart patterns) are gated by FHB (first-hour buffer).
+    five_min_system.py:989: "if direction and self.mode == FiveMinMode.FIRST_HOUR_TACTICAL"
+
+VERDICT (C): Detection pipeline IS working (2 fires). Auth Table blocked INITIATIVE_LONG
+because day_type=UNKNOWN fell back to Neutral_Center → SKIP. Chart patterns unreachable
+because day_type never classified.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AXIS D · S1: DAY TYPE STUCK AT UNKNOWN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROOT: DayTypeStateMachine never advances past stage A3 because IB (from Sierra TPO)
+never locks, and opening_type is always "NA".
+
+D1. v9_day_type_state — ALL rows today: UNKNOWN / A3 / PENDING:
+
+    SQL: SELECT ts, opening_type, day_type, stage, lock_state
+         FROM v9_day_type_state WHERE ts::date = CURRENT_DATE ORDER BY ts ASC LIMIT 15;
+
+     ts                         | opening_type | day_type | stage | lock_state
+    ----------------------------+--------------+----------+-------+------------
+     2026-06-09 13:15:01.525887 | NA           | UNKNOWN  | A2    | PENDING
+     2026-06-09 13:20:01.902714 | NA           | UNKNOWN  | A2    | PENDING
+     2026-06-09 13:25:01.375018 | NA           | UNKNOWN  | A2    | PENDING
+     2026-06-09 13:30:03.873248 | NA           | UNKNOWN  | A2    | PENDING
+     2026-06-09 13:30:04.970644 | NA           | UNKNOWN  | A2    | PENDING
+     2026-06-09 13:30:07.902874 | NA           | UNKNOWN  | A3    | PENDING
+     2026-06-09 13:35:01.324925 | NA           | UNKNOWN  | A3    | PENDING
+     ... all subsequent rows: NA / UNKNOWN / A3 / PENDING ...
+
+    Last 10 rows (most recent):
+     2026-06-09 14:10:05.091464 | NA | UNKNOWN | A3 | PENDING
+     (same pattern throughout)
+
+D2. Stage progression: A2 → A3, then stuck:
+
+    A2 = "pre-RTH collecting": machine receives bar events but session_min < opening period
+    A3 = "opening period, collecting IB": waits for IB to lock (ib_high AND ib_low non-null AND session_min ≥ IB period)
+    B1 = "IB classification" → never reached
+
+D3. opening_type = "NA" — source path:
+
+    main.py:235-237:
+        tpo_sys = getattr(app.state, 'tpo_system', None)
+        if tpo_sys:
+            tpo_state = tpo_sys.get_current()
+            opening_type = tpo_state.get("opening_type", "NA")
+
+    TPO system's get_current() returns opening_type as "NA" (not computed or not locked).
+    This propagates through to v9_day_type_state.opening_type.
+
+D4. IB values — never lock:
+
+    main.py:222-231:
+        tpo_sys = getattr(app.state, 'tpo_system', None)
+        ib_h, ib_l = None, None
+        from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+        _sierra_tpo = _load_sierra_tpo() or {}
+        if _sierra_tpo.get("ib_found"):
+            ib_h = _sierra_tpo.get("ib_high")
+            ib_l = _sierra_tpo.get("ib_low")
+
+    If _load_sierra_tpo() returns ib_found=False or missing, ib_h and ib_l stay None.
+    The state machine (state_machine.py:406) stays at stage A3 with day_type=UNKNOWN
+    when IB is not available.
+
+D5. DayTypeConsumer — no June 9 classification:
+
+    /tmp/backend.err.log:
+    Last entry: 2026-06-08 23:30:04 [INFO] DayTypeConsumer upserted: date=2026-06-08 type=Variation prob=0.38
+
+    No "DayTypeConsumer upserted: date=2026-06-09" entry exists.
+    Yesterday's Variation persists in v9_day_type_state from 2026-06-08.
+
+D6. FiveMinSystem hydrated from yesterday's stale data:
+
+    /tmp/backend.err.log:
+    2026-06-09 16:12:07 [INFO] [FiveMin] Hydrated current_day_type=Variation from v9_day_type_state
+
+    five_min_system.py:218: reads latest v9_day_type_state where day_type != "UNKNOWN".
+    This picks up 2026-06-08's Variation. But live day_type_classification events
+    (main.py:397) carry "UNKNOWN" → _on_day_type_update OVERWRITES the hydrated
+    value with "UNKNOWN" (five_min_system.py:366).
+
+D7. day_type_classification event published on every bar:
+
+    main.py:383-408: publishes {"day_type": "UNKNOWN", "stage": "A3", "status": "PENDING", ...}
+    bar_router.subscribe("day_type_classification", five_min_system.on_day_type_event) (main.py:109)
+
+    five_min_system.py:355-366 _on_day_type_update:
+        new_dt = payload.get("day_type") → "UNKNOWN"
+        self.current_day_type = "UNKNOWN"
+
+VERDICT (D): S1 stuck because IB from Sierra TPO never found/locked → state machine can't
+advance past A3 → day_type stays UNKNOWN → classification event broadcasts UNKNOWN →
+FiveMinSystem overrides hydrated Variation with UNKNOWN.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+AXIS E · S2 BLOCKED BY DAY_TYPE=UNKNOWN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ROOT: Auth Table maps UNKNOWN → Neutral_Center fallback. Some patterns pass (REACTIVE),
+others are SKIP (INITIATIVE). Chart patterns skip entirely (UNKNOWN not in allowed set).
+
+E1. Auth Table fallback path:
+
+    setup_emitter.py:56 — day_type="UNKNOWN" (not falsy) → _day_type = "UNKNOWN"
+    get_quality_tier_v2(pattern, "UNKNOWN", price) → get_auth_cell(pattern, "UNKNOWN")
+    auth_table_v1.py:143-147:
+        if day_type not in DAY_TYPES:
+            logger.warning("unknown day_type=%r · falling back to Neutral_Center")
+            day_type = "Neutral_Center"
+        return AUTH_TABLE[(pattern_name, day_type)]
+
+E2. Auth Table verdicts for Neutral_Center:
+
+    REACTIVE_LONG + Neutral_Center    = FULL (3, 2, 2) ← would pass
+    REACTIVE_SHORT + Neutral_Center   = FULL (3, 2, 2) ← PASSED today
+    INITIATIVE_LONG + Neutral_Center  = SKIP (0, 0, 0) ← BLOCKED today
+    INITIATIVE_SHORT + Neutral_Center = SKIP (0, 0, 0) ← would block
+
+E3. Engine log confirming the block:
+
+    2026-06-09 16:50:01 [INFO] [FiveMin] FIRE: INITIATIVE LONG (conf=0.80)
+    2026-06-09 16:50:03 [INFO] [S2] T1Setup skipped: pattern=INITIATIVE_LONG day_type=UNKNOWN tier=MEDIUM · Auth Table SKIP
+
+    → Detection succeeded, emission blocked.
+
+E4. Chart patterns — day_type gate in five_min_system.py:
+
+    Line 942: if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
+    Line 943:     if self.current_day_type is None: # warn
+    Line 953:     if self.current_day_type in ("Neutral_Extreme", "Neutral_Center", "Normal", "Variation"):
+
+    self.current_day_type = "UNKNOWN" → not in allowed set → H&S, Double, Flag patterns NEVER checked.
+
+    Line 966: if self.current_day_type in ("Trend_Normal", "Trend_DD", "Variation", "Neutral_Extreme", "Normal"):
+    → "UNKNOWN" not in this set either → flag patterns NEVER checked.
+
+E5. v9_five_min_setups — day_type_at_fire column:
+
+    Both setups show day_type_at_fire = NULL:
+    The engine does not populate this column with "UNKNOWN" — it writes NULL when
+    current_day_type is UNKNOWN or not set.
+
+VERDICT (E): S2 detection works fine. The block is at the emission/auth layer.
+INITIATIVE patterns are systematically SKIP'd under Neutral_Center fallback.
+Chart patterns are gate-blocked because "UNKNOWN" ∉ any allowed day_type set.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CAUSAL CHAIN: D → E → C  (B is separate)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+The primary chain is D → E → C (S1 failure is the root):
+
+  D: IB from Sierra TPO never locks
+     → DayTypeStateMachine stuck at A3/UNKNOWN
+     → day_type_classification events broadcast "UNKNOWN"
+         │
+         ▼
+  E: FiveMinSystem receives current_day_type = "UNKNOWN"
+     → Auth Table: UNKNOWN → Neutral_Center fallback
+     → INITIATIVE patterns: Neutral_Center = SKIP → blocked
+     → Chart patterns: "UNKNOWN" not in allowed set → gate-blocked
+         │
+         ▼
+  C: From user perspective: "patterns not firing"
+     → REACTIVE_SHORT did fire (NeuC = FULL) but INITIATIVE_LONG was SKIP'd
+     → Chart patterns (H&S, Double, Flag) never reached detection
+
+B is NOT in this causal chain. Bars ARE building live during RTH (16:30+03 onward).
+The engine IS receiving bars and running detection. B's issues are:
+  - 2 ghost bars (timezone bug, cosmetic)
+  - v9_bars_5min_woodies writes failing (PG type mismatch — separate bug)
+
+A is mostly cosmetic — the -89,870 CVD value is not in current DB data.
+Ghost bars may cause minor chart artifacts but don't block the engine.
+
+THE SINGLE ROOT CAUSE: IB from Sierra TPO not locking → S1 stays UNKNOWN → downstream cascade.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BONUS: SIDE FINDINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+F1. v9_bars_5min_woodies — zlr_detected boolean vs integer type mismatch:
+
+    /tmp/backend.err.log (FLOODING):
+    2026-06-09 17:16:48 [WARNING] [safe_writer] execute failed:
+      (psycopg2.errors.DatatypeMismatch) column "zlr_detected" is of type integer
+      but expression is of type boolean
+
+    PG-migration regression. SQLite accepted boolean→integer implicit cast; PG does not.
+    All woodies_5min writes are silently dropping. Only 8 rows written today.
+    Affects: WoodiesSystem pattern detection (S4), woodies chart panel.
+
+F2. BarRouter slow handler warnings:
+
+    2026-06-09 16:50:03 [WARNING] BarRouter: SLOW handler FiveMinSystem.process_bar took 2386.6ms
+    2026-06-09 17:00:05 [WARNING] BarRouter: SLOW handler FiveMinSystem.process_bar took 2153.3ms
+
+    Both during pattern fires. 2+ seconds is high — may delay downstream events.
+
+F3. FiveMinSystem re-hydrating repeatedly:
+
+    Logged 14+ times between 16:30 and 17:12 — "Hydrated 60 bars from DB, buffer_size=20".
+    This suggests the system is being re-initialized frequently (possibly on each bar push,
+    or multiple restart cycles). Should be once at startup + on new bar.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+END OF DIAGNOSTIC — NO CODE CHANGES MADE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

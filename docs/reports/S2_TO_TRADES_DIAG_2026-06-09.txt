@@ -3,7 +3,7 @@ S2→trades diagnosis · 2026-06-09
 ═══════════════════════════════════════════════════════════════
 
 == Chain: FIRE → v9_five_min_setups → emit_t1_setup → gateway → v9_trades ==
-
+/Users/michael/Downloads/mems26_web_git/docs/reports/DIAGNOSE_CHART_LIVEBARS_NOFIRE_2026-06-09.txt
 == 1. Setups persisted (v9_five_min_setups) ==
   id=27  16:45 INITIATIVE_LONG  entry=7489.0 stop=7474.5 conf=0.80
   id=28  16:55 REACTIVE_SHORT   entry=7465.5 stop=7490.75 conf=0.80

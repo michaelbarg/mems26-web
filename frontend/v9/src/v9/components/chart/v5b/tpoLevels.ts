@@ -527,12 +527,15 @@ export function syncYesterdayTpoLines(
   const { open, close } = todayRthWindowUnix();
   // Dense points every 5 min (matches 5m bar bucket) — single 2-point line
   // is silently clipped by lightweight-charts when bars don't cover the
-  // tail of the window. Building 78+ points across 09:30→16:00 ET keeps
-  // the horizontal line visible end-to-end.
+  // tail of the window. Building points up to the current time (not full
+  // RTH close) so yesterday's lines don't extend past the live bar with
+  // "+" markers that look like ghost/flat bars. FIX 3: cap at now+5min.
   const STEP_SEC = 300;
+  const nowUnix = Math.floor(Date.now() / 1000);
+  const rightEdge = Math.min(close, nowUnix + STEP_SEC);
   const pointsPerLevel: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => {
     const series: Array<{ time: Time; value: number }> = [];
-    for (let t = open; t <= close; t += STEP_SEC) {
+    for (let t = open; t <= rightEdge; t += STEP_SEC) {
       series.push({ time: t as Time, value: lv.price });
     }
     return series;

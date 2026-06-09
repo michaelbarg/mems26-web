@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MEMS26 · צינור המערכות — מזיהוי יום עד ניהול עסקה</title>
+<style>
+  :root{
+    --bg:#0f1419; --card:#1a2129; --card2:#212b35; --line:#2d3a47;
+    --txt:#e6edf3; --muted:#8b98a5; --accent:#4aa3ff;
+    --done:#2ea043; --prog:#d29922; --todo:#576470; --block:#f85149;
+    --s1:#4aa3ff; --s2:#3fb950; --s3:#a371f7; --s4:#f0883e; --obs:#8b98a5; --gw:#d29922; --mgmt:#2ea043; --io:#576470;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Segoe UI",Arial,sans-serif;line-height:1.55;padding:24px 18px 80px}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+  .nav{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+  .nav a{font-size:12px;color:var(--accent);text-decoration:none;border:1px solid var(--line);
+    background:var(--card);border-radius:8px;padding:6px 12px}
+  .nav a:hover{border-color:var(--accent)}
+  .nav button{font-size:12px;color:var(--muted);border:1px solid var(--line);background:var(--card);
+    border-radius:8px;padding:6px 12px;cursor:pointer}
+  .banner{background:linear-gradient(90deg,#1f2c38,#16202a);border:1px solid var(--line);
+    border-radius:12px;padding:14px 18px;margin-bottom:22px;font-size:13px}
+  .banner b{color:var(--accent)}
+
+  .timeline{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:26px}
+  .ph{flex:1;min-width:96px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:10px;text-align:center;cursor:pointer}
+  .ph .n{font-size:11px;color:var(--muted)}
+  .ph .t{font-size:13px;font-weight:600;margin:3px 0}
+  .ph:hover{border-color:var(--accent)}
+
+  section{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    margin-bottom:16px;overflow:hidden;scroll-margin-top:14px}
+  .head{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;
+    background:var(--card2);user-select:none}
+  .head .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .head h2{font-size:16px;margin:0;flex:1}
+  .head .mini{font-size:12px;color:var(--muted)}
+  .head .chev{color:var(--muted);transition:transform .2s}
+  section.collapsed .body{display:none}
+  section.collapsed .chev{transform:rotate(-90deg)}
+  .body{padding:6px 16px 14px}
+  .lead{font-size:12.5px;color:var(--muted);margin:8px 2px 12px;border-right:3px solid var(--line);padding-right:10px}
+
+  .item{display:flex;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .item:last-child{border-bottom:none}
+  .item .c{flex:1}
+  .item .ttl{font-size:14px;font-weight:600}
+  .num{font-size:11px;font-weight:700;color:var(--accent);background:#0d1117;
+    border:1px solid var(--line);border-radius:5px;padding:0 6px;margin-inline-end:7px;
+    direction:ltr;display:inline-block;min-width:30px;text-align:center}
+  .sys{font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;margin-inline-start:6px;color:#0d1117}
+  .flow{font-size:12px;color:var(--txt);margin-top:5px}
+  .flow .k{color:var(--muted);font-weight:600}
+  .arrow{color:var(--accent);padding:0 4px}
+  .item .meta{font-size:11.5px;color:var(--muted);margin-top:4px}
+  .item code{background:#0d1117;border:1px solid var(--line);border-radius:4px;
+    padding:1px 5px;font-size:10.5px;color:#9ecbff;direction:ltr;display:inline-block}
+  .st{font-size:10px;font-weight:700;padding:1px 8px;border-radius:10px;
+    margin-inline-start:8px;white-space:nowrap;display:inline-block}
+  .st-ok{background:rgba(46,160,67,.18);color:var(--done)}
+  .st-wait{background:rgba(210,153,34,.15);color:var(--prog)}
+  .st-dead{background:#2a323b;color:var(--muted)}
+  .foot{color:var(--muted);font-size:11.5px;margin-top:24px;border-top:1px solid var(--line);padding-top:14px}
+  .foot code{direction:ltr}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MEMS26 · צינור המערכות 🔄</h1>
+  <div class="sub">מסמך עבודה חי · מזיהוי סוג-היום ועד ניהול עסקה · עודכן 2026-05-31 (As-built · 6 מערכות · דגלים ON · D-094 flag-OFF) · מקור: <code>FULL_PATH_MEGA_TABLE</code> + קוד</div>
+
+  <div class="nav">
+    <a href="ROADMAP_TO_LIVE.html">↩ מפת הדרכים ל-LIVE</a>
+    <a href="STATUS_BOARD.md">📋 STATUS_BOARD</a>
+    <a href="#tree">🌳 עץ — מבט-על</a>
+    <a href="#s2tree">🟢 עץ S2</a>
+    <a href="#s3tree">🟣 עץ S3</a>
+    <a href="#s4tree">🟠 עץ S4</a>
+    <button onclick="document.querySelectorAll('section').forEach(s=>s.classList.remove('collapsed'))">פתח הכל</button>
+    <button onclick="document.querySelectorAll('section').forEach(s=>s.classList.add('collapsed'))">כווץ הכל</button>
+  </div>
+
+  <div class="banner">
+    <b>איך לקרוא:</b> כל שלב מציג <span class="k">קלט → לוגיקה → פלט</span>, איזו מערכת אחראית, מיקום הקוד, וסטטוס.
+    <span class="st st-ok">פעיל</span> = רץ במצב הנוכחי · <span class="st st-wait">גַּף/בהמתנה</span> = פער פתוח או החלטה · <span class="st st-dead">legacy</span> = קוד מת שהוחלף.
+    מצב: <b>SHADOW בלבד</b>.
+  </div>
+
+  <div class="timeline">
+    <div class="ph" onclick="go('p0')"><div class="n">Phase 0</div><div class="t">קליטת נתונים</div></div>
+    <div class="ph" onclick="go('p1')"><div class="n">Phase 1</div><div class="t">סוג-היום S1</div></div>
+    <div class="ph" onclick="go('p2')"><div class="n">Phase 2</div><div class="t">תבניות וירי</div></div>
+    <div class="ph" onclick="go('p3')"><div class="n">Phase 3</div><div class="t">בניית setup</div></div>
+    <div class="ph" onclick="go('p4')"><div class="n">Phase 4</div><div class="t">Gateway</div></div>
+    <div class="ph" onclick="go('p5')"><div class="n">Phase 5</div><div class="t">ניהול עסקה</div></div>
+    <div class="ph" onclick="go('p6')"><div class="n">Phase 6</div><div class="t">שמירה+תצוגה</div></div>
+  </div>
+
+  <!-- DECISION TREE -->
+  <section id="tree">
+    <div class="head"><span class="dot" style="background:var(--prog)"></span><h2>🌳 עץ החלטות · מבט-על — מבר נכנס ועד יציאה</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">כל נקודות ההכרעה בנתיב: מתי יורים, מתי מדלגים, ואיך מנהלים. <b>מעוין</b> = החלטה · <b>מלבן</b> = פעולה · יציאות אדום/אפור = דחייה/חסימה. ה-SHADOW רושם תמיד, גם כשנחסם ל-DEMO/LIVE.</div>
+      <div style="overflow-x:auto">
+      <svg viewBox="0 0 900 1240" width="100%" style="min-width:680px;font-family:-apple-system,'Segoe UI',Arial,sans-serif" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8b98a5"/></marker>
+        </defs>
+        <!-- spine connectors -->
+        <g stroke="#8b98a5" stroke-width="1.5" fill="none" marker-end="url(#ar)">
+          <line x1="420" y1="52"  x2="420" y2="72"/>
+          <line x1="420" y1="166" x2="420" y2="192"/>
+          <line x1="420" y1="286" x2="420" y2="312"/>
+          <line x1="420" y1="406" x2="420" y2="432"/>
+          <line x1="420" y1="526" x2="420" y2="552"/>
+          <line x1="420" y1="646" x2="420" y2="666"/>
+          <line x1="420" y1="712" x2="420" y2="742"/>
+          <line x1="420" y1="836" x2="420" y2="856"/>
+          <line x1="420" y1="902" x2="420" y2="936"/>
+          <line x1="420" y1="982" x2="420" y2="1012"/>
+          <line x1="420" y1="1106" x2="420" y2="1156"/>
+        </g>
+        <!-- right branch connectors -->
+        <g stroke="#8b98a5" stroke-width="1.5" fill="none" marker-end="url(#ar)">
+          <line x1="545" y1="120" x2="636" y2="120"/>
+          <line x1="545" y1="240" x2="636" y2="240"/>
+          <line x1="545" y1="360" x2="636" y2="360"/>
+          <line x1="545" y1="480" x2="636" y2="480"/>
+          <line x1="545" y1="600" x2="636" y2="600"/>
+          <line x1="545" y1="790" x2="636" y2="790"/>
+          <line x1="570" y1="1060" x2="616" y2="1060"/>
+        </g>
+        <!-- branch labels -->
+        <g fill="#8b98a5" font-size="11">
+          <text x="588" y="112">כן</text><text x="430" y="186">לא</text>
+          <text x="588" y="232">לא</text><text x="430" y="306">כן</text>
+          <text x="588" y="352">כן</text><text x="430" y="426">לא · contracts</text>
+          <text x="588" y="472">לא</text><text x="430" y="546">כן</text>
+          <text x="588" y="592">כן</text><text x="430" y="666">לא</text>
+          <text x="588" y="782">לא</text><text x="430" y="856">כן</text>
+        </g>
+
+        <!-- P1 -->
+        <rect x="270" y="8" width="300" height="44" rx="8" fill="#1a2129" stroke="#4aa3ff" stroke-width="1.5"/>
+        <text x="420" y="30" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="13">בר 5-דק' נכנס · BarRouter מפזר</text>
+
+        <!-- D2 Nontrend -->
+        <polygon points="420,74 545,120 420,166 295,120" fill="#212b35" stroke="#4aa3ff" stroke-width="1.5"/>
+        <text x="420" y="120" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">S1 · Nontrend?</text>
+        <rect x="636" y="100" width="232" height="40" rx="8" fill="#2a323b" stroke="#576470" stroke-width="1.5"/>
+        <text x="752" y="120" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="11.5">SKIP — אף מערכת לא יורה</text>
+
+        <!-- D3 pattern? -->
+        <polygon points="420,194 545,240 420,286 295,240" fill="#212b35" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="420" y="240" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">תבנית זוהתה? (S2/S3/S4)</text>
+        <rect x="636" y="220" width="232" height="40" rx="8" fill="#2a323b" stroke="#576470" stroke-width="1.5"/>
+        <text x="752" y="240" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="11.5">אין setup → אין ירי</text>
+
+        <!-- D4 Auth SKIP -->
+        <polygon points="420,314 545,360 420,406 295,360" fill="#212b35" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="420" y="360" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">Auth Table = SKIP?</text>
+        <rect x="636" y="340" width="232" height="40" rx="8" fill="#2a323b" stroke="#576470" stroke-width="1.5"/>
+        <text x="752" y="360" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="11.5">דלג (verdict SKIP)</text>
+
+        <!-- D5 validator -->
+        <polygon points="420,434 545,480 420,526 295,480" fill="#212b35" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="420" y="474" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">validator עובר?</text>
+        <text x="420" y="492" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="10">R:R≥1 · targets</text>
+        <rect x="636" y="460" width="232" height="40" rx="8" fill="rgba(248,81,73,.15)" stroke="#f85149" stroke-width="1.5"/>
+        <text x="752" y="480" dy=".35em" text-anchor="middle" fill="#f85149" font-size="11.5">reject</text>
+
+        <!-- D6 risk gates -->
+        <polygon points="420,554 545,600 420,646 295,600" fill="#212b35" stroke="#d29922" stroke-width="1.5"/>
+        <text x="420" y="594" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">שער סיכון חוסם?</text>
+        <text x="420" y="612" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="10">cooldown/SSV/chop/cluster</text>
+        <rect x="636" y="580" width="232" height="40" rx="8" fill="rgba(210,153,34,.15)" stroke="#d29922" stroke-width="1.5"/>
+        <text x="752" y="600" dy=".35em" text-anchor="middle" fill="#d29922" font-size="11">blocked · SHADOW עדיין רושם</text>
+
+        <!-- P7 SHADOW -->
+        <rect x="270" y="668" width="300" height="44" rx="8" fill="#1a2129" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="420" y="690" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="13">SHADOW · רושם מיד (תמיד)</text>
+
+        <!-- D8 slot -->
+        <polygon points="420,744 545,790 420,836 295,790" fill="#212b35" stroke="#d29922" stroke-width="1.5"/>
+        <text x="420" y="790" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">DEMO/LIVE · slot פנוי?</text>
+        <rect x="636" y="770" width="232" height="40" rx="8" fill="#2a323b" stroke="#576470" stroke-width="1.5"/>
+        <text x="752" y="790" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="11">slot תפוס → outranked/skip</text>
+
+        <!-- P9 route -->
+        <rect x="270" y="858" width="300" height="44" rx="8" fill="#1a2129" stroke="#d29922" stroke-width="1.5"/>
+        <text x="420" y="880" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">מילוי slot · first-wins / R:R גבוה (D-094)</text>
+
+        <!-- P10 filled -->
+        <rect x="270" y="938" width="300" height="44" rx="8" fill="#1a2129" stroke="#2ea043" stroke-width="1.5"/>
+        <text x="420" y="960" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="13">FILLED — עסקה פעילה</text>
+
+        <!-- D11 management -->
+        <polygon points="420,1014 570,1060 420,1106 270,1060" fill="#212b35" stroke="#2ea043" stroke-width="1.5"/>
+        <text x="420" y="1060" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">ניהול לפי כל בר</text>
+        <rect x="616" y="1000" width="262" height="120" rx="8" fill="#1a2129" stroke="#2ea043" stroke-width="1.2"/>
+        <text x="632" y="1024" fill="#8b98a5" font-size="11.5">stop נפגע → סגירה @stop</text>
+        <text x="632" y="1048" fill="#8b98a5" font-size="11.5">T1 → Smart BE+1T (PARTIAL)</text>
+        <text x="632" y="1072" fill="#8b98a5" font-size="11.5">T2 → Trail / Lock-in 2R (Layer4)</text>
+        <text x="632" y="1096" fill="#8b98a5" font-size="11.5">time-stop / reversal → סגירה</text>
+
+        <!-- P12 close -->
+        <rect x="235" y="1158" width="370" height="44" rx="8" fill="#1a2129" stroke="#2ea043" stroke-width="1.5"/>
+        <text x="420" y="1180" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="13">CLOSED → שחרור slot + עדכון stats/SSV</text>
+      </svg>
+      </div>
+      <div class="lead" style="border-color:var(--prog)">שלבי ההחלטה תואמים ל-Phase 1→5 למטה. נקודות הכרעה שמורות בקוד: <code>auth_table_v1.py</code> (SKIP) · <code>pre_fire_validator.py</code> (R:R) · <code>trading_gateway.py</code> (שערים+ניתוב) · <code>bar_level_detector.py</code>+<code>trail_engine.py</code> (ניהול).</div>
+    </div>
+  </section>
+
+  <!-- S2 TREE -->
+  <section id="s2tree">
+    <div class="head"><span class="dot" style="background:var(--s2)"></span><h2>🟢 עץ S2 · Five-Min — מבר ל-T1Setup</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">S2 מזהה שתי משפחות תבניות (OFA + Chart), עובר דרך Auth Table (sizing לפי תבנית×יום×tier), ובונה T1Setup.</div>
+      <div style="overflow-x:auto">
+      <svg viewBox="0 0 900 740" width="100%" style="min-width:700px" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8b98a5"/></marker></defs>
+        <g stroke="#8b98a5" stroke-width="1.5" fill="none" marker-end="url(#ar2)">
+          <line x1="395" y1="48" x2="250" y2="88"/>
+          <line x1="395" y1="48" x2="560" y2="88"/>
+          <line x1="250" y1="172" x2="380" y2="212"/>
+          <line x1="560" y1="172" x2="412" y2="212"/>
+          <line x1="395" y1="256" x2="395" y2="288"/>
+          <line x1="395" y1="372" x2="395" y2="408"/>
+          <line x1="395" y1="450" x2="395" y2="488"/>
+          <line x1="395" y1="530" x2="395" y2="568"/>
+          <line x1="395" y1="632" x2="395" y2="668"/>
+          <line x1="510" y1="330" x2="606" y2="330"/>
+          <line x1="510" y1="600" x2="606" y2="600"/>
+        </g>
+        <rect x="245" y="8" width="300" height="40" rx="8" fill="#1a2129" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="395" y="28" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="13">בר 5-דק' + day_type (מ-S1)</text>
+        <!-- fork -->
+        <polygon points="250,88 360,130 250,172 140,130" fill="#212b35" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="250" y="126" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11.5">OFA?</text>
+        <text x="250" y="142" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="9.5">Reactive / Initiative</text>
+        <polygon points="560,88 690,130 560,172 430,130" fill="#212b35" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="560" y="126" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11.5">Chart?</text>
+        <text x="560" y="142" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="9.5">H&amp;S / Double / Flag · stage-3</text>
+        <rect x="295" y="212" width="200" height="40" rx="8" fill="#1a2129" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="395" y="232" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">pattern_name</text>
+        <text x="395" y="278" text-anchor="middle" fill="#8b98a5" font-size="10">אם אף תבנית לא זוהתה → אין setup</text>
+        <!-- auth -->
+        <polygon points="395,288 510,330 395,372 280,330" fill="#212b35" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="395" y="326" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11">Auth Table[תבנית×יום]</text>
+        <text x="395" y="342" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11">= SKIP?</text>
+        <rect x="606" y="312" width="240" height="36" rx="8" fill="#2a323b" stroke="#576470" stroke-width="1.5"/>
+        <text x="726" y="330" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="11.5">דלג — verdict SKIP</text>
+        <rect x="235" y="408" width="320" height="40" rx="8" fill="#1a2129" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="395" y="428" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11.5">Quality tier (POC/VAH/VAL) → contracts 0-5</text>
+        <rect x="225" y="488" width="340" height="40" rx="8" fill="#1a2129" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="395" y="508" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11.5">adaptive stop + split + time-stop → T1Setup</text>
+        <polygon points="395,568 510,600 395,632 280,600" fill="#212b35" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="395" y="600" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11">validator? R:R≥1</text>
+        <rect x="606" y="582" width="240" height="36" rx="8" fill="rgba(248,81,73,.15)" stroke="#f85149" stroke-width="1.5"/>
+        <text x="726" y="600" dy=".35em" text-anchor="middle" fill="#f85149" font-size="11.5">reject</text>
+        <rect x="295" y="668" width="200" height="40" rx="8" fill="#1a2129" stroke="#d29922" stroke-width="1.5"/>
+        <text x="395" y="688" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">→ gateway · T1</text>
+      </svg>
+      </div>
+      <div class="meta" style="margin-top:6px"><code>five_min_system.py</code> · <code>patterns/</code> · <code>auth_table_v1.py</code> · <code>quality_tier.py</code> · <code>setup_emitter.py</code></div>
+
+      <div style="margin-top:14px;background:#0d1117;border:1px solid #2d3a47;border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.7">
+        <div style="font-weight:700;color:#3fb950;margin-bottom:8px">פירוט מלא — OFA bar-by-bar (אפיון ↔ קוד)</div>
+        <div><b>Reactive (חולשת מוכר/קונה)</b> <code>five_min_system.py:461</code> · LONG: B1 bearish + vol&gt;0 → B2 vol ≤ <b>10%</b> מ-B1 → B3 bullish + belly + POC עולה → B4 bullish &amp; close&gt;B3.high &amp; <b>COT&gt;AMT</b>; lookback 3 ברים שקטים (max vol &lt; <b>60%</b> B1); belly_ratio ≥ <b>1.5</b>. conf = <b>0.80</b> אם POC עולה אחרת <b>0.75</b>. (SHORT mirror, COT&lt;AMT.) COT/AMT מ-Sierra CDV; None → abort.</div>
+        <div><b>Initiative (Expansion)</b> <code>:537</code> · LONG: B1 bull + range ∈ <b>[1.5,1.75]pt</b> → B2 HL או POC-return ≤ <b>0.5pt</b> → B3 range&gt;B1 → B4 low≥B2.low &amp; close&gt;B1.high &amp; <b>COT&lt;AMT</b>; lookback שקט. conf = <b>0.80</b>.</div>
+
+        <div style="font-weight:700;color:#3fb950;margin:12px 0 6px">תבניות צ'ארט (Stage 3, day-type gated)</div>
+        <div><b>Inverse H&amp;S / H&amp;S Top</b> — ≥12 ברים, חלון 30; סימטריית כתפיים ≤<b>5%</b>; הארכת ראש ≥<b>2T</b>; ירי close&gt;neckline+1T. conf = 0.60+0.20·sym+0.20·ext.</div>
+        <div><b>Double Bottom EE / Top AA</b> — ≥10 ברים; סימטריית שפלים ≤<b>3%</b>; Eve width ≥3 ברים; ירי close&gt;neckline+1T. conf = 0.60+0.20·sym+0.20·variant.</div>
+        <div><b>Bull/Bear Flag</b> — pole 5-15 ברים, ≥<b>16T (4pt)</b>, ≥60% directional; flag 3-8 ברים, retrace ≤<b>50%</b>; ירי close&gt;flag_high+1T. conf = 0.60+0.20·pole+0.20·retrace.</div>
+        <div style="color:#8b98a5">gate day-type (<code>:780</code>): H&amp;S+Double → {NeuE, NeuC, Norm, NV}; Flags → {TN, TDD, NV, NeuE, Norm}.</div>
+
+        <div style="font-weight:700;color:#3fb950;margin:12px 0 6px">זרימה אחרי זיהוי</div>
+        <div>NT gate (Nontrend→skip) → Auth Table[תבנית×יום] verdict + Quality tier (≤2pt מ-POC/VAH/VAL→HIGH / בתוך VA→MED / אחרת LOW) → contracts → adaptive stop (A anchor±1T · B entry∓mult×today_typical [Reactive 1.0× / OFA·Flag 1.5× / Double·H&amp;S 2.0×] · C floor 4T) → split (OFA 25/50/25 · H&amp;S+Double 33/33/34 · Flag 50/50/0) → time-stop → validator → gateway T1.</div>
+
+        <div style="margin-top:12px;background:rgba(210,153,34,.10);border:1px solid #d29922;border-radius:6px;padding:9px 12px">
+          <div style="font-weight:700;color:#d29922;margin-bottom:4px">⚠️ פערים אפיון ↔ קוד (S2)</div>
+          <div>1. <b>S2_ATR_RELATIVE מת ב-OFA</b>: <code>get_expansion_range</code>/<code>get_poc_return_tolerance</code> קיימים אך <code>_detect_initiative</code> עדיין קורא לקבועים הסטטיים (1.5-1.75pt) — הנתיב היחסי לא פעיל ב-OFA (כן פעיל ב-quality/stop).</div>
+          <div>2. <b>validator = 5 בדיקות פעילות</b> (stop-side, סדר T1/T2, R:R≥1), לא 7 — בדיקות system_id/direction/conf/time_stop הן אילוצי Pydantic.</div>
+          <div>3. <b>conf קשיח 75</b> ב-setup_emitter — confidence התבנית נזרק; system_id תמיד T1_NUMBER_BAR.</div>
+          <div>4. <b>reduce_size_signal</b> (binding layer A) רק נרשם, לא מקטין סייז בפועל (D-091 §Layer A מתכוון להקטין).</div>
+          <div>5. נתיב <code>process()</code> ישן — הירי האמיתי ב-<code>process_bar()</code>.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S3 TREE -->
+  <section id="s3tree">
+    <div class="head"><span class="dot" style="background:var(--s3)"></span><h2>🟣 עץ S3 · Footprint — 4 גלאים → confluence → sizing</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">S3 מריץ 4 גלאי footprint במקביל, מסווג דומיננטיות + confluence, ויש לו sizing עצמאי (לא Auth Table).</div>
+      <div style="overflow-x:auto">
+      <svg viewBox="0 0 900 600" width="100%" style="min-width:700px" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8b98a5"/></marker></defs>
+        <g stroke="#8b98a5" stroke-width="1.5" fill="none" marker-end="url(#ar3)">
+          <line x1="380" y1="50" x2="380" y2="74"/>
+          <line x1="380" y1="150" x2="380" y2="178"/>
+          <line x1="380" y1="262" x2="380" y2="288"/>
+          <line x1="380" y1="372" x2="380" y2="408"/>
+          <line x1="380" y1="450" x2="380" y2="488"/>
+          <line x1="495" y1="330" x2="606" y2="330"/>
+          <line x1="380" y1="450" x2="606" y2="450"/>
+        </g>
+        <rect x="230" y="10" width="300" height="40" rx="8" fill="#1a2129" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="380" y="30" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="13">tick_reversal + תאי footprint</text>
+        <rect x="130" y="74" width="500" height="58" rx="8" fill="#1a2129" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="380" y="96" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">4 גלאים במקביל</text>
+        <text x="380" y="116" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="10.5">Absorption · Stacked Imbalance (3+ levels ≥2.5) · Sweep-Return · Exhaustion</text>
+        <polygon points="380,178 500,222 380,266 260,222" fill="#212b35" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="380" y="218" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11.5">dominance</text>
+        <text x="380" y="234" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="10">ask/bid≥1.5 → BUYER/SELLER</text>
+        <polygon points="380,288 495,330 380,372 265,330" fill="#212b35" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="380" y="326" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11.5">confluence?</text>
+        <text x="380" y="342" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="9.5">≥6 STRATEGIC · ≥4 TACTICAL</text>
+        <rect x="606" y="312" width="250" height="36" rx="8" fill="#2a323b" stroke="#576470" stroke-width="1.5"/>
+        <text x="731" y="330" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="11.5">מתחת לסף → לא יורה</text>
+        <rect x="160" y="408" width="440" height="42" rx="8" fill="#1a2129" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="380" y="423" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11">sizing עצמאי: str≥0.6+aux≥3→3 · ≥0.4+aux≥2→2 · ≥0.3+aux≥1→2</text>
+        <text x="380" y="439" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="10">אחרת → reject</text>
+        <rect x="606" y="432" width="250" height="36" rx="8" fill="rgba(248,81,73,.15)" stroke="#f85149" stroke-width="1.5"/>
+        <text x="731" y="450" dy=".35em" text-anchor="middle" fill="#f85149" font-size="11.5">reject</text>
+        <rect x="245" y="488" width="270" height="40" rx="8" fill="#1a2129" stroke="#d29922" stroke-width="1.5"/>
+        <text x="380" y="508" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">→ validator → gateway · T3</text>
+      </svg>
+      </div>
+      <div class="meta" style="margin-top:6px"><code>footprint_system.py:302</code> (גלאים) · <code>:389-426</code> (sizing) · <code>signals/</code></div>
+
+      <div style="margin-top:14px;background:#0d1117;border:1px solid #2d3a47;border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.7">
+        <div style="font-weight:700;color:#a371f7;margin-bottom:8px">פירוט מלא — 4 הגלאים (תנאי טריגר)</div>
+        <div><b>Absorption</b> <code>signals/absorption.py</code> — lookback 5; הבר הנוכחי לא מותח את הקיצון. בקצה גבוה→SHORT: bid_vol &gt; ask_vol×<b>2.0</b> &amp; bid_vol ≥ <b>50</b>. בקצה נמוך→LONG: mirror. strength = min(1, ratio/4).</div>
+        <div><b>Stacked Imbalance</b> <code>stacked_imbalance.py</code> — ≥<b>3</b> levels; יחס דומיננטיות ל-level ≥ <b>2.5</b>; רצף רצוף ≥3 → ירי. buy-dom→LONG, sell-dom→SHORT.</div>
+        <div><b>Sweep-Return</b> <code>sweep_return.py</code> — lookback 5, חלון לפני 3 הברים האחרונים. high sweep→SHORT: cur_high &gt; range_high+<b>2T</b> &amp; cur_close ≤ range_high. low sweep→LONG: mirror.</div>
+        <div><b>Exhaustion</b> <code>exhaustion.py</code> — 4 ברים; body_pct ≥ <b>0.5</b>; 4 הברים הקודמים באותו כיוון; vol &lt; <b>0.6</b>×avg → כיוון <b>נגד-מגמה</b>.</div>
+        <div style="color:#8b98a5">בחירה: ה-strength הגבוה ביותר זוכה (<code>:387</code>).</div>
+
+        <div style="font-weight:700;color:#a371f7;margin:12px 0 6px">דומיננטיות · confluence · sizing</div>
+        <div><b>Dominance</b> <code>:282</code> — agg_buy &gt; 1.5×agg_sell → BUYER · agg_sell &gt; 1.5×agg_buy → SELLER · אחרת BALANCED (מזין sizing, לא זיהוי).</div>
+        <div><b>Confluence</b> <code>:162</code> — score = cluster + empty + accumulation + (jumps≥3) + (otf∈{2,3}) + signals. ≥<b>6</b> → STRATEGIC · ≥<b>4</b> → TACTICAL. <span style="color:#8b98a5">(מזין journal/setups בלבד — לא מגדיר ירי.)</span></div>
+        <div><b>Sizing</b> <code>:389</code> — aux = delta_aligned + dom_aligned + init_aligned. strength≥<b>0.6</b> &amp; aux≥3 → <b>3</b> · ≥<b>0.4</b> &amp; aux≥2 → 2 · ≥<b>0.3</b> &amp; aux≥1 → 2 · אחרת reject.</div>
+        <div><b>Gating</b> <code>:428</code> — dedup (level+dir+bar_ts) → reject? → validator (stop=bar±tick, T1=1R, T2=2R, time_stop 15min, R:R≥1) → gateway T3. SHADOW תמיד; DEMO/LIVE כבוי ל-S3 (D-089).</div>
+
+        <div style="margin-top:12px;background:rgba(210,153,34,.10);border:1px solid #d29922;border-radius:6px;padding:9px 12px">
+          <div style="font-weight:700;color:#d29922;margin-bottom:4px">⚠️ פערים אפיון ↔ קוד (S3)</div>
+          <div>1. <b>אין מסמך אפיון</b> שמגדיר ספי גלאים — D-089 נועל רק role=FIRING; כל הספים הם "V1 defaults · לכייל אחרי SHADOW" ללא גיבוי-אפיון.</div>
+          <div>2. <b>S3_RELATIVE מת בזיהוי</b>: <code>get_min_level_vol</code> ו-<code>get_range_ticks</code> מוגדרים אך לא נקראים — הזיהוי משתמש ב-MIN_LEVEL_VOL=10 קשיח ו-range_ticks=15 קבוע. הלוגיקה היחסית אינרטית.</div>
+          <div>3. <b>accumulation_range</b> משפיע רק על confluence/סיווג, לא על ירי.</div>
+          <div>4. <b>אין RTH gate</b> בנתיב ה-SHADOW של S3.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- S4 TREE -->
+  <section id="s4tree">
+    <div class="head"><span class="dot" style="background:var(--s4)"></span><h2>🟠 עץ S4 · Woodies — עץ ההחלטה A1→A7</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">S4 הוא עץ החלטה מובנה: 7 שלבים (A1 Trend-Gate → A7 validator), 9 תבניות CONT/REV, sizing לפי aux alignment.</div>
+      <div style="overflow-x:auto">
+      <svg viewBox="0 0 900 830" width="100%" style="min-width:700px" xmlns="http://www.w3.org/2000/svg">
+        <defs><marker id="ar4" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#8b98a5"/></marker></defs>
+        <g stroke="#8b98a5" stroke-width="1.5" fill="none" marker-end="url(#ar4)">
+          <line x1="370" y1="48" x2="370" y2="66"/>
+          <line x1="370" y1="152" x2="370" y2="178"/>
+          <line x1="370" y1="262" x2="370" y2="288"/>
+          <line x1="370" y1="372" x2="370" y2="408"/>
+          <line x1="370" y1="448" x2="370" y2="490"/>
+          <line x1="370" y1="530" x2="370" y2="570"/>
+          <line x1="370" y1="610" x2="370" y2="636"/>
+          <line x1="370" y1="724" x2="370" y2="752"/>
+          <line x1="485" y1="110" x2="618" y2="110"/>
+          <line x1="485" y1="220" x2="618" y2="220"/>
+          <line x1="485" y1="330" x2="618" y2="330"/>
+          <line x1="485" y1="680" x2="618" y2="680"/>
+        </g>
+        <rect x="220" y="8" width="300" height="40" rx="8" fill="#1a2129" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="28" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12.5">woodies_5min · 11 מדדים (DLL)</text>
+        <!-- A1 -->
+        <polygon points="370,68 485,110 370,152 255,110" fill="#212b35" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="106" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">A1 · Trend Gate</text>
+        <text x="370" y="122" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="9.5">YELLOW / GRAY+conf&lt;0.55</text>
+        <rect x="620" y="92" width="240" height="36" rx="8" fill="rgba(248,81,73,.15)" stroke="#f85149" stroke-width="1.5"/>
+        <text x="740" y="110" dy=".35em" text-anchor="middle" fill="#f85149" font-size="11.5">BLOCK ALL · אין ירי</text>
+        <!-- A2 -->
+        <polygon points="370,178 485,220 370,262 255,220" fill="#212b35" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="220" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">A2 · מדדים תקפים?</text>
+        <rect x="620" y="202" width="240" height="36" rx="8" fill="rgba(248,81,73,.15)" stroke="#f85149" stroke-width="1.5"/>
+        <text x="740" y="220" dy=".35em" text-anchor="middle" fill="#f85149" font-size="11.5">fail</text>
+        <!-- A3 -->
+        <polygon points="370,288 485,330 370,372 255,330" fill="#212b35" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="330" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">A3 · תבנית מ-9?</text>
+        <rect x="620" y="312" width="240" height="36" rx="8" fill="#2a323b" stroke="#576470" stroke-width="1.5"/>
+        <text x="740" y="330" dy=".35em" text-anchor="middle" fill="#8b98a5" font-size="11.5">אין → אין ירי</text>
+        <rect x="8" y="300" width="218" height="60" rx="8" fill="#1a2129" stroke="#576470" stroke-width="1.2"/>
+        <text x="18" y="322" fill="#8b98a5" font-size="10.5">CONT: ZLR · TLB · TT · GB100</text>
+        <text x="18" y="344" fill="#8b98a5" font-size="10.5">REV: VEGAS · GHOST · FAMIR · HTLB · HFE</text>
+        <!-- A4 -->
+        <rect x="210" y="408" width="320" height="40" rx="8" fill="#1a2129" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="428" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11">A4 · touch-points (day_type/TPO/killzone · advisory)</text>
+        <!-- A5 -->
+        <rect x="195" y="490" width="350" height="40" rx="8" fill="#1a2129" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="510" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11">A5 · aux alignment (SWI/CZI/TCCI/LSMA/EMA) → sizing 3/2/reject</text>
+        <!-- A6 -->
+        <rect x="195" y="570" width="350" height="40" rx="8" fill="#1a2129" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="590" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="11">A6 · entry class: TACTICAL→REACTIVE · STRATEGIC→INITIATIVE</text>
+        <!-- A7 -->
+        <polygon points="370,636 485,680 370,724 255,680" fill="#212b35" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="370" y="680" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">A7 · validator?</text>
+        <rect x="620" y="662" width="240" height="36" rx="8" fill="rgba(248,81,73,.15)" stroke="#f85149" stroke-width="1.5"/>
+        <text x="740" y="680" dy=".35em" text-anchor="middle" fill="#f85149" font-size="11.5">reject</text>
+        <rect x="235" y="752" width="270" height="40" rx="8" fill="#1a2129" stroke="#d29922" stroke-width="1.5"/>
+        <text x="370" y="772" dy=".35em" text-anchor="middle" fill="#e6edf3" font-size="12">→ gateway · T2 signal</text>
+      </svg>
+      </div>
+      <div class="meta" style="margin-top:6px"><code>woodies_system.py:202</code> · <code>decision_tree.py</code> (A1-A7) · <code>woodies_system.py:637-684</code> (sizing)</div>
+
+      <div style="margin-top:14px;background:#0d1117;border:1px solid #2d3a47;border-radius:8px;padding:12px 14px;font-size:12px;line-height:1.7">
+        <div style="font-weight:700;color:#f0883e;margin-bottom:8px">פירוט מלא — שלבי A (אפיון ↔ קוד)</div>
+        <div><b>A1 · Trend Gate</b> <code>decision_tree.py:175</code> — YELLOW → BLOCK ALL · GRAY &amp; best.conf&lt;0.55 → FAIL · אחרת PASS.</div>
+        <div><b>A2 · תקפות מדדים</b> <code>:192</code> — FAIL אם אחד מ-8 מפתחות = None (cci_14, cci_6_tcci, ema_34, lsma, swi, czi, trend_state, predictor).</div>
+        <div><b>A3 · זיהוי תבנית</b> <code>:203</code> — precheck AP8 (CCI שטוח ≥3 ברים) על כל 9 התבניות; YELLOW חוסם לפני dispatch. אין תבנית → SKIP.</div>
+        <div><b>A4 · touch-points</b> <code>:210</code> — day_type/TPO/veto/killzone — <b>advisory בלבד, תמיד PASS</b> (runtime מעביר dict ריק).</div>
+        <div><b>A5 · aux alignment → sizing</b> <code>:637</code> — aux = swi_aligned + czi_aligned + tcci_leading; trend_ok = close&gt;LSMA &amp; close&gt;EMA34. <b>high &amp; aux≥3 &amp; trend_ok → 3</b> · high/medium &amp; aux≥2 → 2 · low &amp; aux≥2 → 2 · אחרת reject. tier: high={ZLR,TT,GB100} medium={VEGAS,GHOST,FAMIR,HTLB} low={TLB}.</div>
+        <div><b>A6 · entry class</b> <code>:327</code> — REVERSAL → STRATEGIC → INITIATIVE · אחרת TACTICAL → REACTIVE.</div>
+        <div><b>A7 · validator</b> <code>:344</code> — pre_fire_validator (system_id=T2_WOODIES); PASS/FAIL לפי valid.</div>
+
+        <div style="font-weight:700;color:#f0883e;margin:12px 0 6px">9 התבניות (טריגר לכל אחת)</div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <tr style="color:#8b98a5;text-align:right"><th style="padding:3px 6px;border-bottom:1px solid #2d3a47">תבנית</th><th style="padding:3px 6px;border-bottom:1px solid #2d3a47">קבוצה</th><th style="padding:3px 6px;border-bottom:1px solid #2d3a47">טריגר</th><th style="padding:3px 6px;border-bottom:1px solid #2d3a47">conf</th></tr>
+          <tr><td style="padding:3px 6px">ZLR</td><td>CONT</td><td>פולבק לתוך (−100,100] אחרי CCI≥100, ואז current&gt;prev &amp; 0&lt;current&lt;200</td><td>0.5+cci/400</td></tr>
+          <tr><td style="padding:3px 6px">TLB</td><td>CONT</td><td>linreg 10 ברים: slope&lt;−2 &amp; current&gt;predicted+10 &amp; current&gt;prev (UP)</td><td>0.4+…</td></tr>
+          <tr><td style="padding:3px 6px">TT</td><td>CONT</td><td>trend BLUE &amp; cci14&gt;0; TCCI נגעה ונתזה (cci6&gt;cci14+5 ועולה)</td><td>0.70</td></tr>
+          <tr><td style="padding:3px 6px">GB100</td><td>CONT</td><td>trend BLUE &amp; current&gt;100 &amp; prev≤100 &amp; prev2&lt;100</td><td>0.5+…</td></tr>
+          <tr><td style="padding:3px 6px">VEGAS</td><td>REV</td><td>דיברגנס: מחיר HH + CCI LH על 2 swings (mirror bullish)</td><td>0.75</td></tr>
+          <tr><td style="padding:3px 6px">GHOST</td><td>REV</td><td>3 peaks CCI, אמצעי הגבוה, ימני&lt;שמאלי &amp; current&lt;ימני (H&amp;S ב-CCI)</td><td>0.70</td></tr>
+          <tr><td style="padding:3px 6px">FAMIR</td><td>REV</td><td>max 5 CCI ∈[170,210) &amp; current&lt;prev &amp; current&lt;max−20 (SHORT)</td><td>0.5+…</td></tr>
+          <tr><td style="padding:3px 6px">HTLB</td><td>REV</td><td>התנגדות אופקית (≥2 נגיעות) נשברת: prev≤level &amp; current&gt;level+5</td><td>0.65</td></tr>
+          <tr><td style="padding:3px 6px">HFE</td><td>REV</td><td>DLL-primary (hfe_detected/direction, 2≤bars_ago≤12); fallback פייתון = audit בלבד</td><td>0.70</td></tr>
+        </table>
+
+        <div style="margin-top:12px;background:rgba(210,153,34,.10);border:1px solid #d29922;border-radius:6px;padding:9px 12px">
+          <div style="font-weight:700;color:#d29922;margin-bottom:4px">⚠️ פערים אפיון ↔ קוד (S4)</div>
+          <div>1. A1 המלא (6 ברים רצופים / ±100 / zero-cross ב-<code>a1_strategic_gate.py</code>) <b>לא נקרא</b> בעץ החי — רק trend_state + GRAY-0.55.</div>
+          <div>2. "11 מדדים" באפיון, אך A2 בודק <b>8</b>.</div>
+          <div>3. A4 touch-points אמור לשמש שער (PENDING במפה) — בקוד <b>advisory-only</b> (dict ריק ב-runtime).</div>
+          <div>4. ZLR פולבק ±100 בקוד מול <b>±50</b> ב-DERIVED.</div>
+          <div>5. DERIVED מתאר <b>8 תבניות</b> (בלי HFE); D-092 + קוד = <b>9</b>.</div>
+          <div>6. HFE חסר רשומת tier → מטופל כ-<b>low</b> ב-sizing.</div>
+          <div>7. מטריצת day-type (D-092, 63 תאים) + שכבות ATR-stop מאופיינות, אך gating ה-day-type <b>לא מיושם</b> בעץ (touch-points מנוטרל).</div>
+          <div>8. A7 time_stop fallback 60 דק' מול 90 דק' בפועל בירי.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PHASE 0 -->
+  <section id="p0">
+    <div class="head"><span class="dot" style="background:var(--io)"></span><h2>Phase 0 · קליטת נתונים</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">הבר נכנס מ-Sierra דרך ה-bridge (local-only) ומתפצל למערכות המנויות.</div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">1</span>ברים 5-דק'<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">קלט:</span> Sierra DLL JSON (OHLCV+studies) <span class="arrow">→</span> <span class="k">לוגיקה:</span> Bridge קורא <code>v9_export/*.json</code> → push ל-<code>localhost:8000</code> → BarRouter מפזר <span class="arrow">→</span> <span class="k">פלט:</span> BarEvent → S1/S2/S3/S4/S5</div>
+        <div class="meta"><code>bridge/v9_streams/base_stream.py</code> · <code>services/bar_router.py</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">1c</span>Woodies studies (DLL)<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">קלט:</span> DLL מחשב 11 מדדים (CCI-14, TCCI, EMA-34, LSMA, SWI, CZI, trend_state, HFE, ZLR) <span class="arrow">→</span> <span class="k">פלט:</span> woodies_5min → S4. DLL = מקור-אמת (fallback פייתון אם נעדר)</div>
+        <div class="meta"><code>sc_study/MES_AI_DataExport.cpp</code> · <code>woodies_system.py:251</code></div></div></div>
+    </div>
+  </section>
+
+  <!-- PHASE 1 -->
+  <section id="p1">
+    <div class="head"><span class="dot" style="background:var(--s1)"></span><h2>Phase 1 · זיהוי סוג-היום (S1 · observer)</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">S1 קובע את ההקשר שכל מערכות הירי משתמשות בו ל-sizing ולאישור. מתקדם A → B → C לאורך היום.</div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">2</span>A1 · הקשר טרום-פתיחה<span class="st st-ok">פעיל · flag ON</span></div>
+        <div class="flow"><span class="k">קלט:</span> PD high/low/close, overnight, ATR יומי <span class="arrow">→</span> <span class="k">לוגיקה:</span> gap=open−PDclose; ‏(S1_IB_WIDTH_ATR) סיווג gap לפי tiers ATR <span class="arrow">→</span> <span class="k">פלט:</span> PreOpenContext</div>
+        <div class="meta"><code>state_machine.py:357</code> · <code>detector.py:211</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">3</span>A2 · סיווג הרצת פתיחה<span class="st st-ok">פעיל · CVD ON</span></div>
+        <div class="flow"><span class="k">קלט:</span> 3+ ברי RTH, footprint deltas <span class="arrow">→</span> <span class="k">לוגיקה:</span> ‏(S1_CVD_OPENING) PE_30&gt;0.65 &amp; range_exp&gt;1.0→DRIVE · net_CVD/total&lt;0.15→AUCTION · CVD מחליף מחיר (fallback מחיר) <span class="arrow">→</span> <span class="k">פלט:</span> OpeningType + conf</div>
+        <div class="meta"><code>detector.py:119</code> (מחיר) · <code>:255</code> (CVD)</div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">4</span>A3-A4 · IB + נעילה + רוחב<span class="st st-ok">פעיל · flag ON</span></div>
+        <div class="flow"><span class="k">קלט:</span> ברי RTH (Sierra IB) <span class="arrow">→</span> <span class="k">לוגיקה:</span> צבירת IB, נעילה 60min (10:30 ET); רוחב לפי ATR יומי: NARROW/MEDIUM/WIDE/EXTREME <span class="arrow">→</span> <span class="k">פלט:</span> IBClassification</div>
+        <div class="meta"><code>state_machine.py:460</code> · <code>detector.py:14</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">5</span>B1 · מטריצת החלטה<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">קלט:</span> (OpeningType × IBWidth) <span class="arrow">→</span> <span class="k">לוגיקה:</span> lookup 25 תאים → DayType + התפלגות (conf התחלתי 0.5) <span class="arrow">→</span> <span class="k">פלט:</span> DayType vote</div>
+        <div class="meta"><code>decision_matrix.py:30</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">6</span>B2-B6 · התפתחות + staging<span class="st st-ok">פעיל · flag ON</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> re-score (behavior +0.30, range +0.20, vote ×0.40); switch אם dConf&gt;0.15; ‏(STAGING) conf≤60% לפני 60min + C-period re-eval <span class="arrow">→</span> <span class="k">פלט:</span> DayType מעודכן</div>
+        <div class="meta"><code>state_machine.py:542</code> · <code>detector.py:368</code> · + כללי זוהר (<code>zohar_rules.py</code>) + תת-סוג Neutral (<code>neutral_classifier.py</code>)</div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">7</span>C1-C3 · נעילה + Playbook<span class="st st-wait">פעיל · GAP-5 קוסמטי</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> נעילה: conf≥<b>0.85</b> אפקטיבי (0.70 נקוב=תאימות-טסטים) או consecutive≥2 או 13:00 ET; Playbook: DayType→(strategy, sizing, time_stop, rules) <span class="arrow">→</span> <span class="k">פלט:</span> DayTypeClassification → S2/S3/S4</div>
+        <div class="meta"><code>state_machine.py:680</code></div></div></div>
+    </div>
+  </section>
+
+  <!-- PHASE 2 -->
+  <section id="p2">
+    <div class="head"><span class="dot" style="background:var(--s2)"></span><h2>Phase 2 · תבניות וירי (S2 / S3 / S4) + observers</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">המערכות היורות מקבלות את ה-DayType מ-S1 ומזהות setups; כל אחת מייצרת signal עצמאי ל-gateway.</div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">8</span>S2 · OFA<span class="sys" style="background:var(--s2)">S2</span><span class="st st-ok">פעיל · flag ON</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> Reactive (חולשת מוכר/קונה) + Initiative (Expansion); ‏(S2_ATR_RELATIVE) expansion=1.5-2.0×ATR5m <span class="arrow">→</span> <span class="k">פלט:</span> pattern, dir, conf 0.75-0.80</div>
+        <div class="meta"><code>five_min_system.py:461</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">9</span>S2 · תבניות צ'ארט (H&amp;S / Double / Flags)<span class="sys" style="background:var(--s2)">S2</span><span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> Inverse H&amp;S (3 שפלים, סימטריה≤5%) · Double Bottom Eve&amp;Eve · Bull Flag (pole+flag); breakout+1T. flag ON: ספים יחסיים ל-ATR</div>
+        <div class="meta"><code>patterns/head_shoulders.py</code> · <code>double_bt.py</code> · <code>flags.py</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">10</span>S3 · Footprint<span class="sys" style="background:var(--s3)">S3</span><span class="st st-ok">פעיל · flag ON</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> 4 גלאים — Absorption / Stacked Imbalance (3+ levels ratio≥2.5) / Sweep-Return / Exhaustion; ‏(S3_RELATIVE) accumulation=1.0×ATR5m <span class="arrow">→</span> <span class="k">פלט:</span> T3 signal (dir, strength, confluence)</div>
+        <div class="meta"><code>footprint_system.py:302</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">11</span>S4 · Woodies<span class="sys" style="background:var(--s4)">S4</span><span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> 9 תבניות CONT/REV; עץ A1 Trend-Gate (YELLOW→BLOCK ALL) → A2 validity → A3 detection → A4 touch-points → A5 aux→sizing → A6 entry → A7 validator <span class="arrow">→</span> <span class="k">פלט:</span> T2 signal</div>
+        <div class="meta"><code>woodies_system.py:202</code> · <code>decision_tree.py</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">12-13</span>observers · S5 TPO + S6 Killzone<span class="sys" style="background:var(--obs)">obs</span><span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">S5:</span> POC, VAH/VAL (70%), 8 צורות, HVN/LVN → S1/S2/S4 · <span class="k">S6:</span> 8 אזורי זמן (NY_OPEN וכו') → S4 (A4)</div>
+        <div class="meta"><code>tpo_system.py:133</code> · <code>killzone_system.py:83</code></div></div></div>
+    </div>
+  </section>
+
+  <!-- PHASE 3 -->
+  <section id="p3">
+    <div class="head"><span class="dot" style="background:var(--s2)"></span><h2>Phase 3 · בניית ה-Setup (sizing · stop · split · validation)</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">S2 בונה T1Setup מלא לפני ה-gateway (S3/S4 נושאים sizing עצמאי).</div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">14</span>Auth Table + Quality Tier<span class="st st-wait">פעיל · V2 בהמתנה</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> Quality לפי קרבת מחיר ל-POC/VAH/VAL (HIGH/MED/LOW); Auth Table 70 תאים → (verdict, contracts). SKIP→אין ירי. <b>היום max=3; V2 הנעול = 0-5</b> <span class="arrow">→</span> <span class="k">פלט:</span> verdict + contracts</div>
+        <div class="meta"><code>auth_table_v1.py:33</code> · <code>quality_tier.py:41</code> · מימוש V2: <code>CC_PROMPT_AUTH_TABLE_V2</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">15-17</span>Adaptive Stop · Contract Split · Time Stop<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">Stop:</span> 3 שכבות A(מבני)/B(ATR cap)/C(floor), mult 1.0-2.0× · <span class="k">Split:</span> OFA 25/50/25, Flags 50/50/0 · <span class="k">TimeStop:</span> TDD 90min / Norm 30min / NT NO_TRADE</div>
+        <div class="meta"><code>adaptive_stop.py:130</code> · <code>contract_split.py:15</code> · <code>time_stop_mapper.py:12</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">18-19</span>Setup Emitter + Pre-Fire Validator<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">Emitter:</span> סירוב NT → Quality → SKIP?None → split → T1Setup. <span class="k">Validator (7):</span> צד stop, סדר targets, <b>R:R≥1.0</b>, conf 0-100, time_stop 1-180 <span class="arrow">→</span> <span class="k">פלט:</span> T1Setup או None</div>
+        <div class="meta"><code>setup_emitter.py:24</code> · <code>pre_fire_validator.py:42</code></div></div></div>
+    </div>
+  </section>
+
+  <!-- PHASE 4 -->
+  <section id="p4">
+    <div class="head"><span class="dot" style="background:var(--gw)"></span><h2>Phase 4 · Gateway — שערי סיכון וניתוב</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">5 שערי סיכון לפני מילוי slot, ואז ניתוב ל-3 מצבים.</div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">20</span>5 שערי סיכון<span class="st st-wait">פעיל · GAP-2/GAP-4</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> 1 Cooldown (2 STOP→30min) · 2 SSV (≥60% stop בצד→veto) · 3 Chop (SEARCHING→block) · 4 Cluster (5+/60s, DEMO/LIVE) · 5 Strict LIVE (14:30 cutoff, $250 cap, 5/day, 2 losses). <b>GAP-4: MAX_CONTRACTS לא נאכף (יעבור ל-5)</b></div>
+        <div class="meta"><code>trading_gateway.py:86</code> · <code>risk_checks.py:26</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">21</span>ניתוב 3-מצבי<span class="st st-wait">first-wins · D-094 flag-OFF</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> SHADOW תמיד רושם (בלתי-מוגבל) · DEMO/LIVE slot יחיד. ברירת מחדל <b>first-wins</b>; ‏(D-094 flag RR_FIRE_SELECTION=OFF) same-bar buffer→R:R הגבוה זוכה <span class="arrow">→</span> <span class="k">פלט:</span> trade_id</div>
+        <div class="meta"><code>trading_gateway.py:109</code> · <code>rr_score.py</code> · הפעלה: <code>RR_FIRE_SELECTION=true</code> + wire on_bar_close</div></div></div>
+    </div>
+  </section>
+
+  <!-- PHASE 5 -->
+  <section id="p5">
+    <div class="head"><span class="dot" style="background:var(--mgmt)"></span><h2>Phase 5 · ניהול עסקה ומחזור-חיים (TradeManager)</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="lead">לאחר מילוי ה-slot, העסקה מנוהלת מ-PENDING ועד CLOSED.</div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">22-23</span>accept_setup → on_fill<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> יוצר V9Trade (PENDING) + state machine → on_fill: PENDING→FILLED, entry_price=fill, entry_ts=UTC</div>
+        <div class="meta"><code>manager.py:84</code> · <code>:189</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">24</span>BarLevelDetector · זיהוי פגיעה<span class="st st-wait">פעיל · Bug C פתוח</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> לכל בר — בדיקת stop קודם (adverse priority) ואז targets T1→T2→T3 רציף; dedup לפי bar_ts <span class="arrow">→</span> <span class="k">פלט:</span> on_stop_hit / on_target_hit</div>
+        <div class="meta"><code>bar_level_detector.py:43</code> · Bug C: לעיתים נרשם ב-bar-open ולא ב-fill</div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">25</span>T1 → Smart BE+1T<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> →PARTIAL; stop→entry±1T (0.25pt); idempotent + audit <span class="arrow">→</span> <span class="k">פלט:</span> stop=BE+1T</div>
+        <div class="meta"><code>manager.py:206</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">26</span>כללי ניהול (Layer 4)<span class="st st-ok">פעיל · מחוּוט</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> trail / lock-in 2R / tightening / EXIT — 5 שירותי Layer-4 (mfe→cci→tcci→swi→day_type_targets), נקרא לכל בר (D-094 §3.B / D-095) <span class="arrow">→</span> <span class="k">פלט:</span> שינוי stop / CLOSE</div>
+        <div class="meta"><code>services/trail_engine.py:548</code> (<code>_apply_layer4</code>) · + S4 Time-Stop W-10 (18 ברים)</div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">26c</span>דמה: gateway/trade_management.py<span class="st st-dead">legacy · 0 callers</span></div>
+        <div class="flow"><span class="k">הערה:</span> C.2/C.4/C.6/C.7 כפונקציות אך ללא קוראים — superseded dead code (הוחלף ע"י TrailEngine). אל תתבלבל איתו.</div>
+        <div class="meta"><code>gateway/trade_management.py</code></div></div></div>
+      <div class="item"><div class="c"><div class="ttl"><span class="num">27-28</span>סגירה → on_trade_close<span class="st st-ok">פעיל</span></div>
+        <div class="flow"><span class="k">לוגיקה:</span> →CLOSED; PnL per-contract ($5/point MES); pnl_r=total/(3×risk); outcome → on_trade_close: משחרר slot, מעדכן daily stats + SSV</div>
+        <div class="meta"><code>manager.py:317</code> · <code>trading_gateway.py:161</code></div></div></div>
+    </div>
+  </section>
+
+  <!-- PHASE 6 -->
+  <section id="p6">
+    <div class="head"><span class="dot" style="background:var(--io)"></span><h2>Phase 6 · שמירה ותצוגה</h2><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="item"><div class="c"><div class="ttl"><span class="num">29-30</span>Persistence → API → Frontend<span class="st st-wait">ביקורת בהמתנה</span></div>
+        <div class="flow"><span class="k">DB:</span> <code>v9_trades</code> + <code>v9_trade_management_log</code> <span class="arrow">→</span> <span class="k">API:</span> GET /trades (enriched) · /recent (poll 30s) · /active (C1/C2/C3, poll 5s) <span class="arrow">→</span> <span class="k">UI:</span> TradesTable + Modal</div>
+        <div class="meta"><code>db/models/trades.py</code> · <code>api/v9/trades.py</code> · <code>components/trades/</code> · ביקורת+הרחבה: <code>CC_PROMPT_TRADES_PAGE_AUDIT</code></div></div></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    מסמך As-built · משקף קוד+אפיון נכון ל-2026-05-31. פירוט מלא: <code>docs/reference/MEMS26_PIPELINE_DAYTYPE_TO_TRADE_MGMT_2026-05-31.md</code> · טבלת-העל: <code>docs/reports/FULL_PATH_MEGA_TABLE_2026-05-31.md</code>. גַּפים פתוחים: GAP-2 (news), GAP-4 (MAX_CONTRACTS), GAP-5 (conf threshold קוסמטי), GAP-11 (S2 restart hydration), Bug C (bar-open vs fill).
+  </div>
+</div>
+<script>
+  document.querySelectorAll('.head').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('collapsed')));
+  function go(id){var s=document.getElementById(id);s.classList.remove('collapsed');s.scrollIntoView({behavior:'smooth'});}
+</script>
+</body>
+</html>

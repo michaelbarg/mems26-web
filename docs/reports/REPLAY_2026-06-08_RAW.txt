@@ -2,17 +2,19 @@ REPLAY 2026-06-08 — raw + distinct fire counts
 ======================================================================
 
 
-S4 Woodies: 74 bars
+S4 Woodies: 76 bars
 ----------------------------------------
 
-ZLR: 5 raw / 4 distinct
+ZLR: 7 raw / 5 distinct
   2026-06-08 19:00:00 SHORT cci=-98 stop=7466.75
   2026-06-08 19:35:00 SHORT cci=-159 stop=7463.00
   2026-06-08 21:30:00  LONG cci=132 stop=7432.00
   2026-06-08 21:35:00 SHORT cci=-31 stop=7448.00
   2026-06-08 21:40:00 SHORT cci=-88 stop=7448.00
+  2026-06-09 16:30:00  LONG cci=144 stop=7403.00
+  2026-06-10 21:05:00  LONG cci=55 stop=7396.25
 
-TLB: 10 raw / 5 distinct
+TLB: 10 raw / 6 distinct
   2026-06-08 18:40:00  LONG cci=-35 stop=7440.00
   2026-06-08 19:05:00  LONG cci=-87 stop=7440.00
   2026-06-08 19:45:00  LONG cci=-53 stop=7436.50
@@ -22,7 +24,7 @@ TLB: 10 raw / 5 distinct
   2026-06-08 21:35:00 SHORT cci=-31 stop=7448.00
   2026-06-08 22:15:00  LONG cci=-211 stop=7410.75
   2026-06-08 22:20:00  LONG cci=-155 stop=7410.75
-  2026-06-10 21:00:00  LONG cci=-50 stop=7396.25
+  2026-06-10 21:00:00 SHORT cci=50 stop=7471.50
 
 TT: 0 raw / 0 distinct
 
@@ -34,7 +36,7 @@ GB100: 4 raw / 3 distinct
 
 VEGAS: 0 raw / 0 distinct
 
-GHOST: 7 raw / 2 distinct
+GHOST: 8 raw / 3 distinct
   2026-06-08 20:00:00 SHORT cci=-208 stop=7475.50
   2026-06-08 20:05:00 SHORT cci=-164 stop=7474.50
   2026-06-08 20:15:00 SHORT cci=-102 stop=7466.75
@@ -42,6 +44,7 @@ GHOST: 7 raw / 2 distinct
   2026-06-08 21:05:00  LONG cci=153 stop=7422.25
   2026-06-08 21:10:00  LONG cci=56 stop=7422.25
   2026-06-08 21:15:00  LONG cci=56 stop=7422.25
+  2026-06-10 21:05:00  LONG cci=55 stop=7396.25
 
 FAMIR: 3 raw / 1 distinct
   2026-06-08 20:05:00  LONG cci=-164 stop=7424.75
@@ -54,7 +57,7 @@ HTLB: 1 raw / 1 distinct
 HFE: 0 raw / 0 distinct
 
 
-S2 Five-Min: 123 bars
+S2 Five-Min: 125 bars
 ----------------------------------------
 
 Reactive: 7 raw / 7 distinct
@@ -63,7 +66,7 @@ Reactive: 7 raw / 7 distinct
   2026-06-08 20:00:00 SHORT conf=0.75 kind=REACTIVE
   2026-06-08 21:25:00  LONG conf=0.75 kind=REACTIVE
   2026-06-08 21:35:00 SHORT conf=0.75 kind=REACTIVE
-  2026-06-08 23:15:00 SHORT conf=0.75 kind=REACTIVE
+  2026-06-08 23:15:00 SHORT conf=0.80 kind=REACTIVE
   2026-06-08 23:25:00  LONG conf=0.75 kind=REACTIVE
 
 Initiative: 0 raw / 0 distinct
@@ -127,9 +130,9 @@ Bear_Flag: 1 raw / 1 distinct
 
 ======================================================================
 TOTALS:
-  S4: 30 raw / 16 distinct
+  S4: 33 raw / 19 distinct
   S2: 51 raw / 18 distinct
-  ALL: 81 raw / 34 distinct
+  ALL: 84 raw / 37 distinct
 
 'raw' = every detection event (stateless detectors fire repeatedly)
 'distinct' = deduped per pattern+direction, 6-bar (30min) cooldown

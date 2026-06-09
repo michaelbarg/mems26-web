@@ -1,0 +1,48 @@
+═══════════════════════════════════════════════════════════════
+BRIDGE + BUILD STATUS DIAGNOSIS — 2026-06-08 16:55 IL
+═══════════════════════════════════════════════════════════════
+
+== 1. Bridge process ==
+ALIVE — PID 593, LaunchAgent com.mems26.bridge, push #5555+
+Actively pushing all 11 streams every 3s. No push FAILED.
+
+== 2. Build-status 'bridge: running:false, streams:0' ==
+MISMATCH — bridge alive but /api/v9/status reports bridge: timeout.
+Build inspector uses stale stream names: 5min_bars (real: bars_5min),
+tpo_bars (real: tpo), tick_reversal (real: tick_reversal_12/15).
+
+== 3. Root cause: v9_bars_5min table stale ==
+DB latest: 2026-06-05 23:55 IL (FRIDAY CLOSE)
+v9_bars_5min_continuous: 2026-06-08 16:50 IL (FRESH - just now)
+
+WHY: Sierra 5min.json export last bar = 08:50 UTC (04:50 ET = Globex).
+Today's RTH bars (09:30 ET onward) are NOT in the export file.
+The 5min_continuous.json ALSO has last bar at 08:50 UTC — but the
+continuous POST handler has NO RTH time-gate, so continuous writes
+from the separate continuous export are populating the table.
+
+The bridge pushes 601 bars from the export to POST /bars/5min every
+3s, all return 200 OK but with rth_skipped (bars outside 09:30-17:00 ET)
+or inserted=0 (duplicate bars already in DB from June 5).
+
+== 4. Sierra chart issue ==
+Chart 5 (RTH) is not generating new 5-min bars for today's RTH session.
+The DLL exports the chart data every cycle, but the chart has NO new bars
+since Globex close (04:50 ET). This is a Sierra Chart configuration issue:
+  - Chart may need to be the active/visible chart in Sierra
+  - Chart may need a period reset (Settings → Chart → Recalculate)
+  - The DLL study may need to be on the correct chart number
+
+== 5. Frontend ==
+Dashboard is pulling from API (200 OK). If it shows stale data, it's
+because the underlying DB tables are stale (see above).
+
+═══════════════════════════════════════════════════════════════
+IMMEDIATE FIX (Michael action needed):
+  1. In Sierra Chart, bring Chart 5 (MES RTH 5-min) to focus
+  2. Verify it shows today's bars (post-09:30 ET)
+  3. If chart is empty/stale: Chart → Recalculate, or check
+     the DLL study is applied to this chart
+  4. After Sierra starts exporting fresh RTH bars, the bridge
+     will push them and the DB will catch up automatically
+═══════════════════════════════════════════════════════════════

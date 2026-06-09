@@ -1,0 +1,57 @@
+<!doctype html><meta charset="utf8">
+<title>MEMS26 Build Status 2026-06-08 09:40 CT</title>
+<div style="font-family:monospace;padding:16px;font-size:12px;background:#fff;color:#111">
+<h2>MEMS26 Build Status / Decision-Tree &mdash; 2026-06-08T14:40:04Z (09:40 CT)</h2>
+<div>Verdict: <b style="color:#a00">BLOCKED</b> &mdash; dead: tick_reversal | day_type=Trend_Normal conf 0.38 | trend_state=GRAY | cci_14=+121.58 | source: GET /api/v9/build/pattern-status (176ms)</div>
+
+<h3>Readiness</h3>
+<table border="1" cellpadding="3" style="border-collapse:collapse">
+<tr><th>check</th><th>passed</th><th>severity</th><th>detail</th></tr>
+<tr><td>bridge_streams_fresh</td><td style="color:#a00">FAIL</td><td>block</td><td>dead: tick_reversal</td></tr>
+<tr><td>s1_day_type_classified</td><td style="color:#0a0">PASS</td><td>degrade</td><td>day_type=Trend_Normal</td></tr>
+<tr><td>s4_trend_not_stuck_gray</td><td style="color:#a00">FAIL</td><td>degrade</td><td>trend_state=GRAY</td></tr>
+<tr><td>in_rth</td><td style="color:#0a0">PASS</td><td>info</td><td>RTH 09:30-16:00 ET</td></tr>
+</table>
+
+<h3>Bridge gates (Sierra export file freshness)</h3>
+<table border="1" cellpadding="3" style="border-collapse:collapse">
+<tr><th>stream</th><th>state</th><th>value</th><th>req</th></tr>
+<tr><td>woodies_5min</td><td style="color:#0a0">present</td><td>[FRESH] 0s ago &middot; 2026-06-08 17:40:00 (IL, =09:40 CT)</td><td>&lt; 90s</td></tr>
+<tr><td>footprint</td><td style="color:#0a0">present</td><td>[FRESH] 0s ago &middot; 2026-06-08 17:40:03 (IL) &mdash; but 0 bars ingested (I-11)</td><td>&lt; 90s</td></tr>
+<tr><td>cumulative_delta</td><td style="color:#0a0">present</td><td>[FRESH] 0s ago &middot; 2026-06-08T14:40:00Z lag 4.6s</td><td>&lt; 360s</td></tr>
+<tr><td>volume_profile</td><td style="color:#0a0">present</td><td>[FRESH] 0s ago &middot; 2026-06-08T14:40:02Z</td><td>&lt; 360s</td></tr>
+<tr><td>tick_reversal</td><td style="color:#a00">DEAD</td><td>[DEAD] 4248min ago &middot; 2026-06-05 15:51:19 (session-non-start, blocks board)</td><td>&lt; 90s</td></tr>
+<tr><td>imbalance</td><td style="color:#0a0">present</td><td>[FRESH] 0s ago &middot; 2026-06-08T14:40:03Z</td><td>&lt; 90s</td></tr>
+<tr><td>tpo_bars</td><td style="color:#a00">DEAD</td><td>[DEAD] 1332885min ago &middot; 2023-11-25 23:55:00 (S5/TPO unwired, known)</td><td>&lt; 360s</td></tr>
+<tr><td>5min_bars</td><td style="color:#0a0">present</td><td>[FRESH] 0s ago &middot; 2026-06-08 17:40:00 (IL)</td><td>&lt; 360s</td></tr>
+</table>
+<div style="color:#a60">TZ-mix (I-18): woodies_5min / footprint / 5min_bars carry IL-local time (17:40) labelled +00:00 (lag_s=null); cumulative_delta / volume_profile / imbalance carry correct UTC (14:40, lag 4.6s).</div>
+<div style="color:#a60">Bridge data_freshness.lag_seconds = -10795, fresh=true, threshold=90 (I-20 &mdash; negative lag not enforced).</div>
+
+<h3>Patterns S2 / S4 / S3 (armed=0 / fired=0)</h3>
+<table border="1" cellpadding="3" style="border-collapse:collapse">
+<tr><th>System</th><th>Pattern</th><th>Armed</th><th>Block reason</th></tr>
+<tr><td>S2 five_min</td><td>Reactive Long</td><td style="color:#a00">blocked</td><td>Missing: data.choppiness_ok (I-16; gateway chop_state=EXPANDING)</td></tr>
+<tr><td>S2 five_min</td><td>Reactive Short</td><td style="color:#a00">blocked</td><td>Missing: data.choppiness_ok</td></tr>
+<tr><td>S2 five_min</td><td>Initiative Long</td><td style="color:#a00">blocked</td><td>Missing: data.choppiness_ok</td></tr>
+<tr><td>S2 five_min</td><td>Initiative Short</td><td style="color:#a00">blocked</td><td>Missing: data.choppiness_ok</td></tr>
+<tr><td>S2 five_min</td><td>Inverse H&amp;S Long</td><td style="color:#a00">blocked</td><td>Auth Table SKIP for INVERSE_HNS_LONG &times; Trend_Normal (legit)</td></tr>
+<tr><td>S2 five_min</td><td>H&amp;S Top Short</td><td style="color:#a00">blocked</td><td>Auth Table SKIP for HNS_TOP_SHORT &times; Trend_Normal (legit)</td></tr>
+<tr><td>S2 five_min</td><td>Double Bottom EE Long</td><td style="color:#a00">blocked</td><td>Auth Table SKIP for DOUBLE_BOTTOM_EE_LONG &times; Trend_Normal (legit)</td></tr>
+<tr><td>S2 five_min</td><td>Double Top AA Short</td><td style="color:#a00">blocked</td><td>Auth Table SKIP for DOUBLE_TOP_AA_SHORT &times; Trend_Normal (legit)</td></tr>
+<tr><td>S2 five_min</td><td>Bull Flag Long</td><td style="color:#a00">blocked</td><td>Missing: data.choppiness_ok</td></tr>
+<tr><td>S2 five_min</td><td>Bear Flag Short</td><td style="color:#a00">blocked</td><td>Missing: data.choppiness_ok</td></tr>
+<tr><td>S4 woodies</td><td>Zero Line Reject (ZLR)</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY (Woodies WSI rule, legit)</td></tr>
+<tr><td>S4 woodies</td><td>Trend Line Break (TLB)</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY</td></tr>
+<tr><td>S4 woodies</td><td>Tony Trade / Turbo Touch (TT)</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY</td></tr>
+<tr><td>S4 woodies</td><td>Ghost Bar at &plusmn;100 (GB100)</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY</td></tr>
+<tr><td>S4 woodies</td><td>Vegas Divergence / Cup-and-Handle (HFE)</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY</td></tr>
+<tr><td>S4 woodies</td><td>CCI Head-and-Shoulders</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY</td></tr>
+<tr><td>S4 woodies</td><td>Failed ZLR at &plusmn;200 (FAMIR)</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY</td></tr>
+<tr><td>S4 woodies</td><td>Horizontal Trend Line Break (HTLB)</td><td style="color:#a00">blocked</td><td>Stage A1 veto: trend_state=GRAY</td></tr>
+<tr><td>S3 footprint</td><td>Absorption</td><td style="color:#a00">blocked</td><td>Insufficient buffer (0 bars, need &ge;5) &mdash; I-11 ingest break</td></tr>
+<tr><td>S3 footprint</td><td>Stacked Imbalance</td><td style="color:#a00">blocked</td><td>Insufficient buffer (0 bars, need &ge;5)</td></tr>
+<tr><td>S3 footprint</td><td>Sweep Return</td><td style="color:#a00">blocked</td><td>Insufficient buffer (0 bars, need &ge;5)</td></tr>
+<tr><td>S3 footprint</td><td>Exhaustion</td><td style="color:#a00">blocked</td><td>Insufficient buffer (0 bars, need &ge;5)</td></tr>
+</table>
+</div>

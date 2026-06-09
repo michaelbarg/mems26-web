@@ -1,6 +1,21 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-06-09 (RTH · Cowork verify + CC fixes)
+
+**[2026-06-09 — opening_type=NA → S1 day_type=UNKNOWN כל הסשן (S2 auth-SKIP) — FIX מיושם]**
+- **finding:** S1 לא סיווגה כל הסשן (`day_type=UNKNOWN`, `opening_type=NA`) → S2 SKIP → 0 ירי מוקדם. **לא תקלת Sierra/TPO** — TPO פעיל ונכון (POC 7435 · VAH 7456 · VAL 7397.75 · IB `found:true high:7417 mid:7403.88 low:7390.75`, תואם `key_levels` בול). שורש: `state_machine._stage_a2` *כן* מחשב opening_type (`detect_opening_type_cvd`), אבל `main.py` שמר ל-DB את הערך מ-TPO-normalization שמקודד-קשיח `"NA"` (`tpo_routes.py:383`) → דרס את הערך הנכון בנתיב-הפרסיסט.
+- **fix (CC, מאושר Michael):** `main.py:237` קורא opening_type **מהמכונה** (`day_type_machine.opening.opening_type`, `.value`), TPO רק fallback. תיקון-מקור, לא שינוי בלוגיקת-סיווג.
+- **verified (Cowork, raw):** קוד נוכח ומאומת (`main.py:233-242`). **live-verify ממתין restart** — DB היום עדיין `opening_type: NA×73, OPEN_DRIVE×2` כי ה-backend החי טרם אותחל עם התיקון. CC לאתחל → להראות `opening_type≠NA` עקבי + `day_type≠UNKNOWN` בחלון.
+- **OPEN (anti-partial-wiring):** ה-auth/`setup_emitter` עדיין מאשר רק לפי `day_type` → צריך נתיב `opening_type→אישור` בחלון 15–30דק' כדי ש-S2/S4 *יורו* (החלטת-Michael: opening_type@15דק' מאפשר ירי · day_type@30דק' + reclass רציף · IB-lock@60דק'). בלי זה opening_type נכתב נכון אך הירי נחסם.
+- **תיקון-Cowork:** אזעקת-שווא קודמת על "IB מזויף" הייתה קריאה-שגויה מ-grep שטוח (ייחס `previous_session.ib_found=false` להיום) — תוקנה; ה-IB תקין. כלל-מניעה נשמר.
+
+**[2026-06-09 11:13 CT — PATTERN_DIAG snapshot #6: I-3 ZLR הגיע ל-A7 לראשונה (ממצא חדש)]** (ראיה: `docs/reports/PATTERN_DIAG_2026-06-09.md` §11:13 · Build Status `ss_8495tn5t4`)
+- **finding:** ZLR נדרך ו-`active_patterns=[ZLR SHORT conf 0.65]`, dtree A1–A6 PASS אך **A7 FAIL "missing fire_setup for routable pattern"**. חוסם מדויק (`build/pattern-status`): `targets_stop.r_t1_gate / stop_price / targets` + `exit_rules.ready_to_route`. ה-target מנוון (1pt מול stop 17.75pt ⇒ R:R≈0.06) — שער R:R צודק שחוסם, אבל **סימפטום של היעדר טבלת stop/target** (בלי T1/stop אמיתי לא נבנה `fire_setup`).
+- **proposed solution (CC, לא בוצע — read-only snapshot):** לחווט `targets_stop`/`exit_rules` ל-`fire_setup` + להזין טבלת stop/target פר-תבנית×day-type (חופף project stop/target table). זהו ה-reject_reason הקונקרטי ל-I-3.
+- **verified (Cowork, raw):** `woodies/current` dtree A7=FAIL + `build/pattern-status` S4 blockers — מצוטטים מלא בדוח. **אל-תיגע-בקוד נשמר.**
+- **נלוות:** S2+S4 **ירו היום** (id=22 BEAR_FLAG_SHORT פתוח · id=20 S4 TIME_STOP WIN). I-22 (pnl_r ×~5.5 ניפוח, id=20=233R) + I-23 (gateway counters=0 מול 2 עסקאות) **חוסמים ΣR-counterfactual**. I-11 (אישור #27, footprint 0 ברים) · I-18 (woodies_5min ts עתידי 2026-06-10) — נמשכים. verdict=READY.
+
 ## ✅ 2026-06-08 (RTH-prep, Cowork+CC) — GO + צ'קליסט-מצב
 
 > מקור: `docs/reports/SYSTEM_START_2026-06-07.txt` (CC, raw) + בדיקות-Cowork חיות (Chrome).

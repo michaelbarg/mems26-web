@@ -1,0 +1,92 @@
+═══════════════════════════════════════════════════════════════════════
+דוח תיקונים מלא — סשן 2026-06-08/09
+204 regression tests GREEN | 0 crashes post-restart
+═══════════════════════════════════════════════════════════════════════
+
+# | Commit  | באג | עדיפות | קבצים | מה תוקן | אימות
+──┼─────────┼─────┼────────┼───────┼─────────┼──────
+0 | 638e664 | S2⟂S3 | —   | five_min_system.py, CLAUDE.md | COT/AMT לא נדרש (S3 מושתק) | 7 tests
+1 | 0bc1d20 | #1  | P0    | woodies_system.py | DLL-fallback stop=None→real stop | 3 tests, 0 crashes
+2 | 2aef154 | #3  | P1    | five_min_system.py | detection על buffer[:-1] (בר מלא) | 3 tests
+3 | 23163d9 | #2+#4 | P2  | five_min_system.py, bars.py | ts parsing: ISO string + epoch→ISO | 204 green
+4 | 0efe9e0 | #5  | P0    | s2_inspector.py | inspector = engine window (buffer[:-1]) | 3 tests
+
+═══════════════════════════════════════════════════════════════════════
+פירוט לכל תיקון
+═══════════════════════════════════════════════════════════════════════
+
+באג #1 [P0] — S4 DLL-fallback stop=None crash (0bc1d20)
+  שורש:  woodies_system.py:320,332 — stop=None → PatternResult crash
+  השפעה: כל S4 מת שבוע (06-01 עד 06-08). 29 fires הוחמצו ביום אחד.
+  תיקון: חישוב stop אמיתי דרך compute_stop/compute_stop_v2 (ATR+structural).
+  RED-on-revert: stop=None → ValidationError → process_bar crashes.
+  אימות replay: 5 ZLR, 9 TLB, 4 GB100, 7 GHOST, 3 FAMIR, 1 HTLB = 29 fires.
+
+באג #3 [P1] — S2 detection על בר חלקי (2aef154)
+  שורש:  five_min_system.py:917 — detection על buffer שכולל בר חדש (push ראשון, OHLC חלקי)
+  השפעה: S2 כמעט אף פעם לא יורה. 51 fires הוחמצו.
+  תיקון: _det_buf = buffer[:-1] — detection רק על ברים מלאים.
+         entry_price מהבר המושלם, לא מ-opening tick.
+  RED-on-revert: detection uses partial b4 → confirmation fails.
+  אימות replay: 7 Reactive, 43 Double Top AA, 1 Bear Flag = 51 fires.
+
+באג #2 [P2] — S2 DB persist ts type error (23163d9)
+  שורש:  five_min_system.py:1141 — datetime.fromtimestamp() gets ISO string
+  השפעה: fires קורים אבל לא נשמרים ב-DB.
+  תיקון: isinstance check + fromisoformat() for strings.
+
+באג #4 [P2] — Woodies DB write ts integer (23163d9)
+  שורש:  bars.py:911 — epoch integer ל-timestamptz column
+  השפעה: woodies bars לא נשמרים ב-Postgres.
+  תיקון: _ts_from_unix().isoformat() before INSERT.
+
+באג #5 [P0] — Inspector ↔ Engine מראים דבר שונה (0efe9e0)
+  שורש:  s2_inspector.py:125+346 — bar_buffer[-1] = partial bar
+         engine uses buffer[:-1] (completed) → inspector shows "all pass",
+         engine can't fire.
+  השפעה: Dashboard משקר — Michael רואה "ירוק" אבל אין fire.
+  תיקון: inspector uses _raw_buffer[:-1] (same as engine _det_buf).
+         bar_buffer[-1] = last completed bar. Probe inherits.
+  RED-on-revert: inspector_b4 = partial bar ≠ engine_b4.
+
+S2⟂S3 — COT/AMT gate disabled (638e664)
+  שורש:  five_min_system.py — cur_cot/cur_amt None → return (S3 מושתק)
+  השפעה: S2 לא יורה כשאין footprint.
+  תיקון: S2_REQUIRE_COT_AMT flag (default off). S2 fires on price+volume.
+  CLAUDE.md: §Standing Decisions + §S2⟂S3 document.
+
+═══════════════════════════════════════════════════════════════════════
+תיקונים מוקדמים יותר (אותו סשן)
+═══════════════════════════════════════════════════════════════════════
+
+  ccfa625 — build-inspector stream names (5min_bars→bars_5min, tpo_bars→tpo)
+  4a073c6 — choppiness rolling window (bars[:6] → bars[-6:])
+  a8cb1fb — chop gates disabled + S3/S5 non-critical
+  29cc28b — non-critical streams grey in frontend
+  3b06a5d — expansion gate: avg_range instead of ATR×k
+  4b5faf9 — docs: expansion spec updated
+  Phase 0-5 — Stop Anchors V2 wiring (9532205..2af98be, 6 commits)
+
+═══════════════════════════════════════════════════════════════════════
+בעיות פתוחות (לא תוקנו)
+═══════════════════════════════════════════════════════════════════════
+
+  1. Double Top AA — 43 fires על אותו setup. צריך dedup ב-engine.
+  2. CCI Python ≠ DLL — הפרש 1.8 נק' CCI. להשתמש ב-CCI מה-export.
+  3. safe_writer audit — 11+ callers עם ts. צריך ensure_iso_ts מרכזי.
+  4. Initiative calibration — 1.3×avg_range מחמיר ביום תנודתי.
+  5. on_bar_close — convention (buffer[:-1]) → contract מפורש.
+
+═══════════════════════════════════════════════════════════════════════
+אימות סופי
+═══════════════════════════════════════════════════════════════════════
+
+  Regression:   204 passed, 0 failed
+  Post-restart: 0 crashes, 0 ts errors
+  Replay S4:    29 fires (was 0)
+  Replay S2:    51 fires (was 0)
+  V2 stops:     working (entry/stop/contracts/T1 from YAML)
+  Inspector:    aligned with engine (same buffer window)
+  Flags:        STOP_ANCHORS_V2=1, S4_EXTREME_TREND_RELABEL=true
+                S2_CHOPPINESS_GATE=unset, LAYER0_CHOP_GATE=unset,
+                S2_REQUIRE_COT_AMT=unset (all disabled = correct)

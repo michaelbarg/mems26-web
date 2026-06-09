@@ -1,0 +1,75 @@
+═══════════════════════════════════════════════════════════════
+STOP ANCHORS V2 WIRING REPORT — 2026-06-08
+═══════════════════════════════════════════════════════════════
+
+== Phase 0: S2 compute_stop_v2 ==
+Commit: 9532205
+Files: adaptive_stop.py, test_adaptive_stop_v2.py
+
+== Phase 1: S4 CONT (ZLR, TLB, TT, GB100) ==
+Commit: 341e5fd
+Files: zlr.py, tlb.py, tt.py, gb100.py, test_stop_anchor_wiring_s4_cont.py
+
+== Phase 2: S4 REV (VEGAS, GHOST, FAMIR, HTLB, HFE) ==
+Commit: 6d07b71
+Files: vegas.py, ghost.py, famir.py, htlb.py, hfe.py
+
+== Phase 3: S2 (Reactive, OFA, Double_BT, HnS, Flag) ==
+Commit: 91e7193
+Files: five_min_system.py
+
+== Phase 4: Sizing + T1 + Monitor ==
+Commit: dd1211f
+Files: sizing.py, five_min_system.py, woodies_system.py, test_stop_anchor_sizing.py
+
+== Phase 5: End-to-end tests ==
+Commit: 2af98be
+Files: test_stop_anchor_e2e.py
+
+== pytest (regression suite) ==
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+171 passed, 46 warnings in 1.01s
+
+== Flag status ==
+STOP_ANCHORS_V2 OFF (correct — all 14 wired but flag stays OFF until Cowork cross-checks)
+
+== git log ==
+2af98be Phase 5: end-to-end tests per pattern — all 14 patterns verified
+dd1211f Phase 4: wire V2 sizing (final_contracts + T1 ladder + mode classifier)
+91e7193 Phase 3: wire V2 stop anchors to S2 (Reactive, OFA, Double_BT, HnS, Flag)
+6d07b71 Phase 2: wire V2 stop anchors to S4 REV (VEGAS, GHOST, FAMIR, HTLB, HFE)
+341e5fd Phase 1: wire V2 stop anchors to S4 CONT (ZLR, TLB, TT, GB100)
+9532205 Phase 0: add S2 compute_stop_v2 -- structural stop wins, ATR=size gate
+6b7721b feat(stops): S4 woodies compute_stop_v2 — structural stop wins, ATR=size gate (flag-off; legacy unchanged + proven)
+
+== Commit stats ==
+ backend/v9/systems/five_min/adaptive_stop.py       |  79 ++++
+ backend/v9/systems/five_min/five_min_system.py     | 176 +++++++--
+ backend/v9/systems/stop_anchors/sizing.py          | 106 ++++++
+ backend/v9/systems/woodies/patterns/famir.py       |  42 ++-
+ backend/v9/systems/woodies/patterns/gb100.py       |  45 ++-
+ backend/v9/systems/woodies/patterns/ghost.py       |  41 ++-
+ backend/v9/systems/woodies/patterns/hfe.py         |  23 +-
+ backend/v9/systems/woodies/patterns/htlb.py        |  42 ++-
+ backend/v9/systems/woodies/patterns/tlb.py         |  46 ++-
+ backend/v9/systems/woodies/patterns/tt.py          |  46 ++-
+ backend/v9/systems/woodies/patterns/vegas.py       |  42 ++-
+ backend/v9/systems/woodies/patterns/zlr.py         |  45 ++-
+ backend/v9/systems/woodies/woodies_system.py       |  41 +++
+ tests/v9/regression/test_adaptive_stop_v2.py       | 147 ++++++++
+ tests/v9/regression/test_stop_anchor_e2e.py        | 399 +++++++++++++++++++++
+ tests/v9/regression/test_stop_anchor_sizing.py     | 110 ++++++
+ .../regression/test_stop_anchor_wiring_s4_cont.py  | 151 ++++++++
+ 17 files changed, 1517 insertions(+), 64 deletions(-)
+
+═══════════════════════════════════════════════════════════════
+GO criteria:
+  [PASS] All 14 patterns wired (4 CONT + 5 REV + 5 S2)
+  [PASS] 171 regression tests green
+  [PASS] STOP_ANCHORS_V2 flag OFF in running process
+  [PASS] Legacy behavior unchanged (anti-regression tests)
+  [PASS] Each pattern: commit + test + raw pytest output
+  [PENDING] Cowork cross-check vs SPEC + YAML
+  [PENDING] Flag ON in SHADOW after Cowork validates
+═══════════════════════════════════════════════════════════════

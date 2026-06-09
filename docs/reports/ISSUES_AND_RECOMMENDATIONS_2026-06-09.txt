@@ -1,0 +1,180 @@
+═══════════════════════════════════════════════════════════════════════
+לוג בעיות + המלצות מערכתיות — 2026-06-09
+על בסיס replay מלא של 2026-06-08 (80 fires פוטנציאליים, 0 בפועל)
+═══════════════════════════════════════════════════════════════════════
+
+בעיה 1 — S4 DLL-fallback חסר stop [תוקן 0bc1d20]
+──────────────────────────────────────────────────
+  שורש:  woodies_system.py:320,332 — stop=None → PatternResult crash
+  השפעה: כל S4 מת שבוע (06-01 עד 06-08). 29 fires הוחמצו ביום אחד.
+  תוקן:  חישוב stop אמיתי דרך compute_stop/compute_stop_v2.
+
+  ⚠️ המלצה: ה-DLL-fallback path הוא פלסתר בעצמו. הוא קיים כי
+  "DLL מזהה ZLR/HFE ו-Python מפספס". זה אומר שה-Python detectors
+  לא מדויקים מספיק. במקום לתחזק שני מסלולי-זיהוי (DLL+Python)
+  עם סטופים שונים, מומלץ:
+
+  → לטווח קצר: להשאיר את ה-fix (עובד).
+  → לטווח ארוך: לכייל את ZLR/HFE Python detectors מול ה-DLL כך
+    שלא יהיה צורך ב-fallback. לבדוק: למה Python מפספס ZLR כש-DLL
+    מזהה? כנראה הבדל ב-CCI seed period או ב-lookback window.
+    כשה-Python detector מיושר → מבטלים את ה-DLL-fallback לחלוטין.
+
+═══════════════════════════════════════════════════════════════════════
+
+בעיה 2 — S2 detection על בר חלקי [תוקן 2aef154]
+──────────────────────────────────────────────────
+  שורש:  five_min_system.py — detection רץ על push ראשון של בר חדש,
+         כש-OHLC עדיין opening tick. bars[-1] (b4) תמיד חלקי.
+  השפעה: S2 כמעט אף פעם לא יורה. 51 fires הוחמצו ביום אחד.
+  תוקן:  detection על buffer[:-1] (ברים מלאים בלבד).
+
+  ⚠️ המלצה: התיקון עובד אבל יש בעיה עמוקה יותר בארכיטקטורה:
+
+  הגשר דוחף את אותו בר ~20 פעם (כל 3 שניות), אבל ה-engine מריץ
+  detection רק פעם אחת (is_new_bar dedup). זה אומר:
+
+  (א) ב-5 דקות בין ברים, אין detection בכלל — גם אם השוק זז.
+  (ב) entry price נקבע ע"י close של הבר הקודם, לא המחיר הנוכחי.
+  (ג) ה-inspector מראה תמונה שונה מה-engine (races).
+
+  → המלצה מערכתית: לעבור למודל "detect on bar close" מפורש.
+    במקום dedup על ts ו-detection על push ראשון, לעשות:
+    - כל push: עדכן את הבאפר (OHLC מתעדכן).
+    - כש-ts משתנה (בר חדש): הבר הקודם "נסגר" → trigger detection.
+    - detection מקבל באפר שבו כל הברים מלאים (כולל הבר שנסגר).
+    - entry price = close של הבר שנסגר (ידוע, סופי, לא opening tick).
+
+    זה בעצם מה שעשינו ב-buffer[:-1], אבל מפורש יותר ועם naming
+    ברור (on_bar_close event).
+
+═══════════════════════════════════════════════════════════════════════
+
+בעיה 3 — Double Top AA יורה 43 פעם על אותו setup
+──────────────────────────────────────────────────
+  שורש:  patterns/double_bt.py — הדטקטור בודק אם יש תקרה כפולה
+         ופריצת neckline, אבל אין לו זיכרון. כל בר אחרי הפריצה
+         עדיין רואה "יש תקרה כפולה + מחיר מתחת ל-neckline" → fire.
+  השפעה: 43 fires על אותה תקרה כפולה. ה-gateway cooldown חוסם
+         רובם, אבל זה בזבוז CPU + מטשטש את הלוג.
+
+  ⚠️ זו לא בעיית cooldown — זו בעיית design של הדטקטור:
+
+  כל הדטקטורים ב-S2 הם stateless — בודקים את הבאפר בכל בר
+  מחדש. זה עובד ל-Reactive/Initiative (4 ברים ספציפיים, תנאי
+  volume חד-פעמי). אבל ל-chart patterns (Double Top, H&S, Flag)
+  שמבוססים על מבנה שנמשך, stateless = fire חוזר.
+
+  → המלצה: הוסף "last_fire_pattern_id + ts" ל-FiveMinSystem.
+    אחרי fire מוצלח, שמור את ה-pattern + timestamp.
+    בפעם הבאה: אם אותו pattern + direction תוך N ברים → skip.
+
+    N = lookback של הדטקטור (30 ל-Double, 30 ל-H&S, 20 ל-Flag).
+    זה single-variable change, לא refactor. הדטקטורים נשארים
+    stateless, ה-engine עושה dedup.
+
+═══════════════════════════════════════════════════════════════════════
+
+בעיה 4 — DB persist נכשל (S2 + Woodies) [תוקן 23163d9]
+──────────────────────────────────────────────────────────
+  שורש:  ts type mismatch — bridge שולח ISO string, קוד מצפה epoch.
+         Woodies: epoch integer ל-timestamptz column.
+  השפעה: fires קורים אבל לא נשמרים ב-DB → לא נראים ב-UI/history.
+  תוקן:  parse-ts עמיד (isinstance check).
+
+  ⚠️ המלצה: בעיה רוחבית — safe_writer משמש 11+ טבלאות.
+  כל מקום שמעביר bar.get("ts") ישירות ל-safe_execute עלול
+  להיתקע על אותו type mismatch.
+
+  → המלצה: פונקציה מרכזית ensure_iso_ts(raw_ts) → str
+    ב-safe_writer או ב-utility module. כל caller משתמש בה.
+    audit רוחבי חד-פעמי של כל safe_execute calls שמעבירים ts.
+
+═══════════════════════════════════════════════════════════════════════
+
+בעיה 5 — Inspector ↔ Engine ראייה שונה
+───────────────────────────────────────
+  שורש:  ה-inspector (build-status) קורא ברים מה-DB בזמן שאילתה.
+         ה-engine קורא מהבאפר בזיכרון ב-push ראשון.
+         אותו בר נראה שונה בשניהם.
+  השפעה: Inspector מציג "All conditions met" כש-engine לא מזהה.
+         Michael רואה "הכל ירוק" ולא מבין למה אין fire.
+
+  ⚠️ זו בעיית-אמון: ה-dashboard משקר (בלי כוונה).
+
+  → המלצה: ה-inspector צריך לקרוא מאותו באפר כמו ה-engine.
+    אפשרות א: Inspector קורא מ-app.state.five_min_system._bar_buffer
+    (כמו שהוא כבר קורא choppiness_score מה-system).
+    אפשרות ב: ה-engine שומר את תוצאות ה-detection האחרונות
+    (detected/not, reason) ב-state — וה-inspector מציג אותן.
+
+    אפשרות ב עדיפה: במקום ש-inspector ירוץ detection עצמאי,
+    הוא פשוט מציג את מה שה-engine כבר חישב. Single source of truth.
+
+═══════════════════════════════════════════════════════════════════════
+
+בעיה 6 — CCI חישוב Python ≠ DLL
+─────────────────────────────────
+  שורש:  Python CCI חישב -98.2 על בר 19:00. ה-DLL סימן ZLR
+         (CCI ≤ -100 לפי Sierra). הפער = 1.8 נקודות CCI.
+  השפעה: Python מפספס ZLR כש-CCI קרוב ל-boundary.
+
+  → המלצה: לבדוק מאיפה הפער:
+    (א) Seed period — ה-DLL מחשב CCI על אלפי ברים, Python על 50.
+        Wilder's smoothing converges אחרי ~100 ברים, אבל ב-50
+        עדיין יש drift.
+    (ב) OHLC source — ה-DLL משתמש ב-Sierra's internal OHLC
+        (micro-rounded, volume-weighted), Python משתמש ב-export JSON.
+
+    → תיקון: הגדל את באפר ה-Woodies מ-50 ל-200+ ברים (עדיין
+      קטן מ-DLL אבל seed drift יקטן). או: לוותר על Python CCI
+      לחלוטין ולהסתמך על CCI מה-DLL export (כבר מגיע ב-JSON).
+      ה-DLL הוא source-of-truth לפי CLAUDE.md §Sierra.
+
+═══════════════════════════════════════════════════════════════════════
+
+בעיה 7 — Initiative expansion gate מחמיר מדי ביום תנודתי
+────────────────────────────────────────────────────────────
+  שורש:  Expansion = 1.3×avg_range. ביום עם avg_range=11.5pt,
+         צריך בר של 15pt+. רוב הברים 8-12pt.
+  השפעה: 0 Initiative fires היום.
+
+  → המלצה: Initiative מחפש "בר expansion" — בר שבולט מהממוצע.
+    1.3× הוא מכפיל סביר ליום רגיל (avg 3pt → צריך 4pt).
+    ביום תנודתי ה-avg כבר גבוה, אז 1.3× מחמיר.
+
+    אפשרויות:
+    (א) הורד ל-1.15× (בר 15% מעל הממוצע = בולט)
+    (ב) cap על avg_range שמשמש לחישוב (למשל max(avg, 6.0))
+    (ג) השאר — Initiative פשוט לא מתאים ליום תנודתי
+
+    Michael: זו החלטת-כיול, לא באג. מה שעובד ליום רגיל לא
+    בהכרח צריך לעבוד ליום תנודתי. Initiative הוא "expansion bar"
+    — ביום שכולו expansion, אין "בר חריג".
+
+═══════════════════════════════════════════════════════════════════════
+
+סדר עדיפויות (לא-פלסתר)
+═══════════════════════════════════════════════════════════════════════
+
+  1. [P0] בעיה 5 — Inspector = engine state (single source of truth)
+     ⏱ יום עבודה. השפעה: dashboard אמין → Michael סומך על המסך.
+
+  2. [P0] בעיה 6 — CCI Python → DLL values
+     ⏱ שעות. השפעה: Python detectors מיושרים עם Sierra.
+     פשוט להשתמש ב-CCI שמגיע ב-export במקום לחשב מחדש.
+
+  3. [P1] בעיה 3 — Double Top dedup (last_fire_pattern + cooldown)
+     ⏱ שעות. השפעה: 43 fires → 1-2 fires. לוג נקי.
+
+  4. [P1] בעיה 4 — ensure_iso_ts audit רוחבי
+     ⏱ חצי יום. השפעה: כל DB writes עמידים.
+
+  5. [P2] בעיה 2 — on_bar_close event מפורש
+     ⏱ יום. השפעה: ארכיטקטורה נקייה, entry price מדויק.
+     ה-fix הנוכחי (buffer[:-1]) עובד אבל הוא convention, לא contract.
+
+  6. [P2] בעיה 7 — Initiative calibration
+     ⏱ החלטת Michael. לא באג.
+
+═══════════════════════════════════════════════════════════════════════

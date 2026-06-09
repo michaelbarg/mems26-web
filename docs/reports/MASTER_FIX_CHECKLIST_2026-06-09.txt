@@ -1,0 +1,86 @@
+═══════════════════════════════════════════════════════════════════════
+MASTER FIX CHECKLIST — 2026-06-09 ערב
+כל התיקונים הנדרשים, מסודרים לפי שורש ותלות
+═══════════════════════════════════════════════════════════════════════
+
+שורש-על: Sierra לא מייצאת IB → opening_type=NA → day_type=UNKNOWN
+→ S2 SKIP → stop/targets שרירותיים → טבלה קפואה → הכל מתמוטט
+
+═══════════════════════════════════════════════════════════════════════
+FIX 1 🔴 [ROOT] S1 day_type תקוע UNKNOWN
+═══════════════════════════════════════════════════════════════════════
+  שורש:    Sierra tpo.json: ib_found=false, ib_high=0, ib_low=0
+           → S1 state_machine לא יכולה לנעול IB → opening_type=NA
+           → day_type=UNKNOWN → S2 emit SKIP
+  תלויים:  FIX 5 (targets need day_type), S2 fires, chart patterns
+  סטטוס:   [ ] אבחון — מאיפה IB מזויף? Sierra source-of-truth
+           [ ] STRATEGIC-STOP אם צד-Sierra/DLL
+           [ ] תיקון
+           [ ] אימות: opening_type≠NA, day_type≠UNKNOWN
+
+IB LEVELS VERIFICATION (נספח):
+  סטטוס:   [ ] אבחון — למה key_levels מציג IB=7417/7390 כש-Sierra=false
+           [ ] תיקון — honest None/missing, לא תווית-שקר "sierra live"
+           [ ] אימות: key_levels.ib = Sierra (או None ביושר)
+
+═══════════════════════════════════════════════════════════════════════
+FIX 2 🟡 zlr_detected boolean↔Integer
+═══════════════════════════════════════════════════════════════════════
+  שורש:    bars.py כותב raw bool לעמודת Integer
+           חלק מהנתיבים ממירים (1 if...else 0), חלק לא
+  תלויים:  woodies bars DB writes
+  סטטוס:   [ ] אבחון — איזה נתיב נכשל בפועל
+           [ ] תיקון — int(bool(...)) בכל הנתיבים
+           [ ] אימות: v9_bars_5min_woodies מטפס, 0 DatatypeMismatch
+
+═══════════════════════════════════════════════════════════════════════
+FIX 3 🟡 טבלה/צ'ארט: ghost bars + קפוא + CVD
+═══════════════════════════════════════════════════════════════════════
+  שורש:    ts בלי TZ → PG מפרש כ-IL (+3h) → ברים מוזזים = ghost
+           צ'ארט קופא אחרי ~10:00 ET (ראה צילום Michael)
+  תלויים:  FIX 4 (SLOW process_bar מעכב עדכונים)
+  סטטוס:   [ ] אבחון — איזה write path כותב ts בלי TZ
+           [ ] תיקון — UTC מפורש (Rule 4)
+           [ ] תיקון — CVD ב-pane נפרד
+           [ ] אימות: צ'ארט חי בלי ghost, נרות עד סגירה
+
+═══════════════════════════════════════════════════════════════════════
+FIX 4 🟡 יציבות — 14× re-hydrate + SLOW 2386ms
+═══════════════════════════════════════════════════════════════════════
+  שורש:    FiveMinSystem hydrates 14+ פעמים (לולאה? קריאה כפולה?)
+           process_bar SLOW 2386ms (DB commit סנכרוני? hydrate בתוכו?)
+  תלויים:  FIX 3 (צ'ארט קופא בגלל SLOW)
+  סטטוס:   [ ] אבחון — למה 14 hydrations
+           [ ] אבחון — למה SLOW 2386ms
+           [ ] תיקון
+           [ ] אימות: hydration פעם אחת + process_bar < 100ms
+
+═══════════════════════════════════════════════════════════════════════
+FIX 5 🔴 Stop/targets לא מהטבלה — עסקה #20
+═══════════════════════════════════════════════════════════════════════
+  שורש:    S4 Woodies משתמש בטיקים קבועים (STOP_TICKS/TARGET1_TICKS)
+           במקום stop_anchors.yaml / targets_table per-pattern×day-type
+           עסקה #20: initial_stop=7491.75, entry=7489.25 = 2.5pt risk
+           → T1=1.4R T2=2.8R (טיקים) במקום T1=1R (טבלה)
+           בנוסף: Initiative stop=7388.25 entry=7387.25 = 1pt risk (צמוד מדי)
+  תלויים:  FIX 1 (day_type needed for per-pattern×day_type lookup)
+  סטטוס:   [ ] אבחון — מאיפה S4 מושך stop/targets (file:line)
+           [ ] STRATEGIC-STOP — trading logic
+           [ ] תיקון — S4+S2 מושכים מטבלה, לא hardcoded
+           [ ] BE-move on T1 hit
+           [ ] אימות: regression על עסקה #20 values
+
+═══════════════════════════════════════════════════════════════════════
+FIX 6 🟡 Dashboard — פאנל זיהוי + דירוג
+═══════════════════════════════════════════════════════════════════════
+  שורש:    Michael רוצה בטאב Shadow: S1/S2/S4 + תבניות + דירוג
+  תלויים:  FIX 1 (day_type for tier display)
+  סטטוס:   [ ] backend — שדה grade/tier per pattern
+           [ ] frontend — כרטיס per-system בטאב Shadow
+           [ ] אימות: צילום
+
+═══════════════════════════════════════════════════════════════════════
+סדר עבודה: FIX 1 → IB verify → FIX 2 → FIX 3 → FIX 4 → FIX 5 → FIX 6
+═══════════════════════════════════════════════════════════════════════
+עכשיו עובד על: FIX 1 (אבחון Sierra IB)
+═══════════════════════════════════════════════════════════════════════

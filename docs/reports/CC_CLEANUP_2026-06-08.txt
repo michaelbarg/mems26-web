@@ -1,0 +1,57 @@
+═══ Task 1: Restart + day_type fix (bebea27) ═══
+HEAD: bebea27 fix(day_type): status reads LIVE app.state.day_type_machine, not dead _get_engine() — fixes misleading UNKNOWN (root cause of 'day_type not classified' display)
+Backend PID: 19184
+day_type.running: True
+day_type.current_type: UNKNOWN
+day_type.status: developing
+day_type.stage: A2
+day_type.confidence: 0.0
+VERDICT: endpoint reads LIVE day_type_machine (bebea27 fix active).
+UNKNOWN is correct — no fresh RTH bars yet (blocked by task 2).
+
+═══ Task 2: 5min stream wiring diagnosis ═══
+v9_bars_5min max_ts: 2026-06-08 17:30 IL (FRESH — today's RTH bars flowing)
+v9_bars_5min_continuous max_ts: 2026-06-08 17:30 IL (FRESH)
+POST /bars/5min test: inserted=1, rejected=0, rth_skipped=0
+VERDICT: 5min stream is WORKING. Michael already fixed the Sierra/export issue.
+No code change needed. RTH-gate passes bars correctly for 09:30-17:00 ET.
+
+═══ Task 3: build-inspector stream names (ccfa625) ═══
+Fixed: 5min_bars→bars_5min, tpo_bars→tpo, tick_reversal→tick_reversal_15
+9 tests: all tables exist in DB + labels match bridge stream names
+184 regression tests green
+
+═══ Task 4: End-to-end verification ═══
+== 1. day_type ==
+  type: Trend_Normal
+  status: LOCKED
+  confidence: 0.38
+  stage: B2
+  running: True
+== 2. patterns armed ==
+  five_min: 0/10 armed
+  woodies: 0/9 armed
+== 3. bridge streams ==
+  fresh: 6/8 (['woodies_5min', 'footprint', 'cumulative_delta', 'volume_profile', 'imbalance', 'bars_5min'])
+  not fresh: ['tick_reversal_15', 'tpo']
+== 4. V2 flags ==
+  STOP_ANCHORS_V2: True
+  S4_EXTREME_TREND_RELABEL: True
+== 5. health ==
+{"status":"ok","service":"mems26-unified","version":"9.0.0","uptime_s":100.8,"v9_mounted":true}
+== Post-restart: 9+1 flags verified ==
+  S1_CVD_OPENING=true  S1_DAYTYPE_STAGING=true  S1_IB_WIDTH_ATR=true
+  S1_DYNAMIC_RECLASS=true  S1_LIVE_RECLASS=true
+  S2_ATR_RELATIVE=true  S2_VSA_VOLUME=true  S3_RELATIVE=true
+  S4_EXTREME_TREND_RELABEL=true  STOP_ANCHORS_V2=true
+  day_type: Trend_Normal / LOCKED / conf=0.38
+  D-S1DYN: flags on, will log on next reclassification event
+
+═══════════════════════════════════════════════════════════════
+SUMMARY (5 lines):
+1. day_type endpoint reads live machine (bebea27) — shows Trend_Normal/LOCKED.
+2. 5min bars flowing: v9_bars_5min fresh (17:35 IL), no code fix needed.
+3. build-inspector labels fixed (ccfa625): 6/8 streams FRESH, false DEAD removed.
+4. All 10 flags active: 7 original + S1_DYNAMIC_RECLASS + S1_LIVE_RECLASS + STOP_ANCHORS_V2.
+5. V2 enabled in SHADOW. Cowork: verify trades match SPEC (structural stop/T1 ladder/contracts).
+═══════════════════════════════════════════════════════════════

@@ -1,0 +1,140 @@
+גע# End of Day Trading Report · 2026-05-29
+
+---
+
+## 1. סיכום עסקאות
+
+| קטגוריה | כמות | PnL |
+|---------|------|-----|
+| **Real S4 (Woodies)** | 12 | **+$137.50** |
+| **Real S2 (5-Min)** | 1 | open |
+| Noise (footprint bursts) | 550 | N/A |
+| Fake entries (@5900) | 12 PARTIAL | N/A |
+| **Total** | 575 | **+$137.50 net** |
+
+### S4 Woodies Detail
+
+| # | Mode | Dir | Entry | Stop | T1 | Exit | Reason | PnL | R |
+|---|------|-----|-------|------|----|------|--------|-----|---|
+| 15 | demo | SHORT | 7529.75 | 7531.00 ✅ | 7526.25 | 7531.00 | STOP_HIT | -$18.75 | -1.00 |
+| 155 | shadow | LONG | 7579.00 | 7577.75 ✅ | 7582.00 | — | TIME_STOP | $0.00 | 0.00 |
+| 156 | demo | LONG | 7579.00 | 7579.25 (BE+1T) | 7582.00 | 7579.25 | STOP_HIT (post T1) | +$17.50 | 0.93 |
+| 536 | shadow | LONG | 7606.25 | 7604.75 ✅ | 7609.25 | 7604.75 | STOP_HIT | -$22.50 | -1.00 |
+| 537 | demo | LONG | 7606.25 | 7604.75 ✅ | 7609.25 | 7604.75 | STOP_HIT | -$22.50 | -1.00 |
+| 603 | shadow | LONG | 7592.25 | 7590.25 ✅ | 7595.75 | 7600.00 | TIME_STOP | **+$116.25** | **3.88** |
+| 652 | shadow | LONG | 7602.75 | 7600.75 ✅ | 7605.75 | 7607.25 | TIME_STOP | **+$67.50** | **2.25** |
+
+Shadow: +$161.25 · Demo: -$23.75
+
+---
+
+## 2. Stop Analysis
+
+### כיוון Stop — ✅ תקין
+11/12 trades עם stop בכיוון הנכון. ה-❌ (#156) הוא Smart BE תקין — stop זז מ-7577.75 ל-7579.25 (entry+1T) אחרי T1 hit.
+
+### Smart BE (Breakeven + 1 Tick)
+- #156: T1 hit → stop moved to 7579.25 (entry+0.25) → stop hit → PnL +$17.50
+- כל שאר ה-trades: T1 **לא נרשם** → Smart BE **לא הופעל**
+
+### Stop Risk Size
+| Trades | Stop Distance | Ticks |
+|--------|--------------|-------|
+| #155, #15, #561, #658 | 1.25 pts | 5 ticks |
+| #536, #537 | 1.50 pts | 6 ticks |
+| #603, #604, #652 | 2.00 pts | 8 ticks |
+| #544, #545 | 3.50 pts | 14 ticks |
+
+ממוצע: ~1.7 pts (7 ticks). ב-MES עם ATR ~50, זה **צפוף**.
+
+---
+
+## 3. TIME_STOP — באגים
+
+### Spec vs Reality
+
+| Trade | Duration | Expected (spec=90min) | Status |
+|-------|----------|----------------------|--------|
+| #155 | **0.9 min** | 90 min | ❌ Bug A (push counting — fixed in code) |
+| #603 | **31.9 min** | 90 min | ❌ **Still broken** |
+| #652 | **59.9 min** | 90 min | ❌ **Still broken** |
+
+### Root Cause
+ה-Woodies `_bar_count` dedup (`_last_bar_ts_for_count`) משתמש ב-`bar.get("ts")`.
+אבל ה-Woodies bars מגיעים עם **ts ייחודי לכל push** (ISO timestamp עם milliseconds,
+e.g. `2026-05-29T15:05:33.214428+00:00`). כל push = ts חדש = bar_count +1.
+
+954 pushes ב-32 דקות → bar_count 18 הגיע אחרי ~36 pushes ≈ ~72 שניות.
+
+**ה-dedup ב-Woodies לא עובד** כי ה-ts של כל push שונה (milliseconds).
+צריך dedup על **rounded 5-minute bar boundary** (floor to 5min), לא על ts מדויק.
+
+### T1 Hit Not Detected
+Trades #603 ו-#652 עברו את T1 (exit price > T1) אבל `t1_hit_ts` ריק.
+ה-BarLevelDetector subscribes ל-`5min` (לא `woodies_5min`) — ייתכן שהוא לא
+רואה את ה-bars הרלוונטיים, או שה-TZ issue גורם לו לפספס.
+
+---
+
+## 4. S2 (5-Min) — למה לא ירתה
+
+### Reactive
+- **b2_volume_drop**: ratio=0.727–1.37 (need ≤0.10). אף bar היום לא הראה 90% drop.
+- **COT vs AMT**: COT=-4650, AMT=-5932. Reactive SHORT דורש COT<AMT — COT גבוה מ-AMT.
+- Best near-miss: Reactive SHORT 5/7 conditions.
+
+### Initiative  
+- **b1_expansion**: כל bars היום range 3-18 pts. Spec דורש 1.5-1.75 pts. **0/44 bars passed**.
+- Bar range ממוצע: 6.12 pts — פי 4 מהנדרש.
+
+### Chart Patterns (H&S, Flags, Double Top)
+- DOUBLE_TOP_AA_SHORT **זוהה!** (conf=0.89-0.98)
+- נדחה ע"י `pre_fire_validator`: R:R < 1.0 (risk=14.38, reward=11.38)
+- **המערכת עבדה נכון** — זיהתה pattern ודחתה כי הסיכון > תגמול.
+
+---
+
+## 5. Market Data — IB + TPO
+
+### IB Today
+| Source | High | Low | Width | Class |
+|--------|------|-----|-------|-------|
+| Sierra Study (during RTH) | 7611.75 | 7586.75 | 25.0 | MEDIUM |
+
+### TPO Today (end of session)
+| Metric | Value |
+|--------|-------|
+| **POC** | 7586.25 |
+| **VAH** | 7590.25 |
+| **VAL** | 7582.50 |
+
+---
+
+## 6. S1 (Day Type) — סיכום
+
+- **Classification**: Normal (via INDETERMINATE opening → Decision Matrix fallback)
+- **IB**: 7611.75 / 7586.75, class=MEDIUM
+- **Opening type**: INDETERMINATE (backend restarted after 09:40 ET → missed detection window)
+- **Confidence**: 0.68 < lock threshold 0.70 → **לא ננעל כל היום** (stage B2)
+
+---
+
+## 6. רעש — מה צריך לנקות לפני LIVE
+
+| # | בעיה | כמות | עדיפות |
+|---|------|------|--------|
+| 1 | Footprint burst (30× trades/minute) | 550 | 🔴 CRITICAL |
+| 2 | Fake PARTIAL @5900 | 12 | 🔴 מחיקה + מקור |
+| 3 | TIME_STOP fires early (push counting) | 3 trades | 🔴 dedup fix |
+| 4 | T1 not detected by BarLevelDetector | 2 trades | 🟡 lifecycle |
+| 5 | S2 Initiative expansion threshold too narrow | 0/44 bars | 🟡 review threshold |
+
+---
+
+## 7. Open Issues for Tomorrow
+
+1. **TIME_STOP Woodies dedup** — needs 5min-boundary rounding, not exact ts
+2. **BarLevelDetector T1 detection** — subscribes to 5min, not woodies_5min
+3. **Footprint dedup** — add per-level per-bar gate
+4. **S2 thresholds** — Initiative expansion [1.5-1.75] unreachable with current MES ATR
+5. **S1 confidence** — 0.68 < 0.70 → never locks. Consider lowering threshold or forcing earlier lock

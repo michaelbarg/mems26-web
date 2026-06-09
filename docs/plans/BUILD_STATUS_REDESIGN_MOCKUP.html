@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MEMS26 · Build Status — Redesign (עץ החלטות)</title>
+<style>
+  :root{
+    --bg:#0b0b0d; --s1:#121214; --s2:#161619; --s3:#1c1c20; --line:#24242a; --line2:#2e2e35;
+    --tp:#ececf0; --ts:#9a9aa4; --tt:#646470;
+    --green:#22c55e; --green-d:#0f2e1c; --amber:#f5b441; --amber-d:#2e2410; --red:#ef4444; --red-d:#2e1414;
+    --sys1:#5b9bff; --sys2:#2dd4a7; --sys3:#a78bfa; --sys4:#fb923c; --sys5:#22b8cf; --sys6:#8b8b96;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace; --sans:system-ui,-apple-system,sans-serif;
+    --r:9px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--tp);font-family:var(--sans);font-size:13px;line-height:1.5;
+    -webkit-font-smoothing:antialiased}
+  .mono{font-family:var(--mono)}
+  .ltr{direction:ltr;unicode-bidi:isolate}
+  .container{max-width:1320px;margin:0 auto;padding:0 22px}
+
+  /* ---------- header ---------- */
+  header{position:sticky;top:0;z-index:30;background:rgba(11,11,13,.92);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line)}
+  .header-in{display:flex;align-items:center;gap:16px;height:54px}
+  .brand{font-family:var(--mono);font-weight:700;letter-spacing:1px;color:var(--sys1);font-size:14px}
+  .crumb{color:var(--ts);font-size:12px}
+  .spacer{flex:1}
+  .verdict{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:8px;font-weight:700;font-size:14px;letter-spacing:.4px;font-family:var(--mono)}
+  .v-blocked{color:var(--red);background:var(--red-d);box-shadow:inset 0 0 0 1px #ef444433}
+  .pulse{width:8px;height:8px;border-radius:50%;background:currentColor;animation:p 1.6s ease-in-out infinite}
+  @keyframes p{0%,100%{opacity:1}50%{opacity:.3}}
+  .hmeta{display:flex;align-items:center;gap:18px;color:var(--ts);font-size:11px;font-family:var(--mono)}
+  .hmeta b{color:var(--tp);font-weight:600}
+  .live{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:7px;font-family:var(--mono);
+    font-size:11px;font-weight:600;cursor:pointer;color:var(--green);background:var(--green-d);
+    box-shadow:inset 0 0 0 1px #22c55e33;border:none}
+  .live.off{color:var(--ts);background:var(--s2);box-shadow:inset 0 0 0 1px var(--line)}
+
+  /* ---------- blocker ---------- */
+  .blocker{margin-top:18px;border-radius:var(--r);background:linear-gradient(180deg,#1d1416,#160f10);
+    border:1px solid #ef444430;padding:16px 18px}
+  .blocker .why{font-size:15px;font-weight:700;color:#ffb4b4;line-height:1.45}
+  .blocker .fix{margin-top:8px;font-size:12.5px;color:var(--ts)}
+  .blocker .fix b{color:var(--amber);font-weight:600}
+  .chain{margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:11px}
+  .chain .n{padding:4px 10px;border-radius:6px;background:var(--s2);color:var(--ts);box-shadow:inset 0 0 0 1px var(--line)}
+  .chain .n.ok{color:#9be7b4;box-shadow:inset 0 0 0 1px #22c55e30}
+  .chain .n.bad{color:#ffb4b4;background:var(--red-d);box-shadow:inset 0 0 0 1px #ef444450;font-weight:700}
+  .chain .a{color:var(--tt)}
+
+  /* ---------- tabs ---------- */
+  .tabs{display:flex;gap:6px;margin-top:22px;border-bottom:1px solid var(--line)}
+  .tab{padding:9px 18px;border-radius:8px 8px 0 0;background:transparent;color:var(--ts);cursor:pointer;
+    font-size:13px;font-weight:600;border:1px solid transparent;border-bottom:none;margin-bottom:-1px}
+  .tab.on{background:var(--s1);color:var(--tp);border-color:var(--line);border-bottom-color:var(--s1)}
+  .tab .b{margin-inline-start:7px;font-size:10px;padding:1px 7px;border-radius:9px;
+    background:var(--red-d);color:#ffb4b4;font-family:var(--mono)}
+
+  /* ---------- layout ---------- */
+  main{padding:22px 0 56px}
+  .panel{display:none} .panel.on{display:block}
+  .grid{display:grid;grid-template-columns:1fr 296px;gap:18px;align-items:start}
+  @media(max-width:1080px){.grid{grid-template-columns:1fr}}
+
+  /* context bar */
+  .ctx{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:12px 16px;border-radius:var(--r);
+    background:var(--s1);border:1px solid var(--line);font-family:var(--mono);font-size:12px;margin-bottom:18px}
+  .ctx .lab{color:var(--tt)}
+  .ctx .v{color:var(--tp);font-weight:600}
+  .ctx .sep{width:1px;height:16px;background:var(--line2)}
+
+  /* section labels */
+  .slab{font-size:10px;color:var(--tt);text-transform:uppercase;letter-spacing:.8px;
+    font-family:var(--mono);margin:0 2px 10px}
+
+  /* sources */
+  .sources{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:24px}
+  @media(max-width:760px){.sources{grid-template-columns:repeat(2,1fr)}}
+  .src-chip{padding:11px 12px;border-radius:var(--r);background:var(--s1);border:1px solid var(--line)}
+  .src-chip.bad{border-color:#ef444445;background:var(--red-d)}
+  .src-chip .top{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--tp);font-weight:600}
+  .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto}
+  .src-chip .sub{margin-top:6px;font-family:var(--mono);font-size:10px}
+  .ok-t{color:var(--green)} .bad-t{color:var(--red)} .mut{color:var(--tt)}
+
+  /* system card */
+  .sys{border:1px solid var(--line);border-radius:var(--r);margin-bottom:12px;background:var(--s1);overflow:hidden}
+  .sys-head{display:flex;align-items:center;gap:13px;padding:14px 16px;cursor:pointer}
+  .sys-accent{width:4px;align-self:stretch;border-radius:4px;flex:0 0 auto;margin:-2px 0}
+  .sys-name{font-family:var(--mono);font-weight:700;font-size:14px}
+  .role{font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:5px;text-transform:uppercase;
+    letter-spacing:.5px;color:var(--ts);background:var(--s2);box-shadow:inset 0 0 0 1px var(--line)}
+  .role.firing{color:var(--sys4);box-shadow:inset 0 0 0 1px #fb923c40}
+  .fresh{font-family:var(--mono);font-size:10px;color:var(--ts)}
+  .vbadge{font-family:var(--mono);font-size:11px;font-weight:700;padding:4px 11px;border-radius:6px}
+  .vb-armed{color:var(--amber);background:var(--amber-d)}
+  .vb-blocked{color:var(--red);background:var(--red-d)}
+  .vb-fired{color:var(--green);background:var(--green-d)}
+  .chev{color:var(--tt);transition:.18s;font-size:11px}
+  .sys.open .chev{transform:rotate(-90deg)}
+
+  .flow{display:none;border-top:1px solid var(--line);padding:18px 20px 20px}
+  .sys.open .flow{display:block}
+
+  /* timeline steps */
+  .steps{position:relative;margin:0}
+  .step{display:grid;grid-template-columns:24px 1fr;gap:14px;padding-bottom:16px}
+  .step:last-child{padding-bottom:0}
+  .rail{position:relative;display:flex;justify-content:center}
+  .rail .ic{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;z-index:1;font-family:var(--mono)}
+  .rail::after{content:"";position:absolute;top:24px;bottom:-16px;width:2px;background:var(--line2)}
+  .step:last-child .rail::after{display:none}
+  .ic.ok{background:var(--green-d);color:var(--green)}
+  .ic.bad{background:var(--red-d);color:var(--red)}
+  .ic.wait{background:var(--amber-d);color:var(--amber)}
+  .ic.info{background:var(--s2);color:var(--ts)}
+  .step .st{font-family:var(--mono);font-size:12.5px;font-weight:600;color:var(--tp)}
+  .step .sd{margin-top:5px;font-size:12px;color:var(--ts);line-height:1.6}
+  .step .sd b{color:var(--tp);font-weight:600}
+
+  /* input key/value grid (calm, not chips) */
+  .kvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:4px 18px;margin-top:8px;
+    font-family:var(--mono);font-size:11.5px}
+  .kvgrid .row{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid var(--line)}
+  .kvgrid .k{color:var(--tt)} .kvgrid .val{color:var(--tp)}
+  .kvgrid .val.warn{color:var(--amber)}
+
+  /* progress to trigger */
+  .gap{margin-top:10px;max-width:300px}
+  .gap .glab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--ts);margin-bottom:5px}
+  .gap .glab b{color:var(--amber)}
+  .gbar{height:7px;border-radius:4px;background:var(--s3);overflow:hidden}
+  .gbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),#f5d441)}
+
+  /* source pill */
+  .srcpill{font-family:var(--mono);font-size:9.5px;padding:2px 7px;border-radius:5px;color:var(--green);background:var(--green-d)}
+  .srcpill.warn{color:var(--amber);background:var(--amber-d);box-shadow:inset 0 0 0 1px #f5b44140}
+  .srcpill.bad{color:var(--red);background:var(--red-d)}
+
+  /* observers row */
+  .obs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+  @media(max-width:760px){.obs{grid-template-columns:1fr}}
+  .obs .o{padding:11px 13px;border-radius:var(--r);background:var(--s1);border:1px solid var(--line);font-family:var(--mono);font-size:12px}
+  .obs .o .nm{display:flex;align-items:center;gap:7px;color:var(--tp);font-weight:600}
+  .obs .o .dt{margin-top:5px;color:var(--ts);font-size:11px}
+
+  /* right rail cards */
+  .rcard{background:var(--s1);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:14px}
+  .rcard .rt{font-size:10px;color:var(--tt);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin-bottom:10px}
+  .rrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0;
+    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:12px}
+  .rrow:last-child{border-bottom:none}
+  .rrow .rk{color:var(--ts)} .rrow .rv{color:var(--tp);font-weight:600}
+  .misslog{font-family:var(--mono);font-size:11px;line-height:1.85;color:var(--ts)}
+  .misslog .t{color:var(--tt)}
+  .hint{margin-top:10px;font-size:11px;color:var(--amber);line-height:1.5;font-family:var(--mono)}
+
+  /* integrity table */
+  .itab{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  .itab th{text-align:start;color:var(--tt);font-weight:500;font-size:10px;text-transform:uppercase;
+    letter-spacing:.5px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .itab td{padding:11px 12px;border-bottom:1px solid var(--line);color:var(--ts)}
+  .itab td.fld{color:var(--tp)}
+  .itab tr.flag td{background:var(--amber-d)}
+  .itab tr.flag td.fld{color:var(--amber)}
+  .tick{color:var(--green)} .cross{color:var(--red)}
+
+  .alert{margin-top:16px;border:1px solid #f5b44140;border-radius:var(--r);background:var(--amber-d);padding:16px 18px}
+  .alert h4{margin:0 0 8px;font-size:13.5px;color:var(--amber);font-family:var(--mono)}
+  .alert p{margin:0;font-size:12.5px;color:var(--ts);line-height:1.65}
+  .alert p b{color:var(--tp)}
+
+  /* missing list */
+  .miss{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:860px){.miss{grid-template-columns:1fr}}
+  .mcard{border:1px solid var(--line);border-radius:var(--r);background:var(--s1);padding:15px 16px}
+  .mcard h4{margin:0 0 7px;font-size:13px;color:var(--tp);display:flex;align-items:center;gap:8px}
+  .mcard p{margin:0;font-size:12px;color:var(--ts);line-height:1.65}
+  .pri{font-size:9px;font-family:var(--mono);padding:2px 8px;border-radius:5px;font-weight:700;letter-spacing:.5px}
+  .pri.p0{background:var(--red-d);color:#ffb4b4} .pri.p1{background:var(--amber-d);color:var(--amber)} .pri.p2{background:var(--s2);color:var(--ts)}
+  .foot{margin-top:18px;font-size:11px;color:var(--tt);line-height:1.7;font-family:var(--mono)}
+
+  /* ---------- ready-to-fire board ---------- */
+  .board{border:1px solid #2dd4a740;border-radius:var(--r);background:linear-gradient(180deg,#10201c,#0f1614);
+    margin-bottom:24px;overflow:hidden}
+  .board-head{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--line)}
+  .board-head .bt{font-family:var(--mono);font-weight:700;font-size:13.5px;color:var(--sys2)}
+  .board-head .cnt{font-family:var(--mono);font-size:10px;padding:2px 8px;border-radius:9px;background:var(--green-d);color:#9be7b4}
+  .sizing{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--ts)}
+  .sizing b{color:var(--sys1)}
+  .sizing .tag{padding:2px 8px;border-radius:5px;background:var(--s2);box-shadow:inset 0 0 0 1px var(--line)}
+
+  .armed{border-bottom:1px solid var(--line)}
+  .armed:last-child{border-bottom:none}
+  .armed-head{display:grid;grid-template-columns:18px 1fr 92px 150px 30px;align-items:center;gap:12px;
+    padding:12px 16px;cursor:pointer}
+  .armed-head .rk{font-family:var(--mono);font-size:13px;color:var(--tt);text-align:center}
+  .armed-head .nm{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--tp)}
+  .armed-head .nm .sysx{font-size:10px;padding:1px 6px;border-radius:4px;margin-inline-start:7px}
+  .dir-long{color:var(--green);background:var(--green-d);font-family:var(--mono);font-size:10px;padding:2px 9px;border-radius:5px;font-weight:700;text-align:center}
+  .armed-head .prog{display:flex;flex-direction:column;gap:4px}
+  .armed-head .prog .pl{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--ts)}
+  .armed-head .prog .pl b{color:var(--amber)}
+  .armed-head .gbar2{height:6px;border-radius:4px;background:var(--s3);overflow:hidden}
+  .armed-head .gbar2>i{display:block;height:100%;background:linear-gradient(90deg,var(--amber),#f5d441)}
+  .armed-head .chev{text-align:center}
+  .armed.open .chev{transform:rotate(-90deg)}
+
+  .plan{display:none;padding:4px 16px 18px;background:rgba(0,0,0,.18)}
+  .armed.open .plan{display:block}
+  .plan-note{font-family:var(--mono);font-size:11px;color:var(--ts);background:var(--s2);border:1px solid var(--line);
+    border-radius:7px;padding:9px 12px;margin-bottom:14px;line-height:1.6}
+  .plan-note b{color:var(--sys1)}
+  .plan-grid{display:grid;grid-template-columns:128px 1fr;gap:18px;align-items:start}
+  @media(max-width:620px){.plan-grid{grid-template-columns:1fr}}
+
+  .ptab{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  .ptab td{padding:7px 8px;border-bottom:1px solid var(--line)}
+  .ptab tr:last-child td{border-bottom:none}
+  .ptab .lvl{font-weight:700;width:54px}
+  .ptab .px{color:var(--tp);width:78px}
+  .ptab .r{width:54px;color:var(--ts)}
+  .ptab .pts{width:64px;color:var(--ts)}
+  .ptab .usd{width:74px}
+  .ptab .why{color:var(--tt);font-size:11px}
+  .lvl.stop{color:var(--red)} .lvl.entry{color:var(--tp)} .lvl.t1,.lvl.t2,.lvl.t3{color:var(--green)}
+  .usd.neg{color:var(--red)} .usd.pos{color:var(--green)}
+  .plan-summary{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--line);
+    font-family:var(--mono);font-size:12px}
+  .plan-summary .ps .k{color:var(--tt);font-size:10px;display:block;margin-bottom:2px}
+  .plan-summary .ps .v{color:var(--tp);font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header><div class="container header-in">
+  <span class="brand">MEMS26</span>
+  <span class="crumb">/ Build Status</span>
+  <span class="verdict v-blocked"><span class="pulse"></span>BLOCKED</span>
+  <span class="spacer"></span>
+  <div class="hmeta">
+    <span>RTH <b style="color:var(--green)">פתוח</b></span>
+    <span>‎-318m לסגירה</span>
+    <span class="ltr">10:42:07 ET</span>
+    <span>heartbeat <b style="color:var(--green)" class="ltr">4s</b></span>
+  </div>
+  <button class="live" id="liveBtn" onclick="toggleLive()">● Live · 5s</button>
+</div></header>
+
+<div class="container">
+
+  <!-- ===== BLOCKER ===== -->
+  <div class="blocker">
+    <div class="why">למה לא נכנסנו עכשיו — יצוא ה‑Footprint של Sierra תקוע ‎142 שניות, ולכן S3 חסום</div>
+    <div class="fix">כדי לפתוח צריך: <b>זרם footprint חוזר ל‑fresh (&lt;60s)</b>.  ‏S2 כבר armed וממתין לטריגר במרחק <b class="ltr">1.75pt</b> · S4 כבר ירה היום ‏2×. ברגע שה‑footprint יתעדכן — המערכת חוזרת ל‑READY.</div>
+    <div class="chain">
+      <span class="n ok">5m ✓</span><span class="a">·</span>
+      <span class="n ok">Woodies ✓</span><span class="a">·</span>
+      <span class="n ok">DayType ✓</span><span class="a">·</span>
+      <span class="n ok">TPO ✓</span><span class="a">→</span>
+      <span class="n bad">Footprint ✕ stale 142s</span><span class="a">→</span>
+      <span class="n bad">S3 BLOCKED</span><span class="a">→</span>
+      <span class="n bad">verdict BLOCKED</span>
+    </div>
+  </div>
+
+  <!-- ===== TABS ===== -->
+  <div class="tabs">
+    <div class="tab on" data-p="tree" onclick="tab(this)">עץ החלטות</div>
+    <div class="tab" data-p="integrity" onclick="tab(this)">שלמות מקור<span class="b">1</span></div>
+    <div class="tab" data-p="missing" onclick="tab(this)">מה חסר<span class="b">7</span></div>
+  </div>
+
+<main>
+
+<!-- ============ PANEL 1 · TREE ============ -->
+<div class="panel on" id="p-tree">
+<div class="grid">
+  <!-- LEFT -->
+  <div>
+    <!-- context -->
+    <div class="ctx">
+      <span><span class="lab">הסכמת כיוון:</span> <span class="v" style="color:var(--green)">2 LONG</span> <span class="mut">/ 0 SHORT / 1 חסום</span></span>
+      <span class="sep"></span>
+      <span><span class="lab">Day Type:</span> <span class="v" style="color:var(--sys1)">Trend_Normal (TN)</span></span>
+      <span class="sep"></span>
+      <span><span class="lab">Killzone:</span> <span class="v" style="color:var(--green)">KZ2 בפנים</span></span>
+      <span class="sep"></span>
+      <span><span class="lab">אפיון:</span> <span class="v">1R · 2R+TPO · 4R+trail · 3 חוזים · ללא time‑stop</span></span>
+    </div>
+
+    <!-- ===== READY-TO-FIRE BOARD ===== -->
+    <div class="board">
+      <div class="board-head">
+        <span class="bt">מוכן לירי</span>
+        <span class="cnt">3 תבניות armed</span>
+        <span class="spacer" style="flex:1"></span>
+        <span class="sizing">אפיון <b>Trend_Normal</b> <span class="tag">targets_table.py · atr_caps.py</span> <span class="tag">MES $5/pt · 3 חוזים</span></span>
+      </div>
+
+      <!-- ARMED 1 — S4 ZLR Long (closest) · 1R = 4.0pt (S4 stop module · IB) -->
+      <div class="armed open" id="a-1">
+        <div class="armed-head" onclick="brk('a-1')">
+          <span class="rk">1</span>
+          <span class="nm">ZLR Long <span class="sysx" style="color:var(--sys4);background:#241710">S4 Woodies</span></span>
+          <span class="dir-long">LONG ▲</span>
+          <span class="prog"><span class="pl"><span>לטריגר</span><b class="ltr">נותר 0.50pt</b></span><span class="gbar2"><i style="width:90%"></i></span></span>
+          <span class="chev">◀</span>
+        </div>
+        <div class="plan">
+          <div class="plan-note"><b>Trend_Normal</b> (targets_table.py): T1 <b>1R</b> · T2 <b>2R+TPO</b> · T3 <b>4R+trail</b> · 3 חוזים · ללא time‑stop · trail אחרי T2. &nbsp;1R = מרחק הסטופ ממודול S4 (CCI/IB extension) ≈ <span class="ltr">4.0pt</span> <span class="mut">(live)</span>.</div>
+          <div class="plan-grid">
+            <svg viewBox="0 0 150 164" width="150" height="164" style="display:block">
+              <line x1="64" y1="10" x2="64" y2="154" stroke="#2e2e35" stroke-width="2"/>
+              <rect x="60" y="123" width="8" height="27" fill="#ef444422"/>
+              <circle cx="64" cy="14" r="4" fill="#22c55e"/><text x="74" y="18" fill="#22c55e" font-size="10" font-family="monospace">T3 5439.50 · 4R</text>
+              <circle cx="64" cy="68" r="4" fill="#22c55e"/><text x="74" y="72" fill="#86efac" font-size="10" font-family="monospace">T2 5431.50 · 2R</text>
+              <circle cx="64" cy="96" r="4" fill="#22c55e"/><text x="74" y="100" fill="#86efac" font-size="10" font-family="monospace">T1 5427.50 · 1R</text>
+              <circle cx="64" cy="123" r="4" fill="#ececf0"/><text x="74" y="127" fill="#ececf0" font-size="10" font-family="monospace">כניסה 5423.50</text>
+              <circle cx="64" cy="150" r="4" fill="#ef4444"/><text x="74" y="154" fill="#ef4444" font-size="10" font-family="monospace">סטופ 5419.50</text>
+            </svg>
+            <div>
+              <table class="ptab">
+                <tr><td class="lvl t3">T3</td><td class="px ltr">5439.50</td><td class="r ltr">+4R</td><td class="pts ltr">+16.0pt</td><td class="usd pos ltr">C3 +$80</td><td class="why">4R + trail</td></tr>
+                <tr><td class="lvl t2">T2</td><td class="px ltr">5431.50</td><td class="r ltr">+2R</td><td class="pts ltr">+8.0pt</td><td class="usd pos ltr">C2 +$40</td><td class="why">2R + TPO</td></tr>
+                <tr><td class="lvl t1">T1</td><td class="px ltr">5427.50</td><td class="r ltr">+1R</td><td class="pts ltr">+4.0pt</td><td class="usd pos ltr">C1 +$20</td><td class="why">scale 1</td></tr>
+                <tr><td class="lvl entry">כניסה</td><td class="px ltr">5423.50</td><td class="r ltr">0</td><td class="pts ltr">trigger</td><td class="usd ltr">—</td><td class="why">close מעל הסף</td></tr>
+                <tr><td class="lvl stop">סטופ</td><td class="px ltr">5419.50</td><td class="r ltr">−1R</td><td class="pts ltr">−4.0pt</td><td class="usd neg ltr">−$60</td><td class="why">1R · S4 IB</td></tr>
+              </table>
+              <div class="plan-summary">
+                <span class="ps"><span class="k">סיכון (3c)</span><span class="v" style="color:var(--red)">−$60</span></span>
+                <span class="ps"><span class="k">סיכוי מלא</span><span class="v" style="color:var(--green)">+$140</span></span>
+                <span class="ps"><span class="k">1R</span><span class="v ltr">4.0pt · $20/c</span></span>
+                <span class="ps"><span class="k">time‑stop</span><span class="v">אין (TN)</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARMED 2 — S2 OFA Reactive Long · 1R = ATR14 ×1.0 -->
+      <div class="armed" id="a-2">
+        <div class="armed-head" onclick="brk('a-2')">
+          <span class="rk">2</span>
+          <span class="nm">OFA Reactive Long <span class="sysx" style="color:var(--sys2);background:#10201c">S2 5‑Min</span></span>
+          <span class="dir-long">LONG ▲</span>
+          <span class="prog"><span class="pl"><span>לטריגר</span><b class="ltr">נותר 1.75pt</b></span><span class="gbar2"><i style="width:79%"></i></span></span>
+          <span class="chev">◀</span>
+        </div>
+        <div class="plan">
+          <div class="plan-note"><b>Trend_Normal</b>: T1 1R · T2 2R+TPO · T3 4R+trail · 3 חוזים. &nbsp;1R = <b>ATR14 × 1.0</b> (OFA Reactive · atr_caps.py) ≈ <span class="ltr">3.0pt</span> <span class="mut">(live · ATR14≈3.0)</span>.</div>
+          <div class="plan-grid">
+            <svg viewBox="0 0 150 164" width="150" height="164" style="display:block">
+              <line x1="64" y1="10" x2="64" y2="154" stroke="#2e2e35" stroke-width="2"/>
+              <rect x="60" y="123" width="8" height="27" fill="#ef444422"/>
+              <circle cx="64" cy="14" r="4" fill="#22c55e"/><text x="74" y="18" fill="#22c55e" font-size="10" font-family="monospace">T3 5435.00 · 4R</text>
+              <circle cx="64" cy="68" r="4" fill="#22c55e"/><text x="74" y="72" fill="#86efac" font-size="10" font-family="monospace">T2 5429.00 · 2R</text>
+              <circle cx="64" cy="96" r="4" fill="#22c55e"/><text x="74" y="100" fill="#86efac" font-size="10" font-family="monospace">T1 5426.00 · 1R</text>
+              <circle cx="64" cy="123" r="4" fill="#ececf0"/><text x="74" y="127" fill="#ececf0" font-size="10" font-family="monospace">כניסה 5423.00</text>
+              <circle cx="64" cy="150" r="4" fill="#ef4444"/><text x="74" y="154" fill="#ef4444" font-size="10" font-family="monospace">סטופ 5420.00</text>
+            </svg>
+            <div>
+              <table class="ptab">
+                <tr><td class="lvl t3">T3</td><td class="px ltr">5435.00</td><td class="r ltr">+4R</td><td class="pts ltr">+12.0pt</td><td class="usd pos ltr">C3 +$60</td><td class="why">4R + trail</td></tr>
+                <tr><td class="lvl t2">T2</td><td class="px ltr">5429.00</td><td class="r ltr">+2R</td><td class="pts ltr">+6.0pt</td><td class="usd pos ltr">C2 +$30</td><td class="why">2R + TPO</td></tr>
+                <tr><td class="lvl t1">T1</td><td class="px ltr">5426.00</td><td class="r ltr">+1R</td><td class="pts ltr">+3.0pt</td><td class="usd pos ltr">C1 +$15</td><td class="why">scale 1</td></tr>
+                <tr><td class="lvl entry">כניסה</td><td class="px ltr">5423.00</td><td class="r ltr">0</td><td class="pts ltr">trigger</td><td class="usd ltr">—</td><td class="why">close מעל הסף</td></tr>
+                <tr><td class="lvl stop">סטופ</td><td class="px ltr">5420.00</td><td class="r ltr">−1R</td><td class="pts ltr">−3.0pt</td><td class="usd neg ltr">−$45</td><td class="why">ATR14 × 1.0</td></tr>
+              </table>
+              <div class="plan-summary">
+                <span class="ps"><span class="k">סיכון (3c)</span><span class="v" style="color:var(--red)">−$45</span></span>
+                <span class="ps"><span class="k">סיכוי מלא</span><span class="v" style="color:var(--green)">+$105</span></span>
+                <span class="ps"><span class="k">1R</span><span class="v ltr">3.0pt · $15/c</span></span>
+                <span class="ps"><span class="k">time‑stop</span><span class="v">אין (TN)</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ARMED 3 — S2 OFA Initiative Long · 1R = ATR14 ×2.0 -->
+      <div class="armed" id="a-3">
+        <div class="armed-head" onclick="brk('a-3')">
+          <span class="rk">3</span>
+          <span class="nm">OFA Initiative Long <span class="sysx" style="color:var(--sys2);background:#10201c">S2 5‑Min</span></span>
+          <span class="dir-long">LONG ▲</span>
+          <span class="prog"><span class="pl"><span>לטריגר</span><b class="ltr">נותר 3.25pt</b></span><span class="gbar2"><i style="width:55%"></i></span></span>
+          <span class="chev">◀</span>
+        </div>
+        <div class="plan">
+          <div class="plan-note"><b>Trend_Normal</b>: T1 1R · T2 2R+TPO · T3 4R+trail · 3 חוזים. &nbsp;1R = <b>ATR14 × 2.0</b> (OFA Initiative · atr_caps.py) ≈ <span class="ltr">6.0pt</span> <span class="mut">(live)</span>. <span class="mut">ב‑Trend_DD החבילה הזו → T3 6R+trail (override · D‑094).</span></div>
+          <div class="plan-grid">
+            <svg viewBox="0 0 150 164" width="150" height="164" style="display:block">
+              <line x1="64" y1="10" x2="64" y2="154" stroke="#2e2e35" stroke-width="2"/>
+              <rect x="60" y="123" width="8" height="27" fill="#ef444422"/>
+              <circle cx="64" cy="14" r="4" fill="#22c55e"/><text x="74" y="18" fill="#22c55e" font-size="10" font-family="monospace">T3 5448.50 · 4R</text>
+              <circle cx="64" cy="68" r="4" fill="#22c55e"/><text x="74" y="72" fill="#86efac" font-size="10" font-family="monospace">T2 5436.50 · 2R</text>
+              <circle cx="64" cy="96" r="4" fill="#22c55e"/><text x="74" y="100" fill="#86efac" font-size="10" font-family="monospace">T1 5430.50 · 1R</text>
+              <circle cx="64" cy="123" r="4" fill="#ececf0"/><text x="74" y="127" fill="#ececf0" font-size="10" font-family="monospace">כניסה 5424.50</text>
+              <circle cx="64" cy="150" r="4" fill="#ef4444"/><text x="74" y="154" fill="#ef4444" font-size="10" font-family="monospace">סטופ 5418.50</text>
+            </svg>
+            <div>
+              <table class="ptab">
+                <tr><td class="lvl t3">T3</td><td class="px ltr">5448.50</td><td class="r ltr">+4R</td><td class="pts ltr">+24.0pt</td><td class="usd pos ltr">C3 +$120</td><td class="why">4R + trail</td></tr>
+                <tr><td class="lvl t2">T2</td><td class="px ltr">5436.50</td><td class="r ltr">+2R</td><td class="pts ltr">+12.0pt</td><td class="usd pos ltr">C2 +$60</td><td class="why">2R + TPO</td></tr>
+                <tr><td class="lvl t1">T1</td><td class="px ltr">5430.50</td><td class="r ltr">+1R</td><td class="pts ltr">+6.0pt</td><td class="usd pos ltr">C1 +$30</td><td class="why">scale 1</td></tr>
+                <tr><td class="lvl entry">כניסה</td><td class="px ltr">5424.50</td><td class="r ltr">0</td><td class="pts ltr">trigger</td><td class="usd ltr">—</td><td class="why">close מעל הסף</td></tr>
+                <tr><td class="lvl stop">סטופ</td><td class="px ltr">5418.50</td><td class="r ltr">−1R</td><td class="pts ltr">−6.0pt</td><td class="usd neg ltr">−$90</td><td class="why">ATR14 × 2.0</td></tr>
+              </table>
+              <div class="plan-summary">
+                <span class="ps"><span class="k">סיכון (3c)</span><span class="v" style="color:var(--red)">−$90</span></span>
+                <span class="ps"><span class="k">סיכוי מלא</span><span class="v" style="color:var(--green)">+$210</span></span>
+                <span class="ps"><span class="k">1R</span><span class="v ltr">6.0pt · $30/c</span></span>
+                <span class="ps"><span class="k">time‑stop</span><span class="v">אין (TN)</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- sources -->
+    <div class="slab">שכבה 0 · מקורות חיים — Sierra → bridge → API</div>
+    <div class="sources">
+      <div class="src-chip"><div class="top"><span class="dot" style="background:var(--green)"></span>five_min</div><div class="sub"><span class="ok-t">fresh 4s</span> · <span class="mut">canonical</span></div></div>
+      <div class="src-chip"><div class="top"><span class="dot" style="background:var(--green)"></span>woodies</div><div class="sub"><span class="ok-t">fresh 6s</span> · <span class="mut">canonical</span></div></div>
+      <div class="src-chip"><div class="top"><span class="dot" style="background:var(--green)"></span>day_type</div><div class="sub"><span class="ok-t">fresh 11s</span> · <span class="mut">canonical</span></div></div>
+      <div class="src-chip"><div class="top"><span class="dot" style="background:var(--green)"></span>tpo</div><div class="sub"><span class="ok-t">fresh 9s</span> · <span class="mut">canonical</span></div></div>
+      <div class="src-chip bad"><div class="top"><span class="dot" style="background:var(--red)"></span>footprint</div><div class="sub"><span class="bad-t">stale 142s</span> · <span class="mut">סף 60s</span></div></div>
+    </div>
+
+    <!-- systems -->
+    <div class="slab">שכבה 1 · מערכות יורות — לחץ לפתיחת הזרימה (מקור → קלט → פרשנות → שערים → תבנית → פסיקה)</div>
+
+    <!-- S2 -->
+    <div class="sys open" id="b-s2">
+      <div class="sys-head" onclick="brk('b-s2')">
+        <span class="sys-accent" style="background:var(--sys2)"></span>
+        <span class="sys-name" style="color:var(--sys2)">S2 · 5‑Min Patterns</span>
+        <span class="role firing">firing</span>
+        <span class="spacer"></span>
+        <span class="fresh ltr">5m · fresh 4s</span>
+        <span class="vbadge vb-armed">ARMED · ממתין לטריגר</span>
+        <span class="chev">◀</span>
+      </div>
+      <div class="flow">
+        <div class="steps">
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">מקור · Sierra 5‑min export <span class="srcpill">sierra_export</span></div>
+            <div class="sd">fresh 4s · last_bar <span class="ltr">10:40:00 ET</span></div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">קלט · ערכים שנקלטו</div>
+            <div class="kvgrid">
+              <div class="row"><span class="k">bar_close</span><span class="val ltr">5421.25</span></div>
+              <div class="row"><span class="k">range</span><span class="val ltr">8.5 pt</span></div>
+              <div class="row"><span class="k">body %</span><span class="val ltr">62%</span></div>
+              <div class="row"><span class="k">cvd_delta</span><span class="val ltr">+1240</span></div>
+              <div class="row"><span class="k">prior_bar</span><span class="val">BULL</span></div>
+            </div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">פרשנות · נגזר מהקלט</div>
+            <div class="sd">bar_type = <b>BULL_TREND</b> · momentum = <b>strong</b> &nbsp;<span class="mut">← bar_close, cvd_delta</span></div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">שערים · RTH · Killzone(S6) · DayType(S1)</div>
+            <div class="sd"><span class="tick">✓</span> RTH פתוח &nbsp; <span class="tick">✓</span> KZ2 בפנים &nbsp; <span class="tick">✓</span> DayType Trend_Normal מסכים ללונג</div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic wait">…</div></div>
+            <div><div class="st">תבנית · "Trend Continuation Long"</div>
+            <div class="sd">דרוש close מעל <b class="ltr">5423.00</b> · חי <b class="ltr">5421.25</b></div>
+            <div class="gap"><div class="glab"><span>התקדמות לטריגר</span><b class="ltr">נותר 1.75pt</b></div><div class="gbar"><i style="width:79%"></i></div></div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic wait">!</div></div>
+            <div><div class="st" style="color:var(--amber)">פסיקה · ARMED</div>
+            <div class="sd">לא חסום — כל התנאים מולאו פרט לטריגר המחיר. יירה כשייסגר נר מעל הסף.</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- S3 -->
+    <div class="sys" id="b-s3">
+      <div class="sys-head" onclick="brk('b-s3')">
+        <span class="sys-accent" style="background:var(--sys3)"></span>
+        <span class="sys-name" style="color:var(--sys3)">S3 · Footprint</span>
+        <span class="role firing">firing</span>
+        <span class="spacer"></span>
+        <span class="fresh ltr" style="color:var(--red)">footprint · stale 142s</span>
+        <span class="vbadge vb-blocked">BLOCKED · מקור תקוע</span>
+        <span class="chev">◀</span>
+      </div>
+      <div class="flow">
+        <div class="steps">
+          <div class="step"><div class="rail"><div class="ic bad">✕</div></div>
+            <div><div class="st" style="color:#ffb4b4">מקור · Sierra footprint export — תקוע <span class="srcpill bad">stale</span></div>
+            <div class="sd">lag <b class="ltr">142s</b> · סף <span class="ltr">60s</span> · last_bar <span class="ltr">10:39:45 ET</span></div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic bad">✕</div></div>
+            <div><div class="st">קלט · לא אמין</div>
+            <div class="sd">poc = <span class="ltr">5419.50</span> (ישן 142s) · delta/imbalance לא מתעדכנים. לפי הכלל: ערך לא טרי = <b>missing</b>, לא משערכים ממקור אחר.</div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic info">⏻</div></div>
+            <div><div class="st">פרשנות · מושהית</div>
+            <div class="sd">אין פרשנות — אסור לגזור absorption / exhaustion מנתון ישן.</div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic bad">✕</div></div>
+            <div><div class="st" style="color:#ffb4b4">פסיקה · BLOCKED</div>
+            <div class="sd">החסם היחיד שמפיל את כל המערכת ל‑BLOCKED. כשהזרם יחזור — חוזר אוטומטית ל‑evaluation.</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- S4 -->
+    <div class="sys" id="b-s4">
+      <div class="sys-head" onclick="brk('b-s4')">
+        <span class="sys-accent" style="background:var(--sys4)"></span>
+        <span class="sys-name" style="color:var(--sys4)">S4 · Woodies CCI</span>
+        <span class="role firing">firing</span>
+        <span class="spacer"></span>
+        <span class="fresh ltr">woodies · fresh 6s</span>
+        <span class="vbadge vb-fired">ירה 2× היום · אחרון 09:58</span>
+        <span class="chev">◀</span>
+      </div>
+      <div class="flow">
+        <div class="steps">
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">מקור · Sierra woodies export <span class="srcpill">sierra_export</span></div>
+            <div class="sd">fresh 6s</div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">קלט · ערכים שנקלטו</div>
+            <div class="kvgrid">
+              <div class="row"><span class="k">cci</span><span class="val ltr">+118</span></div>
+              <div class="row"><span class="k">zlr</span><span class="val">true</span></div>
+              <div class="row"><span class="k">sidewinder</span><span class="val">up</span></div>
+              <div class="row"><span class="k">cci_tt ⚠</span><span class="val warn ltr">+96</span></div>
+            </div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">פרשנות · ZLR Long</div>
+            <div class="sd">setup = <b>ZLR_LONG confirmed</b> &nbsp;<span class="mut">← cci, zlr, sidewinder</span></div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st">שערים · כולם עברו</div>
+            <div class="sd"><span class="tick">✓</span> RTH &nbsp; <span class="tick">✓</span> KZ2 &nbsp; <span class="tick">✓</span> DayType מסכים</div></div></div>
+
+          <div class="step"><div class="rail"><div class="ic ok">✓</div></div>
+            <div><div class="st" style="color:var(--green)">פסיקה · ירה היום 2×</div>
+            <div class="sd">אחרון 09:58 ET, כעת observing לאיתות הבא. <b style="color:var(--amber)">שים לב:</b> השדה <span class="ltr">cci_tt</span> נגזר מקומית — ראה לשונית "שלמות מקור".</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- observers -->
+    <div class="slab" style="margin-top:20px">שכבה 2 · צופים ושער — הקשר בלבד, לא יורים</div>
+    <div class="obs">
+      <div class="o"><div class="nm"><span class="dot" style="background:var(--sys1)"></span>S1 · Day Type</div><div class="dt">Trend_Normal · מסכים ללונג</div></div>
+      <div class="o"><div class="nm"><span class="dot" style="background:var(--sys5)"></span>S5 · TPO</div><div class="dt">מחיר מעל VAH</div></div>
+      <div class="o"><div class="nm"><span class="dot" style="background:var(--sys6)"></span>S6 · Killzone</div><div class="dt">KZ2 10:00–11:00 · שער פתוח ✓</div></div>
+    </div>
+  </div>
+
+  <!-- RIGHT RAIL -->
+  <div>
+    <div class="rcard">
+      <div class="rt">מצב כעת</div>
+      <div class="rrow"><span class="rk">verdict</span><span class="rv" style="color:var(--red)">BLOCKED</span></div>
+      <div class="rrow"><span class="rk">חסם יחיד</span><span class="rv">S3 footprint stale</span></div>
+      <div class="rrow"><span class="rk">armed</span><span class="rv" style="color:var(--amber)">S2 · 1.75pt</span></div>
+      <div class="rrow"><span class="rk">ירו היום</span><span class="rv" style="color:var(--green)">S4 ×2</span></div>
+      <div class="rrow"><span class="rk">heartbeat</span><span class="rv ltr" style="color:var(--green)">4s</span></div>
+    </div>
+
+    <div class="rcard">
+      <div class="rt">פעימת רעננות · 60s</div>
+      <svg viewBox="0 0 264 60" width="100%" height="60" style="display:block">
+        <line x1="0" y1="50" x2="264" y2="50" stroke="#24242a" stroke-width="1"/>
+        <polyline fill="none" stroke="#22c55e" stroke-width="1.6"
+          points="0,42 22,40 44,43 66,41 88,42 110,40 132,41 154,40 176,43 198,41 220,40 242,41 264,40"/>
+        <polyline fill="none" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="3 3"
+          points="0,34 22,32 44,30 66,27 88,24 110,21 132,18 154,15 176,12 198,10 220,9 242,8 264,7"/>
+      </svg>
+      <div class="hint" style="color:var(--ts)"><span style="color:var(--green)">— 5m/woodies יציב</span> &nbsp; <span style="color:var(--red)">- - footprint lag מטפס</span></div>
+    </div>
+
+    <div class="rcard">
+      <div class="rt">החמצות אחרונות</div>
+      <div class="misslog ltr" style="text-align:start">
+        <span class="t">10:38</span> · S3 blocked — footprint stale<br>
+        <span class="t">10:31</span> · S2 armed→expired — לא נגע בסף<br>
+        <span class="t">10:18</span> · S3 blocked — footprint stale<br>
+        <span class="t">09:58</span> · <span style="color:var(--green)">S4 FIRED — ZLR long ✓</span>
+      </div>
+      <div class="hint">דפוס חוזר: footprint נופל כל ~7 דק׳ — לבדוק את הגשר.</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ============ PANEL 2 · INTEGRITY ============ -->
+<div class="panel" id="p-integrity">
+  <div class="slab" style="margin-bottom:14px">כל שדה שמערכת יורה צורכת — הערך, המקור בפועל, והאם הגיע מהמקום הנכון</div>
+  <div style="border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--s1)">
+    <table class="itab">
+      <thead><tr><th>שדה</th><th class="ltr">ערך חי</th><th>מקור בפועל</th><th>מקור נדרש</th><th style="text-align:center">תקין</th></tr></thead>
+      <tbody>
+        <tr><td class="fld">S2 · bar_close</td><td class="ltr">5421.25</td><td><span class="srcpill">sierra_export</span></td><td>sierra_export</td><td style="text-align:center"><span class="tick">✓</span></td></tr>
+        <tr><td class="fld">S2 · cvd_delta</td><td class="ltr">+1240</td><td><span class="srcpill">sierra_export</span></td><td>sierra_export</td><td style="text-align:center"><span class="tick">✓</span></td></tr>
+        <tr><td class="fld">S4 · cci</td><td class="ltr">+118</td><td><span class="srcpill">sierra_export</span></td><td>sierra_export (SG)</td><td style="text-align:center"><span class="tick">✓</span></td></tr>
+        <tr class="flag"><td class="fld">S4 · cci_tt ⚠</td><td class="ltr">+96</td><td><span class="srcpill warn">in_memory · נגזר</span></td><td>sierra_export SG4</td><td style="text-align:center"><span class="cross">✕</span></td></tr>
+        <tr><td class="fld">S3 · cluster_poc</td><td class="ltr">5419.50</td><td><span class="srcpill bad">sierra_export · stale</span></td><td>sierra_export</td><td style="text-align:center"><span class="cross">✕</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="alert">
+    <h4>⚠ הפרת שלמות מקור אחת זוהתה — S4 · cci_tt</h4>
+    <p>השדה מוצג כ‑present אבל הערך <b>חושב מקומית (in_memory)</b> במקום להגיע מ‑Sierra SG4 כפי שהאפיון דורש. לפי הכלל "Honest failure &gt; synthetic value" — כשהמקור הקנוני שותק יש להחזיר <b>missing</b>, לא לשערך ולסמן present. ערך נגזר שנכנס ל‑min/max של מערכת יורה הוא סיכון רגרסיה. <b>החלטה לטריידר:</b> אל תסמוך על איתות שתלוי ב‑cci_tt עד שהמקור יתוקן.</p>
+  </div>
+</div>
+
+<!-- ============ PANEL 3 · MISSING ============ -->
+<div class="panel" id="p-missing">
+  <div class="slab" style="margin-bottom:14px">מה חסר בעמוד — ניתוח עיצובי מבוסס על מה שכבר קיים ב‑API לעומת מה שלא מוצג</div>
+  <div class="miss">
+    <div class="mcard" style="grid-column:1/-1;border-color:#2dd4a740;background:#10201c"><h4><span class="pri" style="background:var(--green-d);color:#9be7b4">חדש</span>לוח "מוכן לירי" + תוכניות מסחר מוקרנות לפי סוג היום</h4>
+      <p>כל התבניות ה‑armed מרוכזות בלוח אחד, מדורגות לפי מרחק‑לטריגר. כל אחת נפתחת ל<b style="color:var(--tp)">תוכנית מלאה</b> — כניסה · סטופ · T1/T2/T3 בנקודות, ‏$ ו‑R, עם סולם מחיר ויזואלי. הסטופ והיעדים <b style="color:var(--tp)">מחושבים לפי Day Type</b> מתוך טבלת האפיון: T1/T2/T3 כ‑R‑multiples מ‑<span class="ltr">day_type/targets_table.py</span> (TN: 1R · 2R+TPO · 4R+trail · 3 חוזים · ללא time‑stop · ב‑Normal: T2=POC, ללא T3, חוז 1 · ב‑Nontrend: NO TRADE), ומרחק הסטופ (1R) מ‑<span class="ltr">five_min/atr_caps.py</span> (ATR14 × מכפיל‑משפחה). הנקודות וה‑$ נגזרים מ‑1R החי — לא מחושבים ב‑frontend.</p></div>
+
+    <div class="mcard"><h4><span class="pri p0">P0</span>"מה יהפוך ל‑READY" — צעד הבא ניתן לפעולה</h4>
+      <p>היום העמוד אומר מה <b style="color:var(--tp)">שבור</b> אבל לא מה <b style="color:var(--tp)">פותח</b>. הוספתי שורת "כדי לפתוח: …" + מד מרחק‑לטריגר לכל armed. זה ההבדל בין "אני יודע שחסום" ל"אני יודע מתי אכנס".</p></div>
+
+    <div class="mcard"><h4><span class="pri p0">P0</span>עמודת שלמות מקור — canonical מול derived</h4>
+      <p>הכלל מס׳ 1 ב‑CLAUDE.md, וכרגע רק רמוז דרך tooltip של freshness.source. הפכתי אותו לעמודה מפורשת + ⚠ כשערך נגזר נכנס למערכת יורה. בדיוק ה"שהתקבלה מהמקום הנכון" שביקשת.</p></div>
+
+    <div class="mcard"><h4><span class="pri p1">P1</span>מרחק‑לטריגר לכל armed</h4>
+      <p>הנתונים required ו‑live כבר קיימים ב‑ComponentTable — אבל אין חישוב פער. מד התקדמות (79% מהדרך לסף) הופך טבלה שטוחה למשהו שנקרא בשנייה.</p></div>
+
+    <div class="mcard"><h4><span class="pri p1">P1</span>פעימת רעננות + מגמת lag</h4>
+      <p>היום רואים lag רגעי בלבד. ספרקליין של 60 שניות מראה אם ה‑lag <b style="color:var(--tp)">מטפס או מתאושש</b> — קריטי כדי לדעת אם להמתין או להתערב בגשר.</p></div>
+
+    <div class="mcard"><h4><span class="pri p1">P1</span>יומן החמצות מתגלגל</h4>
+      <p>העמוד הנוכחי הוא snapshot בלבד — אין זיכרון. לוג קצר חושף <b style="color:var(--tp)">דפוס חוזר</b> (footprint נופל כל ~7 דק׳) שאחרת לא רואים.</p></div>
+
+    <div class="mcard"><h4><span class="pri p1">P1</span>סיכום הסכמת כיוון</h4>
+      <p>במבט אחד: כמה מערכות יורות מסכימות על כיוון <b style="color:var(--tp)">עכשיו</b> (2 LONG / 1 חסום). היום צריך לסרוק כל מערכת בנפרד.</p></div>
+
+    <div class="mcard"><h4><span class="pri p2">P2</span>Auto‑poll עם "הקפא"</h4>
+      <p>לשימוש live, polling אוטומטי ברצפת 5s עם כפתור הקפאה עדיף על Refresh ידני. הכפתור בכותרת מדגים זאת.</p></div>
+
+    <div class="mcard" style="background:transparent;border-style:dashed"><h4 style="color:var(--ts)">הערה</h4>
+      <p>שום שדה חדש לא הומצא — רק ארגון מחדש והבלטה. כל הנתונים משקפים את הסכמה של <span class="ltr">/api/v9/build/pattern-status</span>.</p></div>
+  </div>
+  <div class="foot">סכמה: systems · global_gates · live_inputs · interpretations · components[stage/key/spec/live/required/present/freshness/source] · readiness</div>
+</div>
+
+</main>
+</div>
+
+<script>
+function tab(el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-'+el.dataset.p).classList.add('on');
+}
+function brk(id){ document.getElementById(id).classList.toggle('open'); }
+let live=true;
+function toggleLive(){
+  live=!live;
+  const b=document.getElementById('liveBtn');
+  b.classList.toggle('off',!live);
+  b.textContent = live ? '● Live · 5s' : '⏸ הוקפא';
+}
+</script>
+</body>
+</html>

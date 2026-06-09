@@ -1,0 +1,485 @@
+=== 19:41:37  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b2_volume_drop
+    REACTIVE_SHORT   armed     missing: detection.b1_buyers
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.hns_structure
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=15 blocked=4 fired=0 | top blockers: [('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9), ('targets_stop.stop_price', 9)]
+# pattern_watch start 2026-06-08 19:45  → until 22:00 local, every 15m
+=== 19:45:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b2_volume_drop
+    REACTIVE_SHORT   armed     missing: detection.b1_buyers
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.hns_structure
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=15 blocked=4 fired=0 | top blockers: [('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9), ('targets_stop.stop_price', 9)]
+=== 19:45:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b2_volume_drop
+    REACTIVE_SHORT   armed     missing: detection.b1_buyers
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.hns_structure
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=15 blocked=4 fired=0 | top blockers: [('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9), ('targets_stop.stop_price', 9)]
+=== 20:00:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b2_volume_drop
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.hns_structure
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    BULL_FLAG_LONG   armed     missing: detection.pole_found
+    BEAR_FLAG_SHORT  armed     missing: detection.flag_length
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=15 blocked=4 fired=0 | top blockers: [('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9), ('targets_stop.stop_price', 9)]
+=== 20:00:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b2_volume_drop
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.hns_structure
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    BULL_FLAG_LONG   armed     missing: detection.pole_found
+    BEAR_FLAG_SHORT  armed     missing: detection.flag_length
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=15 blocked=4 fired=0 | top blockers: [('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9), ('targets_stop.stop_price', 9)]
+=== 20:15:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    blocked   missing: data.choppiness_ok, detection.b1_sellers
+    REACTIVE_SHORT   blocked   missing: data.choppiness_ok, detection.b2_volume_drop
+    INITIATIVE_LONG  blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INITIATIVE_SHORT blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    BULL_FLAG_LONG   blocked   missing: data.choppiness_ok, detection.flag_length
+    BEAR_FLAG_SHORT  blocked   missing: data.choppiness_ok, detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=9 blocked=10 fired=0 | top blockers: [('data.choppiness_ok', 10), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 20:15:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    blocked   missing: data.choppiness_ok, detection.b1_sellers
+    REACTIVE_SHORT   blocked   missing: data.choppiness_ok, detection.b2_volume_drop
+    INITIATIVE_LONG  blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INITIATIVE_SHORT blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    BULL_FLAG_LONG   blocked   missing: data.choppiness_ok, detection.flag_length
+    BEAR_FLAG_SHORT  blocked   missing: data.choppiness_ok, detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=9 blocked=10 fired=0 | top blockers: [('data.choppiness_ok', 10), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 20:30:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    blocked   missing: data.choppiness_ok, detection.b1_sellers
+    REACTIVE_SHORT   blocked   missing: data.choppiness_ok, detection.b3_sellers
+    INITIATIVE_LONG  blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INITIATIVE_SHORT blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.hns_structure
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.neckline_breakout
+    BULL_FLAG_LONG   blocked   missing: data.choppiness_ok, detection.pole_found
+    BEAR_FLAG_SHORT  blocked   missing: data.choppiness_ok, detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: targets_stop.r_t1_gate, targets_stop.day_type_matrix, exit_rules.ready_to_route
+  SUMMARY armed=9 blocked=10 fired=0 | top blockers: [('data.choppiness_ok', 10), ('targets_stop.r_t1_gate', 9), ('exit_rules.ready_to_route', 9)]
+=== 20:30:00  readiness=READY ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    blocked   missing: data.choppiness_ok, detection.b1_sellers
+    REACTIVE_SHORT   blocked   missing: data.choppiness_ok, detection.b3_sellers
+    INITIATIVE_LONG  blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INITIATIVE_SHORT blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.hns_structure
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.neckline_breakout
+    BULL_FLAG_LONG   blocked   missing: data.choppiness_ok, detection.pole_found
+    BEAR_FLAG_SHORT  blocked   missing: data.choppiness_ok, detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             armed     missing: detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              armed     missing: targets_stop.r_t1_gate, targets_stop.day_type_matrix, exit_rules.ready_to_route
+  SUMMARY armed=9 blocked=10 fired=0 | top blockers: [('data.choppiness_ok', 10), ('targets_stop.r_t1_gate', 9), ('exit_rules.ready_to_route', 9)]
+=== 20:45:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    blocked   missing: data.choppiness_ok, detection.b3_buyers
+    REACTIVE_SHORT   blocked   missing: data.choppiness_ok, detection.b1_buyers
+    INITIATIVE_LONG  blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INITIATIVE_SHORT blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.neckline_breakout
+    BULL_FLAG_LONG   blocked   missing: data.choppiness_ok, detection.pole_found
+    BEAR_FLAG_SHORT  blocked   missing: data.choppiness_ok, detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=0 blocked=19 fired=0 | top blockers: [('data.choppiness_ok', 10), ('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9)]
+=== 20:45:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    blocked   missing: data.choppiness_ok, detection.b3_buyers
+    REACTIVE_SHORT   blocked   missing: data.choppiness_ok, detection.b1_buyers
+    INITIATIVE_LONG  blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INITIATIVE_SHORT blocked   missing: data.choppiness_ok, detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, data.choppiness_ok, detection.neckline_breakout
+    BULL_FLAG_LONG   blocked   missing: data.choppiness_ok, detection.pole_found
+    BEAR_FLAG_SHORT  blocked   missing: data.choppiness_ok, detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=0 blocked=19 fired=0 | top blockers: [('data.choppiness_ok', 10), ('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9)]
+=== 21:00:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b2_volume_drop
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 21:00:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b2_volume_drop
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 21:15:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b3_sellers
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.neckline_breakout
+    BULL_FLAG_LONG   armed     missing: detection.pole_found
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 21:15:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b3_sellers
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.neckline_breakout
+    BULL_FLAG_LONG   armed     missing: detection.pole_found
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 21:30:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b2_volume_drop
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.neckline_breakout
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 21:30:00  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b2_volume_drop
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.eve_variant
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.neckline_breakout
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 21:45:01  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b2_volume_drop
+    REACTIVE_SHORT   armed     missing: detection.b1_buyers
+    INITIATIVE_LONG  armed     missing: detection.b1_bull
+    INITIATIVE_SHORT armed     missing: detection.b3_joining
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell
+    BULL_FLAG_LONG   armed     missing: detection.flag_retrace
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 21:45:01  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b2_volume_drop
+    REACTIVE_SHORT   armed     missing: detection.b1_buyers
+    INITIATIVE_LONG  armed     missing: detection.b1_bull
+    INITIATIVE_SHORT armed     missing: detection.b3_joining
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell
+    BULL_FLAG_LONG   armed     missing: detection.flag_retrace
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 22:00:01  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b3_sellers
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.neckline_breakout
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+=== 22:00:01  readiness=DEGRADED ===
+  [S2 · Five-Minute Patterns]
+    REACTIVE_LONG    armed     missing: detection.b1_sellers
+    REACTIVE_SHORT   armed     missing: detection.b3_sellers
+    INITIATIVE_LONG  armed     missing: detection.b1_expansion
+    INITIATIVE_SHORT armed     missing: detection.b1_expansion
+    INVERSE_HNS_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    HNS_TOP_SHORT    blocked   missing: day_type_gate.auth_table_cell, detection.swing_highs_found
+    DOUBLE_BOTTOM_EE_LONG blocked   missing: day_type_gate.auth_table_cell, detection.swing_lows_found
+    DOUBLE_TOP_AA_SHORT blocked   missing: day_type_gate.auth_table_cell, detection.neckline_breakout
+    BULL_FLAG_LONG   armed     missing: detection.flag_length
+    BEAR_FLAG_SHORT  armed     missing: detection.pole_found
+  [S4 · Woodies CCI Patterns]
+    ZLR              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TLB              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    TT               blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    GB100            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Vegas            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    Ghost            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    FaMir            blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HTLB             blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+    HFE              blocked   missing: stage_a1.strategic_gate, detection.pattern_specific, targets_stop.r_t1_gate, targets_stop.stop_price, targets_stop.targets, exit_rules.ready_to_route
+  SUMMARY armed=6 blocked=13 fired=0 | top blockers: [('stage_a1.strategic_gate', 9), ('detection.pattern_specific', 9), ('targets_stop.r_t1_gate', 9)]
+# reached 22:00 local — stopping.

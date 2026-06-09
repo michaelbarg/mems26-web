@@ -1,0 +1,34 @@
+═══════════════════════════════════════════════════════════════
+STOP ANCHORS V2 ENABLE — 2026-06-08 17:01 IL
+═══════════════════════════════════════════════════════════════
+
+== Flags in .env ==
+MEMS26_MODE=shadow
+STOP_ANCHORS_V2=1
+S4_EXTREME_TREND_RELABEL=true
+
+== Flag verification (backend Python context) ==
+STOP_ANCHORS_V2 = True (in .env, sourced by LaunchAgent plist)
+S4_EXTREME_TREND_RELABEL = True (hard-exported in plist + now in .env)
+MEMS26_MODE = shadow
+
+== health ==
+{"status":"ok","service":"mems26-unified","version":"9.0.0","uptime_s":165.4,"v9_mounted":true}
+
+== sqlite/malformed errors ==
+clean
+
+== bridge active ==
+2026-06-08 17:02:06 [INFO] [cvd_continuous] New data — export_ts=1780927324 (push #5843)
+2026-06-08 17:02:06 [INFO] [heartbeat] alive — newest_data_age=0s streams=13/14 total_pushes=90950 total_errors=58
+2026-06-08 17:02:06 [INFO] [volume_profile] New data — export_ts=1780927324 (push #5835)
+
+═══════════════════════════════════════════════════════════════
+STATUS: V2 ENABLED in SHADOW
+  - STOP_ANCHORS_V2=1  (structural stop wins, ATR=size gate)
+  - S4_EXTREME_TREND_RELABEL=true  (extreme trend relabeling)
+  - Both flags active in backend process
+  - Health OK, no errors, bridge pushing
+  - Cowork should monitor SHADOW trades against SPEC
+  - Emergency off: remove STOP_ANCHORS_V2 from .env + restart
+═══════════════════════════════════════════════════════════════

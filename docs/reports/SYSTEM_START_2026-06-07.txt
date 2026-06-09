@@ -1,0 +1,27 @@
+=== health ===
+{"status":"ok","service":"mems26-unified","version":"9.0.0","uptime_s":195.0,"v9_mounted":true}
+=== DATABASE_URL בתהליך הרץ (חייב postgresql://localhost/mems26) ===
+DATABASE_URL=postgresql://localhost/mems26
+=== 7 הדגלים (חייבים ON) ===
+S1_CVD_OPENING=true
+S1_DAYTYPE_STAGING=true
+S1_IB_WIDTH_ATR=true
+S2_ATR_RELATIVE=true
+S2_VSA_VOLUME=true
+S3_RELATIVE=true
+=== bridge ===
+2026-06-08 12:48:04 [INFO] [tick_reversal_12] New data — export_ts=1780912084 (push #780)
+2026-06-08 12:48:04 [INFO] [bars_5min] New data — export_ts=1780912084 (push #780)
+2026-06-08 12:48:04 [INFO] [imbalance_flags] New data — export_ts=1780912084 (push #780)
+2026-06-08 12:48:04 [INFO] [woodies_30min] New data — export_ts=1780912084 (push #780)
+2026-06-08 12:48:04 [INFO] [cumulative_delta] New data — export_ts=1780912084 (push #780)
+2026-06-08 12:48:04 [INFO] [tpo] New data — export_ts=1780912084 (push #780)
+2026-06-08 12:48:05 [INFO] [woodies_5min] New data — export_ts=1780912084 (push #776)
+2026-06-08 12:48:06 [INFO] [volume_profile] New data — export_ts=1780912084 (push #775)
+bridge: {'available': False, 'status': 'timeout'}
+sierra: {'writing': True, 'last_write_age_s': 1.0, 'status': 'active'}
+session: OVERNIGHT
+=== sqlite errors? (חייב נקי) ===
+clean
+=== frontend ===
+200

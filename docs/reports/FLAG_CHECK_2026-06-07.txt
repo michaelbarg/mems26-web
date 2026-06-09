@@ -1,0 +1,30 @@
+=== flags in the RUNNING backend process (ps eww) ===
+S1_CVD_OPENING=true
+S1_DAYTYPE_STAGING=true
+S1_IB_WIDTH_ATR=true
+S2_ATR_RELATIVE=true
+S2_VSA_VOLUME=1
+S3_MUTE=1
+S3_RELATIVE=true
+
+=== health ===
+{"status":"ok","service":"mems26-unified","version":"9.0.0","uptime_s":842.1,"v9_mounted":true}
+=== listeners on :8000 (expect ONE uvicorn) ===
+Python  8310 michael   17u  IPv4 0x22d147d8a7751946      0t0  TCP localhost:irdmi (LISTEN)
+
+=== backend start log tail ===
+    self.dialect.do_execute(
+  File "/Library/Frameworks/Python.framework/Versions/3.9/lib/python3.9/site-packages/sqlalchemy/engine/default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.DatabaseError: (sqlite3.DatabaseError) database disk image is malformed
+[SQL: SELECT v9_bars_5min.id AS v9_bars_5min_id, v9_bars_5min.ts AS v9_bars_5min_ts, v9_bars_5min.symbol AS v9_bars_5min_symbol, v9_bars_5min.open AS v9_bars_5min_open, v9_bars_5min.high AS v9_bars_5min_high, v9_bars_5min.low AS v9_bars_5min_low, v9_bars_5min.close AS v9_bars_5min_close, v9_bars_5min.volume AS v9_bars_5min_volume, v9_bars_5min.poc_vol AS v9_bars_5min_poc_vol, v9_bars_5min.vah AS v9_bars_5min_vah, v9_bars_5min.val AS v9_bars_5min_val, v9_bars_5min.cumulative_delta AS v9_bars_5min_cumulative_delta, v9_bars_5min.is_synthetic AS v9_bars_5min_is_synthetic, v9_bars_5min.created_at AS v9_bars_5min_created_at 
+FROM v9_bars_5min 
+WHERE v9_bars_5min.ts >= ? AND v9_bars_5min.ts <= ? ORDER BY v9_bars_5min.ts
+ LIMIT ? OFFSET ?]
+[parameters: ('2026-05-07 13:30:00.000000', '2026-05-07 13:40:00.000000', 1, 0)]
+(Background on this error at: https://sqlalche.me/e/20/4xp6)
+INFO:     127.0.0.1:53545 - "POST /api/v9/bars/imbalance HTTP/1.1" 200 OK
+2026-06-07 15:06:22 [WARNING] [StreamHealth] unknown stream: cvd_continuous
+INFO:     127.0.0.1:53547 - "POST /api/v9/bars/cvd_continuous HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53549 - "POST /api/v9/live_price HTTP/1.1" 200 OK
+INFO:     127.0.0.1:53551 - "GET /health HTTP/1.1" 200 OK

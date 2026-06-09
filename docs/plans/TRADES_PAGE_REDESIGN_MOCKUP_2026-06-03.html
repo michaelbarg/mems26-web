@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MEMS26 · Trades — Redesign (כיול)</title>
+<style>
+  :root{
+    --bg:#0b0b0d; --s1:#121214; --s2:#161619; --s3:#1c1c20; --line:#24242a; --line2:#2e2e35;
+    --tp:#ececf0; --ts:#9a9aa4; --tt:#646470;
+    --green:#22c55e; --green-d:#0f2e1c; --amber:#f5b441; --amber-d:#2e2410; --red:#ef4444; --red-d:#2e1414;
+    --sys1:#5b9bff; --sys2:#2dd4a7; --sys3:#a78bfa; --sys4:#fb923c; --sys5:#22b8cf; --sys6:#8b8b96;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace; --sans:system-ui,-apple-system,sans-serif;
+    --r:9px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--tp);font-family:var(--sans);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .mono{font-family:var(--mono)}
+  .ltr{direction:ltr;unicode-bidi:isolate}
+  .container{max-width:1320px;margin:0 auto;padding:0 22px}
+  a{color:inherit;text-decoration:none}
+
+  header{position:sticky;top:0;z-index:30;background:rgba(11,11,13,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+  .header-in{display:flex;align-items:center;gap:16px;height:54px}
+  .brand{font-family:var(--mono);font-weight:700;letter-spacing:1px;color:var(--sys1);font-size:14px}
+  .crumb{color:var(--ts);font-size:12px}
+  .spacer{flex:1}
+  .hlink{color:var(--ts);font-size:11px;font-family:var(--mono)}
+  .tagline{font-size:11px;color:var(--tt);font-family:var(--mono)}
+
+  .note{margin-top:14px;border-radius:var(--r);background:linear-gradient(180deg,#15171c,#101216);border:1px solid #5b9bff30;padding:12px 16px;font-size:12.5px;color:var(--ts)}
+  .note b{color:var(--tp)}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-family:var(--mono);font-size:10.5px}
+  .pill{padding:2px 8px;border-radius:6px;font-weight:600}
+  .p-have{color:var(--green);background:var(--green-d);box-shadow:inset 0 0 0 1px #22c55e33}
+  .p-need{color:var(--amber);background:var(--amber-d);box-shadow:inset 0 0 0 1px #f5b44133}
+  .p-fix{color:var(--red);background:var(--red-d);box-shadow:inset 0 0 0 1px #ef444433}
+
+  main{padding:18px 0 56px}
+  .slab{font-size:10px;color:var(--tt);text-transform:uppercase;letter-spacing:.8px;font-family:var(--mono);margin:22px 2px 9px;display:flex;align-items:center;gap:9px}
+  .tag{font-size:9px;padding:1px 7px;border-radius:6px;font-family:var(--mono);font-weight:600}
+  .tag.have{color:var(--green);background:var(--green-d)} .tag.need{color:var(--amber);background:var(--amber-d)} .tag.fix{color:var(--red);background:var(--red-d)}
+
+  .scope{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:11px 16px;border-radius:var(--r);background:var(--s1);border:1px solid var(--line);font-family:var(--mono);font-size:12px}
+  .scope .lab{color:var(--tt)} .scope .v{color:var(--tp);font-weight:600}
+  .scope select{background:var(--s2);color:var(--tp);border:1px solid var(--line2);border-radius:6px;font-family:var(--mono);font-size:11px;padding:3px 8px}
+  .scope .sep{width:1px;height:16px;background:var(--line2)}
+  .preset{font-family:var(--mono);font-size:10.5px;padding:3px 9px;border-radius:6px;background:var(--s2);color:var(--ts);border:1px solid var(--line2);cursor:pointer}
+  .preset.on{color:var(--sys1);border-color:var(--sys1);background:rgba(91,155,255,.12);font-weight:600}
+
+  .exmode{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:11px 16px;border-radius:var(--r);background:var(--s1);border:1px solid var(--line);margin-top:10px;font-family:var(--mono);font-size:12px}
+  .seg{display:inline-flex;border:1px solid var(--line2);border-radius:7px;overflow:hidden}
+  .seg button{font-family:var(--mono);font-size:11px;padding:5px 12px;background:var(--s2);color:var(--ts);border:none;cursor:pointer;border-inline-start:1px solid var(--line2)}
+  .seg button:first-child{border-inline-start:none}
+  .seg button.on{background:var(--sys1);color:#06121f;font-weight:700}
+  .cmp{display:flex;gap:18px;flex-wrap:wrap;margin-inline-start:auto}
+  .cmp .box{padding:5px 12px;border-radius:7px;background:var(--s2);box-shadow:inset 0 0 0 1px var(--line)}
+  .cmp .box.live{box-shadow:inset 0 0 0 1px #5b9bff55}
+  .cmp .t{font-size:9px;color:var(--tt);text-transform:uppercase;letter-spacing:.5px}
+  .cmp .row{display:flex;gap:12px;margin-top:2px}
+
+  .edge{display:flex;align-items:center;flex-wrap:wrap;gap:8px 22px;padding:13px 16px;border-radius:var(--r);background:var(--s1);border:1px solid var(--line);font-family:var(--mono);font-size:13px;margin-top:10px}
+  .edge .kv{white-space:nowrap}
+  .edge .k{color:var(--tt);font-size:11px} .edge b{font-weight:700}
+  .spark{height:30px;width:150px;display:inline-block}
+
+  .tabs{display:flex;gap:6px;margin-top:9px}
+  .tb{padding:7px 15px;border-radius:8px 8px 0 0;background:var(--s1);color:var(--ts);font-size:12px;font-weight:600;border:1px solid var(--line);border-bottom:none;cursor:pointer}
+  .tb.on{background:var(--s3);color:var(--tp)}
+
+  table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:12px}
+  .card{border:1px solid var(--line);border-radius:var(--r);background:var(--s1);overflow:hidden}
+  thead th{font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--tt);font-weight:600;text-align:right;padding:9px 12px;border-bottom:1px solid var(--line)}
+  thead th.l,tbody td.l{text-align:right}
+  tbody td{padding:8px 12px;border-bottom:1px solid var(--line);color:var(--ts)}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--s2)}
+  .name{color:var(--tp);font-weight:600}
+  .g{color:var(--green)} .r{color:var(--red)} .a{color:var(--amber)} .m{color:var(--tt)} .tp{color:var(--tp)}
+  .accent{display:inline-block;width:8px;height:8px;border-radius:2px;margin-inline-start:6px;vertical-align:middle}
+
+  /* mini stacked target bar */
+  .dist{display:flex;height:11px;width:130px;border-radius:3px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
+  .dist i{display:block;height:100%}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+  @media(max-width:980px){.two{grid-template-columns:1fr}}
+  .panel{border:1px solid var(--line);border-radius:var(--r);background:var(--s1);padding:14px 16px}
+  .panel h4{margin:0 0 4px;font-size:12.5px;color:var(--tp)}
+  .panel .sub{font-size:10.5px;color:var(--tt);font-family:var(--mono);margin-bottom:12px}
+
+  /* horizontal bar rows */
+  .hbar{display:grid;grid-template-columns:78px 1fr 52px;align-items:center;gap:10px;margin-bottom:9px;font-family:var(--mono);font-size:11px}
+  .hbar .lbl{color:var(--ts)} .hbar .num{text-align:left;color:var(--tp)}
+  .track{height:14px;background:var(--s3);border-radius:3px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line)}
+  .track i{display:block;height:100%}
+
+  /* scatter mock */
+  .scatter{position:relative;height:150px;border:1px solid var(--line);border-radius:7px;background:linear-gradient(0deg,#101013,#121216);margin-top:4px}
+  .scatter .ax{position:absolute;color:var(--tt);font-family:var(--mono);font-size:9px}
+  .dot{position:absolute;width:7px;height:7px;border-radius:50%;transform:translate(-50%,50%)}
+
+  /* equity */
+  .eq{height:120px;width:100%}
+
+  /* trade card */
+  .tlist{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+  .trow{position:relative;border:1px solid var(--line);border-radius:8px;background:var(--s1);padding:9px 14px;overflow:hidden}
+  .trow .bar{position:absolute;top:0;bottom:0;right:0;width:3px}
+  .trow .top{display:flex;align-items:center;gap:9px;flex-wrap:wrap;font-family:var(--mono);font-size:11px}
+  .chip{font-size:9px;padding:1px 7px;border-radius:5px;font-weight:600}
+  .c-long{color:var(--green);background:rgba(34,197,94,.13);box-shadow:inset 0 0 0 1px #22c55e44}
+  .c-short{color:var(--red);background:rgba(239,68,68,.13);box-shadow:inset 0 0 0 1px #ef444444}
+  .c-pat{color:var(--ts);background:rgba(255,255,255,.05)}
+  .c-be{color:var(--green);box-shadow:inset 0 0 0 1px #22c55e55;border-radius:4px;padding:0 5px;font-size:8.5px}
+  .c-open{color:var(--amber);box-shadow:inset 0 0 0 1px #f5b44155;border-radius:4px;padding:0 5px;font-size:8.5px}
+  /* R path */
+  .path{position:relative;height:34px;margin:8px 14px 2px}
+  .path .base{position:absolute;left:0;right:0;top:50%;height:2px;background:#26262d;transform:translateY(-50%)}
+  .path .nd{position:absolute;top:50%;transform:translate(50%,-50%);width:9px;height:9px;border-radius:50%}
+  .path .seg{position:absolute;top:50%;height:4px;transform:translateY(-50%);border-radius:2px}
+  .path .lb{position:absolute;font-family:var(--mono);font-size:9px;white-space:nowrap;transform:translateX(50%)}
+
+  .foot{margin-top:30px;padding-top:14px;border-top:1px solid var(--line);color:var(--tt);font-size:11px;font-family:var(--mono)}
+</style>
+</head>
+<body>
+<header><div class="container header-in">
+  <span class="brand">MEMS26</span><span class="crumb">/ Trades — עיצוב‑מחדש (כיול)</span>
+  <span class="spacer"></span>
+  <span class="hlink">Dashboard</span><span class="hlink">Build Status</span>
+</div></header>
+
+<div class="container">
+  <div class="note">
+    <b>Mockup סטטי — לא קוד.</b> מטרת העמוד: מ‑SHADOW אוסף‑דאטה →
+    <b>החלטות כיול</b>. כל מספר כאן הוא <b>אילוסטרטיבי</b>. הצבעים מסמנים מקור:
+    <div class="legend">
+      <span class="pill p-have">קיים — צד‑לקוח</span>
+      <span class="pill p-need">⛔ ממתין ל‑backend (אגרגציה)</span>
+      <span class="pill p-fix">חוב לתיקון</span>
+    </div>
+  </div>
+
+  <!-- SCOPE -->
+  <div class="slab">Scope <span class="tag have">KEEP · TradeFilters</span> <span class="tag fix">FIX: מסנן‑תאריך TZ</span></div>
+  <div class="scope">
+    <span><span class="lab">Mode</span> <select><option>All</option><option>Shadow</option><option>Sim</option><option>Live</option></select></span>
+    <span class="sep"></span>
+    <span><span class="lab">טווח</span> <span class="v ltr">2026‑05‑20 → 06‑03</span> <span class="m">(ET)</span></span>
+    <span class="sep"></span>
+    <span class="lab">מהיר</span>
+    <button class="preset on">היום · רציף (RTH)</button>
+    <button class="preset">אתמול</button>
+    <button class="preset">7 ימים</button>
+    <button class="preset">30 ימים</button>
+    <button class="preset">תחילת חודש</button>
+    <span class="sep"></span>
+    <span><span class="lab">System</span> <select><option>All</option><option>S2 5‑Min</option><option>S3 Footprint</option><option>S4 Woodies</option></select></span>
+    <span><span class="lab">Direction</span> <select><option>All</option><option>Long</option><option>Short</option></select></span>
+    <span class="sep"></span>
+    <span><span class="lab">בחתך</span> <b class="v">142</b> <span class="m">trades · 7 פתוחות</span></span>
+    <span class="sep"></span>
+    <span class="m">soak: 11 ימי‑מסחר</span>
+  </div>
+
+  <!-- EDGE BAND -->
+  <div class="slab">Edge band <span class="tag have">KEEP · EdgeKpiRow</span> <span class="tag need">הרחבה: BE/Scratch מפורש</span></div>
+  <div class="edge">
+    <span class="kv"><span class="k">Net </span><b class="g">+$1,284</b></span>
+    <span class="kv"><span class="k">Win% </span><b class="tp">52.4%</b></span>
+    <span class="kv"><span class="k">BE </span><b class="m">9</b></span>
+    <span class="kv"><span class="k">Scratch </span><b class="a">4</b></span>
+    <span class="kv"><span class="k">PF </span><b class="tp">1.61</b></span>
+    <span class="kv"><span class="k">Exp </span><b class="g">+$9.04</b></span>
+    <span class="kv"><span class="k">Max DD </span><b class="r">($412)</b></span>
+    <span class="kv"><span class="k">R:R~ </span><b class="tp">1:1.8</b></span>
+    <span class="kv"><span class="k">ΣR </span><b class="g">+18.4</b></span>
+    <span class="spacer"></span>
+    <span class="k">equity</span>
+    <svg class="spark" viewBox="0 0 150 30" preserveAspectRatio="none"><polyline fill="none" stroke="#22c55e" stroke-width="1.5" points="0,24 14,22 28,25 42,18 56,20 70,14 84,16 98,9 112,12 126,6 140,8 150,4"/></svg>
+  </div>
+
+  <!-- EXECUTION MODE -->
+  <div class="slab">Execution mode — סימולטני מול "ירי אחד בכל פעם" <span class="tag have">KEEP · computeAuxStatus (להבליט)</span> <span class="tag need">חישוב מעל כל ה‑soak ⛔G2/G3</span></div>
+  <div class="exmode">
+    <span class="lab" style="color:var(--tt)">תצוגה:</span>
+    <span class="seg"><button>הכל (142)</button><button>מקבילות (38)</button><button class="on">רצף‑אמת · ירי אחד (104)</button></span>
+    <span class="m" style="color:var(--tt)">⧓ מקבילה = חפפה עסקה אחרת · רצף‑אמת = מה שהיה נלקח ב‑LIVE</span>
+    <span class="cmp">
+      <span class="box"><div class="t">הכל (SHADOW)</div><div class="row"><span>Net <b class="g">+$1,284</b></span><span>Win <b class="tp">52.4%</b></span><span>Exp <b class="g">+$9.0</b></span></div></span>
+      <span class="box live"><div class="t">רצף‑אמת (LIVE)</div><div class="row"><span>Net <b class="g">+$1,061</b></span><span>Win <b class="tp">55.8%</b></span><span>Exp <b class="g">+$10.2</b></span></div></span>
+    </span>
+  </div>
+  <div class="tagline" style="margin-top:7px">תובנה: 38 עסקאות מקבילות "דרסו" זו את זו — תחת ירי‑אחד‑בכל‑פעם ה‑Win% דווקא <b class="g">עולה</b> (55.8%) וה‑Exp משתפר → ה‑edge ה‑LIVE איתן.</div>
+
+  <!-- EDGE MATRIX -->
+  <div class="slab">Edge Matrix — איפה ה‑edge? <span class="tag need">⛔ ADAPT · group‑by day_type/pattern/killzone דורש backend (G1+G2)</span></div>
+  <div class="tabs">
+    <span class="tb">System</span><span class="tb on">Pattern</span><span class="tb">Day‑type</span><span class="tb">Killzone</span><span class="tb">Direction</span>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th class="l">Pattern</th><th>N (open)</th><th>W</th><th>L</th><th>BE</th><th>Win%</th><th>Net $</th><th>Exp $</th><th>PF</th><th>avgR</th><th class="l">התפלגות יעדים</th>
+      </tr></thead>
+      <tbody>
+        <tr><td class="l name">ZLR <span class="accent" style="background:var(--sys4)"></span></td><td>31 (1)</td><td class="g">19</td><td class="r">9</td><td>3</td><td class="g tp"><b>67.9%</b></td><td class="g">+$742</td><td class="g">+$23.9</td><td>2.40</td><td class="g">+0.71</td>
+          <td class="l"><span class="dist"><i style="width:34%;background:var(--sys1)"></i><i style="width:26%;background:#2dd4a7"></i><i style="width:14%;background:var(--green)"></i><i style="width:18%;background:var(--red)"></i><i style="width:8%;background:var(--tt)"></i></span></td></tr>
+        <tr><td class="l name">DOUBLE_BT <span class="accent" style="background:var(--sys2)"></span></td><td>27 (2)</td><td class="g">13</td><td class="r">11</td><td>1</td><td class="tp"><b>54.2%</b></td><td class="g">+$318</td><td class="g">+$12.7</td><td>1.44</td><td class="g">+0.28</td>
+          <td class="l"><span class="dist"><i style="width:30%;background:var(--sys1)"></i><i style="width:18%;background:#2dd4a7"></i><i style="width:8%;background:var(--green)"></i><i style="width:40%;background:var(--red)"></i><i style="width:4%;background:var(--tt)"></i></span></td></tr>
+        <tr><td class="l name">VEGAS <span class="accent" style="background:var(--sys4)"></span></td><td>22 (1)</td><td class="g">10</td><td class="r">10</td><td>2</td><td class="tp"><b>50.0%</b></td><td class="g">+$96</td><td class="m">+$4.6</td><td>1.12</td><td class="m">+0.09</td>
+          <td class="l"><span class="dist"><i style="width:24%;background:var(--sys1)"></i><i style="width:16%;background:#2dd4a7"></i><i style="width:10%;background:var(--green)"></i><i style="width:42%;background:var(--red)"></i><i style="width:8%;background:var(--tt)"></i></span></td></tr>
+        <tr><td class="l name">HFE <span class="accent" style="background:var(--sys4)"></span></td><td>18 (0)</td><td class="g">7</td><td class="r">9</td><td>2</td><td class="a"><b>43.8%</b></td><td class="r">−$184</td><td class="r">−$10.2</td><td>0.78</td><td class="r">−0.31</td>
+          <td class="l"><span class="dist"><i style="width:18%;background:var(--sys1)"></i><i style="width:10%;background:#2dd4a7"></i><i style="width:6%;background:var(--green)"></i><i style="width:58%;background:var(--red)"></i><i style="width:8%;background:var(--tt)"></i></span></td></tr>
+        <tr><td class="l name">COMPRESSION_POP <span class="accent" style="background:var(--sys2)"></span></td><td>14 (2)</td><td class="g">5</td><td class="r">8</td><td>1</td><td class="r"><b>38.5%</b></td><td class="r">−$296</td><td class="r">−$24.7</td><td>0.61</td><td class="r">−0.52</td>
+          <td class="l"><span class="dist"><i style="width:14%;background:var(--sys1)"></i><i style="width:8%;background:#2dd4a7"></i><i style="width:4%;background:var(--green)"></i><i style="width:66%;background:var(--red)"></i><i style="width:8%;background:var(--tt)"></i></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="tagline" style="margin-top:7px">קליק על שורה → מסנן את כל הפאנלים מתחת (drill‑down). מקרא התפלגות:
+    <span class="g">■</span>T1 <span style="color:#2dd4a7">■</span>T2 <span class="g">■</span>T3 <span class="r">■</span>Stop <span class="m">■</span>BE/Scratch</div>
+
+  <!-- ROW: TARGET DIST + HEAT -->
+  <div class="slab">התממשות יעדים &amp; "כאב" (MAE/MFE) <span class="tag need">⛔ Target dist: דאטה קיימת, צריך panel · Heat: צריך aggregation (G4)</span></div>
+  <div class="two">
+    <div class="panel">
+      <h4>Target Distribution — סכמת day‑type מול realized</h4>
+      <div class="sub">planned (מ‑day_type_targets ⛔G3) מול בפועל · מקור: t1_hit/t2_hit/t3_hit · exit_reason · outcome ✅</div>
+      <div class="hbar"><span class="lbl">Trend ↑</span><div class="track"><i style="width:71%;background:linear-gradient(90deg,var(--sys1),#2dd4a7)"></i></div><span class="num">71% →T2+</span></div>
+      <div class="hbar"><span class="lbl m">planned</span><div class="track" style="opacity:.5"><i style="width:80%;background:var(--ts)"></i></div><span class="num m">80%</span></div>
+      <div class="hbar"><span class="lbl">NonTrend</span><div class="track"><i style="width:44%;background:linear-gradient(90deg,var(--sys1),#2dd4a7)"></i></div><span class="num">44% →T2+</span></div>
+      <div class="hbar"><span class="lbl m">planned</span><div class="track" style="opacity:.5"><i style="width:40%;background:var(--ts)"></i></div><span class="num m">40%</span></div>
+      <div class="hbar"><span class="lbl">Range</span><div class="track"><i style="width:33%;background:linear-gradient(90deg,var(--sys1),var(--red))"></i></div><span class="num">33% →T1</span></div>
+      <div class="hbar"><span class="lbl m">planned</span><div class="track" style="opacity:.5"><i style="width:50%;background:var(--ts)"></i></div><span class="num m">50%</span></div>
+      <div class="tagline" style="margin-top:10px">תובנה: ב‑Trend היעדים מתממשים מתחת ל‑schema (71% מול 80%) → לבדוק יציאה מוקדמת/trail.</div>
+    </div>
+    <div class="panel">
+      <h4>Heat — MAE על מנצחות · MFE על מפסידות</h4>
+      <div class="sub">mfe_pts/mae_pts/t1_at_mfe ✅ per‑trade · אגרגציה ⛔G4 · רזולוציית 5ד׳ (לא tick)</div>
+      <div class="scatter">
+        <span class="ax" style="bottom:4px;right:6px">MAE → (נק׳)</span>
+        <span class="ax" style="top:4px;left:6px;transform:none">exit‑R ↑</span>
+        <span class="dot" style="background:var(--green);left:18%;bottom:62%"></span>
+        <span class="dot" style="background:var(--green);left:26%;bottom:70%"></span>
+        <span class="dot" style="background:var(--green);left:33%;bottom:55%"></span>
+        <span class="dot" style="background:var(--green);left:44%;bottom:78%"></span>
+        <span class="dot" style="background:var(--green);left:52%;bottom:48%"></span>
+        <span class="dot" style="background:var(--red);left:22%;bottom:30%"></span>
+        <span class="dot" style="background:var(--red);left:30%;bottom:22%"></span>
+        <span class="dot" style="background:var(--red);left:60%;bottom:18%"></span>
+        <span class="dot" style="background:var(--amber);left:70%;bottom:38%"></span>
+        <span class="dot" style="background:var(--amber);left:78%;bottom:33%"></span>
+      </div>
+      <div class="tagline" style="margin-top:10px">תובנה: 5 מנצחות עם MAE&gt;2.5 נק׳ → ה‑stop נושם נכון. אשכול
+        <span class="a">t1_at_mfe≈0</span> (כתום) = הגיע ל‑T1 והתהפך → לשקול fill חלקי אגרסיבי ב‑T1.</div>
+    </div>
+  </div>
+
+  <!-- EQUITY / TREND -->
+  <div class="slab">Trend over soak <span class="tag have">ADAPT · EquityCurveStrip (להחזיר mount)</span> <span class="tag need">rolling‑WR + by‑hour ⛔G3/G1</span></div>
+  <div class="panel">
+    <h4>Equity by‑close + Max DD + rolling Win% (חלון 20)</h4>
+    <div class="sub">equityCurveByClose ✅ (סדר exit_ts, לא entry_ts) · rolling/by‑hour ⛔ צריך שרת מעל כל הקבוצה (Cardinality)</div>
+    <svg class="eq" viewBox="0 0 1000 120" preserveAspectRatio="none">
+      <line x1="0" y1="92" x2="1000" y2="92" stroke="#2e2e35" stroke-dasharray="4 4"/>
+      <defs><linearGradient id="eqf" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#22c55e" stop-opacity=".22"/><stop offset="100%" stop-color="#22c55e" stop-opacity="0"/></linearGradient></defs>
+      <path d="M0,92 L70,86 L140,96 L210,72 L280,80 L350,55 L420,64 L490,40 L560,58 L630,30 L700,44 L770,22 L840,34 L910,14 L1000,20 L1000,120 L0,120 Z" fill="url(#eqf)"/>
+      <polyline fill="none" stroke="#22c55e" stroke-width="2" points="0,92 70,86 140,96 210,72 280,80 350,55 420,64 490,40 560,58 630,30 700,44 770,22 840,34 910,14 1000,20"/>
+      <polyline fill="none" stroke="#5b9bff" stroke-width="1.4" stroke-dasharray="5 4" points="0,70 140,66 280,72 420,60 560,55 700,50 840,46 1000,42"/>
+    </svg>
+    <div class="tagline"><span class="g">■</span> equity מצטבר &nbsp; <span style="color:var(--sys1)">▬</span> rolling Win%(20) — מגמת‑שיפור לאורך ה‑soak.</div>
+  </div>
+
+  <!-- TRADE LIST + DRILL -->
+  <div class="slab">רשימת עסקאות → drill‑down <span class="tag have">KEEP · TradeCardList + TradeDetailsModal</span> <span class="tag fix">FIX: management_log ריק (G5)</span></div>
+  <div class="tlist">
+    <div class="trow"><span class="bar" style="background:var(--sys4)"></span>
+      <div class="top"><span class="m">#142</span><span class="chip c-long">▲ LONG</span><b style="color:var(--sys4)">S4 Woodies</b>
+        <span class="chip c-pat">ZLR</span><span class="chip c-pat">R:R 1:2.0</span><span class="c-be">BE ✓</span>
+        <span class="m">09:48 ET · 41m · Trend‑Up</span><span class="spacer" style="flex:1"></span>
+        <b class="g" style="font-size:14px">+$87.50</b><span class="m">Σ +$1,284</span></div>
+      <div class="path">
+        <div class="base"></div>
+        <div class="seg" style="left:30%;width:42%;background:var(--green);opacity:.85"></div>
+        <div class="nd" style="right:70%;background:var(--red);box-shadow:0 0 0 2px var(--red) inset"></div>
+        <div class="nd" style="right:70%;background:#fff;width:7px;height:7px"></div>
+        <div class="nd" style="right:46%;background:var(--sys1)"></div>
+        <div class="nd" style="right:28%;background:var(--sys1)"></div>
+        <div class="nd" style="right:28%"></div>
+        <div class="lb" style="right:70%;top:62%;color:var(--red)">−1R</div>
+        <div class="lb" style="right:46%;top:2%;color:var(--sys1)">+1R ✓ T1</div>
+        <div class="lb" style="right:28%;top:2%;color:var(--sys1)">+2R ✓ T2</div>
+      </div>
+    </div>
+    <div class="trow"><span class="bar" style="background:var(--sys2)"></span>
+      <div class="top"><span class="m">#141</span><span class="chip c-short">▼ SHORT</span><b style="color:var(--sys2)">S2 5‑Min</b>
+        <span class="chip c-pat">COMPRESSION_POP</span><span class="chip c-pat">R:R 1:1.5</span>
+        <span class="m">11:02 ET · 17m · Range</span><span class="spacer" style="flex:1"></span>
+        <b class="r" style="font-size:14px">($33.75)</b><span class="m">Σ +$1,196</span></div>
+      <div class="path">
+        <div class="base"></div>
+        <div class="seg" style="left:42%;width:28%;background:var(--red);opacity:.85"></div>
+        <div class="nd" style="right:70%;background:var(--red)"></div>
+        <div class="nd" style="right:42%;background:#fff;width:7px;height:7px"></div>
+        <div class="nd" style="right:24%;background:transparent;box-shadow:0 0 0 1.5px #3a4252 inset"></div>
+        <div class="lb" style="right:70%;top:62%;color:var(--red)">−1R stop</div>
+        <div class="lb" style="right:24%;top:2%;color:var(--tt)">+1.5R T1 (לא הגיע)</div>
+      </div>
+    </div>
+    <div class="trow"><span class="bar" style="background:var(--sys2)"></span>
+      <div class="top"><span class="m">#140</span><span class="chip c-long">▲ LONG</span><b style="color:var(--sys2)">S2 5‑Min</b>
+        <span class="chip c-pat">DOUBLE_BT</span><span class="c-open">open</span>
+        <span class="m">13:20 ET · C1✓ C2 רץ · NonTrend</span><span class="spacer" style="flex:1"></span>
+        <b class="g" style="font-size:14px">+$25.00</b><span class="m">partial</span></div>
+    </div>
+  </div>
+
+  <!-- §4.7 price/time — מה קרה בפועל (פאנל נפרד, ציר‑מחיר ליניארי מדויק) -->
+  <div class="slab">מה קרה בפועל — עסקה #142 <span class="tag have">client‑side · עמודות ממשיות</span> <span class="tag need">קו‑מחיר מלא ⛔G7 (סדרת ברי‑5ד׳)</span></div>
+  <div class="panel">
+    <div class="sub" style="margin-bottom:2px">y = מחיר (סקאלה ליניארית) · x = זמן · נקודות אמיתיות בלבד: entry · T1 · T2 · exit · stop. הקו ישר בין אירועים (בלי ברי‑5ד׳ — לא מסונתז).</div>
+    <svg viewBox="0 0 760 344" style="width:100%;height:auto" font-family="ui-monospace,monospace" direction="ltr">
+      <!-- ===== axes: plot area x[110..690] y[46..300] · price 7593..7611 · time 09:48..10:29 ===== -->
+      <!-- y axis line + x axis line -->
+      <line x1="110" y1="46" x2="110" y2="300" stroke="#3a3a42" stroke-width="1"/>
+      <line x1="110" y1="300" x2="690" y2="300" stroke="#3a3a42" stroke-width="1"/>
+
+      <!-- price gridlines (inside plot only) + left‑gutter tick labels -->
+      <line x1="110" y1="60.1"  x2="690" y2="60.1"  stroke="#5b9bff" stroke-dasharray="2 6" stroke-opacity=".5"/>
+      <text x="102" y="63.5"  fill="#5b9bff" font-size="11" text-anchor="end">7610 T2</text>
+      <line x1="110" y1="88.3"  x2="690" y2="88.3"  stroke="#2e2e35" stroke-dasharray="1 0" stroke-opacity=".6"/>
+      <text x="102" y="91.5"  fill="#646470" font-size="10" text-anchor="end">7608</text>
+      <line x1="110" y1="130.7" x2="690" y2="130.7" stroke="#5b9bff" stroke-dasharray="2 6" stroke-opacity=".5"/>
+      <text x="102" y="134.0" fill="#5b9bff" font-size="11" text-anchor="end">7605 T1</text>
+      <line x1="110" y1="201.2" x2="690" y2="201.2" stroke="#3a3a42" stroke-dasharray="1 0" stroke-opacity=".7"/>
+      <text x="102" y="204.5" fill="#9a9aa4" font-size="11" text-anchor="end">7600 entry</text>
+      <line x1="110" y1="271.8" x2="690" y2="271.8" stroke="#ef4444" stroke-dasharray="5 5" stroke-opacity=".55"/>
+      <text x="102" y="275.0" fill="#ef4444" font-size="11" text-anchor="end">7595 stop</text>
+
+      <!-- actual event path -->
+      <polyline fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linejoin="round" points="110,201.2 265.6,130.7 576.8,60.1 690,88.3"/>
+
+      <!-- event markers -->
+      <circle cx="110"   cy="201.2" r="5"   fill="#ececf0" stroke="#0b0b0d" stroke-width="1.5"/>
+      <circle cx="265.6" cy="130.7" r="5"   fill="#5b9bff" stroke="#0b0b0d" stroke-width="1.5"/>
+      <circle cx="576.8" cy="60.1"  r="5"   fill="#5b9bff" stroke="#0b0b0d" stroke-width="1.5"/>
+      <rect   x="683" y="81.3" width="14" height="14" fill="#22c55e" transform="rotate(45 690 88.3)"/>
+
+      <!-- x time ticks + labels (below axis) -->
+      <line x1="110"   y1="300" x2="110"   y2="306" stroke="#3a3a42"/>
+      <text x="110"   y="320" fill="#9a9aa4" font-size="11" text-anchor="start">09:48 entry</text>
+      <line x1="265.6" y1="300" x2="265.6" y2="306" stroke="#3a3a42"/>
+      <text x="265.6" y="320" fill="#5b9bff" font-size="11" text-anchor="middle">09:59 T1 ✓</text>
+      <line x1="576.8" y1="300" x2="576.8" y2="306" stroke="#3a3a42"/>
+      <text x="576.8" y="320" fill="#5b9bff" font-size="11" text-anchor="middle">10:21 T2 ✓</text>
+      <line x1="690"   y1="300" x2="690"   y2="306" stroke="#3a3a42"/>
+      <text x="690"   y="320" fill="#22c55e" font-size="11" text-anchor="end">10:29 exit</text>
+
+      <!-- axis titles -->
+      <text x="690" y="338" fill="#646470" font-size="10" text-anchor="end">זמן (ET) →</text>
+      <text x="22" y="173" fill="#646470" font-size="10" text-anchor="middle" transform="rotate(-90 22 173)">מחיר ↑</text>
+    </svg>
+  </div>
+
+  <!-- STOP BEHAVIOR — bottom (בקשת Michael) -->
+  <div class="slab">התנהגות סטופים <span class="tag have">KEEP · stopMovement/stop_issue</span> <span class="tag fix">FIX: דלי Scratch/BE מפורש (D‑C)</span></div>
+  <div class="two">
+    <div class="panel">
+      <h4>חלוקת ניהול‑הסטופ</h4>
+      <div class="sub">stop_initial vs stop ✅ · stop_issue=='T1_NO_BE' ✅ · stopMovement() ✅</div>
+      <div class="hbar"><span class="lbl">BE ✓ (זז)</span><div class="track"><i style="width:48%;background:var(--green)"></i></div><span class="num">68</span></div>
+      <div class="hbar"><span class="lbl">static −1R</span><div class="track"><i style="width:39%;background:var(--ts)"></i></div><span class="num">55</span></div>
+      <div class="hbar"><span class="lbl a">T1_NO_BE ⚠</span><div class="track"><i style="width:13%;background:var(--amber)"></i></div><span class="num a">19</span></div>
+    </div>
+    <div class="panel">
+      <h4>תובנת‑כיול</h4>
+      <div class="sub">"כמה פעמים T1 נפגע אך הסטופ לא זז ל‑BE" — דליפת‑רווח‑אמת</div>
+      <div class="tagline" style="line-height:1.9">
+        <b class="a">19</b> עסקאות נגעו ב‑T1 אך הסטופ נשאר ב‑−1R (T1_NO_BE) → מהן
+        <b class="r">7 חזרו והפכו למפסידות</b> = <b class="r">−$214</b> שניתן היה למנוע עם
+        Smart‑BE עקבי. <br>פילוח פר‑מערכת זמין בקליק על שורת Edge Matrix.
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    תוצרי‑העיצוב: <b style="color:var(--tp)">TRADES_PAGE_REDESIGN_2026-06-03.md</b> (מסמך + gap‑list §7) · ה‑mockup הזה.
+    read‑only · לא מומש קוד · source‑of‑truth: כל "⛔" = ממתין ל‑backend, לא מסונתז · Michael מאשר לפני מימוש.
+  </div>
+</div>
+</body>
+</html>

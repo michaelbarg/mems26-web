@@ -1,0 +1,40 @@
+═══════════════════════════════════════════════════════════════
+A1 — Fire→Trades chain verification · 2026-06-09 pre-RTH
+═══════════════════════════════════════════════════════════════
+
+Chain: detection → v9_five_min_setups → setup_emitter → gateway → v9_trades → UI
+
+== 1. Detection (engine) ==
+  Bug #1 fixed (0bc1d20): DLL-fallback computes real stop → no crash
+  Bug #3 fixed (2aef154): detection on completed bars (buffer[:-1])
+  S2⟂S3 fixed (638e664): COT/AMT not required
+  Replay proof: 34 distinct fires on 2026-06-08 data (16 S4 + 18 S2)
+
+== 2. v9_five_min_setups (persist) ==
+  Bug #2 fixed (23163d9): ts parsing handles ISO strings
+  Current state: 0 rows today (pre-RTH, no fires yet)
+  Verified: datetime.fromisoformat("2026-06-09T10:00:00+00:00") → OK
+  Verified: datetime.fromtimestamp(1781006000.0) → OK
+
+== 3. setup_emitter → gateway ==
+  No fires attempted since restart (pre-RTH, OVERNIGHT_MODE)
+  Gateway path: route_setup → session_gate → SSV → chop[disabled] → cluster_guard
+  Chop gates: S2_CHOPPINESS_GATE=OFF, LAYER0_CHOP_GATE=OFF (Standing Decisions)
+
+== 4. v9_trades ==
+  Table exists, 3 historical rows (from 2026-06-05)
+  Latest: REACTIVE_SHORT entry=7414.25 stop=7414.00 pnl=66.88 outcome=WIN
+  Bug #4 fixed (23163d9): woodies ts epoch→ISO for Postgres
+
+== 5. Frontend Trades page ==
+  Cannot verify until RTH fire produces a new v9_trades row
+  Pre-condition: v9_trades schema intact, historical rows readable
+
+== Chain status (pre-RTH) ==
+  detection      → FIXED (bugs #1,#3,S2⟂S3) — verified via replay
+  persist setups → FIXED (bug #2 ts parse) — verified parsing paths
+  gateway        → READY (chop disabled, session gate active)
+  persist trades → FIXED (bug #4 ts) — 3 historical rows confirm writes work
+  frontend       → PENDING (need live fire to verify display)
+
+VERDICT: Chain is ready. Will confirm end-to-end when RTH produces first fire.
