@@ -1,0 +1,53 @@
+═══════════════════════════════════════════════════════════════
+S2→trades diagnosis · 2026-06-09
+═══════════════════════════════════════════════════════════════
+
+== Chain: FIRE → v9_five_min_setups → emit_t1_setup → gateway → v9_trades ==
+
+== 1. Setups persisted (v9_five_min_setups) ==
+  id=27  16:45 INITIATIVE_LONG  entry=7489.0 stop=7474.5 conf=0.80
+  id=28  16:55 REACTIVE_SHORT   entry=7465.5 stop=7490.75 conf=0.80
+  → persist works (bug #2 fix confirmed)
+
+== 2. emit_t1_setup log ==
+  16:50:03 [S2] T1Setup skipped: pattern=INITIATIVE_LONG day_type=UNKNOWN
+           tier=MEDIUM · Auth Table SKIP
+  17:00:03 — no T1Setup log for REACTIVE_SHORT (same SKIP, no log emitted)
+
+== 3. v9_trades today (S2) ==
+  0 rows with firing_system=2
+
+== 4. S4 comparison (works) ==
+  HTLB SHORT fired at 16:50:05 → v9_trades id exists → S4 path works
+
+═══════════════════════════════════════════════════════════════
+ROOT CAUSE: day_type=UNKNOWN at fire time
+═══════════════════════════════════════════════════════════════
+
+At 16:50 IL (09:50 ET = 20 min into RTH), S1 hasn't classified the
+new day yet. FiveMinSystem.current_day_type was hydrated with yesterday's
+"Variation" but then reset when the new session started.
+
+emit_t1_setup (setup_emitter.py) has an internal auth check:
+  Pkg8/auth_table_v1 → unknown day_type='UNKNOWN' → fallback Neutral_Center
+  → Auth Table SKIP for Initiative × Neutral_Center
+
+The fire HAPPENED (engine detected, DB persisted) but the setup_emitter
+VETOED it because day_type=UNKNOWN → auth fallback → SKIP.
+
+This is NOT a code bug in the fire path. It's a timing dependency:
+S2 fires before S1 classifies (S1 needs IB completion = ~60 min).
+
+═══════════════════════════════════════════════════════════════
+VERDICT: legitimate veto (day_type=UNKNOWN → auth SKIP)
+═══════════════════════════════════════════════════════════════
+
+Not a broken link in the chain. The chain works:
+  detection ✓ → persist ✓ → emit_t1_setup → SKIP (auth, day_type=UNKNOWN)
+
+Options for Michael:
+  (a) Accept: S2 fires only after S1 classifies (~60 min into RTH)
+  (b) Use "Normal" as default when day_type=UNKNOWN (more fires, less selective)
+  (c) Carry yesterday's day_type until S1 reclassifies
+
+This is a trading-logic decision (§Standing Decisions), not a code fix.
