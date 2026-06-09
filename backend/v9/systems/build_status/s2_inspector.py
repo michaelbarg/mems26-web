@@ -122,7 +122,12 @@ def inspect(five_min_system=None, day_type_str: Optional[str] = None) -> SystemS
 
     # Buffer size for CCI check
     buffer_size = state.get("buffer_size", 0)
-    bar_buffer = getattr(five_min_system, "_bar_buffer", [])
+    _raw_buffer = getattr(five_min_system, "_bar_buffer", [])
+    # Inspector must see the SAME window as the engine's detection path.
+    # Engine uses buffer[:-1] (completed bars only, excluding the partial
+    # new bar). Inspector must do the same — otherwise it shows "all pass"
+    # when the engine can't fire (engine↔inspector mismatch, Bug #5 fix).
+    bar_buffer = _raw_buffer[:-1] if len(_raw_buffer) >= 8 else _raw_buffer
     actual_buffer_size = len(bar_buffer) if bar_buffer else buffer_size
 
     # Mode context (must be resolved BEFORE fhb_eligible since fhb gate
