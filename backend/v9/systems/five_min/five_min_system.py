@@ -919,6 +919,12 @@ class FiveMinSystem(BaseV9TradingSystem):
         # NEW bar with partial OHLC (opening tick). bars[-2..-5] are already
         # complete. Using buffer[:-1] ensures b4 = the last COMPLETED bar, not
         # the partial one. FHB/ATR/choppiness above still use the full buffer.
+        #
+        # NOT flag-gated (deliberate): detecting on partial OHLC is always wrong
+        # — it produces incorrect entry prices, wrong stops, and false pattern
+        # matches. There is no valid use case for the old behavior. The trim is
+        # the mathematically correct detection window given the bridge push model.
+        # Cowork reviewed 2026-06-09.
         _det_buf = self._bar_buffer[:-1] if len(self._bar_buffer) >= 8 else self._bar_buffer
         direction, conf, info = self._detect_reactive(_det_buf)
         if not direction:

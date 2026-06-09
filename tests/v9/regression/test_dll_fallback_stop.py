@@ -1,76 +1,95 @@
-"""Bug #1 fix: DLL-flagged ZLR/HFE must compute a real stop, not None/0.0.
+"""Bug #1: DLL-flagged ZLR/HFE must compute real stop via process_bar.
 
-RED-on-revert: if reverted → PatternResult(stop=None) → ValidationError →
-process_bar crashes → all S4 patterns silenced. This test catches that by
-creating a WoodiesBar with zlr_detected=True and verifying the DLL-fallback
-path produces a valid PatternResult with stop > 0.
+Feeds a bar with zlr_detected=True through the REAL WoodiesSystem.process_bar.
+Verifies: no crash, ZLR in active_patterns, stop>0, R:R sanity.
+
+RED-on-revert: reverting woodies_system.py DLL-fallback to stop=None
+→ PatternResult ValidationError → process_bar crashes → no active_patterns.
 """
-import os
-from unittest.mock import patch
-from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult
+import asyncio
+import pydantic
+import pytest
+from backend.v9.systems.woodies.woodies_system import WoodiesSystem
+from backend.v9.systems.woodies.schemas import PatternResult
 
 
-def _make_woodies_bars(n=20, base=7400.0):
-    """Create n WoodiesBar objects with valid CCI/trend for ZLR detection."""
-    bars = []
-    for i in range(n):
-        bars.append(WoodiesBar(
-            ts=1781000000.0 + i * 300,
-            open=base + i * 0.25, high=base + 2.0 + i * 0.25,
-            low=base - 2.0 + i * 0.25, close=base + 0.5 + i * 0.25,
-            cci_14=-120.0 if i < 5 else -50.0 + i * 5,
-            cci_6_tcci=-100.0, trend_state="RED",
-        ))
-    return bars
+# RTH timestamp: 2026-06-09 10:00 ET = 14:00 UTC
+_RTH_BASE_TS = 1781114400.0  # epoch for 2026-06-09 14:00:00 UTC
 
 
-def test_dll_zlr_fallback_computes_real_stop():
-    """DLL-flagged ZLR must produce PatternResult with stop > 0, not None."""
-    bars = _make_woodies_bars(20)
-    # Simulate a DLL-flagged ZLR bar
-    zlr_bar = bars[-1].copy(update={
-        "zlr_detected": True, "zlr_direction": "DOWN",
-        "cci_14": -80.0, "trend_state": "RED",
-    })
+def _make_bar(i, close=7440.0, cci=-50.0, trend="RED",
+              zlr_detected=False, zlr_direction="NONE",
+              hfe_detected=False, hfe_direction="NONE"):
+    return {
+        "ts": _RTH_BASE_TS + i * 300,
+        "open": close - 1.0, "high": close + 2.0, "low": close - 3.0, "close": close,
+        "volume": 5000, "cci_14": cci, "cci_6_tcci": cci * 0.8,
+        "ema_34": close - 5.0, "lsma_value": close - 3.0, "lsma_above_price": False,
+        "swi_value": -50.0, "czi_value": 50.0, "trend_state": trend,
+        "predictor_next_cci": cci * 0.9,
+        "zlr_detected": zlr_detected, "zlr_direction": zlr_direction,
+        "hfe_detected": hfe_detected, "hfe_direction": hfe_direction,
+        "hfe_extreme_bars_ago": 3 if hfe_detected else 0,
+        "proj_hi": close + 100, "proj_lo": close - 100,
+    }
 
-    # The DLL fallback path computes stop via compute_stop/compute_stop_v2
-    from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
-    # Compute ATR same way as the fix
-    trs = []
-    for i, b in enumerate(bars):
-        br = b.high - b.low
-        if i > 0:
-            pc = bars[i-1].close
-            br = max(br, abs(b.high - pc), abs(b.low - pc))
-        trs.append(br)
-    atr = sum(trs[:14]) / 14
-    for tr in trs[14:]:
-        atr = ((atr * 13) + tr) / 14
-    atr_ticks = atr / 0.25
 
-    sr = compute_stop("SHORT", zlr_bar, swing_anchor=None,
-                      pattern_group=PatternGroup.CONT_TIGHT, atr_14=atr_ticks)
-    assert sr.stop_price > 0
-    assert sr.stop_price > zlr_bar.close  # SHORT stop above entry
+def _feed_bars(ws, bars):
+    class Evt:
+        def __init__(self, d): self.payload = d
+    loop = asyncio.new_event_loop()
+    for b in bars:
+        loop.run_until_complete(ws.process_bar(Evt(b)))
+    loop.close()
 
-    # Now create PatternResult with the computed stop — must NOT crash
-    pr = PatternResult(
-        detected=True, pattern_id="ZLR", direction="SHORT",
-        confidence=0.65, raw_confidence=0.65,
-        entry_price=zlr_bar.close, stop=sr.stop_price,
-        targets=[zlr_bar.close - 1.0],
-        group="CONTINUATION", cci_at_signal=zlr_bar.cci_14,
-        bar_index=19, ts=zlr_bar.ts,
-        details={"source": "dll_flag"},
-    )
-    assert pr.stop > 0
-    assert pr.stop != zlr_bar.close  # stop != entry
+
+def test_dll_zlr_through_process_bar():
+    """Feed zlr_detected=True through real process_bar → no crash, ZLR with stop>0."""
+    ws = WoodiesSystem(rth_only=False)
+
+    # 20 bars of history (ATR needs 14+)
+    history = [_make_bar(i, close=7400+i*0.5, cci=-50+i*5) for i in range(20)]
+    # ZLR bar
+    zlr = _make_bar(20, close=7440.0, cci=-120.0, trend="RED",
+                    zlr_detected=True, zlr_direction="DOWN")
+    _feed_bars(ws, history + [zlr])
+
+    patterns = ws._active_patterns
+    zlr_pats = [p for p in patterns if p.pattern_id == "ZLR"]
+    assert len(zlr_pats) >= 1, \
+        f"Expected ZLR in active_patterns, got: {[p.pattern_id for p in patterns]}"
+
+    z = zlr_pats[0]
+    assert z.stop is not None, "stop must not be None"
+    assert z.stop > 0, f"stop must be > 0, got {z.stop}"
+    assert z.stop != 0.0, "stop=0.0 is wrong (R:R garbage)"
+    assert z.direction == "SHORT"
+    assert z.stop > z.entry_price, \
+        f"SHORT stop ({z.stop}) must be above entry ({z.entry_price})"
+
+
+def test_dll_hfe_through_process_bar():
+    """Feed hfe_detected=True through real process_bar → stop>0."""
+    ws = WoodiesSystem(rth_only=False)
+
+    history = [_make_bar(i, close=7400+i*0.5, cci=50+i*5, trend="BLUE") for i in range(20)]
+    hfe = _make_bar(20, close=7440.0, cci=210.0, trend="BLUE",
+                    hfe_detected=True, hfe_direction="DOWN")
+    _feed_bars(ws, history + [hfe])
+
+    patterns = ws._active_patterns
+    hfe_pats = [p for p in patterns if p.pattern_id == "HFE"]
+    assert len(hfe_pats) >= 1, \
+        f"Expected HFE in active_patterns, got: {[p.pattern_id for p in patterns]}"
+
+    h = hfe_pats[0]
+    assert h.stop is not None
+    assert h.stop > 0
 
 
 def test_dll_zlr_stop_none_crashes():
-    """Prove that stop=None crashes PatternResult (the bug we're fixing)."""
-    import pydantic
-    try:
+    """Prove stop=None crashes PatternResult — the bug we fixed."""
+    with pytest.raises(pydantic.ValidationError):
         PatternResult(
             detected=True, pattern_id="ZLR", direction="SHORT",
             confidence=0.65, raw_confidence=0.65,
@@ -78,41 +97,3 @@ def test_dll_zlr_stop_none_crashes():
             group="CONTINUATION", cci_at_signal=-80.0,
             bar_index=0, ts=1781000000.0,
         )
-        assert False, "Should have raised ValidationError"
-    except pydantic.ValidationError:
-        pass  # Expected — this is the bug
-
-
-def test_dll_hfe_fallback_computes_real_stop():
-    """DLL-flagged HFE must also get a real stop."""
-    bars = _make_woodies_bars(20)
-    from backend.v9.systems.woodies.atr_stop import compute_stop, PatternGroup
-
-    swing_low = min(b.low for b in bars[-12:])
-    trs = []
-    for i, b in enumerate(bars):
-        br = b.high - b.low
-        if i > 0:
-            pc = bars[i-1].close
-            br = max(br, abs(b.high - pc), abs(b.low - pc))
-        trs.append(br)
-    atr = sum(trs[:14]) / 14
-    for tr in trs[14:]:
-        atr = ((atr * 13) + tr) / 14
-    atr_ticks = atr / 0.25
-
-    sr = compute_stop("LONG", bars[-1], swing_anchor=swing_low,
-                      pattern_group=PatternGroup.REV, atr_14=atr_ticks)
-    assert sr.stop_price > 0
-    assert sr.stop_price < bars[-1].close  # LONG stop below entry
-
-    pr = PatternResult(
-        detected=True, pattern_id="HFE", direction="LONG",
-        confidence=0.60, raw_confidence=0.60,
-        entry_price=bars[-1].close, stop=sr.stop_price,
-        targets=[bars[-1].close + 1.0],
-        group="REVERSAL", cci_at_signal=bars[-1].cci_14,
-        bar_index=19, ts=bars[-1].ts,
-        details={"source": "dll_flag"},
-    )
-    assert pr.stop > 0
