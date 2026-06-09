@@ -76,7 +76,16 @@ anchors:
   OFA_Initiative:  {system: S2, type: breakout_bar,      window: 1}      # 🔬 ⚠️ נשאר הדוק! (מדוד 5188: הדוק מנצח ב-11%)
   Double_BT:       {system: S2, type: second_bottom_top, window: null}   # 🔬 מבנה (Bulkowski מפורש)
   HnS:             {system: S2, type: shoulder,          window: null}   # 🔬 כתף-ימין (לא neckline)
-  Flag:            {system: S2, type: flag_low,          window: null}   # 🔬 ⚠️ שפל-הדגל (לא מוט!)
+  Flag:            {system: S2, type: breakout_bar,      window: 1}      # ✅ Michael 2026-06-09: בר-הפריצה (לא flag_low/wick)
+
+# ── Flag T1 יחסי (Michael 2026-06-09, tunable) ──────────────────────
+# T1 = t1_r × risk. t1_r slides linearly from t1_r_max (tight stop) to
+# t1_r_min (wide stop): t1_r = t1_r_max - (dist - dist_tight) / (dist_wide - dist_tight) × (t1_r_max - t1_r_min)
+flag_relative_t1:
+  t1_r_max: 0.8          # ✅ dist ≤ 15pt → t1_r = 0.8
+  t1_r_min: 0.4          # ✅ dist ≥ 25pt → t1_r = 0.4
+  dist_tight_pts: 15     # ✅ tight-stop boundary (points)
+  dist_wide_pts: 25      # ✅ wide-stop boundary (points)
 
 # ── Guardrails (schema-validation בטעינה) ────────────────────────────
 guardrails:

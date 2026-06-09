@@ -187,7 +187,7 @@ def detect_bull_flag(bars: List[Dict]) -> Tuple[Optional[Direction], float, Dict
     return ("LONG", conf, {
         "kind": "BULL_FLAG",
         "pattern_name": "BULL_FLAG_LONG",
-        "structural_anchor": flag_low - TICK_SIZE,
+        "structural_anchor": breakout["l"] - TICK_SIZE,  # FIX 7A: breakout bar, not flag_low
         "pattern_measure": pm,
         "pole_top_price": pole["top_high"],
         "pole_start_price": pole["start_low"],
@@ -246,7 +246,7 @@ def detect_bear_flag(bars: List[Dict]) -> Tuple[Optional[Direction], float, Dict
     return ("SHORT", conf, {
         "kind": "BEAR_FLAG",
         "pattern_name": "BEAR_FLAG_SHORT",
-        "structural_anchor": flag_high + TICK_SIZE,
+        "structural_anchor": breakout["h"] + TICK_SIZE,  # FIX 7A: breakout bar, not flag_high
         "pattern_measure": pm,
         "pole_top_price": pole["start_high"],
         "pole_start_price": pole["bottom_low"],

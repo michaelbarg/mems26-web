@@ -1244,14 +1244,36 @@ class FiveMinSystem(BaseV9TradingSystem):
                     t2_price = entry_price - 0.74 * pm   # x0.74 haircut (D-091 §T2)
                     t3_price = None
                 elif kind in ("BULL_FLAG", "BEAR_FLAG"):
-                    # Pkg 5c · Q5 Path C day-type-conditional T2 (LOCKED D-091.Q5 · 24/5 18:45 IL)
+                    # FIX 7B: Flag T1 relative to stop distance (YAML-tunable).
+                    # t1_r slides linearly from 0.8 (tight stop ≤15pt) to 0.4 (wide ≥25pt).
                     pole = info["pattern_measure"]
                     sign = 1.0 if direction == "LONG" else -1.0
-                    t1_price = entry_price + sign * 0.50 * pole
-                    t3_price = None  # continuation · no T3 leg · 50/50 split
+                    stop_dist = abs(entry_price - stop_price)
+
+                    # Read relative T1 params from YAML (config-tunable)
+                    _t1_r = 0.8  # default
+                    try:
+                        from backend.v9.config_loader import load_stop_anchors
+                        _sa = load_stop_anchors()
+                        if _sa and "flag_relative_t1" in _sa:
+                            _ft = _sa["flag_relative_t1"]
+                            _r_max = float(_ft.get("t1_r_max", 0.8))
+                            _r_min = float(_ft.get("t1_r_min", 0.4))
+                            _d_tight = float(_ft.get("dist_tight_pts", 15))
+                            _d_wide = float(_ft.get("dist_wide_pts", 25))
+                            if stop_dist <= _d_tight:
+                                _t1_r = _r_max
+                            elif stop_dist >= _d_wide:
+                                _t1_r = _r_min
+                            else:
+                                _t1_r = _r_max - (stop_dist - _d_tight) / (_d_wide - _d_tight) * (_r_max - _r_min)
+                    except Exception:
+                        pass
+
+                    t1_price = entry_price + sign * _t1_r * stop_dist
+                    t3_price = None
 
                     full_pole = entry_price + sign * pole
-                    stop_dist = abs(entry_price - stop_price)
 
                     _tpo_refs: dict = {}
                     try:

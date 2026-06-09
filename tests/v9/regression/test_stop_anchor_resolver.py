@@ -129,5 +129,5 @@ def test_real_stop_anchors_yaml_loads():
     assert len(data["anchors"]) == 14
     # the research-changed ones are present as decided
     assert data["anchors"]["OFA_Initiative"]["type"] == "breakout_bar"   # stays tight
-    assert data["anchors"]["Flag"]["type"] == "flag_low"                  # not pole
+    assert data["anchors"]["Flag"]["type"] == "breakout_bar"               # Michael 2026-06-09: breakout bar
     assert data["anchors"]["ZLR"]["window"] == 4

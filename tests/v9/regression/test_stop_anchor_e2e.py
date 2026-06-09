@@ -340,13 +340,13 @@ def test_e2e_hns():
 
 
 def test_e2e_flag():
-    """Flag: flag_low (pattern-provided, NOT pole) → sizing."""
+    """Flag: breakout_bar (Michael 2026-06-09, NOT flag_low/wick) → sizing."""
     cfg = _cfg()
     a = cfg["anchors"]["Flag"]
-    assert a["type"] == "flag_low"
+    assert a["type"] == "breakout_bar"
 
-    flag_low = 7396.0
-    struct = SA.apply_offset(flag_low, "LONG",
+    breakout_low = 7396.0
+    struct = SA.apply_offset(breakout_low, "LONG",
                              cfg["principles"]["anchor_offset_ticks"])
     from backend.v9.systems.five_min.adaptive_stop import compute_stop_v2 as s2_v2
     v2 = s2_v2(entry_price=7400.0, direction="LONG", structural_stop_price=struct,
