@@ -55,13 +55,15 @@ def _classify_tier(price: float, tpo_data: Optional[dict]) -> QualityTier:
 
 
 def _fetch_tpo() -> Optional[dict]:
+    """Read TPO from Sierra export (in-memory), NOT HTTP self-call.
+    FIX 4: the old requests.get to localhost:8000 deadlocked the
+    single-worker uvicorn when called from process_bar.
+    """
     try:
-        r = requests.get(TPO_ENDPOINT, timeout=TPO_TIMEOUT_S)
-        if r.status_code == 200:
-            return r.json()
-        logger.warning("[Pkg8/quality_tier] TPO status=%d · falling back to MEDIUM", r.status_code)
+        from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+        return _load_sierra_tpo()
     except Exception as e:
-        logger.warning("[Pkg8/quality_tier] TPO fetch failed: %s · falling back to MEDIUM", e)
+        logger.warning("[Pkg8/quality_tier] TPO in-memory load failed: %s · falling back to MEDIUM", e)
     return None
 
 

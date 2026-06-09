@@ -408,13 +408,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                 return state if isinstance(state, dict) else {}
             except Exception:
                 return {}
-        # Legacy fallback — slow self-call to FastAPI (~900ms × ... = the 8s SLOW)
-        try:
-            import requests
-            r = requests.get("http://localhost:8000/api/v9/footprint/current", timeout=2)
-            return r.json() if r.ok else {}
-        except Exception:
-            return {}
+        # FIX 4: removed HTTP self-call fallback (deadlocked single-worker uvicorn).
+        # If footprint_system not injected, return empty (S3 is muted anyway).
+        return {}
 
     def _get_belly_from_footprint(self) -> Optional[bool]:
         """Read belly_ratio_dominant from Footprint System 3.
@@ -784,15 +780,9 @@ class FiveMinSystem(BaseV9TradingSystem):
         + FastAPI loop contention. Falls back to HTTP if file load fails.
         """
         try:
-            try:
-                from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
-                tpo = _load_sierra_tpo() or {}
-            except Exception:
-                # Fallback to HTTP if Sierra file path lookup fails
-                import requests
-                tpo = requests.get(
-                    "http://localhost:8000/api/v9/tpo/current", timeout=2
-                ).json() or {}
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            tpo = _load_sierra_tpo() or {}
+            # FIX 4: removed HTTP self-call fallback (deadlocked uvicorn)
             poc = tpo.get("poc")
             if poc is None:
                 return "far"

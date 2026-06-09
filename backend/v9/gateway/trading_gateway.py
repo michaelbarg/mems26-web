@@ -116,13 +116,14 @@ class TradingGateway:
         # re-enable)". When disabled we still compute + log chop_state for
         # observability, but do not block.
         _layer0_chop_enabled = os.getenv("LAYER0_CHOP_GATE", "0").lower() in ("1", "true", "yes")
-        chop_state = self._get_chop_state()
-        if _layer0_chop_enabled and chop_state == "SEARCHING":
-            result["blocked_by"] = "chop_searching"
-            logger.info("[Gateway] BLOCKED by Layer 0: chop_state=SEARCHING (high chop)")
-            return result
-        if not _layer0_chop_enabled and chop_state == "SEARCHING":
-            logger.info("[Gateway] Layer-0 chop gate DISABLED — chop_state=SEARCHING NOT blocking (Michael 2026-06-08)")
+        if _layer0_chop_enabled:
+            chop_state = self._get_chop_state()
+            if chop_state == "SEARCHING":
+                result["blocked_by"] = "chop_searching"
+                logger.info("[Gateway] BLOCKED by Layer 0: chop_state=SEARCHING (high chop)")
+                return result
+        # FIX 4: skip _get_chop_state entirely when gate disabled (avoids
+        # HTTP self-calls that deadlock single-worker uvicorn)
 
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
