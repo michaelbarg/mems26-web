@@ -136,7 +136,6 @@ export function TpoContinuityOverlay({ chart, tpo, paneIndex = 0 }: Props) {
     // stale (RTH closed or gap), Date.now() projects hours past the last bar.
     // Use the latest period's opened_ts + 30min as a proxy for the last bar.
     const wallNow = Math.floor(Date.now() / 1000);
-    const periods = tpo.periods ?? [];
     const latestPeriodTs = periods.length > 0
       ? Math.max(...periods.map(p => periodToUnix(p.opened_ts)).filter(t => t > 0))
       : 0;
