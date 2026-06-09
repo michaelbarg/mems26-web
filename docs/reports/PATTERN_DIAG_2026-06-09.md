@@ -731,3 +731,68 @@ Killzone `✗ לא מחווט`, Woodies CCI/Min-Patterns "warming 3m").
 6. **`Y IB dll_missing`** — atr_daily/yesterday-IB חסר מה-DLL ⇒ חשוד-שורש ל-opening_type=UNKNOWN/session_min=0/vote_history=[] (I-1).
 
 **NOT-DONE:** (1) **אין setup-ZLR טרי הבר** (signal=NEUTRAL) ⇒ אין counterfactual S4. (2) `opening_type` נסוג ל-UNKNOWN + `session_min=0`+`vote_history=[]` ב-~341דק' — feed-instance, לא אופיין שורשית (CC). (3) future-date ts ב-woodies_5min gate — לא אופיין שורשית (I-18). (4) FHB-state לא נחשף ב-endpoint (I-4). (5) הצלבות-Sierra (1–6) הן ל-CC. (6) **frontend down** ⇒ אין הצלבת UI↔engine; צילום = board מרונדר מ-JSON (`ss_0011m5b1g`, inline בלבד). (7) **אל-תיגע-בקוד נשמר** — קריאה/תיעוד בלבד.
+
+---
+
+## [14:40 CT · 2026-06-09] Snapshot עמוק #13 — Cowork (~370דק' לתוך RTH, DAY_TYPE_MODE, ~19דק' לסגירה)
+
+כל 7 endpoints 200; latency: day_type 38ms · five_min 47ms · five_min/stats 342ms · footprint 12ms · gateway 10ms · trades 50ms · woodies 80ms. **`build/pattern-status` חזר 200 (len 88418) אך ב-2898ms** — איטי-יחסית (לא hang, החזיר) — דגל-קל ל-I-19. verdict **READY** (4 checks pass). **ירו היום: S2 BEAR_FLAG_SHORT id=22 + S4 HTLB id=20** (board "S2×1 S4×1"). frontend **חי** היום ⇒ הצלבת-UI אפשרית. צילומים (inline, disk-persist לא נתמך): `ss_392018sy3` (Dashboard) · `ss_3602swst7` (Build-Status) · `ss_33690u85d` (root 404). **קריאה/תיעוד בלבד.**
+
+**S2 · Five-Minute (REACTIVE_L/S · INITIATIVE_L/S · INV_HNS · HNS_TOP · DOUBLE_BOTTOM_EE · DOUBLE_TOP_AA · BULL_FLAG · BEAR_FLAG) — 9 armed + 1 fired:**
+1. **יש נתון?** כן — df fresh, lag 39.3s, last_bar `2026-06-09 22:40:00+03:00`, buffer=11, mode DAY_TYPE_MODE, opening_type=OPEN_DRIVE, patterns_detected=0/setups=0.
+2. **הגיוני?** כן — 9 armed על detection-await + **BEAR_FLAG_SHORT fired** (=id=22 היום, entry 7313.5 @ ~12:00 CT, exit BE).
+3. **מה חסם?** detection-only: REACTIVE_SHORT `detection.b4_confirm`; INVERSE_HNS_LONG `detection.swing_lows_found`. **אין `Missing: data.choppiness_ok`** (chop_state=FOUND, UI "11 FOUND"); **אין auth-block** (day_type_gate satisfied). 
+4. **צריך לחסום?** כן לגיטימי — detection-await תקין. אין שער-שגוי בסנאפ-שוט זה.
+5. **מה חסר?** FHB-state עדיין לא נחשף ב-endpoint (I-4).
+
+**S4 · Woodies (ZLR · TLB · TT · GB100 · Vegas · Ghost · FaMir · HFE · HTLB) — 8 armed + 1 fired:**
+1. **יש נתון?** כן — df fresh, lag 39.3s. cci_14 נע בין הקריאות (-98.4 → -131.15 → -141.69), tcci -157, trend RED↔GRAY churn (גבול-בר). signal NEUTRAL בקריאה האחרונה.
+2. **הגיוני?** כן — **HTLB fired** (=id=20 היום). בקריאה הראשונה **ZLR הגיע ל-active_patterns + A7** (entry 7359/stop 7369.5/group CONTINUATION, conf 0.65, size=half, failed_stages=[A7]); בקריאות הבאות נעלם (no pattern this bar) — churn גבול-בר.
+3. **מה חסם?** ZLR blockers: `detection.pattern_specific · targets_stop.r_t1_gate · targets_stop.stop_price · targets_stop.targets · exit_rules.ready_to_route`; `ready_to_route=false`, `last_route.reason=not_ready_to_route`. ⇒ ה-bottleneck המבני = **היעדר טבלת stop/target** (בלי stop/T1 אמיתי `fire_setup` לא נבנה) — I-3.
+4. **צריך לחסום?** ה-R:R-gate צודק כשה-target מנוון, אך זהו **סימפטום** של היעדר טבלת stop/target, לא דחייה-לגיטימית-לגופה.
+5. **מה חסר?** טבלת stop/target פר-תבנית×day-type → `fire_setup` (I-3). Sierra CCI-14/TCCI גולמי להצלבה (I-15).
+
+**S3 · Footprint (Absorption · Stacked-Imbalance · Sweep-Return · Exhaustion) — 4 blocked:**
+1. **יש נתון?** **לא** — bars_processed_today=0, buffer_size=0, cumulative_delta=0, flow null, last_classification NO_SETUP.
+2. **הגיוני?** לא — 0 ברים ב-~6.2ש' לתוך RTH; הקובץ **כן נכתב** (gate footprint `[disabled][FRESH] 0s · 22:40:59` IL = עכשיו).
+3. **מה חסם?** `data.buffer_size ; data.bars_today` — ingest file→bridge→buffer שבור (I-11, אישור #34 היום).
+4. **צריך לחסום?** מבחינת readiness לא — footprint crit=false (S3_MUTE), לא חוסם לוח. S3 deferred עד אחרי-LIVE.
+5. **מה חסר?** נתיב ה-ingest של footprint (file→bridge-parse→buffer). מוקפא בכוונה (S3_MUTE), לא נפתר.
+
+**S1 · Day Type (gate) — armed:** blockers `classification.probability_above_threshold · classification.directional_certainty · classification.zohar_rules_evaluated` (detection-await). df fresh, last 22:40 IL.
+
+### סטטוס חשודים — סבב #13
+- **I-1 (day_type split):** 🟡 **פיצול 2-כיווני חזר, לא חוסם** — state-endpoint=`Variation 0.38/B2/LOCKED_LOW_CONF/IB WIDE` + Dashboard "Variation CLASSIFIED 38%" מול **readiness `s1_day_type_classified ✓ Trend_Normal` + Build-header "day Trend_Normal"**. **שיפור:** `opening_type=OPEN_DRIVE` כעת **עקבי** (state↔five_min↔Dashboard). residual: `vote_history=[]` ב-~370דק'; `session_min` הוחזר **`[BLOCKED: Sensitive key]`** (redaction של ה-tooling — לא נקרא הסנאפ-שוט). Dashboard `Y IB dll_missing`. לא חוסם S2 (10/10 armed/fired).
+- **I-2 (A5 advisory):** 🟡 **תקין** — A5 PASS `advisory:calculate_size=reject`, לא חוסם.
+- **I-3 (ZLR לא ירה):** 🔬 **ZLR הגיע ל-A7 שוב** (קריאה ראשונה: entry 7359/stop 7369.5, failed A7) — חסום מבנית ב-`targets_stop.*` + `exit_rules.ready_to_route` (היעדר טבלת stop/target). בקריאות הבאות churn ל-NEUTRAL/no-pattern. אין counterfactual בר-טרי.
+- **I-4 (S2 דריכה):** 🔬 **תקין** — 9 armed + 1 fired, buffer=11, ערוץ חי (lag 39.3s). FHB-state עדיין לא נחשף.
+- **I-5 / B-11 (board crash):** 🟡 **לא משחזר** — verdict READY, bridge_streams_fresh ✓, אין באנר OFFLINE שקרי.
+- **I-11 (footprint 0 ברים):** 🔴 **אישור #34** — gate footprint נכתב עכשיו (`[disabled][FRESH] 0s · 22:40:59` IL) אך bars_today=0/buffer=0/cumulative_delta=0/flow null; ערוץ 5דק' חי (bars_5min FRESH 22:40, lag 39.3s) ⇒ file→bridge→buffer שבור, עצמאי מ-I-21. מושתק S3_MUTE/crit=false.
+- **I-13 (A5/sizing מפספס):** 🔴 **לא נצפה ירידת-sizing** — ZLR A5 size=half (לא reject); HTLB ירה. אין reject-A5 לכייל.
+- **I-15 / C-1 (trend conflict):** 🔬 **לא משחזר קונפליקט** — engine RED (cci_14 -131→-141 נע) + board `s4_trend_not_stuck_gray ✓ RED` מסכימים. frontend חי: פאנל Woodies-CCI `CCIDiff -31.68 / TrendDown 1.00` מול engine cci_14 ≈-141 (skew גדול — הפאנל מציג CCIDiff לא cci_14). הצלבת Sierra חובה.
+- **I-16 (choppiness_ok missing):** 🟡 **לא משחזר** — 10/10 S2 armed/fired, אין `Missing: data.choppiness_ok` (chop_state=FOUND, UI "11 FOUND"). מחזק I-17.
+- **I-17 (buffer-edge volatility):** 🔬 **תומך** — five_min buffer=11; trend RED↔GRAY + ZLR armed↔gone churn בין קריאות עוקבות על אותו ערוץ-חי ⇒ תנודתיות-גבול-בר.
+- **I-18 / C-4 (TZ-mix freshness):** 🟡 **נמשך + future-date שוחזר** — gate `woodies_5min` ts=**`2026-06-10 22:40:00`** (תאריך-עתיד ~+30h, marked +00:00, lag_s=null); footprint/bars_5min IL-local; cumulative_delta(64s)/volume_profile(3.2s)/**imbalance(39.2s) UTC תקין** — imbalance **בתוך הסף** הפעם (≠ stale-but-Present ב-#11/#12). board `Day Type ? stale`/`Footprint ? stale` = artifact-TZ. מפר Rule 4.
+- **I-19 / C-5 (pattern-status hang):** 🔴→🟡 **לא hang אך איטי** — `build/pattern-status` חזר 200 (len 88418) ב-**2898ms** (≫ הטיפוסי <200ms של היום; ≠ hang, החזיר). שאר ה-endpoints <350ms. דגל-קל: heavy-read איטי-יחסית — לנטר.
+- **I-20 / C-6 (lag שלילי fresh=true):** 🟡 **נמשך** — bridge `data_freshness.lag_seconds=-97160/fresh=true/last_bar_ts=null/threshold=90` (~-27h); predicate לא אוכף `|lag|≤threshold`. readiness via crit-gates → READY נכון.
+- **I-21 (stall 5דק'):** 🟡 **לא משחזר** — ערוץ 5דק'/woodies חי (S2/S4 df last_bar 22:40 IL lag 39.3s, bars_5min FRESH, cci_14 נע). אין freeze.
+- **I-22 / F-1 (pnl_r מנופח):** 🔴 **אישור חוזר על fire בן-יום** — id=20 S4 HTLB SHORT entry 7489.25/stop_init 7491.75 (risk 2.5pt=$12.50/חוזה)/exit 7383.25 (+106pt) ⇒ **R-אמיתי≈+42R** אך `pnl_r=233` / `pnl_usd=582.5` (~5.5× ניפוח). id=22 BE ($0/0R תקין). UI top-bar "SHADOW 0t $0". שורש: R=`pnl_usd ÷ $1.25` (ערך-טיק) במקום `÷ risk_$` פר-חוזה. חוסם ΣR-counterfactual — CC.
+- **I-23 / F-2 (gateway counters):** 🟡 **אישור חוזר** — gateway `trades_today=0/daily_pnl=0/shadow_active_count=0` בעוד **2 עסקאות היום** (id=20+id=22, סגורות) + board "ירו היום S2×1 S4×1". מוני-היום+shadow_active_count לא מחווטים ל-shadow fires.
+- **I-24 (S5/TPO + tick_reversal מתים, מושתקים):** 🟡 **נמשך/מושתק** — tpo DEAD מ-2023-11-25 + tick_reversal_15 DEAD מ-2026-06-05 15:51 (5989min), שניהם `disabled (S3_MUTE/S5)`/critical:false ⇒ לא נספרים ב-readiness (bridge_streams_fresh ✓, verdict READY). תואם החלטת-SoT.
+
+### מקור-אמת — להצלבת CC (לא כאן)
+1. **woodies cci_14=-131→-141 / trend RED** — מול Sierra `~/SierraChart_Data/v9_export/` CCI-14/TCCI גולמי. פאנל-UI מציג CCIDiff -31.68 (מדד-נגזר) — איזה הוא ה-SoT?
+2. **gate `woodies_5min` ts עתידי `2026-06-10 22:40:00`** (~+30h) — חותמת שגויה, ערוץ חי (I-18); הצלב mtime/last-bar בקובץ.
+3. **bridge `lag_seconds=-97160/fresh=true`** — predicate לא אוכף סף (I-20); נרמל-TZ ל-UTC בגבול + אכוף `|lag|≤threshold`.
+4. **footprint** — קובץ נכתב (22:40:59 IL) אך 0 ברים ב-buffer — file→bridge-parse (I-11).
+5. **pnl_r id=20** — `pnl_usd ÷ $1.25` (טיק) במקום `÷ risk_$` פר-חוזה (I-22).
+6. **`Y IB dll_missing`** (Dashboard) — atr_daily/yesterday-IB חסר מה-DLL ⇒ חשוד-שורש ל-vote_history=[] + פיצול day_type (I-1).
+7. **ZLR stop/target** — entry 7359/stop 7369.5 אך targets מנוונים ⇒ אין `fire_setup` (I-3); נדרשת טבלת stop/target.
+
+**NOT-DONE:** (1) ZLR setup churn (armed→NEUTRAL בין קריאות) ⇒ אין counterfactual S4 בר-טרי. (2) `session_min` הוחזר redacted (`[BLOCKED: Sensitive key]`) ⇒ לא ניתן לאמת session_min הסנאפ-שוט; `vote_history=[]` אומת. (3) future-date ts ב-woodies_5min gate — לא אופיין שורשית (I-18). (4) `build/pattern-status` 2898ms — לא אופיין מקור-האיטיות (I-19). (5) FHB-state לא נחשף (I-4). (6) הצלבות-Sierra (1–7) הן ל-CC. (7) **אל-תיגע-בקוד נשמר** — קריאה/תיעוד בלבד.
+
+---
+
+## 15:08 CT — מחוץ ל-RTH, מדלג
+
+RTH = 08:30–15:00 CT. השעה הנוכחית 15:08 CT (אחרי הסגירה). אין snapshot — דילוג לפי מפרט המשימה.
