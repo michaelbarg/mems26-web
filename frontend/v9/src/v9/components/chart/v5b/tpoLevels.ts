@@ -386,6 +386,7 @@ export function syncTpoPriceLines(
           lineWidth: (lv.width >= 2 ? 2 : 1) as LineWidth,
           lineStyle: lv.dashed ? LineStyle.Dashed : LineStyle.Solid,
           crosshairMarkerVisible: false,
+          pointMarkersVisible: false,  // FIX 3: hide "+" markers
           lastValueVisible: false,
           priceLineVisible: false,
           title: '',
@@ -551,6 +552,7 @@ export function syncYesterdayTpoLines(
           color: lv.color,
           lineWidth: (lv.width >= 2 ? 2 : 1) as LineWidth,
           lineStyle: lv.dashed ? LineStyle.Dashed : LineStyle.Solid,
+          pointMarkersVisible: false,
         });
         existing[idx].setData(pointsPerLevel[idx]);
       } catch (e) {
@@ -575,6 +577,7 @@ export function syncYesterdayTpoLines(
           lineWidth: (lv.width >= 2 ? 2 : 1) as LineWidth,
           lineStyle: lv.dashed ? LineStyle.Dashed : LineStyle.Solid,
           crosshairMarkerVisible: false,
+          pointMarkersVisible: false,  // FIX 3: hide "+" markers at each data point
           // `lastValueVisible: false` + empty `title` is critical — the
           // SierraLevelsOverlay (SVG-based TpoAxisBadge) is the SINGLE
           // source of truth for the right-axis VAH/POC/VAL labels.
