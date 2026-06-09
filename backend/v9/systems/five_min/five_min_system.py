@@ -1304,12 +1304,37 @@ class FiveMinSystem(BaseV9TradingSystem):
                             t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
                             t3_price = None
 
+                # FIX 1 completion: when day_type is UNKNOWN but S1 has
+                # opening_type (≤15min), derive provisional day_type from
+                # the decision matrix (opening_type × ib_width). This lets
+                # S2/S4 fire from minute 15 instead of waiting 30-60min.
+                _emit_day_type = self.current_day_type
+                if not _emit_day_type or _emit_day_type == "UNKNOWN":
+                    try:
+                        from backend.v9.systems.day_type.decision_matrix import DECISION_MATRIX
+                        from backend.v9.systems.day_type.schemas import DayType
+                        import importlib
+                        _app = importlib.import_module("backend.v9.app").app
+                        _dtm = getattr(_app.state, "day_type_machine", None)
+                        if _dtm and _dtm.opening and _dtm.ib_class:
+                            _key = (_dtm.opening.opening_type, _dtm.ib_class.ib_width)
+                            _cell = DECISION_MATRIX.get(_key)
+                            if _cell:
+                                _prov = _cell.get("top1") if isinstance(_cell, dict) else _cell
+                                if _prov and hasattr(_prov, 'value'):
+                                    _emit_day_type = _prov.value
+                                    logger.info("[FiveMin] provisional day_type=%s (from %s × %s)",
+                                                _emit_day_type, _dtm.opening.opening_type.value,
+                                                _dtm.ib_class.ib_width.value)
+                    except Exception:
+                        pass  # fall through to UNKNOWN → emit handles it
+
                 t1_setup = emit_t1_setup(
                     pattern_name, direction,
                     entry_price=entry_price, stop_price=stop_price,
                     t1_price=t1_price, t2_price=t2_price,
                     bar_index=self.buffer_size,
-                    day_type=self.current_day_type,
+                    day_type=_emit_day_type,
                     t3_price=t3_price,
                     current_price=entry_price,
                 )
