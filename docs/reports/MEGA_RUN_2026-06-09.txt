@@ -1,0 +1,56 @@
+═══════════════════════════════════════════════════════════════
+MEGA RUN · Evening session · 2026-06-09
+207 regression tests GREEN
+═══════════════════════════════════════════════════════════════
+
+P1 · S2→trades diagnosis                              ✅ DONE
+  Root cause: day_type=UNKNOWN at fire time (S1 not yet classified)
+  → emit_t1_setup auth check → SKIP (legitimate veto)
+  Both S2 fires persisted to v9_five_min_setups (ids 27,28)
+  Chain works: detection→persist ✓, persist→emit SKIP (day_type timing)
+  Report: docs/reports/S2_TO_TRADES_DIAG_2026-06-09.txt
+
+P2 · Test #3 — load-bearing RED-on-revert             ✅ DONE
+  Test calls REAL process_bar, intercepts _detect_reactive via spy
+  Asserts buffer[-1].c == 7411 (completed), not 9999 (partial)
+  RED-on-revert PROVEN:
+    GREEN (fix): 1 passed
+    RED (reverted): "Expected c=7411, got 9999.0" → FAILED
+    GREEN (restored): 1 passed
+
+P3 · B2 — pnl_r inflation                             ✅ NOT A BUG
+  Verified: _initial_stop() correctly uses quality.initial_stop
+  Manual check on all 4 trades — pnl_r matches hand calculation
+  id=10: 230/(3×13.03×$5) = 1.18R (stored 1.18) ✓
+  id=13: 66.88/(3×3.75×$5) = 1.19R (stored 1.19) ✓
+  The "stop" field shows post-BE-moved stop (near entry) but
+  risk denominator correctly uses initial_stop. No ×50 inflation found.
+
+P4 · E2 — Dashboard cleanup                           🟡 DEFERRED
+  Frontend changes deferred (cosmetic, not fire-path)
+
+P5 · Trades page                                      ✅ DONE
+  v9_trades today: id=20 sys=4 SHORT entry=7489.25 state=PARTIAL pnl=52.5
+  API returns trade via /api/v9/trades (with auth token)
+  S4 HTLB trade confirmed in DB + API
+
+═══════════════════════════════════════════════════════════════
+Flags verification
+═══════════════════════════════════════════════════════════════
+  9 ON: S1_CVD_OPENING S1_DAYTYPE_STAGING S1_IB_WIDTH_ATR
+        S1_DYNAMIC_RECLASS S1_LIVE_RECLASS S2_ATR_RELATIVE
+        S2_VSA_VOLUME S3_RELATIVE S4_EXTREME_TREND_RELABEL
+  + STOP_ANCHORS_V2=true S3_MUTE=true
+  3 OFF: S2_CHOPPINESS_GATE=F LAYER0_CHOP_GATE=F S2_REQUIRE_COT_AMT=F
+  S3/footprint: not touched ✓
+
+═══════════════════════════════════════════════════════════════
+NOT-DONE
+═══════════════════════════════════════════════════════════════
+  - S2→v9_trades: blocked by day_type=UNKNOWN timing. Need S1 to classify
+    before S2 can fire. Options (a/b/c) presented to Michael.
+  - P4/E2 Dashboard cleanup: deferred (cosmetic)
+  - Condition 2 (live S2 trade in v9_trades + UI): not yet achieved.
+    S4 trade confirmed (id=20). S2 fires but gets auth-SKIPped.
+  - Backtest prerequisite (Double-Top dedup): A2 implemented (17f80d6).
+    Replay shows 43→10 distinct with 30-bar cooldown.
