@@ -46,10 +46,17 @@ def validate_fire(req: FireRequest) -> FireResponse:
     if req.direction == 'SHORT' and req.stop_price <= req.entry_price:
         return _fail("SHORT: stop must be > entry")
 
-    if req.direction == 'LONG' and not (req.entry_price < req.t1_price < req.t2_price):
-        return _fail("LONG: must have entry < t1 < t2")
-    if req.direction == 'SHORT' and not (req.entry_price > req.t1_price > req.t2_price):
-        return _fail("SHORT: must have entry > t1 > t2")
+    # T2 may be None (CCI-cross targets deferred §1.6) — skip monotonicity when absent
+    if req.t1_price is not None and req.t2_price is not None:
+        if req.direction == 'LONG' and not (req.entry_price < req.t1_price < req.t2_price):
+            return _fail("LONG: must have entry < t1 < t2")
+        if req.direction == 'SHORT' and not (req.entry_price > req.t1_price > req.t2_price):
+            return _fail("SHORT: must have entry > t1 > t2")
+    elif req.t1_price is not None:
+        if req.direction == 'LONG' and req.t1_price <= req.entry_price:
+            return _fail("LONG: t1 must be > entry")
+        if req.direction == 'SHORT' and req.t1_price >= req.entry_price:
+            return _fail("SHORT: t1 must be < entry")
 
     risk = abs(req.entry_price - req.stop_price)
     reward = abs(req.t1_price - req.entry_price)
