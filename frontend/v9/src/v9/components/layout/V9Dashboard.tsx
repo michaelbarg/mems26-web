@@ -18,6 +18,7 @@ import { useLivePricePoll } from '../../hooks/useLivePricePoll';
 import { BannerStack } from '../banners/BannerStack';
 import { SystemControlPanel } from '../controls/SystemControlPanel';
 import { COLORS } from '../../design/tokens';
+import { DetectionPanel } from '../detection/DetectionPanel';
 
 const STORAGE_KEY = 'chart-height-v5c';
 const MIN_H = 200, DEFAULT_H = 720, MAX_H = 800;
@@ -88,6 +89,7 @@ export function V9Dashboard() {
 
       {view === 'main' ? (
         <>
+          <DetectionPanel />
           <TopBar />
           <Layer0Strip />
           <KeyLevelsStrip />
