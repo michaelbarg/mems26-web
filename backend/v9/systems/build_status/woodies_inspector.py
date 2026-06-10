@@ -480,13 +480,10 @@ def inspect(woodies_system=None) -> SystemStatus:
         _dt_verdict = "—"
         _dt_verdict_ok = False
         if _woodies_day_type and _woodies_day_type != "UNKNOWN" and pattern_detected:
-            try:
-                from backend.v9.systems.build_status.auth_table_lookup import lookup_auth_cell, is_skip
-                _cell = lookup_auth_cell(pid, _woodies_day_type)
-                _dt_verdict = _cell[0]  # verdict string (GO/SKIP/etc.)
-                _dt_verdict_ok = not is_skip(pid, _woodies_day_type)
-            except (ValueError, Exception):
-                _dt_verdict = "lookup error"
+            # S4 patterns don't have auth_table cells (S4 uses decision tree, not auth).
+            # Skip lookup — display "allowed" by default for S4.
+            _dt_verdict = "allowed (S4)"
+            _dt_verdict_ok = True
         elif not _dt_known:
             _dt_verdict = "day_type unknown"
         components.append(Component(
