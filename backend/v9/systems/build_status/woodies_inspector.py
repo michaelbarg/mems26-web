@@ -11,7 +11,7 @@ from typing import Optional
 
 from backend.v9.common.trading_date import et_today
 from backend.v9.db.read import read_scalar
-from .types import PatternStatus, Component, SystemStatus, DataFreshness
+from .types import PatternStatus, Component, SystemStatus, DataFreshness, FormulaCondition
 from .auth_table_lookup import WOODIES_PATTERN_IDS
 from .row_helpers import (
     fires_today,
@@ -57,6 +57,57 @@ _SPEC_ID_TO_ENGINE = {
 
 # Trend states that allow trading (from MEMS26_WOODIES_DECISION_TREE_V1.md §4 A1)
 _TRADING_TREND_STATES = {"BLUE", "RED"}
+
+
+def _build_s4_formula(pid: str, cci_14: float, trend: str, cci_history: list) -> list:
+    """Build 3-5 essential detection conditions for an S4 pattern (needed-vs-actual).
+    Source: actual detector logic in patterns/*.py."""
+    F = FormulaCondition
+    conds = []
+
+    # All S4: trend must be BLUE or RED (A1 gate)
+    trend_ok = trend in _TRADING_TREND_STATES
+    conds.append(F(label="מגמה פעילה", needed="BLUE או RED", actual=trend, met=trend_ok))
+
+    if pid == "ZLR":
+        # ZLR: extreme ≤-100 (or ≥+100) in last 12 bars, pullback, bounce
+        has_extreme = any(abs(c) >= 100 for c in cci_history[-12:]) if cci_history else False
+        conds.append(F(label="קיצון CCI", needed="≥+100 או ≤-100 ב-12 ברים", actual=f"{max(abs(c) for c in cci_history[-12:]):.0f}" if cci_history else "—", met=has_extreme))
+        pullback = any(-100 < c < 100 for c in cci_history[-6:]) if cci_history else False
+        conds.append(F(label="פולבק לאזור אפס", needed="-100 < CCI < +100", actual=f"{cci_14:.0f}", met=pullback))
+        bounce = len(cci_history) >= 2 and ((cci_14 > cci_history[-2] and trend == "BLUE") or (cci_14 < cci_history[-2] and trend == "RED")) if cci_history else False
+        conds.append(F(label="נר דחייה", needed="CCI מתהפך בכיוון המגמה", actual="כן" if bounce else "עוד לא", met=bounce))
+
+    elif pid == "TLB":
+        conds.append(F(label="שבירת טרנדליין CCI", needed="CCI חוצה קו מגמה", actual=f"CCI={cci_14:.0f}", met=False))  # dynamic
+
+    elif pid == "TT":
+        conds.append(F(label="TCCI נוגע CCI-14", needed="TCCI ≤ CCI-14 ± 5", actual=f"CCI={cci_14:.0f}", met=False))
+        conds.append(F(label="Bounce חזרה", needed="TCCI מתרחק מ-CCI-14", actual="—", met=False))
+
+    elif pid == "GB100":
+        crossed = abs(cci_14) > 100
+        conds.append(F(label="חציית ±100", needed="CCI חוצה +100 או -100", actual=f"{cci_14:.0f}", met=crossed))
+
+    elif pid in ("VEGAS", "GHOST"):
+        label = "דיברגנס מחיר↔CCI" if pid == "VEGAS" else "3 פסגות/שקעים CCI"
+        conds.append(F(label=label, needed="מבנה H&S / כוס" if pid == "GHOST" else "HH מחיר + LH CCI", actual=f"CCI={cci_14:.0f}", met=False))
+
+    elif pid == "FAMIR":
+        near_200 = abs(cci_14) >= 170
+        conds.append(F(label="קרוב ל-±200", needed="|CCI| ≥ 170", actual=f"{cci_14:.0f}", met=near_200))
+        conds.append(F(label="כשל + היפוך", needed="CCI מתהפך לפני ±200", actual="—", met=False))
+
+    elif pid == "HTLB":
+        conds.append(F(label="רמה אופקית CCI", needed="≥2 נגיעות באותה רמה", actual=f"CCI={cci_14:.0f}", met=False))
+        conds.append(F(label="פריצת הרמה", needed="CCI חוצה את הרמה", actual="—", met=False))
+
+    elif pid == "HFE":
+        extreme = abs(cci_14) >= 200
+        conds.append(F(label="קיצון ±200", needed="|CCI| ≥ 200", actual=f"{cci_14:.0f}", met=extreme))
+        conds.append(F(label="הוק חזרה", needed="CCI מתהפך מ-±200 לכיוון אפס", actual="—", met=False))
+
+    return conds
 
 
 def inspect(woodies_system=None) -> SystemStatus:
@@ -522,6 +573,13 @@ def inspect(woodies_system=None) -> SystemStatus:
             label = "❌ Blocked"
             reason = f"Missing: {', '.join(blockers)}" if blockers else "Insufficient data"
 
+        # Phase 2: formula (needed-vs-actual) for detection rubric
+        _wb = getattr(woodies_system, '_bar_buffer', []) if woodies_system else []
+        _cci_hist = [getattr(b, 'cci_14', 0) for b in _wb] if _wb else []
+        _formula = _build_s4_formula(pid, cci_14, trend_state, _cci_hist)
+        _met = sum(1 for c in _formula if c.met)
+        _build_pct = int(100 * _met / len(_formula)) if _formula else None
+
         system.patterns.append(PatternStatus(
             id=pid,
             name=_PATTERN_NAMES.get(pid, pid),
@@ -531,6 +589,8 @@ def inspect(woodies_system=None) -> SystemStatus:
             fired_today=fired_today,
             last_fire_ts=last_fire_str,
             components=components,
+            formula=_formula,
+            build_pct=_build_pct,
             blockers=blockers,
         ))
 

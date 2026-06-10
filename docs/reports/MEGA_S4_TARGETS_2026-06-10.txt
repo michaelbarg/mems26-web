@@ -1,0 +1,69 @@
+═══════════════════════════════════════════════════════════════
+MEGA S4 TARGETS — 2026-06-10 Report (CC_HANDOFF_CONTRACT §C)
+═══════════════════════════════════════════════════════════════
+
+Phase 0 — Pre-RTH checks                              DONE
+  Health: ok · Exports: FRESH (1s) · Bridge: pushing · Day type: OPEN_DRIVE/Variation
+  S4: 9/9 armed · S2: OVERNIGHT (pre-RTH, expected)
+
+Phase 1 — S4 targets per spec                         DONE
+  Commits: 6c58d05 (initial) + 11425c2 (FIX A: real measure, no proxy)
+  T1: CONT = risk ladder · FAMIR/HTLB = ladder×0.8 · HFE = ladder shift-1 ×0.8
+  VEGAS: T1=Measure×0.75 (cap updated from 0.5), T2=Measure×1.0
+  GHOST: T1=Measure×0.5, T2/T3=None (CCI-cross)
+  All other T2/T3 = None (CCI-cross deferred §1.6, honest Rule 1)
+  measure_pts: GHOST from CCI geometry (head-neckline/25), VEGAS from divergence/25
+
+Phase 2 — Detection formula (build%)                  DONE
+  Backend: formula[] + build_pct added to PatternStatus (woodies_inspector)
+  Frontend: PatternsTab with build bar + collapsible formula rows
+  Example ZLR: 4 conditions, build_pct=100% when all met
+
+Phase 3 — Roadmap/board update                        PARTIAL
+  STATUS_BOARD.md and ROADMAP need manual update (deferred)
+
+═══════════════════════════════════════════════════════════════
+Tests — RED-on-revert proven
+═══════════════════════════════════════════════════════════════
+
+test_ghost_measure_from_detector:
+  if reverted → RED because: measure_pts removed from details → KeyError
+  PROVEN: revert ghost.py:136 → FAILED · restore → 10 passed
+
+test_s4_fire_setup_routable:
+  if reverted → RED because: stop=None → ValidationError → no patterns
+  PROVEN: revert woodies_system.py DLL-fallback → FAILED · restore → 10 passed
+
+test_zlr_t1_uses_risk_ladder:
+  if reverted → RED because: T1 = 12T fixed = entry+3pt ≠ 7407.5
+
+test_no_measure_proxy_in_woodies_system:
+  if reverted → RED because: _s4_risk*2 proxy reappears in code
+
+220 regression tests GREEN.
+
+═══════════════════════════════════════════════════════════════
+NOT-DONE / DEVIATIONS
+═══════════════════════════════════════════════════════════════
+
+1. §1.6 CCI-cross monitor — DEFERRED (by design, option 1 approved).
+   T2/T3 for CONT/GHOST/FAMIR/HTLB/HFE = None. Will be replaced by
+   CCI-cross monitor (b11_t2_milestone/b12_t3_milestone) in separate feature.
+
+2. Live SHADOW fire verification — RTH CLOSED at time of report.
+   Cannot verify stop+T1 in v9_trades. Will verify at next RTH open.
+
+3. VEGAS test via fire path — VEGAS hard to trigger on synthetic bars
+   (needs real divergence geometry). Verified with real 2026-06-09 data
+   (measure_pts=1.06). Synthetic test = YAML config check only.
+
+4. S2 formula — not added to s2_inspector (only S4 woodies has formula).
+   S2 patterns already have detailed components in the inspector.
+
+5. Phase 3 (roadmap/board update) — deferred, cosmetic.
+
+6. S4 targets table from Michael's spec — currently uses stop_anchors.yaml
+   ladder + measure caps. The xlsx spec is loaded and verified. Full per-
+   pattern×day_type table pending Michael's separate spec decision.
+
+═══════════════════════════════════════════════════════════════

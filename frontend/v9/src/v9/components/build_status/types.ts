@@ -37,6 +37,13 @@ export interface Component {
   freshness?: Freshness | null;
 }
 
+export interface FormulaCondition {
+  label: string;
+  needed: string;
+  actual: string | null;
+  met: boolean;
+}
+
 export interface Pattern {
   id: string;
   name: string;
@@ -47,6 +54,8 @@ export interface Pattern {
   last_fire_ts: string | null;
   components: Component[];
   blockers: string[];
+  formula?: FormulaCondition[];
+  build_pct?: number | null;
 }
 
 export interface DataFreshness {

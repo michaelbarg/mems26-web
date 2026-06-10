@@ -90,6 +90,14 @@ class GlobalGate(BaseModel):
     critical: bool = True  # False for muted/not-wired streams (display as disabled, not red)
 
 
+class FormulaCondition(BaseModel):
+    """One essential condition for pattern detection (needed-vs-actual)."""
+    label: str           # human-readable: what we're looking for
+    needed: str          # threshold/condition
+    actual: Optional[str] = None  # current live value (None if unavailable)
+    met: bool = False    # condition satisfied?
+
+
 class PatternStatus(BaseModel):
     id: str
     name: str
@@ -100,6 +108,8 @@ class PatternStatus(BaseModel):
     last_fire_ts: Optional[str] = None
     components: List[Component] = Field(default_factory=list)
     blockers: List[str] = Field(default_factory=list)
+    formula: List[FormulaCondition] = Field(default_factory=list)  # Phase 2: detection rubric
+    build_pct: Optional[int] = None  # 0-100, met/total from formula
 
     @field_validator("last_fire_ts", mode="before")
     @classmethod
