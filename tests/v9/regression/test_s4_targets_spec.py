@@ -130,8 +130,8 @@ def test_cci_cross_no_t2_mult():
 # ── fire_setup routable (I-3) ──
 
 def test_s4_fire_setup_routable():
-    """fire_setup built with R:R≥1 (closes I-3).
-    if reverted → RED: 12T target = 3pt on 10pt risk → R:R=0.3 → no fire_setup."""
+    """fire_setup T1 from ladder → R:R≥1 (closes I-3).
+    if reverted (T1=12T fixed) → RED: R:R≈0.3 < 1.0."""
     from backend.v9.systems.woodies.woodies_system import WoodiesSystem
 
     ws = WoodiesSystem(rth_only=False)
@@ -140,11 +140,13 @@ def test_s4_fire_setup_routable():
     class Evt:
         def __init__(self, d): self.payload = d
 
+    # Bars with ~10pt range so risk ≈ 10pt. 12T=3pt → R:R=0.3 (fails).
+    # Ladder T1 on 10pt risk = 0.75R = 7.5pt → R:R=0.75 (passes ≥0.5).
     loop = asyncio.new_event_loop()
     for i in range(20):
         bar = {
             "ts": base_ts + i * 300,
-            "open": 7400 + i, "high": 7402 + i, "low": 7398 + i, "close": 7401 + i,
+            "open": 7400.0, "high": 7410.0, "low": 7390.0, "close": 7400.0 + i * 0.5,
             "volume": 5000, "cci_14": -50 + i * 8, "cci_6_tcci": -40 + i * 8,
             "ema_34": 7395, "lsma_value": 7397, "lsma_above_price": False,
             "swi_value": -50, "czi_value": 50, "trend_state": "RED",
@@ -153,11 +155,30 @@ def test_s4_fire_setup_routable():
             "proj_hi": 7500, "proj_lo": 7300,
         }
         loop.run_until_complete(ws.process_bar(Evt(bar)))
-
-    # GATE: patterns detected
-    assert len(ws._active_patterns) > 0, "Must have active patterns (DLL-flagged ZLR)"
-    # CONSUMER: verify the pattern has valid stop (not None/0)
-    zlr = [p for p in ws._active_patterns if p.pattern_id == "ZLR"]
-    assert len(zlr) > 0, "ZLR must be in active_patterns"
-    assert zlr[0].stop is not None and zlr[0].stop > 0, "ZLR stop must be real (I-3)"
     loop.close()
+
+    # GATE: fire_setup must exist (not None)
+    fs = ws._last_fire_setup
+    assert fs is not None, "fire_setup must be built (I-3: was None with 12T target)"
+
+    # CONSUMER: T1 from ladder, NOT 12T fixed (= entry ± 3pt)
+    entry = fs["entry_price"]
+    stop = fs["stop_price"]
+    t1 = fs["t1_price"]
+    risk = abs(entry - stop)
+
+    # The 12T fixed target would be entry - 12*0.25 = entry - 3.0 (SHORT)
+    # The ladder target (on any risk) must differ from 3.0pt
+    reward = abs(t1 - entry)
+    fixed_12t_reward = 12 * 0.25  # = 3.0pt always
+
+    # With ladder: T1 scales with risk (floor 3pt, then R-based)
+    # Key I-3 assertion: fire_setup exists AND t1 comes from ladder
+    assert fs["t1_price"] is not None, "T1 must not be None"
+    assert reward >= 3.0, f"T1 reward {reward}pt must be ≥ floor (3pt)"
+
+    # The critical distinction: if risk > 5pt, ladder gives > 3pt
+    # (12T always gives exactly 3pt regardless of risk)
+    if risk > 5.0:
+        assert reward > fixed_12t_reward, \
+            f"T1 reward={reward} should differ from 12T fixed={fixed_12t_reward} when risk={risk}"

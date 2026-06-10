@@ -90,6 +90,7 @@ class WoodiesSystem(BaseV9TradingSystem):
         self._bar_buffer: List[WoodiesBar] = []
         self.max_buffer = 50
         self._active_patterns: List[PatternResult] = []
+        self._last_fire_setup: Optional[dict] = None  # test observability (additive)
         self._decision_tree = WoodiesDecisionTree()
         # W-10: Time stop enforcement (Registry #11) — RE-ENABLED 2026-05-28 evening.
         # Option B REVERSED: W-10 is sole TIME_STOP authority. Bug A (per-push
@@ -555,6 +556,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "time_stop_minutes": _s4_time_stop,
                         "confidence": int(best.confidence * 100),
                     }
+                    self._last_fire_setup = fire_setup  # test observability
 
             # P30: Skip sync HTTP touchpoint fetch — it self-deadlocks the
             # event loop (5 requests × 2s timeout to localhost:8000 which
