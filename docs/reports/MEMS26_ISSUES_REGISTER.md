@@ -196,3 +196,15 @@ verdict **READY**. ירו היום S2×1 (BEAR_FLAG_SHORT id=22) + S4×1 (HTLB i
 **חשוד חדש:** **I-25** 🟢 (מינורי) — `/trades/recent?limit=200` → 422 (תקרה 100). תיקון-מסמך ל-`SKILL.md`.
 
 **תחזית-נגד (counterfactual) — סיכום:** ZLR (3 signals, targets שפויים 1R/2R) ⇒ **2W/1L, ΣR ≈ +1R** — החסימות לא קטעו רווח משמעותי ולא חסכו הפסד גדול. id=22 בהחזקה-לספק ≈+1R (היציאה-הידנית קטעה T1). **מסקנה:** אין דחייה שמרנית-מדי היום; ה-bottleneck היחיד הוא ה-target המנוון של S4 (I-3).
+
+---
+
+**[2026-06-09 15:20 CT · ריצת missed-trades אוטונומית — Cowork]** (פרטים: `docs/reports/MISSED_TRADES_2026-06-09.md`)
+- **replay מלא על 50-בר woodies (11:15–15:20 CT):** 13 ZLR/S4 signals · 5×T1 5×stop 3×timeout · **ΣR=+1.54 / aligned=+3.50**.
+  ה-setup-האיכותי-שפוספס = **cluster ZLR-UP ברגל-BLUE 12:50→13:45 (5/5 →T1, +7.5R גרוס)** — זוהה, לא נותב.
+  מרחיב את ה-counterfactual של 3-signals למעלה (אותה מסקנה: bottleneck=I-3, לא דחייה-שמרנית).
+- **I-3** 🔴 מאושש כחוסם-מוביל: סטופ≈entry ב-#20 (7489 vs 7489.25, HTLB תפס ‎+106נק' אך R לא-מוגדר) ובסיגנלים 11:35/15:15.
+- **#22 BEAR_FLAG** יצא breakeven (exit=entry 7313.5) בעוד הרגל המשיכה ‎−66נק' → **exit-logic scratch** (חשוד-המשך — לבדוק יציאה-לספק/breakeven-stop).
+- **I-23** מאושש (counters לא סופרים 2 shadow fires). **I-25** מאושש עצמאית (`limit=200`→422, תקרה 100).
+- **I-15/I-18** חי: `bars5min` מכיל ברים עתיד-מתוארכים (06-10 22:40 IDT). הצלבת Sierra ל-CCI חובה.
+- **פער-תשתית:** export=50/80 ברים → אין כיסוי 08:30–11:10 CT; `missed-trades` buffer מחזיק רק 15:20–15:22 → לא לוכד את gate ה-cluster 12:50–13:45. בקשה ל-CC: export ≥80 ברים מ-08:30 + `why_not` היסטורי per-bar.

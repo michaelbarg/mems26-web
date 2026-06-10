@@ -3,6 +3,12 @@
 
 ## 2026-06-09 (RTH · Cowork verify + CC fixes)
 
+**[2026-06-09 15:12 CT — EOD מאוחד (Cowork): 2 fires, ΣR-נגד +1R, 3 בעיות חמורות]** (ראיה: `docs/reports/PATTERN_EOD_2026-06-09.md` + `DESIGNS_2026-06-09.md` + register EOD)
+- **finding:** 2 עסקאות-shadow היום — S4 HTLB id=20 **WIN** (runner +106pt, R-אמיתי ≈+42R) · S2 BEAR_FLAG_SHORT id=22 **BE** (יציאה ידנית קטעה ~+1R). תחזית-נגד ZLR (3 signals, targets שפויים): **2W/1L, ΣR ≈ +1R** — חסימות לא קטעו רווח משמעותי. **3 חמורות:** I-22 (pnl_r ×10, שורש מאומת raw: `÷$1.25` טיק ולא `÷risk_$`) · I-3 (ZLR ב-A7 חסום, target מנוון 1pt → היעדר טבלת stop/target) · I-18 (ts עתידי 06-10 **אומת ברמת DATA** ב-`/chart/bars5min`, לא רק gate).
+- **proposed solution (DESIGNS §D1–D6, לא בוצע — read-only):** D1 pnl_r `÷risk_$` (🟢 safe) · D2 טבלת stop/target→fire_setup (🔴 trading-logic, אישור Michael) · D3 נרמול-ts UTC+guard עתידי (🟢) · D4 freshness predicate `|lag|≤thr` (🟢) · D5 gateway counters→shadow (🟢) · D6 doc-fix limit≤100 (I-25 חדש).
+- **verified (Cowork, raw API חי):** id=20 `contracts_pnl` C1 `$17.5÷14R=$1.25`=טיק (שורש I-22); bars5min bar אחרון ts=`2026-06-10 22:40:00+03:00` (I-18); counterfactual שוחזר מ-99 ברי-5דק'. **אל-תיגע-בקוד — קריאה/תיעוד בלבד.**
+- **OPEN:** D2 ממתין טבלת stop/target + אישור Michael (trading-logic). הצלבות-Sierra (CCI/woodies_5min-ts/footprint/pnl_r) → CC.
+
 **[2026-06-09 — opening_type=NA → S1 day_type=UNKNOWN כל הסשן (S2 auth-SKIP) — FIX מיושם]**
 - **finding:** S1 לא סיווגה כל הסשן (`day_type=UNKNOWN`, `opening_type=NA`) → S2 SKIP → 0 ירי מוקדם. **לא תקלת Sierra/TPO** — TPO פעיל ונכון (POC 7435 · VAH 7456 · VAL 7397.75 · IB `found:true high:7417 mid:7403.88 low:7390.75`, תואם `key_levels` בול). שורש: `state_machine._stage_a2` *כן* מחשב opening_type (`detect_opening_type_cvd`), אבל `main.py` שמר ל-DB את הערך מ-TPO-normalization שמקודד-קשיח `"NA"` (`tpo_routes.py:383`) → דרס את הערך הנכון בנתיב-הפרסיסט.
 - **fix (CC, מאושר Michael):** `main.py:237` קורא opening_type **מהמכונה** (`day_type_machine.opening.opening_type`, `.value`), TPO רק fallback. תיקון-מקור, לא שינוי בלוגיקת-סיווג.
