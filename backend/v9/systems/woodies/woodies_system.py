@@ -492,14 +492,39 @@ class WoodiesSystem(BaseV9TradingSystem):
             fire_setup = None
             if patterns and direction and sizing != "reject":
                 # best already set by W-8 dispatcher above
-                if best.entry_price and best.stop and best.targets and len(best.targets) >= 2:
+                if best.entry_price and best.stop:
+                    # S4 targets from targets_table (R-based per day_type),
+                    # not hardcoded tick counts. Same approach as S2 FIX 5.
+                    _s4_entry = best.entry_price
+                    _s4_stop = best.stop
+                    _s4_risk = abs(_s4_entry - _s4_stop)
+                    _s4_sign = 1.0 if direction == "LONG" else -1.0
+                    _s4_t1 = _s4_entry + _s4_sign * _s4_risk  # default 1R
+                    _s4_t2 = _s4_entry + _s4_sign * 2 * _s4_risk  # default 2R
+                    _s4_time_stop = 90
+                    try:
+                        from backend.v9.systems.day_type.targets_table import get_targets
+                        _s4_dt = self.current_state.get("day_type") or "Normal"
+                        if _s4_dt in ("UNKNOWN", "None", None):
+                            _s4_dt = "Normal"
+                        _s4_tgt = get_targets(_s4_dt)
+                        if _s4_tgt:
+                            _s4_t1_r = float(_s4_tgt.get("t1_r") or 1.0)
+                            _s4_t2_r = float(_s4_tgt.get("t2_r") or 2.0)
+                            _s4_t1 = _s4_entry + _s4_sign * _s4_t1_r * _s4_risk
+                            _s4_t2 = _s4_entry + _s4_sign * _s4_t2_r * _s4_risk
+                            if _s4_tgt.get("time_stop_minutes"):
+                                _s4_time_stop = int(_s4_tgt["time_stop_minutes"])
+                    except Exception:
+                        pass  # fallback to 1R/2R defaults above
+
                     fire_setup = {
                         "direction": direction,
-                        "entry_price": best.entry_price,
-                        "stop_price": best.stop,
-                        "t1_price": best.targets[0],
-                        "t2_price": best.targets[1],
-                        "time_stop_minutes": 90,
+                        "entry_price": _s4_entry,
+                        "stop_price": _s4_stop,
+                        "t1_price": _s4_t1,
+                        "t2_price": _s4_t2,
+                        "time_stop_minutes": _s4_time_stop,
                         "confidence": int(best.confidence * 100),
                     }
 
@@ -597,16 +622,34 @@ class WoodiesSystem(BaseV9TradingSystem):
                     return
                 sizing = self.calculate_size(best.pattern_id, best.direction or "LONG")
                 if sizing != "reject":
+                    # Targets from targets_table (R-based), same as fire_setup above
+                    _gw_entry = best.entry_price
+                    _gw_stop = best.stop or 0.0
+                    _gw_risk = abs(_gw_entry - _gw_stop) if _gw_stop else 0
+                    _gw_sign = 1.0 if (best.direction or "LONG") == "LONG" else -1.0
+                    _gw_t1 = _gw_entry + _gw_sign * _gw_risk  # 1R default
+                    _gw_t2 = _gw_entry + _gw_sign * 2 * _gw_risk  # 2R default
+                    try:
+                        from backend.v9.systems.day_type.targets_table import get_targets as _gw_get_targets
+                        _gw_dt = self.current_state.get("day_type") or "Normal"
+                        if _gw_dt in ("UNKNOWN", "None", None):
+                            _gw_dt = "Normal"
+                        _gw_tgt = _gw_get_targets(_gw_dt)
+                        if _gw_tgt and _gw_risk > 0:
+                            _gw_t1 = _gw_entry + _gw_sign * float(_gw_tgt.get("t1_r", 1.0)) * _gw_risk
+                            _gw_t2 = _gw_entry + _gw_sign * float(_gw_tgt.get("t2_r", 2.0)) * _gw_risk
+                    except Exception:
+                        pass
                     setup = {
                         "firing_system": 4,
                         "direction": best.direction or "LONG",
                         "classification": best.pattern_id,
                         "confidence": best.confidence,
-                        "entry_price": best.entry_price,
-                        "stop": best.stop or 0.0,
-                        "t1": (best.targets or [0])[0] if best.targets else 0.0,
-                        "t2": (best.targets or [0, 0])[1] if best.targets and len(best.targets) > 1 else 0.0,
-                        "t3": (best.targets or [0, 0, 0])[2] if best.targets and len(best.targets) > 2 else None,  # None (not 0.0) when pattern has no 3rd target — avoids phantom T3 in monitor
+                        "entry_price": _gw_entry,
+                        "stop": _gw_stop,
+                        "t1": _gw_t1,
+                        "t2": _gw_t2,
+                        "t3": None,
                         "metadata": {"pattern": best.pattern_id, "sizing": sizing},
                     }
                     try:
