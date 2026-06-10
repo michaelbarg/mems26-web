@@ -136,20 +136,23 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
             except ImportError:
                 et = None
             if et:
-                # FIX 3B: filter by date AND time. Without date check,
-                # Globex bars with tomorrow's date pass the time filter
-                # and render as "+" markers past today's candles.
+                # FIX 3B: keep only RTH bars (09:30-16:00 ET) from completed
+                # sessions. A "completed RTH session" = any bar whose RTH
+                # close (16:00 ET same day) is in the past.
                 now_et = datetime.now(tz=et)
-                today_et_date = now_et.date()
-                # During Globex (after 16:00 ET), show today's RTH only
-                # During RTH, show today's bars
+                now_epoch = int(now_et.timestamp())
                 filtered_rth = []
                 for bar in result:
                     bar_epoch = _to_epoch(bar["ts"])
                     bar_et = datetime.fromtimestamp(bar_epoch, tz=et)
                     et_min = bar_et.hour * 60 + bar_et.minute
-                    if 570 <= et_min < 960 and bar_et.date() <= today_et_date:
-                        filtered_rth.append(bar)
+                    if not (570 <= et_min < 960):
+                        continue  # outside 09:30-16:00 ET
+                    # Bar's RTH close = same day 16:00 ET
+                    rth_close = bar_et.replace(hour=16, minute=0, second=0)
+                    if bar_epoch > now_epoch:
+                        continue  # future bar — Globex tonight
+                    filtered_rth.append(bar)
                 if filtered_rth:
                     result = filtered_rth
 

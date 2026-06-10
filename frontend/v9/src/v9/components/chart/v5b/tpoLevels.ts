@@ -539,6 +539,12 @@ export function syncYesterdayTpoLines(
   }
   const nowUnix = Math.floor(Date.now() / 1000);
   const rightEdge = Math.min(close, lastBarTime, nowUnix + 300) as Time;
+  // Guard: rightEdge must be > open, otherwise lw-charts throws "data must be asc"
+  if (Number(rightEdge) <= open) {
+    // Off-hours: can't draw yesterday lines (times would be out of order)
+    lineStore2.set(chart, []);
+    return 0;
+  }
   const pointsPerLevel: Array<{ time: Time; value: number }>[] = ydayLevels.map((lv) => [
     { time: open as Time, value: lv.price },
     { time: rightEdge, value: lv.price },
