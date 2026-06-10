@@ -133,7 +133,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                     bar_index=len(bars) - 1,
                     ts=bar.ts,
                     details={"left": round(p1[1], 2), "head": round(p2[1], 2),
-                             "right": round(p3[1], 2), "stop_layer_applied": stop_layer},
+                             "right": round(p3[1], 2), "stop_layer_applied": stop_layer,
+                             "measure_pts": round(abs(p2[1] - min(p1[1], p3[1])) / 25.0, 2)},
                 )
 
     # Bullish GHOST: three CCI troughs, middle is lowest
@@ -192,7 +193,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                     bar_index=len(bars) - 1,
                     ts=bar.ts,
                     details={"left": round(t1[1], 2), "head": round(t2[1], 2),
-                             "right": round(t3[1], 2), "stop_layer_applied": stop_layer},
+                             "right": round(t3[1], 2), "stop_layer_applied": stop_layer,
+                             "measure_pts": round(abs(t2[1] - max(t1[1], t3[1])) / 25.0, 2)},
                 )
 
     return PatternResult(detected=False, pattern_id=PATTERN_ID)

@@ -518,20 +518,18 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 _shift = _acfg.get("t1_ladder_shift", 0)
 
                                 if _pid in ("VEGAS",) and _measure_cap:
-                                    # VEGAS: T1 = Measure×cap, T2 = Measure×1.0
+                                    # VEGAS: T1 = Measure×cap, T2 = Measure×t2_mult
+                                    # FIX A: measure from detector (Rule 1), NO proxy
                                     _measure = best.details.get("measure_pts") if best.details else None
-                                    if _measure is None and best.details:
-                                        # Estimate measure from CCI divergence
-                                        _measure = _s4_risk * 2  # rough proxy
                                     if _measure and _measure > 0:
                                         _s4_t1 = _s4_entry + _s4_sign * _measure_cap * _measure
                                         _t2_mult = _acfg.get("t2_measure_mult", 1.0)
                                         _s4_t2 = _s4_entry + _s4_sign * _t2_mult * _measure
+                                    # else: T1/T2 stay as 1R fallback / None (honest)
                                 elif _pid in ("GHOST",) and _measure_cap:
-                                    # GHOST: T1 = Measure×0.5, T2/T3 = None (CCI-cross)
+                                    # GHOST: T1 = Measure×cap, T2/T3 = None (CCI-cross)
+                                    # FIX A: measure from detector (Rule 1), NO proxy
                                     _measure = best.details.get("measure_pts") if best.details else None
-                                    if _measure is None and best.details:
-                                        _measure = _s4_risk * 1.5
                                     if _measure and _measure > 0:
                                         _s4_t1 = _s4_entry + _s4_sign * _measure_cap * _measure
                                 else:

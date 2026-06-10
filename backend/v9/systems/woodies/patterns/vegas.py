@@ -157,6 +157,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
                 details={"price_hh": True, "cci_lh": True, "swing_anchor": swing_anchor,
+                         "measure_pts": round(abs(c1[1] - c2[1]) / 25.0, 2),
                          "stop_layer_applied": stop_layer},
             )
 
@@ -223,7 +224,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 bar_index=len(bars) - 1,
                 ts=bar.ts,
                 details={"price_ll": True, "cci_hl": True, "swing_anchor": swing_anchor,
-                         "stop_layer_applied": stop_layer},
+                         "stop_layer_applied": stop_layer,
+                         "measure_pts": round(abs(c2[1] - c1[1]) / 25.0, 2)},
             )
 
     return PatternResult(detected=False, pattern_id=PATTERN_ID)
