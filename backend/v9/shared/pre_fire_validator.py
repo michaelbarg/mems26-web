@@ -28,7 +28,7 @@ class FireRequest(BaseModel):
     entry_price: float = Field(gt=0)
     stop_price: float = Field(gt=0)
     t1_price: float = Field(gt=0)
-    t2_price: float = Field(gt=0)
+    t2_price: Optional[float] = None  # None when CCI-cross targets deferred (§1.6)
     time_stop_minutes: int = Field(ge=1, le=180)
     confidence: int = Field(ge=0, le=100)
 

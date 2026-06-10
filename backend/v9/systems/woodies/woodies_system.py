@@ -222,7 +222,8 @@ class WoodiesSystem(BaseV9TradingSystem):
                         _bar_ts_key = str(_raw_ts)[:16]  # last resort: minute
             else:
                 _bar_ts_key = None
-            if _bar_ts_key is not None and _bar_ts_key != self._last_bar_ts_for_count:
+            _is_new_bar = _bar_ts_key is not None and _bar_ts_key != self._last_bar_ts_for_count
+            if _is_new_bar:
                 self._bar_count += 1
                 self._last_bar_ts_for_count = _bar_ts_key
 
@@ -299,9 +300,15 @@ class WoodiesSystem(BaseV9TradingSystem):
                 open=o, high=h, low=l, close=c, volume=v,
                 **studies,
             )
-            self._bar_buffer.append(wb)
-            if len(self._bar_buffer) > self.max_buffer:
-                self._bar_buffer = self._bar_buffer[-self.max_buffer:]
+            if _is_new_bar:
+                self._bar_buffer.append(wb)
+                if len(self._bar_buffer) > self.max_buffer:
+                    self._bar_buffer = self._bar_buffer[-self.max_buffer:]
+            elif self._bar_buffer:
+                self._bar_buffer[-1] = wb  # update latest with fresh OHLC
+
+            if not _is_new_bar:
+                return  # dedup: detection + fire only on genuinely new bar ts
 
             # Run 9-pattern engine — DLL flags as primary, Python detectors as fallback.
             # DLL computes on full Sierra history (thousands of bars) → more accurate
@@ -443,6 +450,25 @@ class WoodiesSystem(BaseV9TradingSystem):
                 strength = int(best.confidence * 4)
                 classification = "STRATEGIC" if best.group == "REVERSAL" else "TACTICAL"
                 sizing = self.calculate_size(signal, direction)
+                # Provisional day_type (shared with fire_setup below)
+                _s4_day_type = self.current_state.get("day_type")
+                if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
+                    try:
+                        from backend.v9.systems.day_type.decision_matrix import DECISION_MATRIX as _DM
+                        import importlib as _il
+                        _app2 = _il.import_module("backend.v9.app").app
+                        _dtm2 = getattr(_app2.state, "day_type_machine", None)
+                        if _dtm2 and _dtm2.opening and _dtm2.ib_class:
+                            _cell2 = _DM.get((_dtm2.opening.opening_type, _dtm2.ib_class.ib_width))
+                            if _cell2:
+                                _prov2 = _cell2.get("top1") if isinstance(_cell2, dict) else _cell2
+                                if _prov2 and hasattr(_prov2, 'value'):
+                                    _s4_day_type = _prov2.value
+                    except Exception:
+                        pass
+                if not _s4_day_type:
+                    _s4_day_type = "Normal"
+
                 # V2 sizing override when flag ON
                 from backend.v9.shared.atr import flag as _flag
                 if _flag("STOP_ANCHORS_V2") and best.entry_price and best.stop:
@@ -465,7 +491,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 stop_price=best.stop,
                                 direction=direction,
                                 pattern_key=signal,
-                                day_type=self.current_state.get("day_type", "Normal"),
+                                day_type=_s4_day_type,
                                 confidence_tier="medium",
                                 day_has_direction=_day_has_dir,
                                 trade_with_trend=_with_trend,
@@ -489,6 +515,8 @@ class WoodiesSystem(BaseV9TradingSystem):
                                    f"CCI={studies['cci_14']:.1f}, trend={studies['trend_state']}, "
                                    f"conf={best.confidence:.2f}, group={best.group}")
                 self.current_state["last_reasoning_notes"] = reasoning_notes
+
+            # _s4_day_type already computed above (shared with sizing)
 
             fire_setup = None
             if patterns and direction and sizing != "reject":
