@@ -1,6 +1,42 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-06-10 (Cowork — S4 target/stop spec ננעל פר-תבנית)
+
+**[2026-06-10 — S4 אפיון-יעדים מלא (9 תבניות) ננעל ויזואלית מול Michael + טבלת-בחינה]** (ראיה: `docs/plans/MEMS26_S4_REVIEW_TABLE_2026-06-10.xlsx`)
+- **finding:** עד היום ל-S4 ננעלו רק עוגני-סטופ + T1 + sizing (06-07); ה-**יעדים פר-תבנית (T1/T2/T3)** היו placeholder — הדיטקטורים פולטים T1/T2 בטיקים-קבועים (ZLR 12/24 וכו'), בלי T3, day-type-blind. שורש I-3 (ZLR ב-A7: target מנוון 1pt → R:R≈0.06 → אין fire_setup).
+- **solution (ננעל, Cowork+Michael · walkthrough ויזואלי פר-9-תבניות):** T1 = **סולם-סיכון 0-25** (לא נוסחת-Flag 15-25; REV ×0.8; HFE מדרגה−1) · VEGAS T1=Measure×0.75 / T2=Measure×1.0 · GHOST T1=Measure×0.5 / T2=חציית−100 / T3=חציית+100 · HTLB T2=חציית-ZL / T3=חציית+100 · FAMIR T2=חציית−100 (נגדי) · CONT (ZLR/TLB/TT/GB100) T2=חציית+200 · **סטופ = 3T מעבר-לקצה-הבר (לא עליו)** · ATR=שער-גודל (סטופ מבני גובר).
+- **verified (Cowork):** טבלת-בחינה xlsx הופקה ואושרה פר-תבנית מול Michael; 9 הדגמות-נרות ויזואליות (כניסה/סטופ/T1/T2 על נרות + פאנל CCI).
+- **OPEN (מימוש — trading-logic, flag-gated SHADOW · אופציה 1 אושרה Michael 06-10):** Phase 1 = (1) `t1_ladder_continuation` ל-**כל 9** (כיום רק HTLB+FAMIR) + (2) **T1 (כל 9) + VEGAS T2 בלבד** → `fire_setup` (סוגר I-3; T1+סטופ פותחים A7) + (3) `config/stop_anchors.yaml` ערכי-06-10. **יעדי-T2/T3 שהם חציות-CCI = None ביושר** (Rule 1). **משימה-2 נדחית:** מוניטור-חציית-CCI ל-T2/T3 — תוספת מוכלת ל-`b11/b12` (Woodies רואה CCI פר-בר; **לא** rebuild של trade-manager הגנרי, אומת בקוד). + (4) רובריקת-detection ב-SHADOW (S1/S2/S4 · needed-מול-actual · אחוזי-בנייה). פרומפט: `docs/handoff/CC_MEGA_S4_TARGETS_DAYOPEN_DASHBOARD_2026-06-10.md`.
+
+**[2026-06-10 — אימות‑Cowork ל‑PHASE1 של CC (`6c58d05`): 4 בעיות → פרומפט‑תיקון]** (ראיה: grep + קריאת‑קוד חי)
+- **finding:** (1) 🔴 Rule‑1 — measure של VEGAS/GHOST **מסונתז** (`woodies_system.py` proxy `risk×2`/`×1.5`; הדיטקטורים לא חושפים `measure_pts`) → T1/T2 לא מהגאומטריה. (2) 🔴 B1 — טסטי‑VEGAS/GHOST/CCI‑None בודקים **ערכי‑YAML בלבד** (עוברים גם עם ה‑measure המזויף); `test_s4_fire_setup_routable` (I‑3) **חסר**. (3) 🟡 Phase 2 (formula needed‑מול‑actual + build%) **לא בוצעה** (grep=0; DetectionPanel הוחזר). (4) 🟡 דוח‑חובה חסר + ראיה=replay סינתטי, לא ירי חי.
+- **תקין:** T1‑סולם CONT/FAMIR/HTLB/HFE (קורא `SA.t1_price`) · CCI‑cross=None · שריד‑option‑A (`targets_table`) הוסר · VEGAS cap=0.75 · flag‑gated.
+- **solution:** פרומפט‑תיקון `docs/handoff/CC_FIX_S4_MEASURE_TESTS_PHASE2_2026-06-10.md` — measure אמיתי (head−neckline ÷25 / עומק‑כוס, או None) · טסטים על קוד‑הירי + `test_s4_fire_setup_routable` · השלמת Phase 2 · דוח+ראיה חיה.
+- **verified (Cowork, raw · סבב‑1):** `grep targets_table`=0 · `measure_pts` נעדר מ‑details · `grep formula|build_pct`=0 · אין דוח.
+
+**[2026-06-10 ערב — סבבי‑תיקון 2‑4 + אימות‑Cowork חוזר]**
+- **סבב‑2 (`11425c2`+`814c684`):** FIX A תוקן (measure אמיתי מהגאומטריה, proxy נמחק — Cowork raw: grep=0). אבל טסטים עדיין ריקים (GHOST `detected=False` → assert לא רץ; fire_setup רק `bar_buffer`); C/D דולגו בשקט (B3).
+- **סבב‑3 (`3106c5f`+`88aa189`):** GHOST‑test אמיתי (Cowork raw: `detected=True · measure=4.4`) · FIX C בוצע (`woodies_inspector._build_s4_formula`+`build_pct`+PatternsTab `formula`) · דוח `MEGA_S4_TARGETS_2026-06-10.txt` עם NOT‑DONE (B3 תוקן; live‑fire נדחה — RTH סגור, לגיטימי). 10 טסטי‑spec עוברים.
+- **פרצה שנותרה → סבב‑4:** `test_s4_fire_setup_routable` בודק `stop≠None` (תיקון ישן 06‑08), **לא** R:R/fire_setup → I‑3 לא מוכח בטסט (אומת ע"י קריאת‑האסרטים). פרומפט: `docs/handoff/CC_FIX_S4_ROUND4_I3_TEST_2026-06-10.md` (assert על R:R אמיתי + RED‑on‑revert של לוגיקת‑ה‑T1; Cowork יהפוך T1 בעצמו ויוודא FAIL).
+- **OPEN:** סבב‑4/5 (טסט‑I‑3 — נכשל בריצה נקייה כי harness בלי day_type → fire_setup=None; אומת ע"י Cowork) · אימות‑חי ב‑RTH (ירי‑SHADOW עם stop/T1 ב‑`v9_trades`) · S1/S2 formula (רק S4 בוצע) · §1.6 CCI‑monitor (נדחה בכוונה).
+
+**[2026-06-10 — סוכן ביקורת‑EOD (בקשת‑Michael) — ספציפיקציה הוכנה]**
+- **goal:** סוכן רב‑פעמי ב‑EOD: (1) לסיים בדיקות · (2) סריקת‑SHADOW (עבד‑לפי‑האפיון? מידע‑נכון?) · (3) counterfactual פר S1/S2/S4 — אילו תבניות היו צריכות לירות, האם נכנסה, וכמה $ צריך היה להרוויח/להפסיד.
+- **design (audit‑before‑build):** מתזמר קיים — `missed_trade_detector` (ADAPT: +S1, +full‑session replay, +$) · `daily_quality_agent` (KEEP) · `historical_replay` (KEEP) · `eod_archiver`/scheduler 15:55 ET (KEEP, נקודת‑הפעלה). שכבה חדשה: P&L counterfactual פר‑מערכת מהאפיון‑הנעול. observability בלבד.
+- **deliverable:** `docs/handoff/CC_AGENT_EOD_SHADOW_AUDIT_2026-06-10.md` → סוכן `backend/v9/services/eod_shadow_audit.py` → דוח `EOD_AUDIT_<date>.md`. **ריצה‑1: סוף יום‑1.** OPEN: מימוש ע"י CC + ריצה ראשונה ב‑RTH close.
+
+**[2026-06-10 10:05 ET — 🔴 day_type@30דק' לא סוּוַּג (תקלה חוזרת · Michael flag · אומת חי ע"י Cowork)]**
+- **finding (raw, `v9_day_type_state`):** ב‑10:05 ET (RTH+35דק') `day_type=UNKNOWN`, `opening_type=OPEN_DRIVE`. ספירת‑היום: UNKNOWN×~109 (NA×93, OPEN_DRIVE×12, ORR×4), ורק **1** שורה `Variation` (לא נדבקה). opening_type כן מחושב (אך לא‑יציב בפתיחה: ORR→NA→OPEN_DRIVE), אבל **day_type נתקע UNKNOWN** הרבה אחרי 30דק' → חוסם auth/sizing של S2/S4 (אותו שורש של `fire_setup=None` בטסט‑I‑3).
+- **השערה (לא‑מאומת · diagnose‑first):** שלב‑סיווג‑day_type@30דק' (`app.state.day_type_machine` / `main.py:_day_type_on_bar`) לא מייצר/מתמיד `day_type≠UNKNOWN` למרות opening_type≠NA; ה‑Variation היחיד מרמז שהלוגיקה יכולה לרוץ אך לא נדבקת. FIX 1 תיקן opening_type=NA — לא את הסיווג‑בפועל.
+- **OPEN (קריטי · גוזר את כל הירי היום):** diagnose חי בעוד RTH פתוח — למה day_type=UNKNOWN ב‑30דק' עם opening_type=OPEN_DRIVE; לבדוק `app.state.day_type_machine` (לא ה‑wrapper המת), זמינות‑IB@30דק', ונתיב‑הפרסיסט ב‑`main.py`.
+
+**[2026-06-10 ~10:1x ET — 🔴 חוסמי‑ניתוב חיים (build‑status TLB) · I‑3 לא סגור חי + רגרסיות]** (ראיה: snapshot מ‑Michael)
+- **finding:** TLB Armed עם `detection✓` + `day_type=Variation✓` + stop=7381.75/target=7400✓, אבל **`r_t1_gate=null`** (= I‑3 **חי, לא סגור!**) ו‑**`day_type_matrix="lookup error"`** → `ready_to_route=False` → **לא יורה.** ה‑unit‑tests של CC עברו (10 ירוקים) אך ה‑inspector‑החי מראה r_t1=null → **הטסטים לא תפסו את הרגרסיה** (מאשר את ה‑NO‑GO של I‑3).
+- **השערות (diagnose‑first):** (1) matrix‑lookup‑error = key‑mismatch `Variation` מול `NV`/`Normal Variation` ב‑`day_type_matrix.yaml`. (2) r_t1=null = ה‑T1‑החדש (Phase‑1 סולם) לא מחווט לשדה‑r_t1 ב‑inspector. שתיהן כנראה **רגרסיה מ‑`6c58d05`/`88aa189`**.
+- **solution:** `docs/handoff/CC_DIAGNOSE_LIVE_S4_ROUTE_BLOCKERS_2026-06-10.md` — **diagnose‑only**, strategic‑stop + אישור Michael לפני תיקון.
+- **OPEN (קריטי):** אבחון‑שורש + הצלבת‑רגרסיה · future‑ts (I‑18) · ZLR לא‑זוהה · day_type שהחל UNKNOWN.
+
 ## 2026-06-09 (RTH · Cowork verify + CC fixes)
 
 **[2026-06-09 15:12 CT — EOD מאוחד (Cowork): 2 fires, ΣR-נגד +1R, 3 בעיות חמורות]** (ראיה: `docs/reports/PATTERN_EOD_2026-06-09.md` + `DESIGNS_2026-06-09.md` + register EOD)

@@ -60,6 +60,34 @@
 ריצה ראשונה בתוך RTH (~12דק', First-Hour-Tactical, IB טרם הושלמה ⇒ חלק מהחסימות **צפויות-שלב**).
 דוח מלא + 5-השאלות לכל תבנית: `docs/reports/PATTERN_DIAG_2026-06-09.md`. צילומי-מסך: `ss_9174b893x` (Dashboard) · `ss_8552f6f4c` (Build-Status). **קריאה/תיעוד בלבד.**
 
+---
+
+### [2026-06-10 09:54 CT] Snapshot עמוק #1 ב-RTH — עדכון-סטטוס חשודים (Cowork)
+
+~84 דק' לתוך RTH. verdict=**DEGRADED** (trend GRAY בלבד; bridge_streams_fresh ✓, אין חסם-לוח שקרי). מחיר חי 7354.75. frontend חי. דוח מלא + 5-השאלות לכל תבנית/חשוד: `docs/reports/PATTERN_DIAG_2026-06-10.md`. צילומים: `ss_642420cbo` (Dashboard) · `ss_09697ipin` (Build-Status). **קריאה/תיעוד בלבד.**
+
+- **I-1** 🟡 day_type=Variation 0.48/B2 — **לא חוסם S2** (10/10 armed). **פיצול 2-כיווני חזר** (readiness/Build-header="Normal" ↔ state/five_min/Dashboard/key_levels="Variation"). **שיפור:** opening_type=OPEN_AUCTION_IN **עקבי על 4 משטחים** (≠06-09 UNKNOWN). residual: vote_history=[]; **session_min לא-נצפה (redacted by sandbox)** ⇒ לא-אומת.
+- **I-2** ✅ A5 dtree=PASS advisory:calculate_size=reject — לא חוסם. תקין.
+- **I-3** 🔬 ZLR חסום `stage_a1.strategic_gate` (A1 veto, trend GRAY) **לפני** detection — לא armed, active_patterns=[]. אין setup/counterfactual.
+- **I-4** ✅ S2 10/10 armed, detection-await בלבד (b1_buyers/b1_expansion). דריכה תקינה.
+- **I-5** 🔴→לא-משחזר: bridge_streams_fresh ✓, אין באנר OFFLINE שקרי.
+- **I-9** 🔴 ריצה 09:54 CT בתוך RTH (gating-CT תקין). EOD-after-15:00 עדיין פתוח לאימות בריצת-הסגירה.
+- **I-11** 🔴 **מאושש**: gate footprint נכתב עכשיו (17:54:15) אך bars_today=0/buffer=0/flow null — ingest-break file→bridge→buffer, עצמאי מערוץ 5דק' החי, מושתק S3_MUTE/crit=false.
+- **I-13** 🔴 NO_SETUP (active_patterns=[]) ⇒ אין ממצא-sizing לכייל.
+- **I-14** 🔴 opening_type=OPEN_AUCTION_IN; INITIATIVE_L/S armed (auth FULL), חוסמות על detection.b1_expansion. חסם-auth נוקה; שרשרת opening→entry — CC.
+- **I-15** 🔬 engine GRAY + board ✗GRAY + Dashboard NEUT — **מסכימים, אין קונפליקט**. **פער UI↔endpoint CCI ~28pt** (פאנל -189.11 מול endpoint -161.32). הצלבת Sierra חובה.
+- **I-16** 🔴→לא-משחזר: 10/10 S2 armed, אין `Missing: data.choppiness_ok` (chop_state=FOUND, UI "17 FOUND"). מחזק I-17.
+- **I-17** 🔬 five_min buffer=73, 10/10 armed, ערוץ חי. תומך בתנודתיות-גבול-בר.
+- **I-18** 🟡 **נמשך+חד**: woodies_5min gate ts **עתידי 22:40:00** (+00:00/lag=null); footprint/bars_5min IL-local; cum_delta/vol_profile UTC תקין. **imbalance crit:true [FRESH] אך lag 3553s (~59דק') > 90s = stale-but-Present**. מפר Rule 4.
+- **I-19** 🔴→לא-משחזר: build/pattern-status=104ms (200, len 89996), שאר endpoints 13-69ms. נקי.
+- **I-20** 🟡 bridge lag_seconds=-28065/fresh=true/last_bar_ts=null/threshold=90 (~-7.8h). predicate לא אוכף סף. readiness via crit-gates → DEGRADED נכון.
+- **I-21** 🟡→לא-משחזר: ערוץ 5דק' חי (last_bar 17:50+03:00 lag 134.7s, cci_14 נע, bars_5min/woodies_5min FRESH). tick_reversal_15 DEAD מ-06-05 אך disabled/crit=false. אין stall.
+- **I-22** 🔴 נמשך: אין עסקה-טרייה 06-10; ערכי-עבר id20 pnl_r=233/$582.5 (R-אמיתי≈+42R, ~5.5× ניפוח, ÷$1.25 טיק). חוסם ΣR-counterfactual.
+- **I-23** 🟡 trades_today=0/shadow_active_count=0/daily_pnl=0 — נכון היום (0 עסקאות). לא-ניתן-לשחזר.
+- **I-24** 🟡 מושתק: key_levels POC=7370.75 (Sierra Study ID:3 live) תקין; tpo/levels+tpo/profile=404 (S5 מת); tpo+tick_reversal_15 disabled/crit=false ⇒ לא נספרים ב-readiness. תואם החלטת-SoT.
+- **I-25** 🟢 limit=50 עבד (5 עסקאות); תיקון-מסמך SKILL.md ל-limit=100 פתוח.
+- **⭐ ממצא חדש — IB source-split** (קשור I-1): key_levels/levels-strip IB=**7404.75/7335.25** (69.5pt, Sierra Study ID:6) ↔ S1-day-type/Dashboard IB=**7386.75/7363.50** (23.3pt, sierra_tpo) — שני IB מוצגים בו-זמנית. ה-classifier משתמש ב-IB הצר. **Sierra-CC: איזה IB קנוני; ליישר Study ID:6 ↔ day-type feed** (IB width מזין classify_ib_width_atr).
+
 - **I-1** 🟡 — `day_type=UNKNOWN/A3/conf0/opening UNKNOWN/vote_history=[]`; **צפוי-שלב** (pre-IB). readiness verdict=DEGRADED מ-`s1_day_type_classified ✗`. נטר post-IB ~09:30.
 - **I-3** 🔬 — trend=BLUE (cci_14=+218) ⇒ אין A1-veto; ZLR armed, active_patterns=[]. אין counterfactual.
 - **I-11** 🔴 (מושתק) — **אישור #26:** footprint file `[FRESH] 0s` (נכתב עכשיו) אך bars_today=0/buffer 0/flow null בעוד ערוץ 5דק' חי ⇒ ingest-break עצמאי מ-I-21. מושתק `disabled(S3_MUTE)`.
