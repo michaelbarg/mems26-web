@@ -66,7 +66,7 @@ anchors:
   TT:     {system: S4, group: CONT, type: zl_excursion,         window: 9}   # 🔬 4-9
   GB100:  {system: S4, group: CONT, type: cluster_low,          window: 6}   # 🔬 חלון-6
   # ── S4 REV (🔬 עוגני-קיצון נשמרים; HTLB מורחב) ──
-  VEGAS:  {system: S4, group: REV,  type: swing_extreme,        window: null, t1_measure_cap: 0.5}  # 🔬
+  VEGAS:  {system: S4, group: REV,  type: swing_extreme,        window: null, t1_measure_cap: 0.75, t2_measure_mult: 1.0}  # ✅ 2026-06-10: T1×0.75 T2×1.0
   GHOST:  {system: S4, group: REV,  type: shoulder,             window: null, t1_measure_cap: 0.5}  # 🔬 (Bulkowski MEASURED)
   FAMIR:  {system: S4, group: REV,  type: failed_bar,           window: null}  # 🔬
   HTLB:   {system: S4, group: REV,  type: consolidation_extreme, window: null} # 🔬 מורחב (לא בר-הפריצה)

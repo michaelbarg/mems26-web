@@ -491,32 +491,62 @@ class WoodiesSystem(BaseV9TradingSystem):
 
             fire_setup = None
             if patterns and direction and sizing != "reject":
-                # best already set by W-8 dispatcher above
                 if best.entry_price and best.stop:
-                    # S4 targets from targets_table (R-based per day_type),
-                    # not hardcoded tick counts. Same approach as S2 FIX 5.
+                    # PHASE 1 (2026-06-10): S4 targets per spec table.
+                    # T1 = ladder/measure per pattern. T2 = VEGAS only (Measure×1.0).
+                    # All CCI-cross targets (CONT T2/T3, GHOST T2/T3, etc.) = None
+                    # (deferred to CCI-cross monitor §1.6). Flag-gated STOP_ANCHORS_V2.
                     _s4_entry = best.entry_price
                     _s4_stop = best.stop
                     _s4_risk = abs(_s4_entry - _s4_stop)
                     _s4_sign = 1.0 if direction == "LONG" else -1.0
-                    _s4_t1 = _s4_entry + _s4_sign * _s4_risk  # default 1R
-                    _s4_t2 = _s4_entry + _s4_sign * 2 * _s4_risk  # default 2R
+                    _s4_t1 = _s4_entry + _s4_sign * _s4_risk  # 1R fallback
+                    _s4_t2 = None  # CCI-cross default (honest None)
+                    _s4_t3 = None
                     _s4_time_stop = 90
-                    try:
-                        from backend.v9.systems.day_type.targets_table import get_targets
-                        _s4_dt = self.current_state.get("day_type") or "Normal"
-                        if _s4_dt in ("UNKNOWN", "None", None):
-                            _s4_dt = "Normal"
-                        _s4_tgt = get_targets(_s4_dt)
-                        if _s4_tgt:
-                            _s4_t1_r = float(_s4_tgt.get("t1_r") or 1.0)
-                            _s4_t2_r = float(_s4_tgt.get("t2_r") or 2.0)
-                            _s4_t1 = _s4_entry + _s4_sign * _s4_t1_r * _s4_risk
-                            _s4_t2 = _s4_entry + _s4_sign * _s4_t2_r * _s4_risk
-                            if _s4_tgt.get("time_stop_minutes"):
-                                _s4_time_stop = int(_s4_tgt["time_stop_minutes"])
-                    except Exception:
-                        pass  # fallback to 1R/2R defaults above
+                    _pid = best.pattern_id
+
+                    if _flag("STOP_ANCHORS_V2") and _s4_risk > 0:
+                        try:
+                            from backend.v9.config_loader import load_stop_anchors
+                            from backend.v9.systems.stop_anchors import resolver as SA
+                            _sa = load_stop_anchors()
+                            if _sa:
+                                _acfg = _sa["anchors"].get(_pid, {})
+                                _is_rev = _acfg.get("group") == "REV" or best.group == "REVERSAL"
+                                _measure_cap = _acfg.get("t1_measure_cap")
+                                _shift = _acfg.get("t1_ladder_shift", 0)
+
+                                if _pid in ("VEGAS",) and _measure_cap:
+                                    # VEGAS: T1 = Measure×cap, T2 = Measure×1.0
+                                    _measure = best.details.get("measure_pts") if best.details else None
+                                    if _measure is None and best.details:
+                                        # Estimate measure from CCI divergence
+                                        _measure = _s4_risk * 2  # rough proxy
+                                    if _measure and _measure > 0:
+                                        _s4_t1 = _s4_entry + _s4_sign * _measure_cap * _measure
+                                        _t2_mult = _acfg.get("t2_measure_mult", 1.0)
+                                        _s4_t2 = _s4_entry + _s4_sign * _t2_mult * _measure
+                                elif _pid in ("GHOST",) and _measure_cap:
+                                    # GHOST: T1 = Measure×0.5, T2/T3 = None (CCI-cross)
+                                    _measure = best.details.get("measure_pts") if best.details else None
+                                    if _measure is None and best.details:
+                                        _measure = _s4_risk * 1.5
+                                    if _measure and _measure > 0:
+                                        _s4_t1 = _s4_entry + _s4_sign * _measure_cap * _measure
+                                else:
+                                    # CONT + FAMIR/HTLB/HFE: T1 from risk ladder
+                                    _s4_t1 = SA.t1_price(
+                                        _s4_entry, _s4_stop, direction,
+                                        t1_ladder_cont=_sa["t1_ladder_continuation"],
+                                        reversal=_is_rev,
+                                        reversal_mult=_sa.get("t1_reversal_multiplier", 0.8),
+                                        t1_floor_points=_sa.get("t1_floor_points", 3.0),
+                                        ladder_shift=_shift,
+                                    )
+                                    # T2/T3 = None (CCI-cross, deferred §1.6)
+                        except Exception as _e:
+                            logger.warning("[Woodies] S4 target calc failed: %s", _e)
 
                     fire_setup = {
                         "direction": direction,
@@ -622,31 +652,16 @@ class WoodiesSystem(BaseV9TradingSystem):
                     return
                 sizing = self.calculate_size(best.pattern_id, best.direction or "LONG")
                 if sizing != "reject":
-                    # Targets from targets_table (R-based), same as fire_setup above
-                    _gw_entry = best.entry_price
-                    _gw_stop = best.stop or 0.0
-                    _gw_risk = abs(_gw_entry - _gw_stop) if _gw_stop else 0
-                    _gw_sign = 1.0 if (best.direction or "LONG") == "LONG" else -1.0
-                    _gw_t1 = _gw_entry + _gw_sign * _gw_risk  # 1R default
-                    _gw_t2 = _gw_entry + _gw_sign * 2 * _gw_risk  # 2R default
-                    try:
-                        from backend.v9.systems.day_type.targets_table import get_targets as _gw_get_targets
-                        _gw_dt = self.current_state.get("day_type") or "Normal"
-                        if _gw_dt in ("UNKNOWN", "None", None):
-                            _gw_dt = "Normal"
-                        _gw_tgt = _gw_get_targets(_gw_dt)
-                        if _gw_tgt and _gw_risk > 0:
-                            _gw_t1 = _gw_entry + _gw_sign * float(_gw_tgt.get("t1_r", 1.0)) * _gw_risk
-                            _gw_t2 = _gw_entry + _gw_sign * float(_gw_tgt.get("t2_r", 2.0)) * _gw_risk
-                    except Exception:
-                        pass
+                    # Reuse fire_setup targets (already computed per spec above)
+                    _gw_t1 = fire_setup["t1_price"] if fire_setup else (best.targets or [0])[0]
+                    _gw_t2 = fire_setup.get("t2_price") if fire_setup else None
                     setup = {
                         "firing_system": 4,
                         "direction": best.direction or "LONG",
                         "classification": best.pattern_id,
                         "confidence": best.confidence,
-                        "entry_price": _gw_entry,
-                        "stop": _gw_stop,
+                        "entry_price": best.entry_price,
+                        "stop": best.stop or 0.0,
                         "t1": _gw_t1,
                         "t2": _gw_t2,
                         "t3": None,
