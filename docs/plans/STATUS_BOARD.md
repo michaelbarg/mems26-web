@@ -1,7 +1,29 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-06-11 (CC+Cowork — S2+S4 fire fixes deployed to SHADOW)
+
+**[2026-06-11 — 🟢 S2+S4 fire blockers resolved + deployed (`319e303`)]**
+- **finding (Cowork diagnosis, CC log verification):** A7 `pre_fire_validator` measured R:R against T1 (scalp, 0.4-0.8R by design) instead of T2 (runner ~2R). **Result: EVERY valid trade blocked for the past week.** Logs show 7 S2 detections + 13 S4 detections on 06-10, ALL rejected by A7. Additionally, B-13 stale bar filter's shared `_latest_known_price` blocked 18,567 woodies_5min bars from routing (woodies CCI bars carry different prices from different chart periods).
+- **fix (3 changes, commit `319e303`, all flag-gated default-OFF):**
+  1. `pre_fire_validator.py`: R:R computed on T2/runner. When T2=None (CCI-cross deferred §1.6), uses `expected_t2_r_mult` (default 2.0). + `MEMS_MIN_RISK_POINTS`/`MEMS_MAX_RISK_POINTS` stop-sanity gates.
+  2. `bars.py _route_bar`: price-band stale check only for 5min stream (woodies/tpo/footprint exempt).
+  3. `state_machine.py`: provisional day_type at 30min from developing IB (`S1_PROVISIONAL_DAYTYPE` flag).
+- **verified (Rule 5 raw):**
+  - Tests: `18 passed` (4 provisional + 3+4 risk gates + 7 R:R runner). Full suite: `237 passed, 1 pre-existing failure`.
+  - RED-on-revert: OLD R:R=0.40 BLOCK → NEW R:R=2.0 PASS (9/9 Cowork simulation ZLR setups).
+  - Post-restart: `/health` OK, 0 woodies BLOCKED in new log, bridge 0 errors.
+- **flags set in .env:** `S1_PROVISIONAL_DAYTYPE=1`, `MEMS_MIN_RISK_POINTS=2`, `MEMS_MAX_RISK_POINTS=60`, `STOP_ANCHORS_V2=1` (was already set).
+- **OPEN (awaiting RTH 09:30 ET for live verification):** day_type≠UNKNOWN@30min, S4 fire in v9_trades, stop-gate rejections in log, no regression.
+
 ## 2026-06-10 (Cowork — S4 target/stop spec ננעל פר-תבנית)
+
+**[2026-06-10 15:24 CT — סוכן-EOD דיאגנוסטי (Cowork) · 9 snapshots + API חי]** (ראיה: `docs/reports/PATTERN_EOD_2026-06-10.md` · `DESIGNS_2026-06-10.md` · `MEMS26_ISSUES_REGISTER.md` §EOD)
+- **finding (3 fires):** S4 HFE LONG ×3 (id24/26/27) נגד trend RED, **3/3 STOP_HIT −1R** (ΣR −3R / −$71.25 shadow). stop צמוד 1–2pt; id27 MFE **+16.75pt** = מנצח-שאבד.
+- **finding (counterfactual · raw `bars5min` 78 ברי-RTH, ירידה 7355→7276):** כל ה-SHORTים עם-המגמה (ZLR/TLB/GB100/GHOST/HTLB) נחסמו A7 R:R<1.0 (target מנוון 3pt); ב-CF (targets שפויים 1R/2R) **4W/0L, ΣR ≈ +3R**. ⇒ ה-bottleneck עלה על רווח עקבי עם-המגמה (≠06-09 שבו CF ≈ +1R).
+- **🔴 verification (Rule 5 — committed-but-not-effective):** PHASE1 (`6c58d05`+סבבי-תיקון) של טבלת stop/target **לא אפקטיבי ב-stack הרץ היום** — 3 ה-fires יצאו `t2=null` + stop מנוון 1–2pt (התנהגות-ישנה), ו-9 תבניות-S4 עדיין `targets_stop.r_t1_gate` block. **לאמת מול CC** (restart/flag/wiring) לפני סימון I-3/I-13 כסגור.
+- **חשודים חדשים:** I-26 (A7 reward↔target inconsistency) · I-27 (flicker-detection per-bar על trend יציב) · I-28 (reversal HFE יורה נגד-מגמה — D2, **טעון-החלטת-Michael**).
+- **OPEN (read-only · designs מוכנים):** I-22 win-path מנופח (אין WIN טרי לאימות) · I-23 4-ספירות-ירי סותרות · I-10 `pre_fire_validator`/`risk_checks` absent ב-payload · I-18/I-20 freshness TZ+ts-עתידי+stale-עובר-READY · I-1 day_type split.
 
 **[2026-06-10 — S4 אפיון-יעדים מלא (9 תבניות) ננעל ויזואלית מול Michael + טבלת-בחינה]** (ראיה: `docs/plans/MEMS26_S4_REVIEW_TABLE_2026-06-10.xlsx`)
 - **finding:** עד היום ל-S4 ננעלו רק עוגני-סטופ + T1 + sizing (06-07); ה-**יעדים פר-תבנית (T1/T2/T3)** היו placeholder — הדיטקטורים פולטים T1/T2 בטיקים-קבועים (ZLR 12/24 וכו'), בלי T3, day-type-blind. שורש I-3 (ZLR ב-A7: target מנוון 1pt → R:R≈0.06 → אין fire_setup).
