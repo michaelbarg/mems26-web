@@ -13,6 +13,7 @@ Gates every fire from T1/T2/T3.
 """
 from __future__ import annotations
 
+import os
 from datetime import datetime, timezone
 from typing import Literal, Optional
 
@@ -31,6 +32,10 @@ class FireRequest(BaseModel):
     t2_price: Optional[float] = None  # None when CCI-cross targets deferred (§1.6)
     time_stop_minutes: int = Field(ge=1, le=180)
     confidence: int = Field(ge=0, le=100)
+    # Expected runner multiplier (T2 ≈ expected_t2_r_mult × risk).
+    # Used for R:R check when t2_price is None (CCI-cross deferred).
+    # Default 2.0 = continuation patterns; 1.5 = reversal patterns.
+    expected_t2_r_mult: float = Field(default=2.0, ge=1.0)
 
 
 class FireResponse(BaseModel):
@@ -59,7 +64,26 @@ def validate_fire(req: FireRequest) -> FireResponse:
             return _fail("SHORT: t1 must be < entry")
 
     risk = abs(req.entry_price - req.stop_price)
-    reward = abs(req.t1_price - req.entry_price)
+    # Stop-sanity gates (flag-gated, default OFF — env unset → no behaviour change).
+    #   MEMS_MIN_RISK_POINTS — reject degenerate near-zero stops (the S2 1-pt
+    #     Initiative/Bull-Flag stops that instant-stop for −1pt noise).
+    #   MEMS_MAX_RISK_POINTS — reject oversized stops (e.g. a 110pt reversal
+    #     swing anchor); the size gate can only shrink such a trade to 1
+    #     contract, not refuse it. Applies to S2 + S4 (shared validator).
+    _min_risk = float(os.getenv("MEMS_MIN_RISK_POINTS", "0") or 0)
+    _max_risk = float(os.getenv("MEMS_MAX_RISK_POINTS", "0") or 0)
+    if _min_risk > 0 and risk < _min_risk:
+        return _fail(f"risk {risk:.2f}pt < min {_min_risk:.2f}pt (degenerate stop)")
+    if _max_risk > 0 and risk > _max_risk:
+        return _fail(f"risk {risk:.2f}pt > max {_max_risk:.2f}pt (oversized stop)")
+    # R:R is measured against the RUNNER target (T2), not the scalp (T1).
+    # T1 is a partial exit at 0.4-0.8R by design — using it for R:R would
+    # block every valid trade. When T2 is None (CCI-cross deferred §1.6),
+    # use the expected runner multiplier from the pattern spec.
+    if req.t2_price is not None:
+        reward = abs(req.t2_price - req.entry_price)
+    else:
+        reward = risk * req.expected_t2_r_mult
     if risk <= 0 or (reward / risk) < 1.0:
         return _fail(f"R:R < 1.0 (risk={risk:.2f} reward={reward:.2f})")
 

@@ -362,9 +362,68 @@ class DayTypeStateMachine:
         # Continuous re-eval is now built into C3→B2 loop.
         # _check_reeval kept for backward compat but no longer gated on lock.
 
+        # S1_PROVISIONAL_DAYTYPE (flag-gated, default OFF): emit a provisional
+        # day_type at ~30 min from the developing Sierra IB, so S2/S4 are not
+        # blind until the 60-min IB-lock. Source-of-truth safe (no synthesis).
+        self._maybe_provisional_classify(bar)
+
         state = self._build_state(bar)
         self._last_state = state  # V9: cache for on_trigger/to_classification
         return state
+
+    def _maybe_provisional_classify(self, bar: BarInput) -> None:
+        """S1_PROVISIONAL_DAYTYPE (default OFF): provisional day_type @ ~30 min.
+
+        Root fixed (06-09/06-10 data): the machine classifies day_type only at
+        B1 (post IB-lock @ ib_period_min, 60 min), so S2 *and* S4 are blind for
+        the first hour — both read ``ib_class.ib_width``, which is None until
+        lock. This emits a PROVISIONAL classification from the DEVELOPING Sierra
+        IB already accumulated in A3 (self.ib_high/ib_low) — NO synthesis, same
+        classify_ib_width_atr + DECISION_MATRIX used at lock. Set once at the
+        half-IB mark and held stable until the real lock (A4/B1) overwrites it;
+        ``ib_locked`` stays False (honest). Consumers reading ``ib_class.ib_width``
+        (S2 setup_emitter, S4) then resolve day_type at 30 min via single-source
+        v9_day_type_state. If opening isn't detected or Sierra IB isn't present
+        yet, stays UNKNOWN (honest failure, Rule 1).
+        """
+        import os
+        if os.environ.get("S1_PROVISIONAL_DAYTYPE", "").lower() not in ("1", "true", "yes"):
+            return
+        if self.ib_locked or self.opening is None:
+            return
+        if self.day_type != DayType.UNKNOWN:
+            return  # already classified (provisional held, or locked)
+        # Developing IB must come from Sierra (accumulated in A3) — no synthesis.
+        if not (self.ib_high > 0 and self.ib_low < float("inf")):
+            return
+        # Half the IB period (default 30 min). Honest UNKNOWN before that.
+        if bar.session_min < self.config.ib_period_min / 2:
+            return
+        ib_range = self.ib_high - self.ib_low
+        ib_width = classify_ib_width_atr(
+            ib_range,
+            atr_daily=self._last_atr_daily,
+            narrow_max=self.config.ib_narrow_max_pt,
+            medium_max=self.config.ib_medium_max_pt,
+        )
+        key = (self.opening.opening_type, ib_width)
+        matrix_cell = DECISION_MATRIX.get(key, DayType.Normal)
+        voted = matrix_cell.get("top1", DayType.Normal) if isinstance(matrix_cell, dict) else matrix_cell
+        # Provisional — NOT locked. ib_class set so the S2/S4 provisional path
+        # (reads ib_class.ib_width) resolves; A4 overwrites with locked IB @ 60m.
+        self.ib_class = IBClassification(
+            ib_high=self.ib_high, ib_low=self.ib_low,
+            ib_range=round(ib_range, 2), ib_width=ib_width,
+        )
+        self.day_type = voted
+        self.confidence = 0.35  # < B1's 0.5 → signals provisional
+        self.lock_state = _LOCK_PENDING
+        self.meta["provisional_day_type"] = True
+        self.vote_history.append(VoteRecord(
+            day_type=voted, confidence=0.35, stage=self.stage,
+            reason=f"provisional@{int(bar.session_min)}m: "
+                   f"{self.opening.opening_type.value} x {ib_width.value}",
+        ))
 
     # ── Part A: Pre-Open & Opening ───────────────────────────────────────
 

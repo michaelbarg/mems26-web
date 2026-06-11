@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>סימולציית 06-09 על הקוד המתוקן — S4 Woodies</title>
+<style>
+  body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#0f1419;color:#e6edf3;margin:0;padding:24px;line-height:1.5}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:16px;color:#9cdcfe;border-bottom:1px solid #30363d;padding-bottom:6px;margin-top:26px}
+  .sub{color:#8b949e;font-size:13px;margin-bottom:16px}
+  .box{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:14px 16px;margin:14px 0}
+  .kpi{display:flex;gap:24px;flex-wrap:wrap;margin:10px 0}
+  .kpi div{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 16px}
+  .kpi b{font-size:20px;display:block}
+  .green{color:#3fb950}.red{color:#f85149}.grey{color:#8b949e}.blue{color:#58a6ff}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}
+  th,td{border:1px solid #30363d;padding:7px 9px;text-align:center}
+  th{background:#1c2128;color:#9cdcfe;position:sticky;top:0}
+  td.l{text-align:right}
+  tr.win{background:rgba(63,185,80,.07)}
+  tr.loss{background:rgba(248,81,73,.10)}
+  tr.skip{background:rgba(139,148,158,.07);color:#8b949e}
+  .tag{font-size:11px;padding:1px 7px;border-radius:10px;border:1px solid}
+  .t-yes{color:#3fb950;border-color:#238636}.t-skip{color:#8b949e;border-color:#444c56}
+  code{background:#1c2128;padding:1px 5px;border-radius:4px;color:#79c0ff}
+  .note{font-size:12px;color:#8b949e;margin-top:8px}
+</style>
+</head>
+<body>
+<h1>סימולציית מסחר — 09/06/2026 על הקוד <span class="green">לאחר התיקון</span></h1>
+<div class="sub">S4 Woodies · Replay על 109 ברי-CCI אמיתיים של אתמול · נוצר 11/06/2026 · MES $5/נק'</div>
+
+<div class="box">
+<b>מה אופשר את הירי (3 התיקונים):</b><br>
+1. <code>S1_PROVISIONAL_DAYTYPE</code> — day_type זמין ב-30 דק' (מ-IB המתפתח של סיירה), לא ב-60.<br>
+2. <code>pre_fire_validator</code> — R:R נמדד על ה-runner (D-094), לא על ה-scalp → setups תקפים עוברים.<br>
+3. <code>bars.py</code> — בדיקת price-band רק ל-5min → ברי-woodies מגיעים ל-S4 (שורש שתיקת-S4).<br>
+<span class="note">לפני התיקון: S4 ירה <b class="red">0</b> תבניות לאורך כל היום (244 נק' מגמה). אחרי: סורק ויורה.</span>
+</div>
+
+<div class="kpi">
+  <div>תבניות שנסרקו<b class="blue">8</b></div>
+  <div>נכנסו (פוזיציה יחידה)<b>6</b></div>
+  <div>רווחיות<b class="green">5W / 1L</b></div>
+  <div>נק' נטו<b class="green">+137.5</b></div>
+  <div>P&amp;L (2 חוזי MES)<b class="green">+$1,374</b></div>
+</div>
+
+<h2>טבלת הסימולציה — כל תבנית שהמערכת סרקה</h2>
+<table>
+<thead><tr>
+  <th>שעה<br>(ET)</th><th>תבנית</th><th>כיוון</th><th>כניסה</th><th>סטופ<br>התחלתי</th>
+  <th>סיכון<br>(נק')</th><th>T1<br>(סולם)</th><th>סטופ<br>משתנה</th><th>מימוש</th>
+  <th>יציאה<br>(ET)</th><th>נטו<br>(נק')</th><th>P&amp;L<br>($×2)</th><th>נכנס?</th>
+</tr></thead>
+<tbody>
+<tr class="win"><td>09:35</td><td class="l">HTLB</td><td>LONG</td><td>7466.00</td><td>7440.75</td><td>25</td><td>7474.08</td><td>7466.00</td><td>T1+trail</td><td>09:55</td><td class="green">+4.0</td><td class="green">+$40</td><td><span class="tag t-yes">כן</span></td></tr>
+<tr class="win"><td>10:05</td><td class="l">HFE</td><td>SHORT</td><td>7461.25</td><td>7491.75</td><td>30</td><td>7449.05</td><td>7398.25</td><td>T1+trail</td><td>10:55</td><td class="green">+37.6</td><td class="green">+$376</td><td><span class="tag t-yes">כן</span></td></tr>
+<tr class="skip"><td>10:50</td><td class="l">VEGAS</td><td>LONG</td><td>7387.25</td><td>7367.00</td><td>20</td><td>7393.73</td><td>7387.25</td><td>T1+trail</td><td>11:05</td><td>+3.2</td><td>(+$32)</td><td><span class="tag t-skip">בפוזיציה</span></td></tr>
+<tr class="win"><td>11:20</td><td class="l">ZLR</td><td>SHORT</td><td>7362.50</td><td>7406.25</td><td>44</td><td>7345.00</td><td>7290.75</td><td>T1+time</td><td>12:50</td><td class="green">+60.9</td><td class="green">+$609</td><td><span class="tag t-yes">כן</span></td></tr>
+<tr class="skip"><td>12:25</td><td class="l">TLB</td><td>LONG</td><td>7295.00</td><td>7273.75</td><td>21</td><td>7303.50</td><td>7295.00</td><td>T1+trail</td><td>12:35</td><td>+4.2</td><td>(+$42)</td><td><span class="tag t-skip">בפוזיציה</span></td></tr>
+<tr class="win"><td>12:55</td><td class="l">HTLB</td><td>LONG</td><td>7287.25</td><td>7246.25</td><td>41</td><td>7300.37</td><td>7332.50</td><td>T1+time</td><td>14:25</td><td class="green">+49.4</td><td class="green">+$494</td><td><span class="tag t-yes">כן</span></td></tr>
+<tr class="loss"><td>14:40</td><td class="l">TLB</td><td>SHORT</td><td>7366.00</td><td>7385.50</td><td>20</td><td>7356.25</td><td>7385.50</td><td>STOP</td><td>14:55</td><td class="red">−19.5</td><td class="red">−$195</td><td><span class="tag t-yes">כן</span></td></tr>
+<tr class="win"><td>15:10</td><td class="l">VEGAS</td><td>SHORT</td><td>7374.50</td><td>7399.50</td><td>25</td><td>7366.50</td><td>7372.50</td><td>T1+trail</td><td>15:50</td><td class="green">+5.0</td><td class="green">+$50</td><td><span class="tag t-yes">כן</span></td></tr>
+</tbody>
+</table>
+<div class="note">
+שורות אפורות = זוהו אך לא נכנסו כי פוזיציה כבר פתוחה (מודל פוזיציה-יחידה). שים לב: ב-12:35 נחסך שורט-מאוחר מפסיד (−54 נק') כי ה-ZLR מ-11:20 עוד רץ.
+</div>
+
+<h2>שלוש התנועות הגדולות שנתפסו</h2>
+<div class="box">
+• <b class="green">10:05 HFE SHORT</b> — Hook מהקיצון +256 CCI בראש (7491) → ירידה. <b>+37.6 נק'</b>. (זו ה"הזדמנות של 218 נק'" ש-CC סימן כ"פוספסה" — עכשיו נתפסת.)<br>
+• <b class="green">11:20 ZLR SHORT</b> — המשך על המפל הגדול → trail עד 7290. <b>+60.9 נק'</b>.<br>
+• <b class="green">12:55 HTLB LONG</b> — היפוך מהתחתית (סטופ על השפל 7246) → התאוששות. <b>+49.4 נק'</b>.
+</div>
+
+<h2>מודל החישוב (שקיפות)</h2>
+<div class="note">
+זיהוי: <code>detect_all_patterns</code> + <code>PatternDispatcher.select_winner</code> (קוד-ייצור אמיתי) · יעד T1: <code>SA.t1_price</code> סולם-הסיכון הנעול · שער: <code>pre_fire_validator</code> (runner R:R, D-094) · גייט A1: trend≠GRAY/YELLOW · RTH 09:30–16:00 ET.<br>
+ניהול: 50% ב-T1, 50% runner עם סטופ→BE ואז trail במרחק 1R מאחורי השיא · time-stop 90 דק' · פוזיציה יחידה בו-זמנית · 2 חוזי MES @ $5/נק'.<br>
+<b>הסתייגות:</b> זו סימולציה (לא live). T2/T3 על חציית-CCI עדיין None (אופציה-1) → ה-runner מנוהל ב-trail בלבד. הברים הם 5min CCI אמיתיים מ-<code>v9_bars_5min_woodies</code> של 06-09.
+</div>
+
+</body>
+</html>

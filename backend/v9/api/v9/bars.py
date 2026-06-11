@@ -101,8 +101,11 @@ def set_bar_router(router) -> None:
 def _route_bar(bar_type: str, bar_data: dict) -> None:
     """Route a bar to BarRouter via thread-safe publish (P27.5c fix).
 
-    B-13: staleness guard applies to ALL routed bars, not just 5min.
-    If the bar's ts is stale or price is off-market, skip routing.
+    B-13: staleness guard — ts-age check applies to all bar types.
+    Price-band check applies ONLY to the 5min stream that owns the
+    _latest_known_price tracker. Other streams (woodies_5min, tpo,
+    footprint, etc.) legitimately carry different prices from different
+    chart periods and must NOT be compared to the 5min spot price.
     """
     if _bar_router is None:
         return
@@ -114,7 +117,6 @@ def _route_bar(bar_type: str, bar_data: dict) -> None:
             if isinstance(raw_ts, datetime):
                 ts = raw_ts
             elif isinstance(raw_ts, str):
-                # Handle ISO string ("2026-06-04 16:55:00+00:00") or epoch string
                 try:
                     ts = datetime.fromisoformat(raw_ts)
                 except ValueError:
@@ -123,10 +125,20 @@ def _route_bar(bar_type: str, bar_data: dict) -> None:
                 ts = _ts_from_unix(raw_ts)
             if ts.tzinfo is None:
                 ts = ts.replace(tzinfo=timezone.utc)
-            stale = _is_stale_bar(ts, float(close))
-            if stale:
-                logger.warning("[bars/%s] _route_bar BLOCKED stale bar: %s", bar_type, stale)
+            # Ts-age check: all bar types
+            now = datetime.now(timezone.utc)
+            if ts < now - MAX_STALE_AGE:
+                logger.warning("[bars/%s] _route_bar BLOCKED stale bar: stale_ts (bar %s older than %s)",
+                               bar_type, ts.isoformat(), MAX_STALE_AGE)
                 return
+            # Price-band check: ONLY for 5min (the stream that owns _latest_known_price)
+            if bar_type == "5min" and _latest_known_price is not None and float(close) > 0:
+                deviation = abs(float(close) - _latest_known_price)
+                if deviation > STALE_PRICE_BAND:
+                    logger.warning("[bars/%s] _route_bar BLOCKED stale bar: off_market "
+                                   "(close=%.2f vs latest=%.2f, deviation=%.1f > band=%.1f)",
+                                   bar_type, float(close), _latest_known_price, deviation, STALE_PRICE_BAND)
+                    return
         except (TypeError, ValueError, OSError):
             pass  # unparseable ts/close — let BarRouter handle
     _bar_router.publish_threadsafe(bar_type, bar_data)
