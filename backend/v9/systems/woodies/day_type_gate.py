@@ -89,4 +89,15 @@ class DayTypeGate:
                 day_type=DayType.UNAVAILABLE,
                 is_degraded=True,
             )
-        return self._matrix[(pattern_id, day_type)]
+        cell = self._matrix.get((pattern_id, day_type))
+        if cell is not None:
+            return cell
+        # Key not found — return degraded (docstring: "Never raises")
+        return MatrixVerdict(
+            verdict="⚠️",
+            entry_hint=f"No matrix cell for ({pattern_id}, {day_type})",
+            t1_ref="—",
+            pattern_id=pattern_id,
+            day_type=DayType.UNAVAILABLE,
+            is_degraded=True,
+        )

@@ -56,8 +56,16 @@ class A2Output:
 # When the Multi-System returns a Zohar label we map it to the closest
 # Dalton taxonomy member for the 63-cell matrix lookup.
 _ZOHAR_TO_DALTON: Dict[str, DayType] = {
+    # S1 state_machine labels → Dalton day-type codes
+    "Trend_Normal": DayType.TN,
+    "Trend_DD": DayType.TDD,
+    "Variation": DayType.NV,
+    "Normal": DayType.Norm,
+    "Neutral_Extreme": DayType.NeuE,
+    "Neutral_Center": DayType.NeuC,
+    "Nontrend": DayType.NT,
+    # Legacy labels (backward compat)
     "TREND": DayType.TN,
-    "Normal": DayType.NV,
     "RANGE": DayType.NeuC,
     "REVERSAL": DayType.NeuE,
     "GAP_FILL": DayType.NV,
