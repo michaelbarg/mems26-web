@@ -61,22 +61,23 @@ be_after_t1: breakeven_plus_1tick      # 📜 Table C §6.1
 # כולם -3T (anchor_offset_ticks). window = כמה ברים אחורה.
 anchors:
   # ── S4 CONT (🔬 מחקר אושר; חלונות לפי מבנה-התבנית) ──
-  ZLR:    {system: S4, group: CONT, type: cluster_low,          window: 4}   # ✅ Michael
-  TLB:    {system: S4, group: CONT, type: since_trendline_peak, window: 8}   # 🔬 משתנה 3-8
-  TT:     {system: S4, group: CONT, type: zl_excursion,         window: 9}   # 🔬 4-9
-  GB100:  {system: S4, group: CONT, type: cluster_low,          window: 6}   # 🔬 חלון-6
+  # max_risk_points: 🔬 trial values (2026-06-12); CONT over cap → SIZE_DOWN to 1 contract, REV → SKIP
+  ZLR:    {system: S4, group: CONT, type: cluster_low,          window: 4, max_risk_points: 15}   # ✅ Michael
+  TLB:    {system: S4, group: CONT, type: since_trendline_peak, window: 8, max_risk_points: 15}   # 🔬 משתנה 3-8
+  TT:     {system: S4, group: CONT, type: zl_excursion,         window: 9, max_risk_points: 15}   # 🔬 4-9
+  GB100:  {system: S4, group: CONT, type: cluster_low,          window: 6, max_risk_points: 15}   # 🔬 חלון-6
   # ── S4 REV (🔬 עוגני-קיצון נשמרים; HTLB מורחב) ──
-  VEGAS:  {system: S4, group: REV,  type: swing_extreme,        window: null, t1_measure_cap: 0.75, t2_measure_mult: 1.0}  # ✅ 2026-06-10: T1×0.75 T2×1.0
-  GHOST:  {system: S4, group: REV,  type: shoulder,             window: null, t1_measure_cap: 0.5}  # 🔬 (Bulkowski MEASURED)
-  FAMIR:  {system: S4, group: REV,  type: failed_bar,           window: null}  # 🔬
-  HTLB:   {system: S4, group: REV,  type: consolidation_extreme, window: null} # 🔬 מורחב (לא בר-הפריצה)
-  HFE:    {system: S4, group: REV,  type: extreme_bar,          window: null, t1_ladder_shift: -1}  # 🔬 התבנית-החלשה, מדרגה מטה
+  VEGAS:  {system: S4, group: REV,  type: swing_extreme,        window: null, t1_measure_cap: 0.75, t2_measure_mult: 1.0, max_risk_points: 20}  # ✅ 2026-06-10: T1×0.75 T2×1.0
+  GHOST:  {system: S4, group: REV,  type: shoulder,             window: null, t1_measure_cap: 0.5, max_risk_points: 18}  # 🔬 (Bulkowski MEASURED)
+  FAMIR:  {system: S4, group: REV,  type: failed_bar,           window: null, max_risk_points: 12}  # 🔬
+  HTLB:   {system: S4, group: REV,  type: consolidation_extreme, window: null, max_risk_points: 20} # 🔬 מורחב (לא בר-הפריצה)
+  HFE:    {system: S4, group: REV,  type: extreme_bar,          window: null, t1_ladder_shift: -1, max_risk_points: 20}  # 🔬 התבנית-החלשה, מדרגה מטה
   # ── S2 (🔬 לפי Bulkowski MEASURED) ──
-  Reactive:        {system: S2, type: support_zone,      window: 4}      # 🔬 אשכול/אזור-תמיכה
-  OFA_Initiative:  {system: S2, type: breakout_bar,      window: 1}      # 🔬 ⚠️ נשאר הדוק! (מדוד 5188: הדוק מנצח ב-11%)
-  Double_BT:       {system: S2, type: second_bottom_top, window: null}   # 🔬 מבנה (Bulkowski מפורש)
-  HnS:             {system: S2, type: shoulder,          window: null}   # 🔬 כתף-ימין (לא neckline)
-  Flag:            {system: S2, type: breakout_bar,      window: 1}      # ✅ Michael 2026-06-09: בר-הפריצה (לא flag_low/wick)
+  Reactive:        {system: S2, type: support_zone,      window: 4, max_risk_points: 15}      # 🔬 אשכול/אזור-תמיכה
+  OFA_Initiative:  {system: S2, type: breakout_bar,      window: 1, max_risk_points: 12}      # 🔬 ⚠️ נשאר הדוק! (מדוד 5188: הדוק מנצח ב-11%)
+  Double_BT:       {system: S2, type: second_bottom_top, window: null, max_risk_points: 20}   # 🔬 מבנה (Bulkowski מפורש)
+  HnS:             {system: S2, type: shoulder,          window: null, max_risk_points: 20}   # 🔬 כתף-ימין (לא neckline)
+  Flag:            {system: S2, type: breakout_bar,      window: 1, max_risk_points: 15}      # ✅ Michael 2026-06-09: בר-הפריצה (לא flag_low/wick)
 
 # ── Flag T1 יחסי (Michael 2026-06-09, tunable) ──────────────────────
 # T1 = t1_r × risk. t1_r slides linearly from t1_r_max (tight stop) to

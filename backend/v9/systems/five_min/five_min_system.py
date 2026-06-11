@@ -641,6 +641,19 @@ class FiveMinSystem(BaseV9TradingSystem):
                      "variant": _active_s[0] if _active_s else "A_VSA",
                      "variants_passed": _active_s})
 
+        # S2_DETECTION_LOG: per-bar condition vector (observability, flag-gated)
+        import os as _dl_os
+        if _dl_os.environ.get("S2_DETECTION_LOG", "").lower() in ("1", "true", "yes"):
+            _bar_ts = bars_5m[-1].get("ts", "?") if bars_5m else "?"
+            logger.info(
+                "[S2-DL] REACTIVE ts=%s L:[b1s=%d b2d=%d b3b=%d b4c=%d b4>h=%d] "
+                "S:[b1b=%d b3s=%d b4c=%d b4<l=%d] vsa=%d rvol=%d",
+                _bar_ts,
+                int(b1_sellers), int(b2_drop), int(b3_buyers), int(b4_confirm), int(b4_close_above_b3_high),
+                int(b1_buyers), int(b3_sellers), int(b4_confirm_s), int(b4_close_below_b3_low),
+                int(_vsa_pass), int(_rvol_pass),
+            )
+
         return (None, 0, {})
 
     def _detect_initiative(self, bars_5m: List[Dict]) -> tuple:
@@ -721,6 +734,19 @@ class FiveMinSystem(BaseV9TradingSystem):
                 and b4_close_below_b1_low and cot_above_amt and lookback_quiet):
             return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4,
                                     "b2_alt": "poc_return" if b2_poc_return_s else "lower_high"})
+
+        # S2_DETECTION_LOG: per-bar initiative condition vector
+        import os as _dl_os2
+        if _dl_os2.environ.get("S2_DETECTION_LOG", "").lower() in ("1", "true", "yes"):
+            _bar_ts2 = bars_5m[-1].get("ts", "?") if bars_5m else "?"
+            logger.info(
+                "[S2-DL] INITIATIVE ts=%s b1_exp=%d b2_test=%d b3_join=%d b4_test=%d "
+                "b1_bull=%d b1_bear=%d b1_range=%.1f exp=[%.1f,%.1f]",
+                _bar_ts2,
+                int(b1_expansion), int(b2_test or b2_test_s), int(b3_joining),
+                int(b4_test or b4_test_s),
+                int(b1_bull), int(b1_bear), b1_range, _exp_min, _exp_max,
+            )
 
         return (None, 0, {})
 

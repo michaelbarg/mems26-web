@@ -4,6 +4,7 @@ import { useTradeStore } from '../../stores/tradeStore';
 import { SYSTEM_COLORS, SYSTEM_NAMES } from '../../types';
 import type { SystemId, Trade } from '../../types';
 import { TradePathVisual } from './TradePathVisual';
+import { TradeRowExpand } from './TradeRowExpand';
 import {
   formatUsdAccounting,
   riskReward,
@@ -54,8 +55,34 @@ function pnlColor(v: number | null | undefined): string {
   return 'var(--text-secondary)';
 }
 
+function riskPts(t: Trade): number | null {
+  const init = (t as any).stop_initial ?? t.stop;
+  if (init == null || t.entry_price == null) return null;
+  const r = Math.abs(t.entry_price - init);
+  return r > 0 ? r : null;
+}
+
+function riskColor(r: number | null): string {
+  if (r == null) return 'var(--text-muted)';
+  if (r > 25) return 'var(--red)';
+  if (r > 10) return '#eab308';
+  return 'var(--green)';
+}
+
+function sharedAnchorCount(t: Trade, trades: Trade[]): number {
+  const init = (t as any).stop_initial ?? t.stop;
+  if (init == null || !t.entry_ts) return 0;
+  const day = t.entry_ts.slice(0, 10);
+  return trades.filter((o) => {
+    if (o.id === t.id) return false;
+    const oInit = (o as any).stop_initial ?? o.stop;
+    if (oInit == null || !o.entry_ts) return false;
+    return o.entry_ts.slice(0, 10) === day && Math.abs(oInit - init) < 0.5;
+  }).length;
+}
+
 export function TradeCardList() {
-  const { filteredTrades, expandedTradeId, setSelectedTradeId, filters, setFilters, auxFor } = useTradeStore();
+  const { filteredTrades, expandedTradeId, setSelectedTradeId, toggleExpandedTradeId, filters, setFilters, auxFor } = useTradeStore();
   const trades = filteredTrades();
   const cum = useMemo(() => cumulativeByClose(trades), [trades]);
   const activePattern = (filters.pattern ?? '').trim().toUpperCase();
@@ -121,6 +148,22 @@ export function TradeCardList() {
                 </span>
               )}
               <StopTag trade={t} />
+              {(() => {
+                const r = riskPts(t);
+                return r != null ? (
+                  <span style={{ fontSize: 9, fontWeight: 600, color: riskColor(r), background: 'rgba(255,255,255,0.04)', borderRadius: 3, padding: '0 5px' }} title={`סיכון: ${r.toFixed(1)} נק'`}>
+                    {r.toFixed(1)}pt
+                  </span>
+                ) : null;
+              })()}
+              {(() => {
+                const n = sharedAnchorCount(t, trades);
+                return n > 0 ? (
+                  <span style={{ fontSize: 8, color: 'var(--red)', border: '1px solid rgba(248,81,73,0.4)', borderRadius: 3, padding: '0 4px' }} title={`עוגן משותף עם ${n} עסקאות`}>
+                    🔗{n}
+                  </span>
+                ) : null;
+              })()}
               {isOpen && (
                 <span style={{ fontSize: 8, color: '#eab308', border: '1px solid rgba(234,179,8,0.4)', borderRadius: 3, padding: '0 4px' }}>open</span>
               )}
@@ -139,6 +182,14 @@ export function TradeCardList() {
             <div style={{ marginTop: 3 }}>
               <TradePathVisual trade={t} />
             </div>
+            {/* Expand/collapse toggle */}
+            <div
+              onClick={(e) => { e.stopPropagation(); toggleExpandedTradeId(t.id); }}
+              style={{ textAlign: 'center', cursor: 'pointer', marginTop: 2 }}
+            >
+              <span style={{ fontSize: 9, color: 'var(--text-muted)' }}>{sel ? '▲ סגור' : '▼ פרטים'}</span>
+            </div>
+            {sel && <TradeRowExpand trade={t} />}
           </div>
         );
       })}

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { fetchTradeById } from '../../lib/api';
 import { SYSTEM_COLORS } from '../../types';
@@ -15,6 +15,10 @@ import {
   cumulativeByClose,
   cumulativeByOpen,
 } from '../../lib/tradeMath';
+import MgmtTimeline from './MgmtTimeline';
+import SpecFlags from './SpecFlags';
+
+const TradeChart = lazy(() => import('./TradeChart'));
 
 interface SystemRecognition {
   id: number;
@@ -98,8 +102,24 @@ function TradeDetailBlock({ trade }: { trade: Trade }) {
       {cell('כניסה', `${f(trade.entry_price)} · 0`)}
       {cell('סטופ', `${f(trade.stop_initial ?? trade.stop)} · −1R`, 'var(--red)')}
       {cell('יציאה', `${f(trade.exit_price)} · ${rtxt(L.exitR)}`, 'var(--sys4)')}
-      {cell('T1 · T2', `${rtxt(L.t1R)} · ${rtxt(L.t2R)}`, 'var(--sys1)')}
+      {cell('T1 · T2', `${f(trade.t1)} (${rtxt(L.t1R)}) · ${trade.t2 != null ? `${f(trade.t2)} (${rtxt(L.t2R)})` : '—'}`, 'var(--sys1)')}
       {cell('סיכון/סיכוי (R:R)', rr && rr.t2 != null ? `1:${rr.t1?.toFixed(1) ?? '—'} (T1) · 1:${rr.t2.toFixed(1)} (T2)` : '—')}
+      {cell('סיכון (נק\')', (() => {
+        const init = trade.stop_initial ?? trade.stop;
+        const risk = init != null && trade.entry_price != null ? Math.abs(trade.entry_price - init) : null;
+        return risk != null ? `${risk.toFixed(1)}pt` : '—';
+      })(), (() => {
+        const init = trade.stop_initial ?? trade.stop;
+        const risk = init != null && trade.entry_price != null ? Math.abs(trade.entry_price - init) : 0;
+        return risk > 25 ? 'var(--red)' : risk > 10 ? '#eab308' : 'var(--green)';
+      })())}
+      {cell('MFE / שמרנו', (() => {
+        const mfe = trade.mfe_pts;
+        const captured = trade.pnl_usd != null && trade.entry_price != null ? Math.abs(trade.pnl_usd / 5) : null;
+        if (mfe == null) return '—';
+        const pct = captured != null && mfe > 0 ? Math.round((captured / mfe) * 100) : null;
+        return `${mfe.toFixed(1)}pt MFE · ${captured != null ? captured.toFixed(1) : '?'}pt captured${pct != null ? ` (${pct}%)` : ''}`;
+      })())}
       {cell('משך', formatDuration(dur))}
       {cell('P&L', formatUsdAccounting(trade.pnl_usd), trade.pnl_usd != null ? (trade.pnl_usd > 0 ? 'var(--green)' : trade.pnl_usd < 0 ? 'var(--red)' : 'var(--text-secondary)') : 'var(--text-muted)')}
       {cell('קומ׳ פתיחה', cumOpen != null ? formatUsdAccounting(cumOpen) : '—', cumOpen != null && cumOpen < 0 ? 'var(--red)' : 'var(--green)')}
@@ -113,7 +133,9 @@ function TradeDetailBlock({ trade }: { trade: Trade }) {
 }
 
 export function TradeRowExpand({ trade }: { trade: Trade }) {
+  const allTrades = useTradeStore((s) => s.trades);
   const [insight, setInsight] = useState<TradeInsight | null>(null);
+  const [mgmtLog, setMgmtLog] = useState<Array<{action: string, created_at?: string}>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -128,6 +150,7 @@ export function TradeRowExpand({ trade }: { trade: Trade }) {
           return;
         }
         setInsight(res.insight as TradeInsight);
+        setMgmtLog((res as any).management_log ?? (res.insight as any)?.lifecycle ?? []);
         setError(false);
       })
       .catch(() => {
@@ -149,7 +172,31 @@ export function TradeRowExpand({ trade }: { trade: Trade }) {
 
   return (
     <div className="px-3 py-3 text-xs font-mono" style={{ background: 'var(--bg-primary)' }}>
+      {/* Spec flags */}
+      <div style={{ marginBottom: 6 }}>
+        <SpecFlags trade={trade} allTrades={allTrades} />
+      </div>
+
       <TradeDetailBlock trade={trade} />
+
+      {/* Per-trade price chart (lazy — only rendered when expanded) */}
+      <div className="mb-3 rounded overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+        <div className="text-[10px] uppercase tracking-wide px-2 py-1" style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}>
+          צ׳ארט עסקה #{trade.id}
+        </div>
+        <Suspense fallback={<div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', fontSize: 11 }}>טוען צ׳ארט…</div>}>
+          <TradeChart trade={trade} />
+        </Suspense>
+      </div>
+
+      {/* Mgmt log timeline */}
+      <div className="mb-3 p-2 rounded" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+        <div className="text-[10px] uppercase tracking-wide mb-1" style={{ color: 'var(--text-muted)' }}>
+          ציר-זמן ניהול
+        </div>
+        <MgmtTimeline entries={mgmtLog} />
+      </div>
+
       {loading && <p style={{ color: 'var(--text-muted)' }}>טוען מה כל מערכת זיהתה בכניסה…</p>}
       {error && !loading && (
         <p style={{ color: 'var(--red)' }}>

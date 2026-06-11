@@ -23,6 +23,21 @@ from backend.v9.services.sierra_command import command_from_setup
 from backend.v9.gateway.session_gate import is_within_firing_window
 from backend.v9.services.trade_context import extract_g1_entry_context
 
+
+def resolve_pattern_id(setup: dict, g1: dict) -> Optional[str]:
+    """Resolve pattern_id_at_entry: prefer the firing setup's classification.
+
+    Bug fix (2026-06-12): g1 reads from woodies_system snapshot which reflects
+    S4's active pattern. For S2 trades this produced wrong pattern_ids
+    (id 43: REACTIVE_LONG recorded as VEGAS). Now: setup.classification first,
+    metadata.pattern second, g1 fallback last.
+    """
+    return (
+        setup.get("classification")
+        or (setup.get("metadata") or {}).get("pattern")
+        or g1.get("pattern_id_at_entry")
+    ) or None
+
 logger = logging.getLogger(__name__)
 
 import os as _os
@@ -349,7 +364,7 @@ class TradingGateway:
                 "cross_context": cross_context,
                 # G1 promoted columns
                 "day_type_at_entry": g1["day_type_at_entry"],
-                "pattern_id_at_entry": g1["pattern_id_at_entry"],
+                "pattern_id_at_entry": resolve_pattern_id(setup, g1),
                 "session_at_entry": g1["session_at_entry"],
             }
             trade_id = self._trade_manager.accept_setup(tm_setup, "shadow")
@@ -423,7 +438,7 @@ class TradingGateway:
             "metadata": setup.get("metadata", {}),
             # G1 promoted columns
             "day_type_at_entry": g1["day_type_at_entry"],
-            "pattern_id_at_entry": g1["pattern_id_at_entry"],
+            "pattern_id_at_entry": resolve_pattern_id(setup, g1),
             "session_at_entry": g1["session_at_entry"],
         }
 

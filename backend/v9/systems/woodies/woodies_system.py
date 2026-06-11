@@ -535,6 +535,31 @@ class WoodiesSystem(BaseV9TradingSystem):
                     _s4_time_stop = 90
                     _pid = best.pattern_id
 
+                    # PATTERN_RISK_CAPS: per-pattern max risk (2026-06-12 anchor trial)
+                    if _flag("PATTERN_RISK_CAPS") and _flag("STOP_ANCHORS_V2"):
+                        try:
+                            from backend.v9.config_loader import load_stop_anchors as _lsa_rc
+                            _rc_cfg = _lsa_rc()
+                            if _rc_cfg:
+                                _rc_anchor = _rc_cfg["anchors"].get(_pid, {})
+                                _rc_max = _rc_anchor.get("max_risk_points")
+                                if _rc_max and _s4_risk > _rc_max:
+                                    _rc_group = _rc_anchor.get("group", best.group or "CONT")
+                                    if _rc_group == "REV" or best.group == "REVERSAL":
+                                        logger.info(
+                                            "[Woodies] RISK_CAP_SKIP: %s %s risk=%.1fpt > cap=%dpt (REV→SKIP)",
+                                            _pid, direction, _s4_risk, _rc_max,
+                                        )
+                                        sizing = "reject"
+                                    else:
+                                        logger.info(
+                                            "[Woodies] RISK_CAP_SIZE_DOWN: %s %s risk=%.1fpt > cap=%dpt (CONT→1 contract)",
+                                            _pid, direction, _s4_risk, _rc_max,
+                                        )
+                                        sizing = "half" if sizing != "reject" else sizing
+                        except Exception as _rc_err:
+                            logger.warning("[Woodies] PATTERN_RISK_CAPS check failed: %s", _rc_err)
+
                     if _flag("STOP_ANCHORS_V2") and _s4_risk > 0:
                         try:
                             from backend.v9.config_loader import load_stop_anchors

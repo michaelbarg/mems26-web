@@ -52,6 +52,20 @@ export function TradesSummaryStrip() {
     const winRate = decided > 0 ? (wCount / decided) * 100 : null;
     const totalR = withPnl.reduce((acc, t) => acc + ((t as any).pnl_r ?? 0), 0);
 
+    const grossWins = wins.reduce((acc, t) => acc + (t.pnl_usd ?? 0), 0);
+    const grossLosses = Math.abs(losses.reduce((acc, t) => acc + (t.pnl_usd ?? 0), 0));
+    const profitFactor = grossLosses > 0 ? grossWins / grossLosses : grossWins > 0 ? Infinity : 0;
+
+    const riskPts = real
+      .map((t) => {
+        const init = (t as any).stop_initial ?? t.stop;
+        return init != null && t.entry_price != null ? Math.abs(t.entry_price - init) : null;
+      })
+      .filter((r): r is number => r != null && r > 0);
+    const avgRisk = riskPts.length > 0 ? riskPts.reduce((a, b) => a + b, 0) / riskPts.length : null;
+
+    const biggestLoss = losses.length > 0 ? Math.min(...losses.map((t) => t.pnl_usd ?? 0)) : null;
+
     return {
       total: sumPnl(real.filter((t) => t.pnl_usd != null)),
       partialCount,
@@ -64,6 +78,9 @@ export function TradesSummaryStrip() {
       open: open.length,
       winRate,
       totalR,
+      profitFactor,
+      avgRisk,
+      biggestLoss,
       systemRows,
     };
   }, [trades]);
@@ -100,6 +117,21 @@ export function TradesSummaryStrip() {
             label="Total R"
             value={stats.totalR !== 0 ? `${stats.totalR >= 0 ? '+' : ''}${stats.totalR.toFixed(2)}` : '—'}
             color={pnlColor(stats.totalR)}
+          />
+          <StatChip
+            label="PF"
+            value={stats.profitFactor === Infinity ? '∞' : stats.profitFactor > 0 ? stats.profitFactor.toFixed(2) : '—'}
+            color={stats.profitFactor >= 1.5 ? 'var(--green)' : stats.profitFactor >= 1.0 ? 'var(--text-secondary)' : 'var(--red)'}
+          />
+          <StatChip
+            label="Avg Risk"
+            value={stats.avgRisk != null ? `${stats.avgRisk.toFixed(1)}pt` : '—'}
+            color={stats.avgRisk != null && stats.avgRisk > 25 ? 'var(--red)' : stats.avgRisk != null && stats.avgRisk > 10 ? '#eab308' : 'var(--green)'}
+          />
+          <StatChip
+            label="Max Loss"
+            value={stats.biggestLoss != null ? `$${Math.abs(stats.biggestLoss).toFixed(0)}` : '—'}
+            color="var(--red)"
           />
         </div>
       </div>

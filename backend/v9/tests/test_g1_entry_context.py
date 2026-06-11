@@ -140,6 +140,40 @@ class TestExtractG1:
         assert g1["pattern_id_at_entry"] is None
         assert g1["session_at_entry"] is None
 
+    def test_s2_pattern_id_not_from_woodies(self):
+        """Bug fix (id 43): resolve_pattern_id prefers setup.classification.
+
+        RED-on-revert: if resolve_pattern_id is removed/broken, this fails
+        because the g1 fallback returns VEGAS (from woodies snapshot).
+        """
+        from backend.v9.gateway.trading_gateway import resolve_pattern_id
+
+        # S2 fires REACTIVE_LONG, but woodies snapshot has VEGAS active
+        setup = {"classification": "REACTIVE_LONG", "metadata": {"pattern": "REACTIVE_LONG"}}
+        g1 = {"pattern_id_at_entry": "VEGAS"}  # what extract_g1_entry_context returns
+
+        result = resolve_pattern_id(setup, g1)
+        assert result == "REACTIVE_LONG", (
+            f"Expected REACTIVE_LONG, got {result} — "
+            "resolve_pattern_id must prefer setup.classification over g1 woodies fallback"
+        )
+
+    def test_s2_pattern_id_fallback_when_no_classification(self):
+        """Without classification, resolve_pattern_id falls back to g1."""
+        from backend.v9.gateway.trading_gateway import resolve_pattern_id
+
+        setup = {}  # no classification, no metadata
+        g1 = {"pattern_id_at_entry": "ZLR_LONG"}
+        assert resolve_pattern_id(setup, g1) == "ZLR_LONG"
+
+    def test_s4_pattern_id_uses_own_classification(self):
+        """S4 setup has classification=HFE → resolve_pattern_id returns HFE."""
+        from backend.v9.gateway.trading_gateway import resolve_pattern_id
+
+        setup = {"classification": "HFE"}
+        g1 = {"pattern_id_at_entry": "ZLR"}  # stale woodies state
+        assert resolve_pattern_id(setup, g1) == "HFE"
+
     def test_gateway_flat_dict_format(self):
         """Gateway registry format (flat dict, not list) also works."""
         ctx_flat = {

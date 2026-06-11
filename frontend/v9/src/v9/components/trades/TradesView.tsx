@@ -13,6 +13,7 @@ import { EquityCurveStrip } from './EquityCurveStrip';
 import { TargetDistStrip } from './TargetDistStrip';
 import { HeatMaeStrip } from './HeatMaeStrip';
 import { StopBehaviorPanel } from './StopBehaviorPanel';
+import { TradesSummaryStrip } from './TradesSummaryStrip';
 import Link from 'next/link';
 
 export function TradesView() {
@@ -49,6 +50,9 @@ export function TradesView() {
           <Link href="/?view=build_status" style={{ color: 'inherit', textDecoration: 'none' }}>Build Status</Link>
         </div>
       </header>
+
+      {/* Summary strip — top-level KPIs */}
+      <TradesSummaryStrip />
 
       {/* Main scrollable content */}
       <div style={{ maxWidth: 1340, margin: '0 auto', padding: '0 16px 60px' }}>
