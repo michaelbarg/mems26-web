@@ -57,6 +57,44 @@ _PKG5A_DAYTYPES = ("Neutral_Extreme", "Neutral_Center", "Normal", "Variation")
 _PKG5C_DAYTYPES = ("Trend_Normal", "Trend_DD", "Variation", "Neutral_Extreme", "Normal")
 
 
+# ── Volatility-adaptive S2 geometry (Michael 2026-06-12) ──
+# On VOLATILE days (avg 14-bar range ≥ S2_VOL_REGIME_PT) the fixed geometry rules
+# interact badly with giant bars: (1) REACTIVE's "b4 closes beyond b3's full
+# extreme" failed 18/18 bars on 06-12; (2) INITIATIVE's relative expansion floor
+# (1.3×avg) inflates to 20-25pt demands. Flag S2_VOL_ADAPTIVE=1 (default OFF)
+# relaxes BOTH only while the volatile regime is active; calm days unchanged.
+_VOL_REGIME_PT = 8.0          # avg 14-bar range ≥ this ⇒ VOLATILE (env S2_VOL_REGIME_PT)
+_VOL_CONFIRM_FRACTION = 0.75  # b4 must close beyond 75% of b3's range (not 100%)
+_VOL_EXP_FLOOR_CAP_PT = 8.0   # absolute cap on Initiative expansion floor
+_VOL_JOIN_FACTOR = 0.8        # Initiative b3_joining: b3_range > 0.8×b1_range
+
+
+def vol_adaptive_active(bars) -> bool:
+    """True only when flag ON and the live volatility regime is VOLATILE."""
+    import os as _os
+    if _os.environ.get("S2_VOL_ADAPTIVE", "").lower() not in ("1", "true", "yes"):
+        return False
+    if not bars or len(bars) < 5:
+        return False
+    win = bars[-14:]
+    avg = sum((b.get("h", 0) - b.get("l", 0)) for b in win) / len(win)
+    try:
+        thr = float(_os.environ.get("S2_VOL_REGIME_PT", _VOL_REGIME_PT))
+    except ValueError:
+        thr = _VOL_REGIME_PT
+    return avg >= thr
+
+
+def reactive_confirm_threshold(b3_high: float, b3_low: float, direction: str, adaptive: bool) -> float:
+    """Price b4 must close beyond. Non-adaptive: b3's full extreme (original rule)."""
+    rng = b3_high - b3_low
+    if not adaptive or rng <= 0:
+        return b3_high if direction == "LONG" else b3_low
+    if direction == "LONG":
+        return b3_high - (1.0 - _VOL_CONFIRM_FRACTION) * rng
+    return b3_low + (1.0 - _VOL_CONFIRM_FRACTION) * rng
+
+
 def chart_patterns_allowed(day_type, pkg: str) -> bool:
     """Day-type gate for Pkg 5a (HnS/Double) and 5c (Flags) chart patterns.
 
@@ -609,7 +647,9 @@ class FiveMinSystem(BaseV9TradingSystem):
         b3_buyers = b3["c"] > b3["o"]
         b3_belly = belly is not False  # True or None (unavailable) both pass
         b4_confirm = b4["c"] > b4["o"]
-        b4_close_above_b3_high = b4["c"] > b3["h"]  # Entry signal per Master Summary Sheet 2
+        # Entry signal per Master Summary Sheet 2; volatile regime relaxes to 75% of b3 range
+        _vol_adaptive = vol_adaptive_active(bars_5m)
+        b4_close_above_b3_high = b4["c"] > reactive_confirm_threshold(b3["h"], b3["l"], "LONG", _vol_adaptive)
         cot_above_amt = (not _require_cot_amt) or (cur_cot > cur_amt)
         poc_rising = self._poc_vol_rising(bars_5m[-3:])  # W3-α gap 3
 
@@ -643,7 +683,8 @@ class FiveMinSystem(BaseV9TradingSystem):
         b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
         b3_sellers = b3["c"] < b3["o"]
         b4_confirm_s = b4["c"] < b4["o"]
-        b4_close_below_b3_low = b4["c"] < b3["l"]  # Entry signal per Master Summary Sheet 2
+        # Entry signal per Master Summary Sheet 2; volatile regime relaxes to 75% of b3 range
+        b4_close_below_b3_low = b4["c"] < reactive_confirm_threshold(b3["h"], b3["l"], "SHORT", _vol_adaptive)
         cot_below_amt = (not _require_cot_amt) or (cur_cot < cur_amt)
         poc_falling = self._poc_vol_falling(bars_5m[-3:])
 
@@ -710,9 +751,14 @@ class FiveMinSystem(BaseV9TradingSystem):
         b1_vol = b1.get("v", 0) or 0
         b1_range = b1["h"] - b1["l"]
         _exp_min, _exp_max = get_expansion_range(bars_5m)
+        # Volatile regime (S2_VOL_ADAPTIVE): cap the expansion floor at an absolute
+        # value and relax joining — the relative floor inflates on giant-bar days.
+        _vol_adaptive_i = vol_adaptive_active(bars_5m)
+        if _vol_adaptive_i:
+            _exp_min = min(_exp_min, _VOL_EXP_FLOOR_CAP_PT)
         b1_expansion = _exp_min <= b1_range <= _exp_max
         b3_range = b3["h"] - b3["l"]
-        b3_joining = b3_range > b1_range
+        b3_joining = b3_range > b1_range * (_VOL_JOIN_FACTOR if _vol_adaptive_i else 1.0)
 
         # Initiative LONG
         b1_bull = b1["c"] > b1["o"]
