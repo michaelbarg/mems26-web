@@ -16,6 +16,38 @@ textarea{width:100%;background:#161b22;color:#c9d1d9;border:1px solid #30363d;bo
 .hint{color:#8b949e;font-size:12px}
 </style></head><body>
 <h2 style="margin:4px 0">🎯 כלי סימון — איך לנהל כל עסקה (גרסה 1)</h2>
+
+<details style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+<summary style="cursor:pointer;font-weight:700;font-size:14px">📌 מצב המערכת היום (12.06) + תוכן עניינים — איך הגענו לכאן</summary>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px;font-size:13px">
+<div>
+<b>🟢 מה חי עכשיו (SHADOW):</b>
+<table style="width:100%;font-family:monospace;font-size:12px;border-collapse:collapse">
+<tr><td>PATTERN_RISK_CAPS</td><td>תקרת סיכון פר-תבנית (HFE/DB 20 · ZLR/TLB 15)</td></tr>
+<tr><td>GIANT_BAR_STOP_V1</td><td>עוגן רחוק מהתקרה ⇒ סטופ בתוך בר-הכניסה (38%×טווח)</td></tr>
+<tr><td>RUNNER_TARGETS_V1</td><td>T2 לראנר (2.0R/1.5R) + BE+0.5R אחרי T2</td></tr>
+<tr><td>S2_VOL_ADAPTIVE</td><td>יום תנודתי (≥8 נק׳): אישור-REACTIVE ב-75% טווח · התרחבות-INITIATIVE מקובעת 8 נק׳</td></tr>
+<tr><td>S2_CHART_ALL_DAYTYPES</td><td>HnS/Double/Flags בכל סוג-יום (חוץ מ-NT)</td></tr>
+<tr><td>variant UNION</td><td>פילטר-ווליום REACTIVE מרוכך</td></tr>
+<tr><td>S2_DETECTION_LOG</td><td>וקטור-תנאים פר-בר [S2-DL]</td></tr>
+</table>
+<div style="margin-top:6px;color:#8b949e">ביטול מהיר: כיבוי דגל ב-.env + restart · ביטול מלא: tags <code>pre-anchor-trial-2026-06-12</code></div>
+<div style="margin-top:6px"><b>⏳ ממתין:</b> וטו/ניהול תבנית-נגד · כניסת-retrace · תיקון struct=None (T2 מבני) · מופעי-רפאים status.py · כיול b2_vsa/expansion</div>
+</div>
+<div>
+<b>🧭 איך הגענו לכאן:</b>
+<ol style="margin:4px 0;padding-inline-start:18px;line-height:1.7">
+<li><b>10-11.06</b> — שורש אי-הירי: R:R נמדד על T1 → תוקן; 34 עסקאות אבל ‑$2,187: ראנר בלי יעד, סופת-HFE על עוגן משותף (‑$1,957).</li>
+<li><b>11.06 ערב</b> — אודיט מלא: replay הוכיח שהגיאומטריה של S2 הייתה אמיתית — 25 near-miss על שני פילטרים (ווליום/התרחבות); #49 ירה שורט בתוך רצפה-כפולה LONG (סטייה מאפיון).</li>
+<li><b>12.06 לילה</b> — תקרות-סיכון + לוג-זיהויים + קומיט מסומן-לביטול; סימולציית 3 תצורות: BASE ‑$267 → CAPS ‑$178 → CAPS+T2 ‎+$3.</li>
+<li><b>12.06 בוקר</b> — 3 אישורים: ראנר-T2, פתיחת שערי-day_type, UNION.</li>
+<li><b>12.06 צהריים</b> — הלוג חשף: ביום תנודתי האישור-המלא נכשל 18/18 ⇒ S2_VOL_ADAPTIVE; עוגני-ענק (32-48 נק׳) ניפחו T2 ל-70-97 נק׳ ודחו את ה-DOUBLE_BOTTOM ⇒ GIANT_BAR_STOP_V1.</li>
+<li><b>עכשיו</b> — אתה מסמן כאן את הניהול הנכון פר-עסקה ⇒ אני הופך לקונפיג פר-תבנית×סוג-יום×משטר.</li>
+</ol>
+<div style="color:#8b949e">מסמכים: INSIGHTS_UNIFIED · S2_WHY_NOT_FIRED_REPLAY · PATTERN_DAYTYPE_PLAYBOOK · SIM_0611_ANCHOR_TRIAL (כולם ב-docs/, אינדקס מלא ברודמאפ)</div>
+</div>
+</div>
+</details>
 <div class="hint">בחר רמה למטה → לחץ על הגרף במחיר הרצוי. לחיצה חוזרת מזיזה. קווים דקים-מקווקווים = מה שהמערכת עשתה בפועל. בסוף: ייצוא JSON ושלח לי.</div>
 <div class="bar">
 <button onclick="nav(-1)">◀ הקודמת</button>
