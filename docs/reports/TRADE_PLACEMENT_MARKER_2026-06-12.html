@@ -109,10 +109,20 @@ bars.forEach((b,i)=>{const x=X(i);ctx.strokeStyle=b.c>=b.o?"#56d364":"#f85149";c
 ctx.beginPath();ctx.moveTo(x,Y(b.h));ctx.lineTo(x,Y(b.l));ctx.stroke();
 ctx.fillRect(x-cw/2,Y(Math.max(b.o,b.c)),cw,Math.max(1,Math.abs(Y(b.o)-Y(b.c))));});
 // system levels (faint)
-function sysLine(p,label,color){if(!p)return;ctx.strokeStyle=color;ctx.globalAlpha=0.32;ctx.setLineDash([2,4]);
-ctx.beginPath();ctx.moveTo(PL,Y(p));ctx.lineTo(W-PR,Y(p));ctx.stroke();ctx.setLineDash([]);
-ctx.globalAlpha=0.75;ctx.fillStyle=color;ctx.fillText(p.toFixed(2)+" "+label+"-מערכת",W-PR-205,Y(p)-3);ctx.globalAlpha=1;}
-sysLine(t.stop,"Stop","#f85149");sysLine(t.t1,"T1","#56d364");sysLine(t.t2,"T2","#58a6ff");
+function sysLine(p,label,color){if(!p)return;const y=Y(p);
+// dotted line, clearly visible
+ctx.strokeStyle=color;ctx.globalAlpha=0.9;ctx.lineWidth=1.6;ctx.setLineDash([2,5]);
+ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(W-PR,y);ctx.stroke();ctx.setLineDash([]);ctx.lineWidth=1;
+// right-side price tag (TradingView style)
+ctx.font="bold 14px monospace";
+const tag=p.toFixed(2);
+const tw=ctx.measureText(tag).width+12;
+ctx.fillStyle=color;ctx.fillRect(W-PR+2,y-10,Math.min(tw,PR+82),20);
+ctx.fillStyle="#0d1117";ctx.fillText(tag,W-PR+8,y+5);
+// small in-chart label near the right edge of plot
+ctx.fillStyle=color;ctx.fillText("מערכת·"+label,W-PR-92,y-5);
+ctx.font="13px monospace";ctx.globalAlpha=1;}
+sysLine(t.stop,"Stop","#f85149");sysLine(t.t1,"T1","#56d364");sysLine(t.t2,"T2","#58a6ff");sysLine(t.entry,"In","#e3b341");
 // ENTRY/EXIT actual markers
 const ei=bars.findIndex(b=>Math.abs(b.when-t.when)<150000);
 if(ei>=0){const x=X(ei),y=Y(t.entry);ctx.fillStyle="#e3b341";
