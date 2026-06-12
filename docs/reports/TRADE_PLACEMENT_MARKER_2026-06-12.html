@@ -84,6 +84,7 @@ let G={};
 function render(){
 const t=DATA.trades[cur],bars=tradeBars(t),cvd=tradeCvd(t,bars);
 const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+ctx.direction="ltr";ctx.textAlign="left";ctx.textBaseline="alphabetic";
 ctx.clearRect(0,0,cv.width,cv.height);
 if(!bars.length){ctx.fillStyle="#8b949e";ctx.fillText("אין ברים",700,300);return;}
 const m=marks[t.id]||{};
@@ -110,7 +111,7 @@ ctx.fillRect(x-cw/2,Y(Math.max(b.o,b.c)),cw,Math.max(1,Math.abs(Y(b.o)-Y(b.c))))
 // system levels (faint)
 function sysLine(p,label,color){if(!p)return;ctx.strokeStyle=color;ctx.globalAlpha=0.32;ctx.setLineDash([2,4]);
 ctx.beginPath();ctx.moveTo(PL,Y(p));ctx.lineTo(W-PR,Y(p));ctx.stroke();ctx.setLineDash([]);
-ctx.globalAlpha=0.75;ctx.fillStyle=color;ctx.fillText(label+"-מערכת "+p.toFixed(2),W-PR-205,Y(p)-3);ctx.globalAlpha=1;}
+ctx.globalAlpha=0.75;ctx.fillStyle=color;ctx.fillText(p.toFixed(2)+" "+label+"-מערכת",W-PR-205,Y(p)-3);ctx.globalAlpha=1;}
 sysLine(t.stop,"Stop","#f85149");sysLine(t.t1,"T1","#56d364");sysLine(t.t2,"T2","#58a6ff");
 // ENTRY/EXIT actual markers
 const ei=bars.findIndex(b=>Math.abs(b.when-t.when)<150000);
@@ -128,10 +129,11 @@ ctx.fillText("⊗ יציאה "+t.xp.toFixed(2)+(t.xr?" ("+t.xr+")":""),x+12,y+5)
 // user marks (bold + big price tag)
 Object.entries(m).forEach(([k,p])=>{if(typeof p!=="number")return;const c=COLORS[k];
 ctx.strokeStyle=c;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(PL,Y(p));ctx.lineTo(W-PR,Y(p));ctx.stroke();ctx.lineWidth=1;
-ctx.fillStyle=c;ctx.font="bold 14px monospace";
-const lbl="✦ "+(LEVELS.find(l=>l[0]===k)||[k,k])[1]+" "+p.toFixed(2);
-ctx.fillRect(PL+4,Y(p)-16,ctx.measureText(lbl).width+10,15);ctx.fillStyle="#0d1117";
-ctx.fillText(lbl,PL+9,Y(p)-4);ctx.font="13px monospace";});
+ctx.font="bold 15px monospace";
+const lbl=p.toFixed(2)+"  "+(LEVELS.find(l=>l[0]===k)||[k,k])[1]+" ✦";
+const lw=ctx.measureText(lbl).width+12;
+ctx.fillStyle=c;ctx.fillRect(PL+4,Y(p)-18,lw,18);
+ctx.fillStyle="#0d1117";ctx.fillText(lbl,PL+10,Y(p)-4);ctx.font="13px monospace";});
 // ── CVD subchart ──
 ctx.fillStyle="#8b949e";ctx.fillText("CVD (דלתא מצטברת)",PL,Y0v+11);
 if(cvd.length){let vlo=Math.min(...cvd.map(x=>x.v)),vhi=Math.max(...cvd.map(x=>x.v));if(vhi===vlo){vhi+=1;vlo-=1;}
