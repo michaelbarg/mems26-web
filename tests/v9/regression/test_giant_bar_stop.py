@@ -27,10 +27,11 @@ class TestGiantBarStop:
         assert new_risk == pytest.approx(9.5)   # 0.38×25
         assert new_stop == pytest.approx(7390.5)  # LONG: stop below entry
 
-    def test_floor_applies_on_small_bar(self):
+    def test_floor_applies_on_qualifying_bar(self):
+        """Bar must be ≥ GIANT_BAR_MIN_RANGE_PT (12) to qualify; floor then applies."""
         res = giant_bar_stop(entry=7400.0, sign=1.0, risk=30.0, cap=15,
-                             bar_high=7404.0, bar_low=7396.0, frac=0.38, floor=6.0)
-        assert res[1] == pytest.approx(6.0)  # 0.38×8=3.04 → floor 6
+                             bar_high=7406.0, bar_low=7394.0, frac=0.38, floor=6.0)
+        assert res[1] == pytest.approx(6.0)  # 0.38×12=4.56 → floor 6
 
     def test_cap_clamps(self):
         res = giant_bar_stop(entry=7400.0, sign=1.0, risk=60.0, cap=15,
