@@ -247,6 +247,7 @@ class TradeManager:
         elif target == "T2":
             trade.t2_hit_ts = hit_ts
             self._log_management(trade_id, "T2_HIT", {"ts": hit_ts.isoformat()})
+            self._apply_stop_after_t2(trade)
             self._calculate_pnl(trade)
         elif target == "T3":
             machine.transition(TradeState.CLOSED)
@@ -333,6 +334,53 @@ class TradeManager:
         logger.info(
             "[TradeManager] Smart BE+1T after T1: trade %s stop %.2f -> %.2f",
             trade.id, stop_before if stop_before else 0, trade.stop,
+        )
+
+    def _apply_stop_after_t2(self, trade: V9Trade) -> None:
+        """Move stop to BE + 0.5R after T2 hit (RUNNER_TARGETS_V1).
+
+        Only applies when RUNNER_TARGETS_V1 flag is ON. After T2 hit, lock in
+        partial profit by moving the stop to entry + 0.5R (half the initial risk
+        in profit direction). Never widens the stop.
+        """
+        import os as _os
+        if not _os.environ.get("RUNNER_TARGETS_V1", "").lower() in ("1", "true", "yes"):
+            return
+        if trade.entry_price is None:
+            return
+
+        initial = self._initial_stop(trade)
+        if initial is None:
+            return
+
+        entry = float(trade.entry_price)
+        risk = abs(entry - initial)
+        if risk <= 0:
+            return
+
+        direction = (trade.direction or "").upper()
+        half_r = 0.5 * risk
+        if direction == "LONG":
+            target_stop = entry + half_r
+        elif direction == "SHORT":
+            target_stop = entry - half_r
+        else:
+            return
+
+        stop_before = float(trade.stop) if trade.stop is not None else None
+        # Never widen: only move if new stop is tighter (more favorable)
+        if direction == "LONG" and stop_before is not None and stop_before >= target_stop:
+            return
+        if direction == "SHORT" and stop_before is not None and stop_before <= target_stop:
+            return
+
+        trade.stop = target_stop
+        self._log_management(trade.id, "STOP_AFTER_T2", {
+            "from": stop_before, "to": target_stop, "half_r": round(half_r, 2),
+        })
+        logger.info(
+            "[TradeManager] Stop after T2: trade %s stop %.2f -> %.2f (BE+0.5R)",
+            trade.id, stop_before or 0, target_stop,
         )
 
     def on_stop_hit(

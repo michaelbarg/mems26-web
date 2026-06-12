@@ -600,6 +600,53 @@ class WoodiesSystem(BaseV9TradingSystem):
                         except Exception as _e:
                             logger.warning("[Woodies] S4 target calc failed: %s", _e)
 
+                    # RUNNER_TARGETS_V1: compute T2 for the runner (flag-gated, default OFF)
+                    if _flag("RUNNER_TARGETS_V1") and _s4_t2 is None and _s4_risk > 0:
+                        try:
+                            _acfg_rt = {}
+                            if _flag("STOP_ANCHORS_V2"):
+                                from backend.v9.config_loader import load_stop_anchors as _lsa_rt
+                                _rt_cfg = _lsa_rt()
+                                if _rt_cfg:
+                                    _acfg_rt = _rt_cfg["anchors"].get(_pid, {})
+                            _rt_is_rev = _acfg_rt.get("group") == "REV" or best.group == "REVERSAL"
+                            _rt_r_mult = 1.5 if _rt_is_rev else 2.0
+                            _rt_t2_r = _s4_entry + _s4_sign * _rt_r_mult * _s4_risk
+
+                            # Structural level from day_type (IB edge / POC / VA)
+                            _rt_struct = None
+                            try:
+                                from backend.v9.systems.day_type.day_type_targets import compute_targets_for_day_type
+                                _rt_dt = _s4_day_type if _s4_day_type and _s4_day_type != "UNKNOWN" else "Variation"
+                                _rt_dt_targets = compute_targets_for_day_type(
+                                    day_type=_rt_dt,
+                                    entry_price=_s4_entry,
+                                    stop_price=_s4_stop,
+                                    direction=direction,
+                                )
+                                if _rt_dt_targets and _rt_dt_targets.get("t2_price"):
+                                    _rt_struct = _rt_dt_targets["t2_price"]
+                            except Exception:
+                                pass  # no structural level → use R-multiple only
+
+                            # T2 = closer-of R-multiple and structural level
+                            if _rt_struct is not None:
+                                if direction == "LONG":
+                                    _s4_t2 = min(_rt_t2_r, _rt_struct)
+                                else:
+                                    _s4_t2 = max(_rt_t2_r, _rt_struct)
+                            else:
+                                _s4_t2 = _rt_t2_r
+
+                            logger.info(
+                                "[Woodies] RUNNER_T2: %s %s t2=%.2f (R-mult=%.2f struct=%s rev=%s)",
+                                _pid, direction, _s4_t2, _rt_t2_r,
+                                f"{_rt_struct:.2f}" if _rt_struct else "None",
+                                _rt_is_rev,
+                            )
+                        except Exception as _rt_err:
+                            logger.warning("[Woodies] RUNNER_TARGETS_V1 T2 calc failed: %s", _rt_err)
+
                     fire_setup = {
                         "direction": direction,
                         "entry_price": _s4_entry,

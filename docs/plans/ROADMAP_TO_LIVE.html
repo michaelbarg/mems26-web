@@ -51,17 +51,33 @@
 <body>
 <div class="wrap">
   <h1>MEMS26 · מפת דרכים ל-LIVE 🚀</h1>
-  <div class="sub">צ'קליסט נקי מהיום עד LIVE · עודכן <b>2026-06-11</b> · בוצע יורד אוטומטית ל-✅ למטה · מקור-אמת: <code>docs/plans/STATUS_BOARD.md</code></div>
+  <div class="sub">צ'קליסט נקי מהיום עד LIVE · עודכן <b>2026-06-12</b> · בוצע יורד אוטומטית ל-✅ למטה · מקור-אמת: <code>docs/plans/STATUS_BOARD.md</code></div>
 
   <div class="bar-wrap"><div class="bar" id="bar"></div><div class="bar-txt" id="bartxt"></div></div>
 
-  <div class="here">📍 <b>אתה כאן (2026-06-11 EOD):</b> אימות-RTH-חי של <code>319e303</code> הושלם — <b>מכנית ✅ כלכלית ❌</b>: הירי שוחרר (34 עסקאות, 32×S4+2×S2, מול 0–3 בימים קודמים) אבל <b>נטו −$2,187 shadow</b> (21W/12L, 64% win): ה-runner נעצר BE כמעט-תמיד אחרי T1 ⇒ <code>expected_t2_r_mult=2.0</code> לא מתממש; scalp 0.4R-על-שליש מול −1R מלא.
+  <div class="here">📍 <b>אתה כאן (2026-06-12 02:30 · יום-תצפית-עוגנים):</b> commit <code>e6d214e</code> [ANCHOR-TRIAL] + tags ביטול (<code>pre-anchor-trial</code>/<code>anchor-trial</code>) · backend הופעל-מחדש דרך LaunchAgent — <b>חי בפתיחה:</b> תקרות-סיכון פר-תבנית (PATTERN_RISK_CAPS=1) + לוג-זיהויים פר-בר (S2_DETECTION_LOG=1) + תיקון pattern_id (id 43 VEGAS). <b>מומש וכבוי (החלטת-בוקר):</b> RUNNER_TARGETS_V1 — T2 לראנר. <b>סימולציית 06-11 (3 תצורות):</b> BASE −$267 → CAPS −$178 → CAPS+T2 <b>+$3</b> (+$270) ⇒ הדאטה תומך בהדלקה. ה-replay ענה למה S2 שתקה: 25 near-miss על שני פילטרים בלבד (b2_vsa ×9, b1_expansion ×13) + הצינור איבד זיהויי Double-Bottom (19:05) — #49 ירה שורט לתוך גיאומטריית LONG (סטייה-מאפיון, מאומתת).
+    <br><b>החלטות-בוקר (Michael):</b> ① RUNNER_TARGETS_V1=1 ליום-התצפית? ② git push ③ הרצת מחקר-הסטופים בצ'אט החיצוני (<code>EXTERNAL_CHAT_RESEARCH_PROMPT_2026-06-12.md</code>). <b>שערים פתוחים:</b> cooldown פר-תבנית · COUNTER_PATTERN_VETO · BE-מבני אחרי T1 · כיול b2_vsa/b1_expansion (אחרי דאטת ה-DL של היום).
+    <br><b>סוף-יום:</b> דוח-EOD קאונטרפקטואל (CC בונה) → החלטת-עוגנים סופית + איחוד מחקר-חיצוני → מסמך המלצות אחד.
+    <br><b>היסטוריה (06-11 EOD):</b> אימות-RTH-חי של <code>319e303</code> — מכנית ✅ כלכלית ❌: 34 עסקאות, נטו −$2,187 shadow (64% win): ראנר נעצר BE אחרי T1; scalp 0.4R-על-שליש מול −1R מלא.
     <br><b>חשודים חדשים:</b> I-29 (כיול runner/BE-policy) · I-30 (cluster-stacking — 5×HFE על stop-זהה, −$1,372 בבר-אחד) · I-28 אומת סימטרית (SHORT-נגד-ראלי) · I-22 הוכח (pnl_r=÷tick) · I-9 נסגר.
     <br><b>missed-trades EOD 15:20:</b> ΣR אמיתי −5.81R מול ΣMFE +39.1R (19/34 גורדו ל-BE; T1 ממוצע 0.46R ⇒ השורש=D5 טבלת stop/target) · נחסמים: 6 בלבד, ΣR-נגד −2R (ה-gates חסכו) · benchmark <b>4/5 סלוטים ירו</b> (מול 0/5 קודם) · I-26 דו-כיווני (ZLR-UP 14:10 +1R לא ירה, TLB-SHORT הפוך ירה באותו בר).
     <br><b>הבא:</b> D5 טבלת stop/target (חוסם-LIVE) → D2 כיול runner → D3/D4 שומרים (≈+$2,900 ביום-מבחן). דוחות: <code>PATTERN_EOD_2026-06-11.md</code> · <code>DESIGNS_2026-06-11.md</code>.
     <br><b>תפעולי:</b> סוכן-DIAG-30דק' לא רץ היום (0 snapshots) — לתקן trigger; id60 ZLR PARTIAL פתוח (+25pt) — לעקוב בפתיחה.
     <br><b>NOT-DONE:</b> CCI-cross monitor (§1.6, T2/T3=None) · trail מתקדם · dead-code cleanup · I-18 ts mismatch.
     <br><b>EOD 06-11 (אימות-חי, Cowork):</b> ✅ הדגלים עבדו — 30 fires היום (42 בטבלה, ids 10–62), day_type@30 תקין, MIN/MAX-risk gates דחו בלוג. <b>אבל:</b> Win 69.4% / PF 0.93 — מבני: ראנר בלי T2/trail → ניצחון ממוצע +$60 מול הפסד מלא ‑1R (עד ‑$585). 🔴 חדש: (1) <b>S2 כמעט שקטה</b> — 4 אירועים ביום שלם, חסימה בדיטקטור (לא pre_fire) · (2) <b>HFE re-fire storm</b> — עוגן-סטופ משותף ל-6 עסקאות, ‑$1,957 · (3) <b>pnl_r לזוכים = טיקים</b> (לא R) · (4) ids 58/60 exit_reason=None. דוח: <code>TRADE_ANALYSIS_RECOMMENDATIONS_2026-06-11.md</code> · טבלת-עבודה: <code>MEMS26_TRADE_TRACKER_2026-06-11.xlsx</code> · פרומפט-CC: <code>CC_PROMPT_TRADE_AUDIT_S2_S4_2026-06-11.md</code>.</div>
+
+  <!-- ════════ אינדקס מסמכים · 06-11→12 ════════ -->
+  <section class="collapsed">
+    <div class="head"><span class="dot d-shadow"></span><h2>📚 אינדקס המסמכים החדשים (06-11 → 06-12)</h2><span class="mini" data-mini></span><span class="chev">▾</span></div>
+    <div class="body">
+      <div class="item"><div class="c"><div class="ttl">📊 טבלאות עבודה (Google Drive)</div><div class="meta"><a href="https://drive.google.com/file/d/1ydisW_4JJipSs5YQ4oS7L3sSPr_CCdb9/view">טראקר עסקאות v2 + DecisionRules</a> · <a href="https://drive.google.com/file/d/1IW5SQytZ6iFGcLSVgeE9tKo7BmEqDyFk/view">Stop/Target Placement + Auth (תבנית×סוג-יום) — הקובץ הקובע</a></div></div></div>
+      <div class="item"><div class="c"><div class="ttl">🔬 מחקר</div><div class="meta"><a href="../research/PATTERN_DAYTYPE_PLAYBOOK_RESEARCH_2026-06-11.md">פלייבוק 17 תבניות × 7 סוגי-יום (כניסה/סטופ/T1-T3/הזזות)</a> · <a href="../research/EXTERNAL_CHAT_RESEARCH_PROMPT_2026-06-12.md">פרומפט מחקר-הסטופים לצ'אט חיצוני (להרצה!)</a></div></div></div>
+      <div class="item"><div class="c"><div class="ttl">📈 ניתוחים ודוחות 06-11</div><div class="meta"><a href="../reports/INSIGHTS_UNIFIED_2026-06-11.md">איחוד 10 התובנות + מפת מסמכים</a> · <a href="../reports/S2_WHY_NOT_FIRED_REPLAY_2026-06-11.md">replay: למה כל תבנית S2 לא ירתה + תבניות-נגד</a> · <a href="../reports/S2_PATTERNS_INVENTORY_2026-06-11.md">מלאי 8 תבניות S2</a> · <a href="../reports/S2_DEEP_CHECKLIST_2026-06-11.md">צ'קליסט 10 שלבי-הצינור</a> · <a href="../reports/TRADES_VISUAL_2026-06-11.html">גרף פר-עסקה (39/42)</a> · <a href="../reports/TRADE_ANALYSIS_RECOMMENDATIONS_2026-06-11.md">המלצות פר-תבנית</a> · <a href="../reports/TRADE_AUDIT_S2_S4_2026-06-11.md">אודיט CC</a> · <a href="../reports/PATTERN_EOD_2026-06-11.md">EOD תבניות</a> · <a href="../reports/MISSED_TRADES_2026-06-11.md">עסקאות שהוחמצו</a></div></div></div>
+      <div class="item"><div class="c"><div class="ttl">🧪 יום-תצפית 06-12</div><div class="meta"><a href="../reports/SIM_0611_ANCHOR_TRIAL_2026-06-12.md">סימולציית 3 תצורות (BASE/CAPS/CAPS+T2)</a> · <a href="../reports/MORNING_PREP_2026-06-12.md">דוח הכנת-הבוקר</a> · <a href="../reports/FIX_2026-06-12_REPORT.md">דוח מחקר+תיקון CC</a></div></div></div>
+      <div class="item"><div class="c"><div class="ttl">🤖 פרומפטים ל-CC</div><div class="meta"><a href="../handoff/CC_PROMPT_COMPLETE_RUNNER_2026-06-12.md">השלמת ראנר+EOD (רץ עכשיו)</a> · <a href="../handoff/CC_MEGA_PROMPT_MORNING_2026-06-12.md">מגה-בוקר</a> · <a href="../handoff/CC_PROMPT_FIX_2026-06-12.md">תיקון #49</a> · <a href="../handoff/CC_PROMPT_PATTERN_OBSERVATION_WEEK_2026-06-11.md">שבוע-תצפיות</a> · <a href="../handoff/CC_PROMPT_TRADES_PAGE_REDESIGN_2026-06-11.md">עיצוב עמוד-Trades</a> · <a href="../handoff/CC_PROMPT_TRADE_AUDIT_S2_S4_2026-06-11.md">אודיט עסקאות</a></div></div></div>
+      <div class="item"><div class="c"><div class="ttl">🔁 האנדאוף</div><div class="meta"><a href="../handoff/HANDOFF_NEXT_CHAT_2026-06-12.md">האנדאוף לצ'אט הבא (2026-06-12)</a></div></div></div>
+    </div>
+  </section>
 
   <!-- ════════ פאזה 0 · היום ════════ -->
   <section>

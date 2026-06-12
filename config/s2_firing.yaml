@@ -3,4 +3,4 @@
 # Default A_VSA = identical to current behavior (commit 5343755).
 # Changing variant = trading-logic change → strategic-stop + Michael approval.
 
-variant: A_VSA   # A_VSA | B_RVOL | C_STRICT | UNION | INTERSECTION
+variant: UNION   # Michael approved 2026-06-12 (anchor-trial observation day) — was A_VSA

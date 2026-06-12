@@ -48,6 +48,28 @@ _EXPANSION_LOOKBACK = 14  # bars to average over
 # POC return tolerance — relative to avg bar range
 _POC_RETURN_K = 0.2      # tolerance ~0.2 × avg_range
 
+# ── Pkg 5a/5c day-type gates (D-091 §5+§6 / §9+§10+Q5) ──
+# Default lists = pre-2026-06-12 behavior exactly. Flag S2_CHART_ALL_DAYTYPES=1
+# (Michael approved 2026-06-12, anchor-trial observation day) opens chart patterns
+# to ALL day types. Nontrend stays excluded — the NT NO_TRADE early-skip upstream
+# (D-091.Q2) returns before detection regardless, and we keep it explicit here.
+_PKG5A_DAYTYPES = ("Neutral_Extreme", "Neutral_Center", "Normal", "Variation")
+_PKG5C_DAYTYPES = ("Trend_Normal", "Trend_DD", "Variation", "Neutral_Extreme", "Normal")
+
+
+def chart_patterns_allowed(day_type, pkg: str) -> bool:
+    """Day-type gate for Pkg 5a (HnS/Double) and 5c (Flags) chart patterns.
+
+    Flag OFF (default): exact pre-existing allow-lists. Flag ON: any known
+    day_type except Nontrend. None/UNKNOWN never pass (S1 not ready).
+    """
+    if not day_type or day_type in ("UNKNOWN", "Nontrend"):
+        return False
+    import os as _os
+    if _os.environ.get("S2_CHART_ALL_DAYTYPES", "").lower() in ("1", "true", "yes"):
+        return True
+    return day_type in (_PKG5A_DAYTYPES if pkg == "5a" else _PKG5C_DAYTYPES)
+
 # Fallback when no bars available
 _DEFAULT_AVG_RANGE = 3.0  # MES 5-min historical average range (pts)
 
@@ -966,9 +988,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                         "Check hydrate() or S1 event delivery."
                     )
                     self._dt_none_last_warn_ts = _now
-            if self.current_day_type in (
-                "Neutral_Extreme", "Neutral_Center", "Normal", "Variation",
-            ):
+            if chart_patterns_allowed(self.current_day_type, "5a"):
                 direction, conf, info = detect_inverse_hns(_det_buf)
                 if not direction:
                     direction, conf, info = detect_hns_top(_det_buf)
@@ -980,10 +1000,7 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         # Pkg 5c · Flag patterns (continuation · Stage 3 + Q5 EXPANDED day-type gate · D-091 §9+§10 + Q5)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
-            if self.current_day_type in (
-                "Trend_Normal", "Trend_DD", "Variation",
-                "Neutral_Extreme", "Normal",
-            ):
+            if chart_patterns_allowed(self.current_day_type, "5c"):
                 direction, conf, info = detect_bull_flag(_det_buf)
                 if not direction:
                     direction, conf, info = detect_bear_flag(_det_buf)
