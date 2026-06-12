@@ -73,6 +73,15 @@ def giant_bar_stop(entry: float, sign: float, risk: float, cap: float,
     rng = bar_high - bar_low
     if rng <= 0 or cap is None or risk <= 0:
         return None
+    # Precondition (2026-06-12 evening fix): only a genuinely GIANT entry bar
+    # qualifies — a tiny bar must not be re-anchored via the floor (VEGAS 18:35
+    # got a 6pt stop on a 1.0pt bar). Tunable via GIANT_BAR_MIN_RANGE_PT.
+    try:
+        min_rng = float(_os.getenv("GIANT_BAR_MIN_RANGE_PT", "12.0"))
+    except ValueError:
+        min_rng = 12.0
+    if rng < min_rng:
+        return None
     new_risk = min(max(frac * rng, floor), float(cap))
     if 0 < new_risk < risk:
         return (entry - sign * new_risk, new_risk)
@@ -573,7 +582,42 @@ class WoodiesSystem(BaseV9TradingSystem):
                             if _rc_cfg:
                                 _rc_anchor = _rc_cfg["anchors"].get(_pid, {})
                                 _rc_max = _rc_anchor.get("max_risk_points")
-                                if _rc_max and _s4_risk > _rc_max:
+                                # PATTERN_LOSS_BREAKER (Michael 2026-06-12 evening — "stricter
+                                # rules for losing patterns, from today"): after N losing
+                                # closes on this pattern today, block it for the session.
+                                if _flag("PATTERN_LOSS_BREAKER"):
+                                    try:
+                                        import os as _lb_os
+                                        _lb_n = int(_lb_os.getenv("PATTERN_LOSS_BREAKER_N", "2"))
+                                        from backend.v9.db.read import read_scalar as _lb_rs
+                                        _lb_losses = _lb_rs(
+                                            "SELECT COUNT(*) FROM v9_trades WHERE entry_ts::date = CURRENT_DATE "
+                                            "AND pattern_id_at_entry = :pid AND pnl_usd < 0 AND state = 'CLOSED'",
+                                            {"pid": _pid},
+                                        ) or 0
+                                        if _lb_losses >= _lb_n:
+                                            logger.info(
+                                                "[Woodies] PATTERN_LOSS_BREAKER: %s blocked for session (%d losses today >= %d)",
+                                                _pid, _lb_losses, _lb_n,
+                                            )
+                                            sizing = "reject"
+                                    except Exception as _lb_err:
+                                        logger.warning("[Woodies] PATTERN_LOSS_BREAKER check failed: %s", _lb_err)
+
+                                if _rc_max and _s4_risk > _rc_max and sizing != "reject":
+                                    # GIANT_BAR exclusion (Michael 2026-06-12 evening): for
+                                    # patterns where the re-anchor softening was a mistake
+                                    # (ZLR, HFE) — over-cap means SKIP, no re-anchor.
+                                    import os as _gx_os
+                                    _gb_excluded = _pid in [s.strip() for s in _gx_os.getenv(
+                                        "GIANT_BAR_EXCLUDE", "ZLR,HFE").split(",") if s.strip()]
+                                    if _gb_excluded:
+                                        logger.info(
+                                            "[Woodies] RISK_CAP_STRICT_SKIP: %s %s risk=%.1fpt > cap=%dpt (excluded pattern→SKIP)",
+                                            _pid, direction, _s4_risk, _rc_max,
+                                        )
+                                        sizing = "reject"
+                                if _rc_max and _s4_risk > _rc_max and sizing != "reject":
                                     # GIANT_BAR_STOP_V1 (Michael approved 2026-06-12 midday):
                                     # when the structural anchor is beyond the pattern cap,
                                     # re-anchor the stop INSIDE the entry bar instead of
