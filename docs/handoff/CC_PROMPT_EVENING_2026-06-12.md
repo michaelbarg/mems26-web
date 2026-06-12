@@ -67,6 +67,15 @@ SIZE_DOWN/GIANT_BAR_STOP, T2 שהוצב מול שהושג, קאונטרפקטו�
 `TradeMarkerOverlay.tsx` קיים ב-frontend/chart — ADAPT אותו, אל תבנה כפול. עדכון על
 ה-polling הקיים (לא להוריד intervals — §Polling Floors).
 
+## T8 — Chop-veto שלב-1: צבירת דאטה בלבד (Michael 22:30 — תכנון משותף, אין הדלקת gate!)
+
+ההחלטה העומדת (gate כבוי) בתוקף — שלב-1 הוא log-only: ① תקן את ההתמדה — `v9_chop_score`
+ריקה (0 שורות; הציון מחושב ב-`layer0/chop_score.py` אבל לא נשמר) — שמירה כל בר-5דק'
+(composite + 6 האינדיקטורים + state). ② הוסף אינדיקטור-7 לפי ספק-Michael: **ווליום-חלש**
+(ווליום-בר מול ממוצע-20 מותאם-שעת-סשן) — מחושב+נשמר, עדיין לא במשקולות (weight=0 עד
+שמייקל יקבע ב-4 שאלות-העיצוב). ③ העיצוב המדורג המוצע (RESPECTING⇒SIZE-DOWN,
+SEARCHING⇒veto) מתועד — **לא לממש את ה-gate עצמו**.
+
 ## NOT-DONE / מחוץ לתחום
 אין הדלקת דגלים חדשים בלי Michael · Standing Decisions OFF · §7a · אין שינוי ספי
 b2_vsa/expansion (ממתין למחקר החיצוני + סימוני-הכלי).
