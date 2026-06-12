@@ -726,10 +726,17 @@ class WoodiesSystem(BaseV9TradingSystem):
                                     stop_price=_s4_stop,
                                     direction=direction,
                                 )
-                                if _rt_dt_targets and _rt_dt_targets.get("t2_price"):
-                                    _rt_struct = _rt_dt_targets["t2_price"]
-                            except Exception:
-                                pass  # no structural level → use R-multiple only
+                                if _rt_dt_targets:
+                                    _rt_struct = _rt_dt_targets.get("t2_price")
+                                    if _rt_struct is None:
+                                        logger.debug(
+                                            "[Woodies] RUNNER_T2 struct=None: dt=%s targets=%s",
+                                            _rt_dt, {k: v for k, v in _rt_dt_targets.items() if k.startswith("t")},
+                                        )
+                                else:
+                                    logger.debug("[Woodies] RUNNER_T2: compute_targets returned None for dt=%s", _rt_dt)
+                            except Exception as _struct_err:
+                                logger.warning("[Woodies] RUNNER_T2 struct calc error: %s", _struct_err)
 
                             # T2 = closer-of R-multiple and structural level
                             if _rt_struct is not None:
