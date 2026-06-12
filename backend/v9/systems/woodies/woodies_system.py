@@ -49,6 +49,36 @@ except ImportError:
         _ET_TZ = None
 
 
+def giant_bar_stop(entry: float, sign: float, risk: float, cap: float,
+                   bar_high: float, bar_low: float,
+                   frac: float = None, floor: float = None):
+    """GIANT_BAR_STOP_V1 (Michael 2026-06-12): intra-entry-bar stop re-anchor.
+
+    When the structural anchor's risk exceeds the pattern cap, place the stop
+    inside the entry bar: risk' = clamp(frac×bar_range, floor, cap).
+    Returns (new_stop, new_risk) or None when not applicable (smaller risk
+    would not result, or degenerate inputs). Caller is flag-gated.
+    """
+    import os as _os
+    if frac is None:
+        try:
+            frac = float(_os.getenv("GIANT_BAR_STOP_FRACTION", "0.38"))
+        except ValueError:
+            frac = 0.38
+    if floor is None:
+        try:
+            floor = float(_os.getenv("GIANT_BAR_STOP_FLOOR_PT", "6.0"))
+        except ValueError:
+            floor = 6.0
+    rng = bar_high - bar_low
+    if rng <= 0 or cap is None or risk <= 0:
+        return None
+    new_risk = min(max(frac * rng, floor), float(cap))
+    if 0 < new_risk < risk:
+        return (entry - sign * new_risk, new_risk)
+    return None
+
+
 def _is_rth_bar(bar_ts: float) -> bool:
     """Return True if bar_ts (UTC unix seconds) falls within RTH (09:30–16:00 ET).
 
@@ -544,8 +574,36 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 _rc_anchor = _rc_cfg["anchors"].get(_pid, {})
                                 _rc_max = _rc_anchor.get("max_risk_points")
                                 if _rc_max and _s4_risk > _rc_max:
-                                    _rc_group = _rc_anchor.get("group", best.group or "CONT")
-                                    if _rc_group == "REV" or best.group == "REVERSAL":
+                                    # GIANT_BAR_STOP_V1 (Michael approved 2026-06-12 midday):
+                                    # when the structural anchor is beyond the pattern cap,
+                                    # re-anchor the stop INSIDE the entry bar instead of
+                                    # SIZE_DOWN/SKIP: risk = max(fraction×bar_range, floor),
+                                    # never above the cap. Fixes the giant-bar chain: inflated
+                                    # risk → scalp T1 → absurd 2R T2 → S2 R:R rejections.
+                                    _gb_done = False
+                                    if _flag("GIANT_BAR_STOP_V1") and self._bar_buffer:
+                                        try:
+                                            _eb = self._bar_buffer[-1]
+                                            _gb = giant_bar_stop(
+                                                _s4_entry, _s4_sign, _s4_risk, _rc_max,
+                                                float(_eb.high), float(_eb.low),
+                                            )
+                                            if _gb is not None:
+                                                _gb_old = _s4_stop
+                                                _s4_stop, _s4_risk = _gb
+                                                _s4_t1 = _s4_entry + _s4_sign * _s4_risk  # refresh 1R fallback
+                                                logger.info(
+                                                    "[Woodies] GIANT_BAR_STOP: %s %s anchor=%.2f (%.1fpt) → intra-bar stop=%.2f (%.1fpt, bar_range=%.1f)",
+                                                    _pid, direction, _gb_old,
+                                                    abs(_s4_entry - _gb_old), _s4_stop, _s4_risk,
+                                                    float(_eb.high) - float(_eb.low),
+                                                )
+                                                _gb_done = True
+                                        except Exception as _gb_err:
+                                            logger.warning("[Woodies] GIANT_BAR_STOP failed: %s", _gb_err)
+                                    if _gb_done:
+                                        pass  # re-anchored within cap — no SKIP/SIZE_DOWN needed
+                                    elif (_rc_anchor.get("group", best.group or "CONT")) == "REV" or best.group == "REVERSAL":
                                         logger.info(
                                             "[Woodies] RISK_CAP_SKIP: %s %s risk=%.1fpt > cap=%dpt (REV→SKIP)",
                                             _pid, direction, _s4_risk, _rc_max,
