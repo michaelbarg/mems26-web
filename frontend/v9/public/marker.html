@@ -88,7 +88,7 @@ async function _showRationale(t){var el=document.getElementById("rationale");if(
 function _clearMarks(){var t=DATA.trades[cur];if(!t)return;if(!confirm('\u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC #'+t.id+'?'))return;delete marks[t.id];localStorage.setItem("mems26_marks",JSON.stringify(marks));render();_submit();}
 const LEVELS=[["entry","כניסה"],["stop1","Stop-1"],["stop2","Stop-2 (אחרי T1)"],["stop3","Stop-3 (אחרי T2)"],["t1","T1"],["t2","T2"],["t3","T3"]];
 const COLORS={entry:"#e3b341",stop1:"#f85149",stop2:"#ff9d76",stop3:"#ffc1a1",t1:"#56d364",t2:"#58a6ff",t3:"#bc8cff"};
-let cur=0, activeLevel="entry", mouse=null, _pz=1, _twB=60, _twA=75, _panMin=0, _dx=null, _dragged=false;
+let cur=0, activeLevel="entry", mouse=null, _pz=1, _twB=60, _twA=75, _panMin=0, _drag=null, _dragged=false;
 let marks=JSON.parse(localStorage.getItem("mems26_marks")||"{}");
 const sel=document.getElementById("sel");
 function _buildSel(){sel.innerHTML="";DATA.trades.forEach((t,i)=>{t.when=new Date(t.ts);t.daytype=t.dt;t.xwhen=t.xts?new Date(t.xts):null;const oc=(t.pnl>0?"✓ ":t.pnl<0?"✗ ":"• ");const o=document.createElement("option");o.value=i;o.text=oc+`#${t.id} ${t.pat||"?"} ${t.d} · ${(t.ts||"").slice(5,16)}`+(t.pnl!=null?(t.pnl>0?" +$"+t.pnl.toFixed(0):" -$"+Math.abs(t.pnl).toFixed(0)):"");sel.add(o);});}
@@ -162,6 +162,7 @@ ctx.font="13px monospace";}
 // ENTRY/EXIT actual markers
 const ei=bars.findIndex(b=>Math.abs(b.when-t.when)<150000);
 if(ei>=0){const x=X(ei),y=Y(t.entry);const ecol=(t.d==="LONG"?"#56d364":"#f85149");
+ctx.save();ctx.globalAlpha=0.16;ctx.fillStyle=ecol;var _bw=(G&&G.pxPerBar)?Math.max(6,G.pxPerBar*0.85):10;ctx.fillRect(x-_bw,G.Y0c,_bw*2,G.Y1c-G.Y0c);ctx.restore();
 ctx.save();ctx.strokeStyle=ecol;ctx.globalAlpha=0.4;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,G.Y0c);ctx.lineTo(x,G.Y1c);ctx.stroke();ctx.restore();
 ctx.fillStyle=ecol;
 ctx.beginPath();
@@ -268,11 +269,10 @@ ctx.fillText("🚫 לא נכנסים — "+((marks[t.id]||{}).note||"(הוסף �
 const cvEl=document.getElementById("cv");
 function toCanvas(ev){const r=cvEl.getBoundingClientRect();
 return{mx:(ev.clientX-r.left)*(cvEl.width/r.width),my:(ev.clientY-r.top)*(cvEl.height/r.height)};}
-cvEl.addEventListener("mousemove",ev=>{const c=toCanvas(ev);if(_dx!=null){const dd=c.mx-_dx;if(Math.abs(dd)>3){_dragged=true;const bm=(G&&G.barMs)?G.barMs/60000:5;const pb=(G&&G.pxPerBar)?G.pxPerBar:10;_panMin-=(dd/pb)*bm;_dx=c.mx;render();}return;}mouse=c;render();});
+cvEl.addEventListener("mousemove",ev=>{const c=toCanvas(ev);if(_drag){const ddx=c.mx-_drag.x,ddy=c.my-_drag.y;if(Math.abs(ddx)>2||Math.abs(ddy)>2)_dragged=true;if(_drag.mode==="pz"){_pz=Math.max(0.25,Math.min(8,_drag.pz0*Math.exp(-ddy/160)));}else if(_drag.mode==="tz"){const k=Math.exp(ddx/250);_twB=Math.max(10,Math.min(600,Math.round(_drag.twB0/k)));_twA=Math.max(15,Math.min(700,Math.round(_drag.twA0/k)));}else{const bm=(G&&G.barMs)?G.barMs/60000:5;const pb=(G&&G.pxPerBar)?G.pxPerBar:10;const sx=c.mx-_drag.lastx;_panMin-=(sx/pb)*bm;_drag.lastx=c.mx;}render();return;}mouse=c;render();});
 cvEl.addEventListener("mouseleave",()=>{mouse=null;render();});
-cvEl.addEventListener("mousedown",ev=>{_dx=toCanvas(ev).mx;_dragged=false;});
-window.addEventListener("mouseup",()=>{_dx=null;});
-cvEl.addEventListener("wheel",function(ev){ev.preventDefault();var r=cvEl.getBoundingClientRect();var mx=(ev.clientX-r.left)*(cvEl.width/r.width);if(mx>cvEl.width-90){_pz=Math.max(0.25,Math.min(8,_pz*(ev.deltaY<0?1.12:1/1.12)));}else{var k=ev.deltaY<0?1/1.12:1.12;_twB=Math.max(10,Math.min(600,Math.round(_twB*k)));_twA=Math.max(15,Math.min(700,Math.round(_twA*k)));}render();},{passive:false});
+cvEl.addEventListener("mousedown",ev=>{const c=toCanvas(ev);_dragged=false;var mode="pan";if(c.mx>cvEl.width-90||c.mx<90)mode="pz";else if(c.my>cvEl.height-30)mode="tz";_drag={mode:mode,x:c.mx,y:c.my,lastx:c.mx,pz0:_pz,twB0:_twB,twA0:_twA};});
+window.addEventListener("mouseup",()=>{_drag=null;});
 cvEl.addEventListener("click",ev=>{if(_dragged){_dragged=false;return;}const{my}=toCanvas(ev);
 if(my<G.Y0c||my>G.Y1c)return;
 const t=DATA.trades[cur];
