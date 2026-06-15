@@ -11,6 +11,7 @@ import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
+import { TradeReviewTab } from '../trades/TradeReviewTab';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { usePriceStream } from '../../hooks/usePriceStream';
@@ -140,9 +141,8 @@ export function V9Dashboard() {
         </div>
       ) : (
         <div className="flex-1 min-h-0">
-          {/* The proven standalone marker tool, served live from /public and fed by
-              the API (replay + trade_reviews). Reuses its exact render/marking. */}
-          <iframe src="/marker.html" title="Trade Marker (live)" style={{ width: '100%', height: '100%', border: 'none', background: '#0d1117' }} />
+          {/* Collapsible/resizable trade list + the proven live marker tool (iframe). */}
+          <TradeReviewTab />
         </div>
       )}
     </div>

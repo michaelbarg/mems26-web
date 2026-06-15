@@ -283,5 +283,6 @@ function doExport(){const out={exported:new Date().toISOString(),marks};
 const blob=new Blob([JSON.stringify(out,null,1)],{type:"application/json"});
 const a=document.createElement("a");a.href=URL.createObjectURL(blob);
 a.download="mems26_placement_marks.json";a.click();}
+window.addEventListener("message",function(e){if(e&&e.data&&e.data.type==="mems26-select-trade"){var i=DATA.trades.findIndex(function(t){return t.id===e.data.id;});if(i>=0){var sl=document.getElementById("sel");if(sl)sl.value=i;show(i);}}});
 (async()=>{try{document.getElementById("meta").innerHTML="טוען נתונים חיים…";await _loadTrades();await _hydrateMarks();_buildSel();if(DATA.trades.length){await show(0);}else{document.getElementById("meta").innerHTML="אין עסקאות";}}catch(e){document.getElementById("meta").innerHTML="שגיאת טעינה: "+(e&&e.message||e);console.error(e);}})();
 </script></body></html>
