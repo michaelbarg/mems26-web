@@ -45,25 +45,94 @@ def _f(v: Any) -> Optional[float]:
         return None
 
 
+# OHLC for the marking chart. Default source = v9_bars_5min_woodies (24h + Woodies
+# CCI). It is a FRONT-MONTH-STITCHED series, so across a contract roll (e.g. the
+# 2026-06-12 Jun→Sep MES roll) it can carry a DIFFERENT contract than the trades
+# of that day fired on — making the candles sit ~contract-spread points off the
+# trade's own entry/stop/targets. _bars_for_date picks, per date, the source whose
+# price level MATCHES that date's trades; on a roll day it falls back to the
+# specific-month v9_bars_5min so the candles reflect the SAME contract as the
+# trade. Real bars only — never synthesized / never offset-adjusted (Rule 1).
+_WOODIES_BARS_SQL = """
+    SELECT w.ts AS ts, w.open AS o, w.high AS h, w.low AS l, w.close AS c,
+           w.volume AS v, w.cci_14 AS cci, w.cci_6_tcci AS tcci,
+           w.trend_state AS trend, f.cumulative_delta AS cum_delta
+    FROM v9_bars_5min_woodies w
+    LEFT JOIN v9_bars_5min f ON f.ts = w.ts AND f.symbol = w.symbol
+    WHERE (w.ts AT TIME ZONE 'America/New_York')::date = :date
+      AND w.symbol = 'MES'
+    ORDER BY w.ts ASC
+"""
+# Specific-month fallback: same column shape; no CCI/tcci/trend in this table
+# (null — honest, not faked), cum_delta from the same row. Roll-CONTAMINATION
+# guard: during the roll the specific-month table briefly ingested the OTHER
+# contract's bars (they equal the woodies/stitched series at that ts). A genuine
+# specific-month bar differs from the woodies series by ~the calendar spread; a
+# contaminated one EQUALS it. Drop the matching (wrong-contract) bars — an honest
+# gap, never a wrong price (Rule 1). This filter only ever runs on a roll day
+# (the only time _bars_for_date routes here), where the two series are far apart.
+_SPECIFIC_BARS_SQL = """
+    SELECT s.ts AS ts, s.open AS o, s.high AS h, s.low AS l, s.close AS c, s.volume AS v,
+           NULL::double precision AS cci, NULL::double precision AS tcci,
+           NULL AS trend, s.cumulative_delta AS cum_delta
+    FROM v9_bars_5min s
+    LEFT JOIN v9_bars_5min_woodies w ON w.ts = s.ts AND w.symbol = s.symbol
+    WHERE (s.ts AT TIME ZONE 'America/New_York')::date = :date
+      AND s.symbol = 'MES'
+      AND abs(s.close - COALESCE(w.close, s.close + 9999)) > 20
+    ORDER BY s.ts ASC
+"""
+_CONTRACT_GAP_TOL = 25.0  # pts: beyond this, the source is a different contract than the date's trades
+
+
+def _entry_gap(date: str, table: str) -> Optional[float]:
+    """Median |entry_price − that table's close at the entry bar| over the date's
+    trades. This compares like-for-like AT THE SAME TIMES, so it measures contract
+    difference (a clean ~constant offset) rather than intraday range — the precise
+    test for "is this series the same contract the trades fired on"."""
+    gap = read_scalar(
+        f"""
+        SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY abs(t.entry_price - b.c))
+        FROM v9_trades t
+        LEFT JOIN LATERAL (
+            SELECT close AS c FROM {table} w
+            WHERE w.ts <= t.entry_ts AND w.symbol = 'MES'
+            ORDER BY w.ts DESC LIMIT 1
+        ) b ON true
+        WHERE (t.entry_ts AT TIME ZONE 'America/New_York')::date = :date
+          AND t.is_synthetic = 0 AND b.c IS NOT NULL
+        """,
+        {"date": date},
+    )
+    return float(gap) if gap is not None else None
+
+
+def _bars_for_date(date: str):
+    """Return (bars_rows, source_label). Default = woodies (24h + CCI). Only when
+    woodies is provably a DIFFERENT contract than that date's trades (median
+    entry-gap > tolerance) and the specific-month series is closer do we switch,
+    so the candles share the trade's contract. Real bars only (Rule 1)."""
+    woodies = read_all(_WOODIES_BARS_SQL, {"date": date})
+    if not woodies:
+        return woodies, "woodies"
+    wgap = _entry_gap(date, "v9_bars_5min_woodies")
+    if wgap is None or wgap <= _CONTRACT_GAP_TOL:
+        return woodies, "woodies"  # no trades to match, or woodies IS the trade's contract → keep CCI
+    sgap = _entry_gap(date, "v9_bars_5min")
+    if sgap is not None and sgap < wgap:
+        specific = read_all(_SPECIFIC_BARS_SQL, {"date": date})
+        if specific:
+            return specific, "v9_bars_5min"  # closer to the trades → candles = trade's contract
+    return woodies, "woodies"
+
+
 @router.get("/replay")
 def chart_replay(date: str = Query(..., description="ET trading date, YYYY-MM-DD")):
     """Return {date, bars, cvd, levels, trades} for one ET trading date.
 
     Every numeric field is passed through as-is or null — no synthesis.
     """
-    bars_rows = read_all(
-        """
-        SELECT w.ts AS ts, w.open AS o, w.high AS h, w.low AS l, w.close AS c,
-               w.volume AS v, w.cci_14 AS cci, w.cci_6_tcci AS tcci,
-               w.trend_state AS trend, f.cumulative_delta AS cum_delta
-        FROM v9_bars_5min_woodies w
-        LEFT JOIN v9_bars_5min f ON f.ts = w.ts AND f.symbol = w.symbol
-        WHERE (w.ts AT TIME ZONE 'America/New_York')::date = :date
-          AND w.symbol = 'MES'
-        ORDER BY w.ts ASC
-        """,
-        {"date": date},
-    )
+    bars_rows, bars_source = _bars_for_date(date)
     bars = [
         {
             "ts": _iso(r["ts"]), "o": _f(r["o"]), "h": _f(r["h"]), "l": _f(r["l"]),
@@ -170,6 +239,7 @@ def chart_replay(date: str = Query(..., description="ET trading date, YYYY-MM-DD
 
     return {
         "date": date,
+        "bars_source": bars_source,
         "counts": {"bars": len(bars), "cvd": len(cvd), "trades": len(trades)},
         "bars": bars,
         "cvd": cvd,
