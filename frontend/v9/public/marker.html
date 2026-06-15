@@ -54,6 +54,7 @@ textarea{width:100%;background:#161b22;color:#c9d1d9;border:1px solid #30363d;bo
 <span id="prog" class="hint"></span>
 <span id="readout">מחיר: —</span>
 <label style="font-size:13px"><input type="checkbox" id="lvls" checked onchange="render()"> רמות-יום (POC/VA/IB/PD/פיבוטים)</label>
+<button id="resetView" onclick="_resetView()" style="border-color:#58a6ff;color:#58a6ff">🔄 איפוס תצוגה</button>
 <button id="export" onclick="doExport()">⬇️ ייצוא הסימונים</button>
 </div>
 <div class="meta" id="meta"></div>
@@ -83,6 +84,7 @@ const L=d.levels||{};DATA.levels[date]={poc:L.poc,vah:L.vah,val:L.val,ibh:L.ib_h
 DATA.bars.sort((a,b)=>a.when-b.when);DATA.cvd.sort((a,b)=>a.when-b.when);}
 async function _hydrateMarks(){try{const r=await fetch(_API+'/api/v9/trade_reviews',{headers:_H});if(r.ok){const d=await r.json();const rev=d.reviews||{};Object.keys(rev).forEach(id=>{marks[id]=Object.assign({},marks[id]||{},rev[id]);});localStorage.setItem('mems26_marks',JSON.stringify(marks));}}catch(e){}}
 async function _submit(){const t=DATA.trades[cur];if(!t)return;const btn=document.getElementById('submitBtn');btn.textContent='שומר…';try{const r=await fetch(_API+'/api/v9/trades/'+t.id+'/review',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},_H),body:JSON.stringify({marks:marks[t.id]||{}})});btn.textContent=r.ok?'✓ נשמר ל-DB':'✗ שגיאה '+r.status;}catch(e){btn.textContent='✗ שגיאת רשת';}setTimeout(function(){btn.textContent='⤴ שגר ל-DB';},2500);}
+function _resetView(){_pz=1;_twB=60;_twA=75;_panMin=0;render();}
 function _renderHdr(t){var h=document.getElementById("tradehdr");if(!h)return;var isL=t.d==="LONG";h.innerHTML='<span style="background:'+(isL?'#1a7f37':'#b62324')+';color:#fff;padding:3px 12px;border-radius:6px;font-weight:700;font-size:15px">'+(isL?'\u25B2 LONG':'\u25BC SHORT')+'</span> <span style="background:#0d1117;border:1px solid #30363d;color:#d2a8ff;padding:3px 10px;border-radius:6px;font-size:13px">\u05E1\u05D5\u05D2-\u05D9\u05D5\u05DD: '+(t.dt||'\u2014')+'</span> <span style="color:#8b949e">#'+t.id+' \u00B7 '+(t.pat||'?')+'</span>';}
 async function _showRationale(t){var el=document.getElementById("rationale");if(!el)return;el.innerHTML="\u05D8\u05D5\u05E2\u05DF\u2026";try{var r=await fetch(_API+'/api/v9/trades/'+t.id,{headers:_H});var d=await r.json();var f=(d.insight&&d.insight.fire)||{};var rec=(d.insight&&d.insight.recognition)||[];var html='<div style="color:#e3b341;font-weight:700">'+(f.headline||'\u2014')+'</div>';html+='<div style="color:#8b949e;margin:3px 0">trigger: <b>'+(f.trigger||'\u2014')+'</b> \u00B7 pattern: <b>'+(f.pattern_id||'\u2014')+'</b> \u00B7 class: <b>'+(f.classification||'\u2014')+'</b> \u00B7 day: <b>'+(f.day_type||'\u2014')+'</b> \u00B7 confidence: '+(f.confidence==null?'\u2014':f.confidence)+(f.blocked_by?' \u00B7 \u05E0\u05D7\u05E1\u05DD: '+f.blocked_by:'')+'</div>';html+='<table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:12px">';rec.forEach(function(o){var ag=o.agree===true?'<span style="color:#56d364">\u2713</span>':o.agree===false?'<span style="color:#f85149">\u2717</span>':'<span style="color:#6e7681">\u00B7</span>';html+='<tr style="border-top:1px solid #21262d"><td style="width:18px">'+ag+'</td><td style="width:130px;color:'+(o.is_firing?'#e3b341':'#c9d1d9')+';font-weight:'+(o.is_firing?700:400)+'">'+o.name+'</td><td style="color:#8b949e">'+((o.lines||[]).join(' \u00B7 '))+'</td></tr>';});html+='</table>';el.innerHTML=html;}catch(e){el.innerHTML='\u05E9\u05D2\u05D9\u05D0\u05EA-\u05D8\u05E2\u05D9\u05E0\u05D4';}}
 function _clearMarks(){var t=DATA.trades[cur];if(!t)return;if(!confirm('\u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC #'+t.id+'?'))return;delete marks[t.id];localStorage.setItem("mems26_marks",JSON.stringify(marks));render();_submit();}
@@ -292,7 +294,7 @@ function saveNote(){const t=DATA.trades[cur];marks[t.id]=marks[t.id]||{};
 marks[t.id].note=document.getElementById("note").value;
 localStorage.setItem("mems26_marks",JSON.stringify(marks));}
 function nav(d){cur=Math.min(Math.max(cur+d,0),DATA.trades.length-1);show(cur);}
-async function show(i){cur=i;_panMin=0;const t=DATA.trades[i];if(t)await _ensureDate((t.ts||"").slice(0,10));render();if(t){_renderHdr(t);_showRationale(t);}}
+async function show(i){cur=i;_panMin=0;_pz=1;_twB=60;_twA=75;const t=DATA.trades[i];if(t)await _ensureDate((t.ts||"").slice(0,10));render();if(t){_renderHdr(t);_showRationale(t);}}
 function doExport(){const out={exported:new Date().toISOString(),marks};
 const blob=new Blob([JSON.stringify(out,null,1)],{type:"application/json"});
 const a=document.createElement("a");a.href=URL.createObjectURL(blob);
