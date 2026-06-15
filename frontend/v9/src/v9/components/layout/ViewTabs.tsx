@@ -1,7 +1,7 @@
 'use client';
 import { COLORS } from '../../design/tokens';
 
-export type DashboardView = 'main' | 'build_status';
+export type DashboardView = 'main' | 'build_status' | 'trade_review';
 
 interface ViewTabsProps {
   active: DashboardView;
@@ -11,6 +11,7 @@ interface ViewTabsProps {
 const TABS: Array<{ id: DashboardView; label: string }> = [
   { id: 'main', label: 'Dashboard' },
   { id: 'build_status', label: 'Build Status' },
+  { id: 'trade_review', label: 'Trade Review' },
 ];
 
 export function ViewTabs({ active, onChange }: ViewTabsProps) {

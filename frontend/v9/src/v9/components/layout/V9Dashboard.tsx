@@ -11,6 +11,7 @@ import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
+import { TradeReviewPanel } from '../trades/TradeReviewPanel';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { usePriceStream } from '../../hooks/usePriceStream';
@@ -34,14 +35,15 @@ export function V9Dashboard() {
   useLivePricePoll(true);
 
   // Top-level view switcher · added 2026-05-26 for Build Status tab
-  // Support deep-link: /?view=build_status from /trades journal
-  const [view, setView] = useState<DashboardView>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('view') === 'build_status') return 'build_status';
-    }
-    return 'main';
-  });
+  // SSR-stable default 'main'; deep-link (?view=) is applied on mount to avoid a
+  // server/client hydration mismatch. Reading window in the useState initializer
+  // made the server render 'main' and the client 'build_status' → mismatch.
+  // Fixed 2026-06-15 (mirrors the chartH SSR-stable+useEffect pattern below).
+  const [view, setView] = useState<DashboardView>('main');
+  useEffect(() => {
+    const v = new URLSearchParams(window.location.search).get('view');
+    if (v === 'build_status' || v === 'trade_review') setView(v);
+  }, []);
 
   // Chart height — SSR-stable default, hydrate from localStorage on mount
   const [chartH, setChartH] = useState(DEFAULT_H);
@@ -133,9 +135,13 @@ export function V9Dashboard() {
           <PriceDebugConsole />
           <SystemControlPanel />
         </>
-      ) : (
+      ) : view === 'build_status' ? (
         <div className="flex-1 min-h-0">
           <BuildStatusTab />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0">
+          <TradeReviewPanel />
         </div>
       )}
     </div>
