@@ -37,6 +37,7 @@ export function TradeReviewTab() {
   const [marks, setMarks] = useState<MarksMap>({});
   const [panelW, setPanelW] = useState<number>(320);
   const [collapsed, setCollapsed] = useState<boolean>(false);
+  const [iframeV] = useState<number>(() => Date.now()); // cache-bust the static marker.html per mount
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const dragRef = useRef<{ on: boolean; x0: number; w0: number }>({ on: false, x0: 0, w0: 320 });
 
@@ -115,7 +116,7 @@ export function TradeReviewTab() {
       )}
       {!collapsed && <div onMouseDown={(e) => { dragRef.current = { on: true, x0: e.clientX, w0: panelW }; e.preventDefault(); }} title="drag to resize" style={{ width: 5, cursor: 'ew-resize', background: 'var(--border)', flexShrink: 0 }} />}
       <button onClick={() => setCollapsed((c) => !c)} title={collapsed ? 'show list' : 'hide list'} style={{ width: 18, flexShrink: 0, border: 'none', borderInlineEnd: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 11 }}>{collapsed ? '▸' : '◂'}</button>
-      <iframe ref={iframeRef} src="/marker.html" title="Trade Marker (live)" style={{ flex: 1, minWidth: 0, border: 'none', background: '#0d1117' }} />
+      <iframe ref={iframeRef} src={`/marker.html?v=${iframeV}`} title="Trade Marker (live)" style={{ flex: 1, minWidth: 0, border: 'none', background: '#0d1117' }} />
     </div>
   );
 }

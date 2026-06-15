@@ -57,12 +57,17 @@ textarea{width:100%;background:#161b22;color:#c9d1d9;border:1px solid #30363d;bo
 <button id="export" onclick="doExport()">⬇️ ייצוא הסימונים</button>
 </div>
 <div class="meta" id="meta"></div>
+<div class="bar" id="tradehdr" style="margin:4px 0"></div>
+<details id="ratbox" open style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:6px 12px;margin-bottom:6px">
+<summary style="cursor:pointer;font-weight:700;color:#58a6ff;font-size:13px">🧠 למה המערכת ירתה — נוסחת-הזיהוי בפועל מול נוסחת-המערכת</summary>
+<div id="rationale" style="font-size:12.5px;margin-top:6px">—</div></details>
 <div class="bar" id="levels"></div>
 <div class="meta" id="calc" style="font-size:14px"></div>
 <canvas id="cv" width="1500" height="700"></canvas>
 <div class="bar" style="margin-top:6px">
 <button id="noentry" style="border-color:#f85149;color:#f85149" onclick="toggleNoEntry()">🚫 לא הייתי נכנס לעסקה הזו</button>
 <button id="submitBtn" style="background:#1f6feb;color:#fff;border:none" onclick="_submit()">⤴ שגר ל-DB</button>
+<button id="clearBtn" style="border-color:#8b949e;color:#8b949e" onclick="_clearMarks()">🗑️ נקה סימונים</button>
 </div>
 <div class="bar"><textarea id="note" rows="2" placeholder="הערות לעסקה: למה כאן, מה הכלל הכללי..." oninput="saveNote()"></textarea></div>
 <script>
@@ -78,16 +83,19 @@ const L=d.levels||{};DATA.levels[date]={poc:L.poc,vah:L.vah,val:L.val,ibh:L.ib_h
 DATA.bars.sort((a,b)=>a.when-b.when);DATA.cvd.sort((a,b)=>a.when-b.when);}
 async function _hydrateMarks(){try{const r=await fetch(_API+'/api/v9/trade_reviews',{headers:_H});if(r.ok){const d=await r.json();const rev=d.reviews||{};Object.keys(rev).forEach(id=>{marks[id]=Object.assign({},marks[id]||{},rev[id]);});localStorage.setItem('mems26_marks',JSON.stringify(marks));}}catch(e){}}
 async function _submit(){const t=DATA.trades[cur];if(!t)return;const btn=document.getElementById('submitBtn');btn.textContent='שומר…';try{const r=await fetch(_API+'/api/v9/trades/'+t.id+'/review',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},_H),body:JSON.stringify({marks:marks[t.id]||{}})});btn.textContent=r.ok?'✓ נשמר ל-DB':'✗ שגיאה '+r.status;}catch(e){btn.textContent='✗ שגיאת רשת';}setTimeout(function(){btn.textContent='⤴ שגר ל-DB';},2500);}
+function _renderHdr(t){var h=document.getElementById("tradehdr");if(!h)return;var isL=t.d==="LONG";h.innerHTML='<span style="background:'+(isL?'#1a7f37':'#b62324')+';color:#fff;padding:3px 12px;border-radius:6px;font-weight:700;font-size:15px">'+(isL?'\u25B2 LONG':'\u25BC SHORT')+'</span> <span style="background:#0d1117;border:1px solid #30363d;color:#d2a8ff;padding:3px 10px;border-radius:6px;font-size:13px">\u05E1\u05D5\u05D2-\u05D9\u05D5\u05DD: '+(t.dt||'\u2014')+'</span> <span style="color:#8b949e">#'+t.id+' \u00B7 '+(t.pat||'?')+'</span>';}
+async function _showRationale(t){var el=document.getElementById("rationale");if(!el)return;el.innerHTML="\u05D8\u05D5\u05E2\u05DF\u2026";try{var r=await fetch(_API+'/api/v9/trades/'+t.id,{headers:_H});var d=await r.json();var f=(d.insight&&d.insight.fire)||{};var rec=(d.insight&&d.insight.recognition)||[];var html='<div style="color:#e3b341;font-weight:700">'+(f.headline||'\u2014')+'</div>';html+='<div style="color:#8b949e;margin:3px 0">trigger: <b>'+(f.trigger||'\u2014')+'</b> \u00B7 pattern: <b>'+(f.pattern_id||'\u2014')+'</b> \u00B7 class: <b>'+(f.classification||'\u2014')+'</b> \u00B7 day: <b>'+(f.day_type||'\u2014')+'</b> \u00B7 confidence: '+(f.confidence==null?'\u2014':f.confidence)+(f.blocked_by?' \u00B7 \u05E0\u05D7\u05E1\u05DD: '+f.blocked_by:'')+'</div>';html+='<table style="width:100%;border-collapse:collapse;font-family:monospace;font-size:12px">';rec.forEach(function(o){var ag=o.agree===true?'<span style="color:#56d364">\u2713</span>':o.agree===false?'<span style="color:#f85149">\u2717</span>':'<span style="color:#6e7681">\u00B7</span>';html+='<tr style="border-top:1px solid #21262d"><td style="width:18px">'+ag+'</td><td style="width:130px;color:'+(o.is_firing?'#e3b341':'#c9d1d9')+';font-weight:'+(o.is_firing?700:400)+'">'+o.name+'</td><td style="color:#8b949e">'+((o.lines||[]).join(' \u00B7 '))+'</td></tr>';});html+='</table>';el.innerHTML=html;}catch(e){el.innerHTML='\u05E9\u05D2\u05D9\u05D0\u05EA-\u05D8\u05E2\u05D9\u05E0\u05D4';}}
+function _clearMarks(){var t=DATA.trades[cur];if(!t)return;if(!confirm('\u05DC\u05E0\u05E7\u05D5\u05EA \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05D5\u05E0\u05D9\u05DD \u05E9\u05DC #'+t.id+'?'))return;delete marks[t.id];localStorage.setItem("mems26_marks",JSON.stringify(marks));render();_submit();}
 const LEVELS=[["entry","כניסה"],["stop1","Stop-1"],["stop2","Stop-2 (אחרי T1)"],["stop3","Stop-3 (אחרי T2)"],["t1","T1"],["t2","T2"],["t3","T3"]];
 const COLORS={entry:"#e3b341",stop1:"#f85149",stop2:"#ff9d76",stop3:"#ffc1a1",t1:"#56d364",t2:"#58a6ff",t3:"#bc8cff"};
-let cur=0, activeLevel="entry", mouse=null;
+let cur=0, activeLevel="entry", mouse=null, _pz=1, _twB=60, _twA=75;
 let marks=JSON.parse(localStorage.getItem("mems26_marks")||"{}");
 const sel=document.getElementById("sel");
 function _buildSel(){sel.innerHTML="";DATA.trades.forEach((t,i)=>{t.when=new Date(t.ts);t.daytype=t.dt;t.xwhen=t.xts?new Date(t.xts):null;const oc=(t.pnl>0?"✓ ":t.pnl<0?"✗ ":"• ");const o=document.createElement("option");o.value=i;o.text=oc+`#${t.id} ${t.pat||"?"} ${t.d} · ${(t.ts||"").slice(5,16)}`+(t.pnl!=null?(t.pnl>0?" +$"+t.pnl.toFixed(0):" -$"+Math.abs(t.pnl).toFixed(0)):"");sel.add(o);});}
 const lvDiv=document.getElementById("levels");
 LEVELS.forEach(([k,label])=>{const b=document.createElement("button");b.id="lv-"+k;b.className="lv-"+k;
 b.textContent=label;b.onclick=()=>{activeLevel=k;render();};lvDiv.appendChild(b);});
-function tradeBars(t){const a=new Date(t.when.getTime()-60*60000), b=new Date((t.xwhen||t.when).getTime()+75*60000);
+function tradeBars(t){const a=new Date(t.when.getTime()-_twB*60000), b=new Date((t.xwhen||t.when).getTime()+_twA*60000);
 return DATA.bars.filter(x=>x.when>=a&&x.when<=b);}
 function tradeCvd(t,bars){if(!bars.length)return[];const a=bars[0].when,b=bars[bars.length-1].when;
 return DATA.cvd.filter(x=>x.when>=a&&x.when<=b);}
@@ -104,6 +112,7 @@ const m=marks[t.id]||{};
 const lvVals=Object.values(m).filter(v=>typeof v==="number");
 const sys=[t.entry,t.stop,t.t1,t.t2,t.xp].filter(v=>v);
 let lo=Math.min(...bars.map(b=>b.l),...sys,...lvVals)-3, hi=Math.max(...bars.map(b=>b.h),...sys,...lvVals)+3;
+{const _m=(lo+hi)/2,_h=((hi-lo)/2)/_pz;lo=_m-_h;hi=_m+_h;}
 const W=cv.width,PL=86,PR=86,PT=8;
 const H1=470, GAP=12, H2=92, H3=92, XAXIS=26;       // price / cvd / cci
 const Y0c=PT, Y1c=PT+H1, Y0v=Y1c+GAP, Y1v=Y0v+H2, Y0i=Y1v+GAP, Y1i=Y0i+H3;
@@ -259,6 +268,7 @@ function toCanvas(ev){const r=cvEl.getBoundingClientRect();
 return{mx:(ev.clientX-r.left)*(cvEl.width/r.width),my:(ev.clientY-r.top)*(cvEl.height/r.height)};}
 cvEl.addEventListener("mousemove",ev=>{mouse=toCanvas(ev);render();});
 cvEl.addEventListener("mouseleave",()=>{mouse=null;render();});
+cvEl.addEventListener("wheel",function(ev){ev.preventDefault();var r=cvEl.getBoundingClientRect();var mx=(ev.clientX-r.left)*(cvEl.width/r.width);if(mx>cvEl.width-90){_pz=Math.max(0.25,Math.min(8,_pz*(ev.deltaY<0?1.12:1/1.12)));}else{var k=ev.deltaY<0?1/1.12:1.12;_twB=Math.max(10,Math.min(600,Math.round(_twB*k)));_twA=Math.max(15,Math.min(700,Math.round(_twA*k)));}render();},{passive:false});
 cvEl.addEventListener("click",ev=>{const{my}=toCanvas(ev);
 if(my<G.Y0c||my>G.Y1c)return;
 const t=DATA.trades[cur];
@@ -278,7 +288,7 @@ function saveNote(){const t=DATA.trades[cur];marks[t.id]=marks[t.id]||{};
 marks[t.id].note=document.getElementById("note").value;
 localStorage.setItem("mems26_marks",JSON.stringify(marks));}
 function nav(d){cur=Math.min(Math.max(cur+d,0),DATA.trades.length-1);show(cur);}
-async function show(i){cur=i;const t=DATA.trades[i];if(t)await _ensureDate((t.ts||"").slice(0,10));render();}
+async function show(i){cur=i;const t=DATA.trades[i];if(t)await _ensureDate((t.ts||"").slice(0,10));render();if(t){_renderHdr(t);_showRationale(t);}}
 function doExport(){const out={exported:new Date().toISOString(),marks};
 const blob=new Blob([JSON.stringify(out,null,1)],{type:"application/json"});
 const a=document.createElement("a");a.href=URL.createObjectURL(blob);
