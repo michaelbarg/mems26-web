@@ -64,6 +64,7 @@ export function TradeReviewPanel() {
   const [filter, setFilter] = useState<Filter>('all');
   const [selId, setSelId] = useState<number | null>(null);
   const [marks, setMarks] = useState<MarksMap>({});
+  const [showHelp, setShowHelp] = useState<boolean>(false);
 
   // Self-load trades (the tab can be opened without the chart view mounted).
   useEffect(() => {
@@ -117,9 +118,20 @@ export function TradeReviewPanel() {
   }, [rows]);
 
   const sel = rows.find((t) => t.id === selId) ?? null;
+  const visIds = rows.map((t) => t.id);
+  const nav = (d: number) => { if (!visIds.length) return; const i = visIds.indexOf(selId ?? -1); const ni = i < 0 ? 0 : Math.min(Math.max(i + d, 0), visIds.length - 1); setSelId(visIds[ni]); };
+  const markedN = rows.filter((t) => hasAnyMark(marks[String(t.id)])).length;
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: 13 }}>
+      {/* collapsible help / legend header */}
+      <div onClick={() => setShowHelp((h) => !h)} style={{ cursor: 'pointer', padding: '4px 12px', fontSize: 11, color: '#58a6ff', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>{showHelp ? '▾' : '▸'} How to use · legend</div>
+      {showHelp && (
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          <b style={{ color: 'var(--text-primary)' }}>How:</b> pick a trade → pick a level (Entry / Stop-1..3 / T1..3) → click the price panel to place what <i>you</i> would have done · 🚫 = wouldn&apos;t enter · ✎ note becomes a rule · <b style={{ color: '#1f6feb' }}>⤴ Submit</b> saves to the DB (calibration input). Scroll or drag the price/time axis to zoom; drag the bottom handle to resize.
+          <br /><b style={{ color: 'var(--text-primary)' }}>Lines:</b> <span style={{ color: '#d2a8ff' }}>POC</span> · <span style={{ color: '#a5d6ff' }}>VAH/VAL</span> · <span style={{ color: '#ffa657' }}>IB</span> · <span style={{ color: '#ff7bf2' }}>PP</span>/<span style={{ color: '#ff6b6b' }}>R1-3</span>/<span style={{ color: '#3fb950' }}>S1-3</span> · <span style={{ color: '#7ee787' }}>PDH</span>/<span style={{ color: '#ffa198' }}>PDL</span> · <span style={{ color: '#8b949e' }}>dashed</span> = system actuals · solid <b>✎</b> = your marks · CVD histogram (green↑/red↓) · Woodies CCI colored by trend (blue/red/yellow/gray).
+        </div>
+      )}
       {/* Filter + summary bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)' }}>
         <span style={{ color: 'var(--text-secondary)', fontSize: 11 }}>Filter:</span>
@@ -139,8 +151,13 @@ export function TradeReviewPanel() {
             >{f.label}</button>
           );
         })}
+        <span style={{ display: 'flex', gap: 3, alignItems: 'center', marginInlineStart: 6 }}>
+          <button onClick={() => nav(-1)} title="previous trade (up)" style={{ padding: '2px 9px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 12 }}>◀</button>
+          <button onClick={() => nav(1)} title="next trade (down)" style={{ padding: '2px 9px', borderRadius: 6, cursor: 'pointer', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-primary)', fontSize: 12 }}>▶</button>
+        </span>
         <span style={{ marginInlineStart: 'auto', fontFamily: 'var(--mono)', fontSize: 12 }}>
-          <span style={{ color: 'var(--text-secondary)' }}>{summary.n} trades</span>
+          <span style={{ color: '#e3b341' }}>✎ {markedN}/{summary.n}</span>
+          {'   '}<span style={{ color: 'var(--text-secondary)' }}>{summary.n} trades</span>
           {'  '}<span style={{ color: '#56d364' }}>{summary.w}W</span>
           {' / '}<span style={{ color: '#f85149' }}>{summary.l}L</span>
           {'  net '}<span style={{ color: summary.net >= 0 ? '#56d364' : '#f85149', fontWeight: 700 }}>{money(summary.net)}</span>

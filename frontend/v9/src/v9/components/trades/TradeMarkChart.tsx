@@ -32,7 +32,8 @@ const LEVELS: Array<{ key: LevelKey; label: string; color: string }> = [
 
 interface MarkEntry { no_entry?: boolean; note?: string; pat?: string; day_type?: string; dir?: string; [k: string]: unknown; }
 type MarksMap = Record<string, MarkEntry>;
-interface Bar { t: number; o: number; h: number; l: number; c: number; v: number; cci: number | null; cum: number | null; }
+interface Bar { t: number; o: number; h: number; l: number; c: number; v: number; cci: number | null; cum: number | null; trend: string | null; }
+const trendCol = (t: string | null) => (t === 'BLUE' ? '#58a6ff' : t === 'RED' ? '#f85149' : t === 'YELLOW' ? '#e3b341' : '#8b949e');
 interface Levels { poc?: number | null; vah?: number | null; val?: number | null; ib_high?: number | null; ib_low?: number | null; pdh?: number | null; pdl?: number | null; pp?: number | null; r1?: number | null; r2?: number | null; r3?: number | null; s1?: number | null; s2?: number | null; s3?: number | null; }
 interface DrawState { all: Bar[]; levels: Levels; }
 interface Geom { vis: Bar[]; lo: number; hi: number; y0p: number; y1p: number; }
@@ -146,13 +147,13 @@ export function TradeMarkChart({ trade, onChange }: { trade: Trade; onChange?: (
       const yo = Yp(b.o), yc = Yp(b.c); ctx.fillRect(x - cw / 2, Math.min(yo, yc), cw, Math.max(1, Math.abs(yo - yc)));
     });
 
-    type Tag = { y: number; color: string; text: string };
+    type Tag = { trueY: number; y: number; color: string; text: string };
     const tags: Tag[] = [];
     const line = (price: number | null | undefined, color: string, label: string, dash: number[]) => {
       if (price == null) return; const y = Yp(price); if (y < Y0p - 1 || y > Y1p + 1) return;
-      ctx.save(); ctx.strokeStyle = color; ctx.setLineDash(dash); ctx.lineWidth = dash.length ? 1 : 1.6;
+      ctx.save(); ctx.strokeStyle = color; ctx.setLineDash(dash); ctx.lineWidth = dash.length ? 1 : 1.7;
       ctx.beginPath(); ctx.moveTo(PL, y); ctx.lineTo(W - PR, y); ctx.stroke(); ctx.restore();
-      tags.push({ y, color, text: `${label} ${price}` });
+      tags.push({ trueY: y, y, color, text: `${label} ${price}` });
     };
     if (showLvlRef.current) {
       line(lv.poc, '#d2a8ff', 'POC', [1, 3]); line(lv.vah, '#a5d6ff', 'VAH', [1, 3]); line(lv.val, '#a5d6ff', 'VAL', [1, 3]);
@@ -164,14 +165,20 @@ export function TradeMarkChart({ trade, onChange }: { trade: Trade; onChange?: (
     line(trade.entry_price, '#c9a227', 'sysEntry', [3, 3]); line(sysStop, '#d05050', 'sysStop', [3, 3]);
     line(trade.t1, '#3fb07a', 'sysT1', [3, 3]); line(trade.t2, '#5a8acb', 'sysT2', [3, 3]); line(trade.exit_price, '#a371f7', 'Exit', [3, 3]);
     LEVELS.forEach((l) => { const v = cur[l.key]; if (typeof v === 'number') line(v, l.color, '✎' + l.label, []); });
-    tags.sort((a, b) => a.y - b.y);
-    for (let i = 1; i < tags.length; i++) if (tags[i].y - tags[i - 1].y < 12) tags[i].y = tags[i - 1].y + 12;
-    ctx.font = 'bold 9px ui-monospace, monospace';
+    // declutter the badges vertically, but keep a leader back to each line's TRUE price
+    tags.sort((a, b) => a.trueY - b.trueY);
+    for (let i = 1; i < tags.length; i++) if (tags[i].y - tags[i - 1].y < 14) tags[i].y = tags[i - 1].y + 14;
+    tags.forEach((t) => { t.y = clamp(t.y, Y0p + 8, Y1p - 8); });
+    ctx.font = 'bold 10px ui-monospace, monospace'; ctx.textBaseline = 'middle';
     tags.forEach((t) => {
-      const tw = ctx.measureText(t.text).width, bw = tw + 7, bx = W - PR + 3, by = clamp(t.y, Y0p + 6, Y1p - 6), rr = 3;
-      ctx.fillStyle = t.color; ctx.beginPath();
-      ctx.moveTo(bx + rr, by - 6); ctx.arcTo(bx + bw, by - 6, bx + bw, by + 6, rr); ctx.arcTo(bx + bw, by + 6, bx, by + 6, rr); ctx.arcTo(bx, by + 6, bx, by - 6, rr); ctx.arcTo(bx, by - 6, bx + bw, by - 6, rr); ctx.fill();
-      ctx.fillStyle = txtOn(t.color); ctx.fillText(t.text, bx + 4, by);
+      const tw = ctx.measureText(t.text).width, bw = tw + 9, bx = W - PR + 8, by = t.y, rr = 3;
+      // leader line from the true price (on the axis edge) to the badge + a tick on the axis
+      ctx.strokeStyle = t.color; ctx.globalAlpha = 0.6; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(W - PR, t.trueY); ctx.lineTo(bx, by); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = t.color; ctx.fillRect(W - PR - 3, t.trueY - 1, 5, 2);
+      ctx.beginPath();
+      ctx.moveTo(bx + rr, by - 7); ctx.arcTo(bx + bw, by - 7, bx + bw, by + 7, rr); ctx.arcTo(bx + bw, by + 7, bx, by + 7, rr); ctx.arcTo(bx, by + 7, bx, by - 7, rr); ctx.arcTo(bx, by - 7, bx + bw, by - 7, rr); ctx.fill();
+      ctx.fillStyle = txtOn(t.color); ctx.fillText(t.text, bx + 5, by);
     });
 
     // setup bracket on entry candle
@@ -210,8 +217,10 @@ export function TradeMarkChart({ trade, onChange }: { trade: Trade; onChange?: (
       const Yi = (val: number) => Y0i + ((cmax - val) * (Y1i - Y0i)) / (2 * cmax);
       [100, 0, -100].forEach((g) => { ctx.strokeStyle = g === 0 ? '#30363d' : '#23282f'; ctx.beginPath(); ctx.moveTo(PL, Yi(g)); ctx.lineTo(W - PR, Yi(g)); ctx.stroke(); ctx.fillStyle = '#6e7681'; ctx.fillText(String(g), W - PR + 5, Yi(g)); });
       ctx.fillStyle = '#8b949e'; ctx.fillText('Woodies CCI', PL + 2, Y0i + 8);
-      ctx.strokeStyle = '#d2a8ff'; ctx.lineWidth = 1.3; ctx.beginPath(); let s2 = false;
-      vis.forEach((b, i) => { if (b.cci == null) { s2 = false; return; } const x = X(i), y = Yi(b.cci); if (!s2) { ctx.moveTo(x, y); s2 = true; } else ctx.lineTo(x, y); }); ctx.stroke(); ctx.lineWidth = 1;
+      // CCI line colored per-bar by Woodies trend_state (BLUE/RED/YELLOW/GRAY)
+      ctx.lineWidth = 1.5;
+      for (let i = 1; i < vis.length; i++) { const a = vis[i - 1], b = vis[i]; if (a.cci == null || b.cci == null) continue; ctx.strokeStyle = trendCol(b.trend); ctx.beginPath(); ctx.moveTo(X(i - 1), Yi(a.cci)); ctx.lineTo(X(i), Yi(b.cci)); ctx.stroke(); }
+      ctx.lineWidth = 1;
     }
 
     const axisY = Y1i + 12; ctx.fillStyle = '#8b949e'; ctx.textBaseline = 'middle';
@@ -238,9 +247,9 @@ export function TradeMarkChart({ trade, onChange }: { trade: Trade; onChange?: (
       try {
         const res = await fetch(`${API}/api/v9/chart/replay?date=${etDate(trade.entry_ts!)}`);
         if (disposed) return; if (!res.ok) { setStatus(`data unavailable (${res.status})`); return; }
-        const d = (await res.json()) as { bars: Array<{ ts: string; o: number; h: number; l: number; c: number; v: number; cci: number | null; cum_delta: number | null }>; levels: Levels };
+        const d = (await res.json()) as { bars: Array<{ ts: string; o: number; h: number; l: number; c: number; v: number; cci: number | null; cum_delta: number | null; trend: string | null }>; levels: Levels };
         if (disposed) return;
-        const all: Bar[] = (d.bars || []).map((b) => ({ t: Math.floor(new Date(b.ts).getTime() / 1000), o: b.o, h: b.h, l: b.l, c: b.c, v: b.v, cci: b.cci, cum: b.cum_delta })).sort((a, b) => a.t - b.t);
+        const all: Bar[] = (d.bars || []).map((b) => ({ t: Math.floor(new Date(b.ts).getTime() / 1000), o: b.o, h: b.h, l: b.l, c: b.c, v: b.v, cci: b.cci, cum: b.cum_delta, trend: b.trend })).sort((a, b) => a.t - b.t);
         if (all.length === 0) { setStatus('no bars for this date'); return; }
         cv.width = wrap.clientWidth || 900; cv.height = hRef.current;
         drawState.current = { all, levels: d.levels || {} }; setStatus(''); draw();
