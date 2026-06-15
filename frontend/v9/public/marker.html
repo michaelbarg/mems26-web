@@ -1,0 +1,287 @@
+<!DOCTYPE html><html dir="rtl" lang="he"><head><meta charset="utf-8">
+<title>MEMS26 — כלי סימון ניהול עסקאות v2</title>
+<style>
+body{background:#0d1117;color:#c9d1d9;font-family:-apple-system,'Segoe UI',Arial;margin:0;padding:14px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+button{background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:13px}
+button.active{outline:2px solid currentColor}
+button.lv-entry{color:#e3b341}button.lv-stop1{color:#f85149}button.lv-stop2{color:#ff9d76}button.lv-stop3{color:#ffc1a1}
+button.lv-t1{color:#56d364}button.lv-t2{color:#58a6ff}button.lv-t3{color:#bc8cff}
+.meta{font-family:monospace;font-size:13.5px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 12px;margin-bottom:8px}
+canvas{background:#0d1117;border:1px solid #30363d;border-radius:8px;cursor:crosshair;width:100%;display:block}
+textarea{width:100%;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:6px;font-size:13px;box-sizing:border-box}
+#export{background:#1f6feb;color:#fff;border:none}
+.hint{color:#8b949e;font-size:12px}
+#readout{font-family:monospace;font-size:14px;color:#e3b341;background:#161b22;border:1px solid #30363d;border-radius:6px;padding:4px 10px;min-width:430px}
+</style></head><body>
+<h2 style="margin:4px 0">🎯 כלי סימון חי (live) — נתונים מה-DB: CVD + Woodies + כניסות/יציאות)</h2>
+<details style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 14px;margin-bottom:10px">
+<summary style="cursor:pointer;font-weight:700;font-size:14px">📌 מצב המערכת היום (12.06) + תוכן עניינים — איך הגענו לכאן</summary>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px;font-size:13px">
+<div>
+<b>🟢 מה חי עכשיו (SHADOW):</b>
+<table style="width:100%;font-family:monospace;font-size:12px;border-collapse:collapse">
+<tr><td>PATTERN_RISK_CAPS</td><td>תקרת סיכון פר-תבנית (HFE/DB 20 · ZLR/TLB 15)</td></tr>
+<tr><td>GIANT_BAR_STOP_V1</td><td>עוגן רחוק מהתקרה ⇒ סטופ בתוך בר-הכניסה (38%×טווח)</td></tr>
+<tr><td>RUNNER_TARGETS_V1</td><td>T2 לראנר (2.0R/1.5R) + BE+0.5R אחרי T2</td></tr>
+<tr><td>S2_VOL_ADAPTIVE</td><td>יום תנודתי (≥8 נק׳): אישור-REACTIVE ב-75% טווח · התרחבות-INITIATIVE מקובעת 8 נק׳</td></tr>
+<tr><td>S2_CHART_ALL_DAYTYPES</td><td>HnS/Double/Flags בכל סוג-יום (חוץ מ-NT)</td></tr>
+<tr><td>variant UNION</td><td>פילטר-ווליום REACTIVE מרוכך</td></tr>
+<tr><td>S2_DETECTION_LOG</td><td>וקטור-תנאים פר-בר [S2-DL]</td></tr>
+</table>
+<div style="margin-top:6px;color:#8b949e">ביטול מהיר: כיבוי דגל ב-.env + restart · ביטול מלא: tags <code>pre-anchor-trial-2026-06-12</code></div>
+<div style="margin-top:6px"><b>⏳ ממתין:</b> וטו/ניהול תבנית-נגד · כניסת-retrace · תיקון struct=None (T2 מבני) · מופעי-רפאים status.py · כיול b2_vsa/expansion</div>
+</div>
+<div>
+<b>🧭 איך הגענו לכאן:</b>
+<ol style="margin:4px 0;padding-inline-start:18px;line-height:1.7">
+<li><b>10-11.06</b> — שורש אי-הירי: R:R נמדד על T1 → תוקן; 34 עסקאות אבל ‑$2,187: ראנר בלי יעד, סופת-HFE על עוגן משותף (‑$1,957).</li>
+<li><b>11.06 ערב</b> — אודיט מלא: replay הוכיח שהגיאומטריה של S2 הייתה אמיתית — 25 near-miss על שני פילטרים (ווליום/התרחבות); #49 ירה שורט בתוך רצפה-כפולה LONG (סטייה מאפיון).</li>
+<li><b>12.06 לילה</b> — תקרות-סיכון + לוג-זיהויים + קומיט מסומן-לביטול; סימולציית 3 תצורות: BASE ‑$267 → CAPS ‑$178 → CAPS+T2 ‎+$3.</li>
+<li><b>12.06 בוקר</b> — 3 אישורים: ראנר-T2, פתיחת שערי-day_type, UNION.</li>
+<li><b>12.06 צהריים</b> — הלוג חשף: ביום תנודתי האישור-המלא נכשל 18/18 ⇒ S2_VOL_ADAPTIVE; עוגני-ענק (32-48 נק׳) ניפחו T2 ל-70-97 נק׳ ודחו את ה-DOUBLE_BOTTOM ⇒ GIANT_BAR_STOP_V1.</li>
+<li><b>עכשיו</b> — אתה מסמן כאן את הניהול הנכון פר-עסקה ⇒ אני הופך לקונפיג פר-תבנית×סוג-יום×משטר.</li>
+</ol>
+<div style="color:#8b949e">מסמכים: INSIGHTS_UNIFIED · S2_WHY_NOT_FIRED_REPLAY · PATTERN_DAYTYPE_PLAYBOOK · SIM_0611_ANCHOR_TRIAL (כולם ב-docs/, אינדקס מלא ברודמאפ)</div>
+</div>
+</div>
+</details>
+<div class="hint">בחר רמה → לחץ על גרף-המחיר. ▲/▼ = כניסה בפועל · ⊗ = יציאה בפועל. הזז עכבר = מחיר מדויק בכותרת ובצלב.</div>
+<div class="bar">
+<button onclick="nav(-1)">◀ הקודמת</button>
+<select id="sel" onchange="show(+this.value)" style="background:#21262d;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:6px"></select>
+<button onclick="nav(1)">הבאה ▶</button>
+<span id="prog" class="hint"></span>
+<span id="readout">מחיר: —</span>
+<label style="font-size:13px"><input type="checkbox" id="lvls" checked onchange="render()"> רמות-יום (POC/VA/IB/PD/פיבוטים)</label>
+<button id="export" onclick="doExport()">⬇️ ייצוא הסימונים</button>
+</div>
+<div class="meta" id="meta"></div>
+<div class="bar" id="levels"></div>
+<div class="meta" id="calc" style="font-size:14px"></div>
+<canvas id="cv" width="1500" height="700"></canvas>
+<div class="bar" style="margin-top:6px">
+<button id="noentry" style="border-color:#f85149;color:#f85149" onclick="toggleNoEntry()">🚫 לא הייתי נכנס לעסקה הזו</button>
+<button id="submitBtn" style="background:#1f6feb;color:#fff;border:none" onclick="_submit()">⤴ שגר ל-DB</button>
+</div>
+<div class="bar"><textarea id="note" rows="2" placeholder="הערות לעסקה: למה כאן, מה הכלל הכללי..." oninput="saveNote()"></textarea></div>
+<script>
+let DATA={bars:[],cvd:[],trades:[],levels:{}};
+const _API=(location.origin.indexOf(':3000')>-1?location.origin.replace(':3000',':8000'):(location.origin||'http://localhost:8000'));
+const _TOK='michael-mems26-2026';const _H={'Authorization':'Bearer '+_TOK};const _loaded=new Set();
+function _mapTrade(t){return{id:t.id,pat:t.pattern||t.pattern_id||t.classification||t.trigger||('S'+(t.firing_system||t.system||'')),d:t.direction,ts:t.entry_ts,entry:t.entry_price,stop:(t.stop_initial!=null?t.stop_initial:t.stop),t1:t.t1,t2:t.t2,dt:t.day_type||t.day_type_at_entry,xts:t.exit_ts,xp:t.exit_price,xr:t.exit_reason,pnl:(t.pnl_usd!=null?t.pnl_usd:t.pnl)};}
+async function _loadTrades(){const r=await fetch(_API+'/api/v9/trades?limit=500',{headers:_H});let d=await r.json();if(!Array.isArray(d))d=d.trades||[];DATA.trades=d.map(_mapTrade).filter(t=>t.ts).sort((a,b)=>new Date(b.ts)-new Date(a.ts));}
+async function _ensureDate(date){if(!date||_loaded.has(date))return;_loaded.add(date);const r=await fetch(_API+'/api/v9/chart/replay?date='+date,{headers:_H});const d=await r.json();
+(d.bars||[]).forEach(b=>{DATA.bars.push({ts:b.ts,o:b.o,h:b.h,l:b.l,c:b.c,v:b.v,cci:b.cci,when:new Date(b.ts)});});
+(d.cvd||[]).forEach(c=>{DATA.cvd.push({ts:c.ts,v:c.cum,d:c.d,when:new Date(c.ts)});});
+const L=d.levels||{};DATA.levels[date]={poc:L.poc,vah:L.vah,val:L.val,ibh:L.ib_high,ibl:L.ib_low,pdh:L.pdh,pdl:L.pdl,pp:L.pp,r1:L.r1,r2:L.r2,r3:L.r3,s1:L.s1,s2:L.s2,s3:L.s3};
+DATA.bars.sort((a,b)=>a.when-b.when);DATA.cvd.sort((a,b)=>a.when-b.when);}
+async function _hydrateMarks(){try{const r=await fetch(_API+'/api/v9/trade_reviews',{headers:_H});if(r.ok){const d=await r.json();const rev=d.reviews||{};Object.keys(rev).forEach(id=>{marks[id]=Object.assign({},marks[id]||{},rev[id]);});localStorage.setItem('mems26_marks',JSON.stringify(marks));}}catch(e){}}
+async function _submit(){const t=DATA.trades[cur];if(!t)return;const btn=document.getElementById('submitBtn');btn.textContent='שומר…';try{const r=await fetch(_API+'/api/v9/trades/'+t.id+'/review',{method:'POST',headers:Object.assign({'Content-Type':'application/json'},_H),body:JSON.stringify({marks:marks[t.id]||{}})});btn.textContent=r.ok?'✓ נשמר ל-DB':'✗ שגיאה '+r.status;}catch(e){btn.textContent='✗ שגיאת רשת';}setTimeout(function(){btn.textContent='⤴ שגר ל-DB';},2500);}
+const LEVELS=[["entry","כניסה"],["stop1","Stop-1"],["stop2","Stop-2 (אחרי T1)"],["stop3","Stop-3 (אחרי T2)"],["t1","T1"],["t2","T2"],["t3","T3"]];
+const COLORS={entry:"#e3b341",stop1:"#f85149",stop2:"#ff9d76",stop3:"#ffc1a1",t1:"#56d364",t2:"#58a6ff",t3:"#bc8cff"};
+let cur=0, activeLevel="entry", mouse=null;
+let marks=JSON.parse(localStorage.getItem("mems26_marks")||"{}");
+const sel=document.getElementById("sel");
+function _buildSel(){sel.innerHTML="";DATA.trades.forEach((t,i)=>{t.when=new Date(t.ts);t.daytype=t.dt;t.xwhen=t.xts?new Date(t.xts):null;const oc=(t.pnl>0?"✓ ":t.pnl<0?"✗ ":"• ");const o=document.createElement("option");o.value=i;o.text=oc+`#${t.id} ${t.pat||"?"} ${t.d} · ${(t.ts||"").slice(5,16)}`+(t.pnl!=null?(t.pnl>0?" +$"+t.pnl.toFixed(0):" -$"+Math.abs(t.pnl).toFixed(0)):"");sel.add(o);});}
+const lvDiv=document.getElementById("levels");
+LEVELS.forEach(([k,label])=>{const b=document.createElement("button");b.id="lv-"+k;b.className="lv-"+k;
+b.textContent=label;b.onclick=()=>{activeLevel=k;render();};lvDiv.appendChild(b);});
+function tradeBars(t){const a=new Date(t.when.getTime()-60*60000), b=new Date((t.xwhen||t.when).getTime()+75*60000);
+return DATA.bars.filter(x=>x.when>=a&&x.when<=b);}
+function tradeCvd(t,bars){if(!bars.length)return[];const a=bars[0].when,b=bars[bars.length-1].when;
+return DATA.cvd.filter(x=>x.when>=a&&x.when<=b);}
+function regime(bars){if(!bars.length)return"?";const w=bars.slice(-14);
+const avg=w.reduce((s,b)=>s+(b.h-b.l),0)/w.length;return avg>=8?"תנודתי 🔥 ("+avg.toFixed(1)+" נק')":"רגוע ("+avg.toFixed(1)+" נק')";}
+let G={};
+function render(){
+const t=DATA.trades[cur],bars=tradeBars(t),cvd=tradeCvd(t,bars);
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+ctx.direction="ltr";ctx.textAlign="left";ctx.textBaseline="alphabetic";
+ctx.clearRect(0,0,cv.width,cv.height);
+if(!bars.length){ctx.fillStyle="#8b949e";ctx.fillText("אין ברים",700,300);return;}
+const m=marks[t.id]||{};
+const lvVals=Object.values(m).filter(v=>typeof v==="number");
+const sys=[t.entry,t.stop,t.t1,t.t2,t.xp].filter(v=>v);
+let lo=Math.min(...bars.map(b=>b.l),...sys,...lvVals)-3, hi=Math.max(...bars.map(b=>b.h),...sys,...lvVals)+3;
+const W=cv.width,PL=86,PR=86,PT=8;
+const H1=470, GAP=12, H2=92, H3=92, XAXIS=26;       // price / cvd / cci
+const Y0c=PT, Y1c=PT+H1, Y0v=Y1c+GAP, Y1v=Y0v+H2, Y0i=Y1v+GAP, Y1i=Y0i+H3;
+const X=i=>PL+i*(W-PL-PR)/Math.max(bars.length-1,1);
+const Y=p=>Y0c+(hi-p)*(H1)/(hi-lo);
+G={lo,hi,Y0c,Y1c,X0:PL,X1:W-PR,n:bars.length};
+ctx.font="13px monospace";
+// price grid + DUAL price axes (clear prices)
+const step=(hi-lo)>40?10:5;
+for(let p=Math.ceil(lo/step)*step;p<=hi;p+=step){
+ctx.strokeStyle="#21262d";ctx.beginPath();ctx.moveTo(PL,Y(p));ctx.lineTo(W-PR,Y(p));ctx.stroke();
+ctx.fillStyle="#c9d1d9";ctx.fillText(p.toFixed(0),6,Y(p)+4);ctx.fillText(p.toFixed(0),W-PR+8,Y(p)+4);}
+// candles
+const cw=Math.max(2,(W-PL-PR)/bars.length*0.62);
+bars.forEach((b,i)=>{const x=X(i);ctx.strokeStyle=b.c>=b.o?"#56d364":"#f85149";ctx.fillStyle=ctx.strokeStyle;
+ctx.beginPath();ctx.moveTo(x,Y(b.h));ctx.lineTo(x,Y(b.l));ctx.stroke();
+ctx.fillRect(x-cw/2,Y(Math.max(b.o,b.c)),cw,Math.max(1,Math.abs(Y(b.o)-Y(b.c))));});
+// system levels (faint)
+function sysLine(p,label,color){if(!p)return;const y=Y(p);
+// dotted line, clearly visible
+ctx.strokeStyle=color;ctx.globalAlpha=0.9;ctx.lineWidth=1.6;ctx.setLineDash([2,5]);
+ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(W-PR,y);ctx.stroke();ctx.setLineDash([]);ctx.lineWidth=1;
+// right-side price tag (TradingView style)
+ctx.font="bold 14px monospace";
+const tag=p.toFixed(2);
+const tw=ctx.measureText(tag).width+12;
+ctx.fillStyle=color;ctx.fillRect(W-PR+2,y-10,Math.min(tw,PR+82),20);
+ctx.fillStyle="#0d1117";ctx.fillText(tag,W-PR+8,y+5);
+// small in-chart label near the right edge of plot
+ctx.fillStyle=color;ctx.fillText("מערכת·"+label,W-PR-92,y-5);
+ctx.font="13px monospace";ctx.globalAlpha=1;}
+sysLine(t.stop,"Stop","#f85149");sysLine(t.t1,"T1","#56d364");sysLine(t.t2,"T2","#58a6ff");sysLine(t.entry,"In","#e3b341");
+// ── day structure levels (POC/VAH/VAL/IB/PD) ──
+if(document.getElementById("lvls").checked){
+const LV=(DATA.levels||{})[t.ts.slice(0,10)]||{};
+const DEFS=[["poc","POC","#d2a8ff"],["vah","VAH","#a5d6ff"],["val","VAL","#a5d6ff"],
+["ibh","IB-H","#ffa657"],["ibl","IB-L","#ffa657"],
+["pp","PP","#ff7bf2"],["r1","R1","#ff6b6b"],["r2","R2","#ff6b6b"],["r3","R3","#ff6b6b"],
+["s1","S1","#3fb950"],["s2","S2","#3fb950"],["s3","S3","#3fb950"],
+["pdh","PDH","#7ee787"],["pdl","PDL","#ffa198"],["ppoc","pPOC","#8b949e"],["pvah","pVAH","#8b949e"],["pval","pVAL","#8b949e"]];
+ctx.font="12px monospace";
+DEFS.forEach(([k,name,col])=>{const p=LV[k];if(!p||p<lo||p>hi)return;const y=Y(p);
+ctx.strokeStyle=col;ctx.globalAlpha=0.55;ctx.setLineDash([8,5]);
+ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(W-PR,y);ctx.stroke();ctx.setLineDash([]);ctx.globalAlpha=1;
+ctx.fillStyle=col;ctx.fillText(name+" "+p.toFixed(2),PL+((W-PL-PR)*0.42),y-3);});
+ctx.font="13px monospace";}
+// ENTRY/EXIT actual markers
+const ei=bars.findIndex(b=>Math.abs(b.when-t.when)<150000);
+if(ei>=0){const x=X(ei),y=Y(t.entry);ctx.fillStyle="#e3b341";
+ctx.beginPath();
+if(t.d==="LONG"){ctx.moveTo(x,y+14);ctx.lineTo(x-8,y+26);ctx.lineTo(x+8,y+26);}else{ctx.moveTo(x,y-14);ctx.lineTo(x-8,y-26);ctx.lineTo(x+8,y-26);}
+ctx.closePath();ctx.fill();
+ctx.font="bold 14px monospace";ctx.fillText((t.d==="LONG"?"▲":"▼")+" כניסה "+t.entry.toFixed(2),x+12,y+(t.d==="LONG"?24:-16));ctx.font="13px monospace";}
+if(t.xwhen&&t.xp){const xi=bars.findIndex(b=>Math.abs(b.when-t.xwhen)<150000);
+if(xi>=0){const x=X(xi),y=Y(t.xp);const col=(t.pnl||0)>0?"#56d364":"#f85149";
+ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(x,y,8,0,7);ctx.stroke();
+ctx.beginPath();ctx.moveTo(x-6,y-6);ctx.lineTo(x+6,y+6);ctx.moveTo(x+6,y-6);ctx.lineTo(x-6,y+6);ctx.stroke();ctx.lineWidth=1;
+ctx.fillStyle=col;ctx.font="bold 14px monospace";
+ctx.fillText("⊗ יציאה "+t.xp.toFixed(2)+(t.xr?" ("+t.xr+")":""),x+12,y+5);ctx.font="13px monospace";}}
+// user marks (bold + big price tag)
+const refEntry=(typeof m.entry==="number")?m.entry:t.entry;
+const refStop=(typeof m.stop1==="number")?m.stop1:(t.stop||null);
+const sgn=t.d==="LONG"?1:-1;
+function lvCalc(k,p){
+if(k==="entry")return"";
+if(k.indexOf("stop")===0){const r=(refEntry-p)*sgn;
+return r>=0?` · סיכון ${r.toFixed(1)} נק'`:` · נועל +${(-r).toFixed(1)} נק'`;}
+const rew=(p-refEntry)*sgn;const risk=refStop!=null?Math.abs(refEntry-refStop):null;
+return ` · ${rew>=0?"+":""}${rew.toFixed(1)} נק'${risk?` · ${(rew/risk).toFixed(2)}R`:""}`;}
+let calcRows=[];
+Object.entries(m).forEach(([k,p])=>{if(typeof p!=="number")return;const c=COLORS[k];
+const y=Y(p), name=(LEVELS.find(l=>l[0]===k)||[k,k])[1], calc=lvCalc(k,p);
+ctx.strokeStyle=c;ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(PL,y);ctx.lineTo(W-PR,y);ctx.stroke();ctx.lineWidth=1;
+// left-side tag (clear, on the axis)
+ctx.font="bold 14px monospace";
+ctx.fillStyle=c;ctx.fillRect(0,y-10,PL-2,20);
+ctx.fillStyle="#0d1117";ctx.fillText(p.toFixed(2),5,y+5);
+// in-chart label with live points/R calc
+ctx.font="bold 15px monospace";
+const lbl=p.toFixed(2)+"  "+name+calc+" ✦";
+const lw=ctx.measureText(lbl).width+12;
+ctx.fillStyle=c;ctx.fillRect(PL+4,y-19,lw,19);
+ctx.fillStyle="#0d1117";ctx.fillText(lbl,PL+10,y-4);ctx.font="13px monospace";
+calcRows.push([k,name,p,calc]);});
+// summary panel
+const ORDER={entry:0,stop1:1,t1:2,stop2:3,t2:4,stop3:5,t3:6};
+calcRows.sort((a,b)=>(ORDER[a[0]]??9)-(ORDER[b[0]]??9));
+let calcHtml=calcRows.map(([k,name,p,calc])=>
+`<span style="color:${COLORS[k]};font-weight:700">${name} ${p.toFixed(2)}${calc}</span>`).join(" &nbsp;|&nbsp; ");
+if(typeof m.t2==="number"&&refStop!=null){
+const rr=((m.t2-refEntry)*sgn)/Math.abs(refEntry-refStop);
+calcHtml+=` &nbsp;|&nbsp; <b style="color:#e3b341">R:R עד T2 = 1:${rr.toFixed(2)}</b>`;}
+document.getElementById("calc").innerHTML=calcHtml||'<span style="color:#8b949e">סמן רמות — החישוב (נק׳ סיכון/רווח, R) יופיע כאן ועל הקווים</span>';
+// ── CVD subchart ──
+ctx.fillStyle="#8b949e";ctx.fillText("CVD (דלתא מצטברת)",PL,Y0v+11);
+if(cvd.length){let vlo=Math.min(...cvd.map(x=>x.v)),vhi=Math.max(...cvd.map(x=>x.v));if(vhi===vlo){vhi+=1;vlo-=1;}
+const Yv=p=>Y0v+(vhi-p)*(H2)/(vhi-vlo);
+ctx.strokeStyle="#21262d";ctx.beginPath();ctx.moveTo(PL,Yv(0));ctx.lineTo(W-PR,Yv(0));ctx.stroke();
+// align cvd to bar x by time
+cvd.forEach(p=>{const i=bars.findIndex(b=>Math.abs(b.when-p.when)<150000);if(i<0)return;
+const x=X(i);ctx.fillStyle=p.d>=0?"#56d364":"#f85149";
+const y0=Yv(Math.max(0,p.v)),y1=Yv(Math.min(0,p.v));
+ctx.fillRect(x-cw/2,y0,cw,Math.max(1,y1-y0));});
+ctx.fillStyle="#c9d1d9";ctx.fillText(vhi.toFixed(0),6,Y0v+12);ctx.fillText(vlo.toFixed(0),6,Y1v-2);
+}else{ctx.fillStyle="#30363d";ctx.fillText("אין דאטת CVD לחלון",PL+200,Y0v+40);}
+// ── Woodies CCI subchart ──
+ctx.fillStyle="#8b949e";ctx.fillText("Woodies CCI-14",PL,Y0i+11);
+const ccis=bars.map(b=>b.cci).filter(v=>v!==null&&v!==undefined);
+if(ccis.length){let clo=Math.min(-220,...ccis),chi=Math.max(220,...ccis);
+const Yi=p=>Y0i+(chi-p)*(H3)/(chi-clo);
+[[0,"#8b949e"],[100,"#30363d"],[-100,"#30363d"],[200,"#f85149"],[-200,"#f85149"]].forEach(([lv,c])=>{
+ctx.strokeStyle=c;ctx.setLineDash(lv===0?[]:[3,4]);ctx.beginPath();ctx.moveTo(PL,Yi(lv));ctx.lineTo(W-PR,Yi(lv));ctx.stroke();ctx.setLineDash([]);
+ctx.fillStyle="#8b949e";ctx.fillText(String(lv),6,Yi(lv)+4);});
+ctx.strokeStyle="#e3b341";ctx.lineWidth=1.6;ctx.beginPath();let started=false;
+bars.forEach((b,i)=>{if(b.cci===null||b.cci===undefined)return;const x=X(i),y=Yi(b.cci);
+if(!started){ctx.moveTo(x,y);started=true;}else ctx.lineTo(x,y);});ctx.stroke();ctx.lineWidth=1;}
+// times
+for(let i=0;i<bars.length;i+=Math.max(1,Math.floor(bars.length/9)))
+{ctx.fillStyle="#8b949e";ctx.fillText(bars[i].ts.slice(11,16),X(i)-15,Y1i+18);}
+// crosshair
+if(mouse){const{mx,my}=mouse;
+if(my>=Y0c&&my<=Y1c&&mx>=PL&&mx<=W-PR){
+const price=hi-(my-Y0c)*(hi-lo)/H1;
+ctx.strokeStyle="#8b949e";ctx.setLineDash([4,4]);
+ctx.beginPath();ctx.moveTo(PL,my);ctx.lineTo(W-PR,my);ctx.stroke();
+ctx.beginPath();ctx.moveTo(mx,Y0c);ctx.lineTo(mx,Y1i);ctx.stroke();ctx.setLineDash([]);
+ctx.fillStyle="#e3b341";ctx.fillRect(W-PR+2,my-9,78,18);ctx.fillStyle="#0d1117";ctx.font="bold 13px monospace";
+ctx.fillText((Math.round(price*4)/4).toFixed(2),W-PR+6,my+4);ctx.font="13px monospace";
+const bi=Math.round((mx-PL)/((W-PL-PR)/Math.max(bars.length-1,1)));
+const b=bars[Math.min(Math.max(bi,0),bars.length-1)];
+document.getElementById("readout").textContent=
+`מחיר: ${(Math.round(price*4)/4).toFixed(2)} · בר ${b.ts.slice(11,16)} O:${b.o} H:${b.h} L:${b.l} C:${b.c}`+(b.cci!=null?` CCI:${b.cci.toFixed(0)}`:"");}}
+// meta
+const done=Object.keys(marks).filter(id=>Object.values(marks[id]||{}).some(v=>typeof v==="number")).length;
+document.getElementById("prog").textContent=`סומנו ${done}/${DATA.trades.length}`;
+document.getElementById("meta").innerHTML=
+`<b>#${t.id}</b> · תבנית: <b>${t.pat||"?"}</b> · <b>${t.d}</b> · ${t.ts.slice(0,10)} ${t.ts.slice(11,16)} · סוג-יום (מערכת): <b style="color:#d2a8ff">${t.daytype||((DATA.levels[t.ts.slice(0,10)]||{}).daytype)||"?"}</b>${(DATA.levels[t.ts.slice(0,10)]||{}).opening?` (פתיחה: ${(DATA.levels[t.ts.slice(0,10)]||{}).opening})`:""} · משטר: <b>${regime(bars)}</b> · כניסה <b style="color:#e3b341">${t.entry.toFixed(2)}</b> · סטופ-מערכת ${t.stop?t.stop.toFixed(2)+" ("+Math.abs(t.entry-t.stop).toFixed(1)+" נק')":"?"} · יציאה ${t.xp?t.xp.toFixed(2)+" · "+(t.xr||""):"פתוחה"} · P&L ${t.pnl!=null?"<b style='color:"+(t.pnl>0?"#56d364":"#f85149")+"'>"+t.pnl.toFixed(0)+"$</b>":"—"}`;
+sel.value=cur;
+LEVELS.forEach(([k])=>{const b=document.getElementById("lv-"+k);
+b.classList.toggle("active",k===activeLevel);
+b.textContent=((marks[t.id]||{})[k]?"✓ ":"")+(LEVELS.find(l=>l[0]===k)[1]);});
+document.getElementById("note").value=((marks[t.id]||{}).note||"");
+const ne=(marks[t.id]||{}).no_entry;
+const neb=document.getElementById("noentry");
+neb.style.background=ne?"#f85149":"#21262d";neb.style.color=ne?"#fff":"#f85149";
+neb.textContent=ne?"🚫 מסומן: לא הייתי נכנס (לחץ לביטול)":"🚫 לא הייתי נכנס לעסקה הזו";
+if(ne){ctx.fillStyle="rgba(248,81,73,0.12)";ctx.fillRect(G.X0,G.Y0c,G.X1-G.X0,(G.Y1c-G.Y0c));
+ctx.fillStyle="#f85149";ctx.font="bold 22px monospace";
+ctx.fillText("🚫 לא נכנסים — "+((marks[t.id]||{}).note||"(הוסף סיבה למטה)"),G.X0+30,G.Y0c+34);ctx.font="13px monospace";}
+}
+const cvEl=document.getElementById("cv");
+function toCanvas(ev){const r=cvEl.getBoundingClientRect();
+return{mx:(ev.clientX-r.left)*(cvEl.width/r.width),my:(ev.clientY-r.top)*(cvEl.height/r.height)};}
+cvEl.addEventListener("mousemove",ev=>{mouse=toCanvas(ev);render();});
+cvEl.addEventListener("mouseleave",()=>{mouse=null;render();});
+cvEl.addEventListener("click",ev=>{const{my}=toCanvas(ev);
+if(my<G.Y0c||my>G.Y1c)return;
+const t=DATA.trades[cur];
+let price=G.hi-(my-G.Y0c)*(G.hi-G.lo)/(G.Y1c-G.Y0c);
+price=Math.round(price*4)/4;
+marks[t.id]=marks[t.id]||{};marks[t.id][activeLevel]=price;
+marks[t.id].pat=t.pat;marks[t.id].day_type=t.daytype;marks[t.id].dir=t.d;
+localStorage.setItem("mems26_marks",JSON.stringify(marks));render();});
+function toggleNoEntry(){const t=DATA.trades[cur];marks[t.id]=marks[t.id]||{};
+marks[t.id].no_entry=!marks[t.id].no_entry;
+if(marks[t.id].no_entry && !(marks[t.id].note||"").trim()){
+document.getElementById("note").placeholder="🚫 למה לא היית נכנס? (חובה להסביר — זה נכנס לכללים)";
+document.getElementById("note").focus();}
+marks[t.id].pat=t.pat;marks[t.id].day_type=t.daytype;marks[t.id].dir=t.d;
+localStorage.setItem("mems26_marks",JSON.stringify(marks));render();}
+function saveNote(){const t=DATA.trades[cur];marks[t.id]=marks[t.id]||{};
+marks[t.id].note=document.getElementById("note").value;
+localStorage.setItem("mems26_marks",JSON.stringify(marks));}
+function nav(d){cur=Math.min(Math.max(cur+d,0),DATA.trades.length-1);show(cur);}
+async function show(i){cur=i;const t=DATA.trades[i];if(t)await _ensureDate((t.ts||"").slice(0,10));render();}
+function doExport(){const out={exported:new Date().toISOString(),marks};
+const blob=new Blob([JSON.stringify(out,null,1)],{type:"application/json"});
+const a=document.createElement("a");a.href=URL.createObjectURL(blob);
+a.download="mems26_placement_marks.json";a.click();}
+(async()=>{try{document.getElementById("meta").innerHTML="טוען נתונים חיים…";await _loadTrades();await _hydrateMarks();_buildSel();if(DATA.trades.length){await show(0);}else{document.getElementById("meta").innerHTML="אין עסקאות";}}catch(e){document.getElementById("meta").innerHTML="שגיאת טעינה: "+(e&&e.message||e);console.error(e);}})();
+</script></body></html>
