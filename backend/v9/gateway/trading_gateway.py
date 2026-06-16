@@ -140,6 +140,32 @@ class TradingGateway:
         # FIX 4: skip _get_chop_state entirely when gate disabled (avoids
         # HTTP self-calls that deadlock single-worker uvicorn)
 
+        # Day-type playbook fire-veto — DISABLED by default (env DAYTYPE_PLAYBOOK=1
+        # + Michael approval). Blocks fires that the pattern×day-type playbook marks
+        # SKIP (reversals on a trend day, counter-trend REACTIVE, Nontrend, ...) per
+        # config/daytype_playbook.yaml. decide() is fail-open (returns FULL when the
+        # flag is off OR pattern/day-type is unmapped), and the whole block is wrapped
+        # so a bug can NEVER block a fire. Mirrors the Layer-0 chop gate above.
+        # Re-enable is a trading-risk-surface change → strategic stop + Michael sign-off.
+        if os.getenv("DAYTYPE_PLAYBOOK", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.daytype_playbook import decide as _pb_decide
+                _pb_g1 = extract_g1_entry_context(cross_context)
+                _pb_woodies = cross_context.get("woodies_system") if isinstance(cross_context, dict) else None
+                _pb = _pb_decide(
+                    pattern=resolve_pattern_id(setup, _pb_g1),
+                    day_type=_pb_g1.get("day_type_at_entry"),
+                    direction=direction,
+                    trend_state=(_pb_woodies or {}).get("trend_state"),
+                )
+                if not _pb.allow:
+                    result["blocked_by"] = "daytype_playbook"
+                    logger.info("[Gateway] BLOCKED by day-type playbook: %s", _pb.reason)
+                    return result
+                logger.debug("[Gateway] day-type playbook PASS: %s", _pb.reason)
+            except Exception as _pb_err:  # fail-open — never block a fire on a bug
+                logger.warning("[Gateway] day-type playbook check errored (fail-open): %s", _pb_err)
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:
