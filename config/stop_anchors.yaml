@@ -103,6 +103,10 @@ flag_relative_t1:
   dist_tight_pts: 15     # ✅ tight-stop boundary (points)
   dist_wide_pts: 25      # ✅ wide-stop boundary (points)
 
+# ── Runner Trail (RUNNER_TRAIL_V1, default OFF) ──────────────────────
+runner_trail:
+  k_risk: 1.0             # trail = hwm − k×initial_risk (backtest: 1.0 optimal)
+
 # ── Guardrails (schema-validation בטעינה) ────────────────────────────
 guardrails:
   max_contracts: 3

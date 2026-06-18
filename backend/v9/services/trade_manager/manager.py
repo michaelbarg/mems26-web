@@ -336,6 +336,83 @@ class TradeManager:
             trade.id, stop_before if stop_before else 0, trade.stop,
         )
 
+    def apply_trail_after_t1(self, trade: V9Trade, bar_high: float, bar_low: float) -> None:
+        """Trailing stop after T1 hit (RUNNER_TRAIL_V1).
+
+        Trail = hwm − k×initial_risk (LONG) or hwm + k×risk (SHORT).
+        Floor = BE+1T (never below the current smart-BE level).
+        Never widens the stop. hwm persisted in quality["trail_hwm"].
+        """
+        if trade.entry_price is None:
+            return
+        initial = self._initial_stop(trade)
+        if initial is None:
+            return
+        entry = float(trade.entry_price)
+        risk = abs(entry - initial)
+        if risk <= 0:
+            return
+
+        from backend.v9.systems.five_min.constants import MES_TICK_SIZE
+        tick = MES_TICK_SIZE
+
+        # k_risk from config (tunable)
+        k = 1.0
+        try:
+            from backend.v9.config_loader import load_stop_anchors
+            _sa = load_stop_anchors()
+            if _sa and "runner_trail" in _sa:
+                k = float(_sa["runner_trail"].get("k_risk", 1.0))
+        except Exception:
+            pass
+
+        direction = (trade.direction or "").upper()
+        q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+
+        if direction == "LONG":
+            hwm = max(float(q.get("trail_hwm", entry)), bar_high)
+            q["trail_hwm"] = hwm
+            trail = hwm - k * risk
+            floor = entry + tick  # never below BE+1T
+            new_stop = round(max(trail, floor), 2)
+            if trade.stop is not None and new_stop <= float(trade.stop):
+                trade.quality = q
+                return  # never widen
+        elif direction == "SHORT":
+            hwm = min(float(q.get("trail_hwm", entry)), bar_low)
+            q["trail_hwm"] = hwm
+            trail = hwm + k * risk
+            floor = entry - tick
+            new_stop = round(min(trail, floor), 2)
+            if trade.stop is not None and new_stop >= float(trade.stop):
+                trade.quality = q
+                return  # never widen
+        else:
+            return
+
+        stop_before = float(trade.stop) if trade.stop is not None else None
+        trade.stop = new_stop
+        trade.quality = q
+
+        # Audit trail (same pattern as _apply_smart_be_after_t1)
+        audit_entry = {
+            "event": "stop_move",
+            "from": stop_before,
+            "to": new_stop,
+            "reason": f"TRAIL hwm={hwm:.2f} k={k} risk={risk:.2f}",
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(audit_entry)
+        trade.cross_context = ctx
+        self._log_management(trade.id, "TRAIL", {
+            "from": stop_before, "to": new_stop, "hwm": hwm, "k": k, "risk": round(risk, 2),
+        })
+
+        logger.info(
+            "[TradeManager] TRAIL: trade %s stop %.2f -> %.2f (hwm=%.2f k=%.1f risk=%.1f)",
+            trade.id, stop_before or 0, new_stop, hwm, k, risk,
+        )
+
     def _apply_stop_after_t2(self, trade: V9Trade) -> None:
         """Move stop to BE + 0.5R after T2 hit (RUNNER_TARGETS_V1).
 

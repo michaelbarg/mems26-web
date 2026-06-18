@@ -95,7 +95,18 @@ class BarLevelDetector:
                         continue
 
                 direction = trade.direction
-                stop = trade.stop
+
+                # Trail runner stop (before stop-check so trailed stop is used)
+                import os as _trail_os
+                if _trail_os.getenv("RUNNER_TRAIL_V1", "0").lower() in ("1", "true", "yes") \
+                   and trade.t1_hit_ts is not None \
+                   and trade.state != "CLOSED":
+                    try:
+                        self._tm.apply_trail_after_t1(trade, bar_high, bar_low)
+                    except Exception as _trail_err:
+                        logger.warning("[BarLevelDetector] trail error (fail-safe skip): %s", _trail_err)
+
+                stop = trade.stop  # refresh after potential trail update
 
                 # 1. Stop check FIRST (adverse fill priority)
                 if stop is not None:
