@@ -181,6 +181,23 @@ class TradingGateway:
             except Exception as _td_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] trend-direction gate errored (fail-open): %s", _td_err)
 
+        # Reactive Location Gate — blocks REACTIVE on wrong side of POC (flag-gated)
+        if os.getenv("REACTIVE_LOCATION_GATE", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.reactive_location_gate import decide as _rl_decide
+                _rl_g1 = extract_g1_entry_context(cross_context)
+                _rl_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                _allow, _reason = _rl_decide(
+                    resolve_pattern_id(setup, _rl_g1), direction,
+                    setup.get("entry_price"), _rl_tpo.get("poc"),
+                )
+                if not _allow:
+                    result["blocked_by"] = "reactive_location"
+                    logger.info("[Gateway] BLOCKED by reactive-location gate: %s", _reason)
+                    return result
+            except Exception as _rl_err:  # fail-open
+                logger.warning("[Gateway] reactive-location gate errored (fail-open): %s", _rl_err)
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:
