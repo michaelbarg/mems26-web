@@ -690,11 +690,12 @@ class WoodiesSystem(BaseV9TradingSystem):
                                         _s4_t1 = _s4_entry + _s4_sign * _measure_cap * _measure
                                 else:
                                     # CONT + FAMIR/HTLB/HFE: T1 from risk ladder
+                                    _t1_v2 = _flag("T1_LADDER_V2")
                                     _s4_t1 = SA.t1_price(
                                         _s4_entry, _s4_stop, direction,
-                                        t1_ladder_cont=_sa["t1_ladder_continuation"],
+                                        t1_ladder_cont=_sa.get("t1_ladder_continuation_v2", _sa["t1_ladder_continuation"]) if _t1_v2 else _sa["t1_ladder_continuation"],
                                         reversal=_is_rev,
-                                        reversal_mult=_sa.get("t1_reversal_multiplier", 0.8),
+                                        reversal_mult=_sa.get("t1_reversal_multiplier_v2", 0.8) if _t1_v2 else _sa.get("t1_reversal_multiplier", 0.8),
                                         t1_floor_points=_sa.get("t1_floor_points", 3.0),
                                         ladder_shift=_shift,
                                     )

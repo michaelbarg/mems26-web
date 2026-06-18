@@ -84,11 +84,13 @@ def compute_v2_sizing(
     # ── T1 price ──
     anchor_cfg = cfg["anchors"].get(pattern_key, {})
     t1_shift = anchor_cfg.get("t1_ladder_shift", ladder_shift)
+    import os as _sz_os
+    _sz_v2 = _sz_os.environ.get("T1_LADDER_V2", "0").lower() in ("1", "true", "yes")
     t1 = SA.t1_price(
         entry_price, stop_price, direction,
-        t1_ladder_cont=cfg["t1_ladder_continuation"],
+        t1_ladder_cont=cfg.get("t1_ladder_continuation_v2", cfg["t1_ladder_continuation"]) if _sz_v2 else cfg["t1_ladder_continuation"],
         reversal=reversal,
-        reversal_mult=cfg.get("t1_reversal_multiplier", 0.8),
+        reversal_mult=cfg.get("t1_reversal_multiplier_v2", 0.8) if _sz_v2 else cfg.get("t1_reversal_multiplier", 0.8),
         t1_floor_points=cfg.get("t1_floor_points", 3.0),
         ladder_shift=t1_shift,
     )

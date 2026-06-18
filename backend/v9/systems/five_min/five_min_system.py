@@ -1334,8 +1334,9 @@ class FiveMinSystem(BaseV9TradingSystem):
                     try:
                         from backend.v9.config_loader import load_stop_anchors
                         _sa = load_stop_anchors()
-                        if _sa and "flag_relative_t1" in _sa:
-                            _ft = _sa["flag_relative_t1"]
+                        _ft_key = "flag_relative_t1_v2" if _flag("T1_LADDER_V2") and _sa and "flag_relative_t1_v2" in _sa else "flag_relative_t1"
+                        if _sa and _ft_key in _sa:
+                            _ft = _sa[_ft_key]
                             _r_max = float(_ft.get("t1_r_max", 0.8))
                             _r_min = float(_ft.get("t1_r_min", 0.4))
                             _d_tight = float(_ft.get("dist_tight_pts", 15))

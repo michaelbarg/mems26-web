@@ -24,10 +24,12 @@ def mkwb(r): return WoodiesBar(ts=r[0].timestamp(),open=float(r[1]),high=float(r
 wb=[mkwb(r) for r in rows]
 um=lambda b:(dt.datetime.utcfromtimestamp(b.ts).hour*60+dt.datetime.utcfromtimestamp(b.ts).minute)
 et=lambda b:(dt.datetime.utcfromtimestamp(b.ts)-dt.timedelta(hours=4)).strftime("%H:%M")
-def t1_of(en,st,d,pid,grp):
+def t1_of(en,st,d,pid,grp,use_v2=False):
     rev=(pid in REV) or (grp=="REVERSAL"); a=SA_CFG["anchors"].get(pid,{})
-    return SA.t1_price(en,st,d,t1_ladder_cont=SA_CFG["t1_ladder_continuation"],reversal=rev,
-        reversal_mult=SA_CFG.get("t1_reversal_multiplier",0.8),t1_floor_points=SA_CFG.get("t1_floor_points",3.0),ladder_shift=a.get("t1_ladder_shift",0))
+    lad=SA_CFG.get("t1_ladder_continuation_v2",SA_CFG["t1_ladder_continuation"]) if use_v2 else SA_CFG["t1_ladder_continuation"]
+    rmult=SA_CFG.get("t1_reversal_multiplier_v2",0.8) if use_v2 else SA_CFG.get("t1_reversal_multiplier",0.8)
+    return SA.t1_price(en,st,d,t1_ladder_cont=lad,reversal=rev,
+        reversal_mult=rmult,t1_floor_points=SA_CFG.get("t1_floor_points",3.0),ladder_shift=a.get("t1_ladder_shift",0))
 def fill(en,st,t1,d,i0,tb=18):
     s=1 if d=="LONG" else -1; risk=abs(en-st); cur=st; half=False; hwm=en; pts=0.0
     for j in range(i0+1,min(i0+1+tb,len(wb))):

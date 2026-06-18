@@ -166,6 +166,21 @@ class TradingGateway:
             except Exception as _pb_err:  # fail-open — never block a fire on a bug
                 logger.warning("[Gateway] day-type playbook check errored (fail-open): %s", _pb_err)
 
+        # Trend Direction Gate — blocks counter-trend for targeted patterns (flag-gated)
+        if os.getenv("TREND_DIRECTION_GATE", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.trend_direction_gate import decide as _td_decide
+                _td_g1 = extract_g1_entry_context(cross_context)
+                _td_ws = (cross_context.get("woodies_system") if isinstance(cross_context, dict) else None) or {}
+                _td_ts = _td_ws.get("trend_state")
+                _allow, _reason = _td_decide(resolve_pattern_id(setup, _td_g1), direction, _td_ts)
+                if not _allow:
+                    result["blocked_by"] = "trend_direction_gate"
+                    logger.info("[Gateway] BLOCKED by trend-direction gate: %s", _reason)
+                    return result
+            except Exception as _td_err:  # fail-open — never block on a bug
+                logger.warning("[Gateway] trend-direction gate errored (fail-open): %s", _td_err)
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:

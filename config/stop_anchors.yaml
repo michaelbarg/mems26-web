@@ -42,6 +42,21 @@ t1_ladder_continuation:                # R-multiple לפי סיכון בנקוד
   - {max_risk_points: 25, t1_r: 0.40}  # 🔬 מחקר (אושר)
 t1_reversal_multiplier: 0.80           # ✅ תבניות-היפוך: סולם × 0.8 (שמרני יותר)
 
+# ── T1 Ladder V2 (flag T1_LADDER_V2, default OFF — wider targets) ──────
+# Candidate values — final after backtest. All within guardrails t1_r_max=1.5.
+t1_ladder_continuation_v2:
+  - {max_risk_points: 5,  t1_r: 1.20}
+  - {max_risk_points: 10, t1_r: 1.00}
+  - {max_risk_points: 15, t1_r: 0.90}
+  - {max_risk_points: 20, t1_r: 0.75}
+  - {max_risk_points: 25, t1_r: 0.60}
+t1_reversal_multiplier_v2: 0.90       # less restrictive for reversals
+flag_relative_t1_v2:                   # S2 (five_min_system) linear interpolation
+  t1_r_max: 1.00
+  t1_r_min: 0.60
+  dist_tight_pts: 15
+  dist_wide_pts: 25
+
 # ── נר-ענק (>25 נק' סיכון, חוזה 1) (✅/🔬) ───────────────────────────
 giant_candle:
   applies_over_risk_points: 25

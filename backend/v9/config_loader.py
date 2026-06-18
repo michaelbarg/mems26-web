@@ -305,7 +305,7 @@ def load_stop_anchors() -> Optional[Dict[str, Any]]:
     if not (0 < data.get("risk_cap_points", 0) <= max_risk):
         errors.append(f"risk_cap_points={data.get('risk_cap_points')} out of range")
 
-    for name in ("contract_ladder", "t1_ladder_continuation"):
+    for name in ("contract_ladder", "t1_ladder_continuation", "t1_ladder_continuation_v2"):
         rows = data.get(name)
         if not isinstance(rows, list) or not rows:
             errors.append(f"{name}: missing/empty"); continue
@@ -314,7 +314,7 @@ def load_stop_anchors() -> Optional[Dict[str, Any]]:
                 errors.append(f"{name}: row missing max_risk_points")
             if name == "contract_ladder" and not (1 <= r.get("contracts", 0) <= max_contracts):
                 errors.append(f"contract_ladder.contracts={r.get('contracts')} out of range")
-            if name == "t1_ladder_continuation" and not (t1_min <= r.get("t1_r", 0) <= t1_max):
+            if name.startswith("t1_ladder_continuation") and not (t1_min <= r.get("t1_r", 0) <= t1_max):
                 errors.append(f"t1_ladder.t1_r={r.get('t1_r')} out of range")
 
     mc = data.get("mode_caps", {})

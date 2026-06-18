@@ -1,0 +1,8 @@
+# Trend Direction Gate — with-trend discipline per trend_state (BLUE↔LONG, RED↔SHORT).
+# value = sides to gate; blocks when that side is counter to live trend_state.
+# GRAY/YELLOW/None → fail-open (allow). Flag: TREND_DIRECTION_GATE (default OFF).
+# Empirical basis: PATTERN_IMPROVEMENT_PROPOSAL_2026-06-18.html (122 trades/8 days).
+patterns:
+  HFE: [LONG, SHORT]      # both sides counter-trend → block (−$2,639 cumulative)
+  REACTIVE_LONG: [LONG]   # block LONG into RED (−$1,020); REACTIVE_SHORT untouched
+  ZLR: [SHORT]            # only ZLR-SHORT blocked (−$1,491); ZLR-LONG (+$1,372) kept
