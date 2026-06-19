@@ -27,6 +27,19 @@ TARGET2_TICKS = _ticks["t2_ticks"]      # fallback: 24
 _T1_TICKS = 4  # T1 for R_t1 computation — intentionally NOT from YAML
 
 
+def _zlr_cci_min() -> float:
+    """CCI |extreme| required for ZLR Stage-1.  Default 100 (current behavior).
+    Per Liran's spec a valid ZLR needs a bar past ±200, so set env ZLR_CCI_MIN=200
+    to enforce the strong-extreme rule (or 150 for the middle tier). Flag-gated:
+    unset / invalid → 100 → ZERO change to current firing."""
+    import os
+    try:
+        v = float(os.environ.get("ZLR_CCI_MIN", "100"))
+        return v if v > 0 else 100.0
+    except (TypeError, ValueError):
+        return 100.0
+
+
 def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:
     """Compute ATR-14 from bars in ticks."""
     if len(bars) < 14:
@@ -84,7 +97,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
 
     # ZLR UP Stage 1: find bar where CCI >= 100 (trend-side extreme per DTV1 § A3)
     for i in range(n - 2, max(n - LOOKBACK - 2, -1), -1):
-        if cci_history[i] >= 100:
+        if cci_history[i] >= _zlr_cci_min():
             # Stage 2: pullback below 100, NOT below -100
             pulled = any(
                 -100 < cci_history[j] <= 100
@@ -151,7 +164,7 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
 
     # ZLR DOWN Stage 1: find bar where CCI <= -100 (trend-side extreme per DTV1 § A3)
     for i in range(n - 2, max(n - LOOKBACK - 2, -1), -1):
-        if cci_history[i] <= -100:
+        if cci_history[i] <= -_zlr_cci_min():
             # Stage 2: pullback above -100, NOT above +100
             pulled = any(
                 -100 <= cci_history[j] < 100

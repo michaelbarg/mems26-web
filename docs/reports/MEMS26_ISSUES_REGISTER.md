@@ -568,3 +568,165 @@ verdict **READY**. ירו היום S2×1 (BEAR_FLAG_SHORT id=22) + S4×1 (HTLB i
 - choppiness/Layer-0/day_type/auth/footprint: **0 חסימות** (standing decisions נשמרים). `data.mode_context`
   על 6 תבניות-S2 — ראה סעיף 15:12 (אימות-CC שאינו chop-gate בשם-חדש).
 - דוח מלא: `docs/reports/MISSED_TRADES_2026-06-12.md`. אנליזה בלבד, לא שונה קוד.
+
+---
+
+### [2026-06-15 15:23 CT] ריצת missed-trades אוטונומית EOD — ממצאים (Cowork)
+
+**כותרת-העל — היום ש-S4 נותב.** יום **Trend_Normal עולה** (פתיחת-RTH 7599.25@08:30 → HIGH 7648.75@11:00
+→ דעיכה לסגירה 7630@14:55, טווח-RTH ~50נק' · ברי-RTH = ספטמבר-חי). **26 ירי (8×S2 + 18×S4),
+13W/13L, נטו −$394.45 shadow.** ⚠️ ראה CAVEAT-גלגול-החוזה למטה. דוח מלא: `MISSED_TRADES_2026-06-15.md`.
+
+- **I-3** 🔴→🟡 **(שינוי מהותי) — S4 נותב סוף-סוף.** 18 עסקאות-S4 ירו היום (ZLR×6/TLB×7/HFE×4/GB100×1)
+  מול ~0 היסטורית (06-05→06-12 כולן "S4 לא יורה / A7 R:R<1.0 / missing fire_setup"). נראה
+  ש-`fire_setup`/טבלת stop-target (D1/D8) **נחתו**. **דגל-CC (Rule 5): לאשר מ-diff/deploy שזה תיקון-קוד,
+  לא תנאי-שוק.** **Residual מובחן:** VEGAS/GHOST/FAMIR זוהו **17× וירו 0×** (`ready_to_route=False`
+  תמידי — נתיב-ירי חסר לשלוש התבניות; HFE/TLB/ZLR לעומתן נותבו סלקטיבית). לחווט נתיב-ירי לשלושתן.
+- **setups שזוהו-ולא-ירו: 31 distinct (deduped) + 2 uncaptured.** replay-מלא: 10 מנצחים +15R / 21
+  מפסידים −20.85R ⇒ **net −5.85R** ⇒ אי-הירי **חסך ≈+5.85R** (רוב ה-blocked = counter-trend בוקר +
+  churn-אחה"צ). **פספוס-אמת אינקרמנטלי ≈+1R בלבד** (cluster VEGAS/GHOST ב-PM-fade, **רדונדנטי** —
+  אותו דעיכת-אחה"צ נתפסה ע"י id105 GB100-S 12:09 WIN + id107 ZLR-S 12:45 WIN שכן ירו).
+- **🔴 CAVEAT-נתונים (חדש, מ-STATUS_BOARD 06-15 ~14:20–14:27 IDT):** גלגול-חוזה MES יוני→ספטמבר השאיר
+  יצואי-Sierra (`mes_ai_data`/`5min`/`live_price.price`/`v9_tpo_history`) **קפואים על יוני ~7498.50**,
+  בעוד נתיב-הירי (woodies/continuous→S4 + day_type IB 7598–7622) רץ על ספטמבר-חי ~7600. ⇒ `session_low=7498.50`
+  + 2× `uncaptured_move` "ramp 7498→7607" ב-missed-endpoint = **artifact-גלגול, לא setup** (הוצא מחישוב-R).
+  **דגל-CC:** לאמת ש-TPO/value-area context שמזין observers של S4 לא היה קפוא-יוני בזמן-הירי (סיכון מיס-פייר;
+  day_type עצמו על IB-ספטמבר אמיתי ✓).
+- **I-28/D3 (המשך-אחרי-expansion)** ⚪ **לא-נצפה היום** — ה"ramp" שנראה כמהלך-שפוספס היה ה-artifact לעיל.
+  אין leg-המשך אמיתי-שפוספס היום (I-28/D3 פתוח מימים קודמים, לא נצפה היום).
+- **I-26/I-28 (counter-trend)** 🔴 — ירי-נגד-מגמה נמשך דו-כיוונית: id89 SHORT לתוך עלייה; 3× REACTIVE-LONG
+  לתוך דעיכת-אחה"צ (id101 −$187.5 / id113 −$123.75 / id114 −$60). veto-תיאום-מגמה עדיין חסר.
+- **I-13** 🔴 — sizing/stop-רחב נמשך: net −$394 למרות 13W/13L, כי מפסידים על stops 10–12.75נק'
+  (id96 −$191/12.75נק' · id101 −$187.5/12.5נק' · ZLR 14:55 stop 10נק') מול מנצחים על stops צרים. D8.
+- **I-22** 🔴 — `pnl_r` עדיין מנופח ~50× (id115 מציג pnl_r=30.48); כל ה-R בדוח חושב מ-`pnl_usd/risk`.
+- **I-31** 🟡 — לא-נבדק ישירות; ground-truth = `v9_trades` (26). CC להצליב מול `build/pattern-status` counts.
+- **🎯 benchmark: 5/5 סלוטים עם ירי בסלוט/±10דק' (2/5 מדויק) — הטוב ביותר עד כה.** המהותי: **הסתגלות-כיוון** —
+  סלוטים 4–5 (benchmark=SHORT, מ-06-05 יום-יורד) ירו **LONG** עם-המגמה ביום-העולה (id97 09:30 ZLR-L +$289 ·
+  id99 10:05 REACTIVE-L +$146) → שני המנצחים הגדולים. המערכת לא עקבה עיוורת אחרי תבנית-ה-benchmark.
+- **choppiness/Layer-0/day_type/auth/footprint: 0 חסימות** (standing decisions נשמרים).
+- **פער-export woodies נמשך:** buffer=50 ברים (11:30→15:35 CT, RED 31/GRAY 17/BLUE 2) — flags-בוקר
+  (08:30–11:25) לא בזיכרון-ה-study; הצלבת-בוקר מ-`missed-trades` endpoint + trades. CCI-בוקר טרם-מוצלב
+  מול Sierra — CC.
+
+**הצלבות-CC (Sierra v9_export):** (1) I-3 — diff/deploy של fire_setup/stop-target (מה שחרר את S4?).
+(2) נתיב-ירי VEGAS/GHOST/FAMIR (למה 0-ניתוב). (3) CCI-בוקר 08:30–11:25 מול Sierra היסטורי. (4) I-31
+count-query. אנליזה בלבד, לא שונה קוד.
+
+---
+
+### [2026-06-15 15:39 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**מקור:** API חי (Chrome) — `/trades/recent?limit=100` (26 עסקאות-היום), `/chart/bars5min` (78 ברי-RTH), `day_type/state`, `build/pattern-status`. דוחות: `PATTERN_EOD_2026-06-15.md` + `DESIGNS_2026-06-15.md`. **קריאה בלבד — לא שונה קוד.**
+
+**יום 06-15 (Trend_Normal / OPEN_DRIVE, כולן SHADOW):** פתיחה 7599.25=LOW@08:30 → דרייב ל-HIGH 7648.75@11:00 → range-אחה"צ 7615–7640 → סגירה 7630. טווח-RTH 50.5pt, נטו +30.75pt. **26 עסקאות, 13W/13L, נטו −$394.45, ΣR-נקי ≈ −3.45R** (S4: 18, 10W/8L, −$60.05 · S2: 8, 3W/5L, −$334.40). **עם-המגמה +$345.95 (+2.07R) / נגד-המגמה −$581.65 (−4.79R)** — יום רביעי ברציפות באותו דפוס.
+
+**עדכוני-סטטוס חשודים (מ-ראיות-היום):**
+- **I-1 🔴→🟡** — `opening_type=OPEN_DRIVE` + `day_type=Trend_Normal` סווגו **נכון** (S1-classification עובד). residual נותר: `vote_history=[]` ריק + השדה `session_min` מוסתר כעת ע"י I-33. ⇒ הריאקציה-לפתיחה לא נחסמה כבעיה היום.
+- **I-3 🔬→נסגר-בפועל** — "ZLR לא ירה" כבר אינו תקף: ZLR ירה **6×** היום והיה **התבנית-החזקה** (+$426.85, 4W/2L, 2×T2). ה-deploy ששחרר את S4 עובד. (נשאר לאמת מול Sierra איזה diff שחרר — CC.)
+- **I-22 🔴 (חי)** — 8 עסקאות-T1/BE עם `pnl_r(API)==pnl_usd÷1.25` בדיוק (ids 91,92,100,102,104,105,106,115); נתיב-T2 תקין (id93=+0.93R נקי). מיקוד-D1: branch של T1/BE-exit. display-safe.
+- **I-25 🟢 (חוזר)** — `limit=200`→422 (cap 100). היום 26<100 ⇒ ללא-אובדן.
+- **I-26/I-28 🔴 (התחזק — יום רביעי)** — HFE-SHORT ×4 (id93–96) לתוך דרייב-בוקר עולה = −$444.50; נגד-מגמה כללי −$581.65. → D3 (veto-מגמה, **כולל slope-מחיר ולא רק trend-צבע** — id93–96 ירו כש-trend עוד BLUE אך המחיר עלה 49pt). trading-logic → Michael.
+- **I-29 🟡 (reframe מאושש — יום רביעי)** — 4×T2 היום כולן עם-המגמה (id97/98/99/107). ה-runner עובד; הכיול = D3+D8, לא revert.
+- **I-30 🔴 (חי)** — HFE 94/95/96 stop משותף 7623.25 מתו יחד; TLB 108/109 (7627.25); REACTIVE_S 110/112 (7636). CF-cull +$694.05. → D4.
+- **I-31 🔴 (התחזק)** — pattern-status `S4=39 + S2=15 = 54 ירי` מול **26** ב-`v9_trades` (~2×). הפער גדל מ-06-12. חוסם-כיול. → D2.
+- **I-32 🟡 (חוזר)** — gap-id **90** (89→91). → D9/CC.
+- **I-11** — S3 footprint `fired_today_count=0` (S3_MUTE, deferred pre-LIVE per memory).
+
+**חשודים חדשים:**
+- **I-33 🟡 (חדש, display-safe)** — **רדאקציית-סוד רחבה-מדי.** `day_type/state` + `pattern-status` מחזירים `session_min`/`session_date`/`rtb_session` כ-"[BLOCKED: Sensitive key]". matcher תופס תת-מחרוזת (`session`/`date`) ובולע ערכי-דיאגנוסטיקה תמימים (כולל הראיה ל-residual-I-1). חדש מאז 06-12 (אז `session_min=0` נראה כערך). SoT: redactor בשכבת-ה-serialization של ה-API. → D7. *(להוסיף שורה למאסטר-טבלה כש-Michael מאשר ניסוח.)*
+- **כיול חדש — regime/confidence-gate לאחה"צ** — range 13:00–15:00 = −$595.65 (1W/7L) בעוד `day_type=Trend_Normal` נעול ב-`confidence=0.46`; התבניות ירו reversal/reactive לשני הכיוונים לתוך range. → D5 (שער-regime חדש — **לא** re-enable של chop-gate המנוטרל).
+
+**הצלבות-CC (Sierra v9_export):** (1) I-31 count-query מול `SELECT firing_system,COUNT(*) FROM v9_trades WHERE date=today GROUP BY 1` (צפוי 18/8, לא 39/15). (2) I-32 gap-90 — sequence/לוג. (3) I-22 — branch T1/BE מול T2. (4) I-33 — איזה matcher מסמן session_* כ-sensitive. (5) I-26/I-28 — `woodies_trend`+CCI-14 בעת id93–96 (Sierra הראה עולה?). (6) readiness=DEGRADED post-close (`trend_state=GRAY`+`dead: bars_5min`) — **post-close-benign**; לאמת מחר תוך-RTH שאין stall אמיתי (אחרת I-21). אנליזה בלבד, לא שונה קוד.
+
+---
+
+### [2026-06-16 15:12 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**מקור:** API חי (Chrome) — `/trades/recent?limit=100` (30 עסקאות-היום, id 116–146), `/chart/bars5min?limit=200` (78 ברי-RTH), `day_type/state`, `build/pattern-status`. דוחות: `PATTERN_EOD_2026-06-16.md` + `DESIGNS_2026-06-16.md`. **קריאה בלבד — לא שונה קוד.**
+
+**יום 06-16 (יום-מגמה-יורד נקי / OPEN_DRIVE, כולן SHADOW):** פתיחה 7628=HIGH@08:30 (7636.5 באותו בר) → דעיכה מונוטונית → LOW 7582.75@14:55, סגירה 7588. טווח-RTH 53.75pt, נטו **−40pt**. **30 עסקאות, 21W/9L (70%), נטו −$657.63, ΣR-נקי ≈ −1.10R** (S4: 21, 15W/6L, −$547.43 · S2: 9, 6W/3L, −$110.20). **פילוח-הכיוון הקיצוני-ביותר עד כה: SHORT 18W/0L +$627.40 (+6.43R) / LONG 3W/9L −$1,285.03 (−7.52R)** — היום **החמישי ברציפות** (06-10/11/12/15/16) באותו דפוס נגד-מגמה.
+
+**עדכוני-סטטוס חשודים (מ-ראיות-היום):**
+- **I-1 🟡 (residual)** — `opening_type=OPEN_DRIVE` + סיווג-יום סווגו **נכון** בפרקטיקה (live=Variation×19). residual: `vote_history=[]` ריק + `session_min=0` post-close. **תת-ממצא חדש (dead-wrapper):** `day_type/state` מציג `Trend_Normal 0.46` בעוד 19/30 עסקאות תויגו `Variation` ב-live — ה-endpoint קורא wrapper-instance מת (CLAUDE.md §Index), הסיווג-האמיתי ב-`app.state.day_type_machine`. display/diagnostic. → D-חדש (תיקון-קריאה).
+- **I-3 (נסגר-בפועל, יום שני ברציפות)** — ZLR ירה **7×** היום, **7W/0L (+2.15R)**, התבנית-החזקה. "ZLR לא יורה" מת סופית.
+- **I-22 🔴 (חי, התחזק)** — **20 עסקאות** עם `pnl_r(API)` בלתי-אפשרי: T1/BE → `pnl_usd÷$1.25` (id116 +$32.5→"26R", id122→"38.4R", id146→"28.64R"). נתיב-T2 = `÷(risk×5)` (id120=2.8) — לא-עקבי. נתיב-הפסד תקין (−1.0). גדל מ-8 (06-15). display-safe → D1.
+- **I-25 🟢 (חוזר)** — trades cap=100; bars החזיר 165. היום 30<100 ⇒ ללא-אובדן.
+- **I-26/I-28 🔴 (החמיר — יום חמישי)** — LONG אל-תוך-ירידה = **−$1,285.03 (3W/9L)**; דילוג ⇒ +$627.40. **יחס עלות/תועלת 13:1** (3 זכיות-LONG זעירות +$106 מול −$1,391 הפסדים). HFE+REACTIVE_LONG הליבה. → D3 (veto-מגמה **price-slope-based**, לא צבע — היום המחיר ירד אבל woodies=BLUE×4/GRAY×10). trading-logic → Michael. **חמישה ימים = מסקנה, לא תצפית.**
+- **I-29 🟡 (reframe מאושש — ראיה 5)** — 2×T2 היום שתיהן עם-המגמה (id120/121 HFE-SHORT בדרייב-היורד). ΣR עם-המגמה +6.43R מול −7.52R נגד. כשל-תיאום-מגמה, לא כשל-מנגנון.
+- **I-30 🔴 (חי)** — **5 LONGs על stop-זהה 7603.25** (126/127/129/131/133, רמת-תמיכה שנפרצה); CF-cull −$647.30 ⇒ ≈breakeven. אך מקפח 2 שורטים-זוכים ⇒ veto-מגמה דומיננטי. → D4.
+- **I-31 🔴 (התחזק)** — pattern-status `S4=52 + S2=19 = 71 ירי` מול **30** ב-`v9_trades` (~2.4×). גדל מ-54/26 (06-15). חוסם-כיול. → D2.
+- **I-32 🟡 (חוזר 3 ימים)** — gap-id **117** (116→118). 06-12: 64/72/76 · 06-15: 90 · 06-16: 117. → D9/CC.
+- **I-33 🟢 (כנראה נסגר)** — `session_min=0`/`session_date`/`rtb_session` כעת **גלויים** (0 שדות-redacted ב-payload), לא עוד "[BLOCKED]". נראה תוקן מאז 06-15 — לאמת-CC שמכוון (matcher צומצם) ולא רגרסיה.
+- **I-11** — S3 footprint `fired_today_count=0` + `[disabled]` (S3_MUTE, deferred pre-LIVE per memory).
+- **D5 (regime-gate אחה"צ, מ-06-15)** — **פחות-רלוונטי היום**: 06-16 היה יום-מגמה-יורד נקי (לא range-אחה"צ); ההפסד היה נגד-מגמה (כיוון), לא רעש-range. D5 נשאר פתוח ל-ימי-range, אך D3 (veto-מגמה) הוא הדומיננטי.
+
+**חשודים חדשים (day-1 של DAYTYPE_PLAYBOOK — Michael הדליק ב-SHADOW 08:32 CT):**
+- **I-34 🔴 (חדש, לאמת shadow-vs-exec)** — verdict `REDUCED("half")` נרשם ב-`metadata.sizing` של 18 עסקאות אך **לא הופעל על PnL**: 6 half שנעצרו ב-stop-מלא הפסידו 3-חוזים-מלאים (ids 123/127/129/131/133/141, implied-contracts=3.0, id133 −$191.25=12.75×5×3) = **−$1,076.25**; אילו-half → −$538.13 (חיסכון ~$538). (א) shadow-PnL נומינלי-3 בכוונה (תמים) או (ב) `sizing→contracts→pnl` מנותק (תואם `feedback_full_decision_pipeline_wiring`). → CC לאמת. אם (ב)=trading-risk. → D11.
+- **I-35 🟡 (חדש, display-safe)** — `metadata.sizing` עם אוצר-מילים מעורב: `"half"`/`"full"` (playbook) + `0/1/2/3` (sizer אחר, RISK_CAP/vol?); type-inconsistent; אותה תבנית×יום מקבלת `"half,full"`/`"3,2"`. collision/מקור-אמת-מעורפל. → CC. → D12.
+- **מיפוי-playbook:** ביום-Variation-יורד הוקצה **half ל-HFE/TLB/FAMIR-LONG · FULL ל-REACTIVE_LONG (3,2)**, **0 SKIP ל-counter-trend**. ⇒ גם עם חיווט-תקין השער היה רק חוצה ולא מבטל את −$1,285. D3 (price-slope SKIP) נשאר המנוף החזק.
+- dead-wrapper day_type (state=Trend_Normal≠trades=Variation) נספח ל-I-1 (→D10) — **רלוונטי ל-I-34:** אם ה-gateway קרא day_type מה-wrapper-המת, ה-playbook הוערך מול היום-הלא-נכון.
+
+**הצלבות-CC (Sierra v9_export):** (1) OHLC הדרייב-היורד 08:30→14:55 (7636.5→7582.75) — אמיתי לא glitch. (2) stop 7603.25 המשותף ל-5 LONGs — מקור-הרמה + אישור-פריצה. (3) I-31 count-query (צפוי 21/9, לא 52/19). (4) I-32 gap-117 — sequence/לוג. (5) I-22 — branch T1/BE÷$1.25 מול T2÷(risk×5). (6) I-33 — איזה שינוי הסיר את ה-redaction (מכוון?). (7) dead-wrapper day_type — `/day_type/state`=Trend_Normal מול trades=Variation. (8) woodies_trend צבע BLUE/GRAY-בוקר מול TCCI-Sierra למרות ירידת-מחיר (קריטי ל-veto צבע-מול-slope). אנליזה בלבד, לא שונה קוד.
+
+### [2026-06-16 15:21 CT] ריצת missed-trades אוטונומית EOD — ממצאים (Cowork)
+
+**מקור:** API חי (Chrome→localhost:8000) — `woodies/chart` (Sierra, 50 ברים 11:15→15:20), `chart/bars5min` (78 ברי-RTH 08:30→14:55), `trades/recent?limit=100` (30 עסקאות id118–146), `missed-trades` (50), `day_type/state`, `build/pattern-status`. דוח מלא: `docs/reports/MISSED_TRADES_2026-06-16.md`. **משלים** את ה-EOD 15:12 (לא כפול).
+
+**ממצא-העל (תואם 15:12):** היום ההיפך מ"פספוס" — **יֶתֶר-ירי נגד-מגמה**. missed-אמת זניח. SHORT עם-מגמה 18W/0L +$627.40 · LONG נגד-מגמה 3W/9L −$1,285.03 · net −$657.63. דילוג-LONG ⇒ +$627.40.
+
+**ממצאים ייחודיים לריצת-ה-missed (לא ב-15:12):**
+- **I-28/D3 🔴 (נצפה בבירור היום — לא artifact):** הפספוס-המבני-היחיד = leg-המשך 14:00–14:10 (price 7601.75→7588, cci_14 צלל −184→−250, RED יציב). **אין אות-כניסה-טרי** מ-ZLR/HFE בלב-הצניחה; id145 GB100-SHORT יצא BE@14:05 בדיוק כשה-leg האיץ, ואין re-entry עד id146 (14:35, ליד-תחתית). replay stop-first: entry 7601.75 / stop 7607.25 (5.5נק') → **T2 +2R**. אינקרמנטלי ≈ **+1.5R** (הזנב נתפס ב-14:35). ΣR-missed גרוס +2.53R (כולל 11:30 ZLR +0.53R chop).
+- **CAVEAT-כיסוי 🔴 (Rule 1/2 — דגל-CC):** `missed-trades` endpoint החזיק **רק post-close** (50 candidates כולם 15:21–15:23, TLB-SHORT×25/GHOST-LONG×25, `ready_to_route=False`) — כל הסשן 08:30–15:00 התגלגל החוצה מה-buffer. גם woodies-buffer מתחיל 11:15. ⇒ הצלבת-הבוקר נשענה על trades+bars5min, לא על missed-endpoint/סינתזה. **CCI-בוקר טרם-מוצלב מול Sierra.** המלצה: להאריך retention של missed-endpoint ל-RTH מלא (כפי שהיה 06-15: 08:35→14:55).
+- **benchmark (5/5, אך בקרת-כיוון נכשלה):** 5/5 סלוטים של Michael אותרו (ירי ±10דק', 3/5 מדויק). סלוטים 1–3 ירו SHORT עם-המגמה (WIN). **סלוטים 4–5 ירו LONG נגד-מגמה ביום-יורד** (09:40 TLB-LONG −$202.5; 10:05–10:15 LONG-cluster −$637) — **הפוך מ-06-15** (שם, יום-עולה, הסתגל נכון ל-LONG). ⇒ הסתגלות-הכיוון **א-סימטרית**: שורש = I-1 (day_type→Variation מסיר veto-כיווני ביום-יורד-אמיתי).
+- **I-3 🟢 (אישוש שיפור):** TLB/GHOST/FAMIR/GB100 ("לא-נותבות-אף-פעם" ב-06-15) **נותבו היום ב-RTH** (id116/119/123/126 TLB · id130 GHOST · id140/141 FAMIR · id145 GB100). `ready_to_route=False` נותר רק post-close (תקין). דגל-CC: לאשר מ-diff שזה תיקון-נתיב.
+
+**פתוחים מובילים (missed-angle):** I-26/I-28 (ירי-נגד-מגמה) · I-1 (Variation-trigger) · I-13 (stops 10–13.5נק' על המפסידים) · I-28/D3 (continuation re-entry). **לא שונה קוד.**
+
+### [2026-06-18 15:20 CT] ריצת missed-trades אוטונומית EOD — ממצאים (Cowork)
+
+**מקור:** API חי (Chrome→localhost:8000) — `woodies/chart` (Sierra, 50 ברים 11:15→15:20), `chart/bars5min` (78 ברי-RTH 08:30→14:55), `trades/recent?limit=100` (26 עסקאות id147–174), `missed-trades` (50, post-close בלבד), `day_type/state`, `build/pattern-status`. דוח מלא: `docs/reports/MISSED_TRADES_2026-06-18.md`.
+
+**ממצא-העל:** **יום נמוך-פספוסים — היפוך מ-06-16.** יום-**טווח** (46נק', 7577→7535→7564, OPEN_DRIVE-יורד-שהתהפך). המערכת תפסה את **כל 3 הלגים** (drive-פתיחה id147, דאון-לג 12:20–14:10 id165/166/168, bounce 14:10–14:50 id170–172). 26 ירי, **net −$56.30**, win-rate **69% (18/26)**. missed-אמת **≈+1R בלבד**. **חישוב אומת:** 18W +$1,267.45 / 8L −$1,323.75 / 2.35:1 avg-loss-to-win.
+
+**ממצאים ייחודיים:**
+- **I-13 🔴 (החוסם-המוביל היום — a-symmetry):** avg-loss **−$165** מול avg-win **+$70** (יחס 2.35:1). 5 מפסידי-בוקר (id148/149/151/152/156, 09:10–09:50) על stops **11–16.5נק'** = **−$1,016.25**, נגררו ע"י afternoon-wins ל-net-breakeven. **אילו ההפסדים היו על risk שווה-מנצח (~$70): היום +$707.45, לא −$56.** day-quality תקין (69% win, כל הלגים נתפסו) — כל הגריעה ב-stop-sizing. → D8 / טבלת stop-target.
+- **🔴 חדש: short-נגד-מבנה (תחתית-טווח):** id149/151/152 ירו SHORT אל-תוך support 7535–7550 (ליד session-low 7535.5) ונסחטו (−$655.25). ביום-יורד trend-align חוסם; ביום-**טווח** (trend אחה"צ BLUE23/RED16/GRAY11, טווח-RTH 46נק') אין veto-כיווני ⇒ חסר **veto-מבני** (לא-short-תחתית / לא-long-טופ). מצטרף ל-I-13/D4.
+- **I-28/D3 🟡 (נצפה, קטן):** leg-המשך 12:35→13:30 (תחילת הדאון-לג, 7570→7560.75) נשאר ~שעה ללא-ירי — ה-ריברסל-טופ נתפס נקי (id165/166), אבל **GRAY-veto** (`s4_trend_not_stuck_gray`, 12:45–13:05) חסם את הכניסה-הנקייה; הירי-הראשון (id167 13:30) נכנס על bounce-chop ונחסם (−$78.75). ה-meat (13:55–14:10) **כן נתפס** ע"י id168 (+$79.4). replay: entry 7570/stop 7579.25 (9.25נק') → T1@13:30 (+1R), runner→14:10=+2.24R. אינקרמנטלי ≈ **+1R**. GRAY-veto=gate-לגיטימי שחסם entry-אמיתי הפעם.
+- **I-3 🟢 (תקין, יום שלישי):** TLB/ZLR נותבו וירו לאורך כל ה-RTH (15× S4). `ready_to_route=False` רק post-close (50 candidates 15:19–15:20, TLB/GHOST). ZLR ירה 13:30+14:00 (1W/1L). יציב.
+- **I-26/I-28 🟢 (לא-חזר):** בניגוד ל-06-16, **אין ירי-נגד-מגמה**. ביום-טווח הכיוונים היו מבניים (LONG ב-bounce/revert, SHORT ב-drive). LONG 10W/3L +$239.60 · SHORT 8W/5L −$295.90 — ה-SHORT-ים-המפסידים היו נגד-**מבנה** (תחתית-טווח), לא נגד-מגמה. בקרת-הכיוון הסתגלה נכון לטווח.
+- **benchmark (5/5 אותרו, 2/5 כיוון-תואם-נקי):** סלוטים 1+5 ירו SHORT עם-הדרייב (WIN, +$52.5/+$176.9). סלוטים 2–4 סטו מה-template-היורד כי **היום=טווח** (drive שהתהפך) — שם המערכת ירתה לפי המבנה-בזמן-אמת (LONG ב-bounce) ולא לפי 06-05. **בקרת-הכיוון פעלה נכון** (הפוך מ-06-16). הכשל היחיד: סלוט-2 (09:10 LONG) נכון-בכיוון אך stop-רחב-בתוך-chop ⇒ I-13 שוב.
+- **CAVEAT-כיסוי 🔴 (Rule 1/2 — דגל-CC, חוזר 3 ימים):** `missed-trades` החזיק **רק post-close** (50 candidates 15:19–15:20) — הסשן התגלגל מה-buffer. woodies-buffer מתחיל 11:15. הצלבת-בוקר נשענה על trades+bars5min. **CCI-בוקר טרם-מוצלב מול Sierra.** המלצה (חוזרת): להאריך retention של missed-endpoint ל-RTH מלא.
+- **I-1 🔴 (residual):** `Trend_Normal/OPEN_DRIVE` תויג ביום-**טווח**-מובהק (46נק', trend מאוזן); `vote_history=[]`, conf 0.38, LOCKED_LOW_CONF. תיוג-יתר כ-trend.
+- **I-22 🔴 (חי):** pnl_r מנופח (id154=37.2, id163=29.28, id157=24.48 מול <+1R). כל ה-$ כאן מ-`pnl_usd`.
+
+**פתוחים מובילים (missed-angle):** **I-13 (stop a-symmetry — המוביל)** · short-נגד-מבנה-תחתית-טווח (חדש→D4) · I-28/D3 (continuation re-entry) · I-1 (תיוג-יתר trend ביום-טווח). **לא שונה קוד.**
+
+### [2026-06-18 15:12 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**מקור:** API חי (Chrome→localhost:8000) — `/trades/recent?limit=100` (26 עסקאות-היום, id **147–174**), `/chart/bars5min?limit=200` (157 ברים, 78 ברי-RTH), `day_type/state`, `build/pattern-status`. דוחות: `PATTERN_EOD_2026-06-18.md` + `DESIGNS_2026-06-18.md`. **קריאה בלבד — לא שונה קוד.** (אין ריצת-EOD ל-06-17; אין `PATTERN_DIAG_2026-06-18` — סוכן-30-דק' לא רץ מאז 06-10, D6.)
+
+**יום 06-18 (יום-טווח/צ'ופ — לא יום-מגמה, כולן SHADOW):** פתיחה 7577@08:30 → דרייב-פתיחה-יורד ל-LOW 7535.5@08:45 (−41.5pt/15דק') → **רוטציה 7540–7575 כל הסשן** → סגירה 7564.5. HIGH 7581.75@08:30 · LOW 7535.5@08:45. טווח-RTH 46.25pt, נטו-מחיר −12.5pt **נתיב-V**. day_type=**Trend_Normal conf 0.38 LOCKED_LOW_CONF** (מסווג-שגוי, ראה למטה). opening_type=OPEN_DRIVE (נכשל/התהפך). **26 עסקאות, 18W/8L (69%), נטו −$56.30, ΣnetR≈+3.36R** (S4: 13, 10W/3L, **+$423.20** · S2: 13, 8W/5L, **−$479.50**).
+
+**🔄 היפוך-הדפוס (ממצא-העל):** אחרי **5 ימים** (06-10/11/12/15/16) של SHORT-מנצח/LONG-מדמם — **היום הפוך: LONG +$239.60 (10W/3L) · SHORT −$295.90 (8W/5L).** הסיבה **רֵז'ים, לא כיוון** — יום-טווח שבו LONG-מרצפה זכה ו-SHORT נלכד ב-snap-back. **⇒ הוטו-הכיווני (D3/I-26/I-28/TREND_GATE) אינו חוק-על; הוא תלוי-רֵז'ים — היום הוא הראיה-הנגדית.** דילוג-LONG היום היה **עולה** $295.90.
+
+**🔴 צ'ופ-whipsaw 09:10–09:30 = −$851.25 (4 עצירות/20דק', שני כיוונים)** — ids 148(L)/149(S)/151(S)/152(S). 148 נעצר על תחתית 7541, 149/151/152 על snap-back 7570. דילוג ⇒ היום **+$794.95**. החתימה המדויקת של **שער-הצ'ופ Layer-0 `chop_state=SEARCHING` (מושבת בכוונה, Michael 2026-06-08)**. → D-18 (CF + אישור-Michael ל-re-enable; CC לאמת chop_state בלוג).
+
+**עדכוני-סטטוס חשודים (מ-ראיות-היום):**
+- **I-34 🔴 (התחזק — smoking gun)** — `sizing` נרשם אך **לא מיושם על PnL**: כל ההפסדים `implied_contracts=3.0` ללא תלות ב-sizing. הבולט: **id156 `sizing=0` ירה 3-חוזים והפסיד −$165** (=SKIP שירה full). אף `"half"` לא חצה חוזה (id173/152/167 full-3). חזק יותר מ-06-16. (א) shadow נומינלי-3 בכוונה או (ב) dead-wire. → CC + D11.
+- **I-35 🟡 (מתמשך)** — `sizing` type-mixed: S4=`"half"` (string) · S2=`0/1/2/3` (numeric; id156=0,150=1,154=2,155=3). מקור-אמת-מעורפל לגודל. → CC + D12.
+- **I-22 🔴 (חי)** — `pnl_r(API)` בלתי-שמיש **ולא-עקבי בין נתיבים**: id166 +$26.9→`21.52` (÷$1.25) אך id172→`4.25`, id170→`3.08` (בסיס אחר). נתיב-הפסד תקין (−1.0). → D1.
+- **I-31 🔴 (מתמשך)** — pattern-status `five_min=23 + woodies=31 = 54 ירי` מול **26** ב-`v9_trades` (~2.08×; S2 1.8×, S4 2.4×). → D2.
+- **I-32 🟡 (חוזר 4 ימים + היפותזה חדשה)** — gap-ids **160,164** (טווח 147–174). 06-12: 64/72/76 · 06-15: 90 · 06-16: 117 · 06-18: 160/164. **חדש:** `TREND_DIRECTION_GATE` עלה ב-SHADOW היום (suppress-ו-return-טרם-shadow) ⇒ 160/164 אולי **gate-suppressions** ולא rollback — CC לאמת מול gate-log (ימי-קודם היו לפני-הגֵייט ⇒ אולי שורש-שני). → D9/D21/CC.
+- **I-33 🟡 (אולי רגרסיה-חוזרת)** — `session_min`/`session_date`/`rtb_session` חזרו ל-`[BLOCKED: Sensitive key]` (ב-06-16 דווחו גלויים/נסגרים). או חשיפה-זמנית-אז או רגרסיית-matcher. display, לא-חוסם. → CC לאמת.
+- **I-26/I-28/D3 🟡 (ראיה-נגדית היום)** — הוטו-מגמה **היום מפסיד** (LONG זכה). גם price-slope היה חוסם REACTIVE_LONG-בוקר זוכים (150/153/154, ~25pt מתחת ל-open). **⇒ D3 חייב תנאי `day_type=Trend מאומת AND conf≥סף`.** → D3 מתעדכן (ראה DESIGNS).
+- **I-30 🟡 (ראיה-נגדית היום)** — cluster-guard **היום מקפח זוכים** (REACTIVE_LONG@7540.5 ו-TLB-L@7548.5, כל ה-clusters זכו). תלוי-רֵז'ים. → D4 מתעדכן.
+- **I-1 🟡 (residual)** — `vote_history=[]` ריק + `session_min` redacted. day_type=Trend_Normal עקבי state↔trades היום (אין dead-wrapper-split כמו 06-16). residual.
+- **I-11** — S3 footprint `fired_today_count=0` + `fresh=false` (S3_MUTE, deferred pre-LIVE).
+- **I-25 🟢 (חוזר)** — trades `limit=200`→**422** (cap=100); bars 157. היום 26<100 ⇒ ללא-אובדן.
+
+**חשודים חדשים (06-18):**
+- **I-36 🟡 (חדש) — day_type מסווג יום-טווח כ-`Trend_Normal`** (conf 0.38). הסשן היה טווח/צ'ופ (46pt, נטו −12.5, V); opening_type=OPEN_DRIVE שנכשל. **כל שער-מבוסס-day_type (DAYTYPE_PLAYBOOK/TREND_GATE) היה מחיל לוגיקת-מגמה על יום-טווח.** המקל: המערכת סימנה `LOCKED_LOW_CONF 0.38` (אות-כנות). → שערי-כיוון חייבים `gate ON רק כש-conf≥סף`. trading-adjacent. → D19.
+- **I-37 🟡 (חדש) — divergence R↔$:** ΣnetR=**+3.36R** אך Σ$=**−$56.30**. שורש: stop 2.5–25pt בקיבוע-3-חוזים ⇒ $/R לא-קבוע (הפסדים על stops-רחבים, $165/R מול זכיות $112/R). **sizing לא-מנורמל-סיכון** — בדיוק מה ש-I-34 (חיווט-sizing מת) ו-`config_tunable_stop_exits_contracts` (memory) אמורים לפתור. → D20 (risk-normalized sizing).
+- **D6-נספח 🔴 — שערי-SHADOW לא חושפים would-block:** TREND_GATE/REACTIVE_LOCATION/RUNNER_TRAIL/DAYTYPE_PLAYBOOK (commits 343a41b/5c7a4b2/eb605f7/864a345, default-OFF) — `blocked_by=null` על כל 26 ⇒ אין shadow-decision-log ⇒ אי-אפשר CF עליהם. → D21 (לרשום shadow-verdicts לטבלה/לוג).
+
+**הצלבות-CC (Sierra v9_export / לוג / DB):** (1) **chop_state בחלון 09:10–09:35** (148/149/151/152) — SEARCHING? (re-enable=Michael). (2) I-34 `sizing→contracts→pnl` (sizing=0 ירה full). (3) I-35 precedence-sizer. (4) day_type Trend_Normal conf-0.38 על יום-טווח — אמיתי? opening_type=OPEN_DRIVE-נכשל logic. (5) OHLC דרייב 7577→7535.5 (08:30→08:45) אמיתי לא-glitch. (6) I-31 count-query (צפוי 13/13 לא 23/31). (7) I-32 gap 160/164. (8) I-22 branch T1/BE÷$1.25 מול T2. (9) I-33 redaction חזר? (10) שערי-SHADOW would-block — נרשמים איפה? אנליזה בלבד, לא שונה קוד.

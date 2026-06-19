@@ -23,10 +23,10 @@ max_contracts: 3            # global cap — REDUCED resolves to ceil(max/2)
 daytype_style:
   Trend_Normal:    { target: movement,  runner: trail_chandelier, stop_be_early: false, note: "ride the pullback steps with-trend; let runners run" }
   Trend_DD:        { target: movement,  runner: trail,            note: "CONT after mid-zone break" }
-  Normal:          { target: location,  t1_anchor: POC,           t2_anchor: opposite_ib_edge, note: "fade VA edges: VAH->short / VAL->long" }
-  Variation:       { target: location,  t1_anchor: half_extension, t2_anchor: one_ib,           note: "go WITH the IB expansion" }
-  Neutral_Center:  { target: location,  t1_anchor: vwap_poc,      runner: none, note: "fade edges to center, then exit" }
-  Neutral_Extreme: { target: location,  t1_anchor: POC,           t2_anchor: opposite_edge }
+  Normal:          { target: location,  fade_edges: true,  t1_anchor: POC,           t2_anchor: opposite_ib_edge, note: "fade VA edges: SHORT only >= POC (near VAH), LONG only <= POC (near VAL)" }
+  Variation:       { target: location,  fade_edges: false, t1_anchor: half_extension, t2_anchor: one_ib,           note: "go WITH the IB expansion (continuation, not fade)" }
+  Neutral_Center:  { target: location,  fade_edges: true,  t1_anchor: vwap_poc,      runner: none, note: "fade edges to center, then exit" }
+  Neutral_Extreme: { target: location,  fade_edges: true,  t1_anchor: POC,           t2_anchor: opposite_edge }
   Nontrend:        { action: SKIP,                                note: "no participants — skip all (already NT NO_TRADE)" }
 
 # Per-pattern gate. Columns = the 7 day-types. (E=FULL, D=REDUCED, S=SKIP in the spec.)
