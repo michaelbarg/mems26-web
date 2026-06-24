@@ -38,6 +38,7 @@ def load_dotenv_file(
 
     Returns the dict of keys actually applied (useful for logging/tests).
     """
+    import sys as _sys
     if environ is None:
         environ = os.environ
     applied: Dict[str, str] = {}
@@ -56,5 +57,27 @@ def load_dotenv_file(
                     environ[key] = val
                     applied[key] = val
     except FileNotFoundError:
+        # NOT a silent failure: a missing .env means every flag falls back to its
+        # code default. Make it visible at boot (CLAUDE.md: no silent failures).
+        print(f"[env_loader] .env NOT FOUND at {path} — flags fall back to code defaults",
+              file=_sys.stderr)
         return applied
+    except Exception as _e:  # e.g. PermissionError when the LaunchAgent lacks TCC access
+        print(f"[env_loader] FAILED reading {path}: {type(_e).__name__}: {_e} "
+              f"— flags fall back to code defaults", file=_sys.stderr)
+        return applied
+    # Boot-time flag observability: a stale/degraded env is now caught immediately
+    # instead of silently running the wrong trading config.
+    print(
+        f"[env_loader] applied {len(applied)} vars from {path} | "
+        f"HFE_DISABLED={environ.get('HFE_DISABLED')} "
+        f"NONTREND_DISABLE_ALL={environ.get('NONTREND_DISABLE_ALL')} "
+        f"DIRECTION_LSMA_VETO={environ.get('DIRECTION_LSMA_VETO')} "
+        f"S1_NEW_CLASSIFIER={environ.get('S1_NEW_CLASSIFIER')} "
+        f"ZLR_SPEC_V2={environ.get('ZLR_SPEC_V2')} "
+        f"VEGAS_SPEC_V2={environ.get('VEGAS_SPEC_V2')} "
+        f"DAYTYPE_POSITION_GATE={environ.get('DAYTYPE_POSITION_GATE')} "
+        f"DAYTYPE_PLAYBOOK={environ.get('DAYTYPE_PLAYBOOK')}",
+        file=_sys.stderr,
+    )
     return applied

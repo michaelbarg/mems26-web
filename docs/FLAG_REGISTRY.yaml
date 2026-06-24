@@ -162,6 +162,13 @@ flags:
     why: "ON 2026-06-24, Michael's rule: HFE is not his pattern ('אני לא מכיר hfe'). Single biggest loser: 27 fires, -$2,987 (9W/18L). Disabling removes the largest drag."
     status: live
     ref: "docs/handoff/CC_HFE_DISABLE_TAXONOMY_2026-06-24.md"
+  VEGAS_SPEC_V2:
+    category: s4
+    group: "VEGAS source-spec"
+    what: "Replace VEGAS divergence detector with CCI cup-and-handle (Michael's spec): <-200 cup → recovery crossing -100 (rim) → handle (higher-low/flat ≥3 bars) → entry on rim break. Off = legacy divergence."
+    why: "ON SHADOW 2026-06-24. Current VEGAS implements price/CCI divergence which is NOT Michael's pattern. Cup-and-handle is the correct reversal structure. Redefined 2026-06-24 to EXACT 4-step spec incl. SHALLOW-handle gate (handle retrace <50% of cup-rim; CC's first build over-fired = falling knives, 20 fires/15d). Strict build = 10 fires/15d. Ungated forward-move backtest still negative (raw CCI reversal); judged on REAL managed shadow (C1-BE + runners-to-LSMA) via the vegas-shadow-tracker scheduled task, not the naive proxy."
+    status: live
+    ref: "docs/handoff/CC_VEGAS_SPEC_V2_2026-06-24.md"
   WOODIES_30MIN_DISABLED:
     category: s4
     what: "Disable the 30-minute Woodies path when set."

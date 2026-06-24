@@ -1,12 +1,16 @@
-"""VEGAS (Virtual Extended Geometric Algo Scan) -- Reversal pattern.
+"""VEGAS (Virtual Extended Geometric Algo Scan) -- Reversal (STRATEGIC) pattern.
 
-Multiple indicators align for strong trend entry via divergence detection.
-Price makes HH but CCI makes LH (bearish divergence), or
-price makes LL but CCI makes HL (bullish divergence).
+Two detection modes controlled by VEGAS_SPEC_V2 flag:
+  OFF (default): price/CCI DIVERGENCE (legacy — HH/LH or LL/HL swings).
+  ON:            CUP-AND-HANDLE on CCI (Michael's source spec):
+    LONG: CCI < -200 (cup bottom) → recovery crossing -100 (rim) →
+          handle (higher-low or flat >=3 bars) → entry on rim break.
+    SHORT: mirror (CCI > +200 → recovery crossing +100 → handle → rim break).
 
 Spec reference: MEMS26_WOODIES_SPEC_V1_DERIVED Section 5 (B1).
 """
 
+import os
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult, PatternSignal
 from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
@@ -68,6 +72,124 @@ def _find_swings(values: List[float], min_swing: int = 3) -> list:
     return swings
 
 
+# ── Cup-and-handle thresholds (Michael's VEGAS spec, exact) ──
+_CUP_EXTREME = 200.0       # step 1: cup bottom must pass ±200 (deep extreme)
+_RIM_LEVEL = 100.0         # step 2: recovery must reach (cross) ±100 → the rim
+_RIM_DROP = 15.0           # CCI pullback off the rim that marks the handle start
+_HANDLE_MIN_BARS = 2       # step 3: a handle is not a single-bar blip
+_HANDLE_MAX_RETRACE = 0.5  # step 3: SHALLOW — handle gives back < 50% of cup→rim
+
+
+def _detect_cup_and_handle(bars: List[WoodiesBar]) -> Optional[dict]:
+    """Detect cup-and-handle on CCI — Michael's VEGAS spec, exact 4 steps.
+
+    A STRATEGIC reversal: a cup-and-handle on the oscillator marks the END of a
+    trend + a high chance of a new trend in the OPPOSITE direction. It must be
+    RARE — the whole structure has to be present, in order.
+
+    LONG (reverses a downtrend → up):
+      1. CCI drops below -200            → the cup bottom (deep extreme).
+      2. CCI recovers and reaches -100   → the rim = the peak CCI of the recovery.
+      3. CCI dips again into a HANDLE: a HIGHER LOW that holds above the cup AND
+         is SHALLOW — it gives back < 50% of the cup→rim recovery (a real handle,
+         not a deep give-back). >= 2 bars.
+      4. Entry: CCI breaks back above the rim (fresh cross).
+
+    SHORT mirrors with +200 / +100. Returns a dict if found, else None.
+
+    Precision vs the prior build: the prior version accepted ANY higher-low above
+    the cup bottom as a "handle" — so a handle that fell almost back to -200 (a
+    falling knife) still fired. The spec's "shallow pullback that holds" is the
+    quality gate that makes VEGAS rare; it is enforced here (_HANDLE_MAX_RETRACE).
+    """
+    window = bars[-LOOKBACK:]
+    cci = [b.cci_14 for b in window]
+    wn = len(cci)
+
+    # ===== LONG: cup < -200 → rim crosses -100 → shallow handle → break rim =====
+    for cup_i in range(wn - 5, -1, -1):
+        if cci[cup_i] >= -_CUP_EXTREME:
+            continue
+        # step 2: recovery — after the cup, CCI rises and crosses -100; rim = peak
+        crossed = False
+        rim_i = None
+        rim_cci = -1e9
+        for j in range(cup_i + 1, wn - 1):
+            if cci[j] >= -_RIM_LEVEL:
+                crossed = True
+            if crossed:
+                if cci[j] > rim_cci:
+                    rim_cci = cci[j]
+                    rim_i = j
+                if rim_i is not None and cci[j] < rim_cci - _RIM_DROP:
+                    break  # rim done, handle has begun
+        if rim_i is None or not crossed:
+            continue
+
+        # step 3: handle — between the rim and the entry bar
+        handle_vals = cci[rim_i + 1:-1]  # exclude the entry bar
+        if len(handle_vals) < _HANDLE_MIN_BARS:
+            continue
+        handle_low = min(handle_vals)
+        if handle_low <= cci[cup_i]:      # must be a HIGHER low than the cup
+            continue
+        recovery = rim_cci - cci[cup_i]
+        if recovery <= 0:
+            continue
+        if (rim_cci - handle_low) > _HANDLE_MAX_RETRACE * recovery:
+            continue  # handle too deep → not "shallow that holds" → reject
+
+        # step 4: entry — fresh break back above the rim
+        if cci[-1] > rim_cci and cci[-2] <= rim_cci:
+            return {
+                "direction": "LONG", "rim_cci": rim_cci, "rim_idx": rim_i,
+                "cup_cci": cci[cup_i], "cup_idx": cup_i,
+                "handle_low": handle_low, "handle_len": len(handle_vals),
+            }
+        break
+
+    # ===== SHORT: cup > +200 → rim crosses +100 → shallow handle → break rim =====
+    for cup_i in range(wn - 5, -1, -1):
+        if cci[cup_i] <= _CUP_EXTREME:
+            continue
+        crossed = False
+        rim_i = None
+        rim_cci = 1e9
+        for j in range(cup_i + 1, wn - 1):
+            if cci[j] <= _RIM_LEVEL:
+                crossed = True
+            if crossed:
+                if cci[j] < rim_cci:
+                    rim_cci = cci[j]
+                    rim_i = j
+                if rim_i is not None and cci[j] > rim_cci + _RIM_DROP:
+                    break
+        if rim_i is None or not crossed:
+            continue
+
+        handle_vals = cci[rim_i + 1:-1]
+        if len(handle_vals) < _HANDLE_MIN_BARS:
+            continue
+        handle_high = max(handle_vals)
+        if handle_high >= cci[cup_i]:     # must be a LOWER high than the cup
+            continue
+        recovery = cci[cup_i] - rim_cci
+        if recovery <= 0:
+            continue
+        if (handle_high - rim_cci) > _HANDLE_MAX_RETRACE * recovery:
+            continue
+
+        if cci[-1] < rim_cci and cci[-2] >= rim_cci:
+            return {
+                "direction": "SHORT", "rim_cci": rim_cci, "rim_idx": rim_i,
+                "cup_cci": cci[cup_i], "cup_idx": cup_i,
+                "handle_high": handle_high, "handle_len": len(handle_vals),
+            }
+        break
+
+    return None
+
+
 def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternResult:
     """Detect VEGAS pattern from WoodiesBar list."""
     if len(bars) < LOOKBACK:
@@ -79,6 +201,62 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
         return PatternResult(detected=False, pattern_id=PATTERN_ID,
                              details={"reject_reason": ap8.reason})
 
+    # ── VEGAS_SPEC_V2: cup-and-handle on CCI (Michael's spec) ──
+    _VEGAS_V2 = os.environ.get("VEGAS_SPEC_V2", "0").lower() in ("1", "true", "yes")
+    if _VEGAS_V2:
+        cah = _detect_cup_and_handle(bars)
+        if cah is None:
+            return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                 details={"vegas_spec_v2": True})
+        bar = bars[-1]
+        direction = cah["direction"]
+        entry = bar.close
+        # Stop: swing extreme from the cup
+        if direction == "LONG":
+            swing_anchor = min(b.low for b in bars[-LOOKBACK:])
+        else:
+            swing_anchor = max(b.high for b in bars[-LOOKBACK:])
+        atr_ticks = _compute_atr14_ticks(bars)
+        if _flag("STOP_ANCHORS_V2") and atr_ticks > 0:
+            from backend.v9.systems.stop_anchors import resolver as SA
+            from backend.v9.config_loader import load_stop_anchors
+            cfg = load_stop_anchors()
+            if cfg:
+                struct = SA.apply_offset(swing_anchor, direction,
+                                         cfg["principles"]["anchor_offset_ticks"], TICK_SIZE)
+                v2 = compute_stop_v2(direction, entry, struct, _PATTERN_GROUP, atr_ticks,
+                                     tick_size=TICK_SIZE)
+                stop = v2.stop_price
+                stop_layer = "v2_structural"
+            else:
+                sr = compute_stop(direction=direction, entry_bar=bar, swing_anchor=swing_anchor,
+                                  pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE)
+                stop = sr.stop_price
+                stop_layer = sr.layer_applied
+        elif atr_ticks > 0:
+            sr = compute_stop(direction=direction, entry_bar=bar, swing_anchor=swing_anchor,
+                              pattern_group=_PATTERN_GROUP, atr_14=atr_ticks, tick_size=TICK_SIZE)
+            stop = sr.stop_price
+            stop_layer = sr.layer_applied
+        else:
+            stop = entry - STOP_TICKS * TICK_SIZE if direction == "LONG" else entry + STOP_TICKS * TICK_SIZE
+            stop_layer = "primary"
+        r_t1 = _compute_r_t1(entry, stop)
+        sign = 1 if direction == "LONG" else -1
+        return PatternResult(
+            detected=True, pattern_id=PATTERN_ID, direction=direction,
+            confidence=0.80, raw_confidence=0.80, r_t1=r_t1,
+            entry_price=entry, stop=stop,
+            targets=[entry + sign * TARGET1_TICKS * TICK_SIZE,
+                     entry + sign * TARGET2_TICKS * TICK_SIZE],
+            group=GROUP, cci_at_signal=bar.cci_14,
+            bar_index=len(bars) - 1, ts=bar.ts,
+            details={"vegas_spec_v2": True, "cup_and_handle": True,
+                     "rim_cci": cah["rim_cci"], "cup_cci": cah.get("cup_cci"),
+                     "stop_layer_applied": stop_layer},
+        )
+
+    # ── Legacy divergence detection (VEGAS_SPEC_V2 OFF) ──
     window_bars = bars[-LOOKBACK:]
     window_cci = [b.cci_14 for b in window_bars]
     window_price = [b.close for b in window_bars]
