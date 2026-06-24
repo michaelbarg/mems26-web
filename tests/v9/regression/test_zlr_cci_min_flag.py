@@ -40,7 +40,9 @@ def test_zlr_cci_min_invalid_falls_back(monkeypatch):
 
 def test_zlr_fires_at_default_threshold(monkeypatch):
     # extreme -150 passes the default ±100 gate → ZLR detected.
+    # ZLR_SPEC_V2=0: this test checks CCI_MIN only, not the spec-v2 gates.
     monkeypatch.delenv("ZLR_CCI_MIN", raising=False)
+    monkeypatch.setenv("ZLR_SPEC_V2", "0")
     r = detect(_bars(_CCI_PEAK_150_DOWN))
     assert r.detected
 
@@ -48,5 +50,6 @@ def test_zlr_fires_at_default_threshold(monkeypatch):
 def test_zlr_blocked_at_200(monkeypatch):
     # extreme only -150, spec needs ±200 → rejected.  reverting the edit → RED
     monkeypatch.setenv("ZLR_CCI_MIN", "200")
+    monkeypatch.setenv("ZLR_SPEC_V2", "0")
     r = detect(_bars(_CCI_PEAK_150_DOWN))
     assert not r.detected

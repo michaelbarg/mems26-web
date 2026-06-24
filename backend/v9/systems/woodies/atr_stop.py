@@ -29,8 +29,8 @@ from backend.v9.systems.woodies.schemas import WoodiesBar
 class PatternGroup(str, Enum):
     """ATR cap selector groups per D-092 §Stop Architecture."""
     CONT_TIGHT = "CONT_TIGHT"   # ZLR, TLB, TT       → 1.0× ATR-14
-    CONT_MED   = "CONT_MED"    # GB100, HTLB         → 1.2× ATR-14
-    REV        = "REV"          # VEGAS, GHOST, FAMIR, HFE → 1.5× ATR-14
+    CONT_MED   = "CONT_MED"    # GB100               → 1.2× ATR-14
+    REV        = "REV"          # VEGAS, GHOST, FAMIR, HTLB → 1.5× ATR-14 (HFE disabled)
 
 
 @dataclass(frozen=True)

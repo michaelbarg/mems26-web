@@ -8,6 +8,7 @@
 #include <sstream>
 #include <iomanip>
 #include <fstream>
+#include <cstdio>   // std::rename (atomic write)
 #include <ctime>
 
 // ── ACSIL-safe min/max (Sierra macros clobber std::max/min) ──
@@ -114,12 +115,17 @@ inline void json_long(std::ostringstream& j, const char* key, long long val, boo
     j << "\"" << key << "\":" << val;
 }
 
-// ── File write helper ──
+// ── File write helper (ATOMIC: write .tmp then rename) ──
+// rename() is atomic on the same filesystem (POSIX guarantee).
+// This prevents the bridge from reading a half-written JSON file
+// (blocker-LIVE #0: ~94 read-errors/day from truncated reads).
 inline bool v9_write_json(const char* dir, const char* filename, const std::string& json) {
     std::string path = std::string(dir) + filename;
-    std::ofstream f(path.c_str());
+    std::string tmp_path = path + ".tmp";
+    std::ofstream f(tmp_path.c_str());
     if (!f.is_open()) return false;
     f << json;
     f.close();
-    return true;
+    if (f.fail()) return false;
+    return std::rename(tmp_path.c_str(), path.c_str()) == 0;
 }

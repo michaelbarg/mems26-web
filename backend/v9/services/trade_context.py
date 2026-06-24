@@ -479,6 +479,11 @@ def extract_trade_systems_panel(trade) -> Dict[str, Any]:
     }
 
 
+# Cache for the S1_NEW_CLASSIFIER promotion — recompute at most every 30s (a fire-burst
+# must not re-run the full classify pipeline per trade). Mutated in place; no global needed.
+_NC_CACHE: Dict[str, Any] = {}
+
+
 def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     """G1: Extract day_type, pattern_id, session from cross_context at entry.
 
@@ -487,7 +492,7 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     """
     systems_map = _systems_blob_at_entry(cross_context)
 
-    # day_type_at_entry: from day_type_machine
+    # day_type_at_entry: from day_type_machine (the OLD live engine)
     day_type_blob = systems_map.get("day_type_machine") or {}
     day_type = (
         day_type_blob.get("day_type")
@@ -496,6 +501,28 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     )
     if day_type and day_type == "UNKNOWN":
         day_type = None
+
+    # ── S1 PROMOTION (flag S1_NEW_CLASSIFIER, Michael 2026-06-20) ──────────────────────────────
+    # When ON, the day_type that gates the trade + stamps the row comes from the NEW validated
+    # state-machine classifier (7 types) instead of the old DECISION_MATRIX (3 types). Fully
+    # FAIL-SAFE: any error / no-bars / FORMING → keep the old engine's value above (never blocks a
+    # fire). Enum mapped to the playbook (`Normal_Variation`→`Variation`). Cached ~30s.
+    import os as _os
+    if _os.getenv("S1_NEW_CLASSIFIER", "").lower() in ("1", "true", "yes"):
+        try:
+            import time as _t
+            import datetime as _dt
+            from zoneinfo import ZoneInfo as _ZI
+            _today = _dt.datetime.now(_ZI("America/New_York")).date().isoformat()
+            if _NC_CACHE.get("date") != _today or (_t.time() - _NC_CACHE.get("ts", 0.0)) > 30:
+                from backend.v9.api.v9.daytype_classify_routes import classify_replay as _cr
+                _final = (_cr(_today) or {}).get("final") or {}
+                _NC_CACHE.update({"date": _today, "ts": _t.time(), "day_type": _final.get("day_type")})
+            _ndt = _NC_CACHE.get("day_type")
+            if _ndt and _ndt != "FORMING":
+                day_type = {"Normal_Variation": "Variation"}.get(_ndt, _ndt)
+        except Exception:
+            pass  # fail-safe — keep the old engine's day_type set above
 
     # pattern_id_at_entry: from woodies_system active_patterns or quality
     woodies_blob = systems_map.get("woodies_system") or {}

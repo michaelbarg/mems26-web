@@ -7,8 +7,10 @@ RED-on-revert: reverting woodies_system.py DLL-fallback to stop=None
 → PatternResult ValidationError → process_bar crashes → no active_patterns.
 """
 import asyncio
+import os
 import pydantic
 import pytest
+from unittest.mock import patch
 from backend.v9.systems.woodies.woodies_system import WoodiesSystem
 from backend.v9.systems.woodies.schemas import PatternResult
 
@@ -68,8 +70,9 @@ def test_dll_zlr_through_process_bar():
         f"SHORT stop ({z.stop}) must be above entry ({z.entry_price})"
 
 
+@patch.dict(os.environ, {"HFE_DISABLED": "0"})
 def test_dll_hfe_through_process_bar():
-    """Feed hfe_detected=True through real process_bar → stop>0."""
+    """Feed hfe_detected=True through real process_bar → stop>0 (HFE enabled)."""
     ws = WoodiesSystem(rth_only=False)
 
     history = [_make_bar(i, close=7400+i*0.5, cci=50+i*5, trend="BLUE") for i in range(20)]
@@ -85,6 +88,25 @@ def test_dll_hfe_through_process_bar():
     h = hfe_pats[0]
     assert h.stop is not None
     assert h.stop > 0
+
+
+@patch.dict(os.environ, {"HFE_DISABLED": "1"})
+def test_dll_hfe_disabled_no_fire():
+    """With HFE_DISABLED=1, hfe_detected=True bar produces NO HFE fire.
+
+    if reverted → RED because: removing the HFE_DISABLED filter would let HFE through.
+    """
+    ws = WoodiesSystem(rth_only=False)
+
+    history = [_make_bar(i, close=7400+i*0.5, cci=50+i*5, trend="BLUE") for i in range(20)]
+    hfe = _make_bar(20, close=7440.0, cci=210.0, trend="BLUE",
+                    hfe_detected=True, hfe_direction="DOWN")
+    _feed_bars(ws, history + [hfe])
+
+    patterns = ws._active_patterns
+    hfe_pats = [p for p in patterns if p.pattern_id == "HFE"]
+    assert len(hfe_pats) == 0, \
+        f"HFE_DISABLED=1 but HFE still fired: {[p.pattern_id for p in patterns]}"
 
 
 def test_dll_zlr_stop_none_crashes():

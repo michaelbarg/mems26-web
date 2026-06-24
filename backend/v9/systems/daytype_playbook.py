@@ -88,12 +88,23 @@ def decide(
     """Return a Decision for (pattern, day_type, direction, live trend_state).
 
     OFF or any unmatched input → FULL (fail-open, never blocks).
+
+    #68: When DAYTYPE_POSITION_GATE is ON, the position gate is the
+    direction control — the playbook returns FULL for everything (all
+    patterns fire; direction filtering happens in the position gate).
+    The playbook's SKIP/REDUCED verdicts only apply when the position
+    gate is OFF (legacy mode).
     """
     cfg = _cfg()
     cap = max_contracts or (cfg or {}).get("max_contracts", 3)
 
     if not _enabled():
         return Decision("FULL", cap, "playbook-off")
+
+    # #68: position gate supersedes pattern suppression
+    if os.environ.get("DAYTYPE_POSITION_GATE", "0").lower() in ("1", "true", "yes"):
+        return Decision("FULL", cap, f"position-gate-active (all-patterns-fire)")
+
     if not cfg:
         return Decision("FULL", cap, "no-config")
 

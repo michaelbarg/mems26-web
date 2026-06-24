@@ -272,12 +272,25 @@ class BaseV9Stream:
         self._push_api(data)
 
     def _read_file(self) -> Optional[dict]:
-        try:
-            with open(self.filepath, "r") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError) as e:
-            logger.warning(f"[{self.name}] Read error: {e}")
-            return None
+        # Retry on JSONDecodeError: the Sierra DLL may be mid-write (atomic
+        # rename fixes the root cause, but defense-in-depth for pre-deploy).
+        # On persistent failure, hold last-good (return None → no gap push).
+        for attempt in range(3):
+            try:
+                with open(self.filepath, "r") as f:
+                    return json.load(f)
+            except json.JSONDecodeError as e:
+                if attempt < 2:
+                    time.sleep(0.05)  # 50ms — write finishes in ms
+                    continue
+                # Rate-limited WARNING (not silent/debug — CLAUDE.md "no silent failures")
+                if not hasattr(self, '_last_json_warn') or time.time() - self._last_json_warn > 30:
+                    logger.warning(f"[{self.name}] JSON parse failed after 3 retries (holding last-good): {e}")
+                    self._last_json_warn = time.time()
+                return None
+            except IOError as e:
+                logger.warning(f"[{self.name}] Read error: {e}")
+                return None
 
     # ── P31 §9 — DLL TZ workaround ──
     # Mutates data in place AND returns it so callers can re-assign.

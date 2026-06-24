@@ -4,6 +4,9 @@ production code and assert on consumer output. Gate-first (assert detected).
 Protocol: (1) gate assert (2) assert on consumer (3) RED-on-revert proven.
 """
 import asyncio
+import os
+import pytest
+from unittest.mock import patch
 from backend.v9.systems.stop_anchors import resolver as SA
 from backend.v9.config_loader import load_stop_anchors
 from backend.v9.systems.woodies.patterns.ghost import detect as detect_ghost
@@ -129,6 +132,9 @@ def test_cci_cross_no_t2_mult():
 
 # ── fire_setup routable (I-3) ──
 
+@patch.dict(os.environ, {"ZLR_SPEC_V2": "0", "NONTREND_DISABLE_ALL": "0",
+                         "DAYTYPE_POSITION_GATE": "0", "HTLB_DIRECTION_GATE": "0",
+                         "DIRECTION_CONTEXT": "0"})
 def test_s4_fire_setup_routable():
     """fire_setup T1 from ladder → R:R≥1 (closes I-3).
     if reverted (T1=12T fixed) → RED: R:R≈0.3 < 1.0."""

@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MEMS26 Replay — 2099-01-01</title>
+<style>
+  :root {
+    --bg: #0e1117; --panel:#161b22; --grid:#222a35; --txt:#c9d1d9;
+    --muted:#8b949e; --up:#26a69a; --down:#ef5350; --accent:#e3b341;
+    --warn:#d29922; --short:#ef5350; --long:#26a69a;
+  }
+  html,body { margin:0; padding:0; background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:1280px; margin:0 auto; padding:14px 16px 28px; }
+  .synthbanner { display:none; background:repeating-linear-gradient(45deg,
+      #5a1f1f, #5a1f1f 12px, #6e2626 12px, #6e2626 24px);
+    color:#ffe0e0; border:2px solid #ff6b6b; border-radius:7px;
+    padding:9px 14px; margin-bottom:12px; font-size:13px; font-weight:700;
+    letter-spacing:.3px; text-align:center; }
+  .synthbanner.on { display:block; }
+  header.hdr { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 16px;
+    border-bottom:1px solid var(--grid); padding-bottom:10px; margin-bottom:10px; }
+  .hdr h1 { font-size:18px; margin:0; font-weight:650; letter-spacing:.2px; }
+  .daytype { font-size:14px; font-weight:600; color:var(--accent);
+    border:1px solid var(--grid); border-radius:6px; padding:2px 8px; }
+  .daytype.missing { color:var(--warn); }
+  .expect { font-size:13px; color:var(--muted); flex:1 1 320px; min-width:240px; }
+  .meta { font-size:11px; color:var(--muted); }
+  #chart { width:100%; height:760px; position:relative; }
+  .rthcap { font-size:11px; color:var(--muted); margin:6px 2px 0;
+    display:flex; align-items:center; gap:6px; }
+  .rthcap .dot { width:7px; height:7px; border-radius:50%; background:var(--accent);
+    display:inline-block; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:11px;
+    color:var(--muted); margin:8px 2px 0; }
+  .legend b { color:var(--txt); font-weight:600; }
+  .chip { display:inline-flex; align-items:center; gap:5px; }
+  .sw { width:11px; height:11px; border-radius:2px; display:inline-block; }
+  .notes { margin-top:10px; font-size:12px; color:var(--muted); line-height:1.5; }
+  .note.miss { color:var(--warn); }
+  .panenote { position:absolute; right:14px; background:rgba(210,153,34,.12);
+    border:1px solid rgba(210,153,34,.4); color:#f0c674; font-size:11px;
+    padding:3px 8px; border-radius:5px; pointer-events:none; z-index:5; }
+  table.tr { border-collapse:collapse; margin-top:12px; font-size:12px; width:100%; }
+  table.tr th, table.tr td { border:1px solid var(--grid); padding:4px 8px; text-align:right; }
+  table.tr th { background:var(--panel); color:var(--txt); }
+  table.tr td.l, table.tr th.l { text-align:left; }
+  .pos { color:var(--up); } .neg { color:var(--down); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="synthbanner" id="synthbanner"></div>
+  <header class="hdr">
+    <h1>MEMS26 Replay — 2099-01-01</h1>
+    <span id="daytype" class="daytype">day-type: …</span>
+    <span id="expect" class="expect"></span>
+    <span id="meta" class="meta"></span>
+  </header>
+
+  <div id="chart">
+    <div id="pricenote"></div>
+    <div id="volnote"></div>
+    <div id="woodnote"></div>
+  </div>
+
+  <div class="rthcap" id="rthcap"><span class="dot"></span><span>RTH default — scroll for Globex</span></div>
+
+  <div class="legend" id="legend"></div>
+  <div class="notes" id="notes"></div>
+  <div id="tradetable"></div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const DATA = {"date": "2099-01-01", "day_type": "Normal", "expectation": "VAL\u2192LONG \u00b7 VAH\u2192SHORT (fade to value)", "levels": {"ibh": 5052.27, "ibl": 5028.84, "poc": 5040.56, "vah": 5047.59, "val": 5033.52}, "zones": [{"from": 5047.59, "to": null, "color": "rgba(239, 83, 80, 0.10)", "label": "above VAH \u2192 fade SHORT"}, {"from": null, "to": 5033.52, "color": "rgba(38, 166, 154, 0.10)", "label": "below VAL \u2192 fade LONG"}, {"from": 5033.52, "to": 5047.59, "color": "rgba(120, 144, 156, 0.07)", "label": "inside value \u2192 mean-revert"}], "bars": [{"ts": "2099-01-01T06:00:00", "epoch": 4070952000, "o": 5000.0, "h": 5003.74, "l": 4997.75, "c": 5001.49, "volume": 800, "cci": -20.0, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:05:00", "epoch": 4070952300, "o": 5002.09, "h": 5005.79, "l": 4999.84, "c": 5003.54, "volume": 916, "cci": 15.76, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:10:00", "epoch": 4070952600, "o": 5004.14, "h": 5007.76, "l": 5001.89, "c": 5005.51, "volume": 1027, "cci": 50.1, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:15:00", "epoch": 4070952900, "o": 5006.11, "h": 5009.62, "l": 5003.86, "c": 5007.37, "volume": 1128, "cci": 81.64, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:20:00", "epoch": 4070953200, "o": 5007.97, "h": 5011.31, "l": 5005.72, "c": 5009.06, "volume": 1214, "cci": 109.12, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:25:00", "epoch": 4070953500, "o": 5009.66, "h": 5012.82, "l": 5007.41, "c": 5010.57, "volume": 1132, "cci": 131.46, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:30:00", "epoch": 4070953800, "o": 5011.17, "h": 5014.13, "l": 5008.92, "c": 5011.88, "volume": 1179, "cci": 147.77, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:35:00", "epoch": 4070954100, "o": 5012.48, "h": 5015.2, "l": 5010.23, "c": 5012.95, "volume": 1204, "cci": 157.38, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:40:00", "epoch": 4070954400, "o": 5013.55, "h": 5016.03, "l": 5011.3, "c": 5013.78, "volume": 1208, "cci": 159.92, "trend_state": "BLUE", "zlr": 1, "zlr_direction": "LONG", "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:45:00", "epoch": 4070954700, "o": 5014.38, "h": 5016.63, "l": 5012.11, "c": 5014.36, "volume": 1192, "cci": 155.29, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:50:00", "epoch": 4070955000, "o": 5014.96, "h": 5017.21, "l": 5012.44, "c": 5014.69, "volume": 1009, "cci": 143.67, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T06:55:00", "epoch": 4070955300, "o": 5015.29, "h": 5017.54, "l": 5012.53, "c": 5014.78, "volume": 963, "cci": 125.53, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 1, "hfe_direction": "SHORT"}, {"ts": "2099-01-01T07:00:00", "epoch": 4070955600, "o": 5015.38, "h": 5017.63, "l": 5012.4, "c": 5014.65, "volume": 909, "cci": 101.58, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:05:00", "epoch": 4070955900, "o": 5015.25, "h": 5017.5, "l": 5012.06, "c": 5014.31, "volume": 927, "cci": 72.79, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:10:00", "epoch": 4070956200, "o": 5014.91, "h": 5017.16, "l": 5011.54, "c": 5013.79, "volume": 1042, "cci": 40.3, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:15:00", "epoch": 4070956500, "o": 5014.39, "h": 5016.64, "l": 5010.87, "c": 5013.12, "volume": 1000, "cci": 5.4, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:20:00", "epoch": 4070956800, "o": 5013.72, "h": 5015.97, "l": 5010.08, "c": 5012.33, "volume": 1094, "cci": -30.51, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:25:00", "epoch": 4070957100, "o": 5012.93, "h": 5015.18, "l": 5009.22, "c": 5011.47, "volume": 1173, "cci": -66.0, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:30:00", "epoch": 4070957400, "o": 5012.07, "h": 5014.32, "l": 5008.32, "c": 5010.57, "volume": 1232, "cci": -99.65, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:35:00", "epoch": 4070957700, "o": 5011.17, "h": 5013.42, "l": 5007.43, "c": 5009.68, "volume": 1269, "cci": -130.13, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:40:00", "epoch": 4070958000, "o": 5010.28, "h": 5012.53, "l": 5006.59, "c": 5008.84, "volume": 1135, "cci": -156.22, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:45:00", "epoch": 4070958300, "o": 5009.44, "h": 5011.69, "l": 5005.84, "c": 5008.09, "volume": 1130, "cci": -176.88, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:50:00", "epoch": 4070958600, "o": 5008.69, "h": 5010.94, "l": 5005.21, "c": 5007.46, "volume": 1106, "cci": -191.29, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T07:55:00", "epoch": 4070958900, "o": 5008.06, "h": 5010.31, "l": 5004.74, "c": 5006.99, "volume": 1067, "cci": -198.86, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:00:00", "epoch": 4070959200, "o": 5007.59, "h": 5009.84, "l": 5004.46, "c": 5006.71, "volume": 1017, "cci": -199.31, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:05:00", "epoch": 4070959500, "o": 5007.31, "h": 5009.56, "l": 5004.39, "c": 5006.64, "volume": 811, "cci": -192.61, "trend_state": "RED", "zlr": 1, "zlr_direction": "LONG", "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:10:00", "epoch": 4070959800, "o": 5007.24, "h": 5009.49, "l": 5004.55, "c": 5006.8, "volume": 905, "cci": -179.02, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:15:00", "epoch": 4070960100, "o": 5007.4, "h": 5009.65, "l": 5004.96, "c": 5007.21, "volume": 1017, "cci": -159.1, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:20:00", "epoch": 4070960400, "o": 5007.81, "h": 5010.12, "l": 5005.56, "c": 5007.87, "volume": 1119, "cci": -133.63, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:25:00", "epoch": 4070960700, "o": 5008.47, "h": 5011.02, "l": 5006.22, "c": 5008.77, "volume": 1208, "cci": -103.63, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:30:00", "epoch": 4070961000, "o": 5009.37, "h": 5012.16, "l": 5007.12, "c": 5009.91, "volume": 1128, "cci": -70.29, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:35:00", "epoch": 4070961300, "o": 5010.51, "h": 5013.53, "l": 5008.26, "c": 5011.28, "volume": 1178, "cci": -34.96, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:40:00", "epoch": 4070961600, "o": 5011.88, "h": 5015.1, "l": 5009.63, "c": 5012.85, "volume": 1206, "cci": 0.98, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:45:00", "epoch": 4070961900, "o": 5013.45, "h": 5016.85, "l": 5011.2, "c": 5014.6, "volume": 1212, "cci": 36.08, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T08:50:00", "epoch": 4070962200, "o": 5015.2, "h": 5018.74, "l": 5012.95, "c": 5016.49, "volume": 1199, "cci": 68.94, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 1, "hfe_direction": "SHORT"}, {"ts": "2099-01-01T08:55:00", "epoch": 4070962500, "o": 5017.09, "h": 5020.74, "l": 5014.84, "c": 5018.49, "volume": 1018, "cci": 98.26, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:00:00", "epoch": 4070962800, "o": 5019.09, "h": 5022.8, "l": 5016.84, "c": 5020.55, "volume": 974, "cci": 122.86, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:05:00", "epoch": 4070963100, "o": 5021.15, "h": 5024.9, "l": 5018.9, "c": 5022.65, "volume": 920, "cci": 141.77, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:10:00", "epoch": 4070963400, "o": 5023.25, "h": 5026.99, "l": 5021.0, "c": 5024.74, "volume": 916, "cci": 154.23, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:15:00", "epoch": 4070963700, "o": 5025.34, "h": 5029.02, "l": 5023.09, "c": 5026.77, "volume": 1031, "cci": 159.74, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:20:00", "epoch": 4070964000, "o": 5027.37, "h": 5030.96, "l": 5025.12, "c": 5028.71, "volume": 990, "cci": 158.08, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:25:00", "epoch": 4070964300, "o": 5029.31, "h": 5032.76, "l": 5027.06, "c": 5030.51, "volume": 1087, "cci": 149.33, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:30:00", "epoch": 4070964600, "o": 5031.11, "h": 5034.41, "l": 5028.86, "c": 5032.16, "volume": 1167, "cci": 133.83, "trend_state": "BLUE", "zlr": 1, "zlr_direction": "LONG", "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:35:00", "epoch": 4070964900, "o": 5032.76, "h": 5035.86, "l": 5030.51, "c": 5033.61, "volume": 1229, "cci": 112.19, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:40:00", "epoch": 4070965200, "o": 5034.21, "h": 5037.09, "l": 5031.96, "c": 5034.84, "volume": 1269, "cci": 85.29, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:45:00", "epoch": 4070965500, "o": 5035.44, "h": 5038.09, "l": 5033.19, "c": 5035.84, "volume": 1138, "cci": 54.18, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:50:00", "epoch": 4070965800, "o": 5036.44, "h": 5038.85, "l": 5034.19, "c": 5036.6, "volume": 1136, "cci": 20.12, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T09:55:00", "epoch": 4070966100, "o": 5037.2, "h": 5039.45, "l": 5034.85, "c": 5037.1, "volume": 1115, "cci": -15.54, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:00:00", "epoch": 4070966400, "o": 5037.7, "h": 5039.95, "l": 5035.11, "c": 5037.36, "volume": 1077, "cci": -51.38, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:05:00", "epoch": 4070966700, "o": 5037.96, "h": 5040.21, "l": 5035.14, "c": 5037.39, "volume": 1028, "cci": -85.97, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:10:00", "epoch": 4070967000, "o": 5037.99, "h": 5040.24, "l": 5034.94, "c": 5037.19, "volume": 823, "cci": -117.92, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:15:00", "epoch": 4070967300, "o": 5037.79, "h": 5040.04, "l": 5034.54, "c": 5036.79, "volume": 893, "cci": -145.98, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:20:00", "epoch": 4070967600, "o": 5037.39, "h": 5039.64, "l": 5033.97, "c": 5036.22, "volume": 1007, "cci": -169.01, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:25:00", "epoch": 4070967900, "o": 5036.82, "h": 5039.07, "l": 5033.26, "c": 5035.51, "volume": 1111, "cci": -186.1, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:30:00", "epoch": 4070968200, "o": 5036.11, "h": 5038.36, "l": 5032.45, "c": 5034.7, "volume": 1201, "cci": -196.57, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:35:00", "epoch": 4070968500, "o": 5035.3, "h": 5037.55, "l": 5031.57, "c": 5033.82, "volume": 1124, "cci": -200.0, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:40:00", "epoch": 4070968800, "o": 5034.42, "h": 5036.67, "l": 5030.67, "c": 5032.92, "volume": 1176, "cci": -196.25, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:45:00", "epoch": 4070969100, "o": 5033.52, "h": 5035.77, "l": 5029.79, "c": 5032.04, "volume": 1207, "cci": -185.48, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 1, "hfe_direction": "SHORT"}, {"ts": "2099-01-01T10:50:00", "epoch": 4070969400, "o": 5032.64, "h": 5034.89, "l": 5028.97, "c": 5031.22, "volume": 1217, "cci": -168.11, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T10:55:00", "epoch": 4070969700, "o": 5031.82, "h": 5034.07, "l": 5028.25, "c": 5030.5, "volume": 1206, "cci": -144.83, "trend_state": "RED", "zlr": 1, "zlr_direction": "LONG", "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:00:00", "epoch": 4070970000, "o": 5031.1, "h": 5033.35, "l": 5027.67, "c": 5029.92, "volume": 1027, "cci": -116.58, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:05:00", "epoch": 4070970300, "o": 5030.52, "h": 5032.77, "l": 5027.25, "c": 5029.5, "volume": 984, "cci": -84.48, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:10:00", "epoch": 4070970600, "o": 5030.1, "h": 5032.35, "l": 5027.03, "c": 5029.28, "volume": 932, "cci": -49.81, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:15:00", "epoch": 4070970900, "o": 5029.88, "h": 5032.13, "l": 5027.03, "c": 5029.28, "volume": 904, "cci": -13.95, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:20:00", "epoch": 4070971200, "o": 5029.88, "h": 5032.13, "l": 5027.27, "c": 5029.52, "volume": 1020, "cci": 21.67, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:25:00", "epoch": 4070971500, "o": 5030.12, "h": 5032.37, "l": 5027.75, "c": 5030.0, "volume": 980, "cci": 55.63, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:30:00", "epoch": 4070971800, "o": 5030.6, "h": 5032.98, "l": 5028.35, "c": 5030.73, "volume": 1079, "cci": 86.57, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:35:00", "epoch": 4070972100, "o": 5031.33, "h": 5033.96, "l": 5029.08, "c": 5031.71, "volume": 1162, "cci": 113.27, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:40:00", "epoch": 4070972400, "o": 5032.31, "h": 5035.17, "l": 5030.06, "c": 5032.92, "volume": 1226, "cci": 134.65, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:45:00", "epoch": 4070972700, "o": 5033.52, "h": 5036.6, "l": 5031.27, "c": 5034.35, "volume": 1269, "cci": 149.87, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:50:00", "epoch": 4070973000, "o": 5034.95, "h": 5038.23, "l": 5032.7, "c": 5035.98, "volume": 1141, "cci": 158.31, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T11:55:00", "epoch": 4070973300, "o": 5036.58, "h": 5040.02, "l": 5034.33, "c": 5037.77, "volume": 1141, "cci": 159.64, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:00:00", "epoch": 4070973600, "o": 5038.37, "h": 5041.95, "l": 5036.12, "c": 5039.7, "volume": 1122, "cci": 153.82, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:05:00", "epoch": 4070973900, "o": 5040.3, "h": 5043.97, "l": 5038.05, "c": 5041.72, "volume": 1087, "cci": 141.06, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:10:00", "epoch": 4070974200, "o": 5042.32, "h": 5046.05, "l": 5040.07, "c": 5043.8, "volume": 1039, "cci": 121.89, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:15:00", "epoch": 4070974500, "o": 5044.4, "h": 5048.15, "l": 5042.15, "c": 5045.9, "volume": 834, "cci": 97.05, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:20:00", "epoch": 4070974800, "o": 5046.5, "h": 5050.22, "l": 5044.25, "c": 5047.97, "volume": 882, "cci": 67.55, "trend_state": "BLUE", "zlr": 1, "zlr_direction": "LONG", "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:25:00", "epoch": 4070975100, "o": 5048.57, "h": 5052.23, "l": 5046.32, "c": 5049.98, "volume": 996, "cci": 34.56, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:30:00", "epoch": 4070975400, "o": 5050.58, "h": 5054.13, "l": 5048.33, "c": 5051.88, "volume": 1101, "cci": -0.6, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:35:00", "epoch": 4070975700, "o": 5052.48, "h": 5055.9, "l": 5050.23, "c": 5053.65, "volume": 1194, "cci": -36.54, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:40:00", "epoch": 4070976000, "o": 5054.25, "h": 5057.48, "l": 5052.0, "c": 5055.23, "volume": 1119, "cci": -71.82, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 1, "hfe_direction": "SHORT"}, {"ts": "2099-01-01T12:45:00", "epoch": 4070976300, "o": 5055.83, "h": 5058.87, "l": 5053.58, "c": 5056.62, "volume": 1174, "cci": -105.04, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:50:00", "epoch": 4070976600, "o": 5057.22, "h": 5060.04, "l": 5054.97, "c": 5057.79, "volume": 1208, "cci": -134.86, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T12:55:00", "epoch": 4070976900, "o": 5058.39, "h": 5060.97, "l": 5056.14, "c": 5058.72, "volume": 1221, "cci": -160.1, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:00:00", "epoch": 4070977200, "o": 5059.32, "h": 5061.65, "l": 5057.07, "c": 5059.4, "volume": 1212, "cci": -179.76, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:05:00", "epoch": 4070977500, "o": 5060.0, "h": 5062.25, "l": 5057.58, "c": 5059.83, "volume": 1036, "cci": -193.05, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:10:00", "epoch": 4070977800, "o": 5060.43, "h": 5062.68, "l": 5057.76, "c": 5060.01, "volume": 995, "cci": -199.44, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:15:00", "epoch": 4070978100, "o": 5060.61, "h": 5062.86, "l": 5057.72, "c": 5059.97, "volume": 943, "cci": -198.68, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:20:00", "epoch": 4070978400, "o": 5060.57, "h": 5062.82, "l": 5057.46, "c": 5059.71, "volume": 893, "cci": -190.79, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:25:00", "epoch": 4070978700, "o": 5060.31, "h": 5062.56, "l": 5057.0, "c": 5059.25, "volume": 1009, "cci": -176.1, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:30:00", "epoch": 4070979000, "o": 5059.85, "h": 5062.1, "l": 5056.39, "c": 5058.64, "volume": 970, "cci": -155.18, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:35:00", "epoch": 4070979300, "o": 5059.24, "h": 5061.49, "l": 5055.64, "c": 5057.89, "volume": 1070, "cci": -128.87, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:40:00", "epoch": 4070979600, "o": 5058.49, "h": 5060.74, "l": 5054.81, "c": 5057.06, "volume": 1156, "cci": -98.22, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:45:00", "epoch": 4070979900, "o": 5057.66, "h": 5059.91, "l": 5053.92, "c": 5056.17, "volume": 1223, "cci": -64.46, "trend_state": "RED", "zlr": 1, "zlr_direction": "LONG", "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:50:00", "epoch": 4070980200, "o": 5056.77, "h": 5059.02, "l": 5053.02, "c": 5055.27, "volume": 1269, "cci": -28.92, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T13:55:00", "epoch": 4070980500, "o": 5055.87, "h": 5058.12, "l": 5052.16, "c": 5054.41, "volume": 1143, "cci": 6.98, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:00:00", "epoch": 4070980800, "o": 5055.01, "h": 5057.26, "l": 5051.36, "c": 5053.61, "volume": 1146, "cci": 41.8, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:05:00", "epoch": 4070981100, "o": 5054.21, "h": 5056.46, "l": 5050.68, "c": 5052.93, "volume": 1130, "cci": 74.15, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:10:00", "epoch": 4070981400, "o": 5053.53, "h": 5055.78, "l": 5050.14, "c": 5052.39, "volume": 1096, "cci": 102.75, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:15:00", "epoch": 4070981700, "o": 5052.99, "h": 5055.24, "l": 5049.78, "c": 5052.03, "volume": 1050, "cci": 126.46, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:20:00", "epoch": 4070982000, "o": 5052.63, "h": 5054.88, "l": 5049.63, "c": 5051.88, "volume": 846, "cci": 144.33, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:25:00", "epoch": 4070982300, "o": 5052.48, "h": 5054.73, "l": 5049.7, "c": 5051.95, "volume": 870, "cci": 155.65, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:30:00", "epoch": 4070982600, "o": 5052.55, "h": 5054.8, "l": 5050.01, "c": 5052.26, "volume": 985, "cci": 159.96, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:35:00", "epoch": 4070982900, "o": 5052.86, "h": 5055.11, "l": 5050.56, "c": 5052.81, "volume": 1092, "cci": 157.1, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 1, "hfe_direction": "SHORT"}, {"ts": "2099-01-01T14:40:00", "epoch": 4070983200, "o": 5053.41, "h": 5055.87, "l": 5051.16, "c": 5053.62, "volume": 1186, "cci": 147.18, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:45:00", "epoch": 4070983500, "o": 5054.22, "h": 5056.92, "l": 5051.97, "c": 5054.67, "volume": 1114, "cci": 130.6, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:50:00", "epoch": 4070983800, "o": 5055.27, "h": 5058.2, "l": 5053.02, "c": 5055.95, "volume": 1172, "cci": 108.01, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T14:55:00", "epoch": 4070984100, "o": 5056.55, "h": 5059.69, "l": 5054.3, "c": 5057.44, "volume": 1209, "cci": 80.32, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:00:00", "epoch": 4070984400, "o": 5058.04, "h": 5061.37, "l": 5055.79, "c": 5059.12, "volume": 1224, "cci": 48.63, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:05:00", "epoch": 4070984700, "o": 5059.72, "h": 5063.21, "l": 5057.47, "c": 5060.96, "volume": 1219, "cci": 14.2, "trend_state": "BLUE", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:10:00", "epoch": 4070985000, "o": 5061.56, "h": 5065.17, "l": 5059.31, "c": 5062.92, "volume": 1044, "cci": -21.59, "trend_state": "RED", "zlr": 1, "zlr_direction": "LONG", "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:15:00", "epoch": 4070985300, "o": 5063.52, "h": 5067.21, "l": 5061.27, "c": 5064.96, "volume": 1005, "cci": -57.32, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:20:00", "epoch": 4070985600, "o": 5065.56, "h": 5069.3, "l": 5063.31, "c": 5067.05, "volume": 954, "cci": -91.56, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:25:00", "epoch": 4070985900, "o": 5067.65, "h": 5071.4, "l": 5065.4, "c": 5069.15, "volume": 898, "cci": -122.95, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:30:00", "epoch": 4070986200, "o": 5069.75, "h": 5073.46, "l": 5067.5, "c": 5071.21, "volume": 998, "cci": -150.23, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:35:00", "epoch": 4070986500, "o": 5071.81, "h": 5075.44, "l": 5069.56, "c": 5073.19, "volume": 960, "cci": -172.32, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:40:00", "epoch": 4070986800, "o": 5073.79, "h": 5077.3, "l": 5071.54, "c": 5075.05, "volume": 1062, "cci": -188.34, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:45:00", "epoch": 4070987100, "o": 5075.65, "h": 5079.01, "l": 5073.4, "c": 5076.76, "volume": 1149, "cci": -197.64, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:50:00", "epoch": 4070987400, "o": 5077.36, "h": 5080.54, "l": 5075.11, "c": 5078.29, "volume": 1219, "cci": -199.87, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}, {"ts": "2099-01-01T15:55:00", "epoch": 4070987700, "o": 5078.89, "h": 5081.87, "l": 5076.64, "c": 5079.62, "volume": 1268, "cci": -194.92, "trend_state": "RED", "zlr": 0, "zlr_direction": null, "hfe": 0, "hfe_direction": null}], "cvd": [{"ts": "2099-01-01T06:00:00", "epoch": 4070952000, "cumulative_delta": -54.0}, {"ts": "2099-01-01T06:05:00", "epoch": 4070952300, "cumulative_delta": -66.2}, {"ts": "2099-01-01T06:10:00", "epoch": 4070952600, "cumulative_delta": -37.5}, {"ts": "2099-01-01T06:15:00", "epoch": 4070952900, "cumulative_delta": 30.3}, {"ts": "2099-01-01T06:20:00", "epoch": 4070953200, "cumulative_delta": 134.4}, {"ts": "2099-01-01T06:25:00", "epoch": 4070953500, "cumulative_delta": 271.4}, {"ts": "2099-01-01T06:30:00", "epoch": 4070953800, "cumulative_delta": 437.2}, {"ts": "2099-01-01T06:35:00", "epoch": 4070954100, "cumulative_delta": 501.5}, {"ts": "2099-01-01T06:40:00", "epoch": 4070954400, "cumulative_delta": 585.4}, {"ts": "2099-01-01T06:45:00", "epoch": 4070954700, "cumulative_delta": 684.3}, {"ts": "2099-01-01T06:50:00", "epoch": 4070955000, "cumulative_delta": 793.4}, {"ts": "2099-01-01T06:55:00", "epoch": 4070955300, "cumulative_delta": 908.4}, {"ts": "2099-01-01T07:00:00", "epoch": 4070955600, "cumulative_delta": 1025.5}, {"ts": "2099-01-01T07:05:00", "epoch": 4070955900, "cumulative_delta": 1141.4}, {"ts": "2099-01-01T07:10:00", "epoch": 4070956200, "cumulative_delta": 1127.6}, {"ts": "2099-01-01T07:15:00", "epoch": 4070956500, "cumulative_delta": 1108.5}, {"ts": "2099-01-01T07:20:00", "epoch": 4070956800, "cumulative_delta": 1083.5}, {"ts": "2099-01-01T07:25:00", "epoch": 4070957100, "cumulative_delta": 1052.8}, {"ts": "2099-01-01T07:30:00", "epoch": 4070957400, "cumulative_delta": 1017.7}, {"ts": "2099-01-01T07:35:00", "epoch": 4070957700, "cumulative_delta": 980.3}, {"ts": "2099-01-01T07:40:00", "epoch": 4070958000, "cumulative_delta": 943.5}, {"ts": "2099-01-01T07:45:00", "epoch": 4070958300, "cumulative_delta": 784.9}, {"ts": "2099-01-01T07:50:00", "epoch": 4070958600, "cumulative_delta": 634.7}, {"ts": "2099-01-01T07:55:00", "epoch": 4070958900, "cumulative_delta": 497.5}, {"ts": "2099-01-01T08:00:00", "epoch": 4070959200, "cumulative_delta": 378.0}, {"ts": "2099-01-01T08:05:00", "epoch": 4070959500, "cumulative_delta": 280.9}, {"ts": "2099-01-01T08:10:00", "epoch": 4070959800, "cumulative_delta": 210.9}, {"ts": "2099-01-01T08:15:00", "epoch": 4070960100, "cumulative_delta": 172.2}, {"ts": "2099-01-01T08:20:00", "epoch": 4070960400, "cumulative_delta": 42.4}, {"ts": "2099-01-01T08:25:00", "epoch": 4070960700, "cumulative_delta": -49.4}, {"ts": "2099-01-01T08:30:00", "epoch": 4070961000, "cumulative_delta": -100.9}, {"ts": "2099-01-01T08:35:00", "epoch": 4070961300, "cumulative_delta": -110.9}, {"ts": "2099-01-01T08:40:00", "epoch": 4070961600, "cumulative_delta": -78.9}, {"ts": "2099-01-01T08:45:00", "epoch": 4070961900, "cumulative_delta": -5.5}, {"ts": "2099-01-01T08:50:00", "epoch": 4070962200, "cumulative_delta": 107.8}, {"ts": "2099-01-01T08:55:00", "epoch": 4070962500, "cumulative_delta": 132.6}, {"ts": "2099-01-01T09:00:00", "epoch": 4070962800, "cumulative_delta": 191.8}, {"ts": "2099-01-01T09:05:00", "epoch": 4070963100, "cumulative_delta": 281.6}, {"ts": "2099-01-01T09:10:00", "epoch": 4070963400, "cumulative_delta": 397.8}, {"ts": "2099-01-01T09:15:00", "epoch": 4070963700, "cumulative_delta": 535.6}, {"ts": "2099-01-01T09:20:00", "epoch": 4070964000, "cumulative_delta": 690.3}, {"ts": "2099-01-01T09:25:00", "epoch": 4070964300, "cumulative_delta": 857.2}, {"ts": "2099-01-01T09:30:00", "epoch": 4070964600, "cumulative_delta": 905.8}, {"ts": "2099-01-01T09:35:00", "epoch": 4070964900, "cumulative_delta": 957.9}, {"ts": "2099-01-01T09:40:00", "epoch": 4070965200, "cumulative_delta": 1010.1}, {"ts": "2099-01-01T09:45:00", "epoch": 4070965500, "cumulative_delta": 1059.6}, {"ts": "2099-01-01T09:50:00", "epoch": 4070965800, "cumulative_delta": 1104.3}, {"ts": "2099-01-01T09:55:00", "epoch": 4070966100, "cumulative_delta": 1143.3}, {"ts": "2099-01-01T10:00:00", "epoch": 4070966400, "cumulative_delta": 1176.4}, {"ts": "2099-01-01T10:05:00", "epoch": 4070966700, "cumulative_delta": 1078.4}, {"ts": "2099-01-01T10:10:00", "epoch": 4070967000, "cumulative_delta": 977.1}, {"ts": "2099-01-01T10:15:00", "epoch": 4070967300, "cumulative_delta": 875.1}, {"ts": "2099-01-01T10:20:00", "epoch": 4070967600, "cumulative_delta": 775.8}, {"ts": "2099-01-01T10:25:00", "epoch": 4070967900, "cumulative_delta": 683.1}, {"ts": "2099-01-01T10:30:00", "epoch": 4070968200, "cumulative_delta": 601.4}, {"ts": "2099-01-01T10:35:00", "epoch": 4070968500, "cumulative_delta": 535.4}, {"ts": "2099-01-01T10:40:00", "epoch": 4070968800, "cumulative_delta": 363.9}, {"ts": "2099-01-01T10:45:00", "epoch": 4070969100, "cumulative_delta": 217.6}, {"ts": "2099-01-01T10:50:00", "epoch": 4070969400, "cumulative_delta": 100.9}, {"ts": "2099-01-01T10:55:00", "epoch": 4070969700, "cumulative_delta": 17.7}, {"ts": "2099-01-01T11:00:00", "epoch": 4070970000, "cumulative_delta": -28.7}, {"ts": "2099-01-01T11:05:00", "epoch": 4070970300, "cumulative_delta": -35.7}, {"ts": "2099-01-01T11:10:00", "epoch": 4070970600, "cumulative_delta": -1.6}, {"ts": "2099-01-01T11:15:00", "epoch": 4070970900, "cumulative_delta": -51.6}, {"ts": "2099-01-01T11:20:00", "epoch": 4070971200, "cumulative_delta": -59.8}, {"ts": "2099-01-01T11:25:00", "epoch": 4070971500, "cumulative_delta": -27.4}, {"ts": "2099-01-01T11:30:00", "epoch": 4070971800, "cumulative_delta": 43.6}, {"ts": "2099-01-01T11:35:00", "epoch": 4070972100, "cumulative_delta": 150.4}, {"ts": "2099-01-01T11:40:00", "epoch": 4070972400, "cumulative_delta": 289.5}, {"ts": "2099-01-01T11:45:00", "epoch": 4070972700, "cumulative_delta": 456.7}, {"ts": "2099-01-01T11:50:00", "epoch": 4070973000, "cumulative_delta": 521.6}, {"ts": "2099-01-01T11:55:00", "epoch": 4070973300, "cumulative_delta": 605.4}, {"ts": "2099-01-01T12:00:00", "epoch": 4070973600, "cumulative_delta": 703.3}, {"ts": "2099-01-01T12:05:00", "epoch": 4070973900, "cumulative_delta": 810.7}, {"ts": "2099-01-01T12:10:00", "epoch": 4070974200, "cumulative_delta": 923.3}, {"ts": "2099-01-01T12:15:00", "epoch": 4070974500, "cumulative_delta": 1037.3}, {"ts": "2099-01-01T12:20:00", "epoch": 4070974800, "cumulative_delta": 1149.7}, {"ts": "2099-01-01T12:25:00", "epoch": 4070975100, "cumulative_delta": 1132.1}, {"ts": "2099-01-01T12:30:00", "epoch": 4070975400, "cumulative_delta": 1109.0}, {"ts": "2099-01-01T12:35:00", "epoch": 4070975700, "cumulative_delta": 1080.0}, {"ts": "2099-01-01T12:40:00", "epoch": 4070976000, "cumulative_delta": 1045.5}, {"ts": "2099-01-01T12:45:00", "epoch": 4070976300, "cumulative_delta": 1006.8}, {"ts": "2099-01-01T12:50:00", "epoch": 4070976600, "cumulative_delta": 966.2}, {"ts": "2099-01-01T12:55:00", "epoch": 4070976900, "cumulative_delta": 926.8}, {"ts": "2099-01-01T13:00:00", "epoch": 4070977200, "cumulative_delta": 766.3}, {"ts": "2099-01-01T13:05:00", "epoch": 4070977500, "cumulative_delta": 614.9}, {"ts": "2099-01-01T13:10:00", "epoch": 4070977800, "cumulative_delta": 477.3}, {"ts": "2099-01-01T13:15:00", "epoch": 4070978100, "cumulative_delta": 358.2}, {"ts": "2099-01-01T13:20:00", "epoch": 4070978400, "cumulative_delta": 262.3}, {"ts": "2099-01-01T13:25:00", "epoch": 4070978700, "cumulative_delta": 194.2}, {"ts": "2099-01-01T13:30:00", "epoch": 4070979000, "cumulative_delta": 158.1}, {"ts": "2099-01-01T13:35:00", "epoch": 4070979300, "cumulative_delta": 31.5}, {"ts": "2099-01-01T13:40:00", "epoch": 4070979600, "cumulative_delta": -56.6}, {"ts": "2099-01-01T13:45:00", "epoch": 4070979900, "cumulative_delta": -104.2}, {"ts": "2099-01-01T13:50:00", "epoch": 4070980200, "cumulative_delta": -110.1}, {"ts": "2099-01-01T13:55:00", "epoch": 4070980500, "cumulative_delta": -74.1}, {"ts": "2099-01-01T14:00:00", "epoch": 4070980800, "cumulative_delta": 3.1}, {"ts": "2099-01-01T14:05:00", "epoch": 4070981100, "cumulative_delta": 119.9}, {"ts": "2099-01-01T14:10:00", "epoch": 4070981400, "cumulative_delta": 147.7}, {"ts": "2099-01-01T14:15:00", "epoch": 4070981700, "cumulative_delta": 209.3}, {"ts": "2099-01-01T14:20:00", "epoch": 4070982000, "cumulative_delta": 300.9}, {"ts": "2099-01-01T14:25:00", "epoch": 4070982300, "cumulative_delta": 418.0}, {"ts": "2099-01-01T14:30:00", "epoch": 4070982600, "cumulative_delta": 556.0}, {"ts": "2099-01-01T14:35:00", "epoch": 4070982900, "cumulative_delta": 710.1}, {"ts": "2099-01-01T14:40:00", "epoch": 4070983200, "cumulative_delta": 875.6}, {"ts": "2099-01-01T14:45:00", "epoch": 4070983500, "cumulative_delta": 922.0}, {"ts": "2099-01-01T14:50:00", "epoch": 4070983800, "cumulative_delta": 971.3}, {"ts": "2099-01-01T14:55:00", "epoch": 4070984100, "cumulative_delta": 1020.2}, {"ts": "2099-01-01T15:00:00", "epoch": 4070984400, "cumulative_delta": 1066.0}, {"ts": "2099-01-01T15:05:00", "epoch": 4070984700, "cumulative_delta": 1106.8}, {"ts": "2099-01-01T15:10:00", "epoch": 4070985000, "cumulative_delta": 1141.7}, {"ts": "2099-01-01T15:15:00", "epoch": 4070985300, "cumulative_delta": 1170.8}, {"ts": "2099-01-01T15:20:00", "epoch": 4070985600, "cumulative_delta": 1069.1}, {"ts": "2099-01-01T15:25:00", "epoch": 4070985900, "cumulative_delta": 964.5}, {"ts": "2099-01-01T15:30:00", "epoch": 4070986200, "cumulative_delta": 859.7}, {"ts": "2099-01-01T15:35:00", "epoch": 4070986500, "cumulative_delta": 758.2}, {"ts": "2099-01-01T15:40:00", "epoch": 4070986800, "cumulative_delta": 664.0}, {"ts": "2099-01-01T15:45:00", "epoch": 4070987100, "cumulative_delta": 581.6}, {"ts": "2099-01-01T15:50:00", "epoch": 4070987400, "cumulative_delta": 515.7}, {"ts": "2099-01-01T15:55:00", "epoch": 4070987700, "cumulative_delta": 345.1}], "trades": [{"id": 9001, "mode": "shadow", "system": 2, "direction": "LONG", "state": "CLOSED", "entry_ts": "2099-01-01T09:05:00", "entry_epoch": 4070963100, "entry_price": 5033.52, "stop": 5027.52, "t1": 5040.56, "t2": 5047.59, "t3": 5052.27, "exit_ts": "2099-01-01T10:30:00", "exit_epoch": 4070968200, "exit_price": 5040.56, "exit_reason": "T1", "pnl_usd": 187.5, "pnl_r": 1.0, "outcome": "WIN", "pattern_id": "VEGAS", "day_type": "Normal"}, {"id": 9002, "mode": "shadow", "system": 4, "direction": "SHORT", "state": "CLOSED", "entry_ts": "2099-01-01T12:45:00", "entry_epoch": 4070976300, "entry_price": 5047.59, "stop": 5053.59, "t1": 5040.56, "t2": 5033.52, "t3": 5028.84, "exit_ts": "2099-01-01T13:40:00", "exit_epoch": 4070979600, "exit_price": 5053.59, "exit_reason": "STOP", "pnl_usd": -150.0, "pnl_r": -1.0, "outcome": "LOSS", "pattern_id": "GHOST", "day_type": "Normal"}], "has_volume": true, "has_cvd": true, "playbook_found": true, "generated_at": "2026-06-22T19:56:52.442782Z", "source": "_make_fixture_full.py \u2014 SYNTHETIC verification fixture (NOT real data)", "synthetic": true, "banner": "SYNTHETIC TEST FIXTURE \u2014 every field fabricated to verify the renderer. NOT real market data. The real Mac export renders the same panes with this banner OFF."};
+
+function fmt(n, d) {
+  if (n === null || n === undefined || isNaN(n)) return "—";
+  return Number(n).toFixed(d === undefined ? 2 : d);
+}
+// CT wall-clock string "YYYY-MM-DDTHH:MM:SS" -> chart business time.
+// The chart's axis/crosshair formatters print getUTCHours()/getUTCMinutes() of
+// the series time, so to make labels read in CT we plot every series using the
+// CT wall-clock RE-EXPRESSED as UTC seconds (ctToSec). We do NOT plot the raw
+// `epoch` (true UTC) because that would shift the axis to UTC hours. ctToSec is
+// therefore the single source of chart-time for bars, trades AND the RTH window
+// below, so they all line up. (`epoch` is kept in the JSON for other consumers.)
+function ctToSec(ts) {
+  // ts like "2026-06-09T08:30:00" (already America/Chicago wall-clock)
+  if (!ts) return null;
+  const m = ts.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  // Treat the wall-clock as if UTC so the chart prints exactly these HH:MM.
+  return Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]) / 1000;
+}
+// The CT calendar date the session belongs to, taken from the first bar's ts.
+// Used to anchor the RTH 08:30–15:00 CT default visible window.
+function sessionDateCT(bars) {
+  for (const b of (bars || [])) {
+    if (b && b.ts) {
+      const m = b.ts.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return { y: +m[1], mo: +m[2], d: +m[3] };
+    }
+  }
+  return null;
+}
+
+function showPaneNote(id, top, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = "panenote";
+  el.style.top = top + "px";
+  el.textContent = text;
+}
+
+(function main() {
+  const LWC = window.LightweightCharts;
+
+  // Loud synthetic banner — verification fixtures only. A real Mac export never
+  // sets DATA.synthetic, so this stays hidden for genuine data.
+  if (DATA.synthetic) {
+    const bn = document.getElementById("synthbanner");
+    if (bn) {
+      bn.className = "synthbanner on";
+      bn.textContent = DATA.banner ||
+        "SYNTHETIC TEST FIXTURE — fabricated data for renderer verification ONLY. NOT real market data.";
+    }
+  }
+
+  const dtEl = document.getElementById("daytype");
+  const exEl = document.getElementById("expect");
+  const metaEl = document.getElementById("meta");
+
+  // Header: day-type + expectation (honest "missing"). The provenance
+  // (classify_replay / state-machine / trade-stamped) is shown as a tooltip so
+  // the canonical 7-type vs a fallback is never silently conflated.
+  if (DATA.day_type) {
+    dtEl.textContent = "day-type: " + DATA.day_type;
+    if (DATA.day_type_source) dtEl.title = "source: " + DATA.day_type_source;
+  } else {
+    dtEl.textContent = "day-type: missing (export on Mac)";
+    dtEl.classList.add("missing");
+  }
+  exEl.textContent = DATA.expectation
+    ? DATA.expectation
+    : (DATA.playbook_found
+        ? "no playbook expectation for this day-type"
+        : "playbook not found — expectation unavailable");
+  const nb = (DATA.bars || []).length;
+  metaEl.textContent = "bars: " + nb + " · trades: " + (DATA.trades||[]).length
+      + (DATA.generated_at ? " · exported " + DATA.generated_at : "");
+
+  if (!LWC || !LWC.createChart) {
+    document.getElementById("notes").innerHTML =
+      '<span class="note miss">Lightweight-Charts failed to load from CDN. '
+      + 'Open this file with internet access, or vendor the script locally.</span>';
+    return;
+  }
+
+  const bars = (DATA.bars || []).filter(b => b && b.o != null);
+  if (!bars.length) {
+    document.getElementById("notes").innerHTML =
+      '<span class="note miss">No bars in the JSON — run export_replay_data.py on the Mac for this date.</span>';
+    return;
+  }
+
+  // Build the chart with explicit CT time formatting.
+  const chart = LWC.createChart(document.getElementById("chart"), {
+    autoSize: true,
+    layout: {
+      background: { type: "solid", color: "#0e1117" },
+      textColor: "#c9d1d9",
+      panes: { separatorColor: "#222a35", separatorHoverColor: "#2d3340",
+               enableResize: true },
+    },
+    grid: { vertLines: { color: "#1b212b" }, horzLines: { color: "#1b212b" } },
+    rightPriceScale: { borderColor: "#222a35", scaleMargins: { top: 0.06, bottom: 0.06 } },
+    timeScale: {
+      borderColor: "#222a35", timeVisible: true, secondsVisible: false,
+      // Format the (UTC-shifted) seconds back into HH:MM — these ARE CT.
+      tickMarkFormatter: (t) => {
+        const d = new Date(t * 1000);
+        const hh = String(d.getUTCHours()).padStart(2,"0");
+        const mm = String(d.getUTCMinutes()).padStart(2,"0");
+        return hh + ":" + mm;
+      },
+    },
+    localization: {
+      timeFormatter: (t) => {
+        const d = new Date(t * 1000);
+        const hh = String(d.getUTCHours()).padStart(2,"0");
+        const mm = String(d.getUTCMinutes()).padStart(2,"0");
+        return hh + ":" + mm + " CT";
+      },
+    },
+    crosshair: { mode: LWC.CrosshairMode ? LWC.CrosshairMode.Normal : 0 },
+  });
+
+  // ── PANE 0: PRICE candles ────────────────────────────────────────────────
+  const priceSeries = chart.addSeries(LWC.CandlestickSeries, {
+    upColor: "#26a69a", downColor: "#ef5350", borderVisible: false,
+    wickUpColor: "#26a69a", wickDownColor: "#ef5350",
+    priceLineVisible: false, lastValueVisible: false,
+  }, 0);
+
+  // Dedup + sort by time (Lightweight-Charts requires strictly ascending time).
+  const seen = new Set();
+  const candle = [];
+  for (const b of bars) {
+    // CT wall-clock first (axis prints CT); epoch only if ts is missing.
+    const t = (b.ts != null) ? ctToSec(b.ts) : b.epoch;
+    if (t == null || seen.has(t)) continue;
+    seen.add(t);
+    candle.push({ time: t, open: b.o, high: b.h, low: b.l, close: b.c, _b: b });
+  }
+  candle.sort((a, z) => a.time - z.time);
+  priceSeries.setData(candle.map(({_b, ...d}) => d));
+
+  // ── Expected-direction zone tints (playbook-driven, never invented) ──────
+  // Drawn as filled price-range bands behind the candles using a series-less
+  // overlay: we approximate with semi-transparent price lines is not enough,
+  // so we draw bands via a primitive on the price series.
+  if (DATA.zones && DATA.zones.length) {
+    drawZones(chart, priceSeries, candle, DATA.zones);
+  }
+
+  // ── Level price-lines (IBH / IBL / POC / VAH / VAL), Sierra-style ────────
+  const lv = DATA.levels;
+  if (lv) {
+    // IB label is data-driven: the demo computes IB from real first-hour bars
+    // and passes ib_label "IB (from bars)" so it is never confused with the
+    // Sierra TPO export. Falls back to plain IBH/IBL when no label is supplied.
+    const ibTag = lv.ib_label ? (" — " + lv.ib_label) : "";
+    const defs = [
+      ["IBH" + ibTag, lv.ibh, "#7e9cff", false],
+      ["IBL" + ibTag, lv.ibl, "#7e9cff", false],
+      ["VAH", lv.vah, "#b39ddb", true],
+      ["VAL", lv.val, "#b39ddb", true],
+      ["POC", lv.poc, "#e3b341", true],   // emphasize POC
+    ];
+    for (const [label, price, color, dashed] of defs) {
+      if (price == null) continue;
+      priceSeries.createPriceLine({
+        price: price,
+        color: color,
+        lineWidth: label === "POC" ? 2 : 1,
+        lineStyle: dashed ? (LWC.LineStyle ? LWC.LineStyle.Dashed : 2) : 0,
+        axisLabelVisible: true,
+        title: label,
+      });
+    }
+  } else {
+    showPaneNote("pricenote", 8,
+      "levels: not exported yet — run export_replay_data.py on the Mac");
+  }
+
+  // ── Trade entry/exit markers on the price pane ───────────────────────────
+  const trades = DATA.trades || [];
+  const priceMarkers = [];
+  for (const tr of trades) {
+    const et = (tr.entry_ts != null) ? ctToSec(tr.entry_ts) : tr.entry_epoch;
+    const isShort = (tr.direction || "").toUpperCase() === "SHORT";
+    if (et != null && tr.entry_price != null) {
+      priceMarkers.push({
+        time: et,
+        position: isShort ? "aboveBar" : "belowBar",
+        color: isShort ? "#ef5350" : "#26a69a",
+        shape: isShort ? "arrowDown" : "arrowUp",
+        text: (tr.pattern_id || tr.direction || "") +
+              (tr.entry_price != null ? " @" + fmt(tr.entry_price) : ""),
+      });
+    }
+    const xt = (tr.exit_ts != null) ? ctToSec(tr.exit_ts) : tr.exit_epoch;
+    if (xt != null && tr.exit_price != null) {
+      const pnl = tr.pnl_usd;
+      const pnlTxt = (pnl == null) ? "" :
+        (pnl >= 0 ? " +$" + fmt(pnl,0) : " -$" + fmt(Math.abs(pnl),0));
+      priceMarkers.push({
+        time: xt,
+        position: "inBar",
+        color: (pnl != null && pnl < 0) ? "#ef5350" : "#9e9e9e",
+        shape: "circle",
+        text: "exit" + pnlTxt + (tr.outcome ? " (" + tr.outcome + ")" : ""),
+      });
+    }
+  }
+  attachMarkers(LWC, chart, priceSeries, priceMarkers);
+
+  // ── PANE 1: VOLUME histogram ─────────────────────────────────────────────
+  const hasVol = DATA.has_volume && candle.some(c => c._b.volume != null && c._b.volume > 0);
+  if (hasVol) {
+    const volSeries = chart.addSeries(LWC.HistogramSeries, {
+      priceFormat: { type: "volume" },
+      priceScaleId: "", lastValueVisible: false, priceLineVisible: false,
+    }, 1);
+    volSeries.setData(candle.map(c => ({
+      time: c.time,
+      value: c._b.volume || 0,
+      color: c.close >= c.open ? "rgba(38,166,154,0.55)" : "rgba(239,83,80,0.55)",
+    })));
+  } else {
+    // Create an empty pane-1 anchor so the layout still shows the labeled gap.
+    const ph = chart.addSeries(LWC.HistogramSeries, { priceScaleId: "" }, 1);
+    ph.setData([]);
+    showPaneNote("volnote", 430,
+      "volume: not exported yet — run export_replay_data.py on the Mac");
+  }
+
+  // ── CVD overlay (cumulative_delta) on the volume pane, own price scale ────
+  // Drawn as a line riding over the volume histogram so order-flow drift is
+  // visible without a 4th pane. Only when real CVD points exist (Rule 1: no
+  // synthetic flat line). Aligned to the same ctToSec time space as candles.
+  if (DATA.has_cvd && Array.isArray(DATA.cvd) && DATA.cvd.length) {
+    const cvdPts = [];
+    const cseen = new Set();
+    for (const p of DATA.cvd) {
+      if (p == null || p.cumulative_delta == null) continue;
+      const t = (p.ts != null) ? ctToSec(p.ts) : p.epoch;
+      if (t == null || cseen.has(t)) continue;
+      cseen.add(t);
+      cvdPts.push({ time: t, value: p.cumulative_delta });
+    }
+    cvdPts.sort((a, z) => a.time - z.time);
+    if (cvdPts.length) {
+      const cvdSeries = chart.addSeries(LWC.LineSeries, {
+        color: "#f0c674", lineWidth: 1, priceScaleId: "cvd",
+        lastValueVisible: true, priceLineVisible: false, title: "CVD",
+      }, 1);
+      cvdSeries.setData(cvdPts);
+    }
+  }
+
+  // ── PANE 2: WOODIES CCI ──────────────────────────────────────────────────
+  const cciPts = candle.filter(c => c._b.cci != null);
+  if (cciPts.length) {
+    const cciSeries = chart.addSeries(LWC.LineSeries, {
+      color: "#90caf9", lineWidth: 2, priceLineVisible: false,
+      lastValueVisible: true, title: "Woodies CCI",
+    }, 2);
+    // Color the line by trend_state when present (segment coloring via points).
+    cciSeries.setData(cciPts.map(c => {
+      const pt = { time: c.time, value: c._b.cci };
+      const ts = (c._b.trend_state || "").toUpperCase();
+      if (ts === "BLUE" || ts === "LONG") pt.color = "#26a69a";
+      else if (ts === "RED" || ts === "SHORT") pt.color = "#ef5350";
+      else if (ts) pt.color = "#9e9e9e";
+      return pt;
+    }));
+    // Zero line.
+    cciSeries.createPriceLine({ price: 0, color: "#5b6470", lineWidth: 1,
+      lineStyle: LWC.LineStyle ? LWC.LineStyle.Dashed : 2,
+      axisLabelVisible: true, title: "0" });
+    // +100 / -100 Woodies reference bands.
+    cciSeries.createPriceLine({ price: 100, color: "#37414e", lineWidth: 1,
+      lineStyle: LWC.LineStyle ? LWC.LineStyle.Dotted : 1, axisLabelVisible: false });
+    cciSeries.createPriceLine({ price: -100, color: "#37414e", lineWidth: 1,
+      lineStyle: LWC.LineStyle ? LWC.LineStyle.Dotted : 1, axisLabelVisible: false });
+
+    // ZLR / HFE markers on the Woodies pane.
+    const wMarkers = [];
+    for (const c of cciPts) {
+      if (c._b.zlr) {
+        const up = (c._b.zlr_direction || "").toUpperCase().includes("LONG")
+                || (c._b.zlr_direction || "").toUpperCase().includes("UP");
+        wMarkers.push({ time: c.time, position: up ? "belowBar" : "aboveBar",
+          color: "#e3b341", shape: up ? "arrowUp" : "arrowDown", text: "ZLR" });
+      }
+      if (c._b.hfe) {
+        const up = (c._b.hfe_direction || "").toUpperCase().includes("LONG")
+                || (c._b.hfe_direction || "").toUpperCase().includes("UP");
+        wMarkers.push({ time: c.time, position: up ? "belowBar" : "aboveBar",
+          color: "#ce93d8", shape: "square", text: "HFE" });
+      }
+    }
+    attachMarkers(LWC, chart, cciSeries, wMarkers);
+  } else {
+    const ph = chart.addSeries(LWC.LineSeries, {}, 2);
+    ph.setData([]);
+    showPaneNote("woodnote", 560,
+      "Woodies CCI: not in JSON for this date");
+  }
+
+  // Pane height proportions ~ price 55% / volume 15% / woodies 30%.
+  try {
+    const panes = chart.panes();
+    const H = document.getElementById("chart").clientHeight || 760;
+    if (panes[0]) panes[0].setHeight(Math.round(H * 0.55));
+    if (panes[1]) panes[1].setHeight(Math.round(H * 0.15));
+    if (panes[2]) panes[2].setHeight(Math.round(H * 0.30));
+  } catch (e) { /* pane sizing best-effort */ }
+
+  // ── Default visible window = RTH 08:30–15:00 CT (all bars stay loaded; the
+  //    user can scroll left into Globex / right into the post-close tail). We
+  //    compute the window in the SAME ctToSec space the candles use, then clamp
+  //    to the actual data extent so we never request a range with no bars.
+  (function setRthDefault() {
+    const ts = chart.timeScale();
+    const dataFrom = candle[0].time;
+    const dataTo = candle[candle.length - 1].time;
+    const sd = sessionDateCT(DATA.bars);
+    let from = dataFrom, to = dataTo;
+    if (sd) {
+      // 08:30:00 and 15:00:00 CT on the session date, as ctToSec (UTC-as-CT) sec.
+      const rthOpen = Date.UTC(sd.y, sd.mo - 1, sd.d, 8, 30, 0) / 1000;
+      const rthClose = Date.UTC(sd.y, sd.mo - 1, sd.d, 15, 0, 0) / 1000;
+      // Clamp to loaded data so the range is always populated.
+      from = Math.max(rthOpen, dataFrom);
+      to = Math.min(rthClose, dataTo);
+      if (!(to > from)) { from = dataFrom; to = dataTo; }   // fallback: show all
+    }
+    try {
+      ts.setVisibleRange({ from, to });
+    } catch (e) {
+      ts.fitContent();   // never leave the chart blank
+    }
+  })();
+
+  buildLegend(DATA);
+  buildNotes(DATA);
+  buildTradeTable(DATA, fmt);
+})();
+
+// v5 markers helper: prefer createSeriesMarkers, fall back to setMarkers.
+function attachMarkers(LWC, chart, series, markers) {
+  if (!markers || !markers.length) return;
+  markers.sort((a, z) => a.time - z.time);
+  try {
+    if (LWC.createSeriesMarkers) { LWC.createSeriesMarkers(series, markers); return; }
+  } catch (e) {}
+  try { if (series.setMarkers) series.setMarkers(markers); } catch (e) {}
+}
+
+// Draw expected-direction zones as filled horizontal bands behind candles.
+// Implemented with a lightweight series primitive (ISeriesPrimitive) so the
+// bands track the price scale. Falls back to nothing if the API shape differs.
+function drawZones(chart, series, candle, zones) {
+  try {
+    const t0 = candle[0].time, t1 = candle[candle.length - 1].time;
+    const primitive = {
+      _zones: zones, _series: series, _chart: chart, _t0: t0, _t1: t1,
+      attached(p) { this._req = p.requestUpdate; },
+      updateAllViews() {},
+      paneViews() {
+        const self = this;
+        return [{
+          zOrder() { return "bottom"; },
+          renderer() {
+            return {
+              draw(target) {
+                target.useBitmapCoordinateSpace((scope) => {
+                  const ctx = scope.context;
+                  const ts = self._chart.timeScale();
+                  const x0 = ts.timeToCoordinate(self._t0);
+                  const x1 = ts.timeToCoordinate(self._t1);
+                  if (x0 == null || x1 == null) return;
+                  const hr = scope.horizontalPixelRatio, vr = scope.verticalPixelRatio;
+                  const left = Math.min(x0, x1) * hr;
+                  const right = Math.max(x0, x1) * hr;
+                  for (const z of self._zones) {
+                    let yTop, yBot;
+                    const cTop = (z.to != null) ? self._series.priceToCoordinate(z.to) : 0;
+                    const cBot = (z.from != null) ? self._series.priceToCoordinate(z.from)
+                                                  : scope.bitmapSize.height / vr;
+                    yTop = (z.to != null ? cTop : 0) * vr;
+                    yBot = (z.from != null ? cBot : scope.bitmapSize.height / vr) * vr;
+                    if (yTop == null || yBot == null) continue;
+                    ctx.fillStyle = z.color;
+                    ctx.fillRect(left, Math.min(yTop, yBot), right - left, Math.abs(yBot - yTop));
+                  }
+                });
+              }
+            };
+          }
+        }];
+      }
+    };
+    if (series.attachPrimitive) series.attachPrimitive(primitive);
+  } catch (e) { /* zones are decorative; never block the chart */ }
+}
+
+function buildLegend(DATA) {
+  const el = document.getElementById("legend");
+  const chips = [];
+  chips.push('<span class="chip"><span class="sw" style="background:#26a69a"></span>up candle</span>');
+  chips.push('<span class="chip"><span class="sw" style="background:#ef5350"></span>down candle</span>');
+  if (DATA.levels) {
+    const lv = DATA.levels;
+    if (lv.poc != null)
+      chips.push('<span class="chip"><span class="sw" style="background:#e3b341"></span><b>POC</b></span>');
+    if (lv.vah != null || lv.val != null)
+      chips.push('<span class="chip"><span class="sw" style="background:#b39ddb"></span>VAH/VAL</span>');
+    if (lv.ibh != null || lv.ibl != null)
+      chips.push('<span class="chip"><span class="sw" style="background:#7e9cff"></span>IBH/IBL'
+        + (lv.ib_label ? ' (' + lv.ib_label + ')' : '') + '</span>');
+  }
+  if (DATA.zones && DATA.zones.length) {
+    chips.push('<span class="chip"><span class="sw" style="background:rgba(239,83,80,.35)"></span>fade-SHORT zone</span>');
+    chips.push('<span class="chip"><span class="sw" style="background:rgba(38,166,154,.35)"></span>fade-LONG zone</span>');
+  }
+  if (DATA.has_cvd)
+    chips.push('<span class="chip"><span class="sw" style="background:#f0c674"></span>CVD (cum. delta)</span>');
+  chips.push('<span class="chip"><span class="sw" style="background:#e3b341"></span>ZLR</span>');
+  chips.push('<span class="chip"><span class="sw" style="background:#ce93d8"></span>HFE</span>');
+  chips.push('<span class="chip">▼ short entry · ▲ long entry · ◆ exit</span>');
+  el.innerHTML = chips.join("");
+}
+
+function buildNotes(DATA) {
+  const el = document.getElementById("notes");
+  const out = [];
+  const miss = [];
+  const lv = DATA.levels;
+  if (!lv) {
+    miss.push("levels (IBH/IBL/POC/VAH/VAL)");
+  } else {
+    // Partial-levels honesty: IB may be real (from bars) while the TPO profile
+    // levels (POC/VAH/VAL) still need the Mac export.
+    const tpoMiss = [];
+    if (lv.poc == null) tpoMiss.push("POC");
+    if (lv.vah == null) tpoMiss.push("VAH");
+    if (lv.val == null) tpoMiss.push("VAL");
+    if (tpoMiss.length) miss.push(tpoMiss.join("/") + " (TPO profile)");
+  }
+  if (!DATA.has_volume) miss.push("per-bar volume");
+  if (!DATA.has_cvd) miss.push("CVD (cumulative_delta)");
+  if (!DATA.day_type) miss.push("day-type");
+  if (miss.length) {
+    out.push('<span class="note miss">Not exported yet (run '
+      + 'export_replay_data.py on the Mac): ' + miss.join(", ")
+      + '. These are shown as "missing" above — never synthesized.</span>');
+  }
+  if (DATA.zones && DATA.zones.length) {
+    out.push('<div style="margin-top:6px">Expected-direction zones (from '
+      + 'config/daytype_playbook.yaml): '
+      + DATA.zones.map(z => z.label).join(" · ") + '.</div>');
+  } else if (DATA.day_type) {
+    out.push('<div style="margin-top:6px">No per-price-zone tint for '
+      + DATA.day_type + ' (playbook defines continuation/with-trend, not fade '
+      + 'levels) — header states the expectation instead. Honest: a zone the '
+      + 'playbook is silent on is left neutral.</div>');
+  }
+  el.innerHTML = out.join("");
+}
+
+function buildTradeTable(DATA, fmt) {
+  const trades = DATA.trades || [];
+  if (!trades.length) return;
+  const rows = trades.map(t => {
+    const pnl = t.pnl_usd;
+    const cls = (pnl == null) ? "" : (pnl >= 0 ? "pos" : "neg");
+    const pnlTxt = (pnl == null) ? "—" : (pnl >= 0 ? "+$"+fmt(pnl,0) : "-$"+fmt(Math.abs(pnl),0));
+    return "<tr>"
+      + "<td class='l'>#" + t.id + "</td>"
+      + "<td class='l'>S" + (t.system==null?"?":t.system) + "</td>"
+      + "<td class='l'>" + (t.direction||"—") + "</td>"
+      + "<td class='l'>" + (t.pattern_id||"—") + "</td>"
+      + "<td>" + (t.entry_ts? t.entry_ts.slice(11,16):"—") + "</td>"
+      + "<td>" + fmt(t.entry_price) + "</td>"
+      + "<td>" + (t.exit_ts? t.exit_ts.slice(11,16):"—") + "</td>"
+      + "<td>" + fmt(t.exit_price) + "</td>"
+      + "<td class='" + cls + "'>" + pnlTxt + "</td>"
+      + "<td class='l'>" + (t.outcome||"—") + "</td>"
+      + "<td class='l'>" + (t.day_type||"—") + "</td>"
+      + "</tr>";
+  }).join("");
+  document.getElementById("tradetable").innerHTML =
+    "<table class='tr'><thead><tr>"
+    + "<th class='l'>id</th><th class='l'>sys</th><th class='l'>dir</th>"
+    + "<th class='l'>pattern</th><th>entry</th><th>px</th><th>exit</th>"
+    + "<th>px</th><th>pnl</th><th class='l'>outcome</th><th class='l'>day-type</th>"
+    + "</tr></thead><tbody>" + rows + "</tbody></table>";
+}
+</script>
+</body>
+</html>

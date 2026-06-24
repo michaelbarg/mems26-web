@@ -1,10 +1,10 @@
-"""Woodies CCI unified pattern detection -- 9 CCI pattern detectors.
+"""Woodies CCI unified pattern detection -- 8 active CCI pattern detectors.
 
 Entry point: detect_all_patterns(bars, context) -> list[PatternResult]
 
-9 patterns:
+8 active patterns (HFE disabled via HFE_DISABLED flag — not Michael's pattern):
   Continuation (Group A): ZLR, TLB, TT, GB100
-  Reversal (Group B):     VEGAS, GHOST, FAMIR, HTLB, HFE
+  Reversal (Group B):     VEGAS, GHOST, FAMIR, HTLB
 
 Each pattern uses CCI-14, TCCI (CCI-6), and optionally EMA-34
 from Woodies methodology per MEMS26_WOODIES_SPEC_V1_DERIVED.

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
+import { useLiveDayType } from '../../hooks/useLiveDayType';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -44,6 +45,8 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
   const [developing, setDeveloping] = useState(false);
   const [liveMeta, setLiveMeta] = useState<LiveMeta | null>(null);
   const color = systemColor(1);
+  // NEW validated state-machine classifier (live shadow); preferred over the old engine's value.
+  const live = useLiveDayType();
 
   useEffect(() => {
     fetch(`${API_BASE}/api/v9/day_type/v9/current`)
@@ -84,14 +87,16 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: 12, fontWeight: 700, color }}>
-            {classified
+            {live?.day_type
+              ? live.day_type.replace(/_/g, ' ')
+              : classified
               ? (current?.day_type?.replace(/_/g, ' ') ?? '\u2014')
               : developing
               ? 'Building IB\u2026'
               : '\u2014'}
           </span>
           <span style={{ fontSize: 9, color: ibStatusColor, fontWeight: developing ? 700 : 400 }}>
-            {ibStatusLabel}
+            {live?.status || ibStatusLabel}
           </span>
         </div>
         {current && (

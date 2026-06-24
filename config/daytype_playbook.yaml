@@ -20,14 +20,101 @@ version: 1
 max_contracts: 3            # global cap — REDUCED resolves to ceil(max/2)
 
 # How to MANAGE a kept trade, per day-type (entry/target style + runner).
+# §1 table from S1_TRADE_MANAGEMENT_3CONTRACTS.md (Michael 2026-06-20).
+#
+# Each day-type defines:
+#   target:       movement (R-based) | location (structural levels)
+#   ref_points:   the structural levels that define "where am I?"
+#   bias:         what direction is allowed at each zone
+#   c1/c2/c3:     target levels for the 3-contract bracket
+#   contracts:    how many contracts (overrides targets_table when structural active)
+#   runner:       trail style for C3 (trail/trail_chandelier/none)
+#
 daytype_style:
-  Trend_Normal:    { target: movement,  runner: trail_chandelier, stop_be_early: false, note: "ride the pullback steps with-trend; let runners run" }
-  Trend_DD:        { target: movement,  runner: trail,            note: "CONT after mid-zone break" }
-  Normal:          { target: location,  fade_edges: true,  t1_anchor: POC,           t2_anchor: opposite_ib_edge, note: "fade VA edges: SHORT only >= POC (near VAH), LONG only <= POC (near VAL)" }
-  Variation:       { target: location,  fade_edges: false, t1_anchor: half_extension, t2_anchor: one_ib,           note: "go WITH the IB expansion (continuation, not fade)" }
-  Neutral_Center:  { target: location,  fade_edges: true,  t1_anchor: vwap_poc,      runner: none, note: "fade edges to center, then exit" }
-  Neutral_Extreme: { target: location,  fade_edges: true,  t1_anchor: POC,           t2_anchor: opposite_edge }
-  Nontrend:        { action: SKIP,                                note: "no participants — skip all (already NT NO_TRADE)" }
+  Nontrend:
+    target: location
+    action: SKIP
+    ref_points: [IBH, IBL, POC]
+    bias: "skip (scalp-only: fade edge→POC, 1 contract max)"
+    c1: POC
+    contracts: 1
+    runner: none
+    note: "no participants — skip all or scalp edge→POC"
+
+  Normal:
+    target: location
+    fade_edges: true
+    ref_points: [VAH, POC, VAL, IBH, IBL]
+    bias: "VAL→LONG · VAH→SHORT (fade to value)"
+    c1: IB_center
+    c2: opposite_VA_edge
+    c3: opposite_IB_edge
+    contracts: 3
+    time_stop_minutes: 30
+    runner: trail
+    note: "fade VA edges: SHORT only near VAH, LONG only near VAL"
+
+  Variation:
+    target: location
+    fade_edges: false
+    ref_points: [broken_IB_edge, measured_move, PDH, PDL]
+    bias: "WITH the IB expansion only; enter on pullback to broken edge"
+    c1: half_extension
+    c2: one_ib_extension
+    c3: measured_move
+    contracts: 3
+    time_stop_minutes: 60
+    runner: trail
+    note: "go WITH the IB expansion (continuation, not fade)"
+
+  Neutral_Center:
+    target: location
+    fade_edges: true
+    ref_points: [IBH, IBL, POC]
+    bias: "fade both edges → center (2-sided)"
+    c1: POC
+    c2: opposite_IB_edge
+    contracts: 2
+    time_stop_minutes: 30
+    runner: none
+    note: "fade edges to center, then exit — no runner"
+
+  Neutral_Extreme:
+    target: location
+    fade_edges: true
+    ref_points: [VA_edges, POC, winning_edge]
+    bias: "fade VA edges; hold toward winning extreme"
+    c1: POC
+    c2: opposite_VA_edge
+    c3: winning_extreme
+    contracts: 3
+    time_stop_minutes: 45
+    runner: trail
+    note: "fade VA edges to POC, trail runner toward winning extreme"
+
+  Trend_DD:
+    target: movement
+    ref_points: [single_print, distribution_POC, PDH, PDL]
+    bias: "WITH the breakout from single-print/distribution"
+    c1: dist2_POC
+    c2: measured_move
+    c3: trail_behind_structure
+    contracts: 3
+    time_stop_minutes: 90
+    runner: trail
+    note: "CONT after single-print break; trail behind structure"
+
+  Trend_Normal:
+    target: movement
+    ref_points: [period_extreme, open, PDH, PDL]
+    bias: "WITH the trend from open; add on shallow pullbacks"
+    c1: remote_checkpoint
+    c2: additional_measured
+    c3: hold_to_close
+    contracts: 3
+    runner: trail_chandelier
+    stop_be_early: false
+    note: "ride the pullback steps with-trend; let runners run to close"
 
 # Per-pattern gate. Columns = the 7 day-types. (E=FULL, D=REDUCED, S=SKIP in the spec.)
 patterns:
@@ -36,15 +123,16 @@ patterns:
   TLB:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP } }
   TT:         { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP } }
   GB100:      { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP } }
-  HTLB:       { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: REDUCED, Neutral_Extreme: REDUCED, Nontrend: SKIP } }
+  # HTLB moved to reversal section below (HTLB = reversal, not continuation)
   INITIATIVE: { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP } }
   FLAGS:      { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP } }
 
   # ── Reversal (S4 Woodies + S2 REACTIVE) — SKIP on trend days per spec ──
+  HTLB:       { group: REV, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: REDUCED, Neutral_Extreme: REDUCED, Nontrend: SKIP } }
   VEGAS:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
   GHOST:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
   FAMIR:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
-  HFE:        { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: REDUCED, Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
+  # HFE:     DISABLED (not Michael's pattern, −$2,987; flag HFE_DISABLED)
   DBDT:       { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: REDUCED, Normal: FULL,  Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
 
   # REACTIVE/HnS: allowed on trend days but ONLY with-trend (require_with_trend).

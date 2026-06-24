@@ -1,0 +1,176 @@
+# config/daytype_trading_plan.yaml
+# ─────────────────────────────────────────────────────────────────────────────
+# THE DYNAMIC DAY-TYPE TABLE — single source of truth for S1.
+# Per day-type:  classification (relative) → firing DIRECTION → entry → STOP anchor
+#                → TARGET anchors → management → invalidation → transitions.
+#
+# RULE (Michael 2026-06-19): NO ABSOLUTE NUMBERS. Everything is RELATIVE —
+#   ratios (range/IB), percentiles (IB P33/P67), normalized 0..1 (cvd_pos, close_pos),
+#   counts (sides), booleans (one_tf), and STRUCTURAL ANCHORS
+#   (POC / VAH / VAL / PDH / PDL / IB-edge / single-print neck / one-TF structure).
+#   Absolute point-values live ONLY in `calibration:` as SEEDS until the
+#   percentiles are learned from 06-03→06-19. Edit this file to change/reorder/
+#   improve a day-type — no code change. Source: S1_day_types_spec_closed.md + the
+#   Mind-Over-Markets workbook. Composes with config/daytype_playbook.yaml
+#   (pattern×day-type verdicts); THIS file defines the day-type + its plan.
+# ─────────────────────────────────────────────────────────────────────────────
+version: 1
+
+# ── how every signal is computed (all relative) ──────────────────────────────
+features:
+  ib:              "IB = the FIRST HOUR (periods A+B = first 12 bars). 6 bars = 30 min = one TPO letter; A=first 30 min, B=next. (Michael 2026-06-20)"
+  ib_width_pctile: "percentile(IB_width, trailing ~90d, VIX-conditioned) → P33/P67 bands"
+  rib:             "(RTH_high − RTH_low) / IB_width   # range÷IB = master regime signal"
+  sides:           "Market-Profile range extension: a period LATER than B that breaks the first-hour IB = (a post-B bar closes ≥2 consecutive beyond IB_high) + (…below IB_low) → 0/1/2. A high/low made WITHIN A+B is the IB, NOT an extension. (Michael 2026-06-20)"
+  cvd_pos:         "(cvd_now − cvd_session_min)/(cvd_session_max − cvd_session_min) → 0..1"
+  close_pos:       "(close − RTH_low)/(RTH_high − RTH_low) → 0..1"
+  one_tf:          "uptrend: every period makes Higher-Low and no Lower-Low (inverse down)"
+  poc_drift:       "(poc_now − poc_at_IB_close) in IB-width units (signed)"
+  open_location:   "open vs prior FULL-session VA & PDH/PDL → in_value | out_value_in_range | out_of_range"
+  ext_hold:        "a REAL extension = ≥2 CONSECUTIVE closed bars beyond the first-hour IB edge (+buffer); a 1-bar/1-tick poke does NOT count (06-19). No '0.3×IB' magnitude — it buried real breaks on wide IBs (06-11)."
+
+# ── relative classification thresholds (ratios/percentiles — NOT points) ─────
+classify:
+  ib_narrow_pctile:   0.33      # ≤P33 = NARROW (percentile — currently CONTAMINATED, see I-36)
+  ib_wide_pctile:     0.67      # ≥P67 = WIDE
+  ib_narrow_pts:      7         # ABSOLUTE IB bands (used until the percentile history is clean):
+  ib_wide_pts:        13        #   <=7 NARROW (Nontrend/Trend_DD) · >=13 WIDE (Normal) · per the S1 matrix
+  rib_nontrend_max:   1.15
+  rib_normal_max:     1.30
+  rib_variation:      [1.30, 2.00]
+  rib_neutral:        [1.50, 2.50]
+  rib_trend_min:      2.50
+  cvd_dir_long:       0.75      # cvd_pos ≥ → supports long
+  cvd_dir_short:      0.25      # cvd_pos ≤ → supports short
+  close_extreme_hi:   0.85
+  close_extreme_lo:   0.15
+  close_center:       [0.33, 0.67]
+  ext_confirm_bars:   1         # one closed 5-min bar beyond IB + 2-tick buffer
+  trend_confirm_bars: 2
+  ib_lock_minutes:    60        # STRUCTURAL IB locks at 60 min (for IB width + percentile)
+  forming_lock_minutes: 30      # FORMING ends at 30 min — after that the system MUST commit to a
+                                # day-type (provisional, refined as the day develops). Michael 2026-06-20.
+  vol_low_ratio:      0.5       # session volume <= 0.5x the trailing-day median = LOW participation
+                                # → Nontrend (the decisive low-volume signal). Michael 2026-06-20.
+
+# ── SEEDS only — fallback until percentiles learned (calibrate 06-03→06-19) ──
+calibration:
+  seed_ib_narrow_pts: 7         # ≤ → NARROW seed (≈P33 in current regime)
+  seed_ib_wide_pts:   13        # ≥ → WIDE seed (≈P67)
+  seed_dead_range_pts: 12       # ≤ → DEAD range seed
+  note: "These are MES@VIX~16 seeds. The LIVE signal is the percentile/ratio above; seeds are only used until 90d history is built."
+
+# ── precedence when a day matches two types (late evidence wins) ─────────────
+precedence:   # the exact order the algorithm applies (Michael 2026-06-20)
+  - "first 30 min (<6 bars)                             → FORMING (ONLY here; never after 30 min)"
+  - "LOW participation (vol ≤0.5×median) + rib≤1.5      → Nontrend (checked BEFORE sides, so a noise poke can't pull a dead day into Variation — 06-19)"
+  - "extension on BOTH sides (post-B periods)           → Neutral: close at extreme→Neutral_Extreme, else Neutral_Center"
+  - "1-side + second distribution (profile_shape B/DD)  → Trend_DD"
+  - "1-side + open held(not returned) + one_tf + close at far extreme + rib≥2.5 → Trend_Normal (ALL four — Trend Days are rare)"
+  - "1-side extension, anything else                    → Normal_Variation (Expanded Typical)"
+  - "0 extension + normal participation                 → Normal (contained rotation)"
+  - "returned_through_open                              → opening_invalidated flag (blocks Trend; the day still forms into a non-Trend type)"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# THE TABLE — 7 day-types (ordered by conviction 1→5)
+# direction:  none | fade_both | with_extension | with_trend | winner_side
+# ─────────────────────────────────────────────────────────────────────────────
+day_types:
+
+  Nontrend:
+    conviction: 1
+    classify: { sides: 0, ib: "≤P33", rib_max: 1.15, range: DEAD, cvd: flat }
+    direction: none
+    trade: SKIP
+    entry:   "none. If forced: fade IB edge only, tiny target."
+    stop:    "beyond IB edge (few ticks)"
+    targets: [ "IB-mid / POC only" ]
+    manage:  "scratch fast; no adds; no holding"
+    invalidate: "sharp IB break on volume → Double-Dist Trend"
+    becomes: [ Trend_DD ]
+
+  Normal:
+    conviction: 2
+    classify: { sides: 0, ib: "≥P67", rib: [1.0, 1.3], inside_ib_pct: "≥0.70", rotations: "≥2 touches each VAH/VAL" }
+    direction: fade_both          # location-gated: long only ≤POC, short only ≥POC
+    trade: { mode: fade_edges, long_zone: "≤POC (near VAL)", short_zone: "≥POC (near VAH)" }
+    entry:   "fade IB/VA edge after reversal bar (engulf/pin) + CVD divergence"
+    stop:    "beyond the wick / IB edge (few ticks)"
+    targets: [ "POC (T1)", "opposite IB/VA edge (T2)" ]
+    manage:  "scale at POC; rest to opposite edge; don't chase breakouts"
+    invalidate: "acceptance (≥~1h) beyond an IB edge → Normal_Variation"
+    becomes: [ Normal_Variation, Neutral_Center ]
+
+  Normal_Variation:
+    conviction: 3
+    classify: { sides: 1, ext_hold: "≥0.3×IB", rib: [1.3, 2.0] }
+    direction: with_extension     # direction of the one-sided extension
+    trade: { mode: with_trend, block_counter: true }
+    entry:   "with extension: on the IB-breakout bar, or first pullback to the broken IB edge"
+    stop:    "beyond opposite IB edge, or beyond the breakout bar"
+    targets: [ "±10% of prior-day range projection (T1)", "PDH/PDL in direction (T2)", "measured extension (T3)" ]
+    manage:  "BE after confirmed follow-through; trail behind bars in direction"
+    invalidate: "back inside IB + acceptance → failed; revert Normal/Neutral"
+    becomes: [ Trend_Normal ]     # if rib≥2.5 or one_tf persists
+
+  Neutral_Center:
+    conviction: 3
+    classify: { sides: 2, close_pos: [0.33, 0.67] }
+    direction: fade_both
+    trade: { mode: fade_edges }
+    entry:   "fade BOTH edges: short the rejected upper extension, long the rejected lower (reversal bar + CVD div)"
+    stop:    "beyond the rejected extension edge (few ticks)"
+    targets: [ "POC", "opposite edge" ]
+    manage:  "scale at POC; flat into close (no overnight)"
+    invalidate: "an extension that is NOT rejected and continues → Trend that side"
+    becomes: [ Neutral_Extreme, Trend_Normal ]
+
+  Neutral_Extreme:
+    conviction: 3
+    classify: { sides: 2, close_pos: "≥0.85 or ≤0.15" }
+    direction: winner_side        # bias toward the closing extreme
+    trade: { mode: fade_edges_then_hold_winner }
+    entry:   "fade edges intraday; keep a runner toward the winning (closing) side"
+    stop:    "beyond the rejected edge"
+    targets: [ "POC", "opposite edge", "carry runner toward winner" ]
+    manage:  "carry partial toward winner into close; pass directional bias to next day (Bond: ~64% follow next AM)"
+    invalidate: "winner side fails / reverses through POC"
+    becomes: [ Trend_Normal ]
+
+  Trend_DD:                       # Double-Distribution Trend
+    conviction: 4
+    classify: { sides: 1, rib_min: 2.0, second_dist: "new POC held ≥6 bars, separated from dist-1 by a single-print run ≥0.8×IB; neck stays empty" }
+    direction: with_extension     # direction of the breakout
+    trade: { mode: with_trend, block_counter: true }
+    entry:   "with breakout on the single-print cluster, or on a pullback to the dist-1 boundary (now S/R)"
+    stop:    "inside / through the single-print band (the neck)"
+    targets: [ "center of distribution-2 (T1)", "measured move = length of dist-1 (T2)", "PDH/PDL (T3)" ]
+    manage:  "trail behind the single-prints; BE as dist-2 starts to build"
+    invalidate: "price re-enters the single-print neck → dist-2 rejected, exit"
+    becomes: [ Trend_Normal ]
+
+  Trend_Normal:
+    conviction: 5
+    classify: { open_is_extreme: true, sides: 1, ext_hold: "≥2 bars", one_tf: true, rib_min: 2.5, cvd: directional }
+    direction: with_trend         # the one_tf direction — NEVER fade
+    trade: { mode: with_trend, block_counter: true, never_fade: true }
+    entry:   "early with direction (Open-Drive); add on each pullback to prior period/bar edge (one-TF)"
+    stop:    "below the period/bar Low (up) — structure-based one-TF, trails up"
+    targets: [ "no hard target — TRAIL", "checkpoints: PDH/PDL + measured extensions for partials" ]
+    manage:  "trail by one-TF (stop under each new period low); hold to close; do NOT exit early"
+    invalidate: "back through open, or one-TF break (Lower-Low up) → downgrade Normal_Variation/Neutral"
+    becomes: []
+
+# ── transitions — day-type is CONTINUOUS, re-evaluated each 5-min bar ─────────
+# (state-machine from the workbook "זיהוי שינוי יום"; needs a real trigger + the
+#  confirm-bars above, so it doesn't flip on noise)
+transitions:
+  - { from: Nontrend,          trigger: "IB break on volume + range-extension",                 to: Trend_DD }
+  - { from: Normal,            trigger: "range-ext + acceptance beyond one IB edge",             to: Normal_Variation }
+  - { from: Normal_Variation,  trigger: "one_tf persists + rib≥2.5 + cvd one-sided",             to: Trend_Normal }
+  - { from: Normal_Variation,  trigger: "opposite side ALSO gets range-extension",               to: Neutral_Center }
+  - { from: Neutral,           trigger: "one side stops being rejected & runs (rib≥2.5, one_tf)", to: Trend_Normal }
+  - { from: Neutral_Center,    trigger: "close drifts to extreme (close_pos>0.85 or <0.15)",     to: Neutral_Extreme }
+  - { from: Trend_DD,          trigger: "price re-enters single-print neck",                     to: revert }
+  - { from: Trend_Normal,      trigger: "one_tf breaks (LL up) or back through open",            to: Normal_Variation }
+  - { from: ANY,               trigger: "returned through opening range / opening tail erased",  to: INVALIDATED }

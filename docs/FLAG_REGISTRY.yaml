@@ -1,0 +1,304 @@
+# FLAG_REGISTRY.yaml — hand-authored SEMANTICS for the MEMS26 flag index.
+#
+# The generator (scripts/gen_flag_index.py) MERGES these hand-authored fields with
+# a live scan of the code (os.getenv / environ.get / flag()) and the live .env to
+# produce docs/FLAG_INDEX.md. The mechanical columns (file:line, code default,
+# current .env state, ON/OFF) are computed by the generator and CANNOT go stale.
+# This file holds only the columns a machine can't infer: what / why / category.
+#
+# RULES FOR FUTURE AGENTS (CC, Cursor, Cowork):
+#   * Edit THIS file for what/why. NEVER hand-edit docs/FLAG_INDEX.md (it is generated).
+#   * When you add a new behavior/trading flag in code, add an entry here, then run:
+#       python3 scripts/gen_flag_index.py
+#   * The generator will flag (⚠ UNDOCUMENTED) any behavior flag found in code but
+#     missing here — that warning is your TODO, not noise.
+#   * Scope = behavior / trading / classification / sizing flags. Infra, secrets,
+#     connection strings and pure ops/data-pipeline env vars are intentionally
+#     OUT of scope (see INFRA_EXCLUDE in the generator).
+#
+# Per-flag fields (all optional except category + what):
+#   category: s1 | s2 | s3 | s4 | cascade_gate | sizing | targets | risk | param | misc
+#   what:     one line — what the flag does
+#   why:      one line — why it is in its current state (esp. OFF / standing)
+#   group:    optional sub-label shown next to the flag
+#   inert_when: optional — note that the flag is ON-but-INERT (superseded at runtime)
+#   standing_decision: true  -> OFF is a deliberate standing decision; Michael sign-off to enable
+#   status: live | rejected | awaiting_backtest | not_built | deferred   (optional)
+#   ref:    optional pointer (doc §, issue id)
+
+flags:
+
+  # ───────────────────────── S1 — day-type / classification ─────────────────────────
+  S1_CVD_OPENING:
+    category: s1
+    what: "Seed the early day-type read from opening-window CVD."
+    why: "SHADOW calibration, enabled before the soak (Michael 31/5)."
+  S1_IB_WIDTH_ATR:
+    category: s1
+    what: "Measure IB width in ATR units (relative) for day-type width tests."
+    why: "SHADOW calibration (Michael 31/5)."
+  S1_DAYTYPE_STAGING:
+    category: s1
+    what: "Staged day-type lifecycle: opening_type@15m / day_type@30m / IB-lock@60m / intraday reclass."
+    why: "PERMANENT S1 staging spec; enabled before SHADOW soak."
+    ref: "memory: project_s1_staging_spec"
+  S1_DYNAMIC_RECLASS:
+    category: s1
+    what: "Continuously re-evaluate day-type IB-relative after IB lock (shadow log)."
+    why: 'Michael 2026-06-08 — "the system constantly checks which day-type".'
+  S1_LIVE_RECLASS:
+    category: s1
+    what: "Apply the dynamic reclassification to the LIVE day_type (not just log it)."
+    why: "Pair of S1_DYNAMIC_RECLASS — both required for the day-type to keep re-evaluating."
+  S1_PROVISIONAL_DAYTYPE:
+    category: s1
+    what: "Emit a provisional day_type at 30m (before the 60m IB lock); lock still overrides."
+    why: "Eliminates the 60-min UNKNOWN gap."
+  S1_NEW_CLASSIFIER:
+    category: s1
+    what: "Promote the validated 7-type classifier label to the trade gate (day_type_at_entry → 3 gates + stamp)."
+    why: "Michael approved 2026-06-20; fail-safe. Off-switch: =0 + restart."
+    ref: "memory: project_s1_promotion_live"
+  S1_ENGINE_NEW_CLASSIFIER:
+    category: s1
+    what: "Live per-bar engine uses the 7-type classifier instead of the old 3-type engine (part-b)."
+    why: "Michael approved 2026-06-22 mid-session."
+  REHYDRATE_CLS_BARS:
+    category: s1
+    what: "On mid-session restart, seed _cls_rth_bars from DB (v9_bars_5min_woodies) when IB locked but buffer short. Prevents ~1h classifier starvation (#11)."
+    why: "ON by default (fail-safe, not a trading-logic change — restores the buffer that existed before restart). Disable with =0 + restart."
+
+  # ───────────────────────── S2 — 5-min (Reactive / Initiative) ─────────────────────────
+  S2_ATR_RELATIVE:
+    category: s2
+    what: "Scale S2 thresholds to ATR (relative) instead of fixed points."
+    why: "SHADOW calibration (Michael 31/5)."
+  S2_VSA_VOLUME:
+    category: s2
+    what: "Enable the 3-variant VSA/RVOL volume gate; variant selected from config/s2_firing.yaml."
+    why: "Moved into .env so all launch paths share it; matches prior start_all.sh export."
+  S2_DETECTION_LOG:
+    category: s2
+    what: "Verbose S2 detection logging (observability)."
+    why: "Anchor-trial diagnostics (2026-06-12)."
+  S2_CHART_ALL_DAYTYPES:
+    category: s2
+    what: "Allow the S2 chart-pattern family (FLAGS/HnS/…) to evaluate across all day-types."
+    why: "Anchor-trial (2026-06-12)."
+  S2_VOL_ADAPTIVE:
+    category: s2
+    what: "Adaptive volatility-regime adjustment for S2 thresholds/sizing."
+    why: "Anchor-trial (2026-06-12)."
+  S2_VOL_REGIME_PT:
+    category: param
+    group: "S2 vol-adaptive"
+    what: "Volatility-regime boundary (points) for S2_VOL_ADAPTIVE: avg 14-bar range >= this => VOLATILE. Default constant _VOL_REGIME_PT = 8.0."
+  S2_CHOPPINESS_GATE:
+    category: s2
+    group: "chop gate (1 of 2)"
+    what: "S2 arming/display gate requiring choppiness_score < 70 (5-bar candle geometry; >=70 = choppy)."
+    why: "DISABLED by Michael 2026-06-08. Inspector/build-status surface only — never vetoed a real fire."
+    standing_decision: true
+    ref: "CLAUDE.md §Chop Gates"
+  S2_REQUIRE_COT_AMT:
+    category: s2
+    what: "Re-require footprint COT/AMT order-flow confirmation for S2 fires (S2 depends on S3)."
+    why: "DISABLED 2026-06-08 (S2 ⟂ S3): S3 is muted/broken (S3_MUTE / I-11); requiring it would block all S2."
+    standing_decision: true
+    ref: "CLAUDE.md §S2 ⟂ S3"
+
+  # ───────────────────────── S3 — footprint (suppressed pre-LIVE) ─────────────────────────
+  S3_RELATIVE:
+    category: s3
+    what: "S3 footprint thresholds relative/ATR-scaled."
+    why: "SHADOW calibration (Michael 31/5). (S3 itself is disabled — see FOOTPRINT_DISABLED.)"
+  S3_MUTE:
+    category: s3
+    what: "Mute S3 fires (footprint signals computed but not routed)."
+    why: "S3 muted pre-LIVE (I-11)."
+  FOOTPRINT_DISABLED:
+    category: s3
+    what: "Fully disable S3 footprint processing AND writing (process_bar returns immediately) — not just fires."
+    why: "Michael 2026-06-08: take S3 down until after LIVE; it has not ingested a bar all session (I-11)."
+    standing_decision: true
+    ref: "CLAUDE.md §S3 Footprint"
+
+  # ───────────────────────── S4 — Woodies (ZLR / HFE / TLB / …) ─────────────────────────
+  S4_EXTREME_TREND_RELABEL:
+    category: s4
+    what: "Relabel extreme-trend Woodies CCI states (trend-color handling)."
+    why: "SHADOW calibration."
+  TLB_SPEC_V2:
+    category: s4
+    group: "TLB source-spec"
+    what: "Gate TLB to the source spec (Stage 1): require a +/-200 (SWI) extreme on the trade side within 12 bars AND a confirming CONT partner (GB100/ZLR/TT) same-direction; else reject. Old linreg geometry stays when OFF."
+    why: "ENABLED in SHADOW 2026-06-23 by Michael's explicit override: fire TLB per the source characterization (±200/SWI extreme + a confirming CONT partner). The past-data backtest was net-negative (±200 -$961, ±100 -$962, no-combo -$755; it blocks the #188-class losers but also winning TLB), but Michael prioritizes spec-fidelity + live SHADOW observation over the noisy past P&L. SHADOW only (no real orders)."
+    status: live
+    ref: "outputs/tlb_v2_backtest.py"
+  HTLB_DIRECTION_GATE:
+    category: s4
+    group: "HTLB direction signal"
+    what: "HTLB signals the directional bias for ALL Woodies patterns: a zoned HTLB break (resistance in [-200,-100] broken up = UP / support in [+100,+200] broken down = DOWN) latches a direction until the next zoned HTLB; while latched, only patterns in that direction fire (the rest are dropped)."
+    why: "ENABLED in SHADOW 2026-06-23 (Michael) after backtest: blocks 25 counter-bias S4 fires, removes $2681 losses vs $912 wins -> net +$1769. Latched until next zoned HTLB; inert on days with no zoned HTLB."
+    status: live
+    ref: "docs/spec_authority/S4_WOODIES_TABLE_A_Pattern_Setup.csv"
+  ZLR_CCI_MIN:
+    category: param
+    group: "ZLR threshold (S4)"
+    what: "Minimum |CCI| magnitude required for a ZLR fire. unset/invalid => 100 = current behavior (no stricter gate); set 200 to enforce Liran's strong-extreme rule (150 = middle tier)."
+    why: "Built + tested 2026-06-19; left at default 100 = ZERO change to current firing. Raising it is the lever, not yet enabled."
+    status: awaiting_backtest
+    ref: "memory: project_daytype_location_gate_todo"
+  ZLR_SPEC_V2:
+    category: s4
+    group: "ZLR source-spec"
+    what: "Gate ZLR fire to Michael's source characterization (Stage 1: 6-bar blue + SWI yellow + EMA-34; Stage 3: CCI diff >=15, entry <=120, SWI yellow/green, CZI cyan 3 bars). Off = CCI-only."
+    why: "ON SHADOW 2026-06-24. Current ZLR fires on CCI-14 geometry alone ignoring all Woodies confirmations → 35 fires, -$268. Spec gates remove low-quality setups."
+    status: live
+    ref: "docs/handoff/CC_ZLR_SPEC_V2_2026-06-24.md"
+  HFE_DISABLED:
+    category: s4
+    what: "Disable all HFE (Hook From Extreme) fires — both Python detector and DLL hfe_detected flag. No HFE fire emitted from any source."
+    why: "ON 2026-06-24, Michael's rule: HFE is not his pattern ('אני לא מכיר hfe'). Single biggest loser: 27 fires, -$2,987 (9W/18L). Disabling removes the largest drag."
+    status: live
+    ref: "docs/handoff/CC_HFE_DISABLE_TAXONOMY_2026-06-24.md"
+  WOODIES_30MIN_DISABLED:
+    category: s4
+    what: "Disable the 30-minute Woodies path when set."
+    why: "Default OFF in code (path enabled by default). Not present in .env."
+  TICK_REVERSAL_DISABLED:
+    category: misc
+    what: "Disable the tick-reversal micro-pattern when set."
+    why: "Default OFF in code. tick_reversal is non-critical for readiness (CLAUDE.md standing decision)."
+
+  # ───────────────────────── Cascade alignment gates (gateway) ─────────────────────────
+  DAYTYPE_PLAYBOOK:
+    category: cascade_gate
+    what: "Pattern x day-type SKIP/REDUCED matrix + require_with_trend (config/daytype_playbook.yaml)."
+    why: "ON, but a NO-OP: decide() returns FULL for every pattern whenever DAYTYPE_POSITION_GATE=1."
+    inert_when: "DAYTYPE_POSITION_GATE=1 (returns FULL before reading the matrix — root hole R1)."
+    ref: "CASCADE_AUDIT §5 R1; daytype_playbook.py:104"
+  DAYTYPE_POSITION_GATE:
+    category: cascade_gate
+    what: "Per day-type direction x price-vs-POC/IB gate; supersedes the legacy CCI/reactive gates."
+    why: "ON. Correct on direction/location but PATTERN-BLIND — ignores its pattern arg (can't tell CONT from REV)."
+    ref: "CASCADE_AUDIT §5 R2"
+  OPENING_TYPE_GATE:
+    category: cascade_gate
+    what: "Block counter-drive fires in the opening window (RTH open → IB lock); inert after IB lock."
+    why: "ON (Michael 2026-06-22). Was OFF during the 06-22 morning fire window."
+  TREND_DIRECTION_GATE:
+    category: cascade_gate
+    what: "Block counter-trend fires for HFE / REACTIVE_LONG / ZLR-SHORT using live trend_state."
+    why: "ON, but runtime-SKIPPED when DAYTYPE_POSITION_GATE=1 (superseded)."
+    inert_when: "DAYTYPE_POSITION_GATE=1 (gateway skips it)."
+  REACTIVE_LOCATION_GATE:
+    category: cascade_gate
+    what: "Block REACTIVE_LONG above POC / REACTIVE_SHORT below POC (fail-open)."
+    why: "ON, but runtime-SKIPPED when DAYTYPE_POSITION_GATE=1 (superseded)."
+    inert_when: "DAYTYPE_POSITION_GATE=1 (gateway skips it)."
+  DEDUP_FIRE_GUARD:
+    category: cascade_gate
+    what: "Block an identical sys+dir+pattern+entry(+-0.5pt) fire within 30s."
+    why: "ON (Michael 2026-06-22). Was OFF when 199/200 double-fired on 06-22."
+  NONTREND_WIDTH_FLOOR:
+    category: cascade_gate
+    what: "Range > floor (pts) => NOT Nontrend (prevents a wide day being mis-stamped Nontrend)."
+    why: "ON (Michael 2026-06-22)."
+  NONTREND_MAX_RANGE_PTS:
+    category: param
+    group: "Nontrend width floor"
+    what: "The range floor (points) used by NONTREND_WIDTH_FLOOR (range above this => not Nontrend)."
+  LAYER0_CHOP_GATE:
+    category: cascade_gate
+    group: "chop gate (2 of 2)"
+    what: "System-wide gateway fire-veto for S2+S4 when chop_state == SEARCHING (6-indicator composite, 30-60min)."
+    why: "DISABLED by Michael 2026-06-08. Still computed+logged; when off, _get_chop_state() is skipped entirely (avoids a uvicorn-deadlocking HTTP self-call)."
+    standing_decision: true
+    ref: "CLAUDE.md §Chop Gates"
+  DIRECTION_CONTEXT:
+    category: cascade_gate
+    what: "Block fires AGAINST the live CVD+breakout auction direction (direction_context_live); fail-open."
+    why: "ENABLED in SHADOW 2026-06-23 (Michael) after backtest #18: actual -$2747 -> +$70 excl in-progress (+$2817), blocks 19 losers / 12 winners. Inert at the open (NEUTRAL); gates once direction establishes."
+    status: live
+    ref: "outputs/dc_gate_backtest.py"
+  DIRECTION_LSMA_VETO:
+    category: cascade_gate
+    group: "direction engine"
+    what: "Override the CVD+breakout direction engine with LSMA-lead + CVD-veto: direction = LSMA side, CVD only vetoes (→ NEUTRAL) when opposing. Source = v9_bars_5min_woodies lsma_value."
+    why: "ON SHADOW 2026-06-24, Michael approved. LSMA-lead+CVD-veto validated standalone 06-23 (74% hit +$2,452). Replaces the breakout/location/trend-day brain WHILE ON; reversible (flag off = today's engine)."
+    status: live
+    ref: "docs/handoff/CC_DIRECTION_LSMA_VETO_2026-06-24.md"
+  NONTREND_DISABLE_ALL:
+    category: cascade_gate
+    what: "Block ALL fires (S2+S4, both directions) on Nontrend days. Michael's rule: every pattern fires full on every day-type EXCEPT Nontrend."
+    why: "ON SHADOW 2026-06-24, Michael approved. Backtest 06-22: 5 Nontrend fires = -$555, all blocked. Selectivity via DAYTYPE_POSITION_GATE + DIRECTION_LSMA_VETO, not per-pattern matrices."
+    status: live
+    ref: "docs/handoff/CC_NONTREND_DISABLE_2026-06-24.md"
+
+  # ───────────────────────── Stops / targets / sizing / risk ─────────────────────────
+  STOP_ANCHORS_V2:
+    category: sizing
+    what: "v2 stop-anchor logic (per-pattern anchors from stop_anchors.yaml)."
+    why: "Enabled pre-soak."
+  PATTERN_RISK_CAPS:
+    category: risk
+    what: "Per-pattern maximum-risk caps."
+    why: "Anchor-trial (2026-06-12)."
+  RUNNER_TARGETS_V1:
+    category: targets
+    what: "Runner target ladder v1."
+    why: "Anchor-trial (2026-06-12)."
+  RUNNER_TRAIL_V1:
+    category: sizing
+    what: "Trail the runner stop (hwm - 1x initial_risk) after T1; never-widen; floor BE+1T (fail-safe)."
+    why: "Michael-approved SHADOW trial 2026-06-18 (backtest +$273 — a real lever)."
+    ref: "memory: project_trend_gate_t1_widen"
+  GIANT_BAR_STOP_V1:
+    category: sizing
+    what: "Cap the initial stop on giant bars (volatility-spike protection)."
+    why: "Anchor-trial (2026-06-12)."
+  GIANT_BAR_STOP_FRACTION:
+    category: param
+    group: "Giant-bar stop"
+    what: "Fraction of the giant bar used to place the capped stop."
+  GIANT_BAR_STOP_FLOOR_PT:
+    category: param
+    group: "Giant-bar stop"
+    what: "Minimum stop distance (points) floor for the giant-bar cap."
+  GIANT_BAR_MIN_RANGE_PT:
+    category: param
+    group: "Giant-bar stop"
+    what: "Bar range (points) above which a bar counts as a giant bar."
+  PATTERN_LOSS_BREAKER:
+    category: risk
+    what: "Halt a pattern after N consecutive losses (circuit breaker)."
+    why: "Anchor-trial (2026-06-12)."
+  PATTERN_LOSS_BREAKER_N:
+    category: param
+    group: "Pattern loss breaker"
+    what: "Number of losses (N) that trips PATTERN_LOSS_BREAKER."
+  DAYTYPE_TARGETS_STRUCTURAL:
+    category: targets
+    what: "Override setup T1/T2/T3 with structural IB/POC/VA prices for location-style day-types; fail-safe to R-based."
+    why: "Michael approved SHADOW 2026-06-21. 98/104 sim trades resolved structural."
+    ref: "CASCADE_AUDIT §7"
+  T1_LADDER_V2:
+    category: sizing
+    what: "Swap T1 computation to a wider v2 ladder (t1_ladder_continuation_v2 / t1_reversal_multiplier_v2 / flag_relative_t1_v2)."
+    why: "REJECTED — backtest flat -$144 (struct -$624). Do NOT enable."
+    status: rejected
+    ref: "memory: project_trend_gate_t1_widen"
+  STOP_AFTER_T1_STRUCTURAL:
+    category: sizing
+    what: "(Intended) move the stop to a structural level after T1 is hit."
+    why: "NOT BUILT — no code references it; only a commented placeholder in .env. Deferred (one variable at a time)."
+    status: not_built
+  MEMS_MIN_RISK_POINTS:
+    category: param
+    group: "Pre-fire stop sanity"
+    what: "Reject a setup whose stop risk is below this many points (degenerate-stop guard)."
+  MEMS_MAX_RISK_POINTS:
+    category: param
+    group: "Pre-fire stop sanity"
+    what: "Reject a setup whose stop risk exceeds this many points (oversized-stop guard)."

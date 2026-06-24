@@ -1,6 +1,7 @@
 'use client';
 import { COLORS } from '../../design/tokens';
 import { useKeyLevels } from '../../hooks/useKeyLevels';
+import { useLiveDayType } from '../../hooks/useLiveDayType';
 
 function px(v: number | null | undefined, dec = 2): string {
   return v != null ? v.toFixed(dec) : '—';
@@ -171,6 +172,11 @@ export function KeyLevelsStrip() {
   const { data: kl, loading } = useKeyLevels(15_000);
   const t = kl.today;
   const p = kl.prev_day;
+  // Day-type from the NEW 7-type classifier (classify_replay) — the same source as the
+  // DayType pill/lens. The raw key_levels value lags (shows yesterday's EOD until today
+  // promotes), which is why the strip read "Trend Normal" while the pill read "Normal".
+  const live = useLiveDayType();
+  const dtDisplay = live?.day_type ?? t.day_type;
 
   const ibTodayEmpty =
     t.ib_status === 'pre_open' ? 'pre-open'
@@ -266,7 +272,7 @@ export function KeyLevelsStrip() {
       />
 
       {/* Day type + opening pills (far right) */}
-      {(t.day_type || t.opening_type) && (
+      {(dtDisplay || t.opening_type) && (
         <>
           <div style={{ flex: 1 }} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -282,7 +288,7 @@ export function KeyLevelsStrip() {
                 {t.opening_type.replace(/_/g, ' ')}
               </span>
             )}
-            {t.day_type && (
+            {dtDisplay && (
               <span style={{
                 fontSize: 8,
                 fontWeight: 600,
@@ -291,7 +297,7 @@ export function KeyLevelsStrip() {
                 background: 'rgba(167,139,250,0.1)',
                 color: '#a78bfa',
               }}>
-                {t.day_type.replace(/_/g, ' ')}
+                {dtDisplay.replace(/_/g, ' ')}
               </span>
             )}
           </div>

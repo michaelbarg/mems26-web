@@ -4,9 +4,25 @@ ZLR UP:  CCI was above +100 -> pulls back toward zero (stays > -100) -> bounces 
 ZLR DOWN: CCI was below -100 -> pulls back toward zero (stays < +100) -> drops.
 Lookback: 12 bars (matching DLL).
 
+When ZLR_SPEC_V2=1: gates the fire on Michael's source characterization (3 stages):
+  Stage 1 (trend):    6+ bars blue + CCI>100 + SWI yellow + 3 bars above EMA-34
+  Stage 2 (pullback): CCI drops <100, not <-100 (existing)
+  Stage 3 (entry):    CCI diff >=15, entry CCI <=120, SWI yellow/green, CZI cyan 3 bars,
+                      TCCI leads (soft), 2nd-bar if SWI red
+
+SWI color mapping (from frontend WoodiesCciPanel.tsx, Sierra standard):
+  |swi_value| >= 40  → green (strong trend)
+  |swi_value| <= 20  → red (flat/chop)
+  20 < |swi_value| < 40 → yellow (transition/normal)
+
+CZI color mapping (Woodies standard for continuation patterns):
+  czi_value > 0 for LONG  → light-blue/cyan (trending with direction)
+  czi_value < 0 for SHORT → light-blue/cyan (trending with direction)
+
 Spec reference: MEMS26_WOODIES_SPEC_V1_DERIVED Section 5 (A1).
 """
 
+import os
 from typing import List, Optional
 from backend.v9.systems.woodies.schemas import WoodiesBar, PatternResult, PatternSignal
 from backend.v9.systems.woodies.anti_patterns import AntiPatternChecker
@@ -25,6 +41,92 @@ STOP_TICKS = _ticks["stop_ticks"]       # fallback: 8
 TARGET1_TICKS = _ticks["t1_ticks"]      # fallback: 12
 TARGET2_TICKS = _ticks["t2_ticks"]      # fallback: 24
 _T1_TICKS = 4  # T1 for R_t1 computation — intentionally NOT from YAML
+
+
+def _swi_color(swi_value: float) -> str:
+    """SWI numeric → color (green/yellow/red). From WoodiesCciPanel.tsx."""
+    abs_swi = abs(swi_value)
+    if abs_swi >= 40:
+        return "green"
+    if abs_swi <= 20:
+        return "red"
+    return "yellow"
+
+
+def _czi_cyan_for_direction(czi_value: float, direction: str) -> bool:
+    """CZI light-blue/cyan = trending with the trade direction.
+    LONG: czi > 0; SHORT: czi < 0."""
+    if direction == "LONG":
+        return czi_value > 0
+    return czi_value < 0
+
+
+def _zlr_spec_v2_check(bars: List[WoodiesBar], direction: str, extreme_idx: int) -> tuple:
+    """Validate Michael's ZLR source spec (Stage 1 + Stage 3 gates).
+
+    Returns (pass: bool, reject_reason: str or None, is_second_bar: bool).
+    Only called when ZLR_SPEC_V2=1.
+    """
+    n = len(bars)
+    bar = bars[-1]
+
+    # ── Stage 1 gates ──
+
+    # 1.1: CCI ≥ 6 bars on the trend side of zero (blue for LONG, red for SHORT)
+    trend_side_count = 0
+    target_trend = "BLUE" if direction == "LONG" else "RED"
+    for i in range(extreme_idx, n):
+        if bars[i].trend_state == target_trend:
+            trend_side_count += 1
+    if trend_side_count < 6:
+        return (False, "S1.1: only %d bars %s (need 6+)" % (trend_side_count, target_trend), False)
+
+    # 1.3: SWI yellow (or green) for ≥1 bar in the trend window
+    swi_ok = any(_swi_color(bars[i].swi_value) in ("yellow", "green")
+                 for i in range(extreme_idx, n))
+    if not swi_ok:
+        return (False, "S1.3: no SWI yellow/green bar in trend window", False)
+
+    # 1.4: last 3 bars above EMA-34 (LONG) or below (SHORT)
+    if n >= 3:
+        last3 = bars[-3:]
+        if direction == "LONG":
+            ema_ok = all(b.close > b.ema_34 for b in last3 if b.ema_34 > 0)
+        else:
+            ema_ok = all(b.close < b.ema_34 for b in last3 if b.ema_34 > 0)
+        if not ema_ok:
+            return (False, "S1.4: last 3 bars not %s EMA-34" % ("above" if direction == "LONG" else "below"), False)
+
+    # ── Stage 3 gates ──
+
+    # 3.3: CCI diff ≥ 15 (sharpness of the bounce)
+    cci_diff = abs(bar.cci_14 - bars[-2].cci_14)
+    if cci_diff < 15:
+        return (False, "S3.3: CCI diff %.1f < 15 (not sharp enough)" % cci_diff, False)
+
+    # 3.7: entry CCI ≤ 120 (LONG) or ≥ -120 (SHORT)
+    if direction == "LONG" and bar.cci_14 > 120:
+        return (False, "S3.7: entry CCI %.1f > 120" % bar.cci_14, False)
+    if direction == "SHORT" and bar.cci_14 < -120:
+        return (False, "S3.7: entry CCI %.1f < -120" % bar.cci_14, False)
+
+    # 3.4: SWI yellow or green at entry
+    entry_swi = _swi_color(bar.swi_value)
+    if entry_swi == "red":
+        # 3.8: SWI red → defer to 2nd bar (flag it but don't block yet;
+        # the caller will handle the 2nd-bar logic if needed)
+        return (False, "S3.8: SWI red at entry — need 2nd bar confirmation", True)
+
+    # 3.5: CZI cyan/light-blue for ≥ last 3 bars
+    if n >= 3:
+        czi_ok_count = sum(1 for b in bars[-3:] if _czi_cyan_for_direction(b.czi_value, direction))
+        if czi_ok_count < 3:
+            return (False, "S3.5: CZI cyan only %d/3 bars" % czi_ok_count, False)
+
+    # 3.6 (soft/preferably): TCCI leads — not a hard veto per spec ("preferably")
+    # 3.1 (soft/preferably): reversal hugging EMA-34 — not a hard veto
+
+    return (True, None, False)
 
 
 def _zlr_cci_min() -> float:
@@ -105,6 +207,15 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
             )
             # Stage 3: sharp reversal up, CCI bouncing back
             if pulled and current > prev and 0 < current < 200:
+                # ZLR_SPEC_V2 gate: validate Michael's source characterization
+                _ZLR_V2 = os.environ.get("ZLR_SPEC_V2", "0").lower() in ("1", "true", "yes")
+                if _ZLR_V2:
+                    _v2_ok, _v2_reason, _v2_2nd = _zlr_spec_v2_check(bars, "LONG", i)
+                    if not _v2_ok:
+                        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                             details={"reject_reason": "ZLR_SPEC_V2: " + (_v2_reason or ""),
+                                                      "second_bar_needed": _v2_2nd})
+
                 bars_since = n - 1 - i
                 entry = bar.close
                 # ATR-based stop (W-6)
@@ -158,7 +269,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                     cci_at_signal=current,
                     bar_index=n - 1,
                     ts=bar.ts,
-                    details={"bars_since_extreme": bars_since, "stop_layer_applied": stop_layer},
+                    details={"bars_since_extreme": bars_since, "stop_layer_applied": stop_layer,
+                             "zlr_spec_v2": _ZLR_V2},
                 )
             break
 
@@ -171,6 +283,15 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                 for j in range(i + 1, n - 1)
             )
             if pulled and current < prev and -200 < current < 0:
+                # ZLR_SPEC_V2 gate (SHORT mirror)
+                _ZLR_V2 = os.environ.get("ZLR_SPEC_V2", "0").lower() in ("1", "true", "yes")
+                if _ZLR_V2:
+                    _v2_ok, _v2_reason, _v2_2nd = _zlr_spec_v2_check(bars, "SHORT", i)
+                    if not _v2_ok:
+                        return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                             details={"reject_reason": "ZLR_SPEC_V2: " + (_v2_reason or ""),
+                                                      "second_bar_needed": _v2_2nd})
+
                 bars_since = n - 1 - i
                 entry = bar.close
                 # ATR-based stop (W-6)
@@ -224,7 +345,8 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
                     cci_at_signal=current,
                     bar_index=n - 1,
                     ts=bar.ts,
-                    details={"bars_since_extreme": bars_since, "stop_layer_applied": stop_layer},
+                    details={"bars_since_extreme": bars_since, "stop_layer_applied": stop_layer,
+                             "zlr_spec_v2": _ZLR_V2},
                 )
             break
 

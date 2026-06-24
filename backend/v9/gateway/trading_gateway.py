@@ -72,6 +72,7 @@ class TradingGateway:
             "RR_FIRE_SELECTION", ""
         ).lower() in ("1", "true", "yes")
         self._slot_candidates: List[Dict] = []  # buffered DEMO/LIVE candidates
+        self._recent_fires: List[Dict] = []  # idempotency: catch exact double-fires (e.g. 199/200)
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""
@@ -124,6 +125,27 @@ class TradingGateway:
             logger.info("[Gateway] BLOCKED by SSV D-049: %s is suffering side", direction)
             return result
 
+        # Idempotency dedup — reject the SAME signal fired twice within a short window
+        # (ids 199/200 on 2026-06-22: identical S2 REACTIVE_SHORT @7537.75, 2.16s apart).
+        # Applies in ALL modes incl SHADOW (a true duplicate is noise, not a parallel signal).
+        # Flag DEDUP_FIRE_GUARD, default OFF. Key = system+direction+pattern+entry(±0.5pt) within 30s.
+        if os.getenv("DEDUP_FIRE_GUARD", "0").lower() in ("1", "true", "yes"):
+            import time as _dd_time
+            _dd_now = _dd_time.time()
+            _dd_pat = (setup.get("classification") or (setup.get("metadata") or {}).get("pattern"))
+            _dd_ep = setup.get("entry_price")
+            self._recent_fires = [f for f in self._recent_fires if _dd_now - f["ts"] < 30.0]
+            for _f in self._recent_fires:
+                if (_f["system"] == system_id and _f["direction"] == direction
+                        and _f["pattern"] == _dd_pat and _dd_ep is not None
+                        and _f["entry"] is not None and abs(float(_dd_ep) - float(_f["entry"])) < 0.5):
+                    result["blocked_by"] = "duplicate_fire"
+                    logger.info("[Gateway] BLOCKED duplicate fire: S%s %s %s @%s (within 30s of an identical fire)",
+                                system_id, direction, _dd_pat, _dd_ep)
+                    return result
+            self._recent_fires.append({"ts": _dd_now, "system": system_id,
+                                       "direction": direction, "pattern": _dd_pat, "entry": _dd_ep})
+
         # Layer-0 chop fire-veto — DISABLED by default (Michael 2026-06-08).
         # chop_state==SEARCHING must NOT block fires until explicit re-approval.
         # Re-enable ONLY by setting env LAYER0_CHOP_GATE=1 AND with Michael's
@@ -139,6 +161,34 @@ class TradingGateway:
                 return result
         # FIX 4: skip _get_chop_state entirely when gate disabled (avoids
         # HTTP self-calls that deadlock single-worker uvicorn)
+
+        # #68 FIX B: Opening-type gate — blocks counter-drive during opening window
+        # (RTH open → IB lock). After IB lock, inert. Flag OPENING_TYPE_GATE, default OFF.
+        if os.getenv("OPENING_TYPE_GATE", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.opening_type_gate import decide as _og_decide
+                _og_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                _og_ib_locked = bool(_og_tpo.get("ib_locked"))
+                # RTH bars from the classifier accumulator (exposed on app.state by main.py)
+                _og_rth_bars = getattr(
+                    cross_context.get("_cls_rth_bars_ref"), "bars", None
+                ) if isinstance(cross_context, dict) else None
+                # Fallback: read from day_type_machine in system_registry
+                if _og_rth_bars is None:
+                    _og_dtm = self._system_registry.get("day_type_machine")
+                    _og_rth_bars = getattr(_og_dtm, '_opening_gate_bars', []) if _og_dtm else []
+                _allow, _reason = _og_decide(
+                    direction=direction,
+                    rth_bars=_og_rth_bars or [],
+                    ib_locked=_og_ib_locked,
+                )
+                if not _allow:
+                    result["blocked_by"] = "opening_type_gate"
+                    logger.info("[Gateway] BLOCKED by opening-type gate: %s", _reason)
+                    return result
+                logger.debug("[Gateway] opening-type gate PASS: %s", _reason)
+            except Exception as _og_err:
+                logger.warning("[Gateway] opening-type gate errored (fail-open): %s", _og_err)
 
         # Day-type playbook fire-veto — DISABLED by default (env DAYTYPE_PLAYBOOK=1
         # + Michael approval). Blocks fires that the pattern×day-type playbook marks
@@ -166,8 +216,11 @@ class TradingGateway:
             except Exception as _pb_err:  # fail-open — never block a fire on a bug
                 logger.warning("[Gateway] day-type playbook check errored (fail-open): %s", _pb_err)
 
-        # Trend Direction Gate — blocks counter-trend for targeted patterns (flag-gated)
-        if os.getenv("TREND_DIRECTION_GATE", "0").lower() in ("1", "true", "yes"):
+        # --- Legacy gates (kept for backward compat when old flags ON) ---
+        # Trend Direction Gate (CCI-based) — SUPERSEDED by DAYTYPE_POSITION_GATE.
+        # When DAYTYPE_POSITION_GATE is ON, this is skipped regardless of its own flag.
+        _position_gate_on = os.getenv("DAYTYPE_POSITION_GATE", "0").lower() in ("1", "true", "yes")
+        if not _position_gate_on and os.getenv("TREND_DIRECTION_GATE", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.systems.trend_direction_gate import decide as _td_decide
                 _td_g1 = extract_g1_entry_context(cross_context)
@@ -178,11 +231,11 @@ class TradingGateway:
                     result["blocked_by"] = "trend_direction_gate"
                     logger.info("[Gateway] BLOCKED by trend-direction gate: %s", _reason)
                     return result
-            except Exception as _td_err:  # fail-open — never block on a bug
+            except Exception as _td_err:
                 logger.warning("[Gateway] trend-direction gate errored (fail-open): %s", _td_err)
 
-        # Reactive Location Gate — blocks REACTIVE on wrong side of POC (flag-gated)
-        if os.getenv("REACTIVE_LOCATION_GATE", "0").lower() in ("1", "true", "yes"):
+        # Reactive Location Gate — SUPERSEDED by DAYTYPE_POSITION_GATE.
+        if not _position_gate_on and os.getenv("REACTIVE_LOCATION_GATE", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.systems.reactive_location_gate import decide as _rl_decide
                 _rl_g1 = extract_g1_entry_context(cross_context)
@@ -195,8 +248,88 @@ class TradingGateway:
                     result["blocked_by"] = "reactive_location"
                     logger.info("[Gateway] BLOCKED by reactive-location gate: %s", _reason)
                     return result
-            except Exception as _rl_err:  # fail-open
+            except Exception as _rl_err:
                 logger.warning("[Gateway] reactive-location gate errored (fail-open): %s", _rl_err)
+
+        # --- #68 Unified Day-Type Position Gate (replaces both above) ---
+        # Direction allowed by day-type + price position relative to IB/VA/POC.
+        # Flag: DAYTYPE_POSITION_GATE (default OFF). Fail-open.
+        if _position_gate_on:
+            try:
+                from backend.v9.systems.daytype_position_gate import decide as _dp_decide
+                _dp_g1 = extract_g1_entry_context(cross_context)
+                _dp_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                _dp_ws = (cross_context.get("woodies_system") if isinstance(cross_context, dict) else None) or {}
+                _allow, _reason = _dp_decide(
+                    pattern=resolve_pattern_id(setup, _dp_g1),
+                    direction=direction,
+                    day_type=_dp_g1.get("day_type_at_entry"),
+                    entry_price=setup.get("entry_price"),
+                    tpo_ctx=_dp_tpo,
+                    trend_state=_dp_ws.get("trend_state"),
+                )
+                if not _allow:
+                    result["blocked_by"] = "daytype_position_gate"
+                    logger.info("[Gateway] BLOCKED by day-type position gate: %s", _reason)
+                    return result
+                logger.debug("[Gateway] position gate PASS: %s", _reason)
+            except Exception as _dp_err:
+                logger.warning("[Gateway] day-type position gate errored (fail-open): %s", _dp_err)
+
+        # --- #68 Direction-Context gate — blocks fires AGAINST the live CVD+breakout
+        # auction direction (direction_context). Flag: DIRECTION_CONTEXT (default OFF),
+        # fail-open. The CVD-in-direction lever (validated to fix Neutral/chop, e.g. 06-11:
+        # blocks the wrong-side shorts into a failed-low→reversal). Re-enable = trading-
+        # surface change → Michael sign-off + backtest.
+        if os.getenv("DIRECTION_CONTEXT", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.direction_context_live import current as _dc_current
+                _dc = _dc_current()
+                _dc_dir = _dc.get("dir")
+                if _dc_dir in ("UP", "DOWN"):
+                    _set_dir = "UP" if str(direction).upper() == "LONG" else "DOWN"
+                    if _set_dir != _dc_dir:
+                        result["blocked_by"] = "direction_context"
+                        logger.info("[Gateway] BLOCKED by direction-context: setup %s vs %s (%s)",
+                                    _set_dir, _dc_dir, _dc.get("reason"))
+                        return result
+            except Exception as _dc_err:  # fail-open — never block on a bug
+                logger.warning("[Gateway] direction-context check errored (fail-open): %s", _dc_err)
+
+        # #68 Structural targets: override setup t1/t2/t3 with IB/POC/VA levels
+        # when day-type style is "location" (Normal, Variation, NeuE, NeuC).
+        # Flag-gated DAYTYPE_TARGETS_STRUCTURAL (default OFF). Fail-safe: on error
+        # or missing levels → keeps original R-based targets.
+        if os.getenv("DAYTYPE_TARGETS_STRUCTURAL", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.structural_targets import resolve_structural_targets
+                _st_g1 = extract_g1_entry_context(cross_context)
+                _st_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                _st = resolve_structural_targets(
+                    day_type=_st_g1.get("day_type_at_entry"),
+                    direction=direction,
+                    entry_price=setup.get("entry_price", 0.0),
+                    stop_price=setup.get("stop", 0.0),
+                    tpo_ctx=_st_tpo,
+                )
+                if _st is not None:
+                    _old_t1 = setup.get("t1")
+                    _old_t2 = setup.get("t2")
+                    if _st.get("t1_price") is not None:
+                        setup["t1"] = _st["t1_price"]
+                    if _st.get("t2_price") is not None:
+                        setup["t2"] = _st["t2_price"]
+                    if _st.get("t3_price") is not None:
+                        setup["t3"] = _st["t3_price"]
+                    logger.info(
+                        "[Gateway] #68 structural targets: %s %s → C1=%.2f C2=%s C3=%s (was t1=%s t2=%s)",
+                        direction, _st.get("day_type"),
+                        _st.get("t1_price", 0),
+                        _st.get("t2_price"), _st.get("t3_price"),
+                        _old_t1, _old_t2,
+                    )
+            except Exception as _st_err:
+                logger.warning("[Gateway] structural targets errored (fail-safe): %s", _st_err)
 
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()

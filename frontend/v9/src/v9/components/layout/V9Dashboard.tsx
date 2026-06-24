@@ -10,8 +10,10 @@ import { ChartV5b } from '../chart/v5b/ChartV5b';
 import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
+import { DirectionStrip } from '../strips/DirectionStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
 import { TradeReviewTab } from '../trades/TradeReviewTab';
+import { DayTypeLabelTab } from '../day-type/DayTypeLabelTab';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { usePriceStream } from '../../hooks/usePriceStream';
@@ -42,7 +44,7 @@ export function V9Dashboard() {
   const [view, setView] = useState<DashboardView>('main');
   useEffect(() => {
     const v = new URLSearchParams(window.location.search).get('view');
-    if (v === 'build_status' || v === 'trade_review') setView(v);
+    if (v === 'build_status' || v === 'trade_review' || v === 'day_type_labeler') setView(v);
   }, []);
 
   // Chart height — SSR-stable default, hydrate from localStorage on mount
@@ -127,6 +129,7 @@ export function V9Dashboard() {
               </div>
 
               {/* Strips below chart */}
+              <DirectionStrip />
               <TradeHistoryStrip />
               <ShadowSoakStrip />
             </div>
@@ -138,6 +141,10 @@ export function V9Dashboard() {
       ) : view === 'build_status' ? (
         <div className="flex-1 min-h-0">
           <BuildStatusTab />
+        </div>
+      ) : view === 'day_type_labeler' ? (
+        <div className="flex-1 min-h-0">
+          <DayTypeLabelTab />
         </div>
       ) : (
         <div className="flex-1 min-h-0">

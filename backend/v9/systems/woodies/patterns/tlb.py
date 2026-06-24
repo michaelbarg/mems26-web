@@ -25,6 +25,17 @@ TARGET1_TICKS = _ticks["t1_ticks"]      # fallback: 15
 TARGET2_TICKS = _ticks["t2_ticks"]      # fallback: 30
 _T1_TICKS = 4  # NOT from YAML
 
+# ── TLB source-spec v2 (Zohar/Liran) — flag-gated, default OFF (TLB_SPEC_V2) ──
+# Stage 1 only: (a) EXTREME prerequisite — the CCI must have crossed ±200 (the SWI
+# extreme) on the trade side within the lookback BEFORE the trendline break; and
+# (b) COMBO — TLB "rarely stands alone" (Liran), so require a confirming CONT
+# partner (GB100 / ZLR / TT) in the same direction. The "teeth"-line construction
+# and "break near the 0-line" are Stage 2 and intentionally NOT here.
+_V2_EXTREME_LOOKBACK = 12      # bars to look back for the ±200 extreme
+_V2_EXTREME_LEVEL = 200.0      # source: "crossed the SWI above +200 / below -200"
+_V2_REQUIRE_COMBO = True       # source: "almost never stands on its own"
+_V2_COMBO_PARTNERS = ("gb100", "zlr", "tt")
+
 
 def _compute_atr14_ticks(bars: List[WoodiesBar], tick_size: float = TICK_SIZE) -> float:
     """Compute ATR-14 from bars in ticks."""
@@ -70,6 +81,37 @@ def _linreg_slope(values: List[float]) -> tuple:
     return slope, intercept
 
 
+def _tlb_v2_gate(bars: List[WoodiesBar], direction: str) -> tuple:
+    """Source-spec v2 gate (flag TLB_SPEC_V2). Returns (ok: bool, reason: str).
+
+    (1) EXTREME: CCI must have reached past ±200 on the trade side within the
+        lookback. (2) COMBO: require a confirming CONT partner same-direction.
+    """
+    win = bars[-_V2_EXTREME_LOOKBACK:] if len(bars) >= _V2_EXTREME_LOOKBACK else bars
+    ccis = [b.cci_14 for b in win if b.cci_14 is not None]
+    if direction == "LONG":
+        if not any(c >= _V2_EXTREME_LEVEL for c in ccis):
+            return False, f"no +{int(_V2_EXTREME_LEVEL)} extreme in last {_V2_EXTREME_LOOKBACK} bars"
+    else:
+        if not any(c <= -_V2_EXTREME_LEVEL for c in ccis):
+            return False, f"no -{int(_V2_EXTREME_LEVEL)} extreme in last {_V2_EXTREME_LOOKBACK} bars"
+    if _V2_REQUIRE_COMBO:
+        import importlib
+        partners = []
+        for modname in _V2_COMBO_PARTNERS:
+            try:
+                m = importlib.import_module(f"backend.v9.systems.woodies.patterns.{modname}")
+                r = m.detect(bars)
+                if getattr(r, "detected", False) and getattr(r, "direction", None) == direction:
+                    partners.append(modname.upper())
+            except Exception:
+                continue
+        if not partners:
+            return False, "no confirming CONT partner (GB100/ZLR/TT)"
+        return True, "v2 ok (extreme + combo:" + ",".join(partners) + ")"
+    return True, "v2 ok (extreme)"
+
+
 def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternResult:
     """Detect TLB pattern from WoodiesBar list."""
     n = len(bars)
@@ -89,9 +131,15 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
 
     slope, intercept = _linreg_slope(window)
     predicted = intercept + slope * (LOOKBACK - 1)
+    _v2 = _flag("TLB_SPEC_V2")
 
     # TLB UP: downward trendline broken upward
     if slope < -2 and current > predicted + 10 and current > prev:
+        if _v2:
+            _ok, _why = _tlb_v2_gate(bars, "LONG")
+            if not _ok:
+                return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                     details={"v2_reject": _why})
         entry = bar.close
         atr_ticks = _compute_atr14_ticks(bars)
         if _flag("STOP_ANCHORS_V2") and atr_ticks > 0:
@@ -149,6 +197,11 @@ def detect(bars: List[WoodiesBar], context: Optional[dict] = None) -> PatternRes
 
     # TLB DOWN: upward trendline broken downward
     if slope > 2 and current < predicted - 10 and current < prev:
+        if _v2:
+            _ok, _why = _tlb_v2_gate(bars, "SHORT")
+            if not _ok:
+                return PatternResult(detected=False, pattern_id=PATTERN_ID,
+                                     details={"v2_reject": _why})
         entry = bar.close
         atr_ticks = _compute_atr14_ticks(bars)
         if _flag("STOP_ANCHORS_V2") and atr_ticks > 0:

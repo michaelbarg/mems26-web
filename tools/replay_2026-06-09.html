@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>MEMS26 Replay — 2026-06-09</title>
+<style>
+  :root {
+    --bg: #0e1117; --panel:#161b22; --grid:#222a35; --txt:#c9d1d9;
+    --muted:#8b949e; --up:#26a69a; --down:#ef5350; --accent:#e3b341;
+    --warn:#d29922; --short:#ef5350; --long:#26a69a;
+  }
+  html,body { margin:0; padding:0; background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  .wrap { max-width:1280px; margin:0 auto; padding:14px 16px 28px; }
+  .synthbanner { display:none; background:repeating-linear-gradient(45deg,
+      #5a1f1f, #5a1f1f 12px, #6e2626 12px, #6e2626 24px);
+    color:#ffe0e0; border:2px solid #ff6b6b; border-radius:7px;
+    padding:9px 14px; margin-bottom:12px; font-size:13px; font-weight:700;
+    letter-spacing:.3px; text-align:center; }
+  .synthbanner.on { display:block; }
+  header.hdr { display:flex; flex-wrap:wrap; align-items:baseline; gap:10px 16px;
+    border-bottom:1px solid var(--grid); padding-bottom:10px; margin-bottom:10px; }
+  .hdr h1 { font-size:18px; margin:0; font-weight:650; letter-spacing:.2px; }
+  .daytype { font-size:14px; font-weight:600; color:var(--accent);
+    border:1px solid var(--grid); border-radius:6px; padding:2px 8px; }
+  .daytype.missing { color:var(--warn); }
+  .expect { font-size:13px; color:var(--muted); flex:1 1 320px; min-width:240px; }
+  .meta { font-size:11px; color:var(--muted); }
+  #chart { width:100%; height:760px; position:relative; }
+  .rthcap { font-size:11px; color:var(--muted); margin:6px 2px 0;
+    display:flex; align-items:center; gap:6px; }
+  .rthcap .dot { width:7px; height:7px; border-radius:50%; background:var(--accent);
+    display:inline-block; }
+  .legend { display:flex; flex-wrap:wrap; gap:6px 14px; font-size:11px;
+    color:var(--muted); margin:8px 2px 0; }
+  .legend b { color:var(--txt); font-weight:600; }
+  .chip { display:inline-flex; align-items:center; gap:5px; }
+  .sw { width:11px; height:11px; border-radius:2px; display:inline-block; }
+  .notes { margin-top:10px; font-size:12px; color:var(--muted); line-height:1.5; }
+  .note.miss { color:var(--warn); }
+  .panenote { position:absolute; right:14px; background:rgba(210,153,34,.12);
+    border:1px solid rgba(210,153,34,.4); color:#f0c674; font-size:11px;
+    padding:3px 8px; border-radius:5px; pointer-events:none; z-index:5; }
+  table.tr { border-collapse:collapse; margin-top:12px; font-size:12px; width:100%; }
+  table.tr th, table.tr td { border:1px solid var(--grid); padding:4px 8px; text-align:right; }
+  table.tr th { background:var(--panel); color:var(--txt); }
+  table.tr td.l, table.tr th.l { text-align:left; }
+  .pos { color:var(--up); } .neg { color:var(--down); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="synthbanner" id="synthbanner"></div>
+  <header class="hdr">
+    <h1>MEMS26 Replay — 2026-06-09</h1>
+    <span id="daytype" class="daytype">day-type: …</span>
+    <span id="expect" class="expect"></span>
+    <span id="meta" class="meta"></span>
+  </header>
+
+  <div id="chart">
+    <div id="pricenote"></div>
+    <div id="volnote"></div>
+    <div id="woodnote"></div>
+  </div>
+
+  <div class="rthcap" id="rthcap"><span class="dot"></span><span>RTH default — scroll for Globex</span></div>
+
+  <div class="legend" id="legend"></div>
+  <div class="notes" id="notes"></div>
+  <div id="tradetable"></div>
+</div>
+
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+const DATA = {"date": "2026-06-09", "day_type": "Neutral_Center", "expectation": "fade both edges \u2192 center (2-sided)", "levels": {"ibh": 7417.0, "ibl": 7390.75, "poc": 7355.25, "vah": 7362.0, "val": 7347.5}, "zones": [{"from": 7362.0, "to": null, "color": "rgba(239, 83, 80, 0.10)", "label": "above VAH \u2192 fade SHORT"}, {"from": null, "to": 7347.5, "color": "rgba(38, 166, 154, 0.10)", "label": "below VAL \u2192 fade LONG"}, {"from": 7347.5, "to": 7362.0, "color": "rgba(120, 144, 156, 0.07)", "label": "inside value \u2192 mean-revert"}], "bars": [{"ts": "2026-06-09T06:55:00", "epoch": 1781006100, "o": 7444.75, "h": 7445.0, "l": 7443.0, "c": 7443.25, "volume": 1588, "cci": -151.59, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:00:00", "epoch": 1781006400, "o": 7443.5, "h": 7447.75, "l": 7442.75, "c": 7446.0, "volume": 1873, "cci": -84.38, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:05:00", "epoch": 1781006700, "o": 7446.0, "h": 7448.0, "l": 7443.75, "c": 7447.25, "volume": 1873, "cci": -49.62, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:10:00", "epoch": 1781007000, "o": 7447.25, "h": 7447.5, "l": 7443.0, "c": 7443.25, "volume": 1285, "cci": -103.47, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:15:00", "epoch": 1781007300, "o": 7443.0, "h": 7444.75, "l": 7442.25, "c": 7444.0, "volume": 1514, "cci": -131.97, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:20:00", "epoch": 1781007600, "o": 7444.0, "h": 7445.5, "l": 7441.5, "c": 7442.75, "volume": 1553, "cci": -132.29, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:25:00", "epoch": 1781007900, "o": 7442.75, "h": 7445.5, "l": 7441.5, "c": 7443.5, "volume": 2033, "cci": -102.5, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:30:00", "epoch": 1781008200, "o": 7443.5, "h": 7453.5, "l": 7443.5, "c": 7452.5, "volume": 3576, "cci": 154.28, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:35:00", "epoch": 1781008500, "o": 7452.75, "h": 7455.75, "l": 7450.75, "c": 7451.25, "volume": 2643, "cci": 194.0, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:40:00", "epoch": 1781008800, "o": 7451.25, "h": 7452.5, "l": 7448.5, "c": 7449.75, "volume": 1864, "cci": 107.8, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:45:00", "epoch": 1781009100, "o": 7449.5, "h": 7449.75, "l": 7446.25, "c": 7448.25, "volume": 1881, "cci": 40.37, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:50:00", "epoch": 1781009400, "o": 7448.25, "h": 7449.25, "l": 7447.0, "c": 7447.75, "volume": 1131, "cci": 39.71, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T07:55:00", "epoch": 1781009700, "o": 7448.0, "h": 7456.75, "l": 7447.75, "c": 7456.25, "volume": 5181, "cci": 152.39, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:00:00", "epoch": 1781010000, "o": 7455.75, "h": 7458.0, "l": 7451.75, "c": 7454.0, "volume": 9606, "cci": 139.08, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:05:00", "epoch": 1781010300, "o": 7454.0, "h": 7459.0, "l": 7453.75, "c": 7457.0, "volume": 5031, "cci": 144.21, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:10:00", "epoch": 1781010600, "o": 7457.25, "h": 7457.25, "l": 7451.25, "c": 7451.75, "volume": 3267, "cci": 74.35, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:15:00", "epoch": 1781010900, "o": 7452.0, "h": 7452.0, "l": 7449.0, "c": 7450.75, "volume": 3718, "cci": 20.31, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:20:00", "epoch": 1781011200, "o": 7450.75, "h": 7453.25, "l": 7450.5, "c": 7451.75, "volume": 2494, "cci": 36.66, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:25:00", "epoch": 1781011500, "o": 7451.75, "h": 7459.5, "l": 7451.75, "c": 7458.75, "volume": 8184, "cci": 117.42, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:30:00", "epoch": 1781011800, "o": 7458.5, "h": 7463.75, "l": 7454.5, "c": 7458.25, "volume": 24875, "cci": 143.9, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:35:00", "epoch": 1781012100, "o": 7458.5, "h": 7470.75, "l": 7456.75, "c": 7466.0, "volume": 25094, "cci": 216.98, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:40:00", "epoch": 1781012400, "o": 7466.0, "h": 7475.5, "l": 7463.25, "c": 7475.25, "volume": 20793, "cci": 232.83, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:45:00", "epoch": 1781012700, "o": 7475.0, "h": 7491.0, "l": 7474.0, "c": 7489.75, "volume": 29948, "cci": 256.57, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T08:50:00", "epoch": 1781013000, "o": 7489.5, "h": 7490.0, "l": 7473.0, "c": 7473.75, "volume": 29179, "cci": 146.77, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T08:55:00", "epoch": 1781013300, "o": 7473.5, "h": 7476.75, "l": 7464.0, "c": 7465.5, "volume": 27968, "cci": 57.33, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T09:00:00", "epoch": 1781013600, "o": 7465.5, "h": 7472.5, "l": 7459.5, "c": 7462.75, "volume": 29063, "cci": 21.64, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T09:05:00", "epoch": 1781013900, "o": 7462.75, "h": 7469.5, "l": 7460.25, "c": 7461.25, "volume": 20775, "cci": 6.89, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T09:10:00", "epoch": 1781014200, "o": 7461.5, "h": 7461.5, "l": 7435.75, "c": 7437.0, "volume": 44169, "cci": -130.38, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T09:15:00", "epoch": 1781014500, "o": 7437.0, "h": 7441.25, "l": 7415.5, "c": 7422.75, "volume": 52389, "cci": -202.3, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T09:20:00", "epoch": 1781014800, "o": 7422.75, "h": 7441.75, "l": 7415.5, "c": 7441.0, "volume": 40111, "cci": -136.7, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T09:25:00", "epoch": 1781015100, "o": 7440.75, "h": 7443.5, "l": 7429.5, "c": 7433.25, "volume": 31290, "cci": -106.31, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T09:30:00", "epoch": 1781015400, "o": 7433.25, "h": 7439.0, "l": 7425.0, "c": 7433.5, "volume": 30325, "cci": -101.45, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T09:35:00", "epoch": 1781015700, "o": 7433.5, "h": 7437.25, "l": 7426.0, "c": 7430.75, "volume": 23634, "cci": -87.49, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T09:40:00", "epoch": 1781016000, "o": 7430.75, "h": 7434.25, "l": 7405.5, "c": 7407.75, "volume": 30956, "cci": -118.6, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T09:45:00", "epoch": 1781016300, "o": 7407.75, "h": 7410.5, "l": 7371.75, "c": 7374.0, "volume": 65825, "cci": -175.79, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T09:50:00", "epoch": 1781016600, "o": 7374.0, "h": 7387.5, "l": 7367.75, "c": 7387.25, "volume": 51564, "cci": -158.19, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T09:55:00", "epoch": 1781016900, "o": 7387.25, "h": 7399.5, "l": 7379.5, "c": 7399.0, "volume": 31294, "cci": -114.53, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T10:00:00", "epoch": 1781017200, "o": 7399.25, "h": 7402.75, "l": 7390.75, "c": 7391.25, "volume": 28411, "cci": -90.51, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T10:05:00", "epoch": 1781017500, "o": 7391.5, "h": 7401.5, "l": 7384.25, "c": 7400.75, "volume": 25849, "cci": -74.02, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T10:10:00", "epoch": 1781017800, "o": 7401.0, "h": 7405.5, "l": 7390.0, "c": 7396.5, "volume": 22136, "cci": -58.42, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:15:00", "epoch": 1781018100, "o": 7396.75, "h": 7399.0, "l": 7383.25, "c": 7384.0, "volume": 20814, "cci": -73.32, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:20:00", "epoch": 1781018400, "o": 7383.75, "h": 7388.5, "l": 7362.25, "c": 7362.5, "volume": 29842, "cci": -115.89, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:25:00", "epoch": 1781018700, "o": 7362.75, "h": 7363.25, "l": 7329.25, "c": 7331.5, "volume": 48893, "cci": -182.31, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:30:00", "epoch": 1781019000, "o": 7331.75, "h": 7339.5, "l": 7326.0, "c": 7334.0, "volume": 45675, "cci": -179.01, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:35:00", "epoch": 1781019300, "o": 7334.25, "h": 7339.25, "l": 7327.0, "c": 7336.0, "volume": 34203, "cci": -143.93, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:40:00", "epoch": 1781019600, "o": 7336.0, "h": 7346.25, "l": 7333.75, "c": 7339.5, "volume": 28420, "cci": -104.24, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:45:00", "epoch": 1781019900, "o": 7339.75, "h": 7343.75, "l": 7337.25, "c": 7341.25, "volume": 17268, "cci": -84.85, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:50:00", "epoch": 1781020200, "o": 7341.0, "h": 7349.0, "l": 7331.75, "c": 7333.0, "volume": 25593, "cci": -77.59, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T10:55:00", "epoch": 1781020500, "o": 7332.75, "h": 7334.5, "l": 7311.0, "c": 7312.5, "volume": 38613, "cci": -106.2, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:00:00", "epoch": 1781020800, "o": 7312.5, "h": 7327.25, "l": 7311.0, "c": 7317.75, "volume": 36996, "cci": -92.94, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:05:00", "epoch": 1781021100, "o": 7317.5, "h": 7319.0, "l": 7299.25, "c": 7304.75, "volume": 34615, "cci": -107.36, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:10:00", "epoch": 1781021400, "o": 7304.5, "h": 7315.0, "l": 7299.5, "c": 7307.0, "volume": 28767, "cci": -103.19, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:15:00", "epoch": 1781021700, "o": 7307.0, "h": 7307.25, "l": 7278.75, "c": 7281.0, "volume": 41049, "cci": -147.24, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:20:00", "epoch": 1781022000, "o": 7281.25, "h": 7296.75, "l": 7274.5, "c": 7296.25, "volume": 41586, "cci": -128.19, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:25:00", "epoch": 1781022300, "o": 7296.0, "h": 7303.0, "l": 7290.25, "c": 7295.0, "volume": 26538, "cci": -93.47, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:30:00", "epoch": 1781022600, "o": 7295.0, "h": 7307.75, "l": 7285.0, "c": 7294.25, "volume": 33373, "cci": -84.61, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:35:00", "epoch": 1781022900, "o": 7294.5, "h": 7305.5, "l": 7250.5, "c": 7254.75, "volume": 43701, "cci": -147.66, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:40:00", "epoch": 1781023200, "o": 7255.5, "h": 7271.0, "l": 7247.0, "c": 7268.0, "volume": 40279, "cci": -147.56, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:45:00", "epoch": 1781023500, "o": 7268.0, "h": 7278.75, "l": 7262.5, "c": 7270.0, "volume": 28036, "cci": -102.22, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:50:00", "epoch": 1781023800, "o": 7270.0, "h": 7276.25, "l": 7257.5, "c": 7258.25, "volume": 23858, "cci": -108.39, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T11:55:00", "epoch": 1781024100, "o": 7258.25, "h": 7288.25, "l": 7257.0, "c": 7287.25, "volume": 23421, "cci": -56.33, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:00:00", "epoch": 1781024400, "o": 7287.5, "h": 7308.25, "l": 7285.25, "c": 7305.5, "volume": 25360, "cci": 38.68, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:05:00", "epoch": 1781024700, "o": 7305.25, "h": 7309.75, "l": 7296.75, "c": 7304.0, "volume": 17023, "cci": 64.13, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:10:00", "epoch": 1781025000, "o": 7303.75, "h": 7312.0, "l": 7293.0, "c": 7307.0, "volume": 18558, "cci": 75.35, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:15:00", "epoch": 1781025300, "o": 7307.0, "h": 7322.0, "l": 7300.5, "c": 7320.5, "volume": 18663, "cci": 119.7, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:20:00", "epoch": 1781025600, "o": 7320.25, "h": 7334.5, "l": 7316.5, "c": 7326.0, "volume": 26046, "cci": 153.31, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:25:00", "epoch": 1781025900, "o": 7326.0, "h": 7334.0, "l": 7320.25, "c": 7329.0, "volume": 15096, "cci": 131.52, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:30:00", "epoch": 1781026200, "o": 7328.75, "h": 7338.75, "l": 7323.25, "c": 7338.5, "volume": 16287, "cci": 128.3, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:35:00", "epoch": 1781026500, "o": 7338.5, "h": 7347.25, "l": 7331.5, "c": 7342.5, "volume": 16198, "cci": 123.87, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:40:00", "epoch": 1781026800, "o": 7342.75, "h": 7361.0, "l": 7340.5, "c": 7351.0, "volume": 17900, "cci": 127.24, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:45:00", "epoch": 1781027100, "o": 7351.25, "h": 7353.75, "l": 7331.0, "c": 7333.5, "volume": 20516, "cci": 83.39, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:50:00", "epoch": 1781027400, "o": 7333.5, "h": 7353.25, "l": 7333.25, "c": 7346.5, "volume": 17551, "cci": 86.12, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T12:55:00", "epoch": 1781027700, "o": 7346.25, "h": 7353.25, "l": 7345.25, "c": 7347.25, "volume": 10875, "cci": 87.9, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:00:00", "epoch": 1781028000, "o": 7347.75, "h": 7354.5, "l": 7342.5, "c": 7347.5, "volume": 12994, "cci": 81.99, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:05:00", "epoch": 1781028300, "o": 7347.25, "h": 7359.25, "l": 7345.0, "c": 7357.5, "volume": 11499, "cci": 96.22, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:10:00", "epoch": 1781028600, "o": 7357.75, "h": 7358.0, "l": 7347.0, "c": 7354.25, "volume": 12660, "cci": 85.07, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:15:00", "epoch": 1781028900, "o": 7354.0, "h": 7367.0, "l": 7347.5, "c": 7365.75, "volume": 15292, "cci": 111.19, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:20:00", "epoch": 1781029200, "o": 7366.0, "h": 7373.5, "l": 7359.25, "c": 7372.5, "volume": 14879, "cci": 146.1, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:25:00", "epoch": 1781029500, "o": 7372.25, "h": 7373.25, "l": 7361.25, "c": 7373.0, "volume": 10467, "cci": 138.89, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:30:00", "epoch": 1781029800, "o": 7373.0, "h": 7384.0, "l": 7370.5, "c": 7378.75, "volume": 15788, "cci": 164.05, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:35:00", "epoch": 1781030100, "o": 7378.75, "h": 7384.75, "l": 7375.75, "c": 7381.25, "volume": 8686, "cci": 146.98, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:40:00", "epoch": 1781030400, "o": 7381.75, "h": 7382.0, "l": 7364.75, "c": 7366.0, "volume": 13970, "cci": 76.43, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:45:00", "epoch": 1781030700, "o": 7366.25, "h": 7377.25, "l": 7365.0, "c": 7377.25, "volume": 10754, "cci": 76.63, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:50:00", "epoch": 1781031000, "o": 7377.25, "h": 7384.0, "l": 7373.0, "c": 7378.5, "volume": 8699, "cci": 90.85, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T13:55:00", "epoch": 1781031300, "o": 7378.5, "h": 7393.5, "l": 7377.75, "c": 7389.5, "volume": 11798, "cci": 121.25, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:00:00", "epoch": 1781031600, "o": 7389.5, "h": 7396.25, "l": 7383.0, "c": 7395.0, "volume": 11442, "cci": 133.89, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:05:00", "epoch": 1781031900, "o": 7394.75, "h": 7398.75, "l": 7385.75, "c": 7386.5, "volume": 11130, "cci": 112.86, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:10:00", "epoch": 1781032200, "o": 7386.75, "h": 7386.75, "l": 7373.25, "c": 7374.5, "volume": 13866, "cci": 30.6, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:15:00", "epoch": 1781032500, "o": 7375.0, "h": 7376.25, "l": 7356.5, "c": 7358.25, "volume": 21718, "cci": -80.34, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:20:00", "epoch": 1781032800, "o": 7358.5, "h": 7365.5, "l": 7353.5, "c": 7361.5, "volume": 16266, "cci": -116.82, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:25:00", "epoch": 1781033100, "o": 7361.25, "h": 7370.5, "l": 7356.75, "c": 7367.75, "volume": 12371, "cci": -84.93, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:30:00", "epoch": 1781033400, "o": 7367.5, "h": 7372.0, "l": 7362.0, "c": 7367.25, "volume": 11989, "cci": -66.18, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:35:00", "epoch": 1781033700, "o": 7367.5, "h": 7368.75, "l": 7357.0, "c": 7357.75, "volume": 10277, "cci": -102.58, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:40:00", "epoch": 1781034000, "o": 7357.75, "h": 7360.75, "l": 7347.75, "c": 7356.25, "volume": 16717, "cci": -123.95, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:45:00", "epoch": 1781034300, "o": 7356.25, "h": 7360.0, "l": 7347.5, "c": 7352.5, "volume": 11146, "cci": -114.57, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:50:00", "epoch": 1781034600, "o": 7352.75, "h": 7384.5, "l": 7352.75, "c": 7383.75, "volume": 25868, "cci": 15.36, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T14:55:00", "epoch": 1781034900, "o": 7383.5, "h": 7395.25, "l": 7382.25, "c": 7391.75, "volume": 30679, "cci": 98.9, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:00:00", "epoch": 1781035200, "o": 7391.75, "h": 7399.0, "l": 7384.0, "c": 7399.0, "volume": 13803, "cci": 106.72, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:05:00", "epoch": 1781035500, "o": 7398.75, "h": 7399.0, "l": 7385.0, "c": 7387.5, "volume": 5686, "cci": 85.3, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:10:00", "epoch": 1781035800, "o": 7387.5, "h": 7389.5, "l": 7383.0, "c": 7385.5, "volume": 2938, "cci": 66.35, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:15:00", "epoch": 1781036100, "o": 7385.5, "h": 7390.5, "l": 7383.25, "c": 7383.25, "volume": 2775, "cci": 68.15, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:20:00", "epoch": 1781036400, "o": 7383.25, "h": 7387.5, "l": 7382.25, "c": 7386.25, "volume": 1513, "cci": 61.04, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:25:00", "epoch": 1781036700, "o": 7386.0, "h": 7391.75, "l": 7385.5, "c": 7390.0, "volume": 1829, "cci": 69.01, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:30:00", "epoch": 1781037000, "o": 7389.5, "h": 7390.0, "l": 7386.0, "c": 7388.75, "volume": 1398, "cci": 56.64, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:35:00", "epoch": 1781037300, "o": 7389.25, "h": 7391.25, "l": 7388.0, "c": 7390.25, "volume": 1336, "cci": 57.95, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:40:00", "epoch": 1781037600, "o": 7390.0, "h": 7393.75, "l": 7389.75, "c": 7390.75, "volume": 1690, "cci": 60.75, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:45:00", "epoch": 1781037900, "o": 7391.0, "h": 7392.5, "l": 7388.25, "c": 7391.25, "volume": 1720, "cci": 53.05, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:50:00", "epoch": 1781038200, "o": 7391.0, "h": 7391.25, "l": 7386.0, "c": 7386.75, "volume": 1148, "cci": 27.75, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T15:55:00", "epoch": 1781038500, "o": 7386.75, "h": 7390.0, "l": 7385.5, "c": 7390.0, "volume": 1323, "cci": 13.26, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:00:00", "epoch": 1781042400, "o": 7382.0, "h": 7384.5, "l": 7374.5, "c": 7379.0, "volume": 5114, "cci": -242.48, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:05:00", "epoch": 1781042700, "o": 7378.5, "h": 7383.5, "l": 7376.25, "c": 7381.75, "volume": 2857, "cci": -155.8, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:10:00", "epoch": 1781043000, "o": 7381.75, "h": 7383.25, "l": 7378.75, "c": 7381.5, "volume": 1643, "cci": -115.98, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T17:15:00", "epoch": 1781043300, "o": 7381.5, "h": 7386.75, "l": 7378.5, "c": 7382.75, "volume": 2536, "cci": -72.58, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T17:20:00", "epoch": 1781043600, "o": 7382.75, "h": 7383.25, "l": 7379.25, "c": 7380.0, "volume": 756, "cci": -92.32, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:25:00", "epoch": 1781043900, "o": 7379.75, "h": 7380.75, "l": 7376.5, "c": 7378.5, "volume": 1764, "cci": -109.17, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:30:00", "epoch": 1781044200, "o": 7378.5, "h": 7378.75, "l": 7371.75, "c": 7372.25, "volume": 2162, "cci": -139.9, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:35:00", "epoch": 1781044500, "o": 7372.75, "h": 7373.5, "l": 7366.5, "c": 7371.5, "volume": 2627, "cci": -157.38, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:40:00", "epoch": 1781044800, "o": 7371.5, "h": 7374.25, "l": 7367.0, "c": 7370.75, "volume": 2421, "cci": -132.82, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T17:45:00", "epoch": 1781045100, "o": 7370.75, "h": 7372.0, "l": 7364.25, "c": 7366.75, "volume": 2389, "cci": -144.12, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T17:50:00", "epoch": 1781045400, "o": 7367.0, "h": 7369.25, "l": 7363.5, "c": 7367.75, "volume": 1851, "cci": -127.51, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T17:55:00", "epoch": 1781045700, "o": 7367.75, "h": 7371.75, "l": 7366.75, "c": 7370.5, "volume": 1754, "cci": -80.64, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:00:00", "epoch": 1781046000, "o": 7370.25, "h": 7376.75, "l": 7368.75, "c": 7375.0, "volume": 2866, "cci": -30.28, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:05:00", "epoch": 1781046300, "o": 7375.5, "h": 7379.5, "l": 7374.0, "c": 7375.5, "volume": 2507, "cci": 16.25, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:10:00", "epoch": 1781046600, "o": 7375.25, "h": 7376.5, "l": 7369.5, "c": 7370.25, "volume": 2349, "cci": -37.45, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:15:00", "epoch": 1781046900, "o": 7370.0, "h": 7372.25, "l": 7366.75, "c": 7369.0, "volume": 2147, "cci": -68.96, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:20:00", "epoch": 1781047200, "o": 7369.0, "h": 7371.0, "l": 7366.75, "c": 7368.5, "volume": 1310, "cci": -69.68, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:25:00", "epoch": 1781047500, "o": 7368.25, "h": 7369.5, "l": 7366.75, "c": 7367.25, "volume": 908, "cci": -79.13, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:30:00", "epoch": 1781047800, "o": 7367.25, "h": 7370.25, "l": 7365.0, "c": 7369.25, "volume": 1800, "cci": -67.44, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:35:00", "epoch": 1781048100, "o": 7369.25, "h": 7371.0, "l": 7365.0, "c": 7369.0, "volume": 1451, "cci": -58.03, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:40:00", "epoch": 1781048400, "o": 7369.25, "h": 7370.5, "l": 7367.0, "c": 7369.75, "volume": 837, "cci": -28.53, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:45:00", "epoch": 1781048700, "o": 7370.0, "h": 7373.5, "l": 7368.75, "c": 7372.5, "volume": 1976, "cci": 52.33, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:50:00", "epoch": 1781049000, "o": 7372.25, "h": 7376.75, "l": 7370.5, "c": 7376.5, "volume": 1708, "cci": 120.25, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T18:55:00", "epoch": 1781049300, "o": 7376.5, "h": 7379.75, "l": 7373.25, "c": 7379.0, "volume": 2221, "cci": 151.24, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T19:00:00", "epoch": 1781049600, "o": 7379.0, "h": 7388.75, "l": 7378.25, "c": 7387.5, "volume": 4512, "cci": 231.6, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T19:05:00", "epoch": 1781049900, "o": 7387.5, "h": 7393.25, "l": 7384.0, "c": 7389.25, "volume": 4992, "cci": 209.81, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T19:10:00", "epoch": 1781050200, "o": 7389.25, "h": 7389.5, "l": 7380.0, "c": 7384.5, "volume": 3423, "cci": 119.29, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T19:15:00", "epoch": 1781050500, "o": 7384.25, "h": 7386.25, "l": 7377.25, "c": 7382.0, "volume": 2478, "cci": 75.44, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T19:20:00", "epoch": 1781050800, "o": 7382.25, "h": 7383.25, "l": 7378.25, "c": 7381.25, "volume": 1639, "cci": 55.85, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T19:25:00", "epoch": 1781051100, "o": 7381.5, "h": 7384.75, "l": 7377.75, "c": 7383.25, "volume": 1596, "cci": 56.64, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T19:30:00", "epoch": 1781051400, "o": 7383.25, "h": 7384.0, "l": 7371.25, "c": 7371.5, "volume": 2910, "cci": -13.56, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T19:35:00", "epoch": 1781051700, "o": 7371.25, "h": 7377.5, "l": 7367.75, "c": 7372.5, "volume": 3442, "cci": -53.12, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T19:40:00", "epoch": 1781052000, "o": 7372.75, "h": 7373.0, "l": 7364.0, "c": 7368.25, "volume": 2494, "cci": -102.01, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "DOWN"}, {"ts": "2026-06-09T19:45:00", "epoch": 1781052300, "o": 7368.25, "h": 7376.5, "l": 7367.0, "c": 7376.5, "volume": 2504, "cci": -51.9, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T19:50:00", "epoch": 1781052600, "o": 7376.25, "h": 7381.0, "l": 7369.75, "c": 7379.25, "volume": 3009, "cci": -19.07, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T19:55:00", "epoch": 1781052900, "o": 7379.5, "h": 7384.75, "l": 7375.25, "c": 7381.5, "volume": 3780, "cci": 25.64, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:00:00", "epoch": 1781053200, "o": 7382.0, "h": 7385.25, "l": 7378.5, "c": 7384.75, "volume": 3091, "cci": 51.63, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:05:00", "epoch": 1781053500, "o": 7384.5, "h": 7384.75, "l": 7379.25, "c": 7380.5, "volume": 1727, "cci": 28.19, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:10:00", "epoch": 1781053800, "o": 7380.75, "h": 7388.5, "l": 7378.5, "c": 7384.75, "volume": 2331, "cci": 65.75, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:15:00", "epoch": 1781054100, "o": 7384.5, "h": 7390.0, "l": 7382.25, "c": 7388.0, "volume": 1813, "cci": 113.21, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:20:00", "epoch": 1781054400, "o": 7388.25, "h": 7388.5, "l": 7382.0, "c": 7383.0, "volume": 1642, "cci": 78.96, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:25:00", "epoch": 1781054700, "o": 7383.0, "h": 7386.25, "l": 7380.75, "c": 7383.5, "volume": 1766, "cci": 60.53, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:30:00", "epoch": 1781055000, "o": 7383.25, "h": 7388.5, "l": 7377.25, "c": 7387.5, "volume": 2733, "cci": 67.86, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:35:00", "epoch": 1781055300, "o": 7387.75, "h": 7388.75, "l": 7381.75, "c": 7385.5, "volume": 1264, "cci": 74.78, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:40:00", "epoch": 1781055600, "o": 7385.75, "h": 7386.5, "l": 7379.25, "c": 7379.5, "volume": 1235, "cci": 20.08, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:45:00", "epoch": 1781055900, "o": 7379.5, "h": 7385.75, "l": 7378.25, "c": 7384.5, "volume": 1448, "cci": 30.34, "trend_state": "BLUE", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:50:00", "epoch": 1781056200, "o": 7384.5, "h": 7385.5, "l": 7376.0, "c": 7380.0, "volume": 2077, "cci": -39.75, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T20:55:00", "epoch": 1781056500, "o": 7379.25, "h": 7384.5, "l": 7378.75, "c": 7380.0, "volume": 1234, "cci": -51.81, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T21:00:00", "epoch": 1781056800, "o": 7379.5, "h": 7381.5, "l": 7374.75, "c": 7376.0, "volume": 1266, "cci": -186.69, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T21:05:00", "epoch": 1781057100, "o": 7375.5, "h": 7376.25, "l": 7371.5, "c": 7372.75, "volume": 1623, "cci": -236.45, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T21:10:00", "epoch": 1781057400, "o": 7372.75, "h": 7378.0, "l": 7372.0, "c": 7375.5, "volume": 1971, "cci": -147.26, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T21:15:00", "epoch": 1781057700, "o": 7376.0, "h": 7377.5, "l": 7373.75, "c": 7375.5, "volume": 783, "cci": -109.75, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T21:20:00", "epoch": 1781058000, "o": 7375.75, "h": 7379.75, "l": 7373.5, "c": 7375.5, "volume": 1295, "cci": -80.59, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T21:25:00", "epoch": 1781058300, "o": 7375.5, "h": 7378.75, "l": 7372.5, "c": 7378.5, "volume": 1352, "cci": -62.1, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T21:30:00", "epoch": 1781058600, "o": 7379.0, "h": 7381.5, "l": 7375.5, "c": 7376.0, "volume": 1180, "cci": -34.21, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T21:35:00", "epoch": 1781058900, "o": 7376.25, "h": 7379.0, "l": 7373.75, "c": 7373.75, "volume": 1037, "cci": -67.66, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T21:40:00", "epoch": 1781059200, "o": 7373.75, "h": 7376.75, "l": 7373.25, "c": 7376.75, "volume": 918, "cci": -59.43, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T21:45:00", "epoch": 1781059500, "o": 7376.5, "h": 7381.0, "l": 7376.5, "c": 7380.75, "volume": 979, "cci": 45.86, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 1, "hfe_direction": "UP"}, {"ts": "2026-06-09T21:50:00", "epoch": 1781059800, "o": 7380.75, "h": 7381.0, "l": 7369.5, "c": 7370.5, "volume": 1553, "cci": -104.67, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T21:55:00", "epoch": 1781060100, "o": 7370.75, "h": 7374.0, "l": 7369.5, "c": 7371.0, "volume": 1113, "cci": -158.97, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:00:00", "epoch": 1781060400, "o": 7371.0, "h": 7376.0, "l": 7370.25, "c": 7375.75, "volume": 995, "cci": -69.65, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:05:00", "epoch": 1781060700, "o": 7376.0, "h": 7380.0, "l": 7375.75, "c": 7377.75, "volume": 994, "cci": 90.72, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:10:00", "epoch": 1781061000, "o": 7377.75, "h": 7378.75, "l": 7375.75, "c": 7377.25, "volume": 540, "cci": 67.1, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:15:00", "epoch": 1781061300, "o": 7377.25, "h": 7381.75, "l": 7376.5, "c": 7377.5, "volume": 837, "cci": 105.04, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:20:00", "epoch": 1781061600, "o": 7377.25, "h": 7378.25, "l": 7374.25, "c": 7377.25, "volume": 692, "cci": 18.62, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:25:00", "epoch": 1781061900, "o": 7377.5, "h": 7378.75, "l": 7375.0, "c": 7376.25, "volume": 478, "cci": 19.15, "trend_state": "GRAY", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:30:00", "epoch": 1781062200, "o": 7376.25, "h": 7378.0, "l": 7374.25, "c": 7375.75, "volume": 741, "cci": -8.62, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:35:00", "epoch": 1781062500, "o": 7375.5, "h": 7375.5, "l": 7371.25, "c": 7372.75, "volume": 765, "cci": -105.62, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:40:00", "epoch": 1781062800, "o": 7372.5, "h": 7372.75, "l": 7369.75, "c": 7370.0, "volume": 685, "cci": -152.52, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:45:00", "epoch": 1781063100, "o": 7370.0, "h": 7373.5, "l": 7369.75, "c": 7371.25, "volume": 676, "cci": -104.57, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:50:00", "epoch": 1781063400, "o": 7370.75, "h": 7374.0, "l": 7369.75, "c": 7373.25, "volume": 689, "cci": -69.17, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T22:55:00", "epoch": 1781063700, "o": 7373.0, "h": 7374.5, "l": 7370.75, "c": 7372.5, "volume": 626, "cci": -54.41, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:00:00", "epoch": 1781064000, "o": 7372.75, "h": 7373.75, "l": 7369.0, "c": 7370.0, "volume": 722, "cci": -90.37, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:05:00", "epoch": 1781064300, "o": 7370.25, "h": 7370.25, "l": 7366.0, "c": 7366.75, "volume": 851, "cci": -155.77, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:10:00", "epoch": 1781064600, "o": 7366.5, "h": 7368.0, "l": 7364.5, "c": 7365.25, "volume": 877, "cci": -156.14, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:15:00", "epoch": 1781064900, "o": 7365.5, "h": 7369.75, "l": 7363.5, "c": 7368.5, "volume": 1008, "cci": -113.3, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:20:00", "epoch": 1781065200, "o": 7368.75, "h": 7370.75, "l": 7365.75, "c": 7366.75, "volume": 864, "cci": -89.59, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:25:00", "epoch": 1781065500, "o": 7366.75, "h": 7369.0, "l": 7364.75, "c": 7365.5, "volume": 779, "cci": -104.14, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:30:00", "epoch": 1781065800, "o": 7365.0, "h": 7365.75, "l": 7360.75, "c": 7361.0, "volume": 1497, "cci": -153.37, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:35:00", "epoch": 1781066100, "o": 7361.0, "h": 7362.5, "l": 7358.75, "c": 7360.5, "volume": 1076, "cci": -158.7, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:40:00", "epoch": 1781066400, "o": 7360.75, "h": 7363.0, "l": 7356.5, "c": 7357.25, "volume": 998, "cci": -165.22, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:45:00", "epoch": 1781066700, "o": 7357.0, "h": 7361.5, "l": 7355.75, "c": 7360.75, "volume": 1197, "cci": -128.98, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:50:00", "epoch": 1781067000, "o": 7361.0, "h": 7365.25, "l": 7359.5, "c": 7364.25, "volume": 953, "cci": -55.37, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}, {"ts": "2026-06-09T23:55:00", "epoch": 1781067300, "o": 7364.25, "h": 7365.0, "l": 7357.75, "c": 7358.0, "volume": 914, "cci": -86.43, "trend_state": "RED", "zlr": 0, "zlr_direction": "NONE", "hfe": 0, "hfe_direction": "NONE"}], "cvd": [{"ts": "2026-06-09T06:55:00", "epoch": 1781006100, "cumulative_delta": 1560.0}, {"ts": "2026-06-09T07:00:00", "epoch": 1781006400, "cumulative_delta": 583.0}, {"ts": "2026-06-09T07:05:00", "epoch": 1781006700, "cumulative_delta": 807.0}, {"ts": "2026-06-09T07:10:00", "epoch": 1781007000, "cumulative_delta": 922.0}, {"ts": "2026-06-09T07:15:00", "epoch": 1781007300, "cumulative_delta": -1044.0}, {"ts": "2026-06-09T07:20:00", "epoch": 1781007600, "cumulative_delta": -4150.0}, {"ts": "2026-06-09T07:25:00", "epoch": 1781007900, "cumulative_delta": -8705.0}, {"ts": "2026-06-09T07:30:00", "epoch": 1781008200, "cumulative_delta": -462.0}, {"ts": "2026-06-09T07:35:00", "epoch": 1781008500, "cumulative_delta": -3.0}, {"ts": "2026-06-09T07:40:00", "epoch": 1781008800, "cumulative_delta": 524.0}, {"ts": "2026-06-09T07:45:00", "epoch": 1781009100, "cumulative_delta": 429.0}, {"ts": "2026-06-09T07:50:00", "epoch": 1781009400, "cumulative_delta": 1543.0}, {"ts": "2026-06-09T07:55:00", "epoch": 1781009700, "cumulative_delta": -4051.0}, {"ts": "2026-06-09T08:00:00", "epoch": 1781010000, "cumulative_delta": -135.0}, {"ts": "2026-06-09T08:05:00", "epoch": 1781010300, "cumulative_delta": -2077.0}, {"ts": "2026-06-09T08:10:00", "epoch": 1781010600, "cumulative_delta": 439.0}, {"ts": "2026-06-09T08:15:00", "epoch": 1781010900, "cumulative_delta": -4293.0}, {"ts": "2026-06-09T08:20:00", "epoch": 1781011200, "cumulative_delta": 2634.0}, {"ts": "2026-06-09T08:25:00", "epoch": 1781011500, "cumulative_delta": 1278.0}, {"ts": "2026-06-09T08:30:00", "epoch": 1781011800, "cumulative_delta": 138.0}, {"ts": "2026-06-09T08:35:00", "epoch": 1781012100, "cumulative_delta": 198.0}, {"ts": "2026-06-09T08:40:00", "epoch": 1781012400, "cumulative_delta": 293.0}, {"ts": "2026-06-09T08:45:00", "epoch": 1781012700, "cumulative_delta": 239.0}, {"ts": "2026-06-09T08:50:00", "epoch": 1781013000, "cumulative_delta": 198.0}, {"ts": "2026-06-09T08:55:00", "epoch": 1781013300, "cumulative_delta": 164.0}, {"ts": "2026-06-09T09:00:00", "epoch": 1781013600, "cumulative_delta": 180.0}, {"ts": "2026-06-09T09:05:00", "epoch": 1781013900, "cumulative_delta": 89.0}, {"ts": "2026-06-09T09:10:00", "epoch": 1781014200, "cumulative_delta": 57.0}, {"ts": "2026-06-09T09:15:00", "epoch": 1781014500, "cumulative_delta": -32.0}, {"ts": "2026-06-09T09:20:00", "epoch": 1781014800, "cumulative_delta": -12414.0}, {"ts": "2026-06-09T09:25:00", "epoch": 1781015100, "cumulative_delta": -12873.0}, {"ts": "2026-06-09T09:30:00", "epoch": 1781015400, "cumulative_delta": -13551.0}, {"ts": "2026-06-09T09:35:00", "epoch": 1781015700, "cumulative_delta": -18225.0}, {"ts": "2026-06-09T09:40:00", "epoch": 1781016000, "cumulative_delta": -29582.0}, {"ts": "2026-06-09T09:45:00", "epoch": 1781016300, "cumulative_delta": -30468.0}, {"ts": "2026-06-09T09:50:00", "epoch": 1781016600, "cumulative_delta": -28908.0}, {"ts": "2026-06-09T09:55:00", "epoch": 1781016900, "cumulative_delta": -28325.0}, {"ts": "2026-06-09T10:00:00", "epoch": 1781017200, "cumulative_delta": -27518.0}, {"ts": "2026-06-09T10:05:00", "epoch": 1781017500, "cumulative_delta": -26596.0}, {"ts": "2026-06-09T10:10:00", "epoch": 1781017800, "cumulative_delta": -27640.0}, {"ts": "2026-06-09T10:15:00", "epoch": 1781018100, "cumulative_delta": -31790.0}, {"ts": "2026-06-09T10:20:00", "epoch": 1781018400, "cumulative_delta": -40495.0}, {"ts": "2026-06-09T10:25:00", "epoch": 1781018700, "cumulative_delta": -40912.0}, {"ts": "2026-06-09T10:30:00", "epoch": 1781019000, "cumulative_delta": -40915.0}, {"ts": "2026-06-09T10:35:00", "epoch": 1781019300, "cumulative_delta": -40391.0}, {"ts": "2026-06-09T10:40:00", "epoch": 1781019600, "cumulative_delta": 524.0}, {"ts": "2026-06-09T10:45:00", "epoch": 1781019900, "cumulative_delta": -38998.0}, {"ts": "2026-06-09T10:50:00", "epoch": 1781020200, "cumulative_delta": -43049.0}, {"ts": "2026-06-09T10:55:00", "epoch": 1781020500, "cumulative_delta": -41387.0}, {"ts": "2026-06-09T11:00:00", "epoch": 1781020800, "cumulative_delta": -43464.0}, {"ts": "2026-06-09T11:05:00", "epoch": 1781021100, "cumulative_delta": -2077.0}, {"ts": "2026-06-09T11:10:00", "epoch": 1781021400, "cumulative_delta": -45637.0}, {"ts": "2026-06-09T11:15:00", "epoch": 1781021700, "cumulative_delta": -43003.0}, {"ts": "2026-06-09T11:20:00", "epoch": 1781022000, "cumulative_delta": -41725.0}, {"ts": "2026-06-09T11:25:00", "epoch": 1781022300, "cumulative_delta": -39984.0}, {"ts": "2026-06-09T11:30:00", "epoch": 1781022600, "cumulative_delta": -43333.0}, {"ts": "2026-06-09T11:35:00", "epoch": 1781022900, "cumulative_delta": -42634.0}, {"ts": "2026-06-09T11:40:00", "epoch": 1781023200, "cumulative_delta": -41880.0}, {"ts": "2026-06-09T11:45:00", "epoch": 1781023500, "cumulative_delta": -41036.0}, {"ts": "2026-06-09T11:50:00", "epoch": 1781023800, "cumulative_delta": -38751.0}, {"ts": "2026-06-09T11:55:00", "epoch": 1781024100, "cumulative_delta": -36905.0}, {"ts": "2026-06-09T12:00:00", "epoch": 1781024400, "cumulative_delta": -37116.0}, {"ts": "2026-06-09T12:05:00", "epoch": 1781024700, "cumulative_delta": -36444.0}, {"ts": "2026-06-09T12:10:00", "epoch": 1781025000, "cumulative_delta": -34435.0}, {"ts": "2026-06-09T12:15:00", "epoch": 1781025300, "cumulative_delta": -33549.0}, {"ts": "2026-06-09T12:20:00", "epoch": 1781025600, "cumulative_delta": -33115.0}, {"ts": "2026-06-09T12:25:00", "epoch": 1781025900, "cumulative_delta": -32654.0}, {"ts": "2026-06-09T12:30:00", "epoch": 1781026200, "cumulative_delta": -32606.0}, {"ts": "2026-06-09T12:35:00", "epoch": 1781026500, "cumulative_delta": -31530.0}, {"ts": "2026-06-09T12:40:00", "epoch": 1781026800, "cumulative_delta": -33296.0}, {"ts": "2026-06-09T12:45:00", "epoch": 1781027100, "cumulative_delta": -33035.0}, {"ts": "2026-06-09T12:50:00", "epoch": 1781027400, "cumulative_delta": -33396.0}, {"ts": "2026-06-09T12:55:00", "epoch": 1781027700, "cumulative_delta": -33426.0}, {"ts": "2026-06-09T13:00:00", "epoch": 1781028000, "cumulative_delta": -31869.0}, {"ts": "2026-06-09T13:05:00", "epoch": 1781028300, "cumulative_delta": -32415.0}, {"ts": "2026-06-09T13:10:00", "epoch": 1781028600, "cumulative_delta": -29771.0}, {"ts": "2026-06-09T13:15:00", "epoch": 1781028900, "cumulative_delta": 29.0}, {"ts": "2026-06-09T13:20:00", "epoch": 1781029200, "cumulative_delta": -5.0}, {"ts": "2026-06-09T13:25:00", "epoch": 1781029500, "cumulative_delta": 32.0}, {"ts": "2026-06-09T13:30:00", "epoch": 1781029800, "cumulative_delta": -28199.0}, {"ts": "2026-06-09T13:35:00", "epoch": 1781030100, "cumulative_delta": -30867.0}, {"ts": "2026-06-09T13:40:00", "epoch": 1781030400, "cumulative_delta": -29867.0}, {"ts": "2026-06-09T13:45:00", "epoch": 1781030700, "cumulative_delta": -29714.0}, {"ts": "2026-06-09T13:50:00", "epoch": 1781031000, "cumulative_delta": -28614.0}, {"ts": "2026-06-09T13:55:00", "epoch": 1781031300, "cumulative_delta": -28334.0}, {"ts": "2026-06-09T14:00:00", "epoch": 1781031600, "cumulative_delta": -29230.0}, {"ts": "2026-06-09T14:05:00", "epoch": 1781031900, "cumulative_delta": -30034.0}, {"ts": "2026-06-09T14:10:00", "epoch": 1781032200, "cumulative_delta": -32044.0}, {"ts": "2026-06-09T14:15:00", "epoch": 1781032500, "cumulative_delta": -31852.0}, {"ts": "2026-06-09T14:20:00", "epoch": 1781032800, "cumulative_delta": -31041.0}, {"ts": "2026-06-09T14:25:00", "epoch": 1781033100, "cumulative_delta": -31390.0}, {"ts": "2026-06-09T14:30:00", "epoch": 1781033400, "cumulative_delta": -32441.0}, {"ts": "2026-06-09T14:35:00", "epoch": 1781033700, "cumulative_delta": -33490.0}, {"ts": "2026-06-09T14:40:00", "epoch": 1781034000, "cumulative_delta": -33830.0}, {"ts": "2026-06-09T14:45:00", "epoch": 1781034300, "cumulative_delta": -31132.0}, {"ts": "2026-06-09T14:50:00", "epoch": 1781034600, "cumulative_delta": -31331.0}, {"ts": "2026-06-09T14:55:00", "epoch": 1781034900, "cumulative_delta": -31184.0}, {"ts": "2026-06-09T15:00:00", "epoch": 1781035200, "cumulative_delta": -31752.0}, {"ts": "2026-06-09T15:05:00", "epoch": 1781035500, "cumulative_delta": -31758.0}, {"ts": "2026-06-09T15:10:00", "epoch": 1781035800, "cumulative_delta": -31913.0}, {"ts": "2026-06-09T15:15:00", "epoch": 1781036100, "cumulative_delta": -31850.0}, {"ts": "2026-06-09T15:20:00", "epoch": 1781036400, "cumulative_delta": -31775.0}, {"ts": "2026-06-09T15:25:00", "epoch": 1781036700, "cumulative_delta": -31997.0}, {"ts": "2026-06-09T15:30:00", "epoch": 1781037000, "cumulative_delta": -32011.0}, {"ts": "2026-06-09T15:35:00", "epoch": 1781037300, "cumulative_delta": -32039.0}, {"ts": "2026-06-09T15:40:00", "epoch": 1781037600, "cumulative_delta": -32203.0}, {"ts": "2026-06-09T15:45:00", "epoch": 1781037900, "cumulative_delta": -32341.0}, {"ts": "2026-06-09T15:50:00", "epoch": 1781038200, "cumulative_delta": -32422.0}, {"ts": "2026-06-09T15:55:00", "epoch": 1781038500, "cumulative_delta": -81.0}, {"ts": "2026-06-09T17:00:00", "epoch": 1781042400, "cumulative_delta": null}, {"ts": "2026-06-09T17:05:00", "epoch": 1781042700, "cumulative_delta": null}, {"ts": "2026-06-09T17:10:00", "epoch": 1781043000, "cumulative_delta": null}, {"ts": "2026-06-09T17:15:00", "epoch": 1781043300, "cumulative_delta": null}, {"ts": "2026-06-09T17:20:00", "epoch": 1781043600, "cumulative_delta": null}, {"ts": "2026-06-09T17:25:00", "epoch": 1781043900, "cumulative_delta": null}, {"ts": "2026-06-09T17:30:00", "epoch": 1781044200, "cumulative_delta": null}, {"ts": "2026-06-09T17:35:00", "epoch": 1781044500, "cumulative_delta": null}, {"ts": "2026-06-09T17:40:00", "epoch": 1781044800, "cumulative_delta": null}, {"ts": "2026-06-09T17:45:00", "epoch": 1781045100, "cumulative_delta": null}, {"ts": "2026-06-09T17:50:00", "epoch": 1781045400, "cumulative_delta": null}, {"ts": "2026-06-09T17:55:00", "epoch": 1781045700, "cumulative_delta": null}, {"ts": "2026-06-09T18:00:00", "epoch": 1781046000, "cumulative_delta": null}, {"ts": "2026-06-09T18:05:00", "epoch": 1781046300, "cumulative_delta": null}, {"ts": "2026-06-09T18:10:00", "epoch": 1781046600, "cumulative_delta": null}, {"ts": "2026-06-09T18:15:00", "epoch": 1781046900, "cumulative_delta": null}, {"ts": "2026-06-09T18:20:00", "epoch": 1781047200, "cumulative_delta": null}, {"ts": "2026-06-09T18:25:00", "epoch": 1781047500, "cumulative_delta": null}, {"ts": "2026-06-09T18:30:00", "epoch": 1781047800, "cumulative_delta": null}, {"ts": "2026-06-09T18:35:00", "epoch": 1781048100, "cumulative_delta": null}, {"ts": "2026-06-09T18:40:00", "epoch": 1781048400, "cumulative_delta": null}, {"ts": "2026-06-09T18:45:00", "epoch": 1781048700, "cumulative_delta": null}, {"ts": "2026-06-09T18:50:00", "epoch": 1781049000, "cumulative_delta": null}, {"ts": "2026-06-09T18:55:00", "epoch": 1781049300, "cumulative_delta": null}, {"ts": "2026-06-09T19:00:00", "epoch": 1781049600, "cumulative_delta": null}, {"ts": "2026-06-09T19:05:00", "epoch": 1781049900, "cumulative_delta": null}, {"ts": "2026-06-09T19:10:00", "epoch": 1781050200, "cumulative_delta": null}, {"ts": "2026-06-09T19:15:00", "epoch": 1781050500, "cumulative_delta": null}, {"ts": "2026-06-09T19:20:00", "epoch": 1781050800, "cumulative_delta": null}, {"ts": "2026-06-09T19:25:00", "epoch": 1781051100, "cumulative_delta": null}, {"ts": "2026-06-09T19:30:00", "epoch": 1781051400, "cumulative_delta": null}, {"ts": "2026-06-09T19:35:00", "epoch": 1781051700, "cumulative_delta": null}, {"ts": "2026-06-09T19:40:00", "epoch": 1781052000, "cumulative_delta": null}, {"ts": "2026-06-09T19:45:00", "epoch": 1781052300, "cumulative_delta": null}, {"ts": "2026-06-09T19:50:00", "epoch": 1781052600, "cumulative_delta": null}, {"ts": "2026-06-09T19:55:00", "epoch": 1781052900, "cumulative_delta": null}, {"ts": "2026-06-09T20:00:00", "epoch": 1781053200, "cumulative_delta": null}, {"ts": "2026-06-09T20:05:00", "epoch": 1781053500, "cumulative_delta": null}, {"ts": "2026-06-09T20:10:00", "epoch": 1781053800, "cumulative_delta": null}, {"ts": "2026-06-09T20:15:00", "epoch": 1781054100, "cumulative_delta": null}, {"ts": "2026-06-09T20:20:00", "epoch": 1781054400, "cumulative_delta": null}, {"ts": "2026-06-09T20:25:00", "epoch": 1781054700, "cumulative_delta": null}, {"ts": "2026-06-09T20:30:00", "epoch": 1781055000, "cumulative_delta": null}, {"ts": "2026-06-09T20:35:00", "epoch": 1781055300, "cumulative_delta": null}, {"ts": "2026-06-09T20:40:00", "epoch": 1781055600, "cumulative_delta": null}, {"ts": "2026-06-09T20:45:00", "epoch": 1781055900, "cumulative_delta": null}, {"ts": "2026-06-09T20:50:00", "epoch": 1781056200, "cumulative_delta": null}, {"ts": "2026-06-09T20:55:00", "epoch": 1781056500, "cumulative_delta": null}, {"ts": "2026-06-09T21:00:00", "epoch": 1781056800, "cumulative_delta": null}, {"ts": "2026-06-09T21:05:00", "epoch": 1781057100, "cumulative_delta": null}, {"ts": "2026-06-09T21:10:00", "epoch": 1781057400, "cumulative_delta": null}, {"ts": "2026-06-09T21:15:00", "epoch": 1781057700, "cumulative_delta": null}, {"ts": "2026-06-09T21:20:00", "epoch": 1781058000, "cumulative_delta": null}, {"ts": "2026-06-09T21:25:00", "epoch": 1781058300, "cumulative_delta": null}, {"ts": "2026-06-09T21:30:00", "epoch": 1781058600, "cumulative_delta": null}, {"ts": "2026-06-09T21:35:00", "epoch": 1781058900, "cumulative_delta": null}, {"ts": "2026-06-09T21:40:00", "epoch": 1781059200, "cumulative_delta": null}, {"ts": "2026-06-09T21:45:00", "epoch": 1781059500, "cumulative_delta": null}, {"ts": "2026-06-09T21:50:00", "epoch": 1781059800, "cumulative_delta": null}, {"ts": "2026-06-09T21:55:00", "epoch": 1781060100, "cumulative_delta": null}, {"ts": "2026-06-09T22:00:00", "epoch": 1781060400, "cumulative_delta": null}, {"ts": "2026-06-09T22:05:00", "epoch": 1781060700, "cumulative_delta": null}, {"ts": "2026-06-09T22:10:00", "epoch": 1781061000, "cumulative_delta": null}, {"ts": "2026-06-09T22:15:00", "epoch": 1781061300, "cumulative_delta": null}, {"ts": "2026-06-09T22:20:00", "epoch": 1781061600, "cumulative_delta": null}, {"ts": "2026-06-09T22:25:00", "epoch": 1781061900, "cumulative_delta": null}, {"ts": "2026-06-09T22:30:00", "epoch": 1781062200, "cumulative_delta": null}, {"ts": "2026-06-09T22:35:00", "epoch": 1781062500, "cumulative_delta": null}, {"ts": "2026-06-09T22:40:00", "epoch": 1781062800, "cumulative_delta": null}, {"ts": "2026-06-09T22:45:00", "epoch": 1781063100, "cumulative_delta": null}, {"ts": "2026-06-09T22:50:00", "epoch": 1781063400, "cumulative_delta": null}, {"ts": "2026-06-09T22:55:00", "epoch": 1781063700, "cumulative_delta": null}, {"ts": "2026-06-09T23:00:00", "epoch": 1781064000, "cumulative_delta": null}, {"ts": "2026-06-09T23:05:00", "epoch": 1781064300, "cumulative_delta": null}, {"ts": "2026-06-09T23:10:00", "epoch": 1781064600, "cumulative_delta": null}, {"ts": "2026-06-09T23:15:00", "epoch": 1781064900, "cumulative_delta": null}, {"ts": "2026-06-09T23:20:00", "epoch": 1781065200, "cumulative_delta": null}, {"ts": "2026-06-09T23:25:00", "epoch": 1781065500, "cumulative_delta": null}, {"ts": "2026-06-09T23:30:00", "epoch": 1781065800, "cumulative_delta": null}, {"ts": "2026-06-09T23:35:00", "epoch": 1781066100, "cumulative_delta": null}, {"ts": "2026-06-09T23:40:00", "epoch": 1781066400, "cumulative_delta": null}, {"ts": "2026-06-09T23:45:00", "epoch": 1781066700, "cumulative_delta": null}, {"ts": "2026-06-09T23:50:00", "epoch": 1781067000, "cumulative_delta": null}, {"ts": "2026-06-09T23:55:00", "epoch": 1781067300, "cumulative_delta": null}], "trades": [{"id": 20, "mode": "shadow", "system": 4, "direction": "SHORT", "state": "CLOSED", "entry_ts": "2026-06-09T08:50:05", "entry_epoch": 1781013005, "entry_price": 7489.25, "stop": 7489.0, "t1": 7485.75, "t2": 7482.25, "t3": null, "exit_ts": "2026-06-09T10:20:04", "exit_epoch": 1781018404, "exit_price": 7383.25, "exit_reason": "TIME_STOP", "pnl_usd": 582.5, "pnl_r": 15.53, "outcome": "WIN", "pattern_id": "HTLB", "day_type": null}, {"id": 22, "mode": "shadow", "system": 2, "direction": "SHORT", "state": "CLOSED", "entry_ts": "2026-06-09T11:00:03", "entry_epoch": 1781020803, "entry_price": 7313.5, "stop": 7349.75, "t1": 7259.375, "t2": 7205.25, "t3": null, "exit_ts": "2026-06-09T11:26:01", "exit_epoch": 1781022361, "exit_price": 7313.5, "exit_reason": "manual", "pnl_usd": 0.0, "pnl_r": 0.0, "outcome": "BE", "pattern_id": "ZLR", "day_type": "Variation"}], "has_volume": true, "has_cvd": true, "playbook_found": true, "generated_at": "2026-06-23T03:48:35.468326Z", "source": "export_replay_data.py (Mac, SELECT-only)", "synthetic": false, "banner": null};
+
+function fmt(n, d) {
+  if (n === null || n === undefined || isNaN(n)) return "—";
+  return Number(n).toFixed(d === undefined ? 2 : d);
+}
+// CT wall-clock string "YYYY-MM-DDTHH:MM:SS" -> chart business time.
+// The chart's axis/crosshair formatters print getUTCHours()/getUTCMinutes() of
+// the series time, so to make labels read in CT we plot every series using the
+// CT wall-clock RE-EXPRESSED as UTC seconds (ctToSec). We do NOT plot the raw
+// `epoch` (true UTC) because that would shift the axis to UTC hours. ctToSec is
+// therefore the single source of chart-time for bars, trades AND the RTH window
+// below, so they all line up. (`epoch` is kept in the JSON for other consumers.)
+function ctToSec(ts) {
+  // ts like "2026-06-09T08:30:00" (already America/Chicago wall-clock)
+  if (!ts) return null;
+  const m = ts.match(/(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return null;
+  // Treat the wall-clock as if UTC so the chart prints exactly these HH:MM.
+  return Date.UTC(+m[1], +m[2]-1, +m[3], +m[4], +m[5], +m[6]) / 1000;
+}
+// The CT calendar date the session belongs to, taken from the first bar's ts.
+// Used to anchor the RTH 08:30–15:00 CT default visible window.
+function sessionDateCT(bars) {
+  for (const b of (bars || [])) {
+    if (b && b.ts) {
+      const m = b.ts.match(/(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return { y: +m[1], mo: +m[2], d: +m[3] };
+    }
+  }
+  return null;
+}
+
+function showPaneNote(id, top, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = "panenote";
+  el.style.top = top + "px";
+  el.textContent = text;
+}
+
+(function main() {
+  const LWC = window.LightweightCharts;
+
+  // Loud synthetic banner — verification fixtures only. A real Mac export never
+  // sets DATA.synthetic, so this stays hidden for genuine data.
+  if (DATA.synthetic) {
+    const bn = document.getElementById("synthbanner");
+    if (bn) {
+      bn.className = "synthbanner on";
+      bn.textContent = DATA.banner ||
+        "SYNTHETIC TEST FIXTURE — fabricated data for renderer verification ONLY. NOT real market data.";
+    }
+  }
+
+  const dtEl = document.getElementById("daytype");
+  const exEl = document.getElementById("expect");
+  const metaEl = document.getElementById("meta");
+
+  // Header: day-type + expectation (honest "missing"). The provenance
+  // (classify_replay / state-machine / trade-stamped) is shown as a tooltip so
+  // the canonical 7-type vs a fallback is never silently conflated.
+  if (DATA.day_type) {
+    dtEl.textContent = "day-type: " + DATA.day_type;
+    if (DATA.day_type_source) dtEl.title = "source: " + DATA.day_type_source;
+  } else {
+    dtEl.textContent = "day-type: missing (export on Mac)";
+    dtEl.classList.add("missing");
+  }
+  exEl.textContent = DATA.expectation
+    ? DATA.expectation
+    : (DATA.playbook_found
+        ? "no playbook expectation for this day-type"
+        : "playbook not found — expectation unavailable");
+  const nb = (DATA.bars || []).length;
+  metaEl.textContent = "bars: " + nb + " · trades: " + (DATA.trades||[]).length
+      + (DATA.generated_at ? " · exported " + DATA.generated_at : "");
+
+  if (!LWC || !LWC.createChart) {
+    document.getElementById("notes").innerHTML =
+      '<span class="note miss">Lightweight-Charts failed to load from CDN. '
+      + 'Open this file with internet access, or vendor the script locally.</span>';
+    return;
+  }
+
+  const bars = (DATA.bars || []).filter(b => b && b.o != null);
+  if (!bars.length) {
+    document.getElementById("notes").innerHTML =
+      '<span class="note miss">No bars in the JSON — run export_replay_data.py on the Mac for this date.</span>';
+    return;
+  }
+
+  // Build the chart with explicit CT time formatting.
+  const chart = LWC.createChart(document.getElementById("chart"), {
+    autoSize: true,
+    layout: {
+      background: { type: "solid", color: "#0e1117" },
+      textColor: "#c9d1d9",
+      panes: { separatorColor: "#222a35", separatorHoverColor: "#2d3340",
+               enableResize: true },
+    },
+    grid: { vertLines: { color: "#1b212b" }, horzLines: { color: "#1b212b" } },
+    rightPriceScale: { borderColor: "#222a35", scaleMargins: { top: 0.06, bottom: 0.06 } },
+    timeScale: {
+      borderColor: "#222a35", timeVisible: true, secondsVisible: false,
+      // Format the (UTC-shifted) seconds back into HH:MM — these ARE CT.
+      tickMarkFormatter: (t) => {
+        const d = new Date(t * 1000);
+        const hh = String(d.getUTCHours()).padStart(2,"0");
+        const mm = String(d.getUTCMinutes()).padStart(2,"0");
+        return hh + ":" + mm;
+      },
+    },
+    localization: {
+      timeFormatter: (t) => {
+        const d = new Date(t * 1000);
+        const hh = String(d.getUTCHours()).padStart(2,"0");
+        const mm = String(d.getUTCMinutes()).padStart(2,"0");
+        return hh + ":" + mm + " CT";
+      },
+    },
+    crosshair: { mode: LWC.CrosshairMode ? LWC.CrosshairMode.Normal : 0 },
+  });
+
+  // ── PANE 0: PRICE candles ────────────────────────────────────────────────
+  const priceSeries = chart.addSeries(LWC.CandlestickSeries, {
+    upColor: "#26a69a", downColor: "#ef5350", borderVisible: false,
+    wickUpColor: "#26a69a", wickDownColor: "#ef5350",
+    priceLineVisible: false, lastValueVisible: false,
+  }, 0);
+
+  // Dedup + sort by time (Lightweight-Charts requires strictly ascending time).
+  const seen = new Set();
+  const candle = [];
+  for (const b of bars) {
+    // CT wall-clock first (axis prints CT); epoch only if ts is missing.
+    const t = (b.ts != null) ? ctToSec(b.ts) : b.epoch;
+    if (t == null || seen.has(t)) continue;
+    seen.add(t);
+    candle.push({ time: t, open: b.o, high: b.h, low: b.l, close: b.c, _b: b });
+  }
+  candle.sort((a, z) => a.time - z.time);
+  priceSeries.setData(candle.map(({_b, ...d}) => d));
+
+  // ── Expected-direction zone tints (playbook-driven, never invented) ──────
+  // Drawn as filled price-range bands behind the candles using a series-less
+  // overlay: we approximate with semi-transparent price lines is not enough,
+  // so we draw bands via a primitive on the price series.
+  if (DATA.zones && DATA.zones.length) {
+    drawZones(chart, priceSeries, candle, DATA.zones);
+  }
+
+  // ── Level price-lines (IBH / IBL / POC / VAH / VAL), Sierra-style ────────
+  const lv = DATA.levels;
+  if (lv) {
+    // IB label is data-driven: the demo computes IB from real first-hour bars
+    // and passes ib_label "IB (from bars)" so it is never confused with the
+    // Sierra TPO export. Falls back to plain IBH/IBL when no label is supplied.
+    const ibTag = lv.ib_label ? (" — " + lv.ib_label) : "";
+    const defs = [
+      ["IBH" + ibTag, lv.ibh, "#7e9cff", false],
+      ["IBL" + ibTag, lv.ibl, "#7e9cff", false],
+      ["VAH", lv.vah, "#b39ddb", true],
+      ["VAL", lv.val, "#b39ddb", true],
+      ["POC", lv.poc, "#e3b341", true],   // emphasize POC
+    ];
+    for (const [label, price, color, dashed] of defs) {
+      if (price == null) continue;
+      priceSeries.createPriceLine({
+        price: price,
+        color: color,
+        lineWidth: label === "POC" ? 2 : 1,
+        lineStyle: dashed ? (LWC.LineStyle ? LWC.LineStyle.Dashed : 2) : 0,
+        axisLabelVisible: true,
+        title: label,
+      });
+    }
+  } else {
+    showPaneNote("pricenote", 8,
+      "levels: not exported yet — run export_replay_data.py on the Mac");
+  }
+
+  // ── Trade entry/exit markers on the price pane ───────────────────────────
+  const trades = DATA.trades || [];
+  const priceMarkers = [];
+  for (const tr of trades) {
+    const et = (tr.entry_ts != null) ? ctToSec(tr.entry_ts) : tr.entry_epoch;
+    const isShort = (tr.direction || "").toUpperCase() === "SHORT";
+    if (et != null && tr.entry_price != null) {
+      priceMarkers.push({
+        time: et,
+        position: isShort ? "aboveBar" : "belowBar",
+        color: isShort ? "#ef5350" : "#26a69a",
+        shape: isShort ? "arrowDown" : "arrowUp",
+        text: (tr.pattern_id || tr.direction || "") +
+              (tr.entry_price != null ? " @" + fmt(tr.entry_price) : ""),
+      });
+    }
+    const xt = (tr.exit_ts != null) ? ctToSec(tr.exit_ts) : tr.exit_epoch;
+    if (xt != null && tr.exit_price != null) {
+      const pnl = tr.pnl_usd;
+      const pnlTxt = (pnl == null) ? "" :
+        (pnl >= 0 ? " +$" + fmt(pnl,0) : " -$" + fmt(Math.abs(pnl),0));
+      priceMarkers.push({
+        time: xt,
+        position: "inBar",
+        color: (pnl != null && pnl < 0) ? "#ef5350" : "#9e9e9e",
+        shape: "circle",
+        text: "exit" + pnlTxt + (tr.outcome ? " (" + tr.outcome + ")" : ""),
+      });
+    }
+  }
+  attachMarkers(LWC, chart, priceSeries, priceMarkers);
+
+  // ── PANE 1: VOLUME histogram ─────────────────────────────────────────────
+  const hasVol = DATA.has_volume && candle.some(c => c._b.volume != null && c._b.volume > 0);
+  if (hasVol) {
+    const volSeries = chart.addSeries(LWC.HistogramSeries, {
+      priceFormat: { type: "volume" },
+      priceScaleId: "", lastValueVisible: false, priceLineVisible: false,
+    }, 1);
+    volSeries.setData(candle.map(c => ({
+      time: c.time,
+      value: c._b.volume || 0,
+      color: c.close >= c.open ? "rgba(38,166,154,0.55)" : "rgba(239,83,80,0.55)",
+    })));
+  } else {
+    // Create an empty pane-1 anchor so the layout still shows the labeled gap.
+    const ph = chart.addSeries(LWC.HistogramSeries, { priceScaleId: "" }, 1);
+    ph.setData([]);
+    showPaneNote("volnote", 430,
+      "volume: not exported yet — run export_replay_data.py on the Mac");
+  }
+
+  // ── CVD overlay (cumulative_delta) on the volume pane, own price scale ────
+  // Drawn as a line riding over the volume histogram so order-flow drift is
+  // visible without a 4th pane. Only when real CVD points exist (Rule 1: no
+  // synthetic flat line). Aligned to the same ctToSec time space as candles.
+  if (DATA.has_cvd && Array.isArray(DATA.cvd) && DATA.cvd.length) {
+    const cvdPts = [];
+    const cseen = new Set();
+    for (const p of DATA.cvd) {
+      if (p == null || p.cumulative_delta == null) continue;
+      const t = (p.ts != null) ? ctToSec(p.ts) : p.epoch;
+      if (t == null || cseen.has(t)) continue;
+      cseen.add(t);
+      cvdPts.push({ time: t, value: p.cumulative_delta });
+    }
+    cvdPts.sort((a, z) => a.time - z.time);
+    if (cvdPts.length) {
+      const cvdSeries = chart.addSeries(LWC.LineSeries, {
+        color: "#f0c674", lineWidth: 1, priceScaleId: "cvd",
+        lastValueVisible: true, priceLineVisible: false, title: "CVD",
+      }, 1);
+      cvdSeries.setData(cvdPts);
+    }
+  }
+
+  // ── PANE 2: WOODIES CCI ──────────────────────────────────────────────────
+  const cciPts = candle.filter(c => c._b.cci != null);
+  if (cciPts.length) {
+    const cciSeries = chart.addSeries(LWC.LineSeries, {
+      color: "#90caf9", lineWidth: 2, priceLineVisible: false,
+      lastValueVisible: true, title: "Woodies CCI",
+    }, 2);
+    // Color the line by trend_state when present (segment coloring via points).
+    cciSeries.setData(cciPts.map(c => {
+      const pt = { time: c.time, value: c._b.cci };
+      const ts = (c._b.trend_state || "").toUpperCase();
+      if (ts === "BLUE" || ts === "LONG") pt.color = "#26a69a";
+      else if (ts === "RED" || ts === "SHORT") pt.color = "#ef5350";
+      else if (ts) pt.color = "#9e9e9e";
+      return pt;
+    }));
+    // Zero line.
+    cciSeries.createPriceLine({ price: 0, color: "#5b6470", lineWidth: 1,
+      lineStyle: LWC.LineStyle ? LWC.LineStyle.Dashed : 2,
+      axisLabelVisible: true, title: "0" });
+    // +100 / -100 Woodies reference bands.
+    cciSeries.createPriceLine({ price: 100, color: "#37414e", lineWidth: 1,
+      lineStyle: LWC.LineStyle ? LWC.LineStyle.Dotted : 1, axisLabelVisible: false });
+    cciSeries.createPriceLine({ price: -100, color: "#37414e", lineWidth: 1,
+      lineStyle: LWC.LineStyle ? LWC.LineStyle.Dotted : 1, axisLabelVisible: false });
+
+    // ZLR / HFE markers on the Woodies pane.
+    const wMarkers = [];
+    for (const c of cciPts) {
+      if (c._b.zlr) {
+        const up = (c._b.zlr_direction || "").toUpperCase().includes("LONG")
+                || (c._b.zlr_direction || "").toUpperCase().includes("UP");
+        wMarkers.push({ time: c.time, position: up ? "belowBar" : "aboveBar",
+          color: "#e3b341", shape: up ? "arrowUp" : "arrowDown", text: "ZLR" });
+      }
+      if (c._b.hfe) {
+        const up = (c._b.hfe_direction || "").toUpperCase().includes("LONG")
+                || (c._b.hfe_direction || "").toUpperCase().includes("UP");
+        wMarkers.push({ time: c.time, position: up ? "belowBar" : "aboveBar",
+          color: "#ce93d8", shape: "square", text: "HFE" });
+      }
+    }
+    attachMarkers(LWC, chart, cciSeries, wMarkers);
+  } else {
+    const ph = chart.addSeries(LWC.LineSeries, {}, 2);
+    ph.setData([]);
+    showPaneNote("woodnote", 560,
+      "Woodies CCI: not in JSON for this date");
+  }
+
+  // Pane height proportions ~ price 55% / volume 15% / woodies 30%.
+  try {
+    const panes = chart.panes();
+    const H = document.getElementById("chart").clientHeight || 760;
+    if (panes[0]) panes[0].setHeight(Math.round(H * 0.55));
+    if (panes[1]) panes[1].setHeight(Math.round(H * 0.15));
+    if (panes[2]) panes[2].setHeight(Math.round(H * 0.30));
+  } catch (e) { /* pane sizing best-effort */ }
+
+  // ── Default visible window = RTH 08:30–15:00 CT (all bars stay loaded; the
+  //    user can scroll left into Globex / right into the post-close tail). We
+  //    compute the window in the SAME ctToSec space the candles use, then clamp
+  //    to the actual data extent so we never request a range with no bars.
+  (function setRthDefault() {
+    const ts = chart.timeScale();
+    const dataFrom = candle[0].time;
+    const dataTo = candle[candle.length - 1].time;
+    const sd = sessionDateCT(DATA.bars);
+    let from = dataFrom, to = dataTo;
+    if (sd) {
+      // 08:30:00 and 15:00:00 CT on the session date, as ctToSec (UTC-as-CT) sec.
+      const rthOpen = Date.UTC(sd.y, sd.mo - 1, sd.d, 8, 30, 0) / 1000;
+      const rthClose = Date.UTC(sd.y, sd.mo - 1, sd.d, 15, 0, 0) / 1000;
+      // Clamp to loaded data so the range is always populated.
+      from = Math.max(rthOpen, dataFrom);
+      to = Math.min(rthClose, dataTo);
+      if (!(to > from)) { from = dataFrom; to = dataTo; }   // fallback: show all
+    }
+    try {
+      ts.setVisibleRange({ from, to });
+    } catch (e) {
+      ts.fitContent();   // never leave the chart blank
+    }
+  })();
+
+  buildLegend(DATA);
+  buildNotes(DATA);
+  buildTradeTable(DATA, fmt);
+})();
+
+// v5 markers helper: prefer createSeriesMarkers, fall back to setMarkers.
+function attachMarkers(LWC, chart, series, markers) {
+  if (!markers || !markers.length) return;
+  markers.sort((a, z) => a.time - z.time);
+  try {
+    if (LWC.createSeriesMarkers) { LWC.createSeriesMarkers(series, markers); return; }
+  } catch (e) {}
+  try { if (series.setMarkers) series.setMarkers(markers); } catch (e) {}
+}
+
+// Draw expected-direction zones as filled horizontal bands behind candles.
+// Implemented with a lightweight series primitive (ISeriesPrimitive) so the
+// bands track the price scale. Falls back to nothing if the API shape differs.
+function drawZones(chart, series, candle, zones) {
+  try {
+    const t0 = candle[0].time, t1 = candle[candle.length - 1].time;
+    const primitive = {
+      _zones: zones, _series: series, _chart: chart, _t0: t0, _t1: t1,
+      attached(p) { this._req = p.requestUpdate; },
+      updateAllViews() {},
+      paneViews() {
+        const self = this;
+        return [{
+          zOrder() { return "bottom"; },
+          renderer() {
+            return {
+              draw(target) {
+                target.useBitmapCoordinateSpace((scope) => {
+                  const ctx = scope.context;
+                  const ts = self._chart.timeScale();
+                  const x0 = ts.timeToCoordinate(self._t0);
+                  const x1 = ts.timeToCoordinate(self._t1);
+                  if (x0 == null || x1 == null) return;
+                  const hr = scope.horizontalPixelRatio, vr = scope.verticalPixelRatio;
+                  const left = Math.min(x0, x1) * hr;
+                  const right = Math.max(x0, x1) * hr;
+                  for (const z of self._zones) {
+                    let yTop, yBot;
+                    const cTop = (z.to != null) ? self._series.priceToCoordinate(z.to) : 0;
+                    const cBot = (z.from != null) ? self._series.priceToCoordinate(z.from)
+                                                  : scope.bitmapSize.height / vr;
+                    yTop = (z.to != null ? cTop : 0) * vr;
+                    yBot = (z.from != null ? cBot : scope.bitmapSize.height / vr) * vr;
+                    if (yTop == null || yBot == null) continue;
+                    ctx.fillStyle = z.color;
+                    ctx.fillRect(left, Math.min(yTop, yBot), right - left, Math.abs(yBot - yTop));
+                  }
+                });
+              }
+            };
+          }
+        }];
+      }
+    };
+    if (series.attachPrimitive) series.attachPrimitive(primitive);
+  } catch (e) { /* zones are decorative; never block the chart */ }
+}
+
+function buildLegend(DATA) {
+  const el = document.getElementById("legend");
+  const chips = [];
+  chips.push('<span class="chip"><span class="sw" style="background:#26a69a"></span>up candle</span>');
+  chips.push('<span class="chip"><span class="sw" style="background:#ef5350"></span>down candle</span>');
+  if (DATA.levels) {
+    const lv = DATA.levels;
+    if (lv.poc != null)
+      chips.push('<span class="chip"><span class="sw" style="background:#e3b341"></span><b>POC</b></span>');
+    if (lv.vah != null || lv.val != null)
+      chips.push('<span class="chip"><span class="sw" style="background:#b39ddb"></span>VAH/VAL</span>');
+    if (lv.ibh != null || lv.ibl != null)
+      chips.push('<span class="chip"><span class="sw" style="background:#7e9cff"></span>IBH/IBL'
+        + (lv.ib_label ? ' (' + lv.ib_label + ')' : '') + '</span>');
+  }
+  if (DATA.zones && DATA.zones.length) {
+    chips.push('<span class="chip"><span class="sw" style="background:rgba(239,83,80,.35)"></span>fade-SHORT zone</span>');
+    chips.push('<span class="chip"><span class="sw" style="background:rgba(38,166,154,.35)"></span>fade-LONG zone</span>');
+  }
+  if (DATA.has_cvd)
+    chips.push('<span class="chip"><span class="sw" style="background:#f0c674"></span>CVD (cum. delta)</span>');
+  chips.push('<span class="chip"><span class="sw" style="background:#e3b341"></span>ZLR</span>');
+  chips.push('<span class="chip"><span class="sw" style="background:#ce93d8"></span>HFE</span>');
+  chips.push('<span class="chip">▼ short entry · ▲ long entry · ◆ exit</span>');
+  el.innerHTML = chips.join("");
+}
+
+function buildNotes(DATA) {
+  const el = document.getElementById("notes");
+  const out = [];
+  const miss = [];
+  const lv = DATA.levels;
+  if (!lv) {
+    miss.push("levels (IBH/IBL/POC/VAH/VAL)");
+  } else {
+    // Partial-levels honesty: IB may be real (from bars) while the TPO profile
+    // levels (POC/VAH/VAL) still need the Mac export.
+    const tpoMiss = [];
+    if (lv.poc == null) tpoMiss.push("POC");
+    if (lv.vah == null) tpoMiss.push("VAH");
+    if (lv.val == null) tpoMiss.push("VAL");
+    if (tpoMiss.length) miss.push(tpoMiss.join("/") + " (TPO profile)");
+  }
+  if (!DATA.has_volume) miss.push("per-bar volume");
+  if (!DATA.has_cvd) miss.push("CVD (cumulative_delta)");
+  if (!DATA.day_type) miss.push("day-type");
+  if (miss.length) {
+    out.push('<span class="note miss">Not exported yet (run '
+      + 'export_replay_data.py on the Mac): ' + miss.join(", ")
+      + '. These are shown as "missing" above — never synthesized.</span>');
+  }
+  if (DATA.zones && DATA.zones.length) {
+    out.push('<div style="margin-top:6px">Expected-direction zones (from '
+      + 'config/daytype_playbook.yaml): '
+      + DATA.zones.map(z => z.label).join(" · ") + '.</div>');
+  } else if (DATA.day_type) {
+    out.push('<div style="margin-top:6px">No per-price-zone tint for '
+      + DATA.day_type + ' (playbook defines continuation/with-trend, not fade '
+      + 'levels) — header states the expectation instead. Honest: a zone the '
+      + 'playbook is silent on is left neutral.</div>');
+  }
+  el.innerHTML = out.join("");
+}
+
+function buildTradeTable(DATA, fmt) {
+  const trades = DATA.trades || [];
+  if (!trades.length) return;
+  const rows = trades.map(t => {
+    const pnl = t.pnl_usd;
+    const cls = (pnl == null) ? "" : (pnl >= 0 ? "pos" : "neg");
+    const pnlTxt = (pnl == null) ? "—" : (pnl >= 0 ? "+$"+fmt(pnl,0) : "-$"+fmt(Math.abs(pnl),0));
+    return "<tr>"
+      + "<td class='l'>#" + t.id + "</td>"
+      + "<td class='l'>S" + (t.system==null?"?":t.system) + "</td>"
+      + "<td class='l'>" + (t.direction||"—") + "</td>"
+      + "<td class='l'>" + (t.pattern_id||"—") + "</td>"
+      + "<td>" + (t.entry_ts? t.entry_ts.slice(11,16):"—") + "</td>"
+      + "<td>" + fmt(t.entry_price) + "</td>"
+      + "<td>" + (t.exit_ts? t.exit_ts.slice(11,16):"—") + "</td>"
+      + "<td>" + fmt(t.exit_price) + "</td>"
+      + "<td class='" + cls + "'>" + pnlTxt + "</td>"
+      + "<td class='l'>" + (t.outcome||"—") + "</td>"
+      + "<td class='l'>" + (t.day_type||"—") + "</td>"
+      + "</tr>";
+  }).join("");
+  document.getElementById("tradetable").innerHTML =
+    "<table class='tr'><thead><tr>"
+    + "<th class='l'>id</th><th class='l'>sys</th><th class='l'>dir</th>"
+    + "<th class='l'>pattern</th><th>entry</th><th>px</th><th>exit</th>"
+    + "<th>px</th><th>pnl</th><th class='l'>outcome</th><th class='l'>day-type</th>"
+    + "</tr></thead><tbody>" + rows + "</tbody></table>";
+}
+</script>
+</body>
+</html>

@@ -14,6 +14,7 @@ import { StaticLevels } from './StaticLevels';
 import { RightSideLabels } from './RightSideLabels';
 import { TradeMarkerOverlay } from './TradeMarkerOverlay';
 import { VegasEMAs } from './VegasEMAs';
+import { LsmaLine } from './LsmaLine';
 import { SYSTEM_COLORS, type SystemId } from '../../types';
 import { registerMainChart, unregisterMainChart } from '../../stores/chartSyncStore';
 

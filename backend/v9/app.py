@@ -33,6 +33,7 @@ from backend.v9.api.v9.build_status_routes import router as build_status_router
 from backend.v9.api.v9.key_levels_routes import router as key_levels_router
 from backend.v9.api.v9.chart_replay_routes import router as chart_replay_router
 from backend.v9.api.v9.trade_review_routes import router as trade_review_router
+from backend.v9.api.v9.daytype_classify_routes import router as daytype_classify_router
 from backend.v9.ws.router import router as ws_event_bus_router
 
 logger = logging.getLogger(__name__)
@@ -76,6 +77,7 @@ v9_router.include_router(build_status_router)
 v9_router.include_router(key_levels_router)
 v9_router.include_router(chart_replay_router)
 v9_router.include_router(trade_review_router)
+v9_router.include_router(daytype_classify_router)
 
 
 @v9_router.get("/api/v9/health")

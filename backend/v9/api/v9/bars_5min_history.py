@@ -27,22 +27,11 @@ def _fetch_bars_5min(limit: int = 60, before: Optional[str] = None) -> list:
     """
     fetch_limit = min(max(limit, 1), 600) + 20
     try:
-        # Primary: v9_bars_5min_continuous (Sierra chart#5, 24h coverage, no gaps)
-        # Falls back to v9_bars_5min (RTH) + woodies if continuous is empty.
+        # v9_bars_5min_continuous EXCLUDED from chart data: SOURCE_OF_TRUTH.md marks
+        # its close as GARBAGE (e.g. 12693/13456 vs real MES ~7450). The corrupt rows
+        # pass bar_is_valid (internally consistent) but are at wrong absolute levels.
+        # The 5min + woodies merge below provides full RTH coverage without it.
         rows_cont = []
-        try:
-            if before:
-                rows_cont = read_all(
-                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_continuous WHERE ts < :before ORDER BY ts DESC LIMIT :limit",
-                    {"before": before, "limit": fetch_limit},
-                )
-            else:
-                rows_cont = read_all(
-                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_continuous ORDER BY ts DESC LIMIT :limit",
-                    {"limit": fetch_limit},
-                )
-        except Exception as e:
-            logger.debug("[bars_5min_history] continuous table not available: %s", e)
 
         # Fallback sources (used when continuous is empty or for gap-fill)
         if before:

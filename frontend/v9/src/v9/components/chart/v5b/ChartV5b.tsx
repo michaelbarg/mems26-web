@@ -39,6 +39,7 @@ import type { CvdPoint } from './cvdMapping';
 import { WoodiesCciPanel } from '../woodies/WoodiesCciPanel';
 import { WoodiesPanelTab } from '../woodies/WoodiesPanelTab';
 import { TpoContinuityOverlay } from './TpoContinuityOverlay';
+import { LsmaLine } from '../LsmaLine';
 
 const LS_WOODIES_OPEN = 'mems26-woodies-panel-open';
 
@@ -555,6 +556,15 @@ export function ChartV5b() {
       const cvdBars: CvdAlignBar[] = [];
       let prevRaw: OhlcBar | null = null;
       let rejectedBars = 0;
+      // Plausibility reference: some corrupt bars (e.g. close 12693 / 13456 vs ~7450) pass the
+      // sticky-H/L sanitizer (they are internally consistent) but are absurdly off-price and
+      // blow up the price-pane autoscale, squashing the real candles. Reject bars >±30% off the
+      // median close (robust to a few outliers; no legitimate intraday MES bar moves 30%).
+      const _plausCloses = sortedFull
+        .map((b) => rawOhlcFromBar(b)?.close)
+        .filter((c): c is number => Number.isFinite(c as number))
+        .sort((a, b) => a - b);
+      const _medianClose = _plausCloses.length ? _plausCloses[Math.floor(_plausCloses.length / 2)] : 0;
       for (const b of sortedFull) {
         const t = tsToUnix(b.ts);
         const ohlc = rawBarToOhlc(b, prevRaw);
@@ -563,6 +573,11 @@ export function ChartV5b() {
         if (!Number.isFinite(t)) continue;
         if (!ohlc) {
           rejectedBars += 1;
+          continue;
+        }
+        if (_medianClose > 0 && (ohlc.close > _medianClose * 1.3 || ohlc.close < _medianClose * 0.7
+            || ohlc.high > _medianClose * 1.3 || ohlc.low < _medianClose * 0.7)) {
+          rejectedBars += 1; // absurd-magnitude bar (corrupt) — keep it out of the candle scale
           continue;
         }
         cData.push({ time: t, ...ohlc });
@@ -983,6 +998,7 @@ export function ChartV5b() {
           tpo={tpoOverlay}
           paneIndex={0}
         />
+        <LsmaLine chart={chartRef.current} />
         {pricePaneH > 0 && cvdPaneH > 20 && (
           <div
             data-testid="cvd-chart-header"

@@ -59,6 +59,8 @@ class TPOSystem(BaseV9TradingSystem):
             "poc": None,
             "vah": None,
             "val": None,
+            "session_high": None,  # #68: RTH session high (for breakout-state)
+            "session_low": None,   # #68: RTH session low (for breakout-state)
             "profile_shape": "NA",
             "opening_type": "NA",
             "ib_high": None,
@@ -194,12 +196,22 @@ class TPOSystem(BaseV9TradingSystem):
                 self._ufl_ufh = self._compute_ufl_ufh()
                 self._volume_cluster = self._compute_volume_cluster_from_profile()
 
+                # #68: Track session extremes for breakout-state detection
+                _sh = self.current_state.get("session_high")
+                _sl = self.current_state.get("session_low")
+                if _sh is None or high > _sh:
+                    _sh = high
+                if _sl is None or low < _sl:
+                    _sl = low
+
                 # Update state
                 self.current_state.update({
                     "session_type": session_type,
                     "poc": poc,
                     "vah": vah,
                     "val": val,
+                    "session_high": _sh,
+                    "session_low": _sl,
                     "profile_shape": shape,
                     "ib_high": self.ib_high,
                     "ib_low": self.ib_low,
@@ -471,6 +483,9 @@ class TPOSystem(BaseV9TradingSystem):
             self._ib_width = None
             self._ib_class = None
             self._ib_locked_ts = None
+            # #68: reset session extremes for new trading day
+            self.current_state["session_high"] = None
+            self.current_state["session_low"] = None
         from backend.v9.db.safe_writer import safe_execute
         safe_execute(
             "INSERT OR IGNORE INTO v9_tpo_sessions (session_id, session_type, trading_date, opened_ts) VALUES (?,?,?,?)",

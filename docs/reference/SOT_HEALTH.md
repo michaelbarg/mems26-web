@@ -12,7 +12,7 @@
 
 <!-- LIVE_BLOCK_START -->
 
-**Last run:** 2026-06-01 11:17:02 IL  ·  2026-06-01 04:17:02 ET  ·  market: **OFF-HOURS**  ·  duration: 131ms
+**Last run:** 2026-06-23 14:54:25 IL  ·  2026-06-23 07:54:25 ET  ·  market: **OFF-HOURS**  ·  duration: 245ms
 
 **Overall: 🔴 MISSING**
 
@@ -32,7 +32,7 @@
 
 | Check | Result | Detail |
 |-------|--------|--------|
-| Cross-check: IB consistency (Sierra ↔ DB ↔ API) | ℹ️ INFO | all sources missing IB (pre-10:30 ET or DLL silent) |
+| Cross-check: IB consistency (Sierra ↔ DB ↔ API) | 🟢 FRESH | agree @ 7599.25 (['sierra', 'api']) |
 | Cross-check: day_type API vs DB | ℹ️ INFO | both pre-classification (likely pre-10:30 ET) |
 | Cross-check: bridge TZ (no 1h Chicago drift) | 🟢 FRESH | ET-anchored (no future drift) |
 
@@ -44,23 +44,23 @@ _Pure pass-through. Sierra DLL writes JSON → bridge POSTs to API → DB row. *
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 86,590B |
-| Sierra: cumulative_delta.json | 🟢 FRESH | 1s | 6,064B |
-| Sierra: volume_profile.json | 🟢 FRESH | 1s | 37,631B |
-| Sierra: footprint.json | 🟢 FRESH | 1s | 47,603B |
-| Sierra: tick_reversal_12.json | 🟢 FRESH | 1s | 11,447B |
-| Sierra: tick_reversal_15.json | 🟢 FRESH | 1s | 8,444B |
-| Sierra: imbalance_flags.json | 🟢 FRESH | 1s | 160B |
+| Sierra: 5min.json | 🟢 FRESH | 1s | 86,419B |
+| Sierra: cumulative_delta.json | 🟢 FRESH | 1s | 6,043B |
+| Sierra: volume_profile.json | 🟢 FRESH | 1s | 41,579B |
+| Sierra: footprint.json | 🟢 FRESH | 1s | 52,561B |
+| Sierra: tick_reversal_12.json | 🟢 FRESH | 1s | 12,015B |
+| Sierra: tick_reversal_15.json | 🟢 FRESH | 1s | 10,818B |
+| Sierra: imbalance_flags.json | 🟢 FRESH | 1s | 161B |
 | Sierra: live_price.json | 🟢 FRESH | 0s | 74B |
-| DB: v9_bars_5min.ts | 🔴 MISSING | 667h | last=2026-05-04 12:30:00 |
-| DB: v9_bars_cumulative_delta.ts | 🟡 STALE | 60h | last=2026-05-29T19:55:00 |
-| DB: v9_bars_volume_profile.ts | 🟢 FRESH | 2337s | last=2026-06-01T07:38:05 |
-| DB: v9_bars_footprint.ts | 🟢 FRESH | 2338s | last=2026-06-01 07:38:03 |
-| DB: v9_bars_tick_reversal.ts | 🟢 FRESH | 2337s | last=2026-06-01 07:38:05 |
-| DB: v9_bars_imbalance.ts | 🟢 FRESH | 2505s | last=2026-06-01T07:35:16 |
-| API: /api/v9/chart/bars5min | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
-| API: /api/v9/health | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
-| API: /api/v9/footprint/current | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
+| DB: v9_bars_5min.ts | 🔴 MISSING | 422h | last=2026-06-05T20:55:00 |
+| DB: v9_bars_cumulative_delta.ts | 🔴 MISSING | 1126h | last=2026-05-07 13:19:59 |
+| DB: v9_bars_volume_profile.ts | 🔴 MISSING | 384h | last=2026-06-07 11:52:21 |
+| DB: v9_bars_footprint.ts | 🔴 MISSING | 384h | last=2026-06-07 11:53:00 |
+| DB: v9_bars_tick_reversal.ts | 🔴 MISSING | — | no rows |
+| DB: v9_bars_imbalance.ts | 🔴 MISSING | 382h | last=2026-06-07T13:04:24 |
+| API: /api/v9/chart/bars5min | 🟢 FRESH | — | 200 OK |
+| API: /api/v9/health | 🟢 FRESH | — | 200 OK |
+| API: /api/v9/footprint/current | 🟢 FRESH | — | 200 OK |
 
 ### 🔴 S5_TPO — TPO / POC / VAH / VAL / IB
 
@@ -68,11 +68,11 @@ _Sierra TPO Studies (ID 1=yesterday, ID 3=today, ID 6=IB). Two consumers: `/tpo/
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: tpo.json | 🟢 FRESH | 1s | 471B |
-| DB: v9_tpo_history.ts | 🔴 MISSING | — | no rows |
-| DB: v9_tpo_bars.ts | 🔴 MISSING | — | no rows |
-| API: /api/v9/tpo/current | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
-| API: /api/v9/key_levels | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
+| Sierra: tpo.json | 🟢 FRESH | 1s | 480B |
+| DB: v9_tpo_history.ts | 🔴 MISSING | 453h | last=2026-06-04 14:30:00 |
+| DB: v9_tpo_bars.ts | 🔴 MISSING | 22837h | last=2023-11-14T22:21:40 |
+| API: /api/v9/tpo/current | 🟢 FRESH | — | 200 OK |
+| API: /api/v9/key_levels | 🟢 FRESH | — | 200 OK |
 
 ### 🔴 S1_DAY_TYPE — Day Type State Machine
 
@@ -80,11 +80,11 @@ _Authoritative IB after 10:30 ET lock. Stages A1→A4. Computes `day_type`, `ope
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 86,590B |
-| DB: v9_day_type_history.last_updated_at | 🔴 MISSING | — | no rows |
-| DB: v9_day_type_state.ts | 🟢 FRESH | 2488s | last=2026-06-01T07:35:33 |
-| API: /api/v9/day_type/v9/current | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
-| API: /api/v9/key_levels | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
+| Sierra: 5min.json | 🟢 FRESH | 1s | 86,419B |
+| DB: v9_day_type_history.last_updated_at | 🔴 MISSING | 453h | last=2026-06-04 14:53:34 |
+| DB: v9_day_type_state.ts | 🔴 MISSING | — | no rows |
+| API: /api/v9/day_type/v9/current | 🟢 FRESH | — | 200 OK |
+| API: /api/v9/key_levels | 🟢 FRESH | — | 200 OK |
 
 ### 🔴 S2_FIVE_MIN — Five-Min Patterns (FHB / Reactive / Initiative)
 
@@ -92,10 +92,10 @@ _Pattern detection from 5min bars + day-type context. **Volume key alias** added
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 86,590B |
+| Sierra: 5min.json | 🟢 FRESH | 1s | 86,419B |
 | DB: v9_five_min_setups.ts | 🔴 MISSING | — | no rows |
 | DB: v9_five_min_state.last_processed_ts | 🔴 MISSING | — | no rows |
-| API: /api/v9/build/pattern-status | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
+| API: /api/v9/build/pattern-status | 🟢 FRESH | — | 200 OK |
 
 ### 🔴 S4_WOODIES — Woodies CCI Patterns + W-10 TimeStop
 
@@ -103,14 +103,14 @@ _Sierra Woodies Studies (Input 18). Patterns: ZLR, TLB, TT, GB100, VEGAS, GHOST,
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: woodies_5min.json | 🟢 FRESH | 1s | 124,106B |
-| Sierra: woodies_30min.json | 🟢 FRESH | 1s | 66,654B |
-| Sierra: woodies_diag.json (optional) | ℹ️ INFO | 282h | 1,059B (informational) |
-| DB: v9_bars_5min_woodies.ts | 🔴 MISSING | 108h | last=1779910800 |
-| DB: v9_bars_30min_woodies.ts | 🟡 STALE | 61h | last=2026-05-29 18:50:00 |
-| DB: v9_woodies_signals.ts | 🟢 FRESH | 2488s | last=2026-06-01T07:35:33 |
+| Sierra: woodies_5min.json | 🟢 FRESH | 1s | 32,316B |
+| Sierra: woodies_30min.json | 🟢 FRESH | 1s | 19,864B |
+| Sierra: woodies_diag.json (optional) | ℹ️ INFO | 813h | 1,059B (informational) |
+| DB: v9_bars_5min_woodies.ts | 🔴 MISSING | 18020h | last=2024-06-02T14:55:00 |
+| DB: v9_bars_30min_woodies.ts | 🔴 MISSING | 1126h | last=2026-05-07T13:00:00 |
+| DB: v9_woodies_signals.ts | 🟡 STALE | 1235m | last=2026-06-22T15:19:14 |
 | DB: v9_woodies_patterns.ts | 🔴 MISSING | — | no rows |
-| API: /api/v9/woodies/current | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
+| API: /api/v9/woodies/current | 🟢 FRESH | — | 200 OK |
 
 ### 🔴 TRADE_MANAGER — Trade Manager / Bar-Level Detector
 
@@ -118,8 +118,8 @@ _Owns trade lifecycle: open, monitor, exit. **Layer 4 TIME_STOP removed 2026-05-
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| DB: v9_trades.entry_ts | 🔴 MISSING | — | no rows |
-| API: /api/v9/trades/active | 🔴 MISSING | — | unreachable (<urlopen error [Errno 61] Connection refused>) |
+| DB: v9_trades.entry_ts | 🔴 MISSING | 476h | last=2026-06-03 15:50:04 |
+| API: /api/v9/trades/active | 🟢 FRESH | — | 200 OK |
 
 ### 🔴 KILLZONE — Killzone / Chop Score
 
@@ -127,7 +127,7 @@ _Time-of-day kill switch (NY open / lunch / power hour). Chop score from 5min ba
 
 | Source | Status | Age | Detail |
 |--------|--------|-----|--------|
-| Sierra: 5min.json | 🟢 FRESH | 1s | 86,590B |
+| Sierra: 5min.json | 🟢 FRESH | 1s | 86,419B |
 | DB: v9_killzone_log.ts | 🔴 MISSING | — | no rows |
 | DB: v9_chop_score.ts | 🔴 MISSING | — | no rows |
 

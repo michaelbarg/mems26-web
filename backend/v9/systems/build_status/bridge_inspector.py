@@ -36,7 +36,7 @@ STREAM_CHECKS = [
     ("tick_reversal_15",   "v9_bars_tick_reversal",      "ts",         90, False),  # S3 muted
     ("imbalance",          "v9_bars_imbalance",          "ts",         90, True),
     ("tpo",                "v9_tpo_bars",                "ts",        360, False),  # S5 not-wired (I-24)
-    ("bars_5min",          "v9_bars_5min",               "ts",        360, True),
+    ("bars_5min",          "v9_bars_5min",               "ts",         90, True),  # D22: 360→90s (blocker-LIVE #0)
 ]
 
 

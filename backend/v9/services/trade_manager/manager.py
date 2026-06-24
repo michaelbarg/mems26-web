@@ -356,23 +356,41 @@ class TradeManager:
         from backend.v9.systems.five_min.constants import MES_TICK_SIZE
         tick = MES_TICK_SIZE
 
-        # k_risk from config (tunable)
+        # k_risk from config (tunable). RUNNER_TRAIL_V1 refinement (2026-06-22): momentum-aware
+        # widening — once the runner is a STRONG leg (favorable ≥ widen_at_R × risk), give it room
+        # (k_wide) instead of cutting on the first pullback. Today's 195/196 were trailed out at the
+        # bounce while the trend leg ran on (195 took +1.14R vs +2.44R MFE). Config keys
+        # runner_trail.widen_at_R + .k_wide; ABSENT → k_eff == k (exactly current behavior, no change).
         k = 1.0
+        widen_at_R = None
+        k_wide = None
         try:
             from backend.v9.config_loader import load_stop_anchors
             _sa = load_stop_anchors()
-            if _sa and "runner_trail" in _sa:
-                k = float(_sa["runner_trail"].get("k_risk", 1.0))
+            _rt = (_sa or {}).get("runner_trail") if _sa else None
+            if _rt:
+                k = float(_rt.get("k_risk", 1.0))
+                if "widen_at_R" in _rt and "k_wide" in _rt:
+                    widen_at_R = float(_rt["widen_at_R"])
+                    k_wide = float(_rt["k_wide"])
         except Exception:
             pass
 
         direction = (trade.direction or "").upper()
+
+        def _k_eff(hwm_val: float) -> float:
+            # widen the trail only after the runner has proven a strong leg (default: no widening)
+            if widen_at_R is None or k_wide is None or risk <= 0:
+                return k
+            fav = (hwm_val - entry) if direction == "LONG" else (entry - hwm_val)
+            return max(k, k_wide) if (fav / risk) >= widen_at_R else k
+
         q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
 
         if direction == "LONG":
             hwm = max(float(q.get("trail_hwm", entry)), bar_high)
             q["trail_hwm"] = hwm
-            trail = hwm - k * risk
+            trail = hwm - _k_eff(hwm) * risk
             floor = entry + tick  # never below BE+1T
             new_stop = round(max(trail, floor), 2)
             if trade.stop is not None and new_stop <= float(trade.stop):
@@ -381,7 +399,7 @@ class TradeManager:
         elif direction == "SHORT":
             hwm = min(float(q.get("trail_hwm", entry)), bar_low)
             q["trail_hwm"] = hwm
-            trail = hwm + k * risk
+            trail = hwm + _k_eff(hwm) * risk
             floor = entry - tick
             new_stop = round(min(trail, floor), 2)
             if trade.stop is not None and new_stop >= float(trade.stop):

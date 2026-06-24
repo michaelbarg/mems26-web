@@ -195,6 +195,10 @@ async def _startup():
         import os as _flag_os
         S1_DYNAMIC_RECLASS = _flag_os.environ.get("S1_DYNAMIC_RECLASS", "").lower() in ("1", "true", "yes")
         _shadow_reclass = {"instance": None}  # mutable for closure; created after IB lock
+        # #68 part-b: accumulate RTH bars in-memory for the new classifier
+        _cls_rth_bars: list = []  # mutable list for closure; reset on new session date
+        _cls_session_date = {"value": None}
+        _cls_ctx_cache = {"loaded": False}  # one-time context loaded at IB lock
 
         def _load_previous_day_context_for_startup():
             try:
@@ -284,8 +288,198 @@ async def _startup():
                 )
                 state = day_type_machine.process_bar(bar_input)
 
-                # D-S1DYN: Shadow reclassification (IB-relative, log only)
-                if S1_DYNAMIC_RECLASS and day_type_machine.ib_locked:
+                # #68 part-b: accumulate RTH bars for the new classifier (in-memory, no DB)
+                if _is_rth_bar:
+                    _today = now_et().date().isoformat()
+                    if _cls_session_date["value"] != _today:
+                        _cls_rth_bars.clear()
+                        _cls_session_date["value"] = _today
+                        # Reset context cache for new day (force re-load at next IB lock)
+                        _cls_ctx_cache.clear()
+                        _cls_ctx_cache["loaded"] = False
+                    _cls_rth_bars.append({
+                        "o": bar_input.open, "h": bar_input.high,
+                        "l": bar_input.low, "c": bar_input.close,
+                        "v": bar_input.volume,
+                    })
+                    # Expose to gateway for opening-type gate (FIX B)
+                    # The gateway reads via system_registry["day_type_machine"]._opening_gate_bars
+                    day_type_machine._opening_gate_bars = _cls_rth_bars
+
+                # #11 fix: rehydrate _cls_rth_bars from DB on mid-session restart.
+                # When IB is locked but the in-memory buffer is short (restart wiped it),
+                # seed from v9_bars_5min_woodies so the classifier can promote immediately
+                # instead of starving for ~1h. Mirrors maybe_seed_ib_from_tpo pattern.
+                # Fail-safe: disable with REHYDRATE_CLS_BARS=0 + restart.
+                import os as _os
+                _REHYDRATE = _os.environ.get("REHYDRATE_CLS_BARS", "1").lower() not in ("0", "false", "no")
+                if (_REHYDRATE and _is_rth_bar and day_type_machine.ib_locked
+                        and len(_cls_rth_bars) < 12
+                        and not _cls_ctx_cache.get("_rehydrated")):
+                    try:
+                        from backend.v9.db.read import read_all as _ra_rehy
+                        _today_rehy = now_et().date().isoformat()
+                        _rehy_rows = _ra_rehy(
+                            "SELECT open, high, low, close, volume FROM v9_bars_5min_woodies "
+                            "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d "
+                            "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                            "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+                            "AND symbol = 'MES' ORDER BY ts", {"d": _today_rehy})
+                        if _rehy_rows and len(_rehy_rows) > len(_cls_rth_bars):
+                            _cls_rth_bars.clear()
+                            for _rb in _rehy_rows:
+                                _cls_rth_bars.append({
+                                    "o": float(_rb["open"]), "h": float(_rb["high"]),
+                                    "l": float(_rb["low"]), "c": float(_rb["close"]),
+                                    "v": int(_rb.get("volume") or 0),
+                                })
+                            day_type_machine._opening_gate_bars = _cls_rth_bars
+                            _logger.info("[S1-REHYDRATE] seeded _cls_rth_bars from DB: %d bars (IB locked, buffer was short)",
+                                         len(_cls_rth_bars))
+                    except Exception as _rehy_err:
+                        _logger.warning("[S1-REHYDRATE] rehydration failed (continuing with short buffer): %s", _rehy_err)
+                    _cls_ctx_cache["_rehydrated"] = True  # one-shot, don't retry every bar
+
+                # #68 part-b: promote day_type from validated 7-type classifier.
+                # Flag S1_ENGINE_NEW_CLASSIFIER (default OFF). REPLACES S1_LIVE_RECLASS
+                # + ShadowReclassifier when ON. In-memory only — NO per-bar DB reads.
+                _S1_NEW_CLS = _os.environ.get("S1_ENGINE_NEW_CLASSIFIER", "").lower() in ("1", "true", "yes")
+                if _S1_NEW_CLS and day_type_machine.ib_locked:
+                    try:
+                        from backend.v9.systems.day_type.classifier_core import classify_session
+                        from backend.v9.systems.day_type.state_machine import DayType as _DT
+
+                        # Load classifier context ONCE at IB lock (not per-bar)
+                        if not _cls_ctx_cache["loaded"]:
+                            try:
+                                from backend.v9.db.read import read_all, read_one, read_scalar
+                                _cls_today = now_et().date().isoformat()
+                                # Sierra TPO row → profile_shape, VAH, VAL
+                                _sib = read_one(
+                                    "SELECT profile_shape, vah_price, val_price, poc_price "
+                                    "FROM v9_tpo_sessions WHERE trading_date = :d AND session_type = 'CASH' "
+                                    "ORDER BY id DESC LIMIT 1", {"d": _cls_today})
+                                _cls_ctx_cache["profile_shape"] = (_sib or {}).get("profile_shape")
+                                _cls_ctx_cache["tpo_vah"] = float((_sib or {}).get("vah_price") or 0) or None
+                                _cls_ctx_cache["tpo_val"] = float((_sib or {}).get("val_price") or 0) or None
+                                _cls_ctx_cache["poc_at_ib"] = float((_sib or {}).get("poc_price") or 0) or None
+                                # IB width history
+                                _hist = read_all(
+                                    "SELECT ib_width FROM v9_day_type_history WHERE date < :d "
+                                    "AND ib_width IS NOT NULL", {"d": _cls_today})
+                                _cls_ctx_cache["ib_width_hist"] = [
+                                    float(r["ib_width"]) for r in _hist if r.get("ib_width") is not None]
+                                # Prior day levels
+                                _pd = read_scalar(
+                                    "SELECT max((ts AT TIME ZONE 'America/New_York')::date) "
+                                    "FROM v9_bars_5min_woodies "
+                                    "WHERE (ts AT TIME ZONE 'America/New_York')::date < :d AND symbol='MES'",
+                                    {"d": _cls_today})
+                                _pdh = _pdl = _pvah = _pval = None
+                                if _pd is not None:
+                                    _pd_iso = _pd.isoformat() if hasattr(_pd, "isoformat") else str(_pd)
+                                    _hl = read_one(
+                                        "SELECT max(high) AS h, min(low) AS l FROM v9_bars_5min_woodies "
+                                        "WHERE (ts AT TIME ZONE 'America/New_York')::date = :pd AND symbol='MES'",
+                                        {"pd": _pd_iso})
+                                    _pdh = float((_hl or {}).get("h") or 0) or None
+                                    _pdl = float((_hl or {}).get("l") or 0) or None
+                                    _pv = read_one(
+                                        "SELECT vah_price AS vah, val_price AS val FROM v9_tpo_sessions "
+                                        "WHERE trading_date = :pd ORDER BY id DESC LIMIT 1", {"pd": _pd_iso})
+                                    if _pv:
+                                        _pvah = float((_pv or {}).get("vah") or 0) or None
+                                        _pval = float((_pv or {}).get("val") or 0) or None
+                                _cls_ctx_cache["pdh"] = _pdh
+                                _cls_ctx_cache["pdl"] = _pdl
+                                _cls_ctx_cache["prior_vah"] = _pvah
+                                _cls_ctx_cache["prior_val"] = _pval
+                                # Session volume ratio (median from prior complete RTH days)
+                                _vol_rows = read_all(
+                                    "SELECT sum(volume) AS vol FROM v9_bars_5min_woodies WHERE symbol='MES' "
+                                    "AND (ts AT TIME ZONE 'America/New_York')::date < :d "
+                                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                                    "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+                                    "GROUP BY (ts AT TIME ZONE 'America/New_York')::date "
+                                    "HAVING count(*) >= 60", {"d": _cls_today})
+                                _vols = sorted(float(r["vol"]) for r in _vol_rows if r.get("vol"))
+                                _cls_ctx_cache["med_vol"] = _vols[len(_vols) // 2] if len(_vols) >= 3 else None
+                                # IB median for dd narrow-IB check
+                                _ibm_rows = read_all(
+                                    "SELECT (ib_high - ib_low) AS w FROM v9_tpo_sessions "
+                                    "WHERE session_type='CASH' AND trading_date < :d "
+                                    "AND ib_high IS NOT NULL AND ib_low IS NOT NULL "
+                                    "ORDER BY trading_date DESC LIMIT 20", {"d": _cls_today})
+                                _ibmeds = sorted(float(r["w"]) for r in _ibm_rows if r.get("w") is not None)
+                                _cls_ctx_cache["ib_median"] = _ibmeds[len(_ibmeds) // 2] if _ibmeds else None
+                                _cls_ctx_cache["loaded"] = True
+                                _logger.info("[S1-NEW-CLS] context loaded at IB lock: shape=%s pdh=%s pdl=%s hist=%d",
+                                             _cls_ctx_cache.get("profile_shape"),
+                                             _cls_ctx_cache.get("pdh"), _cls_ctx_cache.get("pdl"),
+                                             len(_cls_ctx_cache.get("ib_width_hist", [])))
+                            except Exception as _ctx_err:
+                                _logger.warning("[S1-NEW-CLS] context load failed (continuing without): %s", _ctx_err)
+                                _cls_ctx_cache["loaded"] = True  # don't retry every bar
+
+                        if len(_cls_rth_bars) >= 12:  # only after IB lock (60min / 12 bars)
+                            # Compute session volume ratio
+                            _ses_vol = sum(b.get("v", 0) for b in _cls_rth_bars)
+                            _med = _cls_ctx_cache.get("med_vol")
+                            _vr = round(_ses_vol / _med, 3) if _med and _med > 0 else None
+                            # POC now from TPO system
+                            _tpo_now = getattr(app.state, 'tpo_system', None)
+                            _poc_now = None
+                            if _tpo_now and hasattr(_tpo_now, 'current_state'):
+                                _poc_now = _tpo_now.current_state.get("poc")
+
+                            _cls_result = classify_session(
+                                bars=_cls_rth_bars,
+                                ib_high=day_type_machine.ib_high,
+                                ib_low=day_type_machine.ib_low,
+                                open_price=_cls_rth_bars[0]["o"],
+                                ib_width_hist=_cls_ctx_cache.get("ib_width_hist"),
+                                profile_shape=_cls_ctx_cache.get("profile_shape"),
+                                vol_ratio=_vr,
+                                prior_vah=_cls_ctx_cache.get("prior_vah"),
+                                prior_val=_cls_ctx_cache.get("prior_val"),
+                                pdh=_cls_ctx_cache.get("pdh"),
+                                pdl=_cls_ctx_cache.get("pdl"),
+                                poc_now=_poc_now,
+                                poc_at_ib=_cls_ctx_cache.get("poc_at_ib"),
+                            )
+                            _cls_dt_str = _cls_result.get("day_type", "")
+                            _cls_status = _cls_result.get("status", "")
+
+                            # Map 7-type string → DayType enum (Normal_Variation→Variation; rest direct)
+                            _DT_MAP = {
+                                "Trend_Normal": _DT.Trend_Normal,
+                                "Trend_DD": _DT.Trend_DD,
+                                "Variation": _DT.Variation,
+                                "Normal_Variation": _DT.Variation,
+                                "Normal": _DT.Normal,
+                                "Neutral_Center": _DT.Neutral_Center if hasattr(_DT, 'Neutral_Center') else _DT.Normal,
+                                "Neutral_Extreme": _DT.Neutral_Extreme if hasattr(_DT, 'Neutral_Extreme') else _DT.Normal,
+                                "Nontrend": _DT.Nontrend,
+                            }
+                            _new_dt = _DT_MAP.get(_cls_dt_str)
+                            if _new_dt is not None and _cls_dt_str != "FORMING":
+                                _old_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
+                                if _new_dt != state.day_type:
+                                    state.day_type = _new_dt
+                                    # Update ALL surfaces that read day_type:
+                                    # 1) machine.day_type (read by /status, cockpit, build-status)
+                                    day_type_machine.day_type = _new_dt
+                                    # 2) machine._last_state.day_type (read by to_classification)
+                                    if hasattr(day_type_machine, '_last_state') and day_type_machine._last_state:
+                                        day_type_machine._last_state.day_type = _new_dt
+                                    _logger.info("[S1-NEW-CLS] promoted: %s → %s (%s, %s)",
+                                                 _old_val, _new_dt.value, _cls_dt_str, _cls_status)
+                    except Exception as _cls_err:
+                        # Fail-safe: keep old-engine value, never throw on hot path
+                        _logger.debug("[S1-NEW-CLS] error (fail-safe, kept old value): %s", _cls_err)
+
+                # D-S1DYN: Legacy shadow reclassification (SKIPPED when S1_ENGINE_NEW_CLASSIFIER ON)
+                elif S1_DYNAMIC_RECLASS and day_type_machine.ib_locked:
                     try:
                         if _shadow_reclass["instance"] is None:
                             from backend.v9.systems.day_type.shadow_reclass import ShadowReclassifier
@@ -295,19 +489,16 @@ async def _startup():
                                 session_date=now_et().date().isoformat(),
                             )
                         _sr = _shadow_reclass["instance"]
-                        # Get session extremes from the machine
                         _sr.process_bar(
                             session_high=day_type_machine.rth_session_h or day_type_machine.session_high,
                             session_low=day_type_machine.rth_session_l or day_type_machine.session_low,
                             bar_close=bar_input.close,
                             session_min=_session_min,
-                            vah=None,  # TODO: wire from tpo when available
+                            vah=None,
                             val=None,
                             poc=None,
                             cvd=None,
                         )
-                        # Phase 4: promote shadow→live day_type (flag-gated, default OFF)
-                        import os as _os
                         S1_LIVE_RECLASS = _os.environ.get("S1_LIVE_RECLASS", "").lower() in ("1", "true", "yes")
                         _logger.info("[D-S1DYN] Live reclass check: flag=%s shadow=%s live=%s",
                                      S1_LIVE_RECLASS, _sr.shadow_type,
@@ -322,8 +513,6 @@ async def _startup():
                                 _new_dt = _DT.Trend_Normal
                             if _new_dt is not None and _new_dt != state.day_type:
                                 state.day_type = _new_dt
-                                # Also update machine internal state so to_classification()
-                                # and day_type_history persist the promoted type (anti-dead-wiring)
                                 if hasattr(day_type_machine, '_last_state') and day_type_machine._last_state:
                                     day_type_machine._last_state.day_type = _new_dt
                                 _logger.info("[D-S1DYN] LIVE reclass: %s → %s (shadow=%s)",

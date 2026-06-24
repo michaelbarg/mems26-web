@@ -63,7 +63,30 @@ def _utc_str(dt: datetime) -> str:
 
 
 def _day_type_row() -> Optional[dict]:
-    """Today's day_type + opening_type from S1 history (UI pills only — NOT IB)."""
+    """Today's day_type + opening_type — prefer the LIVE promoted 7-type classifier
+    (app.state.day_type_machine), fall back to v9_day_type_history for pre-session /
+    non-promoted periods. Fixes the stale-yesterday-type bug where the history table
+    still held the prior day's classification at session start.
+    """
+    # 1) Live promoted classifier (in-memory, updated every bar by main._day_type_on_bar)
+    try:
+        import importlib
+        _app = importlib.import_module("backend.v9.app").app
+        _dtm = getattr(_app.state, "day_type_machine", None)
+        if _dtm:
+            _dt = getattr(_dtm, "day_type", None)
+            _dt_val = _dt.value if hasattr(_dt, "value") else (str(_dt) if _dt else None)
+            if _dt_val and _dt_val not in ("UNKNOWN", "None", "INDETERMINATE"):
+                _ot = None
+                _opening = getattr(_dtm, "opening", None)
+                if _opening:
+                    _ot_raw = getattr(_opening, "opening_type", None)
+                    _ot = _ot_raw.value if hasattr(_ot_raw, "value") else (str(_ot_raw) if _ot_raw else None)
+                return {"day_type": _dt_val, "opening_type": _ot}
+    except Exception:
+        pass  # fail through to DB
+
+    # 2) Fallback: v9_day_type_history (works pre-session, after EOD persist)
     try:
         row = read_one(
             "SELECT day_type, opening_type FROM v9_day_type_history "

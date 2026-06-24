@@ -1,8 +1,9 @@
-"""System 4 — Woodies CCI Decision Maker (5-min bars + 9 patterns).
+"""System 4 — Woodies CCI Decision Maker (5-min bars + 8 active patterns).
 
 Subscribes to woodies_5min bars via BarRouter (D-074).
 Computes all 11 Woodies studies per bar via cci_calc.compute_all_studies().
-Runs 9-pattern engine (ZLR, TLB, TT, GB100, VEGAS, GHOST, FAMIR, HTLB, HFE).
+Runs 8 patterns: continuation {ZLR, TLB, TT, GB100} + reversal {VEGAS, GHOST, FAMIR, HTLB}.
+HFE disabled (not Michael's pattern, −$2,987 single biggest loser; flag HFE_DISABLED).
 Publishes signal events independently.
 """
 import asyncio
@@ -141,6 +142,7 @@ class WoodiesSystem(BaseV9TradingSystem):
             tick_minutes=ts_cfg["tick_minutes"],
         )
         self._bar_count: int = 0
+        self._htlb_dir_bias = None  # HTLB latched S4 direction bias: "UP"/"DOWN"/None (Michael 2026-06-23)
         self._last_bar_ts_for_count: Optional[float] = None
         self._open_fire_records: Dict[str, dict] = {}  # trade_id → {entry_bar_count, pattern_id}
         self.current_state: Dict = {
@@ -349,10 +351,13 @@ class WoodiesSystem(BaseV9TradingSystem):
             if not _is_new_bar:
                 return  # dedup: detection + fire only on genuinely new bar ts
 
-            # Run 9-pattern engine — DLL flags as primary, Python detectors as fallback.
+            # Run pattern engine — DLL flags as primary, Python detectors as fallback.
             # DLL computes on full Sierra history (thousands of bars) → more accurate
             # than 50-bar Python buffer. Michael approved 2026-06-01.
+            _HFE_DISABLED = os.environ.get("HFE_DISABLED", "0").lower() in ("1", "true", "yes")
             patterns = detect_all_patterns(self._bar_buffer)
+            if _HFE_DISABLED:
+                patterns = [p for p in patterns if p.pattern_id != "HFE"]
 
             # DLL-detected patterns: if DLL flags ZLR/HFE and Python missed it,
             # trust the DLL (source-of-truth per CLAUDE.md §Sierra real-time data).
@@ -412,7 +417,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                         bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
                         details={"source": "dll_flag", "zlr_direction": wb.zlr_direction},
                     ))
-            if wb.hfe_detected and "HFE" not in _dll_pattern_ids:
+            if wb.hfe_detected and "HFE" not in _dll_pattern_ids and not _HFE_DISABLED:
                 _hfe_dir = "LONG" if wb.hfe_direction == "UP" else "SHORT" if wb.hfe_direction == "DOWN" else None
                 if _hfe_dir and _dll_atr > 0:
                     _hfe_group = PatternGroup.REV
@@ -446,6 +451,26 @@ class WoodiesSystem(BaseV9TradingSystem):
                         details={"source": "dll_flag", "hfe_direction": wb.hfe_direction,
                                  "hfe_extreme_bars_ago": wb.hfe_extreme_bars_ago},
                     ))
+
+            # ── HTLB direction gate (Michael 2026-06-23 · flag HTLB_DIRECTION_GATE, default OFF) ──
+            # HTLB signals the directional bias for ALL Woodies patterns. A zoned HTLB break
+            # latches its direction (UP/DOWN) until the next zoned HTLB; while a bias is latched
+            # and the flag is on, only patterns in that direction may fire. Fail-open.
+            try:
+                from backend.v9.systems.woodies.patterns.htlb import htlb_zoned_direction as _htlb_zd
+                from backend.v9.shared.atr import flag
+                _zd = _htlb_zd(self._bar_buffer)
+                if _zd:
+                    self._htlb_dir_bias = _zd  # latch until the next zoned HTLB
+                if flag("HTLB_DIRECTION_GATE") and self._htlb_dir_bias:
+                    _allowed = "LONG" if self._htlb_dir_bias == "UP" else "SHORT"
+                    _n0 = len(patterns)
+                    patterns = [p for p in patterns if getattr(p, "direction", None) == _allowed]
+                    if len(patterns) != _n0:
+                        logger.info("[Woodies] HTLB dir-gate (bias=%s->%s): %d->%d patterns",
+                                    self._htlb_dir_bias, _allowed, _n0, len(patterns))
+            except Exception as _hdg_err:
+                logger.warning("[Woodies] HTLB dir-gate errored (fail-open): %s", _hdg_err)
 
             self._active_patterns = patterns
 
@@ -490,22 +515,37 @@ class WoodiesSystem(BaseV9TradingSystem):
                 classification = "STRATEGIC" if best.group == "REVERSAL" else "TACTICAL"
                 sizing = self.calculate_size(signal, direction)
                 # Provisional day_type (shared with fire_setup below)
+                # Priority: current_state → promoted 7-type classifier (day_type_machine)
+                # → v9_day_type_state (persisted) → hardcoded "Normal"
                 _s4_day_type = self.current_state.get("day_type")
                 if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
                     try:
-                        from backend.v9.systems.day_type.decision_matrix import DECISION_MATRIX as _DM
                         import importlib as _il
                         _app2 = _il.import_module("backend.v9.app").app
                         _dtm2 = getattr(_app2.state, "day_type_machine", None)
-                        if _dtm2 and _dtm2.opening and _dtm2.ib_class:
-                            _cell2 = _DM.get((_dtm2.opening.opening_type, _dtm2.ib_class.ib_width))
-                            if _cell2:
-                                _prov2 = _cell2.get("top1") if isinstance(_cell2, dict) else _cell2
-                                if _prov2 and hasattr(_prov2, 'value'):
-                                    _s4_day_type = _prov2.value
+                        if _dtm2:
+                            _dt2 = getattr(_dtm2, "day_type", None)
+                            _dt2_val = _dt2.value if hasattr(_dt2, "value") else (str(_dt2) if _dt2 else None)
+                            if _dt2_val and _dt2_val not in ("UNKNOWN", "None", "INDETERMINATE"):
+                                _s4_day_type = _dt2_val
                     except Exception:
                         pass
-                if not _s4_day_type:
+                if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
+                    try:
+                        from backend.v9.db.read import read_one as _r1
+                        from datetime import datetime as _datetime
+                        from zoneinfo import ZoneInfo as _ZI
+                        _ct = _ZI("America/Chicago")
+                        _today_s4 = _datetime.now(_ct).date().isoformat()
+                        _row = _r1(
+                            "SELECT day_type FROM v9_day_type_state "
+                            "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d "
+                            "ORDER BY id DESC LIMIT 1", {"d": _today_s4})
+                        if _row and _row.get("day_type"):
+                            _s4_day_type = _row["day_type"]
+                    except Exception:
+                        pass
+                if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
                     _s4_day_type = "Normal"
 
                 # V2 sizing override when flag ON

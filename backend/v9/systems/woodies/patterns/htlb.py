@@ -16,6 +16,11 @@ from backend.v9.shared.atr import flag as _flag
 LOOKBACK = 15
 TOUCH_TOLERANCE = 15  # CCI points
 MIN_TOUCHES = 2
+# HTLB direction-signal zones (Liran): the LONG horizontal line sits in [-200,-100];
+# the SHORT line in [+100,+200]. Used by htlb_zoned_direction() to emit the S4
+# directional bias consumed by the woodies engine (flag HTLB_DIRECTION_GATE).
+_ZONE_LONG = (-200.0, -100.0)
+_ZONE_SHORT = (100.0, 200.0)
 PATTERN_ID = "HTLB"
 GROUP = "REVERSAL"
 _PATTERN_GROUP = PatternGroup.CONT_MED
@@ -74,6 +79,28 @@ def _find_horizontal_level(values: List[float], kind: str = "resistance") -> Opt
         if touches >= MIN_TOUCHES:
             return level
 
+    return None
+
+
+def htlb_zoned_direction(bars: List[WoodiesBar]) -> Optional[str]:
+    """S4 directional bias from a ZONED HTLB break (Michael 2026-06-23).
+
+    HTLB signals direction for all Woodies patterns ONLY when the horizontal CCI
+    line sits in its zone (Liran): a resistance line in [-200,-100] broken UP ->
+    "UP" (LONG bias); a support line in [+100,+200] broken DOWN -> "DOWN" (SHORT
+    bias). Otherwise None. Read-only; never raises on short input.
+    """
+    if len(bars) < LOOKBACK:
+        return None
+    window = [b.cci_14 for b in bars[-LOOKBACK:]]
+    current = window[-1]
+    prev = window[-2]
+    res = _find_horizontal_level(window[:-1], "resistance")
+    if res is not None and _ZONE_LONG[0] <= res <= _ZONE_LONG[1] and prev <= res and current > res + 5:
+        return "UP"
+    sup = _find_horizontal_level(window[:-1], "support")
+    if sup is not None and _ZONE_SHORT[0] <= sup <= _ZONE_SHORT[1] and prev >= sup and current < sup - 5:
+        return "DOWN"
     return None
 
 
