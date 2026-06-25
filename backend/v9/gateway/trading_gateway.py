@@ -570,6 +570,9 @@ class TradingGateway:
     # ── Internal ──
 
     def _is_demo_enabled(self, system_id: int) -> bool:
+        # Pipeline 5: DEMO_EXECUTION_ENABLED flag gates the DEMO branch at runtime
+        if os.getenv("DEMO_EXECUTION_ENABLED", "0").lower() not in ("1", "true", "yes"):
+            return False
         return system_id in self._demo_enabled_systems
 
     def _is_live_enabled(self, system_id: int) -> bool:

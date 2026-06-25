@@ -9,10 +9,10 @@
 | `cooldown.py` | ✅ 1 | 92 | 2026-05-14 | ζ.A4 — 2-Stop Cooldown + ζ.A5 — Cluster Guard D-037. |
 | `demo_executor.py` | ⚠️ orphan? | 23 | 2026-05-13 | DemoExecutor — simulated execution stub. |
 | `live_executor.py` | ⚠️ orphan? | 23 | 2026-05-13 | LiveExecutor — real order execution stub. |
-| `risk_checks.py` | ✅ 1 | 92 | 2026-05-13 | Risk checks per 3-Mode Spec V3 section 5. |
+| `risk_checks.py` | ✅ 1 | 92 | 2026-06-25 | Risk checks per 3-Mode Spec V3 section 5. |
 | `rr_score.py` | ✅ 1 | 64 | 2026-05-31 | R:R score computation for D-094 fire selection. |
 | `session_gate.py` | ✅ 3 | 52 | 2026-06-05 | Session firing gate — B-13 D3 (2026-06-05). |
 | `shadow_executor.py` | ⚠️ orphan? | 22 | 2026-05-13 | ShadowExecutor — persists trade record only, no Sierra order. |
 | `suffering_side_veto.py` | ✅ 1 | 63 | 2026-05-14 | ζ.B2 — Suffering Side Veto (D-049 LOCKED). |
 | `trade_management.py` | ⚠️ orphan? | 124 | 2026-05-14 | ζ.C2 + ζ.C4-C7 — Trade Management "Don't Give Back" Rules. |
-| `trading_gateway.py` | ✅ 3 | 706 | 2026-06-25 | TradingGateway — 3-mode trade routing per 3-Mode Spec V3 section 8. |
+| `trading_gateway.py` | ✅ 3 | 731 | 2026-06-25 | TradingGateway — 3-mode trade routing per 3-Mode Spec V3 section 8. |

@@ -5,7 +5,7 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `MES_AI_DataExport.cpp` | — | 1082 | 2026-06-03 | MES_AI_DataExport.cpp — v9.4.2-p30.11 (G1/G2/G4: proj H/L, TPO validation, va_ok) |
+| `MES_AI_DataExport.cpp` | — | 1163 | 2026-06-03 | MES_AI_DataExport.cpp — v9.4.2-p30.11 (G1/G2/G4: proj H/L, TPO validation, va_ok) |
 | `MES_AI_DataExport_merged.cpp` | — | 2840 | 2026-05-25 | lookback — ignored, session-anchored now |
 | `v9_exports.h` | — | 707 | 2026-05-20 | lookback — ignored, session-anchored now |
 | `v9_types.h` | — | 131 | 2026-06-24 | v9_types.h — MEMS26 V9 shared types and helpers |

@@ -26,10 +26,10 @@
 | `execution_bridge.py` | ✅ 2 | 225 | 2026-05-16 | Woodies Execution Bridge (PROMPT 4 · 4.2). |
 | `hfe_divergence_logger.py` | ✅ 1 | 83 | 2026-05-27 | HFE Divergence Logger -- W-4 audit infrastructure. |
 | `pattern_dispatcher.py` | ✅ 2 | 273 | 2026-06-04 | Two-tier R_t1 Pattern Dispatcher (W-8). |
-| `pattern_engine.py` | ✅ 6 | 59 | 2026-06-24 | Woodies CCI unified pattern detection -- 8 active CCI pattern detectors. |
+| `pattern_engine.py` | ✅ 7 | 59 | 2026-06-24 | Woodies CCI unified pattern detection -- 8 active CCI pattern detectors. |
 | `schemas.py` | ✅ 25 | 111 | 2026-05-27 | Pydantic schemas for Woodies CCI data. |
 | `terminal_states.py` | ✅ 2 | 211 | 2026-05-16 | Woodies Terminal State Emitter (PROMPT 4 · 4.1). |
 | `time_stop.py` | ✅ 1 | 146 | 2026-05-27 | W-10 Time Stop Enforcer — Registry #11 LIVE blocker. |
 | `trend_relabel.py` | ✅ 1 | 30 | 2026-06-02 | D-WDIAG: Extreme-CCI trend relabel — shared function. |
-| `woodies_system.py` | ✅ 3 | 1219 | 2026-06-24 | System 4 — Woodies CCI Decision Maker (5-min bars + 8 active patterns). |
+| `woodies_system.py` | ✅ 3 | 1219 | 2026-06-25 | System 4 — Woodies CCI Decision Maker (5-min bars + 8 active patterns). |
 | `yaml_loader.py` | ✅ 3 | 210 | 2026-05-16 | Woodies Decision Tree YAML config loader (PROMPT 2 · 2.1). |

@@ -21,7 +21,7 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 1 | 2026-05-10 | V9 services. |
-| `alerter.py` | ✅ 2 | 74 | — | Alerter — emit alerts on critical events (log + Slack webhook-if-set). |
+| `alerter.py` | ✅ 2 | 74 | 2026-06-25 | Alerter — emit alerts on critical events (log + Slack webhook-if-set). |
 | `bar_aggregator_5min.py` | ✅ 1 | 217 | 2026-05-29 | 5-min Bar Aggregator — builds OHLCV bars from incoming ticks. |
 | `bar_ingestion.py` | ✅ 4 | 147 | 2026-06-04 | BarIngestionService — persists incoming 5-min bars to DB. |
 | `bar_integrity.py` | ✅ 3 | 65 | 2026-05-17 | Bar integrity validator — Python mirror of frontend looksOk(). |
@@ -29,10 +29,11 @@
 | `eod_archive_scheduler.py` | ✅ 2 | 236 | 2026-05-23 | P31 Phase 1 — End-of-day archive scheduler. |
 | `eod_archiver.py` | ✅ 3 | 199 | 2026-05-23 | P30 G6 / P31 Phase 1 — End-of-day archiver for MEMS26 Sierra exports. |
 | `feed_watchdog.py` | ✅ 1 | 89 | 2026-06-25 | Feed watchdog — block fires when canonical trading streams are stale. |
+| `fill_poller.py` | ⚠️ orphan? | 152 | — | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 302 | 2026-06-04 | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
 | `historical_replay.py` | ✅ 3 | 109 | 2026-06-03 | HistoricalReplay — warm system buffers from existing DB rows. |
 | `history_loader.py` | ✅ 2 | 525 | 2026-06-04 | P31 Phase 2 — Startup gap-fill loader. |
-| `kill_switch.py` | ✅ 2 | 67 | — | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
+| `kill_switch.py` | ✅ 2 | 67 | 2026-06-25 | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
 | `market_clock.py` | ✅ 17 | 251 | 2026-05-16 | Market Clock — centralized time service with DST + 2026 NYSE holidays (D-068). |
 | `sierra_command.py` | ✅ 3 | 89 | 2026-05-16 | Sierra command file writer for DEMO/LIVE execution paths. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | 2026-06-04 | P31 Issue B — TPO history snapshotter. |

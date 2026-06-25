@@ -204,6 +204,11 @@ flags:
     what: "Block REACTIVE_LONG above POC / REACTIVE_SHORT below POC (fail-open)."
     why: "ON, but runtime-SKIPPED when DAYTYPE_POSITION_GATE=1 (superseded)."
     inert_when: "DAYTYPE_POSITION_GATE=1 (gateway skips it)."
+  DEMO_EXECUTION_ENABLED:
+    category: cascade_gate
+    what: "Enable DEMO execution branch in the gateway. When OFF (default), no DEMO trades are placed. When ON, approved setups go to Sierra SIM via trade_command.json."
+    why: "OFF (default). Pipeline 5 runtime gate. Michael sign-off required to enable. DEMO + Sim account ONLY."
+    ref: "docs/handoff/CC_PIPELINE5_2026-06-25.md"
   FEED_WATCHDOG:
     category: cascade_gate
     what: "Block ALL fires when canonical trading streams (5min + woodies_5min) are stale (>90s during RTH). Auto-resumes when fresh. LIVE blocker #0."

@@ -29,7 +29,7 @@
 | `health_streams.py` | ✅ 1 | 36 | 2026-06-04 | V9 API: Stream Health endpoint — GET /api/v9/health/streams. |
 | `history_routes.py` | ✅ 1 | 79 | 2026-05-23 | P30 G6 — `/api/v9/history/*` — yesterday-replay endpoints. |
 | `key_levels_routes.py` | ✅ 2 | 304 | 2026-06-24 | API: /api/v9/key_levels — aggregated key price levels for dashboard panel. |
-| `kill_switch_routes.py` | ✅ 1 | 28 | — | Kill-switch API — engage/disengage/status. |
+| `kill_switch_routes.py` | ✅ 1 | 28 | 2026-06-25 | Kill-switch API — engage/disengage/status. |
 | `killzone_routes.py` | ✅ 1 | 12 | 2026-05-12 | API: /api/v9/killzone/* — System 6 Killzone. |
 | `markers.py` | ✅ 1 | 84 | 2026-05-10 | V9 API: System markers CRUD. |
 | `open_type_routes.py` | ✅ 1 | 73 | 2026-06-03 | Open Type endpoint — /api/v9/open_type/current (D-072). |

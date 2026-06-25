@@ -25,7 +25,7 @@
 | `daytype_playbook.py` | ✅ 1 | 129 | 2026-06-24 | Day-type playbook decision engine (flag-gated, default OFF). |
 | `daytype_position_gate.py` | ✅ 1 | 205 | 2026-06-24 | daytype_position_gate — direction allowed by day-type + price position. |
 | `direction_context.py` | ✅ 1 | 186 | 2026-06-24 | direction_context — the dynamic auction-direction brain (#68, Michael 2026-06-22). |
-| `direction_context_live.py` | ✅ 2 | 116 | 2026-06-24 | direction_context_live — fetch TODAY's RTH bars + CVD + TPO and run the pure |
+| `direction_context_live.py` | ✅ 2 | 148 | 2026-06-25 | direction_context_live — fetch TODAY's RTH bars + CVD + TPO and run the pure |
 | `opening_type_gate.py` | ✅ 1 | 163 | 2026-06-24 | opening_type_gate — blocks counter-drive fires during the opening window. |
 | `reactive_location_gate.py` | ✅ 1 | 54 | 2026-06-18 | Reactive Location Gate — blocks REACTIVE fades on the wrong side of POC. |
 | `structural_targets.py` | ✅ 1 | 341 | 2026-06-24 | structural_targets — resolve day-type targets to structural price levels. |

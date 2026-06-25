@@ -80,6 +80,12 @@ class BarLevelDetector:
                 if trade.entry_price is None:
                     continue
 
+                # Pipeline 5 Phase C: bar_level_detector manages SHADOW trades only.
+                # DEMO/LIVE trades are managed by Sierra fill poller (no double-management).
+                trade_mode = getattr(trade, "mode", "shadow")
+                if trade_mode in ("demo", "live"):
+                    continue
+
                 # Skip bars that started before the trade was opened.
                 # Without this guard, a bar pushed after its close-time can be
                 # applied to a trade that was opened during or after that bar —
