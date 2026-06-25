@@ -122,13 +122,12 @@ class FillPoller:
 
         try:
             if kind == "ENTRY":
-                # Entry fill — update trade with Sierra fill price
-                trade = self._tm._get_trade(trade_id)
-                if trade and price:
-                    trade.entry_price = float(price)
-                    if fill_ts:
-                        trade.entry_ts = fill_ts
-                    logger.info("[FillPoller] ENTRY fill: trade %s @ %.2f", trade_id, price)
+                # Entry fill — transition PENDING→FILLED via on_fill (records the
+                # Sierra fill price + entry_ts + emits trade_filled). Fixes the gap
+                # where setting entry_price directly left the trade NOT in FILLED state.
+                if price is not None:
+                    self._tm.on_fill(trade_id, float(price))
+                    logger.info("[FillPoller] ENTRY fill: trade %s @ %s", trade_id, price)
 
             elif kind in ("T1", "T2", "T3"):
                 self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts)
@@ -136,7 +135,7 @@ class FillPoller:
 
             elif kind == "STOP":
                 self._tm.on_stop_hit(trade_id, fill_ts=fill_ts)
-                logger.info("[FillPoller] STOP fill: trade %s", kind, trade_id)
+                logger.info("[FillPoller] STOP fill: trade %s", trade_id)
 
             else:
                 logger.warning("[FillPoller] unknown fill kind: %s", kind)

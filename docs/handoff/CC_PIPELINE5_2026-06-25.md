@@ -43,3 +43,20 @@ Close the SHADOW→DEMO gap: an approved setup → a real **simulated** bracket 
 4. **NOT-DONE:** LIVE path (keep stub/OFF), real-account wiring, any partial-fill/slippage edge cases, the Sierra Input arming UX.
 
 **Hard guardrails:** DEMO + Sim account ONLY. `Enable Order Placement` Sierra Input default OFF. LIVE stays a stub. Local-only (no cloud). Strategic stop + Michael sign-off before the first DEMO arming. Do NOT enable LIVE.
+
+---
+
+## UPDATE 2026-06-25 — backend round-trip DONE (Cowork); ONE DLL gap remains
+
+**Cowork completed + verified (commit on this date, 538 suite green):**
+- Poller ENTRY fix: `fill_poller._process_fill` ENTRY now calls `TradeManager.on_fill(trade_id, price)` (PENDING→FILLED transition) instead of setting `entry_price` directly (the old path left the trade un-managed). 
+- Poller startup wired in `backend/main.py` (after `enable_demo`), gated by `DEMO_EXECUTION_ENABLED` (default OFF) → never runs in plain SHADOW.
+- Offline round-trip test `tests/v9/regression/test_fill_poller.py` (7 tests): ENTRY/T1/STOP drive the right TradeManager calls; one-trade-at-a-time fallback maps the single active trade; fail-safe on no-match/no-tm/unknown-kind.
+- Confirmed one-trade-at-a-time makes the order_id↔trade_id fallback correct (so register_order is not strictly required, though nice-to-have).
+
+**THE REMAINING GAP — CC, Sierra DLL (`sc_study/MES_AI_DataExport.cpp`):**
+The DLL places the OCO bracket and writes the **ENTRY** fill to `trade_fills.json` (~L934-949), but it does **NOT monitor the bracket's EXIT fills**. When Sierra fills the attached **stop or target** (T1/T2/T3/STOP), the DLL must detect it and append a fill event `{"kind":"T1"|"T2"|"T3"|"STOP","ts":...,"order_id":...,"price":...}` to `trade_fills.json` — otherwise the backend never sees the exit → the trade stays open in `v9_trades` while Sierra has closed it (orphan in the books).
+- Implement: track the submitted OCO order IDs; each study update, check the attached orders' fill status (e.g. `sc.GetOrderByOrderID` / order-fill events / `sc.GetTradeAccountBalance` position deltas) and write a fill event per exit fill. Behind the same `EnableOrderPlacement` arming.
+- Verify (Sierra Sim): arm, place one bracket, let it hit the target/stop, confirm a T1/STOP line appears in `trade_fills.json` and the backend `on_target_hit`/`on_stop_hit` fires (paste the fills JSON + the backend log).
+
+After this DLL gap is closed → the e2e DEMO round-trip is complete; then Michael arms + we run one controlled Sim trade together.

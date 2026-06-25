@@ -67,8 +67,10 @@ def test_fill_poller_processes_entry_fill():
         "price": 7450.25, "contracts": 3, "direction": "LONG",
     }
     poller._process_fill(fill)
-    mock_tm._get_trade.assert_called_with(42)
-    assert mock_trade.entry_price == 7450.25
+    # ENTRY now drives on_fill (PENDING->FILLED transition + records the Sierra fill
+    # price), not a direct entry_price set (Cowork fix 2026-06-25: the old path left
+    # the trade un-transitioned -> it would never be managed/exited).
+    mock_tm.on_fill.assert_called_with(42, 7450.25)
 
 
 def test_fill_poller_processes_stop_fill():

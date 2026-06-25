@@ -715,6 +715,25 @@ async def _startup():
         trading_gateway.enable_demo(4)   # S4 Woodies CCI
         _logger.info("[Main] Demo mode enabled: systems [2, 4]")
 
+        # Pipeline 5 Phase B: start the fill-poller ONLY when DEMO execution is armed
+        # (DEMO_EXECUTION_ENABLED=1, default OFF → never in plain SHADOW). Reads Sierra
+        # trade_fills.json and drives TradeManager with real fill prices.
+        if os.getenv("DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.services.fill_poller import FillPoller
+                _tm_ref = getattr(trading_gateway, "_trade_manager", None) \
+                    or getattr(trading_gateway, "trade_manager", None)
+                if _tm_ref is not None:
+                    _fp = FillPoller(trade_manager=_tm_ref)
+                    app.state.fill_poller = _fp
+                    import asyncio as _aio_fp
+                    _aio_fp.create_task(_fp.run())
+                    _logger.info("[Main] Pipeline 5 FillPoller started (DEMO execution armed)")
+                else:
+                    _logger.error("[Main] FillPoller NOT started — no trade_manager on gateway")
+            except Exception as _fp_err:
+                _logger.error("[Main] FillPoller start failed (fail-safe): %s", _fp_err)
+
         # P31-02b: inject FootprintSystem into FiveMinSystem so process_bar
         # reads cot/amt/belly in-process (~1ms) instead of HTTP self-calls (~8s).
         if hasattr(app.state, 'five_min_system') and app.state.five_min_system \
