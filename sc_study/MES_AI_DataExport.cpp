@@ -931,6 +931,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 result_status = "ORDER_SUBMITTED";
                                 order_err = 0;
 
+                                // Store the parent order ID for exit monitoring
+                                sc.GetPersistentInt(100) = submit_result;  // p5_parent_order_id
+                                sc.GetPersistentInt(101) = 0;              // p5_stop_order_id (discovered later)
+                                sc.GetPersistentInt(102) = 0;              // p5_target_order_id (discovered later)
+                                sc.GetPersistentInt(103) = 0;              // p5_exit_written = not yet
+
                                 // Write fill event to trade_fills.json
                                 const char* fills_path = TradeFillsPath.GetString();
                                 if (fills_path[0] != '\0')
@@ -995,6 +1001,113 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     // Clear command file after processing (prevent re-read)
                     std::ofstream clear_cmd(cmd_path, std::ofstream::trunc);
                     if (clear_cmd.is_open()) clear_cmd.close();
+                }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Pipeline 5: Monitor OCO bracket exits (stop/target fills)
+    // On each bar, check if the active bracket's attached orders have filled.
+    // When Sierra fills a stop or target, write the exit event to trade_fills.json.
+    // ══════════════════════════════════════════════════════════════
+    if (EnableOrderPlacement.GetInt() >= 1)
+    {
+        // Persistent state: track the parent entry order ID and attached order IDs
+        // Key 100-104 reserved for Pipeline 5 order tracking
+        int& p5_parent_order_id = sc.GetPersistentInt(100);
+        int& p5_stop_order_id   = sc.GetPersistentInt(101);
+        int& p5_target_order_id = sc.GetPersistentInt(102);
+        int& p5_exit_written    = sc.GetPersistentInt(103); // 1 = exit already written
+
+        // After a new order submission, capture the attached order IDs
+        // (the parent was stored in submit_result above; we re-read it here)
+        if (p5_parent_order_id > 0 && p5_stop_order_id == 0)
+        {
+            // Try to discover attached orders from the parent
+            s_SCTradeOrder parent_info;
+            if (sc.GetOrderByOrderID(p5_parent_order_id, parent_info) != SCTRADING_ORDER_ERROR)
+            {
+                // Sierra stores attached order IDs in the parent order's linked list
+                // Use GetOrderByIndex to scan recent orders for stop/target with matching ParentInternalOrderID
+                int total_orders = sc.GetOrderCountForBar(idx);
+                // Scan all orders to find the ones attached to our parent
+                for (int oi = 0; oi < 200; oi++)  // scan recent orders
+                {
+                    s_SCTradeOrder check_order;
+                    if (sc.GetOrderByIndex(oi, check_order) == SCTRADING_ORDER_ERROR)
+                        break;
+                    if (check_order.ParentInternalOrderID == p5_parent_order_id)
+                    {
+                        if (check_order.OrderTypeAsInt == SCT_ORDERTYPE_STOP ||
+                            check_order.OrderTypeAsInt == SCT_ORDERTYPE_STOP_LIMIT)
+                            p5_stop_order_id = check_order.InternalOrderID;
+                        else if (check_order.OrderTypeAsInt == SCT_ORDERTYPE_LIMIT)
+                            p5_target_order_id = check_order.InternalOrderID;
+                    }
+                }
+            }
+        }
+
+        // Check if stop or target filled
+        if (p5_parent_order_id > 0 && p5_exit_written == 0)
+        {
+            const char* fills_path = TradeFillsPath.GetString();
+            if (fills_path[0] != '\0')
+            {
+                // Check stop order
+                if (p5_stop_order_id > 0)
+                {
+                    s_SCTradeOrder stop_info;
+                    if (sc.GetOrderByOrderID(p5_stop_order_id, stop_info) != SCTRADING_ORDER_ERROR)
+                    {
+                        if (stop_info.OrderStatusCode == SCT_OSC_FILLED)
+                        {
+                            char fill_buf[512];
+                            int fill_len = snprintf(fill_buf, sizeof(fill_buf),
+                                "{\"kind\":\"STOP\",\"ts\":%lld,\"order_id\":%d,"
+                                "\"price\":%.2f,\"contracts\":%d}\n",
+                                (long long)time(nullptr), p5_stop_order_id,
+                                stop_info.AvgFillPrice, (int)stop_info.FilledQuantity);
+                            if (fill_len > 0 && fill_len < (int)sizeof(fill_buf))
+                            {
+                                std::ofstream fill_file(fills_path);
+                                if (fill_file.is_open()) { fill_file.write(fill_buf, fill_len); fill_file.close(); }
+                            }
+                            p5_exit_written = 1;
+                            // Reset tracking for next trade
+                            p5_parent_order_id = 0;
+                            p5_stop_order_id = 0;
+                            p5_target_order_id = 0;
+                        }
+                    }
+                }
+
+                // Check target order (T1)
+                if (p5_target_order_id > 0 && p5_exit_written == 0)
+                {
+                    s_SCTradeOrder target_info;
+                    if (sc.GetOrderByOrderID(p5_target_order_id, target_info) != SCTRADING_ORDER_ERROR)
+                    {
+                        if (target_info.OrderStatusCode == SCT_OSC_FILLED)
+                        {
+                            char fill_buf[512];
+                            int fill_len = snprintf(fill_buf, sizeof(fill_buf),
+                                "{\"kind\":\"T1\",\"ts\":%lld,\"order_id\":%d,"
+                                "\"price\":%.2f,\"contracts\":%d}\n",
+                                (long long)time(nullptr), p5_target_order_id,
+                                target_info.AvgFillPrice, (int)target_info.FilledQuantity);
+                            if (fill_len > 0 && fill_len < (int)sizeof(fill_buf))
+                            {
+                                std::ofstream fill_file(fills_path);
+                                if (fill_file.is_open()) { fill_file.write(fill_buf, fill_len); fill_file.close(); }
+                            }
+                            p5_exit_written = 1;
+                            p5_parent_order_id = 0;
+                            p5_stop_order_id = 0;
+                            p5_target_order_id = 0;
+                        }
+                    }
                 }
             }
         }
