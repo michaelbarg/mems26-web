@@ -1,0 +1,93 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MEMS26 · מה עובד / מה לא · 2026-06-25</title>
+<style>
+:root{--g:#16a34a;--y:#d97706;--r:#dc2626;--bg:#0f172a;--card:#1e293b;--tx:#e2e8f0;--mut:#94a3b8;--line:#334155}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 -apple-system,Segoe UI,Arial,sans-serif;padding:24px}
+h1{font-size:22px;margin:0 0 4px}.sub{color:var(--mut);margin:0 0 20px;font-size:13px}
+.grid{display:grid;gap:14px;grid-template-columns:1fr}
+@media(min-width:780px){.grid{grid-template-columns:1fr 1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.card h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.g{background:var(--g)}.y{background:var(--y)}.r{background:var(--r)}
+ul{margin:6px 0 0;padding-inline-start:20px}li{margin:3px 0}
+.tag{font-size:11px;padding:1px 7px;border-radius:99px;border:1px solid var(--line);color:var(--mut);margin-inline-start:6px}
+.full{grid-column:1/-1}code{background:#0b1220;padding:1px 5px;border-radius:5px;font-size:12px;color:#a5b4fc}
+.path{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px}
+.step{background:#0b1220;border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:13px}
+.arrow{color:var(--mut)}.now{border-color:var(--g);box-shadow:0 0 0 1px var(--g) inset}
+b{color:#fff}
+</style></head><body>
+<h1>MEMS26 — מה עובד / מה לא</h1>
+<p class="sub">עודכן 2026-06-25 · מצב SHADOW (תצפית, אפס הזמנות אמת) · המנוע חי</p>
+
+<div class="grid">
+
+<div class="card"><h2><span class="dot g"></span>✅ עובד — מאומת חי</h2>
+<ul>
+<li><b>תשתית:</b> bridge + Sierra exports (טריים) → backend → Postgres מקומי · health 200</li>
+<li><b>S1 סוג-יום</b> — מסווג 7-types (<code>S1_NEW_CLASSIFIER</code>)</li>
+<li><b>S2 + S4 יורים</b> — Reactive/Initiative/Flag + תבניות Woodies</li>
+<li><b>מוח-הכיוון</b> (LSMA+CVD) — חוסם יריות נגד-המגמה (מאומת בלוג)</li>
+<li><b>פילטר-מגמה</b> (<code>CONT_TREND_FILTER</code>) — המשך יורה רק עם מגמה מתמשכת; היפוך פטור</li>
+<li><b>ניהול דינמי</b> — structure-trail לפי קונסולידציה (backtest +$7,603)</li>
+<li><b>ניהול בסיס:</b> C1→BE→trail→targets (מאומת ב-management log)</li>
+<li><b>HFE מושבת</b> (היה −$2,987)</li>
+<li><b>גייטים:</b> Nontrend-disable · position-gate · playbook · LSMA-veto · cont-trend-filter</li>
+<li><b>דאשבורד:</b> קו-LSMA · סימן LONG/SHORT · טבלת סוג-יום</li>
+<li><b>env_loader</b> מדווח דגלים בעלייה (no silent failures)</li>
+</ul></div>
+
+<div class="card"><h2><span class="dot g"></span>✅ תבניות מול המקור</h2>
+<ul>
+<li><b>ZLR</b> — שוכתב + מאומת (+$450, 64% win) <span class="tag">done</span></li>
+<li><b>TLB</b> — שוכתב (+$793, 70%) <span class="tag">done</span></li>
+<li><b>VEGAS</b> — cup-and-handle לפי המקור + נצפה <span class="tag">done</span></li>
+</ul>
+<h2 style="margin-top:14px"><span class="dot y"></span>🟡 תבניות שלא תוקנו</h2>
+<ul>
+<li><b>GHOST · FAMIR · GB100 · TT</b> — צריך אפיון-מקור שלך</li>
+<li><b>HTLB</b> — חלקי (direction-gate, לא שכתוב מלא)</li>
+<li><b>BULL_FLAG</b> — צ'ופ תוקן; "פסגות" צריך פריצה-חזקה/שכתוב</li>
+</ul></div>
+
+<div class="card"><h2><span class="dot y"></span>🟡 בנוי אך לא-מאומת / לבדוק</h2>
+<ul>
+<li><b>תשתית-בטיחות LIVE</b> (kill-switch · risk-caps · alerter · redundancy · feed-watchdog) — בנוי, <b>flag-OFF</b>, צריך אימות לפני LIVE</li>
+<li><b>סוג-יום בפתיחה</b> — לוודא שמסווג ב-08:30 (לא נתקע UNKNOWN)</li>
+<li><b>מקור ה-CVD</b> (<code>v9_bars_5min</code>) — נתקע בלילה, לוודא שמתחדש בפתיחה</li>
+</ul></div>
+
+<div class="card"><h2><span class="dot r"></span>🔴 לא בנוי / חוסם LIVE</h2>
+<ul>
+<li><b>Pipeline 5 — נתיב-ביצוע ל-Sierra</b> — לא בנוי. המערכת SHADOW (אפס הזמנות). <b>החוסם הגדול.</b></li>
+<li><b>רווחיות SHADOW</b> — לא הוכחה (דרוש ≥10 ימי-RTH · ≥20 עסקאות · נטו חיובי)</li>
+<li><b>אימות-LIVE</b> של תשתית-הבטיחות</li>
+</ul></div>
+
+<div class="card full"><h2><span class="dot g"></span>🚀 הנתיב ל-LIVE</h2>
+<div class="path">
+<span class="step now"><b>SHADOW</b> (כאן) — לסגור תבניות+לוגיקה, להוכיח רווח</span>
+<span class="arrow">←</span>
+<span class="step"><b>DEMO</b> — לבנות Pipeline 5, ≥7 ימים, 0 crashes</span>
+<span class="arrow">←</span>
+<span class="step"><b>LIVE</b> — מיקרו (חוזה אחד) → ייצור מדורג</span>
+</div></div>
+
+<div class="card full"><h2><span class="dot r"></span>⚙️ Pipeline 5 (מערכת 5) — מה נדרש כדי שיעבוד</h2>
+<ul>
+<li><b>DemoExecutor</b> — מודול ששולח הזמנה ל-Sierra (לא קיים, stub)</li>
+<li><b><code>trade_command.json</code> round-trip</b> — קובץ-הזמנה שה-DLL של Sierra קורא + מאשר חזרה (fill)</li>
+<li><b>Gateway canonical + RiskValidator</b> — אימות-סיכון אחרון לפני שליחה</li>
+<li><b>Sierra "Trade Simulation Mode" ON</b> — ה-DLL מקבל הזמנות-סימולציה</li>
+<li><b>מצב DEMO</b> — <code>MEMS26_MODE=demo</code> + חיווט gateway→executor</li>
+<li><b>אז:</b> soak ≥7 ימי-DEMO · slippage בתקציב · השוואת SHADOW≈DEMO</li>
+</ul>
+<p class="sub" style="margin:8px 0 0">זו עבודת-בנייה מהותית (CC + אימות). היא <b>הדבר היחיד</b> שמפריד מ-DEMO, ו-DEMO מפריד מ-LIVE.</p></div>
+
+<div class="card full"><h2><span class="dot y"></span>☁️ ענן — שים לב להתנגשות</h2>
+<p style="margin:0">המערכת <b>מקומית בכוונה</b> (כלל-ברזל ב-CLAUDE.md): Sierra רץ על המחשב ומייצא קבצים מקומיים; ה-bridge דוחף <b>רק ל-localhost</b>; Postgres מקומי (הענן/Render גרם שחיתות בעבר + latency). <b>אי-אפשר להעביר את מנוע-המסחר לענן</b> — הנתונים מקומיים וה-latency קריטי. מה <b>כן</b> אפשר: דאשבורד-ענן לצפייה-מרחוק (read-only) בלבד, בעוד המנוע נשאר מקומי. שינוי הכלל = החלטה אסטרטגית שלך.</p></div>
+
+</div>
+</body></html>
