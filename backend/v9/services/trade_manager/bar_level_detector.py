@@ -98,13 +98,20 @@ class BarLevelDetector:
 
                 # Trail runner stop (before stop-check so trailed stop is used)
                 import os as _trail_os
-                if _trail_os.getenv("RUNNER_TRAIL_V1", "0").lower() in ("1", "true", "yes") \
-                   and trade.t1_hit_ts is not None \
-                   and trade.state != "CLOSED":
-                    try:
-                        self._tm.apply_trail_after_t1(trade, bar_high, bar_low)
-                    except Exception as _trail_err:
-                        logger.warning("[BarLevelDetector] trail error (fail-safe skip): %s", _trail_err)
+                if trade.t1_hit_ts is not None and trade.state != "CLOSED":
+                    # Dynamic structure-trail (DYNAMIC_STRUCT_TRAIL) — runs INSTEAD of
+                    # the simple hwm trail when ON; falls back to hwm trail when OFF.
+                    if _trail_os.getenv("DYNAMIC_STRUCT_TRAIL", "0").lower() in ("1", "true", "yes"):
+                        try:
+                            bar_close = float(bar_data.get("close", bar_data.get("c", 0)))
+                            self._tm.apply_dynamic_struct_trail(trade, bar_high, bar_low, bar_close)
+                        except Exception as _dst_err:
+                            logger.warning("[BarLevelDetector] struct trail error (fail-safe skip): %s", _dst_err)
+                    elif _trail_os.getenv("RUNNER_TRAIL_V1", "0").lower() in ("1", "true", "yes"):
+                        try:
+                            self._tm.apply_trail_after_t1(trade, bar_high, bar_low)
+                        except Exception as _trail_err:
+                            logger.warning("[BarLevelDetector] trail error (fail-safe skip): %s", _trail_err)
 
                 stop = trade.stop  # refresh after potential trail update
 

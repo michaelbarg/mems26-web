@@ -431,6 +431,182 @@ class TradeManager:
             trade.id, stop_before or 0, new_stop, hwm, k, risk,
         )
 
+    def apply_dynamic_struct_trail(self, trade, bar_high: float, bar_low: float,
+                                    bar_close: float) -> None:
+        """Dynamic structure-trailing after T1 (DYNAMIC_STRUCT_TRAIL flag).
+
+        On each bar past T1: detect a new consolidation → move stop just beyond
+        the zone (never widen) + advance the next target to the nearer of
+        {zone projection, next key level}. Repeats through T3+.
+
+        Michael's rule: runners re-anchor on each NEW CONSOLIDATION after advance.
+        """
+        if trade.entry_price is None:
+            return
+        initial = self._initial_stop(trade)
+        if initial is None:
+            return
+        entry = float(trade.entry_price)
+        risk = abs(entry - initial)
+        if risk <= 0:
+            return
+
+        direction = (trade.direction or "").upper()
+        from backend.v9.systems.five_min.constants import MES_TICK_SIZE
+        tick = MES_TICK_SIZE
+
+        # Load consolidation params from config
+        consol_cfg = {"min_bars": 3, "max_range_atr_frac": 0.5,
+                      "min_advance_risk_mult": 1.0, "range_floor_pts": 2.0}
+        try:
+            from backend.v9.config_loader import load_stop_anchors
+            _sa = load_stop_anchors()
+            _cp = ((_sa or {}).get("dynamic_struct_trail") or {})
+            for k_cfg in consol_cfg:
+                if k_cfg in _cp:
+                    consol_cfg[k_cfg] = float(_cp[k_cfg])
+        except Exception:
+            pass
+
+        # Build bars-since-entry from the trade's bar history in quality
+        q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+        trail_bars = q.get("struct_trail_bars", [])
+        trail_bars.append({"high": bar_high, "low": bar_low, "close": bar_close})
+        # Keep at most 60 bars (5h of 5-min bars)
+        if len(trail_bars) > 60:
+            trail_bars = trail_bars[-60:]
+        q["struct_trail_bars"] = trail_bars
+
+        # Last anchor = current stop (the reference for "advance beyond")
+        last_anchor = float(trade.stop) if trade.stop is not None else entry
+
+        # ATR-14 approximation from recent bars
+        atr_14 = None
+        if len(trail_bars) >= 14:
+            trs = []
+            for i, b in enumerate(trail_bars):
+                br = b["high"] - b["low"]
+                if i > 0:
+                    prev_c = trail_bars[i - 1]["close"]
+                    br = max(br, abs(b["high"] - prev_c), abs(b["low"] - prev_c))
+                trs.append(br)
+            atr_14 = sum(trs[-14:]) / 14
+
+        from backend.v9.services.trade_manager.consolidation import (
+            detect_consolidation, next_target_from_levels,
+        )
+
+        zone = detect_consolidation(
+            bars=trail_bars,
+            direction=direction,
+            last_anchor_price=last_anchor,
+            entry_price=entry,
+            initial_risk=risk,
+            min_bars=int(consol_cfg["min_bars"]),
+            max_range_atr_frac=consol_cfg["max_range_atr_frac"],
+            min_advance_risk_mult=consol_cfg["min_advance_risk_mult"],
+            atr_14=atr_14,
+            range_floor_pts=consol_cfg["range_floor_pts"],
+        )
+
+        if zone is None:
+            trade.quality = q
+            return  # no consolidation → no move
+
+        # Move stop just beyond the zone (never widen)
+        if direction == "LONG":
+            new_stop = round(zone["anchor_extreme"] - 3 * tick, 2)  # 3T below zone low
+            floor = entry + tick  # never below BE+1T
+            new_stop = max(new_stop, floor)
+            if trade.stop is not None and new_stop <= float(trade.stop):
+                trade.quality = q
+                return  # never widen
+        elif direction == "SHORT":
+            new_stop = round(zone["anchor_extreme"] + 3 * tick, 2)  # 3T above zone high
+            floor = entry - tick
+            new_stop = min(new_stop, floor)
+            if trade.stop is not None and new_stop >= float(trade.stop):
+                trade.quality = q
+                return  # never widen
+        else:
+            trade.quality = q
+            return
+
+        # Fetch key levels for next target
+        key_levels = []
+        try:
+            import importlib
+            _app = importlib.import_module("backend.v9.app").app
+            _tpo = getattr(_app.state, "tpo_system", None)
+            if _tpo and hasattr(_tpo, "current_state"):
+                _cs = _tpo.current_state
+                for lvl_key in ("ib_high", "ib_low", "poc", "vah", "val"):
+                    v = _cs.get(lvl_key)
+                    if v is not None:
+                        key_levels.append(float(v))
+            # PDH/PDL from key_levels endpoint cache
+            from backend.v9.api.v9.key_levels_routes import _load_sierra_tpo
+            _sierra = _load_sierra_tpo() or {}
+            _pd = _sierra.get("prior_day") or {}
+            for k_pd in ("high", "low"):
+                v = _pd.get(k_pd)
+                if v is not None:
+                    key_levels.append(float(v))
+        except Exception:
+            pass  # fail-safe: no levels → zone projection only
+
+        # Zone projection: the zone range projected from the breakout edge
+        zone_proj = None
+        if direction == "LONG":
+            zone_proj = zone["zone_high"] + zone["zone_range"]
+        else:
+            zone_proj = zone["zone_low"] - zone["zone_range"]
+
+        next_tgt = next_target_from_levels(
+            direction=direction,
+            current_price=bar_close,
+            zone_projection=zone_proj,
+            key_levels=key_levels,
+        )
+
+        stop_before = float(trade.stop) if trade.stop is not None else None
+        trade.stop = new_stop
+
+        # Advance next unfilled target
+        if next_tgt is not None:
+            if trade.t2 is not None and trade.t2_hit_ts is None:
+                trade.t2 = next_tgt
+            elif trade.t3 is not None and trade.t3_hit_ts is None:
+                trade.t3 = next_tgt
+
+        trade.quality = q
+
+        # Audit
+        audit_entry = {
+            "event": "stop_move",
+            "from": stop_before,
+            "to": new_stop,
+            "reason": "STRUCT_TRAIL zone=[%.2f,%.2f] adv=%.1f next_tgt=%s" % (
+                zone["zone_low"], zone["zone_high"], zone["advance"],
+                ("%.2f" % next_tgt) if next_tgt else "none"),
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(audit_entry)
+        trade.cross_context = ctx
+        self._log_management(trade.id, "STRUCT_TRAIL", {
+            "from": stop_before, "to": new_stop,
+            "zone_high": zone["zone_high"], "zone_low": zone["zone_low"],
+            "advance": zone["advance"], "next_target": next_tgt,
+        })
+
+        logger.info(
+            "[TradeManager] STRUCT_TRAIL: trade %s stop %.2f -> %.2f "
+            "(zone [%.2f,%.2f] adv=%.1f next=%s)",
+            trade.id, stop_before or 0, new_stop,
+            zone["zone_low"], zone["zone_high"], zone["advance"],
+            ("%.2f" % next_tgt) if next_tgt else "none",
+        )
+
     def _apply_stop_after_t2(self, trade: V9Trade) -> None:
         """Move stop to BE + 0.5R after T2 hit (RUNNER_TARGETS_V1).
 

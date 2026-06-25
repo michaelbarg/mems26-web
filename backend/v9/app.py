@@ -295,6 +295,7 @@ def init_event_dispatcher(gateway=None):
 
     # Initialize StreamHealthService (in-memory singleton)
     stream_health = StreamHealthService()
+    app.state.stream_health_service = stream_health  # T2: feed watchdog reads this
 
     dispatcher = EventDispatcher(gateway=gateway)
     dispatcher.set_stream_health(stream_health)

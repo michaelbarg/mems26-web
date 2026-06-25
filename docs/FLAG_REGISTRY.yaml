@@ -204,6 +204,11 @@ flags:
     what: "Block REACTIVE_LONG above POC / REACTIVE_SHORT below POC (fail-open)."
     why: "ON, but runtime-SKIPPED when DAYTYPE_POSITION_GATE=1 (superseded)."
     inert_when: "DAYTYPE_POSITION_GATE=1 (gateway skips it)."
+  FEED_WATCHDOG:
+    category: cascade_gate
+    what: "Block ALL fires when canonical trading streams (5min + woodies_5min) are stale (>90s during RTH). Auto-resumes when fresh. LIVE blocker #0."
+    why: "OFF in SHADOW. Designed for ON at LIVE. 06-19 incident: bridge died mid-RTH, orphan position (186/187). Never trade on a dead feed."
+    ref: "docs/handoff/CC_BATCH_QUEUE_2026-06-24.md §T2"
   DEDUP_FIRE_GUARD:
     category: cascade_gate
     what: "Block an identical sys+dir+pattern+entry(+-0.5pt) fire within 30s."
@@ -261,6 +266,11 @@ flags:
     what: "Trail the runner stop (hwm - 1x initial_risk) after T1; never-widen; floor BE+1T (fail-safe)."
     why: "Michael-approved SHADOW trial 2026-06-18 (backtest +$273 — a real lever)."
     ref: "memory: project_trend_gate_t1_widen"
+  DYNAMIC_STRUCT_TRAIL:
+    category: sizing
+    what: "Dynamic structure-trailing: after T1, detect consolidation zones (K bars, range ≤ R) → re-anchor stop beyond zone + advance target to nearer of {zone projection, key level}. Replaces simple hwm trail when ON."
+    why: "OFF (default). Michael's trade management rule (2026-06-24): runners re-anchor on each NEW CONSOLIDATION. Trading-surface change → Michael sign-off to enable."
+    ref: "docs/handoff/CC_DYNAMIC_STRUCT_TRAIL_2026-06-24.md"
   GIANT_BAR_STOP_V1:
     category: sizing
     what: "Cap the initial stop on giant bars (volatility-spike protection)."

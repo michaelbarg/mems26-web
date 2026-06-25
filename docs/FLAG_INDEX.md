@@ -5,11 +5,11 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-06-24 23:28 · `.env` last modified 2026-06-24 23:09 · scan dirs: backend, bridge_
+_Generated 2026-06-25 13:30 · `.env` last modified 2026-06-25 13:29 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
-**Summary:** 56 documented · 40 ON (of which 3 inert) · 6 OFF (3 standing-OFF) · 9 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
+**Summary:** 57 documented · 40 ON (of which 3 inert) · 7 OFF (3 standing-OFF) · 9 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
 
 ## S1 — Day-type / classification
 
@@ -78,14 +78,15 @@ _Generated 2026-06-24 23:28 · `.env` last modified 2026-06-24 23:09 · scan dir
 | Flag | State | Current | Code default | What it does | Why / state | Where (file:line) | Notes |
 |------|-------|---------|--------------|--------------|-------------|-------------------|-------|
 | DAYTYPE_TARGETS_STRUCTURAL | ✅ ON | `1` (.env) | "0" | Override setup T1/T2/T3 with structural IB/POC/VA prices for location-style day-types; fail-safe to R-based. | Michael approved SHADOW 2026-06-21. 98/104 sim trades resolved structural. | `backend/v9/systems/structural_targets.py:63`<br>`backend/v9/gateway/trading_gateway.py:303` | CASCADE_AUDIT §7 |
-| RUNNER_TARGETS_V1 | ✅ ON | `1` (.env) | False (flag() default) | Runner target ladder v1. | Anchor-trial (2026-06-12). | `backend/v9/systems/woodies/woodies_system.py:747`<br>`backend/v9/services/trade_manager/manager.py:442` |  |
+| RUNNER_TARGETS_V1 | ✅ ON | `1` (.env) | False (flag() default) | Runner target ladder v1. | Anchor-trial (2026-06-12). | `backend/v9/systems/woodies/woodies_system.py:747`<br>`backend/v9/services/trade_manager/manager.py:618` |  |
 
 ## Stops / sizing
 
 | Flag | State | Current | Code default | What it does | Why / state | Where (file:line) | Notes |
 |------|-------|---------|--------------|--------------|-------------|-------------------|-------|
+| DYNAMIC_STRUCT_TRAIL | 🔴 OFF | unset → "0" | "0" | Dynamic structure-trailing: after T1, detect consolidation zones (K bars, range ≤ R) → re-anchor stop beyond zone + advance target to nearer of {zone projection, key level}. Replaces simple hwm trail when ON. | OFF (default). Michael's trade management rule (2026-06-24): runners re-anchor on each NEW CONSOLIDATION. Trading-surface change → Michael sign-off to enable. | `backend/v9/services/trade_manager/bar_level_detector.py:104` | docs/handoff/CC_DYNAMIC_STRUCT_TRAIL_2026-06-24.md |
 | GIANT_BAR_STOP_V1 | ✅ ON | `1` (.env) | False (flag() default) | Cap the initial stop on giant bars (volatility-spike protection). | Anchor-trial (2026-06-12). | `backend/v9/systems/woodies/woodies_system.py:668` |  |
-| RUNNER_TRAIL_V1 | ✅ ON | `1` (.env) | "0" | Trail the runner stop (hwm - 1x initial_risk) after T1; never-widen; floor BE+1T (fail-safe). | Michael-approved SHADOW trial 2026-06-18 (backtest +$273 — a real lever). | `backend/v9/services/trade_manager/bar_level_detector.py:101` | memory: project_trend_gate_t1_widen |
+| RUNNER_TRAIL_V1 | ✅ ON | `1` (.env) | "0" | Trail the runner stop (hwm - 1x initial_risk) after T1; never-widen; floor BE+1T (fail-safe). | Michael-approved SHADOW trial 2026-06-18 (backtest +$273 — a real lever). | `backend/v9/services/trade_manager/bar_level_detector.py:110` | memory: project_trend_gate_t1_widen |
 | STOP_AFTER_T1_STRUCTURAL | ⚪ not built | — | — | (Intended) move the stop to a structural level after T1 is hit. | NOT BUILT — no code references it; only a commented placeholder in .env. Deferred (one variable at a time). | — | not wired in code |
 | STOP_ANCHORS_V2 | ✅ ON | `1` (.env) | False (flag() default) | v2 stop-anchor logic (per-pattern anchors from stop_anchors.yaml). | Enabled pre-soak. | `backend/v9/systems/woodies/woodies_system.py:392`<br>`backend/v9/systems/woodies/woodies_system.py:427`<br>`backend/v9/systems/woodies/woodies_system.py:553`<br>(+23) |  |
 | T1_LADDER_V2 | 🔴 OFF | unset → False (flag() default) | False (flag() default) | Swap T1 computation to a wider v2 ladder (t1_ladder_continuation_v2 / t1_reversal_multiplier_v2 / flag_relative_t1_v2). | REJECTED — backtest flat -$144 (struct -$624). Do NOT enable. | `backend/v9/systems/woodies/woodies_system.py:733`<br>`backend/v9/systems/stop_anchors/sizing.py:88`<br>`backend/v9/systems/five_min/five_min_system.py:1337` | REJECTED by backtest — do not enable; memory: project_trend_gate_t1_widen |

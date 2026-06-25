@@ -114,6 +114,18 @@ class TradingGateway:
             logger.info("[Gateway] BLOCKED by session gate: outside 08:30–15:00 CT (all modes)")
             return result
 
+        # T2: Feed watchdog — block ALL fires when canonical streams are stale (LIVE blocker #0)
+        # 06-19 incident: bridge died mid-RTH, orphan position. Never trade on a dead feed.
+        try:
+            from backend.v9.services.feed_watchdog import is_feed_alive
+            _feed_ok, _feed_reason = is_feed_alive()
+            if not _feed_ok:
+                result["blocked_by"] = "feed_watchdog"
+                logger.warning("[Gateway] BLOCKED by feed watchdog: %s", _feed_reason)
+                return result
+        except Exception as _fw_err:
+            logger.debug("[Gateway] feed watchdog check failed (fail-open): %s", _fw_err)
+
         # ζ.A4 + ζ.A5 + ζ.B2 + ζ.F2: pre-trade risk gates (GW-02: no record_attempt before PASS)
         direction = setup.get("direction", "")
         if self.cooldown.is_blocked():

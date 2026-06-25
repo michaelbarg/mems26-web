@@ -884,3 +884,47 @@ count-query. אנליזה בלבד, לא שונה קוד.
 **slot-2 (9:00–9:05 LONG) = בדיוק setup #1** (id215 ירה SHORT לתוך עלייה-מאומתת ל-7487) — ה-benchmark-validation-המרכזי.
 slots 3–4 (SHORT מה-top 7491) = פער-כניסה 09:15–10:20 שנסגר ב-slot-5. **דגלי-CC (זווית-פספוס):** (1) trend-align-veto-בוקר
 דו-כיווני (I-26/I-42 — חוסם short-נגד-עלייה + מתיר LONG-rally-בוקר); (2) retention woodies ל-RTH-מלא (בוקר woodies-CCI-עיוור). **לא שונה קוד.**
+
+### [2026-06-24 15:12 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**שער-זמן I-9:** ✅ 15:12 CT (≥15:00, `TZ=America/Chicago`). מקורות: API-חי (Chrome) — 14 trades-היום (ids 228–243, ללא 229/234), 78 ברי-RTH (כיסוי-מלא), `.env`+`git log` (commit `c98b808`). דוחות: `PATTERN_EOD_2026-06-24.md` · `DESIGNS_2026-06-24.md`. אומת `outputs/cf_verify.py`.
+
+**כותרת:** יום-ירוק-קטן-ושביר — **+$123.75 (5W/9L, +3.02R)**, היפוך מ-06-23 (−$138). **כל ה-edge ב-3 שורטי-אחה"צ** (238/239/242, +$1,263.75); **11 העסקאות-האחרות −$1,140**. bleed-בוקר (6 לונגים נרדפו-לתוך-פסגה 7496) + **S4 0W/3L (−$483.75)** = ההפסד. price: 7447→פסגה 7496.5@10:00→שפל 7404@14:05→7428 close (failed-rally/reversal).
+
+**🟢🟢 מהלך-העל: כל ה-stack-החדש נדחף-לחי היום (`c98b808`, "462 tests green"; `.env`=12 flags).** `DIRECTION_LSMA_VETO=1` + **cvd-fix** + `HFE_DISABLED=1` + `NONTREND_DISABLE_ALL=1` + `ZLR_SPEC_V2=1` + `VEGAS_SPEC_V2=1` + day-type-source-unify. הוכחות-שעבד: **HFE 0-ירי** (lifetime-#1-loser −$2,987 נוטרל) + **דו-כיווני 7L/7S** (I-41 ממשיך-לשכך). ⚠️ `vegas.py`/`env_loader.py` עדיין uncommitted-M.
+
+**חשודים-חדשים:**
+
+| # | בעיה | SoT לבדיקה | מה צריך | סטטוס | ממצא / עיצוב |
+|---|------|-----------|---------|-------|--------------|
+| **I-43** | **🔴 `cumulative_delta` = per-bar delta, לא running-CVD** — `bar_ingestion.py:114` כותב per-bar `delta` לעמודת cumulative; `cvd_slope=sign(cum[-1]−cum[-1-3])` מניח-running → סימן-הפוך/רעש | `5min_continuous.json`(delta) מול `cumulative_delta.json`(running) ב-v9_export; `direction_context.py`; `git show c98b808` | `cvd_slope=sign(Σ per-bar delta)` (opt-B) | 🔴→🔬 **fix ב-`c98b808`, טרם-אומת-חי** | **קורבן-חי:** GHOST-SHORT id228 (−$195) שוחרר נגד-ראלי-מאומת. trading-surface→Michael. **D30.** CC: replay-GHOST→block |
+| **I-44** | **🔴 פיצול-מקור day_type** — trade-stamp (228=Normal/230–242=Variation/243=Neutral_Extreme) ≠ determiner (Normal-0.68) ≠ key_levels(lag) ≠ S4-fallback(hardcoded Normal) | `classify_replay`/`classify_session` 06-24 פר-בר; `woodies_system.py:514-530`; `main.py:391` (#11 buffer) | key_levels→classifier · S4→authority · #11-rehydrate מ-DB | 🔴→🔬 **fix ב-`c98b808`, טרם-אומת-חי** | restart-08:36 starved את `_cls_rth_bars` ⇒ מנוע-ישן (Variation) דלף ל-13 trades. trading-surface→Michael. **D31.** CC: איזה-מקור-קנוני |
+
+**עדכוני-סטטוס לחשודים-קיימים:**
+
+- **I-42 (06-23 #1) 🔴🔴 → ✅ REFRAMED/SUPERSEDED:** ה-"playbook-מת/SKIP-ירה" **אינו הבאג.** כלל-Michael (`CC_NONTREND_DISABLE`): כל-תבנית-FULL חוץ-מ-Nontrend; אין SKIP-פר-תבנית×יום ⇒ position-gate-עיוור-לתבנית (R2) = **נכון-בכוונה**; `DAYTYPE_PLAYBOOK` להישאר-inert. הפער-היחיד (R3 Nontrend-disable) נסגר ב-`NONTREND_DISABLE_ALL=1` (חי). ה-#1-loser-האמיתי (HFE) נוטרל ב-`HFE_DISABLED=1`. **anti-regression: אל-תחזיר את ה-short-circuit / SKIP-matrix.** **D28 → closed.**
+- **I-34 (sizing-dead) 🔴 מתחזק:** מאומת-מדויק על id228 (`sizing="half"` → −$195 = 13×5×3 = ×3, לא ×1.5) + id230 (`sizing=1` → +165 > 1-contract-max ⇒ 3-בפועל). **חוסם-LIVE.** D11. CC: trace `sizer→route_setup→trade_manager`.
+- **I-31 (firing-count) 🔴 חי:** `pattern-status` five_min=**17**/woodies=**7** מול **11/3** בפועל — **שתיהן over-count** (06-23 היה S4-undercount; היחס לא-יציב). display-safe. D2.
+- **I-40 (corrupt-bars) 🟡 display-נקי-היום, root-פתוח:** **0 ברי-זבל ב-`/chart/bars5min`** (יום-2 ללא-exec↔signal-split). אבל handoff #4: `v9_bars_5min` עדיין נושא 12693/13456/3745@ts-17:00 (guard-frontend ChartV5b ±30% מסנן). CC: הפנה→woodies או נקה-ingest. D24.
+- **I-32 (gaps) 🟡:** ids חסרים 229, 234 (2, זהה-06-23). D9. · **I-39-adj:** 238≈239 same-bar (11:55) cross-pattern — שתיהן-הרוויחו (+460/+445). D23.
+- **I-41 (הטיה-כיוונית) 🟢 ממשיך-לשכך:** 7L/7S (06-22:19S/0L → 06-23:11S/2L → 06-24:7S/7L). דו-כיווני-מלא. D25.
+- **I-22 (pnl_r) 🟡:** id243 `T3_HIT`-על-LOSS, `contracts_pnl` exit 7436.5 > price_high 7427.5 (בלתי-אפשרי). headline-pnl_usd תקין. D1. · **I-23 (counters) 🟡:** `gateway` trades_today=0/daily_pnl=0 מול 14. · **I-25 🟢:** limit=200→422 (14<100, ללא-אובדן). · **I-1 🟡:** vote_history=[] (יום-N). · **I-11 🟢:** S3-muted (תקין).
+
+**פער-חדש-אמיתי (לא-fix-קיים): I-43-adjacent — S4-reversal-bleed.** GHOST/FAMIR/ZLR 0W/3L גם-אחרי-הסרת-HFE ⇒ ה-S4-reversal-patterns חסרים day-type/location/direction-gate-אפקטיבי בזמן-הירי. **D32 (trading-logic→Michael).**
+
+**מקור-אמת — דורש CC (Rule 2/5, אל-תסמוך-על-✅-של-commit):** (1) I-43 cvd-fix חי-בפועל + replay-GHOST→block; (2) I-44 classify_replay-06-24 קנוני + #11-rehydrate-חי; (3) gate-state פר-ירי 09:40–14:45 (cvd-fix נכנס mid/post); (4) I-31 `GROUP BY firing_system` (צפוי 11/3); (5) I-34 sizing-trace; (6) I-32 229/234. **NOT-DONE:** אין PATTERN_DIAG-06-24 (יום-14, כל blocked_by=null); I-43/I-44 אומתו ב-handoff+commit-msg+תוצאה, לא-trace-חי.
+
+---
+
+### [2026-06-24 15:19 CT] Missed-Trades Investigator (Cowork, אוטונומי) — addendum ל-EOD-15:12
+
+**שער-זמן I-9:** ✅ 15:19 CT. תוצר: `docs/reports/MISSED_TRADES_2026-06-24.md`. **הצלבה:** P&L תואם-מדויק את EOD-15:12 (net **+$123.75**, 5W/9L, down-leg-shorts +$1,263.75) — Rule 2/5 ✓. **לא שונה קוד.**
+
+**זווית-פספוס (net-new מעבר ל-EOD-15:12):**
+- **ΣR-נגד(פספוס-אמת) ≈ +5R** — שולט: **ראלי-בוקר-LONG** (09:20→10:00, 7460→7496.5, replay **+3R**) שנסחר-הפוך (id228 SHORT −$195 + top-chase id231/233 −$468.75); + bounce-12:30-LONG (+1.9R, HFE_DISABLED ⇒ no-fire-by-design); + ZLR-DOWN-11:25 early-entry (+0.5R, נתפס-מאוחר). **יום נמוך-פספוסים-אמיתיים, גבוה-מיס-פיירים.**
+- **🎯 BENCHMARK (06-05 down-day מול היום up-בוקר): K/5 = 0/5 ירו-בכיוון-בזמן-הסלוט.** slot-2 (9:00–9:05 LONG) ו-slot-5 (10:00 SHORT-מהפסגה) **נסחרו-הפוך** (short את הראלי, long את הפסגה 7496.5). אי-התאמה-מבנית (benchmark=down-morning; היום=up-morning). **slot-2 = אישוש-חוזר של I-26.** (ה-down-move-האמיתי נתפס אחה"צ, מחוץ-לסלוטים.)
+- **🟡 micro-stop (צד-הפוך של I-13, חדש-זווית):** id237 (risk 3) + id240 (risk 4) נעצרו על micro-bounce **לפני** הצלילה-הנכונה; אותו setup עם stop 10–15נק' (id238/242) ניצח (+$818.75). **שונות-stop 3–26נק' באותו יום** — adaptive_stop לא-יציב. דגל-CC: יציבות-adaptive_stop (לא רק I-13 stop-רחב, גם stop-צר-מדי).
+
+**מסגור-מחדש שאומץ מ-EOD-15:12 (Rule 2):** (1) **I-44** — day_type Variation/Neutral_Extreme = **source-split**, לא "מסווג-עשיר" (ניתוח-ראשוני שלי תוקן). (2) **I-42 REFRAMED/SUPERSEDED** — counter-trend-מיס-פיירים שורש = gates-כיווניים-לא-חיים-בבוקר (`c98b808` mid/post) + **S4-reversal-bleed (D32)**, לא playbook-מת. (3) **HFE_DISABLED=1** חי ⇒ סיגנלי-HFE-UP = no-fire-מכוון, לא חסם-gate.
+
+---

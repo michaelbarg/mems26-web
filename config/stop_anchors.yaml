@@ -107,6 +107,19 @@ flag_relative_t1:
 runner_trail:
   k_risk: 1.0             # trail = hwm − k×initial_risk (backtest: 1.0 optimal)
 
+# ── Dynamic Structure-Trail (DYNAMIC_STRUCT_TRAIL, default OFF) ──────
+# Michael's rule: runners re-anchor on each NEW CONSOLIDATION (balance zone)
+# after advance. Replaces the simple hwm trail when ON.
+dynamic_struct_trail:
+  min_bars: 3              # K: minimum bars in the consolidation zone
+  max_range_atr_frac: 0.5  # R: max zone range as fraction of ATR-14
+  min_advance_risk_mult: 1.0  # M: min advance (risk multiples) before a consolidation counts
+  range_floor_pts: 2.0     # absolute floor for zone range threshold (points)
+  # S4 (Woodies) variant — separate params per handoff spec (NOT-DONE: needs Michael's values)
+  # s4_min_bars: 3
+  # s4_max_range_atr_frac: 0.4
+  # s4_min_advance_risk_mult: 0.75
+
 # ── Guardrails (schema-validation בטעינה) ────────────────────────────
 guardrails:
   max_contracts: 3
