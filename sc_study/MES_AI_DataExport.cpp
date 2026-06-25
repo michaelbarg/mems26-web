@@ -1029,9 +1029,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             if (sc.GetOrderByOrderID(p5_parent_order_id, parent_info) != SCTRADING_ORDER_ERROR)
             {
                 // Sierra stores attached order IDs in the parent order's linked list
-                // Use GetOrderByIndex to scan recent orders for stop/target with matching ParentInternalOrderID
-                int total_orders = sc.GetOrderCountForBar(idx);
-                // Scan all orders to find the ones attached to our parent
+                // Use GetOrderByIndex to scan recent orders for stop/target with matching
+                // ParentInternalOrderID (GetOrderByIndex returns ERROR past the last order).
                 for (int oi = 0; oi < 200; oi++)  // scan recent orders
                 {
                     s_SCTradeOrder check_order;
