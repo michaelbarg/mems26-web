@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  com.mems26.export_promoter — native .tmp→.json promoter sidecar.
+  Workaround for the Wine rename-replace failure that freezes the Sierra bar feed
+  (see scripts/v9_export_promoter.py header + docs handoff). Must run 24/7, so
+  RunAtLoad + KeepAlive=true (NOT the bridge's conditional KeepAlive — this is a
+  different, lightweight, must-always-run process). Install:
+    cp scripts/launchagents/com.mems26.export_promoter.plist ~/Library/LaunchAgents/
+    launchctl load -w ~/Library/LaunchAgents/com.mems26.export_promoter.plist
+  Remove:
+    launchctl unload -w ~/Library/LaunchAgents/com.mems26.export_promoter.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mems26.export_promoter</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Library/Frameworks/Python.framework/Versions/3.9/bin/python3</string>
+        <string>/Users/michael/Downloads/mems26_web_git/scripts/v9_export_promoter.py</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+    <key>StandardOutPath</key>
+    <string>/tmp/v9_export_promoter.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/v9_export_promoter.err.log</string>
+</dict>
+</plist>

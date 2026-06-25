@@ -1,6 +1,43 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-06-26 (Cowork — שורש I-45 נמצא + תוקן: feed-freeze = Wine-rename)
+
+**[2026-06-26 ~00:10 IL — Cowork: 🟢 I-45 RESOLVED — שורש feed-death = Wine rename() ולא watchdog-gap]**
+**שורש (אומת Rule 2/5, לא תיאוריה):** Sierra רץ תחת **CrossOver/Wine**. עוזר-הכתיבה-האטומי
+`v9_write_json` (`sc_study/v9_types.h:122`) עושה `write <name>.json.tmp` → `std::rename(tmp,
+<name>.json)`. **rename() של Wine יכול ליצור קובץ חדש אך לא להחליף קיים** (סמנטיקת Windows
+MSVCRT) → אחרי הכתיבה-הראשונה כל promotion נכשל: ה-`.tmp` טרי, ה-`.json` קופא; `live_price`/
+`mes_ai_data` נכתבים ישירות (בלי `.tmp`) ⇒ פיד-טיקים חי **מסווה** פיד-ברים קפוא. **הוכחה:**
+(א) מחיקת ה-`.json` הקפוא → Sierra משחזר טרי פעם-אחת (rename ליעד-לא-קיים עובד) ואז קופא-שוב
+בסבב-הבא; (ב) rename-מקומי-macOS באותה תיקייה מצליח; (ג) mtime-התיקייה קפוא = אין rename מוצלח
+מאז 17:41; (ד) **Wine-PID טרי (restart מלא ב-23:45) עדיין קפא** ⇒ לא state-בזיכרון אלא תכונה-מובנית
+של Wine. הטריגר: reload-ה-DLL ב-17:41 (build של Pipeline-5). **לא** perms/ACL/flags (נבדק נקי).
+**תיקון חי (sidecar, עוקף Wine):** `scripts/v9_export_promoter.py` + LaunchAgent
+`com.mems26.export_promoter` (RunAtLoad+KeepAlive → 24/7+שורד-reboot). כל 0.5ש קורא כל
+`*.json.tmp`, מאמת JSON-שלם (torn-safe), ו-`os.replace` ליעד `.json` **מקומית** (rename-מקומי
+עובד). **לא ממציא נתונים** (Rule 1) — רק מקדם בייטים-של-Sierra. **אימות (Rule 5):** כל קבצי-הסטאדי
+`.json` ≤2ש לאורך 18ש רצוף; bridge PID 763 + backend HTTP 200; `v9_bars_5min_woodies` השלים
+מהקיפאון-6ש עד הבר-שלפני-הפסקת-CME (16:55 ET, lag=הפסקת-17:00-18:00-ET בלבד). **הערה:** race
+בעליית-ה-agent (foreground-test מול launchd-RunAtLoad) גרם למופע-ראשון לקדם פעם-אחת ואז לנוח →
+`launchctl kickstart` נקי תיקן; אם ה-agent נראה רדום → kickstart.
+**פתוח (CC, מחוץ-לשעות-מסחר):** להחליף `std::rename` ב-`MoveFileExA(...,MOVEFILE_REPLACE_EXISTING)`
+ב-DLL (תיקון-מקור אמיתי) → `docs/handoff/CC_EXPORT_RENAME_FIX_2026-06-26.md`; עד-אז ה-sidecar
+הוא רשת-הביטחון. **אל תעשה reload-DLL בשעות-מסחר** (זה מה שגרם לקיפאון). **D34 (feed-watchdog)
+עדיין רצוי** כהגנה-בעומק — היה **מתריע** על silent-staleness — אך אינו השורש. **לא שונה קוד-מסחר.**
+
+## 2026-06-25 (Cowork — EOD אוטונומי: נפילת-feed @09:40 + פוזיציה-יתומה)
+
+**[2026-06-25 15:12 CT — Cowork: EOD מאוחד אוטונומי]** תוצרים: `docs/reports/PATTERN_EOD_2026-06-25.md` + `DESIGNS_2026-06-25.md` + עדכון `MEMS26_ISSUES_REGISTER.md` (I-45/I-46). שער-זמן I-9 ✅ (15:12 CDT). **לא שונה קוד.** מקור: API חי דרך Chrome (`localhost:8000`).
+
+**[2026-06-25 — 🔴🔴 I-45 חדש (LIVE-blocker): מוות-feed אמצע-RTH @09:40 CT]** **שורש (אומת-API, טרם-מאומת-Mac):** ערוץ market-data עצר @~09:40 CT — `/chart/bars5min` בר-אחרון 09:40 (vol-חלקי 6,254); `pattern-status` Bridge `fresh:false/lag=9558/last_bar_ts=null`; S2+S4 `last_bar_ts=09:40/lag=20358`; **woodies (`v9_bars_5min_woodies`, SoT-חי) קפא גם-הוא @09:40** ⇒ מוות-מקור-אמיתי (לא SoT-split). השפעה: ~88% RTH ללא-נתונים; **1 ירי בלבד** (id245 REACTIVE_LONG @09:35) **תקוע-פתוח**; 0 CF. **🔴 הישנות-ישירה:** זהו ה-feed-death של **06-19 (I-38)** — אז פוזיציות-יתומות 186/187 → נקבע **blocker-LIVE #0 (D22): feed-watchdog + halt-on-death**, ש**מעולם-לא-נבנה** ⇒ חזר היום (id245 = ה-186/187 של היום). **D34/D35 = החייאת-D22.** **פתרון-מוצע (deferred, D34):** CC לאבחן גשר-מול-Sierra (`ls -la ~/SierraChart_Data/v9_export/` mtime + `tail /tmp/bridge.err.log` + `launchctl list grep mems26` + `SELECT MAX(ts) FROM v9_bars_5min_woodies`) → watchdog feed-silence in-session + halt-on-death. **אימות:** API-cross (4 מקורות תואמים @09:40) — Rule 2 ✓; שורש-Mac ⏳ CC.
+
+**[2026-06-25 — 🔴 orphaned-open trade (תת-I-45, LIVE-safety, D35→Michael)]** **שורש:** id245 `state=FILLED/exit_ts=null/pnl=0/bars_count=1` ~6 שעות אחרי-entry — feed מת ⇒ אין-ברים לקדם trail/exit; אין feed-loss-flatten ואין EOD-reconcile. **פתרון-מוצע (deferred):** watchdog `now−last_bar_ts>N×interval` + פוזיציה-פתוחה → (LIVE) force-flatten / (SHADOW) `outcome=INDETERMINATE`; EOD-reconcile @15:00. **אימות:** `SELECT state,exit_ts FROM v9_trades WHERE id=245` ⏳ CC. **סיווג: trading-safety → אישור-Michael.**
+
+**[2026-06-25 — 🟡 I-46 חדש (display): freshness-flag משקר post-close]** **שורש:** S2/S4 `fresh:true` למרות lag=20358≫threshold=660 (מותנה-`in_session` ⇒ post-close "טרי-by-exception"); Bridge נכון `false`. silent-failure (stall לא-צף עד-EOD). **פתרון-מוצע (D36, display-safe):** הפרד `data_current`(תמיד) מ-`fresh_for_trading`(gate) + alert in-session. **אימות:** CC לאשר freshness in-session 09:40–15:00 כן-היה-false (⇒ חסם-ירי-על-קיפאון).
+
+**[2026-06-25 — עדכוני-סטטוס]** I-32 gap **244 חסר** (דפוס-קבוע, D9). · I-31 **לא-שוחזר** (`fired_today_count` 1/0 תאם-DB; n=1 חלש). · I-23 counters מנותקים (1-ירי מול trades_today=0). · I-1 מוחמר-ע"י-I-45 (session_min=0, אין-ברים). · **D30/D31/D32 (06-24 cvd-fix/day-type-unify/S4-bleed) ⏸️ לא-נבדקו** (feed מת; אל-תסמן closed בלי replay — Rule 5).
+
 ## 2026-06-24 (Cowork — flag-stack חי + VEGAS לאפיון + env_loader observability + תקלת-ps-eww-שלא-הייתה)
 
 **[2026-06-24 late — Cowork: ZLR_SPEC_V2 backtest → מאומת חיובי, נשאר ON]** ZLR_SPEC_V2 היה חי **בלי backtest** (פער שזיהינו). הרצתי replay אמיתי של `zlr.detect()` (לא re-impl) על 15 ימי-shadow, OFF מול ON, אופק 60דק': **OFF=37 ירי/+$325/49% win/+1.76pt avg · ON=11 ירי/+$450/64% win/+8.18pt avg.** הגייטים של האפיון (entry CCI≤120, ≥15 CCI diff, SWI yellow/green, CZI cyan≥3) זורקים את היריות החלשות ושומרים מנצחות → פחות עסקאות, edge ×4.6. **הפוך מ-VEGAS (שלילי).** מסקנה: **להשאיר ZLR_SPEC_V2=1.** `outputs/zlr_spec_v2_backtest.py`. **תובנה נלווית:** ה-proxy של ZLR-OFF היה +$325 אבל ה-P&L המנוהל בפועל (v9_trades) היה −$268 → **הניהול הסטטי (T1/T2/T3+stop) הורג אות חיובי** — מחזק בדיוק למה המנהל-הדינמי (#32) קריטי.
