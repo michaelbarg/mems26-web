@@ -1,26 +1,42 @@
 """Risk checks per 3-Mode Spec V3 section 5.
 
-LIVE-only strict checks:
-  - Daily loss cap: $250
-  - Max trades/day: 5
-  - Max position: 2 contracts
+Configurable risk caps (env vars with defaults):
+  - Daily loss cap: RISK_DAILY_LOSS_CAP (default $250)
+  - Max trades/day: RISK_MAX_TRADES_DAY (default 5)
   - Time filter: NO new trades after 14:30 ET
-  - News block: FOMC/CPI/NFP ±10 min (placeholder)
-  - Consecutive loss limit: 2 → STOP DAY
+  - Consecutive loss limit: RISK_CONSECUTIVE_LOSS_LIMIT (default 2) → STOP DAY
+
+Applied in LIVE always. In SHADOW when RISK_CAPS_SHADOW=1 (flag, default OFF).
 """
 
 import logging
+import os
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-# Risk caps
-DAILY_LOSS_CAP = 250.0
-MAX_TRADES_PER_DAY = 5
+
+def _env_float(key: str, default: float) -> float:
+    try:
+        return float(os.environ.get(key, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_int(key: str, default: int) -> int:
+    try:
+        return int(os.environ.get(key, str(default)))
+    except (TypeError, ValueError):
+        return default
+
+
+# Risk caps — configurable via env vars
+DAILY_LOSS_CAP = _env_float("RISK_DAILY_LOSS_CAP", 250.0)
+MAX_TRADES_PER_DAY = _env_int("RISK_MAX_TRADES_DAY", 5)
 MAX_CONTRACTS = 2
 CUTOFF_HOUR = 14
 CUTOFF_MINUTE = 30
-CONSECUTIVE_LOSS_LIMIT = 2
+CONSECUTIVE_LOSS_LIMIT = _env_int("RISK_CONSECUTIVE_LOSS_LIMIT", 2)
 
 
 def passes_strict_checks(setup: dict, mode: str, gateway) -> bool:
@@ -34,9 +50,10 @@ def passes_strict_checks(setup: dict, mode: str, gateway) -> bool:
     Returns:
         True if trade is allowed, False if blocked.
     """
-    # SHADOW and DEMO bypass strict checks
+    # SHADOW bypass unless RISK_CAPS_SHADOW=1
     if mode != "live":
-        return True
+        if os.environ.get("RISK_CAPS_SHADOW", "0").lower() not in ("1", "true", "yes"):
+            return True
 
     # Time filter: no new trades after 14:30 ET
     try:

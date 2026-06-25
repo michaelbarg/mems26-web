@@ -26,6 +26,7 @@
 | `gen_flag_index.py` | ▶ entry/test | 388 | 2026-06-24 | gen_flag_index.py — generate docs/FLAG_INDEX.md, the canonical index of every |
 | `gen_index.py` | ▶ entry/test | 362 | 2026-06-04 | Generate a living index of the MEMS26 codebase. |
 | `generate_ts_types.py` | ▶ entry/test | 93 | 2026-05-11 | Generate TypeScript event types from registry.yaml. |
+| `kill_switch.py` | ▶ entry/test | 47 | — | Kill-switch CLI — engage/disengage/status via the backend API. |
 | `load_soak_test.py` | ▶ entry/test | 142 | 2026-06-03 | Load soak test — concurrent high-frequency pushes to all hot endpoints. |
 | `package_for_migration.sh` | — | 77 | 2026-06-19 | package_for_migration.sh — bundle the FULL MEMS26 stack for the second (Sierra) machine. |
 | `patch_woodies_5min_hud.py` | ▶ entry/test | 137 | 2026-05-23 | Patch woodies_5min.json with P30.10 HUD fields (interim until DLL Export 8b is live). |

@@ -78,6 +78,8 @@ v9_router.include_router(key_levels_router)
 v9_router.include_router(chart_replay_router)
 v9_router.include_router(trade_review_router)
 v9_router.include_router(daytype_classify_router)
+from backend.v9.api.v9.kill_switch_routes import router as kill_switch_router
+v9_router.include_router(kill_switch_router)
 
 
 @v9_router.get("/api/v9/health")

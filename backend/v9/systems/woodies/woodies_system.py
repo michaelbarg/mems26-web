@@ -358,6 +358,12 @@ class WoodiesSystem(BaseV9TradingSystem):
             patterns = detect_all_patterns(self._bar_buffer)
             if _HFE_DISABLED:
                 patterns = [p for p in patterns if p.pattern_id != "HFE"]
+            # T3: filter any pattern with stop=None/0 (crash-safe — never let bad stop through)
+            _bad_stops = [p for p in patterns if p.detected and (p.stop is None or p.stop <= 0)]
+            if _bad_stops:
+                logger.warning("[Woodies] T3 guard: %d pattern(s) with bad stop filtered: %s",
+                               len(_bad_stops), [(p.pattern_id, p.stop) for p in _bad_stops])
+                patterns = [p for p in patterns if not p.detected or (p.stop is not None and p.stop > 0)]
 
             # DLL-detected patterns: if DLL flags ZLR/HFE and Python missed it,
             # trust the DLL (source-of-truth per CLAUDE.md §Sierra real-time data).
@@ -409,14 +415,18 @@ class WoodiesSystem(BaseV9TradingSystem):
                                            pattern_group=_zlr_group, atr_14=_dll_atr)
                         _zlr_stop = _sr.stop_price
                     _zlr_t1 = wb.close + (4 * 0.25 if _zlr_dir == "LONG" else -4 * 0.25)
-                    patterns.append(PatternResult(
-                        detected=True, pattern_id="ZLR", direction=_zlr_dir,
-                        confidence=0.65, raw_confidence=0.65,
-                        entry_price=wb.close, stop=_zlr_stop, targets=[_zlr_t1],
-                        group="CONTINUATION", cci_at_signal=wb.cci_14,
-                        bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
-                        details={"source": "dll_flag", "zlr_direction": wb.zlr_direction},
-                    ))
+                    # T3: guard against stop=None → PatternResult crash (pydantic ValidationError)
+                    if _zlr_stop is not None and _zlr_stop > 0:
+                        patterns.append(PatternResult(
+                            detected=True, pattern_id="ZLR", direction=_zlr_dir,
+                            confidence=0.65, raw_confidence=0.65,
+                            entry_price=wb.close, stop=_zlr_stop, targets=[_zlr_t1],
+                            group="CONTINUATION", cci_at_signal=wb.cci_14,
+                            bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
+                            details={"source": "dll_flag", "zlr_direction": wb.zlr_direction},
+                        ))
+                    else:
+                        logger.warning("[Woodies] DLL ZLR skipped: stop=%s (None/0 — T3 guard)", _zlr_stop)
             if wb.hfe_detected and "HFE" not in _dll_pattern_ids and not _HFE_DISABLED:
                 _hfe_dir = "LONG" if wb.hfe_direction == "UP" else "SHORT" if wb.hfe_direction == "DOWN" else None
                 if _hfe_dir and _dll_atr > 0:
@@ -442,15 +452,19 @@ class WoodiesSystem(BaseV9TradingSystem):
                                            pattern_group=_hfe_group, atr_14=_dll_atr)
                         _hfe_stop = _sr.stop_price
                     _hfe_t1 = wb.close + (4 * 0.25 if _hfe_dir == "LONG" else -4 * 0.25)
-                    patterns.append(PatternResult(
-                        detected=True, pattern_id="HFE", direction=_hfe_dir,
-                        confidence=0.60, raw_confidence=0.60,
-                        entry_price=wb.close, stop=_hfe_stop, targets=[_hfe_t1],
-                        group="REVERSAL", cci_at_signal=wb.cci_14,
-                        bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
-                        details={"source": "dll_flag", "hfe_direction": wb.hfe_direction,
-                                 "hfe_extreme_bars_ago": wb.hfe_extreme_bars_ago},
-                    ))
+                    # T3: guard against stop=None → PatternResult crash
+                    if _hfe_stop is not None and _hfe_stop > 0:
+                        patterns.append(PatternResult(
+                            detected=True, pattern_id="HFE", direction=_hfe_dir,
+                            confidence=0.60, raw_confidence=0.60,
+                            entry_price=wb.close, stop=_hfe_stop, targets=[_hfe_t1],
+                            group="REVERSAL", cci_at_signal=wb.cci_14,
+                            bar_index=len(self._bar_buffer) - 1, ts=wb.ts,
+                            details={"source": "dll_flag", "hfe_direction": wb.hfe_direction,
+                                     "hfe_extreme_bars_ago": wb.hfe_extreme_bars_ago},
+                        ))
+                    else:
+                        logger.warning("[Woodies] DLL HFE skipped: stop=%s (None/0 — T3 guard)", _hfe_stop)
 
             # ── HTLB direction gate (Michael 2026-06-23 · flag HTLB_DIRECTION_GATE, default OFF) ──
             # HTLB signals the directional bias for ALL Woodies patterns. A zoned HTLB break

@@ -31,5 +31,5 @@
 | `terminal_states.py` | ✅ 2 | 211 | 2026-05-16 | Woodies Terminal State Emitter (PROMPT 4 · 4.1). |
 | `time_stop.py` | ✅ 1 | 146 | 2026-05-27 | W-10 Time Stop Enforcer — Registry #11 LIVE blocker. |
 | `trend_relabel.py` | ✅ 1 | 30 | 2026-06-02 | D-WDIAG: Extreme-CCI trend relabel — shared function. |
-| `woodies_system.py` | ✅ 3 | 1205 | 2026-06-24 | System 4 — Woodies CCI Decision Maker (5-min bars + 8 active patterns). |
+| `woodies_system.py` | ✅ 3 | 1219 | 2026-06-24 | System 4 — Woodies CCI Decision Maker (5-min bars + 8 active patterns). |
 | `yaml_loader.py` | ✅ 3 | 210 | 2026-05-16 | Woodies Decision Tree YAML config loader (PROMPT 2 · 2.1). |

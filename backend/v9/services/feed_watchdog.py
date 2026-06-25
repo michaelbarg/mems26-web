@@ -76,6 +76,11 @@ def is_feed_alive() -> Tuple[bool, Optional[str]]:
             reason = "FEED_WATCHDOG HALT: all canonical streams stale [%s] (threshold %.0fs)" % (
                 details, STALE_THRESHOLD_SECONDS)
             logger.warning("[FeedWatchdog] %s", reason)
+            try:
+                from backend.v9.services.alerter import alert
+                alert("FEED_HALT", reason, severity="critical")
+            except Exception:
+                pass
             return (False, reason)
 
     except Exception as e:

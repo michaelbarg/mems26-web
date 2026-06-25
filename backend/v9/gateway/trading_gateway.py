@@ -108,6 +108,17 @@ class TradingGateway:
         cross_context = self._capture_cross_context()
         result = {"shadow": None, "demo": None, "live": None, "blocked_by": None}
 
+        # T5: Kill-switch — instant halt of ALL firing
+        try:
+            from backend.v9.services.kill_switch import is_engaged as _ks_check
+            _ks_on, _ks_reason = _ks_check()
+            if _ks_on:
+                result["blocked_by"] = "kill_switch"
+                logger.warning("[Gateway] BLOCKED by kill-switch: %s", _ks_reason)
+                return result
+        except Exception:
+            pass  # fail-open
+
         # B-13 D3: session firing gate — NO firing outside 08:30–15:00 CT in ANY mode
         if not is_within_firing_window():
             result["blocked_by"] = "session_gate_closed"

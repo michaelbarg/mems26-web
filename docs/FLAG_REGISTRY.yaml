@@ -311,6 +311,22 @@ flags:
     what: "(Intended) move the stop to a structural level after T1 is hit."
     why: "NOT BUILT — no code references it; only a commented placeholder in .env. Deferred (one variable at a time)."
     status: not_built
+  RISK_CAPS_SHADOW:
+    category: risk
+    what: "Enforce LIVE risk caps (daily loss, max trades, consecutive losses) also in SHADOW mode. Default OFF (SHADOW bypasses risk caps)."
+    why: "OFF. Enable to test risk caps during SHADOW observation before LIVE."
+  RISK_DAILY_LOSS_CAP:
+    category: param
+    group: "Risk caps"
+    what: "Daily loss cap in USD. Gateway halts all fires for the day when total P&L reaches -$X. Default $250."
+  RISK_MAX_TRADES_DAY:
+    category: param
+    group: "Risk caps"
+    what: "Maximum trades per day. Gateway halts after N fires. Default 5."
+  RISK_CONSECUTIVE_LOSS_LIMIT:
+    category: param
+    group: "Risk caps"
+    what: "Consecutive losses before STOP DAY. Default 2."
   MEMS_MIN_RISK_POINTS:
     category: param
     group: "Pre-fire stop sanity"

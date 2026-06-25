@@ -21,5 +21,5 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 0 | 2026-05-09 |  |
-| `app.py` | ✅ 5 | 361 | 2026-06-24 | MEMS26 V9 FastAPI application. |
+| `app.py` | ✅ 6 | 364 | 2026-06-25 | MEMS26 V9 FastAPI application. |
 | `config_loader.py` | ✅ 21 | 332 | 2026-06-18 | YAML config loader with fallback — auth_matrix, targets, stop_params. |
