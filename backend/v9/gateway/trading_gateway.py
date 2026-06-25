@@ -308,9 +308,31 @@ class TradingGateway:
             try:
                 from backend.v9.systems.direction_context_live import current as _dc_current
                 _dc = _dc_current()
+                _set_dir = "UP" if str(direction).upper() == "LONG" else "DOWN"
+
+                # CONT_TREND_FILTER (default OFF): CONTINUATION patterns must fire WITH a
+                # SUSTAINED trend (K-bar LSMA side, dir_sustained). REVERSAL patterns are
+                # EXEMPT — they fire against the trend by design (a sustained filter would
+                # kill HTLB/VEGAS/GHOST/FAMIR — counterfactual 2026-06-25). Fixes the
+                # BULL_FLAG_LONG chop fires that the single-bar veto passed (momentary poke).
+                if os.getenv("CONT_TREND_FILTER", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        from backend.v9.systems.woodies.pattern_engine import REVERSAL_PATTERNS as _REV
+                    except Exception:
+                        _REV = {"VEGAS", "GHOST", "FAMIR", "HTLB"}
+                    _pat = (resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or "").upper()
+                    _is_reversal = any(r in _pat for r in _REV) or any(
+                        r in _pat for r in ("DOUBLE", "HNS", "HEAD_SHOULDER"))
+                    if not _is_reversal:
+                        _sus = _dc.get("dir_sustained", "NEUTRAL")
+                        if _sus != _set_dir:   # NEUTRAL (chop) or opposite → no sustained trend
+                            result["blocked_by"] = "cont_trend_filter"
+                            logger.info("[Gateway] BLOCKED by cont-trend-filter: %s setup %s vs sustained %s",
+                                        _pat, _set_dir, _sus)
+                            return result
+
                 _dc_dir = _dc.get("dir")
                 if _dc_dir in ("UP", "DOWN"):
-                    _set_dir = "UP" if str(direction).upper() == "LONG" else "DOWN"
                     if _set_dir != _dc_dir:
                         result["blocked_by"] = "direction_context"
                         logger.info("[Gateway] BLOCKED by direction-context: setup %s vs %s (%s)",

@@ -14,6 +14,19 @@ _CT = ZoneInfo("America/Chicago")
 _CACHE: Dict[str, Any] = {}
 
 
+def sustained_lsma_side(rows, k: int) -> str:
+    """Pure: 'UP'/'DOWN' iff the k most-recent (close, lsma_value) rows are ALL on
+    the same side of the LSMA; else 'NEUTRAL'. Used by CONT_TREND_FILTER to reject
+    a momentary 1-bar poke (chop) — a continuation must hold the trend for k bars.
+    `rows` is most-recent-first (ORDER BY ts DESC)."""
+    sides = [1 if float(r["close"]) > float(r["lsma_value"]) else -1
+             for r in (rows or []) if r.get("lsma_value") is not None]
+    sides = sides[:k]
+    if k >= 1 and len(sides) >= k and all(s == sides[0] for s in sides):
+        return "UP" if sides[0] == 1 else "DOWN"
+    return "NEUTRAL"
+
+
 def _fetch_live_bars(today: str):
     """Return (bars, source). Prefer v9_bars_5min (carries CVD); but if the raw-bars
     stream stalls (e.g. 2026-06-22 stuck at 08:55) while the Woodies stream stays
@@ -107,6 +120,25 @@ def current() -> Dict[str, Any]:
         "ib_low": float(ibl) if ibl is not None else None,
         "poc": float(poc) if poc is not None else None,
     }
+
+    # --- dir_sustained: K-bar SUSTAINED LSMA-side trend gate (for CONT_TREND_FILTER) ---
+    # The gateway applies this ONLY to continuation patterns (reversals fire against the
+    # trend by design and are exempt). Fixes the BULL_FLAG_LONG bug: a momentary 1-bar
+    # poke above LSMA in chop (2026-06-24 10:25) passes the single-bar veto; requiring K
+    # consecutive bars on the same side of LSMA rejects chop. UP/DOWN only when all K agree;
+    # else NEUTRAL (no sustained trend → continuations blocked).
+    dir_sustained = "NEUTRAL"
+    try:
+        _k = max(2, int(os.getenv("LSMA_SUSTAIN_BARS", "3") or "3"))
+        from backend.v9.db.read import read_all as _ra
+        _srows = _ra(
+            "SELECT close, lsma_value FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d AND lsma_value IS NOT NULL "
+            "ORDER BY ts DESC LIMIT " + str(_k), {"d": today})
+        dir_sustained = sustained_lsma_side(_srows, _k)
+    except Exception:
+        dir_sustained = "NEUTRAL"  # fail-safe → NEUTRAL (gateway treats as no-trend)
+    out["dir_sustained"] = dir_sustained
     if lsma_veto:
         out["lsma_side"] = lsma_side_val
         out["mode"] = "lsma_cvd_veto" if lsma_side_val is not None else "fallback(lsma_missing)"

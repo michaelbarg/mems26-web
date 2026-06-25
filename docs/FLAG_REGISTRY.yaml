@@ -241,6 +241,20 @@ flags:
     why: "ON SHADOW 2026-06-24, Michael approved. LSMA-lead+CVD-veto validated standalone 06-23 (74% hit +$2,452). Replaces the breakout/location/trend-day brain WHILE ON; reversible (flag off = today's engine)."
     status: live
     ref: "docs/handoff/CC_DIRECTION_LSMA_VETO_2026-06-24.md"
+  CONT_TREND_FILTER:
+    category: cascade_gate
+    group: "direction engine"
+    what: "Continuation patterns (Flag/TLB/ZLR/TT/GB100 + S2 Reactive/Initiative) fire only WITH a SUSTAINED K-bar LSMA trend (dir_sustained). REVERSAL patterns (VEGAS/GHOST/FAMIR/HTLB + S2 Double/HnS) are EXEMPT (fire against the trend by design). Applied in trading_gateway after DIRECTION_CONTEXT; fail-open."
+    why: "ON SHADOW 2026-06-25, Michael. Fixes BULL_FLAG_LONG (0/3, -$596): the single-bar veto passed a momentary 1-bar poke above LSMA in chop (06-24 10:25). Counterfactual: blocks 102 continuation chop/counter losers = +$911, keeps reversal winners (HTLB +$720). K = LSMA_SUSTAIN_BARS."
+    status: live
+    ref: "outputs/trend_filter_counterfactual.py"
+  LSMA_SUSTAIN_BARS:
+    category: param
+    group: "direction engine"
+    what: "K = consecutive most-recent bars that must be on the same side of the LSMA for dir_sustained to be UP/DOWN (else NEUTRAL). Used by CONT_TREND_FILTER. Default 3 (=15min)."
+    why: "Tunable trend-filter strictness. 1 = old single-bar behavior (momentary poke passes); 3 = a continuation must hold the LSMA side for 3 bars."
+    status: param
+    ref: "backend/v9/systems/direction_context_live.py"
   NONTREND_DISABLE_ALL:
     category: cascade_gate
     what: "Block ALL fires (S2+S4, both directions) on Nontrend days. Michael's rule: every pattern fires full on every day-type EXCEPT Nontrend."
