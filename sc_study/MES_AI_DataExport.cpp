@@ -918,32 +918,17 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             if (contracts <= 0) contracts = 3;  // Phase 2: 3 contracts default
                             bool is_buy = (cmd_content.find("\"BUY\"") != std::string::npos);
 
-                            // 3-contract entry with OCO group split:
-                            //   Group 1: 1 contract — C1 target (T1) + protective stop
-                            //   Group 2: 2 contracts — runners, protective stop only (managed dynamically)
-                            // ACSIL: OCOGroup1Quantity + Target1Price + Stop1Price = the C1 bracket
-                            //        OCOGroup2Quantity + Stop2Price = the runner protective stop
+                            // 3-contract market entry + ONE protective stop on all 3.
+                            // NO attached target, NO OCOGroup fields (they cause -1 rejection).
+                            // C1 target = a SEPARATE resting limit exit submitted after entry.
                             s_SCNewOrder entry_order;
                             entry_order.OrderQuantity = contracts;
                             entry_order.OrderType = SCT_ORDERTYPE_MARKET;
                             entry_order.TimeInForce = SCT_TIF_GTC;
 
-                            // OCO Group 1: C1 = 1 contract, target at T1 + protective stop
-                            entry_order.OCOGroup1Quantity = 1;
-                            entry_order.Target1Price = static_cast<float>(t1_price);
-                            entry_order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                            // Attached: protective stop on ALL contracts (catastrophic)
                             entry_order.Stop1Price = static_cast<float>(stop_price);
                             entry_order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
-
-                            // OCO Group 2: runners = remaining contracts, stop only (no target — managed dynamically)
-                            int runner_qty = (contracts > 1) ? (contracts - 1) : 0;
-                            if (runner_qty > 0)
-                            {
-                                entry_order.OCOGroup2Quantity = runner_qty;
-                                entry_order.Stop2Price = static_cast<float>(stop_price);
-                                entry_order.AttachedOrderStop2Type = SCT_ORDERTYPE_STOP;
-                                // No Target2 — runners exit via manager MODIFY_STOP / EXIT commands
-                            }
 
                             int submit_result = 0;
                             if (is_buy)
@@ -957,15 +942,31 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
                                 // Store for exit monitoring + modify/exit ops
                                 // 100 = parent entry order
-                                // 101 = Group 1 stop (C1)
-                                // 102 = Group 1 target (C1 T1)
+                                // 101 = attached stop order (discovered by exit monitor)
+                                // 102 = C1 limit-exit order (submitted below)
                                 // 103 = exit_written flag
-                                // 104 = Group 2 stop (runners)
-                                sc.GetPersistentInt(100) = submit_result;  // parent
-                                sc.GetPersistentInt(101) = 0;              // G1 stop (discovered)
-                                sc.GetPersistentInt(102) = 0;              // G1 target (discovered)
-                                sc.GetPersistentInt(103) = 0;              // exit_written
-                                sc.GetPersistentInt(104) = 0;              // G2 stop (discovered)
+                                sc.GetPersistentInt(100) = submit_result;
+                                sc.GetPersistentInt(101) = 0;   // stop (discovered later)
+                                sc.GetPersistentInt(103) = 0;   // exit_written
+
+                                // Submit C1 target: a SEPARATE 1-contract resting LIMIT exit
+                                // LONG → SellExit(limit) at T1; SHORT → BuyExit(limit) at T1
+                                if (t1_price > 0)
+                                {
+                                    s_SCNewOrder c1_exit;
+                                    c1_exit.OrderQuantity = 1;
+                                    c1_exit.OrderType = SCT_ORDERTYPE_LIMIT;
+                                    c1_exit.Price1 = static_cast<float>(t1_price);
+                                    c1_exit.TimeInForce = SCT_TIF_GTC;
+                                    int c1_id = 0;
+                                    if (is_buy)
+                                        c1_id = static_cast<int>(sc.SellExit(c1_exit));
+                                    else
+                                        c1_id = static_cast<int>(sc.BuyExit(c1_exit));
+                                    sc.GetPersistentInt(102) = (c1_id > 0) ? c1_id : 0;
+                                }
+                                else
+                                    sc.GetPersistentInt(102) = 0;
 
                                 // Write ENTRY fill
                                 const char* fills_path = TradeFillsPath.GetString();
@@ -996,17 +997,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             result_status = "ACK_SHADOW";
                         }
                     }
-                    // ── OP: MODIFY_STOP — move the runner stop (G2, persistent 104) ──
-                    // The manager's dynamic trail/BE moves the RUNNER stop, not the C1 stop.
-                    // After C1 fills, the G1 stop (101) is gone; only G2 runner stop (104) remains.
-                    // If G2 not yet discovered, fall back to G1 (101) for pre-C1 BE moves.
+                    // ── OP: MODIFY_STOP — move the protective stop (persistent 101) ──
+                    // One attached stop covers all contracts. Manager BE/trail moves this.
                     else if (cmd_content.find("\"MODIFY_STOP\"") != std::string::npos)
                     {
                         if (order_armed >= 1)
                         {
                             double new_stop = parse_float("\"new_stop\"");
-                            int stop_oid = sc.GetPersistentInt(104);  // prefer runner stop
-                            if (stop_oid <= 0) stop_oid = sc.GetPersistentInt(101);  // fallback to G1
+                            int stop_oid = sc.GetPersistentInt(101);
                             if (stop_oid > 0 && new_stop > 0)
                             {
                                 s_SCNewOrder mod;
@@ -1105,7 +1103,6 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             sc.GetPersistentInt(101) = 0;
                             sc.GetPersistentInt(102) = 0;
                             sc.GetPersistentInt(103) = 1;
-                            sc.GetPersistentInt(104) = 0;
                         }
                         else
                             result_status = "ACK_CANCEL";
@@ -1150,21 +1147,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     if (EnableOrderPlacement.GetInt() >= 1)
     {
         // Persistent state: track the parent entry + all attached order IDs
-        // 100 = parent entry    101 = G1 stop (C1)    102 = G1 target (C1 T1)
-        // 103 = exit_written    104 = G2 stop (runners)
+        // 100 = parent entry   101 = attached stop (all contracts)
+        // 102 = C1 limit exit   103 = exit_written
         int& p5_parent_order_id  = sc.GetPersistentInt(100);
-        int& p5_stop_order_id    = sc.GetPersistentInt(101);  // G1 stop (C1)
-        int& p5_target_order_id  = sc.GetPersistentInt(102);  // G1 target (C1 T1)
+        int& p5_stop_order_id    = sc.GetPersistentInt(101);  // attached stop
+        int& p5_target_order_id  = sc.GetPersistentInt(102);  // C1 limit exit (set at PLACE time)
         int& p5_exit_written     = sc.GetPersistentInt(103);
-        int& p5_runner_stop_id   = sc.GetPersistentInt(104);  // G2 stop (runners)
 
-        // Discover attached orders from the parent (OCO groups → multiple stops + target)
+        // Discover the attached stop from the parent entry
         if (p5_parent_order_id > 0 && p5_stop_order_id == 0)
         {
             s_SCTradeOrder parent_info;
             if (sc.GetOrderByOrderID(p5_parent_order_id, parent_info) != SCTRADING_ORDER_ERROR)
             {
-                int stops_found = 0;
                 for (int oi = 0; oi < 200; oi++)
                 {
                     s_SCTradeOrder check_order;
@@ -1175,15 +1170,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         if (check_order.OrderTypeAsInt == SCT_ORDERTYPE_STOP ||
                             check_order.OrderTypeAsInt == SCT_ORDERTYPE_STOP_LIMIT)
                         {
-                            // First stop → G1 (C1), second stop → G2 (runners)
-                            if (stops_found == 0)
-                                p5_stop_order_id = check_order.InternalOrderID;
-                            else
-                                p5_runner_stop_id = check_order.InternalOrderID;
-                            stops_found++;
+                            p5_stop_order_id = check_order.InternalOrderID;
+                            break;  // one attached stop
                         }
-                        else if (check_order.OrderTypeAsInt == SCT_ORDERTYPE_LIMIT)
-                            p5_target_order_id = check_order.InternalOrderID;
                     }
                 }
             }
