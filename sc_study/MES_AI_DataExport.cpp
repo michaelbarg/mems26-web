@@ -947,31 +947,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
                                 // Store for exit monitoring + modify/exit ops
                                 // 100 = parent entry order
-                                // 101 = attached stop order (discovered by exit monitor)
-                                // 102 = C1 limit-exit order (submitted below)
+                                // 101 = attached stop (discovered by exit monitor)
+                                // 102 = C1 limit-exit order (placed AFTER entry fills, by exit monitor)
                                 // 103 = exit_written flag
+                                // 105 = c1_placed (0=not yet, 1=placed)
+                                // 106 = t1_price × 100 (stored as int for persistent storage)
+                                // 107 = direction (1=LONG, -1=SHORT)
                                 sc.GetPersistentInt(100) = submit_result;
-                                sc.GetPersistentInt(101) = 0;   // stop (discovered later)
-                                sc.GetPersistentInt(103) = 0;   // exit_written
-
-                                // Submit C1 target: a SEPARATE 1-contract resting LIMIT exit
-                                // LONG → SellExit(limit) at T1; SHORT → BuyExit(limit) at T1
-                                if (t1_price > 0)
-                                {
-                                    s_SCNewOrder c1_exit;
-                                    c1_exit.OrderQuantity = 1;
-                                    c1_exit.OrderType = SCT_ORDERTYPE_LIMIT;
-                                    c1_exit.Price1 = static_cast<float>(t1_price);
-                                    c1_exit.TimeInForce = SCT_TIF_GTC;
-                                    int c1_id = 0;
-                                    if (is_buy)
-                                        c1_id = static_cast<int>(sc.SellExit(c1_exit));
-                                    else
-                                        c1_id = static_cast<int>(sc.BuyExit(c1_exit));
-                                    sc.GetPersistentInt(102) = (c1_id > 0) ? c1_id : 0;
-                                }
-                                else
-                                    sc.GetPersistentInt(102) = 0;
+                                sc.GetPersistentInt(101) = 0;
+                                sc.GetPersistentInt(102) = 0;   // C1 order id (set when placed)
+                                sc.GetPersistentInt(103) = 0;
+                                sc.GetPersistentInt(105) = 0;   // C1 NOT yet placed
+                                sc.GetPersistentInt(106) = (int)(t1_price * 100.0);  // store T1
+                                sc.GetPersistentInt(107) = is_buy ? 1 : -1;          // direction
 
                                 // Write ENTRY fill
                                 const char* fills_path = TradeFillsPath.GetString();
@@ -1151,13 +1139,16 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // ══════════════════════════════════════════════════════════════
     if (EnableOrderPlacement.GetInt() >= 1)
     {
-        // Persistent state: track the parent entry + all attached order IDs
-        // 100 = parent entry   101 = attached stop (all contracts)
-        // 102 = C1 limit exit   103 = exit_written
+        // Persistent state:
+        // 100 = parent entry   101 = attached stop   102 = C1 limit exit
+        // 103 = exit_written   105 = c1_placed   106 = t1×100   107 = direction
         int& p5_parent_order_id  = sc.GetPersistentInt(100);
-        int& p5_stop_order_id    = sc.GetPersistentInt(101);  // attached stop
-        int& p5_target_order_id  = sc.GetPersistentInt(102);  // C1 limit exit (set at PLACE time)
+        int& p5_stop_order_id    = sc.GetPersistentInt(101);
+        int& p5_target_order_id  = sc.GetPersistentInt(102);  // C1 limit exit
         int& p5_exit_written     = sc.GetPersistentInt(103);
+        int& p5_c1_placed        = sc.GetPersistentInt(105);
+        int& p5_t1_price_x100    = sc.GetPersistentInt(106);
+        int& p5_direction        = sc.GetPersistentInt(107);   // 1=LONG, -1=SHORT
 
         // Discover the attached stop from the parent entry
         if (p5_parent_order_id > 0 && p5_stop_order_id == 0)
@@ -1178,6 +1169,45 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             p5_stop_order_id = check_order.InternalOrderID;
                             break;  // one attached stop
                         }
+                    }
+                }
+            }
+        }
+
+        // Deferred C1: once position is live (entry filled), place the 1-lot limit exit
+        if (p5_parent_order_id > 0 && p5_c1_placed == 0 && p5_t1_price_x100 != 0)
+        {
+            s_SCPositionData pos;
+            sc.GetTradePosition(pos);
+            // Position exists (entry filled) → place C1 limit exit
+            if (pos.PositionQuantity != 0)
+            {
+                double t1_val = p5_t1_price_x100 / 100.0;
+                s_SCNewOrder c1_exit;
+                c1_exit.OrderQuantity = 1;
+                c1_exit.OrderType = SCT_ORDERTYPE_LIMIT;
+                c1_exit.Price1 = static_cast<float>(t1_val);
+                c1_exit.TimeInForce = SCT_TIF_GTC;
+                int c1_id = 0;
+                if (p5_direction > 0)  // LONG → SellExit at T1
+                    c1_id = static_cast<int>(sc.SellExit(c1_exit));
+                else                   // SHORT → BuyExit at T1
+                    c1_id = static_cast<int>(sc.BuyExit(c1_exit));
+                p5_target_order_id = (c1_id > 0) ? c1_id : 0;
+                p5_c1_placed = 1;
+
+                // Write C1_PLACED fill event so the backend knows the C1 order is live
+                const char* fills_path = TradeFillsPath.GetString();
+                if (fills_path[0] != '\0' && c1_id > 0)
+                {
+                    char fb[512];
+                    int fl = snprintf(fb, sizeof(fb),
+                        "{\"kind\":\"C1_PLACED\",\"ts\":%lld,\"order_id\":%d,\"price\":%.2f}\n",
+                        (long long)time(nullptr), c1_id, t1_val);
+                    if (fl > 0 && fl < (int)sizeof(fb))
+                    {
+                        std::ofstream ff(fills_path);
+                        if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
                     }
                 }
             }
