@@ -3,6 +3,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { TopBar } from './TopBar';
 import { Layer0Strip } from './Layer0Strip';
 import { SidePanel } from './SidePanel';
+import { DemoMonitor } from './DemoMonitor';
 import { ViewTabs, type DashboardView } from './ViewTabs';
 import { PriceDebugConsole } from '../PriceDebugConsole';
 // import { ChartV5a } from '../chart/ChartV5a';  // W5.13: kept as backup
@@ -88,6 +89,7 @@ export function V9Dashboard() {
       style={{ background: COLORS.bgBase }}
     >
       <BannerStack />
+      <DemoMonitor />
       <ViewTabs active={view} onChange={setView} />
 
       {view === 'main' ? (
