@@ -57,21 +57,44 @@ the sidecar stays running as belt-and-suspenders through verification.
    → backend `on_target_hit`/`on_stop_hit` → realized PnL in `v9_trades`. Paste the Sierra order
    log + `trade_fills.json` + the backend log lines. Disarm (`=0`) after.
 
-## PHASE 2 — runner management to Sierra (SEPARATE deploy, after Phase 1 proves out)
-**Design decision for Michael before CC builds this.** Phase-1's bracket is **all-out** (all
-contracts exit at one T1/stop). Michael's trade rule is **3 contracts · C1 takes the first
-target → stop to BE · runners managed dynamically** (re-anchor on each new consolidation, exit
-at the earlier of {new structure, key level}) — i.e. **not** a static T1/T2/T3 ladder. So Phase 2
-is the *dynamic manager reaching Sierra*, not a fixed ladder:
-- Partial target: T1 on C1 (1 of 3); stop on all 3.
-- After C1 fills → backend sends a **modify-stop→BE** command; DLL modifies the Sierra stop.
-- Runners → backend dynamic structure-trail (`apply_dynamic_struct_trail`) emits **modify-stop**
-  / **market-exit** commands at structural points; DLL executes them; each exit fill round-trips
-  to `trade_fills.json`.
-- Needs: DLL support for **modify/cancel-replace** + market-exit-on-command; backend command
-  schema for modify/exit; the fill round-trip already exists. All behind `EnableOrderPlacement`.
-- (If Michael instead wants fixed R-based T2/T3 for specific day-types, that's a static-ladder
-  variant — but default to the dynamic path since that's the manager he built.)
+## PHASE 2 — the DYNAMIC manager must drive Sierra (CONFIRMED by Michael 2026-06-26)
+**Requirement (not optional):** "המערכת צריכה לפעול בניהול-העסקה הדינמי שקבענו גם בסיארה" — the
+SAME dynamic manager that runs in SHADOW must drive the DEMO/Sim (and later LIVE) position in
+Sierra. **No static T1/T2/T3 ladder.** Phase-1's all-out bracket is only a plumbing-proof; the
+real execution model is manager-driven.
+
+**Target model (3 contracts · C1→BE · dynamic runners):**
+- Entry: 3 contracts market; attach ONE **protective (catastrophic) stop** on all 3. The first
+  profit target (C1, 1 contract) may be an attached limit OR a manager-driven exit — see below.
+- The backend dynamic manager (`manager.apply_dynamic_struct_trail` + `consolidation.detect_
+  consolidation`, the same code that manages SHADOW) is the BRAIN; the DLL is the HAND. As the
+  manager re-anchors on each new consolidation it emits commands; the DLL executes them in Sierra
+  and reports every fill back via `trade_fills.json`.
+- C1 hits first target → **scale out 1 of 3** + **MODIFY_STOP → BE** on the remaining 2.
+- Each new consolidation → **MODIFY_STOP (trail)** and/or **MODIFY_TARGET (re-anchor to the
+  earlier of {new structure, key level})**; final runner exits on trail-stop or structural exit.
+
+**What CC must build for Phase 2 (all behind `EnableOrderPlacement`, DEMO/Sim only):**
+1. **Command protocol** — extend `trade_command.json` / `sierra_command.py` beyond `PLACE`:
+   add `MODIFY_STOP`, `MODIFY_TARGET`, `EXIT` (partial/full market), `CANCEL` (kill-switch/flatten),
+   each carrying the Sierra order id(s) + new price/quantity.
+2. **DLL order-ops** — implement modify (`sc.ModifyOrder` / cancel-replace), partial market-exit,
+   and cancel, keyed off the persistent OCO ids (100-103) already tracked; report each resulting
+   fill to `trade_fills.json` (extend the existing exit-monitor).
+3. **Backend wiring** — the dynamic manager's existing SHADOW actions (BE move, trail, re-anchor,
+   scale-out) must EMIT these commands when `MEMS26_MODE=demo` (today those actions only mutate
+   in-memory shadow state). Mode-gate so SHADOW stays bar-driven, DEMO/LIVE are Sierra-driven.
+4. **Reconcile** — manager state ↔ Sierra position (handle partial fills, rejects, and a
+   feed/▢kill-switch flatten). Never let manager state and the Sierra book diverge silently.
+
+**Verify (Rule 5, Sierra Sim):** one crafted setup → 3-contract entry + protective stop → C1
+scale-out + stop→BE → at least one consolidation re-anchor (MODIFY_STOP/TARGET observed in the
+Sierra order log + `trade_fills.json`) → final exit → realized PnL in `v9_trades` matching the
+manager's intended exits. Paste the Sierra order log + fills JSON + backend manager log.
+
+**Build order:** Phase 1 (plumbing-proof) first; then Phase 2 command-protocol + DLL order-ops +
+manager wiring as its own out-of-hours deploy. Do NOT arm Phase 2 LIVE — DEMO/Sim only until a
+full soak + Michael sign-off.
 
 ## Guardrails (unchanged, hard)
 DEMO + Sim account ONLY · `EnableOrderPlacement` Input default 0 · `DEMO_EXECUTION_ENABLED`
