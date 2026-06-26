@@ -2,14 +2,24 @@
 
 Writes the command format consumed by the Bridge/DLL through
 `trade_command.json`. This module has no network or broker side effects.
+
+Pipeline 5 Phase 2: extended with op-based dispatch:
+  PLACE     — entry bracket (existing BUY/SELL)
+  MODIFY_STOP   — move stop on tracked order
+  MODIFY_TARGET — move target on tracked order
+  EXIT          — market exit N contracts (partial or full)
+  CANCEL        — kill working orders / flatten
 """
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger("sierra_command")
 
 DEFAULT_SIGNALS_DIR = Path("/tmp/mems26_signals")
 
@@ -20,6 +30,15 @@ def signals_dir() -> Path:
 
 def command_file() -> Path:
     return signals_dir() / "trade_command.json"
+
+
+def _write_command(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Write a command payload to the command file."""
+    out = command_file()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2))
+    logger.info("[SierraCmd] wrote %s (op=%s)", out, payload.get("op") or payload.get("action"))
+    return payload
 
 
 def write_trade_command(
@@ -35,9 +54,10 @@ def write_trade_command(
     mode: Optional[str] = None,
     context: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
-    """Write a Sierra command and return the exact payload."""
+    """Write a PLACE (entry bracket) Sierra command."""
     action = action.upper()
     payload = {
+        "op": "PLACE",
         "action": action,
         "trade_id": trade_id,
         "direction": direction,
@@ -50,10 +70,77 @@ def write_trade_command(
         "context": context or {},
         "ts_submitted": time.time(),
     }
-    out = command_file()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(payload, indent=2))
-    return payload
+    return _write_command(payload)
+
+
+def write_modify_stop(
+    *,
+    trade_id: str,
+    order_id: int,
+    new_stop: float,
+    mode: str = "demo",
+) -> Dict[str, Any]:
+    """Write a MODIFY_STOP command — trail/re-anchor the protective stop."""
+    return _write_command({
+        "op": "MODIFY_STOP",
+        "trade_id": trade_id,
+        "order_id": order_id,
+        "new_stop": new_stop,
+        "mode": mode,
+        "ts_submitted": time.time(),
+    })
+
+
+def write_modify_target(
+    *,
+    trade_id: str,
+    order_id: int,
+    new_target: float,
+    mode: str = "demo",
+) -> Dict[str, Any]:
+    """Write a MODIFY_TARGET command — re-anchor the next target."""
+    return _write_command({
+        "op": "MODIFY_TARGET",
+        "trade_id": trade_id,
+        "order_id": order_id,
+        "new_target": new_target,
+        "mode": mode,
+        "ts_submitted": time.time(),
+    })
+
+
+def write_exit(
+    *,
+    trade_id: str,
+    order_id: int,
+    contracts: int,
+    mode: str = "demo",
+) -> Dict[str, Any]:
+    """Write an EXIT command — market exit N contracts (partial or full)."""
+    return _write_command({
+        "op": "EXIT",
+        "trade_id": trade_id,
+        "order_id": order_id,
+        "contracts": contracts,
+        "mode": mode,
+        "ts_submitted": time.time(),
+    })
+
+
+def write_cancel(
+    *,
+    trade_id: str,
+    order_id: Optional[int] = None,
+    mode: str = "demo",
+) -> Dict[str, Any]:
+    """Write a CANCEL command — kill working orders / flatten."""
+    return _write_command({
+        "op": "CANCEL",
+        "trade_id": trade_id,
+        "order_id": order_id,
+        "mode": mode,
+        "ts_submitted": time.time(),
+    })
 
 
 def command_from_setup(

@@ -6,9 +6,14 @@ its own entry decision independently.
 
 PnL calculation: per-contract (c1/c2/c3 independently), NOT 3x.
 MES tick = $1.25 per tick per contract.
+
+Pipeline 5 Phase 2: in DEMO mode, manager actions emit Sierra commands
+(MODIFY_STOP, MODIFY_TARGET, EXIT) so the SAME dynamic strategy drives
+the real Sierra position.
 """
 
 import logging
+import os
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -93,6 +98,44 @@ class TradeManager:
             ))
         except Exception as e:
             logger.debug("[TradeManager] management_log write failed: %s", e)
+
+    def _is_demo_mode(self, trade) -> bool:
+        """Check if a trade is in DEMO mode (should emit Sierra commands)."""
+        trade_mode = getattr(trade, "mode", "shadow")
+        return trade_mode == "demo" and os.environ.get(
+            "DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes")
+
+    def _get_sierra_order_id(self, trade) -> Optional[int]:
+        """Get the Sierra order ID stored on the trade (from PLACE ACK)."""
+        q = trade.quality if isinstance(trade.quality, dict) else {}
+        oid = q.get("sierra_order_id")
+        return int(oid) if oid is not None else None
+
+    def _emit_modify_stop(self, trade, new_stop: float) -> None:
+        """Emit a MODIFY_STOP command to Sierra (DEMO mode only)."""
+        if not self._is_demo_mode(trade):
+            return
+        oid = self._get_sierra_order_id(trade)
+        if oid is None:
+            return
+        try:
+            from backend.v9.services.sierra_command import write_modify_stop
+            write_modify_stop(trade_id=str(trade.id), order_id=oid, new_stop=new_stop)
+        except Exception as e:
+            logger.warning("[TradeManager] Sierra MODIFY_STOP failed: %s", e)
+
+    def _emit_modify_target(self, trade, new_target: float) -> None:
+        """Emit a MODIFY_TARGET command to Sierra (DEMO mode only)."""
+        if not self._is_demo_mode(trade):
+            return
+        oid = self._get_sierra_order_id(trade)
+        if oid is None:
+            return
+        try:
+            from backend.v9.services.sierra_command import write_modify_target
+            write_modify_target(trade_id=str(trade.id), order_id=oid, new_target=new_target)
+        except Exception as e:
+            logger.warning("[TradeManager] Sierra MODIFY_TARGET failed: %s", e)
 
     def accept_setup(
         self,
@@ -330,6 +373,7 @@ class TradeManager:
         ctx.append(audit_entry)
         trade.cross_context = ctx
         self._log_management(trade.id, "SMART_BE", {"from": stop_before, "to": float(trade.stop)})
+        self._emit_modify_stop(trade, float(trade.stop))
 
         logger.info(
             "[TradeManager] Smart BE+1T after T1: trade %s stop %.2f -> %.2f",
@@ -425,6 +469,7 @@ class TradeManager:
         self._log_management(trade.id, "TRAIL", {
             "from": stop_before, "to": new_stop, "hwm": hwm, "k": k, "risk": round(risk, 2),
         })
+        self._emit_modify_stop(trade, new_stop)
 
         logger.info(
             "[TradeManager] TRAIL: trade %s stop %.2f -> %.2f (hwm=%.2f k=%.1f risk=%.1f)",
@@ -598,6 +643,9 @@ class TradeManager:
             "zone_high": zone["zone_high"], "zone_low": zone["zone_low"],
             "advance": zone["advance"], "next_target": next_tgt,
         })
+        self._emit_modify_stop(trade, new_stop)
+        if next_tgt is not None:
+            self._emit_modify_target(trade, next_tgt)
 
         logger.info(
             "[TradeManager] STRUCT_TRAIL: trade %s stop %.2f -> %.2f "

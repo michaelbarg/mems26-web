@@ -880,53 +880,54 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                          std::istreambuf_iterator<char>());
                 cmd_file.close();
 
-                // Only process if non-empty and contains "action"
-                if (cmd_content.size() > 10 && cmd_content.find("\"action\"") != std::string::npos)
+                // Only process if non-empty and contains "op" or "action"
+                if (cmd_content.size() > 10 &&
+                    (cmd_content.find("\"op\"") != std::string::npos ||
+                     cmd_content.find("\"action\"") != std::string::npos))
                 {
-                    // Parse action field (simple string search — no JSON lib in ACSIL)
+                    // Shared parsers (simple string search — no JSON lib in ACSIL)
+                    auto parse_float = [&](const char* key) -> double {
+                        size_t pos = cmd_content.find(key);
+                        if (pos == std::string::npos) return 0.0;
+                        pos = cmd_content.find(':', pos);
+                        if (pos == std::string::npos) return 0.0;
+                        return atof(cmd_content.c_str() + pos + 1);
+                    };
+                    auto parse_int = [&](const char* key) -> int {
+                        size_t pos = cmd_content.find(key);
+                        if (pos == std::string::npos) return 0;
+                        pos = cmd_content.find(':', pos);
+                        if (pos == std::string::npos) return 0;
+                        return atoi(cmd_content.c_str() + pos + 1);
+                    };
+
                     const char* result_status = "UNKNOWN";
                     int order_err = 0;
+                    int order_armed = EnableOrderPlacement.GetInt();
 
+                    // ── OP: PLACE (entry bracket) ──────────────────────────
                     if (cmd_content.find("\"BUY\"") != std::string::npos ||
                         cmd_content.find("\"SELL\"") != std::string::npos)
                     {
-                        // Pipeline 5: OCO bracket order placement
-                        int order_armed = EnableOrderPlacement.GetInt();
                         if (order_armed >= 1)
                         {
-                            // Parse prices from command JSON (simple string search)
-                            auto parse_float = [&](const char* key) -> double {
-                                size_t pos = cmd_content.find(key);
-                                if (pos == std::string::npos) return 0.0;
-                                pos = cmd_content.find(':', pos);
-                                if (pos == std::string::npos) return 0.0;
-                                return atof(cmd_content.c_str() + pos + 1);
-                            };
-                            auto parse_int = [&](const char* key) -> int {
-                                size_t pos = cmd_content.find(key);
-                                if (pos == std::string::npos) return 0;
-                                pos = cmd_content.find(':', pos);
-                                if (pos == std::string::npos) return 0;
-                                return atoi(cmd_content.c_str() + pos + 1);
-                            };
-
                             double entry_price = parse_float("\"price\"");
                             double stop_price  = parse_float("\"stop_price\"");
                             double t1_price    = parse_float("\"target_price\"");
                             int    contracts   = parse_int("\"contracts\"");
-                            if (contracts <= 0) contracts = 1;
+                            if (contracts <= 0) contracts = 3;  // Phase 2: 3 contracts default
                             bool is_buy = (cmd_content.find("\"BUY\"") != std::string::npos);
 
-                            // Submit OCO bracket: entry + protective stop + T1 target
+                            // 3-contract entry + protective stop on ALL + C1 partial target on 1
                             s_SCNewOrder entry_order;
                             entry_order.OrderQuantity = contracts;
-                            entry_order.OrderType = SCT_ORDERTYPE_MARKET;  // market entry
+                            entry_order.OrderType = SCT_ORDERTYPE_MARKET;
                             entry_order.TimeInForce = SCT_TIF_GTC;
 
-                            // Attached orders: stop + target
+                            // Attached: stop on all contracts + T1 (partial, 1 contract for C1)
                             entry_order.Stop1Price = static_cast<float>(stop_price);
-                            entry_order.Target1Price = static_cast<float>(t1_price);
                             entry_order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                            entry_order.Target1Price = static_cast<float>(t1_price);
                             entry_order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
 
                             int submit_result = 0;
@@ -938,15 +939,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             if (submit_result > 0)
                             {
                                 result_status = "ORDER_SUBMITTED";
-                                order_err = 0;
 
-                                // Store the parent order ID for exit monitoring
-                                sc.GetPersistentInt(100) = submit_result;  // p5_parent_order_id
-                                sc.GetPersistentInt(101) = 0;              // p5_stop_order_id (discovered later)
-                                sc.GetPersistentInt(102) = 0;              // p5_target_order_id (discovered later)
-                                sc.GetPersistentInt(103) = 0;              // p5_exit_written = not yet
+                                // Store for exit monitoring + modify/exit ops
+                                sc.GetPersistentInt(100) = submit_result;  // parent
+                                sc.GetPersistentInt(101) = 0;              // stop (discovered)
+                                sc.GetPersistentInt(102) = 0;              // target (discovered)
+                                sc.GetPersistentInt(103) = 0;              // exit_written
 
-                                // Write fill event to trade_fills.json
+                                // Write ENTRY fill
                                 const char* fills_path = TradeFillsPath.GetString();
                                 if (fills_path[0] != '\0')
                                 {
@@ -975,16 +975,106 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             result_status = "ACK_SHADOW";
                         }
                     }
-                    else if (cmd_content.find("\"CLOSE\"") != std::string::npos)
+                    // ── OP: MODIFY_STOP — move the protective stop ──────
+                    else if (cmd_content.find("\"MODIFY_STOP\"") != std::string::npos)
                     {
-                        result_status = "ACK_CLOSE";
+                        if (order_armed >= 1)
+                        {
+                            double new_stop = parse_float("\"new_stop\"");
+                            int stop_oid = sc.GetPersistentInt(101);
+                            if (stop_oid > 0 && new_stop > 0)
+                            {
+                                s_SCNewOrder mod;
+                                mod.InternalOrderID = stop_oid;
+                                mod.Price1 = static_cast<float>(new_stop);
+                                int r = sc.ModifyOrder(mod);
+                                result_status = (r >= 0) ? "MODIFY_STOP_OK" : "MODIFY_STOP_FAIL";
+                                order_err = r;
+                            }
+                            else
+                                result_status = "MODIFY_STOP_NO_ORDER";
+                        }
+                        else
+                            result_status = "ACK_MGMT";
                     }
+                    // ── OP: MODIFY_TARGET — move the target ──────────────
+                    else if (cmd_content.find("\"MODIFY_TARGET\"") != std::string::npos)
+                    {
+                        if (order_armed >= 1)
+                        {
+                            double new_target = parse_float("\"new_target\"");
+                            int tgt_oid = sc.GetPersistentInt(102);
+                            if (tgt_oid > 0 && new_target > 0)
+                            {
+                                s_SCNewOrder mod;
+                                mod.InternalOrderID = tgt_oid;
+                                mod.Price1 = static_cast<float>(new_target);
+                                int r = sc.ModifyOrder(mod);
+                                result_status = (r >= 0) ? "MODIFY_TARGET_OK" : "MODIFY_TARGET_FAIL";
+                                order_err = r;
+                            }
+                            else
+                                result_status = "MODIFY_TARGET_NO_ORDER";
+                        }
+                        else
+                            result_status = "ACK_MGMT";
+                    }
+                    // ── OP: EXIT — market exit N contracts ────────────────
+                    else if (cmd_content.find("\"EXIT\"") != std::string::npos)
+                    {
+                        if (order_armed >= 1)
+                        {
+                            int exit_qty = parse_int("\"contracts\"");
+                            if (exit_qty <= 0) exit_qty = 1;
+                            s_SCNewOrder exit_order;
+                            exit_order.OrderQuantity = exit_qty;
+                            exit_order.OrderType = SCT_ORDERTYPE_MARKET;
+                            exit_order.TimeInForce = SCT_TIF_GTC;
+                            // Flatten: use FlattenAndCancelOrders for full exit
+                            int r = sc.FlattenAndCancelOrders();
+                            result_status = (r >= 0) ? "EXIT_OK" : "EXIT_FAIL";
+                            order_err = r;
+                            // Write EXIT fill
+                            const char* fills_path = TradeFillsPath.GetString();
+                            if (fills_path[0] != '\0')
+                            {
+                                char fb[512];
+                                int fl = snprintf(fb, sizeof(fb),
+                                    "{\"kind\":\"EXIT\",\"ts\":%lld,\"contracts\":%d}\n",
+                                    (long long)time(nullptr), exit_qty);
+                                if (fl > 0 && fl < (int)sizeof(fb))
+                                {
+                                    std::ofstream ff(fills_path);
+                                    if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
+                                }
+                            }
+                            // Reset tracking
+                            sc.GetPersistentInt(100) = 0;
+                            sc.GetPersistentInt(101) = 0;
+                            sc.GetPersistentInt(102) = 0;
+                            sc.GetPersistentInt(103) = 1;
+                        }
+                        else
+                            result_status = "ACK_MGMT";
+                    }
+                    // ── OP: CANCEL — kill working orders / flatten ────────
                     else if (cmd_content.find("\"CANCEL\"") != std::string::npos)
                     {
-                        result_status = "ACK_CANCEL";
+                        if (order_armed >= 1)
+                        {
+                            int r = sc.FlattenAndCancelOrders();
+                            result_status = (r >= 0) ? "CANCEL_OK" : "CANCEL_FAIL";
+                            order_err = r;
+                            sc.GetPersistentInt(100) = 0;
+                            sc.GetPersistentInt(101) = 0;
+                            sc.GetPersistentInt(102) = 0;
+                            sc.GetPersistentInt(103) = 1;
+                        }
+                        else
+                            result_status = "ACK_CANCEL";
                     }
-                    else if (cmd_content.find("\"MODIFY_STOP\"") != std::string::npos ||
-                             cmd_content.find("\"MODIFY_TARGET\"") != std::string::npos ||
+                    // ── Legacy stubs ──────────────────────────────────────
+                    else if (cmd_content.find("\"CLOSE\"") != std::string::npos ||
                              cmd_content.find("\"ARM_BE\"") != std::string::npos ||
                              cmd_content.find("\"SCALE_OUT\"") != std::string::npos ||
                              cmd_content.find("\"BAILOUT\"") != std::string::npos)
