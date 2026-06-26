@@ -95,6 +95,20 @@ class TradingGateway:
         self._live_enabled_systems.discard(system_id)
 
     def route_setup(self, setup: dict, system_id: int) -> Dict:
+        """Route a setup, then LOG the gate block reason so blocks are not silent
+        (no silent failures — every blocked setup records WHY it didn't fire)."""
+        result = self._route_setup_inner(setup, system_id)
+        bb = result.get("blocked_by")
+        if bb:
+            logger.warning(
+                "[Gateway] BLOCKED system=%s pattern=%s dir=%s entry=%s blocked_by=%s",
+                system_id,
+                setup.get("pattern") or setup.get("pattern_id") or setup.get("setup_kind"),
+                setup.get("direction"), setup.get("entry_price"), bb,
+            )
+        return result
+
+    def _route_setup_inner(self, setup: dict, system_id: int) -> Dict:
         """Route a trade setup through all 3 modes per spec section 8.
 
         Args:
