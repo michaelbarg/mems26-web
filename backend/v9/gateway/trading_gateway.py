@@ -648,18 +648,86 @@ class TradingGateway:
         return trade
 
     def _execute_demo(self, setup: dict, system_id: int, cross_context: dict) -> dict:
-        """DEMO: persist and write Sierra SIM command file."""
+        """DEMO: create a REAL TM trade (mode=demo) + write Sierra SIM command.
+
+        Mirrors _execute_shadow's TM setup but with mode="demo" so the manager's
+        _is_demo_mode returns True → dynamic MODIFY_STOP/TARGET reach Sierra.
+        Does NOT also create the legacy _build_trade dict.
+        """
+        if self._trade_manager is not None:
+            g1 = extract_g1_entry_context(cross_context)
+
+            # B: seed runner targets if t3 is missing (initial trail target)
+            t1 = setup.get("t1") or 0.0
+            t2 = setup.get("t2") or 0.0
+            t3 = setup.get("t3") or 0.0
+            if t1 > 0 and t2 > 0 and t3 <= 0:
+                # initial trail target: one structural step beyond t2
+                t3 = 2 * t2 - t1
+            # Ensure t2 has a value if t1 exists (same formula, one step)
+            if t1 > 0 and t2 <= 0:
+                direction = (setup.get("direction") or "").upper()
+                t2 = t1 + abs(t1 - (setup.get("stop") or t1)) if direction == "LONG" \
+                    else t1 - abs(t1 - (setup.get("stop") or t1))
+
+            tm_setup = {
+                "firing_system": system_id,
+                "direction": setup.get("direction", "LONG"),
+                "stop": setup.get("stop", 0.0),
+                "t1": t1,
+                "t2": t2,
+                "t3": t3,
+                "entry_price": setup.get("entry_price"),
+                "classification": setup.get("classification", ""),
+                "confidence": setup.get("confidence", 0.0),
+                "metadata": setup.get("metadata") or {},
+                "trigger": (
+                    setup.get("classification")
+                    or (setup.get("metadata") or {}).get("pattern")
+                    or (setup.get("metadata") or {}).get("signal")
+                ),
+                "cross_context": cross_context,
+                "day_type_at_entry": g1["day_type_at_entry"],
+                "pattern_id_at_entry": resolve_pattern_id(setup, g1),
+                "session_at_entry": g1["session_at_entry"],
+            }
+
+            trade_id = self._trade_manager.accept_setup(tm_setup, "demo")
+            try:
+                self._trade_manager._db.commit()
+            except Exception as commit_err:
+                logger.warning("[Gateway] DEMO trade commit failed: %s", commit_err)
+
+            # Write Sierra command with the seeded targets
+            demo_setup = dict(setup)
+            demo_setup["t2"] = t2
+            demo_setup["t3"] = t3
+            command = command_from_setup(
+                demo_setup,
+                trade_id=str(trade_id),
+                account="PA-APEX-125218-01",
+                mode="demo",
+            )
+
+            logger.info(
+                "[Gateway] DEMO trade TM id=%d: %s %s system=%d t1=%.2f t2=%.2f t3=%.2f",
+                trade_id, tm_setup["direction"], setup.get("classification", ""),
+                system_id, t1, t2, t3,
+            )
+            return {
+                "trade_id": str(trade_id),
+                "mode": "demo",
+                "firing_system": system_id,
+                "direction": tm_setup["direction"],
+                "state": "PENDING",
+                "entry_price": setup.get("entry_price"),
+                "sierra_command": command,
+            }
+
+        # Fallback: legacy persist (no TM available)
         trade = self._build_trade("demo", setup, system_id, cross_context)
         self._persist_trade(trade)
-        command = command_from_setup(
-            setup,
-            trade_id=trade["trade_id"],
-            account="PA-APEX-125218-01",
-            mode="demo",
-        )
-        trade["sierra_command"] = command
-        logger.info("[Gateway] DEMO trade: %s %s system=%d",
-                     trade["direction"], trade.get("classification", ""), system_id)
+        logger.info("[Gateway] DEMO trade (legacy): %s system=%d", trade["direction"], system_id)
         return trade
 
     def _execute_live(self, setup: dict, system_id: int, cross_context: dict) -> dict:

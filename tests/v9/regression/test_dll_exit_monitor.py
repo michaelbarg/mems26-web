@@ -14,10 +14,10 @@ def test_dll_has_exit_monitor_block():
     if not dll_path.exists():
         pytest.skip("DLL source not found")
     source = dll_path.read_text()
-    assert "Monitor attached-order fills" in source
+    assert "Monitor all 3 groups" in source
     assert "p5_parent" in source
-    assert "p5_target" in source
-    assert "p5_stop" in source
+    assert "tgt_id" in source
+    assert "stp_id" in source
 
 
 def test_dll_writes_stop_fill():
@@ -55,7 +55,7 @@ def test_dll_exit_monitor_gated_by_enable_order():
     if not dll_path.exists():
         pytest.skip("DLL source not found")
     source = dll_path.read_text()
-    monitor_pos = source.find("Monitor attached-order fills")
+    monitor_pos = source.find("Monitor all 3 groups")
     assert monitor_pos > 0
     following = source[monitor_pos:monitor_pos + 500]
     assert "EnableOrderPlacement" in following

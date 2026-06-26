@@ -37,7 +37,12 @@ def test_live_consecutive_loss_blocks():
     assert passes_strict_checks({}, "live", g) is False
 
 
-def test_live_under_caps_passes():
+@patch("backend.v9.gateway.risk_checks.datetime")
+def test_live_under_caps_passes(mock_dt):
+    """Under all caps + before cutoff → passes."""
+    from datetime import datetime as real_dt
+    from zoneinfo import ZoneInfo
+    mock_dt.now.return_value = real_dt(2026, 6, 25, 10, 0, 0, tzinfo=ZoneInfo("America/New_York"))
     g = _mock_gateway(daily_pnl=-100, daily_trades=3, consecutive_losses=1)
     assert passes_strict_checks({}, "live", g) is True
 

@@ -178,33 +178,32 @@ def test_dll_3_contracts_default():
     assert "contracts = 3" in source
 
 
-def test_dll_per_contract_bracket():
-    """PLACE uses OCO groups for per-contract exits:
-    Group 1 (C1): 1 contract, Target1 + Stop1
-    Group 2 (runners): remaining, Stop2 only (no target, manager-driven)
+def test_dll_3_oco_groups_per_contract():
+    """PLACE uses 3 OCO groups — each contract has its OWN target + stop.
+    Group 1: C1, Group 2: C2, Group 3: C3.
 
-    if reverted → RED because: all-out Target1 on all 3 violates the rule.
+    if reverted → RED because: fewer groups means shared targets (wrong).
     """
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
     source = dll.read_text()
-    # OCO groups for per-contract split
     assert "OCOGroup1Quantity" in source
     assert "OCOGroup2Quantity" in source
-    # C1: target + stop
+    assert "OCOGroup3Quantity" in source
     assert "Target1Price" in source
+    assert "Target2Price" in source
+    assert "Target3Price" in source
     assert "Stop1Price" in source
-    # Runners: Stop2 only, NO Target2
     assert "Stop2Price" in source
-    assert "AttachedOrderStop2Type" in source
-    # No old broken approaches
-    assert "c1_exit" not in source
-    assert "c1_placed" not in source
-    assert "Deferred C1" not in source
-    # Persists 4 IDs via GetPersistentInt64
+    assert "Stop3Price" in source
+    # All 6 InternalOrderIDs persisted
+    assert "Target2InternalOrderID" in source
+    assert "Target3InternalOrderID" in source
     assert "Stop2InternalOrderID" in source
-    assert "GetPersistentInt64(4)" in source
+    assert "Stop3InternalOrderID" in source
+    # 7 persistent int64 slots used
+    assert "GetPersistentInt64(7)" in source
 
 
 def test_dll_exit_uses_partial_not_flatten():
@@ -219,6 +218,31 @@ def test_dll_exit_uses_partial_not_flatten():
     assert "SellExit" in exit_block
     assert "BuyExit" in exit_block
     assert "sc.FlattenAndCancelAllOrders()" not in exit_block
+
+
+@patch.dict(os.environ, {"DEMO_EXECUTION_ENABLED": "1"})
+def test_manager_emits_modify_target_with_specific_id():
+    """Manager can modify a SPECIFIC runner target by order_id (per-contract).
+
+    if reverted → RED because: removing the target_order_id parameter makes
+    the manager unable to address individual runner targets.
+    """
+    from backend.v9.services.trade_manager.manager import TradeManager
+
+    mock_trade = MagicMock()
+    mock_trade.mode = "demo"
+    mock_trade.quality = {"sierra_order_id": 42}
+
+    tm = MagicMock(spec=TradeManager)
+    tm._is_demo_mode = TradeManager._is_demo_mode.__get__(tm)
+    tm._get_sierra_order_id = TradeManager._get_sierra_order_id.__get__(tm)
+    tm._emit_modify_target = TradeManager._emit_modify_target.__get__(tm)
+
+    with patch("backend.v9.services.sierra_command.write_modify_target") as mock_write:
+        # Pass a specific runner target order_id (not the trade's sierra_order_id)
+        tm._emit_modify_target(mock_trade, 7480.0, target_order_id=99)
+        mock_write.assert_called_once_with(
+            trade_id=str(mock_trade.id), order_id=99, new_target=7480.0)
 
 
 def test_dll_no_wrong_flatten_method():

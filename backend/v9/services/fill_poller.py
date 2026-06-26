@@ -122,12 +122,25 @@ class FillPoller:
 
         try:
             if kind == "ENTRY":
-                # Entry fill — transition PENDING→FILLED via on_fill (records the
-                # Sierra fill price + entry_ts + emits trade_filled). Fixes the gap
-                # where setting entry_price directly left the trade NOT in FILLED state.
+                # Entry fill — transition PENDING→FILLED via on_fill
                 if price is not None:
                     self._tm.on_fill(trade_id, float(price))
                     logger.info("[FillPoller] ENTRY fill: trade %s @ %s", trade_id, price)
+
+                    # Store Sierra order IDs from the ENTRY fill (6 per-contract IDs)
+                    sierra_ids = {
+                        "sierra_order_id": fill.get("order_id"),
+                        "c1_target_id": fill.get("c1_target_id"),
+                        "c1_stop_id": fill.get("c1_stop_id"),
+                        "c2_target_id": fill.get("c2_target_id"),
+                        "c2_stop_id": fill.get("c2_stop_id"),
+                        "c3_target_id": fill.get("c3_target_id"),
+                        "c3_stop_id": fill.get("c3_stop_id"),
+                    }
+                    try:
+                        self._tm.set_sierra_order_ids(trade_id, sierra_ids)
+                    except Exception as e:
+                        logger.warning("[FillPoller] set_sierra_order_ids failed: %s", e)
 
             elif kind in ("T1", "T2", "T3"):
                 self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts)

@@ -124,11 +124,14 @@ class TradeManager:
         except Exception as e:
             logger.warning("[TradeManager] Sierra MODIFY_STOP failed: %s", e)
 
-    def _emit_modify_target(self, trade, new_target: float) -> None:
-        """Emit a MODIFY_TARGET command to Sierra (DEMO mode only)."""
+    def _emit_modify_target(self, trade, new_target: float, target_order_id: Optional[int] = None) -> None:
+        """Emit a MODIFY_TARGET command to Sierra (DEMO mode only).
+        If target_order_id is given, modifies that specific target (per-runner).
+        Otherwise uses the trade's sierra_order_id (legacy/fallback).
+        """
         if not self._is_demo_mode(trade):
             return
-        oid = self._get_sierra_order_id(trade)
+        oid = target_order_id or self._get_sierra_order_id(trade)
         if oid is None:
             return
         try:
@@ -136,6 +139,24 @@ class TradeManager:
             write_modify_target(trade_id=str(trade.id), order_id=oid, new_target=new_target)
         except Exception as e:
             logger.warning("[TradeManager] Sierra MODIFY_TARGET failed: %s", e)
+
+    def set_sierra_order_ids(self, trade_id: int, ids: dict) -> None:
+        """Store Sierra order IDs on the trade (from ENTRY fill).
+
+        Keys: sierra_order_id, c1_target_id, c1_stop_id,
+              c2_target_id, c2_stop_id, c3_target_id, c3_stop_id.
+        """
+        trade = self._get_trade(trade_id)
+        if trade is None:
+            return
+        q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+        for k, v in ids.items():
+            if v is not None and v != 0:
+                q[k] = v
+        trade.quality = q
+        self._db.flush()
+        logger.info("[TradeManager] Sierra IDs stored on trade %d: %s",
+                     trade_id, {k: v for k, v in ids.items() if v})
 
     def _emit_exit(self, trade, contracts: int) -> None:
         """Emit an EXIT command to Sierra (DEMO mode only)."""
