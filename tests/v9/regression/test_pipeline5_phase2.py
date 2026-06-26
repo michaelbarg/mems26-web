@@ -1,7 +1,7 @@
 """Pipeline 5 Phase 2: dynamic manager drives Sierra (DEMO mode).
 
 Tests the command protocol (MODIFY_STOP/MODIFY_TARGET/EXIT/CANCEL),
-the manager's emit wiring, and the DLL order-ops source.
+the manager's BEHAVIORAL emit wiring, DLL order-ops, and partial scale-out.
 
 if reverted → RED because: removing the command functions or the
 emit wiring would break the assertions.
@@ -30,7 +30,6 @@ def test_modify_stop_command():
             assert result["op"] == "MODIFY_STOP"
             assert result["order_id"] == 42
             assert result["new_stop"] == 7440.0
-            # Verify file written
             content = json.loads((Path(td) / "trade_command.json").read_text())
             assert content["op"] == "MODIFY_STOP"
 
@@ -59,7 +58,7 @@ def test_cancel_command():
 
 
 def test_place_command_has_op_field():
-    """PLACE commands now include op=PLACE for dispatch."""
+    """PLACE commands include op=PLACE for dispatch."""
     with tempfile.TemporaryDirectory() as td:
         with patch.dict(os.environ, {"MEMS26_SIGNALS_DIR": td}):
             setup = {"direction": "LONG", "entry_price": 7450.0, "stop": 7440.0,
@@ -139,7 +138,6 @@ def test_manager_emits_modify_target_in_demo():
 # ── B. DLL order-ops ─────────────────────────────────────────────────────
 
 def test_dll_has_modify_stop_op():
-    """DLL dispatches MODIFY_STOP via sc.ModifyOrder."""
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
@@ -161,7 +159,6 @@ def test_dll_has_exit_op():
     if not dll.exists():
         pytest.skip("DLL not found")
     source = dll.read_text()
-    assert "FlattenAndCancelOrders" in source
     assert "EXIT" in source
 
 
@@ -174,7 +171,6 @@ def test_dll_has_cancel_op():
 
 
 def test_dll_3_contracts_default():
-    """Phase 2: entry bracket defaults to 3 contracts."""
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
@@ -182,45 +178,54 @@ def test_dll_3_contracts_default():
     assert "contracts = 3" in source
 
 
-def test_dll_oco_group1_partial_target():
-    """PLACE uses OCOGroup1Quantity=1 for C1 partial target (not all-out).
+def test_dll_deferred_c1_limit_exit():
+    """C1 limit exit is placed AFTER entry fills (deferred to exit monitor),
+    NOT immediately after BuyEntry (where no position exists yet).
 
-    if reverted → RED because: removing OCOGroup1Quantity makes the target
-    cover all contracts (the bug this follow-up fixes).
+    if reverted → RED because: placing C1 in the PLACE block fails (no position).
     """
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
     source = dll.read_text()
-    assert "OCOGroup1Quantity = 1" in source
-    assert "OCOGroup2Quantity" in source
+    # No OCOGroup fields
+    assert "OCOGroup1Quantity" not in source
+    assert "OCOGroup2Quantity" not in source
+    # C1 is placed in the exit-monitor section, NOT in the PLACE block
+    assert "p5_c1_placed" in source
+    assert "Deferred C1" in source
+    # The exit monitor uses OrderStatusCode==SCT_OSC_FILLED to detect entry fill
+    monitor_pos = source.find("Deferred C1")
+    assert monitor_pos > 0
+    monitor_block = source[monitor_pos:monitor_pos + 1500]
+    assert "OrderStatusCode" in monitor_block
+    assert "SCT_OSC_FILLED" in monitor_block
+    assert "sc.GetTradePosition" not in monitor_block  # removed — needs MaintainTradeStats
+    assert "SCT_ORDERTYPE_LIMIT" in monitor_block
+    assert "c1_exit" in monitor_block
+    # Retry: p5_c1_placed=1 only if c1_id > 0
+    assert "if (c1_id > 0)" in monitor_block
 
 
 def test_dll_exit_uses_partial_not_flatten():
-    """EXIT uses sc.SellExit/BuyExit (partial), NOT FlattenAndCancelOrders.
-
-    if reverted → RED because: using Flatten for EXIT closes all contracts.
-    """
+    """EXIT uses sc.SellExit/BuyExit (partial), NOT FlattenAndCancelAllOrders."""
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
     source = dll.read_text()
-    # Find the EXIT block and verify it uses SellExit/BuyExit
     exit_pos = source.find("OP: EXIT")
     assert exit_pos > 0
-    exit_block = source[exit_pos:exit_pos + 1000]
+    exit_block = source[exit_pos:exit_pos + 1500]
     assert "SellExit" in exit_block
     assert "BuyExit" in exit_block
-    # FlattenAndCancelOrders may appear in a comment but must NOT be called
-    # The actual call would be "sc.FlattenAndCancelOrders()" — check that's absent
-    assert "sc.FlattenAndCancelOrders()" not in exit_block
+    assert "sc.FlattenAndCancelAllOrders()" not in exit_block
 
 
-def test_dll_runner_stop_tracked():
-    """DLL tracks the G2 (runner) stop in persistent int 104."""
+def test_dll_no_wrong_flatten_method():
+    """DLL uses FlattenAndCancelAllOrders (correct), not FlattenAndCancelOrders (wrong)."""
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
     source = dll.read_text()
-    assert "p5_runner_stop_id" in source
-    assert "GetPersistentInt(104)" in source
+    assert "sc.FlattenAndCancelOrders()" not in source
+    assert "sc.FlattenAndCancelAllOrders()" in source

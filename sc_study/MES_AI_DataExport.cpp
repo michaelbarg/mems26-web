@@ -1053,15 +1053,21 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             exit_order.OrderType = SCT_ORDERTYPE_MARKET;
                             exit_order.TimeInForce = SCT_TIF_GTC;
 
+                            // Determine exit side: try GetTradePosition first, fall back to stored direction
                             int r = 0;
+                            int exit_dir = sc.GetPersistentInt(107);  // 1=LONG, -1=SHORT
                             s_SCPositionData pos;
                             sc.GetTradePosition(pos);
                             if (pos.PositionQuantity > 0)
-                                r = static_cast<int>(sc.SellExit(exit_order));   // exit LONG
+                                r = static_cast<int>(sc.SellExit(exit_order));
                             else if (pos.PositionQuantity < 0)
-                                r = static_cast<int>(sc.BuyExit(exit_order));    // exit SHORT
+                                r = static_cast<int>(sc.BuyExit(exit_order));
+                            else if (exit_dir > 0)   // fallback: stored direction
+                                r = static_cast<int>(sc.SellExit(exit_order));
+                            else if (exit_dir < 0)
+                                r = static_cast<int>(sc.BuyExit(exit_order));
                             else
-                                r = -1;  // no position
+                                r = -1;
 
                             result_status = (r > 0) ? "EXIT_OK" : "EXIT_FAIL";
                             order_err = r;
@@ -1174,13 +1180,16 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
         }
 
-        // Deferred C1: once position is live (entry filled), place the 1-lot limit exit
+        // Deferred C1: once the ENTRY ORDER is FILLED, place the 1-lot limit exit.
+        // Uses OrderStatusCode (not GetTradePosition which needs MaintainTradeStats).
         if (p5_parent_order_id > 0 && p5_c1_placed == 0 && p5_t1_price_x100 != 0)
         {
-            s_SCPositionData pos;
-            sc.GetTradePosition(pos);
-            // Position exists (entry filled) → place C1 limit exit
-            if (pos.PositionQuantity != 0)
+            s_SCTradeOrder entry_info;
+            bool entry_filled = false;
+            if (sc.GetOrderByOrderID(p5_parent_order_id, entry_info) != SCTRADING_ORDER_ERROR)
+                entry_filled = (entry_info.OrderStatusCode == SCT_OSC_FILLED);
+
+            if (entry_filled)
             {
                 double t1_val = p5_t1_price_x100 / 100.0;
                 s_SCNewOrder c1_exit;
@@ -1193,21 +1202,47 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     c1_id = static_cast<int>(sc.SellExit(c1_exit));
                 else                   // SHORT → BuyExit at T1
                     c1_id = static_cast<int>(sc.BuyExit(c1_exit));
-                p5_target_order_id = (c1_id > 0) ? c1_id : 0;
-                p5_c1_placed = 1;
 
-                // Write C1_PLACED fill event so the backend knows the C1 order is live
-                const char* fills_path = TradeFillsPath.GetString();
-                if (fills_path[0] != '\0' && c1_id > 0)
+                // Only mark placed if the exit order was accepted
+                if (c1_id > 0)
                 {
-                    char fb[512];
-                    int fl = snprintf(fb, sizeof(fb),
-                        "{\"kind\":\"C1_PLACED\",\"ts\":%lld,\"order_id\":%d,\"price\":%.2f}\n",
-                        (long long)time(nullptr), c1_id, t1_val);
-                    if (fl > 0 && fl < (int)sizeof(fb))
+                    p5_target_order_id = c1_id;
+                    p5_c1_placed = 1;
+                }
+                // else: leave p5_c1_placed=0 to retry next update
+
+                // DEBUG: write C1 attempt result to trade_result.json for diagnostics
+                const char* res_path = TradeResultPath.GetString();
+                if (res_path[0] != '\0')
+                {
+                    char db[512];
+                    int dl = snprintf(db, sizeof(db),
+                        "{\"c1_attempt\":true,\"c1_id\":%d,\"parent_status\":%d,"
+                        "\"t1_price\":%.2f,\"direction\":%d,\"ts\":%lld}\n",
+                        c1_id, (int)entry_info.OrderStatusCode,
+                        t1_val, p5_direction, (long long)time(nullptr));
+                    if (dl > 0 && dl < (int)sizeof(db))
                     {
-                        std::ofstream ff(fills_path);
-                        if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
+                        std::ofstream rf(res_path);
+                        if (rf.is_open()) { rf.write(db, dl); rf.close(); }
+                    }
+                }
+
+                // Write C1_PLACED fill event if successful
+                if (c1_id > 0)
+                {
+                    const char* fills_path = TradeFillsPath.GetString();
+                    if (fills_path[0] != '\0')
+                    {
+                        char fb[512];
+                        int fl = snprintf(fb, sizeof(fb),
+                            "{\"kind\":\"C1_PLACED\",\"ts\":%lld,\"order_id\":%d,\"price\":%.2f}\n",
+                            (long long)time(nullptr), c1_id, t1_val);
+                        if (fl > 0 && fl < (int)sizeof(fb))
+                        {
+                            std::ofstream ff(fills_path);
+                            if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
+                        }
                     }
                 }
             }
