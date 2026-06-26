@@ -931,15 +931,34 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             if (contracts <= 0) contracts = 3;
                             bool is_buy = (cmd_content.find("\"BUY\"") != std::string::npos);
 
+                            // Per-contract bracket via OCO groups:
+                            //   Group 1: 1 contract (C1) — target at T1 + protective stop
+                            //   Group 2: remaining contracts (runners) — stop only, NO target
+                            //     (runners exit dynamically via manager EXIT commands)
+                            // OCOGroup fields control the per-group attached-order quantity.
+                            // MaximumPositionAllowed=10 (SetDefaults) prevents the -1 that
+                            // previously hid as an OCOGroup rejection.
                             s_SCNewOrder o;
                             o.OrderQuantity = contracts;
                             o.OrderType     = SCT_ORDERTYPE_MARKET;
-                            o.TimeInForce   = SCT_TIF_DAY;  // futures: DAY (research §6)
-                            // Attached: protective stop + C1 target (Sierra OCO)
-                            o.Stop1Price    = static_cast<float>(stop_price);
-                            o.AttachedOrderStop1Type  = SCT_ORDERTYPE_STOP;
-                            o.Target1Price  = static_cast<float>(t1_price);
+                            o.TimeInForce   = SCT_TIF_DAY;
+
+                            // Group 1: C1 = 1 contract, target + stop
+                            o.OCOGroup1Quantity        = 1;
+                            o.Target1Price             = static_cast<float>(t1_price);
                             o.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                            o.Stop1Price               = static_cast<float>(stop_price);
+                            o.AttachedOrderStop1Type   = SCT_ORDERTYPE_STOP;
+
+                            // Group 2: runners = remaining, stop only (no target)
+                            int runner_qty = (contracts > 1) ? (contracts - 1) : 0;
+                            if (runner_qty > 0)
+                            {
+                                o.OCOGroup2Quantity        = runner_qty;
+                                o.Stop2Price               = static_cast<float>(stop_price);
+                                o.AttachedOrderStop2Type   = SCT_ORDERTYPE_STOP;
+                                // No Target2 — runners exit via manager MODIFY_STOP / EXIT
+                            }
 
                             int r = is_buy
                                 ? static_cast<int>(sc.BuyEntry(o))
@@ -948,10 +967,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             if (r > 0)
                             {
                                 result_status = "ORDER_SUBMITTED";
-                                // Persist the 3 IDs (research §1.5) via GetPersistentInt64
+                                // Persist IDs via GetPersistentInt64
                                 sc.GetPersistentInt64(1) = o.InternalOrderID;        // parent
                                 sc.GetPersistentInt64(2) = o.Target1InternalOrderID; // C1 target
-                                sc.GetPersistentInt64(3) = o.Stop1InternalOrderID;   // stop
+                                sc.GetPersistentInt64(3) = o.Stop1InternalOrderID;   // C1 stop
+                                sc.GetPersistentInt64(4) = o.Stop2InternalOrderID;   // runner stop
                                 sc.GetPersistentInt(103) = 0;  // exit_written reset
 
                                 // Write ENTRY fill + the 3 order IDs
@@ -962,11 +982,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                     int fl = snprintf(fb, sizeof(fb),
                                         "{\"kind\":\"ENTRY\",\"ts\":%lld,\"order_id\":%lld,"
                                         "\"target_id\":%lld,\"stop_id\":%lld,"
+                                        "\"runner_stop_id\":%lld,"
                                         "\"price\":%.2f,\"contracts\":%d,\"direction\":\"%s\"}\n",
                                         (long long)time(nullptr),
                                         (long long)o.InternalOrderID,
                                         (long long)o.Target1InternalOrderID,
                                         (long long)o.Stop1InternalOrderID,
+                                        (long long)o.Stop2InternalOrderID,
                                         entry_price, contracts, is_buy ? "LONG" : "SHORT");
                                     if (fl > 0 && fl < (int)sizeof(fb))
                                     {
@@ -1017,15 +1039,17 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         else
                             result_status = "ACK_SHADOW";
                     }
-                    // ── OP: MODIFY_STOP — move the attached stop child (research §5.3) ──
-                    // Uses Price1 (absolute), NOT Stop1Price (research: "If you wish to modify
-                    // the prices of Attached Orders, set Price1, not the *Offset/*Price members").
+                    // ── OP: MODIFY_STOP — move the RUNNER stop (persistent 4), or C1 stop (3) ──
+                    // After C1 fills, only the runner stop (Group 2) remains. Before C1 fills,
+                    // both exist; modify the runner stop for BE/trail (the C1 stop is auto-
+                    // managed by the OCO). Uses Price1 absolute (research §5.3).
                     else if (cmd_content.find("\"MODIFY_STOP\"") != std::string::npos)
                     {
                         if (order_armed >= 1)
                         {
                             double new_stop = parse_float("\"new_stop\"");
-                            int64_t stop_oid = sc.GetPersistentInt64(3);  // stop child ID
+                            int64_t stop_oid = sc.GetPersistentInt64(4);  // runner stop
+                            if (stop_oid <= 0) stop_oid = sc.GetPersistentInt64(3);  // fallback C1
                             if (stop_oid > 0 && new_stop > 0)
                             {
                                 s_SCNewOrder mod;
@@ -1127,8 +1151,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             result_status = (r >= 0) ? "CANCEL_OK" : "CANCEL_FAIL";
                             order_err = r;
                             sc.GetPersistentInt64(1) = 0;  // parent
-                            sc.GetPersistentInt64(2) = 0;  // target
-                            sc.GetPersistentInt64(3) = 0;  // stop
+                            sc.GetPersistentInt64(2) = 0;  // C1 target
+                            sc.GetPersistentInt64(3) = 0;  // C1 stop
+                            sc.GetPersistentInt64(4) = 0;  // runner stop
                             sc.GetPersistentInt(103) = 1;  // exit_written
                         }
                         else
@@ -1167,34 +1192,59 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
 
     // ══════════════════════════════════════════════════════════════
-    // Pipeline 5: Monitor attached-order fills (stop + target)
-    // IDs from GetPersistentInt64: 1=parent, 2=target(C1), 3=stop
+    // Pipeline 5: Monitor attached-order fills (C1 target + stops)
+    // IDs: 1=parent, 2=C1 target, 3=C1 stop, 4=runner stop
     // ══════════════════════════════════════════════════════════════
     if (EnableOrderPlacement.GetInt() >= 1)
     {
-        int64_t p5_parent = sc.GetPersistentInt64(1);
-        int64_t p5_target = sc.GetPersistentInt64(2);  // C1 target child
-        int64_t p5_stop   = sc.GetPersistentInt64(3);  // stop child
-        int& p5_exit_written = sc.GetPersistentInt(103);
+        int64_t p5_parent      = sc.GetPersistentInt64(1);
+        int64_t p5_target      = sc.GetPersistentInt64(2);  // C1 target
+        int64_t p5_stop        = sc.GetPersistentInt64(3);  // C1 stop
+        int64_t p5_runner_stop = sc.GetPersistentInt64(4);  // runner stop
+        int& p5_exit_written   = sc.GetPersistentInt(103);
 
         if (p5_parent > 0 && p5_exit_written == 0)
         {
             const char* fills_path = TradeFillsPath.GetString();
             if (fills_path[0] != '\0')
             {
-                // Check stop child
-                if (p5_stop > 0)
+                // Check C1 target fill (Group 1) — C1 out, runners continue
+                if (p5_target > 0)
                 {
-                    s_SCTradeOrder stop_info;
-                    if (sc.GetOrderByOrderID(static_cast<int>(p5_stop), stop_info) != SCTRADING_ORDER_ERROR
-                        && stop_info.OrderStatusCode == SCT_OSC_FILLED)
+                    s_SCTradeOrder ti;
+                    if (sc.GetOrderByOrderID(static_cast<int>(p5_target), ti) != SCTRADING_ORDER_ERROR
+                        && ti.OrderStatusCode == SCT_OSC_FILLED)
+                    {
+                        char fb[512];
+                        int fl = snprintf(fb, sizeof(fb),
+                            "{\"kind\":\"T1\",\"ts\":%lld,\"order_id\":%lld,"
+                            "\"price\":%.2f,\"contracts\":%d}\n",
+                            (long long)time(nullptr), (long long)p5_target,
+                            ti.AvgFillPrice, (int)ti.FilledQuantity);
+                        if (fl > 0 && fl < (int)sizeof(fb))
+                        {
+                            std::ofstream ff(fills_path);
+                            if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
+                        }
+                        // C1 out; runner stop still live → manager will MODIFY_STOP→BE
+                        sc.GetPersistentInt64(2) = 0;  // clear C1 target (filled)
+                        sc.GetPersistentInt64(3) = 0;  // C1 stop auto-canceled by OCO
+                    }
+                }
+
+                // Check runner stop fill (Group 2) — all runners stopped out
+                if (p5_runner_stop > 0)
+                {
+                    s_SCTradeOrder rs;
+                    if (sc.GetOrderByOrderID(static_cast<int>(p5_runner_stop), rs) != SCTRADING_ORDER_ERROR
+                        && rs.OrderStatusCode == SCT_OSC_FILLED)
                     {
                         char fb[512];
                         int fl = snprintf(fb, sizeof(fb),
                             "{\"kind\":\"STOP\",\"ts\":%lld,\"order_id\":%lld,"
                             "\"price\":%.2f,\"contracts\":%d}\n",
-                            (long long)time(nullptr), (long long)p5_stop,
-                            stop_info.AvgFillPrice, (int)stop_info.FilledQuantity);
+                            (long long)time(nullptr), (long long)p5_runner_stop,
+                            rs.AvgFillPrice, (int)rs.FilledQuantity);
                         if (fl > 0 && fl < (int)sizeof(fb))
                         {
                             std::ofstream ff(fills_path);
@@ -1204,29 +1254,30 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         sc.GetPersistentInt64(1) = 0;
                         sc.GetPersistentInt64(2) = 0;
                         sc.GetPersistentInt64(3) = 0;
+                        sc.GetPersistentInt64(4) = 0;
                     }
                 }
 
-                // Check target child (C1)
-                if (p5_target > 0 && p5_exit_written == 0)
+                // Check C1 stop fill (Group 1 stopped — pre-T1)
+                if (p5_stop > 0)
                 {
-                    s_SCTradeOrder target_info;
-                    if (sc.GetOrderByOrderID(static_cast<int>(p5_target), target_info) != SCTRADING_ORDER_ERROR
-                        && target_info.OrderStatusCode == SCT_OSC_FILLED)
+                    s_SCTradeOrder si;
+                    if (sc.GetOrderByOrderID(static_cast<int>(p5_stop), si) != SCTRADING_ORDER_ERROR
+                        && si.OrderStatusCode == SCT_OSC_FILLED)
                     {
                         char fb[512];
                         int fl = snprintf(fb, sizeof(fb),
-                            "{\"kind\":\"T1\",\"ts\":%lld,\"order_id\":%lld,"
+                            "{\"kind\":\"STOP\",\"ts\":%lld,\"order_id\":%lld,"
                             "\"price\":%.2f,\"contracts\":%d}\n",
-                            (long long)time(nullptr), (long long)p5_target,
-                            target_info.AvgFillPrice, (int)target_info.FilledQuantity);
+                            (long long)time(nullptr), (long long)p5_stop,
+                            si.AvgFillPrice, (int)si.FilledQuantity);
                         if (fl > 0 && fl < (int)sizeof(fb))
                         {
                             std::ofstream ff(fills_path);
                             if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
                         }
-                        // T1 filled = C1 out; DON'T reset — stop still tracks runners
-                        // The manager will MODIFY_STOP → BE, then trail runners
+                        sc.GetPersistentInt64(2) = 0;  // C1 target auto-canceled
+                        sc.GetPersistentInt64(3) = 0;
                     }
                 }
             }

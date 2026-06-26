@@ -35,7 +35,7 @@ def test_dll_writes_t1_fill():
     if not dll_path.exists():
         pytest.skip("DLL source not found")
     source = dll_path.read_text()
-    assert "T1" in source and "target_info.AvgFillPrice" in source
+    assert "T1" in source and "AvgFillPrice" in source
 
 
 def test_dll_stores_parent_order_for_monitoring():

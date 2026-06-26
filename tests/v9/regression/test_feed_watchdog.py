@@ -134,7 +134,8 @@ def test_gateway_has_feed_watchdog():
     """
     import inspect
     from backend.v9.gateway.trading_gateway import TradingGateway
-    source = inspect.getsource(TradingGateway.route_setup)
+    # Cowork refactored route_setup to delegate to _route_setup_inner
+    source = inspect.getsource(TradingGateway._route_setup_inner)
     assert "feed_watchdog" in source
     assert "is_feed_alive" in source
     assert "blocked_by" in source

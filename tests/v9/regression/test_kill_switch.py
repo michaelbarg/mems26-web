@@ -52,6 +52,6 @@ def test_gateway_has_kill_switch():
     """
     import inspect
     from backend.v9.gateway.trading_gateway import TradingGateway
-    source = inspect.getsource(TradingGateway.route_setup)
+    source = inspect.getsource(TradingGateway._route_setup_inner)
     assert "kill_switch" in source
     assert "is_engaged" in source

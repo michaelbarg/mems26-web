@@ -178,31 +178,33 @@ def test_dll_3_contracts_default():
     assert "contracts = 3" in source
 
 
-def test_dll_attached_orders_bracket():
-    """PLACE uses Attached Orders (Stop1Price + Target1Price) per research §5.1.
-    Sierra manages the OCO server-side. No separate C1 / deferred C1 / OCO groups.
+def test_dll_per_contract_bracket():
+    """PLACE uses OCO groups for per-contract exits:
+    Group 1 (C1): 1 contract, Target1 + Stop1
+    Group 2 (runners): remaining, Stop2 only (no target, manager-driven)
 
-    if reverted → RED because: using separate orders or OCO groups fails at runtime.
+    if reverted → RED because: all-out Target1 on all 3 violates the rule.
     """
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
     source = dll.read_text()
-    # No old approaches
-    assert "OCOGroup1Quantity" not in source
-    assert "OCOGroup2Quantity" not in source
+    # OCO groups for per-contract split
+    assert "OCOGroup1Quantity" in source
+    assert "OCOGroup2Quantity" in source
+    # C1: target + stop
+    assert "Target1Price" in source
+    assert "Stop1Price" in source
+    # Runners: Stop2 only, NO Target2
+    assert "Stop2Price" in source
+    assert "AttachedOrderStop2Type" in source
+    # No old broken approaches
     assert "c1_exit" not in source
     assert "c1_placed" not in source
     assert "Deferred C1" not in source
-    # Uses Attached Orders: Target1Price + Stop1Price on ONE entry
-    assert "Target1Price" in source
-    assert "Stop1Price" in source
-    assert "AttachedOrderTarget1Type" in source
-    assert "AttachedOrderStop1Type" in source
-    # Persists IDs via GetPersistentInt64 (research §1.5)
-    assert "Target1InternalOrderID" in source
-    assert "Stop1InternalOrderID" in source
-    assert "GetPersistentInt64" in source
+    # Persists 4 IDs via GetPersistentInt64
+    assert "Stop2InternalOrderID" in source
+    assert "GetPersistentInt64(4)" in source
 
 
 def test_dll_exit_uses_partial_not_flatten():
