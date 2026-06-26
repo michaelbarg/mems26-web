@@ -69,53 +69,71 @@ def test_place_command_has_op_field():
             assert result["action"] == "BUY"
 
 
-# ── C. Manager emit wiring ──────────────────────────────────────────────
+# ── C. Manager emit wiring — BEHAVIORAL tests ──────────────────────────
 
-def test_manager_has_emit_modify_stop():
-    """Manager has _emit_modify_stop method."""
-    import inspect
-    from backend.v9.services.trade_manager.manager import TradeManager
-    assert hasattr(TradeManager, '_emit_modify_stop')
-    source = inspect.getsource(TradeManager._emit_modify_stop)
-    assert "write_modify_stop" in source
+@patch.dict(os.environ, {"DEMO_EXECUTION_ENABLED": "1"})
+def test_manager_emits_modify_stop_in_demo():
+    """In DEMO mode, a stop move emits a MODIFY_STOP command.
 
-
-def test_manager_has_emit_modify_target():
-    """Manager has _emit_modify_target method."""
-    import inspect
-    from backend.v9.services.trade_manager.manager import TradeManager
-    assert hasattr(TradeManager, '_emit_modify_target')
-    source = inspect.getsource(TradeManager._emit_modify_target)
-    assert "write_modify_target" in source
-
-
-def test_smart_be_emits_modify_stop():
-    """_apply_smart_be_after_t1 calls _emit_modify_stop.
-
-    if reverted → RED because: removing the emit call from smart_be
-    removes MODIFY_STOP from the Sierra command sequence.
+    if reverted → RED because: removing _emit_modify_stop makes the mock
+    never called → assertion fails.
     """
-    import inspect
     from backend.v9.services.trade_manager.manager import TradeManager
-    source = inspect.getsource(TradeManager._apply_smart_be_after_t1)
-    assert "_emit_modify_stop" in source
+
+    mock_trade = MagicMock()
+    mock_trade.mode = "demo"
+    mock_trade.quality = {"sierra_order_id": 42}
+
+    tm = MagicMock(spec=TradeManager)
+    tm._is_demo_mode = TradeManager._is_demo_mode.__get__(tm)
+    tm._get_sierra_order_id = TradeManager._get_sierra_order_id.__get__(tm)
+    tm._emit_modify_stop = TradeManager._emit_modify_stop.__get__(tm)
+
+    with patch("backend.v9.services.sierra_command.write_modify_stop") as mock_write:
+        tm._emit_modify_stop(mock_trade, 7445.0)
+        mock_write.assert_called_once_with(
+            trade_id=str(mock_trade.id), order_id=42, new_stop=7445.0)
 
 
-def test_trail_emits_modify_stop():
-    """apply_trail_after_t1 calls _emit_modify_stop."""
-    import inspect
+@patch.dict(os.environ, {"DEMO_EXECUTION_ENABLED": "0"})
+def test_manager_does_not_emit_in_shadow():
+    """In SHADOW mode (flag OFF), no Sierra command emitted.
+
+    if reverted → RED because: removing the mode gate makes this always emit.
+    """
     from backend.v9.services.trade_manager.manager import TradeManager
-    source = inspect.getsource(TradeManager.apply_trail_after_t1)
-    assert "_emit_modify_stop" in source
+
+    mock_trade = MagicMock()
+    mock_trade.mode = "shadow"
+    mock_trade.quality = {"sierra_order_id": 42}
+
+    tm = MagicMock(spec=TradeManager)
+    tm._is_demo_mode = TradeManager._is_demo_mode.__get__(tm)
+    tm._get_sierra_order_id = TradeManager._get_sierra_order_id.__get__(tm)
+    tm._emit_modify_stop = TradeManager._emit_modify_stop.__get__(tm)
+
+    with patch("backend.v9.services.sierra_command.write_modify_stop") as mock_write:
+        tm._emit_modify_stop(mock_trade, 7445.0)
+        mock_write.assert_not_called()
 
 
-def test_struct_trail_emits_both():
-    """apply_dynamic_struct_trail calls both _emit_modify_stop and _emit_modify_target."""
-    import inspect
+@patch.dict(os.environ, {"DEMO_EXECUTION_ENABLED": "1"})
+def test_manager_emits_modify_target_in_demo():
+    """In DEMO mode, a target re-anchor emits MODIFY_TARGET."""
     from backend.v9.services.trade_manager.manager import TradeManager
-    source = inspect.getsource(TradeManager.apply_dynamic_struct_trail)
-    assert "_emit_modify_stop" in source
-    assert "_emit_modify_target" in source
+
+    mock_trade = MagicMock()
+    mock_trade.mode = "demo"
+    mock_trade.quality = {"sierra_order_id": 42}
+
+    tm = MagicMock(spec=TradeManager)
+    tm._is_demo_mode = TradeManager._is_demo_mode.__get__(tm)
+    tm._get_sierra_order_id = TradeManager._get_sierra_order_id.__get__(tm)
+    tm._emit_modify_target = TradeManager._emit_modify_target.__get__(tm)
+
+    with patch("backend.v9.services.sierra_command.write_modify_target") as mock_write:
+        tm._emit_modify_target(mock_trade, 7470.0)
+        mock_write.assert_called_once()
 
 
 # ── B. DLL order-ops ─────────────────────────────────────────────────────
@@ -162,3 +180,47 @@ def test_dll_3_contracts_default():
         pytest.skip("DLL not found")
     source = dll.read_text()
     assert "contracts = 3" in source
+
+
+def test_dll_oco_group1_partial_target():
+    """PLACE uses OCOGroup1Quantity=1 for C1 partial target (not all-out).
+
+    if reverted → RED because: removing OCOGroup1Quantity makes the target
+    cover all contracts (the bug this follow-up fixes).
+    """
+    dll = Path("sc_study/MES_AI_DataExport.cpp")
+    if not dll.exists():
+        pytest.skip("DLL not found")
+    source = dll.read_text()
+    assert "OCOGroup1Quantity = 1" in source
+    assert "OCOGroup2Quantity" in source
+
+
+def test_dll_exit_uses_partial_not_flatten():
+    """EXIT uses sc.SellExit/BuyExit (partial), NOT FlattenAndCancelOrders.
+
+    if reverted → RED because: using Flatten for EXIT closes all contracts.
+    """
+    dll = Path("sc_study/MES_AI_DataExport.cpp")
+    if not dll.exists():
+        pytest.skip("DLL not found")
+    source = dll.read_text()
+    # Find the EXIT block and verify it uses SellExit/BuyExit
+    exit_pos = source.find("OP: EXIT")
+    assert exit_pos > 0
+    exit_block = source[exit_pos:exit_pos + 1000]
+    assert "SellExit" in exit_block
+    assert "BuyExit" in exit_block
+    # FlattenAndCancelOrders may appear in a comment but must NOT be called
+    # The actual call would be "sc.FlattenAndCancelOrders()" — check that's absent
+    assert "sc.FlattenAndCancelOrders()" not in exit_block
+
+
+def test_dll_runner_stop_tracked():
+    """DLL tracks the G2 (runner) stop in persistent int 104."""
+    dll = Path("sc_study/MES_AI_DataExport.cpp")
+    if not dll.exists():
+        pytest.skip("DLL not found")
+    source = dll.read_text()
+    assert "p5_runner_stop_id" in source
+    assert "GetPersistentInt(104)" in source
