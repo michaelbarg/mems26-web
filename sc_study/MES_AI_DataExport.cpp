@@ -1047,7 +1047,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     // ── OP: EXIT — PARTIAL market exit of N contracts ────
                     // Uses sc.BuyExit (for SHORT position) or sc.SellExit (for LONG position)
                     // with OrderQuantity = exit_qty. This exits exactly N contracts, NOT all.
-                    // FlattenAndCancelOrders is reserved for CANCEL (full flatten).
+                    // FlattenAndCancelAllOrders is reserved for CANCEL (full flatten).
                     else if (cmd_content.find("\"EXIT\"") != std::string::npos)
                     {
                         if (order_armed >= 1)
@@ -1098,7 +1098,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     {
                         if (order_armed >= 1)
                         {
-                            int r = sc.FlattenAndCancelOrders();
+                            int r = sc.FlattenAndCancelAllOrders();
                             result_status = (r >= 0) ? "CANCEL_OK" : "CANCEL_FAIL";
                             order_err = r;
                             sc.GetPersistentInt(100) = 0;
