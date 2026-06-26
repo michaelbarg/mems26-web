@@ -55,6 +55,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
 
+        // Pipeline 5 (2026-06-26): REQUIRED to place an entry order WITH attached stop/target
+        // (the OCO bracket). Without SupportAttachedOrdersForTrading=1, sc.BuyEntry/SellEntry
+        // return -1 (ORDER_FAILED) — verified by the 2026-06-26 Sim test. MaintainTradeStatistics
+        // lets the study track the resulting position for the exit-monitor. DEMO/Sim gated by
+        // the EnableOrderPlacement Input (default OFF); these flags only enable the capability.
+        sc.SupportAttachedOrdersForTrading = 1;
+        sc.MaintainTradeStatisticsAndTradesData = 1;
+
         CVD.Name         = "CVD";
         CVD.DrawStyle    = DRAWSTYLE_LINE;
         CVD.PrimaryColor = COLOR_CYAN;
