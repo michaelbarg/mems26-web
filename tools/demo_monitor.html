@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>MEMS26 — מוניטור פיקוח DEMO</title>
+<style>
+  :root{ --bg:#0e1117; --panel:#161b22; --line:#222b36; --txt:#e6edf3; --dim:#8b949e;
+         --green:#2ea043; --red:#f85149; --amber:#d29922; --blue:#388bfd; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--txt);
+    font:14px/1.45 -apple-system,Segoe UI,Roboto,Arial,"Noto Sans Hebrew",sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px}
+  .top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+  .badge{font-weight:700;padding:4px 12px;border-radius:6px;font-size:15px;letter-spacing:.5px}
+  .mode-shadow{background:#30363d;color:#c9d1d9} .mode-demo{background:var(--amber);color:#1c1400}
+  .mode-live{background:var(--red);color:#2a0000} .mode-unknown{background:#30363d;color:#8b949e}
+  .pills{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .pill{font-size:12px;color:var(--dim);background:#0d1117;border:1px solid var(--line);border-radius:20px;padding:3px 10px}
+  .pill b{color:var(--txt)} .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:5px}
+  .ok{background:var(--green)} .bad{background:var(--red)} .warn{background:var(--amber)}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--dim);margin:18px 4px 8px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+  .active-none{color:var(--dim);text-align:center;padding:26px}
+  .trade-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+  .dir{font-size:22px;font-weight:800;padding:2px 12px;border-radius:7px}
+  .LONG{background:rgba(46,160,67,.16);color:var(--green)} .SHORT{background:rgba(248,81,73,.16);color:var(--red)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px}
+  .kv{background:#0d1117;border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+  .kv .k{font-size:11px;color:var(--dim)} .kv .v{font-size:17px;font-weight:700;margin-top:2px}
+  .legs{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .leg{flex:1;min-width:140px;border:1px solid var(--line);border-radius:8px;padding:8px 11px;background:#0d1117}
+  .leg .t{font-size:11px;color:var(--dim)} .leg .b{font-weight:700;margin-top:2px}
+  table{width:100%;border-collapse:collapse;font-size:13px} th,td{text-align:start;padding:7px 9px;border-bottom:1px solid var(--line)}
+  th{color:var(--dim);font-weight:600;font-size:11px;text-transform:uppercase}
+  .tag{font-size:11px;padding:1px 7px;border-radius:5px} .st-OPEN,.st-FILLED{background:rgba(56,139,253,.15);color:var(--blue)}
+  .st-CLOSED{background:#21262d;color:var(--dim)} .pos{color:var(--green)} .neg{color:var(--red)}
+  .muted{color:var(--dim)} .err{color:var(--red);font-weight:600}
+  button{background:#21262d;color:var(--txt);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="pills">
+      <span id="modeBadge" class="badge mode-unknown">—</span>
+      <span class="pill" id="session">session …</span>
+      <span class="pill" id="feed"><span class="dot warn"></span>feed …</span>
+      <span class="pill" id="bridge"><span class="dot warn"></span>bridge …</span>
+    </div>
+    <div class="pills">
+      <span class="pill" id="updated">—</span>
+      <span class="pill" id="conn"><span class="dot warn"></span>connecting</span>
+      <button id="pause">⏸ השהה</button>
+    </div>
+  </div>
+
+  <h2>עסקה פעילה</h2>
+  <div id="active" class="card"><div class="active-none">טוען…</div></div>
+
+  <h2>עסקאות אחרונות</h2>
+  <div class="card" style="padding:0;overflow:auto">
+    <table id="recent"><thead><tr>
+      <th>#</th><th>מצב</th><th>מערכת</th><th>כיוון</th><th>כניסה</th><th>סטופ</th><th>יציאה</th><th>תוצאה</th><th>סטטוס</th>
+    </tr></thead><tbody><tr><td colspan="9" class="muted">טוען…</td></tr></tbody></table>
+  </div>
+  <p class="muted" style="font-size:11px;margin-top:10px">
+    מתרענן כל 3 שניות מ-<code>localhost:8000</code>. כדי שעסקאות DEMO יופיעו: המערכת חייבת להיות ב-<b>mode=demo</b> + <code>DEMO_EXECUTION_ENABLED=1</code>.
+    כשמחומש, צפה כאן ב-3 חוזים → C1 יוצא ב-T1 → 2 runners עם stop שמתגלגל.
+  </p>
+</div>
+
+<script>
+const API="http://localhost:8000/api/v9";
+let paused=false, timer=null;
+const $=id=>document.getElementById(id);
+const fmt=n=>(n==null||n==="")?"—":(typeof n==="number"?n.toLocaleString(undefined,{maximumFractionDigits:2}):n);
+const num=n=>typeof n==="number";
+
+async function getJSON(p){const r=await fetch(API+p,{cache:"no-store"});if(!r.ok)throw new Error(r.status);return r.json();}
+
+function setConn(ok){const e=$("conn");e.innerHTML=`<span class="dot ${ok?'ok':'bad'}"></span>${ok?'מחובר':'מנותק — הבקאנד דלוק?'}`;}
+
+function renderStatus(s){
+  const m=(s.mode||"unknown").toLowerCase();
+  const b=$("modeBadge"); b.className="badge mode-"+(["shadow","demo","live"].includes(m)?m:"unknown");
+  b.textContent=m.toUpperCase()+(m==="demo"?" · אוטונומי חי":m==="shadow"?" · צל (ללא הזמנות)":"");
+  $("session").textContent="session: "+((s.session&&(s.session.current||s.session.name))||"—");
+  const feedOk=s.sierra&&(s.sierra.fresh!==false)&&(s.sierra.healthy!==false);
+  $("feed").innerHTML=`<span class="dot ${feedOk?'ok':'bad'}"></span>feed ${feedOk?'חי':'בעיה'}`;
+  const brOk=s.bridge&&(s.bridge.alive!==false&&s.bridge.connected!==false);
+  $("bridge").innerHTML=`<span class="dot ${brOk?'ok':'warn'}"></span>bridge`;
+  $("updated").textContent="עודכן "+new Date().toLocaleTimeString();
+}
+
+function leg(t,b,cls){return `<div class="leg"><div class="t">${t}</div><div class="b ${cls||''}">${b}</div></div>`;}
+
+function renderActive(t){
+  const box=$("active");
+  if(!t){box.innerHTML='<div class="active-none">אין עסקה פעילה — ממתין ל-setup.</div>';return;}
+  const dir=t.direction||"—", contracts=t.contracts??t.size??t.qty;
+  const tgts=[t.t1,t.t2,t.t3].filter(x=>x!=null);
+  const pnl=t.pnl??t.unrealized_pnl??t.realized_pnl;
+  const stopMoved=num(t.stop)&&num(t.stop_initial)&&t.stop!==t.stop_initial;
+  box.innerHTML=`
+    <div class="trade-head">
+      <span class="dir ${dir}">${dir}</span>
+      <span class="tag st-${t.state||'OPEN'}">${t.state||'OPEN'}</span>
+      <span class="muted">#${t.id} · מערכת ${t.system??'—'} · ${t.mode||''}</span>
+      ${num(pnl)?`<span style="margin-inline-start:auto;font-size:18px;font-weight:800" class="${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</span>`:''}
+    </div>
+    <div class="grid">
+      <div class="kv"><div class="k">כניסה</div><div class="v">${fmt(t.entry_price)}</div></div>
+      <div class="kv"><div class="k">חוזים</div><div class="v">${fmt(contracts)}</div></div>
+      <div class="kv"><div class="k">סטופ</div><div class="v ${stopMoved?'pos':''}">${fmt(t.stop)}${stopMoved?' ↗':''}</div></div>
+      <div class="kv"><div class="k">סטופ התחלתי</div><div class="v muted">${fmt(t.stop_initial)}</div></div>
+      ${tgts.map((g,i)=>`<div class="kv"><div class="k">T${i+1}</div><div class="v">${fmt(g)}</div></div>`).join('')}
+    </div>
+    <div class="legs">
+      ${leg('C1','חוזה 1 — יוצא ב-T1', '')}
+      ${leg('Runners', (num(contracts)?Math.max(contracts-1,0):'—')+' חוזים — stop מתגלגל','')}
+      ${leg('סטופ', stopMoved?'הוזז (BE/trail)':'התחלתי', stopMoved?'pos':'muted')}
+    </div>`;
+}
+
+function renderRecent(rows){
+  const tb=$("recent").querySelector("tbody");
+  if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="9" class="muted">אין עסקאות</td></tr>';return;}
+  tb.innerHTML=rows.map(t=>{
+    const pnl=t.pnl??t.realized_pnl, out=num(pnl)?`<span class="${pnl>=0?'pos':'neg'}">${pnl>=0?'+':''}${fmt(pnl)}</span>`:(t.outcome||'—');
+    return `<tr>
+      <td>${t.id}</td><td>${t.mode||''}</td><td>${t.system??''}</td>
+      <td class="${t.direction}">${t.direction||''}</td>
+      <td>${fmt(t.entry_price)}</td><td class="muted">${fmt(t.stop)}</td>
+      <td>${fmt(t.exit_price)}</td><td>${out}</td>
+      <td><span class="tag st-${t.state||''}">${t.state||''}</span></td></tr>`;
+  }).join('');
+}
+
+async function tick(){
+  if(paused)return;
+  try{
+    const [s,a,r]=await Promise.all([
+      getJSON("/status").catch(()=>({})),
+      getJSON("/trades/active").catch(()=>null),
+      getJSON("/trades/recent?limit=12").catch(()=>[]),
+    ]);
+    setConn(true); if(s&&s.mode)renderStatus(s);
+    renderActive(a); renderRecent(Array.isArray(r)?r:[]);
+  }catch(e){ setConn(false); }
+}
+$("pause").onclick=()=>{paused=!paused;$("pause").textContent=paused?"▶ המשך":"⏸ השהה";if(!paused)tick();};
+tick(); timer=setInterval(tick,3000);
+</script>
+</body>
+</html>
