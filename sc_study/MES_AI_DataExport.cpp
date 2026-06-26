@@ -45,6 +45,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef WoodiesChartNumber  = sc.Input[18];   // Chart # where Woodies studies live (0 = same chart)
     SCInputRef YesterdayIBStudyID  = sc.Input[19];   // Sierra Study ID for Yesterday's Initial Balance (0 = disabled)
     SCInputRef ContinuousChartNumber = sc.Input[20]; // Chart # for 24h continuous 5-min bars (0 = disabled)
+    SCInputRef EnableOrderPlacement  = sc.Input[21]; // Pipeline 5: enable DEMO order placement (default OFF)
+    SCInputRef TradeFillsPath        = sc.Input[22]; // Path for trade_fills.json (fill events)
 
     if (sc.SetDefaults)
     {
@@ -123,6 +125,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         ContinuousChartNumber.Name = "Continuous 24h Chart Number (0=disabled)";
         ContinuousChartNumber.SetInt(5);  // Chart #5 = MESM26 5-Min 24h Globex
+
+        EnableOrderPlacement.Name = "Enable Order Placement (0=OFF, 1=DEMO)";
+        EnableOrderPlacement.SetInt(0);  // Pipeline 5: DEFAULT OFF — never place orders unless explicitly armed
+
+        TradeFillsPath.Name = "Trade Fills JSON Path";
+        TradeFillsPath.SetString("/Users/michael/SierraChart_Data/v9_export/trade_fills.json");
 
         // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
         // (unbounded VAP storage per bar). Footprint export now uses fallback
@@ -873,11 +881,90 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     if (cmd_content.find("\"BUY\"") != std::string::npos ||
                         cmd_content.find("\"SELL\"") != std::string::npos)
                     {
-                        // Bracket order: entry + stop + T1/T2/T3
-                        // TODO: Implement actual Sierra order placement via
-                        // sc.SubmitOrder() / sc.SubmitOCOOrder() when DEMO/LIVE mode enabled.
-                        // For now: acknowledge receipt (SHADOW mode = paper only).
-                        result_status = "ACK_SHADOW";
+                        // Pipeline 5: OCO bracket order placement
+                        int order_armed = EnableOrderPlacement.GetInt();
+                        if (order_armed >= 1)
+                        {
+                            // Parse prices from command JSON (simple string search)
+                            auto parse_float = [&](const char* key) -> double {
+                                size_t pos = cmd_content.find(key);
+                                if (pos == std::string::npos) return 0.0;
+                                pos = cmd_content.find(':', pos);
+                                if (pos == std::string::npos) return 0.0;
+                                return atof(cmd_content.c_str() + pos + 1);
+                            };
+                            auto parse_int = [&](const char* key) -> int {
+                                size_t pos = cmd_content.find(key);
+                                if (pos == std::string::npos) return 0;
+                                pos = cmd_content.find(':', pos);
+                                if (pos == std::string::npos) return 0;
+                                return atoi(cmd_content.c_str() + pos + 1);
+                            };
+
+                            double entry_price = parse_float("\"price\"");
+                            double stop_price  = parse_float("\"stop_price\"");
+                            double t1_price    = parse_float("\"target_price\"");
+                            int    contracts   = parse_int("\"contracts\"");
+                            if (contracts <= 0) contracts = 1;
+                            bool is_buy = (cmd_content.find("\"BUY\"") != std::string::npos);
+
+                            // Submit OCO bracket: entry + protective stop + T1 target
+                            s_SCNewOrder entry_order;
+                            entry_order.OrderQuantity = contracts;
+                            entry_order.OrderType = SCT_ORDERTYPE_MARKET;  // market entry
+                            entry_order.TimeInForce = SCT_TIF_GTC;
+
+                            // Attached orders: stop + target
+                            entry_order.Stop1Price = static_cast<float>(stop_price);
+                            entry_order.Target1Price = static_cast<float>(t1_price);
+                            entry_order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                            entry_order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+
+                            int submit_result = 0;
+                            if (is_buy)
+                                submit_result = static_cast<int>(sc.BuyEntry(entry_order));
+                            else
+                                submit_result = static_cast<int>(sc.SellEntry(entry_order));
+
+                            if (submit_result > 0)
+                            {
+                                result_status = "ORDER_SUBMITTED";
+                                order_err = 0;
+
+                                // Store the parent order ID for exit monitoring
+                                sc.GetPersistentInt(100) = submit_result;  // p5_parent_order_id
+                                sc.GetPersistentInt(101) = 0;              // p5_stop_order_id (discovered later)
+                                sc.GetPersistentInt(102) = 0;              // p5_target_order_id (discovered later)
+                                sc.GetPersistentInt(103) = 0;              // p5_exit_written = not yet
+
+                                // Write fill event to trade_fills.json
+                                const char* fills_path = TradeFillsPath.GetString();
+                                if (fills_path[0] != '\0')
+                                {
+                                    char fill_buf[1024];
+                                    int fill_len = snprintf(fill_buf, sizeof(fill_buf),
+                                        "{\"kind\":\"ENTRY\",\"ts\":%lld,\"order_id\":%d,"
+                                        "\"price\":%.2f,\"contracts\":%d,\"direction\":\"%s\"}\n",
+                                        (long long)time(nullptr), submit_result,
+                                        entry_price, contracts, is_buy ? "LONG" : "SHORT");
+                                    if (fill_len > 0 && fill_len < (int)sizeof(fill_buf))
+                                    {
+                                        std::ofstream fill_file(fills_path);
+                                        if (fill_file.is_open()) { fill_file.write(fill_buf, fill_len); fill_file.close(); }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                result_status = "ORDER_FAILED";
+                                order_err = submit_result;
+                            }
+                        }
+                        else
+                        {
+                            // Order placement not armed — acknowledge receipt only (SHADOW)
+                            result_status = "ACK_SHADOW";
+                        }
                     }
                     else if (cmd_content.find("\"CLOSE\"") != std::string::npos)
                     {
@@ -914,6 +1001,112 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     // Clear command file after processing (prevent re-read)
                     std::ofstream clear_cmd(cmd_path, std::ofstream::trunc);
                     if (clear_cmd.is_open()) clear_cmd.close();
+                }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Pipeline 5: Monitor OCO bracket exits (stop/target fills)
+    // On each bar, check if the active bracket's attached orders have filled.
+    // When Sierra fills a stop or target, write the exit event to trade_fills.json.
+    // ══════════════════════════════════════════════════════════════
+    if (EnableOrderPlacement.GetInt() >= 1)
+    {
+        // Persistent state: track the parent entry order ID and attached order IDs
+        // Key 100-104 reserved for Pipeline 5 order tracking
+        int& p5_parent_order_id = sc.GetPersistentInt(100);
+        int& p5_stop_order_id   = sc.GetPersistentInt(101);
+        int& p5_target_order_id = sc.GetPersistentInt(102);
+        int& p5_exit_written    = sc.GetPersistentInt(103); // 1 = exit already written
+
+        // After a new order submission, capture the attached order IDs
+        // (the parent was stored in submit_result above; we re-read it here)
+        if (p5_parent_order_id > 0 && p5_stop_order_id == 0)
+        {
+            // Try to discover attached orders from the parent
+            s_SCTradeOrder parent_info;
+            if (sc.GetOrderByOrderID(p5_parent_order_id, parent_info) != SCTRADING_ORDER_ERROR)
+            {
+                // Sierra stores attached order IDs in the parent order's linked list
+                // Use GetOrderByIndex to scan recent orders for stop/target with matching
+                // ParentInternalOrderID (GetOrderByIndex returns ERROR past the last order).
+                for (int oi = 0; oi < 200; oi++)  // scan recent orders
+                {
+                    s_SCTradeOrder check_order;
+                    if (sc.GetOrderByIndex(oi, check_order) == SCTRADING_ORDER_ERROR)
+                        break;
+                    if (check_order.ParentInternalOrderID == p5_parent_order_id)
+                    {
+                        if (check_order.OrderTypeAsInt == SCT_ORDERTYPE_STOP ||
+                            check_order.OrderTypeAsInt == SCT_ORDERTYPE_STOP_LIMIT)
+                            p5_stop_order_id = check_order.InternalOrderID;
+                        else if (check_order.OrderTypeAsInt == SCT_ORDERTYPE_LIMIT)
+                            p5_target_order_id = check_order.InternalOrderID;
+                    }
+                }
+            }
+        }
+
+        // Check if stop or target filled
+        if (p5_parent_order_id > 0 && p5_exit_written == 0)
+        {
+            const char* fills_path = TradeFillsPath.GetString();
+            if (fills_path[0] != '\0')
+            {
+                // Check stop order
+                if (p5_stop_order_id > 0)
+                {
+                    s_SCTradeOrder stop_info;
+                    if (sc.GetOrderByOrderID(p5_stop_order_id, stop_info) != SCTRADING_ORDER_ERROR)
+                    {
+                        if (stop_info.OrderStatusCode == SCT_OSC_FILLED)
+                        {
+                            char fill_buf[512];
+                            int fill_len = snprintf(fill_buf, sizeof(fill_buf),
+                                "{\"kind\":\"STOP\",\"ts\":%lld,\"order_id\":%d,"
+                                "\"price\":%.2f,\"contracts\":%d}\n",
+                                (long long)time(nullptr), p5_stop_order_id,
+                                stop_info.AvgFillPrice, (int)stop_info.FilledQuantity);
+                            if (fill_len > 0 && fill_len < (int)sizeof(fill_buf))
+                            {
+                                std::ofstream fill_file(fills_path);
+                                if (fill_file.is_open()) { fill_file.write(fill_buf, fill_len); fill_file.close(); }
+                            }
+                            p5_exit_written = 1;
+                            // Reset tracking for next trade
+                            p5_parent_order_id = 0;
+                            p5_stop_order_id = 0;
+                            p5_target_order_id = 0;
+                        }
+                    }
+                }
+
+                // Check target order (T1)
+                if (p5_target_order_id > 0 && p5_exit_written == 0)
+                {
+                    s_SCTradeOrder target_info;
+                    if (sc.GetOrderByOrderID(p5_target_order_id, target_info) != SCTRADING_ORDER_ERROR)
+                    {
+                        if (target_info.OrderStatusCode == SCT_OSC_FILLED)
+                        {
+                            char fill_buf[512];
+                            int fill_len = snprintf(fill_buf, sizeof(fill_buf),
+                                "{\"kind\":\"T1\",\"ts\":%lld,\"order_id\":%d,"
+                                "\"price\":%.2f,\"contracts\":%d}\n",
+                                (long long)time(nullptr), p5_target_order_id,
+                                target_info.AvgFillPrice, (int)target_info.FilledQuantity);
+                            if (fill_len > 0 && fill_len < (int)sizeof(fill_buf))
+                            {
+                                std::ofstream fill_file(fills_path);
+                                if (fill_file.is_open()) { fill_file.write(fill_buf, fill_len); fill_file.close(); }
+                            }
+                            p5_exit_written = 1;
+                            p5_parent_order_id = 0;
+                            p5_stop_order_id = 0;
+                            p5_target_order_id = 0;
+                        }
+                    }
                 }
             }
         }

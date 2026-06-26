@@ -116,9 +116,15 @@ inline void json_long(std::ostringstream& j, const char* key, long long val, boo
 }
 
 // ── File write helper (ATOMIC: write .tmp then rename) ──
-// rename() is atomic on the same filesystem (POSIX guarantee).
-// This prevents the bridge from reading a half-written JSON file
+// Prevents the bridge from reading a half-written JSON file
 // (blocker-LIVE #0: ~94 read-errors/day from truncated reads).
+//
+// 2026-06-26 FIX: Wine's std::rename() cannot replace an existing file
+// (MSVCRT semantics: rename returns -1 when target exists). This caused
+// every .json to freeze after its first write — the .tmp was fresh but
+// the .json never updated. Fix: use Win32 MoveFileExA with
+// MOVEFILE_REPLACE_EXISTING (works correctly under Wine); fall back to
+// remove+rename for native/test builds.
 inline bool v9_write_json(const char* dir, const char* filename, const std::string& json) {
     std::string path = std::string(dir) + filename;
     std::string tmp_path = path + ".tmp";
@@ -127,5 +133,16 @@ inline bool v9_write_json(const char* dir, const char* filename, const std::stri
     f << json;
     f.close();
     if (f.fail()) return false;
+#ifdef _WIN32
+    // Win32 (Sierra/Wine): atomic replace — the missing capability under Wine's rename()
+    if (MoveFileExA(tmp_path.c_str(), path.c_str(),
+                    MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        return true;
+    }
+#endif
+    // Fallback for native (macOS/Linux test builds) or if MoveFileExA fails:
+    // remove target first, then rename (POSIX rename replaces atomically,
+    // but this two-step is needed under MSVCRT where rename can't replace).
+    std::remove(path.c_str());
     return std::rename(tmp_path.c_str(), path.c_str()) == 0;
 }

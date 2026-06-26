@@ -928,3 +928,45 @@ slots 3–4 (SHORT מה-top 7491) = פער-כניסה 09:15–10:20 שנסגר �
 **מסגור-מחדש שאומץ מ-EOD-15:12 (Rule 2):** (1) **I-44** — day_type Variation/Neutral_Extreme = **source-split**, לא "מסווג-עשיר" (ניתוח-ראשוני שלי תוקן). (2) **I-42 REFRAMED/SUPERSEDED** — counter-trend-מיס-פיירים שורש = gates-כיווניים-לא-חיים-בבוקר (`c98b808` mid/post) + **S4-reversal-bleed (D32)**, לא playbook-מת. (3) **HFE_DISABLED=1** חי ⇒ סיגנלי-HFE-UP = no-fire-מכוון, לא חסם-gate.
 
 ---
+
+### [2026-06-25 15:12 CT] EOD מאוחד (Cowork, אוטונומי) — יום נפילת-feed
+
+**שער-זמן I-9:** ✅ 15:12 CT (`TZ=America/Chicago` → 2026-06-25 15:12 CDT). תוצרים: `docs/reports/PATTERN_EOD_2026-06-25.md` + `docs/reports/DESIGNS_2026-06-25.md`. **לא שונה קוד.** מקור: API חי דרך Chrome (`localhost:8000`).
+
+**🔴🔴 כותרת: יום של נפילת-הזנת-נתונים, לא מסחר.** ערוץ ה-market-data מת @~09:40 CT; המערכת עיוורת ~88% מ-RTH (09:40→15:00). **1 ירי בלבד** (id245 REACTIVE_LONG @09:35, דקות-לפני-המוות) — **תקוע-פתוח** (`state=FILLED/outcome=null/pnl=0/bars_count=1`). ΣR-נגד=N/A (אין ברים-לשחזר). ראיות-מצטלבות: `/chart/bars5min` בר-אחרון **09:40** (vol-חלקי 6,254); `pattern-status` Bridge·Live-Feed `fresh:false/lag=9558/last_bar_ts=null`; S2+S4 `last_bar_ts=09:40/lag=20358`; **woodies (`v9_bars_5min_woodies`, SoT-חי) קפא גם-הוא @09:40** ⇒ **מוות-מקור-אמיתי, לא SoT-split של 06-22.**
+
+**חשודים-חדשים:**
+
+| # | בעיה | SoT לבדיקה | מה צריך | סטטוס | ממצא / עיצוב |
+|---|------|-----------|---------|-------|--------------|
+| **I-45** | **🔴🔴 מוות-feed אמצע-RTH @09:40 CT** — bars+woodies קפאו-יחד; Bridge `fresh:false`; ~88% RTH ללא-נתונים; 1 ירי תקוע-פתוח | `~/SierraChart_Data/v9_export/` mtime (Sierra-חי?⇒מוות-גשר / עצר?⇒מוות-Sierra) · `/tmp/bridge.err.log` · `launchctl list grep mems26` · `MAX(ts) v9_bars_5min_woodies` | להכריע גשר-מול-Sierra; watchdog feed-silence in-session | 🔴🔴 פתוח | אומת-API (Rule 2). שורש טרם-מאומת (דורש Mac). D34. קשור-I-21. |
+| **I-46** | **🟡 דגל-freshness משקר post-close** — S2/S4 `fresh:true` למרות lag=20358≫threshold=660; Bridge נכון `false`. סביר: מותנה-in_session ⇒ מסווה-stall | `pattern-status.data_freshness` בחלון 09:40–15:00 (in_session) | הפרד `data_current`(תמיד) מ-`fresh_for_trading`(gate) | 🟡 פתוח | display/observability. silent-failure (לא-צף עד-EOD). D36. |
+
+**עדכוני-סטטוס לחשודים-קיימים:**
+
+- **orphaned-open trade 🔴 (תת-I-45, trading-safety):** id245 FILLED ~6 שעות ללא-סגירה. ב-SHADOW = זיהום-נתונים; **ב-LIVE = פוזיציה-עיוורת ללא-stop-management.** חסר feed-loss-flatten + EOD-reconcile. **D35 (→Michael).**
+- **I-32 (gaps) 🟡 ממשיך:** id **244 חסר** היום (yesterday 243; today 245). דפוס-קבוע (229/234 ב-06-23/24). D9. CC: `SELECT id FROM v9_trades WHERE id BETWEEN 243 AND 246`.
+- **I-31 (firing-count) 🟢 לא-שוחזר היום:** `fired_today_count` S2=1/S4=0 = **תואם-DB בדיוק** (≠ over-count 17/7 של 06-24). אך n=1 ⇒ מבחן-חלש, לא-נסגר. D2.
+- **I-23 (counters) 🟡:** `gateway.trades_today=0`/`daily_pnl=0` מול 1-ירי (`shadow_active_count=1` כן-תקין — סופר-פתוחות). D-gateway-counters.
+- **I-1 (day_type instance) 🟡 מוחמר ע"י I-45:** `session_min=0`+`vote_history=[]`+Normal/0.56/B2 — היום אי-אפשר-להפריד instance-bug מ-feed-death (אין-ברים-לקדם-stage; IB-window נקטע @09:40).
+- **I-34 (sizing-dead) 🔴 לא-נבדק היום:** id245 sizing=2 אך pnl=0 (לא-נסגרה) ⇒ אי-אפשר-לאמת sizing→PnL. נשאר חוסם-LIVE. D11.
+- **D30/D31/D32 (06-24: cvd-fix / day-type-unify / S4-reversal-bleed) ⏸️ לא-נבדקו היום:** feed מת ⇒ 0 S4-fires, 1 ירי. **אל-תסמן closed בלי replay** (Rule 5). ממתינים ליום-feed-תקין הבא.
+
+**מקור-אמת — דורש CC (Rule 2/5, אל-תסמוך-על-API-בלבד):** (1) **I-45 שורש** — `ls -la ~/SierraChart_Data/v9_export/*.json` mtime>09:40CT? (⇒מוות-גשר) + `tail -120 /tmp/bridge.err.log` (API-push-FAILED/exit) + `launchctl list | grep com.mems26.bridge` + `psql .../mems26 -c "SELECT MAX(ts) FROM v9_bars_5min_woodies; SELECT MAX(ts) FROM v9_bars_5min;"`; (2) **orphaned id245** — `SELECT state,exit_ts,outcome,pnl_usd FROM v9_trades WHERE id=245` + האם יש flatten-on-disconnect; (3) **I-46** — freshness in-session 09:40–15:00 כן-היה `false` (⇒ חסם-ירי-על-קיפאון); (4) **I-32** — gap 244.
+
+---
+
+### [2026-06-25 15:27 CT] Missed-Trades Investigator (Cowork, אוטונומי) — addendum ל-EOD-15:1x (I-45/I-46)
+
+**שער-זמן I-9:** ✅ 15:27 CT (≥15:00, `TZ=America/Chicago`). תוצר: `docs/reports/MISSED_TRADES_2026-06-25.md`. **קריאה-בלבד — לא שונה קוד.**
+מאשש-עצמאית-מ-API את I-45/I-46 מזווית-הפספוסים (Rule 2/5).
+
+- **🔴🔴 I-45 (feed-death @09:40) — מאושש-API, החוסם-המוביל-המוחלט:** `woodies/chart` `stale:true age_s≈20,600` (5.73h), בר-אחרון **09:40 CT**, `export_ts=09:41:33 CT`; `bars5min` בר-אחרון **09:40 CT** זהה (`17:40+03:00`); `readiness.bridge_streams_fresh=false → dead: cumulative_delta,volume_profile,imbalance,bars_5min`. **`live_price` תיקתק חי (7451→7446.5→7447.25) ⇒ מסווה.** TZ אומת-בקוד: woodies-ts=UTC, bars5-ts=+03:00, שניהם=09:40 CT. ⇒ **~82% מ-RTH (09:40→15:00 = 320/390 דק' · 63/~78 ברים) חשוך — "הפספוסים" אינם gate-blocked** (הערה: I-45-המקורי רשם ~88%; המדויק 320/390=82%).
+- **🔴 orphaned id245 (sub-I-45) — מאושש:** `trades/recent` n_today=**1**, id245 S2 REACTIVE_LONG e7460.5 (09:35 CT) `state=FILLED exit_ts=null pnl=0` — תקוע ~6h. replay-חלקי (עד-09:40): 09:35 H7465.5/L7452.25 · 09:40 H7464/L7458 — **לא T1(7469) ולא stop(7443.5)** ⇒ לא-הוכרע מחמת-הקפיאה. **חוסם-LIVE (פוזיציה-עיוורת); דרוש flatten-on-feed-loss. D35.**
+- **🟡 I-46 (freshness-lie) — מאושש-post-close:** `pattern-status` S2/S4 `data_freshness.fresh:true` למרות `lag_seconds=20,847 ≫ threshold=660`; bridge נכון-`false`. ⇒ ה-badge-הירוק-השקרי הוא **בדיוק** מה שמנע מהקפיאה-לצוף-חי (silent-failure). הפרד `data_current`/`fresh_for_trading`. D36.
+- **זווית-פספוס (חלון-חי 08:30→09:40 בלבד — woodies-CCI לבוקר, חריג-לטובה):** **ΣR-נגד ≈ +2R (מחלוקת)** — דרייב-ירידה-פתיחה 7469→**LOW 7390** (08:55, −79נק', MFE +2.7R) לא-נותב (`HFE_DISABLED=1` + trend-GRAY-עד-התחתית @08:55 + opening-lag I-1/I-36 — **דילוג-מבני/בעיצוב**); reversal-LONG **נתפס** (id245) אך **מאוחר ~30דק'** ל-V-bottom (~+1R slippage, I-26). **שאר-היום לא-ניתן-לכמת (חשוך).**
+- **🎯 BENCHMARK (06-05 down-day מול היום down-drive→up-reversal+אחה"צ-חשוך): K/5 = 1/5 ראו-ירי** — slot-2 (9:00–9:05 LONG) כיוון-תואם אך ירה-מאוחר (id245 @09:35); slots 1/3/4 ללא-ירי (1 דילוג-נכון + 2 אי-התאמה-מבנית); **slot-5 (10:00 SHORT) חשוך — לא-ניתן-להעריך.**
+- **🟢 הצלבות:** I-40 (source-split) **מכונס** (woodies≡bars5min בבוקר); missed-endpoint **count=0**; day_type **לא-UNKNOWN** (Normal @09:00). **🟡** I-32 (gap-244), I-25 (limit-cap 100). **⏸️** D30/D31/D32 לא-נבדקו (0 S4-fires) — אל-תסמן-closed-בלי-replay (Rule 5).
+- **דגלי-CC (קדימויות, זווית-פספוס):** (1) I-45 שורש-Mac (`v9_export/*.json{,.tmp}` mtime, `bridge.err.log`, `launchctl`, `MAX(ts)`) + **watchdog feed-silence in-session**; (2) flatten-on-feed-loss + EOD-reconcile (id245-class); (3) I-46 הפרד freshness display↔gate. **לא שונה קוד.**
+
+---
