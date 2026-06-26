@@ -137,6 +137,19 @@ class TradeManager:
         except Exception as e:
             logger.warning("[TradeManager] Sierra MODIFY_TARGET failed: %s", e)
 
+    def _emit_exit(self, trade, contracts: int) -> None:
+        """Emit an EXIT command to Sierra (DEMO mode only)."""
+        if not self._is_demo_mode(trade):
+            return
+        oid = self._get_sierra_order_id(trade)
+        if oid is None:
+            return
+        try:
+            from backend.v9.services.sierra_command import write_exit
+            write_exit(trade_id=str(trade.id), order_id=oid, contracts=contracts)
+        except Exception as e:
+            logger.warning("[TradeManager] Sierra EXIT failed: %s", e)
+
     def accept_setup(
         self,
         setup: Dict[str, Any],

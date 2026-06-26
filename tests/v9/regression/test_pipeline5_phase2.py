@@ -178,33 +178,31 @@ def test_dll_3_contracts_default():
     assert "contracts = 3" in source
 
 
-def test_dll_deferred_c1_limit_exit():
-    """C1 limit exit is placed AFTER entry fills (deferred to exit monitor),
-    NOT immediately after BuyEntry (where no position exists yet).
+def test_dll_attached_orders_bracket():
+    """PLACE uses Attached Orders (Stop1Price + Target1Price) per research §5.1.
+    Sierra manages the OCO server-side. No separate C1 / deferred C1 / OCO groups.
 
-    if reverted → RED because: placing C1 in the PLACE block fails (no position).
+    if reverted → RED because: using separate orders or OCO groups fails at runtime.
     """
     dll = Path("sc_study/MES_AI_DataExport.cpp")
     if not dll.exists():
         pytest.skip("DLL not found")
     source = dll.read_text()
-    # No OCOGroup fields
+    # No old approaches
     assert "OCOGroup1Quantity" not in source
     assert "OCOGroup2Quantity" not in source
-    # C1 is placed in the exit-monitor section, NOT in the PLACE block
-    assert "p5_c1_placed" in source
-    assert "Deferred C1" in source
-    # The exit monitor uses OrderStatusCode==SCT_OSC_FILLED to detect entry fill
-    monitor_pos = source.find("Deferred C1")
-    assert monitor_pos > 0
-    monitor_block = source[monitor_pos:monitor_pos + 1500]
-    assert "OrderStatusCode" in monitor_block
-    assert "SCT_OSC_FILLED" in monitor_block
-    assert "sc.GetTradePosition" not in monitor_block  # removed — needs MaintainTradeStats
-    assert "SCT_ORDERTYPE_LIMIT" in monitor_block
-    assert "c1_exit" in monitor_block
-    # Retry: p5_c1_placed=1 only if c1_id > 0
-    assert "if (c1_id > 0)" in monitor_block
+    assert "c1_exit" not in source
+    assert "c1_placed" not in source
+    assert "Deferred C1" not in source
+    # Uses Attached Orders: Target1Price + Stop1Price on ONE entry
+    assert "Target1Price" in source
+    assert "Stop1Price" in source
+    assert "AttachedOrderTarget1Type" in source
+    assert "AttachedOrderStop1Type" in source
+    # Persists IDs via GetPersistentInt64 (research §1.5)
+    assert "Target1InternalOrderID" in source
+    assert "Stop1InternalOrderID" in source
+    assert "GetPersistentInt64" in source
 
 
 def test_dll_exit_uses_partial_not_flatten():
@@ -229,3 +227,27 @@ def test_dll_no_wrong_flatten_method():
     source = dll.read_text()
     assert "sc.FlattenAndCancelOrders()" not in source
     assert "sc.FlattenAndCancelAllOrders()" in source
+
+
+def test_dll_fullrecalc_guard():
+    """DLL guards ALL trading on the real-time path (research §5.1).
+
+    if reverted → RED because: MaintainTradeStatisticsAndTradesData without
+    this guard triggers the Bar-Based-Back-Test notice.
+    """
+    dll = Path("sc_study/MES_AI_DataExport.cpp")
+    if not dll.exists():
+        pytest.skip("DLL not found")
+    source = dll.read_text()
+    assert "IsFullRecalculation" in source
+    assert "DownloadingHistoricalData" in source
+    assert "MaintainTradeStatisticsAndTradesData" in source
+
+
+def test_dll_tif_day():
+    """Bracket uses SCT_TIF_DAY (futures), not GTC (research §6)."""
+    dll = Path("sc_study/MES_AI_DataExport.cpp")
+    if not dll.exists():
+        pytest.skip("DLL not found")
+    source = dll.read_text()
+    assert "SCT_TIF_DAY" in source
