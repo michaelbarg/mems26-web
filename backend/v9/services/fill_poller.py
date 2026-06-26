@@ -80,14 +80,24 @@ class FillPoller:
             content = FILLS_PATH.read_text().strip()
             if not content:
                 return
-            fill = json.loads(content)
-        except (json.JSONDecodeError, OSError) as e:
-            logger.debug("[FillPoller] parse error: %s", e)
+        except OSError:
             return
 
-        self._process_fill(fill)
+        # DLL appends one JSON per line — read ALL lines, process each
+        fills = []
+        for line in content.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                fills.append(json.loads(line))
+            except json.JSONDecodeError:
+                logger.debug("[FillPoller] bad line (skipped): %s", line[:80])
 
-        # Clear the file after processing (same as DLL clears command)
+        for fill in fills:
+            self._process_fill(fill)
+
+        # Clear the file after processing all fills
         try:
             FILLS_PATH.write_text("")
         except OSError:

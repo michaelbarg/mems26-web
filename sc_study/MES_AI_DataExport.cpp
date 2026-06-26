@@ -952,23 +952,30 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             o.AttachedOrderStop1Type   = SCT_ORDERTYPE_STOP;
 
                             // Group 2: C2 = 1 contract (runner 1)
+                            // If t2 <= 0: stop-only (no target). Rule 1: honest, no synthetic.
                             if (contracts >= 2)
                             {
-                                o.OCOGroup2Quantity        = 1;
-                                o.Target2Price             = static_cast<float>(t2_price > 0 ? t2_price : t1_price * 2);
-                                o.AttachedOrderTarget2Type = SCT_ORDERTYPE_LIMIT;
-                                o.Stop2Price               = static_cast<float>(stop_price);
-                                o.AttachedOrderStop2Type   = SCT_ORDERTYPE_STOP;
+                                o.OCOGroup2Quantity      = 1;
+                                o.Stop2Price             = static_cast<float>(stop_price);
+                                o.AttachedOrderStop2Type = SCT_ORDERTYPE_STOP;
+                                if (t2_price > 0)
+                                {
+                                    o.Target2Price             = static_cast<float>(t2_price);
+                                    o.AttachedOrderTarget2Type = SCT_ORDERTYPE_LIMIT;
+                                }
                             }
 
                             // Group 3: C3 = 1 contract (runner 2)
                             if (contracts >= 3)
                             {
-                                o.OCOGroup3Quantity        = 1;
-                                o.Target3Price             = static_cast<float>(t3_price > 0 ? t3_price : t1_price * 3);
-                                o.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
-                                o.Stop3Price               = static_cast<float>(stop_price);
-                                o.AttachedOrderStop3Type   = SCT_ORDERTYPE_STOP;
+                                o.OCOGroup3Quantity      = 1;
+                                o.Stop3Price             = static_cast<float>(stop_price);
+                                o.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
+                                if (t3_price > 0)
+                                {
+                                    o.Target3Price             = static_cast<float>(t3_price);
+                                    o.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
+                                }
                             }
 
                             int r = is_buy
@@ -1012,7 +1019,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                         entry_price, contracts, is_buy ? "LONG" : "SHORT");
                                     if (fl > 0 && fl < (int)sizeof(fb))
                                     {
-                                        std::ofstream ff(fills_path);
+                                        std::ofstream ff(fills_path, std::ios::app);
                                         if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
                                     }
                                 }
@@ -1160,7 +1167,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                     (long long)time(nullptr), r, exit_qty);
                                 if (fl > 0 && fl < (int)sizeof(fb))
                                 {
-                                    std::ofstream ff(fills_path);
+                                    std::ofstream ff(fills_path, std::ios::app);
                                     if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
                                 }
                             }
@@ -1252,7 +1259,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 ti.AvgFillPrice, (int)ti.FilledQuantity);
                             if (fl > 0 && fl < (int)sizeof(fb))
                             {
-                                std::ofstream ff(fills_path);
+                                std::ofstream ff(fills_path, std::ios::app);
                                 if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
                             }
                             sc.GetPersistentInt64(tgt_slot) = 0;
@@ -1275,7 +1282,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 si.AvgFillPrice, (int)si.FilledQuantity, gi + 1);
                             if (fl > 0 && fl < (int)sizeof(fb))
                             {
-                                std::ofstream ff(fills_path);
+                                std::ofstream ff(fills_path, std::ios::app);
                                 if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
                             }
                             sc.GetPersistentInt64(tgt_slot) = 0; // OCO canceled the target
