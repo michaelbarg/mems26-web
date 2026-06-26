@@ -82,6 +82,12 @@ echo "OK: $LINES lines, SCDLLName@line$SCDLL_LINE, 1x sierrachart.h, ${V920_COUN
 
 # Deploy if requested
 if [ "${1:-}" = "--deploy" ]; then
+    # Change-safety (2026-06-26): snapshot the CURRENT deployed DLL/.env/LaunchAgents BEFORE
+    # overwriting, so this deploy is rollback-able (see docs/SYSTEM_MANIFEST.md §0).
+    # Best-effort — never block the deploy.
+    SNAP_TOOL="$(cd "$(dirname "$0")" && pwd)/mems26_snapshot.sh"
+    if [ -x "$SNAP_TOOL" ]; then "$SNAP_TOOL" "pre-dll-deploy" || echo "WARN: pre-deploy snapshot failed (continuing)" >&2
+    else echo "WARN: mems26_snapshot.sh not found — deploying WITHOUT a rollback point" >&2; fi
     deployed=0
     for DEPLOY_TARGET in "${DEPLOY_TARGETS[@]}"; do
         if [ -d "$(dirname "$DEPLOY_TARGET")" ]; then

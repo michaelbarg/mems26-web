@@ -298,6 +298,22 @@ flag + orphan detection per file).
 - If bytecode appears in git status, treat it as generated state unless the
   user explicitly asks to preserve it.
 
+## Change-Safety / Snapshot Protocol (MANDATORY — added 2026-06-26)
+
+Git versions the repo, but the surfaces that actually run/break live **outside** git: the
+deployed DLL (monolith source + compiled binary in `~/SierraChart*/`), `.env`, and the
+LaunchAgents. The 2026-06-25 feed incident had no rollback point for the deployed DLL.
+
+- **Before changing ANY out-of-git surface** (DLL deploy, `.env` edit, LaunchAgent change),
+  snapshot first: `scripts/mems26_snapshot.sh "why-label"` → `~/mems26_snapshots/<ts>_<label>/`
+  (DLL src+bin, `.env`, LaunchAgents, git HEAD, checksums). `build_monolithic_cpp.sh --deploy`
+  auto-snapshots; run it manually before `.env`/LaunchAgent/Sierra-Input changes.
+- **Roll back** with `scripts/mems26_restore.sh <dir>` (dry-run; `--confirm` to apply).
+- **Verify the whole system** is consistent + current: `scripts/mems26_verify.sh` (services ·
+  DLL deployed↔repo monolith · index drift · feed fresh · DB lag). Run it after any change.
+- The map of every surface (git-tracked + out-of-git) is `docs/SYSTEM_MANIFEST.md` — consult +
+  keep current when a surface is added/moved.
+
 ## Sierra DLL (CC maintenance)
 
 - Canonical ops log: `docs/runbooks/SIERRA_DLL_OPS.md`
