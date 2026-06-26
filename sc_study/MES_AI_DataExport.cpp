@@ -57,11 +57,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
         // Pipeline 5 (2026-06-26): REQUIRED to place an entry order WITH attached stop/target
         // (the OCO bracket). Without SupportAttachedOrdersForTrading=1, sc.BuyEntry/SellEntry
-        // return -1 (ORDER_FAILED) — verified by the 2026-06-26 Sim test. MaintainTradeStatistics
-        // lets the study track the resulting position for the exit-monitor. DEMO/Sim gated by
-        // the EnableOrderPlacement Input (default OFF); these flags only enable the capability.
+        // return -1 (ORDER_FAILED). Do NOT set sc.MaintainTradeStatisticsAndTradesData here: it
+        // engages Sierra's trade-stats/back-test machinery, which (with AutoLoop + a live feed)
+        // triggers a "Bar Based Back Test" notice and BLOCKS real-time order placement — confirmed
+        // 2026-06-26 (Auto-Trading-Global ON, not in replay, yet rejected). DEMO/Sim gated by the
+        // EnableOrderPlacement Input (default OFF).
         sc.SupportAttachedOrdersForTrading = 1;
-        sc.MaintainTradeStatisticsAndTradesData = 1;
 
         CVD.Name         = "CVD";
         CVD.DrawStyle    = DRAWSTYLE_LINE;
