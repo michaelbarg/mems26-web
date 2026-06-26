@@ -63,6 +63,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         // 2026-06-26 (Auto-Trading-Global ON, not in replay, yet rejected). DEMO/Sim gated by the
         // EnableOrderPlacement Input (default OFF).
         sc.SupportAttachedOrdersForTrading = 1;
+        // Pipeline 5 (2026-06-26): MaximumPositionAllowed defaults to 1 in ACSIL, which rejects
+        // any multi-contract entry with ORDER_FAILED/-1 (verified: 1 lot submits, 3 lots fail).
+        // The strategy is 3 contracts (C1 + 2 runners); 10 gives safe headroom. A SetDefaults
+        // change → requires REMOVE+RE-ADD of the study to take effect.
+        sc.MaximumPositionAllowed = 10;
 
         CVD.Name         = "CVD";
         CVD.DrawStyle    = DRAWSTYLE_LINE;
