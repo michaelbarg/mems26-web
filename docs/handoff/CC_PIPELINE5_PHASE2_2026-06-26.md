@@ -89,3 +89,33 @@ command (mock the writer), and that `bar_level_detector` does NOT bar-fill a dem
 LIVE path (stays stub) · real-account wiring · the autonomous arming itself (Michael signs off +
 we run supervised) · retiring the promoter sidecar. DEMO/Sim ONLY · `EnableOrderPlacement` +
 `DEMO_EXECUTION_ENABLED` default OFF · snapshot before every DLL deploy · no DLL reload during RTH.
+
+---
+
+## FOLLOW-UP — what's left after the first CC build (Cowork verify 2026-06-26, commit cc76656)
+The command protocol, `sc.ModifyOrder` for stop/target, attached order-ID discovery
+(persistent 101/102), manager emit-wiring + demo gate, and 15 tests are **DONE + verified**.
+**The CORE — partial scale-out — is NOT done yet.** Without it the trade is all-or-nothing at
+T1/stop, so DEMO ≠ the C1→BE→runners shadow strategy. Fix:
+
+1. **PLACE — make T1 a PARTIAL target on 1 contract (C1).** Today `entry_order.Target1Price`
+   attaches to the FULL 3-contract position (the "partial, 1 contract for C1" comment is wrong —
+   no quantity is set). Set the attached Target1 quantity to 1 so only C1 takes the first target
+   and 2 runners remain under the protective stop. Verify the correct ACSIL mechanism against
+   `scstructures.h` (attached-order target quantity / scale-out level; if `s_SCNewOrder` has no
+   per-target quantity, submit the bracket then a separate 1-contract limit at T1 tracked as the
+   C1 target). Fix the comment to match reality.
+2. **EXIT — real PARTIAL market exit.** The EXIT handler parses `contracts` but then calls
+   `sc.FlattenAndCancelOrders()` (full flatten, qty ignored). Replace with a partial market exit
+   of `exit_qty` contracts (`sc.SellExit`/`sc.BuyExit` per position direction, `OrderQuantity =
+   exit_qty`). Reserve `FlattenAndCancelOrders()` for the **CANCEL** op (kill-switch/flatten) only.
+   Report the exit fill with the actual filled qty.
+3. **Behavioral emit test (not source-presence).** The current manager-emit tests only assert the
+   method exists / the source string is present. Add a test that mocks `command_from_setup` /
+   `write_modify_stop` and asserts the manager EMITS the command when the trade is `demo` +
+   `DEMO_EXECUTION_ENABLED=1`, and does NOT emit in `shadow`.
+
+Verify (Rule 5, Sim, out of hours): one setup → 3-contract entry + stop → **only 1 contract**
+exits at T1 (C1) while **2 runners stay open** → stop→BE on the 2 → a runner partial-EXIT closes
+1 → final exit. Confirm in the Sierra order log + `trade_fills.json` (ENTRY 3 → C1/T1 1 → … ) +
+that v9_trades matches the same setup's SHADOW exits.
