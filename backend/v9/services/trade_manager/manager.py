@@ -303,39 +303,51 @@ class TradeManager:
         target: str,
         fill_ts: Optional[datetime] = None,
     ) -> None:
-        """Record a target hit (T1, T2, T3). T1 -> PARTIAL, T3 -> CLOSED."""
+        """Record a target hit (T1, T2, T3).
+
+        Per-contract model (Pipeline 5 Phase 2-E):
+          T1 = C1 scale-out (1 contract) → PARTIAL + stop→BE
+          T2 = C2 scale-out (1 contract) → stay PARTIAL, keep trailing
+          T3 = C3 scale-out (last contract) → CLOSED only if all 3 filled
+        """
         if target not in ("T1", "T2", "T3"):
             raise ValueError(f"Invalid target: {target}")
 
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
-        hit_ts = fill_ts or _market_now_utc()  # Prompt 26b: market time
+        hit_ts = fill_ts or _market_now_utc()
 
-        # Capture cross-system snapshot at target hit (per spec Section 2.2)
         self._append_snapshot(trade, f"{target.lower()}_hit")
 
         if target == "T1":
+            # C1 scale-out: FILLED → PARTIAL + stop→BE
             machine.transition(TradeState.PARTIAL)
             trade.state = TradeState.PARTIAL.value
             trade.t1_hit_ts = hit_ts
             self._log_management(trade_id, "T1_HIT", {"ts": hit_ts.isoformat()})
             self._apply_smart_be_after_t1(trade)
             self._calculate_pnl(trade)
+
         elif target == "T2":
+            # C2 scale-out: stay PARTIAL, keep trailing the last runner
             trade.t2_hit_ts = hit_ts
             self._log_management(trade_id, "T2_HIT", {"ts": hit_ts.isoformat()})
-            self._apply_stop_after_t2(trade)
             self._calculate_pnl(trade)
+
         elif target == "T3":
-            machine.transition(TradeState.CLOSED)
-            trade.state = TradeState.CLOSED.value
             trade.t3_hit_ts = hit_ts
-            trade.exit_ts = hit_ts
-            trade.exit_reason = "T3_HIT"
             self._log_management(trade_id, "T3_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)
-            self._set_outcome(trade)
-            self._cleanup_machine(trade_id)
+            # Close ONLY if all contracts are out (T1+T2 already filled)
+            all_out = (trade.t1_hit_ts is not None and trade.t2_hit_ts is not None)
+            if all_out:
+                machine.transition(TradeState.CLOSED)
+                trade.state = TradeState.CLOSED.value
+                trade.exit_ts = hit_ts
+                trade.exit_reason = "T3_HIT"
+                self._set_outcome(trade)
+                self._cleanup_machine(trade_id)
+            # else: T3 filled before T2 (unusual) → stay PARTIAL until T2 fills
 
         self._db.flush()
 
@@ -651,12 +663,16 @@ class TradeManager:
         stop_before = float(trade.stop) if trade.stop is not None else None
         trade.stop = new_stop
 
-        # Advance next unfilled target
+        # Advance the FRONT runner's target (C1 target is FIXED — never re-anchor).
+        # C2 is the front runner while it's unfilled; once C2 fills, C3 becomes front.
+        runner_target_id = None
         if next_tgt is not None:
             if trade.t2 is not None and trade.t2_hit_ts is None:
                 trade.t2 = next_tgt
+                runner_target_id = q.get("c2_target_id")
             elif trade.t3 is not None and trade.t3_hit_ts is None:
                 trade.t3 = next_tgt
+                runner_target_id = q.get("c3_target_id")
 
         trade.quality = q
 
@@ -665,9 +681,10 @@ class TradeManager:
             "event": "stop_move",
             "from": stop_before,
             "to": new_stop,
-            "reason": "STRUCT_TRAIL zone=[%.2f,%.2f] adv=%.1f next_tgt=%s" % (
+            "reason": "STRUCT_TRAIL zone=[%.2f,%.2f] adv=%.1f next_tgt=%s runner_id=%s" % (
                 zone["zone_low"], zone["zone_high"], zone["advance"],
-                ("%.2f" % next_tgt) if next_tgt else "none"),
+                ("%.2f" % next_tgt) if next_tgt else "none",
+                runner_target_id or "none"),
         }
         ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
         ctx.append(audit_entry)
@@ -676,10 +693,12 @@ class TradeManager:
             "from": stop_before, "to": new_stop,
             "zone_high": zone["zone_high"], "zone_low": zone["zone_low"],
             "advance": zone["advance"], "next_target": next_tgt,
+            "runner_target_id": runner_target_id,
         })
         self._emit_modify_stop(trade, new_stop)
-        if next_tgt is not None:
-            self._emit_modify_target(trade, next_tgt)
+        if next_tgt is not None and runner_target_id:
+            # Route to the FRONT runner's own Sierra target order (NOT C1)
+            self._emit_modify_target(trade, next_tgt, target_order_id=int(runner_target_id))
 
         logger.info(
             "[TradeManager] STRUCT_TRAIL: trade %s stop %.2f -> %.2f "
