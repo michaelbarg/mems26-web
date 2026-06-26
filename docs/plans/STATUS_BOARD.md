@@ -1,7 +1,13 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
-## 2026-06-26 (Cowork — שורש I-45 נמצא + תוקן: feed-freeze = Wine-rename)
+## 2026-06-26 (Cowork — Pipeline 5 DEMO הושלם מקצה-לקצה + שורש I-45 feed-freeze)
+
+**[2026-06-26 ~19:45 IL — Cowork: 🟢 Pipeline 5 DEMO — ניהול-דינמי-לכל-חוזה הושלם מקצה-לקצה (3 commits · deployed)]**
+**ממצא (audit, אומת Rule 5):** Pipeline 5 demo **מעולם לא חובר מקצה-לקצה** — 7 חוליות מנותקות: (1) `_execute_demo` יצר legacy dict ולא עסקת-TM `mode=demo` → המנהל ניהל רק shadow ו-`_is_demo_mode` לא התקיים ⇒ **MODIFY לעולם לא הגיע לסיארה**; (2) `quality["sierra_order_id"]` לא נכתב אף-פעם; (3) `register_order` לא נקרא, ה-poller זרק את c1/c2/c3 ids; (4) `on_target_hit` T3→CLOSED סגר את כל-העסקה (לא תואם מימוש-לכל-חוזה); (5) DLL המציא יעדי-זבל t1×N ל-trail (t3=None); (6) DLL דרס את trade_fills.json ⇒ מילויים-במקביל אובדים; (7) המנהל עיגן בלי id → פגע ב-C1.
+**החלטה (Michael):** **Option C** — לשמור את ה-gateway המונוליטי על **18 השערים**, להחליף **רק** את שלב-הביצוע של demo. **לא** להחליף ל-executor-gateway (392 שורות, 0 שערים → היה מפיל kill_switch/feed_watchdog/risk-caps/day-type/cluster/RR — ראיה ב-grep).
+**תיקון:** Phase 1 (`b48d745`): `_execute_demo`→`accept_setup(mode=demo)` + זריעת `t3=2*t2−t1` (גם מנטרל את ההמצאה — t3 אמיתי מגיע ל-DLL) + fill_poller קולט 6 ids→`set_sierra_order_ids`. Phase 2 (`6cf43b0`): `apply_dynamic_struct_trail` מעגן front-runner לפי id-משלו (C2→c2_id, C3→c3_id, **C1 קבוע**, None-guarded); `on_target_hit` scale-out לכל-חוזה (T3 סוגר רק כש-`all_out`). Phase 3 (`1a79126`): DLL stop-only כש-t≤0 (אפס המצאה, Rule 1) + JSONL `std::ios::app` + poller קורא שורה-שורה (מילויים-במקביל לא אובדים).
+**אימות (Rule 5):** 36/36 regression ירוק (`pipeline5_phase2`·`dll_exit_monitor`·`risk_caps`·`per_contract_lifecycle` — כולל `t3_does_not_close_while_c2_open`+`struct_trail_routes_to_runner_id`); DLL builds 3250 שורות; `--deploy` ✓ (snapshot `20260626T194342Z_pre-dll-deploy` → SierraChart+SierraChart2); 18 שערים שלמים + gateway לא הוחלף (`blocked_by`=18, 0 import של executor-gateway). **NOT-DONE:** בדיקה-חיה בדמו (RTH) — `mems26_snapshot.sh`→`.env`(DEMO_EXECUTION_ENABLED=1+MEMS26_MODE=demo)→restart→Sierra Remote-Build+arm `EnableOrderPlacement`(#21)→צפה 3-חוזים/3-יעדים-שונים/runner-re-anchor. handoff: `docs/handoff/CC_PIPELINE5_DEMO_WIRING_2026-06-26.md`. **trading-surface demo-only · off-by-default · לא שונה LIVE.**
 
 **[2026-06-26 ~00:10 IL — Cowork: 🟢 I-45 RESOLVED — שורש feed-death = Wine rename() ולא watchdog-gap]**
 **שורש (אומת Rule 2/5, לא תיאוריה):** Sierra רץ תחת **CrossOver/Wine**. עוזר-הכתיבה-האטומי
