@@ -715,24 +715,8 @@ async def _startup():
         trading_gateway.enable_demo(4)   # S4 Woodies CCI
         _logger.info("[Main] Demo mode enabled: systems [2, 4]")
 
-        # Pipeline 5 Phase B: start the fill-poller ONLY when DEMO execution is armed
-        # (DEMO_EXECUTION_ENABLED=1, default OFF → never in plain SHADOW). Reads Sierra
-        # trade_fills.json and drives TradeManager with real fill prices.
-        if os.getenv("DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes"):
-            try:
-                from backend.v9.services.fill_poller import FillPoller
-                _tm_ref = getattr(trading_gateway, "_trade_manager", None) \
-                    or getattr(trading_gateway, "trade_manager", None)
-                if _tm_ref is not None:
-                    _fp = FillPoller(trade_manager=_tm_ref)
-                    app.state.fill_poller = _fp
-                    import asyncio as _aio_fp
-                    _aio_fp.create_task(_fp.run())
-                    _logger.info("[Main] Pipeline 5 FillPoller started (DEMO execution armed)")
-                else:
-                    _logger.error("[Main] FillPoller NOT started — no trade_manager on gateway")
-            except Exception as _fp_err:
-                _logger.error("[Main] FillPoller start failed (fail-safe): %s", _fp_err)
+        # Pipeline 5 Phase B: the FillPoller starts LATER — after the TradeManager is
+        # created + wired (see below). Starting it here saw trade_manager=None (ordering bug).
 
         # P31-02b: inject FootprintSystem into FiveMinSystem so process_bar
         # reads cot/amt/belly in-process (~1ms) instead of HTTP self-calls (~8s).
@@ -760,6 +744,19 @@ async def _startup():
         if gw is not None and hasattr(gw, "set_trade_manager"):
             gw.set_trade_manager(trade_manager)
             _logger.info("[Main] TradingGateway → TradeManager wired for SHADOW PnL")
+
+        # Pipeline 5 Phase B: start the fill-poller NOW that trade_manager EXISTS + is wired
+        # (DEMO_EXECUTION_ENABLED=1, default OFF). Drives the SAME TradeManager the gateway
+        # creates demo trades in. (Moved here — starting it during gateway-init saw tm=None.)
+        if os.getenv("DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.services.fill_poller import FillPoller
+                _fp = FillPoller(trade_manager=trade_manager)
+                app.state.fill_poller = _fp
+                asyncio.create_task(_fp.run())
+                _logger.info("[Main] Pipeline 5 FillPoller started (DEMO execution armed)")
+            except Exception as _fp_err:
+                _logger.error("[Main] FillPoller start failed (fail-safe): %s", _fp_err)
 
         # P-WS.1: inject main loop into TradeEventEmitter for WS broadcast
         try:
