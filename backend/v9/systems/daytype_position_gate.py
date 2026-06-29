@@ -120,7 +120,7 @@ def decide(
 
     # Normal: fade VA edges — LONG only near VAL, SHORT only near VAH
     if day_type == "Normal":
-        return _decide_normal(dir_upper, entry_price, tpo_ctx)
+        return _decide_normal(dir_upper, entry_price, tpo_ctx, pattern=pattern)
 
     # Variation: WITH IB expansion only
     if day_type == "Variation":
@@ -131,7 +131,7 @@ def decide(
     # sides all day"). The day is balanced, but you still fade the correct edge toward
     # value. Michael 2026-06-22.
     if day_type in ("Neutral_Center", "Neutral_Extreme"):
-        ok, why = _decide_normal(dir_upper, entry_price, tpo_ctx)
+        ok, why = _decide_normal(dir_upper, entry_price, tpo_ctx, pattern=pattern)
         return (ok, why.replace("Normal:", day_type + ":"))
 
     # Trend_Normal / Trend_DD: WITH trend only (from IB expansion direction)
@@ -141,12 +141,55 @@ def decide(
     return (True, f"unknown day_type={day_type} (fail-open)")
 
 
+# Minimum VA width (pts) for levels to be considered valid. Below this the
+# profile is degenerate/frozen (e.g. 06-29 VA≈6pt vs IB≈80pt).
+_VA_WIDTH_FLOOR = 8.0
+# Tolerance for VA-edge gating (pts): REACTIVE SHORT allowed at VAH − tol.
+_VA_EDGE_TOL = 2.0
+
+
+def _tpo_degenerate(tpo_ctx: Dict) -> bool:
+    """True when the TPO levels are degenerate (frozen/stale profile).
+
+    Degenerate = VA width < floor, OR VAH ≈ VAL ≈ POC (all collapsed).
+    """
+    vah = tpo_ctx.get("vah")
+    val = tpo_ctx.get("val")
+    poc = tpo_ctx.get("poc")
+    if vah is None or val is None:
+        return False  # missing is handled by the caller's fail-open
+    try:
+        vah_f, val_f = float(vah), float(val)
+    except (TypeError, ValueError):
+        return False
+    va_width = vah_f - val_f
+    if va_width < _VA_WIDTH_FLOOR:
+        return True
+    # All three collapsed to the same value
+    if poc is not None:
+        try:
+            poc_f = float(poc)
+            if abs(vah_f - poc_f) < 1.0 and abs(val_f - poc_f) < 1.0:
+                return True
+        except (TypeError, ValueError):
+            pass
+    return False
+
+
 def _decide_normal(
     direction: str,
     entry_price: Optional[float],
     tpo_ctx: Optional[Dict],
+    *,
+    pattern: Optional[str] = None,
 ) -> Tuple[bool, str]:
-    """Normal day: LONG below POC, SHORT above POC."""
+    """Normal day: LONG below POC, SHORT above POC.
+
+    When DAYTYPE_PATTERN_AWARE_V1 is ON:
+      - Degenerate TPO (VA < 8pt or collapsed) → fail-open.
+      - REV patterns gated on VA EDGE (VAH/VAL) instead of strict POC.
+      - CONT patterns keep POC gating.
+    """
     if tpo_ctx is None or entry_price is None:
         return (True, "Normal: missing tpo/entry (fail-open)")
 
@@ -160,6 +203,30 @@ def _decide_normal(
     except (TypeError, ValueError):
         return (True, "Normal: non-numeric (fail-open)")
 
+    _flag_on = os.environ.get("DAYTYPE_PATTERN_AWARE_V1", "0").lower() in ("1", "true", "yes")
+
+    # Change A: degenerate TPO guard
+    if _flag_on and _tpo_degenerate(tpo_ctx):
+        logger.warning("[daytype_gate] degenerate TPO (VA < %.0f pt or collapsed) — fail-open", _VA_WIDTH_FLOOR)
+        return (True, "Normal: degenerate TPO levels (fail-open)")
+
+    # Change B: REV patterns gated on VA edge (VAH/VAL), not strict POC
+    if _flag_on and _pattern_family(pattern) == "REV":
+        vah = tpo_ctx.get("vah")
+        val = tpo_ctx.get("val")
+        if vah is not None and val is not None:
+            try:
+                vah_f, val_f = float(vah), float(val)
+            except (TypeError, ValueError):
+                return (True, "Normal: non-numeric VAH/VAL (fail-open)")
+            if direction == "SHORT" and entry < vah_f - _VA_EDGE_TOL:
+                return (False, f"Normal: SHORT entry={entry:.2f} < VAH={vah_f:.2f}−{_VA_EDGE_TOL} (not at upper edge)")
+            if direction == "LONG" and entry > val_f + _VA_EDGE_TOL:
+                return (False, f"Normal: LONG entry={entry:.2f} > VAL={val_f:.2f}+{_VA_EDGE_TOL} (not at lower edge)")
+            return (True, f"Normal: {direction} at VA edge (VAH={vah_f:.2f}, VAL={val_f:.2f})")
+        # Missing VAH/VAL → fall through to POC logic
+
+    # Default: strict POC gating (CONT, unknown, or flag OFF)
     if direction == "LONG" and entry > poc_f:
         return (False, f"Normal: LONG entry={entry:.2f} > POC={poc_f:.2f} (above value — wrong side)")
     if direction == "SHORT" and entry < poc_f:

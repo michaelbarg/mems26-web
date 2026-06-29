@@ -71,11 +71,11 @@ class TestNormalBlocksCont:
 # if reverted → RED because removing the family gate or blocking REV on Normal is wrong
 # ---------------------------------------------------------------------------
 class TestNormalAllowsRev:
-    def test_reactive_short_above_poc_allowed(self):
+    def test_reactive_short_at_vah_allowed(self):
         from backend.v9.systems.daytype_position_gate import decide
         allow, reason = decide(
             pattern="REACTIVE_SHORT", direction="SHORT", day_type="Normal",
-            entry_price=7435.0, tpo_ctx=TPO,  # above POC 7407
+            entry_price=7441.0, tpo_ctx=TPO,  # at VAH 7440 (within edge)
         )
         assert allow is True
 
@@ -88,21 +88,21 @@ class TestNormalAllowsRev:
         assert allow is True
 
     def test_ghost_rev_on_normal_falls_through_to_location(self):
-        """GHOST (REV) on Normal: family allows REV, then location gate applies."""
+        """GHOST (REV) on Normal: family allows REV, then VA-edge gate applies."""
         from backend.v9.systems.daytype_position_gate import decide
-        # GHOST SHORT above POC → allowed (both family and location agree)
+        # GHOST SHORT at VAH → allowed (both family and VA-edge agree)
         allow, _ = decide(
             pattern="GHOST", direction="SHORT", day_type="Normal",
-            entry_price=7435.0, tpo_ctx=TPO,
+            entry_price=7441.0, tpo_ctx=TPO,  # at VAH 7440
         )
         assert allow is True
-        # GHOST LONG above POC → blocked by location (wrong side)
+        # GHOST LONG far above VAL → blocked by VA-edge (not at lower edge)
         allow, reason = decide(
             pattern="GHOST", direction="LONG", day_type="Normal",
-            entry_price=7435.0, tpo_ctx=TPO,
+            entry_price=7435.0, tpo_ctx=TPO,  # 7435 > VAL 7415 + 2
         )
         assert allow is False
-        assert "wrong side" in reason  # location gate, not family gate
+        assert "not at lower edge" in reason  # VA-edge gate, not POC
 
 
 # ---------------------------------------------------------------------------
