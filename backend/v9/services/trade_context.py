@@ -521,6 +521,11 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
             _ndt = _NC_CACHE.get("day_type")
             if _ndt and _ndt != "FORMING":
                 day_type = {"Normal_Variation": "Variation"}.get(_ndt, _ndt)
+            elif _ndt == "FORMING" and _os.getenv("OPENING_FIRE_CVD_V1", "").lower() in ("1", "true", "yes"):
+                # OPENING_FIRE_CVD_V1: pre-IB-lock, do NOT use old engine's directional
+                # day_type for pattern selection (prevents premature INITIATIVE on a
+                # "Variation" from the 3-type fallback). Mode-1 = opening-type only.
+                day_type = None
         except Exception:
             pass  # fail-safe — keep the old engine's day_type set above
 

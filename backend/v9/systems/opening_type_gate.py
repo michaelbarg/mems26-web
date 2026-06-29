@@ -64,9 +64,12 @@ def decide(
     n = len(rth_bars)
 
     # Detect drive direction
+    _cvd_flag = os.environ.get("OPENING_FIRE_CVD_V1", "0").lower() in ("1", "true", "yes")
     if n >= _DRIVE_DETECT_BARS:
         # Use opening_detector_v2 for classification
-        drive_type, drive_dir = _detect_from_bars(rth_bars[:_DRIVE_DETECT_BARS], opening_print)
+        drive_type, drive_dir = _detect_from_bars(
+            rth_bars[:_DRIVE_DETECT_BARS], opening_print, cvd_confirm=_cvd_flag,
+        )
     else:
         # Early bars: use running bias = sign(last_close − opening_print)
         drive_type, drive_dir = _early_bias(rth_bars, opening_print)
@@ -103,13 +106,71 @@ def decide(
     return (True, f"opening_type={drive_type} (fail-open)")
 
 
+def _compute_opening_cvd_pos() -> Optional[float]:
+    """Read CVD for today's RTH opening window from v9_bars_cumulative_delta.
+
+    Uses the dedicated CVD stream table (fresher than v9_bars_5min.cumulative_delta
+    which can go stale). Includes a freshness guard: if the newest CVD row in the
+    window is older than 10 minutes, return None (stale data = no CVD confirmation).
+
+    Returns cvd_pos ∈ [0..1] (>0.5 = buy-dominant), or None if unavailable/stale.
+    Fail-safe: any error → None (caller proceeds without CVD).
+    """
+    try:
+        from backend.v9.db.read import read_all
+        import datetime as _dt
+        from zoneinfo import ZoneInfo as _ZI
+        _et = _ZI("America/New_York")
+        _now_et = _dt.datetime.now(_et)
+        _today = _now_et.date().isoformat()
+        rows = read_all(
+            "SELECT cumulative, ts FROM v9_bars_cumulative_delta "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "ORDER BY ts ASC LIMIT :n",
+            {"d": _today, "n": _DRIVE_DETECT_BARS},
+        )
+        cum = [float(r["cumulative"]) for r in rows
+               if r.get("cumulative") is not None]
+        if not cum:
+            return None
+        # Freshness guard: newest row must be within 10 minutes of now
+        last_ts = rows[-1].get("ts")
+        if last_ts is not None:
+            if isinstance(last_ts, str):
+                last_ts = _dt.datetime.fromisoformat(last_ts)
+            if hasattr(last_ts, "tzinfo") and last_ts.tzinfo is None:
+                last_ts = last_ts.replace(tzinfo=_dt.timezone.utc)
+            age = (_now_et - last_ts.astimezone(_et)).total_seconds()
+            if age > 600:  # 10 minutes
+                logger.warning("[OPENING_FIRE_CVD] CVD data stale (%.0fs old) — skipping", age)
+                return None
+        mx, mn = max(cum), min(cum)
+        return round((cum[-1] - mn) / (mx - mn), 4) if mx > mn else 0.5
+    except Exception:
+        return None
+
+
 def _detect_from_bars(
-    bars: List[Dict], opening_print: float
+    bars: List[Dict], opening_print: float, *, cvd_confirm: bool = False,
 ) -> Tuple[str, str]:
-    """Use opening_detector_v2 on the first 6 RTH bars."""
+    """Use opening_detector_v2 on the first 6 RTH bars.
+
+    When cvd_confirm=True (OPENING_FIRE_CVD_V1 ON), computes cvd_pos from
+    v9_bars_5min.cumulative_delta and requires CVD alignment for OPEN_DRIVE.
+    """
     try:
         from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type
-        result = detect_opening_type(bars, opening_print)
+        kwargs: Dict = {}
+        if cvd_confirm:
+            cvd_pos = _compute_opening_cvd_pos()
+            if cvd_pos is not None:
+                kwargs["cvd_pos"] = cvd_pos
+                kwargs["cvd_confirm_drive"] = True
+                logger.info("[OPENING_FIRE_CVD] cvd_pos=%.4f for opening window", cvd_pos)
+            else:
+                logger.warning("[OPENING_FIRE_CVD] cvd_pos unavailable — proceeding without CVD confirmation")
+        result = detect_opening_type(bars, opening_print, **kwargs)
         return result.get("opening_type", "UNKNOWN"), result.get("direction", "NEUTRAL")
     except Exception:
         return "UNKNOWN", "NEUTRAL"

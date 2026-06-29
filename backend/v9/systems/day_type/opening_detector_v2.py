@@ -67,6 +67,7 @@ def detect_opening_type(
     pdh: Optional[float] = None,
     pdl: Optional[float] = None,
     cvd_pos: Optional[float] = None,
+    cvd_confirm_drive: bool = False,
     tick: float = TICK,
     drive_tol_ticks: float = 1.0,
     buf_ticks: float = 1.0,
@@ -104,11 +105,22 @@ def detect_opening_type(
     near = 0.2 * rng6   # "open = the edge" (Dalton): open must sit near the session extreme
     up_drive = (open_price <= sl + near) and all(l >= or_low - tol for l in lows[1:]) and closes[-1] >= open_price + 0.5 * rng6
     dn_drive = (open_price >= sh - near) and all(h <= or_high + tol for h in highs[1:]) and closes[-1] <= open_price - 0.5 * rng6
+    _cvd_divergence_note: Optional[str] = None
     if up_drive or dn_drive:
-        out.update(opening_type="OPEN_DRIVE",
-                   direction="UP" if up_drive else "DOWN", confidence=0.85,
-                   reasons=["no return through opening print", "monotonic |price−open|", f"open_location={loc}"])
-        return out
+        # CVD confirmation gate (OPENING_FIRE_CVD_V1): when cvd_confirm_drive=True,
+        # require CVD aligned with the drive. Divergence = absorption against the drive
+        # → do NOT emit OPEN_DRIVE; fall through to ORR / AUCTION.
+        cvd_diverges = False
+        if cvd_confirm_drive and cvd_pos is not None:
+            cvd_diverges = (up_drive and cvd_pos < 0.5) or (dn_drive and cvd_pos > 0.5)
+        if cvd_diverges:
+            _cvd_divergence_note = f"CVD divergence — drive not confirmed (cvd_pos={cvd_pos:.2f})"
+            # fall through to OPEN_TEST_DRIVE / OPEN_REJECTION_REVERSE / OPEN_AUCTION
+        else:
+            out.update(opening_type="OPEN_DRIVE",
+                       direction="UP" if up_drive else "DOWN", confidence=0.85,
+                       reasons=["no return through opening print", "monotonic |price−open|", f"open_location={loc}"])
+            return out
 
     init = closes[0] - open_price
     last = closes[-1] - open_price
@@ -128,6 +140,8 @@ def detect_opening_type(
         out.update(opening_type="OPEN_TEST_DRIVE",
                    direction="UP" if last > 0 else "DOWN", confidence=0.75,
                    reasons=["small poke beyond reference failed, then drove"])
+        if _cvd_divergence_note:
+            out["reasons"].append(_cvd_divergence_note)
         return out
 
     # 3) OPEN_REJECTION_REVERSE — a larger initial move that FULLY reverses back through the open
@@ -137,6 +151,8 @@ def detect_opening_type(
         out.update(opening_type="OPEN_REJECTION_REVERSE",
                    direction="UP" if last > 0 else "DOWN", confidence=0.6 if cvd_div else 0.5,
                    reasons=["initial move then full reversal through open"] + (["CVD divergence"] if cvd_div else []))
+        if _cvd_divergence_note:
+            out["reasons"].append(_cvd_divergence_note)
         return out
 
     # 4) OPEN_AUCTION — rotational (crossings of the open), or no clear drive
@@ -146,4 +162,6 @@ def detect_opening_type(
     else:
         out.update(opening_type="OPEN_AUCTION_IN", direction="NEUTRAL", confidence=0.4,
                    reasons=[f"rotational; {crossings} crossings of open; open_location={loc}"])
+    if _cvd_divergence_note:
+        out["reasons"].append(_cvd_divergence_note)
     return out

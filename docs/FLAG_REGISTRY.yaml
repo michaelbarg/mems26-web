@@ -69,6 +69,12 @@ flags:
     why: "ON by default (fail-safe, not a trading-logic change — restores the buffer that existed before restart). Disable with =0 + restart."
 
   # ───────────────────────── S2 — 5-min (Reactive / Initiative) ─────────────────────────
+  OPENING_FIRE_CVD_V1:
+    category: s2
+    what: "CVD-confirm OPEN_DRIVE + suppress pre-IB-lock old-engine directional fallback for pattern selection."
+    why: "OFF (default, SHADOW only). 2026-06-29 incident: 4× INITIATIVE_SHORT fired on premature Variation + unconfirmed drive (CVD absorption ignored). Michael sign-off required to enable."
+    status: deferred
+    ref: "docs/handoff/CC_STAGE0_OPENING_FIRE_CVD_2026-06-29.md"
   S2_ATR_RELATIVE:
     category: s2
     what: "Scale S2 thresholds to ATR (relative) instead of fixed points."
