@@ -26,6 +26,47 @@ from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+# ── Pattern-family map (OPENING_FIRE_CVD_V1 / DAYTYPE_PATTERN_AWARE_V1) ──────
+# CONT = continuation patterns (with-trend / with-expansion)
+# REV  = reversal / fade patterns (counter-trend / fade-edges)
+# Unknown pattern → None (no family gate, fail-open).
+_CONT_PATTERNS = frozenset({
+    "INITIATIVE", "INITIATIVE_LONG", "INITIATIVE_SHORT",
+    "BULL_FLAG", "BULL_FLAG_LONG", "BEAR_FLAG", "BEAR_FLAG_SHORT",
+    "ZLR", "TLB", "TT", "GB100",
+})
+_REV_PATTERNS = frozenset({
+    "REACTIVE", "REACTIVE_LONG", "REACTIVE_SHORT",
+    "INVERSE_HNS", "INVERSE_HNS_LONG", "HNS_TOP", "HNS_TOP_SHORT",
+    "DOUBLE_BOTTOM_EE", "DOUBLE_BOTTOM_EE_LONG",
+    "DOUBLE_TOP_AA", "DOUBLE_TOP_AA_SHORT",
+    "VEGAS", "GHOST", "FAMIR", "HTLB",
+})
+
+# Day-types grouped by family allowance
+_BALANCED_DAYTYPES = frozenset({"Normal", "Neutral_Center", "Neutral_Extreme"})
+_TREND_DAYTYPES = frozenset({"Trend_Normal", "Trend_DD"})
+
+
+def _pattern_family(pattern: Optional[str]) -> Optional[str]:
+    """Map a pattern name to CONT / REV / None."""
+    if not pattern:
+        return None
+    p = pattern.strip()
+    if p in _CONT_PATTERNS:
+        return "CONT"
+    if p in _REV_PATTERNS:
+        return "REV"
+    # Try stripping _LONG / _SHORT suffix
+    for suffix in ("_LONG", "_SHORT"):
+        if p.endswith(suffix):
+            base = p[: -len(suffix)]
+            if base in _CONT_PATTERNS or (base + suffix) in _CONT_PATTERNS:
+                return "CONT"
+            if base in _REV_PATTERNS or (base + suffix) in _REV_PATTERNS:
+                return "REV"
+    return None
+
 
 def _enabled() -> bool:
     return os.environ.get("DAYTYPE_POSITION_GATE", "0").lower() in ("1", "true", "yes")
@@ -52,6 +93,21 @@ def decide(
         return (True, "missing day_type/direction (fail-open)")
 
     dir_upper = direction.upper()
+
+    # ── DAYTYPE_PATTERN_AWARE_V1: family gate (CONT vs REV by day-type) ────────
+    # Post-IB-lock: balanced days → REV only; trend/variation → CONT only.
+    # Unknown pattern → no family gate (fall through to location logic).
+    # Flag OFF → skip (pattern ignored, byte-identical to before).
+    if os.environ.get("DAYTYPE_PATTERN_AWARE_V1", "0").lower() in ("1", "true", "yes"):
+        family = _pattern_family(pattern)
+        if family is not None:
+            if day_type in _BALANCED_DAYTYPES and family == "CONT":
+                return (False, f"balanced day ({day_type}) — continuation ({pattern}) blocked")
+            if day_type in _TREND_DAYTYPES and family == "REV":
+                return (False, f"trend day ({day_type}) — reversal ({pattern}) blocked")
+            if day_type == "Variation" and family == "REV":
+                return (False, f"Variation — reversal ({pattern}) blocked (CONT only)")
+            # Allowed family → fall through to existing location logic
 
     # Nontrend: Michael's rule — all patterns disabled on Nontrend days.
     # Flag NONTREND_DISABLE_ALL (default OFF). When ON, blocks ALL fires (S2+S4,
