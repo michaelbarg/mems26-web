@@ -154,12 +154,20 @@ def command_from_setup(
     if direction not in {"LONG", "SHORT"}:
         raise ValueError(f"Unsupported direction for Sierra command: {direction}")
     action = "BUY" if direction == "LONG" else "SELL"
+    # Contract count lives in metadata.sizing (numeric) for the firing systems; the old
+    # top-level "contracts"/"size" lookup missed it → demo placed 1 contract instead of the
+    # N-contract per-contract bracket (verified 06-29: trade 257 placed C1 only).
+    _sz = setup.get("contracts") or setup.get("size") or (setup.get("metadata") or {}).get("sizing")
+    try:
+        _contracts = max(1, int(_sz))
+    except (TypeError, ValueError):
+        _contracts = {"full": 3, "half": 2, "quarter": 1}.get(str(_sz).lower().strip(), 1)
     return write_trade_command(
         action=action,
         trade_id=trade_id,
         direction=direction,
         price=setup.get("entry_price"),
-        contracts=int(setup.get("contracts") or setup.get("size") or 1),
+        contracts=_contracts,
         stop_price=setup.get("stop") or setup.get("stop_price"),
         target_price=setup.get("t1") or setup.get("target_price"),
         account=account,
