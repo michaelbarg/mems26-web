@@ -60,3 +60,42 @@ def test_reversal_patterns_exempt():
 def test_continuation_patterns_filtered():
     for p in ("ZLR", "TLB", "TT", "GB100"):
         assert p not in REVERSAL_PATTERNS, "%s is continuation -> trend-filtered" % p
+
+
+# ── Unified CONT/REV family (single source of truth in daytype_position_gate) ──
+# if reverted → RED because removing the unified map re-introduces the S2 gap:
+# REACTIVE is a reversal pattern that must be exempt from CONT_TREND_FILTER.
+
+def test_unified_family_s2_rev_exempt():
+    """S2 reversal patterns (REACTIVE, HnS, Double) are REV in the unified map.
+    Without this, CONT_TREND_FILTER blocks REACTIVE against-trend fires (the bug)."""
+    from backend.v9.systems.daytype_position_gate import _pattern_family
+    for p in ("REACTIVE", "REACTIVE_LONG", "REACTIVE_SHORT",
+              "INVERSE_HNS_LONG", "HNS_TOP_SHORT",
+              "DOUBLE_BOTTOM_EE_LONG", "DOUBLE_TOP_AA_SHORT"):
+        assert _pattern_family(p) == "REV", f"{p} must be REV (exempt from trend filter)"
+
+
+def test_unified_family_s2_cont_filtered():
+    """S2 continuation patterns (INITIATIVE, BULL_FLAG) are CONT in the unified map."""
+    from backend.v9.systems.daytype_position_gate import _pattern_family
+    for p in ("INITIATIVE", "INITIATIVE_LONG", "INITIATIVE_SHORT",
+              "BULL_FLAG_LONG", "BEAR_FLAG_SHORT"):
+        assert _pattern_family(p) == "CONT", f"{p} must be CONT (trend-filtered)"
+
+
+def test_unified_family_s4_consistent():
+    """S4 patterns in the unified map match pattern_engine classification."""
+    from backend.v9.systems.daytype_position_gate import _pattern_family
+    for p in ("ZLR", "TLB", "TT", "GB100"):
+        assert _pattern_family(p) == "CONT", f"{p} must be CONT"
+    for p in ("VEGAS", "GHOST", "FAMIR", "HTLB", "HFE"):
+        assert _pattern_family(p) == "REV", f"{p} must be REV"
+
+
+def test_unknown_pattern_no_family():
+    """Unknown pattern → None (fail-open, not filtered)."""
+    from backend.v9.systems.daytype_position_gate import _pattern_family
+    assert _pattern_family("UNKNOWN_SETUP") is None
+    assert _pattern_family(None) is None
+    assert _pattern_family("") is None

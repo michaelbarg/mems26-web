@@ -330,18 +330,17 @@ class TradingGateway:
                 # kill HTLB/VEGAS/GHOST/FAMIR — counterfactual 2026-06-25). Fixes the
                 # BULL_FLAG_LONG chop fires that the single-bar veto passed (momentary poke).
                 if os.getenv("CONT_TREND_FILTER", "0").lower() in ("1", "true", "yes"):
-                    try:
-                        from backend.v9.systems.woodies.pattern_engine import REVERSAL_PATTERNS as _REV
-                    except Exception:
-                        _REV = {"VEGAS", "GHOST", "FAMIR", "HTLB"}
-                    _pat = (resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or "").upper()
-                    _is_reversal = any(r in _pat for r in _REV) or any(
-                        r in _pat for r in ("DOUBLE", "HNS", "HEAD_SHOULDER"))
-                    if not _is_reversal:
+                    from backend.v9.systems.daytype_position_gate import _pattern_family
+                    _pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or ""
+                    _fam = _pattern_family(_pat)
+                    # REV (REACTIVE, GHOST, VEGAS, HnS, Double, …) are EXEMPT — they
+                    # fire against the trend by design. Only CONT requires sustained trend.
+                    # Unknown pattern (_fam=None) → fail-open (not filtered).
+                    if _fam == "CONT":
                         _sus = _dc.get("dir_sustained", "NEUTRAL")
                         if _sus != _set_dir:   # NEUTRAL (chop) or opposite → no sustained trend
                             result["blocked_by"] = "cont_trend_filter"
-                            logger.info("[Gateway] BLOCKED by cont-trend-filter: %s setup %s vs sustained %s",
+                            logger.info("[Gateway] BLOCKED by cont-trend-filter: %s (CONT) setup %s vs sustained %s",
                                         _pat, _set_dir, _sus)
                             return result
 

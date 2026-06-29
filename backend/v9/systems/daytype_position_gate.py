@@ -40,7 +40,7 @@ _REV_PATTERNS = frozenset({
     "INVERSE_HNS", "INVERSE_HNS_LONG", "HNS_TOP", "HNS_TOP_SHORT",
     "DOUBLE_BOTTOM_EE", "DOUBLE_BOTTOM_EE_LONG",
     "DOUBLE_TOP_AA", "DOUBLE_TOP_AA_SHORT",
-    "VEGAS", "GHOST", "FAMIR", "HTLB",
+    "VEGAS", "GHOST", "FAMIR", "HTLB", "HFE",
 })
 
 # Day-types grouped by family allowance
