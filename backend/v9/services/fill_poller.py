@@ -26,6 +26,15 @@ FILLS_PATH = Path(os.getenv(
 ))
 POLL_INTERVAL = 0.25  # seconds
 
+# Anti-duplicate guard: Wine can fail to truncate trade_command.json (same root as the
+# 06-25 feed-freeze) → the DLL re-reads the command and re-places (observed 06-26: one
+# command → 2 orders, 6s apart). Defense: once a RESULT ack exists for the current command
+# (result mtime >= command mtime), clear the command NATIVELY (fast, no Wine). Polled at
+# 0.25s; the DLL's re-read is ~bars/seconds → the native clear wins the race.
+_SIGNALS_DIR = Path(os.getenv("MEMS26_SIGNALS_DIR", "/Users/michael/SierraChart_Data/v9_export"))
+COMMAND_PATH = _SIGNALS_DIR / "trade_command.json"
+RESULT_PATH = _SIGNALS_DIR / "trade_result.json"
+
 
 class FillPoller:
     """Async poller that reads trade_fills.json and drives TradeManager."""
@@ -53,6 +62,7 @@ class FillPoller:
         while self._running:
             try:
                 await asyncio.sleep(POLL_INTERVAL)
+                self._guard_duplicate_command()
                 self._check_fills()
             except asyncio.CancelledError:
                 break
@@ -62,6 +72,25 @@ class FillPoller:
 
     def stop(self) -> None:
         self._running = False
+
+    def _guard_duplicate_command(self) -> None:
+        """Clear trade_command.json natively once the DLL has acked it (result mtime >=
+        command mtime), so the DLL cannot re-read + re-place the same command. Wine-safe
+        defense against the observed double-placement (see module header)."""
+        try:
+            if not COMMAND_PATH.exists():
+                return
+            cstat = COMMAND_PATH.stat()
+            if cstat.st_size <= 10:
+                return  # already empty / cleared
+            if not RESULT_PATH.exists():
+                return
+            if RESULT_PATH.stat().st_mtime >= cstat.st_mtime:
+                # a result ack exists for this command → the DLL placed it → clear now
+                COMMAND_PATH.write_text("")
+                logger.info("[FillPoller] trade_command.json cleared after ack (anti-duplicate guard)")
+        except OSError:
+            pass
 
     def _check_fills(self) -> None:
         """Check for new fill events in trade_fills.json."""
