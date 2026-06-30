@@ -96,3 +96,15 @@ GHOST SHORT (5 signals), REACTIVE (3 signals post-lock), DOUBLE_BOTTOM (1 signal
 - ❌ GIANT_BAR_EXCLUDE not changed (Michael decision)
 - ❌ DLL ZLR flag mechanism diagnosis — pending next session logs
 - ❌ S2 five_min feed recovery — pending next RTH open
+
+---
+
+## Cowork Verification Addendum (2026-06-30, post-CC, Rule 5)
+
+**Verified raw:** signals 5099–5109 match this table (`v9_woodies_signals` ts/dir/cci). ROOT 1 (A7 `fire_setup=None`) + ROOT 2 (UNKNOWN→SKIP auth) confirmed real + committed (`fd153c3`, `bc1a1fd`). The with-trend ZLR 5099/5100 fired **12:40/12:45 ET = 11:40/11:45 CT — BEFORE `fd153c3` went live (13:08 CT restart)** → died at A7 pre-fix (correct). REV-blocked confirmed by design (−34.6R backtest).
+
+**NEW finding — Mechanism D (transient zlr flag):** `v9_bars_5min_woodies.zlr_detected` is **mutated 1→0 by later upserts**. Cowork observed bars **21:35/21:40 IL with `zlr_detected=1` at ~21:50 IL, then `zlr_detected=0` for the same bars** ~10 min later. The bridge `INSERT OR REPLACE` (`bars.py:914`) overwrites each bar per push; a later DLL re-export without the flag erases the transient `zlr=1`. **Implication:** the DLL ZLR flag is short-lived — for `process_bar` to build the DLL-ZLR it must receive a push with `zlr=1` **AND** that push must be a new-bar (else Mechanism C early-return `woodies_system.py:351` skips it). The flag often arrives **mid-bar (non-new-bar push)** → skipped → then overwritten → **no ZLR signal ever created** (which is why this divergence is invisible to a `v9_woodies_signals`-based trace). **D likely compounds with C and is the core of the chart↔backend ZLR divergence.**
+
+**Next-session verdict** (scheduled `mems26-zlr-trace-verdict`, 07-01 09:45 CT): correlate the `ZLR-TRACE` lines with the bar's `zlr_detected` over time to confirm A vs C vs D. Fix per mechanism (C/D → build the DLL-ZLR on the `0→1` flag transition even on a non-new-bar push, before it's overwritten; flag-gated + Michael sign-off).
+
+**Minor:** signal 5110 (LONG, CCI 32, 19:55 UTC = 15:55 ET) appeared after CC wrote this — outside the table, consistent (late-session CONT long).
