@@ -983,6 +983,24 @@ def post_woodies_5min(
         }
     # === END override ===
 
+    # ZLR-TRACE (2026-06-30 Cowork): does the routed bar keep the DLL zlr flag?
+    # The current_bar override above may drop zlr_detected, which is finalized on
+    # the CLOSED bar (history[-1]). Rare trigger (only on a zlr bar).
+    try:
+        _hist_zlr = bool(bars[-1].get("zlr_detected")) if bars else False
+        _cb_zlr = (bool(payload.current_bar.get("zlr_detected"))
+                   if payload.current_bar else None)
+        _routed_zlr = bool(last_flat.get("zlr_detected")) if last_flat else None
+        if _hist_zlr or _routed_zlr:
+            logger.info(
+                "[woodies_5min ZLR-TRACE] closed_bar.zlr=%s current_bar.zlr=%s "
+                "routed.zlr=%s (src=%s) -- closed=True+routed=False => override drops flag",
+                _hist_zlr, _cb_zlr, _routed_zlr,
+                "current_bar" if payload.current_bar else "history[-1]",
+            )
+    except Exception:
+        pass
+
     if last_flat:
         _route_bar("woodies_5min", last_flat)
     return {"ok": True, "inserted": created, "type": "woodies_5min"}

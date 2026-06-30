@@ -348,6 +348,17 @@ class WoodiesSystem(BaseV9TradingSystem):
             elif self._bar_buffer:
                 self._bar_buffer[-1] = wb  # update latest with fresh OHLC
 
+            # ZLR-TRACE (2026-06-30 Cowork): pin the chart↔backend ZLR divergence.
+            # Logs whenever the DLL zlr flag actually reaches process_bar, and
+            # whether detection will run (only on a genuinely new bar ts) or be
+            # skipped by the not-new-bar early-return below. Rare trigger.
+            if wb.zlr_detected:
+                logger.info(
+                    "[Woodies ZLR-TRACE] wb.zlr=%s dir=%s is_new_bar=%s buf=%d — detection %s",
+                    wb.zlr_detected, wb.zlr_direction, _is_new_bar, len(self._bar_buffer),
+                    "WILL run" if _is_new_bar else "SKIPPED (non-new-bar push -> early return)",
+                )
+
             if not _is_new_bar:
                 return  # dedup: detection + fire only on genuinely new bar ts
 

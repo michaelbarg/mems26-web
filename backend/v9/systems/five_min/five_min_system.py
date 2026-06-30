@@ -1547,7 +1547,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                     gateway_setup = build_s2_gateway_setup(t1_setup, info)
                     try:
                         self._gateway.route_setup(gateway_setup, 2)
-                        logger.info("[FiveMin] Auto-routed: %s %s → gateway SHADOW", pattern_name, direction)
+                        logger.info("[FiveMin] Auto-routed: %s %s → gateway (SHADOW records; DEMO/LIVE if gates pass)", pattern_name, direction)
                     except Exception as gw_err:
                         logger.warning("[FiveMin] Gateway route_setup failed: %s", gw_err)
                 elif t1_setup:
