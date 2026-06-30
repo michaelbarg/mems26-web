@@ -81,12 +81,12 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-29: INITIATIVE_SHORT fired on Normal day (should be REV-only). Michael sign-off required."
     status: deferred
     ref: "docs/handoff/CC_STAGE1_PATTERN_AWARE_GATE_2026-06-29.md"
-  S2_CVD_CONFIRM_V1:
+  S2_CVD_DETECTION_V1:
     category: s2
-    what: "CVD confirmation in S2 detection geometry: REACTIVE requires absorption (divergence from exhaustion), INITIATIVE requires delta alignment with breakout."
+    what: "CVD confirmation inside S2 detection geometry: REACTIVE requires absorption (entry-bar delta OR price/CVD divergence), INITIATIVE requires net delta with-flow. Fail-open on stale CVD."
     why: "OFF (default, SHADOW only). 2026-06-29: INITIATIVE_SHORT fired without CVD confirmation despite +3,403 absorption. Michael sign-off required."
     status: deferred
-    ref: "docs/handoff/CC_STAGE0_OPENING_FIRE_CVD_2026-06-29.md §Stage-2"
+    ref: "docs/handoff/CC_STAGE2_CVD_DETECTION_2026-06-30.md"
   S2_ATR_RELATIVE:
     category: s2
     what: "Scale S2 thresholds to ATR (relative) instead of fixed points."
