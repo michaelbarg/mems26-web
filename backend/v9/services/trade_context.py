@@ -510,22 +510,44 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     import os as _os
     if _os.getenv("S1_NEW_CLASSIFIER", "").lower() in ("1", "true", "yes"):
         try:
-            import time as _t
-            import datetime as _dt
-            from zoneinfo import ZoneInfo as _ZI
-            _today = _dt.datetime.now(_ZI("America/New_York")).date().isoformat()
-            if _NC_CACHE.get("date") != _today or (_t.time() - _NC_CACHE.get("ts", 0.0)) > 30:
-                from backend.v9.api.v9.daytype_classify_routes import classify_replay as _cr
-                _final = (_cr(_today) or {}).get("final") or {}
-                _NC_CACHE.update({"date": _today, "ts": _t.time(), "day_type": _final.get("day_type")})
-            _ndt = _NC_CACHE.get("day_type")
-            if _ndt and _ndt != "FORMING":
-                day_type = {"Normal_Variation": "Variation"}.get(_ndt, _ndt)
-            elif _ndt == "FORMING" and _os.getenv("OPENING_FIRE_CVD_V1", "").lower() in ("1", "true", "yes"):
-                # OPENING_FIRE_CVD_V1: pre-IB-lock, do NOT use old engine's directional
-                # day_type for pattern selection (prevents premature INITIATIVE on a
-                # "Variation" from the 3-type fallback). Mode-1 = opening-type only.
-                day_type = None
+            # ── DAYTYPE_GATE_LIVE_V1: read the LIVE in-memory promoted attribute first ──
+            # This is the SAME source V2Sizing uses (app.state.day_type_machine.day_type),
+            # promoted instantly by _day_type_on_bar → no DB lag / no 30s cache stale read.
+            # I-44/I-50 fix: the old classify_replay path lagged the live engine by up to
+            # 30s + DB-persist delay, causing gate to see "Normal" while live was "Trend_Normal".
+            _live_dt = None
+            if _os.getenv("DAYTYPE_GATE_LIVE_V1", "").lower() in ("1", "true", "yes"):
+                try:
+                    import importlib as _il
+                    _app_mod = _il.import_module("backend.v9.app").app
+                    _dtm = getattr(_app_mod.state, "day_type_machine", None)
+                    if _dtm:
+                        _raw = getattr(_dtm, "day_type", None)
+                        _live_dt = _raw.value if hasattr(_raw, "value") else (str(_raw) if _raw else None)
+                        if _live_dt and _live_dt not in ("UNKNOWN", "None", "INDETERMINATE"):
+                            _live_dt = {"Normal_Variation": "Variation"}.get(_live_dt, _live_dt)
+                        else:
+                            _live_dt = None
+                except Exception:
+                    _live_dt = None
+
+            if _live_dt:
+                day_type = _live_dt
+            else:
+                # Fallback: classify_replay (DB-based, 30s cache) — the old path
+                import time as _t
+                import datetime as _dt
+                from zoneinfo import ZoneInfo as _ZI
+                _today = _dt.datetime.now(_ZI("America/New_York")).date().isoformat()
+                if _NC_CACHE.get("date") != _today or (_t.time() - _NC_CACHE.get("ts", 0.0)) > 30:
+                    from backend.v9.api.v9.daytype_classify_routes import classify_replay as _cr
+                    _final = (_cr(_today) or {}).get("final") or {}
+                    _NC_CACHE.update({"date": _today, "ts": _t.time(), "day_type": _final.get("day_type")})
+                _ndt = _NC_CACHE.get("day_type")
+                if _ndt and _ndt != "FORMING":
+                    day_type = {"Normal_Variation": "Variation"}.get(_ndt, _ndt)
+                elif _ndt == "FORMING" and _os.getenv("OPENING_FIRE_CVD_V1", "").lower() in ("1", "true", "yes"):
+                    day_type = None
         except Exception:
             pass  # fail-safe — keep the old engine's day_type set above
 

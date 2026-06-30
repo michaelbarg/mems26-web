@@ -81,6 +81,12 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-29: INITIATIVE_SHORT fired on Normal day (should be REV-only). Michael sign-off required."
     status: deferred
     ref: "docs/handoff/CC_STAGE1_PATTERN_AWARE_GATE_2026-06-29.md"
+  DAYTYPE_GATE_LIVE_V1:
+    category: s2
+    what: "Read day_type for position gate + auth table from the LIVE in-memory promoted attribute (app.state.day_type_machine.day_type) instead of classify_replay DB cache. Fixes I-44/I-50 source split."
+    why: "OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required."
+    status: deferred
+    ref: "I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md"
   S2_CVD_DETECTION_V1:
     category: s2
     what: "CVD confirmation inside S2 detection geometry: REACTIVE requires absorption (entry-bar delta OR price/CVD divergence), INITIATIVE requires net delta with-flow. Fail-open on stale CVD."
