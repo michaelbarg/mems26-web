@@ -484,6 +484,33 @@ def extract_trade_systems_panel(trade) -> Dict[str, Any]:
 _NC_CACHE: Dict[str, Any] = {}
 
 
+def get_live_day_type() -> Optional[str]:
+    """Read the LIVE promoted 7-type day_type from app.state.day_type_machine.
+
+    This is the SAME source Woodies V2Sizing uses — promoted instantly by
+    _day_type_on_bar, no DB lag, no cache. Returns the mapped day_type string
+    (e.g. "Trend_Normal", "Variation") or None if unavailable/UNKNOWN/FORMING.
+    Gated by DAYTYPE_GATE_LIVE_V1 flag; returns None when OFF.
+    Fail-safe: any error → None.
+    """
+    import os as _os
+    if _os.getenv("DAYTYPE_GATE_LIVE_V1", "").lower() not in ("1", "true", "yes"):
+        return None
+    try:
+        import importlib as _il
+        _app_mod = _il.import_module("backend.v9.app").app
+        _dtm = getattr(_app_mod.state, "day_type_machine", None)
+        if not _dtm:
+            return None
+        _raw = getattr(_dtm, "day_type", None)
+        _val = _raw.value if hasattr(_raw, "value") else (str(_raw) if _raw else None)
+        if _val and _val not in ("UNKNOWN", "None", "INDETERMINATE", "FORMING"):
+            return {"Normal_Variation": "Variation"}.get(_val, _val)
+    except Exception:
+        pass
+    return None
+
+
 def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     """G1: Extract day_type, pattern_id, session from cross_context at entry.
 
@@ -511,25 +538,9 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     if _os.getenv("S1_NEW_CLASSIFIER", "").lower() in ("1", "true", "yes"):
         try:
             # ── DAYTYPE_GATE_LIVE_V1: read the LIVE in-memory promoted attribute first ──
-            # This is the SAME source V2Sizing uses (app.state.day_type_machine.day_type),
-            # promoted instantly by _day_type_on_bar → no DB lag / no 30s cache stale read.
-            # I-44/I-50 fix: the old classify_replay path lagged the live engine by up to
-            # 30s + DB-persist delay, causing gate to see "Normal" while live was "Trend_Normal".
-            _live_dt = None
-            if _os.getenv("DAYTYPE_GATE_LIVE_V1", "").lower() in ("1", "true", "yes"):
-                try:
-                    import importlib as _il
-                    _app_mod = _il.import_module("backend.v9.app").app
-                    _dtm = getattr(_app_mod.state, "day_type_machine", None)
-                    if _dtm:
-                        _raw = getattr(_dtm, "day_type", None)
-                        _live_dt = _raw.value if hasattr(_raw, "value") else (str(_raw) if _raw else None)
-                        if _live_dt and _live_dt not in ("UNKNOWN", "None", "INDETERMINATE"):
-                            _live_dt = {"Normal_Variation": "Variation"}.get(_live_dt, _live_dt)
-                        else:
-                            _live_dt = None
-                except Exception:
-                    _live_dt = None
+            # Uses the shared get_live_day_type() helper (single source of truth).
+            # I-44/I-50 fix: the old classify_replay path lagged the live engine.
+            _live_dt = get_live_day_type()
 
             if _live_dt:
                 day_type = _live_dt

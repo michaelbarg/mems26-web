@@ -1332,9 +1332,14 @@ class FiveMinSystem(BaseV9TradingSystem):
             _dedup_key = f"{kind}_{direction}"
             self._fire_dedup[_dedup_key] = self.buffer_size
 
-            # FIX 1+5: provisional day_type for targets + auth when UNKNOWN.
-            # Computed ONCE here, used by both targets and emit_t1_setup.
-            _emit_day_type = self.current_day_type
+            # FIX 1+5: day_type for targets + auth. Computed ONCE, used by both
+            # targets and emit_t1_setup.
+            # DAYTYPE_GATE_LIVE_V1: read the LIVE promoted 7-type first (same source
+            # as V2Sizing / position gate). Falls back to self.current_day_type, then
+            # the old DECISION_MATRIX provisional. Single helper shared with
+            # extract_g1_entry_context (no duplicate logic).
+            from backend.v9.services.trade_context import get_live_day_type as _get_live_dt
+            _emit_day_type = _get_live_dt() or self.current_day_type
             if not _emit_day_type or _emit_day_type in ("UNKNOWN", "None"):
                 try:
                     from backend.v9.systems.day_type.decision_matrix import DECISION_MATRIX

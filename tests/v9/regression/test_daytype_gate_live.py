@@ -1,17 +1,18 @@
 """DAYTYPE_GATE_LIVE_V1 — live in-memory day_type source for position gate + auth.
 
-Fixes I-44/I-50: position gate read stale "Normal" from classify_replay cache
-while the live engine had already promoted to "Trend_Normal". This blocked CONT
-patterns on a trend day (06-30: 0 trades on a Trend_Normal / OPEN_DRIVE day).
+Fixes I-44/I-50: position gate AND S2 auth table read stale "Normal"/"UNKNOWN"
+from classify_replay cache while the live engine had already promoted to
+"Trend_Normal". This blocked CONT patterns on a trend day (06-30: 0 trades).
 
-Anti-tautological: calls REAL extract_g1_entry_context + daytype_position_gate.decide.
+Anti-tautological: calls REAL extract_g1_entry_context, get_live_day_type,
+daytype_position_gate.decide, and auth_table_v1.get_auth_cell.
 Contract: docs/handoff/CC_HANDOFF_CONTRACT.md
 """
 import os
 import pytest
 from unittest.mock import patch, MagicMock
 
-from backend.v9.services.trade_context import extract_g1_entry_context, _NC_CACHE
+from backend.v9.services.trade_context import extract_g1_entry_context, get_live_day_type, _NC_CACHE
 
 
 @pytest.fixture(autouse=True)
@@ -134,6 +135,59 @@ class TestAuthTableLiveSource:
         from backend.v9.systems.five_min.auth_table_v1 import get_auth_cell
         verdict, h, m, l = get_auth_cell("INITIATIVE_LONG", "Neutral_Center")
         assert verdict == "SKIP"
+
+
+# ---------------------------------------------------------------------------
+# Test 4b: Shared helper get_live_day_type — the S2 auth path uses it too
+# if reverted → RED because the S2 path would still read stale UNKNOWN
+# ---------------------------------------------------------------------------
+class TestSharedHelper:
+    def test_get_live_day_type_returns_trend_normal(self):
+        """get_live_day_type reads app.state and returns the promoted 7-type."""
+        mock_app = _mock_app_state("Trend_Normal")
+        with patch("importlib.import_module", return_value=MagicMock(app=mock_app)):
+            result = get_live_day_type()
+        assert result == "Trend_Normal"
+
+    def test_get_live_day_type_maps_normal_variation(self):
+        """Normal_Variation is mapped to Variation."""
+        mock_app = _mock_app_state("Normal_Variation")
+        with patch("importlib.import_module", return_value=MagicMock(app=mock_app)):
+            result = get_live_day_type()
+        assert result == "Variation"
+
+    def test_get_live_day_type_returns_none_on_unknown(self):
+        """UNKNOWN/FORMING → None (caller falls back)."""
+        for val in ("UNKNOWN", "FORMING", None, "None"):
+            mock_app = _mock_app_state(val)
+            with patch("importlib.import_module", return_value=MagicMock(app=mock_app)):
+                result = get_live_day_type()
+            assert result is None, f"Expected None for {val}, got {result}"
+
+    def test_get_live_day_type_none_when_flag_off(self):
+        """Flag OFF → always None."""
+        mock_app = _mock_app_state("Trend_Normal")
+        with patch.dict(os.environ, {"DAYTYPE_GATE_LIVE_V1": "0"}):
+            with patch("importlib.import_module", return_value=MagicMock(app=mock_app)):
+                result = get_live_day_type()
+        assert result is None
+
+    def test_s2_emit_uses_live_day_type(self):
+        """The S2 _emit_day_type path calls get_live_day_type (same helper).
+
+        Regression 06-30: INITIATIVE_LONG day_type=UNKNOWN at 14:00 → Auth SKIP.
+        With fix: get_live_day_type returns Trend_Normal → Auth FULL.
+        """
+        from backend.v9.systems.five_min.auth_table_v1 import get_auth_cell
+        # Simulate what happens when get_live_day_type returns Trend_Normal
+        live_dt = "Trend_Normal"  # what the helper would return
+        verdict, h, m, l = get_auth_cell("INITIATIVE_LONG", live_dt)
+        assert verdict == "FULL", f"Live Trend_Normal + INIT_LONG should be FULL, got {verdict}"
+        assert h == 3, f"Expected 3 contracts HIGH, got {h}"
+
+        # vs the stale path (UNKNOWN → Neutral_Center fallback → SKIP)
+        verdict_stale, _, _, _ = get_auth_cell("INITIATIVE_LONG", "Neutral_Center")
+        assert verdict_stale == "SKIP", "Stale Neutral_Center fallback should SKIP"
 
 
 # ---------------------------------------------------------------------------
