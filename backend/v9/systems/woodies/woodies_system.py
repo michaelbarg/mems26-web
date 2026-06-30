@@ -596,9 +596,11 @@ class WoodiesSystem(BaseV9TradingSystem):
                             )
                             if _v2s is None:
                                 sizing = "reject"
+                                self._last_v2_sizing = None
                             else:
                                 _c = _v2s.contracts
                                 sizing = "full" if _c >= 3 else ("half" if _c >= 2 else ("reject" if _c == 0 else "half"))
+                                self._last_v2_sizing = _v2s
                                 logger.info("[Woodies] V2 sizing: %s contracts=%d mode=%s risk=%.1fpt",
                                             signal, _c, _v2s.mode, _v2s.risk_points)
                     except Exception as _e:
@@ -613,13 +615,20 @@ class WoodiesSystem(BaseV9TradingSystem):
 
             fire_setup = None
             if patterns and direction and sizing != "reject":
-                if best.entry_price and best.stop:
+                # Use best.stop if available; fall back to V2 sizing result's stop.
+                # The old code gated on `best.stop` which could be None/0 when
+                # V2 sizing owns the stop → fire_setup stayed None → A7 FAIL →
+                # ready_to_route=False → 0 trades (06-30 live repro).
+                _effective_stop = best.stop
+                if not _effective_stop and hasattr(self, '_last_v2_sizing') and self._last_v2_sizing:
+                    _effective_stop = getattr(self._last_v2_sizing, 'stop_price', None)
+                if best.entry_price and _effective_stop:
                     # PHASE 1 (2026-06-10): S4 targets per spec table.
                     # T1 = ladder/measure per pattern. T2 = VEGAS only (Measure×1.0).
                     # All CCI-cross targets (CONT T2/T3, GHOST T2/T3, etc.) = None
                     # (deferred to CCI-cross monitor §1.6). Flag-gated STOP_ANCHORS_V2.
                     _s4_entry = best.entry_price
-                    _s4_stop = best.stop
+                    _s4_stop = _effective_stop
                     _s4_risk = abs(_s4_entry - _s4_stop)
                     _s4_sign = 1.0 if direction == "LONG" else -1.0
                     _s4_t1 = _s4_entry + _s4_sign * _s4_risk  # 1R fallback
@@ -821,6 +830,13 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "confidence": int(best.confidence * 100),
                     }
                     self._last_fire_setup = fire_setup  # test observability
+                else:
+                    # Instrumentation: routable pattern but fire_setup=None
+                    logger.warning(
+                        "[Woodies] fire_setup=None for routable %s %s: entry=%s stop=%s effective_stop=%s sizing=%s",
+                        best.pattern_id, direction, best.entry_price, best.stop,
+                        _effective_stop, sizing,
+                    )
 
             # P30: Skip sync HTTP touchpoint fetch — it self-deadlocks the
             # event loop (5 requests × 2s timeout to localhost:8000 which
