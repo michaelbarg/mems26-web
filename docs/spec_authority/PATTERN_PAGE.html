@@ -1,0 +1,138 @@
+<!doctype html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MEMS26 · עמוד תבניות וכניסה לעסקה</title>
+<style>
+:root{--bg:#0f1115;--card:#181b22;--line:#2a2f3a;--txt:#e6e8ec;--mut:#9aa3b2;
+--id:#6ea8fe;--en:#f6c453;--rz:#7ee081;--src:#8b93a3;--dec:#ff8fa3}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);
+font:15px/1.6 -apple-system,Segoe UI,Arial,sans-serif}
+.wrap{max-width:1000px;margin:0 auto;padding:20px}
+h1{font-size:22px;margin:0 0 4px}.sub{color:var(--mut);font-size:13px;margin-bottom:16px}
+.legend{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-bottom:18px;font-size:13px}
+.legend b{color:var(--txt)}.pill{display:inline-block;border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;margin-inline-end:6px}
+.p-id{background:rgba(110,168,254,.16);color:var(--id)}.p-en{background:rgba(246,196,83,.16);color:var(--en)}
+.p-rz{background:rgba(126,224,129,.16);color:var(--rz)}
+h2.sys{font-size:15px;color:var(--mut);border-bottom:1px solid var(--line);padding-bottom:6px;margin:26px 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.card h3{margin:0 0 2px;font-size:17px}.card .grp{color:var(--mut);font-size:12px;font-weight:400}
+.tag{float:left;font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px}
+.t-ok{background:rgba(126,224,129,.16);color:var(--rz)}.t-part{background:rgba(246,196,83,.16);color:var(--en)}
+.t-todo{background:rgba(255,143,163,.16);color:var(--dec)}.t-off{background:rgba(154,163,178,.16);color:var(--mut)}
+.phase{margin-top:10px;padding-inline-start:10px;border-inline-start:3px solid var(--line)}
+.phase.id{border-color:var(--id)}.phase.en{border-color:var(--en)}.phase.rz{border-color:var(--rz)}
+.phase .lbl{font-weight:700;font-size:13px;margin-bottom:2px}
+.row{font-size:13px;margin:1px 0}.row .k{color:var(--src);font-weight:600;display:inline-block;min-width:48px}
+.dec{color:var(--dec);font-size:13px;margin-top:3px}.dec .k{color:var(--dec);font-weight:700}
+.x{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 16px;font-size:12.5px;color:var(--mut);margin-bottom:18px}
+.x b{color:var(--txt)}
+</style></head><body><div class="wrap">
+
+<h1>MEMS26 · עמוד תבניות וכניסה לעסקה</h1>
+<div class="sub">מקור-אמת חי להגדרת כל תבנית · נבנה 2026-06-26 · ממולא-מראש ממקור (Table A/C · S2_EXIT_V6) + קוד (stop_anchors.yaml · targets_table.py) · <b>ה"הגדרה סופית" ⬜ נסגרת בצ'אט הייעודי</b></div>
+
+<div class="legend">
+<span class="pill p-id">① זיהוי</span> מתי מזהים שהתבנית נוצרת ·
+<span class="pill p-en">② כניסה + סטופ</span> הטריגר המדויק + איפה הסטופ ·
+<span class="pill p-rz">③ מימוש + רווח</span> איפה T1/T2/T3 + trail<br>
+<span style="color:var(--src)">מקור</span> = מה שכתוב במקור-האמת · <span style="color:var(--dec)">⬜ הגדרה</span> = ההחלטה שנסגור יחד
+</div>
+
+<div class="x"><b>חוקי-על (להחליט פעם אחת, חל על כולן):</b> סטופ = קצה-מבני ∓3T · רצפה 4T · תקרת-ATR=שער-גודל בלבד (CONT 1.0× · GB100/HTLB 1.2× · REV 1.5×) · סיכון≤25נק' → חוזים: ≤15=3, ≤25=2, >25=1 · רווח: CONT=סולם 1R/2R/4R או סולם-לירן (±200→±100→ZL) · REV=מידת-הדפוס (גובה×0.5/0.6) · trail: אחרי T1→BE+1T, אחרי T2→trail. <b>הכרעה ראשונה שפותחת הכל:</b> יעדי-CONT = חציות-CCI של המקור או R לפי-סוג-יום?</div>
+
+<h2 class="sys">S4 · Woodies CCI &nbsp;—&nbsp; 9 תבניות</h2>
+
+<div class="card"><span class="tag t-ok">✅ entry source-aligned</span><h3>1 · ZLR <span class="grp">Zero-Line Reject · CONT</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div>
+<div class="row"><span class="k">מקור</span> CCI 0–210 בסגירה, בר קודם CCI∈(−100,+100), SWI צהוב/ירוק, CZI תכלת 3 ברים אחרונים, TCCI מוביל בחזרה למעלה; קפיצת Stage-3 ≥10–25 CCI. trend BLUE/RED בלבד.</div>
+<div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div>
+<div class="row"><span class="k">כניסה</span> buy-stop 1T מעל high של בר-ההיפוך (Stage-3). מראה לשורט.</div>
+<div class="row"><span class="k">סטופ·מקור</span> 3T מתחת ל-low של בר-האות · cap 1.0×ATR · רצפה 4T</div>
+<div class="row"><span class="k">סטופ·קוד</span> cluster_low window 4 · −3T · max_risk 15נק' (✅ Michael)</div>
+<div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div>
+<div class="row"><span class="k">מקור</span> T1 +4T≈1R · T2 חציית ±200 הפוכה · T3 חציית ±100 הפוכה או trail (R≈2–3)</div>
+<div class="row"><span class="k">קוד</span> R לפי-סוג-יום (Trend_Normal 1R/2R/4R …) — לא חציות-CCI</div>
+<div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-part">🟡 שלב 1 בלבד</span><h3>2 · TLB <span class="grp">Trend Line Break · CONT</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> סגירה דרך קו-מגמה על ≥2 שיאי/שפלי CCI · עדיף עוגן אחד מעבר ל-±100. שלב 2 (לא נבנה): קו-שיניים + שבירה-ליד-0.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">כניסה</span> buy-stop 1T מעל בר-הסגירה דרך הקו.</div><div class="row"><span class="k">סטופ·מקור</span> 3T מתחת ל-low · cap 1.0×ATR</div><div class="row"><span class="k">סטופ·קוד</span> since_trendline_peak window 8 (🔬)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> T1 1R · T2 שיא-CCI הבא (±200) · T3 חציית ZL (R 1.5–2.5)</div><div class="row"><span class="k">קוד</span> R לפי-סוג-יום</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-todo">⚠️ 0 ירי אי-פעם</span><h3>3 · TT <span class="grp">Tony / Turbo Touch · CONT</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> CCI-14 ו-TCCI-6 שניהם סוגרים מעל ZL (long) + בר סוגר מעל EMA-34 · Stage-1 trend · עצירת Stage-2: 3–9 ברים מתחת ל-ZL בלי לחצות −100 · פער TCCI >5 CCI.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______ (למה 0 ירי? המקור מחמיר/מקל?)</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">כניסה</span> buy-stop 1T מעל בר-האות.</div><div class="row"><span class="k">סטופ·מקור</span> 3T מתחת ל-low · cap 1.0×ATR</div><div class="row"><span class="k">סטופ·קוד</span> zl_excursion window 9 (🔬)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> T1 1R · T2 חציית +200 · T3 חציית ZL (R 1.5–2.5)</div><div class="row"><span class="k">קוד</span> R לפי-סוג-יום</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-todo">⚠️ שותף-CONT, לא מאומת</span><h3>4 · GB100 <span class="grp">Ghost Bar at ±100 · CONT</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> כמו ZLR אבל pullback עמוק/מהיר יותר שחצה ±100 · CZI תכלת (long)/חום (short) · CCI לא נשאר >6 ברים בצד ההפוך של ZL.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">כניסה</span> buy-stop 1T מעל הבר שחוצה +100 בחזרה למגמה.</div><div class="row"><span class="k">סטופ·מקור</span> 3T מתחת ל-low · cap <b>1.2×ATR</b> (pullback עמוק)</div><div class="row"><span class="k">סטופ·קוד</span> cluster_low window 6 (🔬)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> T1 1R · T2 חציית +200 · T3 חציית ZL (R 1.5–3.0)</div><div class="row"><span class="k">קוד</span> R לפי-סוג-יום</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-ok">✅ entry source-aligned</span><h3>5 · VEGAS <span class="grp">Cup-and-Handle · REV</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> long: CCI ≤−200 (cup) → התאוששות ≥−100 → higher-low/אופקי ≥3 ברים (handle) → שבירת שיא-הביניים. handle רדוד (נותן-בחזרה <50%). ≥5 ברים בין שיאים.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">כניסה</span> שבירת השיא בין ה-cup ל-handle.</div><div class="row"><span class="k">סטופ·מקור</span> 3T מעבר ל-cup low · cap 1.5×ATR</div><div class="row"><span class="k">סטופ·קוד</span> swing_extreme · max_risk 20נק' (✅)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> מידת-דפוס: T1 גובה-cup×0.5 (~16T ב-200 CCI) · T2 ×0.6 · T3 trail ל-ZL (R 1.8–3.5)</div><div class="row"><span class="k">קוד</span> t1_measure_cap 0.75 · t2_measure_mult 1.0 (מקדמים שונים מהמקור)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______ (ליישב 0.5/0.6 מול 0.75/1.0)</div></div></div>
+
+<div class="card"><span class="tag t-todo">⚠️ לאפיין</span><h3>6 · GHOST <span class="grp">CCI Head-and-Shoulders · REV</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> 3 שיאים (short)/שפלים (long) · neckline אלכסוני בין הכתפיים נוטה ל-ZL · כתף-ימין ≤ כתף-ראשונה · כל הדפוס מעל/מתחת ל-ZL · גודל-ראש לא משנה.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">כניסה</span> שבירת ה-neckline.</div><div class="row"><span class="k">סטופ·מקור</span> 3T מעבר לכתף-ימין · cap 1.5×ATR</div><div class="row"><span class="k">סטופ·קוד</span> shoulder · max_risk 18נק' (🔬)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> מידה: T1 (ראש-ל-neckline)×0.5 · T2 ×0.6 · T3 trail (R 1.6–3.0)</div><div class="row"><span class="k">קוד</span> t1_measure_cap 0.5 ✓</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-todo">⚠️ לאפיין</span><h3>7 · FAMIR <span class="grp">Failed ZLR at ±200 · REV</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> מיד אחרי ZLR Stage-3, ה-ZLR נכשל ו-CCI נשבר חד הפוך בתוך אזור ±50 (הכי חזק) · LSMA חייב לתמוך (ZL ירוק long/אדום short) · נדרש ZLR קודם.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">כניסה</span> שבירה הפוכה אחרי ה-ZLR שנכשל (flip).</div><div class="row"><span class="k">סטופ·מקור</span> מעל high של בר-ה-ZLR-שנכשל (flip stop) · cap 1.5×ATR</div><div class="row"><span class="k">סטופ·קוד</span> failed_bar · max_risk 12נק' (🔬)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> T1 1R · T2 ±100 הפוך · T3 ±200 הפוך או חציית-ZL (R 1.5–2.8)</div><div class="row"><span class="k">קוד</span> R לפי-סוג-יום</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-ok">✅ כסמן-כיוון</span><h3>8 · HTLB <span class="grp">Horizontal Trend Line Break · REV</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> קו אופקי על ≥2 נגיעות (סבולת 15 CCI) · long: prev≤resistance ו-cur>resistance+5 · קו-long ב-[−100,−200], קו-short ב-[+100,+200]. מסמן סוף Stage-1.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______ (גם כניסה עצמאית, או רק סמן-כיוון?)</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">כניסה</span> שבירת הקו האופקי.</div><div class="row"><span class="k">סטופ·מקור</span> 3T מתחת ל-low של בר-הפריצה · cap 1.2×ATR</div><div class="row"><span class="k">סטופ·קוד</span> consolidation_extreme (🔬, מורחב — לא בר-הפריצה)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______ (ליישב עוגן: בר-פריצה מול קיצון-קונסולידציה)</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> T1 1R · T2 ±100 הפוך · T3 ZL (R 1.4–2.8)</div><div class="row"><span class="k">קוד</span> R לפי-סוג-יום</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-off">❌ מושבת (HFE_DISABLED)</span><h3>9 · HFE <span class="grp">Hook From Extreme · REV</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> קיצון ≤−200/≥+200 בחלון 12 · bars_since_extreme∈[2,12] · hook ≥50 · עדיף עם confluence של רמה יומית/שבועית. (Michael: "לא התבנית שלי" · −$2,987)</div><div class="dec"><span class="k">⬜ הכרעה:</span> נשאר כבוי לתמיד, או יש תבנית-מקור אמיתית? _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">סטופ·מקור</span> 3T מעבר לבר-הקיצון · cap 1.5×ATR · <span class="k">קוד</span> extreme_bar · t1_ladder_shift −1 · max_risk 20נק'</div><div class="dec"><span class="k">⬜ הגדרה:</span> (רק אם מחליטים להחיות)</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור</span> T1 1R · T2 ±100 הפוך · T3 ZL (R 1.4–2.5)</div><div class="dec"><span class="k">⬜ הגדרה:</span> (רק אם מחליטים להחיות)</div></div></div>
+
+<h2 class="sys">S2 · Five-Min &nbsp;—&nbsp; יציאה thesis-based (S2_EXIT_V6)</h2>
+
+<div class="x" id="s2-status" style="border-color:var(--en)">
+<b>🔧 מצב מערכת-2 + תיקון בשלבים</b> · רשומה חיה · מתעדכן אחרי כל שלב · עודכן 2026-06-30<br>
+<span style="color:var(--dec)"><b>🔴 אירוע-פיד 06-29 18:47:</b> <code>v9_bars_5min</code> (זרם CVD/S2) תקוע ב-18:00 · woodies חי ב-18:50 → S2 מורעב, אפס סטאפים מ-18:05. FEED_WATCHDOG כבוי = שקט. + LONG (INIT_LONG 17:30) זוהה אך נחסם.<br>✔ <b>אומת 19:22:</b> CVD <b>חי</b> (v9_bars_cumulative_delta 19:19 · woodies 19:20). הקפוא = <b>v9_bars_5min</b> (זרם-ברי-5דק' של S2 · last 18:00) → בעיית <b>בר-פיד</b>, לא CVD. תיקון: FEED_WATCHDOG ON + לטפל בקפיאת-הזרם.</span><br>
+<span style="color:var(--dec)"><b>🔴 מיסווג-REACTIVE (19:32):</b> ב-<code>CONT_TREND_FILTER</code> REVERSAL_PATTERNS = וודיס + Double/HnS בלבד → <b>REACTIVE מסווג CONTINUATION</b> → פייד-שורט נחסם כשהמגמה BLUE (גם CONT_TREND, גם DIRECTION). צריך: REACTIVE = היפוך/פטור + מותר כפייד-קצה.</span><br>
+<span style="color:var(--dec)"><b>🔴 חסימה #2 (REACTIVE_SHORT 18:00/18:05 · Cowork 19:50):</b> <code>daytype_position_gate</code> חסם 'SHORT 7463.25 &lt; POC 7466.25' · <b>pattern=None</b> (R2) · ועל <b>רמות-TPO תקועות</b> (VA 6נק' מול IB 80נק'; מחיר 7475 מעל VAH → קפוא עם v9_bars_5min). → פייד נחסם פעמיים: CONT_TREND + position_gate. תיקון: REACTIVE→REV בשניהם + רמות-TPO חיות.</span><br>
+<b>אודיט-ירי:</b> ✅ <b>יורות:</b> REACTIVE L/S · INITIATIVE L/S · Bull/Bear Flag &nbsp;·&nbsp; ❌ <b>מחווטות אך 0 יריות:</b> INVERSE_HNS · HNS_TOP · DOUBLE_BOTTOM_EE · DOUBLE_TOP_AA<br>
+<b>🤖 סוכנים 30/6:</b> ✅ S2 מקבל נתונים ב-RTH (<code>v9_bars_5min</code> RTH-only ע"פ תכנון-Sierra; קפיאה אחרי-RTH תקינה, לא באג). <b>הבעיה האמיתית:</b> 29/6 REACTIVE_SHORT זוהו ב-RTH (setups 260@10:05CT · 261@14:30CT) אך **נחסמו בגייט** (לא ב-v9_trades) · 🟠 תיקון-29/6 עדיין OFF (לכן עדיין חוסם) · 🟡 HnS/Double/TT כיול-הדוק · ✅ S4 7/9 · ✅ S1 7-type → <code>S1_ACTIVE_CANONICAL.md</code><br>
+<b>⏰ מוכנות 30/6 07:15CT:</b> פיד woodies חי · v9_bars_5min ייפתח 08:30 · 🔴 <b>דגלים OPENING_FIRE_CVD_V1+DAYTYPE_PATTERN_AWARE_V1 עדיין OFF</b> → REACTIVE עוד לא-חכמה · היום=Variation conf18 (סיכון 29/6-חוזר) · DEMO_EXECUTION=1 → <b>להדליק+restart לפני 08:30</b><br>
+<b>שלבי-תיקון</b> (כל שלב: CC · flag-OFF/SHADOW · אימות-חי):<br>
+🔬 <b>0</b> מקור-סוג-יום — <b>אובחן (06-29):</b> לפני נעילת-IB המסווג-החדש FORMING → fallback למנוע-3-type הישן שנתן "Variation" מוקדם; הקנוני=Normal. תיקון: לפני-נעילה לא-ליפול-לישן (מצב-1) + CVD-confirm ל-OPEN_DRIVE. ✅ <b>CC committed</b> (<code>f1304b6</code> · 3 שינויים ✓ · CVD מ-<code>v9_bars_cumulative_delta</code>+freshness · 10 טסטים עוברים · דגל OFF) · ✅ <b>1</b> gate פטרן-מודע (<code>57fb501</code> · CONT/REV · 17 טסטים עוברים · רגרסיית-06-29: INIT_SHORT@Normal נחסם · דגל OFF) ✅ <b>Change-3</b> (<code>b9095b1</code> · מפת-CONT/REV מאוחדת · REACTIVE+REV פטורים מ-CONT_TREND_FILTER · +HFE · 13 טסטים) · ✅ <b>1b</b> live-levels (<code>c1206da</code> · TPO-guard &lt;8נק' fail-open + גידור-REV על VAH/VAL · 32 טסטים) · ✅ <b>2</b> CVD בזיהוי (<code>c57d096</code> · S2_CVD_CONFIRM_V1 · REACTIVE: absorption-delta · INITIATIVE: aligned-delta · fail-open · 6 טסטים · דגל OFF) · ⬜ <b>3</b> single-fire + DEDUP · ⬜ <b>4</b> התאמות-REACTIVE (0.85·2T·יעדים·בדיקה-2) · ⬜ <b>5</b> HnS/Double לא-יורות
+</div>
+
+<div class="x" id="s2-opening-fire" style="border-color:var(--id)">
+<b>🟢 מצב-1 · ירי-פתיחה</b> — לפני שסוג-היום נקבע · ללא המתנה · עודכן 2026-06-29<br>
+המערכת מזהה סוג-פתיחה (<code>opening_detector_v2</code>) ויורה <b>מיד כשמאומת</b>, לפי הפרמטרים:<br>
+• <b>OPEN_DRIVE</b> (0.85): open בקצה-הסשן · לא חוזר דרך טווח-הפתיחה · סגירה כיוונית ≥0.5×טווח → ירי <b>עם-הדרייב</b> · ⚠️ <b>דורש אישור-CVD</b> (דלתא בכיוון; ספיגה/דיברגנס=דרייב-נכשל→לא לירות / להעביר ל-REVERSE)<br>
+• <b>OPEN_TEST_DRIVE</b> (0.75): poke 2-6T מעבר לרמה שנכשל→דרייב → עם-הדרייב<br>
+• <b>OPEN_REJECTION_REVERSE</b> (0.5-0.6): מהלך שמתהפך מלא דרך ה-open (CVD-div מאשר) → <b>כיוון-ההיפוך</b><br>
+• <b>OPEN_AUCTION</b> (0.4-0.5): רוטציה → החזק (אין אדג')<br>
+<b>פער (תקרת-היום):</b> ה-gate החי לא מעביר CVD ל-detector, ו-OPEN_DRIVE לא בודק CVD → דרייב-נכשל סווג כמאומת → ירי-INITIATIVE שגוי.
+</div>
+<div class="x">ב-S2 הסטופ הוא רשת-ביטחון בעוגן-המבני; ה-TradeManager יוצא מוקדם על שבירת-thesis (Type A: close+volume / belly הפוך / TCCI×CCI / שינוי-כיוון). Type B (wick/throwback/spike נמוך) = להישאר. Type C = time-stop לפי-יום על DD.</div>
+
+<div class="card"><span class="tag t-ok">✅ מוגדר + יורה</span><h3>REACTIVE <span class="grp">LONG/SHORT</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> מוכרים מותשים + belly של קונים + אישור COT + ב-support.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">סטופ·מקור</span> מתחת ל-belly low (long)/מעל belly high · <span class="k">קוד</span> support_zone window 4 · max_risk 15נק'</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______ (+ כלל-Variation: SHORT רק אם IB נשבר למטה)</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור/קוד</span> R לפי-סוג-יום + Type-C time-stop · יציאה מוקדמת Type-A (close<belly+vol / belly הפוך / POC flip / TCCI)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-ok">✅ מוגדר + יורה</span><h3>INITIATIVE <span class="grp">LONG/SHORT</span></h3>
+<div class="phase id"><div class="lbl">① זיהוי</div><div class="row"><span class="k">מקור</span> פריצה מעל רמה + accumulation + 2 בדיקות + expansion.</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase en"><div class="lbl">② כניסה + סטופ</div><div class="row"><span class="k">סטופ·מקור</span> הרמה השבורה / בר-הפריצה · <span class="k">קוד</span> breakout_bar window 1 (הדוק — ✅ Michael, מדוד מנצח +11%)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div>
+<div class="phase rz"><div class="lbl">③ מימוש + רווח</div><div class="row"><span class="k">מקור/קוד</span> R לפי-סוג-יום · יציאה Type-A (close בחזרה דרך הרמה+volume = פריצה כושלת)</div><div class="dec"><span class="k">⬜ הגדרה:</span> _______</div></div></div>
+
+<div class="card"><span class="tag t-todo">⚠️ לוודא מחווט</span><h3>Double_BT · HnS · Flag <span class="grp">S2 reversal/cont</span></h3>
+<div class="phase en"><div class="lbl">② כניסה + סטופ (קוד)</div><div class="row"><span class="k">קוד</span> Double_BT=second_bottom_top · HnS=shoulder (כתף-ימין, לא neckline) · Flag=breakout_bar w1 (✅ Michael)</div><div class="dec"><span class="k">⬜ הגדרה:</span> לוודא שהן יורות + זיהוי/מימוש לכל אחת (S2_EXIT_V6 §per-family)</div></div></div>
+
+<div class="x" style="margin-top:22px"><b>הבא:</b> בצ'אט הייעודי נמלא את ה-⬜ אחת-אחת (מתחילים בהכרעת יעדי-CONT), נכתוב כל החלטה ל-<code>config/stop_anchors.yaml</code> + <code>config/targets.yaml</code>, ונסמן ✅. כשהכל מוגדר — נבנה את עמוד-ה-UI מהמסמך הזה (שלב ב' של "גם וגם").</div>
+
+</div></body></html>
