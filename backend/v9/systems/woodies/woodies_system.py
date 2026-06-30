@@ -1014,8 +1014,8 @@ class WoodiesSystem(BaseV9TradingSystem):
             (ts, bar_id, cci_14, cci_prev, signal_type, direction, strength,
              reasoning, session, created_at,
              czi_state, swi_state, persistence_bars,
-             signal_type_core, signal_confidence)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+             signal_type_core, signal_confidence, is_synthetic)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 datetime.now(timezone.utc).isoformat(),
                 None,
@@ -1033,6 +1033,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                 len(self._bar_buffer),
                 pattern.pattern_id,
                 pattern.confidence,
+                0,  # is_synthetic: real detection (not synthetic/replayed)
             ),
         )
         logger.info(
