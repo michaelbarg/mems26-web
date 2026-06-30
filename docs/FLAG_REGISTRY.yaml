@@ -67,6 +67,12 @@ flags:
     category: s1
     what: "On mid-session restart, seed _cls_rth_bars from DB (v9_bars_5min_woodies) when IB locked but buffer short. Prevents ~1h classifier starvation (#11)."
     why: "ON by default (fail-safe, not a trading-logic change — restores the buffer that existed before restart). Disable with =0 + restart."
+  S1_OPEN_DRIVE_TREND:
+    category: s1
+    what: "OPEN_DRIVE/OPEN_TEST_DRIVE waives the rib>=2.5 Trend floor: a 1-sided day that opened with a drive + directional one_tf + close-at-extreme classifies Trend_Normal even with a modest range extension."
+    why: "OFF (default, SHADOW). Michael 2026-06-30: an OPEN_DRIVE day (rib 1.56, one_tf UP, close 0.915) was under-called Variation; affects management (Trend lets runners run). Re-call = trading-logic -> Michael sign-off + restart."
+    status: deferred
+    ref: "docs/handoff/CC_FIRING_PIPELINE_UNIFIED_2026-06-30.md (#3)"
 
   # ───────────────────────── S2 — 5-min (Reactive / Initiative) ─────────────────────────
   OPENING_FIRE_CVD_V1:

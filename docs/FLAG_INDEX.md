@@ -5,11 +5,11 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-06-30 18:04 · `.env` last modified 2026-06-30 15:32 · scan dirs: backend, bridge_
+_Generated 2026-06-30 19:40 · `.env` last modified 2026-06-30 18:24 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
-**Summary:** 69 documented · 46 ON (of which 3 inert) · 9 OFF (3 standing-OFF) · 13 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
+**Summary:** 70 documented · 47 ON (of which 3 inert) · 9 OFF (3 standing-OFF) · 13 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
 
 > ⚠ **3 registry flag(s) not referenced in code** (dead or renamed?): `RISK_CONSECUTIVE_LOSS_LIMIT`, `RISK_DAILY_LOSS_CAP`, `RISK_MAX_TRADES_DAY`
 
@@ -25,13 +25,14 @@ _Generated 2026-06-30 18:04 · `.env` last modified 2026-06-30 15:32 · scan dir
 | S1_IB_WIDTH_ATR | ✅ ON | `true` (.env) | False (flag() default) | Measure IB width in ATR units (relative) for day-type width tests. | SHADOW calibration (Michael 31/5). | `backend/v9/shared/atr.py:105` |  |
 | S1_LIVE_RECLASS | ✅ ON | `true` (.env) | "" (empty → OFF) | Apply the dynamic reclassification to the LIVE day_type (not just log it). | Pair of S1_DYNAMIC_RECLASS — both required for the day-type to keep re-evaluating. | `backend/main.py:502`<br>`backend/v9/shared/atr.py:110` |  |
 | S1_NEW_CLASSIFIER | ✅ ON | `1` (.env) | (no default) | Promote the validated 7-type classifier label to the trade gate (day_type_at_entry → 3 gates + stamp). | Michael approved 2026-06-20; fail-safe. Off-switch: =0 + restart. | `backend/env_loader.py:76`<br>`backend/v9/services/trade_context.py:538` | memory: project_s1_promotion_live |
+| S1_OPEN_DRIVE_TREND | 🔴 OFF | unset → "0" | "0" | OPEN_DRIVE/OPEN_TEST_DRIVE waives the rib>=2.5 Trend floor: a 1-sided day that opened with a drive + directional one_tf + close-at-extreme classifies Trend_Normal even with a modest range extension. | OFF (default, SHADOW). Michael 2026-06-30: an OPEN_DRIVE day (rib 1.56, one_tf UP, close 0.915) was under-called Variation; affects management (Trend lets runners run). Re-call = trading-logic -> Michael sign-off + restart. | `backend/v9/systems/day_type/daytype_classifier.py:129` | deferred; docs/handoff/CC_FIRING_PIPELINE_UNIFIED_2026-06-30.md (#3) |
 | S1_PROVISIONAL_DAYTYPE | ✅ ON | `1` (.env) | "" (empty → OFF) | Emit a provisional day_type at 30m (before the 60m IB lock); lock still overrides. | Eliminates the 60-min UNKNOWN gap. | `backend/v9/systems/day_type/state_machine.py:390` |  |
 
 ## S2 — 5-min (Reactive / Initiative)
 
 | Flag | State | Current | Code default | What it does | Why / state | Where (file:line) | Notes |
 |------|-------|---------|--------------|--------------|-------------|-------------------|-------|
-| DAYTYPE_GATE_LIVE_V1 | 🔴 OFF | unset → "" (empty → OFF) | "" (empty → OFF) | Read day_type for position gate + auth table from the LIVE in-memory promoted attribute (app.state.day_type_machine.day_type) instead of classify_replay DB cache. Fixes I-44/I-50 source split. | OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required. | `backend/v9/services/trade_context.py:497` | deferred; I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md |
+| DAYTYPE_GATE_LIVE_V1 | ✅ ON | `1` (.env) | "" (empty → OFF) | Read day_type for position gate + auth table from the LIVE in-memory promoted attribute (app.state.day_type_machine.day_type) instead of classify_replay DB cache. Fixes I-44/I-50 source split. | OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required. | `backend/v9/services/trade_context.py:497` | deferred; I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md |
 | DAYTYPE_PATTERN_AWARE_V1 | ✅ ON | `1` (.env) | "0" | Pattern-family gate: balanced day → REV only (block CONT); trend/variation → CONT only (block REV). Post-IB-lock. | OFF (default, SHADOW only). 2026-06-29: INITIATIVE_SHORT fired on Normal day (should be REV-only). Michael sign-off required. | `backend/v9/systems/daytype_position_gate.py:101`<br>`backend/v9/systems/daytype_position_gate.py:206` | deferred; docs/handoff/CC_STAGE1_PATTERN_AWARE_GATE_2026-06-29.md |
 | OPENING_FIRE_CVD_V1 | ✅ ON | `1` (.env) | "0" | CVD-confirm OPEN_DRIVE + suppress pre-IB-lock old-engine directional fallback for pattern selection. | OFF (default, SHADOW only). 2026-06-29 incident: 4× INITIATIVE_SHORT fired on premature Variation + unconfirmed drive (CVD absorption ignored). Michael sign-off required to enable. | `backend/v9/systems/opening_type_gate.py:67`<br>`backend/v9/services/trade_context.py:560` | deferred; docs/handoff/CC_STAGE0_OPENING_FIRE_CVD_2026-06-29.md |
 | S2_ATR_RELATIVE | ✅ ON | `true` (.env) | default=True | Scale S2 thresholds to ATR (relative) instead of fixed points. | SHADOW calibration (Michael 31/5). | `backend/v9/shared/atr.py:101` |  |

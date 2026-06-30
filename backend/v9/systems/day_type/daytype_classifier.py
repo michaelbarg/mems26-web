@@ -122,6 +122,20 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
                        f"1-sided: open held + one_tf + close opposite extreme + rib>={rib_tn}"
                        + (" + CVD-confirmed" if cvd_dir else " (CVD divergent — trend by structure)"),
                        cvd_confirms=cvd_dir)
+        # 5b) Trend_Normal via OPEN_DRIVE — waive the rib>=2.5 floor when the day OPENED with a
+        #     drive (Michael 2026-06-30). OPEN_DRIVE + one_tf + close-at-extreme IS a trend even
+        #     if the range extension is modest (the drive substitutes for range magnitude).
+        #     Flag S1_OPEN_DRIVE_TREND, default OFF → byte-identical when unset.
+        if (os.environ.get("S1_OPEN_DRIVE_TREND", "0").lower() in ("1", "true", "yes")
+                and (not oi)
+                and (feat.get("one_tf") in ("UP", "DOWN"))
+                and at_extreme
+                and feat.get("opening_type") in ("OPEN_DRIVE", "OPEN_TEST_DRIVE")):
+            return out("Trend_Normal", "CLASSIFIED",
+                       f"1-sided: {feat.get('opening_type')} + one_tf + close-at-extreme → Trend "
+                       f"(rib {rib} floor waived)"
+                       + (" + CVD-confirmed" if cvd_dir else ""),
+                       cvd_confirms=cvd_dir, open_drive_trend=True)
         # 6) Normal_Variation (Expanded Typical) — catch-all. PROVISIONAL until EOD: a 1-sided day
         #    can still get side-2 (→ Neutral) or build DD/Trend structure as it extends.
         return out("Normal_Variation", "CLASSIFIED" if is_eod else "PROVISIONAL",
