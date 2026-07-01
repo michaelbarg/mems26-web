@@ -631,6 +631,10 @@ class FiveMinSystem(BaseV9TradingSystem):
             return (None, 0, {})
 
         b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
+        for _b in (b1, b2, b3, b4):
+            _b.setdefault("c", _b.get("close", 0)); _b.setdefault("o", _b.get("open", 0))
+            _b.setdefault("h", _b.get("high", 0)); _b.setdefault("l", _b.get("low", 0))
+            _b.setdefault("v", _b.get("volume", 0))
         cur_cot = self._get_cot_from_footprint()
         cur_amt = self._get_amt_from_footprint()
         # S2 INDEPENDENT OF S3 (Michael 2026-06-08): COT/AMT (footprint/S3) is
@@ -810,6 +814,10 @@ class FiveMinSystem(BaseV9TradingSystem):
             return (None, 0, {})
 
         b1, b2, b3, b4 = bars_5m[-4], bars_5m[-3], bars_5m[-2], bars_5m[-1]
+        for _b in (b1, b2, b3, b4):
+            _b.setdefault("c", _b.get("close", 0)); _b.setdefault("o", _b.get("open", 0))
+            _b.setdefault("h", _b.get("high", 0)); _b.setdefault("l", _b.get("low", 0))
+            _b.setdefault("v", _b.get("volume", 0))
         cur_cot = self._get_cot_from_footprint()
         cur_amt = self._get_amt_from_footprint()
         # S2 INDEPENDENT OF S3 (Michael 2026-06-08): COT/AMT (footprint/S3) is
