@@ -42,6 +42,60 @@ def _load_style() -> Dict:
     return _daytype_style
 
 
+def _find_swing_t1(direction: str, entry: float, bars: list, atr_5m: float = 7.0, k: int = 2) -> Optional[float]:
+    """Williams fractal swing T1: first confirmed swing in trade direction.
+
+    K=2: high[i] > all high[i-k..i+k] (for LONG swing-high target).
+    Close-confirmed: bar close must be in the top/bottom 40% of range.
+    Noise floor: skip if leg < 0.5 × ATR.
+    Cap: 2 × ATR.
+    """
+    if not bars or len(bars) < 2 * k + 1:
+        return None
+    noise_floor = 0.5 * atr_5m
+    cap = 2.0 * atr_5m
+
+    for i in range(k, len(bars) - k):
+        b = bars[i]
+        h = float(b.get("h", b.get("high", 0)))
+        l = float(b.get("l", b.get("low", 0)))
+        c = float(b.get("c", b.get("close", 0)))
+        rng = h - l if h > l else 0.01
+
+        if direction == "LONG":
+            # Swing high: h[i] > all neighbors
+            neighbors = [float(bars[j].get("h", bars[j].get("high", 0))) for j in range(i - k, i + k + 1) if j != i]
+            if h > max(neighbors):
+                # Close-confirmed: close in top 40%
+                if c >= l + 0.6 * rng:
+                    leg = h - entry
+                    if leg >= noise_floor:
+                        return round(entry + min(leg, cap), 2)
+        else:  # SHORT
+            neighbors = [float(bars[j].get("l", bars[j].get("low", 0))) for j in range(i - k, i + k + 1) if j != i]
+            if l < min(neighbors):
+                if c <= h - 0.6 * rng:
+                    leg = entry - l
+                    if leg >= noise_floor:
+                        return round(entry - min(leg, cap), 2)
+    # No swing found → fall back to 1R from entry
+    return None
+
+
+def _pick_nearest_structure(entry: float, direction: str, structures: list, cap: float) -> Optional[float]:
+    """Pick the nearest structural level beyond entry, within cap, in-direction."""
+    candidates = []
+    for s in structures:
+        if s is None:
+            continue
+        s = float(s)
+        dist = (s - entry) if direction == "LONG" else (entry - s)
+        if 0.5 < dist <= cap:  # must be beyond entry and within cap
+            candidates.append((dist, s))
+    candidates.sort()
+    return candidates[0][1] if candidates else None
+
+
 def resolve_structural_targets(
     *,
     day_type: Optional[str],
@@ -49,6 +103,8 @@ def resolve_structural_targets(
     entry_price: float,
     stop_price: float,
     tpo_ctx: Optional[Dict],
+    bars: Optional[list] = None,
+    pattern_family: Optional[str] = None,
 ) -> Optional[Dict]:
     """Resolve structural targets for location-based day types.
 
@@ -96,7 +152,8 @@ def resolve_structural_targets(
                                ib_high, ib_low, ib_center, poc, vah, val)
     elif day_type == "Variation":
         return _resolve_variation(direction, entry_price, stop_price,
-                                  ib_high, ib_low, ib_center, poc, vah, val)
+                                  ib_high, ib_low, ib_center, poc, vah, val,
+                                  bars=bars, family=pattern_family)
     elif day_type == "Neutral_Extreme":
         return _resolve_neutral_extreme(direction, entry_price, stop_price,
                                          ib_high, ib_low, ib_center, poc, vah, val)
@@ -147,24 +204,49 @@ def _resolve_variation(
     direction: str, entry: float, stop: float,
     ibh: float, ibl: float, ib_center: float,
     poc: float, vah: Optional[float], val: Optional[float],
+    bars: Optional[list] = None, family: Optional[str] = None,
 ) -> Dict:
-    """Variation day: go WITH IB expansion (not fade). 3 contracts.
+    """Variation day: WITH IB expansion. Michael's C2/C3 split (2026-07-01).
 
-    LONG (IB expanding up): C1=half IB extension, C2=1×IB above IBH, C3=trail
-    SHORT (IB expanding down): C1=half IB extension, C2=1×IB below IBL, C3=trail
+    C1 = first swing / ½ IB-ext (nearest)
+    C2 = nearest structure CLOSER than VA edge (POC, IB-center, ½IBext)
+    C3 = VA edge (VAH long / VAL short) as runner, trailed
+    REV: C2=POC, C3=opposite VA edge (tight)
     """
     ib_width = ibh - ibl
     if ib_width <= 0:
         return None
 
+    atr = 7.0  # default, overridden by cap logic in _build_result
+    swing_t1 = _find_swing_t1(direction, entry, bars, atr) if bars else None
+
     if direction == "LONG":
-        c1 = ibh + ib_width * 0.5   # half extension above IBH
-        c2 = ibh + ib_width         # 1×IB above IBH
-        c3 = ibh + ib_width * 1.5   # trail target
+        half_ext = ibh + ib_width * 0.5
+        c1 = swing_t1 if swing_t1 and swing_t1 < half_ext else half_ext
+        if family == "REV":
+            c2 = poc
+            c3 = vah if vah else ibh + ib_width
+        else:
+            # C2 = nearest structure closer than VA edge
+            va_edge = vah if vah else ibh + ib_width
+            c2 = _pick_nearest_structure(entry, "LONG",
+                    [poc, ib_center, half_ext, ibh + ib_width * 0.25], abs(va_edge - entry))
+            if c2 is None:
+                c2 = poc if poc > entry else half_ext
+            c3 = va_edge  # runner
     else:  # SHORT
-        c1 = ibl - ib_width * 0.5
-        c2 = ibl - ib_width
-        c3 = ibl - ib_width * 1.5
+        half_ext = ibl - ib_width * 0.5
+        c1 = swing_t1 if swing_t1 and swing_t1 > half_ext else half_ext
+        if family == "REV":
+            c2 = poc
+            c3 = val if val else ibl - ib_width
+        else:
+            va_edge = val if val else ibl - ib_width
+            c2 = _pick_nearest_structure(entry, "SHORT",
+                    [poc, ib_center, half_ext, ibl - ib_width * 0.25], abs(entry - va_edge))
+            if c2 is None:
+                c2 = poc if poc < entry else half_ext
+            c3 = va_edge
 
     return _build_result(
         direction=direction, entry=entry, stop=stop,

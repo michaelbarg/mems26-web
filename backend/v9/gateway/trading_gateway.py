@@ -393,12 +393,23 @@ class TradingGateway:
                 from backend.v9.systems.structural_targets import resolve_structural_targets
                 _st_g1 = extract_g1_entry_context(cross_context)
                 _st_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                # Pass bars for swing T1 detection + pattern family for C2/C3 logic
+                _st_bars = None
+                try:
+                    _dtm = self._system_registry.get("day_type_machine")
+                    _st_bars = getattr(_dtm, "_opening_gate_bars", None) or []
+                except Exception:
+                    pass
+                from backend.v9.systems.daytype_position_gate import _pattern_family as _pf
+                _st_pat = resolve_pattern_id(setup, _st_g1) or ""
                 _st = resolve_structural_targets(
                     day_type=_st_g1.get("day_type_at_entry"),
                     direction=direction,
                     entry_price=setup.get("entry_price", 0.0),
                     stop_price=setup.get("stop", 0.0),
                     tpo_ctx=_st_tpo,
+                    bars=_st_bars,
+                    pattern_family=_pf(_st_pat),
                 )
                 if _st is not None:
                     _old_t1 = setup.get("t1")
