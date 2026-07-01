@@ -29,10 +29,15 @@ class BarLevelDetector:
       2. Check T1 → T2 → T3 sequentially
     """
 
-    def __init__(self, trade_manager: TradeManager):
+    def __init__(self, trade_manager: TradeManager, gateway=None):
         self._tm = trade_manager
+        self._gateway = gateway
         self._bars_processed = 0
         self._last_bar_ts_processed: str = ""  # dedup across 5min + woodies_5min
+
+    def set_gateway(self, gateway) -> None:
+        """Inject gateway for demo slot release on trade close."""
+        self._gateway = gateway
 
     def subscribe(self, bar_router) -> None:
         """Register with BarRouter for 5min + woodies_5min bar events."""
@@ -80,11 +85,11 @@ class BarLevelDetector:
                 if trade.entry_price is None:
                     continue
 
-                # Pipeline 5 Phase C: bar_level_detector manages SHADOW trades only.
-                # DEMO/LIVE trades are managed by Sierra fill poller (no double-management).
-                trade_mode = getattr(trade, "mode", "shadow")
-                if trade_mode in ("demo", "live"):
-                    continue
+                # Pipeline 5: BarLevelDetector manages ALL trades (shadow + demo).
+                # The fill poller provides Sierra-side fills, but the backend must
+                # also detect stop/target hits bar-by-bar as a safety net — otherwise
+                # demo runners never close and the demo slot is stuck forever.
+                # (Bug fix 2026-07-01: demo skip removed.)
 
                 # Skip bars that started before the trade was opened.
                 # Without this guard, a bar pushed after its close-time can be
@@ -127,6 +132,7 @@ class BarLevelDetector:
                        (direction == "SHORT" and bar_high >= stop):
                         self._tm.on_stop_hit(trade.id, fill_ts=bar_ts)
                         logger.info("[BarLevelDetector] STOP HIT: trade %d at %.2f", trade.id, stop)
+                        self._notify_trade_close(trade, "STOP")
                         continue  # trade closed, skip target checks
 
                 # 2. Target checks: T1 → T2 → T3 (sequential)
@@ -148,6 +154,9 @@ class BarLevelDetector:
                         self._tm.on_target_hit(trade.id, target_name, fill_ts=bar_ts)
                         logger.info("[BarLevelDetector] %s HIT: trade %d at %.2f",
                                     target_name, trade.id, target_price)
+                        # After T3 (all contracts out): notify gateway to free demo slot
+                        if target_name == "T3":
+                            self._notify_trade_close(trade, "T3")
 
             self._tm._db.commit()
 
@@ -166,6 +175,27 @@ class BarLevelDetector:
             except ValueError:
                 pass
         return None
+
+    def _notify_trade_close(self, trade, outcome: str) -> None:
+        """Notify the gateway that a trade closed → free demo/live slot."""
+        if self._gateway is None:
+            return
+        try:
+            trade_id = trade.id
+            mode = getattr(trade, "mode", "shadow")
+            pnl = getattr(trade, "pnl_usd", 0.0) or 0.0
+            direction = getattr(trade, "direction", "")
+            self._gateway.on_trade_close({
+                "trade_id": trade_id,
+                "mode": mode,
+                "pnl_usd": pnl,
+                "outcome": outcome,
+                "direction": direction,
+            })
+            logger.info("[BarLevelDetector] notified gateway: trade %d closed (%s, mode=%s)",
+                        trade_id, outcome, mode)
+        except Exception as e:
+            logger.warning("[BarLevelDetector] gateway notify failed (non-fatal): %s", e)
 
     def get_stats(self) -> dict:
         return {"bars_processed": self._bars_processed}

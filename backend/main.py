@@ -739,11 +739,14 @@ async def _startup():
         bar_level_detector.subscribe(bar_router)
         app.state.trade_manager = trade_manager
         app.state.bar_level_detector = bar_level_detector
-        _logger.info("[Main] BarLevelDetector subscribed to 5min — SHADOW trades will auto-close")
+        _logger.info("[Main] BarLevelDetector subscribed to 5min — ALL trades (shadow+demo) will auto-close")
         gw = getattr(app.state, "trading_gateway", None)
-        if gw is not None and hasattr(gw, "set_trade_manager"):
-            gw.set_trade_manager(trade_manager)
-            _logger.info("[Main] TradingGateway → TradeManager wired for SHADOW PnL")
+        if gw is not None:
+            if hasattr(gw, "set_trade_manager"):
+                gw.set_trade_manager(trade_manager)
+                _logger.info("[Main] TradingGateway → TradeManager wired for SHADOW PnL")
+            bar_level_detector.set_gateway(gw)
+            _logger.info("[Main] BarLevelDetector → Gateway wired for demo slot release")
 
         # Pipeline 5 Phase B: start the fill-poller NOW that trade_manager EXISTS + is wired
         # (DEMO_EXECUTION_ENABLED=1, default OFF). Drives the SAME TradeManager the gateway
