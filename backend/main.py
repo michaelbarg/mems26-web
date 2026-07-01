@@ -713,6 +713,8 @@ async def _startup():
         # Enable DEMO mode for S2 and S4 (Shadow → Demo → Live progression)
         trading_gateway.enable_demo(2)   # S2 FiveMin patterns
         trading_gateway.enable_demo(4)   # S4 Woodies CCI
+        # P4 warm-start: restore demo_slot from open demo trade in DB
+        trading_gateway.hydrate_demo_slot()
         _logger.info("[Main] Demo mode enabled: systems [2, 4]")
 
         # Pipeline 5 Phase B: the FillPoller starts LATER — after the TradeManager is

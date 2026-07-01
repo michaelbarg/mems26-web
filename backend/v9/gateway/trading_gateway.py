@@ -82,6 +82,36 @@ class TradingGateway:
         """W11 TradeManager — SHADOW lifecycle + PnL via BarLevelDetector."""
         self._trade_manager = trade_manager
 
+    def hydrate_demo_slot(self) -> None:
+        """Restore demo_slot from an open PARTIAL/FILLED demo trade in v9_trades.
+
+        On restart, the slot is None — any open demo trade is orphaned.
+        This queries the DB for the most recent non-CLOSED demo trade and
+        re-populates the slot so (a) it's managed by BarLevelDetector and
+        (b) new signals don't create a second demo trade.
+        """
+        try:
+            from backend.v9.db.read import read_one
+            row = read_one(
+                "SELECT id, direction, entry_price, pattern_id_at_entry, system_id "
+                "FROM v9_trades "
+                "WHERE mode = 'demo' AND state NOT IN ('CLOSED', 'CANCELLED') "
+                "ORDER BY id DESC LIMIT 1", {},
+            )
+            if row:
+                self.demo_slot = {
+                    "trade_id": row["id"],
+                    "direction": row.get("direction"),
+                    "entry_price": float(row.get("entry_price") or 0),
+                    "mode": "demo",
+                }
+                logger.info("[Gateway] hydrated demo_slot from DB: trade %d (%s %s)",
+                            row["id"], row.get("pattern_id_at_entry"), row.get("direction"))
+            else:
+                logger.info("[Gateway] no open demo trade in DB — demo_slot=None (free)")
+        except Exception as e:
+            logger.warning("[Gateway] demo_slot hydration failed (slot stays None): %s", e)
+
     def enable_demo(self, system_id: int) -> None:
         self._demo_enabled_systems.add(system_id)
 

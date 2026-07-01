@@ -159,6 +159,33 @@ def maybe_seed_ib_from_tpo(
             )
     machine.stage = Stage.B1
 
+    # P4 warm-start: restore session_high/session_low from today's RTH bars
+    # so range-based re-scoring (behavior detector) doesn't see a near-zero range.
+    try:
+        from backend.v9.db.read import read_one as _r1_range
+        _range_row = _r1_range(
+            "SELECT max(high) as sh, min(low) as sl FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "  AND (ts AT TIME ZONE 'America/New_York')::time < '16:00'",
+            {"d": _today if '_today' in dir() else et_today().isoformat()},
+        )
+        if _range_row and _range_row.get("sh") and _range_row.get("sl"):
+            _sh, _sl = float(_range_row["sh"]), float(_range_row["sl"])
+            if hasattr(machine, "session_high"):
+                machine.session_high = _sh
+            if hasattr(machine, "session_low"):
+                machine.session_low = _sl
+            if hasattr(machine, "rth_session_h"):
+                machine.rth_session_h = _sh
+            if hasattr(machine, "rth_session_l"):
+                machine.rth_session_l = _sl
+            if logger is not None:
+                logger.info("[DayType] warm-start: session hi=%.2f lo=%.2f (range=%.1f) from DB", _sh, _sl, _sh - _sl)
+    except Exception as _rng_err:
+        if logger is not None:
+            logger.warning("[DayType] warm-start session range failed (non-fatal): %s", _rng_err)
+
     if logger is not None:
         logger.warning(
             "[DayType] mid-session restart at session_min=%d — seeded IB from TPO "
