@@ -81,6 +81,14 @@ def compute_v2_sizing(
     contracts = SA.final_contracts(risk_pts, cfg["contract_ladder"],
                                    auth_contracts, mode_result.cap)
 
+    # FIXED_CONTRACTS_3 (Michael 2026-07-01): every trade that FIRES uses 3
+    # contracts — override the risk-ladder/auth/mode minimum. Reject (0) is
+    # preserved so invalid setups still don't fire. Applies to S2 + S4 (both
+    # route through compute_v2_sizing). Trading-risk → flag-gated.
+    import os as _fc_os
+    if _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
+        contracts = 3
+
     # ── T1 price ──
     anchor_cfg = cfg["anchors"].get(pattern_key, {})
     t1_shift = anchor_cfg.get("t1_ladder_shift", ladder_shift)
