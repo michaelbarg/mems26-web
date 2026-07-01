@@ -134,7 +134,7 @@ def _resolve_normal(
         c3 = ibh
 
     return _build_result(
-        direction=direction, entry=entry,
+        direction=direction, entry=entry, stop=stop,
         c1=c1, c2=c2, c3=c3,
         contracts=3,
         time_stop_minutes=30,
@@ -167,7 +167,7 @@ def _resolve_variation(
         c3 = ibl - ib_width * 1.5
 
     return _build_result(
-        direction=direction, entry=entry,
+        direction=direction, entry=entry, stop=stop,
         c1=c1, c2=c2, c3=c3,
         contracts=3,
         time_stop_minutes=60,
@@ -196,7 +196,7 @@ def _resolve_neutral_extreme(
         c3 = ibh
 
     return _build_result(
-        direction=direction, entry=entry,
+        direction=direction, entry=entry, stop=stop,
         c1=c1, c2=c2, c3=c3,
         contracts=3,
         time_stop_minutes=45,
@@ -223,7 +223,7 @@ def _resolve_neutral_center(
         c3 = ibh
 
     return _build_result(
-        direction=direction, entry=entry,
+        direction=direction, entry=entry, stop=stop,
         c1=poc, c2=c2, c3=c3,
         contracts=3,
         time_stop_minutes=30,
@@ -261,7 +261,7 @@ def _resolve_trend_normal(
         c3 = c2 - ib_width
 
     return _build_result(
-        direction=direction, entry=entry,
+        direction=direction, entry=entry, stop=stop,
         c1=c1, c2=c2, c3=c3,
         contracts=3,
         time_stop_minutes=None,  # no time stop on Trend_Normal
@@ -295,7 +295,7 @@ def _resolve_trend_dd(
         c3 = c2 - ib_width
 
     return _build_result(
-        direction=direction, entry=entry,
+        direction=direction, entry=entry, stop=stop,
         c1=c1, c2=c2, c3=c3,
         contracts=3,
         time_stop_minutes=90,
@@ -304,10 +304,21 @@ def _resolve_trend_dd(
     )
 
 
+def _cap_target(entry: float, target: float, direction: str, cap_pts: float) -> float:
+    """Snap a target to the cap if it's farther than cap_pts from entry."""
+    dist = abs(target - entry)
+    if dist <= cap_pts:
+        return target
+    if direction == "LONG":
+        return round(entry + cap_pts, 2)
+    return round(entry - cap_pts, 2)
+
+
 def _build_result(
     *,
     direction: str,
     entry: float,
+    stop: float,
     c1: Optional[float],
     c2: Optional[float],
     c3: Optional[float],
@@ -315,18 +326,30 @@ def _build_result(
     time_stop_minutes: Optional[int],
     trail_after_c2: bool,
     day_type: str,
+    atr_5m: float = 7.0,
 ) -> Optional[Dict]:
-    """Build result dict. Validates targets are on correct side of entry."""
+    """Build result dict. Validates + caps targets."""
+    risk = abs(entry - stop) if stop else atr_5m
+
+    # Hard caps (per spec): T1 ≤ 2×ATR, C2 ≤ 4×ATR, runner ≤ 6×ATR
+    t1_cap = max(2.0 * atr_5m, 2.0 * risk)   # ~14pt, at least 2R
+    c2_cap = max(4.0 * atr_5m, 4.0 * risk)   # ~28pt
+    runner_cap = max(6.0 * atr_5m, 6.0 * risk)  # ~42pt
+
+    # Apply caps
+    if c1 is not None:
+        c1 = _cap_target(entry, c1, direction, t1_cap)
+    if c2 is not None:
+        c2 = _cap_target(entry, c2, direction, c2_cap)
+    if c3 is not None:
+        c3 = _cap_target(entry, c3, direction, runner_cap)
+
     # Sanity: targets must be on the correct side of entry
     if c1 is not None:
         if direction == "LONG" and c1 <= entry:
-            logger.debug("[structural_targets] %s LONG c1=%.2f <= entry=%.2f — fail-safe",
-                         day_type, c1, entry)
-            return None
+            c1 = round(entry + risk, 2)  # fallback to 1R
         if direction == "SHORT" and c1 >= entry:
-            logger.debug("[structural_targets] %s SHORT c1=%.2f >= entry=%.2f — fail-safe",
-                         day_type, c1, entry)
-            return None
+            c1 = round(entry - risk, 2)
 
     return {
         "t1_price": c1,
@@ -335,7 +358,7 @@ def _build_result(
         "contracts": contracts,
         "time_stop_minutes": time_stop_minutes,
         "trail_after_t2": trail_after_c2,
-        "structural": True,  # marker for audit
+        "structural": True,
         "day_type": day_type,
         "no_trade": False,
     }
