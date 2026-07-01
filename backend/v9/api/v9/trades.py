@@ -216,12 +216,24 @@ def get_active_trade(db: Session = Depends(get_db)):
     Derives per-contract status from t1/t2/t3 + hit timestamps.
     MES: 1 point = $5 per contract.
     """
+    _active_states = ["FILLED", "PARTIAL", "OPEN"]
+    # Prefer the DEMO trade — the one that reaches Sierra and is actively managed —
+    # so the monitor shows the executable position, not a newer shadow record
+    # (bug 2026-07-01: /active returned the latest across all modes → a shadow trade
+    # masked the live demo trade in the supervision monitor).
     trade = (
         db.query(V9Trade)
-        .filter(V9Trade.state.in_(["FILLED", "PARTIAL", "OPEN"]))
+        .filter(V9Trade.state.in_(_active_states), V9Trade.mode == "demo")
         .order_by(V9Trade.entry_ts.desc())
         .first()
     )
+    if trade is None:
+        trade = (
+            db.query(V9Trade)
+            .filter(V9Trade.state.in_(_active_states))
+            .order_by(V9Trade.entry_ts.desc())
+            .first()
+        )
     if not trade:
         return None
 

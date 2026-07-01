@@ -701,6 +701,28 @@ class DayTypeStateMachine:
             )
             # Only switch if significant improvement
             if new_type_conf - old_conf > 0.15:
+                # DAYTYPE_CONFIRM_BARS anti-noise (Michael 2026-07-01): require the new
+                # type to persist N consecutive re-eval bars before switching, so the
+                # classification stops flickering on a single borderline bar. Applies to
+                # EVERY transition (up or down) — a legit change still passes after N bars.
+                # Default 1 = unchanged behaviour.
+                import os as _cb_os
+                try:
+                    _confirm_n = int(_cb_os.environ.get("DAYTYPE_CONFIRM_BARS", "1") or "1")
+                except ValueError:
+                    _confirm_n = 1
+                if _confirm_n > 1:
+                    if getattr(self, "_pending_candidate", None) == new_type:
+                        self._pending_count = getattr(self, "_pending_count", 1) + 1
+                    else:
+                        self._pending_candidate = new_type
+                        self._pending_count = 1
+                    if self._pending_count < _confirm_n:
+                        self.confidence = new_conf  # hold current type until confirmed
+                        self.stage = Stage.C1
+                        return
+                self._pending_candidate = None
+                self._pending_count = 0
                 vote = VoteRecord(
                     day_type=new_type,
                     confidence=new_type_conf,
@@ -711,8 +733,12 @@ class DayTypeStateMachine:
                 self.day_type = new_type
                 self.confidence = new_type_conf
             else:
+                self._pending_candidate = None
+                self._pending_count = 0
                 self.confidence = new_conf
         else:
+            self._pending_candidate = None
+            self._pending_count = 0
             self.confidence = new_conf
 
         self.stage = Stage.C1
