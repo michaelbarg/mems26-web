@@ -73,6 +73,9 @@ class TradingGateway:
         ).lower() in ("1", "true", "yes")
         self._slot_candidates: List[Dict] = []  # buffered DEMO/LIVE candidates
         self._recent_fires: List[Dict] = []  # idempotency: catch exact double-fires (e.g. 199/200)
+        # P3: opposite-pattern exit counter (flag OPPOSITE_EXIT_V1, default OFF)
+        self._opposite_count: int = 0
+        self._opposite_bar_ts: Optional[str] = None  # reset per bar
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""
@@ -442,6 +445,43 @@ class TradingGateway:
         if len(self.shadow_trades) > 500:
             self.shadow_trades = self.shadow_trades[-300:]
         result["shadow"] = shadow_trade["trade_id"]
+
+        # P3: Opposite-pattern exit (OPPOSITE_EXIT_V1, default OFF)
+        # When a trade is active and ≥2 signals fire in the opposite direction
+        # → close the active trade (don't wait for stop/target).
+        if os.getenv("OPPOSITE_EXIT_V1", "0").lower() in ("1", "true", "yes"):
+            if self.demo_slot is not None:
+                _active_dir = self.demo_slot.get("direction", "").upper()
+                _setup_dir = direction.upper()
+                if _active_dir and _setup_dir != _active_dir:
+                    # Track per-bar: reset counter when bar changes
+                    _bar_ts = str(setup.get("bar_ts", ""))
+                    if _bar_ts != self._opposite_bar_ts:
+                        self._opposite_count = 0
+                        self._opposite_bar_ts = _bar_ts
+                    self._opposite_count += 1
+                    _threshold = int(os.getenv("OPPOSITE_EXIT_THRESHOLD", "2"))
+                    if self._opposite_count >= _threshold:
+                        _active_id = self.demo_slot.get("trade_id")
+                        logger.info(
+                            "[Gateway] OPPOSITE_2X: %d opposite signals (%s vs active %s) → closing trade %s",
+                            self._opposite_count, _setup_dir, _active_dir, _active_id,
+                        )
+                        # Close the active trade via TradeManager
+                        if self._trade_manager and _active_id:
+                            try:
+                                self._trade_manager.close_trade(
+                                    _active_id, reason="OPPOSITE_2X",
+                                    exit_price=setup.get("entry_price"),
+                                )
+                            except Exception as _opp_err:
+                                logger.warning("[Gateway] OPPOSITE_2X close failed: %s", _opp_err)
+                        # Free the slot
+                        self.on_trade_close({
+                            "trade_id": _active_id, "mode": "demo",
+                            "outcome": "OPPOSITE_2X", "direction": _active_dir,
+                        })
+                        self._opposite_count = 0
 
         if cluster_blocked:
             result["blocked_by"] = "cluster_guard"

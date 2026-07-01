@@ -93,6 +93,11 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required."
     status: deferred
     ref: "I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md"
+  OPPOSITE_EXIT_V1:
+    category: cascade_gate
+    what: "Close active trade when >=2 opposite-direction pattern signals fire within a bar. Close only, no auto-flip."
+    why: "OFF (default, SHADOW only). Michael's rule 2026-07-01: 2 opposite signals = exit the position. Trading-risk → sign-off required."
+    status: deferred
   S2_CVD_DETECTION_V1:
     category: s2
     what: "CVD confirmation inside S2 detection geometry: REACTIVE requires absorption (entry-bar delta OR price/CVD divergence), INITIATIVE requires net delta with-flow. Fail-open on stale CVD."
