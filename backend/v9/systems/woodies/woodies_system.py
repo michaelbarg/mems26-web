@@ -360,7 +360,16 @@ class WoodiesSystem(BaseV9TradingSystem):
                 )
 
             if not _is_new_bar:
-                return  # dedup: detection + fire only on genuinely new bar ts
+                # Mechanism C fix: DLL ZLR flag often arrives in a mid-bar update
+                # (not the first new-bar push). If zlr_detected=True on a non-new-bar
+                # push AND we haven't already processed a DLL-ZLR for this bar_ts,
+                # treat this push AS a new bar for detection purposes only.
+                if wb.zlr_detected and getattr(self, '_last_dll_zlr_bar_ts', None) != bar_ts:
+                    self._last_dll_zlr_bar_ts = bar_ts
+                    logger.info("[Woodies] Mechanism-C fix: DLL zlr on non-new-bar push → running detection")
+                    _is_new_bar = True  # fall through to full detection below
+                else:
+                    return  # dedup: detection + fire only on genuinely new bar ts
 
             # Run pattern engine — DLL flags as primary, Python detectors as fallback.
             # DLL computes on full Sierra history (thousands of bars) → more accurate
