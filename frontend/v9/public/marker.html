@@ -8,6 +8,14 @@ button.active{outline:2px solid currentColor}
 button.lv-entry{color:#e3b341}button.lv-stop1{color:#f85149}button.lv-stop2{color:#ff9d76}button.lv-stop3{color:#ffc1a1}
 button.lv-t1{color:#56d364}button.lv-t2{color:#58a6ff}button.lv-t3{color:#bc8cff}
 .meta{font-family:monospace;font-size:13.5px;background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px 12px;margin-bottom:8px}
+/* UI round 2 (fix #2, 2026-07-02): #meta = ordered strip of small labeled cells.
+   Each numeric/latin value is wrapped dir="ltr" inside the RTL page so the line
+   can never BiDi-scramble again. */
+.mstrip{display:flex;flex-wrap:wrap;align-items:stretch;row-gap:4px}
+.mc{display:flex;flex-direction:column;gap:1px;padding:2px 12px;border-inline-start:1px solid #21262d;min-width:0}
+.mc:first-child{border-inline-start:none;padding-inline-start:2px}
+.mk{font-size:10px;color:#8b949e;white-space:nowrap}
+.mv{font-size:13.5px;font-weight:700;color:#e6edf3;white-space:nowrap}
 canvas{background:#0d1117;border:1px solid #30363d;border-radius:8px;cursor:crosshair;width:100%;display:block}
 textarea{width:100%;background:#161b22;color:#c9d1d9;border:1px solid #30363d;border-radius:6px;padding:6px;font-size:13px;box-sizing:border-box}
 #export{background:#1f6feb;color:#fff;border:none}
@@ -253,8 +261,28 @@ document.getElementById("readout").textContent=
 // meta
 const done=Object.keys(marks).filter(id=>Object.values(marks[id]||{}).some(v=>typeof v==="number")).length;
 document.getElementById("prog").textContent=`סומנו ${done}/${DATA.trades.length}`;
-document.getElementById("meta").innerHTML=
-`<b>#${t.id}</b> · תבנית: <b>${t.pat||"?"}</b> · <b>${t.d}</b> · ${t.ts.slice(0,10)} ${t.ts.slice(11,16)} · סוג-יום (מערכת): <b style="color:#d2a8ff">${t.daytype||((DATA.levels[t.ts.slice(0,10)]||{}).daytype)||"?"}</b>${(DATA.levels[t.ts.slice(0,10)]||{}).opening?` (פתיחה: ${(DATA.levels[t.ts.slice(0,10)]||{}).opening})`:""} · משטר: <b>${regime(bars)}</b> · כניסה <b style="color:#e3b341">${t.entry.toFixed(2)}</b> · סטופ-מערכת ${t.stop?t.stop.toFixed(2)+" ("+Math.abs(t.entry-t.stop).toFixed(1)+" נק')":"?"} · יציאה ${t.xp?t.xp.toFixed(2)+" · "+(t.xr||""):"פתוחה"} · P&L ${t.pnl!=null?"<b style='color:"+(t.pnl>0?"#56d364":"#f85149")+"'>"+t.pnl.toFixed(0)+"$</b>":"—"}`;
+// ── #meta — UI round 2 (fix #2): ordered strip of small labeled cells.
+// Order: #id · תבנית · כיוון · תאריך+שעה · סוג-יום · כניסה · סטופ (נק') · יציאה ·
+// סיבת-יציאה · P&L (+פתיחה/משטר as before). Numeric/latin values are wrapped
+// dir="ltr" inside the RTL page — the old single-string line BiDi-scrambled.
+const _LV=(DATA.levels||{})[t.ts.slice(0,10)]||{};
+const _cell=(k,v,color,ltr,title)=>'<span class="mc"'+(title?' title="'+title+'"':'')+'><span class="mk">'+k+'</span><span class="mv"'+(color?' style="color:'+color+'"':'')+(ltr?' dir="ltr"':'')+'>'+v+'</span></span>';
+const _dirC=t.d==="LONG"?"#56d364":"#f85149";
+const _pnlC=t.pnl!=null?(t.pnl>0?"#56d364":t.pnl<0?"#f85149":"#8b949e"):"#8b949e";
+document.getElementById("meta").innerHTML='<div class="mstrip">'+
+_cell("#",t.id,null,true)+
+_cell("תבנית",t.pat||"?",null,true)+
+_cell("כיוון",t.d==="LONG"?"▲ LONG":"▼ SHORT",_dirC,true)+
+_cell("תאריך·שעה",t.ts.slice(0,10)+" "+t.ts.slice(11,16),null,true)+
+_cell("סוג-יום",t.daytype||_LV.daytype||"?","#d2a8ff",true,"סוג-היום שהמערכת קבעה")+
+(_LV.opening?_cell("פתיחה",_LV.opening,null,true):"")+
+_cell("כניסה",t.entry.toFixed(2),"#e3b341",true)+
+_cell("סטופ (נק')",t.stop?t.stop.toFixed(2)+" ("+Math.abs(t.entry-t.stop).toFixed(1)+")":"—","#f85149",!!t.stop,"סטופ-מערכת · בסוגריים: מרחק מהכניסה בנק'")+
+_cell("יציאה",t.xp?t.xp.toFixed(2):"פתוחה",null,!!t.xp)+
+_cell("סיבת-יציאה",t.xr||"—",null,!!t.xr)+
+_cell("P&L",t.pnl!=null?(t.pnl>=0?"+$":"-$")+Math.abs(t.pnl).toFixed(0):"—",_pnlC,t.pnl!=null)+
+_cell("משטר",regime(bars),null,false)+
+'</div>';
 sel.value=cur;
 LEVELS.forEach(([k])=>{const b=document.getElementById("lv-"+k);
 b.classList.toggle("active",k===activeLevel);

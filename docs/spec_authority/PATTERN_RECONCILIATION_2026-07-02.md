@@ -39,16 +39,16 @@
 
 | # | תבנית | משפחה (קוד) | זיהוי: HTML↔קוד | הרשאת-יום — סתירות | סטופ (config חי) | פסק |
 |---|--------|--------------|------------------|----------------------|-------------------|------|
-| 1 | ZLR | CONT ✓ | ✓ (V2 stage-machine; כניסה=close) | NeuC: playbook=SKIP vs TableB=⚠️scalp | `breakout_bar` w1 ·15pt (מיכאל 06-30) — **המסמכים עוד אומרים cluster_low w4** | 🟡 |
+| 1 | ZLR | CONT ✓ | ✅ נבדק מול מסמך-המקור (07-02, `ZLR_SOURCE_SPEC_2026-07-02.md`): כל תנאי-החובה בקוד, כולל כלל-8-בר-שני; חסרים רק 3 quality-tags של "רצוי" (log-only) | NeuC: SKIP (פסק D-1) | `breakout_bar` w1 = "3T מתחת בר-האות" של המקור ✓ · **סולם אושרר: מדרגה-יחידה+רצועה** · (מסמכים ישנים עוד אומרים cluster_low — לתקן ב-D-9) | 🟢 נפסק 07-02 מלא |
 | 2 | TLB | CONT ✓ | 🟡 HTML לא מזכיר את שער-V2 (±200 תוך 12 ברים + פרטנר CONT, `tlb.py:134`) | NeuE: playbook=REDUCED vs TableB=❌ | `since_trendline_peak` w8 ·15pt ✓ | 🟡 (+Stage-2 לא בנוי) |
 | 3 | TT | CONT ✓ | ✓ | **TN/TDD: playbook=REDUCED vs TableB=✅ "made for TN"** · 0 ירי אי-פעם | `zl_excursion` w9 ·15pt | 🔴 לאפיין או לפרוש |
 | 4 | GB100 | CONT ✓ | ✓ | TN/TDD: playbook=REDUCED vs TableB=✅ | `cluster_low` w6 ·15pt ✓ | 🟡 |
 | 5 | INITIATIVE | CONT ✓ | ✓ (b1-b4, כניסה=b4) | **Normal: auth=SKIP (חוסם בפליטה) vs playbook=REDUCED vs כרטיס-HTML מציג סולם-Normal** | `breakout_bar` w1 ·12pt הדוק ✓ | 🔴 לפסוק Normal |
-| 6 | BULL/BEAR_FLAG | CONT ✓ | ✓ (מוט-דגל-פריצה) | ✓ (auth↔playbook תואמים ברמת-verdict) | `breakout_bar` w1 ·15pt · flag_relative_t1 ✓ | 🟢 |
+| 6 | BULL/BEAR_FLAG | CONT ✓ | ✓ (מוט-דגל-פריצה) · הליכה 07-02: נוסף אימות-ווליום+פריצה (D-10) | ✓ (auth↔playbook תואמים ברמת-verdict) | `breakout_bar` w1 ·15pt · flag_relative_t1 ✓ · סולם דו-מדרגתי אושרר-סופית (D-10) | 🟢 נפסק 07-02 |
 | 7 | REACTIVE | **REV** ✓ (`daytype_position_gate.py:38`) | ✓ (4-bar VSA) | **Variation: כולם FULL → counter-fade עובר (־2R ב-07-01)** · TN/TDD: auth=REDUCED vs playbook=FULL+with-trend | `support_zone` w4 ·15pt ✓ | 🔴 התא החם |
-| 8 | VEGAS | REV ✓ | 🔴 **כרטיס-HTML = hook-מקיצון; הקוד = cup&handle** (`VEGAS_SPEC_V2`, `vegas.py:205`) | TN/TDD=SKIP בכולם ✓ · Variation: playbook=REDUCED vs TableB=⚠️סוף-סשן | `swing_extreme` ·20pt · מקדמי-measure בקונפיג מתים כש-structural=ON | 🔴 לעדכן כרטיס |
-| 9 | GHOST | REV ✓ | 🔴 **כרטיס-HTML = failed-high במחיר; הקוד = CCI-H&S** | כמו VEGAS ✓ | `shoulder` ·18pt ✓ | 🔴 לעדכן כרטיס |
-| 10 | FAMIR | REV ✓ | 🟡 קרוב (קוד=ZLR-שנכשל ב-±200; כרטיס=פריצה-שנכשלה כללי) | כמו VEGAS ✓ | `failed_bar` ·12pt ✓ | 🟡 |
+| 8 | VEGAS | REV ✓ | ✅ נפסק 07-02 (D-11): המקור של מיכאל (ספל-וידית, סקרינשוטים) מכריע — **הקוד צודק, הכרטיס יתוקן**; יישורי-קוד: ידית 2→3 ברים · שער-50% נשאר | TN/TDD=SKIP בכולם ✓ · Variation: playbook=REDUCED vs TableB=⚠️סוף-סשן | `swing_extreme` ·20pt (היום) → סולם-3 אושרר: בר-כניסה → שפל-ידית → תחתית-ספל (D-11) | 🟢 נפסק 07-02 מלא |
+| 9 | GHOST | REV ✓ | ✅ נפסק 07-02 (D-12): המקור מכריע — CCI-H&S עם **קו-בחינה**; יישור-קוד ב-`GHOST_SPEC_V2` (נקליין · צד-אפס · ביטול ראש-הכי-גבוה); הכרטיס יתוקן | כמו VEGAS ✓ | `shoulder` ·18pt (היום=קיצון-20-ברים) → סולם-3 אושרר: בר-כניסה → כתף-ימין → הראש (D-12) | 🟢 נפסק 07-02 מלא |
+| 10 | FAMIR | REV ✓ | ✅ נפסק 07-02 (D-13): המקור מכריע — **ZLR שנכשל מייד אחרי שלב-3** (שבירת-ZL חדה · LSMA תומך · שלב-1 עבר ±200); הקוד היום = failed-200-approach (170-209, `famir.py:72`) — ייושר ב-`FAMIR_SPEC_V2`; הכרטיס יתוקן | כמו VEGAS ✓ | `failed_bar` ·12pt (בפועל קיצון-5-ברים) · סולם בהליכה | 🟢 גאומטריה נפסקה |
 | 11 | HTLB | REV ✓ | ✓ + תפקיד-כיוון (`HTLB_DIRECTION_GATE` ON) חסר בכרטיס | **TN/TDD: HTML="נחסם ביום-מגמה" vs playbook=FULL vs TableB=⚠️with-trend** | `consolidation_extreme` ·20pt — **מול מקור=בר-הפריצה, פתוח מ-06-26** | 🔴 לפסוק Trend+עוגן |
 | 12 | DOUBLE_TOP_AA | REV ✓ | ✓ (M + neckline) | **TDD: auth=SKIP vs playbook(DBDT)=REDUCED** | `second_bottom_top` ·20pt ✓ | 🟡 |
 | 13 | DOUBLE_BOTTOM_EE | REV ✓ | ✓ (W + neckline) | כנ"ל | כנ"ל ✓ | 🟡 |
@@ -109,6 +109,14 @@ STOP_ANCHORS_V2 כ-OFF. HTLB נשאר בשאלה פתוחה אמיתית: מקו
 כל תבניות-woodies נכנסות ב-`bar.close` (למשל `zlr.py:220`); TableA/ACCESS_MAP מגדירים buy-stop 1T מעל
 שיא-בר-האות. כרטיסי-ה-HTML של מיכאל = close ✓קוד. **פסיקה:** לאשרר close ולתקן את TableA (או להפוך).
 
+### F-9 🟡 מיפוי-playbook: הדאבלים נופלים ל-fail-open (ביקורת-נתיבים 07-02)
+`_norm` (`daytype_playbook.py:73-78`) ממפה `DOUBLE_BOTTOM`/`DT_AA` וכו' — אבל ה-IDs החיים הם
+`DOUBLE_BOTTOM_EE_LONG`/`DOUBLE_TOP_AA_SHORT` (→ אחרי strip: `DOUBLE_BOTTOM_EE`/`DOUBLE_TOP_AA`,
+לא ב-aliases) ⇒ unmapped ⇒ FULL. תאי-DBDT לא חלים דרך ה-playbook. **מיטיגציה מאומתת:** auth-V1
+= SKIP לדאבלים על TN/TDD/NT (חוסם בפליטה) + 0 ירי-דאבלים אי-פעם (DB) ⇒ אין חשיפה חיה.
+תיקון בפריט-1 של חבילת-CC (aliases + regression). שאר 14 ה-IDs החיים ממופים נכון (אומת מול
+`SELECT DISTINCT pattern_id_at_entry`, 07-02).
+
 ### F-8 ⚪ שונות שנאספה
 (א) fallback יום-לא-מוכר ב-auth → Neutral_Center (`auth_table_v1.py:143-147`) — שמרני אך שונה מ-fail-open;
 היה רלוונטי ל-I-44 (פיצול-מקור day_type). (ב) כותרת Playbook-HTML עוד אומרת "19 תבניות" — בפוטר 16 ✓.
@@ -138,8 +146,12 @@ FIXED_CONTRACTS_3 מחווט נכון בכל שלוש נקודות-החנק (מ�
 | D-5 | סמנטיקת-כניסה S4 | **✅ נפסק 07-02 (Michael):** close = הקנוני (כמו הקוד והכרטיסים); TableA/ACCESS_MAP יתוקנו בהתאם (docs-only) |
 | D-6 | HTLB: עוגן-סטופ + מדיניות-Trend | לפסוק consolidation_extreme או breakout-bar; וליישב HTML("נחסם")↔playbook(FULL) |
 | D-7 | TT | לאפיין מחדש (למה 0 ירי) או לפרוש; ליישב TableB=✅TN מול playbook=REDUCED |
-| D-8 | כרטיסי VEGAS+GHOST | לעדכן את הכרטיסים לגאומטריה המקודדת (cup&handle / CCI-H&S) או לפסוק ההפך |
+| D-8 | כרטיסי VEGAS+GHOST | **VEGAS ✅ נפסק 07-02 → D-11** (המקור=ספל-וידית ⇒ קוד נשאר, כרטיס+פוטר-רזולבר יתוקנו) · **GHOST ✅ נפסק 07-02 → D-12** (המקור=CCI-H&S עם קו-בחינה ⇒ יישור-קוד ב-`GHOST_SPEC_V2`, כרטיס יתוקן) |
 | D-9 | רענון-מסמכים | ACCESS_MAP · DEFINITIONS_INDEX · FLAG_REGISTRY (3 דגלים חסרים + תיקון טקסט CONT_TREND_FILTER + inert-marker ל-PATTERN_AWARE) |
+| D-10 | הליכת-תבניות · BULL/BEAR_FLAG | **✅ נפסק 07-02 (Michael, הליכה):** ① אימות-ווליום+פריצה — דגל חדש `S2_FLAG_VOL_V1` (default OFF): ייבוש-צבירה avg(דגל) ≤ 0.8×avg(מוט) · ווליום-פריצה ≥ 1.3×avg(דגל) · באפר-סגירה ≥3T מעל ראש-הדגל (היום 1T, `flags.py:175`) · סגירה בשליש-העליון של בר-הפריצה; CVD-נטו אופציונלי (תשתית `_compute_setup_cvd`). מספרים=נקודת-כיול; מדידה-על-היסטוריה + שבוע log-only לפני enable ② סולם-סטופ אושרר-סופית: בר-פריצה−3T → שפל-הבר-הנמוך-בדגל−3T · אין מדרגה-3 · מחוץ-לרצועה=skip ③ יעדים=רזולבר-07-01 (D-3) + שער-R:R ④ גאומטריה ללא-שינוי (דגל-שטוח נשאר מותר; מוט 5-15/דגל 3-8) ⑤ הערות-CC: חלון-העוגן ב-V2 נגזר מ-`self._bar_buffer[-w:]` הכולל את הבר-החלקי (`five_min_system.py:1220`) — מדרגות Stop-Resolver להיגזר מ-`_det_buf` + לאבחן איזה מסלול חי (סטופים-בפועל תואמים detector-anchor; חשד fallback `:1245-1251`) · חישוב-אחורה מ-initial stops ב-`v9_trade_management_log` (עמודת stop כוללת BE/trail: 15.6 לעומת initial אמיתי 10.5, n=6) · תיקון-כרטיס docs (סטופ=בר-פריצה, לא flag-low) |
+| D-11 | הליכת-תבניות · VEGAS (גאומטריה) | **✅ נפסק 07-02 (Michael; הוכרע ע"י סקרינשוטי ספק-המקור):** וגאס = **ספל-וידית על ה-CCI** — הקוד (`vegas.py:76-190`, `VEGAS_SPEC_V2=1` חי) תואם את המקור 1:1 בצעדים 1·2·4 (±200 → חציית ±100 → כניסה בפריצת קו-הקפה, close). יישורים: ① `_HANDLE_MIN_BARS` 2→3 (מקור: "לפחות 3 יחידות-זמן") ② שער-הידית-הרדודה (<50% מהתאוששות ספל→קו-הקפה) — תוספת-קוד שאינה במקור — **נשאר** (אשרור) ③ תיקון כרטיס-VEGAS ב-`PATTERN_PLAYBOOK_CANDLES.html` לספל-וידית + "אסטרטגית לא טקטית" ④ תיקון פוטר `RESOLVER_TARGETS_BY_DAYTYPE.html` ("Cup&Handle לא במערכת" — שגוי). ⚠️ ①=שינוי-התנהגות בריסטארט (הדגל חי) — אחרי-שעות + יידוע. ⑤ **סולם-סטופ אושרר (07-02):** קצה-בר-הכניסה−3T → קצה-הידית במחיר−3T → תחתית/פסגת-הספל−3T (=העוגן הנוכחי) · רצועת-REV 0.5–1.5×ATR · הראשונה-שברצועה · כולן-בחוץ=skip ⑥ יעדים=רזולבר-07-01 REV (C1 סווינג-נגדי→BE · C2 POC · C3 קצה-ערך-נגדי, בלי רנר) + שער-R:R |
+| D-12 | הליכת-תבניות · GHOST (גאומטריה) | **✅ נפסק 07-02 (Michael; הוכרע בסקרינשוטי ספק-המקור):** גוסט = כתף-ראש-כתף על ה-CCI עם **קו-בחינה בין הכתפיים**. יישור-קוד מאחורי דגל חדש `GHOST_SPEC_V2` (default OFF → שבוע-צל → enable ע"י Michael): ① כניסה רק על שבירת קו-הבחינה (קו דרך שני השפלים שבין הדחיפות, חצייה טרייה close-confirm) — מחליף "ירידה מתחת לערך כתף-ימין" (`ghost.py:86`) ② ביטול דרישת ראש-הכי-גבוה (`ghost.py:84`) — "אין חשיבות לגודל הראש" (מקור); נשאר כתף-2 ≤ כתף-1 (≤ במקום <) ③ חוק צד-האפס קשיח: כל התבנית מעל ZL לשורט / מתחת ללונג ④ שיפוע-נקליין לכיוון ה-0 = "רצוי" במקור ⇒ log-only, מועמד להקשחה ⑤ תיקון-כרטיס docs לפי דף-המקור (במקום failed-high) ⑥ **סולם-סטופ אושרר (07-02):** קצה-בר-הכניסה∓3T → קצה-כתף-ימין במחיר∓3T → קצה-הראש במחיר∓3T (=העוגן הנוכחי; מתויג "shoulder" ב-YAML בטעות — לתקן תיוג) · רצועת-REV 0.5–1.5×ATR · הראשונה-שברצועה · כולן-בחוץ=skip ⑦ יעדים=רזולבר-07-01 REV + שער-R:R |
+| D-13 | הליכת-תבניות · FAMIR (גאומטריה) | **✅ נפסק 07-02 (Michael; דף-המקור):** FAMIR = **ZLR שנכשל באופן מיידי** — לא failed-200-approach כבקוד (`famir.py:72-73`: שיא-5-ברים 170-209 + ירידת-20 — חיה אחרת; מסמכי-התיעוד דווקא צדקו ברוח). יישור ב-`FAMIR_SPEC_V2` (OFF→צל→enable): ① מכונת-שלבי-ZLR השלימה שלב-3 → כשל תוך 1-2 ברים: CCI חוצה חד את קו-ה-0 נגד כיוון-ה-ZLR; כניסה בסגירת בר-החצייה ② שלב-1 של ה-ZLR הכושל עבר ±200 = תנאי (הערת-המקור) ③ LSMA-תומך בכיוון-החדש = קשיח (AP9 נשאר; לוודא זהות למקור: צבע-ZL) ④ כשל בתוך ±50 = חיזוק-ביטחון/log, לא חוסם ⑤ ה"פליפ" (יציאה מ-ZLR פתוח בהפסד + היפוך מיידי) = ניהול-פוזיציה — שאלה פתוחה נפרדת ⑥ תיקון-כרטיס docs (היום: כישלון-פריצה במחיר). ברירות-מחדל Cowork שאושרו: "מיידי"=1-2 ברים · "שובר חד"=חציית ZL ⑦ **סולם-סטופ אושרר (07-02):** קצה-בר-הכשל∓3T → קצה-שלב-3-של-ה-ZLR-הכושל∓3T → קיצון-המהלך (שלב-1)∓3T · רצועת-REV 0.5–1.5×ATR · הראשונה-שברצועה · כולן-בחוץ=skip ⑧ יעדים=רזולבר-07-01 REV + שער-R:R |
 
 ---
 

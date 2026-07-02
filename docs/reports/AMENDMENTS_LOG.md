@@ -165,3 +165,15 @@ parallel IB worker finish.
 ---
 
 *To update: rewrite cell only · keep history in amendments log.*
+---
+
+## 2026-07-02 · Woodies CCI book — canonical transcription added (docs only)
+
+[2026-07-02] Woodies book spec: root=repo had only MES-adapted derivatives (Table A 2026-05-23) of the
+Liran/Zohar WCCI manual, no faithful primary-source transcription; scan's OCR layer scrambles digits
+(100↔200, "15-20"→"25-10", 34↔43) → added `docs/spec_authority/WOODIES_CCI_BOOK_PATTERNS_2026-07-02.html`
+(full component table for all 9 trade setups ZLR L/S·TT·TLB·GB100·VEGAS·GHOST·FAMIR·HTLB + full
+per-pattern explanation + risk chapter, page refs) → verified every number visually against rendered
+page images (pdftoppm crops, pages 5,8,10,12,13,18-20,23,25-32,35-38); known book-vs-TableA delta
+flagged in doc §6 (ZLR stage-1: book=touch past ±100, ±200 undesirable; TableA=requires ±200).
+No code/flags/behavior touched.

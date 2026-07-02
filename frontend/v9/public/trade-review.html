@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MEMS26 · סקירת-עסקאות חיה — ברים · רמות · תיקון</title>
+<script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+  body{margin:0;background:#0f1115;color:#e7ecf3;font:14px/1.5 -apple-system,"Segoe UI",Arial,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:10px 16px;border-bottom:1px solid #242a35;flex-wrap:wrap}
+  h1{font-size:17px;font-weight:600;margin:0}
+  .muted{color:#9aa6b6;font-size:12px}
+  select,input,button{background:#171a21;color:#e7ecf3;border:1px solid #2c3442;border-radius:8px;padding:5px 10px;font-size:13px}
+  button{cursor:pointer}
+  button:hover{border-color:#378add}
+  button.danger{border-color:#7a2c2c;color:#f0997b}
+  button.danger:hover{border-color:#e24b4a}
+  .layout{display:grid;grid-template-columns:1fr 236px;gap:0;height:calc(100vh - 54px)}
+  @media(max-width:900px){.layout{grid-template-columns:1fr;height:auto}}
+  #list{overflow-y:auto;border-left:1px solid #242a35}
+  .trow{padding:8px 12px;border-bottom:1px solid #1c212b;cursor:pointer;display:grid;grid-template-columns:44px 1fr auto;gap:8px;align-items:center}
+  .trow:hover{background:#171a21}
+  .trow.sel{background:#1b2330;border-right:3px solid #378add}
+  .tid{color:#9aa6b6;font-size:12px}
+  .pat{font-size:13px;font-weight:600}
+  .sub2{font-size:11px;color:#9aa6b6}
+  .pnl-pos{color:#5dcaa5;font-weight:600}
+  .pnl-neg{color:#f0997b;font-weight:600}
+  .badge{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:600}
+  .b-demo{background:rgba(55,138,221,.2);color:#85b7eb}
+  .b-shadow{background:rgba(136,135,128,.25);color:#b4b2a9}
+  .b-open{background:rgba(239,159,39,.2);color:#efb041}
+  .b-long{color:#5dcaa5}.b-short{color:#f0997b}
+  #main{display:flex;flex-direction:column;overflow:hidden}
+  #chart{height:37%;min-height:260px}
+  #wood{height:31%;min-height:200px;border-top:1px solid #242a35;position:relative;background:#2D5555}
+  #wood canvas{display:block;width:100%;height:100%}
+  #cvd{height:12%;min-height:80px;border-top:1px solid #242a35;position:relative}
+  .paneTag{position:absolute;top:4px;right:8px;z-index:5;font-size:11px;color:#9aa6b6;background:#0f1115cc;padding:1px 7px;border-radius:8px}
+  #detail{display:flex;gap:18px;padding:10px 16px;border-top:1px solid #242a35;flex-wrap:wrap;font-size:13px;max-height:210px;overflow-y:auto}
+  .kv{min-width:120px}
+  .kv .k{color:#9aa6b6;font-size:11px}
+  .kv .v{font-size:14px}
+  #mgmt{font-size:12px;color:#c7d0dc;width:100%}
+  #mgmt div{padding:1px 0;border-bottom:1px dashed #1c212b}
+  #fixbox{display:none;gap:8px;align-items:center;padding:8px 16px;background:#161b13;border-top:1px solid #2b3a22;flex-wrap:wrap}
+  .err{color:#f09595;padding:8px 16px}
+  #revbox{display:flex;gap:8px;align-items:center;padding:8px 16px;background:#141221;border-top:1px solid #2c2745;flex-wrap:wrap}
+  .revbtn{border:1px solid #3a3560}
+  .revbtn.sel-yes{background:#12351f;border-color:#1d9e75;color:#5dcaa5}
+  .revbtn.sel-no{background:#3a1512;border-color:#d85a30;color:#f0997b}
+  #revStatus{font-size:12px;color:#afa9ec}
+</style>
+</head>
+<body>
+<header>
+  <h1>סקירת-עסקאות חיה</h1>
+  <span class="muted">v9_trades + chart/bars5min · מתעדכן חי</span>
+  <select id="fMode"><option value="">כל המצבים</option><option value="demo">DEMO</option><option value="shadow">SHADOW</option></select>
+  <select id="fState"><option value="">הכל</option><option value="open">פתוחות בלבד</option><option value="closed">סגורות בלבד</option></select>
+  <button id="btnRefresh">רענן ↻</button>
+  <label class="muted"><input type="checkbox" id="autoRef" checked> אוטו-רענון 15ש'</label>
+  <span id="status" class="muted"></span>
+</header>
+<div class="layout">
+  <div id="main">
+    <div id="chart"></div>
+    <div id="wood"><canvas id="woodCanvas"></canvas></div>
+    <div id="cvd"><span class="paneTag">Cumulative Delta</span></div>
+    <div id="fixbox">
+      <b style="color:#efb041">תיקון עסקה פתוחה:</b>
+      <label>מחיר-יציאה <input id="fixPrice" type="number" step="0.25" style="width:100px"></label>
+      <select id="fixReason">
+        <option value="MANUAL_EXIT">MANUAL_EXIT — יציאה יזומה</option>
+        <option value="MANUAL_CORRECTION">MANUAL_CORRECTION — תיקון רישום</option>
+        <option value="BAD_ENTRY">BAD_ENTRY — כניסה שגויה</option>
+      </select>
+      <button class="danger" id="btnFix">סגור עסקה ✕</button>
+      <span class="muted">נשלח ל-POST /trades/{id}/exit — פעולה אמיתית, יש אישור</span>
+    </div>
+    <div id="revbox">
+      <b style="color:#afa9ec">הסקירה שלי:</b>
+      <button class="revbtn" id="revYes">הייתי נכנס ✓</button>
+      <button class="revbtn" id="revNo">לא הייתי נכנס ✗</button>
+      <label>איפה הייתי נכנס <input id="revPrice" type="number" step="0.25" style="width:100px" placeholder="קליק על הגרף"></label>
+      <input id="revNote" type="text" style="width:210px" placeholder="הערה קצרה (לא חובה)">
+      <button id="revSave">שמור סקירה</button>
+      <span id="revStatus"></span>
+    </div>
+    <div id="detail"></div>
+  </div>
+  <div id="list"></div>
+</div>
+<script>
+const TOKEN = "michael-mems26-2026";
+const H = {"Authorization": "Bearer " + TOKEN};
+const API = location.protocol + "//" + location.hostname + ":8000";
+let trades = [], selId = null, chart = null, candleSeries = null, lines = [];
+
+const fmtT = ts => ts ? new Date(ts).toLocaleTimeString("he-IL",{hour:"2-digit",minute:"2-digit"}) : "—";
+const fmtD = ts => ts ? new Date(ts).toLocaleDateString("he-IL",{day:"2-digit",month:"2-digit"}) : "";
+const unix = ts => Math.floor(new Date(ts).getTime()/1000);
+
+async function jget(url){ const r = await fetch(url,{headers:H}); if(!r.ok) throw new Error(r.status+" "+url); return r.json(); }
+
+async function loadTrades(){
+  const mode = document.getElementById("fMode").value;
+  const st = document.getElementById("fState").value;
+  let url = API + "/api/v9/trades?limit=120" + (mode ? "&mode="+mode : "");
+  const d = await jget(url);
+  trades = d.trades || [];
+  if(st==="open") trades = trades.filter(t=>t.state!=="CLOSED");
+  if(st==="closed") trades = trades.filter(t=>t.state==="CLOSED");
+  renderList();
+  document.getElementById("status").textContent = "עודכן " + new Date().toLocaleTimeString("he-IL") + " · " + trades.length + " עסקאות";
+  if(selId===null && trades.length) selectTrade(trades[0].id);
+}
+
+function renderList(){
+  const el = document.getElementById("list");
+  el.innerHTML = "";
+  for(const t of trades){
+    const row = document.createElement("div");
+    row.className = "trow" + (t.id===selId ? " sel" : "");
+    const pnl = t.pnl_usd==null ? "" : `<span dir="ltr" class="${t.pnl_usd>=0?'pnl-pos':'pnl-neg'}">${t.pnl_usd>=0?'+':'-'}$${Math.abs(+t.pnl_usd).toFixed(0)}</span>`;
+    const stateBadge = t.state!=="CLOSED" ? `<span class="badge b-open">OPEN</span>` : "";
+    row.innerHTML = `<span class="tid">#${t.id}</span>
+      <span><span class="pat ${t.direction==='LONG'?'b-long':'b-short'}">${t.classification||'?'} ${t.direction==='LONG'?'▲':'▼'}</span>
+      <div class="sub2">${fmtD(t.entry_ts)} ${fmtT(t.entry_ts)} · ${t.day_type||''} ${t.is_synthetic? '· TEST':''}</div></span>
+      <span style="text-align:left"><span class="badge b-${t.mode}">${t.mode}</span> ${stateBadge}<div>${pnl}</div></span>`;
+    row.onclick = ()=>selectTrade(t.id);
+    el.appendChild(row);
+  }
+}
+
+let cvdChart=null, cvdArea=null, gWood=[], gRange=null, gTrade=null;
+const CHART_OPTS = {
+  layout:{background:{color:"#0f1115"},textColor:"#9aa6b6"},
+  grid:{vertLines:{color:"#181d26"},horzLines:{color:"#181d26"}},
+  timeScale:{timeVisible:true,secondsVisible:false,borderColor:"#242a35"},
+  rightPriceScale:{borderColor:"#242a35"},
+  localization:{locale:"he-IL"},
+};
+function mkPane(elId){
+  const el = document.getElementById(elId);
+  const c = LightweightCharts.createChart(el, CHART_OPTS);
+  new ResizeObserver(()=>c.applyOptions({width:el.clientWidth,height:el.clientHeight})).observe(el);
+  return c;
+}
+let volSeries=null, revState={would:null};
+function mkChart(){
+  if(chart) return;
+  chart = mkPane("chart");
+  candleSeries = chart.addCandlestickSeries({upColor:"#1d9e75",downColor:"#d85a30",wickUpColor:"#1d9e75",wickDownColor:"#d85a30",borderVisible:false});
+  volSeries = chart.addHistogramSeries({priceScaleId:"", priceFormat:{type:"volume"}, lastValueVisible:false, priceLineVisible:false});
+  volSeries.priceScale().applyOptions({scaleMargins:{top:0.8,bottom:0}});
+  candleSeries.priceScale().applyOptions({scaleMargins:{top:0.05,bottom:0.22}});
+  chart.subscribeClick(p=>{
+    if(!p || !p.point) return;
+    const px = candleSeries.coordinateToPrice(p.point.y);
+    if(px!=null) document.getElementById("revPrice").value = Math.round(px*4)/4;
+  });
+
+  cvdChart = mkPane("cvd");
+  cvdArea = cvdChart.addAreaSeries({lineColor:"#378add",topColor:"rgba(55,138,221,.25)",bottomColor:"rgba(55,138,221,.02)",lineWidth:2,priceFormat:{type:"price",precision:0,minMove:1}});
+
+  chart.timeScale().subscribeVisibleTimeRangeChange(r=>{
+    if(!r) return; gRange = r;
+    try{ cvdChart.timeScale().setVisibleRange(r); }catch(_){}
+    woodDraw();
+  });
+  new ResizeObserver(woodDraw).observe(document.getElementById("wood"));
+}
+
+/* ═══ Woodies panel — ported 1:1 from WoodiesCciPanel.tsx + woodiesDesignerSpec.ts ═══ */
+const W_CW=480, W_CH=360, W_ROW={CHART_TOP:44,CHART_BOTTOM:340,BASELINE:192,TIME_TOP:340},
+  W_COL={CHART_L:22,CHART_R:318,FRAME_X:434,AXIS_LABEL_X:448,DATA_R:432},
+  W_BAR={WIDTH:6,FIRST_X:28,LAST_X:312},
+  W_REF=[{v:200,y:69,color:"#DC2020",marker:"#22CC22"},{v:100,y:130,color:"#22BBBB",marker:"#22BBBB"},{v:0,y:192,color:"#22CC22",marker:"#22CC22"},{v:-100,y:254,color:"#22BBBB",marker:"#22BBBB"},{v:-200,y:315,color:"#DC2020",marker:"#22CC22"}],
+  W_AXIS=[{v:240,y:48,c:"#5EB8FF"},{v:200,y:72,c:"#FF2020"},{v:160,y:96,c:"#5EB8FF"},{v:120,y:120,c:"#5EB8FF"},{v:80,y:144,c:"#5EB8FF"},{v:40,y:168,c:"#5EB8FF"},{v:0,y:195,c:"#22CC22"},{v:-40,y:216,c:"#5EB8FF"},{v:-80,y:240,c:"#5EB8FF"},{v:-120,y:264,c:"#5EB8FF"},{v:-160,y:288,c:"#5EB8FF"},{v:-200,y:318,c:"#FF2020"},{v:-240,y:342,c:"#5EB8FF"}],
+  W_COLORS={BG:"#2D5555",TIME_BG:"#2A4A4A",TIME_TEXT:"#DDDD20",CCI:"#000000",TCCI:"#DDDD20",ZLR_DOWN:"#FF2020",ZLR_UP:"#00CC00"},
+  W_TREND={BLUE:"#1E54E8",RED:"#E03030",YELLOW:"#DDDD20",GRAY:"#888888"};
+const wY = cci => { const f=W_REF.find(r=>r.v===cci); if(f) return f.y; const a=W_AXIS.find(t=>t.v===cci); if(a) return a.y; return 192 - (cci/250)*(192-48); };
+const wCT = ts => new Date(ts*1000).toLocaleTimeString("en-US",{timeZone:"America/Chicago",hour:"numeric",minute:"2-digit",hour12:false});
+const wBX = (i,n) => n<=1 ? W_BAR.FIRST_X : W_BAR.FIRST_X + (i/(n-1))*(W_BAR.LAST_X-W_BAR.FIRST_X);
+const wBW = n => n<=1 ? W_BAR.WIDTH : Math.min(W_BAR.WIDTH, Math.max(2, Math.floor((W_BAR.LAST_X-W_BAR.FIRST_X)/(n-1))-1));
+function wRefLine(ctx,y,x0,x1,ca,cb){ let i=0; for(let x=x0;x<=x1;x+=8){ ctx.fillStyle=i%2===0?ca:cb; ctx.beginPath(); ctx.arc(x,y,1.75,0,Math.PI*2); ctx.fill(); i++; } ctx.fillStyle=cb; ctx.beginPath(); ctx.arc(x0+2,y,2.2,0,Math.PI*2); ctx.fill(); }
+function wZlrDown(ctx,x,y){ ctx.fillStyle=W_COLORS.ZLR_DOWN; ctx.beginPath(); ctx.moveTo(x,y+11); ctx.lineTo(x-4,y); ctx.lineTo(x+4,y); ctx.closePath(); ctx.fill(); ctx.font="bold 9px ui-monospace,monospace"; ctx.textAlign="center"; ctx.fillText("ZLR",x,y-4); ctx.textAlign="left"; }
+function wZlrUp(ctx,x,y){ ctx.fillStyle=W_COLORS.ZLR_UP; ctx.beginPath(); ctx.moveTo(x,y-11); ctx.lineTo(x-4,y); ctx.lineTo(x+4,y); ctx.closePath(); ctx.fill(); ctx.font="bold 9px ui-monospace,monospace"; ctx.textAlign="center"; ctx.fillText("ZLR",x,y+9); ctx.textAlign="left"; }
+function wHfe(ctx,x,y,dir){ const c=(dir||"UP").toUpperCase()==="DOWN"?"#FF6600":"#00BBFF"; ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(x,y-5); ctx.lineTo(x+4,y); ctx.lineTo(x,y+5); ctx.lineTo(x-4,y); ctx.closePath(); ctx.fill(); ctx.font="bold 7px ui-monospace,monospace"; ctx.textAlign="center"; ctx.fillText("HFE",x,y-8); ctx.textAlign="left"; }
+function wX(ctx,x,y){ ctx.strokeStyle="#FFF"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x-5,y-5); ctx.lineTo(x+5,y+5); ctx.moveTo(x-5,y+5); ctx.lineTo(x+5,y-5); ctx.stroke(); }
+function woodDraw(){
+  const cv = document.getElementById("woodCanvas"); if(!cv || !chart) return;
+  const box = cv.parentElement.getBoundingClientRect();
+  const dpr = window.devicePixelRatio||1;
+  cv.width = box.width*dpr; cv.height = box.height*dpr;
+  const ctx = cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const W = box.width, H = box.height;
+  ctx.fillStyle = W_COLORS.BG; ctx.fillRect(0,0,W,H);
+
+  // time-aligned to the main chart: same x per timestamp, bar under bar
+  let psw = 62; try{ const w0 = chart.priceScale("right").width(); if(w0>0) psw = w0; }catch(_){}
+  const plotR = Math.max(60, W - psw);
+  const fy = H/W_CH;
+  const yF = cci => wY(cci)*fy;
+  const stripTop = W_ROW.TIME_TOP*fy;
+  const tsc = chart.timeScale();
+  const xF = t => { try{ const c = tsc.timeToCoordinate(t); return c==null?null:c; }catch(_){ return null; } };
+
+  for(const r of W_REF) wRefLine(ctx, r.y*fy, 6, plotR-4, r.color, r.marker);
+
+  let bars = gWood;
+  if(gRange && bars.length) bars = bars.filter(b=>b.ts_unix>=gRange.from-1 && b.ts_unix<=gRange.to+1);
+  const pts = [];
+  for(const b of bars){ const x = xF(b.ts_unix); if(x!=null && x>=0 && x<=plotR) pts.push([x,b]); }
+  const n = pts.length;
+  if(n){
+    let dx = 9;
+    if(n>1){ const ds=[]; for(let i=1;i<n;i++) ds.push(pts[i][0]-pts[i-1][0]); ds.sort((a,b)=>a-b); dx = ds[Math.floor(ds.length/2)]||9; }
+    const hw = Math.max(2, Math.min(12, dx*0.66));
+    const y0 = yF(0);
+    ctx.save(); ctx.beginPath(); ctx.rect(0, 14, plotR, stripTop-14); ctx.clip();
+    for(const [cx,b] of pts){ const s=b.swi_value; if(s!=null&&isFinite(s)){ const a=Math.abs(s); ctx.fillStyle=a>=40?"#22CC22":a<=20?"#CC2020":"#CCCC20"; ctx.globalAlpha=.7; ctx.beginPath();ctx.arc(cx,y0-4,1.5,0,7);ctx.fill(); ctx.beginPath();ctx.arc(cx,y0+4,1.5,0,7);ctx.fill(); ctx.globalAlpha=1; } }
+    for(const [cx,b] of pts){ const y1=yF(b.cci_14), col=W_TREND[(b.trend_state||"GRAY").toUpperCase()]||W_TREND.GRAY; ctx.fillStyle=col; ctx.fillRect(cx-hw/2, Math.min(y0,y1), hw, Math.max(2,Math.abs(y1-y0))); }
+    for(const [cx,b] of pts){ if(b.zlr_detected){ ((b.zlr_direction||"").toUpperCase()==="DOWN") ? wZlrDown(ctx,cx,yF(200)) : wZlrUp(ctx,cx,yF(-200)); } if(b.hfe_detected) wHfe(ctx,cx,yF(b.cci_14),b.hfe_direction); }
+    ctx.lineJoin="round"; ctx.lineCap="round"; ctx.lineWidth=2.5;
+    ctx.strokeStyle=W_COLORS.CCI; ctx.beginPath(); pts.forEach(([x,b],i)=>{ const y=yF(b.cci_14); i===0?ctx.moveTo(x,y):ctx.lineTo(x,y); }); ctx.stroke();
+    ctx.strokeStyle=W_COLORS.TCCI; ctx.beginPath(); let t0=false; pts.forEach(([x,b])=>{ if(b.cci_6_tcci==null)return; const y=yF(b.cci_6_tcci); if(!t0){ctx.moveTo(x,y);t0=true;}else ctx.lineTo(x,y); }); if(t0) ctx.stroke();
+    const lastAll = gWood[gWood.length-1];
+    if(lastAll && pts[n-1][1].ts_unix===lastAll.ts_unix) wX(ctx, pts[n-1][0], yF(pts[n-1][1].cci_14));
+    // the trade, recognized on this pane too
+    if(gTrade){
+      const mk=(tt,col,lab)=>{ if(!tt) return; const x=xF(tt); if(x==null||x<0||x>plotR) return;
+        ctx.strokeStyle=col; ctx.lineWidth=1.5; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(x,14); ctx.lineTo(x,stripTop); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle=col; ctx.font="bold 10px ui-monospace,monospace"; ctx.textAlign="center"; ctx.fillText(lab,x,11); ctx.textAlign="left"; };
+      mk(gTrade.e, "#5EB8FF", "IN");
+      mk(gTrade.x, "#fb950b", "OUT");
+    }
+    ctx.restore();
+    // HUD — in the strip under the price axis (same slots/colors as the dashboard panel)
+    const b = pts[n-1][1];
+    const R = W - 6; ctx.textAlign="right"; ctx.font="bold 10px ui-monospace,monospace";
+    const row=(y,c,txt)=>{ if(!txt)return; ctx.fillStyle=c; ctx.fillText(txt, R, y*fy); };
+    const f2=v=>v!=null&&isFinite(v)?(+v).toFixed(2):null;
+    row(56,"#00DD00", b.ccidiff_h!=null?(+b.ccidiff_h).toFixed(1)+" DifH":null);
+    row(88,"#FFFFFF", b.ccidiff!=null?(+b.ccidiff).toFixed(1)+" Dif":null);
+    row(120,"#FF66FF", b.ccidiff_l!=null?(+b.ccidiff_l).toFixed(1)+" DifL":null);
+    row(156,"#00DD00", f2(b.high));
+    ctx.font="bold 14px ui-monospace,monospace"; row(192,"#000", f2(b.close)?f2(b.close)+" La":null);
+    ctx.font="bold 10px ui-monospace,monospace";
+    row(232,"#000", f2(b.low));
+    row(262,"#5EB8FF", f2(b.proj_hi)?f2(b.proj_hi)+" PjH":null);
+    row(290,"#FF66FF", f2(b.proj_lo)?f2(b.proj_lo)+" PjL":null);
+    row(318,"#000", b.cci_14!=null?(+b.cci_14).toFixed(1)+" CCI":null);
+    row(346,"#000", b.lsma_value!=null?f2(b.lsma_value)+" LSMA":null);
+    ctx.textAlign="left";
+    ctx.strokeStyle="#1A3A3A"; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(plotR,0); ctx.lineTo(plotR,H); ctx.stroke();
+    // time strip (Chicago clock, like Sierra)
+    ctx.fillStyle=W_COLORS.TIME_BG; ctx.fillRect(0,stripTop,W,H-stripTop);
+    ctx.fillStyle=W_COLORS.TIME_TEXT; ctx.font="bold 10px ui-monospace,monospace"; ctx.textAlign="center";
+    const nlab = Math.min(6, n);
+    for(let k=0;k<nlab;k++){ const i=Math.floor(k*(n-1)/Math.max(1,nlab-1)); ctx.fillText(wCT(pts[i][1].ts_unix), pts[i][0], Math.min(H-4, stripTop+13)); }
+    ctx.textAlign="left";
+  }
+}
+
+function priceLine(price, color, title, style){
+  if(price==null) return;
+  lines.push(candleSeries.createPriceLine({price:+price,color,lineWidth:1,lineStyle:style??2,axisLabelVisible:true,title}));
+}
+
+async function selectTrade(id){
+  selId = id; renderList();
+  const d = await jget(API + "/api/v9/trades/" + id);
+  const t = d.trade || d;
+  t.management_log = t.management_log || d.management_log || [];
+  mkChart();
+  lines.forEach(l=>candleSeries.removePriceLine(l)); lines = [];
+
+  const endTs = t.exit_ts || new Date().toISOString();
+  const before = new Date(new Date(endTs).getTime() + 45*60000).toISOString();
+  const [bars, woodD, cvdD] = await Promise.all([
+    jget(API + "/api/v9/chart/bars5min?limit=150&before=" + encodeURIComponent(before)),
+    jget(API + "/api/v9/woodies/chart?limit=200").catch(()=>null),
+    jget(API + "/api/v9/cumulative_delta/current?history=1&limit=5000").catch(()=>null),
+  ]);
+
+  // Woodies pane (exact dashboard replica) — store bars; drawn by woodDraw()
+  let wbars = (woodD && woodD.bars) || [];
+  {const s=new Set(); wbars = wbars.filter(b=>{if(b.ts_unix==null||s.has(b.ts_unix))return false; s.add(b.ts_unix); return true;}).sort((a,b)=>a.ts_unix-b.ts_unix);}
+  gTrade = { e: t.entry_ts ? unix(t.entry_ts) : null, x: t.exit_ts ? unix(t.exit_ts) : null };
+  gWood = wbars;
+  woodDraw();
+
+  // CVD pane: cumulative delta line (downsampled to ≤1200 pts)
+  const pts = (cvdD && cvdD.points) || [];
+  const step = Math.max(1, Math.floor(pts.length/1200));
+  const cvdData = [];
+  for(let i=0;i<pts.length;i+=step){ const p=pts[i]; if(p && p.t!=null && p.cum!=null) cvdData.push({time:p.t, value:+p.cum}); }
+  cvdData.sort((a,b)=>a.time-b.time);
+  for(let i=cvdData.length-1;i>0;i--) if(cvdData[i].time===cvdData[i-1].time) cvdData.splice(i,1);
+  cvdArea.setData(cvdData);
+  const seen = new Set();
+  const data = bars.filter(b=>{const k=b.ts; if(seen.has(k))return false; seen.add(k); return true;})
+    .map(b=>({time:unix(b.ts), open:+b.o, high:+b.h, low:+b.l, close:+b.c, v:+(b.v||0)}))
+    .sort((a,b)=>a.time-b.time);
+  candleSeries.setData(data);
+  volSeries.setData(data.map(b=>({time:b.time, value:b.v, color:b.close>=b.open?"rgba(29,158,117,.45)":"rgba(216,90,48,.45)"})));
+
+  // zoom on the trade window (entry..exit ± padding)
+  if(data.length){
+    const eU = t.entry_ts ? unix(t.entry_ts) : data[0].time;
+    const xU = t.exit_ts ? unix(t.exit_ts) : data[data.length-1].time;
+    try{ chart.timeScale().setVisibleRange({from: eU - 14*300, to: xU + 10*300}); }catch(_){ chart.timeScale().fitContent(); }
+  }
+
+  // collect levels, merge duplicates at the same price → one clean label
+  const want = [];
+  const add = (p,c,ti,st)=>{ if(p!=null) want.push({p:+p,c,ti,st:st??2}); };
+  add(t.entry_price, "#378add", "כניסה", 0);
+  add(t.stop, "#e24b4a", "סטופ" + (t.stop_note ? " ("+t.stop_note+")" : ""), 2);
+  if(t.stop_initial != null && t.stop_initial !== t.stop) add(t.stop_initial, "#7a2c2c", "סטופ פתיחה", 3);
+  add(t.t1, "#639922", "T1"); add(t.t2, "#639922", "T2"); add(t.t3, "#639922", "T3");
+  if(t.exit_price) add(t.exit_price, "#efb041", "יציאה", 0);
+  const merged = [];
+  for(const w of want){
+    const m = merged.find(x=>Math.abs(x.p - w.p) < 0.05);
+    if(m){ m.ti += " · " + w.ti; m.c = w.c === "#efb041" ? w.c : m.c; }
+    else merged.push({...w});
+  }
+  merged.forEach(w=>priceLine(w.p, w.c, w.ti, w.st));
+
+  const shortAct = a => ({"SMART_BE":"BE","T1_HIT":"T1","T2_HIT":"T2","T3_HIT":"T3","STOP_HIT":"STOP","TRAIL":"TRL"}[a] || a);
+  const markers = [];
+  if(t.entry_ts) markers.push({time:unix(t.entry_ts), position:"belowBar", color:"#378add", shape:"arrowUp", text:"IN"});
+  for(const m of (t.management_log||[])){
+    if(m.action === "TRADER_REVIEW") continue;
+    const mt = m.ts || (m.value && m.value.ts);
+    if(!mt) continue;
+    markers.push({time:unix(mt), position:"aboveBar", color:"#efb041", shape:"circle", text:shortAct(m.action)});
+  }
+  if(t.exit_ts) markers.push({time:unix(t.exit_ts), position:"aboveBar", color:"#efb041", shape:"arrowDown", text:"OUT"});
+  markers.sort((a,b)=>a.time-b.time);
+  try{ candleSeries.setMarkers(markers); }catch(e){}
+
+  const risk = (t.entry_price!=null && t.stop_initial!=null) ? Math.abs(t.entry_price-t.stop_initial).toFixed(2) : "—";
+  const kv = (k,v)=>`<div class="kv"><div class="k">${k}</div><div class="v">${v??"—"}</div></div>`;
+  document.getElementById("detail").innerHTML =
+    kv("עסקה", "#"+t.id+" · "+(t.mode||"")) +
+    kv("תבנית", (t.classification||d.pattern_id||"?")) +
+    kv("כיוון", t.direction) +
+    kv("כניסה", (t.entry_price??"—")+" · "+fmtT(t.entry_ts)) +
+    kv("סטופ פתיחה / נוכחי", (t.stop_initial??"—")+" / "+(t.stop??"—")) +
+    kv("סיכון פתיחה (נק')", risk) +
+    kv("יעדים", [t.t1,t.t2,t.t3].map(x=>x??"·").join(" / ")) +
+    kv("יציאה", (t.exit_price??"—")+" · "+(t.exit_reason||"")+" · "+fmtT(t.exit_ts)) +
+    kv("PnL", t.pnl_usd!=null ? (t.pnl_usd>=0?"+":"")+t.pnl_usd+"$ ("+(t.pnl_r??"?")+"R)" : "—") +
+    kv("MAE/MFE (נק')", (t.mae_pts??"—")+" / "+(t.mfe_pts??"—")) +
+    kv("סוג-יום", t.day_type) +
+    kv("מצב", t.state) +
+    `<div id="mgmt"><b class="muted">לוג-ניהול:</b>` +
+    (t.management_log||[]).map(m=>`<div>${m.action} · ${JSON.stringify(m.value||{}).slice(0,70)} · ${fmtT(m.ts)}</div>`).join("") +
+    `</div>`;
+
+  // "my review" — load last saved TRADER_REVIEW, draw my-entry line, wire save
+  const revs = (t.management_log||[]).filter(m=>m.action==="TRADER_REVIEW");
+  const rv = revs.length ? (revs[revs.length-1].value||{}) : null;
+  revState = { would: rv ? !!rv.would_enter : null };
+  const bYes = document.getElementById("revYes"), bNo = document.getElementById("revNo");
+  const setRevBtns = ()=>{ bYes.className = "revbtn"+(revState.would===true?" sel-yes":""); bNo.className = "revbtn"+(revState.would===false?" sel-no":""); };
+  setRevBtns();
+  bYes.onclick = ()=>{ revState.would = true; setRevBtns(); };
+  bNo.onclick = ()=>{ revState.would = false; setRevBtns(); };
+  document.getElementById("revPrice").value = rv && rv.my_entry!=null ? rv.my_entry : "";
+  document.getElementById("revNote").value = rv && rv.note ? rv.note : "";
+  document.getElementById("revStatus").textContent = rv ? ("נשמר: " + (rv.would_enter?"הייתי נכנס":"לא הייתי נכנס") + (rv.my_entry!=null?" @ "+rv.my_entry:"")) : "אין סקירה עדיין";
+  if(rv && rv.my_entry!=null) priceLine(rv.my_entry, "#AFA9EC", "הכניסה שלי", 2);
+  document.getElementById("revSave").onclick = async ()=>{
+    if(revState.would===null){ alert("בחר קודם: הייתי נכנס / לא הייתי נכנס"); return; }
+    const pv = document.getElementById("revPrice").value;
+    const body = { trade_id: t.id, action: "TRADER_REVIEW",
+      value: { would_enter: revState.would, my_entry: pv!=="" ? parseFloat(pv) : null,
+               note: document.getElementById("revNote").value || null } };
+    const r = await fetch(API+"/api/v9/trades/log",{method:"POST",headers:{...H,"Content-Type":"application/json"},body:JSON.stringify(body)});
+    document.getElementById("revStatus").textContent = r.ok ? "נשמר ✓" : "שגיאה בשמירה";
+    if(r.ok) selectTrade(t.id);
+  };
+
+  const open = t.state!=="CLOSED";
+  document.getElementById("fixbox").style.display = open ? "flex" : "none";
+  if(open){
+    const last = data.length ? data[data.length-1].close : t.entry_price;
+    document.getElementById("fixPrice").value = last;
+    document.getElementById("btnFix").onclick = async ()=>{
+      const px = parseFloat(document.getElementById("fixPrice").value);
+      const reason = document.getElementById("fixReason").value;
+      if(!confirm(`לסגור את עסקה #${t.id} במחיר ${px} (${reason})? פעולה אמיתית.`)) return;
+      const r = await fetch(API+"/api/v9/trades/"+t.id+"/exit",{method:"POST",headers:{...H,"Content-Type":"application/json"},body:JSON.stringify({exit_price:px,reason})});
+      const res = await r.json();
+      alert(r.ok ? "נסגרה ✓ PnL: "+(res.pnl_usd??"?")+"$" : "שגיאה: "+JSON.stringify(res));
+      await loadTrades(); await selectTrade(t.id);
+    };
+  }
+}
+
+document.getElementById("btnRefresh").onclick = loadTrades;
+document.getElementById("fMode").onchange = ()=>{selId=null;loadTrades();};
+document.getElementById("fState").onchange = ()=>{selId=null;loadTrades();};
+setInterval(()=>{ if(document.getElementById("autoRef").checked) loadTrades().catch(()=>{}); }, 15000);
+loadTrades().catch(e=>{ document.getElementById("list").innerHTML = '<div class="err">שגיאת-טעינה: '+e.message+'</div>'; });
+</script>
+</body>
+</html>
