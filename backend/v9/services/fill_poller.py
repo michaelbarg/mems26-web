@@ -171,12 +171,20 @@ class FillPoller:
         # Find the trade_id from the order map
         trade_id = self._order_map.get(order_id)
         if trade_id is None:
-            # Fallback: try to find the most recent active trade
-            active = self._tm.get_active_trades()
+            # Fallback (I-58 hardened): Sierra fills can ONLY belong to demo/live
+            # trades — never attribute them to a SHADOW twin. Pick the most recent
+            # active NON-shadow trade; if none, drop loudly.
+            active = [t for t in self._tm.get_active_trades()
+                      if getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
             if active:
                 trade_id = active[-1].id
+                logger.warning(
+                    "[FillPoller] unmapped order_id=%s → fallback to most recent %s trade %s "
+                    "(I-58: map should have had it — investigate)",
+                    order_id, getattr(active[-1], "mode", "?"), trade_id,
+                )
             else:
-                logger.warning("[FillPoller] no trade found for order_id=%s", order_id)
+                logger.warning("[FillPoller] no demo/live trade found for order_id=%s — fill dropped", order_id)
                 return
 
         self._processed_count += 1
@@ -204,6 +212,16 @@ class FillPoller:
                         self._tm.set_sierra_order_ids(trade_id, sierra_ids)
                     except Exception as e:
                         logger.warning("[FillPoller] set_sierra_order_ids failed: %s", e)
+                    # I-58 (2026-07-02, trades 275/276): map ALL per-contract order IDs so
+                    # later T1/T2/T3/STOP fills resolve to THIS trade — without this, an
+                    # unmapped target/stop fill fell to the "most recent active" fallback
+                    # and got attributed to the SHADOW twin: demo stayed blind (no T1 →
+                    # no smart-BE → stuck open until manual close).
+                    for _oid in sierra_ids.values():
+                        if _oid is not None and _oid != fill.get("order_id"):
+                            self._order_map[int(_oid)] = trade_id
+                    logger.info("[FillPoller] mapped %d per-contract order ids → trade %s",
+                                sum(1 for v in sierra_ids.values() if v is not None), trade_id)
 
             elif kind in ("T1", "T2", "T3"):
                 self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts)
