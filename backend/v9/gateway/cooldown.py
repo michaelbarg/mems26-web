@@ -1,8 +1,16 @@
 """ζ.A4 — 2-Stop Cooldown + ζ.A5 — Cluster Guard D-037.
 
 Risk filters that gate trade entry at the gateway level.
+
+STANDING DECISION (Michael 2026-07-02, "לא הגדרתי צינון → לכבות"): the 2-stop
+cooldown BLOCK is OFF by default — a ζ-spec-era mechanism that was never
+Michael-ratified (and was inert until I-57 fixed stop-counting, at which point
+it blocked trading for the first time). Counting/state stay live for
+observability; the block re-enables ONLY via env COOLDOWN_2STOP_V1=1 + Michael
+sign-off (trading-risk-surface change). Do NOT "restore" it in a refactor.
 """
 import logging
+import os
 import time
 from datetime import datetime, timedelta
 from typing import Optional
@@ -34,6 +42,10 @@ class CooldownManager:
             self.cooldown_until = None
 
     def is_blocked(self) -> bool:
+        # Michael 2026-07-02: cooldown BLOCK default-OFF (counting stays for
+        # observability). Enable only via COOLDOWN_2STOP_V1=1 + Michael sign-off.
+        if os.environ.get("COOLDOWN_2STOP_V1", "0").lower() not in ("1", "true", "yes"):
+            return False
         if self.cooldown_until and datetime.utcnow() < self.cooldown_until:
             return True
         if self.cooldown_until and datetime.utcnow() >= self.cooldown_until:
