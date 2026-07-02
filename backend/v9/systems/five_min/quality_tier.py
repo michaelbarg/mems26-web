@@ -77,6 +77,15 @@ def get_quality_tier_v2(
     tier: QualityTier = _classify_tier(price, tpo_data)
     verdict, high_c, med_c, low_c = get_auth_cell(pattern_name, day_type)
     contracts: int = {'HIGH': high_c, 'MEDIUM': med_c, 'LOW': low_c}[tier]
+    # FIXED_CONTRACTS_3 (Michael 2026-07-01): every FIRING setup uses 3 contracts.
+    # This is the S2 sizing SOURCE (feeds T1Setup.sizing_contracts → setup["contracts"]
+    # → the Sierra command). The prior patch in stop_anchors/sizing.py only covered the
+    # compute_v2_sizing path (S4) and did NOT reach this tier-based S2 count — that was
+    # the dead-wiring: MEDIUM/LOW fires emitted 2. contracts==0 = auth reject → preserved
+    # (no fire). Flag-gated (trading-risk-surface).
+    import os as _fc_os
+    if _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
+        contracts = 3
     return (verdict, tier, contracts)
 
 

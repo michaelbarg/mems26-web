@@ -162,6 +162,14 @@ def command_from_setup(
         _contracts = max(1, int(_sz))
     except (TypeError, ValueError):
         _contracts = {"full": 3, "half": 2, "quarter": 1}.get(str(_sz).lower().strip(), 1)
+    # FIXED_CONTRACTS_3 (Michael 2026-07-01): single command choke point — guarantee
+    # every fire sends 3 contracts to Sierra for BOTH S2 and S4, demo + live. Belt-and-
+    # suspenders over the sizing-source overrides (quality_tier / compute_v2_sizing) so
+    # no path can send !=3 when the flag is on. Only setups that reached command-write
+    # have already passed the fire decision, so _contracts is always >0 here.
+    import os as _fc3_os
+    if _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and _contracts > 0:
+        _contracts = 3
     return write_trade_command(
         action=action,
         trade_id=trade_id,
