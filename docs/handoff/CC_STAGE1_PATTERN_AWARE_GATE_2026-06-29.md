@@ -35,6 +35,13 @@ At the top of `decide` (when flag ON, post-IB-lock), gate the **family by day-ty
 
 ---
 
+### Change 3 — fix `CONT_TREND_FILTER` reversal classification (06-29 finding)
+`backend/v9/gateway/trading_gateway.py` (CONT_TREND_FILTER, ~L318): its `REVERSAL_PATTERNS` set = Woodies-REV + Double/HnS **only — `REACTIVE` is MISSING** → REACTIVE is treated as CONTINUATION → counter-trend **fade-shorts get blocked** (log 06-29 16:55: `BLOCKED by cont-trend-filter: REACTIVE_SHORT setup DOWN vs sustained UP`). This is the **second** block on REACTIVE fades (alongside the pattern-blind position-gate).
+- Add `REACTIVE_LONG` / `REACTIVE_SHORT` (+ any REV S2 patterns) to `REVERSAL_PATTERNS` so REACTIVE is **EXEMPT** from the with-trend requirement (REV fades against the trend by design).
+- Use the **same CONT/REV map** as Change 1 (single source of truth — don't maintain two lists).
+
+> ⚠️ Also surfaced 06-29: the position-gate blocked `REACTIVE_SHORT` on `entry 7463.25 < POC 7466.25` with **stale TPO levels** (6-pt VA vs 80-pt IB; price above VAH → frozen with `v9_bars_5min` 18:00). The pattern-aware gate (Change 2) must read **LIVE** POC/VAH/VAL and gate REACTIVE on **VAH** (the edge), not a strict POC threshold. Live-levels fix may be a prerequisite (see Stage 0 / feed-freeze).
+
 ## Flag registry
 Add `DAYTYPE_PATTERN_AWARE_V1` to `docs/FLAG_REGISTRY.yaml`, run `scripts/gen_flag_index.py`, commit `docs/FLAG_INDEX.md`.
 

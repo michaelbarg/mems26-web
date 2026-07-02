@@ -20,9 +20,13 @@ Helper that already does the right thing: `direction_context_live._fetch_live_ba
 `v9_bars_5min` for CVD, falls back to the contiguous `v9_bars_5min_woodies` when 5min is stale/gapped.
 
 ## Day-type
+> 🧭 **Which engine is ACTIVE/canonical (and which are DEAD)? → `docs/spec_authority/S1_ACTIVE_CANONICAL.md` (READ FIRST).**
+> MEMS26 has multiple day-type engines; the 06-29 loss came from this confusion. That doc is the
+> authoritative, unambiguous answer — the table below is the quick source map.
+
 | use | source | notes |
 |---|---|---|
-| ✅ **canonical 7-type** (Michael-validated 11/11) | `GET /api/v9/day_type/classify_replay?date=` · `classifier_core.classify_session(...)` | the authority. Build-Status, the strip, and the pills all read this. |
+| ✅ **canonical 7-type** (Michael-validated 11/11) | `GET /api/v9/day_type/classify_replay?date=` · `classifier_core.classify_session(...)` | the authority. Build-Status, the strip, and the pills all read this. Trade gate reads it via `extract_g1_entry_context` when `S1_NEW_CLASSIFIER=1`; live per-bar when `S1_ENGINE_NEW_CLASSIFIER=1`. |
 | 🟡 live-engine (OLD 3-type) | `app.state.day_type_machine` · `cockpit/systems-snapshot` sys-1 · `v9_day_type_state` | only Trend_Normal/Variation/Normal **until `S1_ENGINE_NEW_CLASSIFIER` (part-b) is live** |
 | ✅ direction now | `GET /api/v9/day_type/direction_now` → `direction_context_live.current()` | UP/DOWN/NEUTRAL + `day_type` + `source`. When `DIRECTION_LSMA_VETO=1`, direction = LSMA-lead + CVD-veto (source = `v9_bars_5min_woodies` lsma_value + cvd_slope); flag OFF = CVD+breakout engine. |
 | 🔴 **DEAD — do not re-wire** | `/api/v9/day_type/v9/current` (returns None) · `/api/v9/day_type/current` (V1 wrapper) | retired from the frontend 2026-06-22 |

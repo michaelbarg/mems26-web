@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MEMS26 · פלייבוק תבניות — נרות · מבנה · ווליום</title>
+<style>
+  body{margin:0;background:#0f1115;color:#e7ecf3;font:15px/1.6 -apple-system,"Segoe UI",Arial,sans-serif;padding:24px}
+  h1{font-size:22px;font-weight:600;margin:0 0 4px}
+  .sub{color:#9aa6b6;margin:0 0 20px}
+  .card{background:#171a21;border:1px solid #242a35;border-radius:12px;margin-bottom:18px;overflow:hidden}
+  .hd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #242a35}
+  .hd .nm{font-size:18px;font-weight:600}
+  .tag{font-size:12px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .cont{background:rgba(29,158,117,.18);color:#5dcaa5}
+  .rev{background:rgba(216,90,48,.18);color:#f0997b}
+  .sys{font-size:12px;color:#9aa6b6}
+  .body{padding:14px 16px;display:grid;grid-template-columns:440px 1fr;gap:18px}
+  @media(max-width:820px){.body{grid-template-columns:1fr}}
+  svg{width:100%;height:auto;background:#0f1115;border:1px solid #242a35;border-radius:8px}
+  .rows > div{margin-bottom:10px}
+  .lbl{font-size:12px;font-weight:600;color:#9aa6b6;margin-bottom:2px}
+  .lbl.mb{color:#85b7eb}.lbl.vl{color:#ef9f27}.lbl.tg{color:#5dcaa5}
+  .val{font-size:14px;color:#e7ecf3}
+  .note{border:1px dashed #3a4250;border-radius:8px;padding:6px 10px;color:#9aa6b6;font-size:13px;min-height:30px}
+  .note[contenteditable]:focus{outline:2px solid #378add;color:#e7ecf3}
+  .ct{font-size:11px}.cg{fill:#1d9e75;stroke:#1d9e75}.cr{fill:#d85a30;stroke:#d85a30}
+  .wick{stroke-width:1.5}.vg{fill:#1d9e75;opacity:.5}.vr{fill:#d85a30;opacity:.5}
+  .lvl{stroke:#888780;stroke-width:1;stroke-dasharray:5 4}
+  .tgt{stroke:#639922;stroke-width:1;stroke-dasharray:5 4}
+  .stp{stroke:#e24b4a;stroke-width:1;stroke-dasharray:5 4}
+  text{font:11px -apple-system,Arial,sans-serif;fill:#9aa6b6}
+</style>
+</head>
+<body>
+<h1>MEMS26 · פלייבוק תבניות — נרות · מבנה · ווליום</h1>
+<p class="sub">לכל תבנית: הגיאומטריה בנרות · איך משתמשים במבנה · איך משתמשים בווליום · הסולם לפי סוג-יום. טיוטת-אב (2 תבניות) — אשלים את כל ה-19 אחרי אישור הפורמט.</p>
+
+<!-- ===== ZLR (CONT) ===== -->
+<div class="card">
+  <div class="hd"><span class="nm">ZLR — Zero-Line Reject</span><span class="tag cont">המשך · CONT</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>ZLR candles</title>
+      <line class="lvl" x1="30" y1="150" x2="410" y2="150"/><text x="34" y="146">reject level (0-line zone)</text>
+      <line class="stp" x1="150" y1="168" x2="410" y2="168"/><text x="414" y="171" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="215" y1="95" x2="410" y2="95"/><text x="414" y="98" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="215" y1="66" x2="410" y2="66"/><text x="414" y="69" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <line class="tgt" x1="215" y1="42" x2="410" y2="42"/><text x="414" y="45" text-anchor="start" style="fill:#639922">C3 VAH</text>
+      <!-- candles: uptrend -> pullback -> reject(entry) -> run -->
+      <g class="cg"><line class="wick cg" x1="46" y1="158" x2="46" y2="128"/><rect x="40" y="140" width="12" height="15"/></g>
+      <g class="cg"><line class="wick cg" x1="74" y1="140" x2="74" y2="112"/><rect x="68" y="120" width="12" height="16"/></g>
+      <g class="cg"><line class="wick cg" x1="102" y1="122" x2="102" y2="102"/><rect x="96" y="108" width="12" height="12"/></g>
+      <g class="cr"><line class="wick cr" x1="130" y1="106" x2="130" y2="132"/><rect x="124" y="108" width="12" height="16"/></g>
+      <g class="cr"><line class="wick cr" x1="158" y1="118" x2="158" y2="152"/><rect x="152" y="122" width="12" height="16"/></g>
+      <g class="cg"><line class="wick cg" x1="186" y1="150" x2="186" y2="106"/><rect x="180" y="112" width="12" height="20"/></g>
+      <circle cx="186" cy="112" r="4" fill="#5dcaa5"/><text x="168" y="104" style="fill:#5dcaa5">entry (reject)</text>
+      <g class="cg"><line class="wick cg" x1="214" y1="118" x2="214" y2="90"/><rect x="208" y="96" width="12" height="18"/></g>
+      <g class="cg"><line class="wick cg" x1="242" y1="100" x2="242" y2="76"/><rect x="236" y="82" width="12" height="16"/></g>
+      <!-- volume strip -->
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="40" y="196" width="12" height="14"/><rect class="vg" x="68" y="200" width="12" height="10"/><rect class="vg" x="96" y="202" width="12" height="8"/>
+      <rect class="vr" x="124" y="199" width="12" height="11"/><rect class="vr" x="152" y="204" width="12" height="6"/>
+      <rect class="vg" x="180" y="188" width="12" height="22"/><text x="176" y="186" style="fill:#ef9f27">vol↑</text>
+      <rect class="vg" x="208" y="197" width="12" height="13"/><rect class="vg" x="236" y="200" width="12" height="10"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">CCI חוזר לאזור-האפס בתוך מגמת-עלייה ו<b>נדחה חזרה מעלה</b>. כניסה על נר-הדחייה (סגירה מעל). סטופ מתחת לשפל-הפולבק (בר-הפריצה).</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">הפולבק ב<b>ווליום נמוך</b> (אין מוכרים אמיתיים) · נר-הדחייה ב<b>ווליום עולה</b> + CCI מסתובב. CVD ללא-דיברגנס.</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">Trend: C1=swing · C2=IB-center · C3=hold-close(trail). Normal/Variation: C1=swing · <b>C2=POC · C3=VAH</b>(רנר).</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== REACTIVE (REV) ===== -->
+<div class="card">
+  <div class="hd"><span class="nm">REACTIVE — 4-Bar Reversal</span><span class="tag rev">היפוך · REV</span><span class="sys">S2 · FiveMin</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>REACTIVE candles</title>
+      <line class="lvl" x1="30" y1="160" x2="410" y2="160"/><text x="34" y="156">support / low</text>
+      <line class="stp" x1="70" y1="176" x2="410" y2="176"/><text x="414" y="179" text-anchor="start" style="fill:#e24b4a">stop (below b1/b2)</text>
+      <line class="tgt" x1="205" y1="96" x2="410" y2="96"/><text x="414" y="99" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="205" y1="66" x2="410" y2="66"/><text x="414" y="69" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <!-- b1 sellers, b2 vol-drop, b3 buyers, b4 confirm(entry), run -->
+      <g class="cr"><line class="wick cr" x1="70" y1="92" x2="70" y2="150"/><rect x="64" y="98" width="12" height="44"/></g><text x="60" y="90" style="fill:#f0997b">b1 sell</text>
+      <g class="cr"><line class="wick cr" x1="108" y1="140" x2="108" y2="166"/><rect x="102" y="150" width="12" height="6"/></g><text x="92" y="180" style="fill:#ef9f27">b2 vol↓</text>
+      <g class="cg"><line class="wick cg" x1="146" y1="164" x2="146" y2="112"/><rect x="140" y="118" width="12" height="34"/></g><text x="132" y="110" style="fill:#5dcaa5">b3 buy</text>
+      <g class="cg"><line class="wick cg" x1="184" y1="122" x2="184" y2="90"/><rect x="178" y="96" width="12" height="24"/></g>
+      <circle cx="184" cy="96" r="4" fill="#5dcaa5"/><text x="168" y="88" style="fill:#5dcaa5">b4 confirm=entry</text>
+      <g class="cg"><line class="wick cg" x1="222" y1="100" x2="222" y2="72"/><rect x="216" y="78" width="12" height="18"/></g>
+      <g class="cg"><line class="wick cg" x1="260" y1="82" x2="260" y2="58"/><rect x="254" y="64" width="12" height="14"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vr" x="64" y="192" width="12" height="18"/><text x="60" y="190" style="fill:#f0997b">high</text>
+      <rect class="vr" x="102" y="203" width="12" height="7"/><text x="96" y="201" style="fill:#ef9f27">drop</text>
+      <rect class="vg" x="140" y="196" width="12" height="14"/>
+      <rect class="vg" x="178" y="189" width="12" height="21"/><text x="174" y="187" style="fill:#ef9f27">vol↑</text>
+      <rect class="vg" x="216" y="199" width="12" height="11"/><rect class="vg" x="254" y="201" width="12" height="9"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">b1 מוכרים (נר-ירידה) → b2 <b>ירידת-ווליום</b> (VSA — המוכרים נגמרו) → b3 קונים (נר-עלייה) → b4 <b>אישור</b> (סגירה מעל שיא-b3). כניסה על b4 (בר-סגור). סטופ מתחת ל-b1/b2.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val"><b>הליבה:</b> b2 עם <b>ווליום נמוך</b> (climax-ה-selling נגמר) · b4 עם <b>ווליום עולה</b> · CVD מראה <b>absorption</b> (דלתא-קונים חיובית / דיברגנס-שורי). POC עולה.</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">היפוך → מבנה-נגדי: C1=swing · <b>C2=POC</b> · C3=קצה-ערך-נגדי (הדוק). <b>נחסם ביום-מגמה</b> (נגד-מגמה).</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INITIATIVE (CONT) ===== -->
+<div class="card"><div class="hd"><span class="nm">INITIATIVE — Acceptance Breakout</span><span class="tag cont">המשך · CONT</span><span class="sys">S2 · FiveMin</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>INITIATIVE candles</title>
+      <line class="lvl" x1="30" y1="128" x2="410" y2="128"/><text x="34" y="124">broken level (VAH / prior high)</text>
+      <line class="stp" x1="150" y1="150" x2="410" y2="150"/><text x="414" y="153" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="215" y1="88" x2="410" y2="88"/><text x="414" y="91" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="215" y1="60" x2="410" y2="60"/><text x="414" y="63" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="60" y1="158" x2="60" y2="112"/><rect x="54" y="118" width="12" height="34"/></g><text x="44" y="110" style="fill:#5dcaa5">b1 expand</text>
+      <g class="cr"><line class="wick cr" x1="110" y1="118" x2="110" y2="140"/><rect x="104" y="124" width="12" height="12"/></g><text x="98" y="152" style="fill:#ef9f27">b2 test</text>
+      <g class="cg"><line class="wick cg" x1="160" y1="140" x2="160" y2="110"/><rect x="154" y="116" width="12" height="20"/></g><text x="150" y="108">b3 join</text>
+      <g class="cg"><line class="wick cg" x1="210" y1="120" x2="210" y2="82"/><rect x="204" y="88" width="12" height="26"/></g>
+      <circle cx="210" cy="88" r="4" fill="#5dcaa5"/><text x="194" y="80" style="fill:#5dcaa5">b4 confirm=entry</text>
+      <g class="cg"><line class="wick cg" x1="250" y1="92" x2="250" y2="64"/><rect x="244" y="70" width="12" height="18"/></g>
+      <g class="cg"><line class="wick cg" x1="290" y1="72" x2="290" y2="48"/><rect x="284" y="54" width="12" height="14"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="54" y="188" width="12" height="22"/><text x="48" y="186" style="fill:#ef9f27">expand↑</text>
+      <rect class="vr" x="104" y="202" width="12" height="8"/><rect class="vg" x="154" y="197" width="12" height="13"/>
+      <rect class="vg" x="204" y="190" width="12" height="20"/><text x="200" y="188" style="fill:#ef9f27">vol↑</text>
+      <rect class="vg" x="244" y="199" width="12" height="11"/><rect class="vg" x="284" y="201" width="12" height="9"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">בר-התפשטות (b1) <b>מעל</b> רמת-הערך → b2 בדיקה-רדודה שמחזיקה מעל הרמה → b3 הצטרפות → b4 אישור/<b>קבלה</b>. כניסה על b4. סטופ מתחת ל-b2 (בר-הפריצה).</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">b1 <b>ווליום גבוה</b> (התפשטות אמיתית) · b2 ווליום נמוך · b4 ווליום עולה · <b>CVD שיא-סשן חדש + האצה, ללא-דיברגנס</b> (הקבלה בונה ערך).</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">Trend: C1=swing · C2=IB-center · C3=hold-close. Normal/Variation: C1=swing · <b>C2=POC · C3=VAH</b>.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BULL_FLAG (CONT) ===== -->
+<div class="card"><div class="hd"><span class="nm">BULL_FLAG — Pole + Flag</span><span class="tag cont">המשך · CONT</span><span class="sys">S2 · Chart</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>BULL_FLAG candles</title>
+      <line class="lvl" x1="150" y1="96" x2="410" y2="96"/><text x="154" y="92">flag top (breakout level)</text>
+      <line class="stp" x1="200" y1="150" x2="410" y2="150"/><text x="414" y="153" text-anchor="start" style="fill:#e24b4a">stop (flag low)</text>
+      <line class="tgt" x1="250" y1="70" x2="410" y2="70"/><text x="414" y="73" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="250" y1="44" x2="410" y2="44"/><text x="414" y="47" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="170" x2="50" y2="140"/><rect x="44" y="146" width="12" height="20"/></g>
+      <g class="cg"><line class="wick cg" x1="78" y1="150" x2="78" y2="116"/><rect x="72" y="122" width="12" height="24"/></g>
+      <g class="cg"><line class="wick cg" x1="106" y1="124" x2="106" y2="96"/><rect x="100" y="100" width="12" height="20"/></g><text x="70" y="118">pole ↑</text>
+      <g class="cr"><line class="wick cr" x1="140" y1="98" x2="140" y2="118"/><rect x="134" y="102" width="12" height="12"/></g>
+      <g class="cr"><line class="wick cr" x1="168" y1="106" x2="168" y2="126"/><rect x="162" y="110" width="12" height="12"/></g>
+      <g class="cr"><line class="wick cr" x1="196" y1="114" x2="196" y2="134"/><rect x="190" y="118" width="12" height="12"/></g><text x="150" y="146">flag ↓</text>
+      <g class="cg"><line class="wick cg" x1="230" y1="128" x2="230" y2="86"/><rect x="224" y="92" width="12" height="30"/></g>
+      <circle cx="230" cy="92" r="4" fill="#5dcaa5"/><text x="216" y="84" style="fill:#5dcaa5">breakout=entry</text>
+      <g class="cg"><line class="wick cg" x1="270" y1="94" x2="270" y2="62"/><rect x="264" y="68" width="12" height="22"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="192" width="12" height="18"/><rect class="vg" x="72" y="188" width="12" height="22"/><rect class="vg" x="100" y="190" width="12" height="20"/><text x="66" y="186" style="fill:#ef9f27">pole vol↑</text>
+      <rect class="vr" x="134" y="202" width="12" height="8"/><rect class="vr" x="162" y="203" width="12" height="7"/><rect class="vr" x="190" y="204" width="12" height="6"/><text x="150" y="200" style="fill:#ef9f27">flag vol↓</text>
+      <rect class="vg" x="224" y="190" width="12" height="20"/><text x="220" y="188" style="fill:#ef9f27">vol↑</text><rect class="vg" x="264" y="197" width="12" height="13"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val"><b>מוט</b> (עלייה חדה) → <b>דגל</b> (דחיסה יורדת-מעט, נגד-המוט) → <b>פריצה</b> מעל ראש-הדגל = כניסה. סטופ מתחת לשפל-הדגל. המשך עם-המגמה.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">המוט ב<b>ווליום גבוה</b> · הדגל ב<b>ווליום מתייבש</b> (אין מוכרים) · הפריצה ב<b>ווליום עולה</b>. CVD עם-המגמה.</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">Trend/Variation: C1=swing · C2=מבנה-קרוב/½IBext · C3=VAH/extension(trail). Normal: C1=swing · C2=POC · C3=VAH.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BEAR_FLAG (CONT) ===== -->
+<div class="card"><div class="hd"><span class="nm">BEAR_FLAG — Pole + Flag (mirror)</span><span class="tag cont">המשך · CONT</span><span class="sys">S2 · Chart</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>BEAR_FLAG candles</title>
+      <line class="lvl" x1="150" y1="114" x2="410" y2="114"/><text x="154" y="110">flag base (breakdown level)</text>
+      <line class="stp" x1="200" y1="60" x2="410" y2="60"/><text x="414" y="63" text-anchor="start" style="fill:#e24b4a">stop (flag high)</text>
+      <line class="tgt" x1="250" y1="140" x2="410" y2="140"/><text x="414" y="143" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="250" y1="166" x2="410" y2="166"/><text x="414" y="169" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cr"><line class="wick cr" x1="50" y1="40" x2="50" y2="70"/><rect x="44" y="44" width="12" height="20"/></g>
+      <g class="cr"><line class="wick cr" x1="78" y1="60" x2="78" y2="94"/><rect x="72" y="64" width="12" height="24"/></g>
+      <g class="cr"><line class="wick cr" x1="106" y1="86" x2="106" y2="114"/><rect x="100" y="90" width="12" height="20"/></g><text x="66" y="94">pole ↓</text>
+      <g class="cg"><line class="wick cg" x1="140" y1="112" x2="140" y2="92"/><rect x="134" y="96" width="12" height="12"/></g>
+      <g class="cg"><line class="wick cg" x1="168" y1="104" x2="168" y2="84"/><rect x="162" y="88" width="12" height="12"/></g>
+      <g class="cg"><line class="wick cg" x1="196" y1="96" x2="196" y2="76"/><rect x="190" y="80" width="12" height="12"/></g><text x="152" y="76">flag ↑</text>
+      <g class="cr"><line class="wick cr" x1="230" y1="84" x2="230" y2="126"/><rect x="224" y="90" width="12" height="30"/></g>
+      <circle cx="230" cy="120" r="4" fill="#f0997b"/><text x="216" y="138" style="fill:#f0997b">breakdown=entry</text>
+      <g class="cr"><line class="wick cr" x1="270" y1="118" x2="270" y2="150"/><rect x="264" y="122" width="12" height="22"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vr" x="44" y="192" width="12" height="18"/><rect class="vr" x="72" y="188" width="12" height="22"/><rect class="vr" x="100" y="190" width="12" height="20"/><text x="64" y="186" style="fill:#ef9f27">pole vol↑</text>
+      <rect class="vg" x="134" y="202" width="12" height="8"/><rect class="vg" x="162" y="203" width="12" height="7"/><rect class="vg" x="190" y="204" width="12" height="6"/><text x="150" y="200" style="fill:#ef9f27">flag vol↓</text>
+      <rect class="vr" x="224" y="190" width="12" height="20"/><rect class="vr" x="264" y="197" width="12" height="13"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">מראה של BULL_FLAG: <b>מוט יורד</b> → <b>דגל עולה-מעט</b> → <b>שבירה</b> מתחת לבסיס-הדגל = כניסת-שורט. סטופ מעל שיא-הדגל.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">מוט ב<b>ווליום גבוה</b> · דגל <b>מתייבש</b> · השבירה ב<b>ווליום עולה</b>. CVD עם-המגמה (מטה).</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">Trend/Variation: C1=swing · C2=מבנה-קרוב · C3=VAL/extension(trail). Normal: C1=swing · C2=POC · C3=VAL.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TLB (CONT) ===== -->
+<div class="card"><div class="hd"><span class="nm">TLB — Trend-Line Break</span><span class="tag cont">המשך · CONT</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>TLB candles</title>
+      <line x1="96" y1="104" x2="192" y2="134" stroke="#85b7eb" stroke-width="1.5" stroke-dasharray="4 3"/><text x="96" y="100" style="fill:#85b7eb">CCI trend-line (pullback)</text>
+      <line class="stp" x1="160" y1="158" x2="410" y2="158"/><text x="414" y="161" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="215" y1="92" x2="410" y2="92"/><text x="414" y="95" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="215" y1="64" x2="410" y2="64"/><text x="414" y="67" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="46" y1="150" x2="46" y2="120"/><rect x="40" y="126" width="12" height="20"/></g>
+      <g class="cg"><line class="wick cg" x1="74" y1="128" x2="74" y2="100"/><rect x="68" y="106" width="12" height="18"/></g>
+      <g class="cr"><line class="wick cr" x1="106" y1="108" x2="106" y2="130"/><rect x="100" y="112" width="12" height="14"/></g>
+      <g class="cr"><line class="wick cr" x1="134" y1="118" x2="134" y2="144"/><rect x="128" y="122" width="12" height="16"/></g>
+      <g class="cr"><line class="wick cr" x1="162" y1="128" x2="162" y2="152"/><rect x="156" y="132" width="12" height="16"/></g>
+      <g class="cg"><line class="wick cg" x1="190" y1="150" x2="190" y2="106"/><rect x="184" y="112" width="12" height="24"/></g>
+      <circle cx="190" cy="112" r="4" fill="#5dcaa5"/><text x="174" y="104" style="fill:#5dcaa5">break=entry</text>
+      <g class="cg"><line class="wick cg" x1="220" y1="116" x2="220" y2="88"/><rect x="214" y="94" width="12" height="18"/></g>
+      <g class="cg"><line class="wick cg" x1="248" y1="96" x2="248" y2="70"/><rect x="242" y="76" width="12" height="16"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="40" y="196" width="12" height="14"/><rect class="vg" x="68" y="194" width="12" height="16"/>
+      <rect class="vr" x="100" y="203" width="12" height="7"/><rect class="vr" x="128" y="204" width="12" height="6"/><rect class="vr" x="156" y="205" width="12" height="5"/><text x="120" y="200" style="fill:#ef9f27">vol↓</text>
+      <rect class="vg" x="184" y="191" width="12" height="19"/><text x="180" y="189" style="fill:#ef9f27">vol↑</text><rect class="vg" x="214" y="198" width="12" height="12"/><rect class="vg" x="242" y="200" width="12" height="10"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">בתוך מגמה, פולבק שבונה <b>קו-מגמה יורד</b> (על ה-CCI/המחיר). הכניסה על <b>שבירת קו-המגמה</b> מעלה (המשך). סטופ מתחת לשפל-הפולבק.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">הפולבק ב<b>ווליום דועך</b> · נר-השבירה ב<b>ווליום עולה</b>. CCI חוצה את קו-המגמה שלו.</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">Trend: C1=swing · C2=IB-center · C3=hold-close. Normal/Variation: C1=swing · <b>C2=POC · C3=VAH</b>. (סטופ רחב יותר מ-ZLR: since_trendline_peak/8.)</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TT (CONT) ===== -->
+<div class="card"><div class="hd"><span class="nm">TT — Tony's Trade</span><span class="tag cont">המשך · CONT</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>TT candles</title>
+      <line class="lvl" x1="30" y1="120" x2="410" y2="120"/><text x="34" y="116">CCI back above 0 (with-trend)</text>
+      <line class="stp" x1="150" y1="150" x2="410" y2="150"/><text x="414" y="153" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="210" y1="90" x2="410" y2="90"/><text x="414" y="93" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="210" y1="62" x2="410" y2="62"/><text x="414" y="65" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="158" x2="50" y2="126"/><rect x="44" y="132" width="12" height="20"/></g>
+      <g class="cg"><line class="wick cg" x1="82" y1="136" x2="82" y2="110"/><rect x="76" y="116" width="12" height="18"/></g><text x="60" y="108">trend ↑</text>
+      <g class="cr"><line class="wick cr" x1="120" y1="116" x2="120" y2="134"/><rect x="114" y="120" width="12" height="10"/></g>
+      <g class="cg"><line class="wick cg" x1="152" y1="132" x2="152" y2="112"/><rect x="146" y="116" width="12" height="12"/></g><text x="118" y="150" style="fill:#ef9f27">1-2 bar pause</text>
+      <g class="cg"><line class="wick cg" x1="190" y1="122" x2="190" y2="86"/><rect x="184" y="92" width="12" height="24"/></g>
+      <circle cx="190" cy="92" r="4" fill="#5dcaa5"/><text x="176" y="84" style="fill:#5dcaa5">entry</text>
+      <g class="cg"><line class="wick cg" x1="222" y1="96" x2="222" y2="68"/><rect x="216" y="74" width="12" height="18"/></g>
+      <g class="cg"><line class="wick cg" x1="254" y1="76" x2="254" y2="52"/><rect x="248" y="58" width="12" height="14"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="195" width="12" height="15"/><rect class="vg" x="76" y="193" width="12" height="17"/>
+      <rect class="vr" x="114" y="203" width="12" height="7"/><rect class="vg" x="146" y="200" width="12" height="10"/>
+      <rect class="vg" x="184" y="191" width="12" height="19"/><text x="180" y="189" style="fill:#ef9f27">vol↑</text><rect class="vg" x="216" y="198" width="12" height="12"/><rect class="vg" x="248" y="201" width="12" height="9"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">אחרי ש-CCI חצה חזרה את קו-האפס <b>עם-המגמה</b>, דחיסה של <b>1-2 נרות</b> ואז המשך. כניסה על נר-ההמשך. סטופ מתחת לדחיסה.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">הדחיסה ב<b>ווליום נמוך</b> · נר-ההמשך ב<b>ווליום עולה</b>. TCCI/CCI מיישרים עם-המגמה.</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">Trend: C1=swing · C2=IB-center · C3=hold-close. Normal/Variation: C1=swing · C2=POC · C3=VAH. (סטופ zl_excursion/9.)</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GB100 (CONT) ===== -->
+<div class="card"><div class="hd"><span class="nm">GB100 — Going Back to 100</span><span class="tag cont">המשך · CONT</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>GB100 candles</title>
+      <line class="lvl" x1="30" y1="132" x2="410" y2="132"/><text x="34" y="128">+100 zone (support in-trend)</text>
+      <line class="stp" x1="150" y1="152" x2="410" y2="152"/><text x="414" y="155" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="210" y1="92" x2="410" y2="92"/><text x="414" y="95" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="210" y1="64" x2="410" y2="64"/><text x="414" y="67" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="150" x2="50" y2="120"/><rect x="44" y="126" width="12" height="20"/></g>
+      <g class="cg"><line class="wick cg" x1="82" y1="126" x2="82" y2="98"/><rect x="76" y="104" width="12" height="18"/></g><text x="60" y="96">trend ↑</text>
+      <g class="cr"><line class="wick cr" x1="118" y1="104" x2="118" y2="128"/><rect x="112" y="108" width="12" height="16"/></g>
+      <g class="cr"><line class="wick cr" x1="150" y1="118" x2="150" y2="136"/><rect x="144" y="122" width="12" height="12"/></g><text x="120" y="150" style="fill:#ef9f27">back to +100</text>
+      <g class="cg"><line class="wick cg" x1="188" y1="134" x2="188" y2="98"/><rect x="182" y="104" width="12" height="24"/></g>
+      <circle cx="188" cy="104" r="4" fill="#5dcaa5"/><text x="176" y="96" style="fill:#5dcaa5">bounce=entry</text>
+      <g class="cg"><line class="wick cg" x1="220" y1="108" x2="220" y2="80"/><rect x="214" y="86" width="12" height="18"/></g>
+      <g class="cg"><line class="wick cg" x1="252" y1="88" x2="252" y2="62"/><rect x="246" y="68" width="12" height="16"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="195" width="12" height="15"/><rect class="vg" x="76" y="193" width="12" height="17"/>
+      <rect class="vr" x="112" y="203" width="12" height="7"/><rect class="vr" x="144" y="204" width="12" height="6"/><text x="120" y="200" style="fill:#ef9f27">vol↓</text>
+      <rect class="vg" x="182" y="192" width="12" height="18"/><text x="178" y="190" style="fill:#ef9f27">vol↑</text><rect class="vg" x="214" y="198" width="12" height="12"/><rect class="vg" x="246" y="201" width="12" height="9"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">בתוך מגמה, ה-CCI חוזר לאזור ה-<b>±100</b> (תמיכה בכיוון) ו<b>מתהפך משם</b> להמשך. כניסה על נר-הבאונס. סטופ מתחת לשפל.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">הפולבק ל-100 ב<b>ווליום דועך</b> · הבאונס ב<b>ווליום עולה</b>. אזור-ה-100 מחזיק.</div></div>
+      <div><div class="lbl tg">סולם לפי סוג-יום</div><div class="val">Trend: C1=swing · C2=IB-center · C3=hold-close. Normal/Variation: C1=swing · C2=POC · C3=VAH. (סטופ cluster_low/6.)</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VEGAS (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">VEGAS — Extreme Reversal</span><span class="tag rev">היפוך · REV</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>VEGAS candles (short)</title>
+      <line class="lvl" x1="30" y1="62" x2="410" y2="62"/><text x="34" y="58">extreme (CCI overbought, hook)</text>
+      <line class="stp" x1="130" y1="50" x2="410" y2="50"/><text x="414" y="53" text-anchor="start" style="fill:#e24b4a">stop (above high)</text>
+      <line class="tgt" x1="185" y1="120" x2="410" y2="120"/><text x="414" y="123" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="185" y1="152" x2="410" y2="152"/><text x="414" y="155" text-anchor="start" style="fill:#639922">C2 POC (mean)</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="150" x2="50" y2="112"/><rect x="44" y="118" width="12" height="30"/></g>
+      <g class="cg"><line class="wick cg" x1="82" y1="120" x2="82" y2="84"/><rect x="76" y="90" width="12" height="28"/></g>
+      <g class="cg"><line class="wick cg" x1="114" y1="92" x2="114" y2="66"/><rect x="108" y="72" width="12" height="18"/></g><text x="70" y="82">overextended ↑</text>
+      <g class="cr"><line class="wick cr" x1="150" y1="58" x2="150" y2="108"/><rect x="144" y="76" width="12" height="28"/></g>
+      <circle cx="150" cy="104" r="4" fill="#f0997b"/><text x="134" y="118" style="fill:#f0997b">reversal=entry</text>
+      <g class="cr"><line class="wick cr" x1="186" y1="98" x2="186" y2="128"/><rect x="180" y="104" width="12" height="22"/></g>
+      <g class="cr"><line class="wick cr" x1="222" y1="120" x2="222" y2="150"/><rect x="216" y="126" width="12" height="20"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="192" width="12" height="18"/><rect class="vg" x="76" y="188" width="12" height="22"/><rect class="vg" x="108" y="190" width="12" height="20"/><text x="66" y="186" style="fill:#ef9f27">climax</text>
+      <rect class="vr" x="144" y="189" width="12" height="21"/><text x="140" y="187" style="fill:#ef9f27">vol↑</text><rect class="vr" x="180" y="198" width="12" height="12"/><rect class="vr" x="216" y="201" width="12" height="9"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">מהלך <b>overextended</b> אל קיצון (CCI overbought), ואז <b>הוק/היפוך</b> (נר-בליעה עם פתיל). כניסה על נר-ההיפוך. סטופ <b>מעל הקיצון</b>. (מראה ל-LONG בשפל.)</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val"><b>climax volume</b> בקיצון (מיצוי) · נר-ההיפוך ווליום גבוה · CVD <b>דיברגנס</b> (מחיר-שיא, CVD-שיא-נמוך).</div></div>
+      <div><div class="lbl tg">סולם — היפוך (mean-reversion, capped)</div><div class="val">C1=swing (capped 14) · <b>C2=POC</b> · C3=קצה-ערך-נגדי. <b>נחסם ביום-מגמה.</b> סטופ swing_extreme (רחב, ~20pt).</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GHOST (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">GHOST — Failed-High Reversal</span><span class="tag rev">היפוך · REV</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>GHOST candles</title>
+      <line class="lvl" x1="30" y1="66" x2="410" y2="66"/><text x="34" y="62">prior high (ghost = fails it)</text>
+      <line class="stp" x1="130" y1="52" x2="410" y2="52"/><text x="414" y="55" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="185" y1="122" x2="410" y2="122"/><text x="414" y="125" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="185" y1="154" x2="410" y2="154"/><text x="414" y="157" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="140" x2="50" y2="104"/><rect x="44" y="110" width="12" height="28"/></g>
+      <g class="cg"><line class="wick cg" x1="82" y1="112" x2="82" y2="78"/><rect x="76" y="84" width="12" height="26"/></g><text x="60" y="76">push ↑</text>
+      <g class="cr"><line class="wick cr" x1="118" y1="60" x2="118" y2="100"/><rect x="112" y="86" width="12" height="12"/></g><text x="100" y="58" style="fill:#ef9f27">fails high (wick)</text>
+      <g class="cr"><line class="wick cr" x1="150" y1="90" x2="150" y2="120"/><rect x="144" y="94" width="12" height="24"/></g>
+      <circle cx="150" cy="118" r="4" fill="#f0997b"/><text x="136" y="132" style="fill:#f0997b">entry</text>
+      <g class="cr"><line class="wick cr" x1="186" y1="112" x2="186" y2="142"/><rect x="180" y="118" width="12" height="20"/></g>
+      <g class="cr"><line class="wick cr" x1="222" y1="132" x2="222" y2="158"/><rect x="216" y="138" width="12" height="16"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="192" width="12" height="18"/><rect class="vg" x="76" y="190" width="12" height="20"/>
+      <rect class="vr" x="112" y="188" width="12" height="22"/><text x="102" y="186" style="fill:#ef9f27">fail vol↑</text><rect class="vr" x="144" y="192" width="12" height="18"/><rect class="vr" x="180" y="199" width="12" height="11"/><rect class="vr" x="216" y="202" width="12" height="8"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">דחיפה מעל שיא-קודם ש<b>נכשלת</b> (פתיל ארוך, סגירה בחזרה מתחת) → היפוך. כניסה על נר-הכישלון/ההמשך. סטופ מעל הפתיל.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">נר-הכישלון ב<b>ווליום גבוה + דחייה</b> (absorption) · CVD דיברגנס/היפוך.</div></div>
+      <div><div class="lbl tg">סולם — היפוך</div><div class="val">C1=swing (capped) · C2=POC · C3=קצה-ערך-נגדי. <b>נחסם ביום-מגמה.</b> סטופ shoulder (~18pt), t1×0.5.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== FAMIR (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">FAMIR — Failed Continuation</span><span class="tag rev">היפוך · REV</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>FAMIR candles</title>
+      <line class="lvl" x1="30" y1="80" x2="410" y2="80"/><text x="34" y="76">breakout that FAILS</text>
+      <line class="stp" x1="130" y1="58" x2="410" y2="58"/><text x="414" y="61" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="185" y1="128" x2="410" y2="128"/><text x="414" y="131" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="185" y1="158" x2="410" y2="158"/><text x="414" y="161" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="150" x2="50" y2="118"/><rect x="44" y="124" width="12" height="26"/></g>
+      <g class="cg"><line class="wick cg" x1="82" y1="122" x2="82" y2="86"/><rect x="76" y="92" width="12" height="30"/></g><text x="60" y="84">breakout attempt ↑</text>
+      <g class="cr"><line class="wick cr" x1="118" y1="74" x2="118" y2="110"/><rect x="112" y="92" width="12" height="18"/></g>
+      <g class="cr"><line class="wick cr" x1="150" y1="104" x2="150" y2="132"/><rect x="144" y="108" width="12" height="22"/></g>
+      <circle cx="150" cy="130" r="4" fill="#f0997b"/><text x="128" y="144" style="fill:#f0997b">fail→entry</text>
+      <g class="cr"><line class="wick cr" x1="186" y1="124" x2="186" y2="150"/><rect x="180" y="130" width="12" height="18"/></g>
+      <g class="cr"><line class="wick cr" x1="222" y1="140" x2="222" y2="164"/><rect x="216" y="146" width="12" height="16"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="194" width="12" height="16"/><rect class="vg" x="76" y="189" width="12" height="21"/>
+      <rect class="vr" x="112" y="196" width="12" height="14"/><rect class="vr" x="144" y="192" width="12" height="18"/><text x="130" y="190" style="fill:#ef9f27">fail vol↑</text><rect class="vr" x="180" y="199" width="12" height="11"/><rect class="vr" x="216" y="202" width="12" height="8"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">ניסיון-פריצה עם-המגמה ש<b>נכשל</b> וחוזר לתוך הטווח → היפוך נגדי. כניסה על בר-הכישלון. סטופ מעל הפריצה-הכושלת. (סטופ הדוק failed_bar ~12pt.)</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">הפריצה ב<b>ווליום חלש</b> (אין המשכיות) · בר-הכישלון ווליום עולה · CVD לא-מאשר את הפריצה.</div></div>
+      <div><div class="lbl tg">סולם — היפוך</div><div class="val">C1=swing (capped) · C2=POC · C3=קצה-ערך-נגדי. נחסם ביום-מגמה.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HTLB (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">HTLB — Hook + Trend-Line Break</span><span class="tag rev">היפוך · REV</span><span class="sys">S4 · Woodies</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>HTLB candles</title>
+      <line x1="60" y1="74" x2="150" y2="98" stroke="#85b7eb" stroke-width="1.5" stroke-dasharray="4 3"/><text x="60" y="70" style="fill:#85b7eb">trend-line (broken down)</text>
+      <line class="stp" x1="130" y1="60" x2="410" y2="60"/><text x="414" y="63" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="185" y1="128" x2="410" y2="128"/><text x="414" y="131" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="185" y1="158" x2="410" y2="158"/><text x="414" y="161" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="150" x2="50" y2="112"/><rect x="44" y="118" width="12" height="30"/></g>
+      <g class="cg"><line class="wick cg" x1="82" y1="118" x2="82" y2="82"/><rect x="76" y="88" width="12" height="28"/></g><text x="60" y="80">up (hook)</text>
+      <g class="cr"><line class="wick cr" x1="118" y1="78" x2="118" y2="104"/><rect x="112" y="84" width="12" height="16"/></g>
+      <g class="cr"><line class="wick cr" x1="150" y1="98" x2="150" y2="130"/><rect x="144" y="102" width="12" height="24"/></g>
+      <circle cx="150" cy="126" r="4" fill="#f0997b"/><text x="132" y="140" style="fill:#f0997b">TL-break=entry</text>
+      <g class="cr"><line class="wick cr" x1="186" y1="122" x2="186" y2="150"/><rect x="180" y="128" width="12" height="20"/></g>
+      <g class="cr"><line class="wick cr" x1="222" y1="140" x2="222" y2="166"/><rect x="216" y="146" width="12" height="16"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="193" width="12" height="17"/><rect class="vg" x="76" y="190" width="12" height="20"/>
+      <rect class="vr" x="112" y="197" width="12" height="13"/><rect class="vr" x="144" y="191" width="12" height="19"/><text x="132" y="189" style="fill:#ef9f27">break vol↑</text><rect class="vr" x="180" y="199" width="12" height="11"/><rect class="vr" x="216" y="202" width="12" height="8"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val"><b>הוק</b> של ה-CCI מקיצון + <b>שבירת קו-מגמה נגד הכיוון</b>. כניסה על בר-השבירה. סטופ מעל ההוק. (סטופ מורחב consolidation_extreme ~20pt.)</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">בר-השבירה ב<b>ווליום עולה</b> · CVD מתהפך/דיברגנס. <b>(זו התבנית של 267 — היעד השבור −92 → הרזולבר: swing-capped + POC/VAL.)</b></div></div>
+      <div><div class="lbl tg">סולם — היפוך</div><div class="val">C1=swing (capped 14) · C2=POC · C3=VAL/קצה-ערך-נגדי. <b>נחסם ביום-מגמה.</b></div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DOUBLE_TOP (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">DOUBLE_TOP_AA — Two Peaks</span><span class="tag rev">היפוך · REV</span><span class="sys">S2 · Chart</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>Double top candles</title>
+      <line class="lvl" x1="30" y1="66" x2="410" y2="66"/><text x="34" y="62">resistance (2 peaks =)</text>
+      <line x1="30" y1="118" x2="410" y2="118" stroke="#85b7eb" stroke-width="1" stroke-dasharray="4 3"/><text x="34" y="132" style="fill:#85b7eb">neckline (trough)</text>
+      <line class="stp" x1="130" y1="56" x2="410" y2="56"/><text x="414" y="59" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="215" y1="150" x2="410" y2="150"/><text x="414" y="153" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="215" y1="176" x2="410" y2="176"/><text x="414" y="179" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="50" y1="130" x2="50" y2="90"/><rect x="44" y="96" width="12" height="30"/></g>
+      <g class="cg"><line class="wick cg" x1="78" y1="96" x2="78" y2="66"/><rect x="72" y="72" width="12" height="20"/></g><text x="62" y="64">peak 1</text>
+      <g class="cr"><line class="wick cr" x1="110" y1="80" x2="110" y2="120"/><rect x="104" y="86" width="12" height="30"/></g>
+      <g class="cg"><line class="wick cg" x1="142" y1="118" x2="142" y2="72"/><rect x="136" y="78" width="12" height="34"/></g>
+      <g class="cg"><line class="wick cg" x1="170" y1="82" x2="170" y2="68"/><rect x="164" y="72" width="12" height="12"/></g><text x="156" y="64">peak 2</text>
+      <g class="cr"><line class="wick cr" x1="205" y1="78" x2="205" y2="126"/><rect x="199" y="98" width="12" height="24"/></g>
+      <circle cx="205" cy="122" r="4" fill="#f0997b"/><text x="188" y="138" style="fill:#f0997b">neckline break=entry</text>
+      <g class="cr"><line class="wick cr" x1="242" y1="120" x2="242" y2="150"/><rect x="236" y="126" width="12" height="20"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="44" y="192" width="12" height="18"/><rect class="vg" x="72" y="190" width="12" height="20"/><text x="60" y="188" style="fill:#ef9f27">P1↑</text>
+      <rect class="vr" x="104" y="200" width="12" height="10"/><rect class="vg" x="136" y="196" width="12" height="14"/><rect class="vg" x="164" y="201" width="12" height="9"/><text x="156" y="199" style="fill:#ef9f27">P2 vol↓</text>
+      <rect class="vr" x="199" y="191" width="12" height="19"/><text x="192" y="189" style="fill:#ef9f27">break↑</text><rect class="vr" x="236" y="200" width="12" height="10"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">שני שיאים ב<b>אותה התנגדות</b> (M), עם שוקת ביניהם (neckline). כניסה על <b>שבירת ה-neckline מטה</b>. סטופ מעל השיאים. (סטופ second_bottom_top ~20pt.)</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val"><b>שיא-2 בווליום נמוך משיא-1</b> (חולשה) · שבירת-ה-neckline ב<b>ווליום עולה</b>. CVD דיברגנס בשיא-2.</div></div>
+      <div><div class="lbl tg">סולם — היפוך (לא גובה-תבנית!)</div><div class="val">C1=swing (capped) · <b>C2=POC · C3=קצה-ערך-נגדי</b>. <span style="color:#ef9f27">(במקום measured-move שנתן −112).</span> נחסם ביום-מגמה.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DOUBLE_BOTTOM (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">DOUBLE_BOTTOM_EE — Two Troughs (mirror)</span><span class="tag rev">היפוך · REV</span><span class="sys">S2 · Chart</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>Double bottom candles</title>
+      <line class="lvl" x1="30" y1="160" x2="410" y2="160"/><text x="34" y="174">support (2 troughs =)</text>
+      <line x1="30" y1="108" x2="410" y2="108" stroke="#85b7eb" stroke-width="1" stroke-dasharray="4 3"/><text x="34" y="104" style="fill:#85b7eb">neckline (peak)</text>
+      <line class="stp" x1="130" y1="172" x2="410" y2="172"/><text x="414" y="175" text-anchor="start" style="fill:#e24b4a">stop</text>
+      <line class="tgt" x1="215" y1="76" x2="410" y2="76"/><text x="414" y="79" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="215" y1="50" x2="410" y2="50"/><text x="414" y="53" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cr"><line class="wick cr" x1="50" y1="96" x2="50" y2="136"/><rect x="44" y="100" width="12" height="30"/></g>
+      <g class="cr"><line class="wick cr" x1="78" y1="130" x2="78" y2="160"/><rect x="72" y="134" width="12" height="20"/></g><text x="60" y="176">trough1</text>
+      <g class="cg"><line class="wick cg" x1="110" y1="146" x2="110" y2="106"/><rect x="104" y="112" width="12" height="30"/></g>
+      <g class="cr"><line class="wick cr" x1="142" y1="112" x2="142" y2="158"/><rect x="136" y="118" width="12" height="34"/></g>
+      <g class="cr"><line class="wick cr" x1="170" y1="144" x2="170" y2="160"/><rect x="164" y="146" width="12" height="12"/></g><text x="154" y="176">trough2</text>
+      <g class="cg"><line class="wick cg" x1="205" y1="148" x2="205" y2="102"/><rect x="199" y="108" width="12" height="24"/></g>
+      <circle cx="205" cy="108" r="4" fill="#5dcaa5"/><text x="188" y="100" style="fill:#5dcaa5">neckline break=entry</text>
+      <g class="cg"><line class="wick cg" x1="242" y1="104" x2="242" y2="74"/><rect x="236" y="80" width="12" height="20"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vr" x="44" y="192" width="12" height="18"/><rect class="vr" x="72" y="190" width="12" height="20"/>
+      <rect class="vg" x="104" y="200" width="12" height="10"/><rect class="vr" x="136" y="196" width="12" height="14"/><rect class="vr" x="164" y="201" width="12" height="9"/><text x="154" y="199" style="fill:#ef9f27">T2 vol↓</text>
+      <rect class="vg" x="199" y="191" width="12" height="19"/><text x="192" y="189" style="fill:#ef9f27">break↑</text><rect class="vg" x="236" y="200" width="12" height="10"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">שני שפלים ב<b>אותה תמיכה</b> (W), עם שיא-ביניים (neckline). כניסה על <b>שבירת ה-neckline מעלה</b>. סטופ מתחת לשפלים.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val">שפל-2 בווליום נמוך (מיצוי-מכירות) · שבירת-ה-neckline ב<b>ווליום עולה</b> · CVD absorption/דיברגנס-שורי.</div></div>
+      <div><div class="lbl tg">סולם — היפוך</div><div class="val">C1=swing (capped) · C2=POC · C3=קצה-ערך-נגדי (VAH). נחסם ביום-מגמה-יורד.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== INVERSE_HNS (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">INVERSE_HNS — Inverse Head &amp; Shoulders</span><span class="tag rev">היפוך · REV</span><span class="sys">S2 · Chart</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>Inverse H&S candles</title>
+      <line x1="30" y1="100" x2="410" y2="100" stroke="#85b7eb" stroke-width="1" stroke-dasharray="4 3"/><text x="34" y="96" style="fill:#85b7eb">neckline</text>
+      <line class="stp" x1="150" y1="176" x2="410" y2="176"/><text x="414" y="179" text-anchor="start" style="fill:#e24b4a">stop (below RS)</text>
+      <line class="tgt" x1="240" y1="72" x2="410" y2="72"/><text x="414" y="75" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="240" y1="48" x2="410" y2="48"/><text x="414" y="51" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cr"><line class="wick cr" x1="52" y1="112" x2="52" y2="142"/><rect x="46" y="116" width="12" height="22"/></g><text x="34" y="152">LS</text>
+      <g class="cg"><line class="wick cg" x1="86" y1="126" x2="86" y2="98"/><rect x="80" y="104" width="12" height="20"/></g>
+      <g class="cr"><line class="wick cr" x1="120" y1="120" x2="120" y2="162"/><rect x="114" y="126" width="12" height="30"/></g><text x="106" y="176">head</text>
+      <g class="cg"><line class="wick cg" x1="154" y1="150" x2="154" y2="100"/><rect x="148" y="106" width="12" height="38"/></g>
+      <g class="cr"><line class="wick cr" x1="188" y1="116" x2="188" y2="150"/><rect x="182" y="120" width="12" height="24"/></g><text x="172" y="162">RS</text>
+      <g class="cg"><line class="wick cg" x1="228" y1="120" x2="228" y2="88"/><rect x="222" y="94" width="12" height="24"/></g>
+      <circle cx="228" cy="94" r="4" fill="#5dcaa5"/><text x="212" y="86" style="fill:#5dcaa5">neckline break=entry</text>
+      <g class="cg"><line class="wick cg" x1="262" y1="90" x2="262" y2="66"/><rect x="256" y="72" width="12" height="18"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vr" x="46" y="194" width="12" height="16"/><rect class="vg" x="80" y="198" width="12" height="12"/>
+      <rect class="vr" x="114" y="196" width="12" height="14"/><rect class="vg" x="148" y="197" width="12" height="13"/>
+      <rect class="vr" x="182" y="202" width="12" height="8"/><text x="172" y="200" style="fill:#ef9f27">RS vol↓</text>
+      <rect class="vg" x="222" y="191" width="12" height="19"/><text x="216" y="189" style="fill:#ef9f27">break↑</text><rect class="vg" x="256" y="199" width="12" height="11"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">כתף-שמאל → <b>ראש</b> (שפל עמוק) → כתף-ימין (רדוד מהראש) → <b>שבירת neckline מעלה</b> = כניסה. סטופ מתחת לכתף-ימין (לא מתחת לראש). (סטופ shoulder ~20pt.)</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val"><b>ווליום יורד מהראש לכתף-ימין</b> (מיצוי-מכירות) · שבירת-ה-neckline ב<b>ווליום עולה</b> — האישור הקלאסי. CVD שורי.</div></div>
+      <div><div class="lbl tg">סולם — היפוך</div><div class="val">C1=swing (capped) · C2=POC · C3=קצה-ערך-נגדי. נחסם ביום-מגמה-יורד.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== HNS_TOP (REV) ===== -->
+<div class="card"><div class="hd"><span class="nm">HNS_TOP — Head &amp; Shoulders Top (mirror)</span><span class="tag rev">היפוך · REV</span><span class="sys">S2 · Chart</span></div>
+  <div class="body">
+    <svg viewBox="0 0 440 230" role="img"><title>H&S top candles</title>
+      <line x1="30" y1="128" x2="410" y2="128" stroke="#85b7eb" stroke-width="1" stroke-dasharray="4 3"/><text x="34" y="142" style="fill:#85b7eb">neckline</text>
+      <line class="stp" x1="150" y1="52" x2="410" y2="52"/><text x="414" y="55" text-anchor="start" style="fill:#e24b4a">stop (above RS)</text>
+      <line class="tgt" x1="240" y1="156" x2="410" y2="156"/><text x="414" y="159" text-anchor="start" style="fill:#639922">C1 swing</text>
+      <line class="tgt" x1="240" y1="180" x2="410" y2="180"/><text x="414" y="183" text-anchor="start" style="fill:#639922">C2 POC</text>
+      <g class="cg"><line class="wick cg" x1="52" y1="116" x2="52" y2="86"/><rect x="46" y="92" width="12" height="22"/></g><text x="34" y="82">LS</text>
+      <g class="cr"><line class="wick cr" x1="86" y1="102" x2="86" y2="130"/><rect x="80" y="106" width="12" height="20"/></g>
+      <g class="cg"><line class="wick cg" x1="120" y1="112" x2="120" y2="66"/><rect x="114" y="72" width="12" height="30"/></g><text x="106" y="62">head</text>
+      <g class="cr"><line class="wick cr" x1="154" y1="80" x2="154" y2="130"/><rect x="148" y="86" width="12" height="38"/></g>
+      <g class="cg"><line class="wick cg" x1="188" y1="112" x2="188" y2="80"/><rect x="182" y="86" width="12" height="24"/></g><text x="172" y="76">RS</text>
+      <g class="cr"><line class="wick cr" x1="228" y1="110" x2="228" y2="142"/><rect x="222" y="114" width="12" height="24"/></g>
+      <circle cx="228" cy="138" r="4" fill="#f0997b"/><text x="210" y="152" style="fill:#f0997b">neckline break=entry</text>
+      <g class="cr"><line class="wick cr" x1="262" y1="140" x2="262" y2="166"/><rect x="256" y="146" width="12" height="18"/></g>
+      <line x1="30" y1="210" x2="410" y2="210" stroke="#242a35"/>
+      <rect class="vg" x="46" y="194" width="12" height="16"/><rect class="vr" x="80" y="198" width="12" height="12"/>
+      <rect class="vg" x="114" y="196" width="12" height="14"/><rect class="vr" x="148" y="197" width="12" height="13"/>
+      <rect class="vg" x="182" y="202" width="12" height="8"/><text x="172" y="200" style="fill:#ef9f27">RS vol↓</text>
+      <rect class="vr" x="222" y="191" width="12" height="19"/><text x="216" y="189" style="fill:#ef9f27">break↑</text><rect class="vr" x="256" y="199" width="12" height="11"/>
+    </svg>
+    <div class="rows">
+      <div><div class="lbl mb">מבנה</div><div class="val">כתף-שמאל → <b>ראש</b> (שיא גבוה) → כתף-ימין (נמוך מהראש) → <b>שבירת neckline מטה</b> = כניסת-שורט. סטופ מעל כתף-ימין.</div></div>
+      <div><div class="lbl vl">ווליום</div><div class="val"><b>ווליום יורד מהראש לכתף-ימין</b> · שבירת-ה-neckline ב<b>ווליום עולה</b> · CVD דובי.</div></div>
+      <div><div class="lbl tg">סולם — היפוך</div><div class="val">C1=swing (capped) · C2=POC · C3=קצה-ערך-נגדי (VAL). נחסם ביום-מגמה-עולה.</div></div>
+      <div class="note" contenteditable="true">עריכה שלך…</div>
+    </div>
+  </div>
+</div>
+
+<p class="sub"><b>✔ כל 16 התבניות הפעילות הושלמו</b> (7 המשך · 9 היפוך). HFE מושתק · Cup&amp;Handle לא-במערכת. כל הקלפים ניתנים-לעריכה. אחרי שתעבור ותערוך — אטמיע ל-handoff הסופי של הרזולבר.</p>
+</body>
+</html>

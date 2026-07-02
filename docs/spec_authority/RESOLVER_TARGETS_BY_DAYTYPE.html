@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MEMS26 · יעדי-מימוש מבניים לפי סוג-יום ותבנית</title>
+<style>
+  :root{--bg:#0f1115;--card:#171a21;--edge:#242a35;--txt:#e7ecf3;--mut:#9aa6b6;--cont:#1d9e75;--rev:#d85a30;--line:#378add;--warn:#ef9f27;}
+  *{box-sizing:border-box}
+  body{margin:0;background:#0f1115;color:#e7ecf3;font:15px/1.6 -apple-system,"Segoe UI",Arial,sans-serif;padding:24px}
+  h1{font-size:22px;font-weight:600;margin:0 0 4px}
+  h2{font-size:18px;font-weight:600;margin:0}
+  .sub{color:#9aa6b6;margin:0 0 20px}
+  .rules{background:#171a21;border:1px solid #242a35;border-radius:12px;padding:16px 18px;margin-bottom:22px}
+  .rules b{color:#e7ecf3}
+  .rules code{background:#0f1115;border:1px solid #242a35;border-radius:6px;padding:1px 6px;color:#85b7eb;font-size:13px}
+  .grid{display:grid;grid-template-columns:1fr;gap:16px}
+  .card{background:#171a21;border:1px solid #242a35;border-radius:12px;overflow:hidden}
+  .card>.hd{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #242a35}
+  .card>.hd .name{font-size:17px;font-weight:600}
+  .tag{font-size:12px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .movement{background:rgba(216,90,48,.18);color:#f0997b}
+  .location{background:rgba(55,138,221,.18);color:#85b7eb}
+  .body{padding:14px 16px}
+  table{width:100%;border-collapse:collapse;margin:6px 0}
+  th,td{text-align:right;padding:7px 10px;border-bottom:1px solid #242a35;vertical-align:top}
+  th{color:#9aa6b6;font-weight:600;font-size:13px}
+  td .c{font-weight:600}
+  .cont-b{color:#5dcaa5}.rev-b{color:#f0997b}
+  .ex{background:#0f1115;border:1px solid #242a35;border-radius:8px;padding:10px 12px;margin-top:10px;font-size:14px;color:#c7d0dc}
+  .ex b{color:#e7ecf3}
+  .note{border:1px dashed #3a4250;border-radius:8px;padding:8px 12px;margin-top:10px;color:#9aa6b6;font-size:13px;min-height:34px}
+  .note[contenteditable]:focus{outline:2px solid #378add;color:#e7ecf3}
+  .pat{display:inline-block;font-size:12px;padding:2px 8px;border-radius:6px;margin:2px;border:1px solid #242a35}
+  .pc{color:#5dcaa5;border-color:rgba(29,158,117,.4)}
+  .pr{color:#f0997b;border-color:rgba(216,90,48,.4)}
+  .skip{opacity:.55}
+  .foot{color:#9aa6b6;font-size:13px;margin-top:18px;border-top:1px solid #242a35;padding-top:12px}
+</style>
+</head>
+<body>
+<h1>MEMS26 · יעדי-מימוש מבניים לפי סוג-יום ותבנית</h1>
+<p class="sub">הרזולבר קובע יעדים לפי <b>סוג-היום והמבנה</b>, לא לפי זהות-התבנית. התבנית קובעת רק <b>כיוון + משפחה</b> (המשך/היפוך). טיוטה לעריכה — 2026-07-01.</p>
+
+<div class="rules">
+  <b>חוקי-הבסיס (זהים לכל התבניות):</b><br>
+  • <b>C1 / T1</b> = ה-<b>swing המבני הראשון</b> בכיוון (Williams K=2, close-confirm) · רצפה <code>0.5×ATR₅ₘ≈3.5</code> · קאפ <code>min(2×ATR₅ₘ, 0.30×dATR)≈14</code>.<br>
+  • <b>C2</b> = <b>מבנה קרוב</b> (POC · IB-center · swing-ביניים) — בנקאי בטוח, קרוב יותר מקצה-הערך.<br>
+  • <b>C3</b> = <b>קצה-הערך</b> (VAH long / VAL short) או extension — <b>הרנר</b>, עם room + trail.<br>
+  • <b>קאפ קשיח:</b> יעד מעל הקאפ → נצמד למבנה-הקרוב. runner-cap <code>min(1.5×dATR, 3×IBw)</code>.<br>
+  • <b>היפוכים:</b> מבנה-נגדי / mean-reversion → POC, <b>לא</b> measured-move-לפי-גובה. ATR₅ₘ שלנו = <b>7.07</b> (אומת).
+</div>
+
+<div class="grid">
+
+  <div class="card"><div class="hd"><span class="name">Trend_Normal</span><span class="tag movement">תנועה · movement</span></div>
+    <div class="body">
+    <table><tr><th>חוזה</th><th class="cont-b">CONT (ZLR·TLB·TT·GB100·INITIATIVE·Flags)</th><th class="rev-b">REV (VEGAS·GHOST·HnS·Doubles) — נגד-מגמה</th></tr>
+      <tr><td class="c">C1</td><td>swing ראשון (קרוב, ~+7)</td><td>swing ראשון, קצר — לרוב <b>נחסם</b> ביום-מגמה</td></tr>
+      <tr><td class="c">C2</td><td>IB-center / 1× IB-ext (מבנה קרוב)</td><td>POC (mean-reversion)</td></tr>
+      <tr><td class="c">C3</td><td><b>מחזיק-לסגירה, מטריל</b> (swing-step/chandelier) → קצה/extension</td><td>ללא רנר (היפוך נגד-מגמה = תיקון בודד)</td></tr></table>
+      <div class="ex"><b>דוגמה CONT-LONG:</b> כניסה 7556 · C1=swing 7563 (+7) · C2=1×IBext 7575 (+19) · C3=רנר עד סגירה ≈7610 (+54, בתוך קאפ 80). <b>לתת לרנר לרוץ.</b></div>
+      <div class="note" contenteditable="true">הערות/עריכה שלך…</div>
+    </div>
+  </div>
+
+  <div class="card"><div class="hd"><span class="name">Trend_DD</span><span class="tag movement">תנועה · movement</span></div>
+    <div class="body">
+    <table><tr><th>חוזה</th><th class="cont-b">CONT</th><th class="rev-b">REV</th></tr>
+      <tr><td class="c">C1</td><td>swing ראשון (קרוב)</td><td>swing קצר · לרוב נחסם</td></tr>
+      <tr><td class="c">C2</td><td>POC של ההתפלגות-השנייה (fair-value החדש)</td><td>POC</td></tr>
+      <tr><td class="c">C3</td><td><b>trail מאחורי מבנה</b> → ההתפלגות האחרונה</td><td>ללא רנר</td></tr></table>
+      <div class="ex"><b>דוגמה CONT-SHORT:</b> פריצת single-print, כניסה 7534 · C1=swing 7527 (−7) · C2=POC-דיסט'2 7512 (−22) · C3=trail ל-−55.</div>
+      <div class="note" contenteditable="true">הערות/עריכה שלך…</div>
+    </div>
+  </div>
+
+  <div class="card"><div class="hd"><span class="name">Variation</span><span class="tag movement">תנועה · movement</span></div>
+    <div class="body">
+    <table><tr><th>חוזה</th><th class="cont-b">CONT (עם ההרחבה)</th><th class="rev-b">REV</th></tr>
+      <tr><td class="c">C1</td><td>swing ראשון / ½ IB-ext (הקרוב)</td><td>swing קצר</td></tr>
+      <tr><td class="c">C2</td><td>1× IB-ext (מבנה קרוב)</td><td>POC</td></tr>
+      <tr><td class="c">C3</td><td><b>2× IB-ext, מטריל</b> (רנר קטן) → קצה-ערך</td><td>קצה-ערך נגדי, הדוק</td></tr></table>
+      <div class="ex"><b>דוגמה CONT-LONG:</b> כניסה 7557 · C1=½IBext 7565 (+8) · C2=1×IBext 7575 (+18) · C3=2×IBext/VAH 7595 (+38).</div>
+      <div class="note" contenteditable="true">הערות/עריכה שלך…</div>
+    </div>
+  </div>
+
+  <div class="card"><div class="hd"><span class="name">Normal</span><span class="tag location">מיקום · location</span></div>
+    <div class="body">
+    <table><tr><th>חוזה</th><th class="cont-b">CONT</th><th class="rev-b">REV (fade edge→value)</th></tr>
+      <tr><td class="c">C1</td><td>swing ראשון / IB-center</td><td>swing ראשון (מהקצה)</td></tr>
+      <tr><td class="c">C2</td><td><b>POC</b> (מבנה קרוב)</td><td>POC</td></tr>
+      <tr><td class="c">C3</td><td><b>קצה-ערך נגדי (VAH/VAL)</b> — רנר עם room</td><td>קצה-ערך נגדי · trail קל</td></tr></table>
+      <div class="ex"><b>דוגמה LONG (יום היום):</b> כניסה 7549.5 · C1=swing 7553.75 (+4.25) · C2=POC 7571 (+21.5) · C3=VAH 7579 (+29.5). <span style="color:#ef9f27">(במקום +26/+49/+72 השבורים)</span></div>
+      <div class="note" contenteditable="true">הערות/עריכה שלך…</div>
+    </div>
+  </div>
+
+  <div class="card"><div class="hd"><span class="name">Neutral_Extreme</span><span class="tag location">מיקום · location</span></div>
+    <div class="body">
+    <table><tr><th>חוזה</th><th class="cont-b">CONT</th><th class="rev-b">REV (fade edges)</th></tr>
+      <tr><td class="c">C1</td><td>swing / POC</td><td>swing (מהקצה)</td></tr>
+      <tr><td class="c">C2</td><td>POC (מבנה קרוב)</td><td>POC</td></tr>
+      <tr><td class="c">C3</td><td><b>קצה-ערך נגדי → הקצה-המנצח</b>, trail קל</td><td>קצה-ערך נגדי</td></tr></table>
+      <div class="ex"><b>דוגמה SHORT:</b> fade מעל VAH, כניסה 7560 · C1=swing/−cap · C2=POC 7545 · C3=VAL 7530 (רנר לקצה-המנצח).</div>
+      <div class="note" contenteditable="true">הערות/עריכה שלך…</div>
+    </div>
+  </div>
+
+  <div class="card"><div class="hd"><span class="name">Neutral_Center</span><span class="tag location">מיקום · location</span></div>
+    <div class="body">
+    <table><tr><th>חוזה</th><th class="cont-b">CONT</th><th class="rev-b">REV (fade→center)</th></tr>
+      <tr><td class="c">C1</td><td>swing / POC</td><td>swing (מהקצה)</td></tr>
+      <tr><td class="c">C2</td><td>POC (מבנה קרוב)</td><td>POC</td></tr>
+      <tr><td class="c">C3</td><td>קצה-IB נגדי · <b>ללא רנר</b> (flatten ב-C2)</td><td>קצה-IB נגדי · ללא רנר</td></tr></table>
+      <div class="ex"><b>דוגמה LONG:</b> כניסה 7542 ליד VAL · C1=swing · C2=POC 7550 · C3=קצה-IB 7560, ואז flatten. <b>אין רנר.</b></div>
+      <div class="note" contenteditable="true">הערות/עריכה שלך…</div>
+    </div>
+  </div>
+
+  <div class="card"><div class="hd"><span class="name">Nontrend</span><span class="tag location">מיקום · location</span></div>
+    <div class="body">
+    <table><tr><th>חוזה</th><th colspan="2">כל התבניות</th></tr>
+      <tr><td class="c">C1</td><td colspan="2">POC (scalp בלבד, חוזה אחד)</td></tr>
+      <tr><td class="c">C2/C3</td><td colspan="2"><b>Skip</b> — השתתפות נמוכה, רק POO reliably מגיע</td></tr></table>
+      <div class="ex"><b>דוגמה:</b> IB צר, כניסה לכיוון POC בלבד, מימוש מהיר, ללא רנר. לרוב <b>לדלג</b>.</div>
+      <div class="note" contenteditable="true">הערות/עריכה שלך…</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="foot">
+  <b>מפת-תבניות → משפחה (קובעת CONT/REV, לא את היעדים):</b><br>
+  <span class="pat pc">ZLR</span><span class="pat pc">TLB</span><span class="pat pc">TT</span><span class="pat pc">GB100</span><span class="pat pc">INITIATIVE</span><span class="pat pc">BULL_FLAG</span><span class="pat pc">BEAR_FLAG</span>
+  <span class="pat pr">REACTIVE</span><span class="pat pr">VEGAS</span><span class="pat pr">GHOST</span><span class="pat pr">FAMIR</span><span class="pat pr">HTLB</span><span class="pat pr">DOUBLE_TOP</span><span class="pat pr">DOUBLE_BOTTOM</span><span class="pat pr">INVERSE_HNS</span><span class="pat pr">HNS_TOP</span>
+  <span class="pat skip">HFE (מושתק)</span><span class="pat skip">Cup&amp;Handle — לא במערכת</span>
+  <br><br>
+  <span class="cont-b">■ CONT</span> = יעדי-extension + רנר-מטריל · <span class="rev-b">■ REV</span> = מבנה-נגדי/mean-reversion, הדוק, רנר-מוגבל. כל המספרים priors לכיול על הברים שלנו (ATR₅ₘ=7.07, dATR-RTH ימדד חי).
+</div>
+</body>
+</html>
