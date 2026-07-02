@@ -396,6 +396,14 @@ def _cap_target(entry: float, target: float, direction: str, cap_pts: float) -> 
     return round(entry - cap_pts, 2)
 
 
+TICK = 0.25  # MES tick size
+
+
+def _snap_grid(price: float) -> float:
+    """Snap a price to the nearest MES tick grid (0.25)."""
+    return round(round(price / TICK) * TICK, 2)
+
+
 def _build_result(
     *,
     direction: str,
@@ -410,13 +418,14 @@ def _build_result(
     day_type: str,
     atr_5m: float = 7.0,
 ) -> Optional[Dict]:
-    """Build result dict. Validates + caps targets."""
+    """Build result dict. Validates + caps + floor + grid + monotonic."""
     risk = abs(entry - stop) if stop else atr_5m
+    c1_floor = 0.5 * atr_5m  # ~3.5pt — kills tiny T1s (item-2 evidence 277/278)
 
-    # Hard caps (per spec): T1 ≤ 2×ATR, C2 ≤ 4×ATR, runner ≤ 6×ATR
-    t1_cap = max(2.0 * atr_5m, 2.0 * risk)   # ~14pt, at least 2R
-    c2_cap = max(4.0 * atr_5m, 4.0 * risk)   # ~28pt
-    runner_cap = max(6.0 * atr_5m, 6.0 * risk)  # ~42pt
+    # Hard caps per spec: use min (not max) per D-3 ruling
+    t1_cap = min(2.0 * atr_5m, 14.0)   # ~14pt
+    c2_cap = min(4.0 * atr_5m, 28.0)   # ~28pt
+    runner_cap = min(6.0 * atr_5m, 42.0)  # ~42pt
 
     # Apply caps
     if c1 is not None:
@@ -426,12 +435,60 @@ def _build_result(
     if c3 is not None:
         c3 = _cap_target(entry, c3, direction, runner_cap)
 
-    # Sanity: targets must be on the correct side of entry
+    # C1 floor: T1 must be at least 0.5×ATR from entry (item-2, trade 277/278)
     if c1 is not None:
-        if direction == "LONG" and c1 <= entry:
-            c1 = round(entry + risk, 2)  # fallback to 1R
-        if direction == "SHORT" and c1 >= entry:
-            c1 = round(entry - risk, 2)
+        dist = abs(c1 - entry)
+        if dist < c1_floor:
+            if direction == "LONG":
+                c1 = entry + c1_floor
+            else:
+                c1 = entry - c1_floor
+
+    # Wrong-side protection: targets must be on the correct side of entry.
+    # Replace wrong-side targets with R-based fallbacks rather than None.
+    def _fix_side(tgt, tgt_name, r_mult):
+        if tgt is None:
+            return tgt
+        if direction == "LONG" and tgt <= entry:
+            logger.warning("[structural_targets] %s=%.2f on wrong side of LONG entry=%.2f → R-fallback",
+                           tgt_name, tgt, entry)
+            return entry + r_mult * risk
+        if direction == "SHORT" and tgt >= entry:
+            logger.warning("[structural_targets] %s=%.2f on wrong side of SHORT entry=%.2f → R-fallback",
+                           tgt_name, tgt, entry)
+            return entry - r_mult * risk
+        return tgt
+    c1 = _fix_side(c1, "c1", 1.0)
+    c2 = _fix_side(c2, "c2", 2.0)
+    c3 = _fix_side(c3, "c3", 3.0)
+
+    # Monotonicity: |C1−entry| < |C2−entry| < |C3−entry|
+    # If violated, sort by distance from entry
+    targets = [(c1, "c1"), (c2, "c2"), (c3, "c3")]
+    valid = [(abs(t - entry), t, n) for t, n in targets if t is not None]
+    valid.sort()
+    if len(valid) >= 2 and any(valid[i][0] >= valid[i + 1][0] for i in range(len(valid) - 1)):
+        logger.info("[structural_targets] monotonicity fix: reordering targets by distance from entry")
+        # Deduplicate: if two targets have the same distance, nudge the farther one
+        for i in range(1, len(valid)):
+            if valid[i][0] <= valid[i - 1][0]:
+                nudge = TICK * (i + 1)
+                if direction == "LONG":
+                    valid[i] = (valid[i - 1][0] + nudge, valid[i - 1][1] + nudge, valid[i][2])
+                else:
+                    valid[i] = (valid[i - 1][0] + nudge, valid[i - 1][1] - nudge, valid[i][2])
+    # Reassign
+    c1 = valid[0][1] if len(valid) > 0 else None
+    c2 = valid[1][1] if len(valid) > 1 else None
+    c3 = valid[2][1] if len(valid) > 2 else None
+
+    # Grid alignment: snap all targets to 0.25 tick grid (item-2, trade 277/278)
+    if c1 is not None:
+        c1 = _snap_grid(c1)
+    if c2 is not None:
+        c2 = _snap_grid(c2)
+    if c3 is not None:
+        c3 = _snap_grid(c3)
 
     return {
         "t1_price": c1,

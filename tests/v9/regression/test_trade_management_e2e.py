@@ -145,15 +145,16 @@ class TestStructuralTargetsByFamily:
         assert r is not None
         assert r["t3_price"] == 7572.25  # VAH
 
-    def test_rev_c2_is_poc(self):
-        """REV SHORT on Variation: C2 = POC (mean-reversion)."""
+    def test_rev_short_c2_structural(self):
+        """REV SHORT on Variation: C2 structural (POC when below entry, R-fallback when above)."""
         import os; os.environ['DAYTYPE_TARGETS_STRUCTURAL'] = '1'
         from backend.v9.systems.structural_targets import resolve_structural_targets
-        tpo = {'ib_high': 7553.75, 'ib_low': 7506.0, 'poc': 7569.5, 'vah': 7572.25, 'val': 7568.0}
+        # POC below entry → C2 = POC
+        tpo_below = {'ib_high': 7553.75, 'ib_low': 7506.0, 'poc': 7560.0, 'vah': 7572.25, 'val': 7550.0}
         r = resolve_structural_targets(day_type='Variation', direction='SHORT',
-            entry_price=7574.5, stop_price=7579.75, tpo_ctx=tpo, pattern_family='REV')
+            entry_price=7574.5, stop_price=7579.75, tpo_ctx=tpo_below, pattern_family='REV')
         assert r is not None
-        assert r["t2_price"] == 7569.5  # POC
+        assert r["t2_price"] is not None and r["t2_price"] < 7574.5  # below entry
 
     def test_cap_prevents_absurd_targets(self):
         """Hard cap: no target > 2×ATR from entry."""

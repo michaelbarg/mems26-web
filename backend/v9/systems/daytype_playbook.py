@@ -29,6 +29,8 @@ _VALID_DT = {
     "Neutral_Center", "Neutral_Extreme", "Nontrend",
 }
 _TREND_DAYS = {"Trend_Normal", "Trend_DD"}
+# D-1: Variation is a directional day — require_with_trend applies there too
+_DIRECTIONAL_DAYS = {"Trend_Normal", "Trend_DD", "Variation"}
 
 _cache: Optional[dict] = None
 _loaded = False
@@ -113,8 +115,8 @@ def decide(
     if not pat or day_type not in _VALID_DT:
         return Decision("FULL", cap, f"unmapped({pkey}/{day_type})")
 
-    # Direction discipline: with-trend only on trend days (live trend_state).
-    if pat.get("require_with_trend") and day_type in _TREND_DAYS and trend_state:
+    # Direction discipline: with-trend only on directional days (D-1: incl. Variation).
+    if pat.get("require_with_trend") and day_type in _DIRECTIONAL_DAYS and trend_state:
         d = (direction or "").upper()
         ts = trend_state.upper()
         counter = (d == "LONG" and ts == "RED") or (d == "SHORT" and ts == "BLUE")

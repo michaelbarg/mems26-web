@@ -172,6 +172,22 @@ class TradingGateway:
             logger.info("[Gateway] BLOCKED by session gate: outside 08:30–15:00 CT (all modes)")
             return result
 
+        # Item-21: EOD entry cutoff — no new entries in the last 45 minutes before close
+        if os.getenv("EOD_RISK_WINDOW_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from datetime import datetime as _dt_eod
+                from zoneinfo import ZoneInfo as _ZI_eod
+                _ct_now = _dt_eod.now(_ZI_eod("America/Chicago"))
+                _ct_min = _ct_now.hour * 60 + _ct_now.minute
+                _cutoff_min = int(os.getenv("EOD_ENTRY_CUTOFF_MIN", "45"))
+                _close_min = 15 * 60  # 15:00 CT
+                if _ct_min >= (_close_min - _cutoff_min):
+                    result["blocked_by"] = "eod_entry_cutoff"
+                    logger.info("[Gateway] BLOCKED by EOD entry cutoff: %d min before close", _close_min - _ct_min)
+                    return result
+            except Exception:
+                pass  # fail-open
+
         # T2: Feed watchdog — block ALL fires when canonical streams are stale (LIVE blocker #0)
         # 06-19 incident: bridge died mid-RTH, orphan position. Never trade on a dead feed.
         try:

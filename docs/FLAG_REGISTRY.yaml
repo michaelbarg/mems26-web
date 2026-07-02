@@ -93,6 +93,11 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required."
     status: deferred
     ref: "I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md"
+  EOD_RISK_WINDOW_V1:
+    category: cascade_gate
+    what: "EOD entry cutoff (no new entries last 45min before close) + flatten at 15min before close."
+    why: "OFF (default, SHADOW). Michael rule 07-02: 45min cutoff + 15min flatten. Trades 287/288 were open at 14:2x CT."
+    status: deferred
   OPPOSITE_EXIT_V1:
     category: cascade_gate
     what: "Close active trade when >=2 opposite-direction pattern signals fire within a bar. Close only, no auto-flip."
