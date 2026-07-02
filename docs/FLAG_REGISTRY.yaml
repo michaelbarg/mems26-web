@@ -239,6 +239,10 @@ flags:
     category: cascade_gate
     what: "Block counter-drive fires in the opening window (RTH open → IB lock); inert after IB lock."
     why: "ON (Michael 2026-06-22). Was OFF during the 06-22 morning fire window."
+  OPENING_WINDOW_FIRE_V1:
+    category: cascade_gate
+    what: "Item-10: first 30 min of RTH (08:30-09:00 CT) — a POSITIVE with-drive opening signal overrides day-type refusals (S2 Auth-Table SKIP / NO_TRADE + gateway playbook SKIP). Positive confirmation only, never fail-open; all other gates apply."
+    why: "OFF (built 2026-07-03 per Michael's standing order 'first trade by opening type in the first half hour'). ENABLE ONLY with Michael's word — counter-fixture exists (07-02 08:45 blocked INITIATIVE would have stopped -1R; see docs/reports/DESIGNS_2026-07-02.md D-opening-window-confirm)."
   TREND_DIRECTION_GATE:
     category: cascade_gate
     what: "Block counter-trend fires for HFE / REACTIVE_LONG / ZLR-SHORT using live trend_state."

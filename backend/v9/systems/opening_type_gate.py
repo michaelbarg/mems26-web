@@ -123,11 +123,15 @@ def _compute_opening_cvd_pos() -> Optional[float]:
         _et = _ZI("America/New_York")
         _now_et = _dt.datetime.now(_et)
         _today = _now_et.date().isoformat()
+        # I-53 fix (2026-07-03): ts column is TEXT in this table — a bare
+        # "ts AT TIME ZONE" raises UndefinedFunction on varchar and the except
+        # swallowed it, leaving OPENING_FIRE_CVD_V1 silently inert (STATUS_BOARD
+        # 07-01). ::timestamptz is a no-op on real timestamptz columns.
         rows = read_all(
             "SELECT cumulative, ts FROM v9_bars_cumulative_delta "
-            "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d "
-            "  AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
-            "ORDER BY ts ASC LIMIT :n",
+            "WHERE (ts::timestamptz AT TIME ZONE 'America/New_York')::date = :d "
+            "  AND (ts::timestamptz AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "ORDER BY ts::timestamptz ASC LIMIT :n",
             {"d": _today, "n": _DRIVE_DETECT_BARS},
         )
         cum = [float(r["cumulative"]) for r in rows
@@ -190,6 +194,104 @@ def _early_bias(
 
     direction = "UP" if diff > 0 else "DOWN"
     return "EARLY_BIAS", direction
+
+
+# ---------------------------------------------------------------------------
+# Item-10 · OPENING_WINDOW_FIRE_V1 (Michael standing order, 2026-07-02):
+# "לצורך עסקה ראשונה, ברגע שהמערכת מזהה לפי סוג הפתיחה עסקה — לבצע גם בחצי
+# השעה הראשונה." During the first 30 minutes of RTH the day-type label is an
+# immature stage-1 guess. Live incidents (2026-07-02): 16:35:04 IL gateway
+# "ZLR SKIP on Nontrend" 5 min after open · 16:45:03 IL in-system S2
+# "T1Setup skipped: INITIATIVE_LONG day_type=UNKNOWN · Auth Table SKIP".
+# This override lets a fire through those DAY-TYPE-based refusals ONLY on
+# POSITIVE with-drive confirmation from the opening-type machinery. It never
+# fail-opens. Every other gate (session, kill-switch, feed-watchdog, dedup,
+# risk-cap, target-side guards, OPENING_TYPE_GATE counter-drive block) still
+# applies unchanged.
+# Flag: OPENING_WINDOW_FIRE_V1 (default OFF — enable only with Michael's word).
+# ---------------------------------------------------------------------------
+
+_OW_WINDOW_START_MIN = 8 * 60 + 30  # 08:30 America/Chicago = RTH open (TZ explicit, Rule 4)
+_OW_WINDOW_END_MIN = 9 * 60         # 09:00 America/Chicago = end of first 30 minutes
+
+
+def _ow_enabled() -> bool:
+    return os.environ.get("OPENING_WINDOW_FIRE_V1", "0").lower() in ("1", "true", "yes")
+
+
+def _load_rth_bars_from_db(limit: int = _DRIVE_DETECT_BARS) -> List[Dict]:
+    """First `limit` RTH bars today from canonical v9_bars_5min_woodies (SoT).
+
+    ts cast defensively (::timestamptz is a no-op on timestamptz columns,
+    fixes TEXT — I-53 class). Fail-safe: any error → [] (no override).
+    """
+    try:
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT open AS o, high AS h, low AS l, close AS c "
+            "FROM v9_bars_5min_woodies "
+            "WHERE (ts::timestamptz AT TIME ZONE 'America/Chicago')::date = "
+            "      (now() AT TIME ZONE 'America/Chicago')::date "
+            "  AND (ts::timestamptz AT TIME ZONE 'America/Chicago')::time >= '08:30' "
+            "ORDER BY ts::timestamptz ASC LIMIT :n",
+            {"n": limit},
+        )
+        return [dict(r) for r in rows]
+    except Exception as e:
+        logger.warning("[OPENING_WINDOW] RTH-bars DB read failed (no override): %s", e)
+        return []
+
+
+def opening_window_override(
+    *,
+    direction: str,
+    rth_bars: Optional[List[Dict]] = None,
+    opening_print: Optional[float] = None,
+    now_min_ct: Optional[int] = None,
+) -> Tuple[bool, str]:
+    """POSITIVE-confirmation override for day-type refusals in the first 30 min.
+
+    Returns (True, reason) ONLY when ALL hold: flag ON · now ∈ [08:30, 09:00)
+    America/Chicago · an opening drive is detected (OPEN_DRIVE / OPEN_TEST_DRIVE
+    / OPEN_REJECTION_REVERSE / EARLY_BIAS) · the fire direction is WITH the
+    drive · the drive has not failed (no return through the opening print).
+    Anything missing or ambiguous → (False, reason). Never fail-open.
+
+    Consumers: setup_emitter (S2 Auth-Table SKIP + NO_TRADE refuse) and
+    trading_gateway (day-type playbook SKIP) — the two live choke points.
+    """
+    if not _ow_enabled():
+        return (False, "OPENING_WINDOW_FIRE_V1 off")
+    if now_min_ct is None:
+        import datetime as _dt
+        from zoneinfo import ZoneInfo as _ZI
+        _n = _dt.datetime.now(_ZI("America/Chicago"))
+        now_min_ct = _n.hour * 60 + _n.minute
+    if not (_OW_WINDOW_START_MIN <= now_min_ct < _OW_WINDOW_END_MIN):
+        return (False, "outside first-30min window (08:30-09:00 CT)")
+    if rth_bars is None:
+        rth_bars = _load_rth_bars_from_db()
+    if not rth_bars:
+        return (False, "no RTH bars")
+    if opening_print is None:
+        opening_print = rth_bars[0].get("o", rth_bars[0].get("open"))
+    if opening_print is None:
+        return (False, "no opening print")
+    if _drive_failed(rth_bars, opening_print):
+        return (False, "drive failed (returned through open)")
+    _cvd_flag = os.environ.get("OPENING_FIRE_CVD_V1", "0").lower() in ("1", "true", "yes")
+    if len(rth_bars) >= _DRIVE_DETECT_BARS:
+        drive_type, drive_dir = _detect_from_bars(
+            rth_bars[:_DRIVE_DETECT_BARS], opening_print, cvd_confirm=_cvd_flag,
+        )
+    else:
+        drive_type, drive_dir = _early_bias(rth_bars, opening_print)
+    if drive_type not in ("OPEN_DRIVE", "OPEN_TEST_DRIVE", "OPEN_REJECTION_REVERSE", "EARLY_BIAS"):
+        return (False, f"opening_type={drive_type} — no directional edge")
+    _want = "UP" if direction.upper() == "LONG" else "DOWN"
+    if drive_dir != _want:
+        return (False, f"counter-drive: {direction.upper()} vs {drive_type} {drive_dir}")
+    return (True, f"WITH-drive {drive_type} {drive_dir} (first-30min window)")
 
 
 def _drive_failed(bars: List[Dict], opening_print: float) -> bool:

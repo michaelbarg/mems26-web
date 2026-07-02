@@ -21,6 +21,18 @@ from backend.v9.shared.pre_fire_validator import FireRequest, validate_fire
 logger = logging.getLogger(__name__)
 
 
+def _opening_window_check(direction: str):
+    """Item-10 (OPENING_WINDOW_FIRE_V1, default OFF): positive with-drive
+    confirmation in the first 30 min of RTH. Import at call time so tests can
+    monkeypatch the source module. Fail-safe: error → no override."""
+    try:
+        from backend.v9.systems.opening_type_gate import opening_window_override
+        return opening_window_override(direction=direction)
+    except Exception as _e:  # never let the override itself break emission
+        logger.warning("[S2] opening-window check errored (no override): %s", _e)
+        return (False, f"error: {_e}")
+
+
 def emit_t1_setup(
     pattern_name: PatternName,
     direction: Literal['LONG', 'SHORT'],
@@ -45,11 +57,20 @@ def emit_t1_setup(
         from backend.v9.systems.day_type.targets_table import get_targets as _get_targets
         _targets = _get_targets(day_type)
         if _targets is not None and _targets.get("no_trade", False):
-            logger.warning(
-                "[S2] emit_t1_setup refused: day_type=%s is NO_TRADE (D-091.Q2)",
-                day_type,
-            )
-            return None
+            # Item-10: in the first 30 min the day-type label is an immature
+            # stage-1 guess — a POSITIVE with-drive opening signal overrides.
+            _ow_ok, _ow_reason = _opening_window_check(direction)
+            if _ow_ok:
+                logger.warning(
+                    "[S2] OPENING_WINDOW override: NO_TRADE day_type=%s bypassed — %s",
+                    day_type, _ow_reason,
+                )
+            else:
+                logger.warning(
+                    "[S2] emit_t1_setup refused: day_type=%s is NO_TRADE (D-091.Q2)",
+                    day_type,
+                )
+                return None
 
     # Quality tier + sizing from Auth Table V1 (pattern x day_type x tier)
     price_for_tier = current_price or entry_price
@@ -60,11 +81,24 @@ def emit_t1_setup(
 
     # SKIP verdict short-circuits (Lock #2)
     if verdict == 'SKIP':
-        logger.info(
-            "[S2] T1Setup skipped: pattern=%s day_type=%s tier=%s · Auth Table SKIP",
-            pattern_name, _day_type, quality_tier,
-        )
-        return None
+        # Item-10: live incident 2026-07-02 16:45 IL — "INITIATIVE_LONG
+        # day_type=UNKNOWN · Auth Table SKIP" killed the opening fire in-system.
+        _ow_ok, _ow_reason = _opening_window_check(direction)
+        if _ow_ok:
+            if sizing <= 0:  # SKIP rows carry 0 contracts — floor for the override
+                import os as _os
+                sizing = 3 if _os.environ.get(
+                    "FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") else 1
+            logger.warning(
+                "[S2] OPENING_WINDOW override: Auth Table SKIP (%s × %s) bypassed — %s · contracts=%d",
+                pattern_name, _day_type, _ow_reason, sizing,
+            )
+        else:
+            logger.info(
+                "[S2] T1Setup skipped: pattern=%s day_type=%s tier=%s · Auth Table SKIP",
+                pattern_name, _day_type, quality_tier,
+            )
+            return None
 
     # Time stop from Day Type
     time_stop = get_time_stop(day_type)

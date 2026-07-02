@@ -298,9 +298,32 @@ class TradingGateway:
                     trend_state=(_pb_woodies or {}).get("trend_state"),
                 )
                 if not _pb.allow:
-                    result["blocked_by"] = "daytype_playbook"
-                    logger.info("[Gateway] BLOCKED by day-type playbook: %s", _pb.reason)
-                    return result
+                    # Item-10 OPENING_WINDOW_FIRE_V1 (default OFF): in the first
+                    # 30 min of RTH a POSITIVE with-drive opening signal overrides
+                    # a playbook SKIP — the day-type label is an immature stage-1
+                    # guess at that hour (incident 2026-07-02 16:35:04 IL:
+                    # "ZLR SKIP on Nontrend" 5 min after open). Positive
+                    # confirmation only; every other gate still applies.
+                    _ow_ok = False
+                    try:
+                        from backend.v9.systems.opening_type_gate import (
+                            opening_window_override as _ow_decide,
+                        )
+                        _ow_ok, _ow_reason = _ow_decide(direction=direction)
+                        if _ow_ok:
+                            logger.warning(
+                                "[Gateway] OPENING_WINDOW override: playbook '%s' bypassed — %s",
+                                _pb.reason, _ow_reason,
+                            )
+                    except Exception as _ow_err:
+                        logger.warning(
+                            "[Gateway] opening-window override errored (no override): %s",
+                            _ow_err,
+                        )
+                    if not _ow_ok:
+                        result["blocked_by"] = "daytype_playbook"
+                        logger.info("[Gateway] BLOCKED by day-type playbook: %s", _pb.reason)
+                        return result
                 logger.debug("[Gateway] day-type playbook PASS: %s", _pb.reason)
             except Exception as _pb_err:  # fail-open — never block a fire on a bug
                 logger.warning("[Gateway] day-type playbook check errored (fail-open): %s", _pb_err)
