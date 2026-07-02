@@ -96,7 +96,7 @@ class TradingGateway:
         try:
             from backend.v9.db.read import read_one
             row = read_one(
-                "SELECT id, direction, entry_price, pattern_id_at_entry, system_id "
+                "SELECT id, direction, entry_price, pattern_id_at_entry, firing_system "
                 "FROM v9_trades "
                 "WHERE mode = 'demo' AND state NOT IN ('CLOSED', 'CANCELLED') "
                 "ORDER BY id DESC LIMIT 1", {},
@@ -113,7 +113,7 @@ class TradingGateway:
             else:
                 logger.info("[Gateway] no open demo trade in DB — demo_slot=None (free)")
         except Exception as e:
-            logger.warning("[Gateway] demo_slot hydration failed (slot stays None): %s", e)
+            logger.warning("[Gateway] demo_slot hydration FAILED (query error, slot stays None): %s", e)
 
     def enable_demo(self, system_id: int) -> None:
         self._demo_enabled_systems.add(system_id)
