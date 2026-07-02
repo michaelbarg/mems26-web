@@ -756,7 +756,9 @@ async def _startup():
         if os.getenv("DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.services.fill_poller import FillPoller
-                _fp = FillPoller(trade_manager=trade_manager)
+                # I-57: pass the gateway so Sierra-driven closes free the demo slot
+                # + count stops in cooldown/SSV (271/272 left the slot stuck without this)
+                _fp = FillPoller(trade_manager=trade_manager, gateway=gw)
                 app.state.fill_poller = _fp
                 asyncio.create_task(_fp.run())
                 _logger.info("[Main] Pipeline 5 FillPoller started (DEMO execution armed)")

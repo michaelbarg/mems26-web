@@ -491,6 +491,12 @@ class TradingGateway:
             return result
 
         # DEMO/LIVE: D-094 R:R selection or first-wins
+        # Self-heal (Michael 2026-07-02: "שתמיד יהיה ניקוי של המערכת"): if the demo
+        # slot points at a trade that is already CLOSED/CANCELLED in the DB (a close
+        # path that bypassed on_trade_close — e.g. Sierra-driven FillPoller close,
+        # I-57 trades 271/272), free it HERE so a stuck slot can never block trading.
+        self._selfheal_demo_slot()
+
         if self._rr_selection_enabled:
             # Buffer candidate for bar-close flush (slot NOT filled yet)
             candidate = {
@@ -605,6 +611,35 @@ class TradingGateway:
             return classify_state(float(score))
         except Exception:
             return "UNKNOWN"
+
+    def _selfheal_demo_slot(self) -> None:
+        """Free the demo slot if its trade is already closed in the DB.
+
+        Defensive cleanup (fail-open: any error keeps the slot untouched).
+        Root incident: 2026-07-02 trades 271/272 closed via the Sierra-driven
+        FillPoller path which did not call on_trade_close → slot stayed
+        occupied and blocked every subsequent demo order.
+        """
+        if self.demo_slot is None:
+            return
+        trade_id = self.demo_slot.get("trade_id")
+        if not trade_id:
+            return
+        try:
+            from backend.v9.db.read import read_one
+            row = read_one(
+                "SELECT state FROM v9_trades WHERE id = :tid",
+                {"tid": int(trade_id)},
+            )
+            if row is not None and str(row.get("state", "")).upper() in ("CLOSED", "CANCELLED"):
+                logger.warning(
+                    "[Gateway] demo_slot SELF-HEAL: trade %s is %s in DB but slot was still "
+                    "occupied → freeing (close path bypassed on_trade_close)",
+                    trade_id, row.get("state"),
+                )
+                self.demo_slot = None
+        except Exception as e:  # fail-open — never break routing on a heal attempt
+            logger.warning("[Gateway] demo_slot self-heal check failed (slot kept): %s", e)
 
     def on_trade_close(self, trade: dict) -> None:
         """Handle trade closure — free slots, update daily stats, update risk filters."""

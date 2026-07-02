@@ -39,8 +39,9 @@ RESULT_PATH = _SIGNALS_DIR / "trade_result.json"
 class FillPoller:
     """Async poller that reads trade_fills.json and drives TradeManager."""
 
-    def __init__(self, trade_manager=None):
+    def __init__(self, trade_manager=None, gateway=None):
         self._tm = trade_manager
+        self._gateway = gateway
         self._running = False
         self._last_mtime: float = 0.0
         self._processed_count = 0
@@ -49,6 +50,29 @@ class FillPoller:
 
     def set_trade_manager(self, tm) -> None:
         self._tm = tm
+
+    def set_gateway(self, gw) -> None:
+        """Wire the TradingGateway so Sierra-driven closes free slots + feed
+        cooldown/SSV counters (I-57: FillPoller closes bypassed on_trade_close —
+        trades 271/272 left the demo slot stuck + stops uncounted)."""
+        self._gateway = gw
+
+    def _notify_gateway_close(self, trade_id, outcome: str) -> None:
+        """Tell the gateway a trade fully closed (STOP / T3). Fail-safe, never raises."""
+        if self._gateway is None:
+            return
+        try:
+            trade = self._tm._get_trade(trade_id) if self._tm is not None else None
+            self._gateway.on_trade_close({
+                "trade_id": trade_id,
+                "mode": getattr(trade, "mode", "demo") if trade else "demo",
+                "pnl_usd": (getattr(trade, "pnl_usd", 0.0) or 0.0) if trade else 0.0,
+                "outcome": outcome,
+                "direction": getattr(trade, "direction", "") if trade else "",
+            })
+            logger.info("[FillPoller] notified gateway: trade %s closed (%s)", trade_id, outcome)
+        except Exception as e:
+            logger.warning("[FillPoller] gateway notify failed (non-fatal): %s", e)
 
     def register_order(self, sierra_order_id: int, trade_id: int) -> None:
         """Map a Sierra order ID to a MEMS26 trade ID."""
@@ -184,10 +208,17 @@ class FillPoller:
             elif kind in ("T1", "T2", "T3"):
                 self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts)
                 logger.info("[FillPoller] %s fill: trade %s", kind, trade_id)
+                if kind == "T3":
+                    # All contracts out → full close: free slot + count outcome (I-57)
+                    self._notify_gateway_close(trade_id, "T3")
 
             elif kind == "STOP":
                 self._tm.on_stop_hit(trade_id, fill_ts=fill_ts)
                 logger.info("[FillPoller] STOP fill: trade %s", trade_id)
+                # Full close via Sierra stop → free slot + count the stop (I-57:
+                # this path previously bypassed on_trade_close → stuck demo slot
+                # + cooldown blind to stops. Trades 271/272, 2026-07-02.)
+                self._notify_gateway_close(trade_id, "STOP")
 
             else:
                 logger.warning("[FillPoller] unknown fill kind: %s", kind)
