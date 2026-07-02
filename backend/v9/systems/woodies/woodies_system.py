@@ -108,6 +108,29 @@ def _is_rth_bar(bar_ts: float) -> bool:
 _pattern_dispatcher = PatternDispatcher()
 
 
+def _sanitize_s4_targets(direction, entry, t1, t2):
+    """I-59: enforce a monotonic target ladder at fire-assembly time.
+
+    The pre-fire validator (A7) requires LONG entry < t1 < t2 / SHORT
+    entry > t1 > t2 — and explicitly ACCEPTS t2=None (CCI-cross T2 deferred
+    per spec §1.6). Live 2026-07-02: RUNNER_T2 landed t2 equal/beyond t1
+    (277/278 t1==t2) → A7 rejected every S4 fire silently. An out-of-order
+    or duplicate t2 becomes None; t1-side sanity stays the validator's job.
+    Full ladder fix (floor/monotonic/grid) = economics-package item-2.
+    """
+    if t1 is None or t2 is None or entry is None:
+        return t1, t2
+    if direction == "LONG":
+        if t2 <= t1:
+            logger.warning("[Woodies] I-59 sanitize: LONG t2=%.2f <= t1=%.2f → t2=None", t2, t1)
+            return t1, None
+    else:
+        if t2 >= t1:
+            logger.warning("[Woodies] I-59 sanitize: SHORT t2=%.2f >= t1=%.2f → t2=None", t2, t1)
+            return t1, None
+    return t1, t2
+
+
 class WoodiesSystem(BaseV9TradingSystem):
     system_id = 4
     name = "woodies"
@@ -840,6 +863,13 @@ class WoodiesSystem(BaseV9TradingSystem):
                         except Exception as _rt_err:
                             logger.warning("[Woodies] RUNNER_TARGETS_V1 T2 calc failed: %s", _rt_err)
 
+                    # I-59 (Michael 2026-07-02 "המערכת תמשיך לבצע ירי היום"): the target
+                    # ladder must be monotonic or A7's validator rejects the fire SILENTLY
+                    # (live 19:46 IL: "SHORT: must have entry > t1 > t2" — t2 landed equal/
+                    # beyond t1, e.g. 277/278 t1==t2==7530.625). Guard: an out-of-order or
+                    # duplicate t2 becomes None (honest — CCI-cross T2 is deferred per spec);
+                    # full ladder fix (floor/monotonic/grid) lands in package item-2.
+                    _s4_t1, _s4_t2 = _sanitize_s4_targets(direction, _s4_entry, _s4_t1, _s4_t2)
                     fire_setup = {
                         "direction": direction,
                         "entry_price": _s4_entry,
@@ -993,6 +1023,15 @@ class WoodiesSystem(BaseV9TradingSystem):
                         logger.warning("[Woodies] Gateway route_setup failed: %s", e)
             else:
                 if not dt_summary.get("ready_to_route"):
+                    # I-59: no silent failures — a detected pattern that gets dropped
+                    # must SHOUT (was logger-less; cost: invisible A7 drops all day 07-02).
+                    if patterns:
+                        logger.warning(
+                            "[Woodies] FIRE DROPPED (not_ready_to_route): %s %s — failed_stages=%s",
+                            best.pattern_id if best else "?",
+                            (best.direction if best else "?") or "?",
+                            dt_summary.get("failed_stages", []),
+                        )
                     self.current_state["last_route"] = {
                         "skipped": True,
                         "reason": "not_ready_to_route",
