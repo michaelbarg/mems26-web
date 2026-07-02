@@ -1043,6 +1043,14 @@ class FiveMinSystem(BaseV9TradingSystem):
             except Exception:
                 pass
 
+        # Normalize bar keys BEFORE buffering (avoids KeyError: 'c' when
+        # OVERNIGHT bars lack short-form keys and later RTH detection reads them)
+        bar.setdefault("o", bar.get("open", 0))
+        bar.setdefault("h", bar.get("high", 0))
+        bar.setdefault("l", bar.get("low", 0))
+        bar.setdefault("c", bar.get("close", 0))
+        bar.setdefault("v", bar.get("vol", bar.get("volume", 0)))
+
         # Spec: S2 must not fire outside trading sessions
         if self.mode in (FiveMinMode.OVERNIGHT_MODE, FiveMinMode.MAINTENANCE, FiveMinMode.WEEKEND):
             self.buffer_size += 1
@@ -1050,12 +1058,7 @@ class FiveMinSystem(BaseV9TradingSystem):
             if len(self._bar_buffer) > 20:
                 self._bar_buffer = self._bar_buffer[-20:]
             return
-        bar.setdefault("o", bar.get("open", 0))
-        bar.setdefault("h", bar.get("high", 0))
-        bar.setdefault("l", bar.get("low", 0))
-        bar.setdefault("c", bar.get("close", 0))
-        bar.setdefault("vol", bar.get("volume", 0))
-        bar.setdefault("v", bar.get("vol", bar.get("volume", 0)))
+        # (bar keys o/h/l/c/v already normalized above)
 
         # Dedup: bridge pushes same bar ~20x while building. Buffer always
         # updates (latest OHLC), but bar counting + FHB + pattern detection
