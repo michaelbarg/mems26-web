@@ -5,13 +5,11 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-07-02 23:30 · `.env` last modified 2026-07-02 19:12 · scan dirs: backend, bridge_
+_Generated 2026-07-02 23:40 · `.env` last modified 2026-07-02 19:12 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
-**Summary:** 74 documented · 45 ON (of which 0 inert) · 15 OFF (3 standing-OFF) · 13 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
-
-> ⚠ **5 UNDOCUMENTED behavior flag(s)** found in code but missing from the registry — add them to `docs/FLAG_REGISTRY.yaml`: `COOLDOWN_2STOP_V1`, `DAYTYPE_CONFIRM_BARS`, `EOD_ENTRY_CUTOFF_MIN`, `FIXED_CONTRACTS_3`, `OPPOSITE_EXIT_THRESHOLD`
+**Summary:** 79 documented · 46 ON (of which 0 inert) · 16 OFF (3 standing-OFF) · 16 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
 
 > ⚠ **3 registry flag(s) not referenced in code** (dead or renamed?): `RISK_CONSECUTIVE_LOSS_LIMIT`, `RISK_DAILY_LOSS_CAP`, `RISK_MAX_TRADES_DAY`
 
@@ -71,6 +69,7 @@ _Generated 2026-07-02 23:30 · `.env` last modified 2026-07-02 19:12 · scan dir
 | Flag | State | Current | Code default | What it does | Why / state | Where (file:line) | Notes |
 |------|-------|---------|--------------|--------------|-------------|-------------------|-------|
 | CONT_TREND_FILTER<br><sub>direction engine</sub> | ✅ ON | `1` (.env) | "0" | Continuation patterns (Flag/TLB/ZLR/TT/GB100 + S2 Reactive/Initiative) fire only WITH a SUSTAINED K-bar LSMA trend (dir_sustained). REVERSAL patterns (VEGAS/GHOST/FAMIR/HTLB + S2 Double/HnS) are EXEMPT (fire against the trend by design). Applied in trading_gateway after DIRECTION_CONTEXT; fail-open. | ON SHADOW 2026-06-25, Michael. Fixes BULL_FLAG_LONG (0/3, -$596): the single-bar veto passed a momentary 1-bar poke above LSMA in chop (06-24 10:25). Counterfactual: blocks 102 continuation chop/counter losers = +$911, keeps reversal winners (HTLB +$720). K = LSMA_SUSTAIN_BARS. | `backend/v9/gateway/trading_gateway.py:407` | outputs/trend_filter_counterfactual.py |
+| COOLDOWN_2STOP_V1 | 🔴 OFF | unset → "0" | "0" | Gate the 2-stop cooldown BLOCK in cooldown.py is_blocked(); counting/telemetry always runs, only the veto is flag-gated. | OFF — STANDING (Michael 2026-07-02: 'לא הגדרתי צינון'). The ζ.A4 cooldown was never ratified; first-ever live count fired 07-02 and Michael ruled it off. Re-enable = trading-risk-surface change + Michael sign-off. | `backend/v9/gateway/cooldown.py:47` |  |
 | DAYTYPE_PLAYBOOK | ✅ ON | `1` (.env) | (no default) | Pattern x day-type SKIP/REDUCED matrix + require_with_trend (config/daytype_playbook.yaml). | ON, but a NO-OP: decide() returns FULL for every pattern whenever DAYTYPE_POSITION_GATE=1. | `backend/env_loader.py:80`<br>`backend/v9/systems/daytype_playbook.py:51`<br>`backend/v9/gateway/trading_gateway.py:289` | inert: DAYTYPE_POSITION_GATE=1 (returns FULL before reading the matrix — root hole R1).; CASCADE_AUDIT §5 R1; daytype_playbook.py:104 |
 | DAYTYPE_POSITION_GATE | 🔴 OFF | `0` (.env) | (no default) | Per day-type direction x price-vs-POC/IB gate; supersedes the legacy CCI/reactive gates. | ON. Correct on direction/location but PATTERN-BLIND — ignores its pattern arg (can't tell CONT from REV). | `backend/env_loader.py:79`<br>`backend/v9/systems/daytype_playbook.py:107`<br>`backend/v9/systems/daytype_position_gate.py:72`<br>(+1) | CASCADE_AUDIT §5 R2 |
 | DEDUP_FIRE_GUARD | ✅ ON | `1` (.env) | "0" | Block an identical sys+dir+pattern+entry(+-0.5pt) fire within 30s. | ON (Michael 2026-06-22). Was OFF when 199/200 double-fired on 06-22. | `backend/v9/gateway/trading_gateway.py:218`<br>`backend/v9/gateway/trading_gateway.py:529` |  |
@@ -101,6 +100,7 @@ _Generated 2026-07-02 23:30 · `.env` last modified 2026-07-02 19:12 · scan dir
 | Flag | State | Current | Code default | What it does | Why / state | Where (file:line) | Notes |
 |------|-------|---------|--------------|--------------|-------------|-------------------|-------|
 | DYNAMIC_STRUCT_TRAIL | ✅ ON | `1` (.env) | "0" | Dynamic structure-trailing: after T1, detect consolidation zones (K bars, range ≤ R) → re-anchor stop beyond zone + advance target to nearer of {zone projection, key level}. Replaces simple hwm trail when ON. | OFF (default). Michael's trade management rule (2026-06-24): runners re-anchor on each NEW CONSOLIDATION. Trading-surface change → Michael sign-off to enable. | `backend/v9/services/trade_manager/bar_level_detector.py:115` | docs/handoff/CC_DYNAMIC_STRUCT_TRAIL_2026-06-24.md |
+| FIXED_CONTRACTS_3 | ✅ ON | `1` (.env) | "0" | Every FIRING setup uses exactly 3 contracts, overriding tier/auth sizing at all sizing sources (get_quality_tier_v2, compute_v2_sizing) and the Sierra command choke point. | ON (Michael 2026-06-24 trade rule: pattern entry · 3 contracts · C1→BE · runners to LSMA). Was dead-wired to one source only → MED/LOW sent 2; fixed at both choke points 6ec3209 (2026-07-02). | `backend/v9/systems/stop_anchors/sizing.py:89`<br>`backend/v9/systems/five_min/quality_tier.py:87`<br>`backend/v9/services/sierra_command.py:171` |  |
 | GIANT_BAR_STOP_V1 | ✅ ON | `1` (.env) | False (flag() default) | Cap the initial stop on giant bars (volatility-spike protection). | Anchor-trial (2026-06-12). | `backend/v9/systems/woodies/woodies_system.py:734` |  |
 | RUNNER_TRAIL_V1 | ✅ ON | `1` (.env) | "0" | Trail the runner stop (hwm - 1x initial_risk) after T1; never-widen; floor BE+1T (fail-safe). | Michael-approved SHADOW trial 2026-06-18 (backtest +$273 — a real lever). | `backend/v9/services/trade_manager/bar_level_detector.py:121` | memory: project_trend_gate_t1_widen |
 | STOP_AFTER_T1_STRUCTURAL | ⚪ not built | — | — | (Intended) move the stop to a structural level after T1 is hit. | NOT BUILT — no code references it; only a commented placeholder in .env. Deferred (one variable at a time). | — | not wired in code |
@@ -119,6 +119,8 @@ _Generated 2026-07-02 23:30 · `.env` last modified 2026-07-02 19:12 · scan dir
 
 | Flag | State | Current | Code default | What it does | Why / state | Where (file:line) | Notes |
 |------|-------|---------|--------------|--------------|-------------|-------------------|-------|
+| DAYTYPE_CONFIRM_BARS<br><sub>S1 day-type stability</sub> | 🔢 param | `2` (.env) | "1" | Anti-noise confirm-bar count for day-type transitions in the state machine — the new classification must persist N bars before the transition commits. unset => 1 (current behavior). | Built per D-daytype-stability (Michael 2026-07-01, D2 acceptance-driven transitions). Default 1 = no behavior change until raised. | `backend/v9/systems/day_type/state_machine.py:711` |  |
+| EOD_ENTRY_CUTOFF_MIN<br><sub>EOD risk window (item-21)</sub> | 🔢 param | unset → "45" | "45" | Minutes before the 15:00 CT close in which NEW entries are refused when EOD_RISK_WINDOW_V1=1. Default 45 (no entries from 14:15 CT). | Michael 2026-07-02: 'ב-45 דקות לפני סיום המסחר לא ייכנסו עסקאות'. Inert while EOD_RISK_WINDOW_V1 is OFF. | `backend/v9/gateway/trading_gateway.py:182` |  |
 | GIANT_BAR_MIN_RANGE_PT<br><sub>Giant-bar stop</sub> | 🔢 param | unset → "12.0" | "12.0" | Bar range (points) above which a bar counts as a giant bar. |  | `backend/v9/systems/woodies/woodies_system.py:81` |  |
 | GIANT_BAR_STOP_FLOOR_PT<br><sub>Giant-bar stop</sub> | 🔢 param | unset → "6.0" | "6.0" | Minimum stop distance (points) floor for the giant-bar cap. |  | `backend/v9/systems/woodies/woodies_system.py:71` |  |
 | GIANT_BAR_STOP_FRACTION<br><sub>Giant-bar stop</sub> | 🔢 param | unset → "0.38" | "0.38" | Fraction of the giant bar used to place the capped stop. |  | `backend/v9/systems/woodies/woodies_system.py:66` |  |
@@ -126,6 +128,7 @@ _Generated 2026-07-02 23:30 · `.env` last modified 2026-07-02 19:12 · scan dir
 | MEMS_MAX_RISK_POINTS<br><sub>Pre-fire stop sanity</sub> | 🔢 param | `60` (.env) | "0" | Reject a setup whose stop risk exceeds this many points (oversized-stop guard). |  | `backend/v9/shared/pre_fire_validator.py:74` |  |
 | MEMS_MIN_RISK_POINTS<br><sub>Pre-fire stop sanity</sub> | 🔢 param | `2` (.env) | "0" | Reject a setup whose stop risk is below this many points (degenerate-stop guard). |  | `backend/v9/shared/pre_fire_validator.py:73` |  |
 | NONTREND_MAX_RANGE_PTS<br><sub>Nontrend width floor</sub> | 🔢 param | unset → "18" | "18" | The range floor (points) used by NONTREND_WIDTH_FLOOR (range above this => not Nontrend). |  | `backend/v9/systems/day_type/daytype_classifier.py:93` |  |
+| OPPOSITE_EXIT_THRESHOLD<br><sub>opposite-signal exit</sub> | 🔢 param | unset → "2" | "2" | Consecutive opposite-direction signals required before OPPOSITE_EXIT_V1 closes an open trade. Default 2. | Tuning knob for OPPOSITE_EXIT_V1; inert while that flag is OFF. | `backend/v9/gateway/trading_gateway.py:558` |  |
 | PATTERN_LOSS_BREAKER_N<br><sub>Pattern loss breaker</sub> | 🔢 param | unset → "2" | "2" | Number of losses (N) that trips PATTERN_LOSS_BREAKER. |  | `backend/v9/systems/woodies/woodies_system.py:697` |  |
 | RISK_CONSECUTIVE_LOSS_LIMIT<br><sub>Risk caps</sub> | 🔢 param | — | — | Consecutive losses before STOP DAY. Default 2. |  | — |  |
 | RISK_DAILY_LOSS_CAP<br><sub>Risk caps</sub> | 🔢 param | — | — | Daily loss cap in USD. Gateway halts all fires for the day when total P&L reaches -$X. Default $250. |  | — |  |

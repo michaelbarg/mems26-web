@@ -239,6 +239,29 @@ flags:
     category: cascade_gate
     what: "Block counter-drive fires in the opening window (RTH open → IB lock); inert after IB lock."
     why: "ON (Michael 2026-06-22). Was OFF during the 06-22 morning fire window."
+  COOLDOWN_2STOP_V1:
+    category: cascade_gate
+    what: "Gate the 2-stop cooldown BLOCK in cooldown.py is_blocked(); counting/telemetry always runs, only the veto is flag-gated."
+    why: "OFF — STANDING (Michael 2026-07-02: 'לא הגדרתי צינון'). The ζ.A4 cooldown was never ratified; first-ever live count fired 07-02 and Michael ruled it off. Re-enable = trading-risk-surface change + Michael sign-off."
+  FIXED_CONTRACTS_3:
+    category: sizing
+    what: "Every FIRING setup uses exactly 3 contracts, overriding tier/auth sizing at all sizing sources (get_quality_tier_v2, compute_v2_sizing) and the Sierra command choke point."
+    why: "ON (Michael 2026-06-24 trade rule: pattern entry · 3 contracts · C1→BE · runners to LSMA). Was dead-wired to one source only → MED/LOW sent 2; fixed at both choke points 6ec3209 (2026-07-02)."
+  DAYTYPE_CONFIRM_BARS:
+    category: param
+    group: "S1 day-type stability"
+    what: "Anti-noise confirm-bar count for day-type transitions in the state machine — the new classification must persist N bars before the transition commits. unset => 1 (current behavior)."
+    why: "Built per D-daytype-stability (Michael 2026-07-01, D2 acceptance-driven transitions). Default 1 = no behavior change until raised."
+  EOD_ENTRY_CUTOFF_MIN:
+    category: param
+    group: "EOD risk window (item-21)"
+    what: "Minutes before the 15:00 CT close in which NEW entries are refused when EOD_RISK_WINDOW_V1=1. Default 45 (no entries from 14:15 CT)."
+    why: "Michael 2026-07-02: 'ב-45 דקות לפני סיום המסחר לא ייכנסו עסקאות'. Inert while EOD_RISK_WINDOW_V1 is OFF."
+  OPPOSITE_EXIT_THRESHOLD:
+    category: param
+    group: "opposite-signal exit"
+    what: "Consecutive opposite-direction signals required before OPPOSITE_EXIT_V1 closes an open trade. Default 2."
+    why: "Tuning knob for OPPOSITE_EXIT_V1; inert while that flag is OFF."
   OPENING_WINDOW_FIRE_V1:
     category: cascade_gate
     what: "Item-10: first 30 min of RTH (08:30-09:00 CT) — a POSITIVE with-drive opening signal overrides day-type refusals (S2 Auth-Table SKIP / NO_TRADE + gateway playbook SKIP). Positive confirmation only, never fail-open; all other gates apply."
@@ -387,14 +410,17 @@ flags:
     category: param
     group: "Risk caps"
     what: "Daily loss cap in USD. Gateway halts all fires for the day when total P&L reaches -$X. Default $250."
+    why: "⚠ NOT IN CODE as of 2026-07-02 (gen_flag_index 'not-in-code') — the described halt does NOT exist at runtime. Rebuild is package item-19; number pending Michael (proposed −$450)."
   RISK_MAX_TRADES_DAY:
     category: param
     group: "Risk caps"
     what: "Maximum trades per day. Gateway halts after N fires. Default 5."
+    why: "⚠ NOT IN CODE as of 2026-07-02 — no runtime cap exists. Rebuild under item-19; number pending Michael."
   RISK_CONSECUTIVE_LOSS_LIMIT:
     category: param
     group: "Risk caps"
     what: "Consecutive losses before STOP DAY. Default 2."
+    why: "⚠ NOT IN CODE as of 2026-07-02 — no runtime halt exists (see also 06-29 guards-bus finding: all circuit breakers inert). Rebuild under item-19; number pending Michael."
   MEMS_MIN_RISK_POINTS:
     category: param
     group: "Pre-fire stop sanity"

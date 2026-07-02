@@ -2,68 +2,68 @@
 
 **שער-זמן:** רץ ב-**15:21 CT** (אחרי סגירת RTH 15:00, `TZ=America/Chicago`) ✓. ריצה אוטונומית — Michael לא נוכח. **לא שונה קוד.**
 
-> 🟢 **ממצא-העל #1 — יום פעיל שני ברצף, והצד-עם-המגמה עבד.** **11 עסקאות לוגיות** (18 שורות shadow+demo, ids 271–288, 09:10→13:55 CT), שני הכיוונים. בירידת-המידיי (7594→7479.75) ירו 4 שורטים עם-המגמה — 3 מהם רווחיים (275 T1T2→BE · 281 T1+BE mfe35 · 283 T1+BE mfe29.25) + ZLR-demo 278 T1T2→BE. **feed נקי יום-4** (overlap מדויק bars5min==woodies ב-11:15/11:55/12:00/13:00/14:30/14:55).
+> 🔁 **הצלבה ל-sibling-EOD (15:12 CT, אותו-יום, `PATTERN_EOD_2026-07-02.md` + `DESIGNS_2026-07-02.md` + register §07-02):** ה-sibling כיסה את **צד-העסקאות-שירו** (11 סיגנלים, execution-layer: I-55 סטופים-צמודים ≈+7R CF = עלות-#1 · D-3 targets לא-מונוטוניים · I-58 phantom-stop · I-59 runner-give-back · I-60 missed-store). **הדוח הזה משלים את הצד-החסר:** ה-**setups שזוהו-ולא-נותבו** (6 ZLR) + **benchmark**. מספרי-I מיושרים ל-sibling.
 >
-> 🔴 **ממצא-העל #2 — gate-OFF under-block, יום שני ברצף, הפעם −4R (עלות-#1 של היום).** בזמן RED מובהק עברו 3 לונגים-נגד-מגמה: **REACTIVE_LONG 11:15 (−1R) · HTLB 12:15 (−1R) · REACTIVE_LONG 12:30 (−1R)**, ובנוסף שורט-נגד-BLUE בבוקר-הראלי **REACTIVE_SHORT 09:10 (−1R)** = **−4R ממומש** (מול −2R אתמול). `DAYTYPE_POSITION_GATE=0` (validation, I-44/I-51) ⇒ fixture שלישי לזוג-הכיול 06-30(over)/07-01(under).
+> 🟢 **ממצא-העל #1 — יום פעיל שני ברצף, הזיהוי צדק בירידה, וה-benchmark 3/5.** **11 סיגנלים** (18 שורות shadow+demo, ids 271–288, 09:10→13:55 CT). ברגל-היורדת (7594→7479.75, −114נק') ירו שורטים לאורך כל הגלישה — 09:10 · 09:36 · 10:10 · 10:16 · 11:25 · 11:35 · 12:10 — מהם 3 מנצחי-T1 (275/281/283) + ZLR-demo 278 T1T2. **feed נקי יום-4** (overlap מדויק ×6). **detector-בוקר חי** (ירי 09:10/09:36) — אישוש-שלישי.
 >
-> 🟡 **ממצא-העל #3 — S4-routing עדיין חוסם ZLR (6 איתותים detected-not-routed), אבל היום זה כמעט לא עלה כסף.** ZLR-DOWN×4 (11:55/12:35/12:45/12:55) replay = **net 0R** (איתותי-late-leg ליד המיצוי); ZLR-UP×2 (14:30/14:35, BLUE) על רגל-ה-V-העולה = **+1R פוספס** (T1-basis; MFE 26.5נק'=**3.8R** עד 7534). ⇒ פספוס-אמת deduped ≈ **+2R** (leg-A 11:55 + leg-B 14:30). ה-gate המדויק עדיין לא-חשוף post-close (CC live-trace פתוח מ-07-01).
+> 🟡 **ממצא-העל #2 — S4-routing עדיין לא-מנתב ZLR (6 איתותים detected-not-routed), אבל היום זה כמעט לא עלה כסף.** ZLR-DOWN×4 (11:55/12:35/12:45/12:55) replay = **net 0R** (מחצית late-leg ליד המיצוי); ZLR-UP×2 (14:30/14:35, BLUE) על רגל-ה-V-העולה = **+1R פוספס** (T1-basis; MFE 26.5נק'=**3.8R** עד 7534). ⇒ **פספוס-אמת deduped ≈ +2R** (leg-A 11:55 + leg-B 14:30) — מול +3R אתמול, אותו מנגנון. **hypothesis מתחדד: ZLR-daily-cap** — ZLR כן-נותב 10:16, וכל איתות אחריו לא. CC live-trace (פתוח מ-07-01) יכריע cap/A1/location.
 >
-> 🔴 **ממצא-העל #4 — שתי בעיות-אמינות-רישום חדשות/מתחזקות ביום שבו I-57 slot-fix עלה LIVE:** (א) **phantom-stop ב-shadow (I-56 מתחזק):** id277 ZLR נרשם STOP_HIT@7545.25 באותה-דקה (10:16) — מחיר ש**לא הודפס** (bar-high 10:15=7544.5, 10:20=7540.25) בעוד תאום-demo 278 עשה T1T2. (ב) **דגלי t*_hit פיקטיביים (I-58 חדש):** id279/280 מסומנים T2/T2T3 עם **mfe_pts=0** ו-T1=7539 שמעולם לא קורב (high אחרי-כניסה 7526.5). (ג) **`/api/v9/missed-trades` התאפס** — 0 היום מול 50 אתמול (I-59): לא-persistent או day-roll — ה-4 ZLR-DOWN וה-2 ZLR-UP של היום לא נרשמו בו.
+> 🔴 **ממצא-העל #3 — ירי-נגד-מגמה בשער-משפחה-כבוי, יום-שני ברצף: −3R.** בזמן RED מובהק עברו 3 לונגים: **REACTIVE_LONG 11:15 · HTLB 12:15 · REACTIVE_LONG 12:30 (−1R כ"א)**. `DAYTYPE_POSITION_GATE=0` (validation, I-44/I-51) ⇒ fixture שלישי: 06-30 over(-block) · 07-01 under −2R · **07-02 under −3R**. (271 09:10 — נגד-BLUE-בחותמת אך התזה-שורט צדקה; מסווג I-55, לא כאן.)
+>
+> 🟡 **ממצא-העל #4 — `/api/v9/missed-trades` התאפס 50→0 (I-60):** ה-store נמחק-בריסטארט (3 ריסטארטים היום per sibling) — ה-6 ZLR של-היום לא נרשמו בו ⇒ ה-audit-הזה שוב replay-ידני. persistence→PG.
 
 ## מקורות-אמת + כיסוי (הצלבה ל-CC) — **מקור-CCI = Sierra**
 
 | endpoint | כיסוי (CT) | הערה |
 |---|---|---|
 | `/api/v9/chart/bars5min?limit=80` | **08:30→14:55 (78 ברי-RTH)** | TZ=+03:00(IL,−8→CT). open 7554.75@08:30 · high **7594@08:50** · low **7479.75@12:55** · close-b5 7526.25@14:55 (h7534). |
-| `/api/v9/woodies/chart?limit=80` | **11:15→15:20 (50 ברים)** | `sierra_woodies_5min_json`, TZ=UTC(−5→CT). **RED×22 (11:15→13:00) · GRAY×11 · BLUE×17.** ZLR-DOWN×4 · ZLR-UP×5 (מהם 1 post-RTH) · **HFE×0**. חלון <11:15 חסר — מגבלת-audit מוכרת (07-01), לא עיוורון-detector (S2 ירה 09:10). |
-| `/api/v9/trades/recent?limit=100` | **היום: 18 שורות = 11 לוגיות** (ids 271–288) | S2=9 · S4=2 (277 ZLR, 285 HTLB). `mfe_pts/mae_pts` **מאוכלסים** (חדש 🟢 — מאפשר audit-give-back בלי replay). `pnl_r` פסול (I-22) → R מ-stop_initial. |
-| `/api/v9/build/pattern-status` | live post-close | `readiness=READY` · `errors=[]` · S1@close=**Trend_Normal** · s4_trend=BLUE. (נתיב `build_status/...`→404; הנתיב החי הוא `build/pattern-status`.) S2 post-close: 3 fired/7 blocked-snapshot — תבנית I-52 ה-benign. |
-| `/api/v9/missed-trades` | **count=0** | 🔴 היה 50 אתמול (15:20). התאפס — I-59. |
-| `/api/v9/day_type/state` | post-close | החזיר גוף ללא השדות-המצופים בבדיקה (מיפוי-שדות או ריק — ⚪ לא-הוכרע, לא-נחקר). |
+| `/api/v9/woodies/chart?limit=80` | **11:15→15:20 (50 ברים)** | `sierra_woodies_5min_json`, TZ=UTC(−5→CT). **RED×22 (11:15→13:00) · GRAY×11 · BLUE×17.** ZLR-DOWN×4 · ZLR-UP×5 (מהם 1 post-RTH) · **HFE×0**. חלון <11:15 חסר — מגבלת-audit מוכרת (07-01), לא עיוורון-detector (ירי 09:10). |
+| `/api/v9/trades/recent?limit=100` | **היום: 18 שורות = 11 סיגנלים** (ids 271–288) | S2=9 · S4=2 (277 ZLR, 285 HTLB). `mfe_pts/mae_pts` **מאוכלסים** (🟢 חדש — audit-give-back בלי replay). `pnl_r` פסול (I-22; 288 +$75→r=60) → R מ-stop_initial. |
+| `/api/v9/build/pattern-status` | live post-close | `readiness=READY` · `errors=[]` · S1@close=**Trend_Normal** · s4_trend=BLUE. (נתיב `build_status/...`→404; החי = `build/pattern-status`.) S2 post-close 3 fired/7 blocked-snapshot — תבנית I-52 benign. |
+| `/api/v9/missed-trades` | **count=0** | 🔴 היה 50 ב-07-01 15:20. **I-60** — store נמחק-בריסטארט (×3 היום). |
+| `/api/v9/day_type/state` | post-close | החזיר גוף ללא השדות-המצופים בבדיקה (⚪ לא-הוכרע; ה-sibling ראה endpoint קפוא — I-44 יום-4). |
 
 ## מבנה-היום (RTH, מאומת bars5min + woodies)
 
-open **7554.75@08:30** → ראלי-בוקר ל-**שיא-יום 7594@08:50** (plateau ~7585–7593 עד 09:15) → **rollover 09:20** → ירידה ממושכת (RED) **−114נק'** ל-**שפל-יום 7479.75@12:55** → **V-reversal 13:05** (בר +22נק' ל-7504.25) → רגל-BLUE-עולה ל-**7534@14:55** → close ~7520.5@15:00. טווח 114.25נק'. IB(08:30–09:25) **7551.75–7594**. חותמות day_type על עסקאות: Trend_Normal(09:10)→**UNKNOWN(09:36)**→Variation(10:10→) בעוד readiness@close=Trend_Normal — ריצוד-מקור I-44 נמשך.
+open **7554.75@08:30** → drive-up ל-**שיא-יום 7594@08:50** (plateau ~7585–7593 עד 09:15) → **rollover 09:20** → גלישת-RED **−114נק'** ל-**שפל-יום 7479.75@12:55** → **V-reversal 13:05** (+22נק' ל-7504.25) → רגל-BLUE ל-**7534@14:55** → close ~7520.5. טווח 114.25נק', נטו −28.5נק' — **יום-מגמה-יורד עם היפוך-אחה"צ לנעילה** (per sibling). IB(08:30–09:25) **7551.75–7594**. חותמות day_type: Trend_Normal(271/272)→**UNKNOWN(273/274)**→Variation(275+ ×16) מול readiness@close=Trend_Normal — **flicker I-44 יום-4** (מוטבע ×4, per sibling).
 
 ## עסקאות-שירו היום (הקשר — לא פוספסו; ground-truth v9_trades, R מ-stop_initial)
 
 | ids | זמן(CT) | תבנית | מער' | כיוון | entry | תוצאה | trend@entry | הערה |
 |---|---|---|---|---|---|---|---|---|
-| 271/272 | 09:10 | REACTIVE_SHORT | S2 | SHORT | 7583.25 | **−1R** (stop 09:13) | **BLUE** | 🔴 שורט-נגד-ראלי ליד שיא-7594 (gate-OFF) |
-| 273/274 | 09:36 | INITIATIVE_SHORT | S2 | SHORT | 7559.75 | **−1R** (stop באותו-בר, h7572.25) | GRAY | day_type=**UNKNOWN**; on-slot מול benchmark-#4 |
-| 275/276 | 10:10 | INITIATIVE_SHORT | S2 | SHORT | 7534.75 | **T1T2→BE** ✓ | RED | עם-המגמה |
-| 277/**278** | 10:16 | **ZLR** | **S4** | SHORT | 7532 | demo **T1T2→BE** ✓ · shadow **phantom-stop** | RED | 🔴 277: STOP@7545.25 שלא-הודפס (I-56) |
-| 279/280 | 11:15 | REACTIVE_LONG | S2 | LONG | 7525 | **−1R** (stop 11:20) | **RED** | 🔴 נגד-מגמה (gate-OFF) + **דגלי T2/T3 פיקטיביים, mfe=0 (I-58)** |
-| 281/282 | 11:25 | REACTIVE_SHORT | S2 | SHORT | 7514.75 | **T1@11:35 → runner BE@13:50** · mfe **35** | RED | ✓ תפס את הירידה; runner החזיר 2.8R-MFE ל-BE |
-| 283 | 11:35 | REACTIVE_SHORT | S2 | SHORT | 7509 | **T1@12:00 → runner BE@13:10** · mfe **29.25** | RED | ✓ (shadow-only — demo תפוס ב-282 עד 13:52) |
-| 284 | 12:10 | INITIATIVE_SHORT | S2 | SHORT | 7495 | **−1R** (stop 12:15) | RED | late-leg ליד המיצוי |
+| 271/272 | 09:10 | REACTIVE_SHORT | S2 | SHORT | 7583.25 | **−1R** (stop 09:13) | BLUE | **I-55**: סטופ 7592.75 נפרץ ב-**1נק'** (h09:10=7593.75) ואז **−103נק' לכיוון** (CF +1.8R). שורט-מוקדם-נכון, לא ירי-שגוי |
+| 273/274 | 09:36 | INITIATIVE_SHORT | S2 | SHORT | 7559.75 | **−1R** (stop באותו-בר, h7572.25) | GRAY | day_type=**UNKNOWN** (I-44); on-slot מול benchmark-#4; I-55-משיק (CF +0.5R per sibling) |
+| 275/276 | 10:10 | INITIATIVE_SHORT | S2 | SHORT | 7534.75 | **T1T2→BE** ✓ | RED | עם-המגמה; 276: T3-מעל-כניסה/T1==T2 = fixture **D-3** |
+| 277/**278** | 10:16 | **ZLR** | **S4** | SHORT | 7532 | demo **T1T2→BE** ✓ · shadow **phantom-stop** | RED | 🔴 **I-58**: 277 STOP@7545.25 — מחיר שלא-הודפס (highs 7544.5/7540.25); סמוך לריסטארט ~10:15 |
+| 279/280 | 11:15 | REACTIVE_LONG | S2 | LONG | 7525 | **−1R** (stop 11:20) | **RED** | 🔴 נגד-מגמה (gate-OFF, I-44/I-51) + **D-3**: T2/T3 **מתחת**-לכניסה ⇒ "T2/T3 hit" בדרך-לסטופ עם mfe=0 (`structural_targets.py:225,239`) |
+| 281/282 | 11:25 | REACTIVE_SHORT | S2 | SHORT | 7514.75 | **T1@11:35 → runner BE@13:50** · mfe **35** | RED | ✓ תפס את הגלישה; runner החזיר 2.8R-MFE ל-BE (**I-59**) |
+| 283 | 11:35 | REACTIVE_SHORT | S2 | SHORT | 7509 | **T1@12:00 → runner BE@13:10** · mfe **29.25** | RED | ✓ (**I-59**; shadow-only — demo-282 פתוח 11:25→13:52, one-position-at-a-time בדמו) |
+| 284 | 12:10 | INITIATIVE_SHORT | S2 | SHORT | 7495 | **−1R** (stop 12:15) | RED | **I-55**: סטופ נפרץ ב-**2.5נק'** (h12:15=7502) ושפל-היום 5-דק' אח"כ (CF +1R) — כיוון-נכון, סטופ-צמוד |
 | 285 | 12:15 | **HTLB** | **S4** | **LONG** | 7497 | **−1R** (stop 12:45 @7482.5) | **RED** | 🔴 נגד-מגמה (gate-OFF); הסטופ 2.75נק' מעל השפל-האמיתי 7479.75 — התזה צדקה 20 דק' מאוחר |
 | 286 | 12:30 | REACTIVE_LONG | S2 | LONG | 7495.25 | **−1R** (stop 12:35) | **RED** | 🔴 נגד-מגמה (gate-OFF) |
-| 287/288 | 13:55 | REACTIVE_SHORT | S2 | SHORT | 7508.25 | **T1@14:05 → runner BE@14:30** · mfe **16.5** | **BLUE** | נגד-מגמה שניצח (dip-14:00); השוק המשיך ל-7534 |
+| 287/288 | 13:55 | REACTIVE_SHORT | S2 | SHORT | 7508.25 | **T1@14:05 → runner BE@14:30** · mfe **16.5** | **BLUE** | נגד-מגמה שניצח (dip-14:00); 288 BE-stop הציל מראלי-הסגירה (per sibling); השוק המשיך ל-7534 |
 
-**מודוס-demo:** demo החסיר את 283/284/285/286 (11:35→12:30) — demo-282 היה פתוח 11:25→13:52 ⇒ עקבי עם one-position-at-a-time ב-demo מול ריבוי ב-shadow (תצפית, כנראה by-design; לא נרשם כבאג).
-
-## טבלת setups-שלא-בוצעו — lookback מתגלגל 6-ברים (חלון woodies 11:15→15:00)
+## טבלת setups-שלא-בוצעו — lookback מתגלגל 6-ברים (חלון woodies 11:15→15:00 + פתיחה מ-sibling)
 
 | זמן(CT) | תבנית(שלנו) | מערכת | זוהה?(flag) | entry | stop(risk) | T1 | R-נגד (replay) | gate-שחסם | I-# |
 |---|---|---|---|---|---|---|---|---|---|
-| **11:55** (**leg-A**, אחרי pullback 11:40–11:50) | **ZLR-DOWN** המשך | S4 | ✅ `zlr=DOWN` RED cci−135 | 7501.5 | 7509.5 (8.0) | 7493.5 | **+1R** (T1@12:00; MFE 21.75נק'=2.7R) | S4-routing (לא-נותב; **לא נרשם ב-missed-endpoint=0**) | ready_to_route·I-59 |
+| 08:45 | OPENING_WINDOW (LONG בראש-ה-drive) | S2 | ✅ נחסם (per sibling §פריט-10) | — | — | — | **−1R נחסך** ✓ (לפני היפוך −114נק') | `OPENING_WINDOW_FIRE_V1` — **חסימה-מיטיבה**; העיצוב דורש confirm-condition, לא הסרה | פריט-10 |
+| **11:55** (**leg-A**, אחרי pullback 11:40–11:50) | **ZLR-DOWN** המשך | S4 | ✅ `zlr=DOWN` RED cci−135 | 7501.5 | 7509.5 (8.0) | 7493.5 | **+1R** (T1@12:00; MFE 21.75נק'=2.7R) | S4-routing (לא-נותב; לא-נרשם ב-missed-store — I-60) | ready_to_route |
 | 12:35 | ZLR-DOWN (late) | S4 | ✅ cci−103 | 7486.75 | 7495.5 (8.75) | 7478 | **−1R** (T1 החטיא ב-1.75; stop@13:05 V-up) | ↑ | |
 | 12:45 | ZLR-DOWN (late) | S4 | ✅ cci−116 | 7485.75 | 7491.5 (5.75) | 7480 | **+1R** (T1@12:55) | ↑ | |
 | 12:55 | ZLR-DOWN (into-low) | S4 | ✅ cci−129 | 7482 | 7490.25 (8.25) | 7473.75 | **−1R** (stop@13:05) | ↑ | |
 | 13:20+13:25 | ZLR-UP ×2 | S4 | ✅ GRAY cci+86/+121 | (7501.25) | — | — | (+1R היפ' כ"א) | **דילוג-נכון** (GRAY, trend-gate) | — |
 | **14:30+14:35** (**leg-B**) | **ZLR-UP** המשך | S4 | ✅ ×2 **BLUE** cci+18/+52 | 7507.5 | 7500.5 (7.0) | 7514.5 | **+1R** (T1@14:50; **MFE 26.5נק'=3.8R** עד 7534@14:55) | S4-routing (ZLR-daily-cap? כבר-ירה 10:16) | ready_to_route |
-| 14:25→14:50 | S2 continuation-LONG (pullback-resume, חופף leg-B) | S2 | ❌ אין עדות-איתות | 7502.5 | 7493 (9.5) | 7512 | (+1R; חופף leg-B — לא-נספר) | לא-זוהה — S2-long שתק על רגל-BLUE שלמה (+54נק') | |
+| 14:25→14:50 | S2 continuation-LONG (pullback-resume, חופף leg-B) | S2 | ❌ אין עדות-איתות | 7502.5 | 7493 (9.5) | 7512 | (+1R; חופף — לא-נספר) | לא-זוהה — S2-long שתק על רגל-BLUE שלמה (+54נק') | |
 | 15:10 | ZLR-UP | S4 | ✅ | — | — | — | — | **post-RTH** — מחוץ-לטווח | — |
 
 **ΣR-נגד (replay מבני, deduped):**
-- **ZLR-DOWN ×4:** ‎+1−1+1−1 = **0R נטו** — אי-הניתוב לא עלה כסף היום (ה-cluster המאוחר 12:35→12:55 היה net −1R; החסימה שם דווקא חסכה).
+- **ZLR-DOWN ×4:** ‎+1−1+1−1 = **0R נטו** — אי-הניתוב לא עלה כסף היום (ה-cluster 12:35→12:55 net −1R; החסימה שם דווקא חסכה).
 - **ZLR-UP leg-B (14:30):** **+1R פוספס** T1-basis; upside עד **+3.8R** (MFE 26.5נק').
-- ⇒ **פספוס-אמת ≈ +2R** (leg-A + leg-B, T1-basis; ‎~+6.5R MFE-basis).
-- **מנגד — העלות הממומשת של היום: −4R מ-4 ירי-נגד-מגמה** (271/279/285/286, gate-OFF I-44/I-51).
-- **give-back-runners (לא-entry):** MFE ‎35+29.25+16.5=80.75נק' על 3 שורטים-מנצחים → runners יצאו **BE** (T1 כן-נגבה). trailing-runner/LSMA (spec CC מ-06-18, כלל-העסקה של Michael) עדיין לא-בנוי — זה ה-flavor של I-54 היום (ה-T1 עצמם סבירים ~1R, לא רחוקים כמו 07-01).
+- ⇒ **פספוס-אמת ≈ +2R** (leg-A + leg-B, T1-basis; ‎~+6.5R MFE-basis). חסימת-08:45 **חסכה** −1R (מאזנת חלקית).
+- **מנגד — עלויות-ממומשות (צד-הירי, per sibling):** **I-55 סטופים-צמודים ≈ +7R CF (עלות-#1)** · **gate-OFF −3R** (279/285/286) · **I-59 runners** ‎80.75נק' MFE→BE (CF +1.3R).
 
-⇒ **היום הבעיה לא הייתה "פספוס" אלא סלקטיביות-כיוונית:** הצד-עם-המגמה ירה ועבד; הנזק בא מ-4 ירי-נגד-מגמה שעברו בשער-משפחה-כבוי, בעוד 6 איתותי-ZLR עם-המגמה לא-נותבו (בעלות-נמוכה היום — אבל אותו מנגנון עלה +3R אתמול).
+⇒ **היום הבעיה לא הייתה "פספוס":** הזיהוי צדק לאורך כל הגלישה, פספוס-הניתוב עלה ≈+2R בלבד; הכסף דלף ב-execution (סטופים-צמודים, ראנרים-BE) וב-3 לונגים-נגד-מגמה בשער-כבוי.
 
 ## 🎯 BENCHMARK — 5 הסלוטים של Michael (template יום-יורד 06-05) מול היום
 
@@ -71,39 +71,41 @@ open **7554.75@08:30** → ראלי-בוקר ל-**שיא-יום 7594@08:50** (pl
 
 | # | סלוט(CT) | סוג(template) | מה קרה בפועל | המערכת | הערכה |
 |---|---|---|---|---|---|
-| 1 | 8:35 | REVERSAL (S2) | אין reversal — המשך-ראלי 7554.75→7594 | לא ירה עד 09:10 | ⚪ N/A (הסלוט לא-התקיים); אי-ירי היה נכון |
-| 2 | 9:00–9:05 | LONG טקטי | מחיר על השיאים (plateau) | **REACTIVE_SHORT 09:10 נגד-BLUE (−1R)** | ✗ ירי-הפוך לסלוט (gate-OFF) |
-| 3 | 9:20 | SHORT | **ה-rollover התחיל 09:20 בדיוק** | ירי-שורט ראשון 09:36 (−1R); מוצלח מ-10:10 | ≈ אותר באיחור 16ד' |
-| 4 | 9:35 | SHORT | המשך-הירידה | **INITIATIVE_SHORT ירה 09:36 — on-slot** (−1R stop) | ✅ ירה בדקה-הנכונה |
-| 5 | 10:00 | SHORT | האצת-הירידה | INIT_SHORT 10:10 (T1T2→BE) + **S4 ZLR 10:16** (demo T1T2) | ✅ נתפס + רווח |
+| 1 | 8:35 | REVERSAL (S2) | אין reversal — drive-up 7554.75→7594 | לא-ירה; חסימת-08:45 מנעה LONG-בראש (−1R נחסך) | ⚪ N/A (הסלוט לא-התקיים); אי-ירי נכון |
+| 2 | 9:00–9:05 | LONG טקטי | מחיר על השיאים (plateau) | לא-ירה LONG | ✗ לא-אותר (אך ביום-כזה ערכו שולי) |
+| 3 | 9:20 | SHORT | **ה-rollover התחיל 09:20 בדיוק** | ניסיון-מוקדם 09:10 (I-55, נפרץ-1נק' ואז −103נק') + 09:36 | ≈ אותר — ירי-מוקדם-נכון שנעצר-בצמוד |
+| 4 | 9:35 | SHORT | המשך-הירידה | **INITIATIVE_SHORT ירה 09:36 — on-slot** (−1R, I-55-משיק) | ✅ ירה בדקה-הנכונה |
+| 5 | 10:00 | SHORT | האצת-הירידה | INIT_SHORT 10:10 (T1T2→BE) + **S4 ZLR 10:16** (demo T1T2→BE) | ✅ נתפס + רווח |
 
-**שורת-benchmark: 3/5 אותרו-וירו כיוון-נכון (סלוטים 3≈/4✅/5✅), סלוט-1 לא-התקיים ביום-כזה, סלוט-2 קיבל ירי-הפוך (−1R, אותו gate-OFF).** רצף הסלוטים 9:20→10:00 — לב-הרגל-היורדת — כוסה בפועל ע"י המערכת. detector-בוקר חי (ירי 09:10/09:36) — אישוש-שלישי שאין עיוורון-בוקר.
+**שורת-benchmark: 3/5 אותרו-וירו כיוון-נכון (3≈/4✅/5✅); סלוט-1 לא-התקיים; סלוט-2 לא-אותר.** לב-הרגל-היורדת (9:20→10:00) כוסה בירי-בפועל — אבל **שלושת-הירי-המוקדמים הוחזרו ב-I-55** (סטופים-צמודים) במקום לשלם. detector-בוקר חי — אישוש-שלישי שאין עיוורון-בוקר.
 
 ## פירוק לפי gate
 
 | gate | #setups | סטטוס |
 |---|---|---|
-| **🔴 I-44/I-51 — שער-משפחה כבוי → under-block** | 4 ירי-נגד (−4R) | **עלות-#1 היום.** 3 לונגים-ב-RED (279/285/286) + שורט-ב-BLUE (271). fixture שלישי: 06-30 over-block · 07-01 under −2R · **07-02 under −4R**. handoff `CC_DAYTYPE_SOURCE_CONSISTENCY_2026-06-30.md` קדימות-1; re-enable = החלטת-Michael. |
-| **🟡 S4-routing (ready_to_route-family)** | 6 ZLR לא-נותבו | נמשך יום-שני, אך ΣR-נגד היום נמוך (+2R deduped, ZLR-DOWN-cluster אף net-0R). **hypothesis מתחדד: ZLR-daily-cap** — ZLR כן-נותב 10:16; כל האיתותים אחרי כבר-לא. CC live-trace (פתוח מ-07-01) יכריע cap/A1/location. |
-| **🔴 I-56 מתחזק — shadow phantom-stop** | id277 | STOP@7545.25 באותה-דקה, מחיר לא-הודפס (highs 7544.5/7540.25); תאום-demo T1T2 ✓. ביום שבו **I-57 slot-fix עלה LIVE** — לבדוק אם boot-קודם או residue. → CC. |
-| **🔴 I-58 חדש — דגלי t*_hit פיקטיביים** | id279/280 | T2/T2T3 מסומנים עם mfe_pts=0 ו-T1=7539 שלא-קורב (high-אחרי-כניסה 7526.5). מזהם דוחות/סטטיסטיקות תבניות. משיק ל-I-22 אך נפרד (דגלים, לא נוסחת-R). → CC. |
-| **🟡 I-59 חדש — missed-endpoint לא-persistent** | 0 מול 50-אתמול | ההיסטוריה נעלמת (day-roll/in-memory?) וה-6 ZLR של-היום לא-נרשמו. משלים את dedup+R-fill מ-07-01. → CC `missed_trade_detector.py`. |
-| **🟠 trailing-runner חסר (spec 06-18)** | 3 runners | MFE 35/29.25/16.5נק' → BE (T1 נגבה ✓). כלל-Michael "runners exit at LSMA" עדיין לא-ממומש. זה ה-give-back של היום (מתון מ-I-54 של 07-01 — ה-T1 היו ~1R סבירים). |
-| **🟢 I-52 — benign, אישוש-שלישי** | — | S2 ירה 9 לוגיות ⇒ mode_context נכח כל-הסשן; blocked-snapshot post-close בלבד. |
-| **🟢 feed — נקי יום-4** | 0 | overlap מדויק ×6 נקודות; אין I-40/I-47. **HFE×0 flags** היום (מול 12 אתמול) — תצפית, HFE ממילא disabled-by-design. |
+| **🔴 I-55 — סטופ-צמוד על כיוון-נכון (execution, לא-entry)** | 3 ירי (271/273/284) | **עלות-#1 היום ≈+7R CF** (per sibling; 272 נפרץ-1נק'→−103נק'). ה-benchmark-hits של-היום (סלוטים 3/4) הפכו ל-−1R במקום-רווח. fix מאושר = **STOP_RESOLVER_V1 (פריט-4) ראשון-לבנייה**, fixtures 272/274/284. |
+| **🔴 I-44/I-51 — שער-משפחה כבוי → under-block** | 3 לונגים-נגד (−3R) | 279/285/286 ב-RED מובהק. fixture שלישי: 06-30 over · 07-01 under −2R · **07-02 under −3R**. handoff `CC_DAYTYPE_SOURCE_CONSISTENCY_2026-06-30.md`; re-enable = החלטת-Michael. flicker-חותמות ×4 נמשך (I-44 יום-4). |
+| **🟡 S4-routing (ready_to_route-family)** | 6 ZLR לא-נותבו | נמשך יום-שני, אך זול-היום: ΣR-נגד +2R deduped (ZLR-DOWN-cluster net-0R). **hypothesis: ZLR-daily-cap** (נותב 10:16, הכל-אחריו לא). CC live-trace מ-07-01 עומד. |
+| **🟠 I-59 — runner give-back ל-BE** | 3 runners (281/282/283) | MFE 35/29.25/16.5נק' → BE (T1 נגבה ✓; CF +1.3R). LSMA-trail (חוק-06-24, spec 06-18, bt +$273) לא-נבנה. מתון מ-I-54 של-07-01 — ה-T1 החדשים (structural) בני-השגה: **6/11 פגעו-T1** מול 88נק'-אתמול. |
+| **🔴 I-58 — shadow phantom-stop (הסלמת I-56)** | id277 | STOP@7545.25 באותה-דקה — מחיר שלא-הודפס (highs 7544.5/7540.25); תאום-demo T1T2 ✓; סמוך-לריסטארט ~10:15. **חוסם-הסקת-LIVE מ-shadow** (עם I-22). → CC Sierra-ticks. |
+| **🔴 D-3 — targets לא-מונוטוניים** | 279/280 (+276/278) | LONG עם T2/T3 **מתחת**-לכניסה ⇒ "hit" בדרך-לסטופ (mfe=0, 280 −$77.5 חשד-רגל-יציאה); SHORT עם T3-מעל/T1==T2. `structural_targets.py:225,239`, F-2(ה) — **validator-מונוטוניות מיידי** (safe, per sibling). |
+| **🟡 I-60 — missed-store נמחק-בריסטארט** | 50→0 | ×3 ריסטארטים היום; ה-6 ZLR לא-נרשמו ⇒ audit=replay-ידני. persistence→PG + dedup+R-fill (מ-07-01). |
+| **🟢 I-52 — benign, אישוש-שלישי** | — | S2 ירה 9 סיגנלים ⇒ mode_context נכח; blocked=snapshot post-close. |
+| **🟢 feed — נקי יום-4** | 0 | overlap מדויק ×6; אין I-40/I-47. **HFE×0 flags** (מול 12 אתמול) — תצפית; HFE ממילא disabled-by-design. |
+| **🟢 פריט-10 — חסימת-פתיחה מיטיבה (fixture-נגד)** | 1 | 08:45-block חסך −1R (LONG בראש-ה-drive). מאזן את fixture-07-01-בעד ⇒ העיצוב = confirm-condition, לא הסרה-עיוורת. |
 | **⚪ גייטי-chop (מושבתים, standing 06-08)** | — | OFF. לא-רלוונטי · אין המלצה להפעיל — Michael בלבד. |
 
-### תוקנו/השתפרו מול פתוחים
-- **🟢 detector-בוקר חי יום-שני** (09:10/09:36) + **הצד-עם-המגמה מנצח** (3 שורטים-רווחיים בירידה) + **mfe_pts מאוכלס** (חדש — מקל audit) + **S4 נותב** (ZLR 10:16 demo T1T2→BE ✓, HTLB) + feed-נקי יום-4.
-- **🔴 נמשכים:** gate-OFF under-block (−4R, מחמיר מ-−2R) · S4-routing 6-ZLR (זול-היום, +3R-אתמול) · phantom-fills/flags (I-56+I-58) · missed-endpoint (I-59).
-- **🟠 trailing-runner** — 80נק' MFE חזרו ל-BE; ה-spec מ-06-18 ממתין.
+### תוקנו/השתפרו מול פתוחים (זווית-הפספוסים)
+- **🟢 I-57 תוקן-ואומת-חי** (5 מחזורי-דמו נקיים, per sibling) · **targets-structural עובדים** (T1 בני-השגה 6/11) · **mfe_pts מאוכלס** · **detector-בוקר חי יום-שני** · feed-נקי יום-4 · benchmark 3/5.
+- **🔴 נמשכים:** S4-routing 6-ZLR (זול-היום +2R, +3R-אתמול; cap-hypothesis ל-CC) · gate-OFF −3R (מחמיר מ-−2R) · I-55 ≈+7R (הוסלם, fix=פריט-4) · I-58 phantom · D-3 targets · I-60 store.
+- **🟠 I-59 trailing-runner** — 80נק' MFE חזרו ל-BE; spec-06-18 ממתין.
 
 ## נטיפיקציה ל-Michael
-**🟢 יום פעיל שני ברצף (11 לוגיות, שני-כיוונים) והרגל-היורדת נסחרה נכון** — 3 שורטים-מנצחים + ZLR-demo BE, feed-נקי יום-4, benchmark **3/5** (סלוט-4 ירה בדקה-המדויקת 09:36).
-**🔴 עלות-היום: −4R מ-4 ירי-נגד-מגמה** (שער-משפחה כבוי, I-44/I-51 — יום-שני של under-block, מחמיר). **פספוס-אמת רק ≈+2R:** ZLR-DOWN-cluster שנחסם היה net-0R; ה-ZLR-UP-leg על ה-V (+1R, MFE 3.8R) לא-נותב — hypothesis: ZLR-daily-cap (ירה-כבר 10:16).
-**🔴 אמינות-רישום:** phantom-stop shadow (277, מחיר-שלא-הודפס, I-56) + דגלי-T2/T3-פיקטיביים (279/280, I-58 חדש) + missed-endpoint התאפס 50→0 (I-59) — שלושתם ל-CC, רלוונטי במיוחד ביום שבו I-57 עלה LIVE.
-**🟠 trailing-runner:** 80.75נק' MFE על 3 מנצחים חזרו ל-BE — ה-spec מ-06-18 הוא הכסף-על-השולחן הגדול של היום.
-**החוסם-המוביל (בעלות): I-44/I-51 gate-OFF (−4R ממומש) · החוסם-המוביל (בתדירות): S4-routing (6 ZLR).** גייטי-chop נשארים OFF (standing). **לא שונה קוד.**
+**🟢 יום פעיל שני ברצף (11 סיגנלים) — הזיהוי צדק לאורך כל הגלישה-היורדת, benchmark 3/5 (סלוט-4 בדקה-המדויקת 09:36), feed-נקי יום-4, I-57 אומת-חי.**
+**🟡 פספוס-אמת ≈ +2R בלבד** (ZLR leg-A 11:55 +1R · leg-B 14:30 +1R, MFE 3.8R; ה-cluster-המאוחר שנחסם היה net-0R) — S4-routing עדיין לא-מנתב ZLR (6 איתותים); **hypothesis: ZLR-daily-cap** (נותב רק 10:16) → CC live-trace.
+**🔴 הכסף האמיתי דלף ב-execution (per sibling, מאושש כאן מזווית-replay): I-55 סטופים-צמודים ≈+7R (271 נפרץ-1נק'→−103נק'; fix=STOP_RESOLVER_V1 ראשון) · gate-OFF −3R (3 לונגים-נגד-RED, יום-שני של under-block) · I-59 ראנרים 80נק'-MFE→BE.**
+**🔴 אמינות-רישום:** I-58 phantom-stop (277, מחיר-שלא-הודפס, סמוך-לריסטארט) · D-3 targets-לא-מונוטוניים (279/280 T2-מתחת-לכניסה "פגע" בדרך-לסטופ) · I-60 missed-store נמחק-בריסטארט (50→0).
+**החוסם-המוביל (בעלות): I-55 · (בתדירות): S4-routing (6 ZLR).** גייטי-chop נשארים OFF (standing). **לא שונה קוד.**
 
 ---
-*נוצר אוטונומית ע"י Cowork (15:21 CT, 2026-07-02). מאומת-תוכניתית (Rule 2/5): overlap bars5min==woodies @11:15(7520.75)·11:55(7501.5)·12:00(7488.5)·13:00(7489)·14:30(7507.5)·14:55(7526.25) · day: open7554.75@08:30 high7594@08:50 low7479.75@12:55 close-b5 7526.25@14:55 · woodies RED×22/GRAY×11/BLUE×17, ZLR-DOWN@11:55,12:35,12:45,12:55 · ZLR-UP@13:20,13:25,14:30,14:35,15:10 · HFE×0 · trades=18 שורות/11 לוגיות ids271–288 (S2=9,S4=2; זוגות shadow+demo: 271/2,273/4,275/6,277/8,279/80,281/2,287/8; shadow-only 283–286 בעוד demo-282 פתוח 11:25→13:52) · R מ-stop_initial (pnl_r פסול I-22) · phantom-277: exit10:16 STOP@7545.25 מול highs 7544.5(10:15)/7540.25(10:20) · I-58: 279/280 T1=7539, high-אחרי-כניסה 7526.5, mfe_pts=0 · replay: 11:55→T1@12:00(+1R,MFE21.75) · 12:35→stop@13:05(−1R) · 12:45→T1@12:55(+1R) · 12:55→stop@13:05(−1R) · 14:30→T1@14:50(+1R,MFE26.5=3.8R) · missed-endpoint count=0 (אתמול 50) · pattern-status: נתיב-חי `build/pattern-status` (הישן `build_status/`→404) READY/errors=[] S1@close=Trend_Normal. TZ: woodies=UTC(−5→CT) · bars5min/trades=+03:00(IL,−8→CT). **לא שונה קוד.***
+*נוצר אוטונומית ע"י Cowork (15:21 CT, 2026-07-02). מאומת-תוכניתית (Rule 2/5): overlap bars5min==woodies @11:15(7520.75)·11:55(7501.5)·12:00(7488.5)·13:00(7489)·14:30(7507.5)·14:55(7526.25) · day: open7554.75@08:30 high7594@08:50 low7479.75@12:55 close-b5 7526.25@14:55 · woodies RED×22/GRAY×11/BLUE×17 · ZLR-DOWN@11:55,12:35,12:45,12:55 · ZLR-UP@13:20,13:25,14:30,14:35,15:10 · HFE×0 · trades=18 שורות/11 סיגנלים ids271–288 (S2=9,S4=2; זוגות: 271/2,273/4,275/6,277/8,279/80,281/2,287/8; shadow-only 283–286 בעוד demo-282 פתוח 11:25→13:52) · R מ-stop_initial (pnl_r פסול I-22) · I-58: exit10:16 STOP@7545.25 מול highs 7544.5(10:15)/7540.25(10:20) · D-3: 279/280 T1=7539 מעל, T2/T3 מתחת-לכניסה, mfe_pts=0 · I-55: סטופ-272=7592.75 מול h09:10=7593.75 (פער-1נק') → −103נק'; סטופ-284=7499.5 מול h12:15=7502 (2.5נק') → שפל 5-דק' · replay: 11:55→T1@12:00(+1R,MFE21.75) · 12:35→stop@13:05(−1R) · 12:45→T1@12:55(+1R) · 12:55→stop@13:05(−1R) · 14:30→T1@14:50(+1R,MFE26.5=3.8R) · missed-endpoint=0 (07-01: 50) · pattern-status: הנתיב-החי `build/pattern-status` (`build_status/`→404) READY/errors=[] S1@close=Trend_Normal. TZ: woodies=UTC(−5→CT) · bars5min/trades=+03:00(IL,−8→CT). הצלבת-sibling: PATTERN_EOD_2026-07-02.md · DESIGNS_2026-07-02.md · register §[2026-07-02 15:12 CT]. **לא שונה קוד.***

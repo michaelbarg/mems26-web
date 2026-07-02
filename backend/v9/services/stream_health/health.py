@@ -33,6 +33,17 @@ STREAM_NAMES: List[str] = [
     "5min",
 ]
 
+# Streams the bridge legitimately pushes 24/5 that are NOT part of the
+# canonical session-health set (continuous twins — see SYSTEM_CLEANUP_AUDIT
+# 2026-07-02 §B1). Acknowledged silently: on 2026-07-02 they generated
+# thousands of "unknown stream" warnings/day and drowned real alerts.
+# Promoting them to tracked streams (changes the GREY market-closed logic)
+# is a product decision deferred to the cleanup PR.
+KNOWN_UNTRACKED = frozenset({
+    "cvd_continuous",
+    "bars_5min_continuous",
+})
+
 # Thresholds (seconds)
 GREEN_THRESHOLD = 10.0
 YELLOW_THRESHOLD = 60.0
@@ -67,6 +78,7 @@ class StreamHealthService:
         }
         self._cache: Optional[Dict[str, Any]] = None
         self._cache_ts: float = 0.0
+        self._unknown_counts: Dict[str, int] = {}
 
     # ── Recording methods (called from bars.py / EventDispatcher) ──
 
@@ -75,7 +87,17 @@ class StreamHealthService:
         with self._lock:
             state = self._streams.get(stream_name)
             if state is None:
-                logger.warning("[StreamHealth] unknown stream: %s", stream_name)
+                if stream_name in KNOWN_UNTRACKED:
+                    return  # continuous twin — acknowledged, silent
+                # Rate-limited: first occurrence + every 1000th (a truly
+                # unknown stream stays loud without flooding the log).
+                n = self._unknown_counts.get(stream_name, 0) + 1
+                self._unknown_counts[stream_name] = n
+                if n == 1 or n % 1000 == 0:
+                    logger.warning(
+                        "[StreamHealth] unknown stream: %s (seen %d times)",
+                        stream_name, n,
+                    )
                 return
             state.last_bridge_push_ts = time.time()
             state.push_count += 1
