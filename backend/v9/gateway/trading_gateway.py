@@ -436,6 +436,30 @@ class TradingGateway:
             except Exception as _st_err:
                 logger.warning("[Gateway] structural targets errored (fail-safe): %s", _st_err)
 
+        # I-61 (Michael 2026-07-02 ~20:1x, trades 279/280): FINAL target-side guard for
+        # EVERY setup (S2 has no A7 validator — a LONG went to Sierra with t2/t3 BELOW
+        # entry and disintegrated instantly). Any target on the wrong side of entry is
+        # dropped to None (honest) with a loud log. Applies after the structural
+        # override so it guards both R-based and resolver-produced ladders.
+        _tg_entry = setup.get("entry_price")
+        if _tg_entry:
+            _tg_dir = str(direction).upper()
+            for _tk in ("t1", "t2", "t3"):
+                _tv = setup.get(_tk)
+                if _tv is None:
+                    continue
+                try:
+                    _wrong = (float(_tv) <= float(_tg_entry)) if _tg_dir == "LONG" \
+                        else (float(_tv) >= float(_tg_entry))
+                except (TypeError, ValueError):
+                    continue
+                if _wrong:
+                    logger.warning(
+                        "[Gateway] I-61 target-side guard: %s %s=%.2f on wrong side of entry=%.2f → None",
+                        _tg_dir, _tk, float(_tv), float(_tg_entry),
+                    )
+                    setup[_tk] = None
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:
