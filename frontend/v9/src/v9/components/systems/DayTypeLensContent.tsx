@@ -1,182 +1,152 @@
 'use client';
-import { useEffect, useState } from 'react';
+// DayTypeLensContent — the S1 (Day-Type) side-panel lens, tidied (P-UI day-type round,
+// 2026-07-02). One clear read-only panel:
+//   1. Current classification — type (colored, same palette as the labeler/build-status
+//      tables) + status (FORMING/PROVISIONAL/CLASSIFIED) + since-when + stance + reason.
+//   2. The classifier's own context — IB width/class/source · VA width · opening · volume.
+//   3. Key levels (IBH/IBL + POC/VAH/VAL + ranges) — the existing KeyLevelsCard
+//      (/api/v9/key_levels, 15s hook — reused, not duplicated).
+//   4. The 7-type legend with the trader meaning per type (playbook one-liners).
+//
+// Data source: useLiveDayType → GET /api/v9/day_type/classify_replay (the CANONICAL
+// 7-type classifier — docs/SOURCE_OF_TRUTH.md §Day-type ✅ / S1_ACTIVE_CANONICAL.md),
+// 30s poll, one existing hook mount — no new endpoints, no new intervals.
+// REMOVED (dead sources, retired from the frontend 2026-06-22 per SOURCE_OF_TRUTH.md):
+//   GET /api/v9/day_type/v9/current (returns data:null → the old block never rendered)
+//   GET /api/v9/day_type/state (legacy wrapper; meta was its only use here).
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
 import { useLiveDayType } from '../../hooks/useLiveDayType';
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-interface DayTypeV9Data {
-  session_date: string;
-  day_type: string;
-  probability: number | null;
-  directional_certainty: string | null;
-  trading_confidence: string | null;
-  ib_h: number | null;
-  ib_l: number | null;
-  ib_width: number | null;
-  ib_range: number | null;
-  ib_width_class: string | null;
-  ib_locked: boolean;
-  opening_type: string | null;
-  last_updated_at: string | null;
-  reasoning_notes: string | null;
-  active_zohar_rules: string[];
-}
-
-interface LiveMeta {
-  globex_h: number | null;
-  globex_l: number | null;
-  rth_session_h: number | null;
-  rth_session_l: number | null;
-  ib_high_live: number | null;
-  ib_low_live: number | null;
-  ib_locked: boolean;
-}
+import { DAY_TYPE_LEGEND, DAY_TYPE_DIRECTION_HE, dayTypeColor } from '../../lib/dayType';
 
 interface LensContentProps {
   activeTab: string;
 }
 
+function Meta({ label, value, color }: { label: string; value: string; color?: string }) {
+  return (
+    <span style={{ whiteSpace: 'nowrap' }}>
+      <span style={{ color: COLORS.textDisabled }}>{label} </span>
+      <b style={{ color: color ?? COLORS.textSecondary, fontWeight: 600 }}>{value}</b>
+    </span>
+  );
+}
+
 export function DayTypeLensContent({ activeTab }: LensContentProps) {
-  const [current, setCurrent] = useState<DayTypeV9Data | null>(null);
-  const [classified, setClassified] = useState(false);
-  const [developing, setDeveloping] = useState(false);
-  const [liveMeta, setLiveMeta] = useState<LiveMeta | null>(null);
   const color = systemColor(1);
-  // NEW validated state-machine classifier (live shadow); preferred over the old engine's value.
+  // Canonical 7-type classifier (live shadow) — existing 30s hook.
   const live = useLiveDayType();
 
-  useEffect(() => {
-    fetch(`${API_BASE}/api/v9/day_type/v9/current`)
-      .then((r) => r.json())
-      .then((d) => {
-        setClassified(d?.classified ?? false);
-        setDeveloping(d?.developing ?? false);
-        setCurrent(d?.data ?? null);
-      })
-      .catch(() => {});
-    // Fetch live state meta for Globex/RTH session ranges
-    fetch(`${API_BASE}/api/v9/day_type/state`)
-      .then((r) => r.json())
-      .then((d) => {
-        const m = d?.state?.meta ?? {};
-        setLiveMeta({
-          globex_h: m.globex_h ?? null,
-          globex_l: m.globex_l ?? null,
-          rth_session_h: m.rth_session_h ?? null,
-          rth_session_l: m.rth_session_l ?? null,
-          ib_high_live: m.ib_high_live ?? null,
-          ib_low_live: m.ib_low_live ?? null,
-          ib_locked: m.ib_locked ?? false,
-        });
-      })
-      .catch(() => {});
-  }, [activeTab]);
-
-  const ibStatusLabel = classified ? 'CLASSIFIED' : developing ? 'IB DEVELOPING' : 'PENDING';
-  const ibStatusColor = classified
-    ? COLORS.textTertiary
-    : developing
-    ? '#FACC15'
-    : COLORS.textTertiary;
-
   if (activeTab === 'Now') {
+    const dtc = dayTypeColor(live?.day_type);
+    const classified = live?.status === 'CLASSIFIED';
+    const stance = live?.direction ? (DAY_TYPE_DIRECTION_HE[live.direction] ?? live.direction) : null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color }}>
-            {live?.day_type
-              ? live.day_type.replace(/_/g, ' ')
-              : classified
-              ? (current?.day_type?.replace(/_/g, ' ') ?? '\u2014')
-              : developing
-              ? 'Building IB\u2026'
-              : '\u2014'}
-          </span>
-          <span style={{ fontSize: 9, color: ibStatusColor, fontWeight: developing ? 700 : 400 }}>
-            {live?.status || ibStatusLabel}
+        {/* 1. Current classification */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+          {live?.day_type ? (
+            <span style={{
+              fontSize: 12, fontWeight: 700, color: dtc,
+              padding: '1px 7px', borderRadius: 3,
+              background: `${dtc}${classified ? '26' : '14'}`,
+              border: `1px solid ${dtc}${classified ? 'cc' : '55'}`,
+            }}>
+              {live.day_type.replace(/_/g, ' ')}
+              {live.invalidated ? ' ⚠' : ''}
+            </span>
+          ) : (
+            <span style={{ fontSize: 12, fontWeight: 700, color }}>—</span>
+          )}
+          <span style={{
+            fontSize: 9, fontWeight: classified ? 400 : 700,
+            color: classified ? COLORS.textTertiary : '#FACC15',
+          }}>
+            {live?.status ?? 'מסווג לא זמין'}
           </span>
         </div>
-        {current && (
-          <>
-            {classified && (
-              <div style={{ fontSize: 9, color: COLORS.textSecondary }}>
-                Probability: {current.probability != null ? `${Math.round(current.probability * 100)}%` : '\u2014'}
-                {current.directional_certainty && (
-                  <span style={{ marginLeft: 8, color: COLORS.textTertiary }}>
-                    Dir: {current.directional_certainty}
-                  </span>
-                )}
-                {current.trading_confidence && (
-                  <span style={{ marginLeft: 8, color: COLORS.textTertiary }}>
-                    Trade: {current.trading_confidence}
-                  </span>
-                )}
-              </div>
-            )}
-            <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
-              {(current.ib_h != null && current.ib_l != null) ? (
-                <>
-                  <span style={{ color: developing ? '#FACC15' : COLORS.textSecondary }}>
-                    IBH {current.ib_h.toFixed(2)}
-                  </span>
-                  {' / '}
-                  <span style={{ color: developing ? '#FACC15' : COLORS.textSecondary }}>
-                    IBL {current.ib_l.toFixed(2)}
-                  </span>
-                  {(current.ib_range ?? current.ib_width) != null && (
-                    <span style={{ marginLeft: 6, color: developing ? '#FACC15' : COLORS.textSecondary, fontWeight: 700 }}>
-                      {(current.ib_range ?? current.ib_width)!.toFixed(1)} pt
-                      {developing ? ' 🔄' : current.ib_locked ? ' 🔒' : ''}
-                    </span>
-                  )}
-                </>
-              ) : (
-                <span>IB: \u2014</span>
-              )}
-            </div>
-            <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
-              Opening: {current.opening_type || '\u2014'}
-              {current.ib_width_class && current.ib_width_class !== 'DEVELOPING' && (
-                <span style={{ marginLeft: 8 }}>{current.ib_width_class}</span>
-              )}
-            </div>
-            {liveMeta && (liveMeta.globex_h != null || liveMeta.globex_l != null) && (
-              <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
-                <span style={{ color: '#94A3B8' }}>Globex: </span>
-                {liveMeta.globex_h != null ? liveMeta.globex_h.toFixed(2) : '\u2014'}
-                {' / '}
-                {liveMeta.globex_l != null ? liveMeta.globex_l.toFixed(2) : '\u2014'}
-                {liveMeta.globex_h != null && liveMeta.globex_l != null && (
-                  <span style={{ marginLeft: 4, color: '#94A3B8' }}>
-                    ({(liveMeta.globex_h - liveMeta.globex_l).toFixed(1)} pt)
-                  </span>
-                )}
-              </div>
-            )}
-            {liveMeta && (liveMeta.rth_session_h != null || liveMeta.rth_session_l != null) && (
-              <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
-                <span style={{ color: '#94A3B8' }}>RTH: </span>
-                {liveMeta.rth_session_h != null ? liveMeta.rth_session_h.toFixed(2) : '\u2014'}
-                {' / '}
-                {liveMeta.rth_session_l != null ? liveMeta.rth_session_l.toFixed(2) : '\u2014'}
-                {liveMeta.rth_session_h != null && liveMeta.rth_session_l != null && (
-                  <span style={{ marginLeft: 4, color: '#94A3B8' }}>
-                    ({(liveMeta.rth_session_h - liveMeta.rth_session_l).toFixed(1)} pt)
-                  </span>
-                )}
-              </div>
-            )}
-            {current.active_zohar_rules && current.active_zohar_rules.length > 0 && (
-              <div style={{ fontSize: 9, color: COLORS.textTertiary }}>
-                Zohar: {current.active_zohar_rules.join(', ')}
-              </div>
-            )}
-          </>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 9, color: COLORS.textTertiary }}>
+          {live?.since && <Meta label="מאז" value={`${live.since} ET`} />}
+          {stance && <Meta label="גישה" value={stance} color={dtc} />}
+          {live?.n_bars != null && <Meta label="ברים" value={String(live.n_bars)} />}
+        </div>
+        {live?.invalidated && (
+          <div style={{ fontSize: 9, color: '#f85149' }}>
+            ⚠ הפתיחה נחצתה (INVALIDATED) — יציאה + סיווג מחדש
+          </div>
         )}
+        {live?.reason && (
+          <div style={{ fontSize: 9, color: COLORS.textDisabled }} title="נימוק המסווג (reason)">
+            {live.reason}
+          </div>
+        )}
+        {!live && (
+          <div style={{ fontSize: 9, color: COLORS.textDisabled }}>
+            classify_replay לא זמין (offline / אין ברים עדיין) — אין ערך מומצא.
+          </div>
+        )}
+
+        {/* 2. What the classifier measured today (same response — no extra fetch) */}
+        {live && (
+          <div style={{
+            display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 9,
+            color: COLORS.textTertiary, paddingTop: 4, borderTop: `1px solid ${COLORS.borderFaint}`,
+          }}>
+            {live.ib_width != null && (
+              <Meta
+                label="IB"
+                value={`${live.ib_width.toFixed(1)}pt${live.ib_class && live.ib_class !== 'UNKNOWN' ? ` ${live.ib_class}` : ''}`}
+                color="#e3b341"
+              />
+            )}
+            {live.ib_source && <Meta label="מקור-IB" value={live.ib_source} color={live.ib_source === 'sierra_tpo' ? COLORS.textSecondary : '#FACC15'} />}
+            {live.va_width != null && <Meta label="VA" value={`${live.va_width.toFixed(1)}pt`} />}
+            {live.opening_type && <Meta label="פתיחה" value={live.opening_type.replace('OPEN_', '')} color="#bc8cff" />}
+            {live.vol_ratio != null && <Meta label="ווליום" value={`${live.vol_ratio}×`} color={live.vol_ratio <= 0.5 ? '#f85149' : undefined} />}
+          </div>
+        )}
+
+        {/* 3. Key levels — IBH/IBL + POC/VAH/VAL + ranges (existing reusable fetch) */}
         <KeyLevelsCard />
+
+        {/* 4. The 7 types — trader meaning (playbook one-liners) */}
+        <div style={{ marginTop: 8, paddingTop: 6, borderTop: `1px solid ${COLORS.borderFaint}` }}>
+          <div style={{
+            fontSize: 7, fontWeight: 700, color: COLORS.textDisabled,
+            letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3,
+          }}>
+            7 סוגי-יום — משמעות למסחר
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {DAY_TYPE_LEGEND.map((row) => {
+              const active = live?.day_type === row.type
+                || (row.type === 'Normal_Variation' && live?.day_type === 'Variation');
+              const c = dayTypeColor(row.type);
+              return (
+                <div key={row.type} style={{
+                  display: 'flex', gap: 5, alignItems: 'baseline',
+                  opacity: live?.day_type && !active ? 0.75 : 1,
+                }}>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: 2, background: c,
+                    flexShrink: 0, alignSelf: 'center',
+                    outline: active ? `1px solid ${COLORS.textSecondary}` : 'none',
+                  }} />
+                  <span style={{
+                    fontSize: 9, fontWeight: active ? 700 : 600, color: c,
+                    whiteSpace: 'nowrap', flexShrink: 0, minWidth: 74,
+                  }}>
+                    {row.label}
+                  </span>
+                  <span style={{ fontSize: 8.5, color: active ? COLORS.textSecondary : COLORS.textTertiary, lineHeight: 1.35 }}>
+                    {row.meaning}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   }

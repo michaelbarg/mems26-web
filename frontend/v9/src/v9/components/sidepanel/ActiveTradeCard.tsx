@@ -4,44 +4,22 @@ import { COLORS } from '../../design/tokens';
 import { SYSTEM_META } from '../../design/system_colors';
 import { exitTrade, fetchActiveTrade, getApiBase } from '../../lib/api';
 import { fmtTimeET, fmtTimeIL } from '../../lib/tradeTime';
-
-interface Contract {
-  id: string;
-  target_price: number;
-  status: 'OPEN' | 'HIT_TARGET' | 'HIT_STOP' | 'BE';
-  pnl: number;
-  r: number;
-  smart_be: boolean;
-}
-
-interface TradeSystemChip {
-  id: number;
-  name: string;
-  role: string;
-  involved: boolean;
-  is_firing: boolean;
-  hint?: string | null;
-  entry_price?: number | null;
-}
-
-interface ActiveTrade {
-  trade_id: number;
-  direction: 'LONG' | 'SHORT';
-  entry_price: number;
-  entry_ts: string | null;
-  stop_price: number;
-  firing_system?: number;
-  systems?: TradeSystemChip[];
-  contracts: Contract[];
-  hits: number;
-  total_pnl: number;
-  total_r: number;
-  summary: string;
-  pattern_id?: string | null;
-  trigger?: string | null;
-  classification?: string | null;
-  day_type?: string | null;
-}
+// Live price — REUSES the store the dashboard already feeds (usePriceStream WS
+// + useLivePricePoll fallback mounted in V9Dashboard). Subscribing here adds
+// ZERO new network polls (CLAUDE.md Frontend Polling Floors).
+import { usePriceStore } from '../../stores/priceStore';
+// Shared active-trade types + math (UI round 2) — the exact same payload shape
+// and distance/progress/elapsed/BE logic is imported by DemoMonitor too; single
+// source, no duplication. See lib/activeTrade.ts for backend evidence.
+import {
+  CONTRACT_STATUS_COLORS,
+  elapsedLabel,
+  isStopAtBE,
+  parseActiveTrade,
+  progressPct,
+  ptsToTarget,
+  type ActiveTrade,
+} from '../../lib/activeTrade';
 
 export type ActiveTradeContext = {
   firingSystemId: number;
@@ -52,19 +30,16 @@ interface ActiveTradeCardProps {
   onTradeContext?: (ctx: ActiveTradeContext) => void;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  OPEN: '#737373',
-  HIT_TARGET: '#16a34a',
-  HIT_STOP: '#dc2626',
-  BE: '#eab308',
-};
-
 export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
   const [trade, setTrade] = useState<ActiveTrade | null>(null);
+  // Dashboard-fed live price (WS + poll fallback) — no new request from this card.
+  const livePrice = usePriceStore((s) => s.price);
+  // Local clock tick for the elapsed-time label only (no network).
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
 
   const refreshActiveTrade = () => {
     fetchActiveTrade().then((d) => {
-      const t = d && d.trade_id ? (d as unknown as ActiveTrade) : null;
+      const t = parseActiveTrade(d);
       setTrade(t);
       if (onTradeContext) {
         onTradeContext(
@@ -79,6 +54,11 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
   useEffect(() => {
     refreshActiveTrade();
     const id = setInterval(refreshActiveTrade, 10000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30000);
     return () => clearInterval(id);
   }, []);
 
@@ -103,6 +83,7 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
   }
 
   const dirColor = trade.direction === 'LONG' ? COLORS.bull : COLORS.bear;
+  const isLong = trade.direction === 'LONG';
   // §3.6 5-state: Idle(no card) / Armed(yellow) / Active(green/red) / JustClosed(gray)
   const cardState = trade.hits > 0 || trade.total_pnl !== 0 ? 'Active' : 'Armed';
   const borderColor = cardState === 'Armed' ? '#eab308'
@@ -111,6 +92,10 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
     : '#eab308';
   const entryTimeEt = trade.entry_ts ? fmtTimeET(trade.entry_ts) : '';
   const entryTimeIl = trade.entry_ts ? fmtTimeIL(trade.entry_ts) : '';
+  const elapsed = elapsedLabel(trade.entry_ts, nowMs);
+  // BE badge — stop parked at entry. Backend convention: |stop − entry| < 0.5
+  // == breakeven (trades.py::_stop_note).
+  const stopAtBE = isStopAtBE(trade.entry_price, trade.stop_price);
 
   return (
     <div style={{
@@ -120,15 +105,27 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
       background: COLORS.bgSurface4,
       border: `0.5px solid ${borderColor}`,
     }}>
-      {/* Header: direction + entry price + time */}
+      {/* Header: direction + entry price + time + elapsed */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ fontSize: 11, color: dirColor, fontWeight: 700 }}>
-            {trade.direction === 'LONG' ? '\u25B2' : '\u25BC'} {trade.direction}
+            {trade.direction === 'LONG' ? '▲' : '▼'} {trade.direction}
           </span>
           <span style={{ fontSize: 10, fontWeight: 600, color: COLORS.textPrimary, fontFamily: 'ui-monospace' }}>
             {trade.entry_price.toFixed(2)}
           </span>
+          {elapsed && (
+            <span
+              style={{
+                fontSize: 8, fontWeight: 600, padding: '0 4px', borderRadius: 2,
+                color: COLORS.textSecondary, background: 'rgba(255,255,255,0.06)',
+                fontFamily: 'ui-monospace',
+              }}
+              title="זמן בעסקה מאז הכניסה"
+            >
+              ⏱ {elapsed}
+            </span>
+          )}
         </div>
         <span
           style={{ fontSize: 8, color: COLORS.textTertiary, fontFamily: 'ui-monospace', textAlign: 'right' }}
@@ -186,44 +183,92 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
         </div>
       )}
 
-      {/* C1/C2/C3 rows */}
+      {/* C1/C2/C3 rows — with live distance-to-target + % progress for OPEN legs */}
       {trade.contracts.map(c => {
-        const sc = STATUS_COLORS[c.status] || '#737373';
+        const sc = CONTRACT_STATUS_COLORS[c.status] || '#737373';
+        const tgt = c.target_price;
+        const showDistance = c.status === 'OPEN' && tgt != null && tgt > 0;
+        const dist = showDistance && tgt != null && livePrice != null
+          ? ptsToTarget(tgt, livePrice, isLong)
+          : null;
+        const prog = showDistance && tgt != null && livePrice != null
+          ? progressPct(tgt, trade.entry_price, livePrice, isLong)
+          : null;
         return (
-          <div key={c.id} style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            fontSize: 9, padding: '2px 0',
-            borderBottom: `1px solid ${COLORS.borderFaint}`,
-          }}>
-            <span style={{ fontWeight: 600, color: COLORS.textSecondary, width: 22 }}>{c.id}</span>
-            <span style={{ color: COLORS.textTertiary, fontFamily: 'ui-monospace', fontSize: 8, width: 52 }}>
-              {c.target_price?.toFixed(2) ?? '\u2014'}
-            </span>
-            <span style={{
-              fontSize: 8, fontWeight: 500, padding: '0 4px', borderRadius: 2,
-              color: sc, background: `${sc}15`,
+          <div key={c.id} style={{ borderBottom: `1px solid ${COLORS.borderFaint}`, padding: '2px 0' }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              fontSize: 9,
             }}>
-              {c.status.replace('_', ' ')}{c.smart_be ? ' \u21C4' : ''}
-            </span>
-            <span style={{ fontFamily: 'ui-monospace', fontSize: 9, width: 40, textAlign: 'right',
-              color: c.pnl >= 0 ? COLORS.bull : COLORS.bear }}>
-              ${c.pnl.toFixed(0)}
-            </span>
-            <span style={{ fontFamily: 'ui-monospace', fontSize: 8, width: 30, textAlign: 'right',
-              color: COLORS.textTertiary }}>
-              {c.r.toFixed(1)}R
-            </span>
+              <span style={{ fontWeight: 600, color: COLORS.textSecondary, width: 22 }}>{c.id}</span>
+              <span style={{ color: COLORS.textTertiary, fontFamily: 'ui-monospace', fontSize: 8, width: 52 }}>
+                {tgt?.toFixed(2) ?? '—'}
+              </span>
+              <span style={{
+                fontSize: 8, fontWeight: 500, padding: '0 4px', borderRadius: 2,
+                color: sc, background: `${sc}15`,
+              }}>
+                {c.status.replace('_', ' ')}{c.smart_be ? ' ⇄' : ''}
+              </span>
+              <span style={{ fontFamily: 'ui-monospace', fontSize: 9, width: 40, textAlign: 'right',
+                color: c.pnl >= 0 ? COLORS.bull : COLORS.bear }}>
+                ${c.pnl.toFixed(0)}
+              </span>
+              <span style={{ fontFamily: 'ui-monospace', fontSize: 8, width: 30, textAlign: 'right',
+                color: COLORS.textTertiary }}>
+                {c.r.toFixed(1)}R
+              </span>
+            </div>
+            {showDistance && (
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1, paddingInlineStart: 22 }}
+                title={`מרחק ליעד ${c.id} מהמחיר החי · % מהדרך כניסה→יעד`}
+              >
+                <span style={{ fontFamily: 'ui-monospace', fontSize: 8, color: COLORS.textTertiary, minWidth: 56 }}>
+                  {dist != null
+                    ? dist >= 0
+                      ? `${dist.toFixed(2)}pt ליעד`
+                      : `${Math.abs(dist).toFixed(2)}pt מעבר`
+                    : '— אין מחיר חי'}
+                </span>
+                <div style={{ flex: 1, height: 3, background: COLORS.bgSurface6, borderRadius: 2, overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${prog ?? 0}%`,
+                    background: prog != null && prog >= 100 ? COLORS.bull : dirColor,
+                    borderRadius: 2,
+                    transition: 'width 300ms ease-out',
+                  }} />
+                </div>
+                <span style={{ fontFamily: 'ui-monospace', fontSize: 8, color: COLORS.textSecondary, width: 28, textAlign: 'right' }}>
+                  {prog != null ? `${prog.toFixed(0)}%` : '—'}
+                </span>
+              </div>
+            )}
           </div>
         );
       })}
 
       {/* Summary footer */}
       <div style={{
-        display: 'flex', justifyContent: 'space-between', paddingTop: 4, marginTop: 2,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4, marginTop: 2,
         fontSize: 9,
       }}>
-        <span style={{ color: COLORS.textTertiary }}>
-          Stop {trade.stop_price.toFixed(2)} | {trade.summary}
+        <span style={{ color: COLORS.textTertiary, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          Stop {trade.stop_price.toFixed(2)}
+          {stopAtBE && (
+            <span
+              style={{
+                fontSize: 8, fontWeight: 700, padding: '0 4px', borderRadius: 2,
+                color: '#eab308', background: 'rgba(234,179,8,0.12)',
+                border: '1px solid rgba(234,179,8,0.4)',
+              }}
+              title="הסטופ בנקודת הכניסה (Break-Even)"
+            >
+              BE
+            </span>
+          )}
+          <span>| {trade.summary}</span>
         </span>
         <span style={{
           fontWeight: 700, fontSize: 10, fontFamily: 'ui-monospace',

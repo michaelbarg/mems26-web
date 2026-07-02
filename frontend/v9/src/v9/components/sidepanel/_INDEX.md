@@ -8,4 +8,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `ActiveTradeCard.tsx` | ✅ 1 | 278 | — | Header: direction + entry price + time |
+| `ActiveTradeCard.tsx` | ✅ 1 | 323 | — | Header: direction + entry price + time + elapsed |

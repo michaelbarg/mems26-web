@@ -1,92 +1,178 @@
 'use client';
+// TradesTable — Trade Review table (P-UI round, ADAPTED from the previous
+// orphan implementation; skeleton kept: sticky header, expand row →
+// TradeRowExpand which reuses MgmtTimeline + TradeChart, pattern chip
+// click-to-filter, synthetic TEST badge).
+//
+// Columns per Michael's Trade-Review spec: time · id · pattern · mode ·
+// direction · day-type · entry · stop (BE label) · exit · P&L (colored) ·
+// exit_reason · T1-hit badge. Every column header is click-sortable
+// (asc/desc, nulls last). Filtering stays in the shared tradeStore
+// (mode / direction / pattern / date — default today, see TradeFilters).
+//
+// Field sources (backend/v9/api/v9/trades.py::_trade_list_row):
+//   entry_ts, entry_price, stop, stop_note ("BE@entry" when t1_hit_ts set and
+//   |stop-entry| < 0.5 — trades.py:81-87), exit_price, exit_reason, pnl_usd,
+//   pnl_r, t1_hit/t2_hit/t3_hit, mode, direction, is_synthetic, stop_issue.
+//   pattern_id / day_type come from extract_trade_display (trades.py:133 →
+//   services/trade_context.py:647,658). The stamped SoT columns
+//   v9_trades.pattern_id_at_entry / day_type_at_entry (db/models/trades.py:62-63,
+//   docs/SOURCE_OF_TRUTH.md §Trades) are NOT in the API response yet — the
+//   accessors below prefer them if the backend ever adds them, else fall back
+//   to the display-derived fields (honest fallback, no synthesis).
 import { Fragment, useState } from 'react';
 import { useTradeStore } from '../../stores/tradeStore';
-import { SYSTEM_COLORS, SYSTEM_NAMES } from '../../types';
-import type { SystemId } from '../../types';
-import { cellClass, contractHits, contractsPnlLine, excursionLine, pnlCell, systemsAgreementLine, tradePathLine } from './tradeRowFormat';
+import type { Trade } from '../../types';
+import { cellClass, contractHits, fmtPrice, pnlCell } from './tradeRowFormat';
 import { tradeWhen } from '../../lib/tradeTime';
 import { TradeRowExpand } from './TradeRowExpand';
 import { patternKey } from './PatternPerformanceStrip';
-import { TradePathVisual } from './TradePathVisual';
-import { riskReward } from '../../lib/tradeMath';
-
-type RowView = 'visual' | 'classic';
 
 const TD = `${cellClass()} px-2 py-1.5 align-top`;
-const COLS_CLASSIC = 12;
-const COLS_VISUAL = 11; // Path + Range merge into one visual column
+const COLS = 13; // caret + 12 data columns
+
+// ── field accessors ─────────────────────────────────────────────────────────
+
+/** Pattern at entry: stamped SoT column if present, else display-derived. */
+function patternAtEntry(t: Trade): string | null {
+  const stamped = (t as unknown as Record<string, unknown>)['pattern_id_at_entry'];
+  if (typeof stamped === 'string' && stamped) return stamped;
+  return t.pattern_id ?? null;
+}
+
+/** Day-type at entry: stamped SoT column if present, else display-derived. */
+function dayTypeAtEntry(t: Trade): string | null {
+  const stamped = (t as unknown as Record<string, unknown>)['day_type_at_entry'];
+  if (typeof stamped === 'string' && stamped) return stamped;
+  return t.day_type ?? null;
+}
+
+/** Stop is at breakeven: backend stamps stop_note="BE@entry" when t1_hit_ts is
+ *  set AND |stop-entry| < 0.5 (trades.py:81-87); direct check kept as fallback. */
+function stopIsBE(t: Trade): boolean {
+  if (t.stop_note === 'BE@entry') return true;
+  return !!t.t1_hit && t.stop != null && t.entry_price != null && Math.abs(t.stop - t.entry_price) < 0.5;
+}
+
+// ── sorting ──────────────────────────────────────────────────────────────────
+
+type SortKey =
+  | 'time' | 'id' | 'pattern' | 'mode' | 'dir' | 'daytype'
+  | 'entry' | 'stop' | 'exit' | 'pnl' | 'reason' | 't1';
+type SortDir = 'asc' | 'desc';
+
+const numVal = (v: number | null | undefined): number | null => (v != null && Number.isFinite(v) ? v : null);
+
+function sortValue(t: Trade, key: SortKey): string | number | null {
+  switch (key) {
+    case 'time': return t.entry_ts ?? null; // ISO strings compare chronologically
+    case 'id': return t.id;
+    case 'pattern': return patternAtEntry(t);
+    case 'mode': return t.mode ?? null;
+    case 'dir': return t.direction ?? null;
+    case 'daytype': return dayTypeAtEntry(t);
+    case 'entry': return numVal(t.entry_price);
+    case 'stop': return numVal(t.stop);
+    case 'exit': return numVal(t.exit_price);
+    case 'pnl': return numVal(t.pnl_usd);
+    case 'reason': return t.exit_reason ?? null;
+    case 't1': return t.t1_hit ? 1 : 0;
+  }
+}
+
+function compareTrades(a: Trade, b: Trade, key: SortKey, dir: SortDir): number {
+  const va = sortValue(a, key);
+  const vb = sortValue(b, key);
+  if (va == null && vb == null) return b.id - a.id;
+  if (va == null) return 1; // nulls last regardless of direction
+  if (vb == null) return -1;
+  let cmp: number;
+  if (typeof va === 'number' && typeof vb === 'number') cmp = va - vb;
+  else cmp = String(va).localeCompare(String(vb));
+  if (cmp === 0) cmp = a.id - b.id;
+  return dir === 'asc' ? cmp : -cmp;
+}
+
+function Th({
+  label, k, sort, onSort, align = 'left', title,
+}: {
+  label: string;
+  k: SortKey;
+  sort: { key: SortKey; dir: SortDir };
+  onSort: (k: SortKey) => void;
+  align?: 'left' | 'right';
+  title?: string;
+}) {
+  const active = sort.key === k;
+  return (
+    <th
+      className={`px-2 py-2 font-medium cursor-pointer select-none whitespace-nowrap ${align === 'right' ? 'text-right' : 'text-left'}`}
+      style={{ color: active ? 'var(--sys1)' : undefined }}
+      title={title ?? 'לחיצה = מיון לפי עמודה זו'}
+      onClick={() => onSort(k)}
+    >
+      {label}
+      <span style={{ marginInlineStart: 3, fontSize: 8, opacity: active ? 1 : 0.35 }}>
+        {active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}
+      </span>
+    </th>
+  );
+}
+
+// ── table ────────────────────────────────────────────────────────────────────
 
 export function TradesTable() {
   const { filteredTrades, expandedTradeId, toggleExpandedTradeId, filters, setFilters } = useTradeStore();
-  const trades = filteredTrades();
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'time', dir: 'desc' });
   const activePattern = (filters.pattern ?? '').trim().toUpperCase();
-  const [rowView, setRowView] = useState<RowView>('visual');
 
-  const cols = rowView === 'visual' ? COLS_VISUAL : COLS_CLASSIC;
+  // Same per-render pattern as TradeCardList (`const trades = filteredTrades()`);
+  // filteredTrades() returns a fresh array, so sorting a copy per render is the
+  // codebase-consistent approach (≤500 rows — cheap).
+  const trades = [...filteredTrades()].sort((a, b) => compareTrades(a, b, sort.key, sort.dir));
+
+  const onSort = (k: SortKey) =>
+    setSort((s) => (s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'time' || k === 'pnl' || k === 'id' ? 'desc' : 'asc' }));
 
   return (
-    <div className="overflow-x-auto">
-      {/* View toggle */}
-      <div
-        className="sticky top-0 z-10 flex items-center justify-end px-3 py-1"
-        style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}
-      >
-        <div className="flex items-center gap-1" style={{ fontSize: 10, fontFamily: 'ui-monospace, monospace' }}>
-          <button
-            onClick={() => setRowView('visual')}
-            className="px-2 py-0.5 rounded"
-            style={{
-              background: rowView === 'visual' ? 'rgba(59,130,246,0.15)' : 'transparent',
-              color: rowView === 'visual' ? 'var(--sys1)' : 'var(--text-muted)',
-              border: rowView === 'visual' ? '1px solid var(--sys1)' : '1px solid transparent',
-            }}
-          >
-            Visual
-          </button>
-          <button
-            onClick={() => setRowView('classic')}
-            className="px-2 py-0.5 rounded"
-            style={{
-              background: rowView === 'classic' ? 'rgba(59,130,246,0.15)' : 'transparent',
-              color: rowView === 'classic' ? 'var(--sys1)' : 'var(--text-muted)',
-              border: rowView === 'classic' ? '1px solid var(--sys1)' : '1px solid transparent',
-            }}
-          >
-            Classic
-          </button>
-        </div>
-      </div>
-      <table className={`w-full ${rowView === 'classic' ? 'min-w-[1280px]' : 'min-w-[1100px]'} border-collapse ${cellClass()}`}>
+    <div className="overflow-x-auto rounded" style={{ border: '1px solid var(--border)' }}>
+      <table className={`w-full min-w-[1180px] border-collapse ${cellClass()}`}>
         <thead>
           <tr
-            className="sticky top-[29px] uppercase tracking-wide"
+            className="sticky top-0 z-10 uppercase tracking-wide"
             style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', fontSize: '10px' }}
           >
             <th className="text-left px-2 py-2 font-medium w-6" />
-            <th className="text-left px-2 py-2 font-medium">#</th>
-            <th className="text-left px-2 py-2 font-medium">When</th>
-            <th className="text-left px-2 py-2 font-medium">Sys</th>
-            <th className="text-left px-2 py-2 font-medium">Dir</th>
-            {rowView === 'classic' ? (
-              <>
-                <th className="text-left px-2 py-2 font-medium min-w-[360px]">Path</th>
-                <th className="text-left px-2 py-2 font-medium min-w-[200px]">Range / T1</th>
-              </>
-            ) : (
-              <th className="text-left px-2 py-2 font-medium min-w-[520px]">Price Track</th>
-            )}
-            <th className="text-left px-2 py-2 font-medium min-w-[200px]" title="S*=firing ✓=agree ✗=against ·=neutral">
-              Systems S1–S6
-            </th>
-            <th className="text-left px-2 py-2 font-medium">C1-C3</th>
-            <th className="text-left px-2 py-2 font-medium">Pattern</th>
-            <th className="text-right px-2 py-2 font-medium">P&L (realized)</th>
-            <th className="text-left px-2 py-2 font-medium">St</th>
+            <Th label="זמן" k="time" sort={sort} onSort={onSort} />
+            <Th label="#" k="id" sort={sort} onSort={onSort} />
+            <Th label="תבנית" k="pattern" sort={sort} onSort={onSort} title="pattern_id_at_entry (חלופה: pattern_id מה-API)" />
+            <Th label="מצב" k="mode" sort={sort} onSort={onSort} />
+            <Th label="כיוון" k="dir" sort={sort} onSort={onSort} />
+            <Th label="סוג-יום" k="daytype" sort={sort} onSort={onSort} title="day_type_at_entry (חלופה: day_type מה-API)" />
+            <Th label="כניסה" k="entry" sort={sort} onSort={onSort} align="right" />
+            <Th label="סטופ" k="stop" sort={sort} onSort={onSort} align="right" title="BE = הסטופ הוזז לנקודת הכניסה אחרי T1" />
+            <Th label="יציאה" k="exit" sort={sort} onSort={onSort} align="right" />
+            <Th label="P&L" k="pnl" sort={sort} onSort={onSort} align="right" />
+            <Th label="סיבת יציאה" k="reason" sort={sort} onSort={onSort} />
+            <Th label="T1" k="t1" sort={sort} onSort={onSort} title="T1 hit · tooltip מציג C1/C2/C3" />
           </tr>
         </thead>
         <tbody>
           {trades.map((t) => {
             const open = expandedTradeId === t.id;
+            const pnlColor =
+              t.pnl_usd != null
+                ? t.pnl_usd > 0
+                  ? 'var(--green)'
+                  : t.pnl_usd < 0
+                    ? 'var(--red)'
+                    : 'var(--text-secondary)'
+                : 'var(--text-muted)';
+            const p = pnlCell(t);
+            const pattern = patternAtEntry(t);
+            const patKey = patternKey(t);
+            const dayType = dayTypeAtEntry(t);
+            const be = stopIsBE(t);
             return (
               <Fragment key={t.id}>
                 <tr
@@ -106,7 +192,19 @@ export function TradesTable() {
                   onClick={() => toggleExpandedTradeId(t.id)}
                 >
                   <td className={`${TD} w-6 text-center`} style={{ color: 'var(--text-muted)' }}>
-                    {open ? '\u25bc' : '\u25b6'}
+                    {open ? '▼' : '▶'}
+                  </td>
+                  <td className={TD} style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                    {(() => {
+                      const w = tradeWhen(t.entry_ts);
+                      if (!w) return '—';
+                      return (
+                        <>
+                          <span className="block">{w.date} {w.etTime} <span style={{ color: 'var(--text-muted)' }}>ET</span></span>
+                          <span className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>{w.ilTime} IL</span>
+                        </>
+                      );
+                    })()}
                   </td>
                   <td className={TD} style={{ color: 'var(--text-muted)' }}>
                     {t.id}
@@ -114,7 +212,7 @@ export function TradesTable() {
                       <span
                         style={{
                           display: 'inline-block',
-                          marginLeft: 4,
+                          marginInlineStart: 4,
                           padding: '0 3px',
                           fontSize: 8,
                           fontWeight: 700,
@@ -129,146 +227,118 @@ export function TradesTable() {
                       </span>
                     )}
                   </td>
+                  <td className={TD}>
+                    {patKey === '(none)' && !pattern ? (
+                      <span style={{ color: 'var(--text-muted)' }}>—</span>
+                    ) : (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFilters({ pattern: activePattern === patKey ? null : patKey });
+                        }}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-semibold hover:opacity-80"
+                        style={{
+                          background: activePattern === patKey ? 'rgba(59,130,246,0.18)' : 'rgba(255,255,255,0.06)',
+                          color: activePattern === patKey ? 'var(--sys1)' : 'var(--text-primary)',
+                          border: activePattern === patKey ? '1px solid var(--sys1)' : '1px solid transparent',
+                        }}
+                        title={
+                          activePattern === patKey
+                            ? `ניקוי סינון (כרגע: ${patKey})`
+                            : `סינון לתבנית ${patKey} בלבד · ${t.trigger ?? ''}`.trim()
+                        }
+                      >
+                        {pattern ?? patKey}
+                      </button>
+                    )}
+                  </td>
+                  <td className={TD}>
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 600,
+                        padding: '1px 5px',
+                        borderRadius: 3,
+                        color: t.mode === 'LIVE' ? '#fca5a5' : t.mode === 'SIM' ? '#06b6d4' : '#facc15',
+                        border: `1px solid ${t.mode === 'LIVE' ? '#dc2626' : t.mode === 'SIM' ? '#06b6d4' : '#facc15'}44`,
+                      }}
+                    >
+                      {t.mode === 'SIM' ? 'DEMO' : t.mode}
+                    </span>
+                  </td>
+                  <td className={TD}>
+                    <span style={{ color: t.direction === 'LONG' ? 'var(--green)' : 'var(--red)', fontWeight: 600 }}>
+                      {t.direction === 'LONG' ? '▲' : '▼'} {t.direction}
+                    </span>
+                  </td>
                   <td className={TD} style={{ color: 'var(--text-secondary)' }}>
-                    {(() => {
-                      const w = tradeWhen(t.entry_ts);
-                      if (!w) return '\u2014';
-                      return (
-                        <>
-                          <span className="block">{w.date} {w.etTime} <span style={{ color: 'var(--text-muted)' }}>ET</span></span>
-                          <span className="block text-[10px]" style={{ color: 'var(--text-muted)' }}>{w.ilTime} IL</span>
-                        </>
-                      );
-                    })()}
+                    {dayType ?? '—'}
                   </td>
-                  <td className={TD}>
-                    <span style={{ color: SYSTEM_COLORS[(t.system as SystemId) || 1] }}>
-                      S{t.system} {SYSTEM_NAMES[(t.system as SystemId) || 1]}
-                    </span>
-                  </td>
-                  <td className={TD}>
-                    <span style={{ color: t.direction === 'LONG' ? 'var(--green)' : 'var(--red)' }}>
-                      {t.direction}
-                    </span>
-                  </td>
-                  {rowView === 'classic' ? (
-                    <>
-                      <td className={TD} title={t.stop_issue ?? undefined}>
-                        {tradePathLine(t)}
-                      </td>
-                      <td className={TD} style={{ color: 'var(--text-secondary)' }} title="5m bars: high/low, MFE/MAE, closest to T1">
-                        {excursionLine(t) || '\u2014'}
-                      </td>
-                    </>
-                  ) : (
-                    <td className={`${TD} py-1`}>
-                      <TradePathVisual trade={t} width={500} />
-                    </td>
-                  )}
-                  <td className={TD} title={t.systems_agreement?.map((s) => `${s.name}:${s.hint ?? ''}`).join(' | ')}>
-                    {systemsAgreementLine(t.systems_agreement)}
-                  </td>
-                  <td className={TD}>{contractHits(t)}</td>
-                  <td className={TD}>
-                    {(() => {
-                      const key = patternKey(t);
-                      if (key === '(none)') {
-                        return <span style={{ color: 'var(--text-muted)' }}>\u2014</span>;
-                      }
-                      const isActive = activePattern === key;
-                      return (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setFilters({ pattern: isActive ? null : key });
-                          }}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-semibold hover:opacity-80"
-                          style={{
-                            background: isActive ? 'rgba(59,130,246,0.18)' : 'rgba(255,255,255,0.06)',
-                            color: isActive ? 'var(--sys1)' : 'var(--text-primary)',
-                            border: isActive ? '1px solid var(--sys1)' : '1px solid transparent',
-                          }}
-                          title={
-                            isActive
-                              ? `Clear filter (currently: ${key})`
-                              : `Filter to ${key} only · ${t.trigger ?? ''}`.trim()
-                          }
-                        >
-                          {key}
-                        </button>
-                      );
-                    })()}
-                    {t.trigger && t.trigger.toUpperCase() !== patternKey(t) && (
-                      <span className="block text-[10px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                        {t.trigger}
+                  <td className={`${TD} text-right`}>{fmtPrice(t.entry_price)}</td>
+                  <td className={`${TD} text-right`} title={t.stop_initial != null && t.stop != null && Math.abs(t.stop_initial - t.stop) >= 0.01 ? `סטופ התחלתי ${fmtPrice(t.stop_initial)} → ${fmtPrice(t.stop)}` : undefined}>
+                    {be ? (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: 3,
+                          color: '#eab308',
+                          border: '1px solid rgba(234,179,8,0.45)',
+                          background: 'rgba(234,179,8,0.10)',
+                        }}
+                        title={`BE — הסטופ בנקודת הכניסה (${fmtPrice(t.stop)})`}
+                      >
+                        BE
+                      </span>
+                    ) : (
+                      fmtPrice(t.stop)
+                    )}
+                    {t.stop_issue === 'T1_NO_BE' && (
+                      <span style={{ marginInlineStart: 3, color: '#eab308', fontSize: 8, fontWeight: 700 }} title="T1 נגע אך הסטופ לא הוזז ל-BE">
+                        ⚠
                       </span>
                     )}
-                    {(() => {
-                      const rr = riskReward(t);
-                      return rr && rr.t2 != null ? (
-                        <span
-                          className="block text-[10px] mt-0.5"
-                          style={{ color: 'var(--text-secondary)' }}
-                          title="סיכון : סיכוי עד T2 (R)"
-                        >
-                          R:R 1:{rr.t2.toFixed(1)}
-                        </span>
-                      ) : null;
-                    })()}
                   </td>
+                  <td className={`${TD} text-right`}>{fmtPrice(t.exit_price)}</td>
                   <td className={`${TD} text-right`}>
-                    {(() => {
-                      const p = pnlCell(t);
-                      const color =
-                        t.pnl_usd != null
-                          ? t.pnl_usd > 0
-                            ? 'var(--green)'
-                            : t.pnl_usd < 0
-                              ? 'var(--red)'
-                              : 'var(--text-secondary)'
-                          : 'var(--text-muted)';
-                      return (
-                        <>
-                          <span className="font-semibold block" style={{ color }}>{p.value}</span>
-                          <span
-                            className="block text-[10px]"
-                            style={{ color: t.pnl_mode === 'partial' ? '#eab308' : 'var(--text-muted)' }}
-                          >
-                            {p.sub}
-                          </span>
-                          {t.pnl_mode === 'partial' && contractsPnlLine(t) && (
-                            <span className="block text-[10px] opacity-80" style={{ color: 'var(--text-muted)' }}>
-                              {contractsPnlLine(t)}
-                            </span>
-                          )}
-                        </>
-                      );
-                    })()}
+                    <span className="font-semibold block" style={{ color: pnlColor }}>{p.value}</span>
+                    <span
+                      className="block text-[10px]"
+                      style={{ color: t.pnl_mode === 'partial' ? '#eab308' : 'var(--text-muted)' }}
+                    >
+                      {p.sub}
+                    </span>
                   </td>
-                  <td className={TD}>
-                    {(() => {
-                      const s = t.state ?? '';
-                      const o = t.outcome;
-                      const stateColor = o === 'WIN' ? 'var(--green)'
-                        : o === 'LOSS' ? 'var(--red)'
-                        : s === 'OPEN' || s === 'FILLED' || s === 'PARTIAL' ? '#3b82f6'
-                        : 'var(--text-secondary)';
-                      return (
-                        <span style={{ color: stateColor, fontWeight: 600, fontSize: 10 }}>
-                          {s || '\u2014'}
-                          {t.stop_issue === 'T1_NO_BE' && (
-                            <span style={{ marginLeft: 3, color: '#eab308', fontSize: 8, fontWeight: 700 }} title="T1 hit without breakeven stop">
-                              T1_NO_BE
-                            </span>
-                          )}
-                        </span>
-                      );
-                    })()}
+                  <td className={TD} style={{ color: 'var(--text-secondary)', maxWidth: 120 }}>
+                    <span className="block overflow-hidden text-ellipsis whitespace-nowrap" title={t.exit_reason ?? undefined}>
+                      {t.exit_reason ?? (t.state && t.state !== 'CLOSED' ? t.state : '—')}
+                    </span>
+                  </td>
+                  <td className={TD} title={contractHits(t)}>
+                    {t.t1_hit ? (
+                      <span
+                        style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: 3,
+                          color: 'var(--green)',
+                          border: '1px solid rgba(86,211,100,0.45)',
+                          background: 'rgba(86,211,100,0.10)',
+                        }}
+                      >
+                        T1✓
+                      </span>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>·</span>
+                    )}
                   </td>
                 </tr>
                 {open && (
                   <tr className="border-b" style={{ borderColor: 'var(--border)' }}>
-                    <td colSpan={cols} className="p-0">
+                    <td colSpan={COLS} className="p-0">
+                      {/* Detail panel — TradeRowExpand reuses MgmtTimeline + TradeChart */}
                       <TradeRowExpand trade={t} />
                     </td>
                   </tr>
@@ -278,8 +348,8 @@ export function TradesTable() {
           })}
           {trades.length === 0 && (
             <tr>
-              <td colSpan={cols} className={`${TD} text-center py-8`} style={{ color: 'var(--text-muted)' }}>
-                No trades found matching filters.
+              <td colSpan={COLS} className={`${TD} text-center py-8`} style={{ color: 'var(--text-muted)' }}>
+                אין עסקאות בטווח הסינון (ברירת-מחדל: היום). נקה את סינון התאריך למעלה כדי לראות היסטוריה.
               </td>
             </tr>
           )}

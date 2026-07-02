@@ -10,6 +10,13 @@ function toETDate(ts: string): string {
   try { return _etFmt.format(new Date(ts)); } catch { return ts.slice(0, 10); }
 }
 
+/** Today (ET) as YYYY-MM-DD — /trades filters default to the current trading day.
+ *  Evaluated once at store creation; the TradeFilters "Today (RTH)" preset and the
+ *  ✕ clear button let the user widen the range at any time. */
+function etTodayStr(): string {
+  try { return _etFmt.format(new Date()); } catch { return new Date().toISOString().slice(0, 10); }
+}
+
 type OverlapFilter = 'all' | 'parallel' | 'sequential';
 type LiveGateFilter = 'all' | 'eligible' | 'skipped';
 type ConfluenceFilter = 'all' | 'agree' | 'disagree';
@@ -64,8 +71,11 @@ const DEFAULT_FILTERS: TradeFilters = {
   mode: 'ALL',
   systemId: 'ALL',
   outcome: 'ALL',
-  dateFrom: null,
-  dateTo: null,
+  // Trade Review default = today (ET). filteredTrades() is consumed only by
+  // /trades components (TradeCardList / TradesTable / summary + edge strips),
+  // so this does not affect dashboard surfaces (TopBar reads raw `trades`).
+  dateFrom: etTodayStr(),
+  dateTo: etTodayStr(),
   pattern: null,
   overlap: 'all',
   liveGated: 'all',

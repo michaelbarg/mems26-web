@@ -29,13 +29,13 @@
 | `eod_archive_scheduler.py` | ✅ 2 | 236 | — | P31 Phase 1 — End-of-day archive scheduler. |
 | `eod_archiver.py` | ✅ 3 | 199 | — | P30 G6 / P31 Phase 1 — End-of-day archiver for MEMS26 Sierra exports. |
 | `feed_watchdog.py` | ✅ 1 | 89 | — | Feed watchdog — block fires when canonical trading streams are stale. |
-| `fill_poller.py` | ✅ 1 | 203 | — | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
+| `fill_poller.py` | ✅ 1 | 234 | — | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 302 | — | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
 | `historical_replay.py` | ✅ 3 | 109 | — | HistoricalReplay — warm system buffers from existing DB rows. |
 | `history_loader.py` | ✅ 2 | 525 | — | P31 Phase 2 — Startup gap-fill loader. |
 | `kill_switch.py` | ✅ 2 | 67 | — | Kill-switch — instantly halt ALL firing (S2+S4) and resume. |
 | `market_clock.py` | ✅ 17 | 251 | — | Market Clock — centralized time service with DST + 2026 NYSE holidays (D-068). |
-| `sierra_command.py` | ✅ 4 | 192 | — | Sierra command file writer for DEMO/LIVE execution paths. |
+| `sierra_command.py` | ✅ 5 | 192 | — | Sierra command file writer for DEMO/LIVE execution paths. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | — | P31 Issue B — TPO history snapshotter. |
 | `trade_context.py` | ✅ 7 | 664 | — | Extract SHADOW trade display fields from v9_trades rows (pattern, trigger, context). |
 | `trade_excursion.py` | ✅ 3 | 160 | — | Trade price excursion from v9_bars_5min (Hi/Lo during trade, MFE/MAE, T1 proximity). |

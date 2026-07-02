@@ -8,10 +8,12 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `api.ts` | ✅ 9 | 262 | — | Local V9 backend — never empty string (breaks fetch → relative /api on :3000). |
+| `activeTrade.ts` | ✅ 2 | 107 | — | Contract-status → color (round-1 ActiveTradeCard convention). |
+| `api.ts` | ✅ 11 | 262 | — | Local V9 backend — never empty string (breaks fetch → relative /api on :3000). |
+| `dayType.ts` | ✅ 5 | 77 | — | Color for a day-type label; tolerant to space/underscore spelling; muted fallback. |
 | `formatPrice.ts` | ✅ 2 | 24 | — | Format MES price with comma separator: 7435.25 → "7,435.25" |
 | `mockData.ts` | ✅ 1 | 87 | — | Mock data for V9 dashboard — used when market is closed or backend unavailable. |
 | `tradeAuxStatus.ts` | ✅ 1 | 144 | — | Per-trade auxiliary status derived from the set of trades. |
-| `tradeMath.ts` | ✅ 10 | 177 | — | Pure trade-math helpers for the Trades journal. |
-| `tradeTime.ts` | ✅ 6 | 90 | — | Trade time formatting helpers — keeps every trade surface aligned on |
+| `tradeMath.ts` | ✅ 9 | 177 | — | Pure trade-math helpers for the Trades journal. |
+| `tradeTime.ts` | ✅ 9 | 90 | — | Trade time formatting helpers — keeps every trade surface aligned on |
 | `websocket.ts` | ✅ 2 | 75 | — |  |

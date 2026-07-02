@@ -8,6 +8,6 @@
 | `chartSyncStore.ts` | ✅ 2 | 69 | — | Push main chart's visible window to the volume/CVD chart (e.g. after setData). |
 | `layoutStore.ts` | ✅ 7 | 45 | — |  |
 | `marketStore.ts` | ✅ 13 | 66 | — |  |
-| `priceStore.ts` | ✅ 8 | 64 | — | Derive connection status from store state. |
+| `priceStore.ts` | ✅ 10 | 64 | — | Derive connection status from store state. |
 | `systemStore.ts` | ✅ 17 | 40 | — |  |
-| `tradeStore.ts` | ✅ 28 | 178 | — | Convert ISO timestamp to YYYY-MM-DD in America/New_York timezone (DST-safe). |
+| `tradeStore.ts` | ✅ 28 | 188 | — | Convert ISO timestamp to YYYY-MM-DD in America/New_York timezone (DST-safe). |

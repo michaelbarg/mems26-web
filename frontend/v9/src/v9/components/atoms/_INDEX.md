@@ -6,5 +6,5 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `EmptyState.tsx` | ✅ 1 | 54 | — |  |
-| `Pill.tsx` | ✅ 2 | 68 | — |  |
+| `Pill.tsx` | ✅ 1 | 68 | — |  |
 | `StatusDot.tsx` | ⚠️ orphan? | 25 | — |  |

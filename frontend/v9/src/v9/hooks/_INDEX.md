@@ -8,7 +8,7 @@
 | `useBuildStatus.ts` | ✅ 2 | 49 | — | Per Michael's instruction (chat 2026-05-26 06:42 IL): "קצב עדכון כפתור רפרש" |
 | `useDirectionNow.ts` | ✅ 1 | 38 | — | offline → keep last |
 | `useKeyLevels.ts` | ✅ 2 | 86 | — | silent |
-| `useLiveDayType.ts` | ✅ 3 | 27 | — | offline → keep last / null; the caller falls back to the live store |
+| `useLiveDayType.ts` | ✅ 3 | 82 | — | ET HH:MM the current day_type became continuous (across status upgrades). |
 | `useLivePricePoll.ts` | ✅ 1 | 48 | — | Fallback when WS price stream is down: poll Sierra live_price.json via backend. |
 | `usePriceStream.ts` | ✅ 1 | 104 | — | Hook that connects to /ws/v9/price and streams price.tick events. |
 | `useSystemEvents.ts` | ✅ 1 | 67 | — | Subscribes to all 6 system event streams via WS. |

@@ -6,4 +6,4 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `Lens.tsx` | ✅ 1 | 88 | — | Sticky header with system color tint |
-| `SwitcherSlot.tsx` | ✅ 7 | 90 | — | Active SHADOW trade fired from this system — show entry price on pill |
+| `SwitcherSlot.tsx` | ✅ 6 | 90 | — | Active SHADOW trade fired from this system — show entry price on pill |

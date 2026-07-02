@@ -25,6 +25,7 @@
 | `g4_pkg5_latency_probe.py` | ▶ entry/test | 80 | — | g4_pkg5_latency_probe.py · G4 UAT Axis 4 · process_bar latency measurement. |
 | `gen_flag_index.py` | ▶ entry/test | 388 | — | gen_flag_index.py — generate docs/FLAG_INDEX.md, the canonical index of every |
 | `gen_index.py` | ▶ entry/test | 362 | — | Generate a living index of the MEMS26 codebase. |
+| `gen_pattern_visual.py` | ▶ entry/test | 199 | — | -*- coding: utf-8 -*- |
 | `generate_ts_types.py` | ▶ entry/test | 93 | — | Generate TypeScript event types from registry.yaml. |
 | `kill_switch.py` | ▶ entry/test | 47 | — | Kill-switch CLI — engage/disengage/status via the backend API. |
 | `load_soak_test.py` | ▶ entry/test | 142 | — | Load soak test — concurrent high-frequency pushes to all hot endpoints. |
@@ -35,6 +36,7 @@
 | `patch_woodies_5min_hud.py` | ▶ entry/test | 137 | — | Patch woodies_5min.json with P30.10 HUD fields (interim until DLL Export 8b is live). |
 | `pattern_watch.py` | ▶ entry/test | 58 | — | pattern_watch.py — poll build/pattern-status, log per-pattern blockers. |
 | `pkg0_redis_migrate.py` | ▶ entry/test | 78 | — | Pkg 0 · Redis migration · chart_5min → five_min |
+| `place_test_demo_order.py` | ▶ entry/test | 29 | — | Pipeline 5 — place ONE test DEMO entry to Sierra Sim. MICHAEL runs this (he holds the |
 | `post-commit-hook.sh` | — | 105 | — | ═══════════════════════════════════════════════════════════════ |
 | `pre-commit-hook.sh` | — | 77 | — | ═══════════════════════════════════════════════════════════════ |
 | `registry_audit.sh` | — | 82 | — | MEMS26 Registry Health Audit |

@@ -5,16 +5,16 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `DayTypeLensContent.tsx` | ✅ 1 | 202 | — |  |
-| `DayTypePill.tsx` | ✅ 1 | 35 | — |  |
+| `DayTypeLensContent.tsx` | ✅ 1 | 172 | — | 1. Current classification |
+| `DayTypePill.tsx` | ⚠️ orphan? | 35 | — |  |
 | `FiveMinLensContent.tsx` | ✅ 1 | 77 | — |  |
-| `FiveMinPill.tsx` | ✅ 1 | 43 | — |  |
+| `FiveMinPill.tsx` | ⚠️ orphan? | 43 | — |  |
 | `FootprintLensContent.tsx` | ✅ 1 | 55 | — |  |
-| `FootprintPill.tsx` | ✅ 1 | 35 | — |  |
+| `FootprintPill.tsx` | ⚠️ orphan? | 35 | — |  |
 | `KeyLevelsCard.tsx` | ✅ 6 | 169 | — | Compact key levels block embedded in each system's Now tab. |
 | `KillzoneLensContent.tsx` | ✅ 1 | 42 | — |  |
 | `KillzonePill.tsx` | ✅ 1 | 25 | — |  |
 | `TPOLensContent.tsx` | ✅ 1 | 50 | — |  |
 | `TPOPill.tsx` | ✅ 1 | 24 | — |  |
 | `WoodiesLensContent.tsx` | ✅ 1 | 57 | — |  |
-| `WoodiesPill.tsx` | ✅ 1 | 41 | — |  |
+| `WoodiesPill.tsx` | ⚠️ orphan? | 41 | — |  |

@@ -6,4 +6,4 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `events.ts` | ✅ 3 | 91 | — | Live price tick from Sierra Chart DLL (every ~200ms) |
-| `index.ts` | ✅ 30 | 246 | — | ) ── |
+| `index.ts` | ✅ 32 | 246 | — | ) ── |

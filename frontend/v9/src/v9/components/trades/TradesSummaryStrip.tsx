@@ -14,9 +14,93 @@ function pnlColor(v: number): string {
   return 'var(--text-secondary)';
 }
 
+/** ET (America/New_York) date, DST-safe — same convention as tradeStore.toETDate. */
+const _etFmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' });
+function etDate(ts: string): string {
+  try { return _etFmt.format(new Date(ts)); } catch { return ts.slice(0, 10); }
+}
+
+/** Mode badge colors — same palette as TopBar.MODE_STYLES / design tokens. */
+const MODE_META: Record<string, { label: string; color: string }> = {
+  SHADOW: { label: 'SHADOW', color: '#facc15' },
+  SIM: { label: 'DEMO', color: '#06b6d4' },
+  LIVE: { label: 'LIVE', color: '#dc2626' },
+};
+
+interface ModeAgg {
+  mode: string;
+  count: number;
+  wins: number;
+  losses: number;
+  net: number;
+}
+
+/** Today's (ET) per-mode aggregation — from ALL loaded trades, independent of
+ *  the filter bar, so "מה קרה היום" is always answered. W/L/net accumulation
+ *  adapted from TradeReviewPanel.summary (orphan). */
+function aggregateToday(trades: Trade[]): { modes: ModeAgg[]; total: ModeAgg } {
+  const today = _etFmt.format(new Date());
+  const byMode = new Map<string, ModeAgg>();
+  const total: ModeAgg = { mode: 'ALL', count: 0, wins: 0, losses: 0, net: 0 };
+  for (const t of trades) {
+    if (t.is_synthetic) continue;
+    if (!t.entry_ts || etDate(t.entry_ts) !== today) continue;
+    const key = t.mode || '?';
+    let agg = byMode.get(key);
+    if (!agg) {
+      agg = { mode: key, count: 0, wins: 0, losses: 0, net: 0 };
+      byMode.set(key, agg);
+    }
+    agg.count += 1;
+    total.count += 1;
+    if (t.pnl_usd != null) {
+      agg.net += t.pnl_usd;
+      total.net += t.pnl_usd;
+      if (t.pnl_usd > 0) { agg.wins += 1; total.wins += 1; }
+      else if (t.pnl_usd < 0) { agg.losses += 1; total.losses += 1; }
+    }
+  }
+  const order = ['LIVE', 'SIM', 'SHADOW'];
+  const modes = [...byMode.values()].sort(
+    (a, b) => (order.indexOf(a.mode) === -1 ? 99 : order.indexOf(a.mode)) - (order.indexOf(b.mode) === -1 ? 99 : order.indexOf(b.mode)),
+  );
+  return { modes, total };
+}
+
+function TodayModeChip({ agg, accent }: { agg: ModeAgg; accent?: string }) {
+  const meta = MODE_META[agg.mode];
+  const color = accent ?? meta?.color ?? 'var(--text-secondary)';
+  return (
+    <div
+      className="rounded px-3 py-1.5 min-w-[132px]"
+      style={{ background: 'var(--bg-primary)', border: `1px solid ${color}55` }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-semibold" style={{ color }}>
+          {meta?.label ?? agg.mode}
+        </span>
+        <span className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{agg.count} tr</span>
+      </div>
+      <div className="flex items-baseline gap-2 font-mono">
+        <span className="text-sm font-bold" style={{ color: pnlColor(agg.net) }}>
+          {agg.net >= 0 ? '+' : ''}${agg.net.toFixed(2)}
+        </span>
+        <span className="text-[10px]">
+          <span style={{ color: 'var(--green)' }}>{agg.wins}W</span>
+          <span style={{ color: 'var(--text-muted)' }}> / </span>
+          <span style={{ color: 'var(--red)' }}>{agg.losses}L</span>
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function TradesSummaryStrip() {
   const filteredTrades = useTradeStore((s) => s.filteredTrades);
+  const allTrades = useTradeStore((s) => s.trades);
   const trades = filteredTrades();
+
+  const today = useMemo(() => aggregateToday(allTrades), [allTrades]);
 
   const stats = useMemo(() => {
     // Exclude synthetic from all aggregates (shown with badge but not counted in stats)
@@ -90,6 +174,32 @@ export function TradesSummaryStrip() {
       className="px-4 py-3 border-b shrink-0"
       style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
     >
+      {/* Today (ET) per mode — from all loaded trades, independent of the filter bar */}
+      <div className="flex flex-wrap items-center gap-3 mb-3 pb-3 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div>
+          <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
+            היום (ET)
+          </div>
+          <div className="font-mono text-2xl font-bold" style={{ color: pnlColor(today.total.net) }}>
+            {today.total.net >= 0 ? '+' : ''}${today.total.net.toFixed(2)}
+          </div>
+          <div className="text-[11px] mt-0.5 font-mono" style={{ color: 'var(--text-muted)' }}>
+            {today.total.count} עסקאות ·{' '}
+            <span style={{ color: 'var(--green)' }}>{today.total.wins}W</span>
+            {' / '}
+            <span style={{ color: 'var(--red)' }}>{today.total.losses}L</span>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {today.modes.map((m) => (
+            <TodayModeChip key={m.mode} agg={m} />
+          ))}
+          {today.modes.length === 0 && (
+            <span className="text-xs" style={{ color: 'var(--text-muted)' }}>אין עסקאות היום (עדיין)</span>
+          )}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-end gap-6 mb-3">
         <div>
           <div className="text-[10px] uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>

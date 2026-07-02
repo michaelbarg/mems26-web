@@ -21,11 +21,11 @@
 | `TradeDetailsModal.tsx` | ⚠️ orphan? | 431 | — | What fired |
 | `TradeFilters.tsx` | ✅ 1 | 290 | — | ET-aware date string (YYYY-MM-DD) for "today" in America/New_York. |
 | `TradeMarkChart.tsx` | ✅ 1 | 373 | — | ignore |
-| `TradePathVisual.tsx` | ✅ 2 | 117 | — | Relative-R "story" track for a single trade. Div/percent based (crisp at any |
+| `TradePathVisual.tsx` | ✅ 1 | 117 | — | Relative-R "story" track for a single trade. Div/percent based (crisp at any |
 | `TradeReviewPanel.tsx` | ⚠️ orphan? | 286 | — | ignore |
-| `TradeReviewTab.tsx` | ✅ 1 | 122 | — | ignore |
+| `TradeReviewTab.tsx` | ✅ 1 | 281 | — | Pattern label — same fallback chain as PatternPerformanceStrip (pattern_id → classification → trigger). |
 | `TradeRowExpand.tsx` | ✅ 2 | 293 | — | Table row already has systems_agreement — use until full insight loads. |
-| `TradesSummaryStrip.tsx` | ✅ 1 | 174 | — |  |
-| `TradesTable.tsx` | ⚠️ orphan? | 290 | — | View toggle |
-| `TradesView.tsx` | ✅ 1 | 87 | — | Header |
+| `TradesSummaryStrip.tsx` | ✅ 1 | 284 | — | ET (America/New_York) date, DST-safe — same convention as tradeStore.toETDate. |
+| `TradesTable.tsx` | ✅ 1 | 360 | — | Pattern at entry: stamped SoT column if present, else display-derived. |
+| `TradesView.tsx` | ✅ 1 | 178 | — | Header |
 | `tradeRowFormat.ts` | ✅ 2 | 91 | — | Entry → stop(s) → targets → exit; same font size as rest of row. |

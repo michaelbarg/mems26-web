@@ -1,71 +1,239 @@
 'use client';
 import { useEffect, useState } from 'react';
 
-// Pipeline 5 DEMO supervision: a floating button + panel showing the live active trade
-// (entry / stop / C1 / runners) and recent trades. Reads the no-auth backend endpoints.
+// Pipeline 5 DEMO supervision: a floating button + panel showing the live active
+// trade (pattern / entry / stop+BE / C1-C3 with live distance + progress) and the
+// recent trades (שעה · תבנית · P&L · סיבת-יציאה · mode · תוצאה).
+//
+// UI round 2 (2026-07-02):
+// - /active is parsed with the REAL payload shape (trade_id — not id; contracts is
+//   an ARRAY of C1/C2/C3 rows — trades.py:279-294). The old reads (active.id,
+//   active.stop, numeric contracts) never matched, so the panel always said
+//   "אין עסקה פעילה" even mid-trade.
+// - Distance/progress/elapsed/BE logic is IMPORTED from lib/activeTrade.ts — the
+//   exact same helpers the round-1 ActiveTradeCard uses (no duplication).
+// - Live price comes from usePriceStore (fed by the dashboard's WS + poll
+//   fallback) — ZERO new price requests. The subscription lives INSIDE the
+//   open-panel component so price ticks never re-render the closed button.
+// - Poll intervals unchanged: /active 5000ms always; recent+status 4000ms only
+//   while the panel is open.
+// - Pre-existing tsc error fixed: the /status response is typed ({mode?: string},
+//   status.py:334) instead of `{} | {}`.
+import { fetchActiveTrade, fetchRecentTrades } from '../../lib/api';
+import { fmtTimeET } from '../../lib/tradeTime';
+import { usePriceStore } from '../../stores/priceStore';
+import { dayTypeColor, dayTypeAbbrev } from '../../lib/dayType';
+import {
+  CONTRACT_STATUS_COLORS,
+  elapsedLabel,
+  isStopAtBE,
+  parseActiveTrade,
+  progressPct,
+  ptsToTarget,
+  type ActiveTrade,
+} from '../../lib/activeTrade';
+import type { Trade } from '../../types';
+
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
-interface Trade {
-  id?: number; mode?: string; system?: number; direction?: string; state?: string;
-  entry_price?: number; stop?: number; stop_initial?: number;
-  contracts?: number; size?: number; t1?: number; t2?: number; t3?: number;
-  pnl?: number; realized_pnl?: number; exit_price?: number; outcome?: string;
-}
+const fmt = (n: number | null | undefined): string =>
+  n == null ? '—' : n.toLocaleString(undefined, { maximumFractionDigits: 2 });
 
-const isNum = (n: unknown): n is number => typeof n === 'number';
-const fmt = (n: unknown): string =>
-  n == null || n === '' ? '—' : isNum(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 2 }) : String(n);
+/** Money — "+$123" / "-$45" (rendered inside dir="ltr"). */
+const money = (v: number | null | undefined): string =>
+  v == null ? '—' : (v >= 0 ? '+$' : '-$') + Math.abs(v).toFixed(0);
 
-function KV({ k, v, hi, dim }: { k: string; v: string; hi?: boolean; dim?: boolean }) {
+const HE_STATUS: Record<string, string> = {
+  OPEN: 'פתוח',
+  HIT_TARGET: 'יעד ✓',
+  HIT_STOP: 'סטופ ✗',
+  BE: 'BE',
+};
+
+/** Normalized frontend mode (mapTradeRow: demo→SIM, shadow→SHADOW, live→LIVE) → chip. */
+const MODE_CHIP: Record<string, { label: string; color: string }> = {
+  SIM: { label: 'DEMO', color: '#06b6d4' },
+  SHADOW: { label: 'SHDW', color: '#facc15' },
+  LIVE: { label: 'LIVE', color: '#f85149' },
+};
+
+const outcomeIcon = (t: Trade): { i: string; c: string } => {
+  const o = (t.outcome || '').toUpperCase();
+  const p = t.pnl_usd;
+  if (o === 'WIN' || (o === '' && p != null && p > 0)) return { i: '✓', c: '#2ea043' };
+  if (o === 'LOSS' || (o === '' && p != null && p < 0)) return { i: '✗', c: '#f85149' };
+  if (o === 'OPEN' || (!t.exit_ts && p == null)) return { i: '•', c: '#8b949e' };
+  return { i: '=', c: '#d29922' }; // BE / SCRATCH
+};
+
+function KV({ k, v, hi, dim, tag }: { k: string; v: string; hi?: boolean; dim?: boolean; tag?: string }) {
   return (
     <div style={{ background: '#161b22', border: '1px solid #21262d', borderRadius: 6, padding: '6px 8px' }}>
       <div style={{ fontSize: 10, color: '#8b949e' }}>{k}</div>
-      <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: hi ? '#2ea043' : dim ? '#8b949e' : '#e6edf3' }}>{v}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2, color: hi ? '#2ea043' : dim ? '#8b949e' : '#e6edf3', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span dir="ltr">{v}</span>
+        {tag && (
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: '0 5px', borderRadius: 3,
+            color: '#d29922', background: 'rgba(210,153,34,0.12)', border: '1px solid rgba(210,153,34,0.45)',
+          }} title="הסטופ בנקודת הכניסה (Break-Even)">{tag}</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The ACTIVE-trade body — mounted only while the panel is open AND a trade is
+ *  live, so the price-store subscription + elapsed tick exist only then. */
+function ActiveTradePanel({ t }: { t: ActiveTrade }) {
+  // Dashboard-fed live price (WS + 5s poll fallback) — no new request from here.
+  const livePrice = usePriceStore((s) => s.price);
+  // Local clock tick for the elapsed label only (no network) — same as ActiveTradeCard.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const isLong = t.direction === 'LONG';
+  const dirColor = isLong ? '#2ea043' : '#f85149';
+  const stopBE = isStopAtBE(t.entry_price, t.stop_price);
+  const elapsed = elapsedLabel(t.entry_ts, nowMs);
+  const pattern = t.pattern_id || t.classification || t.trigger || null;
+
+  return (
+    <div style={{ border: `1px solid ${dirColor}55`, borderRadius: 8, padding: 12, marginBottom: 10 }}>
+      {/* Header: direction · id · pattern · day-type · state · elapsed · total P&L */}
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 8 }}>
+        <span style={{ fontWeight: 800, fontSize: 18, color: dirColor }} dir="ltr">
+          {isLong ? '▲ LONG' : '▼ SHORT'}
+        </span>
+        <span style={{ color: '#8b949e', fontSize: 12 }} dir="ltr">#{t.trade_id}</span>
+        {pattern && (
+          <span style={{
+            fontFamily: 'monospace', fontSize: 12, fontWeight: 700, color: '#e3b341',
+            background: 'rgba(227,179,65,0.08)', border: '1px solid rgba(227,179,65,0.35)',
+            padding: '1px 7px', borderRadius: 5,
+          }} dir="ltr" title="תבנית הכניסה">{pattern}</span>
+        )}
+        {t.day_type && (
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 5,
+            color: dayTypeColor(t.day_type), background: `${dayTypeColor(t.day_type)}1a`,
+            border: `1px solid ${dayTypeColor(t.day_type)}55`,
+          }} dir="ltr" title={`סוג-יום: ${t.day_type}`}>{dayTypeAbbrev(t.day_type)}</span>
+        )}
+        {t.state && <span style={{ color: '#8b949e', fontSize: 11 }} dir="ltr">{t.state}</span>}
+        {elapsed && (
+          <span style={{ fontSize: 11, color: '#8b949e', fontFamily: 'monospace' }} title="זמן בעסקה מאז הכניסה" dir="ltr">
+            ⏱ {elapsed}
+          </span>
+        )}
+        <span style={{ marginInlineStart: 'auto', fontWeight: 800, color: t.total_pnl >= 0 ? '#2ea043' : '#f85149' }} dir="ltr">
+          {money(t.total_pnl)} ({t.total_r.toFixed(1)}R)
+        </span>
+      </div>
+
+      {/* Entry / current stop (+BE) / hits summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 8 }}>
+        <KV k="כניסה" v={fmt(t.entry_price)} />
+        <KV k="סטופ נוכחי" v={fmt(t.stop_price)} hi={stopBE} tag={stopBE ? 'BE' : undefined} />
+        <KV k="יעדים" v={t.summary} dim />
+      </div>
+
+      {/* C1/C2/C3 — live distance in points + % progress for OPEN legs
+          (same math as ActiveTradeCard via lib/activeTrade) */}
+      {t.contracts.map((c) => {
+        const sc = CONTRACT_STATUS_COLORS[c.status] || '#737373';
+        const tgt = c.target_price;
+        const isOpen = c.status === 'OPEN' && tgt != null && tgt > 0;
+        const dist = isOpen && tgt != null && livePrice != null ? ptsToTarget(tgt, livePrice, isLong) : null;
+        const prog = isOpen && tgt != null && livePrice != null ? progressPct(tgt, t.entry_price, livePrice, isLong) : null;
+        return (
+          <div key={c.id} style={{ borderTop: '1px solid #1c222b', padding: '5px 0' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+              <span style={{ fontWeight: 700, color: '#e6edf3', width: 22 }} dir="ltr">{c.id}</span>
+              <span style={{ fontFamily: 'monospace', color: '#8b949e', width: 62 }} dir="ltr" title="מחיר היעד">
+                {tgt != null ? tgt.toFixed(2) : '—'}
+              </span>
+              <span style={{
+                fontSize: 10, fontWeight: 600, padding: '0 6px', borderRadius: 3,
+                color: sc, background: `${sc}18`,
+              }} title={c.status}>
+                {HE_STATUS[c.status] ?? c.status}{c.smart_be ? ' ⇄' : ''}
+              </span>
+              {!isOpen && (
+                <span style={{ marginInlineStart: 'auto', fontFamily: 'monospace', fontSize: 12, color: c.pnl >= 0 ? '#2ea043' : '#f85149' }} dir="ltr">
+                  {money(c.pnl)} · {c.r.toFixed(1)}R
+                </span>
+              )}
+            </div>
+            {isOpen && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 3, paddingInlineStart: 22 }}
+                title={`מרחק ליעד ${c.id} מהמחיר החי · % מהדרך כניסה→יעד`}>
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#8b949e', minWidth: 86 }} dir="ltr">
+                  {dist != null
+                    ? dist >= 0 ? `${dist.toFixed(2)}pt ליעד` : `${Math.abs(dist).toFixed(2)}pt מעבר`
+                    : '— אין מחיר חי'}
+                </span>
+                <div style={{ flex: 1, height: 4, background: '#1c222b', borderRadius: 2, overflow: 'hidden' }} dir="ltr">
+                  <div style={{
+                    height: '100%', width: `${prog ?? 0}%`,
+                    background: prog != null && prog >= 100 ? '#2ea043' : dirColor,
+                    borderRadius: 2, transition: 'width 300ms ease-out',
+                  }} />
+                </div>
+                <span style={{ fontFamily: 'monospace', fontSize: 11, color: '#c9d1d9', width: 34, textAlign: 'left' }} dir="ltr">
+                  {prog != null ? `${prog.toFixed(0)}%` : '—'}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export function DemoMonitor() {
   const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<Trade | null>(null);
+  const [active, setActive] = useState<ActiveTrade | null>(null);
   const [recent, setRecent] = useState<Trade[]>([]);
   const [mode, setMode] = useState<string>('');
 
-  // Always poll the active trade (drives the button indicator). 5s — within the polling floors.
+  // Always poll the active trade (drives the button indicator). 5s — unchanged interval.
   useEffect(() => {
     let alive = true;
     const poll = async () => {
-      try {
-        const r = await fetch(`${API}/api/v9/trades/active`).catch(() => null);
-        if (r && r.ok && alive) setActive(await r.json());
-      } catch { /* ignore */ }
+      const d = await fetchActiveTrade(); // publicApiFetch — never throws, null on failure
+      if (alive) setActive(parseActiveTrade(d));
     };
     poll();
     const t = setInterval(poll, 5000);
     return () => { alive = false; clearInterval(t); };
   }, []);
 
-  // When the panel is open, also poll recent trades + mode.
+  // When the panel is open, also poll recent trades + mode. 4s — unchanged interval.
   useEffect(() => {
     if (!open) return;
     let alive = true;
     const poll = async () => {
-      try {
-        const [rs, ss] = await Promise.all([
-          fetch(`${API}/api/v9/trades/recent?limit=10`).then(r => (r.ok ? r.json() : [])).catch(() => []),
-          fetch(`${API}/api/v9/status`).then(r => (r.ok ? r.json() : {})).catch(() => ({})),
-        ]);
-        if (!alive) return;
-        setRecent(Array.isArray(rs) ? rs : []);
-        setMode((ss && ss.mode) || '');
-      } catch { /* ignore */ }
+      const [rs, ss] = await Promise.all([
+        fetchRecentTrades(10).catch(() => [] as Trade[]),
+        fetch(`${API}/api/v9/status`)
+          .then((r) => (r.ok ? (r.json() as Promise<{ mode?: string }>) : Promise.resolve({} as { mode?: string })))
+          .catch(() => ({} as { mode?: string })),
+      ]);
+      if (!alive) return;
+      setRecent(rs);
+      setMode(ss.mode ?? '');
     };
     poll();
     const t = setInterval(poll, 4000);
     return () => { alive = false; clearInterval(t); };
   }, [open]);
 
-  const hasActive = !!(active && active.id);
+  const hasActive = active != null;
   const modeColor = mode === 'demo' ? '#d29922' : mode === 'live' ? '#f85149' : '#6e7681';
 
   return (
@@ -73,7 +241,7 @@ export function DemoMonitor() {
       <button
         onClick={() => setOpen(o => !o)}
         style={{
-          position: 'fixed', bottom: 16, insetInlineEnd: 16, zIndex: 60,
+          position: 'fixed', bottom: 16, right: 16, zIndex: 60,
           background: '#161b22', color: '#e6edf3', border: '1px solid #30363d', borderRadius: 8,
           padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
           boxShadow: '0 4px 14px rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', gap: 8,
@@ -87,68 +255,72 @@ export function DemoMonitor() {
       </button>
 
       {open && (
-        <div style={{
-          position: 'fixed', bottom: 60, insetInlineEnd: 16, zIndex: 60, width: 380, maxHeight: '72vh',
-          overflow: 'auto', background: '#0e1117', color: '#e6edf3', border: '1px solid #30363d',
-          borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)', padding: 14, fontSize: 13,
+        <div dir="rtl" style={{
+          position: 'fixed', bottom: 60, right: 16, zIndex: 60, width: 480, maxWidth: 'calc(100vw - 32px)',
+          maxHeight: '72vh', overflow: 'auto', background: '#0e1117', color: '#e6edf3',
+          border: '1px solid #30363d', borderRadius: 10, boxShadow: '0 8px 28px rgba(0,0,0,0.5)',
+          padding: 14, fontSize: 13,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <b>מוניטור פיקוח DEMO</b>
-            <span style={{ background: modeColor, color: '#10131a', fontWeight: 700, padding: '2px 10px', borderRadius: 5, fontSize: 12 }}>
+            <span style={{ background: modeColor, color: '#10131a', fontWeight: 700, padding: '2px 10px', borderRadius: 5, fontSize: 12 }} title="מצב המערכת (/api/v9/status)">
               {(mode || 'shadow').toUpperCase()}
             </span>
           </div>
 
-          {hasActive ? (() => {
-            const t = active as Trade;
-            const dir = t.direction || '';
-            const contracts = t.contracts ?? t.size;
-            const pnl = t.pnl ?? t.realized_pnl;
-            const stopMoved = isNum(t.stop) && isNum(t.stop_initial) && t.stop !== t.stop_initial;
-            const runners = isNum(contracts) ? Math.max(contracts - 1, 0) : null;
-            return (
-              <div style={{ border: '1px solid #30363d', borderRadius: 8, padding: 12, marginBottom: 10 }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontWeight: 800, fontSize: 18, color: dir === 'LONG' ? '#2ea043' : '#f85149' }}>{dir}</span>
-                  <span style={{ color: '#8b949e', fontSize: 12 }}>#{t.id} · מערכת {t.system ?? '—'} · {t.state}</span>
-                  {isNum(pnl) && (
-                    <span style={{ marginInlineStart: 'auto', fontWeight: 800, color: pnl >= 0 ? '#2ea043' : '#f85149' }}>
-                      {pnl >= 0 ? '+' : ''}{fmt(pnl)}
-                    </span>
-                  )}
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
-                  <KV k="כניסה" v={fmt(t.entry_price)} />
-                  <KV k="חוזים" v={fmt(contracts)} />
-                  <KV k="סטופ" v={fmt(t.stop) + (stopMoved ? ' ↗' : '')} hi={stopMoved} />
-                  {isNum(t.t1) && <KV k="T1 (C1)" v={fmt(t.t1)} />}
-                  {runners != null && <KV k="Runners" v={String(runners)} />}
-                  <KV k="סטופ התחלתי" v={fmt(t.stop_initial)} dim />
-                </div>
-              </div>
-            );
-          })() : (
+          {active ? (
+            <ActiveTradePanel t={active} />
+          ) : (
             <div style={{ color: '#8b949e', textAlign: 'center', padding: 18 }}>אין עסקה פעילה — ממתין ל-setup.</div>
           )}
 
           <div style={{ fontSize: 11, color: '#8b949e', margin: '6px 2px' }}>אחרונות</div>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ color: '#8b949e', fontSize: 10 }}>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'start' }}>שעה</th>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'start' }}>#</th>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'start' }}>תבנית</th>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'start' }}>כיוון</th>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'start' }}>מצב</th>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'end' }}>P&L$</th>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'center' }} title="תוצאה">✓</th>
+                <th style={{ padding: '2px 6px', fontWeight: 500, textAlign: 'start' }}>סיבת-יציאה</th>
+              </tr>
+            </thead>
             <tbody>
-              {recent.length ? recent.map(t => {
-                const pnl = t.pnl ?? t.realized_pnl;
+              {recent.length ? recent.map((t) => {
+                const oc = outcomeIcon(t);
+                const mc = MODE_CHIP[t.mode ?? ''] ?? { label: t.mode || '—', color: '#8b949e' };
+                const pattern = t.pattern_id || t.classification || t.trigger || '—';
                 return (
                   <tr key={t.id} style={{ borderBottom: '1px solid #1c222b' }}>
-                    <td style={{ padding: '4px 6px', color: '#8b949e' }}>#{t.id}</td>
-                    <td style={{ padding: '4px 6px', color: t.direction === 'LONG' ? '#2ea043' : '#f85149' }}>{t.direction}</td>
-                    <td style={{ padding: '4px 6px' }}>{fmt(t.entry_price)}</td>
-                    <td style={{ padding: '4px 6px', color: '#8b949e' }}>{t.mode}</td>
-                    <td style={{ padding: '4px 6px', textAlign: 'end', color: isNum(pnl) ? (pnl >= 0 ? '#2ea043' : '#f85149') : '#8b949e' }}>
-                      {isNum(pnl) ? (pnl >= 0 ? '+' : '') + fmt(pnl) : (t.outcome || t.state || '')}
+                    <td style={{ padding: '4px 6px', color: '#8b949e', fontFamily: 'monospace' }} dir="ltr">
+                      {t.entry_ts ? fmtTimeET(t.entry_ts) : '—'}
+                    </td>
+                    <td style={{ padding: '4px 6px', color: '#8b949e' }} dir="ltr">#{t.id}</td>
+                    <td style={{ padding: '4px 6px', fontFamily: 'monospace', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} dir="ltr" title={String(pattern)}>
+                      {pattern}
+                    </td>
+                    <td style={{ padding: '4px 6px', color: t.direction === 'LONG' ? '#2ea043' : '#f85149', fontWeight: 600 }} dir="ltr">
+                      {t.direction === 'LONG' ? '▲L' : '▼S'}
+                    </td>
+                    <td style={{ padding: '4px 6px' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: mc.color, border: `1px solid ${mc.color}55`, borderRadius: 3, padding: '0 4px' }} title={t.mode ?? ''}>
+                        {mc.label}
+                      </span>
+                    </td>
+                    <td style={{ padding: '4px 6px', textAlign: 'end', fontFamily: 'monospace', color: t.pnl_usd == null ? '#8b949e' : t.pnl_usd >= 0 ? '#2ea043' : '#f85149' }} dir="ltr">
+                      {t.pnl_usd != null ? money(t.pnl_usd) : '—'}
+                    </td>
+                    <td style={{ padding: '4px 6px', textAlign: 'center', color: oc.c, fontWeight: 700 }}>{oc.i}</td>
+                    <td style={{ padding: '4px 6px', color: '#8b949e', fontFamily: 'monospace', fontSize: 11, maxWidth: 92, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} dir="ltr" title={t.exit_reason ?? ''}>
+                      {t.exit_reason ?? (t.state || '—')}
                     </td>
                   </tr>
                 );
               }) : (
-                <tr><td style={{ color: '#8b949e', padding: 6 }}>—</td></tr>
+                <tr><td colSpan={8} style={{ color: '#8b949e', padding: 6 }}>—</td></tr>
               )}
             </tbody>
           </table>

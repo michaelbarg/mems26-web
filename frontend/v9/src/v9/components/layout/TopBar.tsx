@@ -9,6 +9,7 @@ import { PriceMeta } from '../topbar/PriceMeta';
 import { ConnectionIndicator } from '../topbar/ConnectionIndicator';
 import Link from 'next/link';
 import { LibraryModal } from '../banners/LibraryModal';
+import { dayTypeColor, DAY_TYPE_DIRECTION_HE } from '../../lib/dayType';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -44,18 +45,29 @@ export function TopBar() {
     f(); const id = setInterval(f, 15000); return () => clearInterval(id);
   }, []);
 
-  // Day Type — read from systemStateStore (already polled by useSystemStatePolling)
-  const DT_LABELS: Record<string, string> = {
-    Trend_Normal: 'TRD', Trend_DD: 'TDD', Variation: 'VAR',
-    Neutral: 'NEU', Normal: 'NOR', Nontrend: 'NTR', UNKNOWN: '\u2014',
-    trend_normal: 'TRD', trend_dd: 'TDD', variation: 'VAR',
-    neutral: 'NEU', normal: 'NOR', nontrend: 'NTR',
-  };
+  // Day Type — LIVE badge from systems[1] in systemStateStore. That slot is filled
+  // EXCLUSIVELY by the canonical 7-type classifier (systemStateStore.overrideS1 →
+  // GET /api/v9/day_type/classify_replay?date=today; docs/SOURCE_OF_TRUTH.md §Day-type ✅,
+  // docs/spec_authority/S1_ACTIVE_CANONICAL.md) on the existing useSystemStatePolling
+  // 5000ms cycle — ZERO new requests from this badge. state=day_type · subState=status
+  // (FORMING/PROVISIONAL/CLASSIFIED) · raw.direction/reason/invalidated = classifier output.
+  // Dead endpoints /api/v9/day_type/current + /day_type/v9/current are NOT used (retired 06-22).
   const dtSystem = useSystemStateStore((s) => s.systems[1]);
-  const dayTypeRaw = dtSystem?.state ?? 'UNKNOWN';
-  const dayTypeConf = dtSystem?.confidence != null ? Math.round(dtSystem.confidence * 100) : 0;
-  const dayTypeDir: any = dtSystem?.raw?.directional_certainty ?? null;
-  const dayType = DT_LABELS[dayTypeRaw] || dayTypeRaw;
+  const dtRaw = (dtSystem?.raw ?? {}) as {
+    direction?: string | null; reason?: string | null; invalidated?: boolean; source?: string;
+  };
+  const dayTypeName = dtSystem?.state || 'UNKNOWN';
+  const dayTypeStatus = dtSystem?.subState || null;
+  const dtColor = dayTypeColor(dayTypeName);
+  const dtClassified = dayTypeStatus === 'CLASSIFIED';
+  const dtStance = dtRaw.direction ? (DAY_TYPE_DIRECTION_HE[dtRaw.direction] ?? dtRaw.direction) : null;
+  const dtTitle = [
+    'Day-Type (S1 · classify_replay — canonical 7-type)',
+    `${dayTypeName.replace(/_/g, ' ')}${dayTypeStatus ? ` · ${dayTypeStatus}` : ''}`,
+    dtStance ? `כיוון: ${dtStance}` : null,
+    dtRaw.reason ? String(dtRaw.reason) : null,
+    dtRaw.invalidated ? '⚠ הפתיחה נחצתה (INVALIDATED)' : null,
+  ].filter(Boolean).join('\n');
 
   // WR today (ν.2)
   const [wrToday, setWrToday] = useState<number | null>(null);
@@ -71,7 +83,7 @@ export function TopBar() {
     const latest = sys6[sys6.length - 1];
     const zone = (latest?.payload?.session_phase as string) || '';
     const gate = latest?.payload?.gate_open;
-    return { zone: zone || '\u2014', open: !!gate };
+    return { zone: zone || '—', open: !!gate };
   }, [allSignals]);
 
   // PnL and trade counts by mode
@@ -114,12 +126,28 @@ export function TopBar() {
         <span className="font-bold text-sm tracking-wider" style={{ color: '#58a6ff' }}>
           MES
         </span>
-        <span style={{
-          fontSize: 10, fontWeight: 600, padding: '1px 6px', borderRadius: 3,
-          background: 'rgba(99,102,241,0.15)', color: '#818cf8',
-          fontFamily: 'ui-monospace, monospace',
-        }}>
-          {dayType} {dayTypeConf > 0 ? `${dayTypeConf}%` : ''}{dayTypeDir ? ` ${dayTypeDir[0]}` : ''}
+        {/* Day-Type badge — colored per type (same palette as the labeler / build-status
+            tables); dimmed until CLASSIFIED; tooltip = status/stance/reason. */}
+        <span
+          title={dtTitle}
+          data-testid="topbar-daytype-chip"
+          style={{
+            fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 3,
+            background: `${dtColor}${dtClassified ? '26' : '14'}`,
+            border: `1px solid ${dtColor}${dtClassified ? 'cc' : '55'}`,
+            color: dtColor,
+            opacity: dayTypeName === 'UNKNOWN' ? 0.65 : 1,
+            fontFamily: 'ui-monospace, monospace',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {dayTypeName === 'UNKNOWN' ? 'DT —' : dayTypeName.replace(/_/g, ' ')}
+          {dayTypeStatus && !dtClassified && dayTypeStatus !== dayTypeName && (
+            <span style={{ fontWeight: 400, opacity: 0.8 }}>
+              {dayTypeStatus === 'PROVISIONAL' ? ' ·prov' : ' ·forming'}
+            </span>
+          )}
+          {dtRaw.invalidated ? ' ⚠' : ''}
         </span>
         <span className="text-xs" style={{ color: killzone.open ? '#56d364' : '#f85149' }}>
           {killzone.zone} {killzone.open ? 'OPEN' : 'CLOSED'}
@@ -239,6 +267,27 @@ export function TopBar() {
         >
           Trades
         </Link>
+        {/* External review tools (static pages in /public) — open in a new tab */}
+        <a
+          href="/patterns-visual.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
+          style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
+          title="Playbook תבניות — נפתח בטאב חדש"
+        >
+          תבניות · Playbook
+        </a>
+        <a
+          href="/trade-placement.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
+          style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
+          title="מיקומי-מימוש (stops/targets) — נפתח בטאב חדש"
+        >
+          מיקומי-מימוש
+        </a>
         <button
           onClick={togglePanels}
           className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
