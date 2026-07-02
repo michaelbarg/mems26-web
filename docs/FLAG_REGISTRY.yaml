@@ -93,6 +93,11 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required."
     status: deferred
     ref: "I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md"
+  RR_ENTRY_GATE_V1:
+    category: cascade_gate
+    what: "Block entry when T1 distance < stop distance (net-negative R:R = stop-funding). Michael rule 06-20."
+    why: "OFF (default, SHADOW). Since 06-20 only 8/55 trades hit T1; C1:stop ratios as low as 0.77 (direct stop-funding)."
+    status: deferred
   EOD_RISK_WINDOW_V1:
     category: cascade_gate
     what: "EOD entry cutoff (no new entries last 45min before close) + flatten at 15min before close."

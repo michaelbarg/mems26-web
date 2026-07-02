@@ -476,6 +476,25 @@ class TradingGateway:
                     )
                     setup[_tk] = None
 
+        # Item-3: R:R entry gate — block if T1 closer than the stop (net-negative R:R)
+        if os.getenv("RR_ENTRY_GATE_V1", "0").lower() in ("1", "true", "yes"):
+            _rr_t1 = setup.get("t1")
+            _rr_stop = setup.get("stop")
+            _rr_entry = setup.get("entry_price")
+            if _rr_t1 is not None and _rr_stop is not None and _rr_entry is not None:
+                try:
+                    _t1_dist = abs(float(_rr_t1) - float(_rr_entry))
+                    _stop_dist = abs(float(_rr_entry) - float(_rr_stop))
+                    if _stop_dist > 0 and _t1_dist < _stop_dist:
+                        result["blocked_by"] = "rr_entry_gate"
+                        logger.info(
+                            "[Gateway] BLOCKED by R:R gate: T1_dist=%.2f < stop_dist=%.2f (R:R=%.2f)",
+                            _t1_dist, _stop_dist, _t1_dist / _stop_dist,
+                        )
+                        return result
+                except (TypeError, ValueError):
+                    pass  # fail-open
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:
