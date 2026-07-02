@@ -5,4 +5,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `BuildTreeView.tsx` | ✅ 2 | 1932 | — | BuildTreeView — redesigned Build Status page as a decision tree (V2). |
+| `BuildTreeView.tsx` | ✅ 2 | 1932 | 2026-06-05 | BuildTreeView — redesigned Build Status page as a decision tree (V2). |

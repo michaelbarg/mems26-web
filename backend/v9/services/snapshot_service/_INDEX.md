@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 5 | — | Cross-system snapshot service — captures all 6 systems' state at trade events. |
-| `snapshot.py` | ✅ 2 | 136 | — | CrossSystemSnapshotService — reads all 6 systems' current state from Redis. |
+| `__init__.py` | ▶ entry/test | 5 | 2026-05-10 | Cross-system snapshot service — captures all 6 systems' state at trade events. |
+| `snapshot.py` | ✅ 2 | 136 | 2026-05-23 | CrossSystemSnapshotService — reads all 6 systems' current state from Redis. |

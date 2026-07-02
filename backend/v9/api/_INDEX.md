@@ -8,5 +8,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `journal_compat_routes.py` | ✅ 1 | 294 | — | Canonical trade journal HTTP API — v9_trades → /trades/log (Render journal UI). |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-09 |  |
+| `journal_compat_routes.py` | ✅ 1 | 294 | 2026-05-23 | Canonical trade journal HTTP API — v9_trades → /trades/log (Render journal UI). |

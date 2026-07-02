@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 3 | — |  |
-| `manager.py` | ✅ 1 | 206 | — | SessionBoundaryManager — idempotent daily rollover at 18:00 ET. |
+| `__init__.py` | ▶ entry/test | 3 | 2026-05-29 |  |
+| `manager.py` | ✅ 1 | 206 | 2026-06-04 | SessionBoundaryManager — idempotent daily rollover at 18:00 ET. |

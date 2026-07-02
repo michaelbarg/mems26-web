@@ -8,9 +8,9 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 18 | — | W11 Trade Manager — trade lifecycle: entry -> bracket -> exit. |
-| `bar_level_detector.py` | ✅ 1 | 201 | — | BarLevelDetector — glue between BarRouter and W11 TradeManager. |
-| `consolidation.py` | ✅ 1 | 155 | — | Consolidation detector — pure function for dynamic structure-trailing. |
-| `events.py` | ✅ 3 | 85 | — | Trade event emitter — publishes lifecycle events to Redis pub/sub and WS. |
-| `manager.py` | ✅ 7 | 1027 | — | W11 Trade Manager — trade lifecycle: entry -> bracket -> exit. |
-| `state_machine.py` | ✅ 5 | 63 | — | Trade state machine — explicit transitions, invalid ones raise. |
+| `__init__.py` | ▶ entry/test | 18 | 2026-05-10 | W11 Trade Manager — trade lifecycle: entry -> bracket -> exit. |
+| `bar_level_detector.py` | ✅ 1 | 201 | 2026-07-01 | BarLevelDetector — glue between BarRouter and W11 TradeManager. |
+| `consolidation.py` | ✅ 1 | 155 | 2026-06-25 | Consolidation detector — pure function for dynamic structure-trailing. |
+| `events.py` | ✅ 3 | 85 | 2026-05-22 | Trade event emitter — publishes lifecycle events to Redis pub/sub and WS. |
+| `manager.py` | ✅ 7 | 1027 | 2026-06-26 | W11 Trade Manager — trade lifecycle: entry -> bracket -> exit. |
+| `state_machine.py` | ✅ 5 | 63 | 2026-05-10 | Trade state machine — explicit transitions, invalid ones raise. |

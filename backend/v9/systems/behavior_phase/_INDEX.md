@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 3 | — |  |
-| `phase_detector.py` | ✅ 2 | 142 | — | Behavior Phase Detector — Layer 2 Observing (advisory, NOT firing). |
-| `routes.py` | ✅ 1 | 36 | — | API route for Behavior Phase (Layer 2 advisory). |
+| `__init__.py` | ▶ entry/test | 3 | 2026-05-14 |  |
+| `phase_detector.py` | ✅ 2 | 142 | 2026-05-14 | Behavior Phase Detector — Layer 2 Observing (advisory, NOT firing). |
+| `routes.py` | ✅ 1 | 36 | 2026-05-14 | API route for Behavior Phase (Layer 2 advisory). |

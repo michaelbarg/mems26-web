@@ -5,11 +5,11 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `System1Panel.tsx` | ✅ 1 | 61 | — |  |
-| `System2Panel.tsx` | ✅ 1 | 75 | — | Latest signals |
-| `System3Panel.tsx` | ✅ 1 | 63 | — |  |
-| `System4Panel.tsx` | ✅ 1 | 66 | — |  |
-| `System5Panel.tsx` | ✅ 1 | 51 | — |  |
-| `System6Panel.tsx` | ✅ 1 | 62 | — |  |
-| `SystemPanelWrapper.tsx` | ✅ 6 | 62 | — |  |
-| `SystemPanelsBar.tsx` | ✅ 1 | 28 | — |  |
+| `System1Panel.tsx` | ✅ 1 | 61 | 2026-05-10 |  |
+| `System2Panel.tsx` | ✅ 1 | 75 | 2026-05-10 | Latest signals |
+| `System3Panel.tsx` | ✅ 1 | 63 | 2026-05-10 |  |
+| `System4Panel.tsx` | ✅ 1 | 66 | 2026-05-10 |  |
+| `System5Panel.tsx` | ✅ 1 | 51 | 2026-05-10 |  |
+| `System6Panel.tsx` | ✅ 1 | 62 | 2026-05-10 |  |
+| `SystemPanelWrapper.tsx` | ✅ 6 | 62 | 2026-05-10 |  |
+| `SystemPanelsBar.tsx` | ✅ 1 | 28 | 2026-05-10 |  |

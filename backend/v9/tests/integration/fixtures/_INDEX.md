@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `woodies_bar_sequences.py` | ✅ 1 | 90 | — | Synthetic bar sequences for Woodies E2E tests (PROMPT 4 · 4.3). |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-16 |  |
+| `woodies_bar_sequences.py` | ✅ 1 | 90 | 2026-05-27 | Synthetic bar sequences for Woodies E2E tests (PROMPT 4 · 4.3). |

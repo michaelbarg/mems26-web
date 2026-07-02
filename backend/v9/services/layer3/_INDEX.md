@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 3 | — |  |
-| `handoff.py` | ✅ 1 | 99 | — | W2b.3 — Setup→Entry Handoff (refines signal_price → cluster-based). |
+| `__init__.py` | ▶ entry/test | 3 | 2026-05-14 |  |
+| `handoff.py` | ✅ 1 | 99 | 2026-05-14 | W2b.3 — Setup→Entry Handoff (refines signal_price → cluster-based). |

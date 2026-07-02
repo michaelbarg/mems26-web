@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `consumer.py` | ✅ 1 | 177 | — | AuditConsumer — reads all Event Bus streams, writes to AuditEvent table. |
-| `runner.py` | ✅ 1 | 86 | — | Audit Consumer runner — entry point for background process. |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-11 |  |
+| `consumer.py` | ✅ 1 | 177 | 2026-05-11 | AuditConsumer — reads all Event Bus streams, writes to AuditEvent table. |
+| `runner.py` | ✅ 1 | 86 | 2026-05-11 | Audit Consumer runner — entry point for background process. |

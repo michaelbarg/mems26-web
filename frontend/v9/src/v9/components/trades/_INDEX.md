@@ -5,27 +5,27 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `EdgeKpiRow.tsx` | ✅ 1 | 141 | — |  |
-| `EdgeMatrix.tsx` | ✅ 1 | 261 | — | EdgeMatrix — generic grouped aggregation, ADAPTED from PatternPerformanceStrip. |
-| `EquityCurveStrip.tsx` | ✅ 1 | 126 | — |  |
-| `ExecModeToggle.tsx` | ✅ 1 | 159 | — | Execution-mode toggle — "All" vs "Sequential (one-at-a-time)" comparison. |
-| `HeatMaeStrip.tsx` | ✅ 1 | 89 | — | Heat MAE/MFE strip — SVG scatter plot matching the mockup. |
-| `MgmtTimeline.tsx` | ✅ 1 | 53 | — |  |
-| `PatternPerformanceStrip.tsx` | ✅ 4 | 318 | — | Pattern label fallback chain: pattern_id → classification → trigger → "(none)". |
-| `SelectedTradePanel.tsx` | ✅ 1 | 127 | — | bdi isolates LTR numbers/R so they don't scramble the RTL layout |
-| `SpecFlags.tsx` | ✅ 1 | 72 | — |  |
-| `StopBehaviorPanel.tsx` | ✅ 1 | 132 | — | StopBehaviorPanel — dedicated stop management analysis panel. |
-| `TargetDistStrip.tsx` | ✅ 1 | 113 | — | Target distribution — client-side from existing trade fields. |
-| `TradeCardList.tsx` | ✅ 1 | 198 | — | Expand/collapse toggle |
-| `TradeChart.tsx` | ⚠️ orphan? | 182 | — |  |
-| `TradeDetailsModal.tsx` | ⚠️ orphan? | 431 | — | What fired |
-| `TradeFilters.tsx` | ✅ 1 | 290 | — | ET-aware date string (YYYY-MM-DD) for "today" in America/New_York. |
-| `TradeMarkChart.tsx` | ✅ 1 | 373 | — | ignore |
-| `TradePathVisual.tsx` | ✅ 1 | 117 | — | Relative-R "story" track for a single trade. Div/percent based (crisp at any |
-| `TradeReviewPanel.tsx` | ⚠️ orphan? | 286 | — | ignore |
-| `TradeReviewTab.tsx` | ✅ 1 | 281 | — | Pattern label — same fallback chain as PatternPerformanceStrip (pattern_id → classification → trigger). |
-| `TradeRowExpand.tsx` | ✅ 2 | 293 | — | Table row already has systems_agreement — use until full insight loads. |
-| `TradesSummaryStrip.tsx` | ✅ 1 | 284 | — | ET (America/New_York) date, DST-safe — same convention as tradeStore.toETDate. |
-| `TradesTable.tsx` | ✅ 1 | 360 | — | Pattern at entry: stamped SoT column if present, else display-derived. |
-| `TradesView.tsx` | ✅ 1 | 178 | — | Header |
-| `tradeRowFormat.ts` | ✅ 2 | 91 | — | Entry → stop(s) → targets → exit; same font size as rest of row. |
+| `EdgeKpiRow.tsx` | ✅ 1 | 141 | 2026-06-05 |  |
+| `EdgeMatrix.tsx` | ✅ 1 | 261 | 2026-06-05 | EdgeMatrix — generic grouped aggregation, ADAPTED from PatternPerformanceStrip. |
+| `EquityCurveStrip.tsx` | ✅ 1 | 126 | 2026-06-05 |  |
+| `ExecModeToggle.tsx` | ✅ 1 | 159 | 2026-06-05 | Execution-mode toggle — "All" vs "Sequential (one-at-a-time)" comparison. |
+| `HeatMaeStrip.tsx` | ✅ 1 | 89 | 2026-06-05 | Heat MAE/MFE strip — SVG scatter plot matching the mockup. |
+| `MgmtTimeline.tsx` | ✅ 1 | 53 | 2026-06-12 |  |
+| `PatternPerformanceStrip.tsx` | ✅ 4 | 318 | 2026-06-05 | Pattern label fallback chain: pattern_id → classification → trigger → "(none)". |
+| `SelectedTradePanel.tsx` | ✅ 1 | 127 | 2026-06-07 | bdi isolates LTR numbers/R so they don't scramble the RTL layout |
+| `SpecFlags.tsx` | ✅ 1 | 72 | 2026-06-12 |  |
+| `StopBehaviorPanel.tsx` | ✅ 1 | 132 | 2026-06-05 | StopBehaviorPanel — dedicated stop management analysis panel. |
+| `TargetDistStrip.tsx` | ✅ 1 | 113 | 2026-06-05 | Target distribution — client-side from existing trade fields. |
+| `TradeCardList.tsx` | ✅ 1 | 198 | 2026-06-12 | Expand/collapse toggle |
+| `TradeChart.tsx` | ⚠️ orphan? | 182 | 2026-06-12 |  |
+| `TradeDetailsModal.tsx` | ⚠️ orphan? | 431 | 2026-06-07 | What fired |
+| `TradeFilters.tsx` | ✅ 1 | 290 | 2026-06-05 | ET-aware date string (YYYY-MM-DD) for "today" in America/New_York. |
+| `TradeMarkChart.tsx` | ✅ 1 | 373 | 2026-06-15 | ignore |
+| `TradePathVisual.tsx` | ✅ 1 | 117 | 2026-06-07 | Relative-R "story" track for a single trade. Div/percent based (crisp at any |
+| `TradeReviewPanel.tsx` | ⚠️ orphan? | 286 | 2026-06-15 | ignore |
+| `TradeReviewTab.tsx` | ✅ 1 | 281 | 2026-07-02 | Pattern label — same fallback chain as PatternPerformanceStrip (pattern_id → classification → trigger). |
+| `TradeRowExpand.tsx` | ✅ 2 | 293 | 2026-06-12 | Table row already has systems_agreement — use until full insight loads. |
+| `TradesSummaryStrip.tsx` | ✅ 1 | 284 | 2026-07-02 | ET (America/New_York) date, DST-safe — same convention as tradeStore.toETDate. |
+| `TradesTable.tsx` | ✅ 1 | 360 | 2026-07-02 | Pattern at entry: stamped SoT column if present, else display-derived. |
+| `TradesView.tsx` | ✅ 1 | 178 | 2026-07-02 | Header |
+| `tradeRowFormat.ts` | ✅ 2 | 91 | 2026-05-23 | Entry → stop(s) → targets → exit; same font size as rest of row. |

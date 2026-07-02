@@ -5,7 +5,7 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `DirectionStrip.tsx` | ✅ 1 | 69 | — | DirectionStrip — the LONG/SHORT trade signal from the LSMA+CVD engine (DIRECTION_LSMA_VETO), |
-| `KeyLevelsStrip.tsx` | ✅ 1 | 308 | — | 1. Today POC/VAH/VAL |
-| `ShadowSoakStrip.tsx` | ✅ 1 | 87 | — | Day X/30 label |
-| `TradeHistoryStrip.tsx` | ✅ 1 | 93 | — |  |
+| `DirectionStrip.tsx` | ✅ 1 | 69 | 2026-06-24 | DirectionStrip — the LONG/SHORT trade signal from the LSMA+CVD engine (DIRECTION_LSMA_VETO), |
+| `KeyLevelsStrip.tsx` | ✅ 1 | 308 | 2026-06-24 | 1. Today POC/VAH/VAL |
+| `ShadowSoakStrip.tsx` | ✅ 1 | 87 | 2026-05-14 | Day X/30 label |
+| `TradeHistoryStrip.tsx` | ✅ 1 | 93 | 2026-05-23 |  |

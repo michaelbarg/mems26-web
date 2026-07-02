@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `WoodiesCciPanel.tsx` | ✅ 1 | 1477 | — | ZLR on +200 line (above CCI 0): red marker, tip points down toward zero. |
-| `WoodiesPanelTab.tsx` | ✅ 1 | 56 | — | §1 — S4 WOODY toggle on main 5m chart left edge. |
-| `woodiesDesignerSpec.ts` | ✅ 2 | 488 | — | Woody CCI Panel — Designer Spec v1.0 (17 May 2026) |
+| `WoodiesCciPanel.tsx` | ✅ 1 | 1477 | 2026-06-05 | ZLR on +200 line (above CCI 0): red marker, tip points down toward zero. |
+| `WoodiesPanelTab.tsx` | ✅ 1 | 56 | 2026-05-20 | §1 — S4 WOODY toggle on main 5m chart left edge. |
+| `woodiesDesignerSpec.ts` | ✅ 2 | 488 | 2026-06-05 | Woody CCI Panel — Designer Spec v1.0 (17 May 2026) |

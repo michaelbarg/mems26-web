@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `prompt_26_replay_clock_smoke.sh` | — | 18 | — | Stage: prompt_26_replay_clock_smoke — verify replay clock consumers |
-| `prompt_27_replay_plan.sh` | — | 11 | — | Stage: prompt_27_replay_plan — dry run: just verify plan doc exists |
-| `status_check.sh` | — | 18 | — | Stage: status_check — verify all services responding |
+| `prompt_26_replay_clock_smoke.sh` | — | 18 | 2026-05-16 | Stage: prompt_26_replay_clock_smoke — verify replay clock consumers |
+| `prompt_27_replay_plan.sh` | — | 11 | 2026-05-16 | Stage: prompt_27_replay_plan — dry run: just verify plan doc exists |
+| `status_check.sh` | — | 18 | 2026-05-16 | Stage: status_check — verify all services responding |

@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `toETDate.test.ts` | ▶ entry/test | 38 | — | G6 regression: date filter must use ET timezone, not UTC. |
-| `tradeMath.test.ts` | ▶ entry/test | 67 | — |  |
+| `toETDate.test.ts` | ▶ entry/test | 38 | 2026-06-05 | G6 regression: date filter must use ET timezone, not UTC. |
+| `tradeMath.test.ts` | ▶ entry/test | 67 | 2026-06-07 |  |

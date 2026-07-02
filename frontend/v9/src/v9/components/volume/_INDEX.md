@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `VolumeDragHandle.tsx` | ⚠️ orphan? | 83 | — | 3-dot grip handle at top edge of volume strip. |
-| `VolumePanel.tsx` | ✅ 1 | 111 | — |  |
+| `VolumeDragHandle.tsx` | ⚠️ orphan? | 83 | 2026-05-14 | 3-dot grip handle at top edge of volume strip. |
+| `VolumePanel.tsx` | ✅ 1 | 111 | 2026-05-10 |  |

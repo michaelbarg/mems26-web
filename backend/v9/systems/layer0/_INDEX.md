@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 1 | — | Layer 0 — Chop Score (Constitution V3) |
-| `chop_score.py` | ✅ 3 | 274 | — | ChopScoreComputer — 6 indicators per Constitution V3 Layer 0. |
+| `__init__.py` | ▶ entry/test | 1 | 2026-05-13 | Layer 0 — Chop Score (Constitution V3) |
+| `chop_score.py` | ✅ 3 | 274 | 2026-05-22 | ChopScoreComputer — 6 indicators per Constitution V3 Layer 0. |

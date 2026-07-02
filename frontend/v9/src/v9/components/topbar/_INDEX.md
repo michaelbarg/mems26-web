@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `ConnectionIndicator.tsx` | ✅ 1 | 41 | — |  |
-| `PriceDisplay.tsx` | ✅ 1 | 86 | — |  |
-| `PriceMeta.tsx` | ✅ 1 | 40 | — |  |
+| `ConnectionIndicator.tsx` | ✅ 1 | 41 | 2026-05-11 |  |
+| `PriceDisplay.tsx` | ✅ 1 | 86 | 2026-05-11 |  |
+| `PriceMeta.tsx` | ✅ 1 | 40 | 2026-05-11 |  |

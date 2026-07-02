@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 5 | — | EventDispatcher service — routes Bridge bar data to subscribed systems. |
-| `dispatcher.py` | ✅ 1 | 154 | — | EventDispatcher — routes live bar data from Bridge POST endpoints |
+| `__init__.py` | ▶ entry/test | 5 | 2026-05-11 | EventDispatcher service — routes Bridge bar data to subscribed systems. |
+| `dispatcher.py` | ✅ 1 | 154 | 2026-05-23 | EventDispatcher — routes live bar data from Bridge POST endpoints |

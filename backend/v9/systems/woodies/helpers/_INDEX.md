@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 1 | — | Woodies CCI helpers — local computation per D-067 Hybrid boundary |
-| `ema_calculator.py` | ✅ 1 | 72 | — | EMA Calculator — local helper for B13 Vegas trail (EMA-169). |
+| `__init__.py` | ▶ entry/test | 1 | 2026-05-16 | Woodies CCI helpers — local computation per D-067 Hybrid boundary |
+| `ema_calculator.py` | ✅ 1 | 72 | 2026-05-16 | EMA Calculator — local helper for B13 Vegas trail (EMA-169). |

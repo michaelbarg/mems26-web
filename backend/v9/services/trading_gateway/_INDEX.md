@@ -8,5 +8,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 11 | — | W13 Trading Gateway — 3-mode routing layer. |
-| `gateway.py` | ✅ 1 | 217 | — | W13 Trading Gateway — 3-mode routing layer. |
+| `__init__.py` | ▶ entry/test | 11 | 2026-05-10 | W13 Trading Gateway — 3-mode routing layer. |
+| `gateway.py` | ✅ 1 | 217 | 2026-05-18 | W13 Trading Gateway — 3-mode routing layer. |

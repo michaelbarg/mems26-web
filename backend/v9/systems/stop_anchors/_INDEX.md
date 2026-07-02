@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 6 | — | Stop-anchor V2 — config-driven anchors, T1 ladder, contract sizing. |
-| `resolver.py` | ✅ 13 | 130 | — | Stop-anchor resolver — pure functions over bars + ladders + mode classifier. |
-| `sizing.py` | ✅ 2 | 116 | — | V2 sizing pipeline — wraps resolver.final_contracts + classify_mode + auth lookup. |
+| `__init__.py` | ▶ entry/test | 6 | 2026-06-08 | Stop-anchor V2 — config-driven anchors, T1 ladder, contract sizing. |
+| `resolver.py` | ✅ 13 | 130 | 2026-06-08 | Stop-anchor resolver — pure functions over bars + ladders + mode classifier. |
+| `sizing.py` | ✅ 2 | 116 | 2026-07-01 | V2 sizing pipeline — wraps resolver.final_contracts + classify_mode + auth lookup. |

@@ -5,20 +5,20 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 31 | — |  |
-| `bars_5min_continuous_stream.py` | ✅ 1 | 14 | — | V9 stream: Continuous 24h 5-minute bars from chart #5. |
-| `bars_5min_stream.py` | ✅ 1 | 70 | — | V9 stream: 5-minute OHLCV bars (System 2 data feed). |
-| `base_stream.py` | ✅ 14 | 485 | — | Base v9 stream reader — watches a DLL JSON export, pushes to Redis + FastAPI. |
-| `cumulative_delta_stream.py` | ✅ 1 | 38 | — | V9 stream: Cumulative Delta (running delta with divergence detection). |
-| `cvd_continuous_stream.py` | ✅ 1 | 13 | — | V9 stream: Continuous 24h Cumulative Delta from chart #5. |
-| `footprint_stream.py` | ✅ 1 | 59 | — | V9 stream: Footprint (bid×ask per price level per bar). |
-| `imbalance_flags_stream.py` | ✅ 1 | 10 | — | V9 stream: Imbalance Flags (levels with 250%+ bid/ask ratio). |
-| `live_price_stream.py` | ✅ 1 | 253 | — | LivePriceStream — watches live_price.json from DLL, publishes price.tick events to Event Bus. |
-| `stacked_imbalances_stream.py` | ✅ 1 | 10 | — | V9 stream: Stacked Imbalances (bars with 3+ consecutive imbalances). |
-| `tick_reversal_12_stream.py` | ✅ 1 | 12 | — | V9 stream: Tick Reversal 12-tick bars. |
-| `tick_reversal_15_stream.py` | ✅ 1 | 13 | — | V9 stream: Tick Reversal 15-tick bars. |
-| `tpo_stream.py` | ✅ 1 | 28 | — | V9 stream: TPO (Time Price Opportunity) bars (System 5). |
-| `vap_recompute.py` | ✅ 1 | 332 | — | VAP Recompute — Real bid/ask footprint from Sierra SCID tick data. |
-| `volume_profile_stream.py` | ✅ 1 | 10 | — | V9 stream: Volume Profile (POC/VAH/VAL per bar with level breakdown). |
-| `woodies_30min_stream.py` | ✅ 1 | 21 | — | V9 stream: Woodies 30-min CCI bars (System 4). |
-| `woodies_5min_stream.py` | ✅ 1 | 25 | — | V9 stream: Woodies 5-min CCI bars (System 4) — per D-074. |
+| `__init__.py` | ▶ entry/test | 31 | 2026-06-01 |  |
+| `bars_5min_continuous_stream.py` | ✅ 1 | 14 | 2026-06-01 | V9 stream: Continuous 24h 5-minute bars from chart #5. |
+| `bars_5min_stream.py` | ✅ 1 | 70 | 2026-06-04 | V9 stream: 5-minute OHLCV bars (System 2 data feed). |
+| `base_stream.py` | ✅ 14 | 485 | 2026-06-24 | Base v9 stream reader — watches a DLL JSON export, pushes to Redis + FastAPI. |
+| `cumulative_delta_stream.py` | ✅ 1 | 38 | 2026-05-23 | V9 stream: Cumulative Delta (running delta with divergence detection). |
+| `cvd_continuous_stream.py` | ✅ 1 | 13 | 2026-06-01 | V9 stream: Continuous 24h Cumulative Delta from chart #5. |
+| `footprint_stream.py` | ✅ 1 | 59 | 2026-05-29 | V9 stream: Footprint (bid×ask per price level per bar). |
+| `imbalance_flags_stream.py` | ✅ 1 | 10 | 2026-05-09 | V9 stream: Imbalance Flags (levels with 250%+ bid/ask ratio). |
+| `live_price_stream.py` | ✅ 1 | 253 | 2026-05-22 | LivePriceStream — watches live_price.json from DLL, publishes price.tick events to Event Bus. |
+| `stacked_imbalances_stream.py` | ✅ 1 | 10 | 2026-05-09 | V9 stream: Stacked Imbalances (bars with 3+ consecutive imbalances). |
+| `tick_reversal_12_stream.py` | ✅ 1 | 12 | 2026-05-30 | V9 stream: Tick Reversal 12-tick bars. |
+| `tick_reversal_15_stream.py` | ✅ 1 | 13 | 2026-05-30 | V9 stream: Tick Reversal 15-tick bars. |
+| `tpo_stream.py` | ✅ 1 | 28 | 2026-05-10 | V9 stream: TPO (Time Price Opportunity) bars (System 5). |
+| `vap_recompute.py` | ✅ 1 | 332 | 2026-05-29 | VAP Recompute — Real bid/ask footprint from Sierra SCID tick data. |
+| `volume_profile_stream.py` | ✅ 1 | 10 | 2026-05-09 | V9 stream: Volume Profile (POC/VAH/VAL per bar with level breakdown). |
+| `woodies_30min_stream.py` | ✅ 1 | 21 | 2026-05-10 | V9 stream: Woodies 30-min CCI bars (System 4). |
+| `woodies_5min_stream.py` | ✅ 1 | 25 | 2026-05-16 | V9 stream: Woodies 5-min CCI bars (System 4) — per D-074. |

@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `SoundManager.ts` | ⚠️ orphan? | 2 | — | Sound removed per Michael 2026-05-22. |
-| `SoundProvider.tsx` | ⚠️ orphan? | 2 | — | Sound removed per Michael 2026-05-22. |
+| `SoundManager.ts` | ⚠️ orphan? | 2 | 2026-05-22 | Sound removed per Michael 2026-05-22. |
+| `SoundProvider.tsx` | ⚠️ orphan? | 2 | 2026-05-22 | Sound removed per Michael 2026-05-22. |

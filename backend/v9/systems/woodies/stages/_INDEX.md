@@ -5,25 +5,25 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 7 | — | Woodies Decision Tree stage modules (PROMPT 2 · 2.2/2.3). |
-| `a1_strategic_gate.py` | ✅ 7 | 187 | — | Stage A1 — Strategic Gate (PROMPT 3 · 3.2). |
-| `a2_day_type_query.py` | ✅ 3 | 131 | — | Stage A2 — Day Type Query · Touch-Point (PROMPT 3 · 3.3). |
-| `a3_pattern_detection.py` | ✅ 4 | 96 | — | Stage A3 — Pattern Detection (PROMPT 3 · 3.2). |
-| `a4_poc_suffering_query.py` | ✅ 3 | 107 | — | Stage A4 — POC + Suffering Side Query · Touch-Point (PROMPT 3 · 3.3). |
-| `a5_otf_clarity_query.py` | ✅ 3 | 72 | — | Stage A5 — OTF Clarity Query · Touch-Point (PROMPT 3 · 3.3). |
-| `a6_entry_classification.py` | ✅ 4 | 78 | — | Stage A6 — Entry Classification (PROMPT 3 · 3.2). |
-| `a7_universal_checks.py` | ✅ 4 | 93 | — | Stage A7 — Universal Pre-Entry Checks (PROMPT 3 · 3.3). |
-| `b10_t1_milestone.py` | ✅ 4 | 56 | — | Stage B10 — T1 Milestone (PROMPT 3 · 3.6). |
-| `b11_t2_milestone.py` | ✅ 4 | 58 | — | Stage B11 — T2 Milestone (PROMPT 3 · 3.6). |
-| `b12_t3_milestone.py` | ✅ 4 | 46 | — | Stage B12 — T3 Milestone (PROMPT 3 · 3.6). |
-| `b13_trail_check.py` | ✅ 4 | 57 | — | Stage B13 — Trail Check (PROMPT 3 · 3.5). |
-| `b14_hold.py` | ✅ 4 | 31 | — | Stage B14 — Hold (PROMPT 3 · 3.6). |
-| `b1_stop_check.py` | ✅ 4 | 43 | — | Stage B1 — Stop Check (PROMPT 3 · 3.4). |
-| `b2_eod_check.py` | ✅ 4 | 50 | — | Stage B2 — EOD Check (PROMPT 3 · 3.4). |
-| `b3_color_flip.py` | ✅ 4 | 55 | — | Stage B3 — Color Flip Check (PROMPT 3 · 3.5). |
-| `b4_poc_migration_query.py` | ✅ 3 | 69 | — | Stage B4 — POC Migration Query · Touch-Point (PROMPT 3 · 3.6). |
-| `b5_otf_mid_trade_query.py` | ✅ 3 | 51 | — | Stage B5 — OTF Clarity Mid-Trade · Touch-Point (PROMPT 3 · 3.6). |
-| `b6_news_window.py` | ✅ 4 | 53 | — | Stage B6 — News Window (PROMPT 3 · 3.4). |
-| `b7_time_stop.py` | ✅ 3 | 48 | — | Stage B7 — Time Stop (PROMPT 3 · 3.5). |
-| `b8_counter_pattern.py` | ✅ 3 | 75 | — | Stage B8 — Counter-Pattern Detection (PROMPT 3 · 3.5). |
-| `b9_market_state_query.py` | ✅ 3 | 57 | — | Stage B9 — Market State Query · Touch-Point (PROMPT 3 · 3.6). |
+| `__init__.py` | ▶ entry/test | 7 | 2026-05-16 | Woodies Decision Tree stage modules (PROMPT 2 · 2.2/2.3). |
+| `a1_strategic_gate.py` | ✅ 7 | 187 | 2026-05-27 | Stage A1 — Strategic Gate (PROMPT 3 · 3.2). |
+| `a2_day_type_query.py` | ✅ 3 | 131 | 2026-06-11 | Stage A2 — Day Type Query · Touch-Point (PROMPT 3 · 3.3). |
+| `a3_pattern_detection.py` | ✅ 4 | 96 | 2026-05-16 | Stage A3 — Pattern Detection (PROMPT 3 · 3.2). |
+| `a4_poc_suffering_query.py` | ✅ 3 | 107 | 2026-05-16 | Stage A4 — POC + Suffering Side Query · Touch-Point (PROMPT 3 · 3.3). |
+| `a5_otf_clarity_query.py` | ✅ 3 | 72 | 2026-05-16 | Stage A5 — OTF Clarity Query · Touch-Point (PROMPT 3 · 3.3). |
+| `a6_entry_classification.py` | ✅ 4 | 78 | 2026-05-16 | Stage A6 — Entry Classification (PROMPT 3 · 3.2). |
+| `a7_universal_checks.py` | ✅ 4 | 93 | 2026-05-16 | Stage A7 — Universal Pre-Entry Checks (PROMPT 3 · 3.3). |
+| `b10_t1_milestone.py` | ✅ 4 | 56 | 2026-05-16 | Stage B10 — T1 Milestone (PROMPT 3 · 3.6). |
+| `b11_t2_milestone.py` | ✅ 4 | 58 | 2026-05-16 | Stage B11 — T2 Milestone (PROMPT 3 · 3.6). |
+| `b12_t3_milestone.py` | ✅ 4 | 46 | 2026-05-16 | Stage B12 — T3 Milestone (PROMPT 3 · 3.6). |
+| `b13_trail_check.py` | ✅ 4 | 57 | 2026-05-16 | Stage B13 — Trail Check (PROMPT 3 · 3.5). |
+| `b14_hold.py` | ✅ 4 | 31 | 2026-05-16 | Stage B14 — Hold (PROMPT 3 · 3.6). |
+| `b1_stop_check.py` | ✅ 4 | 43 | 2026-05-16 | Stage B1 — Stop Check (PROMPT 3 · 3.4). |
+| `b2_eod_check.py` | ✅ 4 | 50 | 2026-05-16 | Stage B2 — EOD Check (PROMPT 3 · 3.4). |
+| `b3_color_flip.py` | ✅ 4 | 55 | 2026-05-27 | Stage B3 — Color Flip Check (PROMPT 3 · 3.5). |
+| `b4_poc_migration_query.py` | ✅ 3 | 69 | 2026-05-16 | Stage B4 — POC Migration Query · Touch-Point (PROMPT 3 · 3.6). |
+| `b5_otf_mid_trade_query.py` | ✅ 3 | 51 | 2026-05-16 | Stage B5 — OTF Clarity Mid-Trade · Touch-Point (PROMPT 3 · 3.6). |
+| `b6_news_window.py` | ✅ 4 | 53 | 2026-05-16 | Stage B6 — News Window (PROMPT 3 · 3.4). |
+| `b7_time_stop.py` | ✅ 3 | 48 | 2026-05-16 | Stage B7 — Time Stop (PROMPT 3 · 3.5). |
+| `b8_counter_pattern.py` | ✅ 3 | 75 | 2026-05-16 | Stage B8 — Counter-Pattern Detection (PROMPT 3 · 3.5). |
+| `b9_market_state_query.py` | ✅ 3 | 57 | 2026-05-16 | Stage B9 — Market State Query · Touch-Point (PROMPT 3 · 3.6). |

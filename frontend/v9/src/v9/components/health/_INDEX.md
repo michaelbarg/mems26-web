@@ -5,4 +5,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `StreamHealthPanel.tsx` | ⚠️ orphan? | 180 | — | Collapsed summary bar |
+| `StreamHealthPanel.tsx` | ⚠️ orphan? | 180 | 2026-05-23 | Collapsed summary bar |

@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `events.ts` | ✅ 3 | 91 | — | Live price tick from Sierra Chart DLL (every ~200ms) |
-| `index.ts` | ✅ 32 | 246 | — | ) ── |
+| `events.ts` | ✅ 3 | 91 | 2026-05-11 | Live price tick from Sierra Chart DLL (every ~200ms) |
+| `index.ts` | ✅ 32 | 246 | 2026-06-07 | ) ── |

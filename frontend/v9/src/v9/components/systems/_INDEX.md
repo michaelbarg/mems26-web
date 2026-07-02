@@ -5,16 +5,16 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `DayTypeLensContent.tsx` | ✅ 1 | 172 | — | 1. Current classification |
-| `DayTypePill.tsx` | ⚠️ orphan? | 35 | — |  |
-| `FiveMinLensContent.tsx` | ✅ 1 | 77 | — |  |
-| `FiveMinPill.tsx` | ⚠️ orphan? | 43 | — |  |
-| `FootprintLensContent.tsx` | ✅ 1 | 55 | — |  |
-| `FootprintPill.tsx` | ⚠️ orphan? | 35 | — |  |
-| `KeyLevelsCard.tsx` | ✅ 6 | 169 | — | Compact key levels block embedded in each system's Now tab. |
-| `KillzoneLensContent.tsx` | ✅ 1 | 42 | — |  |
-| `KillzonePill.tsx` | ✅ 1 | 25 | — |  |
-| `TPOLensContent.tsx` | ✅ 1 | 50 | — |  |
-| `TPOPill.tsx` | ✅ 1 | 24 | — |  |
-| `WoodiesLensContent.tsx` | ✅ 1 | 57 | — |  |
-| `WoodiesPill.tsx` | ⚠️ orphan? | 41 | — |  |
+| `DayTypeLensContent.tsx` | ✅ 1 | 172 | 2026-07-02 | 1. Current classification |
+| `DayTypePill.tsx` | ⚠️ orphan? | 35 | 2026-06-24 |  |
+| `FiveMinLensContent.tsx` | ✅ 1 | 77 | 2026-05-29 |  |
+| `FiveMinPill.tsx` | ⚠️ orphan? | 43 | 2026-05-23 |  |
+| `FootprintLensContent.tsx` | ✅ 1 | 55 | 2026-05-29 |  |
+| `FootprintPill.tsx` | ⚠️ orphan? | 35 | 2026-05-23 |  |
+| `KeyLevelsCard.tsx` | ✅ 6 | 169 | 2026-05-29 | Compact key levels block embedded in each system's Now tab. |
+| `KillzoneLensContent.tsx` | ✅ 1 | 42 | 2026-05-29 |  |
+| `KillzonePill.tsx` | ✅ 1 | 25 | 2026-05-14 |  |
+| `TPOLensContent.tsx` | ✅ 1 | 50 | 2026-05-29 |  |
+| `TPOPill.tsx` | ✅ 1 | 24 | 2026-05-14 |  |
+| `WoodiesLensContent.tsx` | ✅ 1 | 57 | 2026-05-29 |  |
+| `WoodiesPill.tsx` | ⚠️ orphan? | 41 | 2026-05-23 |  |

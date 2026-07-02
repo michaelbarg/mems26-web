@@ -8,4 +8,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `LeftTabs.tsx` | ✅ 1 | 80 | — | Tab buttons |
+| `LeftTabs.tsx` | ✅ 1 | 80 | 2026-05-11 | Tab buttons |

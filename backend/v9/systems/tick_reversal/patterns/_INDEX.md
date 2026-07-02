@@ -5,9 +5,9 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 17 | — | 5 micro-patterns for tick reversal observer (spec Section 6, Step 5). |
-| `accumulation_breakout.py` | ✅ 1 | 60 | — | Pattern: Accumulation + Breakout. |
-| `compression_pop.py` | ✅ 1 | 47 | — | Pattern: Compression + Pop. |
-| `failed_test.py` | ✅ 1 | 50 | — | Pattern: Failed Test. |
-| `stair_step.py` | ✅ 1 | 52 | — | Pattern: Stair-step (HH/HL or LL/LH). |
-| `v_shape_reversal.py` | ✅ 1 | 63 | — | Pattern: V-Shape Reversal. |
+| `__init__.py` | ▶ entry/test | 17 | 2026-05-12 | 5 micro-patterns for tick reversal observer (spec Section 6, Step 5). |
+| `accumulation_breakout.py` | ✅ 1 | 60 | 2026-05-12 | Pattern: Accumulation + Breakout. |
+| `compression_pop.py` | ✅ 1 | 47 | 2026-05-12 | Pattern: Compression + Pop. |
+| `failed_test.py` | ✅ 1 | 50 | 2026-05-12 | Pattern: Failed Test. |
+| `stair_step.py` | ✅ 1 | 52 | 2026-05-12 | Pattern: Stair-step (HH/HL or LL/LH). |
+| `v_shape_reversal.py` | ✅ 1 | 63 | 2026-05-12 | Pattern: V-Shape Reversal. |

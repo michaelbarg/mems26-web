@@ -8,5 +8,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `test_woodies_e2e.py` | ▶ entry/test | 297 | — | Woodies E2E Flow Tests — 5 Scenarios (PROMPT 4 · 4.3). |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-16 |  |
+| `test_woodies_e2e.py` | ▶ entry/test | 297 | 2026-05-16 | Woodies E2E Flow Tests — 5 Scenarios (PROMPT 4 · 4.3). |

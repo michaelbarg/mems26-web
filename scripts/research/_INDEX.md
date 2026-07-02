@@ -5,4 +5,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `verify_cvd_atr_availability.py` | ▶ entry/test | 181 | — | Verify CVD / delta / ATR data availability for opening-type research. |
+| `verify_cvd_atr_availability.py` | ▶ entry/test | 181 | 2026-06-09 | Verify CVD / delta / ATR data availability for opening-type research. |

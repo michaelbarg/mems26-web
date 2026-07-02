@@ -5,21 +5,21 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `test_choppiness.py` | ▶ entry/test | 31 | — | Tests for Opening Choppiness scorer (Tree V3.3 §Q4). |
-| `test_confluence.py` | ▶ entry/test | 70 | — | Tests for Confluence count (Tree V3.3 §Q6 · max 4). |
-| `test_cot_amt.py` | ▶ entry/test | 26 | — | Tests for COT/AMT standalone module. |
-| `test_e2e_t1.py` | ▶ entry/test | 187 | — | E2E integration tests for T1 (5-min Number Bar) — 10 scenarios. |
-| `test_first_hour_buffer.py` | ▶ entry/test | 42 | — | Tests for First Hour Buffer state machine (Tree V3.3 §Stage B). |
-| `test_first_hour_matrix.py` | ▶ entry/test | 30 | — | Tests for First Hour Matrix (Tree V3.3 §Stage C). |
-| `test_in_process_footprint.py` | ▶ entry/test | 202 | — | P31-02b — FiveMinSystem.process_bar must read Footprint state in-process, |
-| `test_layer3_wiring.py` | ▶ entry/test | 58 | — | Tests for Layer 3 wiring (Path A: cluster + empty_zone → entry plan). |
-| `test_output_schema.py` | ▶ entry/test | 50 | — | Tests for T1Setup output schema (D-041). |
-| `test_poc_return_alt.py` | ▶ entry/test | 50 | — | Tests for POC return alt (Initiative Bar -2 alternative path). |
-| `test_process_bar_emission.py` | ▶ entry/test | 124 | — | Tests for process_bar → emit_t1_setup wire (Phase 5.5 final auto-fire). |
-| `test_q0_dispatcher.py` | ▶ entry/test | 29 | — | Tests for Q0 Dispatcher (Pre/Post-Lock branching). |
-| `test_quality_tier.py` | ▶ entry/test | 75 | — | Tests for Quality Tier V1 (deprecated) + V2 (Auth Table). |
-| `test_setup_emitter.py` | ▶ entry/test | 54 | — | Tests for setup_emitter (Path A: full Layer 3 + validator). |
-| `test_setup_wrapper.py` | ▶ entry/test | 68 | — | Tests for setup_wrapper (graceful degradation). |
-| `test_sr_proximity.py` | ▶ entry/test | 29 | — | Tests for sr_proximity gate (Reactive S/R check). |
-| `test_time_stop_mapper.py` | ▶ entry/test | 18 | — | Tests for time_stop_mapper (S1 Day Type → time_stop_minutes). |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-16 |  |
+| `test_choppiness.py` | ▶ entry/test | 31 | 2026-05-16 | Tests for Opening Choppiness scorer (Tree V3.3 §Q4). |
+| `test_confluence.py` | ▶ entry/test | 70 | 2026-05-16 | Tests for Confluence count (Tree V3.3 §Q6 · max 4). |
+| `test_cot_amt.py` | ▶ entry/test | 26 | 2026-05-16 | Tests for COT/AMT standalone module. |
+| `test_e2e_t1.py` | ▶ entry/test | 187 | 2026-05-25 | E2E integration tests for T1 (5-min Number Bar) — 10 scenarios. |
+| `test_first_hour_buffer.py` | ▶ entry/test | 42 | 2026-05-16 | Tests for First Hour Buffer state machine (Tree V3.3 §Stage B). |
+| `test_first_hour_matrix.py` | ▶ entry/test | 30 | 2026-05-16 | Tests for First Hour Matrix (Tree V3.3 §Stage C). |
+| `test_in_process_footprint.py` | ▶ entry/test | 202 | 2026-05-22 | P31-02b — FiveMinSystem.process_bar must read Footprint state in-process, |
+| `test_layer3_wiring.py` | ▶ entry/test | 58 | 2026-05-16 | Tests for Layer 3 wiring (Path A: cluster + empty_zone → entry plan). |
+| `test_output_schema.py` | ▶ entry/test | 50 | 2026-05-16 | Tests for T1Setup output schema (D-041). |
+| `test_poc_return_alt.py` | ▶ entry/test | 50 | 2026-05-25 | Tests for POC return alt (Initiative Bar -2 alternative path). |
+| `test_process_bar_emission.py` | ▶ entry/test | 124 | 2026-05-25 | Tests for process_bar → emit_t1_setup wire (Phase 5.5 final auto-fire). |
+| `test_q0_dispatcher.py` | ▶ entry/test | 29 | 2026-05-16 | Tests for Q0 Dispatcher (Pre/Post-Lock branching). |
+| `test_quality_tier.py` | ▶ entry/test | 75 | 2026-05-25 | Tests for Quality Tier V1 (deprecated) + V2 (Auth Table). |
+| `test_setup_emitter.py` | ▶ entry/test | 54 | 2026-05-25 | Tests for setup_emitter (Path A: full Layer 3 + validator). |
+| `test_setup_wrapper.py` | ▶ entry/test | 68 | 2026-05-16 | Tests for setup_wrapper (graceful degradation). |
+| `test_sr_proximity.py` | ▶ entry/test | 29 | 2026-05-16 | Tests for sr_proximity gate (Reactive S/R check). |
+| `test_time_stop_mapper.py` | ▶ entry/test | 18 | 2026-05-25 | Tests for time_stop_mapper (S1 Day Type → time_stop_minutes). |

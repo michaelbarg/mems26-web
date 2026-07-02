@@ -5,4 +5,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `SettingsDrawer.tsx` | ✅ 1 | 143 | — | Header |
+| `SettingsDrawer.tsx` | ✅ 1 | 143 | 2026-05-10 | Header |

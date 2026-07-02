@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `system_colors.ts` | ✅ 14 | 33 | — | MEMS26 System Colors — AP-DESIGN01: use these, never hardcode. |
-| `tokens.ts` | ✅ 30 | 93 | — | MEMS26 Design Tokens — Master Visual Reference V5 |
+| `system_colors.ts` | ✅ 14 | 33 | 2026-05-14 | MEMS26 System Colors — AP-DESIGN01: use these, never hardcode. |
+| `tokens.ts` | ✅ 30 | 93 | 2026-05-11 | MEMS26 Design Tokens — Master Visual Reference V5 |

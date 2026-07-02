@@ -8,12 +8,12 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `activeTrade.ts` | ✅ 2 | 107 | — | Contract-status → color (round-1 ActiveTradeCard convention). |
-| `api.ts` | ✅ 11 | 262 | — | Local V9 backend — never empty string (breaks fetch → relative /api on :3000). |
-| `dayType.ts` | ✅ 5 | 77 | — | Color for a day-type label; tolerant to space/underscore spelling; muted fallback. |
-| `formatPrice.ts` | ✅ 2 | 24 | — | Format MES price with comma separator: 7435.25 → "7,435.25" |
-| `mockData.ts` | ✅ 1 | 87 | — | Mock data for V9 dashboard — used when market is closed or backend unavailable. |
-| `tradeAuxStatus.ts` | ✅ 1 | 144 | — | Per-trade auxiliary status derived from the set of trades. |
-| `tradeMath.ts` | ✅ 9 | 177 | — | Pure trade-math helpers for the Trades journal. |
-| `tradeTime.ts` | ✅ 9 | 90 | — | Trade time formatting helpers — keeps every trade surface aligned on |
-| `websocket.ts` | ✅ 2 | 75 | — |  |
+| `activeTrade.ts` | ✅ 2 | 107 | 2026-07-02 | Contract-status → color (round-1 ActiveTradeCard convention). |
+| `api.ts` | ✅ 11 | 262 | 2026-06-05 | Local V9 backend — never empty string (breaks fetch → relative /api on :3000). |
+| `dayType.ts` | ✅ 5 | 77 | 2026-07-02 | Color for a day-type label; tolerant to space/underscore spelling; muted fallback. |
+| `formatPrice.ts` | ✅ 2 | 24 | 2026-05-11 | Format MES price with comma separator: 7435.25 → "7,435.25" |
+| `mockData.ts` | ✅ 1 | 87 | 2026-05-10 | Mock data for V9 dashboard — used when market is closed or backend unavailable. |
+| `tradeAuxStatus.ts` | ✅ 1 | 144 | 2026-05-22 | Per-trade auxiliary status derived from the set of trades. |
+| `tradeMath.ts` | ✅ 9 | 177 | 2026-06-07 | Pure trade-math helpers for the Trades journal. |
+| `tradeTime.ts` | ✅ 9 | 90 | 2026-05-23 | Trade time formatting helpers — keeps every trade surface aligned on |
+| `websocket.ts` | ✅ 2 | 75 | 2026-05-11 |  |

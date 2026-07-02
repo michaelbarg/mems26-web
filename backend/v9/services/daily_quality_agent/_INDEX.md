@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 5 | — | W12 Daily Quality Agent — EOD batch scoring for V9 trades. |
-| `agent.py` | ✅ 1 | 186 | — | W12 Daily Quality Agent — EOD batch job that tags trades with quality grades. |
-| `scoring.py` | ✅ 1 | 198 | — | W12 quality scoring dimensions for V9 trades. |
+| `__init__.py` | ▶ entry/test | 5 | 2026-05-10 | W12 Daily Quality Agent — EOD batch scoring for V9 trades. |
+| `agent.py` | ✅ 1 | 186 | 2026-05-10 | W12 Daily Quality Agent — EOD batch job that tags trades with quality grades. |
+| `scoring.py` | ✅ 1 | 198 | 2026-05-10 | W12 quality scoring dimensions for V9 trades. |

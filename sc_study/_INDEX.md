@@ -5,8 +5,8 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `MES_AI_DataExport.cpp` | — | 1469 | — | MES_AI_DataExport.cpp — v9.4.2-p30.11 (G1/G2/G4: proj H/L, TPO validation, va_ok) |
-| `MES_AI_DataExport_merged.cpp` | — | 3250 | — | lookback — ignored, session-anchored now |
-| `v9_exports.h` | — | 707 | — | lookback — ignored, session-anchored now |
-| `v9_types.h` | — | 148 | — | v9_types.h — MEMS26 V9 shared types and helpers |
-| `v9_woodies_export.h` | — | 921 | — | v9_woodies_export.h — MEMS26 V9 Woodies CCI export (30-min synthetic bars) |
+| `MES_AI_DataExport.cpp` | — | 1469 | 2026-06-26 | MES_AI_DataExport.cpp — v9.4.2-p30.11 (G1/G2/G4: proj H/L, TPO validation, va_ok) |
+| `MES_AI_DataExport_merged.cpp` | — | 3250 | 2026-05-25 | lookback — ignored, session-anchored now |
+| `v9_exports.h` | — | 707 | 2026-05-20 | lookback — ignored, session-anchored now |
+| `v9_types.h` | — | 148 | 2026-06-26 | v9_types.h — MEMS26 V9 shared types and helpers |
+| `v9_woodies_export.h` | — | 921 | 2026-06-03 | v9_woodies_export.h — MEMS26 V9 Woodies CCI export (30-min synthetic bars) |

@@ -5,4 +5,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `systemStateStore.ts` | ✅ 15 | 105 | — | keep the old-engine value set above |
+| `systemStateStore.ts` | ✅ 15 | 105 | 2026-06-24 | keep the old-engine value set above |

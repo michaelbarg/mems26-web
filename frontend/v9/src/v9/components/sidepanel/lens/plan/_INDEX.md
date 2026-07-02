@@ -5,12 +5,12 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `DayTypePlan.tsx` | ⚠️ orphan? | 19 | — |  |
-| `FiveMinPlan.tsx` | ⚠️ orphan? | 20 | — |  |
-| `FootprintPlan.tsx` | ⚠️ orphan? | 19 | — |  |
-| `KillzonePlan.tsx` | ⚠️ orphan? | 16 | — |  |
-| `TpoPlan.tsx` | ⚠️ orphan? | 15 | — |  |
-| `WoodiesPlan.tsx` | ⚠️ orphan? | 23 | — |  |
-| `planFireDiagnosis.ts` | ✅ 1 | 313 | — | Fire / no-fire diagnosis for Plan tab (Hebrew copy for traders). |
-| `planHelp.ts` | ✅ 2 | 119 | — | What each lifecycle badge means — not approve/disapprove, derived from live checks. |
-| `systemPlanLive.tsx` | ✅ 6 | 840 | — | Live Plan tab (§5.8) — compact + tap for what each row measures. |
+| `DayTypePlan.tsx` | ⚠️ orphan? | 19 | 2026-05-19 |  |
+| `FiveMinPlan.tsx` | ⚠️ orphan? | 20 | 2026-05-19 |  |
+| `FootprintPlan.tsx` | ⚠️ orphan? | 19 | 2026-05-19 |  |
+| `KillzonePlan.tsx` | ⚠️ orphan? | 16 | 2026-05-19 |  |
+| `TpoPlan.tsx` | ⚠️ orphan? | 15 | 2026-05-19 |  |
+| `WoodiesPlan.tsx` | ⚠️ orphan? | 23 | 2026-05-19 |  |
+| `planFireDiagnosis.ts` | ✅ 1 | 313 | 2026-05-23 | Fire / no-fire diagnosis for Plan tab (Hebrew copy for traders). |
+| `planHelp.ts` | ✅ 2 | 119 | 2026-05-19 | What each lifecycle badge means — not approve/disapprove, derived from live checks. |
+| `systemPlanLive.tsx` | ✅ 6 | 840 | 2026-05-23 | Live Plan tab (§5.8) — compact + tap for what each row measures. |

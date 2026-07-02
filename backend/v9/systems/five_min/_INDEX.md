@@ -10,19 +10,19 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 10 | — | System 2: 5-min Decision Maker (Cyan #06b6d4). |
-| `adaptive_stop.py` | ✅ 2 | 297 | — | adaptive_stop.py — Adaptive Stop Engine per D-091 (with 2026-05-23 bug corrections). |
-| `atr_caps.py` | ✅ 2 | 148 | — | ATR caps · pattern family resolution · time_stops · trail overrides. |
-| `auth_table_v1.py` | ✅ 2 | 148 | — | S2 Auth Table V1 · pattern x day_type x tier -> contracts lookup. |
-| `choppiness.py` | ✅ 3 | 74 | — | Rolling Choppiness scorer — Tree V3.3 §Q4. |
-| `constants.py` | ✅ 1 | 3 | — | Five-min system constants. |
-| `contract_split.py` | ✅ 2 | 50 | — | contract_split — per-pattern T1/T2/T3 contract split percentages per D-091 §Contract Distribution. |
-| `cot_amt.py` | ✅ 2 | 60 | — | COT/AMT standalone · direct Sierra read · coexists with HTTP fallback. |
-| `first_hour_buffer.py` | ✅ 3 | 79 | — | First Hour Buffer state machine — Tree V3.3 §Stage B. |
-| `five_min_system.py` | ✅ 10 | 1585 | — | FiveMinSystem — 5-min Decision Maker with full D-077 lifecycle. |
-| `output_schema.py` | ✅ 4 | 52 | — | T1Setup — canonical output per D-041. |
-| `quality_tier.py` | ✅ 2 | 104 | — | Quality Tier V2 · Auth Table V1 (pattern x day_type x tier) -> contracts. |
-| `setup_emitter.py` | ✅ 4 | 120 | — | setup_emitter — PATH A: full Layer 3 + validator + gateway composer. |
-| `setup_wrapper.py` | ✅ 1 | 106 | — | setup_wrapper — converts pattern detection output to T1Setup. |
-| `sr_proximity.py` | ✅ 2 | 87 | — | sr_proximity — Reactive pattern S/R level proximity gate. |
-| `time_stop_mapper.py` | ✅ 2 | 30 | — | time_stop_mapper — maps Day Type to Optional[int] time_stop_minutes. |
+| `__init__.py` | ▶ entry/test | 10 | 2026-05-12 | System 2: 5-min Decision Maker (Cyan #06b6d4). |
+| `adaptive_stop.py` | ✅ 2 | 297 | 2026-06-08 | adaptive_stop.py — Adaptive Stop Engine per D-091 (with 2026-05-23 bug corrections). |
+| `atr_caps.py` | ✅ 2 | 148 | 2026-05-24 | ATR caps · pattern family resolution · time_stops · trail overrides. |
+| `auth_table_v1.py` | ✅ 2 | 148 | 2026-06-04 | S2 Auth Table V1 · pattern x day_type x tier -> contracts lookup. |
+| `choppiness.py` | ✅ 3 | 74 | 2026-06-08 | Rolling Choppiness scorer — Tree V3.3 §Q4. |
+| `constants.py` | ✅ 1 | 3 | 2026-05-24 | Five-min system constants. |
+| `contract_split.py` | ✅ 2 | 50 | 2026-05-24 | contract_split — per-pattern T1/T2/T3 contract split percentages per D-091 §Contract Distribution. |
+| `cot_amt.py` | ✅ 2 | 60 | 2026-05-16 | COT/AMT standalone · direct Sierra read · coexists with HTTP fallback. |
+| `first_hour_buffer.py` | ✅ 3 | 79 | 2026-05-16 | First Hour Buffer state machine — Tree V3.3 §Stage B. |
+| `five_min_system.py` | ✅ 10 | 1585 | 2026-07-02 | FiveMinSystem — 5-min Decision Maker with full D-077 lifecycle. |
+| `output_schema.py` | ✅ 4 | 52 | 2026-05-24 | T1Setup — canonical output per D-041. |
+| `quality_tier.py` | ✅ 2 | 104 | 2026-07-02 | Quality Tier V2 · Auth Table V1 (pattern x day_type x tier) -> contracts. |
+| `setup_emitter.py` | ✅ 4 | 120 | 2026-05-25 | setup_emitter — PATH A: full Layer 3 + validator + gateway composer. |
+| `setup_wrapper.py` | ✅ 1 | 106 | 2026-05-16 | setup_wrapper — converts pattern detection output to T1Setup. |
+| `sr_proximity.py` | ✅ 2 | 87 | 2026-05-31 | sr_proximity — Reactive pattern S/R level proximity gate. |
+| `time_stop_mapper.py` | ✅ 2 | 30 | 2026-05-23 | time_stop_mapper — maps Day Type to Optional[int] time_stop_minutes. |

@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `vap_recompute.py` | ⚠️ orphan? | 79 | — | W1.2 — VAP (Volume-at-Price) Python-side recompute. |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-14 |  |
+| `vap_recompute.py` | ⚠️ orphan? | 79 | 2026-05-14 | W1.2 — VAP (Volume-at-Price) Python-side recompute. |

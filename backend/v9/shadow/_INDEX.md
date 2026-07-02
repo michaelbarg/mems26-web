@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 1 | — | SHADOW data collection — schema-only, no activation. |
-| `schemas.py` | ⚠️ orphan? | 288 | — | P29.5 — SHADOW data collection schemas. |
+| `__init__.py` | ▶ entry/test | 1 | 2026-05-18 | SHADOW data collection — schema-only, no activation. |
+| `schemas.py` | ⚠️ orphan? | 288 | 2026-05-18 | P29.5 — SHADOW data collection schemas. |

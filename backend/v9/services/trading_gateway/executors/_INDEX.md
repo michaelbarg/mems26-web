@@ -5,7 +5,7 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 7 | — | Trading Gateway executors — SHADOW, DEMO, LIVE. |
-| `demo.py` | ✅ 2 | 52 | — | Demo executor — Sierra demo account, ONE slot, first-wins. |
-| `live.py` | ✅ 2 | 75 | — | Live executor — Sierra live account, ONE slot, W14 risk checks first. |
-| `shadow.py` | ✅ 2 | 41 | — | Shadow executor — paper-only, no Sierra orders, no caps, no slot limit. |
+| `__init__.py` | ▶ entry/test | 7 | 2026-05-10 | Trading Gateway executors — SHADOW, DEMO, LIVE. |
+| `demo.py` | ✅ 2 | 52 | 2026-05-16 | Demo executor — Sierra demo account, ONE slot, first-wins. |
+| `live.py` | ✅ 2 | 75 | 2026-05-10 | Live executor — Sierra live account, ONE slot, W14 risk checks first. |
+| `shadow.py` | ✅ 2 | 41 | 2026-05-10 | Shadow executor — paper-only, no Sierra orders, no caps, no slot limit. |

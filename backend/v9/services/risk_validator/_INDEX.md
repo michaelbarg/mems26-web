@@ -5,6 +5,6 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 9 | — | W14 Risk Validator — LIVE mode risk caps enforcement. |
-| `news_calendar.py` | ✅ 1 | 89 | — | Hardcoded high-impact economic event calendar for 2026. |
-| `validator.py` | ✅ 3 | 149 | — | W14 Risk Validator — enforces LIVE mode risk caps. |
+| `__init__.py` | ▶ entry/test | 9 | 2026-05-10 | W14 Risk Validator — LIVE mode risk caps enforcement. |
+| `news_calendar.py` | ✅ 1 | 89 | 2026-05-10 | Hardcoded high-impact economic event calendar for 2026. |
+| `validator.py` | ✅ 3 | 149 | 2026-05-10 | W14 Risk Validator — enforces LIVE mode risk caps. |

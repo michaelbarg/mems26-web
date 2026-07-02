@@ -5,11 +5,11 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `DashboardLayout.tsx` | ⚠️ orphan? | 46 | — | Left Tabs Sidebar — 240px fixed |
-| `DemoMonitor.tsx` | ✅ 1 | 331 | — | Money — "+$123" / "-$45" (rendered inside dir="ltr"). |
-| `Layer0Strip.tsx` | ✅ 2 | 138 | — | silent |
-| `SidePanel.tsx` | ✅ 2 | 123 | — | Active Trade Card |
-| `Switcher.tsx` | ✅ 1 | 322 | — | System that opened the active trade (highlights row + entry) |
-| `TopBar.tsx` | ✅ 2 | 303 | — | Left: Connection + Mode badge + Symbol + Day Type + Killzone |
-| `V9Dashboard.tsx` | ✅ 1 | 159 | — | Chart area — flex-1 fills vertical space, min-height from drag |
-| `ViewTabs.tsx` | ✅ 1 | 64 | — |  |
+| `DashboardLayout.tsx` | ⚠️ orphan? | 46 | 2026-05-11 | Left Tabs Sidebar — 240px fixed |
+| `DemoMonitor.tsx` | ✅ 1 | 331 | 2026-07-02 | Money — "+$123" / "-$45" (rendered inside dir="ltr"). |
+| `Layer0Strip.tsx` | ✅ 2 | 138 | 2026-05-23 | silent |
+| `SidePanel.tsx` | ✅ 2 | 123 | 2026-05-23 | Active Trade Card |
+| `Switcher.tsx` | ✅ 1 | 322 | 2026-07-02 | System that opened the active trade (highlights row + entry) |
+| `TopBar.tsx` | ✅ 2 | 303 | 2026-07-02 | Left: Connection + Mode badge + Symbol + Day Type + Killzone |
+| `V9Dashboard.tsx` | ✅ 1 | 159 | 2026-06-26 | Chart area — flex-1 fills vertical space, min-height from drag |
+| `ViewTabs.tsx` | ✅ 1 | 64 | 2026-06-24 |  |

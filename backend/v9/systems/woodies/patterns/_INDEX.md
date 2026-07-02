@@ -5,14 +5,14 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 48 | — | Woodies CCI pattern detectors -- 4 continuation + 4 reversal. |
-| `_pattern_ticks.py` | ✅ 10 | 85 | — | Centralized S4 pattern tick loader — reads from config/stop_params.yaml. |
-| `famir.py` | ✅ 4 | 232 | — | FAMIR (Failed Attempt at Major Intermediate Resistance) -- Reversal pattern. |
-| `gb100.py` | ✅ 4 | 232 | — | GB100 (Ghost Bar 100) -- Continuation pattern. |
-| `ghost.py` | ✅ 4 | 240 | — | GHOST -- Reversal pattern (CCI divergence). |
-| `hfe.py` | ✅ 5 | 336 | — | HFE (Hook From Extreme) -- NEW_TREND pattern #9. |
-| `htlb.py` | ✅ 5 | 284 | — | HTLB (Hook Turn at Line Break) -- Reversal pattern. |
-| `tlb.py` | ✅ 4 | 292 | — | TLB (Trend Line Break) -- Continuation pattern. |
-| `tt.py` | ✅ 4 | 239 | — | TT (Turbo Trend) -- Continuation pattern. |
-| `vegas.py` | ✅ 4 | 455 | — | VEGAS (Virtual Extended Geometric Algo Scan) -- Reversal (STRATEGIC) pattern. |
-| `zlr.py` | ✅ 4 | 400 | — | ZLR (Zero Line Reject) -- Continuation pattern. |
+| `__init__.py` | ▶ entry/test | 48 | 2026-05-16 | Woodies CCI pattern detectors -- 4 continuation + 4 reversal. |
+| `_pattern_ticks.py` | ✅ 10 | 85 | 2026-06-04 | Centralized S4 pattern tick loader — reads from config/stop_params.yaml. |
+| `famir.py` | ✅ 4 | 232 | 2026-06-08 | FAMIR (Failed Attempt at Major Intermediate Resistance) -- Reversal pattern. |
+| `gb100.py` | ✅ 4 | 232 | 2026-06-08 | GB100 (Ghost Bar 100) -- Continuation pattern. |
+| `ghost.py` | ✅ 4 | 240 | 2026-06-10 | GHOST -- Reversal pattern (CCI divergence). |
+| `hfe.py` | ✅ 5 | 336 | 2026-06-08 | HFE (Hook From Extreme) -- NEW_TREND pattern #9. |
+| `htlb.py` | ✅ 5 | 284 | 2026-06-24 | HTLB (Hook Turn at Line Break) -- Reversal pattern. |
+| `tlb.py` | ✅ 4 | 292 | 2026-06-24 | TLB (Trend Line Break) -- Continuation pattern. |
+| `tt.py` | ✅ 4 | 239 | 2026-06-08 | TT (Turbo Trend) -- Continuation pattern. |
+| `vegas.py` | ✅ 4 | 455 | 2026-06-24 | VEGAS (Virtual Extended Geometric Algo Scan) -- Reversal (STRATEGIC) pattern. |
+| `zlr.py` | ✅ 4 | 400 | 2026-06-24 | ZLR (Zero Line Reject) -- Continuation pattern. |

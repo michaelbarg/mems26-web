@@ -5,7 +5,7 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `manager.py` | ✅ 5 | 161 | — | WebSocket connection manager for Event Bus channels. |
-| `price_channel.py` | ✅ 1 | 69 | — | WebSocket endpoint: /ws/v9/price — real-time price ticks from Event Bus. |
-| `router.py` | ✅ 1 | 8 | — | V9 Event Bus WebSocket router — aggregates all WS endpoints from the Event Bus. |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-11 |  |
+| `manager.py` | ✅ 5 | 161 | 2026-05-11 | WebSocket connection manager for Event Bus channels. |
+| `price_channel.py` | ✅ 1 | 69 | 2026-05-11 | WebSocket endpoint: /ws/v9/price — real-time price ticks from Event Bus. |
+| `router.py` | ✅ 1 | 8 | 2026-05-11 | V9 Event Bus WebSocket router — aggregates all WS endpoints from the Event Bus. |

@@ -8,9 +8,9 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 12 | — | MEMS26 Event Bus — Redis Streams-backed pub/sub for real-time events. |
-| `bus.py` | ✅ 3 | 131 | — | EventBus — Redis Streams-backed event bus for MEMS26. |
-| `channels.py` | ✅ 2 | 28 | — | Event Bus channel definitions — single source of truth for stream keys. |
-| `correlation.py` | ✅ 1 | 29 | — | Correlation ID propagation for the Event Bus. |
-| `publisher.py` | ✅ 2 | 53 | — | Publish helper — convenience wrapper around EventBus.publish. |
-| `subscriber.py` | ✅ 1 | 98 | — | Subscribe helper — polls a Redis Stream for new events. |
+| `__init__.py` | ▶ entry/test | 12 | 2026-05-11 | MEMS26 Event Bus — Redis Streams-backed pub/sub for real-time events. |
+| `bus.py` | ✅ 3 | 131 | 2026-05-11 | EventBus — Redis Streams-backed event bus for MEMS26. |
+| `channels.py` | ✅ 2 | 28 | 2026-05-11 | Event Bus channel definitions — single source of truth for stream keys. |
+| `correlation.py` | ✅ 1 | 29 | 2026-05-11 | Correlation ID propagation for the Event Bus. |
+| `publisher.py` | ✅ 2 | 53 | 2026-05-11 | Publish helper — convenience wrapper around EventBus.publish. |
+| `subscriber.py` | ✅ 1 | 98 | 2026-05-11 | Subscribe helper — polls a Redis Stream for new events. |

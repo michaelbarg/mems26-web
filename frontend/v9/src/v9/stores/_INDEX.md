@@ -5,9 +5,9 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `chartSyncStore.ts` | ✅ 2 | 69 | — | Push main chart's visible window to the volume/CVD chart (e.g. after setData). |
-| `layoutStore.ts` | ✅ 7 | 45 | — |  |
-| `marketStore.ts` | ✅ 13 | 66 | — |  |
-| `priceStore.ts` | ✅ 10 | 64 | — | Derive connection status from store state. |
-| `systemStore.ts` | ✅ 17 | 40 | — |  |
-| `tradeStore.ts` | ✅ 28 | 188 | — | Convert ISO timestamp to YYYY-MM-DD in America/New_York timezone (DST-safe). |
+| `chartSyncStore.ts` | ✅ 2 | 69 | 2026-05-23 | Push main chart's visible window to the volume/CVD chart (e.g. after setData). |
+| `layoutStore.ts` | ✅ 7 | 45 | 2026-05-11 |  |
+| `marketStore.ts` | ✅ 13 | 66 | 2026-05-10 |  |
+| `priceStore.ts` | ✅ 10 | 64 | 2026-05-11 | Derive connection status from store state. |
+| `systemStore.ts` | ✅ 17 | 40 | 2026-05-10 |  |
+| `tradeStore.ts` | ✅ 28 | 188 | 2026-07-02 | Convert ISO timestamp to YYYY-MM-DD in America/New_York timezone (DST-safe). |

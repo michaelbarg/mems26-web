@@ -9,12 +9,12 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `ChartArea.tsx` | ✅ 1 | 223 | — |  |
-| `ChartV5a.tsx` | ✅ 1 | 831 | — | Parse bar or session timestamp to epoch ms (handles both formats). |
-| `LsmaLine.tsx` | ✅ 2 | 73 | — | offline → keep last |
-| `RightSideLabels.tsx` | ✅ 1 | 37 | — |  |
-| `StaticLevels.tsx` | ✅ 1 | 54 | — |  |
-| `TPOLines.tsx` | ✅ 1 | 65 | — |  |
-| `TimeframeSelector.tsx` | ⚠️ orphan? | 77 | — | Timeframes |
-| `TradeMarkerOverlay.tsx` | ✅ 1 | 150 | — | Entry arrow |
-| `VegasEMAs.tsx` | ✅ 1 | 63 | — |  |
+| `ChartArea.tsx` | ✅ 1 | 223 | 2026-06-24 |  |
+| `ChartV5a.tsx` | ✅ 1 | 831 | 2026-05-23 | Parse bar or session timestamp to epoch ms (handles both formats). |
+| `LsmaLine.tsx` | ✅ 2 | 73 | 2026-06-24 | offline → keep last |
+| `RightSideLabels.tsx` | ✅ 1 | 37 | 2026-05-10 |  |
+| `StaticLevels.tsx` | ✅ 1 | 54 | 2026-05-10 |  |
+| `TPOLines.tsx` | ✅ 1 | 65 | 2026-05-10 |  |
+| `TimeframeSelector.tsx` | ⚠️ orphan? | 77 | 2026-05-14 | Timeframes |
+| `TradeMarkerOverlay.tsx` | ✅ 1 | 150 | 2026-05-10 | Entry arrow |
+| `VegasEMAs.tsx` | ✅ 1 | 63 | 2026-05-10 |  |

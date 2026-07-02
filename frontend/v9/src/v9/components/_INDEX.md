@@ -27,4 +27,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `PriceDebugConsole.tsx` | ✅ 2 | 103 | — | Debug panel — shows live price ticks from the Event Bus. |
+| `PriceDebugConsole.tsx` | ✅ 2 | 103 | 2026-05-19 | Debug panel — shows live price ticks from the Event Bus. |

@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 0 | — |  |
-| `synthetic_bars.py` | ✅ 1 | 137 | — | Synthetic bar generators for E2E day type tests. |
+| `__init__.py` | ▶ entry/test | 0 | 2026-05-15 |  |
+| `synthetic_bars.py` | ✅ 1 | 137 | 2026-05-15 | Synthetic bar generators for E2E day type tests. |

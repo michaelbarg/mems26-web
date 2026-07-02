@@ -5,9 +5,9 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `check_bridge_streams.sh` | — | 27 | — | AP-A01: All bridge streams must extend BaseV9Stream or use mems26: prefix |
-| `check_redis_prefix.sh` | — | 23 | — | AP-A02: All Redis keys must use mems26: prefix (not bare v9:) |
-| `check_secrets.sh` | — | 27 | — | Security: No secrets in committed files |
-| `check_test_mocks.sh` | — | 24 | — | AP-CC01: No test mock values in production code |
-| `check_windows_paths.sh` | — | 16 | — | AP-T03: No Windows paths in DLL source |
-| `run_all.sh` | — | 94 | — | ═══════════════════════════════════════════════════════════════ |
+| `check_bridge_streams.sh` | — | 27 | 2026-05-11 | AP-A01: All bridge streams must extend BaseV9Stream or use mems26: prefix |
+| `check_redis_prefix.sh` | — | 23 | 2026-05-11 | AP-A02: All Redis keys must use mems26: prefix (not bare v9:) |
+| `check_secrets.sh` | — | 27 | 2026-05-11 | Security: No secrets in committed files |
+| `check_test_mocks.sh` | — | 24 | 2026-05-11 | AP-CC01: No test mock values in production code |
+| `check_windows_paths.sh` | — | 16 | 2026-05-11 | AP-T03: No Windows paths in DLL source |
+| `run_all.sh` | — | 94 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |
