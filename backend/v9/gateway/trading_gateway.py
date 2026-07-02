@@ -213,8 +213,11 @@ class TradingGateway:
                     logger.info("[Gateway] BLOCKED duplicate fire: S%s %s %s @%s (within 30s of an identical fire)",
                                 system_id, direction, _dd_pat, _dd_ep)
                     return result
-            self._recent_fires.append({"ts": _dd_now, "system": system_id,
-                                       "direction": direction, "pattern": _dd_pat, "entry": _dd_ep})
+            # I-60 (2026-07-02 18:50 live): registration MOVED to after ALL gates pass
+            # (just before shadow execution). Registering here poisoned the 30s window
+            # when a fire was blocked downstream (cont_trend_filter) — the improved
+            # retry (conf 0.79) was then rejected as duplicate_fire of a fire that
+            # never traded.
 
         # Layer-0 chop fire-veto — DISABLED by default (Michael 2026-06-08).
         # chop_state==SEARCHING must NOT block fires until explicit re-approval.
@@ -438,6 +441,16 @@ class TradingGateway:
         if not cluster_blocked:
             # ζ.A5: count only setups that passed cooldown/SSV/chop (GW-02)
             self.cluster_guard.record_attempt()
+
+        # I-60: register for dedup ONLY now — every hard gate has passed, this fire
+        # WILL be recorded. A blocked fire never poisons the dedup window.
+        if os.getenv("DEDUP_FIRE_GUARD", "0").lower() in ("1", "true", "yes"):
+            import time as _dd_time2
+            self._recent_fires.append({
+                "ts": _dd_time2.time(), "system": system_id, "direction": direction,
+                "pattern": (setup.get("classification") or (setup.get("metadata") or {}).get("pattern")),
+                "entry": setup.get("entry_price"),
+            })
 
         # SHADOW: always log when past hard gates, unlimited slots
         shadow_trade = self._execute_shadow(setup, system_id, cross_context)
