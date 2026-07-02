@@ -43,7 +43,7 @@ def _resolve(direction, entry, stop, monkeypatch, ctx=None):
     )
 
 
-@pytest.mark.xfail(reason="package item-2: C1 floor 0.5×ATR-live + monotonic + grid", strict=False)
+# item-2 LANDED (e7a1cc8) — xfail removed: this is now a hard regression guard.
 def test_zlr_277_ladder_monotonic_floor_grid(monkeypatch):
     """Trade 277/278 (ZLR SHORT @7532): live output was t1==t2==7530.625 —
     duplicate, off-grid, 1.4pt from entry. Fixed resolver must emit a
@@ -57,7 +57,7 @@ def test_zlr_277_ladder_monotonic_floor_grid(monkeypatch):
     assert (7532.0 - t1) >= 3.5, "T1 must respect the 0.5×ATR floor (was 1.375pt live)"
 
 
-@pytest.mark.xfail(reason="package item-2: targets must never cross entry at the resolver", strict=False)
+# item-2 LANDED (e7a1cc8) — xfail removed: hard regression guard.
 def test_reactive_long_279_targets_above_entry(monkeypatch):
     """Trade 279/280 (REACTIVE_LONG @7525): t2=7518, t3=7524.25 — BELOW a
     LONG entry — reached Sierra. Reproduced with the REAL 19:15 context:
@@ -86,7 +86,7 @@ def test_reactive_short_281_resolver_c2_is_structural(monkeypatch):
     assert (7514.75 - r["t2_price"]) <= 15.0
 
 
-@pytest.mark.xfail(reason="package item-1/18: counter-direction REACTIVE on Variation must SKIP", strict=False)
+# item-1 LANDED (e7a1cc8) — xfail removed: hard regression guard.
 def test_reactive_counter_variation_skip(monkeypatch):
     """Trades 271/272 (09:10 counter-fade) + 279/280 (counter-long at the lows):
     after item-1/18, playbook decide() must SKIP counter-direction REACTIVE on
@@ -100,7 +100,7 @@ def test_reactive_counter_variation_skip(monkeypatch):
     assert d.allow is False, "counter-direction REACTIVE on Variation must be blocked (D-1)"
 
 
-@pytest.mark.xfail(reason="package item-21: EOD entry cutoff 45min before close", strict=False)
+# item-21 LANDED (e7a1cc8, flag OFF) — xfail removed: hard regression guard.
 def test_eod_entry_cutoff_exists():
     """Trades 287/288 were OPEN at 14:18 CT with new entries still possible.
     After item-21 a gateway check must exist for the EOD window."""

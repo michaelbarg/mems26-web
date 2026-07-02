@@ -25,6 +25,10 @@ class _NoVeto:
 
 
 def _bare_gateway(monkeypatch):
+    # Freeze the B-13 session gate OPEN — these tests must be green at any
+    # wall-clock hour (they went red at 23:4x IL when RTH closed).
+    import backend.v9.gateway.trading_gateway as _tg
+    monkeypatch.setattr(_tg, "is_within_firing_window", lambda: True)
     gw = TradingGateway.__new__(TradingGateway)
     gw._recent_fires = []
     gw.shadow_trades = []
