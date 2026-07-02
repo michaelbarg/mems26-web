@@ -78,6 +78,10 @@ NeuE: C1=POC · C2=קצה-נגדי (`:271-278`) = 06-20. Trend_Normal: C1=checkp
 `min(1.5×dATR, 3×IBw)`. (ב) ATR קשיח 7.0 (`:411`) — לא נמדד חי. (ג) שדות `contracts`/`time_stop`/`trail`
 שהרזולבר מחזיר **לא נצרכים** — הגייטוויי לוקח רק את שלושת המחירים (`trading_gateway.py:420-425`).
 (ד) אין בדיקת R:R לפני-כניסה ("מרחק-C1 < מרחק-סטופ → דלג") מ-06-20 — לא קיימת באף שכבה.
+(ה) **אין אכיפת-מונוטוניות על הסולם** — |C1|<|C2|<|C3| לא נבדק בשום מקום; ראיה (הערכת-CC 07-02 13:00, טרום-שוק):
+HTLB SHORT יצא C1=7560.5 · C2=7569.5(POC) · C3=7568.0(VAL) — C1 עמוק מ-C2/C3. שורש: ב-`_resolve_variation`
+REV/CONT, כש-`swing_t1=None` (אין ברים) C1 נופל ל-half_ext העמוק (`structural_targets.py:225,239`) בעוד C2=POC קרוב.
+תיקון ל-D-3: sort מונוטוני לפי מרחק + fallback C1=הקרוב-ביותר.
 **פסיקה:** לאשרר את סולם-07-01 כמחליף את 06-20 פר-סוג-יום → handoff ל-CC ליישור Normal/NeuE/NeuC/TN/TDD + קאפים.
 
 ### F-3 🔴 מספרי-חוזים: V1 בקוד ≠ V2 במסמך; שניהם מתים תחת FIXED_CONTRACTS_3
@@ -127,9 +131,9 @@ FIXED_CONTRACTS_3 מחווט נכון בכל שלוש נקודות-החנק (מ�
 
 | # | פסיקה | ברירת-המחדל המוצעת |
 |---|--------|----------------------|
-| D-1 | טבלת-הרשאה קנונית אחת (תבנית×יום) | playbook.yaml כבסיס; ליישב 8 תאים חמים: REACTIVE×Var · INITIATIVE×Normal · HNS×Var · DBDT×TDD · TT,GB100×TN/TDD · HTLB×TN/TDD · ZLR×NeuC; לגזור ממנה את auth-verdicts ו-TableB |
+| D-1 | טבלת-הרשאה קנונית אחת (תבנית×יום) | **✅ נפסק 07-02 (Michael, 8/8 תאים):** ① REACTIVE×Variation = **עם-הכיוון בלבד** (הרחבת require_with_trend ל-Variation, CC) ② INITIATIVE×Normal = **SKIP** (יישור playbook+כרטיס ל-auth) ③ HTLB×TN/TDD = **עם-המגמה בלבד** (require_with_trend:true) ④ TT = **אבחון-CC עכשיו** (למה 0 ירי מול TableA) ⑤ TT+GB100×TN/TDD = **FULL** ("לא מוקטן — לתקן את ההגדרה שלהן") ⑥ HNS = **כמו-REACTIVE** (עם-הכיוון ב-Var, SKIP ב-Trend) ⑦ DBDT×TDD = **SKIP** (תמיכה בסוג-היום) ⑧ ZLR×NeuC = **SKIP**. playbook.yaml הבסיס; auth-verdicts + TableB ייגזרו ממנו. יישום ב-handoff ל-CC (config cached → נכנס בריסטארט) |
 | D-2 | מה קורה עכשיו בחלון-הולידציה | **✅ נפסק 07-02 (Michael):** playbook נשאר =1, מוכר כגייט-המשפחה הפעיל בזמן הולידציה. נימוק-בטיחות: `NONTREND_DISABLE_ALL` יושב בתוך גייט-המיקום הכבוי (`daytype_position_gate.py:89→116`) ⇒ תאי-ה-SKIP של ה-playbook הם ההגנה היחידה על Nontrend ב-S4 כרגע. בלי שינוי .env |
-| D-3 | סולם-היעדים 07-01 מחליף את 06-20 | כן → CC מיישר את הרזולבר לכל סוגי-היום + קאפ-14/רנר-cap min() + ATR חי + בדיקת R:R |
+| D-3 | סולם-היעדים 07-01 מחליף את 06-20 | **✅ נפסק 07-02 ~14:00 (Michael):** מאושר, כולל אכיפת-מונוטוניות (F-2ה). בנוסף אושרו: **שער-R:R בכניסה** (`RR_ENTRY_GATE_V1`) · **Stop Resolver V1** (רצועה 0.5–1.2/1.5×ATR, מדרגות-מבנה אמיתיות בלבד; דגל=`STOP_RESOLVER_V1`) · **ווליום-b4 ל-REACTIVE** (`S2_B4_VOL_V1`). חבילה מלאה: `docs/handoff/CC_PATTERN_ECONOMICS_PACKAGE_2026-07-02.md` |
 | D-4 | מספרי-חוזים | **✅ נפסק 07-02 (Michael):** קבוע-3 (סטנדינג); שכבת-verdict נשארת חיה; מספרי V1-בקוד + V2-CSV מוכרזים היסטוריים — יסומן במסמכים |
 | D-5 | סמנטיקת-כניסה S4 | **✅ נפסק 07-02 (Michael):** close = הקנוני (כמו הקוד והכרטיסים); TableA/ACCESS_MAP יתוקנו בהתאם (docs-only) |
 | D-6 | HTLB: עוגן-סטופ + מדיניות-Trend | לפסוק consolidation_extreme או breakout-bar; וליישב HTML("נחסם")↔playbook(FULL) |
