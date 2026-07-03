@@ -71,6 +71,14 @@ def resolve_stop(
     for i, (rung, name) in enumerate(zip(rungs, rung_names)):
         if rung is None or rung <= 0:
             continue
+        # Defensive (property-test finding 2026-07-03): a stop must sit on the
+        # PROTECTIVE side of entry. Skip a rung on the target side (LONG stop
+        # must be below entry; SHORT above) so a mis-supplied ladder can never
+        # yield a stop on the wrong side of the trade.
+        if direction == "LONG" and rung >= entry_price:
+            continue
+        if direction == "SHORT" and rung <= entry_price:
+            continue
         # Apply structural offset
         if direction == "LONG":
             stop = rung - offset
