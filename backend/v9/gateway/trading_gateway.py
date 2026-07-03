@@ -842,11 +842,12 @@ class TradingGateway:
         # ζ.B2: SSV tracking
         self.ssv.record_outcome(direction, outcome)
 
-        if self.demo_slot and self.demo_slot.get("trade_id") == trade_id:
+        # Normalize trade_id comparison: slot stores str, notify sends int
+        if self.demo_slot and str(self.demo_slot.get("trade_id")) == str(trade_id):
             self.demo_slot = None
             logger.info("[Gateway] DEMO slot freed: %s", trade_id)
 
-        if self.live_slot and self.live_slot.get("trade_id") == trade_id:
+        if self.live_slot and str(self.live_slot.get("trade_id")) == str(trade_id):
             self.live_slot = None
             self._daily_trades += 1
             self._daily_pnl += pnl
