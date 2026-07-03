@@ -421,6 +421,15 @@ flags:
     group: "Day-direction doctrine (item-18)"
     what: "Consecutive closes back through the expansion level required for the item-18 halt-proof to release a counter-expansion entry. Default 2 (Michael's doctrine). >2 = stricter."
     why: "Tunable confirm-bar count; only active when DAY_DIRECTION_DOCTRINE_V1=1. Raising it needs Michael's word."
+  TARGET_ZONES_V1:
+    category: targets
+    what: "Item-22: override C2/C3 targets with level-confluence ZONES (clustered IB/POC/VA/prior-day/swing levels) beyond T1; target = near edge of the zone, strength = # levels stacked. Layers on the structural-targets resolver, does not replace T1."
+    why: "OFF (built 2026-07-03). Addresses 'המימוש קרוב מדי / אזורי-מימוש'. Real-data check: 07-03+07-02 levels → a strength-9 shelf at 7513-7523. Enable = Michael after wiring at the gateway structural block + a net check."
+  TARGET_ZONE_TOL_PTS:
+    category: param
+    group: "Target zones (item-22)"
+    what: "Confluence tolerance in points for clustering levels into a zone. Unset => 0.5xATR (floor 1.5pt). Set an absolute number to override."
+    why: "Tuning knob for TARGET_ZONES_V1; inert while that flag is OFF."
   RISK_HALT_V1:
     category: risk
     what: "Item-19 STOP-DAY halt: blocks ALL fires (any mode) once daily P&L <= -RISK_DAILY_LOSS_CAP, and (if RISK_CONSECUTIVE_LOSS_LIMIT>0) after N consecutive losses. Block-only safety — closes the 06-29 guards-bus gap where passes_strict_checks only ran in mode=live. Uses the gateway's live counters. trading_gateway.py."

@@ -5,13 +5,13 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-07-03 17:08 · `.env` last modified 2026-07-03 14:56 · scan dirs: backend, bridge_
+_Generated 2026-07-03 17:13 · `.env` last modified 2026-07-03 14:56 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
-**Summary:** 84 documented · 47 ON (of which 0 inert) · 19 OFF (3 standing-OFF) · 17 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
+**Summary:** 86 documented · 47 ON (of which 0 inert) · 20 OFF (3 standing-OFF) · 18 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
 
-> ⚠ **2 registry flag(s) not referenced in code** (dead or renamed?): `RISK_MAX_TRADES_DAY`, `STOP_RESOLVER_V1`
+> ⚠ **3 registry flag(s) not referenced in code** (dead or renamed?): `RISK_MAX_TRADES_DAY`, `STOP_RESOLVER_V1`, `TARGET_ZONES_V1`
 
 ## S1 — Day-type / classification
 
@@ -96,6 +96,7 @@ _Generated 2026-07-03 17:08 · `.env` last modified 2026-07-03 14:56 · scan dir
 |------|-------|---------|--------------|--------------|-------------|-------------------|-------|
 | DAYTYPE_TARGETS_STRUCTURAL | ✅ ON | `1` (.env) | "0" | Override setup T1/T2/T3 with structural IB/POC/VA prices for location-style day-types; fail-safe to R-based. | Michael approved SHADOW 2026-06-21. 98/104 sim trades resolved structural. | `backend/v9/systems/structural_targets.py:119`<br>`backend/v9/gateway/trading_gateway.py:495` | CASCADE_AUDIT §7 |
 | RUNNER_TARGETS_V1 | ✅ ON | `1` (.env) | False (flag() default) | Runner target ladder v1. | Anchor-trial (2026-06-12). | `backend/v9/systems/woodies/woodies_system.py:813`<br>`backend/v9/services/trade_manager/manager.py:719` |  |
+| TARGET_ZONES_V1 | 🔴 OFF | — | — | Item-22: override C2/C3 targets with level-confluence ZONES (clustered IB/POC/VA/prior-day/swing levels) beyond T1; target = near edge of the zone, strength = # levels stacked. Layers on the structural-targets resolver, does not replace T1. | OFF (built 2026-07-03). Addresses 'המימוש קרוב מדי / אזורי-מימוש'. Real-data check: 07-03+07-02 levels → a strength-9 shelf at 7513-7523. Enable = Michael after wiring at the gateway structural block + a net check. | — |  |
 
 ## Stops / sizing
 
@@ -139,6 +140,7 @@ _Generated 2026-07-03 17:08 · `.env` last modified 2026-07-03 14:56 · scan dir
 | RISK_DAILY_LOSS_CAP<br><sub>Risk caps</sub> | 🔢 param | `450` (.env) | "450" | Daily realized-loss halt in USD. When RISK_HALT_V1=1, the gateway blocks all fires once _daily_pnl <= -this. Also the legacy passes_strict_checks cap (mode=live). | Michael approved −$450 (2026-07-03). Set RISK_DAILY_LOSS_CAP=450 in .env. Now consumed directly by the item-19 gate (was previously only the wrapper in risk_checks.py). Number change = Michael sign-off. | `backend/v9/gateway/trading_gateway.py:590` |  |
 | RISK_MAX_TRADES_DAY<br><sub>Risk caps</sub> | 🔢 param | — | — | Maximum trades per day. Legacy passes_strict_checks cap (mode=live only, via _env_int wrapper). Default 5. | ⚠ Still runtime-inert in demo/shadow (only mode=live path calls it; no LIVE path active). NOT part of item-19's demo-enforced halt. Wire into RISK_HALT_V1 only if Michael wants a trade-count cap. | — |  |
 | S2_VOL_REGIME_PT<br><sub>S2 vol-adaptive</sub> | 🔢 param | unset → _VOL_REGIME_PT (constant) | _VOL_REGIME_PT (constant) | Volatility-regime boundary (points) for S2_VOL_ADAPTIVE: avg 14-bar range >= this => VOLATILE. Default constant _VOL_REGIME_PT = 8.0. |  | `backend/v9/systems/five_min/five_min_system.py:82` |  |
+| TARGET_ZONE_TOL_PTS<br><sub>Target zones (item-22)</sub> | 🔢 param | unset → (no default) | (no default) | Confluence tolerance in points for clustering levels into a zone. Unset => 0.5xATR (floor 1.5pt). Set an absolute number to override. | Tuning knob for TARGET_ZONES_V1; inert while that flag is OFF. | `backend/v9/systems/target_zones.py:104` |  |
 | ZLR_CCI_MIN<br><sub>ZLR threshold (S4)</sub> | 🔢 param | unset → "100" | "100" | Minimum \|CCI\| magnitude required for a ZLR fire. unset/invalid => 100 = current behavior (no stricter gate); set 200 to enforce Liran's strong-extreme rule (150 = middle tier). | Built + tested 2026-06-19; left at default 100 = ZERO change to current firing. Raising it is the lever, not yet enabled. | `backend/v9/systems/woodies/patterns/zlr.py:139` | awaiting backtest before enable; memory: project_daytype_location_gate_todo |
 
 ## Misc
