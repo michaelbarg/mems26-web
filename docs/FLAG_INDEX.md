@@ -5,13 +5,13 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-07-03 14:56 · `.env` last modified 2026-07-03 14:56 · scan dirs: backend, bridge_
+_Generated 2026-07-03 15:47 · `.env` last modified 2026-07-03 14:56 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
-**Summary:** 80 documented · 47 ON (of which 0 inert) · 16 OFF (3 standing-OFF) · 16 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
+**Summary:** 81 documented · 47 ON (of which 0 inert) · 17 OFF (3 standing-OFF) · 16 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
 
-> ⚠ **1 registry flag(s) not referenced in code** (dead or renamed?): `RISK_MAX_TRADES_DAY`
+> ⚠ **2 registry flag(s) not referenced in code** (dead or renamed?): `RISK_MAX_TRADES_DAY`, `STOP_RESOLVER_V1`
 
 ## S1 — Day-type / classification
 
@@ -105,6 +105,7 @@ _Generated 2026-07-03 14:56 · `.env` last modified 2026-07-03 14:56 · scan dir
 | RUNNER_TRAIL_V1 | ✅ ON | `1` (.env) | "0" | Trail the runner stop (hwm - 1x initial_risk) after T1; never-widen; floor BE+1T (fail-safe). | Michael-approved SHADOW trial 2026-06-18 (backtest +$273 — a real lever). | `backend/v9/services/trade_manager/bar_level_detector.py:121` | memory: project_trend_gate_t1_widen |
 | STOP_AFTER_T1_STRUCTURAL | ⚪ not built | — | — | (Intended) move the stop to a structural level after T1 is hit. | NOT BUILT — no code references it; only a commented placeholder in .env. Deferred (one variable at a time). | — | not wired in code |
 | STOP_ANCHORS_V2 | ✅ ON | `1` (.env) | False (flag() default) | v2 stop-anchor logic (per-pattern anchors from stop_anchors.yaml). | Enabled pre-soak. | `backend/v9/systems/woodies/woodies_system.py:441`<br>`backend/v9/systems/woodies/woodies_system.py:480`<br>`backend/v9/systems/woodies/woodies_system.py:610`<br>(+23) |  |
+| STOP_RESOLVER_V1 | 🔴 OFF | — | — | Structural stop band: floor 0.5×ATR, cap 1.2×ATR(CONT)/1.5×ATR(REV), walk per-pattern rung ladder from nearest to farthest, pick first in-band. Too close → next rung. All above cap → no_stop_in_band (reject). | OFF (default, SHADOW). 07-02: right-direction shorts died -1R on tight initial stops. Lever #1 for P&L. | — | deferred |
 | T1_LADDER_V2 | 🔴 OFF | unset → False (flag() default) | False (flag() default) | Swap T1 computation to a wider v2 ladder (t1_ladder_continuation_v2 / t1_reversal_multiplier_v2 / flag_relative_t1_v2). | REJECTED — backtest flat -$144 (struct -$624). Do NOT enable. | `backend/v9/systems/woodies/woodies_system.py:799`<br>`backend/v9/systems/stop_anchors/sizing.py:96`<br>`backend/v9/systems/five_min/five_min_system.py:1443` | REJECTED by backtest — do not enable; memory: project_trend_gate_t1_widen |
 
 ## Risk breakers
