@@ -429,6 +429,43 @@ class TradingGateway:
             except Exception as _dc_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] direction-context check errored (fail-open): %s", _dc_err)
 
+        # Item-18: Day Direction Doctrine (DAY_DIRECTION_DOCTRINE_V1, default OFF)
+        # On directional days (Variation/Trend), only with-expansion entries allowed
+        # unless a "halt proof" (2 consecutive closes back through the expansion level)
+        # has been observed. Reference = expansion side (IB break), NOT local LSMA.
+        if os.getenv("DAY_DIRECTION_DOCTRINE_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _dd_g1 = extract_g1_entry_context(cross_context)
+                _dd_dt = _dd_g1.get("day_type_at_entry")
+                if _dd_dt in ("Variation", "Trend_Normal", "Trend_DD"):
+                    _dd_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                    _dd_ibh = _dd_tpo.get("ib_high")
+                    _dd_ibl = _dd_tpo.get("ib_low")
+                    _dd_sh = _dd_tpo.get("session_high") or _dd_tpo.get("rth_high")
+                    _dd_sl = _dd_tpo.get("session_low") or _dd_tpo.get("rth_low")
+                    # Determine expansion direction
+                    _dd_exp_dir = None
+                    if _dd_ibh and _dd_ibl and _dd_sh and _dd_sl:
+                        _up = float(_dd_sh) > float(_dd_ibh)
+                        _dn = float(_dd_sl) < float(_dd_ibl)
+                        if _up and not _dn:
+                            _dd_exp_dir = "UP"
+                        elif _dn and not _up:
+                            _dd_exp_dir = "DOWN"
+                        # Both broken → no doctrine (allow both)
+                    if _dd_exp_dir:
+                        _dd_setup_dir = "UP" if direction.upper() == "LONG" else "DOWN"
+                        if _dd_setup_dir != _dd_exp_dir:
+                            # Counter-expansion → block (no halt proof in v1)
+                            result["blocked_by"] = "day_direction_doctrine"
+                            logger.info(
+                                "[Gateway] BLOCKED by day-direction doctrine: %s against %s expansion on %s",
+                                direction, _dd_exp_dir, _dd_dt,
+                            )
+                            return result
+            except Exception as _ddd_err:
+                logger.debug("[Gateway] day-direction doctrine errored (fail-open): %s", _ddd_err)
+
         # #68 Structural targets: override setup t1/t2/t3 with IB/POC/VA levels
         # when day-type style is "location" (Normal, Variation, NeuE, NeuC).
         # Flag-gated DAYTYPE_TARGETS_STRUCTURAL (default OFF). Fail-safe: on error

@@ -93,6 +93,11 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required."
     status: deferred
     ref: "I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md"
+  DAY_DIRECTION_DOCTRINE_V1:
+    category: cascade_gate
+    what: "On directional days (Variation/Trend), only with-expansion entries allowed. Counter-expansion blocked unless halt-proof (2 closes back through expansion level). Reference = IB expansion side, not local LSMA."
+    why: "OFF (default, SHADOW). Michael 07-02: 'trades with the trend direction, until proven stopped'. Subsumes item-1 counter-REACTIVE SKIP."
+    status: deferred
   STOP_RESOLVER_V1:
     category: sizing
     what: "Structural stop band: floor 0.5×ATR, cap 1.2×ATR(CONT)/1.5×ATR(REV), walk per-pattern rung ladder from nearest to farthest, pick first in-band. Too close → next rung. All above cap → no_stop_in_band (reject)."
