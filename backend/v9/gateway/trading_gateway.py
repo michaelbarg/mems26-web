@@ -518,6 +518,40 @@ class TradingGateway:
                 except (TypeError, ValueError):
                     pass  # fail-open
 
+        # Item-19: daily-loss / consecutive-loss STOP-DAY halt (Michael approved
+        # 2026-07-03: halt at −$450). BLOCK-ONLY safety — it can only stop
+        # trading, never add risk. Enforced in ALL modes when RISK_HALT_V1=1 so
+        # the 5-demo-day validation window is a real test (the legacy
+        # passes_strict_checks only fires in mode="live" → the 06-29 guards-bus
+        # was inert in demo). Uses the gateway's own running counters
+        # (_daily_pnl updated on every close). Default OFF → ZERO effect until
+        # Michael starts the validation window. Number change = Michael sign-off.
+        if os.getenv("RISK_HALT_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _dl_cap = float(os.getenv("RISK_DAILY_LOSS_CAP", "450"))
+            except (TypeError, ValueError):
+                _dl_cap = 450.0
+            if _dl_cap > 0 and self._daily_pnl <= -_dl_cap:
+                result["blocked_by"] = "daily_loss_halt"
+                logger.warning(
+                    "[Gateway] BLOCKED by daily-loss halt: pnl=$%.2f <= -$%.0f (STOP DAY)",
+                    self._daily_pnl, _dl_cap,
+                )
+                return result
+            # Consecutive-loss STOP-DAY — only bites when a limit is explicitly
+            # set (default 0 = off; Michael has not fixed this number yet).
+            try:
+                _cl_lim = int(os.getenv("RISK_CONSECUTIVE_LOSS_LIMIT", "0"))
+            except (TypeError, ValueError):
+                _cl_lim = 0
+            if _cl_lim > 0 and self._consecutive_losses >= _cl_lim:
+                result["blocked_by"] = "consecutive_loss_halt"
+                logger.warning(
+                    "[Gateway] BLOCKED by consecutive-loss halt: %d losses >= %d (STOP DAY)",
+                    self._consecutive_losses, _cl_lim,
+                )
+                return result
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:

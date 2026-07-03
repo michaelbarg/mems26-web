@@ -265,7 +265,7 @@ flags:
   OPENING_WINDOW_FIRE_V1:
     category: cascade_gate
     what: "Item-10: first 30 min of RTH (08:30-09:00 CT) — a POSITIVE with-drive opening signal overrides day-type refusals (S2 Auth-Table SKIP / NO_TRADE + gateway playbook SKIP). Positive confirmation only, never fail-open; all other gates apply."
-    why: "OFF (built 2026-07-03 per Michael's standing order 'first trade by opening type in the first half hour'). ENABLE ONLY with Michael's word — counter-fixture exists (07-02 08:45 blocked INITIATIVE would have stopped -1R; see docs/reports/DESIGNS_2026-07-02.md D-opening-window-confirm)."
+    why: "OFF today (Michael ruling 2026-07-03 ~14:20: holiday half-day thin tape) → ENABLE Sunday 2026-07-05 for Monday's session (scheduled task set). Counter-fixture on record (07-02 08:45; DESIGNS D-opening-window-confirm)."
   TREND_DIRECTION_GATE:
     category: cascade_gate
     what: "Block counter-trend fires for HFE / REACTIVE_LONG / ZLR-SHORT using live trend_state."
@@ -406,21 +406,25 @@ flags:
     category: risk
     what: "Enforce LIVE risk caps (daily loss, max trades, consecutive losses) also in SHADOW mode. Default OFF (SHADOW bypasses risk caps)."
     why: "OFF. Enable to test risk caps during SHADOW observation before LIVE."
+  RISK_HALT_V1:
+    category: risk
+    what: "Item-19 STOP-DAY halt: blocks ALL fires (any mode) once daily P&L <= -RISK_DAILY_LOSS_CAP, and (if RISK_CONSECUTIVE_LOSS_LIMIT>0) after N consecutive losses. Block-only safety — closes the 06-29 guards-bus gap where passes_strict_checks only ran in mode=live. Uses the gateway's live counters. trading_gateway.py."
+    why: "OFF (built 2026-07-03, Michael approved the −$450 number). Enable at the START of the 5-demo-day LIVE-validation window so the test is real. Enabling / changing the number = Michael sign-off. Kept OFF on 2026-07-03 by Michael's choice (unrestricted holiday DEMO)."
   RISK_DAILY_LOSS_CAP:
     category: param
     group: "Risk caps"
-    what: "Daily loss cap in USD. Gateway halts all fires for the day when total P&L reaches -$X. Default $250."
-    why: "⚠ NOT IN CODE as of 2026-07-02 (gen_flag_index 'not-in-code') — the described halt does NOT exist at runtime. Rebuild is package item-19; number pending Michael (proposed −$450)."
-  RISK_MAX_TRADES_DAY:
-    category: param
-    group: "Risk caps"
-    what: "Maximum trades per day. Gateway halts after N fires. Default 5."
-    why: "⚠ NOT IN CODE as of 2026-07-02 — no runtime cap exists. Rebuild under item-19; number pending Michael."
+    what: "Daily realized-loss halt in USD. When RISK_HALT_V1=1, the gateway blocks all fires once _daily_pnl <= -this. Also the legacy passes_strict_checks cap (mode=live)."
+    why: "Michael approved −$450 (2026-07-03). Set RISK_DAILY_LOSS_CAP=450 in .env. Now consumed directly by the item-19 gate (was previously only the wrapper in risk_checks.py). Number change = Michael sign-off."
   RISK_CONSECUTIVE_LOSS_LIMIT:
     category: param
     group: "Risk caps"
-    what: "Consecutive losses before STOP DAY. Default 2."
-    why: "⚠ NOT IN CODE as of 2026-07-02 — no runtime halt exists (see also 06-29 guards-bus finding: all circuit breakers inert). Rebuild under item-19; number pending Michael."
+    what: "Consecutive stop-outs before STOP-DAY. When RISK_HALT_V1=1 and this >0, the gateway halts. Default 0 = OFF (Michael has not fixed this number)."
+    why: "Skeleton default was 2 (legacy live-only). The item-19 gate treats 0 as off so no unapproved halt bites. Set a number only with Michael's word."
+  RISK_MAX_TRADES_DAY:
+    category: param
+    group: "Risk caps"
+    what: "Maximum trades per day. Legacy passes_strict_checks cap (mode=live only, via _env_int wrapper). Default 5."
+    why: "⚠ Still runtime-inert in demo/shadow (only mode=live path calls it; no LIVE path active). NOT part of item-19's demo-enforced halt. Wire into RISK_HALT_V1 only if Michael wants a trade-count cap."
   MEMS_MIN_RISK_POINTS:
     category: param
     group: "Pre-fire stop sanity"
