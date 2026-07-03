@@ -443,3 +443,8 @@ flags:
     category: param
     group: "Pre-fire stop sanity"
     what: "Reject a setup whose stop risk exceeds this many points (oversized-stop guard)."
+  S2_B4_VOL_V1:
+    category: s2
+    what: "REACTIVE requires b4 volume > b3 volume (confirmation bar with rising volume). Reject if b4 volume declining."
+    why: "OFF (default, SHADOW). Card requires 'b4 with rising volume' — code had no b4 volume check."
+    status: deferred

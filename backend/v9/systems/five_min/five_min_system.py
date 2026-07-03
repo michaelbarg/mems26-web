@@ -710,9 +710,19 @@ class FiveMinSystem(BaseV9TradingSystem):
         # D-RVX: variant tags for A/B/C
         _variants_long = {"A_VSA": _vsa_pass, "B_RVOL": _rvol_pass, "C_STRICT": _strict_pass}
 
+        # Item-5: b4 volume rising (S2_B4_VOL_V1, default OFF)
+        b4_vol = b4.get("v", 0) or 0
+        b3_vol = b3.get("v", 0) or 0
+        import os as _b4v_os
+        _b4_vol_ok = True
+        if _b4v_os.environ.get("S2_B4_VOL_V1", "").lower() in ("1", "true", "yes"):
+            _b4_vol_ok = b4_vol > b3_vol
+            if not _b4_vol_ok:
+                logger.info("[S2-B4VOL] REACTIVE LONG rejected: b4_vol=%d <= b3_vol=%d", b4_vol, b3_vol)
+
         if (b1_sellers and b2_drop and b3_buyers and b3_belly
                 and b4_confirm and b4_close_above_b3_high and cot_above_amt
-                and lookback_quiet and belly_ratio_ok):
+                and lookback_quiet and belly_ratio_ok and _b4_vol_ok):
             # S2_CVD_DETECTION_V1: REACTIVE LONG = fade sellers → CVD must show
             # absorption: perbar_delta(B4) > 0 (buyers at entry bar) OR bullish
             # divergence (price made lower low B1→B3 but CVD made higher low).
@@ -753,9 +763,16 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         _variants_short = {"A_VSA": _vsa_pass, "B_RVOL": _rvol_pass, "C_STRICT": _strict_pass}
 
+        # Item-5: b4 volume rising for SHORT (same flag)
+        _b4_vol_ok_s = True
+        if _b4v_os.environ.get("S2_B4_VOL_V1", "").lower() in ("1", "true", "yes"):
+            _b4_vol_ok_s = b4_vol > b3_vol
+            if not _b4_vol_ok_s:
+                logger.info("[S2-B4VOL] REACTIVE SHORT rejected: b4_vol=%d <= b3_vol=%d", b4_vol, b3_vol)
+
         if (b1_buyers and b2_drop and b3_sellers and b3_belly
                 and b4_confirm_s and b4_close_below_b3_low and cot_below_amt
-                and lookback_quiet and belly_ratio_ok_s):
+                and lookback_quiet and belly_ratio_ok_s and _b4_vol_ok_s):
             # S2_CVD_DETECTION_V1: REACTIVE SHORT = fade buyers → CVD must show
             # distribution: perbar_delta(B4) < 0 (selling at entry bar) OR bearish
             # divergence (price HH B1→B3 but CVD LH), and/or net selling slope.
