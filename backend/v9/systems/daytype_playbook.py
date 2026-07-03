@@ -75,6 +75,7 @@ def _norm(pattern: str) -> str:
     aliases = {
         "INVERSE_HNS": "HNS", "HNS_TOP": "HNS", "IHNS": "HNS",
         "DOUBLE_BOTTOM": "DBDT", "DOUBLE_TOP": "DBDT", "DB_EE": "DBDT", "DT_AA": "DBDT",
+        "DOUBLE_BOTTOM_EE": "DBDT", "DOUBLE_TOP_AA": "DBDT",  # item-9: real pattern IDs
         "BULL_FLAG": "FLAGS", "BEAR_FLAG": "FLAGS", "FLAG": "FLAGS",
     }
     return aliases.get(p, p)
