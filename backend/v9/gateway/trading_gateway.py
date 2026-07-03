@@ -456,13 +456,35 @@ class TradingGateway:
                     if _dd_exp_dir:
                         _dd_setup_dir = "UP" if direction.upper() == "LONG" else "DOWN"
                         if _dd_setup_dir != _dd_exp_dir:
-                            # Counter-expansion → block (no halt proof in v1)
-                            result["blocked_by"] = "day_direction_doctrine"
-                            logger.info(
-                                "[Gateway] BLOCKED by day-direction doctrine: %s against %s expansion on %s",
-                                direction, _dd_exp_dir, _dd_dt,
-                            )
-                            return result
+                            # Counter-expansion → block UNLESS a halt-proof shows the
+                            # trend has stalled (item-18 halt-proof: 2 closes back
+                            # through the expansion level). Reference level = the IB
+                            # edge that was broken (UP→ib_high, DOWN→ib_low).
+                            _dd_proof = False
+                            try:
+                                from backend.v9.systems.day_direction import (
+                                    halt_proof_met as _hp, gather_recent_closes as _grc,
+                                    min_closes_required as _mcr,
+                                )
+                                _dd_level = float(_dd_ibh) if _dd_exp_dir == "UP" else float(_dd_ibl)
+                                _dd_proof = _hp(
+                                    expansion_dir=_dd_exp_dir, expansion_level=_dd_level,
+                                    recent_closes=_grc(3), min_closes=_mcr(),
+                                )
+                            except Exception as _hp_err:
+                                logger.debug("[Gateway] halt-proof check errored (stay blocked): %s", _hp_err)
+                            if _dd_proof:
+                                logger.warning(
+                                    "[Gateway] day-direction doctrine: %s counter allowed — halt-proof met (%s expansion stalled)",
+                                    direction, _dd_exp_dir,
+                                )
+                            else:
+                                result["blocked_by"] = "day_direction_doctrine"
+                                logger.info(
+                                    "[Gateway] BLOCKED by day-direction doctrine: %s against %s expansion on %s (no halt-proof)",
+                                    direction, _dd_exp_dir, _dd_dt,
+                                )
+                                return result
             except Exception as _ddd_err:
                 logger.debug("[Gateway] day-direction doctrine errored (fail-open): %s", _ddd_err)
 
