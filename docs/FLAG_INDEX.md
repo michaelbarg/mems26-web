@@ -5,11 +5,11 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-07-03 17:13 · `.env` last modified 2026-07-03 14:56 · scan dirs: backend, bridge_
+_Generated 2026-07-03 17:24 · `.env` last modified 2026-07-03 14:56 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
-**Summary:** 86 documented · 47 ON (of which 0 inert) · 20 OFF (3 standing-OFF) · 18 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
+**Summary:** 87 documented · 47 ON (of which 0 inert) · 21 OFF (3 standing-OFF) · 18 numeric params · 1 awaiting backtest · 1 rejected · 1 not built.
 
 > ⚠ **3 registry flag(s) not referenced in code** (dead or renamed?): `RISK_MAX_TRADES_DAY`, `STOP_RESOLVER_V1`, `TARGET_ZONES_V1`
 
@@ -88,6 +88,7 @@ _Generated 2026-07-03 17:13 · `.env` last modified 2026-07-03 14:56 · scan dir
 | OPPOSITE_EXIT_V1 | 🔴 OFF | unset → "0" | "0" | Close active trade when >=2 opposite-direction pattern signals fire within a bar. Close only, no auto-flip. | OFF (default, SHADOW only). Michael's rule 2026-07-01: 2 opposite signals = exit the position. Trading-risk → sign-off required. | `backend/v9/gateway/trading_gateway.py:640` | deferred |
 | REACTIVE_LOCATION_GATE | 🔴 OFF | `0  # OFF Michael 2026-07-02 ~20:00 — חסמו עם-כיוון בווריאציה; superseded ע"י position-gate/playbook` (.env) | "0" | Block REACTIVE_LONG above POC / REACTIVE_SHORT below POC (fail-open). | ON, but runtime-SKIPPED when DAYTYPE_POSITION_GATE=1 (superseded). | `backend/v9/systems/reactive_location_gate.py:20`<br>`backend/v9/gateway/trading_gateway.py:350` | inert: DAYTYPE_POSITION_GATE=1 (gateway skips it). |
 | RR_ENTRY_GATE_V1 | ✅ ON | `1` (.env) | "0" | Block entry when T1 distance < stop distance (net-negative R:R = stop-funding). Michael rule 06-20. | OFF (default, SHADOW). Since 06-20 only 8/55 trades hit T1; C1:stop ratios as low as 0.77 (direct stop-funding). | `backend/v9/gateway/trading_gateway.py:562` | deferred |
+| S4_ENTRY_CONFIRM_V1 | 🔴 OFF | unset → "0" | "0" | Item-6: require a confirm bar (signal bar closes in the trade direction) + optional CVD alignment before entry; also exposes at_fresh_extreme() for item-10's not-at-a-fresh-drive-extreme guard (08:45 counter-fixture). | OFF (built 2026-07-03). Michael item-16: extra certainty on volatile days. Enable at the S4 fire path + optionally chain into OPENING_WINDOW_FIRE_V1 after Michael's word. | `backend/v9/systems/entry_confirm.py:91` |  |
 | TREND_DIRECTION_GATE | 🔴 OFF | `0  # OFF Michael 2026-07-02 ~20:00 — חסמו עם-כיוון בווריאציה; superseded ע"י position-gate/playbook` (.env) | "0" | Block counter-trend fires for HFE / REACTIVE_LONG / ZLR-SHORT using live trend_state. | ON, but runtime-SKIPPED when DAYTYPE_POSITION_GATE=1 (superseded). | `backend/v9/systems/trend_direction_gate.py:38`<br>`backend/v9/gateway/trading_gateway.py:335` | inert: DAYTYPE_POSITION_GATE=1 (gateway skips it). |
 
 ## Targets

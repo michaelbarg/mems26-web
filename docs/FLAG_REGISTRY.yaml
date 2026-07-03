@@ -430,6 +430,10 @@ flags:
     group: "Target zones (item-22)"
     what: "Confluence tolerance in points for clustering levels into a zone. Unset => 0.5xATR (floor 1.5pt). Set an absolute number to override."
     why: "Tuning knob for TARGET_ZONES_V1; inert while that flag is OFF."
+  S4_ENTRY_CONFIRM_V1:
+    category: cascade_gate
+    what: "Item-6: require a confirm bar (signal bar closes in the trade direction) + optional CVD alignment before entry; also exposes at_fresh_extreme() for item-10's not-at-a-fresh-drive-extreme guard (08:45 counter-fixture)."
+    why: "OFF (built 2026-07-03). Michael item-16: extra certainty on volatile days. Enable at the S4 fire path + optionally chain into OPENING_WINDOW_FIRE_V1 after Michael's word."
   RISK_HALT_V1:
     category: risk
     what: "Item-19 STOP-DAY halt: blocks ALL fires (any mode) once daily P&L <= -RISK_DAILY_LOSS_CAP, and (if RISK_CONSECUTIVE_LOSS_LIMIT>0) after N consecutive losses. Block-only safety — closes the 06-29 guards-bus gap where passes_strict_checks only ran in mode=live. Uses the gateway's live counters. trading_gateway.py."
