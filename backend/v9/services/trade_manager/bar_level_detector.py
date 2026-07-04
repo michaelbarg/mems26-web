@@ -85,11 +85,13 @@ class BarLevelDetector:
                 if trade.entry_price is None:
                     continue
 
-                # Pipeline 5: BarLevelDetector manages ALL trades (shadow + demo).
-                # The fill poller provides Sierra-side fills, but the backend must
-                # also detect stop/target hits bar-by-bar as a safety net — otherwise
-                # demo runners never close and the demo slot is stuck forever.
-                # (Bug fix 2026-07-01: demo skip removed.)
+                # I-62 fix: BarLevelDetector TRAILS all trades but only CLOSES
+                # shadow trades. Demo/live trades close via FillPoller (Sierra
+                # fill events) — bar-price inference must NOT close them because
+                # Sierra may still hold the position → orphan (trade 290, 07-03).
+                # Trail (stop update) still runs for all modes.
+                trade_mode = getattr(trade, "mode", "shadow")
+                _is_demo_live = trade_mode in ("demo", "live")
 
                 # Skip bars that started before the trade was opened.
                 # Without this guard, a bar pushed after its close-time can be
@@ -130,6 +132,11 @@ class BarLevelDetector:
                 if stop is not None:
                     if (direction == "LONG" and bar_low <= stop) or \
                        (direction == "SHORT" and bar_high >= stop):
+                        if _is_demo_live:
+                            # I-62: demo/live → log but do NOT close (wait for Sierra fill)
+                            logger.info("[BarLevelDetector] STOP INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
+                                        trade.id, stop)
+                            continue
                         self._tm.on_stop_hit(trade.id, fill_ts=bar_ts)
                         logger.info("[BarLevelDetector] STOP HIT: trade %d at %.2f", trade.id, stop)
                         self._notify_trade_close(trade, "STOP")
@@ -151,6 +158,11 @@ class BarLevelDetector:
                         continue
                     if (direction == "LONG" and bar_high >= target_price) or \
                        (direction == "SHORT" and bar_low <= target_price):
+                        if _is_demo_live and target_name == "T3":
+                            # I-62: demo/live T3 close → wait for Sierra fill
+                            logger.info("[BarLevelDetector] T3 INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
+                                        trade.id, target_price)
+                            continue
                         self._tm.on_target_hit(trade.id, target_name, fill_ts=bar_ts)
                         logger.info("[BarLevelDetector] %s HIT: trade %d at %.2f",
                                     target_name, trade.id, target_price)
