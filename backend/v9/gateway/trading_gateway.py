@@ -488,6 +488,61 @@ class TradingGateway:
             except Exception as _ddd_err:
                 logger.debug("[Gateway] day-direction doctrine errored (fail-open): %s", _ddd_err)
 
+        # Item-4: structural stop resolver (STOP_RESOLVER_V1, default OFF).
+        # Single choke point covering S2 + S4: re-derive the stop from a REAL
+        # bar-extreme rung ladder within the ATR band, replacing a financed
+        # (too-tight) or absurd stop. Runs BEFORE structural targets + R:R gate
+        # so both see the corrected stop. Fail-safe: no rung fits the band, any
+        # error, or missing bars → keep the original stop. Backtest evidence:
+        # 31/86 stops were below the 0.5×ATR floor (BACKTEST_STOP_RESOLVER_ITEM4).
+        if os.getenv("STOP_RESOLVER_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _sr_entry = setup.get("entry_price")
+                _sr_stop = setup.get("stop")
+                if _sr_entry and _sr_stop:
+                    _sr_entry = float(_sr_entry)
+                    _sr_dir = str(direction).upper()
+                    from backend.v9.db.read import read_all as _sr_read
+                    _sr_rows = _sr_read(
+                        "SELECT high, low, close FROM v9_bars_5min_woodies "
+                        "ORDER BY ts DESC LIMIT 12", {})
+                    _sr_bars = [{"high": float(r["high"]), "low": float(r["low"]),
+                                 "close": float(r["close"])} for r in _sr_rows][::-1]
+                    if len(_sr_bars) >= 3:
+                        _sr_trs, _sr_prev = [], None
+                        for _b in _sr_bars[-14:]:
+                            _sr_trs.append(_b["high"] - _b["low"] if _sr_prev is None
+                                           else max(_b["high"] - _b["low"],
+                                                    abs(_b["high"] - _sr_prev),
+                                                    abs(_b["low"] - _sr_prev)))
+                            _sr_prev = _b["close"]
+                        _sr_atr = sum(_sr_trs) / len(_sr_trs) if _sr_trs else 7.0
+                        if _sr_dir == "SHORT":
+                            _sr_rungs = sorted({round(_b["high"], 2) for _b in _sr_bars
+                                                if _b["high"] > _sr_entry})
+                        else:
+                            _sr_rungs = sorted({round(_b["low"], 2) for _b in _sr_bars
+                                                if _b["low"] < _sr_entry}, reverse=True)
+                        _sr_cls = str(setup.get("classification", "")).upper()
+                        _sr_fam = "REV" if _sr_cls.startswith(
+                            ("REACTIVE", "HFE", "GHOST", "FAMIR", "HNS", "DOUBLE", "INVERSE")) else "CONT"
+                        if _sr_rungs:
+                            from backend.v9.systems.stop_anchors.stop_resolver import resolve_stop as _sr_resolve
+                            _sr_res = _sr_resolve(
+                                direction=_sr_dir, entry_price=_sr_entry,
+                                rungs=_sr_rungs[:5],
+                                rung_names=[f"r{i}" for i in range(len(_sr_rungs[:5]))],
+                                atr_5m=_sr_atr, family=_sr_fam)
+                            if _sr_res.in_band and not _sr_res.rejected:
+                                logger.warning(
+                                    "[Gateway] STOP_RESOLVER_V1: stop %.2f → %.2f "
+                                    "(rung=%s, band [%.1f, %.1f], atr=%.1f)",
+                                    float(_sr_stop), _sr_res.stop_price, _sr_res.rung_name,
+                                    _sr_res.floor_pts, _sr_res.cap_pts, _sr_atr)
+                                setup["stop"] = _sr_res.stop_price
+            except Exception as _sr_err:
+                logger.warning("[Gateway] stop resolver errored (kept original stop): %s", _sr_err)
+
         # #68 Structural targets: override setup t1/t2/t3 with IB/POC/VA levels
         # when day-type style is "location" (Normal, Variation, NeuE, NeuC).
         # Flag-gated DAYTYPE_TARGETS_STRUCTURAL (default OFF). Fail-safe: on error
