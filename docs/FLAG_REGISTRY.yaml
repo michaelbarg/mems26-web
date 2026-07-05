@@ -434,6 +434,10 @@ flags:
     category: cascade_gate
     what: "Item-6: require a confirm bar (signal bar closes in the trade direction) + optional CVD alignment before entry; also exposes at_fresh_extreme() for item-10's not-at-a-fresh-drive-extreme guard (08:45 counter-fixture)."
     why: "OFF (built 2026-07-03). Michael item-16: extra certainty on volatile days. Enable at the S4 fire path + optionally chain into OPENING_WINDOW_FIRE_V1 after Michael's word."
+  SYSTEM6_EXIT_SIGNALS:
+    category: cascade_gate
+    what: "System 6 exit-signal engine: scores 3 in-trade exit reasons separately — failed reaction-volume at an expected level, price stall (no new favorable extreme), and 2+ opposite-direction patterns — and blends them without losing per-signal detail. Advisory (feeds the panel + decision journal)."
+    why: "OFF (built 2026-07-05, Michael smart-manager spec). Enable to surface exit recommendations; does not execute exits. Design: docs/spec_authority/SYSTEM6_SMART_MANAGER_DESIGN_2026-07-05.md."
   SYSTEM6_SUPERVISOR:
     category: cascade_gate
     what: "System 6 (active-trade supervisor): while a demo/live trade is open, scan it every cycle and diagnose management health — reconcile (slot/DB/Sierra), naked stop, stop side, BE-after-T1, target side, stop band, T1-worth, size, EOD. Emits a report + loud ALERTs; recommends AUTO corrections."
