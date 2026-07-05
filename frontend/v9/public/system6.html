@@ -7,81 +7,78 @@
 <style>
   :root{--bg:#0d1117;--card:#161b22;--line:#30363d;--tx:#e6edf3;--mut:#8b949e;
         --ok:#3fb950;--warn:#d29922;--crit:#f85149;--auto:#388bfd;--accent:#a371f7}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 -apple-system,Segoe UI,Rubik,Arial;padding:20px}
-  h1{font-size:22px;margin:0 0 4px}
-  .sub{color:var(--mut);margin-bottom:18px}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--tx);
+    font:15px/1.6 -apple-system,Segoe UI,Rubik,Arial;padding:20px}
+  h1{font-size:22px;margin:0 0 4px} .sub{color:var(--mut);margin-bottom:16px;font-size:13px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
   .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
-  .card h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
   .pill{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
-  .p-auto{background:rgba(56,139,253,.15);color:var(--auto)}
-  .p-alert{background:rgba(248,81,73,.15);color:var(--crit)}
-  .chk{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
-  .chk:last-child{border-bottom:0}
-  .chk .ico{width:22px;flex:0 0 22px;text-align:center}
-  .chk .t{font-weight:600}
-  .chk .d{color:var(--mut);font-size:13px}
-  .state{font-size:13px}
-  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-start:6px}
-  .banner{background:linear-gradient(90deg,rgba(163,113,247,.12),transparent);border:1px solid var(--accent);
-          border-radius:12px;padding:12px 16px;margin-bottom:16px}
-  .kv{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}
-  .kv b{color:var(--tx)} .muted{color:var(--mut)}
+  .p-auto{background:rgba(56,139,253,.15);color:var(--auto)} .p-alert{background:rgba(248,81,73,.15);color:var(--crit)}
+  .row{display:flex;gap:10px;padding:8px 2px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .row:last-child{border-bottom:0} .ico{width:20px;flex:0 0 20px;text-align:center}
+  .kv{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:var(--mut)}
+  .banner{border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:14px;font-weight:500}
+  .flag{font-size:12px;color:var(--warn)} .muted{color:var(--mut);font-size:12px}
   code{background:#0d1117;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
-  .flag{font-size:12px;color:var(--warn)}
-  footer{color:var(--mut);font-size:12px;margin-top:18px;text-align:center}
 </style>
 </head>
 <body>
-<h1>מערכת 6 — מפקח העסקאות <span class="flag">(סריקה בלבד · SYSTEM6_SUPERVISOR)</span></h1>
-<div class="sub">ברגע שיש עסקה פעילה, המערכת סורקת אותה בכל מחזור, מאבחנת אם היא מנוהלת נכון, ומסמנת לך כל בעיה — <b>תיקון אוטומטי</b> או <b>התראה</b>. כרגע היא מסבירה ומתריעה בלבד; היא לא מבצעת תיקונים עד שתאשר.</div>
+<h1>מערכת 6 — מפקח העסקאות <span class="flag">(סריקה בלבד)</span></h1>
+<div class="sub">שער-אחזקה + סימני-יציאה + 9 בדיקות-ניהול, בזמן-אמת על העסקה הפעילה. מסביר וממליץ בלבד — לא מבצע.</div>
 
-<div class="banner" id="live">
-  <b>מצב חי:</b> <span id="live-txt" class="muted">טוען…</span>
-</div>
+<div id="live" class="card"><span class="muted">טוען מצב חי…</span></div>
 
 <div class="grid">
   <div class="card">
-    <h2>🔎 מה היא בודקת בכל עסקה</h2>
-    <div class="chk"><div class="ico">🔗</div><div><div class="t">התאמת-מקורות <span class="pill p-alert">התראה</span></div><div class="d">הסלוט בגייטוויי, ה-DB, וסיארה מסכימים שיש/אין עסקה. אי-התאמה = היתומה של 07-03 (I-62).</div></div></div>
-    <div class="chk"><div class="ico">🛑</div><div><div class="t">סטופ לא-עירום <span class="pill p-alert">התראה</span></div><div class="d">פוזיציה פתוחה חייבת סטופ מגן. אין סטופ = סיכון פתוח.</div></div></div>
-    <div class="chk"><div class="ico">↔️</div><div><div class="t">סטופ בצד הנכון <span class="pill p-alert">התראה</span></div><div class="d">לונג→סטופ מתחת לכניסה, שורט→מעל. סטופ בצד-הלא-נכון = באג קריטי.</div></div></div>
-    <div class="chk"><div class="ico">⚖️</div><div><div class="t">BE אחרי T1 <span class="pill p-auto">אוטומטי</span></div><div class="d">ברגע שנפגע T1, הסטופ חייב לזוז ל-break-even. אם לא — המערכת מזיזה אותו.</div></div></div>
-    <div class="chk"><div class="ico">🎯</div><div><div class="t">יעדים בצד הנכון <span class="pill p-auto">אוטומטי</span></div><div class="d">t1/t2/t3 לא יכולים להיות בצד הלא-נכון של הכניסה (I-61). יעד-שגוי מופל.</div></div></div>
-    <div class="chk"><div class="ico">📏</div><div><div class="t">רצועת-סטופ <span class="pill p-alert">התראה</span></div><div class="d">מרחק הסטופ בין רצפה (0.5×ATR) לתקרה. צמוד-מדי = "ממומן"; רחוק-מדי = מסוכן.</div></div></div>
-    <div class="chk"><div class="ico">📐</div><div><div class="t">T1 שווה-ערך <span class="pill p-alert">התראה</span></div><div class="d">"אם T1 קרוב לכניסה זה לא שווה כלום" — T1 מתחת לרצפה מסומן.</div></div></div>
-    <div class="chk"><div class="ico">🔢</div><div><div class="t">גודל פוזיציה <span class="pill p-alert">התראה</span></div><div class="d">מספר החוזים תואם את הצפוי (כרגע: 3).</div></div></div>
-    <div class="chk"><div class="ico">🕒</div><div><div class="t">חלון-EOD <span class="pill p-alert">התראה</span></div><div class="d">פוזיציה פתוחה בחלון-הסגירה = התראת-שיטוח.</div></div></div>
+    <h2 style="font-size:15px;margin:0 0 10px">🔎 9 בדיקות-ניהול</h2>
+    <div style="font-size:12px;color:var(--mut);line-height:1.9">
+      התאמת-מקורות · סטופ-לא-עירום · צד-סטופ · BE-אחרי-T1 <span class="pill p-auto">אוטו'</span> ·
+      יעדים-בצד-נכון <span class="pill p-auto">אוטו'</span> · רצועת-סטופ · T1-שווה-ערך · גודל · חלון-EOD
+    </div>
   </div>
-
   <div class="card">
-    <h2>🚪 איך היא מחליטה לצאת (תוכנית-הניהול)</h2>
-    <div class="kv"><span>1. יעדים קרובים-מבניים</span><b>item-22 — אזורי-מימוש</b></div>
-    <div class="d muted">T1/T2 על מדפים אמיתיים (POC/VA/שיא-אתמול), לא כפולות-R רחוקות. פותר "המחיר לא הגיע ליעד".</div>
-    <div class="kv" style="margin-top:8px"><span>2. חצי-רווח + BE</span><b>SmartBE — חי</b></div>
-    <div class="d muted">מימוש חלקי ב-T1, והסטופ קופץ ל-break-even. מכאן העסקה לא יכולה להפוך למפסידה.</div>
-    <div class="kv" style="margin-top:8px"><span>3. הגנת-ראנר (טריילינג)</span><b>RUNNER_TRAIL_V1 — חי</b></div>
-    <div class="d muted">אחרי T1 הסטופ עוקב (שיא − 1×סיכון-התחלתי), אף פעם לא מתרחב, רצפה BE+1T.</div>
-    <div class="kv" style="margin-top:8px"><span>4. הגנת-החזר (give-back)</span><b class="flag">מוצע — לאישורך</b></div>
-    <div class="d muted"><b>זה מה שחסר.</b> ברגע שהעסקה ברווח משמעותי (למשל הגיעה לאזור), אם המחיר מחזיר X% מהתנועה-לטובתנו — יוצאים מיד עם הרווח, במקום לחזור לכניסה. זה בדיוק התיקון ל"עסקאות טובות שחזרו למחיר-הרכישה".</div>
-    <div class="kv" style="margin-top:8px"><span>5. יציאת-מומנטום</span><b class="flag">מוצע — לאישורך</b></div>
-    <div class="d muted">אם המהלך נעצר / אות-היפוך (LSMA/CCI מתהפך, בר-נגדי) — יוצאים בטוב, לא ממתינים ליעד-הרחוק או לסטופ.</div>
+    <h2 style="font-size:15px;margin:0 0 10px">🚪 מנוע-היציאה (מגובה בקטסט)</h2>
+    <div style="font-size:12px;color:var(--mut);line-height:1.9">
+      <b style="color:var(--tx)">שער-אחזקה</b> (מבנה-שלם + one-timeframing) גובר על הכל ·
+      <b style="color:var(--tx)">תקוע</b> ‎+93 · <b style="color:var(--tx)">2-תבניות</b> ‎+116 ·
+      ווליום-נגדי = אישור (דיברגנס ליד-רמה)
+    </div>
   </div>
 </div>
 
-<footer>מערכת 6 · flags <code>SYSTEM6_SUPERVISOR</code> (סריקה) · <code>SYSTEM6_AUTOCORRECT</code> (תיקון) — שניהם כבויים עד אישורך · CRITICAL אף פעם לא מתוקן אוטומטית</footer>
+<div class="muted" style="margin-top:6px"><i>flags <code>SYSTEM6_SUPERVISOR</code> · <code>SYSTEM6_EXIT_SIGNALS</code> כבויים עד אישורך · CRITICAL אף פעם לא מתוקן לבד</i></div>
 
 <script>
 const API='http://localhost:8000';
+function sev(s){return s==='CRITICAL'?'var(--crit)':s==='WARN'?'var(--warn)':'var(--mut)'}
+function ico(f){return f?'⚠':'✓'}
 async function refresh(){
-  const el=document.getElementById('live-txt');
+  const el=document.getElementById('live');
   try{
-    const r=await fetch(API+'/api/v9/gateway/status'); const d=await r.json();
-    const slot=d.demo_slot??d.demoSlot;
-    if(slot){el.innerHTML='עסקה פעילה #'+slot+' — מערכת 6 היתה סורקת אותה עכשיו. <span class="muted">(פירוט 9 הבדיקות יופיע כאן ברגע שהנתיב יחווט לבקאנד.)</span>';}
-    else{el.innerHTML='<span class="dot" style="background:var(--ok)"></span> אין עסקה פעילה — הסלוט נקי. P&amp;L יומי: '+(d.daily_pnl??0)+'$';}
-  }catch(e){el.textContent='אין חיבור לבקאנד (localhost:8000).';}
+    const r=await fetch(API+'/api/v9/system6/diagnose'); const d=await r.json();
+    if(!d.active || !d.trade){el.innerHTML='<span style="color:var(--ok)">●</span> אין עסקה פעילה — הסלוט נקי.';return;}
+    const t=d.trade, h=d.hold, rec=d.recommendation;
+    const recTxt={hold:'להחזיק — המבנה שלם',consider_exit:'לשקול יציאה — סימן ירה',exit:'לצאת — המבנה נשבר'}[rec]||rec;
+    const recCol={hold:'var(--ok)',consider_exit:'var(--warn)',exit:'var(--crit)'}[rec]||'var(--mut)';
+    let html='<div class="kv" style="margin-bottom:10px">'
+      +'<span style="color:'+(t.direction==='SHORT'?'var(--crit)':'var(--ok)')+';font-weight:600">'+t.direction+' #'+t.id+'</span>'
+      +'<span>'+t.contracts+' חוזים</span><span>כניסה '+t.entry+'</span><span>סטופ '+t.stop+'</span>'
+      +'<span>'+(t.t1_hit?'T1 נפגע':'טרם T1')+'</span></div>';
+    html+='<div class="banner" style="background:rgba(0,0,0,.25);color:'+recCol+';border:1px solid '+recCol+'">המלצה: '+recTxt+'</div>';
+    if(h){html+='<div class="row"><div class="ico">'+(h.broke?'✗':h.continuing?'✓':'⚠')+'</div>'
+      +'<div><b>שער-אחזקה</b> · '+h.reason+' <span class="muted">(ציון '+h.score+')</span></div></div>';}
+    (d.exit_signals||[]).forEach(function(s){
+      html+='<div class="row"><div class="ico" style="color:'+(s.fired?'var(--warn)':'var(--ok)')+'">'+ico(s.fired)+'</div>'
+        +'<div><b>'+s.kind+'</b> · '+s.reason+(s.fired&&s.action?' <span style="color:var(--warn)">→ '+s.action+'</span>':'')+'</div></div>';
+    });
+    if(d.supervisor && d.supervisor.issues && d.supervisor.issues.length){
+      d.supervisor.issues.forEach(function(i){
+        html+='<div class="row"><div class="ico" style="color:'+sev(i.severity)+'">'+(i.action==='AUTO'?'⚙':'⚠')+'</div>'
+          +'<div><b>'+i.code+'</b> <span class="pill '+(i.action==='AUTO'?'p-auto':'p-alert')+'">'+(i.action==='AUTO'?'אוטו\'':'התראה')+'</span><br><span class="muted">'+i.detail+'</span></div></div>';
+      });
+    } else if(d.supervisor){html+='<div class="row"><div class="ico" style="color:var(--ok)">✓</div><div>ניהול תקין — אין בעיות</div></div>';}
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<span class="muted">אין חיבור לבקאנד (localhost:8000) — '+e+'</span>';}
 }
 refresh(); setInterval(refresh,5000);
 </script>
