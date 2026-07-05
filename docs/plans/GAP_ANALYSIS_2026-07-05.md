@@ -14,8 +14,8 @@ item-5 S2_B4_VOL_V1 · item-9 DBDT alias · System 6 (supervisor+exit+journal,
 endpoint live).
 
 ## 🔴 Built but NOT WIRED — the biggest gap (latent, doing nothing)
-- **item-4 STOP_RESOLVER** — module + backtest done (36% financed stops), but
-  NOT wired into the stop path. The #1 lever, still inert.
+- **item-4 STOP_RESOLVER** — ✅ **NOW WIRED (02a2bf5)** at the gateway single
+  choke point (S2+S4), flag-OFF. Ready to enable. (Was the #1 gap.)
 - **item-22 TARGET_ZONES** — module done, not wired into targets.
 - **item-6 S4_ENTRY_CONFIRM** — module done, not wired.
 - **item-20 reconcile** — wired into the System 6 endpoint, NOT into a periodic
