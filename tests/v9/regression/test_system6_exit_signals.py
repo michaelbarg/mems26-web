@@ -169,3 +169,38 @@ def test_hold_confirmation_breaks_on_invalidation():
             {"h": 7566, "l": 7556, "c": 7566}]  # last close 7566 > invalidation
     h = hold_confirmation(direction="SHORT", invalidation_level=7565, bars=bars)
     assert h.broke and not h.continuing and h.score == 0.0
+
+
+# --- cvd_divergence (literature-correct volume exit) ---
+from backend.v9.systems.system6_exit_signals import cvd_divergence
+
+
+def _b(h, l):
+    return {"h": h, "l": l, "high": h, "low": l}
+
+
+def test_cvd_divergence_short_new_low_cvd_higher_low():
+    # price makes new low (7530) but CVD makes higher low (not confirming) → fired
+    bars = [_b(7545, 7540), _b(7543, 7535), _b(7540, 7530)]
+    cvd = [-9000, -11000, -10000]  # last is a higher low than -11000
+    s = cvd_divergence(direction="SHORT", bars=bars, cvd_series=cvd)
+    assert s.fired and s.score == 1.0
+
+
+def test_cvd_divergence_short_quiet_when_cvd_confirms():
+    bars = [_b(7545, 7540), _b(7543, 7535), _b(7540, 7530)]
+    cvd = [-9000, -10000, -12000]  # CVD makes a new low too → confirms → no divergence
+    s = cvd_divergence(direction="SHORT", bars=bars, cvd_series=cvd)
+    assert not s.fired
+
+
+def test_cvd_divergence_long_new_high_cvd_lower_high():
+    bars = [_b(7540, 7535), _b(7545, 7540), _b(7550, 7545)]
+    cvd = [9000, 11000, 10000]  # price new high, CVD lower high → fired
+    s = cvd_divergence(direction="LONG", bars=bars, cvd_series=cvd)
+    assert s.fired
+
+
+def test_cvd_divergence_fails_safe_misaligned():
+    assert cvd_divergence(direction="SHORT", bars=[_b(1, 1)],
+                          cvd_series=[1, 2, 3]).fired is False

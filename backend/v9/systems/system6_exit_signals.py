@@ -156,7 +156,54 @@ def counter_flow_wins(
     )
 
 
-DEFAULT_WEIGHTS = {"counter_flow": 1.0, "failed_volume": 1.0,
+def cvd_divergence(
+    *,
+    direction: str,
+    bars: List[Dict],
+    cvd_series: List[float],
+    lookback: int = 4,
+) -> ExitSignal:
+    """CVD / delta DIVERGENCE — the literature-correct volume exit (2026-07-05
+    review, EXIT_ORDERFLOW_LITERATURE): price makes a NEW favorable extreme but
+    CVD FAILS to confirm it. Relative (price-extreme vs CVD-extreme), so it
+    filters the noise that made raw counter-delta net-negative.
+
+      SHORT: price prints a new low over the window, but CVD prints a HIGHER low
+             (selling not confirming) → exhaustion → exit.
+      LONG:  price new high, CVD lower high → exit.
+
+    `bars` and `cvd_series` must be index-aligned (same bars). Fail-safe:
+    misaligned / too short → not fired.
+    """
+    if len(bars) < 3 or len(cvd_series) < 3 or len(bars) != len(cvd_series):
+        return ExitSignal("cvd_divergence", 0.0, False, "insufficient/misaligned data", "")
+    wb = bars[-lookback:]
+    wc = cvd_series[-lookback:]
+    d = direction.upper()
+    if d == "SHORT":
+        lows = [b.get("l", b.get("low")) for b in wb]
+        if any(x is None for x in lows):
+            return ExitSignal("cvd_divergence", 0.0, False, "missing lows", "")
+        price_new_low = lows[-1] <= min(lows[:-1])
+        cvd_new_low = wc[-1] <= min(wc[:-1])
+        diverges = price_new_low and not cvd_new_low
+    else:
+        highs = [b.get("h", b.get("high")) for b in wb]
+        if any(x is None for x in highs):
+            return ExitSignal("cvd_divergence", 0.0, False, "missing highs", "")
+        price_new_high = highs[-1] >= max(highs[:-1])
+        cvd_new_high = wc[-1] >= max(wc[:-1])
+        diverges = price_new_high and not cvd_new_high
+    if not diverges:
+        return ExitSignal("cvd_divergence", 0.0, False, "price + CVD agree", "")
+    return ExitSignal(
+        "cvd_divergence", 1.0, True,
+        "CVD divergence — new price extreme not confirmed by flow (exhaustion)",
+        "דיברגנס-CVD — המהלך לא מאושר בזרימה, לשקול יציאה",
+    )
+
+
+DEFAULT_WEIGHTS = {"cvd_divergence": 1.0, "counter_flow": 0.5, "failed_volume": 1.0,
                    "stall": 0.8, "opposite_patterns": 1.0}
 
 
