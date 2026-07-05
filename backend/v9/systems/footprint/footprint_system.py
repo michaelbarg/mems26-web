@@ -381,43 +381,16 @@ class FootprintSystem(BaseV9TradingSystem):
         return max(candidates, key=lambda s: s["strength"])
 
     def calculate_size(self, signal: dict) -> str:
-        """System 3 per-system internal sizing — Footprint inputs ONLY.
+        """DEAD (S3_MUTE) — item-11 sizing consolidation.
 
-        NO composite cross-system formula (CORR-23 enforced).
-        Uses ONLY: signal strength, delta alignment, dominance, initiative type.
+        S3 is muted (S3_MUTE / I-11). This function is unreachable at runtime
+        because _fire() returns early when S3_MUTE is active. Shimmed to
+        always-reject so any accidental call is safe. The original logic is
+        preserved in git history (commit before item-11).
 
-        Returns: 'full' (3 contracts) | 'half' (2) | 'reject' (0)
+        Returns: 'reject' (always)
         """
-        strength = signal.get("strength", 0)
-        direction = signal.get("direction")
-        if not direction or strength <= 0:
-            return "reject"
-
-        # Delta alignment: cumulative delta supports direction
-        delta = self._cumulative_delta or 0
-        delta_aligned = (delta > 0 and direction == "LONG") or (delta < 0 and direction == "SHORT")
-
-        # Dominance alignment
-        dom = self._last_dominance or "BALANCED"
-        dom_aligned = (dom == "BUYER_DOMINATE" and direction == "LONG") or \
-                      (dom == "SELLER_DOMINATE" and direction == "SHORT")
-
-        # Initiative alignment
-        init = self._last_initiative_type or "NEUTRAL"
-        init_aligned = (init == "INITIATIVE_UP" and direction == "LONG") or \
-                       (init == "INITIATIVE_DOWN" and direction == "SHORT")
-
-        aux_count = sum([delta_aligned, dom_aligned, init_aligned])
-
-        # Decision tree (per-system, like S2/S4 Wave H pattern)
-        if strength >= 0.6 and aux_count >= 3:
-            return "full"    # 3 contracts — pristine
-        elif strength >= 0.4 and aux_count >= 2:
-            return "half"    # 2 contracts — solid
-        elif strength >= 0.3 and aux_count >= 1:
-            return "half"    # 2 contracts — acceptable
-        else:
-            return "reject"
+        return "reject"
 
     def _fire(self, signal: dict, bar: dict, event) -> None:
         """Fire a trade decision from Footprint signal + size."""

@@ -257,6 +257,13 @@ flags:
     category: sizing
     what: "Every FIRING setup uses exactly 3 contracts, overriding tier/auth sizing at all sizing sources (get_quality_tier_v2, compute_v2_sizing) and the Sierra command choke point."
     why: "ON (Michael 2026-06-24 trade rule: pattern entry · 3 contracts · C1→BE · runners to LSMA). Was dead-wired to one source only → MED/LOW sent 2; fixed at both choke points 6ec3209 (2026-07-02)."
+  SIZING_CONSOLIDATION_V1:
+    category: sizing
+    what: "Single sizing authority: V2 is the only sizing path. Removes legacy calculate_size re-calc at S4 routing time (the 'A5 reject while V2 said 3' bug) and surfaces S4 risk-cap rejects as explicit gateway blocked_by instead of silent in-detector vetoes."
+    why: "OFF (default). Item-11 LIVE blocker. Trading-risk-surface change: when ON, fires that V2 approved but legacy would reject can now reach the gateway. Risk-cap blocks still enforced (via gateway blocked_by, not silent sizing=reject). Requires Michael sign-off to enable."
+    standing_decision: true
+    status: not_built
+    ref: "docs/plans/ITEM11_WORK_PLAN_2026-07-05.md"
   DAYTYPE_CONFIRM_BARS:
     category: param
     group: "S1 day-type stability"

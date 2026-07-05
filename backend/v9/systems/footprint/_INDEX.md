@@ -10,4 +10,4 @@
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 1 | 2026-05-12 | System 3 — Footprint + Tick Reversal Engine (STANDALONE observer). |
 | `detectors.py` | ✅ 1 | 169 | 2026-05-31 | Footprint detection algorithms. |
-| `footprint_system.py` | ✅ 2 | 585 | 2026-06-07 | System 3 — Footprint + Tick Reversal Engine (FIRING per Constitution V3 T3). |
+| `footprint_system.py` | ✅ 2 | 558 | 2026-06-07 | System 3 — Footprint + Tick Reversal Engine (FIRING per Constitution V3 T3). |

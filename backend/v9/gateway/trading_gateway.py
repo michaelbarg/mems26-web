@@ -740,6 +740,17 @@ class TradingGateway:
                 )
                 return result
 
+        # Item-11 Phase 3: S4 risk-cap gate (SIZING_CONSOLIDATION_V1).
+        # Under the consolidation flag, risk-cap rejects that were previously
+        # embedded as silent sizing="reject" inside the S4 detector now surface
+        # here as explicit blocked_by — no silent failures. The detector passes
+        # the rejection reason in setup.metadata.s4_risk_cap_block.
+        _s4_rcb = (setup.get("metadata") or {}).get("s4_risk_cap_block")
+        if _s4_rcb:
+            result["blocked_by"] = "s4_risk_cap"
+            logger.warning("[Gateway] BLOCKED by S4 risk cap: %s", _s4_rcb)
+            return result
+
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
         cluster_blocked = self.cluster_guard.is_blocked()
         if not cluster_blocked:

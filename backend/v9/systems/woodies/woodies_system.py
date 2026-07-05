@@ -544,6 +544,9 @@ class WoodiesSystem(BaseV9TradingSystem):
             strength = 0
             classification = "NO_SETUP"
             sizing = "reject"
+            # Item-11 sizing consolidation: flag + risk-cap block reason (Phase 2+3)
+            _sizing_consol = os.environ.get("SIZING_CONSOLIDATION_V1", "0").lower() in ("1", "true", "yes")
+            _s4_risk_cap_block = None
 
             # F-16: resolve trend state before dispatch — needed for YELLOW guard below
             # D-S4FIX: use studies (current bar, post-relabel) not stale current_state
@@ -706,7 +709,10 @@ class WoodiesSystem(BaseV9TradingSystem):
                                                 "[Woodies] PATTERN_LOSS_BREAKER: %s blocked for session (%d losses today >= %d)",
                                                 _pid, _lb_losses, _lb_n,
                                             )
-                                            sizing = "reject"
+                                            if _sizing_consol:
+                                                _s4_risk_cap_block = f"pattern_loss_breaker:{_pid}:{_lb_losses}>={_lb_n}"
+                                            else:
+                                                sizing = "reject"
                                     except Exception as _lb_err:
                                         logger.warning("[Woodies] PATTERN_LOSS_BREAKER check failed: %s", _lb_err)
 
@@ -722,7 +728,10 @@ class WoodiesSystem(BaseV9TradingSystem):
                                             "[Woodies] RISK_CAP_STRICT_SKIP: %s %s risk=%.1fpt > cap=%dpt (excluded pattern→SKIP)",
                                             _pid, direction, _s4_risk, _rc_max,
                                         )
-                                        sizing = "reject"
+                                        if _sizing_consol:
+                                            _s4_risk_cap_block = f"risk_cap_strict_skip:{_pid}:risk={_s4_risk:.1f}pt>cap={_rc_max}pt"
+                                        else:
+                                            sizing = "reject"
                                 if _rc_max and _s4_risk > _rc_max and sizing != "reject":
                                     # GIANT_BAR_STOP_V1 (Michael approved 2026-06-12 midday):
                                     # when the structural anchor is beyond the pattern cap,
@@ -758,7 +767,10 @@ class WoodiesSystem(BaseV9TradingSystem):
                                             "[Woodies] RISK_CAP_SKIP: %s %s risk=%.1fpt > cap=%dpt (REV→SKIP)",
                                             _pid, direction, _s4_risk, _rc_max,
                                         )
-                                        sizing = "reject"
+                                        if _sizing_consol:
+                                            _s4_risk_cap_block = f"risk_cap_skip:{_pid}:risk={_s4_risk:.1f}pt>cap={_rc_max}pt"
+                                        else:
+                                            sizing = "reject"
                                     else:
                                         logger.info(
                                             "[Woodies] RISK_CAP_SIZE_DOWN: %s %s risk=%.1fpt > cap=%dpt (CONT→1 contract)",
@@ -980,11 +992,23 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "skipped": True, "reason": "duplicate_bar_ts", "key": _fire_key,
                     }
                     return
-                sizing = self.calculate_size(best.pattern_id, best.direction or "LONG")
+                # Item-11 Phase 2: under SIZING_CONSOLIDATION_V1, use the
+                # already-computed V2 sizing (set at ~645, risk-cap-checked at
+                # ~709-767) instead of re-calculating with the legacy path.
+                # Legacy calculate_size can return "reject" on SWI/CZI/TCCI
+                # misalignment even when V2 approved — that's the "A5 reject
+                # while V2 said 3" bug (STATUS_BOARD 2026-07-02 ~18:50).
+                if not _sizing_consol:
+                    sizing = self.calculate_size(best.pattern_id, best.direction or "LONG")
                 if sizing != "reject":
                     # Reuse fire_setup targets (already computed per spec above)
                     _gw_t1 = fire_setup["t1_price"] if fire_setup else (best.targets or [0])[0]
                     _gw_t2 = fire_setup.get("t2_price") if fire_setup else None
+                    _gw_meta = {"pattern": best.pattern_id, "sizing": sizing}
+                    # Item-11 Phase 3: pass risk-cap block reason to gateway
+                    # so it surfaces as explicit blocked_by (no silent veto)
+                    if _s4_risk_cap_block:
+                        _gw_meta["s4_risk_cap_block"] = _s4_risk_cap_block
                     setup = {
                         "firing_system": 4,
                         "direction": best.direction or "LONG",
@@ -995,7 +1019,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                         "t1": _gw_t1,
                         "t2": _gw_t2,
                         "t3": None,
-                        "metadata": {"pattern": best.pattern_id, "sizing": sizing},
+                        "metadata": _gw_meta,
                     }
                     try:
                         route_result = self._gateway.route_setup(setup, 4)

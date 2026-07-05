@@ -11,6 +11,7 @@
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
 | `backtest_counter_flow.py` | ▶ entry/test | 99 | 2026-07-05 | Research: WHEN does opposing volume win, and is exiting there worth it? |
+| `backtest_cvd_divergence.py` | ▶ entry/test | 85 | 2026-07-05 | Backtest cvd_divergence (literature-correct volume exit) on real trades. |
 | `backtest_exit_signals.py` | ▶ entry/test | 104 | 2026-07-05 | Backtest System 6 exit signals on real managed trades (2026-07-05). |
 | `backtest_manager_combined.py` | ▶ entry/test | 99 | 2026-07-05 | Combined System 6 manager backtest (2026-07-05). |
 | `backtest_stop_resolver_item4.py` | ▶ entry/test | 173 | 2026-07-03 | Item-4 backtest — old stop vs STOP_RESOLVER_V1 structural stop, per pattern. |

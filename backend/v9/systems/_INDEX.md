@@ -31,8 +31,8 @@
 | `opening_type_gate.py` | ✅ 2 | 326 | 2026-07-02 | opening_type_gate — blocks counter-drive fires during the opening window. |
 | `reactive_location_gate.py` | ✅ 1 | 54 | 2026-06-18 | Reactive Location Gate — blocks REACTIVE fades on the wrong side of POC. |
 | `structural_targets.py` | ✅ 1 | 503 | 2026-07-02 | structural_targets — resolve day-type targets to structural price levels. |
-| `system6_exit_signals.py` | ✅ 4 | 293 | 2026-07-05 | System 6 — exit-signal engine (the "smart manager", Michael 2026-07-05). |
-| `system6_journal.py` | ✅ 1 | 151 | 2026-07-05 | System 6 — decision journal + learning loop (Michael 2026-07-05). |
+| `system6_exit_signals.py` | ✅ 5 | 340 | 2026-07-05 | System 6 — exit-signal engine (the "smart manager", Michael 2026-07-05). |
+| `system6_journal.py` | ✅ 2 | 151 | 2026-07-05 | System 6 — decision journal + learning loop (Michael 2026-07-05). |
 | `system6_supervisor.py` | ✅ 1 | 214 | 2026-07-05 | System 6 — Active-Trade Supervisor (Michael 2026-07-05). |
 | `target_zones.py` | ✅ 1 | 112 | 2026-07-03 | Item-22 — TARGET_ZONES_V1: level-confluence target zones beyond T1. |
 | `trend_direction_gate.py` | ✅ 1 | 80 | 2026-06-18 | Trend Direction Gate — blocks counter-trend fires for targeted patterns. |

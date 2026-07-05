@@ -21,7 +21,7 @@ _נפתח 2026-07-02 ~18:30 IL לפי דרישת מיכאל. כלל: כל נוש
 | בדיקת-ווליום b4 | 5 | CC-ערב | |
 | בר-אישור לכניסת-S4 | 6 | CC-ערב | משיק לתנאי-הנוסף האפשרי של פריט-10 |
 | תיקון-alias DBDT ב-playbook | 9 | CC-ערב | תאי-DBDT לא-ממופים; auth מכסה בינתיים |
-| איחוד-sizing (שתי מערכות חיות) + notify | 11 | CC-ערב | calculate_size הישן עוד רץ בנתיב-הניתוב |
+| איחוד-sizing (שתי מערכות חיות) + notify | 11 | CC | ✅ **נבנה (flag-OFF `SIZING_CONSOLIDATION_V1`):** שורש=legacy `calculate_size` בנתיב-הניתוב (woodies:983) חישב-מחדש בלי V2 → דחה ירי ש-V2 אישר ("A5 reject while V2 said 3"). תיקון: (1) Phase-2: תחת-הדגל, שורה-983 משתמשת ב-sizing שכבר חושב (V2+risk-cap) במקום לחשב-מחדש עם legacy; (2) Phase-3: risk-cap rejects (709/725/761) עוברים לגייטוויי כ-`blocked_by=s4_risk_cap` במקום ווטו-שקט; (3) S3 calculate_size=dead-shim (S3_MUTE). 7 טסטים + 21 קיימים ירוקים. I-58 fill-poller fallback verified safe. |
 | TT_SPEC_V2 בקוד | 12 | CC-ערב | המקור שלך תועתק לספק; הקוד טרם יושר |
 | P/b shape-filter | 13 | CC-ערב | |
 | משטר-תנודתיות (2 חוזים ביום-אלים וכו') | 16 | CC-ערב | |
