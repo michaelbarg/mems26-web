@@ -73,3 +73,21 @@ make them **managed, structural, and signal-aware**:
 
 Everything reversible: each stage is a flag (`SYSTEM6_EXIT_SIGNALS`, later
 `SYSTEM6_EXIT_JOURNAL`, `SYSTEM6_EXIT_AUTOACT`), default OFF, snapshot + git.
+
+## 5. HOLD gate — pattern-continuation scan (Michael 2026-07-05, BUILT)
+The master gate OVER the exit signals: "לדרוש מהמערכת סריקה של התבנית ולראות
+שהיא לא נשברת וממשיכה עם המגמה." In `system6_exit_signals.py`:
+- `pattern_intact` — price has NOT closed through the pattern's invalidation
+  level (structural stop / key level).
+- `trend_continues` — one-timeframing intact: lower highs (SHORT) / higher lows
+  (LONG), and the recent 2-bar swing against the trade was NOT taken out.
+- `hold_confirmation` — combines them: **strong hold** (intact + continuing) →
+  let the runner run, dampen the exit signals; **broke** (invalidation violated
+  OR swing taken out) → exit hard.
+
+This resolves the give-back-vs-let-it-run tension with STRUCTURE instead of a
+fixed %: on a real trend day the pattern stays intact and one-timeframes → we
+hold through minor stalls/CVD blips; the moment structure breaks → exit. It also
+matches the literature's "wait for the reaction / failure to continue" gate. 6
+tests. Integration: `hold_confirmation` runs first each scan; only when it is
+NOT a strong hold do the exit signals get to recommend.

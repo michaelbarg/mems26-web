@@ -194,5 +194,100 @@ def evaluate_exit(
     )
 
 
+# ---------------------------------------------------------------------------
+# HOLD side — pattern-continuation scan (Michael 2026-07-05: "לדרוש מהמערכת
+# סריקה של התבנית ולראות שהיא לא נשברת וממשיכה עם המגמה"). This is the master
+# gate OVER the exit signals: while the entered structure is intact AND the
+# move one-timeframes in the trade direction, HOLD (dampen the exit blips); the
+# moment the pattern breaks, exit hard. Resolves the give-back-vs-let-it-run
+# tension with STRUCTURE instead of a fixed %.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class HoldScan:
+    intact: bool           # invalidation level not violated
+    continuing: bool       # still one-timeframing in the trade direction
+    score: float           # 0..1 confidence the thesis holds
+    reason: str
+    broke: bool = False    # True = structure broke → strong exit
+
+
+def pattern_intact(
+    *,
+    direction: str,
+    invalidation_level: Optional[float],
+    last_close: Optional[float],
+) -> bool:
+    """The entered pattern is intact while price has not CLOSED through its
+    invalidation level (structural stop / key level). Fail-safe: unknown → True
+    (don't force an exit on missing data)."""
+    if invalidation_level is None or last_close is None:
+        return True
+    if direction.upper() == "SHORT":
+        return last_close < invalidation_level
+    return last_close > invalidation_level
+
+
+def trend_continues(
+    *,
+    direction: str,
+    bars: List[Dict],
+    lookback: int = 5,
+) -> HoldScan:
+    """One-timeframing check: the move keeps making lower highs (SHORT) / higher
+    lows (LONG) and has not taken out the recent 2-bar swing against the trade.
+    A break of that swing = structure broke → exit."""
+    window = bars[-lookback:]
+    if len(window) < 3:
+        return HoldScan(True, True, 0.5, "not enough bars (neutral)")
+    highs = [b.get("h", b.get("high")) for b in window]
+    lows = [b.get("l", b.get("low")) for b in window]
+    if any(h is None for h in highs) or any(l is None for l in lows):
+        return HoldScan(True, True, 0.5, "missing OHLC (neutral)")
+    d = direction.upper()
+    if d == "SHORT":
+        swing = max(highs[:-1][-2:])          # recent 2-bar swing high
+        broke = highs[-1] > swing
+        steps = sum(1 for i in range(1, len(highs)) if highs[i] <= highs[i - 1])
+    else:
+        swing = min(lows[:-1][-2:])            # recent 2-bar swing low
+        broke = lows[-1] < swing
+        steps = sum(1 for i in range(1, len(lows)) if lows[i] >= lows[i - 1])
+    score = round(steps / float(len(window) - 1), 2)
+    continuing = (not broke) and score >= 0.5
+    reason = ("structure broke — swing taken out against the trade" if broke
+              else f"one-timeframing intact ({steps}/{len(window) - 1} steps)")
+    return HoldScan(not broke, continuing, score, reason, broke=broke)
+
+
+def hold_confirmation(
+    *,
+    direction: str,
+    invalidation_level: Optional[float],
+    bars: List[Dict],
+    lookback: int = 5,
+) -> HoldScan:
+    """Combine pattern-intact + trend-continuation into the master HOLD gate.
+
+    strong hold  → intact AND continuing (let the runner run; dampen exits)
+    broke        → invalidation violated OR swing taken out (exit hard)
+    """
+    last_close = bars[-1].get("c", bars[-1].get("close")) if bars else None
+    intact = pattern_intact(direction=direction, invalidation_level=invalidation_level,
+                            last_close=last_close)
+    tc = trend_continues(direction=direction, bars=bars, lookback=lookback)
+    broke = (not intact) or tc.broke
+    continuing = intact and tc.continuing
+    if not intact:
+        reason = "pattern invalidated — price closed through the invalidation level"
+        score = 0.0
+    else:
+        reason = tc.reason
+        score = tc.score if continuing else round(tc.score * 0.5, 2)
+    return HoldScan(intact=intact, continuing=continuing, score=score,
+                    reason=reason, broke=broke)
+
+
 def enabled() -> bool:
     return os.getenv("SYSTEM6_EXIT_SIGNALS", "0").lower() in ("1", "true", "yes")

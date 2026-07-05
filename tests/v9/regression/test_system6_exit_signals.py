@@ -130,3 +130,42 @@ def test_counter_flow_long_side():
 def test_counter_flow_fails_safe():
     assert counter_flow_wins(direction="SHORT", cvd_series=[1.0],
                              window=3, threshold=1500).fired is False
+
+
+# --- HOLD side: pattern-continuation scan (Michael 2026-07-05) ---
+from backend.v9.systems.system6_exit_signals import (
+    pattern_intact, trend_continues, hold_confirmation,
+)
+
+
+def test_pattern_intact_short_holds_below_invalidation():
+    assert pattern_intact(direction="SHORT", invalidation_level=7560, last_close=7550) is True
+
+
+def test_pattern_broken_short_closed_above_invalidation():
+    assert pattern_intact(direction="SHORT", invalidation_level=7560, last_close=7562) is False
+
+
+def test_trend_continues_short_lower_highs():
+    bars = [_bar(7560, 7550), _bar(7558, 7548), _bar(7556, 7546), _bar(7554, 7544)]
+    tc = trend_continues(direction="SHORT", bars=bars)
+    assert tc.continuing and not tc.broke and tc.score >= 0.5
+
+
+def test_trend_broke_short_takes_out_swing_high():
+    bars = [_bar(7556, 7548), _bar(7554, 7546), _bar(7552, 7545), _bar(7560, 7550)]
+    tc = trend_continues(direction="SHORT", bars=bars)
+    assert tc.broke and not tc.continuing
+
+
+def test_hold_confirmation_strong_when_intact_and_continuing():
+    bars = [_bar(7560, 7550), _bar(7558, 7548), _bar(7556, 7546), _bar(7554, 7544)]
+    h = hold_confirmation(direction="SHORT", invalidation_level=7565, bars=bars)
+    assert h.intact and h.continuing and not h.broke and h.score >= 0.5
+
+
+def test_hold_confirmation_breaks_on_invalidation():
+    bars = [{"h": 7560, "l": 7550, "c": 7558}, {"h": 7558, "l": 7548, "c": 7556},
+            {"h": 7566, "l": 7556, "c": 7566}]  # last close 7566 > invalidation
+    h = hold_confirmation(direction="SHORT", invalidation_level=7565, bars=bars)
+    assert h.broke and not h.continuing and h.score == 0.0
