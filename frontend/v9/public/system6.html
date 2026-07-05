@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>מערכת 6 — מפקח העסקאות</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--line:#30363d;--tx:#e6edf3;--mut:#8b949e;
+        --ok:#3fb950;--warn:#d29922;--crit:#f85149;--auto:#388bfd;--accent:#a371f7}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.6 -apple-system,Segoe UI,Rubik,Arial;padding:20px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--mut);margin-bottom:18px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+  .card h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
+  .pill{font-size:11px;padding:2px 8px;border-radius:999px;font-weight:600}
+  .p-auto{background:rgba(56,139,253,.15);color:var(--auto)}
+  .p-alert{background:rgba(248,81,73,.15);color:var(--crit)}
+  .chk{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .chk:last-child{border-bottom:0}
+  .chk .ico{width:22px;flex:0 0 22px;text-align:center}
+  .chk .t{font-weight:600}
+  .chk .d{color:var(--mut);font-size:13px}
+  .state{font-size:13px}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-start:6px}
+  .banner{background:linear-gradient(90deg,rgba(163,113,247,.12),transparent);border:1px solid var(--accent);
+          border-radius:12px;padding:12px 16px;margin-bottom:16px}
+  .kv{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}
+  .kv b{color:var(--tx)} .muted{color:var(--mut)}
+  code{background:#0d1117;border:1px solid var(--line);border-radius:5px;padding:1px 5px;font-size:12px}
+  .flag{font-size:12px;color:var(--warn)}
+  footer{color:var(--mut);font-size:12px;margin-top:18px;text-align:center}
+</style>
+</head>
+<body>
+<h1>מערכת 6 — מפקח העסקאות <span class="flag">(סריקה בלבד · SYSTEM6_SUPERVISOR)</span></h1>
+<div class="sub">ברגע שיש עסקה פעילה, המערכת סורקת אותה בכל מחזור, מאבחנת אם היא מנוהלת נכון, ומסמנת לך כל בעיה — <b>תיקון אוטומטי</b> או <b>התראה</b>. כרגע היא מסבירה ומתריעה בלבד; היא לא מבצעת תיקונים עד שתאשר.</div>
+
+<div class="banner" id="live">
+  <b>מצב חי:</b> <span id="live-txt" class="muted">טוען…</span>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>🔎 מה היא בודקת בכל עסקה</h2>
+    <div class="chk"><div class="ico">🔗</div><div><div class="t">התאמת-מקורות <span class="pill p-alert">התראה</span></div><div class="d">הסלוט בגייטוויי, ה-DB, וסיארה מסכימים שיש/אין עסקה. אי-התאמה = היתומה של 07-03 (I-62).</div></div></div>
+    <div class="chk"><div class="ico">🛑</div><div><div class="t">סטופ לא-עירום <span class="pill p-alert">התראה</span></div><div class="d">פוזיציה פתוחה חייבת סטופ מגן. אין סטופ = סיכון פתוח.</div></div></div>
+    <div class="chk"><div class="ico">↔️</div><div><div class="t">סטופ בצד הנכון <span class="pill p-alert">התראה</span></div><div class="d">לונג→סטופ מתחת לכניסה, שורט→מעל. סטופ בצד-הלא-נכון = באג קריטי.</div></div></div>
+    <div class="chk"><div class="ico">⚖️</div><div><div class="t">BE אחרי T1 <span class="pill p-auto">אוטומטי</span></div><div class="d">ברגע שנפגע T1, הסטופ חייב לזוז ל-break-even. אם לא — המערכת מזיזה אותו.</div></div></div>
+    <div class="chk"><div class="ico">🎯</div><div><div class="t">יעדים בצד הנכון <span class="pill p-auto">אוטומטי</span></div><div class="d">t1/t2/t3 לא יכולים להיות בצד הלא-נכון של הכניסה (I-61). יעד-שגוי מופל.</div></div></div>
+    <div class="chk"><div class="ico">📏</div><div><div class="t">רצועת-סטופ <span class="pill p-alert">התראה</span></div><div class="d">מרחק הסטופ בין רצפה (0.5×ATR) לתקרה. צמוד-מדי = "ממומן"; רחוק-מדי = מסוכן.</div></div></div>
+    <div class="chk"><div class="ico">📐</div><div><div class="t">T1 שווה-ערך <span class="pill p-alert">התראה</span></div><div class="d">"אם T1 קרוב לכניסה זה לא שווה כלום" — T1 מתחת לרצפה מסומן.</div></div></div>
+    <div class="chk"><div class="ico">🔢</div><div><div class="t">גודל פוזיציה <span class="pill p-alert">התראה</span></div><div class="d">מספר החוזים תואם את הצפוי (כרגע: 3).</div></div></div>
+    <div class="chk"><div class="ico">🕒</div><div><div class="t">חלון-EOD <span class="pill p-alert">התראה</span></div><div class="d">פוזיציה פתוחה בחלון-הסגירה = התראת-שיטוח.</div></div></div>
+  </div>
+
+  <div class="card">
+    <h2>🚪 איך היא מחליטה לצאת (תוכנית-הניהול)</h2>
+    <div class="kv"><span>1. יעדים קרובים-מבניים</span><b>item-22 — אזורי-מימוש</b></div>
+    <div class="d muted">T1/T2 על מדפים אמיתיים (POC/VA/שיא-אתמול), לא כפולות-R רחוקות. פותר "המחיר לא הגיע ליעד".</div>
+    <div class="kv" style="margin-top:8px"><span>2. חצי-רווח + BE</span><b>SmartBE — חי</b></div>
+    <div class="d muted">מימוש חלקי ב-T1, והסטופ קופץ ל-break-even. מכאן העסקה לא יכולה להפוך למפסידה.</div>
+    <div class="kv" style="margin-top:8px"><span>3. הגנת-ראנר (טריילינג)</span><b>RUNNER_TRAIL_V1 — חי</b></div>
+    <div class="d muted">אחרי T1 הסטופ עוקב (שיא − 1×סיכון-התחלתי), אף פעם לא מתרחב, רצפה BE+1T.</div>
+    <div class="kv" style="margin-top:8px"><span>4. הגנת-החזר (give-back)</span><b class="flag">מוצע — לאישורך</b></div>
+    <div class="d muted"><b>זה מה שחסר.</b> ברגע שהעסקה ברווח משמעותי (למשל הגיעה לאזור), אם המחיר מחזיר X% מהתנועה-לטובתנו — יוצאים מיד עם הרווח, במקום לחזור לכניסה. זה בדיוק התיקון ל"עסקאות טובות שחזרו למחיר-הרכישה".</div>
+    <div class="kv" style="margin-top:8px"><span>5. יציאת-מומנטום</span><b class="flag">מוצע — לאישורך</b></div>
+    <div class="d muted">אם המהלך נעצר / אות-היפוך (LSMA/CCI מתהפך, בר-נגדי) — יוצאים בטוב, לא ממתינים ליעד-הרחוק או לסטופ.</div>
+  </div>
+</div>
+
+<footer>מערכת 6 · flags <code>SYSTEM6_SUPERVISOR</code> (סריקה) · <code>SYSTEM6_AUTOCORRECT</code> (תיקון) — שניהם כבויים עד אישורך · CRITICAL אף פעם לא מתוקן אוטומטית</footer>
+
+<script>
+const API='http://localhost:8000';
+async function refresh(){
+  const el=document.getElementById('live-txt');
+  try{
+    const r=await fetch(API+'/api/v9/gateway/status'); const d=await r.json();
+    const slot=d.demo_slot??d.demoSlot;
+    if(slot){el.innerHTML='עסקה פעילה #'+slot+' — מערכת 6 היתה סורקת אותה עכשיו. <span class="muted">(פירוט 9 הבדיקות יופיע כאן ברגע שהנתיב יחווט לבקאנד.)</span>';}
+    else{el.innerHTML='<span class="dot" style="background:var(--ok)"></span> אין עסקה פעילה — הסלוט נקי. P&amp;L יומי: '+(d.daily_pnl??0)+'$';}
+  }catch(e){el.textContent='אין חיבור לבקאנד (localhost:8000).';}
+}
+refresh(); setInterval(refresh,5000);
+</script>
+</body>
+</html>
