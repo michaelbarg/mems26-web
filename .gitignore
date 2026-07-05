@@ -18,3 +18,6 @@ backend/v9/v9.db
 
 # Build artifact from build_monolithic_cpp.sh
 sc_study/MES_AI_DataExport_merged.cpp
+
+# local build artifacts (install bundles) — never commit
+/dist/
