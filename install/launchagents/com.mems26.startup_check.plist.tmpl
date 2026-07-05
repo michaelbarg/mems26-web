@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  TEMPLATE — install_mems26.sh substitutes __REPO__.
+  One-shot boot self-check: runs once at login (RunAtLoad, NO KeepAlive), waits
+  for the services, verifies the whole chain, writes /tmp/mems26_startup_report.txt
+  and pops a macOS notification. Read-only — safe.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mems26.startup_check</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>__REPO__/scripts/mems26_startup_check.sh</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/tmp/mems26_startup.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/mems26_startup.log</string>
+</dict>
+</plist>

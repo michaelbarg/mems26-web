@@ -153,7 +153,7 @@ fi
 say "installing LaunchAgents (backend/bridge/promoter)"
 run "mkdir -p '$PLIST_DIR'"
 TOKEN_FOR_PLIST="$(grep -E '^BRIDGE_TOKEN=' "$REPO/.env" 2>/dev/null | cut -d= -f2- || echo mems26)"
-for svc in backend bridge export_promoter; do
+for svc in backend bridge export_promoter startup_check; do
   tmpl="$REPO/install/launchagents/com.mems26.${svc}.plist.tmpl"
   dest="$PLIST_DIR/com.mems26.${svc}.plist"
   [ -f "$tmpl" ] || { warn "missing template $tmpl"; continue; }

@@ -23,7 +23,9 @@ open install/SIERRA_SETUP_CHECKLIST.md
 ```
 
 המתקין: מתקין תלויות חסרות (Homebrew) · יוצר venv + `pip install` · יוצר DB `mems26` + סכימה + מיגרציות ·
-בונה frontend · כותב `.env` מ-`env.template` (לא דורס קיים) · מתקין ומרים את שלושת ה-LaunchAgents · מאמת health.
+בונה frontend · כותב `.env` מ-`env.template` (לא דורס קיים) · מתקין ומרים את ה-LaunchAgents · מאמת health.
+
+**הפעלה-אוטומטית + בדיקה-עצמית:** כל ה-LaunchAgents עם `RunAtLoad` — **עולים לבד בכל הדלקה/התחברות**. נוסף שירות `com.mems26.startup_check` שרץ בהתחברות, מחכה שהכל יתחבר, בודק את כל השרשרת (בקאנד↔Postgres↔ברידג'↔feed-סיארה↔frontend), כותב דוח ל-`/tmp/mems26_startup_report.txt` ו**מקפיץ התראת-מק** ✅/⚠️/❌. אפשר להריץ ידנית בכל רגע: `scripts/mems26_startup_check.sh`.
 
 **דרישות שאינן אוטומטיות:** Postgres.app (אפליקציית-GUI — התקן ידנית מ-postgresapp.com), ורישיון+התקנת Sierra.
 
@@ -38,6 +40,7 @@ open install/SIERRA_SETUP_CHECKLIST.md
 | `launchagents/*.plist.tmpl` | תבניות LaunchAgent (backend/bridge/promoter) עם `__REPO__/__PYTHON__/__EXPORT_DIR__/__BRIDGE_TOKEN__` |
 | `SIERRA_SETUP_CHECKLIST.md` | החצי-הידני: DLL · Remote-Build · Inputs · חוזה · אימות-feed |
 | `mems26_update.sh` | עדכון מ-GitHub (snapshot → ff-pull → deps → restart → verify · מסרב אם יש עסקה פתוחה) |
+| `scripts/mems26_startup_check.sh` | בדיקה-עצמית בהדלקה (דוח + התראת-מק) — רץ אוטומטית ע"י `com.mems26.startup_check` |
 | `uninstall_mems26.sh` | עוצר ומסיר LaunchAgents (`--purge-db`/`--purge-repo` אופציונלי) |
 
 ---
