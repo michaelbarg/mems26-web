@@ -1197,3 +1197,39 @@ slots 3–4 (SHORT מה-top 7491) = פער-כניסה 09:15–10:20 שנסגר �
 - **🔴 I-44/I-51 מזווית-הפספוסים — under-block יום-שני, מחמיר: −3R** (279 RL-11:15 · 285 HTLB-12:15 · 286 RL-12:30 — לונגים-ב-RED-מובהק; 271 מסווג-I-55 ולא-כאן). fixture שלישי: 06-30 over · 07-01 −2R · 07-02 −3R.
 - **🟡 I-60 השלכת-audit:** ה-6 ZLR של-היום **לא-נרשמו** ב-missed-store (0 post-close) ⇒ ה-replay-הידני בדוח הוא ה-ground-truth היחיד לצד-הלא-מנותב. dedup+R-fill+persistence→PG (מ-07-01+07-02).
 - **שוחזרו:** I-52 (🟢 benign אישוש-שלישי — S2 ירה 9) · feed 🟢 יום-4 (overlap ×6 מדויק) · HFE×0-flags היום (תצפית; disabled-by-design) · נתיב-חי `build/pattern-status` (`build_status/`→404 — לתקן-בסקריפטים-שקוראים).
+
+---
+### [2026-07-03 15:43 CT] Missed-Trades Investigator (Cowork, אוטונומי)
+
+**שער-זמן:** ✅ 15:43 CT (≥15:00, אומת `TZ=America/Chicago date`→`2026-07-03 15:43 CDT`; IL 23:43). **חצי-יום-חג** (CME early-close 12:00 CT; DEMO-מלא). דוח: `docs/reports/MISSED_TRADES_2026-07-03.md`. **קריאה-בלבד — לא שונה קוד.** מקור: API דרך Chrome `localhost:8000` (`/woodies/chart` 50-ברים · `/chart/bars5min` 42-ברי-RTH · `/trades/recent?limit=100` · `/build/pattern-status` · `/missed-trades`→50).
+
+- **🟢 יום-טווח-דומם: 12.5נק' סה"כ (lo 7549.25@08:50 / hi 7561.75@09:40), ללא-מגמה** (day_type=Variation, trend BLUE×20/GRAY×25/RED×5). הפוך-קוטבית מ-template-06-05 היורד.
+- **🟡 I-3 (`ready_to_route=False`) — החוסם-המוביל בתדירות, אך זול-היום.** S4 `fired_today_count=0`; ~13 ZLR נחסמו (50 ב-store). **פספוס-אמת deduped ≈ +1R גרוס / ~0R נטו:** ה-setup-האמיתי-היחיד = ZLR-UP-LONG בוקר (09:15/09:20, BLUE, replay +1R · MFE +1.93R לשיא 7561.75) — נחסם. ZLR-UP 10:45 היה **מפסיד** (−1R, החסימה חסכה); כל ה-ZLR-DOWN שורטים (11:45→55 + 50-cluster) = **0R** מיצוי-סגירה. על יום-12נק' כל target מנוון ⇒ I-3 חוסם-הכל אך אין-מה-לתפוס. **שורש=I-3 הישיר (target-מנוון/טבלת-stop-target חסרה), לא "ZLR-daily-cap"** — היום ZLR לא-נותב אף-פעם (מול 07-02 שנותב 10:16 ואז-לא). זול מ-07-01 (+3R).
+- **🟡 I-60 חוזר — missed-store 50-כפולים לא-deduped, `hypothetical_r=null`, חלון 11:52–11:55 בלבד** (buffer-50 נדרס לרעש-הסגירה; ~13-הבוקר התגלגלו החוצה). זהה-07-01. dedup+R-fill+persistence→PG + retention→RTH-מלא.
+- **🎯 benchmark 0/5 — ה-template היורד לא-חל על יום-טווח.** סלוטים 3+4 (9:20/9:35 שורט) היו תנועות-**עולות** ⇒ המערכת **צדקה שלא-שרטה**; סלוטים 1/2/5 תנועות-זעירות (~5נק') שזוהו-חלקית (ZLR/HFE) ולא-נותבו. הנטייה-היחידה היום הייתה מעלה-בבוקר (הפוך מה-template).
+- **🟢 סיגנל-S2 יחיד ירה נקי:** REACTIVE_SHORT 289(shadow)/290(demo) @11:05 → T1@11:20 (7554.75) → runners BE, WIN (mfe 3/mae 0.75). לא-פוספס. אין fixture חדש ל-I-44/I-51/I-55/I-59 (לא-הופעלו-מהותית).
+- **🟢 feed נקי** (overlap bars5min==woodies ×5 מדויק); עצירת-11:55 = חצי-יום תקין (לא-freeze; woodies `stale=false`, badge "Last RTH").
+- **אימות (Rule 5):** שני-replay-בלתי-תלויים — Chrome-JS + Python-sandbox — **תואמים במדויק** (session range 12.5 · 289/290 T1@11:20 +1R/mfe3 תואם trade-record · 09:20-long T1@09:40 MFE 6.75=1.93R). **החוסם-המוביל: I-3. עלות-היום: זניחה.** גייטי-chop OFF (standing).
+
+---
+### [2026-07-03 15:43 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**שער-זמן I-9:** ✅ 15:43 CT (≥15:00, אומת `TZ=America/Chicago date` → `2026-07-03 15:43 CDT`; IL 23:43). **חצי-יום-חג** (CME early-close 12:00 CT = 20:00 IL; feed נעצר 11:55 CT = תקין). תוצרים: `PATTERN_EOD_2026-07-03.md` + `DESIGNS_2026-07-03.md`. **קריאה-בלבד — לא שונה קוד/flag/.env/DB.** מקור: API דרך Chrome `localhost:8000` (`/trades/recent?limit=100`→2 · `/chart/bars5min`→42 ברי-RTH · `/day_type/state` · `/gateway/status` · `/status` · `/missed-trades`→50). **מאשש את ה-sibling-Missed-Trades (אותה-ריצה, ↑) — מספרים תואמים.**
+
+**🟢 כותרת-על — יום-הוכחת-execution ב-רנג': סיגנל-בודד נורה ובוצע-אופטימלית.** חצי-יום-חג, טווח 12.5pt (7549.25@08:50 / 7561.75@09:40), נטו +2.5pt, ווליום-נמוך. REACTIVE_SHORT (289/290 @11:05) → T1@11:20 (7554.75) → BE → **+$17.5 WIN**; shadow תאם-דמו (ניגוד I-58). **ΣCF-היום ≈ 0R** — הסיגנל-שנורה=אופטימלי (T2 7550.25 לא-נגע, MFE 7553.5, BE ניצח), החסימות=מוצדקות. היום-הנקי-ביותר בסדרה, **הפוך מ-07-02** (+8..10R דלף).
+
+**ממצאים חדשים / מאוחדים:**
+- **🟡 D-missed-buffer (חדש, display/safe) — מאחד I-60.** `/missed-trades` החזיר שוב 50-דופ' של אותו-סיגנל(ים) ZLR-SHORT `ready_to_route=False`, `hypothetical_r=null`, מרוכזים 11:52–55 CT בלבד — **דרס את ההחמצה-האמיתית** (ZLR-UP-LONG 09:15/09:20, ≈+1R גרוס/0R נטו). שני-פגמים: (א) אין-dedup (Sierra ריבוי-UPDATE→תקרת-50); (ב) `hypothetical_r` תמיד-null (CF לא-מחושב-בכתיבה). תבנית-שחזרה 06-16/18/19/22/07-01/היום. **עיצוב:** dedup-key + חישוב-R-בכתיבה + persistence→PG. DESIGNS §1.
+- **🟡 D-ready-route-instrument (חדש, display/safe) — תנאי-מוקדם לכיול I-3.** `ready_to_route=False` (I-3) חסם-נכון היום (רנג'+סגירה, CF −0.4R נחסך) אבל זה אותו-שער שחסם winner ב-07-01 (+3R). הקוד **כבר-יודע** את הסיבה (`decision_tree.py:434` `failed_stages` → `woodies_system.py:1035` `last_route`) אך `missed_trade_detector.py:127` כותב רק `why_not="ready_to_route=False"` בלי-ה-stage. **עיצוב:** הצפת `failed_stages`/`sizing` ל-`why_not`+payload (אפס-שינוי-לוגיקה). **לא-לגעת בשער עד ה-instrumentation רץ כמה-ימים.** DESIGNS §2.
+
+**שוחזרו (display-only, לא-חסמו-מסחר היום):**
+- **🔴 I-22** — 290 `pnl_r=14`/C1 `pnl_r=12` על מהלך-1R (ניפוח ~12–14×). design עומד.
+- **🟡 I-23** — `trades_today=0/daily_pnl=0` מול fire-דמו-אמת (290). design עומד.
+- **🔴 I-44** — `/day_type/state` = `Variation/OPEN_DRIVE/ib_width=EXTREME/session_min=0/vote_history=[]` (קפוא) על טווח-12.5pt: **`EXTREME` בלתי-אפשרי** = fixture-חדש. DESIGNS §3 (איחוד-מקור + דגל-stale).
+- **🟢 I-56/I-58 לא-שוחזרו** — shadow(289) תאם-demo(290) בדיוק. **🟢 I-25 נעקף** (limit=100). **🟢 feed נקי** (age 0.9s, 42 ברים).
+
+**Watch (לצלב לפני-עיצוב — CC):**
+- **gateway-slot (I-57-adjacent):** `demo_slot="290"/shadow_active_count=1` בעוד 289/290 **CLOSED** (exit 11:20) — סלוט-לא-שוחרר-בפועל (🔴 I-57-רגרסיה) או תצוגת-אחרון-ידוע (🟢)? לצלב `fill_poller.on_trade_close`.
+- **bridge.running=false / streams 0/11:** artifact-post-close (Sierra-direct+promoter הזרימו 42 ברים) או drift? מול `/tmp/bridge.err.log`+LaunchAgent.
+
+**מקור-אמת (Rule 2/5) → CC:** D-missed-buffer (לוג-detector: 50=דופ'? + ערכי-ZLR 11:52–55 מול v9_export) · D-ready-route (חילוץ `last_route.failed_stages` לבלוקי-11:52–55 — A7:TOO_CLOSE_TO_EOD צפוי מול `MIN_EOD_DISTANCE=60`+השבתה-12:00) · gateway-slot · bridge · I-44 (fixture EXTREME-על-12.5pt). **סדר-בנייה מוצע (הכל display/safe, לא-דורש-Michael):** ready-route-instrument → missed-buffer → daytype-plausibility.

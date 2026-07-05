@@ -275,7 +275,7 @@ flags:
   OPENING_WINDOW_FIRE_V1:
     category: cascade_gate
     what: "Item-10: first 30 min of RTH (08:30-09:00 CT) — a POSITIVE with-drive opening signal overrides day-type refusals (S2 Auth-Table SKIP / NO_TRADE + gateway playbook SKIP). Positive confirmation only, never fail-open; all other gates apply."
-    why: "OFF today (Michael ruling 2026-07-03 ~14:20: holiday half-day thin tape) → ENABLE Sunday 2026-07-05 for Monday's session (scheduled task set). Counter-fixture on record (07-02 08:45; DESIGNS D-opening-window-confirm)."
+    why: "OFF today (Michael ruling 2026-07-03: holiday half-day thin tape). Approved to ENABLE for the next full trading day (Monday 2026-07-06) — enable MANUALLY (Michael declined auto-enable): snapshot → add OPENING_WINDOW_FIRE_V1=1 to .env → kickstart restart. Counter-fixture on record (07-02 08:45; DESIGNS D-opening-window-confirm)."
   TREND_DIRECTION_GATE:
     category: cascade_gate
     what: "Block counter-trend fires for HFE / REACTIVE_LONG / ZLR-SHORT using live trend_state."
