@@ -16,10 +16,12 @@ endpoint live).
 ## 🔴 Built but NOT WIRED — the biggest gap (latent, doing nothing)
 - **item-4 STOP_RESOLVER** — ✅ **NOW WIRED (02a2bf5)** at the gateway single
   choke point (S2+S4), flag-OFF. Ready to enable. (Was the #1 gap.)
-- **item-22 TARGET_ZONES** — module done, not wired into targets.
-- **item-6 S4_ENTRY_CONFIRM** — module done, not wired.
+- **item-22 TARGET_ZONES** — ✅ **NOW WIRED (7897ebd)**, flag-OFF. Refines t2/t3
+  to confluence shelves at the gateway.
+- **item-6 S4_ENTRY_CONFIRM** — ✅ **NOW WIRED (7897ebd)**, flag-OFF. Confirm-bar
+  gate at the gateway.
 - **item-20 reconcile** — wired into the System 6 endpoint, NOT into a periodic
-  loop/alert.
+  loop/alert. (Only remaining wiring gap.)
 
 ## ❌ NOT built (owed, mostly CC)
 - item-11 sizing consolidation — `calculate_size` still in 5 files (two sizing
