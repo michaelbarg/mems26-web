@@ -1,0 +1,40 @@
+# Gap analysis — everything we set out to do vs reality (2026-07-05)
+
+Verified from code/flags/git, not memory.
+
+## ✅ Live in trading (flags ON)
+Safety + core: RR_ENTRY_GATE_V1 · FIXED_CONTRACTS_3 · DAYTYPE_TARGETS_STRUCTURAL
+(resolver item-2) · item-1 counter-SKIP (playbook) · OPENING_FIRE_CVD_V1 (I-53) ·
+RUNNER_TRAIL_V1 · I-57/58/59/60/61/62 fixes.
+
+## 🟡 Built, flag-OFF — ready to ENABLE (your call)
+item-10 OPENING_WINDOW_FIRE_V1 (Mon scheduled) · item-19 RISK_HALT_V1 ·
+item-18 DAY_DIRECTION_DOCTRINE_V1 + halt-proof · item-21 EOD_RISK_WINDOW_V1 ·
+item-5 S2_B4_VOL_V1 · item-9 DBDT alias · System 6 (supervisor+exit+journal,
+endpoint live).
+
+## 🔴 Built but NOT WIRED — the biggest gap (latent, doing nothing)
+- **item-4 STOP_RESOLVER** — module + backtest done (36% financed stops), but
+  NOT wired into the stop path. The #1 lever, still inert.
+- **item-22 TARGET_ZONES** — module done, not wired into targets.
+- **item-6 S4_ENTRY_CONFIRM** — module done, not wired.
+- **item-20 reconcile** — wired into the System 6 endpoint, NOT into a periodic
+  loop/alert.
+
+## ❌ NOT built (owed, mostly CC)
+- item-11 sizing consolidation — `calculate_size` still in 5 files (two sizing
+  systems still run in parallel).
+- item-12 TT_SPEC_V2 — 0 files. TT still shallow (0 fires ever).
+- item-13 PB_SHAPE_FILTER_V1 — 0 files.
+- item-16 VOL_REGIME_V1 — 0 files (you ruled contracts=3, so its contract-override
+  is moot, but the wider-stops/entry-confirm-on-volatile part is unbuilt).
+- item-17 entry-side "why no trade" journal — not built (System 6's
+  v9_exit_decisions covers the EXIT side only).
+- item-7 phase detector / item-8 pullback-retest — research/design, not built.
+
+## The one-line big picture
+A LOT is built, but **almost nothing that improves profitability is actually
+LIVE** — item-4/22/6 are built-and-inert, and item-10/18/19/System 6 are
+flag-OFF. So today's DEMO behaviour ≈ the old system + safety fixes. The value
+is real but LATENT. Closing the gap = wire item-4/22/6 + enable the proven
+pieces + run a clean validation window. LIVE is NOT ready (demo net −0.67R).
