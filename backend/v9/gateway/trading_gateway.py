@@ -986,6 +986,21 @@ class TradingGateway:
                 self._consecutive_losses = 0
             logger.info("[Gateway] LIVE slot freed: %s pnl=%.2f", trade_id, pnl)
 
+        # System 6 learning loop (SYSTEM6_EXIT_JOURNAL): stamp the outcome on this
+        # trade's pending journal rows so per-signal hit-rates accrue. "helped" is
+        # a first-pass proxy (no profit → the exit signal that fired was likely
+        # right); a precise MFE-after-signal fill is a later EOD-batch refinement.
+        try:
+            from backend.v9.systems.system6_journal import (
+                fill_outcome as _s6_fill, enabled as _s6_je,
+            )
+            if _s6_je() and trade_id is not None:
+                _s6_fill(int(trade_id),
+                         outcome={"pnl_usd": float(pnl), "outcome": outcome},
+                         helped=(float(pnl) <= 0.0))
+        except Exception as _s6_err:
+            logger.debug("[Gateway] System6 outcome-fill errored: %s", _s6_err)
+
         # Persist exit
         self._persist_exit(trade)
 
