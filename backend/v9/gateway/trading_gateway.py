@@ -589,6 +589,61 @@ class TradingGateway:
             except Exception as _st_err:
                 logger.warning("[Gateway] structural targets errored (fail-safe): %s", _st_err)
 
+        # Item-22: target zones (TARGET_ZONES_V1, default OFF). Refine C2/C3
+        # (t2/t3) to level-confluence ZONES beyond T1 — real shelves (IB/POC/VA +
+        # prior-day + swings), not R-multiples — so the runner targets where price
+        # actually reacts. Runs before the I-61 guard (which then validates the
+        # zone targets). Fail-safe: no zone / error → keeps the structural targets.
+        if os.getenv("TARGET_ZONES_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _tz_entry = setup.get("entry_price")
+                _tz_t1 = setup.get("t1")
+                if _tz_entry and _tz_t1:
+                    from backend.v9.systems.target_zones import (
+                        cluster_levels as _tz_cl, select_target_zones as _tz_sel,
+                        zone_tol_pts as _tz_tol,
+                    )
+                    _tz_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                    _tz_levels = []
+                    for _k, _lbl in (("ib_high", "ibh"), ("ib_low", "ibl"),
+                                     ("poc", "poc"), ("vah", "vah"), ("val", "val")):
+                        _v = _tz_tpo.get(_k)
+                        if _v:
+                            _tz_levels.append((float(_v), _lbl))
+                    try:
+                        from backend.v9.db.read import read_all as _tz_read
+                        _pr = _tz_read(
+                            "SELECT poc_price, vah_price, val_price, range_high, range_low "
+                            "FROM v9_tpo_sessions WHERE session_type = 'CASH' "
+                            "ORDER BY id DESC LIMIT 2", {})
+                        for _row in (_pr[1:2] if len(_pr) > 1 else []):
+                            for _c, _lbl in (("poc_price", "pd_poc"), ("vah_price", "pd_vah"),
+                                             ("val_price", "pd_val"), ("range_high", "pd_h"),
+                                             ("range_low", "pd_l")):
+                                if _row.get(_c):
+                                    _tz_levels.append((float(_row[_c]), _lbl))
+                        _bz = _tz_read("SELECT high, low FROM v9_bars_5min_woodies "
+                                       "ORDER BY ts DESC LIMIT 20", {})
+                        for _b in _bz:
+                            _tz_levels.append((float(_b["high"]), "swing_h"))
+                            _tz_levels.append((float(_b["low"]), "swing_l"))
+                    except Exception:
+                        pass
+                    if _tz_levels:
+                        _zones = _tz_cl(_tz_levels, tol_pts=_tz_tol(7.0))
+                        _sel = _tz_sel(direction=str(direction).upper(),
+                                       entry_price=float(_tz_entry), t1_price=float(_tz_t1),
+                                       zones=_zones, min_strength=2)
+                        if _sel.get("c2") is not None:
+                            logger.warning("[Gateway] TARGET_ZONES_V1: t2 %s → %.2f (shelf strength %s)",
+                                           setup.get("t2"), _sel["c2"],
+                                           getattr(_sel.get("c2_zone"), "strength", None))
+                            setup["t2"] = _sel["c2"]
+                        if _sel.get("c3") is not None:
+                            setup["t3"] = _sel["c3"]
+            except Exception as _tz_err:
+                logger.warning("[Gateway] target zones errored (kept targets): %s", _tz_err)
+
         # I-61 (Michael 2026-07-02 ~20:1x, trades 279/280): FINAL target-side guard for
         # EVERY setup (S2 has no A7 validator — a LONG went to Sierra with t2/t3 BELOW
         # entry and disintegrated instantly). Any target on the wrong side of entry is
@@ -612,6 +667,25 @@ class TradingGateway:
                         _tg_dir, _tk, float(_tv), float(_tg_entry),
                     )
                     setup[_tk] = None
+
+        # Item-6: entry confirm (S4_ENTRY_CONFIRM_V1, default OFF). Require the
+        # most recent (signal) bar to close in the trade direction before firing
+        # — "עוד ודאות בכניסה". Fail-open on missing bars / error.
+        if os.getenv("S4_ENTRY_CONFIRM_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.db.read import read_all as _ec_read
+                from backend.v9.systems.entry_confirm import entry_confirmed as _ec
+                _ec_rows = _ec_read("SELECT open, close FROM v9_bars_5min_woodies "
+                                    "ORDER BY ts DESC LIMIT 1", {})
+                if _ec_rows:
+                    _ec_bar = {"o": float(_ec_rows[0]["open"]), "c": float(_ec_rows[0]["close"])}
+                    _ec_ok, _ec_reason = _ec(direction=str(direction).upper(), bars=[_ec_bar])
+                    if not _ec_ok:
+                        result["blocked_by"] = "entry_not_confirmed"
+                        logger.info("[Gateway] BLOCKED by entry-confirm: %s", _ec_reason)
+                        return result
+            except Exception as _ec_err:
+                logger.warning("[Gateway] entry-confirm errored (fail-open): %s", _ec_err)
 
         # Item-3: R:R entry gate — block if T1 closer than the stop (net-negative R:R)
         if os.getenv("RR_ENTRY_GATE_V1", "0").lower() in ("1", "true", "yes"):
