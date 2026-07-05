@@ -102,3 +102,31 @@ def test_fuzz_score_bounds():
         assert 0.0 <= s.score <= 1.0
         if s.fired:
             assert s.score > 0
+
+
+# --- counter_flow_wins (Michael's confirmed volume semantic) ---
+from backend.v9.systems.system6_exit_signals import counter_flow_wins
+
+
+def test_counter_flow_fires_when_buyers_win_on_short():
+    # SHORT: CVD rising = buyers winning
+    s = counter_flow_wins(direction="SHORT", cvd_series=[-11000, -9500, -8700],
+                          window=2, threshold=1500)
+    assert s.fired and s.score > 0
+
+
+def test_counter_flow_quiet_when_our_side_leads_short():
+    s = counter_flow_wins(direction="SHORT", cvd_series=[-8000, -9000, -10500],
+                          window=2, threshold=1500)
+    assert not s.fired  # CVD falling = sellers still winning
+
+
+def test_counter_flow_long_side():
+    s = counter_flow_wins(direction="LONG", cvd_series=[9000, 7500, 6800],
+                          window=2, threshold=1500)
+    assert s.fired  # CVD falling against a long = sellers winning
+
+
+def test_counter_flow_fails_safe():
+    assert counter_flow_wins(direction="SHORT", cvd_series=[1.0],
+                             window=3, threshold=1500).fired is False

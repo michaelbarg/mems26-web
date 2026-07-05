@@ -124,7 +124,40 @@ def failed_reaction_volume(
     )
 
 
-DEFAULT_WEIGHTS = {"failed_volume": 1.0, "stall": 0.8, "opposite_patterns": 1.0}
+def counter_flow_wins(
+    *,
+    direction: str,
+    cvd_series: List[float],
+    window: int = 3,
+    threshold: float = 1500.0,
+) -> ExitSignal:
+    """Opposing order-flow is WINNING (Michael's confirmed semantic 2026-07-05:
+    "מתי הווליום הנגדי מנצח → כדאי לצאת").
+
+    cvd_series = cumulative-delta values during the trade, oldest→newest. Over
+    the last `window` bars, the net CVD change AGAINST the trade exceeding
+    `threshold` means the other side is taking over → exit.
+      SHORT: our side is sellers (CVD should fall) → counter = CVD rising.
+      LONG:  our side is buyers (CVD should rise) → counter = CVD falling.
+    """
+    if len(cvd_series) < window + 1:
+        return ExitSignal("counter_flow", 0.0, False, "not enough CVD bars", "")
+    recent = cvd_series[-(window + 1):]
+    delta = recent[-1] - recent[0]
+    counter = delta if direction.upper() == "SHORT" else -delta
+    if counter < threshold:
+        return ExitSignal("counter_flow", 0.0, False,
+                          f"our side still leads (counter Δ {counter:.0f})", "")
+    score = round(min(1.0, counter / (2.0 * threshold)), 2)
+    return ExitSignal(
+        "counter_flow", score, True,
+        f"opposing volume winning (counter CVD +{counter:.0f} over {window} bars)",
+        "הווליום הנגדי מנצח — לשקול יציאה",
+    )
+
+
+DEFAULT_WEIGHTS = {"counter_flow": 1.0, "failed_volume": 1.0,
+                   "stall": 0.8, "opposite_patterns": 1.0}
 
 
 @dataclass
