@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  TEMPLATE — install_mems26.sh substitutes __REPO__ / __PYTHON__.
+  Native .tmp->.json promoter sidecar (Wine rename-replace workaround). Must run 24/7:
+  RunAtLoad + KeepAlive=true (unconditional — different from the bridge/backend).
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mems26.export_promoter</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON__</string>
+        <string>__REPO__/scripts/v9_export_promoter.py</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+    <key>StandardOutPath</key>
+    <string>/tmp/v9_export_promoter.out.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/v9_export_promoter.err.log</string>
+</dict>
+</plist>
