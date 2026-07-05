@@ -56,6 +56,21 @@ pure no-op under `FIXED_CONTRACTS_3=1` → may land un-flagged WITH the before/a
 STATUS_BOARD + ROADMAP + MICHAEL_ISSUES_LEDGER (item-11 row) with finding+fix+raw
 verification; restart via kickstart (0 open first); mandatory NOT-DONE section.
 
+## Phase 0 — AUDIT RESULT (done 2026-07-05, read-only)
+Both per-system sizers return a STRING verdict `'full'(3) | 'half'(2) | 'reject'(0)`
+— i.e. the fire-VETO is embedded in the sizing function in BOTH systems:
+- **S4** `woodies_system.py:1197` — 'reject' on tier/SWI/CZI/TCCI/LSMA/EMA34
+  misalignment + the ~9 risk-cap reject branches (540-770). Call sites :573, :983.
+  → **REPLACE** the number with V2; **SEPARATE** every 'reject' into an explicit
+  gateway veto.
+- **S2** `five_min_system.py:938` — 'reject' on `bars_formed<3` (maturity) + COT/AMT
+  alignment (already bypassed by the S2⟂S3 standing decision). Call site :1336.
+  → **ADAPT** to V2 for the number; keep maturity as an explicit early veto.
+- **S3** `footprint_system.py:383/439` — S3 muted (S3_MUTE) → **DEAD**, remove/shim.
+Confirmed authority: `get_quality_tier_v2` (S2) + `compute_v2_sizing` (S4).
+Conclusion: consolidation = split "how many contracts" (→ V2, one authority) from
+"should we fire at all" (→ explicit gateway `blocked_by`, no in-sizer reject).
+
 ## Owner + guardrail
 Owner: Claude Code (real trading-risk-surface refactor). This does NOT block the
 Monday DEMO validation of item-4/22/6 — it can land in parallel, flag-gated. Do
