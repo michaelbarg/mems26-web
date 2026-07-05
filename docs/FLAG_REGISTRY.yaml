@@ -434,6 +434,10 @@ flags:
     category: cascade_gate
     what: "Item-6: require a confirm bar (signal bar closes in the trade direction) + optional CVD alignment before entry; also exposes at_fresh_extreme() for item-10's not-at-a-fresh-drive-extreme guard (08:45 counter-fixture)."
     why: "OFF (built 2026-07-03). Michael item-16: extra certainty on volatile days. Enable at the S4 fire path + optionally chain into OPENING_WINDOW_FIRE_V1 after Michael's word."
+  SYSTEM6_EXIT_JOURNAL:
+    category: cascade_gate
+    what: "System 6 learning journal: records each fired exit signal (context + recommendation) to v9_exit_decisions, and at trade close stamps the outcome (did exiting help?). compute_hit_rates → per-signal hit-rate for the panel + future weight auto-tuning."
+    why: "OFF (built 2026-07-05). Advisory table only, never touches trading. Enable to start accumulating the learning loop; auto-weighting stays a separate later decision."
   SYSTEM6_EXIT_SIGNALS:
     category: cascade_gate
     what: "System 6 exit-signal engine: scores 3 in-trade exit reasons separately — failed reaction-volume at an expected level, price stall (no new favorable extreme), and 2+ opposite-direction patterns — and blends them without losing per-signal detail. Advisory (feeds the panel + decision journal)."

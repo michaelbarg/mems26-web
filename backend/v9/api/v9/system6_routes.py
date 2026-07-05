@@ -121,7 +121,26 @@ async def diagnose(request: Request):
                 out["recommendation"] = "hold"
             elif fired:
                 out["recommendation"] = "consider_exit"
+            # Learning journal — record fired signals (gated SYSTEM6_EXIT_JOURNAL)
+            try:
+                from backend.v9.systems.system6_journal import record, build_record, enabled as _je
+                if _je():
+                    for s in fired:
+                        record(build_record(
+                            trade_id=int(tr["id"]), signal_kind=s.kind, score=s.score,
+                            fired=True, recommendation=out["recommendation"],
+                            context={"reason": s.reason, "entry": entry, "stop": stop,
+                                     "hold": out.get("hold")}))
+            except Exception as _je_err:
+                logger.warning("[System6API] journal record failed: %s", _je_err)
     except Exception as e:
         logger.warning("[System6API] exit engine failed: %s", e)
+
+    # per-signal hit-rates (advisory, from the journal)
+    try:
+        from backend.v9.systems.system6_journal import get_hit_rates
+        out["hit_rates"] = get_hit_rates()
+    except Exception:
+        pass
 
     return out
