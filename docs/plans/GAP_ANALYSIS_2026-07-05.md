@@ -40,3 +40,16 @@ LIVE** — item-4/22/6 are built-and-inert, and item-10/18/19/System 6 are
 flag-OFF. So today's DEMO behaviour ≈ the old system + safety fixes. The value
 is real but LATENT. Closing the gap = wire item-4/22/6 + enable the proven
 pieces + run a clean validation window. LIVE is NOT ready (demo net −0.67R).
+
+## ✅ UPDATE 2026-07-05 ~22:05 (Michael ruling — gap-closing actions taken)
+- **item-4/22/6 ENABLED** (`STOP_RESOLVER_V1=1`·`TARGET_ZONES_V1=1`·
+  `S4_ENTRY_CONFIRM_V1=1`) for Monday DEMO validation. 28/28 tests green,
+  snapshot `20260705T190115Z`, managed restart clean. The "built-but-inert"
+  gap is CLOSED — the levers are now live to be measured. ⚠ three interacting
+  changes at once → attribution caveat; read Monday's first fire carefully.
+- **Missing code: only item-11 (sizing consolidation) commissioned to CC**
+  (`CC_ITEM11_SIZING_CONSOLIDATION_2026-07-05.md`) — the one real LIVE-blocker.
+  **items 12/13/16/17/7/8 deliberately DEFERRED** until a profitable validated
+  baseline exists (don't add latent code).
+- Next: run a clean multi-day DEMO validation window with 4/22/6 live, then
+  read results before enabling item-10/18/19 or going LIVE.
