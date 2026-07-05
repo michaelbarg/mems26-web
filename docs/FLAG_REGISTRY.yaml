@@ -434,6 +434,14 @@ flags:
     category: cascade_gate
     what: "Item-6: require a confirm bar (signal bar closes in the trade direction) + optional CVD alignment before entry; also exposes at_fresh_extreme() for item-10's not-at-a-fresh-drive-extreme guard (08:45 counter-fixture)."
     why: "OFF (built 2026-07-03). Michael item-16: extra certainty on volatile days. Enable at the S4 fire path + optionally chain into OPENING_WINDOW_FIRE_V1 after Michael's word."
+  SYSTEM6_SUPERVISOR:
+    category: cascade_gate
+    what: "System 6 (active-trade supervisor): while a demo/live trade is open, scan it every cycle and diagnose management health — reconcile (slot/DB/Sierra), naked stop, stop side, BE-after-T1, target side, stop band, T1-worth, size, EOD. Emits a report + loud ALERTs; recommends AUTO corrections."
+    why: "OFF (built 2026-07-05, Michael: scan active trades + diagnose + correct). Enable to turn on the scan/report loop (needs wiring at the bar/poll cycle). Report-only; applies nothing by itself."
+  SYSTEM6_AUTOCORRECT:
+    category: cascade_gate
+    what: "When ON (and SYSTEM6_SUPERVISOR ON), System 6 hands its AUTO corrections (move stop to BE, drop a wrong-side target) to the injected executor. CRITICAL/ALERT issues (naked stop, wrong-side stop, orphan, flatten) are NEVER auto-applied."
+    why: "OFF (built 2026-07-05). Trading-risk surface (writes to a live position) → enable only with Michael + a wired, tested executor."
   RISK_HALT_V1:
     category: risk
     what: "Item-19 STOP-DAY halt: blocks ALL fires (any mode) once daily P&L <= -RISK_DAILY_LOSS_CAP, and (if RISK_CONSECUTIVE_LOSS_LIMIT>0) after N consecutive losses. Block-only safety — closes the 06-29 guards-bus gap where passes_strict_checks only ran in mode=live. Uses the gateway's live counters. trading_gateway.py."
