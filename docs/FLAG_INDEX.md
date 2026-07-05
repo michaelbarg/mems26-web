@@ -5,7 +5,7 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-07-05 22:59 · `.env` last modified 2026-07-05 22:57 · scan dirs: backend, bridge_
+_Generated 2026-07-05 23:03 · `.env` last modified 2026-07-05 22:57 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
