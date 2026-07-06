@@ -35,7 +35,11 @@ export function TopBar() {
       if (inFlight) return;
       inFlight = true;
       fetch(`${API}/api/v9/cockpit/heartbeat`).then(r => r.json()).then(d => {
-        setMode(d.mode || 'SHADOW');
+        // heartbeat returns lowercase MEMS26_MODE ("shadow"/"demo"/"live"); map to the
+        // MODE_STYLES key (demo→SIM) so the badge shows correctly (was defaulting to
+        // SHADOW for any non-uppercase value — hid DEMO and would hide LIVE).
+        const MK: Record<string, string> = { shadow: 'SHADOW', demo: 'SIM', sim: 'SIM', live: 'LIVE' };
+        setMode(MK[(d.mode || 'shadow').toLowerCase()] || 'SHADOW');
         setBackendHealth({
           wsClients: d.ws_clients ?? 0,
           priceFileOk: d.price_file_age_ms >= 0 && d.price_file_age_ms < 120000,

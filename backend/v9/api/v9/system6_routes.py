@@ -52,8 +52,11 @@ async def diagnose(request: Request):
     entry = float(tr["entry_price"]) if tr["entry_price"] is not None else None
     stop = float(tr["stop"]) if tr["stop"] is not None else None
     t1_hit = tr["t1_hit_ts"] is not None
+    import os as _ctos
+    _ct = 2 if _ctos.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") \
+        else (3 if _ctos.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") else 3)
     out["trade"] = {"id": tr["id"], "direction": direction, "entry": entry,
-                    "stop": stop, "t1_hit": t1_hit, "contracts": 3}
+                    "stop": stop, "t1_hit": t1_hit, "contracts": _ct}
 
     # recent bars (oldest→newest)
     try:
@@ -74,7 +77,7 @@ async def diagnose(request: Request):
         from backend.v9.systems.system6_supervisor import diagnose_trade
         rep = diagnose_trade(
             trade={"direction": direction, "entry_price": entry, "stop": stop,
-                   "contracts": 3}, atr=atr, t1_hit=t1_hit, expected_contracts=3)
+                   "contracts": _ct}, atr=atr, t1_hit=t1_hit, expected_contracts=_ct)
         out["supervisor"] = {
             "healthy": rep.healthy,
             "issues": [{"code": i.code, "severity": i.severity,

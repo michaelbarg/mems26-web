@@ -195,11 +195,93 @@ function ActiveTradePanel({ t }: { t: ActiveTrade }) {
   );
 }
 
+/** System 6 supervision — recommendation + HOLD gate + 9 checks + exit signals.
+ *  Reads /api/v9/system6/diagnose (which follows demo_slot → live_slot). Mounted
+ *  only while a trade is active, so it polls only then. */
+function System6Panel() {
+  const [d, setD] = useState<{
+    active?: boolean;
+    trade?: unknown;
+    recommendation?: string;
+    hold?: { intact?: boolean; continuing?: boolean; broke?: boolean; score?: number; reason?: string };
+    supervisor?: { healthy?: boolean; issues?: { code: string; severity: string; action: string; detail: string }[] };
+    exit_signals?: { kind: string; score?: number; fired?: boolean; reason?: string; action?: string }[];
+  } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    const poll = async () => {
+      try {
+        const r = await fetch(`${API}/api/v9/system6/diagnose`);
+        const j = r.ok ? await r.json() : null;
+        if (alive) setD(j);
+      } catch { if (alive) setD(null); }
+    };
+    poll();
+    const t = setInterval(poll, 5000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  if (!d || !d.active || !d.trade) return null;
+  const REC: Record<string, { l: string; c: string }> = {
+    hold: { l: 'החזק ✋', c: '#2ea043' },
+    consider_exit: { l: 'שקול יציאה ⚠', c: '#d29922' },
+    exit: { l: 'צא ▸', c: '#f85149' },
+  };
+  const rc = REC[d.recommendation || 'hold'] || REC.hold;
+  const hold = d.hold;
+  const sup = d.supervisor;
+  const sigs = d.exit_signals || [];
+
+  return (
+    <div style={{ border: `1px solid ${rc.c}55`, borderRadius: 8, padding: 12, marginBottom: 10, background: '#0d1117' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <b style={{ fontSize: 14 }}>🛰 מערכת 6 — פיקוח</b>
+        <span style={{ marginInlineStart: 'auto', fontWeight: 800, color: rc.c, fontSize: 15 }} title="המלצת מערכת 6">{rc.l}</span>
+      </div>
+      {hold && (
+        <div style={{ fontSize: 12, marginBottom: 6 }}>
+          <span style={{ color: hold.broke ? '#f85149' : hold.continuing ? '#2ea043' : '#d29922', fontWeight: 700 }}>
+            {hold.broke ? 'התבנית נשברה — שקול יציאה' : hold.continuing ? 'התבנית ממשיכה עם המגמה' : 'התבנית שלמה'}
+          </span>
+          {hold.reason && <span style={{ color: '#8b949e' }}> · {hold.reason}</span>}
+        </div>
+      )}
+      {sup && (sup.healthy ? (
+        <div style={{ fontSize: 12, color: '#2ea043', marginBottom: 6 }}>✓ 9 בדיקות-ניהול תקינות</div>
+      ) : (
+        <div style={{ fontSize: 12, marginBottom: 6, display: 'grid', gap: 2 }}>
+          {(sup.issues || []).map((i, k) => (
+            <div key={k} style={{ color: i.severity === 'CRITICAL' ? '#f85149' : '#d29922' }} dir="rtl">
+              ⚠ <span dir="ltr" style={{ fontFamily: 'monospace' }}>{i.code}</span> · {i.detail} → <b>{i.action}</b>
+            </div>
+          ))}
+        </div>
+      ))}
+      {sigs.length > 0 && (
+        <div style={{ display: 'grid', gap: 3, borderTop: '1px solid #1c222b', paddingTop: 6 }}>
+          {sigs.map((s, k) => (
+            <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+              <span>{s.fired ? '🔴' : '⚪'}</span>
+              <span style={{ fontFamily: 'monospace', color: '#8b949e', minWidth: 118 }} dir="ltr">{s.kind}</span>
+              <span style={{ color: s.fired ? '#e6edf3' : '#6e7681' }}>{s.reason}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DemoMonitor() {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<ActiveTrade | null>(null);
   const [recent, setRecent] = useState<Trade[]>([]);
   const [mode, setMode] = useState<string>('');
+  // Real trading mode: MEMS26_MODE (/status) is a legacy display label; the true
+  // live state is the gateway's live_enabled_systems (LIVE_TRADING_V1). Show LIVE
+  // when the gateway is routing live, regardless of the MEMS26_MODE env label.
+  const [live, setLive] = useState(false);
 
   // Always poll the active trade (drives the button indicator). 5s — unchanged interval.
   useEffect(() => {
@@ -218,15 +300,19 @@ export function DemoMonitor() {
     if (!open) return;
     let alive = true;
     const poll = async () => {
-      const [rs, ss] = await Promise.all([
+      const [rs, ss, gs] = await Promise.all([
         fetchRecentTrades(10).catch(() => [] as Trade[]),
         fetch(`${API}/api/v9/status`)
           .then((r) => (r.ok ? (r.json() as Promise<{ mode?: string }>) : Promise.resolve({} as { mode?: string })))
           .catch(() => ({} as { mode?: string })),
+        fetch(`${API}/api/v9/gateway/status`)
+          .then((r) => (r.ok ? (r.json() as Promise<{ live_enabled_systems?: number[] }>) : Promise.resolve({} as { live_enabled_systems?: number[] })))
+          .catch(() => ({} as { live_enabled_systems?: number[] })),
       ]);
       if (!alive) return;
       setRecent(rs);
       setMode(ss.mode ?? '');
+      setLive(Array.isArray(gs.live_enabled_systems) && gs.live_enabled_systems.length > 0);
     };
     poll();
     const t = setInterval(poll, 4000);
@@ -234,7 +320,7 @@ export function DemoMonitor() {
   }, [open]);
 
   const hasActive = active != null;
-  const modeColor = mode === 'demo' ? '#d29922' : mode === 'live' ? '#f85149' : '#6e7681';
+  const modeColor = live ? '#f85149' : mode === 'demo' ? '#d29922' : mode === 'live' ? '#f85149' : '#6e7681';
 
   return (
     <>
@@ -262,14 +348,17 @@ export function DemoMonitor() {
           padding: 14, fontSize: 13,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <b>מוניטור פיקוח DEMO</b>
-            <span style={{ background: modeColor, color: '#10131a', fontWeight: 700, padding: '2px 10px', borderRadius: 5, fontSize: 12 }} title="מצב המערכת (/api/v9/status)">
-              {(mode || 'shadow').toUpperCase()}
+            <b>מוניטור פיקוח</b>
+            <span style={{ background: modeColor, color: '#10131a', fontWeight: 700, padding: '2px 10px', borderRadius: 5, fontSize: 12 }} title="מצב המסחר בפועל (ניתוב live של הגייטוויי)">
+              {live ? 'LIVE' : (mode || 'shadow').toUpperCase()}
             </span>
           </div>
 
           {active ? (
-            <ActiveTradePanel t={active} />
+            <>
+              <ActiveTradePanel t={active} />
+              <System6Panel />
+            </>
           ) : (
             <div style={{ color: '#8b949e', textAlign: 'center', padding: 18 }}>אין עסקה פעילה — ממתין ל-setup.</div>
           )}
