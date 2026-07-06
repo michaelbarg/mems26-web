@@ -22,8 +22,9 @@ STATUS_BOARD.md, the task list, and today's live findings. Priority order.
 ## C. Pattern / gate tuning (blocked-but-should-have-fired)
 | # | Item | Why it matters | Owner |
 |---|------|----------------|-------|
-| C1 | **cont_trend_filter on Variation days** vetoes with-trend entries on a bounce ("UP vs sustained NEUTRAL/DOWN") | Uses a local LSMA(K=3) that flips on a bounce; may need extension-direction instead (ledger #20) | Michael ruling + CC |
+| C1 | **cont_trend_filter vetoes WITH-trend on trending days** — LIVE 2026-07-06: blocked ZLR-UP at 18:56/19:05 ("UP vs sustained DOWN") while price at new highs 7589; short K-bar LSMA (dir_sustained, gateway:415) flipped on a 7587→7584 pullback | Actively cost with-trend longs on an up-day; Michael ruled leave-ON, fix post-session (longer window / extension-direction + backtest) | CC |
 | C2 | **Auth table INITIATIVE on Normal/low-tier = SKIP** | The gate that skipped today's longs; tied to B1/B2 (day-type accuracy) | review after B |
+| C3 | **conf-0.90 DOUBLE_BOTTOM_EE LONG silent-drop** — fired 18:30, no route/block trace, no trade | A high-confidence S2 setup vanished with no log; possible unrouted pattern | CC — investigate |
 
 ## D. System 6 completion
 | # | Item | Why it matters | Owner |
