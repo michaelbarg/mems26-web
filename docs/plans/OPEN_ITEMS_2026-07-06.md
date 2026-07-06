@@ -11,6 +11,7 @@ STATUS_BOARD.md, the task list, and today's live findings. Priority order.
 | A3 | **T1/T2 fill-price gap** — demo/live T1/T2 close on bar-price, not Sierra fill | Not strict "P&L only from Sierra" (STOP+T3 already Sierra-only via I-62) | CC — task #17 |
 | A4 | **22:15 hard-stop flatten wiring** | Today it only ALERTS (scheduled task); no auto-flatten of an open position | CC |
 | A5 | **Feed watchdog + halt-on-death (D22/D34)** | Feed-death mid-session → orphan positions (recurred 06-19, 06-25); spec'd, never built | CC |
+| **A6** | 🔴 **A7 drops ZLR fires (fire_setup=None) — STILL LIVE (from 06-30)** — LIVE 2026-07-06: `[Woodies] FIRE DROPPED (not_ready_to_route): ZLR LONG/SHORT — failed_stages=['A7']` (19:10 + panel ZLR SHORT "A7 no fire_setup"). `_a7_universal` (decision_tree.py:349): fire_setup=None (V2 computes stop separately → woodies_system.py:616 fire_setup not built) → not_ready_to_route → dropped BEFORE gateway | **The real reason ZLR isn't entering** (both directions) — deeper than cont_trend_filter; I over-diagnosed cont_trend today. handoff CC_WOODIES_ROUTE_A7_FIRE_SETUP_2026-06-30 exists but not fully fixed | CC — HIGH |
 
 ## B. Day-type classifier — TODAY'S live findings (cost 3 conf-0.80 INITIATIVE_LONG)
 | # | Item | Why it matters | Owner |
