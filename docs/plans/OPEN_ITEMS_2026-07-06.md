@@ -24,7 +24,7 @@ STATUS_BOARD.md, the task list, and today's live findings. Priority order.
 |---|------|----------------|-------|
 | C1 | **cont_trend_filter vetoes WITH-trend on trending days** — LIVE 2026-07-06: blocked ZLR-UP at 18:56/19:05 ("UP vs sustained DOWN") while price at new highs 7589; short K-bar LSMA (dir_sustained, gateway:415) flipped on a 7587→7584 pullback | Actively cost with-trend longs on an up-day; Michael ruled leave-ON, fix post-session (longer window / extension-direction + backtest) | CC |
 | C2 | **Auth table INITIATIVE on Normal/low-tier = SKIP** | The gate that skipped today's longs; tied to B1/B2 (day-type accuracy) | review after B |
-| C3 | **conf-0.90 DOUBLE_BOTTOM_EE LONG silent-drop** — fired 18:30, no route/block trace, no trade | A high-confidence S2 setup vanished with no log; possible unrouted pattern | CC — investigate |
+| C3 | ~~DOUBLE_BOTTOM_EE silent-drop~~ **CORRECTED**: it was R:R-rejected (risk 12.25 vs reward 5.28 = 0.43 < 1.0), not a silent drop — pre_fire_validator worked correctly | not a bug — closed | — |
 
 ## D. System 6 completion
 | # | Item | Why it matters | Owner |
