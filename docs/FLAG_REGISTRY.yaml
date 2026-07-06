@@ -257,6 +257,11 @@ flags:
     category: sizing
     what: "Every FIRING setup uses exactly 3 contracts, overriding tier/auth sizing at all sizing sources (get_quality_tier_v2, compute_v2_sizing) and the Sierra command choke point."
     why: "ON (Michael 2026-06-24 trade rule: pattern entry · 3 contracts · C1→BE · runners to LSMA). Was dead-wired to one source only → MED/LOW sent 2; fixed at both choke points 6ec3209 (2026-07-02)."
+  FIXED_CONTRACTS_2:
+    category: sizing
+    what: "Every FIRING setup uses exactly 2 contracts. Takes PRECEDENCE over FIXED_CONTRACTS_3 at all three sizing points (get_quality_tier_v2, compute_v2_sizing, Sierra command choke). Reject (0) preserved."
+    why: "ON (Michael 2026-07-06 LIVE decision: 2 contracts for real-money live). Layered over _3 as a precedence override so the 06-24 3-contract standing decision stays intact as fallback; unset FIXED_CONTRACTS_2 → reverts to 3. Trading-risk-surface → flag-gated + Michael sign-off."
+    standing_decision: true
   SIZING_CONSOLIDATION_V1:
     category: sizing
     what: "Single sizing authority: V2 is the only sizing path. Removes legacy calculate_size re-calc at S4 routing time (the 'A5 reject while V2 said 3' bug) and surfaces S4 risk-cap rejects as explicit gateway blocked_by instead of silent in-detector vetoes."

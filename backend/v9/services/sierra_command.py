@@ -168,7 +168,10 @@ def command_from_setup(
     # no path can send !=3 when the flag is on. Only setups that reached command-write
     # have already passed the fire decision, so _contracts is always >0 here.
     import os as _fc3_os
-    if _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and _contracts > 0:
+    # FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract choke point, PRECEDENCE over _3.
+    if _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and _contracts > 0:
+        _contracts = 2
+    elif _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and _contracts > 0:
         _contracts = 3
     return write_trade_command(
         action=action,

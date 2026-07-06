@@ -86,7 +86,10 @@ def compute_v2_sizing(
     # preserved so invalid setups still don't fire. Applies to S2 + S4 (both
     # route through compute_v2_sizing). Trading-risk → flag-gated.
     import os as _fc_os
-    if _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
+    # FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract sizing, PRECEDENCE over _3.
+    if _fc_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and contracts > 0:
+        contracts = 2
+    elif _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
         contracts = 3
 
     # ── T1 price ──

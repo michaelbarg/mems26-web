@@ -84,7 +84,12 @@ def get_quality_tier_v2(
     # the dead-wiring: MEDIUM/LOW fires emitted 2. contracts==0 = auth reject → preserved
     # (no fire). Flag-gated (trading-risk-surface).
     import os as _fc_os
-    if _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
+    # FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract sizing. Takes PRECEDENCE over
+    # _3 — set FIXED_CONTRACTS_2=1 → every fire uses 2; unset → falls back to _3.
+    # Reject (0) preserved. Trading-risk → flag-gated.
+    if _fc_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and contracts > 0:
+        contracts = 2
+    elif _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
         contracts = 3
     return (verdict, tier, contracts)
 
