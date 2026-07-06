@@ -302,6 +302,7 @@ class TradeManager:
         trade_id: int,
         target: str,
         fill_ts: Optional[datetime] = None,
+        fill_price: Optional[float] = None,
     ) -> None:
         """Record a target hit (T1, T2, T3).
 
@@ -309,6 +310,10 @@ class TradeManager:
           T1 = C1 scale-out (1 contract) → PARTIAL + stop→BE
           T2 = C2 scale-out (1 contract) → stay PARTIAL, keep trailing
           T3 = C3 scale-out (last contract) → CLOSED only if all 3 filled
+
+        fill_price: the ACTUAL Sierra fill price from trade_fills.json.
+        When provided, updates the target level to the real fill so PnL
+        reflects actual execution, not the intended target level.
         """
         if target not in ("T1", "T2", "T3"):
             raise ValueError(f"Invalid target: {target}")
@@ -316,6 +321,16 @@ class TradeManager:
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
         hit_ts = fill_ts or _market_now_utc()
+
+        # Overwrite target level with actual Sierra fill price when available.
+        # This ensures _calculate_pnl uses the real execution price.
+        if fill_price is not None:
+            if target == "T1":
+                trade.t1 = fill_price
+            elif target == "T2":
+                trade.t2 = fill_price
+            elif target == "T3":
+                trade.t3 = fill_price
 
         self._append_snapshot(trade, f"{target.lower()}_hit")
 
@@ -759,8 +774,15 @@ class TradeManager:
         self,
         trade_id: int,
         fill_ts: Optional[datetime] = None,
+        fill_price: Optional[float] = None,
     ) -> None:
-        """Close trade on stop hit."""
+        """Close trade on stop hit.
+
+        fill_price: the ACTUAL Sierra fill price from trade_fills.json.
+        When provided, exit_price = the real fill (may differ from trade.stop
+        due to slippage). When None (legacy/BarLevelDetector), falls back to
+        trade.stop. P&L must reflect the real fill, not the intended level.
+        """
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
 
@@ -773,9 +795,14 @@ class TradeManager:
         trade.state = TradeState.CLOSED.value
         trade.stop_hit_ts = hit_ts
         trade.exit_ts = hit_ts
-        trade.exit_price = trade.stop
+        # P&L from Sierra fill: use actual fill price when available
+        trade.exit_price = fill_price if fill_price is not None else trade.stop
         trade.exit_reason = "STOP_HIT"
-        self._log_management(trade_id, "STOP_HIT", {"ts": hit_ts.isoformat(), "stop": float(trade.stop) if trade.stop else None})
+        self._log_management(trade_id, "STOP_HIT", {
+            "ts": hit_ts.isoformat(),
+            "stop": float(trade.stop) if trade.stop else None,
+            "fill_price": fill_price,
+        })
 
         self._calculate_pnl(trade)
         self._set_outcome(trade)
@@ -789,8 +816,13 @@ class TradeManager:
             "pnl_usd": trade.pnl_usd,
         })
 
-    def close_trade(self, trade_id: int, reason: str) -> None:
-        """Manual close — any active state -> CLOSED."""
+    def close_trade(self, trade_id: int, reason: str, exit_price: Optional[float] = None) -> None:
+        """Manual close — any active state -> CLOSED.
+
+        exit_price: when provided (e.g. from Sierra fill or OPPOSITE_2X), sets
+        the actual exit price for P&L. When None, _calculate_pnl falls back to
+        target-based calculation.
+        """
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
 
@@ -801,6 +833,8 @@ class TradeManager:
         trade.state = TradeState.CLOSED.value
         trade.exit_ts = _market_now_utc()  # Prompt 26b: market time
         trade.exit_reason = reason
+        if exit_price is not None:
+            trade.exit_price = exit_price
 
         self._calculate_pnl(trade)
         self._set_outcome(trade)
@@ -982,10 +1016,13 @@ class TradeManager:
             return
 
         if trade.exit_reason == "STOP_HIT" and stop is not None:
+            # Use actual Sierra fill price (trade.exit_price) for the stop exit,
+            # not the intended stop level. Slippage makes them differ.
+            actual_stop = self._valid_target(trade.exit_price) or stop
             contract_exits = [
-                t1 if trade.t1_hit_ts and t1 is not None else stop,
-                t2 if trade.t2_hit_ts and t2 is not None else stop,
-                t3 if trade.t3_hit_ts and t3 is not None else stop,
+                t1 if trade.t1_hit_ts and t1 is not None else actual_stop,
+                t2 if trade.t2_hit_ts and t2 is not None else actual_stop,
+                t3 if trade.t3_hit_ts and t3 is not None else actual_stop,
             ]
         elif trade.exit_reason == "T3_HIT":
             exit_p = self._valid_target(trade.exit_price) or trade.entry_price

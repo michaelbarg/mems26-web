@@ -457,6 +457,13 @@ flags:
     category: cascade_gate
     what: "When ON (and SYSTEM6_SUPERVISOR ON), System 6 hands its AUTO corrections (move stop to BE, drop a wrong-side target) to the injected executor. CRITICAL/ALERT issues (naked stop, wrong-side stop, orphan, flatten) are NEVER auto-applied."
     why: "OFF (built 2026-07-05). Trading-risk surface (writes to a live position) → enable only with Michael + a wired, tested executor."
+  LIVE_EXECUTION_V1:
+    category: cascade_gate
+    what: "Enable LIVE execution in the gateway: _execute_live mirrors _execute_demo but writes trade_command.json with mode:'live' to the SIERRA_LIVE_ACCOUNT (APEX-125218-13). When OFF (default), _execute_live stays the stub (log-only, no Sierra order)."
+    why: "OFF (default). LIVE-BLOCKER. Must pass ALL 6 safety gates (SIM proof, RISK_HALT_V1, reconcile, contracts=2, 22:15 hard-stop, snapshot) + Michael sign-off before enabling on real money."
+    standing_decision: true
+    status: live
+    ref: "docs/handoff/CC_LIVE_EXECUTION_2026-07-06.md"
   RISK_HALT_V1:
     category: risk
     what: "Item-19 STOP-DAY halt: blocks ALL fires (any mode) once daily P&L <= -RISK_DAILY_LOSS_CAP, and (if RISK_CONSECUTIVE_LOSS_LIMIT>0) after N consecutive losses. Block-only safety — closes the 06-29 guards-bus gap where passes_strict_checks only ran in mode=live. Uses the gateway's live counters. trading_gateway.py."

@@ -73,6 +73,7 @@ INFRA_EXCLUDE = {
     "MAX_STALE_HOURS", "STALE_PRICE_BAND", "MEMS26_MODE", "MEMS26_CLOCK_MODE",
     "MEMS26_SIGNALS_DIR", "MEMS26_DRIVE_SA_JSON", "MEMS26_DRIVE_MIRROR_FOLDER_ID",
     "AUDIT_POLL_MS", "AUDIT_BATCH_SIZE",
+    "SIERRA_LIVE_ACCOUNT",  # connection config, not behavior flag
 }
 
 # Order categories appear in the document.

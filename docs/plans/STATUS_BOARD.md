@@ -1,6 +1,10 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-07-06 (CC — live execution + P&L from Sierra fills)
+
+**[2026-07-06 — CC: Build A+B LIVE execution + fill-based P&L (LIVE_EXECUTION_V1 default-OFF)]** **Builds:** ① **Build A — real `_execute_live`:** mirrors `_execute_demo` but `mode="live"`, account=SIERRA_LIVE_ACCOUNT (APEX-125218-13). Flag-gated: LIVE_EXECUTION_V1 OFF → old stub (no Sierra order). ON → trade_command.json with mode:"live" sent to Sierra. ② **Build B — P&L from Sierra fill:** `on_stop_hit` + `on_target_hit` accept `fill_price` from FillPoller. `exit_price = fill_price` (not `trade.stop`). `_calculate_pnl` uses actual fill for remaining contracts. Applies to demo AND live. Backward-compat: no fill_price → falls back to trade.stop. ③ Target fills: `on_target_hit` overwrites t1/t2/t3 with actual fill for PnL. **Tests:** 7 new + 822 existing pass (21 pre-existing fixture-era unchanged). **Safety gates:** all 6 PENDING (SIM proof, RISK_HALT, reconcile, contracts=2, 22:15 stop, snapshot). **NOT-DONE:** SIM validation (Sierra not running); 22:15 hard-stop wiring; contracts=2 override; reconcile for live; ROADMAP HTML.
+
 ## 2026-07-05 (CC — item-11 sizing consolidation)
 
 **[2026-07-05 ~23:1x — Cowork: item-11 אומת GO + הודלק · חבילת-אימות מלאה חיה ליום-שני]** **ביקורת (Rule 5, גולמי):** item-11 של CC אומת — anti-tautological `test_legacy_rejects_v2_approves_flag_on/off` קיים+עובר (מוכיח באג-בישן) · `test_s4_risk_cap_block_surfaces_in_gateway` (reject→blocked_by מפורש) · 14 טסטי-sizing עוברים · 57 טסטי-סשן+חיווטים אפס-רגרסיה · commit 2ea0c67 דחוף. **הודלק (פסיקת-Michael "כבר קבענו"):** `SIZING_CONSOLIDATION_V1=1` (snapshot 200820Z, 60 vars, kickstart נקי, 0 פתוחות). **סטטוס-הדלקות היום:** item-4/22/6 · System6-advisory (SUPERVISOR+EXIT_SIGNALS+EXIT_JOURNAL, AUTOCORRECT OFF) · item-21 (EOD-window) · item-11 — כולם ON. כבויים: item-19 (RISK_HALT), item-10 (auto-Mon 15:40), SYSTEM6_AUTOCORRECT. **⚠ ייחוס:** 5 שינויים-מתקשרים בחלון-האימות → אם נטו-שלילי, קשה לבודד; הכל flag+snapshot=הפיך. **NOT-DONE של CC #4 (ROADMAP) — נסגר כאן.**

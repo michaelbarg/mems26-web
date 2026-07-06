@@ -22,16 +22,17 @@ class _MockTM:
     def on_fill(self, trade_id, price):
         self.calls.append(("on_fill", trade_id, price))
 
-    def on_target_hit(self, trade_id, target, fill_ts=None):
+    def on_target_hit(self, trade_id, target, fill_ts=None, fill_price=None):
         self.calls.append(("on_target_hit", trade_id, target))
 
-    def on_stop_hit(self, trade_id, fill_ts=None):
+    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None):
         self.calls.append(("on_stop_hit", trade_id))
 
 
 class _T:
-    def __init__(self, tid):
+    def __init__(self, tid, mode="demo"):
         self.id = tid
+        self.mode = mode
 
 
 def _fill(kind, order_id=5001, price=7450.0):

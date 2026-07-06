@@ -224,15 +224,19 @@ class FillPoller:
                                 sum(1 for v in sierra_ids.values() if v is not None), trade_id)
 
             elif kind in ("T1", "T2", "T3"):
-                self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts)
-                logger.info("[FillPoller] %s fill: trade %s", kind, trade_id)
+                # Pass Sierra fill price so PnL uses real execution, not intended level
+                _fill_px = float(price) if price is not None else None
+                self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts, fill_price=_fill_px)
+                logger.info("[FillPoller] %s fill: trade %s @ %s", kind, trade_id, price)
                 if kind == "T3":
                     # All contracts out → full close: free slot + count outcome (I-57)
                     self._notify_gateway_close(trade_id, "T3")
 
             elif kind == "STOP":
-                self._tm.on_stop_hit(trade_id, fill_ts=fill_ts)
-                logger.info("[FillPoller] STOP fill: trade %s", trade_id)
+                # Pass Sierra fill price so exit_price = real fill (may differ from trade.stop due to slippage)
+                _fill_px = float(price) if price is not None else None
+                self._tm.on_stop_hit(trade_id, fill_ts=fill_ts, fill_price=_fill_px)
+                logger.info("[FillPoller] STOP fill: trade %s @ %s", trade_id, price)
                 # Full close via Sierra stop → free slot + count the stop (I-57:
                 # this path previously bypassed on_trade_close → stuck demo slot
                 # + cooldown blind to stops. Trades 271/272, 2026-07-02.)

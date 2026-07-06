@@ -29,10 +29,10 @@ class _FakeTM:
         self.stop_hits = []
         self.target_hits = []
 
-    def on_stop_hit(self, trade_id, fill_ts=None):
+    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None):
         self.stop_hits.append(trade_id)
 
-    def on_target_hit(self, trade_id, kind, fill_ts=None):
+    def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None):
         self.target_hits.append((trade_id, kind))
 
     def get_active_trades(self):

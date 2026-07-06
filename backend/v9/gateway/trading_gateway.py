@@ -1190,11 +1190,94 @@ class TradingGateway:
         return trade
 
     def _execute_live(self, setup: dict, system_id: int, cross_context: dict) -> dict:
-        """LIVE: log intent, persist — no Sierra connection yet."""
+        """LIVE: create a REAL TM trade (mode=live) + write Sierra LIVE command.
+
+        Mirrors _execute_demo but routes to the LIVE account (APEX-125218-13).
+        Flag-gated: LIVE_EXECUTION_V1 must be ON or this stays the old stub
+        (log intent, persist, no Sierra order). When ON, Sierra receives the
+        order via trade_command.json with mode:"live".
+        """
+        # Flag gate: if OFF, fall back to stub behavior (zero Sierra orders)
+        if os.environ.get("LIVE_EXECUTION_V1", "0").lower() not in ("1", "true", "yes"):
+            trade = self._build_trade("live", setup, system_id, cross_context)
+            self._persist_trade(trade)
+            logger.warning("[Gateway] LIVE trade (stub, LIVE_EXECUTION_V1=OFF): %s %s system=%d — NOT sent to Sierra",
+                            trade["direction"], trade.get("classification", ""), system_id)
+            return trade
+
+        # Real live execution — mirror of _execute_demo with mode="live"
+        if self._trade_manager is not None:
+            g1 = extract_g1_entry_context(cross_context)
+
+            t1 = setup.get("t1") or 0.0
+            t2 = setup.get("t2") or 0.0
+            t3 = setup.get("t3") or 0.0
+            if t1 > 0 and t2 > 0 and t3 <= 0:
+                t3 = 2 * t2 - t1
+            if t1 > 0 and t2 <= 0:
+                direction = (setup.get("direction") or "").upper()
+                t2 = t1 + abs(t1 - (setup.get("stop") or t1)) if direction == "LONG" \
+                    else t1 - abs(t1 - (setup.get("stop") or t1))
+
+            tm_setup = {
+                "firing_system": system_id,
+                "direction": setup.get("direction", "LONG"),
+                "stop": setup.get("stop", 0.0),
+                "t1": t1,
+                "t2": t2,
+                "t3": t3,
+                "entry_price": setup.get("entry_price"),
+                "classification": setup.get("classification", ""),
+                "confidence": setup.get("confidence", 0.0),
+                "metadata": setup.get("metadata") or {},
+                "trigger": (
+                    setup.get("classification")
+                    or (setup.get("metadata") or {}).get("pattern")
+                    or (setup.get("metadata") or {}).get("signal")
+                ),
+                "cross_context": cross_context,
+                "day_type_at_entry": g1["day_type_at_entry"],
+                "pattern_id_at_entry": resolve_pattern_id(setup, g1),
+                "session_at_entry": g1["session_at_entry"],
+            }
+
+            trade_id = self._trade_manager.accept_setup(tm_setup, "live")
+            try:
+                self._trade_manager._db.commit()
+            except Exception as commit_err:
+                logger.warning("[Gateway] LIVE trade commit failed: %s", commit_err)
+
+            # Write Sierra command — LIVE account
+            live_setup = dict(setup)
+            live_setup["t2"] = t2
+            live_setup["t3"] = t3
+            command = command_from_setup(
+                live_setup,
+                trade_id=str(trade_id),
+                account=os.environ.get("SIERRA_LIVE_ACCOUNT", "APEX-125218-13"),
+                mode="live",
+            )
+
+            logger.warning(
+                "[Gateway] LIVE trade TM id=%d: %s %s system=%d t1=%.2f t2=%.2f t3=%.2f account=%s",
+                trade_id, tm_setup["direction"], setup.get("classification", ""),
+                system_id, t1, t2, t3,
+                os.environ.get("SIERRA_LIVE_ACCOUNT", "APEX-125218-13"),
+            )
+            return {
+                "trade_id": str(trade_id),
+                "mode": "live",
+                "firing_system": system_id,
+                "direction": tm_setup["direction"],
+                "state": "PENDING",
+                "entry_price": setup.get("entry_price"),
+                "sierra_command": command,
+            }
+
+        # Fallback: legacy persist (no TM available)
         trade = self._build_trade("live", setup, system_id, cross_context)
         self._persist_trade(trade)
-        logger.warning("[Gateway] LIVE trade (stub): %s %s system=%d — NOT sent to Sierra",
-                        trade["direction"], trade.get("classification", ""), system_id)
+        logger.info("[Gateway] LIVE trade (legacy): %s system=%d", trade["direction"], system_id)
         return trade
 
     def _build_trade(self, mode: str, setup: dict, system_id: int, cross_context: dict) -> dict:

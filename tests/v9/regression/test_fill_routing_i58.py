@@ -34,10 +34,10 @@ class _FakeTM:
     def on_fill(self, trade_id, price):
         self.fills.append((trade_id, price))
 
-    def on_target_hit(self, trade_id, kind, fill_ts=None):
+    def on_target_hit(self, trade_id, kind, fill_ts=None, fill_price=None):
         self.target_hits.append((trade_id, kind))
 
-    def on_stop_hit(self, trade_id, fill_ts=None):
+    def on_stop_hit(self, trade_id, fill_ts=None, fill_price=None):
         self.stop_hits.append(trade_id)
 
     def set_sierra_order_ids(self, trade_id, ids):
