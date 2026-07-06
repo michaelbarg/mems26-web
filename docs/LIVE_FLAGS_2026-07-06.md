@@ -43,9 +43,10 @@ Plus the 22:15 flatten-alert scheduled task `mems26-flatten-2215-rth`.
 
 ## Entry / opening
 `RR_ENTRY_GATE_V1=1` · `S4_ENTRY_CONFIRM_V1=1` · `OPENING_TYPE_GATE=1` ·
-`OPENING_FIRE_CVD_V1=1` · **`OPENING_WINDOW_FIRE_V1=1`** (item-10 — positive-drive
-opening override; auto-enabled 15:43 by the Monday scheduled task per the 07-03
-ruling. ⚠ See note below — this was a DEMO-era ruling; now live on real money).
+`OPENING_FIRE_CVD_V1=1` · **`OPENING_WINDOW_FIRE_V1=0`** (item-10 — TURNED OFF by
+Michael 16:30 for a conservative first live open; was auto-enabled 15:43 by the
+Monday scheduled task per the 07-03 DEMO-era ruling, then disabled for the
+real-money context. snapshot 20260706T133025Z).
 
 ## Day-type / direction / classifier
 `S1_NEW_CLASSIFIER=1` (7-type) · `S1_ENGINE_NEW_CLASSIFIER=1` · `S1_*` staging set ·
@@ -58,8 +59,6 @@ ruling. ⚠ See note below — this was a DEMO-era ruling; now live on real mone
 `S2_REQUIRE_COT_AMT` (S2 ⟂ S3) · `T1_LADDER_V2` (backtested flat/negative).
 `S3_MUTE=1` / `FOOTPRINT_DISABLED=1` / `HFE_DISABLED=1` / `NONTREND_DISABLE_ALL=1` — intentional mutes.
 
-## ⚠ Open decision for the live session
-`OPENING_WINDOW_FIRE_V1` (item-10) fires the system MORE aggressively with the
-drive in the first 30 min. It was auto-enabled for "Monday" per a 07-03 ruling
-made in a DEMO-validation context; today is real-money LIVE. Michael to confirm
-keep-ON (aggressive open) vs OFF (conservative first live open).
+## Resolved decisions
+- `OPENING_WINDOW_FIRE_V1` (item-10): **OFF** — Michael ruled a conservative first
+  live open (16:30). Re-enable only on Michael's say-so.
