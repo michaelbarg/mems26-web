@@ -930,6 +930,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 
                     const char* result_status = "UNKNOWN";
                     int order_err = 0;
+                    const char* order_err_text = "";  // populated on ORDER_FAILED
                     int order_armed = EnableOrderPlacement.GetInt();
 
                     // ── OP: PLACE — Attached Orders bracket (research §5.1) ──
@@ -1085,28 +1086,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                     default: err_text = "UNDOCUMENTED_ERROR"; break;
                                 }
 
+                                order_err_text = err_text;  // expose to final result write
+
                                 // Log to Sierra message log for visual debugging
                                 char log_buf[256];
                                 snprintf(log_buf, sizeof(log_buf),
                                     "MEMS26: ORDER_FAILED error=%d (%s) %s",
                                     r, err_text, is_buy ? "BUY" : "SELL");
                                 sc.AddMessageToLog(log_buf, 1);
-
-                                // Write failure with error text to trade_result.json
-                                const char* res_path = TradeResultPath.GetString();
-                                if (res_path[0] != '\0')
-                                {
-                                    char rb[512];
-                                    int rl = snprintf(rb, sizeof(rb),
-                                        "{\"status\":\"ORDER_FAILED\",\"error\":%d,"
-                                        "\"error_text\":\"%s\",\"ts\":%lld}\n",
-                                        r, err_text, (long long)time(nullptr));
-                                    if (rl > 0 && rl < (int)sizeof(rb))
-                                    {
-                                        std::ofstream rf(res_path);
-                                        if (rf.is_open()) { rf.write(rb, rl); rf.close(); }
-                                    }
-                                }
                             }
                         }
                         else
@@ -1244,14 +1231,21 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         result_status = "ACK_MGMT";
                     }
 
-                    // Write result JSON
+                    // Write result JSON (single write point — includes error_text when available)
                     const char* res_path = TradeResultPath.GetString();
                     if (res_path[0] != '\0')
                     {
                         char res_buf[512];
-                        int res_len = snprintf(res_buf, sizeof(res_buf),
-                            "{\"status\":\"%s\",\"ts\":%lld,\"error\":%d}\n",
-                            result_status, (long long)time(nullptr), order_err);
+                        int res_len;
+                        if (order_err_text[0] != '\0') {
+                            res_len = snprintf(res_buf, sizeof(res_buf),
+                                "{\"status\":\"%s\",\"ts\":%lld,\"error\":%d,\"error_text\":\"%s\"}\n",
+                                result_status, (long long)time(nullptr), order_err, order_err_text);
+                        } else {
+                            res_len = snprintf(res_buf, sizeof(res_buf),
+                                "{\"status\":\"%s\",\"ts\":%lld,\"error\":%d}\n",
+                                result_status, (long long)time(nullptr), order_err);
+                        }
                         if (res_len > 0 && res_len < (int)sizeof(res_buf))
                         {
                             std::ofstream res_file(res_path);
