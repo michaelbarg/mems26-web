@@ -26,6 +26,7 @@ class V2SizingResult:
     auth_contracts: int     # from Table B for this confidence tier
     ladder_contracts: int   # from the risk ladder alone
     risk_points: float
+    stop_price: float = 0.0  # the stop used for sizing (A7 fire_setup needs this)
 
 
 def compute_v2_sizing(
@@ -116,4 +117,5 @@ def compute_v2_sizing(
         auth_contracts=auth_contracts,
         ladder_contracts=ladder_contracts,
         risk_points=risk_pts,
+        stop_price=stop_price,
     )

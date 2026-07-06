@@ -69,6 +69,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sc.CancelAllOrdersOnEntriesAndReversals            = 0;
         sc.AllowEntryWithWorkingOrders                     = 1;
         sc.CancelAllWorkingOrdersOnExit                    = 0;
+        sc.SendOrdersToTradeService                        = 1;   // Route orders to real broker (Teton/IronBeam), not internal sim
 
         CVD.Name         = "CVD";
         CVD.DrawStyle    = DRAWSTYLE_LINE;
@@ -911,6 +912,21 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         if (pos == std::string::npos) return 0;
                         return atoi(cmd_content.c_str() + pos + 1);
                     };
+                    // Parse a JSON string value: "key":"value" → value (no quotes)
+                    auto parse_str = [&](const char* key, char* out, int out_sz) -> bool {
+                        size_t pos = cmd_content.find(key);
+                        if (pos == std::string::npos) return false;
+                        pos = cmd_content.find(':', pos);
+                        if (pos == std::string::npos) return false;
+                        pos = cmd_content.find('"', pos + 1);
+                        if (pos == std::string::npos) return false;
+                        pos++; // skip opening quote
+                        size_t end = cmd_content.find('"', pos);
+                        if (end == std::string::npos || (int)(end - pos) >= out_sz) return false;
+                        memcpy(out, cmd_content.c_str() + pos, end - pos);
+                        out[end - pos] = '\0';
+                        return true;
+                    };
 
                     const char* result_status = "UNKNOWN";
                     int order_err = 0;
@@ -943,6 +959,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             o.OrderQuantity = contracts;
                             o.OrderType     = SCT_ORDERTYPE_MARKET;
                             o.TimeInForce   = SCT_TIF_DAY;
+
+                            // Apply trade account from command (controls SIM vs LIVE routing)
+                            char acct_buf[64] = {0};
+                            if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
+                                o.TradeAccount = acct_buf;
 
                             // Group 1: C1 = 1 contract
                             o.OCOGroup1Quantity        = 1;
@@ -1047,14 +1068,39 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             {
                                 result_status = "ORDER_FAILED";
                                 order_err = r;
-                                // Write failure diagnosis
+
+                                // Map ACSIL BuyEntry/SellEntry error codes to human text.
+                                // These are the standard ACSIL return values for order submission.
+                                const char* err_text = "UNKNOWN";
+                                switch (r) {
+                                    case  0: err_text = "NO_ACTION_TAKEN"; break;
+                                    case -1: err_text = "GENERAL_ERROR_OR_NOT_ENABLED"; break;
+                                    case -2: err_text = "NOT_ENOUGH_BARS"; break;
+                                    case -3: err_text = "EXCEEDED_MAX_POSITION"; break;
+                                    case -4: err_text = "NOT_ENOUGH_BARS_SINCE_LAST_ENTRY"; break;
+                                    case -5: err_text = "ONLY_ONE_TRADE_PER_BAR"; break;
+                                    case -6: err_text = "WORKING_ORDERS_EXIST"; break;
+                                    case -7: err_text = "OPPOSING_POSITION_EXISTS"; break;
+                                    case -8: err_text = "ORDER_NOT_ALLOWED_FOR_CHART"; break;
+                                    default: err_text = "UNDOCUMENTED_ERROR"; break;
+                                }
+
+                                // Log to Sierra message log for visual debugging
+                                char log_buf[256];
+                                snprintf(log_buf, sizeof(log_buf),
+                                    "MEMS26: ORDER_FAILED error=%d (%s) %s",
+                                    r, err_text, is_buy ? "BUY" : "SELL");
+                                sc.AddMessageToLog(log_buf, 1);
+
+                                // Write failure with error text to trade_result.json
                                 const char* res_path = TradeResultPath.GetString();
                                 if (res_path[0] != '\0')
                                 {
-                                    char rb[256];
+                                    char rb[512];
                                     int rl = snprintf(rb, sizeof(rb),
-                                        "{\"status\":\"ORDER_FAILED\",\"error\":%d,\"ts\":%lld}\n",
-                                        r, (long long)time(nullptr));
+                                        "{\"status\":\"ORDER_FAILED\",\"error\":%d,"
+                                        "\"error_text\":\"%s\",\"ts\":%lld}\n",
+                                        r, err_text, (long long)time(nullptr));
                                     if (rl > 0 && rl < (int)sizeof(rb))
                                     {
                                         std::ofstream rf(res_path);

@@ -668,6 +668,14 @@ class WoodiesSystem(BaseV9TradingSystem):
                 _effective_stop = best.stop
                 if not _effective_stop and hasattr(self, '_last_v2_sizing') and self._last_v2_sizing:
                     _effective_stop = getattr(self._last_v2_sizing, 'stop_price', None)
+                    # Fallback: reconstruct stop from V2 risk_points if stop_price not available
+                    if not _effective_stop and best.entry_price:
+                        _v2_risk = getattr(self._last_v2_sizing, 'risk_points', 0)
+                        if _v2_risk > 0:
+                            _dir_sign = -1.0 if direction == "LONG" else 1.0
+                            _effective_stop = best.entry_price + _dir_sign * _v2_risk
+                            logger.info("[Woodies] fire_setup stop reconstructed from V2 risk: %.2f (risk=%.1fpt)",
+                                        _effective_stop, _v2_risk)
                 if best.entry_price and _effective_stop:
                     # PHASE 1 (2026-06-10): S4 targets per spec table.
                     # T1 = ladder/measure per pattern. T2 = VEGAS only (Measure×1.0).

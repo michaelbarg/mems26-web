@@ -44,6 +44,7 @@ class FillPoller:
         self._gateway = gateway
         self._running = False
         self._last_mtime: float = 0.0
+        self._last_result_mtime: float = 0.0
         self._processed_count = 0
         # Map sierra_order_id → trade_id (set when command is written)
         self._order_map: Dict[int, int] = {}
@@ -87,6 +88,7 @@ class FillPoller:
             try:
                 await asyncio.sleep(POLL_INTERVAL)
                 self._guard_duplicate_command()
+                self._check_result()
                 self._check_fills()
             except asyncio.CancelledError:
                 break
@@ -96,6 +98,75 @@ class FillPoller:
 
     def stop(self) -> None:
         self._running = False
+
+    def _check_result(self) -> None:
+        """Check trade_result.json for ORDER_FAILED → cancel trade + release slot.
+
+        When Sierra rejects an order (error -1 etc.), the gateway already created a
+        PENDING trade and occupied the live_slot (or demo_slot). Without this handler,
+        the phantom trade blocks all future fires until manual cleanup.
+        """
+        if not RESULT_PATH.exists():
+            return
+        try:
+            mtime = RESULT_PATH.stat().st_mtime
+            if mtime <= self._last_result_mtime:
+                return
+            self._last_result_mtime = mtime
+
+            content = RESULT_PATH.read_text().strip()
+            if not content:
+                return
+            result = json.loads(content)
+            if result.get("status") != "ORDER_FAILED":
+                return
+
+            err_code = result.get("error", "?")
+            err_text = result.get("error_text", "unknown")
+            logger.warning(
+                "[FillPoller] ORDER_FAILED from Sierra: error=%s (%s) — cancelling pending trade + releasing slot",
+                err_code, err_text,
+            )
+
+            # Find the most recent PENDING trade (demo or live) and cancel it
+            if self._tm is not None:
+                active = self._tm.get_active_trades()
+                pending = [t for t in active
+                           if getattr(t, "state", "") == "PENDING"
+                           and getattr(t, "mode", "shadow") in ("demo", "live")]
+                if pending:
+                    trade = pending[-1]  # most recent
+                    try:
+                        self._tm.close_trade(
+                            trade.id,
+                            reason=f"ORDER_FAILED:{err_code}:{err_text}",
+                        )
+                        # Override state to CANCELLED (close_trade sets CLOSED)
+                        trade.state = "CANCELLED"
+                        trade.pnl_usd = 0.0
+                        trade.outcome = "CANCELLED"
+                        try:
+                            self._tm._db.flush()
+                        except Exception:
+                            pass
+                        logger.warning(
+                            "[FillPoller] CANCELLED trade %d (mode=%s) due to ORDER_FAILED",
+                            trade.id, getattr(trade, "mode", "?"),
+                        )
+                    except Exception as e:
+                        logger.warning("[FillPoller] failed to cancel trade %d: %s", trade.id, e)
+
+                    # Release the gateway slot
+                    if self._gateway is not None:
+                        self._notify_gateway_close(trade.id, f"ORDER_FAILED:{err_code}")
+                else:
+                    logger.warning("[FillPoller] ORDER_FAILED but no PENDING trade found to cancel")
+
+            # Clear the result file so we don't re-process
+            RESULT_PATH.write_text("")
+
+        except (OSError, json.JSONDecodeError) as e:
+            logger.debug("[FillPoller] _check_result error: %s", e)
 
     def _guard_duplicate_command(self) -> None:
         """Clear trade_command.json natively once the DLL has acked it (result mtime >=
