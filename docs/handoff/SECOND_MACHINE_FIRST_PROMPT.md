@@ -12,13 +12,18 @@ _הדבק את הבלוק הבא ל-Claude Code או ל-Cowork **על המכונ
 עבוד כך, בדיוק בסדר הזה:
 
 1. מצא את הריפו (בד"כ ~/mems26/mems26_web_git) ועבור אליו.
-2. קרא במלואו: docs/handoff/SECOND_MACHINE_AGENT_GUIDE.md — זה המדריך המלא שלך.
-3. הרץ אבחון:  bash scripts/mems26_doctor.sh
-   הוא קורא-בלבד ומסתיים ב-"NEXT STEP →" אחד.
-4. בצע את ה-NEXT STEP, הרץ שוב את הדוקטור, וחזור — עד שאין יותר ❌.
-   (הדרך הבטוחה תמיד: bash install/install_mems26.sh --repo "$PWD" — idempotent, לא דורס .env.)
-5. כשהליבה נקייה, אמת:  bash scripts/mems26_startup_check.sh  +  curl -s localhost:8000/api/v9/health
-6. אם אין feed מסיארה (§8 בדוקטור) — הדרך אותי בשלבי-הסיארה מ-install/SIERRA_SETUP_CHECKLIST.md.
+2. הרץ שוב את המתקין — הוא idempotent ולא דורס .env, ומשלים כל מה שחסר
+   (venv, תלויות, DB, סכימה, frontend, LaunchAgents):
+      bash install/install_mems26.sh --repo "$PWD"
+   קרא את כל הפלט; אם משהו נכשל, זהו נקודת-ההיתקעות — טפל בה.
+3. אבחון (אם scripts/mems26_doctor.sh קיים — הרץ אותו; קורא-בלבד, מסתיים ב-"NEXT STEP →"):
+      bash scripts/mems26_doctor.sh
+   אם הוא לא קיים אצלך עדיין, השתמש בבדיקה-העצמית שכן קיימת:
+      bash scripts/mems26_startup_check.sh
+4. בצע את ה-NEXT STEP, הרץ שוב, חזור — עד שאין ❌.
+5. אמת סופית:  curl -s localhost:8000/api/v9/health   → אמור להחזיר {"status":"ok"}
+6. אם אין feed מסיארה — הדרך אותי בשלבי-הסיארה מ-install/SIERRA_SETUP_CHECKLIST.md.
+7. אם קיים docs/handoff/SECOND_MACHINE_AGENT_GUIDE.md — קרא אותו למדריך-התפעול המלא.
 
 חוקים מחייבים:
 - הכל localhost בלבד; אל תדחוף ל-git מהמכונה הזו.
