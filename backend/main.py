@@ -710,12 +710,24 @@ async def _startup():
             app.state.woodies_system.set_gateway(trading_gateway)
             _logger.info("[Main] S4 WoodiesSystem → gateway injected")
 
-        # Enable DEMO mode for S2 and S4 (Shadow → Demo → Live progression)
-        trading_gateway.enable_demo(2)   # S2 FiveMin patterns
-        trading_gateway.enable_demo(4)   # S4 Woodies CCI
+        # Enable trading mode for S2 and S4 (Shadow → Demo → Live progression).
+        # LIVE_TRADING_V1 (Michael 2026-07-06): route S2/S4 to the LIVE account
+        # (_execute_live) instead of demo — one mode at a time, live REPLACES demo.
+        # Default OFF → demo (unchanged). This is the gateway registration the live
+        # path needs: without it _is_live_enabled() is always False and _execute_live
+        # is never called even when LIVE_EXECUTION_V1=1. Real orders additionally
+        # require LIVE_EXECUTION_V1=1 (else _execute_live stays a no-Sierra stub).
+        import os as _lt_os
+        if _lt_os.getenv("LIVE_TRADING_V1", "0").lower() in ("1", "true", "yes"):
+            trading_gateway.enable_live(2)   # S2 FiveMin patterns → LIVE
+            trading_gateway.enable_live(4)   # S4 Woodies CCI → LIVE
+            _logger.info("[Main] LIVE mode enabled: systems [2, 4] (LIVE_TRADING_V1)")
+        else:
+            trading_gateway.enable_demo(2)   # S2 FiveMin patterns
+            trading_gateway.enable_demo(4)   # S4 Woodies CCI
+            _logger.info("[Main] Demo mode enabled: systems [2, 4]")
         # P4 warm-start: restore demo_slot from open demo trade in DB
         trading_gateway.hydrate_demo_slot()
-        _logger.info("[Main] Demo mode enabled: systems [2, 4]")
 
         # Pipeline 5 Phase B: the FillPoller starts LATER — after the TradeManager is
         # created + wired (see below). Starting it here saw trade_manager=None (ordering bug).

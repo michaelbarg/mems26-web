@@ -462,9 +462,16 @@ flags:
     category: cascade_gate
     what: "When ON (and SYSTEM6_SUPERVISOR ON), System 6 hands its AUTO corrections (move stop to BE, drop a wrong-side target) to the injected executor. CRITICAL/ALERT issues (naked stop, wrong-side stop, orphan, flatten) are NEVER auto-applied."
     why: "OFF (built 2026-07-05). Trading-risk surface (writes to a live position) → enable only with Michael + a wired, tested executor."
+  LIVE_TRADING_V1:
+    category: cascade_gate
+    what: "Gateway registration for LIVE routing: main.py calls enable_live(2)/enable_live(4) instead of enable_demo when ON, so _is_live_enabled() is True and the gateway routes S2/S4 setups to _execute_live. Live REPLACES demo (one mode at a time). When OFF (default), demo is enabled as before."
+    why: "OFF (default). LIVE-BLOCKER — the missing wiring: without it _live_enabled_systems is empty and _execute_live is NEVER called even with LIVE_EXECUTION_V1=1 (found 2026-07-06). Pairs with LIVE_EXECUTION_V1: LIVE_TRADING_V1 routes to _execute_live; LIVE_EXECUTION_V1 makes _execute_live actually send to Sierra. BOTH required for real orders. Trading-risk-surface → Michael sign-off + restart."
+    standing_decision: true
+    status: live
+    ref: "docs/handoff/CC_LIVE_EXECUTION_2026-07-06.md"
   LIVE_EXECUTION_V1:
     category: cascade_gate
-    what: "Enable LIVE execution in the gateway: _execute_live mirrors _execute_demo but writes trade_command.json with mode:'live' to the SIERRA_LIVE_ACCOUNT (APEX-125218-13). When OFF (default), _execute_live stays the stub (log-only, no Sierra order)."
+    what: "Enable LIVE execution in the gateway: _execute_live mirrors _execute_demo but writes trade_command.json with mode:'live' to the SIERRA_LIVE_ACCOUNT (APEX-125218-13). When OFF (default), _execute_live stays the stub (log-only, no Sierra order). NOTE: requires LIVE_TRADING_V1=1 too, else _execute_live is never reached."
     why: "OFF (default). LIVE-BLOCKER. Must pass ALL 6 safety gates (SIM proof, RISK_HALT_V1, reconcile, contracts=2, 22:15 hard-stop, snapshot) + Michael sign-off before enabling on real money."
     standing_decision: true
     status: live
