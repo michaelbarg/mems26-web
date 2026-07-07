@@ -158,6 +158,33 @@ class BarLevelDetector:
         except Exception as _eod_err:  # never let flatten break trade management
             logger.warning("[BarLevelDetector] EOD flatten error (fail-safe skip): %s", _eod_err)
 
+    def _reconcile_live(self) -> None:
+        """P1.3 — run the item-20 reconcile every bar while a slot is active, so a
+        slot↔DB↔Sierra/TM disagreement (orphan / naked-stop / phantom-slot) surfaces LIVE
+        instead of post-mortem (the 06-25 + 07-03 incidents). The reconcile verdict function
+        already handles live_slot; the gap was that NOTHING called it — this wires it in.
+
+        Flag-gated RECONCILE_LIVE_V1 (default OFF) → build now, enable after the ground-truth
+        MATCH test. Fail-safe. Only runs when we believe we hold a position (slot occupied),
+        and escalates a real mismatch to CRITICAL so Michael sees it.
+        Spec: docs/handoff/CC_POSTTRADE_SYSTEM6_2026-07-07.md (P1.3).
+        """
+        import os as _rc_os
+        if _rc_os.getenv("RECONCILE_LIVE_V1", "0").lower() not in ("1", "true", "yes"):
+            return
+        gw = self._gateway
+        if gw is None:
+            return
+        if not (getattr(gw, "demo_slot", None) or getattr(gw, "live_slot", None)):
+            return  # flat by belief — nothing to reconcile
+        try:
+            from backend.v9.services.reconcile import gather_and_reconcile
+            v = gather_and_reconcile(gateway=gw)
+            if getattr(v, "mismatch", False) or getattr(v, "naked_stop_suspect", False):
+                logger.critical("[Reconcile-live] %s — %s", v.verdict, getattr(v, "detail", ""))
+        except Exception as _rc_err:  # never let reconcile break trade management
+            logger.warning("[BarLevelDetector] reconcile-live error (fail-safe skip): %s", _rc_err)
+
     async def on_bar(self, event) -> None:
         """Process a 5-min bar: check all active trades for hits."""
         try:
@@ -189,6 +216,8 @@ class BarLevelDetector:
 
             # EOD auto-flatten at RTH close (flag-gated EOD_FLATTEN_V1, default OFF).
             self._eod_flatten(active)
+            # Reconcile slot↔DB↔Sierra while in a position (flag-gated RECONCILE_LIVE_V1, OFF).
+            self._reconcile_live()
 
             for trade in active:
                 # Legacy DB rows may use state="OPEN" (cockpit alias for FILLED)
