@@ -18,12 +18,13 @@ No item is "done" without raw verification on the **live/SIM** path (shadow proo
 | # | Issue | Evidence / why | Status | Owner |
 |---|-------|----------------|--------|-------|
 | L1 | **A7 fire_setup routing** — ZLR/GHOST must route (no `failed_stages=['A7']`) | fallback in code (woodies_system.py:668-679), NOT verified on a live fire | OPEN — verify live | CC |
-| L2 | **BE-after-T1 stop not moving on live** | Michael saw T1 hit but stop didn't move ("שוב פעם"); `_apply_smart_be_after_t1` (manager.py:386) exists — confirm it FIRES + emits MODIFY on live/demo, not just shadow | OPEN — root-cause | CC |
+| L2 | **Stop-move is RECORDED but doesn't happen in Sierra + wrong target** | Monitor/DB shows stop→BE 7544.75 after T1, but in REALITY the Sierra stop did NOT move (display≠Sierra — the recurring "records ≠ reality"). (a) confirm `_emit_modify_stop` (manager.py:437) actually reaches Sierra (sc.ModifyOrder) on live, not just the DB record; (b) **DESIGN: after T1 the stop must trail toward STRUCTURE (nearest structural level), NOT to entry/BE** (Michael) — `_apply_smart_be_after_t1` currently sets entry∓1tick | OPEN — bug + design | CC |
 | L3 | **Monitor shows SHADOW as "live" + no P&L** | trade #301 = SHDW in table but "live" in the supervision monitor; +$0, "not monitoring" | OPEN — display/tracking bug | CC |
 | L4 | **Live fill capture** — real fire → tracked trade + Sierra P&L | fallback (I-58) proven on demo #297; not yet on a real live fill | OPEN — verify on 1st live fill | CC/Cowork |
 | L5 | **Day-type lag** (Normal held too long → misses Variation/Trend fires) | task #22 (B1/B2/B3); affects which LIVE patterns arm | OPEN — build+backtest | CC |
 | L6 | **T1/T2 P&L from Sierra fill** (not bar-price) | task #17; live P&L accuracy | OPEN | CC |
 | L7 | **2-contract SYMMETRY** — the whole system must recognize contracts=2 everywhere | Michael: sizing knows 2 (FIXED_CONTRACTS_2) but the bracket still shows **3 targets** (C1/C2/C3) for a 2-contract trade ("1/3 hit"); audit bracket/targets + per-contract P&L + R + Sierra command + display all read the LIVE contract count symmetrically | OPEN — symmetric audit | CC |
+| **L8** | 🚨 **URGENT — Sierra-sourced LIVE trade ledger** | Michael: build a LIVE trade record that reflects **only what Sierra actually EXECUTED**, imported from Sierra (real fills / stops / P&L) — **what actually happens, NOT what the backend records**. Orderly protocol. Separate the real Sierra-executed live trades from backend-synthesized/shadow. This is the ground-truth ledger for real money | OPEN — URGENT build | CC + Cowork |
 
 ## ⚪ SHADOW / nice-to-have (do NOT block live)
 | # | Issue | Status |

@@ -3,6 +3,15 @@
 
 ## 2026-07-07 (REAL MONEY LIVE — priority: LIVE only, shadow = nice-to-have)
 
+**[2026-07-07 (live) — Michael: RECORDS ≠ REALITY — stop shows moved but Sierra didn't move it + URGENT Sierra-sourced ledger]**
+**Finding:** after T1 the monitor/DB showed the stop moved to BE 7544.75, but in REALITY the Sierra
+stop did NOT move (display ≠ Sierra). **+ design:** the after-T1 stop must trail toward **STRUCTURE**
+(nearest structural level), NOT to entry/BE (`_apply_smart_be_after_t1` currently = entry∓1tick). → L2
+in the journal (bug + design). **URGENT (L8):** build a LIVE trade ledger that reflects **only what
+Sierra actually EXECUTED** (imported from Sierra: real fills/stops/P&L) — *what actually happens, not
+what the backend records* — with an orderly protocol, separated from backend-synthesized/shadow. This
+is the real-money ground-truth ledger. Owner: CC + Cowork. Spec: handoff pending.
+
 **[2026-07-07 — Michael: PERMANENT fix-protocol established → `docs/plans/LIVE_FIX_JOURNAL.md`]**
 Standing rule (Michael, on real money): 🔴 **LIVE** issues are the only priority; ⚪ SHADOW is
 nice-to-have. **Protocol every trading day:** EOD review of LIVE-path issues → CC fixes in code
