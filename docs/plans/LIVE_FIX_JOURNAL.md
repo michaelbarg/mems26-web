@@ -23,6 +23,7 @@ No item is "done" without raw verification on the **live/SIM** path (shadow proo
 | L4 | **Live fill capture** — real fire → tracked trade + Sierra P&L | fallback (I-58) proven on demo #297; not yet on a real live fill | OPEN — verify on 1st live fill | CC/Cowork |
 | L5 | **Day-type lag** (Normal held too long → misses Variation/Trend fires) | task #22 (B1/B2/B3); affects which LIVE patterns arm | OPEN — build+backtest | CC |
 | L6 | **T1/T2 P&L from Sierra fill** (not bar-price) | task #17; live P&L accuracy | OPEN | CC |
+| L7 | **2-contract SYMMETRY** — the whole system must recognize contracts=2 everywhere | Michael: sizing knows 2 (FIXED_CONTRACTS_2) but the bracket still shows **3 targets** (C1/C2/C3) for a 2-contract trade ("1/3 hit"); audit bracket/targets + per-contract P&L + R + Sierra command + display all read the LIVE contract count symmetrically | OPEN — symmetric audit | CC |
 
 ## ⚪ SHADOW / nice-to-have (do NOT block live)
 | # | Issue | Status |

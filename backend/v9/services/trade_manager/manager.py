@@ -100,10 +100,15 @@ class TradeManager:
             logger.debug("[TradeManager] management_log write failed: %s", e)
 
     def _is_demo_mode(self, trade) -> bool:
-        """Check if a trade is in DEMO mode (should emit Sierra commands)."""
+        """Check if a trade should emit Sierra commands (DEMO or LIVE, not SHADOW)."""
         trade_mode = getattr(trade, "mode", "shadow")
-        return trade_mode == "demo" and os.environ.get(
-            "DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes")
+        if trade_mode == "live":
+            return os.environ.get(
+                "LIVE_EXECUTION_V1", "0").lower() in ("1", "true", "yes")
+        if trade_mode == "demo":
+            return os.environ.get(
+                "DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes")
+        return False
 
     def _get_sierra_order_id(self, trade) -> Optional[int]:
         """Get the Sierra order ID stored on the trade (from PLACE ACK)."""
@@ -112,7 +117,7 @@ class TradeManager:
         return int(oid) if oid is not None else None
 
     def _emit_modify_stop(self, trade, new_stop: float) -> None:
-        """Emit a MODIFY_STOP command to Sierra (DEMO mode only)."""
+        """Emit a MODIFY_STOP command to Sierra (DEMO + LIVE)."""
         if not self._is_demo_mode(trade):
             return
         oid = self._get_sierra_order_id(trade)
@@ -125,7 +130,7 @@ class TradeManager:
             logger.warning("[TradeManager] Sierra MODIFY_STOP failed: %s", e)
 
     def _emit_modify_target(self, trade, new_target: float, target_order_id: Optional[int] = None) -> None:
-        """Emit a MODIFY_TARGET command to Sierra (DEMO mode only).
+        """Emit a MODIFY_TARGET command to Sierra (DEMO + LIVE).
         If target_order_id is given, modifies that specific target (per-runner).
         Otherwise uses the trade's sierra_order_id (legacy/fallback).
         """
