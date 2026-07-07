@@ -1,10 +1,10 @@
-2026-07-07 06:39:58 [WARNING] [FillPoller] ORDER_FAILED but no PENDING trade found to cancel
-2026-07-07 13:38:24 [WARNING] [FillPoller] ORDER_FAILED from Sierra: error=-1 (GENERAL_ERROR_OR_NOT_ENABLED) — cancelling pending trade + releasing slot
-2026-07-07 13:38:24 [WARNING] [FillPoller] ORDER_FAILED but no PENDING trade found to cancel
-2026-07-07 13:39:36 [WARNING] [FillPoller] ORDER_FAILED from Sierra: error=-1 (GENERAL_ERROR_OR_NOT_ENABLED) — cancelling pending trade + releasing slot
 2026-07-07 13:39:36 [WARNING] [FillPoller] ORDER_FAILED but no PENDING trade found to cancel
 2026-07-07 13:45:36 [WARNING] [FillPoller] no demo/live trade found for order_id=8394 — fill dropped
 2026-07-07 14:53:30 [WARNING] [FillPoller] ORDER_FAILED from Sierra: error=-1 (GENERAL_ERROR_OR_NOT_ENABLED) — cancelling pending trade + releasing slot
 2026-07-07 14:53:30 [WARNING] [FillPoller] ORDER_FAILED but no PENDING trade found to cancel
 2026-07-07 14:55:06 [WARNING] [FillPoller] ORDER_FAILED from Sierra: error=-1 (GENERAL_ERROR_OR_NOT_ENABLED) — cancelling pending trade + releasing slot
 2026-07-07 14:55:06 [WARNING] [FillPoller] ORDER_FAILED but no PENDING trade found to cancel
+[history_loader] gap-fill reason=startup elapsed=0.10s streams=3
+[Main] history_loader startup gap-fill elapsed=0.10s streams=3
+[FillPoller] ORPHAN FILL — no trade for order_id=8411 kind=ENTRY price=7579.75. POSSIBLE UNTRACKED SIERRA POSITION — reconcile/flatten NOW. (orphans=1)
+[FillPoller] ORPHAN FILL — no trade for order_id=8418 kind=ENTRY price=7580.25. POSSIBLE UNTRACKED SIERRA POSITION — reconcile/flatten NOW. (orphans=2)

@@ -1,18 +1,16 @@
 {
   "op": "PLACE",
   "action": "BUY",
-  "trade_id": "P0-2C-1783425303",
+  "trade_id": "GT-2C-1783426926",
   "direction": "LONG",
-  "price": 7575.5,
+  "price": 7580.25,
   "contracts": 2,
-  "stop_price": 7567.5,
-  "target_price": 7583.5,
+  "stop_price": 7572.25,
+  "target_price": 7588.25,
   "account": "37138283",
   "mode": "live",
   "context": {
-    "test": true,
-    "sim": true,
     "ground_truth": true
   },
-  "ts_submitted": 1783425303.704766
+  "ts_submitted": 1783426926.481269
 }

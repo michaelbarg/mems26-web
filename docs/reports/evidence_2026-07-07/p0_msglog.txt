@@ -1,13 +1,15 @@
-Auto-trade: MESU26_FUT_CME[M]  5 Min  #3 | MES AI Data Export v9.4.3-chart5 | BuyEntry | Bar start date-time: 2026-07-07  05:45:00.000 | Last: 7578.5 | AOE=true | AOU=true. Attached Order | Client side OCO orderi
-Auto-trade: MESU26_FUT_CME[M]  5 Min  #3 | MES AI Data Export v9.4.3-chart5 | BuyEntry | Bar start date-time: 2026-07-07  05:45:00.000 | Last: 7578.5 | AOE=true | AOU=true. Attached Order | Client side OCO orderi
-Auto-trade: MESU26_FUT_CME[M]  5 Min  #3 | MES AI Data Export v9.4.3-chart5 | BuyEntry | Bar start date-time: 2026-07-07  05:45:00.000 | Last: 7578.5 | AOE=true | AOU=truei
+Auto-trade: MESU26_FUT_CME[M]  5 Min  #3 | MES AI Data Export v9.4.3-chart5 | BuyEntry | Bar start date-time: 2026-07-07  07:20:00.000 | Last: 7580.25 | AOE=true | AOU=true. Attached Orderi
+Auto-trade: MESU26_FUT_CME[M]  5 Min  #3 | MES AI Data Export v9.4.3-chart5 | BuyEntry | Bar start date-time: 2026-07-07  07:20:00.000 | Last: 7580.25 | AOE=true | AOU=truei
 Simulated order acceptedi
-Trade simulation fill. Bid: 7578.50 Ask: 7578.75 Last: 7578.50i
-Trade simulation fill. Bid: 7578.50 Ask: 7578.75 Last: 7578.50i
+8418k
+Trade simulation fill. Bid: 7580.00 Ask: 7580.50 Last: 7580.25i
+8418k
+Trade simulation fill. Bid: 7580.00 Ask: 7580.50 Last: 7580.25i
+8418k
+8418.1}
 Auto-sent child from parent filli
-Auto-sent child from parent filli
 Simulated order acceptedi
+Auto-trade: MESU26_FUT_CME[M]  5 Min  #3 | MES AI Data Export v9.4.3-chart5 | Source: ACSIL Flatten & Cancel | Bar start date-time: 2026-07-07  07:20:00.000. Flatten&CancelAllOrders | Last: 7580.25. Current Position quantity: 2 | AOE=false | AOU=falsei
 Simulated order acceptedi
-Simulated order acceptedi
-Trade simulation fill. Bid: 7576.00 Ask: 7576.25 Last: 7576.25i
-Trade simulation fill. Bid: 7576.00 Ask: 7576.25 Last: 7576.25i
+Trade simulation fill. Bid: 7580.25 Ask: 7580.50 Last: 7580.25i
+Trade simulation fill. Bid: 7580.25 Ask: 7580.50 Last: 7580.25i

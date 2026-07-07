@@ -5,10 +5,10 @@ Commit: 680d16f (gaps doc) + 1b66813 (system6+eod)   Sim Mode: ON   Account: 371
 
 | Item | BUILT? | RAN on SIM? | RESULT | evidence file |
 |------|--------|-------------|--------|---------------|
-| P0 SIM proof (1c) | ✅ | ✅ | ORDER_SUBMITTED + Sierra sim fill @7578.50 | p0_result.json, p0_msglog.txt, p0_fillpoller_log.txt |
-| P0 SIM proof (2c) | ✅ | ❌ NOT RUN | Study not loaded after last rebuild (no result returned) | p0_command.json (prepared, 2c) |
+| P0 SIM proof (1c) | ✅ | ✅ | ORDER_SUBMITTED + Sierra sim fill @7579.75 (order 8411) | p0_1c_result.json, p0_msglog.txt, p0_fillpoller_log.txt |
+| P0 SIM proof (2c) | ✅ | ✅ | ORDER_SUBMITTED + Sierra sim fill @7580.25 (order 8418, 2c) | p0_command.json, p0_result.json, p0_msglog.txt |
 | P1.1 EOD auto-flatten | ✅(1b66813) | ❌ NOT RUN | Cannot test — requires open SIM position + ET clock ≥15:59 | (10 unit tests pass) |
-| P1.2 orphan/fill-drop → CRITICAL | ❌ NOT BUILT | — | — | — |
+| P1.2 orphan/fill-drop → CRITICAL | ✅ (Cowork) | ✅ | ORPHAN FILL alert fired for both 1c+2c manual tests | p0_fillpoller_log.txt |
 | P1.3 reconcile mode=live in loop | ❌ NOT BUILT | — | — | — |
 | P2.4 System6 advisory in per-bar loop | ✅(1b66813) | ❌ NOT RUN | Cannot test — requires open SIM position + SYSTEM6_SUPERVISOR=1 + bar event | (5 unit tests pass) |
 | P3.8 contracts=2 on the live command | ✅ code | ✅ (in p0_command.json) | `"contracts": 2` in command | p0_command.json |
