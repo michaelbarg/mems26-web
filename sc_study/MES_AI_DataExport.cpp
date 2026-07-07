@@ -159,6 +159,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         return;
     }
 
+    // Auto-match SendOrdersToTradeService with Sierra's Trade Simulation Mode.
+    // Sim ON → 0 (internal sim fills). Sim OFF → 1 (real broker Teton/IronBeam).
+    // Must be OUTSIDE SetDefaults — Sierra requires consistency per-call.
+    // Per Sierra docs + SupportBoard #82446: mismatch → GENERAL_ERROR_OR_NOT_ENABLED.
+    sc.SendOrdersToTradeService = !sc.GlobalTradeSimulationIsOn;
+
     int idx = sc.Index;
     SCDateTime today = sc.BaseDateTimeIn[idx].GetDate();
     float cp  = sc.Close[idx];
