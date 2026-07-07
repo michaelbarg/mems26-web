@@ -1,6 +1,31 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-07-07 (REAL MONEY LIVE — priority: LIVE only, shadow = nice-to-have)
+
+**[2026-07-07 — Michael: PERMANENT fix-protocol established → `docs/plans/LIVE_FIX_JOURNAL.md`]**
+Standing rule (Michael, on real money): 🔴 **LIVE** issues are the only priority; ⚪ SHADOW is
+nice-to-have. **Protocol every trading day:** EOD review of LIVE-path issues → CC fixes in code
+(tests + raw verify, Rule 5) → sync this board + the journal → carry open items. A7 + all new
+live issues run through the journal until closed.
+
+**🔴 OPEN LIVE issues (from today's live session):**
+- **L1 A7 fire_setup routing** — ZLR/GHOST must route (no `failed_stages=['A7']`); fallback in
+  code (woodies_system.py:668-679) NOT verified on a live fire (task #23 / OPEN_ITEMS A6). CC.
+- **L2 BE-after-T1 not moving stop on live** — Michael saw T1 fill but the stop didn't move
+  ("שוב פעם"); `_apply_smart_be_after_t1` (manager.py:386) exists → confirm it FIRES + emits
+  MODIFY on live/demo (not just shadow). Root-cause. CC.
+- **L3 monitor shows SHADOW as "live" + no P&L** — trade #301 = SHDW in the table but "live" in
+  the supervision monitor, +$0, "not monitoring". Display/tracking bug. CC.
+- **L4 live fill capture** — real fire→tracked trade→Sierra P&L; proven on demo #297 (I-58
+  fallback), not on a real live fill yet. CC/Cowork.
+- **L5 day-type lag** (task #22) · **L6 T1/T2 P&L from Sierra fill** (task #17).
+
+**✅ DONE today:** order path works (2c fill, no GENERAL_ERROR, DLL 9d314d0) · P1.2 orphan
+(9363d4a) · P1.3 reconcile-live (5019a7b) · P2.4 System6 +reconcile feed (1b66813·65dff60) ·
+P1.1 EOD-flatten (1b66813) · phantom 297 cleaned. Handoff for CC investigation of L1-L3 +
+clickable-trade UI pending Michael's send.
+
 ## 2026-07-06 (CC — live execution + P&L from Sierra fills)
 
 **[2026-07-06 ~20:30 IL — Cowork (full self-audit, Michael "the problem is on your side" — HE WAS RIGHT): LIVE ORDER_FAILED root = DLL ignores account]** Every live fire → `trade_result.json={"status":"ORDER_FAILED","error":-1}` (293 old-account, 296 new-account 37138283 — BOTH failed). **Verified by reading the DLL (sc_study/MES_AI_DataExport.cpp):** path correct (writes ~/SierraChart_Data/v9_export, DLL reads there); recipe correct (:62 SupportAttachedOrders=1, :63 MaxPosition=10, :64 AllowOnlyOneTradePerBar=0); `sc.BuyEntry/SellEntry` (:981) returned -1. **ROOT (our side, Michael right):** the DLL parses price/stop/target/contracts/direction (:927-930) but **NOT `account`** — grep account/SelectedTradeAccount/SendOrdersToTradeService/GetTradingErrorText = 0 hits. So `SIERRA_LIVE_ACCOUNT` in .env does NOTHING (Cowork's account "fix" was useless — corrected); order uses the CHART's selected account. Also: no SendOrdersToTradeService, no error-text capture (blind to the -1 reason). **Unblock (Michael, Sierra): select account 37138283 on the trade DOM + arm Auto Trading.** **DLL fixes (CC rebuild): (1) capture sc.GetTradingErrorText, (2) apply account field, (3) SendOrdersToTradeService.** **Backend fix: handle ORDER_FAILED → cancel trade + release slot (currently phantom PENDING + stuck slot; cleared 293/296 manually).** Handoff CC_DLL_LIVE_ORDER_FAILED_2026-07-06.md.
