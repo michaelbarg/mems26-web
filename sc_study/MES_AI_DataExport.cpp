@@ -69,7 +69,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sc.CancelAllOrdersOnEntriesAndReversals            = 0;
         sc.AllowEntryWithWorkingOrders                     = 1;
         sc.CancelAllWorkingOrdersOnExit                    = 0;
-        sc.SendOrdersToTradeService                        = 1;   // Route orders to real broker (Teton/IronBeam), not internal sim
+        // NOTE: sc.SendOrdersToTradeService intentionally NOT set here.
+        // Sierra's chart-level "Trade Simulation Mode" controls sim vs real.
+        // Setting it to 1 in SetDefaults broke ALL orders (DEMO+SIM) because
+        // the trade service connection was not available. Reverted 2026-07-07.
 
         CVD.Name         = "CVD";
         CVD.DrawStyle    = DRAWSTYLE_LINE;
