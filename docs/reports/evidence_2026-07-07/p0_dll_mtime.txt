@@ -1,0 +1,4 @@
+-rw-r--r--@ 1 michael  staff   147704 Jul  7 06:42 /Users/michael/SierraChart/ACS_Source/MES_AI_DataExport.cpp
+-rw-r--r--@ 1 michael  staff  1098240 Jul  7 13:42 /Users/michael/SierraChart/Data/MES_AI_DataExport_64.dll
+43711ac0cb5867d5754db1553ceed06816d03526cbe8a1db3c2c4aa0e5d7af98  /Users/michael/SierraChart/Data/MES_AI_DataExport_64.dll
+064a74356e6be51a6ec188f7a7e58f2b6cd6343246b58c4108c20d150c9c3a0a  /Users/michael/SierraChart/ACS_Source/MES_AI_DataExport.cpp

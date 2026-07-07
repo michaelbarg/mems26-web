@@ -1,0 +1,18 @@
+{
+  "op": "PLACE",
+  "action": "BUY",
+  "trade_id": "P0-2C-1783425303",
+  "direction": "LONG",
+  "price": 7575.5,
+  "contracts": 2,
+  "stop_price": 7567.5,
+  "target_price": 7583.5,
+  "account": "37138283",
+  "mode": "live",
+  "context": {
+    "test": true,
+    "sim": true,
+    "ground_truth": true
+  },
+  "ts_submitted": 1783425303.704766
+}
