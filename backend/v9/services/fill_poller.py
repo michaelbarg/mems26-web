@@ -141,9 +141,11 @@ class FillPoller:
                 if pending:
                     trade = pending[-1]  # most recent
                     try:
+                        # Truncate reason to fit varchar(30)
+                        _reason = f"ORDER_FAILED:{err_code}"[:30]
                         self._tm.close_trade(
                             trade.id,
-                            reason=f"ORDER_FAILED:{err_code}:{err_text}",
+                            reason=_reason,
                         )
                         # Override state to CANCELLED (close_trade sets CLOSED)
                         trade.state = "CANCELLED"

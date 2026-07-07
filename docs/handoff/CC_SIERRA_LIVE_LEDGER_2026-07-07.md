@@ -30,6 +30,16 @@ Reconstruct each LIVE trade from Sierra's fills alone:
 3. The trader-facing LIVE list shows the **Sierra** numbers; divergences are flagged loudly.
 4. Update `LIVE_FIX_JOURNAL.md` + `STATUS_BOARD.md` when a divergence is found/fixed.
 
+## Detect MANUAL intervention (Michael) — required
+The Sierra ledger makes this natural: any change in Sierra that the system did NOT initiate =
+a **manual intervention** by Michael. On each reconcile pass:
+- **Manual stop-move:** Sierra shows the stop at a price the backend didn't command → adopt Sierra's
+  stop into the record + log `MANUAL_STOP_MOVE from→to @ts` (reason=manual).
+- **Manual close/flatten:** Sierra shows the position flat but the backend thinks it's open → close
+  the TM trade at Sierra's fill price + log `MANUAL_CLOSE @price` (reason=manual).
+- Tag every such event **MANUAL** (vs SYSTEM) in the trade's audit + the ledger, so they're
+  reviewable and learnable at EOD (feed the daily protocol). Never silently overwrite — record it.
+
 ## Fold in L2 (stop-move)
 While building: verify whether `_emit_modify_stop` → `sc.ModifyOrder` actually reaches Sierra on a
 live stop-move (paste the Sierra activity-log line for the modify). If the backend logged SMART_BE
