@@ -48,6 +48,10 @@ class FillPoller:
         self._processed_count = 0
         # Map sierra_order_id → trade_id (set when command is written)
         self._order_map: Dict[int, int] = {}
+        # P1.2 (2026-07-07): orphan fills — a Sierra fill with no trade to attribute.
+        # Recorded + surfaced (never silent) for the reconcile / System 6 orphan invariant.
+        self._orphan_fills: list = []
+        self._orphan_count: int = 0
 
     def set_trade_manager(self, tm) -> None:
         self._tm = tm
@@ -255,7 +259,24 @@ class FillPoller:
                     order_id, getattr(active[-1], "mode", "?"), trade_id,
                 )
             else:
-                logger.warning("[FillPoller] no demo/live trade found for order_id=%s — fill dropped", order_id)
+                # P1.2 (Michael 2026-07-07): a Sierra fill with NO trade to attribute is a
+                # possible NAKED live position (the I-62 orphan class — 07-03 trade 290).
+                # NEVER silent: raise to CRITICAL so Michael sees it + record it so the
+                # reconcile-live / System 6 orphan invariant can act. We deliberately do NOT
+                # fabricate a trade from a bare fill (guessing direction/size wrong is worse
+                # than a loud alert) — alert, and let reconcile / a human flatten it.
+                self._orphan_count += 1
+                self._orphan_fills.append({
+                    "order_id": order_id, "kind": kind, "price": price, "ts": ts_epoch,
+                    "detected_at": datetime.now(timezone.utc).isoformat(),
+                })
+                if len(self._orphan_fills) > 50:
+                    self._orphan_fills = self._orphan_fills[-50:]
+                logger.critical(
+                    "[FillPoller] ORPHAN FILL — no trade for order_id=%s kind=%s price=%s. "
+                    "POSSIBLE UNTRACKED SIERRA POSITION — reconcile/flatten NOW. (orphans=%d)",
+                    order_id, kind, price, self._orphan_count,
+                )
                 return
 
         self._processed_count += 1
@@ -324,4 +345,10 @@ class FillPoller:
             "running": self._running,
             "processed": self._processed_count,
             "order_map_size": len(self._order_map),
+            "orphan_fills": self._orphan_count,
         }
+
+    def get_orphan_fills(self) -> list:
+        """Recent orphan fills (Sierra fill with no trade to attribute) — consumed by the
+        reconcile-live pass / System 6 orphan invariant. Empty = no untracked positions seen."""
+        return list(self._orphan_fills)
