@@ -1,0 +1,21 @@
+=== active trades (want 0) ===
+ id  | mode |   state   
+-----+------+-----------
+ 293 | live | CANCELLED
+ 296 | live | CANCELLED
+(2 rows)
+
+=== trade 297 (want CLOSED) ===
+ id  | state  | pnl_usd 
+-----+--------+---------
+ 297 | CLOSED |       0
+(1 row)
+
+=== gateway slots (want both None) ===
+{"shadow_active_count":0,"demo_slot":null,"demo_slot_system":null,"live_slot":null,"live_slot_system":null,"daily_pnl":0.0,"trades_today":0,"consecutive_losses":0,"demo_enabled_systems":[],"live_enabled_systems":[2,4],"cooldown":{"consecutive_stops":0,"cooldown_active":false,"cooldown_remaining_sec":0,"reasoning_notes":"2-stop cooldown: 0 consecutive stops"},"cluster_guard":{"recent_attempts":0,"cluster_guard_active":false,"block_remaining_sec":0,"reasoning_notes":"D-037 cluster guard: 0 attempts in 60s"},"ssv":{"suffering_side":null,"recent_outcomes":0,"veto_active":false,"reasoning_notes":"D-049 SSV: suffering_side=NONE, 0 recent outcomes tracked"},"chop_state":"EXPANDING"}=== reconcile (want AGREED_FLAT) ===
+verdict=MISMATCH_ORPHAN_DB
+  in_position_belief=True slot=False db_open=[401, 402, 403, 404, 405] tm=None
+  mismatch=True naked_stop_suspect=False
+  DB has open trade(s) [401, 402, 403, 404, 405] but the gateway slot is flat (I-57 class)
+
+note: run from a live gateway (API route, next restart) for the slot + TradeManager sources; CLI sees DB + trade_result.json only.
