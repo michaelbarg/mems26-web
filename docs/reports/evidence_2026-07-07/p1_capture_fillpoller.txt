@@ -1,0 +1,8 @@
+=== FillPoller full log ===
+[Gateway] BLOCKED system=4 pattern=None dir=LONG entry=7583.75 blocked_by=session_gate_closed
+[debug_gateway_fire] session_gate_closed — bypassing for SIM proof
+[FillPoller] unmapped order_id=8424 → fallback to most recent demo trade 297 (I-58: map should have had it — investigate)
+[history_loader] gap-fill reason=startup elapsed=0.08s streams=3
+[Main] history_loader startup gap-fill elapsed=0.08s streams=3
+[Gateway] BLOCKED system=4 pattern=None dir=LONG entry=7583.75 blocked_by=session_gate_closed
+[FillPoller] unmapped order_id=8424 → fallback to most recent demo trade 297 (I-58: map should have had it — investigate)

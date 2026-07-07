@@ -1,0 +1,53 @@
+{
+    "status": "FIRED_DIRECT",
+    "setup": {
+        "firing_system": 4,
+        "direction": "LONG",
+        "classification": "SIM_TEST",
+        "confidence": 0.9,
+        "entry_price": 7583.75,
+        "stop": 7575.75,
+        "t1": 7591.75,
+        "t2": 7599.75,
+        "t3": 7607.75,
+        "metadata": {
+            "pattern": "SIM_TEST",
+            "sizing": "full",
+            "sim_proof": true
+        }
+    },
+    "demo_result": {
+        "trade_id": "297",
+        "mode": "demo",
+        "firing_system": 4,
+        "direction": "LONG",
+        "state": "PENDING",
+        "entry_price": 7583.75,
+        "sierra_command": {
+            "op": "PLACE",
+            "action": "BUY",
+            "trade_id": "297",
+            "direction": "LONG",
+            "price": 7583.75,
+            "contracts": 2,
+            "stop_price": 7575.75,
+            "target_price": 7591.75,
+            "account": "PA-APEX-125218-01",
+            "mode": "demo",
+            "context": {
+                "firing_system": 4,
+                "classification": "SIM_TEST",
+                "confidence": 0.9,
+                "t2": 7599.75,
+                "t3": 7607.75,
+                "metadata": {
+                    "pattern": "SIM_TEST",
+                    "sizing": "full",
+                    "sim_proof": true
+                }
+            },
+            "ts_submitted": 1783428110.439021
+        }
+    },
+    "ts": 1783428110.439342
+}

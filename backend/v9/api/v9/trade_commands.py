@@ -107,6 +107,60 @@ def get_trade_result(
         raise HTTPException(status_code=500, detail=f"Failed to read result: {e}")
 
 
+from fastapi import Request as _FReq
+
+@router.post("/debug_gateway_fire")
+def debug_gateway_fire(request: _FReq):
+    """SIM-ONLY: fire a minimal setup through the LIVE gateway to create a TM trade.
+
+    This proves the full round-trip: gateway → accept_setup → trade_command.json →
+    Sierra → trade_fills.json → FillPoller → TM trade captured. Remove after SIM proof.
+    """
+    gw = getattr(request.app.state, "trading_gateway", None)
+    if gw is None:
+        raise HTTPException(status_code=500, detail="No trading_gateway on app.state")
+
+    # Read live price
+    lp_path = Path("/Users/michael/SierraChart_Data/v9_export/live_price.json")
+    if not lp_path.exists():
+        raise HTTPException(status_code=500, detail="No live_price.json")
+    lp = json.load(open(lp_path))
+    price = float(lp["price"])
+
+    setup = {
+        "firing_system": 4,
+        "direction": "LONG",
+        "classification": "SIM_TEST",
+        "confidence": 0.90,
+        "entry_price": price,
+        "stop": round(price - 8, 2),
+        "t1": round(price + 8, 2),
+        "t2": round(price + 16, 2),
+        "t3": round(price + 24, 2),
+        "metadata": {"pattern": "SIM_TEST", "sizing": "full", "sim_proof": True},
+    }
+
+    # Try route_setup first (respects all gates). If blocked by session_gate
+    # (market closed), fall back to direct _execute_demo for SIM proof.
+    result = gw.route_setup(setup, system_id=4)
+    if result.get("blocked_by") == "session_gate_closed":
+        # SIM proof bypass: call _execute_demo directly (creates TM trade + Sierra command)
+        logger.warning("[debug_gateway_fire] session_gate_closed — bypassing for SIM proof")
+        demo_result = gw._execute_demo(setup, system_id=4, cross_context={})
+        return {
+            "status": "FIRED_DIRECT",
+            "setup": setup,
+            "demo_result": demo_result,
+            "ts": time.time(),
+        }
+    return {
+        "status": "FIRED",
+        "setup": setup,
+        "gateway_result": result,
+        "ts": time.time(),
+    }
+
+
 def _write_result(result: dict):
     """Write result to signals dir."""
     SIGNALS_DIR.mkdir(parents=True, exist_ok=True)

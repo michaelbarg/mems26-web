@@ -1,0 +1,11 @@
+# CONT_TREND_FILTER ON 2026-06-25 per Michael: continuation patterns (Flag/TLB/ZLR/TT/GB100 + S2 Reactive/Initiative) fire only WITH a sustained 3-bar LSMA trend; REVERSALS exempt (fire against trend). Fixes BULL_FLAG_LONG chop fires. Counterfactual: blocks 102 cont chop/counter losers = +$911, keeps HTLB/VEGAS.
+CONT_TREND_FILTER=1
+FIXED_CONTRACTS_3=1
+# Item-19: daily-loss halt number — Michael approved -$450 (2026-07-03). Gate RISK_HALT_V1 stays OFF until validation window.
+RISK_DAILY_LOSS_CAP=400
+SYSTEM6_SUPERVISOR=1
+RISK_HALT_V1=1
+FIXED_CONTRACTS_2=1
+SIERRA_LIVE_ACCOUNT=37138283
+EOD_FLATTEN_V1=1
+RECONCILE_LIVE_V1=1

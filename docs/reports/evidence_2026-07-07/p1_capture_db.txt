@@ -1,0 +1,7 @@
+ id  |  mode  | direction | entry_price |  stop   |   t1    |   state   | exit_price | pnl_usd 
+-----+--------+-----------+-------------+---------+---------+-----------+------------+---------
+ 297 | demo   | LONG      |     7583.75 | 7575.75 | 7591.75 | PENDING   |            |        
+ 296 | live   | LONG      |     7589.25 |    7587 |    7592 | CANCELLED |            |        
+ 295 | shadow | LONG      |     7589.25 |    7587 |    7592 | CLOSED    |       7587 |  -33.75
+(3 rows)
+
