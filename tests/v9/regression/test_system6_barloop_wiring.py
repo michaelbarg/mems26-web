@@ -93,3 +93,17 @@ def test_naked_stop_never_auto_applies(det, monkeypatch):
     _set({"SYSTEM6_SUPERVISOR": "1", "SYSTEM6_AUTOCORRECT": "1"}, monkeypatch)
     det._system6_scan(_trade(stop=None))
     assert det._tm.modify_calls == []
+
+
+def test_reconcile_mismatch_is_folded_into_diagnosis(det, monkeypatch, caplog):
+    """A reconcile verdict passed in (DB open / Sierra flat — the phantom-trade case, e.g.
+    SIM_TEST 297) must surface as a System 6 reconcile_mismatch alert — this is what makes
+    System 6 continuously catch a trade the system thinks is active but Sierra doesn't hold."""
+    import logging as _lg
+    import types as _ty
+    _set({"SYSTEM6_SUPERVISOR": "1"}, monkeypatch)
+    rv = _ty.SimpleNamespace(mismatch=True, naked_stop_suspect=False,
+                             verdict="MISMATCH_ORPHAN_DB", detail="DB open, slot flat")
+    with caplog.at_level(_lg.WARNING):
+        det._system6_scan(_trade(stop=7494.0), reconcile_verdict=rv)
+    assert any("reconcile_mismatch" in r.getMessage() for r in caplog.records)

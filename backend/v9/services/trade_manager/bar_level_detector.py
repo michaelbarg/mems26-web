@@ -46,7 +46,7 @@ class BarLevelDetector:
         bar_router.subscribe("woodies_5min", self.on_bar)
         logger.info("[BarLevelDetector] subscribed to 5min + woodies_5min via BarRouter")
 
-    def _system6_scan(self, trade) -> None:
+    def _system6_scan(self, trade, reconcile_verdict=None) -> None:
         """System 6 advisory supervision on the active demo/live trade.
 
         Runs every bar (Michael 2026-07-05: "scan every cycle, diagnose, correct").
@@ -100,12 +100,21 @@ class BarLevelDetector:
                 logger.warning("[System6] correction %s needs manual handling (advisory)", op)
                 return False
 
+            # Feed the live reconcile truth in — this is what makes System 6 catch a
+            # phantom (DB open / Sierra flat, e.g. the SIM_TEST trade 297): reconcile says
+            # MISMATCH → System 6 raises a CRITICAL reconcile_mismatch on the "active" trade.
+            _rv = reconcile_verdict
+            _mismatch = bool(getattr(_rv, "mismatch", False)) if _rv is not None else False
+            _verdict_str = getattr(_rv, "verdict", None) if _rv is not None else None
+
             scan_active_trade(
                 trade=_t,
                 atr=0.0,  # TODO wire a real ATR; 0 → diagnose_trade safe floor=1.0 / cap=25pt
                 t1_hit=getattr(trade, "t1_hit_ts", None) is not None,
                 expected_contracts=_exp,
                 now_ct_min=_now_ct,
+                reconcile_verdict=_verdict_str,
+                reconcile_mismatch=_mismatch,
                 executor=_exec,
             )
         except Exception as _s6_err:  # never let supervision break trade management
@@ -158,7 +167,7 @@ class BarLevelDetector:
         except Exception as _eod_err:  # never let flatten break trade management
             logger.warning("[BarLevelDetector] EOD flatten error (fail-safe skip): %s", _eod_err)
 
-    def _reconcile_live(self) -> None:
+    def _reconcile_live(self):
         """P1.3 — run the item-20 reconcile every bar while a slot is active, so a
         slot↔DB↔Sierra/TM disagreement (orphan / naked-stop / phantom-slot) surfaces LIVE
         instead of post-mortem (the 06-25 + 07-03 incidents). The reconcile verdict function
@@ -166,24 +175,27 @@ class BarLevelDetector:
 
         Flag-gated RECONCILE_LIVE_V1 (default OFF) → build now, enable after the ground-truth
         MATCH test. Fail-safe. Only runs when we believe we hold a position (slot occupied),
-        and escalates a real mismatch to CRITICAL so Michael sees it.
+        and escalates a real mismatch to CRITICAL so Michael sees it. Returns the verdict so
+        System 6 can fold the DB↔Sierra truth into its per-bar diagnosis (else None).
         Spec: docs/handoff/CC_POSTTRADE_SYSTEM6_2026-07-07.md (P1.3).
         """
         import os as _rc_os
         if _rc_os.getenv("RECONCILE_LIVE_V1", "0").lower() not in ("1", "true", "yes"):
-            return
+            return None
         gw = self._gateway
         if gw is None:
-            return
+            return None
         if not (getattr(gw, "demo_slot", None) or getattr(gw, "live_slot", None)):
-            return  # flat by belief — nothing to reconcile
+            return None  # flat by belief — nothing to reconcile
         try:
             from backend.v9.services.reconcile import gather_and_reconcile
             v = gather_and_reconcile(gateway=gw)
             if getattr(v, "mismatch", False) or getattr(v, "naked_stop_suspect", False):
                 logger.critical("[Reconcile-live] %s — %s", v.verdict, getattr(v, "detail", ""))
+            return v
         except Exception as _rc_err:  # never let reconcile break trade management
             logger.warning("[BarLevelDetector] reconcile-live error (fail-safe skip): %s", _rc_err)
+            return None
 
     async def on_bar(self, event) -> None:
         """Process a 5-min bar: check all active trades for hits."""
@@ -217,7 +229,8 @@ class BarLevelDetector:
             # EOD auto-flatten at RTH close (flag-gated EOD_FLATTEN_V1, default OFF).
             self._eod_flatten(active)
             # Reconcile slot↔DB↔Sierra while in a position (flag-gated RECONCILE_LIVE_V1, OFF).
-            self._reconcile_live()
+            # Capture the verdict so System 6 folds the DB↔Sierra truth into its diagnosis.
+            _recon_v = self._reconcile_live()
 
             for trade in active:
                 # Legacy DB rows may use state="OPEN" (cockpit alias for FILLED)
@@ -276,7 +289,7 @@ class BarLevelDetector:
                 # System 6 advisory supervision — every bar on the demo/live trade
                 # (flag-gated SYSTEM6_SUPERVISOR, default OFF → inert; fail-safe).
                 if _is_demo_live:
-                    self._system6_scan(trade)
+                    self._system6_scan(trade, reconcile_verdict=_recon_v)
 
                 # 1. Stop check FIRST (adverse fill priority)
                 if stop is not None:
