@@ -34,6 +34,7 @@ class BarLevelDetector:
         self._gateway = gateway
         self._bars_processed = 0
         self._last_bar_ts_processed: str = ""  # dedup across 5min + woodies_5min
+        self._eod_flatten_requested: set = set()  # trade ids already sent an EOD CANCEL
 
     def set_gateway(self, gateway) -> None:
         """Inject gateway for demo slot release on trade close."""
@@ -44,6 +45,118 @@ class BarLevelDetector:
         bar_router.subscribe("5min", self.on_bar)
         bar_router.subscribe("woodies_5min", self.on_bar)
         logger.info("[BarLevelDetector] subscribed to 5min + woodies_5min via BarRouter")
+
+    def _system6_scan(self, trade) -> None:
+        """System 6 advisory supervision on the active demo/live trade.
+
+        Runs every bar (Michael 2026-07-05: "scan every cycle, diagnose, correct").
+        Flag-gated by SYSTEM6_SUPERVISOR (default OFF) → fully inert until enabled,
+        so it adds one env check when off and cannot touch today's trade. When ON it
+        LOGS the 9-invariant diagnosis (naked/wrong-side/BE-after-T1/target-side/band/
+        T1-worth/size/EOD/reconcile) and only APPLIES fixes when SYSTEM6_AUTOCORRECT=1
+        (never today). Fail-safe: any error is swallowed so trade management continues.
+        Spec: docs/handoff/CC_POSTTRADE_SYSTEM6_2026-07-07.md (P2.4).
+        """
+        import os as _s6_os
+        if _s6_os.getenv("SYSTEM6_SUPERVISOR", "0").lower() not in ("1", "true", "yes"):
+            return
+        try:
+            from backend.v9.systems.system6_supervisor import scan_active_trade
+
+            # expected contract count — mirror the sizing choke-point precedence
+            if _s6_os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
+                _exp = 2
+            elif _s6_os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
+                _exp = 3
+            else:
+                _exp = None
+
+            # current Chicago-time minute drives the EOD-flatten invariant (14:15 CT)
+            _now_ct = None
+            try:
+                from zoneinfo import ZoneInfo
+                _ct = datetime.now(ZoneInfo("America/Chicago"))
+                _now_ct = _ct.hour * 60 + _ct.minute
+            except Exception:
+                _now_ct = None
+
+            _t = {
+                "direction": getattr(trade, "direction", None),
+                "entry_price": getattr(trade, "entry_price", None),
+                "stop": getattr(trade, "stop", None),
+                "t1": getattr(trade, "t1", None),
+                "t2": getattr(trade, "t2", None),
+                "t3": getattr(trade, "t3", None),
+                "contracts": getattr(trade, "contracts", None),
+            }
+
+            def _exec(correction) -> bool:
+                # Only invoked when SYSTEM6_AUTOCORRECT=1 (off today). Reuses the
+                # existing MODIFY plumbing — System 6 never writes to Sierra directly.
+                op = (correction or {}).get("op")
+                if op == "MODIFY_STOP":
+                    self._tm._emit_modify_stop(trade, float(correction["price"]))
+                    return True
+                logger.warning("[System6] correction %s needs manual handling (advisory)", op)
+                return False
+
+            scan_active_trade(
+                trade=_t,
+                atr=0.0,  # TODO wire a real ATR; 0 → diagnose_trade safe floor=1.0 / cap=25pt
+                t1_hit=getattr(trade, "t1_hit_ts", None) is not None,
+                expected_contracts=_exp,
+                now_ct_min=_now_ct,
+                executor=_exec,
+            )
+        except Exception as _s6_err:  # never let supervision break trade management
+            logger.warning("[BarLevelDetector] System6 scan error (fail-safe skip): %s", _s6_err)
+
+    def _eod_flatten(self, active) -> None:
+        """Auto-flatten open demo/live positions at RTH close (Michael 2026-07-07).
+
+        Closes the gap where `B2EodCheck` evaluates CLOSE_ALL at ≥15:59 ET but NOTHING
+        consumes it (verified: only tests reference B2). Wires B2 → the existing CANCEL op
+        (DLL FlattenAndCancelAllOrders). Flag-gated EOD_FLATTEN_V1 (default OFF) → build now,
+        enable after the ground-truth test (force clock past 15:59 ET → Sierra flat + close).
+
+        I-62 SAFETY: for demo/live we send CANCEL and let FillPoller close the TM trade on the
+        Sierra flat FILL — we do NOT mark CLOSED here (marking flat before Sierra confirms is the
+        exact 07-03 orphan I-62 forbids). Idempotent: one CANCEL per trade (tracked). Fail-safe.
+        Spec: docs/handoff/CC_POSTTRADE_SYSTEM6_2026-07-07.md (P1.1).
+        """
+        import os as _eod_os
+        if _eod_os.getenv("EOD_FLATTEN_V1", "0").lower() not in ("1", "true", "yes"):
+            return
+        try:
+            from zoneinfo import ZoneInfo
+            from backend.v9.systems.woodies.stages.b2_eod_check import B2EodCheck
+
+            et = datetime.now(ZoneInfo("America/New_York")).strftime("%H:%M")
+            if B2EodCheck().evaluate(et).action != "CLOSE_ALL":
+                return
+
+            from backend.v9.services.sierra_command import write_cancel
+            for trade in active or []:
+                mode = getattr(trade, "mode", "shadow")
+                if mode not in ("demo", "live"):
+                    continue  # shadow has no Sierra position to flatten
+                if trade.id in self._eod_flatten_requested:
+                    continue  # already sent — don't spam CANCEL every bar
+                oid = None
+                if hasattr(self._tm, "_get_sierra_order_id"):
+                    try:
+                        oid = self._tm._get_sierra_order_id(trade)
+                    except Exception:
+                        oid = None
+                write_cancel(trade_id=str(trade.id), order_id=oid, mode=mode)
+                self._eod_flatten_requested.add(trade.id)
+                logger.warning(
+                    "[BarLevelDetector] EOD FLATTEN (RTH close, %s ET): CANCEL sent for %s "
+                    "trade %d — awaiting Sierra flat fill (I-62: FillPoller closes it)",
+                    et, mode, trade.id,
+                )
+        except Exception as _eod_err:  # never let flatten break trade management
+            logger.warning("[BarLevelDetector] EOD flatten error (fail-safe skip): %s", _eod_err)
 
     async def on_bar(self, event) -> None:
         """Process a 5-min bar: check all active trades for hits."""
@@ -73,6 +186,9 @@ class BarLevelDetector:
 
             self._bars_processed += 1
             active = self._tm.get_active_trades()
+
+            # EOD auto-flatten at RTH close (flag-gated EOD_FLATTEN_V1, default OFF).
+            self._eod_flatten(active)
 
             for trade in active:
                 # Legacy DB rows may use state="OPEN" (cockpit alias for FILLED)
@@ -127,6 +243,11 @@ class BarLevelDetector:
                             logger.warning("[BarLevelDetector] trail error (fail-safe skip): %s", _trail_err)
 
                 stop = trade.stop  # refresh after potential trail update
+
+                # System 6 advisory supervision — every bar on the demo/live trade
+                # (flag-gated SYSTEM6_SUPERVISOR, default OFF → inert; fail-safe).
+                if _is_demo_live:
+                    self._system6_scan(trade)
 
                 # 1. Stop check FIRST (adverse fill priority)
                 if stop is not None:
