@@ -3,6 +3,7 @@
 // Both panels are client components; this page just composes them.
 
 import { LiveLedgerPanel } from '../../v9/components/board/LiveLedgerPanel';
+import { PagesPanel } from '../../v9/components/board/PagesPanel';
 import { StatusBoardPanel } from '../../v9/components/board/StatusBoardPanel';
 import { System6SupervisorPanel } from '../../v9/components/board/System6SupervisorPanel';
 
@@ -18,6 +19,7 @@ export default function BoardPage() {
         <LiveLedgerPanel />
         <System6SupervisorPanel />
         <StatusBoardPanel />
+        <PagesPanel />
       </div>
     </main>
   );

@@ -125,6 +125,39 @@
       "links": []
     },
     {
+      "id": "PAGES-AUDIT",
+      "title": "אודיט כל עמודי המערכת — מי טוב, מי מיושן, מה לארכיון",
+      "priority": "P2",
+      "status": "open",
+      "owner": "Cowork",
+      "where": "pages_index.json (המקור) · הפאנל 'עמודי המערכת' ב-/board · / · /trades · /build",
+      "next": "לעבור עמוד-עמוד מול מייקל: פעיל / לבדיקה / מועמד-לארכיון; לעדכן סטטוס+הערה ב-pages_index.json; מיושנים → archived (לא נמחקים)",
+      "evidence": "Michael 2026-07-08: 'לבחון את כל העמודים ולראות מי טוב ומי מיושן ולשים בארכיון'. אינוונטר: 4 עמודים + API docs",
+      "links": []
+    },
+    {
+      "id": "PLAN-PANEL",
+      "title": "פאנל תכנון: כל תבנית-בהתהוות + למה ממתינים + תעדוף + הסברים ברורים",
+      "priority": "P2",
+      "status": "open",
+      "owner": "Cowork",
+      "where": "S2/S4 inspectors · frontend Plan tab — היום מציג תבנית אחת והסברים מעורפלים; כפתורים חופפים תוקנו (SystemControlPanel→שמאל)",
+      "next": "עיצוב: רשימת כל התבניות האפשריות במצב-בנייה, מה חסר לכל אחת (תנאי אדום ראשון), מיון לפי קרבה-לירי; ניסוח הסברים בעברית ברורה",
+      "evidence": "Michael 2026-07-08 (צילום): 'שבתכנון יהיה אפשר לראות כל תבנית שיכולה להיווצר ולמה ממתינים, שהכי רלוונטית תבלוט, הסברים יותר ברורים'",
+      "links": []
+    },
+    {
+      "id": "STOP-STRUCT",
+      "title": "טרייל-סטופ למבנה אחרי T1 — קרוב לכניסה אבל מאחורי מבנה (L2b)",
+      "priority": "P2",
+      "status": "open",
+      "owner": "Cowork+CC",
+      "where": "manager._apply_smart_be_after_t1 (היום: BE+טיק) · stop_anchors/resolver.py (מדרגות-מבנה קיימות) · TARGET_ZONES shelves",
+      "next": "עיצוב+בנייה flag-OFF (STOP_STRUCTURE_TRAIL_V1): אחרי T1 בחר מדרגת-מבנה בין הכניסה למחיר (never-widen, floor=BE), buffer בטיקים/ATR; backtest לפני הדלקה; פסיקת-Michael על הפרמטרים",
+      "evidence": "Michael 2026-07-08: 'לקרב לכניסה אבל לשים באזור המבנה כדי לא לפספס הרחבה'. תשתית קיימת: STOP_RESOLVER_V1 ladders",
+      "links": []
+    },
+    {
       "id": "FE-BOARD",
       "title": "This board + System 6 activity panel in the frontend",
       "priority": "P2",

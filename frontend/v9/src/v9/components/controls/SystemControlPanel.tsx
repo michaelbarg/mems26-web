@@ -161,7 +161,7 @@ export function SystemControlPanel() {
         title="System control panel — Start / Stop / Restart / Gap-fill"
         style={{
           position: 'fixed',
-          right: 12,
+          left: 12, // 2026-07-08: was right:12 — collided with the DemoMonitor pill (both bottom-right)
           bottom: 12,
           zIndex: 100,
           background: '#1e1e1e',
@@ -184,7 +184,7 @@ export function SystemControlPanel() {
       dir="rtl"
       style={{
         position: 'fixed',
-        right: 12,
+        left: 12, // 2026-07-08: keep the expanded panel on the same (left) side as the button
         bottom: 12,
         zIndex: 100,
         width: 460,

@@ -1,0 +1,41 @@
+{
+  "_readme": "MEMS26 pages inventory — rendered as the PagesPanel on /board. Agents keep this current: every new page gets a row; the PAGES-AUDIT task classifies each as active / review / archive-candidate / archived. Do not delete rows — archive them.",
+  "updated": "2026-07-08T17:20:00+03:00",
+  "pages": [
+    {
+      "path": "/",
+      "title": "דשבורד מסחר ראשי",
+      "description": "V9Dashboard — צ'ארט, מערכות S1–S6, החלטות כניסה, עסקה פעילה, TPO/Killzone",
+      "status": "active",
+      "audit_note": ""
+    },
+    {
+      "path": "/board",
+      "title": "לוח משימות + לדג'ר חי",
+      "description": "Live Ledger (מה סיירה ביצעה) · System 6 supervisor · משימות מתועדפות · עמודי המערכת",
+      "status": "active",
+      "audit_note": "נבנה 07-07/08"
+    },
+    {
+      "path": "/trades",
+      "title": "היסטוריית עסקאות",
+      "description": "טבלת עסקאות + timeline ניהול",
+      "status": "review",
+      "audit_note": "ממתין לאודיט (PAGES-AUDIT) — לוודא שמציג נכון 2 חוזים ו-live mode"
+    },
+    {
+      "path": "/build",
+      "title": "Build status",
+      "description": "סטטוס בניית מערכות (S2 inspector וכו')",
+      "status": "review",
+      "audit_note": "ממתין לאודיט — ייתכן מיושן חלקית"
+    },
+    {
+      "path": "http://localhost:8000/docs",
+      "title": "API (FastAPI docs)",
+      "description": "כל ה-endpoints של הבאקנד — כולל /api/v9/live_ledger, /system6/diagnose",
+      "status": "active",
+      "audit_note": "כלי עבודה, לא UI מסחר"
+    }
+  ]
+}
