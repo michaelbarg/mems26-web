@@ -32,6 +32,7 @@ ruled:
   DAYTYPE_PLAYBOOK:       {expected: "1", ruled_by: "מייקל", date: "2026-06-19", note: "פלייבוק תבנית×יום; 07-08 חסם counter-trend נכון" }
   DAYTYPE_PATTERN_AWARE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-06-30", note: "שער-משפחה מודע-תבנית" }
   DIRECTION_CONTEXT:      {expected: "1", ruled_by: "מייקל", date: "2026-07-0x", note: "הקשר-כיוון CVD+breakout" }
+  NEUTRAL_RESPONSIVE_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "ביום נייטרלי — responsive (REV) פטור משערי-מגמה (direction_context); CONT נשאר מסונן" }
 
   # ── פרמטרים שנפסקו ──
   MEMS_MIN_RISK_POINTS:   {expected: "2",  ruled_by: "מייקל", date: "2026-07-02", note: "רצפת סיכון מוחלטת; רצפת-עבודה = 0.5×ATR (רצועה, 07-08)" }
