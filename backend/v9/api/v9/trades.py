@@ -263,12 +263,17 @@ def get_active_trade(db: Session = Depends(get_db)):
             "smart_be": smart_be,
         }
 
+    # L7 (2026-07-08): build only the contract rows this trade actually has —
+    # a 2-contract trade showed a phantom C3 row ("1/3 hit") and its stop-out
+    # P&L summed 3 legs.
+    from backend.v9.services.trade_manager.manager import trade_contract_count
+    n_contracts = trade_contract_count(trade)
     contracts = [
         _contract("C1", trade.t1, trade.t1_hit_ts),
         _contract("C2", trade.t2, trade.t2_hit_ts,
                   smart_be=(trade.t1_hit_ts is not None and trade.t2_hit_ts is None)),
         _contract("C3", trade.t3, trade.t3_hit_ts),
-    ]
+    ][:n_contracts]
 
     hits = sum(1 for c in contracts if c["status"] == "HIT_TARGET")
     total_pnl = sum(c["pnl"] for c in contracts)
@@ -288,7 +293,7 @@ def get_active_trade(db: Session = Depends(get_db)):
         "hits": hits,
         "total_pnl": round(total_pnl, 2),
         "total_r": round(total_r, 2),
-        "summary": f"{hits}/3 hit",
+        "summary": f"{hits}/{n_contracts} hit",
         **display,
         **systems_panel,
     }

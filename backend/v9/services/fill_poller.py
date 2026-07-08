@@ -122,7 +122,16 @@ class FillPoller:
             if not content:
                 return
             result = json.loads(content)
-            if result.get("status") != "ORDER_FAILED":
+            status = result.get("status")
+
+            # L2-residual/L4 (2026-07-08): register the order-id map at SUBMIT
+            # time — do NOT wait for the ENTRY fill (which resolves via the
+            # I-58 "most recent active" fallback when unmapped).
+            if status == "ORDER_SUBMITTED":
+                self._register_submitted_order(result)
+                return
+
+            if status != "ORDER_FAILED":
                 return
 
             err_code = result.get("error", "?")
@@ -173,6 +182,46 @@ class FillPoller:
 
         except (OSError, json.JSONDecodeError) as e:
             logger.debug("[FillPoller] _check_result error: %s", e)
+
+    def _register_submitted_order(self, result: Dict[str, Any]) -> None:
+        """Map Sierra order ids the moment the DLL acks ORDER_SUBMITTED (L2-residual/L4, 2026-07-08).
+
+        The DLL writes parent_id/target_id/stop_id into trade_result.json on
+        submit. Registering here means: (a) the ENTRY fill resolves via the map,
+        not the I-58 fallback; (b) sierra_order_id persists on the trade
+        (quality → DB) immediately, so _emit_modify_stop has its order_id even
+        if the ENTRY fill line is delayed/lost — the MODIFY no longer drops
+        silently. The ack carries no trade_id (DLL doesn't echo it) → attribute
+        to the most recent PENDING non-shadow trade, the same single-slot
+        heuristic ORDER_FAILED already uses. The file is NOT cleared here
+        (reconcile + /trade_result API also read it; only ORDER_FAILED clears).
+        """
+        parent_id = result.get("parent_id")
+        if not parent_id or self._tm is None:
+            return
+        if int(parent_id) in self._order_map:
+            return  # same ack re-read — already registered
+        pending = [t for t in self._tm.get_active_trades()
+                   if getattr(t, "state", "") == "PENDING"
+                   and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
+        if not pending:
+            logger.warning(
+                "[FillPoller] ORDER_SUBMITTED parent_id=%s but no PENDING demo/live trade "
+                "to map — the ENTRY fill will need the I-58 fallback", parent_id)
+            return
+        trade = pending[-1]
+        self.register_order(int(parent_id), trade.id)
+        for _oid in (result.get("target_id"), result.get("stop_id")):
+            if _oid:
+                self._order_map[int(_oid)] = trade.id
+        try:
+            self._tm.set_sierra_order_ids(trade.id, {
+                "sierra_order_id": parent_id,
+                "c1_target_id": result.get("target_id"),
+                "c1_stop_id": result.get("stop_id"),
+            })
+        except Exception as e:
+            logger.warning("[FillPoller] set_sierra_order_ids at submit failed: %s", e)
 
     def _guard_duplicate_command(self) -> None:
         """Clear trade_command.json natively once the DLL has acked it (result mtime >=
@@ -314,6 +363,11 @@ class FillPoller:
                     for _oid in sierra_ids.values():
                         if _oid is not None and _oid != fill.get("order_id"):
                             self._order_map[int(_oid)] = trade_id
+                    # L2-residual (2026-07-08): map the ENTRY order id itself too —
+                    # a fallback-resolved ENTRY left the parent id unmapped, so any
+                    # later event referencing it re-entered the fallback.
+                    if order_id is not None:
+                        self._order_map[int(order_id)] = trade_id
                     logger.info("[FillPoller] mapped %d per-contract order ids → trade %s",
                                 sum(1 for v in sierra_ids.values() if v is not None), trade_id)
 
@@ -325,6 +379,15 @@ class FillPoller:
                 if kind == "T3":
                     # All contracts out → full close: free slot + count outcome (I-57)
                     self._notify_gateway_close(trade_id, "T3")
+                else:
+                    # L7 (2026-07-08): with <3 contracts the LAST target is T1/T2 —
+                    # the manager closes the trade there; free the slot too (the
+                    # T3-only check left a 2c trade's slot stuck after its runner
+                    # target filled).
+                    _get = getattr(self._tm, "_get_trade", None)
+                    _t = _get(trade_id) if callable(_get) else None
+                    if _t is not None and getattr(_t, "state", "") == "CLOSED":
+                        self._notify_gateway_close(trade_id, kind)
 
             elif kind == "STOP":
                 # Pass Sierra fill price so exit_price = real fill (may differ from trade.stop due to slippage)

@@ -143,6 +143,36 @@ def write_cancel(
     })
 
 
+def effective_contracts(setup: Dict[str, Any]) -> int:
+    """The LIVE contract count for a setup — single source of truth (L7, 2026-07-08).
+
+    Extracted verbatim from command_from_setup so accept_setup can persist the
+    SAME number the Sierra command sends (symmetry: bracket = DB = display).
+
+    Contract count lives in metadata.sizing (numeric) for the firing systems; the old
+    top-level "contracts"/"size" lookup missed it → demo placed 1 contract instead of the
+    N-contract per-contract bracket (verified 06-29: trade 257 placed C1 only).
+
+    FIXED_CONTRACTS_3 (Michael 2026-07-01): single command choke point — guarantee
+    every fire sends 3 contracts to Sierra for BOTH S2 and S4, demo + live. Belt-and-
+    suspenders over the sizing-source overrides (quality_tier / compute_v2_sizing) so
+    no path can send !=3 when the flag is on. Only setups that reached command-write
+    have already passed the fire decision, so the count is always >0 here.
+    FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract choke point, PRECEDENCE over _3.
+    """
+    _sz = setup.get("contracts") or setup.get("size") or (setup.get("metadata") or {}).get("sizing")
+    try:
+        _contracts = max(1, int(_sz))
+    except (TypeError, ValueError):
+        _contracts = {"full": 3, "half": 2, "quarter": 1}.get(str(_sz).lower().strip(), 1)
+    import os as _fc3_os
+    if _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and _contracts > 0:
+        _contracts = 2
+    elif _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and _contracts > 0:
+        _contracts = 3
+    return _contracts
+
+
 def command_from_setup(
     setup: Dict[str, Any],
     *,
@@ -154,25 +184,9 @@ def command_from_setup(
     if direction not in {"LONG", "SHORT"}:
         raise ValueError(f"Unsupported direction for Sierra command: {direction}")
     action = "BUY" if direction == "LONG" else "SELL"
-    # Contract count lives in metadata.sizing (numeric) for the firing systems; the old
-    # top-level "contracts"/"size" lookup missed it → demo placed 1 contract instead of the
-    # N-contract per-contract bracket (verified 06-29: trade 257 placed C1 only).
-    _sz = setup.get("contracts") or setup.get("size") or (setup.get("metadata") or {}).get("sizing")
-    try:
-        _contracts = max(1, int(_sz))
-    except (TypeError, ValueError):
-        _contracts = {"full": 3, "half": 2, "quarter": 1}.get(str(_sz).lower().strip(), 1)
-    # FIXED_CONTRACTS_3 (Michael 2026-07-01): single command choke point — guarantee
-    # every fire sends 3 contracts to Sierra for BOTH S2 and S4, demo + live. Belt-and-
-    # suspenders over the sizing-source overrides (quality_tier / compute_v2_sizing) so
-    # no path can send !=3 when the flag is on. Only setups that reached command-write
-    # have already passed the fire decision, so _contracts is always >0 here.
-    import os as _fc3_os
-    # FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract choke point, PRECEDENCE over _3.
-    if _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and _contracts > 0:
-        _contracts = 2
-    elif _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and _contracts > 0:
-        _contracts = 3
+    # L7 (2026-07-08): count comes from effective_contracts — same source accept_setup
+    # persists, so the Sierra bracket and the DB row can never disagree.
+    _contracts = effective_contracts(setup)
     return write_trade_command(
         action=action,
         trade_id=trade_id,

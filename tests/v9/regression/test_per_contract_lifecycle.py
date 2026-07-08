@@ -58,6 +58,7 @@ def test_t3_does_not_close_while_c2_open():
     tm._cleanup_machine = MagicMock()
     tm._emitter = MagicMock()
     tm.on_target_hit = TradeManager.on_target_hit.__get__(tm)
+    tm._close_on_final_target = TradeManager._close_on_final_target.__get__(tm)  # L7
 
     tm.on_target_hit(1, "T3", fill_ts=now)
 
@@ -88,6 +89,7 @@ def test_t3_closes_when_all_out():
     tm._cleanup_machine = MagicMock()
     tm._emitter = MagicMock()
     tm.on_target_hit = TradeManager.on_target_hit.__get__(tm)
+    tm._close_on_final_target = TradeManager._close_on_final_target.__get__(tm)  # L7
 
     tm.on_target_hit(1, "T3", fill_ts=now)
 
@@ -111,6 +113,7 @@ def test_t2_stays_partial():
     tm._calculate_pnl = MagicMock()
     tm._emitter = MagicMock()
     tm.on_target_hit = TradeManager.on_target_hit.__get__(tm)
+    tm._close_on_final_target = TradeManager._close_on_final_target.__get__(tm)  # L7
 
     tm.on_target_hit(1, "T2", fill_ts=now)
 

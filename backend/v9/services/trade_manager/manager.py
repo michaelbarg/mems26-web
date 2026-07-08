@@ -62,6 +62,25 @@ MES_TICK_SIZE = 0.25
 MES_POINT_VALUE = MES_TICK_VALUE / MES_TICK_SIZE  # $5 per point
 
 
+def trade_contract_count(trade) -> int:
+    """L7 (2026-07-08): the contract count for a trade — quality["contracts"]
+    (persisted at accept from effective_contracts), else the FIXED_CONTRACTS_2/_3
+    env (covers trades created before the count was persisted), else legacy 3.
+    Shared by manager PnL/close logic and the /trades API display."""
+    q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+    try:
+        n = int(q.get("contracts") or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if n in (1, 2, 3):
+        return n
+    if os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
+        return 2
+    if os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
+        return 3
+    return 3
+
+
 class TradeManager:
     """Manages the full lifecycle of V9 trades.
 
@@ -86,6 +105,8 @@ class TradeManager:
         # Active state machines keyed by trade_id — bounded by active trades
         self._machines: Dict[int, TradeStateMachine] = {}
         self._fill_locks: set = set()  # Pkg 3b-2 · Sierra fill lock (LOCK 3)
+        # L2-residual (2026-07-08): rate-limit state for skipped-emit warnings
+        self._emit_skip_warned: Dict[tuple, float] = {}
 
     def _log_management(self, trade_id: int, action: str, value: Optional[Dict] = None) -> None:
         """Write to V9TradeManagementLog — observability for trades page timeline."""
@@ -116,12 +137,38 @@ class TradeManager:
         oid = q.get("sierra_order_id")
         return int(oid) if oid is not None else None
 
+    _EMIT_SKIP_WARN_SECS = 60.0
+
+    def _warn_emit_skipped(self, trade, op: str, reason: str) -> None:
+        """No-silent-failures (L2-residual, 2026-07-08): a skipped Sierra emit used
+        to `return` silently → the DB recorded stop-moves Sierra never saw
+        (records ≠ reality, live trade 299). Warn, rate-limited per
+        trade+op+reason. Shadow trades never reach here — skipping them is
+        by-design, not a failure."""
+        import time as _time
+        key = (getattr(trade, "id", None), op, reason)
+        now = _time.monotonic()
+        cache = getattr(self, "_emit_skip_warned", None)
+        if cache is None:  # instances built without full __init__ (tests, pickling)
+            cache = self._emit_skip_warned = {}
+        if now - cache.get(key, -1e9) >= self._EMIT_SKIP_WARN_SECS:
+            cache[key] = now
+            logger.warning(
+                "[TradeManager] %s SKIPPED for trade %s (mode=%s): %s — Sierra will "
+                "NOT see this change",
+                op, getattr(trade, "id", "?"), getattr(trade, "mode", "?"), reason)
+
     def _emit_modify_stop(self, trade, new_stop: float) -> None:
         """Emit a MODIFY_STOP command to Sierra (DEMO + LIVE)."""
         if not self._is_demo_mode(trade):
+            if getattr(trade, "mode", "shadow") in ("demo", "live"):
+                self._warn_emit_skipped(trade, "MODIFY_STOP",
+                                        "execution flag OFF for this mode")
             return
         oid = self._get_sierra_order_id(trade)
         if oid is None:
+            self._warn_emit_skipped(trade, "MODIFY_STOP",
+                                    "no sierra_order_id on trade (order-id map missing)")
             return
         try:
             from backend.v9.services.sierra_command import write_modify_stop
@@ -135,9 +182,14 @@ class TradeManager:
         Otherwise uses the trade's sierra_order_id (legacy/fallback).
         """
         if not self._is_demo_mode(trade):
+            if getattr(trade, "mode", "shadow") in ("demo", "live"):
+                self._warn_emit_skipped(trade, "MODIFY_TARGET",
+                                        "execution flag OFF for this mode")
             return
         oid = target_order_id or self._get_sierra_order_id(trade)
         if oid is None:
+            self._warn_emit_skipped(trade, "MODIFY_TARGET",
+                                    "no sierra_order_id on trade (order-id map missing)")
             return
         try:
             from backend.v9.services.sierra_command import write_modify_target
@@ -166,9 +218,14 @@ class TradeManager:
     def _emit_exit(self, trade, contracts: int) -> None:
         """Emit an EXIT command to Sierra (DEMO mode only)."""
         if not self._is_demo_mode(trade):
+            if getattr(trade, "mode", "shadow") in ("demo", "live"):
+                self._warn_emit_skipped(trade, "EXIT",
+                                        "execution flag OFF for this mode")
             return
         oid = self._get_sierra_order_id(trade)
         if oid is None:
+            self._warn_emit_skipped(trade, "EXIT",
+                                    "no sierra_order_id on trade (order-id map missing)")
             return
         try:
             from backend.v9.services.sierra_command import write_exit
@@ -208,12 +265,17 @@ class TradeManager:
             or meta.get("signal")
             or f"system_{firing_system}"
         )
+        # L7 (2026-07-08): persist the LIVE contract count on the trade — the same
+        # number command_from_setup sends to Sierra. Without this the DB row had
+        # no count at all → PnL/close/display all assumed 3 contracts.
+        from backend.v9.services.sierra_command import effective_contracts
         quality = {
             "classification": classification,
             "confidence": setup.get("confidence"),
             "metadata": meta,
             "trigger": trigger,
             "blocked_by": setup.get("blocked_by"),
+            "contracts": effective_contracts(setup),
         }
 
         registry_ctx = setup.get("cross_context")
@@ -339,6 +401,12 @@ class TradeManager:
 
         self._append_snapshot(trade, f"{target.lower()}_hit")
 
+        # L7 (2026-07-08): the LAST contract's target closes the trade — for a
+        # 2-contract trade that is T2 (there IS no T3 order), for 1 contract T1.
+        # Before this, only T3 closed → a 2c trade stayed PARTIAL forever after
+        # its runner target filled (stuck slot + wrong open-trade accounting).
+        n_contracts = trade_contract_count(trade)
+
         if target == "T1":
             # C1 scale-out: FILLED → PARTIAL + stop→BE
             machine.transition(TradeState.PARTIAL)
@@ -347,12 +415,18 @@ class TradeManager:
             self._log_management(trade_id, "T1_HIT", {"ts": hit_ts.isoformat()})
             self._apply_smart_be_after_t1(trade)
             self._calculate_pnl(trade)
+            if n_contracts == 1:
+                self._close_on_final_target(trade, machine, "T1_HIT", hit_ts)
 
         elif target == "T2":
-            # C2 scale-out: stay PARTIAL, keep trailing the last runner
+            # C2 scale-out: for 3 contracts stay PARTIAL (T3 runner still on);
+            # for 2 contracts T2 IS the last contract → close.
             trade.t2_hit_ts = hit_ts
             self._log_management(trade_id, "T2_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)
+            if n_contracts <= 2 and trade.t1_hit_ts is not None:
+                self._close_on_final_target(trade, machine, "T2_HIT", hit_ts)
+            # else: T2 before T1 (unusual) → stay PARTIAL until T1 fills
 
         elif target == "T3":
             trade.t3_hit_ts = hit_ts
@@ -361,12 +435,7 @@ class TradeManager:
             # Close ONLY if all contracts are out (T1+T2 already filled)
             all_out = (trade.t1_hit_ts is not None and trade.t2_hit_ts is not None)
             if all_out:
-                machine.transition(TradeState.CLOSED)
-                trade.state = TradeState.CLOSED.value
-                trade.exit_ts = hit_ts
-                trade.exit_reason = "T3_HIT"
-                self._set_outcome(trade)
-                self._cleanup_machine(trade_id)
+                self._close_on_final_target(trade, machine, "T3_HIT", hit_ts)
             # else: T3 filled before T2 (unusual) → stay PARTIAL until T2 fills
 
         self._db.flush()
@@ -376,6 +445,18 @@ class TradeManager:
             "ts": hit_ts.isoformat(),
             "state": trade.state,
         })
+
+    def _close_on_final_target(self, trade, machine, exit_reason: str, hit_ts) -> None:
+        """L7 (2026-07-08): close the trade when its LAST contract's target fills.
+        Extracted from the T3 close block; now also reached by T2 (2 contracts)
+        and T1 (1 contract)."""
+        machine.transition(TradeState.CLOSED)
+        trade.state = TradeState.CLOSED.value
+        trade.exit_ts = hit_ts
+        trade.exit_reason = exit_reason
+        self._calculate_pnl(trade)
+        self._set_outcome(trade)
+        self._cleanup_machine(trade.id)
 
     def _initial_stop(self, trade: V9Trade) -> Optional[float]:
         """Risk denominator uses pre–smart-BE stop when stop was moved to entry."""
@@ -1002,6 +1083,11 @@ class TradeManager:
         t3 = self._valid_target(trade.t3)
         stop = self._valid_target(trade.stop)
 
+        # L7 (2026-07-08): the trade's REAL contract count — a 2-contract trade
+        # has 2 P&L legs, not 3 (a 2c stop-out was counted 3× = 150% of the
+        # real loss; R used a 3-contract denominator).
+        n_contracts = trade_contract_count(trade)
+
         # Determine per-contract exit prices based on what was hit
         contract_exits: List[float] = []
 
@@ -1042,6 +1128,9 @@ class TradeManager:
             c3 = exit_p
             contract_exits = [c1, c2, c3]
 
+        # L7: only the legs that actually exist on this trade.
+        contract_exits = contract_exits[:n_contracts]
+
         total_pnl = 0.0
         for exit_price in contract_exits:
             points = (exit_price - trade.entry_price) * direction_mult
@@ -1049,12 +1138,12 @@ class TradeManager:
 
         trade.pnl_usd = round(total_pnl, 2)
 
-        # pnl_r = PnL / (3 contracts × initial risk per contract)
+        # pnl_r = PnL / (n contracts × initial risk per contract)
         risk_stop = self._initial_stop(trade)
         if risk_stop is not None and trade.entry_price is not None:
             risk_per_contract = abs(trade.entry_price - risk_stop) * MES_POINT_VALUE
             if risk_per_contract > 0:
-                total_risk = 3 * risk_per_contract
+                total_risk = n_contracts * risk_per_contract
                 trade.pnl_r = round(total_pnl / total_risk, 2)
 
     def _set_outcome(self, trade: V9Trade) -> None:

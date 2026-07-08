@@ -34,6 +34,7 @@ class _FakeTrade:
         self.stop_hit_ts = None
         self.exit_ts = None
         self.exit_reason = None
+        self.exit_price = None  # L7: real V9Trade field, read by the close-time recalc
         self.pnl_usd = 0.0
         self.pnl_r = 0.0
         self.contracts = 3

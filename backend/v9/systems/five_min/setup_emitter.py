@@ -86,9 +86,15 @@ def emit_t1_setup(
         _ow_ok, _ow_reason = _opening_window_check(direction)
         if _ow_ok:
             if sizing <= 0:  # SKIP rows carry 0 contracts — floor for the override
+                # L7 (2026-07-08): honor FIXED_CONTRACTS_2 (precedence over _3, same
+                # as every other sizing site) — this floor ignored it and sent 1.
                 import os as _os
-                sizing = 3 if _os.environ.get(
-                    "FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") else 1
+                if _os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
+                    sizing = 2
+                elif _os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
+                    sizing = 3
+                else:
+                    sizing = 1
             logger.warning(
                 "[S2] OPENING_WINDOW override: Auth Table SKIP (%s × %s) bypassed — %s · contracts=%d",
                 pattern_name, _day_type, _ow_reason, sizing,
