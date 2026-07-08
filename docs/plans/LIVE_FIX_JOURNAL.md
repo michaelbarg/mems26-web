@@ -155,3 +155,30 @@ verification owed by CC after ONE restart** (which also flips `LIVE_LEDGER_V1`).
   restarts**. The N2 deploy restart (LIVE_LEDGER_V1) covers everything; CC confirms FLAT first.
 - **CC today:** `docs/handoff/CC_CONTINUATION_2026-07-08.md` — N1 snapshot/health → N2 deploy+V1–V5 →
   T1–T5 gate evidence (arming · L2 live MODIFY · A7 route · L4 capture · L7 2c SIM fire).
+
+---
+## Cowork — 2026-07-08 LIVE session (evening) · trade 310 post-mortem + the evening fixes
+**The day:** Michael armed live. ZERO system trades all session; one live fire (310) he closed
+manually. Every blocker found was diagnosed from logs and root-fixed the same evening (all
+committed; deployed via the 21:43 post-session restart, verified: flag_guard 31/31 + fire-drill 🟢).
+
+**🔴→✅ Closed tonight (live/SIM verification owed to CC per Rule 5 — `CC_MORNING_2026-07-09.md`):**
+| Root | Live evidence | Fix |
+|---|---|---|
+| L1/A7: compute_stop_v2 floor 4-ticks < MEMS_MIN 2pt → doomed 1pt stops, 3 ZLR dropped | 17:25–17:30 `FIRE DROPPED ['A7']` | band floor 0.5×ATR (`15de2c4`+`0107a12`) — **verified live: zero drops after 19:02** |
+| Entry-confirm blocked SHORT on a 3-tick counter-close (~10pt candles) | 18:00 block | tol = 0.10×ATR (`ce3045d`, ruling #6) |
+| **AUTH-KEY-BYPASS: the LOCKED auth table silently bypassed** — lookup ('Reactive',day) vs keys 'REACTIVE_LONG/…' → "using max" everywhere; `INITIATIVE×Neutral_Extreme=SKIP` would have blocked trade 310 | "no auth cell" warnings all day; 310 fired | `_auth_cell` normalization (`51d531c`) |
+| ORDER_FAILED after submit-ack cancelled the live row → naked orphan position; Michael flattened manually; NAKED_STOP screamed correctly | 308/310, ~19:40–19:50 | no-cancel-after-ack + NAKED-BRACKET critical (`f51f8b7`) |
+| Cockpit /exit didn't release the gateway slot → live_slot stuck on 310, all fires blocked | gateway/status after manual close | exit→on_trade_close (`f51f8b7`) |
+| Shadow 313 rendered as the "active trade", masking live 310 → Michael's manual close invisible; ledger showed 0 trades (poller cleared fills before the ledger read) | /active + ledger 19:50–20:00 | /active LIVE→DEMO→none + fills journal (`a44ee90`) |
+| Day was NEUTRAL per Dalton (both-side IB ext: 7501.75/7524.75, −32.5/+3.75) — classifier lagged, then a restart WIPED intraday S1 state (Neutral 0.48→Variation 0.18) | 20:44 | S1-STATE-PERSIST P1 (S1-chat) + ops rule: no mid-session restarts |
+
+**Michael rulings → flags (all in RULED_FLAGS, guard 31/31):** `NEUTRAL_RESPONSIVE_V1=1` (REV exempt
+from direction_context on Neutral days) · `TARGET_STRUCTURE_CLAMP_V1=1` (TP-1: no targets beyond IB
+unless Neutral/Trend — the 310 geometry now clamps, tests 5/5) · `STOP_STRUCTURE_TRAIL_V1=1`
+(after-T1 stop parks at structure, not BE — tests 5/5) · entry-confirm tol 0.10×ATR.
+**Also shipped:** TRADING_SPEC.yaml (16 rules) · flag_guard/fire_drill/morning_briefing/s6_eod
+(scheduled 15:55/23:05) · Dalton doctrine + S1 executor prompt · trade 310 recorded MANUAL_CLOSE
++$45 (approx price — CC reconciles vs the real fill via TradeActivityLog tomorrow).
+**Open (new):** S4-RUNNER-T2-SIGN (short runner t2 wrong side, sanitized away) · stale-bar source
+(exports clean → bridge stream suspect) · full TP audit needs psql (v1 harness committed).
