@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-08T21:15:00+03:00",
+    "updated": "2026-07-08T20:58:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       {
@@ -60,6 +60,17 @@
           "path": "docs/plans/LIVE_FIX_JOURNAL.md"
         }
       ]
+    },
+    {
+      "id": "S1-STATE-PERSIST",
+      "title": "מצב S1 נמחק בריסטארט — Neutral_Extreme 0.48 חזר ל-Variation 0.18 (07-08 20:44)",
+      "priority": "P1",
+      "status": "open",
+      "owner": "צ'אט-S1",
+      "where": "day_type state machine — צבירה תוך-יומית בזיכרון; hydration חלקי אחרי kickstart",
+      "next": "להתמיד את מצב-המכונה (ברים/votes/sides/lock) ל-DB ולשחזר מלא בבוט; קריטריון: ריסטארט באמצע יום משחזר את אותו סיווג+ביטחון בדיוק",
+      "evidence": "07-08: לפני ריסטארט 20:44 = Neutral_Extreme 0.48; אחריו = Variation 0.18. לקח תפעולי: אין ריסטארט מיד-סשן אלא אם קריטי",
+      "links": []
     },
     {
       "id": "S6-AGENT",
