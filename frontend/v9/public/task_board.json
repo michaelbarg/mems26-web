@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-08T19:45:00+03:00",
+    "updated": "2026-07-08T21:15:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       {
@@ -62,6 +62,28 @@
       ]
     },
     {
+      "id": "S6-AGENT",
+      "title": "מערכת 6 → סוכן מנהל-עסקאות (סטופ חכם + מימוש חכם + לוג EOD)",
+      "priority": "P1",
+      "status": "in_progress",
+      "owner": "Cowork+Michael",
+      "where": "שלב 1 חי: scripts/s6_eod_report.py (שיפוט סטופ×ATR, T1 מול MFE, wick-out) מתוזמן 23:05 · AUTOCORRECT קיים flag-OFF",
+      "next": "שלב 2: התרעות תוך-עסקה · שלב 3: AUTOCORRECT מוגבל (BE/target-side, פסיקת מייקל) · שלב 4: ניהול מלא אחרי baseline",
+      "evidence": "מייקל 07-08: 'סטופ חכם, מימוש חכם, מערכת 6 בודקת, לוג EOD, להפוך לסוכן'. דוח ראשון נכתב הערב (7 עסקאות)",
+      "links": []
+    },
+    {
+      "id": "REPLAY-EMPTY",
+      "title": "classify_replay מחזיר 0 שורות להיום — endpoint האימות של S1 שבור",
+      "priority": "P2",
+      "status": "open",
+      "owner": "צ'אט-S1",
+      "where": "/api/v9/day_type/classify_replay?date=2026-07-08 → rows:0 (נבדק פעמיים 07-08 ערב)",
+      "next": "לתקן במסגרת עבודת ה-S1 — ה-replay הוא כלי-הקבלה של כל שיפורי דלתון",
+      "evidence": "בדיקות 19:37 + 21:10",
+      "links": []
+    },
+    {
       "id": "STALE-BAR-SPAM",
       "title": "בר ישן (2026-06-09) נדחף שוב ושוב ל-/bars/5min — שומר-הטריות חוסם, למצוא את המקור",
       "priority": "P2",
@@ -105,13 +127,13 @@
     },
     {
       "id": "L1",
-      "title": "🔴 A7 — LIVE-PROVEN BROKEN 07-08: dropped 3 ZLR fires on a Trend_DD day",
-      "priority": "P0",
-      "status": "open",
+      "title": "A7 — תוקן ואומת חי (רצועת סטופ 0.5×ATR)",
+      "priority": "P1",
+      "status": "fixed_verified_live",
       "owner": "CC",
       "where": "backend/v9/systems/woodies/woodies_system.py:668 (fallback insufficient/not reached) · stages/a7_universal_checks.py",
       "next": "URGENT: diagnose WHICH A7 sub-check fails (add the failing-check name to the DROPPED log line), fix the root, restart when flat — this is a BUG fix, not a gate change",
-      "evidence": "2026-07-08 live: 17:25 ZLR LONG + 17:30 ZLR SHORT ×2 → FIRE DROPPED failed_stages=['A7'] — the morning strategic shorts Michael flagged. The 668 fallback did NOT prevent drops",
+      "evidence": "תוקן 07-08 (15de2c4+0107a12 רצועת-ATR): מאז 19:02 אפס A7-drops — ZLR הגיעו ל-gateway (נחסמו ב-cont_trend_filter שחסך 2 סטופים ב-7479)",
       "links": [
         {
           "label": "journal",
@@ -189,22 +211,22 @@
       "id": "MORNING-BRIEFING",
       "title": "סקריפט בריפינג-בוקר אוטומטי לפי LIVE_MORNING_PROTOCOL",
       "priority": "P1",
-      "status": "open",
+      "status": "done",
       "owner": "Cowork",
       "where": "docs/runbooks/LIVE_MORNING_PROTOCOL.md (התבנית) · scripts/morning_briefing.py (לבנות)",
       "next": "מפיק BRIEF_<date>.md: מה S1/S2/S4/S6 מחפשות היום + ATR→טווחי-סטופ מספריים + תאי-auth חסרים + GO/NO-GO; ריצה מתוזמנת 16:00 IL",
-      "evidence": "Michael 07-08: 'פרוטוקול תחילת מסחר שנותן עדכון מסודר'",
+      "evidence": "scripts/morning_briefing.py נבנה+הורץ 07-08 (ATR 7.3 → רצועות סטופ מספריות); חלק מהריצה המתוזמנת 15:55",
       "links": []
     },
     {
       "id": "PRE-OPEN-FIREDRILL",
       "title": "🔴 פרוטוקול בוקר: ירי-יבש של כל שרשרת ההחלטה לפני פתיחה (GO/NO-GO אמיתי)",
       "priority": "P0",
-      "status": "open",
+      "status": "done",
       "owner": "Cowork",
-      "next": "לבנות scripts/fire_drill.py: מזריק ברים סינתטיים (יום-מגמה עם נר 12pt) דרך הצינור האמיתי — דטקציה→sizing→סטופ→A1-A7→gateway→כתיבת-פקודה (dry, לא לסיירה) — לשני הכיוונים ולכל תבנית ראשית; כשל כלשהו = NO-GO מודפס עם הסיבה. לחבר ל-PRE_TRADE_PROTOCOL ולריצה אוטומטית 16:00",
+      "next": "רץ אוטומטית כל בוקר; להוסיף תבניות סינתטיות מלאות (דטקציה אמיתית) בהמשך",
       "where": "docs/runbooks/PRE_TRADE_PROTOCOL.md (היום בודק צנרת, לא החלטות) · הפער שעלה 07-08: 'הכל תקין' כיסה feed/flags/flat אבל לא את שרשרת הירי — באג הסטופ 1pt היה נתפס ב-16:00 במקום 18:30",
-      "evidence": "Michael 07-08: 'למה כל יום תקלה אחרת ולמה אמרת שהכל תקין' — צודק; ה-gate הבוקרי לא מסוגל לתפוס באגי-החלטה בלי ירי-יבש",
+      "evidence": "נבנה+הורץ 07-08 ערב: flag_guard 28 דגלים PASS · דריל 🟢 GO על המערכת החיה (תפס באג-env של עצמו בריצה 1). מתוזמן 15:55 IL ימי-חול",
       "links": []
     },
     {
