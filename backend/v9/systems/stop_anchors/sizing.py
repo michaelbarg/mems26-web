@@ -29,6 +29,23 @@ class V2SizingResult:
     stop_price: float = 0.0  # the stop used for sizing (A7 fire_setup needs this)
 
 
+def _auth_cell(auth_matrix, pattern_key, direction, day_type):
+    """Auth-cell lookup with key normalization (2026-07-08 live finding).
+
+    Matrix keys are 'REACTIVE_LONG'/'REACTIVE_SHORT' (S2_AUTH_TABLE_V1, LOCKED)
+    but the S2 V2-sizing path passes the family name ('Reactive') → every lookup
+    missed → '[V2Sizing] no auth cell — using max' all day, and Michael's LOCKED
+    verdicts (e.g. INITIATIVE×Neutral=SKIP) were silently bypassed. Try exact,
+    then FAMILY_DIRECTION. S4 patterns (ZLR/TLB/…) are intentionally absent —
+    their pattern×day authority is the daytype playbook.
+    """
+    cell = auth_matrix.get((pattern_key, day_type))
+    if cell is None and direction:
+        cell = auth_matrix.get(
+            (f"{str(pattern_key).upper()}_{str(direction).upper()}", day_type))
+    return cell
+
+
 def compute_v2_sizing(
     *,
     entry_price: float,
@@ -55,7 +72,7 @@ def compute_v2_sizing(
     auth_verdict = "FULL"
     auth_contracts = cfg.get("guardrails", {}).get("max_contracts", 3)
     if auth_matrix:
-        cell = auth_matrix.get((pattern_key, day_type))
+        cell = _auth_cell(auth_matrix, pattern_key, direction, day_type)
         if cell:
             verdict, high, medium, low = cell
             auth_verdict = verdict
