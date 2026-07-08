@@ -492,15 +492,24 @@ class TradeManager:
 
         stop_before = float(trade.stop) if trade.stop is not None else None
 
+        # STOP_STRUCTURE_TRAIL_V1 (Michael ruling 2026-07-08, flag-OFF): after T1
+        # the stop goes to the nearest STRUCTURE, not mechanically to BE — "לקרב
+        # לכניסה אבל לשים באזור המבנה כדי לא לפספס הרחבה". BE+1T gets wicked by
+        # noise; a structural anchor gives the runner room for the expansion.
+        # Never widens (Gap 13); falls back to BE+1T when structure unavailable.
+        _struct_stop = None
+        if os.environ.get("STOP_STRUCTURE_TRAIL_V1", "0").lower() in ("1", "true", "yes"):
+            _struct_stop = self._structure_stop_after_t1(direction)
+
         if direction == "LONG":
-            target_stop = entry + tick
+            target_stop = _struct_stop if _struct_stop is not None else (entry + tick)
             if trade.stop is not None and float(trade.stop) >= target_stop:
-                return  # Already at or tighter than BE+1T
+                return  # Already at or tighter — never widen
             trade.stop = target_stop
         elif direction == "SHORT":
-            target_stop = entry - tick
+            target_stop = _struct_stop if _struct_stop is not None else (entry - tick)
             if trade.stop is not None and float(trade.stop) <= target_stop:
-                return  # Already at or tighter than BE+1T
+                return  # Already at or tighter — never widen
             trade.stop = target_stop
         else:
             logger.warning(
@@ -514,7 +523,8 @@ class TradeManager:
             "event": "stop_move",
             "from": stop_before,
             "to": float(trade.stop),
-            "reason": "BE+1T after T1 hit",
+            "reason": ("structure-trail after T1" if _struct_stop is not None
+                       else "BE+1T after T1 hit"),
         }
         ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
         ctx.append(audit_entry)
@@ -526,6 +536,36 @@ class TradeManager:
             "[TradeManager] Smart BE+1T after T1: trade %s stop %.2f -> %.2f",
             trade.id, stop_before if stop_before else 0, trade.stop,
         )
+
+    def _structure_stop_after_t1(self, direction: str) -> Optional[float]:
+        """STOP_STRUCTURE_TRAIL_V1: the nearest structural anchor from the last
+        bars (cluster low−offset for LONG / cluster high+offset for SHORT).
+        Reads the canonical woodies bars; honest None on any gap (caller falls
+        back to BE+1T). Pure read — no synthesis (Rule 1)."""
+        try:
+            from backend.v9.config_loader import load_stop_anchors
+            from backend.v9.db.read import read_all
+            from backend.v9.systems.stop_anchors import resolver as SA
+            cfg = load_stop_anchors()
+            _off = int((cfg or {}).get("principles", {}).get("anchor_offset_ticks", 3))
+            _win = int(os.environ.get("STOP_STRUCT_WINDOW_BARS", "8"))
+            rows = read_all(
+                "SELECT high, low FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT :n",
+                {"n": _win})
+            if not rows or len(rows) < 3:
+                return None
+            bars = [{"high": float(r["high"]), "low": float(r["low"])}
+                    for r in reversed(rows)
+                    if r.get("high") is not None and r.get("low") is not None]
+            if len(bars) < 3:
+                return None
+            anchor = SA.resolve_anchor_from_window(bars, direction, _off)
+            logger.info("[TradeManager] structure-trail anchor (%s, win=%d): %.2f",
+                        direction, _win, anchor)
+            return float(anchor)
+        except Exception as e:
+            logger.warning("[TradeManager] structure-trail unavailable (%s) — BE+1T fallback", e)
+            return None
 
     def apply_trail_after_t1(self, trade: V9Trade, bar_high: float, bar_low: float) -> None:
         """Trailing stop after T1 hit (RUNNER_TRAIL_V1).
