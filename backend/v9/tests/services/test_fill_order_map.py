@@ -163,6 +163,26 @@ def test_live_flag_off_warns():
         lg.removeHandler(cap)
 
 
+# L8 journal — fills persist to trade_fills_journal.jsonl before the clear
+# (the ledger lost every consumed fill: 0 trades shown while a live trade ran).
+def test_fills_journal_persists_before_clear():
+    with tempfile.TemporaryDirectory() as d:
+        fills = Path(d) / "trade_fills.json"
+        fills.write_text(json.dumps({"kind": "ENTRY", "order_id": 1, "price": 7500.0, "ts": 1}) + "\n")
+        fp_mod.FILLS_PATH = fills
+        p = fp_mod.FillPoller(trade_manager=StubTM([]))
+        p._last_mtime = 0
+        p._check_fills()
+        journal = Path(d) / "trade_fills_journal.jsonl"
+        assert journal.exists() and "ENTRY" in journal.read_text()
+        assert fills.read_text() == ""  # cleared, as before
+        fills.write_text(json.dumps({"kind": "STOP", "order_id": 1, "price": 7495.0, "ts": 2}) + "\n")
+        os.utime(fills)
+        p._last_mtime = 0
+        p._check_fills()
+        assert len(journal.read_text().strip().split("\n")) == 2  # appends, never overwrites
+
+
 if __name__ == "__main__":
     tests = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     failed = 0

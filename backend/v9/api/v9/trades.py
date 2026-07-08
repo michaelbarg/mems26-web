@@ -234,23 +234,21 @@ def get_active_trade(db: Session = Depends(get_db)):
     MES: 1 point = $5 per contract.
     """
     _active_states = ["FILLED", "PARTIAL", "OPEN"]
-    # Prefer the DEMO trade — the one that reaches Sierra and is actively managed —
-    # so the monitor shows the executable position, not a newer shadow record
-    # (bug 2026-07-01: /active returned the latest across all modes → a shadow trade
-    # masked the live demo trade in the supervision monitor).
-    trade = (
-        db.query(V9Trade)
-        .filter(V9Trade.state.in_(_active_states), V9Trade.mode == "demo")
-        .order_by(V9Trade.entry_ts.desc())
-        .first()
-    )
-    if trade is None:
+    # L3 (2026-07-08 live incident): priority LIVE → DEMO → nothing. The old
+    # any-mode fallback rendered a SHADOW row as the "active trade" — tonight it
+    # masked the real live position (310) with its shadow twin (313), so the
+    # dashboard never showed Michael's manual Sierra close. A shadow trade is a
+    # simulation record and must NEVER render as the supervised position.
+    trade = None
+    for _mode in ("live", "demo"):
         trade = (
             db.query(V9Trade)
-            .filter(V9Trade.state.in_(_active_states))
+            .filter(V9Trade.state.in_(_active_states), V9Trade.mode == _mode)
             .order_by(V9Trade.entry_ts.desc())
             .first()
         )
+        if trade is not None:
+            break
     if not trade:
         return None
 

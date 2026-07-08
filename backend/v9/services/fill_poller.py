@@ -294,6 +294,20 @@ class FillPoller:
         for fill in fills:
             self._process_fill(fill)
 
+        # L8 journal (2026-07-08): persist every fill line BEFORE clearing — the
+        # ledger reads the same file and lost every fill the poller consumed
+        # (live ledger showed 0 trades while a live trade was open). Append-only
+        # journal = the ledger's durable source. Fail-safe: journal errors never
+        # block fill processing.
+        try:
+            _journal = FILLS_PATH.with_name("trade_fills_journal.jsonl")
+            with open(_journal, "a", encoding="utf-8") as jf:
+                for line in content.split("\n"):
+                    if line.strip():
+                        jf.write(line.strip() + "\n")
+        except OSError as e:
+            logger.warning("[FillPoller] fills journal append failed: %s", e)
+
         # Clear the file after processing all fills
         try:
             FILLS_PATH.write_text("")

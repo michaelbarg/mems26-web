@@ -43,11 +43,28 @@ async def live_ledger():
         live_account = os.getenv("SIERRA_LIVE_ACCOUNT") or None
         fills_path = os.getenv("TRADE_FILLS_PATH", _DEFAULT_FILLS)
 
-        try:
-            with open(fills_path, "r") as fh:
-                lines = fh.readlines()
-        except FileNotFoundError:
-            return {**out, "trades": [], "note": f"no fills file at {fills_path}"}
+        # L8 journal (2026-07-08): the poller consumes+clears trade_fills.json —
+        # read the durable journal (all history) PLUS any unconsumed lines, and
+        # dedupe. Without this the ledger showed 0 trades while live trades ran.
+        lines = []
+        _journal = os.path.join(os.path.dirname(fills_path), "trade_fills_journal.jsonl")
+        for p in (_journal, fills_path):
+            try:
+                with open(p, "r") as fh:
+                    lines.extend(fh.readlines())
+            except FileNotFoundError:
+                continue
+        if not lines:
+            return {**out, "trades": [],
+                    "note": f"no fills yet (journal {_journal} + {fills_path} empty)"}
+        _seen = set()
+        _deduped = []
+        for ln in lines:
+            ln = ln.strip()
+            if ln and ln not in _seen:
+                _seen.add(ln)
+                _deduped.append(ln)
+        lines = _deduped
 
         ledger = sl.build_ledger(sl.parse_fills(lines), live_account=live_account)
 
