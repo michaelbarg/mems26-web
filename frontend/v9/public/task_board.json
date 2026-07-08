@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-08T22:25:00+03:00",
+    "updated": "2026-07-09T00:30:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       {
@@ -192,8 +192,8 @@
       "status": "open",
       "owner": "CC+Cowork",
       "where": "backend/v9/services/fill_poller.py (I-58 fallback) · shared root with L2-RESIDUAL",
-      "next": "Verify a real live fill → tracked trade + Sierra P&L; map the order_id (no fallback)",
-      "evidence": "order_id 8424 unmapped → fallback to demo 297; not proven on a live fill",
+      "next": "Verify FIRST LIVE trade today: entry_price comes from Sierra fill (registered order), not setup price (L4 class root cause). Trade 310 was corrected manually from TradeActivityLog",
+      "evidence": "order_id 8424 unmapped → fallback to demo 297; not proven on a live fill. Trade 310 reconciled 07-09: DB entry=7514→7515.50, pnl=$45→$22.50 from Sierra TradeActivityLog (audit trail in quality JSON)",
       "links": []
     },
     {

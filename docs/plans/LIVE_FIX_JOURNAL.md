@@ -35,6 +35,7 @@ No item is "done" without raw verification on the **live/SIM** path (shadow proo
 ## ✅ DONE (with evidence)
 | Issue | Commit | Evidence |
 |-------|--------|----------|
+| **Trade 310 P&L reconciled from Sierra TradeActivityLog** | DB UPDATE (no code change) | evidence_2026-07-09/trade_310_reconcile.md — DB had entry=7514/exit=7518.5/pnl=$45; Sierra truth: entry=7515.50/exit=7517.75/pnl=$22.50. Root cause: L4 class — entry_price came from setup not fill. Audit trail in quality JSON. |
 | Order path to Sierra (2c fill, no GENERAL_ERROR) | DLL 9d314d0 | evidence_2026-07-07 P0 |
 | P1.2 orphan-fill → CRITICAL | 9363d4a | live: order_id 8411/8418 flagged |
 | P1.3 reconcile-live wired | 5019a7b | 4 tests |
