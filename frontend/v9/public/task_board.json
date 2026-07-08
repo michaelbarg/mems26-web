@@ -3,14 +3,29 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-08T15:45:00+03:00",
+    "updated": "2026-07-08T19:45:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
-      { "label": "System Index", "path": "SYSTEM_INDEX.md" },
-      { "label": "Source of Truth", "path": "docs/SOURCE_OF_TRUTH.md" },
-      { "label": "Flag Index", "path": "docs/FLAG_INDEX.md" },
-      { "label": "Live Fix Journal", "path": "docs/plans/LIVE_FIX_JOURNAL.md" },
-      { "label": "Status Board", "path": "docs/plans/STATUS_BOARD.md" }
+      {
+        "label": "System Index",
+        "path": "SYSTEM_INDEX.md"
+      },
+      {
+        "label": "Source of Truth",
+        "path": "docs/SOURCE_OF_TRUTH.md"
+      },
+      {
+        "label": "Flag Index",
+        "path": "docs/FLAG_INDEX.md"
+      },
+      {
+        "label": "Live Fix Journal",
+        "path": "docs/plans/LIVE_FIX_JOURNAL.md"
+      },
+      {
+        "label": "Status Board",
+        "path": "docs/plans/STATUS_BOARD.md"
+      }
     ]
   },
   "tasks": [
@@ -23,7 +38,12 @@
       "where": "Sierra live account 37138283 — was an arming issue, not our code (same DLL passed SIM)",
       "next": "Confirm both live trades appear in the Live Ledger with correct fills/P&L (L8)",
       "evidence": "RESOLVED 2026-07-07 eve — Michael: 2 live trades executed, BOTH succeeded. (Earlier 303 ORDER_FAILED was live-arming; SIM 8418 error=0 on the same DLL.)",
-      "links": [{ "label": "handoff", "path": "docs/handoff/CC_CONTINUATION_2026-07-07.md" }]
+      "links": [
+        {
+          "label": "handoff",
+          "path": "docs/handoff/CC_CONTINUATION_2026-07-07.md"
+        }
+      ]
     },
     {
       "id": "L2",
@@ -34,7 +54,23 @@
       "where": "backend/v9/services/trade_manager/manager.py:102 _is_demo_mode · :119 _emit_modify_stop · :391 _apply_smart_be_after_t1",
       "next": "Verify a LIVE stop-move actually reaches Sierra — paste the sc.ModifyOrder line (Rule 5)",
       "evidence": "eb4bc6f: _is_demo_mode was demo-only → live trade 299 logged BE 7553.75→7544.75 but sent 0 MODIFY. Now emits for mode='live' when LIVE_EXECUTION_V1=1",
-      "links": [{ "label": "journal", "path": "docs/plans/LIVE_FIX_JOURNAL.md" }]
+      "links": [
+        {
+          "label": "journal",
+          "path": "docs/plans/LIVE_FIX_JOURNAL.md"
+        }
+      ]
+    },
+    {
+      "id": "STALE-BAR-SPAM",
+      "title": "בר ישן (2026-06-09) נדחף שוב ושוב ל-/bars/5min — שומר-הטריות חוסם, למצוא את המקור",
+      "priority": "P2",
+      "status": "open",
+      "owner": "CC",
+      "where": "[bars/5min] _route_bar BLOCKED stale_ts — repeating since 19:02 restart; המקור כנראה קובץ export ישן שה-bridge מקריא",
+      "next": "לאתר מי דוחף (bridge stream? קובץ v9_export ישן?) ולנקות; הגארד עובד — לא חוסם מסחר",
+      "evidence": "לוג 07-08 19:02+ — כל דקה בר 2026-06-09T13:30",
+      "links": []
     },
     {
       "id": "L2-RESIDUAL",
@@ -56,7 +92,16 @@
       "where": "engine backend/v9/services/sierra_ledger.py · endpoint /api/v9/live_ledger (wired app.py) · UI /board LiveLedgerPanel · flag LIVE_LEDGER_V1 (documented in FLAG_INDEX)",
       "next": "CC (ONE restart covers L8+L7+L2r): snapshot → LIVE_LEDGER_V1=1 → kickstart when FLAT → feed the TradeActivityLog (sierra_stop + stop-move history) → verify V1–V5 vs the 2 real trades (Rule 5)",
       "evidence": "Committed 2026-07-08: 6bb25ce (engine+endpoint+tests 7/7) + 9f0a64a (board components). Fills-only P&L works; stop-history/manual-stop need the activity log (CC).",
-      "links": [{ "label": "spec", "path": "docs/handoff/CC_SIERRA_LIVE_LEDGER_2026-07-07.md" }, { "label": "today", "path": "docs/handoff/CC_CONTINUATION_2026-07-08.md" }]
+      "links": [
+        {
+          "label": "spec",
+          "path": "docs/handoff/CC_SIERRA_LIVE_LEDGER_2026-07-07.md"
+        },
+        {
+          "label": "today",
+          "path": "docs/handoff/CC_CONTINUATION_2026-07-08.md"
+        }
+      ]
     },
     {
       "id": "L1",
@@ -67,7 +112,12 @@
       "where": "backend/v9/systems/woodies/woodies_system.py:668 (fallback insufficient/not reached) · stages/a7_universal_checks.py",
       "next": "URGENT: diagnose WHICH A7 sub-check fails (add the failing-check name to the DROPPED log line), fix the root, restart when flat — this is a BUG fix, not a gate change",
       "evidence": "2026-07-08 live: 17:25 ZLR LONG + 17:30 ZLR SHORT ×2 → FIRE DROPPED failed_stages=['A7'] — the morning strategic shorts Michael flagged. The 668 fallback did NOT prevent drops",
-      "links": [{ "label": "journal", "path": "docs/plans/LIVE_FIX_JOURNAL.md" }]
+      "links": [
+        {
+          "label": "journal",
+          "path": "docs/plans/LIVE_FIX_JOURNAL.md"
+        }
+      ]
     },
     {
       "id": "L7",
