@@ -327,6 +327,17 @@
       "next": "Offer to embed in the main dashboard; wire the board to the codebase index for full A7 traceability",
       "evidence": "built 2026-07-07 as a non-invasive /board route (no backend change)",
       "links": []
+    },
+    {
+      "id": "S4-RUNNER-T2-SIGN",
+      "title": "RUNNER_T2 לשורטים — t2 מחושב בצד הלא-נכון (sanitized ל-None, לא מסוכן אבל מאבד runner)",
+      "priority": "P2",
+      "status": "open",
+      "owner": "Cowork",
+      "where": "woodies_system RUNNER_T2 — לוג 07-08 17:30: 'ZLR SHORT t2=7506.25' מעל t1=7505.25 → I-59 sanitize מחק; ה-R-mult מודפס כמחיר (באג פורמט נוסף)",
+      "next": "לתקן את הסימן (SHORT: t2 מתחת ל-t1) + טסט; עד אז שורטים מאבדים יעד-runner (R:R נופל ל-expected-mult)",
+      "evidence": "לוג 07-08 17:25/17:30 — שני מופעים",
+      "links": []
     }
   ]
 }
