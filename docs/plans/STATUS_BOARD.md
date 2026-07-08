@@ -3,6 +3,28 @@
 
 ## 2026-07-07 (REAL MONEY LIVE — priority: LIVE only, shadow = nice-to-have)
 
+**[2026-07-07 EOD — Cowork: Sierra CLOSED (flat) · deploy window OPEN · LIVE-ready mega-prompt ready]**
+Michael closed Sierra → **we are flat** → CC may restart/deploy safely now. Master work order for tomorrow
+(LIVE, **2 contracts**): `docs/handoff/MEGA_PROMPT_LIVE_READY_2026-07-08.md` — Definition-of-Done = 8 gates
+(arming holds · **L7 2c symmetry** · L2 live MODIFY · A7 route · L4 capture · L8 ledger reconciled · safety ·
+health/index). Execute-now (flat): deploy L8 (enable `LIVE_LEDGER_V1` + restart + feed TradeActivityLog +
+verify V1–V5 vs the 2 real trades) · L2-residual · L7 2c symmetry · index refresh. Task list = `/board` +
+`task_board.json`. Full detail: `WORK_PLAN_2026-07-08.md`.
+
+**[2026-07-07 ~19:55 IL — Cowork: BLOCKER-1 resolved · L8 ledger engine+UI built · /board shipped]**
+🟢 **BLOCKER-1 RESOLVED** — Michael: **2 live trades executed, BOTH succeeded** (real-money order path
+works; the 303 `GENERAL_ERROR` was live-account arming, not our code). Gap now = **frontend not synced
+with Sierra** → L8, **investor-critical**. ✅ **L2 fix landed** (`eb4bc6f`: `_is_demo_mode` now true for
+mode='live' → MODIFY reaches Sierra); **residual** — the 2nd silent guard (`_get_sierra_order_id` None on
+I-58-fallback trades) still drops the MODIFY → CC store order_id + warn. `ea868cc` fixed the varchar(30)
+exit_reason DB crash (stuck 299). 🔨 **L8 BUILT (Cowork, flag-OFF `LIVE_LEDGER_V1`):** `sierra_ledger.py`
+(fills→entry/exits/P&L · reconcile divergences · MANUAL detect) **7/7 tests green** ·
+`GET /api/v9/live_ledger` (wired app.py) · `/board` **LiveLedgerPanel** (real Sierra trades + divergences +
+MANUAL tags). **CC deploy:** enable `LIVE_LEDGER_V1` → restart when FLAT → feed the TradeActivityLog
+(`sierra_stop` + stop history) → verify V1–V5 vs the 2 real trades. Also shipped `/board` = Live Ledger +
+System 6 supervisor (`/api/v9/system6/diagnose`) + prioritized task board (`public/task_board.json`, both
+agents edit; needs :3000). Tomorrow's sequenced plan: `docs/plans/WORK_PLAN_2026-07-08.md`.
+
 **[2026-07-07 (live) — Michael: RECORDS ≠ REALITY — stop shows moved but Sierra didn't move it + URGENT Sierra-sourced ledger]**
 **Finding:** after T1 the monitor/DB showed the stop moved to BE 7544.75, but in REALITY the Sierra
 stop did NOT move (display ≠ Sierra). **+ design:** the after-T1 stop must trail toward **STRUCTURE**
@@ -11,6 +33,19 @@ in the journal (bug + design). **URGENT (L8):** build a LIVE trade ledger that r
 Sierra actually EXECUTED** (imported from Sierra: real fills/stops/P&L) — *what actually happens, not
 what the backend records* — with an orderly protocol, separated from backend-synthesized/shadow. This
 is the real-money ground-truth ledger. Owner: CC + Cowork. Spec: handoff pending.
+
+**[2026-07-07 ~18:45 IL — Cowork: verified CC's live evidence (repo + `evidence_2026-07-07/`, no live access)]**
+✅ **P0 2c order path GREEN** — Sierra order 8418, 2c sim fill @7580.25, `ORDER_SUBMITTED` error=0; DLL
+bin Jul-7 13:42 > src 06:42 (fix deployed) — supersedes stale GROUND_TRUTH (2c=timeout). ✅ **L1 A7
+fallback in code** (woodies_system.py:668-690), live-fire unverified. 🔴 **L2(a) — why the Sierra stop
+didn't move (RECORDS ≠ REALITY, code-verified):** `_apply_smart_be_after_t1` (manager.py:391) is
+correct but its `_emit_modify_stop` (:119-125) SILENTLY returns *before writing to Sierra* unless
+`LIVE_EXECUTION_V1` truthy **AND** `sierra_order_id` present — the I-58 fallback (L4) never mapped the
+order_id → DB records BE, Sierra never moves. **L2 & L4 = one root** (missing live order-id map), both
+silent. 🔴 **L4** capture fallback-only on DEMO 297 (8424 unmapped), not live. 🔴 **L7** the 3-target
+artifact is a SIM_TEST, not the live path (t2/t3=None) → display/command issue. ⚠ **FLAT UNCONFIRMED:**
+reconcile `MISMATCH_ORPHAN_DB` db_open=[401-405] vs flat slot — confirm flat via CC before any
+restart/fix. L2(b) structure-trail + L8 ledger = build flag-OFF/spec first, not mid-live. Journal in lockstep.
 
 **[2026-07-07 — Michael: PERMANENT fix-protocol established → `docs/plans/LIVE_FIX_JOURNAL.md`]**
 Standing rule (Michael, on real money): 🔴 **LIVE** issues are the only priority; ⚪ SHADOW is

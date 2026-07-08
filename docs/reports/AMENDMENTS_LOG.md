@@ -177,3 +177,16 @@ per-pattern explanation + risk chapter, page refs) → verified every number vis
 page images (pdftoppm crops, pages 5,8,10,12,13,18-20,23,25-32,35-38); known book-vs-TableA delta
 flagged in doc §6 (ZLR stage-1: book=touch past ±100, ±200 undesirable; TableA=requires ±200).
 No code/flags/behavior touched.
+
+---
+
+## 2026-07-06 · EOD diagnostics run — I-61/I-62 opened (docs only)
+
+[2026-07-06] EOD-agent (Cowork, autonomous, 15:12 CT gate passed): produced `PATTERN_EOD_2026-07-06.md`
++ `DESIGNS_2026-07-06.md` + register entry. Feed healthy (78 RTH bars, rally day +28.75pt). 3 fires all
+shadow (0 demo). **Two new suspects:** I-62 (demo track disabled — `demo_enabled_systems=[]`, was active
+through 07-03; needs Michael confirm whether intentional pre-LIVE promotion vs accidental — TRADING-SURFACE),
+I-61 (shadow shorts 292/294 closed `exit_reason=manual` BE at 12:01 CT, mechanism unclear — SoT→CC).
+Recurred: I-54 short-target monotonicity (t2>t3), D-missed-buffer (50 dupes/null R), I-44 wrapper frozen,
+I-23 counters. No code/flags/behavior touched (read-only EOD). Roadmap HTML/STATUS_BOARD not modified this
+run (autonomous-run conservatism; new items live in register + designs).

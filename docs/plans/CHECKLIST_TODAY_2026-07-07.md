@@ -40,12 +40,11 @@ The regression you felt ("worked days ago, then broke") = `sc.SendOrdersToTradeS
   no "FIRE DROPPED failed_stages=['A7']").
 
 ## P4 — CLEAN-STATE REVIEW (restore a clean start)  [conversation guidance]
-- 🔲 **P4.1 Config drift from yesterday** — Michael ruling on each:
-  - `CONT_TREND_FILTER=0` — I turned it off on a MIS-diagnosis (the real blocker was A7).
-    Recommend RESTORE to `=1` (its standing state) for a clean start.
-  - `MEMS26_MODE=live` · `LIVE_TRADING_V1=1` · `LIVE_EXECUTION_V1=1` — keep armed, or hold
-    until the SIM proof is green?
-  - `OPENING_WINDOW_FIRE_V1=0` (item-10, you ruled off yesterday) — keep off / reconsider.
+- ✅ **P4.1 Config drift from yesterday** — Michael RULED 07-07:
+  - `CONT_TREND_FILTER` → **RESTORE to `=1`** (standing default). Done in CC Step 1 (snapshot +
+    restart + boot-line confirm).
+  - `MEMS26_MODE=live` · `LIVE_TRADING_V1=1` · `LIVE_EXECUTION_V1=1` — stay armed.
+  - `OPENING_WINDOW_FIRE_V1=0` — keep off (item-10, ruled off).
 - 🔲 **P4.2** Commit CC's uncommitted EOD reports (AMENDMENTS_LOG, MEMS26_ISSUES_REGISTER,
   DESIGNS/MISSED_TRADES).
 

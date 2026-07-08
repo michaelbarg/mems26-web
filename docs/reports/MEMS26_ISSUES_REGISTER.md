@@ -1233,3 +1233,41 @@ slots 3–4 (SHORT מה-top 7491) = פער-כניסה 09:15–10:20 שנסגר �
 - **bridge.running=false / streams 0/11:** artifact-post-close (Sierra-direct+promoter הזרימו 42 ברים) או drift? מול `/tmp/bridge.err.log`+LaunchAgent.
 
 **מקור-אמת (Rule 2/5) → CC:** D-missed-buffer (לוג-detector: 50=דופ'? + ערכי-ZLR 11:52–55 מול v9_export) · D-ready-route (חילוץ `last_route.failed_stages` לבלוקי-11:52–55 — A7:TOO_CLOSE_TO_EOD צפוי מול `MIN_EOD_DISTANCE=60`+השבתה-12:00) · gateway-slot · bridge · I-44 (fixture EXTREME-על-12.5pt). **סדר-בנייה מוצע (הכל display/safe, לא-דורש-Michael):** ready-route-instrument → missed-buffer → daytype-plausibility.
+
+---
+### [2026-07-06 15:12 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**שער-זמן I-9:** ✅ 15:12 CT (≥15:00, אומת `TZ=America/Chicago date` → `2026-07-06 15:12 CDT`; IL 23:12 IDT). יום-מסחר-מלא (feed בריא, 78 ברי-RTH 08:30→14:55 CT, age 0.9s). תוצרים: `PATTERN_EOD_2026-07-06.md` + `DESIGNS_2026-07-06.md` + עדכון-register זה. קריאה-בלבד, שום קוד/flag/.env לא-שונה.
+
+**🔴 כותרת-על — הנתיב-הקובע (DEMO) כבוי:** `gateway.demo_enabled_systems=[]` ⇒ **0 עסקאות-דמו** (מול דמו-פעיל עד 07-03: id290 WIN). `live_enabled=[2,4]`/`live_slot=null` ⇒ 0-לייב. **רק shadow-sim רץ.** יום-ראלי (+28.75pt, טווח 50pt, 7552.25→7602.25→נעילה 7593.5), אך 2 מ-3 הסיגנלים היו שורט-נגד-מגמה.
+
+**עסקאות היום (3, כולן shadow):**
+- **292** S4 ZLR-SHORT @11:55 (7585.25/stop 7587.5) → `manual` BE @12:01 · $0. CF-hold=STOP −1R (בר-12:00 עלה 7589).
+- **294** S2 REACTIVE_SHORT @12:00 (7583.75/stop 7586.5) → `manual` BE @12:01 · $0. CF-hold=STOP −1R. **targets t2=7558 > t3=7569.75 בהיפוך-מונוטוניות.**
+- **295** S4 GHOST-LONG @12:25 (7589.25/stop 7587/t1 7592) → **STOP @12:30 · −$33.75 / −1R** (קנה שיא-מקומי; הבר-12:25 נסגר 7586.25 מתחת-לכניסה; לא-phantom, אומת מול bars5min).
+- **נטו shadow: −$33.75 · 0W/1L/2BE.** ΣCF-אקטואלי=−1R; שערים/exits נטו-מגִנִּים (flatten חסך +2R, ready_to_route חסך +1R); אפס-winner-על-הרצפה.
+
+**חשודים חדשים:**
+- **🔴 I-62 (חדש) — demo track כבוי.** `demo_enabled_systems=[]` מ-~07-06 (07-03 עוד-היה-פעיל, id290). ייתכן קידום-מכוון pre-LIVE (S2/S4→live-enabled) או שוגג. **דורש אישור-Michael** (trading-surface). SoT: `.env`/`FLAG_INDEX.md`/gateway-config — מתי-ומי רוקן demo_enabled. design DESIGNS_2026-07-06 §1.
+- **🟡 I-61 (חדש) — flatten-ידני של שורטי-shadow 292/294 ב-12:01 CT, מנגנון-לא-ברור.** שניהם `exit_reason=manual/outcome=BE` באותה-דקה במחיר≈כניסה. עבור שורט-שנכנס-לתוך-ראלי, BE-stop אמיתי לא-ייתכן ⇒ סגירת-flatten (ידני? חוק-shadow-sim? באג?). הפך 2×(−1R)→0R. SoT ל-CC: `on_trade_close`/shadow-exit-path + `/tmp` logs סביב 12:01. design §2.
+
+**שוחזרו/מאוחדים:**
+- **🔴 I-54 / D-targets-monotonic (שוחזר):** short-targets מבניים-רחוקים (t2=7558=25.75pt על יום-50pt) + היפוך t2>t3 ב-294. חוזר על 07-01/02. trading-logic → design §3.
+- **🟡 D-missed-buffer (שוחזר, מאחד I-60):** `/missed-trades` count=50, כולם ZLR-LONG `ready_to_route=False`, מרוכזים ~14:47 CT, `hypothetical_r=null`. אין-dedup + R-לא-מחושב. CF: חסימה-מוצדקת (chase-שיא → STOP −1R, 14:50 קרס ל-7591). design §4.
+- **🟡 הטיה-שורט-נגד-מגמה (I-41/I-50 family, שוחזר):** 2/3 סיגנלים SHORT ביום-ראלי; ה-LONG-היחיד נכנס-גרוע. watch (n-נמוך shadow-בלבד).
+- **🔴 I-44 (day_type-wrapper):** `session_min=0/vote_history=[]` (קפוא). היום ההתוויות **סבירות** (OPEN_REJECTION_REVERSE/WIDE תואמים צורת-יום) — ניגוד ל-07-03 (EXTREME בלתי-סביר). הבעיה ב-wrapper-הקפוא, לא-בסיווג. handoff עומד.
+- **🟡 I-23:** `trades_today=0/daily_pnl=0` מול 3-fires-shadow. design עומד.
+- **🟢 I-22:** לא-מומש היום (pnl_r=−1/0 תקינים; הניפוח רק על WIN-חלקי-R).
+- **🟢 I-56/I-58:** לא-נבחנו (אין demo היום → אין divergence shadow↔demo להשוות).
+- **🟡 bridge.running=false/streams 0/11** מול feed-age 0.9s: artifact-post-close סביר. לצלב `/tmp/bridge.err.log`+LaunchAgent (CC).
+
+**מקור-אמת (Rule 2/5) → CC:** I-62 (`.env`/FLAG_INDEX — מתי demo_enabled רוקן, אישור-Michael) · I-61 (נתיב `exit_reason=manual` ל-292/294 + logs 12:01) · I-54 (חישוב-targets, מקור 7558 + היפוך t2>t3) · D-missed-buffer (לוג-detector: 50=דופ'? + ערכי-ZLR 14:45–14:50 מול v9_export) · bridge-false (post-close artifact?).
+
+---
+
+### תוספת missed-trades EOD (Cowork · 2026-07-06 15:22 CT) — דוח `docs/reports/MISSED_TRADES_2026-07-06.md`
+מרחיב את D-missed-buffer/I-60 עם 2 ממצאים שלא-נתפסו בניתוח-הקודם-של-היום:
+
+- **🔴 I-3 (החוסם-המוביל) — הפספוס-האמיתי היה ZLR-UP 13:40, לא ה-store-cluster.** ה-D-missed-buffer מיקד ב-14:47–50 (`ready_to_route=False`, **חסימה-מוצדקת** — 14:50 קרס ל-7591). **אבל** ה-buffer בן-50 **הפיל-החוצה** את ה-ZLR-UP הרווחי של **13:40** (S4, BLUE, cci+61, **עם-המגמה**): replay entry 7591 → **T1✓@13:45 · T2✓@13:50 · MFE +4.5R** (שיא-יום 7602.25@14:20). זוהה, נחסם `ready_to_route=False` (target-מנוון, A7 R:R<1.0). **root:** I-3 סלקטיבי — id 292/295 כן-נותבו (t1/t2 תקינים) אך ה-13:40 ZLR-UP קיבל target-מנוון→בלוק. **fix:** טבלת stop/target ל-ZLR (targets_stop→fire_setup). **verify:** replay-2×-בלתי-תלוי (Chrome-JS+bars5min OHLC), overlap woodies==bars5min 7/7 מדויק. **עלות-אמת: ≥ +1R מוחשי עם-המגמה** (מול "חסימה-מוצדקת-בלבד" בניתוח-הקודם).
+- **🟡 I-60-adj (חדש) — woodies endpoint buffer=50 מקצר-כיסוי ל-4h → נקודת-עיוורון-בוקר.** post-close woodies מכסה **11:15→15:20 CT בלבד**, מפספס **08:30–11:10** = כל 5 סלוטי-ה-benchmark. (07-03 לא-חשף זאת — חצי-יום, 50-buffer כיסה הכל.) ⇒ אי-אפשר לאמת zlr/hfe-flags לבוקר; רק מחיר (bars5min). **fix:** snapshot-at-close של woodies ל-RTH-מלא, או endpoint שקורא מ-DB (`sierra_woodies_5min`) לא-מ-buffer-חי. **verify:** woodies first-bar=11:15 CT (offset +180min מול bars5min, 45/45 close-matches).
+- **🎯 benchmark 0/5:** יום-מגמה-**עולה** (טווח 50 / נטו +28.75 / שפל 7552.25@08:35 → שיא 7602.25@14:20) — הפוך מ-template-06-05. סלוטי-שורט 9:20/9:35/10:00 = **אי-שורט נכון** (מחיר עלה). סלוטי-long 8:35(reversal)/9:00(tactical) = הזדמנויות-אמת אך ב-woodies-blind (0-fires בוקר). ⇒ **הפער-האמיתי היום = 13:40 ZLR-UP המאומת, לא ה-benchmark-היורד.**
