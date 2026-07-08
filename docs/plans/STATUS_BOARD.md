@@ -3,6 +3,12 @@
 
 ## 2026-07-08 (LIVE-ready 2-contracts day — mega-prompt executing)
 
+**[2026-07-08 ~22:15 IL — Cowork(S1 executor): Dalton P0-1/P0-2/P0-3 נבנו flag-OFF + REPLAY-EMPTY תוקן (95d411b)]**
+Finding: המסווג הקנוני זרק את תחזית-הפתיחה עד 60דק' (bare FORMING); אין רה-סיווג-על-קבלה (שער rib≥2.5 מאחר); אין ציון-ביטחון קנוני (רק 0.46 הישן ב-state_machine.py:26). REPLAY-EMPTY: _bars_for_date החזיר ריק כשסדרת woodies התפגרה תוך-יומית (07-08=0 שורות בזמן הסשן החי בעוד ה-feed הגולמי v9_bars_5min החזיק את הברים; שתיהן מחזיקות 77 ברי-RTH עכשיו).
+Fix (95d411b · כולם flag-OFF · byte-identical כבוי): P0-1 `S1_ACCEPTANCE_RECLASS_V1` (פריצת-IB מקובלת→Trend מיידי, ויתור על rib≥2.5, Dalton pp.37-38,288-292; חזרה-פנימה=failed_breakout+revert; oi חוסם) · P0-2 `S1_COMMITTED_PROVISIONAL_V1` (provisional מ-{opening_type×open_location} ב-30דק' במקום FORMING; 0% bare-FORMING) · P0-3 `S1_CONFIDENCE_V2` (ביטחון קנוני אחד ב-classify(), מכנה קבוע, FORMING=0.0, מחליף את 0.46) · classifier_core מזין accepted_break/open_dir/ext_bars (אדיטיבי) · REPLAY-EMPTY fallback ל-v9_bars_5min.
+Verify (Rule 5 · sandbox — הריצה המלאה על המק חסומה ב-BRIDGE_TOKEN בקונפטסט-אב): `test_s1_dalton_p0.py` 16/16 חדש · **10/16 נופלים על קוד ישן** (אנטי-טאוטולוגי) · suite day_type 39/39 · replay 07-08 (ברים אמיתיים, docs/reports/evidence_2026-07-08_s1_dalton/): P0-2 provisional@30דק' מול bare-FORMING-עד-60דק' בבסיס; P0-1 *לא* כפה Trend — 07-08 RTH רץ 7474↔7532.5 (שבר את שני צדדי ה-IB) וחזר דרך הפתיחה → Neutral_Extreme, תואם את הקשר-ה-auth Neutral_Extreme של עסקה 310 (LONG). פרמיסת-הדוקטרינה 'flip to DOWN' = רגל-הירידה התוך-יומית, לא הסשן המלא.
+OPEN → מייקל: (1) הדלקת 3 הדגלים = שינוי משטח-סיכון; (2) פרמיסת 07-08; (3) surfacing P0-3 (main.py/frontend follow-up). לא הודלק דבר.
+
 **[2026-07-08 ~17:20 IL — Cowork: שער LSMA-שטוח נבנה flag-OFF לפי בקשת מייקל · LSMA_FLAT_GATE_V1]**
 Michael: "לא רוצה עסקאות כשהקו התכלת המנוקד (LSMA) אופקי מדי, בלי זווית מגמה ברורה".
 Finding (audit-before-build): אין מטריקת שיפוע-LSMA במערכת — CONT_TREND_FILTER/`dir_sustained` מודד

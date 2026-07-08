@@ -225,8 +225,8 @@
       "status": "in_progress",
       "owner": "Cowork+Michael",
       "where": "docs/spec_authority/DALTON_DOCTRINE.md (התורה — עם הפניות עמודים) · הספר: docs/spec_authority/source/Dalton_Mind_over_Markets.pdf",
-      "next": "פסיקות מייקל על 12 פריטי ה-backlog ואז בנייה flag-OFF לפי סדר: P0-1 רה-סיווג-על-קבלה · P0-2 סיווג-מוקדם-מחויב ב-30דק' · P0-3 ציון-ביטחון קנוני · P1 elongation/DD-neck",
-      "evidence": "Michael 07-08: 'הספר הוא התורה שלנו וממנה נשפר את מערכת 1 כל הזמן' — סוכן קרא את הפרקים המבניים, מיפה מול הקוד החי, 8 סתירות ספר-מול-S1 מפורשות",
+      "next": "פסיקת מייקל: (1) הדלקת 3 דגלי-P0 — S1_ACCEPTANCE_RECLASS_V1/S1_COMMITTED_PROVISIONAL_V1/S1_CONFIDENCE_V2 (שינוי משטח-סיכון); (2) פרמיסת 07-08 (הסשן המלא היה Neutral_Extreme, לא Trend יורד — הרגל-היורדת הייתה תוך-יומית); ואז P1 (one_tf/elongation) + P0-1 v2 (prior-range/balance + failed_break producer) + surfacing P0-3 (להסתיר 0.46 הישן כש-S1_ENGINE_NEW_CLASSIFIER=1).",
+      "evidence": "Cowork 2026-07-08 95d411b — P0-1/2/3 בנויים flag-OFF; test_s1_dalton_p0.py 16/16 (10 נופלים על קוד ישן, אנטי-טאוטולוגי); suite day_type 39/39; REPLAY-EMPTY תוקן (_bars_for_date fallback ל-v9_bars_5min). replay 07-08: P0-2 provisional@30דק'; P0-1 לא כפה Trend כי היום היה דו-צדדי→Neutral_Extreme (נכון, תואם עסקה 310 LONG).",
       "links": []
     },
     {
