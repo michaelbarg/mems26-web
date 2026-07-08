@@ -15,6 +15,10 @@ def test_exit_trade_closes_filled_shadow(client, db):
         "t1": 5250.0,
         "t2": 5255.0,
         "t3": 5260.0,
+        # L7 (2026-07-08): the trade's contract count is now persisted from the
+        # setup (DB == Sierra bracket). This test means a 3-contract trade —
+        # say so explicitly (a sizing-less setup is honestly 1 contract).
+        "contracts": 3,
     }
     tid = tm.accept_setup(setup, "shadow")
     tm.on_fill(tid, 5245.0)
