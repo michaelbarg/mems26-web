@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-08T21:50:00+03:00",
+    "updated": "2026-07-08T22:25:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       {
@@ -113,7 +113,7 @@
       "owner": "CC",
       "where": "[bars/5min] _route_bar BLOCKED stale_ts — repeating since 19:02 restart; המקור כנראה קובץ export ישן שה-bridge מקריא",
       "next": "לאתר מי דוחף (bridge stream? קובץ v9_export ישן?) ולנקות; הגארד עובד — לא חוסם מסחר",
-      "evidence": "לוג 07-08 19:02+ — כל דקה בר 2026-06-09T13:30",
+      "evidence": "לוג 07-08 19:02+ — כל דקה בר 2026-06-09T13:30 · ציד 07-08 ערב: קבצי ה-export נקיים (אין 2026-06-09) → החשוד: stream bars_5min הלא-רציף של ה-bridge מחזיק/קורא מקור ישן — CC לבדוק את נתיב הקובץ של הstream + זיכרון התהליך",
       "links": []
     },
     {
@@ -277,11 +277,11 @@
       "id": "TP-AUDIT-RESEARCH",
       "title": "מחקר: האם המימוש (T1/T2) מחושב נכון פר-תבנית ומול נתוני אותו יום",
       "priority": "P1",
-      "status": "open",
+      "status": "in_progress",
       "owner": "Agent (מחקר) + Michael",
       "where": "docs/handoff/RESEARCH_PROMPT_TP_AUDIT_2026-07-08.md — פרומפט מוכן להרצה בסוכן",
       "next": "להריץ את הפרומפט על נתוני v9_trades + ברים; תוצר: טבלת תבנית×יום-סוג עם T1 בפועל מול אופטימלי, והמלצות ל-target_zones",
-      "evidence": "תשובה כנה: לא — L6 פתוח (P&L מ-bar לא fill) ומעולם לא נעשה אודיט מיקומי-T1 פר-תבנית מול same-day data",
+      "evidence": "תשובה כנה: לא — L6 פתוח (P&L מ-bar לא fill) ומעולם לא נעשה אודיט מיקומי-T1 פר-תבנית מול same-day data · v1 הורץ 07-08 (scripts/tp_audit.py): ה-API מחזיק ~2 ימי ברים בלבד → מדגם 0; המחקר המלא דורש psql על 30 יום — CC/סוכן מחר",
       "links": []
     },
     {
@@ -310,11 +310,11 @@
       "id": "STOP-STRUCT",
       "title": "טרייל-סטופ למבנה אחרי T1 — קרוב לכניסה אבל מאחורי מבנה (L2b)",
       "priority": "P2",
-      "status": "open",
+      "status": "fixed_unverified",
       "owner": "Cowork+CC",
       "where": "manager._apply_smart_be_after_t1 (היום: BE+טיק) · stop_anchors/resolver.py (מדרגות-מבנה קיימות) · TARGET_ZONES shelves",
-      "next": "עיצוב+בנייה flag-OFF (STOP_STRUCTURE_TRAIL_V1): אחרי T1 בחר מדרגת-מבנה בין הכניסה למחיר (never-widen, floor=BE), buffer בטיקים/ATR; backtest לפני הדלקה; פסיקת-Michael על הפרמטרים",
-      "evidence": "Michael 2026-07-08: 'לקרב לכניסה אבל לשים באזור המבנה כדי לא לפספס הרחבה'. תשתית קיימת: STOP_RESOLVER_V1 ladders",
+      "next": "מחר: מייקל מחליט STOP_STRUCTURE_TRAIL_V1=1 בשער הבוקר; CC מאמת על T1 אמיתי",
+      "evidence": "נבנה 07-08 ערב (0c32b57) flag-OFF: עוגן מבני מ-8 ברים אחרונים, never-widen, fallback ל-BE+1T. טסטים 5/5. הדלקה=פסיקת מייקל בבוקר",
       "links": []
     },
     {
