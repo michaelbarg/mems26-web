@@ -572,6 +572,23 @@ flags:
     why: "OFF (default, SHADOW). Card requires 'b4 with rising volume' — code had no b4 volume check."
     status: deferred
 
+  # ───────────────────────── S1 Dalton P0 (built flag-OFF 2026-07-08, S1-chat) ─────────────────────────
+  S1_ACCEPTANCE_RECLASS_V1:
+    category: s1
+    what: "Accepted IB break (≥2 closed bars + volume) → immediate Trend reclass without waiting for rib≥2.5; return-inside → failed_breakout tag + revert. Dalton pp.37-38, 288-292."
+    why: "OFF (built 07-08 per Michael's live ruling 'breakout must flip the classification'). Enable = Michael + a clean-trend-day replay (07-08 resolved two-sided so the premise moved to 06-29/06-30)."
+    status: awaiting_backtest
+  S1_COMMITTED_PROVISIONAL_V1:
+    category: s1
+    what: "At 30 min: committed provisional day-type from opening-type × open-vs-prior-value instead of bare FORMING. Dalton pp.63-74."
+    why: "OFF (built 07-08). Verified on real 07-08 bars: provisional at bar 6 vs FORMING-until-12 in baseline. Enable = Michael."
+    status: awaiting_backtest
+  S1_CONFIDENCE_V2:
+    category: s1
+    what: "Canonical confidence in classify(): aligned-evidence fraction, fixed denominator, FORMING=0.0 — replaces the legacy 0.46 LOCKED_LOW_CONF surface."
+    why: "OFF (built 07-08). Fixes the live confusion (0.18/0.48 on a clear day). Enable = Michael."
+    status: awaiting_backtest
+
   # ───────────────────────── live safety net + L8 ledger (2026-07-03..08) ─────────────────────────
   EOD_FLATTEN_V1:
     category: risk
