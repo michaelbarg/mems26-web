@@ -422,10 +422,31 @@ class TradingGateway:
                 _dc_dir = _dc.get("dir")
                 if _dc_dir in ("UP", "DOWN"):
                     if _set_dir != _dc_dir:
-                        result["blocked_by"] = "direction_context"
-                        logger.info("[Gateway] BLOCKED by direction-context: setup %s vs %s (%s)",
-                                    _set_dir, _dc_dir, _dc.get("reason"))
-                        return result
+                        # NEUTRAL_RESPONSIVE_V1 (Michael ruling 2026-07-08, live):
+                        # on a NEUTRAL day (2-sided, rotational — Dalton) the
+                        # direction-context is a trend control and is category-
+                        # inappropriate for RESPONSIVE (REV-family) fades at the
+                        # extremes — the doctrine play on Neutral days. CONT
+                        # patterns stay filtered. Same family map as the
+                        # cont-trend-filter exemption above.
+                        _nr_exempt = False
+                        if os.getenv("NEUTRAL_RESPONSIVE_V1", "0").lower() in ("1", "true", "yes"):
+                            try:
+                                from backend.v9.systems.daytype_position_gate import _pattern_family as _nr_fam_fn
+                                _nr_dt = (extract_g1_entry_context(cross_context) or {}).get("day_type_at_entry") or ""
+                                _nr_pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or ""
+                                _nr_exempt = str(_nr_dt).startswith("Neutral") and _nr_fam_fn(_nr_pat) == "REV"
+                                if _nr_exempt:
+                                    logger.info(
+                                        "[Gateway] direction-context EXEMPT (neutral-responsive): %s %s on %s",
+                                        _nr_pat, _set_dir, _nr_dt)
+                            except Exception:
+                                _nr_exempt = False  # fail-closed to the original block
+                        if not _nr_exempt:
+                            result["blocked_by"] = "direction_context"
+                            logger.info("[Gateway] BLOCKED by direction-context: setup %s vs %s (%s)",
+                                        _set_dir, _dc_dir, _dc.get("reason"))
+                            return result
             except Exception as _dc_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] direction-context check errored (fail-open): %s", _dc_err)
 
