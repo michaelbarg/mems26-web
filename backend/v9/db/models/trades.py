@@ -4,7 +4,7 @@ Section 6 of 3-Mode Trading Spec V3 FINAL.
 """
 
 from sqlalchemy import Column, String, Float, Integer, DateTime, Boolean
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from backend.v9.db.session import Base
 from backend.v9.db.models._types import JsonColumn, BigIntPK
@@ -69,5 +69,12 @@ class V9Trade(Base):
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    @validates("exit_reason")
+    def _truncate_exit_reason(self, _key, value):
+        """Guard: truncate to varchar(30) — trade 303 crash (ea868cc)."""
+        if value and len(value) > 30:
+            value = value[:30]
+        return value
 
     management_log = relationship("V9TradeManagementLog", back_populates="trade", cascade="all, delete-orphan")
