@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-09T01:05:00+03:00",
+    "updated": "2026-07-08T23:09:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       {
@@ -93,6 +93,22 @@
       "next": "שלב 2: התרעות תוך-עסקה · שלב 3: AUTOCORRECT מוגבל (BE/target-side, פסיקת מייקל) · שלב 4: ניהול מלא אחרי baseline",
       "evidence": "מייקל 07-08: 'סטופ חכם, מימוש חכם, מערכת 6 בודקת, לוג EOD, להפוך לסוכן'. דוח ראשון נכתב הערב (7 עסקאות)",
       "links": []
+    },
+    {
+      "id": "S6-BAND-0708",
+      "title": "מערכת 6 EOD 07-08: 3 סטופים מעל תקרת ×ATR — שער-הגודל לא קיצץ (כולל עסקה 310 חיה)",
+      "priority": "P1",
+      "status": "open",
+      "owner": "Cowork+CC",
+      "where": "size-gate / stop_anchors sizing — ATR-14=6.3 נק' היום; התקרה ~1.6×ATR (311 ב-1.59× עדיין 🟢, 309 ב-1.75× כבר 🟡 רחב)",
+      "next": "מחר: לבדוק למה שער-הגודל לא קיצץ חוזים כשמרחק-הסטופ>~1.6×ATR; לאמת שהתקרה חלה על mode=live (עסקה 310) ולא רק shadow",
+      "evidence": "S6_EOD_2026-07-08.md — המלצות מערכת-6: עסקה 312 סטופ 12.5 נק' (1.99×), עסקה 310 LIVE סטופ 12.5 נק' (1.99×), עסקה 309 סטופ 11.0 נק' (1.75×) — כולן 🟡 מעל תקרה. אין wick-out/יעד-לא-בר-השגה היום (עמודות T1/MFE ריקות — סגירות ידניות/stale-cleanup)",
+      "links": [
+        {
+          "label": "S6 EOD",
+          "path": "docs/reports/system6/S6_EOD_2026-07-08.md"
+        }
+      ]
     },
     {
       "id": "REPLAY-EMPTY",
