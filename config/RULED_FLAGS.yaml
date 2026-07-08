@@ -33,6 +33,8 @@ ruled:
   DAYTYPE_PATTERN_AWARE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-06-30", note: "שער-משפחה מודע-תבנית" }
   DIRECTION_CONTEXT:      {expected: "1", ruled_by: "מייקל", date: "2026-07-0x", note: "הקשר-כיוון CVD+breakout" }
   NEUTRAL_RESPONSIVE_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "ביום נייטרלי — responsive (REV) פטור משערי-מגמה (direction_context); CONT נשאר מסונן" }
+  TARGET_STRUCTURE_CLAMP_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "TP-1: יעד מעבר ל-IB נחסם לקצה-ה-IB ביום שאינו Neutral_*/Trend_* (פסיקת עסקה 310)" }
+  STOP_STRUCTURE_TRAIL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "אחרי T1 סטופ למבנה הקרוב (לא BE מכני) — never-widen, fallback ל-BE+טיק" }
 
   # ── פרמטרים שנפסקו ──
   MEMS_MIN_RISK_POINTS:   {expected: "2",  ruled_by: "מייקל", date: "2026-07-02", note: "רצפת סיכון מוחלטת; רצפת-עבודה = 0.5×ATR (רצועה, 07-08)" }
