@@ -190,3 +190,13 @@ I-61 (shadow shorts 292/294 closed `exit_reason=manual` BE at 12:01 CT, mechanis
 Recurred: I-54 short-target monotonicity (t2>t3), D-missed-buffer (50 dupes/null R), I-44 wrapper frozen,
 I-23 counters. No code/flags/behavior touched (read-only EOD). Roadmap HTML/STATUS_BOARD not modified this
 run (autonomous-run conservatism; new items live in register + designs).
+
+**[2026-07-08] DALTON_DOCTRINE.md created** (`docs/spec_authority/`): Mind over Markets extracted as S1 spec
+authority (page-cited, PDF=book+14). Root finding: S1 holds bare FORMING/waits for full structure while Dalton
+rules "structure is second-hand" (p.37) and the open foreshadows the day (pp.63–74) — plus Trend floor rib≥2.5
+contradicts control/elongation doctrine (pp.22–25). Solution: 12-item P0/P1/P2 backlog (P0-1 acceptance-driven
+prompt reclass ≤2 bars, P0-2 staged 30-min provisional type, P0-3 canonical confidence killing the legacy
+0.46/LOCKED_LOW_CONF surface split; P1 one-tf stair-steps/elongation/value-migration/DD-neck-invalidation/
+Nonconviction). Verified: pdftotext extraction with book-page cites + code cites re-checked live
+(daytype_classifier.py:86/97/103/115/120/129/141/156/161, relative_features.py:157-173/184-192, dd_features.py:37-105).
+Read-only — no code/flags changed.

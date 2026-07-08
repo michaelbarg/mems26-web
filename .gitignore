@@ -21,3 +21,4 @@ sc_study/MES_AI_DataExport_merged.cpp
 
 # local build artifacts (install bundles) — never commit
 /dist/
+docs/spec_authority/source/*.pdf

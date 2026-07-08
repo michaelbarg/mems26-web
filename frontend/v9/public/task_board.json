@@ -125,6 +125,28 @@
       "links": []
     },
     {
+      "id": "S1-DALTON",
+      "title": "מערכת 1 לומדת מדלתון — הדוקטרינה נכתבה; לבצע את ה-backlog",
+      "priority": "P1",
+      "status": "in_progress",
+      "owner": "Cowork+Michael",
+      "where": "docs/spec_authority/DALTON_DOCTRINE.md (התורה — עם הפניות עמודים) · הספר: docs/spec_authority/source/Dalton_Mind_over_Markets.pdf",
+      "next": "פסיקות מייקל על 12 פריטי ה-backlog ואז בנייה flag-OFF לפי סדר: P0-1 רה-סיווג-על-קבלה · P0-2 סיווג-מוקדם-מחויב ב-30דק' · P0-3 ציון-ביטחון קנוני · P1 elongation/DD-neck",
+      "evidence": "Michael 07-08: 'הספר הוא התורה שלנו וממנה נשפר את מערכת 1 כל הזמן' — סוכן קרא את הפרקים המבניים, מיפה מול הקוד החי, 8 סתירות ספר-מול-S1 מפורשות",
+      "links": []
+    },
+    {
+      "id": "MORNING-BRIEFING",
+      "title": "סקריפט בריפינג-בוקר אוטומטי לפי LIVE_MORNING_PROTOCOL",
+      "priority": "P1",
+      "status": "open",
+      "owner": "Cowork",
+      "where": "docs/runbooks/LIVE_MORNING_PROTOCOL.md (התבנית) · scripts/morning_briefing.py (לבנות)",
+      "next": "מפיק BRIEF_<date>.md: מה S1/S2/S4/S6 מחפשות היום + ATR→טווחי-סטופ מספריים + תאי-auth חסרים + GO/NO-GO; ריצה מתוזמנת 16:00 IL",
+      "evidence": "Michael 07-08: 'פרוטוקול תחילת מסחר שנותן עדכון מסודר'",
+      "links": []
+    },
+    {
       "id": "PRE-OPEN-FIREDRILL",
       "title": "🔴 פרוטוקול בוקר: ירי-יבש של כל שרשרת ההחלטה לפני פתיחה (GO/NO-GO אמיתי)",
       "priority": "P0",
