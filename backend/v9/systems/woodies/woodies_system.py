@@ -1058,11 +1058,20 @@ class WoodiesSystem(BaseV9TradingSystem):
                     # I-59: no silent failures — a detected pattern that gets dropped
                     # must SHOUT (was logger-less; cost: invisible A7 drops all day 07-02).
                     if patterns:
+                        # 2026-07-08: include the failing stages' REASONS — a bare
+                        # failed_stages=['A7'] cost 2h of live diagnosis today.
+                        _fail_reasons = {
+                            r.get("stage_id"): r.get("reason")
+                            for r in dt_summary.get("pre_fire", [])
+                            if isinstance(r, dict)
+                            and r.get("stage_id") in dt_summary.get("failed_stages", [])
+                        }
                         logger.warning(
-                            "[Woodies] FIRE DROPPED (not_ready_to_route): %s %s — failed_stages=%s",
+                            "[Woodies] FIRE DROPPED (not_ready_to_route): %s %s — failed_stages=%s reasons=%s",
                             best.pattern_id if best else "?",
                             (best.direction if best else "?") or "?",
                             dt_summary.get("failed_stages", []),
+                            _fail_reasons,
                         )
                     self.current_state["last_route"] = {
                         "skipped": True,

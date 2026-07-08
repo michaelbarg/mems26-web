@@ -196,6 +196,18 @@ def compute_stop_v2(
     if atr_14 <= 0:
         raise ValueError("atr_14 must be positive")
 
+    # A7-alignment (2026-07-08, live incident): the validator rejects any fire
+    # with risk < MEMS_MIN_RISK_POINTS (env, e.g. 2pt) — but this floor was 4
+    # ticks (1.0pt), so a tight structural anchor produced a stop the system's
+    # own validator ALWAYS killed (3 ZLR fires dropped at A7 on a Trend_DD
+    # morning, 17:25–17:30 IL). The resolver must never emit a doomed stop:
+    # raise the floor to the env minimum. Env unset → behavior unchanged.
+    import math
+    import os as _fl_os
+    _env_min_pts = float(_fl_os.getenv("MEMS_MIN_RISK_POINTS", "0") or 0)
+    if _env_min_pts > 0:
+        floor_ticks = max(floor_ticks, math.ceil(_env_min_pts / tick_size))
+
     # structural distance from entry, in ticks
     raw_ticks = int(round(abs(entry_price - structural_stop_price) / tick_size))
     floor_applied = raw_ticks < floor_ticks
