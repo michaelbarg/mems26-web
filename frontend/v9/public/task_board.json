@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-08T20:58:00+03:00",
+    "updated": "2026-07-08T21:50:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       {
@@ -44,6 +44,17 @@
           "path": "docs/handoff/CC_CONTINUATION_2026-07-07.md"
         }
       ]
+    },
+    {
+      "id": "AUTH-KEY-BYPASS",
+      "title": "🔴→✅ טבלת-ההרשאות הנעולה של מייקל נעקפה בשקט — mismatch מפתחות (תוקן, ממתין לריסטארט)",
+      "priority": "P0",
+      "status": "fixed_unverified",
+      "owner": "Cowork→CC",
+      "where": "stop_anchors/sizing.py _auth_cell — החיפוש ('Reactive',יום) מול מפתחות 'REACTIVE_LONG/SHORT' → כל היום 'using max'",
+      "next": "חל בריסטארט 15:55 מחר; CC מאמת: אפס אזהרות 'no auth cell' לתבניות S2 + INITIATIVE×Neutral=SKIP נאכף",
+      "evidence": "51d531c · הראיה החיה: התא INITIATIVE_LONG×Neutral_Extreme=SKIP (LOCKED 05-25) היה חוסם את עסקה 310 שמייקל ביקר וסגר ידנית — הלימוד היה קיים, הצנרת עקפה אותו",
+      "links": []
     },
     {
       "id": "L2",
@@ -248,7 +259,7 @@
       "owner": "Cowork+Michael",
       "where": "A7 (3 ZLR) · entry-confirm 18:00 (c-o=3 ticks) · R:R 18:14 (T1=3.5 vs stop=7.25) · auth table חסרה תאים ל-(Reactive/ZLR/FAMIR)×(Trend_DD/Variation) → contracts=0 ב-18:20",
       "next": "EOD: כימות R שהוחמץ פר-שער · פסיקות מייקל: תאי auth ל-Trend_DD/Variation, טולרנס בר-אישור, מיקום T1 (target-zones) · A7=L1 תיקון באג",
-      "evidence": "לוג 07-08: FiveMin ירה REACTIVE/BEAR_FLAG SHORT ‏17:30/17:40/17:50/18:00 — אפס הגיעו לסיירה. גולדן-פיקסצ'ר ליום-DD",
+      "evidence": "לוג 07-08: FiveMin ירה REACTIVE/BEAR_FLAG SHORT ‏17:30/17:40/17:50/18:00 — אפס הגיעו לסיירה. גולדן-פיקסצ'ר ליום-DD · עדכון ערב: A7 תוקן+אומת, בר-אישור עם סובלנות, auth-key תוקן — 3 מ-4 שורשי-היום סגורים בקוד",
       "links": []
     },
     {
