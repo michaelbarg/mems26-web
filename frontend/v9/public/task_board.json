@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-09T00:30:00+03:00",
+    "updated": "2026-07-09T01:05:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       {
@@ -52,8 +52,8 @@
       "status": "fixed_unverified",
       "owner": "Cowork→CC",
       "where": "stop_anchors/sizing.py _auth_cell — החיפוש ('Reactive',יום) מול מפתחות 'REACTIVE_LONG/SHORT' → כל היום 'using max'",
-      "next": "חל בריסטארט 15:55 מחר; CC מאמת: אפס אזהרות 'no auth cell' לתבניות S2 + INITIATIVE×Neutral=SKIP נאכף",
-      "evidence": "51d531c · הראיה החיה: התא INITIATIVE_LONG×Neutral_Extreme=SKIP (LOCKED 05-25) היה חוסם את עסקה 310 שמייקל ביקר וסגר ידנית — הלימוד היה קיים, הצנרת עקפה אותו",
+      "next": "VERIFIED 07-09: zero S2 no-auth-cell post-restart + INITIATIVE×Neutral SKIP confirmed in table + code path",
+      "evidence": "51d531c · CC 07-09 3ef46e3: 0 S2 auth warnings post-21:43 restart (key fix works). INITIATIVE×Neutral_Extreme/Center/Normal/Nontrend = SKIP in AUTH_TABLE_V1. Pre-restart 16:45 log: T1Setup skipped INITIATIVE_LONG day_type=UNKNOWN. S4 residual (ZLR/GHOST) expected — not in S2 auth table by design.",
       "links": []
     },
     {
