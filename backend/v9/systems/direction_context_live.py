@@ -27,6 +27,21 @@ def sustained_lsma_side(rows, k: int) -> str:
     return "NEUTRAL"
 
 
+def lsma_slope_pts_per_bar(rows, k: int):
+    """Pure: LSMA slope in POINTS-PER-BAR over the k most-recent lsma_value rows.
+    `rows` is most-recent-first (ORDER BY ts DESC): slope = (newest − oldest)/(n−1),
+    positive = rising. Returns None when fewer than 2 lsma values exist (honest
+    Rule 1 — never synthesize). Used by LSMA_FLAT_GATE_V1 ("too horizontal" veto,
+    Michael 2026-07-08): |slope| < LSMA_FLAT_MIN_SLOPE_PTS ⇒ flat ⇒ block fires.
+    Distinct from sustained_lsma_side (SIDE of LSMA): a flat LSMA with price
+    hugging one side passes dir_sustained but is still flat here."""
+    vals = [float(r["lsma_value"]) for r in (rows or []) if r.get("lsma_value") is not None]
+    vals = vals[:max(2, int(k))]
+    if len(vals) < 2:
+        return None
+    return round((vals[0] - vals[-1]) / (len(vals) - 1), 4)
+
+
 def _fetch_live_bars(today: str):
     """Return (bars, source). Prefer v9_bars_5min (carries CVD); but if the raw-bars
     stream stalls (e.g. 2026-06-22 stuck at 08:55) while the Woodies stream stays
@@ -139,6 +154,22 @@ def current() -> Dict[str, Any]:
     except Exception:
         dir_sustained = "NEUTRAL"  # fail-safe → NEUTRAL (gateway treats as no-trend)
     out["dir_sustained"] = dir_sustained
+
+    # --- lsma_slope_ppb: LSMA slope (points/bar) over LSMA_FLAT_LOOKBACK_BARS ---
+    # Always computed (observability, like dir_sustained); the gateway veto itself is
+    # flag-gated (LSMA_FLAT_GATE_V1, default OFF). Fail-safe → None (gate fail-opens).
+    lsma_slope = None
+    try:
+        _fk = max(2, int(os.getenv("LSMA_FLAT_LOOKBACK_BARS", "4") or "4"))
+        from backend.v9.db.read import read_all as _ra2
+        _frows = _ra2(
+            "SELECT lsma_value FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d AND lsma_value IS NOT NULL "
+            "ORDER BY ts DESC LIMIT " + str(_fk), {"d": today})
+        lsma_slope = lsma_slope_pts_per_bar(_frows, _fk)
+    except Exception:
+        lsma_slope = None
+    out["lsma_slope_ppb"] = lsma_slope
     if lsma_veto:
         out["lsma_side"] = lsma_side_val
         out["mode"] = "lsma_cvd_veto" if lsma_side_val is not None else "fallback(lsma_missing)"

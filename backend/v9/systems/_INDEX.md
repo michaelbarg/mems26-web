@@ -26,7 +26,7 @@
 | `daytype_playbook.py` | ✅ 1 | 132 | 2026-07-03 | Day-type playbook decision engine (flag-gated, default OFF). |
 | `daytype_position_gate.py` | ✅ 1 | 328 | 2026-06-29 | daytype_position_gate — direction allowed by day-type + price position. |
 | `direction_context.py` | ✅ 1 | 186 | 2026-06-24 | direction_context — the dynamic auction-direction brain (#68, Michael 2026-06-22). |
-| `direction_context_live.py` | ✅ 2 | 148 | 2026-06-25 | direction_context_live — fetch TODAY's RTH bars + CVD + TPO and run the pure |
+| `direction_context_live.py` | ✅ 2 | 179 | 2026-06-25 | direction_context_live — fetch TODAY's RTH bars + CVD + TPO and run the pure |
 | `entry_confirm.py` | ✅ 1 | 91 | 2026-07-03 | Item-6 — S4_ENTRY_CONFIRM_V1: require confirmation before entry. |
 | `opening_type_gate.py` | ✅ 2 | 326 | 2026-07-02 | opening_type_gate — blocks counter-drive fires during the opening window. |
 | `reactive_location_gate.py` | ✅ 1 | 54 | 2026-06-18 | Reactive Location Gate — blocks REACTIVE fades on the wrong side of POC. |

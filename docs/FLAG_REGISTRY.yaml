@@ -347,6 +347,34 @@ flags:
     why: "ON SHADOW 2026-06-25, Michael. Fixes BULL_FLAG_LONG (0/3, -$596): the single-bar veto passed a momentary 1-bar poke above LSMA in chop (06-24 10:25). Counterfactual: blocks 102 continuation chop/counter losers = +$911, keeps reversal winners (HTLB +$720). K = LSMA_SUSTAIN_BARS."
     status: live
     ref: "outputs/trend_filter_counterfactual.py"
+  LSMA_FLAT_GATE_V1:
+    category: cascade_gate
+    group: "direction engine"
+    what: "Block fires while the Woodies LSMA (cyan dotted line) is too HORIZONTAL — no clear trend angle. |LSMA slope| in points/bar over LSMA_FLAT_LOOKBACK_BARS must be >= LSMA_FLAT_MIN_SLOPE_PTS, else BLOCK (blocked_by=lsma_flat). Scope via LSMA_FLAT_SCOPE: ALL (default) = every pattern; CONT = reversals exempt (same family map as CONT_TREND_FILTER). Fail-open when slope unavailable (honest Rule 1)."
+    why: "Michael 2026-07-08: 'לא רוצה שיהיו עסקאות כאשר הקו הזה אופקי מדי ללא זווית של מגמה ברורה'. Measures the LSMA's OWN slope — distinct from CONT_TREND_FILTER (side-of-LSMA: flat LSMA + price hugging one side passes dir_sustained but fails here) and distinct from the chop gates disabled by standing decision 2026-06-08 (those stay OFF). Built flag-OFF; enabling = trading-risk-surface change → Michael sign-off + restart."
+    status: built_off
+    ref: "tests/v9/regression/test_lsma_flat_gate.py"
+  LSMA_FLAT_MIN_SLOPE_PTS:
+    category: param
+    group: "direction engine"
+    what: "Flatness threshold for LSMA_FLAT_GATE_V1: minimum |LSMA slope| in POINTS PER BAR (5-min bars) to count as a clear trend angle. Default 0.25 (= 1 MES tick/bar). Below → flat → block."
+    why: "Scale-free replacement for a chart 'angle in degrees' (degrees depend on chart axis scaling; points/bar does not). 07-08 chart reference: the clear up-leg ran ≈0.7 pts/bar; the flat morning stretch ≈0. Tunable without code."
+    status: param
+    ref: "backend/v9/systems/direction_context_live.py"
+  LSMA_FLAT_LOOKBACK_BARS:
+    category: param
+    group: "direction engine"
+    what: "Window for the LSMA slope measurement: number of most-recent woodies 5-min bars (slope = (newest−oldest)/(n−1)). Default 4 (= 15 minutes of slope)."
+    why: "Short enough to release the gate quickly when a trend starts, long enough that one bar's LSMA wiggle doesn't fake an angle."
+    status: param
+    ref: "backend/v9/systems/direction_context_live.py"
+  LSMA_FLAT_SCOPE:
+    category: param
+    group: "direction engine"
+    what: "Scope of LSMA_FLAT_GATE_V1: ALL (default) blocks every pattern when flat, per Michael's wording 'no trades'; CONT blocks only continuation patterns (reversals VEGAS/GHOST/FAMIR/HTLB + S2 Reactive/Double/HnS exempt, unified family map)."
+    why: "Reversal patterns fire against/without a trend by design (CONT_TREND_FILTER precedent kept HTLB +$720). ALL honors the literal instruction; CONT is the one-knob fallback if flat-day reversals prove worth keeping."
+    status: param
+    ref: "backend/v9/gateway/trading_gateway.py"
   LSMA_SUSTAIN_BARS:
     category: param
     group: "direction engine"

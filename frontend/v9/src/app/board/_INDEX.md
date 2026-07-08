@@ -5,4 +5,4 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `page.tsx` | ▶ nextjs-entry | 24 | 2026-07-08 | board — the live task board + System 6 supervisor activity. |
+| `page.tsx` | ▶ nextjs-entry | 26 | 2026-07-08 | board — the live task board + System 6 supervisor activity. |

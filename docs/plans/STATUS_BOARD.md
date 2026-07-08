@@ -3,6 +3,21 @@
 
 ## 2026-07-08 (LIVE-ready 2-contracts day — mega-prompt executing)
 
+**[2026-07-08 ~17:20 IL — Cowork: שער LSMA-שטוח נבנה flag-OFF לפי בקשת מייקל · LSMA_FLAT_GATE_V1]**
+Michael: "לא רוצה עסקאות כשהקו התכלת המנוקד (LSMA) אופקי מדי, בלי זווית מגמה ברורה".
+Finding (audit-before-build): אין מטריקת שיפוע-LSMA במערכת — CONT_TREND_FILTER/`dir_sustained` מודד
+רק צד-של-LSMA (LSMA שטוח עם מחיר צמוד מעליו עובר); שערי-הצ'ופ הכבויים (החלטה קבועה 06-08) לא נגעו —
+מטריקה אחרת, נשארים OFF. Fix: `lsma_slope_pts_per_bar()` (pure, נק'/בר על `LSMA_FLAT_LOOKBACK_BARS`=4
+מ-`v9_bars_5min_woodies.lsma_value`, DESC-first) → `lsma_slope_ppb` ב-direction_context_live (תמיד-מחושב,
+observability); veto בגייטוויי `blocked_by=lsma_flat` כש-|slope| < `LSMA_FLAT_MIN_SLOPE_PTS` (ברירת-מחדל
+0.25 נק'/בר = טיק/בר; נק'/בר ולא מעלות — מעלות תלויות-סקייל-גרף); `LSMA_FLAT_SCOPE`=ALL (ברירת-מחדל,
+כלשונו "לא עסקאות") | CONT (פוטר reversals); fail-open כשה-slope חסר (Rule 1). Registry +4 → 103 flags,
+`--check` PASS ("no undocumented drift"). Verified: `pytest test_lsma_flat_gate.py test_cont_trend_filter.py
+-q` → **24 passed** (כולל מבחן-הפער: LSMA שטוח עובר את פילטר-הצד אך נופל בשער-השטיחות).
+OPEN → מייקל לפני הפעלה: (1) סף 0.25 נק'/בר סביר? (הרגל-העולה 07-08 ≈0.7, הבוקר השטוח ≈0) (2) scope=ALL
+יחסום גם VEGAS/HTLB בשטוח — ALL או CONT? הפעלה = `LSMA_FLAT_GATE_V1=1` + restart + אישור מפורש (שינוי
+משטח-סיכון). לא הודלק, לא הופעל restart.
+
 **[2026-07-08 ~15:45 IL — Cowork: 07-07 build committed · N3+N4(L7) fixed-in-code · N5 done · CC owes the restart+live proofs]**
 Finding 1: the whole 07-07 L8 build was **uncommitted** (and no CC commits overnight) → committed
 `6bb25ce`+`9f0a64a` (engine 7/7 tests + endpoint + /board components + task board + docs).

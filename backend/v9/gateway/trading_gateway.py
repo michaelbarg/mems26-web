@@ -429,6 +429,40 @@ class TradingGateway:
             except Exception as _dc_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] direction-context check errored (fail-open): %s", _dc_err)
 
+        # --- LSMA-flat gate (Michael 2026-07-08): NO fires while the Woodies LSMA is
+        # too horizontal (no clear trend angle). |slope| in points/bar over
+        # LSMA_FLAT_LOOKBACK_BARS (default 4) must be >= LSMA_FLAT_MIN_SLOPE_PTS
+        # (default 0.25 = 1 tick/bar), else BLOCK. Distinct from CONT_TREND_FILTER
+        # (SIDE-of-LSMA): flat LSMA + price hugging one side passes dir_sustained but
+        # fails here. Distinct from the DISABLED chop gates (S2 choppiness_ok /
+        # Layer-0 chop) — those stay OFF per standing decision 2026-06-08; this is a
+        # NEW metric. Flag: LSMA_FLAT_GATE_V1 (default OFF). Scope: LSMA_FLAT_SCOPE=
+        # ALL (default, per Michael's wording "no trades") | CONT (exempt reversals,
+        # same family map as CONT_TREND_FILTER). Fail-open: slope unavailable
+        # (missing lsma_value / DB error) → PASS + rate-visible warning (Rule 1 —
+        # honest missing, never a synthetic block).
+        if os.getenv("LSMA_FLAT_GATE_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.direction_context_live import current as _lf_current
+                _lf_slope = (_lf_current() or {}).get("lsma_slope_ppb")
+                _lf_min = float(os.getenv("LSMA_FLAT_MIN_SLOPE_PTS", "0.25") or "0.25")
+                _lf_scope = (os.getenv("LSMA_FLAT_SCOPE", "ALL") or "ALL").strip().upper()
+                _lf_applies = True
+                if _lf_scope == "CONT":
+                    from backend.v9.systems.daytype_position_gate import _pattern_family as _lf_fam_fn
+                    _lf_fam = _lf_fam_fn(resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or "")
+                    _lf_applies = (_lf_fam == "CONT")
+                if _lf_slope is None:
+                    logger.warning("[Gateway] lsma-flat gate: slope unavailable -> fail-open PASS")
+                elif _lf_applies and abs(_lf_slope) < _lf_min:
+                    result["blocked_by"] = "lsma_flat"
+                    logger.info(
+                        "[Gateway] BLOCKED by lsma-flat gate: |slope %.4f| < %.4f pts/bar (flat LSMA, scope=%s)",
+                        _lf_slope, _lf_min, _lf_scope)
+                    return result
+            except Exception as _lf_err:  # fail-open — never block on a bug
+                logger.warning("[Gateway] lsma-flat gate errored (fail-open): %s", _lf_err)
+
         # Item-18: Day Direction Doctrine (DAY_DIRECTION_DOCTRINE_V1, default OFF)
         # On directional days (Variation/Trend), only with-expansion entries allowed
         # unless a "halt proof" (2 consecutive closes back through the expansion level)
