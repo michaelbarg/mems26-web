@@ -143,9 +143,9 @@ def debug_gateway_fire(request: _FReq):
     # Try route_setup first (respects all gates). If blocked by session_gate
     # (market closed), fall back to direct _execute_demo for SIM proof.
     result = gw.route_setup(setup, system_id=4)
-    if result.get("blocked_by") == "session_gate_closed":
+    if result.get("blocked_by") in ("session_gate_closed", "eod_entry_cutoff"):
         # SIM proof bypass: call _execute_demo directly (creates TM trade + Sierra command)
-        logger.warning("[debug_gateway_fire] session_gate_closed — bypassing for SIM proof")
+        logger.warning("[debug_gateway_fire] %s — bypassing for SIM proof", result["blocked_by"])
         demo_result = gw._execute_demo(setup, system_id=4, cross_context={})
         return {
             "status": "FIRED_DIRECT",
