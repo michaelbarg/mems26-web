@@ -60,13 +60,13 @@
     },
     {
       "id": "L1",
-      "title": "A7 fire_setup routing — ZLR/GHOST must route (no failed_stages=['A7'])",
-      "priority": "P1",
-      "status": "fixed_unverified",
+      "title": "🔴 A7 — LIVE-PROVEN BROKEN 07-08: dropped 3 ZLR fires on a Trend_DD day",
+      "priority": "P0",
+      "status": "open",
       "owner": "CC",
-      "where": "backend/v9/systems/woodies/woodies_system.py:668 (fire_setup stop reconstruct from V2 risk) · stages/a7_universal_checks.py (A7UniversalChecks)",
-      "next": "Verify a LIVE ZLR/GHOST fire routes — no '[Woodies] FIRE DROPPED ... failed_stages=[\\'A7\\']'",
-      "evidence": "fallback present in code; NOT verified on a live fire",
+      "where": "backend/v9/systems/woodies/woodies_system.py:668 (fallback insufficient/not reached) · stages/a7_universal_checks.py",
+      "next": "URGENT: diagnose WHICH A7 sub-check fails (add the failing-check name to the DROPPED log line), fix the root, restart when flat — this is a BUG fix, not a gate change",
+      "evidence": "2026-07-08 live: 17:25 ZLR LONG + 17:30 ZLR SHORT ×2 → FIRE DROPPED failed_stages=['A7'] — the morning strategic shorts Michael flagged. The 668 fallback did NOT prevent drops",
       "links": [{ "label": "journal", "path": "docs/plans/LIVE_FIX_JOURNAL.md" }]
     },
     {
@@ -122,6 +122,39 @@
       "where": "manager.py on_target_hit (fill_price path) · task #17",
       "next": "Confirm T1/T2 P&L uses the Sierra fill price, like STOP/T3",
       "evidence": "T1/T2 fall through to level, not strictly Sierra fill",
+      "links": []
+    },
+    {
+      "id": "MISSED-0708",
+      "title": "יום 07-08 (Trend_DD יורד) — 0 עסקאות: כל שורט נחסם בשער אחר",
+      "priority": "P1",
+      "status": "open",
+      "owner": "Cowork+Michael",
+      "where": "A7 (3 ZLR) · entry-confirm 18:00 (c-o=3 ticks) · R:R 18:14 (T1=3.5 vs stop=7.25) · auth table חסרה תאים ל-(Reactive/ZLR/FAMIR)×(Trend_DD/Variation) → contracts=0 ב-18:20",
+      "next": "EOD: כימות R שהוחמץ פר-שער · פסיקות מייקל: תאי auth ל-Trend_DD/Variation, טולרנס בר-אישור, מיקום T1 (target-zones) · A7=L1 תיקון באג",
+      "evidence": "לוג 07-08: FiveMin ירה REACTIVE/BEAR_FLAG SHORT ‏17:30/17:40/17:50/18:00 — אפס הגיעו לסיירה. גולדן-פיקסצ'ר ליום-DD",
+      "links": []
+    },
+    {
+      "id": "SIERRA-SEPARATE",
+      "title": "הפרדת עסקאות מערכת מעסקאות ידניות של מייקל בסיירה",
+      "priority": "P2",
+      "status": "open",
+      "owner": "Cowork+Michael",
+      "where": "רמה 1 (קיים): הלדג'ר L8 מתייג SYSTEM לפי order_id מהמערכת, כל השאר MANUAL · רמה 2 (מלא): Trade Account נפרד בסיירה למערכת — ה-DLL כבר מקבל account מהפקודה",
+      "next": "מייקל: לפתוח sub-account בסיירה למסחר ידני (או להפך) → עדכון account ב-.env + אימות; עד אז ההפרדה הלוגית בלדג'ר עובדת",
+      "evidence": "Michael 2026-07-08: 'שעסקאות חדשות של המערכת יהיו נפרדות משלי — זה אפשרי?' — כן, שתי רמות",
+      "links": []
+    },
+    {
+      "id": "TP-AUDIT-RESEARCH",
+      "title": "מחקר: האם המימוש (T1/T2) מחושב נכון פר-תבנית ומול נתוני אותו יום",
+      "priority": "P1",
+      "status": "open",
+      "owner": "Agent (מחקר) + Michael",
+      "where": "docs/handoff/RESEARCH_PROMPT_TP_AUDIT_2026-07-08.md — פרומפט מוכן להרצה בסוכן",
+      "next": "להריץ את הפרומפט על נתוני v9_trades + ברים; תוצר: טבלת תבנית×יום-סוג עם T1 בפועל מול אופטימלי, והמלצות ל-target_zones",
+      "evidence": "תשובה כנה: לא — L6 פתוח (P&L מ-bar לא fill) ומעולם לא נעשה אודיט מיקומי-T1 פר-תבנית מול same-day data",
       "links": []
     },
     {

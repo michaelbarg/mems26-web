@@ -21,7 +21,7 @@ export const LIFECYCLE_HELP: Record<PlanLifecycle, { title: string; measures: st
   READY: {
     title: 'READY',
     measures: 'האם כל שלבי pre-fire עברו ו-ready_to_route=true (Woodies) או pattern מוכן (S2).',
-    meaning: 'מוכן לניתוב — ב-SHADOW עדיין לא LIVE; gateway יכול לקבל setup אם מופעל.',
+    meaning: 'מוכן לניתוב — ה-setup יישלח ל-gateway בסגירת הבר. המצב האמיתי (live/shadow) נקבע לפי live_enabled_systems ב-gateway, לא בכיתוב הזה.',
   },
   FIRING: {
     title: 'FIRING',
