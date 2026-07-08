@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-07T19:55:00+03:00",
+    "updated": "2026-07-08T15:45:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
     "indexes": [
       { "label": "System Index", "path": "SYSTEM_INDEX.md" },
@@ -38,25 +38,25 @@
     },
     {
       "id": "L2-RESIDUAL",
-      "title": "Stop-move still silently drops when the trade has no Sierra order_id",
+      "title": "Stop-move silent drop — FIXED IN CODE (order-id map at submit + warnings)",
       "priority": "P1",
-      "status": "open",
+      "status": "fixed_unverified",
       "owner": "CC",
-      "where": "manager.py:123-125 (oid None → silent return) · the I-58 fallback in fill_poller.py never calls set_sierra_order_ids (manager.py:148)",
-      "next": "Fallback must store the Sierra order_id; convert BOTH silent returns to rate-limited warnings (no silent failures)",
-      "evidence": "code read 2026-07-07 — shared root with L4",
+      "where": "fill_poller.py _register_submitted_order (maps parent/target/stop ids at ORDER_SUBMITTED ack + persists sierra_order_id) · manager.py _warn_emit_skipped (MODIFY_STOP/TARGET/EXIT skips now WARN, rate-limited; shadow stays silent)",
+      "next": "CC after restart: verify a live trade gets its order-id at submit (log '[FillPoller] registered order') and no 'SKIPPED' warnings on a real stop-move (Rule 5)",
+      "evidence": "Cowork 2026-07-08 d999698 — test_fill_order_map.py 5/5; on OLD code 4/5 FAIL (anti-tautological). Requires backend restart to be live",
       "links": []
     },
     {
       "id": "L8",
-      "title": "Sierra-sourced LIVE ledger + manual-detect — ENGINE + UI BUILT (investor-critical)",
+      "title": "Sierra-sourced LIVE ledger + manual-detect — BUILT + COMMITTED, deploy owed (investor-critical)",
       "priority": "P0",
       "status": "in_progress",
       "owner": "CC+Cowork",
-      "where": "engine backend/v9/services/sierra_ledger.py · endpoint /api/v9/live_ledger (wired app.py) · UI /board LiveLedgerPanel · flag LIVE_LEDGER_V1",
-      "next": "CC: enable LIVE_LEDGER_V1 + restart when FLAT + feed the TradeActivityLog (sierra_stop + stop-move history) for full L2/manual-stop detection; verify V1–V5 vs real fills (Rule 5)",
-      "evidence": "Cowork 2026-07-07: reader+ledger+reconcile+manual-tag built, 7/7 tests green (backend/v9/tests/services/test_sierra_ledger.py). Fills-only P&L works; stop-history/manual-stop need the activity log (CC).",
-      "links": [{ "label": "spec", "path": "docs/handoff/CC_SIERRA_LIVE_LEDGER_2026-07-07.md" }]
+      "where": "engine backend/v9/services/sierra_ledger.py · endpoint /api/v9/live_ledger (wired app.py) · UI /board LiveLedgerPanel · flag LIVE_LEDGER_V1 (documented in FLAG_INDEX)",
+      "next": "CC (ONE restart covers L8+L7+L2r): snapshot → LIVE_LEDGER_V1=1 → kickstart when FLAT → feed the TradeActivityLog (sierra_stop + stop-move history) → verify V1–V5 vs the 2 real trades (Rule 5)",
+      "evidence": "Committed 2026-07-08: 6bb25ce (engine+endpoint+tests 7/7) + 9f0a64a (board components). Fills-only P&L works; stop-history/manual-stop need the activity log (CC).",
+      "links": [{ "label": "spec", "path": "docs/handoff/CC_SIERRA_LIVE_LEDGER_2026-07-07.md" }, { "label": "today", "path": "docs/handoff/CC_CONTINUATION_2026-07-08.md" }]
     },
     {
       "id": "L1",
@@ -71,13 +71,13 @@
     },
     {
       "id": "L7",
-      "title": "2-contract SYMMETRY — bracket still shows 3 targets for a 2c trade",
+      "title": "2-contract SYMMETRY — FIXED IN CODE (count persisted; close/P&L/R/display read n)",
       "priority": "P1",
-      "status": "open",
+      "status": "fixed_unverified",
       "owner": "CC",
-      "where": "sierra_command.py:170 (contracts) · woodies_system.py _s4_t2/_s4_t3 (live path = None) · bracket/targets/P&L/R display",
-      "next": "Audit bracket + per-contract P&L + R + display to read contracts=2 symmetrically",
-      "evidence": "Michael: '1/3 hit' shown for a 2-contract trade",
+      "where": "sierra_command.effective_contracts (single source) → accept_setup persists quality.contracts → manager close-at-last-target (2c→T2) + P&L legs [:n] + R n× · trades.py 'N/n hit' · fill_poller frees slot on T1/T2 close · setup_emitter floor honors _2. DLL already symmetric (group2>=2/group3>=3)",
+      "next": "CC: one SIM 2c fire → exactly 2 targets in bracket+display, trade CLOSES at T2, slot freed, P&L=2 legs (Rule 5). Requires backend restart",
+      "evidence": "Cowork 2026-07-08 d999698 — test_l7_two_contract_symmetry.py 6/6; OLD code 1/6 (2c stop-out was 3× the loss, T2 left PARTIAL forever, slot stuck, 3c T3-close undercounted). Regression: 830 passed / 12 failed == pre-existing set",
       "links": []
     },
     {

@@ -1,6 +1,29 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-07-08 (LIVE-ready 2-contracts day — mega-prompt executing)
+
+**[2026-07-08 ~15:45 IL — Cowork: 07-07 build committed · N3+N4(L7) fixed-in-code · N5 done · CC owes the restart+live proofs]**
+Finding 1: the whole 07-07 L8 build was **uncommitted** (and no CC commits overnight) → committed
+`6bb25ce`+`9f0a64a` (engine 7/7 tests + endpoint + /board components + task board + docs).
+Finding 2 (N3/L2-residual root): `register_order` never called anywhere → every ENTRY used the I-58
+fallback; no-order-id trades dropped MODIFY silently → fixed `d999698`: order-ids mapped+persisted at
+the `ORDER_SUBMITTED` ack + skipped emits WARN (rate-limited) → verified `test_fill_order_map.py` 5/5,
+old-code 4/5 FAIL.
+Finding 3 (N4/L7 root): **no per-trade contract count existed in the DB** + five hard-3 consumers —
+a 2c trade never closed at T2 (stuck slot), a 2c stop-out P&L was 3 legs (=150% of the real loss),
+display showed "x/3", opening-floor ignored `FIXED_CONTRACTS_2` → fixed `d999698`:
+`effective_contracts()` single source → `quality.contracts` → close-at-last-target/P&L `[:n]`/R `n×`/
+"N/n hit"/slot-release; also fixes the 3c T3-close undercount (missing c3 leg) → verified
+`test_l7_two_contract_symmetry.py` 6/6, old-code 1/6; regression 830 passed/12 failed == pre-existing
+set exactly.
+N5: index 762 files (`b275165`) + FLAG_REGISTRY +4 (EOD_FLATTEN_V1/RECONCILE_LIVE_V1/LIVE_LEDGER_V1/
+TRADE_FILLS_PATH) → 99 flags `--check` PASS.
+**OPEN → CC (one restart, when FLAT):** N1 snapshot+verify → N2 `LIVE_LEDGER_V1=1`+kickstart+feed
+TradeActivityLog+V1–V5 vs the 2 real trades → T1–T5 gate proofs (arming · L2 live MODIFY `sc.ModifyOrder`
+· A7 route · L4 capture · L7 2c SIM fire = exactly 2 targets + closes at T2 + slot freed). Handoff:
+`docs/handoff/CC_CONTINUATION_2026-07-08.md`.
+
 ## 2026-07-07 (REAL MONEY LIVE — priority: LIVE only, shadow = nice-to-have)
 
 **[2026-07-07 EOD — Cowork: Sierra CLOSED (flat) · deploy window OPEN · LIVE-ready mega-prompt ready]**

@@ -117,3 +117,41 @@ system record — when they diverge with **no** system-issued command, log it as
 - **Frontend board shipped (Cowork, no backend change):** `/board` = Live Ledger + System 6 supervisor
   (`/api/v9/system6/diagnose`) + prioritized task board (`public/task_board.json`, both agents edit).
   Needs :3000 up. Tomorrow's sequenced plan: `docs/plans/WORK_PLAN_2026-07-08.md`.
+
+---
+## Cowork build — 2026-07-08 ~15:45 IDT (N2-prep committed · N3 + N4/L7 FIXED IN CODE · N5 done)
+**State check (repo):** no CC commits overnight (HEAD was `86c4cdc`); the entire 07-07 L8 build was
+sitting UNCOMMITTED in the working tree → committed `6bb25ce` (engine+endpoint+7/7 tests+docs) +
+`9f0a64a` (board components). All work below is code+unit-verified in the sandbox; **live/SIM
+verification owed by CC after ONE restart** (which also flips `LIVE_LEDGER_V1`).
+
+- **N3 · L2-residual FIXED (`d999698`)** — root: `register_order` was defined but never called; every
+  ENTRY resolved via the I-58 "most recent active" fallback, and a trade with no `sierra_order_id`
+  dropped MODIFY **silently**. Fix: (a) `_register_submitted_order` — on the DLL's `ORDER_SUBMITTED`
+  ack (`parent_id`/`target_id`/`stop_id` in `trade_result.json`), map all three ids AND persist
+  `sierra_order_id` at submit time (before/without the ENTRY fill line); (b) ENTRY also maps the
+  parent id itself; (c) `_emit_modify_stop`/`_emit_modify_target`/`_emit_exit` skips now WARN
+  (rate-limited 60s; shadow stays silent by design). Proof: `test_fill_order_map.py` **5/5**; on OLD
+  code **4/5 FAIL**.
+- **N4 · L7 2-contract symmetry FIXED (`d999698`)** — audit found the DB had NO per-trade contract
+  count at all (`accept_setup` dropped `setup["contracts"]`), and FIVE hard-3 consumers:
+  `on_target_hit` (only T3 closed → **a 2c trade stayed PARTIAL forever after T2**),
+  `_calculate_pnl` (**a 2c stop-out was counted 3× = 150% of the real loss**; R denominator 3×),
+  `/trades` active payload (phantom C3 row + "x/3 hit" — Michael's "1/3"), `fill_poller`
+  (slot freed only on T3/STOP → 2c T2-close left the slot stuck), `setup_emitter` opening floor
+  (ignored `FIXED_CONTRACTS_2`). Fix: `effective_contracts()` single source (verbatim choke-point
+  logic) → persisted as `quality.contracts` at accept → `trade_contract_count()` read by close/P&L/
+  display/slot-release; close-at-last-target (2c→T2, 1c→T1); P&L legs `[:n]` + R `n×`; "N/n hit".
+  Bonus root-fix: the close-time recalc also fixes the **3c T3-close undercount** (final P&L was
+  missing the c3 leg — pnl stayed at the 2-leg PARTIAL value). Already symmetric (verified, no
+  change): DLL OCO groups (`>=2`/`>=3`), System 6 expected_contracts, sizing sources, bar_level_detector.
+  Proof: `test_l7_two_contract_symmetry.py` **6/6**; on OLD manager/poller **1/6** (−$60 vs −$40
+  stop-out, T2 left PARTIAL, no slot release, T3 undercount). Regression: `tests/v9/regression`
+  **830 passed / 12 failed == the identical pre-existing fixture set** (diffed vs old-code baseline).
+- **N5 · Index + flag registry (`b275165`)** — `gen_index.py` 762 files/113 dirs (sierra_ledger +
+  live_ledger_routes + board traceable); FLAG_REGISTRY documented `EOD_FLATTEN_V1`,
+  `RECONCILE_LIVE_V1`, `LIVE_LEDGER_V1`, `TRADE_FILLS_PATH` → FLAG_INDEX **99 flags, --check PASS**.
+- **⚠ Restart note:** N3+N4 change `manager.py`/`fill_poller.py` — **not live until the backend
+  restarts**. The N2 deploy restart (LIVE_LEDGER_V1) covers everything; CC confirms FLAT first.
+- **CC today:** `docs/handoff/CC_CONTINUATION_2026-07-08.md` — N1 snapshot/health → N2 deploy+V1–V5 →
+  T1–T5 gate evidence (arming · L2 live MODIFY · A7 route · L4 capture · L7 2c SIM fire).
