@@ -508,3 +508,24 @@ flags:
     what: "REACTIVE requires b4 volume > b3 volume (confirmation bar with rising volume). Reject if b4 volume declining."
     why: "OFF (default, SHADOW). Card requires 'b4 with rising volume' — code had no b4 volume check."
     status: deferred
+
+  # ───────────────────────── live safety net + L8 ledger (2026-07-03..08) ─────────────────────────
+  EOD_FLATTEN_V1:
+    category: risk
+    what: "P1.1 EOD auto-flatten: at the end-of-day window the backend flattens any open demo/live position (Sierra EXIT) instead of holding overnight. main-loop wiring, 1b66813."
+    why: "ON in .env for real-money live (2026-07-07 preflight). Part of the mandatory safety set — do not disable without Michael."
+  RECONCILE_LIVE_V1:
+    category: risk
+    what: "P1.3 reconcile-live in the per-bar loop: 3-way Sierra-slot/DB/TradeManager comparison + naked-stop detection; verdict feeds System 6 (65dff60)."
+    why: "ON in .env for real-money live (2026-07-07 preflight). Part of the mandatory safety set — do not disable without Michael."
+  LIVE_LEDGER_V1:
+    category: risk
+    group: "L8 Sierra-sourced ledger"
+    what: "Serves GET /api/v9/live_ledger — trades reconstructed from SIERRA fills (entry/exits/P&L), reconciled vs backend rows (CRITICAL divergences) + MANUAL-intervention tagging. Read-only observability; no trading-path change. backend/v9/services/sierra_ledger.py."
+    why: "OFF (built flag-OFF by Cowork 2026-07-07). Enable = mega-prompt N2 deploy step (CC, when flat): set 1 + restart + feed TradeActivityLog + verify V1–V5 vs the 2 real live trades. Investor-critical: frontend must show what Sierra executed."
+    status: live
+  TRADE_FILLS_PATH:
+    category: param
+    group: "L8 Sierra-sourced ledger"
+    what: "Path of the DLL's trade_fills.json (fills stream) consumed by FillPoller + the L8 ledger. Default /Users/michael/SierraChart_Data/v9_export/trade_fills.json."
+    why: "Path param, not a behavior toggle. Override only when the Sierra export dir moves (portability installer templates it)."
