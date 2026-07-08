@@ -723,6 +723,26 @@ class TradingGateway:
                     )
                     setup[_tk] = None
 
+        # TP-1 (Michael 2026-07-08, trade 310): targets live inside the day
+        # structure — clamp beyond-IB targets to the IB edge unless the day
+        # type travels (Neutral_*/Trend_*). Flag TARGET_STRUCTURE_CLAMP_V1
+        # (default OFF). Fail-open: missing IB/day_type → untouched.
+        if os.getenv("TARGET_STRUCTURE_CLAMP_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.target_structure_clamp import clamp_targets_to_ib
+                _tc_g1 = extract_g1_entry_context(cross_context)
+                _tc_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                setup, _tc_notes = clamp_targets_to_ib(
+                    setup,
+                    day_type=_tc_g1.get("day_type_at_entry"),
+                    ib_high=_tc_tpo.get("ib_high"),
+                    ib_low=_tc_tpo.get("ib_low"),
+                )
+                if _tc_notes:
+                    result["target_clamp"] = _tc_notes
+            except Exception as _tc_err:  # fail-open — never block on a bug
+                logger.warning("[Gateway] target-clamp errored (fail-open): %s", _tc_err)
+
         # Item-6: entry confirm (S4_ENTRY_CONFIRM_V1, default OFF). Require the
         # most recent (signal) bar to close in the trade direction before firing
         # — "עוד ודאות בכניסה". Fail-open on missing bars / error.
