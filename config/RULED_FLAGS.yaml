@@ -1,0 +1,46 @@
+# RULED_FLAGS.yaml — פסיקות דגלים של מייקל. קאנוני. (נוצר 2026-07-08)
+#
+# כל דגל כאן נפסק במפורש ע"י מייקל ואסור שישתנה בלי פסיקה חדשה בכתב.
+# scripts/flag_guard.py מאמת את .env מול הקובץ הזה בכל בוקר (שלב 0 בפרוטוקול)
+# ובכל fire-drill. סטייה = NO-GO. שינוי דגל => מעדכנים כאן באותו קומיט, עם
+# ruled_by/date — אחרת השומר צועק. זה הביטוח נגד "דגל שנסגר לגביו כובה והרס הכל".
+#
+# expected: "1"/"0"/מספר — הערך הנדרש ב-.env
+#           "unset_or_0" — חייב להיות לא-מוגדר או 0 (סטנדינג-כבוי; הדלקה=פסיקה+חתימה)
+
+ruled:
+  # ── בטיחות (הסט שחייב להיות דלוק בכל LIVE) ──
+  LIVE_EXECUTION_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "ביצוע live" }
+  FIXED_CONTRACTS_2:      {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "2 חוזים — קדימות על _3" }
+  RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
+  RISK_DAILY_LOSS_CAP:    {expected: "400", ruled_by: "מייקל", date: "2026-07-06", note: "−$400" }
+  EOD_FLATTEN_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "סגירה אוטומטית EOD" }
+  RECONCILE_LIVE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "השוואת סיירה-DB בלולאה" }
+  SYSTEM6_SUPERVISOR:     {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "מפקח (AUTOCORRECT נפרד וכבוי)" }
+  LIVE_LEDGER_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "לדג'ר סיירה — investor-critical" }
+
+  # ── שערי מסחר שנפסקו דלוקים ──
+  CONT_TREND_FILTER:      {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "שוחזר בפסיקה מפורשת; 07-08 חסך 2 סטופים" }
+  RR_ENTRY_GATE_V1:       {expected: "1", ruled_by: "מייקל", date: "2026-07-03", note: "R:R בכניסה" }
+  S4_ENTRY_CONFIRM_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "בר-אישור; מ-07-08 עם סובלנות יחסית-ל-ATR" }
+  STOP_RESOLVER_V1:       {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "רזולבר סטופים מבני" }
+  STOP_ANCHORS_V2:        {expected: "1", ruled_by: "מייקל", date: "2026-06-07", note: "עוגן מבני; ATR=שער-גודל" }
+  TARGET_ZONES_V1:        {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "מדפי-קונפלואנס ליעדים" }
+  SIZING_CONSOLIDATION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "איחוד sizing (item-11)" }
+  S1_NEW_CLASSIFIER:      {expected: "1", ruled_by: "מייקל", date: "2026-06-20", note: "מסווג 7-סוגים" }
+  PATTERN_RISK_CAPS:      {expected: "1", ruled_by: "מייקל", date: "2026-06-12", note: "תקרות סיכון פר-תבנית" }
+  DAYTYPE_PLAYBOOK:       {expected: "1", ruled_by: "מייקל", date: "2026-06-19", note: "פלייבוק תבנית×יום; 07-08 חסם counter-trend נכון" }
+  DAYTYPE_PATTERN_AWARE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-06-30", note: "שער-משפחה מודע-תבנית" }
+  DIRECTION_CONTEXT:      {expected: "1", ruled_by: "מייקל", date: "2026-07-0x", note: "הקשר-כיוון CVD+breakout" }
+
+  # ── פרמטרים שנפסקו ──
+  MEMS_MIN_RISK_POINTS:   {expected: "2",  ruled_by: "מייקל", date: "2026-07-02", note: "רצפת סיכון מוחלטת; רצפת-עבודה = 0.5×ATR (רצועה, 07-08)" }
+  MEMS_MAX_RISK_POINTS:   {expected: "60", ruled_by: "מייקל", date: "2026-07-02", note: "תקרת סיכון" }
+
+  # ── סטנדינג-כבוי (CLAUDE.md — הדלקה = פסיקת מייקל בכתב) ──
+  S2_CHOPPINESS_GATE:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
+  LAYER0_CHOP_GATE:       {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
+  S2_REQUIRE_COT_AMT:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "S2⟂S3 סטנדינג" }
+  DAYTYPE_POSITION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-01", note: "כבוי לוולידציה עד תיקון I-44" }
+  OPENING_WINDOW_FIRE_V1: {expected: "0", ruled_by: "מייקל", date: "2026-07-08", note: "כבוי כרגע; הדלקה = פסיקה" }
+  T1_LADDER_V2:           {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-18", note: "נדחה בבקטסט — לא להדליק" }
