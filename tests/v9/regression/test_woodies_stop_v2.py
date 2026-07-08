@@ -21,10 +21,12 @@ def test_structural_stop_is_not_moved_by_atr_on_big_bar():
 
 
 def test_floor_still_applies_on_tiny_structural():
-    # structural only 1 tick away -> floor 4t wins
+    # structural only 1 tick away → BAND floor wins (Michael 07-02/07-08:
+    # stop never tighter than 0.5×ATR — sized by the average candle).
+    # ATR=10 ticks → floor = max(4, ceil(0.5×10)) = 5 ticks.
     r = compute_stop_v2("LONG", 7400.0, 7399.75, PatternGroup.CONT_TIGHT, atr_14=10.0)
-    assert r.risk_ticks == 4
-    assert r.stop_price == 7399.0          # entry - 4 ticks
+    assert r.risk_ticks == 5
+    assert r.stop_price == 7398.75         # entry - 5 ticks
     assert r.floor_applied is True
 
 

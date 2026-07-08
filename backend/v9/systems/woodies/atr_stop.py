@@ -33,6 +33,11 @@ class PatternGroup(str, Enum):
     REV        = "REV"          # VEGAS, GHOST, FAMIR, HTLB → 1.5× ATR-14 (HFE disabled)
 
 
+# Band floor (Michael 07-02 ratified · re-ruled 07-08): stop never tighter than
+# half the average candle. Band = [0.5×ATR .. ATR_CAP_MULTIPLIERS[group]×ATR].
+BAND_MIN_ATR_MULT = 0.5
+
+
 @dataclass(frozen=True)
 class StopResult:
     """Result of stop computation."""
@@ -196,14 +201,17 @@ def compute_stop_v2(
     if atr_14 <= 0:
         raise ValueError("atr_14 must be positive")
 
-    # A7-alignment (2026-07-08, live incident): the validator rejects any fire
-    # with risk < MEMS_MIN_RISK_POINTS (env, e.g. 2pt) — but this floor was 4
-    # ticks (1.0pt), so a tight structural anchor produced a stop the system's
-    # own validator ALWAYS killed (3 ZLR fires dropped at A7 on a Trend_DD
-    # morning, 17:25–17:30 IL). The resolver must never emit a doomed stop:
-    # raise the floor to the env minimum. Env unset → behavior unchanged.
+    # Stop band (Michael, ratified 07-02 pattern-economics; re-ruled live 2026-07-08):
+    # the stop is sized by the AVERAGE CANDLE (ATR) and placed at structure —
+    # band [0.5×ATR .. group cap×ATR]. A structural anchor INSIDE the band wins
+    # untouched; an anchor tighter than 0.5×ATR is a degenerate artifact (e.g.
+    # forming-bar cluster 1pt away on a 10–15pt-candle day) and is pushed to the
+    # band floor. Live incident 07-08: 4-tick floor let 1pt stops through → the
+    # validator (MEMS_MIN_RISK_POINTS=2) killed every such fire at A7 → 3 ZLR
+    # drops on a Trend_DD morning. env min stays as an absolute safety floor.
     import math
     import os as _fl_os
+    floor_ticks = max(floor_ticks, math.ceil(BAND_MIN_ATR_MULT * atr_14))
     _env_min_pts = float(_fl_os.getenv("MEMS_MIN_RISK_POINTS", "0") or 0)
     if _env_min_pts > 0:
         floor_ticks = max(floor_ticks, math.ceil(_env_min_pts / tick_size))
