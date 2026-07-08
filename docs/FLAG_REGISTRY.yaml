@@ -390,6 +390,41 @@ flags:
     ref: "docs/handoff/CC_NONTREND_DISABLE_2026-06-24.md"
 
   # ───────────────────────── Stops / targets / sizing / risk ─────────────────────────
+  ENTRY_CONFIRM_TOL_ATR_FRAC:
+    category: param
+    group: "entry validation"
+    what: "Tolerance multiplier for entry confirmation: counter-close within frac×ATR(14) is treated as noise (no cancellation)."
+    why: "Tuning knob for entry-bar close confirmation. Default 0.3."
+    status: param
+    ref: "backend/v9/gateway/trading_gateway.py:763"
+  NEUTRAL_RESPONSIVE_V1:
+    category: cascade_gate
+    group: "direction engine"
+    what: "On Neutral days, exempt RESPONSIVE (reversal-family) patterns from direction-context blocking filter."
+    why: "ON (Michael 2026-07-08). Neutral days lack a clear direction — blocking reversals loses the best Neutral setups."
+    status: live
+    ref: "backend/v9/gateway/trading_gateway.py:433"
+  STOP_STRUCTURE_TRAIL_V1:
+    category: targets
+    group: "structure trail"
+    what: "After T1 hit, move stop to nearest structural anchor (swing low/high within window) instead of mechanically to BE+1T."
+    why: "ON (Michael 2026-07-08 L2 design: 'after T1, stop trails to STRUCTURE, not BE'). Trading-risk-surface change."
+    status: live
+    ref: "backend/v9/services/trade_manager/manager.py:501"
+  STOP_STRUCT_WINDOW_BARS:
+    category: param
+    group: "structure trail"
+    what: "Window size (number of recent 5-min bars) for detecting structural anchors when STOP_STRUCTURE_TRAIL_V1 is ON. Default 12 (= 1 hour)."
+    why: "Tuning knob for structure-trail lookback."
+    status: param
+    ref: "backend/v9/services/trade_manager/manager.py:551"
+  TARGET_STRUCTURE_CLAMP_V1:
+    category: targets
+    group: "TP-1 clamp"
+    what: "Clamp targets beyond IB edge to the IB edge on non-traveling days (Neutral/Variation). Rule TP-1: if day type doesn't support travel beyond IB, don't set targets there."
+    why: "ON (Michael 2026-07-08). Trade 310 had T1=+12.75 T2=+46.75 far beyond IB-H — clamped."
+    status: live
+    ref: "backend/v9/systems/target_structure_clamp.py:12"
   STOP_ANCHORS_V2:
     category: sizing
     what: "v2 stop-anchor logic (per-pattern anchors from stop_anchors.yaml)."
