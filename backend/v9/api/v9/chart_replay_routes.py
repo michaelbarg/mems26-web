@@ -84,6 +84,19 @@ _SPECIFIC_BARS_SQL = """
 """
 _CONTRACT_GAP_TOL = 25.0  # pts: beyond this, the source is a different contract than the date's trades
 
+# REPLAY-EMPTY fallback (2026-07-08): raw specific-month bars for a date, with NO roll-contamination
+# filter (that filter only applies when switching AWAY from a populated woodies on a roll day). Used
+# only when the stitched woodies series is empty/lagging for the date. Real bars only (Rule 1).
+_RAW_BARS_SQL = """
+    SELECT s.ts AS ts, s.open AS o, s.high AS h, s.low AS l, s.close AS c, s.volume AS v,
+           NULL::double precision AS cci, NULL::double precision AS tcci,
+           NULL AS trend, s.cumulative_delta AS cum_delta
+    FROM v9_bars_5min s
+    WHERE (s.ts AT TIME ZONE 'America/New_York')::date = :date
+      AND s.symbol = 'MES'
+    ORDER BY s.ts ASC
+"""
+
 
 def _entry_gap(date: str, table: str) -> Optional[float]:
     """Median |entry_price − that table's close at the entry bar| over the date's
@@ -114,6 +127,13 @@ def _bars_for_date(date: str):
     so the candles share the trade's contract. Real bars only (Rule 1)."""
     woodies = read_all(_WOODIES_BARS_SQL, {"date": date})
     if not woodies:
+        # REPLAY-EMPTY fix (2026-07-08): the stitched woodies series can be empty/lagging for a date
+        # (it was empty for 07-08 during the live session while the raw feed HAD the bars → replay
+        # returned 0 rows). Fall back to the raw specific-month bars so replay + the marking chart
+        # work off EITHER source. Honest empty only if BOTH are empty. Real bars only (Rule 1).
+        raw = read_all(_RAW_BARS_SQL, {"date": date})
+        if raw:
+            return raw, "v9_bars_5min_fallback"
         return woodies, "woodies"
     wgap = _entry_gap(date, "v9_bars_5min_woodies")
     if wgap is None or wgap <= _CONTRACT_GAP_TOL:

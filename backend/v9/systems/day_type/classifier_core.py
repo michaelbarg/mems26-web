@@ -116,6 +116,18 @@ def classify_session(
         "poc_drift": pocdrift,
         "dd_second_dist": dd_detected,
         "session_range": _sr,
+        # ── P0 wiring (Michael 2026-07-08, Dalton doctrine) — ADDITIVE. Consumed only when the
+        #    P0 flags are ON; classify() ignores these keys otherwise → byte-identical when unset.
+        #    accepted_break derives from the EXISTING volume-accepted IB hold (relative_features
+        #    ext_*_hold); open_dir feeds the provisional-from-open (P0-2); ext_*_bars feed the
+        #    confidence RE-persistence evidence (P0-3). prior-range/balance refs + failed_break
+        #    are a documented follow-up (P0-1 v2).
+        "accepted_break": ("UP" if (rf.ext_up_hold and not rf.ext_dn_hold)
+                           else ("DOWN" if (rf.ext_dn_hold and not rf.ext_up_hold) else None)),
+        "accepted_break_ref": ("IB" if (bool(rf.ext_up_hold) ^ bool(rf.ext_dn_hold)) else None),
+        "open_dir": op.get("direction"),
+        "ext_up_bars": rf.ext_up_bars,
+        "ext_dn_bars": rf.ext_dn_bars,
     }
 
     result = classify(feat, plan, is_eod=is_eod)

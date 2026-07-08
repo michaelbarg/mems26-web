@@ -41,6 +41,84 @@ def _direction(plan: Dict[str, Any], day_type: str) -> Optional[str]:
     return (plan.get("day_types", {}).get(day_type) or {}).get("direction")
 
 
+def _provisional_from_open(feat: Dict[str, Any], plan: Dict[str, Any], out) -> Optional[Dict[str, Any]]:
+    """P0-2 (flag S1_COMMITTED_PROVISIONAL_V1) — committed provisional day-type from the OPEN.
+
+    Dalton pp.63-74 (§3.1 table): the open foreshadows the day; conviction is readable in the
+    first minutes. By 30 min we COMMIT a provisional (not bare FORMING) from
+    {opening_type × open_location}. `one_tf` needs >=2 periods (>=12 bars) so it is None at 30 min
+    → provisional direction comes from the opening detector's `open_dir`. Always returns a
+    provisional (never None) so no session sits bare-FORMING past 30 min (ruling D1)."""
+    ot = feat.get("opening_type")
+    loc = feat.get("open_location")
+    od = feat.get("open_dir")
+    d = od if od in ("UP", "DOWN") else (feat.get("one_tf") if feat.get("one_tf") in ("UP", "DOWN") else None)
+
+    def p(dt: str, why: str) -> Dict[str, Any]:
+        tag = f"[{ot or 'no-open'}" + (f"/{loc}" if loc and loc != "UNKNOWN" else "") + "]"
+        return out(dt, "PROVISIONAL", f"@30m provisional {tag} -> {why}",
+                   provisional_from_open=True, prov_dir=d)
+
+    if ot in ("OPEN_DRIVE", "OPEN_TEST_DRIVE"):
+        if loc == "out_of_range":
+            return p("Trend_Normal", "drive + open out of balance -> Trend (pp.63-65,84)")
+        return p("Normal_Variation", "drive in range -> Variation/Trend watch (pp.65-67)")
+    if ot == "OPEN_AUCTION_OUT":
+        return p("Normal_Variation", "auction out of balance -> DD/Trend watch (pp.70-71)")
+    if ot == "OPEN_REJECTION_REVERSE":
+        return p("Neutral_Center", "rejection-reverse -> two-sided; Trend unlikely (p.68)")
+    if ot == "OPEN_AUCTION_IN":
+        return p("Normal", "auction in range -> rotational; big day unlikely (p.71)")
+    return p("Normal", "open unresolved -> provisional Normal-leaning")
+
+
+def _confidence(feat: Dict[str, Any], day_type: str, direction: Optional[str], cl: Dict[str, Any]) -> float:
+    """P0-3 (flag S1_CONFIDENCE_V2) — ONE canonical confidence in [0,1] = fraction of the
+    day's evidence that ALIGNS with its directional/balance read. Dalton conviction continuum
+    (p.29); 3-1 confluence (pp.273-275). Uses the evidence available in `feat` today
+    (open type, one_tf, RE persistence, CVD, close_pos, rib, open-held, DD/one-sided); tails,
+    TPO-count and elongation are wired later (doctrine P1/P2)."""
+    if day_type == "FORMING":
+        return 0.0                    # FORMING = no classification yet = no conviction (honest)
+    one_tf = feat.get("one_tf")
+    cp = feat.get("close_pos")
+    cvd = feat.get("cvd_pos")
+    rib = feat.get("rib")
+    sides = feat.get("sides", 0) or 0
+    ce_hi, ce_lo = cl["close_extreme_hi"], cl["close_extreme_lo"]
+    cvd_lo, cvd_hi = cl["cvd_dir_short"], cl["cvd_dir_long"]
+    cc_lo, cc_hi = cl["close_center"]
+    rib_tn = cl["rib_trend_min"]
+    # the day's directional bias: one_tf, else the reclass break dir, else a close at an extreme
+    d = one_tf if one_tf in ("UP", "DOWN") else feat.get("break_dir")
+    if d not in ("UP", "DOWN") and cp is not None:
+        d = "UP" if cp >= ce_hi else ("DOWN" if cp <= ce_lo else None)
+    # FIXED denominator = the FULL evidence checklist (fraction of ALL evidence that aligns, per
+    # doctrine p.29 / pp.273-275). Missing/None evidence counts as NOT aligned → early/degenerate
+    # bars get a LOW confidence (not a misleading 1.0 from 1-of-1 applicable). Rises as evidence accrues.
+    if d in ("UP", "DOWN"):
+        ub, db = feat.get("ext_up_bars"), feat.get("ext_dn_bars")
+        ot = feat.get("opening_type")
+        ev = [
+            one_tf == d,                                                                # one-timeframe
+            cp is not None and ((d == "UP" and cp >= ce_hi) or (d == "DOWN" and cp <= ce_lo)),  # close at extreme
+            cvd is not None and ((d == "UP" and cvd >= cvd_hi) or (d == "DOWN" and cvd <= cvd_lo)),  # CVD aligned
+            (d == "UP" and (ub or 0) >= 2) or (d == "DOWN" and (db or 0) >= 2),          # RE persistence
+            rib is not None and rib >= rib_tn,                                          # trend-grade range
+            ot in ("OPEN_DRIVE", "OPEN_TEST_DRIVE"),                                     # drive open
+            not bool(feat.get("returned_through_open")),                                # open held
+            bool(feat.get("dd_second_dist")) or sides == 1,                             # one-sided / DD
+        ]
+    else:
+        # non-directional (Neutral_Center / Normal / Nontrend): how cleanly the balance holds
+        ev = [
+            cp is not None and cc_lo <= cp <= cc_hi,                                     # centered close
+            sides in (0, 2),                                                            # balanced sides
+            (rib is not None and rib <= cl["rib_normal_max"]) or sides == 2,            # contained or two-sided
+        ]
+    return round(sum(1 for x in ev if x) / len(ev), 2)
+
+
 def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_eod: bool = False) -> Dict[str, Any]:
     """Locked S1 table (Michael 2026-06-20), first-match-wins state machine.
 
@@ -72,18 +150,61 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
     n = feat.get("n_bars", 0)
     cvd_dir = cvd_pos is not None and (cvd_pos >= cvd_hi or cvd_pos <= cvd_lo)
 
+    # ── P0 flags (Michael 2026-07-08, Dalton doctrine). ALL default OFF → byte-identical when unset. ──
+    _reclass_on = os.environ.get("S1_ACCEPTANCE_RECLASS_V1", "0").lower() in ("1", "true", "yes")
+    _conf_on = os.environ.get("S1_CONFIDENCE_V2", "0").lower() in ("1", "true", "yes")
+    _failed_break = _reclass_on and bool(feat.get("failed_break"))
+
     def out(dt: str, status: str, reason: str, **extra) -> Dict[str, Any]:
         d = {"day_type": dt, "status": status, "direction": _direction(plan, dt),
              "reason": reason, "invalidated": oi, "opening_invalidated": oi}
+        if _failed_break:                       # P0-1: a prior accepted break returned inside → rejection
+            d["failed_breakout"] = True
         d.update(extra)
+        if _conf_on:                            # P0-3: one canonical confidence on every output
+            d["confidence"] = _confidence(feat, dt, d.get("direction"), cl)
         return d
 
     # ── Priority 0 = INVALIDATED overlay: `invalidated`/`oi` above. A return through the
     #    opening range exits the trade + forces re-classification (oi blocks Trend below;
     #    the day_type re-forms). Not a terminal type, so the day keeps developing. ──
 
+    # ── P0-1 acceptance-driven prompt reclassification (Michael 2026-07-08; Dalton pp.37-38,288-292) ──
+    # A committed reference breakout (IB edge / prior-day range / balance area) that is ACCEPTED
+    # (>=2 closed bars beyond + volume-accept, computed in relative_features) reclassifies the day
+    # IMMEDIATELY in the break direction — WITHOUT waiting for the rib>=2.5 Trend floor ("structure
+    # lags", p.37; balance-breakout = "a trade you almost have to do", pp.288-292). A return back
+    # inside the reference = rejection → the `failed_breakout` tag (out()) + no promotion (revert).
+    # Runs BEFORE the FORMING gate so a gap-and-go beyond prior range names the trend early.
+    # Flag S1_ACCEPTANCE_RECLASS_V1, default OFF → byte-identical when unset.
+    if _reclass_on and not _failed_break and not oi:
+        _abrk = feat.get("accepted_break")           # "UP" | "DOWN" | None (dominant accepted side)
+        _aref = feat.get("accepted_break_ref") or "ref"
+        if _abrk in ("UP", "DOWN"):
+            if feat.get("dd_second_dist"):
+                return out("Trend_DD", "CLASSIFIED",
+                           f"acceptance-reclass: 1-sided + DD ({_aref} break {_abrk})",
+                           reclass=True, reclass_ref=_aref, break_dir=_abrk)
+            if feat.get("one_tf") == _abrk:
+                return out("Trend_Normal", "CLASSIFIED",
+                           f"acceptance-reclass: accepted {_aref} break {_abrk} + one_tf -> Trend (rib floor waived)",
+                           reclass=True, reclass_ref=_aref, break_dir=_abrk, cvd_confirms=cvd_dir)
+            return out("Normal_Variation", "CLASSIFIED" if is_eod else "PROVISIONAL",
+                       f"acceptance-reclass: accepted {_aref} break {_abrk} (one_tf pending)",
+                       reclass=True, reclass_ref=_aref, break_dir=_abrk)
+
     # ── Priority 1 = FORMING — before the IB locks (60 min / 12 bars). Never FORMING at EOD. ──
     if n < ib_lock_bars and not is_eod:
+        # P0-2 (Dalton pp.63-74, ruling D1): the open foreshadows the day. Once 30 min is in
+        # (forming_lock_minutes), COMMIT a provisional day-type from {opening_type × open_location}
+        # instead of a bare FORMING that discards the open's forecast for the first hour.
+        # Flag S1_COMMITTED_PROVISIONAL_V1, default OFF → byte-identical (bare FORMING) when unset.
+        forming_lock_bars = int(cl.get("forming_lock_minutes", 30) / 5)
+        if (os.environ.get("S1_COMMITTED_PROVISIONAL_V1", "0").lower() in ("1", "true", "yes")
+                and n >= forming_lock_bars):
+            prov = _provisional_from_open(feat, plan, out)
+            if prov is not None:
+                return prov
         return out("FORMING", "FORMING", f"before IB lock ({n}/{ib_lock_bars} bars)")
 
     # ── Priority 2 = Nontrend (Sideways): 0 sides, low participation, TRULY compressed (rib<=1.15) ──
