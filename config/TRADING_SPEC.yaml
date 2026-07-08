@@ -1,0 +1,101 @@
+# TRADING_SPEC.yaml — ספר ההגדרות הקנוני: מה שמייקל לימד את המערכת. (נוצר 2026-07-08)
+#
+# זה החוזה: האלגוריתם מחויב לכל חוק כאן. הסוכן (Cowork) אוכף בשלוש נקודות:
+#   לפני  — fire_drill (16:00) מוודא שהשרשרת מסוגלת לציית
+#   תוך   — השערים ב-gateway + מערכת 6 על עסקה פעילה
+#   אחרי  — s6_eod_report (23:05) שופט כל עסקה מול כל חוק; סטייה = פריט-תיקון
+# כל חוק: מקור (פסיקת מייקל/עמוד בדלתון) + איפה נאכף + איך מאומת.
+# סטייה שמתגלה = באג (מתוקן+טסט) או פסיקה חסרה (שאלה אחת למייקל). לעולם לא "מוסבר".
+
+rules:
+  # ── סטופים ──
+  STOP-1:
+    rule: "סטופ נגזר מגודל הנר הממוצע וממוקם במבנה: רצועה [0.5×ATR .. cap×ATR קבוצתי]; מבנה מנצח בתוך הרצועה; מינימום מוחלט 2 נק'"
+    source: "מייקל 07-02 (חבילת-כלכלה) + 07-08 (פסיקה חיה)"
+    enforced: "compute_stop_v2 (atr_stop.py BAND_MIN_ATR_MULT) + validate_fire"
+    verified: "fire_drill שלב B · s6_eod: שיפוט-סטופ ×ATR · test_a7_stop_floor_alignment"
+  STOP-2:
+    rule: "אחרי T1 הסטופ עולה ל-BE+טיק ונשלח לסיירה בפועל (לא רק DB); עתיד: טרייל-למבנה (STOP-STRUCT)"
+    source: "מייקל 06-xx (smart-BE) + 07-07 (records≠reality) + 07-08 (מבנה — בתור)"
+    enforced: "_apply_smart_be_after_t1 + _emit_modify_stop (אזהרה רועשת בכשל)"
+    verified: "S6 אינווריאנט BE-after-T1 · הוכחת sc.ModifyOrder חיה — עדיין חסרה (T2 מחר)"
+  STOP-3:
+    rule: "המערכת לעולם לא מייצרת ירי שהוולידטור שלה יהרוג (אין סטופ-נולד-מת)"
+    source: "מייקל 07-08 ('למה כל יום תקלה')"
+    enforced: "יישור רצפות resolver↔validator"
+    verified: "fire_drill שלב B — שני כיוונים, עוגן-צמוד + מבני"
+
+  # ── מימושים ──
+  TP-1:
+    rule: "אין יעד מעבר ל-IB-High/Low ביום שאינו נייטרלי או מגמתי-מאושר"
+    source: "מייקל 07-08 (ביקורת עסקה 310: T2 ‏+46.75 ביום Variation)"
+    enforced: "⚠ עדיין לא נאכף בקוד — פריט MISSED-0708/TP (תאי auth + target-zones)"
+    verified: "s6_eod: T1 מול MFE + יעד-מול-מבנה-היום; מחקר TP (פרומפט מוכן)"
+  TP-2:
+    rule: "מימוש נמדד מול מה שהיום נתן בפועל (MFE) — יעד שרחוק פי-2 מה-MFE הטיפוסי לסוג-היום = שגוי"
+    source: "מייקל 07-08 ('המימוש נבחן על פי נתוני המסחר של אותו יום')"
+    enforced: "מחקר TP → טבלת תבנית×יום"
+    verified: "s6_eod כל ערב"
+
+  # ── סוג-יום (דלתון) ──
+  DAY-1:
+    rule: "פריצת רפרנס עם קבלה (2 ברים + נפח) משנה סיווג מיידית, לשני הכיוונים; חזרה-פנימה מחזירה"
+    source: "מייקל 07-08 + דלתון עמ' 37-38, 288-292"
+    enforced: "⚠ בבנייה — צ'אט S1 ‏(P0-1, ‏S1_ACCEPTANCE_RECLASS_V1)"
+    verified: "replay 07-08 חייב להתהפך תוך ≤2 ברים מהקבלה"
+  DAY-2:
+    rule: "הרחבה משני צידי ה-IB = יום נייטרלי; סגירה בקיצון = Neutral_Extreme"
+    source: "דלתון (הגדרה מכנית) — אומת חי 07-08 (IB ‏7501.75-7524.75, הרחבות −32.5/+3.75)"
+    enforced: "daytype_classifier sides==2 (קיים)"
+    verified: "07-08 golden fixture — התהפך ל-Neutral_Extreme ~10 דק' אחרי הקבלה"
+  DAY-3:
+    rule: "מנוע=UI=שערים — סיווג אחד, ביטחון אחד, בכל המסכים (אין פיצול מקורות)"
+    source: "מייקל 07-08 (Variation בפאנל מול Neutral_Extreme במנוע)"
+    enforced: "⚠ בבנייה — צ'אט S1 ‏(P0-3 ביטחון קנוני + יישור surfaces)"
+    verified: "בריפינג-בוקר מציג את שניהם; חייבים להיות זהים"
+
+  # ── התאמת עסקה לסוג-יום ──
+  FIT-1:
+    rule: "ביום נייטרלי/רוטציוני: עסקאות responsive בקצוות; תבניות המשך לא רודפות (CONT מסונן)"
+    source: "מייקל 07-08 + דלתון (responsive at extremes)"
+    enforced: "cont_trend_filter (CONT בלבד) + NEUTRAL_RESPONSIVE_V1 (פטור REV ביום נייטרלי)"
+    verified: "לוג 07-08: חסימות ה-CONT בשני הכיוונים = ציות; s6_eod שופט התאמה"
+  FIT-2:
+    rule: "לא קונים/מוכרים קיצון ביום לא-מגמתי (אין initiative בקצה בלי conviction)"
+    source: "מייקל 07-08 (ביקורת עסקה 310) + דלתון"
+    enforced: "playbook תאי Neutral (CONT=SKIP) · ⚠ תא initiative-בקצה טרם ממודל"
+    verified: "s6_eod: כיוון×מיקום-בטווח×סוג-יום"
+  FIT-3:
+    rule: "בר-אישור נמדד יחסית לנר: סגירה-נגד עד 10%×ATR = רעש, לא פסילה"
+    source: "מייקל 07-08 (פסיקה 6)"
+    enforced: "entry_confirmed(tol_points) + gateway ‏ENTRY_CONFIRM_TOL_ATR_FRAC=0.10"
+    verified: "test_entry_confirm_tolerance ‏4/4 · fire_drill שלב C"
+
+  # ── גודל וניהול ──
+  SIZE-1:
+    rule: "2 חוזים, סימטרי בכל השרשרת: פקודה, בראקט (בדיוק 2 OCO), סגירה ב-T2, P&L ‏2 רגליים, תצוגה N/2"
+    source: "מייקל 07-06 + 07-08 ('1/3 hit' אסור)"
+    enforced: "effective_contracts → quality.contracts → manager/display/slot"
+    verified: "test_l7 ‏6/6 · חסר: ירי SIM ‏2ח (CC מחר)"
+  SIZE-2:
+    rule: "עצירת יום −$400 · אין כניסות אחרי 22:15 · ‏EOD flatten — ללא יוצאים מהכלל"
+    source: "מייקל 07-06"
+    enforced: "RISK_HALT_V1 + EOD_FLATTEN_V1 + item-21"
+    verified: "flag_guard יומי · s6_eod"
+
+  # ── משמעת מערכת ──
+  SYS-1:
+    rule: "דגל שנפסק לא זז בלי פסיקה חדשה בכתב"
+    source: "מייקל 07-08 ('שדגלים שסגרנו לא יכובו ויהרסו הכל')"
+    enforced: "config/RULED_FLAGS.yaml + scripts/flag_guard.py (29 דגלים)"
+    verified: "כל בוקר 15:55 + בכל fire_drill"
+  SYS-2:
+    rule: "כשל שקט אסור: כל דילוג/נפילה בנתיב הכסף צועקים בלוג"
+    source: "מייקל (no-silent-failures, קבוע)"
+    enforced: "אזהרות emit-skip · NAKED_STOP · orphan-CRITICAL · DROPPED עם סיבות"
+    verified: "07-08: ‏NAKED_STOP צרח נכון תוך שניות"
+  SYS-3:
+    rule: "עסקת סיירה = רשומת מערכת: פוזיציה בלי מעקב מאומצת מיד; סגירה ידנית מזוהה ומתויגת MANUAL"
+    source: "מייקל 07-07 (לדג'ר) + 07-08 (הדשבורד לא זיהה את הסגירה)"
+    enforced: "⚠ חלקי — P0 מחר: שרשרת ORDER_FAILED/orphan + הזנת TradeActivityLog"
+    verified: "V1-V5 ‏(CC) · s6_eod מצליב סיירה-DB"
