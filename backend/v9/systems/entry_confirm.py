@@ -33,10 +33,16 @@ def entry_confirmed(
     bars: List[Dict],
     cvd_pos: Optional[float] = None,
     require_cvd: bool = False,
+    tol_points: float = 0.0,
 ) -> Tuple[bool, str]:
     """True if the most recent (signal) bar confirms the trade direction.
 
     Confirm bar: LONG → close > open; SHORT → close < open.
+    tol_points (Michael ruling 2026-07-08): a counter-close WITHIN the tolerance
+    is noise, not rejection — everything is measured relative to the average
+    candle (the caller passes tol = frac×ATR). Live incident: an 18:00 REACTIVE
+    SHORT was blocked because the bar closed 0.75pt (3 ticks) above open on a
+    ~10pt-candle day.
     If require_cvd and cvd_pos is provided: also require CVD alignment
     (LONG → cvd_pos >= 0.5, SHORT → cvd_pos <= 0.5).
     Fail-safe: no bars / missing o,c → (False, reason).
@@ -47,10 +53,10 @@ def entry_confirmed(
     if o is None or c is None:
         return (False, "signal bar missing o/c")
     d = direction.upper()
-    if d == "LONG" and not (c > o):
-        return (False, f"no bullish confirm bar (c={c} <= o={o})")
-    if d == "SHORT" and not (c < o):
-        return (False, f"no bearish confirm bar (c={c} >= o={o})")
+    if d == "LONG" and not (c > o - tol_points):
+        return (False, f"no bullish confirm bar (c={c} <= o={o} - tol={tol_points})")
+    if d == "SHORT" and not (c < o + tol_points):
+        return (False, f"no bearish confirm bar (c={c} >= o={o} + tol={tol_points})")
     if require_cvd and cvd_pos is not None:
         if d == "LONG" and cvd_pos < 0.5:
             return (False, f"CVD not buy-aligned ({cvd_pos:.2f})")

@@ -709,11 +709,21 @@ class TradingGateway:
             try:
                 from backend.v9.db.read import read_all as _ec_read
                 from backend.v9.systems.entry_confirm import entry_confirmed as _ec
-                _ec_rows = _ec_read("SELECT open, close FROM v9_bars_5min_woodies "
-                                    "ORDER BY ts DESC LIMIT 1", {})
+                # Michael ruling 2026-07-08: the confirm test is relative to the
+                # average candle — a counter-close within frac×ATR(14) is noise.
+                _ec_rows = _ec_read("SELECT open, close, high, low FROM v9_bars_5min_woodies "
+                                    "ORDER BY ts DESC LIMIT 15", {})
                 if _ec_rows:
+                    _ec_tol = 0.0
+                    _ranges = [float(r["high"]) - float(r["low"])
+                               for r in _ec_rows[1:15]
+                               if r.get("high") is not None and r.get("low") is not None]
+                    if _ranges:
+                        _ec_frac = float(os.getenv("ENTRY_CONFIRM_TOL_ATR_FRAC", "0.10") or 0)
+                        _ec_tol = _ec_frac * (sum(_ranges) / len(_ranges))
                     _ec_bar = {"o": float(_ec_rows[0]["open"]), "c": float(_ec_rows[0]["close"])}
-                    _ec_ok, _ec_reason = _ec(direction=str(direction).upper(), bars=[_ec_bar])
+                    _ec_ok, _ec_reason = _ec(direction=str(direction).upper(), bars=[_ec_bar],
+                                             tol_points=_ec_tol)
                     if not _ec_ok:
                         result["blocked_by"] = "entry_not_confirmed"
                         logger.info("[Gateway] BLOCKED by entry-confirm: %s", _ec_reason)
