@@ -186,6 +186,23 @@ def exit_trade(
         logger.error("[trades] exit commit failed trade_id=%s: %s", trade_id, exc)
         raise HTTPException(status_code=500, detail="Failed to persist trade close") from exc
 
+    # I-57 via cockpit (2026-07-08 live): exit closed trade 310 but the gateway
+    # live_slot stayed occupied → ALL new fires blocked until restart. Notify the
+    # gateway exactly like the FillPoller close path. Fail-safe, never raises.
+    try:
+        _gw = getattr(request.app.state, "trading_gateway", None)
+        if _gw is not None and getattr(trade, "mode", "shadow") in ("demo", "live"):
+            _gw.on_trade_close({
+                "trade_id": trade_id,
+                "mode": getattr(trade, "mode", "shadow"),
+                "pnl_usd": getattr(trade, "pnl_usd", 0.0) or 0.0,
+                "outcome": getattr(trade, "outcome", "") or (body.reason or "manual"),
+                "direction": getattr(trade, "direction", "") or "",
+            })
+            logger.info("[trades] exit: gateway notified — slot released for trade %s", trade_id)
+    except Exception as exc:
+        logger.warning("[trades] exit: gateway notify failed (non-fatal): %s", exc)
+
     trade = tm._get_trade(trade_id)
     publish_event(CHANNEL_TRADES, {
         "trade_id": trade.id,

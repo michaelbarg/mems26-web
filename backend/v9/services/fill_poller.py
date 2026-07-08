@@ -149,6 +149,24 @@ class FillPoller:
                            and getattr(t, "mode", "shadow") in ("demo", "live")]
                 if pending:
                     trade = pending[-1]  # most recent
+                    # SYS-3 guard (2026-07-08 live incident, trade 308/310): if the
+                    # trade ALREADY has a Sierra parent id (ORDER_SUBMITTED was
+                    # acked), a later bare ORDER_FAILED is most likely a CHILD
+                    # (stop/target) failure — cancelling the trade row here
+                    # ORPHANED a real Sierra position (backend cancelled 308 while
+                    # Sierra held it; Michael had to flatten manually). Do NOT
+                    # cancel a submitted trade: scream NAKED-BRACKET instead and
+                    # let reconcile/System-6/Michael act on the position.
+                    _q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+                    if _q.get("sierra_order_id"):
+                        logger.critical(
+                            "[FillPoller] ORDER_FAILED after SUBMIT-ack for trade %d "
+                            "(parent %s) — likely a CHILD order failure. NOT cancelling "
+                            "the trade. NAKED-BRACKET SUSPECT: verify the Sierra stop NOW.",
+                            trade.id, _q.get("sierra_order_id"),
+                        )
+                        RESULT_PATH.write_text("")
+                        return
                     try:
                         # Truncate reason to fit varchar(30)
                         _reason = f"ORDER_FAILED:{err_code}"[:30]
