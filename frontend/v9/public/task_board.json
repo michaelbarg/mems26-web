@@ -3,8 +3,8 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-08T23:09:00+03:00",
-    "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice-to-have",
+    "updated": "2026-07-09T10:35:00+03:00",
+    "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice · ⚡ 07-09: LIVE עם 3 חוזים (פסיקת מייקל)",
     "indexes": [
       {
         "label": "System Index",
@@ -44,6 +44,17 @@
           "path": "docs/handoff/CC_CONTINUATION_2026-07-07.md"
         }
       ]
+    },
+    {
+      "id": "CONTRACTS-3",
+      "title": "⚡ מעבר ל-3 חוזים — פרוס (פסיקת מייקל 07-09)",
+      "priority": "P0",
+      "status": "deployed_unverified",
+      "owner": "מייקל+CC",
+      "where": "FIXED_CONTRACTS_2=0, _3=1 · RULED_FLAGS 32 · TRADING_SPEC SIZE-1 · ריסטארט 10:13 · effective=3 · דריל GO",
+      "next": "CC: ירי SIM ‏3 חוזים = 3 קבוצות OCO + N/3 + סגירה-ב-T3 · ⚠ מתמטיקת-סיכון למייקל: סטופ-היפוך ~2×ATR ≈ $180-190 לעסקה ב-3ח → halt ‎−$400 ≈ 2 סטופים מלאים — לאשר שהקאפ נשאר",
+      "evidence": "snapshot 20260709T071339Z · flag_guard 32/32 · fire_drill 🟢",
+      "links": []
     },
     {
       "id": "AUTH-KEY-BYPASS",
@@ -296,7 +307,7 @@
       "status": "in_progress",
       "owner": "Agent (מחקר) + Michael",
       "where": "docs/handoff/RESEARCH_PROMPT_TP_AUDIT_2026-07-08.md — פרומפט מוכן להרצה בסוכן",
-      "next": "להריץ את הפרומפט על נתוני v9_trades + ברים; תוצר: טבלת תבנית×יום-סוג עם T1 בפועל מול אופטימלי, והמלצות ל-target_zones",
+      "next": "CC היום: להריץ על psql 30 יום (scripts/tp_audit.py מוסב)",
       "evidence": "תשובה כנה: לא — L6 פתוח (P&L מ-bar לא fill) ומעולם לא נעשה אודיט מיקומי-T1 פר-תבנית מול same-day data · v1 הורץ 07-08 (scripts/tp_audit.py): ה-API מחזיק ~2 ימי ברים בלבד → מדגם 0; המחקר המלא דורש psql על 30 יום — CC/סוכן מחר",
       "links": []
     },
@@ -348,11 +359,11 @@
       "id": "S4-RUNNER-T2-SIGN",
       "title": "RUNNER_T2 לשורטים — t2 מחושב בצד הלא-נכון (sanitized ל-None, לא מסוכן אבל מאבד runner)",
       "priority": "P2",
-      "status": "open",
+      "status": "done",
       "owner": "Cowork",
       "where": "woodies_system RUNNER_T2 — לוג 07-08 17:30: 'ZLR SHORT t2=7506.25' מעל t1=7505.25 → I-59 sanitize מחק; ה-R-mult מודפס כמחיר (באג פורמט נוסף)",
       "next": "לתקן את הסימן (SHORT: t2 מתחת ל-t1) + טסט; עד אז שורטים מאבדים יעד-runner (R:R נופל ל-expected-mult)",
-      "evidence": "לוג 07-08 17:25/17:30 — שני מופעים",
+      "evidence": "a2032d7: השורש סוּוג מחדש — לא באג-סימן אלא risk דגנרטיבי (1pt) ששם את t2(2R) בתוך t1(רצפה 3pt); רצועת-הסטופ מונעת מבנית + טסט סדר-סולם על כל משטרי-ATR + תיקון לוג",
       "links": []
     }
   ]
