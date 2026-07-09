@@ -29,13 +29,26 @@ def clamp_targets_to_ib(
     day_type: Optional[str],
     ib_high: Optional[float],
     ib_low: Optional[float],
+    ib_locked: bool = True,
 ) -> Tuple[Dict, List[str]]:
     """Clamp t1/t2/t3 beyond the IB edge to the edge, on non-traveling days.
 
     Returns (setup, clamp_notes). Mutates a COPY of the target keys only.
+
+    FIX-2 (incident 333):
+    - ib_locked=False → passthrough (IB still forming, edge is unreliable).
+    - Sanity: clamped target must remain beyond entry in the trade direction.
+      LONG edge <= entry or SHORT edge >= entry → skip clamp for that target
+      (otherwise the target ends up on the wrong side → phantom fills).
     """
     notes: List[str] = []
     direction = str(setup.get("direction") or "").upper()
+
+    # FIX-2a: pre-IB-lock → no clamping (IB edge = running session high/low, unreliable)
+    if not ib_locked:
+        notes.append("ib_forming_no_clamp")
+        return setup, notes
+
     if day_type in BEYOND_IB_ALLOWED or day_type is None:
         return setup, notes
     if direction == "LONG":
@@ -47,6 +60,12 @@ def clamp_targets_to_ib(
     if edge is None:
         return setup, notes  # honest missing — never synthesize a structure
 
+    entry = setup.get("entry_price")
+    try:
+        entry_f = float(entry) if entry is not None else None
+    except (TypeError, ValueError):
+        entry_f = None
+
     for k in ("t1", "t2", "t3"):
         tv = setup.get(k)
         if tv is None:
@@ -57,6 +76,24 @@ def clamp_targets_to_ib(
             continue
         beyond = tv > float(edge) if direction == "LONG" else tv < float(edge)
         if beyond:
+            # FIX-2b: sanity — clamped target must stay beyond entry
+            if entry_f is not None:
+                if direction == "LONG" and float(edge) <= entry_f + 0.25:
+                    notes.append(
+                        f"{k} clamp SKIPPED: IB-edge {edge} <= entry {entry_f} "
+                        f"(would place target on wrong side)")
+                    logger.warning(
+                        "[TargetClamp] SKIP %s: edge %.2f <= entry %.2f + 0.25 "
+                        "(wrong-side clamp, %s)", k, float(edge), entry_f, direction)
+                    continue
+                if direction == "SHORT" and float(edge) >= entry_f - 0.25:
+                    notes.append(
+                        f"{k} clamp SKIPPED: IB-edge {edge} >= entry {entry_f} "
+                        f"(would place target on wrong side)")
+                    logger.warning(
+                        "[TargetClamp] SKIP %s: edge %.2f >= entry %.2f - 0.25 "
+                        "(wrong-side clamp, %s)", k, float(edge), entry_f, direction)
+                    continue
             setup[k] = float(edge)
             notes.append(f"{k} {tv} → IB-edge {edge} ({day_type} does not travel beyond IB)")
     if notes:

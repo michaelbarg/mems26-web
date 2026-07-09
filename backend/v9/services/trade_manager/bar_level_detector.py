@@ -319,6 +319,23 @@ class BarLevelDetector:
                             continue  # Sierra unused T2/T3 slot
                     except (TypeError, ValueError):
                         continue
+                    # FIX-3 (incident 333): sanity — target must be on the correct
+                    # side of entry. A LONG target below entry = poisoned geometry
+                    # (e.g. TP-1 clamp set targets to IB-H below entry).
+                    _entry = getattr(trade, "entry_price", None)
+                    if _entry is not None:
+                        try:
+                            _ep = float(_entry)
+                            if (direction == "LONG" and float(target_price) < _ep) or \
+                               (direction == "SHORT" and float(target_price) > _ep):
+                                logger.critical(
+                                    "[BarLevelDetector] INSANE TARGET GEOMETRY trade=%d %s "
+                                    "target=%s=%.2f entry=%.2f — inference disabled",
+                                    trade.id, direction, target_name, float(target_price), _ep)
+                                continue
+                        except (TypeError, ValueError):
+                            pass
+
                     if (direction == "LONG" and bar_high >= target_price) or \
                        (direction == "SHORT" and bar_low <= target_price):
                         if _is_demo_live and target_name == "T3":

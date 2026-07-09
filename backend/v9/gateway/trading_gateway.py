@@ -603,46 +603,61 @@ class TradingGateway:
         # Flag-gated DAYTYPE_TARGETS_STRUCTURAL (default OFF). Fail-safe: on error
         # or missing levels → keeps original R-based targets.
         if os.getenv("DAYTYPE_TARGETS_STRUCTURAL", "0").lower() in ("1", "true", "yes"):
+            # FIX-4 (incident 333): skip structural targets before IB lock.
+            # Pre-lock IB = running session high/low → structural targets land
+            # too close (C1 at 1.25pt, R:R 0.05).
+            _st_ib_locked = True  # default: assume locked (fail-open)
             try:
-                from backend.v9.systems.structural_targets import resolve_structural_targets
-                _st_g1 = extract_g1_entry_context(cross_context)
-                _st_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
-                # Pass bars for swing T1 detection + pattern family for C2/C3 logic
-                _st_bars = None
+                from datetime import datetime as _st_dt
+                from zoneinfo import ZoneInfo as _st_ZI
+                _st_ct = _st_dt.now(_st_ZI("America/Chicago"))
+                _st_min = (_st_ct.hour * 60 + _st_ct.minute) - (8 * 60 + 30)
+                if _st_min < 60:
+                    _st_ib_locked = False
+            except Exception:
+                pass  # fail-open on TZ error
+            if not _st_ib_locked:
+                logger.info("[Gateway] structural targets SKIPPED: IB not locked")
+            else:
                 try:
-                    _dtm = self._system_registry.get("day_type_machine")
-                    _st_bars = getattr(_dtm, "_opening_gate_bars", None) or []
-                except Exception:
-                    pass
-                from backend.v9.systems.daytype_position_gate import _pattern_family as _pf
-                _st_pat = resolve_pattern_id(setup, _st_g1) or ""
-                _st = resolve_structural_targets(
-                    day_type=_st_g1.get("day_type_at_entry"),
-                    direction=direction,
-                    entry_price=setup.get("entry_price", 0.0),
-                    stop_price=setup.get("stop", 0.0),
-                    tpo_ctx=_st_tpo,
-                    bars=_st_bars,
-                    pattern_family=_pf(_st_pat),
-                )
-                if _st is not None:
-                    _old_t1 = setup.get("t1")
-                    _old_t2 = setup.get("t2")
-                    if _st.get("t1_price") is not None:
-                        setup["t1"] = _st["t1_price"]
-                    if _st.get("t2_price") is not None:
-                        setup["t2"] = _st["t2_price"]
-                    if _st.get("t3_price") is not None:
-                        setup["t3"] = _st["t3_price"]
-                    logger.info(
-                        "[Gateway] #68 structural targets: %s %s → C1=%.2f C2=%s C3=%s (was t1=%s t2=%s)",
-                        direction, _st.get("day_type"),
-                        _st.get("t1_price", 0),
-                        _st.get("t2_price"), _st.get("t3_price"),
-                        _old_t1, _old_t2,
+                    from backend.v9.systems.structural_targets import resolve_structural_targets
+                    _st_g1 = extract_g1_entry_context(cross_context)
+                    _st_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                    _st_bars = None
+                    try:
+                        _dtm = self._system_registry.get("day_type_machine")
+                        _st_bars = getattr(_dtm, "_opening_gate_bars", None) or []
+                    except Exception:
+                        pass
+                    from backend.v9.systems.daytype_position_gate import _pattern_family as _pf
+                    _st_pat = resolve_pattern_id(setup, _st_g1) or ""
+                    _st = resolve_structural_targets(
+                        day_type=_st_g1.get("day_type_at_entry"),
+                        direction=direction,
+                        entry_price=setup.get("entry_price", 0.0),
+                        stop_price=setup.get("stop", 0.0),
+                        tpo_ctx=_st_tpo,
+                        bars=_st_bars,
+                        pattern_family=_pf(_st_pat),
                     )
-            except Exception as _st_err:
-                logger.warning("[Gateway] structural targets errored (fail-safe): %s", _st_err)
+                    if _st is not None:
+                        _old_t1 = setup.get("t1")
+                        _old_t2 = setup.get("t2")
+                        if _st.get("t1_price") is not None:
+                            setup["t1"] = _st["t1_price"]
+                        if _st.get("t2_price") is not None:
+                            setup["t2"] = _st["t2_price"]
+                        if _st.get("t3_price") is not None:
+                            setup["t3"] = _st["t3_price"]
+                        logger.info(
+                            "[Gateway] #68 structural targets: %s %s → C1=%.2f C2=%s C3=%s (was t1=%s t2=%s)",
+                            direction, _st.get("day_type"),
+                            _st.get("t1_price", 0),
+                            _st.get("t2_price"), _st.get("t3_price"),
+                            _old_t1, _old_t2,
+                        )
+                except Exception as _st_err:
+                    logger.warning("[Gateway] structural targets errored (fail-safe): %s", _st_err)
 
         # Item-22: target zones (TARGET_ZONES_V1, default OFF). Refine C2/C3
         # (t2/t3) to level-confluence ZONES beyond T1 — real shelves (IB/POC/VA +
@@ -732,11 +747,19 @@ class TradingGateway:
                 from backend.v9.systems.target_structure_clamp import clamp_targets_to_ib
                 _tc_g1 = extract_g1_entry_context(cross_context)
                 _tc_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                # FIX-2: compute ib_locked (60 min after 08:30 CT = 09:30 CT)
+                from datetime import datetime as _tc_dt
+                from zoneinfo import ZoneInfo as _tc_ZI
+                _tc_ct = _tc_dt.now(_tc_ZI("America/Chicago"))
+                _tc_min_since_open = (_tc_ct.hour * 60 + _tc_ct.minute) - (8 * 60 + 30)
+                _tc_ib_locked = _tc_min_since_open >= 60
+
                 setup, _tc_notes = clamp_targets_to_ib(
                     setup,
                     day_type=_tc_g1.get("day_type_at_entry"),
                     ib_high=_tc_tpo.get("ib_high"),
                     ib_low=_tc_tpo.get("ib_low"),
+                    ib_locked=_tc_ib_locked,
                 )
                 if _tc_notes:
                     result["target_clamp"] = _tc_notes
@@ -773,14 +796,31 @@ class TradingGateway:
                 logger.warning("[Gateway] entry-confirm errored (fail-open): %s", _ec_err)
 
         # Item-3: R:R entry gate — block if T1 closer than the stop (net-negative R:R)
+        # FIX-1 (incident 333): signed distance, not abs(). A LONG with t1 < entry
+        # had positive abs-distance but was on the WRONG SIDE → must block.
         if os.getenv("RR_ENTRY_GATE_V1", "0").lower() in ("1", "true", "yes"):
             _rr_t1 = setup.get("t1")
             _rr_stop = setup.get("stop")
             _rr_entry = setup.get("entry_price")
             if _rr_t1 is not None and _rr_stop is not None and _rr_entry is not None:
                 try:
-                    _t1_dist = abs(float(_rr_t1) - float(_rr_entry))
-                    _stop_dist = abs(float(_rr_entry) - float(_rr_stop))
+                    _rr_dir = str(direction).upper()
+                    _rr_e = float(_rr_entry)
+                    # Signed T1 distance: positive = correct side, negative = wrong side
+                    if _rr_dir == "LONG":
+                        _t1_dist = float(_rr_t1) - _rr_e
+                    else:
+                        _t1_dist = _rr_e - float(_rr_t1)
+                    _stop_dist = abs(_rr_e - float(_rr_stop))
+
+                    if _t1_dist <= 0:
+                        result["blocked_by"] = "t1_wrong_side"
+                        logger.warning(
+                            "[Gateway] BLOCKED t1_wrong_side: %s t1=%.2f entry=%.2f "
+                            "(t1 on wrong side of entry)",
+                            _rr_dir, float(_rr_t1), _rr_e,
+                        )
+                        return result
                     if _stop_dist > 0 and _t1_dist < _stop_dist:
                         result["blocked_by"] = "rr_entry_gate"
                         logger.info(

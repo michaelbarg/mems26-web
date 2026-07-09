@@ -347,6 +347,13 @@ flags:
     why: "ON SHADOW 2026-06-25, Michael. Fixes BULL_FLAG_LONG (0/3, -$596): the single-bar veto passed a momentary 1-bar poke above LSMA in chop (06-24 10:25). Counterfactual: blocks 102 continuation chop/counter losers = +$911, keeps reversal winners (HTLB +$720). K = LSMA_SUSTAIN_BARS."
     status: live
     ref: "outputs/trend_filter_counterfactual.py"
+  CONT_TREND_STATE_CERT_V1:
+    category: cascade_gate
+    group: "direction engine"
+    what: "Certify dir_sustained from Woodies trend_state: if all K bars are BLUE (up-trend) AND LSMA slope>0, force dir_sustained=UP even when pullback bars close below the rising LSMA. Symmetric for RED/slope<0→DOWN. Fixes cont_trend_filter blocking CONT longs during pullbacks in a clear uptrend (incident 333: 13 CONT blocked including longs in +50pt drive-up day)."
+    why: "OFF (default, Michael's ruling to enable). Incident 333: bars close below rising LSMA during pullback → sustained_lsma_side returns DOWN → cont_trend_filter blocks all continuation longs even though the macro trend is BLUE. Trading-risk-surface → Michael sign-off to enable."
+    status: deferred
+    ref: "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md FIX-5"
   LSMA_FLAT_GATE_V1:
     category: cascade_gate
     group: "direction engine"
