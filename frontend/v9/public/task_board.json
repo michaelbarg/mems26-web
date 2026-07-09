@@ -52,8 +52,8 @@
       "status": "deployed_unverified",
       "owner": "מייקל+CC",
       "where": "FIXED_CONTRACTS_2=0, _3=1 · RULED_FLAGS 32 · TRADING_SPEC SIZE-1 · ריסטארט 10:13 · effective=3 · דריל GO",
-      "next": "CC: ירי SIM ‏3 חוזים = 3 קבוצות OCO + N/3 + סגירה-ב-T3 · ⚠ מתמטיקת-סיכון למייקל: סטופ-היפוך ~2×ATR ≈ $180-190 לעסקה ב-3ח → halt ‎−$400 ≈ 2 סטופים מלאים — לאשר שהקאפ נשאר",
-      "evidence": "snapshot 20260709T071339Z · flag_guard 32/32 · fire_drill 🟢",
+      "next": "CC: ירי SIM ‏3 חוזים = 3 קבוצות OCO + N/3 + סגירה-ב-T3",
+      "evidence": "snapshot 20260709T071339Z · flag_guard 32/32 · fire_drill 🟢 · מייקל אישר 07-09: 3 חוזים נשארים; מתמטיקת-סיכון מוסכמת — הסיכון מבני-פר-עסקה ($30–$150 טיפוסי, $180–195 רק בתקרת-היפוך), לא קבוע",
       "links": []
     },
     {
