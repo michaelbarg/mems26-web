@@ -565,7 +565,9 @@ class TradeManager:
                 {"n": _win})
             if not rows or len(rows) < 3:
                 return None
-            bars = [{"high": float(r["high"]), "low": float(r["low"])}
+            # resolver's window_extreme reads the zlr-buffer keys "h"/"l"
+            # (drill 07-09: {"high","low"} keys → KeyError 'l' → BE fallback)
+            bars = [{"h": float(r["high"]), "l": float(r["low"])}
                     for r in reversed(rows)
                     if r.get("high") is not None and r.get("low") is not None]
             if len(bars) < 3:
