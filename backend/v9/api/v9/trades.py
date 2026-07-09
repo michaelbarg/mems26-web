@@ -141,6 +141,63 @@ def _trade_list_row(r: V9Trade, db: Optional[Session] = None) -> dict:
     return row
 
 
+def _flatten_sierra_position(trade, tm, request) -> bool:
+    """Send CANCEL to Sierra to flatten a demo/live position before DB close.
+
+    Returns True if:
+      - trade is shadow (no Sierra position) → nothing to flatten
+      - trade has no sierra_order_id (not yet submitted) → nothing to flatten
+      - CANCEL sent and ack received within timeout
+    Returns False if CANCEL sent but no ack → CRITICAL, caller must NOT close.
+    """
+    import time
+    import json
+    from pathlib import Path
+
+    mode = getattr(trade, "mode", "shadow")
+    if mode not in ("demo", "live"):
+        return True  # shadow — no Sierra position
+
+    oid = tm._get_sierra_order_id(trade) if hasattr(tm, "_get_sierra_order_id") else None
+    if oid is None:
+        # No sierra_order_id → order was never submitted/acked by Sierra
+        logger.warning(
+            "[trades] exit: trade %d has no sierra_order_id — no Sierra CANCEL needed",
+            trade.id,
+        )
+        return True
+
+    from backend.v9.services.sierra_command import write_cancel
+    write_cancel(trade_id=str(trade.id), order_id=oid, mode=mode)
+    logger.info("[trades] exit: CANCEL sent to Sierra for trade %d (order_id=%d)", trade.id, oid)
+
+    # Poll for ack (trade_result.json) — short timeout, Sierra responds fast
+    result_path = Path("/Users/michael/SierraChart_Data/v9_export/trade_result.json")
+    deadline = time.time() + 5.0  # 5 second timeout
+    while time.time() < deadline:
+        try:
+            if result_path.stat().st_size > 0:
+                with open(result_path) as f:
+                    result = json.load(f)
+                status = result.get("status", "")
+                if "CANCEL" in status.upper() or "FLAT" in status.upper():
+                    logger.info(
+                        "[trades] exit: Sierra ack received for trade %d: %s",
+                        trade.id, status,
+                    )
+                    return True
+        except (json.JSONDecodeError, OSError):
+            pass
+        time.sleep(0.3)
+
+    logger.critical(
+        "[trades] exit: NO Sierra ack within 5s for trade %d (order_id=%d) — "
+        "POSITION MAY STILL BE OPEN IN SIERRA. Record NOT closed.",
+        trade.id, oid,
+    )
+    return False
+
+
 @router.post("/{trade_id}/exit")
 def exit_trade(
     trade_id: int,
@@ -169,6 +226,17 @@ def exit_trade(
         trade.exit_price = float(body.exit_price)
     elif trade.exit_price is None and trade.entry_price is not None:
         trade.exit_price = float(trade.entry_price)
+
+    # Phase-0 fix (07-09 live finding, trade 318): exit MUST flatten Sierra before
+    # closing the DB record. Without this, the record closes + slot frees but the
+    # Sierra position stays open — orphan position with no system monitoring it.
+    sierra_flatten_ok = _flatten_sierra_position(trade, tm, request)
+    if not sierra_flatten_ok:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Sierra flatten failed for trade {trade_id} — position may still be open in Sierra. "
+                   "DO NOT close the record. Check Sierra manually.",
+        )
 
     try:
         tm.close_trade(trade_id, body.reason)
