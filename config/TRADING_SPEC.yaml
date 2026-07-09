@@ -18,7 +18,7 @@ rules:
     rule: "אחרי T1 הסטופ עולה ל-BE+טיק ונשלח לסיירה בפועל (לא רק DB); עתיד: טרייל-למבנה (STOP-STRUCT)"
     source: "מייקל 06-xx (smart-BE) + 07-07 (records≠reality) + 07-08 (מבנה — בתור)"
     enforced: "_apply_smart_be_after_t1 + _emit_modify_stop (אזהרה רועשת בכשל)"
-    verified: "S6 אינווריאנט BE-after-T1 · הוכחת sc.ModifyOrder חיה — עדיין חסרה (T2 מחר)"
+    verified: "דריל 07-09: T1 fill→MODIFY_STOP_OK אוטומטי (error=2) + ידני (error=3) — הוכח; structure-trail תוקן (h/l) ופעיל"
   STOP-3:
     rule: "המערכת לעולם לא מייצרת ירי שהוולידטור שלה יהרוג (אין סטופ-נולד-מת)"
     source: "מייקל 07-08 ('למה כל יום תקלה')"
@@ -29,7 +29,7 @@ rules:
   TP-1:
     rule: "אין יעד מעבר ל-IB-High/Low ביום שאינו נייטרלי או מגמתי-מאושר"
     source: "מייקל 07-08 (ביקורת עסקה 310: T2 ‏+46.75 ביום Variation)"
-    enforced: "⚠ עדיין לא נאכף בקוד — פריט MISSED-0708/TP (תאי auth + target-zones)"
+    enforced: "TARGET_STRUCTURE_CLAMP_V1=1 (gateway clamp ל-IB) + target-zones; טבלה מלאה פר-תבנית×יום = מחקר TP (CC)"
     verified: "s6_eod: T1 מול MFE + יעד-מול-מבנה-היום; מחקר TP (פרומפט מוכן)"
   TP-2:
     rule: "מימוש נמדד מול מה שהיום נתן בפועל (MFE) — יעד שרחוק פי-2 מה-MFE הטיפוסי לסוג-היום = שגוי"
@@ -76,7 +76,7 @@ rules:
     rule: "3 חוזים (פסיקת 07-09) עם שיקול-דעת בגודל: סטופ>תקרת-ATR-קבוצתית → 2; >1.5×תקרה → 1 (SIZE_CAP_CUT_V1). סימטרי בכל השרשרת; הספירה דינמית מ-effective_contracts"
     source: "מייקל 07-09 (החליף את 2 חוזים מ-07-06); L7 07-08 בנה את הסימטריה הדינמית"
     enforced: "effective_contracts → quality.contracts → manager/display/slot"
-    verified: "test_l7 (מודל n דינמי) · test_size_cap_cut ‏5/5 · ירי SIM ‏3ח — היום"
+    verified: "test_l7 + test_size_cap_cut ‏5/5 · דריל 07-09: בראקט 3ח+N/3+הזזות+flatten הוכחו בעיני מייקל"
   SIZE-2:
     rule: "עצירת יום −$400 · אין כניסות אחרי 22:15 · ‏EOD flatten — ללא יוצאים מהכלל"
     source: "מייקל 07-06"
@@ -97,5 +97,10 @@ rules:
   SYS-3:
     rule: "עסקת סיירה = רשומת מערכת: פוזיציה בלי מעקב מאומצת מיד; סגירה ידנית מזוהה ומתויגת MANUAL"
     source: "מייקל 07-07 (לדג'ר) + 07-08 (הדשבורד לא זיהה את הסגירה)"
-    enforced: "⚠ חלקי — P0 מחר: שרשרת ORDER_FAILED/orphan + הזנת TradeActivityLog"
+    enforced: "no-cancel-after-ack + orphan-CRITICAL + exit-flattens-Sierra + feeder→ledger (כולם חיים 07-09); אימוץ-אוטומטי של יתומה = שלב הבא"
     verified: "V1-V5 ‏(CC) · s6_eod מצליב סיירה-DB"
+  SYS-4:
+    rule: "תיקונים בזמן-אמת מאושרים (פסיקת מייקל 07-09): פרונטאנד/סקריפטים — מיידי; תיקוני-קוד באקנד — רק כשflat (ריסטארט מוחק מצב-S1 עד S1-STATE-PERSIST) ובידיעת מייקל; שינוי משטח-סיכון/דגלים — פסיקה פר-מקרה כרגיל"
+    source: "מייקל 07-09 (\"אני רוצה תיקונים בזמן אמת - זה מאושר\")"
+    enforced: "נוהל הפיקוח (Cowork)"
+    verified: "כל תיקון-חי נרשם בלוח+יומן עם הראיה"
