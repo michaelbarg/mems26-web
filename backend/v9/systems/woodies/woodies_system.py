@@ -875,10 +875,10 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 _s4_t2 = _rt_t2_r
 
                             logger.info(
-                                "[Woodies] RUNNER_T2: %s %s t2=%.2f (R-mult=%.2f struct=%s rev=%s)",
-                                _pid, direction, _s4_t2, _rt_t2_r,
+                                "[Woodies] RUNNER_T2: %s %s t2=%.2f (mult=%.1fR→%.2f struct=%s rev=%s risk=%.1fpt)",
+                                _pid, direction, _s4_t2, _rt_r_mult, _rt_t2_r,
                                 f"{_rt_struct:.2f}" if _rt_struct else "None",
-                                _rt_is_rev,
+                                _rt_is_rev, _s4_risk,
                             )
                         except Exception as _rt_err:
                             logger.warning("[Woodies] RUNNER_TARGETS_V1 T2 calc failed: %s", _rt_err)
