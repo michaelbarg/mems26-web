@@ -1466,14 +1466,22 @@ class TradingGateway:
 
     def _persist_exit(self, trade: dict) -> None:
         from backend.v9.db.safe_writer import safe_execute
+        # D2 (trade 329/331): truncate varchar fields to column width.
+        # Raw SQL bypasses ORM @validates — guard here too.
+        _exit_reason = trade.get("exit_reason")
+        if _exit_reason and len(str(_exit_reason)) > 30:
+            _exit_reason = str(_exit_reason)[:30]
+        _outcome = trade.get("outcome")
+        if _outcome and len(str(_outcome)) > 10:
+            _outcome = str(_outcome)[:10]
         safe_execute(
             """UPDATE v9_trades SET state='CLOSED', exit_ts=?, exit_price=?,
                exit_reason=?, pnl_usd=?, pnl_r=?, outcome=?, updated_at=?
                WHERE mode=? AND entry_ts=? AND state='OPEN'""",
             (
                 trade.get("exit_ts"), trade.get("exit_price"),
-                trade.get("exit_reason"), trade.get("pnl_usd"),
-                trade.get("pnl_r"), trade.get("outcome"),
+                _exit_reason, trade.get("pnl_usd"),
+                trade.get("pnl_r"), _outcome,
                 datetime.now(timezone.utc).isoformat(),
                 trade.get("mode"), trade.get("entry_ts"),
             ),

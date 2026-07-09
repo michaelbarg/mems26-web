@@ -77,4 +77,11 @@ class V9Trade(Base):
             value = value[:30]
         return value
 
+    @validates("outcome")
+    def _truncate_outcome(self, _key, value):
+        """Guard: truncate to varchar(10) — trade 329/331 crash (D2, 07-09 18:45)."""
+        if value and len(value) > 10:
+            value = value[:10]
+        return value
+
     management_log = relationship("V9TradeManagementLog", back_populates="trade", cascade="all, delete-orphan")
