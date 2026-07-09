@@ -20,11 +20,15 @@
 ## P4 — Writer revive ✅ (Cowork 3572aec)
 - Already done: antiflap + one-source + staleness warning
 
-## P5 — DLL EXIT fix ✅ code, ⚠️ build pending (41719a8)
+## P5 — DLL EXIT fix ✅ code + build + deploy (41719a8)
 - **Root cause:** `GetPersistentInt(107)` never written by PLACE → EXIT_FAIL
 - **Fix:** PLACE stores direction in slot 107 + EXIT reads direction from command JSON
-- DLL deployed to ACS_Source/; **needs Remote Build + reload study (Michael, morning)**
-- NOT-DONE: live_price freeze fix (needs investigation of DLL price field update)
+- **Build:** Remote Build SUCCESS (23:48), study loaded
+- **SIM test:** EXIT still returns -1 — **expected: market closed, Sierra SIM has no position.**
+  Verify on live market tomorrow.
+- **FIX-6 Reconciler LIVE:** `[Reconciler] SYS-3 DIVERGENCE: TM=2, Sierra=0` — correctly
+  detected the mismatch (TM had a trade, Sierra didn't because market closed)
+- NOT-DONE: live_price freeze fix; EXIT SIM proof requires market hours
 
 ## P6 — Cleanup ✅
 - D4: 1785 stale bars cleaned (06-09 data purged)
