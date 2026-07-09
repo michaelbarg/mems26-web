@@ -33,3 +33,20 @@ Path 2 **overwrote** path 1 every time. Fix: `result_written` flag (279470d).
 DLL fix verified. Backend FillPoller can now map order IDs at submit time
 (no more I-58 fallback heuristic). NAKED_STOP false-positives should be
 eliminated for trades placed after this build.
+
+## MODIFY_STOP fix verified (13:28 IDT)
+
+### Bug
+DLL MODIFY_STOP read stop IDs from persistent slots (3,5,7) which Pipeline 5
+cleared after detecting fills from previous trades → MODIFY_STOP_NONE (0 stops moved).
+
+### Fix
+DLL reads `stop_ids` array from command JSON; backend sends c1/c2/c3_stop_id from
+quality JSON. Falls back to persistent slots if command has no stop_ids.
+
+### Evidence (Rule 5)
+```
+Command: {"op":"MODIFY_STOP","trade_id":"324","new_stop":7512.0,"stop_ids":[8572,8575,8578]}
+Result:  {"status":"MODIFY_STOP_OK","ts":1783592918,"error":3}
+```
+error=3 = all 3 stops modified successfully.
