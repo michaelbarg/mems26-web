@@ -125,7 +125,13 @@ def debug_gateway_fire(request: _FReq):
     if not lp_path.exists():
         raise HTTPException(status_code=500, detail="No live_price.json")
     lp = json.load(open(lp_path))
-    price = float(lp["price"])
+    # 2026-07-09 drill finding: the DLL's "price" (last-trade) field can freeze
+    # while bid/ask keep updating (trade 326 fired 24pt off-market → the whole
+    # bracket insta-filled). Prefer the bid/ask mid, tick-rounded.
+    if lp.get("bid") and lp.get("ask"):
+        price = round((float(lp["bid"]) + float(lp["ask"])) / 2 / 0.25) * 0.25
+    else:
+        price = float(lp["price"])
 
     setup = {
         "firing_system": 4,
