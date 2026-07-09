@@ -1271,3 +1271,48 @@ slots 3–4 (SHORT מה-top 7491) = פער-כניסה 09:15–10:20 שנסגר �
 - **🔴 I-3 (החוסם-המוביל) — הפספוס-האמיתי היה ZLR-UP 13:40, לא ה-store-cluster.** ה-D-missed-buffer מיקד ב-14:47–50 (`ready_to_route=False`, **חסימה-מוצדקת** — 14:50 קרס ל-7591). **אבל** ה-buffer בן-50 **הפיל-החוצה** את ה-ZLR-UP הרווחי של **13:40** (S4, BLUE, cci+61, **עם-המגמה**): replay entry 7591 → **T1✓@13:45 · T2✓@13:50 · MFE +4.5R** (שיא-יום 7602.25@14:20). זוהה, נחסם `ready_to_route=False` (target-מנוון, A7 R:R<1.0). **root:** I-3 סלקטיבי — id 292/295 כן-נותבו (t1/t2 תקינים) אך ה-13:40 ZLR-UP קיבל target-מנוון→בלוק. **fix:** טבלת stop/target ל-ZLR (targets_stop→fire_setup). **verify:** replay-2×-בלתי-תלוי (Chrome-JS+bars5min OHLC), overlap woodies==bars5min 7/7 מדויק. **עלות-אמת: ≥ +1R מוחשי עם-המגמה** (מול "חסימה-מוצדקת-בלבד" בניתוח-הקודם).
 - **🟡 I-60-adj (חדש) — woodies endpoint buffer=50 מקצר-כיסוי ל-4h → נקודת-עיוורון-בוקר.** post-close woodies מכסה **11:15→15:20 CT בלבד**, מפספס **08:30–11:10** = כל 5 סלוטי-ה-benchmark. (07-03 לא-חשף זאת — חצי-יום, 50-buffer כיסה הכל.) ⇒ אי-אפשר לאמת zlr/hfe-flags לבוקר; רק מחיר (bars5min). **fix:** snapshot-at-close של woodies ל-RTH-מלא, או endpoint שקורא מ-DB (`sierra_woodies_5min`) לא-מ-buffer-חי. **verify:** woodies first-bar=11:15 CT (offset +180min מול bars5min, 45/45 close-matches).
 - **🎯 benchmark 0/5:** יום-מגמה-**עולה** (טווח 50 / נטו +28.75 / שפל 7552.25@08:35 → שיא 7602.25@14:20) — הפוך מ-template-06-05. סלוטי-שורט 9:20/9:35/10:00 = **אי-שורט נכון** (מחיר עלה). סלוטי-long 8:35(reversal)/9:00(tactical) = הזדמנויות-אמת אך ב-woodies-blind (0-fires בוקר). ⇒ **הפער-האמיתי היום = 13:40 ZLR-UP המאומת, לא ה-benchmark-היורד.**
+
+---
+
+### [2026-07-08 15:15 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**שער-זמן I-9:** ✅ CT 15:14 (≥15:00; `/status.et_time=16:14 ET`, `TZ=America/Chicago→15:12 CDT`). feed בריא (78 ברי-RTH, `last_write_age_s=0.6`, `bars_in_db=3206`). מקורות: API-חי דרך Chrome. דוחות: `PATTERN_EOD_2026-07-08.md` + `DESIGNS_2026-07-08.md`. **⚠️ אין `PATTERN_DIAG` intraday (סוכן-snapshots off מ-06-10); ⚠️ אין EOD ל-07-07 (פער-ריצה).**
+
+**תמונת-היום:** יום-Variation, open 7507 → שפל 7469.25 @10:30 → שיא 7536.5 @12:30 → נעילה 7526.75. טווח 67.25pt · נטו **+19.75pt** (יום-עולה). **7 fires — כולן LONG, כולן `woodies_trend=BLUE`, כולן ברגל-ההתאוששות 11:02–12:06 CT** (id 307,309–314; 308 מדולג). **1 live (id310) + 6 shadow.**
+
+**כותרת-על:** הכיוון היה **נכון** (7/7 LONG-טרנד-תואם — היפוך מ-07-06 של short-נגד-מגמה, I-41/I-50 **לא-שוחזר**), אך **היציאות חתכו את-הרווח:** ΣR-בפועל **+0.94R** מול ΣR-CF-hold-to-T1 **+7.49R** ⇒ **~+6.5R הושארו-על-הרצפה.** 6/7 נסגרו ~12:02 CT, 17–22 דק' לפני-T1 (שנגע 12:20–12:30).
+
+**חשוד-חדש:**
+
+- **🔴 I-63 (חדש) — יציאה-מוקדמת חותכת מנצחי-T1.** מנגנונים: `stale_shadow_cleanup` (אוטומטי, 311/312) · `manual_sierra_close_michael` (Michael, 310/313) · `manual` (flatten-BE, 307/309/314). ל-shadow: אם ה-sim לא-מחזיק-עד-יעד → כלכלת-shadow חסרת-ערך. **SoT→CC:** לחלץ חוק/טיימר `stale_shadow_cleanup` (~17דק'?) ולוודא אם ה-shadow-sim אמור-להחזיק-עד T1/T2/T3/stop/EOD. עיצוב: `DESIGNS_2026-07-08.md §1`. **[SoT→CC → DISPLAY/SAFE + אולי TRADING-shadow]**
+
+**עדכוני-סטטוס חשודים קיימים:**
+
+- **🔴 I-54 / D-targets-monotonic — שוחזר, החמיר (עכשיו צד-LONG).** כל 7 t2=**7564.5** זהה (42–80pt מעל entry, בלתי-בר-השגה; שיא-יום 7536.5); 6/7 t2>t3 (היפוך-מונוטוניות). מאשר את חשד-07-06 (t2=7558 קבוע על-שורטים) — **רמת-מבנה-קבועה מוזרקת כ-t2 בשני-הכיוונים ללא-סדר/ATR.** trading-logic. עיצוב §2. **[TRADING-LOGIC · SoT→CC]**
+- **🟡 I-62 — נמשך אך התהפך.** `demo_enabled_systems=[]` (מ-07-06) אך `live_enabled_systems=[2,4]` **ירתה עסקת-אמת id310 (+$22.5)**. ⇒ הנתיב-הקובע עבר **demo→live**; ראיה שהריקון של demo היה **הַעֲלָאָה-מכוונת-pre-LIVE**, לא-שוגג. עדיין דורש אישור-Michael מפורש + תיעוד. עיצוב §3. (עדיפות 🔴→🟡 — יש-נתיב-live-פעיל, לא-יום-דומם). **[TRADING-LOGIC · SoT→CC]**
+- **🟡 I-61 — מומש-חלקית.** בקשת-07-06 (תיוג exit_reason) קיימת עכשיו: `manual_sierra_close_michael`/`stale_shadow_cleanup` מבחינים-מקור. נותר: `manual` גנרי על 3 ה-BE. עיצוב §4. **[DISPLAY/SAFE]**
+- **🟡 chop_state="FOUND" (חדש-watch).** `/gateway.chop_state` ו-`/chop_score.state` = "FOUND" (score=14) — ערך לא-מוכר-בסקאלה (קודם EXPANDING/SEARCHING). חשד מיפוי score→state / מצב-חדש. chop-off ⇒ לא-חוסם. עיצוב §5. **[DISPLAY/SAFE · SoT→CC]**
+- **🔴 I-44 — נמשך.** `session_min=0/vote_history=[]` (wrapper-קפוא). התוויות היום (Variation/OPEN_AUCTION_IN/MEDIUM) סבירות-בערך. handoff `CC_DAYTYPE_SOURCE_CONSISTENCY_2026-06-30.md` עומד. **[DISPLAY/SAFE]**
+- **🟡 I-23 — נמשך.** `trades_today=0/daily_pnl=0` מול 7-fires (1 live +$22.5). לא-מחווט. **[DISPLAY/SAFE]**
+- **🟢 I-22 — לא-מומש היום** (pnl_r חלקי-R תקין; אין WIN-מנופח).
+- **🟢 I-25 — שוחזר.** `limit=200`→HTTP 422 (`le:100`). נעקף עם `limit=100`. תזכורת לעדכן מפרט-סוכן. עיצוב §8.
+- **🟢 D-missed-buffer — לא-הופיע היום** (`/missed-trades count=0, candidates=[]`) — ניגוד ל-50-הדופ' ב-07-06. נקי.
+- **🟢 I-41/I-50 (short-נגד-מגמה) — לא-שוחזר.** היום 7/7 LONG-טרנד-תואם.
+- **🟡 bridge.running=false / streams 0/11** מול feed-טרי (0.6s): artifact-post-close סביר. לצלב SoT.
+
+**ΣR-CF היום:** בפועל **+0.94R** · hold-to-T1 **+7.49R** · **נשאר-על-הרצפה ~+6.5R** (I-63). live P&L **+$22.5** (id310). T2=7564.5 לא-נגע-לאף-עסקה; T3 נגע רק-ל-307. **הבעיה: יציאה (I-63) + targets (I-54), לא כיוון ולא נתונים.**
+
+**מקור-אמת (CC):** I-63 (חוק-cleanup) · I-54 (מקור 7564.5 + אכיפת-סדר) · I-62 (git/.env/FLAG — כוונת-promotion) · chop-enum · פער-07-07. שום קוד/flag/.env/DB לא-שונה (read-only EOD).
+
+---
+
+### [2026-07-08 15:20 CT] Missed-Trades Investigator (Cowork, אוטונומי) — משלים ל-EOD §07-08
+
+**שער-זמן:** ✅ 15:20 CT (≥15:00, אומת `TZ=America/Chicago date`→`2026-07-08 15:20:39 CDT`; IL 23:20). דוח: `docs/reports/MISSED_TRADES_2026-07-08.md`. **קריאה-בלבד — לא שונה קוד/flag/.env/DB.** מכסה את צד-ה-**setups-שלא-ירו + benchmark** (ה-EOD 15:15 כיסה את ה-7-שירו + היציאות). API-חי דרך Chrome. מספרי-I מיושרים ל-§15:15.
+
+- **🟢 צד-ה-missed נקי-מ-gate — אפס-חסימות היום.** כל 7 ה-fires `blocked_by=null` · `/missed-trades count=0,candidates=[]` (אין artifact I-60) · **I-3 (`ready_to_route`) לא-הופעל** — היפוך-חד מ-07-06/07-03/07-01 (שם I-3 היה החוסם-המוביל). דגלי-ZLR-אחה"צ (13:00–14:55, chop) **נכון-לא-נותבו** — replay −1R כ"א (13:00 entry 7528/stop 7519.5 → STOP@13:30, MFE +0.24R). **הצד-הבריא-ביותר-בסדרה.**
+- **🔴 הפספוס-האמיתי-היחיד = רגל-השורט-של-הבוקר (I-60-adj, נקודת-עיוורון-בוקר).** שבירה @09:35 (c7498) → שפל-יום **7469.25@10:30** (~−29 נק' נקי). replay SHORT entry 7497 / stop-מבני 7508.5 → **T1✓@09:50 · T2✓@10:25 · MFE +2.35R**. **אבל 0-fires בבוקר** (ירי-ראשון 11:02, id 307) **+ woodies-blind pre-11:15** (buffer=50 מכסה 11:15→15:20 בלבד) ⇒ **בלתי-ניתן-לאימות-זיהוי** (Rule 1: propagate "missing", לא לסנתז flag). חשד-משני: דיכוי-פתיחה (day_type=UNKNOWN עד ~11:00, id 307 מאשר). **fix:** snapshot-at-close של woodies ל-RTH-מלא / endpoint-מ-DB (`sierra_woodies_5min`). **root+fix זהים ל-07-06 I-60-adj — אך היום עלה +2.35R-בלתי-מאומת (07-06 היה יום-עולה ⇒ 0 עלות).**
+- **🎯 benchmark 0/5 אותרו — אך 2/5 היו פספוס-אמת היום (ניגוד ל-07-06).** יום-V (ירידת-בוקר → ראלי) ⇒ סלוטי-השורט **חלים חלקית**: 9:35+10:00 (SHORT) = **תקפים-ונקיים** (רגל-הבוקר-היורדת, +2.35R) אך בנקודת-העיוורון (0-fires); 9:00 (LONG) = **אי-long נכון** (היה מפסיד לתוך ה-selloff); 8:35 (reversal) = לא-חל (pop-עלייה); 9:20 (short) = מוקדם. **⇒ ה-benchmark חשף פער-אמת היום** (רגל-בוקר-יורדת) — שימושי-במיוחד, בניגוד ל-07-06 (יום-עולה, 3 סלוטי-שורט = "אי-שורט נכון").
+- **🔴 התזכורת: הכאב-האמיתי-של-היום = ביצוע (I-63), לא missed.** צד-ה-missed הפסיד רק +2.35R-בלתי-מאומת (בוקר-blind); צד-הביצוע הותיר **~+6.5R על-הרצפה** (+0.94R בפועל / +7.49R hold-to-T1, 6/7 נסגרו 17–22 דק' לפני-T1). replay עצמאי (upLong 7514/stop 7503): T1✓@12:15·T2✓@12:30·MFE +2.05R — מאשר שהעסקאות-שירו היו-מגיעות-ל-T1/T2 אילו-הוחזקו. **⇒ העדיפות היא I-63/I-54 (ביצוע), לא I-3 (שקט היום) ולא ה-detector (זיהה נכון).**
+
+**ΣR (missed side):** פספוס-בלתי-מאומת (בוקר) **+2.35R** · setups-שזוהו-ונחסמו-מ-gate **0** · afternoon-chop-ZLR **אי-הירי-מוצדק** (−1R כ"א). **החוסם-המוביל (missed) = I-60-adj (עיוורון-בוקר).** benchmark **0/5 אותרו · 2/5 פספוס-אמת (9:35/10:00)**. **verify (Rule 5):** overlap woodies==bars5min 45/45 close-matches · replay ×3 (Chrome-JS מול bars5min OHLC). שום קוד/flag/.env/DB לא-שונה.
