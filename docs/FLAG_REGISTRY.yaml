@@ -74,6 +74,31 @@ flags:
     status: deferred
     ref: "docs/handoff/CC_FIRING_PIPELINE_UNIFIED_2026-06-30.md (#3)"
 
+  DAYTYPE_ANTIFLAP_V1:
+    category: s1
+    what: "Anti-flap hysteresis for day-type transitions: a new classification must hold for DAYTYPE_ANTIFLAP_HOLD_S seconds before the transition commits. Prevents Nontrend↔Normal↔Variation cycling within minutes."
+    why: "OFF (default). Incident 07-09: day_type flapped 3 types in an hour, confusing gates + management. Trading-risk-surface → Michael sign-off."
+    status: deferred
+    ref: "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md"
+  DAYTYPE_ANTIFLAP_HOLD_S:
+    category: param
+    group: "S1 anti-flap"
+    what: "Hold time (seconds) for DAYTYPE_ANTIFLAP_V1: new classification must persist this long before transition. Default 300 (5 min). Inert when DAYTYPE_ANTIFLAP_V1 is OFF."
+    why: "Tuning knob — 300s = 1 bar window, 600s = 2 bars."
+    status: param
+  DAYTYPE_ONE_SOURCE_V1:
+    category: s1
+    what: "All day-type consumers (gates, UI, direction_context) read from ONE live source (get_live_day_type, hysteresis-stabilized) instead of the v9_day_type_state table. Eliminates split-brain: engine=UI=gates see one value."
+    why: "OFF (default). Incident 07-09: v9_day_type_state writer died, gates read stale table while in-memory machine kept running. Trading-risk-surface → Michael sign-off."
+    status: deferred
+    ref: "docs/handoff/PROMPT_S1_FLAPPING_2026-07-09.md"
+  SIERRA_RECONCILER_V1:
+    category: risk
+    what: "Periodic Sierra position reconciliation: compare TM open trades vs TradeActivityLog position qty. Divergence → WARNING + freeze auto-management. Runs in FillPoller loop every 30s."
+    why: "OFF (default). Incident 333: records≠reality would have been caught in ≤30s. Michael sign-off to enable."
+    status: deferred
+    ref: "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md FIX-6"
+
   # ───────────────────────── S2 — 5-min (Reactive / Initiative) ─────────────────────────
   OPENING_FIRE_CVD_V1:
     category: s2

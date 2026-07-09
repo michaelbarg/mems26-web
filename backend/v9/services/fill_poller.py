@@ -87,6 +87,7 @@ class FillPoller:
     async def run(self) -> None:
         """Main polling loop — run as an asyncio task."""
         self._running = True
+        self._reconcile_next = 0.0  # epoch: next reconcile check
         logger.info("[FillPoller] started (polling %s every %.0fms)", FILLS_PATH, POLL_INTERVAL * 1000)
         while self._running:
             try:
@@ -94,6 +95,7 @@ class FillPoller:
                 self._guard_duplicate_command()
                 self._check_result()
                 self._check_fills()
+                self._maybe_reconcile()
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -102,6 +104,30 @@ class FillPoller:
 
     def stop(self) -> None:
         self._running = False
+
+    def _maybe_reconcile(self) -> None:
+        """FIX-6 (SYS-3): compare TM vs Sierra position every ≤30s.
+
+        Flag-gated: SIERRA_RECONCILER_V1 (default OFF — Michael enables at restart).
+        Fail-safe: errors never break the fill-poller loop.
+        """
+        import time as _t
+        if _t.time() < getattr(self, "_reconcile_next", 0.0):
+            return
+        self._reconcile_next = _t.time() + 30.0
+        if not os.getenv("SIERRA_RECONCILER_V1", "0").lower() in ("1", "true", "yes"):
+            return
+        if self._tm is None:
+            return
+        try:
+            from backend.v9.services.sierra_position_reconciler import reconcile_position
+            ok, msg = reconcile_position(self._tm)
+            if not ok:
+                logger.warning("[FillPoller] SYS-3 RECONCILER: %s", msg)
+            else:
+                logger.debug("[FillPoller] reconciler: %s", msg)
+        except Exception as e:
+            logger.debug("[FillPoller] reconciler error (fail-safe): %s", e)
 
     def _check_result(self) -> None:
         """Check trade_result.json for ORDER_FAILED → cancel trade + release slot.

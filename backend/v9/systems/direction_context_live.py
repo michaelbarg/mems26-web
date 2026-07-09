@@ -184,12 +184,14 @@ def current() -> Dict[str, Any]:
     try:
         _k = max(2, int(os.getenv("LSMA_SUSTAIN_BARS", "3") or "3"))
         from backend.v9.db.read import read_all as _ra
+        # FIX-5 restore: include trend_state for certification mode
         _srows = _ra(
-            "SELECT close, lsma_value FROM v9_bars_5min_woodies "
+            "SELECT close, lsma_value, trend_state FROM v9_bars_5min_woodies "
             "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d AND lsma_value IS NOT NULL "
             "ORDER BY ts DESC LIMIT " + str(_k), {"d": today})
         dir_sustained = sustained_lsma_side(_srows, _k)
     except Exception:
+        _srows = []
         dir_sustained = "NEUTRAL"  # fail-safe → NEUTRAL (gateway treats as no-trend)
     out["dir_sustained"] = dir_sustained
 
@@ -208,6 +210,32 @@ def current() -> Dict[str, Any]:
     except Exception:
         lsma_slope = None
     out["lsma_slope_ppb"] = lsma_slope
+
+    # FIX-5 (incident 333): CONT_TREND_STATE_CERT_V1 — pullback bars close below
+    # the RISING LSMA → sustained returns "DOWN"/"NEUTRAL" even during a BLUE uptrend.
+    # Certification: if all K bars are BLUE AND lsma_slope>0 → force UP.
+    if dir_sustained == "NEUTRAL" and \
+            os.getenv("CONT_TREND_STATE_CERT_V1", "0").lower() in ("1", "true", "yes"):
+        try:
+            import logging as _cert_log
+            _cert_states = [str(r.get("trend_state", "")).upper()
+                           for r in (_srows or [])[:_k]]
+            if len(_cert_states) >= _k:
+                if all(s == "BLUE" for s in _cert_states) and \
+                        lsma_slope is not None and lsma_slope > 0:
+                    dir_sustained = "UP"
+                    out["dir_sustained"] = dir_sustained
+                    _cert_log.getLogger(__name__).info(
+                        "[DirContext] CERT override: BLUE×%d + slope=%.4f → UP", _k, lsma_slope)
+                elif all(s == "RED" for s in _cert_states) and \
+                        lsma_slope is not None and lsma_slope < 0:
+                    dir_sustained = "DOWN"
+                    out["dir_sustained"] = dir_sustained
+                    _cert_log.getLogger(__name__).info(
+                        "[DirContext] CERT override: RED×%d + slope=%.4f → DOWN", _k, lsma_slope)
+        except Exception:
+            pass  # fail-safe
+
     if lsma_veto:
         out["lsma_side"] = lsma_side_val
         out["mode"] = "lsma_cvd_veto" if lsma_side_val is not None else "fallback(lsma_missing)"
