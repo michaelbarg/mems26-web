@@ -92,3 +92,13 @@ auto-mgmt לאותה עסקה. דגל SIERRA_RECONCILER_V1 (default OFF — מי
 flag_guard PASS 39). פאזה A שלך אומתה ע"י Cowork (17/17, FIX-5 חזר, reconciler מחווט).
 פריסה: מתוזמנת ל-22:30 ע"י Cowork (משימת-לילה) — אל תבצע ריסטארט בעצמך. המשך: פאזה C
 (מיותרת ברובה — הפסיקות כבר ניתנו; נותר רק נייר-כיול ל-hold אם תרצה) → פאזה D (D1-D5).
+
+## עדכון 21:5x — FIX-7 (נכנס לראש פאזה D)
+**FIX-7 — עיוורון-פולבק בשער-הכיוון הראשי.** ‏21:45: ‏FAMIR LONG ‏conf 0.71 נחסם
+‏"direction-context: setup UP vs DOWN (LSMA DOWN + CVD-slope +0 → DOWN)" בעוד ‏trend_state=BLUE,
+יום Variation-עולה, מחיר ליד שיא-יום. אותה מחלה כמו FIX-5 אבל ב-`_dc_dir` הראשי
+(‏direction_context.compute_direction) — צד-LSMA קורא DOWN בהתבססות מתחת ל-LSMA שעלה.
+תקן באותו עיקרון: הסמכת trend_state×K + ‏lsma_slope>0 ⇒ ‏dir=UP (סימטרי), תחת אותו דגל
+‏CONT_TREND_STATE_CERT_V1 (כבר פסוק ON) או תת-דגל אם תרצה הפרדה. טסט אנטי-טאוט: הפיקסטורה
+של 21:45 (closes מתחת ל-LSMA עולה + BLUE + slope>0 + setup UP) — ישן=blocked, חדש=pass.
+זהירות: לא להחליש את הגנת-הצ'ופ (מצבים מעורבים/שיפוע-שטוח → נשאר DOWN/NEUTRAL).
