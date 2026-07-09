@@ -457,6 +457,13 @@ flags:
     why: "ON (Michael 2026-07-08). Trade 310 had T1=+12.75 T2=+46.75 far beyond IB-H — clamped."
     status: live
     ref: "backend/v9/systems/target_structure_clamp.py:12"
+  EARLY_ATR_FLOOR_V1:
+    category: sizing
+    group: "ATR floor"
+    what: "Before 14 session bars exist, floor the ATR used by STOP_RESOLVER_V1 and SIZE_CAP_CUT_V1 with yesterday close ATR. Prevents immature ATR (1-2 bars) from rejecting legitimate structural stops."
+    why: "OFF (default). Incident 333 16:40: rung1 10.75pt > cap 8.22pt (ATR from 2 bars = 3.4pt). With yesterday close ATR ~6.3pt the cap would be ~13pt and the stop would pass. Trading-risk-surface → Michael sign-off."
+    status: deferred
+    ref: "docs/reports/MISSED_TRADES_2026-07-09.md FIX-8"
   STOP_ANCHORS_V2:
     category: sizing
     what: "v2 stop-anchor logic (per-pattern anchors from stop_anchors.yaml)."

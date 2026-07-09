@@ -572,6 +572,33 @@ class TradingGateway:
                                                     abs(_b["low"] - _sr_prev)))
                             _sr_prev = _b["close"]
                         _sr_atr = sum(_sr_trs) / len(_sr_trs) if _sr_trs else 7.0
+                        # FIX-8 (incident 333, 16:40): early session ATR from 1-2 bars
+                        # is too small → cap_risk rejects legitimate structural stops.
+                        # Floor with yesterday's close ATR when < 14 bars available.
+                        if os.getenv("EARLY_ATR_FLOOR_V1", "0").lower() in ("1", "true", "yes"):
+                            if len(_sr_trs) < 14:
+                                try:
+                                    from datetime import datetime as _atr_dt
+                                    from zoneinfo import ZoneInfo as _atr_ZI
+                                    _atr_yest = (_atr_dt.now(_atr_ZI("America/Chicago")).date()
+                                                 - __import__("datetime").timedelta(days=1)).isoformat()
+                                    _yest_bars = _sr_read(
+                                        "SELECT high, low, close FROM v9_bars_5min_woodies "
+                                        "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d "
+                                        "ORDER BY ts", {"d": _atr_yest})
+                                    if _yest_bars and len(_yest_bars) >= 14:
+                                        _yb = [{"high": float(r["high"]), "low": float(r["low"]),
+                                                "close": float(r["close"])} for r in _yest_bars]
+                                        from backend.v9.shared.atr import atr_5min as _atr_fn
+                                        _yest_atr = _atr_fn(_yb, 14)
+                                        if _yest_atr and _yest_atr > _sr_atr:
+                                            logger.info(
+                                                "[Gateway] FIX-8 ATR floor: session ATR %.2f → %.2f "
+                                                "(yesterday close, %d bars today)", _sr_atr, _yest_atr,
+                                                len(_sr_trs))
+                                            _sr_atr = _yest_atr
+                                except Exception as _atr_err:
+                                    logger.debug("[Gateway] FIX-8 ATR floor error (fail-open): %s", _atr_err)
                         if _sr_dir == "SHORT":
                             _sr_rungs = sorted({round(_b["high"], 2) for _b in _sr_bars
                                                 if _b["high"] > _sr_entry})
