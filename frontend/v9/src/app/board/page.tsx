@@ -17,8 +17,8 @@ export default function BoardPage() {
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <LiveLedgerPanel />
-        <System6SupervisorPanel />
-        <StatusBoardPanel />
+        <div id="system6"><System6SupervisorPanel /></div>
+        <div id="tasks"><StatusBoardPanel /></div>
         <PagesPanel />
       </div>
     </main>

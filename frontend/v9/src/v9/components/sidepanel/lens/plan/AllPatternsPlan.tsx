@@ -82,8 +82,15 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
 
   return (
     <div style={{ marginBottom: 10 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.textPrimary, marginBottom: 6 }}>
-        כל התבניות — מי הכי קרובה לירי ולמה ממתינים
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.textPrimary }}>
+          כל התבניות — מי הכי קרובה לירי ולמה ממתינים
+        </div>
+        <div style={{ fontSize: 10.5, whiteSpace: 'nowrap' }}>
+          <a href="/board#tasks" target="_blank" rel="noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>📋 משימות</a>
+          <span style={{ color: '#30363d' }}> · </span>
+          <a href="/board#system6" target="_blank" rel="noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>🛡 לוג מערכת 6</a>
+        </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {scored.map((p, i) => {
