@@ -30,13 +30,23 @@
   },
   "tasks": [
     {
+      "id": "MEGA-0709",
+      "title": "CC מגה-השלמות: FIX-5 חזרה + חיווט reconciler + פריסה + תור D1-D5",
+      "status": "open",
+      "owner": "CC",
+      "opened": "2026-07-09 20:00",
+      "priority": "P0",
+      "doc": "docs/handoff/CC_MEGA_COMPLETIONS_2026-07-09.md"
+    },
+    {
       "id": "S1-FLAP",
       "title": "S1: ריצוד Nontrend↔Normal↔Variation בנתיב החי + כותב v9_day_type_state מת",
-      "status": "open",
+      "status": "done_pending_ruling",
       "owner": "צ'אט-S1",
       "opened": "2026-07-09 19:4x",
       "priority": "P0",
-      "doc": "docs/handoff/PROMPT_S1_FLAPPING_2026-07-09.md"
+      "doc": "docs/handoff/PROMPT_S1_FLAPPING_2026-07-09.md",
+      "note": "3572aec flag-OFF, 8/8; ממתין: הדלקה+hold+writer-revive"
     },
     {
       "id": "PANEL-0709",
@@ -50,11 +60,12 @@
     {
       "id": "FIXPACK-0709",
       "title": "חבילת תיקוני-אמת (R:R חתום · clamp מוגן-IB · detector שפוי · #68 pre-lock · cont-trend cert · reconciler-סיירה)",
-      "status": "open",
+      "status": "done_with_audit_gaps",
       "owner": "CC",
       "opened": "2026-07-09 19:4x",
       "priority": "P0",
-      "doc": "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md"
+      "doc": "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md",
+      "note": "16/17; FIX-5 נמחק ברגרסיה; reconciler לא חווט → MEGA"
     },
     {
       "id": "INC-333",
@@ -413,5 +424,5 @@
       "links": []
     }
   ],
-  "updated": "2026-07-09 19:4x"
+  "updated": "2026-07-09 20:1x"
 }
