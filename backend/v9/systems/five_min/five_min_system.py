@@ -1220,6 +1220,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                     else bar.get("h", entry_price)
                 )
 
+            _s2_cap_pts = None  # group ATR-cap (points) — set when V2 stop runs (SIZE_CAP_CUT_V1)
             if _flag("STOP_ANCHORS_V2"):
                 from backend.v9.config_loader import load_stop_anchors
                 from backend.v9.systems.stop_anchors import resolver as SA
@@ -1256,6 +1257,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                         today_typical=today_typical,
                     )
                     stop_price = v2_comp.stop_price
+                    _s2_cap_pts = v2_comp.atr_cap_ticks * 0.25  # → SIZE_CAP_CUT_V1
                     if v2_comp.cap_exceeded:
                         logger.info("[FiveMin] V2 cap_exceeded: family=%s risk=%dt cap=%dt",
                                     family, v2_comp.risk_ticks, v2_comp.atr_cap_ticks)
@@ -1306,6 +1308,10 @@ class FiveMinSystem(BaseV9TradingSystem):
                             (direction == "LONG" and _trend_state == "BLUE") or
                             (direction == "SHORT" and _trend_state == "RED")
                         ) if _day_has_dir else None
+                        # SIZE_CAP_CUT_V1: pass the group ATR-cap (points) when the
+                        # V2 stop computation ran (_s2_cap_pts set alongside v2_comp;
+                        # None on the legacy path → no cut, honest missing).
+                        _cap_pts = _s2_cap_pts
                         v2_sizing_result = compute_v2_sizing(
                             entry_price=entry_price,
                             stop_price=stop_price,
@@ -1319,6 +1325,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                             cfg=cfg,
                             auth_matrix=_auth,
                             reversal=_is_rev,
+                            cap_risk_points=_cap_pts,
                         )
                         if v2_sizing_result is None:
                             logger.info("[FiveMin] V2 sizing: SKIP (auth verdict)")

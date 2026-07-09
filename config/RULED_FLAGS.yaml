@@ -38,6 +38,7 @@ ruled:
   STOP_STRUCTURE_TRAIL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "אחרי T1 סטופ למבנה הקרוב (לא BE מכני) — never-widen, fallback ל-BE+טיק" }
   S1_COMMITTED_PROVISIONAL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "P0-2: סיווג-מחויב ב-30 דק' במקום FORMING עירום — הוכח על ברי 07-08 האמיתיים" }
   S1_CONFIDENCE_V2: {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "P0-3: ציון ביטחון קנוני אחד (FORMING=0), מחליף את ה-0.46 הישן" }
+  SIZE_CAP_CUT_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "שיקול-דעת בגודל: סטופ>תקרת-קבוצה → 2 חוזים; >1.5×תקרה → 1 — גם תחת FIXED_CONTRACTS (סוגר S6-BAND-0708)" }
 
   # ── פרמטרים שנפסקו ──
   MEMS_MIN_RISK_POINTS:   {expected: "2",  ruled_by: "מייקל", date: "2026-07-02", note: "רצפת סיכון מוחלטת; רצפת-עבודה = 0.5×ATR (רצועה, 07-08)" }

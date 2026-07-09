@@ -589,6 +589,12 @@ flags:
     why: "OFF (built 07-08). Fixes the live confusion (0.18/0.48 on a clear day). Enable = Michael."
     status: awaiting_backtest
 
+  SIZE_CAP_CUT_V1:
+    category: sizing
+    what: "Judgment size cut: structural stop wider than the group ATR-cap → max 2 contracts; >1.5×cap → 1. Applies AFTER FIXED_CONTRACTS_* (most conservative wins). cap passed per-call (S2 from v2_comp, S4 from ATR×group-mult)."
+    why: "ON (Michael 2026-07-09: 'עם שיקול דעת לא חייב תמיד 3 חוזים'). Closes S6-BAND-0708 (2×ATR stops carried full size)."
+    status: live
+
   # ───────────────────────── live safety net + L8 ledger (2026-07-03..08) ─────────────────────────
   EOD_FLATTEN_V1:
     category: risk

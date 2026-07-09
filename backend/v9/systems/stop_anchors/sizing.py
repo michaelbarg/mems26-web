@@ -61,6 +61,7 @@ def compute_v2_sizing(
     auth_matrix: Optional[Dict[Tuple[str, str], Tuple[str, int, int, int]]] = None,
     reversal: bool = False,
     ladder_shift: int = 0,
+    cap_risk_points: Optional[float] = None,  # group ATR-cap in points (SIZE_CAP_CUT_V1)
 ) -> Optional[V2SizingResult]:
     """Full V2 sizing: risk → contracts + T1.
 
@@ -109,6 +110,27 @@ def compute_v2_sizing(
         contracts = 2
     elif _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
         contracts = 3
+
+    # SIZE_CAP_CUT_V1 (Michael ruling 2026-07-09): "עם שיקול דעת — לא חייב תמיד
+    # 3 חוזים". A structural stop WIDER than the group ATR-cap cuts size even
+    # under FIXED_CONTRACTS_* (the cut is judgment, the fixed count is the
+    # default): risk > cap → max 2 contracts · risk > 1.5×cap → 1. Closes the
+    # S6-BAND-0708 finding (12.5pt ≈2×ATR stops carried full size, $187/trade;
+    # D-092's "cap becomes a size gate" was never wired). Applies AFTER the
+    # fixed override so the cut always wins (most conservative).
+    if (_fc_os.environ.get("SIZE_CAP_CUT_V1", "0").lower() in ("1", "true", "yes")
+            and cap_risk_points is not None and cap_risk_points > 0 and contracts > 0):
+        if risk_pts > 1.5 * cap_risk_points:
+            _cut = 1
+        elif risk_pts > cap_risk_points:
+            _cut = 2
+        else:
+            _cut = contracts
+        if _cut < contracts:
+            logger.info(
+                "[V2Sizing] SIZE_CAP_CUT: risk %.1fpt > cap %.1fpt → contracts %d→%d",
+                risk_pts, cap_risk_points, contracts, _cut)
+            contracts = _cut
 
     # ── T1 price ──
     anchor_cfg = cfg["anchors"].get(pattern_key, {})

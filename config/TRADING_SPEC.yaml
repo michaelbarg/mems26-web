@@ -73,10 +73,10 @@ rules:
 
   # ── גודל וניהול ──
   SIZE-1:
-    rule: "3 חוזים (פסיקת 07-09), סימטרי בכל השרשרת: פקודה, בראקט (3 OCO), סגירה ב-T3, P&L ‏3 רגליים, תצוגה N/3 — הספירה דינמית מ-effective_contracts, לא קבוע בקוד"
+    rule: "3 חוזים (פסיקת 07-09) עם שיקול-דעת בגודל: סטופ>תקרת-ATR-קבוצתית → 2; >1.5×תקרה → 1 (SIZE_CAP_CUT_V1). סימטרי בכל השרשרת; הספירה דינמית מ-effective_contracts"
     source: "מייקל 07-09 (החליף את 2 חוזים מ-07-06); L7 07-08 בנה את הסימטריה הדינמית"
     enforced: "effective_contracts → quality.contracts → manager/display/slot"
-    verified: "test_l7 (מודל n דינמי) · ירי SIM ‏3ח — CC היום"
+    verified: "test_l7 (מודל n דינמי) · test_size_cap_cut ‏5/5 · ירי SIM ‏3ח — היום"
   SIZE-2:
     rule: "עצירת יום −$400 · אין כניסות אחרי 22:15 · ‏EOD flatten — ללא יוצאים מהכלל"
     source: "מייקל 07-06"

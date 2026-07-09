@@ -625,6 +625,18 @@ class WoodiesSystem(BaseV9TradingSystem):
                             ) if _day_has_dir else None
                             _is_rev = best.group == "REVERSAL"
                             _anchor_cfg = _sa_cfg["anchors"].get(signal, {})
+                            # SIZE_CAP_CUT_V1 (Michael 07-09): group ATR-cap in points
+                            # for the size cut — CONT_TIGHT 1.0× / GB100 1.2× / REV 1.5×.
+                            _s4_cap_pts = None
+                            try:
+                                from backend.v9.systems.woodies.patterns.zlr import _compute_atr14_ticks as _s4_atr
+                                _atr_t = _s4_atr(list(self._bar_buffer))
+                                if _atr_t > 0:
+                                    _mult = 1.0 if signal in ("ZLR", "TLB", "TT") else (
+                                        1.2 if signal == "GB100" else 1.5)
+                                    _s4_cap_pts = _mult * _atr_t * 0.25
+                            except Exception:
+                                _s4_cap_pts = None  # honest missing → no cut
                             _v2s = compute_v2_sizing(
                                 entry_price=best.entry_price,
                                 stop_price=best.stop,
@@ -639,6 +651,7 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 auth_matrix=_auth,
                                 reversal=_is_rev,
                                 ladder_shift=_anchor_cfg.get("t1_ladder_shift", 0),
+                                cap_risk_points=_s4_cap_pts,
                             )
                             if _v2s is None:
                                 sizing = "reject"
