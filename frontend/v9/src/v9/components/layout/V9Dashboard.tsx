@@ -15,6 +15,7 @@ import { DirectionStrip } from '../strips/DirectionStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
 import { TradeReviewTab } from '../trades/TradeReviewTab';
 import { DayTypeLabelTab } from '../day-type/DayTypeLabelTab';
+import { useLayoutStore } from '../../stores/layoutStore';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
 import { useSystemStatePolling } from '../../hooks/useSystemStatePolling';
 import { usePriceStream } from '../../hooks/usePriceStream';
@@ -30,6 +31,10 @@ const PRESETS = { Min: 240, Md: 480, Max: 720 } as const;
 function clamp(v: number) { return Math.max(MIN_H, Math.min(MAX_H, v)); }
 
 export function V9Dashboard() {
+  // 07-09: the panels button toggled the store but the REAL dashboard (this
+  // component, not the unused DashboardLayout) never listened → "nothing
+  // happens". Now the right SidePanel collapses → full-width chart.
+  const { panelsCollapsed } = useLayoutStore();
   useSystemEvents();
   // P30 FORENSICS: 5s is the floor — fires/ZLR need <5s visibility.
   // Do NOT increase past 5000 without Michael's approval.
@@ -135,7 +140,7 @@ export function V9Dashboard() {
               <TradeHistoryStrip />
               <ShadowSoakStrip />
             </div>
-            <SidePanel />
+            {!panelsCollapsed && <SidePanel />}
           </div>
           <PriceDebugConsole />
           <SystemControlPanel />
