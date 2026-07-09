@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-09 13:21:40 by build_monolithic_cpp.sh
+// Generated 2026-07-09 23:34:08 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -2809,6 +2809,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 sc.GetPersistentInt64(6) = o.Target3InternalOrderID;
                                 sc.GetPersistentInt64(7) = o.Stop3InternalOrderID;
                                 sc.GetPersistentInt(103) = 0;
+                                sc.GetPersistentInt(107) = is_buy ? 1 : -1;  // D1: store direction for EXIT fallback
 
                                 // Write ENTRY fill + the 3 order IDs
                                 const char* fills_path = TradeFillsPath.GetString();
@@ -2993,16 +2994,21 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             exit_order.OrderType = SCT_ORDERTYPE_MARKET;
                             exit_order.TimeInForce = SCT_TIF_GTC;
 
-                            // Determine exit side: try GetTradePosition first, fall back to stored direction
+                            // Determine exit side: position > command direction > stored direction
                             int r = 0;
                             int exit_dir = sc.GetPersistentInt(107);  // 1=LONG, -1=SHORT
+                            // D1 fix: also read direction from command JSON
+                            if (cmd_content.find("\"LONG\"") != std::string::npos)
+                                exit_dir = 1;
+                            else if (cmd_content.find("\"SHORT\"") != std::string::npos)
+                                exit_dir = -1;
                             s_SCPositionData pos;
                             sc.GetTradePosition(pos);
                             if (pos.PositionQuantity > 0)
                                 r = static_cast<int>(sc.SellExit(exit_order));
                             else if (pos.PositionQuantity < 0)
                                 r = static_cast<int>(sc.BuyExit(exit_order));
-                            else if (exit_dir > 0)   // fallback: stored direction
+                            else if (exit_dir > 0)   // fallback: stored/command direction
                                 r = static_cast<int>(sc.SellExit(exit_order));
                             else if (exit_dir < 0)
                                 r = static_cast<int>(sc.BuyExit(exit_order));

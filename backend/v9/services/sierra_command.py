@@ -123,17 +123,25 @@ def write_exit(
     trade_id: str,
     order_id: int,
     contracts: int,
+    direction: Optional[str] = None,
     mode: str = "demo",
 ) -> Dict[str, Any]:
-    """Write an EXIT command — market exit N contracts (partial or full)."""
-    return _write_command({
+    """Write an EXIT command — market exit N contracts (partial or full).
+
+    D1 fix: include direction so DLL can determine exit side even when
+    GetTradePosition returns 0 and persistent slot 107 is unset.
+    """
+    payload: Dict[str, Any] = {
         "op": "EXIT",
         "trade_id": trade_id,
         "order_id": order_id,
         "contracts": contracts,
         "mode": mode,
         "ts_submitted": time.time(),
-    })
+    }
+    if direction:
+        payload["direction"] = direction.upper()
+    return _write_command(payload)
 
 
 def write_cancel(
