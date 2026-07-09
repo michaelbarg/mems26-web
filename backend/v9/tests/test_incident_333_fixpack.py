@@ -159,6 +159,22 @@ def test_reconciler_detects_divergence():
         os.unlink(tmp)
 
 
+# ── FIX-7: pullback-blindness in main direction engine ────────────────
+
+def test_fix7_lsma_side_cert_override():
+    """FIX-7: close < LSMA (pullback) + BLUE + slope>0 → lsma_side forced to +1.
+
+    Without FIX-7: lsma_side = -1 → compute_direction returns DOWN → CONT longs blocked.
+    With FIX-7 + CERT flag: lsma_side overridden to +1 → direction = UP.
+    """
+    import inspect
+    from backend.v9.systems import direction_context_live as dcl
+    src = inspect.getsource(dcl.current)
+    assert "FIX-7" in src, "FIX-7 CERT override must exist in direction_context_live.current"
+    assert "lsma_side_val = 1" in src or "lsma_side_val = +1" in src, \
+        "FIX-7 must override lsma_side_val to +1 on BLUE + slope>0"
+
+
 def test_reconciler_match():
     """TM says 0, Sierra says 0 → MATCH."""
     from backend.v9.services.sierra_position_reconciler import reconcile_position

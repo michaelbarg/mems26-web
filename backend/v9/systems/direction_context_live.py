@@ -149,19 +149,58 @@ def current() -> Dict[str, Any]:
         except Exception:
             day_type = None
 
+    # --- Pre-compute lsma_slope (needed by FIX-7 CERT before compute_direction) ---
+    lsma_slope = None
+    try:
+        _fk = max(2, int(os.getenv("LSMA_FLAT_LOOKBACK_BARS", "4") or "4"))
+        from backend.v9.db.read import read_all as _slope_ra
+        _slope_rows = _slope_ra(
+            "SELECT lsma_value FROM v9_bars_5min_woodies "
+            "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d AND lsma_value IS NOT NULL "
+            "ORDER BY ts DESC LIMIT " + str(_fk), {"d": today})
+        lsma_slope = lsma_slope_pts_per_bar(_slope_rows, _fk)
+    except Exception:
+        lsma_slope = None
+
     # --- DIRECTION_LSMA_VETO flag: LSMA-lead + CVD-veto direction override ---
     lsma_veto = os.getenv("DIRECTION_LSMA_VETO", "0").lower() in ("1", "true", "yes")
     lsma_side_val = None
     if lsma_veto:
         try:
             _lsma_row = read_one(
-                "SELECT close, lsma_value FROM v9_bars_5min_woodies "
+                "SELECT close, lsma_value, trend_state FROM v9_bars_5min_woodies "
                 "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d "
                 "AND lsma_value IS NOT NULL "
                 "ORDER BY ts DESC LIMIT 1",
                 {"d": today})
             if _lsma_row and _lsma_row.get("lsma_value") is not None:
                 lsma_side_val = 1 if float(_lsma_row["close"]) > float(_lsma_row["lsma_value"]) else -1
+
+                # FIX-7 (incident 333, 21:45): pullback-blindness in the main direction
+                # engine. lsma_side=-1 (close < rising LSMA) during a BLUE uptrend →
+                # compute_direction returns DOWN → blocks CONT longs in a drive-up day.
+                # CERT override: BLUE + slope>0 → force lsma_side=+1 (UP).
+                if lsma_side_val < 0 and \
+                        os.getenv("CONT_TREND_STATE_CERT_V1", "0").lower() in ("1", "true", "yes"):
+                    _ts = str(_lsma_row.get("trend_state", "")).upper()
+                    if _ts == "BLUE" and lsma_slope is not None and lsma_slope > 0:
+                        import logging as _f7log
+                        _f7log.getLogger(__name__).info(
+                            "[DirContext] FIX-7 CERT: lsma_side -1→+1 (BLUE + slope=%.4f)",
+                            lsma_slope)
+                        lsma_side_val = 1
+                    elif _ts == "RED" and lsma_slope is not None and lsma_slope < 0:
+                        pass  # lsma_side already +1 (above falling LSMA) — no override needed
+                # Symmetric: if lsma_side_val > 0 and RED + slope<0, force to -1
+                if lsma_side_val > 0 and \
+                        os.getenv("CONT_TREND_STATE_CERT_V1", "0").lower() in ("1", "true", "yes"):
+                    _ts = str(_lsma_row.get("trend_state", "")).upper()
+                    if _ts == "RED" and lsma_slope is not None and lsma_slope < 0:
+                        import logging as _f7log
+                        _f7log.getLogger(__name__).info(
+                            "[DirContext] FIX-7 CERT: lsma_side +1→-1 (RED + slope=%.4f)",
+                            lsma_slope)
+                        lsma_side_val = -1
         except Exception:
             lsma_side_val = None  # fail-safe: fall through to existing engine
 
@@ -195,20 +234,7 @@ def current() -> Dict[str, Any]:
         dir_sustained = "NEUTRAL"  # fail-safe → NEUTRAL (gateway treats as no-trend)
     out["dir_sustained"] = dir_sustained
 
-    # --- lsma_slope_ppb: LSMA slope (points/bar) over LSMA_FLAT_LOOKBACK_BARS ---
-    # Always computed (observability, like dir_sustained); the gateway veto itself is
-    # flag-gated (LSMA_FLAT_GATE_V1, default OFF). Fail-safe → None (gate fail-opens).
-    lsma_slope = None
-    try:
-        _fk = max(2, int(os.getenv("LSMA_FLAT_LOOKBACK_BARS", "4") or "4"))
-        from backend.v9.db.read import read_all as _ra2
-        _frows = _ra2(
-            "SELECT lsma_value FROM v9_bars_5min_woodies "
-            "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d AND lsma_value IS NOT NULL "
-            "ORDER BY ts DESC LIMIT " + str(_fk), {"d": today})
-        lsma_slope = lsma_slope_pts_per_bar(_frows, _fk)
-    except Exception:
-        lsma_slope = None
+    # --- lsma_slope_ppb (already computed above for FIX-7; reuse) ---
     out["lsma_slope_ppb"] = lsma_slope
 
     # FIX-5 (incident 333): CONT_TREND_STATE_CERT_V1 — pullback bars close below
