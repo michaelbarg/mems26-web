@@ -264,40 +264,58 @@ export function TopBar() {
             </>
           )}
         </div>
-        <Link
-          href="/trades"
-          className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Trades
-        </Link>
-        {/* External review tools (static pages in /public) — open in a new tab */}
-        <a
-          href="/patterns-visual.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
-          style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
-          title="Playbook תבניות — נפתח בטאב חדש"
-        >
-          תבניות · Playbook
-        </a>
-        <a
-          href="/trade-placement.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
-          style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
-          title="מיקומי-מימוש (stops/targets) — נפתח בטאב חדש"
-        >
-          מיקומי-מימוש
-        </a>
+        {/* ניווט מסודר (מייקל 07-09: "אזור לא מסודר, לא פרקטי") — סדר קבוע:
+            הלוח (משימות+לדג'ר+מערכת-6) · עסקאות · כלי-עיון · ולבסוף כפתור הפאנלים */}
+        <nav style={{
+          display: 'flex', alignItems: 'center', gap: 2,
+          border: '1px solid var(--border, #21262d)', borderRadius: 8, padding: '1px 4px',
+        }}>
+          <a
+            href="/board"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
+            style={{ color: 'var(--accent, #58a6ff)', whiteSpace: 'nowrap', textDecoration: 'none', fontWeight: 600 }}
+            title="הלוח החי: משימות · לדג'ר סיירה · לוג מערכת 6 · עמודי המערכת"
+          >
+            📋 לוח
+          </a>
+          <Link
+            href="/trades"
+            className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
+            style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
+            title="היסטוריית עסקאות"
+          >
+            עסקאות
+          </Link>
+          <a
+            href="/patterns-visual.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
+            style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
+            title="Playbook תבניות — נפתח בטאב חדש"
+          >
+            תבניות
+          </a>
+          <a
+            href="/trade-placement.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
+            style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
+            title="מיקומי-מימוש (stops/targets) — נפתח בטאב חדש"
+          >
+            מימושים
+          </a>
+        </nav>
         <button
           onClick={togglePanels}
           className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
-          style={{ color: 'var(--text-secondary)' }}
+          style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}
+          title="הסתר/הצג פאנלים צדדיים"
         >
-          {panelsCollapsed ? 'Show Panels' : 'Hide Panels'}
+          {panelsCollapsed ? '⊞ פאנלים' : '⊟ פאנלים'}
         </button>
       </div>
       {/* Playbook modal */}
