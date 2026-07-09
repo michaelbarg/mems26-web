@@ -240,25 +240,33 @@ def current() -> Dict[str, Any]:
     # FIX-5 (incident 333): CONT_TREND_STATE_CERT_V1 — pullback bars close below
     # the RISING LSMA → sustained returns "DOWN"/"NEUTRAL" even during a BLUE uptrend.
     # Certification: if all K bars are BLUE AND lsma_slope>0 → force UP.
-    if dir_sustained == "NEUTRAL" and \
-            os.getenv("CONT_TREND_STATE_CERT_V1", "0").lower() in ("1", "true", "yes"):
+    # 2026-07-09 22:2x Cowork hotfix (ראיה 21:00-21:15): מצב-הכשל האמיתי הוא
+    # dir_sustained == "DOWN" — כל K הברים נסגרים מתחת ל-LSMA העולה — לא "NEUTRAL".
+    # התנאי `== "NEUTRAL"` מנע מההסמכה לפעול בדיוק בתרחיש שלשמו נבנתה
+    # (5 חסימות ZLR LONG עם BLUE×3 + slope +0.36). BLUE-cert מרים NEUTRAL/DOWN→UP;
+    # RED-cert מוריד NEUTRAL/UP→DOWN. לא נוגע בכיוון שכבר מוסכם.
+    if os.getenv("CONT_TREND_STATE_CERT_V1", "0").lower() in ("1", "true", "yes"):
         try:
             import logging as _cert_log
             _cert_states = [str(r.get("trend_state", "")).upper()
                            for r in (_srows or [])[:_k]]
             if len(_cert_states) >= _k:
-                if all(s == "BLUE" for s in _cert_states) and \
+                if dir_sustained != "UP" and \
+                        all(s == "BLUE" for s in _cert_states) and \
                         lsma_slope is not None and lsma_slope > 0:
+                    _cert_log.getLogger(__name__).info(
+                        "[DirContext] CERT override: %s→UP (BLUE×%d + slope=%.4f)",
+                        dir_sustained, _k, lsma_slope)
                     dir_sustained = "UP"
                     out["dir_sustained"] = dir_sustained
-                    _cert_log.getLogger(__name__).info(
-                        "[DirContext] CERT override: BLUE×%d + slope=%.4f → UP", _k, lsma_slope)
-                elif all(s == "RED" for s in _cert_states) and \
+                elif dir_sustained != "DOWN" and \
+                        all(s == "RED" for s in _cert_states) and \
                         lsma_slope is not None and lsma_slope < 0:
+                    _cert_log.getLogger(__name__).info(
+                        "[DirContext] CERT override: %s→DOWN (RED×%d + slope=%.4f)",
+                        dir_sustained, _k, lsma_slope)
                     dir_sustained = "DOWN"
                     out["dir_sustained"] = dir_sustained
-                    _cert_log.getLogger(__name__).info(
-                        "[DirContext] CERT override: RED×%d + slope=%.4f → DOWN", _k, lsma_slope)
         except Exception:
             pass  # fail-safe
 
