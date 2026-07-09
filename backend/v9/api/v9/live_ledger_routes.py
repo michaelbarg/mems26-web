@@ -68,6 +68,30 @@ async def live_ledger():
 
         ledger = sl.build_ledger(sl.parse_fills(lines), live_account=live_account)
 
+        # L8 wiring (2026-07-09): consume the TradeActivityLog feeder output
+        # (scripts/trade_activity_feed.py → trade_activity_events.jsonl).
+        # USER_ORDER_MODIFY events give the LAST Sierra-side stop/target price
+        # (manual moves included) → feeds reconcile's sierra_stop + surfaces raw
+        # activity events per response. Fail-safe: missing file → empty.
+        activity_events = []
+        try:
+            _ev_path = os.path.join(os.path.dirname(fills_path), "trade_activity_events.jsonl")
+            with open(_ev_path, "r", encoding="utf-8") as ef:
+                for ln in ef:
+                    ln = ln.strip()
+                    if ln:
+                        try:
+                            activity_events.append(json.loads(ln))
+                        except ValueError:
+                            continue
+        except FileNotFoundError:
+            pass
+        out["activity_events"] = len(activity_events)
+        _last_user_modify = None
+        for ev in activity_events:
+            if ev.get("type") == "USER_ORDER_MODIFY" and ev.get("price"):
+                _last_user_modify = float(ev["price"])
+
         # Index backend LIVE rows by their stored Sierra order id (quality JSON).
         backend_by_oid = {}
         try:
@@ -93,7 +117,10 @@ async def live_ledger():
             row = lt.to_dict()
             b = backend_by_oid.get(str(lt.entry_order_id))
             if b is not None:
-                sierra_stop = b.get("_sierra_stop")  # from TradeActivityLog (CC feeds later)
+                # sierra_stop: the last Sierra-side order modification observed in
+                # the TradeActivityLog (manual moves included) — feeds L2/manual-
+                # stop divergence detection. None when no modify events exist.
+                sierra_stop = _last_user_modify
                 row["divergences"] = [d.__dict__ for d in
                                       sl.reconcile(lt, b, sierra_stop=sierra_stop)]
                 row["manual_events"] = [m.__dict__ for m in
