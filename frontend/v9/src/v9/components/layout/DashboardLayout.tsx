@@ -19,8 +19,9 @@ export function DashboardLayout() {
       <TopBar />
       <Layer0Strip />
       <div className="flex-1 flex min-h-0">
-        {/* Left Tabs Sidebar — 240px fixed */}
-        <LeftTabs />
+        {/* מייקל 07-09: כפתור-הפאנלים "לא עשה כלום" — הוא הסתיר רק את הפס התחתון.
+            עכשיו הוא מקפל את שלושת הפאנלים (שמאל, תחתון, ימין) → צ'ארט על כל המסך. */}
+        {!panelsCollapsed && <LeftTabs />}
 
         {/* Center: Chart + Volume + Bottom Panels */}
         <div className="flex-1 flex flex-col min-h-0 min-w-0">
@@ -37,7 +38,7 @@ export function DashboardLayout() {
         </div>
 
         {/* Right: Side Panel — Switcher + Lens */}
-        <SidePanel />
+        {!panelsCollapsed && <SidePanel />}
       </div>
       {settingsOpen && <SettingsDrawer />}
       <PriceDebugConsole />
