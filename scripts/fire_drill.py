@@ -98,8 +98,11 @@ def stage_c():
     print("— שלב C · חוזים + בר-אישור —")
     from backend.v9.services.sierra_command import effective_contracts
     from backend.v9.systems.entry_confirm import entry_confirmed
-    n = effective_contracts({"contracts": 3})
-    check("effective_contracts == 2 (FIXED_CONTRACTS_2)", n == 2, f"got {n}")
+    # הספירה הצפויה נגזרת מהפסיקה החיה ב-env (07-09: ‏3 חוזים; _2 גובר כשדלוק)
+    _want = 2 if os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") \
+        else (3 if os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") else 1)
+    n = effective_contracts({"contracts": 1})
+    check(f"effective_contracts == {_want} (לפי דגלי הפסיקה)", n == _want, f"got {n}")
     atr, _ = _atr_ticks_today()
     tol = 0.10 * atr * 0.25
     ok, why = entry_confirmed(direction="SHORT", bars=[{"o": 7500.0, "c": 7500.0 + tol * 0.7}],
