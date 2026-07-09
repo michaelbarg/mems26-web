@@ -483,6 +483,39 @@ def extract_trade_systems_panel(trade) -> Dict[str, Any]:
 # must not re-run the full classify pipeline per trade). Mutated in place; no global needed.
 _NC_CACHE: Dict[str, Any] = {}
 
+# ── Anti-flap hysteresis state (Michael 2026-07-09). Module-level, mutated in place. ──
+_ANTIFLAP_STATE: Dict[str, Any] = {"stable": None, "pending": None, "since": 0.0}
+
+
+def _antiflap_day_type(raw: Optional[str], now: float, hold_s: float, state: Dict[str, Any]) -> Optional[str]:
+    """Hysteresis on the LIVE day-type (2026-07-09 incident): a CHANGE must persist >= hold_s
+    before it propagates to the gates, so a bar-to-bar flapping machine can't jerk them
+    (07-09: REACTIVE/ZLR were SKIP'd on a transient 'Nontrend' on a +50pt drive-up day, while
+    classify_replay stayed stable). Pure + testable; `state` = {"stable","pending","since"}.
+
+    - first-ever value is accepted immediately (nothing to protect);
+    - a transient None keeps the last stable value (no flap-to-None);
+    - a value equal to the current stable clears any pending candidate;
+    - a differing value must hold >= hold_s (≈ a bar) before it becomes the new stable.
+    """
+    if raw is None:
+        return state.get("stable")                       # transient gap → hold last stable
+    if raw == state.get("stable"):
+        state["pending"] = None                          # confirms current → drop candidate
+        return state["stable"]
+    if raw != state.get("pending"):                      # a new candidate starts its clock
+        state["pending"] = raw
+        state["since"] = now
+    if state.get("stable") is None:                      # no prior stable → accept immediately
+        state["stable"] = raw
+        state["pending"] = None
+        return raw
+    if now - float(state.get("since", now)) >= hold_s:   # held long enough → promote
+        state["stable"] = raw
+        state["pending"] = None
+        return raw
+    return state["stable"]                                # not held long enough → keep stable
+
 
 def get_live_day_type() -> Optional[str]:
     """Read the LIVE promoted 7-type day_type from app.state.day_type_machine.
@@ -500,12 +533,20 @@ def get_live_day_type() -> Optional[str]:
         import importlib as _il
         _app_mod = _il.import_module("backend.v9.app").app
         _dtm = getattr(_app_mod.state, "day_type_machine", None)
-        if not _dtm:
-            return None
-        _raw = getattr(_dtm, "day_type", None)
-        _val = _raw.value if hasattr(_raw, "value") else (str(_raw) if _raw else None)
-        if _val and _val not in ("UNKNOWN", "None", "INDETERMINATE", "FORMING"):
-            return {"Normal_Variation": "Variation"}.get(_val, _val)
+        _mapped = None
+        if _dtm:
+            _raw = getattr(_dtm, "day_type", None)
+            _val = _raw.value if hasattr(_raw, "value") else (str(_raw) if _raw else None)
+            if _val and _val not in ("UNKNOWN", "None", "INDETERMINATE", "FORMING"):
+                _mapped = {"Normal_Variation": "Variation"}.get(_val, _val)
+        # ── anti-flap (DAYTYPE_ANTIFLAP_V1, Michael 2026-07-09): a live CHANGE must persist
+        #    >= hold before it reaches the gates. Default OFF → returns the raw mapped value
+        #    unchanged (byte-identical). The classify_replay engine is NOT touched. ──
+        if _os.getenv("DAYTYPE_ANTIFLAP_V1", "").lower() in ("1", "true", "yes"):
+            import time as _time
+            _hold = float(_os.getenv("DAYTYPE_ANTIFLAP_HOLD_S", "300"))  # ~1 bar; set 600 for strict 2-bar
+            return _antiflap_day_type(_mapped, _time.time(), _hold, _ANTIFLAP_STATE)
+        return _mapped
     except Exception:
         pass
     return None

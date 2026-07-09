@@ -12,6 +12,32 @@ from zoneinfo import ZoneInfo
 
 _CT = ZoneInfo("America/Chicago")
 _CACHE: Dict[str, Any] = {}
+_STATE_STALE_WARN: Dict[str, float] = {"last": 0.0}
+
+
+def _warn_if_state_stale(ts: Any, max_age_s: float = 600.0) -> None:
+    """SYS-2 (Michael 2026-07-09): v9_day_type_state must never freeze silently. On 07-09 the
+    writer died at 16:25 (split-brain: gates rode the flapping in-memory machine while this table
+    stayed frozen). If the last write is older than max_age_s, emit a rate-limited WARNING
+    (≤ once / 5 min) so a dead writer surfaces immediately instead of feeding a stale value."""
+    try:
+        import logging as _lg
+        import datetime as _dtm
+        if ts is None:
+            return
+        _now = _time.time()
+        if _now - _STATE_STALE_WARN.get("last", 0.0) < 300:
+            return
+        # ts is stored naive-UTC (writer: datetime.now(utc).isoformat(), main.py)
+        _t = ts if isinstance(ts, _dtm.datetime) else _dtm.datetime.fromisoformat(str(ts))
+        _age = _now - _t.replace(tzinfo=_dtm.timezone.utc).timestamp()
+        if _age > max_age_s:
+            _STATE_STALE_WARN["last"] = _now
+            _lg.getLogger(__name__).warning(
+                "[DayType] v9_day_type_state STALE: last write %s (%.0fs ago) — writer may be dead (SYS-2)",
+                ts, _age)
+    except Exception:
+        pass
 
 
 def sustained_lsma_side(rows, k: int) -> str:
@@ -100,16 +126,28 @@ def current() -> Dict[str, Any]:
     ibl = tpo.get("ib_low") if tpo else None
     poc = tpo.get("poc_price") if tpo else None
 
-    # day_type for the trend-day override (06-16 fix) — cheap latest-state read
+    # day_type for the trend-day override (06-16 fix). 2026-07-09: the v9_day_type_state writer
+    # died mid-session while the gates rode the flapping in-memory machine (split-brain). Prefer
+    # the ONE live source (get_live_day_type, hysteresis-stabilized) when DAYTYPE_ONE_SOURCE_V1 is
+    # on (P0-3: engine=UI=gates read one value); otherwise fall back to the table AND warn if it
+    # is stale. Default OFF → unchanged (table read).
     day_type = None
-    try:
-        _dt = read_one(
-            "SELECT day_type FROM v9_day_type_state "
-            "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d ORDER BY id DESC LIMIT 1",
-            {"d": today})
-        day_type = _dt.get("day_type") if _dt else None
-    except Exception:
-        day_type = None
+    if os.getenv("DAYTYPE_ONE_SOURCE_V1", "0").lower() in ("1", "true", "yes"):
+        try:
+            from backend.v9.services.trade_context import get_live_day_type as _gldt
+            day_type = _gldt()
+        except Exception:
+            day_type = None
+    if day_type is None:
+        try:
+            _dt = read_one(
+                "SELECT day_type, ts FROM v9_day_type_state "
+                "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d ORDER BY id DESC LIMIT 1",
+                {"d": today})
+            day_type = _dt.get("day_type") if _dt else None
+            _warn_if_state_stale(_dt.get("ts") if _dt else None)
+        except Exception:
+            day_type = None
 
     # --- DIRECTION_LSMA_VETO flag: LSMA-lead + CVD-veto direction override ---
     lsma_veto = os.getenv("DIRECTION_LSMA_VETO", "0").lower() in ("1", "true", "yes")
@@ -146,31 +184,11 @@ def current() -> Dict[str, Any]:
     try:
         _k = max(2, int(os.getenv("LSMA_SUSTAIN_BARS", "3") or "3"))
         from backend.v9.db.read import read_all as _ra
-        # FIX-5: include trend_state for certification mode
         _srows = _ra(
-            "SELECT close, lsma_value, trend_state FROM v9_bars_5min_woodies "
+            "SELECT close, lsma_value FROM v9_bars_5min_woodies "
             "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d AND lsma_value IS NOT NULL "
             "ORDER BY ts DESC LIMIT " + str(_k), {"d": today})
         dir_sustained = sustained_lsma_side(_srows, _k)
-
-        # FIX-5: CONT_TREND_STATE_CERT_V1 — pullback bars close below the RISING
-        # LSMA → sustained returns "DOWN"/"NEUTRAL" even during a BLUE uptrend.
-        # Certification: if all K bars are BLUE AND lsma_slope>0 → force UP.
-        if dir_sustained == "NEUTRAL" and \
-                os.getenv("CONT_TREND_STATE_CERT_V1", "0").lower() in ("1", "true", "yes"):
-            _cert_states = [str(r.get("trend_state", "")).upper()
-                           for r in (_srows or [])[:_k]]
-            if len(_cert_states) >= _k:
-                if all(s == "BLUE" for s in _cert_states) and \
-                        lsma_slope is not None and lsma_slope > 0:
-                    dir_sustained = "UP"
-                    logger.info("[DirContext] CERT override: BLUE×%d + slope=%.4f → UP",
-                                _k, lsma_slope)
-                elif all(s == "RED" for s in _cert_states) and \
-                        lsma_slope is not None and lsma_slope < 0:
-                    dir_sustained = "DOWN"
-                    logger.info("[DirContext] CERT override: RED×%d + slope=%.4f → DOWN",
-                                _k, lsma_slope)
     except Exception:
         dir_sustained = "NEUTRAL"  # fail-safe → NEUTRAL (gateway treats as no-trend)
     out["dir_sustained"] = dir_sustained
