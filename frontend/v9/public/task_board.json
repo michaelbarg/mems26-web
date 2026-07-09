@@ -30,6 +30,41 @@
   },
   "tasks": [
     {
+      "id": "S1-FLAP",
+      "title": "S1: ריצוד Nontrend↔Normal↔Variation בנתיב החי + כותב v9_day_type_state מת",
+      "status": "open",
+      "owner": "צ'אט-S1",
+      "opened": "2026-07-09 19:4x",
+      "priority": "P0",
+      "doc": "docs/handoff/PROMPT_S1_FLAPPING_2026-07-09.md"
+    },
+    {
+      "id": "PANEL-0709",
+      "title": "פאנל-צד: Plan בלי לינקים + איך-מתגבשת פר-תבנית + Shadow אמיתי + סדר בכל הלשוניות",
+      "status": "open",
+      "owner": "צ'אט-מערכות",
+      "opened": "2026-07-09 19:4x",
+      "priority": "P1",
+      "doc": "docs/handoff/PROMPT_SYSTEMS_PLAN_PANEL_2026-07-09.md"
+    },
+    {
+      "id": "FIXPACK-0709",
+      "title": "חבילת תיקוני-אמת (R:R חתום · clamp מוגן-IB · detector שפוי · #68 pre-lock · cont-trend cert · reconciler-סיירה)",
+      "status": "open",
+      "owner": "CC",
+      "opened": "2026-07-09 19:4x",
+      "priority": "P0",
+      "doc": "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md"
+    },
+    {
+      "id": "INC-333",
+      "title": "תקרית 333: יעדים מורעלים מתחת לכניסה + מימושים פיקטיביים — רשומה מיושרת, מייקל מנהל ידנית",
+      "status": "in_progress",
+      "owner": "Cowork",
+      "opened": "2026-07-09 19:4x",
+      "priority": "P0"
+    },
+    {
       "id": "BLOCKER-1",
       "title": "Live orders execute in Sierra — RESOLVED (2 live trades succeeded)",
       "priority": "P0",
@@ -377,5 +412,6 @@
       "evidence": "a2032d7: השורש סוּוג מחדש — לא באג-סימן אלא risk דגנרטיבי (1pt) ששם את t2(2R) בתוך t1(רצפה 3pt); רצועת-הסטופ מונעת מבנית + טסט סדר-סולם על כל משטרי-ATR + תיקון לוג",
       "links": []
     }
-  ]
+  ],
+  "updated": "2026-07-09 19:4x"
 }

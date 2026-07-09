@@ -1,6 +1,15 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-07-09 (LIVE incident — S1 flapping + dead writer)
+
+**[2026-07-09 ~19:45 IL — Cowork(S1): ריצוד-סיווג-חי + כותב-מת אובחנו ותוקנו flag-OFF (3572aec)]**
+Finding (Rule 5, backend.err.log + v9_day_type_state): **SPLIT-BRAIN**. השערים קוראים day_type דרך `get_live_day_type()`=מכונת-הזיכרון שריצדה (17:30 Trend_Normal→Variation · 17:45 Variation→Normal · playbook 'REACTIVE/ZLR SKIP on Nontrend' 17:00/17:40) בעוד `classify_replay` יציב (Normal→Normal_Variation rib 1.358). במקביל `v9_day_type_state` קפא ב-16:25 (id 9116; אין warning → הכותב הפסיק להיקרא במעבר PRE_MARKET→RTH, לא exception); הקוראים (direction_context_live, FiveMin) אכלו את הערך הקפוא. עלה כסף אמיתי (המשכי-מגמה נחסמו ביום דרייב +50).
+Fix (3572aec · flag-OFF · byte-identical כבוי): anti-flap `DAYTYPE_ANTIFLAP_V1` (שינוי-סיווג חייב להחזיק ≥`DAYTYPE_ANTIFLAP_HOLD_S`, ברירת-מחדל 300ש'~בר; 600=2-בר) ב-get_live_day_type (helper טהור `_antiflap_day_type`) · one-source `DAYTYPE_ONE_SOURCE_V1` (direction_context_live קורא get_live_day_type תחילה, טבלה=fallback → engine=UI=gates) · SYS-2 `_warn_if_state_stale` (WARNING מוגבל-קצב, טבלה מתיישנת >10דק'). מנוע-הריפליי לא נגע.
+Verify (Rule 5, sandbox): `test_daytype_antiflap.py` **8/8** (כולל רצף-הריצוד של 07-09 שלא דולף לשערים; שינוי-מתמשך עדיין עולה אחרי hold; anti-taut hold=0) · py_compile OK · flags OFF → get_live_day_type מחזיר raw.
+NOT-DONE (owed): החייאת-הכותב (persist על ה-S1-NEW-CLS promotion `main.py:475` — cadence=risk-surface → מייקל) · `/api/v9/day_type/state` wrapper עדיין קורא טבלה · אין restart (פוזיציה חיה) · hold ברירת-מחדל 300ש'.
+OPEN → מייקל: הדלקת `DAYTYPE_ANTIFLAP_V1`+`DAYTYPE_ONE_SOURCE_V1` (שינוי משטח-סיכון) + כיוונון hold (300/600). לא הודלק.
+
 ## 2026-07-08 (LIVE-ready 2-contracts day — mega-prompt executing)
 
 **[2026-07-08 ~22:15 IL — Cowork(S1 executor): Dalton P0-1/P0-2/P0-3 נבנו flag-OFF + REPLAY-EMPTY תוקן (95d411b)]**
@@ -1861,3 +1870,7 @@ session — likely a `Number of Days to Calculate` setting on the IB study.
 ## Amendments log
 
 Full log moved to [](../reports/AMENDMENTS_LOG.md) (148 KB · renderer-friendly separation).
+
+[2026-07-09 19:45] 🔴 תקרית-333 (LIVE): root=שרשרת — TP-1 clamp צימד יעדים ל-IB מתחת לכניסה (IB-forming 16:3x; IB-locked 18:45) + rr_entry_gate abs() העביר צד-שגוי + BarLevelDetector רשם C1/C2 HIT פיקטיביים (low מאז הכניסה 7573.25 > "יעד" 7566.5) → fix=ספק CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md (6 תיקונים+טסטים, פריסה בריסטארט מאושר) → verified=לוג gateway 18:45 + fills journal 8647 + psql min(low); סיירה לא זוהמה (0 פקודות מאז PLACE). מייקל מנהל 333 ידנית (2 חוזים @7576.75, סטופ 7572.25).
+[2026-07-09 19:45] 🔴 0-ירי ביום דרייב-אפ +50 נק': root=ריצוד S1 חי (Nontrend↔Normal↔Variation מול replay יציב Normal מ-09:55ET) + cont_trend_filter צד-LSMA קורא "DOWN" בברי-פולבק של עליה (13 חסימות) + יעדי-מבנה על IB-מתהווה (T1=1.25 נק' 16:40) → fix=PROMPT_S1_FLAPPING (צ'אט-S1) + FIX-5/FIX-4 בספק CC → verified=uniq -c בלוג (13 cont/6 playbook/4 rr) + classify_replay API + psql lsma diffs.
+[2026-07-09 19:45] 🟡 v9_day_type_state writer מת מ-16:00:08 (טרום-פתיחה) — הראפר הישן + direction_context_live קוראים ערך קפוא → לצ'אט-S1 (משימה 2). פאנל-צד: פסיקות מייקל (Plan בלי לינקים, איך-מתגבשת פר-תבנית, Shadow אמיתי) → PROMPT_SYSTEMS_PLAN_PANEL (צ'אט-מערכות).
