@@ -18,7 +18,7 @@ No item is "done" without raw verification on the **live/SIM** path (shadow proo
 | # | Issue | Evidence / why | Status | Owner |
 |---|-------|----------------|--------|-------|
 | L1 | **A7 fire_setup routing** — ZLR/GHOST must route (no `failed_stages=['A7']`) | fallback in code (woodies_system.py:668-679), NOT verified on a live fire | OPEN — verify live | CC |
-| L2 | **Stop-move is RECORDED but doesn't happen in Sierra + wrong target** | Monitor/DB shows stop→BE 7544.75 after T1, but in REALITY the Sierra stop did NOT move (display≠Sierra — the recurring "records ≠ reality"). (a) confirm `_emit_modify_stop` (manager.py:437) actually reaches Sierra (sc.ModifyOrder) on live, not just the DB record; (b) **DESIGN: after T1 the stop must trail toward STRUCTURE (nearest structural level), NOT to entry/BE** (Michael) — `_apply_smart_be_after_t1` currently sets entry∓1tick | OPEN — bug + design | CC |
+| L2 | **✅ Stop-move reaches Sierra — VERIFIED** | Drill 07-09: MODIFY_STOP_OK error=3 (all 3 stops moved). Bug found: DLL read stale persistent slots → fixed (stop_ids from command JSON, 13ae491). Also MODIFY_TARGET_OK + exit CANCEL_OK flatten. Structure-trail design (STOP_STRUCTURE_TRAIL_V1) already ON. | **DONE** — drill 07-09 | CC |
 | L3 | **Monitor shows SHADOW as "live" + no P&L** | trade #301 = SHDW in table but "live" in the supervision monitor; +$0, "not monitoring" | OPEN — display/tracking bug | CC |
 | L4 | **Live fill capture** — real fire → tracked trade + Sierra P&L | fallback (I-58) proven on demo #297; not yet on a real live fill | OPEN — verify on 1st live fill | CC/Cowork |
 | L5 | **Day-type lag** (Normal held too long → misses Variation/Trend fires) | task #22 (B1/B2/B3); affects which LIVE patterns arm | OPEN — build+backtest | CC |

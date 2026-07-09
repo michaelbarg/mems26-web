@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-09T10:35:00+03:00",
+    "updated": "2026-07-09T13:35:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice · ⚡ 07-09: LIVE עם 3 חוזים (פסיקת מייקל)",
     "indexes": [
       {
@@ -47,9 +47,9 @@
     },
     {
       "id": "CONTRACTS-3",
-      "title": "⚡ מעבר ל-3 חוזים — פרוס (פסיקת מייקל 07-09)",
+      "title": "⚡ 3 חוזים — VERIFIED (דריל 07-09: bracket+stop-move+target-move+exit flatten)",
       "priority": "P0",
-      "status": "deployed_unverified",
+      "status": "verified_live",
       "owner": "מייקל+CC",
       "where": "FIXED_CONTRACTS_2=0, _3=1 · RULED_FLAGS 32 · TRADING_SPEC SIZE-1 · ריסטארט 10:13 · effective=3 · דריל GO",
       "next": "CC: ירי SIM ‏3 חוזים = 3 קבוצות OCO + N/3 + סגירה-ב-T3",
@@ -69,13 +69,13 @@
     },
     {
       "id": "L2",
-      "title": "BE/stop-move now reaches Sierra on LIVE (was recorded but not real)",
+      "title": "✅ Stop-move reaches Sierra — VERIFIED LIVE (drill 07-09)",
       "priority": "P0",
-      "status": "fixed_unverified",
+      "status": "verified_live",
       "owner": "CC",
       "where": "backend/v9/services/trade_manager/manager.py:102 _is_demo_mode · :119 _emit_modify_stop · :391 _apply_smart_be_after_t1",
-      "next": "Verify a LIVE stop-move actually reaches Sierra — paste the sc.ModifyOrder line (Rule 5)",
-      "evidence": "eb4bc6f: _is_demo_mode was demo-only → live trade 299 logged BE 7553.75→7544.75 but sent 0 MODIFY. Now emits for mode='live' when LIVE_EXECUTION_V1=1",
+      "next": "CLOSED — verified in drill 07-09. Bug found+fixed: DLL MODIFY_STOP read stale persistent slots → now reads stop_ids from command JSON (13ae491)",
+      "evidence": "Drill 07-09 trade 324: MODIFY_STOP_OK error=3 (all 3 stops moved 7507→7512). Also: MODIFY_TARGET_OK (trade 325 C2). Also: exit CANCEL_OK (flatten before DB close). Evidence: docs/reports/evidence_2026-07-09/dll_ids_verified.md",
       "links": [
         {
           "label": "journal",
