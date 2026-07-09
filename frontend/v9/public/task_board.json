@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-09T13:35:00+03:00",
+    "updated": "2026-07-09T13:55:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice · ⚡ 07-09: LIVE עם 3 חוזים (פסיקת מייקל)",
     "indexes": [
       {
@@ -44,6 +44,17 @@
           "path": "docs/handoff/CC_CONTINUATION_2026-07-07.md"
         }
       ]
+    },
+    {
+      "id": "DRILL-0709-FINAL",
+      "title": "✅ דריל-סים סופי הושלם — הלולאה האוטומטית הוכחה (T1→סטופ זז לבד בסיירה)",
+      "priority": "P0",
+      "status": "done",
+      "owner": "Cowork+CC",
+      "where": "עסקאות 324-327 + drill_rev (SELL)",
+      "next": "נשאר ל-CC (לא חוסם): אופ EXIT ב-DLL שבור (error=-1, פעמיים+CC) — סגירה-חלקית-ידנית בלבד; קפאון שדה last-trade ב-live_price",
+      "evidence": "T1 fill→MODIFY_STOP_OK error=2 אוטומטי (13:48) · באג structure-trail h/l נתפס+תוקן (14744a8) · NAKED=0 מאז ה-DLL החדש · SELL-3 reverse SUBMITTED+ids+CANCEL_OK · ORPHAN alarm ירה נכון על fill לא-ממופה (SYS-2 חי) · endpoint הדריל עבר ל-bid/ask mid (4ee4e64)",
+      "links": []
     },
     {
       "id": "CONTRACTS-3",
