@@ -12,7 +12,9 @@ export const metadata = { title: 'MEMS26 — Board' };
 export default function BoardPage() {
   return (
     <main style={{
-      minHeight: '100vh', background: 'var(--bg, #010409)', padding: 20,
+      // globals.css locks html/body to overflow:hidden (for the dashboard) —
+      // the board must scroll INTERNALLY (Michael 07-09: "אי אפשר לגלול")
+      height: '100vh', overflowY: 'auto', background: 'var(--bg, #010409)', padding: 20,
       color: 'var(--text-secondary, #c9d1d9)',
     }}>
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
