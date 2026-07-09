@@ -304,10 +304,14 @@ export function diagnoseFiringSystem(
   return {
     situation: pattern ? 'PATTERN_WAIT' : 'NO_SETUP',
     badgeLabel: pattern ? String(pattern) : 'אין תבנית',
-    setupLine: pattern ? `סטאפ: ${pattern}` : 'אין סטאפ מזוהה',
+    setupLine: pattern ? `סטאפ: ${pattern}` : 'אין סטאפ מזוהה כרגע',
     identifiedLine: String(raw.last_reasoning_notes ?? raw.mode ?? '—'),
-    treeLine: 'מיקום בעץ: מערכת ללא עץ A1–A7 מלא ב-UI (רק Woodies)',
-    whyNotFire: ['בדוק שורות TO FIRE למטה.'],
-    wouldFireWhen: ['כשהתנאים ב-TO FIRE ירוקים ו-Gateway פנוי.'],
+    treeLine: pattern
+      ? 'התבנית זוהתה — ממתינה לסגירת בר 5-דק׳ ולשערי הכניסה'
+      : 'המערכת סורקת כל בר — ראה למעלה אילו תבניות קרובות ומה חסר לכל אחת',
+    whyNotFire: [pattern
+      ? 'התבנית ממתינה: ירי נבחן רק על סגירת בר, ואז עובר את שערי הכניסה (R:R, בר-אישור, התאמה לסוג-היום)'
+      : 'אף תבנית לא השלימה את תנאיה — הרשימה למעלה מראה בדיוק מה חסר לכל אחת'],
+    wouldFireWhen: ['בר נסגר עם כל התנאים ירוקים + השערים מאשרים + אין עסקה פתוחה — ואז הפקודה נשלחת לסיירה אוטומטית'],
   };
 }

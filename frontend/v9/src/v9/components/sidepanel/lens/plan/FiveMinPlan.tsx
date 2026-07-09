@@ -1,5 +1,6 @@
 'use client';
 import { COLORS } from '../../../../design/tokens';
+import { AllPatternsPlan } from './AllPatternsPlan';
 import { SystemPlanLive } from './systemPlanLive';
 
 function FiveMinPlanSpec() {
@@ -16,5 +17,10 @@ function FiveMinPlanSpec() {
 }
 
 export function FiveMinPlan() {
-  return <SystemPlanLive systemId={2} spec={<FiveMinPlanSpec />} />;
+  return (
+    <>
+      <AllPatternsPlan systemId={2} />
+      <SystemPlanLive systemId={2} spec={<FiveMinPlanSpec />} />
+    </>
+  );
 }
