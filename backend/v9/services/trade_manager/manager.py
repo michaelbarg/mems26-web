@@ -170,9 +170,20 @@ class TradeManager:
             self._warn_emit_skipped(trade, "MODIFY_STOP",
                                     "no sierra_order_id on trade (order-id map missing)")
             return
+        # Collect per-contract stop IDs from quality JSON so the DLL doesn't
+        # depend on persistent slots (Pipeline 5 may clear them).
+        q = trade.quality if isinstance(trade.quality, dict) else {}
+        stop_ids = []
+        for key in ("c1_stop_id", "c2_stop_id", "c3_stop_id"):
+            sid = q.get(key)
+            if sid is not None:
+                stop_ids.append(int(sid))
         try:
             from backend.v9.services.sierra_command import write_modify_stop
-            write_modify_stop(trade_id=str(trade.id), order_id=oid, new_stop=new_stop)
+            write_modify_stop(
+                trade_id=str(trade.id), order_id=oid, new_stop=new_stop,
+                stop_ids=stop_ids or None,
+            )
         except Exception as e:
             logger.warning("[TradeManager] Sierra MODIFY_STOP failed: %s", e)
 

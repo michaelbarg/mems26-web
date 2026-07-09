@@ -78,17 +78,26 @@ def write_modify_stop(
     trade_id: str,
     order_id: int,
     new_stop: float,
+    stop_ids: Optional[list] = None,
     mode: str = "demo",
 ) -> Dict[str, Any]:
-    """Write a MODIFY_STOP command — trail/re-anchor the protective stop."""
-    return _write_command({
+    """Write a MODIFY_STOP command — trail/re-anchor the protective stop.
+
+    stop_ids: per-contract stop order IDs [c1_stop, c2_stop, c3_stop].
+    The DLL reads these directly instead of relying on persistent slots
+    (which Pipeline 5 may clear). Falls back to order_id if absent.
+    """
+    payload: Dict[str, Any] = {
         "op": "MODIFY_STOP",
         "trade_id": trade_id,
         "order_id": order_id,
         "new_stop": new_stop,
         "mode": mode,
         "ts_submitted": time.time(),
-    })
+    }
+    if stop_ids:
+        payload["stop_ids"] = stop_ids
+    return _write_command(payload)
 
 
 def write_modify_target(

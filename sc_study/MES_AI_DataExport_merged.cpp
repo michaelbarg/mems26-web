@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-09 12:21:02 by build_monolithic_cpp.sh
+// Generated 2026-07-09 13:21:40 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -2890,25 +2890,56 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         else
                             result_status = "ACK_SHADOW";
                     }
-                    // ── OP: MODIFY_STOP — move ALL live stops (3,5,7) to new_stop ──
-                    // Each group has its own stop. Modify all that are still working.
+                    // ── OP: MODIFY_STOP — move ALL live stops to new_stop ──
+                    // Primary: read stop_ids array from command JSON (backend sends them).
+                    // Fallback: persistent slots 3,5,7 (may be stale if Pipeline 5 cleared).
                     else if (cmd_content.find("\"MODIFY_STOP\"") != std::string::npos)
                     {
                         if (order_armed >= 1)
                         {
                             double new_stop = parse_float("\"new_stop\"");
-                            // Modify every live stop (C1=3, C2=5, C3=7)
                             int mod_count = 0;
-                            for (int si = 3; si <= 7; si += 2)
+
+                            // Collect stop IDs: prefer stop_ids from command, fallback to persistent
+                            int64_t stop_oids[3] = {0, 0, 0};
+                            int n_from_cmd = 0;
+                            // Parse "stop_ids":[id1,id2,id3] — simple scan for the array
+                            size_t arr_pos = cmd_content.find("\"stop_ids\"");
+                            if (arr_pos != std::string::npos)
                             {
-                                int64_t stop_oid = sc.GetPersistentInt64(si);
-                                if (stop_oid <= 0) continue;
+                                size_t bracket = cmd_content.find('[', arr_pos);
+                                if (bracket != std::string::npos)
+                                {
+                                    size_t cur = bracket + 1;
+                                    for (int idx = 0; idx < 3 && cur < cmd_content.size(); idx++)
+                                    {
+                                        while (cur < cmd_content.size() && (cmd_content[cur] == ' ' || cmd_content[cur] == ','))
+                                            cur++;
+                                        if (cur >= cmd_content.size() || cmd_content[cur] == ']') break;
+                                        stop_oids[idx] = atoll(cmd_content.c_str() + cur);
+                                        if (stop_oids[idx] > 0) n_from_cmd++;
+                                        while (cur < cmd_content.size() && cmd_content[cur] != ',' && cmd_content[cur] != ']')
+                                            cur++;
+                                    }
+                                }
+                            }
+                            // Fallback: persistent slots
+                            if (n_from_cmd == 0)
+                            {
+                                stop_oids[0] = sc.GetPersistentInt64(3);
+                                stop_oids[1] = sc.GetPersistentInt64(5);
+                                stop_oids[2] = sc.GetPersistentInt64(7);
+                            }
+
+                            for (int si = 0; si < 3; si++)
+                            {
+                                if (stop_oids[si] <= 0) continue;
                                 s_SCTradeOrder so;
-                                if (sc.GetOrderByOrderID(static_cast<int>(stop_oid), so) == SCTRADING_ORDER_ERROR)
+                                if (sc.GetOrderByOrderID(static_cast<int>(stop_oids[si]), so) == SCTRADING_ORDER_ERROR)
                                     continue;
-                                if (so.OrderStatusCode == SCT_OSC_FILLED) continue; // already filled
+                                if (so.OrderStatusCode == SCT_OSC_FILLED) continue;
                                 s_SCNewOrder mod;
-                                mod.InternalOrderID = static_cast<int>(stop_oid);
+                                mod.InternalOrderID = static_cast<int>(stop_oids[si]);
                                 mod.Price1 = static_cast<float>(new_stop);
                                 int mr = sc.ModifyOrder(mod);
                                 if (mr >= 0) mod_count++;
