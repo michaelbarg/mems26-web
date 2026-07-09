@@ -3,6 +3,7 @@ import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
+import { ShadowTab, HistTab } from '../sidepanel/lens/trades/TradesTab';
 
 export function FootprintLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[3]);
@@ -45,6 +46,13 @@ export function FootprintLensContent({ activeTab }: { activeTab: string }) {
   if (activeTab === 'Plan') {
     const { FootprintPlan } = require('../sidepanel/lens/plan/FootprintPlan');
     return <FootprintPlan />;
+  }
+
+  if (activeTab === 'Shadow') {
+    return <ShadowTab systemId={3} />;
+  }
+  if (activeTab === 'Hist') {
+    return <HistTab systemId={3} />;
   }
 
   return (

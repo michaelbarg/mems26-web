@@ -3,6 +3,7 @@ import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
+import { ShadowTab, HistTab } from '../sidepanel/lens/trades/TradesTab';
 
 export function WoodiesLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[4]);
@@ -40,6 +41,12 @@ export function WoodiesLensContent({ activeTab }: { activeTab: string }) {
   if (activeTab === 'Plan') {
     const { WoodiesPlan } = require('../sidepanel/lens/plan/WoodiesPlan');
     return <WoodiesPlan />;
+  }
+  if (activeTab === 'Shadow') {
+    return <ShadowTab systemId={4} />;
+  }
+  if (activeTab === 'Hist') {
+    return <HistTab systemId={4} />;
   }
   if (activeTab === 'Chart') {
     return (

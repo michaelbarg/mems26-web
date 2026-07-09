@@ -17,6 +17,7 @@
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
+import { ShadowTab } from '../sidepanel/lens/trades/TradesTab';
 import { useLiveDayType } from '../../hooks/useLiveDayType';
 import { DAY_TYPE_LEGEND, DAY_TYPE_DIRECTION_HE, dayTypeColor } from '../../lib/dayType';
 
@@ -154,6 +155,10 @@ export function DayTypeLensContent({ activeTab }: LensContentProps) {
   if (activeTab === 'Plan') {
     const { DayTypePlan } = require('../sidepanel/lens/plan/DayTypePlan');
     return <DayTypePlan />;
+  }
+
+  if (activeTab === 'Shadow') {
+    return <ShadowTab />;
   }
 
   if (activeTab === 'Hist') {

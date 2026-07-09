@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
+import { ShadowTab, HistTab } from '../sidepanel/lens/trades/TradesTab';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -61,12 +62,12 @@ export function FiveMinLensContent({ activeTab }: LensContentProps) {
     return <FiveMinPlan />;
   }
 
+  if (activeTab === 'Shadow') {
+    return <ShadowTab systemId={2} />;
+  }
+
   if (activeTab === 'Hist') {
-    return (
-      <div style={{ fontSize: 9, color: COLORS.textTertiary, padding: 8 }}>
-        Recent setups — from /api/v9/five_min/setups
-      </div>
-    );
+    return <HistTab systemId={2} />;
   }
 
   return (

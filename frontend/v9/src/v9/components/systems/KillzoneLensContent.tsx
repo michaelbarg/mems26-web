@@ -3,6 +3,7 @@ import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
+import { ShadowTab, HistTab } from '../sidepanel/lens/trades/TradesTab';
 
 export function KillzoneLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[6]);
@@ -32,6 +33,13 @@ export function KillzoneLensContent({ activeTab }: { activeTab: string }) {
   if (activeTab === 'Plan') {
     const { KillzonePlan } = require('../sidepanel/lens/plan/KillzonePlan');
     return <KillzonePlan />;
+  }
+
+  if (activeTab === 'Shadow') {
+    return <ShadowTab />;
+  }
+  if (activeTab === 'Hist') {
+    return <HistTab />;
   }
 
   return (

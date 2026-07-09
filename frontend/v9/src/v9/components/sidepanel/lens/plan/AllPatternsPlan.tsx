@@ -1,10 +1,10 @@
 'use client';
-// AllPatternsPlan — כל תבנית שיכולה להיווצר + למה ממתינים (מייקל 2026-07-08/09:
-// "שבתכנון יהיה אפשר לראות כל תבנית, למה ממתינים, שהרלוונטית תבלוט, הסברים ברורים").
-// מקור: /api/v9/build/pattern-status (‏s2_inspector — 10 תבניות עם רכיבים+סיבה).
-// פולינג 15s ‏(diagnostic cadence — בתוך רצפות ה-polling המאושרות).
+// AllPatternsPlan — כל תבנית שיכולה להיווצר, איך היא מתגבשת, ולמה היא ממתינה.
+// מקור: /api/v9/build/pattern-status (s2_inspector / woodies). פולינג 15s.
+// מייקל 2026-07-09: בלי שורת-לינקים · "איך מתגבשת" פר-תבנית · "מה חסר" בעברית · הרלוונטית בולטת.
 import { useCallback, useEffect, useState } from 'react';
 import { COLORS } from '../../../../design/tokens';
+import { PATTERN_HELP, planReasonHe } from './planHelp';
 
 const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
 
@@ -16,25 +16,6 @@ interface PatternRow {
   reason?: string | null;
   fired_today?: boolean;
   components?: { present?: boolean; key?: string; stage?: string }[];
-}
-
-// תרגום מפתחות-רכיבים לעברית ברורה (ה"מעורפל" של מייקל)
-const KEY_HE: Record<string, string> = {
-  five_min_bar_recency: 'ברים טריים (5 דק׳)',
-  cci_present: 'CCI זמין',
-  mode_context: 'הקשר-מצב (FH/RTH)',
-  fhb_eligible: 'חלון שעה-ראשונה',
-  cot_amt: 'COT/AMT (לא נדרש — S3 מושתק)',
-  volume_ok: 'נפח מאשר',
-  location_ok: 'מיקום מול POC',
-  auth_cell: 'תא-הרשאה לסוג-היום',
-};
-
-function heReason(reason?: string | null): string {
-  if (!reason) return '';
-  let r = reason.replace('Missing: ', 'חסר: ');
-  for (const [k, v] of Object.entries(KEY_HE)) r = r.replaceAll(`data.${k}`, v).replaceAll(k, v);
-  return r;
 }
 
 const ST: Record<string, { he: string; color: string }> = {
@@ -49,6 +30,7 @@ const ST: Record<string, { he: string; color: string }> = {
 export function AllPatternsPlan({ systemId }: { systemId: number }) {
   const [rows, setRows] = useState<PatternRow[]>([]);
   const [err, setErr] = useState<string | null>(null);
+  const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     try {
@@ -72,7 +54,7 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
   if (err) return <div style={{ fontSize: 11, color: COLORS.textSecondary }}>תבניות: {err}</div>;
   if (!rows.length) return null;
 
-  // מיון: הכי-קרוב-לירי קודם (שיעור רכיבים ירוקים), ‏SKIP בסוף
+  // מיון: הכי-קרוב-לירי קודם (שיעור רכיבים ירוקים), SKIP בסוף
   const scored = rows.map((p) => {
     const comps = p.components || [];
     const present = comps.filter((c) => c.present).length;
@@ -81,38 +63,53 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
   }).sort((a, b) => b._score - a._score);
 
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.textPrimary }}>
-          כל התבניות — מי הכי קרובה לירי ולמה ממתינים
-        </div>
-        <div style={{ fontSize: 10.5, whiteSpace: 'nowrap' }}>
-          <a href="/board#tasks" target="_blank" rel="noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>📋 משימות</a>
-          <span style={{ color: '#30363d' }}> · </span>
-          <a href="/board#system6" target="_blank" rel="noreferrer" style={{ color: '#58a6ff', textDecoration: 'none' }}>🛡 לוג מערכת 6</a>
-        </div>
+    <div style={{ marginBottom: 10, direction: 'rtl', textAlign: 'right' }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.textPrimary, marginBottom: 6 }}>
+        כל התבניות — מי הכי קרובה לירי, איך היא מתגבשת, ולמה ממתינים
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         {scored.map((p, i) => {
           const st = ST[p.status] || ST.blocked;
           const top = i === 0 && p._score > 0;
+          const help = PATTERN_HELP[p.id];
+          const isOpen = openIds[p.id] ?? top;
+          const showMissing = !!p.reason && p.status !== 'ready' && p.status !== 'fired';
           return (
             <div key={p.id} style={{
               padding: '6px 8px', borderRadius: 6,
               border: `1px solid ${top ? st.color : '#21262d'}`,
               background: top ? `${st.color}14` : '#0d1117',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
                 <span style={{ fontSize: 12, color: COLORS.textPrimary, fontWeight: top ? 700 : 400 }}>
                   {top ? '⭐ ' : ''}{p.name}
+                  {help?.nick ? <span style={{ fontSize: 10, color: COLORS.textTertiary }}> · {help.nick}</span> : null}
                 </span>
-                <span style={{ fontSize: 10, color: st.color }}>
-                  {st.he}{p._total ? ` · ${p._present}/${p._total} תנאים` : ''}
+                <span style={{ fontSize: 10, color: st.color, whiteSpace: 'nowrap' }}>
+                  {st.he}{p._total ? ` · ${p._present}/${p._total}` : ''}
                 </span>
               </div>
-              {p.reason && p.status !== 'ready' && (
-                <div style={{ fontSize: 10.5, color: COLORS.textSecondary, marginTop: 2 }}>
-                  {heReason(p.reason)}
+              {showMissing && (
+                <div style={{ fontSize: 10.5, color: COLORS.textSecondary, marginTop: 3 }}>
+                  <span style={{ color: '#d29922' }}>מה חסר: </span>{planReasonHe(p.reason)}
+                </div>
+              )}
+              {help && (
+                <div style={{ marginTop: 4 }}>
+                  <button
+                    onClick={() => setOpenIds((o) => ({ ...o, [p.id]: !isOpen }))}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+                             fontSize: 10, color: COLORS.textTertiary, fontFamily: 'inherit' }}
+                  >
+                    איך מתגבשת {isOpen ? '▾' : '▸'}
+                  </button>
+                  {isOpen && (
+                    <div style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.5, marginTop: 2 }}>
+                      <div><span style={{ color: COLORS.textTertiary }}>מבנה: </span>{help.structure}</div>
+                      <div><span style={{ color: COLORS.textTertiary }}>מפעיל: </span>{help.trigger}</div>
+                      <div><span style={{ color: COLORS.textTertiary }}>מבטל: </span>{help.cancel}</div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

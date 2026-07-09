@@ -1,6 +1,7 @@
 'use client';
 import { COLORS } from '../../../../design/tokens';
 import { SystemPlanLive } from './systemPlanLive';
+import { AllPatternsPlan } from './AllPatternsPlan';
 
 function WoodiesPlanSpec() {
   return (
@@ -19,5 +20,10 @@ function WoodiesPlanSpec() {
 }
 
 export function WoodiesPlan() {
-  return <SystemPlanLive systemId={4} spec={<WoodiesPlanSpec />} />;
+  return (
+    <>
+      <AllPatternsPlan systemId={4} />
+      <SystemPlanLive systemId={4} spec={<WoodiesPlanSpec />} />
+    </>
+  );
 }

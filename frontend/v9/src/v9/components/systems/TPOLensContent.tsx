@@ -3,6 +3,7 @@ import { useSystemStateStore } from '../../store/systemStateStore';
 import { COLORS } from '../../design/tokens';
 import { systemColor } from '../../design/system_colors';
 import { KeyLevelsCard } from './KeyLevelsCard';
+import { ShadowTab, HistTab } from '../sidepanel/lens/trades/TradesTab';
 
 export function TPOLensContent({ activeTab }: { activeTab: string }) {
   const state = useSystemStateStore((s) => s.systems[5]);
@@ -40,6 +41,13 @@ export function TPOLensContent({ activeTab }: { activeTab: string }) {
   if (activeTab === 'Plan') {
     const { TpoPlan } = require('../sidepanel/lens/plan/TpoPlan');
     return <TpoPlan />;
+  }
+
+  if (activeTab === 'Shadow') {
+    return <ShadowTab />;
+  }
+  if (activeTab === 'Hist') {
+    return <HistTab />;
   }
 
   return (
