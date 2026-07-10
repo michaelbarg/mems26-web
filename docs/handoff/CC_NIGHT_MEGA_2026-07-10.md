@@ -172,3 +172,14 @@ outcome=REJECTED, באנר אדום, שחרור slot, אפס השפעה על cou
 - ‏FIX-11 → אופ ‏FLATTEN_ACCOUNT ב-DLL (לא מותנה-arm) + ‏VALID_ACTIONS ב-API
 - ‏FIX-13 → יצוא ‏sierra_state.json ‏~1s ב-DLL (position+orders+is_sim) + ‏reconciler מעדיף state-קובץ טרי (‏4 טסטים). מונולית מורכב (3406 שורות) — ‏**פריסת DLL ב-23:05 + הוכחת-סים = שלך/Cowork יחד**.
 **נשאר לך הלילה:** ‏hydration-PG (הסרת SQLite fallback) · ‏LaunchAgents (feeder פר-חשבון+offset פר-חשבון, frontend, redis) · ‏D1-EXIT — הבהרה: דריל-ה-"SELL" של אחה"צ פגע בנתיב PLACE (ל-API אין action EXIT!) — ההוכחה האמיתית = ‏write_exit_command פנימי על סים אחרי ה-reload · ‏🆕 **באג גרירת-יעד**: ‏MODIFY_STOP הזיז סטופ 7604→7611.25 וסיירה גררה את יעד-8721 ‏7622→7629.25 (Δ זהה, שימור-אופסט) — צוד במונולית הפרוס/twconfig; היעד חייב להישאר במקומו · ‏CERT-fixtures · ‏t1=t2=t3 ladder · ‏2 endpoints ‏(s6/diagnose, timeline) · ‏NAKED_STOP calibration · ‏decision_replay של 07-10.
+
+## עדכון 23:1x — עוד שניים מפסיקות-הערב (מייקל "מאשר")
+1. **‏STALL_EXIT (flag-OFF + בקטסט לפני פסיקה):** אחרי T1, אם המחיר "נתקע" ליד רמה — ‏≥3 ברים
+   בטווח ≤3 טיקים סביב קיצון-הרגל / רמת-מפתח, ומומנטום דועך (CCI חוצה מטה / טווחי-ברים מתכווצים)
+   ⇒ מימוש-ראנר בשוק. הראיה: ראנר-350 שהה ~50 דק' במדף 7615-7617.5 ודעך לסטופ ‏+1.5 נק' במקום
+   ‏+7-9. ‏DoD: בקטסט על 30 ימי-MFE (‏tp_audit data) — כמה ראנרים משתפרים/נפגעים; טבלה למייקל.
+2. **באג-צופה S6 — ‏stop_wrong_side false-positive:** ‏22:03 ‏System6 התריע "LONG stop 7611.25
+   wrong side of entry 7608.5" — אבל סטופ מעל הכניסה אחרי T1 = רווח-נעול, המצב הרצוי! האינווריאנט
+   משווה לכניסה במקום למחיר/כיוון-ההגנה. תקן: ‏wrong_side = הסטופ בצד-ההפסד של **המחיר הנוכחי**
+   (‏LONG: ‏stop>price; ‏SHORT: ‏stop<price), וסטופ-ברווח = ‏✓-חיובי. ‏SYSTEM6_SUPERVISOR=1 נפסק
+   והודלק הערב (צופה-בלבד; ‏AUTOCORRECT נשאר OFF).
