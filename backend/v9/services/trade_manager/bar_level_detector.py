@@ -347,10 +347,16 @@ class BarLevelDetector:
 
                     if (direction == "LONG" and bar_high >= target_price) or \
                        (direction == "SHORT" and bar_low <= target_price):
-                        if _is_demo_live and target_name == "T3":
-                            # I-62: demo/live T3 close → wait for Sierra fill
-                            logger.info("[BarLevelDetector] T3 INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
-                                        trade.id, target_price)
+                        if _is_demo_live:
+                            # I-62 FULL (incident 350, 2026-07-10 22:03): bar-price
+                            # inference must NEVER drive T-hits on demo/live — only
+                            # Sierra fills (fill_poller) may. The old guard covered
+                            # T3 only; a phantom "T2 HIT at 7622" (no bar reached
+                            # 7622; Sierra had already STOPPED the runner at ~7610)
+                            # closed live 350 as a fictional +$112.5 WIN while
+                            # reality was +$52.5. Same rule as the stop path above.
+                            logger.info("[BarLevelDetector] %s INFERRED (demo/live): trade %d at %.2f — awaiting Sierra fill",
+                                        target_name, trade.id, target_price)
                             continue
                         self._tm.on_target_hit(trade.id, target_name, fill_ts=bar_ts)
                         logger.info("[BarLevelDetector] %s HIT: trade %d at %.2f",
