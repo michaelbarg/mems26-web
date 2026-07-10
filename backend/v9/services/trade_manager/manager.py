@@ -512,15 +512,37 @@ class TradeManager:
         if os.environ.get("STOP_STRUCTURE_TRAIL_V1", "0").lower() in ("1", "true", "yes"):
             _struct_stop = self._structure_stop_after_t1(direction)
 
+        # FIX-12 (Cowork, 2026-07-10, ראיית עסקת-סים 340): when the STRUCTURE stop is
+        # WIDER than the current stop (e.g. SHORT: swing-high 7605 vs stop 7603.75),
+        # the old code used it as target_stop and the never-widen guard returned
+        # SILENTLY — the stop never tightened at all. Per Michael's intent ("לקרב
+        # לכניסה... באזור המבנה"): use structure only when it TIGHTENS vs the current
+        # stop; otherwise fall back to BE±1T. Silent no-op is forbidden (SYS-2).
         if direction == "LONG":
-            target_stop = _struct_stop if _struct_stop is not None else (entry + tick)
-            if trade.stop is not None and float(trade.stop) >= target_stop:
-                return  # Already at or tighter — never widen
+            _be = entry + tick
+            _cur = float(trade.stop) if trade.stop is not None else None
+            if _struct_stop is not None and (_cur is None or _struct_stop > _cur):
+                target_stop = _struct_stop          # structure that tightens
+            else:
+                target_stop = _be                   # BE+1T fallback
+            if _cur is not None and _cur >= target_stop:
+                logger.info(
+                    "[TradeManager] SMART_BE no-op trade=%s: current stop %.2f already ≥ target %.2f "
+                    "(struct=%s) — never widen", trade.id, _cur, target_stop, _struct_stop)
+                return
             trade.stop = target_stop
         elif direction == "SHORT":
-            target_stop = _struct_stop if _struct_stop is not None else (entry - tick)
-            if trade.stop is not None and float(trade.stop) <= target_stop:
-                return  # Already at or tighter — never widen
+            _be = entry - tick
+            _cur = float(trade.stop) if trade.stop is not None else None
+            if _struct_stop is not None and (_cur is None or _struct_stop < _cur):
+                target_stop = _struct_stop          # structure that tightens
+            else:
+                target_stop = _be                   # BE-1T fallback
+            if _cur is not None and _cur <= target_stop:
+                logger.info(
+                    "[TradeManager] SMART_BE no-op trade=%s: current stop %.2f already ≤ target %.2f "
+                    "(struct=%s) — never widen", trade.id, _cur, target_stop, _struct_stop)
+                return
             trade.stop = target_stop
         else:
             logger.warning(
@@ -579,6 +601,121 @@ class TradeManager:
         except Exception as e:
             logger.warning("[TradeManager] structure-trail unavailable (%s) — BE+1T fallback", e)
             return None
+
+    def _apply_window_anchor_trail(self, trade) -> bool:
+        """FIX-15 (Michael ruling 2026-07-10: "לבדוק על כל נר את הסטופ ולראות אם
+        אפשר לשפר במבנה חדש"): per-bar structural stop improvement BETWEEN
+        consolidations, under STOP_PERBAR_STRUCT_V1 (default OFF).
+
+        The dynamic struct-trail moves the stop only when a consolidation zone
+        is detected — sparse. This re-checks the rolling window anchor
+        (_structure_stop_after_t1) on EVERY post-T1 bar and takes it when it
+        TIGHTENS vs the current stop (FIX-12 principle). Never widens; no-op
+        is logged loudly (SYS-2: no silent skips in the money path).
+        Returns True when the stop moved.
+        """
+        if os.environ.get("STOP_PERBAR_STRUCT_V1", "0").lower() not in ("1", "true", "yes"):
+            return False
+        if trade.entry_price is None or trade.stop is None:
+            return False
+        direction = (trade.direction or "").upper()
+        if direction not in ("LONG", "SHORT"):
+            return False
+        anchor = self._structure_stop_after_t1(direction)
+        cur = float(trade.stop)
+        if anchor is None:
+            logger.info("[TradeManager] FIX15 no-op trade=%s: no window anchor (stop stays %.2f)",
+                        trade.id, cur)
+            return False
+        tightens = anchor > cur if direction == "LONG" else anchor < cur
+        if not tightens:
+            logger.info("[TradeManager] FIX15 no-op trade=%s: anchor %.2f does not tighten "
+                        "stop %.2f (%s) — never widen", trade.id, anchor, cur, direction)
+            return False
+        new_stop = round(float(anchor), 2)
+        stop_before = cur
+        trade.stop = new_stop
+        audit_entry = {
+            "event": "stop_move",
+            "from": stop_before,
+            "to": new_stop,
+            "reason": "FIX15 per-bar window-anchor structure",
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(audit_entry)
+        trade.cross_context = ctx
+        self._log_management(trade.id, "STRUCT_TRAIL", {
+            "from": stop_before, "to": new_stop, "source": "window_anchor_fix15",
+        })
+        self._emit_modify_stop(trade, new_stop)
+        logger.info("[TradeManager] FIX15 window-anchor: trade %s stop %.2f -> %.2f (%s)",
+                    trade.id, stop_before, new_stop, direction)
+        return True
+
+    def apply_target_realism_perbar(self, trade) -> bool:
+        """FIX-16 per-bar leg (TARGET_REALISM_V1, default OFF): re-check on every
+        bar that the pending first-fill target is still REALISTIC — inside the
+        session extreme + today's average breakout step. A target that drifted
+        beyond the ceiling is tightened toward it (tighten-only, never farther,
+        never across entry) with a MODIFY to the target order + full audit.
+
+        Trade 350 evidence (2026-07-10): T1 7617.5 vs day-high 7614 — missed
+        by 2 ticks while price traded at the extreme for an hour.
+        Returns True when a target moved.
+        """
+        if os.environ.get("TARGET_REALISM_V1", "0").lower() not in ("1", "true", "yes"):
+            return False
+        if trade.entry_price is None:
+            return False
+        direction = (trade.direction or "").upper()
+        if direction not in ("LONG", "SHORT"):
+            return False
+
+        # Front pending target: t1 before T1-hit, else t2, else t3 (runner)
+        q = dict(trade.quality) if isinstance(trade.quality, dict) else {}
+        if getattr(trade, "t1_hit_ts", None) is None and trade.t1 is not None:
+            tgt_field, tgt_val, order_id = "t1", float(trade.t1), q.get("c1_target_id")
+        elif getattr(trade, "t2_hit_ts", None) is None and trade.t2 is not None:
+            tgt_field, tgt_val, order_id = "t2", float(trade.t2), q.get("c2_target_id")
+        elif getattr(trade, "t3_hit_ts", None) is None and trade.t3 is not None:
+            tgt_field, tgt_val, order_id = "t3", float(trade.t3), q.get("c3_target_id")
+        else:
+            return False
+
+        from backend.v9.systems.structural_targets import realism_ceiling
+        entry = float(trade.entry_price)
+        ceiling = realism_ceiling(direction, entry)
+        if ceiling is None:
+            return False  # honest skip (Rule 1) — no bars, no invented level
+
+        too_far = tgt_val > ceiling if direction == "LONG" else tgt_val < ceiling
+        if not too_far:
+            return False  # target already realistic — silent OK (every bar)
+
+        floor2t = entry + 0.5 if direction == "LONG" else entry - 0.5
+        new_tgt = max(ceiling, floor2t) if direction == "LONG" else min(ceiling, floor2t)
+        if abs(new_tgt - tgt_val) < 0.25:
+            return False
+        setattr(trade, tgt_field, new_tgt)
+        audit_entry = {
+            "event": "target_move",
+            "target": tgt_field,
+            "from": tgt_val,
+            "to": new_tgt,
+            "reason": "FIX16 realism ceiling (session extreme + avg breakout step)",
+        }
+        ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+        ctx.append(audit_entry)
+        trade.cross_context = ctx
+        self._log_management(trade.id, "TARGET_REALISM", {
+            "target": tgt_field, "from": tgt_val, "to": new_tgt, "ceiling": ceiling,
+        })
+        if order_id:
+            self._emit_modify_target(trade, new_tgt, target_order_id=int(order_id))
+        logger.warning(
+            "[TradeManager] FIX16 realism: trade %s %s %.2f -> %.2f (ceiling %.2f, %s)",
+            trade.id, tgt_field, tgt_val, new_tgt, ceiling, direction)
+        return True
 
     def apply_trail_after_t1(self, trade: V9Trade, bar_high: float, bar_low: float) -> None:
         """Trailing stop after T1 hit (RUNNER_TRAIL_V1).
@@ -756,7 +893,10 @@ class TradeManager:
 
         if zone is None:
             trade.quality = q
-            return  # no consolidation → no move
+            # FIX-15: no consolidation this bar — still re-check the rolling
+            # window anchor so the stop improves on every new structure.
+            self._apply_window_anchor_trail(trade)
+            return  # no consolidation → no zone move
 
         # Move stop just beyond the zone (never widen)
         if direction == "LONG":
@@ -765,6 +905,7 @@ class TradeManager:
             new_stop = max(new_stop, floor)
             if trade.stop is not None and new_stop <= float(trade.stop):
                 trade.quality = q
+                self._apply_window_anchor_trail(trade)  # FIX-15: zone wider — try window anchor
                 return  # never widen
         elif direction == "SHORT":
             new_stop = round(zone["anchor_extreme"] + 3 * tick, 2)  # 3T above zone high
@@ -772,6 +913,7 @@ class TradeManager:
             new_stop = min(new_stop, floor)
             if trade.stop is not None and new_stop >= float(trade.stop):
                 trade.quality = q
+                self._apply_window_anchor_trail(trade)  # FIX-15: zone wider — try window anchor
                 return  # never widen
         else:
             trade.quality = q

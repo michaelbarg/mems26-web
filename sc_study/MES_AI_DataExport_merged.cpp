@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-09 23:34:08 by build_monolithic_cpp.sh
+// Generated 2026-07-10 21:24:36 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -2000,6 +2000,61 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         }
     }
 
+    // ── FIX-13: Sierra state export (~1s) — "eyes on Sierra at all times" ──
+    // Michael ruling 2026-07-10: the system must know Sierra's true state at
+    // any moment. Writes sierra_state.json: sim flag, net position, avg price,
+    // working orders (id/type/side/price/qty). The reconciler (SYS-3) reads
+    // this instead of parsing activity logs — root fix for records≠reality
+    // (333/337/8704 family). Same direct-truncating-write pattern as
+    // live_price.json (safe under Wine; no rename involved).
+    {
+        static long long lastStateMs = 0;
+        long long nowStateMs = (long long)time(nullptr) * 1000;
+        if ((nowStateMs - lastStateMs) >= 1000 || lastStateMs == 0)
+        {
+            lastStateMs = nowStateMs;
+            s_SCPositionData spos;
+            sc.GetTradePosition(spos);
+            char ordbuf[640];
+            int ob = 0, n_ord = 0;
+            ordbuf[0] = '\0';
+            s_SCTradeOrder tord;
+            for (int oi2 = 0; oi2 < 64; oi2++)
+            {
+                if (sc.GetOrderByIndex(oi2, tord) == SCTRADING_ORDER_ERROR)
+                    break;
+                if (tord.OrderStatusCode != SCT_OSC_OPEN &&
+                    tord.OrderStatusCode != SCT_OSC_PENDINGCHILD)
+                    continue;  // only working / held-bracket orders
+                if (n_ord < 8 && ob < (int)sizeof(ordbuf) - 96)
+                    ob += snprintf(ordbuf + ob, sizeof(ordbuf) - ob,
+                        "%s{\"id\":%d,\"type\":%d,\"bs\":%d,\"price\":%.2f,\"qty\":%.0f}",
+                        n_ord ? "," : "",
+                        tord.InternalOrderID, (int)tord.OrderTypeAsInt,
+                        (int)tord.BuySell, tord.Price1, (float)tord.OrderQuantity);
+                n_ord++;
+            }
+            char sbuf[1024];
+            int sl = snprintf(sbuf, sizeof(sbuf),
+                "{\"ts\":%lld,\"is_sim\":%d,\"position_qty\":%.0f,\"avg_price\":%.2f,"
+                "\"working_orders\":%d,\"orders\":[%s]}\n",
+                (long long)time(nullptr),
+                sc.GlobalTradeSimulationIsOn ? 1 : 0,
+                (float)spos.PositionQuantity, (float)spos.AveragePrice,
+                n_ord, ordbuf);
+            if (sl > 0 && sl < (int)sizeof(sbuf))
+            {
+                const char* v9dirS = V9ExportPath.GetString();
+                if (v9dirS[0] != '\0')
+                {
+                    std::string spath = std::string(v9dirS) + "sierra_state.json";
+                    std::ofstream sf(spath.c_str());
+                    if (sf.is_open()) { sf.write(sbuf, sl); sf.close(); }
+                }
+            }
+        }
+    }
+
     // ══ THROTTLE (EARLY — before heavy computation) ══════════
     // CVD + VWAP subgraph writes above run every bar (required for
     // accurate per-bar tracking). Everything below only runs every
@@ -3035,6 +3090,20 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         }
                         else
                             result_status = "ACK_MGMT";
+                    }
+                    // ── OP: FLATTEN_ACCOUNT — flatten NET position + cancel all (FIX-11) ──
+                    // Unlike CANCEL, NOT gated on order_armed: the 07-10 orphan
+                    // (manual short 8704) could not be closed from the system
+                    // because every close path required an armed bracket. This op
+                    // always acts on the account/symbol position.
+                    else if (cmd_content.find("\"FLATTEN_ACCOUNT\"") != std::string::npos)
+                    {
+                        int r = sc.FlattenAndCancelAllOrders();
+                        result_status = (r >= 0) ? "FLATTEN_ACCOUNT_OK" : "FLATTEN_ACCOUNT_FAIL";
+                        order_err = r;
+                        for (int ci = 1; ci <= 7; ci++) sc.GetPersistentInt64(ci) = 0;
+                        sc.GetPersistentInt(103) = 1;  // exit_written
+                        sc.AddMessageToLog("MEMS26: FLATTEN_ACCOUNT executed (FIX-11)", 1);
                     }
                     // ── OP: CANCEL — kill working orders / flatten ────────
                     else if (cmd_content.find("\"CANCEL\"") != std::string::npos)

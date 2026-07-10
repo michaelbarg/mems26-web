@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
-import { SYSTEM_META } from '../../design/system_colors';
+import { SYSTEM_META, systemColor } from '../../design/system_colors';
+import { useTradeStore } from '../../stores/tradeStore';
 import { exitTrade, fetchActiveTrade, getApiBase } from '../../lib/api';
 import { fmtTimeET, fmtTimeIL } from '../../lib/tradeTime';
 // Live price — REUSES the store the dashboard already feeds (usePriceStream WS
@@ -141,12 +142,27 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
         </span>
       </div>
 
-      {(trade.pattern_id || trade.trigger) && (
-        <div style={{ fontSize: 8, color: COLORS.textTertiary, marginBottom: 4, lineHeight: 1.3 }}>
-          {trade.pattern_id && <span style={{ fontFamily: 'ui-monospace' }}>{trade.pattern_id}</span>}
-          {trade.pattern_id && trade.trigger && ' · '}
-          {trade.trigger && <span>{trade.trigger}</span>}
-          {trade.day_type && <span> · {trade.day_type}</span>}
+      {(trade.pattern_id || trade.trigger || trade.firing_system) && (
+        <div
+          onClick={() => { const id = Number(trade.trade_id); if (Number.isFinite(id)) useTradeStore.getState().setSelectedTradeId(id); }}
+          title="לחיצה לפירוט מלא של העסקה"
+          style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 4, fontSize: 8, color: COLORS.textTertiary, marginBottom: 4, lineHeight: 1.3, cursor: 'pointer' }}
+        >
+          {trade.firing_system ? (
+            <span style={{
+              fontSize: 8.5, fontWeight: 700, padding: '0 4px', borderRadius: 3,
+              color: systemColor(trade.firing_system), background: `${systemColor(trade.firing_system)}22`,
+              border: `1px solid ${systemColor(trade.firing_system)}66`, fontFamily: 'ui-monospace',
+            }}>
+              S{trade.firing_system}
+            </span>
+          ) : null}
+          {trade.pattern_id && <span style={{ fontFamily: 'ui-monospace', color: COLORS.textSecondary }}>{trade.pattern_id}</span>}
+          {trade.trigger && <span>· {trade.trigger}</span>}
+          <span style={{ padding: '0 4px', borderRadius: 3, background: 'rgba(255,255,255,0.05)', color: COLORS.textSecondary }}>
+            {trade.day_type && trade.day_type !== 'UNKNOWN' ? `יום: ${trade.day_type}` : 'סיווג בהתהוות'}
+          </span>
+          <span style={{ color: '#58a6ff' }}>· פירוט ↗</span>
         </div>
       )}
 
@@ -278,6 +294,8 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
         </span>
       </div>
 
+      <System6Block tradeId={Number.isFinite(Number(trade.trade_id)) ? Number(trade.trade_id) : null} />
+
       {/* §3.5 Flow 5: Exit + Move Stop buttons */}
       <div style={{ display: 'flex', gap: 4, marginTop: 4 }}>
         <button
@@ -318,6 +336,94 @@ export function ActiveTradeCard({ onTradeContext }: ActiveTradeCardProps) {
           }}
         >Move Stop</button>
       </div>
+    </div>
+  );
+}
+
+
+interface S6Check {
+  name?: string;
+  key?: string;
+  ok?: boolean;
+  pass?: boolean;
+  status?: string;
+  severity?: string;
+  detail?: string | null;
+  message?: string | null;
+}
+
+/**
+ * System6Block — live System-6 supervisor view on the active-trade card (מייקל 07-10:
+ * "שמערכת 6 תהיה שם ורואים מה היא חושבת"). Polls every 15s.
+ *
+ * NEEDS A CC ENDPOINT: GET /api/v9/s6/diagnose/{trade_id} — runs diagnose_trade() on the
+ * open trade and returns either an array of checks OR { checks:[...], ruling }, where each
+ * check is { name|key, ok|pass|status:"PASS"/"FAIL", severity?, detail? }. Until CC ships it
+ * (currently 404) the block degrades to a note + the agent-journal link (/board#system6).
+ */
+function System6Block({ tradeId }: { tradeId: number | null }) {
+  const [checks, setChecks] = useState<S6Check[] | null>(null);
+  const [ruling, setRuling] = useState<string | null>(null);
+  const [status, setStatus] = useState<'loading' | 'ok' | 'absent' | 'error'>('loading');
+
+  useEffect(() => {
+    if (tradeId == null) { setStatus('absent'); return; }
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/api/v9/s6/diagnose/${tradeId}`, { cache: 'no-store' });
+        if (!alive) return;
+        if (res.status === 404) { setStatus('absent'); return; }
+        if (!res.ok) { setStatus('error'); return; }
+        const d = await res.json();
+        const list: S6Check[] = Array.isArray(d) ? d : (d.checks ?? d.invariants ?? d.diagnostics ?? []);
+        setChecks(list);
+        setRuling(!Array.isArray(d) ? (d.ruling ?? d.verdict ?? d.last_ruling ?? null) : null);
+        setStatus('ok');
+      } catch { if (alive) setStatus('error'); }
+    };
+    load();
+    const id = setInterval(load, 15000);
+    return () => { alive = false; clearInterval(id); };
+  }, [tradeId]);
+
+  const isPass = (c: S6Check): boolean => {
+    if (typeof c.ok === 'boolean') return c.ok;
+    if (typeof c.pass === 'boolean') return c.pass;
+    const s = String(c.status ?? c.severity ?? '').toUpperCase();
+    return s.startsWith('PASS') || s === 'OK' || s === 'GOOD';
+  };
+
+  return (
+    <div style={{ marginTop: 6, padding: '5px 7px', borderRadius: 6, border: `1px solid ${COLORS.borderFaint}`, background: COLORS.bgSurface3, direction: 'rtl', textAlign: 'right' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+        <span style={{ fontSize: 9, fontWeight: 700, color: systemColor(6) }}>מערכת 6 — פיקוח</span>
+        <a href="/board#system6" target="_blank" rel="noreferrer" style={{ fontSize: 8.5, color: '#58a6ff', textDecoration: 'none' }}>יומן הסוכן ↗</a>
+      </div>
+      {status === 'ok' && checks && checks.length > 0 ? (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {checks.map((c, i) => {
+              const pass = isPass(c);
+              return (
+                <div key={i} style={{ fontSize: 8.5, color: COLORS.textSecondary, display: 'flex', gap: 4 }}>
+                  <span style={{ color: pass ? COLORS.bull : COLORS.bear, fontWeight: 700 }}>{pass ? '✓' : '✗'}</span>
+                  <span>{c.name ?? c.key ?? `בדיקה ${i + 1}`}</span>
+                  {c.detail || c.message ? <span style={{ color: COLORS.textTertiary }}>— {c.detail ?? c.message}</span> : null}
+                </div>
+              );
+            })}
+          </div>
+          {ruling ? <div style={{ fontSize: 8.5, marginTop: 3, color: COLORS.textTertiary }}>שיפוט: {ruling}</div> : null}
+        </>
+      ) : (
+        <div style={{ fontSize: 8.5, color: COLORS.textTertiary }}>
+          {status === 'loading' ? 'טוען…'
+            : status === 'absent' ? 'ממתין ל-endpoint מ-CC: GET /api/v9/s6/diagnose/{trade_id}'
+            : status === 'error' ? 'שגיאה בקריאת מערכת 6'
+            : 'אין נתוני פיקוח'}
+        </div>
+      )}
     </div>
   );
 }

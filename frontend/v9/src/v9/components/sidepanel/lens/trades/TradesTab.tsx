@@ -7,6 +7,8 @@ import { COLORS } from '../../../../design/tokens';
 import { fetchTrades } from '../../../../lib/api';
 import type { Trade } from '../../../../types';
 import { PATTERN_HELP } from '../plan/planHelp';
+import { systemColor } from '../../../../design/system_colors';
+import { useTradeStore } from '../../../../stores/tradeStore';
 
 const RTL = { direction: 'rtl', textAlign: 'right' } as const;
 
@@ -43,11 +45,22 @@ function TradeCard({ t, showMode }: { t: Trade; showMode?: boolean }) {
   const outHe = t.outcome ? (OUTCOME_HE[t.outcome] || t.outcome) : null;
   const blockedBy = (t as unknown as { blocked_by?: string | null }).blocked_by;
   const targets = targetsStr(t);
+  const sys = Number(t.system) || null;
+  const sysColor = sys ? systemColor(sys) : COLORS.textTertiary;
+  const dt = t.day_type && t.day_type !== 'UNKNOWN' ? t.day_type : null;
   return (
-    <div style={{ padding: '5px 7px', borderRadius: 6, border: `1px solid #21262d`, background: '#0d1117', ...RTL }}>
+    <div
+      onClick={() => useTradeStore.getState().setSelectedTradeId(t.id)}
+      title="לחיצה לפירוט מלא"
+      style={{ padding: '5px 7px', borderRadius: 6, border: `1px solid #21262d`, background: '#0d1117', cursor: 'pointer', ...RTL }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 6 }}>
         <span style={{ fontSize: 11, color: COLORS.textPrimary }}>
           <span style={{ color: COLORS.textTertiary }}>{hhmm(t.entry_ts ?? t.exit_ts)}</span>{' '}
+          {sys ? (
+            <span style={{ fontSize: 8.5, fontWeight: 700, padding: '0 3px', borderRadius: 3,
+              color: sysColor, background: `${sysColor}22`, border: `1px solid ${sysColor}66`,
+              fontFamily: 'ui-monospace' }}>S{sys}</span>
+          ) : null}{' '}
           <span style={{ color: dirColor, fontWeight: 600 }}>{isLong ? '▲' : '▼'} {nick}</span>
           {showMode && t.mode ? <span style={{ fontSize: 8.5, color: COLORS.textTertiary }}> · {String(t.mode)}</span> : null}
         </span>
@@ -58,6 +71,7 @@ function TradeCard({ t, showMode }: { t: Trade; showMode?: boolean }) {
       </div>
       <div style={{ fontSize: 9.5, color: COLORS.textSecondary, marginTop: 2 }}>
         כניסה {t.entry_price ?? '—'} · סטופ {t.stop ?? '—'}{targets ? ` · יעד ${targets}` : ''}
+        {dt ? <span style={{ color: COLORS.textTertiary }}>{` · יום ${dt}`}</span> : null}
         {closed && outHe ? <span style={{ color: pnlColor }}>{` · ${outHe}`}</span> : null}
       </div>
       {blockedBy ? (

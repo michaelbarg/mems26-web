@@ -17,6 +17,29 @@ logger = logging.getLogger(__name__)
 
 EVENTS_FILE = Path(os.path.expanduser(
     "~/SierraChart_Data/v9_export/trade_activity_events.jsonl"))
+STATE_FILE = Path(os.path.expanduser(
+    "~/SierraChart_Data/v9_export/sierra_state.json"))
+STATE_MAX_AGE_S = 10.0  # fresher than this → authoritative
+
+
+def _sierra_state_qty() -> Optional[int]:
+    """FIX-13: read the net position from the DLL's sierra_state.json —
+    second-fresh native truth, immune to the activity-log parsing family
+    (wrong account file, duplicate feeders, sim files without position
+    lines — all three bit on 07-10). Only trusted when the file is fresh
+    (≤10s); stale/missing → None so the caller falls back to the events
+    journal. Honest None on any parse gap (Rule 1)."""
+    try:
+        if not STATE_FILE.exists():
+            return None
+        import time as _t
+        if (_t.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
+            return None
+        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        qty = data.get("position_qty")
+        return int(qty) if qty is not None else None
+    except (OSError, ValueError, TypeError):
+        return None
 
 
 def _sierra_position_qty() -> Optional[int]:
@@ -49,9 +72,15 @@ def reconcile_position(tm) -> Tuple[bool, str]:
 
     Returns (ok, message). ok=False means divergence detected.
     """
-    sierra_qty = _sierra_position_qty()
+    # FIX-13: prefer the DLL's native state export when fresh; fall back to
+    # the parsed activity journal only when sierra_state.json is absent/stale.
+    src = "state"
+    sierra_qty = _sierra_state_qty()
     if sierra_qty is None:
-        return True, "no Sierra position data (events file empty)"
+        src = "events"
+        sierra_qty = _sierra_position_qty()
+    if sierra_qty is None:
+        return True, "no Sierra position data (state file + events file empty)"
 
     # Count TM open contracts (demo + live, not shadow)
     tm_qty = 0
@@ -84,9 +113,9 @@ def reconcile_position(tm) -> Tuple[bool, str]:
         return True, f"TM query error: {e}"
 
     if tm_qty == sierra_qty:
-        return True, f"MATCH: TM={tm_qty} Sierra={sierra_qty}"
+        return True, f"MATCH: TM={tm_qty} Sierra={sierra_qty} (src={src})"
 
     msg = (f"DIVERGENCE: TM says {tm_qty} contracts {tm_trades}, "
-           f"Sierra says {sierra_qty}. Records ≠ reality!")
+           f"Sierra says {sierra_qty} (src={src}). Records ≠ reality!")
     logger.warning("[Reconciler] SYS-3 %s", msg)
     return False, msg

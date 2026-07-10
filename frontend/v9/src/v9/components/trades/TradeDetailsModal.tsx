@@ -83,9 +83,22 @@ export function TradeDetailsModal() {
       .finally(() => setLoading(false));
   }, [selectedTradeId]);
 
-  if (!trade) return null;
+  if (selectedTradeId == null) return null;
 
   const t = detail ?? trade;
+  if (!t) {
+    return (
+      <>
+        <div className="fixed inset-0 z-40" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={() => setSelectedTradeId(null)} />
+        <div
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 rounded-lg p-6 text-sm"
+          style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+        >
+          טוען פירוט עסקה…
+        </div>
+      </>
+    );
+  }
   const fire = insight?.fire;
   const color = SYSTEM_COLORS[(t.system as SystemId) || 1];
   const borderStyle = SYSTEM_BORDER_STYLE[(t.mode as TradeMode) || 'SHADOW'];
@@ -120,9 +133,19 @@ export function TradeDetailsModal() {
               );
             })()}
           </div>
-          <button type="button" onClick={() => setSelectedTradeId(null)} className="text-lg hover:opacity-70" style={{ color: 'var(--text-secondary)' }}>
-            &times;
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href={`/trades?trade=${t.id}`}
+              className="text-[11px] hover:opacity-80"
+              style={{ color: 'var(--sys1)', textDecoration: 'none' }}
+              title="פתח בעמוד Trade Review המלא"
+            >
+              פתח ב-TradeReview ↗
+            </a>
+            <button type="button" onClick={() => setSelectedTradeId(null)} className="text-lg hover:opacity-70" style={{ color: 'var(--text-secondary)' }}>
+              &times;
+            </button>
+          </div>
         </div>
 
         <div className="p-4 space-y-4 text-xs font-mono">

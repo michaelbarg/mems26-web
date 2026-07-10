@@ -267,8 +267,17 @@ class BarLevelDetector:
 
                 direction = trade.direction
 
-                # Trail runner stop (before stop-check so trailed stop is used)
+                # FIX-16 (TARGET_REALISM_V1): per-bar realism re-check on the
+                # pending front target — runs for ALL open bars (pre-T1 too;
+                # trade 350's T1 sat 2 ticks beyond the day-high for an hour).
                 import os as _trail_os
+                if _trail_os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        self._tm.apply_target_realism_perbar(trade)
+                    except Exception as _tr_err:
+                        logger.warning("[BarLevelDetector] target-realism error (fail-safe skip): %s", _tr_err)
+
+                # Trail runner stop (before stop-check so trailed stop is used)
                 if trade.t1_hit_ts is not None and trade.state != "CLOSED":
                     # Dynamic structure-trail (DYNAMIC_STRUCT_TRAIL) — runs INSTEAD of
                     # the simple hwm trail when ON; falls back to hwm trail when OFF.

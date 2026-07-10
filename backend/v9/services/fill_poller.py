@@ -96,6 +96,7 @@ class FillPoller:
                 self._check_result()
                 self._check_fills()
                 self._maybe_reconcile()
+                self._check_rejections()
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -128,6 +129,81 @@ class FillPoller:
                 logger.debug("[FillPoller] reconciler: %s", msg)
         except Exception as e:
             logger.debug("[FillPoller] reconciler error (fail-safe): %s", e)
+
+    def _check_rejections(self) -> None:
+        """FIX-10 (ORDER_REJECT_DETECT_V1, default OFF — trade 337, 2026-07-10):
+        an ASYNC broker rejection (margin etc.) arrives AFTER the submit-ack, so
+        _check_result's ORDER_FAILED path never sees it — 337 was recorded
+        CLOSED/BE despite Sierra rejecting order 8700. The activity feeder now
+        emits ORDER_REJECT events; here we correlate one to the submit-acked
+        PENDING demo/live trade that has NO entry fill → honest REJECTED:
+        state=CANCELLED, outcome=REJECTED, pnl 0, slot released, CRITICAL log.
+        FILLED trades are never touched (that's the 308 naked-bracket family).
+        """
+        if not os.getenv("ORDER_REJECT_DETECT_V1", "0").lower() in ("1", "true", "yes"):
+            return
+        if self._tm is None:
+            return
+        events_path = _SIGNALS_DIR / "trade_activity_events.jsonl"
+        if not events_path.exists():
+            return
+        try:
+            size = events_path.stat().st_size
+            last_pos = getattr(self, "_rej_events_pos", None)
+            if last_pos is None:
+                # first run: start at EOF — never act on historical rejections
+                self._rej_events_pos = size
+                return
+            if size <= last_pos:
+                if size < last_pos:
+                    self._rej_events_pos = 0  # file rotated/truncated
+                return
+            with open(events_path, "r", encoding="utf-8") as f:
+                f.seek(last_pos)
+                new_lines = f.read().splitlines()
+            self._rej_events_pos = size
+            rejects = []
+            for ln in new_lines:
+                try:
+                    ev = json.loads(ln)
+                except (ValueError, TypeError):
+                    continue
+                if ev.get("type") == "ORDER_REJECT":
+                    rejects.append(ev)
+            if not rejects:
+                return
+            reason = (rejects[-1].get("reason") or "")[:80]
+            pending = [t for t in self._tm.get_active_trades()
+                       if getattr(t, "state", "") == "PENDING"
+                       and getattr(t, "mode", "shadow") in ("demo", "live")]
+            if not pending:
+                logger.warning(
+                    "[FillPoller] FIX-10 ORDER_REJECT seen (%s) but no PENDING "
+                    "demo/live trade to correlate — manual order? logged only.", reason)
+                return
+            trade = pending[-1]
+            logger.critical(
+                "[FillPoller] FIX-10 BROKER REJECTION: trade %d (%s) rejected by "
+                "Sierra AFTER submit-ack — reason: %s → state=CANCELLED, "
+                "outcome=REJECTED, slot released, zero P&L impact.",
+                trade.id, getattr(trade, "mode", "?"), reason)
+            try:
+                self._tm.close_trade(trade.id, reason=f"REJECTED:{reason}"[:30])
+                trade.state = "CANCELLED"
+                trade.pnl_usd = 0.0
+                trade.outcome = "REJECTED"
+                q = dict(trade.quality) if isinstance(getattr(trade, "quality", None), dict) else {}
+                q["reject_reason"] = reason
+                trade.quality = q
+                try:
+                    self._tm._db.flush()
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.warning("[FillPoller] FIX-10 reject-close failed for %d: %s", trade.id, e)
+            self._notify_gateway_close(trade.id, "REJECTED")
+        except Exception as e:
+            logger.debug("[FillPoller] _check_rejections error (fail-safe): %s", e)
 
     def _check_result(self) -> None:
         """Check trade_result.json for ORDER_FAILED → cancel trade + release slot.

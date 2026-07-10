@@ -36,6 +36,11 @@ ruled:
   NEUTRAL_RESPONSIVE_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "ביום נייטרלי — responsive (REV) פטור משערי-מגמה (direction_context); CONT נשאר מסונן" }
   TARGET_STRUCTURE_CLAMP_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "TP-1: יעד מעבר ל-IB נחסם לקצה-ה-IB ביום שאינו Neutral_*/Trend_* (פסיקת עסקה 310)" }
   STOP_STRUCTURE_TRAIL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "אחרי T1 סטופ למבנה הקרוב (לא BE מכני) — never-widen, fallback ל-BE+טיק" }
+  STOP_PERBAR_STRUCT_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-10", note: "FIX-15: בכל בר אחרי T1 — בדיקת עוגן-מבנה מתגלגל, מקרב-בלבד (פסיקה: 'לבדוק על כל נר את הסטופ')" }
+  TARGET_REALISM_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-10", note: "FIX-16: תקרת-ריאליזם ל-T1 = קיצון-סשן + פריצה-ממוצעת-של-היום; בכניסה + פר-בר, מקרב-בלבד (ראיית 350: T1 מעל שיא-יום ב-2 טיקים)" }
+  DAYTYPE_SIDES_MECHANICAL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-10", note: "FIX-14 פסיקת-דוקטרינה: ספירת-צדדים = RE מכני, סף-רעש max(2pt, 20%×IB); צמד-כיול 07-09/07-10 בטסטים" }
+  DAYTYPE_RTH_RESET_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-10", note: "FIX-9: תווית-לילה נמחקת בבר-RTH הראשון (תקרית ה-Nontrend התקוע של הפתיחה)" }
+  ORDER_REJECT_DETECT_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-10", note: "FIX-10: דחיית-ברוקר אסינכרונית → REJECTED+שחרור slot (תקרית 337: דחיית-מרג'ין נרשמה BE)" }
   S1_COMMITTED_PROVISIONAL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "P0-2: סיווג-מחויב ב-30 דק' במקום FORMING עירום — הוכח על ברי 07-08 האמיתיים" }
   S1_CONFIDENCE_V2: {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "P0-3: ציון ביטחון קנוני אחד (FORMING=0), מחליף את ה-0.46 הישן" }
   SIZE_CAP_CUT_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "שיקול-דעת בגודל: סטופ>תקרת-קבוצה → 2 חוזים; >1.5×תקרה → 1 — גם תחת FIXED_CONTRACTS (סוגר S6-BAND-0708)" }

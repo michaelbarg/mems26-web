@@ -29,6 +29,7 @@ import { TargetDistStrip } from './TargetDistStrip';
 import { HeatMaeStrip } from './HeatMaeStrip';
 import { StopBehaviorPanel } from './StopBehaviorPanel';
 import { TradesSummaryStrip } from './TradesSummaryStrip';
+import { TradeDetailsModal } from './TradeDetailsModal';
 import Link from 'next/link';
 
 const REFRESH_MS = 30000; // floor: TradeHistoryStrip 30000ms (CLAUDE.md) — do not lower
@@ -36,7 +37,7 @@ const REFRESH_MS = 30000; // floor: TradeHistoryStrip 30000ms (CLAUDE.md) — do
 type ListView = 'table' | 'cards';
 
 export function TradesView() {
-  const { setTrades } = useTradeStore();
+  const { setTrades, setSelectedTradeId } = useTradeStore();
   const [listView, setListView] = useState<ListView>('table');
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
@@ -60,6 +61,13 @@ export function TradesView() {
     const id = setInterval(load, REFRESH_MS);
     return () => { dead = true; clearInterval(id); };
   }, [setTrades]);
+
+  // מייקל 07-10: deep-link ?trade={id} — פותח את פירוט-העסקה (מה-drawer בדשבורד / קישור "פתח ב-TradeReview").
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('trade');
+    const id = p ? Number(p) : NaN;
+    if (Number.isFinite(id)) setSelectedTradeId(id);
+  }, [setSelectedTradeId]);
 
   const viewBtn = (v: ListView): React.CSSProperties => ({
     fontFamily: 'var(--mono)',
@@ -173,6 +181,9 @@ export function TradesView() {
           )}
         </div>
       </div>
+
+      {/* מייקל 07-10: drawer פירוט-עסקה — נפתח מ-deep-link ?trade={id} ("פתח ב-TradeReview") ומלחיצה על שורה */}
+      <TradeDetailsModal />
     </div>
   );
 }

@@ -312,6 +312,26 @@ class DayTypeStateMachine:
 
         Returns updated DayTypeState.
         """
+        # FIX-9 (Michael 2026-07-10, flag DAYTYPE_RTH_RESET_V1): an overnight/
+        # Globex-derived label must NOT survive into the RTH open. On the first
+        # RTH bar after non-RTH bars, drop any carried state and let the S1
+        # stages decide fresh (opening_type@15min, day_type@30min). Evidence:
+        # 07-10 open gated on a stuck "Nontrend" until ~17:25 (6 ZLR blocks).
+        # Mid-RTH restarts are untouched (_prev_bar_was_rth is None then —
+        # maybe_seed_ib_from_tpo handles that scenario).
+        import logging as _logging
+        import os as _os
+        if _os.getenv("DAYTYPE_RTH_RESET_V1", "0").lower() in ("1", "true", "yes"):
+            _prev_rth = getattr(self, "_prev_bar_was_rth", None)
+            if bar.is_rth and _prev_rth is False and (
+                    self.day_type != DayType.UNKNOWN or self.bar_count > 0):
+                _logging.getLogger(__name__).warning(
+                    "[DayType] FIX-9 RTH-boundary reset: dropping carried pre-RTH state "
+                    "(day_type=%s, bars=%d) — fresh session, stages decide",
+                    getattr(self.day_type, "value", self.day_type), self.bar_count)
+                self.reset()
+            self._prev_bar_was_rth = bool(bar.is_rth)
+
         self.bar_count += 1
 
         # S1_IB_WIDTH_ATR: update rolling ATR-14 from bar ranges

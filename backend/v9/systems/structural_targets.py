@@ -387,7 +387,17 @@ def _resolve_trend_dd(
 
 
 def _cap_target(entry: float, target: float, direction: str, cap_pts: float) -> float:
-    """Snap a target to the cap if it's farther than cap_pts from entry."""
+    """Snap a target to the cap if it's farther than cap_pts from entry.
+
+    FIX-16 bug fix (trade 350, 2026-07-10): a WRONG-SIDE target must never be
+    capped — abs(dist) capping flipped C1=7591.6 (below LONG entry 7608.5) to
+    entry+14=7622.5 (above!), masking the wrong side from _fix_side and letting
+    the monotonic sort crown the 2R fallback as T1. Wrong-side targets pass
+    through untouched so _fix_side handles them honestly.
+    """
+    wrong_side = (target <= entry) if direction == "LONG" else (target >= entry)
+    if wrong_side:
+        return target  # let _fix_side deal with it — never flip sides
     dist = abs(target - entry)
     if dist <= cap_pts:
         return target
@@ -402,6 +412,69 @@ TICK = 0.25  # MES tick size
 def _snap_grid(price: float) -> float:
     """Snap a price to the nearest MES tick grid (0.25)."""
     return round(round(price / TICK) * TICK, 2)
+
+
+def realism_ceiling(direction: str, entry: float,
+                    bars: Optional[list] = None) -> Optional[float]:
+    """FIX-16 (Michael ruling 2026-07-10, trade 350): the farthest REALISTIC
+    first-target price given today's session.
+
+    T1 beyond the session extreme is wishful: the market must break new ground
+    to fill it. The realistic allowance for new ground is today's own average
+    breakout step — the mean increment by which the session extreme advanced
+    when it DID advance ("גודל פריצות ממוצע של אותו היום").
+
+    ceiling(LONG)  = max(day_high, entry) + avg_new_high_step
+    ceiling(SHORT) = min(day_low,  entry) − avg_new_low_step
+
+    Honest None (Rule 1) when today's bars are unavailable — caller skips the
+    realism pass rather than inventing a level. `bars` injectable for tests.
+    """
+    try:
+        if bars is None:
+            from backend.v9.db.read import read_all
+            bars = read_all(
+                "SELECT high, low FROM v9_bars_5min_woodies "
+                "WHERE ts >= date_trunc('day', now() AT TIME ZONE 'utc') "
+                "  + interval '13 hours 30 minutes' "
+                "ORDER BY ts ASC", {})
+        if not bars or len(bars) < 3:
+            return None
+        highs = [float(b["high"]) for b in bars if b.get("high") is not None]
+        lows = [float(b["low"]) for b in bars if b.get("low") is not None]
+        if len(highs) < 3 or len(lows) < 3:
+            return None
+        if direction == "LONG":
+            steps, run_hi = [], highs[0]
+            for h in highs[1:]:
+                if h > run_hi:
+                    steps.append(h - run_hi)
+                    run_hi = h
+            day_hi = max(highs)
+            # <3 fresh-ground samples → fall back to median bar range (still today's data)
+            if len(steps) >= 3:
+                step = sum(steps) / len(steps)
+            else:
+                rngs = sorted(h - l for h, l in zip(highs, lows))
+                step = rngs[len(rngs) // 2]
+            return _snap_grid(max(day_hi, entry) + step)
+        elif direction == "SHORT":
+            steps, run_lo = [], lows[0]
+            for l in lows[1:]:
+                if l < run_lo:
+                    steps.append(run_lo - l)
+                    run_lo = l
+            day_lo = min(lows)
+            if len(steps) >= 3:
+                step = sum(steps) / len(steps)
+            else:
+                rngs = sorted(h - l for h, l in zip(highs, lows))
+                step = rngs[len(rngs) // 2]
+            return _snap_grid(min(day_lo, entry) - step)
+        return None
+    except Exception as e:
+        logger.warning("[structural_targets] realism_ceiling unavailable (%s) — pass skipped", e)
+        return None
 
 
 def _build_result(

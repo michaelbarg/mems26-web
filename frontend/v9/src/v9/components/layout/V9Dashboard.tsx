@@ -14,6 +14,7 @@ import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
 import { DirectionStrip } from '../strips/DirectionStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
 import { TradeReviewTab } from '../trades/TradeReviewTab';
+import { TradeDetailsModal } from '../trades/TradeDetailsModal';
 import { DayTypeLabelTab } from '../day-type/DayTypeLabelTab';
 import { useLayoutStore } from '../../stores/layoutStore';
 import { useSystemEvents } from '../../hooks/useSystemEvents';
@@ -159,6 +160,10 @@ export function V9Dashboard() {
           <TradeReviewTab />
         </div>
       )}
+
+      {/* מייקל 07-10: drawer פירוט-עסקה — מותקן top-level (V9Dashboard הוא הדשבורד האמיתי;
+          DashboardLayout לא בשימוש) כדי שכל כרטיס/שורת-עסקה בכל התצוגות יפתח אותו. */}
+      <TradeDetailsModal />
     </div>
   );
 }

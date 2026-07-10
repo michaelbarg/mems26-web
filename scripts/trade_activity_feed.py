@@ -82,6 +82,20 @@ def _parse_events(lines: list[str], last_offset: int = 0) -> tuple[list[dict], i
                 "line": i,
             })
 
+        # FIX-10 (2026-07-10, trade 337): async broker rejection — Sierra logs
+        # "Teton CME Routing (Order reject). Info: Trade Order Error - ..."
+        # AFTER a successful submit-ack. Without this event the backend recorded
+        # a margin-rejected entry as CLOSED/BE. No order-id on the line → the
+        # backend correlates to the submit-acked PENDING trade with no fill.
+        m = re.search(r"\(Order reject\)\.\s*Info:\s*(.{0,140})", line)
+        if m:
+            events.append({
+                "type": "ORDER_REJECT",
+                "reason": m.group(1).strip(),
+                "ts": ts_now,
+                "line": i,
+            })
+
         # User order modification (manual stop/target move)
         m = re.search(
             r"User order modification.*Requested Price: ([\d.]+?)\.?\s.*Requested Quantity: (\d+)",

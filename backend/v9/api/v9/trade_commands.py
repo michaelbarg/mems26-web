@@ -24,7 +24,11 @@ SIGNALS_DIR = signals_dir()
 COMMAND_FILE = command_file()
 RESULT_FILE = SIGNALS_DIR / "trade_result.json"
 
-VALID_ACTIONS = {"BUY", "SELL", "CANCEL", "MODIFY", "STATUS", "FLATTEN"}
+VALID_ACTIONS = {"BUY", "SELL", "CANCEL", "MODIFY", "STATUS", "FLATTEN",
+                 # FIX-11 (2026-07-10, orphan 8704): account-level flatten —
+                 # NOT gated on an armed bracket in the DLL. Closes manual/
+                 # orphan positions the bracket-scoped ops can't touch.
+                 "FLATTEN_ACCOUNT"}
 
 
 class TradeCommandIn(BaseModel):

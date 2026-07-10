@@ -19,6 +19,7 @@ import { useTradeStore } from '../../stores/tradeStore';
 import { fetchTrades } from '../../lib/api';
 import { fmtTimeET } from '../../lib/tradeTime';
 import { dayTypeColor, dayTypeAbbrev } from '../../lib/dayType';
+import { systemColor } from '../../design/system_colors';
 import type { Trade } from '../../types';
 
 type Filter = 'all' | 'win' | 'loss' | 'be' | 'marked' | 'demo';
@@ -221,7 +222,10 @@ export function TradeReviewTab() {
               const oc = outcome(t), m = marks[String(t.id)], isSel = t.id === selId;
               const dt = dayTypeOf(t);
               const dtc = dayTypeColor(dt);
+              const dtKnown = !!dt && dt.toUpperCase() !== 'UNKNOWN';
               const dirLong = t.direction === 'LONG';
+              // מייקל 07-10: תג-מערכת (S2/S4) בכל שורה — firing_system מגיע כ-t.system מ-/api/v9/trades.
+              const sys = Number(t.system) || null;
               return (
                 <button
                   key={t.id}
@@ -239,8 +243,17 @@ export function TradeReviewTab() {
                     {t.entry_ts ? fmtTimeET(t.entry_ts) : '—'}
                   </span>
                   <span dir="ltr" style={{ color: 'var(--text-secondary)' }}>#{t.id}</span>
-                  <span dir="ltr" style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={patternOf(t) ?? ''}>
-                    {patternOf(t) ?? '?'}
+                  <span dir="ltr" style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+                    {sys ? (
+                      <span title={`מערכת ${sys}`} style={{
+                        flexShrink: 0, fontSize: 8, fontWeight: 700, padding: '0 3px', borderRadius: 3,
+                        color: systemColor(sys), background: `${systemColor(sys)}22`, border: `1px solid ${systemColor(sys)}66`,
+                        fontFamily: 'ui-monospace',
+                      }}>S{sys}</span>
+                    ) : null}
+                    <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }} title={patternOf(t) ?? ''}>
+                      {patternOf(t) ?? '?'}
+                    </span>
                   </span>
                   <span dir="ltr" style={{
                     fontSize: 9.5, fontWeight: 700, textAlign: 'center', borderRadius: 4, padding: '1px 0',
@@ -250,7 +263,7 @@ export function TradeReviewTab() {
                   }} title={t.direction}>
                     {dirLong ? '▲ L' : '▼ S'}
                   </span>
-                  {dt ? (
+                  {dtKnown ? (
                     <span dir="ltr" style={{
                       fontSize: 9.5, fontWeight: 700, textAlign: 'center', borderRadius: 4, padding: '1px 0',
                       color: dtc, background: `${dtc}1a`, border: `1px solid ${dtc}55`,
@@ -259,7 +272,13 @@ export function TradeReviewTab() {
                       {dayTypeAbbrev(dt)}
                     </span>
                   ) : (
-                    <span style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>—</span>
+                    <span dir="rtl" style={{
+                      fontSize: 8.5, fontWeight: 600, textAlign: 'center', borderRadius: 4, padding: '1px 0',
+                      color: 'var(--text-secondary)', background: 'rgba(110,118,129,0.10)', border: '1px solid rgba(110,118,129,0.35)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }} title="סיווג בהתהוות (day_type בעת-הירי = UNKNOWN)">
+                      בהת׳
+                    </span>
                   )}
                   <span dir="ltr" style={{ textAlign: 'right', color: oc.cls === 'be' || t.pnl_usd == null ? 'var(--text-secondary)' : oc.c }}>
                     {money(t.pnl_usd)}

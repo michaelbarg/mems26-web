@@ -27,6 +27,7 @@ import { cellClass, contractHits, fmtPrice, pnlCell } from './tradeRowFormat';
 import { tradeWhen } from '../../lib/tradeTime';
 import { TradeRowExpand } from './TradeRowExpand';
 import { patternKey } from './PatternPerformanceStrip';
+import { systemColor } from '../../design/system_colors';
 
 const TD = `${cellClass()} px-2 py-1.5 align-top`;
 const COLS = 13; // caret + 12 data columns
@@ -124,18 +125,40 @@ function Th({
 export function TradesTable() {
   const { filteredTrades, expandedTradeId, toggleExpandedTradeId, filters, setFilters } = useTradeStore();
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'time', dir: 'desc' });
+  // מייקל 07-10: עסקאות-צל לא מוצגות ברשימה כברירת-מחדל (יש להן לשונית Shadow ייעודית);
+  // toggle מציג אותן מעומעמות. ברירת-המחדל = LIVE/DEMO בלבד — כדי שלא יתבלבלו עם עסקאות אמיתיות.
+  const [showShadow, setShowShadow] = useState(false);
   const activePattern = (filters.pattern ?? '').trim().toUpperCase();
 
   // Same per-render pattern as TradeCardList (`const trades = filteredTrades()`);
   // filteredTrades() returns a fresh array, so sorting a copy per render is the
   // codebase-consistent approach (≤500 rows — cheap).
   const trades = [...filteredTrades()].sort((a, b) => compareTrades(a, b, sort.key, sort.dir));
+  const shadowCount = trades.filter((t) => String(t.mode).toUpperCase() === 'SHADOW').length;
+  const visibleTrades = showShadow ? trades : trades.filter((t) => String(t.mode).toUpperCase() !== 'SHADOW');
 
   const onSort = (k: SortKey) =>
     setSort((s) => (s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'time' || k === 'pnl' || k === 'id' ? 'desc' : 'asc' }));
 
   return (
-    <div className="overflow-x-auto rounded" style={{ border: '1px solid var(--border)' }}>
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <button
+          onClick={() => setShowShadow((s) => !s)}
+          style={{ fontFamily: 'var(--mono)', fontSize: 10.5, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
+            background: showShadow ? 'rgba(250,204,21,0.12)' : 'var(--bg-tertiary)',
+            color: showShadow ? '#facc15' : 'var(--text-secondary)',
+            border: `1px solid ${showShadow ? '#facc15' : 'var(--border)'}` }}
+        >
+          {showShadow ? 'הסתר עסקאות-צל' : 'הצג עסקאות-צל'}
+        </button>
+        <span style={{ fontSize: 10, color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>
+          {shadowCount > 0
+            ? `${shadowCount} עסקאות-צל ${showShadow ? 'מוצגות (מעומעמות)' : 'מוסתרות'} · LIVE/DEMO בלבד כברירת-מחדל`
+            : 'LIVE/DEMO בלבד כברירת-מחדל'}
+        </span>
+      </div>
+      <div className="overflow-x-auto rounded" style={{ border: '1px solid var(--border)' }}>
       <table className={`w-full min-w-[1180px] border-collapse ${cellClass()}`}>
         <thead>
           <tr
@@ -158,7 +181,7 @@ export function TradesTable() {
           </tr>
         </thead>
         <tbody>
-          {trades.map((t) => {
+          {visibleTrades.map((t) => {
             const open = expandedTradeId === t.id;
             const pnlColor =
               t.pnl_usd != null
@@ -187,7 +210,7 @@ export function TradesTable() {
                         : t.stop_issue
                           ? 'rgba(234,179,8,0.06)'
                           : undefined,
-                    opacity: t.is_synthetic ? 0.6 : 1,
+                    opacity: t.is_synthetic ? 0.6 : (String(t.mode).toUpperCase() === 'SHADOW' ? 0.55 : 1),
                   }}
                   onClick={() => toggleExpandedTradeId(t.id)}
                 >
@@ -228,6 +251,16 @@ export function TradesTable() {
                     )}
                   </td>
                   <td className={TD}>
+                    {t.system ? (
+                      <span
+                        title={`מערכת ${t.system}`}
+                        style={{ fontSize: 8.5, fontWeight: 700, padding: '0 4px', borderRadius: 3, marginInlineEnd: 4,
+                          color: systemColor(Number(t.system)), background: `${systemColor(Number(t.system))}22`,
+                          border: `1px solid ${systemColor(Number(t.system))}66`, fontFamily: 'ui-monospace', verticalAlign: 'middle' }}
+                      >
+                        S{t.system}
+                      </span>
+                    ) : null}
                     {patKey === '(none)' && !pattern ? (
                       <span style={{ color: 'var(--text-muted)' }}>—</span>
                     ) : (
@@ -272,7 +305,7 @@ export function TradesTable() {
                     </span>
                   </td>
                   <td className={TD} style={{ color: 'var(--text-secondary)' }}>
-                    {dayType ?? '—'}
+                    {dayType && dayType !== 'UNKNOWN' ? dayType : <span style={{ color: 'var(--text-muted)' }}>בהתהוות</span>}
                   </td>
                   <td className={`${TD} text-right`}>{fmtPrice(t.entry_price)}</td>
                   <td className={`${TD} text-right`} title={t.stop_initial != null && t.stop != null && Math.abs(t.stop_initial - t.stop) >= 0.01 ? `סטופ התחלתי ${fmtPrice(t.stop_initial)} → ${fmtPrice(t.stop)}` : undefined}>
@@ -346,7 +379,7 @@ export function TradesTable() {
               </Fragment>
             );
           })}
-          {trades.length === 0 && (
+          {visibleTrades.length === 0 && (
             <tr>
               <td colSpan={COLS} className={`${TD} text-center py-8`} style={{ color: 'var(--text-muted)' }}>
                 אין עסקאות בטווח הסינון (ברירת-מחדל: היום). נקה את סינון התאריך למעלה כדי לראות היסטוריה.
@@ -355,6 +388,7 @@ export function TradesTable() {
           )}
         </tbody>
       </table>
-    </div>
+      </div>
+    </>
   );
 }

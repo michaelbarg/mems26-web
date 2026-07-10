@@ -879,6 +879,37 @@ class TradingGateway:
             except Exception as _tc_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] target-clamp errored (fail-open): %s", _tc_err)
 
+        # FIX-16 (TARGET_REALISM_V1, default OFF — Michael ruling 2026-07-10,
+        # trade 350): T1 must be REALISTIC to fill. When every structural level
+        # sits behind the entry, the R-fallback can put T1 beyond the session
+        # extreme (350: T1=7617.5 vs day-high 7614 → missed by 2 ticks). Final
+        # word on t1 after all producers: ceiling = session extreme + today's
+        # average breakout step. Tighten-only; honest skip when bars missing.
+        if os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.structural_targets import realism_ceiling as _rc
+                _rc_entry = setup.get("entry_price")
+                _rc_t1 = setup.get("t1")
+                if _rc_entry and _rc_t1 is not None:
+                    _rc_dir = str(direction).upper()
+                    _ceil = _rc(_rc_dir, float(_rc_entry))
+                    _too_far = (_ceil is not None) and (
+                        float(_rc_t1) > _ceil if _rc_dir == "LONG" else float(_rc_t1) < _ceil)
+                    if _too_far:
+                        # keep t1 strictly beyond entry (≥2 ticks) — never cross sides
+                        _floor2t = (float(_rc_entry) + 0.5) if _rc_dir == "LONG" \
+                            else (float(_rc_entry) - 0.5)
+                        _new_t1 = max(_ceil, _floor2t) if _rc_dir == "LONG" \
+                            else min(_ceil, _floor2t)
+                        logger.warning(
+                            "[Gateway] TARGET_REALISM_V1: t1 %.2f → %.2f (%s ceiling from "
+                            "session extreme + avg breakout step)",
+                            float(_rc_t1), _new_t1, _rc_dir)
+                        setup["t1"] = _new_t1
+                        result["target_realism"] = {"t1_was": float(_rc_t1), "t1": _new_t1}
+            except Exception as _rc_err:  # fail-open
+                logger.warning("[Gateway] target-realism errored (fail-open): %s", _rc_err)
+
         # Item-6: entry confirm (S4_ENTRY_CONFIRM_V1, default OFF). Require the
         # most recent (signal) bar to close in the trade direction before firing
         # — "עוד ודאות בכניסה". Fail-open on missing bars / error.

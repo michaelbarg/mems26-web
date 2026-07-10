@@ -18,6 +18,7 @@ Bar-derived features (CVD / IB-percentile / TPO features are layered separately)
 """
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, asdict
 from typing import Any, Dict, List, Optional
 
@@ -171,6 +172,33 @@ def compute_relative_features(
             dn_hold = dn_hold and (v_below >= vol_accept_frac * sess_v)
         f.ext_up_hold, f.ext_dn_hold = up_hold, dn_hold
         f.sides = int(up_hold) + int(dn_hold)
+
+        # FIX-14 (Michael doctrine ruling 2026-07-10; Dalton pp.27-29): side
+        # counting is MECHANICAL Range-Extension beyond the IB — acceptance
+        # belongs to reclassification (accepted_break above keeps the volume
+        # test), NOT to counting. "נייטרלי = יום מבולגן עם פריצה משני הצדדים".
+        # Noise floor per ruling: an extension counts when it reaches
+        # max(2pt, 20% × IB width). Calibration pair: 07-10 (31.5/28pt on IB
+        # 5.25 → sides=2 → Neutral) · 07-09 (3pt on IB 37 → not counted →
+        # stays Variation). Flag DAYTYPE_SIDES_MECHANICAL_V1 (default OFF).
+        # ext_up_hold/ext_dn_hold are NOT touched — accepted_break unchanged.
+        if os.getenv("DAYTYPE_SIDES_MECHANICAL_V1", "0").lower() in ("1", "true", "yes"):
+            _ib_w = ib_ref_h - ib_ref_l
+            _noise = max(
+                float(os.getenv("DAYTYPE_SIDES_NOISE_PTS", "2.0")),
+                float(os.getenv("DAYTYPE_SIDES_NOISE_IB_FRAC", "0.20")) * _ib_w,
+            )
+            if ib_high is not None and ib_low is not None and (ib_high - ib_low) > 0:
+                # Sierra IB is the first-hour extremes — any price beyond it is
+                # necessarily post-first-hour, so session extremes are valid RE.
+                _mech_hi, _mech_lo = sh, sl
+            else:
+                _n_ib = min(ib_bars, len(bars))
+                _mech_hi = max(highs[_n_ib:]) if len(highs) > _n_ib else None
+                _mech_lo = min(lows[_n_ib:]) if len(lows) > _n_ib else None
+            _mech_up = _mech_hi is not None and (_mech_hi - ib_ref_h) >= _noise
+            _mech_dn = _mech_lo is not None and (ib_ref_l - _mech_lo) >= _noise
+            f.sides = int(_mech_up) + int(_mech_dn)
 
     period_lows: List[float] = []
     period_highs: List[float] = []
