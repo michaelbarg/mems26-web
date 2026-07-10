@@ -115,6 +115,66 @@ class TradingGateway:
         except Exception as e:
             logger.warning("[Gateway] demo_slot hydration FAILED (query error, slot stays None): %s", e)
 
+    def hydrate_live_pnl(self) -> None:
+        """BOOT_HYDRATION_V1: Restore daily PnL counters from v9_trades.
+
+        On restart, _daily_pnl/_daily_trades/_consecutive_losses reset to 0.
+        This is a risk hole: the daily loss halt forgets prior losses.
+        Restores from today's closed LIVE trades in the DB.
+        """
+        try:
+            from backend.v9.db.read import read_all, read_scalar
+            from backend.v9.services.market_clock import now_et
+            from datetime import time as _time_cls, timedelta
+
+            et_now = now_et()
+            # RTH session date: today if after 09:30 ET, else yesterday
+            if et_now.time() >= _time_cls(9, 30):
+                session_date = et_now.strftime("%Y-%m-%d")
+            else:
+                session_date = (et_now - timedelta(days=1)).strftime("%Y-%m-%d")
+            session_start = session_date + " 09:30:00"
+
+            daily_pnl = read_scalar(
+                "SELECT COALESCE(SUM(pnl_usd), 0.0) FROM v9_trades "
+                "WHERE mode = 'live' AND state = 'CLOSED' "
+                "AND exit_ts >= :ss",
+                {"ss": session_start},
+            )
+            daily_trades = read_scalar(
+                "SELECT COUNT(*) FROM v9_trades "
+                "WHERE mode = 'live' AND state = 'CLOSED' "
+                "AND exit_ts >= :ss",
+                {"ss": session_start},
+            )
+
+            # Consecutive losses: walk backwards from most recent
+            rows = read_all(
+                "SELECT pnl_usd FROM v9_trades "
+                "WHERE mode = 'live' AND state = 'CLOSED' "
+                "AND exit_ts >= :ss "
+                "ORDER BY exit_ts DESC",
+                {"ss": session_start},
+            )
+            cons_losses = 0
+            for row in rows:
+                if float(row["pnl_usd"]) < 0:
+                    cons_losses += 1
+                else:
+                    break
+
+            self._daily_pnl = float(daily_pnl or 0.0)
+            self._daily_trades = int(daily_trades or 0)
+            self._consecutive_losses = cons_losses
+
+            logger.info(
+                "[Gateway] BOOT_HYDRATION: daily_pnl=$%.2f trades=%d consecutive_losses=%d "
+                "(from %s 09:30 ET)",
+                self._daily_pnl, self._daily_trades, self._consecutive_losses, session_date,
+            )
+        except Exception as e:
+            logger.warning("[Gateway] BOOT_HYDRATION failed (non-fatal, counters stay 0): %s", e)
+
     def enable_demo(self, system_id: int) -> None:
         self._demo_enabled_systems.add(system_id)
 
@@ -686,6 +746,32 @@ class TradingGateway:
                 except Exception as _st_err:
                     logger.warning("[Gateway] structural targets errored (fail-safe): %s", _st_err)
 
+        # TP-audit pattern T1 overrides (Michael ruling 2026-07-10):
+        # Fixed-point T1 per pattern×day_type from MFE p25-p50 analysis.
+        # Overrides R-based T1 when a matching entry exists in targets.yaml.
+        # T2 = entry ± 2×pts, T3 = entry ± 3×pts (runner, subject to TP-1 clamp).
+        try:
+            _pt_cls = str(setup.get("classification", "")).upper()
+            _pt_g1 = extract_g1_entry_context(cross_context)
+            _pt_dt = _pt_g1.get("day_type_at_entry")
+            if _pt_cls and _pt_dt:
+                from backend.v9.config_loader import load_pattern_t1_points
+                _pt_overrides = load_pattern_t1_points()
+                _pt_pts = (_pt_overrides.get(_pt_cls) or {}).get(_pt_dt)
+                if _pt_pts is not None and _pt_pts > 0:
+                    _pt_entry = float(setup.get("entry_price", 0))
+                    _pt_sign = 1.0 if str(direction).upper() == "LONG" else -1.0
+                    _pt_old_t1 = setup.get("t1")
+                    setup["t1"] = round(_pt_entry + _pt_sign * _pt_pts, 2)
+                    setup["t2"] = round(_pt_entry + _pt_sign * 2 * _pt_pts, 2)
+                    setup["t3"] = round(_pt_entry + _pt_sign * 3 * _pt_pts, 2)
+                    logger.info(
+                        "[Gateway] PATTERN_T1_OVERRIDE: %s×%s → T1=%.2f (%.1fpt) was=%.2f",
+                        _pt_cls, _pt_dt, setup["t1"], _pt_pts, _pt_old_t1 or 0,
+                    )
+        except Exception as _pt_err:
+            logger.warning("[Gateway] pattern T1 override errored (fail-safe): %s", _pt_err)
+
         # Item-22: target zones (TARGET_ZONES_V1, default OFF). Refine C2/C3
         # (t2/t3) to level-confluence ZONES beyond T1 — real shelves (IB/POC/VA +
         # prior-day + swings), not R-multiples — so the runner targets where price
@@ -811,7 +897,8 @@ class TradingGateway:
                                if r.get("high") is not None and r.get("low") is not None]
                     if _ranges:
                         _ec_frac = float(os.getenv("ENTRY_CONFIRM_TOL_ATR_FRAC", "0.10") or 0)
-                        _ec_tol = _ec_frac * (sum(_ranges) / len(_ranges))
+                        _ec_min_pts = float(os.getenv("ENTRY_CONFIRM_TOL_MIN_PTS", "0.5") or 0)
+                        _ec_tol = max(_ec_frac * (sum(_ranges) / len(_ranges)), _ec_min_pts)
                     _ec_bar = {"o": float(_ec_rows[0]["open"]), "c": float(_ec_rows[0]["close"])}
                     _ec_ok, _ec_reason = _ec(direction=str(direction).upper(), bars=[_ec_bar],
                                              tol_points=_ec_tol)

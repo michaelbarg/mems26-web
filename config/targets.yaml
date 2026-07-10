@@ -93,3 +93,25 @@ day_types:
     sizing: null
     contracts: 0
     no_trade: true
+
+# Pattern×DayType T1 overrides — absolute points, NOT R-multiples.
+# Michael ruling 2026-07-10, based on TP audit (MFE p25-p50 analysis, 276 trades).
+# Applied in gateway after detector T1 but before structural targets.
+# T2/T3 scale: T2 = T1×2, T3 = T1×3 (runner, capped by TP-1 clamp).
+pattern_t1_points:
+  REACTIVE_LONG:
+    Variation: 6.0
+  REACTIVE_SHORT:
+    Variation: 9.0
+  TLB:
+    Trend_Normal: 9.0
+  INITIATIVE_LONG:
+    Variation: 8.0
+  INITIATIVE_SHORT:
+    Variation: 10.0
+  FAMIR:
+    Variation: 5.0
+  BULL_FLAG_LONG:
+    Variation: 6.0
+  HTLB:
+    Variation: 10.0

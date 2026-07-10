@@ -429,6 +429,13 @@ flags:
     why: "Tuning knob for entry-bar close confirmation. Default 0.3."
     status: param
     ref: "backend/v9/gateway/trading_gateway.py:763"
+  ENTRY_CONFIRM_TOL_MIN_PTS:
+    category: param
+    group: "entry validation"
+    what: "Floor in points for entry confirmation tolerance: max(frac×ATR, min_pts). Prevents near-zero tolerance when ATR is tiny (early session, 2-3 bars)."
+    why: "Michael ruling 2026-07-10. 0.5pt = 2 MES ticks. Without floor, immature ATR collapses tolerance to ~0.3pt → rejecting valid entries."
+    status: param
+    ref: "backend/v9/gateway/trading_gateway.py"
   NEUTRAL_RESPONSIVE_V1:
     category: cascade_gate
     group: "direction engine"
@@ -457,12 +464,19 @@ flags:
     why: "ON (Michael 2026-07-08). Trade 310 had T1=+12.75 T2=+46.75 far beyond IB-H — clamped."
     status: live
     ref: "backend/v9/systems/target_structure_clamp.py:12"
+  BOOT_HYDRATION_V1:
+    category: risk
+    group: "boot safety"
+    what: "Restore daily_pnl/trades/consecutive_losses from v9_trades on startup. Without it, a restart zeros the daily loss halt — risk hole."
+    why: "Michael ruling 2026-07-10. A mid-day restart without hydration lets the gateway forget morning losses → the daily stop re-arms → could double the loss."
+    status: live
+    ref: "docs/handoff/CC_NIGHT_MEGA_2026-07-10.md P1.5"
   EARLY_ATR_FLOOR_V1:
     category: sizing
     group: "ATR floor"
     what: "Before 14 session bars exist, floor the ATR used by STOP_RESOLVER_V1 and SIZE_CAP_CUT_V1 with yesterday close ATR. Prevents immature ATR (1-2 bars) from rejecting legitimate structural stops."
-    why: "OFF (default). Incident 333 16:40: rung1 10.75pt > cap 8.22pt (ATR from 2 bars = 3.4pt). With yesterday close ATR ~6.3pt the cap would be ~13pt and the stop would pass. Trading-risk-surface → Michael sign-off."
-    status: deferred
+    why: "ON (Michael ruling 2026-07-10). Incident 333 16:40: rung1 10.75pt > cap 8.22pt (ATR from 2 bars = 3.4pt). With yesterday close ATR ~6.3pt the cap would be ~13pt and the stop would pass."
+    status: live
     ref: "docs/reports/MISSED_TRADES_2026-07-09.md FIX-8"
   STOP_ANCHORS_V2:
     category: sizing

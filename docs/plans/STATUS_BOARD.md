@@ -1,7 +1,27 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-07-10 (השלמות-בוקר: הידרציה + פסיקות + יעדים)
+
+**[2026-07-10 ~13:xx IDT — CC: P0/P1/P3 completed, P2 awaiting Michael]**
+
+- **P0 ריסטארט:** root=Mac reboot 10:47 (autologin → launchd services up 4-8s later). /tmp wiped → pre-reboot log lost. Redis down post-reboot → ws pub/sub dead (polling fallback). SQLite malformed (non-fatal, system on PG). Action: `brew services start redis`.
+- **P1 BOOT_HYDRATION_V1=1:** `hydrate_live_pnl()` restores daily_pnl/trades/consecutive_losses from `v9_trades` on startup. Risk hole closed: daily loss halt (-$400) no longer resets on restart. Gated by `BOOT_HYDRATION_V1` flag. S2 COT/AMT = file-driven, no hydration needed. Boot-verify log added. Tests 4/4. RULED+FLAG_REGISTRY updated.
+- **P3.1 EARLY_ATR_FLOOR_V1=1:** done by Cowork (35c28f9).
+- **P3.2 Target table (5 changes):** `pattern_t1_points` section in targets.yaml + gateway override. REACTIVE_LONG×Var 6pt, FAMIR×Var 5pt, TLB×TN 9pt, INITIATIVE_LONG×Var 8pt, BULL_FLAG_LONG×Var 6pt. T2=2×, T3=3×. SPEC TP-1/TP-2 verified. Tests 8/8.
+- **P3.3 ENTRY_CONFIRM_TOL_MIN_PTS=0.5:** `max(frac×ATR, 0.5pt)` floor for entry confirmation tolerance. Prevents near-zero tol on immature ATR. Tests 3/3. RULED updated.
+- **P3.4 auth-UNKNOWN:** stays OFF (ruling: don't stack changes).
+- **P3.5 BOOT_HYDRATION_V1=1:** applied (see P1).
+- **P2 EXIT proof on sim:** NOT-DONE — awaiting Michael availability.
+- **Verification:** flag_guard PASS 42/42 · fire_drill 🟢 GO · regression 871 passed (24 pre-existing failures).
+
 ## 2026-07-09 (LIVE incident — S1 flapping + dead writer)
+
+**[2026-07-09 ~23:12 IDT — Cowork (night-deploy task): fixpack 5-flags פרוסים · 333 יושרה · reconciler false-positive אובחן]**
+Finding (Rule 5): פריסת-הלילה של מייקל ("הכל מאושר") בוצעה אחרי close/flat. שער-הבטיחות (step 1) עבר: `trades/active`=null + POSITION_CHANGE אחרון new_qty=0. **אבחנה מרכזית:** ה-reconciler החדש (FIX-6 / SIERRA_RECONCILER_V1) יורה DIVERGENCE מתמשך "TM=0 מול Sierra=-2" — זה **false-positive**: `trade_activity_events.jsonl` הוא re-export מתגלגל (80 שורות פיזיות אך `"line":3751`; timestamps זהים-במיקרו סביב 20:00Z=RTH-close; אורדרים 8650-8662 **לא קיימים ב-fills journal** → אינם עסקאות-MEMS26). MEMS26 באמת flat (fills journal מסתיים ב-333; TM=0; live_slot=None). ה-reconciler מניח "שורה-אחרונה=פוזיציה-חיה", הנחה שגויה על re-export.
+Fix/action: (1) restart — `launchctl kickstart -k` backend pid 64123→72880, 80 vars, 5 דגלים חיים. (2) רשומת 333 יושרה ל-Sierra fills: contracts 3→2 · רגל-3 VOID · `t1_hit_ts` 15:50Z פיקטיבי→17:10:35Z (POSITION_CHANGE הוכיח qty=2 עד 17:10:52Z) · MANUAL-MANAGED · יציאות פר-רגל 7588.5×2 (+55$×2 = Sierra net 110$); `pnl_usd` 117.5 ברוטו הושאר כפי-שהוא + net ב-`quality.sierra_net_pnl_usd` (gross/net→פסיקת מייקל). (3) snapshot `20260709T195756Z_night-deploy-0709` (rollback point). **NOT rolled back** — הפריסה הצליחה; ה-false-positive הוא log-only (`fill_poller.py:126` = `logger.warning` בלבד, אפס halt/block/freeze/flatten).
+Verify (Rule 5): `flag_guard` **PASS 39** (SIERRA_RECONCILER_V1=1) · `fire_drill` **🟢 GO** (stop-chain כשר · effective_contracts=3 · feed 220ms · live_slot=None · live_enabled=[2,4] · day_type Variation) · `mems26_verify` **OK · 0 warn** (DLL==monolith · woodies feed 1s · DB lag 2m17s) · S6 EOD חודש (trades=15 · 333=manual 117.5$ WIN) · אין CRITICAL בלוג · אין ib_forming_no_clamp (שוק-סגור · 0 fires = תקין).
+OPEN → מייקל/CC (בוקר): **(A) תור-D חדש — reconciler Sierra-source:** שיקרא נגד fills journal / מקור-פוזיציה-חי (או יסנן ל-אורדרי-MEMS26 / יתעלם מקובץ static-post-close), אחרת יציף DIVERGENCE-שקרי גם מחר (עדיין log-only, לא חוסם). (B) gross/net של `pnl_usd` 333 (117.5 מול 110). (C) Redis למטה (`localhost:6379`) → ws pub/sub נופל ל-polling (לא חוסם מסחר). (D) אורדרים 8650-8662 ב-Trade-Activity-Log של סיירה שאינם MEMS26 — לוודא בפלטפורמת סיירה שאין פוזיציה-חיה אמיתית פתוחה.
 
 **[2026-07-09 ~19:45 IL — Cowork(S1): ריצוד-סיווג-חי + כותב-מת אובחנו ותוקנו flag-OFF (3572aec)]**
 Finding (Rule 5, backend.err.log + v9_day_type_state): **SPLIT-BRAIN**. השערים קוראים day_type דרך `get_live_day_type()`=מכונת-הזיכרון שריצדה (17:30 Trend_Normal→Variation · 17:45 Variation→Normal · playbook 'REACTIVE/ZLR SKIP on Nontrend' 17:00/17:40) בעוד `classify_replay` יציב (Normal→Normal_Variation rib 1.358). במקביל `v9_day_type_state` קפא ב-16:25 (id 9116; אין warning → הכותב הפסיק להיקרא במעבר PRE_MARKET→RTH, לא exception); הקוראים (direction_context_live, FiveMin) אכלו את הערך הקפוא. עלה כסף אמיתי (המשכי-מגמה נחסמו ביום דרייב +50).

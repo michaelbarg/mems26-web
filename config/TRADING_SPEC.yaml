@@ -29,13 +29,13 @@ rules:
   TP-1:
     rule: "אין יעד מעבר ל-IB-High/Low ביום שאינו נייטרלי או מגמתי-מאושר"
     source: "מייקל 07-08 (ביקורת עסקה 310: T2 ‏+46.75 ביום Variation)"
-    enforced: "TARGET_STRUCTURE_CLAMP_V1=1 (gateway clamp ל-IB) + target-zones; טבלה מלאה פר-תבנית×יום = מחקר TP (CC)"
-    verified: "s6_eod: T1 מול MFE + יעד-מול-מבנה-היום; מחקר TP (פרומפט מוכן)"
+    enforced: "TARGET_STRUCTURE_CLAMP_V1=1 (gateway clamp ל-IB) + target-zones + pattern_t1_points (targets.yaml)"
+    verified: "fire_drill שלב C + test_pattern_t1_overrides 8/8 (2026-07-10)"
   TP-2:
     rule: "מימוש נמדד מול מה שהיום נתן בפועל (MFE) — יעד שרחוק פי-2 מה-MFE הטיפוסי לסוג-היום = שגוי"
     source: "מייקל 07-08 ('המימוש נבחן על פי נתוני המסחר של אותו יום')"
-    enforced: "מחקר TP → טבלת תבנית×יום"
-    verified: "s6_eod כל ערב"
+    enforced: "pattern_t1_points (targets.yaml) — MFE p25-p50 analysis (276 trades, 30 days) → 5 שינויים מאושרים (מייקל 2026-07-10)"
+    verified: "test_pattern_t1_overrides 8/8 (2026-07-10)"
 
   # ── סוג-יום (דלתון) ──
   DAY-1:

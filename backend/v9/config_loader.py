@@ -167,6 +167,48 @@ def load_targets() -> Optional[Dict[str, Dict]]:
     return result
 
 
+# ── Pattern T1 Overrides ───────────────────────────────────────────────
+
+_pattern_t1_cache: Optional[Dict] = None
+_pattern_t1_loaded = False
+
+
+def load_pattern_t1_points() -> Dict[str, Dict[str, float]]:
+    """Load pattern_t1_points from targets.yaml.
+
+    Returns nested dict: {pattern_name: {day_type: points}}.
+    Empty dict on missing/invalid (fail-open, no overrides applied).
+    """
+    global _pattern_t1_cache, _pattern_t1_loaded
+    if _pattern_t1_loaded:
+        return _pattern_t1_cache or {}
+
+    _pattern_t1_loaded = True
+    _pattern_t1_cache = {}
+
+    data = _load_yaml("targets.yaml")
+    if data is None:
+        return _pattern_t1_cache
+
+    overrides = data.get("pattern_t1_points")
+    if not isinstance(overrides, dict):
+        return _pattern_t1_cache
+
+    for pattern, dt_map in overrides.items():
+        if not isinstance(dt_map, dict):
+            continue
+        clean = {}
+        for dt, pts in dt_map.items():
+            if isinstance(pts, (int, float)) and pts > 0:
+                clean[dt] = float(pts)
+        if clean:
+            _pattern_t1_cache[pattern] = clean
+
+    if _pattern_t1_cache:
+        logger.info("[ConfigLoader] pattern_t1_points: %d patterns loaded", len(_pattern_t1_cache))
+    return _pattern_t1_cache
+
+
 # ── Stop Params ──────────────────────────────────────────────────────
 
 def load_stop_params() -> Optional[Dict[str, Any]]:

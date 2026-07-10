@@ -729,6 +729,17 @@ async def _startup():
         # P4 warm-start: restore demo_slot from open demo trade in DB
         trading_gateway.hydrate_demo_slot()
 
+        # BOOT_HYDRATION_V1: restore daily PnL counters from DB (risk-surface)
+        import os as _bh_os
+        if _bh_os.getenv("BOOT_HYDRATION_V1", "0").lower() in ("1", "true", "yes"):
+            trading_gateway.hydrate_live_pnl()
+            _bv_status = trading_gateway.get_status()
+            _logger.info(
+                "[Boot-Verify] HYDRATION | daily_pnl=$%.2f | trades=%d | cons_losses=%d | source=v9_trades",
+                _bv_status.get("daily_pnl", 0), _bv_status.get("trades_today", 0),
+                _bv_status.get("consecutive_losses", 0),
+            )
+
         # Pipeline 5 Phase B: the FillPoller starts LATER — after the TradeManager is
         # created + wired (see below). Starting it here saw trade_manager=None (ordering bug).
 
