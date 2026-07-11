@@ -1206,6 +1206,24 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 stop_oids[2] = sc.GetPersistentInt64(7);
                             }
 
+                            // Snapshot paired target prices BEFORE modifying stops.
+                            // Sierra Attached Orders may auto-drag targets to preserve
+                            // stop-target offset. We re-set targets after to prevent drag.
+                            int64_t tgt_oids[3] = {0, 0, 0};
+                            float   tgt_prices[3] = {0, 0, 0};
+                            // Target slots: 2, 4, 6 (paired with stop slots 3, 5, 7)
+                            for (int ti = 0; ti < 3; ti++)
+                            {
+                                int64_t tid = sc.GetPersistentInt64(2 + ti * 2);
+                                if (tid <= 0) continue;
+                                s_SCTradeOrder to;
+                                if (sc.GetOrderByOrderID(static_cast<int>(tid), to) == SCTRADING_ORDER_ERROR)
+                                    continue;
+                                if (to.OrderStatusCode == SCT_OSC_FILLED) continue;
+                                tgt_oids[ti] = tid;
+                                tgt_prices[ti] = to.Price1;
+                            }
+
                             for (int si = 0; si < 3; si++)
                             {
                                 if (stop_oids[si] <= 0) continue;
@@ -1218,6 +1236,24 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 mod.Price1 = static_cast<float>(new_stop);
                                 int mr = sc.ModifyOrder(mod);
                                 if (mr >= 0) mod_count++;
+                            }
+
+                            // Re-set targets to their original prices (undo Sierra auto-drag)
+                            for (int ti = 0; ti < 3; ti++)
+                            {
+                                if (tgt_oids[ti] <= 0 || tgt_prices[ti] <= 0) continue;
+                                s_SCTradeOrder to2;
+                                if (sc.GetOrderByOrderID(static_cast<int>(tgt_oids[ti]), to2) == SCTRADING_ORDER_ERROR)
+                                    continue;
+                                if (to2.OrderStatusCode == SCT_OSC_FILLED) continue;
+                                // Only re-set if Sierra actually moved the target
+                                if (to2.Price1 != tgt_prices[ti])
+                                {
+                                    s_SCNewOrder tmod;
+                                    tmod.InternalOrderID = static_cast<int>(tgt_oids[ti]);
+                                    tmod.Price1 = tgt_prices[ti];
+                                    sc.ModifyOrder(tmod);
+                                }
                             }
                             result_status = (mod_count > 0) ? "MODIFY_STOP_OK" : "MODIFY_STOP_NONE";
                             order_err = mod_count;

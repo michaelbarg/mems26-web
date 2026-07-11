@@ -32,8 +32,14 @@ POLL_INTERVAL = 60  # seconds
 
 
 def _today_log_path(account: str) -> Path:
-    """Path to today's TradeActivityLog for the given account."""
+    """Path to today's TradeActivityLog for the given account.
+
+    Sim accounts use pattern: TradeActivityLog_YYYY-MM-DD_UTC.Sim1.simulated.data
+    Live accounts use: TradeActivityLog_YYYY-MM-DD_UTC.37138283.data
+    """
     d = date.today().strftime("%Y-%m-%d")
+    if account.lower().startswith("sim"):
+        return SIERRA_DIR / f"TradeActivityLog_{d}_UTC.{account}.simulated.data"
     return SIERRA_DIR / f"TradeActivityLog_{d}_UTC.{account}.data"
 
 
@@ -48,10 +54,11 @@ def _extract_text(log_path: Path) -> list[str]:
     return result.stdout.splitlines() if result.returncode == 0 else []
 
 
-def _parse_events(lines: list[str], last_offset: int = 0) -> tuple[list[dict], int]:
+def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> tuple[list[dict], int]:
     """Parse text lines into structured events. Returns (events, new_offset)."""
     events = []
     ts_now = datetime.now(timezone.utc).isoformat()
+    is_sim = account.lower().startswith("sim") if account else False
 
     for i, line in enumerate(lines):
         if i < last_offset:
@@ -120,6 +127,11 @@ def _parse_events(lines: list[str], last_offset: int = 0) -> tuple[list[dict], i
                 "line": i,
             })
 
+    # Tag every event with account + sim flag
+    for ev in events:
+        ev["account"] = account
+        ev["is_sim"] = is_sim
+
     return events, len(lines)
 
 
@@ -138,8 +150,8 @@ def run_once(account: str) -> list[dict]:
     if not log_path.exists():
         return []
 
-    # Track offset to avoid re-processing
-    offset_file = EXPORT_DIR / ".trade_activity_offset"
+    # Track offset per-account to avoid re-processing and cross-contamination
+    offset_file = EXPORT_DIR / f".trade_activity_offset_{account}"
     last_offset = 0
     if offset_file.exists():
         try:
@@ -148,7 +160,7 @@ def run_once(account: str) -> list[dict]:
             pass
 
     lines = _extract_text(log_path)
-    events, new_offset = _parse_events(lines, last_offset)
+    events, new_offset = _parse_events(lines, last_offset, account=account)
 
     if events:
         _append_events(events)

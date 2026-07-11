@@ -36,8 +36,28 @@ def test_naked_stop_critical_with_be_correction():
 
 
 def test_stop_wrong_side_critical():
-    # SHORT with stop BELOW entry (wrong side)
+    # SHORT with stop BELOW entry/price (wrong side — unprotected)
     rep = diagnose_trade(trade=_trade(stop=7532.0), atr=ATR)
+    assert "stop_wrong_side" in _codes(rep)
+
+
+def test_profit_locked_stop_not_wrong_side():
+    """Incident 07-10: LONG entry 7608.5, stop moved to 7611.25 after T1.
+    Stop ABOVE entry = profit-locked = DESIRED state, not wrong side.
+    Price is at 7614 — stop is below price = correctly protective.
+    If reverted → RED because the old code compared stop vs entry,
+    flagging stop>entry as wrong_side even when it's profit-locked."""
+    trade = {"direction": "LONG", "entry_price": 7608.5, "stop": 7611.25,
+             "t1": 7617.5, "contracts": 3}
+    rep = diagnose_trade(trade=trade, atr=ATR, t1_hit=True, price=7614.0)
+    assert "stop_wrong_side" not in _codes(rep)
+
+
+def test_wrong_side_stop_above_price():
+    """LONG with stop above current price = truly wrong side (unprotected)."""
+    trade = {"direction": "LONG", "entry_price": 7600.0, "stop": 7620.0,
+             "contracts": 3}
+    rep = diagnose_trade(trade=trade, atr=ATR, price=7615.0)
     assert "stop_wrong_side" in _codes(rep)
 
 

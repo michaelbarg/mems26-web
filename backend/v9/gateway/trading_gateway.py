@@ -910,6 +910,30 @@ class TradingGateway:
             except Exception as _rc_err:  # fail-open
                 logger.warning("[Gateway] target-realism errored (fail-open): %s", _rc_err)
 
+        # Ladder-collapse guard (trade 337: t1=t2=t3=7583.75).
+        # When target producers converge on a single level, the ladder degenerates
+        # into a point — no runner differentiation. Fix: deduplicate by nudging
+        # t2/t3 farther by 1-2 ticks so the bracket has distinct levels.
+        _lc_entry = setup.get("entry_price")
+        _lc_t1 = setup.get("t1")
+        _lc_t2 = setup.get("t2")
+        _lc_t3 = setup.get("t3")
+        _lc_dir = str(direction).upper()
+        _lc_sign = 1.0 if _lc_dir == "LONG" else -1.0
+        if _lc_entry and _lc_t1 is not None:
+            if _lc_t2 is not None and abs(float(_lc_t2) - float(_lc_t1)) < 0.25:
+                setup["t2"] = round(float(_lc_t1) + _lc_sign * 0.5, 2)  # +2 ticks
+                logger.info("[Gateway] ladder-dedup: t2=%.2f collapsed to t1=%.2f → nudged to %.2f",
+                            float(_lc_t2), float(_lc_t1), setup["t2"])
+            if _lc_t3 is not None and (
+                abs(float(_lc_t3) - float(_lc_t1)) < 0.25 or
+                (setup.get("t2") is not None and abs(float(_lc_t3) - float(setup["t2"])) < 0.25)
+            ):
+                _lc_base = float(setup.get("t2", _lc_t1))
+                setup["t3"] = round(_lc_base + _lc_sign * 0.5, 2)  # +2 ticks beyond t2
+                logger.info("[Gateway] ladder-dedup: t3=%.2f collapsed → nudged to %.2f",
+                            float(_lc_t3), setup["t3"])
+
         # Item-6: entry confirm (S4_ENTRY_CONFIRM_V1, default OFF). Require the
         # most recent (signal) bar to close in the trade direction before firing
         # — "עוד ודאות בכניסה". Fail-open on missing bars / error.

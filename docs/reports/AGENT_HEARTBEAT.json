@@ -1,0 +1,12 @@
+{
+  "ts": "2026-07-11T19:26:57.520648+00:00",
+  "verdict": "🟡",
+  "note": "בדיקת-חיות חלקית (Cowork UI-build): דשבורד+API+פיד חיים · עסקה פעילה במעקב. לא ריצת session-watch מלאה (flag_guard/fire_drill לא הורצו).",
+  "checks": {
+    "dashboard": "up",
+    "api_active": "200",
+    "feed": "live",
+    "session_watch": "not-run"
+  },
+  "source": "cowork-ui-build"
+}

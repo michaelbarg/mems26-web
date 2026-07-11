@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>Label</key>
+	<string>com.mems26.frontend</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>-c</string>
+		<string>cd /Users/michael/Downloads/mems26_web_git/frontend/v9 &amp;&amp; ulimit -n 10240 2&gt;/dev/null; export WATCHPACK_POLLING=true; export CHOKIDAR_USEPOLLING=true; export CHOKIDAR_INTERVAL=1000; export PATH="/usr/local/bin:$PATH"; exec /usr/local/bin/npm run dev</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>StandardErrorPath</key>
+	<string>/tmp/frontend.err.log</string>
+	<key>StandardOutPath</key>
+	<string>/tmp/frontend.log</string>
+	<key>ThrottleInterval</key>
+	<integer>30</integer>
+	<key>WorkingDirectory</key>
+	<string>/Users/michael/Downloads/mems26_web_git/frontend/v9</string>
+</dict>
+</plist>

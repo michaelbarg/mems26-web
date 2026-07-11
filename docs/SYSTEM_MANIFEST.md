@@ -48,6 +48,8 @@ Regenerate after structural/flag changes: `python3 scripts/gen_index.py` · `pyt
 | Backend | `uvicorn backend.main:app` :8000 | `com.mems26.backend` | `curl :8000/health` → 200 |
 | Bridge | `bridge/json_bridge.py` → localhost:8000 only | `com.mems26.bridge` | `pgrep -f json_bridge.py` |
 | Export promoter | `scripts/v9_export_promoter.py` | `com.mems26.export_promoter` | feed `.json` ≤2s fresh |
+| Activity feed | `scripts/trade_activity_feed.py` (per-account offset) | `com.mems26.activity_feed` | `/tmp/activity_feed.log` |
+| Frontend | `next dev` :3000 | `com.mems26.frontend` | `curl :3000` → 200 |
 One-shot: **`scripts/mems26_verify.sh`** checks all of the above + DLL-deployed↔repo + index drift + DB lag.
 
 ## 4. Backup / rollback / verify tooling (new 2026-06-26)

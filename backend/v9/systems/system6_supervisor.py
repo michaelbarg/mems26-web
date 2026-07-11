@@ -71,6 +71,7 @@ def diagnose_trade(
     trade: Dict,
     atr: float,
     t1_hit: bool = False,
+    price: Optional[float] = None,
     reconcile_verdict: Optional[str] = None,
     reconcile_mismatch: bool = False,
     expected_contracts: Optional[int] = None,
@@ -106,11 +107,14 @@ def diagnose_trade(
                             correction={"op": "MODIFY_STOP", "price": _be_target(d, entry)}))
     else:
         # 2. stop on the protective side
-        wrong_side = (d == "LONG" and stop >= entry) or (d == "SHORT" and stop <= entry)
-        # (a stop exactly at entry AFTER T1 is BE and fine — handled in rule 3)
-        if wrong_side and not (t1_hit and stop == entry):
+        # Wrong side = stop on the LOSS side of CURRENT PRICE (not entry).
+        # LONG: stop > price means unprotected; SHORT: stop < price means unprotected.
+        # A stop beyond entry (profit-locked after T1) is the DESIRED state.
+        ref = price if price is not None else entry
+        wrong_side = (d == "LONG" and stop > ref) or (d == "SHORT" and stop < ref)
+        if wrong_side:
             issues.append(Issue("stop_wrong_side", CRITICAL, ALERT,
-                                f"{d} stop {stop} on the wrong side of entry {entry}"))
+                                f"{d} stop {stop} on the wrong side of price {ref}"))
         else:
             risk = abs(entry - stop)
             # 3. BE after T1
@@ -175,6 +179,7 @@ def scan_active_trade(
     trade: Optional[Dict],
     atr: float,
     t1_hit: bool = False,
+    price: Optional[float] = None,
     reconcile_verdict: Optional[str] = None,
     reconcile_mismatch: bool = False,
     expected_contracts: Optional[int] = None,
@@ -190,7 +195,8 @@ def scan_active_trade(
     if not _enabled() or not trade:
         return None
     report = diagnose_trade(
-        trade=trade, atr=atr, t1_hit=t1_hit, reconcile_verdict=reconcile_verdict,
+        trade=trade, atr=atr, t1_hit=t1_hit, price=price,
+        reconcile_verdict=reconcile_verdict,
         reconcile_mismatch=reconcile_mismatch, expected_contracts=expected_contracts,
         now_ct_min=now_ct_min,
     )

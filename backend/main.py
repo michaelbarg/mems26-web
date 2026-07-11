@@ -7,7 +7,6 @@ Entry point for Render:
 import asyncio
 import os
 import time
-import sqlite3
 from datetime import timedelta
 
 from fastapi import FastAPI
@@ -807,56 +806,46 @@ async def _startup():
     except Exception as e:
         _logger.error("[Main] BarLevelDetector startup failed: %s", e)
 
-    # ── Lightweight startup hydration (runs unconditionally, no BarRouter) ──
-    # Fills critical state that is lost on restart. Session-boundary aware.
-    db_path = "/Users/michael/Downloads/mems26_web_git/data/mems26_local.db"
+    # ── Lightweight startup hydration inventory (Postgres, no SQLite) ──
+    # Counts critical table rows to verify data availability at boot.
     try:
-        import sqlite3 as _sql3
+        from backend.v9.db.read import read_scalar
         from backend.v9.services.market_clock import now_et
-        _hy_conn = _sql3.connect(db_path)
-        _hy_conn.row_factory = _sql3.Row
         _et = now_et()
         _hy_stats = {}
 
         # 1. CVD cumulative — session-bounded (resets 18:00 ET Sun-Fri).
-        # Load only rows from current session start.
         from datetime import time as _time_cls
         if _et.time() >= _time_cls(18, 0):
             _session_start = _et.replace(hour=18, minute=0, second=0, microsecond=0)
         else:
             _session_start = (_et - timedelta(days=1)).replace(hour=18, minute=0, second=0, microsecond=0)
-        _cvd_rows = _hy_conn.execute(
-            "SELECT COUNT(*) FROM v9_bars_cumulative_delta WHERE ts >= ?",
-            (_session_start.isoformat(),)
-        ).fetchone()[0]
+        _cvd_rows = read_scalar(
+            "SELECT COUNT(*) FROM v9_bars_cumulative_delta WHERE ts >= :cutoff",
+            {"cutoff": _session_start.isoformat()},
+        ) or 0
         _hy_stats["cvd_rows_this_session"] = _cvd_rows
 
         # 2. Woodies 5min buffer: count available bars for CCI-14 warm-up.
-        _w5_count = _hy_conn.execute(
-            "SELECT COUNT(*) FROM v9_bars_5min_woodies"
-        ).fetchone()[0]
+        _w5_count = read_scalar("SELECT COUNT(*) FROM v9_bars_5min_woodies") or 0
         _hy_stats["woodies_5min_total"] = _w5_count
 
         # 3. 5min bars available for system buffers.
-        _b5_count = _hy_conn.execute(
-            "SELECT COUNT(*) FROM v9_bars_5min"
-        ).fetchone()[0]
+        _b5_count = read_scalar("SELECT COUNT(*) FROM v9_bars_5min") or 0
         _hy_stats["bars_5min_total"] = _b5_count
 
         # 4. Sessions archived (for Y IB).
-        _arch_count = _hy_conn.execute(
-            "SELECT COUNT(*) FROM v9_tpo_sessions_archive"
-        ).fetchone()[0]
+        _arch_count = read_scalar("SELECT COUNT(*) FROM v9_tpo_sessions_archive") or 0
         _hy_stats["tpo_sessions_archived"] = _arch_count
 
-        _hy_conn.close()
-        _logger.info("[Main] Startup hydration inventory: %s", _hy_stats)
+        _logger.info("[Main] Startup hydration inventory (PG): %s", _hy_stats)
     except Exception as _hy_err:
         _logger.warning("[Main] Startup hydration check failed (non-fatal): %s", _hy_err)
 
     # Historical Replay: warm system buffers from DB (D2.2)
+    # db_path is vestigial — HistoricalReplay reads via PG (read_all), not SQLite.
     from backend.v9.services.historical_replay import HistoricalReplay
-    historical = HistoricalReplay(db_path=db_path, bar_router=bar_router)
+    historical = HistoricalReplay(db_path="unused-pg-only", bar_router=bar_router)
     app.state.historical_replay = historical
     # P30 2026-05-20: warm_all_systems replays ~144 5-min bars through
     # BarRouter. Even as `asyncio.create_task` the published events run their

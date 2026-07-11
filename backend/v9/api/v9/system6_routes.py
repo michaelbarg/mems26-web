@@ -75,9 +75,11 @@ async def diagnose(request: Request):
     # supervisor (9 management checks)
     try:
         from backend.v9.systems.system6_supervisor import diagnose_trade
+        _cur_price = bars[-1]["close"] if bars else None
         rep = diagnose_trade(
             trade={"direction": direction, "entry_price": entry, "stop": stop,
-                   "contracts": _ct}, atr=atr, t1_hit=t1_hit, expected_contracts=_ct)
+                   "contracts": _ct}, atr=atr, t1_hit=t1_hit, price=_cur_price,
+            expected_contracts=_ct)
         out["supervisor"] = {
             "healthy": rep.healthy,
             "issues": [{"code": i.code, "severity": i.severity,
@@ -147,3 +149,47 @@ async def diagnose(request: Request):
         pass
 
     return out
+
+
+@router.get("/diagnose/{trade_id}")
+async def diagnose_by_id(trade_id: int, request: Request):
+    """Diagnose a specific trade by ID (open or closed). Runs the 9 invariants."""
+    from backend.v9.db.read import read_one, read_all
+    tr = read_one(
+        "SELECT id, direction, entry_price, stop, t1, t2, t3, "
+        "t1_hit_ts, state, outcome "
+        "FROM v9_trades WHERE id = :id", {"id": trade_id})
+    if not tr:
+        return {"error": f"trade {trade_id} not found"}
+
+    direction = str(tr["direction"])
+    entry = float(tr["entry_price"]) if tr["entry_price"] is not None else None
+    stop = float(tr["stop"]) if tr["stop"] is not None else None
+    t1_hit = tr["t1_hit_ts"] is not None
+
+    # ATR from recent bars
+    rows = read_all(
+        "SELECT open, high, low, close FROM v9_bars_5min_woodies "
+        "ORDER BY ts DESC LIMIT 14", {})
+    bars = [{"high": float(r["high"]), "low": float(r["low"]),
+             "close": float(r["close"])} for r in rows][::-1]
+    atr = _atr(bars)
+    cur_price = bars[-1]["close"] if bars else None
+
+    from backend.v9.systems.system6_supervisor import diagnose_trade
+    trade_dict = {"direction": direction, "entry_price": entry, "stop": stop,
+                  "t1": float(tr["t1"]) if tr.get("t1") else None,
+                  "t2": float(tr["t2"]) if tr.get("t2") else None,
+                  "t3": float(tr["t3"]) if tr.get("t3") else None,
+                  "contracts": 3}
+    rep = diagnose_trade(trade=trade_dict, atr=atr, t1_hit=t1_hit,
+                         price=cur_price, expected_contracts=3)
+    return {
+        "trade_id": trade_id,
+        "state": tr.get("state"),
+        "outcome": tr.get("outcome"),
+        "healthy": rep.healthy,
+        "issues": [{"code": i.code, "severity": i.severity,
+                    "action": i.action, "detail": i.detail,
+                    "correction": i.correction} for i in rep.issues],
+    }

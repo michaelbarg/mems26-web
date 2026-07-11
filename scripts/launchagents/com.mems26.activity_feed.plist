@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mems26.activity_feed</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-c</string>
+        <string>cd /Users/michael/Downloads/mems26_web_git &amp;&amp; [ -f .env ] &amp;&amp; set -a &amp;&amp; source .env &amp;&amp; set +a; ACCT="${SIERRA_LIVE_ACCOUNT:-37138283}"; if [ "${MEMS26_MODE:-live}" = "sim" ]; then ACCT="${SIERRA_SIM_ACCOUNT:-Sim1}"; fi; exec /Library/Frameworks/Python.framework/Versions/3.9/Resources/Python.app/Contents/MacOS/Python scripts/trade_activity_feed.py --account "$ACCT"</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/michael/Downloads/mems26_web_git</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>StandardOutPath</key>
+    <string>/tmp/activity_feed.log</string>
+    <key>StandardErrorPath</key>
+    <string>/tmp/activity_feed.err.log</string>
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+</dict>
+</plist>

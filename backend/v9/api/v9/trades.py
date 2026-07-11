@@ -469,6 +469,89 @@ def get_recent_trades(
     return [_trade_list_row(r, db) for r in rows]
 
 
+@router.get("/{trade_id}/timeline")
+def get_trade_timeline(
+    trade_id: int,
+    db: Session = Depends(get_db),
+):
+    """Unified timeline: fills + stop_moves + management-log + blocks.
+
+    Returns events sorted chronologically for the trade detail panel.
+    """
+    trade = db.get(V9Trade, trade_id)
+    if not trade:
+        raise HTTPException(status_code=404, detail="Trade not found")
+
+    events = []
+
+    # Entry fill
+    if trade.entry_ts:
+        events.append({
+            "ts": trade.entry_ts.isoformat() if hasattr(trade.entry_ts, 'isoformat') else str(trade.entry_ts),
+            "type": "ENTRY_FILL",
+            "detail": {
+                "price": float(trade.entry_price) if trade.entry_price else None,
+                "direction": trade.direction,
+            },
+        })
+
+    # Target hits
+    for label, ts_field in [("T1", "t1_hit_ts"), ("T2", "t2_hit_ts"), ("T3", "t3_hit_ts")]:
+        ts = getattr(trade, ts_field, None)
+        if ts:
+            events.append({
+                "ts": ts.isoformat() if hasattr(ts, 'isoformat') else str(ts),
+                "type": f"{label}_HIT",
+                "detail": {"target": float(getattr(trade, label.lower(), 0) or 0)},
+            })
+
+    # Exit
+    if trade.exit_ts:
+        events.append({
+            "ts": trade.exit_ts.isoformat() if hasattr(trade.exit_ts, 'isoformat') else str(trade.exit_ts),
+            "type": "EXIT",
+            "detail": {
+                "price": float(trade.exit_price) if trade.exit_price else None,
+                "reason": trade.exit_reason,
+                "pnl_usd": float(trade.pnl_usd) if trade.pnl_usd else None,
+            },
+        })
+
+    # Management log entries (stop moves, BE, trail, etc.)
+    logs = db.query(V9TradeManagementLog).filter(
+        V9TradeManagementLog.trade_id == trade_id
+    ).order_by(V9TradeManagementLog.ts).all()
+    for l in logs:
+        events.append({
+            "ts": l.ts.isoformat() if hasattr(l.ts, 'isoformat') else str(l.ts),
+            "type": f"MGMT_{l.action}",
+            "detail": l.value if isinstance(l.value, dict) else {"value": l.value},
+        })
+
+    # Cross-context (stop moves from audit trail)
+    cc = trade.cross_context
+    if isinstance(cc, dict):
+        for key, val in cc.items():
+            if isinstance(val, dict) and "ts" in val:
+                events.append({
+                    "ts": str(val["ts"]),
+                    "type": f"CROSS_{key.upper()}",
+                    "detail": {k: v for k, v in val.items() if k != "ts"},
+                })
+
+    # Sort chronologically
+    events.sort(key=lambda e: e["ts"])
+
+    return {
+        "trade_id": trade_id,
+        "direction": trade.direction,
+        "state": trade.state,
+        "outcome": trade.outcome,
+        "events": events,
+        "event_count": len(events),
+    }
+
+
 @router.get("/{trade_id}")
 def get_trade(
     trade_id: int,

@@ -35,7 +35,13 @@ _SIGNALS_DIR = Path(os.environ.get(
 RESULT_PATH = _SIGNALS_DIR / "trade_result.json"
 
 # trade_result.json statuses that confirm a protective stop is working.
-_STOP_OK_STATUSES = {"MODIFY_STOP_OK", "PLACE_STOP_OK", "STOP_PLACED", "ENTRY_OK"}
+# Statuses that confirm a protective stop exists — includes bracket placement
+# (Sierra Attached Orders create stop + target as OCO; ORDER_SUBMITTED means the
+# bracket was acknowledged, so the stop is working even if no MODIFY_STOP was sent).
+_STOP_OK_STATUSES = {
+    "MODIFY_STOP_OK", "PLACE_STOP_OK", "STOP_PLACED", "ENTRY_OK",
+    "ORDER_SUBMITTED", "PLACE_BRACKET_OK",
+}
 # A stop confirmation older than this (seconds) is treated as stale for an
 # open position → naked-stop suspect.
 _STOP_STALE_S = 900.0

@@ -1,6 +1,34 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-07-11 Weekend Queue (CC — 12 items toward Monday)
+
+**[2026-07-11 ~22:xx IDT — CC: weekend queue executed, 11/12 items DONE]**
+
+1. **hydration-PG** — DONE. Removed SQLite fallback from main.py (was printing "database disk image is malformed" on every boot). Hydration inventory now uses `read_scalar` (PG). 2 new tests + 4 existing pass.
+2. **LaunchAgents** — DONE (partial). `com.mems26.activity_feed` (per-account offset, sim/live by MEMS26_MODE) + `com.mems26.frontend` created + installed. Redis LaunchAgent NOT-DONE: `redis-server` not installed (no brew). SYSTEM_MANIFEST updated.
+3. **Target drag bug** — DONE (code ready, needs reload). DLL MODIFY_STOP now snapshots paired target prices before modifying stops, re-sets after to undo Sierra's Attached Orders auto-drag. Deployed to both ~/SierraChart + ~/SierraChart2 + repo. Sim test after Michael's Remote Build.
+4. **S6 stop_wrong_side** — DONE. Wrong_side now compares stop vs current PRICE (not entry). Profit-locked stop after T1 is correctly identified as desired state. 19 tests pass (2 new).
+5. **STALL_EXIT backtest** — DONE. 303 trades analyzed, 22 stalls detected (3pt range, 3 bars). 7 improved / 15 hurt — net slightly negative with current params. Report: `docs/reports/STALL_EXIT_BACKTEST_2026-07-11.md`. For Michael's decision.
+6. **Two UX endpoints** — DONE. `GET /api/v9/system6/diagnose/{trade_id}` (9 invariants) + `GET /api/v9/trades/{id}/timeline` (unified fills+stops+mgmt+blocks).
+7. **CERT test-debt** — DONE. 3 tests: BLUE→UP (21:00 fixture), RED→DOWN (symmetric), cert-OFF stays DOWN.
+8. **t1=t2=t3 ladder-collapse** — DONE. Root: multiple target producers converge on IB_low. Gateway ladder-dedup guard nudges t2/t3 when collapsed. 2 tests pass.
+9. **NAKED_STOP_SUSPECT** — DONE. Added ORDER_SUBMITTED + PLACE_BRACKET_OK to _STOP_OK_STATUSES. 3 tests pass.
+10. **decision_replay 07-10** — DONE. FIX-14 verified: 07-10=Neutral_Extreme (sides=2), 07-09=Normal_Variation (sides=1). Calibration pair correct.
+11. **D1-EXIT proof script** — DONE. `scripts/d1_exit_proof.sh` ready. Awaits Michael's Sierra reload.
+12. **ROADMAP + STATUS_BOARD** — THIS ENTRY.
+
+NOT-DONE: Redis LaunchAgent (redis-server not installed). Gateway decision replay from logs (backend logs rotated, no 07-10 entries).
+
+## 2026-07-11 (שקיפות-עסקה §6/§7: חיווי-סוכן + עסקה-על-הגרף)
+
+**[2026-07-11 ~19:30 UTC — Cowork: §6 חיווי "הסוכן חי" + §7 עסקת-LIVE על הגרף (PROMPT_SYSTEMS_TRADE_UX 6–7) — פרונטאנד · tsc נקי · ⚠ אימות-דפדפן ממתין (:3000 היה למטה) · ⚠ לא-מקומט (FUSE)]**
+Finding: (§6) אין כותב `AGENT_HEARTBEAT.json` בכלל — ה"session-watch כותב בכל ריצה" עדיין אספירציה; ל-TopBar יש נקודות-בריאות-backend אך אין חיווי-חיות-סוכן. (§7) `chart/TradeMarkerOverlay` מצייר מלבני-כניסה→יציאה לכל העסקאות (כולל צל) אבל רץ על `ChartArea`/`DashboardLayout` ה**מת** ולא מצייר סטופ/יעדים; הגרף החי (`ChartV5b`) חסר עסקה-חיה עם סטופ-נע.
+Fix (פרונטאנד): §6 — route `src/app/api/agent-heartbeat/route.ts` (Next, מגיש את הקובץ server-side) + `AgentHeartbeatDot` ב-TopBar (🟢/🟡/🔴 + tooltip note+"לפני X דק'"; ts>40דק' בשעות-מסחר או קובץ-חסר ⇒ אפור "הסוכן לא נבדק", אמת-לא-המצאה; poll 15s) + כותב `scripts/agent_heartbeat.py` ל-session-watch + seed-כן (🟡 source=cowork-ui-build, בדיקת-חיות חלקית). §7 — `LiveTradeOverlay` על ChartV5b: קווי-מחיר כניסה(ירוק-מקווקו)/סטופ(אדום, נע בכל poll-5ש')/T1–T3(מומש=מלא+✓) + באנר "#ID תבנית · P&L חי · חוזים"; live/sim/demo בלבד (mode מ-cockpit/heartbeat, צל לא מצויר). לא-כפילות: TradeMarkerOverlay=היסטורי/מת, זה=עסקה-חיה-יחידה.
+Verify: `tsc --noEmit --skipLibCheck` נקי בכל הקבצים החדשים/הנגועים (route/AgentHeartbeatDot/LiveTradeOverlay/TopBar/ChartV5b) — 4 שגיאות-baseline קיימות בלבד. Backend חי: `/api/v9/cockpit/heartbeat` = `alive:true, mode:live, price_file_age_ms~1000, ws_clients:0`. **אימות-דפדפן (DoD screenshots + gif תזוזת-סטופ) ממתין** — הפרונטאנד dev-server (:3000) לא רץ (~23ש' מאז 07-10; ws_clients:0 מאשר). מייקל מעלה `npm run dev` → Cowork מאמת.
+Dep (session-watch): כדי שהנקודה תהיה 🟢, הפיקוח-החי חייב לקרוא בכל ריצה `python3 scripts/agent_heartbeat.py --verdict 🟢 --note "..." --check k=v` (אחרת אפור-"לא-נבדק" אחרי 40דק').
+NOT-DONE: (1) אימות-דפדפן §6/§7 — ממתין ל-:3000. (2) קומיט — FUSE חוסם unlink → במק: `git add` route/AgentHeartbeatDot/LiveTradeOverlay/TopBar/ChartV5b + `scripts/agent_heartbeat.py` + `docs/reports/AGENT_HEARTBEAT.json` → commit.
+
 ## 2026-07-10 (השלמות-בוקר: הידרציה + פסיקות + יעדים)
 
 **[2026-07-10 ~20:45 IDT — Cowork: שקיפות-עסקה מלאה בדשבורד (PROMPT_SYSTEMS_TRADE_UX) — פרונטאנד · אומת-בדפדפן · ⚠ לא-מקומט (FUSE no-unlink)]**
