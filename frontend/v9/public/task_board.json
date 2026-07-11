@@ -3,7 +3,7 @@
   "meta": {
     "title": "MEMS26 — Live Task Board",
     "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-09T23:10:00+03:00",
+    "updated": "2026-07-10T23:09:00+03:00",
     "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice · ⚡ 07-09: LIVE עם 3 חוזים (פסיקת מייקל)",
     "indexes": [
       {
@@ -32,11 +32,12 @@
     {
       "id": "MEGA-0709",
       "title": "CC מגה-השלמות: FIX-5 חזרה + חיווט reconciler + פריסה + תור D1-D5",
-      "status": "open",
+      "status": "phase_b_deployed",
       "owner": "CC",
       "opened": "2026-07-09 20:00",
       "priority": "P0",
-      "doc": "docs/handoff/CC_MEGA_COMPLETIONS_2026-07-09.md"
+      "doc": "docs/handoff/CC_MEGA_COMPLETIONS_2026-07-09.md",
+      "note": "Phase B פרוס ע'י Cowork (משימת-לילה 23:12 IDT): kickstart backend pid 64123→72880 · 5 דגלי-fixpack חיים · flag_guard PASS 39 · fire_drill 🟢 · mems26_verify OK · S6 חודש · 333 יושרה · snapshot 20260709T195756Z. פאזה A אומתה 17/17. ⚠ reconciler(FIX-6) יורה DIVERGENCE שקרי (TM=0 מול -2): מקור=trade_activity re-export מתגלגל, אורדרים 8650-8662 לא ב-fills journal=לא-MEMS26; log-only אפס פעולת-מסחר → תור-D: לתקן מקור-סיירה של הריקונסיילר."
     },
     {
       "id": "S1-FLAP",
@@ -70,10 +71,11 @@
     {
       "id": "INC-333",
       "title": "תקרית 333: יעדים מורעלים מתחת לכניסה + מימושים פיקטיביים — רשומה מיושרת, מייקל מנהל ידנית",
-      "status": "in_progress",
+      "status": "done",
       "owner": "Cowork",
       "opened": "2026-07-09 19:4x",
-      "priority": "P0"
+      "priority": "P0",
+      "note": "רשומה יושרה ל-Sierra fills (23:12): contracts 3→2 · רגל-3 VOID · t1_hit_ts 15:50Z פיקטיבי→17:10:35Z · MANUAL-MANAGED · יציאות פר-רגל 7588.5×2 (Sierra net +55$×2=110$). pnl_usd 117.5 ברוטו הושאר + net ב-quality (gross/net→מייקל). הרשומה כבר הראתה WIN 7588.5 בעת היישור — פרמיסת ה−102.5$ התיישנה."
     },
     {
       "id": "BLOCKER-1",
@@ -191,6 +193,22 @@
         {
           "label": "S6 EOD",
           "path": "docs/reports/system6/S6_EOD_2026-07-09.md"
+        }
+      ]
+    },
+    {
+      "id": "S6-BAND-0710",
+      "title": "מערכת 6 EOD 07-10: 5 סטופים רחבים מעל תקרת ×ATR ששער-הגודל לא קיצץ (כולל 2 LIVE — 340,337) + 4 סטופי-ZLR 0.08×ATR מתחת-לרצועה",
+      "priority": "P1",
+      "status": "open",
+      "owner": "Cowork+CC",
+      "where": "size-gate / stop_anchors sizing — ATR-14≈3.1 נק' היום, תקרה ~2×ATR. 5 הפרות-תקרה: 340 LIVE REACTIVE_SHORT 7.8נק'/2.48× (STOP +6.25$), 339 shadow 7.8נק'/2.48× (STOP −77.5$ = ההפסד הגדול של היום), 337 LIVE REACTIVE_SHORT 6.2נק'/2.00× (ידני 0$), 338 shadow ZLR 6.8נק'/2.16× (T2 +70$), 336 shadow REACTIVE_SHORT 6.2נק'/2.00× (T2 +75$)",
+      "next": "מחר: (1) 🔴 חוזר מ-S6-BAND-0708: שער-הגודל לא מקצץ חוזים כשמרחק-הסטופ>~2×ATR — הפעם על 2 עסקאות LIVE (340,337) → לאמת שהתקרה חלה על mode=live ולקצץ; (2) לסנן SIM_TEST/demo-drill מ-4 סטופי-ה-ZLR 0.08×ATR (345/348/353/356, עדיין פתוח מ-S6-BAND-0709) או לתקן עוגן-ZLR אם אמיתיים; (3) עמודות 'T1 מול MFE'+'שיפוט-מימוש' ריקות בכל 23 העסקאות → אין גילוי wick-out/יעד-לא-בר-השגה (L6/TP-AUDIT)",
+      "evidence": "S6_EOD_2026-07-10.md — Variation conf 0.38, ATR≈3.1 נק', 23 עסקאות, 9 המלצות: 5× 🟡 מעל-תקרה (2.00–2.48×ATR, 2 מהן LIVE) + 4× 🔴 מתחת-רצועה (0.08×ATR, כולן ZLR). כל השורטים המוקדמים (336-340) עם סטופ רחב; ההפסד הגדול 339 −77.5$. אין עמודות מימוש → wick-out/יעד לא נבדקים בקוד",
+      "links": [
+        {
+          "label": "S6 EOD",
+          "path": "docs/reports/system6/S6_EOD_2026-07-10.md"
         }
       ]
     },
@@ -440,5 +458,5 @@
       "links": []
     }
   ],
-  "updated": "2026-07-09 23:10 (S6 EOD)"
+  "updated": "2026-07-10 23:09 (S6 EOD)"
 }

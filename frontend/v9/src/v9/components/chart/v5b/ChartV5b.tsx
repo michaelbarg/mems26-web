@@ -39,6 +39,7 @@ import type { CvdPoint } from './cvdMapping';
 import { WoodiesCciPanel } from '../woodies/WoodiesCciPanel';
 import { WoodiesPanelTab } from '../woodies/WoodiesPanelTab';
 import { TpoContinuityOverlay } from './TpoContinuityOverlay';
+import { LiveTradeOverlay } from './LiveTradeOverlay';
 import { LsmaLine } from '../LsmaLine';
 
 const LS_WOODIES_OPEN = 'mems26-woodies-panel-open';
@@ -999,6 +1000,8 @@ export function ChartV5b() {
           paneIndex={0}
         />
         <LsmaLine chart={chartRef.current} />
+        {/* §7 מייקל 07-11: העסקה החיה על הגרף — כניסה/סטופ-נע/יעדים + באנר (live/sim/demo בלבד) */}
+        <LiveTradeOverlay chart={chartRef.current} candleSeries={candleSeries} />
         {pricePaneH > 0 && cvdPaneH > 20 && (
           <div
             data-testid="cvd-chart-header"

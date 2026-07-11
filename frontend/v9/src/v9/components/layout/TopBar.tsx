@@ -7,6 +7,7 @@ import { useSystemStateStore } from '../../store/systemStateStore';
 import { PriceDisplay } from '../topbar/PriceDisplay';
 import { PriceMeta } from '../topbar/PriceMeta';
 import { ConnectionIndicator } from '../topbar/ConnectionIndicator';
+import { AgentHeartbeatDot } from '../topbar/AgentHeartbeatDot';
 import Link from 'next/link';
 import { LibraryModal } from '../banners/LibraryModal';
 import { dayTypeColor, DAY_TYPE_DIRECTION_HE } from '../../lib/dayType';
@@ -188,6 +189,8 @@ export function TopBar() {
 
       {/* Right: Status dots + Cap + Connection + Mode PnL + Nav */}
       <div className="flex items-center gap-3">
+        {/* Agent-alive beacon (§6 — session-watch heartbeat) */}
+        <AgentHeartbeatDot />
         {/* Status dots */}
         <div className="flex items-center gap-1" title={backendHealth ? `WS: ${backendHealth.wsClients} clients` : 'Unknown'}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
