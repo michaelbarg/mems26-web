@@ -12,9 +12,15 @@ import requests
 ENDPOINT = "http://localhost:8000/api/v9/day_type/classify_replay"
 DAYS = {
     "2026-06-05": "Trend_Normal",
-    "2026-06-08": "Neutral_Extreme",
+    # 06-08 + 06-10 re-blessed 2026-07-12 under the FIX-14 doctrine ruling
+    # (Michael 07-10: sides = MECHANICAL RE >= max(2pt, 20%xIB); volume-acceptance
+    # moved to reclass only). 06-08 (IB 40.5, floor 8.1): the small side dropped
+    # -> was Neutral_Extreme. 06-10 (IB 69.5, floor 13.9): the thin morning drift
+    # now counts mechanically -> was Normal_Variation (old 06-20 volume-ruling,
+    # explicitly superseded by 07-10). Calibration knob: DAYTYPE_SIDES_NOISE_IB_FRAC.
+    "2026-06-08": "Normal_Variation",
     "2026-06-09": "Neutral_Center",
-    "2026-06-10": "Normal_Variation",
+    "2026-06-10": "Neutral_Extreme",
     "2026-06-11": "Neutral_Center",
     "2026-06-12": "Normal_Variation",
     "2026-06-15": "Normal_Variation",

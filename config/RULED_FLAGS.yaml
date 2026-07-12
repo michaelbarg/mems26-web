@@ -55,6 +55,7 @@ ruled:
   S2_REQUIRE_COT_AMT:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "S2⟂S3 סטנדינג" }
   DAYTYPE_POSITION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-01", note: "כבוי לוולידציה עד תיקון I-44" }
   OPENING_WINDOW_FIRE_V1: {expected: "0", ruled_by: "מייקל", date: "2026-07-08", note: "כבוי כרגע; הדלקה = פסיקה" }
+  S1_TREND_CONTROL_V1:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-12", note: "P1-5 נבנה+replay-מאומת; הדלקה = פסיקת מייקל (ראיות: 07-08→Trend@18:30)" }
   T1_LADDER_V2:           {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-18", note: "נדחה בבקטסט — לא להדליק" }
   EARLY_ATR_FLOOR_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-10", note: "רצפת-ATR שעה-1 (FIX-8) — מאושר" }
   ENTRY_CONFIRM_TOL_MIN_PTS: {expected: "0.5", ruled_by: "מייקל", date: "2026-07-10", note: "רצפת-סובלנות אישור: max(frac×ATR, 0.5pt)" }

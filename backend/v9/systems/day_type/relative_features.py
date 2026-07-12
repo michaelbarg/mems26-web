@@ -50,6 +50,12 @@ class RelFeatures:
     ext_dn_bars: int = 0
     close_pos: Optional[float] = None
     one_tf: Optional[str] = None
+    # P1-4 (Dalton p.25): CURRENT consecutive stair-step run per side, over
+    # 30-min periods, ending at the latest period. Up-step = higher-low AND
+    # higher-high vs the prior period; down-step mirror. The one-timeframe
+    # "control" measure that defines a Trend day — feeds P1-5/P0-3.
+    stair_steps_up: int = 0
+    stair_steps_dn: int = 0
     session_high: Optional[float] = None
     session_low: Optional[float] = None
     returned_through_open: bool = False
@@ -210,6 +216,15 @@ def compute_relative_features(
             period_lows.append(min(pl))
             period_highs.append(max(ph))
     f.one_tf = _one_tf(period_lows, period_highs, tol=tick)
+
+    # P1-4 (Dalton p.25): stair-step counters — reset on any break of the run.
+    for i in range(1, len(period_lows)):
+        up = (period_lows[i] >= period_lows[i - 1] - tick
+              and period_highs[i] > period_highs[i - 1])
+        dn = (period_highs[i] <= period_highs[i - 1] + tick
+              and period_lows[i] < period_lows[i - 1])
+        f.stair_steps_up = f.stair_steps_up + 1 if up else 0
+        f.stair_steps_dn = f.stair_steps_dn + 1 if dn else 0
 
     # returned_through_open: a DIRECTIONAL open that later closed back through the open
     if open_price is not None and len(closes) >= 2:

@@ -257,6 +257,40 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
                        f"(rib {rib} floor waived)"
                        + (" + CVD-confirmed" if cvd_dir else ""),
                        cvd_confirms=cvd_dir, open_drive_trend=True)
+        # 5c) P1-5 (S1_TREND_CONTROL_V1, default OFF — Dalton pp.22-25, doctrine
+        #     contradiction-2): a Trend day is defined by CONTROL — one-timeframe
+        #     stair-steps with an elongating range — not by a range multiple.
+        #     rib>=2.5 made mid-day recognition late (the 07-08 down-day sat as
+        #     Variation while stair-stepping lower all session). Control-path:
+        #     >=N consecutive stair-steps in the one_tf direction + rib past a
+        #     modest floor + close pressing the matching extreme.
+        if os.environ.get("S1_TREND_CONTROL_V1", "0").lower() in ("1", "true", "yes"):
+            _min_steps = int(os.environ.get("S1_TREND_CTRL_MIN_STEPS", "3"))
+            _min_rib = float(os.environ.get("S1_TREND_CTRL_MIN_RIB", "1.8"))
+            # NOTE: full-session one_tf is deliberately NOT required — one
+            # violated period early in the day kills it forever, which is the
+            # exact structure-lag Dalton warns about (p.37). The CURRENT
+            # stair-step run IS the running one-timeframe/control measure
+            # (p.25: "each period ≥/≤ prior" during the trend leg). Replay
+            # evidence: with one_tf required the 07-08 stair-collapse never
+            # flagged; without it, it flags at 18:30 (↓3 steps, cp .21).
+            _up_ok = ((feat.get("stair_steps_up") or 0) >= _min_steps
+                      and cp is not None and cp >= 0.75)
+            _dn_ok = ((feat.get("stair_steps_dn") or 0) >= _min_steps
+                      and cp is not None and cp <= 0.25)
+            # `oi` (returned-through-open) is deliberately NOT a veto here: an
+            # early open-return invalidates the OPENING conviction (p.65), not a
+            # NEW stair-run that formed after it — on 07-08 the morning return
+            # blocked recognition of the 18:30 three-period collapse entirely.
+            if rib is not None and rib >= _min_rib and (_up_ok or _dn_ok):
+                _dirlbl = "UP" if _up_ok else "DOWN"
+                _steps = feat.get("stair_steps_up") if _up_ok else feat.get("stair_steps_dn")
+                return out("Trend_Normal", "CLASSIFIED",
+                           f"control-path: {_steps} stair-steps {_dirlbl} + "
+                           f"close pressing extreme + rib {rib}>={_min_rib} "
+                           f"(rib>={rib_tn} floor waived per Dalton p.25)"
+                           + (" + CVD-confirmed" if cvd_dir else ""),
+                           cvd_confirms=cvd_dir, trend_control_path=True)
         # 6) Normal_Variation (Expanded Typical) — catch-all. PROVISIONAL until EOD: a 1-sided day
         #    can still get side-2 (→ Neutral) or build DD/Trend structure as it extends.
         return out("Normal_Variation", "CLASSIFIED" if is_eod else "PROVISIONAL",

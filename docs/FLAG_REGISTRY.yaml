@@ -457,6 +457,27 @@ flags:
     why: "ON (Michael 2026-07-10). Trade 337: margin rejection after submit-ack was recorded CLOSED/BE/pnl=0 — records≠reality in the money path."
     status: live
     ref: "backend/v9/services/fill_poller.py:_check_rejections · scripts/trade_activity_feed.py:ORDER_REJECT"
+  S1_TREND_CONTROL_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "P1-5 (Dalton pp.22-25): Trend recognition by CONTROL — >=S1_TREND_CTRL_MIN_STEPS consecutive 30-min stair-steps in one direction + close pressing that extreme + rib>=S1_TREND_CTRL_MIN_RIB — waiving the rib>=2.5 floor. Full-session one_tf and returned-through-open are deliberately not required (structure-lag, p.37/p.65)."
+    why: "OFF pending Michael enable ruling. Replay evidence 07-12: 07-08 flags Trend-DOWN at 18:30 (never before); 06-30 at 22:00; 07-02 at 19:00; calibration pair 07-09/07-10 + 07-07 untouched. Trading-risk-surface change (mid-day type flips playbook/gates)."
+    status: built
+    ref: "backend/v9/systems/day_type/daytype_classifier.py:5c control-path"
+  S1_TREND_CTRL_MIN_STEPS:
+    category: param
+    group: "day-type classifier"
+    what: "P1-5 min consecutive stair-steps (default 3)."
+    why: "Calibration knob."
+    status: param
+    ref: "backend/v9/systems/day_type/daytype_classifier.py:5c"
+  S1_TREND_CTRL_MIN_RIB:
+    category: param
+    group: "day-type classifier"
+    what: "P1-5 elongation floor as range/IB (default 1.8) — keeps grinding low-range stair days (07-09 rib<=1.77) out of Trend."
+    why: "Calibration knob; the 1.8 line separates 07-09 (stays Variation) from 07-08 (2.41 fires)."
+    status: param
+    ref: "backend/v9/systems/day_type/daytype_classifier.py:5c"
   DAYTYPE_RTH_RESET_V1:
     category: s1
     group: "day-type classifier"

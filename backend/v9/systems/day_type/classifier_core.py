@@ -128,6 +128,10 @@ def classify_session(
         "open_dir": op.get("direction"),
         "ext_up_bars": rf.ext_up_bars,
         "ext_dn_bars": rf.ext_dn_bars,
+        # P1-4/P1-5 (Dalton p.25): stair-step control — consumed only when
+        # S1_TREND_CONTROL_V1 is ON; classify() ignores otherwise.
+        "stair_steps_up": rf.stair_steps_up,
+        "stair_steps_dn": rf.stair_steps_dn,
     }
 
     result = classify(feat, plan, is_eod=is_eod)
