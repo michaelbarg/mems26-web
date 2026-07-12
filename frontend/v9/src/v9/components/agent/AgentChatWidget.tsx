@@ -2,26 +2,75 @@
 /**
  * AgentChatWidget — חלון-צ'אט צף עם הסוכן (Claude) בתוך הדשבורד (מייקל 07-12).
  *
- * שיחה מקורקעת בהקשר-החי של המערכת (day_type, עסקאות פתוחות, דגלים, התראות) —
- * ה-backend  (/api/v9/agent/chat) אוסף את ההקשר ופונה ל-Anthropic API.
- * המפתח חי ב-.env בצד השרת בלבד. בלי מפתח — הודעה מסבירה (503).
+ * ‏07-12 ערב (מייקל): הכפתור בצד ימין-למטה, והחלון גריר — תופסים את פס-הכותרת
+ * וגוררים לכל מקום; המיקום נשמר (localStorage) בין רענונים.
+ *
+ * שיחה מקורקעת בהקשר-החי של המערכת (day_type, עסקאות, דגלים, התראות) דרך
+ * ‏/api/v9/agent/chat; המפתח חי ב-.env בצד השרת בלבד.
  */
 import { useEffect, useRef, useState } from 'react';
 
 type Turn = { role: 'user' | 'assistant'; content: string };
 
 const TOKEN = process.env.NEXT_PUBLIC_BRIDGE_TOKEN || '';
+const POS_KEY = 'agent_chat_pos_v1';
+const W = 380, H = 480;
+
+function loadPos(): { x: number; y: number } | null {
+  try {
+    const raw = localStorage.getItem(POS_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (typeof p.x === 'number' && typeof p.y === 'number') return p;
+  } catch {}
+  return null;
+}
 
 export function AgentChatWidget() {
   const [open, setOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [input, setInput] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ dx: number; dy: number; active: boolean }>({ dx: 0, dy: 0, active: false });
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [turns, open]);
+
+  useEffect(() => {
+    if (open && pos === null) {
+      const saved = loadPos();
+      // ברירת-מחדל: צד ימין, מעל הכפתור (בתוך המסך)
+      setPos(saved ?? {
+        x: Math.max(8, window.innerWidth - W - 20),
+        y: Math.max(8, window.innerHeight - H - 80),
+      });
+    }
+  }, [open, pos]);
+
+  function onDragStart(e: React.PointerEvent) {
+    if (!pos) return;
+    drag.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y, active: true };
+    const move = (ev: PointerEvent) => {
+      if (!drag.current.active) return;
+      const x = Math.min(Math.max(0, ev.clientX - drag.current.dx), window.innerWidth - 80);
+      const y = Math.min(Math.max(0, ev.clientY - drag.current.dy), window.innerHeight - 40);
+      setPos({ x, y });
+    };
+    const up = () => {
+      drag.current.active = false;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setPos((p) => {
+        if (p) try { localStorage.setItem(POS_KEY, JSON.stringify(p)); } catch {}
+        return p;
+      });
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
 
   async function send() {
     const msg = input.trim();
@@ -50,12 +99,12 @@ export function AgentChatWidget() {
 
   return (
     <>
-      {/* לחצן צף */}
+      {/* לחצן צף — צד ימין-למטה (מייקל 07-12) */}
       <button
         onClick={() => setOpen((o) => !o)}
         title="שיחה עם הסוכן"
         style={{
-          position: 'fixed', bottom: 18, left: 74, zIndex: 60,
+          position: 'fixed', bottom: 18, right: 20, zIndex: 60,
           width: 44, height: 44, borderRadius: 22, cursor: 'pointer',
           background: open ? 'var(--sys1, #6366f1)' : 'var(--bg-tertiary, #1f2430)',
           color: 'var(--text-primary, #e5e7eb)',
@@ -67,23 +116,28 @@ export function AgentChatWidget() {
         💬
       </button>
 
-      {open && (
+      {open && pos && (
         <div
           dir="rtl"
           style={{
-            position: 'fixed', bottom: 72, left: 18, zIndex: 60,
-            width: 380, height: 480, display: 'flex', flexDirection: 'column',
+            position: 'fixed', left: pos.x, top: pos.y, zIndex: 61,
+            width: W, height: H, display: 'flex', flexDirection: 'column',
             background: 'var(--bg-secondary, #141821)',
             border: '1px solid var(--border, #333a48)', borderRadius: 12,
             boxShadow: '0 10px 32px rgba(0,0,0,.55)', overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border, #333a48)',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* פס-כותרת גריר */}
+          <div
+            onPointerDown={onDragStart}
+            style={{ padding: '8px 12px', borderBottom: '1px solid var(--border, #333a48)',
+                     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                     cursor: 'grab', userSelect: 'none', touchAction: 'none' }}
+          >
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #e5e7eb)' }}>
-              הסוכן · שיחה על מצב-המערכת החי
+              ⠿ הסוכן · שיחה על מצב-המערכת החי
             </span>
-            <button onClick={() => setOpen(false)}
+            <button onClick={() => setOpen(false)} onPointerDown={(e) => e.stopPropagation()}
                     style={{ background: 'none', border: 'none', color: 'var(--text-muted, #7c8497)',
                              cursor: 'pointer', fontSize: 14 }}>✕</button>
           </div>
@@ -95,7 +149,8 @@ export function AgentChatWidget() {
                 שאל אותי על המערכת — למשל:<br />
                 ‏«מה סוג-היום עכשיו ולמה?»<br />
                 ‏«מה הסטופ של העסקה הפתוחה עושה?»<br />
-                ‏«אילו דגלים דלוקים על היעדים?»
+                ‏«אילו דגלים דלוקים על היעדים?»<br />
+                <span style={{ opacity: 0.7 }}>(אפשר לגרור את החלון מהכותרת)</span>
               </div>
             )}
             {turns.map((t, i) => (
