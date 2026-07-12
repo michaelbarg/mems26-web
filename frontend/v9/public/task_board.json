@@ -3,7 +3,7 @@
  "meta": {
   "title": "לוח-המשימות החי (DEV_BACKLOG)",
   "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
-  "updated": "2026-07-12 19:14",
+  "updated": "2026-07-12 19:37",
   "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
  },
  "tasks": [
@@ -125,15 +125,6 @@
    "next": "מחכה: תצפית-חיה · לפי הצורך"
   },
   {
-   "id": "WAIT-5",
-   "title": "P0-1-המלא (DEV-1) — reclass-בקבלה בכל הרמות",
-   "priority": "P2",
-   "status": "fixed_unverified",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
-   "next": "מחכה: פסיקת-הדלקה שלך · מילה אחת"
-  },
-  {
    "id": "VRF-1",
    "title": "3 תיקוני-DLL (EXIT, FLATTEN_ACCOUNT, עין-מצב) + אנטי-גרירת-יעד",
    "priority": "P1",
@@ -239,7 +230,16 @@
    "status": "done",
    "owner": "Cowork",
    "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
-   "next": "כפתור 💬 צף → חלון-שיחה עם Claude מקורקע בהקשר-חי (סוג-יום, עסקאות, דגלים, התראות); מפתח ב-.env בלבד; נבדק מקצה-לקצה בדפדפן"
+   "next": "כפתור 💬 צף → חלון-שיחה עם Claude מקורקע בהקשר-חי (סוג-יום, עסקאות, דגלים, התראות) + מפת-ידע וטעינת-מסמכים לפי נושא + עין-סיירה; מפתח ב-.env בלבד; נבדק מקצה-לקצה בדפדפן"
+  },
+  {
+   "id": "DONE-7",
+   "title": "P0-1-v2 reclass-בקבלה (07-12, דלוק)",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "קבלה בכל הרפרנסים (PDH/PDL/VA-אתמול/IB) ⇒ reclass מיידי + failed_breakout; replay==engine נתיב-אחד; 51 דגלים פסוקים, flag_guard PASS, drill GO; רפליי: 07-08 DOWN@09:35 · 06-30 Trend@10:00 · EOD ללא-ש…"
   },
   {
    "id": "IDEA-1",
