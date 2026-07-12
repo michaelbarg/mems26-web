@@ -91,14 +91,65 @@ def _live_context() -> str:
     return "\n".join(parts) or "(no live context available)"
 
 
+REPO_ROOT = os.path.expanduser("~/Downloads/mems26_web_git")
+
+# מפת-הידע של המערכת (מייקל 07-12): הצ'אט יודע איפה הכל מסודר, וטוען
+# קטעים רלוונטיים לפי נושא-השאלה (חסכוני בטוקנים — לא הכל בכל הודעה).
+KNOWLEDGE_MAP = """מפת-הידע של המערכת (הכל מאונדקס ומסודר):
+- SYSTEM_INDEX.md + _INDEX.md בכל תיקייה — מיקום כל קובץ/מערכת בקוד (792 קבצים).
+- docs/FLAG_INDEX.md — כל 130+ הדגלים: מצב, ברירת-מחדל, מה+למה, file:line.
+- config/RULED_FLAGS.yaml — 50 הדגלים הפסוקים ע"י מייקל (החוק).
+- docs/plans/DEV_BACKLOG.md — לוח-המשימות: לפיתוח/ממתין/בוצע, בעדיפויות.
+- docs/plans/STATUS_BOARD.md — יומן-הראיות: כל סגירה עם שורש+תיקון+אימות.
+- docs/plans/ROADMAP_TO_LIVE.html — מבט-על "אתה כאן".
+- docs/spec_authority/DALTON_DOCTRINE.md — התורה של S1 (דלתון) + נספח-סטטוס.
+- docs/reports/TARGETS_STOPS_TABLE_2026-07-13.md — איך נקבעים יעדים/סטופ פר יום×תבנית.
+- docs/SOURCE_OF_TRUTH.md — איזה מקור-דאטה קנוני פר אות.
+- docs/runbooks/ — פרוטוקולים (בוקר, קידום-למסחר, מק-שני, DLL)."""
+
+_TOPIC_FILES = [
+    (("משימ", "פיתוח", "בקלוג", "backlog", "תור", "עדיפו"), "docs/plans/DEV_BACKLOG.md", 3500),
+    (("דגל", "flag", "פסיק"), "docs/FLAG_INDEX.md", 3000),
+    (("יעד", "סטופ", "target", "stop", "מימוש"), "docs/reports/TARGETS_STOPS_TABLE_2026-07-13.md", 3500),
+    (("דלתון", "דוקטרינ", "סוג יום", "סוג-יום", "day type", "נייטרל", "trend", "מגמה"),
+     "docs/spec_authority/DALTON_DOCTRINE.md", 3000),
+    (("סטטוס", "מה קרה", "תקרית", "היסטורי", "אתמול"), "docs/plans/STATUS_BOARD.md", 3000),
+]
+
+
+def _knowledge_context(message: str) -> str:
+    """Load excerpts of the indexed docs relevant to the question's topic."""
+    msg = (message or "").lower()
+    chunks = []
+    for keywords, rel, budget in _TOPIC_FILES:
+        if any(k in msg for k in keywords):
+            try:
+                from pathlib import Path
+                p = Path(REPO_ROOT) / rel
+                if p.exists():
+                    text = p.read_text(encoding="utf-8", errors="ignore")
+                    # STATUS_BOARD: the tail is the recent truth; others: the head
+                    excerpt = text[-budget:] if "STATUS_BOARD" in rel else text[:budget]
+                    chunks.append(f"--- {rel} (קטע) ---\n{excerpt}")
+            except Exception:
+                pass
+        if len(chunks) >= 2:  # token budget: at most two docs per question
+            break
+    return "\n\n".join(chunks)
+
+
 SYSTEM_PROMPT = """אתה הסוכן של MEMS26 — מערכת מסחר אוטונומית ב-MES (Market Profile/דלתון,
 מערכות S1-S6, סטופים מבניים, יעדי-ריאליזם). ענה למייקל בעברית, קצר ומדויק,
-תמיד על בסיס ההקשר-החי המצורף — אל תמציא נתונים שאינם בו. אם המידע לא בהקשר,
-אמור זאת והפנה למקום הנכון (דשבורד /trades, DEV_BACKLOG.md, STATUS_BOARD.md).
+תמיד על בסיס ההקשר המצורף — אל תמציא נתונים שאינם בו. אם המידע לא בהקשר,
+אמור זאת והפנה למקום הנכון לפי מפת-הידע.
 אל תמליץ לבצע פעולות מסחר ואל תשנה שום דבר — אתה עונה ומסביר בלבד.
 
+{knowledge_map}
+
 הקשר חי:
-{context}"""
+{context}
+
+{topic_docs}"""
 
 
 @router.post("/chat")
@@ -118,7 +169,11 @@ async def agent_chat(body: ChatIn, _token: str = Depends(verify_bridge_token)):
     payload = {
         "model": MODEL,
         "max_tokens": MAX_TOKENS,
-        "system": SYSTEM_PROMPT.format(context=_live_context()),
+        "system": SYSTEM_PROMPT.format(
+            knowledge_map=KNOWLEDGE_MAP,
+            context=_live_context(),
+            topic_docs=_knowledge_context(body.message),
+        ),
         "messages": messages,
     }
     try:
