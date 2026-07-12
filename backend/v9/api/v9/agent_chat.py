@@ -168,6 +168,18 @@ SYSTEM_PROMPT = """אתה הסוכן של MEMS26 — מערכת מסחר אוט�
 {topic_docs}"""
 
 
+@router.get("/backlog_board")
+async def backlog_board():
+    """הלוח החי לדף /board — נפרס מ-DEV_BACKLOG.md בכל קריאה (לא יכול להתיישן).
+    ‏read-only ללא-טוקן, כמו health — מוגש רק על localhost."""
+    try:
+        from backend.v9.services.backlog_board import build_board
+        return build_board()
+    except Exception as e:
+        logger.warning("[backlog_board] %s", e)
+        raise HTTPException(status_code=500, detail=f"backlog parse error: {e}")
+
+
 @router.post("/chat")
 async def agent_chat(body: ChatIn, _token: str = Depends(verify_bridge_token)):
     api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()

@@ -1,8 +1,9 @@
 'use client';
 
-// Live, prioritized task/issue board. Reads /task_board.json (a static file both
-// Cowork and Claude Code edit + keep in lockstep with docs/plans/LIVE_FIX_JOURNAL.md).
-// No backend dependency — safe to run on a real-money-live day.
+// Live, prioritized task board. Source of truth: docs/plans/DEV_BACKLOG.md,
+// parsed live by GET /api/v9/agent/backlog_board (can never go stale — Michael
+// 07-12, after the static file froze on 07-10 while the backlog moved on).
+// Falls back to the generated static /task_board.json when the backend is down.
 
 import { useCallback, useEffect, useState } from 'react';
 import { groupByLane, priorityCounts } from './boardLogic.mjs';
@@ -39,13 +40,28 @@ export function StatusBoardPanel() {
   const [board, setBoard] = useState<Board | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fetchedAt, setFetchedAt] = useState<string>('');
+  const [source, setSource] = useState<'live' | 'static' | ''>('');
 
   const load = useCallback(async () => {
+    // 1) המקור החי: DEV_BACKLOG.md נפרס בבקאנד בכל קריאה — לא יכול להתיישן
+    try {
+      const live = await fetch('http://localhost:8000/api/v9/agent/backlog_board',
+        { cache: 'no-store', signal: AbortSignal.timeout(2500) });
+      if (live.ok) {
+        setBoard(await live.json());
+        setError(null);
+        setSource('live');
+        setFetchedAt(new Date().toLocaleTimeString());
+        return;
+      }
+    } catch { /* בקאנד לא זמין → נפילה לקובץ הסטטי */ }
+    // 2) גיבוי: הקובץ הסטטי שנוצר ע"י scripts/gen_task_board.py
     try {
       const res = await fetch('/task_board.json', { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       setBoard(await res.json());
       setError(null);
+      setSource('static');
       setFetchedAt(new Date().toLocaleTimeString());
     } catch (e) {
       setError(e instanceof Error ? e.message : 'load failed');
@@ -92,6 +108,7 @@ export function StatusBoardPanel() {
       <div style={{ fontSize: 11, color: 'var(--text-muted, #8b949e)', marginTop: 4 }}>
         {meta.priority_note}{meta.updated ? ` · updated ${meta.updated.slice(0, 16).replace('T', ' ')}` : ''}
         {fetchedAt ? ` · fetched ${fetchedAt}` : ''}
+        {source === 'live' ? ' · 🟢 חי מ-DEV_BACKLOG' : source === 'static' ? ' · 🟡 קובץ-גיבוי (בקאנד לא זמין)' : ''}
       </div>
 
       {meta.indexes && meta.indexes.length > 0 && (

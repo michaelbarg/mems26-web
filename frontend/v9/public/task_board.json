@@ -1,462 +1,353 @@
 {
-  "_readme": "MEMS26 canonical live task board. BOTH Cowork and Claude Code edit this file and keep it in lockstep with docs/plans/LIVE_FIX_JOURNAL.md. Priority: P0=real-money blocker, P1=live-path, P2=nice. Rendered live at /board. When an item changes, update status + next + evidence here AND the journal.",
-  "meta": {
-    "title": "MEMS26 — Live Task Board",
-    "subtitle": "לוח משימות חי — עדיפות, בעלים, ולאן לפנות",
-    "updated": "2026-07-10T23:09:00+03:00",
-    "priority_note": "P0 = real-money blocker · P1 = live path · P2 = nice · ⚡ 07-09: LIVE עם 3 חוזים (פסיקת מייקל)",
-    "indexes": [
-      {
-        "label": "System Index",
-        "path": "SYSTEM_INDEX.md"
-      },
-      {
-        "label": "Source of Truth",
-        "path": "docs/SOURCE_OF_TRUTH.md"
-      },
-      {
-        "label": "Flag Index",
-        "path": "docs/FLAG_INDEX.md"
-      },
-      {
-        "label": "Live Fix Journal",
-        "path": "docs/plans/LIVE_FIX_JOURNAL.md"
-      },
-      {
-        "label": "Status Board",
-        "path": "docs/plans/STATUS_BOARD.md"
-      }
-    ]
+ "_readme": "GENERATED from docs/plans/DEV_BACKLOG.md — do not hand-edit; run scripts/gen_task_board.py or use the live endpoint.",
+ "meta": {
+  "title": "לוח-המשימות החי (DEV_BACKLOG)",
+  "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
+  "updated": "2026-07-12 14:40",
+  "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
+ },
+ "tasks": [
+  {
+   "id": "DEV-1",
+   "title": "P0-1-המלא: reclass-בקבלה בכל הרמות",
+   "priority": "P1",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "היום סיווג-מחדש מהיר קורה רק בפריצת-IB. דלתון: קבלה מעל/מתחת VA-של-אתמול, אזור-balance או גאפ = \"המצב השתנה\" — הסיווג חייב לזוז מיד. משלים את שרשרת-הדוקטרינה."
   },
-  "tasks": [
-    {
-      "id": "MEGA-0709",
-      "title": "CC מגה-השלמות: FIX-5 חזרה + חיווט reconciler + פריסה + תור D1-D5",
-      "status": "phase_b_deployed",
-      "owner": "CC",
-      "opened": "2026-07-09 20:00",
-      "priority": "P0",
-      "doc": "docs/handoff/CC_MEGA_COMPLETIONS_2026-07-09.md",
-      "note": "Phase B פרוס ע'י Cowork (משימת-לילה 23:12 IDT): kickstart backend pid 64123→72880 · 5 דגלי-fixpack חיים · flag_guard PASS 39 · fire_drill 🟢 · mems26_verify OK · S6 חודש · 333 יושרה · snapshot 20260709T195756Z. פאזה A אומתה 17/17. ⚠ reconciler(FIX-6) יורה DIVERGENCE שקרי (TM=0 מול -2): מקור=trade_activity re-export מתגלגל, אורדרים 8650-8662 לא ב-fills journal=לא-MEMS26; log-only אפס פעולת-מסחר → תור-D: לתקן מקור-סיירה של הריקונסיילר."
-    },
-    {
-      "id": "S1-FLAP",
-      "title": "S1: ריצוד Nontrend↔Normal↔Variation בנתיב החי + כותב v9_day_type_state מת",
-      "status": "done_pending_ruling",
-      "owner": "צ'אט-S1",
-      "opened": "2026-07-09 19:4x",
-      "priority": "P0",
-      "doc": "docs/handoff/PROMPT_S1_FLAPPING_2026-07-09.md",
-      "note": "3572aec flag-OFF, 8/8; ממתין: הדלקה+hold+writer-revive"
-    },
-    {
-      "id": "PANEL-0709",
-      "title": "פאנל-צד: Plan בלי לינקים + איך-מתגבשת פר-תבנית + Shadow אמיתי + סדר בכל הלשוניות",
-      "status": "open",
-      "owner": "צ'אט-מערכות",
-      "opened": "2026-07-09 19:4x",
-      "priority": "P1",
-      "doc": "docs/handoff/PROMPT_SYSTEMS_PLAN_PANEL_2026-07-09.md"
-    },
-    {
-      "id": "FIXPACK-0709",
-      "title": "חבילת תיקוני-אמת (R:R חתום · clamp מוגן-IB · detector שפוי · #68 pre-lock · cont-trend cert · reconciler-סיירה)",
-      "status": "done_with_audit_gaps",
-      "owner": "CC",
-      "opened": "2026-07-09 19:4x",
-      "priority": "P0",
-      "doc": "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md",
-      "note": "16/17; FIX-5 נמחק ברגרסיה; reconciler לא חווט → MEGA"
-    },
-    {
-      "id": "INC-333",
-      "title": "תקרית 333: יעדים מורעלים מתחת לכניסה + מימושים פיקטיביים — רשומה מיושרת, מייקל מנהל ידנית",
-      "status": "done",
-      "owner": "Cowork",
-      "opened": "2026-07-09 19:4x",
-      "priority": "P0",
-      "note": "רשומה יושרה ל-Sierra fills (23:12): contracts 3→2 · רגל-3 VOID · t1_hit_ts 15:50Z פיקטיבי→17:10:35Z · MANUAL-MANAGED · יציאות פר-רגל 7588.5×2 (Sierra net +55$×2=110$). pnl_usd 117.5 ברוטו הושאר + net ב-quality (gross/net→מייקל). הרשומה כבר הראתה WIN 7588.5 בעת היישור — פרמיסת ה−102.5$ התיישנה."
-    },
-    {
-      "id": "BLOCKER-1",
-      "title": "Live orders execute in Sierra — RESOLVED (2 live trades succeeded)",
-      "priority": "P0",
-      "status": "done",
-      "owner": "CC",
-      "where": "Sierra live account 37138283 — was an arming issue, not our code (same DLL passed SIM)",
-      "next": "Confirm both live trades appear in the Live Ledger with correct fills/P&L (L8)",
-      "evidence": "RESOLVED 2026-07-07 eve — Michael: 2 live trades executed, BOTH succeeded. (Earlier 303 ORDER_FAILED was live-arming; SIM 8418 error=0 on the same DLL.)",
-      "links": [
-        {
-          "label": "handoff",
-          "path": "docs/handoff/CC_CONTINUATION_2026-07-07.md"
-        }
-      ]
-    },
-    {
-      "id": "DRILL-0709-FINAL",
-      "title": "✅ דריל-סים סופי הושלם — הלולאה האוטומטית הוכחה (T1→סטופ זז לבד בסיירה)",
-      "priority": "P0",
-      "status": "done",
-      "owner": "Cowork+CC",
-      "where": "עסקאות 324-327 + drill_rev (SELL)",
-      "next": "נשאר ל-CC (לא חוסם): אופ EXIT ב-DLL שבור (error=-1, פעמיים+CC) — סגירה-חלקית-ידנית בלבד; קפאון שדה last-trade ב-live_price",
-      "evidence": "T1 fill→MODIFY_STOP_OK error=2 אוטומטי (13:48) · באג structure-trail h/l נתפס+תוקן (14744a8) · NAKED=0 מאז ה-DLL החדש · SELL-3 reverse SUBMITTED+ids+CANCEL_OK · ORPHAN alarm ירה נכון על fill לא-ממופה (SYS-2 חי) · endpoint הדריל עבר ל-bid/ask mid (4ee4e64)",
-      "links": []
-    },
-    {
-      "id": "CONTRACTS-3",
-      "title": "⚡ 3 חוזים — VERIFIED (דריל 07-09: bracket+stop-move+target-move+exit flatten)",
-      "priority": "P0",
-      "status": "verified_live",
-      "owner": "מייקל+CC",
-      "where": "FIXED_CONTRACTS_2=0, _3=1 · RULED_FLAGS 32 · TRADING_SPEC SIZE-1 · ריסטארט 10:13 · effective=3 · דריל GO",
-      "next": "CC: ירי SIM ‏3 חוזים = 3 קבוצות OCO + N/3 + סגירה-ב-T3",
-      "evidence": "snapshot 20260709T071339Z · flag_guard 32/32 · fire_drill 🟢 · מייקל אישר 07-09: 3 חוזים נשארים; מתמטיקת-סיכון מוסכמת — הסיכון מבני-פר-עסקה ($30–$150 טיפוסי, $180–195 רק בתקרת-היפוך), לא קבוע",
-      "links": []
-    },
-    {
-      "id": "AUTH-KEY-BYPASS",
-      "title": "🔴→✅ טבלת-ההרשאות הנעולה של מייקל נעקפה בשקט — mismatch מפתחות (תוקן, ממתין לריסטארט)",
-      "priority": "P0",
-      "status": "fixed_unverified",
-      "owner": "Cowork→CC",
-      "where": "stop_anchors/sizing.py _auth_cell — החיפוש ('Reactive',יום) מול מפתחות 'REACTIVE_LONG/SHORT' → כל היום 'using max'",
-      "next": "VERIFIED 07-09: zero S2 no-auth-cell post-restart + INITIATIVE×Neutral SKIP confirmed in table + code path",
-      "evidence": "51d531c · CC 07-09 3ef46e3: 0 S2 auth warnings post-21:43 restart (key fix works). INITIATIVE×Neutral_Extreme/Center/Normal/Nontrend = SKIP in AUTH_TABLE_V1. Pre-restart 16:45 log: T1Setup skipped INITIATIVE_LONG day_type=UNKNOWN. S4 residual (ZLR/GHOST) expected — not in S2 auth table by design.",
-      "links": []
-    },
-    {
-      "id": "L2",
-      "title": "✅ Stop-move reaches Sierra — VERIFIED LIVE (drill 07-09)",
-      "priority": "P0",
-      "status": "verified_live",
-      "owner": "CC",
-      "where": "backend/v9/services/trade_manager/manager.py:102 _is_demo_mode · :119 _emit_modify_stop · :391 _apply_smart_be_after_t1",
-      "next": "CLOSED — verified in drill 07-09. Bug found+fixed: DLL MODIFY_STOP read stale persistent slots → now reads stop_ids from command JSON (13ae491)",
-      "evidence": "Drill 07-09 trade 324: MODIFY_STOP_OK error=3 (all 3 stops moved 7507→7512). Also: MODIFY_TARGET_OK (trade 325 C2). Also: exit CANCEL_OK (flatten before DB close). Evidence: docs/reports/evidence_2026-07-09/dll_ids_verified.md",
-      "links": [
-        {
-          "label": "journal",
-          "path": "docs/plans/LIVE_FIX_JOURNAL.md"
-        }
-      ]
-    },
-    {
-      "id": "S1-STATE-PERSIST",
-      "title": "מצב S1 נמחק בריסטארט — Neutral_Extreme 0.48 חזר ל-Variation 0.18 (07-08 20:44)",
-      "priority": "P1",
-      "status": "open",
-      "owner": "צ'אט-S1",
-      "where": "day_type state machine — צבירה תוך-יומית בזיכרון; hydration חלקי אחרי kickstart",
-      "next": "להתמיד את מצב-המכונה (ברים/votes/sides/lock) ל-DB ולשחזר מלא בבוט; קריטריון: ריסטארט באמצע יום משחזר את אותו סיווג+ביטחון בדיוק",
-      "evidence": "07-08: לפני ריסטארט 20:44 = Neutral_Extreme 0.48; אחריו = Variation 0.18. לקח תפעולי: אין ריסטארט מיד-סשן אלא אם קריטי",
-      "links": []
-    },
-    {
-      "id": "S6-AGENT",
-      "title": "מערכת 6 → סוכן מנהל-עסקאות (סטופ חכם + מימוש חכם + לוג EOD)",
-      "priority": "P1",
-      "status": "in_progress",
-      "owner": "Cowork+Michael",
-      "where": "שלב 1 חי: scripts/s6_eod_report.py (שיפוט סטופ×ATR, T1 מול MFE, wick-out) מתוזמן 23:05 · AUTOCORRECT קיים flag-OFF",
-      "next": "שלב 2: התרעות תוך-עסקה · שלב 3: AUTOCORRECT מוגבל (BE/target-side, פסיקת מייקל) · שלב 4: ניהול מלא אחרי baseline",
-      "evidence": "מייקל 07-08: 'סטופ חכם, מימוש חכם, מערכת 6 בודקת, לוג EOD, להפוך לסוכן'. דוח ראשון נכתב הערב (7 עסקאות)",
-      "links": []
-    },
-    {
-      "id": "S6-BAND-0708",
-      "title": "מערכת 6 EOD 07-08: 3 סטופים מעל תקרת ×ATR — שער-הגודל לא קיצץ (כולל עסקה 310 חיה)",
-      "priority": "P1",
-      "status": "open",
-      "owner": "Cowork+CC",
-      "where": "size-gate / stop_anchors sizing — ATR-14=6.3 נק' היום; התקרה ~1.6×ATR (311 ב-1.59× עדיין 🟢, 309 ב-1.75× כבר 🟡 רחב)",
-      "next": "מחר: לבדוק למה שער-הגודל לא קיצץ חוזים כשמרחק-הסטופ>~1.6×ATR; לאמת שהתקרה חלה על mode=live (עסקה 310) ולא רק shadow",
-      "evidence": "S6_EOD_2026-07-08.md — המלצות מערכת-6: עסקה 312 סטופ 12.5 נק' (1.99×), עסקה 310 LIVE סטופ 12.5 נק' (1.99×), עסקה 309 סטופ 11.0 נק' (1.75×) — כולן 🟡 מעל תקרה. אין wick-out/יעד-לא-בר-השגה היום (עמודות T1/MFE ריקות — סגירות ידניות/stale-cleanup)",
-      "links": [
-        {
-          "label": "S6 EOD",
-          "path": "docs/reports/system6/S6_EOD_2026-07-08.md"
-        }
-      ]
-    },
-    {
-      "id": "S6-BAND-0709",
-      "title": "מערכת 6 EOD 07-09: כל 5 האותות האמיתיים 🟢 ברצועה; 9 ההמלצות כולן על עסקאות SIM_TEST (דריל) — לסנן דרילים מהדוח + עמודת מימוש ריקה",
-      "priority": "P1",
-      "status": "open",
-      "owner": "Cowork+CC",
-      "where": "scripts/s6_eod_report.py — שיפוט-הרצועה כולל עסקאות demo/SIM_TEST (316-327, דריל 3-החוזים של היום); הסטופים 0.2 נק' (0.07×ATR) ו-8.0 נק' (2.27×ATR) הם ערכי-דריל סינתטיים, לא פלט ה-smart-stop על אות אמיתי. ATR-14≈3.5 נק' היום",
-      "next": "מחר: (1) לסנן SIM_TEST/demo-drill משיפוט-הרצועה של S6 EOD — 9/9 ההמלצות הן רעש-דריל שיכול להסתיר הפרה אמיתית; (2) עמודות 'T1 מול MFE' ו'שיפוט-מימוש' ריקות בכל 15 העסקאות → אין גילוי wick-out / יעד-לא-בר-השגה; לחווט MFE + מחיר-fill של T1 לדוח (קשור L6 / TP-AUDIT-RESEARCH)",
-      "evidence": "S6_EOD_2026-07-09.md — 5 אותות אמיתיים כולם 🟢 ברצועה: 334 REACTIVE_SHORT 0.85× (STOP -45$), 333 LIVE REACTIVE_LONG 1.28× (ידני +117.5$), 332 REACTIVE_LONG 1.28× (T3 -153.75$), 330 ZLR 0.78× (T3 -116.25$), 328 ZLR 1.28× (T3 -112.5$). 9/9 ההמלצות על SIM_TEST: 5× 🔴 0.07×ATR ('לבדוק עוגן') + 4× 🟡 2.27×ATR ('שער-הגודל אמור לקצץ'). שיפור מול 07-08 שהיו בו 3 הפרות-רצועה אמיתיות כולל 310 LIVE — היום אין wick-out/יעד-לא-בר-השגה בקוד",
-      "links": [
-        {
-          "label": "S6 EOD",
-          "path": "docs/reports/system6/S6_EOD_2026-07-09.md"
-        }
-      ]
-    },
-    {
-      "id": "S6-BAND-0710",
-      "title": "מערכת 6 EOD 07-10: 5 סטופים רחבים מעל תקרת ×ATR ששער-הגודל לא קיצץ (כולל 2 LIVE — 340,337) + 4 סטופי-ZLR 0.08×ATR מתחת-לרצועה",
-      "priority": "P1",
-      "status": "open",
-      "owner": "Cowork+CC",
-      "where": "size-gate / stop_anchors sizing — ATR-14≈3.1 נק' היום, תקרה ~2×ATR. 5 הפרות-תקרה: 340 LIVE REACTIVE_SHORT 7.8נק'/2.48× (STOP +6.25$), 339 shadow 7.8נק'/2.48× (STOP −77.5$ = ההפסד הגדול של היום), 337 LIVE REACTIVE_SHORT 6.2נק'/2.00× (ידני 0$), 338 shadow ZLR 6.8נק'/2.16× (T2 +70$), 336 shadow REACTIVE_SHORT 6.2נק'/2.00× (T2 +75$)",
-      "next": "מחר: (1) 🔴 חוזר מ-S6-BAND-0708: שער-הגודל לא מקצץ חוזים כשמרחק-הסטופ>~2×ATR — הפעם על 2 עסקאות LIVE (340,337) → לאמת שהתקרה חלה על mode=live ולקצץ; (2) לסנן SIM_TEST/demo-drill מ-4 סטופי-ה-ZLR 0.08×ATR (345/348/353/356, עדיין פתוח מ-S6-BAND-0709) או לתקן עוגן-ZLR אם אמיתיים; (3) עמודות 'T1 מול MFE'+'שיפוט-מימוש' ריקות בכל 23 העסקאות → אין גילוי wick-out/יעד-לא-בר-השגה (L6/TP-AUDIT)",
-      "evidence": "S6_EOD_2026-07-10.md — Variation conf 0.38, ATR≈3.1 נק', 23 עסקאות, 9 המלצות: 5× 🟡 מעל-תקרה (2.00–2.48×ATR, 2 מהן LIVE) + 4× 🔴 מתחת-רצועה (0.08×ATR, כולן ZLR). כל השורטים המוקדמים (336-340) עם סטופ רחב; ההפסד הגדול 339 −77.5$. אין עמודות מימוש → wick-out/יעד לא נבדקים בקוד",
-      "links": [
-        {
-          "label": "S6 EOD",
-          "path": "docs/reports/system6/S6_EOD_2026-07-10.md"
-        }
-      ]
-    },
-    {
-      "id": "REPLAY-EMPTY",
-      "title": "classify_replay מחזיר 0 שורות להיום — endpoint האימות של S1 שבור",
-      "priority": "P2",
-      "status": "open",
-      "owner": "צ'אט-S1",
-      "where": "/api/v9/day_type/classify_replay?date=2026-07-08 → rows:0 (נבדק פעמיים 07-08 ערב)",
-      "next": "לתקן במסגרת עבודת ה-S1 — ה-replay הוא כלי-הקבלה של כל שיפורי דלתון",
-      "evidence": "בדיקות 19:37 + 21:10",
-      "links": []
-    },
-    {
-      "id": "STALE-BAR-SPAM",
-      "title": "בר ישן (2026-06-09) נדחף שוב ושוב ל-/bars/5min — שומר-הטריות חוסם, למצוא את המקור",
-      "priority": "P2",
-      "status": "open",
-      "owner": "CC",
-      "where": "[bars/5min] _route_bar BLOCKED stale_ts — repeating since 19:02 restart; המקור כנראה קובץ export ישן שה-bridge מקריא",
-      "next": "לאתר מי דוחף (bridge stream? קובץ v9_export ישן?) ולנקות; הגארד עובד — לא חוסם מסחר",
-      "evidence": "לוג 07-08 19:02+ — כל דקה בר 2026-06-09T13:30 · ציד 07-08 ערב: קבצי ה-export נקיים (אין 2026-06-09) → החשוד: stream bars_5min הלא-רציף של ה-bridge מחזיק/קורא מקור ישן — CC לבדוק את נתיב הקובץ של הstream + זיכרון התהליך",
-      "links": []
-    },
-    {
-      "id": "L2-RESIDUAL",
-      "title": "Stop-move silent drop — FIXED IN CODE (order-id map at submit + warnings)",
-      "priority": "P1",
-      "status": "fixed_unverified",
-      "owner": "CC",
-      "where": "fill_poller.py _register_submitted_order (maps parent/target/stop ids at ORDER_SUBMITTED ack + persists sierra_order_id) · manager.py _warn_emit_skipped (MODIFY_STOP/TARGET/EXIT skips now WARN, rate-limited; shadow stays silent)",
-      "next": "CC after restart: verify a live trade gets its order-id at submit (log '[FillPoller] registered order') and no 'SKIPPED' warnings on a real stop-move (Rule 5)",
-      "evidence": "Cowork 2026-07-08 d999698 — test_fill_order_map.py 5/5; on OLD code 4/5 FAIL (anti-tautological). Requires backend restart to be live",
-      "links": []
-    },
-    {
-      "id": "L8",
-      "title": "Sierra-sourced LIVE ledger + manual-detect — BUILT + COMMITTED, deploy owed (investor-critical)",
-      "priority": "P0",
-      "status": "in_progress",
-      "owner": "CC+Cowork",
-      "where": "engine backend/v9/services/sierra_ledger.py · endpoint /api/v9/live_ledger (wired app.py) · UI /board LiveLedgerPanel · flag LIVE_LEDGER_V1 (documented in FLAG_INDEX)",
-      "next": "CC (ONE restart covers L8+L7+L2r): snapshot → LIVE_LEDGER_V1=1 → kickstart when FLAT → feed the TradeActivityLog (sierra_stop + stop-move history) → verify V1–V5 vs the 2 real trades (Rule 5)",
-      "evidence": "Committed 2026-07-08: 6bb25ce (engine+endpoint+tests 7/7) + 9f0a64a (board components). Fills-only P&L works; stop-history/manual-stop need the activity log (CC).",
-      "links": [
-        {
-          "label": "spec",
-          "path": "docs/handoff/CC_SIERRA_LIVE_LEDGER_2026-07-07.md"
-        },
-        {
-          "label": "today",
-          "path": "docs/handoff/CC_CONTINUATION_2026-07-08.md"
-        }
-      ]
-    },
-    {
-      "id": "L1",
-      "title": "A7 — תוקן ואומת חי (רצועת סטופ 0.5×ATR)",
-      "priority": "P1",
-      "status": "fixed_verified_live",
-      "owner": "CC",
-      "where": "backend/v9/systems/woodies/woodies_system.py:668 (fallback insufficient/not reached) · stages/a7_universal_checks.py",
-      "next": "URGENT: diagnose WHICH A7 sub-check fails (add the failing-check name to the DROPPED log line), fix the root, restart when flat — this is a BUG fix, not a gate change",
-      "evidence": "תוקן 07-08 (15de2c4+0107a12 רצועת-ATR): מאז 19:02 אפס A7-drops — ZLR הגיעו ל-gateway (נחסמו ב-cont_trend_filter שחסך 2 סטופים ב-7479)",
-      "links": [
-        {
-          "label": "journal",
-          "path": "docs/plans/LIVE_FIX_JOURNAL.md"
-        }
-      ]
-    },
-    {
-      "id": "L7",
-      "title": "2-contract SYMMETRY — FIXED IN CODE (count persisted; close/P&L/R/display read n)",
-      "priority": "P1",
-      "status": "fixed_unverified",
-      "owner": "CC",
-      "where": "sierra_command.effective_contracts (single source) → accept_setup persists quality.contracts → manager close-at-last-target (2c→T2) + P&L legs [:n] + R n× · trades.py 'N/n hit' · fill_poller frees slot on T1/T2 close · setup_emitter floor honors _2. DLL already symmetric (group2>=2/group3>=3)",
-      "next": "CC: one SIM 2c fire → exactly 2 targets in bracket+display, trade CLOSES at T2, slot freed, P&L=2 legs (Rule 5). Requires backend restart",
-      "evidence": "Cowork 2026-07-08 d999698 — test_l7_two_contract_symmetry.py 6/6; OLD code 1/6 (2c stop-out was 3× the loss, T2 left PARTIAL forever, slot stuck, 3c T3-close undercounted). Regression: 830 passed / 12 failed == pre-existing set",
-      "links": []
-    },
-    {
-      "id": "L3",
-      "title": "Monitor shows SHADOW as 'live' + no P&L",
-      "priority": "P1",
-      "status": "open",
-      "owner": "CC",
-      "where": "frontend DemoMonitor.tsx · backend/v9/api/v9/trades.py:223",
-      "next": "Fix the mode/label + P&L wiring in the supervision monitor",
-      "evidence": "trade #301 = SHDW in the table but 'live' in the monitor, +$0, 'not monitoring'",
-      "links": []
-    },
-    {
-      "id": "L4",
-      "title": "Live fill capture on a real fill (not just the demo fallback)",
-      "priority": "P1",
-      "status": "open",
-      "owner": "CC+Cowork",
-      "where": "backend/v9/services/fill_poller.py (I-58 fallback) · shared root with L2-RESIDUAL",
-      "next": "Verify FIRST LIVE trade today: entry_price comes from Sierra fill (registered order), not setup price (L4 class root cause). Trade 310 was corrected manually from TradeActivityLog",
-      "evidence": "order_id 8424 unmapped → fallback to demo 297; not proven on a live fill. Trade 310 reconciled 07-09: DB entry=7514→7515.50, pnl=$45→$22.50 from Sierra TradeActivityLog (audit trail in quality JSON)",
-      "links": []
-    },
-    {
-      "id": "L5",
-      "title": "Day-type lag — Normal held too long, misses Variation/Trend fires",
-      "priority": "P2",
-      "status": "open",
-      "owner": "CC",
-      "where": "rel_features.py (vol_accept_frac=0.08 / ext_hold_bars=2) · task #22 (B1/B2/B3)",
-      "next": "Build flag-OFF + backtest net-R before enable; do NOT loosen R:R/entry-confirm",
-      "evidence": "07-06: Normal held to ~18:00 while price broke IB → auth-SKIP 3 INITIATIVE_LONG",
-      "links": []
-    },
-    {
-      "id": "L6",
-      "title": "T1/T2 P&L from Sierra fill (not bar-price)",
-      "priority": "P2",
-      "status": "open",
-      "owner": "CC",
-      "where": "manager.py on_target_hit (fill_price path) · task #17",
-      "next": "Confirm T1/T2 P&L uses the Sierra fill price, like STOP/T3",
-      "evidence": "T1/T2 fall through to level, not strictly Sierra fill",
-      "links": []
-    },
-    {
-      "id": "S1-DALTON",
-      "title": "מערכת 1 לומדת מדלתון — הדוקטרינה נכתבה; לבצע את ה-backlog",
-      "priority": "P1",
-      "status": "in_progress",
-      "owner": "Cowork+Michael",
-      "where": "docs/spec_authority/DALTON_DOCTRINE.md (התורה — עם הפניות עמודים) · הספר: docs/spec_authority/source/Dalton_Mind_over_Markets.pdf",
-      "next": "פסיקת מייקל: (1) הדלקת 3 דגלי-P0 — S1_ACCEPTANCE_RECLASS_V1/S1_COMMITTED_PROVISIONAL_V1/S1_CONFIDENCE_V2 (שינוי משטח-סיכון); (2) פרמיסת 07-08 (הסשן המלא היה Neutral_Extreme, לא Trend יורד — הרגל-היורדת הייתה תוך-יומית); ואז P1 (one_tf/elongation) + P0-1 v2 (prior-range/balance + failed_break producer) + surfacing P0-3 (להסתיר 0.46 הישן כש-S1_ENGINE_NEW_CLASSIFIER=1).",
-      "evidence": "Cowork 2026-07-08 95d411b — P0-1/2/3 בנויים flag-OFF; test_s1_dalton_p0.py 16/16 (10 נופלים על קוד ישן, אנטי-טאוטולוגי); suite day_type 39/39; REPLAY-EMPTY תוקן (_bars_for_date fallback ל-v9_bars_5min). replay 07-08: P0-2 provisional@30דק'; P0-1 לא כפה Trend כי היום היה דו-צדדי→Neutral_Extreme (נכון, תואם עסקה 310 LONG).",
-      "links": []
-    },
-    {
-      "id": "MORNING-BRIEFING",
-      "title": "סקריפט בריפינג-בוקר אוטומטי לפי LIVE_MORNING_PROTOCOL",
-      "priority": "P1",
-      "status": "done",
-      "owner": "Cowork",
-      "where": "docs/runbooks/LIVE_MORNING_PROTOCOL.md (התבנית) · scripts/morning_briefing.py (לבנות)",
-      "next": "מפיק BRIEF_<date>.md: מה S1/S2/S4/S6 מחפשות היום + ATR→טווחי-סטופ מספריים + תאי-auth חסרים + GO/NO-GO; ריצה מתוזמנת 16:00 IL",
-      "evidence": "scripts/morning_briefing.py נבנה+הורץ 07-08 (ATR 7.3 → רצועות סטופ מספריות); חלק מהריצה המתוזמנת 15:55",
-      "links": []
-    },
-    {
-      "id": "PRE-OPEN-FIREDRILL",
-      "title": "🔴 פרוטוקול בוקר: ירי-יבש של כל שרשרת ההחלטה לפני פתיחה (GO/NO-GO אמיתי)",
-      "priority": "P0",
-      "status": "done",
-      "owner": "Cowork",
-      "next": "רץ אוטומטית כל בוקר; להוסיף תבניות סינתטיות מלאות (דטקציה אמיתית) בהמשך",
-      "where": "docs/runbooks/PRE_TRADE_PROTOCOL.md (היום בודק צנרת, לא החלטות) · הפער שעלה 07-08: 'הכל תקין' כיסה feed/flags/flat אבל לא את שרשרת הירי — באג הסטופ 1pt היה נתפס ב-16:00 במקום 18:30",
-      "evidence": "נבנה+הורץ 07-08 ערב: flag_guard 28 דגלים PASS · דריל 🟢 GO על המערכת החיה (תפס באג-env של עצמו בריצה 1). מתוזמן 15:55 IL ימי-חול",
-      "links": []
-    },
-    {
-      "id": "MISSED-0708",
-      "title": "יום 07-08 (Trend_DD יורד) — 0 עסקאות: כל שורט נחסם בשער אחר",
-      "priority": "P1",
-      "status": "open",
-      "owner": "Cowork+Michael",
-      "where": "A7 (3 ZLR) · entry-confirm 18:00 (c-o=3 ticks) · R:R 18:14 (T1=3.5 vs stop=7.25) · auth table חסרה תאים ל-(Reactive/ZLR/FAMIR)×(Trend_DD/Variation) → contracts=0 ב-18:20",
-      "next": "EOD: כימות R שהוחמץ פר-שער · פסיקות מייקל: תאי auth ל-Trend_DD/Variation, טולרנס בר-אישור, מיקום T1 (target-zones) · A7=L1 תיקון באג",
-      "evidence": "לוג 07-08: FiveMin ירה REACTIVE/BEAR_FLAG SHORT ‏17:30/17:40/17:50/18:00 — אפס הגיעו לסיירה. גולדן-פיקסצ'ר ליום-DD · עדכון ערב: A7 תוקן+אומת, בר-אישור עם סובלנות, auth-key תוקן — 3 מ-4 שורשי-היום סגורים בקוד",
-      "links": []
-    },
-    {
-      "id": "SIERRA-SEPARATE",
-      "title": "הפרדת עסקאות מערכת מעסקאות ידניות של מייקל בסיירה",
-      "priority": "P2",
-      "status": "open",
-      "owner": "Cowork+Michael",
-      "where": "רמה 1 (קיים): הלדג'ר L8 מתייג SYSTEM לפי order_id מהמערכת, כל השאר MANUAL · רמה 2 (מלא): Trade Account נפרד בסיירה למערכת — ה-DLL כבר מקבל account מהפקודה",
-      "next": "מייקל: לפתוח sub-account בסיירה למסחר ידני (או להפך) → עדכון account ב-.env + אימות; עד אז ההפרדה הלוגית בלדג'ר עובדת",
-      "evidence": "Michael 2026-07-08: 'שעסקאות חדשות של המערכת יהיו נפרדות משלי — זה אפשרי?' — כן, שתי רמות",
-      "links": []
-    },
-    {
-      "id": "TP-AUDIT-RESEARCH",
-      "title": "מחקר: האם המימוש (T1/T2) מחושב נכון פר-תבנית ומול נתוני אותו יום",
-      "priority": "P1",
-      "status": "in_progress",
-      "owner": "Agent (מחקר) + Michael",
-      "where": "docs/handoff/RESEARCH_PROMPT_TP_AUDIT_2026-07-08.md — פרומפט מוכן להרצה בסוכן",
-      "next": "CC היום: להריץ על psql 30 יום (scripts/tp_audit.py מוסב)",
-      "evidence": "תשובה כנה: לא — L6 פתוח (P&L מ-bar לא fill) ומעולם לא נעשה אודיט מיקומי-T1 פר-תבנית מול same-day data · v1 הורץ 07-08 (scripts/tp_audit.py): ה-API מחזיק ~2 ימי ברים בלבד → מדגם 0; המחקר המלא דורש psql על 30 יום — CC/סוכן מחר",
-      "links": []
-    },
-    {
-      "id": "PAGES-AUDIT",
-      "title": "אודיט כל עמודי המערכת — מי טוב, מי מיושן, מה לארכיון",
-      "priority": "P2",
-      "status": "open",
-      "owner": "Cowork",
-      "where": "pages_index.json (המקור) · הפאנל 'עמודי המערכת' ב-/board · / · /trades · /build",
-      "next": "לעבור עמוד-עמוד מול מייקל: פעיל / לבדיקה / מועמד-לארכיון; לעדכן סטטוס+הערה ב-pages_index.json; מיושנים → archived (לא נמחקים)",
-      "evidence": "Michael 2026-07-08: 'לבחון את כל העמודים ולראות מי טוב ומי מיושן ולשים בארכיון'. אינוונטר: 4 עמודים + API docs",
-      "links": []
-    },
-    {
-      "id": "PLAN-PANEL",
-      "title": "פאנל תכנון: כל תבנית-בהתהוות + למה ממתינים + תעדוף + הסברים ברורים",
-      "priority": "P2",
-      "status": "open",
-      "owner": "Cowork",
-      "where": "S2/S4 inspectors · frontend Plan tab — היום מציג תבנית אחת והסברים מעורפלים; כפתורים חופפים תוקנו (SystemControlPanel→שמאל)",
-      "next": "עיצוב: רשימת כל התבניות האפשריות במצב-בנייה, מה חסר לכל אחת (תנאי אדום ראשון), מיון לפי קרבה-לירי; ניסוח הסברים בעברית ברורה",
-      "evidence": "Michael 2026-07-08 (צילום): 'שבתכנון יהיה אפשר לראות כל תבנית שיכולה להיווצר ולמה ממתינים, שהכי רלוונטית תבלוט, הסברים יותר ברורים'",
-      "links": []
-    },
-    {
-      "id": "STOP-STRUCT",
-      "title": "טרייל-סטופ למבנה אחרי T1 — קרוב לכניסה אבל מאחורי מבנה (L2b)",
-      "priority": "P2",
-      "status": "fixed_unverified",
-      "owner": "Cowork+CC",
-      "where": "manager._apply_smart_be_after_t1 (היום: BE+טיק) · stop_anchors/resolver.py (מדרגות-מבנה קיימות) · TARGET_ZONES shelves",
-      "next": "מחר: מייקל מחליט STOP_STRUCTURE_TRAIL_V1=1 בשער הבוקר; CC מאמת על T1 אמיתי",
-      "evidence": "נבנה 07-08 ערב (0c32b57) flag-OFF: עוגן מבני מ-8 ברים אחרונים, never-widen, fallback ל-BE+1T. טסטים 5/5. הדלקה=פסיקת מייקל בבוקר",
-      "links": []
-    },
-    {
-      "id": "FE-BOARD",
-      "title": "This board + System 6 activity panel in the frontend",
-      "priority": "P2",
-      "status": "in_progress",
-      "owner": "Cowork",
-      "where": "frontend/v9/src/app/board/page.tsx · components/board/StatusBoardPanel.tsx + System6SupervisorPanel.tsx",
-      "next": "Offer to embed in the main dashboard; wire the board to the codebase index for full A7 traceability",
-      "evidence": "built 2026-07-07 as a non-invasive /board route (no backend change)",
-      "links": []
-    },
-    {
-      "id": "S4-RUNNER-T2-SIGN",
-      "title": "RUNNER_T2 לשורטים — t2 מחושב בצד הלא-נכון (sanitized ל-None, לא מסוכן אבל מאבד runner)",
-      "priority": "P2",
-      "status": "done",
-      "owner": "Cowork",
-      "where": "woodies_system RUNNER_T2 — לוג 07-08 17:30: 'ZLR SHORT t2=7506.25' מעל t1=7505.25 → I-59 sanitize מחק; ה-R-mult מודפס כמחיר (באג פורמט נוסף)",
-      "next": "לתקן את הסימן (SHORT: t2 מתחת ל-t1) + טסט; עד אז שורטים מאבדים יעד-runner (R:R נופל ל-expected-mult)",
-      "evidence": "a2032d7: השורש סוּוג מחדש — לא באג-סימן אלא risk דגנרטיבי (1pt) ששם את t2(2R) בתוך t1(רצפה 3pt); רצועת-הסטופ מונעת מבנית + טסט סדר-סולם על כל משטרי-ATR + תיקון לוג",
-      "links": []
-    }
-  ],
-  "updated": "2026-07-10 23:09 (S6 EOD)"
+  {
+   "id": "DEV-3",
+   "title": "לולאת-למידה v3: החלת-דיף בקליק",
+   "priority": "P2",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "v2 (חי) מייצר דיפים מוכנים; v3 = כפתור \"החל+קדם\" אחרי פסיקתך, עם טסטים אוטומטיים. סוגר את מעגל הלמידה."
+  },
+  {
+   "id": "DEV-4",
+   "title": "P1-6: הגירת-Value כפיצ'ר-סיווג",
+   "priority": "P2",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "Trend אמיתי = Value שנודד; חפיפת-Value = balance. משפר את איכות ההבחנה Trend/Variation מעבר לגאומטריה."
+  },
+  {
+   "id": "DEV-5",
+   "title": "הידרציה מלאה בבוט",
+   "priority": "P2",
+   "status": "open",
+   "owner": "CC",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "שחזור שלב-S1 וצוברי-S2 בריסטארט (daily_pnl כבר משוחזר) + טבלת-HYDRATION בלוג. מוריד סיכון-ריסטארט באמצע-יום."
+  },
+  {
+   "id": "DEV-6",
+   "title": "LaunchAgent לפרונטאנד",
+   "priority": "P2",
+   "status": "open",
+   "owner": "CC",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "כרגע הפרונט מוחזק ב-screen (נופל בריבוט עד הפעלה ידנית). נתקע על הרשאות-launchd — צריך פתרון TCC או נתיב חלופי."
+  },
+  {
+   "id": "DEV-7",
+   "title": "P2-9: TPO-count כקלט-ביטחון",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "ספירת-TPO מעל/מתחת ל-POC = לחץ-הגוף של ה-OTF; מזין את ציון-הביטחון."
+  },
+  {
+   "id": "DEV-8",
+   "title": "P2-10: אומדן-טווח-יום",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "הטווח-הצפוי מהקיצון-המוחזק ±10% — לבריפינג ולשפיות-יעדים."
+  },
+  {
+   "id": "DEV-9",
+   "title": "P2-11: Value-Area-Rule",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "פתיחה מחוץ ל-VA + קבלה בפנים → צפי-חצייה-מלאה; חוסם פייד נגדי."
+  },
+  {
+   "id": "DEV-10",
+   "title": "P2-12: תגי-המשכיות-EOD",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "Neutral-Extreme-close וכו' → הטיית-בוקר סטטיסטית ליום-המחרת."
+  },
+  {
+   "id": "DEV-11",
+   "title": "7 פיקסטורות-טסט ישנות",
+   "priority": "P3",
+   "status": "open",
+   "owner": "CC",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "structural_targets — דריפט-ספק ותיק מול קוד עדכני; ניקיון-איכות."
+  },
+  {
+   "id": "WAIT-1",
+   "title": "כיול-יעדים 3-חוזים",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: נתוני שבוע-מסחר · ~19/07"
+  },
+  {
+   "id": "WAIT-2",
+   "title": "STALL_EXIT",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: שבוע-נתונים פוסט-FIX-15/16 · ~19/07"
+  },
+  {
+   "id": "WAIT-3",
+   "title": "מערכת-6 מתקנת (AUTOCORRECT)",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: שבוע בלי אזעקות-שווא · ~19/07"
+  },
+  {
+   "id": "WAIT-4",
+   "title": "כפתור-סף FIX-14",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: תצפית-חיה · לפי הצורך"
+  },
+  {
+   "id": "VRF-1",
+   "title": "3 תיקוני-DLL (EXIT, FLATTEN_ACCOUNT, עין-מצב) + אנטי-גרירת-יעד",
+   "priority": "P1",
+   "status": "fixed_unverified",
+   "owner": "סוכן-מתוזמן",
+   "where": "DEV_BACKLOG טבלה 3 — ממתין לבדיקה אוטומטית",
+   "next": "בדיקה: הוכחת-סים מלאה: BUY→T1→סטופ-זז→EXIT→FLATTEN, עם שער-בטיחות is_sim · 01:15 הלילה"
+  },
+  {
+   "id": "VRF-2",
+   "title": "כל רשימת-שני (13 סעיפים)",
+   "priority": "P1",
+   "status": "fixed_unverified",
+   "owner": "סוכן-מתוזמן",
+   "where": "DEV_BACKLOG טבלה 3 — ממתין לבדיקה אוטומטית",
+   "next": "בדיקה: ביקורת סעיף-סעיף עם ראיות מול MONDAY_CHECKLIST · 10:00 מחר"
+  },
+  {
+   "id": "VRF-3",
+   "title": "50 הדגלים + שרשרת-ההחלטה",
+   "priority": "P1",
+   "status": "fixed_unverified",
+   "owner": "פרוטוקול-בוקר",
+   "where": "DEV_BACKLOG טבלה 3 — ממתין לבדיקה אוטומטית",
+   "next": "בדיקה: flag_guard + fire_drill + בריפינג GO/NO-GO · 15:55 מחר"
+  },
+  {
+   "id": "VRF-4",
+   "title": "FIX-15/16 (סטופ-פר-בר, יעד-ריאלי) — ראיה חיה ראשונה",
+   "priority": "P1",
+   "status": "fixed_unverified",
+   "owner": "מפקח+אני",
+   "where": "DEV_BACKLOG טבלה 3 — ממתין לבדיקה אוטומטית",
+   "next": "בדיקה: שורות FIX15/TARGET_REALISM בלוג על העסקה הראשונה + מפקח כל 30 דק' · מחר במסחר"
+  },
+  {
+   "id": "VRF-5",
+   "title": "Trend-לפי-שליטה + Nonconviction + ביטול-DD בשטח",
+   "priority": "P1",
+   "status": "fixed_unverified",
+   "owner": "מפקח+למידה",
+   "where": "DEV_BACKLOG טבלה 3 — ממתין לבדיקה אוטומטית",
+   "next": "בדיקה: התנהגות-סיווג חיה מול המפקח; replay-ערב · מחר"
+  },
+  {
+   "id": "VRF-6",
+   "title": "פרונט: גרף-לייב, בלוק-S6, צ'יפ-יום",
+   "priority": "P1",
+   "status": "fixed_unverified",
+   "owner": "🟠+אני",
+   "where": "DEV_BACKLOG טבלה 3 — ממתין לבדיקה אוטומטית",
+   "next": "בדיקה: צילומי-מסך על העסקה הראשונה · מחר במסחר"
+  },
+  {
+   "id": "DONE-1",
+   "title": "דוקטרינת-S1",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "P0-2 סיווג-מוקדם · P0-3 ביטחון-קנוני · P1-4+5 Trend-לפי-שליטה (חי) · P1-7 ביטול-DD (חי) · P1-8 Nonconviction (חי) · FIX-9 איפוס-תווית · FIX-14 צדדים-מכניים"
+  },
+  {
+   "id": "DONE-2",
+   "title": "ניהול-עסקה",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "FIX-12 BE-חכם (הוכח חי על 350) · FIX-15 סטופ-פר-בר · FIX-16 יעד-ריאלי + תיקון באג-הקאפ · I-62-FULL (סגירות-פיקטיביות) · FIX-10 דחייה→REJECTED"
+  },
+  {
+   "id": "DONE-3",
+   "title": "Sierra/תשתית",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "FIX-11 FLATTEN_ACCOUNT (אומת חי) · FIX-13 עין-מצב-שנייה (אומת חי) · פידר-פר-חשבון · hydration-PG · 3 חוזים · לדג'ר · MEMS26_RESTART.command"
+  },
+  {
+   "id": "DONE-4",
+   "title": "פרונטאנד",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "תגי-S2/S4 · הפרדת-צל · שורה→ציר-זמן+גרף-עסקה · דופק-לב-סוכן · תיקון סיכום-הצל"
+  },
+  {
+   "id": "DONE-5",
+   "title": "חכמה+פיקוח",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "לולאת-למידה v1+v2 (חיה, 23:40) · session-watch משודרג · מערכת-6 צופה · 6 סוכני-ביקורת מתוזמנים"
+  },
+  {
+   "id": "DONE-6",
+   "title": "צ'אט-קלוד בדשבורד (07-12 לילה)",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "כפתור 💬 צף → חלון-שיחה עם Claude מקורקע בהקשר-חי (סוג-יום, עסקאות, דגלים, התראות); מפתח ב-.env בלבד; נבדק מקצה-לקצה בדפדפן"
+  },
+  {
+   "id": "IDEA-1",
+   "title": "חלון-חדשות אוטומטי (NO_TRADE)",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "לוח-אירועים כלכלי (FOMC/CPI/NFP) → המערכת נועלת כניסות X דק' לפני/אחרי אירוע-אדום. דלתון: ימי-לפני-חדשות = Nontrend. מגן אמיתי מהתפוצצויות-תנודתיות. · מאמץ: בינוני"
+  },
+  {
+   "id": "IDEA-2",
+   "title": "התראות לטלפון",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "🔴 קריטי / עסקה-נפתחה / halt — הודעה מיידית לנייד (Telegram/Pushover) גם כשאתה לא מול המסך. · מאמץ: קטן"
+  },
+  {
+   "id": "IDEA-3",
+   "title": "דוח-שבועי אוטומטי",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "כל שישי-ערב: עקומת-הון, R-ממוצע, drawdown, פילוח פר-תבנית×יום, השוואה לשבוע-קודם — PDF/HTML אחד. · מאמץ: קטן-בינוני"
+  },
+  {
+   "id": "IDEA-4",
+   "title": "גודל-לפי-שכנוע",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "3 חוזים כבסיס, אבל ביום-ביטחון-נמוך (S1 confidence נמוך / Nonconviction-גבולי) ירידה אוטומטית ל-2/1 — הרחבת SIZE_CAP_CUT לשכנוע. · מאמץ: בינוני"
+  },
+  {
+   "id": "IDEA-5",
+   "title": "שומר-קורלציה ES/NQ",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "לפני ירי: בדיקה שה-ES/NQ לא מתנגשים חזיתית עם הכיוון (דיברגנציה בין-שוקית = אזהרה). דורש פיד נוסף מסיירה. · מאמץ: בינוני-גדול"
+  },
+  {
+   "id": "IDEA-6",
+   "title": "צילום-גרף אוטומטי בכניסה/יציאה",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "כל עסקה שומרת PNG של הגרף ברגע-הכניסה וברגע-היציאה — יומן-מסחר ויזואלי לסקירה שבועית. · מאמץ: קטן"
+  },
+  {
+   "id": "IDEA-7",
+   "title": "תרגול-כאוס (chaos drill)",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "ביום-סים: הסוכן מפיל שירותים אקראית ומוודא שהמערכת מתאוששת לבד (LaunchAgents+hydration) — ביטוח לתקלות-אמת. · מאמץ: קטן"
+  },
+  {
+   "id": "IDEA-8",
+   "title": "הקשר רב-יומי (brackets)",
+   "priority": "P3",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
+   "next": "VA שבועי/חודשי + מיקום מול ה-bracket הגדול (דלתון פרק 4) — קלט-הטיה לבריפינג-הבוקר וליעדי-ראנר. · מאמץ: גדול"
+  },
+  {
+   "id": "MIKE-1",
+   "title": "`brew install redis` בטרמינל",
+   "priority": "P2",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG — פעולות-מייקל (לא-פיתוח)",
+   "next": "זמן: דקה · דחיפות: בינונית (ws-push)"
+  },
+  {
+   "id": "MIKE-2",
+   "title": "רוטציית-טוקן ב-GitHub",
+   "priority": "P1",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG — פעולות-מייקל (לא-פיתוח)",
+   "next": "זמן: 2 דק' · דחיפות: גבוהה (אבטחה)"
+  },
+  {
+   "id": "MIKE-3",
+   "title": "פסיקות: Chart (להסיר?) · Now (להשאיר?)",
+   "priority": "P2",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG — פעולות-מייקל (לא-פיתוח)",
+   "next": "זמן: 2 מילים · דחיפות: נמוכה"
+  },
+  {
+   "id": "MIKE-4",
+   "title": "cutover ל-iMac (אצל צ'אט-ההעברה): rsync-סיירה + GO",
+   "priority": "P2",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG — פעולות-מייקל (לא-פיתוח)",
+   "next": "זמן: בהמשך-השבוע · דחיפות: לפי קצבך"
+  }
+ ]
 }
