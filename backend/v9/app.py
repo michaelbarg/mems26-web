@@ -84,6 +84,10 @@ v9_router.include_router(trade_review_router)
 v9_router.include_router(daytype_classify_router)
 from backend.v9.api.v9.kill_switch_routes import router as kill_switch_router
 v9_router.include_router(kill_switch_router)
+# In-dashboard Claude chat (Michael 07-12) — grounded in live system context;
+# requires ANTHROPIC_API_KEY in .env (out-of-git), honest 503 without it.
+from backend.v9.api.v9.agent_chat import router as agent_chat_router
+v9_router.include_router(agent_chat_router)
 
 
 @v9_router.get("/api/v9/health")
