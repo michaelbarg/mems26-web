@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-10 22:52:59 by build_monolithic_cpp.sh
+// Generated 2026-07-12 10:36:47 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -2024,13 +2024,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 if (sc.GetOrderByIndex(oi2, tord) == SCTRADING_ORDER_ERROR)
                     break;
                 if (tord.OrderStatusCode != SCT_OSC_OPEN &&
-                    tord.OrderStatusCode != SCT_OSC_PENDINGCHILD)
+                    tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_CLIENT &&
+                    tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_SERVER)
                     continue;  // only working / held-bracket orders
                 if (n_ord < 8 && ob < (int)sizeof(ordbuf) - 96)
                     ob += snprintf(ordbuf + ob, sizeof(ordbuf) - ob,
                         "%s{\"id\":%d,\"type\":%d,\"bs\":%d,\"price\":%.2f,\"qty\":%.0f}",
                         n_ord ? "," : "",
-                        tord.InternalOrderID, (int)tord.OrderTypeAsInt,
+                        (int)tord.InternalOrderID, (int)tord.OrderTypeAsInt,
                         (int)tord.BuySell, tord.Price1, (float)tord.OrderQuantity);
                 n_ord++;
             }
@@ -2987,6 +2988,24 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 stop_oids[2] = sc.GetPersistentInt64(7);
                             }
 
+                            // Snapshot paired target prices BEFORE modifying stops.
+                            // Sierra Attached Orders may auto-drag targets to preserve
+                            // stop-target offset. We re-set targets after to prevent drag.
+                            int64_t tgt_oids[3] = {0, 0, 0};
+                            float   tgt_prices[3] = {0, 0, 0};
+                            // Target slots: 2, 4, 6 (paired with stop slots 3, 5, 7)
+                            for (int ti = 0; ti < 3; ti++)
+                            {
+                                int64_t tid = sc.GetPersistentInt64(2 + ti * 2);
+                                if (tid <= 0) continue;
+                                s_SCTradeOrder to;
+                                if (sc.GetOrderByOrderID(static_cast<int>(tid), to) == SCTRADING_ORDER_ERROR)
+                                    continue;
+                                if (to.OrderStatusCode == SCT_OSC_FILLED) continue;
+                                tgt_oids[ti] = tid;
+                                tgt_prices[ti] = to.Price1;
+                            }
+
                             for (int si = 0; si < 3; si++)
                             {
                                 if (stop_oids[si] <= 0) continue;
@@ -2999,6 +3018,24 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 mod.Price1 = static_cast<float>(new_stop);
                                 int mr = sc.ModifyOrder(mod);
                                 if (mr >= 0) mod_count++;
+                            }
+
+                            // Re-set targets to their original prices (undo Sierra auto-drag)
+                            for (int ti = 0; ti < 3; ti++)
+                            {
+                                if (tgt_oids[ti] <= 0 || tgt_prices[ti] <= 0) continue;
+                                s_SCTradeOrder to2;
+                                if (sc.GetOrderByOrderID(static_cast<int>(tgt_oids[ti]), to2) == SCTRADING_ORDER_ERROR)
+                                    continue;
+                                if (to2.OrderStatusCode == SCT_OSC_FILLED) continue;
+                                // Only re-set if Sierra actually moved the target
+                                if (to2.Price1 != tgt_prices[ti])
+                                {
+                                    s_SCNewOrder tmod;
+                                    tmod.InternalOrderID = static_cast<int>(tgt_oids[ti]);
+                                    tmod.Price1 = tgt_prices[ti];
+                                    sc.ModifyOrder(tmod);
+                                }
                             }
                             result_status = (mod_count > 0) ? "MODIFY_STOP_OK" : "MODIFY_STOP_NONE";
                             order_err = mod_count;

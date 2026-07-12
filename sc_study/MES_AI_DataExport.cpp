@@ -243,13 +243,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 if (sc.GetOrderByIndex(oi2, tord) == SCTRADING_ORDER_ERROR)
                     break;
                 if (tord.OrderStatusCode != SCT_OSC_OPEN &&
-                    tord.OrderStatusCode != SCT_OSC_PENDINGCHILD)
+                    tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_CLIENT &&
+                    tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_SERVER)
                     continue;  // only working / held-bracket orders
                 if (n_ord < 8 && ob < (int)sizeof(ordbuf) - 96)
                     ob += snprintf(ordbuf + ob, sizeof(ordbuf) - ob,
                         "%s{\"id\":%d,\"type\":%d,\"bs\":%d,\"price\":%.2f,\"qty\":%.0f}",
                         n_ord ? "," : "",
-                        tord.InternalOrderID, (int)tord.OrderTypeAsInt,
+                        (int)tord.InternalOrderID, (int)tord.OrderTypeAsInt,
                         (int)tord.BuySell, tord.Price1, (float)tord.OrderQuantity);
                 n_ord++;
             }
