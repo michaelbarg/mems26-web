@@ -177,10 +177,22 @@ def classify_session(
         "stair_steps_dn": rf.stair_steps_dn,
     }
 
+    # ── P1-6 (Michael 2026-07-12; Dalton pp.49, 55): value migration — the developing
+    #    70% value-area vs yesterday's. Trend = migrating value; overlap = balance.
+    #    Pure + cheap → computed always; classify() consumes only under
+    #    S1_VALUE_MIGRATION_V1 → byte-identical when unset. ──
+    from backend.v9.systems.day_type.value_migration import value_migration as _vm
+    _vmres = _vm(bars, prior_vah, prior_val)
+    feat["va_overlap_pct"] = _vmres["va_overlap_pct"]
+    feat["value_migration"] = _vmres["value_migration"]
+    feat["dev_poc"] = _vmres["dev_poc"]
+
     result = classify(feat, plan, is_eod=is_eod)
     result["measured"] = {
         "sides": feat["sides"], "rib": feat["rib"], "one_tf": feat["one_tf"],
         "close_pos": feat["close_pos"], "cvd_pos": feat["cvd_pos"],
         "ib_width": feat["ib_width"], "vol_ratio": feat["vol_ratio"],
+        # P1-6 observability — emitted per bar regardless of the flag (ACCEPT criterion)
+        "va_overlap_pct": feat["va_overlap_pct"], "value_migration": feat["value_migration"],
     }
     return result

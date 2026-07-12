@@ -710,6 +710,16 @@ flags:
     status: deferred
 
   # ───────────────────────── S1 Dalton P0 (built flag-OFF 2026-07-08, S1-chat) ─────────────────────────
+  S1_VALUE_MIGRATION_V1:
+    category: s1
+    what: "P1-6: developing 70% VA vs prior VA — va_overlap_pct + value_migration UP/DOWN emitted per bar (always in measured); under the flag, the control-path Trend promotion is VETOED when value fully overlaps yesterday's (>= S1_VM_OVERLAP_MAX, default 0.8) with no migration. Dalton pp.49, 55."
+    why: "OFF (built 07-12, DEV table-1 #4). Replay: 07-08 migration=DOWN overlap=0 · 06-30 UP/0 · 07-10 overlap=1.0/None — feature matches day character; veto proven synthetically (same geometry, only value profile differs). Enable = Michael."
+    status: awaiting_ruling
+  S1_VM_OVERLAP_MAX:
+    category: s1
+    what: "P1-6 param: overlap fraction at/above which un-migrated value vetoes the control-path Trend promotion."
+    why: "Default 0.8."
+    status: param
   S1_ACCEPTANCE_RECLASS_V1:
     category: s1
     what: "v2 (07-12): accepted break of ANY reference — PDH/PDL (prior range/balance), prior VA edge, or IB — (≥2 consecutive closes + ≥8% session volume beyond) → immediate reclass in the break direction (rib floor waived); accept-then-return-inside → failed_breakout tag + revert. Dalton pp.37-38, 278-293."

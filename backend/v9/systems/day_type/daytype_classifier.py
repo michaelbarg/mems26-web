@@ -293,6 +293,17 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
         if os.environ.get("S1_TREND_CONTROL_V1", "0").lower() in ("1", "true", "yes"):
             _min_steps = int(os.environ.get("S1_TREND_CTRL_MIN_STEPS", "3"))
             _min_rib = float(os.environ.get("S1_TREND_CTRL_MIN_RIB", "1.8"))
+            # P1-6 (S1_VALUE_MIGRATION_V1, default OFF — Dalton pp.49,55): Trend
+            # requires MIGRATING value. When the developing 70% VA still overlaps
+            # yesterday's VA almost fully (>= S1_VM_OVERLAP_MAX, default 0.8) and
+            # no migration direction exists, the "trend" is geometry inside old
+            # value = balance → the control-path promotion is vetoed. A day with
+            # value_migration UP/DOWN (or low overlap) passes untouched.
+            _vm_veto = False
+            if os.environ.get("S1_VALUE_MIGRATION_V1", "0").lower() in ("1", "true", "yes"):
+                _ovl = feat.get("va_overlap_pct")
+                _vm_veto = (feat.get("value_migration") is None and _ovl is not None
+                            and _ovl >= float(os.environ.get("S1_VM_OVERLAP_MAX", "0.8")))
             # NOTE: full-session one_tf is deliberately NOT required — one
             # violated period early in the day kills it forever, which is the
             # exact structure-lag Dalton warns about (p.37). The CURRENT
@@ -308,13 +319,15 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
             # early open-return invalidates the OPENING conviction (p.65), not a
             # NEW stair-run that formed after it — on 07-08 the morning return
             # blocked recognition of the 18:30 three-period collapse entirely.
-            if rib is not None and rib >= _min_rib and (_up_ok or _dn_ok):
+            if rib is not None and rib >= _min_rib and (_up_ok or _dn_ok) and not _vm_veto:
                 _dirlbl = "UP" if _up_ok else "DOWN"
                 _steps = feat.get("stair_steps_up") if _up_ok else feat.get("stair_steps_dn")
+                _vm = feat.get("value_migration")
                 return out("Trend_Normal", "CLASSIFIED",
                            f"control-path: {_steps} stair-steps {_dirlbl} + "
                            f"close pressing extreme + rib {rib}>={_min_rib} "
                            f"(rib>={rib_tn} floor waived per Dalton p.25)"
+                           + (f" + value migrating {_vm}" if _vm else "")
                            + (" + CVD-confirmed" if cvd_dir else ""),
                            cvd_confirms=cvd_dir, trend_control_path=True)
         # 6) Normal_Variation (Expanded Typical) — catch-all. PROVISIONAL until EOD: a 1-sided day

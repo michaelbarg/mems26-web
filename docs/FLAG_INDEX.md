@@ -5,11 +5,11 @@
 > column is read live from the code + `.env` at generation time, so this file
 > cannot go stale the way `SOURCE_OF_TRUTH.md` did.
 
-_Generated 2026-07-12 19:18 · `.env` last modified 2026-07-12 19:17 · scan dirs: backend, bridge_
+_Generated 2026-07-12 19:44 · `.env` last modified 2026-07-12 19:17 · scan dirs: backend, bridge_
 
 **Legend:** ✅ ON · 🔴 OFF · 🟡 ON·inert (set ON but superseded at runtime) · 🔢 numeric param · ⚪ not built.
 
-**Summary:** 132 documented · 81 ON (of which 0 inert) · 19 OFF (4 standing-OFF) · 30 numeric params · 3 awaiting backtest · 1 rejected · 2 not built.
+**Summary:** 134 documented · 81 ON (of which 0 inert) · 21 OFF (4 standing-OFF) · 30 numeric params · 3 awaiting backtest · 1 rejected · 2 not built.
 
 > ⚠ **3 UNDOCUMENTED behavior flag(s)** found in code but missing from the registry — add them to `docs/FLAG_REGISTRY.yaml`: `AGENT_CHAT_MAX_TOKENS`, `AGENT_CHAT_MODEL`, `ANTHROPIC_API_KEY`
 
@@ -39,6 +39,8 @@ _Generated 2026-07-12 19:18 · `.env` last modified 2026-07-12 19:17 · scan dir
 | S1_OPEN_DRIVE_TREND | ✅ ON | `1` (.env) | "0" | OPEN_DRIVE/OPEN_TEST_DRIVE waives the rib>=2.5 Trend floor: a 1-sided day that opened with a drive + directional one_tf + close-at-extreme classifies Trend_Normal even with a modest range extension. | OFF (default, SHADOW). Michael 2026-06-30: an OPEN_DRIVE day (rib 1.56, one_tf UP, close 0.915) was under-called Variation; affects management (Trend lets runners run). Re-call = trading-logic -> Michael sign-off + restart. | `backend/v9/systems/day_type/daytype_classifier.py:276` | deferred; docs/handoff/CC_FIRING_PIPELINE_UNIFIED_2026-06-30.md (#3) |
 | S1_PROVISIONAL_DAYTYPE | ✅ ON | `1` (.env) | "" (empty → OFF) | Emit a provisional day_type at 30m (before the 60m IB lock); lock still overrides. | Eliminates the 60-min UNKNOWN gap. | `backend/v9/systems/day_type/state_machine.py:410` |  |
 | S1_TREND_CONTROL_V1<br><sub>day-type classifier</sub> | ✅ ON | `1` (.env) | "0" | P1-5 (Dalton pp.22-25): Trend recognition by CONTROL — >=S1_TREND_CTRL_MIN_STEPS consecutive 30-min stair-steps in one direction + close pressing that extreme + rib>=S1_TREND_CTRL_MIN_RIB — waiving the rib>=2.5 floor. Full-session one_tf and returned-through-open are deliberately not required (structure-lag, p.37/p.65). | OFF pending Michael enable ruling. Replay evidence 07-12: 07-08 flags Trend-DOWN at 18:30 (never before); 06-30 at 22:00; 07-02 at 19:00; calibration pair 07-09/07-10 + 07-07 untouched. Trading-risk-surface change (mid-day type flips playbook/gates). | `backend/v9/systems/day_type/daytype_classifier.py:293` | backend/v9/systems/day_type/daytype_classifier.py:5c control-path |
+| S1_VALUE_MIGRATION_V1 | 🔴 OFF | unset → "0" | "0" | P1-6: developing 70% VA vs prior VA — va_overlap_pct + value_migration UP/DOWN emitted per bar (always in measured); under the flag, the control-path Trend promotion is VETOED when value fully overlaps yesterday's (>= S1_VM_OVERLAP_MAX, default 0.8) with no migration. Dalton pp.49, 55. | OFF (built 07-12, DEV table-1 #4). Replay: 07-08 migration=DOWN overlap=0 · 06-30 UP/0 · 07-10 overlap=1.0/None — feature matches day character; veto proven synthetically (same geometry, only value profile differs). Enable = Michael. | `backend/v9/systems/day_type/daytype_classifier.py:303` |  |
+| S1_VM_OVERLAP_MAX | 🔴 OFF | unset → "0.8" | "0.8" | P1-6 param: overlap fraction at/above which un-migrated value vetoes the control-path Trend promotion. | Default 0.8. | `backend/v9/systems/day_type/daytype_classifier.py:306` |  |
 
 ## S2 — 5-min (Reactive / Initiative)
 
