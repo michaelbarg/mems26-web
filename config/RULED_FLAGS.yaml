@@ -11,8 +11,8 @@
 ruled:
   # ── בטיחות (הסט שחייב להיות דלוק בכל LIVE) ──
   LIVE_EXECUTION_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "ביצוע live" }
-  FIXED_CONTRACTS_2:      {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "פסיקת-לילה 07-09: מחר כל העסקאות על 2 חוזים (מחליף את 3 מהבוקר)" }
-  FIXED_CONTRACTS_3:      {expected: "0", ruled_by: "מייקל", date: "2026-07-09", note: "כובה בפסיקת-לילה 07-09 — _2 תופס" }
+  FIXED_CONTRACTS_2: {expected: "0", ruled_by: "מייקל", date: "2026-07-12", note: "הוחלף ב-3 חוזים (פסיקת 07-12 ערב, למסחר של 07-13)" }
+  FIXED_CONTRACTS_3: {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "3 חוזים (מחליפה את 2c מ-07-10); סולם-סיכון/auth/SIZE_CAP_CUT עדיין גוברים כלפי-מטה" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
   RISK_DAILY_LOSS_CAP:    {expected: "400", ruled_by: "מייקל", date: "2026-07-06", note: "−$400" }
   EOD_FLATTEN_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "סגירה אוטומטית EOD" }
