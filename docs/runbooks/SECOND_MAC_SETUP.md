@@ -67,3 +67,45 @@ bash scripts/mems26_update.sh        # או: git pull origin stabilize/mems26-lo
 - עבודה כאן נדחפת ל-origin; המכונה הראשית מושכת. **אין עריכה מקבילה של אותו קובץ
   בשתי המכונות** — לתאם דרך מייקל/Cowork, ולהריץ איחוד-טסטים אחרי merge.
 - דוחות: `docs/reports/` עם suffix `_MAC2` כדי שלא להתנגש.
+
+## 9. הפיכה למכונת-מסחר מלאה (גשר + סיירה) — רק בפסיקת מייקל
+**הגשר כבר בגיט** (`bridge/` + LaunchAgent מההתקנה) — הוא רק כבוי כי אין לו מה לקרוא.
+מה שחסר הוא סיירה עצמה. שלושה רכיבים:
+
+### 9א. התקנת-סיירה חד-פעמית (העתקה מהמכונה הראשית — לא בגיט!)
+במכונה הראשית, לארוז ולהעביר (דיסק חיצוני/רשת; זה גדול):
+```bash
+# בראשית: כל התיקיות האלה = סיירה + Wine + צ'ארטבוק + twconfig + הגדרות
+~/SierraChart/            # כולל ACS_Source, Data (צ'ארטבוק .cht), התצורות
+~/SierraChart2/           # אם בשימוש
+# עטיפת ה-Wine/CrossOver שמריצה את סיירה (כפי שמותקנת אצל מייקל)
+```
+ביעד: לשמור באותם נתיבים בדיוק (`~/SierraChart/...`). ואז:
+```bash
+mkdir -p ~/SierraChart_Data/v9_export      # תיקיית-הייצוא שהסטאדי כותב אליה
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mems26.export_promoter.plist
+```
+כניסת Teton = מייקל מזין סיסמה בסיירה עצמה (לא לשמור בקבצים).
+
+### 9ב. ה-DLL/סטאדי המעודכן — תמיד מהגיט, לא מהעתקות
+המקור הקנוני `sc_study/` נמצא בריפו ומתעדכן ב-pull. פריסה במכונה הזו:
+```bash
+git pull
+bash scripts/build_monolithic_cpp.sh --deploy   # auto-snapshot + העתקה ל-ACS_Source
+# ואז בסיירה: Analysis → Build Custom Studies DLL → Remote Build → טעינת הסטאדי מחדש
+```
+לוודא ב-Study Input 4 ‏(V9 Export Directory): ‏`/Users/<user>/SierraChart_Data/v9_export/`.
+
+### 9ג. הפעלת הגשר (אחרי שסיירה חיה ומייצאת)
+```bash
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mems26.bridge.plist
+tail -f /tmp/bridge.err.log     # לוודא: push ל-http://localhost:8000 בלבד!
+```
+
+### ⚠ אילוצים קשיחים
+1. **חיבור-דאטה אחד:** ‏Teton/CME מנתק את החיבור הראשון כשנכנסים מהשני — שתי המכונות
+   לא סוחרות במקביל. מכונה 2 = גיבוי-חם/פיתוח; מעבר מסחר = פסיקת מייקל מפורשת.
+2. ‏`.env`, סיירה, ו-LaunchAgents הם out-of-git — כל שינוי בהם כאן מחייב
+   `scripts/mems26_snapshot.sh` לפני (בדיוק כמו בראשית).
+3. אחרי כל pull שנוגע ב-`sc_study/` — לחזור על 9ב (build+Remote Build), אחרת
+   ה-DLL הרץ מפגר אחרי הקוד. `scripts/mems26_verify.sh` תופס את הדריפט הזה.
