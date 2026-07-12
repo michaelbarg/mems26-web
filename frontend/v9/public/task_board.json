@@ -3,28 +3,10 @@
  "meta": {
   "title": "לוח-המשימות החי (DEV_BACKLOG)",
   "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
-  "updated": "2026-07-12 19:37",
+  "updated": "2026-07-12 19:50",
   "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
  },
  "tasks": [
-  {
-   "id": "DEV-3",
-   "title": "לולאת-למידה v3: החלת-דיף בקליק",
-   "priority": "P2",
-   "status": "open",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
-   "next": "v2 (חי) מייצר דיפים מוכנים; v3 = כפתור \"החל+קדם\" אחרי פסיקתך, עם טסטים אוטומטיים. סוגר את מעגל הלמידה."
-  },
-  {
-   "id": "DEV-4",
-   "title": "P1-6: הגירת-Value כפיצ'ר-סיווג",
-   "priority": "P2",
-   "status": "open",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
-   "next": "Trend אמיתי = Value שנודד; חפיפת-Value = balance. משפר את איכות ההבחנה Trend/Variation מעבר לגאומטריה."
-  },
   {
    "id": "DEV-5",
    "title": "הידרציה מלאה בבוט",
@@ -123,6 +105,15 @@
    "owner": "Cowork",
    "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
    "next": "מחכה: תצפית-חיה · לפי הצורך"
+  },
+  {
+   "id": "WAIT-5",
+   "title": "P1-6 הגירת-Value (S1_VALUE_MIGRATION_V1, בנוי flag-OFF)",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: פסיקת-הדלקה שלך · מילה אחת"
   },
   {
    "id": "VRF-1",
@@ -240,6 +231,15 @@
    "owner": "Cowork",
    "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
    "next": "קבלה בכל הרפרנסים (PDH/PDL/VA-אתמול/IB) ⇒ reclass מיידי + failed_breakout; replay==engine נתיב-אחד; 51 דגלים פסוקים, flag_guard PASS, drill GO; רפליי: 07-08 DOWN@09:35 · 06-30 Trend@10:00 · EOD ללא-ש…"
+  },
+  {
+   "id": "DONE-8",
+   "title": "למידה-v3 בקליק (07-12)",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "apply_targets_diff.py (ולידציה→מיזוג-כירורגי→לודר→טסטים; כישלון=revert-אוטומטי→קומיט+פוש) + פאנל 📐 ב-/board עם כפתור \"החל וקדם\" — הקליק שלך = הפסיקה. תורגל מקצה-לקצה (FAMIR 5.0→5.5→revert); טסט-הקיבו…"
   },
   {
    "id": "IDEA-1",
