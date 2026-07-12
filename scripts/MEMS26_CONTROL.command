@@ -46,10 +46,18 @@ do_status() {
   git fetch -q origin "$BRANCH" 2>/dev/null
   BEHIND=$(git rev-list --count HEAD..origin/"$BRANCH" 2>/dev/null || echo "?")
   if [ "$BEHIND" = "0" ]; then echo -e "  ${G}✓ מעודכן לגרסה האחרונה${N}"; else echo -e "  ${Y}⬇ מפגר ב-$BEHIND קומיטים — הרץ 'בדיקת עדכונים'${N}"; fi
-  # DLL drift
+  # DLL drift — מקור מול ריפו, וגם בינארי מול מקור (GATE#1: מקור עודכן אך לא קומפל!)
   if [ -f ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp ]; then
     diff -q sc_study/MES_AI_DataExport_merged.cpp ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp >/dev/null 2>&1 \
-      && echo -e "  ${G}✓ DLL-מקור פרוס == ריפו${N}" || echo -e "  ${Y}⚠ DLL-מקור פרוס ≠ ריפו (יידרש build+Remote Build)${N}"
+      && echo -e "  ${G}✓ DLL-מקור פרוס == ריפו${N}" || echo -e "  ${Y}⚠ DLL-מקור פרוס ≠ ריפו (הרץ עדכון/בילד)${N}"
+    DLLBIN=$(ls -t ~/SierraChart/Data/MES_AI_DataExport*.dll 2>/dev/null | head -1)
+    if [ -n "$DLLBIN" ]; then
+      if [ ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp -nt "$DLLBIN" ]; then
+        echo -e "  ${R}🔴 הבינארי ישן מהמקור ($(stat -f '%Sm' -t '%d.%m %H:%M' "$DLLBIN")) — סיירה מריצה קוד ישן! נדרש: Remote Build + reload${N}"
+      else
+        echo -e "  ${G}✓ בינארי-DLL טרי מהמקור ($(stat -f '%Sm' -t '%d.%m %H:%M' "$DLLBIN"))${N}"
+      fi
+    fi
   fi
 }
 
