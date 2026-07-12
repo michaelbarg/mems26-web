@@ -251,8 +251,17 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
         at_extreme = cp is not None and (cp >= ce_hi or cp <= ce_lo)
         # 4) Trend_DD — narrow IB + 2-POC single-print neck + new value held (from dd_features).
         if feat.get("dd_second_dist"):
-            return out("Trend_DD", "CLASSIFIED",
-                       "1-sided + double-distribution (narrow IB + 2-POC single-print neck + new value held)")
+            # P1-7 (S1_DD_INVALIDATION_V1, default OFF — Dalton p.27, doctrine
+            # contradiction-5): recent closes back INSIDE the neck singles =
+            # the 2nd distribution is rejected, "conditions changed" — the DD
+            # label must FALL (falls through to Variation/other branches) and
+            # the invalidation is surfaced for gates/S6.
+            if (os.environ.get("S1_DD_INVALIDATION_V1", "0").lower() in ("1", "true", "yes")
+                    and feat.get("dd_neck_refilled")):
+                pass  # invalidated — do NOT return Trend_DD; continue to 5/5b/5c/6
+            else:
+                return out("Trend_DD", "CLASSIFIED",
+                           "1-sided + double-distribution (narrow IB + 2-POC single-print neck + new value held)")
         # 5) Trend_Normal — STRICT signature, ALL four. CVD CONFIRMS (confidence), it is NOT a gate
         #    (06-05 trended down yet CVD diverged up — structure still makes it a trend).
         if (not oi) and (feat.get("one_tf") in ("UP", "DOWN")) and at_extreme and rib is not None and rib >= rib_tn:

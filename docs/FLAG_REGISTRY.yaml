@@ -457,6 +457,13 @@ flags:
     why: "ON (Michael 2026-07-10). Trade 337: margin rejection after submit-ack was recorded CLOSED/BE/pnl=0 — records≠reality in the money path."
     status: live
     ref: "backend/v9/services/fill_poller.py:_check_rejections · scripts/trade_activity_feed.py:ORDER_REJECT"
+  S1_DD_INVALIDATION_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "P1-7 (Dalton p.27): DD neck-refill invalidation — >=2 recent closes back inside the single-print neck zone means the 2nd distribution is rejected; the Trend_DD label falls (reclass) instead of persisting."
+    why: "OFF pending Michael enable. dd_features now exposes neck_lo/neck_hi + neck_refilled(); classifier consumes under the flag. Synthetic DD fixture: holds without refill, falls with refill; flag OFF byte-identical."
+    status: built
+    ref: "backend/v9/systems/day_type/dd_features.py:neck_refilled · daytype_classifier.py:Trend_DD branch"
   S1_NONCONVICTION_V1:
     category: s1
     group: "day-type classifier"

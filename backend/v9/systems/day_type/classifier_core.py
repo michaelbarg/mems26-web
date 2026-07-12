@@ -85,6 +85,13 @@ def classify_session(
     sierra_dd = (profile_shape or "").strip() in ("B", "DD")
     dd_detected = sierra_dd or dd_bar["detected"]
 
+    # P1-7 (Dalton p.27): neck-refill invalidation — recent closes back inside
+    # the single-print neck mean the 2nd distribution is rejected. Computed
+    # always (cheap, pure); classify() consumes it only under S1_DD_INVALIDATION_V1.
+    from backend.v9.systems.day_type.dd_features import neck_refilled
+    dd_refilled = bool(dd_bar["detected"] and neck_refilled(
+        bars, dd_bar.get("neck_lo"), dd_bar.get("neck_hi")))
+
     # CVD from cumulative_delta field on bars
     cum_all = [b.get("cum", b.get("cum_delta", b.get("cumulative_delta"))) for b in bars]
 
@@ -128,6 +135,8 @@ def classify_session(
         "open_dir": op.get("direction"),
         "ext_up_bars": rf.ext_up_bars,
         "ext_dn_bars": rf.ext_dn_bars,
+        "dd_neck_refilled": dd_refilled,
+        "dd_neck_zone": (dd_bar.get("neck_lo"), dd_bar.get("neck_hi")),
         # P1-4/P1-5 (Dalton p.25): stair-step control — consumed only when
         # S1_TREND_CONTROL_V1 is ON; classify() ignores otherwise.
         "stair_steps_up": rf.stair_steps_up,

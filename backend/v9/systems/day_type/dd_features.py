@@ -99,8 +99,36 @@ def detect_double_distribution(
     bimodal = second >= second_min and neck >= neck_min
     out["bimodal"] = bimodal
 
+    # P1-7 (Dalton p.27): expose the NECK PRICE ZONE — the low-volume buckets
+    # between the two POCs (the single prints the market flew through). A later
+    # refill of this zone (double prints) means the second distribution is
+    # rejected → "conditions changed" → the DD classification must fall.
+    _neck_idxs = [i for i in range(lo, hi + 1)
+                  if sm[i] <= valley * 1.5 and i not in (i1, i2)]
+    if _neck_idxs:
+        out["neck_lo"] = round(prices[min(_neck_idxs)] - bucket / 2, 2)
+        out["neck_hi"] = round(prices[max(_neck_idxs)] + bucket / 2, 2)
+    else:
+        out["neck_lo"] = out["neck_hi"] = None
+
     # 3) NEW VALUE HELD — closed at an extreme (criterion 5: trended, didn't come back).
     held = cpos <= close_extreme or cpos >= (1 - close_extreme)
 
     out["detected"] = bool(narrow and bimodal and held)
     return out
+
+
+def neck_refilled(bars: List[Any], neck_lo: Optional[float], neck_hi: Optional[float],
+                  *, lookback: int = 6, min_closes: int = 2) -> bool:
+    """P1-7 (Dalton p.27): the DD neck singles are being DOUBLE-PRINTED.
+
+    True when >= min_closes of the last `lookback` closed bars CLOSED inside
+    the neck zone — the market is re-trading prices it previously rejected,
+    i.e. the second distribution failed. Pure; honest False on missing zone.
+    """
+    if neck_lo is None or neck_hi is None or not bars:
+        return False
+    recent = bars[-lookback:]
+    closes = [x for x in (_g(b, "c", "close") for b in recent) if x is not None]
+    inside = sum(1 for c in closes if neck_lo <= c <= neck_hi)
+    return inside >= min_closes
