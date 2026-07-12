@@ -1,5 +1,17 @@
 # התקנת MEMS26 על מק שני — ראנבוק ל-Claude Code (2026-07-11)
 
+## §0 — מצב-בפועל של ה-iMac (עדכון 07-12, גובר על §1-§2 במקרה של סתירה!)
+ה-iMac **כבר מותקן** (installer-bundle מ-2026-07-05, ‏SECOND_MACHINE_FIRST_PROMPT):
+- הריפו החי: **`~/mems26/mems26_web_git`** (לא ‎~/Downloads!) על הענף הנכון, ב-7f623c29.
+- ‏backend ‏:8000 + ‏bridge + ‏export_promoter רצים כ-LaunchAgents מהנתיב הזה.
+- סיירה קיימת (‏~/SierraChart*) אבל **בגרסת 07-05** — הסטאדי/צ'ארטבוק/twconfig מפגרים.
+- ‏`.env` קיים מגיל ה-bundle — **חסרים בו דגלי 07-08→07-12** (כולל FIXED_CONTRACTS_2=1!).
+לכן: **מיישרים את הקיים, לא משכפלים**: origin → ‏GitHub ‏(https://github.com/michaelbarg/mems26-web.git),
+‏git fetch + ‏FF ל-HEAD, יישור `.env` לפי `config/RULED_FLAGS.yaml` עד ‏flag_guard ‏PASS ‏47/47.
+העותק הישן `~/Downloads/mems26_web_git` (ענף sim ישן, ‏PAT חשוף ב-remote) — להסגר/למחוק
+**אחרי** שמייקל מרוטט את הטוקן ב-GitHub. עד ה-cutover-GO: סיירה ב-iMac לא מתחברת ל-Teton.
+
+
 **מטרה:** עותק מלא ומתעדכן של המערכת. ברירת-מחדל: מכונת פיתוח/גיבוי (בלי סיירה).
 מסחר נשאר על המכונה הראשית אלא אם מייקל אומר אחרת.
 
