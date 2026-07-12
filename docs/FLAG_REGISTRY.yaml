@@ -714,7 +714,7 @@ flags:
     category: s1
     what: "v2 (07-12): accepted break of ANY reference — PDH/PDL (prior range/balance), prior VA edge, or IB — (≥2 consecutive closes + ≥8% session volume beyond) → immediate reclass in the break direction (rib floor waived); accept-then-return-inside → failed_breakout tag + revert. Dalton pp.37-38, 278-293."
     why: "OFF (v1 IB-only 07-08; v2 all-refs + rejection 07-12, DEV-1). Replay: 07-08 named DOWN at 09:35 (bar 2, PDL acceptance) vs 09:55; 06-30 trend-up recognized Trend@10:00 via PDH; EOD types unchanged on 07-08/06-29/06-30. classify_replay now delegates to classifier_core (UI==engine, source-split killed). Enable = Michael."
-    status: awaiting_ruling
+    status: enabled
   S1_COMMITTED_PROVISIONAL_V1:
     category: s1
     what: "At 30 min: committed provisional day-type from opening-type × open-vs-prior-value instead of bare FORMING. Dalton pp.63-74."
