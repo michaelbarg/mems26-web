@@ -42,6 +42,10 @@ interface TradeFilters {
   stopMove: StopMoveFilter;
   /** Row ordering. */
   sort: SortKey;
+  /** Michael 07-12: shadow trades hidden by default EVERYWHERE on /trades —
+   *  one truth for table AND summary (the +841-vs-+111 aggregate bug: the
+   *  table hid shadow locally while the summary strip still counted it). */
+  hideShadow: boolean;
 }
 
 interface TradeState {
@@ -83,6 +87,7 @@ const DEFAULT_FILTERS: TradeFilters = {
   direction: null,
   stopMove: 'all',
   sort: 'new',
+  hideShadow: true,
 };
 
 function recomputeAux(trades: Trade[]): Map<number, TradeAuxStatus> {
@@ -124,6 +129,7 @@ export const useTradeStore = create<TradeState>((set, get) => ({
   filteredTrades: () => {
     const { trades, filters, auxStatus } = get();
     const out = trades.filter((t) => {
+      if (filters.hideShadow && String(t.mode).toUpperCase() === 'SHADOW') return false;
       if (filters.mode !== 'ALL' && t.mode !== filters.mode) return false;
       if (filters.systemId !== 'ALL' && t.system !== filters.systemId) return false;
       if (filters.outcome !== 'ALL' && t.outcome !== filters.outcome) return false;

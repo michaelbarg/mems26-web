@@ -124,18 +124,22 @@ function Th({
 
 export function TradesTable() {
   const { filteredTrades, expandedTradeId, toggleExpandedTradeId, filters, setFilters } = useTradeStore();
+  const allTrades = useTradeStore((s) => s.trades);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'time', dir: 'desc' });
-  // מייקל 07-10: עסקאות-צל לא מוצגות ברשימה כברירת-מחדל (יש להן לשונית Shadow ייעודית);
-  // toggle מציג אותן מעומעמות. ברירת-המחדל = LIVE/DEMO בלבד — כדי שלא יתבלבלו עם עסקאות אמיתיות.
-  const [showShadow, setShowShadow] = useState(false);
+  // מייקל 07-10: עסקאות-צל לא מוצגות ברשימה כברירת-מחדל (יש להן לשונית Shadow ייעודית).
+  // 07-12: הדגל עבר ל-store (filters.hideShadow) — אמת אחת לטבלה ולפס-הסיכום
+  // (הבאג: הסיכום הציג +841 עם צל בעוד הטבלה הראתה 4 שורות-לייב = +111).
+  const showShadow = !filters.hideShadow;
+  const setShowShadow = (fn: (s: boolean) => boolean) =>
+    setFilters({ hideShadow: !fn(showShadow) });
   const activePattern = (filters.pattern ?? '').trim().toUpperCase();
 
   // Same per-render pattern as TradeCardList (`const trades = filteredTrades()`);
   // filteredTrades() returns a fresh array, so sorting a copy per render is the
   // codebase-consistent approach (≤500 rows — cheap).
   const trades = [...filteredTrades()].sort((a, b) => compareTrades(a, b, sort.key, sort.dir));
-  const shadowCount = trades.filter((t) => String(t.mode).toUpperCase() === 'SHADOW').length;
-  const visibleTrades = showShadow ? trades : trades.filter((t) => String(t.mode).toUpperCase() !== 'SHADOW');
+  const shadowCount = allTrades.filter((t) => String(t.mode).toUpperCase() === 'SHADOW').length;
+  const visibleTrades = trades; // shadow already excluded in the store when hidden
 
   const onSort = (k: SortKey) =>
     setSort((s) => (s.key === k ? { key: k, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key: k, dir: k === 'time' || k === 'pnl' || k === 'id' ? 'desc' : 'asc' }));
