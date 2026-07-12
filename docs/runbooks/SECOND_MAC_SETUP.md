@@ -176,3 +176,21 @@ ssh <user>@<mac2>.local hostname       # אימות
 
 **אבטחה:** מפתח-SSH בלבד (בלי סיסמאות בקבצים); שתי המכונות באותה רשת ביתית;
 לא חושפים את הפורט החוצה.
+
+## 12. מסך-ההפעלה ופרוטוקול-העדכון (פסיקת מייקל 07-12)
+**מסך-הפעלה:** `scripts/MEMS26_CONTROL.command` (לחיצה-כפולה; גם CLI: `status|start|restart|stop|check|update`).
+תפריט: סטטוס (שירותים+גרסה+דריפט-DLL) · הפעלה · הפעלה-מחדש (עם snapshot+guard-עסקאות) ·
+בדיקת-עדכונים (מה חדש + מה יידרש) · **עדכן-לגרסה-האחרונה** (מריץ את §10 אוטומטית: snapshot→
+pull→flag_guard→build-אם-צריך→ריסטארטים-לפי-מה-שהשתנה→drill→**הנחיות אחרי-התקנה**,
+כולל "עכשיו Remote Build בסיירה" כש-sc_study השתנה) · כיבוי. לפני כל פעולה מסוכנת —
+בדיקת עסקאות-פתוחות ואישור מפורש.
+
+**"המכונה יודעת לבד":** `scripts/mems26_update_check.sh` + LaunchAgent
+`com.mems26.update_check` (כל שעה): ‏fetch שקט; כשיש קומיטים חדשים — התראת-macOS
+"MEMS26 — עדכון זמין: N קומיטים • יידרש Remote Build" (מתריע פעם אחת לכל HEAD).
+התקנה במכונת-המסחר:
+```bash
+cp scripts/launchagents/com.mems26.update_check.plist ~/Library/LaunchAgents/
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mems26.update_check.plist
+ln -sf ~/mems26/mems26_web_git/scripts/MEMS26_CONTROL.command ~/Desktop/
+```
