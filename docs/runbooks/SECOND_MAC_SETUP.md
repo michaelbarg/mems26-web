@@ -141,3 +141,24 @@ bash scripts/mems26_verify.sh                                 # 7. עקביות 
 - [ ] דריל-קצה-לקצה על סים ביום-שוק שקט + אישור-GO כתוב של מייקל
 אחרי ה-GO: במכונה הישנה מכבים את הגשר+פידר (למניעת חיבור-Teton כפול), והיא
 נשארת פיתוח בלבד.
+## 11. חיבור-מרחוק בין המכונות (SSH) — הצינור להעברות ולפריסות
+**במכונת-המסחר (Mac2), פעם אחת — מייקל:**
+1. System Settings → General → Sharing → **Remote Login: ON** (וגם **Screen Sharing: ON**
+   — בשביל Remote Build של סיירה מרחוק).
+2. באותו מסך רואים את הכתובת (למשל `michael-trading.local` או IP).
+
+**ממכונת-הפיתוח (פעם אחת):**
+```bash
+ssh-copy-id <user>@<mac2>.local        # מזינים סיסמה פעם אחת — מכאן והלאה מפתח
+ssh <user>@<mac2>.local hostname       # אימות
+```
+
+**מה זה פותח:**
+- העתקת-סיירה בלי דיסק: `rsync -avz --progress ~/SierraChart/ <user>@<mac2>.local:~/SierraChart/`
+  (וכנ"ל SierraChart2 + ‏.env).
+- קידום-מרחוק: `ssh <mac2> 'cd ~/Downloads/mems26_web_git && bash -lc "git pull && python3 scripts/flag_guard.py"'`
+- פיקוח-מרחוק: הסוכן במכונת-הפיתוח יכול לוודא ש-flag_guard/fire_drill ירוקים במסחר.
+- ‏Sierra UI מרחוק: Finder → ⌘K → `vnc://<mac2>.local` (Screen Sharing) ל-Remote Build.
+
+**אבטחה:** מפתח-SSH בלבד (בלי סיסמאות בקבצים); שתי המכונות באותה רשת ביתית;
+לא חושפים את הפורט החוצה.
