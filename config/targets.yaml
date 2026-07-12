@@ -110,7 +110,7 @@ pattern_t1_points:
   INITIATIVE_SHORT:
     Variation: 10.0
   FAMIR:
-    Variation: 5.5   # learning-loop 2026-07-12-DRILL (Michael click-ruling)
+    Variation: 5.0
   BULL_FLAG_LONG:
     Variation: 6.0
   HTLB:
