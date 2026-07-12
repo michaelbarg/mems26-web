@@ -212,6 +212,32 @@ def main():
         lines += [f"- #{i}: {why}" for i, why in skipped]
     out.write_text("\n".join(lines), encoding="utf-8")
 
+    # v2 (Michael 07-12): a consistently-POOR bucket (n>=3, majority POOR)
+    # becomes a READY-TO-APPLY diff proposal for config/targets.yaml
+    # (pattern_t1_points), anchored at p50 of the bucket's actual MFE * 0.5 —
+    # half the observed ceiling as the realistic first take. The diff is a
+    # PROPOSAL file — nothing is applied without Michael's morning ruling.
+    diff_lines = []
+    for (pat, dt), b in sorted(buckets.items()):
+        if b["n"] >= 3 and b["poor"] > b["n"] // 2:
+            mfes = sorted(r["mfe_pts"] for r in rows
+                          if (r["pattern"] or r["classification"]) == pat
+                          and (r["day_type_at_entry"] or "?") == dt)
+            if not mfes:
+                continue
+            p50 = mfes[len(mfes) // 2]
+            suggested = max(2.0, round(p50 * 0.5 * 4) / 4)
+            diff_lines.append(f"  {pat}:\n    {dt}: {suggested}   # p50-MFE {p50:.1f} × 0.5 · n={b['n']} · POOR {b['poor']}/{b['n']}")
+    if diff_lines:
+        dpath = Path(REPO / "docs/reports" / f"PROPOSED_TARGETS_DIFF_{date_str}.yaml")
+        dpath.write_text(
+            "# הצעת-כיול אוטומטית (לולאת-הלמידה) — לא מוחל בלי פסיקת מייקל!\n"
+            "# להחלה: העתק את השורות אל config/targets.yaml -> pattern_t1_points,\n"
+            "# הרץ טסטים + flag_guard, קדם לפי §10.\n"
+            "pattern_t1_points:\n" + "\n".join(diff_lines) + "\n",
+            encoding="utf-8")
+        print(f"[exit_review] proposed diff → {dpath}")
+
     print(f"[exit_review] {len(rows)} trades → {out}")
     for p in proposals:
         print("  •", p.replace("**", ""))
