@@ -180,6 +180,53 @@ async def backlog_board():
         raise HTTPException(status_code=500, detail=f"backlog parse error: {e}")
 
 
+@router.get("/proposed_diffs")
+async def proposed_diffs():
+    """למידה-v3: הצעות-הכיול הממתינות (PROPOSED_TARGETS_DIFF_*.yaml) — ל-/board.
+    ‏read-only ללא-טוקן; ההחלה עצמה דורשת טוקן + קליק-פסיקה של מייקל."""
+    from pathlib import Path
+    import re as _re
+    rep = Path(REPO_ROOT) / "docs/reports"
+    out = []
+    try:
+        for p in sorted(rep.glob("PROPOSED_TARGETS_DIFF_*.yaml"), reverse=True)[:5]:
+            m = _re.search(r"(\d{4}-\d{2}-\d{2})", p.name)
+            out.append({"file": p.name, "date": m.group(1) if m else "",
+                        "content": p.read_text(encoding="utf-8")[:4000]})
+    except Exception as e:
+        logger.warning("[proposed_diffs] %s", e)
+    return {"diffs": out}
+
+
+class ApplyDiffIn(BaseModel):
+    file: str
+
+
+@router.post("/apply_targets_diff")
+async def apply_targets_diff(body: ApplyDiffIn, _token: str = Depends(verify_bridge_token)):
+    """למידה-v3: החלת-דיף בקליק — הקליק של מייקל הוא הפסיקה. מריץ את
+    ‏scripts/apply_targets_diff.py --confirm (ולידציה→מיזוג-כירורגי→לודר→טסטים→קומיט;
+    כישלון-טסטים = ‏revert אוטומטי). לעולם לא רץ מעצמו."""
+    import re as _re
+    import subprocess
+    from pathlib import Path
+    if not _re.fullmatch(r"PROPOSED_TARGETS_DIFF_[\w.-]+\.ya?ml", body.file):
+        raise HTTPException(status_code=400, detail="שם-קובץ לא-חוקי")
+    dpath = Path(REPO_ROOT) / "docs/reports" / body.file
+    if not dpath.exists():
+        raise HTTPException(status_code=404, detail=f"{body.file} לא נמצא")
+    try:
+        r = subprocess.run(
+            ["python3", "scripts/apply_targets_diff.py", "--file",
+             f"docs/reports/{body.file}", "--confirm"],
+            cwd=REPO_ROOT, capture_output=True, text=True, timeout=300)
+        ok = r.returncode == 0
+        tail = "\n".join((r.stdout + "\n" + r.stderr).strip().splitlines()[-12:])
+        return {"ok": ok, "needs_restart": ok, "output": tail}
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="apply timed out")
+
+
 @router.post("/chat")
 async def agent_chat(body: ChatIn, _token: str = Depends(verify_bridge_token)):
     api_key = os.getenv("ANTHROPIC_API_KEY", "").strip()

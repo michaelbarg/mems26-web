@@ -4,7 +4,15 @@ from unittest.mock import patch
 
 
 def test_load_pattern_t1_points():
-    """Config loader parses pattern_t1_points from targets.yaml."""
+    """Config loader parses pattern_t1_points from targets.yaml.
+
+    2026-07-12 (learning-v3): exact-value pins REMOVED — the values are ruled
+    via Michael's click-apply (apply_targets_diff.py) and change legitimately;
+    pinning them here made every ruled apply fail-and-revert (proven in the
+    v3 drill). The MECHANICS are what regression must protect: the section
+    parses, the ruled patterns exist, every value is a sane point figure.
+    Exact values are protected by git history + the click-ruling itself.
+    """
     from backend.v9.config_loader import load_pattern_t1_points
     # Reset cache to force reload
     import backend.v9.config_loader as cl
@@ -12,14 +20,16 @@ def test_load_pattern_t1_points():
     cl._pattern_t1_cache = None
 
     overrides = load_pattern_t1_points()
-    assert isinstance(overrides, dict)
+    assert isinstance(overrides, dict) and overrides
 
-    # Verify the 5 major changes from the ruling
-    assert overrides["REACTIVE_LONG"]["Variation"] == 6.0
-    assert overrides["FAMIR"]["Variation"] == 5.0
-    assert overrides["TLB"]["Trend_Normal"] == 9.0
-    assert overrides["INITIATIVE_LONG"]["Variation"] == 8.0
-    assert overrides["BULL_FLAG_LONG"]["Variation"] == 6.0
+    # the originally-ruled pattern×day cells must EXIST (a vanished cell = a
+    # broken merge), with values in the sanity band the apply script enforces
+    for pat, dt in (("REACTIVE_LONG", "Variation"), ("FAMIR", "Variation"),
+                    ("TLB", "Trend_Normal"), ("INITIATIVE_LONG", "Variation"),
+                    ("BULL_FLAG_LONG", "Variation")):
+        v = (overrides.get(pat) or {}).get(dt)
+        assert v is not None, f"{pat}/{dt} vanished from targets.yaml"
+        assert 1.0 <= v <= 30.0, f"{pat}/{dt}={v} outside sanity band"
 
 
 def test_reactive_long_variation_t1_is_6pts():
