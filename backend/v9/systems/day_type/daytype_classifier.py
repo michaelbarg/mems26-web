@@ -207,6 +207,23 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
                 return prov
         return out("FORMING", "FORMING", f"before IB lock ({n}/{ib_lock_bars} bars)")
 
+    # ── Priority 1.9 = P1-8 Nonconviction (S1_NONCONVICTION_V1, default OFF —
+    #    Dalton pp.300-302, doctrine contradiction-8): looks like Normal/NV/
+    #    Neutral but carries NO OTF footprints at all — Open-Auction rotating
+    #    INSIDE prior value, zero range-extension bars, mid close. No reference
+    #    points → stand aside entirely (NO_TRADE via position-gate + playbook).
+    #    Checked BEFORE Nontrend: Nontrend still requires low participation;
+    #    a Nonconviction day can have normal volume with zero conviction. ──
+    if os.environ.get("S1_NONCONVICTION_V1", "0").lower() in ("1", "true", "yes"):
+        _oa = str(feat.get("opening_type") or "").startswith("OPEN_AUCTION")
+        _in_val = feat.get("open_location") == "in_value"
+        _no_re = (feat.get("ext_up_bars") or 0) == 0 and (feat.get("ext_dn_bars") or 0) == 0
+        _mid = cp is not None and cc_lo <= cp <= cc_hi
+        if _oa and _in_val and sides == 0 and _no_re and _mid:
+            return out("Nonconviction", "CLASSIFIED" if is_eod else "PROVISIONAL",
+                       "OA-in-prior-value + zero RE bars + sides=0 + mid close — "
+                       "no OTF footprints, stand aside (Dalton pp.300-302)")
+
     # ── Priority 2 = Nontrend (Sideways): 0 sides, low participation, TRULY compressed (rib<=1.15) ──
     # FIX A: Nontrend width-floor — session range > NONTREND_MAX_RANGE_PTS (default 18)
     # disqualifies Nontrend (falls to ≥Normal). Flag NONTREND_WIDTH_FLOOR, default OFF.

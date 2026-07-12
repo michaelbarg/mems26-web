@@ -457,6 +457,13 @@ flags:
     why: "ON (Michael 2026-07-10). Trade 337: margin rejection after submit-ack was recorded CLOSED/BE/pnl=0 — records≠reality in the money path."
     status: live
     ref: "backend/v9/services/fill_poller.py:_check_rejections · scripts/trade_activity_feed.py:ORDER_REJECT"
+  S1_NONCONVICTION_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "P1-8 (Dalton pp.300-302): 8th day type Nonconviction — Open-Auction inside prior value + zero RE bars + sides=0 + mid close = no OTF footprints. Position gate blocks unconditionally; playbook cells SKIP for all 13 patterns."
+    why: "OFF pending Michael enable. Replay 07-12: no real day falsely tagged (narrow by design); dead-day fixture tagged correctly. Protects from no-reference days."
+    status: built
+    ref: "backend/v9/systems/day_type/daytype_classifier.py:P1-8 · daytype_position_gate.py · config/daytype_playbook.yaml"
   S1_TREND_CONTROL_V1:
     category: s1
     group: "day-type classifier"

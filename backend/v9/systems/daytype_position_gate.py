@@ -118,6 +118,12 @@ def decide(
             return (False, "Nontrend — all patterns disabled (Michael rule)")
         return (True, "Nontrend (NONTREND_DISABLE_ALL off — defer)")
 
+    # P1-8 Nonconviction (Dalton pp.300-302): no OTF footprints → no reference
+    # points → NO trades, unconditionally. The label only exists when
+    # S1_NONCONVICTION_V1 is ON (classifier-side), so no second flag here.
+    if day_type == "Nonconviction":
+        return (False, "Nonconviction — no OTF footprints, stand aside (Dalton pp.300-302)")
+
     # Normal: fade VA edges — LONG only near VAL, SHORT only near VAH
     if day_type == "Normal":
         return _decide_normal(dir_upper, entry_price, tpo_ctx, pattern=pattern)

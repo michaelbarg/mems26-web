@@ -41,6 +41,13 @@ daytype_style:
     runner: none
     note: "no participants — skip all or scalp edge→POC"
 
+  Nonconviction:
+    target: location
+    action: SKIP
+    ref_points: []
+    bias: "stand aside — no OTF footprints (Dalton pp.300-302); P1-8"
+    c1: null
+    contracts: 0
   Normal:
     target: location
     fade_edges: true
@@ -119,22 +126,22 @@ daytype_style:
 # Per-pattern gate. Columns = the 7 day-types. (E=FULL, D=REDUCED, S=SKIP in the spec.)
 patterns:
   # ── Continuation (S4 Woodies + S2 INITIATIVE) ──
-  ZLR:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP } }
-  TLB:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP } }
-  TT:         { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP } }
-  GB100:      { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP } }
+  ZLR:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
+  TLB:        { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP, Nonconviction: SKIP } }
+  TT:         { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
+  GB100:      { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
   # HTLB moved to reversal section below (HTLB = reversal, not continuation)
-  INITIATIVE: { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP } }
-  FLAGS:      { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP } }
+  INITIATIVE: { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
+  FLAGS:      { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP, Nonconviction: SKIP } }
 
   # ── Reversal (S4 Woodies + S2 REACTIVE) — SKIP on trend days per spec ──
-  HTLB:       { group: REV, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: REDUCED, Neutral_Extreme: REDUCED, Nontrend: SKIP } }
-  VEGAS:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
-  GHOST:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
-  FAMIR:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
+  HTLB:       { group: REV, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: REDUCED, Neutral_Extreme: REDUCED, Nontrend: SKIP, Nonconviction: SKIP } }
+  VEGAS:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
+  GHOST:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
+  FAMIR:      { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: SKIP, Normal: FULL,    Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
   # HFE:     DISABLED (not Michael's pattern, −$2,987; flag HFE_DISABLED)
-  DBDT:       { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: REDUCED, Normal: FULL,  Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
+  DBDT:       { group: REV, cells: { Trend_Normal: SKIP, Trend_DD: REDUCED, Normal: FULL,  Variation: REDUCED, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
 
   # REACTIVE/HnS: allowed on trend days but ONLY with-trend (require_with_trend).
-  REACTIVE:   { group: REV, require_with_trend: true, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: FULL, Variation: FULL, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
-  HNS:        { group: REV, require_with_trend: true, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: FULL, Variation: FULL, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP } }
+  REACTIVE:   { group: REV, require_with_trend: true, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: FULL, Variation: FULL, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
+  HNS:        { group: REV, require_with_trend: true, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: FULL, Variation: FULL, Neutral_Center: FULL, Neutral_Extreme: FULL, Nontrend: SKIP, Nonconviction: SKIP } }
