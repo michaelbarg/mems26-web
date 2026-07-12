@@ -144,7 +144,9 @@ bash scripts/mems26_verify.sh                                 # 7. עקביות 
 ### שער-מעבר (cutover) חד-פעמי — מתי המסחר באמת עובר לכאן
 עד שכל אלה ✅, המסחר נשאר במכונה הראשונה:
 - [ ] §1-§7 בוצעו (backend+frontend+DB חיים, flag_guard 47/47)
-- [ ] §9א סיירה הועתקה + Teton מתחבר + פיד חי (live_price זז)
+- [ ] §9א סיירה יושרה מהמק-פיתוח (rsync) + **Global Settings→Time Zone=Chicago** —
+      פסיקת-TZ 07-12: הקוד = America/Chicago (b5f45af, ה-DLL עובד ב-CT); ה-hotpatch
+      NY של ה-iMac פרש — מיישרים את סיירה לקוד, לא להפך + Teton מתחבר + פיד חי
 - [ ] §9ב DLL נפרס מהגיט + Remote Build + **הוכחת-סים מלאה עוברת**
       (BUY→T1→תזוזת-סטופ→EXIT→FLATTEN_ACCOUNT→sierra_state.json מתעדכן)
 - [ ] §9ג הגשר חי, localhost בלבד, פידר-activity על חשבון-האמת
@@ -168,7 +170,7 @@ ssh <user>@<mac2>.local hostname       # אימות
 **מה זה פותח:**
 - העתקת-סיירה בלי דיסק: `rsync -avz --progress ~/SierraChart/ <user>@<mac2>.local:~/SierraChart/`
   (וכנ"ל SierraChart2 + ‏.env).
-- קידום-מרחוק: `ssh <mac2> 'cd ~/Downloads/mems26_web_git && bash -lc "git pull && python3 scripts/flag_guard.py"'`
+- קידום-מרחוק: `ssh <mac2> 'cd ~/mems26/mems26_web_git && bash -lc "git pull && python3 scripts/flag_guard.py"'`
 - פיקוח-מרחוק: הסוכן במכונת-הפיתוח יכול לוודא ש-flag_guard/fire_drill ירוקים במסחר.
 - ‏Sierra UI מרחוק: Finder → ⌘K → `vnc://<mac2>.local` (Screen Sharing) ל-Remote Build.
 

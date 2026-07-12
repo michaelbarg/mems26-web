@@ -17,7 +17,10 @@ SAFE_LABEL=$(printf '%s' "$LABEL" | tr ' /' '__' | tr -cd 'A-Za-z0-9_.-')
 TS=$(date -u +%Y%m%dT%H%M%SZ)
 ROOT="${MEMS26_SNAPSHOT_DIR:-$HOME/mems26_snapshots}"
 DIR="$ROOT/${TS}_${SAFE_LABEL}"
-REPO="${MEMS26_REPO:-$HOME/Downloads/mems26_web_git}"
+# REPO auto-detect (iMac bug 2026-07-12: the ~/Downloads default produced a snapshot
+# with empty env/ + foreign provenance — the live repo there is ~/mems26/mems26_web_git).
+# Default = the repo THIS script lives in; MEMS26_REPO still overrides.
+REPO="${MEMS26_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 mkdir -p "$DIR/dll" "$DIR/env" "$DIR/launchagents"
 

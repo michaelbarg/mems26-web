@@ -2,7 +2,10 @@
 # mems26_verify.sh — one-shot "is everything consistent + up to date?" check.
 # Read-only. Prints PASS / WARN / FAIL per surface + an overall verdict. Starts nothing.
 set -uo pipefail
-REPO="${MEMS26_REPO:-$HOME/Downloads/mems26_web_git}"
+# REPO auto-detect (iMac bug 2026-07-12: the ~/Downloads default produced a snapshot
+# with empty env/ + foreign provenance — the live repo there is ~/mems26/mems26_web_git).
+# Default = the repo THIS script lives in; MEMS26_REPO still overrides.
+REPO="${MEMS26_REPO:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 EXPORT_DIR="${MEMS26_SIGNALS_DIR:-$HOME/SierraChart_Data/v9_export}"
 PSQL=$(ls /Applications/Postgres.app/Contents/Versions/*/bin/psql 2>/dev/null | head -1)
 fail=0; warn=0
@@ -20,7 +23,15 @@ pgrep -f v9_export_promoter >/dev/null && ok "export promoter running" || er "ex
 
 echo "── 2. LaunchAgents loaded ──"
 for la in com.mems26.backend com.mems26.bridge com.mems26.export_promoter; do
-  launchctl list 2>/dev/null | grep -q "$la" && ok "$la loaded" || wn "$la NOT loaded"
+  # iMac bug 2026-07-12: `launchctl list` context can miss gui-domain agents (false
+  # "NOT loaded" while state=running). Authoritative check = launchctl print state.
+  if launchctl print "gui/$(id -u)/$la" 2>/dev/null | grep -q "state = running"; then
+    ok "$la running"
+  elif launchctl list 2>/dev/null | grep -q "$la"; then
+    ok "$la loaded"
+  else
+    wn "$la NOT loaded"
+  fi
 done
 
 echo "── 3. DLL deployed ↔ repo monolith ──"
