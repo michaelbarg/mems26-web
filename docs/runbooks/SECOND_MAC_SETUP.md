@@ -215,3 +215,43 @@ ln -sf ~/mems26/mems26_web_git/scripts/MEMS26_CONTROL.command ~/Desktop/
 מכל רשת דרך שרתי-AnyDesk. טוב כגיבוי; ‏Tailscale עדיף (גם SSH ודשבורד, לא רק מסך).
 **‏Wake-on-LAN:** עובד רק מאותה רשת ביתית; עם ‏Wake-for-network-access מכשיר-בית
 אחר יכול להעיר. למכונת-מסחר — סעיף האל-תרדמה למעלה מייתר את הכול.
+
+## 14. מפתחות-GitHub — מי צריך, איך נותנים, ובאיזה סדר (מייקל 07-12)
+**העיקרון: מכונות מזדהות, לא אנשים.** לכל מכונה מפתח-SSH משלה; המפתח נרשם בריפו
+כ-‏Deploy Key (מוגבל לריפו הזה בלבד — לא לכל החשבון); שום סוד לא יושב בתוך הריפו
+או ב-URL. ביטול מפתח של מכונה אחת לא נוגע באחרות.
+
+**מי צריך גישה:**
+| מכונה | צריכה | מצב נוכחי |
+|---|---|---|
+| מק-פיתוח (MacBook) | pull+push | ✓ מפתח-SSH קיים ועובד (alias ‏github-mems26) |
+| מכונת-מסחר (iMac) | pull+push-דוחות | ⚠ נשענת על ‏PAT ישן שמור-במחזיק-מפתחות — **יישבר ברוטציה!** |
+| ‏PAT ישן חשוף | — | 🔴 למחוק, אבל **רק אחרי** שה-iMac מקבל מפתח |
+
+**הסדר המחייב (אחרת ה-iMac מפסיק למשוך):**
+1. **ב-iMac — הסוכן יוצר מפתח ומדפיס אותו:**
+   ```bash
+   ssh-keygen -t ed25519 -N "" -f ~/.ssh/id_ed25519_github -C "mems26-trading-imac"
+   cat ~/.ssh/id_ed25519_github.pub
+   ```
+2. **מייקל — רושם את המפתח בריפו (דפדפן, 60 שניות):**
+   ‏github.com/michaelbarg/mems26-web → ‏Settings (של הריפו!) → ‏**Deploy keys** →
+   ‏Add deploy key → כותרת ‏"trading-imac" → הדבק את ה-‏.pub → ‏☑ ‏**Allow write access** → ‏Add.
+3. **ב-iMac — הסוכן מעביר את הריפו ל-SSH ובודק:**
+   ```bash
+   printf "Host github.com\n  IdentityFile ~/.ssh/id_ed25519_github\n" >> ~/.ssh/config
+   cd ~/mems26/mems26_web_git && git remote set-url origin git@github.com:michaelbarg/mems26-web.git
+   git fetch origin && git push origin HEAD --dry-run     # שניהם חייבים לעבוד
+   ```
+4. **רק עכשיו — מייקל מוחק את ה-PAT הישן:**
+   ‏github.com → תמונת-פרופיל → ‏Settings → ‏Developer settings → ‏Personal access tokens →
+   הטוקן הישן → ‏**Delete**. ואז ב-iMac: ניקוי שאריות —
+   ```bash
+   printf "protocol=https\nhost=github.com\n" | git credential-osxkeychain erase
+   rm -rf ~/Downloads/mems26_web_git        # העותק הישן עם הטוקן ב-URL
+   ```
+5. **אימות סופי בשתי המכונות:** ‏`git fetch origin` עובד · ‏`git ls-remote` עובד ·
+   מסך-ההפעלה מציג "מעודכן לגרסה האחרונה".
+
+**כלל קבוע להמשך:** מכונה חדשה = מפתח חדש (שלב 1-3). אף פעם לא PAT בתוך URL,
+אף פעם לא העתקת מפתח בין מכונות.
