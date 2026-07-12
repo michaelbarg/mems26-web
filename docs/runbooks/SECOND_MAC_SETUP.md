@@ -62,13 +62,14 @@ bash scripts/mems26_update.sh        # או: git pull origin stabilize/mems26-lo
 אחרי כל pull: `python3 scripts/flag_guard.py` + אם השתנו דגלים — לקרוא את ה-diff
 של `config/RULED_FLAGS.yaml` לפני שממשיכים.
 
-## 8. חלוקת-עבודה מול המכונה הראשית
-- הראשית = מסחר + אמת-סיירה. השנייה = פיתוח/טסטים/בקטסטים כבדים.
-- עבודה כאן נדחפת ל-origin; המכונה הראשית מושכת. **אין עריכה מקבילה של אותו קובץ
-  בשתי המכונות** — לתאם דרך מייקל/Cowork, ולהריץ איחוד-טסטים אחרי merge.
-- דוחות: `docs/reports/` עם suffix `_MAC2` כדי שלא להתנגש.
+## 8. חלוקת-עבודה — פסיקת מייקל 2026-07-11 (מחליפה את הניסוח הקודם)
+**המכונה הזו (השנייה) = מכונת-המסחר-באמת. המכונה הראשונה = פיתוח בלבד.**
+- כל תיקון/פיצ'ר נכתב ונבדק במכונת-הפיתוח → push ל-origin → כאן **מושכים ופורסים**
+  לפי פרוטוקול-הקידום (§10). **אסור לערוך קוד ישירות על מכונת-המסחר** — גיט הוא
+  הצינור היחיד; חריג יחיד: `.env` מקומי, ותמיד עם snapshot לפני.
+- דוחות שנוצרים כאן: suffix `_TRADING` כדי שלא להתנגש.
 
-## 9. הפיכה למכונת-מסחר מלאה (גשר + סיירה) — רק בפסיקת מייקל
+## 9. הקמת מכונת-המסחר (גשר + סיירה) — מאושר (פסיקת מייקל 2026-07-11)
 **הגשר כבר בגיט** (`bridge/` + LaunchAgent מההתקנה) — הוא רק כבוי כי אין לו מה לקרוא.
 מה שחסר הוא סיירה עצמה. שלושה רכיבים:
 
@@ -109,3 +110,34 @@ tail -f /tmp/bridge.err.log     # לוודא: push ל-http://localhost:8000 בל
    `scripts/mems26_snapshot.sh` לפני (בדיוק כמו בראשית).
 3. אחרי כל pull שנוגע ב-`sc_study/` — לחזור על 9ב (build+Remote Build), אחרת
    ה-DLL הרץ מפגר אחרי הקוד. `scripts/mems26_verify.sh` תופס את הדריפט הזה.
+
+
+## 10. פרוטוקול-קידום: מפיתוח למסחר (המסלול הקבוע מעכשיו)
+**במכונת-הפיתוח (לפני push):** טסטים ירוקים + `flag_guard` PASS + עדכון
+`RULED_FLAGS.yaml`/`FLAG_REGISTRY.yaml` אם נגעת בדגל + קומיט עם הסבר-סיכון.
+
+**כאן (מכונת-המסחר), לכל קידום — 8 צעדים, בסדר הזה, רק כשהשוק סגור או flat:**
+```bash
+bash scripts/mems26_snapshot.sh "pre-promote-$(date +%m%d)"   # 1. גיבוי
+git pull origin stabilize/mems26-local-truth-2026-05-16       # 2. משיכה
+python3 scripts/flag_guard.py                                 # 3. ‎47/47 PASS (אם דגל חדש — מייקל מעדכן .env לפי ה-diff)
+# 4. אם השתנה sc_study/: bash scripts/build_monolithic_cpp.sh --deploy
+#    → בסיירה Remote Build + reload + הוכחת-סים (scripts/d1_exit_proof.sh)
+launchctl kickstart -k gui/$(id -u)/com.mems26.backend        # 5. ריסטארט
+python3 scripts/fire_drill.py                                 # 6. 🟢 GO
+bash scripts/mems26_verify.sh                                 # 7. עקביות מלאה (DLL↔repo, feed, DB)
+# 8. שורת-לוג ב-docs/plans/STATUS_BOARD.md: מה קודם, ראיות, מי אישר
+```
+
+### שער-מעבר (cutover) חד-פעמי — מתי המסחר באמת עובר לכאן
+עד שכל אלה ✅, המסחר נשאר במכונה הראשונה:
+- [ ] §1-§7 בוצעו (backend+frontend+DB חיים, flag_guard 47/47)
+- [ ] §9א סיירה הועתקה + Teton מתחבר + פיד חי (live_price זז)
+- [ ] §9ב DLL נפרס מהגיט + Remote Build + **הוכחת-סים מלאה עוברת**
+      (BUY→T1→תזוזת-סטופ→EXIT→FLATTEN_ACCOUNT→sierra_state.json מתעדכן)
+- [ ] §9ג הגשר חי, localhost בלבד, פידר-activity על חשבון-האמת
+- [ ] העברת DB: במכונה הישנה `pg_dump mems26 > cut.sql` → כאן `psql mems26 < cut.sql`
+      (ההיסטוריה נחוצה ל-tp_audit/לדג'ר/halt היומי)
+- [ ] דריל-קצה-לקצה על סים ביום-שוק שקט + אישור-GO כתוב של מייקל
+אחרי ה-GO: במכונה הישנה מכבים את הגשר+פידר (למניעת חיבור-Teton כפול), והיא
+נשארת פיתוח בלבד.
