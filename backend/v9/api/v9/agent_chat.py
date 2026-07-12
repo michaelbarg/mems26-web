@@ -77,6 +77,22 @@ def _live_context() -> str:
     except Exception:
         pass
     try:
+        # עין-סיירה הנטיבית (FIX-13): מה הברוקר באמת מחזיק — עדיפה על כל DB
+        from pathlib import Path as _P
+        import json as _json, time as _t
+        sf = _P(os.path.expanduser("~/SierraChart_Data/v9_export/sierra_state.json"))
+        if sf.exists():
+            age = _t.time() - sf.stat().st_mtime
+            data = _json.loads(sf.read_text().strip() or "{}")
+            parts.append(f"sierra_broker_state (age {age:.0f}s{' — STALE>10s' if age > 10 else ''}): "
+                         f"is_sim={data.get('is_sim')} position_qty={data.get('position_qty')} "
+                         f"avg={data.get('avg_price')} working_orders={data.get('working_orders')} "
+                         f"orders={data.get('orders')}")
+        else:
+            parts.append("sierra_broker_state: file missing (DLL not exporting)")
+    except Exception:
+        pass
+    try:
         from pathlib import Path
         alerts = Path(os.path.expanduser(
             "~/Downloads/mems26_web_git/docs/reports/ALERTS_LIVE.md"))
