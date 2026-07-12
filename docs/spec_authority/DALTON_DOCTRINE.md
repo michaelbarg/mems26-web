@@ -255,3 +255,22 @@ stored at EOD → next-morning briefing bias. ACCEPT: tags in DB for replay set;
 6. Acceptance tested only at IB edges (`relative_features.py:157-173`) vs VA/gap/balance-area references (pp.278–293) → P0-1/P2-11.
 7. Initiative/responsive tagging (pp.45–49) absent from S1 outputs → P0-3 input.
 8. Nonconviction day type (pp.300–302) unmodeled → P1-8.
+
+---
+
+## 7 · נספח-סטטוס 2026-07-12 (מיישר את עמודות-המצב של 07-08 למציאות; הדוקטרינה עצמה לא שונתה)
+
+**נסגר מאז כתיבת המסמך (הכל ON ופסוק, ‏flag_guard 47/47):**
+- **P0-2 ✅ בוצע** — ‏S1_COMMITTED_PROVISIONAL_V1=1 (07-09): סיווג-מחויב ב-30 דק' במקום FORMING עירום; ‏opening_type@15. סתירה-1 בסעיף 6 — סגורה.
+- **P0-3 ✅ בוצע** — ‏S1_CONFIDENCE_V2=1 (07-09): ציון-ביטחון קנוני אחד (FORMING=0); ה-0.46/LOCKED_LOW_CONF ירד מהמשטחים. סתירה-3 — סגורה.
+- **§1.4/§2-Neutral עודכן דוקטרינרית (פסיקת מייקל 07-10, עמ' 27-29): ספירת-צדדים = ‏RE מכני** —
+  ‏DAYTYPE_SIDES_MECHANICAL_V1=1: צד נספר לפי הרחבת-מחיר ≥ ‏max(2 נק', 20%×IB); ‏acceptance נשאר רק ל-accepted_break
+  (שלב-הקבלה/reclass). צמד-הכיול 07-09/07-10 בטסטים. שורות ה-"volume-accepted ✅" בטבלת סעיף 2 — היסטוריות.
+- **תווית-לילה** — ‏DAYTYPE_RTH_RESET_V1=1 (FIX-9): מצב Globex נמחק בבר-RTH הראשון.
+- **יציבות-סיווג** — ‏DAYTYPE_ANTIFLAP_V1=1 (hold 600s) + ‏DAYTYPE_ONE_SOURCE_V1=1 (מנוע=UI=שערים).
+- ‏S1_OPEN_DRIVE_TREND=1 (ה-waiver שהמסמך ציין כ-OFF — הודלק) · ‏NONTREND_WIDTH_FLOOR=1 (רצפת-רוחב ל-Nontrend, סוגר את חור-ה-rib) · ‏OPENING_TYPE_GATE=1 · ‏NONTREND_DISABLE_ALL=1 (עמ' 300: לא נכנסים).
+- ‏P0-1 **חלקי**: ‏S1_DYNAMIC_RECLASS/S1_LIVE_RECLASS פעילים + ‏shadow_reclass (משמר-Neutral, ‏D-S1DYN); ‏reclass-בקבלה על כל הרפרנסים (VA/גאפ/balance) — עדיין פתוח.
+
+**עדיין פתוח (הבקלוג בתוקף):** ‏P1-4 (one_tf רץ + מונה-מדרגות) · ‏P1-5 (elongation/P-b-D במקום rib≥2.5 — סתירה-2 חיה) ·
+‏P1-6 (הגירת-Value כמסווג) · ‏P1-7 (‏DD neck-refill invalidation — סתירה-5) · ‏P1-8 (‏Nonconviction טיפוס-8 — סתירה-8) ·
+‏P2-9..12 (‏TPO-count, אומדן-טווח, ‏Value-Area-Rule, תגי-המשכיות-EOD — סתירה-6/7 חלקית).
