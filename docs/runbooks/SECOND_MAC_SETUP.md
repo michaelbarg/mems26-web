@@ -194,3 +194,24 @@ cp scripts/launchagents/com.mems26.update_check.plist ~/Library/LaunchAgents/
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mems26.update_check.plist
 ln -sf ~/mems26/mems26_web_git/scripts/MEMS26_CONTROL.command ~/Desktop/
 ```
+
+## 13. גישה מכל מקום + אל-תרדמה (פסיקת מייקל 07-12)
+**מכונת-מסחר לא ישנה:** ‏System Settings → ‏Energy →
+**Prevent automatic sleeping when display is off = ON** · **Wake for network access = ON**.
+שינה = מוות ל-backend/גשר/פידים. הצג כבה — המכונה לא. (זו התשובה האמיתית
+ל"להעיר מרחוק": שלא יהיה צורך.)
+
+**שליטה מרשת אחרת — ‏Tailscale (מומלץ):**
+1. בשתי המכונות (+הטלפון): ‏https://tailscale.com/download → התקנה → כניסה לאותו
+   חשבון (Apple/Google של מייקל — הוא מזין, לא הסוכן). בלי פורטים פתוחים, מוצפן, חינם.
+2. כל מכשיר מקבל כתובת קבועה (‏100.x.y.z). מכל מקום בעולם:
+   - מסך: ‏Finder → ‏⌘K → ‏`vnc://<כתובת-iMac>` ‏(Screen Sharing חייב ON)
+   - פקודות: ‏`ssh <user>@<כתובת-iMac>` ‏(Remote Login חייב ON)
+   - דשבורד: ‏`http://<כתובת-iMac>:3000` — גם מהטלפון בחוץ.
+3. אבטחה: הרשת פרטית לחשבון של מייקל; אין חשיפת פורטים לאינטרנט; מכשיר חדש
+   דורש אישור בחשבון.
+
+**חלופה מהירה:** ‏AnyDesk עם ‏Unattended Access + סיסמה חזקה ב-iMac — שליטת-מסך
+מכל רשת דרך שרתי-AnyDesk. טוב כגיבוי; ‏Tailscale עדיף (גם SSH ודשבורד, לא רק מסך).
+**‏Wake-on-LAN:** עובד רק מאותה רשת ביתית; עם ‏Wake-for-network-access מכשיר-בית
+אחר יכול להעיר. למכונת-מסחר — סעיף האל-תרדמה למעלה מייתר את הכול.
