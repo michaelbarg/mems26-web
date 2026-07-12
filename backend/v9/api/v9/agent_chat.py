@@ -81,8 +81,11 @@ def _live_context() -> str:
         alerts = Path(os.path.expanduser(
             "~/Downloads/mems26_web_git/docs/reports/ALERTS_LIVE.md"))
         if alerts.exists():
+            import datetime as _dt
+            mtime = _dt.datetime.fromtimestamp(alerts.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
             tail = alerts.read_text(encoding="utf-8", errors="ignore").splitlines()[-5:]
-            parts.append("recent_alerts: " + " | ".join(tail))
+            parts.append(f"recent_alerts (file last modified {mtime}; lines may be OLD/resolved — trust RESOLVED markers): "
+                         + " | ".join(tail))
     except Exception:
         pass
     return "\n".join(parts) or "(no live context available)"
