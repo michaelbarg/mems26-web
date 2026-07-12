@@ -94,6 +94,77 @@ def _max_consec(closes: List[float], thr: float, up: bool) -> int:
     return best
 
 
+def level_acceptance(
+    bars: List[Any],
+    level: Optional[float],
+    side: str,
+    *,
+    ext_buffer_ticks: float = 2.0,
+    tick: float = TICK,
+    hold_bars: int = 2,
+    vol_accept_frac: float = 0.08,
+) -> Dict[str, Any]:
+    """P0-1 v2 (Michael 2026-07-12; Dalton pp.37-38, 278-293): acceptance test at an
+    ARBITRARY reference level — prior-day high/low, prior value-area edge, balance
+    bracket, or the IB edge itself. Same mechanics as the IB acceptance above:
+
+      accepted  = >= `hold_bars` CONSECUTIVE closes beyond the level (+2-tick buffer)
+                  AND >= `vol_accept_frac` of session volume traded beyond it
+                  (typical-price test; volume gate skipped when bars carry no volume,
+                  e.g. synthetic tests — close-hold decides, matching the IB code).
+      rejected_after_accept = it WAS accepted earlier, but the LAST `hold_bars`
+                  closes are back INSIDE the raw level — "return inside the
+                  reference = rejection / failed breakout" (doctrine P0-1).
+      accept_bar = index of the bar that completed the first hold (None if never).
+
+    side: "UP" = acceptance above the level · "DOWN" = below. Pure, no I/O.
+    """
+    out = {"accepted": False, "rejected_after_accept": False, "accept_bar": None}
+    if level is None or not bars or side not in ("UP", "DOWN"):
+        return out
+    closes = [c for c in (_g(b, "c", "close") for b in bars) if c is not None]
+    if len(closes) < hold_bars:
+        return out
+    up = side == "UP"
+    thr = level + ext_buffer_ticks * tick if up else level - ext_buffer_ticks * tick
+
+    # first completed hold (consecutive closes beyond the buffered level)
+    run = 0
+    for i, c in enumerate(closes):
+        if (c >= thr) if up else (c <= thr):
+            run += 1
+            if run >= hold_bars and out["accept_bar"] is None:
+                out["accept_bar"] = i
+        else:
+            run = 0
+    held = out["accept_bar"] is not None
+
+    # volume acceptance beyond the RAW level (same test as the IB block above)
+    vol_ok = True
+    sess_v = sum(v for v in (_g(b, "v", "volume") for b in bars) if v is not None) or 0.0
+    if sess_v > 0:
+        def _tp(b):
+            h, l, c = _g(b, "h", "high"), _g(b, "l", "low"), _g(b, "c", "close")
+            return (h + l + c) / 3.0 if None not in (h, l, c) else None
+        v_beyond = sum(
+            (_g(b, "v", "volume") or 0) for b in bars
+            if (tp := _tp(b)) is not None and ((tp > level) if up else (tp < level))
+        )
+        vol_ok = v_beyond >= vol_accept_frac * sess_v
+
+    if not (held and vol_ok):
+        return out
+
+    # currently rejected? — the last `hold_bars` closes back INSIDE the raw level
+    tail = closes[-hold_bars:]
+    back_inside = all((c < level) if up else (c > level) for c in tail)
+    if back_inside:
+        out["rejected_after_accept"] = True
+    else:
+        out["accepted"] = True
+    return out
+
+
 def compute_relative_features(
     bars: List[Any],
     ib_high: Optional[float],

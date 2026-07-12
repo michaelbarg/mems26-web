@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from backend.v9.systems.day_type.relative_features import compute_relative_features
+from backend.v9.systems.day_type.relative_features import compute_relative_features, level_acceptance
 from backend.v9.systems.day_type.cvd_features import compute_cvd_features
 from backend.v9.systems.day_type.context_features import ib_width_percentile
 from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type
@@ -106,6 +106,39 @@ def classify_session(
     if rf.session_high is not None and rf.session_low is not None:
         _sr = round(rf.session_high - rf.session_low, 2)
 
+    # ── P0-1 v2 (Michael 2026-07-12; Dalton pp.278-293): acceptance at ALL reference
+    #    levels, not just the IB. References in OUTERMOST-first priority: prior-day
+    #    range (PDH/PDL — the balance bracket; a gap-and-go holds beyond it), then the
+    #    prior value-area edge (VAH/VAL), then the IB edge. Each ref gets the same
+    #    acceptance test (≥2 consecutive closes + volume-accept beyond); a ref that was
+    #    accepted but whose last closes are back INSIDE = rejection (failed breakout).
+    #    Pure + cheap → computed always; classify() consumes accepted_break/failed_break
+    #    only under S1_ACCEPTANCE_RECLASS_V1 → byte-identical when the flag is unset.
+    _refs = [(nm, lv, sd) for nm, lv, sd in (
+        ("PDH", pdh, "UP"), ("PDL", pdl, "DOWN"),
+        ("prior_VA", prior_vah, "UP"), ("prior_VA", prior_val, "DOWN"),
+        ("IB", ib_high if ibw > 0 else None, "UP"), ("IB", ib_low if ibw > 0 else None, "DOWN"),
+    ) if lv is not None]
+    _acc_up = _acc_dn = _failed_ref = None
+    for _nm, _lv, _sd in _refs:
+        _a = level_acceptance(bars, _lv, _sd)
+        if _a["accepted"]:
+            if _sd == "UP" and _acc_up is None:
+                _acc_up = _nm
+            elif _sd == "DOWN" and _acc_dn is None:
+                _acc_dn = _nm
+        elif _a["rejected_after_accept"] and _failed_ref is None:
+            _failed_ref = _nm
+    if _acc_up and _acc_dn:            # accepted BOTH ways = two-sided, no directional reclass
+        _abrk, _aref = None, None
+    elif _acc_up or _acc_dn:
+        _abrk = "UP" if _acc_up else "DOWN"
+        _aref = _acc_up or _acc_dn
+    else:
+        _abrk, _aref = None, None
+    # failed_break only when NOTHING is currently accepted (revert, per the spec)
+    _fbrk = _failed_ref is not None and _abrk is None
+
     feat = {
         "returned_through_open": rf.returned_through_open,
         "n_bars": n,
@@ -123,15 +156,16 @@ def classify_session(
         "poc_drift": pocdrift,
         "dd_second_dist": dd_detected,
         "session_range": _sr,
-        # ── P0 wiring (Michael 2026-07-08, Dalton doctrine) — ADDITIVE. Consumed only when the
-        #    P0 flags are ON; classify() ignores these keys otherwise → byte-identical when unset.
-        #    accepted_break derives from the EXISTING volume-accepted IB hold (relative_features
-        #    ext_*_hold); open_dir feeds the provisional-from-open (P0-2); ext_*_bars feed the
-        #    confidence RE-persistence evidence (P0-3). prior-range/balance refs + failed_break
-        #    are a documented follow-up (P0-1 v2).
-        "accepted_break": ("UP" if (rf.ext_up_hold and not rf.ext_dn_hold)
-                           else ("DOWN" if (rf.ext_dn_hold and not rf.ext_up_hold) else None)),
-        "accepted_break_ref": ("IB" if (bool(rf.ext_up_hold) ^ bool(rf.ext_dn_hold)) else None),
+        # ── P0 wiring (Michael 2026-07-08 + v2 2026-07-12, Dalton doctrine) — ADDITIVE.
+        #    Consumed only when the P0 flags are ON; classify() ignores these keys
+        #    otherwise → byte-identical when unset. accepted_break now merges ALL
+        #    reference acceptances (PDH/PDL, prior VA, IB) via level_acceptance —
+        #    including accept-then-reject (failed_break), which the v1 IB-only holds
+        #    could not express. open_dir feeds P0-2; ext_*_bars feed P0-3 confidence.
+        "accepted_break": _abrk,
+        "accepted_break_ref": _aref,
+        "failed_break": _fbrk,
+        "failed_break_ref": _failed_ref if _fbrk else None,
         "open_dir": op.get("direction"),
         "ext_up_bars": rf.ext_up_bars,
         "ext_dn_bars": rf.ext_dn_bars,

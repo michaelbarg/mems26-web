@@ -185,39 +185,25 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
     dd = {"detected": sierra_dd or dd_bar["detected"], "profile_shape": profile_shape,
           "source": "sierra_shape" if sierra_dd else ("bars" if dd_bar["detected"] else None), "bar": dd_bar}
 
-    plan = load_plan()
-    cum_all = [b["cum"] for b in rth]
     timeline: List[Dict[str, Any]] = []
     for i in range(1, n + 1):
         # progressive IB (no lookahead): 30-min IB until the 60-min IB completes
         if i < 12:
-            ibh, ibl, ibp = ib6_h, ib6_l, ibp6["pctile"]
+            ibh, ibl = ib6_h, ib6_l
         else:
-            ibh, ibl, ibp = ib12_h, ib12_l, ibp12["pctile"]
-        rf = compute_relative_features(rth[:i], ibh, ibl, open_price)
-        cvd = compute_cvd_features([c for c in cum_all[:i] if c is not None])
-        feat = {
-            "returned_through_open": rf.returned_through_open,
-            "n_bars": i,
-            "sides": rf.sides,
-            "rib": rf.rib,
-            "one_tf": rf.one_tf,
-            "cvd_pos": cvd["cvd_pos"],
-            "close_pos": rf.close_pos,
-            "ib_pctile": ibp,
-            "ib_width": round(ibh - ibl, 2),
-            # IB-narrow is RELATIVE: this IB vs the recent median (Michael 2026-06-20), not an
-            # absolute point band. Drives Normal (IB not-narrow) and the DD narrow-IB criterion.
-            "ib_narrow": bool(ib_median and ib_median > 0 and (ibh - ibl) <= 0.7 * ib_median),
-            "vol_ratio": vol_ratio,
-            "opening_type": opening_type,
-            "open_location": open_loc,
-            "poc_drift": pocdrift,
-            "dd_second_dist": dd["detected"],
-            "session_range": round(rf.session_high - rf.session_low, 2) if rf.session_high is not None and rf.session_low is not None else None,
-        }
-        # is_eod on the LAST bar forces a terminal type (no day ends FORMING/PROVISIONAL).
-        res = classify(feat, plan, is_eod=(i == n))
+            ibh, ibl = ib12_h, ib12_l
+        # ONE code path with the live engine (P0-1 ACCEPT: "UI==gate==engine one value",
+        # Michael 2026-07-12). The hand-assembled feat that used to live here silently
+        # missed every doctrine feature added to classifier_core (stair-steps/P1-5,
+        # neck-refill/P1-7, open_dir/P0-2, accepted_break/P0-1) — the exact source-split
+        # failure class. classify_session recomputes opening/DD per bar-prefix (no
+        # lookahead), so the replay now shows what the live engine would have shown.
+        res = classify_session(
+            bars=rth[:i], ib_high=ibh, ib_low=ibl, open_price=open_price,
+            ib_width_hist=ibmeds, profile_shape=profile_shape, vol_ratio=vol_ratio,
+            prior_vah=pvah, prior_val=pval, pdh=pdh, pdl=pdl,
+            poc_now=poc_now, poc_at_ib=poc_at_ib, is_eod=(i == n),
+        )
         timeline.append({"i": i - 1, "time": _hhmm(rth[i - 1]["ts"]), **res})
 
     segments: List[Dict[str, Any]] = []
@@ -234,8 +220,6 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
         "opening_type": opening_type, "open_location": open_loc, "profile_shape": profile_shape,
         "va_width": va_width, "poc_drift": pocdrift, "second_distribution": dd,
         "pdh": pdh, "pdl": pdl, "prior_vah": pvah, "prior_val": pval,
-        "measured": {"sides": feat.get("sides"), "rib": feat.get("rib"), "one_tf": feat.get("one_tf"),
-                     "close_pos": feat.get("close_pos"), "cvd_pos": feat.get("cvd_pos"),
-                     "ib_width": feat.get("ib_width"), "vol_ratio": feat.get("vol_ratio")},
+        "measured": timeline[-1].get("measured", {}),
         "segments": segments, "final": timeline[-1],
     }

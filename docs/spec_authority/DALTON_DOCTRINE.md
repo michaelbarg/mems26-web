@@ -269,7 +269,7 @@ stored at EOD → next-morning briefing bias. ACCEPT: tags in DB for replay set;
 - **תווית-לילה** — ‏DAYTYPE_RTH_RESET_V1=1 (FIX-9): מצב Globex נמחק בבר-RTH הראשון.
 - **יציבות-סיווג** — ‏DAYTYPE_ANTIFLAP_V1=1 (hold 600s) + ‏DAYTYPE_ONE_SOURCE_V1=1 (מנוע=UI=שערים).
 - ‏S1_OPEN_DRIVE_TREND=1 (ה-waiver שהמסמך ציין כ-OFF — הודלק) · ‏NONTREND_WIDTH_FLOOR=1 (רצפת-רוחב ל-Nontrend, סוגר את חור-ה-rib) · ‏OPENING_TYPE_GATE=1 · ‏NONTREND_DISABLE_ALL=1 (עמ' 300: לא נכנסים).
-- ‏P0-1 **חלקי**: ‏S1_DYNAMIC_RECLASS/S1_LIVE_RECLASS פעילים + ‏shadow_reclass (משמר-Neutral, ‏D-S1DYN); ‏reclass-בקבלה על כל הרפרנסים (VA/גאפ/balance) — עדיין פתוח.
+- ‏P0-1 **מלא (v2 בנוי 07-12, flag-OFF)**: קבלה בכל הרפרנסים (PDH/PDL/VA-אתמול/IB) + failed_breakout + נתיב-אחד replay==engine; ממתין לפסיקת-הדלקה. ראיות: P01_V2_ACCEPTANCE_RECLASS_2026-07-12.md
 
 **עדיין פתוח (הבקלוג בתוקף):** ‏P1-4 (one_tf רץ + מונה-מדרגות) · ‏P1-5 (elongation/P-b-D במקום rib≥2.5 — סתירה-2 חיה) ·
 ‏P1-6 (הגירת-Value כמסווג) · ‏P1-7 (‏DD neck-refill invalidation — סתירה-5) · ‏P1-8 (‏Nonconviction טיפוס-8 — סתירה-8) ·
