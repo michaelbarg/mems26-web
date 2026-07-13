@@ -28,7 +28,13 @@ VALID_ACTIONS = {"BUY", "SELL", "CANCEL", "MODIFY", "STATUS", "FLATTEN",
                  # FIX-11 (2026-07-10, orphan 8704): account-level flatten —
                  # NOT gated on an armed bracket in the DLL. Closes manual/
                  # orphan positions the bracket-scoped ops can't touch.
-                 "FLATTEN_ACCOUNT"}
+                 "FLATTEN_ACCOUNT",
+                 # EXIT (2026-07-13): the automated partial-exit op (write_exit →
+                 # op="EXIT" → DLL sc.SellExit/BuyExit). Exposed so the DLL EXIT
+                 # handler is testable via the API (was internal-only → the fix
+                 # was never verified end-to-end; the 07-13 report tested raw SELL
+                 # = op=PLACE entry, a different path). Routed to write_exit below.
+                 "EXIT"}
 
 
 class TradeCommandIn(BaseModel):
@@ -60,15 +66,34 @@ def submit_trade_command(
         )
 
     try:
-        command = write_trade_command(
-            action=action,
-            trade_id=cmd.trade_id,
-            price=cmd.price,
-            contracts=cmd.contracts,
-            stop_price=cmd.stop_price,
-            target_price=cmd.target_price,
-            context={**(cmd.context or {}), "sierra_bracket_id": cmd.sierra_bracket_id},
-        )
+        # EXIT — the PARTIAL-EXIT op the automated path uses (manager.py write_exit
+        # → op="EXIT" → DLL sc.SellExit/BuyExit). It was reachable ONLY internally,
+        # so the DLL EXIT handler could never be tested end-to-end via the API
+        # (07-13 regression report: the tester fell back to raw SELL = op=PLACE
+        # entry, a DIFFERENT path). Route action=EXIT to the real write_exit so a
+        # SIM test can prove the ScaleOut/TIF fix on the actual production op.
+        if action == "EXIT":
+            from backend.v9.services.sierra_command import write_exit
+            _dir = None
+            if isinstance(cmd.context, dict):
+                _dir = cmd.context.get("direction")
+            command = write_exit(
+                trade_id=str(cmd.trade_id or ""),
+                order_id=int(cmd.sierra_bracket_id or 0),
+                contracts=int(cmd.contracts or 1),
+                direction=_dir,
+                mode=(cmd.context or {}).get("mode", "demo") if isinstance(cmd.context, dict) else "demo",
+            )
+        else:
+            command = write_trade_command(
+                action=action,
+                trade_id=cmd.trade_id,
+                price=cmd.price,
+                contracts=cmd.contracts,
+                stop_price=cmd.stop_price,
+                target_price=cmd.target_price,
+                context={**(cmd.context or {}), "sierra_bracket_id": cmd.sierra_bracket_id},
+            )
         logger.info(f"[trade_cmd_api] Command written: {action} trade_id={cmd.trade_id}")
     except IOError as e:
         raise HTTPException(status_code=500, detail=f"Failed to write command: {e}")
