@@ -8,6 +8,10 @@ from .bars_5min import V9Bar5Min
 from .bars_tick_reversal import V9BarTickReversal
 from .bars_footprint import V9BarFootprint
 from .bars_woodies import V9Bar30MinWoodies, V9Bar5MinWoodies
+# 07-13: was defined but NOT imported here → create_all never created the table →
+# the /5min_continuous push failed "relation does not exist" every bar and spammed
+# /tmp/backend.err.log to 6GB on the iMac. Registering it fixes create_all.
+from .bars_5min_continuous import V9Bar5MinContinuous
 from .tpo_bars import V9TpoBar
 from .system_signals import V9SystemSignal
 from .system_markers import V9SystemMarker
