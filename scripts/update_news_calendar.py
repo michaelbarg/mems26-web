@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """update_news_calendar — weekly auto-seed of config/news_calendar.yaml (Michael 07-13).
 
-Source: ForexFactory's public weekly JSON (nfs.faireconomy.media/ff_calendar_thisweek.json)
-— the standard free calendar that carries an IMPORTANCE rating. Filter:
-country == USD AND impact == High  ≈  TradingView's red-USA events.
+Sources, in order (Michael's ruling: "מחוברת עם TradingView"):
+  1. PRIMARY — TradingView's own calendar endpoint (economic-calendar.tradingview.com):
+     the EXACT data Michael's TV app shows, filter importance==1 (red) + US.
+     Unofficial-but-public endpoint — no account/auth; can break someday, hence:
+  2. FALLBACK — ForexFactory weekly JSON (impact==High, USD).
+Cross-anchor: BLS/Fed official schedules in the Monday audit (Rule 2 — the
+07-13 lesson: one aggregator got CPI's day wrong; the official source rules).
 
 Safety/honesty:
   - The MANUAL events already in the yaml for dates NOT covered by the fetch
@@ -28,36 +32,52 @@ from zoneinfo import ZoneInfo
 
 REPO = Path(__file__).resolve().parent.parent
 CAL = REPO / "config" / "news_calendar.yaml"
-URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+FF_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
+TV_URL = ("https://economic-calendar.tradingview.com/events"
+          "?from={frm}&to={to}&countries=US")
 ET = ZoneInfo("America/New_York")
 
 HEADER = """# לוח-אירועים כלכלי — חלון-חדשות NO_TRADE (מתעדכן אוטומטית).
 # TZ מפורש (Rule 4): time_et = America/New_York.
-# נוצר ע"י scripts/update_news_calendar.py ממקור ForexFactory (impact=High, USD)
-# ≈ "אדום-ארה"ב" של TradingView. אימות-עין שבועי מול TradingView בביקורת-שני.
+# נוצר ע"י scripts/update_news_calendar.py — מקור-ראשי: יומן-TradingView עצמו
+# (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
+# (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-
+{source_line}
 events:
 """
 
 
-def fetch():
-    req = urllib.request.Request(URL, headers={"User-Agent": "MEMS26-calendar/1.0"})
-    with urllib.request.urlopen(req, timeout=15) as r:
+def _get(url: str):
+    req = urllib.request.Request(url, headers={
+        "User-Agent": "Mozilla/5.0", "Origin": "https://www.tradingview.com"})
+    with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read())
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--dry-run", action="store_true")
-    args = ap.parse_args()
+def fetch_tradingview():
+    """Red (importance==1) US events for the next 7 days from TV's own calendar."""
+    from datetime import timedelta, timezone
+    now = datetime.now(timezone.utc)
+    url = TV_URL.format(frm=now.strftime("%Y-%m-%dT00:00:00.000Z"),
+                        to=(now + timedelta(days=7)).strftime("%Y-%m-%dT00:00:00.000Z"))
+    d = _get(url)
+    rows = d.get("result") if isinstance(d, dict) else d
+    evs = []
+    for e in rows or []:
+        try:
+            if e.get("importance") != 1:
+                continue
+            dt = datetime.fromisoformat(str(e["date"]).replace("Z", "+00:00")).astimezone(ET)
+            evs.append({"date": dt.strftime("%Y-%m-%d"), "time_et": dt.strftime("%H:%M"),
+                        "name": str(e.get("title", "?")).strip()})
+        except Exception:
+            continue
+    return evs
 
-    try:
-        raw = fetch()
-    except Exception as e:
-        print(f"[news_cal] FETCH FAILED — calendar untouched (fail-open per-event): {e}")
-        return 1
 
+def fetch_forexfactory():
+    raw = _get(FF_URL)
     evs = []
     for e in raw:
         try:
@@ -65,14 +85,34 @@ def main() -> int:
                 continue
             if str(e.get("impact", "")).lower() != "high":
                 continue
-            # ff dates are ISO with offset, e.g. "2026-07-13T08:30:00-04:00"
             dt = datetime.fromisoformat(e["date"]).astimezone(ET)
             evs.append({"date": dt.strftime("%Y-%m-%d"), "time_et": dt.strftime("%H:%M"),
                         "name": str(e.get("title", "?")).strip()})
         except Exception:
             continue
+    return evs
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dry-run", action="store_true")
+    args = ap.parse_args()
+
+    evs, source = [], None
+    try:
+        evs = fetch_tradingview()
+        source = "tradingview (importance=1, US)"
+    except Exception as e:
+        print(f"[news_cal] TradingView fetch failed ({e}) → falling back to ForexFactory")
     if not evs:
-        print("[news_cal] source returned 0 High/USD events — refusing to overwrite (suspicious)")
+        try:
+            evs = fetch_forexfactory()
+            source = "forexfactory (impact=High, USD) — TV unavailable"
+        except Exception as e:
+            print(f"[news_cal] FETCH FAILED (both sources) — calendar untouched: {e}")
+            return 1
+    if not evs:
+        print("[news_cal] 0 red events from both sources — refusing to overwrite (suspicious)")
         return 1
 
     fetched_dates = {e["date"] for e in evs}
@@ -96,14 +136,15 @@ def main() -> int:
         lines += (f'  - date: {e["date"]}\n    time_et: "{e["time_et"]}"\n'
                   f'    name: "{nm}"\n    severity: red\n')
 
-    print(f"[news_cal] {len(evs)} fetched High/USD + {len(kept)} kept manual:")
+    print(f"[news_cal] source={source} · {len(evs)} fetched + {len(kept)} kept manual:")
     for e in allev:
         print(f"   {e['date']} {e['time_et']} ET — {e['name']}")
 
     if args.dry_run:
         print("[news_cal] dry-run — not written")
         return 0
-    CAL.write_text(HEADER + lines, encoding="utf-8")
+    src_line = f"# מקור-הריצה האחרונה: {source} · {datetime.now(ET).strftime('%Y-%m-%d %H:%M ET')}"
+    CAL.write_text(HEADER.format(source_line=src_line) + lines, encoding="utf-8")
     print(f"[news_cal] wrote {CAL}")
     return 0
 

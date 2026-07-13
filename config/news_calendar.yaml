@@ -1,43 +1,52 @@
 # לוח-אירועים כלכלי — חלון-חדשות NO_TRADE (מתעדכן אוטומטית).
 # TZ מפורש (Rule 4): time_et = America/New_York.
-# נוצר ע"י scripts/update_news_calendar.py ממקור ForexFactory (impact=High, USD)
-# ≈ "אדום-ארה"ב" של TradingView. אימות-עין שבועי מול TradingView בביקורת-שני.
+# נוצר ע"י scripts/update_news_calendar.py — מקור-ראשי: יומן-TradingView עצמו
+# (importance=1 = אדום, US) = בדיוק מה שמייקל רואה באפליקציה; גיבוי: ForexFactory
+# (impact=High/USD). עוגן-אימות: לוחות-BLS/Fed הרשמיים בביקורת-שני (Rule 2).
 # עריכה ידנית מותרת — ריצת-עדכון מחליפה רק ימים שהמקור מכסה.
-
+# מקור-הריצה האחרונה: tradingview (importance=1, US) · 2026-07-13 02:21 ET
 events:
   - date: 2026-07-14
     time_et: "08:30"
-    name: "Core CPI m/m"
+    name: "Core Inflation Rate YoY"
     severity: red
   - date: 2026-07-14
     time_et: "08:30"
-    name: "Core CPI y/y"
+    name: "Inflation Rate YoY"
     severity: red
   - date: 2026-07-14
     time_et: "08:30"
-    name: "CPI m/m"
+    name: "Core Inflation Rate MoM"
     severity: red
   - date: 2026-07-14
     time_et: "08:30"
-    name: "CPI y/y"
+    name: "Inflation Rate MoM"
     severity: red
   - date: 2026-07-14
     time_et: "10:00"
-    name: "Fed Chairman Warsh Testifies"
+    name: "Fed Chair Warsh Testimony"
     severity: red
   - date: 2026-07-15
     time_et: "08:30"
-    name: "Core PPI m/m"
-    severity: red
-  - date: 2026-07-15
-    time_et: "08:30"
-    name: "PPI m/m"
+    name: "PPI MoM"
     severity: red
   - date: 2026-07-15
     time_et: "10:00"
-    name: "Fed Chairman Warsh Testifies"
+    name: "Fed Chair Warsh Testimony"
     severity: red
   - date: 2026-07-16
     time_et: "08:30"
-    name: "Retail Sales (יוני)"
+    name: "Retail Sales MoM"
+    severity: red
+  - date: 2026-07-17
+    time_et: "08:30"
+    name: "Housing Starts"
+    severity: red
+  - date: 2026-07-17
+    time_et: "08:30"
+    name: "Building Permits Prel"
+    severity: red
+  - date: 2026-07-17
+    time_et: "10:00"
+    name: "Michigan Consumer Sentiment Prel"
     severity: red
