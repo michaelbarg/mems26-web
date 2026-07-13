@@ -617,6 +617,83 @@ async def _startup():
             except Exception as e:
                 _logger.warning("[DayType] process_bar error: %s", e, exc_info=True)
 
+        # ── BOOT DAY-TYPE REPLAY (BOOT_DAYTYPE_REPLAY_V1, default OFF) ──────────
+        # Symmetry fix (Michael 07-13): a backend booted LATE in the session feeds the
+        # engine only post-boot live bars → fewer bars + a weaker/different label than a
+        # machine booted at the open (the 07-13 dev-vs-iMac divergence). Reconstruct
+        # today's session by replaying today's RTH bars from v9_bars_5min_woodies through
+        # the SAME pure engine entry point (process_bar), using EACH BAR's real ET time
+        # (not now()). Pure/in-memory: process_bar mutates only machine state — NO
+        # bar_router publish, NO per-bar DB write, NO trade/phone side-effects. Idempotent
+        # (bar_count==0 guard). Flag-OFF until Michael rules on the anti-tautological test.
+        def _boot_replay_day_type_session():
+            import os as _bos
+            if _bos.environ.get("BOOT_DAYTYPE_REPLAY_V1", "0").lower() not in ("1", "true", "yes"):
+                return
+            if getattr(day_type_machine, "bar_count", 0) != 0:
+                return  # already has a session (idempotent across restarts)
+            try:
+                from datetime import time as _t2, datetime as _dt2
+                from zoneinfo import ZoneInfo as _ZI
+                from backend.v9.db.read import read_all as _ra
+                _ET = _ZI("America/New_York")
+                _today = now_et().date().isoformat()
+                _rows = _ra(
+                    "SELECT ts, open, high, low, close, volume FROM v9_bars_5min_woodies "
+                    "WHERE (ts AT TIME ZONE 'America/New_York')::date = :d "
+                    "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                    "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+                    "AND symbol = 'MES' ORDER BY ts", {"d": _today})
+                if not _rows:
+                    _logger.info("[DayType] boot-replay: no RTH bars for %s yet", _today)
+                    return
+                _pd = _load_previous_day_context_for_startup()
+                _ibh0 = _ibl0 = None
+                try:
+                    from backend.v9.api.v9.tpo_routes import _load_sierra_tpo as _lst
+                    _st = _lst() or {}
+                    if _st.get("ib_found"):
+                        _ibh0, _ibl0 = _st.get("ib_high"), _st.get("ib_low")
+                except Exception:
+                    pass
+                _last = None
+                _n = 0
+                for _r in _rows:
+                    _ts = _r["ts"]
+                    _bet = (_dt2.fromisoformat(_ts) if isinstance(_ts, str) else _ts).astimezone(_ET)
+                    _sm = minutes_since_rth_open(_bet)
+                    _rth = _t2(9, 30) <= _bet.time() < _t2(16, 0)
+                    # Mimic the live path: Sierra IB is None until it locks (~session_min
+                    # 60 = 10:30 ET), then the locked value — so the engine builds the
+                    # opening + developing-IB sequence exactly as an early live boot would.
+                    _ibh = _ibh0 if _sm >= 60 else None
+                    _ibl = _ibl0 if _sm >= 60 else None
+                    _bi = BarInput(
+                        ts=_bet.timestamp(), session_min=_sm, is_rth=_rth,
+                        open=float(_r["open"]), high=float(_r["high"]),
+                        low=float(_r["low"]), close=float(_r["close"]),
+                        volume=float(_r.get("volume") or 0),
+                        pd_high=_pd.get("pd_high"), pd_low=_pd.get("pd_low"),
+                        pd_close=_pd.get("pd_close"), ib_high=_ibh, ib_low=_ibl,
+                    )
+                    _last = day_type_machine.process_bar(_bi)
+                    if _rth:
+                        _cls_rth_bars.append({"o": _bi.open, "h": _bi.high,
+                                              "l": _bi.low, "c": _bi.close, "v": _bi.volume})
+                    _n += 1
+                day_type_machine._opening_gate_bars = _cls_rth_bars
+                _cls_session_date["value"] = _today
+                _dt_v = getattr(getattr(_last, "day_type", None), "value", None) if _last else None
+                _logger.info(
+                    "[DayType] boot-replay reconstructed %d RTH bars → stage=%s "
+                    "day_type=%s bar_count=%d (BOOT_DAYTYPE_REPLAY_V1)",
+                    _n, getattr(day_type_machine, "stage", "?"), _dt_v,
+                    getattr(day_type_machine, "bar_count", 0))
+            except Exception as _bre:
+                _logger.warning("[DayType] boot-replay failed (non-fatal): %s", _bre)
+
+        _boot_replay_day_type_session()
+
         bar_router.subscribe("5min", _day_type_on_bar)
         _logger.info("[Main] DayTypeStateMachine subscribed to 5min via BarRouter")
 
