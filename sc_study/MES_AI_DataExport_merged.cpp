@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-13 08:35:55 by build_monolithic_cpp.sh
+// Generated 2026-07-13 09:07:33 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -1845,6 +1845,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sc.AllowOnlyOneTradePerBar                        = 0;   // CRITICAL: default 1 → silent skip
         sc.MaintainTradeStatisticsAndTradesData           = 1;   // needed for position/trade tracking
         sc.AllowMultipleEntriesInSameDirection             = 1;
+        // 07-13 sim-proof root: WITHOUT ScaleOut support, ACSIL rejects every
+        // partial SellExit/BuyExit CLIENT-SIDE (r=-1, no broker reject event) —
+        // the EXIT op could never have worked. ScaleOut also auto-reduces
+        // attached-order quantities on partial exits (desired semantics).
+        sc.SupportTradingScaleOut                          = 1;
         sc.SupportReversals                                = 0;
         sc.AllowOppositeEntryWithOpposingPositionOrOrders  = 0;
         sc.CancelAllOrdersOnEntriesAndReversals            = 0;
@@ -1945,6 +1950,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // Must be OUTSIDE SetDefaults — Sierra requires consistency per-call.
     // Per Sierra docs + SupportBoard #82446: mismatch → GENERAL_ERROR_OR_NOT_ENABLED.
     sc.SendOrdersToTradeService = !sc.GlobalTradeSimulationIsOn;
+
+    // 07-13 EXIT root-fix: ScaleOut asserted PER-CALL (like the line above) —
+    // SetDefaults runs only on study ADD, and re-adding wipes all chart inputs
+    // (export dir, arm). Without ScaleOut, ACSIL rejects every partial
+    // BuyExit/SellExit CLIENT-SIDE (r=-1, no broker reject event).
+    sc.SupportTradingScaleOut = 1;
 
     int idx = sc.Index;
     SCDateTime today = sc.BaseDateTimeIn[idx].GetDate();
