@@ -1,7 +1,19 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
-## 2026-07-13 (Cowork — הוכחת-סים DLL 08:10: EXIT עדיין שבור + MODIFY_STOP מבטל-את-עצמו)
+## 2026-07-13 (Cowork אחה"צ — סימטריה dev↔iMac: 5 שורשים + פסיקות)
+
+**[2026-07-13 ~15:00–19:00 IDT — Cowork: משימה-משימה עם סוכני-אימות. שורה-תחתונה: dev מתוקן+מאומת+נדחף; iMac חסום על TZ]**
+
+- **create_all לא בונה `v9_bars_5min_continuous`** (המשך 01fa023 שלא עבד ב-iMac) — **שורש:** `create_all` מעולם לא רץ בנתיב-הבוט, רק ב-`db_init.sh` בהתקנה; יבוא-המודל (01fa023) לא הספיק כי כלום לא הפעיל create_all בריסטארט. **תיקון:** `init_db()` ב-`backend/main.py:_startup` (idempotent, try/except, לא-חוסם-בוט). **אימות:** המודל ב-metadata (41 טבלאות); סוכן-ביקורת אישר 0 רגרסיות; ‏ad56a28.
+- **פאנל מערכת-6 "ממתין ל-CC"** — **שורש:** ה-endpoint קיים ב-`/api/v9/system6/diagnose/{id}` אבל `ActiveTradeCard.tsx:374` קורא ל-`/api/v9/s6/…`. **תיקון:** alias קריא-בלבד `/api/v9/s6` (‏system6_routes.py+app.py). **אימות:** שני הנתיבים נפתרים; ‏ad56a28.
+- **סימטריית סוג-יום (התיקון המרכזי)** — **שורש:** המנוע-הישן (מתייג עסקאות) נבנה ריק בכל בוט ומוזן רק בברים חיים אחרי-הבוט → בוט-מאוחר = פחות ברים + תווית חלשה/שונה (dev 'Normal'/15 מול iMac 'Neutral_Center'/30). **תיקון:** `BOOT_DAYTYPE_REPLAY_V1` — משחזר בבוט את ברי-ה-RTH של היום מ-`v9_bars_5min_woodies` דרך `process_bar` הטהור (זמן-ET פר-בר), טהור/בלי תופעות-לוואי, idempotent. **אימות:** 4/4 טסטים אנטי-טאוטולוגיים (LATE_NO_REPLAY≠LIVE, LATE_WITH_REPLAY==LIVE), סוכן אישר 0 side-effects (socket-patched). **פסיקת מייקל 07-13 "כן — הדלק בשתיהן + RULE"** → RULED=1, flag_guard PASS 59, ‏67161fb+f4c11c4. dev מדליק בריסטארט הבא (כש-#361 flat).
+- **אמת-מול-פנטום** — **אומת:** reconciler משווה TM מול `sierra_state.json` (qty/working, טרי≤10s); ‏PHANTOM_HEAL דורש state-file טרי+working=0+streak≥3; ‏I-62 מזמין fill אמיתי. 5/5 טסטים. **חי:** עסקה #361 SHORT = **אמת** (TM −3 == Sierra −3).
+- **סימטריית דגלים** — **ממצא:** בדיוק 3 דגלים דלוקים בדב/כבויים ב-iMac: `EOD_RISK_WINDOW_V1`, `SYSTEM6_EXIT_SIGNALS`, `SYSTEM6_EXIT_JOURNAL` (שלושתם תצפית — לא op=EXIT). 79 האחרים זהים. **פסיקת מייקל "ON בשתיהן + RULE"** → RULED=1 (f4c11c4). כל דגלי-הסטנדינג-כבוי מאומתים OFF בשתי המכונות.
+- **🔴 TZ ברי-עתיד (חוסם iMac)** — **שורש:** `base_stream.py:74`=`America/Chicago`; dev תואם (0 ברי-עתיד, בר-אחרון 11:55 ET@11:59) אבל **iMac +1h** → הצ'ארטים על אזורי-זמן שונים (dev=Central תואם-קוד, iMac=Eastern). **צימוד:** boot-replay קורא זמני-ברים → הדלקתו ב-iMac על ברים +1h = סוג-יום שגוי. **החלטה:** iMac boot-replay מוחזק עד תיקון-TZ מתואם (שני הצ'ארטים לאותו אזור + יישור base_stream:74, בכפוף למייקל). ממתין לדיווח-TZ מה-iMac. לא שונה קוד-TZ (dev תקין; שינוי עיוור ישבור אותו).
+- **פערים לסימטריה:** (א) DLL של dev ישן (`armed=None` ב-state) → Remote Build ב-dev. (ב) צ'אט: dev עובד + מגן-תשובה-ריקה נוסף; iMac צריך `frontend/v9/.env.local` (תבנית נוספה). (ג) iMac: משיכה+טוקן-צ'אט בוצעו; ריסטארט מוחזק עד TZ.
+
+
 
 **[2026-07-13 10:03–10:20 IDT — Cowork ביקורת-בוקר-שני (צ'ק-ליסט מלא) + דריל-EXIT חוזר על ה-DLL הטעון. שורה-תחתונה: 🔴 EXIT עדיין ‎-1 גם אחרי בילד 09:12]**
 
