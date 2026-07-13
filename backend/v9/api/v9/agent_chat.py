@@ -124,6 +124,7 @@ KNOWLEDGE_MAP = """מפת-הידע של המערכת (הכל מאונדקס ומ
 - docs/runbooks/ — פרוטוקולים (בוקר, קידום-למסחר, מק-שני, DLL)."""
 
 _TOPIC_FILES = [
+    (("חדשות", "news", "cpi", "ppi", "fomc", "אירוע"), "config/news_calendar.yaml", 2000),
     (("משימ", "פיתוח", "בקלוג", "backlog", "תור", "עדיפו"), "docs/plans/DEV_BACKLOG.md", 3500),
     (("דגל", "flag", "פסיק"), "docs/FLAG_INDEX.md", 3000),
     (("יעד", "סטופ", "target", "stop", "מימוש"), "docs/reports/TARGETS_STOPS_TABLE_2026-07-13.md", 3500),
@@ -178,6 +179,37 @@ async def backlog_board():
     except Exception as e:
         logger.warning("[backlog_board] %s", e)
         raise HTTPException(status_code=500, detail=f"backlog parse error: {e}")
+
+
+@router.get("/news_calendar")
+async def news_calendar():
+    """לוח-החדשות ל-/board: אירועים-אדומים + שעות-IL + מצב-חסימה חי.
+    ‏read-only ללא-טוקן (localhost בלבד), כמו backlog_board."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    from backend.v9.services.news_blackout import _load_events, check, enabled
+    ET, IL = ZoneInfo("America/New_York"), ZoneInfo("Asia/Jerusalem")
+    before = int(os.getenv("NEWS_BLACKOUT_BEFORE_MIN", "15"))
+    after = int(os.getenv("NEWS_BLACKOUT_AFTER_MIN", "30"))
+    now = datetime.now(ET)
+    out = []
+    for e in _load_events():
+        dt_et = e["dt"]
+        dt_il = dt_et.astimezone(IL)
+        lo, hi = dt_et - timedelta(minutes=before), dt_et + timedelta(minutes=after)
+        # RTH = 09:30-16:00 ET; does the block window overlap it?
+        rth_lo = dt_et.replace(hour=9, minute=30)
+        rth_hi = dt_et.replace(hour=16, minute=0)
+        in_rth = lo <= rth_hi and hi >= rth_lo
+        out.append({
+            "date": dt_et.strftime("%Y-%m-%d"), "day": dt_il.strftime("%A"),
+            "time_et": dt_et.strftime("%H:%M"), "time_il": dt_il.strftime("%H:%M"),
+            "name": e["name"],
+            "block_il": f"{lo.astimezone(IL).strftime('%H:%M')}–{hi.astimezone(IL).strftime('%H:%M')}",
+            "in_rth": in_rth, "past": hi < now,
+        })
+    return {"enabled": enabled(), "window": f"-{before}m..+{after}m",
+            "active_now": check(), "events": out}
 
 
 @router.get("/proposed_diffs")

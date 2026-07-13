@@ -4,6 +4,7 @@
 
 import { LiveLedgerPanel } from '../../v9/components/board/LiveLedgerPanel';
 import { PagesPanel } from '../../v9/components/board/PagesPanel';
+import { NewsCalendarPanel } from '../../v9/components/board/NewsCalendarPanel';
 import { ProposedDiffsPanel } from '../../v9/components/board/ProposedDiffsPanel';
 import { StatusBoardPanel } from '../../v9/components/board/StatusBoardPanel';
 import { System6SupervisorPanel } from '../../v9/components/board/System6SupervisorPanel';
@@ -21,6 +22,8 @@ export default function BoardPage() {
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* למידה-v3: הצעות-כיול ממתינות לפסיקה — מוצג רק כשיש דיפים */}
         <ProposedDiffsPanel />
+        {/* לוח-החדשות — חלון-NO_TRADE (מייקל 07-13) */}
+        <NewsCalendarPanel />
         <LiveLedgerPanel />
         <div id="system6"><System6SupervisorPanel /></div>
         <div id="tasks"><StatusBoardPanel /></div>
