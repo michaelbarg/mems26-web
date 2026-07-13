@@ -172,12 +172,40 @@ def run_once(account: str) -> list[dict]:
     return events
 
 
+def _account_from_env() -> str:
+    """--account auto (07-13): resolve the account from .env INSIDE python.
+
+    Root cause: the LaunchAgent's bash is TCC-blocked from reading .env in
+    ~/Downloads ('Operation not permitted') → `source .env` failed SILENTLY →
+    MEMS26_MODE always defaulted to live → the sim branch in the plist was
+    dead wiring. Python (Full Disk Access) reads the file fine, so the mode
+    resolution lives here now. sim → SIERRA_SIM_ACCOUNT (Sim1), else live.
+    """
+    env_path = Path(__file__).resolve().parent.parent / ".env"
+    cfg = {}
+    try:
+        for ln in env_path.read_text().splitlines():
+            ln = ln.strip()
+            if ln and not ln.startswith("#") and "=" in ln:
+                k, v = ln.split("=", 1)
+                cfg[k.strip()] = v.strip()
+    except Exception as e:
+        print(f"[trade_activity_feed] .env read failed ({e}) → live default", file=sys.stderr)
+    if cfg.get("MEMS26_MODE", "live").lower() == "sim":
+        return cfg.get("SIERRA_SIM_ACCOUNT", "Sim1")
+    return cfg.get("SIERRA_LIVE_ACCOUNT", LIVE_ACCOUNT)
+
+
 def main():
     import argparse
     parser = argparse.ArgumentParser(description="Sierra TradeActivityLog feeder")
     parser.add_argument("--once", action="store_true", help="Single run, no polling")
-    parser.add_argument("--account", default=LIVE_ACCOUNT, help="Sierra account ID")
+    parser.add_argument("--account", default=LIVE_ACCOUNT,
+                        help="Sierra account ID, or 'auto' to resolve from .env (MEMS26_MODE)")
     args = parser.parse_args()
+    if args.account == "auto":
+        args.account = _account_from_env()
+        print(f"[trade_activity_feed] auto account → {args.account}")
 
     if args.once:
         events = run_once(args.account)
