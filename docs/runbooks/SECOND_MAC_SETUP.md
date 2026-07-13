@@ -109,6 +109,18 @@ bash scripts/build_monolithic_cpp.sh --deploy   # auto-snapshot + העתקה ל-
 ```
 לוודא ב-Study Input 4 ‏(V9 Export Directory): ‏`/Users/<user>/SierraChart_Data/v9_export/`.
 
+> 🔴 **חובה אחרי כל Remote Build / reload / re-add של הסטאדי — לחמש מחדש את המסחר:**
+> ‏re-add של הסטאדי **מאפס** את ‏**"Enable Order Placement"** ל-0 (=OFF) בשקט, וכן toggle
+> של ‏Trade Simulation אמצע-סשן עלול לשבור state. אחרי בילד:
+> 1. בסיירה: הסטאדי → קלט **"Enable Order Placement"** ← להעמיד על **1 (DEMO)**.
+>    ‏(בקוד ‏`sc.Input[21]`; בתצוגת-סיירה זה **"In:22"** — התצוגה 1-based; זהה תמיד **לפי השם**,
+>    לא לפי המספר, כי הוא נבדל בין המכונות).
+> 2. לאמת מ-`sierra_state.json` ‏(1s heartbeat): ‏`"order_placement_armed":1` **וגם**
+>    ‏`"send_orders_to_trade_service"` תואם ל-is_sim (סים→0 · לייב→1). אם ‏armed=0 —
+>    המערכת **אילמת+לא-מחומשת** ולא תפתח פוזיציה על אף אות (לקח 07-13: BUY נצרך בלי לבצע).
+> 3. בדיקת-חימוש: ‏BUY-בדיקה → אמור לכתוב result (‏ORDER_SUBMITTED / ‏ORDER_FAILED עם r,
+>    לעולם לא ריק). אם ריק — ה-DLL-בינארי מיושן מהמקור → חזור על ‏Remote Build.
+
 ### 9ג. הפעלת הגשר (אחרי שסיירה חיה ומייצאת)
 ```bash
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mems26.bridge.plist

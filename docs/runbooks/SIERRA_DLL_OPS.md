@@ -137,3 +137,10 @@ python3 /Users/michael/Downloads/mems26_web_git/scripts/patch_woodies_5min_hud.p
 - `docs/PROMPT_1_HOTFIX_REPORT.md` (נתיבי Mac מקוריים)
 - `docs/reports/PROMPT30_8_5MIN_JSON_EXPORT.md` (מונולית + 5min)
 - `docs/handoff/P30_WOODIES_PANEL_AGENT_HANDOFF.md` § Export fields matrix
+
+## חימוש-מסחר אחרי Build (07-13 — לקח BLOCKER)
+- **"Enable Order Placement"** = `sc.Input[21]` (קוד, 0-based) = **"In:22"** בתצוגת-סיירה (1-based). זהה **לפי השם**, לא מספר.
+- כל **Remote Build / reload / re-add** מאפס אותו ל-0 (OFF) בשקט. חובה להעמיד **1 (DEMO)** אחרי כל בילד.
+- אימות מ-`sierra_state.json`: `order_placement_armed:1` + `send_orders_to_trade_service` (סים→0/לייב→1).
+- `armed=0` = המערכת אילמת ולא תפתח פוזיציה. `result` ריק על BUY = בינארי מיושן מהמקור → Remote Build שוב.
+- toggle של Trade Simulation אמצע-סשן עלול לשבור state (SendOrders/account) → הפתרון: Remote Build + reload (מאפס state נקי) ואז חימוש-מחדש.

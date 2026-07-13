@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-13 16:49:59 by build_monolithic_cpp.sh
+// Generated 2026-07-13 16:56:35 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -1826,7 +1826,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     SCInputRef WoodiesChartNumber  = sc.Input[18];   // Chart # where Woodies studies live (0 = same chart)
     SCInputRef YesterdayIBStudyID  = sc.Input[19];   // Sierra Study ID for Yesterday's Initial Balance (0 = disabled)
     SCInputRef ContinuousChartNumber = sc.Input[20]; // Chart # for 24h continuous 5-min bars (0 = disabled)
-    SCInputRef EnableOrderPlacement  = sc.Input[21]; // Pipeline 5: enable DEMO order placement (default OFF)
+    SCInputRef EnableOrderPlacement  = sc.Input[21]; // Pipeline 5: enable DEMO order placement (default OFF).
+    // NOTE (07-13): Sierra's UI shows this 1-based as "Enable Order Placement (In:22)" —
+    // sc.Input[21] (code, 0-based) == "In:22" (Sierra UI). Always identify the arm input by
+    // NAME ("Enable Order Placement"), not by number — the number differs code(21)↔UI(22).
     SCInputRef TradeFillsPath        = sc.Input[22]; // Path for trade_fills.json (fill events)
 
     if (sc.SetDefaults)
@@ -2049,12 +2052,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             char sbuf[1024];
             int sl = snprintf(sbuf, sizeof(sbuf),
                 "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,"
+                "\"send_orders_to_trade_service\":%d,"
                 "\"position_qty\":%.0f,\"avg_price\":%.2f,"
                 "\"working_orders\":%d,\"orders\":[%s]}\n",
                 (long long)time(nullptr),
                 sc.GlobalTradeSimulationIsOn ? 1 : 0,
                 EnableOrderPlacement.GetInt(),   // B2 (07-13): arm-state in the 1s heartbeat —
                                                  // read arm without sending a probe order.
+                sc.SendOrdersToTradeService ? 1 : 0,  // 07-13 iMac blocker: auto-match state —
+                                                      // if this drifts after a sim-toggle, PLACE no-ops.
                 (float)spos.PositionQuantity, (float)spos.AveragePrice,
                 n_ord, ordbuf);
             if (sl > 0 && sl < (int)sizeof(sbuf))
@@ -2949,6 +2955,30 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 }
 
                                 order_err_text = err_text;  // expose to final result write
+
+                                // 07-13 iMac BLOCKER: armed PLACE that no-ops (BuyEntry r<=0,
+                                // e.g. r=0 NO_ACTION_TAKEN after a sim-toggle / study re-add) was
+                                // observed to leave trade_result.json EMPTY — silent-failure.
+                                // Write the result INLINE here (don't rely on the generic writer),
+                                // and include send_orders_to_trade_service so the exact cause is
+                                // visible in the result, not just silence. ("No silent failures".)
+                                const char* rp_fail = TradeResultPath.GetString();
+                                if (rp_fail[0] != '\0')
+                                {
+                                    char rb[256];
+                                    int rl = snprintf(rb, sizeof(rb),
+                                        "{\"status\":\"ORDER_FAILED\",\"ts\":%lld,\"error\":%d,"
+                                        "\"error_text\":\"%s\",\"send_orders_to_trade_service\":%d,"
+                                        "\"is_sim\":%d}\n",
+                                        (long long)time(nullptr), r, err_text,
+                                        sc.SendOrdersToTradeService ? 1 : 0,
+                                        sc.GlobalTradeSimulationIsOn ? 1 : 0);
+                                    if (rl > 0 && rl < (int)sizeof(rb))
+                                    {
+                                        std::ofstream rf(rp_fail);
+                                        if (rf.is_open()) { rf.write(rb, rl); rf.close(); result_written = true; }
+                                    }
+                                }
 
                                 // Log to Sierra message log for visual debugging
                                 char log_buf[256];
