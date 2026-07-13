@@ -127,6 +127,15 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mems26.bridge.plist
 tail -f /tmp/bridge.err.log     # לוודא: push ל-http://localhost:8000 בלבד!
 ```
 
+### 9ד. בדיקת-חיבור מקיפה — "כל המערכות מחוברות?" (מייקל 07-13)
+לפני מסחר, פקודה אחת שבודקת הכל ומדפיסה חוסרים:
+```bash
+bash scripts/mems26_preflight.sh    # READ-ONLY; PASS/GAP לכל תת-מערכת + verdict
+```
+בודק: שירותים+API · כל הפידים טריים · **חימוש (Enable Order Placement=1) + is_sim + send_orders** ·
+**בינארי-DLL טרי↔מקור** · DB+עסקאות-תקועות · 6 המערכות · flag_guard+fire_drill · HEAD מסונכרן.
+‏exit-code = מספר-החוסרים. 0 חוסרים = ירוק-למסחר. תפס את מלכוד-החימוש/בינארי-ישן של 07-13.
+
 ### ⚠ אילוצים קשיחים
 1. **חיבור-דאטה אחד:** ‏Teton/CME מנתק את החיבור הראשון כשנכנסים מהשני — שתי המכונות
    לא סוחרות במקביל. מכונה 2 = גיבוי-חם/פיתוח; מעבר מסחר = פסיקת מייקל מפורשת.
