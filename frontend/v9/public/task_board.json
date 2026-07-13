@@ -3,10 +3,19 @@
  "meta": {
   "title": "לוח-המשימות החי (DEV_BACKLOG)",
   "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
-  "updated": "2026-07-13 08:38",
+  "updated": "2026-07-13 16:17",
   "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
  },
  "tasks": [
+  {
+   "id": "DEV-0",
+   "title": "op=EXIT v2 — יציאה-חלקית על פוזיציה מבורקטת (cancel-then-exit + never-naked)",
+   "priority": "P1",
+   "status": "open",
+   "owner": "CC",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "SellExit מחזיר r=-1 כי כל חוזה תפוס ב-OCO משלו (אומת iMac PID20495 + קוד 1028-1051); מעולם לא עבד, אין קוראים חיים — בנייה-קדימה לפני הפעלת STALL/S6-autocorrect. פרומפט …"
+  },
   {
    "id": "DEV-5",
    "title": "הידרציה מלאה בבוט (נמסר ל-CC 07-13, CC_PROMPT_2026-07-13_BACKLOG3)",
