@@ -300,7 +300,19 @@ async def agent_chat(body: ChatIn, _token: str = Depends(verify_bridge_token)):
         data = r.json()
         reply = "".join(b.get("text", "") for b in data.get("content", [])
                         if b.get("type") == "text")
-        return {"reply": reply or "(תשובה ריקה)", "model": MODEL}
+        if not reply:
+            # No-silent-failure (CLAUDE.md): a bare "(תשובה ריקה)" is undiagnosable.
+            # Surface WHY (stop_reason + which block types came back) so a recurrence
+            # is actionable, and log it. 07-13: Michael saw blanks — verified the path
+            # works (200 + full text); this guards the empty-content edge (e.g. the
+            # model spending the whole max_tokens budget without emitting text).
+            stop = data.get("stop_reason")
+            ctypes = [b.get("type") for b in data.get("content", [])]
+            logger.warning("[agent_chat] empty model text (stop_reason=%s content=%s)",
+                           stop, ctypes)
+            hint = " — הגדל AGENT_CHAT_MAX_TOKENS" if stop == "max_tokens" else ""
+            reply = f"(המודל החזיר תשובה ריקה · stop_reason={stop}{hint}. נסה שוב/קצר את השאלה.)"
+        return {"reply": reply, "model": MODEL}
     except HTTPException:
         raise
     except Exception as e:

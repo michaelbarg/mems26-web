@@ -49,6 +49,11 @@ if [ -f "$SS" ] && [ "$(age "$SS")" -lt 15 ]; then
   else wn "send_orders=$SND vs is_sim=$SIM — אי-התאמה (toggle אמצע-סשן?)"; fi
   [ -z "$ARM" ] && wn "אין שדה order_placement_armed → בינארי-DLL ישן! Remote Build"
 else gp "sierra_state.json חסר/ישן — סיירה לא מחוברת/DLL לא-מייצא"; fi
+# Y-IB (Sierra Input 19 "Yesterday IB study") — same class of Sierra-input gap as
+# arming (In:22). Missing → S1 loses yesterday's IB reference (surfaced 07-13).
+if curl -sf -m4 "$BASE/api/v9/key_levels" 2>/dev/null | grep -q dll_missing; then
+  wn "Y-IB חסר (dll_missing) — הגדר Sierra Input 19 'Yesterday IB study' (כמו input-החימוש)"
+else ok "Y-IB (Input 19) מיוצא (רמת-אתמול זמינה ל-S1)"; fi
 
 echo -e "${B}── 4. DLL: מקור↔בינארי (מלכוד הבינארי-הישן) ──${N}"
 DEPLOYED=~/SierraChart/ACS_Source/MES_AI_DataExport.cpp
