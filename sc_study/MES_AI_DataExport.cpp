@@ -170,6 +170,12 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     // Per Sierra docs + SupportBoard #82446: mismatch → GENERAL_ERROR_OR_NOT_ENABLED.
     sc.SendOrdersToTradeService = !sc.GlobalTradeSimulationIsOn;
 
+    // 07-13 EXIT root-fix: ScaleOut asserted PER-CALL (like the line above) —
+    // SetDefaults runs only on study ADD, and re-adding wipes all chart inputs
+    // (export dir, arm). Without ScaleOut, ACSIL rejects every partial
+    // BuyExit/SellExit CLIENT-SIDE (r=-1, no broker reject event).
+    sc.SupportTradingScaleOut = 1;
+
     int idx = sc.Index;
     SCDateTime today = sc.BaseDateTimeIn[idx].GetDate();
     float cp  = sc.Close[idx];
