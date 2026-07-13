@@ -9,6 +9,7 @@ import { PriceMeta } from '../topbar/PriceMeta';
 import { ConnectionIndicator } from '../topbar/ConnectionIndicator';
 import { AgentHeartbeatDot } from '../topbar/AgentHeartbeatDot';
 import Link from 'next/link';
+import { NewsDropdown } from './NewsDropdown';
 import { LibraryModal } from '../banners/LibraryModal';
 import { dayTypeColor, DAY_TYPE_DIRECTION_HE } from '../../lib/dayType';
 
@@ -273,6 +274,8 @@ export function TopBar() {
           display: 'flex', alignItems: 'center', gap: 2,
           border: '1px solid var(--border, #21262d)', borderRadius: 8, padding: '1px 4px',
         }}>
+          {/* דרופ-דאון הודעות-היום (מייקל 07-13) — צ'יפ קומפקטי, לא מזיז את הפריסה */}
+          <NewsDropdown />
           <a
             href="/board"
             target="_blank"
