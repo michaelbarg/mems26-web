@@ -64,6 +64,11 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
         sc.AllowOnlyOneTradePerBar                        = 0;   // CRITICAL: default 1 → silent skip
         sc.MaintainTradeStatisticsAndTradesData           = 1;   // needed for position/trade tracking
         sc.AllowMultipleEntriesInSameDirection             = 1;
+        // 07-13 sim-proof root: WITHOUT ScaleOut support, ACSIL rejects every
+        // partial SellExit/BuyExit CLIENT-SIDE (r=-1, no broker reject event) —
+        // the EXIT op could never have worked. ScaleOut also auto-reduces
+        // attached-order quantities on partial exits (desired semantics).
+        sc.SupportTradingScaleOut                          = 1;
         sc.SupportReversals                                = 0;
         sc.AllowOppositeEntryWithOpposingPositionOrOrders  = 0;
         sc.CancelAllOrdersOnEntriesAndReversals            = 0;
