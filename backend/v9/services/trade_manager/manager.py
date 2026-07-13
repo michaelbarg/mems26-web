@@ -596,6 +596,14 @@ class TradeManager:
                 "SELECT high, low FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT :n",
                 {"n": _win})
             if not rows or len(rows) < 3:
+                # No-silent-failure (CLAUDE.md): this None is exactly what collapsed
+                # #366's runner to BE (structure unavailable → BE±1T fallback). Surface
+                # it so tomorrow we can see WHEN/WHY (usually a woodies-bar feed gap —
+                # e.g. the +1h TZ issue fixed in 64d9411). WARNING, not silent.
+                logger.warning(
+                    "[TradeManager] structure-trail: only %d woodies bars (need >=3) "
+                    "-> BE fallback (runner loses structural room; check feed/V9_CHART_TZ)",
+                    len(rows) if rows else 0)
                 return None
             # resolver's window_extreme reads the zlr-buffer keys "h"/"l"
             # (drill 07-09: {"high","low"} keys → KeyError 'l' → BE fallback)
