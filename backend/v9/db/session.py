@@ -88,6 +88,11 @@ def get_db():
 
 
 def init_db():
-    """Create all tables. Called by db_init.sh and tests."""
+    """Create all tables. Called by db_init.sh, tests, and boot (main.py:_startup)."""
     from backend.v9.db import models  # noqa: F401 — registers all models
+    # V9DayTypeState lives OUTSIDE the db/models package (systems/day_type/models.py),
+    # so the line above never registers it → create_all skipped v9_day_type_state →
+    # "relation does not exist" spam + FiveMin hydrate failure on a fresh DB (iMac 07-13).
+    # Same Base (session.Base) → importing it here puts it on the shared metadata.
+    from backend.v9.systems.day_type.models import V9DayTypeState  # noqa: F401
     Base.metadata.create_all(bind=engine)
