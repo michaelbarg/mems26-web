@@ -3,6 +3,25 @@
 This repository controls the local MEMS26 trading stack. Treat post-reboot
 stability settings as production safety controls.
 
+## op=EXIT broken — do NOT enable partial-exit consumers (Michael 2026-07-13, until EXIT-v2 ships)
+
+The backend-driven **partial-exit** path (`_emit_exit` → `write_exit` → `op="EXIT"` →
+DLL `sc.SellExit/BuyExit`) is **known-broken**: it returns `r=-1` because entry places a
+per-contract attached OCO (each contract fully bracketed → no free contract to exit).
+Verified live on iMac SIM (PID 20495) + from code (`MES_AI_DataExport.cpp:1028-1051`). It
+is **not a regression** — it never worked; there are **no live callers** today.
+
+**Until `op=EXIT v2` is built + sim-verified** (CC prompt `docs/handoff/CC_PROMPT_2026-07-14_EXIT_OP_REBUILD.md`):
+- **Do NOT enable** `STALL_EXIT` / `SYSTEM6_AUTOCORRECT` / `OPPOSITE_EXIT_V1` — they are the
+  only flags that route through the broken op=EXIT. All three are OFF; keep them OFF
+  (enabling any is a trading-risk change → strategic stop + Michael sign-off, and pointless
+  until the fix lands).
+- **Do NOT wire any new caller** to `_emit_exit` / `write_exit`.
+- Working exits (use these): **T1/T2/T3** = attached OCO (Sierra-side, not op=EXIT) ·
+  **MODIFY_STOP** · **FLATTEN_ACCOUNT** (full flatten, verified). For any manual exit use
+  FLATTEN_ACCOUNT — never a partial op=EXIT.
+- Full diagnosis: `docs/handoff/IMAC_EXIT_PATH_TEST_2026-07-13.md` + STATUS_BOARD 07-13.
+
 ## Sierra real-time data (**DONE** — Michael 2026-05-20)
 
 Sierra DLL + time-axis fixes are **already shipped** (see inbox §2). §7a is
