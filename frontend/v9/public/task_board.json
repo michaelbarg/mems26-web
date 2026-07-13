@@ -3,7 +3,7 @@
  "meta": {
   "title": "לוח-המשימות החי (DEV_BACKLOG)",
   "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
-  "updated": "2026-07-12 19:50",
+  "updated": "2026-07-13 08:07",
   "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
  },
  "tasks": [
@@ -105,15 +105,6 @@
    "owner": "Cowork",
    "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
    "next": "מחכה: תצפית-חיה · לפי הצורך"
-  },
-  {
-   "id": "WAIT-5",
-   "title": "P1-6 הגירת-Value (S1_VALUE_MIGRATION_V1, בנוי flag-OFF)",
-   "priority": "P2",
-   "status": "fixed_unverified",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
-   "next": "מחכה: פסיקת-הדלקה שלך · מילה אחת"
   },
   {
    "id": "VRF-1",
@@ -234,6 +225,15 @@
   },
   {
    "id": "DONE-8",
+   "title": "P1-6 + LSMA-flat (07-13 בוקר, דלוקים)",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "הגירת-Value (וטו-Trend על חפיפה≥80%) + שער-אופקיות (אין-ירי כש-\\"
+  },
+  {
+   "id": "DONE-9",
    "title": "למידה-v3 בקליק (07-12)",
    "priority": "P2",
    "status": "done",
