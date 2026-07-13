@@ -71,7 +71,9 @@ FLATTEN_ACCOUNT         → qty=0 · working=0
 3. עדכן: ‏STATUS_BOARD (שורש+תיקון+ראיה) · ‏DEV_BACKLOG (+`gen_task_board.py`) ·
    ‏SIERRA_DLL_OPS.md · ‏NOT-DONE מפורש.
 
-## חלק B — שני תיקונים נוספים באותו מחזור-DLL (דיווח iMac 07-13 pm)
+## חלק B — ✅ בוצע היום (Cowork-dev, לא ל-CC): B1 כשל-שקט + B2 חשיפת-חימוש
+
+**עודכן 07-13 pm:** ‏B1+B2 נכתבו ונבנו היום (מייקל: "לתקן עכשיו — לא להפסיד יום-סים") — ‏sc_study, ‏braces-balanced, deploy-dev, ממתין ל-Remote-Build ב-iMac. **נשאר ל-CC מחר: רק חלק A (EXIT-v2).** הפירוט למטה נשמר לתיעוד:
 
 מאחר שה-DLL נפתח ממילא, לבצע גם — שניהם ב-`sc.*` order-path של אותו סטאדי:
 

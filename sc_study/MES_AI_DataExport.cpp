@@ -267,10 +267,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             }
             char sbuf[1024];
             int sl = snprintf(sbuf, sizeof(sbuf),
-                "{\"ts\":%lld,\"is_sim\":%d,\"position_qty\":%.0f,\"avg_price\":%.2f,"
+                "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,"
+                "\"position_qty\":%.0f,\"avg_price\":%.2f,"
                 "\"working_orders\":%d,\"orders\":[%s]}\n",
                 (long long)time(nullptr),
                 sc.GlobalTradeSimulationIsOn ? 1 : 0,
+                EnableOrderPlacement.GetInt(),   // B2 (07-13): arm-state in the 1s heartbeat —
+                                                 // read arm without sending a probe order.
                 (float)spos.PositionQuantity, (float)spos.AveragePrice,
                 n_ord, ordbuf);
             if (sl > 0 && sl < (int)sizeof(sbuf))
@@ -1175,7 +1178,31 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             }
                         }
                         else
+                        {
+                            // B1 (07-13, iMac silent-failure report): a DISARMED
+                            // PLACE (Input21=0) was observed to leave
+                            // trade_result.json empty — a silent failure that
+                            // masked the arm-state ("No silent failures", CLAUDE.md).
+                            // Write the ACK_SHADOW result HERE, directly, so a
+                            // disarmed BUY/SELL ALWAYS reports; do not depend on the
+                            // generic writer below (mark result_written to avoid a
+                            // double write).
                             result_status = "ACK_SHADOW";
+                            const char* rp_shadow = TradeResultPath.GetString();
+                            if (rp_shadow[0] != '\0')
+                            {
+                                char rb[128];
+                                int rl = snprintf(rb, sizeof(rb),
+                                    "{\"status\":\"ACK_SHADOW\",\"ts\":%lld,\"armed\":0}\n",
+                                    (long long)time(nullptr));
+                                if (rl > 0 && rl < (int)sizeof(rb))
+                                {
+                                    std::ofstream rf(rp_shadow);
+                                    if (rf.is_open()) { rf.write(rb, rl); rf.close(); }
+                                }
+                            }
+                            result_written = true;
+                        }
                     }
                     // ── OP: MODIFY_STOP — move ALL live stops to new_stop ──
                     // Primary: read stop_ids array from command JSON (backend sends them).
