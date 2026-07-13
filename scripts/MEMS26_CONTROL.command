@@ -126,11 +126,15 @@ do_update() {
   CHANGED=$(git diff --name-only $RANGE)
   echo "2/6 משיכה ($BEHIND קומיטים)…"
   git pull --ff-only origin "$BRANCH" || { echo -e "${R}✗ pull נכשל (לא FF?) — עצור ודווח לסוכן${N}"; return; }
-  echo "3/6 בדיקת דגלים…"
+  echo "3/6 סנכרון .env לפסיקות + בדיקת דגלים…"
+  # RULED_FLAGS.yaml הגיע עם ה-pull; .env פר-מכונה לא. מסנכרן אוטומטית את
+  # הדגלים-הפסוקים בלבד (זו החלת פסיקות-מייקל שכבר כתובות, לא החלטה חדשה),
+  # snapshot כבר נלקח בצעד 1. שאר .env לא נוגעים.
+  python3 scripts/sync_env_from_ruled.py --apply 2>&1 | sed 's/^/    /'
   if ! python3 scripts/flag_guard.py 2>&1 | tail -1 | grep -q PASS; then
-    echo -e "${R}🚩 flag_guard נכשל — כנראה דגלים חדשים. ההנחיות:${N}"
+    echo -e "${R}🚩 flag_guard עדיין נכשל אחרי הסנכרון — דגל לא-מוכר או קונפליקט:${N}"
     python3 scripts/flag_guard.py 2>&1 | tail -12
-    echo -e "${Y}עדכן את .env לפי הפלט (עם snapshot — כבר נלקח) והרץ עדכון שוב.${N}"; return
+    echo -e "${Y}עצור ודווח לסוכן (snapshot כבר נלקח).${N}"; return
   fi; echo "  ✓ PASS"
   if echo "$CHANGED" | grep -q "^sc_study/"; then
     echo "4/6 בילד DLL (sc_study השתנה)…"
