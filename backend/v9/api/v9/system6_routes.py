@@ -193,3 +193,21 @@ async def diagnose_by_id(trade_id: int, request: Request):
                     "action": i.action, "detail": i.detail,
                     "correction": i.correction} for i in rep.issues],
     }
+
+
+# ── Alias: /api/v9/s6/… ──────────────────────────────────────────────────────
+# The ActiveTradeCard side-panel (Michael 07-13) calls the short path
+# /api/v9/s6/diagnose/{trade_id}; the canonical router above is /api/v9/system6.
+# This thin alias makes the panel work after a backend restart with NO frontend
+# change. Same read-only handlers — diagnoses only, never executes.
+alias_router = APIRouter(prefix="/api/v9/s6", tags=["system6"])
+
+
+@alias_router.get("/diagnose/{trade_id}")
+async def s6_diagnose_by_id(trade_id: int, request: Request):
+    return await diagnose_by_id(trade_id, request)
+
+
+@alias_router.get("/diagnose")
+async def s6_diagnose(request: Request):
+    return await diagnose(request)

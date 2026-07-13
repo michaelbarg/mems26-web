@@ -72,6 +72,20 @@ async def _startup():
     import logging
     _logger = logging.getLogger("mems26")
 
+    # Schema self-heal on boot (idempotent, checkfirst=True): a new ORM model added
+    # by `git pull` gets its table created on restart, not only at install time.
+    # Root fix for v9_bars_5min_continuous — 01fa023 registered the model, but NOTHING
+    # ran create_all on the real boot path (only db_init.sh at install did), so the
+    # table was never built → /5min_continuous push raised "relation does not exist"
+    # every bar → /tmp/backend.err.log ballooned to 6GB. Wrapped so a create_all
+    # hiccup can never block boot.
+    try:
+        from backend.v9.db.session import init_db
+        init_db()
+        _logger.info("[Main] init_db() ok — schema ensured on boot")
+    except Exception as _e:
+        _logger.warning("[Main] init_db() on boot failed (non-fatal): %s", _e)
+
     init_event_dispatcher()
 
     # Start Bar Ingestion (D-077: must run before system hydration)

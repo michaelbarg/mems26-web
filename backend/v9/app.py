@@ -34,7 +34,7 @@ from backend.v9.api.v9.key_levels_routes import router as key_levels_router
 from backend.v9.api.v9.chart_replay_routes import router as chart_replay_router
 from backend.v9.api.v9.trade_review_routes import router as trade_review_router
 from backend.v9.api.v9.daytype_classify_routes import router as daytype_classify_router
-from backend.v9.api.v9.system6_routes import router as system6_router
+from backend.v9.api.v9.system6_routes import router as system6_router, alias_router as system6_alias_router
 from backend.v9.api.v9.live_ledger_routes import router as live_ledger_router
 from backend.v9.ws.router import router as ws_event_bus_router
 
@@ -72,6 +72,7 @@ v9_router.include_router(clock_api_router)
 v9_router.include_router(open_type_api_router)
 v9_router.include_router(day_type_v9_router)
 v9_router.include_router(system6_router)
+v9_router.include_router(system6_alias_router)  # /api/v9/s6 alias for ActiveTradeCard
 v9_router.include_router(live_ledger_router)
 v9_router.include_router(cvd_api_router)
 v9_router.include_router(woodies_chart_router)
