@@ -370,6 +370,16 @@ class TradeManager:
 
         self._db.flush()
 
+        # IDEA-2 (Michael 07-13): a REAL trade opening (not shadow) → phone push.
+        try:
+            if str(getattr(trade, "mode", "")) in ("live", "demo"):
+                from backend.v9.services.phone_alert import push as _phone_push
+                _phone_push(f"trade_open_{trade_id}", "📈 MEMS26: עסקה נפתחה",
+                            f"#{trade_id} {getattr(trade, 'direction', '?')} @{fill_price} "
+                            f"(mode={trade.mode}, stop={getattr(trade, 'stop', '?')})", priority=0)
+        except Exception:
+            pass
+
         self._emitter.emit("trade_filled", trade_id, {
             "fill_price": fill_price,
             "state": TradeState.FILLED.value,

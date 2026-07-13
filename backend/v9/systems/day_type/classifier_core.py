@@ -187,6 +187,13 @@ def classify_session(
     feat["value_migration"] = _vmres["value_migration"]
     feat["dev_poc"] = _vmres["dev_poc"]
 
+    # ── P2-9/11 (Michael 2026-07-13): volume-profile imbalance (TPO-count proxy,
+    #    feeds confidence only under S1_TPO_COUNT_V1) + VA-rule read (emitted for
+    #    briefing/UI; no gate yet). Pure + cheap, computed always. ──
+    from backend.v9.systems.day_type.day_context_extras import profile_imbalance, va_rule_read
+    feat["profile_imbalance"] = profile_imbalance(bars)
+    feat["va_rule"] = va_rule_read(bars, prior_vah, prior_val, open_price)
+
     result = classify(feat, plan, is_eod=is_eod)
     result["measured"] = {
         "sides": feat["sides"], "rib": feat["rib"], "one_tf": feat["one_tf"],
@@ -194,5 +201,7 @@ def classify_session(
         "ib_width": feat["ib_width"], "vol_ratio": feat["vol_ratio"],
         # P1-6 observability — emitted per bar regardless of the flag (ACCEPT criterion)
         "va_overlap_pct": feat["va_overlap_pct"], "value_migration": feat["value_migration"],
+        # P2-9/11 observability (Michael 07-13)
+        "profile_imbalance": feat["profile_imbalance"], "va_rule": feat["va_rule"],
     }
     return result

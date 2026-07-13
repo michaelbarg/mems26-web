@@ -74,6 +74,52 @@ def main():
     prev = sorted(os.listdir(eod))[-1] if os.path.isdir(eod) and os.listdir(eod) else None
     L.append(f"- דוח S6 אחרון: {prev or '—'} — לקרוא את ההמלצות לפני GO.")
     L.append("")
+
+    # ── P2-12 + IDEA-8-v1 (Michael 07-13): הטיית-אתמול + מיקום מול ה-bracket השבועי ──
+    try:
+        from datetime import timedelta as _td
+        import json as _json
+        from urllib.request import urlopen as _uo
+        _yd = None
+        for _back in range(1, 5):                      # אתמול-המסחר האחרון עם ברים
+            _cand = (date.today() - _td(days=_back)).strftime("%Y-%m-%d")
+            try:
+                _rep = _json.loads(_uo(f"http://localhost:8000/api/v9/day_type/classify_replay?date={_cand}",
+                                       timeout=20).read())
+                if _rep.get("n_bars"):
+                    _yd = (_cand, _rep)
+                    break
+            except Exception:
+                continue
+        L.append("## הקשר-דלתון (P2-12 + bracket שבועי)")
+        if _yd:
+            _c, _r = _yd
+            _tag = _r.get("eod_continuation_tag") or "—"
+            _bias = {"NE_CLOSE_UP": "נטייה סטטיסטית להמשך-מעלה בבוקר", "NE_CLOSE_DOWN": "נטייה להמשך-מטה",
+                     "TREND_CARRY_UP": "מגמת-אתמול נושאת מעלה (סיכויי פתיחה-גבוהה)",
+                     "TREND_CARRY_DOWN": "מגמת-אתמול נושאת מטה", "VARIATION_LEAN_UP": "נטייה קלה מעלה",
+                     "VARIATION_LEAN_DOWN": "נטייה קלה מטה", "BALANCE_NO_CARRY": "איזון — אין הטיית-בוקר"}.get(_tag, "")
+            L.append(f"- תג-אתמול ({_c}, ‏{_r.get('final', {}).get('day_type', '?')}): **{_tag}** — {_bias}")
+        else:
+            L.append("- תג-אתמול: אין נתוני-אתמול זמינים (הוגן)")
+        # bracket שבועי: טווח+VA-מצרפי של 5 ימי-המסחר האחרונים מול המחיר
+        from sqlalchemy import create_engine as _ce, text as _tx
+        _e = _ce(os.getenv("DATABASE_URL", "postgresql://localhost/mems26"))
+        with _e.connect() as _cn:
+            _wk = [dict(r._mapping) for r in _cn.execute(_tx(
+                "SELECT (ts AT TIME ZONE 'America/New_York')::date d, max(high) h, min(low) l "
+                "FROM v9_bars_5min_woodies WHERE symbol='MES' "
+                "GROUP BY 1 ORDER BY d DESC LIMIT 5"))]
+        if _wk and price:
+            _bh, _bl = max(float(r["h"]) for r in _wk), min(float(r["l"]) for r in _wk)
+            _pos = (float(price) - _bl) / (_bh - _bl) if _bh > _bl else None
+            _loc = ("בשליש-העליון — ראנרים-לונג מוגבלי-מרחב, שורטים עם מסלול" if _pos is not None and _pos >= 0.67
+                    else "בשליש-התחתון — מסלול-לונג פתוח, שורטים מוגבלים" if _pos is not None and _pos <= 0.33
+                    else "באמצע ה-bracket — שני הכיוונים חיים")
+            L.append(f"- ‏bracket שבועי (5 ימים): {_bl:.2f}–{_bh:.2f} · מחיר ב-{_pos:.0%} → {_loc}" if _pos is not None else "- bracket שבועי: אין")
+    except Exception as _ctx_err:
+        L.append(f"- (הקשר-דלתון לא זמין: {_ctx_err})")
+    L.append("")
     L.append("**GO/NO-GO: ‏fire_drill + flag_guard חייבים 🟢 + 6 השערים בפרוטוקול.**")
 
     outdir = os.path.join(ROOT, "docs", "reports", "briefings")

@@ -3,13 +3,13 @@
  "meta": {
   "title": "לוח-המשימות החי (DEV_BACKLOG)",
   "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
-  "updated": "2026-07-13 08:07",
+  "updated": "2026-07-13 08:38",
   "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
  },
  "tasks": [
   {
    "id": "DEV-5",
-   "title": "הידרציה מלאה בבוט",
+   "title": "הידרציה מלאה בבוט (נמסר ל-CC 07-13, CC_PROMPT_2026-07-13_BACKLOG3)",
    "priority": "P2",
    "status": "open",
    "owner": "CC",
@@ -18,7 +18,7 @@
   },
   {
    "id": "DEV-6",
-   "title": "LaunchAgent לפרונטאנד",
+   "title": "LaunchAgent לפרונטאנד (נמסר ל-CC 07-13)",
    "priority": "P2",
    "status": "open",
    "owner": "CC",
@@ -26,44 +26,8 @@
    "next": "כרגע הפרונט מוחזק ב-screen (נופל בריבוט עד הפעלה ידנית). נתקע על הרשאות-launchd — צריך פתרון TCC או נתיב חלופי."
   },
   {
-   "id": "DEV-7",
-   "title": "P2-9: TPO-count כקלט-ביטחון",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
-   "next": "ספירת-TPO מעל/מתחת ל-POC = לחץ-הגוף של ה-OTF; מזין את ציון-הביטחון."
-  },
-  {
-   "id": "DEV-8",
-   "title": "P2-10: אומדן-טווח-יום",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
-   "next": "הטווח-הצפוי מהקיצון-המוחזק ±10% — לבריפינג ולשפיות-יעדים."
-  },
-  {
-   "id": "DEV-9",
-   "title": "P2-11: Value-Area-Rule",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
-   "next": "פתיחה מחוץ ל-VA + קבלה בפנים → צפי-חצייה-מלאה; חוסם פייד נגדי."
-  },
-  {
-   "id": "DEV-10",
-   "title": "P2-12: תגי-המשכיות-EOD",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Cowork",
-   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
-   "next": "Neutral-Extreme-close וכו' → הטיית-בוקר סטטיסטית ליום-המחרת."
-  },
-  {
    "id": "DEV-11",
-   "title": "7 פיקסטורות-טסט ישנות",
+   "title": "7 פיקסטורות-טסט ישנות (נמסר ל-CC 07-13)",
    "priority": "P3",
    "status": "open",
    "owner": "CC",
@@ -96,6 +60,33 @@
    "owner": "Cowork",
    "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
    "next": "מחכה: שבוע בלי אזעקות-שווא · ~19/07"
+  },
+  {
+   "id": "WAIT-5",
+   "title": "חלון-חדשות (NEWS_BLACKOUT_V1, בנוי+לוח-שבוע מאומת)",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: פסיקת-הדלקה שלך · מילה"
+  },
+  {
+   "id": "WAIT-6",
+   "title": "התראות-לטלפון (PHONE_ALERTS_V1, בנוי: DIVERGENCE/halt/עסקה)",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: טוקן ממך · 5 דק'"
+  },
+  {
+   "id": "WAIT-7",
+   "title": "P2-9 TPO-count לביטחון (S1_TPO_COUNT_V1, בנוי)",
+   "priority": "P2",
+   "status": "fixed_unverified",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 2 — פותח, ממתין לנתונים",
+   "next": "מחכה: פסיקת-הדלקה · מילה"
   },
   {
    "id": "WAIT-4",
@@ -234,39 +225,21 @@
   },
   {
    "id": "DONE-9",
+   "title": "חבילת-הקשר-דלתון (07-13)",
+   "priority": "P2",
+   "status": "done",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
+   "next": "P2-10 אומדן-טווח (על 07-10: חזה 7628.5, בפועל 7628.75!) · P2-11 VA-Rule · P2-12 תגי-EOD (בבריפינג: NE_CLOSE_UP) · bracket-שבועי בבריפינג (v1 של רעיון-8) · דוח-שבועי (רץ על 19 עסקאות-אמת; מתוזמן שישי …"
+  },
+  {
+   "id": "DONE-10",
    "title": "למידה-v3 בקליק (07-12)",
    "priority": "P2",
    "status": "done",
    "owner": "Cowork",
    "where": "DEV_BACKLOG טבלה 4 — בוצע ואומת",
    "next": "apply_targets_diff.py (ולידציה→מיזוג-כירורגי→לודר→טסטים; כישלון=revert-אוטומטי→קומיט+פוש) + פאנל 📐 ב-/board עם כפתור \"החל וקדם\" — הקליק שלך = הפסיקה. תורגל מקצה-לקצה (FAMIR 5.0→5.5→revert); טסט-הקיבו…"
-  },
-  {
-   "id": "IDEA-1",
-   "title": "חלון-חדשות אוטומטי (NO_TRADE)",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Michael",
-   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
-   "next": "לוח-אירועים כלכלי (FOMC/CPI/NFP) → המערכת נועלת כניסות X דק' לפני/אחרי אירוע-אדום. דלתון: ימי-לפני-חדשות = Nontrend. מגן אמיתי מהתפוצצויות-תנודתיות. · מאמץ: בינוני"
-  },
-  {
-   "id": "IDEA-2",
-   "title": "התראות לטלפון",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Michael",
-   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
-   "next": "🔴 קריטי / עסקה-נפתחה / halt — הודעה מיידית לנייד (Telegram/Pushover) גם כשאתה לא מול המסך. · מאמץ: קטן"
-  },
-  {
-   "id": "IDEA-3",
-   "title": "דוח-שבועי אוטומטי",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Michael",
-   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
-   "next": "כל שישי-ערב: עקומת-הון, R-ממוצע, drawdown, פילוח פר-תבנית×יום, השוואה לשבוע-קודם — PDF/HTML אחד. · מאמץ: קטן-בינוני"
   },
   {
    "id": "IDEA-4",
@@ -303,15 +276,6 @@
    "owner": "Michael",
    "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
    "next": "ביום-סים: הסוכן מפיל שירותים אקראית ומוודא שהמערכת מתאוששת לבד (LaunchAgents+hydration) — ביטוח לתקלות-אמת. · מאמץ: קטן"
-  },
-  {
-   "id": "IDEA-8",
-   "title": "הקשר רב-יומי (brackets)",
-   "priority": "P3",
-   "status": "open",
-   "owner": "Michael",
-   "where": "DEV_BACKLOG טבלה 5 — רעיון (טרם תועדף; לפסיקת מייקל)",
-   "next": "VA שבועי/חודשי + מיקום מול ה-bracket הגדול (דלתון פרק 4) — קלט-הטיה לבריפינג-הבוקר וליעדי-ראנר. · מאמץ: גדול"
   },
   {
    "id": "MIKE-1",

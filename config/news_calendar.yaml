@@ -1,0 +1,26 @@
+# לוח-אירועים כלכלי — חלון-חדשות NO_TRADE (IDEA-1, מייקל 07-13).
+# TZ מפורש בכל ערך (Rule 4): time הוא America/New_York (ET) — שעת-הפרסום הרשמית.
+# מתוחזק ידנית: הסוכן מזין שבוע-קדימה ממקורות רשמיים (BLS/Fed) בכל בוקר-שני;
+# אירוע שלא כאן — לא חוסם (הוגן). severity: red = חוסם כניסות בחלון.
+#
+# חלון-החסימה: NEWS_BLACKOUT_BEFORE_MIN (ברירת-מחדל 15) לפני,
+# NEWS_BLACKOUT_AFTER_MIN (30) אחרי. דגל: NEWS_BLACKOUT_V1 (כבוי כברירת-מחדל).
+#
+# מקורות לשבוע 13-17/07/2026: Kiplinger weekly calendar + BLS release schedule
+# (CPI שלישי 08:30ET · PPI רביעי 08:30ET · Retail Sales חמישי 08:30ET).
+
+events:
+  - date: 2026-07-14
+    time_et: "08:30"
+    name: "CPI (יוני)"
+    severity: red
+  - date: 2026-07-15
+    time_et: "08:30"
+    name: "PPI (יוני)"
+    severity: red
+  - date: 2026-07-16
+    time_et: "08:30"
+    name: "Retail Sales (יוני)"
+    severity: red
+  # עדות-הקונגרס הראשונה של יו"ר-הפד (וורש) מתוכננת השבוע — מועד מדויק טרם אומת;
+  # להשלים בבוקר-שלישי ממקור רשמי לפני שסומכים על החלון ביום-העדות.

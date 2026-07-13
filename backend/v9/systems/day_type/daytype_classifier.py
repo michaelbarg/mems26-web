@@ -109,6 +109,13 @@ def _confidence(feat: Dict[str, Any], day_type: str, direction: Optional[str], c
             not bool(feat.get("returned_through_open")),                                # open held
             bool(feat.get("dd_second_dist")) or sides == 1,                             # one-sided / DD
         ]
+        # P2-9 (S1_TPO_COUNT_V1, default OFF — Dalton pp.41-45): volume-profile
+        # imbalance (TPO-count proxy) as a 9th aligned-evidence item. ADDITIVE:
+        # when the flag is off the list stays 8 long → scores byte-identical.
+        if os.environ.get("S1_TPO_COUNT_V1", "0").lower() in ("1", "true", "yes"):
+            imb = feat.get("profile_imbalance")
+            ev.append(imb is not None and ((d == "UP" and imb >= 0.15)
+                                           or (d == "DOWN" and imb <= -0.15)))
     else:
         # non-directional (Neutral_Center / Normal / Nontrend): how cleanly the balance holds
         ev = [

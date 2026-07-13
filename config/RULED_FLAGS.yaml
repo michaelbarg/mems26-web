@@ -57,7 +57,7 @@ ruled:
   OPENING_WINDOW_FIRE_V1: {expected: "0", ruled_by: "מייקל", date: "2026-07-08", note: "כבוי כרגע; הדלקה = פסיקה" }
   S1_TREND_CONTROL_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-5 מאושר-והודלק ('מאשר ולפרוס'): Trend לפי שליטה — 3 מדרגות+rib≥1.8+סגירה-בקיצון; ראיות: 07-08→Trend@18:30, צמד-כיול נקי" }
   S1_VALUE_MIGRATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-6 מאושר ('להפעיל את 2'): הגירת-Value — וטו-Trend כשה-VA המתפתח חופף ≥80% לאתמול בלי כיוון; רפליי 07-08 DOWN·0 / 06-30 UP·0 / 07-10 חפיפה-1.0" }
-  LSMA_FLAT_GATE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "מאושר ('להפעיל את 2 אם הקו אופקי מדי'): אין-ירי כש-|שיפוע-LSMA| < 0.25 נק'/בר על 4 ברים; כיול: 07-03 המת 54% חסום, ימי-מגמה 13-22%; fail-open כשאין נתון" }
+  LSMA_FLAT_GATE_V1:      {expected: "0", ruled_by: "מייקל", date: "2026-07-13", note: "'כרגע לא להפעיל את זה' (בוקר 07-13, אחרי תיאור-הסף) — בנוי ומכויל, כבוי עד פסיקה חדשה" }
   S1_ACCEPTANCE_RECLASS_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P0-1-v2 מאושר ('מאשר'): reclass-בקבלה בכל הרפרנסים (PDH/PDL/VA-אתמול/IB) + failed_breakout; ראיות: 07-08 DOWN@09:35, 06-30 Trend@10:00, EOD ללא-שינוי (P01_V2 report)" }
   S1_NONCONVICTION_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-8 מאושר-והודלק לערב-12/07 ('לבצע את ההמלצות ולהפעיל למחר') — יום-בלי-עקבות = NO_TRADE" }
   S1_DD_INVALIDATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-7 מאושר-והודלק — מילוי-צוואר מפיל את תווית-ה-DD (דלתון עמ' 27)" }

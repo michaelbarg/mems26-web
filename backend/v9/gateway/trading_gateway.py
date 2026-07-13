@@ -544,6 +544,24 @@ class TradingGateway:
             except Exception as _lf_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] lsma-flat gate errored (fail-open): %s", _lf_err)
 
+        # --- IDEA-1 news blackout (Michael 2026-07-13): NO new entries inside the
+        # window around a RED economic event (CPI/PPI/FOMC/NFP — config/news_calendar.yaml).
+        # Blocks ENTRY only; management of open trades is untouched. Fail-open on any
+        # calendar problem (Rule 1 — honest missing, never a synthetic block).
+        # Flag: NEWS_BLACKOUT_V1 (default OFF).
+        try:
+            from backend.v9.services import news_blackout as _nb
+            if _nb.enabled():
+                _nb_hit = _nb.check()
+                if _nb_hit:
+                    result["blocked_by"] = "news_blackout"
+                    result["news_event"] = _nb_hit["event"]
+                    logger.info("[Gateway] BLOCKED by news-blackout: %s @%s ET (%s)",
+                                _nb_hit["event"], _nb_hit["event_time_et"], _nb_hit["window"])
+                    return result
+        except Exception as _nb_err:  # fail-open — never block on a bug
+            logger.warning("[Gateway] news-blackout gate errored (fail-open): %s", _nb_err)
+
         # Item-18: Day Direction Doctrine (DAY_DIRECTION_DOCTRINE_V1, default OFF)
         # On directional days (Variation/Trend), only with-expansion entries allowed
         # unless a "halt proof" (2 consecutive closes back through the expansion level)
@@ -1019,6 +1037,14 @@ class TradingGateway:
                     "[Gateway] BLOCKED by daily-loss halt: pnl=$%.2f <= -$%.0f (STOP DAY)",
                     self._daily_pnl, _dl_cap,
                 )
+                # IDEA-2 (Michael 07-13): the halt tripping = a phone-worthy moment.
+                try:
+                    from backend.v9.services.phone_alert import push as _phone_push
+                    _phone_push("daily_loss_halt", "🛑 MEMS26: עצירת-יום",
+                                f"P&L ${self._daily_pnl:.2f} חצה את התקרה -${_dl_cap:.0f} — אין כניסות חדשות היום.",
+                                priority=1)
+                except Exception:
+                    pass
                 return result
             # Consecutive-loss STOP-DAY — only bites when a limit is explicitly
             # set (default 0 = off; Michael has not fixed this number yet).

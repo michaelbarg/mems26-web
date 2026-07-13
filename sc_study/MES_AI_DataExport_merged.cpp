@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-12 10:36:47 by build_monolithic_cpp.sh
+// Generated 2026-07-13 08:35:55 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -3084,7 +3084,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             s_SCNewOrder exit_order;
                             exit_order.OrderQuantity = exit_qty;
                             exit_order.OrderType = SCT_ORDERTYPE_MARKET;
-                            exit_order.TimeInForce = SCT_TIF_GTC;
+                            // 07-13 sim-proof: SellExit returned -1 with TIF=GTC on a
+                            // MARKET order (GTC is invalid for market in this config).
+                            // Market exits are immediate — DAY is the correct TIF.
+                            exit_order.TimeInForce = SCT_TIF_DAY;
 
                             // Determine exit side: position > command direction > stored direction
                             int r = 0;

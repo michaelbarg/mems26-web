@@ -710,6 +710,31 @@ flags:
     status: deferred
 
   # ───────────────────────── S1 Dalton P0 (built flag-OFF 2026-07-08, S1-chat) ─────────────────────────
+  NEWS_BLACKOUT_V1:
+    category: cascade_gate
+    what: "IDEA-1: no NEW entries inside [event-BEFORE_MIN, event+AFTER_MIN] around RED events from config/news_calendar.yaml (ET times). Entry-only; open-trade management untouched; fail-open on calendar problems."
+    why: "OFF (built 07-13). Calendar seeded with verified week 07/13-17 (CPI Tue, PPI Wed, Retail Thu — 08:30 ET). Agent re-seeds Mondays. Enable = Michael."
+    status: awaiting_ruling
+  NEWS_BLACKOUT_BEFORE_MIN:
+    category: cascade_gate
+    what: "IDEA-1 param: minutes blocked BEFORE a red event."
+    why: "Default 15."
+    status: param
+  NEWS_BLACKOUT_AFTER_MIN:
+    category: cascade_gate
+    what: "IDEA-1 param: minutes blocked AFTER a red event."
+    why: "Default 30."
+    status: param
+  PHONE_ALERTS_V1:
+    category: ops
+    what: "IDEA-2: push to Michael's phone on DIVERGENCE (reconciler), daily-loss halt, and real trade-open. Provider pushover/telegram via PHONE_ALERT_PROVIDER; creds in .env only. Rate-limited 1/5min per key; background thread; can never raise into the trading path."
+    why: "OFF (built 07-13). Needs Michael to create a Pushover/Telegram token + add creds to .env, then enable."
+    status: awaiting_ruling
+  S1_TPO_COUNT_V1:
+    category: s1
+    what: "P2-9: volume-profile imbalance (TPO-count proxy, volume above vs below developing POC) as a 9th confidence evidence item. Additive — flag off = 8-item list, scores byte-identical."
+    why: "OFF (built 07-13). Verified on 07-10: imbalance +0.71 on the NE-up day. Enable = Michael."
+    status: awaiting_ruling
   S1_VALUE_MIGRATION_V1:
     category: s1
     what: "P1-6: developing 70% VA vs prior VA — va_overlap_pct + value_migration UP/DOWN emitted per bar (always in measured); under the flag, the control-path Trend promotion is VETOED when value fully overlaps yesterday's (>= S1_VM_OVERLAP_MAX, default 0.8) with no migration. Dalton pp.49, 55."

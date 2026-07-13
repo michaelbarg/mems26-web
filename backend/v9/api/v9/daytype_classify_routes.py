@@ -212,6 +212,26 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
             segments.append({"startBar": t["i"], "time": t["time"], "day_type": t["day_type"],
                              "status": t["status"], "direction": t["direction"], "reason": t.get("reason")})
 
+    # P2-10/12 (Michael 07-13): held-extreme range estimate + EOD continuation tag.
+    from backend.v9.systems.day_type.day_context_extras import range_estimate, eod_continuation_tag
+    _rng_rows = read_all(
+        "SELECT (ts AT TIME ZONE 'America/New_York')::date AS d, max(high)-min(low) AS rng "
+        "FROM v9_bars_5min_woodies WHERE symbol='MES' "
+        "AND (ts AT TIME ZONE 'America/New_York')::date < :date "
+        "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+        "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+        "GROUP BY 1 HAVING count(*) >= 60 "
+        "ORDER BY d DESC LIMIT 20",   # the 20 most-RECENT complete days (not the 20 smallest!)
+        {"date": date})
+    _rngs = sorted(float(r["rng"]) for r in _rng_rows if r.get("rng") is not None)
+    _med_rng = _rngs[len(_rngs) // 2] if len(_rngs) >= 3 else None
+    _range_est = range_estimate(rth, _med_rng)
+    _range_est["med_daily_range"] = _med_rng
+    _fin = timeline[-1]
+    _eod_tag = eod_continuation_tag(_fin.get("day_type"),
+                                    (_fin.get("measured") or {}).get("close_pos"),
+                                    _fin.get("direction"))
+
     return {
         "date": date, "n_bars": n, "source": source,
         "ib_high": ib12_h, "ib_low": ib12_l, "ib_width": round(ib12_h - ib12_l, 2), "ib_source": ib_source,
@@ -221,5 +241,9 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
         "va_width": va_width, "poc_drift": pocdrift, "second_distribution": dd,
         "pdh": pdh, "pdl": pdl, "prior_vah": pvah, "prior_val": pval,
         "measured": timeline[-1].get("measured", {}),
+        # P2-10/12 (Michael 07-13): day-range estimate from the held extreme +
+        # the EOD continuation tag (tomorrow's statistical morning bias).
+        "range_estimate": _range_est,
+        "eod_continuation_tag": _eod_tag,
         "segments": segments, "final": timeline[-1],
     }

@@ -118,4 +118,11 @@ def reconcile_position(tm) -> Tuple[bool, str]:
     msg = (f"DIVERGENCE: TM says {tm_qty} contracts {tm_trades}, "
            f"Sierra says {sierra_qty} (src={src}). Records ≠ reality!")
     logger.warning("[Reconciler] SYS-3 %s", msg)
+    # IDEA-2 (Michael 07-13): records≠reality is exactly what he must know about
+    # when away from the screen. Rate-limited inside push(); never raises.
+    try:
+        from backend.v9.services.phone_alert import push as _phone_push
+        _phone_push("reconciler_divergence", "🔴 MEMS26: DIVERGENCE", msg, priority=1)
+    except Exception:
+        pass
     return False, msg
