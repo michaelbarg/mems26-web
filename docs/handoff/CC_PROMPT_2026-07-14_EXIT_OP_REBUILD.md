@@ -71,6 +71,29 @@ FLATTEN_ACCOUNT         → qty=0 · working=0
 3. עדכן: ‏STATUS_BOARD (שורש+תיקון+ראיה) · ‏DEV_BACKLOG (+`gen_task_board.py`) ·
    ‏SIERRA_DLL_OPS.md · ‏NOT-DONE מפורש.
 
+## חלק B — שני תיקונים נוספים באותו מחזור-DLL (דיווח iMac 07-13 pm)
+
+מאחר שה-DLL נפתח ממילא, לבצע גם — שניהם ב-`sc.*` order-path של אותו סטאדי:
+
+**B1 — כשל-שקט: ‏op=PLACE לא-מזוין לא כותב result (מפר "No silent failures").**
+תסמין (iMac): ‏BUY עם ‏Input21=0 → הפקודה נצרכת אבל ‏trade_result.json נשאר ריק/ישן
+(אין ‏ACK_SHADOW). ‏FLATTEN כן כותב → נתיב-הכתיבה תקין. אבחון-קוד (אומת Cowork-dev):
+זרוע-ה-disarmed ב-`MES_AI_DataExport.cpp:1177-1178` קובעת `result_status="ACK_SHADOW"`,
+והכותב-הגנרי ב-1403 מותנה ב-`!result_written` — אבל התוצאה ריקה, אז או ש-`result_written`
+לא מתאפס פר-פקודה (בדוק את ההכרזה ב-~1010 מול לולאת-הפקודות) או שהזרוע לא מגיעה ל-1403.
+**דרישה:** ‏op=PLACE לא-מזוין **תמיד** כותב ‏`{"status":"ACK_SHADOW",...}` (או `DISARMED`)
+ל-result. לוודא ש-`result_written` מאותחל לכל פקודה.
+
+**B2 — לחשוף את מצב-החימוש ב-heartbeat (עונה ישירות ל"איך יודעים שמחומש בפתיחה").**
+ל-`sierra_state.json` (הבלוק שנכתב כל שנייה) להוסיף ‏`"order_placement_armed": 0|1` =
+ערך `EnableOrderPlacement.GetInt()`. כך הסוכן קורא חימוש בלי לשלוח פקודת-בדיקה.
+**בונוס (אם קל):** כשהחימוש 0 אחרי reload — שורת-אזהרה בלוג-סיירה ("DISARMED after
+reload — re-arm Input 21"), כי ‏re-add מאפס ל-0 בשקט והשאיר את המערכת "אילמת+לא-מחומשת".
+
+**אימות B (Rule 5):** ‏Input21=0 + BUY → ‏result=`ACK_SHADOW` (לא ריק) **וגם**
+‏`order_placement_armed:0` ב-state · ‏Input21=1 + BUY → ‏`ORDER_SUBMITTED` qty→1 +
+‏`order_placement_armed:1`. את שלושת התיקונים (A+B1+B2) לאמת בריצת-`exit_op_drill.sh` אחת.
+
 ## גבולות
 
 זו עבודת-DLL בלוגיקת-מסחר — **מאושרת ע"י מייקל לביצוע (פסיקת 07-13/14)** בסים בלבד.
