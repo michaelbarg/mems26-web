@@ -71,3 +71,9 @@ ruled:
   DAYTYPE_ANTIFLAP_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "היסטרזיס S1 — ממתין לפסיקה" }
   DAYTYPE_ONE_SOURCE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "מקור-יחיד S1 — ממתין לפסיקה" }
   SIERRA_RECONCILER_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-09", note: "מפקח-סיירה (FIX-6) — ממתין לפסיקה" }
+
+  # ── סימטריה dev↔iMac (פסיקת 07-13: "כן — הדלק בשתיהן + RULE" · "ON בשתיהן + RULE") ──
+  BOOT_DAYTYPE_REPLAY_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "סימטריית סוג-יום: מכונה שהודלקה מאוחר משחזרת בבוט את סשן-היום מ-v9_bars_5min_woodies דרך process_bar הטהור (זמן-ET פר-בר) → אותו stage/day_type/IB כמו הדלקה-מוקדמת. אין תופעות-לוואי (בלי publish/persist/עסקאות); מוכח 4/4 טסטים אנטי-טאוטולוגיים (LATE_NO_REPLAY≠LIVE, LATE_WITH_REPLAY==LIVE)" }
+  EOD_RISK_WINDOW_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "יישור-סימטריה (היה ON בדב / OFF ב-iMac): חלון-סיכון EOD" }
+  SYSTEM6_EXIT_SIGNALS:   {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "יישור-סימטריה: אותות-יציאה S6 — תצפית/סימון-סיכון בלבד, לא עוברים דרך op=EXIT השבור; מזינים את פאנל-S6. SYSTEM6_AUTOCORRECT נשאר כבוי" }
+  SYSTEM6_EXIT_JOURNAL:   {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "יישור-סימטריה: יומן-למידה של אותות-S6 (תצפית בלבד)" }
