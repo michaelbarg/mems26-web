@@ -154,16 +154,68 @@ do_update() {
   echo -e "${G}✓ עדכון הושלם: $(git log -1 --format='%h %s' | cut -c1-70)${N}"
 }
 
+do_mode() {
+  # ═ מתג מצב-מסחר: סים ⇄ כסף-אמיתי (מייקל 07-13, "לשנות תוך כדי") ═
+  # שני מתגים מרכיבים את המצב: (א) Trade Simulation Mode בסיירה — המתג
+  # האמיתי של הכסף (ה-DLL מתאים SendOrdersToTradeService אוטומטית);
+  # (ב) MEMS26_MODE ב-.env — לאיזה חשבון הפידר מאזין (auto: sim→Sim1, live→אמת).
+  STATE=~/SierraChart_Data/v9_export/sierra_state.json
+  IS_SIM=$(python3 -c "import json;print(json.load(open('$STATE')).get('is_sim'))" 2>/dev/null)
+  ENVMODE=$(grep '^MEMS26_MODE=' .env | cut -d= -f2)
+  FEEDACC=$(ps aux | grep '[t]rade_activity_feed' >/dev/null && grep 'auto account' /tmp/activity_feed.log 2>/dev/null | tail -1 | grep -o '→.*' || echo '?')
+  echo -e "${B}── מצב נוכחי ──${N}"
+  echo -e "  סיירה:      $([ "$IS_SIM" = "1" ] || [ "$IS_SIM" = "True" ] && echo "${Y}סימולציה (כסף וירטואלי)${N}" || echo "${R}אמת (כסף אמיתי!)${N}")"
+  echo -e "  .env:       MEMS26_MODE=$ENVMODE · פידר $FEEDACC"
+  echo -e "  עסקאות פתוחות: $(open_trades)"
+  echo ""
+  echo "  לאן לעבור?  1) אמת (כסף אמיתי)   2) סים   0) חזרה"
+  read -r -p "בחירה: " m
+  case "$m" in
+    1) TARGET="live"; TARGET_SIM="0"; WORD="אמת";;
+    2) TARGET="sim";  TARGET_SIM="1"; WORD="סים";;
+    *) return;;
+  esac
+  # שער-1: flat חובה (לא רק אזהרה) — אין החלפת-כסף עם פוזיציה חיה
+  N_OPEN=$(open_trades)
+  if [ "$N_OPEN" != "0" ]; then
+    echo -e "${R}✗ יש $N_OPEN עסקה/ות פתוחות — סגור/חכה ל-flat לפני החלפת-מצב. בוטל.${N}"; return
+  fi
+  # שער-2: מעבר-לאמת דורש הקלדה מפורשת
+  if [ "$TARGET" = "live" ]; then
+    echo -e "${R}══ מעבר לכסף אמיתי ══${N}"
+    echo "  ודא לפני-כן: ✔ הפקדה נקלטה בחשבון (NLV מספיק)  ✔ Teton מחובר (ירוק בסיירה)"
+    read -r -p "  להמשך הקלד בדיוק: אמת  → " conf
+    [ "$conf" = "אמת" ] || { echo "בוטל."; return; }
+  fi
+  bash scripts/mems26_snapshot.sh "mode-switch-$TARGET" >/dev/null 2>&1 && echo "✓ snapshot"
+  sed -i '' "s/^MEMS26_MODE=.*/MEMS26_MODE=$TARGET/" .env && echo "✓ .env → MEMS26_MODE=$TARGET"
+  pkill -f trade_activity_feed 2>/dev/null; sleep 4
+  NEWACC=$(grep 'auto account' /tmp/activity_feed.log 2>/dev/null | tail -1)
+  echo "✓ פידר הופעל מחדש (${NEWACC:-מאזין})"
+  echo -e "${Y}➤ עכשיו בסיירה: ‏Trade → Trade Simulation Mode $([ "$TARGET" = "sim" ] && echo "ON (✓ מסומן)" || echo "OFF (לא מסומן)")${N}"
+  echo -n "  ממתין שסיירה תעבור ל-$WORD "
+  for i in $(seq 1 60); do
+    CUR=$(python3 -c "import json;print(1 if json.load(open('$STATE')).get('is_sim') in (1,True) else 0)" 2>/dev/null)
+    [ "$CUR" = "$TARGET_SIM" ] && { echo -e "\n${G}✓ סיירה במצב $WORD — עין-המצב מאשרת${N}"; break; }
+    sleep 2; echo -n "."
+  done
+  CUR=$(python3 -c "import json;print(1 if json.load(open('$STATE')).get('is_sim') in (1,True) else 0)" 2>/dev/null)
+  [ "$CUR" != "$TARGET_SIM" ] && echo -e "\n${R}⚠ סיירה עדיין לא במצב $WORD — בצע את הקליק בסיירה ובדוק שוב (סטטוס)${N}"
+  python3 scripts/flag_guard.py 2>&1 | tail -1
+  echo -e "${G}המערכת ממשיכה לרוץ — אין צורך בריסטארט (הירי, המילויים והפידר מיושרים).${N}"
+}
+
 menu() {
   while true; do
     echo -e "\n${B}══════ MEMS26 — מסך הפעלה ($(hostname -s)) ══════${N}"
     echo "  1) סטטוס מערכת          4) בדיקת עדכונים"
     echo "  2) הפעלה                 5) עדכן לגרסה האחרונה"
     echo "  3) הפעלה מחדש            6) כיבוי"
-    echo "  0) יציאה"
+    echo "  7) מצב מסחר: סים ⇄ אמת   0) יציאה"
     read -r -p "בחירה: " c
     case "$c" in
       1) do_status;; 2) do_start;; 3) do_restart;; 4) do_check;; 5) do_update;; 6) do_stop;;
+      7) do_mode;;
       0) exit 0;; *) echo "?";;
     esac
   done
@@ -171,6 +223,6 @@ menu() {
 
 case "${1:-menu}" in
   status) do_status;; start) do_start;; restart) do_restart;;
-  stop) do_stop;; check) do_check;; update) do_update;; menu) menu;;
-  *) echo "usage: $0 [status|start|restart|stop|check|update]";;
+  stop) do_stop;; check) do_check;; update) do_update;; mode) do_mode;; menu) menu;;
+  *) echo "usage: $0 [status|start|restart|stop|check|update|mode]";;
 esac
