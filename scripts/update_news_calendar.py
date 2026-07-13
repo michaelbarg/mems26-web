@@ -55,8 +55,13 @@ def _get(url: str):
         return json.loads(r.read())
 
 
+_TV_SEV = {1: "red", 0: "orange", -1: "yellow"}      # TV importance → דירוג
+_FF_SEV = {"high": "red", "medium": "orange", "low": "yellow"}
+
+
 def fetch_tradingview():
-    """Red (importance==1) US events for the next 7 days from TV's own calendar."""
+    """ALL rated US events (red/orange/yellow) for the next 7 days — Michael's
+    07-13 ruling: 'שימוש בדירוג-חשיבות של כל חלון-חדשות'."""
     from datetime import timedelta, timezone
     now = datetime.now(timezone.utc)
     url = TV_URL.format(frm=now.strftime("%Y-%m-%dT00:00:00.000Z"),
@@ -66,11 +71,12 @@ def fetch_tradingview():
     evs = []
     for e in rows or []:
         try:
-            if e.get("importance") != 1:
+            sev = _TV_SEV.get(e.get("importance"))
+            if sev is None:
                 continue
             dt = datetime.fromisoformat(str(e["date"]).replace("Z", "+00:00")).astimezone(ET)
             evs.append({"date": dt.strftime("%Y-%m-%d"), "time_et": dt.strftime("%H:%M"),
-                        "name": str(e.get("title", "?")).strip()})
+                        "name": str(e.get("title", "?")).strip(), "severity": sev})
         except Exception:
             continue
     return evs
@@ -83,11 +89,12 @@ def fetch_forexfactory():
         try:
             if str(e.get("country", "")).upper() != "USD":
                 continue
-            if str(e.get("impact", "")).lower() != "high":
+            sev = _FF_SEV.get(str(e.get("impact", "")).lower())
+            if sev is None:
                 continue
             dt = datetime.fromisoformat(e["date"]).astimezone(ET)
             evs.append({"date": dt.strftime("%Y-%m-%d"), "time_et": dt.strftime("%H:%M"),
-                        "name": str(e.get("title", "?")).strip()})
+                        "name": str(e.get("title", "?")).strip(), "severity": sev})
         except Exception:
             continue
     return evs
@@ -125,7 +132,8 @@ def main() -> int:
         for e in old.get("events") or []:
             if str(e.get("date")) not in fetched_dates:
                 kept.append({"date": str(e["date"]), "time_et": str(e["time_et"]),
-                             "name": str(e.get("name", "?"))})
+                             "name": str(e.get("name", "?")),
+                             "severity": str(e.get("severity", "red"))})
     except Exception:
         pass
 
@@ -134,7 +142,7 @@ def main() -> int:
     for e in allev:
         nm = e["name"].replace('"', "'")
         lines += (f'  - date: {e["date"]}\n    time_et: "{e["time_et"]}"\n'
-                  f'    name: "{nm}"\n    severity: red\n')
+                  f'    name: "{nm}"\n    severity: {e.get("severity", "red")}\n')
 
     print(f"[news_cal] source={source} · {len(evs)} fetched + {len(kept)} kept manual:")
     for e in allev:

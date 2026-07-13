@@ -7,8 +7,11 @@
 import { useCallback, useEffect, useState } from 'react';
 
 type Ev = { date: string; day: string; time_et: string; time_il: string; name: string;
+            severity: string; blocks: boolean; window: string;
             block_il: string; in_rth: boolean; past: boolean };
-type Cal = { enabled: boolean; window: string; active_now: { event: string } | null; events: Ev[] };
+type Cal = { enabled: boolean; windows: Record<string, number[]>; active_now: { event: string } | null; events: Ev[] };
+
+const SEV_ICON: Record<string, string> = { red: '🔴', orange: '🟠', yellow: '🟡' };
 
 const DAY_HE: Record<string, string> = {
   Sunday: 'ראשון', Monday: 'שני', Tuesday: 'שלישי', Wednesday: 'רביעי',
@@ -44,7 +47,7 @@ export function NewsCalendarPanel() {
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #e6edf3)' }}>
           📰 חלון-חדשות NO_TRADE
           <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted, #8b949e)', marginRight: 8 }}>
-            מקור: יומן-TradingView (אדום/ארה"ב) · חלון {cal.window} · {cal.enabled ? '🟢 דלוק' : '⚪ כבוי'}
+            מקור: יומן-TradingView (כל הדירוגים/ארה"ב) · 🔴🟠 חוסמים -10/+5 דק' · 🟡 תצוגה · {cal.enabled ? '🟢 דלוק' : '⚪ כבוי'}
           </span>
         </div>
         {cal.active_now && (
@@ -72,12 +75,13 @@ export function NewsCalendarPanel() {
               color: e.in_rth ? 'var(--text, #e6edf3)' : 'var(--text-muted, #8b949e)',
             }}>
               <td style={{ padding: '4px 6px', whiteSpace: 'nowrap' }}>{DAY_HE[e.day] || e.day} {e.date.slice(5)}</td>
-              <td style={{ padding: '4px 6px' }}>🔴 {e.name}</td>
+              <td style={{ padding: '4px 6px' }}>{SEV_ICON[e.severity] || '⚪'} {e.name}</td>
               <td style={{ padding: '4px 6px', fontFamily: 'ui-monospace, monospace' }}>{e.time_il}</td>
               <td style={{ padding: '4px 6px', fontFamily: 'ui-monospace, monospace' }}>{e.block_il}</td>
               <td style={{ padding: '4px 6px', fontSize: 11 }}>
-                {e.in_rth ? <span style={{ color: 'var(--orange, #d29922)', fontWeight: 600 }}>⚠ בתוך המסחר</span>
-                          : 'לפני-פתיחה'}
+                {!e.blocks ? 'תצוגה-בלבד'
+                  : e.in_rth ? <span style={{ color: 'var(--orange, #d29922)', fontWeight: 600 }}>⚠ בתוך המסחר</span>
+                  : 'לפני-פתיחה'}
               </td>
             </tr>
           ))}

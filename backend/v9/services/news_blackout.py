@@ -33,7 +33,10 @@ _last_warn = 0.0
 
 
 def _load_events():
-    """Parsed red events as aware-ET datetimes; cached by file mtime."""
+    """ALL rated events (red/orange/yellow) as aware-ET datetimes; cached by mtime.
+
+    Michael's 07-13 ruling: 'שימוש בדירוג-חשיבות של כל חלון-חדשות' — every event
+    carries its severity; the WINDOW is per-severity (see window_for)."""
     global _last_warn
     try:
         mt = CAL.stat().st_mtime
@@ -44,13 +47,14 @@ def _load_events():
         evs = []
         for e in data.get("events") or []:
             try:
-                if str(e.get("severity", "")).lower() != "red":
+                sev = str(e.get("severity", "red")).lower()
+                if sev not in ("red", "orange", "yellow"):
                     continue
                 d = str(e["date"])
                 hh, mm = str(e["time_et"]).split(":")
                 dt = datetime.fromisoformat(d).replace(
                     hour=int(hh), minute=int(mm), tzinfo=ET)
-                evs.append({"dt": dt, "name": str(e.get("name", "?"))})
+                evs.append({"dt": dt, "name": str(e.get("name", "?")), "severity": sev})
             except Exception:
                 continue  # one bad row never kills the calendar
         _cache.update(mtime=mt, events=evs)
@@ -62,16 +66,35 @@ def _load_events():
         return []
 
 
+def window_for(severity: str) -> tuple:
+    """(before_min, after_min) per severity. Michael's 07-13 ruling: 10 לפני /
+    5 אחרי. Defaults: red+orange BLOCK 10/5; yellow display-only (0/0 = no
+    block — a blackout on every low-rated event would riddle the day with
+    holes). Each tunable via NEWS_WIN_RED / NEWS_WIN_ORANGE / NEWS_WIN_YELLOW
+    ("before,after" minutes; "0,0" = off)."""
+    defaults = {"red": "10,5", "orange": "10,5", "yellow": "0,0"}
+    raw = os.getenv(f"NEWS_WIN_{severity.upper()}", defaults.get(severity, "0,0"))
+    try:
+        b, a = (int(x) for x in raw.split(","))
+        return max(0, b), max(0, a)
+    except Exception:
+        b, a = (int(x) for x in defaults.get(severity, "0,0").split(","))
+        return b, a
+
+
 def check(now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
-    """Inside a red-event window? → {'event','window'} else None. Pure given `now`."""
-    before = int(os.getenv("NEWS_BLACKOUT_BEFORE_MIN", "15"))
-    after = int(os.getenv("NEWS_BLACKOUT_AFTER_MIN", "30"))
+    """Inside ANY rated event's blackout window? → {'event','severity','window'}
+    else None. Severity with a 0,0 window never blocks. Pure given `now`."""
     now = now.astimezone(ET) if now else datetime.now(ET)
     for e in _load_events():
+        before, after = window_for(e["severity"])
+        if before == 0 and after == 0:
+            continue
         lo = e["dt"] - timedelta(minutes=before)
         hi = e["dt"] + timedelta(minutes=after)
         if lo <= now <= hi:
-            return {"event": e["name"], "event_time_et": e["dt"].strftime("%H:%M"),
+            return {"event": e["name"], "severity": e["severity"],
+                    "event_time_et": e["dt"].strftime("%H:%M"),
                     "window": f"-{before}m..+{after}m"}
     return None
 

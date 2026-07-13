@@ -99,11 +99,21 @@ def test_news_blackout_flag_off_by_default(monkeypatch):
 
 
 def test_news_blackout_window_edges():
-    from backend.v9.services.news_blackout import check
+    """Michael 07-13 ruling: 10 לפני / 5 אחרי, פר-דירוג."""
+    from backend.v9.services.news_blackout import check, window_for
     ET = ZoneInfo("America/New_York")
-    assert check(datetime(2026, 7, 14, 8, 35, tzinfo=ET)) is not None   # inside CPI
-    assert check(datetime(2026, 7, 14, 10, 0, tzinfo=ET)) is None       # after window
-    assert check(datetime(2026, 7, 13, 8, 35, tzinfo=ET)) is None       # no event today
+    assert window_for("red") == (10, 5) and window_for("orange") == (10, 5)
+    assert window_for("yellow") == (0, 0)                                 # תצוגה-בלבד
+    assert check(datetime(2026, 7, 14, 8, 21, tzinfo=ET)) is not None    # 9 דק' לפני CPI → חסום
+    assert check(datetime(2026, 7, 14, 8, 34, tzinfo=ET)) is not None    # 4 דק' אחרי → חסום
+    r = check(datetime(2026, 7, 14, 8, 34, tzinfo=ET))
+    assert r and r.get("severity") in ("red", "orange")
+    assert check(datetime(2026, 7, 14, 8, 36, tzinfo=ET)) is None        # 6 דק' אחרי → פתוח
+    # הדירוג עובד: 08:19 חסום ע"י אירוע-כתום אמיתי (ADP 08:15, חלון עד 08:20) —
+    # לא ע"י ה-CPI האדום שמתחיל רק ב-08:20. בדיקה חיובית לדירוג-כתום:
+    r_orange = check(datetime(2026, 7, 14, 8, 19, tzinfo=ET))
+    assert r_orange and r_orange["severity"] == "orange", r_orange
+    assert check(datetime(2026, 7, 14, 11, 30, tzinfo=ET)) is None       # שעה נקייה → פתוח
 
 
 # ── IDEA-2 phone alerts ─────────────────────────────────────────────────────
