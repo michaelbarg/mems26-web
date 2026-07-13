@@ -1303,7 +1303,10 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             s_SCNewOrder exit_order;
                             exit_order.OrderQuantity = exit_qty;
                             exit_order.OrderType = SCT_ORDERTYPE_MARKET;
-                            exit_order.TimeInForce = SCT_TIF_GTC;
+                            // 07-13 sim-proof: SellExit returned -1 with TIF=GTC on a
+                            // MARKET order (GTC is invalid for market in this config).
+                            // Market exits are immediate — DAY is the correct TIF.
+                            exit_order.TimeInForce = SCT_TIF_DAY;
 
                             // Determine exit side: position > command direction > stored direction
                             int r = 0;
