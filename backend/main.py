@@ -642,6 +642,17 @@ async def _startup():
         except Exception as _mtd_err:
             _logger.warning("[Main] MissedTradeDetector init failed: %s", _mtd_err)
 
+        # IDEA-1 (Michael 07-13 "ואיך הוא מתעדכן?"): news-calendar auto-refresh —
+        # the backend itself re-fetches the red-events calendar from the
+        # TradingView API (FF fallback) on every boot + every 6h. Daemon thread,
+        # never touches the trading path; a failed refresh keeps the last file.
+        try:
+            from backend.v9.services.news_blackout import start_auto_refresh as _news_ar
+            _news_ar(interval_h=6.0)
+            _logger.info("[Main] news-calendar auto-refresh started (boot + every 6h)")
+        except Exception as _news_err:
+            _logger.warning("[Main] news-calendar auto-refresh failed to start: %s", _news_err)
+
         # P31-B + P31-D: SessionBoundaryManager — idempotent daily reset at startup
         try:
             from backend.v9.services.session_boundary import SessionBoundaryManager

@@ -78,3 +78,32 @@ def check(now: Optional[datetime] = None) -> Optional[Dict[str, Any]]:
 
 def enabled() -> bool:
     return os.getenv("NEWS_BLACKOUT_V1", "0").lower() in ("1", "true", "yes")
+
+
+def start_auto_refresh(interval_h: float = 6.0) -> None:
+    """מייקל 07-13 ("ואיך הוא מתעדכן?"): הבקאנד מרענן את הלוח בעצמו —
+    בכל עלייה + כל `interval_h` שעות — מ-API-TradingView (גיבוי FF), דרך
+    scripts/update_news_calendar.py בתת-תהליך (source-of-truth יחיד לפרסינג).
+    כישלון-רענון = הקובץ הקיים נשאר (הסקריפט מסרב לדרוס בריק) + אזהרה בלוג.
+    ‏Thread-דמון; לעולם לא נוגע בנתיב-המסחר."""
+    import subprocess
+    import threading
+
+    script = Path(__file__).resolve().parents[3] / "scripts" / "update_news_calendar.py"
+
+    def _loop():
+        while True:
+            try:
+                r = subprocess.run(["python3", str(script)], capture_output=True,
+                                   text=True, timeout=90, cwd=str(script.parent.parent))
+                tail = (r.stdout.strip().splitlines() or ["?"])[-1]
+                if r.returncode == 0:
+                    logger.info("[news_cal] auto-refresh OK: %s", tail)
+                else:
+                    logger.warning("[news_cal] auto-refresh failed (keeping current file): %s",
+                                   (r.stderr or r.stdout)[-200:])
+            except Exception as e:
+                logger.warning("[news_cal] auto-refresh error: %s", e)
+            _time.sleep(interval_h * 3600)
+
+    threading.Thread(target=_loop, daemon=True, name="news-cal-refresh").start()
