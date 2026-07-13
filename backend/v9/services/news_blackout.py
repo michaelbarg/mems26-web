@@ -67,12 +67,11 @@ def _load_events():
 
 
 def window_for(severity: str) -> tuple:
-    """(before_min, after_min) per severity. Michael's 07-13 ruling: 10 לפני /
-    5 אחרי. Defaults: red+orange BLOCK 10/5; yellow display-only (0/0 = no
-    block — a blackout on every low-rated event would riddle the day with
-    holes). Each tunable via NEWS_WIN_RED / NEWS_WIN_ORANGE / NEWS_WIN_YELLOW
-    ("before,after" minutes; "0,0" = off)."""
-    defaults = {"red": "10,5", "orange": "10,5", "yellow": "0,0"}
+    """(before_min, after_min) per severity. Michael's FINAL 07-13 ruling
+    ("אמרתי שרק אדום חוסם מסחר"): ONLY RED blocks — 10 לפני / 5 אחרי.
+    Orange+yellow are display-only (his manual call), tunable via
+    NEWS_WIN_RED / NEWS_WIN_ORANGE / NEWS_WIN_YELLOW ("before,after"; "0,0"=off)."""
+    defaults = {"red": "10,5", "orange": "0,0", "yellow": "0,0"}
     raw = os.getenv(f"NEWS_WIN_{severity.upper()}", defaults.get(severity, "0,0"))
     try:
         b, a = (int(x) for x in raw.split(","))

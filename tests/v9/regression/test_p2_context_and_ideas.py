@@ -99,20 +99,19 @@ def test_news_blackout_flag_off_by_default(monkeypatch):
 
 
 def test_news_blackout_window_edges():
-    """Michael 07-13 ruling: 10 לפני / 5 אחרי, פר-דירוג."""
+    """Michael FINAL 07-13 ruling: רק אדום חוסם — 10 לפני / 5 אחרי."""
     from backend.v9.services.news_blackout import check, window_for
     ET = ZoneInfo("America/New_York")
-    assert window_for("red") == (10, 5) and window_for("orange") == (10, 5)
+    assert window_for("red") == (10, 5)
+    assert window_for("orange") == (0, 0)                                 # תצוגה-בלבד
     assert window_for("yellow") == (0, 0)                                 # תצוגה-בלבד
-    assert check(datetime(2026, 7, 14, 8, 21, tzinfo=ET)) is not None    # 9 דק' לפני CPI → חסום
+    # אנטי-טאוטולוגי: 08:19 בתוך חלון-ADP-הכתום (08:15) — חייב להיות פתוח,
+    # כי רק אדום חוסם; חלון-ה-CPI-האדום נפתח רק ב-08:20.
+    assert check(datetime(2026, 7, 14, 8, 19, tzinfo=ET)) is None
+    r = check(datetime(2026, 7, 14, 8, 21, tzinfo=ET))                    # 9 דק' לפני CPI
+    assert r and r["severity"] == "red", r
     assert check(datetime(2026, 7, 14, 8, 34, tzinfo=ET)) is not None    # 4 דק' אחרי → חסום
-    r = check(datetime(2026, 7, 14, 8, 34, tzinfo=ET))
-    assert r and r.get("severity") in ("red", "orange")
     assert check(datetime(2026, 7, 14, 8, 36, tzinfo=ET)) is None        # 6 דק' אחרי → פתוח
-    # הדירוג עובד: 08:19 חסום ע"י אירוע-כתום אמיתי (ADP 08:15, חלון עד 08:20) —
-    # לא ע"י ה-CPI האדום שמתחיל רק ב-08:20. בדיקה חיובית לדירוג-כתום:
-    r_orange = check(datetime(2026, 7, 14, 8, 19, tzinfo=ET))
-    assert r_orange and r_orange["severity"] == "orange", r_orange
     assert check(datetime(2026, 7, 14, 11, 30, tzinfo=ET)) is None       # שעה נקייה → פתוח
 
 

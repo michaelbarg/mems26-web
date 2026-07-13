@@ -47,7 +47,7 @@ export function NewsCalendarPanel() {
         <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text, #e6edf3)' }}>
           📰 חלון-חדשות NO_TRADE
           <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-muted, #8b949e)', marginRight: 8 }}>
-            מקור: יומן-TradingView (כל הדירוגים/ארה"ב) · 🔴🟠 חוסמים -10/+5 דק' · 🟡 תצוגה · {cal.enabled ? '🟢 דלוק' : '⚪ כבוי'}
+            מקור: יומן-TradingView (כל הדירוגים/ארה"ב) · רק 🔴 חוסם (-10/+5 דק') · 🟠🟡 תצוגה להחלטתך · {cal.enabled ? '🟢 דלוק' : '⚪ כבוי'}
           </span>
         </div>
         {cal.active_now && (
