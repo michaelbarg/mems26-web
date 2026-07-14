@@ -81,6 +81,29 @@ def trade_contract_count(trade) -> int:
     return 3
 
 
+def _zlr_mgmt_enabled() -> bool:
+    """ZLR_MGMT_V1 (Michael 2026-07-14) — default OFF, code default (no env var
+    needed). When unset every ZLR management path is byte-identical to today."""
+    return os.environ.get("ZLR_MGMT_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
+def is_zlr_trade(trade) -> bool:
+    """True for a System-4 (woodies) ZLR trade.
+
+    accept_setup persists the fire's pattern id into quality.pattern_name /
+    trigger / classification == "ZLR" (woodies_system stamps classification =
+    metadata.pattern = pattern_id = "ZLR"). No other system uses the "ZLR" id, so
+    a case-insensitive string match is unambiguous and keeps the change ZLR-scoped.
+    """
+    q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+    for _v in (q.get("pattern_name"), q.get("trigger"), q.get("classification")):
+        if isinstance(_v, str) and _v.strip().upper() == "ZLR":
+            return True
+    meta = q.get("metadata") if isinstance(q.get("metadata"), dict) else {}
+    _mp = meta.get("pattern")
+    return isinstance(_mp, str) and _mp.strip().upper() == "ZLR"
+
+
 class TradeManager:
     """Manages the full lifecycle of V9 trades.
 
@@ -490,6 +513,17 @@ class TradeManager:
                 pass
         return self._valid_target(trade.stop)
 
+    def _zlr_stop_locked(self, trade) -> bool:
+        """ZLR_MGMT_V1 (Michael 2026-07-14, ZLR / System-4 ONLY): the ZLR stop is
+        FIXED — it holds at the initial structural (5-min candle) stop until T1,
+        then makes ONE move to entry (BE) at T1 (in _apply_smart_be_after_t1).
+        Every OTHER per-bar stop-move — structure / dynamic / runner trail, the
+        post-T2 lock, and the external trail-engine — is a no-op for a ZLR trade,
+        so nothing trails the stop off structure before T1 (Michael: "אפס תזוזה
+        לפני T1") or off BE after T1 (Michael: "אחרי T1→BE"). Non-ZLR trades and
+        flag-OFF return False → byte-identical to today."""
+        return _zlr_mgmt_enabled() and is_zlr_trade(trade)
+
     def _apply_smart_be_after_t1(self, trade: V9Trade) -> None:
         """Move stop to BE+1T after T1 hit · D-094 Gap 1 fix.
 
@@ -512,6 +546,41 @@ class TradeManager:
             trade.quality = q
 
         stop_before = float(trade.stop) if trade.stop is not None else None
+
+        # ZLR_MGMT_V1 (Michael 2026-07-14 — ZLR / System-4 ONLY): the lone T2-bound
+        # runner's stop goes to PLAIN entry (BE) at T1 — never BE±1T and never the
+        # STOP_STRUCTURE_TRAIL_V1 structure anchor. This overrides the structure-
+        # trail for ZLR alone; idempotent (never widen). Flag-OFF / non-ZLR fall
+        # through to the unchanged BE+1T / structure logic below.
+        if _zlr_mgmt_enabled() and is_zlr_trade(trade):
+            _cur = float(trade.stop) if trade.stop is not None else None
+            if direction == "LONG":
+                if _cur is not None and _cur >= entry:
+                    return  # never widen — already at/through BE
+            elif direction == "SHORT":
+                if _cur is not None and _cur <= entry:
+                    return  # never widen — already at/through BE
+            else:
+                logger.warning(
+                    "[TradeManager] ZLR BE unknown direction=%s · trade_id=%s",
+                    direction, getattr(trade, "id", "?"))
+                return
+            trade.stop = entry
+            audit_entry = {
+                "event": "stop_move",
+                "from": stop_before,
+                "to": float(trade.stop),
+                "reason": "ZLR BE (entry) after T1",
+            }
+            ctx = list(trade.cross_context) if isinstance(trade.cross_context, list) else []
+            ctx.append(audit_entry)
+            trade.cross_context = ctx
+            self._log_management(trade.id, "SMART_BE",
+                                 {"from": stop_before, "to": float(trade.stop), "zlr": True})
+            self._emit_modify_stop(trade, float(trade.stop))
+            logger.info("[TradeManager] ZLR BE after T1: trade %s stop %s -> %.2f",
+                        trade.id, stop_before, trade.stop)
+            return
 
         # STOP_STRUCTURE_TRAIL_V1 (Michael ruling 2026-07-08, flag-OFF): after T1
         # the stop goes to the nearest STRUCTURE, not mechanically to BE — "לקרב
@@ -632,6 +701,8 @@ class TradeManager:
         is logged loudly (SYS-2: no silent skips in the money path).
         Returns True when the stop moved.
         """
+        if self._zlr_stop_locked(trade):
+            return False  # ZLR_MGMT_V1: stop is fixed — no per-bar window-anchor trail
         if os.environ.get("STOP_PERBAR_STRUCT_V1", "0").lower() not in ("1", "true", "yes"):
             return False
         if trade.entry_price is None or trade.stop is None:
@@ -742,6 +813,8 @@ class TradeManager:
         Floor = BE+1T (never below the current smart-BE level).
         Never widens the stop. hwm persisted in quality["trail_hwm"].
         """
+        if self._zlr_stop_locked(trade):
+            return  # ZLR_MGMT_V1: stop is fixed (structural → BE at T1) — no runner trail
         if trade.entry_price is None:
             return
         initial = self._initial_stop(trade)
@@ -841,6 +914,8 @@ class TradeManager:
 
         Michael's rule: runners re-anchor on each NEW CONSOLIDATION after advance.
         """
+        if self._zlr_stop_locked(trade):
+            return  # ZLR_MGMT_V1: stop is fixed (structural → BE at T1) — no dynamic trail
         if trade.entry_price is None:
             return
         initial = self._initial_stop(trade)
@@ -1030,6 +1105,8 @@ class TradeManager:
         in profit direction). Never widens the stop.
         """
         import os as _os
+        if self._zlr_stop_locked(trade):
+            return  # ZLR_MGMT_V1: stop is fixed at BE after T1 — no post-T2 BE+0.5R lock
         if not _os.environ.get("RUNNER_TARGETS_V1", "").lower() in ("1", "true", "yes"):
             return
         if trade.entry_price is None:
@@ -1196,6 +1273,11 @@ class TradeManager:
         trade = self._get_trade(trade_id)
         if trade is None:
             logger.warning("[TradeManager] update_stop_with_audit trade %s not found", trade_id)
+            return
+        if self._zlr_stop_locked(trade):
+            logger.info(
+                "[TradeManager] ZLR_MGMT_V1 stop-lock: trail stop-move skipped on trade %s (%s)",
+                trade_id, reason)
             return
         stop_before = float(trade.stop) if trade.stop is not None else None
         entry = {

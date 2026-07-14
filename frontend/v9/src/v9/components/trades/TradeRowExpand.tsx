@@ -17,6 +17,7 @@ import {
 } from '../../lib/tradeMath';
 import MgmtTimeline from './MgmtTimeline';
 import SpecFlags from './SpecFlags';
+import { TradeRecommendations } from './TradeRecommendations';
 
 const TradeChart = lazy(() => import('./TradeChart'));
 
@@ -176,6 +177,9 @@ export function TradeRowExpand({ trade }: { trade: Trade }) {
       <div style={{ marginBottom: 6 }}>
         <SpecFlags trade={trade} allTrades={allTrades} />
       </div>
+
+      {/* מה השתבש + המלצת-שיפור (System-6 diagnose, read-only, fail-soft) */}
+      <TradeRecommendations trade={trade} />
 
       <TradeDetailBlock trade={trade} />
 

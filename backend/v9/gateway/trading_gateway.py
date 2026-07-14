@@ -47,6 +47,117 @@ _DB_URL = _os.environ.get("DATABASE_URL", "sqlite:///./data/mems26_local.db")
 DB_PATH = _DB_URL.replace("sqlite:///", "") if _DB_URL.startswith("sqlite") else "./data/mems26_local.db"
 
 
+# ── STOP_TABLE_V1 (default OFF) — per-pattern × day_type stop cap table ───────
+# Michael's gap: targets ARE per-pattern×day_type (targets.yaml
+# pattern_t1_points), but STOPS were a generic CONT/REV ATR-band resolver with
+# no day_type input. STOP_TABLE_V1 lets STOP_RESOLVER_V1 consult the
+# `pattern_stop` block in config/stop_anchors.yaml so the ATR band cap becomes
+# pattern+day_type aware. The table can ONLY tighten (or equal) the generic cap
+# — it NEVER widens risk beyond today's global cap. Flag OFF, or pattern×
+# day_type absent, → byte-identical to the generic resolver. SHADOW-first.
+_PATTERN_STOP_CACHE: Optional[Dict] = None
+_PATTERN_STOP_LOADED: bool = False
+
+
+def _load_pattern_stop_table() -> Dict:
+    """Load the `pattern_stop` block from config/stop_anchors.yaml (cached).
+
+    Shape mirrors targets.yaml pattern_t1_points:
+        {PATTERN: {day_type: {max_risk_pts?, band_cap_atr?, anchor_type?}}}
+    Reuses config_loader.load_stop_anchors (schema-validated; it ignores the
+    extra top-level pattern_stop key). Fail-open to {} on any error/missing —
+    which yields the unchanged generic resolver.
+    """
+    global _PATTERN_STOP_CACHE, _PATTERN_STOP_LOADED
+    if _PATTERN_STOP_LOADED:
+        return _PATTERN_STOP_CACHE or {}
+    _PATTERN_STOP_LOADED = True
+    _PATTERN_STOP_CACHE = {}
+    try:
+        from backend.v9.config_loader import load_stop_anchors
+        data = load_stop_anchors()
+        if isinstance(data, dict):
+            ps = data.get("pattern_stop")
+            if isinstance(ps, dict):
+                _PATTERN_STOP_CACHE = ps
+    except Exception as _ps_err:  # pragma: no cover - defensive fail-open
+        logger.warning("[Gateway] pattern_stop load errored (fail-open): %s", _ps_err)
+    return _PATTERN_STOP_CACHE
+
+
+def _reset_pattern_stop_cache() -> None:
+    """Reset the pattern_stop cache — test hygiene only."""
+    global _PATTERN_STOP_CACHE, _PATTERN_STOP_LOADED
+    _PATTERN_STOP_CACHE = None
+    _PATTERN_STOP_LOADED = False
+
+
+def _stop_table_lookup(table: Dict, classification: Optional[str],
+                       day_type: Optional[str]) -> Optional[Dict]:
+    """Return the pattern_stop entry for classification×day_type, else None."""
+    if not table or not classification or not day_type:
+        return None
+    entry = (table.get(str(classification).upper()) or {}).get(day_type)
+    return entry if isinstance(entry, dict) else None
+
+
+def _stop_table_effective_cap(generic_cap_pts: float, atr_5m: float,
+                              entry: Optional[Dict]) -> float:
+    """Tighten-only cap = min(generic_cap, max_risk_pts, band_cap_atr × atr).
+
+    entry None/empty → returns generic_cap unchanged. The result can NEVER
+    exceed generic_cap: the table only makes the cap MORE specific (tighter),
+    never widens risk beyond the existing global ATR cap.
+    """
+    cap = float(generic_cap_pts)
+    if not entry:
+        return cap
+    mr = entry.get("max_risk_pts")
+    if isinstance(mr, (int, float)) and mr > 0:
+        cap = min(cap, float(mr))
+    bc = entry.get("band_cap_atr")
+    if isinstance(bc, (int, float)) and bc > 0 and atr_5m and atr_5m > 0:
+        cap = min(cap, float(bc) * float(atr_5m))
+    return cap
+
+
+def _stop_table_decide_cap(*, enabled: bool, table: Dict,
+                           classification: Optional[str], day_type: Optional[str],
+                           generic_cap_pts: float, atr_5m: float):
+    """Return (effective_cap_pts, entry_used).
+
+    Disabled OR no matching pattern×day_type entry → (generic_cap_pts, None):
+    byte-identical to the generic resolver. Otherwise → (tightened_cap, entry).
+    Tighten-only (see _stop_table_effective_cap).
+    """
+    if not enabled:
+        return float(generic_cap_pts), None
+    entry = _stop_table_lookup(table, classification, day_type)
+    if not entry:
+        return float(generic_cap_pts), None
+    return _stop_table_effective_cap(generic_cap_pts, atr_5m, entry), entry
+
+
+def _stop_table_should_apply(*, in_band: bool, rejected: bool,
+                             risk_points: float, effective_cap_pts: float,
+                             generic_cap_pts: float) -> bool:
+    """Apply the resolved stop only if it is in-band AND within the (possibly
+    tightened) effective cap. A smaller effective_cap can only turn an apply
+    into a keep-original — never the reverse (tighten-only, never widen).
+
+    Byte-identical guarantee: when the effective cap is NOT tighter than the
+    generic cap (flag OFF, no entry, or a no-op entry), an in-band non-rejected
+    result is applied verbatim — the extra cap check is skipped entirely, so
+    tick-grid snapping in resolve_stop can never flip today's decision. Only a
+    genuinely tightened cap adds the risk_points ≤ effective_cap constraint.
+    """
+    if not in_band or rejected:
+        return False
+    if float(effective_cap_pts) >= float(generic_cap_pts):
+        return True
+    return float(risk_points) <= float(effective_cap_pts) + 1e-9
+
+
 class TradingGateway:
     """Central trade routing: SHADOW (unlimited) / DEMO (1 slot) / LIVE (1 slot + risk)."""
 
@@ -693,13 +804,54 @@ class TradingGateway:
                                 rungs=_sr_rungs[:5],
                                 rung_names=[f"r{i}" for i in range(len(_sr_rungs[:5]))],
                                 atr_5m=_sr_atr, family=_sr_fam)
-                            if _sr_res.in_band and not _sr_res.rejected:
+                            # STOP_TABLE_V1 (default OFF): make the ATR band cap
+                            # pattern×day_type aware. Tighten-only — never widens
+                            # risk beyond the generic cap. Flag OFF, or pattern×
+                            # day_type absent, → effective cap == generic cap →
+                            # byte-identical to the generic resolver below.
+                            _stbl_on = os.getenv("STOP_TABLE_V1", "0").lower() in ("1", "true", "yes")
+                            _st_day_type = None
+                            if _stbl_on:
+                                try:
+                                    _st_g1 = extract_g1_entry_context(cross_context)
+                                    _st_day_type = _st_g1.get("day_type_at_entry")
+                                except Exception:
+                                    _st_day_type = None
+                            _sr_eff_cap, _sr_tbl_entry = _stop_table_decide_cap(
+                                enabled=_stbl_on,
+                                table=_load_pattern_stop_table() if _stbl_on else {},
+                                classification=_sr_cls, day_type=_st_day_type,
+                                generic_cap_pts=_sr_res.cap_pts, atr_5m=_sr_atr)
+                            if _stop_table_should_apply(
+                                    in_band=_sr_res.in_band, rejected=_sr_res.rejected,
+                                    risk_points=_sr_res.risk_points,
+                                    effective_cap_pts=_sr_eff_cap,
+                                    generic_cap_pts=_sr_res.cap_pts):
+                                if _sr_tbl_entry is not None and _sr_eff_cap < _sr_res.cap_pts:
+                                    logger.info(
+                                        "[Gateway] STOP_TABLE_V1: %s×%s cap %.1f → %.1f "
+                                        "(anchor_type=%s, advisory)",
+                                        _sr_cls, _st_day_type, _sr_res.cap_pts,
+                                        _sr_eff_cap, _sr_tbl_entry.get("anchor_type"))
                                 logger.warning(
                                     "[Gateway] STOP_RESOLVER_V1: stop %.2f → %.2f "
                                     "(rung=%s, band [%.1f, %.1f], atr=%.1f)",
                                     float(_sr_stop), _sr_res.stop_price, _sr_res.rung_name,
                                     _sr_res.floor_pts, _sr_res.cap_pts, _sr_atr)
                                 setup["stop"] = _sr_res.stop_price
+                            elif (_stbl_on and _sr_tbl_entry is not None
+                                    and _sr_res.in_band and not _sr_res.rejected):
+                                # Resolved rung exceeds the tighter pattern×day_type
+                                # cap → decline the reshape and KEEP the original
+                                # detector stop (the resolver's existing reject →
+                                # keep-original contract). Bounded by the generic
+                                # cap; never widens vs today. SHADOW signal.
+                                logger.warning(
+                                    "[Gateway] STOP_TABLE_V1: %s×%s resolved risk %.1fpt "
+                                    "> pattern cap %.1fpt → kept original stop %.2f "
+                                    "(generic cap %.1f, atr=%.1f)",
+                                    _sr_cls, _st_day_type, _sr_res.risk_points,
+                                    _sr_eff_cap, float(_sr_stop), _sr_res.cap_pts, _sr_atr)
             except Exception as _sr_err:
                 logger.warning("[Gateway] stop resolver errored (kept original stop): %s", _sr_err)
 

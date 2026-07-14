@@ -232,6 +232,31 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
     return _contracts
 
 
+def _zlr_mgmt_enabled() -> bool:
+    """ZLR_MGMT_V1 (Michael 2026-07-14) — default OFF, no env var needed for the
+    code default. When unset the ZLR bracket/allocation is byte-identical to every
+    other pattern. Enabling is Michael's call (trading-risk-surface change)."""
+    return os.getenv("ZLR_MGMT_V1", "0").strip().lower() in ("1", "true", "yes")
+
+
+def _is_zlr_setup(setup: Dict[str, Any]) -> bool:
+    """True ONLY for a System-4 (woodies) ZLR setup.
+
+    woodies_system stamps the fire with classification == metadata.pattern ==
+    pattern_id == "ZLR" (woodies_system.py) and firing_system == 4; accept_setup
+    then carries trigger == "ZLR" as well. No other system/pattern uses the "ZLR"
+    id (S2 uses REACTIVE_/INITIATIVE_…), so a plain case-insensitive string match
+    is unambiguous and scopes the change to ZLR alone."""
+    if not isinstance(setup, dict):
+        return False
+    meta = setup.get("metadata") if isinstance(setup.get("metadata"), dict) else {}
+    for _v in (setup.get("classification"), setup.get("trigger"),
+               meta.get("pattern"), meta.get("signal")):
+        if isinstance(_v, str) and _v.strip().upper() == "ZLR":
+            return True
+    return False
+
+
 def command_from_setup(
     setup: Dict[str, Any],
     *,
@@ -246,6 +271,25 @@ def command_from_setup(
     # L7 (2026-07-08): count comes from effective_contracts — same source accept_setup
     # persists, so the Sierra bracket and the DB row can never disagree.
     _contracts = effective_contracts(setup)
+
+    # Per-contract targets → the DLL PLACE handler (MES_AI_DataExport.cpp) builds
+    # three 1-lot OCO groups and reads target_price for C1, context.t2 for C2,
+    # context.t3 for C3. Default = the 1/1/1 ladder (C1→T1, C2→T2, C3→T3).
+    _c1_target = setup.get("t1") or setup.get("target_price")
+    _c2_target = setup.get("t2")
+    _c3_target = setup.get("t3")
+
+    # ZLR_MGMT_V1 (Michael 2026-07-14 — ZLR / System-4 ONLY, default OFF): allocate
+    # 2 contracts to T1 and 1 to T2, no T3 runner. Each DLL OCO group is a single
+    # lot with its OWN target, so 2×T1 + 1×T2 is expressed as the per-contract
+    # target sequence [T1, T1, T2]: C1→T1, C2→T1 (was T2), C3→T2 (was T3). When the
+    # flag is OFF or the setup is not ZLR this block is skipped → byte-identical
+    # 1/1/1 ladder for every other pattern. (Assumes the 3-contract allocation that
+    # is the current ruling; with <3 contracts C3 is simply absent DLL-side.)
+    if _zlr_mgmt_enabled() and _is_zlr_setup(setup):
+        _c2_target = _c1_target       # second contract also exits at T1
+        _c3_target = setup.get("t2")  # the lone runner exits at T2 (no T3 runner)
+
     return write_trade_command(
         action=action,
         trade_id=trade_id,
@@ -253,15 +297,15 @@ def command_from_setup(
         price=setup.get("entry_price"),
         contracts=_contracts,
         stop_price=setup.get("stop") or setup.get("stop_price"),
-        target_price=setup.get("t1") or setup.get("target_price"),
+        target_price=_c1_target,
         account=account,
         mode=mode,
         context={
             "firing_system": setup.get("firing_system"),
             "classification": setup.get("classification"),
             "confidence": setup.get("confidence"),
-            "t2": setup.get("t2"),
-            "t3": setup.get("t3"),
+            "t2": _c2_target,
+            "t3": _c3_target,
             "metadata": setup.get("metadata", {}),
         },
     )

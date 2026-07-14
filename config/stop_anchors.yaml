@@ -127,3 +127,41 @@ guardrails:
   t1_r_min: 0.2
   t1_r_max: 1.5
   anchor_offset_ticks_max: 6
+
+# ── Pattern × DayType Stop Table (flag STOP_TABLE_V1, default OFF) ─────────
+# Pairs with the `anchors:` block above. Mirrors the SHAPE of
+# targets.yaml `pattern_t1_points` (pattern → day_type → spec), but for STOPS.
+# Consulted ONLY when BOTH STOP_TABLE_V1=1 AND STOP_RESOLVER_V1=1. When the
+# flag is OFF, or a pattern×day_type is absent here, the generic CONT/REV ATR
+# band resolver runs UNCHANGED (byte-identical to today).
+#
+# Each pattern×day_type entry may carry any of:
+#   max_risk_pts : hard cap on stop distance in POINTS for this pattern×day_type
+#   band_cap_atr : cap as a multiple of ATR_5m; the tighter of this vs the
+#                  generic band multiplier (1.2×ATR CONT / 1.5×ATR REV) wins
+#   anchor_type  : ADVISORY ONLY in V1 — logged, NOT yet used to re-pick the
+#                  rung ladder. Wiring anchor_type to rung selection can change
+#                  risk in either direction, so it is a separate future step
+#                  with its own Michael sign-off.
+#
+# SAFETY INVARIANT (enforced in trading_gateway._stop_table_effective_cap):
+#   effective_cap = min(generic_cap, max_risk_pts, band_cap_atr × ATR_5m)
+# The table can ONLY tighten (or equal) the existing ATR band cap — it can
+# NEVER widen risk beyond today's generic resolver cap / the 25pt global cap.
+#
+# ⚠️ PLACEHOLDER VALUES — conservative + illustrative, for Michael to TUNE.
+#   The `max_risk_pts` below simply MIRROR the per-pattern `max_risk_points`
+#   already documented in the `anchors:` block, and `band_cap_atr` is set to
+#   the generic family multiplier (a no-op), so enabling the flag in SHADOW
+#   changes NOTHING until Michael tightens these numbers per day_type.
+pattern_stop:
+  REACTIVE_LONG:                # REV family (generic cap 1.5×ATR)
+    Variation:      {max_risk_pts: 15, band_cap_atr: 1.5, anchor_type: support_zone}
+  REACTIVE_SHORT:               # REV family
+    Variation:      {max_risk_pts: 15, band_cap_atr: 1.5, anchor_type: support_zone}
+  INITIATIVE_LONG:              # CONT family (generic cap 1.2×ATR)
+    Variation:      {max_risk_pts: 12, band_cap_atr: 1.2, anchor_type: breakout_bar}
+  INITIATIVE_SHORT:             # CONT family
+    Variation:      {max_risk_pts: 12, band_cap_atr: 1.2, anchor_type: breakout_bar}
+  TLB:                          # CONT family
+    Trend_Normal:   {max_risk_pts: 15, band_cap_atr: 1.2, anchor_type: since_trendline_peak}

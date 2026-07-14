@@ -1234,8 +1234,21 @@ class FiveMinSystem(BaseV9TradingSystem):
                     a = cfg["anchors"][_s2_family_key[family]]
                     # Resolve V2 structural stop per anchor type
                     if a["type"] in ("support_zone", "breakout_bar") and a.get("window"):
-                        # Cluster/breakout: window extreme + 3T offset
-                        window_bars = self._bar_buffer[-a["window"]:]
+                        # Cluster/breakout: window extreme + 3T offset.
+                        # FIX-2 (STOP_WINDOW_COMPLETED_V1, default OFF): the stop
+                        # anchor window must read the COMPLETED-bar buffer, not the
+                        # live buffer whose last element is the just-opened PARTIAL
+                        # bar (range ~= 0). For window:1 families (Flag / OFA_Initiative
+                        # / ZLR) the live buffer collapses the structural distance to
+                        # ~the 3T offset -> the ATR floor always binds -> too-tight
+                        # stops / premature wick-outs. `_det_buf` (defined above as
+                        # self._bar_buffer[:-1] when >= 8 bars) already excludes the
+                        # partial bar, matching the detection + entry window.
+                        # OFF -> byte-identical to today (live buffer).
+                        if _flag("STOP_WINDOW_COMPLETED_V1"):
+                            window_bars = _det_buf[-a["window"]:]
+                        else:
+                            window_bars = self._bar_buffer[-a["window"]:]
                         struct = SA.resolve_anchor_from_window(
                             window_bars, direction, cfg["principles"]["anchor_offset_ticks"])
                     else:
