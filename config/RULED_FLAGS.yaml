@@ -53,6 +53,11 @@ ruled:
   S2_CHOPPINESS_GATE:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
   LAYER0_CHOP_GATE:       {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
   S2_REQUIRE_COT_AMT:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "S2⟂S3 סטנדינג" }
+  # EXIT-trio — צרכני op=EXIT השבור (r=-1). חייבים להישאר OFF עד EXIT-v2 (CLAUDE.md).
+  # עד היום רק prose שמר עליהם; עכשיו flag_guard אוכף. הדלקה = פסיקת מייקל + EXIT-v2.
+  STALL_EXIT:             {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-14", note: "צרכן op=EXIT השבור — OFF עד EXIT-v2" }
+  SYSTEM6_AUTOCORRECT:    {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-14", note: "צרכן op=EXIT השבור — OFF עד EXIT-v2; המפקח (SUPERVISOR) נשאר דלוק" }
+  OPPOSITE_EXIT_V1:       {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-14", note: "צרכן op=EXIT השבור — OFF עד EXIT-v2" }
   DAYTYPE_POSITION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-01", note: "כבוי לוולידציה עד תיקון I-44" }
   OPENING_WINDOW_FIRE_V1: {expected: "0", ruled_by: "מייקל", date: "2026-07-08", note: "כבוי כרגע; הדלקה = פסיקה" }
   S1_TREND_CONTROL_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-5 מאושר-והודלק ('מאשר ולפרוס'): Trend לפי שליטה — 3 מדרגות+rib≥1.8+סגירה-בקיצון; ראיות: 07-08→Trend@18:30, צמד-כיול נקי" }
