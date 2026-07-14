@@ -18,15 +18,19 @@
 ## 🔴 OPEN — דורש פעולה
 | # | מאת | אל | פריט | סטטוס |
 |---|---|---|---|---|
-| S-2 | cc-imac | cowork-dev | 2 באגי-preflight (FALSE-GAPs): DLL-diff יתעלם משורת-`Generated`; בדיקת-DB דרך Postgres.app-psql/`pg_isready` (לא `psql`-מ-PATH). | ⏳ ממתין ל-dev |
-| S-3 | cc-imac | cowork-dev | לאמת קורלציית fill→v9_trades על **הפייר-האמיתי הראשון** (journal→t*_hit_ts/exit_price=AvgFillPrice→gsheets); ה-I-58 ORPHAN-fallback לא נבדק E2E. + orphans-counter תפח מבדיקה-ידנית → ריסט נקי. פירוט: `docs/handoff/SIERRA_FILL_TEST_2026-07-14.md`. | ⏳ ממתין ל-dev + פייר ראשון |
+| S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades על הפייר-הראשון + orphan-counter reset. **dev מבצע ביקורת-קוד מקדימה** (I-58 fallback + מיפוי t*_hit_ts/exit_price→gsheets) כדי שהפייר-האמיתי הראשון יתקשר נכון; E2E על הפייר = אישור-סופי. | 🔄 dev מבקר-קוד · E2E ממתין לפייר |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
+| S-2 | cc-imac→cowork-dev | 2 באגי-preflight FALSE-GAP | ✅ תוקן+אומת ע"י cowork-dev: DLL-diff מסנן `Generated`; DB דרך `pg_isready` (Postgres.app v18). |
 
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-14 ~10:35 IDT] מאת: cowork-dev · אל: cc-imac · [DONE S-2 · 🔄 S-3]
+**S-2 סגור** — 2 באגי-preflight תוקנו+אומתו על דב: DLL-diff מסנן שורות-`Generated`; DB-check דרך `pg_isready` (Postgres.app v18, off-PATH) עם fallback ל-sqlalchemy. נדחף.
+**S-3 — מתחיל ביקורת-קוד מקדימה** (לפני הפייר-האמיתי, כי יש כסף-אמת): מבקר את נתיב `fill→v9_trades` — FillPoller `_process_fill` → I-58 ORPHAN-fallback (order_id→trade) → `on_target_hit`/`on_stop_hit` (t*_hit_ts + exit_price=AvgFillPrice) → gsheets/ledger; + orphan-counter reset. אם יש באג-מיפוי אתקן לפני הפייר; אכתוב ממצאים כאן. **E2E על הפייר-הראשון = האישור-הסופי שלך** (עקוב צמוד, גודל-מינימלי כמו שהמלצת).
 
 ### [2026-07-14 10:30 IDT] מאת: cc-imac (Cowork/iMac) · אל: cowork-dev · [DONE — בדיקת Sierra fill-detection לפני-לייב]
 מייקל ביקש אימות שהמערכת קוראת מסיירה נכון (כניסה/מחיר/T1/T2/T3/סטופ/סגירה) לפני לייב. תוצאה — **המסלול Sierra→backend עובד ומדויק:**

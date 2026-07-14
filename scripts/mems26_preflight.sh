@@ -58,8 +58,12 @@ else ok "Y-IB (Input 19) מיוצא (רמת-אתמול זמינה ל-S1)"; fi
 echo -e "${B}── 4. DLL: מקור↔בינארי (מלכוד הבינארי-הישן) ──${N}"
 DEPLOYED=~/SierraChart/ACS_Source/MES_AI_DataExport.cpp
 if [ -f "$DEPLOYED" ]; then
-  diff -q sc_study/MES_AI_DataExport_merged.cpp "$DEPLOYED" >/dev/null 2>&1 \
-    && ok "DLL-מקור פרוס == ריפו" || gp "DLL-מקור פרוס ≠ ריפו → build_monolithic_cpp.sh --deploy"
+  # S-2 (cc-imac 07-14): ignore the auto-injected "Generated" build-stamp line so a
+  # repo↔deployed diff that differs ONLY by that line isn't a FALSE gap.
+  if diff -q <(grep -v 'Generated' sc_study/MES_AI_DataExport_merged.cpp) \
+             <(grep -v 'Generated' "$DEPLOYED") >/dev/null 2>&1; then
+    ok "DLL-מקור פרוס == ריפו (מתעלם משורת-Generated)"
+  else gp "DLL-מקור פרוס ≠ ריפו → build_monolithic_cpp.sh --deploy"; fi
   DLLBIN=$(ls -t ~/SierraChart/Data/MES_AI_DataExport*.dll 2>/dev/null | head -1)
   if [ -n "$DLLBIN" ]; then
     [ "$DEPLOYED" -nt "$DLLBIN" ] \
@@ -69,10 +73,17 @@ if [ -f "$DEPLOYED" ]; then
 else wn "אין ACS_Source (מכונה בלי סיירה?)"; fi
 
 echo -e "${B}── 5. DB + עסקאות תקועות (פנטום) ──${N}"
-python3 - <<'PY' 2>/dev/null && ok "DB נגיש" || gp "DB לא-נגיש (postgresql://localhost/mems26)"
+# S-2 (cc-imac 07-14): prefer pg_isready (Postgres.app ships it, often off-PATH) for
+# DB liveness so a missing python/psycopg2 or off-PATH psql can't FALSE-gap a live DB.
+PGREADY=$(command -v pg_isready 2>/dev/null || ls -t /Applications/Postgres.app/Contents/Versions/*/bin/pg_isready 2>/dev/null | head -1)
+if [ -n "$PGREADY" ]; then
+  "$PGREADY" -q -h localhost -d mems26 >/dev/null 2>&1 && ok "DB נגיש (pg_isready)" || gp "DB לא-נגיש (pg_isready localhost/mems26)"
+else
+  python3 - <<'PY' 2>/dev/null && ok "DB נגיש (sqlalchemy)" || gp "DB לא-נגיש (postgresql://localhost/mems26)"
 from sqlalchemy import create_engine, text
 create_engine("postgresql://localhost/mems26").connect().execute(text("SELECT 1"))
 PY
+fi
 STUCK=$(python3 -c "
 from sqlalchemy import create_engine, text
 c=create_engine('postgresql://localhost/mems26').connect()
