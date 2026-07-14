@@ -1,6 +1,16 @@
 
 # Status Board · Pre-LIVE Pipeline V2
 
+## 2026-07-14 (Cowork לילה — סבב-תיקונים מלא + סימטריה, הכל flag-OFF פרט למאוכף)
+
+**[2026-07-14 ~00:00–03:00 ET — Cowork: תוכנית-עבודה מלאה בוצעה עם סוכנים. HEAD adb4cce+. הכל בגיט+נדחף.]**
+
+- **✅ בוצע+מאומת+נדחף:** create_all-בבוט (`init_db` ב-_startup) · `v9_day_type_state` נרשם ל-create_all · TZ-knob `V9_CHART_TZ` (default NY, מתקן iMac +1h; דב מוצמד Central) · alias `/api/v9/s6` למערכת-6 · **boot-replay `BOOT_DAYTYPE_REPLAY_V1`** (סימטריית-סוג-יום, 4/4 טסטים אנטי-טאוט', פסוק+דלוק) · סימטריית-דגלים (3 נפסקו) + EXIT-trio→RULED unset_or_0 → **flag_guard PASS 62** · אמת-מול-פנטום (5/5) · מערכת-6 stop_wrong_side→לכניסה (6/6+45; ורדיקט: בריאה) · ביקורת-5-מערכות (סוכנים) · פאנל-המלצות-פר-עסקה ב-/trades (System6+R:R, fail-soft) · FLAG_REGISTRY +9 דגלים · gen_flag_index דטרמיניסטי (בלי timestamp → אין drift-שקרי).
+- **🟡 נבנה flag-OFF + נבדק-ביחידה · טרם אומת חי (למחר, על מילויים אמיתיים → פסיקת-מייקל להדליק):** `ZLR_MGMT_V1` (S4/ZLR: T1=2c/T2=1c, אפס-סטופ-לפני-T1, אחרי-T1→BE; 10/10) · `STOP_WINDOW_COMPLETED_V1` (סטופ מהנר-השלם לא-החלקי; 6/6) · `STOP_TABLE_V1` (טבלת-סטופ/יעד פר-תבנית×יום, placeholders; 46/46) · `SIZE_CAP_OVER_FIXED_V1` (קיצוץ-גודל מעל FIXED_CONTRACTS; 8/8) · `HTLB_LATCH_RESET_V1` (4/4) · `NONCONVICTION_ACTIVE_V1` (יום-בלי-עקבות→NO_TRADE; 13/13) · `SMART_BE_MIN_LOCK` (שמור, לא-חווט; FIX-1 חלק-בטוח=WARNING בלבד).
+- **📋 Woodies יעד+סטופ לפי נר-5-דק' — הדגלים קיימים:** סטופים כבר מבניים (`STOP_ANCHORS_V2`+`STOP_RESOLVER_V1`+`STOP_STRUCTURE_TRAIL_V1` ON); להשלמה: הדלקת `STOP_WINDOW_COMPLETED_V1` (נר-שלם) + מילוי/הדלקת `STOP_TABLE_V1`. יעדים: `DAYTYPE_TARGETS_STRUCTURAL`+`TARGET_STRUCTURE_CLAMP_V1` ON. פסיקת-מייקל להדליק/למלא.
+- **🔴 לא-בוצע/פתוח:** פריסת-iMac (משוך→restart bridge→מחק ברי-עתיד→sync→flag_guard→is_sim=1→re-arm→Input20) · אימות-סימטריה-סופי · מגה-פרומפט-iMac · **op=EXIT-v2** (DLL+פסיקה; 3 דגלי-EXIT OFF) · ריסטארט-דב לטעינת-תיקוני-הלילה (שטוח, armed=1, DLL-עודכן) · צ'ארט-דב→Eastern (להסרת צמדת-Chicago) · מילוי STOP_TABLE בערכי-מבנה אמיתיים · אימות-חי לכל flag-OFF → פסיקת-הדלקה.
+- **פסיקה קבועה נשמרה:** ZLR-mgmt (memory `ruling_zlr_mgmt_2026-07-14`).
+
 ## 2026-07-13 (סוכן-מתוזמן — דוח S6 EOD: 2 הפרות-רצועה קריטיות)
 
 **[2026-07-13 23:07 IDT — Cowork scheduled: `s6_eod_report.py` · 11 עסקאות · 2 המלצות · 🔴 2 הפרות-רצועה (ZLR)]**
