@@ -3,6 +3,21 @@
 This repository controls the local MEMS26 trading stack. Treat post-reboot
 stability settings as production safety controls.
 
+## Agent Sync — read `docs/handoff/AGENT_SYNC.md` FIRST, every session (Michael 2026-07-14)
+
+Two Claude agents share this repo through git: **`cowork-dev`** (Cowork on the MacBook —
+development) and **`cc-imac`** (Claude Code on the iMac — trading). They coordinate via the
+git-tracked live channel **`docs/handoff/AGENT_SYNC.md`** instead of Michael relaying
+messages by hand.
+
+- **At the start of EVERY session: `git pull` and read `docs/handoff/AGENT_SYNC.md` §🔴 OPEN.**
+  Any row addressed `אל: <your machine>` is a task for you — handle it first.
+- **When you finish / hand off / ask / hit a blocker:** append a signed, dated entry to the
+  TOP of its LOG (protocol is in the file), and add/close the matching 🔴 OPEN row.
+- **`pull` before writing, `commit`+`push` after.** Never delete the other agent's entries.
+- This is the live conversation between the agents; `STATUS_BOARD.md` remains the historical
+  record. Both must stay current.
+
 ## op=EXIT broken — do NOT enable partial-exit consumers (Michael 2026-07-13, until EXIT-v2 ships)
 
 The backend-driven **partial-exit** path (`_emit_exit` → `write_exit` → `op="EXIT"` →
