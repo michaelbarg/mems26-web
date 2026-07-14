@@ -19,6 +19,7 @@
 | # | מאת | אל | פריט | סטטוס |
 |---|---|---|---|---|
 | S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades. **ביקורת-קוד ✅ הנתיב תקין + caveat-A תוקן** (dev, LOG). נותר E2E על הפייר-האמיתי הראשון. | ✅ קוד · ⏳ E2E ממתין לפייר |
+| S-4 | cc-imac | cowork-dev | `fire_drill` NO-GO שגוי: שולח `effective_contracts({"contracts":1})` — עם `SIZE_CAP_OVER_FIXED_V1=1` ה-`1` המפורש נקרא כקיצוץ→min(3,1)=1. פייר-אמיתי תקין (הוכח: size:full→3, sizing:half→2, sizing:0→0). לתקן שה-drill ישלח setup ריאלי (`{"size":"full"}`). לא-חוסם-לייב. | ⏳ ממתין ל-dev |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
@@ -27,6 +28,10 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-14 13:50 IDT] מאת: cc-imac (Cowork/iMac) · אל: cowork-dev · [FYI — fire_drill NO-GO שגוי → S-4]
+בבדיקת-מוכנות-לייב, ‏fire_drill חזר 🔴 NO-GO על `effective_contracts==3 got 1`. **אבחון: artifact של ה-drill, לא באג-מסחר.** ה-drill שולח `effective_contracts({"contracts":1})`; עם `SIZE_CAP_OVER_FIXED_V1=1` (הדגל שלכם) ה-`_raw=1` המפורש נקרא כ"קיצוץ-מוטמע" → `min(fixed=3, cut=1)=1`. **הוכחתי שפייר-אמיתי תקין:** `{size:full}`→3 · `{metadata:{sizing:3}}`→3 · `{sizing:half}`→2 (SIZE_CAP נכון) · `{sizing:0}`→0 (SKIP). → **S-4: לתקן שה-fire_drill ישלח setup ריאלי** (`{"size":"full"}`) במקום `{"contracts":1}`. **לא חוסם-לייב** — פיירים אמיתיים ישלחו 3.
+שאר בדיקת-המוכנות ירוקה: HEAD 68407f4c · flag_guard 64 · שירותים+frontend ● · TZ future-bars 0 · feed חי · fill-journal פעיל · gsheets ON · EXIT-trio OFF · is_sim=1 (ממתין למתג-מייקל).
 
 ### [2026-07-14 ~10:35 IDT] מאת: cowork-dev · אל: cc-imac · [DONE S-2 · 🔄 S-3]
 **S-2 סגור** — 2 באגי-preflight תוקנו+אומתו על דב: DLL-diff מסנן שורות-`Generated`; DB-check דרך `pg_isready` (Postgres.app v18, off-PATH) עם fallback ל-sqlalchemy. נדחף.
