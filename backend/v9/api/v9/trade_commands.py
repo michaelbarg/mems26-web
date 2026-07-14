@@ -139,11 +139,17 @@ def get_trade_result(
 from fastapi import Request as _FReq
 
 @router.post("/debug_gateway_fire")
-def debug_gateway_fire(request: _FReq):
+def debug_gateway_fire(request: _FReq, classification: str = "SIM_TEST",
+                       pattern: str = "", stop_pts: float = 8.0,
+                       sizing: str = "full", direction: str = "LONG"):
     """SIM-ONLY: fire a minimal setup through the LIVE gateway to create a TM trade.
 
     This proves the full round-trip: gateway → accept_setup → trade_command.json →
     Sierra → trade_fills.json → FillPoller → TM trade captured. Remove after SIM proof.
+
+    Query params (SIM test harness, 2026-07-14): classification/pattern (e.g. ZLR to
+    exercise ZLR_MGMT_V1), stop_pts (wide stop → exercise SIZE_CAP_OVER_FIXED_V1),
+    sizing (full/half/quarter), direction. Defaults reproduce the original SIM_TEST.
     """
     gw = getattr(request.app.state, "trading_gateway", None)
     if gw is None:
@@ -162,17 +168,18 @@ def debug_gateway_fire(request: _FReq):
     else:
         price = float(lp["price"])
 
+    _sign = 1.0 if str(direction).upper() == "LONG" else -1.0
     setup = {
         "firing_system": 4,
-        "direction": "LONG",
-        "classification": "SIM_TEST",
+        "direction": str(direction).upper(),
+        "classification": classification,
         "confidence": 0.90,
         "entry_price": price,
-        "stop": round(price - 8, 2),
-        "t1": round(price + 8, 2),
-        "t2": round(price + 16, 2),
-        "t3": round(price + 24, 2),
-        "metadata": {"pattern": "SIM_TEST", "sizing": "full", "sim_proof": True},
+        "stop": round(price - _sign * float(stop_pts), 2),
+        "t1": round(price + _sign * 8, 2),
+        "t2": round(price + _sign * 16, 2),
+        "t3": round(price + _sign * 24, 2),
+        "metadata": {"pattern": pattern or classification, "sizing": sizing, "sim_proof": True},
     }
 
     # Try route_setup first (respects all gates). If blocked by session_gate
