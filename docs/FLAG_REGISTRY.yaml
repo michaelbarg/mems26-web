@@ -787,3 +787,72 @@ flags:
     group: "L8 Sierra-sourced ledger"
     what: "Path of the DLL's trade_fills.json (fills stream) consumed by FillPoller + the L8 ledger. Default /Users/michael/SierraChart_Data/v9_export/trade_fills.json."
     why: "Path param, not a behavior toggle. Override only when the Sierra export dir moves (portability installer templates it)."
+  GSHEETS_TRADE_LOG:
+    category: misc
+    group: "L8 Sierra-sourced ledger"
+    what: "Real-time Google-Sheets LIVE-trade log: on every LIVE Sierra fill (entry + each exit) FillPoller pushes the current Sierra-reconstructed trade row (LedgerTrade → format_trade_row) to a Google Apps Script webhook (GSHEETS_TRADE_LOG_URL). Sierra-truth only (never backend entry/stop/pnl); LIVE-only (shadow/demo skipped); fire-and-forget on a daemon thread so a Sheets outage can never stall/crash the fill loop. backend/v9/services/gsheets_trade_logger.py."
+    why: "OFF (default; built flag-OFF by Cowork 2026-07-14). Read-only observability side-channel — no trading-path change. Enable = set GSHEETS_TRADE_LOG=1 + GSHEETS_TRADE_LOG_URL=<Apps Script /exec webhook> + restart. Reuses the L8 journal (trade_fills_journal.jsonl) FillPoller already writes."
+    status: built_off
+    ref: "backend/v9/services/gsheets_trade_logger.py · backend/v9/services/fill_poller.py (_maybe_log_gsheet) · backend/v9/tests/test_gsheets_trade_logger.py"
+
+  # ───────────────────────── flag housekeeping (2026-07-13..14 — symmetry fixes + reserved names) ─────────────────────────
+  # Registered 2026-07-14 to clear "undocumented drift": 5 flags newly wired in code
+  # (BOOT_DAYTYPE_REPLAY_V1 · PHANTOM_HEAL_V1 · SIZE_CAP_OVER_FIXED_V1 · HTLB_LATCH_RESET_V1 ·
+  # NONCONVICTION_ACTIVE_V1) + 4 reserved names built in parallel (status: not_built). The
+  # `category` field routes each row to its section in the generated FLAG_INDEX.md — the
+  # YAML position of this block does not matter.
+  BOOT_DAYTYPE_REPLAY_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "On boot, replay today's RTH bars (v9_bars_5min_woodies) through the SAME pure day-type engine (process_bar, using each bar's real ET time) so a LATE-booted backend reconstructs the session and lands on the same stage/day_type/IB as an early boot. Pure/in-memory — no bar_router publish, no per-bar DB write, no trade/phone side-effects; idempotent (bar_count==0 guard)."
+    why: "RULED=1 (Michael 2026-07-13): fixes the 07-13 dev-vs-iMac day-type divergence (a late boot fed the engine fewer bars → weaker/different label). Verified 4/4 anti-tautological tests (LATE_NO_REPLAY != LIVE, LATE_WITH_REPLAY == LIVE). Code default OFF."
+    status: live
+    ref: "backend/main.py:652 · config/RULED_FLAGS.yaml BOOT_DAYTYPE_REPLAY_V1 · backend/v9/tests/test_boot_daytype_replay.py"
+  PHANTOM_HEAL_V1:
+    category: risk
+    what: "Reconciler self-heal: when the backend is in-position but Sierra is DEFINITIVELY flat (state-file qty=0 AND working=0) for >= PHANTOM_HEAL_STREAK consecutive checks, close the phantom trade(s) and free the slot. Conservative (fresh state file only, zero working orders, sustained streak) so a momentary flat never triggers it — the inverse of the 07-10 phantom-CLOSE-of-a-real-trade risk."
+    why: "RULED=1 (Michael 2026-07-13): a filled-in-backend / no-real-Sierra-fill trade stayed active forever, blocked the slot and froze firing (the 07-13 sim-day loss, phantom #9). Code default OFF."
+    status: live
+    ref: "backend/v9/services/sierra_position_reconciler.py:151 · config/RULED_FLAGS.yaml PHANTOM_HEAL_V1"
+  SIZE_CAP_OVER_FIXED_V1:
+    category: sizing
+    what: "Honor a downward SIZE_CAP_CUT_V1 reduction under FIXED_CONTRACTS_*: the fixed count (2/3) becomes a cap FIXED can only REDUCE toward (min(fixed, cut)), never re-force back up. A full SKIP (explicit 0/reject) stays 0; a MISSING sizing field keeps the fixed count (no spurious cut). OFF → byte-identical to the historic force-2/force-3 behavior."
+    why: "OFF (default). Extends the SIZE_CAP_CUT_V1 ruling (Michael 2026-07-09: the judgment size-cut still overrides downward even under FIXED_CONTRACTS) to the Sierra command choke point, where FIXED_CONTRACTS_* would otherwise clobber the already-cut count. Enabling is a trading-risk-surface change → Michael sign-off."
+    status: built_off
+    ref: "backend/v9/services/sierra_command.py:209"
+  HTLB_LATCH_RESET_V1:
+    category: s4
+    group: "HTLB direction signal"
+    what: "Reset the zoned-HTLB direction latch (_htlb_dir_bias → None) at the first RTH bar of a new ET session. hydrate() reloads prior bars, so without this a stale overnight bias silently blocks every opposite-direction S4 fire at the open until a fresh zoned HTLB flips it. Fail-safe: only RTH bars open a session; an undeterminable ET date never resets. OFF → no-op, identical to today."
+    why: "OFF (default, built 2026-07-14 audit). Pairs with HTLB_DIRECTION_GATE (which latches the bias). Enabling changes S4 fire eligibility at the open → trading-risk-surface change → Michael sign-off."
+    status: built_off
+    ref: "backend/v9/systems/woodies/woodies_system.py:301"
+  NONCONVICTION_ACTIVE_V1:
+    category: s1
+    group: "day-type classifier"
+    what: "P1-8 activation: when the classifier names a 'Nonconviction' day, treat it as NO_TRADE — main.py promotes the raw 'Nonconviction' string on the live-promoted machine attribute (str-safe readers only, no enum) and daytype_playbook adds 'Nonconviction' to its valid set so its SKIP cells gate every pattern (stand aside). OFF → 'Nonconviction' stays unmapped → decide() fails open to FULL, byte-identical to today."
+    why: "OFF (default). Activation half of the P1-8 pair with the classifier flag S1_NONCONVICTION_V1 (which emits the label). Enabling makes a no-conviction day stand down → trading-risk-surface change → Michael sign-off."
+    status: built_off
+    ref: "backend/main.py:491 · backend/v9/systems/daytype_playbook.py:60"
+  SMART_BE_MIN_LOCK:
+    category: targets
+    group: "structure trail"
+    what: "(Reserved) After T1, lock in a MINIMUM-PROFIT stop instead of a mechanical break-even when no structural anchor is available — prevents a post-T1 collapse back to BE on structure-less bars."
+    why: "OFF — NOT YET WIRED (placeholder registered so the index knows the name). Intended fallback for the STOP_STRUCTURE_TRAIL_V1 / STOP_PERBAR_STRUCT_V1 family (manager.py)."
+    status: not_built
+  ZLR_MGMT_V1:
+    category: s4
+    group: "ZLR management"
+    what: "(Reserved, parallel build) ZLR-specific trade management (S4 only): stop = 5-min-bar structure · no stop move before T1 · T1=2c / T2=1c · move to BE after T1. Does not touch other patterns' management."
+    why: "OFF — reserved name, being built in parallel (ruling 2026-07-14). Placeholder so the index knows it."
+    status: not_built
+  STOP_WINDOW_COMPLETED_V1:
+    category: sizing
+    what: "(Reserved, parallel build) Compute the S2/S4 initial stop from COMPLETED bars only — exclude the partial/opening in-progress bar so the stop window is not off-by-one."
+    why: "OFF — reserved name, being built in parallel. Placeholder so the index knows it."
+    status: not_built
+  STOP_TABLE_V1:
+    category: sizing
+    what: "(Reserved, parallel build) Externalized per-pattern × day-type stop/target table — drive stop (and target) placement from an editable table instead of code constants."
+    why: "OFF — reserved name, being built in parallel. Placeholder so the index knows it."
+    status: not_built

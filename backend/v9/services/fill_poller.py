@@ -539,6 +539,37 @@ class FillPoller:
         except Exception as e:
             logger.warning("[FillPoller] error processing fill %s: %s", kind, e)
 
+        # L8+ (2026-07-14): real-time Google-Sheets LIVE-trade log — Sierra-truth
+        # only, flag-gated (GSHEETS_TRADE_LOG, default OFF) + LIVE-only. The push
+        # is fire-and-forget on a daemon thread INSIDE the logger, so a slow or
+        # broken Sheets endpoint can NEVER stall or crash this fill loop.
+        self._maybe_log_gsheet(fill, trade_id)
+
+    def _maybe_log_gsheet(self, fill: Dict[str, Any], trade_id) -> None:
+        """Push the current Sierra-reconstructed trade row to Google Sheets on
+        each LIVE fill (real-time). Guarded + fail-soft: gated to mode=='live' and
+        the GSHEETS_TRADE_LOG flag (default OFF → no-op), and every error is
+        swallowed here AND inside the logger. Never touches fill booking, never
+        raises, never blocks (the HTTP POST runs on a daemon thread)."""
+        try:
+            from backend.v9.services import gsheets_trade_logger as gs
+            if not gs.is_enabled():
+                return
+            trade = self._tm._get_trade(trade_id) if self._tm is not None else None
+            mode = getattr(trade, "mode", "shadow") if trade is not None else "shadow"
+            if str(mode).lower() != "live":
+                return
+            # entry parent order id == LedgerTrade.entry_order_id (Sierra chain key)
+            entry_oid = None
+            q = getattr(trade, "quality", None)
+            if isinstance(q, dict):
+                entry_oid = q.get("sierra_order_id")
+            if entry_oid is None:
+                entry_oid = fill.get("order_id")
+            gs.log_live_fill(fill=fill, mode="live", entry_order_id=entry_oid)
+        except Exception as e:
+            logger.debug("[FillPoller] gsheet log skipped (fail-safe): %s", e)
+
     def get_stats(self) -> dict:
         return {
             "running": self._running,
