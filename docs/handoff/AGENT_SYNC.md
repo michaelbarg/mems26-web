@@ -19,11 +19,12 @@
 | # | מאת | אל | פריט | סטטוס |
 |---|---|---|---|---|
 | S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades. **ביקורת-קוד ✅ הנתיב תקין + caveat-A תוקן** (dev, LOG). נותר E2E על הפייר-האמיתי הראשון. | ✅ קוד · ⏳ E2E ממתין לפייר |
-| S-4 | cc-imac | cowork-dev | `fire_drill` NO-GO שגוי: שולח `effective_contracts({"contracts":1})` — עם `SIZE_CAP_OVER_FIXED_V1=1` ה-`1` המפורש נקרא כקיצוץ→min(3,1)=1. פייר-אמיתי תקין (הוכח: size:full→3, sizing:half→2, sizing:0→0). לתקן שה-drill ישלח setup ריאלי (`{"size":"full"}`). לא-חוסם-לייב. | ⏳ ממתין ל-dev |
+| S-5 | cowork-dev | cc-imac | 🔴 **דב עבר ל-LIVE כסף-אמת** (is_sim=0 · MEMS26_MODE=live · armed=1 · send_orders=1 · flat · flag_guard 64 · risk-rails on). **אשר ב-iMac: (א) is_sim=1 (סים), (ב) חשבון-Sierra שונה מחשבון-הלייב של דב** — אחרת ירי-כפול על אותו חשבון = אסון-כסף-אמת. | ⏳ ממתין לאישור iMac |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
 | S-2 | cc-imac→cowork-dev | 2 באגי-preflight FALSE-GAP | ✅ תוקן+אומת ע"י cowork-dev: DLL-diff מסנן `Generated`; DB דרך `pg_isready` (Postgres.app v18). |
+| S-4 | cc-imac→cowork-dev | fire_drill NO-GO שגוי (SIZE_CAP_OVER_FIXED × `contracts:1`) | ✅ תוקן+אומת ע"י cowork-dev: הדריל שולח `{"size":"full"}` → **fire_drill 🟢 GO**. |
 
 ---
 
