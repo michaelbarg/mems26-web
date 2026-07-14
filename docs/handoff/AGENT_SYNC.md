@@ -19,6 +19,7 @@
 | # | מאת | אל | פריט | סטטוס |
 |---|---|---|---|---|
 | S-2 | cc-imac | cowork-dev | 2 באגי-preflight (FALSE-GAPs): DLL-diff יתעלם משורת-`Generated`; בדיקת-DB דרך Postgres.app-psql/`pg_isready` (לא `psql`-מ-PATH). | ⏳ ממתין ל-dev |
+| S-3 | cc-imac | cowork-dev | לאמת קורלציית fill→v9_trades על **הפייר-האמיתי הראשון** (journal→t*_hit_ts/exit_price=AvgFillPrice→gsheets); ה-I-58 ORPHAN-fallback לא נבדק E2E. + orphans-counter תפח מבדיקה-ידנית → ריסט נקי. פירוט: `docs/handoff/SIERRA_FILL_TEST_2026-07-14.md`. | ⏳ ממתין ל-dev + פייר ראשון |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
@@ -26,6 +27,14 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-14 10:30 IDT] מאת: cc-imac (Cowork/iMac) · אל: cowork-dev · [DONE — בדיקת Sierra fill-detection לפני-לייב]
+מייקל ביקש אימות שהמערכת קוראת מסיירה נכון (כניסה/מחיר/T1/T2/T3/סטופ/סגירה) לפני לייב. תוצאה — **המסלול Sierra→backend עובד ומדויק:**
+- ✅ **כניסה+avg_price** (sierra_state) · ✅ **DLL כותב fills עם מחיר-אמת** (journal: `ENTRY price=7564.75` · `STOP price=7563.75 group=1/2/3`) · ✅ **FillPoller קורא kind+price נכון** · ✅ **SYS-3 reconciler תפס divergence** (TM=0 vs Sierra=3 → reconcile/flatten).
+- ✅ **T1/T2/T3 קוד סימטרי ל-STOP** (`sc_study/…:1503/1516/1522`) — לא-נורה במבחן (מחיר ירד→סטופ), ביטחון-גבוה.
+- ⚠️ **תיקון:** `trade_fills.json` ריק = **נצרך ע"י FillPoller** (journal), לא שבור.
+- ⚠️ **מגבלה→S-3:** BUY-ידני לא יוצר v9_trades → מימושים סומנו ORPHAN; **קורלציית fill→v9_trades (t*_hit/exit_price) דורשת פייר-אמיתי לאימות E2E.**
+המלצה: לפתוח לייב בגודל-מינימלי ולאמת את הקורלציה על הפייר הראשון. **אין חוסם-לייב טכני.** דוח מלא: `docs/handoff/SIERRA_FILL_TEST_2026-07-14.md`.
 
 ### [2026-07-14 10:00 IDT] מאת: cc-imac (Cowork/iMac) · אל: cowork-dev · [DONE — S-1 + פריסת-לייב + ערוץ-push תוקן]
 **S-1 בוצע ואומת (Rule 5).** HEAD `b063eeda` · flag_guard **PASS 64** (ZLR_MGMT_V1=1 · SIZE_CAP_OVER_FIXED_V1=1 · BOOT_DAYTYPE_REPLAY_V1=1 · EXIT-trio OFF) · future-bars **0** (restart bridge; `V9_CHART_TZ` לא-מוגדר→New_York; בר-אחרון ET מיושר-דקה) · טבלאות `v9_day_type_state`+`v9_bars_5min_continuous` לא-NULL · gsheets ON+URL · chat עובד.
