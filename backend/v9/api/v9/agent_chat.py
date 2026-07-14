@@ -125,6 +125,7 @@ KNOWLEDGE_MAP = """מפת-הידע של המערכת (הכל מאונדקס ומ
 
 _TOPIC_FILES = [
     (("חדשות", "news", "cpi", "ppi", "fomc", "אירוע"), "config/news_calendar.yaml", 2000),
+    (("סיירה", "sierra", "עסקה פתוחה", "מזהה", "חי", "live check"), "docs/plans/WORK_PLAN_2026-07-14.md", 2000),
     (("משימ", "פיתוח", "בקלוג", "backlog", "תור", "עדיפו"), "docs/plans/DEV_BACKLOG.md", 3500),
     (("דגל", "flag", "פסיק"), "docs/FLAG_INDEX.md", 3000),
     (("יעד", "סטופ", "target", "stop", "מימוש"), "docs/reports/TARGETS_STOPS_TABLE_2026-07-13.md", 3500),
@@ -213,6 +214,88 @@ async def news_calendar():
     return {"enabled": enabled(),
             "windows": {s: window_for(s) for s in ("red", "orange", "yellow")},
             "active_now": check(), "events": out}
+
+
+@router.get("/sierra_live_check")
+async def sierra_live_check():
+    """T1 (מייקל 07-14): בדיקת-אמת read-only — מוכיחה שהמערכת *יודעת* מה קורה
+    בסיירה: (1) סיירה-חיה + מצב-סים/חימוש · (2) עסקה-פתוחה מזוהה · (3) עסקאות
+    שנסגרו-היום על מימושים, עם P&L. אין פקודות-מסחר — קריאה בלבד. ל-/board+צ'אט."""
+    from datetime import datetime, timezone
+    import json as _json
+    import time as _t
+    out = {"checks": {}, "verdict": "UNKNOWN"}
+
+    # (1) עין-סיירה חיה
+    sf = os.path.expanduser("~/SierraChart_Data/v9_export/sierra_state.json")
+    sierra = {}
+    try:
+        age = _t.time() - os.path.getmtime(sf)
+        sierra = _json.loads(open(sf).read().strip() or "{}")
+        out["checks"]["sierra_alive"] = {
+            "ok": age < 10, "age_s": round(age, 1),
+            "detail": "state טרי" if age < 10 else "🔴 STALE — הדי-אל-אל לא כותב",
+            "is_sim": sierra.get("is_sim"), "armed": sierra.get("order_placement_armed"),
+            "send_to_service": sierra.get("send_orders_to_service"),
+        }
+    except Exception as e:
+        out["checks"]["sierra_alive"] = {"ok": False, "detail": f"אין state: {e}"}
+
+    # (2) עסקה-פתוחה: סיירה מול TradeManager (DB)
+    s_qty = sierra.get("position_qty") or 0
+    tm_open = []
+    try:
+        from backend.v9.db.read import read_all
+        tm_open = read_all("""
+            SELECT id, direction, entry_price, stop, pnl_usd, state,
+                   COALESCE((quality->>'contracts')::int,3) AS contracts
+            FROM v9_trades WHERE mode!='shadow'
+              AND state NOT IN ('CLOSED','CANCELLED') ORDER BY id DESC""", {})
+    except Exception:
+        pass
+    tm_qty = 0
+    for t in tm_open:
+        n = (t.get("contracts") or 0)
+        tm_qty += n if str(t.get("direction","")).upper()=="LONG" else -n
+    out["checks"]["open_trade_detect"] = {
+        "ok": (s_qty != 0) == (len(tm_open) > 0),
+        "sierra_qty": s_qty, "working_orders": sierra.get("working_orders"),
+        "tm_open_trades": len(tm_open), "tm_net_qty": tm_qty,
+        "detail": ("עסקה פתוחה מזוהה בשני הצדדים" if s_qty and tm_open
+                   else "flat בשני הצדדים" if not s_qty and not tm_open
+                   else "🔴 אי-התאמה סיירה↔TM — reconciler יטפל"),
+    }
+
+    # (3) סגירות-היום על מימושים (T1/T2/T3/STOP) + P&L
+    try:
+        from backend.v9.db.read import read_all
+        closed = read_all("""
+            SELECT id, direction, exit_reason, pnl_usd,
+                   (exit_ts AT TIME ZONE 'Asia/Jerusalem')::time AS exit_t
+            FROM v9_trades WHERE mode!='shadow' AND state='CLOSED'
+              AND (entry_ts AT TIME ZONE 'Asia/Jerusalem')::date=(now() AT TIME ZONE 'Asia/Jerusalem')::date
+            ORDER BY exit_ts DESC LIMIT 20""", {})
+        day = read_all("""
+            SELECT COALESCE(SUM(pnl_usd),0) AS pnl, COUNT(*) AS n,
+                   COUNT(*) FILTER (WHERE pnl_usd>0) AS wins FROM v9_trades
+            WHERE mode!='shadow' AND state='CLOSED'
+              AND (entry_ts AT TIME ZONE 'Asia/Jerusalem')::date=(now() AT TIME ZONE 'Asia/Jerusalem')::date""", {})
+        d0 = day[0] if day else {"pnl":0,"n":0,"wins":0}
+        out["checks"]["closures_on_fills"] = {
+            "ok": True, "closed_today": len(closed),
+            "recent": [{"id":c["id"],"reason":c.get("exit_reason"),"pnl":float(c.get("pnl_usd") or 0),
+                        "time": str(c.get("exit_t"))[:8]} for c in closed[:8]],
+            "day_pnl": round(float(d0["pnl"]),2), "day_n": d0["n"], "day_wins": d0["wins"],
+            "detail": f"{len(closed)} סגירות היום · P&L ${float(d0['pnl']):.2f}",
+        }
+    except Exception as e:
+        out["checks"]["closures_on_fills"] = {"ok": False, "detail": f"DB: {e}"}
+
+    checks = out["checks"]
+    all_ok = all(c.get("ok") for c in checks.values())
+    out["verdict"] = "🟢 המערכת מזהה את סיירה תקין" if all_ok else "🟡 יש פער — ראה checks"
+    out["ts"] = datetime.now(timezone.utc).isoformat()
+    return out
 
 
 @router.get("/proposed_diffs")
