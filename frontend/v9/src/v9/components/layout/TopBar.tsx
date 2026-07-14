@@ -290,9 +290,9 @@ export function TopBar() {
             href="/trades"
             className="text-xs px-2 py-0.5 rounded hover:bg-[var(--bg-tertiary)]"
             style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap', textDecoration: 'none' }}
-            title="היסטוריית עסקאות"
+            title="היסטוריית עסקאות + ניתוח + לוג-Sheets"
           >
-            עסקאות
+            📊 עסקאות
           </Link>
           <a
             href="/patterns-visual.html"

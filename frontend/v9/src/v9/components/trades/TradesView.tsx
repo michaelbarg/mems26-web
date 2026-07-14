@@ -116,6 +116,9 @@ export function TradesView() {
           <a href="/trade-placement.html" target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'none' }} title="מיקומי-מימוש — נפתח בטאב חדש">
             מיקומי-מימוש
           </a>
+          <a href="https://docs.google.com/spreadsheets/d/1iqLsTZc9CxMVSldV918nZbEx4AXcqzuEVZkcXKRtL2k/edit" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--green, #2ea043)', textDecoration: 'none', fontWeight: 600 }} title="לוג-עסקאות-לייב בזמן-אמת (Sierra → Google Sheets) — נפתח בטאב חדש">
+            📈 Google Sheets
+          </a>
         </div>
       </header>
 

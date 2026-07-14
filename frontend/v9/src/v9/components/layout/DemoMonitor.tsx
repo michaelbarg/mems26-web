@@ -348,7 +348,11 @@ export function DemoMonitor() {
           padding: 14, fontSize: 13,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <b>מוניטור פיקוח</b>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <b>מוניטור פיקוח</b>
+              <a href="/trades" style={{ fontSize: 11, color: '#58a6ff', textDecoration: 'none' }} title="עמוד העסקאות המלא">📊 עסקאות</a>
+              <a href="https://docs.google.com/spreadsheets/d/1iqLsTZc9CxMVSldV918nZbEx4AXcqzuEVZkcXKRtL2k/edit" target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, color: '#2ea043', textDecoration: 'none' }} title="לוג-עסקאות-לייב ב-Google Sheets (ממקור-סיירה)">📈 Sheets</a>
+            </div>
             <span style={{ background: modeColor, color: '#10131a', fontWeight: 700, padding: '2px 10px', borderRadius: 5, fontSize: 12 }} title="מצב המסחר בפועל (ניתוב live של הגייטוויי)">
               {live ? 'LIVE' : (mode || 'shadow').toUpperCase()}
             </span>
