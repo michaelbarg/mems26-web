@@ -139,7 +139,8 @@ def get_trade_result(
 from fastapi import Request as _FReq
 
 @router.post("/debug_gateway_fire")
-def debug_gateway_fire(request: _FReq, classification: str = "SIM_TEST",
+def debug_gateway_fire(request: _FReq, _token: str = Depends(verify_bridge_token),
+                       classification: str = "SIM_TEST",
                        pattern: str = "", stop_pts: float = 8.0,
                        sizing: str = "full", direction: str = "LONG"):
     """SIM-ONLY: fire a minimal setup through the LIVE gateway to create a TM trade.
@@ -150,7 +151,20 @@ def debug_gateway_fire(request: _FReq, classification: str = "SIM_TEST",
     Query params (SIM test harness, 2026-07-14): classification/pattern (e.g. ZLR to
     exercise ZLR_MGMT_V1), stop_pts (wide stop → exercise SIZE_CAP_OVER_FIXED_V1),
     sizing (full/half/quarter), direction. Defaults reproduce the original SIM_TEST.
+
+    R3 (Michael 07-14, pre-live hardening): (1) now bearer-authed like /command; (2) HARD
+    SIM-only guard — this fires a REAL order via _execute_live, so it REFUSES when Sierra is
+    live (is_sim=0), fail-safe (refuses if is_sim can't be confirmed). Can never place real money.
     """
+    try:
+        _ss = json.load(open("/Users/michael/SierraChart_Data/v9_export/sierra_state.json"))
+        _is_sim = int(_ss.get("is_sim", 1))
+    except Exception:
+        _is_sim = -1  # cannot confirm → treat as unsafe
+    if _is_sim != 1:
+        raise HTTPException(status_code=403,
+                            detail=f"debug_gateway_fire blocked: SIM-only (is_sim={_is_sim}); "
+                                   "refuses on live/unknown to prevent a real-money order")
     gw = getattr(request.app.state, "trading_gateway", None)
     if gw is None:
         raise HTTPException(status_code=500, detail="No trading_gateway on app.state")

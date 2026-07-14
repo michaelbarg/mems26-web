@@ -19,6 +19,7 @@ ruled:
   RECONCILE_LIVE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "השוואת סיירה-DB בלולאה" }
   SYSTEM6_SUPERVISOR:     {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "מפקח (AUTOCORRECT נפרד וכבוי)" }
   LIVE_LEDGER_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-08", note: "לדג'ר סיירה — investor-critical" }
+  FEED_WATCHDOG:          {expected: "1", ruled_by: "מייקל", date: "2026-07-14", note: "cutover-ללייב: חוסם-ירי-על-פיד-מת/תקוע (block-only, fail-open). היה INERT — עכשיו נאכף דלוק ללייב" }
 
   # ── שערי מסחר שנפסקו דלוקים ──
   CONT_TREND_FILTER:      {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "שוחזר בפסיקה מפורשת; 07-08 חסך 2 סטופים" }
@@ -59,7 +60,7 @@ ruled:
   SYSTEM6_AUTOCORRECT:    {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-14", note: "צרכן op=EXIT השבור — OFF עד EXIT-v2; המפקח (SUPERVISOR) נשאר דלוק" }
   OPPOSITE_EXIT_V1:       {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-14", note: "צרכן op=EXIT השבור — OFF עד EXIT-v2" }
   DAYTYPE_POSITION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-01", note: "כבוי לוולידציה עד תיקון I-44" }
-  OPENING_WINDOW_FIRE_V1: {expected: "0", ruled_by: "מייקל", date: "2026-07-08", note: "כבוי כרגע; הדלקה = פסיקה" }
+  OPENING_WINDOW_FIRE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-14", note: "מאושר-והודלק ('אני רוצה עסקה בפתיחה אם יש את התנאים') — ירי בחלון-הפתיחה, יום-לייב ראשון" }
   S1_TREND_CONTROL_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-5 מאושר-והודלק ('מאשר ולפרוס'): Trend לפי שליטה — 3 מדרגות+rib≥1.8+סגירה-בקיצון; ראיות: 07-08→Trend@18:30, צמד-כיול נקי" }
   NEWS_BLACKOUT_V1:       {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "פסיקה-סופית ('אמרתי שרק אדום חוסם מסחר'): רק 🔴 חוסם -10/+5 דק'; 🟠🟡 בלוח+פאנל לתצוגה והחלטת-מייקל בלבד (NEWS_WIN_*); רענון-עצמי כל 6ש'; עוגן-BLS בביקורת-שני" }
   PHANTOM_HEAL_V1:        {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "אישור 'כן מאשר': reconciler סוגר עסקה-פנטום (backend-active + Sierra flat qty=0/working=0 מהstate-file, ≥3 בדיקות רצופות) → משחרר slot; שמרני (הפוך מ-07-10). פתר את הפנטום-#9 שחסם את יום-הסים" }
