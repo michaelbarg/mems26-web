@@ -82,3 +82,7 @@ ruled:
   EOD_RISK_WINDOW_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "יישור-סימטריה (היה ON בדב / OFF ב-iMac): חלון-סיכון EOD" }
   SYSTEM6_EXIT_SIGNALS:   {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "יישור-סימטריה: אותות-יציאה S6 — תצפית/סימון-סיכון בלבד, לא עוברים דרך op=EXIT השבור; מזינים את פאנל-S6. SYSTEM6_AUTOCORRECT נשאר כבוי" }
   SYSTEM6_EXIT_JOURNAL:   {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "יישור-סימטריה: יומן-למידה של אותות-S6 (תצפית בלבד)" }
+
+  # ── מאומתי-סים 07-14 (בדיקת-סיירה לפני-לייב · פסיקה: "ZLR_MGMT + SIZE_CAP") ──
+  ZLR_MGMT_V1:            {expected: "1", ruled_by: "מייקל", date: "2026-07-14", note: "ZLR/S4 בלבד: T1=2c/T2=1c · אפס-סטופ-לפני-T1 · אחרי-T1→BE. אומת על סיירה-סים (C1=C2=T1=7576, C3=T2=7584; REACTIVE נשאר 1/1/1). לא נוגע בתבניות אחרות" }
+  SIZE_CAP_OVER_FIXED_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-14", note: "SIZE_CAP_CUT גובר על FIXED_CONTRACTS כלפי-מטה (min(fixed,cut)). אומת: sizing=half→2c (לא נכפה 3), full→3. רק מקטין-סיכון" }
