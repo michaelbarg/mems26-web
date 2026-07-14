@@ -48,14 +48,27 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const INITIAL_BAR_LIMIT = 600;
 const CHART_FETCH_TIMEOUT_MS = 90_000;
 
-/** Avoid browser "Failed to fetch" when backend is busy (Woodies/bar handlers). */
-async function chartFetch(path: string, timeoutMs = CHART_FETCH_TIMEOUT_MS): Promise<Response> {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    return await fetch(`${API}${path}`, { signal: ctrl.signal });
-  } finally {
-    clearTimeout(timer);
+/** Avoid browser "Failed to fetch" when backend is busy (Woodies/bar handlers).
+ *  Resilience (iMac→dev 07-14): a backend restart (launchctl kickstart/bootstrap)
+ *  briefly drops :8000 while loadBars/chartFetch is polling → a transient
+ *  TypeError "Failed to fetch". Retry a couple times with short backoff so a
+ *  momentary blip is absorbed silently instead of surfacing a scary console
+ *  error; the next poll cycle recovers regardless. A genuine longer outage still
+ *  rejects after the retries (caller degrades gracefully — keeps last bars). */
+async function chartFetch(
+  path: string, timeoutMs = CHART_FETCH_TIMEOUT_MS, retries = 2,
+): Promise<Response> {
+  for (let attempt = 0; ; attempt++) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+    try {
+      return await fetch(`${API}${path}`, { signal: ctrl.signal });
+    } catch (e) {
+      if (attempt >= retries) throw e;                 // exhausted → let caller handle
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));  // 400ms, 800ms
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
 const CVD_POLL_MS = 10000;
@@ -79,17 +92,9 @@ const TF_ENDPOINTS: Record<string, string> = {
 
 const TF_SECONDS: Record<string, number> = { '3m': 180, '5m': 300, '15m': 900, '30m': 1800, '1h': 3600 };
 
-/**
- * DB / Sierra bar timestamps are wall-clock ET with no timezone suffix
- * ("2026-05-19 16:55:00.000000"). `new Date(...)` in the browser would
- * otherwise parse them as local time (IST = UTC+3 for Michael), placing
- * each bar ~7 hours away from the CVD points whose `t` is already epoch
- * UTC. Anchoring the parse at -04:00 (EDT) keeps the two panes on the
- * same UTC line — the only contract `lightweight-charts` relies on.
- *
- * Trade-off: this falls back to EDT and is wrong by 1 hour during EST
- * (winter Nov-Mar). Acceptable until the API ships `ts_unix` directly.
- */
+/* (Legacy -04:00 ET shim comment removed 2026-07-14 — it described behavior the
+ *  code no longer does and confused the iMac read. tsToUnix below is offset-aware
+ *  and correct for the PG "+03:00"-suffixed timestamps; see the P31-FE-TZ-2 note.) */
 /**
  * P31-FE-TZ-2 fix (2026-05-22 RTH UAT): post-§9 the DB stores bar `ts` as
  * real UTC wall-clock strings (e.g., RTH-open = `"2026-05-22 13:30:00..."`).
