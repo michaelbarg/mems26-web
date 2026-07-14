@@ -104,6 +104,22 @@ def _is_rth_bar(bar_ts: float) -> bool:
         return True
 
 
+def _et_date(bar_ts: float) -> Optional[str]:
+    """Return the ET calendar date (YYYY-MM-DD) for bar_ts (UTC unix seconds).
+
+    Mirrors the day-type engine's session_date guard (state_machine.py:220):
+    the ET date is the session key. Returns None when the timestamp is
+    zero/unknown or the timezone is unavailable — callers must treat None as
+    "cannot determine session" and NOT reset (fail-safe).
+    """
+    if not bar_ts or _ET_TZ is None:
+        return None
+    try:
+        return datetime.fromtimestamp(bar_ts, tz=_ET_TZ).date().isoformat()
+    except Exception:
+        return None
+
+
 # Module-level dispatcher instance (W-8)
 _pattern_dispatcher = PatternDispatcher()
 
@@ -166,6 +182,10 @@ class WoodiesSystem(BaseV9TradingSystem):
         )
         self._bar_count: int = 0
         self._htlb_dir_bias = None  # HTLB latched S4 direction bias: "UP"/"DOWN"/None (Michael 2026-06-23)
+        # ET date (YYYY-MM-DD) of the RTH session the HTLB latch belongs to. Used
+        # ONLY by HTLB_LATCH_RESET_V1 to clear a stale overnight bias at the next
+        # session open (see _maybe_reset_htlb_latch). None until the first RTH bar.
+        self._htlb_session_date: Optional[str] = None
         self._last_bar_ts_for_count: Optional[float] = None
         self._open_fire_records: Dict[str, dict] = {}  # trade_id → {entry_bar_count, pattern_id}
         self.current_state: Dict = {
@@ -260,6 +280,40 @@ class WoodiesSystem(BaseV9TradingSystem):
 
     def process(self, event: Dict) -> Optional[Dict]:
         return None
+
+    def _maybe_reset_htlb_latch(self, bar_ts: float) -> None:
+        """HTLB_LATCH_RESET_V1 (flag, default OFF): clear the zoned-HTLB
+        direction latch at the first RTH bar of a new ET session.
+
+        `self._htlb_dir_bias` is latched by a zoned HTLB (see the HTLB direction
+        gate in process_bar) and is instance state that is NEVER cleared on a new
+        day. Because hydrate() reloads prior bars, a stale overnight bias can
+        silently block every opposite-direction S4 fire at the next session open
+        until a fresh zoned HTLB flips it (audit 2026-07-14).
+
+        When the flag is ON: reset the latch to its neutral value (None) at the
+        first RTH bar whose ET date differs from the stored session date, so the
+        open starts unbiased. When OFF: no-op — behaviour is identical to today.
+        Mirrors the day-type engine's session_date guard (state_machine.py:220).
+        Fail-safe: only RTH bars open a session, and an undeterminable ET date
+        never triggers a reset.
+        """
+        if os.environ.get("HTLB_LATCH_RESET_V1", "0").lower() not in ("1", "true", "yes"):
+            return
+        if not _is_rth_bar(bar_ts):
+            return  # only an RTH bar opens a session
+        et_d = _et_date(bar_ts)
+        if not et_d:
+            return  # cannot determine the session — do not reset (fail-safe)
+        if et_d != self._htlb_session_date:
+            if self._htlb_dir_bias is not None:
+                logger.info(
+                    "[Woodies] HTLB_LATCH_RESET: new session %s (was %s) — "
+                    "clearing stale dir_bias=%s", et_d, self._htlb_session_date,
+                    self._htlb_dir_bias,
+                )
+            self._htlb_session_date = et_d
+            self._htlb_dir_bias = None
 
     async def process_bar(self, event) -> None:
         """Process a 5-min Woodies bar: compute studies, detect patterns, persist."""
@@ -508,6 +562,12 @@ class WoodiesSystem(BaseV9TradingSystem):
                         ))
                     else:
                         logger.warning("[Woodies] DLL HFE skipped: stop=%s (None/0 — T3 guard)", _hfe_stop)
+
+            # HTLB_LATCH_RESET_V1 (flag, default OFF): clear a stale overnight
+            # direction bias at the first RTH bar of a new session BEFORE the gate
+            # below consumes it — otherwise yesterday's zoned HTLB can block every
+            # opposite-direction fire at the open. No-op when the flag is OFF.
+            self._maybe_reset_htlb_latch(float(bar_ts))
 
             # ── HTLB direction gate (Michael 2026-06-23 · flag HTLB_DIRECTION_GATE, default OFF) ──
             # HTLB signals the directional bias for ALL Woodies patterns. A zoned HTLB break

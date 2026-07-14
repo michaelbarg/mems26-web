@@ -106,15 +106,23 @@ def diagnose_trade(
                             "open position has no protective stop",
                             correction={"op": "MODIFY_STOP", "price": _be_target(d, entry)}))
     else:
-        # 2. stop on the protective side
-        # Wrong side = stop on the LOSS side of CURRENT PRICE (not entry).
-        # LONG: stop > price means unprotected; SHORT: stop < price means unprotected.
-        # A stop beyond entry (profit-locked after T1) is the DESIRED state.
-        ref = price if price is not None else entry
-        wrong_side = (d == "LONG" and stop > ref) or (d == "SHORT" and stop < ref)
+        # 2. stop on the protective side of ENTRY (not current price).
+        # An INITIAL protective stop must sit on the loss-protective side of
+        # entry — LONG below entry, SHORT above entry — independent of where
+        # price has since travelled. The old code referenced CURRENT PRICE,
+        # which let a genuinely wrong-side initial stop ESCAPE detection the
+        # moment price ran past it (a LONG stop ABOVE entry looked "fine" once
+        # price rose above the stop, then fell through to the BE/band branch —
+        # a defence-in-depth gap). After T1 a stop AT/beyond entry is the
+        # DESIRED profit-lock, governed by the BE-after-T1 check below, so the
+        # wrong-side veto is pre-T1 only (the t1_hit gate preserves the
+        # profit-locked-stop case). Advisory only — this reports, never executes.
+        wrong_side = (not t1_hit) and (
+            (d == "LONG" and stop > entry) or (d == "SHORT" and stop < entry)
+        )
         if wrong_side:
             issues.append(Issue("stop_wrong_side", CRITICAL, ALERT,
-                                f"{d} stop {stop} on the wrong side of price {ref}"))
+                                f"{d} stop {stop} on the wrong side of entry {entry}"))
         else:
             risk = abs(entry - stop)
             # 3. BE after T1

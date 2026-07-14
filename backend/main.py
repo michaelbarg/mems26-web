@@ -475,6 +475,27 @@ async def _startup():
                                 "Nontrend": _DT.Nontrend,
                             }
                             _new_dt = _DT_MAP.get(_cls_dt_str)
+                            # P1-8 Nonconviction stand-aside — NONCONVICTION_ACTIVE_V1 (default OFF).
+                            # schemas.DayType has NO "Nonconviction" member, so it CANNOT be promoted as
+                            # an enum (_DT.Nonconviction -> AttributeError). When the flag is ON and the
+                            # classifier names a Nonconviction day, publish a dedicated NO_TRADE signal --
+                            # the raw string "Nonconviction" -- on ONLY the live-promoted top-level machine
+                            # attribute. Its sole readers (trade_context.get_live_day_type + the build-status
+                            # day_type_inspector) use the ".value if hasattr else str" idiom, so no enum is
+                            # forced and nothing crashes. state.day_type / _last_state.day_type are LEFT as
+                            # the last valid enum -- they feed the UNGUARDED .value readers (get_current(),
+                            # on_trigger(), DB-seed). get_live_day_type() then surfaces "Nonconviction" to
+                            # day_type_at_entry, which daytype_playbook (its _VALID_DT also gated by this
+                            # flag) SKIPs -> stand aside. Flag OFF -> this branch is skipped and "Nonconviction"
+                            # stays absent from _DT_MAP -> .get() is None -> inert, byte-identical to today.
+                            _nonconv_on = _os.environ.get("NONCONVICTION_ACTIVE_V1", "0").lower() in ("1", "true", "yes")
+                            if _cls_dt_str == "Nonconviction" and _nonconv_on:
+                                _prev_dt = getattr(day_type_machine, "day_type", None)
+                                _prev_str = _prev_dt.value if hasattr(_prev_dt, "value") else str(_prev_dt)
+                                if _prev_str != "Nonconviction":
+                                    day_type_machine.day_type = "Nonconviction"  # NO_TRADE sentinel (str-safe readers only)
+                                    _logger.info("[S1-NEW-CLS] NO_TRADE stand-aside: %s -> Nonconviction (%s)",
+                                                 _prev_str, _cls_status)
                             if _new_dt is not None and _cls_dt_str != "FORMING":
                                 _old_val = state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type)
                                 if _new_dt != state.day_type:

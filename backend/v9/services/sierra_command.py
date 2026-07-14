@@ -176,6 +176,10 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
     no path can send !=3 when the flag is on. Only setups that reached command-write
     have already passed the fire decision, so the count is always >0 here.
     FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract choke point, PRECEDENCE over _3.
+    SIZE_CAP_OVER_FIXED_V1 (default OFF): when ON, a downward SIZE_CAP_CUT_V1 reduction
+    already baked into the setup (e.g. metadata.sizing="half"→2) survives the FIXED
+    override — the fixed count becomes a cap that can only REDUCE (min(fixed, cut)),
+    never re-force back up to 3. See the inline comment for the ruling reference.
     """
     _sz = setup.get("contracts") or setup.get("size") or (setup.get("metadata") or {}).get("sizing")
     try:
@@ -183,9 +187,47 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
     except (TypeError, ValueError):
         _contracts = {"full": 3, "half": 2, "quarter": 1}.get(str(_sz).lower().strip(), 1)
     import os as _fc3_os
-    if _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and _contracts > 0:
+    _fc2_on = _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes")
+    _fc3_on = _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes")
+
+    # SIZE_CAP_OVER_FIXED_V1 (default OFF — Michael sign-off required to enable;
+    # trading-risk-surface change per Pre-LIVE Discipline).
+    # RULED SIZE_CAP_CUT_V1 (Michael 2026-07-09): the judgment size-cut "still
+    # overrides downward, even under FIXED_CONTRACTS" (config/RULED_FLAGS.yaml
+    # FIXED_CONTRACTS_3 note; docs/FLAG_INDEX.md SIZE_CAP_CUT_V1). Upstream
+    # compute_v2_sizing already applies that cut, so the setup arrives here with
+    # an already-reduced count (S4/woodies collapses it to metadata.sizing="half"
+    # → 2; S2/five_min passes numeric sizing_contracts). But the FIXED_CONTRACTS_*
+    # override just below re-forces 2/3 whenever the count is >0 — CLOBBERING the
+    # cut, so a wide-stop trade that should carry 1-2 contracts still ships 3.
+    # When this flag is ON we HONOR the setup's own (already-cut) count as an
+    # upper cap FIXED can only REDUCE toward, never raise: min(fixed, cut). A
+    # full SKIP (explicit 0 / "reject" / "skip") stays 0; a *missing* sizing
+    # field means "no cut info" → keep the fixed count (never a spurious cut to
+    # the floor-1 default). When OFF the result is byte-identical to the historic
+    # force-2 / force-3 behavior below.
+    if _fc3_os.environ.get("SIZE_CAP_OVER_FIXED_V1", "0").lower() in ("1", "true", "yes"):
+        _fixed = 2 if _fc2_on else (3 if _fc3_on else _contracts)
+        # None-aware read (NOT the truthy or-chain above, which masks an explicit
+        # 0) so a real SKIP is distinguishable from a missing field.
+        _raw = setup.get("contracts")
+        if _raw is None:
+            _raw = setup.get("size")
+        if _raw is None:
+            _raw = (setup.get("metadata") or {}).get("sizing")
+        if _raw is None:
+            return _fixed  # no sizing info → keep fixed count, do not cut
+        if _raw == 0 or str(_raw).strip().lower() in ("0", "reject", "skip"):
+            return 0  # explicit full SKIP preserved (never forced up to fixed)
+        try:
+            _cut = max(1, int(_raw))
+        except (TypeError, ValueError):
+            _cut = {"full": 3, "half": 2, "quarter": 1}.get(str(_raw).strip().lower(), _fixed)
+        return min(_fixed, _cut)  # cap can only REDUCE below fixed, never increase
+
+    if _fc2_on and _contracts > 0:
         _contracts = 2
-    elif _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and _contracts > 0:
+    elif _fc3_on and _contracts > 0:
         _contracts = 3
     return _contracts
 

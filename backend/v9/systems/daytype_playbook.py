@@ -51,6 +51,15 @@ def _enabled() -> bool:
     return os.environ.get("DAYTYPE_PLAYBOOK", "").lower() in ("1", "true", "yes")
 
 
+def _nonconviction_active() -> bool:
+    """P1-8 (env NONCONVICTION_ACTIVE_V1, default OFF). When ON, 'Nonconviction'
+    becomes a VALID day-type here so config/daytype_playbook.yaml's ``Nonconviction:
+    SKIP`` cells actually gate a no-conviction day (stand aside / NO_TRADE). When OFF,
+    'Nonconviction' stays out of the valid set -> decide() fails open to FULL,
+    byte-identical to today. Paired with main.py's NO_TRADE-sentinel promotion."""
+    return os.environ.get("NONCONVICTION_ACTIVE_V1", "0").lower() in ("1", "true", "yes")
+
+
 def _cfg() -> Optional[dict]:
     global _cache, _loaded
     if not _loaded:
@@ -113,7 +122,10 @@ def decide(
 
     pkey = _norm(pattern)
     pat = (cfg.get("patterns") or {}).get(pkey)
-    if not pat or day_type not in _VALID_DT:
+    # P1-8: 'Nonconviction' is a VALID day-type only when NONCONVICTION_ACTIVE_V1 is ON
+    # (else it stays unmapped -> fail-open FULL, byte-identical to today).
+    _valid_dt = (_VALID_DT | {"Nonconviction"}) if _nonconviction_active() else _VALID_DT
+    if not pat or day_type not in _valid_dt:
         return Decision("FULL", cap, f"unmapped({pkey}/{day_type})")
 
     # Direction discipline: with-trend only on directional days (D-1: incl. Variation).
