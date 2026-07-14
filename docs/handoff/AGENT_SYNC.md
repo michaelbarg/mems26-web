@@ -18,7 +18,7 @@
 ## 🔴 OPEN — דורש פעולה
 | # | מאת | אל | פריט | סטטוס |
 |---|---|---|---|---|
-| S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades על הפייר-הראשון + orphan-counter reset. **dev מבצע ביקורת-קוד מקדימה** (I-58 fallback + מיפוי t*_hit_ts/exit_price→gsheets) כדי שהפייר-האמיתי הראשון יתקשר נכון; E2E על הפייר = אישור-סופי. | 🔄 dev מבקר-קוד · E2E ממתין לפייר |
+| S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades. **ביקורת-קוד ✅ הנתיב תקין + caveat-A תוקן** (dev, LOG). נותר E2E על הפייר-האמיתי הראשון. | ✅ קוד · ⏳ E2E ממתין לפייר |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
@@ -30,7 +30,10 @@
 
 ### [2026-07-14 ~10:35 IDT] מאת: cowork-dev · אל: cc-imac · [DONE S-2 · 🔄 S-3]
 **S-2 סגור** — 2 באגי-preflight תוקנו+אומתו על דב: DLL-diff מסנן שורות-`Generated`; DB-check דרך `pg_isready` (Postgres.app v18, off-PATH) עם fallback ל-sqlalchemy. נדחף.
-**S-3 — מתחיל ביקורת-קוד מקדימה** (לפני הפייר-האמיתי, כי יש כסף-אמת): מבקר את נתיב `fill→v9_trades` — FillPoller `_process_fill` → I-58 ORPHAN-fallback (order_id→trade) → `on_target_hit`/`on_stop_hit` (t*_hit_ts + exit_price=AvgFillPrice) → gsheets/ledger; + orphan-counter reset. אם יש באג-מיפוי אתקן לפני הפייר; אכתוב ממצאים כאן. **E2E על הפייר-הראשון = האישור-הסופי שלך** (עקוב צמוד, גודל-מינימלי כמו שהמלצת).
+**S-3 — ביקורת-קוד הושלמה: הנתיב תקין ✅** (סוכן, file:line). הפייר-האמיתי הראשון **יתקשר** ל-v9_trades: ‏ORDER_SUBMITTED/ENTRY ממפים את 6 ה-child-ids ל-`_order_map` → T/STOP fills מתמפים ישירות; `on_target_hit`/`on_stop_hit` כותבים t*_hit_ts + **exit_price = מחיר-סיירה** (I-62); gsheets נורה על mapped-live-fill (mode=live+URL). ה-BUY-הידני עשה ORPHAN **כצפוי** (אין שורת-v9_trades). **orphan-counter אינרטי** — לא נקרא בזמן-ריצה, מתאפס בריסטארט, לא זולג להתראה.
+**תיקנתי caveat-A (פוטגאן-לייב):** לולאת-הפילים התחילה רק על `DEMO_EXECUTION_ENABLED` → עכשיו על `DEMO` **או** `LIVE_EXECUTION_V1` (main.py, נדחף; אין שינוי במצב הנוכחי — מונע מצב שבו לייב-עם-DEMO=0 מפסיק לקרוא מילויים בשקט).
+**caveat-C לידיעתך:** `FLATTEN_ACCOUNT` ידני לא כותב שורת-fill `FLATTEN` → לא סוגר לבד את שורת-ה-TM ולא דוחף סגירה לגיליון (ה-reconciler תופס; מחוץ למסלול T/STOP). אם תרצה — אבנה FLATTEN-fill-emit.
+**S-3 code-audit סגור. E2E על הפייר-הראשון = האישור-הסופי שלך** (עקוב צמוד, גודל-מינימלי).
 
 ### [2026-07-14 10:30 IDT] מאת: cc-imac (Cowork/iMac) · אל: cowork-dev · [DONE — בדיקת Sierra fill-detection לפני-לייב]
 מייקל ביקש אימות שהמערכת קוראת מסיירה נכון (כניסה/מחיר/T1/T2/T3/סטופ/סגירה) לפני לייב. תוצאה — **המסלול Sierra→backend עובד ומדויק:**

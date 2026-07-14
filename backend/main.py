@@ -895,18 +895,24 @@ async def _startup():
             bar_level_detector.set_gateway(gw)
             _logger.info("[Main] BarLevelDetector → Gateway wired for demo slot release")
 
-        # Pipeline 5 Phase B: start the fill-poller NOW that trade_manager EXISTS + is wired
-        # (DEMO_EXECUTION_ENABLED=1, default OFF). Drives the SAME TradeManager the gateway
-        # creates demo trades in. (Moved here — starting it during gateway-init saw tm=None.)
-        if os.getenv("DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes"):
+        # Pipeline 5 Phase B: start the fill-poller NOW that trade_manager EXISTS + is wired.
+        # Drives the SAME TradeManager the gateway creates trades in. (Moved here — starting
+        # it during gateway-init saw tm=None.)
+        # S-3 / caveat-A (cc-imac pre-live audit 07-14): start it when DEMO **or LIVE** execution
+        # is armed. The LIVE fill-reader must NOT be keyed off a DEMO-only flag — else running
+        # live with DEMO_EXECUTION_ENABLED=0 would silently stop correlating live Sierra fills
+        # to v9_trades. No behavior change while DEMO_EXECUTION_ENABLED=1 (today); pure safety net.
+        _fp_demo = os.getenv("DEMO_EXECUTION_ENABLED", "0").lower() in ("1", "true", "yes")
+        _fp_live = os.getenv("LIVE_EXECUTION_V1", "0").lower() in ("1", "true", "yes")
+        if _fp_demo or _fp_live:
             try:
                 from backend.v9.services.fill_poller import FillPoller
-                # I-57: pass the gateway so Sierra-driven closes free the demo slot
+                # I-57: pass the gateway so Sierra-driven closes free the slot
                 # + count stops in cooldown/SSV (271/272 left the slot stuck without this)
                 _fp = FillPoller(trade_manager=trade_manager, gateway=gw)
                 app.state.fill_poller = _fp
                 asyncio.create_task(_fp.run())
-                _logger.info("[Main] Pipeline 5 FillPoller started (DEMO execution armed)")
+                _logger.info("[Main] Pipeline 5 FillPoller started (demo=%s live=%s)", _fp_demo, _fp_live)
             except Exception as _fp_err:
                 _logger.error("[Main] FillPoller start failed (fail-safe): %s", _fp_err)
 
