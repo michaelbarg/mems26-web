@@ -117,6 +117,43 @@ async def mobile_data(request: Request):
             _n_blocked = sum(1 for d in _decs if d.get("blocked_by"))
             out["gate"] = {"attempts": len(_decs), "fired": _n_fired,
                            "blocked": _n_blocked, "last": _decs[-1]}
+        # 07-15 (מייקל): פר-תבנית בנייד — יורה / למה-לא / מה-חוסם.
+        # מיזוג: התהוות (build-status inspectors) + החלטת-השער האחרונה.
+        try:
+            from backend.v9.systems.build_status.aggregator import BuildStatusAggregator
+            _bs = BuildStatusAggregator(
+                five_min_system=getattr(_app.state, "five_min_system", None),
+                woodies_system=getattr(_app.state, "woodies_system", None),
+                day_type_machine=getattr(_app.state, "day_type_machine", None),
+                footprint_system=getattr(_app.state, "footprint_system", None),
+            ).get_status(systems=["five_min", "woodies"]).model_dump()
+
+            def _norm(x):
+                return "".join(ch for ch in str(x or "").upper() if ch.isalnum())
+
+            _pats = []
+            for _sysb in _bs.get("systems", []):
+                for _p in (_sysb.get("patterns") or []):
+                    _pn, _pi = _norm(_p.get("name")), _norm(_p.get("id"))
+                    _last = None
+                    for _d in reversed(_decs):  # newest first
+                        _g = _norm(_d.get("pattern"))
+                        if _g and (_g in (_pn, _pi) or _pn in _g or _pi in _g
+                                   or (_pi and _pi in _g)):
+                            _last = {"ts": _d.get("ts"), "blocked_by": _d.get("blocked_by"),
+                                     "outcome": _d.get("outcome"),
+                                     "trade_id": _d.get("trade_id"),
+                                     "direction": _d.get("direction")}
+                            break
+                    _pats.append({
+                        "sys": _sysb.get("id"), "name": _p.get("name") or _p.get("id"),
+                        "status": _p.get("status"),
+                        "reason": (str(_p.get("reason"))[:90] if _p.get("reason") else None),
+                        "last": _last,
+                    })
+            out["patterns"] = _pats[:14]
+        except Exception as _pe:
+            out["patterns_err"] = str(_pe)[:60]
     except Exception:
         pass
     # דגלי-קריטיים + halt
@@ -154,6 +191,8 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div style="font-size:20px;font-weight:700" id="daytype">—</div></div>
 <div class="card"><div class="row"><span class="dim">למה לא יורה? (שער-הירי)</span><span id="gmeta" class="dim"></span></div>
 <div id="gate" style="font-size:12px;line-height:1.6">—</div></div>
+<div class="card"><div class="dim">תבניות — מי יורה, למה לא, ומה חוסם</div>
+<div id="pats" style="font-size:11.5px;line-height:1.7">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
 <div class="dim" id="health" style="text-align:center"></div>
 <script>
@@ -179,6 +218,23 @@ async function load(){
     : '👁 '+t+' '+(L.pattern||'?')+' עבר-שערים · צל-בלבד';
    document.getElementById('gmeta').textContent = g.attempts+' ניסיונות · '+g.fired+' ירו · '+g.blocked+' נחסמו';
   } else { ge.innerHTML = '<span class="dim">אף מועמד לא הגיע לשער מאז-הריסטארט — ראה פאנל-תבניות</span>'; document.getElementById('gmeta').textContent=''; }
+  const ST_HE = {ready:['מוכן לירי','#3fb950'],armed:['חמוש','#3fb950'],fired:['ירה היום','#58a6ff'],
+   building:['בהתהוות','#d29922'],blocked:['ממתין','#8b949e'],vetoed:['וטו','#f85149'],skip:['SKIP לסוג-היום','#f85149'],
+   not_applicable:['לא-רלוונטי','#8b949e'],unknown:['?','#8b949e']};
+  const P = d.patterns||[];
+  document.getElementById('pats').innerHTML = P.length? P.map(p=>{
+   const st = ST_HE[p.status]||ST_HE.unknown;
+   let line = '';
+   if(p.last){
+    const t = p.last.ts? new Date(p.last.ts).toTimeString().slice(0,5) : '';
+    line = p.last.blocked_by? '<div style="color:#f0883e;font-size:10.5px">⛔ '+t+' נחסם — '+(GATE_HE[p.last.blocked_by]||p.last.blocked_by)+'</div>'
+     : (p.last.outcome==='live'||p.last.outcome==='demo')? '<div class="green" style="font-size:10.5px">🔫 '+t+' ירה'+(p.last.trade_id?' #'+p.last.trade_id:'')+'</div>'
+     : '<div class="dim" style="font-size:10.5px">👁 '+t+' עבר-שערים · צל</div>';
+   } else if(p.reason && p.status!=='ready' && p.status!=='fired'){
+    line = '<div class="dim" style="font-size:10.5px">מה חסר: '+String(p.reason).replace(/</g,'&lt;').slice(0,80)+'</div>';
+   }
+   return '<div style="border-bottom:1px solid #1c2330;padding:3px 0"><div class="row"><span>'+p.name+'</span><span style="color:'+st[1]+';font-size:10.5px">'+st[0]+'</span></div>'+line+'</div>';
+  }).join('') : '<span class="dim">אין נתוני-תבניות</span>';
   const posEl = document.getElementById('pos');
   posEl.textContent = q===0? 'FLAT' : (q>0? 'LONG ':'SHORT ') + Math.abs(q);
   posEl.className = 'big ' + (q===0?'':'pulse');
