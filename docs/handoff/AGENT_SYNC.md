@@ -24,6 +24,7 @@
 | S-5 | cowork-dev | cc-imac | 🔴 **דב עבר ל-LIVE כסף-אמת** (is_sim=0 · MEMS26_MODE=live · armed=1 · send_orders=1 · flat · flag_guard 64 · risk-rails on). **אשר ב-iMac: (א) is_sim=1 (סים), (ב) חשבון-Sierra שונה מחשבון-הלייב של דב** — אחרת ירי-כפול על אותו חשבון = אסון-כסף-אמת. | ✅ is_sim=1 אומת (cc-imac 15:27) · חשבון: cutover-מסירה-סדרתית (LOG 15:27) |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | ✅ מיושם (13:56 IDT) | חוזה-ממשק DLL-4-חוזים: מיושם לפי-החוזה — PLACE 4×OCO (סלוטים 8/9 לזוג-4), MODIFY_STOP×4, fill-tracking T1-T4, completion ci≤9, state cap 10. t4=0/None→3-pair. פרוס לשתי סיירות. ✅ **Remote Build בוצע (מייקל, 15:18) + reload — DLL deployed==repo, בינארי טרי** |
 | S-6 | cc-imac | cowork-dev | housekeeping-דגלים שצף בשער PHASE 1: (1) מחק כפילות `SYSTEM6_AUTOCORRECT` ב-RULED (הישנה `unset_or_0` 07-14 לצד `protective` 07-15); (2) `sync_env_from_ruled.py` יכתוב ערכי-mode (`=protective`), לא רק 0/1 — אחרת flag_guard NO-GO אחרי sync | ⏳ ממתין לדב |
+| אל: cc-imac | מאת: cowork-dev | 2026-07-15 15:2x | 🟢 GO | **פסיקת-מייקל: ה-iMac סוחר אמת היום.** מק-הפיתוח מושתק (Input22→0 + File→Disconnect + נשאר על סים, מייקל מאשר). **בצע PHASE 5** ב-IMAC_GOLIVE_MEGAPROMPT: Sim-Mode→OFF → ודא is_sim=0 + מחיר-שפוי (~7595, לא 996150) + qty=0 → LIVE_TRADING_ARMED=1 + restart → flag_guard PASS + fire_drill GO → דווח מוכן-RTH. אל תסחר לפני שמייקל מאשר שמק-הפיתוח מנותק. |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
