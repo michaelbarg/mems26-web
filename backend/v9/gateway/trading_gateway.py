@@ -621,7 +621,14 @@ class TradingGateway:
                                 from backend.v9.systems.daytype_position_gate import _pattern_family as _nr_fam_fn
                                 _nr_dt = (extract_g1_entry_context(cross_context) or {}).get("day_type_at_entry") or ""
                                 _nr_pat = resolve_pattern_id(setup, extract_g1_entry_context(cross_context)) or ""
-                                _nr_exempt = str(_nr_dt).startswith("Neutral") and _nr_fam_fn(_nr_pat) == "REV"
+                                # 07-15 Michael ("לבדוק שאין מחסם לתבניות במיקום הנכון לפי סוג היום"):
+                                # the responsive-fade exemption extends to VARIATION days —
+                                # per the doctrine a Variation day finds new value then ROTATES
+                                # around VAH/VAL/POC, so REV fades at the edges are THE play
+                                # there too, not only on Neutral (07-14: correct fades were
+                                # direction-context-blocked while the wrong-side LONG passed).
+                                _nr_exempt = (str(_nr_dt).startswith(("Neutral", "Variation", "Normal_Variation"))
+                                              and _nr_fam_fn(_nr_pat) == "REV")
                                 if _nr_exempt:
                                     logger.info(
                                         "[Gateway] direction-context EXEMPT (neutral-responsive): %s %s on %s",
