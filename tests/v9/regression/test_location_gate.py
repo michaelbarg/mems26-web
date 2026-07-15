@@ -73,3 +73,37 @@ def test_zones():
     assert zone_of(7581.0, vah=7597.0, val=7565.0, ib_width=12.0) == "mid_value"
     assert zone_of(7566.0, vah=7597.0, val=7565.0, ib_width=12.0) == "near_val"
     assert zone_of(7560.0, vah=7597.0, val=7565.0, ib_width=12.0) == "below_value"
+
+
+# ═══ 07-15 addendum (Michael: "לוודא שהמערכת תדע לזהות הרחבה") ═══
+
+def test_cont_against_expansion_blocked(monkeypatch):
+    monkeypatch.setenv("DAYTYPE_LOCATION_GATE", "1")
+    allow, reason = decide_location(
+        family="CONT", direction="LONG", day_type="Variation",
+        entry_price=7590.0, levels=LV, expansion={"dir": "DOWN", "ref": "PDL"})
+    assert allow is False and "against detected expansion" in reason
+
+
+def test_cont_with_expansion_passes(monkeypatch):
+    monkeypatch.setenv("DAYTYPE_LOCATION_GATE", "1")
+    allow, _ = decide_location(
+        family="CONT", direction="SHORT", day_type="Variation",
+        entry_price=7570.0, levels=LV, expansion={"dir": "DOWN", "ref": "PDL"})
+    assert allow is True
+
+
+def test_cont_no_expansion_signal_fail_open(monkeypatch):
+    monkeypatch.setenv("DAYTYPE_LOCATION_GATE", "1")
+    allow, _ = decide_location(
+        family="CONT", direction="LONG", day_type="Variation",
+        entry_price=7590.0, levels=LV, expansion=None)
+    assert allow is True
+
+
+def test_cont_expansion_check_variation_only(monkeypatch):
+    monkeypatch.setenv("DAYTYPE_LOCATION_GATE", "1")
+    allow, _ = decide_location(
+        family="CONT", direction="LONG", day_type="Trend_Normal",
+        entry_price=7590.0, levels=LV, expansion={"dir": "DOWN", "ref": "IB"})
+    assert allow is True

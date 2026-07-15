@@ -703,3 +703,23 @@ def extract_trade_display(trade) -> Dict[str, Any]:
         "blocked_by": blocked,
         "metadata": meta,
     }
+
+
+def get_live_expansion():
+    """07-15 (Michael: 'לוודא שהמערכת תדע לזהות הרחבה') — the CANONICAL live
+    expansion signal: the classifier's volume-accepted reference break
+    (P0-1-v2: IB / PDH / PDL / prior-VA), promoted per bar into
+    app.state.last_cls_result. Returns {"dir": "UP"|"DOWN", "ref": str} or
+    None when no accepted expansion exists right now (honest None — the LSMA
+    color proxy in require_with_trend stays as fallback, never replaced here).
+    """
+    try:
+        import importlib as _il
+        _app = _il.import_module("backend.v9.app").app
+        _res = getattr(_app.state, "last_cls_result", None) or {}
+        _d = _res.get("accepted_break") or _res.get("break_dir")
+        if _d in ("UP", "DOWN"):
+            return {"dir": _d, "ref": _res.get("accepted_break_ref") or _res.get("reclass_ref") or "?"}
+    except Exception:
+        pass
+    return None

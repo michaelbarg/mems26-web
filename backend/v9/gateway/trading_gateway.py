@@ -559,6 +559,13 @@ class TradingGateway:
                 from backend.v9.systems.daytype_position_gate import _pattern_family as _lg_fam_fn
                 _lg_g1 = extract_g1_entry_context(cross_context)
                 _lg_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                # 07-15: the CANONICAL expansion signal (volume-accepted reference
+                # break, P0-1-v2) feeds the gate — CONT on Variation must go WITH it.
+                try:
+                    from backend.v9.services.trade_context import get_live_expansion as _lg_exp_fn
+                    _lg_exp = _lg_exp_fn()
+                except Exception:
+                    _lg_exp = None
                 _lg_allow, _lg_reason = _lg_decide(
                     family=_lg_fam_fn(resolve_pattern_id(setup, _lg_g1) or ""),
                     direction=direction,
@@ -567,6 +574,7 @@ class TradingGateway:
                     levels={"vah": _lg_tpo.get("vah"), "val": _lg_tpo.get("val"),
                             "ib_width": (_lg_tpo.get("ib_high") - _lg_tpo.get("ib_low"))
                             if (_lg_tpo.get("ib_high") and _lg_tpo.get("ib_low")) else None},
+                    expansion=_lg_exp,
                 )
                 if not _lg_allow:
                     result["blocked_by"] = "location_gate"

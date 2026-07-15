@@ -58,10 +58,28 @@ def decide_location(
     day_type: Optional[str],
     entry_price: Optional[float],
     levels: Optional[Dict],
+    expansion: Optional[Dict] = None,
 ) -> Tuple[bool, str]:
-    """(allow, reason). Fail-open on missing data — never a synthetic block."""
+    """(allow, reason). Fail-open on missing data — never a synthetic block.
+
+    expansion: the CANONICAL live expansion {"dir","ref"} from
+    get_live_expansion() (volume-accepted reference break, P0-1-v2) — or None."""
     if os.getenv("DAYTYPE_LOCATION_GATE", "0").lower() not in ("1", "true", "yes"):
         return (True, "location gate OFF")
+    if family == "CONT":
+        # 07-15 (Michael: "לוודא שהמערכת תדע לזהות הרחבה"): on Variation days a
+        # continuation must go WITH the detected expansion. When the canonical
+        # accepted-break exists and the CONT direction opposes it → block.
+        # No expansion signal → fail-open (the LSMA-color proxy in
+        # require_with_trend still applies downstream).
+        dt_ = str(day_type or "")
+        if (dt_.startswith(("Variation", "Normal_Variation"))
+                and expansion and expansion.get("dir") in ("UP", "DOWN")
+                and direction.upper() != expansion["dir"]):
+            return (False,
+                    f"{dt_}: CONT {direction.upper()} against detected expansion "
+                    f"{expansion['dir']} ({expansion.get('ref')}) — continuation must go WITH expansion")
+        return (True, f"CONT — {'with/no' if not expansion else 'with'} expansion")
     if family != "REV":
         return (True, f"family {family or '?'} — location v1 gates REV only")
     dt = str(day_type or "")
