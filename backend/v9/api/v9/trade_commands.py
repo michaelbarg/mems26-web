@@ -65,6 +65,38 @@ def submit_trade_command(
             detail=f"Invalid action: {action}. Valid: {', '.join(sorted(VALID_ACTIONS))}",
         )
 
+    # ── SIM SAFETY GATE (Michael 2026-07-15, after a manual 4-lot SELL hit the
+    # LIVE account because Sierra was is_sim=0 post-reload). An ENTRY (BUY/SELL)
+    # is REFUSED when Sierra's live state-eye says is_sim=0, UNLESS an explicit
+    # live-GO is in force: env LIVE_TRADING_ARMED=1 AND the command carries
+    # context.live_ack == today's date. Protective ops (FLATTEN_ACCOUNT/CANCEL/
+    # MODIFY/STATUS) are NEVER gated — they only reduce risk. Fail-CLOSED: if the
+    # eye is missing/stale we refuse an entry (safer to block than to fire blind). ──
+    if action in ("BUY", "SELL"):
+        import json as _sg_json, os as _sg_os, time as _sg_time
+        from datetime import datetime as _sg_dt
+        _sg_p = _sg_os.path.expanduser("~/SierraChart_Data/v9_export/sierra_state.json")
+        _sg_is_sim = None
+        try:
+            _sg_age = _sg_time.time() - _sg_os.path.getmtime(_sg_p)
+            if _sg_age <= 15:
+                _sg_is_sim = _sg_json.loads(open(_sg_p).read().strip() or "{}").get("is_sim")
+        except Exception:
+            _sg_is_sim = None
+        _sg_sim_ok = _sg_is_sim in (1, True)
+        if not _sg_sim_ok:
+            _ctx = cmd.context if isinstance(cmd.context, dict) else {}
+            _armed = _sg_os.getenv("LIVE_TRADING_ARMED", "0").lower() in ("1", "true", "yes")
+            _ack_ok = str(_ctx.get("live_ack", "")) == _sg_dt.now().strftime("%Y-%m-%d")
+            if not (_armed and _ack_ok):
+                logger.warning("[trade_cmd_api] SIM-GATE REFUSED %s: is_sim=%s armed=%s ack=%s",
+                               action, _sg_is_sim, _armed, _ack_ok)
+                raise HTTPException(status_code=409, detail=(
+                    f"SIM-safety gate: Sierra is not on SIM (is_sim={_sg_is_sim}) and no live-GO "
+                    f"in force. {action} refused. To trade LIVE: set LIVE_TRADING_ARMED=1 and pass "
+                    f"context.live_ack='YYYY-MM-DD' (today). For SIM: enable Trade Simulation Mode "
+                    f"in Sierra and retry."))
+
     try:
         # EXIT — the PARTIAL-EXIT op the automated path uses (manager.py write_exit
         # → op="EXIT" → DLL sc.SellExit/BuyExit). It was reachable ONLY internally,
