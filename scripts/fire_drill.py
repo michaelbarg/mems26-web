@@ -99,8 +99,9 @@ def stage_c():
     from backend.v9.services.sierra_command import effective_contracts
     from backend.v9.systems.entry_confirm import entry_confirmed
     # הספירה הצפויה נגזרת מהפסיקה החיה ב-env (07-09: ‏3 חוזים; _2 גובר כשדלוק)
-    _want = 2 if os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") \
-        else (3 if os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") else 1)
+    _want = 4 if os.getenv("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes") \
+        else (2 if os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes")
+              else (3 if os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") else 1))
     # S-4 (cc-imac 07-14): send a REALISTIC full-size setup, not a bare {"contracts":1}.
     # Under SIZE_CAP_OVER_FIXED_V1=1 an explicit "1" is read as a size-CUT → min(fixed,1)=1
     # → false NO-GO. A real fire sends a size string; "full" → the ruled count.

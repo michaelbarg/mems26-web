@@ -179,7 +179,12 @@ def _enabled() -> bool:
 
 
 def _autocorrect_enabled() -> bool:
-    return os.getenv("SYSTEM6_AUTOCORRECT", "0").lower() in ("1", "true", "yes")
+    # 07-15 Michael decision 6/6 ("מערכת 6 תתחיל לעבוד", protective tier):
+    # value "protective" enables applying the AUTO set — which is by
+    # construction the risk-REDUCING set only (stop→BE completion, wrong-side
+    # target drop). Everything risky stays ALERT (naked stop, wrong-side stop,
+    # width anomalies). "1" kept for the future full tier.
+    return os.getenv("SYSTEM6_AUTOCORRECT", "0").lower() in ("1", "true", "yes", "protective")
 
 
 def scan_active_trade(

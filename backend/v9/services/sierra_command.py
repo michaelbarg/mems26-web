@@ -187,6 +187,7 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
     except (TypeError, ValueError):
         _contracts = {"full": 3, "half": 2, "quarter": 1}.get(str(_sz).lower().strip(), 1)
     import os as _fc3_os
+    _fc4_on = _fc3_os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes")  # Michael 07-15, top precedence
     _fc2_on = _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes")
     _fc3_on = _fc3_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes")
 
@@ -207,7 +208,7 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
     # the floor-1 default). When OFF the result is byte-identical to the historic
     # force-2 / force-3 behavior below.
     if _fc3_os.environ.get("SIZE_CAP_OVER_FIXED_V1", "0").lower() in ("1", "true", "yes"):
-        _fixed = 2 if _fc2_on else (3 if _fc3_on else _contracts)
+        _fixed = 4 if _fc4_on else (2 if _fc2_on else (3 if _fc3_on else _contracts))
         # None-aware read (NOT the truthy or-chain above, which masks an explicit
         # 0) so a real SKIP is distinguishable from a missing field.
         _raw = setup.get("contracts")
@@ -222,10 +223,15 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
         try:
             _cut = max(1, int(_raw))
         except (TypeError, ValueError):
-            _cut = {"full": 3, "half": 2, "quarter": 1}.get(str(_raw).strip().lower(), _fixed)
+            # 07-15: "full" means FULL RULED SIZE — it is not a cut. The old
+            # literal 3 silently capped the 4-contract ruling back to 3
+            # (caught by fire_drill on deploy day).
+            _cut = {"full": _fixed, "half": 2, "quarter": 1}.get(str(_raw).strip().lower(), _fixed)
         return min(_fixed, _cut)  # cap can only REDUCE below fixed, never increase
 
-    if _fc2_on and _contracts > 0:
+    if _fc4_on and _contracts > 0:
+        _contracts = 4  # Michael 2026-07-15
+    elif _fc2_on and _contracts > 0:
         _contracts = 2
     elif _fc3_on and _contracts > 0:
         _contracts = 3
@@ -290,6 +296,28 @@ def command_from_setup(
         _c2_target = _c1_target       # second contract also exits at T1
         _c3_target = setup.get("t2")  # the lone runner exits at T2 (no T3 runner)
 
+    # T0 (Michael 2026-07-15, with FIXED_CONTRACTS_4): a fast first take at
+    # entry ± T0_TARGET_PTS (3.5) for contract 1; the ladder shifts one leg out:
+    # C1→T0 · C2→T1 · C3→T2 · C4→T3. Wire contract: target_price=C1(T0),
+    # context.t2=C2, context.t3=C3, context.t4=C4 — the DLL builds a 4th 1-lot
+    # OCO when t4 is present (>0). With 3 contracts (or T0_TARGET_PTS unset)
+    # this block is skipped and t4 is None → byte-identical 3-pair behavior.
+    _c4_target = None
+    _t0_pts = 0.0
+    try:
+        _t0_pts = float(os.getenv("T0_TARGET_PTS", "0") or 0)
+    except (TypeError, ValueError):
+        _t0_pts = 0.0
+    if _contracts >= 4 and _t0_pts > 0 and setup.get("entry_price"):
+        _e = float(setup["entry_price"])
+        _t0 = _e + _t0_pts if direction == "LONG" else _e - _t0_pts
+        _t0 = round(round(_t0 / 0.25) * 0.25, 2)
+        _c4_target = _c3_target          # old T3 leg → C4 (runner)
+        _c3_target = _c2_target          # T2 → C3
+        _c2_target = _c1_target          # T1 → C2
+        _c1_target = _t0                 # T0 → C1 (fast take)
+        setup["t0"] = _t0                # observability + trade record
+
     return write_trade_command(
         action=action,
         trade_id=trade_id,
@@ -306,6 +334,7 @@ def command_from_setup(
             "confidence": setup.get("confidence"),
             "t2": _c2_target,
             "t3": _c3_target,
+            "t4": _c4_target,  # 4th 1-lot OCO (Michael 07-15); None → 3-pair behavior
             "metadata": setup.get("metadata", {}),
         },
     )

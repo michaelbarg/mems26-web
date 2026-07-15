@@ -74,6 +74,8 @@ def trade_contract_count(trade) -> int:
         n = 0
     if n in (1, 2, 3):
         return n
+    if os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
+        return 4  # Michael 2026-07-15, top precedence
     if os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
         return 2
     if os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):

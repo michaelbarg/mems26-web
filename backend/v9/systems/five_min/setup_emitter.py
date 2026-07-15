@@ -89,7 +89,9 @@ def emit_t1_setup(
                 # L7 (2026-07-08): honor FIXED_CONTRACTS_2 (precedence over _3, same
                 # as every other sizing site) — this floor ignored it and sent 1.
                 import os as _os
-                if _os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
+                if _os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
+                    sizing = 4  # Michael 2026-07-15
+                elif _os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
                     sizing = 2
                 elif _os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
                     sizing = 3

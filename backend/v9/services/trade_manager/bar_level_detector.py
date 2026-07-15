@@ -64,7 +64,9 @@ class BarLevelDetector:
             from backend.v9.systems.system6_supervisor import scan_active_trade
 
             # expected contract count — mirror the sizing choke-point precedence
-            if _s6_os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
+            if _s6_os.getenv("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
+                _exp = 4  # Michael 2026-07-15
+            elif _s6_os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
                 _exp = 2
             elif _s6_os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
                 _exp = 3

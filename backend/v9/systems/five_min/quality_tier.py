@@ -87,7 +87,9 @@ def get_quality_tier_v2(
     # FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract sizing. Takes PRECEDENCE over
     # _3 — set FIXED_CONTRACTS_2=1 → every fire uses 2; unset → falls back to _3.
     # Reject (0) preserved. Trading-risk → flag-gated.
-    if _fc_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and contracts > 0:
+    if _fc_os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes") and contracts > 0:
+        contracts = 4  # Michael 2026-07-15, top precedence
+    elif _fc_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and contracts > 0:
         contracts = 2
     elif _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
         contracts = 3

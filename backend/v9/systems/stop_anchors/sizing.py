@@ -106,7 +106,10 @@ def compute_v2_sizing(
     # route through compute_v2_sizing). Trading-risk → flag-gated.
     import os as _fc_os
     # FIXED_CONTRACTS_2 (Michael 2026-07-06): 2-contract sizing, PRECEDENCE over _3.
-    if _fc_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and contracts > 0:
+    # FIXED_CONTRACTS_4 (Michael 2026-07-15): 4-contract sizing, TOP precedence.
+    if _fc_os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes") and contracts > 0:
+        contracts = 4
+    elif _fc_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") and contracts > 0:
         contracts = 2
     elif _fc_os.environ.get("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") and contracts > 0:
         contracts = 3
