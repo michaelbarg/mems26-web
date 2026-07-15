@@ -46,12 +46,22 @@ class FillPoller:
         self._last_mtime: float = 0.0
         self._last_result_mtime: float = 0.0
         self._processed_count = 0
+        # P3 heartbeat: wall-time of the last loop iteration. The loop already
+        # continues-on-exception, but if the whole task dies (cancel, event-loop
+        # death) fills stop silently. post_restart_verify / feed liveness reads
+        # this to detect a dead poller.
+        self._last_poll_ts: float = 0.0
         # Map sierra_order_id → trade_id (set when command is written)
         self._order_map: Dict[int, int] = {}
         # P1.2 (2026-07-07): orphan fills — a Sierra fill with no trade to attribute.
         # Recorded + surfaced (never silent) for the reconcile / System 6 orphan invariant.
         self._orphan_fills: list = []
         self._orphan_count: int = 0
+
+    def last_poll_age(self) -> float:
+        """Seconds since the loop last iterated (P3 heartbeat). -1 if never run.
+        A large value during RTH means the poller task died → fills stop silently."""
+        return (time.time() - self._last_poll_ts) if self._last_poll_ts > 0 else -1.0
 
     def set_trade_manager(self, tm) -> None:
         self._tm = tm
@@ -92,6 +102,7 @@ class FillPoller:
         while self._running:
             try:
                 await asyncio.sleep(POLL_INTERVAL)
+                self._last_poll_ts = time.time()  # P3 heartbeat
                 self._guard_duplicate_command()
                 self._check_result()
                 self._check_fills()

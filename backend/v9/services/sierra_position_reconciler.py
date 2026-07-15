@@ -57,6 +57,57 @@ def _sierra_state_working() -> Optional[int]:
         return None
 
 
+def _sierra_state_avg_price() -> Optional[float]:
+    """avg_price from the fresh state file; None if stale/absent (Rule 1)."""
+    try:
+        if not STATE_FILE.exists():
+            return None
+        import time as _t
+        if (_t.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
+            return None
+        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        ap = data.get("avg_price")
+        return float(ap) if ap not in (None, "", 0, 0.0) else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def recommend_orphan_stop(sierra_qty: Optional[int],
+                          avg_price: Optional[float]) -> Optional[dict]:
+    """Conservative protective stop for an untracked (orphan) Sierra position.
+
+    P3 (2026-07-16): an orphan (Sierra holds a position the backend does not
+    track) must never sit naked. We cannot auto-place a standalone stop safely
+    yet — that path is the deferred "auto-adopt" (Michael's ruling) — but we can
+    always compute the exact protective stop and surface it in the CRITICAL
+    alert so it can be placed instantly.
+
+    LONG (qty>0) → stop below entry; SHORT (qty<0) → stop above. Distance =
+    ORPHAN_STOP_POINTS (default 10pt), tick-snapped (0.25). Returns None when
+    inputs are unusable (Rule 1: honest None, never a synthetic price).
+    """
+    if not sierra_qty or avg_price is None:
+        return None
+    try:
+        avg = float(avg_price)
+    except (TypeError, ValueError):
+        return None
+    if avg <= 0:
+        return None
+    pts = float(os.getenv("ORPHAN_STOP_POINTS", "10"))
+    long_ = sierra_qty > 0
+    raw = (avg - pts) if long_ else (avg + pts)
+    tick = 0.25
+    stop = round(round(raw / tick) * tick, 2)
+    return {
+        "side": "LONG" if long_ else "SHORT",
+        "qty": abs(int(sierra_qty)),
+        "entry": round(avg, 2),
+        "stop": stop,
+        "points": pts,
+    }
+
+
 # Phantom-heal: consecutive checks where TM is in-position but Sierra is
 # definitively flat (qty=0, working=0). Reset on any other outcome.
 _phantom_flat_streak = 0
@@ -189,6 +240,20 @@ def reconcile_position(tm) -> Tuple[bool, str]:
     msg = (f"DIVERGENCE: TM says {tm_qty} contracts {tm_trades}, "
            f"Sierra says {sierra_qty} (src={src}). Records ≠ reality!"
            + (f" [phantom-heal streak {_phantom_flat_streak}/{_need}]" if _heal_on else ""))
+
+    # P3 (orphan): Sierra holds a position the backend does not track (TM=0,
+    # Sierra≠0) → NAKED orphan. Compute the exact protective stop and surface it
+    # so it can be placed instantly. (Auto-placement is the deferred auto-adopt
+    # phase — Michael's ruling; RECONCILER_AUTO_ADOPT_V1 reserved, not wired.)
+    _orphan_naked = (tm_qty == 0 and sierra_qty != 0)
+    if _orphan_naked:
+        _rec = recommend_orphan_stop(sierra_qty, _sierra_state_avg_price())
+        if _rec:
+            msg += (f" 🔴 NAKED ORPHAN {_rec['side']} {_rec['qty']}c @ {_rec['entry']}"
+                    f" → PLACE PROTECTIVE STOP @ {_rec['stop']} ({_rec['points']:.0f}pt).")
+        else:
+            msg += (" 🔴 NAKED ORPHAN — avg_price unavailable; FLATTEN_ACCOUNT "
+                    "immediately (cannot compute a protective stop).")
     logger.warning("[Reconciler] SYS-3 %s", msg)
     # IDEA-2 (Michael 07-13): records≠reality is exactly what he must know about
     # when away from the screen. Rate-limited inside push(); never raises.
