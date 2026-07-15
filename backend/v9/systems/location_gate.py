@@ -73,9 +73,10 @@ def decide_location(
         # No expansion signal → fail-open (the LSMA-color proxy in
         # require_with_trend still applies downstream).
         dt_ = str(day_type or "")
+        _want_dir = "UP" if direction.upper() == "LONG" else "DOWN"
         if (dt_.startswith(("Variation", "Normal_Variation"))
                 and expansion and expansion.get("dir") in ("UP", "DOWN")
-                and direction.upper() != expansion["dir"]):
+                and _want_dir != expansion["dir"]):
             return (False,
                     f"{dt_}: CONT {direction.upper()} against detected expansion "
                     f"{expansion['dir']} ({expansion.get('ref')}) — continuation must go WITH expansion")
