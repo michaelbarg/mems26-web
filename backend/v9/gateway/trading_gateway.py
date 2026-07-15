@@ -1343,8 +1343,15 @@ class TradingGateway:
         # the rejection reason in setup.metadata.s4_risk_cap_block.
         _s4_rcb = (setup.get("metadata") or {}).get("s4_risk_cap_block")
         if _s4_rcb:
-            result["blocked_by"] = "s4_risk_cap"
-            logger.warning("[Gateway] BLOCKED by S4 risk cap: %s", _s4_rcb)
+            # P5 (2026-07-16): distinguish the per-pattern loss-breaker from the
+            # risk-POINTS cap. Both used to surface as "s4_risk_cap", which made
+            # the 07-15 evening blocks (pattern_loss_breaker:ZLR:2>=2) look like a
+            # sizing/points-cap problem. The reason string is kind-prefixed.
+            _rcb_kind = str(_s4_rcb).split(":", 1)[0]
+            result["blocked_by"] = (
+                "pattern_loss_breaker" if _rcb_kind == "pattern_loss_breaker"
+                else "s4_risk_cap")
+            logger.warning("[Gateway] BLOCKED by S4 %s: %s", result["blocked_by"], _s4_rcb)
             return result
 
         # D-088: cluster_guard blocks DEMO/LIVE only — SHADOW still records (3-Mode §8)
