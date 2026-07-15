@@ -9,6 +9,11 @@ import os
 import time
 from datetime import timedelta
 
+
+class _SkipPersist(Exception):
+    """07-15 decision 4/6: raised inside the day-type persist block when the
+    state signature is unchanged — write-on-change, silently skipped."""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -508,6 +513,14 @@ async def _startup():
                                         day_type_machine._last_state.day_type = _new_dt
                                     _logger.info("[S1-NEW-CLS] promoted: %s → %s (%s, %s)",
                                                  _old_val, _new_dt.value, _cls_dt_str, _cls_status)
+                                # 07-15 decision 4/6: promote the canonical CONFIDENCE too —
+                                # the type came from the new brain while the persisted conf
+                                # stayed the legacy machine's (frozen 0.26 all of 07-14).
+                                # P0-3 (S1_CONFIDENCE_V2) emits it on every classify() call.
+                                _cls_conf = _cls_result.get("confidence")
+                                if _cls_conf is not None:
+                                    state.confidence = float(_cls_conf)
+                                app.state.last_cls_result = _cls_result  # observability: full canonical result
                     except Exception as _cls_err:
                         # Fail-safe: keep old-engine value, never throw on hot path
                         _logger.debug("[S1-NEW-CLS] error (fail-safe, kept old value): %s", _cls_err)
@@ -554,10 +567,24 @@ async def _startup():
                     except Exception as _sr_err:
                         _logger.debug("[D-S1DYN] Shadow reclass error: %s", _sr_err)
 
-                # Persist to v9_day_type_state (P5.1.2)
+                # Persist to v9_day_type_state (P5.1.2) — 07-15 decision 4/6:
+                # SINGLE WRITER (the /process wrapper no longer persists) and
+                # WRITE-ON-CHANGE only: a row means something moved (type/stage/
+                # conf), not another copy of the same state (07-14: 288 dup rows,
+                # 2-3 per timestamp). Full per-bar truth remains in memory +
+                # app.state.last_cls_result.
                 try:
                     from datetime import datetime, timezone
                     from backend.v9.db.safe_writer import safe_execute
+                    _cur_sig = (
+                        state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
+                        state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+                        round(float(state.confidence or 0.0), 2),
+                        str(state.lock_state),
+                    )
+                    if getattr(app.state, "_last_dts_sig", None) == _cur_sig:
+                        raise _SkipPersist()
+                    app.state._last_dts_sig = _cur_sig
                     safe_execute(
                         """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
                            ib_width_class, opening_type, behavior, lock_state, created_at)
@@ -575,6 +602,8 @@ async def _startup():
                             datetime.now(timezone.utc).isoformat(),
                         ),
                     )
+                except _SkipPersist:
+                    pass  # write-on-change: state unchanged since last row (by design, silent)
                 except Exception as db_err:
                     _logger.warning("[DayType] DB persist skipped: %s", db_err, exc_info=True)
 

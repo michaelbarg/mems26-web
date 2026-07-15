@@ -333,20 +333,12 @@ def process_bar(bar: BarInput, db: Session = Depends(get_db)):
     state = engine.process_bar(bar)
     stage_changed = state.stage != prev_stage
 
-    # Persist to DB
-    record = V9DayTypeState(
-        ts=datetime.fromtimestamp(bar.ts, tz=timezone.utc),
-        stage=state.stage.value,
-        day_type=state.day_type.value,
-        classification=state.day_type.value if state.lock_state == "LOCKED" else None,
-        confidence=state.confidence,
-        ib_width_class=state.ib_width.value if state.ib_width else None,
-        opening_type=state.opening_type.value if state.opening_type else None,
-        behavior=state.behavior.value if state.behavior else None,
-        lock_state=state.lock_state or None,
-        meta=state.meta,
-    )
-    db.add(record)
-    db.commit()
+    # 07-15 Michael decision 4/6 (single-brain/single-writer): this endpoint's
+    # WRAPPER engine is a second, legacy brain — its rows interleaved with the
+    # canonical on-bar writer (backend/main.py) and produced the 07-14
+    # duplicate rows + frozen confidence. v9_day_type_state now has exactly ONE
+    # writer: the canonical per-bar path. This endpoint still processes and
+    # responds (API contract kept) but no longer persists.
+    _ = db  # session unused by design — kept for signature compatibility
 
     return ProcessBarResponse(state=state, stage_changed=stage_changed)
