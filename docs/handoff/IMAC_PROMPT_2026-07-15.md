@@ -1,36 +1,43 @@
-# פרומפט ל-Claude במק-השני (iMac) — עדכון מלא + הכנה למסחר · 2026-07-15
+# פרומפט ל-Claude ב-iMac — בדיקות מלאות + מוכנות · 2026-07-15 (עדכון 15:00)
 
-**הקשר:** אתה ‏cc-imac. מק-הפיתוח (cowork-dev) סיים היום חבילת-תיקונים גדולה אחרי פורנזיקת-14/07.
-המסחר רץ היום על מק-הפיתוח; תפקידך — ליישר את ה-iMac לגרסה האחרונה ולאמת **מוכנות-מסחר מלאה**,
-כך שיוכל לשמש גיבוי-חם מיידי (ה-cutover עצמו נשאר בשער-הכתוב של ‏SECOND_MAC_SETUP.md ‏§10 — אל תדליק מסחר בלי GO של מייקל).
+**אתה cc-imac.** מק-הפיתוח מוכן ומוכח למסחר-היום (הוכחת-4-חוזים עברה שם 14:50).
+**חוק-הברזל של היום: מכונה אחת סוחרת = מק-הפיתוח. ה-iMac לא שולח שום הוראה** עד GO-כתוב של מייקל
+(‏SECOND_MAC_SETUP §10). ‏Teton = חיבור-יחיד: התחברות שלך תנתק את המכונה הסוחרת באמצע-סשן.
 
-## שלב 1 — עדכון (פרוטוקול §10, או פשוט: מסך-ההפעלה → "עדכן לגרסה האחרונה")
-1. ‏`git pull --ff-only` על ‏stabilize/mems26-local-truth-2026-05-16 (עשרות קומיטים מ-07-13→15).
-2. ‏`python3 scripts/sync_env_from_ruled.py --apply` — מיישר את ‏.env לפסיקות (כולל החדשות מהיום:
-   ‏FIXED_CONTRACTS_4=1 · ‏T0_TARGET_PTS=3.5 · ‏SYSTEM6_AUTOCORRECT=protective · ‏OPENING_WINDOW_FIRE_V1=1 ·
-   ‏STOP_FLOOR_ROTATION_ATR=0.8 · ‏SSV_GATE_V1=0 · ‏FIXED_CONTRACTS_3=0).
-3. ‏`python3 scripts/flag_guard.py` → חובה ‏PASS על כל הפסוקים (69+). כשל = עצור ודווח, אל תתקן דגלים לבד.
+## 0 · בטיחות תחילה (לפני כל דבר)
+1. ודא שסיירה אצלך **לא מחוברת לחשבון-האמת** בזמן ה-RTH (16:30-23:00 IL): ‏File→Disconnect,
+   או ‏Trade Simulation Mode ‏ON. כל האימותים שלך היום — על סים או בלי חיבור בכלל.
+2. ודא ש**שום שירות-מסחר לא רץ** אצלך על חשבון-האמת: ‏backend עם ‏LIVE/DEMO_EXECUTION כבויים
+   או ‏EnableOrderPlacement=0 בסטאדי. עצם קיום ‏trade_command.json פעיל אצלך + סיירה מחוברת = סכנת הוראה-כפולה.
 
-## שלב 2 — DLL
-1. ‏`./scripts/build_monolithic_cpp.sh --deploy` (פורס ‏ACS_Source מקומי).
-2. בסיירה: ‏Analysis → Build Custom Studies DLL → **Remote Build** → ‏reload לסטאדי.
-3. **חובה אחרי כל בילד: לחמש מחדש ‏Input 22 ("Enable Order Placement")** — מתאפס בשקט (החוסם מ-07-13, ראה ‏4326112).
-4. אם ‏sc_study כולל את הרחבת-4-החוזים (חפש ‏"t4" ב-‏MES_AI_DataExport.cpp) — ודא שהבילד כולל אותה.
+## 1 · חקירת-חובה: מקור השורט-4 של 13:55 (אירוע-אמת!)
+ב-13:55:57 IL נבנתה על חשבון-האמת 37138283 פוזיציית ‏SHORT-4 עירומה (הוראות ‏8985/8988/8991, ‏avg ‏7600.75) —
+מק-הפיתוח לא שלח אותה. **בדוק אצלך:** ‏(א) ‏trade_command.json שלך — מה נכתב 13:45-14:00? ‏(ב) לוג-הבקאנד שלך
+באותו חלון — ‏op=PLACE? דרילים/טסטים שרצו? ‏(ג) האם סיירה אצלך הייתה מחוברת-אמת אז (‏Trade Activity Log שלך)?
+כתוב ממצא חד-משמעי (כן/לא/ראיות) — זה קובע אם יש לנו דליפת-ביצוע בין-מכונות.
 
-## שלב 3 — אימות מוכנות (‏Rule 5: הדבק פקודה+פלט גולמי לכל סעיף)
-1. ‏`scripts/mems26_verify.sh` → ‏OK (‏DLL==ריפו, פיד טרי, ‏DB עדכני).
-2. ‏`python3 scripts/fire_drill.py` → ‏🟢 GO, ‏effective_contracts==4.
-3. עין-סיירה: ‏sierra_state.json מתעדכן ≤2ש', ‏is_sim תואם את מצב-סיירה שם, ‏order_placement_armed=true.
-4. **הוכחת-סים** (רק אם סיירה-iMac על SIM!): ‏BUY 4 → ‏4 זוגות-OCO (‏C1 יעד ‏±3.5=T0) → ‏FLATTEN_ACCOUNT → ‏qty=0.
-   אם ה-DLL עוד בלי-t4 — הוכחה על 3 (‏contracts=3 בפקודה ידנית) וציין ‏NOT-DONE.
-5. ‏Teton שם: מחובר? (ללייב-גיבוי חובה; לסים לא).
+## 2 · עדכון מלא
+1. ‏`git pull --ff-only` (ענף ‏stabilize/mems26-local-truth-2026-05-16) → ‏behind=0. העדכונים של היום כוללים
+   את כל חבילת-07-15: ‏4-חוזים+T0, שער-מיקום, ‏SSV, ‏R:R-fix, מוח-אחד-לסיווג, רצפת-סטופ, ‏S6-מגן, ‏expansion.
+2. ‏`python3 scripts/sync_env_from_ruled.py --apply` → ‏`python3 scripts/flag_guard.py` = ‏PASS ‏70/70. כשל → עצור ודווח.
+3. מיגרציה על ה-DB המקומי שלך אם טרם: ‏`python3 backend/v9/db/migrations/versions/021_t4_contract_columns.py`
+   (בדוק קודם: עמודות ‏t4/t4_hit_ts ב-v9_trades).
+4. ריסטארט-בקאנד + ‏`scripts/mems26_verify.sh` = ‏OK.
 
-## שלב 4 — דיווח
-‏append חתום+מתוארך ל-‏docs/handoff/AGENT_SYNC.md (‏LOG + סגירת שורת-ה-OPEN הרלוונטית) עם:
-מה-עבר · מה-נכשל · ‏NOT-DONE מפורש · פלטים גולמיים. ‏commit+push. אל תיגע בעסקאות/מסחר — ‏read-only מלבד העדכון עצמו.
+## 3 · DLL (מייקל לא עשה אצלך בילד!)
+1. ‏ACS_Source שלך כבר מעודכן (פרסת ב-10:56). בסיירה שלך: ‏Analysis → Build Custom Studies DLL → **Remote Build** → ‏reload לסטאדי.
+2. **אחרי הבילד: לחמש מחדש ‏Input 22 ("Enable Order Placement")** — מתאפס בשקט... **אבל היום ‏0 = נכון אצלך!**
+   השאר ‏0 (לא-חמוש) — ה-iMac לא יורה היום. ציין במפורש בדוח את מצב-החימוש.
+3. אימות: ‏sierra_state.json שלך מתעדכן, ‏order_placement_armed=false (כצפוי היום), בינארי-DLL טרי מהמקור.
 
-## מלכודות ידועות בדרך (חסוך לעצמך)
-- ‏sot_health מציג ‏DB-🔴 כוזב (קורא SQLite מת) — האמת ב-‏postgresql://localhost/mems26.
-- הריפו שם ב-‏~/mems26/mems26_web_git (לא Downloads); קיצורי-הדסקטופ כבר יודעים.
-- ‏launchd חסום-TCC מ-.env בכמה הקשרים — הפידר רץ עם ‏--account auto (פותר לבד).
-- אחרי ‏SetDefaults-שינויים ב-DLL נדרש לפעמים ‏remove+re-add לסטאדי — ואז ‏Input 4 (נתיב-ייצוא) + ‏Input 22 (חימוש) מתאפסים; בדוק את שניהם.
+## 4 · אימות פונקציונלי (על סים בלבד, ‏is_sim=1 gate לפני כל פקודה)
+אם סיירה שלך על סים: הוכחת-4-חוזים — ‏BUY 4 (‏T0=+3.5) → ‏8 הוראות (4 זוגות) → ‏FLATTEN → ‏flat.
+דריל: ‏fire_drill = ‏GO, ‏effective_contracts==4. אם אין סים זמין — דלג וסמן ‏NOT-DONE.
+
+## 5 · דיווח
+‏EXECUTION_REPORT_2026-07-15.md — סעיף חדש "דיווח cc-imac · מוכנות-iMac" + ‏AGENT_SYNC (חתום, ראיות גולמיות,
+‏NOT-DONE מפורש, ובראש: ממצא-חקירת-13:55). ‏commit+push.
+
+## מלכודות ידועות
+‏sot_health מציג DB-🔴 כוזב (SQLite מת) — האמת ב-postgres · הריפו אצלך ב-~/mems26/mems26_web_git ·
+הפידר עם ‏--account auto · אחרי בילד ייתכן איפוס ‏Input 4 (נתיב-ייצוא) — בדוק.
