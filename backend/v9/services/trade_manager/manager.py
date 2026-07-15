@@ -72,7 +72,7 @@ def trade_contract_count(trade) -> int:
         n = int(q.get("contracts") or 0)
     except (TypeError, ValueError):
         n = 0
-    if n in (1, 2, 3):
+    if n in (1, 2, 3, 4):
         return n
     if os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
         return 4  # Michael 2026-07-15, top precedence
@@ -199,7 +199,7 @@ class TradeManager:
         # depend on persistent slots (Pipeline 5 may clear them).
         q = trade.quality if isinstance(trade.quality, dict) else {}
         stop_ids = []
-        for key in ("c1_stop_id", "c2_stop_id", "c3_stop_id"):
+        for key in ("c1_stop_id", "c2_stop_id", "c3_stop_id", "c4_stop_id"):
             sid = q.get(key)
             if sid is not None:
                 stop_ids.append(int(sid))
@@ -428,7 +428,7 @@ class TradeManager:
         When provided, updates the target level to the real fill so PnL
         reflects actual execution, not the intended target level.
         """
-        if target not in ("T1", "T2", "T3"):
+        if target not in ("T1", "T2", "T3", "T4"):
             raise ValueError(f"Invalid target: {target}")
 
         trade = self._get_trade(trade_id)
@@ -444,6 +444,8 @@ class TradeManager:
                 trade.t2 = fill_price
             elif target == "T3":
                 trade.t3 = fill_price
+            elif target == "T4":
+                trade.t4 = fill_price
 
         self._append_snapshot(trade, f"{target.lower()}_hit")
 
@@ -479,10 +481,21 @@ class TradeManager:
             self._log_management(trade_id, "T3_HIT", {"ts": hit_ts.isoformat()})
             self._calculate_pnl(trade)
             # Close ONLY if all contracts are out (T1+T2 already filled)
+            # For 4-contract trades, T3 is not the last — T4 is.
             all_out = (trade.t1_hit_ts is not None and trade.t2_hit_ts is not None)
-            if all_out:
+            if all_out and n_contracts <= 3:
                 self._close_on_final_target(trade, machine, "T3_HIT", hit_ts)
-            # else: T3 filled before T2 (unusual) → stay PARTIAL until T2 fills
+            # else: T3 filled before T2 (unusual) or 4-contract trade → stay PARTIAL
+
+        elif target == "T4":
+            # C4 scale-out (Michael 07-15, 4 contracts): last runner.
+            trade.t4_hit_ts = hit_ts
+            self._log_management(trade_id, "T4_HIT", {"ts": hit_ts.isoformat()})
+            self._calculate_pnl(trade)
+            all_out = (trade.t1_hit_ts is not None and trade.t2_hit_ts is not None
+                       and trade.t3_hit_ts is not None)
+            if all_out:
+                self._close_on_final_target(trade, machine, "T4_HIT", hit_ts)
 
         self._db.flush()
 

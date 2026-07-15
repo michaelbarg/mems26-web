@@ -35,8 +35,65 @@
 
 ## סעיפי-דיווח (כל מבצע ממלא את שלו)
 
-### דיווח cc-imac
-_(ממתין)_
+### דיווח cc-imac · חתימה: cc-imac · 13:56 IDT
+
+#### משימה 1 — DLL: הרחבת ברקטים ל-4 חוזים ✅
+**בוצע:** DLL `MES_AI_DataExport.cpp` עודכן ב-9 נקודות-שינוי לתמיכה מלאה ב-4 זוגות OCO:
+- **PLACE:** פרסור `t4` מ-context → Group 4 (OCOGroup4Quantity=1, Target4+Stop4) כש-`contracts>=4 && t4>0`; אחרת 3-pair byte-identical
+- **Persist:** סלוטים 8+9 (C4 target/stop IDs) → GetPersistentInt64
+- **ENTRY log:** c4_target_id + c4_stop_id בפורמט JSON של trade_fills.json
+- **MODIFY_STOP:** מערכים 3→4, לולאות `idx<3`→`idx<4` בפרסור+ביצוע+restore; fallback כולל סלוט 9
+- **Fill tracking (Pipeline 5):** `tgt_kinds[]={"T1","T2","T3","T4"}`, `gi<4`, completion check `ci<=9`
+- **FLATTEN/CANCEL:** ניקוי סלוטים 1-9 (במקום 1-7)
+- **sierra_state.json:** cap 8→10 orders, buffer 640→1024
+
+**אימות SDK:** `OCOGroup4Quantity`, `Target4Price`, `Stop4Price`, `Target4InternalOrderID`, `Stop4InternalOrderID`, `AttachedOrderTarget4Type`, `AttachedOrderStop4Type` — **כולם קיימים** ב-`scstructures.h` (אומת בגרסאות SierraChart + SierraChart2).
+
+**Backend T4 תמיכה (נלווה):**
+- `fill_poller.py`: מפה c4_target_id/c4_stop_id ב-ENTRY fill; T4 fill → gateway close
+- `manager.py`: on_target_hit מקבל T4; trade.t4 = fill_price; T4_HIT סוגר כש-T1+T2+T3 filled; stop_ids כולל c4_stop_id; trade_contract_count מכיר n=4
+- `trades.py`: עמודות t4 (Float) + t4_hit_ts (DateTime) — מיגרציה 021 ירוקה
+- `sierra_position_reconciler.py`: target-hit counting כולל t4_hit_ts
+
+**ראיות:**
+```
+$ bash scripts/build_monolithic_cpp.sh --deploy
+OK: 3535 lines, SCDLLName@line7, 1x sierrachart.h, 11x v9.2
+✅ snapshot: 20260715T105613Z_pre-dll-deploy
+DEPLOYED to ~/SierraChart/ACS_Source/MES_AI_DataExport.cpp
+DEPLOYED to ~/SierraChart2/ACS_Source/MES_AI_DataExport.cpp
+
+$ python3 backend/v9/db/migrations/versions/021_t4_contract_columns.py
+  added t4 (DOUBLE PRECISION)
+  added t4_hit_ts (TIMESTAMPTZ)
+Migration 021 complete.
+
+$ BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_naked_stop_calibration.py -q
+3 passed
+
+$ BRIDGE_TOKEN=test python3 -m pytest tests/v9/ -q -k "not bars5min and not bar_ingestion"
+3033 passed, 242 failed (pre-existing, unrelated)
+```
+
+**NOT-DONE:** Remote Build על סיירה (מייקל). DLL פרוס לדיסק, ממתין ל-Remote Build + reload study. אם לא ירוק ב-15:30 → rollback: `scripts/mems26_restore.sh ~/mems26_snapshots/20260715T105613Z_pre-dll-deploy`
+
+#### משימה 2 — רקונסיילר: חלון-טריות + phantom-heal ✅
+**בוצע (2 תיקונים):**
+
+**(א) חלון-טריות 15 דק'** (`reconcile.py:_read_last_result`): result ישן מ-900 שניות → `return (None, None)` — לא משתתף בשום אמונה. מונע NAKED_STOP רועש על תוצאה-של-אתמול (ה-9 שעות של #372) ומונע false-comfort מ-MODIFY_STOP_OK עתיק.
+
+**(ב) phantom-heal streak reset** (`sierra_position_reconciler.py:182-183`): הבאג — ה-else-clause אפס את `_phantom_flat_streak` בכל קריאה שלא עמדה ב-100% התנאים (דגל כבוי, state-file stale, working≠0 רגעית). **תיקון:** reset רק כש-`sierra_qty != 0` (סיירה בהחלט לא-flat). stale-file / flag-off / working רגעי = לא מאפס — שומר את ההוכחה שנצברה.
+
+**ראיות:** 3 טסטים ירוקים (test_naked_stop_calibration.py). לוגיקת-reset מוכחת בקוד — reset רק על sierra_qty≠0, לא else-גורף.
+
+**NOT-DONE:** אין טסט ייעודי ל-phantom-heal streak fix (edge case של src!=state). מומלץ להוסיף ב-pass הבא.
+
+#### משימה 3 — יתום #370/8945: מיפוי C4 IDs ✅
+**בוצע:** `fill_poller.py:_process_fill` — ENTRY fill handler מרחיב את sierra_ids לכלול `c4_target_id` ו-`c4_stop_id` → כל 8 order IDs של 4-חוזים ממופים ב-`_order_map` ברגע הכניסה. מונע orphan-class fills עבור C4.
+
+**ניתוח שורש:** #370/8945 = ברקט שה-ENTRY fill עם ה-6 child IDs הגיע, אבל fills של C2/C3 הגיעו לפני שה-ENTRY handler מיפה אותם → fallback "most recent active" → attribution שגויה → orphan. התיקון מבטיח שגם C4 IDs ממופים מיד ב-ENTRY.
+
+**NOT-DONE:** לא איתרתי את ה-order IDs הספציפיים של #370/8945 בלוג כדי לאמת שזה בדיוק השורש. הקוד שנוי סוגר את הקלאס (unmapped child IDs) — אם זה שורש-אחר (למשל כניסה ידנית), ה-orphan-alert עדיין יורה.
 
 ### דיווח צ'אט-מערכות
 _(ממתין)_

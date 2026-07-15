@@ -118,7 +118,7 @@ def reconcile_position(tm) -> Tuple[bool, str]:
             from backend.v9.services.trade_manager.manager import trade_contract_count
             n = trade_contract_count(t)
             # Subtract hit targets
-            for tgt in ("t1_hit_ts", "t2_hit_ts", "t3_hit_ts"):
+            for tgt in ("t1_hit_ts", "t2_hit_ts", "t3_hit_ts", "t4_hit_ts"):
                 if getattr(t, tgt, None) is not None:
                     n -= 1
             n = max(0, n)
@@ -179,7 +179,11 @@ def reconcile_position(tm) -> Tuple[bool, str]:
             except Exception:
                 pass
             return True, hmsg
-    else:
+    elif sierra_qty != 0:
+        # Sierra is definitively NOT flat — the phantom condition is genuinely
+        # over.  Reset.  (Michael 07-15 fix: only reset when Sierra proves it's
+        # not flat.  A stale state file / heal-flag-off / momentary working!=0
+        # should NOT wipe accumulated evidence — that caused 0/3 stuck loops.)
         _phantom_flat_streak = 0
 
     msg = (f"DIVERGENCE: TM says {tm_qty} contracts {tm_trades}, "

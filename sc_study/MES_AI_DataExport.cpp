@@ -248,7 +248,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             lastStateMs = nowStateMs;
             s_SCPositionData spos;
             sc.GetTradePosition(spos);
-            char ordbuf[640];
+            char ordbuf[1024];
             int ob = 0, n_ord = 0;
             ordbuf[0] = '\0';
             s_SCTradeOrder tord;
@@ -260,7 +260,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_CLIENT &&
                     tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_SERVER)
                     continue;  // only working / held-bracket orders
-                if (n_ord < 8 && ob < (int)sizeof(ordbuf) - 96)
+                if (n_ord < 10 && ob < (int)sizeof(ordbuf) - 96)
                     ob += snprintf(ordbuf + ob, sizeof(ordbuf) - ob,
                         "%s{\"id\":%d,\"type\":%d,\"bs\":%d,\"price\":%.2f,\"qty\":%.0f}",
                         n_ord ? "," : "",
@@ -1034,13 +1034,15 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             if (contracts <= 0) contracts = 3;
                             bool is_buy = (cmd_content.find("\"BUY\"") != std::string::npos);
 
-                            // 3 OCO groups — each contract gets its OWN target + stop.
-                            // Group 1: C1 (1 lot) → Target1 at T1 + Stop1
-                            // Group 2: C2 (1 lot) → Target2 at T2 + Stop2 (re-anchored by manager)
-                            // Group 3: C3 (1 lot) → Target3 at T3 + Stop3 (re-anchored by manager)
+                            // Up to 4 OCO groups — each contract gets its OWN target + stop.
+                            // Group 1: C1 (1 lot) → Target1 at T0 + Stop1
+                            // Group 2: C2 (1 lot) → Target2 at T1 + Stop2 (re-anchored by manager)
+                            // Group 3: C3 (1 lot) → Target3 at T2 + Stop3 (re-anchored by manager)
+                            // Group 4: C4 (1 lot) → Target4 at T3 + Stop4 (runner, Michael 07-15)
                             // The manager MODIFY_TARGET each runner's target independently.
                             double t2_price = parse_float("\"t2\"");
                             double t3_price = parse_float("\"t3\"");
+                            double t4_price = parse_float("\"t4\"");
 
                             s_SCNewOrder o;
                             o.OrderQuantity = contracts;
@@ -1086,6 +1088,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 }
                             }
 
+                            // Group 4: C4 = 1 contract (runner 3, Michael 07-15 · 4 contracts)
+                            // t4 sent from backend when FIXED_CONTRACTS_4 + T0_TARGET_PTS;
+                            // None/0 → skip (byte-identical 3-pair behavior).
+                            if (contracts >= 4 && t4_price > 0)
+                            {
+                                o.OCOGroup4Quantity      = 1;
+                                o.Stop4Price             = static_cast<float>(stop_price);
+                                o.AttachedOrderStop4Type = SCT_ORDERTYPE_STOP;
+                                o.Target4Price             = static_cast<float>(t4_price);
+                                o.AttachedOrderTarget4Type = SCT_ORDERTYPE_LIMIT;
+                            }
+
                             int r = is_buy
                                 ? static_cast<int>(sc.BuyEntry(o))
                                 : static_cast<int>(sc.SellEntry(o));
@@ -1096,6 +1110,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 // Persist ALL IDs via GetPersistentInt64
                                 // 1=parent, 2=C1 target, 3=C1 stop
                                 // 4=C2 target, 5=C2 stop, 6=C3 target, 7=C3 stop
+                                // 8=C4 target, 9=C4 stop (Michael 07-15, 4 contracts)
                                 sc.GetPersistentInt64(1) = o.InternalOrderID;
                                 sc.GetPersistentInt64(2) = o.Target1InternalOrderID;
                                 sc.GetPersistentInt64(3) = o.Stop1InternalOrderID;
@@ -1103,6 +1118,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 sc.GetPersistentInt64(5) = o.Stop2InternalOrderID;
                                 sc.GetPersistentInt64(6) = o.Target3InternalOrderID;
                                 sc.GetPersistentInt64(7) = o.Stop3InternalOrderID;
+                                sc.GetPersistentInt64(8) = o.Target4InternalOrderID;
+                                sc.GetPersistentInt64(9) = o.Stop4InternalOrderID;
                                 sc.GetPersistentInt(103) = 0;
                                 sc.GetPersistentInt(107) = is_buy ? 1 : -1;  // D1: store direction for EXIT fallback
 
@@ -1116,6 +1133,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                         "\"c1_target_id\":%lld,\"c1_stop_id\":%lld,"
                                         "\"c2_target_id\":%lld,\"c2_stop_id\":%lld,"
                                         "\"c3_target_id\":%lld,\"c3_stop_id\":%lld,"
+                                        "\"c4_target_id\":%lld,\"c4_stop_id\":%lld,"
                                         "\"price\":%.2f,\"contracts\":%d,\"direction\":\"%s\"}\n",
                                         (long long)time(nullptr),
                                         (long long)o.InternalOrderID,
@@ -1125,6 +1143,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                         (long long)o.Stop2InternalOrderID,
                                         (long long)o.Target3InternalOrderID,
                                         (long long)o.Stop3InternalOrderID,
+                                        (long long)o.Target4InternalOrderID,
+                                        (long long)o.Stop4InternalOrderID,
                                         entry_price, contracts, is_buy ? "LONG" : "SHORT");
                                     if (fl > 0 && fl < (int)sizeof(fb))
                                     {
@@ -1245,9 +1265,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             int mod_count = 0;
 
                             // Collect stop IDs: prefer stop_ids from command, fallback to persistent
-                            int64_t stop_oids[3] = {0, 0, 0};
+                            int64_t stop_oids[4] = {0, 0, 0, 0};
                             int n_from_cmd = 0;
-                            // Parse "stop_ids":[id1,id2,id3] — simple scan for the array
+                            // Parse "stop_ids":[id1,id2,id3,id4] — simple scan for the array
                             size_t arr_pos = cmd_content.find("\"stop_ids\"");
                             if (arr_pos != std::string::npos)
                             {
@@ -1255,7 +1275,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 if (bracket != std::string::npos)
                                 {
                                     size_t cur = bracket + 1;
-                                    for (int idx = 0; idx < 3 && cur < cmd_content.size(); idx++)
+                                    for (int idx = 0; idx < 4 && cur < cmd_content.size(); idx++)
                                     {
                                         while (cur < cmd_content.size() && (cmd_content[cur] == ' ' || cmd_content[cur] == ','))
                                             cur++;
@@ -1267,21 +1287,22 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                     }
                                 }
                             }
-                            // Fallback: persistent slots
+                            // Fallback: persistent slots (3,5,7,9)
                             if (n_from_cmd == 0)
                             {
                                 stop_oids[0] = sc.GetPersistentInt64(3);
                                 stop_oids[1] = sc.GetPersistentInt64(5);
                                 stop_oids[2] = sc.GetPersistentInt64(7);
+                                stop_oids[3] = sc.GetPersistentInt64(9);
                             }
 
                             // Snapshot paired target prices BEFORE modifying stops.
                             // Sierra Attached Orders may auto-drag targets to preserve
                             // stop-target offset. We re-set targets after to prevent drag.
-                            int64_t tgt_oids[3] = {0, 0, 0};
-                            float   tgt_prices[3] = {0, 0, 0};
-                            // Target slots: 2, 4, 6 (paired with stop slots 3, 5, 7)
-                            for (int ti = 0; ti < 3; ti++)
+                            int64_t tgt_oids[4] = {0, 0, 0, 0};
+                            float   tgt_prices[4] = {0, 0, 0, 0};
+                            // Target slots: 2, 4, 6, 8 (paired with stop slots 3, 5, 7, 9)
+                            for (int ti = 0; ti < 4; ti++)
                             {
                                 int64_t tid = sc.GetPersistentInt64(2 + ti * 2);
                                 if (tid <= 0) continue;
@@ -1293,7 +1314,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                 tgt_prices[ti] = to.Price1;
                             }
 
-                            for (int si = 0; si < 3; si++)
+                            for (int si = 0; si < 4; si++)
                             {
                                 if (stop_oids[si] <= 0) continue;
                                 s_SCTradeOrder so;
@@ -1308,7 +1329,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             }
 
                             // Re-set targets to their original prices (undo Sierra auto-drag)
-                            for (int ti = 0; ti < 3; ti++)
+                            for (int ti = 0; ti < 4; ti++)
                             {
                                 if (tgt_oids[ti] <= 0 || tgt_prices[ti] <= 0) continue;
                                 s_SCTradeOrder to2;
@@ -1428,7 +1449,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         int r = sc.FlattenAndCancelAllOrders();
                         result_status = (r >= 0) ? "FLATTEN_ACCOUNT_OK" : "FLATTEN_ACCOUNT_FAIL";
                         order_err = r;
-                        for (int ci = 1; ci <= 7; ci++) sc.GetPersistentInt64(ci) = 0;
+                        for (int ci = 1; ci <= 9; ci++) sc.GetPersistentInt64(ci) = 0;
                         sc.GetPersistentInt(103) = 1;  // exit_written
                         sc.AddMessageToLog("MEMS26: FLATTEN_ACCOUNT executed (FIX-11)", 1);
                     }
@@ -1440,7 +1461,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             int r = sc.FlattenAndCancelAllOrders();
                             result_status = (r >= 0) ? "CANCEL_OK" : "CANCEL_FAIL";
                             order_err = r;
-                            for (int ci = 1; ci <= 7; ci++) sc.GetPersistentInt64(ci) = 0;
+                            for (int ci = 1; ci <= 9; ci++) sc.GetPersistentInt64(ci) = 0;
                             sc.GetPersistentInt(103) = 1;  // exit_written
                         }
                         else
@@ -1486,8 +1507,8 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
     }
 
     // ══════════════════════════════════════════════════════════════
-    // Pipeline 5: Monitor all 3 groups' fills
-    // IDs: 1=parent, 2/3=C1 tgt/stop, 4/5=C2 tgt/stop, 6/7=C3 tgt/stop
+    // Pipeline 5: Monitor all groups' fills (up to 4)
+    // IDs: 1=parent, 2/3=C1 tgt/stop, 4/5=C2, 6/7=C3, 8/9=C4
     // ══════════════════════════════════════════════════════════════
     if (EnableOrderPlacement.GetInt() >= 1)
     {
@@ -1499,9 +1520,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             const char* fills_path = TradeFillsPath.GetString();
             if (fills_path[0] != '\0')
             {
-                // Check each group's target + stop (2/3=C1, 4/5=C2, 6/7=C3)
-                const char* tgt_kinds[] = {"T1", "T2", "T3"};
-                for (int gi = 0; gi < 3; gi++)
+                // Check each group's target + stop (2/3=C1, 4/5=C2, 6/7=C3, 8/9=C4)
+                const char* tgt_kinds[] = {"T1", "T2", "T3", "T4"};
+                for (int gi = 0; gi < 4; gi++)
                 {
                     int tgt_slot = 2 + gi * 2;  // 2, 4, 6
                     int stp_slot = 3 + gi * 2;  // 3, 5, 7
@@ -1555,9 +1576,9 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                     }
                 }
 
-                // If ALL groups are done (all slots 2-7 = 0), mark fully exited
+                // If ALL groups are done (all slots 2-9 = 0), mark fully exited
                 bool all_done = true;
-                for (int ci = 2; ci <= 7; ci++)
+                for (int ci = 2; ci <= 9; ci++)
                     if (sc.GetPersistentInt64(ci) != 0) { all_done = false; break; }
                 if (all_done)
                 {

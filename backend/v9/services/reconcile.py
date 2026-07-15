@@ -133,6 +133,14 @@ def _read_last_result():
         status = obj.get("status")
         ts = obj.get("ts")
         age = (time.time() - float(ts)) if ts else None
+        # Freshness window (Michael 07-15): a result older than 15 min is
+        # yesterday's stale artifact — don't let it participate in any belief.
+        # Without this, a 9hr-old MODIFY_STOP_OK survives overnight and feeds
+        # a false "confirmed stop" or a noisy NAKED_STOP on a stale ghost.
+        if age is not None and age > _STOP_STALE_S:
+            logger.debug("[Reconcile] trade_result.json too old (%.0fs > %.0fs) — discarded",
+                         age, _STOP_STALE_S)
+            return None, None
         return status, age
     except Exception as e:
         logger.warning("[Reconcile] could not read trade_result.json: %s", e)

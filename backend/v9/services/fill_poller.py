@@ -475,7 +475,7 @@ class FillPoller:
                     self._tm.on_fill(trade_id, float(price))
                     logger.info("[FillPoller] ENTRY fill: trade %s @ %s", trade_id, price)
 
-                    # Store Sierra order IDs from the ENTRY fill (6 per-contract IDs)
+                    # Store Sierra order IDs from the ENTRY fill (up to 8 per-contract IDs)
                     sierra_ids = {
                         "sierra_order_id": fill.get("order_id"),
                         "c1_target_id": fill.get("c1_target_id"),
@@ -484,6 +484,8 @@ class FillPoller:
                         "c2_stop_id": fill.get("c2_stop_id"),
                         "c3_target_id": fill.get("c3_target_id"),
                         "c3_stop_id": fill.get("c3_stop_id"),
+                        "c4_target_id": fill.get("c4_target_id"),
+                        "c4_stop_id": fill.get("c4_stop_id"),
                     }
                     try:
                         self._tm.set_sierra_order_ids(trade_id, sierra_ids)
@@ -505,14 +507,15 @@ class FillPoller:
                     logger.info("[FillPoller] mapped %d per-contract order ids → trade %s",
                                 sum(1 for v in sierra_ids.values() if v is not None), trade_id)
 
-            elif kind in ("T1", "T2", "T3"):
+            elif kind in ("T1", "T2", "T3", "T4"):
                 # Pass Sierra fill price so PnL uses real execution, not intended level
                 _fill_px = float(price) if price is not None else None
                 self._tm.on_target_hit(trade_id, kind, fill_ts=fill_ts, fill_price=_fill_px)
                 logger.info("[FillPoller] %s fill: trade %s @ %s", kind, trade_id, price)
-                if kind == "T3":
+                if kind in ("T3", "T4"):
                     # All contracts out → full close: free slot + count outcome (I-57)
-                    self._notify_gateway_close(trade_id, "T3")
+                    # T4 is the last runner with 4 contracts (Michael 07-15)
+                    self._notify_gateway_close(trade_id, kind)
                 else:
                     # L7 (2026-07-08): with <3 contracts the LAST target is T1/T2 —
                     # the manager closes the trade there; free the slot too (the

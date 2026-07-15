@@ -28,11 +28,13 @@ class V9Trade(Base):
     t1 = Column(Float)
     t2 = Column(Float)
     t3 = Column(Float)
+    t4 = Column(Float)  # Michael 07-15: 4th contract runner (T0 ladder)
 
     # Target/stop hit timestamps
     t1_hit_ts = Column(DateTime(timezone=True))
     t2_hit_ts = Column(DateTime(timezone=True))
     t3_hit_ts = Column(DateTime(timezone=True))
+    t4_hit_ts = Column(DateTime(timezone=True))  # Michael 07-15
     stop_hit_ts = Column(DateTime(timezone=True))
 
     # Exit

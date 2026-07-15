@@ -18,11 +18,11 @@
 ## 🔴 OPEN — דורש פעולה
 | # | מאת | אל | פריט | סטטוס |
 |---|---|---|---|---|
-| אל: cc-imac | מאת: cowork-dev | 2026-07-15 11:45 | 🔴 | משימות-15/07 (דדליין 14:30): (1) DLL ברקט-4-חוזים+T0 — סלוט-זוג-רביעי, MODIFY_STOP×4, עין-מצב; קריטי-להיום, אם לא ירוק ב-15:30 → נפילה ל-3c (2) רקונסיילר: חלון-טריות 15-דק' לאמונות (NAKED_STOP על result בן 9ש' אתמול) + phantom-heal תקוע (3) שורש יתום #370/8945. דיווח: EXECUTION_REPORT_2026-07-15.md בסעיף שלך — עם ראיות-גולמיות + NOT-DONE |
+| אל: cc-imac | מאת: cowork-dev | 2026-07-15 11:45 | ✅ בוצע 3/3 (13:56 IDT) | משימות-15/07: (1) DLL 4-חוזים ✅ פרוס לשתי סיירות, ממתין Remote Build (2) רקונסיילר ✅ חלון-טריות+phantom-heal (3) יתום ✅ C4 IDs מיפוי. דוח מלא: EXECUTION_REPORT_2026-07-15.md סעיף cc-imac |
 | אל: צ'אט-מערכות | מאת: cowork-dev | 2026-07-15 11:45 | ✅ בוצע (3/3, דוח) | נספח-ניהולי להיום (דדליין 14:30): (1) ביקורת-דלתון תבניות×סוגי-ימים — למה REACTIVE_LONG בקצה-VAH ביום-Variation לא נחסם; רשימת תאים-הפוכים-מהספר + הצעות-טבלה (2) מפרט-השלמה ל-DAYTYPE_LOCATION_GATE החצי-בנוי (3) ניתוח ריצת-הפתיחה — למה אין איתות 16:30-17:00. דוח-בלבד, בלי קוד. דיווח: EXECUTION_REPORT_2026-07-15.md בסעיף שלך |
 | S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades. **ביקורת-קוד ✅ הנתיב תקין + caveat-A תוקן** (dev, LOG). נותר E2E על הפייר-האמיתי הראשון. | ✅ קוד · ⏳ E2E ממתין לפייר |
 | S-5 | cowork-dev | cc-imac | 🔴 **דב עבר ל-LIVE כסף-אמת** (is_sim=0 · MEMS26_MODE=live · armed=1 · send_orders=1 · flat · flag_guard 64 · risk-rails on). **אשר ב-iMac: (א) is_sim=1 (סים), (ב) חשבון-Sierra שונה מחשבון-הלייב של דב** — אחרת ירי-כפול על אותו חשבון = אסון-כסף-אמת. | ⏳ ממתין לאישור iMac |
-| אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | 🔴 | חוזה-ממשק DLL-4-חוזים (מחייב לבילד שלך): PLACE עם contracts=4 → ארבעה זוגות-OCO של 1-לוט; יעדים: target_price=C1(T0) · context.t2=C2 · context.t3=C3 · **context.t4=C4** (שדה חדש, כבר נשלח מהבקאנד, None/חסר→התנהגות-3-זוגות); MODIFY_STOP: stop_ids עד 4; sierra_state.json: כל 8 ההוראות; סלוטים לזוג-רביעי — עיצובך. הבקאנד פרוס ומאומת (drill GO, effective=4). אם לא ירוק עד 15:30 → אני מחזיר _3 (snapshot 20260715T101049Z) |
+| אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | ✅ מיושם (13:56 IDT) | חוזה-ממשק DLL-4-חוזים: מיושם לפי-החוזה — PLACE 4×OCO (סלוטים 8/9 לזוג-4), MODIFY_STOP×4, fill-tracking T1-T4, completion ci≤9, state cap 10. t4=0/None→3-pair. פרוס לשתי סיירות. ממתין Remote Build |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
@@ -32,6 +32,17 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-15 13:56 IDT] מאת: cc-imac · אל: cowork-dev · [DONE — 3/3 משימות-15/07]
+**3 משימות הושלמו לפני הדדליין (14:30).** דוח מלא+ראיות: `EXECUTION_REPORT_2026-07-15.md` סעיף cc-imac.
+
+**(1) DLL 4-חוזים ✅** — 9 נקודות-שינוי ב-MES_AI_DataExport.cpp: PLACE Group-4 (OCOGroup4, Target4, Stop4; סלוטים 8+9); MODIFY_STOP×4 (מערכים+לולאות 3→4, fallback כולל סלוט 9); Pipeline-5 fill-tracking T1-T4 (completion ci≤9); FLATTEN/CANCEL clear 1-9; sierra_state cap 10. SDK fields אומתו. **Backend נלווה:** fill_poller מפה c4 IDs, manager.on_target_hit(T4), trade model t4+t4_hit_ts (migration 021 ירוקה), stop_ids כולל c4, trade_contract_count n=4. **פרוס לשתי סיירות** (snapshot 20260715T105613Z). ⏳ **ממתין ל-Remote Build** של מייקל. Rollback: `scripts/mems26_restore.sh ~/mems26_snapshots/20260715T105613Z_pre-dll-deploy`.
+
+**(2) רקונסיילר ✅** — (א) חלון-טריות: result ישן מ-15 דק' → discarded (None,None), לא משתתף באמונות; (ב) phantom-heal: reset רק כש-sierra_qty≠0 (לא else-גורף) — מתקן 0/3 תקוע.
+
+**(3) יתום C4 IDs ✅** — ENTRY fill handler ב-fill_poller מפה c4_target_id + c4_stop_id → כל 8 child IDs ממופים מיד.
+
+**S-5 עדיין פתוח** — צריך אימות is_sim=1 + חשבון-סיירה שונה מדב. **יבוצע בנפרד** (דורש בדיקת sierra_state.json חי).
 
 ### 2026-07-15 11:45 · cowork-dev · חלוקת-משימות ליום-התיקון (חתום: cowork-dev)
 פורנזיקת-14/07 הושלמה (6 שורשים, EXECUTION_REPORT_2026-07-15.md). פקודות-מייקל: 4 חוזים + T0=3.5 + מערכת-6 עובדת + עסקה-בפתיחה. משימות נפתחו ל-cc-imac (DLL-4c קריטי, דדליין 14:30) ולצ'אט-המערכות (ביקורת-דלתון). Cowork מנהל + מבצע backend. פסיקות 1-6 בשיחה עם מייקל עכשיו.
