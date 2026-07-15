@@ -70,6 +70,7 @@ ruled:
   T0_TARGET_PTS:         {expected: "3.5", ruled_by: "מייקל", date: "2026-07-15", note: "'T0 יהיה 3.5 נקודות' — חוזה-1 יוצא ב-±3.5; הסולם מוזח C2→T1,C3→T2,C4→T3" }
   SYSTEM6_AUTOCORRECT:   {expected: "protective", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 6/6: מערכת-6 עובדת במדרגה-מגינה — רק BE-completion והפלת-יעד-בצד-שגוי; עירום/רוחב נשארים ALERT" }
   STOP_FLOOR_ROTATION_ATR: {expected: "0.8", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 5/6: רצפת-סטופ 0.8×ATR בימי Variation/Neutral (שורש מות-#372); מגמה נשארת 0.5" }
+  DAYTYPE_LOCATION_GATE:  {expected: "1", ruled_by: "מייקל", date: "2026-07-15", note: "מאושר ('מאשר', אחה\"צ): אכיפת כיוון-לפי-מיקום — REV רק בקצה-הערך בכיוון-הפייד בימי-רוטציה (LONG@VAL, SHORT@VAH); כלל-Variation דו-שלבי (CONT עם-התרחבות + REV בקצוות); ראיות: #372 נחסם, כימות-אתמול ~48/61 מיקום-שגוי נחסם, 13 נכונים עוברים; 9 טסטים" }
   SSV_GATE_V1:            {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "פסיקת-בוקר ('מאשר את ההמלצה'): SSV רץ בלי-דגל ובלי-פסיקה וניזון מצל — חסם 22 ירי-אמת ב-14/07; כבוי עד כיול על שבוע-אמת + פסיקה; ההזנה תוקנה ל-live/demo בלבד" }
   S1_ACCEPTANCE_RECLASS_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P0-1-v2 מאושר ('מאשר'): reclass-בקבלה בכל הרפרנסים (PDH/PDL/VA-אתמול/IB) + failed_breakout; ראיות: 07-08 DOWN@09:35, 06-30 Trend@10:00, EOD ללא-שינוי (P01_V2 report)" }
   S1_NONCONVICTION_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-8 מאושר-והודלק לערב-12/07 ('לבצע את ההמלצות ולהפעיל למחר') — יום-בלי-עקבות = NO_TRADE" }
