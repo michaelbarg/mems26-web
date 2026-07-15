@@ -780,9 +780,17 @@ class WoodiesSystem(BaseV9TradingSystem):
                                         import os as _lb_os
                                         _lb_n = int(_lb_os.getenv("PATTERN_LOSS_BREAKER_N", "2"))
                                         from backend.v9.db.read import read_scalar as _lb_rs
+                                        # 07-15 21:00 (Michael: "למה אין עסקאות לא בדמו ולא
+                                        # בלייב!!! לתקן מייד"): REAL losses only. Shadow
+                                        # losses were counted and killed ZLR for the whole
+                                        # session on BOTH machines — the same shadow-noise
+                                        # poisoning as SSV (decision 1/6); this pipe was
+                                        # missed in that fix. mode!='shadow' ⇒ demo+live
+                                        # count, shadow never.
                                         _lb_losses = _lb_rs(
                                             "SELECT COUNT(*) FROM v9_trades WHERE entry_ts::date = CURRENT_DATE "
-                                            "AND pattern_id_at_entry = :pid AND pnl_usd < 0 AND state = 'CLOSED'",
+                                            "AND pattern_id_at_entry = :pid AND pnl_usd < 0 AND state = 'CLOSED' "
+                                            "AND mode != 'shadow'",
                                             {"pid": _pid},
                                         ) or 0
                                         if _lb_losses >= _lb_n:
