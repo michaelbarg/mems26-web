@@ -301,6 +301,15 @@ class TradingGateway:
     def route_setup(self, setup: dict, system_id: int) -> Dict:
         """Route a setup, then LOG the gate block reason so blocks are not silent
         (no silent failures — every blocked setup records WHY it didn't fire)."""
+        # 07-15 Michael decision 3/6: pattern propagates through the WHOLE chain.
+        # Producers fill `classification`; half the consumers (t1-overrides,
+        # playbook, logs, trade record) read `pattern` — which arrived empty on
+        # every 07-14 fire ("pattern=None"). Normalize ONCE at the entry point.
+        if not setup.get("pattern"):
+            _pat = (setup.get("classification")
+                    or (setup.get("metadata") or {}).get("pattern"))
+            if _pat:
+                setup["pattern"] = _pat
         result = self._route_setup_inner(setup, system_id)
         bb = result.get("blocked_by")
         if bb:
