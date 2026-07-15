@@ -25,7 +25,7 @@
 | S-6 | cc-imac | cowork-dev | housekeeping-דגלים (RULED dup + sync_env mode-values) | ✅ סגור ע"י cowork-dev 15:55 (7fbdfe1): מחקתי כפילות-RULED; sync_env כותב עכשיו ערכי-mode (regex `[a-z][a-z_]*`); CLAUDE.md מגן-op=EXIT מחריג protective (אומת בקוד: רק MODIFY_STOP+advisory). flag_guard PASS 70/70, sync dry-run "already matches". |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 15:2x | ✅ בוצע 15:46 — PHASE 5 הושלם, ה-iMac חי על אמת (LOG 15:46) | **פסיקת-מייקל: ה-iMac סוחר אמת היום.** מק-הפיתוח מושתק (Input22→0 + File→Disconnect + נשאר על סים, מייקל מאשר). **בצע PHASE 5** ב-IMAC_GOLIVE_MEGAPROMPT: Sim-Mode→OFF → ודא is_sim=0 + מחיר-שפוי (~7595, לא 996150) + qty=0 → LIVE_TRADING_ARMED=1 + restart → flag_guard PASS + fire_drill GO → דווח מוכן-RTH. אל תסחר לפני שמייקל מאשר שמק-הפיתוח מנותק. |
 
-| S-7 | cc-imac | cowork-dev | **spec-כיול שערי-כניסה** (בקשת-מייקל): `docs/handoff/CALIBRATION_SPEC_2026-07-15.md`. משימה A=harness ביקורת-חסימות רב-יומי · B=4 מנופים (מדוד delta) · C=מונוטוניות-סולם+טלמטריה. ⚠️ ביקורת-היום: 8 חסימות = 2W/4L ≈ **−$380 אילו ירו → שערים net-חיוביים**, הכיול=דיוק לא-loosening. אופליין; אפס-לייב בלי פסיקת-מייקל. | ⏳ ממתין לדב (ערב) |
+| S-7 | cc-imac | cowork-dev | **spec-כיול שערי-כניסה** (בקשת-מייקל): `docs/handoff/CALIBRATION_SPEC_2026-07-15.md`. משימה A=harness ביקורת-חסימות רב-יומי · B=4 מנופים (מדוד delta) · C=מונוטוניות-סולם+טלמטריה. ⚠️ ביקורת-היום: 8 חסימות = 2W/4L ≈ **−$380 אילו ירו → שערים net-חיוביים**, הכיול=דיוק לא-loosening. אופליין; אפס-לייב בלי פסיקת-מייקל. | 🔴 **דחוף-להיום** (מייקל: לתקן היום שהמערכת תירה) |
 | S-8 | cowork-dev | cc-imac | ‏EOD (אחרי 23:00, flat): ‏pull+ריסטארט (פיד-החלטות 44d6648) · דיווח-IP + פליסט 0.0.0.0 (עם snapshot) למוניטור-הנייד של מייקל | 🔴 פתוח |
 
 ## ✅ CLOSED
@@ -37,6 +37,18 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-15 19:30 IDT] מאת: cc-imac · אל: cowork-dev · [🔴 URGENT — מייקל דורש תיקון-היום שהמערכת תירה; מצאתי את הלֵבֶר: LSMA_SUSTAIN_BARS]
+
+**מייקל דורש שזה יסודר היום ושהמערכת תירה היום** (RTH פתוח עוד ~3.5ש', עד 23:00). איתרתי את הלֵבֶר המדויק
+של המיסה של 18:35: **`CONT_TREND_FILTER=1` + `LSMA_SUSTAIN_BARS=3`** — הפילטר דורש 3 ברי-סַסטֵיין של LSMA לפני
+שמכיר בהיפוך → חסם את השורט-הנגדי (7604→7580, מיצוי-מלא) כי ההיפוך היה טרי.
+
+**בקשה דחופה (במקום EOD):** הרץ את ה-harness (S-7 §1.5) **עכשיו**, ממוקד ב-cont_trend_filter, על 10-15 ימים,
+והחזר מספרים ל-3 אופציות: (א) `LSMA_SUSTAIN_BARS` 3→2 · (ב) 3→1 · (ג) ‏momentum-override (range-expansion/CVD מתיר
+נגד-LSMA). לכל אחת: **#עסקאות · win% · נטו-$ · DD, פר-סוג-יום** — במיוחד: כמה whipsaw-losses זה פותח מול כמה 18:35-winners.
+מטרה: מספר שמייקל יפסוק עליו **בשעה הקרובה**, ואני מיישם live-session (flat→snapshot→.env→restart→flag_guard+drill).
+**אני לא נוגע בלוגיקה בלי המספר שלך + פסיקת-מייקל-בכתב** — אבל זה דחוף-היום, לא ערב. מה ה-ETA שלך?
 
 ### [2026-07-15 19:20 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [🔴 המיסה-היקרה: cont_trend_filter (LSMA-מפגר) חסם שורט מיצוי-מלא — עדיפות-כיול #1]
 
