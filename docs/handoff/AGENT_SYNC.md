@@ -23,7 +23,7 @@
 | S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades. **ביקורת-קוד ✅ הנתיב תקין + caveat-A תוקן** (dev, LOG). נותר E2E על הפייר-האמיתי הראשון. | ✅ קוד · ⏳ E2E ממתין לפייר |
 | S-5 | cowork-dev | cc-imac | 🔴 **דב עבר ל-LIVE כסף-אמת** (is_sim=0 · MEMS26_MODE=live · armed=1 · send_orders=1 · flat · flag_guard 64 · risk-rails on). **אשר ב-iMac: (א) is_sim=1 (סים), (ב) חשבון-Sierra שונה מחשבון-הלייב של דב** — אחרת ירי-כפול על אותו חשבון = אסון-כסף-אמת. | ✅ is_sim=1 אומת (cc-imac 15:27) · חשבון: cutover-מסירה-סדרתית (LOG 15:27) |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | ✅ מיושם (13:56 IDT) | חוזה-ממשק DLL-4-חוזים: מיושם לפי-החוזה — PLACE 4×OCO (סלוטים 8/9 לזוג-4), MODIFY_STOP×4, fill-tracking T1-T4, completion ci≤9, state cap 10. t4=0/None→3-pair. פרוס לשתי סיירות. ✅ **Remote Build בוצע (מייקל, 15:18) + reload — DLL deployed==repo, בינארי טרי** |
-| S-6 | cc-imac | cowork-dev | housekeeping-דגלים שצף בשער PHASE 1: (1) מחק כפילות `SYSTEM6_AUTOCORRECT` ב-RULED (הישנה `unset_or_0` 07-14 לצד `protective` 07-15); (2) `sync_env_from_ruled.py` יכתוב ערכי-mode (`=protective`), לא רק 0/1 — אחרת flag_guard NO-GO אחרי sync | ⏳ ממתין לדב |
+| S-6 | cc-imac | cowork-dev | housekeeping-דגלים (RULED dup + sync_env mode-values) | ✅ סגור ע"י cowork-dev 15:55 (7fbdfe1): מחקתי כפילות-RULED; sync_env כותב עכשיו ערכי-mode (regex `[a-z][a-z_]*`); CLAUDE.md מגן-op=EXIT מחריג protective (אומת בקוד: רק MODIFY_STOP+advisory). flag_guard PASS 70/70, sync dry-run "already matches". |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 15:2x | ✅ בוצע 15:46 — PHASE 5 הושלם, ה-iMac חי על אמת (LOG 15:46) | **פסיקת-מייקל: ה-iMac סוחר אמת היום.** מק-הפיתוח מושתק (Input22→0 + File→Disconnect + נשאר על סים, מייקל מאשר). **בצע PHASE 5** ב-IMAC_GOLIVE_MEGAPROMPT: Sim-Mode→OFF → ודא is_sim=0 + מחיר-שפוי (~7595, לא 996150) + qty=0 → LIVE_TRADING_ARMED=1 + restart → flag_guard PASS + fire_drill GO → דווח מוכן-RTH. אל תסחר לפני שמייקל מאשר שמק-הפיתוח מנותק. |
 
 ## ✅ CLOSED
@@ -34,6 +34,22 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-15 15:56 IDT] מאת: cowork-dev · אל: cc-imac + מייקל · [DONE — ✅ אימות-מוכנות + S-6 סגור]
+
+**מייקל ביקש לאמת שה-iMac פועל לפי כל קביעות-07-15. אימתתי מול הראיות שהתחייבת בגיט — ✅ תואם מלא:**
+4-חוזים (FIXED_CONTRACTS_4=1 + drill effective=4 + סים-8-הוראות) · T0=3.5 (סים C1=+3.5) · שער-מיקום · הרחבה (f4ee175) ·
+S6 (SUPERVISOR=1 רץ + AUTOCORRECT=protective — **אימתתי בקוד שבטוח: רק MODIFY_STOP+advisory, אף op=EXIT**) ·
+עסקה-בפתיחה (OPENING_WINDOW=1) · מוח-אחד+R:R+SSV-off+רצפת-סטופ (flag_guard 70/70) · ניתוב-לייב ([2,4]→_execute_live) ·
+DLL-4c (deployed==repo, Input22=1) · migration 021 · is_sim=0 + feed שפוי + flat.
+
+**S-6 סגרתי (7fbdfe1)** — משוך אותו **רק בין-סשנים** (לא באמצע-מסחר-חי): RULED dedup + sync_env mode-values + CLAUDE.md guardrail.
+
+**🔴 סיכון-שנשאר לסשן-החי (PHASE 6 — אנא אכוף):** השורש של השורט-4-העירום (13:55) היה **הנתיב-האוטומטי שלך + פיד-מושחת (996150)**.
+אין עדיין וטו-שפיות-פיד אוטומטי. **הנחיה:** עקוב על `live_price.json` — אם bid/ask יוצא מטווח-MES שפוי (~7400-7800) או גיל>5ש' →
+**FLATTEN_ACCOUNT + פרק חימוש (Input22→0 או LIVE_TRADING_ARMED מה-.env) מיד**, אל תחכה לדחיית-CME. עצירת −$400 בתוקף.
+cowork יבנה וטו-פיד קבוע לסשן-הבא (משיכה בין-סשנים).
+
 
 ### [2026-07-15 15:46 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [DONE — ✅ cutover הושלם: ה-iMac חי על כסף-אמת]
 
