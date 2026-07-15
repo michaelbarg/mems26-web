@@ -1259,11 +1259,36 @@ class TradingGateway:
                             _rr_dir, float(_rr_t1), _rr_e,
                         )
                         return result
-                    if _stop_dist > 0 and _t1_dist < _stop_dist:
+                    # 07-15 evening (Michael: "תיקון שיסדר את הבעיה כדי שהמערכת
+                    # תסחר היום"): graded R:R minimum on ROTATION days. The
+                    # 0.8×ATR stop floor (decision 5/6) × nearest-shelf T1 made
+                    # T1-only R:R ~always <1 on a narrow rotation day — blocked
+                    # the winning 18:15 ZLR SHORT (R:R 0.65, T0+T1 both hit).
+                    # With the T0=3.5 fast-take ladder, T1-only R:R is double-
+                    # conservative. RR_MIN_ROTATION (e.g. "0.65") lowers the
+                    # required ratio ONLY on rotation day-types; unset → 1.0
+                    # everywhere (unchanged). Trend days always 1.0. Fail-
+                    # conservative: any error → 1.0.
+                    _rr_min = 1.0
+                    _rr_min_env = os.getenv("RR_MIN_ROTATION", "").strip()
+                    if _rr_min_env:
+                        try:
+                            from backend.v9.services.trade_context import (
+                                get_live_day_type as _rr_dt_fn,
+                            )
+                            _rr_dt = str(_rr_dt_fn() or "")
+                            if _rr_dt.startswith(
+                                ("Variation", "Normal_Variation", "Normal", "Neutral")
+                            ):
+                                _rr_min = max(0.1, min(float(_rr_min_env), 1.0))
+                        except Exception:
+                            _rr_min = 1.0
+                    if _stop_dist > 0 and _t1_dist < _stop_dist * _rr_min:
                         result["blocked_by"] = "rr_entry_gate"
                         logger.info(
-                            "[Gateway] BLOCKED by R:R gate: T1_dist=%.2f < stop_dist=%.2f (R:R=%.2f)",
-                            _t1_dist, _stop_dist, _t1_dist / _stop_dist,
+                            "[Gateway] BLOCKED by R:R gate: T1_dist=%.2f < stop_dist=%.2f"
+                            " × min=%.2f (R:R=%.2f)",
+                            _t1_dist, _stop_dist, _rr_min, _t1_dist / _stop_dist,
                         )
                         return result
                 except (TypeError, ValueError):
