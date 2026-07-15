@@ -108,6 +108,20 @@ def _route_bar(bar_type: str, bar_data: dict) -> None:
     chart periods and must NOT be compared to the 5min spot price.
     """
     if _bar_router is None:
+        # 07-15 Q1 hardening (no-silent-failures): this return starved the
+        # engines invisibly — DB kept filling while dispatch was dead. Never
+        # silent again (rate-limited: once per minute).
+        global _no_router_warn_ts
+        try:
+            import time as _nr_time
+            _now = _nr_time.time()
+            if _now - globals().get("_no_router_warn_ts", 0) > 60:
+                globals()["_no_router_warn_ts"] = _now
+                logger.warning(
+                    "[bars/%s] _route_bar: BarRouter NOT WIRED — bar ingested to DB "
+                    "but NOT dispatched to engines (S1/S2/S4 starving!)", bar_type)
+        except Exception:
+            pass
         return
     # B-13: guard routing for bar types that carry OHLC (not aggregate payloads)
     raw_ts = bar_data.get("ts")
