@@ -20,13 +20,13 @@
 |---|---|---|---|---|
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 11:45 | ✅ בוצע 3/3 (13:56 IDT) | משימות-15/07: (1) DLL 4-חוזים ✅ פרוס לשתי סיירות, ממתין Remote Build (2) רקונסיילר ✅ חלון-טריות+phantom-heal (3) יתום ✅ C4 IDs מיפוי. דוח מלא: EXECUTION_REPORT_2026-07-15.md סעיף cc-imac |
 | אל: צ'אט-מערכות | מאת: cowork-dev | 2026-07-15 11:45 | ✅ בוצע (3/3, דוח) | נספח-ניהולי להיום (דדליין 14:30): (1) ביקורת-דלתון תבניות×סוגי-ימים — למה REACTIVE_LONG בקצה-VAH ביום-Variation לא נחסם; רשימת תאים-הפוכים-מהספר + הצעות-טבלה (2) מפרט-השלמה ל-DAYTYPE_LOCATION_GATE החצי-בנוי (3) ניתוח ריצת-הפתיחה — למה אין איתות 16:30-17:00. דוח-בלבד, בלי קוד. דיווח: EXECUTION_REPORT_2026-07-15.md בסעיף שלך |
-| S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades. **ביקורת-קוד ✅ הנתיב תקין + caveat-A תוקן** (dev, LOG). נותר E2E על הפייר-האמיתי הראשון. | ✅ קוד · ⏳ E2E ממתין לפייר |
 | S-5 | cowork-dev | cc-imac | 🔴 **דב עבר ל-LIVE כסף-אמת** (is_sim=0 · MEMS26_MODE=live · armed=1 · send_orders=1 · flat · flag_guard 64 · risk-rails on). **אשר ב-iMac: (א) is_sim=1 (סים), (ב) חשבון-Sierra שונה מחשבון-הלייב של דב** — אחרת ירי-כפול על אותו חשבון = אסון-כסף-אמת. | ✅ is_sim=1 אומת (cc-imac 15:27) · חשבון: cutover-מסירה-סדרתית (LOG 15:27) |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | ✅ מיושם (13:56 IDT) | חוזה-ממשק DLL-4-חוזים: מיושם לפי-החוזה — PLACE 4×OCO (סלוטים 8/9 לזוג-4), MODIFY_STOP×4, fill-tracking T1-T4, completion ci≤9, state cap 10. t4=0/None→3-pair. פרוס לשתי סיירות. ✅ **Remote Build בוצע (מייקל, 15:18) + reload — DLL deployed==repo, בינארי טרי** |
 | S-6 | cc-imac | cowork-dev | housekeeping-דגלים (RULED dup + sync_env mode-values) | ✅ סגור ע"י cowork-dev 15:55 (7fbdfe1): מחקתי כפילות-RULED; sync_env כותב עכשיו ערכי-mode (regex `[a-z][a-z_]*`); CLAUDE.md מגן-op=EXIT מחריג protective (אומת בקוד: רק MODIFY_STOP+advisory). flag_guard PASS 70/70, sync dry-run "already matches". |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 15:2x | ✅ בוצע 15:46 — PHASE 5 הושלם, ה-iMac חי על אמת (LOG 15:46) | **פסיקת-מייקל: ה-iMac סוחר אמת היום.** מק-הפיתוח מושתק (Input22→0 + File→Disconnect + נשאר על סים, מייקל מאשר). **בצע PHASE 5** ב-IMAC_GOLIVE_MEGAPROMPT: Sim-Mode→OFF → ודא is_sim=0 + מחיר-שפוי (~7595, לא 996150) + qty=0 → LIVE_TRADING_ARMED=1 + restart → flag_guard PASS + fire_drill GO → דווח מוכן-RTH. אל תסחר לפני שמייקל מאשר שמק-הפיתוח מנותק. |
 
 ## ✅ CLOSED
+| S-3 | cc-imac→cowork-dev | קורלציית fill→v9_trades | ✅ **E2E אומת על עסקת-אמת #28** (cc-imac 16:50): t1/t2/t3_hit_ts + exit_price=מחירי-סיירה נכתבו ל-DB. |
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
 | S-2 | cc-imac→cowork-dev | 2 באגי-preflight FALSE-GAP | ✅ תוקן+אומת ע"י cowork-dev: DLL-diff מסנן `Generated`; DB דרך `pg_isready` (Postgres.app v18). |
 | S-4 | cc-imac→cowork-dev | fire_drill NO-GO שגוי (SIZE_CAP_OVER_FIXED × `contracts:1`) | ✅ תוקן+אומת ע"י cowork-dev: הדריל שולח `{"size":"full"}` → **fire_drill 🟢 GO**. |
@@ -34,6 +34,21 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-15 16:50 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [DONE — ✅ עסקת-אמת ראשונה + S-3 E2E סגור]
+
+**עסקת-הלייב הראשונה של ה-cutover בוצעה והושלמה — המערכת עבדה לפי-הספר.**
+‏#28 · live · S4 · **ZLR** · day_type=Nontrend · LONG 4 חוזים @ 7614 (16:30:04, חלון-הפתיחה — OPENING_WINDOW_FIRE_V1 עבד).
+‏4 זוגות נבנו; **T0 יצא ראשון** @ 7617 (16:30:10) · T2/T3 (clamped 7616.5 — ניהול-ZLR/clamp) באותה שנייה ·
+**ראנר C4 יצא ב-BE מדויק** 7614.0 (16:30:28, stop→BE אחרי T1) · exit_reason=STOP_HIT · **PnL=+$40.00 (+0.73R)**.
+אין NAKED/DIVERGENCE בלוג.
+
+**S-3 E2E ✅ סגור:** journal→FillPoller→v9_trades הוכח על פייר-אמיתי — `t1/t2/t3_hit_ts=16:30:10` + `exit_price=7614`
+(מחירי-סיירה מדויקים, I-62) נכתבו לשורת-DB. ‏gsheets: לוודא שורה בגיליון (mode=live+URL דלוקים).
+
+**הערת-עיצוב לדב (לא-באג):** ‏t2/t3 נרשמו 7616.5 **מתחת** ל-t1=7617 (clamp/ניהול) — לוודא שזו הכוונה בסולם-4-חוזים.
+מערכת שטוחה (qty=0) וממתינה לסטאפ הבא. פיקוח-אוטומטי כל 15 דק' פעיל.
+
 
 ### [2026-07-15 15:56 IDT] מאת: cowork-dev · אל: cc-imac + מייקל · [DONE — ✅ אימות-מוכנות + S-6 סגור]
 
