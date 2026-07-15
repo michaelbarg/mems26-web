@@ -105,8 +105,14 @@ def decide(
                 return (False, f"balanced day ({day_type}) — continuation ({pattern}) blocked")
             if day_type in _TREND_DAYTYPES and family == "REV":
                 return (False, f"trend day ({day_type}) — reversal ({pattern}) blocked")
-            if day_type == "Variation" and family == "REV":
-                return (False, f"Variation — reversal ({pattern}) blocked (CONT only)")
+            # 07-15 Michael doctrine ruling: Variation REV is ALLOWED — a
+            # Variation day finds new value then ROTATES around VAH/VAL/POC,
+            # so responsive fades at the edges are the doctrine play there
+            # (the old "CONT only" line was the exact inversion that let
+            # 07-14's wrong-side LONG through while the location gate was
+            # off AND would have blocked correct fades once enabled).
+            # WHERE the fade is allowed (only at the edges, never mid-range)
+            # is the LOCATION logic below / DAYTYPE_LOCATION_GATE spec.
             # Allowed family → fall through to existing location logic
 
     # Nontrend: Michael's rule — all patterns disabled on Nontrend days.
