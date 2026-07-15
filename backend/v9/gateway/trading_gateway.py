@@ -549,6 +549,32 @@ class TradingGateway:
             except Exception as _rl_err:
                 logger.warning("[Gateway] reactive-location gate errored (fail-open): %s", _rl_err)
 
+        # --- DAYTYPE_LOCATION_GATE v1 (Michael 07-15, default OFF) ---
+        # REV fades on rotation days only at the correct value edge in the fade
+        # direction (LONG@VAL-side, SHORT@VAH-side). Blocks the #372 class
+        # (LONG at the VAH ceiling on Variation). CONT/Trend untouched. Fail-open.
+        if os.getenv("DAYTYPE_LOCATION_GATE", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.location_gate import decide_location as _lg_decide
+                from backend.v9.systems.daytype_position_gate import _pattern_family as _lg_fam_fn
+                _lg_g1 = extract_g1_entry_context(cross_context)
+                _lg_tpo = (cross_context.get("tpo_system") if isinstance(cross_context, dict) else None) or {}
+                _lg_allow, _lg_reason = _lg_decide(
+                    family=_lg_fam_fn(resolve_pattern_id(setup, _lg_g1) or ""),
+                    direction=direction,
+                    day_type=_lg_g1.get("day_type_at_entry"),
+                    entry_price=setup.get("entry_price"),
+                    levels={"vah": _lg_tpo.get("vah"), "val": _lg_tpo.get("val"),
+                            "ib_width": (_lg_tpo.get("ib_high") - _lg_tpo.get("ib_low"))
+                            if (_lg_tpo.get("ib_high") and _lg_tpo.get("ib_low")) else None},
+                )
+                if not _lg_allow:
+                    result["blocked_by"] = "location_gate"
+                    logger.info("[Gateway] BLOCKED by location gate: %s", _lg_reason)
+                    return result
+            except Exception as _lg_err:  # fail-open — never block on a bug
+                logger.warning("[Gateway] location gate errored (fail-open): %s", _lg_err)
+
         # --- #68 Unified Day-Type Position Gate (replaces both above) ---
         # Direction allowed by day-type + price position relative to IB/VA/POC.
         # Flag: DAYTYPE_POSITION_GATE (default OFF). Fail-open.
