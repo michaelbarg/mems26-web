@@ -89,6 +89,9 @@ v9_router.include_router(kill_switch_router)
 # requires ANTHROPIC_API_KEY in .env (out-of-git), honest 503 without it.
 from backend.v9.api.v9.agent_chat import router as agent_chat_router
 v9_router.include_router(agent_chat_router)
+# מוניטור-אייפון (מייקל 07-15) — עמוד-כיס קריאה-בלבד, מוגש מהבקאנד
+from backend.v9.api.v9.mobile_monitor import router as mobile_monitor_router
+v9_router.include_router(mobile_monitor_router)
 
 # T1 (Michael 07-14): read-only Sierra live-detection check (pre-live gate).
 from backend.v9.api.v9.sierra_live_check import router as sierra_live_check_router
