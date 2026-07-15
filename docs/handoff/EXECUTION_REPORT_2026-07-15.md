@@ -171,3 +171,8 @@ CME דחה ברקטים → פוזיציה-עירומה −4 → שוטחה ל-0
 (is_sim=0 · מחיר-שפוי · qty=0).
 
 **פתוח לדב (S-6):** כפילות RULED `SYSTEM6_AUTOCORRECT` (unset_or_0 07-14 לצד protective 07-15) + `sync_env` לא כותב ערכי-mode.
+
+**PHASE 5 ✅ (15:46) — חימוש-אמת הושלם.** מייקל הפך Trade-Sim→OFF. שער-בטיחות fail-closed עבר: is_sim=0 · פיד שפוי
+bid=7611 · qty=0 · Input22 חמוש → `MEMS26_MODE=live` + `LIVE_TRADING_ARMED=1` + restart → **flag_guard PASS 70/70 ·
+fire_drill 🟢 GO · live_enabled=[2,4] · effective_contracts=4**. ה-iMac מכונת-הלייב היחידה; מק-הפיתוח מנותק. מוכן ל-RTH 16:30.
+PHASE 6: פיקוח-חי על הפייר-הראשון (4 זוגות · T0 · שער-מיקום · fill→v9_trades = סגירת S-3).
