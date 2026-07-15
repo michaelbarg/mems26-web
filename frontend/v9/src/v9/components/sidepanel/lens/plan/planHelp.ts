@@ -329,3 +329,39 @@ export function planReasonHe(reason?: string | null): string {
   for (const [re, he] of REASON_PHRASES) r = r.replace(re, he);
   return r;
 }
+
+/** 07-15 (מייקל: "שיהיה ברור בכל רגע נתון למה לא ירה") — כל שער-חסימה של
+ * ה-gateway בעברית: שם קצר + מה-זה-אומר. המפתחות = blocked_by מהבקאנד. */
+export const GATE_HE: Record<string, { name: string; why: string }> = {
+  kill_switch: { name: 'מתג-חירום', why: 'מתג-העצירה הכללי מופעל — שום ירי בשום מצב' },
+  session_gate_closed: { name: 'מחוץ לחלון-מסחר', why: 'מחוץ ל-16:30–22:00 IL (08:30–15:00 CT)' },
+  eod_entry_cutoff: { name: 'סוף-יום', why: 'אחרי שעת-הכניסה האחרונה — אין כניסות חדשות לקראת סגירה' },
+  feed_watchdog: { name: 'פיד-נתונים תקוע', why: 'הנתונים מסיירה לא זורמים — אסור לירות על מידע ישן' },
+  cooldown: { name: 'צינון אחרי עסקה', why: 'המתנה מחויבת אחרי עסקה קודמת לפני ירי חדש' },
+  suffering_side_veto: { name: 'וטו צד-סובל (SSV)', why: 'הצד הזה הפסיד שוב-ושוב היום — נחסם זמנית' },
+  duplicate_fire: { name: 'ירי-כפול', why: 'אותו איתות בדיוק כבר נורה הרגע — מניעת כפילות' },
+  chop_searching: { name: 'שוק-קופצני (Layer-0)', why: 'מדד-הצ׳ופ במצב חיפוש — השוק ללא כיוון (כבוי כברירת-מחדל)' },
+  opening_type_gate: { name: 'שער סוג-פתיחה', why: 'סוג-הפתיחה שזוהה לא מתיר את התבנית הזו' },
+  daytype_playbook: { name: 'פלייבוק סוג-יום', why: 'טבלת-המשחק של סוג-היום מסמנת SKIP לתבנית זו היום' },
+  trend_direction_gate: { name: 'שער כיוון-מגמה', why: 'הכיוון נגד המגמה המזוהה של היום' },
+  reactive_location: { name: 'מיקום ריאקטיבי', why: 'עסקת-fade לא במיקום קצה תקין' },
+  location_gate: { name: 'שער-מיקום (דלתון)', why: 'הכיוון לא מתאים למיקום מול VAH/VAL — לונג רק ברצפת-הערך, שורט רק בתקרה' },
+  daytype_position_gate: { name: 'שער משפחה×סוג-יום', why: 'משפחת-התבנית (CONT/REV) לא מתאימה לסוג-היום' },
+  cont_trend_filter: { name: 'המשך-עם-מגמה', why: 'עסקת-המשך נגד צבע/כיוון ה-LSMA' },
+  direction_context: { name: 'הקשר-כיוון יומי', why: 'הכיוון נגד ההקשר הדומיננטי של היום (פטור ל-fade בימי-רוטציה)' },
+  lsma_flat: { name: 'LSMA שטוח', why: 'אין שיפוע — אין ראיית-כיוון לעסקת-המשך' },
+  news_blackout: { name: 'חלון-חדשות', why: 'אירוע-מאקרו קרוב — אין כניסות בחלון' },
+  day_direction_doctrine: { name: 'דוקטרינת כיוון-יום', why: 'הדוקטרינה של סוג-היום אוסרת את הכיוון הזה' },
+  entry_not_confirmed: { name: 'אין אישור-כניסה', why: 'בר-האישור (S4) עדיין לא התקבל' },
+  t1_wrong_side: { name: 'T1 בצד הלא-נכון', why: 'היעד הראשון מתחת/מעל לכניסה בכיוון ההפוך — סטאפ פסול' },
+  rr_entry_gate: { name: 'שער סיכון:סיכוי', why: 'R:R ל-T1 (לפני-ריאליזם) מתחת לסף' },
+  daily_loss_halt: { name: 'עצירת הפסד-יומי', why: 'תקרת ההפסד היומי (−$400) נפרצה — אין ירי עד מחר' },
+  consecutive_loss_halt: { name: 'עצירת הפסדים-רצופים', why: 'רצף הפסדים — עצירה מחויבת' },
+  s4_risk_cap: { name: 'תקרת-סיכון S4', why: 'הסיכון בנקודות/דולרים מעל התקרה לעסקת S4' },
+  cluster_guard: { name: 'שומר-צבירה', why: 'יותר מדי עסקאות באותו אזור-מחיר/זמן' },
+};
+
+export function gateHe(key?: string | null): { name: string; why: string } {
+  if (!key) return { name: '', why: '' };
+  return GATE_HE[key] || { name: key, why: 'שער ללא-תרגום — ראה לוג' };
+}

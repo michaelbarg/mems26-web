@@ -187,6 +187,12 @@ class TradingGateway:
         # P3: opposite-pattern exit counter (flag OPPOSITE_EXIT_V1, default OFF)
         self._opposite_count: int = 0
         self._opposite_bar_ts: Optional[str] = None  # reset per bar
+        # 07-15 Michael ("שיהיה ברור בכל רגע נתון למה לא ירה"): every route_setup
+        # decision — fired OR blocked+reason — recorded in-memory for the panel.
+        # Ring buffer, no I/O on the hot path; survives until backend restart
+        # (full history stays in logs/DB as before).
+        from collections import deque as _deque
+        self.decisions = _deque(maxlen=300)
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""
@@ -319,6 +325,26 @@ class TradingGateway:
                 setup.get("pattern") or setup.get("pattern_id") or setup.get("setup_kind"),
                 setup.get("direction"), setup.get("entry_price"), bb,
             )
+        # 07-15: record the decision for the "why didn't it fire" panel (in-memory,
+        # newest-last; never raises into the trading path).
+        try:
+            _outcome = ("blocked" if bb else
+                        "live" if result.get("live") else
+                        "demo" if result.get("demo") else
+                        "shadow_only" if result.get("shadow") else "none")
+            self.decisions.append({
+                "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "system": system_id,
+                "pattern": (setup.get("pattern") or setup.get("pattern_id")
+                            or setup.get("setup_kind")),
+                "direction": setup.get("direction"),
+                "entry": setup.get("entry_price"),
+                "blocked_by": bb,
+                "outcome": _outcome,
+                "trade_id": result.get("live") or result.get("demo") or result.get("shadow"),
+            })
+        except Exception:
+            pass
         return result
 
     def _route_setup_inner(self, setup: dict, system_id: int) -> Dict:

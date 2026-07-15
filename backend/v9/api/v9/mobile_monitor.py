@@ -14,7 +14,7 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
 router = APIRouter(prefix="/api/v9/mobile", tags=["v9-mobile"])
@@ -40,9 +40,34 @@ def _price():
         return None
 
 
+def _remote_data() -> dict | None:
+    """07-15 (Michael: "הלינק = הנתונים של מכונת-המסחר"): when MOBILE_REMOTE_URL
+    is set (e.g. http://<imac-ip>:8000), serve the TRADING machine's data through
+    this link. Unreachable → fall back to local data with a clear badge."""
+    base = (os.getenv("MOBILE_REMOTE_URL") or "").strip().rstrip("/")
+    if not base:
+        return None
+    try:
+        import urllib.request
+        with urllib.request.urlopen(f"{base}/api/v9/mobile/data", timeout=3) as r:
+            d = json.loads(r.read().decode("utf-8"))
+        d["_src"] = "trading"
+        d["_src_url"] = base
+        return d
+    except Exception as e:
+        return {"_remote_err": str(e)[:60]}
+
+
 @router.get("/data")
-async def mobile_data():
+async def mobile_data(request: Request):
+    import asyncio
+    rem = await asyncio.to_thread(_remote_data)
+    if rem is not None and "_remote_err" not in rem:
+        return rem  # מכונת-המסחר עונה — הלינק מציג אותה
     out = {"ts": time.strftime("%H:%M:%S"), "sierra": _sierra(), "mid": _price()}
+    out["_src"] = "local"
+    if rem is not None:
+        out["_remote_err"] = rem["_remote_err"]
     # עסקאות פעילות + P&L צף
     try:
         from backend.v9.db.read import read_all
@@ -79,10 +104,19 @@ async def mobile_data():
     except Exception:
         out["day_type"] = None
     try:
-        import importlib
-        _app = importlib.import_module("backend.v9.app").app
+        # request.app = ה-app הרץ בפועל (backend/main.py הוא ה-entrypoint —
+        # לא backend.v9.app; ייבוא-מודול נותן instance אחר וריק)
+        _app = request.app
         _cls = getattr(_app.state, "last_cls_result", None) or {}
         out["day_conf"] = _cls.get("confidence")
+        # 07-15: "למה לא ירה" גם בנייד — ההחלטה האחרונה + ספירות-שער מאז-הריסטארט
+        _gw = getattr(_app.state, "trading_gateway", None)
+        _decs = list(getattr(_gw, "decisions", []) or [])
+        if _decs:
+            _n_fired = sum(1 for d in _decs if d.get("outcome") in ("live", "demo"))
+            _n_blocked = sum(1 for d in _decs if d.get("blocked_by"))
+            out["gate"] = {"attempts": len(_decs), "fired": _n_fired,
+                           "blocked": _n_blocked, "last": _decs[-1]}
     except Exception:
         pass
     # דגלי-קריטיים + halt
@@ -118,15 +152,33 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="big" id="daypnl">—</div><div class="dim">עצירה ב-−$<span id="cap"></span></div></div>
 <div class="card"><div class="row"><span class="dim">סוג-יום</span><span id="dayconf" class="dim"></span></div>
 <div style="font-size:20px;font-weight:700" id="daytype">—</div></div>
+<div class="card"><div class="row"><span class="dim">למה לא יורה? (שער-הירי)</span><span id="gmeta" class="dim"></span></div>
+<div id="gate" style="font-size:12px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
 <div class="dim" id="health" style="text-align:center"></div>
 <script>
+const GATE_HE = {kill_switch:'מתג-חירום',session_gate_closed:'מחוץ לחלון-מסחר',eod_entry_cutoff:'סוף-יום',
+feed_watchdog:'פיד תקוע',cooldown:'צינון',suffering_side_veto:'וטו צד-סובל',duplicate_fire:'ירי-כפול',
+chop_searching:'שוק-קופצני',opening_type_gate:'שער סוג-פתיחה',daytype_playbook:'פלייבוק סוג-יום',
+trend_direction_gate:'כיוון-מגמה',reactive_location:'מיקום ריאקטיבי',location_gate:'שער-מיקום (דלתון)',
+daytype_position_gate:'משפחה×סוג-יום',cont_trend_filter:'המשך-עם-מגמה',direction_context:'הקשר-כיוון',
+lsma_flat:'LSMA שטוח',news_blackout:'חלון-חדשות',day_direction_doctrine:'דוקטרינת-כיוון',
+entry_not_confirmed:'אין אישור-כניסה',t1_wrong_side:'T1 בצד שגוי',rr_entry_gate:'שער R:R',
+daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',cluster_guard:'שומר-צבירה'};
 async function load(){
  try{
   const r = await fetch('/api/v9/mobile/data',{cache:'no-store'}); const d = await r.json();
-  document.getElementById('clock').textContent = d.ts;
+  document.getElementById('clock').textContent = d.ts + (d._src==='trading'? ' · 📡 מכונת-המסחר' : d._remote_err? ' · ⚠ מקומי (מכונת-המסחר לא-זמינה)' : '');
   const s = d.sierra||{}; const q = s.position_qty||0;
   document.getElementById('mode').textContent = (s.is_sim? 'סים':'אמת') + (s.order_placement_armed? ' · חמוש':' · לא-חמוש');
+  const g = d.gate; const ge = document.getElementById('gate');
+  if(g && g.last){
+   const L = g.last; const t = L.ts? new Date(L.ts).toTimeString().slice(0,5) : '';
+   ge.innerHTML = L.blocked_by? '⛔ '+t+' '+(L.pattern||'?')+' '+(L.direction||'')+' נחסם — <b>'+(GATE_HE[L.blocked_by]||L.blocked_by)+'</b>'
+    : (L.outcome==='live'||L.outcome==='demo')? '<span class="green">🔫 '+t+' '+(L.pattern||'?')+' ירה ('+(L.outcome==='live'?'לייב':'דמו')+(L.trade_id?' #'+L.trade_id:'')+')</span>'
+    : '👁 '+t+' '+(L.pattern||'?')+' עבר-שערים · צל-בלבד';
+   document.getElementById('gmeta').textContent = g.attempts+' ניסיונות · '+g.fired+' ירו · '+g.blocked+' נחסמו';
+  } else { ge.innerHTML = '<span class="dim">אף מועמד לא הגיע לשער מאז-הריסטארט — ראה פאנל-תבניות</span>'; document.getElementById('gmeta').textContent=''; }
   const posEl = document.getElementById('pos');
   posEl.textContent = q===0? 'FLAT' : (q>0? 'LONG ':'SHORT ') + Math.abs(q);
   posEl.className = 'big ' + (q===0?'':'pulse');
