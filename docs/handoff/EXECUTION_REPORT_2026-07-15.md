@@ -144,3 +144,30 @@ _(ממתין)_
 
 ## פסיקות-מייקל (בוצעו)
 ‏1 ‏SSV=א (כבוי+אמת-בלבד) · ‏2 ‏R:R=א (T1-קדם-ריאליזם) · ‏3 ‏pattern=מאושר · ‏4 סיווג=פתרון-איכותי (מוח/כותב-אחד) · ‏5 סטופ=א (רצפה 0.8 ברוטציה) · ‏6 ‏S6=א (protective). ‏+ ‏4-חוזים, ‏T0=3.5, חלון-פתיחה דלוק.
+
+---
+
+### דיווח cc-imac · מוכנות-iMac-לאמת (cutover) · חתימה: cc-imac · 15:27 IDT
+
+**חקירת-13:55 (חובה, בראש):** השורט-4 העירום על חשבון-אמת **37138283 יצא מה-iMac** — `TradeActivityLog_2026-07-15_UTC.37138283.data`
+מכיל הורי-`8985/8988/8991` + `"New order originated from external service"` (DTC #57924 = הנתיב-האוטומטי, לא ידני). מנגנון: אחרי
+reload ה-Trade-Sim התאפס ל-OFF (is_sim 1→0) בשקט בעוד החימוש נשאר → SHORT-4 יצא; **הפיד היה מושחת** (Bid 996150/525500) →
+CME דחה ברקטים → פוזיציה-עירומה −4 → שוטחה ל-0 (fill 6846). מנע: PHASE 3 (שפיות-פיד) + בדיקת-Trade-Sim-אחרי-כל-reload.
+
+**שערי-סים (1-4) — כולם ירוקים · ראיות גולמיות:**
+
+| PHASE | תוצאה | ראיה |
+|---|---|---|
+| 1 · קוד+דגלים | ✅ | pull `a271acb6` behind=0 · migration 021 (t4/t4_hit_ts) · **flag_guard PASS 70/70** · restart · `mems26_verify` OK |
+| 2 · בילד-DLL | ✅ | deploy (snapshot `20260715T121525Z`) → Remote Build (מייקל) → reload · sierra_state age=0.2s · armed=1 · בינארי `15:18:51` · **DLL deployed==repo** |
+| 3 · שפיות-פיד | ✅ | `live_price` bid=7595.0 ask=7595.25 age=0s (לא 996150) |
+| 4 · הוכחת-סים 4c | ✅ | `debug_gateway_fire` full → qty=4, 8 הוראות=4 זוגות · **C1=7597.0 (T0=+3.5)**/C2=7601.5/C3=7609.5/C4=7617.5 · 4 סטופים@7585.5 → **MODIFY_STOP** כל-4→7587.5 → **FLATTEN** qty=0 · **fire_drill GO effective_contracts==4** · v9_trades id=26 demo S4 FILLED |
+
+**מצב-חימוש נוכחי (סוף שער-4):** `is_sim=1` · `armed=1` (Input 22) · `MEMS26_MODE=sim` · `LIVE_EXECUTION_V1=1` ·
+`LIVE_TRADING_ARMED` **לא-דלוק** · `qty=0` flat.
+
+**PHASE 5 (חימוש-אמת) — BLOCKED עד GO-כתוב של מייקל + ניתוק-מלא של מק-הפיתוח (Teton יחיד).**
+שרשרת: is_sim=0 (מייקל/Sierra) → `LIVE_TRADING_ARMED=1` (+restart) → `flag_guard` PASS + `fire_drill` GO → אימות-בעין
+(is_sim=0 · מחיר-שפוי · qty=0).
+
+**פתוח לדב (S-6):** כפילות RULED `SYSTEM6_AUTOCORRECT` (unset_or_0 07-14 לצד protective 07-15) + `sync_env` לא כותב ערכי-mode.

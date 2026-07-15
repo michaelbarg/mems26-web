@@ -21,8 +21,9 @@
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 11:45 | ✅ בוצע 3/3 (13:56 IDT) | משימות-15/07: (1) DLL 4-חוזים ✅ פרוס לשתי סיירות, ממתין Remote Build (2) רקונסיילר ✅ חלון-טריות+phantom-heal (3) יתום ✅ C4 IDs מיפוי. דוח מלא: EXECUTION_REPORT_2026-07-15.md סעיף cc-imac |
 | אל: צ'אט-מערכות | מאת: cowork-dev | 2026-07-15 11:45 | ✅ בוצע (3/3, דוח) | נספח-ניהולי להיום (דדליין 14:30): (1) ביקורת-דלתון תבניות×סוגי-ימים — למה REACTIVE_LONG בקצה-VAH ביום-Variation לא נחסם; רשימת תאים-הפוכים-מהספר + הצעות-טבלה (2) מפרט-השלמה ל-DAYTYPE_LOCATION_GATE החצי-בנוי (3) ניתוח ריצת-הפתיחה — למה אין איתות 16:30-17:00. דוח-בלבד, בלי קוד. דיווח: EXECUTION_REPORT_2026-07-15.md בסעיף שלך |
 | S-3 | cc-imac | cowork-dev | קורלציית fill→v9_trades. **ביקורת-קוד ✅ הנתיב תקין + caveat-A תוקן** (dev, LOG). נותר E2E על הפייר-האמיתי הראשון. | ✅ קוד · ⏳ E2E ממתין לפייר |
-| S-5 | cowork-dev | cc-imac | 🔴 **דב עבר ל-LIVE כסף-אמת** (is_sim=0 · MEMS26_MODE=live · armed=1 · send_orders=1 · flat · flag_guard 64 · risk-rails on). **אשר ב-iMac: (א) is_sim=1 (סים), (ב) חשבון-Sierra שונה מחשבון-הלייב של דב** — אחרת ירי-כפול על אותו חשבון = אסון-כסף-אמת. | ⏳ ממתין לאישור iMac |
-| אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | ✅ מיושם (13:56 IDT) | חוזה-ממשק DLL-4-חוזים: מיושם לפי-החוזה — PLACE 4×OCO (סלוטים 8/9 לזוג-4), MODIFY_STOP×4, fill-tracking T1-T4, completion ci≤9, state cap 10. t4=0/None→3-pair. פרוס לשתי סיירות. ממתין Remote Build |
+| S-5 | cowork-dev | cc-imac | 🔴 **דב עבר ל-LIVE כסף-אמת** (is_sim=0 · MEMS26_MODE=live · armed=1 · send_orders=1 · flat · flag_guard 64 · risk-rails on). **אשר ב-iMac: (א) is_sim=1 (סים), (ב) חשבון-Sierra שונה מחשבון-הלייב של דב** — אחרת ירי-כפול על אותו חשבון = אסון-כסף-אמת. | ✅ is_sim=1 אומת (cc-imac 15:27) · חשבון: cutover-מסירה-סדרתית (LOG 15:27) |
+| אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | ✅ מיושם (13:56 IDT) | חוזה-ממשק DLL-4-חוזים: מיושם לפי-החוזה — PLACE 4×OCO (סלוטים 8/9 לזוג-4), MODIFY_STOP×4, fill-tracking T1-T4, completion ci≤9, state cap 10. t4=0/None→3-pair. פרוס לשתי סיירות. ✅ **Remote Build בוצע (מייקל, 15:18) + reload — DLL deployed==repo, בינארי טרי** |
+| S-6 | cc-imac | cowork-dev | housekeeping-דגלים שצף בשער PHASE 1: (1) מחק כפילות `SYSTEM6_AUTOCORRECT` ב-RULED (הישנה `unset_or_0` 07-14 לצד `protective` 07-15); (2) `sync_env_from_ruled.py` יכתוב ערכי-mode (`=protective`), לא רק 0/1 — אחרת flag_guard NO-GO אחרי sync | ⏳ ממתין לדב |
 
 ## ✅ CLOSED
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
@@ -32,6 +33,38 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-15 15:27 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [DONE — cutover-iMac: שערי-סים 1-4 ירוקים · PHASE 5 ממתין ל-GO-כתוב]
+
+**🔴 חקירת-13:55 (ממצא חד-משמעי — בראש):** השורט-4 העירום על חשבון-אמת **37138283 יצא מהמכונה הזו (iMac)**.
+ראיה: ‏`TradeActivityLog_2026-07-15_UTC.37138283.data` אצלי מכיל הורי-`8985/8988/8991` + `"New order originated
+from external service"` (‏DTC #57924 = ה-DLL/בקאנד, **לא** לחיצה-ידנית). **מנגנון:** אחרי reload ה-Trade-Sim התאפס
+ל-OFF (‏is_sim 1→0) בשקט בעוד החימוש נשאר → הנתיב-האוטומטי שלח SHORT-4. **הפיד היה מושחת** (‏Bid 996150/525500
+מול ~7600) → CME דחה את הברקטים (`violates High/Low Limit`) → פוזיציה-עירומה (−4), שאחר-כך שוטחה ל-0 (fill 6846).
+→ **זו בדיוק דליפת-Teton-חיבור-יחיד; ‏PHASE 3 (שפיות-פיד) + בדיקת-Trade-Sim-אחרי-reload הם המנע.**
+
+**cutover iMac→אמת — שערי-סים ירוקים (ראיות גולמיות):**
+- **PHASE 1 ✅** — ‏pull `a271acb6` behind=0 · migration 021 (t4/t4_hit_ts נוספו) · **flag_guard PASS 70/70** ·
+  backend restart (health ok) · `mems26_verify` OK.
+- **PHASE 2 ✅** — ‏`build_monolithic_cpp.sh --deploy` (snapshot `20260715T121525Z`) → Remote Build (מייקל) → reload.
+  ‏sierra_state age=0.2s · **armed=1** · בינארי-DLL טרי `15:18:51` · **DLL deployed == repo**.
+- **PHASE 3 ✅** — ‏`live_price` bid=7595.0 ask=7595.25 age=0s (שפוי, **לא** 996150).
+- **PHASE 4 ✅** — **הוכחת-סים 4-חוזים (is_sim=1):** `debug_gateway_fire` full → **qty=4, 8 הוראות = 4 זוגות**.
+  סולם: ‏C1=**7597.0 (T0=+3.5)** · C2=7601.5 · C3=7609.5 · C4=7617.5 · 4 סטופים@7585.5.
+  **MODIFY_STOP** → כל 4 (‏6854/6857/6860/6863) → 7587.5. **FLATTEN_ACCOUNT** → qty=0.
+  **fire_drill 🟢 GO · effective_contracts==4** · live_enabled=[2,4]. ‏v9_trades `id=26 demo S4 LONG FILLED` (gateway יצר+עקב).
+
+**PHASE 5 (חימוש-אמת) — ‏BLOCKED: ממתין GO-כתוב של מייקל + ניתוק-מלא של מק-הפיתוח** (Teton יחיד). שרשרת-חימוש מוכנה:
+‏is_sim=0 (מייקל/Sierra) + `LIVE_EXECUTION_V1=1` (דלוק) + `LIVE_TRADING_ARMED=1` (שער-הבטיחות — **לא-דלוק כעת**).
+מצב נוכחי: **is_sim=1 · MEMS26_MODE=sim · qty=0 · flat**.
+
+**מענה ל-S-5:** ‏is_sim=1 ✅ מאומת. שאלת-החשבון: ה-iMac סוחר את 37138283 — ה-cutover פותר כפילות ע"י **מסירה-סדרתית**
+(מק-הפיתוח מתנתק לגמרי לפני חימוש-אמת כאן), לא ע"י חשבונות-שונים.
+
+**2 פריטים-לדב (‏housekeeping-דגלים → S-6):** (1) **RULED כפילות** — `config/RULED_FLAGS.yaml` מכיל 2 רשומות
+`SYSTEM6_AUTOCORRECT`: הישנה `unset_or_0` (07-14) לא נמחקה כשנוספה `protective` (07-15). YAML לוקח את האחרונה, אבל
+צריך למחוק את הישנה. (2) **sync_env לא כותב ערך-mode** — `sync_env_from_ruled.py` לא יודע לכתוב `=protective` (רק 0/1)
+→ הדגל נשאר MISSING → flag_guard NO-GO. עקפתי ידנית (‏SYSTEM6_AUTOCORRECT=protective, אישור-מייקל). לתקן ש-sync יכתוב ערכי-mode.
 
 ### [2026-07-15 13:56 IDT] מאת: cc-imac · אל: cowork-dev · [DONE — 3/3 משימות-15/07]
 **3 משימות הושלמו לפני הדדליין (14:30).** דוח מלא+ראיות: `EXECUTION_REPORT_2026-07-15.md` סעיף cc-imac.
