@@ -169,19 +169,18 @@ def _send_alert(message: str, level: str = "warn") -> None:
 # ── PG check ─────────────────────────────────────────────────────────
 
 def _pg_max_ts() -> Optional[float]:
-    """Query MAX(ts) from v9_bars_5min via PG. Returns unix ts or None."""
+    """Query MAX(ts) from v9_bars_5min via the canonical read layer.
+
+    Returns unix ts or None. (Was silently broken: it imported the non-existent
+    `backend.v9.db.models.bars`, so every call raised → the PG cross-check never
+    ran. Fixed 2026-07-15 to use backend.v9.db.read.)
+    """
     try:
-        from backend.v9.db.session import SessionLocal
-        from backend.v9.db.models.bars import V9Bar5Min
-        from sqlalchemy import func
-        db = SessionLocal()
-        try:
-            row = db.query(func.max(V9Bar5Min.ts)).scalar()
-            if row is None:
-                return None
-            return row.timestamp() if hasattr(row, "timestamp") else float(row)
-        finally:
-            db.close()
+        from backend.v9.db.read import read_scalar
+        row = read_scalar("SELECT MAX(ts) FROM v9_bars_5min")
+        if row is None or not hasattr(row, "timestamp"):
+            return None
+        return row.timestamp()  # tz-aware datetime → correct epoch
     except Exception as e:
         logger.debug("[FrozenTail] PG query failed: %s", e)
         return None
