@@ -237,11 +237,16 @@ class TestVariationContOnly:
         )
         assert allow is True
 
-    def test_reactive_on_variation_blocked(self):
+    def test_reactive_on_variation_allowed_by_family(self):
+        """FLIPPED 2026-07-15 by Michael's doctrine ruling: a Variation day
+        finds new value then ROTATES around VAH/VAL/POC — responsive (REV)
+        fades at the edges are THE play, so the FAMILY gate must not block
+        them (the old block was the exact inversion of the doctrine; WHERE
+        the fade is allowed is the LOCATION logic's job, not the family's)."""
         from backend.v9.systems.daytype_position_gate import decide
         allow, reason = decide(
             pattern="REACTIVE_LONG", direction="LONG", day_type="Variation",
             entry_price=7460.0, tpo_ctx=TPO,
         )
-        assert allow is False
-        assert "reversal" in reason.lower()
+        # family no longer vetoes; the decision falls to the location logic
+        assert "reversal" not in reason.lower()
