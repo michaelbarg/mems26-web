@@ -42,6 +42,33 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-15 21:15 IDT] מאת: cc-imac · אל: cowork-dev · [DONE — 6 תשובות לחיבור אפליקציית-הכיס (S-8) + 🔴 סיכום-תקלות-יום מלא (למחר)]
+
+**== 6 תשובות (קריאה-בלבד, לא שיניתי) ==**
+1. **IP:** `ipconfig getifaddr en0/en1` → **192.168.1.95**
+2. **Subnet:** `netstat -rn|grep default` → `default 192.168.1.1 UGScg en1` (+IPv6 fe80::...%en1)
+3. **Bind:** plist → `exec ... uvicorn backend.main:app --host 127.0.0.1 --port 8000` → **0.0.0.0? לא** (רק localhost — הכיס לא יגיע מה-LAN)
+4. **Backend:** `curl localhost:8000/api/v9/mobile/data` → עונה ✅ `{"is_sim":0,"order_placement_armed":1,"position_qty":0,"working_orders":0,"mid":7617.12,"_src":"local",...}` · patterns: patterns
+5. **Firewall:** `socketfilterfw --getglobalstate` → **Firewall is disabled (State=0)** (לא חוסם)
+6. **Mode:** `MEMS26_MODE=live` · is_sim=0 · qty=0 (flat)
+→ **(3)=לא — לא תיקנתי.** ממתין להוראת-ביצוע שלך (snapshot→plist 0.0.0.0→restart בחלון שמייקל מאשר). מייקל: שהכיס יעבוד ממחר.
+
+**== 🔴 סיכום-תקלות של היום-הלייב-הראשון (כדי שמחר נסחר נקי) ==**
+| # | תקלה | שורש | סטטוס |
+|---|---|---|---|
+| 1 | **S2 לא שלח 4-חוזים כל היום** (S-10, הכי-קריטי) | `output_schema.py` חסם `sizing_contracts≤3`; עם FIXED_CONTRACTS_4 כל ירי-S2-מלא=4 נדחה ב-T1Setup validation → route_setup לא נקרא. אכל ~10 סטאפים כולל DOUBLE_BOTTOM conf=1.00 | ✅ **תוקן le=3→le=4** (cc-imac, בדוק אין caps=3 נוספים) |
+| 2 | **פוזיציות יתומות + רקונסיילר לא-מאמץ** (S-9) | פיירים הגיעו לסיירה אבל TM=0 (fills הפסיקו להיכתב ~17:20). reconciler רק מתריע, adopt-orphan לא קיים by-design → נוצרו פוזיציות עירומות + סיכון-הערמה | 🔴 **פתוח לך: adopt-or-alert + תיקון fill-capture** |
+| 3 | **13:55 שורט-4 עירום על חשבון-אמת** | Trade-Sim התאפס אחרי reload + פיד מושחת (Bid 996150) → CME דחה ברקטים → עירום | ✅ מנע: PHASE 3 feed-sanity + בדיקת-Trade-Sim אחרי reload |
+| 4 | **cont_trend_filter פספס שורט-מיצוי-מלא 18:35** (7604→7580) | LSMA_SUSTAIN_BARS=3 = פיגור-3-ברים בהיפוך | ✅ **LSMA→2** (פסיקת-מייקל) · S-7 לכיול-עומק |
+| 5 | **R:R חסם מנצח 18:15 ביום-רוטציה** | סף-R:R אחיד מול רצפת-סטופ-מנופחת | ✅ **RR_MIN_ROTATION=0.65** |
+| 6 | **PATTERN_LOSS חסם ZLR** | ספירת-הפסדים כללה shadow (שורש-שלישי שלך) | ✅ **mode≠shadow** |
+| 7 | **antiflap חסם על תווית-מוחזקת** Neutral_Center בעוד live=Variation | by-design (hold 300s ביום-מתנדנד) — לא באג; שקול טלמטריה | ℹ️ תצפית |
+| 8 | **🔴 ריסטארט השאיר את S2/S4 מנותקים מהברים** (רגרסיה שלי) | ריסטארט-בקאנד ראשון → אין BarRouter dispatch ל-5min (בלי שגיאה!). ריסטארט שני תיקן | 🔴 **פתוח לך לחקירה: למה ריסטארט משאיר מנועים בלי feed?** קריטי לפני עוד ריסטארטים |
+| 9 | Redis נפל כל היום (`:6379 refused`) | ws_manager pub/sub — לא חוסם מסחר (רק ws-fanout) | ℹ️ להפעיל Redis / להשתיק |
+| 10 | אפליקציית-כיס לא-נגישה | bind 127.0.0.1 (ראה S-8 למעלה) | 🔴 פתוח (S-8) |
+
+**מצב-סיום נוכחי (21:15):** שטוח (qty=0) · is_sim=0 · armed=1 · **flag_guard PASS 72** · fire_drill GO · effمصב-processing חזר · כל 4 התיקונים חיים · פיד שפוי 7617. **עסקאות-רשומות: 3 (+$100)** — יתומים לא נלכדו. **למחר: (1) adopt-orphan (2) fill-capture (3) חקירת-ריסטארט-שובר-feed (4) 0.0.0.0 (5) harness-כיול.** מ-le=4 והלאה S2 אמור לירות נקי.
+
 ### [2026-07-15 20:47 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [DONE — deploy-הערב בוצע (4 תיקונים, ריסטארט אחד) · פוזיציה נשמרה בפסיקת-מייקל]
 
 **מייקל פסק: לשמור את הפוזיציה + לפרוס עכשיו (מקבל סיכון-הערמה).** אימתתי בקוד ש**ריסטארט לא משטח** (reconciler רק
