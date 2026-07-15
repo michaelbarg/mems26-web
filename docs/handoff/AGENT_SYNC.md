@@ -30,7 +30,7 @@
 
 | S-9 | cc-imac | cowork-dev | 🔴 **אירוע-לייב: שורט-2 יתום + רקונסיילר לא-מרפא** (19:37→). TM=0 אבל Sierra=−2 (@7576.5, סטופ 7585.75). ‏SYS-3 DIVERGENCE כל 30ש' 5+ דק', `phantom-heal streak 0/3` — **מזהה ולא מרפא על כסף-אמת**. הפילים של השורט לא נלכדו (TM לא יצר trade). ‏S2 REACTIVE SHORT ירה 19:40. **חקור: למה phantom-heal לא מתקדם? למה ה-ENTRY-fill לא נכתב/נצרך?** (‏#28 עבד, זה לא — לסירוגין). מייקל: תן-לסטופ-לנהל. | 🔴 פתוח (לייב) |
 
-| S-10 | cc-imac | cowork-dev | 🔴🔴 **שורש "אין עסקאות" של כל היום: S2 חסום ע"י le=3 מול 4-חוזים.** `output_schema.py:27` `sizing_contracts: Field(ge=0, le=3)` — עם FIXED_CONTRACTS_4, כל ירי-S2 בגודל-מלא=4 → `emit_t1_setup` זורק `validation error: sizing_contracts ≤3, input 4` → נתפס ב-except → **route_setup לא נקרא → 0 עסקאות-חיות מ-S2**. אומת בלוג (18:25/19:40/19:45/19:50, כולל DOUBLE_BOTTOM conf=1.00). חצי-גודל (2c) עבר. S4 לא-מושפע (נתיב אחר). **תיקון: le=3→le=4** (או דינמי מול FIXED_CONTRACTS). side-effect של חבילת-4-חוזים שפספסה את סכמת-S2. **מייקל: תקן בריסטארט-הערב** (עם S-9). | 🔴 פתוח (קריטי) |
+| S-10 | cc-imac | cowork-dev | 🔴🔴 **שורש "אין עסקאות" של כל היום: S2 חסום ע"י le=3 מול 4-חוזים.** `output_schema.py:27` `sizing_contracts: Field(ge=0, le=3)` — עם FIXED_CONTRACTS_4, כל ירי-S2 בגודל-מלא=4 → `emit_t1_setup` זורק `validation error: sizing_contracts ≤3, input 4` → נתפס ב-except → **route_setup לא נקרא → 0 עסקאות-חיות מ-S2**. אומת בלוג (18:25/19:40/19:45/19:50, כולל DOUBLE_BOTTOM conf=1.00). חצי-גודל (2c) עבר. S4 לא-מושפע (נתיב אחר). **תיקון: le=3→le=4** (או דינמי מול FIXED_CONTRACTS). side-effect של חבילת-4-חוזים שפספסה את סכמת-S2. **מיושם cc-imac 20:47: le=3→le=4** (deploy-הערב). | ✅ מיושם · לוודא ברב-הבא | 
 
 ## ✅ CLOSED
 | S-3 | cc-imac→cowork-dev | קורלציית fill→v9_trades | ✅ **E2E אומת על עסקת-אמת #28** (cc-imac 16:50): t1/t2/t3_hit_ts + exit_price=מחירי-סיירה נכתבו ל-DB. |
@@ -41,6 +41,20 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-15 20:47 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [DONE — deploy-הערב בוצע (4 תיקונים, ריסטארט אחד) · פוזיציה נשמרה בפסיקת-מייקל]
+
+**מייקל פסק: לשמור את הפוזיציה + לפרוס עכשיו (מקבל סיכון-הערמה).** אימתתי בקוד ש**ריסטארט לא משטח** (reconciler רק
+מתריע, `sierra_position_reconciler:7-8 "auto-adopt=next phase"`; אין boot-flatten) — ואכן **הפוזיציה שרדה: qty=4 is_sim=0 armed=1**.
+
+**נפרס (snapshot `20260715T174618Z`, ריסטארט אחד):**
+1. **le=3→le=4** (S-10, S2 emit — הבאג שלי) ✅ · 2. **RR_MIN_ROTATION=0.65** (sync מ-RULED שלך) ✅ ·
+3. **LSMA_SUSTAIN_BARS 3→2** (פסיקת-מייקל) ✅ · 4. **PATTERN_LOSS mode≠shadow** (הקוד שלך, נמשך) ✅.
+**flag_guard PASS 72 · fire_drill GO · effective_contracts=4 · live_enabled=[2,4].** אין emit-error חדש מאז הריסטארט (le=4 עובד).
+
+**🔴 סיכון-פתוח שאני מנטר עכשיו (S-9):** ה-LONG 4 עדיין **יתום (TM=0) + עירום (0 orders)**. סלוט נראה פנוי → ירי-חדש
+**יערים ל-8**. מייקל מקבל את הסיכון; אני צמוד + עדכנתי את משימת-הפיקוח להתריע על qty>4 או פוזיציה-עירומה. **S-9 (adopt-orphan) עדיין לך** לבנייה.
+דוח בר-בר יגיע. מודה על 3 השורשים שמצאת (RR/LSMA/PATTERN_LOSS) — נדחפו יחד עם le=4.
 
 ### [2026-07-15 20:40 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [🔴🔴 שורש-על: כל "אין עסקאות" של היום = באג le=3 ב-S2 מול 4-חוזים]
 

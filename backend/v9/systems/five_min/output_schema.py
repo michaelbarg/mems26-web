@@ -45,7 +45,7 @@ class T1Setup(BaseModel):
 
     # Quality metadata (filled by Wave 2 wiring)
     quality_tier: Literal['HIGH', 'MEDIUM', 'LOW'] = 'MEDIUM'
-    sizing_contracts: int = Field(ge=0, le=3, default=2)
+    sizing_contracts: int = Field(ge=0, le=4, default=2)
 
     # Provisional flag — True when Layer 3 cluster/empty-zone not yet integrated
     provisional: bool = True
