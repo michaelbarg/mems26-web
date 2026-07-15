@@ -51,6 +51,7 @@ def resolve_stop(
     atr_5m: float,
     family: str = "CONT",
     offset_ticks: int = 3,
+    day_type: Optional[str] = None,
 ) -> StopResolverResult:
     """Walk the rung ladder and pick the first within the band.
 
@@ -64,7 +65,19 @@ def resolve_stop(
         offset_ticks: structural offset beyond each rung (default 3T = 0.75pt)
     """
     offset = offset_ticks * TICK
-    floor_pts = max(0.5 * atr_5m, 1.0)  # at least 1pt
+    # 07-15 Michael decision 5/6: DYNAMIC floor by day type. On rotation days
+    # (Variation / Neutral_*) a 0.5×ATR stop sits inside the noise — trade #372
+    # (07-14) got a 6pt stop on ATR 10.8 and died in 3 minutes. Rotation floor
+    # = STOP_FLOOR_ROTATION_ATR (default 0.8×ATR); trend/other days keep 0.5
+    # (continuation entries legitimately hug structure). Cap unchanged.
+    _floor_mult = 0.5
+    _dt = (day_type or "").strip()
+    if _dt.startswith(("Variation", "Normal_Variation", "Neutral")):
+        try:
+            _floor_mult = float(os.getenv("STOP_FLOOR_ROTATION_ATR", "0.8"))
+        except (TypeError, ValueError):
+            _floor_mult = 0.8
+    floor_pts = max(_floor_mult * atr_5m, 1.0)  # at least 1pt
     cap_mult = 1.5 if family == "REV" else 1.2
     cap_pts = min(cap_mult * atr_5m, 25.0)  # hard cap 25pt
 

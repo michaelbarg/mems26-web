@@ -814,11 +814,20 @@ class TradingGateway:
                             ("REACTIVE", "HFE", "GHOST", "FAMIR", "HNS", "DOUBLE", "INVERSE")) else "CONT"
                         if _sr_rungs:
                             from backend.v9.systems.stop_anchors.stop_resolver import resolve_stop as _sr_resolve
+                            # 07-15 decision 5/6: pass the live day type so the
+                            # resolver applies the rotation floor (0.8×ATR on
+                            # Variation/Neutral — #372 died on a 0.55×ATR stop).
+                            _sr_dt = None
+                            try:
+                                from backend.v9.services.trade_context import get_live_day_type as _sr_gldt
+                                _sr_dt = _sr_gldt()
+                            except Exception:
+                                _sr_dt = None
                             _sr_res = _sr_resolve(
                                 direction=_sr_dir, entry_price=_sr_entry,
                                 rungs=_sr_rungs[:5],
                                 rung_names=[f"r{i}" for i in range(len(_sr_rungs[:5]))],
-                                atr_5m=_sr_atr, family=_sr_fam)
+                                atr_5m=_sr_atr, family=_sr_fam, day_type=_sr_dt)
                             # STOP_TABLE_V1 (default OFF): make the ATR band cap
                             # pattern×day_type aware. Tighten-only — never widens
                             # risk beyond the generic cap. Flag OFF, or pattern×
