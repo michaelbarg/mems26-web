@@ -47,5 +47,43 @@ _(ממתין)_
 **באג-שנתפס-בדריל:** ‏SIZE_CAP מיפה ‏'full'→3 וקיצץ בשקט את ה-4 — תוקן ('full'=הגודל-הפסוק).
 **לא-בוצע:** הוכחת-סים 4-חוזים — ממתינה ל-DLL של cc-imac + Remote Build; נפילה מתואמת ל-3c אם לא ירוק ב-15:30.
 
+### דיווח צ'אט-מערכות — 3 ביקורות (דוח-בלבד) · חתימה: צ'אט-מערכות · לפני 14:30
+
+#### משימה 1 — ביקורת-דלתון: תבניות×ימים + מיקום
+**בוצע:** קראתי `config/daytype_playbook.yaml` (מלא) + `backend/v9/systems/daytype_playbook.py:decide()` (93-144).
+**שורש (ראיה):** `decide()` אוכף **רק**: (א) תא תבנית×יום FULL/REDUCED/SKIP (שורה 139); (ב) `require_with_trend` בימים-כיווניים Trend+Variation (131-137) — חוסם רק **counter-trend** (LONG על RED/SHORT על BLUE). **אין שום בדיקת-מיקום.** בלוק `daytype_style` (yaml:33-124) עם דוקטרינת-המיקום (`bias`/`fade_edges`/`ref_points`) הוא **תיעוד בלבד — decide() לא קורא אותו.**
+**למה #372 (REACTIVE_LONG בקצה-VAH, Variation) לא נחסם:** תא REACTIVE×Variation=**FULL** (yaml:146); require_with_trend תפס רק counter-trend (אם ההתרחבות מעלה=BLUE, LONG="with-trend"→עבר); **אין בדיקת-מיקום** → reversal-LONG בראש-הערך (VAH) לא נחסם. לפי דלתון ב-VAH ה-fade הוא SHORT (רוטציה ל-POC/VAL) — LONG שם = קניית-התקרה = העסקה האנטי-דוקטרינרית.
+**תאים הפוכים-מהספר + הצעות:**
+
+| תא | עכשיו | בעיה | הצעה |
+|---|---|---|---|
+| REACTIVE × Variation | FULL (yaml:146) | REACTIVE=fade; Variation=continuation ("go WITH expansion" yaml:75) — fade ביום-המשך=הפוך | **SKIP** או REDUCED+location-gate |
+| HNS × Variation | FULL (yaml:147) | כנ"ל (reversal ביום-המשך) | SKIP/location-gate |
+| VEGAS/GHOST/FAMIR/DBDT × Variation | REDUCED (139-143) | reversal ביום-המשך; מקל מדי | SKIP, או REDUCED רק בקצה-הנכון |
+| כל תבניות-ה-REV, כל יום | **ללא מיקום** | דלתון: fade יורה רק בקצה-הערך בכיוון-ה-fade (SHORT@VAH/LONG@VAL) | **זה מה ש-LOCATION_GATE צריך לאכוף** |
+| Normal bias "VAL→LONG·VAH→SHORT" (yaml:55) | לא-נאכף | REACTIVE_LONG@VAH ב-Normal עובר | location-gate |
+
+**ממצא-מפתח:** `DAYTYPE_POSITION_GATE` הוא בקרת-הכיוון המיועדת (decide():116-118 — כשדלוק playbook מחזיר FULL וה-gate מטפל בכיוון), אבל **כבוי** (RULED=0) **וגם חצי-בנוי** → לא ה-position-gate ולא בדיקת-מיקום רצים → **דוקטרינת-כיוון-לפי-מיקום לא נאכפת מקצה-לקצה.**
+**לא-בוצע:** לא כימתתי ברפליי כמה מ-62 הניסיונות שער-מיקום היה חוסם; לא אימתתי ערכי-VAH/VAL בפועל של #372 (הסקתי "קצה-VAH" מהערת-מייקל).
+
+#### משימה 2 — מפרט השלמת DAYTYPE_LOCATION_GATE (מוכן-למימוש)
+**מה קיים:** הדוקטרינה ב-`daytype_style` (yaml:33-124) כנתונים-בלבד; ה-hook = `DAYTYPE_POSITION_GATE` (כבוי) + שער חצי-בנוי מ-06-19.
+**מפרט (flag `DAYTYPE_LOCATION_GATE`, default OFF):**
+- **קלט:** entry, direction, day_type, רמות חיות VAH/VAL/POC/IBH/IBL (מ-`_load_sierra_tpo`, זמין).
+- **סיווג-אזור:** near-VAH / near-VAL / mid-value / above-VAH (מתוח) / below-VAL (מתוח) / near-POC — רצועת-סובלנות ≤0.25×IB.
+- **כיוון-מותר-לפי-אזור (מ-daytype_style):** **Normal** — LONG רק near-VAL, SHORT רק near-VAH; חסום צד-הפוך + mid-value. **Neutral_Center/Extreme** — LONG קצה-תחתון, SHORT קצה-עליון→POC. **Variation** — כלל-מייקל: אין LONG מעל VAH, אין SHORT מתחת VAL (⚠ **דורש הכרעה:** yaml="with expansion" מול "fade-edges only" שלך — לקבע). **Trend** — with-trend בלבד (כבר) + חסום fade-נגד. **Nontrend/Nonconviction** — SKIP.
+- **פלט:** allow/SKIP+סיבה, כשער-קדם-ירי בגייטוויי לצד require_with_trend.
+- **אימות:** רפליי N ימים → #372-class→SKIP, fade-בקצה→allow; flag-OFF עד פסיקה+רפליי.
+**לא-בוצע:** לא קראתי את הקוד-החלקי הקיים (grep מצא רפרנסים ב-trading_gateway.py) — להצליב לפני בנייה; המפרט נגזר מהדוקטרינה.
+
+#### משימה 3 — ריצת-הפתיחה (אין איתות 09:30-10:00 ET אתמול)
+**בוצע:** קראתי `five_min_system.py` (מצבי-first-hour) + `setup_emitter.py:_opening_window_check` (24-90).
+**ראיות:** S2 במצב `FIRST_HOUR_TACTICAL` בשעה-הראשונה (five_min_system.py:343-344,1030-1031); IB לא-נעול (10:30), סוג-יום=ניחוש-שלב-1. ירי-הפתיחה=`OPENING_WINDOW_FIRE_V1` (setup_emitter.py:24-33): `opening_window_override` = אישור-with-drive ב-30 הדק' ש**עוקף** NO_TRADE/SKIP (59-90).
+**למה אין איתות אתמול:** (1) **OPENING_WINDOW_FIRE_V1 היה כבוי** בחלון — הודלק רק ~10:05 ET, **אחרי** 30-הדק'; לכן SKIP-סוג-היום לא-עוקף → הירי נהרג-בתוך-המערכת (תקרית 2026-07-02 16:45, מצוטטת setup_emitter.py:84-86). (2) גם אילו דלוק — צריך **איתות with-drive חיובי** (OPEN_DRIVE); בלי דרייב אין עקיפה.
+**מה נדרש:** (1) להדליק OPENING_WINDOW_FIRE_V1 לפני הפתיחה (בוצע היום=1); (2) opening_type מפיק OPEN_DRIVE מוקדם; (3) FirstHourBuffer עם מספיק ברים; (4) ⚠ העקיפה **בלי בדיקת-מיקום** → אסור לפתוח LONG ב-VAH → ה-LOCATION_GATE צריך לחול גם על הפתיחה.
+**לא-בוצע:** לא אימתתי מהלוג את opening_type בפועל אתמול 09:30-10:00 (צריך קריאת-לוג ממוקדת); דוח-בלבד, לא נגעתי בקוד.
+
+**סיכום-על:** שלושת הממצאים=שורש-אחד — **המערכת בוחרת תבנית+גודל אבל לא אוכפת כיוון-לפי-מיקום.** #372 עבר כי אין location-gate; אותה סיבה לאין-עסקת-פתיחה-נכונה (עקיפה בלי-מיקום) ולתאים-ההפוכים. **המלצה-מרכזית: להשלים DAYTYPE_LOCATION_GATE (משימה 2) — סוגר את שלושתם.**
+
 ## פסיקות-מייקל (בוצעו)
 ‏1 ‏SSV=א (כבוי+אמת-בלבד) · ‏2 ‏R:R=א (T1-קדם-ריאליזם) · ‏3 ‏pattern=מאושר · ‏4 סיווג=פתרון-איכותי (מוח/כותב-אחד) · ‏5 סטופ=א (רצפה 0.8 ברוטציה) · ‏6 ‏S6=א (protective). ‏+ ‏4-חוזים, ‏T0=3.5, חלון-פתיחה דלוק.
