@@ -1,12 +1,7 @@
 {
-  "ts": "2026-07-11T19:26:57.520648+00:00",
-  "verdict": "🟡",
-  "note": "בדיקת-חיות חלקית (Cowork UI-build): דשבורד+API+פיד חיים · עסקה פעילה במעקב. לא ריצת session-watch מלאה (flag_guard/fire_drill לא הורצו).",
-  "checks": {
-    "dashboard": "up",
-    "api_active": "200",
-    "feed": "live",
-    "session_watch": "not-run"
-  },
-  "source": "cowork-ui-build"
+  "ts": "2026-07-14T15:15:11Z",
+  "verdict": "🔴",
+  "note": "🔴 דרוש-מייקל (המשך ~1.5ש׳, 13:54Z→15:11Z): חשבון-לייב 37138283 (is_sim=0) עדיין מחזיק LONG +3 @7569 לא-במעקב (sierra_state age ~1s, גובר) — TM=0/trades-active=null. המחזור נעצר (0 היפוך מאז 14:19:48Z; 6 היפוכים היום מ-bracket-8945/#370 שדלף; 0 op=PLACE כל היום, אחרון-אמת 07-13 20:10). P&L: ממומש -$33.75 היום; לונג-פתוח +30.75נק׳≈+$461 לא-ממומש; סטופ 8959 @7569.75 בצד-הנכון (לא-עירום). reconciler SYS-3 DIVERGENCE כל 30ש׳ 18:06→18:11, phantom-heal 0/3 → לא-משטח לבד (משפחת-07-10). Check-3: 0 סגירות חדשות→אין fictitious-close; fills-journal קפוא 06:27:15Z. Check-1: 16 מועמדים/0 op=PLACE — gates-לגיטימיים (rr×5,cont_trend×3,s4_risk×1), מגן בזמן דיברגנס, אין 07-09. Check-4: live_price 3.7s✓, sierra_state ~1s✓, feeder יחיד PID44008, 0 CRITICAL/NAKED חדש, Redis עדיין DOWN. דרוש: לאמת בסיירה + לשטח/לבטל bracket-8945. קריאה-בלבד.",
+  "checks": 5,
+  "source": "session-watch"
 }

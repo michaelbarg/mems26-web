@@ -56,6 +56,7 @@
 | I-64 | 🔴 חדש [07-09] **phantom-fill + תווית-סותרת** — 3 LONG-shadow (328/330/332) נרשמו `T3_HIT ∧ H1H2H3 ∧ outcome=LOSS ∧ exit_price=null`, pnl כאילו-יצא ב-7566.5 (מתחת-לכניסה ומתחת-לסטופ) שמעולם-לא-נסחר (שפל-חלון 7573). הסלמת I-58 (phantom-STOP→phantom-TARGET) | shadow-sim-exit-path + `five_min`/`woodies` target-calc; לוג 10:38–10:50 CT | למה `T3_HIT` על target<entry, `xp=null`, `t*_hit=true` עם LOSS | 🔴 | חוסם-אמון-shadow. עיצוב DESIGNS_2026-07-09 §2 |
 | I-65 | 🔴 חדש [07-09] **היפוך shadow↔live על סיגנל-זהה** — 332(shadow)=−2.28R מול 333(live)=+3.92R ($117.5), אותו REACTIVE_LONG (10:45, e7576.75, stop 7572.25). shadow הפך winner-אמת ל-loss דרך I-54+I-64. הסלמת I-56 | לוג 10:45–12:11 CT id332 מול id333; targets-diff (7566.5×3 מול t1=t2=7588.5) | למה targets+exit שונים לאותו-סיגנל | 🔴 | ה-live הוא ה-oracle-האמת. עיצוב DESIGNS_2026-07-09 §3 |
 | I-66 | 🟡 חדש [07-09] **10 דרילי-דמו `SIM_TEST` בטבלת-עסקאות** — ids 316,318,320–327 (טרום-RTH 03:32–05:28 CT), entry אחיד 7515.25, exit דרילי (sim_cleanup/drill_*/pre_restart_cleanup), R-אבסורדי (321/323 R48; 318 +$541.95). מזהמים `/trades/recent`/counters | `is_synthetic`/`is_drill` flag + restart-source (bars_in_db 3206→1549) | לוודא סינון drill≠signal | 🟡 | עיצוב DESIGNS_2026-07-09 §5; display/safe |
+| I-67 | 🟠 חדש [07-13] **תבנית `GHOST` (S4) לא-מתועדת — ירתה 2 לונגים נגד-מגמה עם targets מופרי-סדר** — ids 367(shadow)/368(live) 12:10 CT, LONG ביום-ירידה (−32.5pt), נעצרו −1R מיָדית; `t1=7589.5<t3=7603.5<t2=7610.5` (t2>t3, הפרת-מונוטוניות ל-LONG); GHOST אינה ברשימת-S4 (ZLR/TLB/TT/GB100/HFE/HTLB/FAMIR) | קוד woodies/S4 detectors + pattern-map; לוג 12:10 CT id367/368; Sierra v9_export (woodies/CCI-14 גולמי) | מה GHOST (S4-חדש/fallback/באג-שיוך)? למה נגד-מגמה? מקור target t2>t3 | 🟠 | עיצוב DESIGNS_2026-07-13 §2; [TRADING-LOGIC·SoT→CC] |
 
 > **הוראת-עדכון:** כל חשוד חדש ש-Michael מסמן → Cowork מוסיף שורה כאן עם SoT+spec+סטטוס,
 > לפני בדיקה. אסור "נראה תקין" בלי לעבור על הסעיף לעומק מול ה-SoT.
@@ -1367,3 +1368,59 @@ slots 3–4 (SHORT מה-top 7491) = פער-כניסה 09:15–10:20 שנסגר �
 - **🎯 benchmark 0/5 אותרו — מירור-07-06 (יום-עולה).** 3/5 שורטים (9:20/9:35/10:00) = **אי-שורט-נכון** (מחיר עלה +65 מהשפל 7529.5). 2/5 לונגים (8:35 reversal/9:00 tactical) = היפוך-השפל-09:20 שנתפס-**מאוחר** (10:45, id333 +3.92R). **ה-benchmark לא-חשף פער-שורט היום** (בניגוד ל-07-08-V); הפער היה I-54, לא ה-benchmark.
 
 **ΣR (missed side):** פספוס-גייט-מאומת **+2.27R** (12:00 ZLR-UP בלבד) · בלתי-מאומת-בוקר **+1.8R** (blind) · afternoon-chop-ZLR **אי-הירי-מוצדק** (−1R כ"א). **החוסם-המוביל (missed) = I-3 (יעד-מנוון = שורש-I-54).** benchmark **0/5 אותרו · 3/5 אי-שורט-נכון · 2/5 long נתפס-מאוחר**. **תזכורת:** הכאב-הגדול-של-היום איננו ב-missed (+2.27R) אלא ב-**fired-שחובל (I-54/I-64/I-65, ~+9.8…+15.8R היפוך, §15:13)**. **verify (Rule 5):** overlap woodies==bars5min **44/44 close-matches** · replay ×9 (Chrome-JS מול bars5min OHLC): 12:00→+2.27R · morning→+1.8R · 330 יעד-תקין→+7.55R MFE · 7×afternoon-ZLR→stop. שום קוד/flag/.env/DB לא-שונה.
+
+---
+
+### [2026-07-13 15:12 CT] EOD מאוחד — קונסולידציה סוף-יום (Cowork, אוטונומי)
+
+**שער-זמן I-9:** ✅ CT 15:12 (≥15:00; `TZ=America/Chicago date`→`2026-07-13 15:12:22 CDT`; `/status.et_time=16:14 ET`; IL 23:12). feed בריא (78 ברי-RTH, `last_write_age_s=0.4–0.8s`, `mode=sim`). מקורות: API-חי דרך Chrome. דוחות: `PATTERN_EOD_2026-07-13.md` + `DESIGNS_2026-07-13.md`. ⚠️ אין `PATTERN_DIAG_2026-07-13.md` (snapshots מושבת מ-06-10) ⇒ `נדרכה#` intraday לא-זמין.
+
+**תמונת-היום:** יום-ירידה/Variation, open 7595.5 → שיא 7610.5 @09:00 → ירידה-מתמשכת → שפל 7551.5 @14:35 → נעילה 7563. טווח 59pt · נטו **−32.5pt**. opening_type=OPEN_DRIVE (נהיגה-מטה). **10 סיגנלים-אמת** (ids 360–369: 3 live · 7 shadow) + 1 דריל-דמו (359 SIM_TEST).
+
+**כותרת-על:** הכיוון היה **נכון** והמערכת **הרוויחה** — 4 שורטי-בוקר מנצחים-אמת (REACTIVE_SHORT 360/361/362 + ZLR 364, T3-אמת mfe 15–24pt); נטו כל-הסיגנלים **≈ +$297.5 (סים) · live +$92.5**. ה-shadow **תאם את-ה-live** על 2/3 צמדים (360/361, 367/368) — **שיפור חד מ-07-09** (ששם shadow הפך winner ל-loss). הבעיה-הדומיננטית עברה מ-targets ל-**R-חשבונאות: ΣR-רשום +68.3R מול ΣR-אמת +8.1R (I-22 ניפוח ×8.4).**
+
+**חשודים-חדשים:**
+
+- **🟠 I-67 (חדש) — תבנית `GHOST` (S4) לא-מתועדת, נגד-מגמה, targets מופרי-סדר.** ids 367(shadow)/368(live), 12:10 CT, `pattern_id="GHOST"`, LONG ביום-ירידה, נעצרו −1R מיָדית; `t2=7610.5>t3=7603.5` (הפרת-מונוטוניות ל-LONG). GHOST אינה ברשימת-S4 של המפרט. שני-הנתיבים הסכימו ⇒ תבנית-אמת (לא-באג-נתיב) עם התנהגות+targets-חשודים. **SoT→CC:** מקור-GHOST בקוד + target-calc. עיצוב `DESIGNS_2026-07-13 §2`. **[TRADING-LOGIC]** · **3-החמורים · #2.**
+
+**עדכוני-סטטוס חשודים קיימים:**
+
+- **🔴 I-22 — אומת עם שורש-נראה-לעין (הבעיה #1 היום).** id364 רשם `+33.33R` על עסקה של **+2.88R-אמת**; id366 רשם `+31R` על **עסקת-הפסד −$1.25** (סימן-הפוך). השורש חשוף: אחרי T1/T2 ה-`stop` **נגרר לכמעט-כניסה** (364: stop 7585 מול stop_initial 7589.5; 366: 7570.5 מול 7574.5), ונוסחת-R מחלקת ב-stop-הנגרר במקום stop_initial → R מתפוצץ + סימן-הפוך. **ΣR-רשום +68.3R מול +8.1R-אמת.** חוסם כל מדד-R + LIVE-sizing. עיצוב `DESIGNS_2026-07-13 §1` (מכנה-stop_initial + אכיפת-סימן). **[TRADING-LOGIC/DATA·SoT→CC] · 3-החמורים · #1.**
+- **🔴 I-65/I-64 — חזרו בגרסה-מתונה.** 365(shadow)/366(live) = אותו ZLR_SHORT (11:50, e7570.75, stop_initial 7574.5): shadow=noHit/−1R-נקי מול live=phantom-H1 (שפל-אמת 7564 > t1 7563.5) + stop-נגרר + R-מנופח. + `exit_price=null` על כל 4 ה-`T3_HIT` (360/361/362/364). **הפעם בלי היפוך-סימן** (360/361 + 367/368 תאמו) ⇒ shadow **השתפר** מ-07-09 אך לא-דטרמיניסטי (hit-predicate + null-exit). עיצוב `DESIGNS_2026-07-13 §3`. **[TRADING-LOGIC/DATA·SoT→CC] · 3-החמורים · #3.**
+- **🟢 I-54 — הוקל (collapse-07-09 לא-חזר).** השורטים היום קיבלו targets יורדים-תקינים (t1>t2>t3, כיוון-נכון); ה-`7566.5×3`-מתחת-לכניסה **לא-חזר**. **ההפרה-היחידה**: GHOST `t2>t3` (I-67). ⇒ target-engine השתפר על REACTIVE/ZLR, אך הבאג-המבני **חבוי** (מתבטא-סלקטיבית ב-GHOST). אכיפת-כיוון/מונוטוניות עדיין-נדרשת. עיצוב `DESIGNS_2026-07-13 §6`.
+- **🟢 I-23 — השתפר מהותית.** `daily_pnl=92.5` = בדיוק סכום 3-ה-live (361+366+368) · `trades_today=3` · `shadow_active_count=7` = 7-ה-shadow. המונים **מחווטים ופעילים** (07-09: הכל 0). שארית: לקבע החרגת-drill + פילוח live/shadow. עיצוב `DESIGNS_2026-07-13 §4`. **[DISPLAY/SAFE]**
+- **🟡 I-66 — נמשך.** id359 (SIM_TEST, 00:11 CT טרום-RTH, `SIM_PROOF_0713_manual_close`) עדיין `is_synthetic=false`. דריל-אחד היום (מ-10 ב-07-09). עיצוב `DESIGNS_2026-07-13 §5`. **[DISPLAY/SAFE]**
+- **🟡 I-62 — נמשך.** `demo_enabled_systems=[]` (מ-07-06) · `live_enabled=[2,4]` ירתה 3-live (+$92.5). דורש אישור-Michael + תיעוד. **[TRADING-LOGIC·SoT→CC]**
+- **🔴 I-44 — נמשך.** `session_min=0/vote_history=[]` (wrapper-קפוא). `ib_width=EXTREME` השתנה מ-WIDE (07-09) ⇒ לא-קפוא-בין-ימים. התוויות (Variation/OPEN_DRIVE) סבירות. handoff עומד. **[DISPLAY/SAFE]**
+- **🟡 chop_state="FOUND" — נמשך (יום-3).** `/gateway.chop_state`+`/chop_score.state`="FOUND" (vegas_flips 6, cci_zl 2). 3-ימים-ברציפות ⇒ enum-חדש/שגוי. chop-off ⇒ לא-חוסם. **[DISPLAY/SAFE·SoT→CC]**
+- **🟡 I-41/I-50-inv (לונג-נגד-מגמה) — n=3.** 363 (REACTIVE_LONG) + 367/368 (GHOST) לונגים נגד-ירידה, כולם −1R-מוצדק (נעצרו-מהר). מראה-מהופך של הטיית-השורט-ההיסטורית. שער-המשפחה לא-סינן כיוון-נגד-מגמה. watch. **[SoT→CC]**
+- **🟡 bars_in_db=1779 — watch.** עלייה מ-1549 (07-09), עדיין מתחת-3206 (07-08). לצלב hydration/restart.
+- **🟢 I-25 — חלקי.** `/chart/bars5min?limit=200` התקבל (156 ברים); `/trades/recent` נותר `le:100`.
+- **🟢 D-missed-buffer — לא-הופיע** (`/missed-trades count=0`). נקי.
+- **🟡 bridge.running=false / streams 0/11** מול feed-טרי (0.4s): artifact-post-close סביר (5 ימים-ברציפות). לצלב.
+
+**ΣR-CF היום:** רשום **+68.3R** (מנופח I-22) · **אמת +8.1R** (360 +3.86 · 361 +3.86 · 362 +3.52 · 364 +2.88 · 6×STOP −6). live P&L **+$92.5** · shadow **+$205** · כל-הסיגנלים **+$297.5** (סים). **הכיוון נכון (יום-ירידה, שורטי-בוקר מנצחים); הבעיה = חשבונאות-R (I-22) + GHOST (I-67) + shadow-hit-determinism (I-65/I-64), לא הפסדי-מסחר-אמת.**
+
+**מקור-אמת (CC):** I-22 (נוסחת-pnl_r: stop-נגרר מול stop_initial + אכיפת-סימן) · I-67 (מקור-GHOST בקוד + target-calc t2>t3) · I-65/I-64 (shadow/live hit-predicate + exit_price=null על 4-ה-T3_HIT) · I-62 (git/.env/FLAG — promotion) · chop-enum · is_synthetic ל-359 · bars_in_db 1549→1779. **שום קוד/flag/.env/DB לא-שונה בריצה זו (read-only EOD).**
+
+### [2026-07-13 15:20 CT] Missed-Trades Investigator (Cowork, אוטונומי) — משלים ל-EOD §15:12
+
+**שער-זמן I-9:** ✅ CT 15:20 (`TZ=America/Chicago date`→`2026-07-13 15:20:35 CDT`; IL 23:20). read-only, API-חי דרך Chrome→localhost:8000. דוח: `docs/reports/MISSED_TRADES_2026-07-13.md`. **מקור-CCI = Sierra woodies export.**
+
+**מיקוד:** ה-EOD §15:12 כיסה את צד-הירי (I-22/I-67/I-65/I-64). זה משלים את **צד-הפספוס** (setups זוהו-ולא-נותבו) + **benchmark**.
+
+**🟢 ממצא-מרכזי — אפס פספוס-מגייט.** `blocked_by=null` על כל 10 הירי-אמת (360–369) · `/missed-trades count=0, candidates=[]`. גייטי-chop OFF (standing 06-08). **קטגוריית "setup-נחסם-מגייט" ריקה היום** — הגייטים נותבו חופשי, לא חסמו דבר. (choppiness/sizing/A1-veto/day_type/opening/FHB = 0 חסימות כ"א.)
+
+**🟡 ממצא-הפספוס-היחיד (זוהה-לא-נותב) — I-3 `ready_to_route=False` (חשד):** אחרי הירי-האחרון **369 @12:25** ה-router **שתק 2.5 שעות עד הנעילה**, בעוד woodies (Sierra) סימן **8 סיגנלי ZLR-DOWN** (12:35/12:45/13:10/13:15/14:10/14:15/14:20 + HFE 14:40–14:55) — **ובדיוק בחלון הזה השוק עשה את שפל-היום 7551.5@14:35.**
+- **הפספוס-הנקי: 13:10 ZLR-DOWN cont-SHORT (RED, cci−77)** e7569 stop7573.5 → **replay: T1✓@13:15 · T2✓@14:20 · לא-נעצר · MFE +3.89R** (רכב לשפל 7551.5). **זנב-אותה-רגל:** 14:15 breakdown +1.96R (T1✓@14:25). **ΣR-נגד ≈ +3.9R** (רגל-אחת, dedup — לא-מצטבר עם הזנב).
+- **פינה משנית — entry-timing:** 12:15 ZLR-DOWN (e7573.25, +5.8R MFE, לא-נעצר) לא-נותב, בעוד ה-router בחר את הסיגנל-המאוחר 12:25 (369, e7568.25) שנעצר −1R. בחירת-כניסה-גרועה-בתוך-אשכול, לא חסימה.
+- **פינה (chop-אמצע):** 12:45/13:15 ZLR-DOWN → replay −1R כ"א ⇒ **אי-נתוב מוצדק.**
+- **פתוח → CC:** למה ה-router שתק 12:25→נעילה? (`ready_to_route`/פילטר-R:R/exposure). זהו החשד-I-3 המוכר (07-09), אך היום עצמאי (לא נגזרת-של-I-54).
+
+**🎯 benchmark (template יום-יורד 06-05 מול היום — יום-יורד, תואם-template):** **0/5 אותרו-בזמן-המדויק** (כל 5 ב-08:30–10:00 = עיוורון-S4 pre-11:15 + ירי-ראשון-S2 10:05). אך: **3/5 שורטים (9:20/9:35/10:00) = כיוון-נכון ונתפסו ~5דק'-מאוחר** (360/361/362 @10:05 מנצחים +2.76/+3.49R) · **1/5 long (9:00) = לא-תקף היום** (טופ-טיק שיא-יום 7610.5) · **1/5 reversal (8:35) = מוקדם** (ההיפוך ~09:00–09:15). **תזת-השורט של ה-benchmark אומתה ונתפסה** (בניגוד ל-07-09 יום-עולה, שם "אי-שורט-נכון"). ה-benchmark לא חשף פער-חדש.
+
+**🔴 I-60-adj עיוורון-בוקר — נמשך (זול היום):** woodies מכסה **11:15→15:20 CT**; **08:30–11:10 עיוור** (buffer=50). הצניחה-החדה 09:15 (7604→l7573, vol 40721) **לא-נותבה** (חלון-עיוור + spike עם bounce-מיידי ל-7602@09:25 — לא-רגל-נקייה, בלתי-ניתן-לאימות; Rule 1: "missing"). עלות-נמוכה — S2 תפס שורטי-בוקר 10:05. fix: snapshot-at-close / endpoint-מ-DB. **פער-persistence נמשך** (`/missed-trades count=0` ⇒ blocked/shadow לא-נשמרים).
+
+**מצטבר (זווית-הפספוסים):** setups-שזוהו-ולא-ירו = **1 רגל-אמת** (13:10, +3.89R) + 1 entry-timing (12:15). פירוק-gate: choppiness/sizing/A1/day_type/opening/FHB=0 · **I-3 (detected-not-routed)=1 · I-60-adj (blind)=1.** **הכאב-הגדול היום איננו ב-missed (+3.9R) אלא ב-fired-כיוון-שגוי** (3 לונגים GHOST/I-67 נגד-יום-יורד, 368 live −$82.5 — מכוסה ב-EOD §I-67/I-41-50-inv).
+
+**אימות (Rule 2/5 — פקודה+פלט):** `TZ=America/Chicago date`→`2026-07-13 15:20:35 CDT` · bars5min↔woodies overlap **45/45 close-matches מדויק** (11:15→14:55 CT) — feed נקי, אין I-40/I-47 · session open 7595.5@08:30 / hi 7610.5@09:00 / lo 7551.5@14:35 / close 7563@14:55 / net −32.5 · replay 13:10: e7569/stop7573.5 risk4.5 → T1@13:15·T2@14:20·MFE +3.89R(→7551.5@14:35, stopHit=null) · replay 14:15: e7563.75/stop7570 risk6.25 → T1@14:25·MFE +1.96R · replay 12:15: e7573.25/stop7577 → T1@12:20·T2@12:35·MFE +5.8R · `blocked_by=null`×10 · `/missed-trades count=0` · pattern-status day_type=Variation errors=[] woodies_5min FRESH 0s. **שום קוד/flag/.env/DB לא-שונה (read-only).**
