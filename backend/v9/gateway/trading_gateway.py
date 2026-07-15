@@ -377,10 +377,16 @@ class TradingGateway:
             result["blocked_by"] = "cooldown"
             logger.info("[Gateway] BLOCKED by 2-stop cooldown")
             return result
-        if self.ssv.check_veto(direction):
-            result["blocked_by"] = "suffering_side_veto"
-            logger.info("[Gateway] BLOCKED by SSV D-049: %s is suffering side", direction)
-            return result
+        # SSV (D-049) — 07-15 Michael ruling ("מאשר את ההמלצה"): ran UNGATED and
+        # UNRULED until 07-14, where SHADOW noise poisoned it and vetoed 22 real
+        # fires all afternoon (19:00-21:00). Now behind SSV_GATE_V1 (default OFF)
+        # and fed by real-money outcomes only (see on_trade_close). Re-enable =
+        # calibration on a week of real outcomes + Michael ruling.
+        if os.getenv("SSV_GATE_V1", "0").lower() in ("1", "true", "yes"):
+            if self.ssv.check_veto(direction):
+                result["blocked_by"] = "suffering_side_veto"
+                logger.info("[Gateway] BLOCKED by SSV D-049: %s is suffering side", direction)
+                return result
 
         # Idempotency dedup — reject the SAME signal fired twice within a short window
         # (ids 199/200 on 2026-06-22: identical S2 REACTIVE_SHORT @7537.75, 2.16s apart).
@@ -1451,8 +1457,11 @@ class TradingGateway:
 
         # ζ.A4: cooldown tracking
         self.cooldown.on_trade_close(outcome)
-        # ζ.B2: SSV tracking
-        self.ssv.record_outcome(direction, outcome)
+        # ζ.B2: SSV tracking — 07-15 fix: REAL outcomes only. Shadow noise fed the
+        # veto on 07-14 (4 shadow stops → LONG declared "suffering" → 22 real
+        # fires blocked). Shadow trades must never gate real trading.
+        if mode in ("live", "demo"):
+            self.ssv.record_outcome(direction, outcome)
 
         # Normalize trade_id comparison: slot stores str, notify sends int
         if self.demo_slot and str(self.demo_slot.get("trade_id")) == str(trade_id):

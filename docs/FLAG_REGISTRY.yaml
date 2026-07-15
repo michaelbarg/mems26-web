@@ -745,6 +745,11 @@ flags:
     what: "P1-6 param: overlap fraction at/above which un-migrated value vetoes the control-path Trend promotion."
     why: "Default 0.8."
     status: param
+  SSV_GATE_V1:
+    category: cascade_gate
+    what: "D-049 suffering-side veto behind a flag: blocks fires in the direction where >=60% of the last 10 REAL (live/demo) outcomes were stops. OFF: veto skipped entirely."
+    why: "OFF (Michael 07-15). Was ungated+unruled; on 07-14 shadow noise poisoned it -> 22 real fires vetoed 19:00-21:00. Feed fixed to real outcomes only; re-enable needs a week of real-outcome calibration + ruling."
+    status: ruled_off
   S1_ACCEPTANCE_RECLASS_V1:
     category: s1
     what: "v2 (07-12): accepted break of ANY reference — PDH/PDL (prior range/balance), prior VA edge, or IB — (≥2 consecutive closes + ≥8% session volume beyond) → immediate reclass in the break direction (rib floor waived); accept-then-return-inside → failed_breakout tag + revert. Dalton pp.37-38, 278-293."
