@@ -56,3 +56,21 @@ def test_without_flags_3pair_unchanged(monkeypatch, tmp_path):
     assert p["target_price"] == 7606.0            # C1 = T1 (קלאסי)
     assert p["context"]["t4"] is None
     assert "t0" not in s
+
+
+def test_t1setup_schema_accepts_4_contracts():
+    """S-10 (07-15): le=3 in T1Setup swallowed every live 4c S2 fire silently.
+    The schema must accept sizing_contracts=4 (and still reject 5)."""
+    import pytest as _pt
+    from datetime import datetime, timezone
+    from backend.v9.systems.five_min.output_schema import T1Setup
+    base = dict(
+        pattern_name="REACTIVE_SHORT", direction="SHORT",
+        entry_price=7600.0, stop_price=7606.5,
+        t1_price=7596.0, t2_price=7592.0, t3_price=7588.0,
+        confidence=90, bar_index=10, fired_at=datetime.now(timezone.utc),
+    )
+    s = T1Setup(**base, sizing_contracts=4)   # the 07-15 killer — must validate
+    assert s.sizing_contracts == 4
+    with _pt.raises(Exception):
+        T1Setup(**base, sizing_contracts=5)   # cap still enforced
