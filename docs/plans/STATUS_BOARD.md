@@ -1,4 +1,6 @@
 
+
+- [2026-07-16 night] **P1-P5 (cowork, night prompt)**: P1 feed-freeze root=(genuine bars-stop 14:25 ET + file ts ET-as-UTC 4h) → veto now reads DB corrected ts (TZ-safe), HALT on stale (85cb05a); P2 verified NOT-a-bug (reclass per-bar, stuck=P1); P3 orphan protective-stop recommendation + fill_poller heartbeat (759fdd0); P4 post_restart_verify.sh liveness gate (208da7a); P5 s4_risk_cap x3 = pattern_loss_breaker (mislabel fixed, 7e958cf). 12 tests, flag_guard 73/73, verify GREEN. **OPEN-CRITICAL: Sierra feed operational root (Message Log/Replay) — veto blocks RTH until feed live.**
 # Status Board · Pre-LIVE Pipeline V2
 
 ## 2026-07-15 (Cowork ערב — פאנל "למה-לא-ירה" חי, בקשת-מייקל)
