@@ -170,6 +170,50 @@ async def mobile_data(request: Request):
     return out
 
 
+@router.post("/flatten")
+async def mobile_flatten(request: Request):
+    """07-15 (מייקל: "שיהיה ניתן לסגור עסקאות אמת באופן ידני") — כפתור-החירום
+    של הכיס. שולח FLATTEN_ACCOUNT (protective-only: סוגר פוזיציות + מבטל
+    הוראות; מאומת ב-DLL). מוגן: דגל MANUAL_FLATTEN_V1 (opt-in פר-מכונה,
+    RULED) + body {"confirm":"FLATTEN"} מאישור-כפול בדף. כש-MOBILE_REMOTE_URL
+    מוגדר — מועבר למכונת-המסחר, כך שהכפתור סוגר תמיד את מה שהמסך מציג."""
+    import asyncio
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        pass
+    if body.get("confirm") != "FLATTEN":
+        return {"ok": False, "error": "confirm חסר — לא בוצע"}
+
+    base = (os.getenv("MOBILE_REMOTE_URL") or "").strip().rstrip("/")
+    if base:
+        def _fwd():
+            import urllib.request
+            req = urllib.request.Request(
+                f"{base}/api/v9/mobile/flatten",
+                data=json.dumps({"confirm": "FLATTEN"}).encode(),
+                headers={"Content-Type": "application/json"}, method="POST")
+            with urllib.request.urlopen(req, timeout=5) as r:
+                return json.loads(r.read().decode())
+        try:
+            out = await asyncio.to_thread(_fwd)
+            out["_via"] = "trading-machine"
+            return out
+        except Exception as e:
+            return {"ok": False, "error": f"מכונת-המסחר לא זמינה: {str(e)[:60]}"}
+
+    if os.getenv("MANUAL_FLATTEN_V1", "0").lower() not in ("1", "true", "yes"):
+        return {"ok": False, "error": "MANUAL_FLATTEN_V1 כבוי במכונה זו"}
+    try:
+        from backend.v9.services.sierra_command import write_trade_command
+        write_trade_command(action="FLATTEN_ACCOUNT",
+                            context={"source": "mobile_manual", "by": "michael"})
+        return {"ok": True, "msg": "FLATTEN_ACCOUNT נשלח לסיירה"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:80]}
+
+
 _PAGE = """<!DOCTYPE html><html lang="he" dir="rtl"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -194,6 +238,8 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div class="card"><div class="dim">תבניות — מי יורה, למה לא, ומה חוסם</div>
 <div id="pats" style="font-size:11.5px;line-height:1.7">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
+<button id="flat" style="width:100%;padding:12px;margin:4px 0 8px;border-radius:12px;border:1px solid #f85149;
+background:#2d1214;color:#f85149;font-size:14px;font-weight:700;font-family:inherit">⏻ סגור עסקאות-אמת (השטח הכל)</button>
 <div class="dim" id="health" style="text-align:center"></div>
 <script>
 const GATE_HE = {kill_switch:'מתג-חירום',session_gate_closed:'מחוץ לחלון-מסחר',eod_entry_cutoff:'סוף-יום',
@@ -258,6 +304,17 @@ async function load(){
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר למערכת — '+e; }
 }
 load(); setInterval(load, 5000);
+document.getElementById('flat').onclick = async () => {
+ if(!confirm('לסגור את כל עסקאות-האמת ולבטל את כל ההוראות?')) return;
+ if(!confirm('אישור סופי — FLATTEN עכשיו?')) return;
+ const b = document.getElementById('flat'); b.disabled = true; b.textContent = 'שולח...';
+ try{
+  const r = await fetch('/api/v9/mobile/flatten',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:'FLATTEN'})});
+  const d = await r.json();
+  b.textContent = d.ok? '✓ נשלח — בדוק פוזיציה' : '✗ '+(d.error||'נכשל');
+ }catch(e){ b.textContent = '✗ אין קשר'; }
+ setTimeout(()=>{ b.disabled=false; b.textContent='⏻ סגור עסקאות-אמת (השטח הכל)'; }, 6000);
+};
 </script></body></html>"""
 
 
