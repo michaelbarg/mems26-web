@@ -71,9 +71,12 @@ def main() -> int:
                     changes.append((key, cur, "0"))
                     lines[idx[key]] = f"{key}=0"
             continue
-        # Only concrete values (0/1/2/number). Anything else in the RULED file is
-        # a note, not a value — skip it rather than risk writing garbage.
-        if not re.fullmatch(r"-?\d+(\.\d+)?", want):
+        # Concrete numeric values (0/1/2/3.5/0.8) AND known string-mode values
+        # (e.g. "protective" for SYSTEM6_AUTOCORRECT, ruled 07-15). `want` is the
+        # RULED `expected:` field — the literal flag_guard compares against — so
+        # write it verbatim. A single lowercase token is a mode; skip only values
+        # with spaces/punctuation (a real `expected` never has those).
+        if not re.fullmatch(r"-?\d+(\.\d+)?|[a-z][a-z_]*", want):
             continue
         if key in idx:
             cur = lines[idx[key]].split("=", 1)[1].strip()

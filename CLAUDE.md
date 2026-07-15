@@ -27,10 +27,14 @@ Verified live on iMac SIM (PID 20495) + from code (`MES_AI_DataExport.cpp:1028-1
 is **not a regression** — it never worked; there are **no live callers** today.
 
 **Until `op=EXIT v2` is built + sim-verified** (CC prompt `docs/handoff/CC_PROMPT_2026-07-14_EXIT_OP_REBUILD.md`):
-- **Do NOT enable** `STALL_EXIT` / `SYSTEM6_AUTOCORRECT` / `OPPOSITE_EXIT_V1` — they are the
-  only flags that route through the broken op=EXIT. All three are OFF; keep them OFF
-  (enabling any is a trading-risk change → strategic stop + Michael sign-off, and pointless
-  until the fix lands).
+- **Do NOT enable** `STALL_EXIT` / `OPPOSITE_EXIT_V1` — the flags that route through the broken
+  op=EXIT. Both OFF; keep them OFF (enabling either is a trading-risk change → strategic stop +
+  Michael sign-off, and pointless until the fix lands).
+- **`SYSTEM6_AUTOCORRECT=protective` is ALLOWED + LIVE** (Michael 07-15, decision 6/6) — do NOT
+  "restore" it to OFF as a false regression. Verified in code: the protective AUTO set emits only
+  `MODIFY_STOP` (stop→BE completion) + advisory `DROP_TARGET` (not wired) — **never op=EXIT**
+  (`system6_supervisor.py` diagnose_trade AUTO/ALERT split; `bar_level_detector._exec`). The full
+  tier (`=1`) stays gated until EXIT-v2.
 - **Do NOT wire any new caller** to `_emit_exit` / `write_exit`.
 - Working exits (use these): **T1/T2/T3** = attached OCO (Sierra-side, not op=EXIT) ·
   **MODIFY_STOP** · **FLATTEN_ACCOUNT** (full flatten, verified). For any manual exit use
