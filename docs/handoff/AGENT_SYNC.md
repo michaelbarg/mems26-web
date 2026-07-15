@@ -42,6 +42,19 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-16 02:0x IDT] מאת: cowork-dev · אל: cc-imac + מייקל · [DONE — ✅ P3+P4+P5 (הלילה P1-P5 הושלם)]
+
+**P3 (יתום+fills, 759fdd0):** יתום-עירום (TM=0/Sierra≠0) → ה-alert הקריטי נושא עכשיו **סטופ-מגן מדויק** (`recommend_orphan_stop`: צד/כניסה/סטופ ‏@ORPHAN_STOP_POINTS 10נק') או "FLATTEN מיד" אם אין avg_price. אימוץ-אוטומטי-בפועל = נדחה-לפסיקה (RECONCILER_AUTO_ADOPT_V1 שמור, לא-מחווט). + `fill_poller` heartbeat (`last_poll_age()`) לזיהוי מוות-לולאה ע"י P4. **7 טסטים.** NOT-DONE: אימוץ-אוטומטי (פסיקה+סים); שורש-iMac של ה-~17:20 (אין SSH).
+
+**P4 (208da7a):** `scripts/post_restart_verify.sh` — 5 בדיקות (subscribe · bars<7דק' · day_type<15דק' · decisions-200 · woodies<7דק'). **TZ-safe: קורא מה-DB המתוקן, לא מהקובץ ה-ET-as-UTC.** טריות נאכפת רק ב-RTH; RED→alert+exit1. מחווט ל-restart_all.sh. **מוכח:** RTH+תקוע→RED, מחוץ-RTH→GREEN.
+
+**P5 (7e958cf):** ה-"s4_risk_cap ×3" של הערב = **`pattern_loss_breaker:ZLR:2>=2`** (מפסק-הפסדים 2-הפסדים של ZLR), **לא** תקרת-נקודות/GHOST/שריד-cap=3. תוקן המיפוי-הגנרי בגייטוֵיי → תווית מובחנת `pattern_loss_breaker` (+תווית-מובייל). **RR-0.65 + LSMA-2 מאומתים** (ruled 07-15 + מיושמים). NOT-DONE: כיול-harness-רב-יומי של RR/LSMA (נדחה כמתוכנן).
+
+**סיכום-הלילה (P1-P5, ראיות מלאות):** ✅ P1 feed-veto (DB-TZ-safe) ✅ P2 נבדק=לא-באג ✅ P3 יתום+heartbeat ✅ P4 liveness-gate ✅ P5 label-fix. **12 טסטים חדשים · flag_guard 73/73 · post_restart_verify GREEN.**
+
+**🔴 חסם-פתוח קריטי למחר (מייקל/cc-imac):** השורש-התפעולי של קפיאת-הפיד (הברים נעצרו 14:25 ET, DB לא-מתקדם 100דק'+) — **לא נפתר** (דורש Sierra Message Log / בדיקת-Replay/reconnect בסיירה). ה-veto יחסום מסחר עד שהפיד-חי — **אם הפיד קפוא ב-RTH מחר, post_restart_verify=RED ולא יהיה מסחר עד תיקון-הפיד בסיירה.**
+
+
 ### [2026-07-15 23:30 IDT] מאת: cowork-dev · אל: cc-imac + מייקל · [מפתח-תשובות בר-בר מוכן — 5 עסקאות S2/S4 שהיו צריכות לצאת (Variation)]
 
 **פסיקת-מייקל: "להיות מקצוענים — אילו עסקאות היו צריכות לצאת ואיך לנהל, בר-בר, S2+S4 לייב, לפי Variation".** בניתי מהברים האמיתיים: **`docs/handoff/GROUND_TRUTH_TRADES_2026-07-15.md`**.
