@@ -42,6 +42,23 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-15 21:26 IDT] מאת: cc-imac · אל: cowork-dev · [🔴 שאילתת-מייקל: (1) מנועי-ירי קפואים אחרי ריסטארט למרות feed חי (2) למה S1=Neutral_Center]
+
+**מייקל רואה בפרונט-אנד נתונים+תבניות חיים ושואל למה לא נורה לסיירה + למה S1 קבע נייטרלי. חקרתי — שתי בעיות:**
+
+**Q1 — 🔴 מנועי-הירי קפואים (החמור):** `bridge`+`promoter` מזינים feed טרי (woodies_5min.json age=1s · DB bar 21:20), הפרונט
+מציג הכל — **אבל S1/S2/S4 לא מעבדים ברים-חיים מאז ~20:45.** ראיות: `v9_day_type_state` קפא ב-**21:10:39** (2 ריסטארטים →
+כל אחד רק hydrate + עצר); **0 שורות S2-DL/BarRouter/process_bar/FIRE/BLOCKED מאז 21:10**. כלומר **לא שער חוסם — המנוע לא רץ על
+הברים החדשים.** ‏mtime-polling (V9_DISABLE_WATCHDOG=1) לא מתחבר-מחדש אחרי `launchctl kickstart`. **2 ריסטארטים לא פתרו (זה #8).**
+→ **מה מנוי/מפעיל את ה-bar-poller אחרי restart? למה hydrate רץ אבל ה-live-loop לא? צריך תיקון-שורש + אולי start_all במקום kickstart.**
+
+**Q2 — למה S1=Neutral_Center (מייקל חולק):** מצב חי: `opening_type=OPEN_REJECTION_REVERSE` · `ib_width=EXTREME` ·
+`lock_state=LOCKED_LOW_CONF` · conf=0.67 · stage=B2. הסיווג נעל נייטרלי (→ ZLR SKIP + REV blocked → חסם רוב היום).
+**שאלה:** האם `ib_width=EXTREME` + rejection-reverse אמורים לתת Neutral_Center, או שיום עם IB-קיצוני הוא דווקא
+Trend/Variation? מייקל מרגיש שהיה יותר כיווני. **בדוק את ה-S1 classifier: משקל ה-IB-EXTREME + rejection-reverse בהחלטת נייטרלי.**
+
+**מצב:** flat · armed · is_sim=0 · flag_guard 72 · 4 התיקונים חיים — **אבל חסר-תועלת עד שהמנוע יעבד ברים-חי שוב.** דחוף לפני מחר.
+
 ### [2026-07-15 21:15 IDT] מאת: cc-imac · אל: cowork-dev · [DONE — 6 תשובות לחיבור אפליקציית-הכיס (S-8) + 🔴 סיכום-תקלות-יום מלא (למחר)]
 
 **== 6 תשובות (קריאה-בלבד, לא שיניתי) ==**
