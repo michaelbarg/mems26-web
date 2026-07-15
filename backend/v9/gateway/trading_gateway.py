@@ -1082,6 +1082,11 @@ class TradingGateway:
                             "session extreme + avg breakout step)",
                             float(_rc_t1), _new_t1, _rc_dir)
                         setup["t1"] = _new_t1
+                        # 07-15 Michael ruling (decision 2/6): the R:R gate judges
+                        # the ORIGINAL structural intent, not the realism-capped
+                        # order price — two conservatisms must not double-count
+                        # (07-14: 14 morning fires blocked at R:R 0.2-0.94).
+                        setup["t1_pre_realism"] = float(_rc_t1)
                         result["target_realism"] = {"t1_was": float(_rc_t1), "t1": _new_t1}
             except Exception as _rc_err:  # fail-open
                 logger.warning("[Gateway] target-realism errored (fail-open): %s", _rc_err)
@@ -1144,7 +1149,10 @@ class TradingGateway:
         # FIX-1 (incident 333): signed distance, not abs(). A LONG with t1 < entry
         # had positive abs-distance but was on the WRONG SIDE → must block.
         if os.getenv("RR_ENTRY_GATE_V1", "0").lower() in ("1", "true", "yes"):
-            _rr_t1 = setup.get("t1")
+            # 07-15 Michael ruling (decision 2/6, "מאשר המלצה"): judge the
+            # PRE-realism T1 (structural intent). The realism cap still applies
+            # to the actual order; it must not also fail the R:R test.
+            _rr_t1 = setup.get("t1_pre_realism", setup.get("t1"))
             _rr_stop = setup.get("stop")
             _rr_entry = setup.get("entry_price")
             if _rr_t1 is not None and _rr_stop is not None and _rr_entry is not None:
