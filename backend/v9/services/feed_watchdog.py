@@ -50,7 +50,13 @@ CONTENT_STALE_SECONDS = float(os.getenv("FEED_CONTENT_STALE_SECONDS", "600"))
 
 
 def _db_max_bar_age() -> Optional[float]:
-    """Age (seconds) of the newest bar in the canonical DB table v9_bars_5min.
+    """Age (seconds) of the newest bar in the canonical LIVE table v9_bars_5min_woodies.
+
+    SoT fix (Michael approval, 2026-07-16 16:4x IDT): was v9_bars_5min — the LEGACY
+    table, which froze at 07-15 22:55 (stopped being fed) while live bars flow into
+    v9_bars_5min_woodies (docs/SOURCE_OF_TRUTH.md). The stale read false-halted every
+    fire on 07-16 (valid ZLR SHORT blocked 16:35, feed actually 1min fresh). Exactly
+    the known SoT failure CLAUDE.md §Codebase-Index warns about (2026-06-22).
 
     TZ-safe (the DB ts is tz-aware / corrected, unlike the ET-as-UTC file ts).
     Returns None on any error → the caller fails OPEN (never a synthetic halt;
@@ -59,7 +65,7 @@ def _db_max_bar_age() -> Optional[float]:
     try:
         import datetime as _dt
         from backend.v9.db.read import read_scalar
-        row = read_scalar("SELECT MAX(ts) FROM v9_bars_5min")
+        row = read_scalar("SELECT MAX(ts) FROM v9_bars_5min_woodies")
         if row is None:
             return None
         if not hasattr(row, "tzinfo"):
@@ -99,7 +105,7 @@ def is_feed_alive() -> Tuple[bool, Optional[str]]:
     # is unreadable (age None).
     db_age = _db_max_bar_age()
     if db_age is not None and db_age > CONTENT_STALE_SECONDS:
-        reason = ("FEED_WATCHDOG HALT: canonical bars frozen — newest v9_bars_5min "
+        reason = ("FEED_WATCHDOG HALT: canonical bars frozen — newest v9_bars_5min_woodies "
                   "is %.0fmin old (threshold %.0fs); bars stopped advancing while "
                   "pushes may stay fresh" % (db_age / 60.0, CONTENT_STALE_SECONDS))
         logger.warning("[FeedWatchdog] %s", reason)

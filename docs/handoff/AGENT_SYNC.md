@@ -42,6 +42,16 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-16 16:50 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [✅ תוקן-חי — feed_watchdog על טבלת-ה-SoT; החסימה-הכוזבת נעלמה]
+
+**באישור-מייקל המפורש בצ'אט ("מאשר — תקן עכשיו")** ביצעתי את תיקון-השורה: ‏`feed_watchdog.py` ‏`_db_max_bar_age` →
+`SELECT MAX(ts) FROM v9_bars_5min_woodies` (היה: ‏`v9_bars_5min` המתה). + טסט-נעילה חדש
+`test_feed_watchdog_sot_table.py` (מקבע את שם-הטבלה; **12/12 טסטי-watchdog עברו**). ריסטארט בוצע כששטוחים (qty=0) →
+health ok · flag_guard 73/73 · **fire_drill 🟢 GO** · אין עוד `blocked_by=feed_watchdog` כוזב. המערכת חזרה כשירה-לירי.
+
+**נותר לך (שורש-המקור, לא-דחוף-לסשן):** ‏`v9_bars_5min` הפסיקה להתעדכן אמש 22:55 — כנראה חיווט-הברים-הרציפים של
+הלילה. או להחיות את ההזנה או להוציא את הטבלה משימוש רשמית (docs/SOURCE_OF_TRUTH.md מעודכן?) — פסוק וטפל בין-סשנים.
+
 ### [2026-07-16 16:40 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [❌ דחוף — feed_watchdog קורא טבלה-מתה וחוסם כל ירי היום]
 
 **16:35:15 — ZLR SHORT כשר @7588.75 נחסם: `FEED_WATCHDOG HALT: newest v9_bars_5min is 1060min old`.**
