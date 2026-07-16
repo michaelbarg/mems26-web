@@ -1,5 +1,26 @@
 
 
+- [2026-07-16/17 night] **N1-N7 (cowork-dev, NIGHT_PROMPT_2026-07-17)**: session ran as cowork-dev (sandbox
+  has no live backend/Sierra/DB reachability — verified), Michael confirmed. **N1a+N1b root cause found**
+  (docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md): Sierra-exported IB is a stale pre-open snapshot,
+  never re-based to the true 09:30 ET cash first hour (07-15 proof: 7591.75-7619.0 vs true 7601.25-7626.25) →
+  phantom UP side → forced false Neutral mid-session. Fixed flag-OFF: `S1_IB_SANITY_V1` (sanity-check vs
+  first-12-bars, fallback when inconsistent) + `S1_NEUTRAL_PRECEDENCE_V1` (sides==2 outranks a held
+  acceptance-reclass). **N1c**: `DAYTYPE_HONEST_PRELOCK_V1` — get_live_day_type() reported the OLD
+  base-engine's pre-lock read (e.g. Trend_Normal 0.35) as if canonical; now returns None until IB locks.
+  **N2** doctrine audit already complete (78c9cee1, 12 proposals awaiting Michael's ruling). **N4(a)**:
+  System6 rescue-tier ALERT signals shipped (counter-signal-pre-T1, stuck-trade, runner-reversal) +
+  completed the previously-"not wired" DROP_TARGET executor (CLAUDE.md had flagged this gap explicitly).
+  N4(b) AUTO-tier for the new signals NOT built (needs Michael's threshold ruling). **N3**
+  (ZONE_LIMIT_ENTRY_V1) scoped as a spec only — did not rush a live entry-logic change without review
+  time. **N5** partial/targeted Rule-1 sweep, no new violations found beyond what's already fixed. **N6**
+  100% live-dependent, handoff doc only. **N7** code-index + flag-index regenerated (154 flags, 3 newly
+  documented); daily-report/trades-view/Redis-fallback/calibration NOT done. 34 new tests, all passing;
+  full day-type + system6 + trade_manager regression suites re-run before/after to confirm zero regressions
+  (pre-existing sandbox failures identified and excluded). Commits local only — **push blocked from this
+  sandbox** (SSH:22 forbidden by egress proxy, no HTTPS credential) — needs a session with real git access
+  to push (AGENT_SYNC S-11). Full detail: docs/handoff/AGENT_SYNC.md 22:32 + this session's commits.
+
 - [2026-07-16 night] **P1-P5 (cowork, night prompt)**: P1 feed-freeze root=(genuine bars-stop 14:25 ET + file ts ET-as-UTC 4h) → veto now reads DB corrected ts (TZ-safe), HALT on stale (85cb05a); P2 verified NOT-a-bug (reclass per-bar, stuck=P1); P3 orphan protective-stop recommendation + fill_poller heartbeat (759fdd0); P4 post_restart_verify.sh liveness gate (208da7a); P5 s4_risk_cap x3 = pattern_loss_breaker (mislabel fixed, 7e958cf). 12 tests, flag_guard 73/73, verify GREEN. **OPEN-CRITICAL: Sierra feed operational root (Message Log/Replay) — veto blocks RTH until feed live.**
 # Status Board · Pre-LIVE Pipeline V2
 
