@@ -118,6 +118,21 @@ flags:
     why: "OFF (default, SHADOW only). 2026-06-30: position gate saw stale Normal while live was Trend_Normal → blocked CONT on a trend day (0 trades). Michael sign-off required."
     status: deferred
     ref: "I-44/I-50 in docs/reports/MEMS26_ISSUES_REGISTER.md"
+  DAYTYPE_HONEST_PRELOCK_V1:
+    category: s2
+    what: "get_live_day_type() reports None ('forming/unknown') before the IB locks, instead of whatever the OLD base state-machine's own low-confidence read happens to hold (e.g. Trend_Normal 0.35 seen live pre-lock 07-15/07-16)."
+    why: "OFF (default). N1c 2026-07-17: the old-engine's pre-lock value wasn't in the exclusion list, so it leaked through dashboard/pocket screens looking canonical. DAY_TYPE_MANUAL_OVERRIDE still takes precedence. Michael sign-off before enabling on live screens."
+    ref: "docs/handoff/NIGHT_PROMPT_2026-07-17.md N1(c); tests/v9/regression/test_daytype_honest_prelock.py"
+  S1_IB_SANITY_V1:
+    category: s1
+    what: "Sanity-check the Sierra-exported IB against the first-12-bars' own extremes once >=12 RTH bars exist; fall back to the bars-derived IB (+ tag ib_source) when inconsistent by >2 ticks/2pt."
+    why: "OFF (default). N1a/N1b 2026-07-17: Sierra IB proven to be a stale pre-open snapshot on 07-15 (exported 7591.75-7619.0 vs true 7601.25-7626.25) — fed a phantom UP side and a false mid-session Neutral. Trading-risk-surface (changes classification) → Michael sign-off + sim verification before live."
+    ref: "docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#1; tests/v9/regression/test_s1_ib_sanity.py"
+  S1_NEUTRAL_PRECEDENCE_V1:
+    category: s1
+    what: "In classify(), a two-sided day (sides==2) outranks a still-held single-side acceptance-reclass — previously the acceptance-reclass early-return shadowed Neutral entirely whenever S1_ACCEPTANCE_RECLASS_V1 was also on."
+    why: "OFF (default; also a no-op unless S1_ACCEPTANCE_RECLASS_V1 is on). N1b 2026-07-17: live 07-15 flip to Neutral_Center lagged to 20:46 IL vs the mechanically-correct ~19:05 IL. Doctrine ruling 06-20: sides==2 should win. Trading-risk-surface → Michael sign-off + sim verification before live."
+    ref: "docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#2; tests/v9/regression/test_s1_neutral_precedence.py"
   DAY_DIRECTION_DOCTRINE_V1:
     category: cascade_gate
     what: "On directional days (Variation/Trend), only with-expansion entries allowed. Counter-expansion blocked unless halt-proof (2 closes back through expansion level). Reference = IB expansion side, not local LSMA."
