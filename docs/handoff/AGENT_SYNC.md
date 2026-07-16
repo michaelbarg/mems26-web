@@ -47,6 +47,18 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-16 23:35 IDT] מאת: cowork-dev · אל: cc-imac + מייקל · [🔴🔴 גייט-בטיחות לפני N9: backend על mode=live — חובה לאמת is_sim=1 מ-Sierra לפני כל ירי]
+
+**בסיס-אמת שמדדתי מה-iMac (מ-MacBook דרך ZeroTier, 23:3x):**
+- `GET /api/v9/status` → **`mode":"live"`** · `sierra.writing=true, last_write_age_s=0.6` (פיד טרי) · `bridge.running=false, streams_active=0` · `event_bus.reachable=false` (2 האחרונים = after-hours/Redis-down, צפוי).
+- `GET /api/v9/gateway/status` → `daily_pnl=-28.75, trades_today=3, consecutive_losses=2, cooldown_active=false, live_enabled_systems=[2,4]`.
+- `GET /api/v9/trades/active` → **null (שטוח — נקודת-פתיחה בטוחה)**. `#41` live S4 SHORT ZLR 7587.5 CLOSED.
+- `GET /api/v9/day_type/state` → `Variation · conf 0.33 · LOCKED_LOW_CONF · stage B2 · session_min=0` — **בדיוק בעיית "שני-המוחות" ש-N1 מתקן** (המנוע-הישן קפוא בעוד היום התפתח Normal→Neutral_Center→Neutral_Extreme). ראיה-חיה ל-N1.
+
+**🔴 הסכנה:** ה-backend על **mode=live** ו-`live_enabled_systems=[2,4]` → ‏route_setup ב-N9 ילך ל-`_execute_live` → **op=PLACE אמיתי ל-Sierra**. אין endpoint-HTTP שחושף `is_sim` — רק אתה (על ה-iMac) קורא אותו מה-export/DLL.
+**חובה לפני N9 (הגייט הקונקרטי):** ‏(1) אמת `is_sim=1` מקובץ-ה-export הטרי (`~/SierraChart_Data/v9_export/*.json` שדה is_sim) **וגם** ש-Sierra ב-Sim-Mode ב-UI. ‏(2) אשר שחשבון-ה-Sim ≠ חשבון-הלייב 37138283. ‏(3) רק אז שגר סטאפ-סים. ‏(4) אמת-מחדש is_sim לפני כל תא-מטריצה. אם is_sim≠1 — **עצור, אל תירה, דווח**. ‏(5) לפני הפתיחה (N6): החזר mode/Sim לפי פרוטוקול-הבוקר + flag_guard + fire_drill GO.
+**איך לאמת (חוק-5):** הדבק את שורת-ה-is_sim מה-export + `is_sim=1` מלוג-ה-boot, לפני שורת-המטריצה הראשונה.
+
 ### [2026-07-16 23:20 IDT] מאת: cowork-dev · אל: cc-imac · [🔴 S-12: תוכנית-לילה N9-N12 נפתחה — סיירה על סים, עבודה רציפה עכשיו]
 
 **מה קרה:** מייקל העביר את סיירה למצב-סים בכוונה כדי לפתוח חלון-הדמיה כל-הלילה, ופסק **עבודה רציפה עכשיו — לא בבוקר**. עדכנתי את `NIGHT_PROMPT_2026-07-17.md`: הוספתי **N9** (מטריצת-הדמיה מלאה: 7 סוגי-יום × כל תבנית, עסקאות-סים end-to-end על סיירה עם ניהול-סטופ+ניהול-עסקה+בדיקת-מחסומים, פר-סוג-יום דרך `DAY_TYPE_MANUAL_OVERRIDE`, כולל מקרה-שלילי), **N10** (קווי-POC/IB בצ'ארט שלא מוצגים נכון + הטבלה), **N11** (פרונט רץ-קבוע + פלאפון מלא: חיות+סגורות+S6+day_type מדויק), **N12** (לוג-תפעול-מרכזי אחד — `scripts/ops_log.py` → `docs/reports/OPS_LOG_<date>.md`, כל הוואצ'רים/מתזמנים/סוכנים כותבים אליו). סדר-הלילה המעודכן: **N12→N9→N1→N10→N11→N2→N4→N8→N3→N5→N6→N7**.
