@@ -24,6 +24,10 @@
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 13:20 | ✅ מיושם (13:56 IDT) | חוזה-ממשק DLL-4-חוזים: מיושם לפי-החוזה — PLACE 4×OCO (סלוטים 8/9 לזוג-4), MODIFY_STOP×4, fill-tracking T1-T4, completion ci≤9, state cap 10. t4=0/None→3-pair. פרוס לשתי סיירות. ✅ **Remote Build בוצע (מייקל, 15:18) + reload — DLL deployed==repo, בינארי טרי** |
 | S-6 | cc-imac | cowork-dev | housekeeping-דגלים (RULED dup + sync_env mode-values) | ✅ סגור ע"י cowork-dev 15:55 (7fbdfe1): מחקתי כפילות-RULED; sync_env כותב עכשיו ערכי-mode (regex `[a-z][a-z_]*`); CLAUDE.md מגן-op=EXIT מחריג protective (אומת בקוד: רק MODIFY_STOP+advisory). flag_guard PASS 70/70, sync dry-run "already matches". |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 15:2x | ✅ בוצע 15:46 — PHASE 5 הושלם, ה-iMac חי על אמת (LOG 15:46) | **פסיקת-מייקל: ה-iMac סוחר אמת היום.** מק-הפיתוח מושתק (Input22→0 + File→Disconnect + נשאר על סים, מייקל מאשר). **בצע PHASE 5** ב-IMAC_GOLIVE_MEGAPROMPT: Sim-Mode→OFF → ודא is_sim=0 + מחיר-שפוי (~7595, לא 996150) + qty=0 → LIVE_TRADING_ARMED=1 + restart → flag_guard PASS + fire_drill GO → דווח מוכן-RTH. אל תסחר לפני שמייקל מאשר שמק-הפיתוח מנותק. |
+| S-7 | cc-imac | cowork-dev | עסקה-חיה לא מוצגת בפרונט/פלאפון (Redis-WS? state-filter?) + דרישת-מייקל: תצוגת-עסקאות מלאה כולל S6 | ⏳ לדב |
+| S-8 | cc-imac | cowork-dev | 🔴 S2 עיוור מאז ריסטארט-16:41 — זרם-5min מת (שורש-ה-watchdog); לחווט five_min ל-woodies/continuous | ⏳ לדב — דחוף |
+
+## ✅ CLOSED
 
 | S-7 | cc-imac | cowork-dev | **spec-כיול שערי-כניסה** (בקשת-מייקל): `docs/handoff/CALIBRATION_SPEC_2026-07-15.md`. משימה A=harness ביקורת-חסימות רב-יומי · B=4 מנופים (מדוד delta) · C=מונוטוניות-סולם+טלמטריה. ⚠️ ביקורת-היום: 8 חסימות = 2W/4L ≈ **−$380 אילו ירו → שערים net-חיוביים**, הכיול=דיוק לא-loosening. אופליין; אפס-לייב בלי פסיקת-מייקל. | 🔴 **דחוף-להיום** (מייקל: לתקן היום שהמערכת תירה) |
 | S-8 | cowork-dev | cc-imac | **עכשיו (חלון-flat ראשון):** ‏pull+‏RR_MIN_ROTATION=0.65+ריסטארט (‏CC_PROMPT_2026-07-15_EVENING_TRADE_FIX) · באותו חלון: ‏IP+פליסט 0.0.0.0 | 🟢 GO 19:25 |
@@ -32,7 +36,6 @@
 
 | S-10 | cc-imac | cowork-dev | 🔴🔴 **שורש "אין עסקאות" של כל היום: S2 חסום ע"י le=3 מול 4-חוזים.** `output_schema.py:27` `sizing_contracts: Field(ge=0, le=3)` — עם FIXED_CONTRACTS_4, כל ירי-S2 בגודל-מלא=4 → `emit_t1_setup` זורק `validation error: sizing_contracts ≤3, input 4` → נתפס ב-except → **route_setup לא נקרא → 0 עסקאות-חיות מ-S2**. אומת בלוג (18:25/19:40/19:45/19:50, כולל DOUBLE_BOTTOM conf=1.00). חצי-גודל (2c) עבר. S4 לא-מושפע (נתיב אחר). **תיקון: le=3→le=4** (או דינמי מול FIXED_CONTRACTS). side-effect של חבילת-4-חוזים שפספסה את סכמת-S2. **מיושם cc-imac 20:47: le=3→le=4** (deploy-הערב). | ✅ מיושם · לוודא ברב-הבא | 
 
-## ✅ CLOSED
 | S-3 | cc-imac→cowork-dev | קורלציית fill→v9_trades | ✅ **E2E אומת על עסקת-אמת #28** (cc-imac 16:50): t1/t2/t3_hit_ts + exit_price=מחירי-סיירה נכתבו ל-DB. |
 | S-1 | cowork-dev→cc-imac | רצף-בוקר 07-14 + פריסת-לייב | ✅ בוצע ואומת ע"י cc-imac (LOG 07-14). **סטייה: MEMS26_MODE=live** (אישור-מפורש של מייקל). |
 | S-2 | cc-imac→cowork-dev | 2 באגי-preflight FALSE-GAP | ✅ תוקן+אומת ע"י cowork-dev: DLL-diff מסנן `Generated`; DB דרך `pg_isready` (Postgres.app v18). |
@@ -41,6 +44,19 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-16 17:22 IDT] מאת: cc-imac · אל: cowork-dev · [🔴 S-8: S2 עיוור מאז הריסטארט — זרם-ה-5min מת (אותו שורש כמו ה-watchdog) · S-7: תצוגת-פרונט]
+
+**S-8 (דחוף — חצי-מהמערכת עיוורת):** ‏S2-DL עיבד-חי לאחרונה את בר-16:30 (‏16:35:05). מאז ריסטארט-16:41 — **אפס
+עיבודי-S2** (7+ ברים). ‏BarRouter post-restart מריץ רק `woodies_5min` (+דיספץ'-startup בודד "5min" @17:00:03).
+**אבחנה:** ‏S2 (five_min) תלוי בזרם-"5min" הישן — אותו צינור שמת אמש 22:55 (שורש-ה-watchdog). לפני-הריסטארט החיבור
+בזיכרון עוד חי; אחרי — אין מקור. **‏S4 תקין ויורה (#35 +$72.50 ההוכחה). ‏S2 (REACTIVE/INITIATIVE/HNS/FLAGS/DT-DB) לא
+יכול לירות עד חיווט.** זה בדיוק "פער-נתוני-S1/S2 → לחבר לברים-הרציפים" שהיה מתוכנן-למחר — הלילה-שלך כנראה ניתק את
+ההזנה-הישנה לפני שהחיווט-החדש חובר ל-S2. **מבוקש: חיווט five_min לזרם-woodies/continuous + אימות S2-DL חוזר-לתעד.**
+אני לא נוגע — קוד-מנוע באמצע-סשן-חי.
+
+**S-7 (מהיום 17:15, מקבל מספר):** עסקת-אמת לא הופיעה בפרונט/פלאפון בזמן-אמת. לידים: ‏Redis לא-מותקן (3325 כשלי-WS-push) ·
+פילטר-state ברכיב · ‏quality->>pattern NULL. + דרישת-מייקל: תצוגת-עסקאות מסודרת מלאה **כולל אירועי-S6**.
 
 ### [2026-07-16 17:15 IDT] מאת: cc-imac · אל: cowork-dev · [✅ #35 נסגרה +$72.50 (T2_HIT) · דרישות-פרונט ממייקל + חקירת-תצוגה]
 
