@@ -14,12 +14,27 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import HTMLResponse
 
 router = APIRouter(prefix="/api/v9/mobile", tags=["v9-mobile"])
 
 _EXP = os.path.expanduser("~/SierraChart_Data/v9_export")
+
+
+def _key_ok(request: Request) -> bool:
+    """07-16 (Michael: "לינק מכל-מקום"): access gate for public exposure via a
+    Cloudflare tunnel. When MOBILE_ACCESS_KEY is UNSET → open (LAN/ZeroTier mode,
+    unchanged). When set → require ?key= / X-Mobile-Key header / mkey cookie ==
+    the secret, so the tunnel URL is safe to share (the flatten button must NOT
+    be reachable unauthenticated on the public internet)."""
+    want = (os.getenv("MOBILE_ACCESS_KEY") or "").strip()
+    if not want:
+        return True
+    got = (request.query_params.get("key")
+           or request.headers.get("X-Mobile-Key")
+           or request.cookies.get("mkey") or "")
+    return got == want
 
 
 def _sierra():
@@ -60,6 +75,8 @@ def _remote_data() -> dict | None:
 
 @router.get("/data")
 async def mobile_data(request: Request):
+    if not _key_ok(request):
+        raise HTTPException(status_code=401, detail="mobile access key required")
     import asyncio
     rem = await asyncio.to_thread(_remote_data)
     if rem is not None and "_remote_err" not in rem:
@@ -178,6 +195,8 @@ async def mobile_flatten(request: Request):
     RULED) + body {"confirm":"FLATTEN"} מאישור-כפול בדף. כש-MOBILE_REMOTE_URL
     מוגדר — מועבר למכונת-המסחר, כך שהכפתור סוגר תמיד את מה שהמסך מציג."""
     import asyncio
+    if not _key_ok(request):
+        raise HTTPException(status_code=401, detail="mobile access key required")
     body = {}
     try:
         body = await request.json()
@@ -252,7 +271,7 @@ entry_not_confirmed:'אין אישור-כניסה',t1_wrong_side:'T1 בצד שג
 daily_loss_halt:'עצירת הפסד-יומי',consecutive_loss_halt:'עצירת רצף-הפסדים',s4_risk_cap:'תקרת-סיכון S4',pattern_loss_breaker:'מפסק-הפסדים (תבנית)',cluster_guard:'שומר-צבירה'};
 async function load(){
  try{
-  const r = await fetch('/api/v9/mobile/data',{cache:'no-store'}); const d = await r.json();
+  const r = await fetch('/api/v9/mobile/data'+Q,{cache:'no-store'}); const d = await r.json();
   document.getElementById('clock').textContent = d.ts + (d._src==='trading'? ' · 📡 מכונת-המסחר' : d._remote_err? ' · ⚠ מקומי (מכונת-המסחר לא-זמינה)' : '');
   const s = d.sierra||{}; const q = s.position_qty||0;
   document.getElementById('mode').textContent = (s.is_sim? 'סים':'אמת') + (s.order_placement_armed? ' · חמוש':' · לא-חמוש');
@@ -309,7 +328,7 @@ document.getElementById('flat').onclick = async () => {
  if(!confirm('אישור סופי — FLATTEN עכשיו?')) return;
  const b = document.getElementById('flat'); b.disabled = true; b.textContent = 'שולח...';
  try{
-  const r = await fetch('/api/v9/mobile/flatten',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:'FLATTEN'})});
+  const r = await fetch('/api/v9/mobile/flatten'+Q,{method:'POST',headers:{'Content-Type':'application/json','X-Mobile-Key':KEY},body:JSON.stringify({confirm:'FLATTEN'})});
   const d = await r.json();
   b.textContent = d.ok? '✓ נשלח — בדוק פוזיציה' : '✗ '+(d.error||'נכשל');
  }catch(e){ b.textContent = '✗ אין קשר'; }
@@ -320,5 +339,11 @@ document.getElementById('flat').onclick = async () => {
 
 @router.get("", response_class=HTMLResponse)
 @router.get("/", response_class=HTMLResponse)
-async def mobile_page():
+async def mobile_page(request: Request):
+    if not _key_ok(request):
+        return HTMLResponse(
+            "<html dir=rtl><body style='background:#0b0e14;color:#e6edf3;"
+            "font-family:-apple-system;padding:40px;text-align:center'>"
+            "<h2>🔒 נדרש מפתח-גישה</h2><p>הוסף <code>?key=…</code> לכתובת.</p>"
+            "</body></html>", status_code=401)
     return HTMLResponse(_PAGE)
