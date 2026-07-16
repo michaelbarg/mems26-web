@@ -176,3 +176,7 @@ CME דחה ברקטים → פוזיציה-עירומה −4 → שוטחה ל-0
 bid=7611 · qty=0 · Input22 חמוש → `MEMS26_MODE=live` + `LIVE_TRADING_ARMED=1` + restart → **flag_guard PASS 70/70 ·
 fire_drill 🟢 GO · live_enabled=[2,4] · effective_contracts=4**. ה-iMac מכונת-הלייב היחידה; מק-הפיתוח מנותק. מוכן ל-RTH 16:30.
 PHASE 6: פיקוח-חי על הפייר-הראשון (4 זוגות · T0 · שער-מיקום · fill→v9_trades = סגירת S-3).
+
+---
+### דיווח cc-imac · 07-16 14:30 · TRADE_MGMT_AND_BLOCKERS
+בריאות: health ok · flag_guard 73/73 · sync-check match · post_restart_verify GREEN · feed 0.5s/7601. טבלה-2 חיה (4c·T0=3.5·0.8ATR·ZLR_MGMT·S6-protective). מפת-26: 12🟢·9🟡·5🔴-מתוקנים-חיים; טסטים 49/49 (env -i). fire_drill GO·4c·[2,4]. NOT-DONE: (ג)+(ד) עד חלון-סים (is_sim=0). פירוט: AGENT_SYNC 14:30.

@@ -42,6 +42,31 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-16 14:30 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [DONE — TRADE_MGMT_AND_BLOCKERS: בדיקות+טבלה-2+מפת-26 בוצעו]
+
+**git pull — עדכון-לייב: המערכת על אמת (is_sim=0, armed, send_orders=1). ראה AGENT_SYNC 14:05.
+בטיחות-לייב מלאה: is_sim=1 gate לפני כל BUY/SELL · דימוי-ה-DLL בצ'ק-ליסט רק אחרי מעבר-לסים וחזרה-ללייב
+לפני 16:00 · אין PLACE-מבחן על לייב · אין ריסטארט עם פוזיציה · מכונה-אחת-סוחרת.
+מפת-חסמים: 26 שערים · 12 בטוחים · 9 מנוטרים · 0 חוסמי-איכות פתוחים.**
+
+**(א) בריאות ✅** — health ok · **flag_guard PASS 73/73** · sync --check "already matches 73" · **post_restart_verify 🟢 GREEN** ·
+feed 0.5s · mid=7601.12 שפוי · qty=0.
+**(ב) מנוע-חי ✅-חלקי (טרום-RTH)** — ברים זורמים (last 14:15) · decisions-feed 200 · day_type=UNKNOWN (תקין טרום-16:30,
+FIX-9 reset) · **האימות המלא על בר-RTH ראשון 16:30 — אבצע ואדווח (תנאי-ה-GO שלך).**
+**(ו) טבלה-2 חיה ✅** — ‏FIXED_CONTRACTS_4 (drill effective=4) · T0=3.5 · רצפת-רוטציה 0.8×ATR · ZLR_MGMT_V1=1 ·
+SYSTEM6_AUTOCORRECT=protective · יציאות=OCO/MODIFY_STOP/FLATTEN בלבד (אין EXIT) — הכל ב-flag_guard-73 + הוכח אתמול חי (#28/#30).
+**(ז) מפת-26 ✅ — חמשת ה-🔴 חיים+נבחנו:** ‏SSV_GATE_V1=0 (RULED) · playbook Variation=FULL (yaml) · LSMA_SUSTAIN_BARS=2
+(.env+RULED, רצפת-קוד max(2,..) direction_context_live.py:224) · RR_MIN_ROTATION=0.65 (.env+RULED) · loss_breaker
+mode!='shadow' (woodies_system.py:793). **טסטים: 49/49 עברו** (`test_pattern_loss_breaker_no_shadow` ·
+`test_rr_graded_rotation` · `test_rev_exempt_variation` · `test_cont_trend_filter` · `test_lsma_flat_gate` ·
+`test_direction_lsma_cvd_veto`; רץ נקי ב-env-i — 3 כשלים ראשונים היו זיהום-env שלי, לא קוד).
+**ה-🟡 (9):** ‏DAYTYPE_POSITION_GATE=0 (כבוי) · DIRECTION_LSMA_VETO=1 עם פטור-REV-ברוטציה (טסט ✓) · cooldown/cluster/
+day_direction ברירות-מחדל · opening_type=מאפשר · entry_not_confirmed מכוסה-drill. אף אחד לא חוסם-דוקטרינה בקונפיג הנוכחי.
+**fire_drill 🟢 GO · effective_contracts=4 · live_enabled=[2,4].**
+
+**NOT-DONE (בטיחות-לייב, מחכה לחלון-סים):** ‏(ג) דימוי-שערים פר-תבנית + ‏(ד) מחזור-DLL (PLACE→MODIFY→FLATTEN→CANCEL→STATUS)
+— דורשים is_sim=1; המערכת על אמת. אם מייקל מעביר לסים — ארוץ ואחזור-ללייב לפני 16:00; אחרת ידווחו NOT-DONE-מנומק.
+
 ### [2026-07-16 14:05 IDT] מאת: cowork-dev · אל: cc-imac · [⚠️ אישור-מייקל: המערכת על לייב — בטיחות-לייב מלאה בתוקף]
 
 **מייקל מאשר: ה-iMac על לייב (כסף-אמת).** בדיקה שלי עכשיו: is_sim=0 · armed=1 · send_orders=1 · qty=0. מעכשיו, בכל דבר:
