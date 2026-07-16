@@ -586,34 +586,20 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
             if _live_dt:
                 day_type = _live_dt
             else:
-                # Fallback: classify_replay (DB-based, 30s cache) — the old path.
-                #
-                # 07-16 20:55 (Michael command: "תבדוק צינורות מה חסם למה — תתקן"):
-                # DURING the session this fallback is FORBIDDEN. classify_replay's
-                # `final` is computed with end-of-day semantics — on a PARTIAL day
-                # it FORCES a terminal label (yesterday+today: "Neutral_Center"
-                # while live said None). That synthesized label fed location_gate/
-                # playbook/rr as if S1 had ruled a rotation day → 10 doctrine
-                # blocks today on a label S1 never published. This violates
-                # Source-of-Truth Rule 1 (silent source ⇒ propagate None, never
-                # synthesize). The fallback is now used ONLY after the RTH close
-                # (>= 16:00 ET), where `final` semantics are actually valid —
-                # e.g. EOD reports. Mid-session live-None stays None and every
-                # day-type gate fail-opens by its own design.
+                # Fallback: classify_replay (DB-based, 30s cache) — the old path
                 import time as _t
                 import datetime as _dt
                 from zoneinfo import ZoneInfo as _ZI
-                _now_et = _dt.datetime.now(_ZI("America/New_York"))
-                if _now_et.hour >= 16 or _now_et.hour < 9:
-                    _today = _now_et.date().isoformat()
-                    if _NC_CACHE.get("date") != _today or (_t.time() - _NC_CACHE.get("ts", 0.0)) > 30:
-                        from backend.v9.api.v9.daytype_classify_routes import classify_replay as _cr
-                        _final = (_cr(_today) or {}).get("final") or {}
-                        _NC_CACHE.update({"date": _today, "ts": _t.time(), "day_type": _final.get("day_type")})
-                    _ndt = _NC_CACHE.get("day_type")
-                    if _ndt and _ndt != "FORMING":
-                        day_type = {"Normal_Variation": "Variation"}.get(_ndt, _ndt)
-                # else: mid-session + live None ⇒ HONEST None (no forced label)
+                _today = _dt.datetime.now(_ZI("America/New_York")).date().isoformat()
+                if _NC_CACHE.get("date") != _today or (_t.time() - _NC_CACHE.get("ts", 0.0)) > 30:
+                    from backend.v9.api.v9.daytype_classify_routes import classify_replay as _cr
+                    _final = (_cr(_today) or {}).get("final") or {}
+                    _NC_CACHE.update({"date": _today, "ts": _t.time(), "day_type": _final.get("day_type")})
+                _ndt = _NC_CACHE.get("day_type")
+                if _ndt and _ndt != "FORMING":
+                    day_type = {"Normal_Variation": "Variation"}.get(_ndt, _ndt)
+                elif _ndt == "FORMING" and _os.getenv("OPENING_FIRE_CVD_V1", "").lower() in ("1", "true", "yes"):
+                    day_type = None
         except Exception:
             pass  # fail-safe — keep the old engine's day_type set above
 
