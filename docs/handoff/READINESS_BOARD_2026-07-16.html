@@ -1,0 +1,107 @@
+<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MEMS26 · לוח-מוכנות 16/07</title>
+<style>
+:root{--bg:#0b0e14;--card:#151a23;--bd:#2a3140;--tx:#e6edf3;--dim:#8b949e;--g:#3fb950;--y:#d29922;--r:#f85149;--b:#58a6ff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,'Segoe UI',sans-serif;padding:16px;line-height:1.5}
+h1{font-size:20px;margin:0 0 2px;color:var(--b)}h2{font-size:15px;margin:16px 0 8px;border-right:3px solid var(--b);padding-right:8px}
+.sub{color:var(--dim);font-size:12px;margin-bottom:12px}
+.banner{background:linear-gradient(90deg,#132a17,#151a23);border:1px solid #24512c;border-radius:12px;padding:14px;margin-bottom:14px}
+.banner .big{font-size:22px;font-weight:800;color:var(--g)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:10px}
+.k{color:var(--dim);font-size:11px}.v{font-size:15px;font-weight:700;margin-top:2px}
+table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+th,td{text-align:right;padding:5px 7px;border-bottom:1px solid #1c2330}th{color:var(--dim);font-weight:600}
+.g{color:var(--g)}.y{color:var(--y)}.r{color:var(--r)}.b{color:var(--b)}.mono{font-family:ui-monospace,monospace;font-size:11.5px}
+.pill{display:inline-block;padding:1px 7px;border-radius:6px;font-size:11px;font-weight:700}
+.pg{background:#132a17;color:var(--g)}.py{background:#2a2410;color:var(--y)}.pr{background:#2d1214;color:var(--r)}
+li{margin:3px 0}.tl{list-style:none;padding:0}.tl li{padding:6px 0;border-bottom:1px solid #1c2330}
+code{background:#0d1117;padding:1px 5px;border-radius:4px;font-size:11px}
+</style></head><body>
+
+<h1>⚡ MEMS26 · לוח-מוכנות למסחר</h1>
+<div class="sub">iMac (מכונת-האמת) · 16/07/2026 · עודכן 15:35 IL · פתיחת-RTH 16:30</div>
+
+<div class="banner">
+<div class="big">🟢 ירוק — מוכן, בלי תיקונים פתוחים</div>
+<div class="sub" style="margin:6px 0 0">החסם היחיד שהרג את אתמול (מנוע-לא-מעבד) נפתר. ‏0 חוסמי-איכות פתוחים. נותר אימות-אוטומטי אחד על בר-RTH ראשון → GO סופי 16:25.</div>
+</div>
+
+<h2>1 · מצב-לייב עכשיו (בדיקה ישירה)</h2>
+<div class="grid">
+<div class="card"><div class="k">מצב-חשבון</div><div class="v g">אמת · חמוש</div><div class="k">is_sim=0 · send_orders=1</div></div>
+<div class="card"><div class="k">פוזיציה</div><div class="v">FLAT (0)</div><div class="k">אין יתום פתוח</div></div>
+<div class="card"><div class="k">פיד</div><div class="v g">טרי 0.1ש'</div><div class="k">מחיר 7587 שפוי</div></div>
+<div class="card"><div class="k">דגלים</div><div class="v g">flag_guard 73/73</div><div class="k">fire_drill 🟢 GO</div></div>
+<div class="card"><div class="k">חוזים</div><div class="v">4 · effective=4</div><div class="k">T0=3.5</div></div>
+<div class="card"><div class="k">עצירת-הפסד</div><div class="v">−$400</div><div class="k">S6 מגן פעיל</div></div>
+</div>
+
+<h2>2 · החסם-הגדול שנפתר היום 🎉</h2>
+<div class="card">
+<b>מנוע-לא-מעבד</b> (מה שגרם לאפס-עסקאות אתמול-בערב) — <b class="g">נפתר</b>.
+שורש: <b>הברידג' היה מת מ-22:51</b> (running=false, bar_router 0/0). מייקל הפעיל-מחדש (MEMS26_RESTART) → ‏BarRouter מנתב ברים שוב (12:40–14:15) → <code>post_restart_verify</code> = <b class="g">GREEN</b> ("OK to trade"). לקח נרשם: אחרי כל ריסטארט — אימות-חיים חובה לפני מסחר.
+</div>
+
+<h2>3 · צ'ק-ליסט קדם-מסחר — סגור במלואו (דוח-קלוד 14:58)</h2>
+<table>
+<tr><th>שלב</th><th>מה נבדק</th><th>תוצאה</th></tr>
+<tr><td>א · בריאות</td><td>health · flag_guard · verify · פיד</td><td class="g">✅</td></tr>
+<tr><td>ב · מנוע-חי</td><td>ברים זורמים · decisions 200</td><td class="y">✅ עד-RTH (מלא ב-16:30)</td></tr>
+<tr><td>ג · דימוי-שערים</td><td>7 מקרי-דוקטרינה תבנית×יום</td><td class="g">7/7 לפי-הספר</td></tr>
+<tr><td>ד · מחזור-DLL (סים)</td><td>PLACE-4→MODIFY×4→FLATTEN→CANCEL→STATUS</td><td class="g">✅ trade 33 · T0=+3.5 מדויק</td></tr>
+<tr><td>ו · טבלת-ניהול</td><td>4ח' · סטופים · ZLR · S6</td><td class="g">✅ חי</td></tr>
+<tr><td>ז · מפת-26-חסמים</td><td>כל השערים</td><td class="g">✅ · 49/49 טסטים</td></tr>
+</table>
+<div class="sub" style="margin-top:6px">דימוי-שערים: ‏ZLR@Variation עבר · @Trend עבר · @Neutral_Center נחסם · @Nontrend נחסם · REACTIVE@Variation עבר · @Nontrend נחסם — כולם לפי-הדוקטרינה.</div>
+
+<h2>4 · מפת-החסמים — מה יכול לחסום עסקה איכותית</h2>
+<div class="grid">
+<div class="card"><div class="k">סה"כ שערים</div><div class="v">26</div></div>
+<div class="card"><div class="k">בטוחים (הגנה)</div><div class="v g">12</div></div>
+<div class="card"><div class="k">מנוטרים 🟡</div><div class="v y">9</div></div>
+<div class="card"><div class="k">חוסמי-איכות פתוחים</div><div class="v g">0</div></div>
+</div>
+<div class="sub" style="margin-top:8px">חמשת רוצחי-האיכות של אתמול — <b>כולם תוקנו ואומתו חי</b>:</div>
+<table>
+<tr><th>שער</th><th>היה</th><th>תוקן</th></tr>
+<tr><td>SSV (וטו-צד-סובל)</td><td class="r">ניזון מצל, חסם 22 ירי</td><td class="g">כבוי (RULED)</td></tr>
+<tr><td>playbook Variation</td><td class="r">SKIP כל אחה"צ</td><td class="g">FULL · קצה-אל-קצה+POC</td></tr>
+<tr><td>cont_trend_filter</td><td class="r">פיגור-LSMA 3 ברים</td><td class="g">LSMA=2</td></tr>
+<tr><td>rr_entry_gate</td><td class="r">חסם מנצח-18:15</td><td class="g">RR_MIN_ROTATION=0.65</td></tr>
+<tr><td>s4 loss_breaker</td><td class="r">ספר הפסדי-צל</td><td class="g">mode≠shadow</td></tr>
+</table>
+
+<h2>5 · ניהול-עסקה (מיושם חי · flag_guard 73)</h2>
+<table>
+<tr><th>פרמטר</th><th>ערך</th></tr>
+<tr><td>חוזים / T0</td><td>4 · חוזה-1 יוצא ב-<b>±3.5</b> · סולם C2→T1 C3→T2 C4→T3</td></tr>
+<tr><td>סטופ</td><td><b>מבני תמיד גובר</b> (3 ticks מעבר לקצה) · ATR=שער-גודל בלבד</td></tr>
+<tr><td>רצפת-סטופ</td><td>רוטציה <b>0.8×ATR</b> · מגמה 0.5×ATR</td></tr>
+<tr><td>ZLR (S4)</td><td>T1=2ח' · T2=1ח' · אפס-סטופ לפני T1 · אחרי T1→BE</td></tr>
+<tr><td>מפקח S6</td><td>protective: BE-completion + הפלת-יעד-צד-שגוי · <b>לעולם לא op=EXIT</b></td></tr>
+<tr><td>יציאות עובדות</td><td>T0/T1/T2/T3 (OCO) · MODIFY_STOP · FLATTEN_ACCOUNT</td></tr>
+</table>
+
+<h2>6 · פתוח — לא חוסם מסחר היום (לערב)</h2>
+<ul>
+<li><span class="pill py">P8</span> <b>פיגור-זיהוי</b> — תבניות B/D נכנסות ~בר מאוחר, E-class (מבחן-שיא) עדיין לא-מזוהה. המערכת תסחר; זה כיול-הערב.</li>
+<li><span class="pill py">S-9</span> <b>לכידת-fills + אימוץ-יתום</b> — אם עסקה לא-תילכד, התראת-היתום חמושה + אני עוקב מקצה-לקצה. חשבון flat עכשיו = אין סיכון פתוח.</li>
+<li><span class="pill py">S-7</span> <b>harness-כיול</b> רב-יומי לערכי RR/LSMA — אופליין, לא נוגע בלייב.</li>
+</ul>
+
+<h2>7 · ציר-זמן ל-GO</h2>
+<ul class="tl">
+<li><b>16:00 / 16:30 / כל 30ד'</b> — שעון-אוטומטי שלי בודק את ה-iMac ומדווח לך: כמה ירו/נחסמו + <b>למה אין עסקה + אין חסם</b>.</li>
+<li><b>16:20</b> — קלוד מאמת ‏S2-DL על בר-RTH ראשון (day_type מתאכלס).</li>
+<li><b>16:25</b> — אני נותן לך <b>GO / NO-GO</b> סופי אחרי אימות-כפול.</li>
+<li class="b"><b>כלל-ברזל:</b> בלי מנוע-חי ירוק על בר-RTH — לא מתחילים לסחור.</li>
+</ul>
+
+<h2>8 · כיס — לינק מכל-מקום</h2>
+<div class="card"><span class="mono">https://gender-floating-calculated-traditional.trycloudflare.com/api/v9/mobile?key=…</span>
+<div class="sub" style="margin-top:4px">🔐 פרטי (מפתח בכתובת) · עובד מסלולר · כתובת מתחלפת אם ה-iMac יופעל-מחדש → קלוד ישלח חדשה.</div></div>
+
+<div class="sub" style="margin-top:16px;text-align:center">צפי-כסף (מהברים האמיתיים, 4 חוזים): יום-דומה-לאתמול ≈ $350–500 בהינתן פערי-הזיהוי הנוכחיים · אתמול-לפי-הספר ≈ $690.</div>
+</body></html>
