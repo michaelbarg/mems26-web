@@ -527,6 +527,23 @@ def get_live_day_type() -> Optional[str]:
     Fail-safe: any error → None.
     """
     import os as _os
+    # ── DAY_TYPE_MANUAL_OVERRIDE (Michael live ruling 2026-07-16 21:20 "היום
+    # הפך ליום נייטרלי" · dev directive SYNC-21:35): date-scoped manual label,
+    # format "YYYY-MM-DD:Label". Applies ONLY while today (ET) equals the date
+    # → auto-expires at the ET day roll; any other date is inert. Overrides
+    # machine+antiflap (Michael IS the S1 authority until N1 lands).
+    # Fail-safe: malformed/error → ignored.
+    _ovr = _os.getenv("DAY_TYPE_MANUAL_OVERRIDE", "").strip()
+    if _ovr and ":" in _ovr:
+        try:
+            from datetime import datetime as _ovr_dt
+            from zoneinfo import ZoneInfo as _ovr_zi
+            _ovr_date, _ovr_label = _ovr.split(":", 1)
+            if (_ovr_label.strip()
+                    and _ovr_date.strip() == _ovr_dt.now(_ovr_zi("America/New_York")).date().isoformat()):
+                return _ovr_label.strip()
+        except Exception:
+            pass
     if _os.getenv("DAYTYPE_GATE_LIVE_V1", "").lower() not in ("1", "true", "yes"):
         return None
     try:
