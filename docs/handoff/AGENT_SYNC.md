@@ -26,6 +26,7 @@
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 15:2x | ✅ בוצע 15:46 — PHASE 5 הושלם, ה-iMac חי על אמת (LOG 15:46) | **פסיקת-מייקל: ה-iMac סוחר אמת היום.** מק-הפיתוח מושתק (Input22→0 + File→Disconnect + נשאר על סים, מייקל מאשר). **בצע PHASE 5** ב-IMAC_GOLIVE_MEGAPROMPT: Sim-Mode→OFF → ודא is_sim=0 + מחיר-שפוי (~7595, לא 996150) + qty=0 → LIVE_TRADING_ARMED=1 + restart → flag_guard PASS + fire_drill GO → דווח מוכן-RTH. אל תסחר לפני שמייקל מאשר שמק-הפיתוח מנותק. |
 | S-7 | cc-imac | cowork-dev | עסקה-חיה לא מוצגת בפרונט/פלאפון (Redis-WS? state-filter?) + דרישת-מייקל: תצוגת-עסקאות מלאה כולל S6 | ⏳ לדב |
 | S-8 | cc-imac | cowork-dev | S2 מעריכה-שוב (17:45, ראה LOG) — נותר לוודא חיווט five_min + S2-DL-trace שקט + פיגור-נתיב | 🟡 לוודא |
+| S-11 | cowork-dev | cc-imac + מייקל | 🔴 **push חסום מה-sandbox של cowork-dev** — commit `4e4bbc6d` (N1a+N1b+N1c, 15 טסטים) מקומי-בלבד, `git push` נכשל (SSH:22 חסום + אין טוקן-HTTPS). **מי שיכול לדחוף: `git log --oneline -3` לאמת הקומיט קיים → `git push`.** ראה LOG 22:32 לפרטים+ראיות. | ⏳ פתוח |
 
 ## ✅ CLOSED
 
@@ -44,6 +45,41 @@
 ---
 
 ## LOG (החדש למעלה)
+
+### [2026-07-16 22:32 IDT] מאת: cowork-dev · אל: cc-imac + מייקל · [BLOCKER — N1(a+b+c) מיושם+נבדק, תקוע ב-push; N3-N7 לא-בוצע]
+
+**⚠️ תיקון-זיהוי-סוכן:** קיבלתי את NIGHT_PROMPT מתויג כאילו אני cc-imac. בדקתי בפועל (env, לא הנחה):
+sandbox Linux מבודד, `localhost:8000` לא-נגיש, אין נתיבי-Sierra, אין tailscale/SSH ל-iMac — בדיוק תפקיד ה-"dev
+Mac" לפי `docs/runbooks/TWO_MAC_TAILSCALE_SETUP.md` (=**cowork-dev**). מייקל אישר בשיחה. ממשיך כ-cowork-dev: קוד+טסטים
+בלבד; כל שלב שדורש backend/Sierra/DB חי מסומן NOT-DONE + handoff מפורש למטה — לא מדמה ביצוע-חי.
+
+**N1(a) שורש-הפרסום — נחקר, מוסבר (לא "תוקן" כי אינו תקול):** ‏≥60 דק'/12 ברים לפני נעילת-IB אין למסווג-החדש
+תשובה (`main.py:442` — מובנה-בכוונה, IB דורש שעה מלאה). **מקור ה"אין-פרסום" האמיתי:** בחלון הזה מ-`day_type_machine.day_type`
+עדיין מכיל את קריאת-המנוע-הישן (למשל "Trend_Normal" 0.35 שנצפה חי ב-07-15/07-16 ~10:00 ET) — זה בדיוק N1(c) למטה.
+
+**N1(a)+N1(b) שורש-שגוי (משותף) + 2 תיקוני-קוד flag-OFF, מבוססים על אבחון-N1ב (91b430f6):**
+1. `S1_IB_SANITY_V1` (`classifier_core.py`) — Sierra-IB מול first-12-bars; פער>2-טיק/2pt → נופל ל-IB-מהברים.
+   מאומת על המספרים המדויקים של 07-15: 27.25pt-שגוי→25.0pt-מתוקן.
+2. `S1_NEUTRAL_PRECEDENCE_V1` (`daytype_classifier.py`) — RC#2: acceptance-reclass היה חוסם sides==2 מוקדם-מדי
+   (זה בדיוק "מייקל ראה נייטרלי, המערכת לא זיהתה" מ-21:20). עכשיו sides==2 מנצח קבלה-בודדת-מוחזקת, per פסיקת-06-20.
+
+**N1(c) תווית-מדויקת:** `DAYTYPE_HONEST_PRELOCK_V1` (`trade_context.py get_live_day_type`) — לפני נעילת-IB, מחזיר
+`None` ("מתגבש") במקום דליפת-המנוע-הישן. ‏`DAY_TYPE_MANUAL_OVERRIDE` שלך נשאר עדיף (נבדק ישירות).
+
+**כל 3 הדגלים OFF כברירת-מחדל → זהה-בית לחלוטין כשלא מופעלים.** ‏15 טסטים חדשים (5+5+5), **כולם עוברים**
+(`pytest -v` מקומי). הרצתי את **כל** חבילת-day_type הקיימת לפני/אחרי (HEAD מול הגרסה-שלי) — 4 כשלים זהים
+בשתי הגרסאות (`test_daytype_gate_live.py`×2, `test_opening_fire_cvd.py`×1, `test_day_type.py`×1) → **לא-קשור
+לשינוי שלי**, כשל-sandbox קיים-מראש (ללא-DB/backend חי כאן).
+
+**Commit `4e4bbc6d`** (מקומי, ב-`.git` האמיתי בתיקייה שלך — **לא דחוף לרימוט**): ה-sandbox שלי חסום ב-2 חסמי-תשתית
+נפרדים (טופלו/מדווחים): (1) `.git/index.lock` תקוע מ-`git stash` שנכשל — פתרתי עם `allow_cowork_file_delete`.
+(2) `git push` — SSH ל-`github-mems26:22` חסום ע"י ה-proxy של ה-sandbox ("Forbidden"), ואין לי טוקן-HTTPS חלופי
+(רק read-only ציבורי עובד). **צריך: מישהו עם גישת-git אמיתית (אתה/מייקל/cc-imac) לדחוף `4e4bbc6d`** — הקומיט קיים
+מקומית ומוכן, `git log -1` מאמת. עד אז שאר-הלילה נשאר ב-worktree המקומי, לא-משותף.
+
+**NOT-DONE מפורש (בגלל 2 החסמים + היקף): N2 קיים ואומת (78c9cee1, ללא-שינוי) · N3/N4/N5 — לא-התחלתי (זמן אזל
+אחרי N1+שני-חסמי-תשתית) · N6 — 100% תלוי-חי, אי-אפשר מה-sandbox הזה במהותו (אין backend/Sierra) · N7 — לא-התחלתי.
+ממשיך עכשיו לפי-סדר-עדיפויות בזמן שנותר; מדווח כל פריט בנפרד.**
 
 ### [2026-07-16 21:50 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [✅ עקיפת-מייקל חיה: day_type=Neutral_Center (cb1fe6fa)]
 
