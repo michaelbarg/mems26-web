@@ -25,9 +25,14 @@ def _trade(**kw):
 class _StubTM:
     def __init__(self):
         self.modify_calls = []
+        self.drop_calls = []
 
     def _emit_modify_stop(self, trade, price):
         self.modify_calls.append((trade, price))
+
+    def _emit_drop_target(self, trade, target_field):
+        self.drop_calls.append((trade, target_field))
+        return True
 
 
 @pytest.fixture
@@ -85,6 +90,22 @@ def test_auto_be_after_t1_applies_via_existing_plumbing(det, monkeypatch):
     _set({"SYSTEM6_SUPERVISOR": "1", "SYSTEM6_AUTOCORRECT": "1"}, monkeypatch)
     det._system6_scan(_trade(stop=7494.0, t1_hit_ts=datetime.datetime.now()))
     assert det._tm.modify_calls and det._tm.modify_calls[-1][1] == 7500.0  # → BE(entry)
+
+
+def test_auto_drop_target_wrong_side_applies_via_existing_plumbing(det, monkeypatch):
+    """N4 (2026-07-17): DROP_TARGET was advisory-only even under protective mode
+    (CLAUDE.md: 'not wired') — now completes via manager._emit_drop_target.
+    LONG trade with t2 on the wrong side (<= entry) → auto-dropped."""
+    _set({"SYSTEM6_SUPERVISOR": "1", "SYSTEM6_AUTOCORRECT": "protective"}, monkeypatch)
+    det._system6_scan(_trade(stop=7494.0, t2=7495.0))  # t2 below LONG entry 7500 -> wrong side
+    assert det._tm.drop_calls and det._tm.drop_calls[-1][1] == "t2"
+
+
+def test_auto_drop_target_inert_when_autocorrect_off(det, monkeypatch):
+    """Supervisor on, AUTOCORRECT off -> DROP_TARGET stays advisory (not applied)."""
+    _set({"SYSTEM6_SUPERVISOR": "1", "SYSTEM6_AUTOCORRECT": None}, monkeypatch)
+    det._system6_scan(_trade(stop=7494.0, t2=7495.0))
+    assert det._tm.drop_calls == []
 
 
 def test_naked_stop_never_auto_applies(det, monkeypatch):

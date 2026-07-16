@@ -99,6 +99,10 @@ class BarLevelDetector:
                 if op == "MODIFY_STOP":
                     self._tm._emit_modify_stop(trade, float(correction["price"]))
                     return True
+                if op == "DROP_TARGET":
+                    # N4 (2026-07-17): was advisory-only (CLAUDE.md: "not wired") even
+                    # though protective mode already covers it — completes the wiring.
+                    return self._tm._emit_drop_target(trade, correction.get("target"))
                 logger.warning("[System6] correction %s needs manual handling (advisory)", op)
                 return False
 
