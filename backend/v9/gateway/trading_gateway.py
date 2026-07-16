@@ -304,6 +304,26 @@ class TradingGateway:
     def disable_live(self, system_id: int) -> None:
         self._live_enabled_systems.discard(system_id)
 
+    @staticmethod
+    def _rr_unclassified_relief_window() -> bool:
+        """RR relief window for UNCLASSIFIED-label periods: 10:00–16:00 ET.
+
+        Michael ruling 2026-07-16 (~17:55 IDT, "מאשר — תקן עכשיו"): the strict-1.0
+        R:R fallback while the day is merely unclassified (get_live_day_type →
+        None, low-conf early session) blocked the 7597×2 borderline winners
+        before a +15pt run. Relief may apply in that state too — but NEVER in
+        the opening 30min (chase window) and never on error paths.
+        Fail-conservative: any error → False (strict 1.0 stays).
+        """
+        try:
+            from datetime import datetime as _dt
+            from zoneinfo import ZoneInfo as _zi
+            _now = _dt.now(_zi("America/New_York"))
+            _m = _now.hour * 60 + _now.minute
+            return 600 <= _m <= 960  # 10:00–16:00 ET
+        except Exception:
+            return False
+
     def route_setup(self, setup: dict, system_id: int) -> Dict:
         """Route a setup, then LOG the gate block reason so blocks are not silent
         (no silent failures — every blocked setup records WHY it didn't fire)."""
@@ -1277,9 +1297,16 @@ class TradingGateway:
                                 get_live_day_type as _rr_dt_fn,
                             )
                             _rr_dt = str(_rr_dt_fn() or "")
-                            if _rr_dt.startswith(
+                            _rr_relief = _rr_dt.startswith(
                                 ("Variation", "Normal_Variation", "Normal", "Neutral")
-                            ):
+                            )
+                            # 07-16 Michael ("מאשר — תקן עכשיו"): relief ALSO
+                            # while the label is UNCLASSIFIED (""), but only in
+                            # the post-opening window (see helper). Trend labels
+                            # keep 1.0; error paths keep 1.0 (except below).
+                            if not _rr_relief and _rr_dt == "":
+                                _rr_relief = self._rr_unclassified_relief_window()
+                            if _rr_relief:
                                 _rr_min = max(0.1, min(float(_rr_min_env), 1.0))
                         except Exception:
                             _rr_min = 1.0
