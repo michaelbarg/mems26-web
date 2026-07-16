@@ -50,7 +50,6 @@ CONTENT_STALE_SECONDS = float(os.getenv("FEED_CONTENT_STALE_SECONDS", "600"))
 
 
 def _db_max_bar_age() -> Optional[float]:
-<<<<<<< Updated upstream
     """Age (seconds) of the newest bar in the canonical LIVE table v9_bars_5min_woodies.
 
     SoT fix (Michael approval, 2026-07-16 16:4x IDT): was v9_bars_5min — the LEGACY
@@ -58,18 +57,6 @@ def _db_max_bar_age() -> Optional[float]:
     v9_bars_5min_woodies (docs/SOURCE_OF_TRUTH.md). The stale read false-halted every
     fire on 07-16 (valid ZLR SHORT blocked 16:35, feed actually 1min fresh). Exactly
     the known SoT failure CLAUDE.md §Codebase-Index warns about (2026-06-22).
-=======
-    """Age (seconds) of the newest bar in the canonical LIVE table
-    v9_bars_5min_woodies.
-
-    07-16 (Michael, live: "why no trades again"): this queried the LEGACY
-    `v9_bars_5min` table, which froze yesterday 22:55 (the continuous-bar wiring
-    stopped feeding it) → the watchdog computed lag=1060min and HALTed EVERY
-    fire during live RTH (a doctrine-correct ZLR SHORT @7588.75 was blocked at
-    16:35). The canonical LIVE source per docs/SOURCE_OF_TRUTH.md is
-    `v9_bars_5min_woodies` (lag ~1min). This is the exact 06-22 SoT wrong-table
-    class (CLAUDE.md). Smallest correct change: read the live table.
->>>>>>> Stashed changes
 
     TZ-safe (the DB ts is tz-aware / corrected, unlike the ET-as-UTC file ts).
     Returns None on any error → the caller fails OPEN (never a synthetic halt;
@@ -118,16 +105,9 @@ def is_feed_alive() -> Tuple[bool, Optional[str]]:
     # is unreadable (age None).
     db_age = _db_max_bar_age()
     if db_age is not None and db_age > CONTENT_STALE_SECONDS:
-<<<<<<< Updated upstream
         reason = ("FEED_WATCHDOG HALT: canonical bars frozen — newest v9_bars_5min_woodies "
                   "is %.0fmin old (threshold %.0fs); bars stopped advancing while "
                   "pushes may stay fresh" % (db_age / 60.0, CONTENT_STALE_SECONDS))
-=======
-        reason = ("FEED_WATCHDOG HALT: canonical bars frozen — newest "
-                  "v9_bars_5min_woodies is %.0fmin old (threshold %.0fs); bars "
-                  "stopped advancing while pushes may stay fresh"
-                  % (db_age / 60.0, CONTENT_STALE_SECONDS))
->>>>>>> Stashed changes
         logger.warning("[FeedWatchdog] %s", reason)
         try:
             from backend.v9.services.alerter import alert
