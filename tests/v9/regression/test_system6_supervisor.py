@@ -118,6 +118,79 @@ def test_reconcile_mismatch_is_critical():
     assert iss.severity == CRITICAL
 
 
+# --- N4(a) rescue-tier: counter-signal / stuck / runner-reversal (all ALERT-only) ---
+def test_counter_signal_before_t1_flagged():
+    rep = diagnose_trade(trade=_trade(), atr=ATR, counter_signal_pre_t1=True, t1_hit=False)
+    iss = next(i for i in rep.issues if i.code == "counter_signal_pre_t1")
+    assert iss.action == ALERT and iss.correction is None
+
+
+def test_counter_signal_after_t1_not_flagged():
+    """Once T1 is proven, a new opposite signal elsewhere isn't a 'falling trade' tell."""
+    rep = diagnose_trade(trade=_trade(stop=7540.0), atr=ATR,
+                         counter_signal_pre_t1=True, t1_hit=True)
+    assert "counter_signal_pre_t1" not in _codes(rep)
+
+
+def test_counter_signal_false_default_no_flag():
+    rep = diagnose_trade(trade=_trade(), atr=ATR)
+    assert "counter_signal_pre_t1" not in _codes(rep)
+
+
+def test_stuck_trade_flagged_when_no_progress():
+    # risk = |7540-7548| = 8pt; progress 1.0pt < 25% of 8pt (2.0pt) -> stuck
+    rep = diagnose_trade(trade=_trade(), atr=ATR, bars_since_entry=12, progress_pts=1.0)
+    iss = next(i for i in rep.issues if i.code == "stuck_trade")
+    assert iss.action == ALERT and iss.severity == WARN
+
+
+def test_stuck_trade_not_flagged_with_good_progress():
+    # progress 5.0pt >= 25% of 8pt risk -> not stuck
+    rep = diagnose_trade(trade=_trade(), atr=ATR, bars_since_entry=12, progress_pts=5.0)
+    assert "stuck_trade" not in _codes(rep)
+
+
+def test_stuck_trade_not_flagged_before_threshold_bars():
+    rep = diagnose_trade(trade=_trade(), atr=ATR, bars_since_entry=5, progress_pts=0.0)
+    assert "stuck_trade" not in _codes(rep)
+
+
+def test_stuck_trade_silent_without_both_signals():
+    """Rule 1: never guess progress — missing bars_since_entry OR progress_pts -> no flag."""
+    rep = diagnose_trade(trade=_trade(), atr=ATR, bars_since_entry=20)  # progress_pts missing
+    assert "stuck_trade" not in _codes(rep)
+
+
+def test_stuck_trade_not_flagged_once_t1_hit():
+    rep = diagnose_trade(trade=_trade(stop=7540.0), atr=ATR, t1_hit=True,
+                         bars_since_entry=50, progress_pts=0.0)
+    assert "stuck_trade" not in _codes(rep)
+
+
+def test_runner_reversal_flagged_after_t1():
+    rep = diagnose_trade(trade=_trade(stop=7540.0), atr=ATR, t1_hit=True, runner_reversal=True)
+    iss = next(i for i in rep.issues if i.code == "runner_reversal")
+    assert iss.action == ALERT and iss.correction is None
+
+
+def test_runner_reversal_not_flagged_before_t1():
+    """Pre-T1 there's no 'runner' yet — the check is post-T1 only."""
+    rep = diagnose_trade(trade=_trade(), atr=ATR, t1_hit=False, runner_reversal=True)
+    assert "runner_reversal" not in _codes(rep)
+
+
+def test_n4a_signals_never_auto_applied(monkeypatch):
+    """All three N4(a) issues are ALERT — AUTOCORRECT=1 must never execute them."""
+    monkeypatch.setenv("SYSTEM6_SUPERVISOR", "1")
+    monkeypatch.setenv("SYSTEM6_AUTOCORRECT", "1")
+    applied = []
+    scan_active_trade(trade=_trade(stop=7540.0), atr=ATR, t1_hit=True,
+                      counter_signal_pre_t1=True, runner_reversal=True,
+                      bars_since_entry=99, progress_pts=0.0,
+                      executor=lambda c: applied.append(c) or True)
+    assert applied == [], "N4(a) rescue-tier issues are ALERT-only; must never auto-apply"
+
+
 # --- scan wrapper: gating + executor routing ---
 def test_scan_disabled_returns_none(monkeypatch):
     monkeypatch.delenv("SYSTEM6_SUPERVISOR", raising=False)
