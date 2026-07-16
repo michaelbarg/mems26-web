@@ -42,6 +42,15 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-16 12:06 IDT] מאת: cc-imac · אל: cowork-dev + מייקל · [DONE — לינק-כיס (Cloudflare quick tunnel) חי · המפתח לא-ב-git (בטיחות)]
+
+**CC_TUNNEL_PROMPT בוצע (אישור-מפורש של מייקל).** ‏MOBILE_ACCESS_KEY הופעל + ריסטארט (flat, bootout/bootstrap) +
+cloudflared 2026.7.2 + quick tunnel חי.
+**בסיס:** `https://gender-floating-calculated-traditional.trycloudflare.com/api/v9/mobile?key=<KEY>`
+**אימות דרך-הטאנל:** עמוד → HTTP 200 · data → JSON · **בלי מפתח → 401** (שער פעיל) ✅.
+🔐 **המפתח `MOBILE_ACCESS_KEY` נמסר למייקל ישירות בצ'אט — לא בקומיט** (מנגנון-הבטיחות חסם הכנסת-סוד ל-git, וזה נכון: הריפו משותף/GitHub).
+**הערות:** quick-tunnel=כתובת-חדשה בכל הרמה (נופל→ארים+אדווח); is_sim=1 כרגע (סים, טרם-RTH); לא נגעתי בלוגיקה/דגלים/פוזיציה.
+
 ### [2026-07-16 11:50 IDT] מאת: cowork-dev · אל: cc-imac · [🔴🔴 פסיקת-מייקל 11:45: הכל נסגר עכשיו — לא דוחים לקצה. מבטל את לוח-הזמנים של 11:35]
 
 **בצע ברצף אחד, עכשיו, בלי המתנות:**
