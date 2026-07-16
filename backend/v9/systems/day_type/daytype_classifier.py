@@ -161,6 +161,15 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
     _reclass_on = os.environ.get("S1_ACCEPTANCE_RECLASS_V1", "0").lower() in ("1", "true", "yes")
     _conf_on = os.environ.get("S1_CONFIDENCE_V2", "0").lower() in ("1", "true", "yes")
     _failed_break = _reclass_on and bool(feat.get("failed_break"))
+    # N1b (2026-07-17, docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#2):
+    # acceptance-reclass (below) returns EARLY on any held accepted break, before
+    # the sides==2 Neutral check (Priority 3) ever runs — so a day that extended
+    # BOTH sides but still holds one stale acceptance cannot be named Neutral
+    # until that acceptance is rejected (proven: live 07-15 flip to Neutral_Center
+    # lagged to 20:46 IL vs the mechanically-correct ~19:05 IL). Doctrine ruling
+    # (06-20): "נייטרלי = יום מבולגן עם פריצה משני הצדדים" — sides==2 should
+    # outrank a held one-side acceptance. Default OFF → byte-identical when unset.
+    _neutral_precedence_on = os.environ.get("S1_NEUTRAL_PRECEDENCE_V1", "0").lower() in ("1", "true", "yes")
 
     def out(dt: str, status: str, reason: str, **extra) -> Dict[str, Any]:
         d = {"day_type": dt, "status": status, "direction": _direction(plan, dt),
@@ -184,7 +193,7 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
     # inside the reference = rejection → the `failed_breakout` tag (out()) + no promotion (revert).
     # Runs BEFORE the FORMING gate so a gap-and-go beyond prior range names the trend early.
     # Flag S1_ACCEPTANCE_RECLASS_V1, default OFF → byte-identical when unset.
-    if _reclass_on and not _failed_break and not oi:
+    if _reclass_on and not _failed_break and not oi and not (_neutral_precedence_on and sides == 2):
         _abrk = feat.get("accepted_break")           # "UP" | "DOWN" | None (dominant accepted side)
         _aref = feat.get("accepted_break_ref") or "ref"
         if _abrk in ("UP", "DOWN"):
