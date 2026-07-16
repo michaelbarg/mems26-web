@@ -173,6 +173,16 @@ async def mobile_data(request: Request):
             out["patterns_err"] = str(_pe)[:60]
     except Exception:
         pass
+    # דוח-יומי (Michael 07-16: "דוח יומי שגם יופיע בכיס") — נכתב ע"י
+    # scripts/gen_daily_report.py בסגירת-RTH; הכרטיס בנייד קורא אותו.
+    try:
+        _dr = json.loads(open(f"{_EXP}/daily_report.json").read())
+        out["daily"] = {"date": _dr.get("date"), "pnl_usd": _dr.get("pnl_usd"),
+                        "n_trades": _dr.get("n_trades"), "wins": _dr.get("wins"),
+                        "losses": _dr.get("losses"),
+                        "day_type": (_dr.get("day_type") or {}).get("day_type")}
+    except Exception:
+        out["daily"] = None
     # דגלי-קריטיים + halt
     out["halt_cap"] = os.getenv("RISK_DAILY_LOSS_CAP", "400")
     out["contracts_cfg"] = 4 if os.getenv("FIXED_CONTRACTS_4", "0") == "1" else 3
@@ -256,6 +266,8 @@ h1{font-size:16px;margin:0 0 10px;color:#79c0ff}.card{background:#151a23;border:
 <div id="gate" style="font-size:12px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">תבניות — מי יורה, למה לא, ומה חוסם</div>
 <div id="pats" style="font-size:11.5px;line-height:1.7">—</div></div>
+<div class="card"><div class="row"><span class="dim">דוח-יומי (סגירת-RTH)</span><span id="drmeta" class="dim"></span></div>
+<div id="daily" style="font-size:13px;line-height:1.6">—</div></div>
 <div class="card"><div class="dim">התראות</div><div id="alerts" class="alert">—</div></div>
 <button id="flat" style="width:100%;padding:12px;margin:4px 0 8px;border-radius:12px;border:1px solid #f85149;
 background:#2d1214;color:#f85149;font-size:14px;font-weight:700;font-family:inherit">⏻ סגור עסקאות-אמת (השטח הכל)</button>
@@ -318,6 +330,13 @@ async function load(){
   document.getElementById('cap').textContent = d.halt_cap;
   document.getElementById('daytype').textContent = d.day_type||'—';
   document.getElementById('dayconf').textContent = d.day_conf!=null? 'ביטחון '+d.day_conf : '';
+  const dr = d.daily; const drEl = document.getElementById('daily');
+  if(dr){
+   const p = dr.pnl_usd||0;
+   drEl.innerHTML = '<span class="'+(p>=0?'green':'red')+'" style="font-size:16px;font-weight:800">'+(p>=0?'+':'')+p+'$</span> · '+
+    (dr.n_trades||0)+' עסקאות ('+(dr.wins||0)+'W/'+(dr.losses||0)+'L) · '+(dr.day_type||'—');
+   document.getElementById('drmeta').textContent = dr.date||'';
+  } else { drEl.innerHTML = '<span class="dim">יופק בסגירת-RTH</span>'; }
   document.getElementById('alerts').innerHTML = (d.alerts&&d.alerts.length)? d.alerts.map(x=>'<div>'+x.replace(/</g,'&lt;').slice(0,110)+'</div>').join(''):'<span class="dim">שקט ✓</span>';
   document.getElementById('health').textContent = 'מחיר '+(d.mid??'—')+' · חוזים מוגדרים: '+d.contracts_cfg+' · רענון-5ש';
  }catch(e){ document.getElementById('health').textContent = '⚠ אין קשר למערכת — '+e; }
