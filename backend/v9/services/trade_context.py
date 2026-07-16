@@ -552,6 +552,25 @@ def get_live_day_type() -> Optional[str]:
     return None
 
 
+def _g1_replay_fallback_ok() -> bool:
+    """classify_replay fallback allowed ONLY outside the live session (ET h>=16 or h<9).
+
+    Michael URGENT root-fix (2026-07-16 ~19:15, live directive): classify_replay
+    computes `final` with is_eod=True — on a PARTIAL day it FORCES a terminal
+    label (e.g. "Neutral_Center" on a two-sided range day), which fed the
+    playbook/location gates an invented label mid-session (wrong blocks; the
+    #28 ladder clamp). Post-close / pre-open analytics may still use it.
+    Fail-safe: clock error → False (never force a label).
+    """
+    try:
+        from datetime import datetime as __dt
+        from zoneinfo import ZoneInfo as __zi
+        _h = __dt.now(__zi("America/New_York")).hour
+        return _h >= 16 or _h < 9
+    except Exception:
+        return False
+
+
 def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
     """G1: Extract day_type, pattern_id, session from cross_context at entry.
 
@@ -585,8 +604,12 @@ def extract_g1_entry_context(cross_context: Any) -> Dict[str, Optional[str]]:
 
             if _live_dt:
                 day_type = _live_dt
-            else:
-                # Fallback: classify_replay (DB-based, 30s cache) — the old path
+            elif _g1_replay_fallback_ok():
+                # Fallback: classify_replay (DB-based, 30s cache) — the old path.
+                # Michael root-fix 07-16: gated to OUTSIDE the live session only
+                # (see _g1_replay_fallback_ok). Mid-session with live-None the
+                # day_type stays None — gates fail-OPEN on unclassified instead
+                # of fail-WRONG on an is_eod-forced label.
                 import time as _t
                 import datetime as _dt
                 from zoneinfo import ZoneInfo as _ZI
