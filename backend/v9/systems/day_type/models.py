@@ -1,6 +1,6 @@
 """Day Type Engine — SQLAlchemy model for persisting state."""
 
-from sqlalchemy import Column, String, Float, DateTime, func
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, func
 from backend.v9.db.session import Base
 from backend.v9.db.models._types import JsonColumn, BigIntPK
 
@@ -22,3 +22,12 @@ class V9DayTypeState(Base):
     lock_state = Column(String(20))                     # PENDING, LOCKED, LOCKED_LOW_CONF
     meta = Column(JsonColumn)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    # ── N1 RC#4 additive observability columns (migration 022, 2026-07-17 —
+    #    docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md §5.5). Written by the
+    #    single-writer publisher in backend/main.py from app.state.last_cls_result
+    #    (today's canonical classify_session result); honest NULLs when the new
+    #    classifier isn't promoting. Observability only — no gate reads them. ──
+    direction = Column(String(40))                      # strategy(leg), e.g. "with_extension(DOWN)"
+    reason = Column(Text)                               # classifier's reason string
+    sides = Column(Integer)                             # measured sides 0/1/2
+    rib = Column(Float)                                 # measured range/IB ratio

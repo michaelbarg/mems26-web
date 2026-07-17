@@ -133,6 +133,16 @@ flags:
     what: "In classify(), a two-sided day (sides==2) outranks a still-held single-side acceptance-reclass — previously the acceptance-reclass early-return shadowed Neutral entirely whenever S1_ACCEPTANCE_RECLASS_V1 was also on."
     why: "OFF (default; also a no-op unless S1_ACCEPTANCE_RECLASS_V1 is on). N1b 2026-07-17: live 07-15 flip to Neutral_Center lagged to 20:46 IL vs the mechanically-correct ~19:05 IL. Doctrine ruling 06-20: sides==2 should win. Trading-risk-surface → Michael sign-off + sim verification before live."
     ref: "docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#2; tests/v9/regression/test_s1_neutral_precedence.py"
+  S1_CONF_SMOOTH_V1:
+    category: s1
+    what: "Slew-cap the PUBLISHED day-type confidence at the sequence layer (live promoter in backend/main.py + classify_replay timeline): moves at most S1_CONF_SMOOTH_MAX_DELTA (default 0.25) per bar toward the raw _confidence score. Type decisions untouched — only the confidence number."
+    why: "OFF (default). N1 RC#3 2026-07-17: _confidence() switches between the 8-item directional and 3-item balance evidence lists when its direction-basis flips, so the persisted conf flapped 0.12↔0.67↔1.00 on adjacent bars with no market change (max adjacent delta 0.88 in the 07-15/07-16 replays). Cosmetic/display stability; guarantees the N1B T2 bound (adjacent delta ≤0.35). Michael sign-off before enabling (published-confidence surface)."
+    ref: "docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#3; tests/v9/regression/test_s1_conf_smooth.py"
+  S1_CONF_SMOOTH_MAX_DELTA:
+    category: param
+    group: "day-type classifier"
+    what: "S1_CONF_SMOOTH_V1 param: max per-bar confidence movement (default 0.25)."
+    why: "Calibration knob; 0.25 satisfies the N1B T2 ≤0.35 bound by construction."
   DAY_DIRECTION_DOCTRINE_V1:
     category: cascade_gate
     what: "On directional days (Variation/Trend), only with-expansion entries allowed. Counter-expansion blocked unless halt-proof (2 closes back through expansion level). Reference = IB expansion side, not local LSMA."

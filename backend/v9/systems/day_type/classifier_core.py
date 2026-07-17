@@ -228,6 +228,8 @@ def classify_session(
 
     result = classify(feat, plan, is_eod=is_eod)
     result["ib_source"] = ib_source
+    result["ib_high_used"] = ib_high      # N1 observability: the IB the classifier ACTUALLY used
+    result["ib_low_used"] = ib_low        # (== Sierra unless the S1_IB_SANITY_V1 fallback replaced it)
     result["measured"] = {
         "sides": feat["sides"], "rib": feat["rib"], "one_tf": feat["one_tf"],
         "close_pos": feat["close_pos"], "cvd_pos": feat["cvd_pos"],
@@ -238,3 +240,35 @@ def classify_session(
         "profile_imbalance": feat["profile_imbalance"], "va_rule": feat["va_rule"],
     }
     return result
+
+
+def state_row_extras(last_cls_result: Optional[Dict[str, Any]], today_iso: str) -> Dict[str, Any]:
+    """N1 RC#4 (2026-07-17, docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md §5.5):
+    map the canonical classify_session result onto the ADDITIVE v9_day_type_state
+    observability columns (migration 022): direction / reason / sides / rib.
+
+    `direction` combines the plan STRATEGY string with the day's leg-direction read so
+    "Variation-DOWN" is finally representable: e.g. "with_extension(DOWN)". Strategy
+    without a directional read stays bare ("fade_both"); a leg read without a strategy
+    (shouldn't happen) would be the bare "UP"/"DOWN".
+
+    Rule 1 (honest failure): when the result is absent, or stamped with a DIFFERENT
+    session_date than today (stale cross-session app.state), every field is None —
+    the columns must never carry yesterday's read as if it were today's.
+    Pure function, no I/O — unit-tested without a DB.
+    """
+    out: Dict[str, Any] = {"direction": None, "reason": None, "sides": None, "rib": None}
+    r = last_cls_result or {}
+    if not r or r.get("session_date") != today_iso:
+        return out
+    strategy = r.get("direction")
+    bias = r.get("dir_bias")
+    if strategy and bias:
+        out["direction"] = f"{strategy}({bias})"
+    else:
+        out["direction"] = strategy or bias or None
+    out["reason"] = r.get("reason") or None
+    m = r.get("measured") or {}
+    out["sides"] = m.get("sides")
+    out["rib"] = m.get("rib")
+    return out
