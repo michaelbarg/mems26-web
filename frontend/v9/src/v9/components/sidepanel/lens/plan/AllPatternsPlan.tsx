@@ -39,13 +39,19 @@ interface DecisionsPayload {
 }
 
 const norm = (s?: string | null) => (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-/** ההחלטה האחרונה של ה-gateway עבור תבנית זו (התאמת-שם גמישה). */
+/** ההחלטה האחרונה של ה-gateway עבור תבנית זו (התאמת-שם גמישה).
+ *  07-17 fix: שורות S2 מקודדות כיוון בשם (REACTIVE_LONG/REACTIVE_SHORT) —
+ *  בלי בדיקת-כיוון החלטת REACTIVE SHORT הוצגה גם על שורת REACTIVE_LONG. */
 function lastDecisionFor(p: PatternRow, decs: Decision[]): Decision | null {
   const pid = norm(p.id), pname = norm(p.name);
+  const rowDir = pid.endsWith('LONG') ? 'LONG' : pid.endsWith('SHORT') ? 'SHORT' : null;
   for (const d of decs) { // decs מגיע חדש-ראשון מהשרת
     const gp = norm(d.pattern);
     if (!gp) continue;
-    if (gp.includes(pid) || pid.includes(gp) || gp.includes(pname) || pname.includes(gp)) return d;
+    if (!(gp.includes(pid) || pid.includes(gp) || gp.includes(pname) || pname.includes(gp))) continue;
+    const dDir = (d.direction || '').toUpperCase();
+    if (rowDir && dDir && dDir !== rowDir) continue; // כיוון-ההחלטה סותר את כיוון-השורה
+    return d;
   }
   return null;
 }
@@ -83,6 +89,10 @@ const ST: Record<string, { he: string; color: string }> = {
   blocked: { he: 'ממתין', color: '#8b949e' },
   skip: { he: 'SKIP לסוג-היום', color: '#f85149' },
   fired: { he: 'ירה היום', color: '#58a6ff' },
+  // 07-17 fix: הבקאנד פולט גם vetoed/unknown (s2_inspector.py:461-494,
+  // woodies_inspector.py:530-569) — vetoed הוצג עד עכשיו כ"ממתין" אפור מטעה.
+  vetoed: { he: 'וטו-הרשאה', color: '#f85149' },
+  unknown: { he: 'אין-נתונים', color: '#8b949e' },
 };
 
 export function AllPatternsPlan({ systemId }: { systemId: number }) {
@@ -116,7 +126,14 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
   }, [load]);
 
   if (err) return <div style={{ fontSize: 11, color: COLORS.textSecondary }}>תבניות: {err}</div>;
-  if (!rows.length) return null;
+  // 07-17 fix: מערכת ללא-תבניות נעלמה בשקט — עכשיו מוצג מצב-ריק מפורש
+  if (!rows.length) {
+    return (
+      <div style={{ fontSize: 11, color: COLORS.textSecondary, direction: 'rtl', textAlign: 'right' }}>
+        אין נתוני-תבניות עדיין מהבקאנד (pattern-status ריק) — ממתין לרענון הבא.
+      </div>
+    );
+  }
 
   // מיון: הכי-קרוב-לירי קודם (שיעור רכיבים ירוקים), SKIP בסוף
   const scored = rows.map((p) => {
@@ -209,8 +226,17 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
                   </button>
                   {isOpen && (
                     <div style={{ fontSize: 10, color: COLORS.textSecondary, lineHeight: 1.5, marginTop: 2 }}>
-                      <div><span style={{ color: COLORS.textTertiary }}>מבנה: </span>{help.structure}</div>
-                      <div><span style={{ color: COLORS.textTertiary }}>מפעיל: </span>{help.trigger}</div>
+                      {/* 07-17 (מייקל): הסבר + מבנה-גאומטרי + כמה-נרות מקוד-הדטקטור, פר-תבנית */}
+                      <div><span style={{ color: COLORS.textTertiary }}>ההסבר: </span>{help.explain}</div>
+                      <div style={{ marginTop: 2 }}>
+                        <span style={{ color: COLORS.textTertiary }}>מבנה גאומטרי: </span>{help.structure}
+                      </div>
+                      <div style={{ marginTop: 2 }}>
+                        <span style={{ color: '#d29922' }}>כמה נרות: </span>{help.candles}
+                      </div>
+                      <div style={{ marginTop: 2 }}>
+                        <span style={{ color: COLORS.textTertiary }}>מפעיל: </span>{help.trigger}
+                      </div>
                       <div><span style={{ color: COLORS.textTertiary }}>מבטל: </span>{help.cancel}</div>
                     </div>
                   )}
@@ -234,7 +260,10 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
             <div style={{ marginTop: 3, display: 'flex', flexDirection: 'column', gap: 2,
                           maxHeight: 180, overflowY: 'auto', padding: '4px 6px',
                           border: '1px solid #21262d', borderRadius: 6, background: '#0d1117' }}>
-              {sysDecs.slice(0, 25).map((d, i) => <DecisionLine key={i} d={d} showPattern />)}
+              {/* 07-17 fix: key אינדקסי על רשימה שמתחדשת מלמעלה גרר שורות-DOM ממוחזרות שגויות */}
+              {sysDecs.slice(0, 25).map((d, i) => (
+                <DecisionLine key={`${d.ts}|${d.pattern ?? ''}|${d.direction ?? ''}|${i}`} d={d} showPattern />
+              ))}
             </div>
           )}
         </div>

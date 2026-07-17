@@ -3,6 +3,9 @@ import { useState } from 'react';
 import { useBuildStatus } from '../../../hooks/useBuildStatus';
 import { COLORS } from '../../../design/tokens';
 import type { Pattern, FormulaCondition } from '../../build_status/types';
+// 07-17 (מייקל): הסבר + מבנה-גאומטרי + כמה-נרות פר-תבנית, מחולצים מקוד-הדטקטורים —
+// מקור-אמת יחיד משותף עם פאנל-הצד (sidepanel/lens/plan/planHelp.ts)
+import { PATTERN_HELP } from '../../sidepanel/lens/plan/planHelp';
 
 const SYS_META: Record<string, { label: string; color: string; type: string }> = {
   day_type: { label: 'S1 · סיווג יום', color: '#a78bfa', type: 'OBSERVING' },
@@ -39,24 +42,41 @@ function FormulaRow({ f }: { f: FormulaCondition }) {
 
 function PatternRow({ p }: { p: Pattern }) {
   const [open, setOpen] = useState(false);
-  const hasFormula = p.formula && p.formula.length > 0;
+  const hasFormula = !!(p.formula && p.formula.length > 0);
+  const help = PATTERN_HELP[p.id];
+  // 07-17 fix: שורות S2 היו "מתות" (הבקאנד שולח formula רק ל-Woodies —
+  // woodies_inspector.py:573-590) — עכשיו כל שורה נפתחת עם ההסבר/מבנה/נרות.
+  const expandable = hasFormula || !!help;
   return (
     <div style={{ borderBottom: `1px solid ${COLORS.borderFaint}` }}>
       <div
-        onClick={() => hasFormula && setOpen(!open)}
+        onClick={() => expandable && setOpen(!open)}
         style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 4px',
-                 cursor: hasFormula ? 'pointer' : 'default' }}
+                 cursor: expandable ? 'pointer' : 'default' }}
       >
-        {hasFormula && <span style={{ fontSize: 8, color: COLORS.textTertiary }}>{open ? '▼' : '▶'}</span>}
+        {expandable && <span style={{ fontSize: 8, color: COLORS.textTertiary }}>{open ? '▼' : '▶'}</span>}
         <span style={{ fontSize: 10, color: p.status === 'blocked' ? COLORS.textTertiary : COLORS.textPrimary,
                        flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {p.name}
         </span>
         <BuildBar pct={p.build_pct} />
       </div>
-      {open && hasFormula && (
+      {open && expandable && (
         <div style={{ padding: '2px 8px 4px 20px', background: COLORS.bgSurface1 }}>
-          {p.formula!.map((f, i) => <FormulaRow key={i} f={f} />)}
+          {hasFormula && p.formula!.map((f, i) => <FormulaRow key={i} f={f} />)}
+          {help && (
+            <div style={{ direction: 'rtl', textAlign: 'right', unicodeBidi: 'plaintext',
+                          fontSize: 9, lineHeight: 1.55, color: COLORS.textSecondary,
+                          padding: '3px 2px 1px' }}>
+              <div><span style={{ color: COLORS.textTertiary }}>ההסבר: </span>{help.explain}</div>
+              <div style={{ marginTop: 2 }}>
+                <span style={{ color: COLORS.textTertiary }}>מבנה גאומטרי: </span>{help.structure}
+              </div>
+              <div style={{ marginTop: 2 }}>
+                <span style={{ color: '#eab308' }}>כמה נרות: </span>{help.candles}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
