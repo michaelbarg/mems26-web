@@ -417,6 +417,25 @@ class TradingGateway:
             })
         except Exception:
             pass
+        # N12 (Michael 2026-07-17 "מסמך שמקבל שורה כל הזמן"): every routing
+        # decision → one line in the central daily OPS_LOG. log_event never
+        # raises, and the whole hook is wrapped anyway (trading path safety).
+        # Skip 'none' outcomes (setup didn't reach any mode — pure noise).
+        try:
+            if _outcome != "none":
+                from scripts.ops_log import log_event as _ops
+                _pat = (setup.get("pattern") or setup.get("pattern_id")
+                        or setup.get("setup_kind") or "?")
+                if bb:
+                    _ops("gateway", "WARN",
+                         f"BLOCKED {_pat} {setup.get('direction')} "
+                         f"@{setup.get('entry_price')} gate={bb} (sys{system_id})")
+                else:
+                    _ops("gateway", "INFO",
+                         f"FIRED[{_outcome}] {_pat} {setup.get('direction')} "
+                         f"@{setup.get('entry_price')} trade={result.get('live') or result.get('demo') or result.get('shadow')} (sys{system_id})")
+        except Exception:
+            pass
         # CONFLUENCE_RI_ZLR: route the joined combined setup as its OWN new setup
         # (classification=CONFLUENCE_RI_ZLR, system 4) through the full gate chain
         # AFTER the parent's routing completed. V1 is SHADOW-ONLY (guard in

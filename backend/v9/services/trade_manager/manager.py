@@ -442,6 +442,16 @@ class TradeManager:
             "state": TradeState.FILLED.value,
         })
 
+        # N12: one line per lifecycle event to the central OPS_LOG (never raises)
+        try:
+            from scripts.ops_log import log_event as _ops
+            _ops("trade_manager", "INFO",
+                 f"ENTRY-FILL #{trade_id} {getattr(trade, 'direction', '?')} "
+                 f"@{fill_price} mode={getattr(trade, 'mode', '?')} "
+                 f"stop={getattr(trade, 'stop', '?')}")
+        except Exception:
+            pass
+
     def on_target_hit(
         self,
         trade_id: int,
@@ -536,6 +546,15 @@ class TradeManager:
             "ts": hit_ts.isoformat(),
             "state": trade.state,
         })
+
+        # N12: central OPS_LOG line per target fill (never raises)
+        try:
+            from scripts.ops_log import log_event as _ops
+            _ops("trade_manager", "INFO",
+                 f"{target}-FILL #{trade_id} @{fill_price if fill_price is not None else 'target'} "
+                 f"state={trade.state} pnl={getattr(trade, 'pnl', None)}")
+        except Exception:
+            pass
 
     def _close_on_final_target(self, trade, machine, exit_reason: str, hit_ts) -> None:
         """L7 (2026-07-08): close the trade when its LAST contract's target fills.
@@ -1239,6 +1258,15 @@ class TradeManager:
             "pnl_usd": trade.pnl_usd,
         })
 
+        # N12: central OPS_LOG line (never raises)
+        try:
+            from scripts.ops_log import log_event as _ops
+            _ops("trade_manager", "WARN",
+                 f"STOP-HIT #{trade_id} @{trade.exit_price} outcome={trade.outcome} "
+                 f"pnl_usd={trade.pnl_usd}")
+        except Exception:
+            pass
+
     def close_trade(self, trade_id: int, reason: str, exit_price: Optional[float] = None) -> None:
         """Manual close — any active state -> CLOSED.
 
@@ -1270,6 +1298,15 @@ class TradeManager:
             "outcome": trade.outcome,
             "pnl_usd": trade.pnl_usd,
         })
+
+        # N12: central OPS_LOG line (never raises)
+        try:
+            from scripts.ops_log import log_event as _ops
+            _ops("trade_manager", "INFO",
+                 f"CLOSED #{trade_id} reason={reason} @{trade.exit_price} "
+                 f"outcome={trade.outcome} pnl_usd={trade.pnl_usd}")
+        except Exception:
+            pass
 
     def get_active_trades(self, mode: Optional[str] = None) -> List[V9Trade]:
         """Return all non-CLOSED trades, optionally filtered by mode.
