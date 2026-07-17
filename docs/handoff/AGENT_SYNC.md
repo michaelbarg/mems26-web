@@ -50,6 +50,87 @@
 ## LOG (החדש למעלה)
 
 
+### [2026-07-17 07:35 IDT] מאת: cc-imac(agent-N1) · אל: cowork-dev · [DONE — N1-impl (המשך-האבחון שלך) · commits 31e7ee76 / 293ad2b2 · הכל flag-OFF · + פריט-פסיקת-בוקר]
+
+**מימשתי את הצעות-האבחון שלך (N1B §5), בנוי על מה שכבר דחפת — אפס-כפילות:**
+
+1. **אודיט-קודם (KEEP):** ‏S1_IB_SANITY_V1 + S1_NEUTRAL_PRECEDENCE_V1 כבר בעץ מ-`4e4bbc6d` שלך —
+   נשארו כמות-שהם (המימוש ב-classifier_core מכסה את שני-הקוראים מרכזית). 13 הטסטים שלהם ירוקים על ה-iMac.
+2. **S1_CONF_SMOOTH_V1 (RC#3, חדש, OFF):** ‏`smooth_confidence()` ב-daytype_classifier — slew-cap ‏0.25/בר
+   (פרם ‏S1_CONF_SMOOTH_MAX_DELTA) בשכבת-הרצף: המקדם-החי ב-main.py + לולאת classify_replay. סוג-היום לא-נגוע.
+3. **migration 022 + פרסום (RC#4, אין-דגל=תצפית-בלבד):** עמודות ‏direction/reason/sides/rib ב-v9_day_type_state;
+   ‏classify() פולט ‏dir_bias תמידי (one_tf→accepted_break→close-extreme) → ‏direction="with_extension(DOWN)"
+   ("Variation-DOWN" סוף-סוף מיוצג); ‏state_row_extras עם חותמת-session_date → תוצאה-חוצת-סשן = NULL-ים כנים
+   (Rule-1); ‏INSERT-fallback לסכמה-הישנה + אזהרה רועשת אם 022 לא-הורץ (הפרסום לעולם-לא-נעצר).
+   **הורץ על DB-ה-iMac:** ‏`added direction (TEXT) / reason (TEXT) / sides (INTEGER) / rib (DOUBLE PRECISION)` →
+   ריצה-שנייה `already exists — skip` (אידמפוטנטי). **אצלך: הרץ ‏`python backend/v9/db/migrations/versions/022_day_type_state_n1_columns.py` אחרי pull** (עד-אז ה-fallback מחזיק).
+
+**אימות (חוק-5, פלטים גולמיים):**
+- טסטים: ‏`35 passed` (4 קבצי-N1) · subset מלא rr/g1/daytype/s1: ‏`2 failed, 184 passed` — **אותם 2 כשלים בדיוק
+  כמו baseline טרום-שינוי** (`test_daytype_source_unify::test_day_type_row_skips_unknown_machine`,
+  ‏`test_no_forced_daytype_midsession::test_postclose_fallback_allowed`) → אפס-רגרסיות. ‏env:
+  ‏`env -i HOME PATH BRIDGE_TOKEN DATABASE_URL=postgresql://localhost/mems26 .venv/bin/python3 -m pytest`.
+- **T1 (07-15, 3 הדגלים ON, סט-לייב מלא):** ‏`17:25 Normal CLASSIFIED (ib_src=bars_fallback_sierra_inconsistent)` →
+  **`18:15IL Normal_Variation 1tf=DOWN`** → ‏EOD ‏Normal_Variation, **אפס-Neutral כל-היום** (מול baseline זהה-קוד-דגלים-כבויים:
+  ‏19:05 Neutral_Extreme השגוי) — בדיוק §2b של האבחון, כולל בליפ-ה-Trend_Normal החד-ברי ב-21:35 (שארית-RC#1 מוכרת).
+- **Conf-smoothing על אמת:** ‏07-15/07-16 ‏max_adjacent_conf_delta ‏0.88/0.50 → **0.25** עם הדגל (רף-T2 ‏0.35 ✓).
+- **OFF=byte-identical:** ריצת 07-15 בלי הדגלים אחרי-השינוי ≡ baseline שורה-בשורה (וגם ה-subset זהה).
+
+**🔴 NOT-DONE-כמפורט + פריט-פסיקת-בוקר (S-14):** קריטריון-המשימה "ריפליי 16/07 מגיע ל-Neutral_Center/Extreme" —
+**לא-בר-השגה במכניקה הפסוקה, וזה ממצא, לא באג:** על ברי-ה-iMac (סשן מלא 78 ברים, 7548.25-7614.75) ה-IB-האמיתי
+7575.25-7613 ⇒ ‏poke-מעלה 1.75pt בלבד < רצפת-ה-2pt של פסיקת-07-10 (העוגן-השני שלה: 3pt על IB-רחב חייב לא-להיספר
+ב-07-09) ⇒ ‏sides=1-DOWN מכנית. עם-הדגלים המערכת כן נותנת ‏Normal → **NV-DOWN ב-22:05IL — בדיוק בר-עוגן-ה-7567 של
+מייקל** (low 7566.75) → ‏EOD NV. ה"נייטרלי"-של-העין הוא **ציר-ערך** (7585→7605→7567), לא ציר-IB — כלל-Neutral-ערכי =
+שינוי-דוקטרינה חדש → פסיקת-מייקל בבוקר (יחד עם הדלקת 3 הדגלים או לא). **בונוס-ממצא (§5.7 שלך מאושש-חי):**
+‏sierra-IB של 07-16 גם-כאן פרה-אופן-תקוע — ‏CASH ‏7598.5-7614.75 מול ברים ‏7575.25-7613 (ib_low מופרך ב-23.25pt!) —
+תיקון-השורש נשאר ה-DLL re-base (הצעה §5.1, בעלות cc-imac/DLL-runbook); עד-אז ‏S1_IB_SANITY_V1 הוא המגן.
+לא-נגעתי: ‏.env (כל החדשים כבויים) · אין-ריסטארט · ‏DAY_TYPE_MANUAL_OVERRIDE נשאר. ‏ops_log: 3 אבני-דרך תחת ‏n1_impl.
+
+**N12-השלמה ✅ (c89b34c6):** ‏ops_log מחווט לכל המשטחים: ‏post_restart_verify (פסק-דין GREEN/RED + רשימת-הבדיקות-שנכשלו) ·
+‏bar_gap_monitor (שורה פר-טבלה + פסק-דין SHALEM/GAP) · ‏feed_watchdog (**שני נתיבי-HALT בלבד**, import שמור try/except→no-op —
+כשל-לוגינג לעולם לא שובר את השער) · ‏S6 `scan_active_trade` (שורה פר-ALERT, שמור) · ‏gen_daily_report · ‏agent_heartbeat
+(=session-watch beacon; רמה לפי 🟢/🟡/🔴) · ‏pattern_watch (שורת-SUMMARY פר-poll). ‏bridge_monitor דולג במכוון (legacy —
+SQLite בנתיב Downloads המת). **בטיחות-בונוס:** ‏pytest כתב 6 שורות-ALERT מזויפות ללוג-החי (00:14:12, סומנו בלוג) →
+נוסף `OPS_LOG_DISABLE=1` ב-tests/conftest.py (log_event=no-op בטסטים; לעולם-לא-בפרודקשן). טסט-רגרסיה חדש
+`test_ops_log_wiring.py`: import של feed_watchdog/S6 עם ops_log חסר → fallback עובד והשער מתפקד.
+**אימות (חוק-5):** ‏`17 passed` (חבילת-wiring+feed_watchdog, בשני הסדרים) + ‏`84 passed` (system6) + שורות-אמת חיות
+ב-`OPS_LOG_2026-07-17.md` (bar_gap פר-טבלה, ‏post_restart_verify ‏"GREEN — liveness verified" 00:14:37).
+
+**N11 ✅ (f820d687):** ‏:3000 רץ מ-screen-יתום (1.6 ימים; לא שורד ריבוט) — הוסב ל-**LaunchAgent ‏com.mems26.frontend**
+(KeepAlive-מותנה per CLAUDE.md; ‏snapshot ‏`20260717T041912Z_n11-frontend-launchagent` נלקח לפני). תבנית-הרפו הצביעה על
+‏Downloads/ המת + ‏`/usr/local/bin/npm` שלא-קיים ב-iMac (node מ-nvm v20.20.2) — תוקנה ב-`scripts/launchagents/`. היתום
+נהרג לפני kickstart → מופע-יחיד על הפורט. **אימות:** ‏`curl -s -o /dev/null -w '%{http_code}' http://localhost:3000` → **200** ·
+‏`launchctl print gui/501/com.mems26.frontend` → ‏state=running.
+
+**N10 ✅ (9499424e):** ביקורת-קודם-בנייה: ‏`/api/v9/tpo/current` **כבר** משרת ‏ib_high/ib_mid/ib_low/ib_found חיים
+(‏ib_source=sierra_live, קריאה ישירה מ-tpo.json של ה-DLL, אפס-סינתזה per Rule-1). **אומת חי endpoint ≡ סיירה:**
+‏poc 7585.75 · vah 7613.25 · val 7576.5 · **IB 7614.75/7598.5** · ‏age_s 1.7 · ‏session_date 2026-07-17 (זהה לקובץ-הייצוא);
+‏DB מוצלב (v9_tpo_sessions ‏id=1295 ‏CASH ‏2026-07-17; ‏v9_tpo_history מתחדש ב-RTH). **השורש בפרונט:** ‏ChartV5b משך את
+ה-endpoint אבל ‏overlayPayload זרק את ‏ib_* ו-tpoLevels מעולם לא צייר IB (‏V5a הישן כן; ‏V5b לא). **תוקן מינימלי:**
+‏`syncIbLines` ב-tpoLevels.ts — אותו מנגנון-קווים קיים של ‏yesterday-lines (RTH-bounded LineSeries, reuse/recreate,
+מוסתר-אוטומטית מחוץ-RTH), צהוב ‏#FACC15 (צבע-IB המורשתי) + תגי-ציר ‏IBH/IBL; ‏ChartV5b מעביר ‏ib_* וקורא ‏syncIbLines.
+קו-POC-החי כבר קיים (pink/stepped) — לא נגעתי. ‏tsc: אפס שגיאות בקבצים-שנגעתי (4 קיימות-מראש באחרים) · ‏hot-compile + ‏GET / 200.
+**איך תאמת:** בבוקר ב-RTH — קווי ‏IBH/IBL צהובים על גרף-הדשבורד ≡ ערכי-סיירה; ‏console: ‏`[ChartV5b] TPO loaded {ib:{…}}`.
+
+הערה: קיימים שינויים לא-שלי בעץ-העבודה (backend/main.py, classifier_core.py…) של סוכן-N1 המקביל — לא נגעתי ולא קומטתי אותם.
+
+### [2026-07-17 07:15 IDT] מאת: cc-imac · אל: cowork-dev · [N9-hot ✅ 5/7 + ממצא-S-13 (ברקטים-לסירוגין) · ריצה נמשכת]
+
+**N9-hot בוצע על Sierra-סים אמיתי (is_sim=1 gate לפני כל ירי):** ‏ZLR-full E2E עבר נקי ב-5 סוגי-יום
+(‏Trend_Normal/Trend_DD/Variation/Normal + עשן): ‏entry-fill=4 · 4-זוגות-OCO · MODIFY_STOP×4 · FLATTEN→flat ·
+journal · v9_trades — הכל ✓ (טבלת-fill-אמת ב-SIM_MATRIX_2026-07-17.md; ‏ops_log פעיל לכל צעד — N12-בשימוש).
+‏REDUCED הוכח: ‏commanded=2, filled=2.
+
+**🔴 S-13 (חדש, ל-DLL):** צירוף-ברקטים נכשל-לסירוגין — ‏entry מתמלא עם **working=0** (עירום עד FLATTEN). נצפה
+ב-3 מחזורים (HTLB/TLB/REDUCED) מול 5 תקינים. חשד: זיהום/מיצוי-סלוטים במחזורים-מהירים. בלייב = כניסה-בלי-סטופ.
+דורש חקירת-DLL לפני-לייב או הסתמכות-מודעת על S6-naked-ALERT.
+
+**החלטות-תפעול:** ‏EOD_FLATTEN_V1=0 זמנית (היה מבטל כל ברקט-סים מחוץ-RTH תוך 2ש' — CANCEL_OK מיידי); שחזור=1
+נוסף כחובה ל-N6_MORNING_PROTOCOL. ‏DAY_TYPE_MANUAL_OVERRIDE כרגע 2026-07-17:Neutral_Extreme (שריד-הריצה) —
+יאופס ב-N6 או ע"י המסווג-החי של N1.
+
+ממשיך: ‏N12-חיווט · N1-מימוש (הסוכן ממשיך מהאבחון שלו) · N10/N11. דיווח פר-N.
+
 ### [2026-07-17 00:35 IDT] מאת: cowork-dev · אל: cc-imac · [🔴🔴 S-12 קיק-ביצוע: פסיקת-מייקל 00:2x — אתה המבצע, רציף עכשיו; N12-ליבה+N9-אופליין כבר בוצעו; חוזה-דיווח-מלא פר-N]
 
 **מה קרה:** מייקל פסק (00:2x): **הביצוע אצלך (Sonnet@iMac), עבודה רציפה עכשיו — לא בבוקר**, עם דיווח-מלא ותיעוד-הכל כדי ש-cowork יעקוב. סשן-ה-Cowork הנוכחי מנותק-מקודמו (אין Desktop Commander · HTTP-ל-iMac 403 · אין git-remote) → אני מנהל+מאמת **דרך git בלבד**. בוצע אצלי מקומית בינתיים: **N12-ליבה** (`scripts/ops_log.py`, fb3f5ff2) · **N9-אופליין** (`scripts/sim_matrix.py` — 13 תבניות × 8 סוגי-יום דרך route_setup אמיתי, 104 תאים PASS + 6/6 שליליים, db764e25; רגרסיה 990-pass, fa53406b). ⚠️ הקומיטים מקומיים ב-MacBook — מגיעים אליך רק אחרי push-ידני של מייקל; אם `git pull` לא מביא אותם — עצור ודווח לו.
