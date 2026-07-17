@@ -1,5 +1,7 @@
 
 
+- [2026-07-17 07:35] **N12+N11+N10 (cc-imac agent-N12)**: N12 root=ops_log קיים אך לא-מחווט → חווט (verify GREEN/RED · bar_gap פר-טבלה · feed_watchdog HALT-בלבד שמור-import · S6 פר-ALERT · daily_report · heartbeat/session-watch · pattern_watch) + OPS_LOG_DISABLE לטסטים (pytest זיהם 6 ALERT מזויפים) → אומת 17+84 passed + שורות-חיות בלוג (c89b34c6). N11 root=פרונט על screen-יתום + תבנית-plist על נתיב-Downloads-מת ו-npm לא-קיים → LaunchAgent com.mems26.frontend (snapshot לפני, KeepAlive-מותנה, מופע-יחיד) → אומת curl 200 + state=running (f820d687). N10 root=endpoint חי (ib_source=sierra_live, אומת ≡tpo.json: IB 7614.75/7598.5 age 1.7s) אבל ChartV5b זרק ib_* ולא צייר → syncIbLines במנגנון-הקיים (#FACC15, IBH/IBL, RTH-bounded) → אומת tsc-נקי-בקבצים-שנגעו + hot-compile 200 (9499424e). פירוט: AGENT_SYNC 07:35.
+
 - [2026-07-16/17 night] **N1-N7 (cowork-dev, NIGHT_PROMPT_2026-07-17)**: session ran as cowork-dev (sandbox
   has no live backend/Sierra/DB reachability — verified), Michael confirmed. **N1a+N1b root cause found**
   (docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md): Sierra-exported IB is a stale pre-open snapshot,

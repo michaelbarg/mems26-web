@@ -48,6 +48,36 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-17 07:35 IDT] מאת: cc-imac(agent-N12) · אל: cowork-dev · [DONE — N12-השלמה + N11 + N10 · 3 commits: c89b34c6 / f820d687 / 9499424e]
+
+**N12-השלמה ✅ (c89b34c6):** ‏ops_log מחווט לכל המשטחים: ‏post_restart_verify (פסק-דין GREEN/RED + רשימת-הבדיקות-שנכשלו) ·
+‏bar_gap_monitor (שורה פר-טבלה + פסק-דין SHALEM/GAP) · ‏feed_watchdog (**שני נתיבי-HALT בלבד**, import שמור try/except→no-op —
+כשל-לוגינג לעולם לא שובר את השער) · ‏S6 `scan_active_trade` (שורה פר-ALERT, שמור) · ‏gen_daily_report · ‏agent_heartbeat
+(=session-watch beacon; רמה לפי 🟢/🟡/🔴) · ‏pattern_watch (שורת-SUMMARY פר-poll). ‏bridge_monitor דולג במכוון (legacy —
+SQLite בנתיב Downloads המת). **בטיחות-בונוס:** ‏pytest כתב 6 שורות-ALERT מזויפות ללוג-החי (00:14:12, סומנו בלוג) →
+נוסף `OPS_LOG_DISABLE=1` ב-tests/conftest.py (log_event=no-op בטסטים; לעולם-לא-בפרודקשן). טסט-רגרסיה חדש
+`test_ops_log_wiring.py`: import של feed_watchdog/S6 עם ops_log חסר → fallback עובד והשער מתפקד.
+**אימות (חוק-5):** ‏`17 passed` (חבילת-wiring+feed_watchdog, בשני הסדרים) + ‏`84 passed` (system6) + שורות-אמת חיות
+ב-`OPS_LOG_2026-07-17.md` (bar_gap פר-טבלה, ‏post_restart_verify ‏"GREEN — liveness verified" 00:14:37).
+
+**N11 ✅ (f820d687):** ‏:3000 רץ מ-screen-יתום (1.6 ימים; לא שורד ריבוט) — הוסב ל-**LaunchAgent ‏com.mems26.frontend**
+(KeepAlive-מותנה per CLAUDE.md; ‏snapshot ‏`20260717T041912Z_n11-frontend-launchagent` נלקח לפני). תבנית-הרפו הצביעה על
+‏Downloads/ המת + ‏`/usr/local/bin/npm` שלא-קיים ב-iMac (node מ-nvm v20.20.2) — תוקנה ב-`scripts/launchagents/`. היתום
+נהרג לפני kickstart → מופע-יחיד על הפורט. **אימות:** ‏`curl -s -o /dev/null -w '%{http_code}' http://localhost:3000` → **200** ·
+‏`launchctl print gui/501/com.mems26.frontend` → ‏state=running.
+
+**N10 ✅ (9499424e):** ביקורת-קודם-בנייה: ‏`/api/v9/tpo/current` **כבר** משרת ‏ib_high/ib_mid/ib_low/ib_found חיים
+(‏ib_source=sierra_live, קריאה ישירה מ-tpo.json של ה-DLL, אפס-סינתזה per Rule-1). **אומת חי endpoint ≡ סיירה:**
+‏poc 7585.75 · vah 7613.25 · val 7576.5 · **IB 7614.75/7598.5** · ‏age_s 1.7 · ‏session_date 2026-07-17 (זהה לקובץ-הייצוא);
+‏DB מוצלב (v9_tpo_sessions ‏id=1295 ‏CASH ‏2026-07-17; ‏v9_tpo_history מתחדש ב-RTH). **השורש בפרונט:** ‏ChartV5b משך את
+ה-endpoint אבל ‏overlayPayload זרק את ‏ib_* ו-tpoLevels מעולם לא צייר IB (‏V5a הישן כן; ‏V5b לא). **תוקן מינימלי:**
+‏`syncIbLines` ב-tpoLevels.ts — אותו מנגנון-קווים קיים של ‏yesterday-lines (RTH-bounded LineSeries, reuse/recreate,
+מוסתר-אוטומטית מחוץ-RTH), צהוב ‏#FACC15 (צבע-IB המורשתי) + תגי-ציר ‏IBH/IBL; ‏ChartV5b מעביר ‏ib_* וקורא ‏syncIbLines.
+קו-POC-החי כבר קיים (pink/stepped) — לא נגעתי. ‏tsc: אפס שגיאות בקבצים-שנגעתי (4 קיימות-מראש באחרים) · ‏hot-compile + ‏GET / 200.
+**איך תאמת:** בבוקר ב-RTH — קווי ‏IBH/IBL צהובים על גרף-הדשבורד ≡ ערכי-סיירה; ‏console: ‏`[ChartV5b] TPO loaded {ib:{…}}`.
+
+הערה: קיימים שינויים לא-שלי בעץ-העבודה (backend/main.py, classifier_core.py…) של סוכן-N1 המקביל — לא נגעתי ולא קומטתי אותם.
+
 ### [2026-07-17 07:15 IDT] מאת: cc-imac · אל: cowork-dev · [N9-hot ✅ 5/7 + ממצא-S-13 (ברקטים-לסירוגין) · ריצה נמשכת]
 
 **N9-hot בוצע על Sierra-סים אמיתי (is_sim=1 gate לפני כל ירי):** ‏ZLR-full E2E עבר נקי ב-5 סוגי-יום
