@@ -361,6 +361,41 @@ def _ts_from_unix(unix_ts) -> datetime:
     return datetime.fromtimestamp(float(unix_ts), tz=timezone.utc)
 
 
+def _hour_shift_fix(bars: list, stream: str) -> int:
+    """2026-07-17 live incident (16:35 IL): the RTH chartbook Michael loaded
+    today writes bar epochs shifted EXACTLY -1h vs true UTC (chartbook TZ vs
+    the TZ the DLL's epoch math was calibrated on). Result: candles invisible
+    on the frontend (session-window filter drops them) + feed_watchdog
+    false-HALT (content age > 600s) on a perfectly live feed.
+
+    Boundary TZ-normalization (allowed per CLAUDE.md §Sierra: "normalize,
+    dedup, display TZ"), deterministic and evidence-gated: only when the
+    NEWEST bar in a live push sits 55-65 min behind server-now — the
+    exactly-one-hour class — shift ALL bars in the payload +3600s. A paused
+    table (hours old) or a healthy one (minutes old) is never touched.
+    Kill-switch: WOODIES_TS_HOUR_FIX=0. Returns the applied shift in seconds.
+    """
+    import os as _os
+    if _os.getenv("WOODIES_TS_HOUR_FIX", "1").lower() in ("0", "false", "no"):
+        return 0
+    try:
+        _num = [b for b in bars if isinstance(b.get("ts"), (int, float)) and b.get("ts")]
+        if not _num:
+            return 0
+        _last = max(float(b["ts"]) for b in _num)
+        _off = datetime.now(timezone.utc).timestamp() - _last
+        if 3300 <= _off <= 3900:  # exactly-one-hour class (±5min tolerance)
+            for b in _num:
+                b["ts"] = float(b["ts"]) + 3600.0
+            logger.warning(
+                "[%s] TS-HOUR-FIX applied: +3600s to %d bars (newest was %.0fs old)",
+                stream, len(_num), _off)
+            return 3600
+    except Exception as _e:  # never break ingest on the fixer
+        logger.warning("[%s] TS-HOUR-FIX errored (no shift): %s", stream, _e)
+    return 0
+
+
 # ── POST /api/v9/bars/5min ──
 
 @router.post("/5min")
@@ -377,6 +412,17 @@ def post_bars_5min(
     inserted = 0
     rejected = 0
     last_valid_bar = None
+
+    # 2026-07-17: RTH-chartbook -1h epoch shift → normalize at the boundary
+    # (pydantic models — adapt via a dict-view of ts, then write back)
+    try:
+        _tsd = [{"ts": b.ts, "_ref": b} for b in bars
+                if isinstance(getattr(b, "ts", None), (int, float))]
+        if _hour_shift_fix(_tsd, "bars_5min"):
+            for item in _tsd:
+                item["_ref"].ts = item["ts"]
+    except Exception as _hf_err:
+        logger.warning("[bars/5min] hour-fix wrapper errored (no shift): %s", _hf_err)
 
     def _flat_5min_for_router(bar: Bar5MinIn, ts) -> dict:
         """Flat keys for FiveMinSystem + BarLevelDetector (P31-02)."""
@@ -889,6 +935,9 @@ def post_woodies_5min(
     bars = payload.all_bars
     if not bars:
         return {"ok": True, "inserted": 0, "type": "woodies_5min"}
+
+    # 2026-07-17: RTH-chartbook -1h epoch shift → normalize at the boundary
+    _hour_shift_fix(bars, "woodies_5min")
 
     # Frozen-tail fix: when current_bar exists AND history is present,
     # override history[-1] study fields with current_bar's live Sierra values.
