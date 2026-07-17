@@ -74,3 +74,6 @@ runs it, cowork-dev (or Michael) verifies in parallel, GO/NO-GO by 16:25.
 ## GO / NO-GO
 Record the verdict + raw command output for each of the 7 items in AGENT_SYNC by 16:25, per Rule 5
 (paste the command + output, not "confirmed").
+
+## ⚠️ חובה לפני-לייב (נוסף אוטומטית 07-17 07:03)
+- `EOD_FLATTEN_V1=1` חזרה ב-.env (נוטרל לחלון-הסים-הלילי — מבטל-מיידית ברקטים מחוץ-ל-RTH) + ריסטארט.
