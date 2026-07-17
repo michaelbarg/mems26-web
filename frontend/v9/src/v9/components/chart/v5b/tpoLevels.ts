@@ -19,6 +19,12 @@ export type TpoOverlayData = {
   poc?: number | null;
   vah?: number | null;
   val?: number | null;
+  /** N10 (2026-07-17): today's Initial Balance from /api/v9/tpo/current —
+   *  Sierra IB study pass-through (`ib_source: "sierra_live"`). Never
+   *  synthesized (Rule 1): null when the DLL does not export it. */
+  ib_high?: number | null;
+  ib_low?: number | null;
+  ib_found?: boolean;
   periods?: TpoPeriod[];
   session_opened_ts?: string | null;
   previous_session?: {
@@ -606,6 +612,116 @@ export function syncYesterdayTpoLines(
     }
   });
   yesterdayLineSeriesStore.set(chart, next);
+  return next.length;
+}
+
+// ── N10 (2026-07-17): today IB_High / IB_Low lines ────────────────────────
+// Same RTH-window-bounded LineSeries mechanism as syncYesterdayTpoLines
+// (reuse-or-recreate + HMR-resilient global store). Values come straight from
+// /api/v9/tpo/current (`ib_source: "sierra_live"` — the Sierra IB study);
+// no synthesis, no fallback: when ib_high/ib_low are null nothing is drawn
+// (Rule 1). Yellow #FACC15 matches the legacy IBH/IBL color (StaticLevels /
+// RightSideLabels / ChartV5a).
+const IB_COLOR = '#FACC15';
+
+type IbStore = WeakMap<IChartApi, ISeriesApi<'Line'>[]>;
+const GIB: { __mems26IbLineStore?: IbStore } = globalThis as never;
+if (!GIB.__mems26IbLineStore) {
+  GIB.__mems26IbLineStore = new WeakMap();
+}
+const ibLineSeriesStore: IbStore = GIB.__mems26IbLineStore;
+
+/** Today IB_High/IB_Low — horizontal references across today's RTH window.
+ *  The window guard (rightEdge <= open) hides them outside RTH exactly like
+ *  the yesterday lines. `lastValueVisible: true` + title gives the native
+ *  axis badge — SierraLevelsOverlay does NOT own IB badges, so no doubling. */
+export function syncIbLines(
+  chart: IChartApi | null,
+  candleSeries: ISeriesApi<'Candlestick'> | null,
+  tpo: TpoOverlayData | null,
+  paneIndex: number,
+): number {
+  if (!chart) return 0;
+  const existing = ibLineSeriesStore.get(chart) ?? [];
+
+  const levels: Array<{ title: string; price: number }> = [];
+  if (tpo && tpo.ib_found !== false) {
+    const hi = coerceMesPrice(tpo.ib_high);
+    const lo = coerceMesPrice(tpo.ib_low);
+    if (hi != null) levels.push({ title: 'IBH', price: hi });
+    if (lo != null) levels.push({ title: 'IBL', price: lo });
+  }
+
+  const clear = () => {
+    for (const s of existing) {
+      try { chart.removeSeries(s); } catch { /* noop */ }
+    }
+    ibLineSeriesStore.set(chart, []);
+    return 0;
+  };
+  if (!levels.length) return clear();
+
+  const { open, close } = todayRthWindowUnix();
+  // Right edge follows the last candle (same rule as yesterday lines).
+  let lastBarTime = close;
+  if (candleSeries) {
+    try {
+      const d = (candleSeries as any).data?.();
+      if (d && d.length > 0) {
+        lastBarTime = Math.min(close, Number(d[d.length - 1].time) + 300);
+      }
+    } catch { /* use close as fallback */ }
+  }
+  const nowUnix = Math.floor(Date.now() / 1000);
+  const rightEdge = Math.min(close, lastBarTime, nowUnix + 300) as Time;
+  if (Number(rightEdge) <= open) return clear(); // pre-RTH / off-hours
+
+  const pointsPerLevel = levels.map((lv) => [
+    { time: open as Time, value: lv.price },
+    { time: rightEdge, value: lv.price },
+  ]);
+
+  // Fast path: reuse existing series when the count matches.
+  if (existing.length === levels.length) {
+    levels.forEach((lv, idx) => {
+      try {
+        existing[idx].applyOptions({ title: lv.title });
+        existing[idx].setData(pointsPerLevel[idx]);
+      } catch (e) {
+        console.error('[TPO] IB LineSeries reuse-update failed', lv, e);
+      }
+    });
+    return existing.length;
+  }
+
+  // Slow path: create fresh.
+  for (const s of existing) {
+    try { chart.removeSeries(s); } catch { /* noop */ }
+  }
+  const next: ISeriesApi<'Line'>[] = [];
+  levels.forEach((lv, idx) => {
+    try {
+      const s = chart.addSeries(
+        LineSeries,
+        {
+          color: IB_COLOR,
+          lineWidth: 1 as LineWidth,
+          lineStyle: LineStyle.Solid,
+          crosshairMarkerVisible: false,
+          pointMarkersVisible: false,
+          lastValueVisible: true,
+          priceLineVisible: false,
+          title: lv.title,
+        },
+        paneIndex,
+      );
+      s.setData(pointsPerLevel[idx]);
+      next.push(s);
+    } catch (e) {
+      console.error('[TPO] IB LineSeries create failed', lv, e);
+    }
+  });
+  ibLineSeriesStore.set(chart, next);
   return next.length;
 }
 

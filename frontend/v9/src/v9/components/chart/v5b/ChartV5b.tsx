@@ -16,6 +16,7 @@ import {
   extendAutoscaleForTpo,
   isValidMesTpoPrice,
   refitPriceScaleForTpo,
+  syncIbLines,
   resolveTodayLevels,
   syncTpoPriceLines,
   syncYesterdayTpoLines,
@@ -260,7 +261,10 @@ export function ChartV5b() {
       // version. Replaced `createPriceLine` (infinite horizontal) on
       // 2026-05-22 PM after Michael's RTH-window spec.
       const nYday = syncYesterdayTpoLines(chart, series, data, 0);
-      const n = nToday + nYday;
+      // N10: today IB_High/IB_Low — Sierra IB study values from
+      // /api/v9/tpo/current (ib_source=sierra_live), RTH-window-bounded.
+      const nIb = syncIbLines(chart, series, data, 0);
+      const n = nToday + nYday + nIb;
       if (n > 0) refitPriceScaleForTpo(series);
       return n;
     },
@@ -855,6 +859,11 @@ export function ChartV5b() {
           poc: d.poc,
           vah: d.vah,
           val: d.val,
+          // N10: today IB from the Sierra IB study (ib_source=sierra_live).
+          // Null when the DLL does not export it — never synthesized.
+          ib_high: d.ib_high,
+          ib_low: d.ib_low,
+          ib_found: d.ib_found,
           periods: (d.periods ?? []) as TpoOverlayData['periods'],
           session_opened_ts: d.session_opened_ts ?? d.opened_ts ?? null,
           previous_session: hasPrevPrices
@@ -879,6 +888,7 @@ export function ChartV5b() {
         const lineCount = applyTpoToChart(overlayPayload);
         console.info('[ChartV5b] TPO loaded', {
           raw: { poc: d.poc, vah: d.vah, val: d.val },
+          ib: { high: d.ib_high, low: d.ib_low, found: d.ib_found },
           hydrated: todayLv,
           plotPrices: collectTpoPrices(overlayPayload),
           lineCount,
