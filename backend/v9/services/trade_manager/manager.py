@@ -183,6 +183,38 @@ class TradeManager:
                 "NOT see this change",
                 op, getattr(trade, "id", "?"), getattr(trade, "mode", "?"), reason)
 
+    def _emit_drop_target(self, trade, target_field: str) -> bool:
+        """N4 (2026-07-17, System6 rescue tier): apply a DROP_TARGET correction.
+
+        System6's diagnose_trade already emits this AUTO correction for a
+        wrong-side t1/t2/t3 (I-61) and SYSTEM6_AUTOCORRECT=protective already
+        covers it doctrinally (CLAUDE.md: "protective... emits only MODIFY_STOP
+        + advisory DROP_TARGET (not wired)") — bar_level_detector.py's `_exec`
+        just had no case for it, so it silently fell through to the generic
+        "needs manual handling" warning and nothing happened. This is a
+        backend-only DB correction (null the bad target field) — no new
+        Sierra op is invented; T1/T2/T3 hit-detection and the UI read this
+        field directly, so nulling it here is enough to stop the system
+        treating a wrong-side level as live. Never touches Sierra.
+        """
+        if target_field not in ("t1", "t2", "t3"):
+            logger.warning("[TradeManager] DROP_TARGET ignored: unknown field %r", target_field)
+            return False
+        try:
+            setattr(trade, target_field, None)
+            self._db.commit()
+            logger.warning("[TradeManager] DROP_TARGET applied: trade %s %s -> None",
+                            getattr(trade, "id", "?"), target_field)
+            return True
+        except Exception as e:
+            logger.warning("[TradeManager] DROP_TARGET failed for trade %s %s: %s",
+                            getattr(trade, "id", "?"), target_field, e)
+            try:
+                self._db.rollback()
+            except Exception:
+                pass
+            return False
+
     def _emit_modify_stop(self, trade, new_stop: float) -> None:
         """Emit a MODIFY_STOP command to Sierra (DEMO + LIVE)."""
         if not self._is_demo_mode(trade):

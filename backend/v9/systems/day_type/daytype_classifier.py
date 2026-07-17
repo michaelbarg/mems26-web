@@ -126,6 +126,62 @@ def _confidence(feat: Dict[str, Any], day_type: str, direction: Optional[str], c
     return round(sum(1 for x in ev if x) / len(ev), 2)
 
 
+def _dir_bias(feat: Dict[str, Any], cl: Dict[str, Any]) -> Optional[str]:
+    """The day's directional bias as a plain UP/DOWN/None read (N1 RC#4 observability,
+    2026-07-17, docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md §5.5): one-timeframe
+    direction first, else the dominant ACCEPTED reference-break direction (P0-1 v2 key),
+    else a close pressing an extreme (same 0.85/0.15 bands _confidence uses). Emitted on
+    every classify() output so "Variation-DOWN" is representable in v9_day_type_state —
+    before this, direction was only the plan's STRATEGY string (with_extension/...),
+    which is a function of the type and carries no leg direction. Observability only:
+    no gate reads it."""
+    one_tf = feat.get("one_tf")
+    if one_tf in ("UP", "DOWN"):
+        return one_tf
+    ab = feat.get("accepted_break")
+    if ab in ("UP", "DOWN"):
+        return ab
+    cp = feat.get("close_pos")
+    if cp is not None:
+        if cp >= cl["close_extreme_hi"]:
+            return "UP"
+        if cp <= cl["close_extreme_lo"]:
+            return "DOWN"
+    return None
+
+
+def smooth_confidence(prev: Optional[float], raw: Optional[float], day_type: str = "") -> Optional[float]:
+    """N1 RC#3 (flag `S1_CONF_SMOOTH_V1`, default OFF — 2026-07-17,
+    docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md): the persisted confidence
+    flapped 0.12↔0.67↔1.00 on adjacent bars because `_confidence()` switches between
+    the 8-item directional evidence list and the 3-item balance list whenever its
+    direction-basis `d` flips — no market change required. This helper is a per-bar
+    SLEW CAP applied at the sequence layer (live promoter in backend/main.py + the
+    classify_replay timeline loop): the published confidence moves at most
+    `S1_CONF_SMOOTH_MAX_DELTA` (default 0.25) per bar toward the raw score, which
+    guarantees the T2 acceptance bound (adjacent-bar delta <= 0.35) while converging
+    to the raw value within a few bars. Type decisions are NEVER touched — only the
+    confidence number. Stateless-pure: callers keep `prev` (the previous smoothed
+    value for THIS session; None at session start / after FORMING).
+
+    Flag OFF (unset/0) → returns `raw` unchanged → byte-identical behavior.
+    """
+    if raw is None:
+        return None
+    if os.environ.get("S1_CONF_SMOOTH_V1", "0").lower() not in ("1", "true", "yes"):
+        return raw
+    if day_type == "FORMING" or prev is None:
+        # FORMING is honest-zero (no conviction yet) and carries no smoothing state;
+        # the first classified bar takes its raw score so the lock isn't lagged.
+        return raw
+    try:
+        max_d = float(os.environ.get("S1_CONF_SMOOTH_MAX_DELTA", "0.25"))
+    except (TypeError, ValueError):
+        max_d = 0.25
+    step = max(-max_d, min(max_d, raw - prev))
+    return round(prev + step, 2)
+
+
 def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_eod: bool = False) -> Dict[str, Any]:
     """Locked S1 table (Michael 2026-06-20), first-match-wins state machine.
 
@@ -161,9 +217,21 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
     _reclass_on = os.environ.get("S1_ACCEPTANCE_RECLASS_V1", "0").lower() in ("1", "true", "yes")
     _conf_on = os.environ.get("S1_CONFIDENCE_V2", "0").lower() in ("1", "true", "yes")
     _failed_break = _reclass_on and bool(feat.get("failed_break"))
+    # N1b (2026-07-17, docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#2):
+    # acceptance-reclass (below) returns EARLY on any held accepted break, before
+    # the sides==2 Neutral check (Priority 3) ever runs — so a day that extended
+    # BOTH sides but still holds one stale acceptance cannot be named Neutral
+    # until that acceptance is rejected (proven: live 07-15 flip to Neutral_Center
+    # lagged to 20:46 IL vs the mechanically-correct ~19:05 IL). Doctrine ruling
+    # (06-20): "נייטרלי = יום מבולגן עם פריצה משני הצדדים" — sides==2 should
+    # outrank a held one-side acceptance. Default OFF → byte-identical when unset.
+    _neutral_precedence_on = os.environ.get("S1_NEUTRAL_PRECEDENCE_V1", "0").lower() in ("1", "true", "yes")
+
+    _dbias = _dir_bias(feat, cl)   # N1 RC#4: emitted on every output (observability, no gate)
 
     def out(dt: str, status: str, reason: str, **extra) -> Dict[str, Any]:
         d = {"day_type": dt, "status": status, "direction": _direction(plan, dt),
+             "dir_bias": _dbias,
              "reason": reason, "invalidated": oi, "opening_invalidated": oi}
         if _failed_break:                       # P0-1: a prior accepted break returned inside → rejection
             d["failed_breakout"] = True
@@ -184,7 +252,7 @@ def classify(feat: Dict[str, Any], plan: Optional[Dict[str, Any]] = None, *, is_
     # inside the reference = rejection → the `failed_breakout` tag (out()) + no promotion (revert).
     # Runs BEFORE the FORMING gate so a gap-and-go beyond prior range names the trend early.
     # Flag S1_ACCEPTANCE_RECLASS_V1, default OFF → byte-identical when unset.
-    if _reclass_on and not _failed_break and not oi:
+    if _reclass_on and not _failed_break and not oi and not (_neutral_precedence_on and sides == 2):
         _abrk = feat.get("accepted_break")           # "UP" | "DOWN" | None (dominant accepted side)
         _aref = feat.get("accepted_break_ref") or "ref"
         if _abrk in ("UP", "DOWN"):

@@ -18,6 +18,13 @@ REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 EXPORT = os.path.expanduser("~/SierraChart_Data/v9_export")
 
+# ── central ops log (N12) — GUARDED: logging must never break the report
+try:
+    from scripts.ops_log import log_event
+except Exception:  # pragma: no cover
+    def log_event(*_a, **_k):
+        return False
+
 
 def _rows(sql, params=None):
     from backend.v9.db.read import read_all
@@ -88,8 +95,12 @@ def main():
             json.dumps(r, ensure_ascii=False), encoding="utf-8")
     except Exception as e:
         print(f"[daily] export json failed (non-fatal): {e}")
+        log_event("gen_daily_report", "WARN", f"{day}: export daily_report.json failed: {e}")
     print(f"[daily] {day}: P&L {r['pnl_usd']}$ · {r['n_trades']} trades "
           f"({r['wins']}W/{r['losses']}L) → DAILY_REPORT.md + daily_report.json")
+    log_event("gen_daily_report", "INFO",
+              f"{day}: P&L {r['pnl_usd']}$ · {r['n_trades']} trades "
+              f"({r['wins']}W/{r['losses']}L) → DAILY_REPORT.md + daily_report.json")
 
 
 if __name__ == "__main__":

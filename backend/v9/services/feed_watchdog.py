@@ -24,6 +24,15 @@ from typing import Optional, Tuple
 
 logger = logging.getLogger("feed_watchdog")
 
+# ── central ops log (N12) — GUARDED: a logging failure must NEVER break the
+# gate. If scripts.ops_log is missing/unimportable, fall back to a no-op.
+# (log_event itself also never raises, but the import is the risky part here.)
+try:
+    from scripts.ops_log import log_event
+except Exception:  # pragma: no cover — exercised by test_ops_log_wiring.py
+    def log_event(*_a, **_k):  # type: ignore[misc]
+        return False
+
 # Staleness threshold: if BOTH canonical bar streams haven't pushed for this
 # many seconds during RTH, the feed is dead. 90s = 1.5× the 5-min bar interval.
 STALE_THRESHOLD_SECONDS = 90.0
@@ -114,6 +123,10 @@ def is_feed_alive() -> Tuple[bool, Optional[str]]:
             alert("FEED_HALT", reason, severity="critical")
         except Exception:
             pass
+        try:  # N12 central ops log — HALT only; never let logging break the gate
+            log_event("feed_watchdog", "CRITICAL", reason)
+        except Exception:
+            pass
         return (False, reason)
 
     # Read stream health from the singleton (app.state.stream_health_service)
@@ -143,6 +156,10 @@ def is_feed_alive() -> Tuple[bool, Optional[str]]:
             try:
                 from backend.v9.services.alerter import alert
                 alert("FEED_HALT", reason, severity="critical")
+            except Exception:
+                pass
+            try:  # N12 central ops log — HALT only; never let logging break the gate
+                log_event("feed_watchdog", "CRITICAL", reason)
             except Exception:
                 pass
             return (False, reason)

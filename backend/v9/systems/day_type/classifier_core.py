@@ -8,6 +8,7 @@ NO DB reads, NO I/O, NO side effects. All inputs are passed in.
 """
 from __future__ import annotations
 
+import os
 from typing import Any, Dict, List, Optional
 
 from backend.v9.systems.day_type.relative_features import compute_relative_features, level_acceptance
@@ -58,6 +59,37 @@ def classify_session(
     n = len(bars)
     if open_price is None:
         open_price = bars[0].get("o", bars[0].get("open", 0))
+
+    # ── S1_IB_SANITY_V1 (default OFF; N1a/N1b diagnosis 2026-07-17 —
+    #    docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#1): the
+    #    Sierra-exported IB is sometimes a stale pre-open snapshot that never
+    #    re-bases to the true 09:30 ET cash-session first hour (proven
+    #    2026-07-15: exported ib 7591.75-7619.0 vs the true first-12-bars
+    #    7601.25-7626.25, off 7.25/9.5pt — this fed a phantom UP side and
+    #    forced a false Neutral mid-session while the real day was a clean
+    #    Variation-DOWN leg). When enabled and >=12 RTH bars exist, sanity
+    #    the passed Sierra ib_high/ib_low against the bars' own first-12-bar
+    #    extremes. Inconsistent = either (a) the bars already poke >2 ticks
+    #    beyond the claimed IB — impossible if the IB truly were the first
+    #    hour, since by definition nothing in the first hour can exceed its
+    #    own extremes — or (b) the claimed IB is >2pt wider than the bars on
+    #    either side — the stale pre-open-window symptom. On inconsistency,
+    #    fall back to the bars-derived IB (validation of already-ingested
+    #    bars, Rule-1-compatible — the no-Sierra bars fallback already exists
+    #    at relative_features.py:219-225; this is not synthesizing a new
+    #    source) and tag ib_source so callers/UI can see the substitution.
+    ib_source = "sierra_tpo"
+    if (os.getenv("S1_IB_SANITY_V1", "").lower() in ("1", "true", "yes")
+            and n >= 12 and ib_high is not None and ib_low is not None):
+        _tick = 0.25
+        _b12 = bars[:12]
+        _b12_h = max(b.get("h", b.get("high", 0)) or 0 for b in _b12)
+        _b12_l = min(b.get("l", b.get("low", 0)) or 0 for b in _b12)
+        _bars_poke = (_b12_h - ib_high > 2 * _tick) or (ib_low - _b12_l > 2 * _tick)
+        _ib_too_wide = (ib_high - _b12_h > 2.0) or (_b12_l - ib_low > 2.0)
+        if (_bars_poke or _ib_too_wide) and _b12_h > _b12_l:
+            ib_high, ib_low = _b12_h, _b12_l
+            ib_source = "bars_fallback_sierra_inconsistent"
 
     ibw = ib_high - ib_low
     ib_hist = ib_width_hist or []
@@ -195,6 +227,9 @@ def classify_session(
     feat["va_rule"] = va_rule_read(bars, prior_vah, prior_val, open_price)
 
     result = classify(feat, plan, is_eod=is_eod)
+    result["ib_source"] = ib_source
+    result["ib_high_used"] = ib_high      # N1 observability: the IB the classifier ACTUALLY used
+    result["ib_low_used"] = ib_low        # (== Sierra unless the S1_IB_SANITY_V1 fallback replaced it)
     result["measured"] = {
         "sides": feat["sides"], "rib": feat["rib"], "one_tf": feat["one_tf"],
         "close_pos": feat["close_pos"], "cvd_pos": feat["cvd_pos"],
@@ -205,3 +240,35 @@ def classify_session(
         "profile_imbalance": feat["profile_imbalance"], "va_rule": feat["va_rule"],
     }
     return result
+
+
+def state_row_extras(last_cls_result: Optional[Dict[str, Any]], today_iso: str) -> Dict[str, Any]:
+    """N1 RC#4 (2026-07-17, docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md §5.5):
+    map the canonical classify_session result onto the ADDITIVE v9_day_type_state
+    observability columns (migration 022): direction / reason / sides / rib.
+
+    `direction` combines the plan STRATEGY string with the day's leg-direction read so
+    "Variation-DOWN" is finally representable: e.g. "with_extension(DOWN)". Strategy
+    without a directional read stays bare ("fade_both"); a leg read without a strategy
+    (shouldn't happen) would be the bare "UP"/"DOWN".
+
+    Rule 1 (honest failure): when the result is absent, or stamped with a DIFFERENT
+    session_date than today (stale cross-session app.state), every field is None —
+    the columns must never carry yesterday's read as if it were today's.
+    Pure function, no I/O — unit-tested without a DB.
+    """
+    out: Dict[str, Any] = {"direction": None, "reason": None, "sides": None, "rib": None}
+    r = last_cls_result or {}
+    if not r or r.get("session_date") != today_iso:
+        return out
+    strategy = r.get("direction")
+    bias = r.get("dir_bias")
+    if strategy and bias:
+        out["direction"] = f"{strategy}({bias})"
+    else:
+        out["direction"] = strategy or bias or None
+    out["reason"] = r.get("reason") or None
+    m = r.get("measured") or {}
+    out["sides"] = m.get("sides")
+    out["rib"] = m.get("rib")
+    return out

@@ -556,6 +556,21 @@ def get_live_day_type() -> Optional[str]:
             _val = _raw.value if hasattr(_raw, "value") else (str(_raw) if _raw else None)
             if _val and _val not in ("UNKNOWN", "None", "INDETERMINATE", "FORMING"):
                 _mapped = {"Normal_Variation": "Variation"}.get(_val, _val)
+            # ── N1c (2026-07-17, docs/handoff/NIGHT_PROMPT_2026-07-17.md): before the
+            # IB locks (~60min/12 bars), `.day_type` can still hold the OLD base
+            # engine's own low-confidence read (e.g. "Trend_Normal" 0.35 seen live
+            # 07-15/07-16 at ~10:00 ET) — that value is NOT in the excluded-string
+            # list above, so it was passing through this function looking exactly
+            # like a canonical verdict. Neither engine has a trustworthy answer
+            # before IB lock (Market Profile foundation isn't formed yet), so this
+            # is honesty, not synthesis: report None ("forming/unknown") until the
+            # machine itself says the IB is locked. Default OFF → byte-identical
+            # when unset (screens keep seeing today's behavior until Michael
+            # signs off on the display change).
+            if (_mapped is not None
+                    and _os.getenv("DAYTYPE_HONEST_PRELOCK_V1", "").lower() in ("1", "true", "yes")
+                    and not getattr(_dtm, "ib_locked", False)):
+                _mapped = None
         # ── anti-flap (DAYTYPE_ANTIFLAP_V1, Michael 2026-07-09): a live CHANGE must persist
         #    >= hold before it reaches the gates. Default OFF → returns the raw mapped value
         #    unchanged (byte-identical). The classify_replay engine is NOT touched. ──

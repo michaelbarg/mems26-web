@@ -24,7 +24,7 @@ from backend.v9.systems.day_type.context_features import (
 )  # second_distribution removed — dead POC-jump proxy, superseded by dd_features (2026-06-20)
 from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type
 from backend.v9.systems.day_type.dd_features import detect_double_distribution
-from backend.v9.systems.day_type.daytype_classifier import classify, load_plan
+from backend.v9.systems.day_type.daytype_classifier import classify, load_plan, smooth_confidence
 from backend.v9.systems.day_type.classifier_core import classify_session
 
 router = APIRouter(prefix="/api/v9/day_type", tags=["v9-daytype-classify"])
@@ -186,6 +186,7 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
           "source": "sierra_shape" if sierra_dd else ("bars" if dd_bar["detected"] else None), "bar": dd_bar}
 
     timeline: List[Dict[str, Any]] = []
+    _conf_prev: Optional[float] = None   # N1 RC#3 smoothing state (per-session, this loop)
     for i in range(1, n + 1):
         # progressive IB (no lookahead): 30-min IB until the 60-min IB completes
         if i < 12:
@@ -204,6 +205,15 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
             prior_vah=pvah, prior_val=pval, pdh=pdh, pdl=pdl,
             poc_now=poc_now, poc_at_ib=poc_at_ib, is_eod=(i == n),
         )
+        # N1 RC#3 (S1_CONF_SMOOTH_V1, default OFF → returns raw unchanged): slew-cap the
+        # per-bar confidence so it cannot flap 0.12↔1.00 on adjacent bars. Type untouched.
+        _craw = res.get("confidence")
+        if _craw is not None:
+            _csm = smooth_confidence(_conf_prev, _craw, res.get("day_type") or "")
+            if _csm != _craw:
+                res["confidence_raw"] = _craw
+                res["confidence"] = _csm
+            _conf_prev = None if res.get("day_type") == "FORMING" else _csm
         timeline.append({"i": i - 1, "time": _hhmm(rth[i - 1]["ts"]), **res})
 
     segments: List[Dict[str, Any]] = []

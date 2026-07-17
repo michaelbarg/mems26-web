@@ -13,6 +13,13 @@ management invariants that failed us in real incidents:
   * T1 worth: T1 distance ≥ the floor ("אם T1 קרוב לכניסה זה לא שווה כלום")
   * size: contracts == expected (FIXED_CONTRACTS_3)
   * EOD: no open position inside the flatten window
+  * N4(a) rescue-tier (2026-07-17, ALERT-only): counter-signal fired before T1,
+    stuck trade (open >=N bars with barely any favorable progress), reversing
+    runner leg after T1. All three are advisory signals computed by the
+    caller and passed in — this module stays pure and never recomputes bar
+    history. Promoting any of these to an AUTO-executed correction is a
+    SEPARATE, flag-gated, sim-verified capability pending Michael's morning
+    ruling on the exact tighten-to/flatten thresholds — not built here.
 
 Each issue is classified AUTO (safe to auto-correct: move stop to BE, drop a
 wrong-side target) or ALERT (needs a human / risky: naked stop, wrong-side stop,
@@ -31,6 +38,14 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+# ── central ops log (N12) — GUARDED: a logging failure must NEVER affect the
+# supervisor (diagnosis stays pure; only the live scan wrapper logs).
+try:
+    from scripts.ops_log import log_event
+except Exception:  # pragma: no cover
+    def log_event(*_a, **_k):  # type: ignore[misc]
+        return False
 
 # severities
 INFO, WARN, CRITICAL = "INFO", "WARN", "CRITICAL"
@@ -79,6 +94,18 @@ def diagnose_trade(
     eod_cutoff_ct_min: int = 14 * 60 + 15,   # 14:15 CT (item-21)
     cap_mult: float = 1.5,
     hard_cap_pts: float = 25.0,
+    # ── N4 rescue-tier ALERT checks (2026-07-17, NIGHT_PROMPT §N4a) — all
+    # advisory (ALERT), computed by the caller and passed in as pre-computed
+    # signals (mirrors reconcile_mismatch below). Never auto-applied here:
+    # promoting any of these to an executed correction is the SEPARATE
+    # AUTO-tier (flag-gated, sim-verified, Michael's morning ruling on the
+    # exact tighten-to/flatten thresholds — not built yet, by design). ──
+    counter_signal_pre_t1: bool = False,
+    bars_since_entry: Optional[int] = None,
+    progress_pts: Optional[float] = None,
+    stuck_bars_threshold: int = 12,
+    stuck_progress_frac: float = 0.25,
+    runner_reversal: bool = False,
 ) -> SupervisorReport:
     """Pure diagnosis of one active trade. `trade` = {direction, entry_price,
     stop, t1, t2, t3, contracts}. Returns a SupervisorReport. Never raises on
@@ -170,6 +197,39 @@ def diagnose_trade(
         issues.append(Issue("eod_open_position", WARN, ALERT,
                             f"position open inside the EOD window ({now_ct_min} ≥ {eod_cutoff_ct_min} CT)"))
 
+    # 9. N4(a) — counter-signal fired before T1: a fresh opposite-direction
+    # pattern firing while this trade is still unproven is the earliest
+    # "falling trade" tell (Dalton: don't fight new evidence). Caller detects
+    # the opposing fire elsewhere (S2/S4) and passes the bool in.
+    if counter_signal_pre_t1 and not t1_hit:
+        issues.append(Issue("counter_signal_pre_t1", WARN, ALERT,
+                            f"opposite-direction signal fired before {d} trade reached T1 — "
+                            f"consider tightening the stop or flattening"))
+
+    # 10. N4(a) — stuck trade: open >= stuck_bars_threshold bars with barely any
+    # favorable progress (< stuck_progress_frac of the entry-stop risk) and T1
+    # not yet hit. "אם עסקה לא זזה זה סימן" — time decay without progress is
+    # itself information. Needs both bars_since_entry AND progress_pts from the
+    # caller (silent when either is missing — Rule 1, never guess progress).
+    if (not t1_hit and bars_since_entry is not None and progress_pts is not None
+            and stop is not None and entry is not None
+            and bars_since_entry >= stuck_bars_threshold):
+        _risk = abs(entry - stop)
+        if _risk > 0 and progress_pts < stuck_progress_frac * _risk:
+            issues.append(Issue("stuck_trade", WARN, ALERT,
+                                f"{bars_since_entry} bars since entry, progress {progress_pts:.2f}pt "
+                                f"< {stuck_progress_frac:.0%} of risk {_risk:.2f}pt — "
+                                f"consider tightening the stop"))
+
+    # 11. N4(a) — reversing leg on the runner: after T1, price action turns
+    # against the still-open runner contract(s). Caller detects the reversal
+    # (e.g. N consecutive adverse closes) and passes the bool in — this
+    # function stays pure and doesn't recompute bar-by-bar price action.
+    if runner_reversal and t1_hit:
+        issues.append(Issue("runner_reversal", WARN, ALERT,
+                            f"runner leg reversing after T1 on {d} trade — "
+                            f"consider tightening the stop or flattening the runner"))
+
     return SupervisorReport(healthy=(len(issues) == 0), issues=issues,
                             reconcile_verdict=reconcile_verdict)
 
@@ -198,6 +258,12 @@ def scan_active_trade(
     expected_contracts: Optional[int] = None,
     now_ct_min: Optional[int] = None,
     executor: Optional[Callable[[Dict], bool]] = None,
+    # N4(a) rescue-tier ALERT signals — all optional, all pass straight through
+    # to diagnose_trade; None/False (the defaults) reproduce today's behavior.
+    counter_signal_pre_t1: bool = False,
+    bars_since_entry: Optional[int] = None,
+    progress_pts: Optional[float] = None,
+    runner_reversal: bool = False,
 ) -> Optional[SupervisorReport]:
     """Diagnose the active trade, log loudly, and (if SYSTEM6_AUTOCORRECT and an
     executor is given) apply AUTO corrections. Returns None when disabled or flat.
@@ -212,9 +278,15 @@ def scan_active_trade(
         reconcile_verdict=reconcile_verdict,
         reconcile_mismatch=reconcile_mismatch, expected_contracts=expected_contracts,
         now_ct_min=now_ct_min,
+        counter_signal_pre_t1=counter_signal_pre_t1, bars_since_entry=bars_since_entry,
+        progress_pts=progress_pts, runner_reversal=runner_reversal,
     )
     for iss in report.alerts:
         logger.warning("[System6] %s ALERT: %s", iss.code, iss.detail)
+        try:  # N12 central ops log — one line per ALERT issue; never breaks the scan
+            log_event("system6", iss.severity, f"{iss.code} ALERT: {iss.detail}")
+        except Exception:
+            pass
     if report.healthy:
         logger.info("[System6] active trade healthy")
         return report

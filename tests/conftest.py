@@ -6,7 +6,14 @@ deprecated pytest_plugins mechanism in non-top-level conftest files.
 """
 
 import asyncio
+import os
+
 import pytest
+
+# N12: pytest must never write into the LIVE central ops log — System6/feed
+# scenarios would land fake CRITICAL ALERT lines in docs/reports/OPS_LOG_*.md.
+# scripts/ops_log.log_event honors this and becomes a silent no-op.
+os.environ.setdefault("OPS_LOG_DISABLE", "1")
 
 # Re-export; pytest picks up fixtures by name from any conftest in the path.
 from tests.v9.db.conftest import db, client, BRIDGE_HEADERS  # noqa: F401

@@ -519,7 +519,27 @@ async def _startup():
                                 # P0-3 (S1_CONFIDENCE_V2) emits it on every classify() call.
                                 _cls_conf = _cls_result.get("confidence")
                                 if _cls_conf is not None:
-                                    state.confidence = float(_cls_conf)
+                                    # N1 RC#3 (S1_CONF_SMOOTH_V1, default OFF → smooth_confidence
+                                    # returns raw unchanged): slew-cap the published confidence so
+                                    # it cannot flap 0.12↔1.00 on adjacent bars (the persisted-conf
+                                    # flapping proven on 07-16). Per-session prev on app.state.
+                                    from backend.v9.systems.day_type.daytype_classifier import smooth_confidence as _smooth_conf
+                                    _sm_today = now_et().date().isoformat()
+                                    _sm_st = getattr(app.state, "_s1_conf_smooth", None) or {}
+                                    _sm_prev = _sm_st.get("conf") if _sm_st.get("date") == _sm_today else None
+                                    _sm_val = _smooth_conf(_sm_prev, float(_cls_conf), _cls_dt_str)
+                                    if _sm_val != _cls_conf:
+                                        _cls_result["confidence_raw"] = _cls_conf
+                                        _cls_result["confidence"] = _sm_val
+                                    app.state._s1_conf_smooth = {
+                                        "date": _sm_today,
+                                        "conf": (None if _cls_dt_str == "FORMING" else _sm_val),
+                                    }
+                                    state.confidence = float(_sm_val)
+                                # N1 RC#4: freshness stamp so the v9_day_type_state publisher only
+                                # copies direction/reason/sides/rib from TODAY's canonical result
+                                # (a stale cross-session result must yield honest NULLs, Rule 1).
+                                _cls_result["session_date"] = now_et().date().isoformat()
                                 app.state.last_cls_result = _cls_result  # observability: full canonical result
                     except Exception as _cls_err:
                         # Fail-safe: keep old-engine value, never throw on hot path
@@ -585,23 +605,44 @@ async def _startup():
                     if getattr(app.state, "_last_dts_sig", None) == _cur_sig:
                         raise _SkipPersist()
                     app.state._last_dts_sig = _cur_sig
-                    safe_execute(
-                        """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
-                           ib_width_class, opening_type, behavior, lock_state, created_at)
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                        (
-                            datetime.now(timezone.utc).isoformat(),
-                            state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
-                            state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
-                            state.day_type.value if state.lock_state == "LOCKED" else None,
-                            state.confidence,
-                            state.ib_width.value if hasattr(state.ib_width, 'value') else None,
-                            opening_type,
-                            state.behavior.value if hasattr(state.behavior, 'value') else None,
-                            str(state.lock_state),
-                            datetime.now(timezone.utc).isoformat(),
-                        ),
+                    _dts_row = (
+                        datetime.now(timezone.utc).isoformat(),
+                        state.stage.value if hasattr(state.stage, 'value') else str(state.stage),
+                        state.day_type.value if hasattr(state.day_type, 'value') else str(state.day_type),
+                        state.day_type.value if state.lock_state == "LOCKED" else None,
+                        state.confidence,
+                        state.ib_width.value if hasattr(state.ib_width, 'value') else None,
+                        opening_type,
+                        state.behavior.value if hasattr(state.behavior, 'value') else None,
+                        str(state.lock_state),
+                        datetime.now(timezone.utc).isoformat(),
                     )
+                    # N1 RC#4 (migration 022): additive observability columns from TODAY's
+                    # canonical classify_session result (honest NULLs when absent/stale —
+                    # state_row_extras enforces the session_date freshness stamp, Rule 1).
+                    from backend.v9.systems.day_type.classifier_core import state_row_extras
+                    _xtr = state_row_extras(getattr(app.state, "last_cls_result", None),
+                                            now_et().date().isoformat())
+                    _ins = safe_execute(
+                        """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
+                           ib_width_class, opening_type, behavior, lock_state, created_at,
+                           direction, reason, sides, rib)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        _dts_row + (_xtr["direction"], _xtr["reason"], _xtr["sides"], _xtr["rib"]),
+                    )
+                    if _ins is None:
+                        # Extended INSERT failed (e.g. migration 022 not applied on this DB
+                        # yet) — never let observability columns stop state persistence:
+                        # fall back to the legacy column set + loud warning (no silent drift).
+                        safe_execute(
+                            """INSERT INTO v9_day_type_state (ts, stage, day_type, classification, confidence,
+                               ib_width_class, opening_type, behavior, lock_state, created_at)
+                               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                            _dts_row,
+                        )
+                        _logger.warning(
+                            "[DayType] extended persist failed — wrote legacy columns; run "
+                            "backend/v9/db/migrations/versions/022_day_type_state_n1_columns.py")
                 except _SkipPersist:
                     pass  # write-on-change: state unchanged since last row (by design, silent)
                 except Exception as db_err:
