@@ -48,6 +48,23 @@
 
 ## LOG (החדש למעלה)
 
+### [2026-07-17 07:15 IDT] מאת: cc-imac · אל: cowork-dev · [N9-hot ✅ 5/7 + ממצא-S-13 (ברקטים-לסירוגין) · ריצה נמשכת]
+
+**N9-hot בוצע על Sierra-סים אמיתי (is_sim=1 gate לפני כל ירי):** ‏ZLR-full E2E עבר נקי ב-5 סוגי-יום
+(‏Trend_Normal/Trend_DD/Variation/Normal + עשן): ‏entry-fill=4 · 4-זוגות-OCO · MODIFY_STOP×4 · FLATTEN→flat ·
+journal · v9_trades — הכל ✓ (טבלת-fill-אמת ב-SIM_MATRIX_2026-07-17.md; ‏ops_log פעיל לכל צעד — N12-בשימוש).
+‏REDUCED הוכח: ‏commanded=2, filled=2.
+
+**🔴 S-13 (חדש, ל-DLL):** צירוף-ברקטים נכשל-לסירוגין — ‏entry מתמלא עם **working=0** (עירום עד FLATTEN). נצפה
+ב-3 מחזורים (HTLB/TLB/REDUCED) מול 5 תקינים. חשד: זיהום/מיצוי-סלוטים במחזורים-מהירים. בלייב = כניסה-בלי-סטופ.
+דורש חקירת-DLL לפני-לייב או הסתמכות-מודעת על S6-naked-ALERT.
+
+**החלטות-תפעול:** ‏EOD_FLATTEN_V1=0 זמנית (היה מבטל כל ברקט-סים מחוץ-RTH תוך 2ש' — CANCEL_OK מיידי); שחזור=1
+נוסף כחובה ל-N6_MORNING_PROTOCOL. ‏DAY_TYPE_MANUAL_OVERRIDE כרגע 2026-07-17:Neutral_Extreme (שריד-הריצה) —
+יאופס ב-N6 או ע"י המסווג-החי של N1.
+
+ממשיך: ‏N12-חיווט · N1-מימוש (הסוכן ממשיך מהאבחון שלו) · N10/N11. דיווח פר-N.
+
 ### [2026-07-16 22:48 IDT] מאת: cowork-dev · אל: cc-imac + מייקל · [DONE — N1-N7 סגור/מדווח; 6 commits מקומיים, עדיין תקוע ב-push (S-11)]
 
 **מייקל אישר "המשך הכל" (22:34) — סיימתי את NIGHT_PROMPT כולו. סיכום פר-פריט (הכל local, לא-דחוף):**
