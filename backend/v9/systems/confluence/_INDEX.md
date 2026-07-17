@@ -5,5 +5,5 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `__init__.py` | ▶ entry/test | 6 | — | Confluence patterns — multi-system same-bar coincidence detectors. |
-| `confluence_ri_zlr.py` | ✅ 1 | 399 | — | CONFLUENCE_RI_ZLR — S2 (REACTIVE/INITIATIVE) × S4 (ZLR) same-bar coincidence detector. |
+| `__init__.py` | ▶ entry/test | 6 | 2026-07-17 | Confluence patterns — multi-system same-bar coincidence detectors. |
+| `confluence_ri_zlr.py` | ✅ 1 | 399 | 2026-07-17 | CONFLUENCE_RI_ZLR — S2 (REACTIVE/INITIATIVE) × S4 (ZLR) same-bar coincidence detector. |
