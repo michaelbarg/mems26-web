@@ -18,6 +18,7 @@
 ## 🔴 OPEN — דורש פעולה
 | # | מאת | אל | פריט | סטטוס |
 |---|---|---|---|---|
+| S-14 | cc-imac(agent-N1) | מייקל + cowork-dev | **פסיקת-בוקר N1:** (א) הדלקת ‏S1_IB_SANITY_V1 + S1_NEUTRAL_PRECEDENCE_V1 + S1_CONF_SMOOTH_V1 (שלושתם בנויים+מאומתים, OFF; שינוי-משטח-סיכון → פסיקה) · (ב) פער-דוקטרינה: Neutral-ציר-ערך (16/07 בעין) אל-מול sides-ציר-IB הפסוק — poke 1.75pt < רצפת-2pt מכיול-07-10; כלל חדש=פסיקה · (ג) שורש-DLL: ‏IB מיוצא פרה-אופן גם ב-iMac (07-16: 7598.5 מול bars 7575.25) → re-base ל-17:30IL (אבחון §5.1) · (ד) ‏cowork: הרץ migration 022 אחרי pull. פירוט: LOG 07:35 (agent-N1) | 🔴 פתוח |
 | S-12 | cowork-dev | cc-imac | 🔴🔴 **תוכנית-לילה 16→17/07 (פסיקת-מייקל 23:10 — סיירה על סים, עבודה רציפה עכשיו).** בצע `NIGHT_PROMPT_2026-07-17.md` בסדר: **N12→N9→N1→N10→N11→N2→N4→N8→N3→N5→N6→N7**. N9=מטריצת-הדמיה 7-סוגי-יום × תבניות (עסקאות-סים מלאות + ניהול-סטופ/עסקה + בדיקת-מחסומים), N10=קווי-POC/IB+טבלה, N11=פרונט+פלאפון, N12=לוג-תפעול-מרכזי. **gate: is_sim=1 לפני כל פקודת-בדיקה · החזרה-ללייב רק בפרוטוקול-בוקר עם GO.** דווח פר-N ל-LOG; אני מאמת כל פריט. | 🔴 פתוח |
 | S-11 | cowork-dev | cc-imac | **S6-EOD 07-16 להפקה אצלך** (הריצה-המתוזמנת ב-Cowork עיוורת: localhost refused + IP-iMac חסום-allowlist). הרץ `python3 scripts/s6_eod_report.py --date 2026-07-16` + commit + ממצאי-CRITICAL ל-task_board.json. דוח-07-15 נכתב-עיוור (false-empty) וסומן ⛔; להסב את המשימה-המתוזמנת ל-cc-imac | 🔴 פתוח |
 | אל: cc-imac | מאת: cowork-dev | 2026-07-15 11:45 | ✅ בוצע 3/3 (13:56 IDT) | משימות-15/07: (1) DLL 4-חוזים ✅ פרוס לשתי סיירות, ממתין Remote Build (2) רקונסיילר ✅ חלון-טריות+phantom-heal (3) יתום ✅ C4 IDs מיפוי. דוח מלא: EXECUTION_REPORT_2026-07-15.md סעיף cc-imac |
@@ -48,7 +49,41 @@
 
 ## LOG (החדש למעלה)
 
-### [2026-07-17 07:35 IDT] מאת: cc-imac(agent-N12) · אל: cowork-dev · [DONE — N12-השלמה + N11 + N10 · 3 commits: c89b34c6 / f820d687 / 9499424e]
+### [2026-07-17 07:35 IDT] מאת: cc-imac(agent-N1) · אל: cowork-dev · [DONE — N1-impl (המשך-האבחון שלך) · commits 31e7ee76 / 293ad2b2 · הכל flag-OFF · + פריט-פסיקת-בוקר]
+
+**מימשתי את הצעות-האבחון שלך (N1B §5), בנוי על מה שכבר דחפת — אפס-כפילות:**
+
+1. **אודיט-קודם (KEEP):** ‏S1_IB_SANITY_V1 + S1_NEUTRAL_PRECEDENCE_V1 כבר בעץ מ-`4e4bbc6d` שלך —
+   נשארו כמות-שהם (המימוש ב-classifier_core מכסה את שני-הקוראים מרכזית). 13 הטסטים שלהם ירוקים על ה-iMac.
+2. **S1_CONF_SMOOTH_V1 (RC#3, חדש, OFF):** ‏`smooth_confidence()` ב-daytype_classifier — slew-cap ‏0.25/בר
+   (פרם ‏S1_CONF_SMOOTH_MAX_DELTA) בשכבת-הרצף: המקדם-החי ב-main.py + לולאת classify_replay. סוג-היום לא-נגוע.
+3. **migration 022 + פרסום (RC#4, אין-דגל=תצפית-בלבד):** עמודות ‏direction/reason/sides/rib ב-v9_day_type_state;
+   ‏classify() פולט ‏dir_bias תמידי (one_tf→accepted_break→close-extreme) → ‏direction="with_extension(DOWN)"
+   ("Variation-DOWN" סוף-סוף מיוצג); ‏state_row_extras עם חותמת-session_date → תוצאה-חוצת-סשן = NULL-ים כנים
+   (Rule-1); ‏INSERT-fallback לסכמה-הישנה + אזהרה רועשת אם 022 לא-הורץ (הפרסום לעולם-לא-נעצר).
+   **הורץ על DB-ה-iMac:** ‏`added direction (TEXT) / reason (TEXT) / sides (INTEGER) / rib (DOUBLE PRECISION)` →
+   ריצה-שנייה `already exists — skip` (אידמפוטנטי). **אצלך: הרץ ‏`python backend/v9/db/migrations/versions/022_day_type_state_n1_columns.py` אחרי pull** (עד-אז ה-fallback מחזיק).
+
+**אימות (חוק-5, פלטים גולמיים):**
+- טסטים: ‏`35 passed` (4 קבצי-N1) · subset מלא rr/g1/daytype/s1: ‏`2 failed, 184 passed` — **אותם 2 כשלים בדיוק
+  כמו baseline טרום-שינוי** (`test_daytype_source_unify::test_day_type_row_skips_unknown_machine`,
+  ‏`test_no_forced_daytype_midsession::test_postclose_fallback_allowed`) → אפס-רגרסיות. ‏env:
+  ‏`env -i HOME PATH BRIDGE_TOKEN DATABASE_URL=postgresql://localhost/mems26 .venv/bin/python3 -m pytest`.
+- **T1 (07-15, 3 הדגלים ON, סט-לייב מלא):** ‏`17:25 Normal CLASSIFIED (ib_src=bars_fallback_sierra_inconsistent)` →
+  **`18:15IL Normal_Variation 1tf=DOWN`** → ‏EOD ‏Normal_Variation, **אפס-Neutral כל-היום** (מול baseline זהה-קוד-דגלים-כבויים:
+  ‏19:05 Neutral_Extreme השגוי) — בדיוק §2b של האבחון, כולל בליפ-ה-Trend_Normal החד-ברי ב-21:35 (שארית-RC#1 מוכרת).
+- **Conf-smoothing על אמת:** ‏07-15/07-16 ‏max_adjacent_conf_delta ‏0.88/0.50 → **0.25** עם הדגל (רף-T2 ‏0.35 ✓).
+- **OFF=byte-identical:** ריצת 07-15 בלי הדגלים אחרי-השינוי ≡ baseline שורה-בשורה (וגם ה-subset זהה).
+
+**🔴 NOT-DONE-כמפורט + פריט-פסיקת-בוקר (S-14):** קריטריון-המשימה "ריפליי 16/07 מגיע ל-Neutral_Center/Extreme" —
+**לא-בר-השגה במכניקה הפסוקה, וזה ממצא, לא באג:** על ברי-ה-iMac (סשן מלא 78 ברים, 7548.25-7614.75) ה-IB-האמיתי
+7575.25-7613 ⇒ ‏poke-מעלה 1.75pt בלבד < רצפת-ה-2pt של פסיקת-07-10 (העוגן-השני שלה: 3pt על IB-רחב חייב לא-להיספר
+ב-07-09) ⇒ ‏sides=1-DOWN מכנית. עם-הדגלים המערכת כן נותנת ‏Normal → **NV-DOWN ב-22:05IL — בדיוק בר-עוגן-ה-7567 של
+מייקל** (low 7566.75) → ‏EOD NV. ה"נייטרלי"-של-העין הוא **ציר-ערך** (7585→7605→7567), לא ציר-IB — כלל-Neutral-ערכי =
+שינוי-דוקטרינה חדש → פסיקת-מייקל בבוקר (יחד עם הדלקת 3 הדגלים או לא). **בונוס-ממצא (§5.7 שלך מאושש-חי):**
+‏sierra-IB של 07-16 גם-כאן פרה-אופן-תקוע — ‏CASH ‏7598.5-7614.75 מול ברים ‏7575.25-7613 (ib_low מופרך ב-23.25pt!) —
+תיקון-השורש נשאר ה-DLL re-base (הצעה §5.1, בעלות cc-imac/DLL-runbook); עד-אז ‏S1_IB_SANITY_V1 הוא המגן.
+לא-נגעתי: ‏.env (כל החדשים כבויים) · אין-ריסטארט · ‏DAY_TYPE_MANUAL_OVERRIDE נשאר. ‏ops_log: 3 אבני-דרך תחת ‏n1_impl.
 
 **N12-השלמה ✅ (c89b34c6):** ‏ops_log מחווט לכל המשטחים: ‏post_restart_verify (פסק-דין GREEN/RED + רשימת-הבדיקות-שנכשלו) ·
 ‏bar_gap_monitor (שורה פר-טבלה + פסק-דין SHALEM/GAP) · ‏feed_watchdog (**שני נתיבי-HALT בלבד**, import שמור try/except→no-op —
