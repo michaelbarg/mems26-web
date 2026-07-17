@@ -1,29 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  N11 (2026-07-17): frontend must survive reboots — no more orphan screen/nohup.
+  Conditional KeepAlive (restart only on failure) per CLAUDE.md §LaunchAgent Stability — do NOT change to KeepAlive=true.
+  Paths: repo moved Downloads/→mems26/ (old template pointed at the dead pre-migration path);
+  node/npm come from nvm (v20.20.2) — /usr/local/bin/npm does not exist on the iMac.
+  Install: cp to ~/Library/LaunchAgents/ && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.mems26.frontend.plist
+-->
 <plist version="1.0">
 <dict>
-	<key>KeepAlive</key>
-	<dict>
-		<key>SuccessfulExit</key>
-		<false/>
-	</dict>
 	<key>Label</key>
 	<string>com.mems26.frontend</string>
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
 		<string>-c</string>
-		<string>cd /Users/michael/Downloads/mems26_web_git/frontend/v9 &amp;&amp; ulimit -n 10240 2&gt;/dev/null; export WATCHPACK_POLLING=true; export CHOKIDAR_USEPOLLING=true; export CHOKIDAR_INTERVAL=1000; export PATH="/usr/local/bin:$PATH"; exec /usr/local/bin/npm run dev</string>
+		<string>ulimit -n 10240 2>/dev/null; cd /Users/michael/mems26/mems26_web_git/frontend/v9 &amp;&amp; export PATH="/Users/michael/.nvm/versions/node/v20.20.2/bin:/usr/local/bin:$PATH"; export WATCHPACK_POLLING=true; export CHOKIDAR_USEPOLLING=true; export CHOKIDAR_INTERVAL=1000; exec npm run dev</string>
 	</array>
+	<key>WorkingDirectory</key>
+	<string>/Users/michael/mems26/mems26_web_git/frontend/v9</string>
 	<key>RunAtLoad</key>
 	<true/>
-	<key>StandardErrorPath</key>
-	<string>/tmp/frontend.err.log</string>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
 	<key>StandardOutPath</key>
 	<string>/tmp/frontend.log</string>
+	<key>StandardErrorPath</key>
+	<string>/tmp/frontend.err.log</string>
 	<key>ThrottleInterval</key>
 	<integer>30</integer>
-	<key>WorkingDirectory</key>
-	<string>/Users/michael/Downloads/mems26_web_git/frontend/v9</string>
 </dict>
 </plist>
