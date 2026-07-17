@@ -48,6 +48,46 @@ def _best_price(chart_price: float, bid: Optional[float], ask: Optional[float]) 
     return chart_price
 
 
+def get_live_price_snapshot(max_age_sec: float = 30.0) -> Optional[dict]:
+    """Current live price for backend consumers (e.g. gateway gates) — SYNC.
+
+    Same canonical source as GET /api/v9/live_price, same order: the
+    bridge-POST in-memory cache when fresh (<5s), else the Sierra DLL
+    live_price.json file (with the same _best_price bid/ask-midpoint
+    correction). Added for the N3 zone-limit late-entry gate (2026-07-17)
+    so backend logic does not grow a second, divergent price reader.
+
+    Returns {"price": float, "age_sec": float, "source": "cache"|"file"}
+    or None when neither source has a positive price fresher than
+    max_age_sec. Callers MUST treat None as "price unknown" and fail-OPEN
+    (Source-of-Truth Rule 1 — never synthesize a price, never let missing
+    data block/trigger trading logic).
+    """
+    now = time.time()
+    try:
+        if _price_cache and _price_cache_ts and (now - _price_cache_ts) < 5.0:
+            cached = _price_cache.get("price")
+            if cached is not None and float(cached) > 0:
+                return {
+                    "price": float(cached),
+                    "age_sec": now - _price_cache_ts,
+                    "source": "cache",
+                }
+        mtime = os.path.getmtime(LIVE_PRICE_PATH)
+        age = now - mtime
+        if age > max_age_sec:
+            return None  # stale file (overnight/feed-down) → price unknown
+        with open(LIVE_PRICE_PATH, "r") as f:
+            data = json.load(f)
+        raw_price = data.get("price")
+        if raw_price is None or float(raw_price) <= 0:
+            return None
+        file_price = _best_price(float(raw_price), data.get("bid"), data.get("ask"))
+        return {"price": float(file_price), "age_sec": age, "source": "file"}
+    except Exception:
+        return None
+
+
 @router.post("/api/v9/live_price")
 async def post_live_price(tick: LivePriceTick, request: Request):
     """Bridge pushes Sierra tick here — cache + broadcast to WS clients.

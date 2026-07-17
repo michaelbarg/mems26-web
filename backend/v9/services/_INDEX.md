@@ -40,7 +40,7 @@
 | `news_blackout.py` | ✅ 3 | 131 | 2026-07-13 | news_blackout — IDEA-1: NO_TRADE window around red economic events (Michael 07-13). |
 | `phone_alert.py` | ✅ 3 | 81 | 2026-07-13 | phone_alert — IDEA-2: critical alerts to Michael's phone (Michael 07-13). |
 | `reconcile.py` | ✅ 1 | 218 | 2026-07-15 | Item-20 — Sierra truth reconcile + naked-stop detector. |
-| `sierra_command.py` | ✅ 13 | 355 | 2026-07-15 | Sierra command file writer for DEMO/LIVE execution paths. |
+| `sierra_command.py` | ✅ 13 | 355 | 2026-07-17 | Sierra command file writer for DEMO/LIVE execution paths. |
 | `sierra_ledger.py` | ✅ 2 | 311 | 2026-07-08 | Sierra-sourced LIVE ledger (journal L8) — the ground truth for real money. |
 | `sierra_position_reconciler.py` | ✅ 4 | 265 | 2026-07-15 | SYS-3: Sierra position reconciler — "records ≠ reality" killer. |
 | `tpo_history_snapshotter.py` | ✅ 2 | 344 | 2026-06-04 | P31 Issue B — TPO history snapshotter. |

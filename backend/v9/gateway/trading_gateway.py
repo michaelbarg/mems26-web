@@ -47,6 +47,40 @@ _DB_URL = _os.environ.get("DATABASE_URL", "sqlite:///./data/mems26_local.db")
 DB_PATH = _DB_URL.replace("sqlite:///", "") if _DB_URL.startswith("sqlite") else "./data/mems26_local.db"
 
 
+def _zone_limit_parse_ts(value) -> Optional[float]:
+    """Parse a setup bar/signal timestamp into epoch-seconds UTC (N3 gate).
+
+    Accepts epoch seconds (int/float/numeric str), epoch milliseconds
+    (heuristic: >1e12), or ISO-8601 (naive treated as UTC — repo convention,
+    bar `ts` columns are UTC; Rule 4: the TZ is stated here, not assumed
+    silently). Values that cannot be a modern epoch (< 1e9, e.g. a bar
+    INDEX leaking into bar_ts) return None. None/unparseable → None: the
+    age check is SKIPPED (fail-open), never guessed.
+    """
+    if value is None:
+        return None
+    try:
+        if isinstance(value, (int, float)):
+            ts = float(value)
+        elif isinstance(value, str) and value.strip().lstrip("+-").replace(".", "", 1).isdigit():
+            ts = float(value.strip())
+        elif isinstance(value, str) and value.strip():
+            s = value.strip().replace("Z", "+00:00")
+            dt = datetime.fromisoformat(s)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return dt.timestamp()
+        else:
+            return None
+        if ts > 1e12:  # epoch milliseconds
+            ts /= 1000.0
+        if ts < 1e9:   # not a plausible modern epoch (bar index etc.)
+            return None
+        return ts
+    except (TypeError, ValueError):
+        return None
+
+
 # ── STOP_TABLE_V1 (default OFF) — per-pattern × day_type stop cap table ───────
 # Michael's gap: targets ARE per-pattern×day_type (targets.yaml
 # pattern_t1_points), but STOPS were a generic CONT/REV ATR-band resolver with
@@ -1405,6 +1439,83 @@ class TradingGateway:
                 except (TypeError, ValueError):
                     pass  # fail-open
 
+        # N3 (ZONE_LIMIT_ENTRY_V1, default OFF) — no-late-entry gate.
+        # Michael ruling 2026-07-17: "לא תהיה כניסה באף תבנית בשלב מאוחר מדי"
+        # — no pattern may enter too late after its signal. Two lateness axes:
+        #   (a) ADVERSE price drift (= chasing): live price beyond entry by
+        #       more than ZONE_LIMIT_MAX_DRIFT_PT in the trade direction
+        #       (LONG: live > entry + max; SHORT: live < entry − max).
+        #       FAVORABLE drift (price came back toward a better fill) passes.
+        #   (b) signal age: now − signal bar ts > ZONE_LIMIT_MAX_AGE_SEC,
+        #       ONLY when the setup carries a parseable timestamp (bar_ts /
+        #       metadata.bar_ts / metadata.signal_ts). Today only
+        #       CONFLUENCE_RI_ZLR setups attach bar_ts — S2/S4 producers do
+        #       not — so (b) is dormant for S2/S4 until they attach one; (a)
+        #       covers them meanwhile. No exemptions: CONFLUENCE_RI_ZLR is
+        #       gated like any other pattern.
+        # Live price comes from the SAME canonical source as
+        # GET /api/v9/live_price (bridge in-memory cache → DLL
+        # live_price.json) via price_routes.get_live_price_snapshot — no
+        # second price reader. Missing/stale price or missing timestamp →
+        # fail-OPEN (Source-of-Truth Rule 1: honest missing beats synthetic;
+        # a safety gate must not manufacture blocks from absent data).
+        # NOTE: this gate is the BLOCKING half of N3 only. The resting-limit
+        # entry half (docs/handoff/N3_ZONE_LIMIT_ENTRY_SPEC_2026-07-17.md)
+        # needs the DLL limit-PLACE capability check + a full sim cycle and
+        # stays with cc-imac per that spec.
+        if os.getenv("ZONE_LIMIT_ENTRY_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _zl_entry = setup.get("entry_price")
+                _zl_dir = str(direction).upper()
+                if _zl_entry is not None and _zl_dir in ("LONG", "SHORT"):
+                    try:
+                        _zl_max_drift = float(os.getenv("ZONE_LIMIT_MAX_DRIFT_PT", "2.0"))
+                    except (TypeError, ValueError):
+                        _zl_max_drift = 2.0
+                    try:
+                        _zl_max_age = float(os.getenv("ZONE_LIMIT_MAX_AGE_SEC", "180"))
+                    except (TypeError, ValueError):
+                        _zl_max_age = 180.0
+                    # (a) adverse price drift — chasing the move
+                    from backend.v9.api.v9.price_routes import (
+                        get_live_price_snapshot as _zl_price_fn,
+                    )
+                    _zl_snap = _zl_price_fn()
+                    if (_zl_snap is not None and _zl_snap.get("price") is not None
+                            and _zl_max_drift > 0):
+                        _zl_px = float(_zl_snap["price"])
+                        _zl_e = float(_zl_entry)
+                        _zl_adverse = (_zl_px - _zl_e) if _zl_dir == "LONG" else (_zl_e - _zl_px)
+                        if _zl_adverse > _zl_max_drift:
+                            result["blocked_by"] = "zone_limit_late_entry"
+                            logger.info(
+                                "[Gateway] BLOCKED by zone-limit late-entry (drift): %s "
+                                "entry=%.2f live=%.2f adverse_drift=%.2fpt > max=%.2fpt "
+                                "(price_src=%s age=%.1fs)",
+                                _zl_dir, _zl_e, _zl_px, _zl_adverse, _zl_max_drift,
+                                _zl_snap.get("source"),
+                                float(_zl_snap.get("age_sec") or 0.0),
+                            )
+                            return result
+                    # (b) signal age — only when the setup carries a timestamp
+                    _zl_raw_ts = (setup.get("bar_ts")
+                                  or (setup.get("metadata") or {}).get("bar_ts")
+                                  or (setup.get("metadata") or {}).get("signal_ts"))
+                    _zl_sig_epoch = _zone_limit_parse_ts(_zl_raw_ts)
+                    if _zl_sig_epoch is not None and _zl_max_age > 0:
+                        import time as _zl_time
+                        _zl_age = _zl_time.time() - _zl_sig_epoch
+                        if _zl_age > _zl_max_age:
+                            result["blocked_by"] = "zone_limit_late_entry"
+                            logger.info(
+                                "[Gateway] BLOCKED by zone-limit late-entry (age): %s "
+                                "entry=%s signal_age=%.0fs > max=%.0fs (bar_ts=%s)",
+                                _zl_dir, _zl_entry, _zl_age, _zl_max_age, _zl_raw_ts,
+                            )
+                            return result
+            except Exception as _zl_err:
+                logger.warning("[Gateway] zone-limit gate errored (fail-open): %s", _zl_err)
+
         # Item-19: daily-loss / consecutive-loss STOP-DAY halt (Michael approved
         # 2026-07-03: halt at −$450). BLOCK-ONLY safety — it can only stop
         # trading, never add risk. Enforced in ALL modes when RISK_HALT_V1=1 so
@@ -1488,25 +1599,23 @@ class TradingGateway:
             self.shadow_trades = self.shadow_trades[-300:]
         result["shadow"] = shadow_trade["trade_id"]
 
-        # ── CONFLUENCE_RI_ZLR V1: SHADOW-ONLY, regardless of global mode ──
-        # Research verdict (spec §0/§3.3): n=5, +4-first hit-rate 40% — raw EV
-        # negative-to-zero before filters. Until n>=15 real shadow samples AND an
-        # explicit Michael sign-off, the combined pattern must NEVER reach demo/
-        # live execution, even when the process runs MEMS26_MODE=live with system
-        # 4 live-enabled. CONFLUENCE_RI_ZLR_LIVE is a RESERVED gate: live routing
-        # is NOT implemented — if someone flips it, this stub still REFUSES (and
-        # logs loudly) rather than trade an unvalidated pattern. Returning here
-        # also keeps the confluence out of OPPOSITE_EXIT counting and the demo/
-        # live slots — parents' behavior is untouched.
+        # ── CONFLUENCE_RI_ZLR V1: shadow-only by default; LIVE by Michael ruling ──
+        # Research verdict (spec §0/§3.3): n=5, +4-first hit-rate 40% — small sample.
+        # Original build (07-17 morning) shipped a REFUSING stub pending sign-off.
+        # **Michael sign-off 2026-07-17 ~11:15 IL (explicit, in writing): "לגבי
+        # התבנית החדשה מאושר להפעיל על לייב"** → CONFLUENCE_RI_ZLR_LIVE=1 now
+        # routes to the NORMAL demo/live slot path below (same limits/halts/slots
+        # as every pattern; 2-contract sizing enforced at effective_contracts;
+        # stop capped 7pt at build). Risk per trade ≤ 2c × 7pt × $5 = $70.
+        # With the LIVE flag unset/0 the pattern remains SHADOW-ONLY (returns
+        # here, never reaches demo/live) — that is still the code default.
         if _confluence_fixed:
-            if os.getenv("CONFLUENCE_RI_ZLR_LIVE", "0").lower() in ("1", "true", "yes"):
-                logger.warning(
-                    "[Gateway] CONFLUENCE_RI_ZLR_LIVE=1 but live routing is NOT "
-                    "implemented (needs n>=15 shadow samples + Michael sign-off) "
-                    "— REFUSING demo/live; shadow recorded only.")
-                result["confluence_live_refused"] = True
-            result["confluence_shadow_only"] = True
-            return result
+            if os.getenv("CONFLUENCE_RI_ZLR_LIVE", "0").lower() not in ("1", "true", "yes"):
+                result["confluence_shadow_only"] = True
+                return result
+            logger.info(
+                "[Gateway] CONFLUENCE_RI_ZLR routing to demo/live per Michael "
+                "ruling 2026-07-17 (CONFLUENCE_RI_ZLR_LIVE=1); 2c, stop<=7pt.")
 
         # P3: Opposite-pattern exit (OPPOSITE_EXIT_V1, default OFF)
         # When a trade is active and ≥2 signals fire in the opposite direction

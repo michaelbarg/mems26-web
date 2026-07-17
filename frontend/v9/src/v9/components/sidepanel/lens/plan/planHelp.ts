@@ -344,6 +344,23 @@ export const COMPONENT_KEY_HE: Record<string, string> = {
   b1_sellers: 'בר-טריגר מוכרים (סגירה<פתיחה)',
   b1_buyers: 'בר-טריגר קונים (סגירה>פתיחה)',
   b1_expansion: 'בר-התרחבות (טווח 3.2–6.1 נק׳)',
+  // 07-17: השלמת כל מפתחות-ה-detection של S2 (s2_pattern_probe.py) — היו חסרים
+  // ולכן "מה חסר עכשיו" הציג מפתח-אנגלי גולמי.
+  b1_bull: 'B1 בר-שורי (סגירה>פתיחה)',
+  b1_bear: 'B1 בר-דובי (סגירה<פתיחה)',
+  b2_volume_drop: 'B2 קריסת-נפח',
+  b2_test: 'B2 מבחן — שפל/שיא נשמר או חזרה ל-POC',
+  b3_buyers: 'B3 בר-קונים',
+  b3_sellers: 'B3 בר-מוכרים',
+  b3_joining: 'B3 הצטרפות (טווח גדול מ-B1)',
+  b4_confirm: 'B4 נר-אישור (סגירה מעבר לקצה B3)',
+  b4_test: 'B4 מבחן-שני + סגירה מעבר ל-B1',
+  lookback_quiet: 'רקע שקט (נפח-העבר נמוך מ-B1)',
+  belly_cot_amt: 'COT/AMT + בטן (פוטפרינט — לא נבדק כאן)',
+  cot_amt: 'COT/AMT (פוטפרינט — לא נבדק כאן)',
+  neckline_breakout: 'פריצת קו-הצוואר (±1 טיק)',
+  trough_pair: 'זוג-תחתיות (הפרש ≤3%)',
+  eve_variant: 'תחתיות מעוגלות (Eve — רוחב ≥3 נרות)',
   breakout: 'פריצה מעל שיא-הדגל',
   pole_found: 'זוהה מוט (≥5 ברים, ≥16 טיקים)',
   flag_length: 'אורך-דגל תקין (3–8 ברים)',
@@ -393,6 +410,24 @@ const REASON_PHRASES: Array<[RegExp, string]> = [
   [/\bb\d+_buyers\b/gi, 'בר-קונים'],
   [/\bb\d+_expansion\b/gi, 'בר-התרחבות'],
   [/\bbars\b/gi, 'ברים'],
+  // 07-17 (זמן-אמת בתבניות): משפטי-הסטטוס המלאים של ה-inspectors —
+  // s2_inspector.py:460-497 · woodies_inspector.py:522-571 — כדי ש"מה חסר"/"למה
+  // חסום" ייקראו עברית שלמה ולא חצי-אנגלית.
+  [/Nontrend day type — global NO_TRADE gate \(D-091\)/g, 'יום ללא-מגמה — שער NO_TRADE גלובלי (אין עסקאות S2 היום)'],
+  [/Auth Table SKIP for\s*/g, 'טבלת-ההרשאה: SKIP עבור '],
+  [/Stage A1 veto: trend_state=/g, 'וטו-מגמה (A1): מצב='],
+  [/\(GREY\/YELLOW\/INDETERMINATE — Woodies WSI rule\)/g, '(אפור/צהוב — עומדים בצד לפי חוק-המגמה של ווּדיז)'],
+  [/CCI-14 not computed — insufficient bar history/g, 'CCI-14 טרם חושב — חסרה היסטוריית-ברים'],
+  [/All conditions met — awaiting trigger signal/g, 'כל התנאים מתקיימים — ממתין לנר-הטריגר'],
+  [/Awaiting trigger/g, 'ממתין לטריגר'],
+  [/pattern detected · awaiting decision tree approval/g, 'התבנית זוהתה — ממתין לאישור עץ-ההחלטה'],
+  [/fired earlier today at/g, 'ירה מוקדם-יותר היום ב-'],
+  [/Setup fired today at/g, 'הסטאפ ירה היום ב-'],
+  [/firing now/gi, 'יורה עכשיו'],
+  [/not initialized/g, 'לא אותחל'],
+  [/Insufficient data/g, 'אין מספיק נתונים'],
+  [/Missing data/g, 'חסרים נתונים'],
+  [/day_type unknown — cannot evaluate/g, 'סוג-היום עוד לא סווג — אי-אפשר להעריך'],
 ];
 
 /** מתרגם מחרוזת-סיבה גולמית מה-API לעברית קריאה ("מה חסר עכשיו"). */
@@ -436,6 +471,11 @@ export const GATE_HE: Record<string, { name: string; why: string }> = {
   consecutive_loss_halt: { name: 'עצירת הפסדים-רצופים', why: 'רצף הפסדים — עצירה מחויבת' },
   s4_risk_cap: { name: 'תקרת-סיכון S4', why: 'הסיכון בנקודות/דולרים מעל התקרה לעסקת S4' },
   cluster_guard: { name: 'שומר-צבירה', why: 'יותר מדי עסקאות באותו אזור-מחיר/זמן' },
+  // 07-17: השלמת אוצר-המילים מול trading_gateway.py (ביקורת מלאה של כל blocked_by):
+  // pattern_loss_breaker פוצל מ-s4_risk_cap ב-P5 (trading_gateway.py:1457-1464).
+  pattern_loss_breaker: { name: 'שובר-הפסדים לתבנית', why: 'התבנית הזו כבר הפסידה פעמיים היום — חסומה עד סוף-היום' },
+  // שמור-מראש ל-N3 (ZONE_LIMIT_ENTRY_V1 — עוד לא בבקאנד): תרגום מוכן ליום שהשער יעלה.
+  zone_limit_late_entry: { name: 'כניסה מאוחרת', why: 'המחיר התרחק מדי מנקודת-הכניסה של האזור — אין רדיפה אחרי מהלך' },
 };
 
 export function gateHe(key?: string | null): { name: string; why: string } {

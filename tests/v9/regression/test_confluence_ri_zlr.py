@@ -264,10 +264,14 @@ def test_shadow_only_even_when_mode_live(monkeypatch):
     assert d and d[-1]["outcome"] == "shadow_only"
 
 
-def test_live_flag_stub_refuses(monkeypatch):
+def test_live_flag_routes_to_live(monkeypatch):
+    """Michael ruling 2026-07-17 ~11:15 IL: 'לגבי התבנית החדשה מאושר להפעיל על
+    לייב' — with CONFLUENCE_RI_ZLR_LIVE=1 the combined setup must reach the
+    NORMAL demo/live routing (was: refusing stub). LIVE flag unset stays
+    shadow-only (pinned by test_shadow_only_even_in_live_mode above)."""
     monkeypatch.setenv("CONFLUENCE_RI_ZLR_V1", "1")
-    monkeypatch.setenv("CONFLUENCE_RI_ZLR_LIVE", "1")   # someone flips it early…
-    monkeypatch.setenv("DEMO_EXECUTION_ENABLED", "1")
+    monkeypatch.setenv("CONFLUENCE_RI_ZLR_LIVE", "1")
+    monkeypatch.setenv("MEMS26_MODE", "live")
     monkeypatch.setattr(conf, "load_signal_bars", lambda limit=4: list(BARS_SHORT_FRESH))
     monkeypatch.setattr(tg, "passes_strict_checks", lambda *a, **k: True)
     gw, shadow_calls = _gw(monkeypatch)
@@ -276,12 +280,42 @@ def test_live_flag_stub_refuses(monkeypatch):
                         lambda s, sid, ctx: (live_calls.append(dict(s)) or {"trade_id": "L1"}))
     monkeypatch.setattr(gw, "_execute_demo",
                         lambda s, sid, ctx: (demo_calls.append(dict(s)) or {"trade_id": "D1"}))
-    gw.enable_live(4); gw.enable_demo(4)
+    gw.enable_live(4)
     gw.route_setup(_s4(), 4)
+    # Single-slot reality: the parent ZLR just took the live slot (first-wins) —
+    # the confluence must NOT double-fire alongside it. Free the slot (as when
+    # the parent was gate-blocked or already closed) before the join completes:
+    gw.live_slot = None
     gw.route_setup(_s2(), 2)
+    assert len(_conf_calls(shadow_calls)) == 1          # shadow always recorded
+    conf_live = [s for s in live_calls
+                 if s.get("classification") == "CONFLUENCE_RI_ZLR"]
+    assert len(conf_live) == 1, (
+        f"confluence must route LIVE per ruling; live={len(conf_live)} "
+        f"demo={len(demo_calls)}")
+    # sizing stays the definitional 2 contracts on the live-routed setup
+    assert (conf_live[0].get("metadata") or {}).get("fixed_contracts_exempt") == 1
+
+
+def test_live_flag_no_double_fire_when_slot_taken(monkeypatch):
+    """Slot competition (spec §4.4-V1): when the parent holds the live slot the
+    confluence must NOT fire a second live trade — one trade at a time."""
+    monkeypatch.setenv("CONFLUENCE_RI_ZLR_V1", "1")
+    monkeypatch.setenv("CONFLUENCE_RI_ZLR_LIVE", "1")
+    monkeypatch.setenv("MEMS26_MODE", "live")
+    monkeypatch.setattr(conf, "load_signal_bars", lambda limit=4: list(BARS_SHORT_FRESH))
+    monkeypatch.setattr(tg, "passes_strict_checks", lambda *a, **k: True)
+    gw, shadow_calls = _gw(monkeypatch)
+    live_calls = []
+    monkeypatch.setattr(gw, "_execute_live",
+                        lambda s, sid, ctx: (live_calls.append(dict(s)) or {"trade_id": "L1"}))
+    gw.enable_live(4)
+    gw.route_setup(_s4(), 4)   # parent takes the single live slot
+    gw.route_setup(_s2(), 2)   # join completes — slot still occupied
+    conf_live = [s for s in live_calls
+                 if s.get("classification") == "CONFLUENCE_RI_ZLR"]
+    assert len(conf_live) == 0, "confluence double-fired alongside its parent"
     assert len(_conf_calls(shadow_calls)) == 1          # still shadow-recorded
-    assert all(s.get("classification") != "CONFLUENCE_RI_ZLR"
-               for s in live_calls + demo_calls)        # …and REFUSED demo/live
 
 
 # ── g. detector errors can never break the parents ───────────────────────────

@@ -163,6 +163,23 @@ flags:
     what: "Value flag (e.g. 0.65): graded R:R minimum on ROTATION day-types only (Variation/Normal/Neutral). T1_dist >= stop_dist*value instead of >=1.0. Unset -> 1.0 everywhere; Trend days always 1.0; day-type error -> 1.0 (conservative)."
     why: "07-15 evening (Michael): stop-floor 0.8xATR x nearest-shelf T1 made R:R ~always <1 on narrow rotation day - blocked the winning 18:15 ZLR SHORT (0.65). With T0=3.5 fast-take ladder, T1-only R:R is double-conservative. Value = Michael's ruling."
     status: pending_michael
+  ZONE_LIMIT_ENTRY_V1:
+    category: cascade_gate
+    group: "N3 no-late-entry"
+    what: "Block entry when the setup is LATE: (a) live price drifted ADVERSE past entry by > ZONE_LIMIT_MAX_DRIFT_PT (chasing; favorable drift passes), or (b) signal bar older than ZONE_LIMIT_MAX_AGE_SEC when the setup carries bar_ts (today only CONFLUENCE_RI_ZLR does; S2/S4 dormant on this axis). Price = same canonical source as /api/v9/live_price; missing price/ts -> fail-OPEN. blocked_by=zone_limit_late_entry."
+    why: "OFF (default). Michael ruling 2026-07-17: 'לא תהיה כניסה באף תבנית בשלב מאוחר מדי' — no pattern may enter too late after its signal. Blocking half of N3 only; the resting-limit entry half stays with cc-imac (DLL limit-PLACE check + sim cycle) per the N3 spec."
+    status: built_off
+    ref: "docs/handoff/N3_ZONE_LIMIT_ENTRY_SPEC_2026-07-17.md · backend/v9/gateway/trading_gateway.py"
+  ZONE_LIMIT_MAX_DRIFT_PT:
+    category: param
+    group: "N3 no-late-entry"
+    what: "Max ADVERSE price drift (points) between setup entry_price and live price before the entry counts as chasing and is blocked. Default 2.0. Inert while ZONE_LIMIT_ENTRY_V1 is OFF."
+    why: "Michael ruling 2026-07-17 (no-late-entries). 2.0pt conservative default pending Michael's tuning."
+  ZONE_LIMIT_MAX_AGE_SEC:
+    category: param
+    group: "N3 no-late-entry"
+    what: "Max age (seconds) of the signal bar timestamp before the entry counts as late and is blocked. Default 180. Only applies when the setup carries a parseable bar_ts/signal_ts; otherwise skipped (fail-open). Inert while ZONE_LIMIT_ENTRY_V1 is OFF."
+    why: "Michael ruling 2026-07-17 (no-late-entries). 180s ≈ signal older than half a 5-min bar+routing slack pending Michael's tuning."
   EOD_RISK_WINDOW_V1:
     category: cascade_gate
     what: "EOD entry cutoff (no new entries last 45min before close) + flatten at 15min before close."

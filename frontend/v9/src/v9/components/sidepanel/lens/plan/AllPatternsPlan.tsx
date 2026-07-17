@@ -5,11 +5,18 @@
 // מייקל 2026-07-15: "שיהיה ברור בכל רגע נתון למה לא ירה" — מיזוג פיד-ההחלטות החי
 // של ה-gateway (/api/v9/gateway/decisions): פס-סיכום יומי, חותמת ירי/חסימה
 // פר-תבנית עם שם-השער בעברית, ויומן-החלטות אחרון.
-import { useCallback, useEffect, useState } from 'react';
+// 2026-07-17 (זמן-אמת בתבניות): עבר לפולר-המשותף usePatternFeed — אותם 15s, אבל
+// לולאת-רשת אחת לכל פאנלי-התבניות (במקום פולר-פר-פאנל) + מחוון-טריות "נתונים
+// ישנים"; lastDecisionFor עבר למודול המשותף patternTiers (כולל תיקון: החלטת
+// CONFLUENCE_RI_ZLR לא תוצג עוד כהחלטה של שורת ה-ZLR ההורה).
+import { useState } from 'react';
 import { COLORS } from '../../../../design/tokens';
 import { PATTERN_HELP, planReasonHe, gateHe } from './planHelp';
-
-const API = process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000';
+import {
+  usePatternFeed, useFeedAge,
+  type GatewayDecision as Decision, type DecisionsPayload,
+} from '../../../../hooks/usePatternFeed';
+import { lastDecisionFor } from './patternTiers';
 
 interface PatternRow {
   id: string;
@@ -21,40 +28,8 @@ interface PatternRow {
   components?: { present?: boolean; key?: string; stage?: string }[];
 }
 
-interface Decision {
-  ts: string;
-  t_il?: string | null;
-  system: number;
-  pattern?: string | null;
-  direction?: string | null;
-  entry?: number | null;
-  blocked_by?: string | null;
-  outcome: string;
-  trade_id?: number | string | null;
-}
-
-interface DecisionsPayload {
-  decisions: Decision[];
-  today?: { fired: number; blocked: number; shadow_only: number; by_gate: Record<string, number> };
-}
-
-const norm = (s?: string | null) => (s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-/** ההחלטה האחרונה של ה-gateway עבור תבנית זו (התאמת-שם גמישה).
- *  07-17 fix: שורות S2 מקודדות כיוון בשם (REACTIVE_LONG/REACTIVE_SHORT) —
- *  בלי בדיקת-כיוון החלטת REACTIVE SHORT הוצגה גם על שורת REACTIVE_LONG. */
-function lastDecisionFor(p: PatternRow, decs: Decision[]): Decision | null {
-  const pid = norm(p.id), pname = norm(p.name);
-  const rowDir = pid.endsWith('LONG') ? 'LONG' : pid.endsWith('SHORT') ? 'SHORT' : null;
-  for (const d of decs) { // decs מגיע חדש-ראשון מהשרת
-    const gp = norm(d.pattern);
-    if (!gp) continue;
-    if (!(gp.includes(pid) || pid.includes(gp) || gp.includes(pname) || pname.includes(gp))) continue;
-    const dDir = (d.direction || '').toUpperCase();
-    if (rowDir && dDir && dDir !== rowDir) continue; // כיוון-ההחלטה סותר את כיוון-השורה
-    return d;
-  }
-  return null;
-}
+// Decision / DecisionsPayload / lastDecisionFor — עברו למקור משותף (07-17):
+// usePatternFeed.ts (טיפוסי-הפיד) + patternTiers.ts (התאמת החלטה→תבנית).
 
 /** שורת-החלטה אחת בעברית: מה קרה + למה. */
 function DecisionLine({ d, showPattern }: { d: Decision; showPattern?: boolean }) {
@@ -96,36 +71,20 @@ const ST: Record<string, { he: string; color: string }> = {
 };
 
 export function AllPatternsPlan({ systemId }: { systemId: number }) {
-  const [rows, setRows] = useState<PatternRow[]>([]);
-  const [dec, setDec] = useState<DecisionsPayload | null>(null);
-  const [err, setErr] = useState<string | null>(null);
   const [openIds, setOpenIds] = useState<Record<string, boolean>>({});
   const [logOpen, setLogOpen] = useState(false);
+  // 07-17: פולר משותף — 15s כמו קודם, לולאת-רשת אחת גם כשכמה פאנלים פתוחים
+  const { build, decisions, error, lastFetchedAt } = usePatternFeed();
+  const { ageS, stale } = useFeedAge(lastFetchedAt);
 
-  const load = useCallback(async () => {
-    try {
-      const [res, dres] = await Promise.all([
-        fetch(`${API}/api/v9/build/pattern-status`, { cache: 'no-store' }),
-        fetch(`${API}/api/v9/gateway/decisions?limit=150`, { cache: 'no-store' }).catch(() => null),
-      ]);
-      if (!res.ok) { setErr(`HTTP ${res.status}`); return; }
-      const d = await res.json();
-      const systems = Array.isArray(d) ? d : d.systems || [];
-      const sysKey = systemId === 4 ? 'woodies' : 'five_min';
-      const sys = systems.find((s: { id?: string }) => s.id === sysKey);
-      setRows(sys?.patterns || []);
-      setErr(sys ? null : 'אין נתוני תבניות למערכת זו');
-      if (dres && dres.ok) setDec(await dres.json());
-    } catch (e) { setErr(String(e)); }
-  }, [systemId]);
-
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 15000);
-    return () => clearInterval(id);
-  }, [load]);
+  const sysKey = systemId === 4 ? 'woodies' : 'five_min';
+  const sys = (build?.systems ?? []).find((s) => s.id === sysKey);
+  const rows: PatternRow[] = sys?.patterns ?? [];
+  const dec: DecisionsPayload | null = decisions;
+  const err = build && !sys ? 'אין נתוני תבניות למערכת זו' : !build && error ? error : null;
 
   if (err) return <div style={{ fontSize: 11, color: COLORS.textSecondary }}>תבניות: {err}</div>;
+  if (!build) return <div style={{ fontSize: 11, color: COLORS.textSecondary }}>תבניות: טוען…</div>;
   // 07-17 fix: מערכת ללא-תבניות נעלמה בשקט — עכשיו מוצג מצב-ריק מפורש
   if (!rows.length) {
     return (
@@ -157,6 +116,12 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
       <div style={{ fontSize: 12, fontWeight: 600, color: COLORS.textPrimary, marginBottom: 6 }}>
         כל התבניות — מי הכי קרובה לירי, איך היא מתגבשת, ולמה ממתינים
       </div>
+      {/* 07-17: מחוון-טריות — גיל-הנתונים; ישן (מחזור-פולינג שהוחמץ) = אזהרה + עמעום */}
+      <div style={{ fontSize: 9, color: stale ? '#f85149' : COLORS.textTertiary, marginBottom: 4 }}>
+        {stale
+          ? `⚠ נתונים ישנים — עדכון אחרון לפני ${ageS}s`
+          : ageS != null ? `עודכן לפני ${ageS}s · מתרענן כל 15s` : 'טוען…'}
+      </div>
       {/* 07-15: פס "למה לא ירה" — סיכום ניסיונות-הירי מול השער מאז-הריסטארט */}
       <div style={{
         padding: '6px 8px', borderRadius: 6, marginBottom: 6,
@@ -182,7 +147,8 @@ export function AllPatternsPlan({ systemId }: { systemId: number }) {
           </div>
         )}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4,
+                    opacity: stale ? 0.55 : 1, filter: stale ? 'grayscale(0.5)' : undefined }}>
         {scored.map((p, i) => {
           const st = ST[p.status] || ST.blocked;
           const top = i === 0 && p._score > 0;

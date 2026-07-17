@@ -5,13 +5,14 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `AllPatternsPlan.tsx` | ✅ 2 | 273 | 2026-07-17 | ההחלטה האחרונה של ה-gateway עבור תבנית זו (התאמת-שם גמישה). |
+| `AllPatternsPlan.tsx` | ✅ 2 | 239 | 2026-07-17 | שורת-החלטה אחת בעברית: מה קרה + למה. |
 | `DayTypePlan.tsx` | ⚠️ orphan? | 19 | 2026-05-19 |  |
 | `FiveMinPlan.tsx` | ⚠️ orphan? | 28 | 2026-07-17 | 07-17 fix: COT/AMT אינו נדרש בפועל — S2 ⟂ S3 (מייקל 06-08, S2_REQUIRE_COT_AMT=OFF) |
 | `FootprintPlan.tsx` | ⚠️ orphan? | 19 | 2026-05-19 |  |
 | `KillzonePlan.tsx` | ⚠️ orphan? | 16 | 2026-05-19 |  |
 | `TpoPlan.tsx` | ⚠️ orphan? | 15 | 2026-05-19 |  |
 | `WoodiesPlan.tsx` | ⚠️ orphan? | 29 | 2026-07-09 |  |
+| `patternTiers.ts` | ✅ 2 | 180 | — | חלון-ה"חם": החלטת-gateway מ-5 הדקות האחרונות = התבנית בשכבת 🔥. |
 | `planFireDiagnosis.ts` | ✅ 1 | 317 | 2026-07-09 | Fire / no-fire diagnosis for Plan tab (Hebrew copy for traders). |
-| `planHelp.ts` | ✅ 5 | 444 | 2026-07-17 | What each lifecycle badge means — not approve/disapprove, derived from live checks. |
+| `planHelp.ts` | ✅ 6 | 484 | 2026-07-17 | What each lifecycle badge means — not approve/disapprove, derived from live checks. |
 | `systemPlanLive.tsx` | ✅ 6 | 840 | 2026-05-23 | Live Plan tab (§5.8) — compact + tap for what each row measures. |

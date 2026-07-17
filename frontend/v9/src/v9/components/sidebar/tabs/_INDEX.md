@@ -10,7 +10,7 @@
 | `DecisionsTab.tsx` | ✅ 1 | 120 | 2026-05-11 | Overall Status |
 | `MarketTab.tsx` | ✅ 1 | 195 | 2026-05-23 | Market Overview |
 | `OrdersTab.tsx` | ⚠️ orphan? | 29 | 2026-05-10 | Placeholder — orders data requires bridge connection not yet available |
-| `PatternsTab.tsx` | ✅ 1 | 138 | 2026-07-17 | 07-17 (מייקל): הסבר + מבנה-גאומטרי + כמה-נרות פר-תבנית, מחולצים מקוד-הדטקטורים — |
+| `PatternsTab.tsx` | ✅ 1 | 402 | 2026-07-17 | פס-התקדמות S4 — מ-build_pct האמיתי של הבקאנד (woodies_inspector.py:577-578). |
 | `PerformanceTab.tsx` | ✅ 1 | 86 | 2026-05-11 | Daily Stats |
 | `PredActualTab.tsx` | ⚠️ orphan? | 46 | 2026-05-10 | Placeholder — Phase 7.3 implementation per spec |
 | `PredictionsTab.tsx` | ✅ 1 | 46 | 2026-05-11 | Placeholder — Phase 7.3 implementation per spec |

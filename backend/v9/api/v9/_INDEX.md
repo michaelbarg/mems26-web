@@ -37,7 +37,7 @@
 | `mobile_monitor.py` | ✅ 1 | 368 | 2026-07-16 | mobile_monitor — מוניטור-אייפון (Michael 2026-07-15, מוגש מהבקאנד). |
 | `open_type_routes.py` | ✅ 1 | 73 | 2026-06-03 | Open Type endpoint — /api/v9/open_type/current (D-072). |
 | `pre_fire_routes.py` | ✅ 1 | 15 | 2026-05-16 | API route: POST /api/v9/pre_fire/validate — D-063 pre-fire validation. |
-| `price_routes.py` | ✅ 2 | 135 | 2026-06-01 | Live price endpoint — reads Sierra DLL live_price.json (updated every ~200ms). |
+| `price_routes.py` | ✅ 3 | 175 | 2026-06-01 | Live price endpoint — reads Sierra DLL live_price.json (updated every ~200ms). |
 | `reversal_routes.py` | ✅ 1 | 29 | 2026-06-03 | API routes for 15-tick reversal bar enrichment (P-15TR.5). |
 | `shadow_routes.py` | ✅ 1 | 167 | 2026-06-03 | W5.1 — Backend stubs for SSV / Shadow WR / System Health. |
 | `sierra_live_check.py` | ✅ 1 | 127 | 2026-07-15 | sierra_live_check — T1 (Michael 2026-07-14): READ-ONLY proof the system |
