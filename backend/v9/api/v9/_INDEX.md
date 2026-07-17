@@ -25,7 +25,7 @@
 | `cumulative_delta_routes.py` | ✅ 1 | 297 | 2026-06-02 | API: /api/v9/cumulative_delta — read Sierra cumulative_delta.json export. |
 | `day_type_seed.py` | ✅ 1 | 202 | 2026-07-01 | P30 C1 — Mid-session restart IB seeding for Day Type Engine. |
 | `day_type_v9_routes.py` | ✅ 2 | 153 | 2026-06-03 | API: /api/v9/day_type/v9/* — V9 Day Type endpoints (3a-S4 REVISED C3). |
-| `daytype_classify_routes.py` | ✅ 2 | 259 | 2026-07-13 | V9 API: run the NEW relative day-type classifier over a historical day (read-only). |
+| `daytype_classify_routes.py` | ✅ 2 | 259 | 2026-07-17 | V9 API: run the NEW relative day-type classifier over a historical day (read-only). |
 | `gateway_routes.py` | ✅ 1 | 98 | 2026-07-15 | API routes for Trading Gateway status + manual route_setup (P-TG.5). |
 | `health_streams.py` | ✅ 1 | 36 | 2026-06-04 | V9 API: Stream Health endpoint — GET /api/v9/health/streams. |
 | `history_routes.py` | ✅ 1 | 79 | 2026-05-23 | P30 G6 — `/api/v9/history/*` — yesterday-replay endpoints. |
@@ -37,7 +37,7 @@
 | `mobile_monitor.py` | ✅ 1 | 368 | 2026-07-16 | mobile_monitor — מוניטור-אייפון (Michael 2026-07-15, מוגש מהבקאנד). |
 | `open_type_routes.py` | ✅ 1 | 73 | 2026-06-03 | Open Type endpoint — /api/v9/open_type/current (D-072). |
 | `pre_fire_routes.py` | ✅ 1 | 15 | 2026-05-16 | API route: POST /api/v9/pre_fire/validate — D-063 pre-fire validation. |
-| `price_routes.py` | ✅ 2 | 135 | 2026-06-01 | Live price endpoint — reads Sierra DLL live_price.json (updated every ~200ms). |
+| `price_routes.py` | ✅ 3 | 175 | 2026-07-17 | Live price endpoint — reads Sierra DLL live_price.json (updated every ~200ms). |
 | `reversal_routes.py` | ✅ 1 | 29 | 2026-06-03 | API routes for 15-tick reversal bar enrichment (P-15TR.5). |
 | `shadow_routes.py` | ✅ 1 | 167 | 2026-06-03 | W5.1 — Backend stubs for SSV / Shadow WR / System Health. |
 | `sierra_live_check.py` | ✅ 1 | 127 | 2026-07-15 | sierra_live_check — T1 (Michael 2026-07-14): READ-ONLY proof the system |

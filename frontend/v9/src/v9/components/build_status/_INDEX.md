@@ -7,4 +7,4 @@
 |---|---|---|---|---|
 | `BuildStatusTab.tsx` | ✅ 1 | 24 | 2026-06-24 | Build Status tab — unified with /build route (BuildTreeView). |
 | `DayTypeConditionsTable.tsx` | ✅ 2 | 121 | 2026-06-24 | live signals strip |
-| `types.ts` | ✅ 3 | 147 | 2026-06-10 | Types for /api/v9/build/pattern-status response. |
+| `types.ts` | ✅ 5 | 147 | 2026-06-10 | Types for /api/v9/build/pattern-status response. |

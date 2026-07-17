@@ -28,8 +28,11 @@ class _FakeDT(dt.datetime):
 def _run_extract(monkeypatch, hour_et: int):
     monkeypatch.setenv("S1_NEW_CLASSIFIER", "1")
     monkeypatch.setattr(tc, "get_live_day_type", lambda: None)  # live is silent
-    # replay-final would force a terminal label
-    tc._NC_CACHE.update({"date": dt.datetime.now(ET).date().isoformat(),
+    # replay-final would force a terminal label. Seed with the FAKE clock's date
+    # (2026-07-16), not real-now: extract_g1 computes _today from the patched
+    # datetime, and a mismatched seed date invalidates the cache → the test then
+    # hits the real DB replay (date-dependent flake; failed first on 07-17 ET).
+    tc._NC_CACHE.update({"date": "2026-07-16",
                          "ts": 9e12, "day_type": "Neutral_Center"})
     _FakeDT._fixed = dt.datetime(2026, 7, 16, hour_et, 30, tzinfo=ET)
     monkeypatch.setattr(tc, "extract_g1_entry_context", tc.extract_g1_entry_context)

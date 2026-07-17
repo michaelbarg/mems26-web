@@ -34,6 +34,10 @@ _CONT_PATTERNS = frozenset({
     "INITIATIVE", "INITIATIVE_LONG", "INITIATIVE_SHORT",
     "BULL_FLAG", "BULL_FLAG_LONG", "BEAR_FLAG", "BEAR_FLAG_SHORT",
     "ZLR", "TLB", "TT", "GB100",
+    # S2×S4 combined pattern (spec CONFLUENCE_PATTERN_SPEC_2026-07-17.md §4.2:
+    # group CONT — the ZLR leg gives continuation momentum; unknown=fail-open
+    # is not acceptable for a new pattern).
+    "CONFLUENCE_RI_ZLR",
 })
 _REV_PATTERNS = frozenset({
     "REACTIVE", "REACTIVE_LONG", "REACTIVE_SHORT",

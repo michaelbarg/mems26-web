@@ -186,6 +186,20 @@ def effective_contracts(setup: Dict[str, Any]) -> int:
         _contracts = max(1, int(_sz))
     except (TypeError, ValueError):
         _contracts = {"full": 3, "half": 2, "quarter": 1}.get(str(_sz).lower().strip(), 1)
+    # CONFLUENCE_RI_ZLR exemption (spec docs/handoff/CONFLUENCE_PATTERN_SPEC_
+    # 2026-07-17.md §4.3): the combined S2×S4 pattern trades EXACTLY its own
+    # count — 2 contracts, sizing "tactical" (mode_caps.tactical in
+    # config/stop_anchors.yaml) — and is EXEMPT from the FIXED_CONTRACTS_*
+    # force below (FIXED_CONTRACTS_4 would ship 4, violating the pattern
+    # definition). Scoped by the per-setup metadata flag, which ONLY the
+    # confluence builder sets (backend/v9/systems/confluence/confluence_ri_
+    # zlr.py) — S2/S4/regular setups never carry it, so every other path is
+    # byte-identical (regular ZLR under FIXED_CONTRACTS_4=1 still ships 4).
+    # A downward SIZE_CAP_CUT is honored upstream (already baked into the
+    # setup's own count before it reaches here). Regression:
+    # tests/v9/regression/test_confluence_ri_zlr.py.
+    if (setup.get("metadata") or {}).get("fixed_contracts_exempt"):
+        return _contracts
     import os as _fc3_os
     _fc4_on = _fc3_os.environ.get("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes")  # Michael 07-15, top precedence
     _fc2_on = _fc3_os.environ.get("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes")

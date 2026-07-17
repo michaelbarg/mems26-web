@@ -163,6 +163,23 @@ flags:
     what: "Value flag (e.g. 0.65): graded R:R minimum on ROTATION day-types only (Variation/Normal/Neutral). T1_dist >= stop_dist*value instead of >=1.0. Unset -> 1.0 everywhere; Trend days always 1.0; day-type error -> 1.0 (conservative)."
     why: "07-15 evening (Michael): stop-floor 0.8xATR x nearest-shelf T1 made R:R ~always <1 on narrow rotation day - blocked the winning 18:15 ZLR SHORT (0.65). With T0=3.5 fast-take ladder, T1-only R:R is double-conservative. Value = Michael's ruling."
     status: pending_michael
+  ZONE_LIMIT_ENTRY_V1:
+    category: cascade_gate
+    group: "N3 no-late-entry"
+    what: "Block entry when the setup is LATE: (a) live price drifted ADVERSE past entry by > ZONE_LIMIT_MAX_DRIFT_PT (chasing; favorable drift passes), or (b) signal bar older than ZONE_LIMIT_MAX_AGE_SEC when the setup carries bar_ts (today only CONFLUENCE_RI_ZLR does; S2/S4 dormant on this axis). Price = same canonical source as /api/v9/live_price; missing price/ts -> fail-OPEN. blocked_by=zone_limit_late_entry."
+    why: "OFF (default). Michael ruling 2026-07-17: 'לא תהיה כניסה באף תבנית בשלב מאוחר מדי' — no pattern may enter too late after its signal. Blocking half of N3 only; the resting-limit entry half stays with cc-imac (DLL limit-PLACE check + sim cycle) per the N3 spec."
+    status: built_off
+    ref: "docs/handoff/N3_ZONE_LIMIT_ENTRY_SPEC_2026-07-17.md · backend/v9/gateway/trading_gateway.py"
+  ZONE_LIMIT_MAX_DRIFT_PT:
+    category: param
+    group: "N3 no-late-entry"
+    what: "Max ADVERSE price drift (points) between setup entry_price and live price before the entry counts as chasing and is blocked. Default 2.0. Inert while ZONE_LIMIT_ENTRY_V1 is OFF."
+    why: "Michael ruling 2026-07-17 (no-late-entries). 2.0pt conservative default pending Michael's tuning."
+  ZONE_LIMIT_MAX_AGE_SEC:
+    category: param
+    group: "N3 no-late-entry"
+    what: "Max age (seconds) of the signal bar timestamp before the entry counts as late and is blocked. Default 180. Only applies when the setup carries a parseable bar_ts/signal_ts; otherwise skipped (fail-open). Inert while ZONE_LIMIT_ENTRY_V1 is OFF."
+    why: "Michael ruling 2026-07-17 (no-late-entries). 180s ≈ signal older than half a 5-min bar+routing slack pending Michael's tuning."
   EOD_RISK_WINDOW_V1:
     category: cascade_gate
     what: "EOD entry cutoff (no new entries last 45min before close) + flatten at 15min before close."
@@ -881,6 +898,28 @@ flags:
     what: "(Reserved, parallel build) ZLR-specific trade management (S4 only): stop = 5-min-bar structure · no stop move before T1 · T1=2c / T2=1c · move to BE after T1. Does not touch other patterns' management."
     why: "OFF — reserved name, being built in parallel (ruling 2026-07-14). Placeholder so the index knows it."
     status: not_built
+  CONFLUENCE_RI_ZLR_V1:
+    category: s4
+    group: "S2×S4 confluence"
+    what: "Combined pattern CONFLUENCE_RI_ZLR: S2 REACTIVE/INITIATIVE route AND S4 ZLR route on the same 5-min signal bar (bar_ts canonical, ≤5s route window as safety net), same direction, |Δentry|≤1.0pt, plus G-fresh location filter (signal bar closes beyond the prior-3-bar extreme) → route ONE combined shadow setup (exactly 2 contracts via fixed_contracts_exempt, C1=±4pt, C2=±8pt, structural stop capped 7pt, BE-after-C1 canon) through the full gate chain. Parents untouched (no suppression; double-count caveat documented in the module)."
+    why: "OFF (default). Research verdict n=5: +4-first hit 40% (2/5), raw EV negative-to-zero before filters → SHADOW-only until n>=15 real samples collected, then Michael decides. Enabling V1 only adds shadow records — live/demo is refused by the gateway guard regardless (see CONFLUENCE_RI_ZLR_LIVE)."
+    status: built_off
+    ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md · backend/v9/systems/confluence/confluence_ri_zlr.py"
+  CONFLUENCE_RI_ZLR_LIVE:
+    category: risk
+    group: "S2×S4 confluence"
+    what: "RESERVED gate for FUTURE demo/live routing of CONFLUENCE_RI_ZLR. NOT implemented: even when =1 the gateway shadow-only guard refuses demo/live for this classification (loud warning, confluence_live_refused marker) — V1 stays shadow-only."
+    why: "OFF (default, standing until n>=15 shadow samples + explicit Michael sign-off — enabling is a trading-risk-surface change per Pre-LIVE Discipline; spec §4.6 sim plan first)."
+    standing_decision: true
+    status: built_off
+    ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §4.4/§4.6"
+  CONFLUENCE_RR_MIN:
+    category: param
+    group: "S2×S4 confluence"
+    what: "R:R minimum for CONFLUENCE_RI_ZLR at rr_entry_gate, judged on the definitional position average (C1+C2)/2=6pt vs stop distance (not T1-only). Default 0.85 — worst-case capped 7pt stop → 6/7≈0.857 passes. Inert unless RR_ENTRY_GATE_V1=1 AND a confluence setup routes."
+    why: "Spec §2/§5.4: the generic T1-only test (4pt / ≤7pt stop < 1.0) would dead-letter the pattern exactly on the Trend days where it is allowed, biasing the n>=15 sample to rotation days."
+    status: param
+    ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §2"
   STOP_WINDOW_COMPLETED_V1:
     category: sizing
     what: "(Reserved, parallel build) Compute the S2/S4 initial stop from COMPLETED bars only — exclude the partial/opening in-progress bar so the stop window is not off-by-one."

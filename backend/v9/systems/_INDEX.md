@@ -6,6 +6,7 @@
 - `base/` → `base/_INDEX.md`
 - `behavior_phase/` → `behavior_phase/_INDEX.md`
 - `build_status/` → `build_status/_INDEX.md`
+- `confluence/` → `confluence/_INDEX.md`
 - `day_type/` → `day_type/_INDEX.md`
 - `five_min/` → `five_min/_INDEX.md`
 - `footprint/` → `footprint/_INDEX.md`
@@ -24,7 +25,7 @@
 | `base_system.py` | ✅ 2 | 60 | 2026-05-11 | BaseSystem abstract class + Signal dataclass for V9 system wiring. |
 | `day_direction.py` | ✅ 1 | 72 | 2026-07-03 | Item-18 halt-proof — when a directional day has demonstrably stalled. |
 | `daytype_playbook.py` | ✅ 4 | 144 | 2026-07-14 | Day-type playbook decision engine (flag-gated, default OFF). |
-| `daytype_position_gate.py` | ✅ 1 | 340 | 2026-07-15 | daytype_position_gate — direction allowed by day-type + price position. |
+| `daytype_position_gate.py` | ✅ 1 | 344 | 2026-07-17 | daytype_position_gate — direction allowed by day-type + price position. |
 | `direction_context.py` | ✅ 1 | 186 | 2026-06-24 | direction_context — the dynamic auction-direction brain (#68, Michael 2026-06-22). |
 | `direction_context_live.py` | ✅ 3 | 279 | 2026-07-09 | direction_context_live — fetch TODAY's RTH bars + CVD + TPO and run the pure |
 | `entry_confirm.py` | ✅ 3 | 97 | 2026-07-08 | Item-6 — S4_ENTRY_CONFIRM_V1: require confirmation before entry. |
