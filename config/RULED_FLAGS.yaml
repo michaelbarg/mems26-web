@@ -61,6 +61,8 @@ ruled:
   OPPOSITE_EXIT_V1:       {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-14", note: "צרכן op=EXIT השבור — OFF עד EXIT-v2" }
   DAYTYPE_POSITION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-01", note: "כבוי לוולידציה עד תיקון I-44" }
   OPENING_WINDOW_FIRE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-15", note: "פסיקת-בוקר: 'שיהיה גם זיהוי וגם תבנית בשעה בהרצת הפתיחה' — מדליק את חלון-הפתיחה (מחליף את פסיקת-הכיבוי מ-08/07)" }
+  TREND_CCI_DIRECT_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "פסיקת-לייב ('GRAY צריך לבטל את זה'): הטרנד עוקב CCI ישירות (|cci|>=50 → BLUE/RED) בלי מחסום-SWI שהקפיא GRAY על CCI=-146; פותח שורטי-המשך במגמת-ירידה. הפיך (flag OFF=זהה-DLL)"}
+  TREND_CCI_DIRECT_PT:    {expected: "50", ruled_by: "מייקל", date: "2026-07-17", note: "סף-CCI לקביעת-טרנד"}
   S1_TREND_CONTROL_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-5 מאושר-והודלק ('מאשר ולפרוס'): Trend לפי שליטה — 3 מדרגות+rib≥1.8+סגירה-בקיצון; ראיות: 07-08→Trend@18:30, צמד-כיול נקי" }
   NEWS_BLACKOUT_V1:       {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "פסיקה-סופית ('אמרתי שרק אדום חוסם מסחר'): רק 🔴 חוסם -10/+5 דק'; 🟠🟡 בלוח+פאנל לתצוגה והחלטת-מייקל בלבד (NEWS_WIN_*); רענון-עצמי כל 6ש'; עוגן-BLS בביקורת-שני" }
   PHANTOM_HEAL_V1:        {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "אישור 'כן מאשר': reconciler סוגר עסקה-פנטום (backend-active + Sierra flat qty=0/working=0 מהstate-file, ≥3 בדיקות רצופות) → משחרר slot; שמרני (הפוך מ-07-10). פתר את הפנטום-#9 שחסם את יום-הסים" }
@@ -83,6 +85,12 @@ ruled:
   CONFLUENCE_RI_ZLR_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "תבנית-הצירוף S2-RI×S4-ZLR פעילה (דיטקציה+ניתוב)" }
   CONFLUENCE_RI_ZLR_LIVE: {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "'מאושר להפעיל על לייב' — ניתוב-לייב מלא; 2 חוזים בדיוק, סטופ≤7pt (סיכון-מקס ~$70/עסקה); מדגם-מחקר n=5 — לעקוב" }
   ZONE_LIMIT_ENTRY_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "'לא תהיה כניסה באף תבנית בשלב מאוחר מדי' — שער-חסימת-כניסה-מאוחרת: דריפט-adverse>2pt (ZONE_LIMIT_MAX_DRIFT_PT) / גיל-איתות>180s (ZONE_LIMIT_MAX_AGE_SEC), fail-open" }
+
+  # ── פסיקת-לייב 2026-07-17 ~19:00 (בכתב): "תאשר את האפור שיבוטל" — ראיה-קשה:
+  # ב-07-17 ה-CCI זינק ל-+182 בראלי 16:45-17:05 בעוד הצבע נשאר GRAY עד 17:15
+  # (פיגור-צבע ~6 ברים) → S4 עיוור לכל ה-+56pt. מבטל את וטו-ה-GRAY בסף ±100 ──
+  S4_GRAY_RELABEL_V1:     {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "ביטול-אפור: GRAY→BLUE/RED כש-|CCI|≥100 (קו-Stage-1). YELLOW נשאר חסום (הגנת-היפוך P-W5). מתקן פיגור-צבע-6-ברים שחסם את הלונג של 07-17" }
+  S4_GRAY_RELABEL_CCI:    {expected: "100", ruled_by: "מייקל", date: "2026-07-17", note: "סף-ה-CCI לביטול-אפור (קו-ה-Stage-1 שבו GB100 עצמו סוחר)" }
   S1_NONCONVICTION_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-8 מאושר-והודלק לערב-12/07 ('לבצע את ההמלצות ולהפעיל למחר') — יום-בלי-עקבות = NO_TRADE" }
   S1_DD_INVALIDATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-7 מאושר-והודלק — מילוי-צוואר מפיל את תווית-ה-DD (דלתון עמ' 27)" }
   T1_LADDER_V2:           {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-18", note: "נדחה בבקטסט — לא להדליק" }

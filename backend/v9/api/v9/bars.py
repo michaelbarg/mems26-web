@@ -361,6 +361,33 @@ def _ts_from_unix(unix_ts) -> datetime:
     return datetime.fromtimestamp(float(unix_ts), tz=timezone.utc)
 
 
+def _trend_from_cci(trend, cci):
+    """TREND_CCI_DIRECT_V1 (Michael 2026-07-17, live: "GRAY... צריך לבטל את זה").
+
+    The Woodies trend color stalls at GRAY on a decisively directional CCI
+    because RED/BLUE also require the SWI to confirm (calc_trend_state:
+    cci<-50 AND swi<-20). On 07-17 the down-leg ran with CCI=-146 while the
+    color stayed GRAY → the system never "saw" the down-trend, so every
+    continuation short was blocked. This makes the trend follow the CCI
+    magnitude directly (|cci|>=TREND_CCI_DIRECT_PT, default 50), dropping the
+    SWI gate. Reversible (flag OFF = byte-identical DLL color). Trading-risk
+    surface (changes what every pattern reads as 'trend') → RULED + restart.
+    """
+    import os as _os
+    if _os.getenv("TREND_CCI_DIRECT_V1", "0").lower() not in ("1", "true", "yes"):
+        return trend
+    try:
+        c = float(cci)
+    except (TypeError, ValueError):
+        return trend
+    thr = float(_os.getenv("TREND_CCI_DIRECT_PT", "50"))
+    if c >= thr:
+        return "BLUE"
+    if c <= -thr:
+        return "RED"
+    return trend
+
+
 def _hour_shift_fix(bars: list, stream: str) -> int:
     """2026-07-17 live incident (16:35 IL): the RTH chartbook Michael loaded
     today writes bar epochs shifted EXACTLY -1h vs true UTC (chartbook TZ vs
@@ -469,8 +496,28 @@ def post_bars_5min(
                 logger.warning("[bars/5min] write-guard BLOCKED: %s ts=%s", stale_reason, ts)
                 rejected += 1
                 continue
+        # ── D-0717-B (2026-07-17 live finding): bind `ts` as the tz-AWARE
+        # datetime OBJECT, NOT `ts.isoformat()`. The live v9_bars_5min.ts
+        # column drifted from the model (`DateTime(timezone=True)`) to plain
+        # `timestamp without time zone` (create_all never ALTERs an existing
+        # table): Postgres silently DROPS the "+00:00" suffix of an ISO
+        # *string* bound to a naive column, storing the UTC wall-clock — which
+        # every session-TZ cast / local reader then mis-attributes as IL time
+        # (today's rows read 13:40+03:00 for the 16:40-IL bar, 3h early —
+        # while v9_bars_5min_woodies, a true timestamptz column, landed
+        # 16:40+03:00 correct from the SAME aware string). Binding the aware
+        # datetime object makes the driver send an explicit timestamptz value,
+        # which round-trips the true instant REGARDLESS of column type:
+        #   • timestamptz column → exact instant stored (model's intent);
+        #   • naive timestamp column → PG assignment-casts through the SAME
+        #     session TimeZone it later uses to read/cast the column back, so
+        #     the conversion is symmetric and the instant is preserved;
+        #   • TEXT column (SQLite test fixtures) → rendered WITH its offset.
+        # Diagnose the live column types with scripts/check_bars_ts_types.py.
+        # Do NOT "simplify" back to ts.isoformat() — that reintroduces the
+        # silent offset-drop on the naive column. Woodies path untouched.
         rows_to_write.append((
-            ts.isoformat(), bar.symbol, bar.o, bar.h, bar.l, bar.c,
+            ts, bar.symbol, bar.o, bar.h, bar.l, bar.c,
             bar.vol, bar.poc_vol, bar.vah, bar.val, bar.cumulative_delta,
         ))
         last_valid_bar = bar
@@ -971,6 +1018,9 @@ def post_woodies_5min(
             logger.debug("[woodies_5min] Skipping stale bar ts=%s (frozen studies)", bar.get("ts"))
             continue
         _prev_studies = _cur_studies
+
+        # TREND_CCI_DIRECT_V1: trend follows CCI directly (cancel sticky GRAY)
+        bar["trend_state"] = _trend_from_cci(bar.get("trend_state"), bar.get("cci_14"))
 
         # Persist to v9_bars_5min_woodies (dedicated table per D-074)
         # DB Root Fix (2026-06-03): safe_execute replaces raw sqlite3.connect
