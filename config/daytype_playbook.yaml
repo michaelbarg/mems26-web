@@ -132,6 +132,11 @@ patterns:
   GB100:      { group: CONT, cells: { Trend_Normal: REDUCED, Trend_DD: REDUCED, Normal: REDUCED, Variation: REDUCED, Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
   # HTLB moved to reversal section below (HTLB = reversal, not continuation)
   INITIATIVE: { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: SKIP,    Nontrend: SKIP, Nonconviction: SKIP } }
+  # S2×S4 combined pattern (CONFLUENCE_RI_ZLR_V1, default OFF — SHADOW-only V1).
+  # Cells per spec docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §1.4:
+  # Neutral/Nontrend = SKIP (case D — the only full dual-route measured — failed
+  # on a Neutral evening and was rightly blocked; the block SAVED a loss).
+  CONFLUENCE_RI_ZLR: { group: CONT, require_with_trend: true, cells: { Trend_Normal: FULL, Trend_DD: FULL, Normal: FULL, Variation: FULL, Neutral_Center: SKIP, Neutral_Extreme: SKIP, Nontrend: SKIP, Nonconviction: SKIP } }
   FLAGS:      { group: CONT, cells: { Trend_Normal: FULL,    Trend_DD: FULL,    Normal: REDUCED, Variation: FULL,    Neutral_Center: SKIP, Neutral_Extreme: REDUCED, Nontrend: SKIP, Nonconviction: SKIP } }
 
   # ── Reversal (S4 Woodies + S2 REACTIVE) — SKIP on trend days per spec ──

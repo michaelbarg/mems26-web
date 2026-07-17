@@ -881,6 +881,28 @@ flags:
     what: "(Reserved, parallel build) ZLR-specific trade management (S4 only): stop = 5-min-bar structure · no stop move before T1 · T1=2c / T2=1c · move to BE after T1. Does not touch other patterns' management."
     why: "OFF — reserved name, being built in parallel (ruling 2026-07-14). Placeholder so the index knows it."
     status: not_built
+  CONFLUENCE_RI_ZLR_V1:
+    category: s4
+    group: "S2×S4 confluence"
+    what: "Combined pattern CONFLUENCE_RI_ZLR: S2 REACTIVE/INITIATIVE route AND S4 ZLR route on the same 5-min signal bar (bar_ts canonical, ≤5s route window as safety net), same direction, |Δentry|≤1.0pt, plus G-fresh location filter (signal bar closes beyond the prior-3-bar extreme) → route ONE combined shadow setup (exactly 2 contracts via fixed_contracts_exempt, C1=±4pt, C2=±8pt, structural stop capped 7pt, BE-after-C1 canon) through the full gate chain. Parents untouched (no suppression; double-count caveat documented in the module)."
+    why: "OFF (default). Research verdict n=5: +4-first hit 40% (2/5), raw EV negative-to-zero before filters → SHADOW-only until n>=15 real samples collected, then Michael decides. Enabling V1 only adds shadow records — live/demo is refused by the gateway guard regardless (see CONFLUENCE_RI_ZLR_LIVE)."
+    status: built_off
+    ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md · backend/v9/systems/confluence/confluence_ri_zlr.py"
+  CONFLUENCE_RI_ZLR_LIVE:
+    category: risk
+    group: "S2×S4 confluence"
+    what: "RESERVED gate for FUTURE demo/live routing of CONFLUENCE_RI_ZLR. NOT implemented: even when =1 the gateway shadow-only guard refuses demo/live for this classification (loud warning, confluence_live_refused marker) — V1 stays shadow-only."
+    why: "OFF (default, standing until n>=15 shadow samples + explicit Michael sign-off — enabling is a trading-risk-surface change per Pre-LIVE Discipline; spec §4.6 sim plan first)."
+    standing_decision: true
+    status: built_off
+    ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §4.4/§4.6"
+  CONFLUENCE_RR_MIN:
+    category: param
+    group: "S2×S4 confluence"
+    what: "R:R minimum for CONFLUENCE_RI_ZLR at rr_entry_gate, judged on the definitional position average (C1+C2)/2=6pt vs stop distance (not T1-only). Default 0.85 — worst-case capped 7pt stop → 6/7≈0.857 passes. Inert unless RR_ENTRY_GATE_V1=1 AND a confluence setup routes."
+    why: "Spec §2/§5.4: the generic T1-only test (4pt / ≤7pt stop < 1.0) would dead-letter the pattern exactly on the Trend days where it is allowed, biasing the n>=15 sample to rotation days."
+    status: param
+    ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §2"
   STOP_WINDOW_COMPLETED_V1:
     category: sizing
     what: "(Reserved, parallel build) Compute the S2/S4 initial stop from COMPLETED bars only — exclude the partial/opening in-progress bar so the stop window is not off-by-one."

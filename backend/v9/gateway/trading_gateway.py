@@ -336,6 +336,24 @@ class TradingGateway:
                     or (setup.get("metadata") or {}).get("pattern"))
             if _pat:
                 setup["pattern"] = _pat
+        # ── CONFLUENCE_RI_ZLR_V1 (default OFF) — S2×S4 same-bar route-join hook
+        # (spec docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §4.1). Register
+        # EVERY route attempt BEFORE the gate chain, so a join is seen even when a
+        # parent is later blocked by a parent-specific gate (e.g. pattern_loss_
+        # breaker:ZLR). observe_route returns the combined setup when this route
+        # completes an S2(REACTIVE/INITIATIVE)×S4(ZLR) same-bar/same-direction/
+        # Δentry≤1pt join, else None. Flag OFF → immediate None, zero registration.
+        # Wrapped so a detector bug can NEVER break parent routing (trading path).
+        _conf_setup = None
+        try:
+            from backend.v9.systems.confluence.confluence_ri_zlr import (
+                observe_route as _conf_observe,
+            )
+            _conf_setup = _conf_observe(setup, system_id)
+        except Exception as _conf_err:
+            logger.warning(
+                "[Gateway] confluence detector errored (parents unaffected): %s",
+                _conf_err)
         result = self._route_setup_inner(setup, system_id)
         bb = result.get("blocked_by")
         if bb:
@@ -365,6 +383,26 @@ class TradingGateway:
             })
         except Exception:
             pass
+        # CONFLUENCE_RI_ZLR: route the joined combined setup as its OWN new setup
+        # (classification=CONFLUENCE_RI_ZLR, system 4) through the full gate chain
+        # AFTER the parent's routing completed. V1 is SHADOW-ONLY (guard in
+        # _route_setup_inner) and parents are NOT suppressed (spec §4.4-V1): by the
+        # time the join completes on the second parent's route, the first parent —
+        # usually the ZLR — has already routed; holding/suppressing parents is the
+        # V2 confluence-priority design and needs a separate Michael ruling. The
+        # double-count caveat for the n>=15 analysis is documented in the
+        # confluence module docstring. Errors never propagate to the parent.
+        if _conf_setup is not None:
+            try:
+                logger.info(
+                    "[Gateway] CONFLUENCE_RI_ZLR join complete: %s entry=%s "
+                    "(parents S2+S4 same bar) → routing shadow-only",
+                    _conf_setup.get("direction"), _conf_setup.get("entry_price"))
+                self.route_setup(_conf_setup, 4)
+            except Exception as _conf_err:
+                logger.warning(
+                    "[Gateway] confluence routing errored (parent result unaffected): %s",
+                    _conf_err)
         return result
 
     def _route_setup_inner(self, setup: dict, system_id: int) -> Dict:
@@ -380,6 +418,16 @@ class TradingGateway:
         """
         cross_context = self._capture_cross_context()
         result = {"shadow": None, "demo": None, "live": None, "blocked_by": None}
+
+        # CONFLUENCE_RI_ZLR (spec §2/§4.5): C1/C2 = entry±4/±8 and the ≤7pt-capped
+        # structural stop are DEFINITIONAL for the combined pattern — the stop/
+        # target producers below must not rewrite them (their flags stay untouched
+        # for every other pattern). Blocking gates (session, feed, risk, playbook,
+        # location, halts, …) still apply to the confluence setup like any other.
+        _confluence_fixed = (
+            str(setup.get("classification") or "").strip().upper()
+            == "CONFLUENCE_RI_ZLR"
+        )
 
         # T5: Kill-switch — instant halt of ALL firing
         try:
@@ -841,7 +889,8 @@ class TradingGateway:
         # so both see the corrected stop. Fail-safe: no rung fits the band, any
         # error, or missing bars → keep the original stop. Backtest evidence:
         # 31/86 stops were below the 0.5×ATR floor (BACKTEST_STOP_RESOLVER_ITEM4).
-        if os.getenv("STOP_RESOLVER_V1", "0").lower() in ("1", "true", "yes"):
+        # (CONFLUENCE_RI_ZLR is exempt: its stop is already structural + capped 7pt.)
+        if (not _confluence_fixed) and os.getenv("STOP_RESOLVER_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 _sr_entry = setup.get("entry_price")
                 _sr_stop = setup.get("stop")
@@ -970,7 +1019,8 @@ class TradingGateway:
         # when day-type style is "location" (Normal, Variation, NeuE, NeuC).
         # Flag-gated DAYTYPE_TARGETS_STRUCTURAL (default OFF). Fail-safe: on error
         # or missing levels → keeps original R-based targets.
-        if os.getenv("DAYTYPE_TARGETS_STRUCTURAL", "0").lower() in ("1", "true", "yes"):
+        # (CONFLUENCE_RI_ZLR is exempt: ±4/±8 targets are definitional.)
+        if (not _confluence_fixed) and os.getenv("DAYTYPE_TARGETS_STRUCTURAL", "0").lower() in ("1", "true", "yes"):
             # FIX-4 (incident 333): skip structural targets before IB lock.
             # Pre-lock IB = running session high/low → structural targets land
             # too close (C1 at 1.25pt, R:R 0.05).
@@ -1035,7 +1085,9 @@ class TradingGateway:
             _pt_cls = str(setup.get("classification", "")).upper()
             _pt_g1 = extract_g1_entry_context(cross_context)
             _pt_dt = _pt_g1.get("day_type_at_entry")
-            if _pt_cls and _pt_dt:
+            # (CONFLUENCE_RI_ZLR is exempt: a future targets.yaml row must not
+            # silently rewrite the definitional ±4/±8 ladder.)
+            if _pt_cls and _pt_dt and not _confluence_fixed:
                 from backend.v9.config_loader import load_pattern_t1_points
                 _pt_overrides = load_pattern_t1_points()
                 _pt_pts = (_pt_overrides.get(_pt_cls) or {}).get(_pt_dt)
@@ -1058,7 +1110,8 @@ class TradingGateway:
         # prior-day + swings), not R-multiples — so the runner targets where price
         # actually reacts. Runs before the I-61 guard (which then validates the
         # zone targets). Fail-safe: no zone / error → keeps the structural targets.
-        if os.getenv("TARGET_ZONES_V1", "0").lower() in ("1", "true", "yes"):
+        # (CONFLUENCE_RI_ZLR is exempt: ±4/±8 targets are definitional.)
+        if (not _confluence_fixed) and os.getenv("TARGET_ZONES_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 _tz_entry = setup.get("entry_price")
                 _tz_t1 = setup.get("t1")
@@ -1136,7 +1189,8 @@ class TradingGateway:
         # structure — clamp beyond-IB targets to the IB edge unless the day
         # type travels (Neutral_*/Trend_*). Flag TARGET_STRUCTURE_CLAMP_V1
         # (default OFF). Fail-open: missing IB/day_type → untouched.
-        if os.getenv("TARGET_STRUCTURE_CLAMP_V1", "0").lower() in ("1", "true", "yes"):
+        # (CONFLUENCE_RI_ZLR is exempt: ±4/±8 targets are definitional.)
+        if (not _confluence_fixed) and os.getenv("TARGET_STRUCTURE_CLAMP_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.systems.target_structure_clamp import clamp_targets_to_ib
                 _tc_g1 = extract_g1_entry_context(cross_context)
@@ -1166,7 +1220,8 @@ class TradingGateway:
         # extreme (350: T1=7617.5 vs day-high 7614 → missed by 2 ticks). Final
         # word on t1 after all producers: ceiling = session extreme + today's
         # average breakout step. Tighten-only; honest skip when bars missing.
-        if os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
+        # (CONFLUENCE_RI_ZLR is exempt: ±4/±8 targets are definitional.)
+        if (not _confluence_fixed) and os.getenv("TARGET_REALISM_V1", "0").lower() in ("1", "true", "yes"):
             try:
                 from backend.v9.systems.structural_targets import realism_ceiling as _rc
                 _rc_entry = setup.get("entry_price")
@@ -1279,6 +1334,35 @@ class TradingGateway:
                             _rr_dir, float(_rr_t1), _rr_e,
                         )
                         return result
+                    # CONFLUENCE_RI_ZLR per-pattern R:R (spec §2/§5.4): the generic
+                    # T1-only test (4pt vs a ≤7pt stop → 0.57..0.86 < 1.0) would
+                    # dead-letter the pattern exactly on the Trend day-types where
+                    # it is allowed. Judge the DEFINITIONAL position average
+                    # (C1+C2)/2 = 6pt against a dedicated minimum CONFLUENCE_RR_MIN
+                    # (default 0.85 — worst-case capped stop 7.0 → 6/7≈0.857
+                    # passes; a wider stop is impossible by construction). The
+                    # generic path below is untouched for every other pattern.
+                    if _confluence_fixed:
+                        _rr_t2c = setup.get("t2")
+                        if _rr_t2c is not None:
+                            _t2_dist = (float(_rr_t2c) - _rr_e) if _rr_dir == "LONG" \
+                                else (_rr_e - float(_rr_t2c))
+                        else:
+                            _t2_dist = _t1_dist
+                        _avg_dist = (_t1_dist + _t2_dist) / 2.0
+                        try:
+                            _conf_rr_min = float(
+                                os.getenv("CONFLUENCE_RR_MIN", "0.85") or "0.85")
+                        except (TypeError, ValueError):
+                            _conf_rr_min = 0.85
+                        if _stop_dist > 0 and _avg_dist < _stop_dist * _conf_rr_min:
+                            result["blocked_by"] = "rr_entry_gate"
+                            logger.info(
+                                "[Gateway] BLOCKED by R:R gate (confluence avg): "
+                                "avg_dist=%.2f < stop_dist=%.2f × min=%.2f",
+                                _avg_dist, _stop_dist, _conf_rr_min,
+                            )
+                            return result
                     # 07-15 evening (Michael: "תיקון שיסדר את הבעיה כדי שהמערכת
                     # תסחר היום"): graded R:R minimum on ROTATION days. The
                     # 0.8×ATR stop floor (decision 5/6) × nearest-shelf T1 made
@@ -1310,7 +1394,7 @@ class TradingGateway:
                                 _rr_min = max(0.1, min(float(_rr_min_env), 1.0))
                         except Exception:
                             _rr_min = 1.0
-                    if _stop_dist > 0 and _t1_dist < _stop_dist * _rr_min:
+                    if (not _confluence_fixed) and _stop_dist > 0 and _t1_dist < _stop_dist * _rr_min:
                         result["blocked_by"] = "rr_entry_gate"
                         logger.info(
                             "[Gateway] BLOCKED by R:R gate: T1_dist=%.2f < stop_dist=%.2f"
@@ -1403,6 +1487,26 @@ class TradingGateway:
         if len(self.shadow_trades) > 500:
             self.shadow_trades = self.shadow_trades[-300:]
         result["shadow"] = shadow_trade["trade_id"]
+
+        # ── CONFLUENCE_RI_ZLR V1: SHADOW-ONLY, regardless of global mode ──
+        # Research verdict (spec §0/§3.3): n=5, +4-first hit-rate 40% — raw EV
+        # negative-to-zero before filters. Until n>=15 real shadow samples AND an
+        # explicit Michael sign-off, the combined pattern must NEVER reach demo/
+        # live execution, even when the process runs MEMS26_MODE=live with system
+        # 4 live-enabled. CONFLUENCE_RI_ZLR_LIVE is a RESERVED gate: live routing
+        # is NOT implemented — if someone flips it, this stub still REFUSES (and
+        # logs loudly) rather than trade an unvalidated pattern. Returning here
+        # also keeps the confluence out of OPPOSITE_EXIT counting and the demo/
+        # live slots — parents' behavior is untouched.
+        if _confluence_fixed:
+            if os.getenv("CONFLUENCE_RI_ZLR_LIVE", "0").lower() in ("1", "true", "yes"):
+                logger.warning(
+                    "[Gateway] CONFLUENCE_RI_ZLR_LIVE=1 but live routing is NOT "
+                    "implemented (needs n>=15 shadow samples + Michael sign-off) "
+                    "— REFUSING demo/live; shadow recorded only.")
+                result["confluence_live_refused"] = True
+            result["confluence_shadow_only"] = True
+            return result
 
         # P3: Opposite-pattern exit (OPPOSITE_EXIT_V1, default OFF)
         # When a trade is active and ≥2 signals fire in the opposite direction

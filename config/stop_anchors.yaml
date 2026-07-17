@@ -78,6 +78,7 @@ anchors:
   # ── S4 CONT (🔬 מחקר אושר; חלונות לפי מבנה-התבנית) ──
   # max_risk_points: 🔬 trial values (2026-06-12); CONT over cap → SIZE_DOWN to 1 contract, REV → SKIP
   ZLR:    {system: S4, group: CONT, type: breakout_bar,         window: 1, max_risk_points: 15}   # ✅ Michael · stop on breakout bar (2026-06-30, was cluster_low/4 → reached stale dips → 16.5pt SKIP)
+  CONFLUENCE_RI_ZLR: {system: S4, group: CONT, type: breakout_bar, window: 1, max_risk_points: 7}  # 🔬 S2×S4 combined (CONFLUENCE_PATTERN_SPEC_2026-07-17.md §2/§4.2): deliberately tight — 7pt cap < ZLR's 15; SHADOW-only V1
   TLB:    {system: S4, group: CONT, type: since_trendline_peak, window: 8, max_risk_points: 15}   # 🔬 משתנה 3-8
   TT:     {system: S4, group: CONT, type: zl_excursion,         window: 9, max_risk_points: 15}   # 🔬 4-9
   GB100:  {system: S4, group: CONT, type: cluster_low,          window: 6, max_risk_points: 15}   # 🔬 חלון-6

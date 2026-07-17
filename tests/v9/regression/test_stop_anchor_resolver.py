@@ -119,15 +119,24 @@ def test_mode_value_day():
     assert t.mode == "tactical"
 
 
-# ── the real YAML loads + validates + has all 14 anchors ─────────────
+# ── the real YAML loads + validates + has all 15 anchors ─────────────
 def test_real_stop_anchors_yaml_loads():
     from backend.v9.config_loader import load_stop_anchors
     data = load_stop_anchors()
     assert data is not None, "stop_anchors.yaml failed validation"
     assert data["risk_cap_points"] == 25
     assert data["mode_caps"] == {"strategic": 3, "tactical": 2}
-    assert len(data["anchors"]) == 14
+    # 14 originals + CONFLUENCE_RI_ZLR (S2×S4 combined, 2026-07-17 spec)
+    assert len(data["anchors"]) == 15
     # the research-changed ones are present as decided
     assert data["anchors"]["OFA_Initiative"]["type"] == "breakout_bar"   # stays tight
     assert data["anchors"]["Flag"]["type"] == "breakout_bar"               # Michael 2026-06-09: breakout bar
-    assert data["anchors"]["ZLR"]["window"] == 4
+    # ZLR: Michael 2026-06-30 — stop on the breakout bar (window 1; was
+    # cluster_low/4 which reached stale dips → 16.5pt SKIP). Pin was stale (4).
+    assert data["anchors"]["ZLR"]["type"] == "breakout_bar"
+    assert data["anchors"]["ZLR"]["window"] == 1
+    # CONFLUENCE_RI_ZLR: deliberately tight 7pt cap (< ZLR's 15), same anchor
+    assert data["anchors"]["CONFLUENCE_RI_ZLR"] == {
+        "system": "S4", "group": "CONT", "type": "breakout_bar",
+        "window": 1, "max_risk_points": 7,
+    }
