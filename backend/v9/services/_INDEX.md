@@ -29,7 +29,7 @@
 | `bar_router.py` | ✅ 3 | 127 | 2026-05-29 | BarRouter — central distributor for bar events. |
 | `eod_archive_scheduler.py` | ✅ 2 | 236 | 2026-05-23 | P31 Phase 1 — End-of-day archive scheduler. |
 | `eod_archiver.py` | ✅ 3 | 199 | 2026-05-23 | P30 G6 / P31 Phase 1 — End-of-day archiver for MEMS26 Sierra exports. |
-| `feed_watchdog.py` | ✅ 1 | 170 | 2026-07-16 | Feed watchdog — block fires when canonical trading streams are stale. |
+| `feed_watchdog.py` | ✅ 1 | 170 | 2026-07-17 | Feed watchdog — block fires when canonical trading streams are stale. |
 | `fill_poller.py` | ✅ 2 | 598 | 2026-07-15 | Fill poller — reads trade_fills.json from Sierra DLL and drives TradeManager. |
 | `frozen_tail_watchdog.py` | ✅ 3 | 301 | 2026-07-15 | Frozen-tail watchdog — detect + alert when Sierra DLL writes 5min.json |
 | `gsheets_trade_logger.py` | ✅ 1 | 324 | 2026-07-14 | Real-time Google-Sheets logger for LIVE trades — Sierra-truth only (L8+). |

@@ -25,7 +25,7 @@
 | `cumulative_delta_routes.py` | ✅ 1 | 297 | 2026-06-02 | API: /api/v9/cumulative_delta — read Sierra cumulative_delta.json export. |
 | `day_type_seed.py` | ✅ 1 | 202 | 2026-07-01 | P30 C1 — Mid-session restart IB seeding for Day Type Engine. |
 | `day_type_v9_routes.py` | ✅ 2 | 153 | 2026-06-03 | API: /api/v9/day_type/v9/* — V9 Day Type endpoints (3a-S4 REVISED C3). |
-| `daytype_classify_routes.py` | ✅ 2 | 249 | 2026-07-13 | V9 API: run the NEW relative day-type classifier over a historical day (read-only). |
+| `daytype_classify_routes.py` | ✅ 2 | 259 | 2026-07-13 | V9 API: run the NEW relative day-type classifier over a historical day (read-only). |
 | `gateway_routes.py` | ✅ 1 | 98 | 2026-07-15 | API routes for Trading Gateway status + manual route_setup (P-TG.5). |
 | `health_streams.py` | ✅ 1 | 36 | 2026-06-04 | V9 API: Stream Health endpoint — GET /api/v9/health/streams. |
 | `history_routes.py` | ✅ 1 | 79 | 2026-05-23 | P30 G6 — `/api/v9/history/*` — yesterday-replay endpoints. |

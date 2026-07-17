@@ -10,14 +10,14 @@
 ## Files
 | File | Usage | LOC | Modified | Description |
 |---|---|---|---|---|
-| `agent_heartbeat.py` | ▶ entry/test | 67 | 2026-07-11 | Write docs/reports/AGENT_HEARTBEAT.json — the session-watch liveness beacon the |
+| `agent_heartbeat.py` | ▶ entry/test | 67 | 2026-07-17 | Write docs/reports/AGENT_HEARTBEAT.json — the session-watch liveness beacon the |
 | `apply_targets_diff.py` | ▶ entry/test | 158 | 2026-07-12 | apply_targets_diff — learning-loop v3: apply a PROPOSED_TARGETS_DIFF file to |
 | `backtest_counter_flow.py` | ▶ entry/test | 99 | 2026-07-05 | Research: WHEN does opposing volume win, and is exiting there worth it? |
 | `backtest_cvd_divergence.py` | ▶ entry/test | 85 | 2026-07-05 | Backtest cvd_divergence (literature-correct volume exit) on real trades. |
 | `backtest_exit_signals.py` | ▶ entry/test | 104 | 2026-07-05 | Backtest System 6 exit signals on real managed trades (2026-07-05). |
 | `backtest_manager_combined.py` | ▶ entry/test | 99 | 2026-07-05 | Combined System 6 manager backtest (2026-07-05). |
 | `backtest_stop_resolver_item4.py` | ▶ entry/test | 173 | 2026-07-03 | Item-4 backtest — old stop vs STOP_RESOLVER_V1 structural stop, per pattern. |
-| `bar_gap_monitor.py` | ▶ entry/test | 132 | 2026-07-16 | bar_gap_monitor — Track B (Michael 2026-07-16: "לדעת שיש את כל הנרות ללא חוסרים"). |
+| `bar_gap_monitor.py` | ▶ entry/test | 132 | 2026-07-17 | bar_gap_monitor — Track B (Michael 2026-07-16: "לדעת שיש את כל הנרות ללא חוסרים"). |
 | `bridge_monitor.py` | ▶ entry/test | 144 | 2026-05-29 | Bridge Data Monitor — snapshots every 15 min, logs to file. |
 | `build_monolithic.py` | ▶ entry/test | 122 | 2026-06-24 | build_monolithic.py — cross-platform monolith generator for Sierra Chart remote build. |
 | `build_monolithic_cpp.sh` | — | 112 | 2026-06-26 | build_monolithic_cpp.sh — Generate monolith DLL for Sierra Chart remote build |
@@ -35,7 +35,7 @@
 | `fire_drill.py` | ▶ entry/test | 158 | 2026-07-15 | fire_drill — ירי-יבש של שרשרת ההחלטה לפני פתיחה (מייקל 2026-07-08). |
 | `flag_guard.py` | ✅ 2 | 87 | 2026-07-08 | flag_guard — אימות שדגלים שנפסקו לא זזו (מייקל 2026-07-08). |
 | `g4_pkg5_latency_probe.py` | ▶ entry/test | 80 | 2026-05-24 | g4_pkg5_latency_probe.py · G4 UAT Axis 4 · process_bar latency measurement. |
-| `gen_daily_report.py` | ▶ entry/test | 107 | 2026-07-16 | gen_daily_report — דוח-יומי אוטומטי (Michael 2026-07-16, "דוח יומי שגם יופיע בכיס"). |
+| `gen_daily_report.py` | ▶ entry/test | 107 | 2026-07-17 | gen_daily_report — דוח-יומי אוטומטי (Michael 2026-07-16, "דוח יומי שגם יופיע בכיס"). |
 | `gen_flag_index.py` | ▶ entry/test | 388 | 2026-07-14 | gen_flag_index.py — generate docs/FLAG_INDEX.md, the canonical index of every |
 | `gen_index.py` | ▶ entry/test | 362 | 2026-06-04 | Generate a living index of the MEMS26 codebase. |
 | `gen_pattern_visual.py` | ▶ entry/test | 199 | 2026-07-02 | -*- coding: utf-8 -*- |
@@ -52,14 +52,14 @@
 | `mems26_verify.sh` | — | 71 | 2026-07-12 | mems26_verify.sh — one-shot "is everything consistent + up to date?" check. |
 | `morning_briefing.py` | ▶ entry/test | 135 | 2026-07-13 | בריפינג-בוקר — מה כל מערכת מחפשת היום + חשבון הסטופים (מייקל 2026-07-08). |
 | `nightly_exit_review.py` | ▶ entry/test | 248 | 2026-07-12 | nightly_exit_review — the nightly learning loop (Michael ruling 2026-07-11/12). |
-| `ops_log.py` | ✅ 8 | 134 | 2026-07-16 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
+| `ops_log.py` | ✅ 8 | 134 | 2026-07-17 | Central ops log (N12 — Michael 2026-07-16: "קובץ לוג שמקבל את הכל"). |
 | `package_for_migration.sh` | — | 77 | 2026-06-19 | package_for_migration.sh — bundle the FULL MEMS26 stack for the second (Sierra) machine. |
 | `patch_woodies_5min_hud.py` | ▶ entry/test | 137 | 2026-05-23 | Patch woodies_5min.json with P30.10 HUD fields (interim until DLL Export 8b is live). |
-| `pattern_watch.py` | ▶ entry/test | 72 | 2026-06-09 | pattern_watch.py — poll build/pattern-status, log per-pattern blockers. |
+| `pattern_watch.py` | ▶ entry/test | 72 | 2026-07-17 | pattern_watch.py — poll build/pattern-status, log per-pattern blockers. |
 | `pkg0_redis_migrate.py` | ▶ entry/test | 78 | 2026-05-23 | Pkg 0 · Redis migration · chart_5min → five_min |
 | `place_test_demo_order.py` | ▶ entry/test | 29 | 2026-07-02 | Pipeline 5 — place ONE test DEMO entry to Sierra Sim. MICHAEL runs this (he holds the |
 | `post-commit-hook.sh` | — | 105 | 2026-05-16 | ═══════════════════════════════════════════════════════════════ |
-| `post_restart_verify.sh` | — | 110 | 2026-07-15 | post_restart_verify.sh — liveness gate after every restart/kickstart. |
+| `post_restart_verify.sh` | — | 110 | 2026-07-17 | post_restart_verify.sh — liveness gate after every restart/kickstart. |
 | `pre-commit-hook.sh` | — | 77 | 2026-05-11 | ═══════════════════════════════════════════════════════════════ |
 | `registry_audit.sh` | — | 82 | 2026-05-10 | MEMS26 Registry Health Audit |
 | `replay_day.py` | ▶ entry/test | 158 | 2026-06-09 | replay_day.py — replay all detectors on a day's bars from DB. |

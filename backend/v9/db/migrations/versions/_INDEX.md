@@ -8,3 +8,4 @@
 | `019_archive_and_session_meta.py` | ▶ migration | 162 | 2026-05-29 | Migration 019: archive tables + v9_session_meta + is_synthetic columns. |
 | `020_g1_trade_context_columns.py` | ▶ migration | 81 | 2026-06-05 | Migration 020: G1 trade context columns. |
 | `021_t4_contract_columns.py` | ▶ migration | 51 | 2026-07-15 | Migration 021: T4 contract columns (Michael 07-15, 4 contracts). |
+| `022_day_type_state_n1_columns.py` | ▶ migration | 66 | — | Migration 022: v9_day_type_state N1 observability columns (2026-07-17). |

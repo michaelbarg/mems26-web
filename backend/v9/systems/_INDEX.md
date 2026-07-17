@@ -34,7 +34,7 @@
 | `structural_targets.py` | ✅ 3 | 576 | 2026-07-10 | structural_targets — resolve day-type targets to structural price levels. |
 | `system6_exit_signals.py` | ✅ 5 | 340 | 2026-07-05 | System 6 — exit-signal engine (the "smart manager", Michael 2026-07-05). |
 | `system6_journal.py` | ✅ 2 | 151 | 2026-07-05 | System 6 — decision journal + learning loop (Michael 2026-07-05). |
-| `system6_supervisor.py` | ✅ 3 | 305 | 2026-07-16 | System 6 — Active-Trade Supervisor (Michael 2026-07-05). |
+| `system6_supervisor.py` | ✅ 3 | 305 | 2026-07-17 | System 6 — Active-Trade Supervisor (Michael 2026-07-05). |
 | `target_structure_clamp.py` | ✅ 3 | 101 | 2026-07-09 | TP-1 — targets live inside the day structure (Michael ruling 2026-07-08). |
 | `target_zones.py` | ✅ 1 | 112 | 2026-07-03 | Item-22 — TARGET_ZONES_V1: level-confluence target zones beyond T1. |
 | `trend_direction_gate.py` | ✅ 1 | 80 | 2026-06-18 | Trend Direction Gate — blocks counter-trend fires for targeted patterns. |

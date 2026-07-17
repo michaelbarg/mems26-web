@@ -10,4 +10,4 @@
 |---|---|---|---|---|
 | `__init__.py` | ▶ entry/test | 0 | 2026-05-09 |  |
 | `env_loader.py` | ✅ 1 | 83 | 2026-06-24 | Minimal .env loader — load KEY=VALUE pairs into the process environment. |
-| `main.py` | ▶ entry/test | 1095 | 2026-07-15 | MEMS26 unified backend — serves V8-compatible routes + V9 API. |
+| `main.py` | ▶ entry/test | 1136 | 2026-07-15 | MEMS26 unified backend — serves V8-compatible routes + V9 API. |
