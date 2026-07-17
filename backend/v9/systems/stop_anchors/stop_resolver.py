@@ -72,7 +72,13 @@ def resolve_stop(
     # (continuation entries legitimately hug structure). Cap unchanged.
     _floor_mult = 0.5
     _dt = (day_type or "").strip()
-    if _dt.startswith(("Variation", "Normal_Variation", "Neutral")):
+    # NORMAL_ROTATION_FIX_V1 (Michael 2026-07-17): bare "Normal" was omitted here
+    # too (same class as gateway:811) → Normal-day fades got a 0.5×ATR floor
+    # "inside the noise" (the #372 premature-stopout). Normal rotates → wider floor.
+    _rot_floor = ("Variation", "Normal_Variation", "Neutral")
+    if os.getenv("NORMAL_ROTATION_FIX_V1", "1").lower() in ("1", "true", "yes"):
+        _rot_floor = _rot_floor + ("Normal",)
+    if _dt.startswith(_rot_floor):
         try:
             _floor_mult = float(os.getenv("STOP_FLOOR_ROTATION_ATR", "0.8"))
         except (TypeError, ValueError):

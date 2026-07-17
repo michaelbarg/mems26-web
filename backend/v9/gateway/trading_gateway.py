@@ -808,7 +808,18 @@ class TradingGateway:
                                 # around VAH/VAL/POC, so REV fades at the edges are THE play
                                 # there too, not only on Neutral (07-14: correct fades were
                                 # direction-context-blocked while the wrong-side LONG passed).
-                                _nr_exempt = (str(_nr_dt).startswith(("Neutral", "Variation", "Normal_Variation"))
+                                # NORMAL_ROTATION_FIX_V1 (Michael 2026-07-17 ~20:15,
+                                # completing his own 07-15 ruling above): bare "Normal"
+                                # was omitted from THIS exemption while its siblings —
+                                # location_gate._ROTATION_PREFIXES:28 and the RR-relief
+                                # :1438 — both include it. A Normal day rotates around
+                                # VAH/VAL/POC too, so an edge fade (REACTIVE/VEGAS/GHOST/
+                                # FAMIR/HTLB) is the play and must not be direction-context
+                                # blocked. Same "forgot Normal" class as the 07-17 fixes.
+                                _nr_prefixes = ("Neutral", "Variation", "Normal_Variation")
+                                if os.getenv("NORMAL_ROTATION_FIX_V1", "1").lower() in ("1", "true", "yes"):
+                                    _nr_prefixes = _nr_prefixes + ("Normal",)
+                                _nr_exempt = (str(_nr_dt).startswith(_nr_prefixes)
                                               and _nr_fam_fn(_nr_pat) == "REV")
                                 if _nr_exempt:
                                     logger.info(
