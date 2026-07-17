@@ -951,8 +951,24 @@ class FiveMinSystem(BaseV9TradingSystem):
         cot = pattern_state.get("cot", 0) or 0
         amt = pattern_state.get("amt", 0) or 0
         direction = pattern_state.get("direction")
+        import os as _os
 
-        # COT/AMT alignment check (direction-dependent)
+        # ── S2_REACTIVE_EDGE_FIX_V1 (Michael live ruling 2026-07-17 ~20:00) ──
+        # Two doctrine bugs this legacy fallback carried, both silently REJECTing
+        # a valid edge-fade (never reaching route_setup → invisible in decisions):
+        #   1. LOCATION INVERTED: it demanded location=="at"/"near" the POC — but
+        #      `location_vs_poc_vol` measures distance FROM the POC, so a REACTIVE
+        #      fade at VAH/VAL (the edge, where fades belong) is "far" → rejected.
+        #      A responsive fade is CORRECT at the value-area EDGE, not at centre.
+        #   2. COT/AMT HARD-REJECT contradicts the S2⟂S3 standing decision
+        #      (CLAUDE.md: COT/AMT NOT required; S3 muted). With the CVD export
+        #      empty today cot=amt=0 → every reactive auto-rejected.
+        # Fix (flag ON by default per ruling): flow is a size booster, not a gate
+        # unless S2_REQUIRE_COT_AMT=1; edge location is welcome for a fade.
+        _edge_fix = _os.getenv("S2_REACTIVE_EDGE_FIX_V1", "1").lower() in ("1", "true", "yes")
+        _require_flow = _os.getenv("S2_REQUIRE_COT_AMT", "0").lower() in ("1", "true", "yes")
+
+        # COT/AMT alignment (direction-dependent) — used for the FULL-size booster
         if direction == "LONG":
             cot_amt_ok = cot > amt
             cot_amt_strong = amt > 0 and cot > amt * 1.2  # 🟡 1.2x threshold
@@ -962,19 +978,28 @@ class FiveMinSystem(BaseV9TradingSystem):
         else:
             return "reject"
 
-        if not cot_amt_ok:
-            return "reject"  # No flow support for direction
+        if not _edge_fix:
+            # legacy path (byte-identical) when the fix flag is off
+            if not cot_amt_ok:
+                return "reject"
+            location = pattern_state.get("location_vs_poc_vol", "far")
+            if bars_formed == 4 and cot_amt_strong and location == "at":
+                return "full"
+            if bars_formed >= 3 and cot_amt_ok and location in ("at", "near"):
+                return "half"
+            return "reject"
 
+        # ── fixed path ──
+        if _require_flow and not cot_amt_ok:
+            return "reject"  # only gate on flow when explicitly re-required
         location = pattern_state.get("location_vs_poc_vol", "far")  # at / near / far
-
-        # Pristine: 4 bars + strong flow + at POC → full (3 contracts)
-        if bars_formed == 4 and cot_amt_strong and location == "at":
+        # FULL = a mature fade with confirming flow (location no longer gates —
+        # an edge fade ("far") is the textbook responsive entry).
+        if bars_formed == 4 and cot_amt_strong:
             return "full"
-
-        # Solid: 3+ bars + flow ok + near/at POC → half (2 contracts)
-        if bars_formed >= 3 and cot_amt_ok and location in ("at", "near"):
+        # SOLID = 3+ bar reactive; ships at half regardless of POC distance.
+        if bars_formed >= 3:
             return "half"
-
         return "reject"
 
     def _compute_location_vs_poc(self, bar: dict) -> str:
@@ -1298,6 +1323,22 @@ class FiveMinSystem(BaseV9TradingSystem):
             cot_val = info.get("cot") or self._get_cot_from_footprint() or 0
             amt_val = info.get("amt") or self._get_amt_from_footprint() or 0
             location = self._compute_location_vs_poc(bar)
+            # ── D-0717-A (Michael live finding 2026-07-17 18:06): the auth verdict
+            # inside compute_v2_sizing (_auth_cell lookup) resolved pattern × day_type
+            # with self.current_day_type — the OLD engine's event/hydration value —
+            # while DAY_TYPE_MANUAL_OVERRIDE=2026-07-17:Variation was live, so S2
+            # showed "INITIATIVE_LONG × Normal" (SKIP row) instead of "× Variation"
+            # (FULL row). Consult the canonical override-aware source FIRST
+            # (trade_context.get_live_day_type — the same source the emit path at
+            # `_emit_day_type` already uses), falling back to the event value when
+            # it returns None. Fail-open: any error → prior behavior; never raises
+            # into the fire path.
+            _live_day_type = None
+            try:
+                from backend.v9.services.trade_context import get_live_day_type as _gldt_s2
+                _live_day_type = _gldt_s2()
+            except Exception:
+                _live_day_type = None
             v2_sizing_result = None
             if _flag("STOP_ANCHORS_V2"):
                 try:
@@ -1330,7 +1371,8 @@ class FiveMinSystem(BaseV9TradingSystem):
                             stop_price=stop_price,
                             direction=direction,
                             pattern_key=_s2_family_key[family],
-                            day_type=self.current_day_type or "Normal",
+                            # D-0717-A: override-aware live day_type first (see above)
+                            day_type=_live_day_type or self.current_day_type or "Normal",
                             confidence_tier="medium",
                             day_has_direction=_day_has_dir,
                             trade_with_trend=_with_trend,
@@ -1386,8 +1428,10 @@ class FiveMinSystem(BaseV9TradingSystem):
             # as V2Sizing / position gate). Falls back to self.current_day_type, then
             # the old DECISION_MATRIX provisional. Single helper shared with
             # extract_g1_entry_context (no duplicate logic).
-            from backend.v9.services.trade_context import get_live_day_type as _get_live_dt
-            _emit_day_type = _get_live_dt() or self.current_day_type
+            # D-0717-A: reuse the override-aware value resolved ONCE before sizing
+            # (_live_day_type, same get_live_day_type() source) so sizing/auth,
+            # targets and emit all see the SAME label within a single fire.
+            _emit_day_type = _live_day_type or self.current_day_type
             if not _emit_day_type or _emit_day_type in ("UNKNOWN", "None"):
                 try:
                     from backend.v9.systems.day_type.decision_matrix import DECISION_MATRIX

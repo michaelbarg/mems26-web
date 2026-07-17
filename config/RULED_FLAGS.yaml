@@ -95,6 +95,8 @@ ruled:
   # שני-מנגנוני-טרנד על לייב. הקוד+הטסט נשארים; הדלקה-מחדש = פסיקה.
   S4_GRAY_RELABEL_V1:     {expected: "0", ruled_by: "מייקל", date: "2026-07-17", note: "מנוטרל — מוחלף ב-TREND_CCI_DIRECT_V1 הקנוני. גיבוי-רדום (relabel GRAY→BLUE/RED @|CCI|≥100, YELLOW נשמר)" }
   S4_GRAY_RELABEL_CCI:    {expected: "100", ruled_by: "מייקל", date: "2026-07-17", note: "סף-הגיבוי-הרדום (inert כל עוד S4_GRAY_RELABEL_V1=0)" }
+  # ── פסיקת-לייב 2026-07-17 ~20:00: "ריאקטיב היה ב-VAH, יכל לשורט" — באג-מיקום-הפוך ──
+  S2_REACTIVE_EDGE_FIX_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "calculate_size דחה דהיית-קצה: דרש location=='at'-POC (הפוך — דהייה בקצה=רחוק-מ-POC) + אישור-COT/AMT (מנוגד ל-S2⟂S3). תוקן: קצה מותר, COT/AMT=בוסטר-גודל לא-שער (אלא אם S2_REQUIRE_COT_AMT=1)" }
   S1_NONCONVICTION_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-8 מאושר-והודלק לערב-12/07 ('לבצע את ההמלצות ולהפעיל למחר') — יום-בלי-עקבות = NO_TRADE" }
   S1_DD_INVALIDATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-7 מאושר-והודלק — מילוי-צוואר מפיל את תווית-ה-DD (דלתון עמ' 27)" }
   T1_LADDER_V2:           {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-18", note: "נדחה בבקטסט — לא להדליק" }
