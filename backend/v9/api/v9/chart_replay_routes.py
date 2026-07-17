@@ -114,10 +114,20 @@ def _entry_gap(date: str, table: str) -> Optional[float]:
         ) b ON true
         WHERE (t.entry_ts AT TIME ZONE 'America/New_York')::date = :date
           AND t.is_synthetic = 0 AND b.c IS NOT NULL
+          AND t.mode IN ('live', 'demo')
+          AND (t.entry_ts AT TIME ZONE 'America/New_York')::time
+              BETWEEN '09:30' AND '16:00'
         """,
         {"date": date},
     )
     return float(gap) if gap is not None else None
+    # 2026-07-17 live incident: a PRE-OPEN demo artifact (#388, entered 02:01 ET
+    # at yesterday's price level ~7610 vs today's -84pt gap-down tape) poisoned
+    # this contract-match heuristic — the ~100pt "gap" made it reject the healthy
+    # 121-bar woodies series and pick a 3-row broken-ts fallback → classify_replay
+    # saw "no RTH bars" ALL SESSION (S1 criteria panel blank, day-type blind).
+    # Fix: only RTH-entered trades may drive source selection; a pre/post-RTH
+    # entry says nothing about which contract the session's candles should be.
 
 
 def _bars_for_date(date: str):
