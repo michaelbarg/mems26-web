@@ -24,6 +24,14 @@ from zoneinfo import ZoneInfo
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
+
+# ── central ops log (N12) — GUARDED: logging must never break the monitor
+try:
+    from scripts.ops_log import log_event
+except Exception:  # pragma: no cover
+    def log_event(*_a, **_k):
+        return False
+
 IL = ZoneInfo("Asia/Jerusalem")
 TABLES = ["v9_bars_5min_woodies", "v9_bars_5min_continuous", "v9_bars_5min"]
 RTH_OPEN, RTH_CLOSE = _time(16, 30), _time(23, 0)
@@ -101,13 +109,22 @@ def main():
     for s in r["streams"]:
         if "error" in s:
             print(f"  {s['table']}: ERROR {s['error']}")
+            log_event("bar_gap_monitor", "ERROR", f"{s['table']}: ERROR {s['error']}")
         elif "note" in s:
             print(f"  {s['table']}: {s['note']}")
+            log_event("bar_gap_monitor", "INFO", f"{s['table']}: {s['note']}")
         else:
             tag = "✅" if s["missing_count"] == 0 else "🔴"
             print(f"  {tag} {s['table']}: {s['bars']}/{s['expected']} bars · "
                   f"missing={s['missing_count']} {s['missing_first5']} · "
                   f"longest_gap={s['longest_gap_bars']} · age={s['newest_age_min']}min")
+            # N12 central ops log — per-table verdict
+            log_event("bar_gap_monitor", "INFO" if s["missing_count"] == 0 else "WARN",
+                      f"{tag} {s['table']}: {s['bars']}/{s['expected']} bars · "
+                      f"missing={s['missing_count']} · longest_gap={s['longest_gap_bars']} · "
+                      f"age={s['newest_age_min']}min")
+    log_event("bar_gap_monitor", "INFO" if r["ok"] else "ERROR",
+              f"{r['date']} {r['window']} verdict={'SHALEM' if r['ok'] else 'GAP/STALE'}")
     sys.exit(0 if r["ok"] else 1)
 
 

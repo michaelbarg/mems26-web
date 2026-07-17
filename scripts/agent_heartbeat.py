@@ -15,10 +15,19 @@ never as a false-green. This writer never fabricates a verdict; pass the real on
 import argparse
 import json
 import os
+import sys
 from datetime import datetime, timezone
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(REPO, "docs", "reports", "AGENT_HEARTBEAT.json")
+
+# ── central ops log (N12) — GUARDED: logging must never break the beacon
+try:
+    sys.path.insert(0, REPO)
+    from scripts.ops_log import log_event
+except Exception:  # pragma: no cover
+    def log_event(*_a, **_k):
+        return False
 
 
 def main() -> None:
@@ -47,6 +56,11 @@ def main() -> None:
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(rec, f, ensure_ascii=False, indent=2)
     print(f"[agent_heartbeat] wrote {OUT}: {a.verdict} {a.note}")
+    # N12 central ops log — one line per session-watch run (source = --source)
+    level = {"🟢": "INFO", "🟡": "WARN", "🔴": "ERROR"}.get(a.verdict, "INFO")
+    checks_str = " ".join(f"{k}={v}" for k, v in checks.items())
+    log_event(a.source or "session-watch", level,
+              f"{a.verdict} {a.note}" + (f" · {checks_str}" if checks_str else ""))
 
 
 if __name__ == "__main__":

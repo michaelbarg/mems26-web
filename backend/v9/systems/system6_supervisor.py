@@ -39,6 +39,14 @@ from typing import Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
+# ── central ops log (N12) — GUARDED: a logging failure must NEVER affect the
+# supervisor (diagnosis stays pure; only the live scan wrapper logs).
+try:
+    from scripts.ops_log import log_event
+except Exception:  # pragma: no cover
+    def log_event(*_a, **_k):  # type: ignore[misc]
+        return False
+
 # severities
 INFO, WARN, CRITICAL = "INFO", "WARN", "CRITICAL"
 # actions
@@ -275,6 +283,10 @@ def scan_active_trade(
     )
     for iss in report.alerts:
         logger.warning("[System6] %s ALERT: %s", iss.code, iss.detail)
+        try:  # N12 central ops log — one line per ALERT issue; never breaks the scan
+            log_event("system6", iss.severity, f"{iss.code} ALERT: {iss.detail}")
+        except Exception:
+            pass
     if report.healthy:
         logger.info("[System6] active trade healthy")
         return report

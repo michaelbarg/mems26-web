@@ -29,10 +29,14 @@ BAR_MAX_AGE=420      # 7 min
 DAYTYPE_MAX_AGE=900  # 15 min
 
 RED=0
+FAILS=""
 say()  { printf '%s\n' "$*"; }
 pass() { say "  ✅ $*"; }
-fail() { say "  🔴 $*"; RED=1; }
+fail() { say "  🔴 $*"; RED=1; FAILS="${FAILS}${FAILS:+ | }$*"; }
 info() { say "  ▫️  $*"; }
+# N12 central ops log — GUARDED (|| true + /dev/null): logging must never
+# change the gate's verdict/exit code.
+ops_log() { python3 scripts/ops_log.py -s post_restart_verify -l "$1" "$2" >/dev/null 2>&1 || true; }
 
 # ── RTH gate (ET) ── FORCE_RTH=1/0 overrides (testing / manual gate).
 if [ -n "${FORCE_RTH:-}" ]; then
@@ -88,9 +92,11 @@ fi
 say ""
 if [ "$RED" -eq 0 ]; then
   say "🟢 GREEN — liveness verified, OK to trade."
+  ops_log INFO "GREEN — liveness verified, OK to trade (RTH=$IS_RTH)"
   exit 0
 fi
 say "🔴 RED — DO NOT TRADE. One or more liveness checks failed."
+ops_log ERROR "RED — DO NOT TRADE (RTH=$IS_RTH): ${FAILS:-unknown}"
 if [ "$IS_RTH" = "1" ]; then
   python3 - <<'PY' 2>/dev/null || true
 try:

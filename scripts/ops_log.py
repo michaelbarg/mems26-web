@@ -50,6 +50,12 @@ def log_path(day: str | None = None) -> Path:
 def log_event(source: str, level: str, message: str) -> bool:
     """Append one line to today's central ops log. True on success, never raises."""
     try:
+        # OPS_LOG_DISABLE=1 → silent no-op. Set by tests/conftest.py so pytest
+        # scenarios (e.g. System6 naked_stop cases) never write fake ALERT
+        # lines into the LIVE ops file. Never set it in production.
+        import os as _os
+        if _os.getenv("OPS_LOG_DISABLE", "").lower() in ("1", "true", "yes"):
+            return True
         ts = _now().isoformat(timespec="seconds")
         source = (source or "unknown").strip().replace("]", ")").replace("[", "(")
         level = (level or "INFO").strip().upper()

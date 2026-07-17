@@ -2,9 +2,17 @@
 """pattern_watch.py — poll build/pattern-status, log per-pattern blockers.
 Read-only: GETs the diagnostic endpoint only; never routes trades. Michael 2026-06-08.
 Usage: python3 scripts/pattern_watch.py [--once]"""
-import json, sys, time, urllib.request
+import json, os, sys, time, urllib.request
 from collections import Counter
 from datetime import datetime
+
+# ── central ops log (N12) — GUARDED: logging must never break the watcher
+try:
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from scripts.ops_log import log_event
+except Exception:  # pragma: no cover
+    def log_event(*_a, **_k):
+        return False
 
 URL = "http://localhost:8000/api/v9/build/pattern-status?systems=five_min,woodies"
 INTERVAL_MIN = 15
@@ -47,6 +55,12 @@ def main():
         print(block, flush=True)
         with open(LOG, "a") as f:
             f.write(block + "\n")
+        try:  # N12 central ops log — one SUMMARY/ERROR line per poll
+            tail = block.strip().splitlines()[-1].strip()
+            log_event("pattern_watch",
+                      "ERROR" if "ENDPOINT ERROR" in block else "INFO", tail)
+        except Exception:
+            pass
         if once:
             break
         if datetime.now().strftime("%H:%M") >= END_HHMM:
