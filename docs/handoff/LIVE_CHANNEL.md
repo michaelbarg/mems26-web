@@ -29,7 +29,7 @@
 | # | משימה | בעלים | סטטוס |
 |---|---|---|---|
 | **1א** | **ORPHAN_AUTO_STOP_V1** — גייטינג+11 טסטים ✅ **אומת ע"י cowork** (27 עוברים, דגל OFF, stub מסרב, חקירת-DLL נכונה). **חסום:** אין op לסטופ-עצמאי ב-DLL → ההגנה לא פועלת בפועל. דורש בניית op חדש (C++→build→Remote-Build→sim) | cc-macbook | ✅ הושלם |
-| **1ב** | **DLL op `PLACE_STOP`** — בניית ה-op החסר שיפעיל את ההגנה בפועל. מפרט: `CC_PROMPT_DLL_PLACE_STOP_2026-07-18.md`. **פסיקת-מייקל 07-18: "לבצע בשלמותה"**. snapshot→C++→build→**Remote Build (מייקל)**→אימות-סים. דגל נשאר OFF | **cc-macbook** + מייקל(RB) + cursor(מעקב) | 🔴 בביצוע |
+| **1ב** | **DLL op `PLACE_STOP`** — A1.1–A1.5 ✅ (RB 17:11, verify deployed==repo, armed=1 חזר לבד). **A1.6 חסום:** ממתין למייקל → Sim Mode (`is_sim=1`) לפני אימות-סים. דגל ORPHAN נשאר OFF | **מייקל**(Sim) → cc-macbook → cowork | 🟡 חסום-Sim |
 | 2 | `PATTERN_LOSS_BREAKER` 1→0 + RULED | cowork-dev | ✅ **בוצע** 07-18: .env=0, RULED נאכף, flag_guard 86/86, ריסטארט |
 | 3 | A5 — מפתח-הרשאה `OFA_Initiative` ≠ `INITIATIVE_LONG` → SKIP נעקף בשקט | ממתין-פסיקה | 🟡 |
 | 4 | A6 — S4 לא override-מודע (`get_live_day_type`) | ממתין-פסיקה | 🟡 |
@@ -45,6 +45,11 @@
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-18 17:1x] cursor-agent — A1.4✅ A1.5✅ · A1.6 ⏸ שער-אנושי Sim Mode
+`MONDAY_CHECKLIST` עודכן: A1.4 Remote Build ✅ 17:11 (בינארי מאומת cowork; `armed=1` חזר לבד).
+A1.5 `mems26_verify` deployed==repo ✅. **A1.6** = שער-אנושי נוסף — חסום עד מייקל מעביר
+Trade Simulation Mode ON + `is_sim=1` (cc כבר עצר: `is_sim=0` לייב, אפס PLACE_STOP). ORPHAN נשאר OFF.
 
 ### [2026-07-18] cc-macbook — A1.6 אימות-סים: **עצירה — is_sim=0 (LIVE)**
 ```json

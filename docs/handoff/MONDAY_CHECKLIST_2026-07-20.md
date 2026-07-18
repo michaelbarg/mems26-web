@@ -110,32 +110,32 @@ C ירוק ─────────────────────► D 
 
 | מזהה | משימה | בעלים | תלות | קריטריון-סיום (פקודה / פלט) | סטטוס |
 |---|---|---|---|---|---|
-| **A1** | ORPHAN + DLL `PLACE_STOP` — ראה **רצף A1.1–A1.8** למטה (נוקשה, תלוי-סדר). גייטינג Python ✅; DLL בביצוע | **cc-macbook** + מייקל(A1.4) + cowork(A1.7) | מפרט: `CC_PROMPT_DLL_PLACE_STOP_2026-07-18.md`. חוסם B6/A1.8 | כל תת-שלב ✅ עם פלט; A1 נסגר רק אחרי A1.7 | 🔴 בביצוע |
-| **A2** | `PATTERN_LOSS_BREAKER` 1→0 + הוספה ל-`RULED_FLAGS.yaml` (דריפט מפסיקת-מייקל 07-16; לא ב-RULED → flag_guard לא תפס) | **cowork-dev** | פסיקה קיימת 07-16; לא דורש B | `grep PATTERN_LOSS_BREAKER config/RULED_FLAGS.yaml` → expected `"0"`. `.env` =0. `python3 scripts/flag_guard.py` → PASS כולל השורה הזו. פלט גולמי | ✅ (cowork 07-18) |
+| **A1** | ORPHAN + DLL `PLACE_STOP` — רצף A1.1–A1.8. גייטינג+DLL פרוסים; **תקוע ב-A1.6** (שער-אנושי: Sim Mode) | **cc-macbook** + מייקל(A1.4/A1.6) + cowork(A1.7) | מפרט: `CC_PROMPT_DLL_PLACE_STOP_2026-07-18.md`. חוסם B6/A1.8 | A1 נסגר רק אחרי A1.7 | 🟡 חסום-A1.6 |
+| **A2** | `PATTERN_LOSS_BREAKER` 1→0 + הוספה ל-`RULED_FLAGS.yaml` | **cowork-dev** | פסיקה 07-16 | RULED + `.env`=0 + `flag_guard` PASS | ✅ (cowork 07-18) |
+| **A3** | 2 כשלי-סימולציה: `Neutral_Center×HTLB` · `Neutral_Extreme×TLB` | **cc-macbook** | חוסם C2 | `sim_matrix_e2e` — שני התאים ירוקים | 🔴 |
+| **A4** | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT | **cc-macbook** | כיסוי חלקי היום | `--selftest` + ריצת 07-17 על 6 התבניות | 🔴 |
+| **A5** | **CVD לא מיוצא** — סטאדי Cumulative Delta בצ'ארטבוק | **מייקל** | אישור-זרימה S2 | `cumulative_delta.json` / API — נקודות טריות | 🔴 |
+| **A6** | פלאפון — כתובת קבועה דרך **ZeroTier** | **מייקל + cowork-dev** | ZT 10.1.118.147 | כיס נפתח יציב בלי trycloudflare | 🟡 |
 
 ### A1 — רצף-משנה נוקשה (תלוי-סדר · אין דילוג)
 
 **תקרית 2026-07-18:** Remote Build רץ **לפני** ש-cc כתב את הקוד → בילד מיותר.
-**כלל-ברזל:** ⛔ **אין לעבור ל-A1.4 בלי ש-A1.2 הוכח** (`grep PLACE_STOP` בקוד-המקור מחזיר התאמות).
-מייקל לא לוחץ Remote Build עד ש-cc כותב ב-LIVE_CHANNEL: `A1.2 DONE` + פלט-grep.
+**כלל-ברזל:** ⛔ **אין לעבור ל-A1.4 בלי ש-A1.2 הוכח**.
 דגל `ORPHAN_AUTO_STOP_V1` נשאר **OFF** עד A1.8.
+**אחרי RB (17:11):** בינארי אומת ע"י cowork · `armed=1` חזר לבד (לא לגעת / לא לכבות בלי פסיקה).
 
 | שלב | משימה | בעלים | תלות | קריטריון-סיום (פקודה / פלט) | סטטוס |
 |---|---|---|---|---|---|
-| **A1.1** | Snapshot לפני נגיעה ב-DLL | **cc-macbook** | משימה 1ב יצאה לדרך | `./scripts/mems26_snapshot.sh "pre-dll-place-stop"` → תיקייה תחת `~/mems26_snapshots/` עם checksums. פלט path ב-LIVE_CHANNEL | ⬜ |
-| **A1.2** | C++ נכתב — op `PLACE_STOP` במקור | **cc-macbook** | A1.1 ✅ | **הראיה:** `rg -n "PLACE_STOP" sc_study/MES_AI_DataExport.cpp` (או הנתיב הקנוני במפרט) → ≥1 התאמה ב-handler/dispatch. גם פרסר/backend אם במפרט. פלט-grep גולמי ב-LIVE_CHANNEL + שורה `A1.2 DONE`. בלי זה → **עצור** | ⬜ |
-| **A1.3** | `build --deploy` לקוד-המקור | **cc-macbook** | **A1.2 ✅ חובה** | `./scripts/build_monolithic_cpp.sh --deploy` exit 0 → קובץ ב-`~/SierraChart/ACS_Source/`. פלט ב-LIVE_CHANNEL. **אל תקרא למייקל ל-RB לפני זה** | ⬜ |
-| **A1.4** | ⏸ **המתנה-למייקל: Remote Build** | **מייקל** | **A1.2 ✅ + A1.3 ✅** · שער-אנושי | 🛑 **שער-אנושי — אל תדלג / אל תריץ מוקדם.** מייקל בסיירה: Remote Build על ה-DLL **רק אחרי** שורת-LOG של cc: `A1.2 DONE` + `A1.3 DONE`. סיום: build ירוק בסיירה + study נטען מחדש. מייקל כותב `A1.4 DONE` ב-LIVE_CHANNEL | ⬜ ⏸ אנושי |
-| **A1.5** | `mems26_verify` — deployed == repo | **cc-macbook** | A1.4 ✅ | `./scripts/mems26_verify.sh` → DLL deployed↔repo תואם (לא drift). פלט גולמי | ⬜ |
-| **A1.6** | אימות-סים | **cc-macbook** | A1.5 ✅ · `is_sim=1` מאומת | יתום ידני בסים (`working_orders=0`) → `PLACE_STOP` → סטופ בצד/מחיר נכון · `trade_result` OK · לוג. אם `r=-1` גם על יתום-נקי: **עצור, אל תעקוף, דווח.** פלט ב-LIVE_CHANNEL. **אפס PLACE_STOP על לייב** | ⬜ |
-| **A1.7** | אימות-cowork | **cowork-dev** | A1.6 דיווח + פלטים | cowork מריץ/קורא באופן עצמאי (לא סומך על הצהרה): grep/verify/סים-ראיות. כותב `A1.7 PASS` או `FAIL` + מה חסר | ⬜ |
-| **A1.8** | פסיקת-הדלקה (=B6) | **מייקל** | A1.7 PASS | פסיקה בכתב → RULED=`1` + `.env` + ריסטארט + `flag_guard` PASS. **בלי A1.7 → נשאר OFF** | ⬜ חסום |
+| **A1.1** | Snapshot לפני נגיעה ב-DLL | **cc-macbook** | משימה 1ב | `mems26_snapshot.sh "pre-dll-place-stop"` → path ב-LIVE_CHANNEL | ✅ |
+| **A1.2** | C++ נכתב — op `PLACE_STOP` במקור | **cc-macbook** | A1.1 ✅ | `rg -n "PLACE_STOP" sc_study/…` + backend wiring; `A1.2 DONE` | ✅ |
+| **A1.3** | `build --deploy` לקוד-המקור | **cc-macbook** | A1.2 ✅ | `build_monolithic_cpp.sh --deploy` → ACS_Source | ✅ |
+| **A1.4** | ⏸ **Remote Build** (שער-אנושי) | **מייקל** | A1.2+A1.3 ✅ | RB בסיירה 17:11 · study reload · בינארי מאומת cowork · `armed=1` חזר לבד | ✅ 17:11 |
+| **A1.5** | `mems26_verify` — deployed == repo | **cc-macbook** / cowork | A1.4 ✅ | `mems26_verify.sh` → DLL deployed↔repo תואם | ✅ אומת |
+| **A1.6** | ⏸ **המתנה-למייקל: Sim Mode** → אימות-סים | **מייקל** (שער) → **cc-macbook** (בדיקה) | A1.5 ✅ · **שער-אנושי נוסף** | 🛑 **אל תריץ PLACE_STOP על לייב.** מייקל: Trade → Trade Simulation Mode **ON** + אישור `is_sim=1` ב-`sierra_state.json` (+ מחיר-שפוי, flat). אחר-כך cc: יתום ידני → PLACE_STOP → סטופ בצד/מחיר · `trade_result` OK. אם `r=-1` על יתום-נקי: עצור+דווח. מייקל כותב `A1.6 SIM READY` לפני הבדיקה | ⬜ ⏸ אנושי — חסום-Sim |
+| **A1.7** | אימות-cowork | **cowork-dev** | A1.6 דיווח + פלטים | אימות עצמאי → `A1.7 PASS` / `FAIL` | ⬜ חסום-A1.6 |
+| **A1.8** | פסיקת-הדלקה (=B6) | **מייקל** | A1.7 PASS | RULED=`1` + `.env` + ריסטארט + `flag_guard` | ⬜ חסום |
 
-**מעקב מהיר A1:** `A1.1⬜ → A1.2⬜ → A1.3⬜ → ⏸A1.4⬜ → A1.5⬜ → A1.6⬜ → A1.7⬜ → A1.8⬜`
-| **A3** | 2 כשלי-סימולציה: `Neutral_Center×HTLB` · `Neutral_Extreme×TLB` (`oco_pairs=False`, `modify_stop_all=False`) | **cc-macbook** | מ-`sim_matrix_e2e`; חוסם C2 | `python3 scripts/sim_matrix_e2e.py` — שני התאים האלה ירוקים (OCO+MODIFY_STOP). פלט שורות-התאים | 🔴 |
-| **A4** | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT | **cc-macbook** | כיסוי חלקי (ZLR/GB100/TT בלבד היום) | `python3 scripts/audit_pattern_miss.py --selftest` עובר על 6 התבניות החדשות. ריצת `--date 2026-07-17` מפיקה קריטריון-כישלון לכל אחת | 🔴 |
-| **A5** | **CVD לא מיוצא** — להוסיף סטאדי Cumulative Delta לצ'ארטבוק סיירה | **מייקל** | חוסם אישור-זרימה S2 איכותי (היום fail-open על ריק) | `ls -la ~/SierraChart_Data/v9_export/cumulative_delta.json` — קובץ מתעדכן ב-RTH; `jq 'length/.points|length' …` או `curl -s localhost:8000/api/v9/cumulative_delta/current` → נקודות טריות (לא ריק) | 🔴 |
-| **A6** | פלאפון — כתובת קבועה דרך **ZeroTier** (לא Tailscale) | **מייקל + cowork-dev** | רשת ZT כבר: דב 10.1.118.147 | מהפלאפון (ZT 10.1.118.31): פתיחת `http://10.1.118.147:3000` (או פורט-המובייל המתועד) יציבה אחרי restart-frontend. **אין** URL של trycloudflare | 🟡 |
+**מעקב מהיר A1:** `A1.1✅ → A1.2✅ → A1.3✅ → A1.4✅ → A1.5✅ → ⏸A1.6⬜(Sim) → A1.7⬜ → A1.8⬜`
 
 ---
 
