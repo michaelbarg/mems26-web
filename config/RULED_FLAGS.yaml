@@ -99,6 +99,7 @@ ruled:
   S2_REACTIVE_EDGE_FIX_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "calculate_size דחה דהיית-קצה: דרש location=='at'-POC (הפוך — דהייה בקצה=רחוק-מ-POC) + אישור-COT/AMT (מנוגד ל-S2⟂S3). תוקן: קצה מותר, COT/AMT=בוסטר-גודל לא-שער (אלא אם S2_REQUIRE_COT_AMT=1)" }
   # ביקורת-שיטתית PATTERN_MGMT_AUDIT_2026-07-17: "שכחו-את-Normal" — bare Normal הושמט
   # מ-2 שערים בעוד האחים (location_gate._ROTATION_PREFIXES + RR-relief) כוללים אותו:
+  PATTERN_LOSS_BREAKER:   {expected: "0", ruled_by: "מייקל", date: "2026-07-16", note: "פסיקה 21:40 ('המפסק שוחרר') אחרי 2 הפסדי-ZLR — היה דריפט ל-1 ולא היה ב-RULED לכן flag_guard לא תפס; מוחזר ל-0 ונאכף מעכשיו" }
   NORMAL_ROTATION_FIX_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-17", note: "A1: פטור-דהיית-REV (NEUTRAL_RESPONSIVE gateway:811) + A3: רצפת-סטופ-רוטציה (stop_resolver:75) מוסיפים 'Normal' — ביום-Normal דהיית-קצה לא-נחסמת-בשקט ומקבלת רצפת-0.8×ATR. משלים פסיקת-07-15 'אין מחסם לתבניות במיקום הנכון'" }
   S1_NONCONVICTION_V1:    {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-8 מאושר-והודלק לערב-12/07 ('לבצע את ההמלצות ולהפעיל למחר') — יום-בלי-עקבות = NO_TRADE" }
   S1_DD_INVALIDATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-7 מאושר-והודלק — מילוי-צוואר מפיל את תווית-ה-DD (דלתון עמ' 27)" }

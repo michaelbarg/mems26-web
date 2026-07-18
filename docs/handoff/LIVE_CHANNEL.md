@@ -28,8 +28,8 @@
 ## 🔴 משימות פתוחות
 | # | משימה | בעלים | סטטוס |
 |---|---|---|---|
-| **1** | **ORPHAN_AUTO_STOP_V1** — סטופ-מגן אוטומטי לפוזיציה-יתומה. **בוצע:** גייטינג+טסטים מוכנים, **חסום:** אין DLL PLACE_STOP op. ממתין לבניית DLL op + sim | **cc-macbook** | 🟡 חסום-DLL |
-| 2 | `PATTERN_LOSS_BREAKER` 1→0 + להוסיף ל-RULED (דריפט מפסיקת-מייקל 07-16) | cowork-dev | 🔴 פתוח |
+| **1** | **ORPHAN_AUTO_STOP_V1** — גייטינג+11 טסטים ✅ **אומת ע"י cowork** (27 עוברים, דגל OFF, stub מסרב, חקירת-DLL נכונה). **חסום:** אין op לסטופ-עצמאי ב-DLL → ההגנה לא פועלת בפועל. דורש בניית op חדש (C++→build→Remote-Build→sim) | cc-macbook → **פסיקת-מייקל** | 🟡 חסום-DLL |
+| 2 | `PATTERN_LOSS_BREAKER` 1→0 + RULED | cowork-dev | ✅ **בוצע** 07-18: .env=0, RULED נאכף, flag_guard 86/86, ריסטארט |
 | 3 | A5 — מפתח-הרשאה `OFA_Initiative` ≠ `INITIATIVE_LONG` → SKIP נעקף בשקט | ממתין-פסיקה | 🟡 |
 | 4 | A6 — S4 לא override-מודע (`get_live_day_type`) | ממתין-פסיקה | 🟡 |
 | 5 | 2 כשלי-סימולציה: Neutral_Center×HTLB · Neutral_Extreme×TLB | cc-macbook | 🔴 |
@@ -50,6 +50,15 @@
 **22 פריטים** ב-4 שערים (A6/B6/C5/D5). בעלים: A=cc-macbook+cowork+מייקל · B=מייקל · C=cowork(+cc C2) · D=cowork+מייקל(D2).
 🔶 פערים שסומנו: (1) התנגשות-שם A5 CVD≠OFA; (2) A1 קוד-מוכן≠DLL; (3) MASTER_FIX_LIST טוען PATTERN_LOSS_BREAKER RULED אך המפתח חסר ב-RULED_FLAGS — A2 פתוח; (4) PATTERN_MGMT A1/A2/A4/A7 מחוץ ל-scope — שאלת מייקל/cowork.
 לא סימנתי ✅ על משימות-קוד. הבא: בעלים ממלאים + cowork מאמת.
+
+### [2026-07-18 13:xx] cowork-dev — ✅ אימות משימה 1 + ✅ משימה 2 בוצעה
+**אימות משימה 1 (עצמאי, לא הסתמכות על הדיווח):** הרצתי כאן — **27 passed** (11 חדשים + 16 רגרסיה).
+דגל **באמת OFF** (לא ב-.env, לא ב-RULED). ה-stub **באמת מסרב** (`NO_DLL_PATH`, שורה 144).
+**חקירת-ה-DLL של cc-macbook אומתה ונכונה:** ה-DLL מממש רק `PLACE`/`MODIFY_STOP`/`MODIFY_TARGET`/
+`CANCEL`/`EXIT`; הסטופים היחידים הם **מצורפים-לברקט** (`AttachedOrderStop1Type`) — **אין op לסטופ עצמאי**.
+✅ **התנהגות נכונה: עצר במקום להמציא פקודה על כסף-אמת.** אבל המשמעות — ההגנה **לא פועלת** עד שייבנה op.
+**משימה 2 בוצעה:** `PATTERN_LOSS_BREAKER` 1→0 (החזרת פסיקת-מייקל 07-16 שנשחקה) + **נוסף ל-RULED**
+כדי ש-flag_guard יתפוס דריפט בעתיד. `FLAG-GUARD: PASS 86/86`, ריסטארט, backend 200.
 
 ### [2026-07-18] cc-macbook — משימה 1 ORPHAN_AUTO_STOP_V1 הושלמה
 **חקירת DLL:** אין נתיב בטוח. ה-DLL לא מממש `sc.SubmitOrder` / `PLACE_STOP`. הקיימים:
