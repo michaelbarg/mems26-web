@@ -46,6 +46,12 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — שער S נוסף ל-MONDAY_CHECKLIST
+`MONDAY_CHECKLIST_2026-07-20.md` ← שער **S** (סשן-ראשון) מ-`SUNDAY_SIM_SESSION_2026-07-19.md`.
+פריטים: **S0** ⏸ Sim ON (חוסם S1+E2E) · **S1–S5** cc-macbook · **Si1–Si3** cc-imac ·
+**S-LIVE** ⏸ חזרה-ללייב (פריט-סגירה). ⛔ שער S / הצ'קליסט לא נסגרים בלי `is_sim=0` אומת.
+סטטוס מ-LOG קיים: S3/S4/S5 ✅ (ממתינים לאימות-cowork) · S0/S1 עדיין חסומים (`is_sim=0`).
+
 ### [2026-07-19] cc-macbook — S1 חסום (is_sim=0), S3-S5 בוצעו
 **S1 (PLACE_STOP sim):** `is_sim=0` — חסום. ממתין שמייקל יעביר לסים.
 
