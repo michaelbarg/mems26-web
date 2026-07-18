@@ -118,6 +118,37 @@ def write_modify_target(
     })
 
 
+def write_place_stop(
+    *,
+    qty: int,
+    price: float,
+    side: str,
+    account: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Write a PLACE_STOP command — standalone protective stop for orphan position.
+
+    Michael ruling 2026-07-17. Uses Exit-family in DLL (reduce-only).
+    side: "LONG" or "SHORT" (the POSITION side to protect, not the order side).
+    """
+    side = side.upper()
+    if side not in ("LONG", "SHORT"):
+        raise ValueError(f"PLACE_STOP side must be LONG or SHORT, got {side!r}")
+    if qty <= 0:
+        raise ValueError(f"PLACE_STOP qty must be >0, got {qty}")
+    if price <= 0:
+        raise ValueError(f"PLACE_STOP price must be >0, got {price}")
+    payload: Dict[str, Any] = {
+        "op": "PLACE_STOP",
+        "qty": qty,
+        "price": price,
+        "side": side,
+        "ts_submitted": time.time(),
+    }
+    if account:
+        payload["account"] = account
+    return _write_command(payload)
+
+
 def write_exit(
     *,
     trade_id: str,

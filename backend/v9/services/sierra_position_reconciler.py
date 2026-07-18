@@ -123,28 +123,79 @@ def recommend_orphan_stop(sierra_qty: Optional[int],
     }
 
 
-def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
-    """Attempt to place a standalone protective stop via the DLL.
+def _read_place_stop_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool, str]:
+    """Poll trade_result.json for a PLACE_STOP result newer than pre_mtime.
 
-    BLOCKED (2026-07-18 DLL investigation): the DLL has no op to place a
-    standalone stop order. Available ops:
-      - PLACE: creates a full bracket (entry + OCO stops/targets) — would open
-        a SECOND position, not protect the existing one.
-      - MODIFY_STOP: modifies existing stop orders by order ID — an orphan has
-        no existing stops to modify.
-      - EXIT: known-broken (CLAUDE.md).
-      - FLATTEN_ACCOUNT / CANCEL: exit/cleanup only.
-
-    The ACSIL API supports sc.SubmitOrder() with SCT_ORDERTYPE_STOP, but this
-    DLL has never implemented it. A new DLL op (PLACE_STOP) must be built,
-    sim-verified, and deployed before this function can do real work.
-
-    Returns (False, reason) always — no placement attempted.
+    The DLL processes commands on its chart update cycle (~0.1-1s). We poll
+    briefly; if no result arrives within timeout, report as unknown.
     """
-    return False, ("NO_DLL_PATH: no standalone stop-order op exists in the DLL. "
-                   "Need PLACE_STOP op (sc.SubmitOrder + SCT_ORDERTYPE_STOP). "
-                   f"Would place {rec['side']} stop @ {rec['stop']} for "
-                   f"{rec['qty']}c @ {rec['entry']}.")
+    result_path = Path(os.path.expanduser(
+        os.getenv("MEMS26_SIGNALS_DIR", "~/SierraChart_Data/v9_export")
+    )) / "trade_result.json"
+    deadline = _time_mod.time() + timeout_s
+    while _time_mod.time() < deadline:
+        try:
+            if result_path.exists():
+                mtime = result_path.stat().st_mtime
+                if mtime > pre_mtime:
+                    data = json.loads(result_path.read_text().strip() or "{}")
+                    status = data.get("status", "")
+                    if "PLACE_STOP" in status:
+                        ok = status == "PLACE_STOP_OK"
+                        return ok, status
+        except (OSError, json.JSONDecodeError):
+            pass
+        _time_mod.sleep(0.25)
+    return False, "PLACE_STOP_TIMEOUT: no result within {:.0f}s".format(timeout_s)
+
+
+def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
+    """Place a standalone protective stop via the DLL PLACE_STOP op.
+
+    Michael ruling 2026-07-17 + 07-18. Uses Exit-family in DLL (reduce-only):
+      LONG position → SellExit (stop below entry)
+      SHORT position → BuyExit (stop above entry)
+
+    The op was added to the DLL on 2026-07-18 after the investigation confirmed
+    no pre-existing op could do this. Uses SCT_ORDERTYPE_STOP (resting stop,
+    not market order). account field is passed through for SIM/LIVE routing.
+
+    Returns (True, "PLACE_STOP_OK") on success, (False, reason) on failure.
+    """
+    from backend.v9.services.sierra_command import write_place_stop
+
+    # Snapshot result file mtime BEFORE writing command
+    result_path = Path(os.path.expanduser(
+        os.getenv("MEMS26_SIGNALS_DIR", "~/SierraChart_Data/v9_export")
+    )) / "trade_result.json"
+    try:
+        pre_mtime = result_path.stat().st_mtime if result_path.exists() else 0.0
+    except OSError:
+        pre_mtime = 0.0
+
+    # Read account from sierra_state.json (SIM vs LIVE routing)
+    account = None
+    try:
+        if STATE_FILE.exists():
+            data = json.loads(STATE_FILE.read_text().strip() or "{}")
+            account = data.get("account") or data.get("trade_account")
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    # Write the command
+    write_place_stop(
+        qty=rec["qty"],
+        price=rec["stop"],
+        side=rec["side"],
+        account=account,
+    )
+
+    # Poll for result
+    ok, status = _read_place_stop_result(pre_mtime)
+    if ok:
+        return True, status
+    else:
+        return False, status
 
 
 def _try_orphan_auto_stop(sierra_qty: int, src: str) -> Optional[str]:

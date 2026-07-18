@@ -46,6 +46,49 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-18] cc-macbook — משימה 1ב PLACE_STOP: קוד מוכן, ממתין ל-Remote Build
+**שלבים שבוצעו:**
+1. `mems26_snapshot.sh "pre-dll-place-stop"` — `/Users/michael/mems26_snapshots/20260718T140010Z_pre-dll-place-stop`
+2. **DLL:** הוסף op `PLACE_STOP` ל-`MES_AI_DataExport.cpp` (אחרי MODIFY_TARGET, לפני EXIT).
+   - קולט: `qty` (int), `price` (double), `side` ("LONG"/"SHORT"), `account`
+   - Exit-family: LONG → `sc.SellExit(o)`, SHORT → `sc.BuyExit(o)`, `SCT_ORDERTYPE_STOP`, `TIF_DAY`
+   - BAD_INPUT guard: qty<=0 / price<=0 / side לא-חוקי → `PLACE_STOP_BAD_INPUT`
+   - חשבון (account) → `o.TradeAccount` (שולט SIM/LIVE)
+   - תוצאות: `PLACE_STOP_OK` / `PLACE_STOP_FAIL` / `PLACE_STOP_BAD_INPUT`
+3. **Backend:** `sierra_command.py` — `write_place_stop(qty, price, side, account)` עם validation.
+   `_place_orphan_stop()` הוחלף מ-stub NO_DLL_PATH → כותב פקודה + פולל `trade_result.json`.
+4. **טסטים:** 14 passed (11 מקוריים + 3 חדשים), 16 רגרסיה. **סה"כ 30 passed.**
+5. `build_monolithic_cpp.sh --deploy` — פרוס ל-`~/SierraChart/` + `~/SierraChart2/`
+
+**מוכן ל-Remote Build.** מייקל: Remote Build בסיירה + reload study.
+אחרי ה-Remote Build — אימות-סים (צור יתום, הדלק דגל בסים, ודא שהסטופ נח).
+
+פלט טסטים גולמי:
+```
+tests/v9/regression/test_orphan_auto_stop.py::test_flag_off_orphan_alert_only PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_flag_on_short_orphan_stop_above PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_flag_on_long_orphan_stop_below PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_working_orders_skip PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_stale_source_skip PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_qty_exceeds_max PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_idempotency_second_call_skipped PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_placement_exception_no_crash PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_match_no_orphan_logic PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_place_orphan_stop_writes_command PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_place_stop_fail_no_crash PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_write_place_stop_validation PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_write_place_stop_payload PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_cooldown_blocks_rapid_attempts PASSED
+======================== 30 passed (14 orphan + 7 recommendation + 9 reconcile) ========================
+```
+
+**NOT-DONE:**
+1. Remote Build (מייקל) — הקוד פרוס כ-source, צריך compile בסיירה.
+2. אימות-סים — חסום עד שה-Remote Build יסתיים.
+3. אם `sc.BuyExit/SellExit` מחזיר `-1` ליתום-נקי — הסיבה ידועה (OCO-attached), אבל ליתום
+   `working_orders=0` אמור לעבוד. **חובה להוכיח בסים.**
+4. דגל נשאר OFF — הדלקה = פסיקת-מייקל + RULED_FLAGS.
+
 ### [2026-07-18] cursor-agent — A1 רצף-משנה נוקשה (אחרי תקרית Remote-Build מוקדם)
 עודכן `MONDAY_CHECKLIST` שער A1 → **A1.1…A1.8** תלוי-סדר.
 `A1.1 snapshot → A1.2 C++ (grep PLACE_STOP=ראיה) → A1.3 build --deploy →`

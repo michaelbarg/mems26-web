@@ -1376,6 +1376,57 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         else
                             result_status = "ACK_MGMT";
                     }
+                    // ── OP: PLACE_STOP — standalone protective stop for orphan position ──
+                    // Michael ruling 2026-07-17: naked orphan (Sierra holds, TM doesn't track,
+                    // working_orders=0) must get a protective stop. Uses Exit-family
+                    // (reduce-only, NEVER opens a position):
+                    //   LONG position → SellExit (stop below)
+                    //   SHORT position → BuyExit (stop above)
+                    // OrderType = SCT_ORDERTYPE_STOP (not MARKET — this is a resting stop).
+                    // ⚠️ EXIT returned -1 historically because OCO-attached contracts had no
+                    //    free contract. Orphan = working_orders==0, no OCO → should succeed.
+                    //    If it returns -1 anyway: PLACE_STOP_FAIL, do NOT force.
+                    else if (cmd_content.find("\"PLACE_STOP\"") != std::string::npos)
+                    {
+                        if (order_armed >= 1)
+                        {
+                            int ps_qty = parse_int("\"qty\"");
+                            double ps_price = parse_float("\"price\"");
+                            char ps_side[16] = {0};
+                            parse_str("\"side\"", ps_side, sizeof(ps_side));
+
+                            if (ps_qty <= 0 || ps_price <= 0 ||
+                                (strcmp(ps_side, "LONG") != 0 && strcmp(ps_side, "SHORT") != 0))
+                            {
+                                result_status = "PLACE_STOP_BAD_INPUT";
+                                order_err = -1;
+                            }
+                            else
+                            {
+                                s_SCNewOrder o;
+                                o.OrderQuantity = ps_qty;
+                                o.OrderType     = SCT_ORDERTYPE_STOP;
+                                o.Price1        = static_cast<float>(ps_price);
+                                o.TimeInForce   = SCT_TIF_DAY;
+
+                                // Apply trade account from command (controls SIM vs LIVE routing)
+                                char acct_buf[64] = {0};
+                                if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
+                                    o.TradeAccount = acct_buf;
+
+                                int r;
+                                if (strcmp(ps_side, "LONG") == 0)
+                                    r = static_cast<int>(sc.SellExit(o));  // LONG → sell-stop below
+                                else
+                                    r = static_cast<int>(sc.BuyExit(o));   // SHORT → buy-stop above
+
+                                result_status = (r >= 0) ? "PLACE_STOP_OK" : "PLACE_STOP_FAIL";
+                                order_err = r;
+                            }
+                        }
+                        else
+                            result_status = "ACK_MGMT";
+                    }
                     // ── OP: EXIT — PARTIAL market exit of N contracts ────
                     // Uses sc.BuyExit (for SHORT position) or sc.SellExit (for LONG position)
                     // with OrderQuantity = exit_qty. This exits exactly N contracts, NOT all.
