@@ -28,7 +28,7 @@
 ## 🔴 משימות פתוחות
 | # | משימה | בעלים | סטטוס |
 |---|---|---|---|
-| **1** | **ORPHAN_AUTO_STOP_V1** — סטופ-מגן אוטומטי לפוזיציה-יתומה. מפרט מלא: `CC_PROMPT_ORPHAN_AUTOSTOP_2026-07-17.md`. **מאושר ע"י מייקל**, flag-OFF, חקירת-DLL קודם, אימות-סים חובה | **cc-macbook** | 🔴 פתוח |
+| **1** | **ORPHAN_AUTO_STOP_V1** — סטופ-מגן אוטומטי לפוזיציה-יתומה. **בוצע:** גייטינג+טסטים מוכנים, **חסום:** אין DLL PLACE_STOP op. ממתין לבניית DLL op + sim | **cc-macbook** | 🟡 חסום-DLL |
 | 2 | `PATTERN_LOSS_BREAKER` 1→0 + להוסיף ל-RULED (דריפט מפסיקת-מייקל 07-16) | cowork-dev | 🔴 פתוח |
 | 3 | A5 — מפתח-הרשאה `OFA_Initiative` ≠ `INITIATIVE_LONG` → SKIP נעקף בשקט | ממתין-פסיקה | 🟡 |
 | 4 | A6 — S4 לא override-מודע (`get_live_day_type`) | ממתין-פסיקה | 🟡 |
@@ -44,6 +44,44 @@
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-18] cc-macbook — משימה 1 ORPHAN_AUTO_STOP_V1 הושלמה
+**חקירת DLL:** אין נתיב בטוח. ה-DLL לא מממש `sc.SubmitOrder` / `PLACE_STOP`. הקיימים:
+PLACE (bracket חדש — פותח פוזיציה נוספת), MODIFY_STOP (משנה סטופ קיים — ליתום אין),
+EXIT (שבור), FLATTEN/CANCEL (יציאה בלבד). ACSIL תומך ב-`sc.SubmitOrder(SCT_ORDERTYPE_STOP)`
+אבל מעולם לא הוטמע ב-DLL.
+
+**מה נבנה:** דגל `ORPHAN_AUTO_STOP_V1` (default OFF) + 8 תנאי-בטיחות מלאים +
+stub `_place_orphan_stop()` שמחזיר `(False, "NO_DLL_PATH...")`. כשה-DLL op ייבנה —
+רק ה-stub צריך להחלף. FLAG_REGISTRY.yaml עודכן (3 ערכים). gen_flag_index.py רץ.
+
+**התנהגות דגל-כבוי:** byte-identical לפני-V1 (טסט 1 מאמת).
+**טסטים:** 11 passed, 0 failed. רגרסיה: `test_orphan_stop_recommendation` (7) +
+`test_reconcile_item20` (9) = 16 passed. **סה"כ 27 passed.**
+**הוכחת RED:** שינוי `if not flag_on` → `if True` → `test_flag_on_short_orphan_stop_above` FAILED. שוחזר.
+
+**NOT-DONE:**
+1. **אין אימות-סים** — אי אפשר בלי DLL op. `_place_orphan_stop` תמיד מחזיר False.
+2. **DLL op `PLACE_STOP` חסר** — צריך לבנות ב-`MES_AI_DataExport.cpp`: handler חדש
+   שקורא `sc.SubmitOrder()` עם `SCT_ORDERTYPE_STOP` + qty + price. דורש build+deploy+sim.
+3. **אימות adopt-path** לא נבדק — MODIFY_STOP דורש stop_ids קיימים (orphan = אין). גם
+   אם ניצור TM record מינימלי, אין stop order IDs להעביר.
+
+פלט טסטים גולמי:
+```
+tests/v9/regression/test_orphan_auto_stop.py::test_flag_off_orphan_alert_only PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_flag_on_short_orphan_stop_above PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_flag_on_long_orphan_stop_below PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_working_orders_skip PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_stale_source_skip PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_qty_exceeds_max PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_idempotency_second_call_skipped PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_placement_exception_no_crash PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_match_no_orphan_logic PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_real_place_returns_no_dll_path PASSED
+tests/v9/regression/test_orphan_auto_stop.py::test_cooldown_blocks_rapid_attempts PASSED
+======================== 27 passed (11 new + 16 regression) ========================
+```
 
 ### [2026-07-18 00:0x] cowork-dev → cc-macbook
 נוצר הערוץ הזה. **cc-macbook: משימה 1 שלך** — קרא `CC_PROMPT_ORPHAN_AUTOSTOP_2026-07-17.md` במלואו.

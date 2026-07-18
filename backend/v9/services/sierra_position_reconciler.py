@@ -6,10 +6,18 @@ compares TM open trades vs TradeActivityLog position state.
 
 Divergence → WARNING (noisy) + freeze auto-actions on the trade.
 Auto-adopt = next phase (Michael's ruling), not this version.
+
+ORPHAN_AUTO_STOP_V1 (Michael ruling 07-17): when an orphan position is naked
+(no working orders) and all safety conditions hold, attempt to place a
+protective stop. Currently BLOCKED — no DLL op exists to place a standalone
+stop order (sc.SubmitOrder not implemented). The gating logic is wired so that
+when a PLACE_STOP DLL op is added, only the _place_orphan_stop() stub needs
+to be replaced. Flag default OFF; enabling requires Michael sign-off.
 """
 import json
 import logging
 import os
+import time as _time_mod
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -20,6 +28,16 @@ EVENTS_FILE = Path(os.path.expanduser(
 STATE_FILE = Path(os.path.expanduser(
     "~/SierraChart_Data/v9_export/sierra_state.json"))
 STATE_MAX_AGE_S = 10.0  # fresher than this → authoritative
+
+# ── ORPHAN_AUTO_STOP_V1 constants ─────────────────────────────────────────────
+ORPHAN_AUTO_STOP_MAX_QTY = int(os.getenv("ORPHAN_AUTO_STOP_MAX_QTY", "10"))
+ORPHAN_AUTO_STOP_COOLDOWN_S = float(os.getenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "60"))
+
+# Idempotency: tracks (qty, avg_price) → timestamp of last placement attempt.
+# Reset when position changes (different qty). Module-level to survive across
+# reconcile_position() calls within the same process.
+_orphan_stop_placed: dict = {}   # {(qty, avg_price): float_timestamp}
+_orphan_stop_last_attempt: float = 0.0  # monotonic timestamp of last attempt
 
 
 def _sierra_state_qty() -> Optional[int]:
@@ -32,8 +50,7 @@ def _sierra_state_qty() -> Optional[int]:
     try:
         if not STATE_FILE.exists():
             return None
-        import time as _t
-        if (_t.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
+        if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
             return None
         data = json.loads(STATE_FILE.read_text().strip() or "{}")
         qty = data.get("position_qty")
@@ -47,8 +64,7 @@ def _sierra_state_working() -> Optional[int]:
     try:
         if not STATE_FILE.exists():
             return None
-        import time as _t
-        if (_t.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
+        if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
             return None
         data = json.loads(STATE_FILE.read_text().strip() or "{}")
         w = data.get("working_orders")
@@ -62,8 +78,7 @@ def _sierra_state_avg_price() -> Optional[float]:
     try:
         if not STATE_FILE.exists():
             return None
-        import time as _t
-        if (_t.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
+        if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
             return None
         data = json.loads(STATE_FILE.read_text().strip() or "{}")
         ap = data.get("avg_price")
@@ -106,6 +121,127 @@ def recommend_orphan_stop(sierra_qty: Optional[int],
         "stop": stop,
         "points": pts,
     }
+
+
+def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
+    """Attempt to place a standalone protective stop via the DLL.
+
+    BLOCKED (2026-07-18 DLL investigation): the DLL has no op to place a
+    standalone stop order. Available ops:
+      - PLACE: creates a full bracket (entry + OCO stops/targets) — would open
+        a SECOND position, not protect the existing one.
+      - MODIFY_STOP: modifies existing stop orders by order ID — an orphan has
+        no existing stops to modify.
+      - EXIT: known-broken (CLAUDE.md).
+      - FLATTEN_ACCOUNT / CANCEL: exit/cleanup only.
+
+    The ACSIL API supports sc.SubmitOrder() with SCT_ORDERTYPE_STOP, but this
+    DLL has never implemented it. A new DLL op (PLACE_STOP) must be built,
+    sim-verified, and deployed before this function can do real work.
+
+    Returns (False, reason) always — no placement attempted.
+    """
+    return False, ("NO_DLL_PATH: no standalone stop-order op exists in the DLL. "
+                   "Need PLACE_STOP op (sc.SubmitOrder + SCT_ORDERTYPE_STOP). "
+                   f"Would place {rec['side']} stop @ {rec['stop']} for "
+                   f"{rec['qty']}c @ {rec['entry']}.")
+
+
+def _try_orphan_auto_stop(sierra_qty: int, src: str) -> Optional[str]:
+    """ORPHAN_AUTO_STOP_V1 gating logic.
+
+    Checks all 8 safety conditions. On success, attempts placement via
+    _place_orphan_stop(). Returns a status string for the log, or None if
+    the flag is OFF (caller falls through to the existing alert-only path).
+
+    Conditions (ALL must hold — fail-safe: any miss → alert-only):
+      1. ORPHAN_AUTO_STOP_V1=1
+      2. (caller already verified: orphan — TM=0, Sierra!=0)
+      3. working_orders == 0 (naked — no existing protection)
+      4. state file fresh (<= STATE_MAX_AGE_S) — guaranteed by src=="state"
+      5. recommend_orphan_stop() returned a valid dict
+      6. abs(qty) <= ORPHAN_AUTO_STOP_MAX_QTY (sanity cap)
+      7. idempotency: not already placed for this (qty, avg_price)
+      8. cooldown: at least ORPHAN_AUTO_STOP_COOLDOWN_S since last attempt
+    """
+    global _orphan_stop_last_attempt
+
+    # Condition 1: flag ON
+    flag_on = os.getenv("ORPHAN_AUTO_STOP_V1", "0").lower() in ("1", "true", "yes")
+    if not flag_on:
+        return None  # flag OFF → caller uses existing alert-only path
+
+    # Condition 4: state file freshness (only state source is trusted)
+    if src != "state":
+        return "SKIP(stale-source): orphan auto-stop requires fresh sierra_state.json"
+
+    # Condition 3: working orders == 0 (naked)
+    working = _sierra_state_working()
+    if working is None:
+        return "SKIP(working-unknown): cannot read working_orders from state file"
+    if working > 0:
+        return f"SKIP(protected): {working} working orders already exist"
+
+    # Condition 5: recommend_orphan_stop valid
+    avg_price = _sierra_state_avg_price()
+    rec = recommend_orphan_stop(sierra_qty, avg_price)
+    if rec is None:
+        return "SKIP(no-recommendation): recommend_orphan_stop returned None"
+
+    # Condition 6: qty sanity cap
+    if abs(sierra_qty) > ORPHAN_AUTO_STOP_MAX_QTY:
+        return (f"SKIP(qty-too-large): |{sierra_qty}| > {ORPHAN_AUTO_STOP_MAX_QTY} "
+                f"— refusing (possible bad read)")
+
+    # Condition 7: idempotency
+    key = (sierra_qty, rec["entry"])
+    if key in _orphan_stop_placed:
+        return (f"SKIP(already-placed): stop already attempted for "
+                f"qty={sierra_qty} entry={rec['entry']} "
+                f"at {_orphan_stop_placed[key]:.0f}")
+
+    # Condition 8: cooldown
+    now = _time_mod.time()
+    if (now - _orphan_stop_last_attempt) < ORPHAN_AUTO_STOP_COOLDOWN_S:
+        return (f"SKIP(cooldown): {now - _orphan_stop_last_attempt:.0f}s "
+                f"< {ORPHAN_AUTO_STOP_COOLDOWN_S:.0f}s cooldown")
+
+    # All conditions met — attempt placement
+    _orphan_stop_last_attempt = now
+    try:
+        ok, reason = _place_orphan_stop(rec)
+    except Exception as exc:
+        # Safety: reconciler never crashes from this feature
+        logger.error("[Reconciler] ORPHAN_AUTO_STOP placement exception: %s", exc)
+        return f"ERROR(placement-exception): {exc}"
+
+    if ok:
+        # Record for idempotency
+        _orphan_stop_placed[key] = now
+        # Log to ops_log + phone
+        _log_msg = (f"ORPHAN_AUTO_STOP PLACED: {rec['side']} stop @ {rec['stop']} "
+                    f"for {rec['qty']}c @ {rec['entry']} ({rec['points']:.0f}pt)")
+        logger.critical("[Reconciler] %s", _log_msg)
+        try:
+            from scripts.ops_log import log_event
+            log_event("reconciler", "CRITICAL", _log_msg)
+        except Exception:
+            pass
+        try:
+            from backend.v9.services.phone_alert import push as _pp
+            _pp("orphan_auto_stop", "\U0001f6e1\ufe0f MEMS26: ORPHAN STOP PLACED", _log_msg, priority=1)
+        except Exception:
+            pass
+        return f"PLACED: {_log_msg}"
+    else:
+        # Placement failed — escalate to existing alert (don't swallow)
+        logger.warning("[Reconciler] ORPHAN_AUTO_STOP failed: %s", reason)
+        try:
+            from scripts.ops_log import log_event
+            log_event("reconciler", "WARNING", f"ORPHAN_AUTO_STOP failed: {reason}")
+        except Exception:
+            pass
+        return f"FAILED({reason})"
 
 
 # Phantom-heal: consecutive checks where TM is in-position but Sierra is
@@ -226,7 +362,7 @@ def reconcile_position(tm) -> Tuple[bool, str]:
             logger.warning("[Reconciler] SYS-3 %s", hmsg)
             try:
                 from backend.v9.services.phone_alert import push as _pp
-                _pp("phantom_heal", "♻️ MEMS26: phantom נוקה", hmsg, priority=0)
+                _pp("phantom_heal", "\u267b\ufe0f MEMS26: phantom \u05e0\u05d5\u05e7\u05d4", hmsg, priority=0)
             except Exception:
                 pass
             return True, hmsg
@@ -238,28 +374,37 @@ def reconcile_position(tm) -> Tuple[bool, str]:
         _phantom_flat_streak = 0
 
     msg = (f"DIVERGENCE: TM says {tm_qty} contracts {tm_trades}, "
-           f"Sierra says {sierra_qty} (src={src}). Records ≠ reality!"
+           f"Sierra says {sierra_qty} (src={src}). Records \u2260 reality!"
            + (f" [phantom-heal streak {_phantom_flat_streak}/{_need}]" if _heal_on else ""))
 
     # P3 (orphan): Sierra holds a position the backend does not track (TM=0,
-    # Sierra≠0) → NAKED orphan. Compute the exact protective stop and surface it
-    # so it can be placed instantly. (Auto-placement is the deferred auto-adopt
-    # phase — Michael's ruling; RECONCILER_AUTO_ADOPT_V1 reserved, not wired.)
+    # Sierra!=0) → NAKED orphan. Compute the exact protective stop and surface it
+    # so it can be placed instantly.
+    #
+    # ORPHAN_AUTO_STOP_V1 (Michael ruling 07-17): when flag ON + all safety
+    # conditions hold → attempt to place a protective stop automatically.
+    # When flag OFF (default) → alert-only, identical to pre-V1 behavior.
     _orphan_naked = (tm_qty == 0 and sierra_qty != 0)
     if _orphan_naked:
-        _rec = recommend_orphan_stop(sierra_qty, _sierra_state_avg_price())
-        if _rec:
-            msg += (f" 🔴 NAKED ORPHAN {_rec['side']} {_rec['qty']}c @ {_rec['entry']}"
-                    f" → PLACE PROTECTIVE STOP @ {_rec['stop']} ({_rec['points']:.0f}pt).")
+        # Try auto-stop first (returns None when flag OFF → falls through)
+        _auto_result = _try_orphan_auto_stop(sierra_qty, src)
+        if _auto_result is not None:
+            msg += f" \U0001f6e1\ufe0f ORPHAN_AUTO_STOP: {_auto_result}"
         else:
-            msg += (" 🔴 NAKED ORPHAN — avg_price unavailable; FLATTEN_ACCOUNT "
-                    "immediately (cannot compute a protective stop).")
+            # Flag OFF — existing alert-only behavior (byte-identical to pre-V1)
+            _rec = recommend_orphan_stop(sierra_qty, _sierra_state_avg_price())
+            if _rec:
+                msg += (f" \U0001f534 NAKED ORPHAN {_rec['side']} {_rec['qty']}c @ {_rec['entry']}"
+                        f" \u2192 PLACE PROTECTIVE STOP @ {_rec['stop']} ({_rec['points']:.0f}pt).")
+            else:
+                msg += (" \U0001f534 NAKED ORPHAN \u2014 avg_price unavailable; FLATTEN_ACCOUNT "
+                        "immediately (cannot compute a protective stop).")
     logger.warning("[Reconciler] SYS-3 %s", msg)
     # IDEA-2 (Michael 07-13): records≠reality is exactly what he must know about
     # when away from the screen. Rate-limited inside push(); never raises.
     try:
         from backend.v9.services.phone_alert import push as _phone_push
-        _phone_push("reconciler_divergence", "🔴 MEMS26: DIVERGENCE", msg, priority=1)
+        _phone_push("reconciler_divergence", "\U0001f534 MEMS26: DIVERGENCE", msg, priority=1)
     except Exception:
         pass
     return False, msg
