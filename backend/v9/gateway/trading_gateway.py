@@ -1076,6 +1076,34 @@ class TradingGateway:
                                     "(generic cap %.1f, atr=%.1f)",
                                     _sr_cls, _st_day_type, _sr_res.risk_points,
                                     _sr_eff_cap, float(_sr_stop), _sr_res.cap_pts, _sr_atr)
+                            # ── Ruling 2026-07-19 (Michael): widen-to-floor on REJECT ──
+                            # When the resolver REJECTS (no structural rung in band)
+                            # it keeps the ORIGINAL detector stop and the trade still
+                            # fires. If that kept stop is NARROWER than the dynamic
+                            # ATR floor (but still >0, so above the 2pt degenerate
+                            # guard), it can die on noise — the #372 premature-stopout
+                            # class. Push it OUT to the floor distance on the
+                            # protective side. WIDEN-ONLY (never tightens), never past
+                            # the cap (floor < cap by construction), no synthetic
+                            # LEVEL (a minimum RISK DISTANCE, not an invented price).
+                            # Flag default OFF → Sunday sim-verified before it goes
+                            # live (same gate class as ORPHAN_AUTO_STOP_V1).
+                            if (_sr_res.rejected
+                                    and os.getenv("STOP_WIDEN_TO_FLOOR_ON_REJECT_V1", "0").lower()
+                                    in ("1", "true", "yes")):
+                                _wf_floor = float(_sr_res.floor_pts or 0)
+                                _wf_orig_risk = abs(_sr_entry - float(_sr_stop))
+                                if 0 < _wf_orig_risk < _wf_floor:
+                                    _wf_sign = -1.0 if _sr_dir == "LONG" else 1.0
+                                    _wf_tick = 0.25  # MES tick (gateway convention)
+                                    _wf_new = round(round((_sr_entry + _wf_sign * _wf_floor)
+                                                          / _wf_tick) * _wf_tick, 2)
+                                    logger.warning(
+                                        "[Gateway] STOP_WIDEN_TO_FLOOR: reject kept a narrow "
+                                        "stop %.2f (risk %.2f < floor %.2f) → widened to %.2f "
+                                        "(%s, atr=%.1f)", float(_sr_stop), _wf_orig_risk,
+                                        _wf_floor, _wf_new, _sr_dir, _sr_atr)
+                                    setup["stop"] = _wf_new
             except Exception as _sr_err:
                 logger.warning("[Gateway] stop resolver errored (kept original stop): %s", _sr_err)
 

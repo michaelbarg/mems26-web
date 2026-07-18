@@ -56,6 +56,11 @@ ruled:
   MEMS_MIN_RISK_POINTS:   {expected: "2",  ruled_by: "מייקל", date: "2026-07-02", note: "רצפת סיכון מוחלטת; רצפת-עבודה = 0.5×ATR (רצועה, 07-08)" }
   MEMS_MAX_RISK_POINTS:   {expected: "60", ruled_by: "מייקל", date: "2026-07-02", note: "תקרת סיכון" }
 
+  # ── פסיקת-מייקל 2026-07-19: הרחבה-לרצפה במקרה-דחיית-StopResolver (OFF עד אימות-סים) ──
+  # כשהרזולבר דוחה ושומר סטופ-מקורי צר מרצפת-ה-ATR הדינמית → דוחף לרצפה (widen-only,
+  # לא-מעבר-לתקרה, בלי מחיר-מסונתז). נשאר OFF עד אימות-סים ביום ראשון (מחלקת-ORPHAN).
+  STOP_WIDEN_TO_FLOOR_ON_REJECT_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-19", note: "אושר-בעיקרון; OFF עד אימות-סים 19/07 (משטח-סיכון). הדלקה=RULED→1 באותו קומיט + סים-הוכחה" }
+
   # ── סטנדינג-כבוי (CLAUDE.md — הדלקה = פסיקת מייקל בכתב) ──
   S2_CHOPPINESS_GATE:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
   LAYER0_CHOP_GATE:       {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
