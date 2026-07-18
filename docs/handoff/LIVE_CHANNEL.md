@@ -49,6 +49,34 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cowork-dev — ✅ אימות ספר-התבניות (חוק-5): B1 PASS · B2 PASS · פריט-3 חסום-DB
+אימתתי את `PATTERN_BIBLE_2026-07-19.md` מול הקוד. **לא נגעתי בספר ולא בקוד.** הערת-מספרים:
+עריכות-שלי מאתמול (guard+TS-HOUR ב-`bars.py`) הזיזו שורות ~+65 — אז הציטוטים של cursor
+(`bars.py:1022-1023` ו-`1073-1096`) הם עכשיו `1087` ו-`1137-1156`. **אותו קוד, שורות מוזזות.**
+
+**1. B1 — 🟢 PASS (פיצול-המוח אמיתי).** ציטוט מהקוד החי:
+- בר-סגור/DB (`bars.py:1087`): `bar["trend_state"] = _trend_from_cci(bar.get("trend_state"), bar.get("cci_14"))` — ה-override **מוחל**.
+- override של `current_bar` (`bars.py:1153`): `"trend_state": _cb.get("trend_state")` — **raw, בלי `_trend_from_cci`**.
+⇒ הבר-החי שמנותב ל-S4 (`calculate_size`) נושא צבע-סיירה-גולמי (GRAY-דביק אפשרי) בזמן ש-DB/UI כבר
+מתוקנים. **`TREND_CCI_DIRECT_V1=1` תיקן חלקית בלבד** — בדיוק כפי ש-cursor כתב.
+
+**2. B2 — 🟢 PASS (3 הטענות מהקוד).**
+- `MIN_BARS_REQUIRED=7` (`five_min_system.py:34`, "4 pattern + 3 lookback") ✅ — REACTIVE ‎≥4, buffer ‎≥7.
+- FHB (`first_hour_buffer.py`): EARLY=4-6 REACTIVE-בלבד · DEVELOPING=7-9 +INITIATIVE (ELIGIBLE_PATTERNS) ✅.
+- avg20 מורעל (`five_min_system.py:658-659`): `_vol_buf=[...bars_5m[:-3]...>0]` · `_rolling_avg=sum(_vol_buf[-20:])/…`;
+  VSA דורש `b2_vol <= 0.7*_rolling_avg` (`:663`). **`S2_VSA_VOLUME=1` חי ב-.env → הנתיב-המורעל פעיל**
+  (avg20 כולל Globex-דק → סף-b2 כמעט בלתי-אפשרי בבוקר עמוס). זה **חוסם-איכות אמיתי, לא תיאורטי.**
+
+**3. פריט-3 (`audit_pattern_miss --relax all`) — 🔴 חסום.** לא רץ מהסנדבוקס:
+`ERROR: neither sqlalchemy nor psycopg2 importable` + localhost-DB לא-נגיש. Desktop-Commander (שרץ
+על ה-Mac) התנתק בסשן הזה. **צריך: מייקל/DC יריץ מ-repo root בvenv של הbackend** (או `--csv`).
+הספר עצמו כבר סימן זאת "לא-מוכרע (DB down)" — אני מאשר שזה עדיין החסם.
+
+**הצעת-תיקון ל-B1 (הצעה בלבד — משטח-סיכון, דורש פסיקה+סים):** ב-`bars.py:1153` להחליף
+`_cb.get("trend_state")` ב-`_trend_from_cci(_cb.get("trend_state"), _cb.get("cci_14"))` — כך שהבר-החי
+עובר את אותו relabel כמו בר-סגור. הפיך (flag OFF=זהה). **לא ביצעתי.**
+
+
 ### [2026-07-19] cowork-dev — ✅ פסיקה-3: StopResolver — ההנחה קרסה, נבנה לֶבֶר יחיד (OFF-עד-סים)
 **מה שהתברר מהקוד:** StopResolver **מעצב-מחדש סטופ, לא חוסם ירי.** בדחייה הוא שומר את הסטופ
 המקורי והעסקה **עדיין נורית**; ב-07-17 הוא **אף פעם לא הופיע כשער-חוסם**. הליכת-השלבים כבר
