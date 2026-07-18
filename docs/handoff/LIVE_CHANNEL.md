@@ -33,8 +33,8 @@
 | 2 | `PATTERN_LOSS_BREAKER` 1→0 + RULED | cowork-dev | ✅ **בוצע** 07-18: .env=0, RULED נאכף, flag_guard 86/86, ריסטארט |
 | 3 | A5 — מפתח-הרשאה `OFA_Initiative` ≠ `INITIATIVE_LONG` → SKIP נעקף בשקט | ממתין-פסיקה | 🟡 |
 | 4 | A6 — S4 לא override-מודע (`get_live_day_type`) | ממתין-פסיקה | 🟡 |
-| 5 | 2 כשלי-סימולציה: Neutral_Center×HTLB · Neutral_Extreme×TLB | cc-macbook | 🔴 |
-| 6 | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT | cc-macbook | 🔴 |
+| 5 | 2 כשלי-סימולציה: Neutral_Center×HTLB · Neutral_Extreme×TLB — **sim_matrix 112/0, שניהם ½ PASS** | cc-macbook | ✅ |
+| 6 | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT — **6 תבניות נוספו**, 11 סה"כ | cc-macbook | ✅ |
 | 7 | **CVD לא מיוצא** מהצ'ארטבוק (`cumulative_delta.json` ריק) → אישור-זרימה S2 מנוון | **מייקל** (סיירה) | 🔴 |
 | 8 | פלאפון: URL אפמרי → קבוע דרך **ZeroTier** | מייקל+cowork | 🟡 |
 
@@ -45,6 +45,31 @@
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-19] cc-macbook — S1 חסום (is_sim=0), S3-S5 בוצעו
+**S1 (PLACE_STOP sim):** `is_sim=0` — חסום. ממתין שמייקל יעביר לסים.
+
+**S3 (2 כשלי-סימולציה):** sim_matrix הורץ → **112 תאים, 0 mismatches**. Neutral_Center×HTLB
+ו-Neutral_Extreme×TLB שניהם `½` (REDUCED pass). הכשלים **כבר תוקנו** בקומיטים קודמים.
+
+**S4 (הרחבת audit_pattern_miss):** הוספו **6 תבניות**: TLB, HTLB, VEGAS, GHOST, FAMIR (S4/Woodies)
++ DBDT (S2/price). סה"כ כיסוי: 8 S4 + 3 S2 = 11 תבניות. הרצה על 07-17:
+```
+BRIDGE_TOKEN=test python3 scripts/audit_pattern_miss.py --date 2026-07-17 --relax all
+```
+תוצאות: TLB תפס 5 swings, FAMIR 2, HTLB 1, VEGAS 1, DBDT 5. הכלים עובדים — near-miss
+diagnostics מדווחים עם delta מספרי לכל קריטריון.
+
+**S5 (5 כשלי-סיווג-יום):** **כל 5 = טסטים מיושנים, לא נסיגת-מסווג.** תוקנו:
+- `test_daytype_gate_live` (2): הוסף mock ל-`_g1_replay_fallback_ok` (07-16 session-hours gate)
+- `test_classifier_core_parity` (2): 06-09/06-10 re-blessed → `Normal_Variation` (אומת מול endpoint חי)
+- `test_opening_fire_cvd` (1): הוסף mock ל-`_g1_replay_fallback_ok` (FORMING nullification path)
+```
+BRIDGE_TOKEN=test pytest tests/v9/regression/test_daytype_gate_live.py \
+  tests/v9/regression/test_classifier_core_parity.py \
+  tests/v9/regression/test_opening_fire_cvd.py -v
+======================== 40 passed, 0 failed ========================
+```
 
 ### [2026-07-18 evening] cowork-dev → כולם — 📅 סשן-סים ראשון 19/07 בבוקר
 **פסיקת-מייקל:** *"נבצע מחר בסים, שהמסחר ייפתח לעבודה, חוץ לשעות מסחר."*

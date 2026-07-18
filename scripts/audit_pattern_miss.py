@@ -573,6 +573,255 @@ def eval_tt(bars: List[Bar], i: int, direction: str) -> List[Crit]:
     return crits
 
 
+# ── TLB (tlb.py) — trend-line break via CCI linear regression ──
+def eval_tlb(bars: List[Bar], i: int, direction: str) -> List[Crit]:
+    """TLB criteria: linreg slope over 10 bars, CCI deviation from predicted."""
+    crits: List[Crit] = []
+    W = 10
+    if i < W:
+        return [C("history", False, "need %d bars, have %d" % (W, i))]
+    cci = [b.cci_14 for b in bars[i - W + 1:i + 1]]
+    # AP8
+    rng3 = max(cci[-3:]) - min(cci[-3:])
+    crits.append(C("AP8_cci_flat", rng3 >= 50.0,
+                   "cci_range3=%.0f need>=50" % rng3, max(0, 50 - rng3) / 50))
+    # Linear regression slope
+    n = len(cci)
+    x_mean = (n - 1) / 2.0
+    y_mean = sum(cci) / n
+    num = sum((j - x_mean) * (cci[j] - y_mean) for j in range(n))
+    den = sum((j - x_mean) ** 2 for j in range(n))
+    slope = num / den if den != 0 else 0
+    predicted = y_mean + slope * (n - 1 - x_mean)
+    deviation = cci[-1] - predicted
+    if direction == "LONG":
+        crits.append(C("slope_down", slope < -2,
+                       "slope=%.2f need < -2 (d=%.2f)" % (slope, max(0, slope + 2)),
+                       max(0, slope + 2) / 2))
+        crits.append(C("break_above", deviation > 10,
+                       "deviation=%.1f need >10 (d=%.1f)" % (deviation, max(0, 10 - deviation)),
+                       max(0, 10 - deviation) / 10))
+        crits.append(C("cci_rising", cci[-1] > cci[-2],
+                       "cur=%.0f prev=%.0f" % (cci[-1], cci[-2])))
+    else:
+        crits.append(C("slope_up", slope > 2,
+                       "slope=%.2f need > 2 (d=%.2f)" % (slope, max(0, 2 - slope)),
+                       max(0, 2 - slope) / 2))
+        crits.append(C("break_below", deviation < -10,
+                       "deviation=%.1f need <-10 (d=%.1f)" % (deviation, max(0, deviation + 10)),
+                       max(0, deviation + 10) / 10))
+        crits.append(C("cci_falling", cci[-1] < cci[-2],
+                       "cur=%.0f prev=%.0f" % (cci[-1], cci[-2])))
+    return crits
+
+
+# ── HTLB (htlb.py) — horizontal S/R level break on CCI ──
+def eval_htlb(bars: List[Bar], i: int, direction: str) -> List[Crit]:
+    """HTLB criteria: horizontal CCI level (2+ touches), then break."""
+    crits: List[Crit] = []
+    W = 15
+    if i < W:
+        return [C("history", False, "need %d bars, have %d" % (W, i))]
+    cci = [b.cci_14 for b in bars[i - W + 1:i + 1]]
+    rng3 = max(cci[-3:]) - min(cci[-3:])
+    crits.append(C("AP8_cci_flat", rng3 >= 50.0,
+                   "cci_range3=%.0f need>=50" % rng3, max(0, 50 - rng3) / 50))
+    # Find horizontal level: cluster of similar CCI values (tolerance 15)
+    tol = 15
+    if direction == "LONG":
+        # Resistance: look for peaks
+        peaks = [cci[j] for j in range(1, len(cci) - 1) if cci[j] >= cci[j - 1] and cci[j] >= cci[j + 1]]
+        if len(peaks) < 2:
+            crits.append(C("resistance_found", False, "only %d peaks, need 2+" % len(peaks)))
+            return crits
+        # Check if 2+ peaks within tolerance
+        level_found = False
+        level = 0.0
+        for p in range(len(peaks)):
+            cluster = [pk for pk in peaks if abs(pk - peaks[p]) <= tol]
+            if len(cluster) >= 2:
+                level = sum(cluster) / len(cluster)
+                level_found = True
+                break
+        crits.append(C("resistance_found", level_found,
+                       "level=%.0f" % level if level_found else "no cluster within %d tol" % tol))
+        if level_found:
+            crits.append(C("break_above", cci[-1] > level + 5 and cci[-2] <= level,
+                           "cur=%.0f level+5=%.0f prev=%.0f" % (cci[-1], level + 5, cci[-2])))
+    else:
+        troughs = [cci[j] for j in range(1, len(cci) - 1) if cci[j] <= cci[j - 1] and cci[j] <= cci[j + 1]]
+        if len(troughs) < 2:
+            crits.append(C("support_found", False, "only %d troughs, need 2+" % len(troughs)))
+            return crits
+        level_found = False
+        level = 0.0
+        for p in range(len(troughs)):
+            cluster = [tr for tr in troughs if abs(tr - troughs[p]) <= tol]
+            if len(cluster) >= 2:
+                level = sum(cluster) / len(cluster)
+                level_found = True
+                break
+        crits.append(C("support_found", level_found,
+                       "level=%.0f" % level if level_found else "no cluster within %d tol" % tol))
+        if level_found:
+            crits.append(C("break_below", cci[-1] < level - 5 and cci[-2] >= level,
+                           "cur=%.0f level-5=%.0f prev=%.0f" % (cci[-1], level - 5, cci[-2])))
+    return crits
+
+
+# ── VEGAS (vegas.py) — cup-and-handle on CCI ──
+def eval_vegas(bars: List[Bar], i: int, direction: str) -> List[Crit]:
+    """VEGAS criteria: CCI touches ±200, recovers to ±100, shallow handle, break."""
+    crits: List[Crit] = []
+    W = 20
+    if i < W:
+        return [C("history", False, "need %d bars, have %d" % (W, i))]
+    cci = [b.cci_14 for b in bars[i - W + 1:i + 1]]
+    rng3 = max(cci[-3:]) - min(cci[-3:])
+    crits.append(C("AP8_cci_flat", rng3 >= 50.0,
+                   "cci_range3=%.0f need>=50" % rng3, max(0, 50 - rng3) / 50))
+    if direction == "LONG":
+        cup_found = any(c <= -200 for c in cci[:-3])
+        crits.append(C("cup_bottom", cup_found,
+                       "found CCI<=-200 in window" if cup_found else "no CCI<=-200"))
+        rim_cross = any(cci[j] > -100 and cci[j - 1] <= -100 for j in range(1, len(cci) - 1))
+        crits.append(C("rim_recovery", rim_cross,
+                       "crossed -100 upward" if rim_cross else "no -100 recovery"))
+        crits.append(C("handle_break", cci[-1] > -100 and cci[-2] <= -100,
+                       "cur=%.0f prev=%.0f rim=-100" % (cci[-1], cci[-2])))
+    else:
+        cup_found = any(c >= 200 for c in cci[:-3])
+        crits.append(C("cup_top", cup_found,
+                       "found CCI>=200 in window" if cup_found else "no CCI>=200"))
+        rim_cross = any(cci[j] < 100 and cci[j - 1] >= 100 for j in range(1, len(cci) - 1))
+        crits.append(C("rim_recovery", rim_cross,
+                       "crossed 100 downward" if rim_cross else "no 100 recovery"))
+        crits.append(C("handle_break", cci[-1] < 100 and cci[-2] >= 100,
+                       "cur=%.0f prev=%.0f rim=100" % (cci[-1], cci[-2])))
+    return crits
+
+
+# ── GHOST (ghost.py) — head-and-shoulders on CCI ──
+def eval_ghost(bars: List[Bar], i: int, direction: str) -> List[Crit]:
+    """GHOST criteria: 3-peak/trough H&S shape on CCI oscillator."""
+    crits: List[Crit] = []
+    W = 20
+    if i < W:
+        return [C("history", False, "need %d bars, have %d" % (W, i))]
+    cci = [b.cci_14 for b in bars[i - W + 1:i + 1]]
+    rng3 = max(cci[-3:]) - min(cci[-3:])
+    crits.append(C("AP8_cci_flat", rng3 >= 50.0,
+                   "cci_range3=%.0f need>=50" % rng3, max(0, 50 - rng3) / 50))
+    if direction == "SHORT":
+        # Bearish: 3 peaks, p2 > p1, p2 > p3, p3 < p1, cur < p3
+        peaks = [(j, cci[j]) for j in range(1, len(cci) - 1)
+                 if cci[j] > cci[j - 1] and cci[j] > cci[j + 1]]
+        crits.append(C("3_peaks", len(peaks) >= 3,
+                       "%d peaks found, need 3+" % len(peaks)))
+        if len(peaks) >= 3:
+            p1, p2, p3 = peaks[-3][1], peaks[-2][1], peaks[-1][1]
+            crits.append(C("head_highest", p2 > p1 and p2 > p3,
+                           "p1=%.0f p2=%.0f p3=%.0f" % (p1, p2, p3)))
+            crits.append(C("right_lower", p3 < p1,
+                           "p3=%.0f < p1=%.0f" % (p3, p1)))
+            crits.append(C("break_neckline", cci[-1] < p3,
+                           "cur=%.0f < p3=%.0f" % (cci[-1], p3)))
+    else:
+        # Bullish: 3 troughs, t2 < t1, t2 < t3, t3 > t1, cur > t3
+        troughs = [(j, cci[j]) for j in range(1, len(cci) - 1)
+                   if cci[j] < cci[j - 1] and cci[j] < cci[j + 1]]
+        crits.append(C("3_troughs", len(troughs) >= 3,
+                       "%d troughs found, need 3+" % len(troughs)))
+        if len(troughs) >= 3:
+            t1, t2, t3 = troughs[-3][1], troughs[-2][1], troughs[-1][1]
+            crits.append(C("head_lowest", t2 < t1 and t2 < t3,
+                           "t1=%.0f t2=%.0f t3=%.0f" % (t1, t2, t3)))
+            crits.append(C("right_higher", t3 > t1,
+                           "t3=%.0f > t1=%.0f" % (t3, t1)))
+            crits.append(C("break_neckline", cci[-1] > t3,
+                           "cur=%.0f > t3=%.0f" % (cci[-1], t3)))
+    return crits
+
+
+# ── FAMIR (famir.py) — failed attempt at ±200 ──
+def eval_famir(bars: List[Bar], i: int, direction: str) -> List[Crit]:
+    """FAMIR criteria: CCI reaches 170-210 zone then reverses 20+ pts."""
+    crits: List[Crit] = []
+    W = 5
+    if i < W:
+        return [C("history", False, "need %d bars, have %d" % (W, i))]
+    cci = [b.cci_14 for b in bars[i - W + 1:i + 1]]
+    rng3 = max(cci[-3:]) - min(cci[-3:])
+    crits.append(C("AP8_cci_flat", rng3 >= 50.0,
+                   "cci_range3=%.0f need>=50" % rng3, max(0, 50 - rng3) / 50))
+    if direction == "SHORT":
+        peak = max(cci)
+        crits.append(C("zone_170_210", 170 <= peak < 210,
+                       "peak=%.0f need [170,210)" % peak,
+                       0 if 170 <= peak < 210 else min(abs(peak - 170), abs(peak - 210)) / 40))
+        crits.append(C("reversal_20pt", cci[-1] < peak - 20,
+                       "cur=%.0f < peak-20=%.0f" % (cci[-1], peak - 20)))
+        crits.append(C("falling", cci[-1] < cci[-2],
+                       "cur=%.0f < prev=%.0f" % (cci[-1], cci[-2])))
+    else:
+        trough = min(cci)
+        crits.append(C("zone_170_210", -210 < trough <= -170,
+                       "trough=%.0f need (-210,-170]" % trough,
+                       0 if -210 < trough <= -170 else min(abs(trough + 170), abs(trough + 210)) / 40))
+        crits.append(C("reversal_20pt", cci[-1] > trough + 20,
+                       "cur=%.0f > trough+20=%.0f" % (cci[-1], trough + 20)))
+        crits.append(C("rising", cci[-1] > cci[-2],
+                       "cur=%.0f > prev=%.0f" % (cci[-1], cci[-2])))
+    return crits
+
+
+# ── S2 DBDT (double_bt.py) — double bottom/top on price ──
+def eval_s2_dbdt(bars: List[Bar], i: int, direction: str) -> List[Crit]:
+    """DBDT criteria: 2 symmetric swing lows/highs + neckline break."""
+    crits: List[Crit] = []
+    W = 30
+    if i < W:
+        return [C("history", False, "need %d bars, have %d" % (W, i))]
+    window = bars[i - W + 1:i + 1]
+    if direction == "LONG":
+        # Double bottom: 2 swing lows at similar level, neckline break
+        lows = [(j, window[j].low) for j in range(1, len(window) - 1)
+                if window[j].low <= window[j - 1].low and window[j].low <= window[j + 1].low]
+        crits.append(C("2_swing_lows", len(lows) >= 2,
+                       "%d swing lows, need 2+" % len(lows)))
+        if len(lows) >= 2:
+            t1, t2 = lows[-2], lows[-1]
+            sym = abs(t1[1] - t2[1]) <= max(t1[1], t2[1]) * 0.005 + 2.0
+            crits.append(C("symmetric_lows", sym,
+                           "t1=%.2f t2=%.2f diff=%.2f" % (t1[1], t2[1], abs(t1[1] - t2[1]))))
+            nl_highs = [window[j].high for j in range(t1[0] + 1, t2[0]) if j < len(window)]
+            if nl_highs:
+                neckline = max(nl_highs)
+                crits.append(C("neckline_break", window[-1].close > neckline + 0.25,
+                               "close=%.2f > neckline+1T=%.2f" % (window[-1].close, neckline + 0.25)))
+            else:
+                crits.append(C("neckline_break", False, "no bars between troughs"))
+    else:
+        # Double top: 2 swing highs at similar level, neckline break
+        highs = [(j, window[j].high) for j in range(1, len(window) - 1)
+                 if window[j].high >= window[j - 1].high and window[j].high >= window[j + 1].high]
+        crits.append(C("2_swing_highs", len(highs) >= 2,
+                       "%d swing highs, need 2+" % len(highs)))
+        if len(highs) >= 2:
+            p1, p2 = highs[-2], highs[-1]
+            sym = abs(p1[1] - p2[1]) <= max(p1[1], p2[1]) * 0.005 + 2.0
+            crits.append(C("symmetric_highs", sym,
+                           "p1=%.2f p2=%.2f diff=%.2f" % (p1[1], p2[1], abs(p1[1] - p2[1]))))
+            nl_lows = [window[j].low for j in range(p1[0] + 1, p2[0]) if j < len(window)]
+            if nl_lows:
+                neckline = min(nl_lows)
+                crits.append(C("neckline_break", window[-1].close < neckline - 0.25,
+                               "close=%.2f < neckline-1T=%.2f" % (window[-1].close, neckline - 0.25)))
+            else:
+                crits.append(C("neckline_break", False, "no bars between peaks"))
+    return crits
+
+
 # ── S2 helpers (five_min_system.py) ──
 def _wilder_atr(bars: List[Bar], i: int, period: int = 14) -> Optional[float]:
     lo = max(0, i - 19)
@@ -878,8 +1127,8 @@ def find_swings(bars: List[Bar], thr: float) -> List[Swing]:
 # ────────────────────────────────────────────────────────────────────────────
 # Evaluation drivers
 # ────────────────────────────────────────────────────────────────────────────
-S4_PATTERNS = ["ZLR", "GB100", "TT"]
-S2_PATTERNS = ["S2_REACTIVE", "S2_INITIATIVE"]
+S4_PATTERNS = ["ZLR", "GB100", "TT", "TLB", "HTLB", "VEGAS", "GHOST", "FAMIR"]
+S2_PATTERNS = ["S2_REACTIVE", "S2_INITIATIVE", "S2_DBDT"]
 
 
 def eval_pattern(pat: str, w_bars: List[Bar], s2_bars: List[Bar], wi: Optional[int],
@@ -895,6 +1144,16 @@ def eval_pattern(pat: str, w_bars: List[Bar], s2_bars: List[Bar], wi: Optional[i
             return eval_gb100(w_bars, wi, direction, rx, fl, rth_idx)
         if pat == "TT":
             return eval_tt(w_bars, wi, direction)
+        if pat == "TLB":
+            return eval_tlb(w_bars, wi, direction)
+        if pat == "HTLB":
+            return eval_htlb(w_bars, wi, direction)
+        if pat == "VEGAS":
+            return eval_vegas(w_bars, wi, direction)
+        if pat == "GHOST":
+            return eval_ghost(w_bars, wi, direction)
+        if pat == "FAMIR":
+            return eval_famir(w_bars, wi, direction)
     else:
         if si is None:
             return None
@@ -903,6 +1162,8 @@ def eval_pattern(pat: str, w_bars: List[Bar], s2_bars: List[Bar], wi: Optional[i
             return eval_s2_reactive(s2_bars, si, direction, rx, fl, rth_idx, cvd)
         if pat == "S2_INITIATIVE":
             return eval_s2_initiative(s2_bars, si, direction, rx, fl, rth_idx, cvd)
+        if pat == "S2_DBDT":
+            return eval_s2_dbdt(s2_bars, si, direction)
     return None
 
 

@@ -210,7 +210,12 @@ class TestFlagOffFallback:
         assert result["day_type_at_entry"] == "Normal"
 
     def test_flag_off_live_attr_not_read(self):
-        """Flag OFF: the live importlib path is never called."""
+        """Flag OFF: the live importlib path is never called — fallback to cache.
+
+        Must mock _g1_replay_fallback_ok → True because this test runs during
+        session hours where the 07-16 root-fix blocks the classify_replay
+        fallback (correct behavior, but irrelevant to what this test validates).
+        """
         mock_app = _mock_app_state("Trend_Normal")
         with patch.dict(os.environ, {"DAYTYPE_GATE_LIVE_V1": "0"}):
             import time
@@ -218,7 +223,8 @@ class TestFlagOffFallback:
                 __import__("zoneinfo").ZoneInfo("America/New_York")
             ).date().isoformat()
             _NC_CACHE.update({"date": today_iso, "ts": time.time(), "day_type": "Variation"})
-            result = extract_g1_entry_context(_cross_ctx("Normal"))
+            with patch("backend.v9.services.trade_context._g1_replay_fallback_ok", return_value=True):
+                result = extract_g1_entry_context(_cross_ctx("Normal"))
         # Should get Variation from cache, NOT Trend_Normal from live
         assert result["day_type_at_entry"] == "Variation"
 
@@ -229,7 +235,13 @@ class TestFlagOffFallback:
 # ---------------------------------------------------------------------------
 class TestLiveUnknownFallthrough:
     def test_live_unknown_falls_to_classify_replay(self):
-        """Live = UNKNOWN → skip live path, use classify_replay."""
+        """Live = UNKNOWN → skip live path, use classify_replay cache.
+
+        Must mock _g1_replay_fallback_ok → True because during session hours
+        the 07-16 root-fix blocks the fallback (correct behavior — prevents
+        is_eod-forced labels mid-session). This test validates the UNKNOWN→
+        fallback logic, not the time-gating.
+        """
         import time
         mock_app = _mock_app_state("UNKNOWN")
         today_iso = __import__("datetime").datetime.now(
@@ -237,6 +249,7 @@ class TestLiveUnknownFallthrough:
         ).date().isoformat()
         _NC_CACHE.update({"date": today_iso, "ts": time.time(), "day_type": "Trend_Normal"})
         with patch("importlib.import_module", return_value=MagicMock(app=mock_app)):
-            result = extract_g1_entry_context(_cross_ctx("Normal"))
+            with patch("backend.v9.services.trade_context._g1_replay_fallback_ok", return_value=True):
+                result = extract_g1_entry_context(_cross_ctx("Normal"))
         # Live is UNKNOWN → falls through to classify_replay cache → Trend_Normal
         assert result["day_type_at_entry"] == "Trend_Normal"

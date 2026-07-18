@@ -141,8 +141,11 @@ class TestPreLockNoFallback:
             "S1_NEW_CLASSIFIER": "1",
             "OPENING_FIRE_CVD_V1": "1",
         }):
-            # Patch classify_replay to avoid DB call (cache is pre-seeded and fresh)
-            result = extract_g1_entry_context(cross_ctx)
+            # Mock _g1_replay_fallback_ok → True so the cache path is reachable
+            # (during session hours the 07-16 root-fix blocks it — correct, but
+            # irrelevant to what this test validates: FORMING nullification).
+            with patch("backend.v9.services.trade_context._g1_replay_fallback_ok", return_value=True):
+                result = extract_g1_entry_context(cross_ctx)
             # With flag ON + FORMING, day_type should be None (not "Variation")
             assert result["day_type_at_entry"] is None, (
                 f"Pre-lock FORMING should nullify day_type, got {result['day_type_at_entry']}"
