@@ -35,7 +35,7 @@
 | 4 | A6 — S4 לא override-מודע (`get_live_day_type`) | ממתין-פסיקה | 🟡 |
 | 5 | 2 כשלי-סימולציה: Neutral_Center×HTLB · Neutral_Extreme×TLB — **sim_matrix 112/0, שניהם ½ PASS** | cc-macbook | ✅ |
 | 6 | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT — **6 תבניות נוספו**, 11 סה"כ | cc-macbook | ✅ |
-| 7 | **CVD לא מיוצא** מהצ'ארטבוק (`cumulative_delta.json` ריק) → אישור-זרימה S2 מנוון | **מייקל** (סיירה) | 🔴 |
+| 7 | ~~CVD לא מיוצא~~ — **בוטל: אין בעיה.** ה-DLL מחשב CVD בעצמו מ-`sc.AskVolume-sc.BidVolume` (לא קורא סטאדי). הקובץ מלא: 90 points, session_delta=-4067, trend=BEARISH. הטעות שלי: קראתי מפתח `bars` במקום `points` | cowork-dev | ✅ **סגור — אין פעולה** |
 | 8 | פלאפון: URL אפמרי → קבוע דרך **ZeroTier** | מייקל+cowork | 🟡 |
 
 ## ⏳ פסיקות שממתינות למייקל
@@ -51,6 +51,18 @@
 פריטים: **S0** ⏸ Sim ON (חוסם S1+E2E) · **S1–S5** cc-macbook · **Si1–Si3** cc-imac ·
 **S-LIVE** ⏸ חזרה-ללייב (פריט-סגירה). ⛔ שער S / הצ'קליסט לא נסגרים בלי `is_sim=0` אומת.
 סטטוס מ-LOG קיים: S3/S4/S5 ✅ (ממתינים לאימות-cowork) · S0/S1 עדיין חסומים (`is_sim=0`).
+
+### [2026-07-19] cowork-dev — ⚠️ תיקון-עצמי: פריט 7 (CVD) בוטל — לא הייתה בעיה
+מייקל שאל איזה סטאדי-CVD להוסיף. בדקתי בקוד — **אין מה להוסיף.** ה-DLL **מחשב CVD בעצמו**
+מנתוני-הבסיס: `delta = sc.AskVolume[idx] - sc.BidVolume[idx]` → `CVD[idx] = CVD[idx-1] + delta`
+(`MES_AI_DataExport.cpp:185-192`). הסטאדי "Cumulative Delta Bars - Volume" שבצ'ארט הוא **תצוגה
+בלבד** — ה-DLL לא קורא אותו. **תנאי יחיד: נפח מפוצל bid/ask בצ'ארט — וזה קיים.**
+`cumulative_delta.json` **מלא וזורם**: `points=90 · current_delta=-4067 · session_delta=-4067 ·
+peak=8794 · trough=-8484 · divergence=true · trend=BEARISH`.
+**שורש-הטעות שלי (07-17):** בדקתי `d.get('bars')` — המפתח הנכון הוא **`points`**. דיווחתי
+"CVD ריק" על סמך מפתח שגוי, ו-S2 אף פעם לא היה מנוון. **לקח:** לאמת מבנה-JSON לפני שמכריזים על
+מקור-חסר (בדיוק כלל feedback_verify_json_structure_before_claiming).
+**מייקל: אל תיגע בצ'ארטבוק. נשארו לך 3 פריטים בלבד — Sim-Mode · 6 הפסיקות · חזרה-ללייב.**
 
 ### [2026-07-19] cc-macbook — S1 חסום (is_sim=0), S3-S5 בוצעו
 **S1 (PLACE_STOP sim):** `is_sim=0` — חסום. ממתין שמייקל יעביר לסים.
