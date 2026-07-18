@@ -34,8 +34,15 @@ def _env_int(key: str, default: int) -> int:
 DAILY_LOSS_CAP = _env_float("RISK_DAILY_LOSS_CAP", 250.0)
 MAX_TRADES_PER_DAY = _env_int("RISK_MAX_TRADES_DAY", 5)
 MAX_CONTRACTS = 2
-CUTOFF_HOUR = 14
-CUTOFF_MINUTE = 30
+# No-new-live-entries cutoff (ET). Michael ruling 2026-07-19: moved 14:30 → 15:30 ET
+# (= 22:30 IL), i.e. block only the LAST 30 MINUTES instead of the last 90.
+# Evidence (07-17 shadow book): the old 14:30 cutoff sent 4 shadow trades past it —
+# 3 winning S4 shorts (+$148.75) and 1 losing S2 long (−$86.25) = net +$62.50 that the
+# cutoff cost us. The losing long was a counter-trend entry that the OTHER gates should
+# catch (not a time gate's job). 15:30 still preserves close-of-session discipline.
+# Now env-tunable (was hardcoded) so future changes need no code edit — RULED-enforced.
+CUTOFF_HOUR = _env_int("RISK_CUTOFF_HOUR_ET", 15)
+CUTOFF_MINUTE = _env_int("RISK_CUTOFF_MINUTE_ET", 30)
 CONSECUTIVE_LOSS_LIMIT = _env_int("RISK_CONSECUTIVE_LOSS_LIMIT", 2)
 
 

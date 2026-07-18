@@ -203,12 +203,23 @@ def test_s4_risk_cap_block_surfaces_in_gateway(monkeypatch):
         "metadata": {
             "pattern": "ZLR",
             "sizing": "full",
-            "s4_risk_cap_block": "pattern_loss_breaker:ZLR:2>=2",
+            "s4_risk_cap_block": "risk_points:ZLR:9.5>7.0",
         },
     }
     result = gw.route_setup(setup, 4)
     assert result["blocked_by"] == "s4_risk_cap", (
         f"Expected blocked_by='s4_risk_cap', got {result.get('blocked_by')}"
+    )
+
+    # P5 (2026-07-16): the per-pattern loss-breaker is kind-prefixed and must
+    # surface under its OWN name — folding it into "s4_risk_cap" is what made the
+    # 07-15 evening blocks look like a points-cap problem. This test used to send
+    # a pattern_loss_breaker payload and still expect "s4_risk_cap"; that
+    # expectation predates P5. Both kinds are now pinned explicitly.
+    setup["metadata"]["s4_risk_cap_block"] = "pattern_loss_breaker:ZLR:2>=2"
+    result = gw.route_setup(setup, 4)
+    assert result["blocked_by"] == "pattern_loss_breaker", (
+        f"Expected blocked_by='pattern_loss_breaker', got {result.get('blocked_by')}"
     )
 
 
