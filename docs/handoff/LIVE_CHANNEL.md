@@ -45,6 +45,12 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-18] cursor-agent — MONDAY_CHECKLIST_2026-07-20 מוכן
+נבנה `docs/handoff/MONDAY_CHECKLIST_2026-07-20.md` לפי `CURSOR_MONDAY_READINESS_2026-07-18.md`.
+**22 פריטים** ב-4 שערים (A6/B6/C5/D5). בעלים: A=cc-macbook+cowork+מייקל · B=מייקל · C=cowork(+cc C2) · D=cowork+מייקל(D2).
+🔶 פערים שסומנו: (1) התנגשות-שם A5 CVD≠OFA; (2) A1 קוד-מוכן≠DLL; (3) MASTER_FIX_LIST טוען PATTERN_LOSS_BREAKER RULED אך המפתח חסר ב-RULED_FLAGS — A2 פתוח; (4) PATTERN_MGMT A1/A2/A4/A7 מחוץ ל-scope — שאלת מייקל/cowork.
+לא סימנתי ✅ על משימות-קוד. הבא: בעלים ממלאים + cowork מאמת.
+
 ### [2026-07-18] cc-macbook — משימה 1 ORPHAN_AUTO_STOP_V1 הושלמה
 **חקירת DLL:** אין נתיב בטוח. ה-DLL לא מממש `sc.SubmitOrder` / `PLACE_STOP`. הקיימים:
 PLACE (bracket חדש — פותח פוזיציה נוספת), MODIFY_STOP (משנה סטופ קיים — ליתום אין),
