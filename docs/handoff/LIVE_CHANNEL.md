@@ -31,7 +31,7 @@
 | **1א** | **ORPHAN_AUTO_STOP_V1** — גייטינג+11 טסטים ✅ **אומת ע"י cowork** (27 עוברים, דגל OFF, stub מסרב, חקירת-DLL נכונה). **חסום:** אין op לסטופ-עצמאי ב-DLL → ההגנה לא פועלת בפועל. דורש בניית op חדש (C++→build→Remote-Build→sim) | cc-macbook | ✅ הושלם |
 | **1ב** | **DLL op `PLACE_STOP`** — A1.1–A1.5 ✅ (RB 17:11, verify deployed==repo, armed=1 חזר לבד). **A1.6 חסום:** ממתין למייקל → Sim Mode (`is_sim=1`) לפני אימות-סים. דגל ORPHAN נשאר OFF | **מייקל**(Sim) → cc-macbook → cowork | 🟡 חסום-Sim |
 | 2 | `PATTERN_LOSS_BREAKER` 1→0 + RULED | cowork-dev | ✅ **בוצע** 07-18: .env=0, RULED נאכף, flag_guard 86/86, ריסטארט |
-| 3 | A5 — מפתח-הרשאה `OFA_Initiative` ≠ `INITIATIVE_LONG` → SKIP נעקף בשקט | ממתין-פסיקה | 🟡 |
+| 3 | ~~A5 — מפתח-הרשאה~~ ✅ **נפסק 07-19:** daytype_playbook=מקור-יחיד, auth_matrix בוטל כשער (S2_AUTH_MATRIX_SINGLE_SOURCE_V1=1, אפס-שינוי-התנהגות, 14 טסטים) | cowork-dev | ✅ |
 | 4 | A6 — S4 לא override-מודע (`get_live_day_type`) | ממתין-פסיקה | 🟡 |
 | 5 | 2 כשלי-סימולציה: Neutral_Center×HTLB · Neutral_Extreme×TLB — **sim_matrix 112/0, שניהם ½ PASS** | cc-macbook | ✅ |
 | 6 | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT — **6 תבניות נוספו**, 11 סה"כ | cc-macbook | ✅ |
@@ -48,6 +48,20 @@
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-19] cowork-dev — ✅ פסיקה-4 (A5): daytype_playbook = מקור-יחיד לפטרן×יום
+**פסיקת-מייקל:** הפלייבוק מקור-יחיד; לבטל את `auth_matrix` כשער.
+**מה שהתברר:** לא באג-מפתח-בודד — **שתי טבלאות-דוקטרינה שנפרדו.** `auth_matrix.yaml` היא
+S2-בלבד; מ-5 משפחות **רק REACTIVE נפתרה**, השאר פספסו על אי-התאמת-מפתח (`OFA_Initiative`≠
+`INITIATIVE_LONG`) ו"השתמשו במקס". הספירות נדרסות ע"י `FIXED_CONTRACTS_4=1` → האפקט-החי-היחיד
+היה ה-SKIP. 16 SKIP-ים חופפים לפלייבוק (מוסתרים), **8 מתנגשים** (Initiative×Normal · HnS×Trend ·
+Double×Trend_DD) — ושם המערכת **כבר עוקבת אחר הפלייבוק**.
+**נעשה (504d948d):** `S2_AUTH_MATRIX_SINGLE_SOURCE_V1=1` — מבטל את auth כשער ב-`compute_v2_sizing`.
+**אפס-שינוי-התנהגות מוכח:** 4 המשפחות-הלא-תואמות OFF==ON (שער שאף פעם לא נפתר); REACTIVE×Nontrend
+משתנה ברמת-ה-sizing אך הפלייבוק חוסם אותו → מערכת ללא-שינוי. 14 טסטים.
+**אימות (חוק-5):** `snapshot 20260718T205911Z → flag_guard 90/90 → health=200 → is_sim=0 qty=0 working=0`.
+**הערה ל-cursor (ספר-התבניות):** `auth_matrix.yaml` הוא כעת legacy/מת-כשער — הפלייבוק הוא המקור.
+**נותרו 2 פסיקות** — הבאה: A6 (S4 לא override-מודע).
 
 ### [2026-07-19] cowork-dev — ✅ אימות ספר-התבניות (חוק-5): B1 PASS · B2 PASS · פריט-3 חסום-DB
 אימתתי את `PATTERN_BIBLE_2026-07-19.md` מול הקוד. **לא נגעתי בספר ולא בקוד.** הערת-מספרים:
