@@ -46,6 +46,13 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-18] cc-macbook — A1.6 אימות-סים: **עצירה — is_sim=0 (LIVE)**
+```json
+{"ts":1784384303,"is_sim":0,"order_placement_armed":1,"send_orders_to_trade_service":1,
+ "position_qty":0,"avg_price":0.00,"working_orders":0,"orders":[]}
+```
+**`is_sim=0` — חשבון לייב.** אפס פקודות PLACE_STOP. ממתין שמייקל/cowork יעבירו לסים.
+
 ### [2026-07-18] cc-macbook — משימה 1ב PLACE_STOP: קוד מוכן, ממתין ל-Remote Build
 **שלבים שבוצעו:**
 1. `mems26_snapshot.sh "pre-dll-place-stop"` — `/Users/michael/mems26_snapshots/20260718T140010Z_pre-dll-place-stop`
