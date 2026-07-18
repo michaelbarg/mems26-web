@@ -40,12 +40,39 @@
 | **9** | **ספר-התבניות** — `PATTERN_BIBLE_2026-07-19.md` מוכן (15 כרטיסים · מטריצה 15×8 · B1+B2). ממתין לאימות-cowork / קריאת-מייקל | **cursor-agent** | ✅ נכתב |
 
 ## ⏳ פסיקות שממתינות למייקל
-1. **סף 14:30 ET** — שלח 3 שורטי-S4 מנצחים ל-shadow. להשאיר / להזיז לאיזו שעה?
+1. ~~**סף 14:30 ET**~~ — ✅ **נפסק 07-19: 15:30 ET (22:30 IL)** + env-tunable. בוצע ואומת.
 2. **entry_not_confirmed** — חסם 3 תבניות בצ'ופ. לרכך?
 3. **StopResolver** — סטופ-מבני צר-מדי: להרחיב-לרצפה או להמשיך לדחות?
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-19] cowork-dev — ✅ פסיקה-1 בוצעה: סף-כניסות 14:30 → 15:30 ET
+**פסיקת-מייקל:** *"מאשר לשנות 22:30"* (22:30 IL = **15:30 ET**). חוסם עכשיו רק את **30 הדקות
+האחרונות** של הסשן במקום 90.
+**הראיה שהובילה לפסיקה** (ספר-הצללים 07-17): הסף הישן שלח 4 עסקאות ל-shadow —
+`#401 S4 SHORT +28.75` · `#402 S4 SHORT +26.25` · `#404 S4 SHORT +93.75` (= **+$148.75**)
+מול `#403 S2 LONG −86.25` → **נטו +$62.50** שהסף עלה לנו. הלונג המפסיד היה כניסה נגד-מגמה —
+תפקיד שערי-הכיוון, לא של שער-זמן.
+**מה נעשה:**
+- `risk_checks.py:44-45` — `CUTOFF_HOUR/MINUTE` **היו קשיחים-בקוד** → עכשיו
+  `RISK_CUTOFF_HOUR_ET` / `RISK_CUTOFF_MINUTE_ET` (ברירת-מחדל 15:30). שינוי עתידי בלי נגיעה בקוד.
+- `RULED_FLAGS.yaml` — שניהם נעולים ונאכפים.
+- `tests/v9/regression/test_risk_cutoff_ruling.py` — **5 טסטים** (ברירת-מחדל=15:30 · env-tunable ·
+  fallback על env-פגום · חלון-07-17 נפתח · חצי-שעה-אחרונה עדיין חסומה).
+- **תיקון-אגב:** `test_sizing_consolidation::test_s4_risk_cap_block_surfaces_in_gateway` נכשל —
+  **אימתתי שזו לא רגרסיה שלי** (נכשל זהה עם השינוי ב-stash). שורש: P5 מ-07-16 העביר את
+  `pattern_loss_breaker` לשם-משלו, והטסט עוד שלח payload של breaker וציפה ל-`s4_risk_cap`.
+  תוקן — שני הסוגים נעוצים עכשיו במפורש.
+**אימות (חוק-5):**
+```
+12 passed (test_risk_cutoff_ruling + test_sizing_consolidation)
+FLAG-GUARD: PASS — all 88 ruled flags match.
+launchctl kickstart -k com.mems26.backend -> health=200
+RUNTIME-EQUIV cutoff = 15:30 ET  (= 22:30 IL)
+sierra_state: is_sim=0 position_qty=0 working_orders=0   (שטוח, בטוח)
+```
+קומיט `2febd4c4`. **נותרו 5 פסיקות** — ממשיכים אחת-אחת (הבאה: `entry_not_confirmed`).
 
 ### [2026-07-19] cursor-agent — PATTERN_BIBLE_2026-07-19 מוכן
 תוצר: `docs/handoff/PATTERN_BIBLE_2026-07-19.md` (ניתוח-קוד בלבד; כל שורה file:line).
