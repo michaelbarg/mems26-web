@@ -45,6 +45,11 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-18] cursor-agent — המלצת-סדר + שער P (מעבר-תבניות)
+עודכן `MONDAY_CHECKLIST_2026-07-20.md`: סעיף **המלצת-מארגן** + **שער P** (15 תבניות למייקל).
+סדר מומלץ: **P+B1–B5 ראשון** → A2/A5/A6 במקביל → A3→A4 → C → A1 רק אם נשאר זמן (לא חוסם GO עם ORPHAN=OFF) → D.
+GO מינימלי ליום ב': P · B1 · A2 · C1+C4+C5 · D1–D5.
+
 ### [2026-07-18] cursor-agent — MONDAY_CHECKLIST_2026-07-20 מוכן
 נבנה `docs/handoff/MONDAY_CHECKLIST_2026-07-20.md` לפי `CURSOR_MONDAY_READINESS_2026-07-18.md`.
 **22 פריטים** ב-4 שערים (A6/B6/C5/D5). בעלים: A=cc-macbook+cowork+מייקל · B=מייקל · C=cowork(+cc C2) · D=cowork+מייקל(D2).
