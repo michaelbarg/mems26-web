@@ -3,6 +3,14 @@
 This repository controls the local MEMS26 trading stack. Treat post-reboot
 stability settings as production safety controls.
 
+## ערוץ-עדכונים משותף — קרא `docs/handoff/LIVE_CHANNEL.md` FIRST (מייקל 2026-07-17)
+
+**שלושה סוכנים על אותו ריפו:** `cowork-dev` (Cowork/MacBook — מנהל+מאמת) · `cc-macbook`
+(Claude Code/MacBook — מבצע, אותה מכונה שסוחרת) · `cc-imac` (Claude Code/iMac — סים).
+**בתחילת כל סשן: `git pull` + קרא `docs/handoff/LIVE_CHANNEL.md`** — שם המשימות הפתוחות,
+הפסיקות הממתינות, ומצב-המערכת. סיימת משהו? הוסף שורה חתומה ל-LOG שם, `commit`+`push`.
+זה מחליף את ריבוי-קבצי-ההנדאוף. `AGENT_SYNC.md` נשאר לתיאום cowork⇄cc-imac ההיסטורי.
+
 ## Agent Sync — read `docs/handoff/AGENT_SYNC.md` FIRST, every session (Michael 2026-07-14)
 
 Two Claude agents share this repo through git: **`cowork-dev`** (Cowork on the MacBook —
