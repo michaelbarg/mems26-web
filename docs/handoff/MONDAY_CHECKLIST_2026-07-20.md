@@ -25,6 +25,8 @@ B5 (A6-ביקורת S4 override) ─► האם S4 רואה DAY_TYPE_MANUAL_OVERR
 B6 (הדלקת ORPHAN) ──────────► דורש A1 DLL+סים ירוק; אחרת נשאר OFF
 
 A1 (DLL PLACE_STOP) ────────► B6 + הגנה מיתום-עירום
+  A1.1→A1.2→A1.3→⏸A1.4(מייקל RB)→A1.5→A1.6→A1.7→A1.8(=B6)
+  ⛔ אין A1.4 בלי A1.2 מוכח (grep PLACE_STOP בקוד)
 A2 (PATTERN_LOSS_BREAKER) ──► C4 flag_guard (דריפט לא-RULED)
 A3 (2 כשלי-סים) ────────────► C2 E2E ירוק
 A4 (audit_pattern_miss) ────► כיסוי-זיהוי לפני כיול
@@ -58,7 +60,8 @@ C ירוק ─────────────────────► D 
 - לא להתחיל כיול-סף על ZLR/GB100 לפני שסיימת **P** (מעבר-תבניות) + B1/B2.
 - לא להדליק דגל חדש ב-.env בלי RULED + פסיקה.
 - לא להריץ C2 על שתי מכונות חמושות (סוחר-יחיד).
-- לא לסמן A1 ✅ בלי DLL+סים — Monday יכול להיות GO עם ORPHAN=OFF.
+- לא לסמן A1 ✅ לפני A1.7 — Monday יכול להיות GO עם ORPHAN=OFF.
+- ⛔ **לא Remote Build (A1.4) לפני A1.2 מוכח** — תקרית 07-18: בילד מיותר.
 
 ### GO מינימלי ליום ב' (אם הזמן נגמר)
 חובה ירוק: **P** (עברת על התבניות) · **B1** (סף 14:30 — גם אם "להשאיר") · **A2** · **A5** רצוי · **C1+C4+C5** · **D1–D5**.
@@ -107,8 +110,28 @@ C ירוק ─────────────────────► D 
 
 | מזהה | משימה | בעלים | תלות | קריטריון-סיום (פקודה / פלט) | סטטוס |
 |---|---|---|---|---|---|
-| **A1** | ORPHAN_AUTO_STOP_V1 — סטופ-מגן ליתום. **קוד-גייטינג בוצע** (flag OFF). **חסר:** DLL op `PLACE_STOP` + אימות-סים | **cc-macbook** | מפרט: `CC_PROMPT_ORPHAN_AUTOSTOP_2026-07-17.md`. חוסם B6 | (1) stub מחזיר `NO_DLL_PATH` עד שיש op. (2) אחרי DLL: `pytest tests/v9/regression/test_orphan_auto_stop.py -q` → 11+ passed. (3) סים: יתום ידני → סטופ הונח בצד/מחיר נכון + לוג CRITICAL. פלט ב-LIVE_CHANNEL | 🟡 חסום-DLL |
-| **A2** | `PATTERN_LOSS_BREAKER` 1→0 + הוספה ל-`RULED_FLAGS.yaml` (דריפט מפסיקת-מייקל 07-16; לא ב-RULED → flag_guard לא תפס) | **cowork-dev** | פסיקה קיימת 07-16; לא דורש B | `grep PATTERN_LOSS_BREAKER config/RULED_FLAGS.yaml` → expected `"0"`. `.env` =0. `python3 scripts/flag_guard.py` → PASS כולל השורה הזו. פלט גולמי | 🔴 |
+| **A1** | ORPHAN + DLL `PLACE_STOP` — ראה **רצף A1.1–A1.8** למטה (נוקשה, תלוי-סדר). גייטינג Python ✅; DLL בביצוע | **cc-macbook** + מייקל(A1.4) + cowork(A1.7) | מפרט: `CC_PROMPT_DLL_PLACE_STOP_2026-07-18.md`. חוסם B6/A1.8 | כל תת-שלב ✅ עם פלט; A1 נסגר רק אחרי A1.7 | 🔴 בביצוע |
+| **A2** | `PATTERN_LOSS_BREAKER` 1→0 + הוספה ל-`RULED_FLAGS.yaml` (דריפט מפסיקת-מייקל 07-16; לא ב-RULED → flag_guard לא תפס) | **cowork-dev** | פסיקה קיימת 07-16; לא דורש B | `grep PATTERN_LOSS_BREAKER config/RULED_FLAGS.yaml` → expected `"0"`. `.env` =0. `python3 scripts/flag_guard.py` → PASS כולל השורה הזו. פלט גולמי | ✅ (cowork 07-18) |
+
+### A1 — רצף-משנה נוקשה (תלוי-סדר · אין דילוג)
+
+**תקרית 2026-07-18:** Remote Build רץ **לפני** ש-cc כתב את הקוד → בילד מיותר.
+**כלל-ברזל:** ⛔ **אין לעבור ל-A1.4 בלי ש-A1.2 הוכח** (`grep PLACE_STOP` בקוד-המקור מחזיר התאמות).
+מייקל לא לוחץ Remote Build עד ש-cc כותב ב-LIVE_CHANNEL: `A1.2 DONE` + פלט-grep.
+דגל `ORPHAN_AUTO_STOP_V1` נשאר **OFF** עד A1.8.
+
+| שלב | משימה | בעלים | תלות | קריטריון-סיום (פקודה / פלט) | סטטוס |
+|---|---|---|---|---|---|
+| **A1.1** | Snapshot לפני נגיעה ב-DLL | **cc-macbook** | משימה 1ב יצאה לדרך | `./scripts/mems26_snapshot.sh "pre-dll-place-stop"` → תיקייה תחת `~/mems26_snapshots/` עם checksums. פלט path ב-LIVE_CHANNEL | ⬜ |
+| **A1.2** | C++ נכתב — op `PLACE_STOP` במקור | **cc-macbook** | A1.1 ✅ | **הראיה:** `rg -n "PLACE_STOP" sc_study/MES_AI_DataExport.cpp` (או הנתיב הקנוני במפרט) → ≥1 התאמה ב-handler/dispatch. גם פרסר/backend אם במפרט. פלט-grep גולמי ב-LIVE_CHANNEL + שורה `A1.2 DONE`. בלי זה → **עצור** | ⬜ |
+| **A1.3** | `build --deploy` לקוד-המקור | **cc-macbook** | **A1.2 ✅ חובה** | `./scripts/build_monolithic_cpp.sh --deploy` exit 0 → קובץ ב-`~/SierraChart/ACS_Source/`. פלט ב-LIVE_CHANNEL. **אל תקרא למייקל ל-RB לפני זה** | ⬜ |
+| **A1.4** | ⏸ **המתנה-למייקל: Remote Build** | **מייקל** | **A1.2 ✅ + A1.3 ✅** · שער-אנושי | 🛑 **שער-אנושי — אל תדלג / אל תריץ מוקדם.** מייקל בסיירה: Remote Build על ה-DLL **רק אחרי** שורת-LOG של cc: `A1.2 DONE` + `A1.3 DONE`. סיום: build ירוק בסיירה + study נטען מחדש. מייקל כותב `A1.4 DONE` ב-LIVE_CHANNEL | ⬜ ⏸ אנושי |
+| **A1.5** | `mems26_verify` — deployed == repo | **cc-macbook** | A1.4 ✅ | `./scripts/mems26_verify.sh` → DLL deployed↔repo תואם (לא drift). פלט גולמי | ⬜ |
+| **A1.6** | אימות-סים | **cc-macbook** | A1.5 ✅ · `is_sim=1` מאומת | יתום ידני בסים (`working_orders=0`) → `PLACE_STOP` → סטופ בצד/מחיר נכון · `trade_result` OK · לוג. אם `r=-1` גם על יתום-נקי: **עצור, אל תעקוף, דווח.** פלט ב-LIVE_CHANNEL. **אפס PLACE_STOP על לייב** | ⬜ |
+| **A1.7** | אימות-cowork | **cowork-dev** | A1.6 דיווח + פלטים | cowork מריץ/קורא באופן עצמאי (לא סומך על הצהרה): grep/verify/סים-ראיות. כותב `A1.7 PASS` או `FAIL` + מה חסר | ⬜ |
+| **A1.8** | פסיקת-הדלקה (=B6) | **מייקל** | A1.7 PASS | פסיקה בכתב → RULED=`1` + `.env` + ריסטארט + `flag_guard` PASS. **בלי A1.7 → נשאר OFF** | ⬜ חסום |
+
+**מעקב מהיר A1:** `A1.1⬜ → A1.2⬜ → A1.3⬜ → ⏸A1.4⬜ → A1.5⬜ → A1.6⬜ → A1.7⬜ → A1.8⬜`
 | **A3** | 2 כשלי-סימולציה: `Neutral_Center×HTLB` · `Neutral_Extreme×TLB` (`oco_pairs=False`, `modify_stop_all=False`) | **cc-macbook** | מ-`sim_matrix_e2e`; חוסם C2 | `python3 scripts/sim_matrix_e2e.py` — שני התאים האלה ירוקים (OCO+MODIFY_STOP). פלט שורות-התאים | 🔴 |
 | **A4** | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT | **cc-macbook** | כיסוי חלקי (ZLR/GB100/TT בלבד היום) | `python3 scripts/audit_pattern_miss.py --selftest` עובר על 6 התבניות החדשות. ריצת `--date 2026-07-17` מפיקה קריטריון-כישלון לכל אחת | 🔴 |
 | **A5** | **CVD לא מיוצא** — להוסיף סטאדי Cumulative Delta לצ'ארטבוק סיירה | **מייקל** | חוסם אישור-זרימה S2 איכותי (היום fail-open על ריק) | `ls -la ~/SierraChart_Data/v9_export/cumulative_delta.json` — קובץ מתעדכן ב-RTH; `jq 'length/.points|length' …` או `curl -s localhost:8000/api/v9/cumulative_delta/current` → נקודות טריות (לא ריק) | 🔴 |
@@ -125,7 +148,7 @@ C ירוק ─────────────────────► D 
 | **B3** | **StopResolver** — להרחיב-לרצפה על `"Normal"` או להמשיך לדחות? (סטופ-מבני צר; PATTERN_MGMT A3) | **מייקל** | משטח-סיכון | פסיקה בכתב. אם כן — דגל default-OFF + מפרט ל-cc-macbook; לא קוד בלי פסיקה | ⏳ |
 | **B4** | **A5-ביקורת** — מפתח `OFA_Initiative` ≠ `INITIATIVE_LONG` (SKIP נעקף → over-fire). תיקון = פחות יריות | **מייקל** | PATTERN_MGMT A5; משטח-סיכון | פסיקה: לתקן (דגל OFF→RULED אחרי סים) / לדחות. **לא** לתקן בלי חתימה | ⏳ |
 | **B5** | **A6-ביקורת** — S4 override-מודע (`get_live_day_type` במקום raw machine) | **מייקל** | PATTERN_MGMT A6 | פסיקה: לתקן / לדחות. אם כן — מפרט + דגל OFF ל-cc-macbook | ⏳ |
-| **B6** | הדלקת `ORPHAN_AUTO_STOP_V1` | **מייקל** | **A1 סים-ירוק חובה** | פסיקה בכתב אחרי הוכחת-סים. אז: RULED=`1` + `.env` + ריסטארט + `flag_guard` PASS. **בלי סים → נשאר OFF** | ⏳ חסום-A1 |
+| **B6** | הדלקת `ORPHAN_AUTO_STOP_V1` (=**A1.8**) | **מייקל** | **A1.7 PASS חובה** (סים+אימות-cowork) | זהה ל-A1.8: פסיקה בכתב → RULED=`1` + `.env` + ריסטארט + `flag_guard` PASS. **בלי A1.7 → נשאר OFF** | ⏳ חסום-A1.7 |
 
 ---
 
@@ -170,8 +193,9 @@ C ירוק ─────────────────────► D 
 | # | ממצא | פעולה |
 |---|---|---|
 | 1 | **התנגשות-שמות A5:** בשער-A, A5=CVD צ'ארטבוק; ב-PATTERN_MGMT_AUDIT, A5=`OFA_Initiative` (כאן = **B4**). לא לאחד — שני נושאים שונים | להשתמש במזהי-הצ'קליסט (A5/B4) בלבד בדיווח |
-| 2 | **A1 מול B6:** קוד-גייטינג ORPHAN כבר ב-repo (LOG cc-macbook); עדיין **לא ✅** — חסר DLL `PLACE_STOP` + סים. B6 חסום עד אז; דגל נשאר OFF | לא לסמן A1 ✅ על "קוד מוכן" |
-| 3 | **MASTER_FIX_LIST טוען** `PATTERN_LOSS_BREAKER=0` 🟢 RULED — אבל `config/RULED_FLAGS.yaml` **לא** מכיל את המפתח (אומת grep). LIVE_CHANNEL צודק: דריפט פתוח = **A2** | cowork-dev סוגר A2; לא לסמוך על MASTER_FIX_LIST כאן |
+| 2 | **A1 מול B6:** גייטינג Python ✅; DLL ברצף A1.1–A1.8. B6=A1.8 חסום עד A1.7. דגל OFF | לא לסמן A1 ✅ לפני A1.7; לא Remote Build לפני A1.2 |
+| 3 | **A2 נסגר** (cowork 07-18: RULED+flag_guard 86/86). MASTER_FIX_LIST-הישן כבר לא רלוונטי לפער הזה | — |
+| 7 | **תקרית-רצף 07-18:** Remote Build לפני קוד-cc → בילד מיותר. תוקן בנהלים: A1.4 חסום עד A1.2+A1.3 + שורת-LOG מפורשת | לאכוף בכל פריסת-DLL |
 | 4 | **PATTERN_MGMT A1/A2/A4/A7** (Normal REV exemption, Nontrend skip, chart-patterns stale, Flag-T2) — **לא** בשערי A/B של המפרט. לא הוספתי כדי לא להרחיב scope | 🔶 מייקל/cowork: האם להכניס ל-B כפסיקות נוספות או לדחות אחרי שני? |
 | 5 | **cc-imac** אין שורת-ביצוע בשער A–D (סים/גיבוי בלבד) — מכוון. C2 רץ על MacBook-סים או iMac-סים לפי חוק סוחר-יחיד | אם C2 על iMac — MacBook חייב disarmed באותו זמן |
 | 6 | אין כפילות-בעלים בתוך הצ'קליסט; כל שורה בעלים יחיד (A6/C2 משותפים מפורשים) | — |

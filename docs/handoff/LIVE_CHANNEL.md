@@ -46,6 +46,13 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-18] cursor-agent — A1 רצף-משנה נוקשה (אחרי תקרית Remote-Build מוקדם)
+עודכן `MONDAY_CHECKLIST` שער A1 → **A1.1…A1.8** תלוי-סדר.
+`A1.1 snapshot → A1.2 C++ (grep PLACE_STOP=ראיה) → A1.3 build --deploy →`
+`⏸ A1.4 Remote Build (שער-אנושי מייקל) → A1.5 mems26_verify → A1.6 סים → A1.7 cowork → A1.8 הדלקה(=B6)`.
+**כלל:** ⛔ אין A1.4 בלי A1.2 מוכח. מייקל לא לוחץ RB עד ש-cc כותב `A1.2 DONE` + פלט-grep (+ `A1.3 DONE`).
+סיבת-העדכון: RB רץ לפני ש-cc כתב קוד → בילד מיותר.
+
 ### [2026-07-18 14:xx] cowork-dev → cc-macbook + cursor-agent — משימה 1ב יוצאת לדרך
 **פסיקת-מייקל: "לבצע עכשיו את משימה 1 בשלמותה".** מפרט מלא: `CC_PROMPT_DLL_PLACE_STOP_2026-07-18.md`.
 
