@@ -52,6 +52,12 @@ ruled:
   RISK_CUTOFF_HOUR_ET:    {expected: "15", ruled_by: "מייקל", date: "2026-07-19", note: "'מאשר לשנות 22:30' — 22:30 IL = 15:30 ET. היה קשיח-בקוד 14:30; עכשיו env-tunable ונאכף" }
   RISK_CUTOFF_MINUTE_ET:  {expected: "30", ruled_by: "מייקל", date: "2026-07-19", note: "דקת-הסף" }
 
+  # ── פסיקת-מייקל 2026-07-19 (A5): daytype_playbook = מקור-יחיד לפטרן×יום ──
+  # מבטל את auth_matrix כשער-sizing. אפס-שינוי-התנהגות (מוכח בטסטים): 4/5 משפחות-S2
+  # פספסו ממילא (OFA_Initiative≠INITIATIVE_LONG), ספירות נדרסות ע"י FIXED_CONTRACTS_4,
+  # ו-Reactive×Nontrend נחסם ע"י הפלייבוק. מסיר דריפט-דו-מקורי + שביל-מת.
+  S2_AUTH_MATRIX_SINGLE_SOURCE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-19", note: "הדלקה מאושרת — playbook-only. אפס-שינוי-התנהגות מוכח (test_auth_matrix_single_source 14 passed)" }
+
   # ── פרמטרים שנפסקו ──
   MEMS_MIN_RISK_POINTS:   {expected: "2",  ruled_by: "מייקל", date: "2026-07-02", note: "רצפת סיכון מוחלטת; רצפת-עבודה = 0.5×ATR (רצועה, 07-08)" }
   MEMS_MAX_RISK_POINTS:   {expected: "60", ruled_by: "מייקל", date: "2026-07-02", note: "תקרת סיכון" }

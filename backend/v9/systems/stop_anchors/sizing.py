@@ -70,6 +70,19 @@ def compute_v2_sizing(
     risk_pts = SA.risk_points(entry_price, stop_price)
 
     # ── Auth matrix lookup ──
+    # Michael ruling 2026-07-19 (A5): the daytype_playbook is the SINGLE
+    # pattern×day-type authority. This auth_matrix was an S2-only table that (a)
+    # only ever resolved for REACTIVE — Initiative/Flag/HnS/Double_BT missed on a
+    # key mismatch (OFA_Initiative ≠ INITIATIVE_LONG) and "used max" all day; (b)
+    # had its contract counts overridden by FIXED_CONTRACTS_4 anyway, so its only
+    # live effect was its SKIP verdict; (c) disagreed with the playbook on 8
+    # cells (Initiative×Normal, HnS×Trend, Double×Trend_DD) — the system already
+    # follows the PLAYBOOK there. Retiring it is therefore zero-behaviour-change
+    # (proven in tests) and removes the two-source drift + silent bypass.
+    # Flag default OFF → OLD behaviour preserved; ON (ruled) → playbook-only.
+    import os as _am_os
+    if _am_os.environ.get("S2_AUTH_MATRIX_SINGLE_SOURCE_V1", "0").lower() in ("1", "true", "yes"):
+        auth_matrix = None  # playbook is the sole pattern×day-type gate
     auth_verdict = "FULL"
     auth_contracts = cfg.get("guardrails", {}).get("max_contracts", 3)
     if auth_matrix:
