@@ -79,6 +79,44 @@ def _is_stale_bar(ts_utc: datetime, close_price: float) -> Optional[str]:
 
     return None  # OK
 
+
+# ── Cross-source ingest guard (2026-07-18, Michael ruling) ──────────────────
+# The v9_bars_5min table is the one that drifted on 07-17: 5 bars carried
+# ~1h-stale prices (25-30pt off the same-ts row in v9_bars_5min_woodies, which
+# self-heals via its 50-bar overwrite payload). The existing (b) price-band
+# guard is 50pt and references a tracker that itself drifts with a bad feed, so
+# the 25-30pt ghosts passed. This guard compares the SAME bar across two
+# INDEPENDENT tables at the SAME ts, so a tight band is safe. Rule 1 (honest
+# failure > synthetic value): reject the contradicting bar loudly, don't write
+# it silently. Fail-OPEN when woodies has no row for that ts yet (races at the
+# bar boundary) — we only reject on a proven contradiction, never on absence.
+CROSS_SOURCE_BAND = float(_os.environ.get("CROSS_SOURCE_PRICE_BAND", "15"))  # points
+
+
+def _contradicts_woodies(ts_utc: datetime, high: float, low: float,
+                         close: float, symbol: str) -> Optional[str]:
+    """Return a rejection reason if this v9_bars_5min bar contradicts the
+    v9_bars_5min_woodies row at the same ts by > CROSS_SOURCE_BAND, else None.
+    Never raises — a guard must not break ingest (returns None on any error)."""
+    try:
+        from backend.v9.db.read import read_one
+        w = read_one(
+            "SELECT high, low, close FROM v9_bars_5min_woodies "
+            "WHERE ts = :ts AND symbol = :sym LIMIT 1",
+            {"ts": ts_utc, "sym": symbol},
+        )
+        if not w or w.get("close") in (None, 0):
+            return None  # no clean reference yet → fail-open (never reject on absence)
+        dev = abs(float(close) - float(w["close"]))
+        if dev > CROSS_SOURCE_BAND:
+            return (f"contradicts_woodies (close={float(close):.2f} vs "
+                    f"woodies={float(w['close']):.2f}, dev={dev:.1f} > "
+                    f"band={CROSS_SOURCE_BAND})")
+    except Exception as _e:  # a guard must never break the thing it guards
+        logger.warning("[bars/5min] cross-source guard errored (fail-open): %s", _e)
+    return None
+
+
 logger = logging.getLogger(__name__)
 
 # EventDispatcher instance — set at startup by app initialization.
@@ -411,13 +449,28 @@ def _hour_shift_fix(bars: list, stream: str) -> int:
             return 0
         _last = max(float(b["ts"]) for b in _num)
         _off = datetime.now(timezone.utc).timestamp() - _last
-        if 3300 <= _off <= 3900:  # exactly-one-hour class (±5min tolerance)
+        # 2026-07-18 TIGHTEN (Michael ruling): a *true* chartbook-TZ offset is
+        # essentially exactly 3600s. The 07-17 contamination came from the OLD
+        # wide [3300,3900] window catching a NOMADIC source-lag (newest-bar age
+        # drifted 3610s→3897s as the export froze) and shifting genuinely-stale
+        # bars +3600 → old prices stamped at a current ts (5 ghost bars in
+        # v9_bars_5min, ~25-30pt off the clean woodies row). A stale feed's age
+        # DRIFTS; a TZ offset is CONSTANT — so require ~exactly 1h (±2min). The
+        # cross-source ingest guard below is the precise second line of defense.
+        _win = int(_os.getenv("TS_HOUR_FIX_TOL_SEC", "120") or 120)
+        if (3600 - _win) <= _off <= (3600 + _win):
             for b in _num:
                 b["ts"] = float(b["ts"]) + 3600.0
             logger.warning(
-                "[%s] TS-HOUR-FIX applied: +3600s to %d bars (newest was %.0fs old)",
-                stream, len(_num), _off)
+                "[%s] TS-HOUR-FIX applied: +3600s to %d bars (newest was %.0fs old, tol=%ds)",
+                stream, len(_num), _off, _win)
             return 3600
+        if 3300 <= _off <= 3900:
+            # In the old-wide band but OUTSIDE the tight one → do NOT shift.
+            # This is the drift/stale class that injected the 07-17 ghost bars.
+            logger.warning(
+                "[%s] TS-HOUR-FIX SKIPPED (drift/stale, not TZ): newest was %.0fs old "
+                "(outside 3600±%ds) — leaving bars at true ts", stream, _off, _win)
     except Exception as _e:  # never break ingest on the fixer
         logger.warning("[%s] TS-HOUR-FIX errored (no shift): %s", stream, _e)
     return 0
@@ -494,6 +547,17 @@ def post_bars_5min(
             stale_reason = _is_stale_bar(ts, float(bar.c))
             if stale_reason:
                 logger.warning("[bars/5min] write-guard BLOCKED: %s ts=%s", stale_reason, ts)
+                rejected += 1
+                continue
+            # Cross-source guard (2026-07-18): reject a bar that contradicts the
+            # clean woodies row at the same ts (the 07-17 ghost-bar class). Only
+            # on FRESH bars (same stale-window gate) so historical backfill is
+            # untouched; fail-open when woodies has no row yet.
+            cross_reason = _contradicts_woodies(ts, float(bar.h), float(bar.l),
+                                                float(bar.c), bar.symbol)
+            if cross_reason:
+                logger.warning("[bars/5min] cross-source guard BLOCKED: %s ts=%s",
+                               cross_reason, ts)
                 rejected += 1
                 continue
         # ── D-0717-B (2026-07-17 live finding): bind `ts` as the tz-AWARE
