@@ -52,11 +52,8 @@ export function TopBar() {
   }, []);
 
   // Day Type — LIVE badge from systems[1] in systemStateStore. That slot is filled
-  // EXCLUSIVELY by the canonical 7-type classifier (systemStateStore.overrideS1 →
-  // GET /api/v9/day_type/classify_replay?date=today; docs/SOURCE_OF_TRUTH.md §Day-type ✅,
-  // docs/spec_authority/S1_ACTIVE_CANONICAL.md) on the existing useSystemStatePolling
-  // 5000ms cycle — ZERO new requests from this badge. state=day_type · subState=status
-  // (FORMING/PROVISIONAL/CLASSIFIED) · raw.direction/reason/invalidated = classifier output.
+  // Label = get_live_day_type when present (systemStateStore.overrideS1 → /day_type/live),
+  // else classify_replay detail (GAP G-16 / S124 G5). Poll via useSystemStatePolling 5000ms.
   // Dead endpoints /api/v9/day_type/current + /day_type/v9/current are NOT used (retired 06-22).
   const dtSystem = useSystemStateStore((s) => s.systems[1]);
   const dtRaw = (dtSystem?.raw ?? {}) as {
@@ -68,7 +65,7 @@ export function TopBar() {
   const dtClassified = dayTypeStatus === 'CLASSIFIED';
   const dtStance = dtRaw.direction ? (DAY_TYPE_DIRECTION_HE[dtRaw.direction] ?? dtRaw.direction) : null;
   const dtTitle = [
-    'Day-Type (S1 · classify_replay — canonical 7-type)',
+    'Day-Type (S1 · get_live_day_type (override-aware))',
     `${dayTypeName.replace(/_/g, ' ')}${dayTypeStatus ? ` · ${dayTypeStatus}` : ''}`,
     dtStance ? `כיוון: ${dtStance}` : null,
     dtRaw.reason ? String(dtRaw.reason) : null,
