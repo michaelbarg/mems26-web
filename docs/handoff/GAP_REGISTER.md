@@ -45,17 +45,22 @@
 | G-11 | S1/S2/S4 | מספרי `audit_pattern_miss` 15/16/17 — כמה swings נחסמו בפועל פר-שער | 🔵 **SUSPECTED** | לא-מוכרע (Bible U2). `audit_pattern_miss.py` צריך DB חי — רק על ה-MacBook | cc-macbook | 07-19 |
 | G-12 | S2 | BE/runner wiring מ-`daytype_style.stop_be_early` — לא עוקב עד trade_manager בכל נתיב | 🔵 **SUSPECTED** | לא-מוכרע (Bible U4). דורש מעקב-קוד מ-YAML→manager | ממתין-בעלים | 07-19 |
 | G-13 | S1 | האם YELLOW בכלל מגיע מ-DLL החי? (נעילת-YELLOW עלולה להיות inert) | 🔵 **SUSPECTED** | לא-מוכרע (Bible U7). דורש לוג-חי של trend_state | cc-macbook | 07-19 |
+| G-14 | S2 | Flag T2 fork קורא `self.current_day_type` (`five_min_system.py:1551`) בעוד emit כבר `get_live_day_type` → יעדי T2 לא תואמים override/live | 🟢 **CONFIRMED** | `file:line` אומת cursor-agent 07-19; אותו מחלקת-פער כמו G-05 | מייקל→cc · **S124 G3** | 07-19 |
+| G-15 | S1 | `DAYTYPE_HONEST_PRELOCK_V1` default OFF → תווית ישנה פרה-IB יכולה לעבור ב-`get_live_day_type` | 🟢 **CONFIRMED** | `trade_context.py:559-573`; דגל קיים, לא הודלק | מייקל(הדלקה) · **S124 G4** | 07-19 |
+| G-16 | S1/UI | TopBar/DayTypeLens קוראים `classify_replay` בלי override/antiflap → תצוגה ≠ שערי-מסחר | 🟢 **CONFIRMED** | `TopBar.tsx` comments + `DayTypeLensContent.tsx`; SoT אומר UI על classify_replay | מייקל→cc · **S124 G5** | 07-19 |
+| G-17 | S4 | אחרי כשל `get_live_day_type`, נסיגה ל-`v9_day_type_state` ואז `"Normal"` (סינתזה) | 🟢 **CONFIRMED** | `woodies_system.py:672-688`; SoT מסמן טבלה לא-למסחר; A6 תיקן רק עדיפות ראשונה | מייקל→cc · **S124 G6** | 07-19 |
+| G-18 | S1 | Neutral=sides==2 (לא "בלי כיוון"); escalation-only רק ב-shadow מת — לא על מנוע-7 החי | 🟢 **CONFIRMED (doctrine)** | `daytype_classifier.py` Neutral; `shadow_reclass.py:85-88` + skip כש-new engine | מייקל(דוקטרינה) · **S124 G8** | 07-19 |
+
+**תור-סגירה מסודר (cursor):** `LIVE_CHANNEL` §🔴 S124 GAPS · ביקורת `S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19.md` · CC `CC_PROMPT_S124_GAPS_2026-07-19.md`. מיפוי: S124 G1↔G-01 · G2↔G-05 · G3↔G-14 · G4↔G-15 · G5↔G-16 · G6↔G-17 · G7↔G-03 · G8↔G-18. (G-02 S2-late = מחוץ לתור S124 — גישה נפרדת.)
 
 **נסגרו/הופרכו מיידית (07-19, אימות-cowork):** ה-SPEC-flags **כולם דלוקים** (`ZLR_SPEC_V2=1 ·
 VEGAS_SPEC_V2=1 · S2_VSA_VOLUME=1 · DIRECTION_CONTEXT=1 · DAYTYPE_LOCATION_GATE=1`) → Bible-U3
 מוכרע, ו-`audit_pattern_miss` (שמניח ON) תואם-מציאות.
 
-## סיכום-מצב (07-19)
-- **🟢 CONFIRMED פתוחים (דורשים החלטה/עבודה):** G-01 (paint-lag, פסיקה), G-02 (S2-late, גישה),
-  G-03 (REDUCED-vs-FIXED4, פסיקה), G-05 (S2 stale-daytype, בבדיקה).
+## סיכום-מצב (07-19, אחרי S124)
+- **🟢 CONFIRMED פתוחים:** G-01 (paint), G-02 (S2-late), G-03 (REDUCED), G-05 (stale detect),
+  G-14 (Flag T2), G-15 (honest prelock), G-16 (UI SoT), G-17 (S4 fallback), G-18 (דוקטרינה).
 - **🔧 FIXED:** G-04, G-06, G-09.
-- **⚪ PHANTOM/STALE:** G-07, G-08 (נשארים בפנקס עם ההפרכה).
-- **🔵 SUSPECTED (ממתינים-אימות):** G-10..G-13.
-
-**הכלל למייקל:** רק 🟢 הם "בעיות אמיתיות". G-04/06/09 כבר נסגרו. הנותרים ל-🟢 = 4, ומהם רק
-2 דורשים פסיקה שלך (G-01 paint-fix, G-03 REDUCED-size).
+- **⚪ PHANTOM/STALE:** G-07, G-08.
+- **🔵 SUSPECTED:** G-10..G-13.
+- **תור-עבודה למייקל:** אשר סדר ב-LIVE_CHANNEL S124 G0, ואז `לתקן`/`לדחות` לכל פער — אל תתחיל מקצה בלי פסיקה.

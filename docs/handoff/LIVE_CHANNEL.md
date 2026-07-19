@@ -41,14 +41,61 @@
 | **9** | **ספר-התבניות** — `PATTERN_BIBLE_2026-07-19.md` מוכן (15 כרטיסים · מטריצה 15×8 · B1+B2). ממתין לאימות-cowork / קריאת-מייקל | **cursor-agent** | ✅ נכתב |
 
 | **10** | **STOP_WIDEN_TO_FLOOR_ON_REJECT_V1** — נבנה (widen-only, בלי מחיר-מסונתז), OFF, RULED unset_or_0. אימות-סים ביום ראשון → אז RULED→1 | **מייקל**(Sim)→cc-macbook→cowork | 🟡 סים-gated |
+| **11** | **S124 GAPS** — תור-סגירת פערי S1/S2/S4×סוג-יום (לוח למטה). ביקורת `S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19.md` · CC `CC_PROMPT_S124_GAPS_2026-07-19.md` · הצלב `GAP_REGISTER.md` | מייקל(פסיקה)→cowork→cc-macbook→cursor | 🟡 G0 ממתין-סדר |
+
+## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
+פרוטוקול: **הסבר → פסיקת-מייקל (`לתקן`/`לדחות`/`לשנות`) → מפרט-CC → cc-macbook → cowork אימות → cursor ✅**. פער אחד בכל פעם. דגל חדש=OFF עד פסיקת-הדלקה. הצלב עם [`GAP_REGISTER.md`](GAP_REGISTER.md).
+
+| # | פער | בעלים | תלוי-פסיקה | סטטוס | ראיה / GAP_REGISTER |
+|---|---|---|---|---|---|
+| **G0** | מפת-מצב + אישור סדר G1→G8 | מייקל | כן — סדר | 🟡 הסבר מוכן | audit |
+| **G1** | B1 paint: `current_bar` בלי `_trend_from_cci` | cc-macbook | כן | 🟡 הסבר מוכן | `bars.py:1087` vs `:1153` · **GAP G-01** |
+| **G2** | S2 A2/A4 detection על `current_day_type` | cc-macbook | כן | 🟡 הסבר מוכן | `five_min_system.py:1138-1195` · **GAP G-05** |
+| **G3** | S2 Flag T2 על `current_day_type` | cc-macbook | כן | 🟡 הסבר מוכן | `five_min_system.py:1551` · **GAP G-14** |
+| **G4** | `DAYTYPE_HONEST_PRELOCK_V1` OFF | cowork (env) | כן — הדלקה | 🟡 הסבר מוכן | `trade_context.py:559-573` · **GAP G-15** |
+| **G5** | UI=`classify_replay` ≠ gates/`get_live_day_type` | cc-macbook | כן | 🟡 הסבר מוכן | `TopBar.tsx` · DayTypeLens · **GAP G-16** |
+| **G6** | S4/FiveMin fallback → `v9_day_type_state` / `"Normal"` | cc-macbook | כן | 🟡 הסבר מוכן | `woodies_system.py:672-688` · **GAP G-17** |
+| **G7** | FIXED_4 בולע playbook REDUCED | cc-macbook | **חובה מפורשת** | 🟡 הסבר מוכן | `sizing.py:122-124` · **GAP G-03** |
+| **G8** | Neutral/escalation דוקטרינה דלתון | מייקל+cowork | כן — דוקטרינה | 🟡 הסבר מוכן | classifier vs shadow · **GAP G-18** |
+
+### הסברי-פערים למייקל (קרא לפני פסיקה)
+
+**G0 — מה עובד / מה שבור.** עובד: playbook SKIP בשער · S2 emit/sizing + S4 sizing קוראים `get_live_day_type` (A5/A6). שבור: UI נפרד · S2 detection מפגר · paint `current_bar` · fallback-מת · FIXED_4≠REDUCED · prelock/דוקטרינה. **סדר מוצע:** G1→G2→G3→G4→G5→G6→G7→G8 (B1 לפני UI כי סוחר עיוור; FIXED_4 בסוף כי משטח-סיכון). **פסיקה נדרשת:** אשר סדר או כתוב סדר אחר.
+
+**G1 — למה כואב.** `TREND_CCI_DIRECT` מתקן history/DB; הבר החי שמנותב ל-S4 (`current_bar` override) נשאר GRAY-סיירה → TT/GB100 לא נכנסים בראלי (07-17 בוקר). **תיקון:** `_trend_from_cci` גם על `last_flat` אחרי override. **סיכון:** נמוך אם תחת אותו דגל שכבר אושר.
+
+**G2 — למה כואב.** Nontrend-skip ו-chart allow-lists על hydrate/event, לא על override/live → אפשר לדלג על יום שמייקל דרס, או להריץ chart ביום שגוי. **תיקון:** detection קורא live ראשון (דגל OFF).
+
+**G3 — למה כואב.** Flag T2 (pole/VA/POC) לפי `current_day_type` בזמן שהעסקה כבר נפלטה עם live → יעדים לא תואמים סוג-יום. **תיקון:** אותו מקור כמו emit (אפשר עם G2).
+
+**G4 — למה כואב.** לפני IB lock המכונה יכולה להעביר תווית ישנה-נמוכה כאילו קנונית. הדגל כבר קיים — מחזיר `None` עד `ib_locked`. **תיקון:** פסיקת-הדלקה + RULED (לרוב בלי קוד).
+
+**G5 — למה כואב.** מייקל רואה יום מ-`classify_replay` (בלי override/antiflap) בזמן שהשער סוחר לפי live → בלבול + החלטות ידניות שגויות. **תיקון:** תצוגה = אותו מקור כמו gates.
+
+**G6 — למה כואב.** אם live ריק, S4 עדיין יכול ליפול לטבלה ש-SoT מסמן מתה ואז ל-`"Normal"` — סינתזה אסורה. **תיקון:** fail-honest (דגל OFF).
+
+**G7 — למה כואב.** פלייבוק כותב REDUCED (½ חוזים) אבל FIXED_4 דורס ל-4 בכל מקום שמשגר. SKIP עדיין עובד; "מופחת" לא. **חובה פסיקה:** להשאיר / לכבד REDUCED / כלל אחר — לפני כל קוד.
+
+**G8 — למה כואב.** Neutral בקוד = שני צדדים (לא "אין כיוון"). escalation-only חי רק ב-shadow מת — המנוע החי יכול לרדת סוג. **תוצר:** פסיקת-דוקטרינה; קוד מסווג רק עם חתימה.
 
 ## ⏳ פסיקות שממתינות למייקל
 1. ~~**סף 14:30 ET**~~ — ✅ **נפסק 07-19: 15:30 ET (22:30 IL)** + env-tunable. בוצע ואומת.
 2. ~~**entry_not_confirmed**~~ — ✅ **נפסק 07-19: נשאר כפי-שהוא** (ה"פספוסים" היו פנטום — מחיר-מעופש). + נמצא באג-רקע: זיהום v9_bars_5min, תוקן בכתיבה (2 שכבות).
 3. ~~**StopResolver**~~ — ✅ **נפסק 07-19:** ההנחה קרסה (לא חוסם ירי). נבחר לֶבֶר יחיד: הרחבה-לרצפה-במקרה-דחייה. נבנה OFF, **סים-gated ליום ראשון**.
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
+5. **S124 G0** — אשר/שנה סדר G1→G8 (הסברים בלוח למעלה).
+6. **S124 G1…G8** — לכל פער: `לתקן` / `לדחות` / `לשנות-כך` (אחרי G0).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-19 11:15] cursor-agent — S124 Phase0+G0 · ביקורת + לוח + הסברים
+מה: תוכנית-סגירת-פערי S1/S2/S4 הופעלה. נכתבו:
+- `docs/handoff/S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19.md` (מקור-אמת + תור G0–G8)
+- `docs/handoff/CC_PROMPT_S124_GAPS_2026-07-19.md` (מופעל רק אחרי פסיקה לפער)
+- לוח **🔴 S124 GAPS** + הסברים G0–G8 · משימה #11 · הצלב `GAP_REGISTER.md`
+פסיקה/ראיה: **אין קוד/.env.** ממתין למייקל: (1) אשר סדר G0 (2) לכל פער `לתקן`/`לדחות`/`לשנות`.
+סטטוס לוח: G0–G8 → 🟡 הסבר מוכן · קוד לא התחיל
+אל: מייקל (פסיקה) · אחרי G0+G1=`לתקן` → cowork מפרט → cc-macbook
 
 ### [2026-07-19] cowork-dev → כולם — 🧭 נבנה GAP_REGISTER (פנקס-פערים משותף)
 **פסיקת-מייקל:** *"צריך מקום שכל הסוכנים יכולים להוסיף פערים ולבדוק לפני שנקבעים כבעיה."*
