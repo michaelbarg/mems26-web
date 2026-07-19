@@ -88,6 +88,18 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — W6 PHONE + W7 FRONTEND_MAP ✅ (חוק-5 · אין .env)
+**W6** `PHONE_APP_AUDIT_2026-07-19.md`:
+- `.env:286 MOBILE_REMOTE_URL=http://10.1.118.70:8000` = iMac → **timeout / Host is down**
+- `mobile/data` → `_src=local` + `_remote_err` · badge משקר · **FLATTEN שבור** כש-remote נכשל (`mobile_monitor.py:218-233`)
+- mid=0.0 כי `_price()`=(bid+ask)/2 ו-bid/ask=0 (price בקובץ 7557.5) · אין direction/paint בכיס · day_type=get_live ✅ בקוד
+- **הצעה (פסיקה):** `MOBILE_REMOTE_URL=` על MacBook + לינק ZT `http://10.1.118.147:8000/api/v9/mobile?key=…`
+
+**W7** `FRONTEND_MAP_2026-07-19.md` + `gen_index.py`:
+- פלט: `{"files": 849, "dirs_indexed": 117, "orphans": 46}` · FE orphans≈26
+- מת-מסלול: `DashboardLayout`+`SystemPanelsBar` (V9Dashboard לא מרכיב) · System4Panel T14 חי-בקוד/מת-במסך
+- מועמדי-מחיקה (פסיקה בלבד): Sounds removed · tabs יתומים · DashboardLayout — **לא נמחק**
+
 ### [2026-07-19] cursor-agent — STANDING queue W1→W5 ✅ (read-only · חוק-5)
 **בטיחות:** אין PLACE · אין `.env` ON · ניתוח API בלבד.
 **W1 T16 whipsaw:** 15×T1 · ימי≥3 = 07-02+07-10 · CVD: trig=3 helped=3 **hurt=0 whipsaw_hurt=0** net=+$207.5 · `T16_WHIPSAW_HUNT_W1_2026-07-19.md`
