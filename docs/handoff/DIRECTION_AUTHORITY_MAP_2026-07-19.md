@@ -19,10 +19,10 @@
 
 | סוג-יום | REV (דהייה) | CONT (המשך) | POC-migration | הערה |
 |---|---|---|---|---|
-| **Normal** ⭐ | ✅ תמיד בקצוות: LONG@`near_val/below`, SHORT@`near_vah/above` | ✅ **רק** בצד-הנכון של POC **וגם** POC נודד בכיוון-העסקה: LONG(mig=UP, מתחת-POC), SHORT(mig=DOWN, מעל-POC) | **מבחין**: `FLAT`→REV-בלבד (מאוזן-אמיתי) · `UP/DOWN`→פותח CONT בכיוון | **פסיקת-מייקל 07-19** — ראיה: 07-17 4/4 ZLR CONT +$255; REV-only היה חוסם הכל |
+| **Normal** ⭐ | ✅ תמיד בקצוות: LONG@`near_val/below`, SHORT@`near_vah/above` | ✅ **רק** בצד-הנכון של POC **וגם** POC נודד בכיוון-העסקה: LONG(mig=UP, מתחת-POC), SHORT(mig=DOWN, מעל-POC). **חריג מפורש ל-PATTERN_AWARE** (חוק-על 3) | **מבחין**: `FLAT`→REV-בלבד (מאוזן-אמיתי) · `UP/DOWN`→פותח CONT בכיוון | **פסיקת-מייקל 07-19** — ראיה: 07-17 4/4 ZLR CONT +$255; REV-only היה חוסם הכל |
 | **Variation** | ✅ אחרי acceptance בצד-החדש | ✅ **עם ההרחבה**: LONG אם IB נפרץ מעלה, SHORT אם מטה | אישור: migration שמסכים עם ההרחבה = איכות-גבוהה; מנוגד = הורדת-איכות | `location_gate` כבר אוכף with-expansion |
-| **Trend_Normal** | ❌ (שער-משפחה מחזיק REV) | ✅ **עם המגמה** בלבד | חייב להסכים עם המגמה; מנוגד = דגל-אזהרה | `position_gate`: WITH trend |
-| **Trend_DD** | ❌ | ✅ **עם כיוון-הפריצה** (אחרי refill-צוואר) | כמו Trend_Normal | invalidation ב-refill |
+| **Trend_Normal** | ❌ (שער-משפחה מחזיק REV) | ✅ **עם המגמה** בלבד | **POC לא-שער** — המגמה קובעת (חוק-על 1) | `position_gate`: WITH trend |
+| **Trend_DD** | ❌ | ✅ **עם כיוון-הפריצה** (אחרי refill-צוואר) | **POC לא-שער** — המגמה קובעת | invalidation ב-refill |
 | **Neutral_Center** | ✅ **שני** הצדדים (דהיית שני קצוות; אין מנצח, mid) | ❌ (מאוזן) | לרוב FLAT; אם נודד → היום מתפרק לכיוון (שקול Variation) | `position_gate`: both sides |
 | **Neutral_Extreme** | ✅ **שני** הצדדים (דהיית קצה, החזק-מנצח מאוחר) | ❌ | migration מראה מי-המנצח | both sides |
 | **Nontrend** | ❌ SKIP | ❌ SKIP | — | להישאר בחוץ (playbook) |
@@ -33,11 +33,19 @@
 ---
 
 ## חוקי-העל (חוצי-סוג-יום)
-1. **תמיד לחסום את המלכודת:** CONT-LONG מעל-POC · CONT-SHORT מתחת-POC (מחלקת-#372) — בכל סוג-יום.
-2. **POC-migration הוא תנאי, לא רק בּיאס, ב-Normal** (הפסיקה). בשאר — בּיאס/אישור-איכות אלא-אם צוין.
-3. **חסר-דאטה (POC/VA/migration=None) → fail-open** עם סיבה (לא חסימה-מסונתזת; Rule 1).
-4. **הרשות מגייטת כיוון+משפחה בלבד** — לא גודל (זה G7) ולא תזמון (זה FHB/paint).
-5. **תלוי בתווית-יום נקייה** — לכן D1 **חייב** לרוץ אחרי G2/G6 (לקח I-44: תווית-מעופשת → חסימה שגויה).
+1. **חוק-POC חל אך-ורק על ימי-רוטציה** (פסיקת-מייקל 07-19): `Normal · Variation · Neutral_Center ·
+   Neutral_Extreme`. גם POC-**רמה** (long-מתחת/short-מעל) וגם POC-**migration** הם שערי-כיוון **רק שם**.
+   **בימי-Trend (`Trend_Normal · Trend_DD`) הכיוון נקבע ע"י המגמה בלבד — POC אינו שער-כיוון** (מחיר
+   מעל-POC בלונג = עם-המגמה = תקין).
+2. **מלכודת-#372 — רק בימי-רוטציה:** לחסום CONT-LONG מעל-POC · CONT-SHORT מתחת-POC. **בימי-Trend
+   זה לא חל** (זו בדיוק כניסת-ההמשך הרצויה).
+3. **Normal CONT = חריג מפורש ל-`DAYTYPE_PATTERN_AWARE_V1`** (פסיקת-מייקל 07-19): pattern_aware חוסם
+   CONT בימים-מאוזנים (`_BALANCED_DAYTYPES`), **אבל המפה מתירה CONT ב-Normal כש-POC נודד בכיוון-העסקה
+   ובצד-הנכון של POC.** D1 חייב **לפטור** את חסימת-ה-CONT של pattern_aware ב-Normal כשתנאי-ה-migration
+   מתקיים (ורק אז). POC `FLAT` ב-Normal → החסימה נשארת (REV-בלבד).
+4. **חסר-דאטה (POC/VA/migration=None) → fail-open** עם סיבה (לא חסימה-מסונתזת; Rule 1).
+5. **הרשות מגייטת כיוון+משפחה בלבד** — לא גודל (זה G7) ולא תזמון (זה FHB/paint).
+6. **תלוי בתווית-יום נקייה** — לכן D1 **חייב** לרוץ אחרי G2/G6 (לקח I-44: תווית-מעופשת → חסימה שגויה).
 
 ## מה D1 מיישם (מהמפה הזו)
 - מרחיב את `daytype_position_gate` שיכסה **CONT** לפי המפה (היום CONT נופל ל-POC-strict בלבד).
