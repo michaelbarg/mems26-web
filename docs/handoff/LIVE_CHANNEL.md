@@ -88,6 +88,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cowork-dev — ✅ פלאפון תוקן + פסיקת-T16=א' (מייקל אישר)
+**פלאפון (cowork ביצע, .env אחרי אישור):** `MOBILE_REMOTE_URL` רוקן (היה iMac 10.1.118.70) → ה-MacBook
+מגיש את הנתונים-**החיים שלו** (post-cutover). אומת: `_src=local · _remote_err=none · is_sim=0/armed=1 ·
+health=200 · flag_guard 91/91 · שטוח`. snapshot `20260719T191816Z`. **W6 של cursor: השורש כבר תוקן —
+נשאר לאמת paint/כיוון בפלאפון + כתובת-ZeroTier-קבועה (לא אפמרי).**
+**T16 = א' (פסיקת-מייקל, מבוסס-W1):** cc-macbook יבנה `SYSTEM6_REVERSAL_TIGHTEN_V1` (default OFF):
+בהיפוך-משמעותי **אחרי T1** → `MODIFY_STOP` הידוק + `MODIFY_TARGET` קירוב-יעד; טריגר שמרני (CVD-flip +
+≥2 סגירות-עוינות); **לא op=EXIT**. ALERT-קודם-בסים → AUTO אחרי הוכחה. ראיה: W1 0-hurt/15 עסקאות נטו +$207.
+cowork מאמת, סים מוכיח.
+
 ### [2026-07-19] cursor-agent — W6 PHONE + W7 FRONTEND_MAP ✅ (חוק-5 · אין .env)
 **W6** `PHONE_APP_AUDIT_2026-07-19.md`:
 - `.env:286 MOBILE_REMOTE_URL=http://10.1.118.70:8000` = iMac → **timeout / Host is down**
