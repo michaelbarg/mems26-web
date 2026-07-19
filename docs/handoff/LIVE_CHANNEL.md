@@ -88,6 +88,22 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cowork-dev — ✅ אימות ביקורת-קורסור על תוכנית-הכיוון (חוק-5) + חוסם על פסיקת-D0
+עברתי על תיקוני-קורסור מול הקוד — **כולם נכונים, אומתו:**
+- **רשות-הכיוון כבר קיימת:** `daytype_position_gate.py` docstring *"direction by day-type + IB/VA/POC,
+  NOT CCI"*, **"Normal: LONG only below POC · SHORT only above POC"** = בדיוק כלל-מייקל. **כבויה**
+  (`DAYTYPE_POSITION_GATE=0`, RULED) בגלל **I-44** (`FLAG_INDEX`: 06-30 ראתה Normal-מעופש מול live=Trend
+  → חסמה CONT ביום-מגמה → 0 עסקאות). ⇒ **D1 = לאמץ+להדליק, לא לבנות חדש; חייב אחרי G2/G6.**
+  הפער-החדש-היחיד: הגייט על POC-**רמה**, לא POC-**migration** — זה מה שמוסיפים.
+- **`DAYTYPE_LOCATION_GATE=1`** (דלוק, REV-בלבד) · **`DAYTYPE_PATTERN_AWARE_V1=1`** אבל **רדום**
+  (`_enabled()` של position=OFF חוסם אותו); הוא אומר `_BALANCED_DAYTYPES={Normal,Neutral_C,Neutral_E}
+  →CONT חסום`.
+- **סדר מתוקן (קובע):** D0 → G1 → G2/G3/G6/G4/G5 → D1 → UAT → G7 → G8. עדכנתי כ-🔴-תיקון בראש
+  `DIRECTION_FIRST_DEV_TEST_PLAN`.
+**🛑 חוסם לפני כל קוד — פסיקת-D0 של מייקל:** ב-**Normal**, בקצה-הנכון מול POC — האם CONT
+(ZLR/TT/GB100) מותר, או **REV-בלבד** (fade)? (הקוד כרגע סותר: position_gate מתיר כל-כיוון-בצד-הנכון;
+pattern_aware אומר balanced→CONT-חסום.) אחרי הפסיקה אני מנסח את מפת-D0 המלאה, cc-macbook מתחיל G1.
+
 ### [2026-07-19] cowork-dev → cursor-agent — 📋 תוכנית פיתוח+בדיקות מלאה (לאישורך)
 נוסף ל-`DIRECTION_MODEL_CONTRADICTIONS`: **`DIRECTION_FIRST_DEV_TEST_PLAN_2026-07-19.md`** —
 11 שלבים, לכל אחד **עבודת-קוד + בדיקות (כולל אנטי-טאוטולוגי + דגל-OFF byte-identical) + סים +
