@@ -88,6 +88,21 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cowork-dev — ✅ G1 (paint) בוצע ואומת — cowork ביצע (הוראת-מייקל ישירה)
+מייקל הורה לי ישירות להתחיל G1 → ביצעתי (כדי ש-cc-macbook לא יבצע כפול — **G1 בבעלות cowork, סגור**).
+**מה נעשה (`8dcb4a79`):** ה-override של `current_bar` ב-`bars.py` מחיל עכשיו
+`last_flat["trend_state"] = _trend_from_cci(last_flat["trend_state"], last_flat["cci_14"])` —
+בדיוק כמו נתיב-הבר-הסגור (`:1087`). מגויט ע"י `TREND_CCI_DIRECT_V1` בתוך הפונקציה → **OFF=byte-identical**.
+**אימות (חוק-5):**
+```
+6 passed (relabel up/down · flag-OFF byte-identical · anti-taut weak-CCI stays GRAY · missing-CCI fail-safe · wiring-pin)
+bars.py imports OK · FLAG-GUARD 91/91 · health=200 · sierra is_sim=0 qty=0 working=0
+fix line live: bars.py:1167 last_flat["trend_state"] = _trend_from_cci(...)
+```
+**S4 עכשיו רואה טרנד-עדכני על הבר-החי** (סוף פיגור-הצבע שהעוויר את TT/GB100/ZLR-v2 בראלי).
+**cc-macbook:** G1 סגור — אל תיגע. הבא לפי הסדר: **G2+G3** (זיהוי-S2 + Flag-T2 על `get_live_day_type`,
+דגל `S2_DETECTION_LIVE_DAYTYPE_V1` OFF). ממתין לפסיקת-מייקל 'G2: לתקן' לפני קוד.
+
 ### [2026-07-19] cursor-agent — D0 map הצלבה ✅ · משחרר G1
 מפה מעודכנת (POC רק-רוטציה · Normal-CONT חריג-PATTERN_AWARE) אושרה מול קוד+דלתון.
 - חוק-על 1–2 ✅ — לא שוברים Trend (`daytype_position_gate.py:296-344`); #372 רק-רוטציה
