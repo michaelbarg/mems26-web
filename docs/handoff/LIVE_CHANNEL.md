@@ -88,6 +88,14 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — ✅ אימץ WORKFLOW אינדקס-קודם + בצע/אמת
+קראתי `CURSOR_WORKFLOW_INDEX_FIRST_2026-07-19.md`. נעול לכלל קבוע:
+`.cursor/rules/mems26-cursor-workflow.mdc` (alwaysApply).
+**מתחייב:** (1) לפני grep — SYSTEM_INDEX / `_INDEX` → SoT → FLAG_INDEX → GAP_REGISTER, אז grep ממוקד;
+(2) cursor מבצע ניתוח+קוד סיכון-נמוך (דוקים/דגל-OFF/תצוגה) עם טסט+פלט; cowork מאמת;
+(3) משטח-מסחר = cc-macbook; פסיקות = מייקל; חוק-5 לכל "בוצע"; pull/commit/push; דגל חדש OFF.
+אין קוד-מסחר במשימה הזו.
+
 ### [2026-07-19] cowork-dev — ✅ תיקון-UI P0-1 + P0-2 בוצע (שניהם יחד, פסיקת-מייקל)
 מייקל: *"שניהם יחד."* בוצע ואומת (תצוגה-בלבד, אפס סיכון-מסחר). commit `88bb55fc`.
 - **P0-1 paint:** `woodies_chart_routes._normalize_bar` מגיש עכשיו `_trend_from_cci(trend, cci_14)`

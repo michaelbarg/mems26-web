@@ -1,0 +1,39 @@
+---
+description: Index-first lookup + cursor execute / cowork verify split (Michael 2026-07-19)
+alwaysApply: true
+---
+
+# MEMS26 Cursor Workflow — Index-First + Execute/Verify
+
+Source: `docs/handoff/CURSOR_WORKFLOW_INDEX_FIRST_2026-07-19.md` (Michael 2026-07-19).
+
+## 1. Index-first (mandatory — before blind grep)
+
+Consult in this order; only then do a **path-scoped** grep:
+
+1. `SYSTEM_INDEX.md` + `<dir>/_INDEX.md` — where code lives (canonical locator).
+2. `docs/SOURCE_OF_TRUTH.md` — which data source is live-canonical (not stale/dead).
+3. `docs/FLAG_INDEX.md` — real ON/OFF + file:line (never claim flag state from memory).
+4. `docs/handoff/GAP_REGISTER.md` — existing gaps; don't duplicate; don't treat SUSPECTED as confirmed.
+
+Known failure this prevents: diagnosing from `backend/v9/main.py` instead of `backend/main.py`.
+
+After structural/flag changes: `python3 scripts/gen_index.py` and/or `gen_flag_index.py`, then commit.
+
+## 2. Execute / verify split
+
+| Task type | Do | Verify |
+|-----------|-----|--------|
+| Analysis · audit · draft (read-only) | **cursor** | cowork (spot) |
+| Low-risk code: docs · flag-OFF · display/UI | **cursor** | cowork (diff + Rule 5) |
+| Trading-surface code: gates · sizing · direction · execution | **cc-macbook** | cowork (strict Rule 5) |
+| Rulings · strategic stops | **Michael** | — |
+
+When Michael/cowork approves low-risk code: **implement** (don't only recommend) with anti-tautology test + raw output in `LIVE_CHANNEL`.
+
+## 3. Close-out protocol
+
+- Every "done" = command + raw output in `LIVE_CHANNEL` (Rule 5).
+- New flags default OFF. No `.env` ON / RULED / live trading without Michael's written ruling.
+- `git pull` before write; `commit`+`push` after; never delete another agent's LOG rows.
+- End user-facing replies with a short paste block for Claude (cowork/cc) when handoff is relevant.
