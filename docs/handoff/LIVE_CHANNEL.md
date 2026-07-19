@@ -32,7 +32,7 @@
 | **1ב** | **DLL op `PLACE_STOP`** — A1.1–A1.5 ✅ (RB 17:11, verify deployed==repo, armed=1 חזר לבד). **A1.6 חסום:** ממתין למייקל → Sim Mode (`is_sim=1`) לפני אימות-סים. דגל ORPHAN נשאר OFF | **מייקל**(Sim) → cc-macbook → cowork | 🟡 חסום-Sim |
 | 2 | `PATTERN_LOSS_BREAKER` 1→0 + RULED | cowork-dev | ✅ **בוצע** 07-18: .env=0, RULED נאכף, flag_guard 86/86, ריסטארט |
 | 3 | ~~A5 — מפתח-הרשאה~~ ✅ **נפסק 07-19:** daytype_playbook=מקור-יחיד, auth_matrix בוטל כשער (S2_AUTH_MATRIX_SINGLE_SOURCE_V1=1, אפס-שינוי-התנהגות, 14 טסטים) | cowork-dev | ✅ |
-| 4 | A6 — S4 לא override-מודע (`get_live_day_type`) | ממתין-פסיקה | 🟡 |
+| 4 | ~~A6 — S4 לא override-מודע~~ ✅ **נפסק+הודלק 07-19:** S4 קורא get_live_day_type ראשון (S4_OVERRIDE_AWARE_V1=1, מאוחד עם S2+שער). שורת-override ישנה נוקתה | cowork-dev | ✅ |
 | 5 | 2 כשלי-סימולציה: Neutral_Center×HTLB · Neutral_Extreme×TLB — **sim_matrix 112/0, שניהם ½ PASS** | cc-macbook | ✅ |
 | 6 | הרחבת `audit_pattern_miss.py` ל-TLB/HTLB/VEGAS/GHOST/FAMIR/DBDT — **6 תבניות נוספו**, 11 סה"כ | cc-macbook | ✅ |
 | 7 | ~~CVD לא מיוצא~~ — **בוטל: אין בעיה.** ה-DLL מחשב CVD בעצמו מ-`sc.AskVolume-sc.BidVolume` (לא קורא סטאדי). הקובץ מלא: 90 points, session_delta=-4067, trend=BEARISH. הטעות שלי: קראתי מפתח `bars` במקום `points` | cowork-dev | ✅ **סגור — אין פעולה** |
@@ -48,6 +48,19 @@
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-19] cowork-dev — ✅ פסיקה-5 (A6): S4 מודע-override — ההגה-החי מגיע לכל חלק
+**פסיקת-מייקל:** *"המערכת צריכה להיות אוטונומית ואני צריך לכל חלק את האפשרות לשינוי-חי."*
+**מה שהתברר:** ה-override הגיע ל**שער-הירי** של S4 (`extract_g1_entry_context→get_live_day_type`)
+אבל **לא** ל**סיזינג/יעדים הפנימיים** (`woodies_system.py:640` קרא current_state→מכונה→DB→Normal).
+→ ב-07-17 עסקת-S4 **נשפטה Variation אבל תומחרה+מוקדה Normal** (סתירה-פנימית).
+**נעשה (634983c1):** S4 קורא `get_live_day_type()` ראשון (כמו S2 D-0717-A והשער); fail-open
+לשרשרת-הישנה. עכשיו **S2+S4+שער קוראים סוג-יום מאותו מקור מודע-override**.
+`S4_OVERRIDE_AWARE_V1=1` הודלק (פסיקת-מייקל). **גם נוקתה** שורת-override אינרטית ישנה
+(`DAY_TYPE_MANUAL_OVERRIDE=2026-07-17:Normal`).
+**אימות (חוק-5):** `snapshot 20260719T055536Z → flag_guard 91/91 → health=200 → is_sim=0 qty=0 working=0`. 5 טסטים.
+**cc-macbook ליום ראשון:** סניטי-סים — הצב override, ירה S4, אמת שהסיזינג+היעדים תואמים ל-override.
+**נותרה פסיקה 1 אחרונה** — הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 
 ### [2026-07-19] cowork-dev — ✅ פסיקה-4 (A5): daytype_playbook = מקור-יחיד לפטרן×יום
 **פסיקת-מייקל:** הפלייבוק מקור-יחיד; לבטל את `auth_matrix` כשער.

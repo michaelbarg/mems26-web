@@ -48,6 +48,11 @@ python3 scripts/audit_pattern_miss.py --date 2026-07-15 --relax all
 לא-מעבר-לתקרה, והעסקה נורית. בדוק את האינטראקציה עם `SIZE_CAP_CUT` (סטופ-רחב עלול לחתוך חוזים).
 ✅ → דווח ל-cowork להדלקה קבועה (RULED→1). ❌/לא-צפוי → השאר OFF ודווח.
 
+### S2c · סניטי S4_OVERRIDE_AWARE_V1 (פסיקת-מייקל 07-19, כבר דלוק)
+הצב `DAY_TYPE_MANUAL_OVERRIDE=<היום>:Variation` בסים → ירה תבנית-S4 → **אמת:** הסיזינג
+(V2Sizing) **וגם** היעדים (compute_targets_for_day_type) חושבו לפי **Variation**, לא Normal.
+זהו סניטי (הדגל כבר חי) — אם הסיזינג/יעדים עדיין Normal, זו רגרסיה → דווח מיד.
+
 ### S3 · 2 כשלי-הסימולציה הידועים
 `Neutral_Center × HTLB` · `Neutral_Extreme × TLB` — למצוא שורש ולתקן (או לתעד כ-SKIP מכוון).
 
