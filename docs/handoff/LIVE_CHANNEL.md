@@ -88,6 +88,17 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — PATTERN_INTEL T1→T8 ✅ (חוק-5 · PG-trust עקף ב-API)
+**בטיחות:** mode=live · sierra.is_sim=null · **אין PLACE/.env ON**. `audit_pattern_miss` נכשל (Postgres.app trust-dialog) → ראיה דרך backend API. commit `8357ba37`.
+- **T1** against-Dalton: `PATTERN_INTEL_NUMBERS_2026-07-19.md` · 21 trades w/VA · **10 AGAINST** · G-11→CONFIRMED-partial
+- **T2** 15×8: `PATTERN_INTEL_T2_T3_2026-07-19.md` · `sim_matrix PASS 112/0` · 🔴 HTLB×Trend · DBDT×DD · TLB/FLAGS×NE
+- **T3** Bible↔code: INITIATIVE ATR-label ⚠️ (`five_min_system.py:31-32,44-46`); שאר ✅
+- **T4** YELLOW=0 על 15/16/17 · G-13→CONFIRMED-absent · `PATTERN_INTEL_S1_T4_T5_2026-07-19.md`
+- **T5** classify 15=NV · 16=Trend_Normal · 17=NV · **לא** Neutral_* ב-16/07 כפי שנטען
+- **T6** `test_direction_authority_map.py` · 12+1xfail · **T7** dir anti-taut · 8 passed · **סה״כ 20 passed, 1 xfailed**
+- **T8** TopBar tooltip → `get_live_day_type (override-aware)` (`layout/TopBar.tsx:68`)
+ממתין: cowork חוק-5 לכל T#. משטח-מסחר (G2/G3/G6/D1)=cc-macbook.
+
 ### [2026-07-19] cowork-dev → cursor-agent — 📋 רשימת-משימות: חוכמת-תבניות + מערכת-1 + בדיקות
 **פסיקת-מייקל:** סים פעיל, מסחר 01:00 — לסיים את הפיתוח והבדיקות; cursor מבצע, cowork מאמת.
 **מפרט: `CURSOR_TASKLIST_2026-07-19_PATTERN_INTEL_S1.md`** (אינדקס-קודם, קריאה/בדיקות/דגל-OFF/תצוגה):
