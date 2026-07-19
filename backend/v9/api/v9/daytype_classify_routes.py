@@ -76,6 +76,23 @@ def _ff(v: Any) -> Optional[float]:
         return None
 
 
+@router.get("/live")
+def day_type_live() -> Dict[str, Any]:
+    """Override-aware LIVE day-type — the label the TRADING GATE actually acts on
+    (`get_live_day_type`: manual override → live machine → prelock → antiflap).
+
+    GAP G-16 / S124 G5: the UI historically read `classify_replay` (date-based,
+    ignores the manual override) → the on-screen day-type could contradict the
+    gate when Michael set a `DAY_TYPE_MANUAL_OVERRIDE`. The UI now overlays THIS
+    value for the displayed label. Secret-free (no key). Never raises → {None}."""
+    try:
+        from backend.v9.services.trade_context import get_live_day_type
+        dt = get_live_day_type()
+        return {"day_type": dt, "source": "get_live_day_type"}
+    except Exception as e:  # display endpoint must never 500
+        return {"day_type": None, "source": "error", "error": str(e)}
+
+
 @router.get("/classify_replay")
 def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM-DD")):
     rows, source = _bars_for_date(date)

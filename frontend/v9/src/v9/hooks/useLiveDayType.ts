@@ -16,7 +16,13 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const todayISO = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
 
 export interface LiveDayType {
+  /** The label to DISPLAY = what the trading gate acts on (override-aware) when
+   *  available (GAP G-16 / S124 G5); falls back to classify_replay otherwise. */
   day_type: string;
+  /** The override-aware gate value from /day_type/live (null pre-market/closed). */
+  gate_day_type?: string | null;
+  /** True when the gate value differs from classify_replay (a manual override is active). */
+  overridden?: boolean;
   status: string;
   invalidated?: boolean;
   /** ET HH:MM the current day_type became continuous (across status upgrades). */
@@ -43,9 +49,18 @@ export function useLiveDayType(): LiveDayType | null {
   useEffect(() => {
     let cancel = false;
     const load = () =>
-      fetch(`${API}/api/v9/day_type/classify_replay?date=${todayISO()}`)
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => {
+      // GAP G-16 / S124 G5: keep classify_replay for the rich detail (segments,
+      // IB/VA/opening context), but OVERLAY the DISPLAYED label with the
+      // override-aware gate value from /day_type/live — so the UI shows what the
+      // trading gate actually acts on (not the date-based classifier that ignores
+      // a manual override). live=null (pre-market/closed) → byte-identical to before.
+      Promise.all([
+        fetch(`${API}/api/v9/day_type/classify_replay?date=${todayISO()}`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+        fetch(`${API}/api/v9/day_type/live`)
+          .then((r) => (r.ok ? r.json() : null)).catch(() => null),
+      ])
+        .then(([d, live]) => {
           if (cancel || !d?.final?.day_type) return;
           // since-when: walk segments backwards while the day_type matches the final one,
           // so status-only upgrades (PROVISIONAL→CLASSIFIED) don't reset the clock.
@@ -55,8 +70,12 @@ export function useLiveDayType(): LiveDayType | null {
             if (segs[i].day_type === d.final.day_type) sinceSeg = segs[i];
             else break;
           }
+          const gate: string | null = live && live.day_type ? String(live.day_type) : null;
+          const overridden = !!(gate && gate !== d.final.day_type);
           setDt({
-            day_type: d.final.day_type,
+            day_type: gate ?? d.final.day_type,   // show what the GATE acts on
+            gate_day_type: gate,
+            overridden,
             status: d.final.status,
             invalidated: d.final.invalidated,
             since: sinceSeg?.time ?? null,

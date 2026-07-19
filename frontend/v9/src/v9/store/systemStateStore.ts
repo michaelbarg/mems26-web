@@ -57,9 +57,18 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
       const overrideS1 = async () => {
         try {
           const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Chicago', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-          const nc = await fetch(`${API_BASE}/api/v9/day_type/classify_replay?date=${today}`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+          // GAP G-16 / S124 G5: classify_replay for the rich detail, but the DISPLAYED
+          // label = the override-aware gate value (/day_type/live = get_live_day_type)
+          // when present, so TopBar/Switcher show what the gate acts on (not the
+          // date-based classifier that ignores a manual override). live=null → unchanged.
+          const [nc, live] = await Promise.all([
+            fetch(`${API_BASE}/api/v9/day_type/classify_replay?date=${today}`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+            fetch(`${API_BASE}/api/v9/day_type/live`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+          ]);
           if (nc?.final?.day_type) {
-            update(1, { state: nc.final.day_type, subState: nc.final.status ?? null, raw: { ...nc.final, measured: nc.measured, source: 'new_classifier' } });
+            const gate: string | null = live && live.day_type ? String(live.day_type) : null;
+            const shown = gate ?? nc.final.day_type;
+            update(1, { state: shown, subState: nc.final.status ?? null, raw: { ...nc.final, gate_day_type: gate, overridden: !!(gate && gate !== nc.final.day_type), measured: nc.measured, source: gate ? 'get_live_day_type' : 'new_classifier' } });
           }
         } catch { /* keep the old-engine value set above */ }
       };

@@ -73,6 +73,14 @@ def _normalize_bar(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     if ccidiff is None and cci_6 is not None:
         ccidiff = round(float(cci_14) - cci_6, 2)
 
+    # G-16 P0-1 (Michael 2026-07-19): serve the UI the SAME CCI-direct trend the
+    # ENGINE sees (G1) — otherwise WoodiesCciPanel paints a sticky-GRAY live bar
+    # while S4 already sees RED/BLUE. Gated by TREND_CCI_DIRECT_V1 INSIDE
+    # _trend_from_cci → flag OFF = raw kept (byte-identical). Local import avoids a
+    # circular module-top import against the large bars module.
+    from backend.v9.api.v9.bars import _trend_from_cci as _tfc
+    _ui_trend = _tfc(raw.get("trend_state") or "GRAY", cci_14)
+
     return {
         "ts_unix": ts_unix,
         "ts": datetime.fromtimestamp(ts_unix, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
@@ -82,8 +90,8 @@ def _normalize_bar(raw: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         "ccidiff": ccidiff,
         "ccidiff_h": _f("ccidiff_h"),
         "ccidiff_l": _f("ccidiff_l"),
-        "trend_state": raw.get("trend_state") or "GRAY",
-        "trend_color": TREND_COLORS.get(raw.get("trend_state") or "GRAY", TREND_COLORS["GRAY"]),
+        "trend_state": _ui_trend,
+        "trend_color": TREND_COLORS.get(_ui_trend, TREND_COLORS["GRAY"]),
         "zlr_detected": bool(raw.get("zlr_detected")),
         "zlr_direction": raw.get("zlr_direction"),
         "hfe_detected": bool(raw.get("hfe_detected")),
