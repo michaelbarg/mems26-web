@@ -1158,6 +1158,14 @@ def post_woodies_5min(
             "hfe_direction":      _cb.get("hfe_direction", "NONE"),
             "hfe_extreme_bars_ago": _cb.get("hfe_extreme_bars_ago", 0),
         }
+        # G1 (Michael 2026-07-19, GAP G-01): apply the SAME CCI-direct relabel to
+        # the routed current_bar as the closed-bar/DB path does at :1087 — so S4
+        # sees a TIMELY trend on the LIVE bar, not sticky-GRAY while CCI is already
+        # ±150 (the paint-lag that blinded TT/GB100/ZLR-v2 in a rally). Gated by
+        # TREND_CCI_DIRECT_V1 INSIDE _trend_from_cci → flag OFF = byte-identical
+        # (raw _cb trend kept); flag ON = same timeliness as the closed bar.
+        last_flat["trend_state"] = _trend_from_cci(
+            last_flat.get("trend_state"), last_flat.get("cci_14"))
     # === END override ===
 
     # ZLR-TRACE (2026-06-30 Cowork): does the routed bar keep the DLL zlr flag?
