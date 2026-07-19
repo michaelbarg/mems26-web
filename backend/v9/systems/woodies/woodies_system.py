@@ -635,9 +635,28 @@ class WoodiesSystem(BaseV9TradingSystem):
                 classification = "STRATEGIC" if best.group == "REVERSAL" else "TACTICAL"
                 sizing = self.calculate_size(signal, direction)
                 # Provisional day_type (shared with fire_setup below)
-                # Priority: current_state → promoted 7-type classifier (day_type_machine)
-                # → v9_day_type_state (persisted) → hardcoded "Normal"
-                _s4_day_type = self.current_state.get("day_type")
+                # Priority: [OVERRIDE/live] → current_state → promoted 7-type
+                # classifier (day_type_machine) → v9_day_type_state → "Normal".
+                # ── A6 fix (Michael ruling 2026-07-19): S4 must honor the SAME
+                # DAY_TYPE_MANUAL_OVERRIDE that already gates it at the gateway
+                # (extract_g1_entry_context → get_live_day_type) and that S2 uses
+                # (D-0717-A). Without this, an S4 trade was GATED as Variation but
+                # SIZED + TARGETED as Normal — internally inconsistent. Michael's
+                # directive: a live change must reach EVERY part of the system.
+                # get_live_day_type() returns the override when set, else the live
+                # promoted machine value, else None → falls through to the exact
+                # legacy chain below (fail-open, no behaviour change when unset).
+                # Flag default OFF → byte-identical to today until enabled.
+                _s4_day_type = None
+                import os as _s4_ovr_os
+                if _s4_ovr_os.getenv("S4_OVERRIDE_AWARE_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        from backend.v9.services.trade_context import get_live_day_type as _s4_gldt
+                        _s4_day_type = _s4_gldt()
+                    except Exception:
+                        _s4_day_type = None
+                if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
+                    _s4_day_type = self.current_state.get("day_type")
                 if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
                     try:
                         import importlib as _il

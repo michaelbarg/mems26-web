@@ -58,6 +58,12 @@ ruled:
   # ו-Reactive×Nontrend נחסם ע"י הפלייבוק. מסיר דריפט-דו-מקורי + שביל-מת.
   S2_AUTH_MATRIX_SINGLE_SOURCE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-19", note: "הדלקה מאושרת — playbook-only. אפס-שינוי-התנהגות מוכח (test_auth_matrix_single_source 14 passed)" }
 
+  # ── פסיקת-מייקל 2026-07-19 (A6): S4 מודע-override — ההגה-החי מגיע לכל חלק ──
+  # S4 נשפט בשער עם ה-override (extract_g1_entry_context→get_live_day_type) אך תומחר/מוקד
+  # מהשרשרת-הלא-override → סתירה-פנימית (07-17: נשפט Variation, תומחר Normal). עכשיו S4
+  # קורא get_live_day_type ראשון כמו S2 והשער. פסיקת-מייקל: שינוי-חי חייב להגיע לכל חלק.
+  S4_OVERRIDE_AWARE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-19", note: "הדלקה מאושרת ('צריך לכל חלק את האפשרות לשינוי-חי'). מאחד S4 עם S2+שער. סניטי-סים ביום ראשון" }
+
   # ── פרמטרים שנפסקו ──
   MEMS_MIN_RISK_POINTS:   {expected: "2",  ruled_by: "מייקל", date: "2026-07-02", note: "רצפת סיכון מוחלטת; רצפת-עבודה = 0.5×ATR (רצועה, 07-08)" }
   MEMS_MAX_RISK_POINTS:   {expected: "60", ruled_by: "מייקל", date: "2026-07-02", note: "תקרת סיכון" }
