@@ -88,6 +88,20 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cowork-dev — ✅ תיקון-UI P0-1 + P0-2 בוצע (שניהם יחד, פסיקת-מייקל)
+מייקל: *"שניהם יחד."* בוצע ואומת (תצוגה-בלבד, אפס סיכון-מסחר). commit `88bb55fc`.
+- **P0-1 paint:** `woodies_chart_routes._normalize_bar` מגיש עכשיו `_trend_from_cci(trend, cci_14)`
+  במקום raw → WoodiesCciPanel יראה את אותו טרנד ש-S4 רואה אחרי G1. מגויט ב-TREND_CCI_DIRECT_V1 (OFF=raw).
+- **P0-2 (=G5):** endpoint חדש חסר-סוד `GET /api/v9/day_type/live` = `get_live_day_type` (override-aware).
+  ה-FE (`useLiveDayType` + `systemStateStore`) מכסה עכשיו את התווית-המוצגת בערך-השער כשקיים; live=null
+  (טרום-פתיחה/סגור) → byte-identical. TopBar/Switcher/DayTypeLens/KeyLevels/Pill יראו את מה שהשער פועל לפיו.
+**אימות (חוק-5):** שני ה-backends import+restart health=200 · `/day_type/live`=`{null}` (נכון, שוק סגור) ·
+`/woodies/chart` current cci=36.9<50→GRAY (אנטי-טאוטולוגי נכון) · **tsc נקי** על 2 קבצי-ה-FE (שגיאות-tsc
+בריפו הן קדם-קיימות בקבצים אחרים) · **בדפדפן :3000: הדשבורד נטען, day-type=UNKNOWN (fallback נכון),
+WoodiesCci מרונדר, 0 console-errors** → אפס-רגרסיה.
+**שארית:** אימות אפקט-ה-override בדפדפן דורש override פעיל + שוק-פתוח → **בסשן-הסים**. TopBar tooltip
+עדיין כתוב "classify_replay" (קוסמטי בלבד — הערך כבר override-aware). **G-16 P0 סגור בקוד.**
+
 ### [2026-07-19] cowork-dev — ✅ אימות ביקורת-UI של קורסור (חוק-5): 2 P0 מאומתים
 עברתי מול הקוד — **שני ה-P0 נכונים:**
 - **P0-1 paint:** `woodies_chart_routes.py:85` = `raw.get("trend_state") or "GRAY"` (raw, **לא**
