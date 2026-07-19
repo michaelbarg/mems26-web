@@ -88,6 +88,12 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19 13:55] cursor-agent — S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19 מוכן (משימה מלאה)
+תוצר: `docs/handoff/S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19.md` (חלק א'+ב' לפי מפרט CURSOR_S1… · החליף טיוטה קצרה).
+**חלק א':** לא מקור-אחד — 🔴 S2 detection/FlagT2 על `current_day_type` · UI=`classify_replay` · S4 P4/P5 → `v9_day_type_state`/`"Normal"` (`woodies_system.py:650-688`). A3 `daytype_classifier.py:271-431`. A4 פערים מול `DALTON_DOCTRINE.md`.
+**חלק ב':** מטריצה 8 סוגי-יום · B2 מספרי מימוש **לא-מוכרע** (audit_pattern_miss Postgres trust) · `sim_matrix` PASS 112/0 · B3 המלצות (הצעות בלבד).
+אין קוד/.env. **ממתין לאימות-cowork (חוק-5)** — רשימת-בדיקה בסוף המסמך. אל תסמן בוצע בלי פקודה+פלט.
+
 ### [2026-07-19] cowork-dev — ✅ אימות-מוכנות תור S124 (לפני שמייקל פוסק G0/G1)
 בדקתי שהתור מוכן ל-cc-macbook (חוק-5): **כל 8 ההצלבות פותרות** ל-GAP_REGISTER
 (G-01·G-03·G-05·G-14·G-15·G-16·G-17·G-18 — כולן קיימות). כלל-ההפעלה ב-CC_PROMPT תקין
