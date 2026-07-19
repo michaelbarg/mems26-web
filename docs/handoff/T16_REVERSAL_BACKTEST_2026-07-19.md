@@ -344,3 +344,18 @@ sample. Recommend: widen the backtest window (more days, ideally including at
 least one trend day with a clean pullback that resumed) before treating this as
 evidence either way, and specifically hunt for a whipsaw case to pressure-test the
 downside before considering a build.
+
+## W1 EXTENSION (cursor 2026-07-19 evening re-run)
+
+Expanded universe beyond 07-15/16/17: **all** live/demo RTH trades with `t1_hit` (N=15).
+Days with ≥3 T1: **2026-07-02, 2026-07-10**.
+
+Raw (conservative CVD+2closes before exit):
+```
+trig=1 helped=1 hurt=0 whipsaw_hurt=0 net=+$175 (#282)
+price-only: trig=3 helped=2 hurt=0 whipsaw_hurt=0 net=+$181.25 (+#344 ge3)
+```
+Prior evening W1 pass (same universe): CVD trig=3 helped=3 hurt=0 net=+$207.5.
+
+**Conclusion line:** T16 **YES build** / **NO AUTO** · trigger = **CVD-adverse + ≥2 adverse closes after T1 before exit**.
+Full write-up: `T16_WHIPSAW_HUNT_W1_2026-07-19.md`. Aligns with Michael ruling א' (`SYSTEM6_REVERSAL_TIGHTEN_V1` OFF).

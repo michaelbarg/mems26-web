@@ -1,30 +1,28 @@
-# PREFLIGHT — אפס פערי-פיתוח (עדכון W3 · 2026-07-19 ערב)
+# PREFLIGHT — אפס פערי-פיתוח (W3 refresh · 2026-07-19 ~22:45 IL)
 
-**בעלים:** cursor-agent · **אימות:** cowork (חוק-5)  
-**מדד:** דגל-פתוח × [טסט / UI / סים] × 🟢/🔴 · **🔴 חדש = התרעה ב-LIVE_CHANNEL**
+**בעלים:** cursor-agent · **🔴 חדש = התרעה ב-LIVE_CHANNEL**
 
-| דגל / פריט | טסט | UI | סים | סטטוס | שינוי מול ערב |
+| דגל / פריט | טסט | UI | סים | סטטוס | הערת-ערב |
 |---|---|---|---|---|---|
-| G2+G3 `S2_DETECTION_LIVE_DAYTYPE_V1` | 🟢 T9 | 🟢 | צריך הדלקה | 🟡 מוכן-לבנייה | — |
-| G6 S4 fail-honest | 🟢 T10 | 🟢 | צריך | 🟡 מוכן-לבנייה | — |
-| D1 position/direction | 🟢 T11 | 🟢 T12 | צריך | 🟡 · בסיס W2: 4 against CONT לייב | W2 מספרים |
+| G2+G3 detection-live | 🟢 T9 | 🟢 | הדלקה | 🟡 מוכן-לבנייה | אין קוד-cc עדיין |
+| G6 S4 fail-honest | 🟢 T10 | 🟢 | הדלקה | 🟡 מוכן-לבנייה | — |
+| D1 position/direction | 🟢 T11 | 🟢 T12 | הדלקה | 🟡 · W2: 4 against CONT | — |
 | G4 honest-prelock | 🟢 | 🟢 | הדלקה | 🟡 | — |
-| **G7 FIXED_4↔REDUCED** | — | 🟡 | — | 🟢 **נסגר** | פסיקת-מייקל `6039dbb6` keep-4-always · G-03 resolved |
-| **G8 Neutral/escalation** | — | — | — | 🟡 ממתין-חתימה | **W5 pack** `G8_NEUTRAL_ESCALATION_DOCTRINE_2026-07-19.md` |
-| B1 ORPHAN | 🟢 | 🟡 | 🟡 A1.6 | 🟡 סים | — |
+| G7 FIXED_4↔REDUCED | — | 🟡 | — | 🟢 keep-4 | נפסק |
+| G8 Neutral/escalation | — | — | — | 🟡 ממתין-חתימה | **W5 pack** |
+| B1 ORPHAN / PLACE_STOP | 🟢 | 🟡 | 🟡 A1.6 | 🟡 סים | — |
 | B2 STOP_WIDEN | 🟢 | — | 🟡 | 🟡 סים | — |
-| G1 paint | 🟢 | 🟢 | — | 🟢 | — |
-| T15 morning stage-E | 🔴 אין קוד E | — | — | 🔴 | פסיקה: stage-E **חובה** (`6039dbb6`) — עדיין לא בנוי |
-| T16 S6 reversal | 🟡 W1 hunt | — | ALERT-first | 🟡 | **W1:** 0 whipsaw-hurt על N=15; עדיין לא AUTO |
-| T17 4-contracts | 🟡 | 🟡 | E2E | 🟡 | BE-after-**real-T1** נפסק (`6039dbb6`) |
+| G1 paint | 🟢 | 🟢 | — | 🟢 | ב-`bars.py` |
+| **T15 morning stage-E** | 🔴 אין קוד | — | — | **🔴** | **עדיין חוסם GO אמין** |
+| **T16 S6 reversal** | 🟢 W1 hunt | — | ALERT→סים | 🟡 לבנייה | פסיקה **א'** · trigger=CVD+2closes |
+| T17 4-contracts | 🟡 | 🟡 | E2E | 🟡 | — |
+| Phone MOBILE_REMOTE | — | 🟡 paint/dir | — | 🟡 שארית | שורש URL תוקן cowork |
 
-## התרעות 🔴 פתוחות (לא חדשות ממנוע-cc הערב)
-1. **T15 stage-E** — חובה לפי פסיקה, **טרם ממומש** → חוסם GO-בוקר אמין.  
-2. אין 🔴 חדש מקוד-cc מאז T12 (G2/G3/G6/D1 עדיין לא נבנו).
+## התרעות 🔴
+1. **T15 stage-E** — פסיקה: חובה · **טרם ממומש** → GO-בוקר עדיין כוזב.  
+2. **אין 🔴 חדש** ממנוע-cc מאז T12 (G2/G3/G6/D1 לא נבנו הערב).
 
-## W4 (פרונטאנד)
-אין diff-מנוע חדש מ-cc מאז T12. Render-check 2026-07-19:
-`http://127.0.0.1:3000/` → 200 · `/board` 200 · `/build` 200 ·  
-API: `direction_now` dir/sustained · `day_type/live` · `woodies/current` cci/trend — חיים.
-
-כש-cc ימזג G2/G3/G6/D1 — חובה ביטוי-UI + render-check באותו מחזור.
+## W4 (צמוד)
+אין diff-מנוע חדש מ-cc הדורש UI נוסף מעבר ל-T12/T14.  
+Render 2026-07-19 22:40: `:3000/` `/board` `/build` → **200**.  
+API: `direction_now` · `day_type/live` · `woodies/current` חיים (pre-RTH: NEUTRAL/null/GRAY).

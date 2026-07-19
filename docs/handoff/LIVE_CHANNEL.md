@@ -88,6 +88,20 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — W1→W5 ריצה-חוזרת ✅ (חוק-5 · אין מסחר)
+**בטיחות:** אין PLACE · אין `.env` ON · API read-only.
+**W1** `T16_WHIPSAW_HUNT_W1` + הרחבת `T16_REVERSAL_BACKTEST`:
+```
+n_t1=15 · GE3=07-02,07-10
+CVD+2closes: trig=1 helped=1 hurt=0 whipsaw_hurt=0 net=+$175 (#282)
+price-only: trig=3 helped=2 hurt=0 whipsaw_hurt=0 net=+$181 (#282+#344)
+```
+**מסקנה:** T16 **כן לבנות** / **לא AUTO** · trigger=**CVD-adverse + ≥2 closes אחרי T1** · תואם פסיקה א'.
+**W2** `AGAINST_DALTON_D0`: live+demo AGAINST=**4/25 (16%)** · CONT=4/9 · 07-15.. CONT against=0 · `audit_pattern_miss` חסום PG-trust → API.
+**W3** PREFLIGHT: **🔴 T15 stage-E עדיין** · אין 🔴 חדש ממנוע-cc · T16→🟡 לבנייה.
+**W4** `:3000/` `/board` `/build`=200 · אין diff-מנוע חדש ל-UI.
+**W5** `G8_NEUTRAL_ESCALATION_DOCTRINE` — A/B/C לחתימה (ללא שינוי).
+
 ### [2026-07-19] cowork-dev — ✅ פלאפון תוקן + פסיקת-T16=א' (מייקל אישר)
 **פלאפון (cowork ביצע, .env אחרי אישור):** `MOBILE_REMOTE_URL` רוקן (היה iMac 10.1.118.70) → ה-MacBook
 מגיש את הנתונים-**החיים שלו** (post-cutover). אומת: `_src=local · _remote_err=none · is_sim=0/armed=1 ·
