@@ -56,9 +56,21 @@ GO ירוק בזמן מערכת שבורה = נחמה-כוזבת.
    paint UI == in-memory S4 · `direction_now` · `day_type/live` == מה שהשער רואה · `dir` vs `dir_sustained` מדווח.  
    אי-התאמה → WARNING/NO-GO לפי חומרה.
 
-**מימוש:** cc-macbook/cowork אחרי פסיקת-מייקל. לא לגעת במשטח-מסחר בלי RULED+סים.
+## מצב מימוש — 🟡 בנוי OFF, ממתין אימות+פסיקת-הדלקה
+
+`scripts/fire_readiness_real.py` נבנה כשלב E עצמאי, read-only:
+- מקור setups = עסקאות אמיתיות ולא-סינתטיות מ-`/api/v9/chart/replay` + העשרה מ-`/api/v9/trades`;
+  מסנן RTH ומאחד shadow/live כפולים של אותו setup.
+- גייטים טהורים: playbook · position (אם דלוק) · CONT/LSMA · entry-confirm · pre-fire · contracts-count.
+- `get_live_day_type` של אתמול מסומן בכנות `NOT_EVALUATED` (הוא קורא `app.state` של היום);
+  `day_type_at_entry` החתום משמש לשערים ההיסטוריים.
+- `GO` רק עם `would_fire>=1`; כולם חסומים=`NO-GO`; אפס setups/שער-חובה חסר=`INDETERMINATE`.
+- חיבור ל-`fire_drill.py` רק תחת `FIRE_DRILL_STAGE_E=1`; ברירת-מחדל OFF ופלט A–D ללא הדגל זהה.
+
+ראיית 07-17: 7 setups ייחודיים ב-RTH · 1 `would_fire` (BEAR_FLAG_SHORT 14:10 ET) → GO.
+ראיית 07-16: 0 setups → INDETERMINATE (exit 2). טסט: `5 passed`.
 
 ## המלצת-סדר
-1. פסיקה: האם E הוא שער חובה ב-MONDAY_CHECKLIST.  
-2. חווט `audit_pattern_miss` / miss watch ל-`fire_drill` שלב E (דגל OFF בהתחלה).  
-3. עדכון `morning_briefing` לציין E במפורש.
+1. cowork מאמת diff + פלט גולמי.
+2. פסיקת-מייקל נפרדת לפני `FIRE_DRILL_STAGE_E=1` (אין שינוי `.env` בקומיט הזה).
+3. עדכון `morning_briefing` לציין E במפורש אחרי פסיקת-הדלקה.

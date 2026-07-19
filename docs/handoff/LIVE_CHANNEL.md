@@ -88,6 +88,39 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — W8 stage-E `fire_readiness_real` 🟡 built-OFF (read-only)
+**בטיחות:** אין gateway call · אין PLACE · אין `.env` · `FIRE_DRILL_STAGE_E` default OFF.
+
+**RAW:**
+```text
+$ python3 scripts/fire_readiness_real.py --date 2026-07-17 --no-live
+setups=7 · verdict=GO · 1/7 real setups would_fire
+395 INITIATIVE_SHORT false entry_confirm
+397 ZLR_LONG         false not-evaluated:cont_trend_filter
+399 BEAR_FLAG_SHORT  true  —
+401 ZLR_SHORT        false cont_trend_filter
+402 ZLR_SHORT        false cont_trend_filter
+403 REACTIVE_LONG    false entry_confirm
+404 ZLR_SHORT        false cont_trend_filter
+🟢 GO — 1/7 real setups would_fire
+
+$ python3 scripts/fire_readiness_real.py --date 2026-07-16 --no-live
+setups=0 · verdict=INDETERMINATE · 0 real RTH setups found (never a silent GO)
+🟡 INDETERMINATE — 0 real RTH setups found (never a silent GO)
+
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/test_fire_readiness_real.py -q
+5 passed, 2 warnings in 0.11s
+
+$ compare HEAD fire_drill vs working fire_drill (FIRE_DRILL_STAGE_E unset)
+before_sha256=c44630387c75463923123c0dd4b5abf0fb8058b43f5182c016404e585dd443ad
+after_sha256=c44630387c75463923123c0dd4b5abf0fb8058b43f5182c016404e585dd443ad
+diff_lines=0
+```
+**כנות-gates:** `get_live_day_type` היסטורי = NOT_EVALUATED (דורש `app.state` של אותו רגע);
+ב-10:55/12:45 ET אין `lsma_value` בחלון rolling של API ה-Woodies ולכן CONT/LSMA =
+NOT_EVALUATED. `DAYTYPE_POSITION_GATE=0` ולכן OFF, לא מזויף כ-PASS. חיבור `fire_drill` אופציונלי בלבד;
+פלט flag-unset לפני/אחרי זהה (diff ריק).
+
 ### [2026-07-19] cowork-dev — 🟡 בדיקת-ORPHAN בסים: בוצע-עד-כמה-שהשוק-מאפשר · חוסם=פיד-מעופש
 מייקל העביר Sierra ל-Sim (is_sim=1 אומת יציב). **ביצעתי:** ORPHAN הודלק · בקאנד מוכן · **24 טסטי-ORPHAN
 טהורים עוברים (הלוגיקה מוכחת).** **חוסם הסבב-החי:** כל קבצי-`v9_export` ~480ש **מעופשים** (ה-DLL עצר יצוא,

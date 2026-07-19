@@ -13,14 +13,14 @@
 | B1 ORPHAN / PLACE_STOP | 🟢 | 🟡 | 🟡 A1.6 | 🟡 סים | — |
 | B2 STOP_WIDEN | 🟢 | — | 🟡 | 🟡 סים | — |
 | G1 paint | 🟢 | 🟢 | — | 🟢 | ב-`bars.py` |
-| **T15 morning stage-E** | 🔴 אין קוד | — | — | **🔴** | **עדיין חוסם GO אמין** |
+| **T15 morning stage-E** | 🟢 5 tests | — | cowork+פסיקת-הדלקה | **🟡 בנוי OFF** | 07-17 GO 1/7 · 07-16 INDETERMINATE |
 | **T16 S6 reversal** | 🟢 W1 hunt | — | ALERT→סים | 🟡 לבנייה | פסיקה **א'** · trigger=CVD+2closes |
 | T17 4-contracts | 🟡 | 🟡 | E2E | 🟡 | — |
 | Phone MOBILE_REMOTE | — | 🟡 paint/dir | — | 🟡 שארית | שורש URL תוקן cowork |
 
 ## התרעות 🔴
-1. **T15 stage-E** — פסיקה: חובה · **טרם ממומש** → GO-בוקר עדיין כוזב.  
-2. **אין 🔴 חדש** ממנוע-cc מאז T12 (G2/G3/G6/D1 לא נבנו הערב).
+1. **אין 🔴 חדש** ממנוע-cc מאז T12 (G2/G3/G6/D1 לא נבנו הערב).
+2. **T15 stage-E 🟡** — בנוי flag-OFF; ממתין אימות-cowork + פסיקת-הדלקה.
 
 ## W4 (צמוד)
 אין diff-מנוע חדש מ-cc הדורש UI נוסף מעבר ל-T12/T14.  

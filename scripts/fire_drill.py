@@ -11,6 +11,8 @@ GO/NO-GO אמיתי: לא בודק רק צנרת אלא שהמערכת מסוג�
      של היום מה-DB/API או סינתטי 12pt) → validate_fire חייב לקבל.
   C  חוזים: effective_contracts()==2 · בר-אישור עם סובלנות ATR.
   D  (עם באקנד חי) feed טרי · day_type · slots פנויים · live_enabled [2,4].
+  E  אופציונלי (FIRE_DRILL_STAGE_E=1): setups אמיתיים מה-RTH האחרון דרך
+     fire_readiness_real; ברירת-מחדל OFF.
 
 הרצה: python3 scripts/fire_drill.py [--no-live] (ללא שלב D)
 Exit 0=GO, 1=NO-GO (עם הסיבות).
@@ -22,6 +24,8 @@ import os
 import subprocess
 import sys
 import urllib.request
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
@@ -134,6 +138,31 @@ def stage_d():
           f"{st.get('day_type')} conf={st.get('confidence')}")
 
 
+def _previous_rth_date():
+    day = datetime.now(ZoneInfo("America/New_York")).date() - timedelta(days=1)
+    while day.weekday() >= 5:
+        day -= timedelta(days=1)
+    return day.isoformat()
+
+
+def stage_e(no_live=False):
+    """Optional real-setup replay. Default OFF; never calls the gateway."""
+    print("— שלב E · מוכנות-ירי אמיתית —")
+    cmd = [
+        sys.executable,
+        os.path.join(ROOT, "scripts", "fire_readiness_real.py"),
+        "--date",
+        _previous_rth_date(),
+    ]
+    if no_live:
+        cmd.append("--no-live")
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.stdout:
+        print(result.stdout.rstrip())
+    detail = (result.stderr.strip().splitlines() or [f"exit={result.returncode}"])[-1]
+    check("fire_readiness_real", result.returncode == 0, detail)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-live", action="store_true", help="דלג על שלב D")
@@ -144,6 +173,8 @@ def main():
     stage_c()
     if not args.no_live:
         stage_d()
+    if os.getenv("FIRE_DRILL_STAGE_E", "0").lower() in ("1", "true", "yes"):
+        stage_e(no_live=args.no_live)
     print()
     if FAILS:
         print(f"🔴 NO-GO — {len(FAILS)} כשלים:")
