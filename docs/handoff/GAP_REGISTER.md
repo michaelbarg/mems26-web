@@ -32,7 +32,7 @@
 
 | # | מע' | פער | סטטוס | ראיה / הפרכה | בעלים | תאריך |
 |---|---|---|---|---|---|---|
-| G-01 | S4 | Paint-lag: `current_bar` מנותב ל-S4 עם `trend_state` גולמי (בלי `_trend_from_cci`) → TT/GB100/ZLR-v2 עיוורים לצבע בראלי | 🟢 **CONFIRMED** | אומת ע"י cowork (B1): `bars.py:1087` בר-סגור מחיל `_trend_from_cci`; `bars.py:1153` current_bar **גולמי**. תיקון הוצע (להחיל גם על current_bar) — **לא בוצע, משטח-סיכון** | **מייקל**(פסיקה)→cc-macbook | 07-19 |
+| G-01 | S4 | Paint-lag: `current_bar` מנותב ל-S4 עם `trend_state` גולמי (בלי `_trend_from_cci`) → TT/GB100/ZLR-v2 עיוורים לצבע בראלי | 🔧 **FIXED** | **G1 בוצע (cowork, הוראת-מייקל):** `bars.py:1167` מחיל `_trend_from_cci` על `last_flat` של current_bar (כמו `:1087`), מגויט ב-TREND_CCI_DIRECT_V1 (OFF=byte-identical). 6 טסטים, flag_guard 91/91, restart health=200. commit 8dcb4a79. **הערה:** מנתב ל-S4 בלבד — לא ל-DB/UI (זה G-16) | cowork → ✅ | 07-19 |
 | G-02 | S2 | S2 יורה מאוחר: 7 ברים מינ' (B1-B4+3 רקע) + FHB + avg20-נפח מורעל בגלובקס-דק | 🟢 **CONFIRMED** | אומת ע"י cowork (B2): `MIN_BARS_REQUIRED=7` (`five_min_system.py:34`); avg20 (`:658-659`) + `S2_VSA_VOLUME=1` **חי** → נתיב-מורעל פעיל | ממתין-גישה (מייקל) | 07-19 |
 | G-03 | S4/S2 | `FIXED_CONTRACTS_4=1` מתעלם מפסק REDUCED של הפלייבוק → "מופחת" לא ממומש בגודל | 🟢 **CONFIRMED (by-design)** | `trading_gateway.py:633` בודק רק `_pb.allow` (בוליאני), לא ספירת-חוזים; FIXED_4 כופה 4. **תוצאה של פסיקת-4-חוזים** — לא באג | **מייקל**: האם REDUCED יקטין גודל? | 07-19 |
 | G-04 | S2 | A5 `OFA_Initiative ≠ INITIATIVE_LONG` → INITIATIVE over-fire על Normal | 🔧 **FIXED** | פסיקה-4: `S2_AUTH_MATRIX_SINGLE_SOURCE_V1=1`, auth_matrix בוטל, 14 טסטים, אפס-שינוי-התנהגות. commit 504d948d | — | 07-19 |
