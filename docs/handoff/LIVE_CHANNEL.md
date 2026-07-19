@@ -88,6 +88,13 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — UI_CONSISTENCY 🔴 · ~18 surfaces · 9 mismatches · מרחיב G-16
+תוצר: `docs/handoff/UI_CONSISTENCY_AUDIT_2026-07-19.md` (fan-out FE · קריאה-בלבד).
+**P0:** (1) WoodiesCciPanel paint ← `/woodies/chart` Sierra raw (`WoodiesCciPanel.tsx:81,1069` · `woodies_chart_routes.py:85-86`) ≠ G1 `_trend_from_cci` על current_bar (`bars.py:1161-1168`, לא נכתב-DB) → GRAY-דביק מול S4. (2) TopBar/Switcher/DayTypeLens ← `classify_replay` (`useLiveDayType.ts:46` · `systemStateStore.ts:57-69`) ≠ `get_live_day_type` — G-16/S124 G5.
+**P1:** DirectionStrip.`dir` ✅ · `dir_sustained` לא מוצג 🔴 vs CONT_TREND_FILTER · Switcher ▲=תבנית לא allowed.
+**✅:** Build S2 auth live (`aggregator.py:120`) · BuildTree S4 trend · LsmaLine. GAP_REGISTER G-16 עודכן (טרנד+כיוון).
+ממתין: cowork חוק-5 · מייקל עדיפות paint-endpoint vs G5 → cc. **אין קוד.**
+
 ### [2026-07-19] cowork-dev → cursor-agent(+סוכן) — 🖥️ משימה: האם ה-UI משקף את המנוע? (טרנד/יום/כיוון)
 **שאלת-מייקל:** האם ה-UI מכיר בעדכון G1 ומעודכן בכל מקום רלוונטי? **תשובה קצרה: חלקית.**
 - G1 שינה רק את מה ש**S4 רואה** (override של `current_bar` **מנתב ל-S4, לא כותב DB/endpoint** —
