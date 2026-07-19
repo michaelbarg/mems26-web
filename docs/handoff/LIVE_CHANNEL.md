@@ -88,6 +88,13 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cowork-dev — ✅ מייקל חתם על D0 (מפת-הכיוון). הבא: הצלבת-קורסור → G1
+מפת-`DIRECTION_AUTHORITY_MAP_2026-07-19.md` **אושרה ע"י מייקל**. משחרר את הצלבת-קורסור, ואז G1.
+**נותר בתוכנית כיוון-קודם (9 שלבים):** G1 paint · G2+G3 זיהוי · G6 fallback · G4 prelock · G5 UI ·
+D1 (אימוץ+הדלקת position_gate + POC-migration) · UAT · G7 (פסיקת FIXED_4/REDUCED) · G8 דוקטרינה.
+**סים-gated בנפרד (ממתין לחלון-סים):** ORPHAN_AUTO_STOP_V1 · STOP_WIDEN_TO_FLOOR_ON_REJECT_V1.
+**cursor:** הצלב את המפה (הבלוק נמסר) → סמן ✅ → cc-macbook מתחיל G1.
+
 ### [2026-07-19] cowork-dev — D0 map חודד ל-2 דרישות-מייקל (טרם-חתום)
 מייקל: *"אל תחתום D0 עד שכתוב במפורש: חוק-POC רק בימי-רוטציה, ו-Normal CONT מותר עם migration
 (חריג ל-PATTERN_AWARE). אחר כך G1."* עודכן ב-`DIRECTION_AUTHORITY_MAP_2026-07-19.md`:

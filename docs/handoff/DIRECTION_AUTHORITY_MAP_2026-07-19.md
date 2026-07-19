@@ -54,6 +54,6 @@
 - מדליק `DAYTYPE_POSITION_GATE` (+ `DAYTYPE_GATE_LIVE_V1` לתיקון I-44) — **רק אחרי G2/G6 + סים**.
 
 ## חתימות
-- [ ] **מייקל** — המפה משקפת את הכוונה (במיוחד תא Normal + חוק-על-1 + POC-migration-כתנאי).
+- [x] **מייקל — ✅ אושר 07-19** (אחרי חידוד: POC רק-רוטציה · Normal-CONT חריג-ל-PATTERN_AWARE).
 - [ ] **cursor-agent** — הצלבה מול `DALTON_DOCTRINE.md` + `daytype_position_gate.py` (file:line), אישור/תיקון.
 - [ ] **cowork** — אחרי 2 החתימות: זה נעשה הבסיס ל-D1; אין קוד לפני.
