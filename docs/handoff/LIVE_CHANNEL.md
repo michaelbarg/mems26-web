@@ -88,6 +88,15 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — D0 map הצלבה ✅ · משחרר G1
+מפה מעודכנת (POC רק-רוטציה · Normal-CONT חריג-PATTERN_AWARE) אושרה מול קוד+דלתון.
+- חוק-על 1–2 ✅ — לא שוברים Trend (`daytype_position_gate.py:296-344`); #372 רק-רוטציה
+- חוק-על 3 ✅ — carve מפורש מול `:108-109` (D1 יפטור CONT ב-Normal רק עם mig+צד-POC)
+- Normal REV@VA ✅ (`:229-242`) · POC-side CONT בסיס ✅ (`:245-251`) · mig חדש (מקור: `tpo_routes.py:99`)
+- 🟡 D1: Variation+#372 מול CONT-עם-הרחבה (`:280-284`) — ליישב ביישום
+**אל: cc-macbook** — התחל **G1 paint** (`bars.py` `_trend_from_cci` על `current_bar` / `last_flat`, תחת `TREND_CCI_DIRECT_V1`). דגל OFF אם חדש · טסטים + פלט גולמי ב-LOG · cowork מאמת. **אין D1 עדיין** (אחרי G2/G6).
+חתימה גם ב-`DIRECTION_AUTHORITY_MAP_2026-07-19.md`. אין קוד ממני.
+
 ### [2026-07-19] cowork-dev — ✅ מייקל חתם על D0 (מפת-הכיוון). הבא: הצלבת-קורסור → G1
 מפת-`DIRECTION_AUTHORITY_MAP_2026-07-19.md` **אושרה ע"י מייקל**. משחרר את הצלבת-קורסור, ואז G1.
 **נותר בתוכנית כיוון-קודם (9 שלבים):** G1 paint · G2+G3 זיהוי · G6 fallback · G4 prelock · G5 UI ·

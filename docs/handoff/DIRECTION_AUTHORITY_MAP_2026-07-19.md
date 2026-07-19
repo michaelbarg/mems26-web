@@ -55,5 +55,8 @@
 
 ## חתימות
 - [x] **מייקל — ✅ אושר 07-19** (אחרי חידוד: POC רק-רוטציה · Normal-CONT חריג-ל-PATTERN_AWARE).
-- [ ] **cursor-agent** — הצלבה מול `DALTON_DOCTRINE.md` + `daytype_position_gate.py` (file:line), אישור/תיקון.
+- [x] **cursor-agent — ✅ הצלבה 07-19** (מול `DALTON_DOCTRINE.md` + `daytype_position_gate.py`).
+  חידודים פותרים את 🔴 הקודמים: חוק-על 1–2 (POC/#372 רק-רוטציה, לא Trend — מתאים ל-`:296-344`) ·
+  חוק-על 3 (Normal CONT חריג ל-PATTERN_AWARE `:108-109`). מקור-mig מומלץ: `v9_tpo_history` (`tpo_routes.py:99`).
+  🟡 ל-D1: Variation תחת חוק-על-2 (#372 מעל-POC) מול CONT-עם-הרחבה (`:280-284`) — ליישב ביישום (איכות מול חסימה).
 - [ ] **cowork** — אחרי 2 החתימות: זה נעשה הבסיס ל-D1; אין קוד לפני.
