@@ -157,3 +157,61 @@ def test_production_hook_not_yet():
             zone="near_vah", poc_side="above_poc", poc_mig="UP",
         )
         assert ok is False
+
+
+# ── T11: pin existing daytype_position_gate (POC-level) + xfail migration ────
+
+def test_t11_position_gate_blocks_cont_long_above_poc_when_on(monkeypatch):
+    """Existing gate already enforces #372-class POC side when DAYTYPE_POSITION_GATE=1."""
+    monkeypatch.setenv("DAYTYPE_POSITION_GATE", "1")
+    monkeypatch.setenv("DAYTYPE_PATTERN_AWARE_V1", "0")  # isolate POC path
+    from backend.v9.systems.daytype_position_gate import decide
+    ok, reason = decide(
+        pattern="ZLR",
+        direction="LONG",
+        day_type="Normal",
+        entry_price=7610.0,
+        tpo_ctx={"poc": 7600.0, "vah": 7620.0, "val": 7580.0},
+    )
+    assert ok is False, reason
+    assert "POC" in reason or "above" in reason.lower()
+
+
+def test_t11_position_gate_allows_cont_long_below_poc_when_on(monkeypatch):
+    monkeypatch.setenv("DAYTYPE_POSITION_GATE", "1")
+    monkeypatch.setenv("DAYTYPE_PATTERN_AWARE_V1", "0")
+    from backend.v9.systems.daytype_position_gate import decide
+    ok, reason = decide(
+        pattern="ZLR",
+        direction="LONG",
+        day_type="Normal",
+        entry_price=7590.0,
+        tpo_ctx={"poc": 7600.0, "vah": 7620.0, "val": 7580.0},
+    )
+    assert ok is True, reason
+
+
+def test_t11_trend_poc_not_a_gate_allows_long_above_poc(monkeypatch):
+    """D0: Trend → POC not a direction gate; WITH IB break only."""
+    monkeypatch.setenv("DAYTYPE_POSITION_GATE", "1")
+    monkeypatch.setenv("DAYTYPE_PATTERN_AWARE_V1", "0")
+    from backend.v9.systems.daytype_position_gate import decide
+    ok, reason = decide(
+        pattern="ZLR",
+        direction="LONG",
+        day_type="Trend_Normal",
+        entry_price=7610.0,
+        tpo_ctx={
+            "poc": 7600.0, "vah": 7620.0, "val": 7580.0,
+            "ib_high": 7595.0, "ib_low": 7580.0,
+            "session_high": 7615.0, "session_low": 7585.0,
+        },
+    )
+    assert ok is True, reason
+
+
+def test_t11_poc_migration_not_yet_in_gate():
+    src = open("backend/v9/systems/daytype_position_gate.py").read()
+    if "poc_mig" not in src and "poc_migration" not in src and "mig" not in src.lower():
+        pytest.xfail("D1 POC-migration input not yet wired into daytype_position_gate")
+    assert "poc_mig" in src or "poc_migration" in src

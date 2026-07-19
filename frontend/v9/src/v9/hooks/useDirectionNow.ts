@@ -9,6 +9,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface DirectionNow {
   dir: string;
+  dir_sustained?: string | null;  // CONT_TREND_FILTER sustained LSMA side (UP/DOWN/NEUTRAL)
   reason: string;
   n_bars: number;
   cvd_slope?: number;

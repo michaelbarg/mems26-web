@@ -172,11 +172,11 @@ export function KeyLevelsStrip() {
   const { data: kl, loading } = useKeyLevels(15_000);
   const t = kl.today;
   const p = kl.prev_day;
-  // Day-type from the NEW 7-type classifier (classify_replay) — the same source as the
-  // DayType pill/lens. The raw key_levels value lags (shows yesterday's EOD until today
-  // promotes), which is why the strip read "Trend Normal" while the pill read "Normal".
+  // Day-type: useLiveDayType overlays gate label from /day_type/live (override-aware).
+  // Falls back to key_levels.today.day_type only when live is unavailable.
   const live = useLiveDayType();
   const dtDisplay = live?.day_type ?? t.day_type;
+  const dtOverridden = !!(live?.overridden);
 
   const ibTodayEmpty =
     t.ib_status === 'pre_open' ? 'pre-open'
@@ -294,10 +294,10 @@ export function KeyLevelsStrip() {
                 fontWeight: 600,
                 padding: '1px 5px',
                 borderRadius: 2,
-                background: 'rgba(167,139,250,0.1)',
-                color: '#a78bfa',
-              }}>
-                {dtDisplay.replace(/_/g, ' ')}
+                background: dtOverridden ? 'rgba(210,153,34,0.15)' : 'rgba(167,139,250,0.1)',
+                color: dtOverridden ? '#d29922' : '#a78bfa',
+              }} title={dtOverridden ? 'gate override ≠ classify_replay' : 'get_live_day_type (override-aware)'}>
+                {dtDisplay.replace(/_/g, ' ')}{dtOverridden ? ' ·gate' : ''}
               </span>
             )}
           </div>

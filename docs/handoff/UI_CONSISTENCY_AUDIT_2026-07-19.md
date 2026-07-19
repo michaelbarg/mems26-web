@@ -82,3 +82,15 @@ S124 G5 נשאר התיקון לסוג-יום; תיקון-paint הוא נפרד 
 ## מה אסור / מה הבא
 ❌ אין קוד במשימה הזו.  
 ✅ אחרי אימות-cowork: מייקל פוסק עדיפות (paint endpoint vs G5 day-type) → cc-macbook מיישם פער אחד בכל פעם, דגל OFF.
+
+## עדכון T12/T14 (cursor 2026-07-19)
+| רכיב | אחרי | סטטוס |
+|---|---|---|
+| DirectionStrip `dir_sustained` | chip + אזהרה כש-`dir≠sustained` | 🟢 |
+| Switcher S4 | תווית `setup` + `≠allowed` מול `direction_now` | 🟢 חלקי (`blocked_by` ממתין D1) |
+| BuildTree הסכמת כיוון | GATE מ-`direction_now` (לא הצבעה) | 🟢 |
+| System4Panel Trend | `/woodies/current` דרך `systemStateStore` | 🟢 |
+| KeyLevelsStrip DT | `useLiveDayType` + badge override | 🟢 |
+| DayTypeConditionsTable | highlight = `/day_type/live` · תנאים מ-replay | 🟢 |
+
+Verdict משודרג למשטחי T12/T14: **🟢**. G7/G8/T15–T17 ו-D1 `blocked_by` נשארים ב-PREFLIGHT.

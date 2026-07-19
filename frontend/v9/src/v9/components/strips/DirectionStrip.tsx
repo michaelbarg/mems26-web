@@ -2,6 +2,7 @@
 // DirectionStrip — the LONG/SHORT trade signal from the LSMA+CVD engine (DIRECTION_LSMA_VETO),
 // shown below the chart with the breakdown of WHAT each input shows (price vs LSMA line, CVD slope).
 // DISPLAY ONLY — mirrors the live gate's direction (direction_now); does not itself fire/trade.
+// T12 (2026-07-19): also surfaces dir_sustained (CONT_TREND_FILTER) when it disagrees with dir.
 import { useDirectionNow } from '../../hooks/useDirectionNow';
 
 const DIR: Record<string, { label: string; bg: string; fg: string }> = {
@@ -29,6 +30,8 @@ export function DirectionStrip() {
   const d = useDirectionNow();
   const dir = (d?.dir as string) || 'NEUTRAL';
   const m = DIR[dir] || DIR.NEUTRAL;
+  const sustained = (d?.dir_sustained as string | undefined) || null;
+  const sustMismatch = !!(sustained && sustained !== dir && sustained !== 'NEUTRAL');
 
   // LSMA: which side of the line price is on (the trend the LSMA defines)
   const side = d?.lsma_side;
@@ -44,6 +47,9 @@ export function DirectionStrip() {
         : cs < 0 ? { v: '▼ יורד', c: '#ef5350' }
           : { v: '— שטוח', c: '#9aa0aa' };
 
+  const sustLabel =
+    sustained === 'UP' ? 'LONG' : sustained === 'DOWN' ? 'SHORT' : sustained || '—';
+
   return (
     <div
       dir="rtl"
@@ -52,12 +58,19 @@ export function DirectionStrip() {
         background: m.bg, borderTop: '1px solid rgba(255,255,255,0.06)',
         fontSize: 12, minHeight: 30,
       }}
-      title="סימן LONG/SHORT ממנוע LSMA+CVD (LSMA מוביל, CVD מעַטֵּו) · תצוגה בלבד, משקף את כיוון-הגייט"
+      title="סימן LONG/SHORT ממנוע LSMA+CVD (LSMA מוביל, CVD מעַטֵּו) · תצוגה בלבד, משקף את כיוון-הגייט · sustained = CONT_TREND_FILTER"
     >
       <span style={{ width: 9, height: 9, borderRadius: '50%', background: m.fg, flex: '0 0 auto' }} />
       <b style={{ fontSize: 14, color: m.fg, letterSpacing: '0.04em' }}>{m.label}</b>
       <Chip label="LSMA" value={lsma.v} color={lsma.c} />
       <Chip label="CVD" value={cvd.v} color={cvd.c} />
+      {sustained && (
+        <Chip
+          label="sustained"
+          value={sustMismatch ? `${sustLabel} ≠ ${m.label}` : sustLabel}
+          color={sustMismatch ? '#d29922' : '#8b949e'}
+        />
+      )}
       <span style={{ color: '#8b949e', fontSize: 11 }}>{d?.reason || '—'}</span>
       {d && d.poc != null && (
         <span style={{ color: '#6e7681', marginInlineStart: 'auto', fontSize: 11 }}>

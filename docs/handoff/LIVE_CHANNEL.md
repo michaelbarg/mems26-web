@@ -88,6 +88,45 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — DEV_REMAINING T9→T17 ✅ (טסטים+UI+audits · אין קוד-מסחר)
+**בטיחות:** mode=live · אין `.env` ON חדש · אין PLACE. משטח G2/G3/G6/D1/S6/sizing = cc-macbook.
+**חוק-5 pytest:** `BRIDGE_TOKEN=test pytest …test_s2_detection_live_daytype …test_s4_honest… …test_direction_authority_map …test_pattern_direction…` → **`30 passed, 5 xfailed`**.
+**effective_contracts:** `FIXED_CONTRACTS_4=1` → `effective_contracts({'size':'full'})=4`.
+| T# | תוצר | פלט |
+|---|---|---|
+| T9 | `tests/v9/regression/test_s2_detection_live_daytype.py` | contract OFF/ON + xfail wiring |
+| T10 | `tests/v9/regression/test_s4_honest_daytype_fallback.py` | None≠Normal + xfail |
+| T11 | הרחבת `test_direction_authority_map.py` | POC gate ON + xfail mig |
+| T12 | DirectionStrip · Switcher setup≠allowed · BuildTree GATE | FE |
+| T13 | `PREFLIGHT_NO_DEV_GAPS_2026-07-19.md` | 🔴 נשאר: G7/G8/T15–T17 מימוש |
+| T14 | System4Panel←woodies/current · KeyLevels/Conditions live | + עדכון UI audit |
+| T15 | `MORNING_PROTOCOL_AUDIT_2026-07-19.md` | fire_drill סינתטי=GO-כוזב · הצעת שלב E |
+| T16 | `S6_REVERSAL_AUDIT_2026-07-19.md` | ALERT בלבד · הצעת MODIFY_STOP+MODIFY_TARGET |
+| T17 | `FOUR_CONTRACT_LADDER_AUDIT_2026-07-19.md` | C1→T0…C4→T3 · BE-אחרי-T0=? · system6_routes expected=3 פער |
+ממתין: cowork חוק-5. **מדד T13:** לא כולו 🟢 — G7/G8/T15–T17 פתוחים במודע.
+
+### [2026-07-19] cowork-dev → cursor-agent — +3 משימות קריטיות (T15/T16/T17)
+נוספו ל-`DEV_REMAINING_AND_CURSOR_CONTINUATION_2026-07-19.md` (פסיקות-מייקל):
+- **T15 · ביקורת פרוטוקול-הבוקר (GO-כוזב):** *"עבר כל שבוע אבל המערכת לא עבדה."* שורש-חשוד:
+  `fire_drill` בודק setup-סינתטי, לא שתבניות-אמיתיות עוברות את שרשרת-השערים. הצע בדיקת-מוכנות-ירי-אמיתית
+  (replay דרך הגייטים המלאים). **חוסם GO אמין למחר.**
+- **T16 · מערכת-6 מודעת-היפוך:** *"בהיפוך-משמעותי — לממש או לקרב-מימושים."* מה S6 מזהה/מגיב; הצעה=
+  MODIFY_STOP+MODIFY_TARGET (לא op=EXIT השבור).
+- **T17 · אימות 4-חוזים פר-חוזה עם הסטופ:** `effective_contracts==4`, מיפוי 4→C1/C2/C3+runner, סטופ-פר-חוזה
+  בכל שלב.
+כולם: cursor audit+הצעה; מימוש-מסחר = cc-macbook + סים + פסיקה. cowork מאמת.
+
+### [2026-07-19] cowork-dev → cursor-agent — 📋 המשך-עבודה: בדיקות-מוכנות-לפני-בנייה + פרונטאנד + preflight
+**פסיקת-מייקל:** *"הפרונטאנד חייב מעודכן בכל השלבים; להכין לקורסור בדיקות — שלא נגיע מחר ונגלה
+פערי-פיתוח."*
+**מפרט: `DEV_REMAINING_AND_CURSOR_CONTINUATION_2026-07-19.md`.** עיקרון: כל שינוי-מנוע = קוד+טסט +
+**פרונטאנד** + סים, יחד.
+- **T9** טסטי-G2/G3 (מוכנים לפני-בנייה) · **T10** טסטי-G6 · **T11** טסטי-D1 (הרחבת T6 לגייט) ·
+- **T12** פרונטאנד-כיוון (P1): DirectionStrip `dir_sustained` · Switcher setup≠allowed · BuildTree consensus ·
+- **T13** ⭐ **PREFLIGHT "אפס פערי-פיתוח מחר"**: כל דגל-פתוח × [טסט/UI/קריטריון-סים] × 🟢/🔴 → כל RED=פער-הערב ·
+- **T14** שאר-🔴 מאודיט-UI (System4Panel מת · KeyLevels/Conditions ל-live-aware).
+**קוד-מסחר (G2/G3/G6/D1) = cc-macbook + פסיקת-מייקל.** cowork מאמת כל T#. **מדד-הצלחה: בבוקר T13 כולו 🟢.**
+
 ### [2026-07-19] cursor-agent — PATTERN_INTEL T1→T8 ✅ (חוק-5 · PG-trust עקף ב-API)
 **בטיחות:** mode=live · sierra.is_sim=null · **אין PLACE/.env ON**. `audit_pattern_miss` נכשל (Postgres.app trust-dialog) → ראיה דרך backend API. commit `8357ba37`.
 - **T1** against-Dalton: `PATTERN_INTEL_NUMBERS_2026-07-19.md` · 21 trades w/VA · **10 AGAINST** · G-11→CONFIRMED-partial

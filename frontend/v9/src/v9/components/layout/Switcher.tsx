@@ -31,6 +31,7 @@ import { KillzonePill } from '../systems/KillzonePill';
 import { SYSTEM_META } from '../../design/system_colors';
 import { COLORS } from '../../design/tokens';
 import { useSystemStateStore } from '../../store/systemStateStore';
+import { useDirectionNow } from '../../hooks/useDirectionNow';
 import { dayTypeColor } from '../../lib/dayType';
 import { fetchRecentTrades } from '../../lib/api';
 import { fmtTimeET } from '../../lib/tradeTime';
@@ -203,6 +204,13 @@ export function Switcher({
     : null;
   const s4fire = fireInfo(4);
   const s4state = s4?.state ?? null;
+  // T12: setup direction (pattern) ≠ gate-allowed (direction_now). D1 will add blocked_by.
+  const dirNow = useDirectionNow();
+  const gateDir =
+    dirNow?.dir === 'UP' ? 'LONG' : dirNow?.dir === 'DOWN' ? 'SHORT' : dirNow?.dir || null;
+  const setupDir = (s4active?.direction || '').toUpperCase() || null;
+  const setupVsGate =
+    setupDir && gateDir && setupDir !== 'NEUTRAL' && gateDir !== 'NEUTRAL' && setupDir !== gateDir;
 
   // ── S1 Day-Type — same canonical classify_replay value as the TopBar badge
   //    (systemStateStore.overrideS1; systems-snapshot sys-1 is skipped) ──
@@ -270,13 +278,16 @@ export function Switcher({
           >
             {s4active ? (
               <span dir="ltr" style={{ fontSize: 8, fontFamily: 'ui-monospace', fontWeight: 700, color: SYSTEM_META[4].color }}
-                title={`תבנית פעילה: ${s4active.pattern_id ?? '?'} ${s4active.direction ?? ''}${s4active.confidence != null ? ` · ביטחון ${(s4active.confidence * 100).toFixed(0)}%` : ''}`}>
-                {(s4active.pattern_id ?? '?').slice(0, 10)}
-                {s4active.direction === 'LONG' ? ' ▲' : s4active.direction === 'SHORT' ? ' ▼' : ''}
+                title={`setup=${setupDir ?? '?'} · allowed(gate)=${gateDir ?? '—'} · תבנית: ${s4active.pattern_id ?? '?'}${s4active.confidence != null ? ` · ${(s4active.confidence * 100).toFixed(0)}%` : ''}${setupVsGate ? ' · setup≠allowed' : ''}`}>
+                {(s4active.pattern_id ?? '?').slice(0, 8)}
+                <span style={{ opacity: 0.75 }}> setup{setupDir === 'LONG' ? '▲' : setupDir === 'SHORT' ? '▼' : ''}</span>
+                {setupVsGate && (
+                  <span style={{ color: '#d29922', marginInlineStart: 3 }}>≠{gateDir === 'LONG' ? '▲' : '▼'}</span>
+                )}
               </span>
             ) : (
               <span dir="ltr" style={{ fontSize: 8, fontFamily: 'ui-monospace', color: COLORS.textTertiary }}
-                title="אין תבנית פעילה — הסיגנל האחרון">
+                title={`אין תבנית פעילה · gate=${gateDir ?? '—'}`}>
                 {s4state ? s4state.slice(0, 10) : '—'}
               </span>
             )}

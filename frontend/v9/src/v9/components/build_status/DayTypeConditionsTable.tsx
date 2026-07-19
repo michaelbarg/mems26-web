@@ -55,19 +55,26 @@ function Chip({ c }: { c: Cond }) {
 export function DayTypeConditionsTable() {
   const [date] = useState<string>(todayISO());
   const [sig, setSig] = useState<Sig | null>(null);
-  const [active, setActive] = useState<{ day_type: string; status: string } | null>(null);
+  const [active, setActive] = useState<{ day_type: string; status: string; gate?: string | null; replay?: string | null } | null>(null);
   const [opening, setOpening] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('loading…');
 
   const load = useCallback(() => {
-    fetch(`${API}/api/v9/day_type/classify_replay?date=${date}`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status))))
-      .then((d) => {
+    // T14 / G-16: conditions from classify_replay, ACTIVE highlight = gate live label.
+    Promise.all([
+      fetch(`${API}/api/v9/day_type/classify_replay?date=${date}`)
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))),
+      fetch(`${API}/api/v9/day_type/live`).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    ])
+      .then(([d, live]) => {
         const m = d.measured || {}; const bar = d.second_distribution?.bar || {}; const f = d.final || {};
         setSig({ sides: m.sides, rib: m.rib, close_pos: m.close_pos, one_tf: m.one_tf, vol_ratio: m.vol_ratio, narrow_ib: bar.narrow_ib, neck: bar.neck, invalidated: f.invalidated });
-        setActive(f.day_type ? { day_type: f.day_type, status: f.status } : null);
+        const gate = live?.day_type ? String(live.day_type) : null;
+        const shown = gate ?? f.day_type ?? null;
+        setActive(shown ? { day_type: shown, status: f.status, gate, replay: f.day_type } : null);
         setOpening(d.opening_type || null);
-        setStatus(d.n_bars ? `${d.n_bars} bars · ${date}` : 'no bars yet');
+        const ov = gate && f.day_type && gate !== f.day_type ? ` · gate≠replay(${f.day_type})` : '';
+        setStatus(d.n_bars ? `${d.n_bars} bars · ${date}${ov}` : 'no bars yet');
       })
       .catch((e) => setStatus((e as Error).message.includes('HTTP') ? 'offline — restart backend' : 'offline'));
   }, [date]);
@@ -80,7 +87,14 @@ export function DayTypeConditionsTable() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
         <strong style={{ color: '#e6edf3' }}>סוג היום — תנאים חיים</strong>
         <span style={{ color: '#6e7681', fontSize: 10 }}>{status}</span>
-        {active && <span style={{ marginRight: 'auto', color: DT_COLOR[active.day_type] || '#8b949e', fontWeight: 700 }}>→ {active.day_type} <span style={{ fontSize: 10, color: '#6e7681' }}>[{active.status}]</span></span>}
+        {active && (
+          <span style={{ marginRight: 'auto', color: DT_COLOR[active.day_type] || '#8b949e', fontWeight: 700 }}>
+            → {active.day_type} <span style={{ fontSize: 10, color: '#6e7681' }}>[{active.status}]</span>
+            {active.gate && active.replay && active.gate !== active.replay && (
+              <span style={{ fontSize: 10, color: '#d29922' }} title="display=gate · conditions from classify_replay"> · gate</span>
+            )}
+          </span>
+        )}
         <button onClick={load} style={{ background: '#21262d', color: '#c9d1d9', border: '1px solid #30363d', borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>↻</button>
       </div>
       {/* live signals strip */}

@@ -27,6 +27,7 @@
 import { useMemo, useState, type ReactNode, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { useBuildStatus } from '../../hooks/useBuildStatus';
+import { useDirectionNow } from '../../hooks/useDirectionNow';
 import type {
   BuildStatusResponse,
   SystemBlock,
@@ -628,31 +629,35 @@ function SLab({ children }: { children: ReactNode }) {
 /* ------------------------------------------------------------------ */
 
 function ContextBar({ data, activeDay }: { data: BuildStatusResponse; activeDay: string | null }) {
-  // Compute direction agreement from firing systems
+  // T12: gate authority = direction_now (not independent vote of system interpretations).
+  const dNow = useDirectionNow();
+  const gateLabel =
+    dNow?.dir === 'UP' ? 'LONG' : dNow?.dir === 'DOWN' ? 'SHORT' : dNow?.dir || null;
+  const sust = dNow?.dir_sustained || null;
+  const sustMismatch = !!(sust && gateLabel && sust !== dNow?.dir && sust !== 'NEUTRAL');
   const firingSystems = data.systems.filter((s) => sysMeta(s.id).role === 'firing');
-  let longCount = 0;
-  let shortCount = 0;
   let blockedCount = 0;
   for (const sys of firingSystems) {
-    const v = systemVerdict(sys);
-    if (v.kind === 'blocked') { blockedCount++; continue; }
-    // Check interpretations for direction
-    const dir = sys.interpretations?.find((it) => it.key === 'direction' || it.key === 'trend_state')?.value;
-    if (dir && (dir.toUpperCase().includes('LONG') || dir.toUpperCase() === 'BLUE' || dir.toUpperCase() === 'UP')) longCount++;
-    else if (dir && (dir.toUpperCase().includes('SHORT') || dir.toUpperCase() === 'RED' || dir.toUpperCase() === 'DOWN')) shortCount++;
+    if (systemVerdict(sys).kind === 'blocked') blockedCount++;
   }
 
   const kzWired = data.systems.some((s) => s.id === 'killzone');
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 22, flexWrap: 'wrap', padding: '12px 16px', borderRadius: T.r, background: T.s1, border: `1px solid ${T.line}`, fontFamily: MONO, fontSize: 12, marginBottom: 18 }}>
-      <span>
+      <span title={dNow?.reason || 'direction_now (LSMA+CVD gate)'}>
         <span style={{ color: T.tt }}>הסכמת כיוון:</span>{' '}
         <span style={{ color: T.tp, fontWeight: 600 }}>
-          {longCount > 0 && <span style={{ color: T.green }}>{longCount} LONG</span>}
-          {shortCount > 0 && <span style={{ color: T.red }}>{shortCount > 0 && longCount > 0 ? ' / ' : ''}{shortCount} SHORT</span>}
-          {blockedCount > 0 && <span style={{ color: T.tt }}>{(longCount > 0 || shortCount > 0) ? ' / ' : ''}{blockedCount} חסום</span>}
-          {longCount === 0 && shortCount === 0 && blockedCount === 0 && <span style={{ color: T.tt }}>—</span>}
+          {gateLabel === 'LONG' && <span style={{ color: T.green }}>GATE LONG</span>}
+          {gateLabel === 'SHORT' && <span style={{ color: T.red }}>GATE SHORT</span>}
+          {gateLabel === 'NEUTRAL' && <span style={{ color: T.tt }}>GATE NEUTRAL</span>}
+          {!gateLabel && <span style={{ color: T.tt }}>—</span>}
+          {sustMismatch && (
+            <span style={{ color: '#d29922' }}>
+              {' '}· sustained {sust === 'UP' ? 'LONG' : sust === 'DOWN' ? 'SHORT' : sust}≠
+            </span>
+          )}
+          {blockedCount > 0 && <span style={{ color: T.tt }}>{' / '}{blockedCount} חסום</span>}
         </span>
       </span>
       <span style={{ width: 1, height: 16, background: T.line2 }} />
