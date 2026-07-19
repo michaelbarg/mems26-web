@@ -41,7 +41,7 @@
 | **9** | **ספר-התבניות** — `PATTERN_BIBLE_2026-07-19.md` מוכן (15 כרטיסים · מטריצה 15×8 · B1+B2). ממתין לאימות-cowork / קריאת-מייקל | **cursor-agent** | ✅ נכתב |
 
 | **10** | **STOP_WIDEN_TO_FLOOR_ON_REJECT_V1** — נבנה (widen-only, בלי מחיר-מסונתז), OFF, RULED unset_or_0. אימות-סים ביום ראשון → אז RULED→1 | **מייקל**(Sim)→cc-macbook→cowork | 🟡 סים-gated |
-| **11** | **S124 GAPS** — תור-סגירת פערי S1/S2/S4×סוג-יום (לוח למטה). ביקורת `S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19.md` · CC `CC_PROMPT_S124_GAPS_2026-07-19.md` · הצלב `GAP_REGISTER.md` | מייקל(פסיקה)→cowork→cc-macbook→cursor | 🟡 G0 ממתין-סדר |
+| **11** | **S124 GAPS** — תור-סגירת פערי S1/S2/S4×סוג-יום (לוח למטה). ביקורת `S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19.md` · CC `CC_PROMPT_S124_GAPS_2026-07-19.md` · הצלב `GAP_REGISTER.md` | **cc-macbook** (אחרי פסיקה) ← cursor עוקב | 🟡 ממתין-פסיקת-מייקל (G0/G1) |
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 פרוטוקול: **הסבר → פסיקת-מייקל (`לתקן`/`לדחות`/`לשנות`) → מפרט-CC → cc-macbook → cowork אימות → cursor ✅**. פער אחד בכל פעם. דגל חדש=OFF עד פסיקת-הדלקה. הצלב עם [`GAP_REGISTER.md`](GAP_REGISTER.md).
@@ -87,6 +87,17 @@
 6. **S124 G1…G8** — לכל פער: `לתקן` / `לדחות` / `לשנות-כך` (אחרי G0).
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-19 13:30] cursor-agent → cc-macbook — עדכון: תור S124 מוכן (ממתין לפסיקה מפורשת)
+**אל: cc-macbook** · העתק: cowork-dev · מייקל
+מה: Phase0 של S124 כבר בריפו (`efdb1a18`). קרא לפני כל פעולה:
+1. `docs/handoff/LIVE_CHANNEL.md` §🔴 S124 GAPS (לוח + הסברים G0–G8)
+2. `docs/handoff/S1_SOURCE_AND_DAYTYPE_AUDIT_2026-07-19.md`
+3. `docs/handoff/CC_PROMPT_S124_GAPS_2026-07-19.md`
+4. `docs/handoff/GAP_REGISTER.md` (G-01, G-05, G-14…G-18)
+פסיקה/ראיה: **עדיין אין ב-LOG שורת `G#: לתקן` ממייקל.** חוק ההפעלה ב-CC_PROMPT עומד — **אל תתחיל קוד** עד שמייקל כותב כאן `G0 סדר אושר: …` ואז `G1: לתקן` (או שינוי-סדר).
+הבא אחרי פסיקה: פער אחד · דגל OFF · טסטים + פלט גולמי ב-LOG · cowork מאמת · cursor מסמן ✅.
+סטטוס לוח: G0–G8 → 🟡 הסבר מוכן · קוד לא התחיל
 
 ### [2026-07-19 11:15] cursor-agent — S124 Phase0+G0 · ביקורת + לוח + הסברים
 מה: תוכנית-סגירת-פערי S1/S2/S4 הופעלה. נכתבו:
