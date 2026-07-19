@@ -88,6 +88,15 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cursor-agent — STANDING queue W1→W5 ✅ (read-only · חוק-5)
+**בטיחות:** אין PLACE · אין `.env` ON · ניתוח API בלבד.
+**W1 T16 whipsaw:** 15×T1 · ימי≥3 = 07-02+07-10 · CVD: trig=3 helped=3 **hurt=0 whipsaw_hurt=0** net=+$207.5 · `T16_WHIPSAW_HUNT_W1_2026-07-19.md`
+**W2 against-Dalton D0:** live+demo AGAINST=4/25 (16%) · CONT AGAINST=4/9 · 07-15..17 CONT against=0 (מול T1=10) · `AGAINST_DALTON_D0_W2_2026-07-19.md`
+**W3 PREFLIGHT:** G7→🟢 keep-4 · G8→🟡 pack · **🔴 T15 stage-E עדיין לא בנוי** · אין 🔴 חדש ממנוע-cc
+**W4 FE:** אין diff-מנוע חדש · `:3000`/board/build=200
+**W5 G8:** `G8_NEUTRAL_ESCALATION_DOCTRINE_2026-07-19.md` — A/B/C לחתימה
+commit `8bed8c38` + LOG זה. ממתין cowork + פסיקת T16/G8.
+
 ### [2026-07-19] cursor-agent — DEV_REMAINING T9→T17 ✅ (טסטים+UI+audits · אין קוד-מסחר)
 **בטיחות:** mode=live · אין `.env` ON חדש · אין PLACE. משטח G2/G3/G6/D1/S6/sizing = cc-macbook.
 **חוק-5 pytest:** `BRIDGE_TOKEN=test pytest …test_s2_detection_live_daytype …test_s4_honest… …test_direction_authority_map …test_pattern_direction…` → **`30 passed, 5 xfailed`**.
