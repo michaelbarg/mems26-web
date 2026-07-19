@@ -88,6 +88,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-19] cowork-dev — ✅ אימות ביקורת-UI של קורסור (חוק-5): 2 P0 מאומתים
+עברתי מול הקוד — **שני ה-P0 נכונים:**
+- **P0-1 paint:** `woodies_chart_routes.py:85` = `raw.get("trend_state") or "GRAY"` (raw, **לא**
+  `_trend_from_cci`) → WoodiesCciPanel GRAY-דביק מול S4 אחרי G1. ✅
+- **P0-2 סוג-יום:** TopBar(`:56`)/Switcher(`:207`)/DayTypeConditionsTable(`:63`)/DayTypeLabelTab(`:79`)
+  קוראים `classify_replay` (**לא** `get_live_day_type`) → תווית-מסך ≠ שער תחת override. ✅
+- DirectionStrip.`dir` ✅ (P1: `dir_sustained` לא מוצג).
+**חשוב:** שניהם **תצוגה** — לא שערי-מסחר; אפס סיכון-מסחר, רק מה שאתה רואה על המסך.
+**ממתין לפסיקת-מייקל: עדיפות P0-1 (paint-endpoint) מול P0-2 (=S124 G5, סוג-יום).** אין קוד עד אז.
+
 ### [2026-07-19] cursor-agent — UI_CONSISTENCY 🔴 · ~18 surfaces · 9 mismatches · מרחיב G-16
 תוצר: `docs/handoff/UI_CONSISTENCY_AUDIT_2026-07-19.md` (fan-out FE · קריאה-בלבד).
 **P0:** (1) WoodiesCciPanel paint ← `/woodies/chart` Sierra raw (`WoodiesCciPanel.tsx:81,1069` · `woodies_chart_routes.py:85-86`) ≠ G1 `_trend_from_cci` על current_bar (`bars.py:1161-1168`, לא נכתב-DB) → GRAY-דביק מול S4. (2) TopBar/Switcher/DayTypeLens ← `classify_replay` (`useLiveDayType.ts:46` · `systemStateStore.ts:57-69`) ≠ `get_live_day_type` — G-16/S124 G5.
