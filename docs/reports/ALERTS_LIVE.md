@@ -343,3 +343,36 @@ feed יחיד (PID 33553) · live_price age<500ms · sierra_state mtime טרי �
 **נקי:** feed יחיד (PID 33553) · live_price age=391ms (7533) · sierra_state mtime=0ש' · flag_guard **PASS 96/96** · health ok · woodies+bars_5min עדכניים (19:10) · אין CRITICAL חדש בלוג מאז 17:45 · החלטות 13 cand / 0 fire — רוב `rr_entry_gate` (×11) על לונג-מורחב + `location_gate`(×5)/`daytype_playbook`(×2)/`cont_trend_filter`(×2)/`s4_risk_cap`(×1, GHOST risk=32.2pt>18) = גיטור-מגן, לא-אנומליה.
 
 — session-watch (cowork-dev / MacBarg, קרא-בלבד, 19:19 IDT)
+
+
+---
+
+## 🔴 דרוש מייקל: LIVE naked-orphan SHORT נמשך (המשך ל-19:19) — 2026-07-20 19:45 IDT (12:44 ET)
+
+עדיין פתוח מהריצה הקודמת. `sierra_state.json` (טרי 1ש', ts=1784565894): `is_sim=0` armed · **`position_qty=-5` SHORT @ avg 7530.50** · `working_orders=1` → **#9244** (BUY-STOP, 5c). backend `/api/v9/trades/active`=**null** · reconciler DIVERGENCE **פעיל עכשיו** (TM=0/[] vs Sierra -5) · `phantom-heal 0/3` חסום `is_sim=0`. **מופע 6+ היום.**
+
+**מה השתנה מ-19:19 (לטובה):** המחיר צלל 7533→**7517.5** → השורט **+13נק' ברווח (~$325 לא-ממומש)**. הסטופ **#9244 נגרר 7535.75→7530.00** (≈BE, 0.5נק' מעל avg) → הסיכון-המיידי כעת ≈$0 (ננעל ~+$62.5 אם ייעצר). הפוזיציה מוגנת-היטב ברגע-זה, אך עדיין **לא-מנוהלת/לא-מנוטרת** ע"י המערכת (orphan) — אם המחזור מתהפך, פקודות-לייב-עיוורות חוזרות.
+
+**מקור-הגרירה לא-מאומת:** ה-backend לא-מנהל (active=null) ו-reconciler ביקש stop אחר (7540.5) — הגרירה ל-7530.00 היא Sierra-side/ידנית לא-מזוהה (Check-3 "Auto-trade order modification"). נטו: מקטין-סיכון, benign.
+
+**פעולה מבוקשת:** כמו 19:19 — אמת חזותית בסיירה → **FLATTEN ידני** (op=EXIT-חלקי שבור) או שקול **ביטול-חימוש** עד סגירת שורש-מחזור-האורפן. הפעם אין דחיפות-הפסד (מוגן ב-BE), אך records≠reality על חשבון-לייב חייב יישוב ידני.
+
+**נקי:** flag_guard **PASS 96/96** (אומת ריצה-זו) · live_price age=875ms (7517.5) · sierra_state mtime=1ש' · feeder יחיד (PID 33553) · אין CRITICAL חדש מאז 17:45 · החלטות: 1 cand / 0 fire (לא-אנומליה).
+**משני (נמשך — לצ'אט-הראשי):** יומני-סיירה תקועים — `events` 17:24Z, `fills` 17:45 (~2h/1h57m) → בדיקת-סגירה-פיקטיבית **עיוורת אחרי 17:45** (סגירה עתידית של האורפן לא-תירשם ביומן). Backend restart-gap ~17:55→18:33 IDT (uvicorn PID 22628, up ~1h). halt_cap לבדיקת-הצ'אט-הראשי.
+
+— session-watch (cowork-dev / MacBarg, קרא-בלבד, 19:45 IDT)
+
+---
+
+### 🔴 20:16 IDT (session-watch, cowork-dev/MacBook, קרא-בלבד) — naked-orphan SHORT נמשך
+
+**דרוש מייקל.** המשך ישיר מ-19:45. `sierra_state.json` (טרי, mtime 20:15:06, ts=1784567706): `is_sim=0` armed · **`position_qty=-5` @ avg 7530.50** · `working_orders=1` → **#9244** BUY-STOP @7530.00 (5c, ≈BE). backend `/api/v9/trades/active`=**null**; reconciler `SYS-3 DIVERGENCE` פעיל כל 30ש (TM=0/[] vs Sierra -5); `phantom-heal 0/3` חסום `is_sim=0` → מתריע-לא-מרפא. **מופע 7+ היום** (פתוח מ~17:45IDT/10:45ET; ~2,130 שורות-דיברגנס על 22 מצבים-מחזוריים).
+
+**מה השתנה מ-19:45:** יציב — **אין מחזור-חדש 30דק** (פוזיציה+סטופ זהים). מחיר ירד 7517.5→**7509.75** → שורט **~+21נק (~$520 לא-ממומש)**; stop@7530.00≈BE → סיכון-מיידי≈$0. מוגן-היטב ברגע-זה, עדיין orphan לא-מנוהל ע"י המערכת.
+
+**פעולה מבוקשת (כמו 19:45):** אמת חזותית בסיירה → **FLATTEN ידני** (op=EXIT-חלקי שבור) או **ביטול-חימוש** עד יישוב שורש-מחזור-האורפן. records≠reality על חשבון-לייב חייב יישוב ידני; auto-heal לא-יפעל (is_sim=0, פסיקת 07-19).
+
+**נקי:** flag_guard **PASS 100/100** · live_price age~0.6ש (7509.75) · sierra_state mtime 1ש · feeder יחיד (PID 33553) · day_type=Normal (conf0.42, כבר-לא-null) · Check-1 לא-אנומליה (127 cand / 4 fire / 35דק).
+**משני (נמשך — לצ'אט-הראשי):** fills תקוע 17:45 → בדיקת-סגירה-פיקטיבית עיוורת אחרי 17:45 · halt_cap endpoint 404 לא-אומת (מזכר: 800≠400) · TS-HOUR-FIX פעיל (bars ~62min stale, +3600 band-aid).
+
+— session-watch (cowork-dev/MacBook, 20:16 IDT)
