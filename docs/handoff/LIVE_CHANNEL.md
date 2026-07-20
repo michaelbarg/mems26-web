@@ -56,7 +56,7 @@
 | **G5** | UI=`classify_replay` ≠ gates/`get_live_day_type` | cc-macbook | כן | 🟡 הסבר מוכן | `TopBar.tsx` · DayTypeLens · **GAP G-16** |
 | **G6** | S4/FiveMin fallback → `v9_day_type_state` / `"Normal"` | cc-macbook | כן | 🟡 הסבר מוכן | `woodies_system.py:672-688` · **GAP G-17** |
 | **G7** | FIXED_4 בולע playbook REDUCED | cc-macbook | **חובה מפורשת** | 🟡 הסבר מוכן | `sizing.py:122-124` · **GAP G-03** |
-| **G8** | Neutral/escalation דוקטרינה דלתון | מייקל+cowork | כן — דוקטרינה | 🟡 הסבר מוכן | classifier vs shadow · **GAP G-18** |
+| **G8** | Neutral/escalation דוקטרינה דלתון | מייקל+cowork | כן — דוקטרינה | ✅ **A נפסק 07-20** | classifier vs shadow · **GAP G-18** |
 
 ### הסברי-פערים למייקל (קרא לפני פסיקה)
 
@@ -84,9 +84,15 @@
 3. ~~**StopResolver**~~ — ✅ **נפסק 07-19:** ההנחה קרסה (לא חוסם ירי). נבחר לֶבֶר יחיד: הרחבה-לרצפה-במקרה-דחייה. נבנה OFF, **סים-gated ליום ראשון**.
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 5. **S124 G0** — אשר/שנה סדר G1→G8 (הסברים בלוח למעלה).
-6. **S124 G1…G8** — לכל פער: `לתקן` / `לדחות` / `לשנות-כך` (אחרי G0).
+6. **הדלקת דגלים בנויים-OFF** — G2/G3 · G6 · T16 (ואולי G4) בסים לפני לייב.
+7. ~~**G8 Neutral/escalation**~~ — ✅ **נפסק 07-20: A (Acceptance דו-כיווני)** + Neutral REV/CONT=SKIP.
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-20] cursor-agent — פסיקת-מייקל G8=A ✅
+מייקל: **A — Acceptance דו-כיווני** (upgrade+downgrade אחרי IB-lock; shadow לא מנוע).
+Neutral-rules (REV בקצוות · CONT=SKIP) מאושרים כברירת-מחדל עם A.
+`G8_NEUTRAL_ESCALATION_DOCTRINE` + GAP G-18 + לוח S124 G8 עודכנו. קוד-מנוע (אם נדרש מעבר לחי) = cc דגל-OFF+סים.
 
 ### [2026-07-20] cursor-agent — W7 FE deletions ✅ (Michael approved) + W1/W8 status
 **מחיקות (פסיקה):** Sounds · DashboardLayout+SystemPanelsBar+System1..6 · tabs מתים
