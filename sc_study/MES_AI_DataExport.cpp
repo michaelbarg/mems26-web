@@ -1377,15 +1377,18 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             result_status = "ACK_MGMT";
                     }
                     // ── OP: PLACE_STOP — standalone protective stop for orphan position ──
-                    // Michael ruling 2026-07-17: naked orphan (Sierra holds, TM doesn't track,
-                    // working_orders=0) must get a protective stop. Uses Exit-family
-                    // (reduce-only, NEVER opens a position):
-                    //   LONG position → SellExit (stop below)
-                    //   SHORT position → BuyExit (stop above)
-                    // OrderType = SCT_ORDERTYPE_STOP (not MARKET — this is a resting stop).
-                    // ⚠️ EXIT returned -1 historically because OCO-attached contracts had no
-                    //    free contract. Orphan = working_orders==0, no OCO → should succeed.
-                    //    If it returns -1 anyway: PLACE_STOP_FAIL, do NOT force.
+                    // Michael ruling 2026-07-17 + 07-20: naked orphan must get a protective
+                    // stop. Uses sc.SubmitOrder (standalone) — NOT Exit-family (SellExit/
+                    // BuyExit returned -1 with SCT_ORDERTYPE_STOP, sim-proven 07-20).
+                    //
+                    // 🔴 REDUCE-ONLY SAFETY (standalone is not inherently reduce-only):
+                    //   1. Read PositionQuantity at placement time
+                    //   2. pos==0 → refuse (PLACE_STOP_NO_POSITION)
+                    //   3. qty = min(requested, abs(pos)) — can only flatten, never flip
+                    //   4. Side from POSITION sign (not command) — verified against command
+                    //   5. BuySell: SHORT pos → SCT_ORDERACTION_BUY (buy-stop above to cover)
+                    //               LONG pos  → SCT_ORDERACTION_SELL (sell-stop below to close)
+                    //   6. ZERO Entry calls in this handler
                     else if (cmd_content.find("\"PLACE_STOP\"") != std::string::npos)
                     {
                         if (order_armed >= 1)
@@ -1403,25 +1406,63 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             }
                             else
                             {
-                                s_SCNewOrder o;
-                                o.OrderQuantity = ps_qty;
-                                o.OrderType     = SCT_ORDERTYPE_STOP;
-                                o.Price1        = static_cast<float>(ps_price);
-                                o.TimeInForce   = SCT_TIF_DAY;
+                                // 🔴 Safety: read actual position before placing
+                                s_SCPositionData pos;
+                                sc.GetTradePosition(pos);
+                                int actual_pos = pos.PositionQuantity;
 
-                                // Apply trade account from command (controls SIM vs LIVE routing)
-                                char acct_buf[64] = {0};
-                                if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
-                                    o.TradeAccount = acct_buf;
-
-                                int r;
-                                if (strcmp(ps_side, "LONG") == 0)
-                                    r = static_cast<int>(sc.SellExit(o));  // LONG → sell-stop below
+                                if (actual_pos == 0)
+                                {
+                                    result_status = "PLACE_STOP_NO_POSITION";
+                                    order_err = 0;
+                                    sc.AddMessageToLog("MEMS26: PLACE_STOP refused — no position", 1);
+                                }
+                                // Verify command side matches position sign
+                                else if ((strcmp(ps_side, "LONG") == 0 && actual_pos < 0) ||
+                                         (strcmp(ps_side, "SHORT") == 0 && actual_pos > 0))
+                                {
+                                    result_status = "PLACE_STOP_SIDE_MISMATCH";
+                                    order_err = -1;
+                                    sc.AddMessageToLog("MEMS26: PLACE_STOP side mismatch vs position", 1);
+                                }
                                 else
-                                    r = static_cast<int>(sc.BuyExit(o));   // SHORT → buy-stop above
+                                {
+                                    // Clamp qty to position size (reduce-only)
+                                    int clamped_qty = (ps_qty < abs(actual_pos)) ? ps_qty : abs(actual_pos);
 
-                                result_status = (r >= 0) ? "PLACE_STOP_OK" : "PLACE_STOP_FAIL";
-                                order_err = r;
+                                    s_SCNewOrder o;
+                                    o.OrderQuantity = clamped_qty;
+                                    o.OrderType     = SCT_ORDERTYPE_STOP;
+                                    o.Price1        = static_cast<float>(ps_price);
+                                    o.TimeInForce   = SCT_TIF_DAY;
+
+                                    // BuySell from position sign (not command):
+                                    // LONG pos → sell-stop below to close
+                                    // SHORT pos → buy-stop above to cover
+                                    if (actual_pos > 0)
+                                        o.BuySell = BSE_SELL;
+                                    else
+                                        o.BuySell = BSE_BUY;
+
+                                    // Apply trade account from command (controls SIM vs LIVE)
+                                    char acct_buf[64] = {0};
+                                    if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
+                                        o.TradeAccount = acct_buf;
+
+                                    int r = static_cast<int>(sc.SubmitOrder(o));
+
+                                    result_status = (r >= 0) ? "PLACE_STOP_OK" : "PLACE_STOP_FAIL";
+                                    order_err = r;
+
+                                    if (r >= 0)
+                                    {
+                                        char msg[256];
+                                        snprintf(msg, sizeof(msg),
+                                            "MEMS26: PLACE_STOP_OK — %s stop @ %.2f, qty=%d (pos=%d)",
+                                            (actual_pos > 0) ? "SELL" : "BUY", ps_price, clamped_qty, actual_pos);
+                                        sc.AddMessageToLog(msg, 0);
+                                    }
+                                }
                             }
                         }
                         else
