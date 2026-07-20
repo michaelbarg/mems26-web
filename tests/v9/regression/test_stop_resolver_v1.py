@@ -93,7 +93,7 @@ class TestInBandSelection:
         assert not r.rejected
         assert r.in_band
         assert r.rung_name == "breakout_bar"
-        assert abs(r.risk_points - 5.75) < 0.5  # 5pt + 0.75 offset ≈ 5.75
+        assert abs(r.risk_points - 6.5) < 0.5  # 5pt + 1.5 offset (6T, Michael 2026-07-20) ≈ 6.5
 
     def test_htlb_5_3pt_in_band(self):
         """HTLB (REV): typical stop 5.3pt — within [3.5, 10.5]."""

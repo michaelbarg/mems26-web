@@ -265,9 +265,11 @@ def _resolve_stop(direction: str, entry: float, s4_rec: Dict[str, Any],
     if isinstance(bars, list) and bars:
         try:
             sig = bars[-1]
-            raw = (float(sig["low"]) - 3 * TICK) if direction == "LONG" \
-                else (float(sig["high"]) + 3 * TICK)
-            candidates.append((raw, "signal_bar_extreme_3t"))
+            # 6T beyond structure — Michael ruling 2026-07-20 (was 3T); keep in
+            # sync with config/stop_anchors.yaml anchor_offset_ticks.
+            raw = (float(sig["low"]) - 6 * TICK) if direction == "LONG" \
+                else (float(sig["high"]) + 6 * TICK)
+            candidates.append((raw, "signal_bar_extreme_6t"))
         except (KeyError, TypeError, ValueError):
             pass
     for raw, src in candidates:

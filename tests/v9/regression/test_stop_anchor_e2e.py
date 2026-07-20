@@ -286,8 +286,8 @@ def test_e2e_ofa_initiative():
     bar = {"h": 7402.0, "l": 7398.0, "c": 7401.0}
     struct = SA.resolve_anchor_from_window([bar], "LONG",
                                            cfg["principles"]["anchor_offset_ticks"])
-    # Should be bar low - 3 ticks
-    assert abs(struct - (7398.0 - 3 * MES_TICK)) < 0.01
+    # Should be bar low - 6 ticks (Michael 2026-07-20 ruling; was 3T)
+    assert abs(struct - (7398.0 - 6 * MES_TICK)) < 0.01
 
     from backend.v9.systems.five_min.adaptive_stop import compute_stop_v2 as s2_v2
     v2 = s2_v2(entry_price=7401.0, direction="LONG", structural_stop_price=struct,
@@ -366,17 +366,27 @@ def test_e2e_flag():
 # ═══════════════════════════════════════════════════════════════════════════
 
 def test_yaml_anchor_offset_reaches_stop():
-    """Verify the 3-tick offset from YAML actually reaches the stop price."""
+    """Verify the anchor offset from YAML actually reaches the stop price.
+
+    Michael 2026-07-20 ruling: buffer widened 3T→6T (protective — fewer false
+    stop-outs). Read the offset from config so this test verifies the YAML value
+    truly flows through, and won't silently rot if the value changes again.
+    """
     cfg = _cfg()
-    assert cfg["principles"]["anchor_offset_ticks"] == 3
+    off = cfg["principles"]["anchor_offset_ticks"]
+    assert off == 6  # Michael 2026-07-20 (was 3)
 
-    # One bar, LONG: window extreme = bar low, offset pushes stop 3T further
+    # One bar, LONG: window extreme = bar low, offset pushes stop off*T further
     bar = {"h": 7402.0, "l": 7398.0, "c": 7401.0}
-    struct = SA.resolve_anchor_from_window([bar], "LONG", 3)
-    assert struct == 7398.0 - 3 * MES_TICK  # 7397.25
+    struct = SA.resolve_anchor_from_window([bar], "LONG", off)
+    assert struct == 7398.0 - off * MES_TICK
 
-    v2 = compute_stop_v2("LONG", 7401.0, struct, PatternGroup.CONT_TIGHT, atr_14=100.0)
-    assert v2.stop_price == struct  # structural wins (not capped, risk < ATR)
+    # atr_14=30t: structural risk (6T offset → 18t here) sits above the 0.5×ATR
+    # floor (15t) and below the ATR cap, so the structural anchor governs and the
+    # YAML offset reaches the final stop unchanged. (atr_14=100 previously let the
+    # EARLY_ATR_FLOOR bind and masked the offset.)
+    v2 = compute_stop_v2("LONG", 7401.0, struct, PatternGroup.CONT_TIGHT, atr_14=30.0)
+    assert v2.stop_price == struct  # structural wins (not floored, not capped)
 
 
 def test_yaml_floor_ticks_enforced():

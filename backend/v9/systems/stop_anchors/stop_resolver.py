@@ -50,7 +50,7 @@ def resolve_stop(
     rung_names: List[str],
     atr_5m: float,
     family: str = "CONT",
-    offset_ticks: int = 3,
+    offset_ticks: int = 6,
     day_type: Optional[str] = None,
 ) -> StopResolverResult:
     """Walk the rung ladder and pick the first within the band.
@@ -62,7 +62,7 @@ def resolve_stop(
         rung_names: human labels for each rung (same length as rungs)
         atr_5m: live ATR in POINTS (not ticks)
         family: "CONT" or "REV" (drives the cap multiplier)
-        offset_ticks: structural offset beyond each rung (default 3T = 0.75pt)
+        offset_ticks: structural offset beyond each rung (default 6T = 1.5pt; Michael 2026-07-20, was 3T)
     """
     offset = offset_ticks * TICK
     # 07-15 Michael decision 5/6: DYNAMIC floor by day type. On rotation days
