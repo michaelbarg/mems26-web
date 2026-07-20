@@ -397,3 +397,28 @@ feed יחיד (PID 33553) · live_price age<500ms · sierra_state mtime טרי �
 - **ACTION → Michael:** אמת חזותית בסיירה → **FLATTEN_ACCOUNT ידני** (op=EXIT שבור — לעולם לא חלקי), ואז אמת sierra_state.json position_qty=0 & working=0. auto-heal לא-יפעל (is_sim=0).
 
 — session-watch (cowork-dev/MacBook, 21:09 IDT)
+
+## 🔴 2026-07-20 21:38 IDT — session-watch: LIVE orphan SHORT -7 יציב (המשך 20:46/21:09, ~52דק ללא שינוי)
+- **ללא שינוי מהותי:** sierra_state.json (mtime <1s, ts=1784572714): is_sim=0 · order_placement_armed=1 · **position_qty=-7 @ avg 7523.07** · working_orders=1 → **#9244** BUY-STOP @7522.50 qty7 (~BE). פוזיציה+סטופ **זהים** ל-20:46/21:09 — אין מחזור-חדש 3 ריצות רצופות.
+- **records≠reality נמשך:** `/api/v9/trades/active`=**null**; reconciler SYS-3 DIVERGENCE ~116×/35דק (Reconciler+FillPoller, TM=0/[] vs Sierra -7 src=state), `phantom-heal 0/3` חסום is_sim=0 → מתריע-לא-מרפא (מבקש PLACE STOP@7533 10pt — לא-מבוצע, פסיקת 07-19).
+- **מחיר ירד לטובת השורט:** 7510.5→**7502.25** → short כעת **~+20.8נק (~$728 לא-ממומש)**; stop@7522.50≈BE → **סיכון-נעול≈$0**. מוגן ברגע-זה (לא-נקי-אמיתי — יש stop מלא ל-7 חוזים), עדיין orphan לא-מנוהל.
+- **Check-1 לא-אנומליה:** 1 candidate ב-35דק (21:25 REACTIVE SHORT entry=7508.25 stop=7519.25 4c, `blocked_by=rr_entry_gate`) / **0 op=PLACE** — מתחת לסף≥3; 0-ירי מוצדק (orphan עודף -7, אחרון strategy-PLACE 17:45:05, 13 op=PLACE כל-היום).
+- **משני (נמשך → לצ'אט-הראשי):** trade_fills_journal.jsonl תקוע 17:45 (age 3.9h) · trade_activity_events.jsonl תקוע 17:24 (age 4.3h) → Check-3 fill-match עיוור; גידול -5→-7 (@20:38) ללא fill/op=PLACE נשאר לא-מוסבר · trade_state.json חסר.
+- **נקי:** flag_guard **PASS 101/101** · live_price age~1.1s (7502.25) · sierra_state mtime <1s · feeder יחיד (PID 33553) · אין CRITICAL חדש-נבדל (אותו orphan מתמשך).
+- **ACTION → Michael:** אמת חזותית בסיירה → **FLATTEN_ACCOUNT ידני** (op=EXIT שבור — לעולם לא חלקי), ואז אמת sierra_state.json position_qty=0 & working=0. auto-heal לא-יפעל (is_sim=0). *הערה: הסיכון נעול ≈BE ע"י #9244; אין דחיפות-הפסד, אך הפוזיציה נשארת untracked+לא-מנוהלת (אין ניהול T-targets/trail).*
+
+— session-watch (cowork-dev/MacBook, 21:38 IDT)
+
+## 🔴 2026-07-20 22:14 IDT — session-watch: LIVE orphan SHORT -7 נמשך + ניסיון-LONG-חי נכשל (err=-1)
+
+- **Orphan נמשך ללא שינוי-פוזיציה (~1h28m מ-20:46):** sierra_state.json (mtime <1s, ts=1784574545): `is_sim=0` · `order_placement_armed=1` · `send_orders_to_trade_service=1` · **position_qty=-7 @ avg 7523.07**. הפוזיציה **מעולם לא חרגה מ-7** (grep "Sierra says": -2→-7, נבנתה בהדרגה, cap -7).
+- **records≠reality נמשך:** `/api/v9/trades/active`=**null**; reconciler SYS-3 DIVERGENCE כל 30ש (Reconciler+FillPoller, TM=0/[] vs Sierra -7 src=state), `phantom-heal 0/3` חסום is_sim=0 → מתריע-לא-מרפא (מבקש PLACE PROTECTIVE STOP @7533 10pt — לא-מבוצע, פסיקת 07-19).
+- **🆕 חדש #1 — ניסיון LONG חי נכשל @21:55:09 (op=PLACE יחיד ב-35דק):** דפוס **FAMIR LONG sys4** נורה (CCI=-92.6 conf=0.51 trend=RED) → Trade 434 mode=live LONG t1=7498.75/t2=7503.75/t3=7508.75 → **op=PLACE** → **21:55:11 `[FillPoller] ORDER_FAILED from Sierra: error=-1 (GENERAL_ERROR_OR_NOT_ENABLED) — cancelling`** → CANCELLED 434 pnl=0.00, slot freed. **0 השפעה על הפוזיציה** (נשארה -7). קדם לו `NAKED_STOP_SUSPECT` CRITICAL @21:55:09. ⚠️ err=-1 = מחלקת-השגיאה של 07-07 (SendOrders/trade-service) — הזמנה-חיה נדחתה למרות is_sim=0+armed+send=1; המערכת ביטלה נכון, אך שווה-מעקב אם יחזור על הזמנה-מכוונת.
+- **🆕 חדש #2 — working order חדש #9247:** sierra_state.json כעת `working_orders=2`: **#9244** BUY-STOP 7@7522.50 (הסטופ המגן, זהה) + **#9247 BUY-LIMIT 1@7484.25** (כיסוי-חלקי/T1 על השורט). #9247 הופיע מאז ריצת 21:38 (אז working=1); **לא ניתן לייחסו ל-op=PLACE מוצלח** (היחיד היה LONG 434 שנכשל) → מקור לא-מאומת, כנראה ידני-בסיירה או שארית. **לאימות מייקל.**
+- **מחיר לטובת השורט:** live 7488.5 (age <1s) vs avg 7523.07 → **~+34.5נק · ~$1,210 לא-ממומש**; stop #9244@7522.50 vs avg 7523.07 → נעול **≈+$20 (~BE)** → **סיכון-נעול≈$0**. מוגן ברגע-זה, עדיין orphan לא-מנוהל (אין ניהול T/trail מהמערכת).
+- **Check-1 לא-אנומליה:** 35דק אחרונות = 2 candidates / **1 op=PLACE** (ה-LONG שנכשל) — לא "≥3 candidates & 0 fires". הצינור יורה, לא נחסם-שקט.
+- **Check-3 עיוור (משני, נמשך → צ'אט-ראשי):** trade_fills_journal.jsonl תקוע 17:45:48 (last STOP #9232@7514.75, age ~4.5h) · trade_activity_events.jsonl תקוע 17:24:08 (last CLOSED_TRADE_PNL 427.5) → זיהוי-סגירה-פיקטיבית לא יכול לרוץ; גידול -5→-7 (@20:38) + #9247 נשארים ללא-fill-מתועד. (Trade 434 נסגר ORDER_FAILED=cancel, לא-fill → לא סגירה-פיקטיבית.) trade_state.json חסר.
+- **בריאות נקייה:** flag_guard **PASS 101/101** · live_price age <1s (7488.5) · sierra_state mtime <1s · feeder יחיד (PID 33553) · Redis DOWN (ידוע, לא-חוסם).
+- **ACTION → Michael:** אמת חזותית בסיירה → **FLATTEN_ACCOUNT ידני** (op=EXIT שבור — לעולם לא חלקי), ואז אמת sierra_state.json position_qty=0 & working_orders=0. auto-heal לא-יפעל (is_sim=0). *אין דחיפות-הפסד (נעול ~BE, +$1,210 לא-ממומש), אך: (א) הפוזיציה untracked+לא-מנוהלת; (ב) המערכת מנסה כעת הזמנות-נגד חיות מעליה (LONG 434 שנכשל) — הצטברות-אי-יציבות; (ג) err=-1 על הזמנה-חיה = לאמת שהזמנה-אמת-מכוונת לא תיכשל דומם.*
+
+— session-watch (cowork-dev/MacBook, 22:14 IDT)
