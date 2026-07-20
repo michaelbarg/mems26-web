@@ -955,6 +955,13 @@ flags:
     standing_decision: true
     status: built_off
     ref: "backend/v9/systems/five_min/five_min_system.py · tests/v9/regression/test_structural_stop_origin.py"
+  IB_BREAK_ANY_EXPANSION_V1:
+    category: s1
+    what: "Any price acceptance beyond IB = expansion. Drops the IB-frac noise gate (20%×IB_width) that filtered real breaks on wide IB days. Noise floor = fixed pts only (default 2pt)."
+    why: "OFF (default). Dalton alignment 2026-07-20: 5pt break on 40pt IB filtered by 8pt noise floor. With flag ON, 5pt > 2pt → counts."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/systems/day_type/relative_features.py · tests/v9/regression/test_ib_break_any_expansion.py"
   STOP_WIDEN_TO_STRUCTURE_V1:
     category: sizing
     what: "When structural stop distance exceeds ATR cap, ACCEPT it (not reject). Structure always wins per Dalton. ATR cap drives contract reduction (SIZE_CAP_CUT_V1) instead of stop rejection."

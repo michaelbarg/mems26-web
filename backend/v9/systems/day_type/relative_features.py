@@ -261,10 +261,17 @@ def compute_relative_features(
         # ext_up_hold/ext_dn_hold are NOT touched — accepted_break unchanged.
         if os.getenv("DAYTYPE_SIDES_MECHANICAL_V1", "0").lower() in ("1", "true", "yes"):
             _ib_w = ib_ref_h - ib_ref_l
-            _noise = max(
-                float(os.getenv("DAYTYPE_SIDES_NOISE_PTS", "2.0")),
-                float(os.getenv("DAYTYPE_SIDES_NOISE_IB_FRAC", "0.20")) * _ib_w,
-            )
+            # IB_BREAK_ANY_EXPANSION_V1 (Dalton alignment 2026-07-20):
+            # ANY acceptance beyond IB = expansion. Noise floor → 0 (just the
+            # fixed minimum pts, typically 2pt). Overrides the IB-frac gate that
+            # filtered real breaks on wide IB days (#420: 5pt break < 8pt floor).
+            if os.getenv("IB_BREAK_ANY_EXPANSION_V1", "0").lower() in ("1", "true", "yes"):
+                _noise = float(os.getenv("DAYTYPE_SIDES_NOISE_PTS", "2.0"))
+            else:
+                _noise = max(
+                    float(os.getenv("DAYTYPE_SIDES_NOISE_PTS", "2.0")),
+                    float(os.getenv("DAYTYPE_SIDES_NOISE_IB_FRAC", "0.20")) * _ib_w,
+                )
             if ib_high is not None and ib_low is not None and (ib_high - ib_low) > 0:
                 # Sierra IB is the first-hour extremes — any price beyond it is
                 # necessarily post-first-hour, so session extremes are valid RE.
