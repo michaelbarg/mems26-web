@@ -948,6 +948,13 @@ flags:
     standing_decision: true
     status: built_off
     ref: "backend/v9/systems/five_min/five_min_system.py · tests/v9/regression/test_structural_stop_origin.py"
+  STOP_WIDEN_TO_STRUCTURE_V1:
+    category: sizing
+    what: "When structural stop distance exceeds ATR cap, ACCEPT it (not reject). Structure always wins per Dalton. ATR cap drives contract reduction (SIZE_CAP_CUT_V1) instead of stop rejection."
+    why: "OFF (default). Case #420: resolver rejected structural stop at 7529 (>cap 15pt) and used narrow 7514 (inside structure). Dalton: structure governs; ATR reduces size."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/systems/stop_anchors/stop_resolver.py · tests/v9/regression/test_stop_structural_wins.py"
   BE_AFTER_REAL_T1_V1:
     category: targets
     what: "4-contract T0 remap: DLL reports fills as T1/T2/T3/T4 (slot order). With FIXED_CONTRACTS_4+T0_TARGET_PTS, C1 is T0 scalp — remap T1→T0 (no BE), T2→T1 (BE here), T3→T2, T4→T3. Ensures BE fires on the REAL T1, not the T0 scalp."

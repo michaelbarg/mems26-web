@@ -113,7 +113,23 @@ def resolve_stop(
             continue
 
         if dist > cap_pts:
-            # Too far → reject (all remaining will be farther)
+            # Structure wider than ATR cap.
+            # STOP_WIDEN_TO_STRUCTURE_V1: accept the structural stop anyway
+            # (Dalton: "structure always wins"). ATR cap → contract reduction
+            # (handled downstream by SIZE_CAP_CUT_V1). Without flag: reject.
+            if os.getenv("STOP_WIDEN_TO_STRUCTURE_V1", "0").lower() in ("1", "true", "yes"):
+                stop = round(round(stop / TICK) * TICK, 2)
+                dist = abs(entry_price - stop)
+                logger.info("[StopResolver] rung %d (%s) dist=%.2f > cap=%.2f → "
+                            "WIDEN-TO-STRUCTURE (structural wins, ATR→size-cut)",
+                            i, name, dist, cap_pts)
+                return StopResolverResult(
+                    stop_price=stop, risk_points=dist,
+                    rung_index=i, rung_name=name,
+                    floor_pts=floor_pts, cap_pts=cap_pts,
+                    in_band=False, rejected=False,  # NOT rejected — accepted wider
+                )
+            # Legacy: reject
             logger.info("[StopResolver] rung %d (%s) dist=%.2f > cap=%.2f → no_stop_in_band",
                         i, name, dist, cap_pts)
             return StopResolverResult(
