@@ -14,24 +14,27 @@
 
 ---
 
-## משימה 1 · ⭐ בנה מחדש PLACE_STOP עם `sc.SubmitOrder` (חוסם ORPHAN)
-**קובץ:** `sc_study/MES_AI_DataExport.cpp:1389-1423`. **שנה:** `sc.SellExit(o)/sc.BuyExit(o)` →
-`sc.SubmitOrder(o)` עם `o.OrderType = SCT_ORDERTYPE_STOP` (standalone, לא Exit-family — תומך STOP).
+## משימה 1 · ⭐ הגנת-יתום = ניטור-backend + יציאת-שוק (לא סטופ-רסטינג!) — תיקון-שורש
+**עדכון קריטי (cowork, מהקוד):** 3 הגישות שלך נכשלו כי **ACSIL לא מאפשר סטופ-רסטינג עצמאי:**
+Exit-family=MARKET-בלבד (`:1382`) · Entry+STOP=סמנטיקה-שגויה+r=-1 · **`sc.SubmitOrder` לא קיים** (צדקת).
+ו-**`send_orders_to_trade_service=0` הוא הנכון בסים** (`:174` `sc.SendOrdersToTradeService =
+!sc.GlobalTradeSimulationIsOn`) — **לא** השורש; **סיירה תקינה** (פסיקת-מייקל). **הפסק לנסות סטופ-רסטינג.**
 
-**🔴 שומר-בטיחות reduce-only-by-construction (חובה — standalone לא reduce-only מטבעו):**
-- קרא את הפוזיציה-הנוכחית (`sc.GetTradePosition` → `PositionQuantity`) **ברגע-ההצבה**.
-- אם `PositionQuantity == 0` → **אל תציב** (אין מה להגן) → `PLACE_STOP_NO_POSITION`.
-- `qty = min(requested_qty, abs(PositionQuantity))` — **לעולם לא יותר מגודל-הפוזיציה** (יכול רק לשטח, לא להפוך).
-- צד: פוזיציה SHORT(<0) → **BUY-STOP מעל**; LONG(>0) → **SELL-STOP מתחת**. אמת שהצד תואם את סימן-הפוזיציה.
-- `o.OrderQuantity=qty` · `o.OrderType=SCT_ORDERTYPE_STOP` · `o.Price1=<stop>` · `o.TimeInForce=SCT_TIF_DAY` ·
-  `o.TradeAccount` מהפקודה. `result_status = (r>=0)?"PLACE_STOP_OK":"PLACE_STOP_FAIL"`.
-- **0 קריאות Entry בתוך ה-handler** (reduce-only). אם `sc.SubmitOrder` דורש דגל-סביבה
-  (`sc.SendOrdersToTradeService`/AutoTrading) — טפל, אבל אל תשנה מצב-לייב.
+**הארכיטקטורה הנכונה — סטופ-וירטואלי מנוטר ב-backend → יציאת-שוק:**
+- **backend (`ORPHAN_AUTO_STOP_V1`):** כשמזוהה יתום → חשב **מחיר-סטופ-וירטואלי** (צד-מגן) → **נטר כל
+  tick/bar**. כשהמחיר **חוצה** את הסטופ-הוירטואלי → שלח פקודת **יציאת-שוק בגודל-היתום** ל-DLL.
+- **DLL op (החלף את PLACE_STOP השבור, `:1389-1423`):** `FLATTEN_ORPHAN` — יציאת-שוק דרך הנתיב
+  שכן-עובד: `SellExit/BuyExit` עם **`SCT_ORDERTYPE_MARKET`** (כמו `:1487`, מוכח). **שומר reduce-only:**
+  קרא `PositionQuantity` ברגע-הביצוע · `qty=min(req,abs(pos))` · pos==0→אל תבצע · צד-מגן תואם-סימן ·
+  0 קריאות Entry. `result_status=(r>=0)?"FLATTEN_ORPHAN_OK":"..._FAIL"`.
+- **למה זה נכון:** יתום = רשומות≠מציאות, פוזיציה-לא-רצויה; המטרה **לשטח אותה** כשהיא נגדך, לא לנהל
+  אותה. יציאת-שוק-מנוטרת = op מוכח, אפס r=-1. פשרה: סליפג' של פולינג (~1-5ש') — קביל להגנת-רשת נדירה.
 
-**אז:** snapshot → עריכה → grep מוכיח `SubmitOrder` + השומר → **Remote Build** → reload study → **re-sim A1.6:**
-יתום-2 בסים → `ORPHAN_AUTO_STOP_V1=1` (סביבת-סים) → **הוכח:** `PLACE_STOP_OK` · `working_orders` 0→1 ·
-סטופ בצד/מחיר נכונים · **הפוזיציה נשטחה/לא-גדלה** · מקרה-מראה LONG. אם r=-1 שוב → עצור+דווח.
-**cowork מאמת → ORPHAN_AUTO_STOP_V1 → RULED=1.**
+**אז:** snapshot → עריכת-DLL (`FLATTEN_ORPHAN` market-exit) + לוגיקת-ניטור ב-backend (דגל OFF) → grep
+מוכיח → **Remote Build** → **re-sim A1.6:** יתום-2 בסים → `ORPHAN_AUTO_STOP_V1=1` → הזז מחיר-סים מעבר
+לסטופ-הוירטואלי → **הוכח:** יציאת-שוק ירתה · `position_qty`→0 · לא-גדל. מקרה-מראה LONG. r=-1 → עצור+דווח.
+**cowork מאמת → RULED=1.** (אם בכל-זאת תרצה סטופ-רסטינג-אמיתי: לוג את שגיאת-ה-ACSIL המדויקת דרך
+`sc.GetOrderByOrderID`/last-error, לא רק r=-1 — אבל הנתיב-המנוטר הוא הפתרון-המאושר.)
 
 ## משימה 2 · STOP_WIDEN — אימות-סים → RULED
 `STOP_WIDEN_TO_FLOOR_ON_REJECT_V1=1` (סים): סטופ-מבני צר-מרצפה בדחייה → נדחף-לרצפה · `SIZE_CAP_CUT`
