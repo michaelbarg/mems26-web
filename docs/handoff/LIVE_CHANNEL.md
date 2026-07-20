@@ -90,6 +90,30 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cc-macbook — משימה 3: MANUAL_CANCEL_DETECT_V1 בנוי (OFF)
+Michael manually flattens → reconciler detects (Sierra flat, TM has trade, N checks) →
+marks **CANCELLED** (not CLOSED) + releases gateway slot immediately.
+Extends PHANTOM_HEAL_V1 path. 4 tests, 38 total reconciler tests passed. `72ec0ba1`.
+**T17 E2E (4-contract sim):** חסום — דורש RTH session + market data (סופ"ש = OVERNIGHT).
+**ORPHAN re-sim:** ⏸ ממתין ליתום.
+
+### [2026-07-20] cc-macbook — משימה 1: סריקת-מערכות (is_sim=1)
+```
+SIERRA:     is_sim=1 armed=1 send_orders=0 qty=0 working=0 ✅
+BACKEND:    200 OK, uptime=1048s, v9_mounted=True ✅
+SESSION:    OVERNIGHT (06:42 ET), globex=true, cash=false
+S1 DAY-TYPE: UNKNOWN/developing (weekend — no market data, ib_locked=false)
+S2 FIVE-MIN: hydrated, mode=OVERNIGHT_MODE
+S4 WOODIES:  subscribers active (woodies_5min: 2)
+S6:          not active (no open trade)
+BAR_ROUTER:  received=3197 dispatched=2159 failed=0, 5 subscriber types ✅
+BRIDGE:      not running (weekend — normal)
+WS:          relay running, 1 client connected ✅
+FRONTEND:    reachable, status=200 ✅
+TRADES:      null (flat) ✅
+```
+**כל המערכות חיות.** S1/S2 ב-OVERNIGHT (סופ"ש); S6 לא פעיל (אין עסקה). ירי חסום (לא RTH).
+
 ### [2026-07-20] cc-macbook — סים G2+G3+G6+T16: flags verified (env per-process, .env untouched)
 ```
 S2_DETECTION_LIVE_DAYTYPE_V1=1  → FiveMinSystem OK, detection resolves live day_type
@@ -99,6 +123,18 @@ SYSTEM6_REVERSAL_TIGHTEN_V1=0   → no tighten issues (byte-identical) ✅
 ```
 **34 tests passed** (G2/G3: 5, G6: 5, T16: 6, ORPHAN: 18). `is_sim=1`. `.env` NOT touched.
 ORPHAN re-sim pending: ⏸ ממתין ליתום.
+
+### [2026-07-20] cursor-agent — PREOPEN rulings + T17 4-contract harness
+cowork אימת: **0 מחסומי-ירי**. A12=RTH-gated (`bars.py:50`) 🟡 re-check 09:35 · D6=מינורי (:8000/mobile OK).
+```bash
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/test_verify_t17_e2e_4contract_sim.py -q
+3 passed
+
+$ python3 scripts/verify_t17_e2e_4contract_sim.py --auto
+T17 4-contract harness · 🟡 INDETERMINATE — cc must PLACE 4-contract sim first
+exit=2
+```
+עודכן `PREOPEN_NOBLOCKER_2026-07-20.md` · חדש `scripts/verify_t17_e2e_4contract_sim.py`.
 
 ### [2026-07-20] cursor-agent — PREOPEN NO-BLOCKER sweep (~4ש' לפני RTH)
 קריאה-בלבד · `is_sim=1`. תוצר: `docs/handoff/PREOPEN_NOBLOCKER_2026-07-20.md`
@@ -118,8 +154,7 @@ mobile_fe=000
 $ curl -sf 'http://127.0.0.1:8000/api/v9/chart/bars5min?limit=1' | python3 -c "import sys,json; print(json.load(sys.stdin)[-1]['ts'])"
 2026-07-17 22:55:00+03:00
 ```
-**🔴×2:** (1) פלאפון frontend ZT · (2) chart/bars5min DB Friday — re-check 09:35 ET.  
-**🟢:** צינורות · S1/S2/S4/S6/gateway · flag_guard · fire_drill · harness יתום + T15 stage-E מוכנים.
+**סטטוס (post-cowork):** 0 מחסומי-ירי · A12/D6 הורדו ל-🟡 · re-check A12 ב-09:35 ET.
 
 ### [2026-07-20] cursor-agent — ORPHAN harness עודכן + T15 stage-E אימות
 **תיקון קריטי:** `scripts/verify_orphan_place_stop_sim.py` — לא `working 0→1` / `PLACE_STOP_OK`.
