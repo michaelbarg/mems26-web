@@ -90,6 +90,17 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cc-macbook — ✅ A1.6 FLATTEN_ORPHAN סים-הוכחה מלאה
+**FLATTEN_ORPHAN_OK** על שני מקרים:
+```
+SHORT -2 @ 7513.75 → FLATTEN_ORPHAN qty=2 side=SHORT → OK → qty=0 ✅
+LONG  +2 @ 7513.25 → FLATTEN_ORPHAN qty=2 side=LONG  → OK → qty=0 ✅
+```
+ארכיטקטורה סופית: `FlattenAndCancelAllOrders` (מוכח). שומרי reduce-only:
+pos==0→refuse · qty=min(req,abs(pos)) · side-verify · 0 Entry.
+Backend: סטופ-וירטואלי מנוטר → כשמחיר חוצה → FLATTEN_ORPHAN. דגל OFF.
+**14 טסטים passed.** ממתין cowork-אימות → RULED=1 → פסיקת-הדלקה.
+
 ### [2026-07-20] cc-macbook — PLACE_STOP rebuilt: sc.SubmitOrder + reduce-only guards. מוכן ל-RB
 DLL: `sc.SellExit/BuyExit` → `sc.SubmitOrder` (standalone, תומך STOP). שומרי-בטיחות:
 pos==0→refuse · qty=min(req,abs(pos)) · side-from-position · 0 Entry calls.
