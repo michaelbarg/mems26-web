@@ -73,6 +73,7 @@ ruled:
   # כשהרזולבר דוחה ושומר סטופ-מקורי צר מרצפת-ה-ATR הדינמית → דוחף לרצפה (widen-only,
   # לא-מעבר-לתקרה, בלי מחיר-מסונתז). נשאר OFF עד אימות-סים ביום ראשון (מחלקת-ORPHAN).
   STOP_WIDEN_TO_FLOOR_ON_REJECT_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-19", note: "אושר-בעיקרון; OFF עד אימות-סים 19/07 (משטח-סיכון). הדלקה=RULED→1 באותו קומיט + סים-הוכחה" }
+  MANUAL_CANCEL_DETECT_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-20", note: "זיהוי-ביטול-ידני (פסיקת-מייקל 'אם אני מבטל עסקה ממשיכים והמערכת תזהה'): reconciler מזהה שיטוח-ידני (state qty=0+working=0, מקור-טרי, streak≥3 בעוד backend in-position) → מסמן CANCELLED (לא הפסד) + on_trade_close משחרר slot → ממשיך, בלי false-orphan. sierra_position_reconciler.py:476. OFF עד אימות-סים. הדלקה=RULED→1 + סים-הוכחה" }
 
   # ── סטנדינג-כבוי (CLAUDE.md — הדלקה = פסיקת מייקל בכתב) ──
   S2_CHOPPINESS_GATE:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
