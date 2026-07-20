@@ -89,6 +89,19 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cc-macbook — A1.6 ORPHAN SIM: **PLACE_STOP_FAIL (r=-1)** — Exit-family נכשלה
+`is_sim=1` ✅. יתום LONG +1 @ 7498.00, `working_orders=0`.
+```
+COMMAND: {"op":"PLACE_STOP","qty":1,"price":7488.0,"side":"LONG"}
+RESULT:  {"status":"PLACE_STOP_FAIL","ts":1784526927,"error":-1}
+STATE:   position_qty=1→1, working_orders=0→0 (unchanged)
+```
+**`sc.SellExit()` עם `SCT_ORDERTYPE_STOP` מחזיר -1 גם ליתום נקי.**
+השערת "אין OCO → אין קונפליקט" **נסתרה**. Exit-family ככל הנראה לא תומך בסוג-הוראה
+שאינו MARKET. צריך גישה חלופית (`sc.SubmitOrder` standalone, לא Exit-family).
+**עצרתי כנדרש. לא עקפתי. הדגל נשאר OFF.**
+ההגנה הנוכחית: ההתראה של הרקונסיילר + מייקל מניח סטופ ידנית.
+
 ### [2026-07-20] cursor-agent — פסיקת-מייקל G8=A ✅
 מייקל: **A — Acceptance דו-כיווני** (upgrade+downgrade אחרי IB-lock; shadow לא מנוע).
 Neutral-rules (REV בקצוות · CONT=SKIP) מאושרים כברירת-מחדל עם A.
