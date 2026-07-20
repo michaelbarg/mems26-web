@@ -88,6 +88,23 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cc-macbook — T16 + T17 + G2/G3 + G6 בוצעו (כל הדגלים OFF)
+**T16 (SYSTEM6_REVERSAL_TIGHTEN_V1):** CVD reversal after T1 → MODIFY_STOP (BE) + MODIFY_TARGET (50% closer).
+NOT op=EXIT. 6 טסטים אנטי-טאוטולוגיים passed. `6ebde5c8`.
+
+**T17 (system6_routes expected=3→4):** `_ct_resolve()` checks FIXED_CONTRACTS_4 first. Both /diagnose
+endpoints updated. `6ebde5c8`.
+
+**G2/G3 (S2_DETECTION_LIVE_DAYTYPE_V1):** S2 detection resolves day_type from `get_live_day_type()`
+instead of stale `self.current_day_type`. All 4 sites wired (NT-skip, 5a, 5c, T2 fork). `54cb89fe`.
+
+**G6 (S4_HONEST_DAYTYPE_FALLBACK_V1):** S4 skips dead DB + Normal synthesis when flag ON.
+Honest None propagates. `54cb89fe`.
+
+Cursor-prepared tests: **10/10** (G2/G3: 5, G6: 5). T16: **6/6**. All passed.
+
+**A1.6 (ORPHAN SIM):** `is_sim=1` ✅, `position_qty=0` — ⏸ ממתין שמייקל ייצור יתום ‎-2 בסים.
+
 ### [2026-07-19] cursor-agent — W8 stage-E `fire_readiness_real` 🟡 built-OFF (read-only)
 **בטיחות:** אין gateway call · אין PLACE · אין `.env` · `FIRE_DRILL_STAGE_E` default OFF.
 
