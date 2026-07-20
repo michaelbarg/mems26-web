@@ -90,6 +90,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cursor-agent — PRECISE_BLOCK_REASON (display-only)
+Gateway `result["reason"]` → decisions feed; UI `blockWhy()` מעדיף reason מדויק על GATE_HE גנרי.
+מיפוי: `responsive SHORT not at VAH` → "שורט-fade לא בתקרה (VAH)".
+```bash
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/test_gateway_block_reason_precise.py \
+    tests/v9/regression/test_gateway_decisions_feed.py -q
+7 passed
+```
+אפס שינוי-מסחר. **ריסטארט-backend** נדרש כדי שפיד-החי יכלול `reason` בחסימות חדשות.
+
 ### [2026-07-20] cursor-agent — SHORT_READY_CHECK → (א) הכל-נכון (family-aware OK)
 13:15=REACTIVE responsive below_value (legit SKIP). Location-check רק REACTIVE/HNS.
 INITIATIVE/ZLR/TT @7503 → FULL בפרוב. S4 חי=NO_SETUP. אין over-block CONT.
