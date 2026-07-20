@@ -90,6 +90,11 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cursor-agent — SHORT_READY_CHECK → (א) הכל-נכון (family-aware OK)
+13:15=REACTIVE responsive below_value (legit SKIP). Location-check רק REACTIVE/HNS.
+INITIATIVE/ZLR/TT @7503 → FULL בפרוב. S4 חי=NO_SETUP. אין over-block CONT.
+`docs/handoff/SHORT_READY_CHECK_2026-07-20.md`
+
 ### [2026-07-20] cursor-agent — WHY_NO_TRADES live (Rule5) → (ב) playbook location
 אחרי enable ~13:01 ET: צינור חי · setup יחיד REACTIVE_SHORT@7503 → `blocked_by=daytype_playbook`
 סיבה: `responsive SHORT not at VAH (below_value) on Variation` (דגל ON מוכח). לגיטימי.
