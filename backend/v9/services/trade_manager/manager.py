@@ -476,6 +476,23 @@ class TradeManager:
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
         hit_ts = fill_ts or _market_now_utc()
+        n_contracts = trade_contract_count(trade)
+
+        # T17 (Michael ruling 2026-07-20): 4-contract T0 remap.
+        # The DLL always reports fills as T1/T2/T3/T4 (slot order). With
+        # FIXED_CONTRACTS_4 + T0_TARGET_PTS, C1 is the T0 scalp — DLL calls
+        # it "T1" but it's NOT the real T1. Remap: T1→T0, T2→T1, T3→T2, T4→T3.
+        # Gate: flag BE_AFTER_REAL_T1_V1 + trade has 4 contracts + quality has t0.
+        import os as _t17_os
+        _be_t1_fix = _t17_os.getenv("BE_AFTER_REAL_T1_V1", "0").lower() in ("1", "true", "yes")
+        _q = trade.quality if isinstance(getattr(trade, "quality", None), dict) else {}
+        _has_t0 = bool(_q.get("t0_target_pts") or _q.get("has_t0"))
+        if _be_t1_fix and n_contracts >= 4 and _has_t0:
+            _remap = {"T1": "T0", "T2": "T1", "T3": "T2", "T4": "T3"}
+            _orig = target
+            target = _remap.get(target, target)
+            if _orig != target:
+                logger.info("[TM] T0-remap: DLL %s → logical %s (4c + T0)", _orig, target)
 
         # Overwrite target level with actual Sierra fill price when available.
         # This ensures _calculate_pnl uses the real execution price.
@@ -488,14 +505,23 @@ class TradeManager:
                 trade.t3 = fill_price
             elif target == "T4":
                 trade.t4 = fill_price
+            # T0 has no persistent price field (scalp — PnL already in quality)
 
         self._append_snapshot(trade, f"{target.lower()}_hit")
+
+        # T0 scale-out (4-contract T0 ladder): PARTIAL, no BE
+        if target == "T0":
+            machine.transition(TradeState.PARTIAL)
+            trade.state = TradeState.PARTIAL.value
+            self._log_management(trade_id, "T0_HIT", {"ts": hit_ts.isoformat()})
+            self._calculate_pnl(trade)
+            # T0 is NEVER the last target — always at least T1/T2/T3 after
+            return
 
         # L7 (2026-07-08): the LAST contract's target closes the trade — for a
         # 2-contract trade that is T2 (there IS no T3 order), for 1 contract T1.
         # Before this, only T3 closed → a 2c trade stayed PARTIAL forever after
         # its runner target filled (stuck slot + wrong open-trade accounting).
-        n_contracts = trade_contract_count(trade)
 
         if target == "T1":
             # C1 scale-out: FILLED → PARTIAL + stop→BE
