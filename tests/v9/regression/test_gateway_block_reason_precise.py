@@ -8,7 +8,27 @@ from backend.v9.gateway import trading_gateway as tg
 from backend.v9.systems.daytype_playbook import Decision
 
 
+def _isolate_gates(monkeypatch):
+    """Pin competing production-ON gates OFF so each test owns its blocked_by.
+
+    Without this, loading .env (DIRECTION_CONTEXT / CONT_TREND_FILTER /
+    ZONE_LIMIT_ENTRY_V1 all ON in live) steals the block before the gate under
+    test — Rule-5 false "feature regressed" (cowork 07-20: 5 failed).
+    """
+    for flag in (
+        "DIRECTION_CONTEXT",
+        "CONT_TREND_FILTER",
+        "ZONE_LIMIT_ENTRY_V1",
+        "LSMA_FLAT_GATE_V1",
+        "DAYTYPE_POSITION_GATE",
+        "RR_ENTRY_GATE_V1",
+        "RISK_CONSECUTIVE_LOSS_LIMIT",
+    ):
+        monkeypatch.setenv(flag, "0")
+
+
 def _gw(monkeypatch):
+    _isolate_gates(monkeypatch)
     monkeypatch.setattr(tg, "is_within_firing_window", lambda: True)
     gw = tg.TradingGateway()
     monkeypatch.setattr(gw, "_execute_shadow", lambda *a, **k: {"trade_id": "t"})
@@ -79,6 +99,7 @@ def test_shadow_decision_reason_is_none(monkeypatch):
 
 
 def test_session_gate_records_precise_reason(monkeypatch):
+    _isolate_gates(monkeypatch)
     monkeypatch.setattr(tg, "is_within_firing_window", lambda: False)
     gw = tg.TradingGateway()
     monkeypatch.setattr(gw, "_execute_shadow", lambda *a, **k: {"trade_id": "t"})
@@ -99,9 +120,9 @@ def test_session_gate_records_precise_reason(monkeypatch):
 
 
 def test_rr_gate_records_precise_reason(monkeypatch):
-    monkeypatch.setenv("RR_ENTRY_GATE_V1", "1")
-    monkeypatch.setenv("DAYTYPE_PLAYBOOK", "0")
     gw = _gw(monkeypatch)
+    monkeypatch.setenv("RR_ENTRY_GATE_V1", "1")  # after isolate — owns this blocked_by
+    monkeypatch.setenv("DAYTYPE_PLAYBOOK", "0")
     res = gw.route_setup(
         {
             "direction": "LONG",

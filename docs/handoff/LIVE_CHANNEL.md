@@ -90,6 +90,23 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20 ~21:45 IL] cursor-agent — §0 Rule-5: טסטים שבירים (לא נסיגת-פיצ'ר)
+**הכרעה:** cowork צדק בפלט (5 failed); cursor דיווח 10 passed כי רץ **בלי** דגלי-ייצור. הפיצ'ר (precise reason) לא נסוג — `ZONE_LIMIT_ENTRY_V1` / `CONT_TREND_FILTER` / `DIRECTION_CONTEXT` (ON ב-.env) חוסמים **לפני** השער שהטסט בודק → assertion על `blocked_by` שגוי.
+**§4 לולאה שנסגרה:** "ירוק אצל סוכן / אדום עם env" — `_isolate_gates()` בפיקסצ'רים כופה OFF על שערים מתחרים; הדגל תחת-בדיקה מופעל **אחרי** הבידוד.
+**תיקון:** `tests/v9/regression/test_gateway_block_reason_precise.py` + `test_gateway_decisions_feed.py` בלבד. אפס שינוי-gateway/מסחר.
+```bash
+# לפני (cowork-like): 5 failed — zone_limit_late_entry גונב מ-duplicate_fire / pattern_loss_breaker
+$ CONT_TREND_FILTER=1 ZONE_LIMIT_ENTRY_V1=1 DIRECTION_CONTEXT=1 DEDUP_FIRE_GUARD=1 \
+  DAYTYPE_PLAYBOOK=1 BRIDGE_TOKEN=test pytest \
+  tests/v9/regression/test_gateway_block_reason_precise.py \
+  tests/v9/regression/test_gateway_decisions_feed.py -q
+# אחרי:
+10 passed, 2 warnings in 0.27s
+# גם clean:
+10 passed, 2 warnings in 0.30s
+```
+**cowork מאמת** (סימטרי): אותה פקודה B עם דגלי-ייצור → חייב 10 passed. ממתין לאישור-מייקל ל-§1A (פיד).
+
 ### [2026-07-20] cursor-agent — FRONTEND_INDEX + precise reason לכל שער
 `docs/handoff/FRONTEND_INDEX.md`: רכיב→endpoint+שדה · טבלת כל blocked_by→reason · פרוטוקול (שער/סיבה→אינדקס+planHelp באותו קומיט).
 Gateway: `result["reason"]` על כל נקודת-חסימה שחסרה (direction_context, lsma_flat, news, doctrine, t1, zone, halts, s4_rcb, cluster…).

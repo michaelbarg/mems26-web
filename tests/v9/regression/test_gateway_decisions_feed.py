@@ -11,7 +11,29 @@ from backend.v9.gateway import trading_gateway as tg
 from backend.v9.api.v9.gateway_routes import gateway_decisions
 
 
+def _isolate_gates(monkeypatch):
+    """Pin competing production-ON gates OFF so each test owns its blocked_by.
+
+    .env loads DIRECTION_CONTEXT / CONT_TREND_FILTER / ZONE_LIMIT_ENTRY_V1 =1;
+    those fire before dedup/shadow paths and make hermetic assertions flake
+    (cowork 07-20: duplicate_fire → zone_limit_late_entry).
+    """
+    for flag in (
+        "DIRECTION_CONTEXT",
+        "CONT_TREND_FILTER",
+        "ZONE_LIMIT_ENTRY_V1",
+        "LSMA_FLAT_GATE_V1",
+        "DAYTYPE_PLAYBOOK",
+        "DAYTYPE_POSITION_GATE",
+        "RR_ENTRY_GATE_V1",
+        "RISK_CONSECUTIVE_LOSS_LIMIT",
+        "DEDUP_FIRE_GUARD",
+    ):
+        monkeypatch.setenv(flag, "0")
+
+
 def _gw(monkeypatch):
+    _isolate_gates(monkeypatch)
     monkeypatch.setattr(tg, "is_within_firing_window", lambda: True)
     gw = tg.TradingGateway()
     monkeypatch.setattr(gw, "_execute_shadow", lambda *a, **k: {"trade_id": "t"})
@@ -38,8 +60,8 @@ def test_shadow_only_decision_recorded(monkeypatch):
 
 
 def test_blocked_decision_recorded_with_gate(monkeypatch):
-    monkeypatch.setenv("DEDUP_FIRE_GUARD", "1")
     gw = _gw(monkeypatch)
+    monkeypatch.setenv("DEDUP_FIRE_GUARD", "1")  # after isolate
     gw.route_setup(_setup(), 2)
     gw.route_setup(_setup(), 2)  # identical → duplicate_fire
     assert len(gw.decisions) == 2
@@ -61,8 +83,8 @@ def test_ring_buffer_capped():
 
 
 def test_decisions_endpoint_counts_today(monkeypatch):
-    monkeypatch.setenv("DEDUP_FIRE_GUARD", "1")
     gw = _gw(monkeypatch)
+    monkeypatch.setenv("DEDUP_FIRE_GUARD", "1")  # after isolate
     gw.route_setup(_setup(), 2)          # shadow_only
     gw.route_setup(_setup(), 2)          # blocked (dup)
     req = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace(trading_gateway=gw)))
