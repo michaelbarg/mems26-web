@@ -90,6 +90,64 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cc-macbook — סים G2+G3+G6+T16: flags verified (env per-process, .env untouched)
+```
+S2_DETECTION_LIVE_DAYTYPE_V1=1  → FiveMinSystem OK, detection resolves live day_type
+S4_HONEST_DAYTYPE_FALLBACK_V1=1 → WoodiesSystem OK, honest None instead of "Normal"
+SYSTEM6_REVERSAL_TIGHTEN_V1=1   → diagnose_trade: reversal→tighten_stop+tighten_target ✅
+SYSTEM6_REVERSAL_TIGHTEN_V1=0   → no tighten issues (byte-identical) ✅
+```
+**34 tests passed** (G2/G3: 5, G6: 5, T16: 6, ORPHAN: 18). `is_sim=1`. `.env` NOT touched.
+ORPHAN re-sim pending: ⏸ ממתין ליתום.
+
+### [2026-07-20] cursor-agent — PREOPEN NO-BLOCKER sweep (~4ש' לפני RTH)
+קריאה-בלבד · `is_sim=1`. תוצר: `docs/handoff/PREOPEN_NOBLOCKER_2026-07-20.md`
+```bash
+$ python3 scripts/flag_guard.py | tail -1
+FLAG-GUARD: PASS — all 91 ruled flags match.
+
+$ python3 scripts/fire_drill.py --no-live | tail -1
+🟢 GO — כל שרשרת ההחלטה כשרה לירי.
+
+$ bash scripts/mems26_verify.sh | tail -1
+════ verdict: OK · 3 warn ════
+
+$ curl -sf -o /dev/null -w 'mobile_fe=%{http_code}\n' http://10.1.118.147:3000/
+mobile_fe=000
+
+$ curl -sf 'http://127.0.0.1:8000/api/v9/chart/bars5min?limit=1' | python3 -c "import sys,json; print(json.load(sys.stdin)[-1]['ts'])"
+2026-07-17 22:55:00+03:00
+```
+**🔴×2:** (1) פלאפון frontend ZT · (2) chart/bars5min DB Friday — re-check 09:35 ET.  
+**🟢:** צינורות · S1/S2/S4/S6/gateway · flag_guard · fire_drill · harness יתום + T15 stage-E מוכנים.
+
+### [2026-07-20] cursor-agent — ORPHAN harness עודכן + T15 stage-E אימות
+**תיקון קריטי:** `scripts/verify_orphan_place_stop_sim.py` — לא `working 0→1` / `PLACE_STOP_OK`.
+דוקטרינה חדשה: **hold** (סטופ-מבני וירטואלי) → **flatten** (`FLATTEN_ORPHAN_OK` + `qty→0`).
+```bash
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/test_verify_orphan_place_stop_sim.py -q
+.....                                                                    [100%]
+5 passed
+
+$ python3 scripts/verify_orphan_place_stop_sim.py --phase auto
+ORPHAN sim harness · phase=auto · 🟡 INDETERMINATE
+  ❌ orphan_scenario: flat + no recent FLATTEN_ORPHAN_OK — create orphan in sim first
+exit=2
+
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/test_fire_readiness_real.py -q
+.....                                                                    [100%]
+5 passed
+
+$ python3 scripts/fire_readiness_real.py --date 2026-07-18 --no-live
+setups=0 · verdict=INDETERMINATE · 0 real RTH setups found (never a silent GO)
+exit=2
+
+$ python3 scripts/fire_readiness_real.py --date 2026-07-17 --no-live
+setups=7 · verdict=INDETERMINATE · no setup would_fire and at least one active gate could not be evaluated honestly
+exit=2
+```
+**הבא:** cc/מייקל — יתום-2 בסים → `--phase hold` → טריגר מבנה/$200 → `--phase flatten`.
+
 ### [2026-07-20] cc-macbook — ✅ A1.6 FLATTEN_ORPHAN סים-הוכחה מלאה
 **FLATTEN_ORPHAN_OK** על שני מקרים:
 ```
