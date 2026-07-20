@@ -24,11 +24,9 @@ logger = logging.getLogger(__name__)
 # ── Hardcoded defaults (fallback) ────────────────────────────────────
 MES_TICK = 0.25
 FLOOR_TICKS = 4
-FLOOR_TICKS_MIN_BACKSTOP = 32  # absolute minimum regardless of ATR — Michael 2026-07-20:
-# was 4 (1.0pt) → too close. Trade #420 (S2 REACTIVE_SHORT) got a 5.25pt stop = 1.75×ATR5m
-# when ATR5m dipped to ~3pt at fire, and a normal pullback stopped it out. 32T = 8pt ≈
-# 0.75×ATR14 hard minimum (still capped above by per-pattern max_risk_points). Config-tunable
-# via stop_anchors.yaml s2.floor_ticks_min_backstop.
+FLOOR_TICKS_MIN_BACKSTOP = 4  # absolute minimum regardless of ATR. (2026-07-20: 32=8pt
+# band-aid tried + REVERTED by Michael — 8pt was still inside the structure on #420. Real
+# fix = anchor the stop to the structural swing-high edge + 6T buffer, Task #7.)
 
 # S2 ATR-relative floor (E2E 2/2 · shadow only)
 from backend.v9.shared.atr import S2_ATR_RELATIVE  # noqa: E402

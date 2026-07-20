@@ -6,7 +6,7 @@
 s2_adaptive:
   mes_tick: 0.25
   floor_ticks: 4                   # Layer C: minimum stop distance
-  floor_ticks_min_backstop: 32     # absolute minimum regardless of ATR — Michael 2026-07-20: was 4 (1.0pt) → too close. Trade #420 S2 REACTIVE_SHORT got 5.25pt stop (1.75×ATR5m when ATR5m dipped ~3pt) and a normal pullback stopped it. 32T=8pt≈0.75×ATR14 hard floor; still capped above by per-pattern max_risk_points
+  floor_ticks_min_backstop: 4      # absolute minimum regardless of ATR. (2026-07-20: tried 32=8pt as a too-close band-aid, REVERTED by Michael — 8pt was still INSIDE the structure on #420. Real fix = anchor stop to structural swing-high edge + 6T, see Task #7.)
   floor_atr_k: 1.75               # ATR-relative floor multiplier (when S2_ATR_RELATIVE=ON)
   atr_multipliers:                 # Layer B: ATR cap per pattern family
     Reactive: 1.0
