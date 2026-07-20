@@ -14,7 +14,8 @@ ruled:
   FIXED_CONTRACTS_2:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "כבוי — 4 חוזים בתוקף" }
   FIXED_CONTRACTS_3:     {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "הוחלף ב-4 חוזים (פסיקת-בוקר 15/07)" }
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
-  RISK_DAILY_LOSS_CAP:    {expected: "400", ruled_by: "מייקל", date: "2026-07-06", note: "−$400" }
+  RISK_MAX_TRADES_DAY:    {expected: "999", ruled_by: "מייקל", date: "2026-07-20", note: "היום בלי-מגבלת-עסקאות (999=בפועל-בלתי-מוגבל; הסף-האמיתי הוא $800). לשקול החזרה ל-5 מחר" }
+  RISK_DAILY_LOSS_CAP:    {expected: "800", ruled_by: "מייקל", date: "2026-07-20", note: "היום −$800 (העלאה מ-400, פסיקת-בוקר 07-20). לשקול חזרה ל-400 מחר" }
   EOD_FLATTEN_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "סגירה אוטומטית EOD" }
   RECONCILE_LIVE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "השוואת סיירה-DB בלולאה" }
   SYSTEM6_SUPERVISOR:     {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "מפקח (AUTOCORRECT נפרד וכבוי)" }
