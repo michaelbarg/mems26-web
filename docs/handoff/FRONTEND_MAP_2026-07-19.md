@@ -15,7 +15,13 @@
 pills · plan lenses · CumulativeDeltaPane · StreamHealthPanel · StatusDot · TradeChart/TradeReviewPanel · VolumeDragHandle
 
 ## חיים (ללא שינוי)
-`V9Dashboard` · strips · ChartV5b · LeftTabs (Trader/Market/Setups/Systems/Day/Decisions/Patterns/Performance/Predictions) · BuildTree · DirectionStrip
+`V9Dashboard` · strips · ChartV5b · BuildTree · DirectionStrip · Switcher · SidePanel Plan (AllPatternsPlan)
+
+## לא-mounted (מועמד-מחיקה — פסיקת מייקל)
+`LeftTabs` + 9 sidebar tabs · ChartV5a/ChartArea · Volume* · StreamHealthPanel · old *Pill · TradeReviewPanel · `fetchDayTypeV9`
+
+## אינדקס-סמנטי מלא
+→ `docs/handoff/FRONTEND_INDEX.md` (רכיב→endpoint+שדה · טבלת blocked_by→reason · פרוטוקול-עדכון)
 
 ## לתקן (לא מחיקה)
-`SystemsTab` Consensus → `useDirectionNow` (כמו BuildTree T12)
+`SystemsTab` Consensus → `useDirectionNow` (כמו BuildTree T12) — רק אם LeftTabs יוחזר

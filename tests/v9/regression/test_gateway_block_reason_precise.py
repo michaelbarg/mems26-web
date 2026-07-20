@@ -76,3 +76,61 @@ def test_shadow_decision_reason_is_none(monkeypatch):
     d = gw.decisions[-1]
     assert d["blocked_by"] is None
     assert d.get("reason") in (None, "")
+
+
+def test_session_gate_records_precise_reason(monkeypatch):
+    monkeypatch.setattr(tg, "is_within_firing_window", lambda: False)
+    gw = tg.TradingGateway()
+    monkeypatch.setattr(gw, "_execute_shadow", lambda *a, **k: {"trade_id": "t"})
+    res = gw.route_setup(
+        {
+            "direction": "SHORT",
+            "classification": "REACTIVE_SHORT",
+            "metadata": {"pattern": "REACTIVE_SHORT"},
+            "entry_price": 7503.0,
+            "stop": 7511.0,
+            "t1": 7495.0,
+        },
+        2,
+    )
+    assert res.get("blocked_by") == "session_gate_closed"
+    assert res.get("reason") and "firing window" in res["reason"]
+    assert gw.decisions[-1].get("reason")
+
+
+def test_rr_gate_records_precise_reason(monkeypatch):
+    monkeypatch.setenv("RR_ENTRY_GATE_V1", "1")
+    monkeypatch.setenv("DAYTYPE_PLAYBOOK", "0")
+    gw = _gw(monkeypatch)
+    res = gw.route_setup(
+        {
+            "direction": "LONG",
+            "classification": "ZLR",
+            "metadata": {"pattern": "ZLR"},
+            "entry_price": 7500.0,
+            "stop": 7490.0,  # 10pt stop
+            "t1": 7505.0,    # 5pt T1 → R:R 0.5 < 1.0
+        },
+        4,
+    )
+    assert res.get("blocked_by") == "rr_entry_gate"
+    assert res.get("reason") and "T1_dist" in res["reason"]
+    assert gw.decisions[-1].get("reason")
+
+
+def test_s4_risk_cap_reason_from_metadata(monkeypatch):
+    monkeypatch.setenv("DAYTYPE_PLAYBOOK", "0")
+    gw = _gw(monkeypatch)
+    res = gw.route_setup(
+        {
+            "direction": "SHORT",
+            "classification": "ZLR",
+            "metadata": {"pattern": "ZLR", "s4_risk_cap_block": "pattern_loss_breaker:ZLR:2>=2"},
+            "entry_price": 7503.0,
+            "stop": 7511.0,
+            "t1": 7495.0,
+        },
+        4,
+    )
+    assert res.get("blocked_by") == "pattern_loss_breaker"
+    assert res.get("reason") == "pattern_loss_breaker:ZLR:2>=2"

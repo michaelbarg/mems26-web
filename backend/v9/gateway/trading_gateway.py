@@ -491,6 +491,7 @@ class TradingGateway:
             _ks_on, _ks_reason = _ks_check()
             if _ks_on:
                 result["blocked_by"] = "kill_switch"
+                result["reason"] = _ks_reason or "kill switch engaged"
                 logger.warning("[Gateway] BLOCKED by kill-switch: %s", _ks_reason)
                 return result
         except Exception:
@@ -499,6 +500,7 @@ class TradingGateway:
         # B-13 D3: session firing gate — NO firing outside 08:30–15:00 CT in ANY mode
         if not is_within_firing_window():
             result["blocked_by"] = "session_gate_closed"
+            result["reason"] = "outside firing window 08:30–15:00 CT"
             logger.info("[Gateway] BLOCKED by session gate: outside 08:30–15:00 CT (all modes)")
             return result
 
@@ -513,6 +515,9 @@ class TradingGateway:
                 _close_min = 15 * 60  # 15:00 CT
                 if _ct_min >= (_close_min - _cutoff_min):
                     result["blocked_by"] = "eod_entry_cutoff"
+                    result["reason"] = (
+                        f"past EOD entry cutoff ({_close_min - _ct_min} min before 15:00 CT close)"
+                    )
                     logger.info("[Gateway] BLOCKED by EOD entry cutoff: %d min before close", _close_min - _ct_min)
                     return result
             except Exception:
@@ -525,6 +530,7 @@ class TradingGateway:
             _feed_ok, _feed_reason = is_feed_alive()
             if not _feed_ok:
                 result["blocked_by"] = "feed_watchdog"
+                result["reason"] = _feed_reason or "canonical feed stale"
                 logger.warning("[Gateway] BLOCKED by feed watchdog: %s", _feed_reason)
                 return result
         except Exception as _fw_err:
@@ -534,6 +540,7 @@ class TradingGateway:
         direction = setup.get("direction", "")
         if self.cooldown.is_blocked():
             result["blocked_by"] = "cooldown"
+            result["reason"] = "2-stop cooldown active"
             logger.info("[Gateway] BLOCKED by 2-stop cooldown")
             return result
         # SSV (D-049) — 07-15 Michael ruling ("מאשר את ההמלצה"): ran UNGATED and
@@ -544,6 +551,7 @@ class TradingGateway:
         if os.getenv("SSV_GATE_V1", "0").lower() in ("1", "true", "yes"):
             if self.ssv.check_veto(direction):
                 result["blocked_by"] = "suffering_side_veto"
+                result["reason"] = f"{direction} is suffering side (SSV D-049)"
                 logger.info("[Gateway] BLOCKED by SSV D-049: %s is suffering side", direction)
                 return result
 
@@ -562,6 +570,9 @@ class TradingGateway:
                         and _f["pattern"] == _dd_pat and _dd_ep is not None
                         and _f["entry"] is not None and abs(float(_dd_ep) - float(_f["entry"])) < 0.5):
                     result["blocked_by"] = "duplicate_fire"
+                    result["reason"] = (
+                        f"duplicate S{system_id} {direction} {_dd_pat} @{_dd_ep} within 30s"
+                    )
                     logger.info("[Gateway] BLOCKED duplicate fire: S%s %s %s @%s (within 30s of an identical fire)",
                                 system_id, direction, _dd_pat, _dd_ep)
                     return result
@@ -582,6 +593,7 @@ class TradingGateway:
             chop_state = self._get_chop_state()
             if chop_state == "SEARCHING":
                 result["blocked_by"] = "chop_searching"
+                result["reason"] = "Layer-0 chop_state=SEARCHING (high chop)"
                 logger.info("[Gateway] BLOCKED by Layer 0: chop_state=SEARCHING (high chop)")
                 return result
         # FIX 4: skip _get_chop_state entirely when gate disabled (avoids
@@ -882,6 +894,10 @@ class TradingGateway:
                                 _nr_exempt = False  # fail-closed to the original block
                         if not _nr_exempt:
                             result["blocked_by"] = "direction_context"
+                            result["reason"] = (
+                                f"setup {_set_dir} vs day-context {_dc_dir}"
+                                + (f" ({_dc.get('reason')})" if _dc.get("reason") else "")
+                            )
                             logger.info("[Gateway] BLOCKED by direction-context: setup %s vs %s (%s)",
                                         _set_dir, _dc_dir, _dc.get("reason"))
                             return result
@@ -915,6 +931,10 @@ class TradingGateway:
                     logger.warning("[Gateway] lsma-flat gate: slope unavailable -> fail-open PASS")
                 elif _lf_applies and abs(_lf_slope) < _lf_min:
                     result["blocked_by"] = "lsma_flat"
+                    result["reason"] = (
+                        f"|LSMA slope {_lf_slope:.4f}| < {_lf_min:.4f} pts/bar "
+                        f"(flat LSMA, scope={_lf_scope})"
+                    )
                     logger.info(
                         "[Gateway] BLOCKED by lsma-flat gate: |slope %.4f| < %.4f pts/bar (flat LSMA, scope=%s)",
                         _lf_slope, _lf_min, _lf_scope)
@@ -934,6 +954,10 @@ class TradingGateway:
                 if _nb_hit:
                     result["blocked_by"] = "news_blackout"
                     result["news_event"] = _nb_hit["event"]
+                    result["reason"] = (
+                        f"news blackout: {_nb_hit['event']} @{_nb_hit['event_time_et']} ET "
+                        f"({_nb_hit['window']})"
+                    )
                     logger.info("[Gateway] BLOCKED by news-blackout: %s @%s ET (%s)",
                                 _nb_hit["event"], _nb_hit["event_time_et"], _nb_hit["window"])
                     return result
@@ -991,6 +1015,10 @@ class TradingGateway:
                                 )
                             else:
                                 result["blocked_by"] = "day_direction_doctrine"
+                                result["reason"] = (
+                                    f"{direction} against {_dd_exp_dir} expansion on "
+                                    f"{_dd_dt} (no halt-proof)"
+                                )
                                 logger.info(
                                     "[Gateway] BLOCKED by day-direction doctrine: %s against %s expansion on %s (no halt-proof)",
                                     direction, _dd_exp_dir, _dd_dt,
@@ -1474,6 +1502,9 @@ class TradingGateway:
 
                     if _t1_dist <= 0:
                         result["blocked_by"] = "t1_wrong_side"
+                        result["reason"] = (
+                            f"{_rr_dir} t1={float(_rr_t1):.2f} on wrong side of entry={_rr_e:.2f}"
+                        )
                         logger.warning(
                             "[Gateway] BLOCKED t1_wrong_side: %s t1=%.2f entry=%.2f "
                             "(t1 on wrong side of entry)",
@@ -1608,6 +1639,10 @@ class TradingGateway:
                         _zl_adverse = (_zl_px - _zl_e) if _zl_dir == "LONG" else (_zl_e - _zl_px)
                         if _zl_adverse > _zl_max_drift:
                             result["blocked_by"] = "zone_limit_late_entry"
+                            result["reason"] = (
+                                f"adverse drift {_zl_adverse:.2f}pt > max {_zl_max_drift:.2f}pt "
+                                f"(entry={_zl_e:.2f} live={_zl_px:.2f})"
+                            )
                             logger.info(
                                 "[Gateway] BLOCKED by zone-limit late-entry (drift): %s "
                                 "entry=%.2f live=%.2f adverse_drift=%.2fpt > max=%.2fpt "
@@ -1627,6 +1662,10 @@ class TradingGateway:
                         _zl_age = _zl_time.time() - _zl_sig_epoch
                         if _zl_age > _zl_max_age:
                             result["blocked_by"] = "zone_limit_late_entry"
+                            result["reason"] = (
+                                f"signal age {_zl_age:.0f}s > max {_zl_max_age:.0f}s "
+                                f"(bar_ts={_zl_raw_ts})"
+                            )
                             logger.info(
                                 "[Gateway] BLOCKED by zone-limit late-entry (age): %s "
                                 "entry=%s signal_age=%.0fs > max=%.0fs (bar_ts=%s)",
@@ -1651,6 +1690,9 @@ class TradingGateway:
                 _dl_cap = 450.0
             if _dl_cap > 0 and self._daily_pnl <= -_dl_cap:
                 result["blocked_by"] = "daily_loss_halt"
+                result["reason"] = (
+                    f"daily pnl ${self._daily_pnl:.2f} <= -${_dl_cap:.0f} (STOP DAY)"
+                )
                 logger.warning(
                     "[Gateway] BLOCKED by daily-loss halt: pnl=$%.2f <= -$%.0f (STOP DAY)",
                     self._daily_pnl, _dl_cap,
@@ -1672,6 +1714,9 @@ class TradingGateway:
                 _cl_lim = 0
             if _cl_lim > 0 and self._consecutive_losses >= _cl_lim:
                 result["blocked_by"] = "consecutive_loss_halt"
+                result["reason"] = (
+                    f"{self._consecutive_losses} consecutive losses >= {_cl_lim} (STOP DAY)"
+                )
                 logger.warning(
                     "[Gateway] BLOCKED by consecutive-loss halt: %d losses >= %d (STOP DAY)",
                     self._consecutive_losses, _cl_lim,
@@ -1693,6 +1738,7 @@ class TradingGateway:
             result["blocked_by"] = (
                 "pattern_loss_breaker" if _rcb_kind == "pattern_loss_breaker"
                 else "s4_risk_cap")
+            result["reason"] = str(_s4_rcb)
             logger.warning("[Gateway] BLOCKED by S4 %s: %s", result["blocked_by"], _s4_rcb)
             return result
 
@@ -1776,6 +1822,7 @@ class TradingGateway:
 
         if cluster_blocked:
             result["blocked_by"] = "cluster_guard"
+            result["reason"] = "cluster guard D-037 (too many fires in cluster window)"
             logger.info(
                 "[Gateway] SHADOW recorded; DEMO/LIVE blocked by cluster guard D-037"
             )

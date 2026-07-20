@@ -90,6 +90,19 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cursor-agent — FRONTEND_INDEX + precise reason לכל שער
+`docs/handoff/FRONTEND_INDEX.md`: רכיב→endpoint+שדה · טבלת כל blocked_by→reason · פרוטוקול (שער/סיבה→אינדקס+planHelp באותו קומיט).
+Gateway: `result["reason"]` על כל נקודת-חסימה שחסרה (direction_context, lsma_flat, news, doctrine, t1, zone, halts, s4_rcb, cluster…).
+planHelp: תרגומי REASON_PHRASES לכל דפוס; GATE_HE.why → "ראה סיבה מדויקת". מועמדי-מחיקה (לא נמחקו): LeftTabs+9, ChartV5a, …
+```bash
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/test_gateway_block_reason_precise.py \
+    tests/v9/regression/test_gateway_decisions_feed.py -q
+10 passed
+$ npx tsc --noEmit → 4 pre-existing (0 חדשות)
+$ curl :3000/ :3000/board :3000/build → 200
+```
+תצוגה בלבד. **cowork מאמת.** ריסטארט-backend כדי שפיד-חי יכלול reason בחסימות חדשות.
+
 ### [2026-07-20] cursor-agent — PRECISE_BLOCK_REASON (display-only)
 Gateway `result["reason"]` → decisions feed; UI `blockWhy()` מעדיף reason מדויק על GATE_HE גנרי.
 מיפוי: `responsive SHORT not at VAH` → "שורט-fade לא בתקרה (VAH)".
