@@ -90,7 +90,23 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
-### [2026-07-20] cc-macbook — משימה 3: MANUAL_CANCEL_DETECT_V1 בנוי (OFF)
+### [2026-07-20] cc-macbook — T17 E2E + BE_AFTER_REAL_T1_V1 + MANUAL_CANCEL_DETECT_V1
+**T17 E2E sim:** PLACE 4 contracts → `ORDER_SUBMITTED`, qty=4, working=8 (4 targets + 4 stops) ✅
+```
+C1: target 9196 @ 7539.5 + stop 9197 @ 7490.0
+C2: target 9199 @ 7533.0 + stop 9200 @ 7490.0
+C3: target 9202 @ 7523.0 + stop 9203 @ 7490.0
+C4: target 9205 @ 7530.0 + stop 9206 @ 7490.0
+```
+**BE_AFTER_REAL_T1_V1 (OFF):** DLL reports C1 fill as "T1" — remap T1→T0 (no BE),
+T2→T1 (BE here). 4 tests passed. `2b39196b`.
+
+**MANUAL_CANCEL_DETECT_V1 (OFF):** Sierra flat+TM has trade → CANCELLED+slot release.
+4 tests, 38 reconciler tests passed. `d94bba7b`.
+
+**ORPHAN re-sim:** ⏸ ממתין ליתום.
+
+### [2026-07-20] cc-macbook — משימה 3 (old): MANUAL_CANCEL_DETECT_V1 בנוי (OFF)
 Michael manually flattens → reconciler detects (Sierra flat, TM has trade, N checks) →
 marks **CANCELLED** (not CLOSED) + releases gateway slot immediately.
 Extends PHANTOM_HEAL_V1 path. 4 tests, 38 total reconciler tests passed. `72ec0ba1`.
