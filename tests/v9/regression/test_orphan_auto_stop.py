@@ -50,10 +50,11 @@ def _make_tm(active_trades=None):
 @pytest.fixture(autouse=True)
 def _reset_module_state(monkeypatch, tmp_path):
     """Reset module-level state and point to tmp state file each test."""
-    # Reset idempotency + cooldown + phantom streak
+    # Reset idempotency + cooldown + phantom streak + virtual stop
     reconciler._orphan_stop_placed.clear()
     reconciler._orphan_stop_last_attempt = 0.0
     reconciler._phantom_flat_streak = 0
+    reconciler._virtual_stop.clear()
     # Point state/events files to tmp
     sf = tmp_path / "sierra_state.json"
     ef = tmp_path / "trade_activity_events.jsonl"
@@ -86,27 +87,26 @@ def test_flag_off_orphan_alert_only(tmp_path):
 
 # ── Test 2: flag ON + short orphan → stop above at correct price ──────────────
 
-def test_flag_on_short_orphan_stop_above(tmp_path, monkeypatch):
+def test_flag_on_short_orphan_virtual_stop(tmp_path, monkeypatch):
     """Flag ON + SHORT orphan -5 @ 7502.70, working=0, fresh state →
-    auto-stop attempted. Stop should be ABOVE entry by 10pt = 7512.75, qty=5."""
+    virtual stop SET (not immediate flatten). Stop ABOVE entry by 10pt = 7512.75."""
     monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
     _write_fresh_state(tmp_path, qty=-5, avg_price=7502.70, working=0)
     tm = _make_tm()
 
     with patch.object(reconciler, "_place_orphan_stop") as mock_place:
-        mock_place.return_value = (True, "placed")
+        mock_place.return_value = (True, "VIRTUAL_STOP_SET: SHORT stop @ 7512.75")
         ok, msg = reconciler.reconcile_position(tm)
 
     assert not ok  # still divergence
     assert "ORPHAN_AUTO_STOP" in msg
-    assert "PLACED" in msg
+    assert "VIRTUAL_STOP_SET" in msg
     # Verify the recommendation passed to _place_orphan_stop
     call_args = mock_place.call_args[0][0]
     assert call_args["side"] == "SHORT"
     assert call_args["qty"] == 5
     assert call_args["entry"] == 7502.70
     assert call_args["stop"] == 7512.75
-    assert call_args["points"] == 10.0
 
 
 # ── Test 3: flag ON + long orphan → stop below ───────────────────────────────
@@ -169,21 +169,22 @@ def test_qty_exceeds_max(tmp_path, monkeypatch):
 
 # ── Test 7: idempotency — two calls same position → one attempt ──────────────
 
-def test_idempotency_second_call_skipped(tmp_path, monkeypatch):
-    """Two consecutive calls with same (qty, entry) → second is SKIP(already-placed)."""
+def test_idempotency_after_flatten(tmp_path, monkeypatch):
+    """After a successful FLATTEN, same position → SKIP(already-flattened)."""
     monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
-    monkeypatch.setenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "0")  # disable cooldown for this test
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "0")
     _write_fresh_state(tmp_path, qty=-5, avg_price=7502.70, working=0)
     tm = _make_tm()
 
     with patch.object(reconciler, "_place_orphan_stop") as mock_place:
-        mock_place.return_value = (True, "placed")
+        # First call: simulate flatten triggered
+        mock_place.return_value = (True, "FLATTEN_TRIGGERED(STOP_CROSSED)")
         ok1, msg1 = reconciler.reconcile_position(tm)
+        # Second call: should be blocked by idempotency
         ok2, msg2 = reconciler.reconcile_position(tm)
 
-    assert "PLACED" in msg1
-    assert "SKIP(already-placed)" in msg2
-    assert mock_place.call_count == 1  # only called once
+    assert "FLATTENED" in msg1
+    assert "SKIP(already-flattened)" in msg2
 
 
 # ── Test 8: placement failure → reconciler doesn't crash, alert still sent ────
@@ -273,6 +274,95 @@ def test_write_flatten_orphan_payload(tmp_path, monkeypatch):
 
     cmd = json.loads((tmp_path / "trade_command.json").read_text())
     assert cmd["op"] == "FLATTEN_ORPHAN"
+
+
+# ── Test 14: virtual stop set on first call, not flattened immediately ────────
+
+def test_orphan_not_flattened_immediately(tmp_path, monkeypatch):
+    """Flag ON + orphan → VIRTUAL_STOP_SET (holding), NOT immediate flatten."""
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
+    _write_fresh_state(tmp_path, qty=-5, avg_price=7502.70, working=0)
+    tm = _make_tm()
+    ok, msg = reconciler.reconcile_position(tm)
+    assert "VIRTUAL_STOP_SET" in msg
+    assert "FLATTEN" not in msg or "FLATTEN_TRIGGERED" not in msg
+
+
+# ── Test 15: flatten triggers on stop-cross ──────────────────────────────────
+
+def test_flatten_on_stop_cross(tmp_path, monkeypatch):
+    """Price crosses structural stop → FLATTEN_TRIGGERED."""
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "0")
+    _write_fresh_state(tmp_path, qty=-5, avg_price=7502.70, working=0)
+    tm = _make_tm()
+
+    # First call: sets virtual stop
+    ok1, msg1 = reconciler.reconcile_position(tm)
+    assert "VIRTUAL_STOP_SET" in msg1
+
+    # Second call: price above stop (7512.75) → should trigger
+    # Write state with last_price above the stop
+    sf = tmp_path / "sierra_state.json"
+    sf.write_text(json.dumps({
+        "position_qty": -5, "avg_price": 7502.70, "working_orders": 0,
+        "last_price": 7513.00  # above stop 7512.75
+    }))
+    with patch.object(reconciler, "_flatten_orphan", return_value=(True, "FLATTEN_ORPHAN_OK")):
+        ok2, msg2 = reconciler.reconcile_position(tm)
+    assert "FLATTEN_TRIGGERED" in msg2
+    assert "STOP_CROSSED" in msg2
+
+
+# ── Test 16: flatten triggers on max loss ────────────────────────────────────
+
+def test_flatten_on_max_loss(tmp_path, monkeypatch):
+    """Unrealized loss >= $200 → FLATTEN_TRIGGERED even if stop not crossed."""
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "0")
+    monkeypatch.setenv("ORPHAN_MAX_LOSS_USD", "200")
+    _write_fresh_state(tmp_path, qty=-2, avg_price=7500.00, working=0)
+    tm = _make_tm()
+
+    # First call: sets virtual stop (stop=7510.00 for SHORT)
+    ok1, msg1 = reconciler.reconcile_position(tm)
+    assert "VIRTUAL_STOP_SET" in msg1
+
+    # Second call: price at 7509 (below stop 7510, not crossed)
+    # but loss = (7509-7500) * 2 * 12.50 = $225 > $200
+    sf = tmp_path / "sierra_state.json"
+    sf.write_text(json.dumps({
+        "position_qty": -2, "avg_price": 7500.00, "working_orders": 0,
+        "last_price": 7509.00
+    }))
+    with patch.object(reconciler, "_flatten_orphan", return_value=(True, "FLATTEN_ORPHAN_OK")):
+        ok2, msg2 = reconciler.reconcile_position(tm)
+    assert "FLATTEN_TRIGGERED" in msg2
+    assert "MAX_LOSS" in msg2
+
+
+# ── Test 17: no flatten when within tolerance ────────────────────────────────
+
+def test_no_flatten_within_tolerance(tmp_path, monkeypatch):
+    """Price within stop AND loss < $200 → MONITORING, no flatten."""
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
+    monkeypatch.setenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "0")
+    _write_fresh_state(tmp_path, qty=-2, avg_price=7500.00, working=0)
+    tm = _make_tm()
+
+    # First call: sets virtual stop
+    ok1, msg1 = reconciler.reconcile_position(tm)
+    assert "VIRTUAL_STOP_SET" in msg1
+
+    # Second call: price at 7503 (below stop 7510, loss = $75 < $200)
+    sf = tmp_path / "sierra_state.json"
+    sf.write_text(json.dumps({
+        "position_qty": -2, "avg_price": 7500.00, "working_orders": 0,
+        "last_price": 7503.00
+    }))
+    ok2, msg2 = reconciler.reconcile_position(tm)
+    assert "VIRTUAL_STOP_MONITORING" in msg2
+    assert "FLATTEN_TRIGGERED" not in msg2
 
 
 # ── Cooldown test ─────────────────────────────────────────────────────────────

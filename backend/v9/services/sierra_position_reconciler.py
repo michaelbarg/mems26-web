@@ -30,8 +30,11 @@ STATE_FILE = Path(os.path.expanduser(
 STATE_MAX_AGE_S = 10.0  # fresher than this → authoritative
 
 # ── ORPHAN_AUTO_STOP_V1 constants ─────────────────────────────────────────────
-ORPHAN_AUTO_STOP_MAX_QTY = int(os.getenv("ORPHAN_AUTO_STOP_MAX_QTY", "10"))
-ORPHAN_AUTO_STOP_COOLDOWN_S = float(os.getenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "60"))
+def _orphan_max_qty() -> int:
+    return int(os.getenv("ORPHAN_AUTO_STOP_MAX_QTY", "10"))
+
+def _orphan_cooldown_s() -> float:
+    return float(os.getenv("ORPHAN_AUTO_STOP_COOLDOWN_S", "60"))
 
 # Idempotency: tracks (qty, avg_price) → timestamp of last placement attempt.
 # Reset when position changes (different qty). Module-level to survive across
@@ -144,45 +147,70 @@ def _read_flatten_result(pre_mtime: float, timeout_s: float = 5.0) -> Tuple[bool
     return False, "FLATTEN_ORPHAN_TIMEOUT: no result within {:.0f}s".format(timeout_s)
 
 
-# ── Virtual stop state: tracks the orphan stop level being monitored ──
+# ── Virtual stop state: tracks the orphan structural stop being monitored ──
 # {(qty, entry): {"stop": float, "side": str, "set_ts": float}}
 _virtual_stop: dict = {}
 
+# MES tick value: $12.50 per point per contract
+_MES_DOLLAR_PER_POINT = 12.50
+def _orphan_max_loss_usd() -> float:
+    return float(os.getenv("ORPHAN_MAX_LOSS_USD", "200"))
 
-def _check_virtual_stop_crossed(sierra_qty: int, rec: dict) -> bool:
-    """Check if the current price has crossed the virtual stop level.
 
-    Reads the latest bar close from sierra_state.json (already fresh at this
-    point — the reconciler only runs when state is fresh). Returns True if
-    the protective stop level has been breached.
-    """
+def _orphan_current_price() -> Optional[float]:
+    """Read the latest price from sierra_state.json (last_price or last_trade_price)."""
     try:
         if not STATE_FILE.exists():
-            return False
+            return None
         data = json.loads(STATE_FILE.read_text().strip() or "{}")
-        # Use avg_price as proxy for current price (it's the position's avg,
-        # but we also need last_price or similar). Check if the state has a
-        # last_price field; otherwise fall back to checking the state file's
-        # price fields.
-        last_price = data.get("last_price") or data.get("last_trade_price")
-        if last_price is None:
-            return False
-        last_price = float(last_price)
-        stop = rec["stop"]
-        if rec["side"] == "LONG":
-            return last_price <= stop  # LONG: price fell to/below stop
-        else:
-            return last_price >= stop  # SHORT: price rose to/above stop
+        lp = data.get("last_price") or data.get("last_trade_price")
+        return float(lp) if lp is not None else None
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
-        return False
+        return None
+
+
+def _check_orphan_flatten_trigger(rec: dict) -> Optional[str]:
+    """Check if the orphan should be flattened now.
+
+    Michael ruling 2026-07-20 (redesign): hold the orphan with a structural
+    stop — only flatten when:
+      (1) price crosses the structural stop level, OR
+      (2) unrealized loss >= _orphan_max_loss_usd() (default $200)
+
+    Returns a reason string if triggered, None if still holding.
+    """
+    last_price = _orphan_current_price()
+    if last_price is None:
+        return None  # no price data → hold (Rule 1)
+
+    stop = rec["stop"]
+    entry = rec["entry"]
+    qty = rec["qty"]
+
+    # Trigger 1: price crossed structural stop
+    if rec["side"] == "LONG" and last_price <= stop:
+        return f"STOP_CROSSED: price {last_price:.2f} <= stop {stop:.2f}"
+    if rec["side"] == "SHORT" and last_price >= stop:
+        return f"STOP_CROSSED: price {last_price:.2f} >= stop {stop:.2f}"
+
+    # Trigger 2: unrealized loss >= max loss
+    if rec["side"] == "LONG":
+        unrealized_pts = entry - last_price  # positive = loss for LONG
+    else:
+        unrealized_pts = last_price - entry  # positive = loss for SHORT
+    unrealized_usd = unrealized_pts * qty * _MES_DOLLAR_PER_POINT
+    if unrealized_usd >= _orphan_max_loss_usd():
+        return (f"MAX_LOSS: unrealized ${unrealized_usd:.0f} >= "
+                f"${_orphan_max_loss_usd():.0f} ({unrealized_pts:.2f}pt × {qty}c)")
+
+    return None  # still within tolerance — hold
 
 
 def _flatten_orphan(rec: dict) -> Tuple[bool, str]:
     """Execute a market-exit for an orphan position via FLATTEN_ORPHAN DLL op.
 
-    Michael ruling 2026-07-20. ACSIL cannot place resting STOP orders.
-    Architecture: backend monitors virtual stop; when crossed, sends this
-    market-exit command. Uses proven SellExit/BuyExit + SCT_ORDERTYPE_MARKET.
+    Uses proven FlattenAndCancelAllOrders path. Only called when a trigger
+    fires (structural stop crossed or max loss exceeded).
 
     Returns (True, "FLATTEN_ORPHAN_OK") on success, (False, reason) on failure.
     """
@@ -209,32 +237,46 @@ def _flatten_orphan(rec: dict) -> Tuple[bool, str]:
 
 
 def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
-    """Set up a virtual stop for an orphan position.
+    """Monitor an orphan position with a virtual structural stop.
 
-    Michael ruling 2026-07-20: ACSIL cannot place resting STOP orders.
-    Instead, we set a virtual stop level and monitor it each reconciler cycle.
-    When price crosses the virtual stop → FLATTEN_ORPHAN (market-exit).
+    Michael ruling 2026-07-20 (redesign): do NOT flatten immediately.
+    Hold the orphan with a structural stop (from recommend_orphan_stop).
+    FLATTEN_ORPHAN only when:
+      (1) price crosses the structural stop, OR
+      (2) unrealized loss >= _orphan_max_loss_usd() ($200 default)
 
-    On first call: registers the virtual stop level → returns (True, "VIRTUAL_STOP_SET").
-    On subsequent calls: checks if price crossed → if yes, sends FLATTEN_ORPHAN.
+    On first call: registers the virtual stop → VIRTUAL_STOP_SET.
+    On subsequent calls: checks triggers → FLATTEN if triggered, else MONITORING.
     """
     key = (rec["qty"], rec["entry"])
 
     # Check if virtual stop already set for this position
     if key in _virtual_stop:
-        vs = _virtual_stop[key]
-        # Check if price has crossed the virtual stop
-        if _check_virtual_stop_crossed(rec["qty"] if rec["side"] == "LONG" else -rec["qty"], rec):
-            # Price crossed — flatten!
-            logger.critical("[Reconciler] VIRTUAL STOP CROSSED: %s @ %.2f → FLATTEN_ORPHAN",
-                           rec["side"], rec["stop"])
+        # Check flatten triggers
+        trigger = _check_orphan_flatten_trigger(rec)
+        if trigger:
+            logger.critical("[Reconciler] ORPHAN FLATTEN TRIGGER: %s → FLATTEN_ORPHAN", trigger)
             ok, status = _flatten_orphan(rec)
             if ok:
-                del _virtual_stop[key]  # clear after successful flatten
-            return ok, f"FLATTEN_TRIGGERED({status})"
+                del _virtual_stop[key]
+            try:
+                from scripts.ops_log import log_event
+                log_event("reconciler", "CRITICAL",
+                          f"ORPHAN FLATTENED: {trigger} → {status}")
+            except Exception:
+                pass
+            try:
+                from backend.v9.services.phone_alert import push as _pp
+                _pp("orphan_flatten", "\U0001f6a8 MEMS26: ORPHAN FLATTENED",
+                    f"{trigger} → {status}", priority=1)
+            except Exception:
+                pass
+            return ok, f"FLATTEN_TRIGGERED({trigger} → {status})"
         else:
+            lp = _orphan_current_price()
             return True, (f"VIRTUAL_STOP_MONITORING: {rec['side']} stop @ {rec['stop']}, "
-                         f"watching since {vs['set_ts']:.0f}")
+                         f"price={lp}, max_loss=${_orphan_max_loss_usd():.0f}, "
+                         f"watching since {_virtual_stop[key]['set_ts']:.0f}")
 
     # First time — register the virtual stop
     _virtual_stop[key] = {
@@ -242,8 +284,18 @@ def _place_orphan_stop(rec: dict) -> Tuple[bool, str]:
         "side": rec["side"],
         "set_ts": _time_mod.time(),
     }
+    logger.warning("[Reconciler] VIRTUAL STOP SET: %s @ %.2f for %dc @ %.2f "
+                   "(flatten on stop-cross or loss >= $%.0f)",
+                   rec["side"], rec["stop"], rec["qty"], rec["entry"], _orphan_max_loss_usd())
+    try:
+        from scripts.ops_log import log_event
+        log_event("reconciler", "WARNING",
+                  f"ORPHAN VIRTUAL STOP SET: {rec['side']} stop @ {rec['stop']} "
+                  f"for {rec['qty']}c @ {rec['entry']}")
+    except Exception:
+        pass
     return True, (f"VIRTUAL_STOP_SET: {rec['side']} stop @ {rec['stop']} for "
-                 f"{rec['qty']}c @ {rec['entry']}")
+                 f"{rec['qty']}c @ {rec['entry']} (flatten on cross or loss >= ${_orphan_max_loss_usd():.0f})")
 
 
 def _try_orphan_auto_stop(sierra_qty: int, src: str) -> Optional[str]:
@@ -259,9 +311,9 @@ def _try_orphan_auto_stop(sierra_qty: int, src: str) -> Optional[str]:
       3. working_orders == 0 (naked — no existing protection)
       4. state file fresh (<= STATE_MAX_AGE_S) — guaranteed by src=="state"
       5. recommend_orphan_stop() returned a valid dict
-      6. abs(qty) <= ORPHAN_AUTO_STOP_MAX_QTY (sanity cap)
+      6. abs(qty) <= _orphan_max_qty() (sanity cap)
       7. idempotency: not already placed for this (qty, avg_price)
-      8. cooldown: at least ORPHAN_AUTO_STOP_COOLDOWN_S since last attempt
+      8. cooldown: at least _orphan_cooldown_s() since last attempt
     """
     global _orphan_stop_last_attempt
 
@@ -288,58 +340,44 @@ def _try_orphan_auto_stop(sierra_qty: int, src: str) -> Optional[str]:
         return "SKIP(no-recommendation): recommend_orphan_stop returned None"
 
     # Condition 6: qty sanity cap
-    if abs(sierra_qty) > ORPHAN_AUTO_STOP_MAX_QTY:
-        return (f"SKIP(qty-too-large): |{sierra_qty}| > {ORPHAN_AUTO_STOP_MAX_QTY} "
+    if abs(sierra_qty) > _orphan_max_qty():
+        return (f"SKIP(qty-too-large): |{sierra_qty}| > {_orphan_max_qty()} "
                 f"— refusing (possible bad read)")
 
-    # Condition 7: idempotency
+    # Condition 7: idempotency — only blocks if this position was already FLATTENED
     key = (sierra_qty, rec["entry"])
     if key in _orphan_stop_placed:
-        return (f"SKIP(already-placed): stop already attempted for "
+        return (f"SKIP(already-flattened): orphan already flattened for "
                 f"qty={sierra_qty} entry={rec['entry']} "
                 f"at {_orphan_stop_placed[key]:.0f}")
 
-    # Condition 8: cooldown
+    # Condition 8: cooldown — only on FLATTEN attempts, not monitoring
     now = _time_mod.time()
-    if (now - _orphan_stop_last_attempt) < ORPHAN_AUTO_STOP_COOLDOWN_S:
+    # Skip cooldown if we're just monitoring (virtual stop already set)
+    _monitoring = key in _virtual_stop
+    if not _monitoring and (now - _orphan_stop_last_attempt) < _orphan_cooldown_s():
         return (f"SKIP(cooldown): {now - _orphan_stop_last_attempt:.0f}s "
-                f"< {ORPHAN_AUTO_STOP_COOLDOWN_S:.0f}s cooldown")
+                f"< {_orphan_cooldown_s():.0f}s cooldown")
 
-    # All conditions met — attempt placement
+    # All conditions met — monitor orphan with virtual stop
     _orphan_stop_last_attempt = now
     try:
         ok, reason = _place_orphan_stop(rec)
     except Exception as exc:
-        # Safety: reconciler never crashes from this feature
-        logger.error("[Reconciler] ORPHAN_AUTO_STOP placement exception: %s", exc)
+        logger.error("[Reconciler] ORPHAN_AUTO_STOP exception: %s", exc)
         return f"ERROR(placement-exception): {exc}"
 
     if ok:
-        # Record for idempotency
-        _orphan_stop_placed[key] = now
-        # Log to ops_log + phone
-        _log_msg = (f"ORPHAN_AUTO_STOP PLACED: {rec['side']} stop @ {rec['stop']} "
-                    f"for {rec['qty']}c @ {rec['entry']} ({rec['points']:.0f}pt)")
-        logger.critical("[Reconciler] %s", _log_msg)
-        try:
-            from scripts.ops_log import log_event
-            log_event("reconciler", "CRITICAL", _log_msg)
-        except Exception:
-            pass
-        try:
-            from backend.v9.services.phone_alert import push as _pp
-            _pp("orphan_auto_stop", "\U0001f6e1\ufe0f MEMS26: ORPHAN STOP PLACED", _log_msg, priority=1)
-        except Exception:
-            pass
-        return f"PLACED: {_log_msg}"
+        if "FLATTEN_TRIGGERED" in reason:
+            # Actual flatten happened — record idempotency + log critical
+            _orphan_stop_placed[key] = now
+            logger.critical("[Reconciler] ORPHAN FLATTENED: %s", reason)
+            return f"FLATTENED: {reason}"
+        else:
+            # Virtual stop set or monitoring — return status (re-enter next cycle)
+            return reason
     else:
-        # Placement failed — escalate to existing alert (don't swallow)
         logger.warning("[Reconciler] ORPHAN_AUTO_STOP failed: %s", reason)
-        try:
-            from scripts.ops_log import log_event
-            log_event("reconciler", "WARNING", f"ORPHAN_AUTO_STOP failed: {reason}")
-        except Exception:
-            pass
         return f"FAILED({reason})"
 
 

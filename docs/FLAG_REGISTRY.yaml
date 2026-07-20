@@ -941,6 +941,29 @@ flags:
     standing_decision: true
     status: sim_approved_pending_env
     ref: "backend/v9/systems/system6_supervisor.py · tests/v9/regression/test_system6_reversal_tighten.py"
+  ORPHAN_AUTO_STOP_V1:
+    category: risk
+    what: "When ON, orphan positions get a virtual structural stop monitored by the reconciler. FLATTEN_ORPHAN (market-exit) fires only when (1) price crosses the structural stop or (2) unrealized loss >= ORPHAN_MAX_LOSS_USD."
+    why: "OFF (default). Michael ruling 2026-07-17+07-20: redesigned from immediate-flatten to structural-stop+$200-cap. Enabling requires Michael sign-off + sim."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/services/sierra_position_reconciler.py"
+  ORPHAN_MAX_LOSS_USD:
+    category: param
+    what: "Maximum unrealized loss in USD before orphan position is flattened. Default 200. MES = $12.50/pt/contract."
+    why: "Safety cap — flatten at this dollar loss even if structural stop not crossed."
+    status: param
+    ref: "backend/v9/services/sierra_position_reconciler.py"
+  ORPHAN_AUTO_STOP_MAX_QTY:
+    category: param
+    what: "Maximum |qty| for orphan auto-stop (sanity cap against bad state reads). Default 10."
+    why: "Safety guard — refuse if position size exceeds this."
+    status: param
+  ORPHAN_AUTO_STOP_COOLDOWN_S:
+    category: param
+    what: "Minimum seconds between orphan flatten attempts. Default 60."
+    why: "Rate-limit — prevent rapid-fire flatten attempts."
+    status: param
   STOP_WINDOW_COMPLETED_V1:
     category: sizing
     what: "(Reserved, parallel build) Compute the S2/S4 initial stop from COMPLETED bars only — exclude the partial/opening in-progress bar so the stop window is not off-by-one."
