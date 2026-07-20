@@ -473,12 +473,14 @@ def reconcile_position(tm) -> Tuple[bool, str]:
     # FRESH state file (not the events journal), zero working orders, and a
     # sustained streak — a momentary flat never triggers it. Flag default OFF.
     _heal_on = os.getenv("PHANTOM_HEAL_V1", "0").lower() in ("1", "true", "yes")
+    _cancel_detect = os.getenv("MANUAL_CANCEL_DETECT_V1", "0").lower() in ("1", "true", "yes")
     _need = int(os.getenv("PHANTOM_HEAL_STREAK", "3"))
     _working = _sierra_state_working()
-    if _heal_on and src == "state" and sierra_qty == 0 and _working == 0 and tm_qty != 0:
+    if (_heal_on or _cancel_detect) and src == "state" and sierra_qty == 0 and _working == 0 and tm_qty != 0:
         _phantom_flat_streak += 1
         if _phantom_flat_streak >= _need:
             healed = []
+            _reason = "manual_cancel" if _cancel_detect else "phantom_reconcile"
             try:
                 for t in (tm.get_active_trades() or []):
                     if getattr(t, "mode", "shadow") not in ("demo", "live"):
@@ -489,17 +491,41 @@ def reconcile_position(tm) -> Tuple[bool, str]:
                     if tid is None:
                         continue
                     if hasattr(tm, "close_trade"):
-                        tm.close_trade(int(tid), reason="phantom_reconcile")
+                        tm.close_trade(int(tid), reason=_reason)
                         healed.append(int(tid))
+                    # MANUAL_CANCEL_DETECT_V1: mark CANCELLED + release slot
+                    if _cancel_detect:
+                        try:
+                            if hasattr(t, "state"):
+                                t.state = "CANCELLED"
+                            if hasattr(t, "outcome"):
+                                t.outcome = "CANCELLED"
+                        except Exception:
+                            pass
+                        # Signal gateway to release slot immediately
+                        try:
+                            from backend.v9.gateway.trading_gateway import get_gateway
+                            _gw = get_gateway()
+                            if _gw and hasattr(_gw, "on_trade_close"):
+                                _gw.on_trade_close(int(tid))
+                        except Exception as _gwe:
+                            logger.debug("[Reconciler] slot release signal: %s", _gwe)
             except Exception as _he:
-                logger.warning("[Reconciler] phantom-heal close error: %s", _he)
+                logger.warning("[Reconciler] phantom-heal/cancel close error: %s", _he)
             _phantom_flat_streak = 0
-            hmsg = (f"PHANTOM-HEAL: Sierra flat {_need}x (qty=0,working=0) but backend "
-                    f"held {tm_trades} → closed phantom {healed}, slot freed.")
+            _label = "MANUAL-CANCEL" if _cancel_detect else "PHANTOM-HEAL"
+            hmsg = (f"{_label}: Sierra flat {_need}x (qty=0,working=0) but backend "
+                    f"held {tm_trades} → {'cancelled' if _cancel_detect else 'closed'} "
+                    f"{healed}, slot freed.")
             logger.warning("[Reconciler] SYS-3 %s", hmsg)
             try:
+                from scripts.ops_log import log_event
+                log_event("reconciler", "WARNING", hmsg)
+            except Exception:
+                pass
+            try:
                 from backend.v9.services.phone_alert import push as _pp
-                _pp("phantom_heal", "\u267b\ufe0f MEMS26: phantom \u05e0\u05d5\u05e7\u05d4", hmsg, priority=0)
+                _pp("phantom_heal", "\u267b\ufe0f MEMS26: %s" % _label, hmsg, priority=0)
             except Exception:
                 pass
             return True, hmsg

@@ -941,6 +941,13 @@ flags:
     standing_decision: true
     status: sim_approved_pending_env
     ref: "backend/v9/systems/system6_supervisor.py · tests/v9/regression/test_system6_reversal_tighten.py"
+  MANUAL_CANCEL_DETECT_V1:
+    category: risk
+    what: "When Sierra is flat and TM has an open trade (N consecutive checks), mark trade CANCELLED (not CLOSED) and release gateway slot immediately. Detects manual cancellation by Michael."
+    why: "OFF (default). Michael ruling 2026-07-20: manual flatten must not cause false-orphan/naked alerts. Extending PHANTOM_HEAL_V1 with CANCELLED state + immediate slot release."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/services/sierra_position_reconciler.py · tests/v9/regression/test_manual_cancel_detect.py"
   ORPHAN_AUTO_STOP_V1:
     category: risk
     what: "When ON, orphan positions get a virtual structural stop monitored by the reconciler. FLATTEN_ORPHAN (market-exit) fires only when (1) price crosses the structural stop or (2) unrealized loss >= ORPHAN_MAX_LOSS_USD."
