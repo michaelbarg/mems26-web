@@ -85,8 +85,10 @@ def passes_strict_checks(setup: dict, mode: str, gateway) -> bool:
         logger.info("[RiskCheck] BLOCKED: max %d trades/day reached", MAX_TRADES_PER_DAY)
         return False
 
-    # Consecutive loss limit
-    if gateway._consecutive_losses >= CONSECUTIVE_LOSS_LIMIT:
+    # Consecutive loss limit — 0 = OFF (Michael 2026-07-20, "per spec": align with the
+    # gateway's own consecutive halt which uses the same `>0` convention; the $800 daily
+    # cap is the real backstop). Was hard-2 (blocked the day on #420+#424, both PRE-fix losses).
+    if CONSECUTIVE_LOSS_LIMIT > 0 and gateway._consecutive_losses >= CONSECUTIVE_LOSS_LIMIT:
         logger.info("[RiskCheck] BLOCKED: %d consecutive losses → STOP DAY",
                      gateway._consecutive_losses)
         return False

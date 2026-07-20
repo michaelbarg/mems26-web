@@ -16,6 +16,7 @@ ruled:
   RISK_HALT_V1:           {expected: "1", ruled_by: "מייקל", date: "2026-07-06", note: "עצירת יום" }
   RISK_MAX_TRADES_DAY:    {expected: "999", ruled_by: "מייקל", date: "2026-07-20", note: "היום בלי-מגבלת-עסקאות (999=בפועל-בלתי-מוגבל; הסף-האמיתי הוא $800). לשקול החזרה ל-5 מחר" }
   RISK_DAILY_LOSS_CAP:    {expected: "800", ruled_by: "מייקל", date: "2026-07-20", note: "היום −$800 (העלאה מ-400, פסיקת-בוקר 07-20). לשקול חזרה ל-400 מחר" }
+  RISK_CONSECUTIVE_LOSS_LIMIT: {expected: "0", ruled_by: "מייקל", date: "2026-07-20", note: "STOP-DAY על-רצף-הפסדים OFF ('per spec' + option-2): היה default-2 (passes_strict_checks) ועצר את היום על #420+#424 = 2 הפסדים מהמערכת-השבורה לפני-התיקון. 0=כבוי (guard נוסף risk_checks.py:89, עקבי עם שער-הגייטוויי); $800 הוא הגיבוי-האמיתי. לשקול סף-רצף מכוון מחר" }
   EOD_FLATTEN_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "סגירה אוטומטית EOD" }
   RECONCILE_LIVE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-07", note: "השוואת סיירה-DB בלולאה" }
   SYSTEM6_SUPERVISOR:     {expected: "1", ruled_by: "מייקל", date: "2026-07-05", note: "מפקח (AUTOCORRECT נפרד וכבוי)" }
