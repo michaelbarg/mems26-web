@@ -90,6 +90,21 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20 ~22:35 IL] cursor-agent — 🔴 §1B סוג-יום: מייקל צדק (Variation→Trend-down, לא Neutral) + השורש נמצא
+**טענת-מייקל אומתה בבר-מתמטיקה מול ייצוא-Sierra הגולמי (Rule 2):**
+```
+IB אמיתי (09:30-10:30 ET, 12 ברים ראשונים מ-5min.json): 7552.25/7506.0 = Sierra TPO בדיוק
+post-IB high 7534.0 → פריצה למעלה: אין (−18.25pt) · post-IB low 7478.0 → למטה: +28pt · close 7483 בשפל
+→ הרחבה חד-צדדית למטה = Variation→Trend-down. לא Neutral (אין 2 קצוות).
+```
+**אבל classify_replay החזיר `Neutral_Extreme conf=0.38` עם `ib_source=bars_fallback_sierra_inconsistent, ib_used=7523.75/7501.0`. למה? שרשרת:**
+1. **ברי-הבוקר ב-DB מוזזים −1h.** הצלבת-OHLC מלאה DB↔Sierra: 58 ברים בהיסט +4h (=שעה מוקדם) · 11 ברים +5h (נכון). נקודת-המעבר: **21:25 IL = 14:25 ET — בדיוק ה-restart של 14:30 ET.** ה-backend הישן כתב הזחה, החדש נקי.
+2. לכן "12 הברים הראשונים" ב-DB (7523.75/7501.0) הם בעצם **השעה השנייה** (10:30-11:30 ET); השעה הראשונה האמיתית תויגה 08:30-09:25 ET → נפלה ב-RTH-gate (אבדה מ-v9_bars_5min).
+3. `S1_IB_SANITY_V1` השווה את ה-IB הנכון של Sierra מול "first-12" השגויים → פסל את Sierra כ"רחב-מדי" → החליף ב-IB שגוי → עם IB צר-ושגוי "שני הצדדים נפרצו" → **Neutral כוזב מ-13:40 ET** (וכל ניתוב/פלייבוק מאז קרא Neutral).
+**ממצא-אגב:** `STOP_WINDOW_COMPLETED_V1` **לא אינרטי** — נצרך ב-`five_min_system.py:1308` + טסט `backend/v9/tests/test_stop_window_completed_bar.py` (ה-"not built" ב-FLAG_INDEX היה מיושן).
+**§0 סגור סופית:** עם הסט המוסדר המלא (FLAG_RULING) → `10 passed` (פלט מלא ב-LOG הקודם + טרמינל).
+**ממתין להכרעת-מייקל (לוגיקת-מסחר, לא נוגע בלי אישור):** (א) תיקון-דאטה לברי-הבוקר (+1h לשורות המוזזות + השלמת השעה הראשונה מ-5min.json) · (ב) שער-עקביות-TS בכניסה (הלולאה של §8-מנוף-1: offset≠קבוע → חסימה) · (ג) האם לתקן את התווית החיה עכשיו (Neutral_Extreme→Variation/Trend) לקראת מחר.
+
 ### [2026-07-20 ~21:55 IL] cursor-agent — §1A פיד: 🟢 טרי, +3 ממצאי-אינדיקטור (לא פיד)
 **🟢 פיד חי:** bar אחרון 21:50 IL (age 3ד'<6ד') · export age 2.7s · 12 streams: 11 healthy errors=0, footprint no_data (S3 מושתק — ידוע, לא רגרסיה) · dupes=0 · 0 future-bars · latency 17ms.
 ```bash
