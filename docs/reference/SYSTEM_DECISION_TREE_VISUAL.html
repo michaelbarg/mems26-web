@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>MEMS26 — עץ-החלטות ויזואלי (מהקוד, 2026-07-20)</title>
+<style>
+  :root{--bg:#0d1117;--card:#161b22;--line:#30363d;--txt:#e6edf3;--dim:#8b949e;
+        --on:#2ea043;--off:#f85149;--wait:#d29922;--info:#58a6ff;--gate:#21262d}
+  *{box-sizing:border-box}
+  body{background:var(--bg);color:var(--txt);font-family:-apple-system,"Segoe UI",Arial;margin:0;padding:24px;line-height:1.5}
+  h1{font-size:22px;margin:0 0 4px}
+  h2{font-size:17px;color:var(--info);border-bottom:1px solid var(--line);padding-bottom:6px;margin:34px 0 14px}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+  .flow{display:flex;flex-direction:column;gap:0;max-width:980px}
+  .node{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;position:relative}
+  .node h3{margin:0 0 6px;font-size:15px}
+  .arrow{align-self:center;color:var(--dim);font-size:20px;padding:2px 0}
+  .cols{display:flex;gap:14px;flex-wrap:wrap}
+  .cols>.node{flex:1;min-width:280px}
+  .flag{display:inline-block;border-radius:12px;padding:1px 9px;font-size:11.5px;font-weight:600;margin:0 3px}
+  .f-on{background:rgba(46,160,67,.15);color:var(--on);border:1px solid var(--on)}
+  .f-off{background:rgba(248,81,73,.12);color:var(--off);border:1px solid var(--off)}
+  .f-wait{background:rgba(210,153,34,.12);color:var(--wait);border:1px solid var(--wait)}
+  code{background:#1f2733;border-radius:5px;padding:1px 6px;font-size:12.5px;color:#9ecbff}
+  table{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}
+  th,td{border:1px solid var(--line);padding:6px 9px;text-align:right;vertical-align:top}
+  th{background:var(--gate);color:var(--info)}
+  .gates{counter-reset:g}
+  .gate{display:flex;align-items:flex-start;gap:10px;background:var(--gate);border:1px solid var(--line);
+        border-radius:8px;padding:7px 12px;margin:5px 0;font-size:13.5px}
+  .gate::before{counter-increment:g;content:counter(g);min-width:26px;height:26px;border-radius:50%;
+        background:#30363d;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px}
+  .gate.dead{opacity:.45}
+  .gate .why{color:var(--dim);font-size:12px}
+  .chk{transform:scale(1.25);margin-left:8px;accent-color:var(--on)}
+  .legend{display:flex;gap:16px;font-size:12.5px;color:var(--dim);margin:10px 0 0;flex-wrap:wrap}
+  .grp{border-right:3px solid var(--info);padding-right:10px;margin:14px 0 6px;color:var(--info);font-size:13px;font-weight:700}
+  .warn{border-right:3px solid var(--off);background:rgba(248,81,73,.06);padding:8px 12px;border-radius:6px;font-size:13px;margin:8px 0}
+  .ok{border-right:3px solid var(--on);background:rgba(46,160,67,.06);padding:8px 12px;border-radius:6px;font-size:13px;margin:8px 0}
+</style>
+</head>
+<body>
+
+<h1>MEMS26 — עץ-ההחלטות בפועל, מהפתיחה עד הסגירה</h1>
+<div class="sub">נגזר מהקוד 2026-07-20 23:30 IL · מצב-דגלים = ‎.env חי (flag_guard PASS 101/101) · לכל צומת יש ☑ — נסמן יחד תוך-כדי מעבר.
+<div class="legend"><span><span class="flag f-on">ON</span> דלוק ופעיל</span><span><span class="flag f-off">OFF</span> כבוי (מכוון/ממתין)</span><span><span class="flag f-wait">פסיקה</span> ממתין להכרעת-מייקל</span></div></div>
+
+<h2>① הצינור: מסיירה ועד החלטה <input type="checkbox" class="chk"></h2>
+<div class="flow">
+  <div class="node"><h3>Sierra DLL → bridge → API → Postgres</h3>
+    ה-DLL כותב JSON כל ~5s · ה-bridge (localhost בלבד, קשיח) דוחף ל-<code>POST /api/v9/bars/*</code>.<br>
+    שערי-כתיבה תמיד-ON: עתידי&gt;2דק' ✗ · מחוץ-RTH ✗ · נפח-מצטבר&gt;100K ✗ · מחיר-מעופש (B-13) ✗ · סתירה-מול-woodies ✗.<br>
+    <span class="flag f-on">WOODIES_TS_HOUR_FIX</span> מזיח +1h רק כשההיסט בדיוק 3600±120s ·
+    <span class="flag f-wait">TS_OFFSET_INGEST_GATE_V1</span> <b>החדש מהערב (OFF)</b>: פיד חי שמתויג &gt;15דק' אחורה → דחייה כנה. סוגר את החור של 07-20.</div>
+  <div class="arrow">▼</div>
+  <div class="node"><h3>סוג-יום S1 — המסווג הקנוני (7 סוגים, דלתון)</h3>
+    <span class="flag f-on">S1_NEW_CLASSIFIER</span><span class="flag f-on">S1_ENGINE_NEW_CLASSIFIER</span> —
+    <code>classify_session</code> רץ על כל בר: IB מ-Sierra TPO → הרחבות/acceptance/value/נפח →
+    <b>Normal → Normal_Variation → Trend / Neutral / Nontrend</b>. אסקלציה-בלבד (לעולם לא יורד בתוך סשן).<br>
+    <span class="flag f-on">S1_IB_SANITY_V1</span> מצליב IB מול 12-הברים-הראשונים — <b>⚠ בדיוק כאן 07-20 התהפך על דאטה מוזזת</b> (תוקן + נבנה שער-TS).<br>
+    צרכן-יחיד לשער: <code>get_live_day_type()</code> = override → 7-type חי → fallback.</div>
+</div>
+
+<h2>② הפתיחה 09:30 ET — האם יורים? <input type="checkbox" class="chk"></h2>
+<div class="flow">
+  <div class="node"><h3>לפני נעילת-IB אין תווית-כוזבת</h3>
+    <span class="flag f-on">OPENING_FIRE_CVD_V1</span> — FORMING → <code>day_type=None</code> (תיקון באג 06-29 <b>פעיל</b>).
+    זיהוי סוג-פתיחה מ-6 ברים: <b>OPEN_DRIVE / OPEN_TEST_DRIVE / OPEN_REJECTION_REVERSE / OPEN_AUCTION</b>, עם אישור-CVD ל-DRIVE (דיברג'נס=ספיגה→לא DRIVE).</div>
+  <div class="arrow">▼</div>
+  <div class="cols">
+    <div class="node"><h3 style="color:var(--on)">✔ יורים בפתיחה כאשר</h3>DRIVE מזוהה + ה-setup <b>עם</b> כיוון-ה-drive → <span class="flag f-on">OPENING_TYPE_GATE</span> מתיר, וב-30 הדק' הראשונות <code>opening_window_override</code> אף דורס סירובי-סוג-יום (אישור-חיובי; שערי-סיכון עדיין חלים).</div>
+    <div class="node"><h3 style="color:var(--off)">✘ לא יורים כאשר</h3>ירי <b>נגד</b> ה-drive → חסימה · OPEN_AUCTION (רוטציה, אין קצה) → hold · drive שנכשל (חזר דרך מחיר-הפתיחה) → הכל משוחרר לשערים הרגילים.</div>
+  </div>
+</div>
+
+<h2>③ המערכות היורות — מה מזהה ואיך <input type="checkbox" class="chk"></h2>
+<div class="cols">
+  <div class="node"><h3>S2 — Five-Min (גאומטריית מחיר+נפח)</h3>
+    תבניות: <b>FHB</b> (שעה ראשונה) · <b>Reactive</b> (fade בקצה-value) · <b>Initiative</b> (המשך) · <b>Double</b> · <b>HnS</b>.<br>
+    S2⟂S3: COT/AMT <b>לא</b> נדרש (<span class="flag f-off">S2_REQUIRE_COT_AMT</span>, פסיקה 06-08).<br>
+    emit+sizing קוראים סוג-יום <b>חי</b> ✅ · detection עדיין תווית-ישנה (<span class="flag f-wait">S2_DETECTION_LIVE_DAYTYPE_V1=0</span>, G2/G3 סים).</div>
+  <div class="node"><h3>S4 — Woodies CCI (14/6)</h3>
+    תבניות: <b>ZLR</b> (spec_v2) · <b>TT</b> · <b>GB100</b> · <b>VEGAS</b> · <b>GHOST</b> · <b>FAMIR</b> · <b>HTLB</b> · <b>TLB</b>.<br>
+    sizing קורא סוג-יום חי ✅ (<span class="flag f-on">S4_OVERRIDE_AWARE_V1</span>) · דחיות-cap עולות כ-metadata לשער (<code>s4_risk_cap_block</code>) — לא נבלעות.<br>
+    fallback-מת עדיין קיים (<span class="flag f-wait">S4_HONEST_DAYTYPE_FALLBACK_V1=0</span>, G6 סים).</div>
+</div>
+
+<h2>④ הלב — 27 שערים בסדר האמיתי (route_setup) <input type="checkbox" class="chk"></h2>
+<div class="sub">setup נופל בשער הראשון שחוסם; <code>blocked_by</code>+<code>reason</code> נרשמים ל-decisions feed → UI. אפור = מנוטרל-בכוונה.</div>
+<div class="gates">
+  <div class="grp">הגנה תפעולית</div>
+  <div class="gate"><div><b>kill_switch</b> — עצירת-חירום ידנית <span class="why">· תמיד נבדק ראשון</span></div></div>
+  <div class="gate"><div><b>session_gate_closed</b> — מחוץ 08:30–15:00 CT (16:30–23:00 IL)</div></div>
+  <div class="gate"><div><b>eod_entry_cutoff</b> <span class="flag f-on">EOD_RISK_WINDOW_V1</span> — אין כניסה ב-45 הדק' האחרונות (אחרי 22:15 IL)</div></div>
+  <div class="gate"><div><b>feed_watchdog</b> — פיד מעופש → אין ירי</div></div>
+  <div class="gate"><div><b>cooldown</b> — צינון אחרי עסקה</div></div>
+  <div class="gate"><div><b>suffering_side_veto</b> — צד שסופג הפסדים רצופים מושתק</div></div>
+  <div class="gate"><div><b>duplicate_fire</b> <span class="flag f-on">DEDUP_FIRE_GUARD</span> — אותו sys+כיוון+תבנית+כניסה±0.5pt תוך 30s</div></div>
+  <div class="gate dead"><div><b>chop_searching</b> <span class="flag f-off">LAYER0_CHOP_GATE</span> — מנוטרל (פסיקה 06-08)</div></div>
+  <div class="grp">סוג-יום + דוקטרינה (דלתון)</div>
+  <div class="gate"><div><b>opening_type_gate</b> <span class="flag f-on">OPENING_TYPE_GATE</span> — נגד-drive בחלון-הפתיחה (שלב ②)</div></div>
+  <div class="gate"><div><b>daytype_playbook</b> <span class="flag f-on">DAYTYPE_PLAYBOOK</span> — מטריצת תבנית×סוג-יום: SKIP/REDUCED/FULL <span class="why">· ⚠ G7: REDUCED נבלע ע"י FIXED_4 — פתוח לפסיקתך</span></div></div>
+  <div class="gate"><div><b>trend_direction_gate</b> <span class="flag f-on">REQUIRE_WITH_TREND_DAY_DIRECTION_V1</span> — ביום-Trend אין ירי נגד היום</div></div>
+  <div class="gate"><div><b>reactive_location</b> — fade רק בקצה הנכון (VAH לשורט / VAL ללונג)</div></div>
+  <div class="gate dead"><div><b>location_gate</b> <span class="flag f-off">DAYTYPE_LOCATION_GATE=0</span> — כובה 07-20 (חסם שבור)</div></div>
+  <div class="gate dead"><div><b>daytype_position_gate</b> <span class="flag f-off">DAYTYPE_POSITION_GATE=0</span> — כובה 07-20</div></div>
+  <div class="grp">כיוון</div>
+  <div class="gate"><div><b>cont_trend_filter</b> <span class="flag f-on">CONT_TREND_FILTER</span> — תבנית-המשך רק עם מגמת-LSMA מתמשכת (K=2 ברים); REV פטורות; <span class="flag f-on">CONT_TREND_STATE_CERT_V1</span> מציל pullback-בטרנד-כחול <span class="why">· הכרעה-פתוחה-3 שלך</span></div></div>
+  <div class="gate"><div><b>direction_context</b> <span class="flag f-on">DIRECTION_CONTEXT</span> — אין ירי נגד CVD+פריצה חי; פטור-fade לימי-רוטציה (<span class="flag f-on">NEUTRAL_RESPONSIVE_V1</span><span class="flag f-on">NORMAL_ROTATION_FIX_V1</span>)</div></div>
+  <div class="gate dead"><div><b>lsma_flat</b> <span class="flag f-off">LSMA_FLAT_GATE_V1=0</span> — כבוי</div></div>
+  <div class="gate"><div><b>news_blackout</b> <span class="flag f-on">NEWS_BLACKOUT_V1</span> — חלון-חדשות מהיומן</div></div>
+  <div class="gate"><div><b>day_direction_doctrine</b> — דוקטרינת יום×כיוון (G8: פסיקת-A דו-כיוונית, Neutral REV/CONT=SKIP)</div></div>
+  <div class="grp">איכות-כניסה</div>
+  <div class="gate"><div><b>entry_not_confirmed</b> — מחיר-חי רחוק מדי מהכניסה</div></div>
+  <div class="gate"><div><b>t1_wrong_side</b> — T1 בצד הלא-נכון</div></div>
+  <div class="gate"><div><b>rr_entry_gate</b> <span class="flag f-on">RR_ENTRY_GATE_V1</span> — R:R&lt;1.0 (ימי-רוטציה: 0.65)</div></div>
+  <div class="gate"><div><b>zone_limit_late_entry</b> <span class="flag f-on">ZONE_LIMIT_ENTRY_V1</span> — רדיפה &gt;2pt או אות ישן &gt;180s (פסיקת "אין כניסה מאוחרת")</div></div>
+  <div class="grp">סיכון (הגב)</div>
+  <div class="gate"><div><b>daily_loss_halt</b> <span class="flag f-on">RISK_HALT_V1</span> — הפסד-יומי ≥ <b>$800</b> → עצירת-יום (הגב האמיתי)</div></div>
+  <div class="gate dead"><div><b>consecutive_loss_halt</b> <span class="flag f-off">RISK_CONSECUTIVE_LOSS_LIMIT=0</span> — נוטרל 07-20 (זה שעצר את הבוקר על 2 הפסדים)</div></div>
+  <div class="gate"><div><b>pattern_loss_breaker / s4_risk_cap</b> — מ-metadata של S4 (breaker כרגע OFF)</div></div>
+  <div class="gate"><div><b>cluster_guard</b> — צביר-ניסיונות; חוסם DEMO/LIVE, צל תמיד נרשם</div></div>
+</div>
+
+<h2>⑤ ניתוב + ביצוע <input type="checkbox" class="chk"></h2>
+<div class="flow">
+  <div class="node"><h3>עבר הכל → תמיד צל, ולייב רק אם:</h3>
+    <span class="flag f-on">MEMS26_MODE=live</span><span class="flag f-on">LIVE_EXECUTION_V1</span><span class="flag f-on">LIVE_TRADING_ARMED</span> +
+    <b>live_slot פנוי</b> (עסקת-לייב אחת בו-זמנית; מתפנה ב-close) +
+    <b>strict-checks</b>: cutoff-לייב 15:30 ET (22:30 IL, פסיקת 07-19) · הפסדים-רצופים מנוטרל.</div>
+  <div class="arrow">▼</div>
+  <div class="node"><h3>ביצוע ל-Sierra: op=PLACE</h3>
+    bracket/OCO <b>פר-חוזה</b>: כל חוזה נכנס עם סטופ+יעד צמודים ב-Sierra עצמה.
+    <div class="warn"><b>op=EXIT שבור</b> (r=-1) — אסור עד EXIT-v2. יציאות מותרות: OCO של היעדים · MODIFY_STOP · FLATTEN_ACCOUNT בלבד.</div></div>
+</div>
+
+<h2>⑥ הסטופ והמימוש — מהקוד <input type="checkbox" class="chk"></h2>
+<div class="flow">
+  <div class="node"><h3>הסטופ (תיקון #420 — חי מהיום)</h3>
+    <span class="flag f-on">STRUCTURAL_STOP_ORIGIN_V1</span> הסטופ על <b>קצה-המבנה של התבנית +6 טיקים</b> — לא מרחק-ATR ·
+    <span class="flag f-on">STOP_WINDOW_COMPLETED_V1</span> חלון-המבנה נמדד על ברים <b>סגורים</b> בלבד (אומת מחווט הערב) ·
+    <span class="flag f-on">STOP_WIDEN_TO_STRUCTURE_V1</span> סטופ רחב-מ-ATR מתקבל, לא נדחה ·
+    <span class="flag f-wait">STOP_WIDEN_TO_FLOOR_ON_REJECT_V1</span> (OFF, סים-gated): דחיית-סטופ ע"י Sierra → הרחבה-לרצפה.</div>
+  <div class="arrow">▼</div>
+  <div class="node"><h3>המימוש — טבלת-היעדים פר-סוג-יום (<code>targets_table.py</code>, R = |כניסה−סטופ|)</h3>
+    <table>
+      <tr><th>סוג-יום</th><th>T1</th><th>T2</th><th>T3</th><th>time-stop</th><th>חוזים</th><th>trail</th></tr>
+      <tr><td><b>Trend_Normal</b></td><td>1R</td><td>2R+TPO</td><td>4R</td><td>—</td><td>3 (אגרסיבי)</td><td>אחרי T2</td></tr>
+      <tr><td><b>Trend_DD</b></td><td>1R</td><td>פתוח</td><td>תקרה 4R</td><td>90 דק'</td><td>3</td><td>—</td></tr>
+      <tr><td><b>Variation</b></td><td>1R</td><td>2.5R</td><td>trail בלבד</td><td>60 דק'</td><td>2 (מלא)</td><td>אחרי T2</td></tr>
+      <tr><td><b>Normal</b></td><td>1R</td><td>POC</td><td>—</td><td>30 דק'</td><td>1 (חצי)</td><td>—</td></tr>
+      <tr><td><b>Neutral_Extreme</b></td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>45 דק'</td><td>1</td><td>—</td></tr>
+      <tr><td><b>Neutral_Center</b></td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>30 דק'</td><td>1</td><td>—</td></tr>
+      <tr><td><b>Nontrend</b></td><td colspan="6" style="color:var(--off)"><b>NO TRADE</b> (+ NONTREND_DISABLE_ALL=1)</td></tr>
+    </table>
+    <div class="warn">⚠ G7 פתוח: הפלייבוק כותב REDUCED אבל sizing FIXED_4 דורס — "מופחת" לא עובד בפועל. דורש פסיקתך לפני קוד.</div></div>
+</div>
+
+<h2>⑦ מערכת 6 — המפקח (protective) <input type="checkbox" class="chk"></h2>
+<div class="cols">
+  <div class="node"><h3 style="color:var(--on)">AUTO — מותר ומבוצע</h3>
+    <span class="flag f-on">SYSTEM6_AUTOCORRECT=protective</span> (פסיקת 07-15, 6/6):<br>
+    · <b>MODIFY_STOP → Break-Even</b> — השלמת הזזת-סטופ שלא בוצעה<br>
+    · <b>DROP_TARGET</b> מייעץ בלבד (לא מחווט לביצוע)<br>
+    <b>לעולם לא op=EXIT.</b> ה-tier המלא (=1) חסום עד EXIT-v2.</div>
+  <div class="node"><h3 style="color:var(--wait)">ALERT — מתריע, אדם מחליט</h3>
+    סטופ-עירום · סטופ-בצד-הלא-נכון · <b>reconcile_mismatch</b> (רשומות≠Sierra) · rescue-tier N4a (אות-נגדי לפני T1).<br>
+    <div class="warn">⚠ הלולאה-המעגלית #1: אורפן מזוהה אבל אין ריפוי-אוטו (<span class="flag f-wait">ORPHAN_AUTO_STOP_V1=0</span> + חסר op=PLACE_STOP מאומת-סים). "מתריע+מחכה" = התקלה חוזרת (07-10/14/17/20). הכרעתך.</div></div>
+</div>
+
+<h2>⑧ סגירה <input type="checkbox" class="chk"></h2>
+<div class="flow">
+  <div class="node">22:15 IL אין כניסות (45-דק') → 22:30 IL אין לייב (strict) → <b>23:00 IL סשן נסגר</b> →
+  המסווג נועל תווית טרמינלית → <code>v9_day_type_history</code> → rollover ~06:55 IL.
+  אימות-חובה: <code>sierra_state.json position_qty=0</code>.
+  <div class="warn">🔴 Task#6: <code>trade_fills.json</code> ריק → ה-P&L המדווח הוא חישוב, לא אמת-Sierra. חוסם-אמון פתוח — הבא בתור ב-§1.</div></div>
+</div>
+
+<h2>נקודות-הביקורת שלנו במעבר המשותף</h2>
+<div class="ok">① פיד טרי + streams ירוקים · ② ‎10:35: <code>ib_source=sierra_tpo</code> ו-IB=מה-שבצ'ארט · ④ כל חסימה ב-decisions עם reason שאתה מסכים לו · ⑤ עסקת-לייב: סטופ ב-Sierra = קצה-מבנה+6T · ⑥ יעדים תואמים את הטבלה לסוג-היום · ⑦ אפס ALERT פתוח לפני חימוש · ⑧ שטוח בסגירה.</div>
+<div class="sub" style="margin-top:14px">מסמך-אח טקסטואלי עם מספרי-שורות-בקוד: <code>docs/reference/SYSTEM_DECISION_TREE_LIVE.md</code> · הכרעות פתוחות: TS-gate לבוקר · IB_BREAK_ANY_EXPANSION · G7 sizing · אורפן.</div>
+
+</body>
+</html>
