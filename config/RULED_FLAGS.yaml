@@ -74,6 +74,9 @@ ruled:
   # לא-מעבר-לתקרה, בלי מחיר-מסונתז). נשאר OFF עד אימות-סים ביום ראשון (מחלקת-ORPHAN).
   STOP_WIDEN_TO_FLOOR_ON_REJECT_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-19", note: "אושר-בעיקרון; OFF עד אימות-סים 19/07 (משטח-סיכון). הדלקה=RULED→1 באותו קומיט + סים-הוכחה" }
   MANUAL_CANCEL_DETECT_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-20", note: "זיהוי-ביטול-ידני (פסיקת-מייקל 'אם אני מבטל עסקה ממשיכים והמערכת תזהה'): reconciler מזהה שיטוח-ידני (state qty=0+working=0, מקור-טרי, streak≥3 בעוד backend in-position) → מסמן CANCELLED (לא הפסד) + on_trade_close משחרר slot → ממשיך, בלי false-orphan. sierra_position_reconciler.py:476. OFF עד אימות-סים. הדלקה=RULED→1 + סים-הוכחה" }
+  SYSTEM6_REVERSAL_TIGHTEN_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-20", note: "T16: על היפוך-משמעותי (CVD-adverse + ≥2 סגירות-עוינות אחרי T1) → MODIFY_STOP הידוק + MODIFY_TARGET קירוב. לא op=EXIT. בנוי+נבדק-סים (34 טסטים, byte-identical כש-OFF). W1: 0 whipsaw-נזק. הדלקה=פסיקת-מייקל + re-sim" }
+  S2_DETECTION_LIVE_DAYTYPE_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-20", note: "G2+G3: S2 detection + Flag-T2 קוראים get_live_day_type ראשון (במקום current_day_type המפגר) → NT-skip/chart-gates/יעדים תואמי-override. בנוי+נבדק-סים, byte-identical כש-OFF. הדלקה=פסיקת-מייקל" }
+  S4_HONEST_DAYTYPE_FALLBACK_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-20", note: "G6: כשל-live → None+log, לא נסיגה ל-v9_day_type_state המת ולא ל-'Normal' מסונתז (חוק-1 יושר-כשל). בנוי+נבדק-סים, byte-identical כש-OFF. הדלקה=פסיקת-מייקל" }
 
   # ── סטנדינג-כבוי (CLAUDE.md — הדלקה = פסיקת מייקל בכתב) ──
   S2_CHOPPINESS_GATE:     {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-06-08", note: "סטנדינג" }
