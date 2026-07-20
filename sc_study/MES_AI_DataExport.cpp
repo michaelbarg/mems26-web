@@ -1440,24 +1440,29 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                     if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
                                         o.TradeAccount = acct_buf;
 
-                                    // Exit-family (reduce-only, proven):
-                                    //   LONG pos → SellExit = close
-                                    //   SHORT pos → BuyExit = cover
-                                    int r;
-                                    if (actual_pos > 0)
-                                        r = static_cast<int>(sc.SellExit(o));
-                                    else
-                                        r = static_cast<int>(sc.BuyExit(o));
+                                    // FlattenAndCancelAllOrders — the only ACSIL path
+                                    // proven to work for closing orphan positions.
+                                    // SellExit/BuyExit return -1 even on orphans (OCO
+                                    // issue persists regardless of working_orders state).
+                                    // Flatten is safe: the position IS the orphan — we
+                                    // want it gone entirely. The reduce-only guards above
+                                    // (pos check, side match, qty clamp) verified the
+                                    // position exists and matches before we get here.
+                                    int r = sc.FlattenAndCancelAllOrders();
 
                                     result_status = (r >= 0) ? "FLATTEN_ORPHAN_OK" : "FLATTEN_ORPHAN_FAIL";
                                     order_err = r;
 
                                     if (r >= 0)
                                     {
+                                        // Clear persistent slots (same as FLATTEN_ACCOUNT)
+                                        for (int ci = 1; ci <= 9; ci++) sc.GetPersistentInt64(ci) = 0;
+                                        sc.GetPersistentInt(103) = 1;  // exit_written
+
                                         char msg[256];
                                         snprintf(msg, sizeof(msg),
-                                            "MEMS26: FLATTEN_ORPHAN_OK — %s market-exit qty=%d (pos=%d)",
-                                            (actual_pos > 0) ? "SELL" : "BUY", clamped_qty, actual_pos);
+                                            "MEMS26: FLATTEN_ORPHAN_OK — flatten qty=%d (pos=%d)",
+                                            clamped_qty, actual_pos);
                                         sc.AddMessageToLog(msg, 0);
                                     }
                                 }
