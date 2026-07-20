@@ -920,6 +920,13 @@ flags:
     why: "Spec §2/§5.4: the generic T1-only test (4pt / ≤7pt stop < 1.0) would dead-letter the pattern exactly on the Trend days where it is allowed, biasing the n>=15 sample to rotation days."
     status: param
     ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §2"
+  SYSTEM6_REVERSAL_TIGHTEN_V1:
+    category: risk
+    what: "On CVD reversal after T1 (CVD-flip + >=2 adverse closes), auto-tighten stop to BE + bring next target 50% closer. Conservative reversal response — NOT op=EXIT."
+    why: "OFF (default). Michael ruling 2026-07-20: W1 will decide enabling. Requires sim verification first."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/systems/system6_supervisor.py · tests/v9/regression/test_system6_reversal_tighten.py"
   STOP_WINDOW_COMPLETED_V1:
     category: sizing
     what: "(Reserved, parallel build) Compute the S2/S4 initial stop from COMPLETED bars only — exclude the partial/opening in-progress bar so the stop window is not off-by-one."

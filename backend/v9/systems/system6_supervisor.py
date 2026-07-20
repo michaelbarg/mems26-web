@@ -106,6 +106,9 @@ def diagnose_trade(
     stuck_bars_threshold: int = 12,
     stuck_progress_frac: float = 0.25,
     runner_reversal: bool = False,
+    # T16 — SYSTEM6_REVERSAL_TIGHTEN_V1: CVD-flip + ≥2 adverse closes after T1.
+    # Conservative reversal signal computed by caller. Default False = byte-identical.
+    cvd_reversal: bool = False,
 ) -> SupervisorReport:
     """Pure diagnosis of one active trade. `trade` = {direction, entry_price,
     stop, t1, t2, t3, contracts}. Returns a SupervisorReport. Never raises on
@@ -230,6 +233,32 @@ def diagnose_trade(
                             f"runner leg reversing after T1 on {d} trade — "
                             f"consider tightening the stop or flattening the runner"))
 
+    # 12. T16 — SYSTEM6_REVERSAL_TIGHTEN_V1: on a significant reversal
+    # (CVD-flip + ≥2 closes against the trade, after T1), tighten stop toward
+    # entry and bring target closer. NOT op=EXIT (forbidden per CLAUDE.md).
+    # Conservative: requires both CVD-flip AND structural close evidence.
+    # Caller detects and passes the bool in — this module stays pure.
+    # Michael ruling 2026-07-20: default OFF; W1 will decide enabling.
+    if (cvd_reversal and t1_hit
+            and os.getenv("SYSTEM6_REVERSAL_TIGHTEN_V1", "0").lower() in ("1", "true", "yes")):
+        # Tighten stop: move to entry (BE) — the conservative minimum
+        _tighten_stop = _be_target(d, entry)
+        issues.append(Issue("reversal_tighten_stop", WARN, AUTO,
+                            f"CVD reversal after T1 on {d} trade — tightening stop to BE {_tighten_stop}",
+                            correction={"op": "MODIFY_STOP", "price": _tighten_stop}))
+        # Bring target closer: move the next open target to 50% of its current
+        # distance from entry. This reduces exposure without op=EXIT.
+        for _tk in ("t2", "t3", "t4"):
+            _tv = trade.get(_tk)
+            if _tv is not None and _tv > 0:
+                _dist = abs(_tv - entry)
+                if _dist > 0:
+                    _new_tgt = entry + (_dist * 0.5) * (1 if d == "LONG" else -1)
+                    issues.append(Issue("reversal_tighten_target", WARN, AUTO,
+                                        f"CVD reversal — closer {_tk}: {_tv:.2f} → {_new_tgt:.2f}",
+                                        correction={"op": "MODIFY_TARGET", "price": _new_tgt}))
+                    break  # only the next open target
+
     return SupervisorReport(healthy=(len(issues) == 0), issues=issues,
                             reconcile_verdict=reconcile_verdict)
 
@@ -264,6 +293,7 @@ def scan_active_trade(
     bars_since_entry: Optional[int] = None,
     progress_pts: Optional[float] = None,
     runner_reversal: bool = False,
+    cvd_reversal: bool = False,
 ) -> Optional[SupervisorReport]:
     """Diagnose the active trade, log loudly, and (if SYSTEM6_AUTOCORRECT and an
     executor is given) apply AUTO corrections. Returns None when disabled or flat.
@@ -280,6 +310,7 @@ def scan_active_trade(
         now_ct_min=now_ct_min,
         counter_signal_pre_t1=counter_signal_pre_t1, bars_since_entry=bars_since_entry,
         progress_pts=progress_pts, runner_reversal=runner_reversal,
+        cvd_reversal=cvd_reversal,
     )
     for iss in report.alerts:
         logger.warning("[System6] %s ALERT: %s", iss.code, iss.detail)

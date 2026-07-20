@@ -16,6 +16,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v9/system6", tags=["system6"])
 
 
+def _ct_resolve() -> int:
+    """Resolve expected contract count from flags (same precedence as trade_contract_count)."""
+    import os
+    if os.getenv("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes"):
+        return 4
+    if os.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes"):
+        return 2
+    if os.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes"):
+        return 3
+    return 3
+
+
 def _atr(bars):
     if not bars:
         return 0.0
@@ -53,8 +65,10 @@ async def diagnose(request: Request):
     stop = float(tr["stop"]) if tr["stop"] is not None else None
     t1_hit = tr["t1_hit_ts"] is not None
     import os as _ctos
-    _ct = 2 if _ctos.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes") \
-        else (3 if _ctos.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes") else 3)
+    _ct = (4 if _ctos.getenv("FIXED_CONTRACTS_4", "0").lower() in ("1", "true", "yes")
+           else 2 if _ctos.getenv("FIXED_CONTRACTS_2", "0").lower() in ("1", "true", "yes")
+           else 3 if _ctos.getenv("FIXED_CONTRACTS_3", "0").lower() in ("1", "true", "yes")
+           else 3)
     out["trade"] = {"id": tr["id"], "direction": direction, "entry": entry,
                     "stop": stop, "t1_hit": t1_hit, "contracts": _ct}
 
@@ -181,9 +195,9 @@ async def diagnose_by_id(trade_id: int, request: Request):
                   "t1": float(tr["t1"]) if tr.get("t1") else None,
                   "t2": float(tr["t2"]) if tr.get("t2") else None,
                   "t3": float(tr["t3"]) if tr.get("t3") else None,
-                  "contracts": 3}
+                  "contracts": int(tr.get("contracts") or _ct_resolve())}
     rep = diagnose_trade(trade=trade_dict, atr=atr, t1_hit=t1_hit,
-                         price=cur_price, expected_contracts=3)
+                         price=cur_price, expected_contracts=_ct_resolve())
     return {
         "trade_id": trade_id,
         "state": tr.get("state"),
