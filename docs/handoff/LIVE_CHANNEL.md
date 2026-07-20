@@ -90,6 +90,31 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cursor-agent — WHY_NO_TRADES live (Rule5) → (ב) playbook location
+אחרי enable ~13:01 ET: צינור חי · setup יחיד REACTIVE_SHORT@7503 → `blocked_by=daytype_playbook`
+סיבה: `responsive SHORT not at VAH (below_value) on Variation` (דגל ON מוכח). לגיטימי.
+`docs/handoff/WHY_NO_TRADES_2026-07-20.md`. fired=0 blocked=1. עכשיו price~7504 VAH=7528 אין setup@ceiling.
+
+### [2026-07-20] cursor-agent — VERIFY Rule5: cc fix-1 + cursor fix-2 (still OFF)
+`git pull` → Already up to date. **הדלקה עדיין לא בוצעה** (RULED REQUIRE unset_or_0; STRUCTURAL/WIDEN לא ב-RULED=1).
+```bash
+$ pytest test_structural_stop_origin + test_stop_structural_wins +
+         test_dalton_require_day_direction_vah + test_stop_at_structural_edge_420 -q
+28 passed
+
+$ python3 probe OFF/ON (production decide + resolve_stop):
+  REQUIRE…=0 → SKIP (counter-trend BLUE)
+  REQUIRE…=1 → FULL (short@VAH)
+  WIDEN=0 → stop=7529.0 rejected=True
+  WIDEN=1 → stop=7529.0 rejected=False
+  COMBINED_GO=True
+
+$ flag_guard → PASS 97/97; REQUIRE actual=unset
+$ .env: STOP_WINDOW_COMPLETED_V1=0; STRUCTURAL/WIDEN/REQUIRE unset
+```
+**אשר:** byte-identical OFF ✅ · תחת ON short@VAH≠SKIP ✅ · סטופ-מבני 7529 מקובל ✅.  
+**הערה:** אין טסט ייעודי ל-`STOP_WINDOW_COMPLETED_V1` (קוד קיים, דגל=0). ENABLE_PROTOCOL ממתין לפסיקת-מייקל — cc מבצע, cursor מאמת.
+
 ### [2026-07-20] cursor-agent — fix-2 REQUIRE_WITH_TREND_DAY_DIRECTION_V1 (built OFF + RULED)
 `daytype_playbook.py` + gateway: כשON — require_with_trend מול day_direction/expansion; REACTIVE/HNS לפי מיקום VAH/VAL. OFF=byte-identical.
 ```bash
