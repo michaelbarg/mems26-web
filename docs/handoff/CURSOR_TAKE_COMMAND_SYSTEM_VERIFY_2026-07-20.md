@@ -1,0 +1,74 @@
+# CURSOR — קח פיקוד: אימות-מערכת שיטתי + הכנה למחר (מייקל 2026-07-20)
+
+## הנחיית-מייקל (ישירה)
+> "אני **לא מרוצה מ-cowork**. אני רוצה ש-**cursor ייקח פיקוד**, יעבור על **כל המערכות**, וביחד נעבור
+> **אחד-אחד** ונראה שהמערכת עובדת באופן תקין. הרץ עם **המודל החזק ביותר** שלך. הכן גם את **כל
+> ההכנות למחר** לתחילת המסחר."
+
+**cursor מוביל מכאן.** cowork עובר לתומך-מאמת בלבד (מריץ שאילתות/טסטים לפי בקשתך, לא מכריע).
+פרוטוקול: **מערכת אחת בכל פעם · לכל בדיקה — הדבק פקודה+פלט-גולמי (Rule 5) · ממצא+פתרון, לא "בוצע" · עצור
+לפני כל שינוי-לוגיקת-מסחר לאישור-מייקל.** התחל כל סעיף רק כשמייקל מאשר את הקודם.
+
+---
+
+## §0 — פער Rule-5 לסגור ראשון (לפני הכל)
+cursor דיווח "test_gateway_block_reason_precise + decisions_feed → 10 passed". **cowork הריץ (env טעון) →
+5 passed / 5 failed.** ההפרשים (assertion אמיתי, לא infra):
+```
+test_s4_risk_cap_reason_from_metadata: assert blocked_by=='pattern_loss_breaker'  ← got 'cont_trend_filter'
+test_blocked_decision_recorded_with_gate: assert blocked_by=='duplicate_fire'     ← got 'zone_limit_late_entry'
++ test_shadow_only_decision_recorded, test_decisions_endpoint_counts_today
+```
+נראה **סדר-שערים**: הטסט מניח ששער X חוסם, אבל שער מוקדם-יותר חוסם קודם. **הכרע:** האם הטסטים שבירים
+(מניחים סדר לא-נכון) או שהפיצ'ר נסוג? תקן כך שהחבילה **באמת ירוקה**, הדבק פלט-גולמי מלא. **זה בדיוק סוג
+הדבר שהאימות-השיטתי נועד לתפוס** — התחל ממנו.
+
+---
+
+## §1 — אימות מערכת-אחר-מערכת (העבור אחד-אחד עם מייקל)
+לכל שורה: הבדיקה · המצופה · הראיה-להדביק. סמן 🟢/🔴 + ממצא.
+
+**A. פיד (Sierra→bridge→DB).** בר-woodies אחרון טרי (age<6דק'), 0 עתידיים, 4 צירי-UAT.
+`psql .../mems26 -c "select max(ts), now()-max(ts) from v9_bars_5min_woodies"` · אין כפילויות ts/symbol.
+
+**B. סוג-יום — מקור-יחיד.** `v9_day_type_state` + `app.state.day_type_machine` + `classify_replay` מסכימים?
+(Task#5 — desync ידוע Normal_Variation↔Trend_Normal). override פג בחצות ET → **מחר צריך מסווג-אוטומטי**.
+
+**C. S2 (five-min).** זיהוי חי (היום 18 setups) · **סטופ מעבר-למבנה+6T** (STRUCTURAL_STOP_ORIGIN_V1=1,
+STOP_WINDOW_COMPLETED_V1=1, STOP_WIDEN_TO_STRUCTURE_V1=1 — אמת שדלוקים-בריצה) · buffer שורד-restart? (Task#8).
+
+**D. S4 (footprint/ZLR).** זיהוי · שערי-כניסה · ZLR spec_v2.
+
+**E. מחסום-שערים (הלב).** **כל** `blocked_by` מחזיר `reason` מדויק (35 blocked_by ב-gateway, 29 reason —
+**פער 6: אילו שערים בלי reason?**) · הסדר נכון (§0) · planHelp מציג את המדויק.
+
+**F. שערי-סיכון (בריצה, אחרי ה-restart 14:30 ET).** אומת ע"י cowork: `CONSECUTIVE_LOSS_LIMIT=0→STOP-DAY off`,
+cap=800, cutoff=15:00 ET, max=999. אמת שוב עם env-טעון.
+
+**G. ניתוב-לייב.** `is_live_enabled` · `passes_strict_checks("live")` · `live_slot` מתנקה אחרי close · setup
+כשיר → לייב לא shadow. **היום: 2 לייב + 9 shadow** — ה-9 היו STOP-DAY (תוקן ב-restart). אמת שהבא ילך לייב.
+
+**H. ביצוע→Sierra.** op=PLACE, bracket/OCO, סטופ נכתב במחיר הנכון.
+
+**I. רקונסיליאציה (Task#6 — 🔴 שבור).** `trade_fills.json` **ריק (size=0)** → P&L מחושב לא-אמיתי (#420 נרשם
+−82.50, בפועל ~−15). אמת מול Sierra איפה נקלטה כניסה/סטופ. **חוסם-אמון עד שנפתר.**
+
+**J. אורפנים.** session-watch מדווח **שורט-אורפן ‎-7 יציב, דורש FLATTEN ידני** (רשומות≠מציאות). ORPHAN_AUTO_STOP
+חסום על is_sim=0. אמת מצב-חשבון אמיתי מול הרשומות.
+
+**K. פרונטאנד.** FRONTEND_INDEX (e2954020) · block-reason מוצג · רכיבי-מת (LeftTabs+9 — פסיקה בלבד).
+
+---
+
+## §2 — הכנות למחר (פתיחת-מסחר)
+1. **restart-בוקר אחד נקי** שמדליק: מסווג-יום-אוטומטי (Task#5, IB_BREAK_ANY_EXPANSION_V1) + הידרציית-buffer
+   (Task#8) + תצוגת-reason. **בלי override ידני** (פג בחצות) — המערכת חייבת לסווג לבד מהפתיחה.
+2. **snapshot לפני** (`scripts/mems26_snapshot.sh "pre-open-0721"`).
+3. **PRE_TRADE_PROTOCOL** (`docs/runbooks/PRE_TRADE_PROTOCOL.md`) — פיד/DB/חיבור-Sierra/is_sim=0/armed/flat.
+4. **iMac=Sim מאושר** (כלל-סוחר-יחיד) לפני חימוש MacBook.
+5. `flag_guard` PASS + `mems26_verify.sh` (DLL↔repo · אינדקס · פיד · DB-lag).
+6. אורפן ‎-7 שטוח לפני הפתיחה (אחרת מחמם לתוך פוזיציה-לא-מנוהלת).
+
+## §3 — פרוטוקול-עבודה
+מערכת-אחת-בכל-פעם · Rule 5 (פקודה+פלט) · ממצא+תיקון+ראיה · דגל-OFF+טסט לכל שינוי-התנהגות · **עצור+מייקל**
+לפני כל נגיעה בלוגיקת-מסחר/סיכון. cowork מריץ אימותים לפי בקשתך ומאמת את טענותיך (סימטרי — §0).
