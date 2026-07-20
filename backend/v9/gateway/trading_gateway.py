@@ -412,6 +412,9 @@ class TradingGateway:
                 "direction": setup.get("direction"),
                 "entry": setup.get("entry_price"),
                 "blocked_by": bb,
+                # 07-20: precise gate reason (e.g. playbook "responsive SHORT not at
+                # VAH") for the UI — display-only; never invent when absent.
+                "reason": result.get("reason"),
                 "outcome": _outcome,
                 "trade_id": result.get("live") or result.get("demo") or result.get("shadow"),
             })
@@ -606,6 +609,7 @@ class TradingGateway:
                 )
                 if not _allow:
                     result["blocked_by"] = "opening_type_gate"
+                    result["reason"] = _reason
                     logger.info("[Gateway] BLOCKED by opening-type gate: %s", _reason)
                     return result
                 logger.debug("[Gateway] opening-type gate PASS: %s", _reason)
@@ -696,6 +700,7 @@ class TradingGateway:
                         )
                     if not _ow_ok:
                         result["blocked_by"] = "daytype_playbook"
+                        result["reason"] = _pb.reason  # precise — UI must not invent
                         logger.info("[Gateway] BLOCKED by day-type playbook: %s", _pb.reason)
                         return result
                 logger.debug("[Gateway] day-type playbook PASS: %s", _pb.reason)
@@ -715,6 +720,7 @@ class TradingGateway:
                 _allow, _reason = _td_decide(resolve_pattern_id(setup, _td_g1), direction, _td_ts)
                 if not _allow:
                     result["blocked_by"] = "trend_direction_gate"
+                    result["reason"] = _reason
                     logger.info("[Gateway] BLOCKED by trend-direction gate: %s", _reason)
                     return result
             except Exception as _td_err:
@@ -732,6 +738,7 @@ class TradingGateway:
                 )
                 if not _allow:
                     result["blocked_by"] = "reactive_location"
+                    result["reason"] = _reason
                     logger.info("[Gateway] BLOCKED by reactive-location gate: %s", _reason)
                     return result
             except Exception as _rl_err:
@@ -766,6 +773,7 @@ class TradingGateway:
                 )
                 if not _lg_allow:
                     result["blocked_by"] = "location_gate"
+                    result["reason"] = _lg_reason
                     logger.info("[Gateway] BLOCKED by location gate: %s", _lg_reason)
                     return result
             except Exception as _lg_err:  # fail-open — never block on a bug
@@ -790,6 +798,7 @@ class TradingGateway:
                 )
                 if not _allow:
                     result["blocked_by"] = "daytype_position_gate"
+                    result["reason"] = _reason
                     logger.info("[Gateway] BLOCKED by day-type position gate: %s", _reason)
                     return result
                 logger.debug("[Gateway] position gate PASS: %s", _reason)
@@ -823,6 +832,9 @@ class TradingGateway:
                         _sus = _dc.get("dir_sustained", "NEUTRAL")
                         if _sus != _set_dir:   # NEUTRAL (chop) or opposite → no sustained trend
                             result["blocked_by"] = "cont_trend_filter"
+                            result["reason"] = (
+                                f"{_pat} (CONT) setup {_set_dir} vs sustained {_sus}"
+                            )
                             logger.info("[Gateway] BLOCKED by cont-trend-filter: %s (CONT) setup %s vs sustained %s",
                                         _pat, _set_dir, _sus)
                             return result
@@ -1433,6 +1445,7 @@ class TradingGateway:
                                              tol_points=_ec_tol)
                     if not _ec_ok:
                         result["blocked_by"] = "entry_not_confirmed"
+                        result["reason"] = _ec_reason
                         logger.info("[Gateway] BLOCKED by entry-confirm: %s", _ec_reason)
                         return result
             except Exception as _ec_err:
@@ -1490,6 +1503,10 @@ class TradingGateway:
                             _conf_rr_min = 0.85
                         if _stop_dist > 0 and _avg_dist < _stop_dist * _conf_rr_min:
                             result["blocked_by"] = "rr_entry_gate"
+                            result["reason"] = (
+                                f"confluence avg_dist={_avg_dist:.2f} < "
+                                f"stop_dist={_stop_dist:.2f} × min={_conf_rr_min:.2f}"
+                            )
                             logger.info(
                                 "[Gateway] BLOCKED by R:R gate (confluence avg): "
                                 "avg_dist=%.2f < stop_dist=%.2f × min=%.2f",
@@ -1529,6 +1546,10 @@ class TradingGateway:
                             _rr_min = 1.0
                     if (not _confluence_fixed) and _stop_dist > 0 and _t1_dist < _stop_dist * _rr_min:
                         result["blocked_by"] = "rr_entry_gate"
+                        result["reason"] = (
+                            f"T1_dist={_t1_dist:.2f} < stop_dist={_stop_dist:.2f}"
+                            f" × min={_rr_min:.2f} (R:R={_t1_dist / _stop_dist:.2f})"
+                        )
                         logger.info(
                             "[Gateway] BLOCKED by R:R gate: T1_dist=%.2f < stop_dist=%.2f"
                             " × min=%.2f (R:R=%.2f)",

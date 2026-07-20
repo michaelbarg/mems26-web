@@ -29,6 +29,7 @@ export interface GatewayDecision {
   direction?: string | null;
   entry?: number | null;
   blocked_by?: string | null; // מפתח-שער — תרגום ב-GATE_HE (planHelp.ts)
+  reason?: string | null;     // 07-20: סיבה מדויקת מהשער (עדיף על why גנרי)
   outcome: string;
   trade_id?: number | string | null;
 }

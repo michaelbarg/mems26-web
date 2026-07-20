@@ -14,7 +14,7 @@ import {
   usePatternFeed, useFeedAge, type GatewayDecision,
 } from '../../../hooks/usePatternFeed';
 import {
-  PATTERN_HELP, planReasonHe, gateHe, COMPONENT_KEY_HE,
+  PATTERN_HELP, planReasonHe, gateHe, blockWhy, COMPONENT_KEY_HE,
 } from '../../sidepanel/lens/plan/planHelp';
 import {
   computeRow, TIER_META, TIER_ORDER, type PatternRowInfo,
@@ -85,10 +85,11 @@ function DecisionMark({ d, dim }: { d: GatewayDecision; dim?: boolean }) {
   const t = d.t_il ? d.t_il.slice(0, 5) : '';
   if (d.blocked_by) {
     const g = gateHe(d.blocked_by);
+    const why = blockWhy(d);
     return (
       <div style={{ fontSize: 9.5, color: dim ? COLORS.textTertiary : '#f0883e', lineHeight: 1.45 }}>
         ⛔ {t} נחסם — <b>{g.name}</b>
-        {!dim && <span style={{ color: COLORS.textSecondary }}> · {g.why}</span>}
+        {!dim && <span style={{ color: COLORS.textSecondary }}> · {why}</span>}
       </div>
     );
   }

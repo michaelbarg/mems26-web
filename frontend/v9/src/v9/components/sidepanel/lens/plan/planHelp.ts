@@ -428,6 +428,19 @@ const REASON_PHRASES: Array<[RegExp, string]> = [
   [/Insufficient data/g, 'אין מספיק נתונים'],
   [/Missing data/g, 'חסרים נתונים'],
   [/day_type unknown — cannot evaluate/g, 'סוג-היום עוד לא סווג — אי-אפשר להעריך'],
+  // 07-20: precise gateway block reasons (daytype_playbook / location) — not generic SKIP
+  [/responsive SHORT not at VAH/g, 'שורט-fade לא בתקרה (VAH) — מיקום שגוי'],
+  [/responsive LONG not at VAL/g, 'לונג-fade לא ברצפה (VAL) — מיקום שגוי'],
+  [/\(below_value\)/g, '(מתחת לערך)'],
+  [/\(above_value\)/g, '(מעל הערך)'],
+  [/\(near_val\)/g, '(ליד VAL)'],
+  [/\(near_vah\)/g, '(ליד VAH)'],
+  [/\(mid_value\)/g, '(אמצע הערך)'],
+  [/counter-day-direction on /g, 'נגד כיוון-היום ב-'],
+  [/counter-trend on /g, 'נגד מגמה-רגעית ב-'],
+  [/ on Variation/g, ' ביום-Variation'],
+  [/ on Trend_Normal/g, ' ביום-Trend_Normal'],
+  [/ on Trend_DD/g, ' ביום-Trend_DD'],
 ];
 
 /** מתרגם מחרוזת-סיבה גולמית מה-API לעברית קריאה ("מה חסר עכשיו"). */
@@ -454,7 +467,7 @@ export const GATE_HE: Record<string, { name: string; why: string }> = {
   duplicate_fire: { name: 'ירי-כפול', why: 'אותו איתות בדיוק כבר נורה הרגע — מניעת כפילות' },
   chop_searching: { name: 'שוק-קופצני (Layer-0)', why: 'מדד-הצ׳ופ במצב חיפוש — השוק ללא כיוון (כבוי כברירת-מחדל)' },
   opening_type_gate: { name: 'שער סוג-פתיחה', why: 'סוג-הפתיחה שזוהה לא מתיר את התבנית הזו' },
-  daytype_playbook: { name: 'פלייבוק סוג-יום', why: 'טבלת-המשחק של סוג-היום מסמנת SKIP לתבנית זו היום' },
+  daytype_playbook: { name: 'פלייבוק סוג-יום', why: 'פלייבוק סוג-היום דחה — סיבה מדויקת תופיע כשזמינה מהשרת' },
   trend_direction_gate: { name: 'שער כיוון-מגמה', why: 'הכיוון נגד המגמה המזוהה של היום' },
   reactive_location: { name: 'מיקום ריאקטיבי', why: 'עסקת-fade לא במיקום קצה תקין' },
   location_gate: { name: 'שער-מיקום (דלתון)', why: 'הכיוון לא מתאים למיקום מול VAH/VAL — לונג רק ברצפת-הערך, שורט רק בתקרה' },
@@ -481,4 +494,11 @@ export const GATE_HE: Record<string, { name: string; why: string }> = {
 export function gateHe(key?: string | null): { name: string; why: string } {
   if (!key) return { name: '', why: '' };
   return GATE_HE[key] || { name: key, why: 'שער ללא-תרגום — ראה לוג' };
+}
+
+/** 07-20: prefer precise API reason over generic GATE_HE.why (Michael: don't show misleading SKIP). */
+export function blockWhy(d: { blocked_by?: string | null; reason?: string | null }): string {
+  const precise = planReasonHe(d.reason);
+  if (precise) return precise;
+  return gateHe(d.blocked_by).why;
 }

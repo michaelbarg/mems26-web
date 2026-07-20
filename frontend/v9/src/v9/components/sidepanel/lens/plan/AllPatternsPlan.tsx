@@ -11,7 +11,7 @@
 // CONFLUENCE_RI_ZLR לא תוצג עוד כהחלטה של שורת ה-ZLR ההורה).
 import { useState } from 'react';
 import { COLORS } from '../../../../design/tokens';
-import { PATTERN_HELP, planReasonHe, gateHe } from './planHelp';
+import { PATTERN_HELP, planReasonHe, gateHe, blockWhy } from './planHelp';
 import {
   usePatternFeed, useFeedAge,
   type GatewayDecision as Decision, type DecisionsPayload,
@@ -37,9 +37,10 @@ function DecisionLine({ d, showPattern }: { d: Decision; showPattern?: boolean }
   const pat = showPattern ? `${d.pattern || '?'} ${d.direction || ''} ` : '';
   if (d.blocked_by) {
     const g = gateHe(d.blocked_by);
+    const why = blockWhy(d);
     return (
       <div style={{ fontSize: 10.5, color: '#f0883e', lineHeight: 1.45 }}>
-        ⛔ {t} {pat}נחסם — <b>{g.name}</b><span style={{ color: COLORS.textSecondary }}> · {g.why}</span>
+        ⛔ {t} {pat}נחסם — <b>{g.name}</b><span style={{ color: COLORS.textSecondary }}> · {why}</span>
       </div>
     );
   }
