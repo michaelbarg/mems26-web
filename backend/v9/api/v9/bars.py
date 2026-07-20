@@ -476,6 +476,52 @@ def _hour_shift_fix(bars: list, stream: str) -> int:
     return 0
 
 
+# TS_OFFSET_INGEST_GATE_V1 state: newest accepted bar-ts per stream, to tell a
+# LIVE-but-mislabeled feed (ts advances every push, always offset) from a
+# paused/backfill re-push (ts unchanged — allowed, upsert is idempotent).
+_ts_gate_last_newest: dict = {}
+
+
+def _ts_offset_ingest_gate(bars: list, stream: str) -> "Optional[str]":
+    """2026-07-20 loop-closure (Michael approved 22:44 IL): the morning backend
+    wrote the whole RTH session -1h (below _hour_shift_fix's tight 3600±120s
+    window → neither shifted NOR rejected). The wrong first-12-bars IB then
+    flipped S1's IB-sanity fallback → false Neutral_Extreme label all afternoon.
+
+    Rule: if this payload's newest bar-ts ADVANCED vs the previous accepted
+    push for this stream (feed is alive, producing new bars) AND that newest
+    ts is older than TS_OFFSET_REJECT_SEC (default 900s) behind server-now,
+    the feed is live-but-mislabeled → REJECT the batch (honest failure, Rule 1
+    — no guessing a shift) with a rate-limit-free error log. A paused market /
+    idempotent re-push (newest unchanged) always passes.
+
+    Flag: TS_OFFSET_INGEST_GATE_V1, default OFF. Returns reject-reason or None.
+    """
+    import os as _os
+    if _os.getenv("TS_OFFSET_INGEST_GATE_V1", "0").lower() not in ("1", "true", "yes"):
+        return None
+    try:
+        _num = [float(b.get("ts")) for b in bars
+                if isinstance(b.get("ts"), (int, float)) and b.get("ts")]
+        if not _num:
+            return None
+        _newest = max(_num)
+        _prev = _ts_gate_last_newest.get(stream)
+        _off = datetime.now(timezone.utc).timestamp() - _newest
+        try:
+            _thr = float(_os.getenv("TS_OFFSET_REJECT_SEC", "900"))
+        except (TypeError, ValueError):
+            _thr = 900.0
+        if _prev is not None and _newest > _prev and _off > _thr:
+            return (f"newest bar ts {_off:.0f}s behind now (> {_thr:.0f}s) while feed "
+                    f"advances ({_prev:.0f} -> {_newest:.0f}) — live-but-mislabeled TS")
+        _ts_gate_last_newest[stream] = _newest
+        return None
+    except Exception as _e:  # never break ingest on the gate
+        logger.warning("[%s] TS-OFFSET-GATE errored (pass-through): %s", stream, _e)
+        return None
+
+
 # ── POST /api/v9/bars/5min ──
 
 @router.post("/5min")
@@ -503,6 +549,14 @@ def post_bars_5min(
                 item["_ref"].ts = item["ts"]
     except Exception as _hf_err:
         logger.warning("[bars/5min] hour-fix wrapper errored (no shift): %s", _hf_err)
+
+    # TS_OFFSET_INGEST_GATE_V1 (default OFF) — reject live-but-mislabeled batches
+    _tsg = _ts_offset_ingest_gate(
+        [{"ts": getattr(b, "ts", None)} for b in bars], "bars_5min")
+    if _tsg:
+        logger.error("[bars/5min] TS-OFFSET-GATE REJECTED batch: %s", _tsg)
+        return {"ok": False, "inserted": 0, "rejected": len(bars),
+                "blocked_by": "ts_offset_gate", "reason": _tsg}
 
     def _flat_5min_for_router(bar: Bar5MinIn, ts) -> dict:
         """Flat keys for FiveMinSystem + BarLevelDetector (P31-02)."""
@@ -1049,6 +1103,13 @@ def post_woodies_5min(
 
     # 2026-07-17: RTH-chartbook -1h epoch shift → normalize at the boundary
     _hour_shift_fix(bars, "woodies_5min")
+
+    # TS_OFFSET_INGEST_GATE_V1 (default OFF) — reject live-but-mislabeled batches
+    _tsg = _ts_offset_ingest_gate(bars, "woodies_5min")
+    if _tsg:
+        logger.error("[woodies_5min] TS-OFFSET-GATE REJECTED batch: %s", _tsg)
+        return {"ok": False, "inserted": 0, "type": "woodies_5min",
+                "blocked_by": "ts_offset_gate", "reason": _tsg}
 
     # Frozen-tail fix: when current_bar exists AND history is present,
     # override history[-1] study fields with current_bar's live Sierra values.

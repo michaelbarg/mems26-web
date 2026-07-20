@@ -128,6 +128,15 @@ flags:
     what: "Sanity-check the Sierra-exported IB against the first-12-bars' own extremes once >=12 RTH bars exist; fall back to the bars-derived IB (+ tag ib_source) when inconsistent by >2 ticks/2pt."
     why: "OFF (default). N1a/N1b 2026-07-17: Sierra IB proven to be a stale pre-open snapshot on 07-15 (exported 7591.75-7619.0 vs true 7601.25-7626.25) — fed a phantom UP side and a false mid-session Neutral. Trading-risk-surface (changes classification) → Michael sign-off + sim verification before live."
     ref: "docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#1; tests/v9/regression/test_s1_ib_sanity.py"
+  TS_OFFSET_INGEST_GATE_V1:
+    category: s1
+    what: "Reject a bars batch (5min + woodies_5min ingest) whose newest bar-ts ADVANCES push-to-push (feed alive) while sitting > TS_OFFSET_REJECT_SEC (default 900s) behind server-now — a live-but-mislabeled TS feed. Honest reject, no guessed shift; paused-market/idempotent re-push (newest unchanged) always passes."
+    why: "OFF (default; Michael approved building 2026-07-20 22:44). Loop-closure for the 07-20 incident: the pre-restart backend wrote the whole RTH session -1h, below _hour_shift_fix's tight 3600±120s window, so batches were neither shifted nor rejected → wrong first-12-bars IB → S1 IB-sanity replaced the CORRECT Sierra IB → false Neutral_Extreme from 13:40 ET. Enabling = data-path change → Michael ruling + restart."
+    ref: "tests/v9/regression/test_ts_offset_ingest_gate.py; LIVE_CHANNEL 2026-07-20 22:35"
+  TS_OFFSET_REJECT_SEC:
+    category: param
+    what: "Threshold (seconds behind server-now, default 900) for TS_OFFSET_INGEST_GATE_V1's live-but-mislabeled rejection."
+    why: "900s = 3 bar-periods of slack; catches the -1h class while tolerating routing lag. Inert while the gate flag is OFF."
   S1_NEUTRAL_PRECEDENCE_V1:
     category: s1
     what: "In classify(), a two-sided day (sides==2) outranks a still-held single-side acceptance-reclass — previously the acceptance-reclass early-return shadowed Neutral entirely whenever S1_ACCEPTANCE_RECLASS_V1 was also on."

@@ -90,6 +90,18 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20 ~23:05 IL] cursor-agent — ✅ תיקון-הדאטה בוצע + הסיווג הקנוני עכשיו Normal_Variation-DOWN + שער-לולאה נבנה (OFF)
+**מאושר ע"י מייקל 22:44. הכל עם גיבוי (`v9_bars_5min[_woodies]_bak_0720`).**
+1. **תיקון-דאטה** (`scripts/repair_bars_ts_shift_2026_07_20.py`, שיטה אמפירית — התאמת-OHLC מול ייצוא-Sierra, אפס הנחות-TZ):
+```
+v9_bars_5min: היסטוגרמת-דלתא {-3h:30, -1h:65, 0:11} → DELETE 95 שגויים, INSERT 65 קנוניים מהייצוא
+v9_bars_5min_woodies: {-1h:77, 0:11} → UPDATE +1h ×65 (שדות-CCI נשמרו), DELETE 12 כפולי-תוכן
+אימות: IB窗 בטבלה = 7552.25/7506.0/12 ברים ✓ · 0 פערים>5דק' ✓ · 0 כפילויות ✓ · 0 עתידיים ✓
+```
+2. **classify_replay אחרי התיקון (EOD):** `Normal_Variation · CLASSIFIED · with_extension DOWN · ib_source=sierra_tpo · IB=7552.25/7506.0` — ה-fallback נעלם, הסיווג תואם את קריאת-מייקל (Variation→מגמה-למטה). 4 צירי-UAT על `chart/bars5min`: cardinality 60/60 · recency 22:50 · dupes 0 · latency 10ms.
+3. **סגירת-הלולאה:** `TS_OFFSET_INGEST_GATE_V1` (**OFF כברירת-מחדל**, ingest של 5min+woodies_5min): פיד שה-ts שלו מתקדם push-אחרי-push אבל תקוע >900s מאחורי now = live-but-mislabeled → **דחייה כנה** (בלי ניחוש-shift). בדיוק החור של היום: ‎−1h מתחת לחלון-התיקון 3600±120 → לא תוקן ולא נדחה. `tests/v9/regression/test_ts_offset_ingest_gate.py` — 6 טסטים + binding: `7 passed`. נרשם ב-FLAG_REGISTRY + FLAG_INDEX regen (177 דגלים). **הדלקה = פסיקת-מייקל + restart.**
+4. **🟡 תווית-היסטוריה:** עודכן `v9_day_type_history(07-20)`→Normal_Variation אבל **המנוע-החי דרס חזרה ל-Neutral_Extreme תוך 2 דק'** (state בזיכרון עדיין מורעל; כותב כל ~2דק' גם אחרי close). **פעולת-בוקר (אחרי ה-restart, לפני הפתיחה):** הרץ שוב את ה-UPDATE (שורה אחת, idempotent) — אחרי rollover הוא יחזיק. In-memory יתוקן ממילא ב-restart.
+
 ### [2026-07-20 ~22:35 IL] cursor-agent — 🔴 §1B סוג-יום: מייקל צדק (Variation→Trend-down, לא Neutral) + השורש נמצא
 **טענת-מייקל אומתה בבר-מתמטיקה מול ייצוא-Sierra הגולמי (Rule 2):**
 ```

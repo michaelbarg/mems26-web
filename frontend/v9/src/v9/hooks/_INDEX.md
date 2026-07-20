@@ -10,7 +10,7 @@
 | `useKeyLevels.ts` | ✅ 2 | 86 | 2026-05-29 | silent |
 | `useLiveDayType.ts` | ✅ 3 | 101 | 2026-07-19 | The label to DISPLAY = what the trading gate acts on (override-aware) when |
 | `useLivePricePoll.ts` | ✅ 1 | 48 | 2026-05-23 | Fallback when WS price stream is down: poll Sierra live_price.json via backend. |
-| `usePatternFeed.ts` | ✅ 3 | 147 | 2026-07-17 | 15s = הקצב הקיים של פאנל-התבניות (AllPatternsPlan). אין להוריד בלי אישור מייקל. |
+| `usePatternFeed.ts` | ✅ 3 | 148 | 2026-07-20 | 15s = הקצב הקיים של פאנל-התבניות (AllPatternsPlan). אין להוריד בלי אישור מייקל. |
 | `usePriceStream.ts` | ✅ 1 | 104 | 2026-05-11 | Hook that connects to /ws/v9/price and streams price.tick events. |
 | `useSystemEvents.ts` | ✅ 1 | 67 | 2026-05-11 | Subscribes to all 6 system event streams via WS. |
 | `useSystemStatePolling.ts` | ✅ 1 | 13 | 2026-05-23 |  |
