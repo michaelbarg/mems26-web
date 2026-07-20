@@ -19,9 +19,11 @@ test_s4_risk_cap_reason_from_metadata: assert blocked_by=='pattern_loss_breaker'
 test_blocked_decision_recorded_with_gate: assert blocked_by=='duplicate_fire'     ← got 'zone_limit_late_entry'
 + test_shadow_only_decision_recorded, test_decisions_endpoint_counts_today
 ```
-נראה **סדר-שערים**: הטסט מניח ששער X חוסם, אבל שער מוקדם-יותר חוסם קודם. **הכרע:** האם הטסטים שבירים
-(מניחים סדר לא-נכון) או שהפיצ'ר נסוג? תקן כך שהחבילה **באמת ירוקה**, הדבק פלט-גולמי מלא. **זה בדיוק סוג
-הדבר שהאימות-השיטתי נועד לתפוס** — התחל ממנו.
+**שורש שנמצא (cowork):** cursor הריץ **בלי `.env`** (ברירות-מחדל-קוד) → cowork עם `.env` → סדר-שערים שונה.
+**התיקון:** כל טסט-שער חייב לטעון את **סט-הדגלים המוסדר** (`docs/FLAG_RULING_2026-07-20.md` = flag_guard PASS)
+או לנעול את הדגלים הרלוונטיים ב-fixture. הרץ מחדש עם הסט הזה, הדבק פלט-גולמי. אם עדיין נכשל → סדר-שערים
+אמיתי לתקן. **בנוסף:** אמת `STOP_WINDOW_COMPLETED_V1` — `.env=1` אבל FLAG_INDEX מסמן **"not built"**; אם
+אינרטי, או לבנות או להוריד מ-`.env` (בלי אשליית-דגל). **זה בדיוק מה שהאימות-השיטתי נועד לתפוס** — התחל מכאן.
 
 ---
 
