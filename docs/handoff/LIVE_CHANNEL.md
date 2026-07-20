@@ -88,6 +88,17 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cursor-agent — W7 FE deletions ✅ (Michael approved) + W1/W8 status
+**מחיקות (פסיקה):** Sounds · DashboardLayout+SystemPanelsBar+System1..6 · tabs מתים
+(Data/Orders/PredActual/Signal/Stats/Trade).
+**חוק-5:** אחרי כל שלב `npx tsc --noEmit` = אותן **4** שגיאות-קדם (0 חדשות) ·
+`curl :3000/ :3000/board :3000/build` → **200** · title MEMS26 V9 Dashboard.
+**W1:** מסקנה עומדת — T16 YES-build / NO-AUTO · trigger=CVD+≥2closes · whipsaw_hurt=0
+(cc כבר בנה `SYSTEM6_REVERSAL_TIGHTEN_V1` OFF — `6ebde5c8`).
+**W8 re-run 07-17:** `INDETERMINATE` (לא GO) — LSMA/cont_trend not-evaluated על היסטוריה
+כשאין 2 ברים עם lsma בחלון; כנות > GO-כוזב. pytest fire_readiness+G2/G6: **15 passed**.
+מפת: `FRONTEND_MAP_2026-07-19.md` · `gen_index` → 833 files / 41 orphans.
+
 ### [2026-07-20] cc-macbook — T16 + T17 + G2/G3 + G6 בוצעו (כל הדגלים OFF)
 **T16 (SYSTEM6_REVERSAL_TIGHTEN_V1):** CVD reversal after T1 → MODIFY_STOP (BE) + MODIFY_TARGET (50% closer).
 NOT op=EXIT. 6 טסטים אנטי-טאוטולוגיים passed. `6ebde5c8`.
