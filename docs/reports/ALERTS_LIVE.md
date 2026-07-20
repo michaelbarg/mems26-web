@@ -376,3 +376,24 @@ feed יחיד (PID 33553) · live_price age<500ms · sierra_state mtime טרי �
 **משני (נמשך — לצ'אט-הראשי):** fills תקוע 17:45 → בדיקת-סגירה-פיקטיבית עיוורת אחרי 17:45 · halt_cap endpoint 404 לא-אומת (מזכר: 800≠400) · TS-HOUR-FIX פעיל (bars ~62min stale, +3600 band-aid).
 
 — session-watch (cowork-dev/MacBook, 20:16 IDT)
+
+## 🔴 2026-07-20 20:46 IDT — session-watch: LIVE NAKED-ORPHAN SHORT -7 (records≠reality)
+- **Sierra source-of-truth** (sierra_state.json, mtime 0s fresh): is_sim=0, order_placement_armed=1, **position_qty=-7 @ avg 7523.07**, working_orders=1.
+- **System records DIVERGE**: `/api/v9/trades/active`=**null**, reconciler "TM says 0 contracts []". Records ≠ reality.
+- **Growth**: reconciler logged **-5→-7 @ 20:38:07** (2c added with 0 strategy PLACE fires in last 35m → non-strategy origin: manual/attached-order/state-settle).
+- **Auto-heal NOT executing**: phantom-heal streak **0/3**, reconciler DIVERGENCE every 30s (Reconciler+FillPoller), blocked on is_sim=0 (07-19 ruling → alerts-only). Needs **manual FLATTEN**.
+- **Protection present**: Sierra buy-stop id 9244 @ 7522.50 qty 7 (~breakeven vs avg 7523.07). Price 7503.5 → short ~19.5pt in profit; capped at ~BE. Better than 18:02 (working=0/truly naked) but still untracked.
+- **Pipeline gaps (secondary)**: trade_state.json **MISSING**; trade_activity_events.jsonl stale (last 17:24 IDT); trade_fills_journal.jsonl stale (last 17:45 IDT) → Check-3 fill-match can't run; feed proc alive but not writing orphan changes.
+- **Health OK**: live_price age 3ms; flag_guard PASS 100/100; feeder=1; no new CRITICAL-level (all WARNING).
+- **ACTION → Michael**: FLATTEN_ACCOUNT manually (op=EXIT broken; never partial), then confirm sierra_state.json position_qty=0 & working=0.
+
+## 🔴 2026-07-20 21:09 IDT — session-watch: LIVE orphan SHORT -7 יציב (המשך 20:46)
+- **ללא שינוי מהותי מ-20:46 (~23דק):** sierra_state.json (mtime <1s, ts=1784570931): is_sim=0 armed · **position_qty=-7 @ avg 7523.07** · working_orders=1 → **#9244** BUY-STOP @7522.50 qty7 (~BE). **אין מחזור-חדש** — פוזיציה+סטופ זהים.
+- **records≠reality נמשך:** `/api/v9/trades/active`=**null**, reconciler SYS-3 DIVERGENCE כל 30ש (TM=0/[] vs Sierra -7, src=state), `phantom-heal 0/3` חסום is_sim=0 → מתריע-לא-מרפא. Reconciler מבקש PLACE PROTECTIVE STOP @7533 (10pt) — **לא-מבוצע** (is_sim=0, פסיקת 07-19).
+- **מחיר:** 7503.5→**7510.5** (עלה ~7נק) → שורט עדיין **~+12.6נק (~$440 לא-ממומש)**; stop@7522.50≈BE → סיכון-נעול≈$0. מוגן ברגע-זה, עדיין orphan לא-מנוהל.
+- **Check-1 לא-אנומליה:** 2 candidates / 0 PLACE ב-35דק (20:40 ZLR SHORT, 20:50 GHOST LONG) — מתחת לסף≥3; 0-ירי מוצדק (orphan עודף -7, אחרון strategy-PLACE 17:45:05).
+- **משני (נמשך → לצ'אט-הראשי):** trade_fills_journal.jsonl תקוע ~17:45 (age 3.4h) · trade_activity_events.jsonl ~17:23 (age 3.75h) → Check-3 fill-match עיוור, וגידול -5→-7 (@20:38) ללא fill/op=PLACE נשאר לא-מוסבר · trade_state.json חסר · halt/system endpoints 404.
+- **נקי:** flag_guard **PASS 101/101** · live_price age~0.9s (7510.5) · sierra_state mtime <1s · backend log טרי · feeder יחיד (PID 33553).
+- **ACTION → Michael:** אמת חזותית בסיירה → **FLATTEN_ACCOUNT ידני** (op=EXIT שבור — לעולם לא חלקי), ואז אמת sierra_state.json position_qty=0 & working=0. auto-heal לא-יפעל (is_sim=0).
+
+— session-watch (cowork-dev/MacBook, 21:09 IDT)
