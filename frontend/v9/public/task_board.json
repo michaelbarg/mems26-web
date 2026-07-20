@@ -3,7 +3,7 @@
  "meta": {
   "title": "לוח-המשימות החי (DEV_BACKLOG)",
   "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
-  "updated": "2026-07-17 23:19",
+  "updated": "2026-07-20 23:13",
   "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
  },
  "tasks": [
@@ -87,6 +87,24 @@
    "owner": "Cowork",
    "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
    "next": "S6-EOD 07-17: 8/10 סטופים wick-out (הסטופ נפגע ואז ≥1R המשך); #396 לייב −$78.75 מול צל #395 +$52.5 (דיברגנס fill tick-מול-bar); #399/#400 0.42×ATR גבולי מתחת לרצפת-0.5. …"
+  },
+  {
+   "id": "DEV-17",
+   "title": "S6-EOD כלי: MFE/wick-out עיוור — אי-התאמת פורמט-זמן (bars \"רווח\" מול entry_ts \"T\")",
+   "priority": "P1",
+   "status": "open",
+   "owner": "Cowork",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "S6-EOD 07-20: כל 14 העסקאות עם עמודת שיפוט-מימוש ו-wick-out ריקות (\"—\"). שורש: `mfe_mae` משווה מחרוזות `b[\"ts\"] >= entry_ts[:16]` — ה-bars מחזירים \"2026-07-20 22:45:00+0…"
+  },
+  {
+   "id": "DEV-18",
+   "title": "עוגן-סטופ 0.2 נק'/0.03×ATR — עכשיו גם FAMIR/GHOST/CONFLUENCE (מרחיב #12)",
+   "priority": "P1",
+   "status": "open",
+   "owner": "CC",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "S6-EOD 07-20: 431 FAMIR · 430 GHOST · 423 CONFLUENCE_RI כולם עם initial_stop 0.2 נק' = 0.03×ATR, הרבה מתחת רצפת-0.5 (הפרת-רצועה). 423 SHORT הגיע T2 (+57.5$) עם \"סטופ 0.2…"
   },
   {
    "id": "WAIT-1",
@@ -366,6 +384,15 @@
    "owner": "Michael",
    "where": "DEV_BACKLOG — פעולות-מייקל (לא-פיתוח)",
    "next": "זמן: בהמשך-השבוע · דחיפות: לפי קצבך"
+  },
+  {
+   "id": "MIKE-5",
+   "title": "פאנל פרונטאנד: תבנית-מסחר לפי סוג-פתיחה (סיווג `/open_type/current` + playbook פר-סוג + מ…",
+   "priority": "P2",
+   "status": "open",
+   "owner": "Michael",
+   "where": "DEV_BACKLOG — פעולות-מייקל (לא-פיתוח)",
+   "next": "זמן: חצי-יום · דחיפות: בינונית"
   }
  ]
 }
