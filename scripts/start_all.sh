@@ -70,7 +70,9 @@ echo -e "${BLUE}━━━ Backend ━━━${NC}"
 if pgrep -f "uvicorn backend" > /dev/null 2>&1; then
   ok "Backend already running (port 8000)"
 else
-  screen -dmS mems26_backend bash -c "ulimit -n 10240 2>/dev/null; cd /Users/michael/Downloads/mems26_web_git && [ -f .env ] && set -a && source .env && set +a; python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 2>&1 | tee /tmp/backend.log"
+  # --host 0.0.0.0: match the installed LaunchAgent so the ZeroTier phone link
+  # (http://10.1.118.147:8000) survives a start_all restart too (Michael 2026-07-20).
+  screen -dmS mems26_backend bash -c "ulimit -n 10240 2>/dev/null; cd /Users/michael/Downloads/mems26_web_git && [ -f .env ] && set -a && source .env && set +a; python3 -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 2>&1 | tee /tmp/backend.log"
   sleep 5
   if pgrep -f "uvicorn backend" > /dev/null 2>&1; then
     ok "Backend started (port 8000)"

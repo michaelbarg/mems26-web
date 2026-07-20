@@ -923,23 +923,23 @@ flags:
   S2_DETECTION_LIVE_DAYTYPE_V1:
     category: s2
     what: "S2 detection (NT-skip, chart patterns 5a/5c, T2 fork) reads day_type from get_live_day_type() instead of the stale hydrated self.current_day_type. Fixes I-44/I-50 source split."
-    why: "OFF (default). Michael 2026-07-20: approved SIM enable with G2/G3+G6 (not miss trades). Enable only under is_sim=1 + RULED; G4/D1 stay OFF."
+    why: "Michael 2026-07-20 ('מאשר'): ENABLED for the live day with G6+T16. Sim-verified (34 tests, byte-identical when OFF). RULED=1 same commit + backend restart. G4/D1 stay OFF."
     standing_decision: true
-    status: sim_approved_pending_env
+    status: enabled_live_0720
     ref: "backend/v9/systems/five_min/five_min_system.py · tests/v9/regression/test_s2_detection_live_daytype.py"
   S4_HONEST_DAYTYPE_FALLBACK_V1:
     category: s4
     what: "When ON, S4 skips the dead v9_day_type_state DB read AND the 'Normal' synthesis fallback. Honest None propagates to the playbook instead of a synthetic label."
-    why: "OFF (default). Michael 2026-07-20: approved SIM enable with G2/G3+T16. Enable only under is_sim=1 + RULED."
+    why: "Michael 2026-07-20 ('מאשר'): ENABLED for the live day with G2/G3+T16. Sim-verified, byte-identical when OFF. RULED=1 same commit + backend restart."
     standing_decision: true
-    status: sim_approved_pending_env
+    status: enabled_live_0720
     ref: "backend/v9/systems/woodies/woodies_system.py · tests/v9/regression/test_s4_honest_daytype_fallback.py"
   SYSTEM6_REVERSAL_TIGHTEN_V1:
     category: risk
     what: "On CVD reversal after T1 (CVD-flip + >=2 adverse closes), auto-tighten stop to BE + bring next target 50% closer. Conservative reversal response — NOT op=EXIT."
-    why: "OFF (default). Michael 2026-07-20: approved SIM enable (W1 0 whipsaw-hurt). Enable only under is_sim=1 + RULED; not a live force until sim green."
+    why: "Michael 2026-07-20 ('מאשר'): ENABLED for the live day (W1 backtest 0 whipsaw-hurt, sim-verified). RULED=1 same commit + backend restart. NOT op=EXIT (tighten/target-pull only)."
     standing_decision: true
-    status: sim_approved_pending_env
+    status: enabled_live_0720
     ref: "backend/v9/systems/system6_supervisor.py · tests/v9/regression/test_system6_reversal_tighten.py"
   BE_AFTER_REAL_T1_V1:
     category: targets
