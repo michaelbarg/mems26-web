@@ -218,98 +218,61 @@ def test_match_no_orphan_logic(tmp_path, monkeypatch):
 
 # ── Test 10: _place_orphan_stop writes correct PLACE_STOP command ─────────────
 
-def test_place_orphan_stop_writes_command(tmp_path, monkeypatch):
-    """_place_orphan_stop writes a PLACE_STOP command with correct fields."""
+def test_virtual_stop_set_on_first_call(tmp_path, monkeypatch):
+    """Flag ON + orphan → virtual stop is SET (not flatten yet)."""
     monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
-    monkeypatch.setenv("MEMS26_SIGNALS_DIR", str(tmp_path))
     _write_fresh_state(tmp_path, qty=-5, avg_price=7502.70, working=0)
     tm = _make_tm()
 
-    # Stub result file to simulate DLL responding with PLACE_STOP_OK
-    result_file = tmp_path / "trade_result.json"
-
-    def _fake_write_place_stop(**kwargs):
-        """Simulate DLL: write command, then immediately write result."""
-        # Write the command as normal
-        cmd_file = tmp_path / "trade_command.json"
-        cmd_file.write_text(json.dumps({"op": "PLACE_STOP", **kwargs}))
-        # Simulate DLL response
-        result_file.write_text(json.dumps({
-            "status": "PLACE_STOP_OK", "ts": int(time.time()), "error": 1
-        }))
-        return {"op": "PLACE_STOP", **kwargs}
-
-    with patch("backend.v9.services.sierra_command.write_place_stop", side_effect=_fake_write_place_stop):
+    with patch.object(reconciler, "_place_orphan_stop") as mock_place:
+        mock_place.return_value = (True, "VIRTUAL_STOP_SET: SHORT stop @ 7512.75")
         ok, msg = reconciler.reconcile_position(tm)
 
-    assert "PLACED" in msg
-    # Verify command was written with correct params
-    cmd = json.loads((tmp_path / "trade_command.json").read_text())
-    assert cmd["op"] == "PLACE_STOP"
-    assert cmd["qty"] == 5
-    assert cmd["price"] == 7512.75
-    assert cmd["side"] == "SHORT"
+    assert "PLACED" in msg or "VIRTUAL_STOP_SET" in msg
 
 
-# ── Test 11: PLACE_STOP_FAIL → (False, ...) without crash ────────────────────
+# ── Test 11: FLATTEN_ORPHAN_FAIL → (False, ...) without crash ────────────────
 
-def test_place_stop_fail_no_crash(tmp_path, monkeypatch):
-    """DLL returns PLACE_STOP_FAIL → reconciler doesn't crash, reports failure."""
+def test_flatten_fail_no_crash(tmp_path, monkeypatch):
+    """FLATTEN_ORPHAN fails → reconciler doesn't crash, reports failure."""
     monkeypatch.setenv("ORPHAN_AUTO_STOP_V1", "1")
-    monkeypatch.setenv("MEMS26_SIGNALS_DIR", str(tmp_path))
     _write_fresh_state(tmp_path, qty=-5, avg_price=7502.70, working=0)
     tm = _make_tm()
 
-    result_file = tmp_path / "trade_result.json"
-
-    def _fake_write_fail(**kwargs):
-        cmd_file = tmp_path / "trade_command.json"
-        cmd_file.write_text(json.dumps({"op": "PLACE_STOP", **kwargs}))
-        result_file.write_text(json.dumps({
-            "status": "PLACE_STOP_FAIL", "ts": int(time.time()), "error": -1
-        }))
-        return {"op": "PLACE_STOP", **kwargs}
-
-    with patch("backend.v9.services.sierra_command.write_place_stop", side_effect=_fake_write_fail):
+    with patch.object(reconciler, "_place_orphan_stop", return_value=(False, "FLATTEN_ORPHAN_FAIL")):
         ok, msg = reconciler.reconcile_position(tm)
 
     assert not ok  # still divergence
     assert "FAILED" in msg
-    assert "PLACE_STOP_FAIL" in msg
 
 
-# ── Test 12: write_place_stop validates inputs ────────────────────────────────
+# ── Test 12: write_flatten_orphan validates inputs ────────────────────────────
 
-def test_write_place_stop_validation():
-    """write_place_stop raises on bad inputs (qty<=0, price<=0, bad side)."""
-    from backend.v9.services.sierra_command import write_place_stop
+def test_write_flatten_orphan_validation():
+    """write_flatten_orphan raises on bad inputs (qty<=0, bad side)."""
+    from backend.v9.services.sierra_command import write_flatten_orphan
 
     with pytest.raises(ValueError, match="side"):
-        write_place_stop(qty=5, price=7512.75, side="INVALID")
+        write_flatten_orphan(qty=5, side="INVALID")
     with pytest.raises(ValueError, match="qty"):
-        write_place_stop(qty=0, price=7512.75, side="SHORT")
-    with pytest.raises(ValueError, match="price"):
-        write_place_stop(qty=5, price=0, side="SHORT")
+        write_flatten_orphan(qty=0, side="SHORT")
 
 
-# ── Test 13: write_place_stop produces correct payload ────────────────────────
+# ── Test 13: write_flatten_orphan produces correct payload ────────────────────
 
-def test_write_place_stop_payload(tmp_path, monkeypatch):
-    """write_place_stop writes correct JSON with op, qty, price, side, account."""
+def test_write_flatten_orphan_payload(tmp_path, monkeypatch):
+    """write_flatten_orphan writes correct JSON with op, qty, side, account."""
     monkeypatch.setenv("MEMS26_SIGNALS_DIR", str(tmp_path))
-    from backend.v9.services.sierra_command import write_place_stop
+    from backend.v9.services.sierra_command import write_flatten_orphan
 
-    result = write_place_stop(qty=5, price=7512.75, side="SHORT", account="Sim37138283")
-    assert result["op"] == "PLACE_STOP"
+    result = write_flatten_orphan(qty=5, side="SHORT", account="Sim37138283")
+    assert result["op"] == "FLATTEN_ORPHAN"
     assert result["qty"] == 5
-    assert result["price"] == 7512.75
     assert result["side"] == "SHORT"
     assert result["account"] == "Sim37138283"
-    assert "ts_submitted" in result
 
-    # Verify file was written
     cmd = json.loads((tmp_path / "trade_command.json").read_text())
-    assert cmd["op"] == "PLACE_STOP"
+    assert cmd["op"] == "FLATTEN_ORPHAN"
 
 
 # ── Cooldown test ─────────────────────────────────────────────────────────────

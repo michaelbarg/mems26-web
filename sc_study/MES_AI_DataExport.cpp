@@ -1376,64 +1376,63 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         else
                             result_status = "ACK_MGMT";
                     }
-                    // ── OP: PLACE_STOP — standalone protective stop for orphan position ──
-                    // Michael ruling 2026-07-17 + 07-20: naked orphan must get a protective
-                    // stop. Uses sc.SubmitOrder (standalone) — NOT Exit-family (SellExit/
-                    // BuyExit returned -1 with SCT_ORDERTYPE_STOP, sim-proven 07-20).
+                    // ── OP: FLATTEN_ORPHAN — market-exit for orphan position ──────────
+                    // Michael ruling 2026-07-20: ACSIL cannot place a resting STOP order
+                    // (Exit=MARKET-only, Entry+STOP=r=-1, SubmitOrder doesn't exist).
+                    // Architecture: backend monitors a VIRTUAL stop; when price crosses it,
+                    // backend sends FLATTEN_ORPHAN → DLL executes market-exit via the
+                    // PROVEN SellExit/BuyExit + SCT_ORDERTYPE_MARKET path (same as :1487).
                     //
-                    // 🔴 REDUCE-ONLY SAFETY (standalone is not inherently reduce-only):
-                    //   1. Read PositionQuantity at placement time
-                    //   2. pos==0 → refuse (PLACE_STOP_NO_POSITION)
+                    // 🔴 REDUCE-ONLY SAFETY (mandatory):
+                    //   1. Read PositionQuantity at execution time
+                    //   2. pos==0 → refuse (FLATTEN_ORPHAN_NO_POSITION)
                     //   3. qty = min(requested, abs(pos)) — can only flatten, never flip
-                    //   4. Side from POSITION sign (not command) — verified against command
-                    //   5. BuySell: SHORT pos → SCT_ORDERACTION_BUY (buy-stop above to cover)
-                    //               LONG pos  → SCT_ORDERACTION_SELL (sell-stop below to close)
+                    //   4. Side from POSITION sign (verified against command side)
+                    //   5. Exit-family only: SellExit (LONG→close) / BuyExit (SHORT→cover)
                     //   6. ZERO Entry calls in this handler
-                    else if (cmd_content.find("\"PLACE_STOP\"") != std::string::npos)
+                    else if (cmd_content.find("\"FLATTEN_ORPHAN\"") != std::string::npos)
                     {
                         if (order_armed >= 1)
                         {
-                            int ps_qty = parse_int("\"qty\"");
-                            double ps_price = parse_float("\"price\"");
-                            char ps_side[16] = {0};
-                            parse_str("\"side\"", ps_side, sizeof(ps_side));
+                            int fo_qty = parse_int("\"qty\"");
+                            char fo_side[16] = {0};
+                            parse_str("\"side\"", fo_side, sizeof(fo_side));
 
-                            if (ps_qty <= 0 || ps_price <= 0 ||
-                                (strcmp(ps_side, "LONG") != 0 && strcmp(ps_side, "SHORT") != 0))
+                            if (fo_qty <= 0 ||
+                                (strcmp(fo_side, "LONG") != 0 && strcmp(fo_side, "SHORT") != 0))
                             {
-                                result_status = "PLACE_STOP_BAD_INPUT";
+                                result_status = "FLATTEN_ORPHAN_BAD_INPUT";
                                 order_err = -1;
                             }
                             else
                             {
-                                // 🔴 Safety: read actual position before placing
+                                // 🔴 Safety: read actual position before executing
                                 s_SCPositionData pos;
                                 sc.GetTradePosition(pos);
                                 int actual_pos = pos.PositionQuantity;
 
                                 if (actual_pos == 0)
                                 {
-                                    result_status = "PLACE_STOP_NO_POSITION";
+                                    result_status = "FLATTEN_ORPHAN_NO_POSITION";
                                     order_err = 0;
-                                    sc.AddMessageToLog("MEMS26: PLACE_STOP refused — no position", 1);
+                                    sc.AddMessageToLog("MEMS26: FLATTEN_ORPHAN refused — no position", 1);
                                 }
                                 // Verify command side matches position sign
-                                else if ((strcmp(ps_side, "LONG") == 0 && actual_pos < 0) ||
-                                         (strcmp(ps_side, "SHORT") == 0 && actual_pos > 0))
+                                else if ((strcmp(fo_side, "LONG") == 0 && actual_pos < 0) ||
+                                         (strcmp(fo_side, "SHORT") == 0 && actual_pos > 0))
                                 {
-                                    result_status = "PLACE_STOP_SIDE_MISMATCH";
+                                    result_status = "FLATTEN_ORPHAN_SIDE_MISMATCH";
                                     order_err = -1;
-                                    sc.AddMessageToLog("MEMS26: PLACE_STOP side mismatch vs position", 1);
+                                    sc.AddMessageToLog("MEMS26: FLATTEN_ORPHAN side mismatch vs position", 1);
                                 }
                                 else
                                 {
                                     // Clamp qty to position size (reduce-only)
-                                    int clamped_qty = (ps_qty < abs(actual_pos)) ? ps_qty : abs(actual_pos);
+                                    int clamped_qty = (fo_qty < abs(actual_pos)) ? fo_qty : abs(actual_pos);
 
                                     s_SCNewOrder o;
                                     o.OrderQuantity = clamped_qty;
-                                    o.OrderType     = SCT_ORDERTYPE_STOP;
-                                    o.Price1        = static_cast<float>(ps_price);
+                                    o.OrderType     = SCT_ORDERTYPE_MARKET;  // MARKET — proven path
                                     o.TimeInForce   = SCT_TIF_DAY;
 
                                     // Apply trade account from command (controls SIM vs LIVE)
@@ -1441,26 +1440,24 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                     if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
                                         o.TradeAccount = acct_buf;
 
-                                    // Direction via Entry-family (not Exit — Exit only
-                                    // supports MARKET). In futures net-accounting, an
-                                    // opposite-direction entry-stop closes the position:
-                                    //   LONG pos → SellEntry STOP below = protective close
-                                    //   SHORT pos → BuyEntry STOP above = protective cover
+                                    // Exit-family (reduce-only, proven):
+                                    //   LONG pos → SellExit = close
+                                    //   SHORT pos → BuyExit = cover
                                     int r;
                                     if (actual_pos > 0)
-                                        r = static_cast<int>(sc.SellEntry(o));
+                                        r = static_cast<int>(sc.SellExit(o));
                                     else
-                                        r = static_cast<int>(sc.BuyEntry(o));
+                                        r = static_cast<int>(sc.BuyExit(o));
 
-                                    result_status = (r >= 0) ? "PLACE_STOP_OK" : "PLACE_STOP_FAIL";
+                                    result_status = (r >= 0) ? "FLATTEN_ORPHAN_OK" : "FLATTEN_ORPHAN_FAIL";
                                     order_err = r;
 
                                     if (r >= 0)
                                     {
                                         char msg[256];
                                         snprintf(msg, sizeof(msg),
-                                            "MEMS26: PLACE_STOP_OK — %s stop @ %.2f, qty=%d (pos=%d)",
-                                            (actual_pos > 0) ? "SELL" : "BUY", ps_price, clamped_qty, actual_pos);
+                                            "MEMS26: FLATTEN_ORPHAN_OK — %s market-exit qty=%d (pos=%d)",
+                                            (actual_pos > 0) ? "SELL" : "BUY", clamped_qty, actual_pos);
                                         sc.AddMessageToLog(msg, 0);
                                     }
                                 }
