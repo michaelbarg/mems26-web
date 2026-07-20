@@ -90,6 +90,11 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cc-macbook — PLACE_STOP rebuilt: sc.SubmitOrder + reduce-only guards. מוכן ל-RB
+DLL: `sc.SellExit/BuyExit` → `sc.SubmitOrder` (standalone, תומך STOP). שומרי-בטיחות:
+pos==0→refuse · qty=min(req,abs(pos)) · side-from-position · 0 Entry calls.
+`build_monolithic_cpp.sh --deploy` → `3dc480f3`. **ממתין ל-Remote Build + reload study.**
+
 ### [2026-07-20] cursor-agent — פסיקת-מייקל: סים G2+G3+G6+T16 ✅
 מייקל אישר (מטרה: לא לפספס עסקאות):  
 `S2_DETECTION_LIVE_DAYTYPE_V1=1` · `S4_HONEST_DAYTYPE_FALLBACK_V1=1` · `SYSTEM6_REVERSAL_TIGHTEN_V1=1`  
