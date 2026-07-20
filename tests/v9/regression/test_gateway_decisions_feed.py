@@ -28,6 +28,12 @@ def _isolate_gates(monkeypatch):
         "RR_ENTRY_GATE_V1",
         "RISK_CONSECUTIVE_LOSS_LIMIT",
         "DEDUP_FIRE_GUARD",
+        # cowork 07-20 (Rule-5 symmetric verify): wall-clock gates — under full
+        # .env at night, eod_entry_cutoff (past 14:15 CT) steals every block.
+        "EOD_RISK_WINDOW_V1",
+        "NEWS_BLACKOUT_V1",
+        "OPENING_TYPE_GATE",
+        "RISK_HALT_V1",
     ):
         monkeypatch.setenv(flag, "0")
 
