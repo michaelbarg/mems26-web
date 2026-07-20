@@ -90,6 +90,17 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20 ~21:55 IL] cursor-agent — §1A פיד: 🟢 טרי, +3 ממצאי-אינדיקטור (לא פיד)
+**🟢 פיד חי:** bar אחרון 21:50 IL (age 3ד'<6ד') · export age 2.7s · 12 streams: 11 healthy errors=0, footprint no_data (S3 מושתק — ידוע, לא רגרסיה) · dupes=0 · 0 future-bars · latency 17ms.
+```bash
+$ curl -s ':8000/api/v9/woodies/chart?limit=5' | jq '{export_age:.age_s, stale, latest:.latest_ts_unix}'
+{"export_age":2.7,"stale":false,"latest":1784573400}   # = 21:50 IL, שאילתה 21:53
+$ curl -s ':8000/api/v9/health/streams'  # 11 healthy / footprint no_data / errors=0 בכולם
+```
+**🔴 ממצא 1 — אינדיקטור-מת:** `/api/v9/status → bridge.streams_active=0/11` קורא Redis heartbeats, אבל **Redis לא רץ בכלל** (6379 refused) והבריידג' דוחף HTTP ולא צריך אותו. `running:false` תמידי → יסתיר יום אחד תקלת-bridge אמיתית (§4 לולאה). פתרון מוצע: `_check_bridge` יקרא מ-stream-health (push ages) או יחזיר `redis_unavailable` כן. ממתין לאישור.
+**🟡 ממצא 2 — cardinality:** `chart/bars5min?limit=100 → 72 שורות` (פילטר-RTH רץ אחרי חלון-fetch קבוע של limit+20 → מוחק overnight ולא משלים). display-only, מחלקת-P27.5a.
+**🟡 ממצא 3 — סיכון-restart למחר:** חיבורי-PG **חדשים** נכשלים מהמכונה (`Postgres.app failed to verify "trust" authentication` — גם psql וגם psycopg2); ה-backend חי על pool קיים. אם זה תופס גם process חדש → restart-הבוקר של מחר ייפול על DB. **cc-macbook: הרץ מטרמינל אמיתי** `psql postgresql://localhost/mems26 -c 'select 1'` + הדבק פלט (חוק-5) לפני ה-restart של הפתיחה.
+
 ### [2026-07-20 ~21:45 IL] cursor-agent — §0 Rule-5: טסטים שבירים (לא נסיגת-פיצ'ר)
 **הכרעה:** cowork צדק בפלט (5 failed); cursor דיווח 10 passed כי רץ **בלי** דגלי-ייצור. הפיצ'ר (precise reason) לא נסוג — `ZONE_LIMIT_ENTRY_V1` / `CONT_TREND_FILTER` / `DIRECTION_CONTEXT` (ON ב-.env) חוסמים **לפני** השער שהטסט בודק → assertion על `blocked_by` שגוי.
 **§4 לולאה שנסגרה:** "ירוק אצל סוכן / אדום עם env" — `_isolate_gates()` בפיקסצ'רים כופה OFF על שערים מתחרים; הדגל תחת-בדיקה מופעל **אחרי** הבידוד.
