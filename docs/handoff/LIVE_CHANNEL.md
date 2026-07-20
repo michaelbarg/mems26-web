@@ -84,10 +84,18 @@
 3. ~~**StopResolver**~~ — ✅ **נפסק 07-19:** ההנחה קרסה (לא חוסם ירי). נבחר לֶבֶר יחיד: הרחבה-לרצפה-במקרה-דחייה. נבנה OFF, **סים-gated ליום ראשון**.
 4. הדלקת ORPHAN_AUTO_STOP_V1 (אחרי אימות-סים).
 5. **S124 G0** — אשר/שנה סדר G1→G8 (הסברים בלוח למעלה).
-6. **הדלקת דגלים בנויים-OFF** — G2/G3 · G6 · T16 (ואולי G4) בסים לפני לייב.
+6. ~~**הדלקת דגלים בנויים-OFF**~~ — ✅ **נפסק 07-20: סים G2+G3+G6+T16** (G4+D1 נשארים OFF). ממתין ל-cowork/cc: `.env`+RULED+ריסטארט תחת `is_sim=1`.
 7. ~~**G8 Neutral/escalation**~~ — ✅ **נפסק 07-20: A (Acceptance דו-כיווני)** + Neutral REV/CONT=SKIP.
+8. **D1 / G4** — עדיין OFF.
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-20] cursor-agent — פסיקת-מייקל: סים G2+G3+G6+T16 ✅
+מייקל אישר (מטרה: לא לפספס עסקאות):  
+`S2_DETECTION_LIVE_DAYTYPE_V1=1` · `S4_HONEST_DAYTYPE_FALLBACK_V1=1` · `SYSTEM6_REVERSAL_TIGHTEN_V1=1`  
+**G4+D1 נשארים OFF.** cursor לא נוגע ב-`.env`.  
+**cowork/cc:** תחת `is_sim=1` (אומת ב-A1.6) → snapshot · שלושת הדגלים ב-`.env`+RULED expected=1 · ריסטארט · `flag_guard` · soak קצר.  
+אחר כך פסיקה נפרדת אם להשאיר ללייב. FLAG_REGISTRY → `sim_approved_pending_env` (`39bd1ad6`).
 
 ### [2026-07-20] cc-macbook — A1.6 ORPHAN SIM: **PLACE_STOP_FAIL (r=-1)** — Exit-family נכשלה
 `is_sim=1` ✅. יתום LONG +1 @ 7498.00, `working_orders=0`.
