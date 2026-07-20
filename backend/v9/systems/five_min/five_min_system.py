@@ -5,6 +5,7 @@ Uses SessionClassifier (D-083) — never raw time checks.
 """
 
 import logging
+import os
 from datetime import date, datetime, timezone, timedelta
 
 from backend.v9.common.trading_date import et_today
@@ -742,11 +743,14 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     _pb[-1] if _pb else 0, _divergence)
                         return (None, 0, {})  # fall through to INITIATIVE
             _active = [k for k, v in _variants_long.items() if v]
+            # cc-1: structural anchor = min low of b1..b3 (demand zone floor for LONG)
+            _struct_anchor_l = min(b1["l"], b2["l"], b3["l"])
             return ("LONG", 0.80 if poc_rising else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_rising": poc_rising,
                      "belly_ratio": belly_ratio,
                      "variant": _active[0] if _active else "A_VSA",
-                     "variants_passed": _active})
+                     "variants_passed": _active,
+                     "structural_anchor": _struct_anchor_l})
 
         # Reactive SHORT (mirror)
         b1_buyers = b1["c"] > b1["o"] and b1_vol > 0
@@ -793,11 +797,14 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     _pb_s[-1] if _pb_s else 0, _cvd["net_delta"], _divergence_s)
                         return (None, 0, {})  # fall through to INITIATIVE
             _active_s = [k for k, v in _variants_short.items() if v]
+            # cc-1: structural anchor = max high of b1..b3 (supply zone ceiling for SHORT)
+            _struct_anchor_s = max(b1["h"], b2["h"], b3["h"])
             return ("SHORT", 0.80 if poc_falling else 0.75,
                     {"kind": "REACTIVE", "stage": 4, "belly": belly, "poc_falling": poc_falling,
                      "belly_ratio": belly_ratio_s,
                      "variant": _active_s[0] if _active_s else "A_VSA",
-                     "variants_passed": _active_s})
+                     "variants_passed": _active_s,
+                     "structural_anchor": _struct_anchor_s})
 
         # S2_DETECTION_LOG: per-bar condition vector (observability, flag-gated)
         import os as _dl_os
@@ -893,8 +900,11 @@ class FiveMinSystem(BaseV9TradingSystem):
                 if _cvd_i is not None and _cvd_i["net_delta"] < 0:
                     logger.info("[S2-CVD] INITIATIVE LONG rejected: net_delta=%.0f (selling against breakout)", _cvd_i["net_delta"])
                     return (None, 0, {})
+            # cc-1: structural anchor = min low of b1..b3 for LONG
+            _ini_anchor_l = min(b1["l"], b2["l"], b3["l"])
             return ("LONG", 0.80, {"kind": "INITIATIVE", "stage": 4,
-                                   "b2_alt": "poc_return" if b2_poc_return else "higher_low"})
+                                   "b2_alt": "poc_return" if b2_poc_return else "higher_low",
+                                   "structural_anchor": _ini_anchor_l})
 
         # Initiative SHORT (mirror)
         b1_bear = b1["c"] < b1["o"]
@@ -915,8 +925,11 @@ class FiveMinSystem(BaseV9TradingSystem):
                 if _cvd_i is not None and _cvd_i["net_delta"] > 0:
                     logger.info("[S2-CVD] INITIATIVE SHORT rejected: net_delta=+%.0f (buying against breakdown)", _cvd_i["net_delta"])
                     return (None, 0, {})
+            # cc-1: structural anchor = max high of b1..b3 for SHORT
+            _ini_anchor_s = max(b1["h"], b2["h"], b3["h"])
             return ("SHORT", 0.80, {"kind": "INITIATIVE", "stage": 4,
-                                    "b2_alt": "poc_return" if b2_poc_return_s else "lower_high"})
+                                    "b2_alt": "poc_return" if b2_poc_return_s else "lower_high",
+                                    "structural_anchor": _ini_anchor_s})
 
         # S2_DETECTION_LOG: per-bar initiative condition vector
         import os as _dl_os2
@@ -1253,10 +1266,19 @@ class FiveMinSystem(BaseV9TradingSystem):
                 structural_anchor = info["structural_anchor"]
             else:
                 family = "Reactive" if kind == "REACTIVE" else "OFA"
-                structural_anchor = (
-                    bar.get("l", entry_price) if direction == "LONG"
-                    else bar.get("h", entry_price)
-                )
+                # cc-1 (STRUCTURAL_STOP_ORIGIN_V1): use the pattern's structural
+                # anchor (swing extreme of b1..b3) instead of the current bar's
+                # high/low. #420: entry bar high was 7514, but the structural
+                # resistance was 7521-7527 → stop placed inside structure.
+                # When flag OFF: byte-identical (current bar extreme).
+                if (os.getenv("STRUCTURAL_STOP_ORIGIN_V1", "0").lower() in ("1", "true", "yes")
+                        and info.get("structural_anchor") is not None):
+                    structural_anchor = info["structural_anchor"]
+                else:
+                    structural_anchor = (
+                        bar.get("l", entry_price) if direction == "LONG"
+                        else bar.get("h", entry_price)
+                    )
 
             _s2_cap_pts = None  # group ATR-cap (points) — set when V2 stop runs (SIZE_CAP_CUT_V1)
             if _flag("STOP_ANCHORS_V2"):

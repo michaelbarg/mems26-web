@@ -33,9 +33,12 @@ sys.path.insert(0, ROOT)
 # הדריל בוחן את המערכת כפי שהיא רצה: טוען את .env (כמו env_loader בבוט) —
 # בלי זה effective_contracts/סובלנות-האישור נבדקים בסביבה ריקה (נתפס בהרצה
 # הראשונה: החזיר 3 חוזים כי FIXED_CONTRACTS_2 לא היה בתהליך).
-from scripts.flag_guard import parse_env  # noqa: E402
-for _k, _v in parse_env(os.path.join(ROOT, ".env")).items():
-    os.environ.setdefault(_k, _v)
+# GUARDED: only load .env when running as a script, NOT when imported by tests
+# (importing this module at test-collection time poisoned 83+ tests with .env vars).
+if __name__ == "__main__" or os.getenv("FIRE_DRILL_LOAD_ENV", "0") == "1":
+    from scripts.flag_guard import parse_env  # noqa: E402
+    for _k, _v in parse_env(os.path.join(ROOT, ".env")).items():
+        os.environ.setdefault(_k, _v)
 
 FAILS = []
 
