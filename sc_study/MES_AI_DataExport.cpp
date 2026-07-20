@@ -1436,20 +1436,21 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                     o.Price1        = static_cast<float>(ps_price);
                                     o.TimeInForce   = SCT_TIF_DAY;
 
-                                    // BuySell from position sign (not command):
-                                    // LONG pos → sell-stop below to close
-                                    // SHORT pos → buy-stop above to cover
-                                    if (actual_pos > 0)
-                                        o.BuySell = BSE_SELL;
-                                    else
-                                        o.BuySell = BSE_BUY;
-
                                     // Apply trade account from command (controls SIM vs LIVE)
                                     char acct_buf[64] = {0};
                                     if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
                                         o.TradeAccount = acct_buf;
 
-                                    int r = static_cast<int>(sc.SubmitOrder(o));
+                                    // Direction via Entry-family (not Exit — Exit only
+                                    // supports MARKET). In futures net-accounting, an
+                                    // opposite-direction entry-stop closes the position:
+                                    //   LONG pos → SellEntry STOP below = protective close
+                                    //   SHORT pos → BuyEntry STOP above = protective cover
+                                    int r;
+                                    if (actual_pos > 0)
+                                        r = static_cast<int>(sc.SellEntry(o));
+                                    else
+                                        r = static_cast<int>(sc.BuyEntry(o));
 
                                     result_status = (r >= 0) ? "PLACE_STOP_OK" : "PLACE_STOP_FAIL";
                                     order_err = r;
