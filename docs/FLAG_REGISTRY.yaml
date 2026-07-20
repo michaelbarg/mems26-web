@@ -920,6 +920,13 @@ flags:
     why: "Spec §2/§5.4: the generic T1-only test (4pt / ≤7pt stop < 1.0) would dead-letter the pattern exactly on the Trend days where it is allowed, biasing the n>=15 sample to rotation days."
     status: param
     ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §2"
+  REQUIRE_WITH_TREND_DAY_DIRECTION_V1:
+    category: cascade_gate
+    what: "When ON, daytype_playbook require_with_trend compares against day-direction/expansion (get_live_expansion dir / dir_bias) instead of momentary Woodies trend_state. Responsive REV (REACTIVE/HNS) are exempt from the color check and gated by location (SHORT near VAH / LONG near VAL). OFF → legacy trend_state path, byte-identical."
+    why: "OFF (default). Built 2026-07-20 fix-2 for live miss SHORT@VAH Variation-down blocked by BLUE bounce. Enable only after Michael ruling + cowork Rule-5 verify. RULED unset_or_0."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/systems/daytype_playbook.py · backend/v9/gateway/trading_gateway.py · tests/v9/regression/test_dalton_require_day_direction_vah.py · config/RULED_FLAGS.yaml"
   S2_DETECTION_LIVE_DAYTYPE_V1:
     category: s2
     what: "S2 detection (NT-skip, chart patterns 5a/5c, T2 fork) reads day_type from get_live_day_type() instead of the stale hydrated self.current_day_type. Fixes I-44/I-50 source split."

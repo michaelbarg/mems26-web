@@ -90,6 +90,53 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-20] cursor-agent — fix-2 REQUIRE_WITH_TREND_DAY_DIRECTION_V1 (built OFF + RULED)
+`daytype_playbook.py` + gateway: כשON — require_with_trend מול day_direction/expansion; REACTIVE/HNS לפי מיקום VAH/VAL. OFF=byte-identical.
+```bash
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/test_dalton_require_day_direction_vah.py -q
+11 passed
+$ python3 scripts/flag_guard.py | tail -1
+FLAG-GUARD: PASS — all 97 ruled flags match.
+```
+RULED=`unset_or_0`. **לא הודלק** — ממתין לפסיקת-מייקל + אימות-cowork.
+
+### [2026-07-20] cursor-agent — FULL_GATE_TARGET_AUDIT + T2/T3 contracts
+`docs/handoff/FULL_AUDIT_2026-07-20.md` (A gates · B RR/stop · C T0–T4 · D EOD cross).  
+טסט חדש: `test_dalton_t2_t3_structural_variation.py` (Variation SHORT C2=POC C3=VAL; pattern_t1 2×/3×≠VAL).
+```bash
+$ git pull → Already up to date.
+$ BRIDGE_TOKEN=test pytest \
+  tests/v9/regression/test_stop_at_structural_edge_420.py \
+  tests/v9/regression/test_dalton_ib_break_variation_7501.py \
+  tests/v9/regression/test_dalton_require_day_direction_vah.py \
+  tests/v9/regression/test_sierra_reconcile_420_pnl.py \
+  tests/v9/regression/test_dalton_t2_t3_structural_variation.py -q
+26 passed
+```
+מיון: `110 failed, 1174 passed, 2 xfailed` (regression/). אין הדלקה · אין קוד-מסחר. P0 לפני enable: structural-stop flags + require_with_trend=day-dir + fills reconcile; P1: single-source daytype + no T2/T3 stomp.
+
+### [2026-07-20] cursor-agent — Dalton contract tests BEFORE enable + triage 118
+מקרי-אמת → טסטים דטרמיניסטיים (אין הדלקה · אין קוד-מסחר):
+```bash
+$ BRIDGE_TOKEN=test pytest \
+  tests/v9/regression/test_stop_at_structural_edge_420.py \
+  tests/v9/regression/test_dalton_ib_break_variation_7501.py \
+  tests/v9/regression/test_dalton_require_day_direction_vah.py \
+  tests/v9/regression/test_sierra_reconcile_420_pnl.py -q
+21 passed
+
+$ BRIDGE_TOKEN=test pytest tests/v9/regression/ -q --tb=no | tail -3
+118 failed, 1129 passed, 2 xfailed
+```
+| מקרה | קובץ | חוזה |
+|------|------|------|
+| #420 stop | `test_stop_at_structural_edge_420` | stop≥7522.75; ATR-floor=7514 inside; low-ATR band rejects correct stop |
+| low7501→Variation | `test_dalton_ib_break_variation_7501` | mechanical sides + noise_IB_FRAC=0; 20% IB noise misses 5pt |
+| SHORT@VAH+BLUE | `test_dalton_require_day_direction_vah` | pure Dalton allow; playbook pin SKIP until cc |
+| reconcile #420 | `test_sierra_reconcile_420_pnl` | fills→~$−15; divergence vs −82.50; empty≠MATCH |
+
+מיון: `docs/handoff/REGRESSION_TRIAGE_2026-07-20.md` — (ג) באג-אמת=0; רוב=(א)stale-ruled+(ב)rot. cc טרם דחף את בלוק-דלתון — אין תוצר-cc לאימות-הדלקה עדיין.
+
 ### [2026-07-20] cc-macbook — T17 E2E + BE_AFTER_REAL_T1_V1 + MANUAL_CANCEL_DETECT_V1
 **T17 E2E sim:** PLACE 4 contracts → `ORDER_SUBMITTED`, qty=4, working=8 (4 targets + 4 stops) ✅
 ```

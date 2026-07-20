@@ -624,11 +624,52 @@ class TradingGateway:
                 from backend.v9.systems.daytype_playbook import decide as _pb_decide
                 _pb_g1 = extract_g1_entry_context(cross_context)
                 _pb_woodies = cross_context.get("woodies_system") if isinstance(cross_context, dict) else None
+                # REQUIRE_WITH_TREND_DAY_DIRECTION_V1 (default OFF): pass live
+                # expansion dir + entry/VA levels so require_with_trend uses
+                # day-direction / location, not momentary trend_state.
+                _pb_kw = {}
+                if os.getenv("REQUIRE_WITH_TREND_DAY_DIRECTION_V1", "0").lower() in (
+                    "1", "true", "yes",
+                ):
+                    try:
+                        from backend.v9.services.trade_context import get_live_expansion
+                        _pb_exp = get_live_expansion()
+                        if _pb_exp and _pb_exp.get("dir") in ("UP", "DOWN"):
+                            _pb_kw["day_direction"] = _pb_exp["dir"]
+                    except Exception as _pb_exp_err:
+                        logger.warning(
+                            "[Gateway] get_live_expansion for playbook failed (fail-open): %s",
+                            _pb_exp_err,
+                        )
+                    _pb_tpo = (
+                        cross_context.get("tpo_system")
+                        if isinstance(cross_context, dict) else None
+                    ) or {}
+                    if setup.get("entry_price") is not None:
+                        _pb_kw["entry_price"] = setup.get("entry_price")
+                    _pb_levels = {}
+                    for _k in ("vah", "val", "ib_width", "ib_high", "ib_low"):
+                        if _pb_tpo.get(_k) is not None:
+                            _pb_levels[_k] = _pb_tpo[_k]
+                    if (
+                        _pb_levels.get("ib_width") is None
+                        and _pb_levels.get("ib_high") is not None
+                        and _pb_levels.get("ib_low") is not None
+                    ):
+                        try:
+                            _pb_levels["ib_width"] = float(_pb_levels["ib_high"]) - float(
+                                _pb_levels["ib_low"]
+                            )
+                        except (TypeError, ValueError):
+                            pass
+                    if _pb_levels.get("vah") is not None and _pb_levels.get("val") is not None:
+                        _pb_kw["levels"] = _pb_levels
                 _pb = _pb_decide(
                     pattern=resolve_pattern_id(setup, _pb_g1),
                     day_type=_pb_g1.get("day_type_at_entry"),
                     direction=direction,
                     trend_state=(_pb_woodies or {}).get("trend_state"),
+                    **_pb_kw,
                 )
                 if not _pb.allow:
                     # Item-10 OPENING_WINDOW_FIRE_V1 (default OFF): in the first

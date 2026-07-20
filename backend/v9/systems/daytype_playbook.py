@@ -60,6 +60,52 @@ def _nonconviction_active() -> bool:
     return os.environ.get("NONCONVICTION_ACTIVE_V1", "0").lower() in ("1", "true", "yes")
 
 
+def _day_direction_v1() -> bool:
+    """REQUIRE_WITH_TREND_DAY_DIRECTION_V1 (default OFF). When ON, require_with_trend
+    compares against day-direction / expansion — not momentary trend_state.
+    Responsive REV (REACTIVE/HNS) are location-gated (SHORT@VAH / LONG@VAL).
+    OFF → legacy trend_state path, byte-identical."""
+    return os.environ.get("REQUIRE_WITH_TREND_DAY_DIRECTION_V1", "0").lower() in (
+        "1", "true", "yes",
+    )
+
+
+# Responsive fade patterns: exempt from trend_state / day-dir color; location owns them.
+_RESPONSIVE_REV = frozenset({"REACTIVE", "HNS"})
+
+
+def _normalize_location(location: Optional[str]) -> Optional[str]:
+    if not location:
+        return None
+    loc = str(location).strip().lower().replace("-", "_")
+    aliases = {
+        "at_vah": "near_vah", "vah": "near_vah", "ceiling": "near_vah",
+        "at_val": "near_val", "val": "near_val", "floor": "near_val",
+        "above": "above_value", "below": "below_value", "mid": "mid_value",
+    }
+    return aliases.get(loc, loc)
+
+
+def _resolve_location(
+    location: Optional[str],
+    entry_price: Optional[float],
+    levels: Optional[dict],
+) -> Optional[str]:
+    """Prefer explicit location; else derive from entry vs VAH/VAL (location_gate.zone_of)."""
+    loc = _normalize_location(location)
+    if loc is not None:
+        return loc
+    if entry_price is None or not isinstance(levels, dict):
+        return None
+    try:
+        from backend.v9.systems.location_gate import zone_of
+        vah = float(levels["vah"])
+        val = float(levels["val"])
+        return zone_of(float(entry_price), vah, val, levels.get("ib_width"))
+    except (KeyError, TypeError, ValueError):
+        return None
+
+
 def _cfg() -> Optional[dict]:
     global _cache, _loaded
     if not _loaded:
@@ -96,6 +142,11 @@ def decide(
     direction: Optional[str],
     trend_state: Optional[str] = None,
     max_contracts: Optional[int] = None,
+    *,
+    day_direction: Optional[str] = None,
+    location: Optional[str] = None,
+    entry_price: Optional[float] = None,
+    levels: Optional[dict] = None,
 ) -> Decision:
     """Return a Decision for (pattern, day_type, direction, live trend_state).
 
@@ -106,6 +157,12 @@ def decide(
     patterns fire; direction filtering happens in the position gate).
     The playbook's SKIP/REDUCED verdicts only apply when the position
     gate is OFF (legacy mode).
+
+    REQUIRE_WITH_TREND_DAY_DIRECTION_V1 (default OFF): when ON, require_with_trend
+    uses ``day_direction`` (UP/DOWN from get_live_expansion / dir_bias) instead of
+    momentary ``trend_state``. Responsive REV (REACTIVE/HNS) skip the color check
+    and are gated by location (SHORT near VAH / LONG near VAL). Extra kwargs are
+    ignored when the flag is OFF → byte-identical legacy path.
     """
     cfg = _cfg()
     cap = max_contracts or (cfg or {}).get("max_contracts", 3)
@@ -129,12 +186,43 @@ def decide(
         return Decision("FULL", cap, f"unmapped({pkey}/{day_type})")
 
     # Direction discipline: with-trend only on directional days (D-1: incl. Variation).
-    if pat.get("require_with_trend") and day_type in _DIRECTIONAL_DAYS and trend_state:
+    if pat.get("require_with_trend") and day_type in _DIRECTIONAL_DAYS:
         d = (direction or "").upper()
-        ts = trend_state.upper()
-        counter = (d == "LONG" and ts == "RED") or (d == "SHORT" and ts == "BLUE")
-        if counter:
-            return Decision("SKIP", 0, f"{pkey} counter-trend on {day_type} (trend={ts})")
+        if _day_direction_v1():
+            if pkey in _RESPONSIVE_REV:
+                # Responsive fade: location owns allow/deny — ignore trend_state.
+                loc = _resolve_location(location, entry_price, levels)
+                if loc is not None:
+                    short_ok = loc in ("near_vah", "above_value")
+                    long_ok = loc in ("near_val", "below_value")
+                    if d == "SHORT" and not short_ok:
+                        return Decision(
+                            "SKIP", 0,
+                            f"{pkey} responsive SHORT not at VAH ({loc}) on {day_type}",
+                        )
+                    if d == "LONG" and not long_ok:
+                        return Decision(
+                            "SKIP", 0,
+                            f"{pkey} responsive LONG not at VAL ({loc}) on {day_type}",
+                        )
+                # missing location → fail-open (do not fall back to trend_state)
+            else:
+                # Non-responsive (e.g. CONFLUENCE): compare vs day expansion direction.
+                dd = (day_direction or "").upper()
+                if dd in ("UP", "DOWN"):
+                    counter = (d == "LONG" and dd == "DOWN") or (d == "SHORT" and dd == "UP")
+                    if counter:
+                        return Decision(
+                            "SKIP", 0,
+                            f"{pkey} counter-day-direction on {day_type} (day_dir={dd})",
+                        )
+                # missing day_direction → fail-open (honest; no trend_state fallback)
+        elif trend_state:
+            # Legacy path (flag OFF): momentary CCI / trend_state — byte-identical.
+            ts = trend_state.upper()
+            counter = (d == "LONG" and ts == "RED") or (d == "SHORT" and ts == "BLUE")
+            if counter:
+                return Decision("SKIP", 0, f"{pkey} counter-trend on {day_type} (trend={ts})")
 
     verdict = (pat.get("cells") or {}).get(day_type, "FULL")
     if verdict == "SKIP":
