@@ -669,23 +669,30 @@ class WoodiesSystem(BaseV9TradingSystem):
                                 _s4_day_type = _dt2_val
                     except Exception:
                         pass
-                if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
-                    try:
-                        from backend.v9.db.read import read_one as _r1
-                        from datetime import datetime as _datetime
-                        from zoneinfo import ZoneInfo as _ZI
-                        _ct = _ZI("America/Chicago")
-                        _today_s4 = _datetime.now(_ct).date().isoformat()
-                        _row = _r1(
-                            "SELECT day_type FROM v9_day_type_state "
-                            "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d "
-                            "ORDER BY id DESC LIMIT 1", {"d": _today_s4})
-                        if _row and _row.get("day_type"):
-                            _s4_day_type = _row["day_type"]
-                    except Exception:
-                        pass
-                if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
-                    _s4_day_type = "Normal"
+                # G6 — S4_HONEST_DAYTYPE_FALLBACK_V1: when ON, skip the dead
+                # v9_day_type_state table read AND the "Normal" synthesis.
+                # Honest None propagates to the playbook (gates fail-OPEN on
+                # unclassified instead of fail-WRONG on a synthetic label).
+                import os as _g6_os
+                _g6_honest = _g6_os.getenv("S4_HONEST_DAYTYPE_FALLBACK_V1", "0").lower() in ("1", "true", "yes")
+                if not _g6_honest:
+                    if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
+                        try:
+                            from backend.v9.db.read import read_one as _r1
+                            from datetime import datetime as _datetime
+                            from zoneinfo import ZoneInfo as _ZI
+                            _ct = _ZI("America/Chicago")
+                            _today_s4 = _datetime.now(_ct).date().isoformat()
+                            _row = _r1(
+                                "SELECT day_type FROM v9_day_type_state "
+                                "WHERE (ts AT TIME ZONE 'America/Chicago')::date = :d "
+                                "ORDER BY id DESC LIMIT 1", {"d": _today_s4})
+                            if _row and _row.get("day_type"):
+                                _s4_day_type = _row["day_type"]
+                        except Exception:
+                            pass
+                    if not _s4_day_type or _s4_day_type in ("UNKNOWN", "None"):
+                        _s4_day_type = "Normal"
 
                 # V2 sizing override when flag ON
                 from backend.v9.shared.atr import flag as _flag

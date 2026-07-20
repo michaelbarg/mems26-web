@@ -920,6 +920,20 @@ flags:
     why: "Spec §2/§5.4: the generic T1-only test (4pt / ≤7pt stop < 1.0) would dead-letter the pattern exactly on the Trend days where it is allowed, biasing the n>=15 sample to rotation days."
     status: param
     ref: "docs/handoff/CONFLUENCE_PATTERN_SPEC_2026-07-17.md §2"
+  S2_DETECTION_LIVE_DAYTYPE_V1:
+    category: s2
+    what: "S2 detection (NT-skip, chart patterns 5a/5c, T2 fork) reads day_type from get_live_day_type() instead of the stale hydrated self.current_day_type. Fixes I-44/I-50 source split."
+    why: "OFF (default). G2/G3 gap fix — detection saw stale Normal while live was Trend, blocking CONT patterns on trend days."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/systems/five_min/five_min_system.py · tests/v9/regression/test_s2_detection_live_daytype.py"
+  S4_HONEST_DAYTYPE_FALLBACK_V1:
+    category: s4
+    what: "When ON, S4 skips the dead v9_day_type_state DB read AND the 'Normal' synthesis fallback. Honest None propagates to the playbook instead of a synthetic label."
+    why: "OFF (default). G6 gap fix — the dead-table fallback masks missing data with a potentially wrong Normal label."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/systems/woodies/woodies_system.py · tests/v9/regression/test_s4_honest_daytype_fallback.py"
   SYSTEM6_REVERSAL_TIGHTEN_V1:
     category: risk
     what: "On CVD reversal after T1 (CVD-flip + >=2 adverse closes), auto-tighten stop to BE + bring next target 50% closer. Conservative reversal response — NOT op=EXIT."

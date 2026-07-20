@@ -1135,8 +1135,21 @@ class FiveMinSystem(BaseV9TradingSystem):
         if _chop_bars:
             self.choppiness_score = int(compute_choppiness(_chop_bars))
 
+        # G2/G3 — S2_DETECTION_LIVE_DAYTYPE_V1: resolve day_type from live source
+        # when flag ON, instead of the stale hydrated self.current_day_type.
+        # Fixes I-44/I-50 split: detection saw stale Normal while live was Trend.
+        _s2_det_dt = self.current_day_type
+        if os.getenv("S2_DETECTION_LIVE_DAYTYPE_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.services.trade_context import get_live_day_type
+                _live = get_live_day_type()
+                if _live and _live not in ("UNKNOWN", "None", ""):
+                    _s2_det_dt = _live
+            except Exception:
+                pass  # fail-safe: keep hydrated value
+
         # D-091.Q2 · NT NO_TRADE early-skip (CPU efficiency + emit-layer defense)
-        if self.current_day_type == "Nontrend":
+        if _s2_det_dt == "Nontrend":
             self._nt_skip_count += 1
             import time as _time
             _now = _time.monotonic()
@@ -1177,7 +1190,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                         "Check hydrate() or S1 event delivery."
                     )
                     self._dt_none_last_warn_ts = _now
-            if chart_patterns_allowed(self.current_day_type, "5a"):
+            if chart_patterns_allowed(_s2_det_dt, "5a"):
                 direction, conf, info = detect_inverse_hns(_det_buf)
                 if not direction:
                     direction, conf, info = detect_hns_top(_det_buf)
@@ -1189,7 +1202,7 @@ class FiveMinSystem(BaseV9TradingSystem):
 
         # Pkg 5c · Flag patterns (continuation · Stage 3 + Q5 EXPANDED day-type gate · D-091 §9+§10 + Q5)
         if not direction and self.mode == FiveMinMode.DAY_TYPE_MODE:
-            if chart_patterns_allowed(self.current_day_type, "5c"):
+            if chart_patterns_allowed(_s2_det_dt, "5c"):
                 direction, conf, info = detect_bull_flag(_det_buf)
                 if not direction:
                     direction, conf, info = detect_bear_flag(_det_buf)
@@ -1548,7 +1561,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                     except Exception as _e:
                         logger.warning("[FiveMin] Pkg 5c · Sierra TPO read failed for Flag T2: %s", _e)
 
-                    dt = self.current_day_type
+                    dt = _s2_det_dt  # G3: resolved via S2_DETECTION_LIVE_DAYTYPE_V1
                     trail_active = False
                     if dt in ("Trend_Normal", "Variation"):
                         t2_price = full_pole
