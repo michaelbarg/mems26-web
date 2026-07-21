@@ -42,7 +42,7 @@
 <body>
 
 <h1>MEMS26 — עץ-ההחלטות בפועל, מהפתיחה עד הסגירה</h1>
-<div class="sub">נגזר מהקוד 2026-07-20 23:30 IL · מצב-דגלים = ‎.env חי (flag_guard PASS 101/101) · לכל צומת יש ☑ — נסמן יחד תוך-כדי מעבר.
+<div class="sub">עודכן 2026-07-21 08:30 IL לפי פסיקות-מייקל של הבוקר (5 פסיקות 08:11-08:23) + dispatch תיקון-העץ · דגל עם ✅-פסיקה = מאושר, נכנס ב-restart של הבוקר · לכל צומת יש ☑ — נסמן יחד תוך-כדי מעבר.
 <div class="legend"><span><span class="flag f-on">ON</span> דלוק ופעיל</span><span><span class="flag f-off">OFF</span> כבוי (מכוון/ממתין)</span><span><span class="flag f-wait">פסיקה</span> ממתין להכרעת-מייקל</span></div></div>
 
 <h2>① הצינור: מסיירה ועד החלטה <input type="checkbox" class="chk"></h2>
@@ -51,13 +51,15 @@
     ה-DLL כותב JSON כל ~5s · ה-bridge (localhost בלבד, קשיח) דוחף ל-<code>POST /api/v9/bars/*</code>.<br>
     שערי-כתיבה תמיד-ON: עתידי&gt;2דק' ✗ · מחוץ-RTH ✗ · נפח-מצטבר&gt;100K ✗ · מחיר-מעופש (B-13) ✗ · סתירה-מול-woodies ✗.<br>
     <span class="flag f-on">WOODIES_TS_HOUR_FIX</span> מזיח +1h רק כשההיסט בדיוק 3600±120s ·
-    <span class="flag f-wait">TS_OFFSET_INGEST_GATE_V1</span> <b>החדש מהערב (OFF)</b>: פיד חי שמתויג &gt;15דק' אחורה → דחייה כנה. סוגר את החור של 07-20.</div>
+    <span class="flag f-on">TS_OFFSET_INGEST_GATE_V1</span> <b>✅ פסיקת-מייקל 08:11</b>: פיד חי שמתויג &gt;15דק' אחורה → דחייה כנה. סוגר את החור של 07-20. נכנס ב-restart הבוקר.</div>
   <div class="arrow">▼</div>
   <div class="node"><h3>סוג-יום S1 — המסווג הקנוני (7 סוגים, דלתון)</h3>
     <span class="flag f-on">S1_NEW_CLASSIFIER</span><span class="flag f-on">S1_ENGINE_NEW_CLASSIFIER</span> —
     <code>classify_session</code> רץ על כל בר: IB מ-Sierra TPO → הרחבות/acceptance/value/נפח →
     <b>Normal → Normal_Variation → Trend / Neutral / Nontrend</b>. אסקלציה-בלבד (לעולם לא יורד בתוך סשן).<br>
     <span class="flag f-on">S1_IB_SANITY_V1</span> מצליב IB מול 12-הברים-הראשונים — <b>⚠ בדיוק כאן 07-20 התהפך על דאטה מוזזת</b> (תוקן + נבנה שער-TS).<br>
+    <span class="flag f-on">IB_BREAK_ANY_EXPANSION_V1</span> <b>✅ פסיקת-מייקל 08:11</b>: כל קבלה מעבר-ל-IB = הרחבה (דלתון) — בלי מסנן 20%-מרוחב-IB שבלע את פריצת-ה-5pt של 07-20. נכנס ב-restart הבוקר.<br>
+    <b>Sierra מביא IB + טווח-יום — משם מגיע הכל</b> (מייקל 08:05): המסווג עובד על IB-של-Sierra, לא על סינתזה.<br>
     צרכן-יחיד לשער: <code>get_live_day_type()</code> = override → 7-type חי → fallback.</div>
 </div>
 
@@ -65,7 +67,9 @@
 <div class="flow">
   <div class="node"><h3>לפני נעילת-IB אין תווית-כוזבת</h3>
     <span class="flag f-on">OPENING_FIRE_CVD_V1</span> — FORMING → <code>day_type=None</code> (תיקון באג 06-29 <b>פעיל</b>).
-    זיהוי סוג-פתיחה מ-6 ברים: <b>OPEN_DRIVE / OPEN_TEST_DRIVE / OPEN_REJECTION_REVERSE / OPEN_AUCTION</b>, עם אישור-CVD ל-DRIVE (דיברג'נס=ספיגה→לא DRIVE).</div>
+    זיהוי סוג-פתיחה מ-6 ברים: <b>OPEN_DRIVE / OPEN_TEST_DRIVE / OPEN_REJECTION_REVERSE / OPEN_AUCTION</b>, עם אישור-CVD ל-DRIVE (דיברג'נס=ספיגה→לא DRIVE).
+    <div class="ok"><b>חריג-הסטופ של מייקל (08:05):</b> עסקת סוג-הפתיחה היא <b>היחידה</b> שלא חייבת סטופ-מבני (בפתיחה אין עדיין מבנה בשל). הגדרת הסטופ שלה בקוד — פריט-אימות פתוח (למטה).</div>
+    <div class="warn">⚠ משימה פתוחה (מייקל 08:05): <b>פאנל סוג-פתיחה</b> ב-UI — סוג-הפתיחה שזוהה + התבניות הרלוונטיות לו, מסודר. טרם נבנה.</div></div>
   <div class="arrow">▼</div>
   <div class="cols">
     <div class="node"><h3 style="color:var(--on)">✔ יורים בפתיחה כאשר</h3>DRIVE מזוהה + ה-setup <b>עם</b> כיוון-ה-drive → <span class="flag f-on">OPENING_TYPE_GATE</span> מתיר, וב-30 הדק' הראשונות <code>opening_window_override</code> אף דורס סירובי-סוג-יום (אישור-חיובי; שערי-סיכון עדיין חלים).</div>
@@ -111,7 +115,7 @@
   <div class="gate"><div><b>news_blackout</b> <span class="flag f-on">NEWS_BLACKOUT_V1</span> — חלון-חדשות מהיומן</div></div>
   <div class="gate"><div><b>day_direction_doctrine</b> — דוקטרינת יום×כיוון (G8: פסיקת-A דו-כיוונית, Neutral REV/CONT=SKIP)</div></div>
   <div class="grp">איכות-כניסה</div>
-  <div class="gate"><div><b>entry_not_confirmed</b> — מחיר-חי רחוק מדי מהכניסה</div></div>
+  <div class="gate"><div><b>entry_not_confirmed</b> — מחיר-חי רחוק מדי מהכניסה <span class="why">· כלל-מייקל (dispatch #4): להמתין ל-<b>retest</b> של רמת-הטריגר לפני כניסה — <b>לא מחווט עדיין</b> (entry_confirm.py הוא momentum/CVD, S4_ENTRY_CONFIRM_V1=OFF); הצעת-קוד תוגש לפסיקה</span></div></div>
   <div class="gate"><div><b>t1_wrong_side</b> — T1 בצד הלא-נכון</div></div>
   <div class="gate"><div><b>rr_entry_gate</b> <span class="flag f-on">RR_ENTRY_GATE_V1</span> — R:R&lt;1.0 (ימי-רוטציה: 0.65)</div></div>
   <div class="gate"><div><b>zone_limit_late_entry</b> <span class="flag f-on">ZONE_LIMIT_ENTRY_V1</span> — רדיפה &gt;2pt או אות ישן &gt;180s (פסיקת "אין כניסה מאוחרת")</div></div>
@@ -134,35 +138,46 @@
     <div class="warn"><b>op=EXIT שבור</b> (r=-1) — אסור עד EXIT-v2. יציאות מותרות: OCO של היעדים · MODIFY_STOP · FLATTEN_ACCOUNT בלבד.</div></div>
 </div>
 
-<h2>⑥ הסטופ והמימוש — מהקוד <input type="checkbox" class="chk"></h2>
+<h2>⑥ הסטופ והמימוש — לפי פסיקות-מייקל 07-21 <input type="checkbox" class="chk"></h2>
 <div class="flow">
-  <div class="node"><h3>הסטופ (תיקון #420 — חי מהיום)</h3>
-    <span class="flag f-on">STRUCTURAL_STOP_ORIGIN_V1</span> הסטופ על <b>קצה-המבנה של התבנית +6 טיקים</b> — לא מרחק-ATR ·
-    <span class="flag f-on">STOP_WINDOW_COMPLETED_V1</span> חלון-המבנה נמדד על ברים <b>סגורים</b> בלבד (אומת מחווט הערב) ·
+  <div class="node"><h3>הסטופ — מבני-גאומטרי תמיד (חריג יחיד: עסקת סוג-הפתיחה)</h3>
+    <span class="flag f-on">STRUCTURAL_STOP_ORIGIN_V1</span> הסטופ על <b>קצה-המבנה הגאומטרי של הנרות +6 טיקים</b> — כדי שלא יידחף החוצה ברעש. לא מרחק-ATR ·
+    <span class="flag f-on">STOP_WINDOW_COMPLETED_V1</span> חלון-המבנה נמדד על ברים <b>סגורים</b> בלבד ·
     <span class="flag f-on">STOP_WIDEN_TO_STRUCTURE_V1</span> סטופ רחב-מ-ATR מתקבל, לא נדחה ·
-    <span class="flag f-wait">STOP_WIDEN_TO_FLOOR_ON_REJECT_V1</span> (OFF, סים-gated): דחיית-סטופ ע"י Sierra → הרחבה-לרצפה.</div>
+    <span class="flag f-wait">STOP_WIDEN_TO_FLOOR_ON_REJECT_V1</span> (OFF, סים-gated).<br>
+    <b>R = |כניסה−סטופ| = מרחק מבני</b> — כל היעדים נגזרים ממנו.
+    <div class="ok">דוקטרינת-מייקל (08:05): ביום Normal לא נכנסים לשורט בתחתית בלי הוכחה שהמגמה ממשיכה למטה (מה שמשנה את סוג-היום). זה תפקיד <code>reactive_location</code> + <code>direction_context</code> בשער ④.</div></div>
   <div class="arrow">▼</div>
-  <div class="node"><h3>המימוש — טבלת-היעדים פר-סוג-יום (<code>targets_table.py</code>, R = |כניסה−סטופ|)</h3>
+  <div class="node"><h3>ניהול-העסקה — 4 חוזים, סולם T0→T3 (פסיקות 08:11-08:23)</h3>
+    <span class="flag f-on">FIXED_CONTRACTS_4=1</span> <b>כל עסקה = 4 חוזים</b>, כל חוזה עם OCO משלו ב-Sierra:<br>
+    · <b>C1 → T0 = כניסה ±4 נק'</b> <span class="flag f-on">T0_TARGET_PTS=4.0</span> <b>✅ פסיקה 08:23</b> (היה 3.5 — מתעדכן ב-restart) — סקאלפ מהיר שמממן את הסיכון.<br>
+    · <b>C2 → T1</b> = "היציאה לדרך": <b>רק כאן הסטופ עובר לכניסה (BE)</b> <span class="flag f-on">BE_AFTER_REAL_T1_V1</span> <b>✅ פסיקה 08:23</b> — לא על מילוי-T0 (ה-DLL מדווח סלוטים T1-T4; ה-remap מתקן) — ומכאן הניהול עובר למערכת 6.<br>
+    · <b>C3 → T2 · C4 → T3/runner</b> — לפי טבלת-סוג-היום למטה.<br>
+    <b>אין time-stop לעסקה</b> <b>✅ פסיקה 08:23</b> — הזמן לא סוגר עסקה; רק סטופ/יעדים/מערכת-6. (מבטל את W-10 של 90-דק' ואת עמודת-הדקות בטבלה — שגם סגרו רשומה ב-backend בלי לגעת ב-Sierra = מחולל רשומות≠מציאות.)</div>
+  <div class="arrow">▼</div>
+  <div class="node"><h3>יעדי T1/T2/T3 פר-סוג-יום (<code>targets_table.py</code>, R = מרחק-הסטופ-המבני)</h3>
     <table>
-      <tr><th>סוג-יום</th><th>T1</th><th>T2</th><th>T3</th><th>time-stop</th><th>חוזים</th><th>trail</th></tr>
-      <tr><td><b>Trend_Normal</b></td><td>1R</td><td>2R+TPO</td><td>4R</td><td>—</td><td>3 (אגרסיבי)</td><td>אחרי T2</td></tr>
-      <tr><td><b>Trend_DD</b></td><td>1R</td><td>פתוח</td><td>תקרה 4R</td><td>90 דק'</td><td>3</td><td>—</td></tr>
-      <tr><td><b>Variation</b></td><td>1R</td><td>2.5R</td><td>trail בלבד</td><td>60 דק'</td><td>2 (מלא)</td><td>אחרי T2</td></tr>
-      <tr><td><b>Normal</b></td><td>1R</td><td>POC</td><td>—</td><td>30 דק'</td><td>1 (חצי)</td><td>—</td></tr>
-      <tr><td><b>Neutral_Extreme</b></td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>45 דק'</td><td>1</td><td>—</td></tr>
-      <tr><td><b>Neutral_Center</b></td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>30 דק'</td><td>1</td><td>—</td></tr>
-      <tr><td><b>Nontrend</b></td><td colspan="6" style="color:var(--off)"><b>NO TRADE</b> (+ NONTREND_DISABLE_ALL=1)</td></tr>
+      <tr><th>סוג-יום</th><th>T0 (C1)</th><th>T1 (C2, BE כאן)</th><th>T2 (C3)</th><th>T3 (C4)</th><th>trail</th></tr>
+      <tr><td><b>Trend_Normal</b></td><td>4 נק'</td><td>1R</td><td>2R+TPO</td><td>4R</td><td>אחרי T2</td></tr>
+      <tr><td><b>Trend_DD</b></td><td>4 נק'</td><td>1R</td><td>פתוח</td><td>תקרה 4R</td><td>—</td></tr>
+      <tr><td><b>Variation</b></td><td>4 נק'</td><td>1R</td><td>2.5R</td><td>trail בלבד</td><td>אחרי T2</td></tr>
+      <tr><td><b>Normal</b></td><td>4 נק'</td><td>1R</td><td>POC</td><td>—</td><td>—</td></tr>
+      <tr><td><b>Neutral_Extreme</b></td><td>4 נק'</td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>—</td></tr>
+      <tr><td><b>Neutral_Center</b></td><td>4 נק'</td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>—</td></tr>
+      <tr><td><b>Nontrend</b></td><td colspan="5" style="color:var(--off)"><b>NO TRADE</b> (+ NONTREND_DISABLE_ALL=1)</td></tr>
     </table>
-    <div class="warn">⚠ G7 פתוח: הפלייבוק כותב REDUCED אבל sizing FIXED_4 דורס — "מופחת" לא עובד בפועל. דורש פסיקתך לפני קוד.</div></div>
+    <div class="warn">⚠ מקור-אמת-אחד (פסיקת-מייקל #5, dispatch): עמודת-"חוזים" הישנה (3/2/1) הוסרה — היא <b>שדה מת</b> (FIXED_4 דורס = G7). הכפילות <code>targets.yaml</code>⟂<code>targets_table.py::_TARGETS</code> עדיין קיימת בקוד — איחוד למקור-יחיד = משימת-קוד פתוחה (הצעה תוגש לפסיקה).</div>
+    <div class="warn">⚠ G7 פתוח: הפלייבוק כותב REDUCED אבל FIXED_4 דורס — "מופחת" לא עובד בפועל. דורש פסיקתך לפני קוד.</div></div>
 </div>
 
-<h2>⑦ מערכת 6 — המפקח (protective) <input type="checkbox" class="chk"></h2>
+<h2>⑦ מערכת 6 — מקבלת את הניהול אחרי T1 (protective) <input type="checkbox" class="chk"></h2>
+<div class="sub">הגדרת-מייקל (08:05): מ-fill של T1 האמיתי — הסטופ ב-BE והעסקה בניהול מערכת-6. אין time-stop; S6 היא שמנהלת את הסיכון משם.</div>
 <div class="cols">
   <div class="node"><h3 style="color:var(--on)">AUTO — מותר ומבוצע</h3>
     <span class="flag f-on">SYSTEM6_AUTOCORRECT=protective</span> (פסיקת 07-15, 6/6):<br>
-    · <b>MODIFY_STOP → Break-Even</b> — השלמת הזזת-סטופ שלא בוצעה<br>
+    · <b>MODIFY_STOP → Break-Even</b> — אוכפת את כלל אחרי-T1→BE אם ההזזה לא בוצעה<br>
     · <b>DROP_TARGET</b> מייעץ בלבד (לא מחווט לביצוע)<br>
-    <b>לעולם לא op=EXIT.</b> ה-tier המלא (=1) חסום עד EXIT-v2.</div>
+    <b>לעולם לא op=EXIT.</b> ה-tier המלא (=1) חסום עד EXIT-v2 — כלומר "ניהול-S6 מלא" אחרי T1 = כיום BE+התרעות; יציאות בפועל = OCO של היעדים.</div>
   <div class="node"><h3 style="color:var(--wait)">ALERT — מתריע, אדם מחליט</h3>
     סטופ-עירום · סטופ-בצד-הלא-נכון · <b>reconcile_mismatch</b> (רשומות≠Sierra) · rescue-tier N4a (אות-נגדי לפני T1).<br>
     <div class="warn">⚠ הלולאה-המעגלית #1: אורפן מזוהה אבל אין ריפוי-אוטו (<span class="flag f-wait">ORPHAN_AUTO_STOP_V1=0</span> + חסר op=PLACE_STOP מאומת-סים). "מתריע+מחכה" = התקלה חוזרת (07-10/14/17/20). הכרעתך.</div></div>
@@ -173,12 +188,21 @@
   <div class="node">22:15 IL אין כניסות (45-דק') → 22:30 IL אין לייב (strict) → <b>23:00 IL סשן נסגר</b> →
   המסווג נועל תווית טרמינלית → <code>v9_day_type_history</code> → rollover ~06:55 IL.
   אימות-חובה: <code>sierra_state.json position_qty=0</code>.
-  <div class="warn">🔴 Task#6: <code>trade_fills.json</code> ריק → ה-P&L המדווח הוא חישוב, לא אמת-Sierra. חוסם-אמון פתוח — הבא בתור ב-§1.</div></div>
+  <div class="warn">🔴 רקונסיליאציה (ממצאי-הלילה): "fills ריק" = פנטום — היומן <code>trade_fills_journal.jsonl</code> מלא ו-<code>/api/v9/live_ledger</code> משחזר P&L מ-fills. הפער האמיתי: <b>עסקאות-Sierra ידניות/יתומות בלי שורת-backend</b> (07-20: ‎+$427.5 ו-‎+$186.25 שהמערכת לא מכירה). הכרעת-מייקל פתוחה: חסימה-קשיחה / ריפוי-אוטו.</div></div>
 </div>
 
 <h2>נקודות-הביקורת שלנו במעבר המשותף</h2>
 <div class="ok">① פיד טרי + streams ירוקים · ② ‎10:35: <code>ib_source=sierra_tpo</code> ו-IB=מה-שבצ'ארט · ④ כל חסימה ב-decisions עם reason שאתה מסכים לו · ⑤ עסקת-לייב: סטופ ב-Sierra = קצה-מבנה+6T · ⑥ יעדים תואמים את הטבלה לסוג-היום · ⑦ אפס ALERT פתוח לפני חימוש · ⑧ שטוח בסגירה.</div>
-<div class="sub" style="margin-top:14px">מסמך-אח טקסטואלי עם מספרי-שורות-בקוד: <code>docs/reference/SYSTEM_DECISION_TREE_LIVE.md</code> · הכרעות פתוחות: TS-gate לבוקר · IB_BREAK_ANY_EXPANSION · G7 sizing · אורפן.</div>
+<h2>פסיקות-מייקל 07-21 בוקר — סטטוס יישום</h2>
+<table>
+  <tr><th>פסיקה</th><th>מה</th><th>יישום</th></tr>
+  <tr><td>08:11 ✅</td><td><code>TS_OFFSET_INGEST_GATE_V1=1</code> — שומר-סף-השעון בדלת-הנתונים</td><td>קוד+טסטים מוכנים · .env ב-restart הבוקר</td></tr>
+  <tr><td>08:11 ✅</td><td><code>IB_BREAK_ANY_EXPANSION_V1=1</code> — כל פריצת-IB נספרת (דלתון)</td><td>קוד+טסטים מוכנים · .env ב-restart הבוקר</td></tr>
+  <tr><td>08:23 ✅</td><td><code>T0_TARGET_PTS=4.0</code> (היה 3.5)</td><td>שינוי-ערך .env ב-restart הבוקר</td></tr>
+  <tr><td>08:23 ✅</td><td><code>BE_AFTER_REAL_T1_V1=1</code> — BE רק אחרי T1 האמיתי (לא סקאלפ-T0)</td><td>קוד מוכן (<code>manager.py:481</code>) · .env ב-restart</td></tr>
+  <tr><td>08:23 ✅</td><td>ביטול time-stop — אין זמן לעסקה, רק מערכת-6</td><td><b>דורש שינוי-קוד/קונפיג</b> (W-10 + טבלה) — מפרט לקלוד, לפני ה-restart</td></tr>
+</table>
+<div class="sub" style="margin-top:14px">מסמך-אח טקסטואלי עם מספרי-שורות-בקוד: <code>docs/reference/SYSTEM_DECISION_TREE_LIVE.md</code> · הכרעות שעוד פתוחות: G7 sizing (REDUCED מול FIXED_4) · אורפן (ORPHAN_AUTO_STOP) · מקור-אמת-אחד targets (איחוד yaml⟂py) · retest-לכניסה (הצעה תוגש) · פאנל-סוג-פתיחה (UI) · סטופ עסקת-הפתיחה (אימות).</div>
 
 </body>
 </html>

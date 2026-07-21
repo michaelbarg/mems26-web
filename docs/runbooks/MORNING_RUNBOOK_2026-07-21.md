@@ -18,12 +18,20 @@
 
 נפסק "כן" (שניהם ✅) → cc-macbook: עדכון `.env` + `config/RULED_FLAGS.yaml` **באותו קומיט**, לפני ה-restart של שלב 3.
 
-### פסיקות נוספות שעלו 07-21 בוקר (מהגדרות-מייקל 08:05-08:06) — עדיין פתוחות
+### פסיקות נוספות 07-21 בוקר (מהגדרות-מייקל 08:05) — **נפסקו 08:23**
 | # | נושא | מצב-קוד | פסיקת-מייקל |
 |---|---|---|---|
-| 3 | `T0_TARGET_PTS`: 3.5 → **4.0** (מייקל: "T0 הוא 4 נקודות") | `.env:282=3.5` | ☐ ממתין |
-| 4 | `BE_AFTER_REAL_T1_V1=1` — BE על T1 האמיתי (C2), לא על סקאלפ-T0; משם S6 | קוד מוכן (`manager.py:481`), דגל OFF | ☐ ממתין |
-| 5 | ביטול time-stop לעסקאות (מייקל: "אין זמן לעסקה, רק מערכת 6") — W-10 90ד' + טבלת 30-90ד'. הערה: W-10 סוגר רשומת-backend בלבד (לא Sierra) → מחולל רשומות≠מציאות | פעיל היום | ☐ ממתין |
+| 3 | `T0_TARGET_PTS`: 3.5 → **4.0** (מייקל: "T0 הוא 4 נקודות") | `.env:282=3.5` | ☑ **"1 מאושר" (08:23)** |
+| 4 | `BE_AFTER_REAL_T1_V1=1` — BE על T1 האמיתי (C2), לא על סקאלפ-T0; משם S6 | קוד מוכן (`manager.py:481`), דגל OFF | ☑ **"הסטופ עובר לכניסה רק אחרי T1" (08:23)** |
+| 5 | ביטול time-stop לעסקאות (מייקל: "אין זמן לעסקה, רק מערכת 6") — W-10 90ד' + טבלת 30-90ד'. W-10 סוגר רשומת-backend בלבד (לא Sierra) → מחולל רשומות≠מציאות | פעיל היום | ☑ **"3 מאשר" (08:23)** |
+
+**מפרט-ביצוע 3-5 ל-cc-macbook (אותו קומיט+restart של פסיקות 1-2):**
+- (3) `.env`: `T0_TARGET_PTS=4.0`.
+- (4) `.env`: `BE_AFTER_REAL_T1_V1=1`.
+- (5) time-stop off בשני המקורות: `config/targets.yaml` — כל 7 סוגי-היום `time_stop_minutes: null` ·
+  `backend/v9/systems/woodies/config/dispatcher_config.yaml` — `time_stop.time_stop_minutes: null`
+  (kill-switch מובנה ב-`TimeStopEnforcer`, `time_stop.py:50-53` — null/0 → disabled, אפס שינוי-קוד).
+- כל החמישה + RULED_FLAGS **באותו קומיט** · אימות אחרי restart: probe שהדגלים נטענו + `flag_guard`.
 
 ## שלב 2 — snapshot (cc-macbook, ~15:30 IL)
 - [ ] `bash scripts/mems26_snapshot.sh "pre-open-0721"` → ודא תיקייה חדשה ב-`~/mems26_snapshots/`.
