@@ -127,6 +127,36 @@ def _parse_events(lines: list[str], last_offset: int = 0, account: str = "") -> 
                 "line": i,
             })
 
+        # Sim-account patterns (07-21): Sim1 logs contain NONE of the live-account
+        # lines above (verified: 0/5 matches on a 49KB session log). The only fill
+        # evidence `strings` recovers is "Trade simulation fill. Bid/Ask/Last" and
+        # the Flatten&Cancel position line. Without these the feed is blind on sim
+        # days and the events file looks stalled.
+        if is_sim:
+            m = re.search(
+                r"Trade simulation fill\. Bid: ([\d.]+) Ask: ([\d.]+) Last: ([\d.]+)", line)
+            if m:
+                events.append({
+                    "type": "SIM_FILL",
+                    "bid": float(m.group(1)),
+                    "ask": float(m.group(2)),
+                    "last": float(m.group(3)),
+                    "ts": ts_now,
+                    "line": i,
+                })
+
+            m = re.search(
+                r"Flatten&CancelAllOrders \| Last: ([\d.]+)\. "
+                r"Current Position quantity: (-?\d+)", line)
+            if m:
+                events.append({
+                    "type": "SIM_FLATTEN",
+                    "last": float(m.group(1)),
+                    "position_qty": int(m.group(2)),
+                    "ts": ts_now,
+                    "line": i,
+                })
+
     # Tag every event with account + sim flag
     for ev in events:
         ev["account"] = account

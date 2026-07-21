@@ -103,6 +103,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 14:00 IL] cursor-agent — ✅ Task#6-סים נסגר: trade_activity_feed מפרסר עכשיו לוגי-Sim1 — 22 אירועים אמיתיים נלכדו
+**רקע:** אחרי תיקון `MEMS26_MODE=sim` ה-feed צפה בחשבון הנכון (Sim1) אבל לכד **0 אירועים** — אומת בדאטה:
+`strings <Sim1 log 49KB> | rg -c <5 patterns>` → **0** (הפורמט של Sim1 שונה לגמרי מלייב).
+**תיקון (cursor, low-risk observability):** 2 תבניות-סים ב-`_parse_events` (gated `is_sim`): `SIM_FILL`
+(Bid/Ask/Last) + `SIM_FLATTEN` (Flatten&Cancel + position_qty). offset-Sim1 אופס → restart LaunchAgent →
+**22 אירועים** (20 fills + 2 flattens מהסשן של הבוקר) נכתבו ל-`trade_activity_events.jsonl` (פלט גולמי ב-LOG המלא).
+**טסטים:** `tests/v9/regression/test_trade_activity_sim_patterns.py` — 4 passed, fixture=שורות-לוג אמיתיות verbatim
+(כולל זבל-בינארי), כולל טסט שחשבון-לייב לא פולט SIM_*. **מגבלה כנה:** לוג-Sim1 לא מכיל P&L/order-id — SIM_FILL
+נותן ראיית-fill + מחיר בלבד; רקונסיליאציה מלאה בסים נשארת דרך `trade_fills_journal.jsonl` (עובד).
+
 ### [2026-07-21 13:55 IL] cursor-agent — ✅ הכנה-סופית לפתיחה: verify OK · flag_guard 107/107 · 2 תיקוני-תצוגה בפרונט · DLL-מונולית מקומט
 **readiness (פקודות+פלט גולמי):**
 - `mems26_verify.sh` → **OK** (backend 200 · bridge+promoter רצים · feed 0s · DB lag 3:15) · 2 אזהרות שנסגרו:
