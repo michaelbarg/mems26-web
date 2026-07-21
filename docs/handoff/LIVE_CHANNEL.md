@@ -90,6 +90,22 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21] cc-macbook — ביקורת-נזק TS-REPAIR: כל 4 בדיקות PASS ✅
+```
+IB:           max(high)=7552.25  min(low)=7506.0  count=12  ✅ (EXPECTED match)
+CONTINUITY:   gaps>5min = 0  ✅
+DUPLICATES:   0 rows  ✅
+BACKUPS:      v9_bars_5min_bak_0720=113  v9_bars_5min_woodies_bak_0720=275  ✅
+```
+**נקודות-נזק:**
+1. Pre-RTH: 6 rows (not 7) with RTH-like prices (7501-7524) at 14:10-15:30 IL — shifted bars not matched. **לא חוסם** (globex, no classifier impact).
+2. INSERT symbol=MES ✅. cumulative_delta: consistent negative (down day) ✅.
+3. Woodies overnight: 186 rows, untouched (no reference) — **OK**.
+4. Secondary tables: setups=20, cum_delta=78. **v9_day_type_history=Neutral_Extreme** (engine overwrote) — **morning UPDATE needed**.
+
+**טסטים:** `test_ts_offset_ingest_gate.py` 6 passed ✅. `flag_guard` PASS 101/101 ✅.
+**TODO בוקר:** UPDATE v9_day_type_history 07-20 → Normal_Variation + verify holds 5 min.
+
 ### [2026-07-21 00:35 IL] cursor-agent — §1 המשך-לילה: E סגור · C/F מאומתי-ריצה · I (רקונסיליאציה) — ממצאים מהותיים
 **E (reasons) 🟢:** סריקת-AST של gateway — **0** נקודות `blocked_by` בלי `reason` צמוד (הפער-6 מהמנדט נסגר בעבודת ה-FRONTEND_INDEX). כל חסימה מחר תגיע עם סיבה מדויקת.
 **C/F (ריצה) 🟢:** boot-line של ה-PID החי (37216): `[env_loader] applied 145 vars from .env` אחרי restart 14:30 ET → דגלי-הסטופ (STRUCTURAL/WIDEN/WINDOW=1) וגבולות-הסיכון (HALT=1·cap=800·consec=0) טעונים-בפועל. טסט-נכונות על ברים-אמיתיים = העסקה הראשונה מחר (שלב-8 בראנבוק).
