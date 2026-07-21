@@ -110,7 +110,8 @@ ruled:
   STRUCTURAL_STOP_ORIGIN_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-20", note: "fix-1: סטופ = swing extreme b1..b3 + 6T. #420" }
   STOP_WINDOW_COMPLETED_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-20", note: "fix-1: completed bars (לא partial)" }
   STOP_WIDEN_TO_STRUCTURE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-20", note: "fix-1: resolver מקבל מבנה-רחב. ATR→size-cut" }
-  T2T3_NO_STOMP_V1: {expected: "unset_or_0", ruled_by: "מייקל", date: "2026-07-21", note: "Task#4: כשהמבני הצליח, pattern_t1 קובע רק t1 (לא דורס t2/t3 מבניים). בנוי OFF" }
+  T2T3_NO_STOMP_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "Task#4: כשהמבני הצליח, pattern_t1 קובע רק t1 (לא דורס t2/t3 מבניים). נבנה OFF, אומת route-level (6 טסטים), הודלק 11:19 ('מאשר')" }
+  C4_TREND_FLATTEN_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "ruling-6 08:45 ('ביום טרנדי ממשיך עד 15 דקות לפני סגירת השוק') + 11:19 ('המערכת צריכה לנהל עסקת-טרנד לפי דלתון'): flatten ראנרים ב-15:45 ET בימי-Trend. CANCEL-pattern, לא op=EXIT" }
   SSV_GATE_V1:            {expected: "0", ruled_by: "מייקל", date: "2026-07-15", note: "פסיקת-בוקר ('מאשר את ההמלצה'): SSV רץ בלי-דגל ובלי-פסיקה וניזון מצל — חסם 22 ירי-אמת ב-14/07; כבוי עד כיול על שבוע-אמת + פסיקה; ההזנה תוקנה ל-live/demo בלבד" }
   S1_ACCEPTANCE_RECLASS_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P0-1-v2 מאושר ('מאשר'): reclass-בקבלה בכל הרפרנסים (PDH/PDL/VA-אתמול/IB) + failed_breakout; ראיות: 07-08 DOWN@09:35, 06-30 Trend@10:00, EOD ללא-שינוי (P01_V2 report)" }
 

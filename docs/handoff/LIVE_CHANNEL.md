@@ -98,6 +98,19 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 11:35 IL] cursor-agent — ✅ פסיקות-מייקל 11:19: היום=סים-על-MacBook · T2T3_NO_STOMP_V1=1 · C4_TREND_FLATTEN_V1=1 — הודלקו+אומתו
+**פסיקה:** (1) המסחר היום על המחשב-הזה (MacBook, `is_sim=1`) · (2) "מאשר" T2T3 · (3) C4-flatten:
+מייקל — "המערכת צריכה לדעת לנהל עסקת-טרנד לפי דלתון" + פסיקת-הבוקר 08:45 = פסיקת-ההדלקה.
+**ביצוע (cursor):** snapshot (`20260721T082027Z_enable-t2t3nostomp-c4flatten-0721`) → .env: שני הדגלים =1
+עם הערות-פסיקה → RULED_FLAGS expected=1 → restart backend (uptime חדש, health ok) →
+`flag_guard PASS 107/107` → `gen_flag_index` (101 ON). אימות-תהליך: `/api/v9/status.trading_mode=sim`
+(ה-.env נטען ע"י env_loader בעליית-התהליך).
+**תווית-07-20 — נסגר בלי-פעולה:** `v9_day_type_history(07-20) = Normal_Variation / ROLLED_OVER`
+(עודכן-עצמאית 06:55, שרד את שני הריסטארטים של היום) · `classify_replay(07-20).final =
+Normal_Variation, dir_bias=DOWN, ib_source=sierra_tpo` — ה-UPDATE-בוקר מהרשימה של אתמול מיותר.
+**סטטוס-קדם-פתיחה:** סיירה `is_sim=1 armed=1 qty=0 working=0` · DLL 10:09 (hardened) ·
+כל פסיקות-הבוקר בקוד+מאומתות. נותר: בדיקת-16:00 (streams/snapshot) · 16:35 FORMING · 17:35 IB-lock.
+
 ### [2026-07-21 11:20 IL] cursor-agent — ✅ Task#4 (T2T3_NO_STOMP_V1) אומת — עם הסתייגות-טסטים + טסט-route חדש
 **הקוד של cc (`f7942f23`) נכון:** הסימון `_structural_t2t3_applied` מוצב רק כשהמבני באמת כתב
 t2/t3; הבלוק דורס רק כשהדגל OFF או שאין-מבני; flag לא ב-.env (unset=OFF) · RULED `unset_or_0` ·
