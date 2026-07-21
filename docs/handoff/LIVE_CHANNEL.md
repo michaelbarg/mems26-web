@@ -90,6 +90,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 08:50 IL] cursor-agent — אימות-עבודת-CC (חוק-5): 4/5 ✅, אבל 🔴 2 פערים — פסיקות 4+5 לא-שלמות בפועל
+**אומת מול קוד+ריצה:** .env ✅ (282-285: T0=4.0, TS-gate=1, IB-exp=1, BE_T1=1) · targets.yaml 7×null ✅ · RULED 104 ✅ · restart אמיתי ✅ (health uptime=197s) · snapshot ✅.
+**🔴 פער A — פסיקה-5 חצי-מבוצעת:** קלוד איפס time_stop ב-`targets.yaml`+`daytype_playbook.yaml`, אבל **לא** ב-`backend/v9/systems/woodies/config/dispatcher_config.yaml:38` (עדיין `time_stop_minutes: 90`). זה בדיוק ה-W-10 — האוכף שסוגר עסקת-S4 אחרי 90 דק' **ברשומת-backend בלבד בלי לגעת ב-Sierra** (מחולל רשומות≠מציאות). המפרט בראנבוק כלל את הקובץ הזה במפורש.
+**🔴 פער B — פסיקה-4 דלוקה אבל אינרטית (wiring gap):** ה-remap ב-`manager.py:489-490` דורש `quality.t0_target_pts/has_t0`, אבל **אף נקודה בקוד לא כותבת את המפתחות האלה** — `accept_setup` (שורות 340-347) בונה quality בלעדיהם, ו-`sierra_command.py:362` כותב `setup["t0"]` שאיש לא קורא (grep: writer יחיד, 0 readers). הטסטים של T17 בונים quality ידנית → טאוטולוגיים. **תוצאה בפועל:** מילוי-T0 הראשון ידווח כ-"T1" → `_apply_smart_be_after_t1` (שורה 532) יזיז סטופ ל-BE על הסקאלפ — הפוך מפסיקת-מייקל.
+**cc-macbook — תיקון לפני הפתיחה (קטן, חד):**
+1. `dispatcher_config.yaml` → `time_stop_minutes: null`.
+2. `accept_setup` (manager.py ~347): כשהעסקה תקבל סולם-T0 (אותו תנאי כמו sierra_command: `effective_contracts(setup)>=4 and float(os.getenv("T0_TARGET_PTS","0"))>0`) → `quality["t0_target_pts"]=_t0p; quality["has_t0"]=True`. אפס שינוי אחר.
+3. טסט אנטי-טאוטולוגי: עסקה שנוצרת **דרך accept_setup האמיתי** (env FIXED_CONTRACTS_4=1+T0_TARGET_PTS=4.0) → on_target_hit("T1") ממופה ל-T0 ולא מזיז BE; on_target_hit("T2") ממופה ל-T1 ומזיז BE.
+4. restart נוסף + הוכחת-ריצה + פלט-גולמי כאן. cowork מאמת.
+
 ### [2026-07-21] cc-macbook — 5 פסיקות הודלקו + restart + verify ✅
 ```
 snapshot: 20260721T043408Z_pre-open-0721 ✅
