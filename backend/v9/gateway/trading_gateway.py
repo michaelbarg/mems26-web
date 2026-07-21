@@ -1193,6 +1193,7 @@ class TradingGateway:
         # Flag-gated DAYTYPE_TARGETS_STRUCTURAL (default OFF). Fail-safe: on error
         # or missing levels → keeps original R-based targets.
         # (CONFLUENCE_RI_ZLR is exempt: ±4/±8 targets are definitional.)
+        _structural_t2t3_applied = False  # set True when structural targets succeed
         if (not _confluence_fixed) and os.getenv("DAYTYPE_TARGETS_STRUCTURAL", "0").lower() in ("1", "true", "yes"):
             # FIX-4 (incident 333): skip structural targets before IB lock.
             # Pre-lock IB = running session high/low → structural targets land
@@ -1231,6 +1232,7 @@ class TradingGateway:
                         bars=_st_bars,
                         pattern_family=_pf(_st_pat),
                     )
+                    _structural_t2t3_applied = False
                     if _st is not None:
                         _old_t1 = setup.get("t1")
                         _old_t2 = setup.get("t2")
@@ -1238,8 +1240,10 @@ class TradingGateway:
                             setup["t1"] = _st["t1_price"]
                         if _st.get("t2_price") is not None:
                             setup["t2"] = _st["t2_price"]
+                            _structural_t2t3_applied = True
                         if _st.get("t3_price") is not None:
                             setup["t3"] = _st["t3_price"]
+                            _structural_t2t3_applied = True
                         logger.info(
                             "[Gateway] #68 structural targets: %s %s → C1=%.2f C2=%s C3=%s (was t1=%s t2=%s)",
                             direction, _st.get("day_type"),
@@ -1269,11 +1273,19 @@ class TradingGateway:
                     _pt_sign = 1.0 if str(direction).upper() == "LONG" else -1.0
                     _pt_old_t1 = setup.get("t1")
                     setup["t1"] = round(_pt_entry + _pt_sign * _pt_pts, 2)
-                    setup["t2"] = round(_pt_entry + _pt_sign * 2 * _pt_pts, 2)
-                    setup["t3"] = round(_pt_entry + _pt_sign * 3 * _pt_pts, 2)
+                    # T2T3_NO_STOMP_V1 (Michael ruling 2026-07-21): when structural
+                    # targets already set t2/t3, do NOT overwrite them with ×2/×3.
+                    # Structural targets (POC/VAL/IB edge) are Dalton-correct;
+                    # the ×2/×3 are arbitrary R-multiples that stomp them.
+                    _no_stomp = (os.getenv("T2T3_NO_STOMP_V1", "0").lower() in ("1", "true", "yes")
+                                 and _structural_t2t3_applied)
+                    if not _no_stomp:
+                        setup["t2"] = round(_pt_entry + _pt_sign * 2 * _pt_pts, 2)
+                        setup["t3"] = round(_pt_entry + _pt_sign * 3 * _pt_pts, 2)
+                    _log_suffix = " (no-stomp: structural t2/t3 preserved)" if _no_stomp else ""
                     logger.info(
-                        "[Gateway] PATTERN_T1_OVERRIDE: %s×%s → T1=%.2f (%.1fpt) was=%.2f",
-                        _pt_cls, _pt_dt, setup["t1"], _pt_pts, _pt_old_t1 or 0,
+                        "[Gateway] PATTERN_T1_OVERRIDE: %s×%s → T1=%.2f (%.1fpt) was=%.2f%s",
+                        _pt_cls, _pt_dt, setup["t1"], _pt_pts, _pt_old_t1 or 0, _log_suffix,
                     )
         except Exception as _pt_err:
             logger.warning("[Gateway] pattern T1 override errored (fail-safe): %s", _pt_err)
