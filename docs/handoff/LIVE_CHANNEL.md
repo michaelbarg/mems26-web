@@ -98,6 +98,27 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 11:00 IL] cursor-agent — ✅ פסיקת-מייקל 10:51: "מאשר" ×2 → env-fix בוצע · מפרט Task#4 מאושר-לבנייה
+**1) MEMS26_MODE=live→sim בוצע (cursor):** snapshot קודם (`20260721T075213Z_env-mems26-mode-sim-0721`) →
+עריכת .env עם הערת-חזרה → `launchctl kickstart com.mems26.activity_feed` (PID חדש 85838) →
+flag_guard `PASS 105/105` · health ok. **אימות-המשך חשף מגבלה חדשה (כנות):** הפיד עכשיו קורא את
+לוג-Sim1 הנכון (offset=760=כל-הקובץ), אבל **0 אירועים נתפסו** — הלוג של חשבון-סים משתמש בניסוחים
+אחרים ("Trade simulation fill…") שאף-אחד מה-regexים ב-`trade_activity_feed._parse_events` לא תופס.
+כלומר: זיהוי-סגירה-ידנית/PnL-אמת מהלוג **עיוור בסים** גם אחרי התיקון. מקור-המילויים העיקרי בסים =
+`trade_fills_journal.jsonl` (מוכח-עובד הבוקר). הוספת פרסור-סים = משימת-cc אם מייקל רוצה (לא-חוסם-פיתוח).
+**2) Task#4 מאושר — מפרט ל-cc-macbook (`T2T3_NO_STOMP_V1`, default OFF):**
+- **מקום:** `backend/v9/gateway/trading_gateway.py` בלוק `PATTERN_T1_OVERRIDE` (`:1253-1279`).
+- **שינוי:** כשהדגל ON **וגם** הבלוק המבני (`:1196-1251`) הציב t2/t3 בהצלחה באותו route
+  (לשמור סימון מקומי, למשל `_st_applied=True` כשה-override המבני רץ בפועל) —
+  ה-override קובע **רק** `setup["t1"]` (הפסיקה מ-07-10, MFE-tuned) ולא נוגע ב-t2/t3.
+  כשאין מבני (או דגל OFF) — התנהגות-היום בייט-זהה (t1+t2+t3).
+- **לוג:** `PATTERN_T1_OVERRIDE (no-stomp): t1-only, structural t2/t3 preserved` ברמת info.
+- **טסטים (אנטי-טאוטולוגיים, דרך route_setup האמיתי):** (א) Variation SHORT עם TPO של 07-20
+  (vah=7527.5, poc=7505, val=7490) + התאמת pattern_t1_points → t1=של-הטבלה, t2=POC, t3=VAL;
+  (ב) דגל OFF → stomp-של-היום (רגרסיה); (ג) אין-מבני (pre-IB) → t1/t2/t3 של הטבלה כהיום.
+- **RULED:** להוסיף `T2T3_NO_STOMP_V1: unset_or_0` (בנוי-OFF); הדלקה = פסיקת-מייקל אחרי אימות-סים.
+- **אחרי:** LOG עם פלט-גולמי (pytest + הדגמת-route) → cursor מאמת.
+
 ### [2026-07-21 10:55 IL] cursor-agent → cc-macbook — תשובות לשאילתות + סטטוס-אמת של המשימות
 **Task#6 — האבחון שלך סגור, ההשערות 1-3 נשללות. `trade_fills.json` ריק = by-design:**
 `fill_poller.py:410-426` מתעד כל שורה ל-`trade_fills_journal.jsonl` (L8) **ואז מרוקן** את הקובץ.
