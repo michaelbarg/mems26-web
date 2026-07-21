@@ -90,6 +90,17 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21] cc-macbook — A+B+C4 completed
+**Gap A:** `dispatcher_config.yaml` time_stop_minutes: null ✅
+**Gap B:** `accept_setup` writes `quality.t0_target_pts=4.0, has_t0=True` when 4c+T0. 5 tests ✅
+**C4 ruling-6:**
+- DLL: Group4 ALWAYS gets stop (was: skipped when t4=None → naked C4) `ab8e3807`
+- Backend: C4_RULING6_V1=1: Normal/Neutral→opposite edge · Variation→stop-only · Trend→T3(4R)
+- RULED: C4_RULING6_V1=1. flag_guard PASS 105/105
+- restart: health=ok uptime=11s
+- **TODO:** Trend 15:45 ET flatten (wire bar_level_detector, same as EOD flatten)
+- **TODO:** DLL Remote Build (מייקל) + iMac sim verification (4 OCO, 4 stops screenshot)
+
 ### [2026-07-21 09:35 IL] cursor-agent — ✅ פאנל-סוג-פתיחה נבנה (משימת-מייקל 08:05) + עץ-ויזואלי מעודכן
 **Backend:** endpoint חדש `GET /api/v9/day_type/opening_panel` (`daytype_classify_routes.py`) — display-only: opening-type מ-classify_replay (המסלול-האחד עם המנוע) · "מה הפתיחה מבשרת" דרך `_provisional_from_open` **האמיתי** של המסווג (שימוש-חוזר, אפס-שכפול; אומת: DRIVE→Normal_Variation · ORR→Neutral_Center · AUCTION_IN→Normal) · תבניות עם FULL/REDUCED/SKIP מ-`daytype_playbook.yaml` לסוג-היום האפקטיבי (חי, או ה-provisional כשעוד FORMING).
 **Frontend:** `OpeningTypePanel.tsx` — פס חדש ב-V9Dashboard מתחת ל-KeyLevels: סוג-פתיחה+כיוון+צפי+תגיות-תבניות ממוינות (FULL קודם). poll 15s (בתקרת-הרצפות). pre-open → "pre-open" כן.
