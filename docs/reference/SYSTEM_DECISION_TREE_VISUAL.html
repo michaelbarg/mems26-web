@@ -157,15 +157,16 @@
   <div class="arrow">▼</div>
   <div class="node"><h3>יעדי T1/T2/T3 פר-סוג-יום (<code>targets_table.py</code>, R = מרחק-הסטופ-המבני)</h3>
     <table>
-      <tr><th>סוג-יום</th><th>T0 (C1)</th><th>T1 (C2, BE כאן)</th><th>T2 (C3)</th><th>T3 (C4)</th><th>trail</th></tr>
-      <tr><td><b>Trend_Normal</b></td><td>4 נק'</td><td>1R</td><td>2R+TPO</td><td>4R</td><td>אחרי T2</td></tr>
-      <tr><td><b>Trend_DD</b></td><td>4 נק'</td><td>1R</td><td>פתוח</td><td>תקרה 4R</td><td>—</td></tr>
-      <tr><td><b>Variation</b></td><td>4 נק'</td><td>1R</td><td>2.5R</td><td>trail בלבד</td><td>אחרי T2</td></tr>
-      <tr><td><b>Normal</b></td><td>4 נק'</td><td>1R</td><td>POC</td><td>—</td><td>—</td></tr>
-      <tr><td><b>Neutral_Extreme</b></td><td>4 נק'</td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>—</td></tr>
-      <tr><td><b>Neutral_Center</b></td><td>4 נק'</td><td>1R</td><td>הקצה הנגדי</td><td>—</td><td>—</td></tr>
+      <tr><th>סוג-יום</th><th>T0 (C1)</th><th>T1 (C2, BE כאן)</th><th>T2 (C3)</th><th>C4 — פסיקה-6 (08:45)</th><th>trail</th></tr>
+      <tr><td><b>Trend_Normal</b></td><td>4 נק'</td><td>1R</td><td>2R+TPO</td><td>רץ עד 15:45 ET (22:45 IL)</td><td>אחרי T2</td></tr>
+      <tr><td><b>Trend_DD</b></td><td>4 נק'</td><td>1R</td><td>פתוח (תקרה 4R)</td><td>רץ עד 15:45 ET</td><td>—</td></tr>
+      <tr><td><b>Variation</b></td><td>4 נק'</td><td>1R</td><td>2.5R</td><td>עם T3 (trail)</td><td>אחרי T2</td></tr>
+      <tr><td><b>Normal</b></td><td>4 נק'</td><td>1R</td><td>POC</td><td>הקצה השני</td><td>—</td></tr>
+      <tr><td><b>Neutral_Extreme</b></td><td>4 נק'</td><td>1R</td><td>הקצה הנגדי</td><td>הקצה השני</td><td>—</td></tr>
+      <tr><td><b>Neutral_Center</b></td><td>4 נק'</td><td>1R</td><td>הקצה הנגדי</td><td>הקצה השני</td><td>—</td></tr>
       <tr><td><b>Nontrend</b></td><td colspan="5" style="color:var(--off)"><b>NO TRADE</b> (+ NONTREND_DISABLE_ALL=1)</td></tr>
     </table>
+    <div class="warn">🔴 פער-חיווט לפסיקה-6 (נמצא 07-21 09:00): כיום C4 מקבל את T3 של ה-setup — ביום בלי מחיר-T3 (Normal/Neutral/Variation) ה-DLL <b>לא בונה OCO לחוזה הרביעי → נכנס בלי סטופ ובלי יעד</b> (`sierra_command.py:348` · DLL `:2875`). מיפוי-C4 של הפסיקה + hardening ממתינים לפסיקת-ביצוע.</div>
     <div class="warn">⚠ מקור-אמת-אחד (פסיקת-מייקל #5, dispatch): עמודת-"חוזים" הישנה (3/2/1) הוסרה — היא <b>שדה מת</b> (FIXED_4 דורס = G7). הכפילות <code>targets.yaml</code>⟂<code>targets_table.py::_TARGETS</code> עדיין קיימת בקוד — איחוד למקור-יחיד = משימת-קוד פתוחה (הצעה תוגש לפסיקה).</div>
     <div class="warn">⚠ G7 פתוח: הפלייבוק כותב REDUCED אבל FIXED_4 דורס — "מופחת" לא עובד בפועל. דורש פסיקתך לפני קוד.</div></div>
 </div>
