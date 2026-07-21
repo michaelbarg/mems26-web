@@ -108,9 +108,9 @@
 `.env` mode=live+ARMED=1+EXECUTION=1 ✓ · Sierra `is_sim=0, armed=1` ✓ · flag_guard **107/107** ✓.
 **🔴 סטייה מטענת-"position_qty=0":** ב-15:50 ה-export הטרי (age<20s) מראה **SHORT ‎-5 @ 7507.75** +
 buy-stop 5@7512 (מוגן). **לא עסקת-מערכת** (v9_trades היום: רק 437 סים-E2E סגורה). ב-15:45 cursor ראה 0 →
-הפוזיציה נפתחה בדקה שאחרי. **הודעה נשלחה למייקל: ידני-שלו או אורפן-חוזר?** אם אורפן → FLATTEN לפני 16:30.
-אם ידני → פער-רקונסיליאציה ידוע (כשל-6). streams לא אומתו-שוב (endpoint שונה מהצורה שציפיתי) — על cursor
-ב-16:35. cowork.
+הפוזיציה נפתחה בדקה שאחרי. **✅ נסגר 15:52 — מייקל אישר: "כן זה שלי" (שורט ידני).** לא אורפן, אין FLATTEN.
+**לכל הסוכנים: ‎-5 = פוזיציית-מייקל-ידנית** — reconciler-DIVERGENCE עליה = רעש-צפוי (כשל-6, מחוץ ל-Pipeline-5);
+לא להתריע-בבהלה ולא לשטח. streams לא אומתו-שוב — על cursor ב-16:35. cowork.
 
 ### [2026-07-21 15:45 IL] cursor-agent — ✅ LIVE-GO מאומת מקצה-לקצה: Sierra `is_sim=0` · backend `mode=live` · 11/12 streams · guard 107/107
 מייקל העביר את Sierra ללייב. **אימות סופי (גולמי):** `sierra_state.json`: `is_sim=0, order_placement_armed=1,
