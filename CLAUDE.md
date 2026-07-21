@@ -118,6 +118,24 @@ Current standing decisions (2026-06-08): S2 `choppiness_ok` OFF · Layer-0 chop 
 `tick_reversal_15`/`tpo` non-critical for readiness · **S2 ⟂ S3 (COT/AMT not required)**.
 See the per-item sections below for the exact flag + file.
 
+### Rulings are one-time and standing (Michael 2026-07-21: "לא רוצה שכל יום אצטרך לאשר")
+
+The symmetric rule to the above — it applies to **enables** exactly like disables:
+
+- **A ruling is given ONCE and holds permanently** — across days, restarts, machines,
+  and agent sessions — until Michael revokes it in writing. Never ask Michael to
+  re-approve something he already ruled ("do you still want X on?" is a protocol
+  violation, same class as re-enabling a disabled gate).
+- **Code that implements an existing ruling** (the behavior itself was already ruled,
+  the flag merely gates the new implementation): build → verify (tests + sim) →
+  **enable without a second approval**. Record the pointer to the original ruling in
+  `config/RULED_FLAGS.yaml` in the same commit.
+- **Genuinely new trading-risk behavior** with no prior ruling still needs ONE written
+  ruling — after which it is standing like everything else.
+- `config/RULED_FLAGS.yaml` + `scripts/flag_guard.py` are the enforcing memory: every
+  ruled flag lives there with the ruling date/quote, and flag_guard fails loudly on
+  drift in either direction.
+
 ## Chop Gates (DISABLED — Michael approval required to re-enable, 2026-06-08)
 
 Both chop gates are turned **OFF by default** per Michael's explicit instruction

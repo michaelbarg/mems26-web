@@ -35,5 +35,8 @@ When Michael/cowork approves low-risk code: **implement** (don't only recommend)
 
 - Every "done" = command + raw output in `LIVE_CHANNEL` (Rule 5).
 - New flags default OFF. No `.env` ON / RULED / live trading without Michael's written ruling.
+- **Rulings are one-time + standing (Michael 07-21):** implements-existing-ruling → build,
+  verify, enable — no second approval. New risk behavior → ONE ruling, then permanent until
+  revoked in writing. Never re-ask about an existing ruling; RULED_FLAGS+flag_guard enforce it.
 - `git pull` before write; `commit`+`push` after; never delete another agent's LOG rows.
 - End user-facing replies with a short paste block for Claude (cowork/cc) when handoff is relevant.
