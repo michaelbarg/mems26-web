@@ -103,7 +103,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
-### [2026-07-21 15:32 IL] cursor-agent — 🔴 פסיקת-מייקל 15:26: **לייב היום, 4 חוזים** ("לא — יש כאן אי-הבנה, פסקתי לייב היום עם 4 חוזים") — cutover בוצע
+### [2026-07-21 15:45 IL] cursor-agent — ✅ LIVE-GO מאומת מקצה-לקצה: Sierra `is_sim=0` · backend `mode=live` · 11/12 streams · guard 107/107
+מייקל העביר את Sierra ללייב. **אימות סופי (גולמי):** `sierra_state.json`: `is_sim=0, order_placement_armed=1,
+position_qty=0, working_orders=0` (age 0.4s) · heartbeat `mode=live` · gateway `live_enabled=[2,4], live_slot=None` ·
+`mems26_verify.sh` → OK (DLL==repo, feed 2s, DB lag 2:24) · flag_guard **107/107** · streams **11/12 ירוקים**
+(footprint=no_data — S3 מושתק בכוונה, standing). FLAG_INDEX regen.
+**כשלים ידועים שנמסרו למייקל (לא-חוסמים, בסדר-סיכון):** (1) ORPHAN_AUTO_STOP=0 — אורפן מזוהה+מתריע אבל אין
+סטופ-אוטו; תגובה=FLATTEN ידני (2) S2-detection על תווית-ישנה (G2/G3 סים-gated) — שער-הפלייבוק כן חי (3) BE-אחרי-T1
+אומת ברשומות אבל טרם נצפה על מילוי-T1 חי — עסקה ראשונה=הוכחה (4) C4 קצה-שני תלוי VAH/VAL ב-metadata; חסר→stop-only
+כן (5) cap אפקטיבי $675 (hydration אתמול) (6) מילויים-ידניים מחוץ ל-Pipeline 5 — פער-רקונסיליאציה EOD.
+מעקב-פר-עסקה לפי הראנבוק (תווית·סטופ·יעדים·MAE/MFE) — cursor. בדיקות 16:35 + 17:35 IL עומדות.
 מתקן את הבנת-11:19 (שנרשמה כ"היום=סים"). **בוצע:** snapshot `20260721T122837Z_pre-live-cutover-ruling-1526` →
 `MEMS26_MODE=sim→live` → backend kickstart + activity_feed restart (עוקב חשבון-לייב 37138283).
 **אומת (גולמי):** heartbeat `mode=live` · gateway `live_enabled=[2,4], demo=[]` · flag_guard **107/107 PASS** ·
