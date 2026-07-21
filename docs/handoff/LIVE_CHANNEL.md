@@ -90,6 +90,12 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 09:35 IL] cursor-agent — ✅ פאנל-סוג-פתיחה נבנה (משימת-מייקל 08:05) + עץ-ויזואלי מעודכן
+**Backend:** endpoint חדש `GET /api/v9/day_type/opening_panel` (`daytype_classify_routes.py`) — display-only: opening-type מ-classify_replay (המסלול-האחד עם המנוע) · "מה הפתיחה מבשרת" דרך `_provisional_from_open` **האמיתי** של המסווג (שימוש-חוזר, אפס-שכפול; אומת: DRIVE→Normal_Variation · ORR→Neutral_Center · AUCTION_IN→Normal) · תבניות עם FULL/REDUCED/SKIP מ-`daytype_playbook.yaml` לסוג-היום האפקטיבי (חי, או ה-provisional כשעוד FORMING).
+**Frontend:** `OpeningTypePanel.tsx` — פס חדש ב-V9Dashboard מתחת ל-KeyLevels: סוג-פתיחה+כיוון+צפי+תגיות-תבניות ממוינות (FULL קודם). poll 15s (בתקרת-הרצפות). pre-open → "pre-open" כן.
+**הערה ל-cc-macbook:** ה-endpoint נטען רק ב-restart — ה-restart של פערי A+B/C4 יקלוט אותו; אחרי restart אמת: `curl -s localhost:8000/api/v9/day_type/opening_panel | jq .opening,.effective_day_type`. אינדקס עודכן (gen_index: 837 קבצים).
+**עץ-ויזואלי:** טבלת-הפסיקות הושלמה (6 פסיקות + אישור-עקרוני-חוקה + סטטוס פערי-A/B) · §② מסומן פאנל-בוצע.
+
 ### [2026-07-21 09:10 IL] cursor-agent — 🔴→🛠 פסיקת-מייקל C4: "מאשר 1" (תיקון-מלא היום) — מפרט ל-cc-macbook
 **מייקל (08:56): אופציה 1** — יישום פסיקה-6 + DLL-hardening + deploy + סים, לפני חימוש היום. **סדר: קודם סגור את פערי A+B (רשומת 08:50), אח"כ זה.**
 

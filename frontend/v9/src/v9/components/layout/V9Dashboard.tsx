@@ -11,6 +11,7 @@ import { ChartV5b } from '../chart/v5b/ChartV5b';
 import { TradeHistoryStrip } from '../strips/TradeHistoryStrip';
 import { ShadowSoakStrip } from '../strips/ShadowSoakStrip';
 import { KeyLevelsStrip } from '../strips/KeyLevelsStrip';
+import { OpeningTypePanel } from '../strips/OpeningTypePanel';
 import { DirectionStrip } from '../strips/DirectionStrip';
 import { BuildStatusTab } from '../build_status/BuildStatusTab';
 import { TradeReviewTab } from '../trades/TradeReviewTab';
@@ -103,6 +104,8 @@ export function V9Dashboard() {
           <TopBar />
           <Layer0Strip />
           <KeyLevelsStrip />
+          {/* מייקל 07-21: פאנל סוג-פתיחה — סוג הפתיחה + מה הוא מבשר + התבניות הרלוונטיות */}
+          <OpeningTypePanel />
           <div className="flex flex-1 min-h-0">
             <div className="flex-1 flex flex-col min-h-0">
               {/* Chart area — flex-1 fills vertical space, min-height from drag */}

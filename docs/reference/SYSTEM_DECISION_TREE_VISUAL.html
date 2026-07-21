@@ -69,7 +69,7 @@
     <span class="flag f-on">OPENING_FIRE_CVD_V1</span> — FORMING → <code>day_type=None</code> (תיקון באג 06-29 <b>פעיל</b>).
     זיהוי סוג-פתיחה מ-6 ברים: <b>OPEN_DRIVE / OPEN_TEST_DRIVE / OPEN_REJECTION_REVERSE / OPEN_AUCTION</b>, עם אישור-CVD ל-DRIVE (דיברג'נס=ספיגה→לא DRIVE).
     <div class="ok"><b>חריג-הסטופ של מייקל (08:05):</b> עסקת סוג-הפתיחה היא <b>היחידה</b> שלא חייבת סטופ-מבני (בפתיחה אין עדיין מבנה בשל). הגדרת הסטופ שלה בקוד — פריט-אימות פתוח (למטה).</div>
-    <div class="warn">⚠ משימה פתוחה (מייקל 08:05): <b>פאנל סוג-פתיחה</b> ב-UI — סוג-הפתיחה שזוהה + התבניות הרלוונטיות לו, מסודר. טרם נבנה.</div></div>
+    <div class="ok">✅ <b>פאנל סוג-פתיחה נבנה</b> (מייקל 08:05 → בוצע 09:30): פס חדש בדשבורד מתחת ל-Key-Levels — סוג-הפתיחה + כיוון + "מה הוא מבשר" (המיפוי של המסווג עצמו, דלתון עמ' 63-74) + כל תבנית עם FULL/REDUCED/SKIP לפי ה-playbook לסוג-היום האפקטיבי. Endpoint חדש: <code>/api/v9/day_type/opening_panel</code> (display-only). נטען ב-restart הבא.</div></div>
   <div class="arrow">▼</div>
   <div class="cols">
     <div class="node"><h3 style="color:var(--on)">✔ יורים בפתיחה כאשר</h3>DRIVE מזוהה + ה-setup <b>עם</b> כיוון-ה-drive → <span class="flag f-on">OPENING_TYPE_GATE</span> מתיר, וב-30 הדק' הראשונות <code>opening_window_override</code> אף דורס סירובי-סוג-יום (אישור-חיובי; שערי-סיכון עדיין חלים).</div>
@@ -201,7 +201,9 @@
   <tr><td>08:11 ✅</td><td><code>IB_BREAK_ANY_EXPANSION_V1=1</code> — כל פריצת-IB נספרת (דלתון)</td><td>קוד+טסטים מוכנים · .env ב-restart הבוקר</td></tr>
   <tr><td>08:23 ✅</td><td><code>T0_TARGET_PTS=4.0</code> (היה 3.5)</td><td>שינוי-ערך .env ב-restart הבוקר</td></tr>
   <tr><td>08:23 ✅</td><td><code>BE_AFTER_REAL_T1_V1=1</code> — BE רק אחרי T1 האמיתי (לא סקאלפ-T0)</td><td>קוד מוכן (<code>manager.py:481</code>) · .env ב-restart</td></tr>
-  <tr><td>08:23 ✅</td><td>ביטול time-stop — אין זמן לעסקה, רק מערכת-6</td><td><b>דורש שינוי-קוד/קונפיג</b> (W-10 + טבלה) — מפרט לקלוד, לפני ה-restart</td></tr>
+  <tr><td>08:23 ✅</td><td>ביטול time-stop — אין זמן לעסקה, רק מערכת-6</td><td>targets.yaml+playbook.yaml בוצע (CC) · <b>dispatcher (W-10) עדיין 90 — פער-A אצל CC</b></td></tr>
+  <tr><td>08:45 ✅</td><td><b>פסיקה-6:</b> C4 → קצה-שני / עם-T3 / ביום-טרנדי רץ עד 15:45 ET</td><td>"מאשר 1" (08:56) — תיקון-מלא היום אצל CC (כולל DLL-hardening); חימוש מותנה בסים-ירוק</td></tr>
+  <tr><td>08:49 ✅</td><td>אישור-עקרוני: <b>חוקה</b> — מקור-אמת-אחד + שומר-בוקר</td><td>מפרט יוכן אחרי סגירת-הבוקר; ביצוע רק אחרי פסיקת-מייקל עליו</td></tr>
 </table>
 <div class="sub" style="margin-top:14px">מסמך-אח טקסטואלי עם מספרי-שורות-בקוד: <code>docs/reference/SYSTEM_DECISION_TREE_LIVE.md</code> · הכרעות שעוד פתוחות: G7 sizing (REDUCED מול FIXED_4) · אורפן (ORPHAN_AUTO_STOP) · מקור-אמת-אחד targets (איחוד yaml⟂py) · retest-לכניסה (הצעה תוגש) · פאנל-סוג-פתיחה (UI) · סטופ עסקת-הפתיחה (אימות).</div>
 

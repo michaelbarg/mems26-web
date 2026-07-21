@@ -4,16 +4,24 @@ GET /api/v9/day_type/classify_replay?date=YYYY-MM-DD
   → the classifier's day-type TIMELINE (segments) for that date, so the Day-Type
     Labeler can show the auto-classifier's guess next to the human label.
 
+GET /api/v9/day_type/opening_panel
+  → today's opening-type + the provisional day-type it foreshadows (the classifier's
+    OWN mapping — one source) + playbook verdict per pattern. DISPLAY ONLY.
+
 Uses only the pure feature + classifier modules + the existing replay bar source
 (_bars_for_date handles the contract roll). Touches no live state, synthesizes
 nothing (Rule 1). dd_second_dist is not computed yet (TPO single-print pending),
 so Trend_DD will not fire from this endpoint yet — honest, not faked.
 """
+import logging
+import os
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Query
+
+logger = logging.getLogger(__name__)
 
 from backend.v9.db.read import read_all, read_one, read_scalar
 from backend.v9.api.v9.chart_replay_routes import _bars_for_date
@@ -273,4 +281,88 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
         "range_estimate": _range_est,
         "eod_continuation_tag": _eod_tag,
         "segments": segments, "final": timeline[-1],
+    }
+
+
+@router.get("/opening_panel")
+def opening_panel() -> Dict[str, Any]:
+    """Opening-Type panel (Michael 2026-07-21): today's opening type + what it
+    foreshadows + which patterns are relevant right now. DISPLAY ONLY — reads the
+    same sources the engine uses, computes nothing new (Rule 1 honest-missing).
+
+    - opening: from classify_replay(today) — the ONE code path with the live engine.
+    - provisional: the classifier's OWN opening→day-type mapping
+      (_provisional_from_open, Dalton pp.63-74) — reused, not duplicated.
+    - patterns: config/daytype_playbook.yaml cells for the EFFECTIVE day-type
+      (live label when set, else the opening's provisional). SKIP/REDUCED/FULL.
+    """
+    today = datetime.now(_ET).date().isoformat()
+    try:
+        replay = classify_replay(today)
+    except Exception as exc:
+        logger.warning("[opening_panel] classify_replay failed: %s", exc)
+        return {"date": today, "error": f"classify_replay failed: {exc}"}
+
+    final = replay.get("final") or {}
+    opening_type = replay.get("opening_type")
+    open_location_ = replay.get("open_location")
+    live_dt = final.get("day_type")
+    direction = final.get("direction")
+
+    # Provisional-from-open — the classifier's own mapping (one source, no duplication).
+    provisional: Optional[Dict[str, Any]] = None
+    if opening_type:
+        try:
+            from backend.v9.systems.day_type.daytype_classifier import _provisional_from_open
+            _feat = {"opening_type": opening_type, "open_location": open_location_,
+                     "open_dir": direction if direction in ("UP", "DOWN") else None,
+                     "one_tf": None}
+            provisional = _provisional_from_open(
+                _feat, {},
+                lambda dt, status, why, **kw: {"day_type": dt, "status": status,
+                                               "reason": why, **kw},
+            )
+        except Exception as exc:  # honest missing — panel shows "—"
+            logger.warning("[opening_panel] provisional mapping failed: %s", exc)
+
+    # Effective day-type for the pattern column: live label unless still FORMING.
+    effective_dt = live_dt if live_dt and live_dt not in ("FORMING", "UNKNOWN") else (
+        (provisional or {}).get("day_type"))
+    # playbook uses Variation key for Normal_Variation
+    _dt_key = {"Normal_Variation": "Variation"}.get(effective_dt, effective_dt)
+
+    patterns: List[Dict[str, Any]] = []
+    playbook_on = os.environ.get("DAYTYPE_PLAYBOOK", "").lower() in ("1", "true", "yes")
+    if _dt_key:
+        try:
+            from backend.v9.config_loader import _load_yaml
+            _cfg = _load_yaml("daytype_playbook.yaml") or {}
+            for name, pat in (_cfg.get("patterns") or {}).items():
+                cells = pat.get("cells") or {}
+                patterns.append({
+                    "pattern": name,
+                    "group": pat.get("group"),
+                    "verdict": cells.get(_dt_key, "FULL"),
+                    "require_with_trend": bool(pat.get("require_with_trend")),
+                })
+        except Exception as exc:
+            logger.warning("[opening_panel] playbook load failed: %s", exc)
+
+    return {
+        "date": today,
+        "n_bars": replay.get("n_bars", 0),
+        "opening": {
+            "type": opening_type,
+            "location": open_location_,
+            "direction": direction,
+        },
+        "provisional": provisional,
+        "live": {"day_type": live_dt, "status": final.get("status"),
+                 "direction": direction, "reason": final.get("reason")},
+        "effective_day_type": effective_dt,
+        "playbook_on": playbook_on,
+        "patterns": patterns,
+        "ib": {"high": replay.get("ib_high"), "low": replay.get("ib_low"),
+               "width": replay.get("ib_width"), "source": replay.get("ib_source"),
+               "class": replay.get("ib_class")},
     }
