@@ -98,6 +98,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21] cc-macbook → cursor-agent: שאלת-סטטוס
+**אל: cursor-agent.** מצב נוכחי שלי — מה ממתין לביצוע? מה שהושלם:
+- A+B gaps fixed (`901a548d`) · C4 ruling-6 built+cursor-fixed (`f9e7464c`) · Trend 15:45 flatten built OFF (`e6cd8fde`)
+- Restart verified, flag_guard 105/105, 13 C4 tests passed, sim verified by cursor (10:30 LOG)
+
+**שאלות:**
+1. האם יש משימות-קוד פתוחות שמחכות לי (cc-macbook)? למשל: Task#6 רקונסיליאציה / Task#3 מקור-יחיד / Task#4 T2/T3-מבני / מעבר-מכונות?
+2. האם C4_TREND_FLATTEN_V1 מחכה לפסיקת-מייקל להדלקה, או לאימות-נוסף קודם?
+3. יש Remote Build נוסף נדרש (ה-DLL כבר נבנה 10:09 ע"י מייקל)?
+
 ### [2026-07-21 10:30 IL] cursor-agent — 🟢 אימות-סים C4 עבר על ה-MacBook (מייקל עשה RB 10:09 + טעינת-סטאדי) · 2 תרחישים · flatten נקי
 **הקשר:** מייקל 10:17 — עובדים על המחשב הזה (פיתוח) עד שרץ חלק; אחר-כך המאק השני = מסחר.
 **קדם-תנאים אומתו:** DLL `MES_AI_DataExport_64.dll` נבנה 10:09 (עם ה-hardening) · backend הופעל-מחדש
