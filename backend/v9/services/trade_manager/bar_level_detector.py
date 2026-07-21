@@ -173,6 +173,56 @@ class BarLevelDetector:
         except Exception as _eod_err:  # never let flatten break trade management
             logger.warning("[BarLevelDetector] EOD flatten error (fail-safe skip): %s", _eod_err)
 
+    def _trend_runner_flatten(self, active) -> None:
+        """C4 ruling-6 (Michael 2026-07-21): on Trend days, flatten runners at 15:45 ET.
+
+        "ביום טרנדי ממשיך עד 15 דק' לפני סגירת השוק" → 16:00 close − 15min = 15:45.
+        Same pattern as _eod_flatten: send CANCEL, let FillPoller close on Sierra fill.
+        Only for Trend days (Trend_Normal / Trend_DD). Flag: C4_TREND_FLATTEN_V1 (default OFF).
+        """
+        import os as _tf_os
+        if _tf_os.getenv("C4_TREND_FLATTEN_V1", "0").lower() not in ("1", "true", "yes"):
+            return
+        try:
+            from zoneinfo import ZoneInfo
+            _now = datetime.now(ZoneInfo("America/New_York"))
+            _h, _m = _now.hour, _now.minute
+            # 15:45 ET = flatten time for Trend runners
+            if _h < 15 or (_h == 15 and _m < 45):
+                return  # before 15:45
+
+            # Check day-type: only on Trend days
+            try:
+                from backend.v9.services.trade_context import get_live_day_type
+                _dt = get_live_day_type() or ""
+            except Exception:
+                _dt = ""
+            if not _dt.startswith("Trend"):
+                return
+
+            from backend.v9.services.sierra_command import write_cancel
+            for trade in active or []:
+                mode = getattr(trade, "mode", "shadow")
+                if mode not in ("demo", "live"):
+                    continue
+                if trade.id in self._eod_flatten_requested:
+                    continue  # already handled by EOD or prior trend-flatten
+                oid = None
+                if hasattr(self._tm, "_get_sierra_order_id"):
+                    try:
+                        oid = self._tm._get_sierra_order_id(trade)
+                    except Exception:
+                        oid = None
+                write_cancel(trade_id=str(trade.id), order_id=oid, mode=mode)
+                self._eod_flatten_requested.add(trade.id)
+                logger.warning(
+                    "[BarLevelDetector] TREND FLATTEN (15:45 ET, %s): CANCEL sent for %s "
+                    "trade %d — Trend runner cutoff per ruling-6",
+                    _now.strftime("%H:%M"), mode, trade.id,
+                )
+        except Exception as _tf_err:
+            logger.warning("[BarLevelDetector] Trend flatten error (fail-safe skip): %s", _tf_err)
+
     def _reconcile_live(self):
         """P1.3 — run the item-20 reconcile every bar while a slot is active, so a
         slot↔DB↔Sierra/TM disagreement (orphan / naked-stop / phantom-slot) surfaces LIVE
@@ -232,6 +282,8 @@ class BarLevelDetector:
             self._bars_processed += 1
             active = self._tm.get_active_trades()
 
+            # Trend runner flatten at 15:45 ET (flag-gated C4_TREND_FLATTEN_V1, OFF).
+            self._trend_runner_flatten(active)
             # EOD auto-flatten at RTH close (flag-gated EOD_FLATTEN_V1, default OFF).
             self._eod_flatten(active)
             # Reconcile slot↔DB↔Sierra while in a position (flag-gated RECONCILE_LIVE_V1, OFF).

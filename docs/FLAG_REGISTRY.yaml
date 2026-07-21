@@ -971,6 +971,13 @@ flags:
     standing_decision: true
     status: built_off
     ref: "backend/v9/systems/day_type/relative_features.py · tests/v9/regression/test_ib_break_any_expansion.py"
+  C4_TREND_FLATTEN_V1:
+    category: risk
+    what: "On Trend days, flatten runners at 15:45 ET (15 min before close). Same pattern as EOD flatten."
+    why: "OFF (default). Michael ruling-6. Enable after sim/ruling."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/services/trade_manager/bar_level_detector.py"
   STOP_WIDEN_TO_STRUCTURE_V1:
     category: sizing
     what: "When structural stop distance exceeds ATR cap, ACCEPT it (not reject). Structure always wins per Dalton. ATR cap drives contract reduction (SIZE_CAP_CUT_V1) instead of stop rejection."
