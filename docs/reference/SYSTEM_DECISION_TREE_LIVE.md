@@ -1,8 +1,11 @@
 # עץ-ההחלטות של MEMS26 בפועל — מהפתיחה עד הסגירה (נגזר מהקוד, לא מהזיכרון)
 
-**נכתב: 2026-07-20 23:20 IL (cursor) · מצב-דגלים = `.env` החי, flag_guard PASS 101/101.**
+**עודכן: 2026-07-21 14:20 IL (cursor) · מצב-דגלים = `.env` החי, flag_guard PASS 107/107.**
 כל צומת: מה קורה · הדגל ששולט · מצבו עכשיו · איפה בקוד. שעות בפורמט `ET (IL)`.
 עדכן מסמך זה בכל שינוי-שער/דגל — אחרת הוא שקר (כמו FLAG_INDEX, stale=באג).
+**שינויי 07-21 (פסיקות-מייקל, כולם חיים ואומתו):** שער-TS ✅ · IB-expansion ✅ · סולם-4-חוזים
+T0=+4 ✅ · BE-אחרי-T1-אמיתי ✅ · ביטול time-stop ✅ · C4 לפי סוג-יום + DLL-hardening ✅ ·
+T2/T3-מבניים-לא-נדרסים ✅ · C4-flatten-בטרנד 15:45 ✅ · היום=סים על MacBook (`MEMS26_MODE=sim`).
 
 ---
 
@@ -16,7 +19,7 @@ Sierra DLL כותב JSON  →  bridge (LaunchAgent, localhost בלבד)  →  PO
 |---|---|---|---|
 | bridge | דוחף כל ~5s; מסרב לרוץ מול host לא-מקומי | `CLOUD_URL=localhost` קשיח | `bridge/v9_streams/base_stream.py` |
 | תיקון-שעה | ts חדש בדיוק 3600±120s מאחורי now → הזחה +1h; 3300–3900 אבל לא-בדיוק → אזהרה **בלי** הזחה | `WOODIES_TS_HOUR_FIX` unset→**ON** | `bars.py:429` |
-| 🕳→🚪 שער-TS | פיד מתקדם אבל >900s מאחורי now → דחיית-batch כנה. **החור של 07-20** (−1h עבר בלי תיקון ובלי דחייה) | `TS_OFFSET_INGEST_GATE_V1` **OFF** — ממתין לפסיקה | `bars.py:485` |
+| 🕳→🚪 שער-TS | פיד מתקדם אבל >900s מאחורי now → דחיית-batch כנה. **החור של 07-20** (−1h עבר בלי תיקון ובלי דחייה) — נסגר | `TS_OFFSET_INGEST_GATE_V1` **1 ✅** (פסיקה 07-21 07:59) | `bars.py:485` |
 | שערי-כתיבה | עתידי>2דק' → דחייה · מחוץ-RTH → דילוג · vol>100K → דחייה · מחיר-מעופש (B-13) → חסימה · סתירה מול woodies → חסימה | תמיד-ON | `bars.py:528-562` |
 
 **ביקורת-בוקר:** `curl :8000/api/v9/health/streams` — הכל healthy, errors=0 · בר-אחרון age<6דק'.
@@ -59,6 +62,7 @@ IB ננעל: מקור = Sierra TPO (v9_tpo_sessions CASH)          ib_source="si
 ├─ סיווג רץ על כל בר: 7 סוגים (Normal / Normal_Variation→Variation /
 │  Nontrend / Neutral_Center / Neutral_Extreme / Trend_Normal / Trend_DD)
 │  לפי דלתון: הרחבות מול IB, acceptance, value, POC drift, נפח, EOD.
+│  הרחבה נספרת מכל פריצת-IB (IB_BREAK_ANY_EXPANSION_V1=1 ✅, פסיקה 07-21)
 │  אסקלציה-בלבד בתוך סשן (Normal→Variation→Trend, לא חוזרים).  shadow_reclass.py:85
 └─ צרכן: get_live_day_type() = override(אם יש) → 7-type חי → fallback
    [S1_NEW_CLASSIFIER=1 ✅ + S1_ENGINE_NEW_CLASSIFIER=1 ✅]     trade_context.py:640-659
@@ -120,7 +124,7 @@ IB ננעל: מקור = Sierra TPO (v9_tpo_sessions CASH)          ib_source="si
 עבר את כל השערים
 ├─ תמיד: _execute_shadow (רישום-צל, gateway:1762)
 └─ לייב?  (gateway:1867-1922)
-    ├─ _is_live_enabled(system)?         [MEMS26_MODE=live · LIVE_EXECUTION_V1=1 · LIVE_TRADING_ARMED=1 ✅]
+    ├─ _is_live_enabled(system)?         [07-21: `MEMS26_MODE=sim` (פסיקת 11:19 — היום סים על MacBook) · LIVE_EXECUTION_V1=1 · LIVE_TRADING_ARMED=1]
     ├─ live_slot פנוי? (עסקת-לייב אחת בו-זמנית; מתפנה ב-close, gateway:2003)
     └─ passes_strict_checks("live")      [risk_checks.py — לייב-בלבד]
         ├─ cutoff-לייב: אחרי 15:30 ET (22:30 IL, פסיקת 07-19) → לא   [RISK_CUTOFF_HOUR_ET=15 + MINUTE=30]
@@ -140,10 +144,14 @@ IB ננעל: מקור = Sierra TPO (v9_tpo_sessions CASH)          ib_source="si
 | חלון-הסטופ | קורא ברים **סגורים** בלבד | `STOP_WINDOW_COMPLETED_V1=1` ✅ (מחווט, אומת 07-20) | five_min_system.py:1308 |
 | סטופ רחב-מ-ATR | מתקבל במקום להידחות | `STOP_WIDEN_TO_STRUCTURE_V1=1` ✅ | sizing/stops |
 | דחיית-סטופ ע"י Sierra | הרחבה-לרצפה (widen-only) | `STOP_WIDEN_TO_FLOOR_ON_REJECT_V1` **OFF** — סים-gated | Task#10 |
-| יעדים | T1/T2/T3 = OCO צמוד ב-Sierra (לא op=EXIT) | תמיד | DLL |
-| System6 | מצב-הגנתי בלבד: MODIFY_STOP→BE + התרעות; **אף פעם op=EXIT** | `SYSTEM6_AUTOCORRECT=protective` ✅ (פסיקה 07-15) | system6_supervisor |
-| יציאה ידנית | FLATTEN_ACCOUNT בלבד (op=EXIT שבור עד EXIT-v2) | קבוע | CLAUDE.md |
-| אורפנים | זיהוי בלבד; אין סטופ-אוטו (חסום על is_sim=0) | `ORPHAN_AUTO_STOP_V1=0` — **הלולאה-המעגלית #1, פתוח** | Task 1א/1ב |
+| **סולם 4 חוזים (07-21)** | C1→**T0=כניסה±4** · C2→T1 · C3→T2 · C4→T3; כל חוזה OCO משלו עם סטופ. **C4 בלי T3:** Normal/Neutral→הקצה-השני (VAL/VAH, IB-fallback) · Variation→stop-only (trail עם T3) · Trend→ראנר. **DLL-hardened: C4 לעולם לא עירום** — אומת בירי-אמת (8 working = 4×OCO) | `FIXED_CONTRACTS_4=1` ✅ · `T0_TARGET_PTS=4.0` ✅ · `C4_RULING6_V1=1` ✅ | `sierra_command.py:342-402` + DLL |
+| BE (סטופ→כניסה) | **רק אחרי T1 אמיתי** (מילוי-C2), לא אחרי T0 | `BE_AFTER_REAL_T1_V1=1` ✅ (פסיקה-3, אומת `has_t0=True` על עסקה-אמיתית) | `manager.py:489` |
+| time-stop | **אין** — מערכת 6 מנהלת משך, לא שעון | `time_stop_minutes: null` בכל 7 הסוגים + dispatcher (פסיקה-5) ✅ | targets.yaml · dispatcher_config.yaml |
+| יעדים T2/T3 מבניים | pattern_t1 קובע רק T1 — לא דורס T2/T3 מבניים (POC/VAL/IB) | `T2T3_NO_STOMP_V1=1` ✅ (Task#4, 07-21) | gateway:1253-1279 |
+| C4 ביום-Trend | flatten ראנרים 15:45 ET (15 דק' לפני סגירה), CANCEL-pattern | `C4_TREND_FLATTEN_V1=1` ✅ (פסיקה-6) | trade_manager |
+| System6 | מצב-הגנתי בלבד: MODIFY_STOP→BE + התרעות; **אף פעם op=EXIT** | `SYSTEM6_AUTOCORRECT=protective` ✅ (פסיקה 07-15) · אומת חי על 437 | system6_supervisor |
+| יציאה ידנית | FLATTEN_ACCOUNT בלבד (op=EXIT שבור עד EXIT-v2) | קבוע · אומת 07-21 (437→flat) | CLAUDE.md |
+| אורפנים | זיהוי + FLATTEN_ORPHAN ב-DLL (סטופ-וירטואלי backend); סטופ-אוטו עדיין OFF | `ORPHAN_AUTO_STOP_V1=0` — ממתין אימות-סים (פסיקות-ממתינות #4) | Task 1א/1ב |
 
 ---
 
@@ -151,9 +159,12 @@ IB ננעל: מקור = Sierra TPO (v9_tpo_sessions CASH)          ib_source="si
 
 ```
 15:00 ET  אין כניסות חדשות (eod_entry_cutoff)
+15:45 ET  ביום-Trend: flatten ראנרים (C4_TREND_FLATTEN_V1=1 ✅, פסיקה-6)
 16:00 ET  סשן נסגר → המסווג נועל תווית טרמינלית (is_eod) → v9_day_type_history
           rollover למחרת ~06:55 IL · אימות: position_qty=0 ב-sierra_state.json
-🔴 Task#6  P&L אמיתי מ-trade_fills.json — ריק; רקונסיליאציה מול Sierra = חוסם-אמון פתוח
+✅ Task#6  נסגר 07-21: trade_fills.json ריק = by-design (ה-poller צורך ומרוקן; האמת ב-trade_fills_journal.jsonl,
+          עובד) · trade_activity_feed עוקב אחרי החשבון הנכון (sim→Sim1) + מפרסר לוגי-Sim1 (SIM_FILL/SIM_FLATTEN)
+🔴 נותר   מילויים ידניים/orphan שלא עוברים ב-Pipeline 5 — פער-רקונסיליאציה בלוח S124
 ```
 
 ---
@@ -169,6 +180,9 @@ IB ננעל: מקור = Sierra TPO (v9_tpo_sessions CASH)          ib_source="si
 | עסקה חיה | `/api/v9/status` + Sierra | סטופ ב-Sierra = קצה-מבנה+6T; live_slot תואם |
 | סגירה | `v9_day_type_history` + `sierra_state.json` | תווית = מה שראית · position_qty=0 |
 
-## הפערים הפתוחים שמופו (בכוונה, לא באג)
-`TS_OFFSET_INGEST_GATE_V1` OFF (ממתין לפסיקה — ממליץ ON לבוקר) · `IB_BREAK_ANY_EXPANSION_V1` OFF (הכרעה-6) ·
-G2/G3/G6 סים-gated · `ORPHAN_AUTO_STOP_V1` OFF (הכרעה) · Task#6 fills ריק · תווית-היסטוריה 07-20 (UPDATE אחרי restart-בוקר).
+## הפערים הפתוחים שמופו (בכוונה, לא באג) — עודכן 07-21 14:20
+G2/G3/G6 סים-gated (S124, ממתין ליום-סים ירוק) · `ORPHAN_AUTO_STOP_V1` OFF (ממתין אימות-סים) ·
+G4/D1 OFF (פסיקת 07-20) · מילויים-ידניים/orphan מחוץ ל-Pipeline 5 (S124) · S2-detection על תווית-ישנה
+(G2/G3) · `hydrate_live_pnl` לפני 09:30 ET טוען סשן-אתמול (מינורי, live-cap בלבד).
+**נסגרו 07-21:** שער-TS ✅ · IB-expansion ✅ · Task#6 fills ✅ · תווית-07-20 (כבר Normal_Variation ✅) ·
+C4-עירום ✅ · time-stop ✅ · BE-אחרי-T1 ✅ · T2/T3-stomp ✅.

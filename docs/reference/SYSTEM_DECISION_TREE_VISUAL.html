@@ -42,7 +42,7 @@
 <body>
 
 <h1>MEMS26 — עץ-ההחלטות בפועל, מהפתיחה עד הסגירה</h1>
-<div class="sub">עודכן 2026-07-21 08:30 IL לפי פסיקות-מייקל של הבוקר (5 פסיקות 08:11-08:23) + dispatch תיקון-העץ · דגל עם ✅-פסיקה = מאושר, נכנס ב-restart של הבוקר · לכל צומת יש ☑ — נסמן יחד תוך-כדי מעבר.
+<div class="sub">עודכן 2026-07-21 14:20 IL · <b>כל 8 פסיקות-הבוקר חיות ואומתו</b> (flag_guard 107/107) · ירי-אמת E2E עבר: 4 חוזים, 4×OCO, T0=+4, סטופ בכולם · היום = <b>סים על MacBook</b> (פסיקת 11:19) · לכל צומת יש ☑ — נסמן יחד תוך-כדי מעבר.
 <div class="legend"><span><span class="flag f-on">ON</span> דלוק ופעיל</span><span><span class="flag f-off">OFF</span> כבוי (מכוון/ממתין)</span><span><span class="flag f-wait">פסיקה</span> ממתין להכרעת-מייקל</span></div></div>
 
 <h2>① הצינור: מסיירה ועד החלטה <input type="checkbox" class="chk"></h2>
@@ -129,7 +129,7 @@
 <h2>⑤ ניתוב + ביצוע <input type="checkbox" class="chk"></h2>
 <div class="flow">
   <div class="node"><h3>עבר הכל → תמיד צל, ולייב רק אם:</h3>
-    <span class="flag f-on">MEMS26_MODE=live</span><span class="flag f-on">LIVE_EXECUTION_V1</span><span class="flag f-on">LIVE_TRADING_ARMED</span> +
+    <span class="flag f-wait">MEMS26_MODE=sim (07-21 — פסיקת 11:19: היום סים על MacBook)</span><span class="flag f-on">LIVE_EXECUTION_V1</span><span class="flag f-on">LIVE_TRADING_ARMED</span> +
     <b>live_slot פנוי</b> (עסקת-לייב אחת בו-זמנית; מתפנה ב-close) +
     <b>strict-checks</b>: cutoff-לייב 15:30 ET (22:30 IL, פסיקת 07-19) · הפסדים-רצופים מנוטרל.</div>
   <div class="arrow">▼</div>
@@ -166,9 +166,9 @@
       <tr><td><b>Neutral_Center</b></td><td>4 נק'</td><td>1R</td><td>הקצה הנגדי</td><td>הקצה השני</td><td>—</td></tr>
       <tr><td><b>Nontrend</b></td><td colspan="5" style="color:var(--off)"><b>NO TRADE</b> (+ NONTREND_DISABLE_ALL=1)</td></tr>
     </table>
-    <div class="warn">🔴 פער-חיווט לפסיקה-6 (נמצא 07-21 09:00): כיום C4 מקבל את T3 של ה-setup — ביום בלי מחיר-T3 (Normal/Neutral/Variation) ה-DLL <b>לא בונה OCO לחוזה הרביעי → נכנס בלי סטופ ובלי יעד</b> (`sierra_command.py:348` · DLL `:2875`). מיפוי-C4 של הפסיקה + hardening ממתינים לפסיקת-ביצוע.</div>
-    <div class="warn">⚠ מקור-אמת-אחד (פסיקת-מייקל #5, dispatch): עמודת-"חוזים" הישנה (3/2/1) הוסרה — היא <b>שדה מת</b> (FIXED_4 דורס = G7). הכפילות <code>targets.yaml</code>⟂<code>targets_table.py::_TARGETS</code> עדיין קיימת בקוד — איחוד למקור-יחיד = משימת-קוד פתוחה (הצעה תוגש לפסיקה).</div>
-    <div class="warn">⚠ G7 פתוח: הפלייבוק כותב REDUCED אבל FIXED_4 דורס — "מופחת" לא עובד בפועל. דורש פסיקתך לפני קוד.</div></div>
+    <div class="ok">✅ פסיקה-6 סגורה (07-21): DLL-hardening + C4_RULING6_V1 חיים · אומת בירי-אמת (trade 437: 4 חוזים, 8 working = 4×OCO, אף חוזה לא עירום). T2T3_NO_STOMP_V1=1 · C4_TREND_FLATTEN_V1=1 (15:45 ET בטרנד).</div>
+    <div class="warn">⚠ מקור-אמת-אחד: הכפילות <code>targets.yaml</code>⟂<code>targets_table.py::_TARGETS</code> עדיין קיימת — איחוד = משימת-קוד פתוחה (לא חוסם היום).</div>
+    <div class="warn">⚠ G7 פתוח: הפלייבוק כותב REDUCED אבל FIXED_4 דורס — "מופחת" לא עובד בפועל. דורש פסיקתך לפני קוד (לא חוסם היום — FIXED_4 = הכלל).</div></div>
 </div>
 
 <h2>⑦ מערכת 6 — מקבלת את הניהול אחרי T1 (protective) <input type="checkbox" class="chk"></h2>
@@ -201,11 +201,12 @@
   <tr><td>08:11 ✅</td><td><code>IB_BREAK_ANY_EXPANSION_V1=1</code> — כל פריצת-IB נספרת (דלתון)</td><td>קוד+טסטים מוכנים · .env ב-restart הבוקר</td></tr>
   <tr><td>08:23 ✅</td><td><code>T0_TARGET_PTS=4.0</code> (היה 3.5)</td><td>שינוי-ערך .env ב-restart הבוקר</td></tr>
   <tr><td>08:23 ✅</td><td><code>BE_AFTER_REAL_T1_V1=1</code> — BE רק אחרי T1 האמיתי (לא סקאלפ-T0)</td><td>קוד מוכן (<code>manager.py:481</code>) · .env ב-restart</td></tr>
-  <tr><td>08:23 ✅</td><td>ביטול time-stop — אין זמן לעסקה, רק מערכת-6</td><td>targets.yaml+playbook.yaml בוצע (CC) · <b>dispatcher (W-10) עדיין 90 — פער-A אצל CC</b></td></tr>
-  <tr><td>08:45 ✅</td><td><b>פסיקה-6:</b> C4 → קצה-שני / עם-T3 / ביום-טרנדי רץ עד 15:45 ET</td><td>"מאשר 1" (08:56) — תיקון-מלא היום אצל CC (כולל DLL-hardening); חימוש מותנה בסים-ירוק</td></tr>
-  <tr><td>08:49 ✅</td><td>אישור-עקרוני: <b>חוקה</b> — מקור-אמת-אחד + שומר-בוקר</td><td>מפרט יוכן אחרי סגירת-הבוקר; ביצוע רק אחרי פסיקת-מייקל עליו</td></tr>
+  <tr><td>08:23 ✅</td><td>ביטול time-stop — אין זמן לעסקה, רק מערכת-6</td><td>targets.yaml + playbook + dispatcher_config → <code>null</code> ✅</td></tr>
+  <tr><td>08:45 ✅</td><td><b>פסיקה-6:</b> C4 → קצה-שני / עם-T3 / ביום-טרנדי רץ עד 15:45 ET</td><td>DLL-hardening + C4_RULING6 + C4_TREND_FLATTEN חיים · סים-ירוק 14:12</td></tr>
+  <tr><td>08:49 ✅</td><td>אישור-עקרוני: <b>חוקה</b> — מקור-אמת-אחד + שומר-בוקר</td><td>עקרוני; מפרט בהמשך (לא חוסם היום)</td></tr>
+  <tr><td>11:19 ✅</td><td>היום = סים על MacBook · T2T3_NO_STOMP · C4_TREND_FLATTEN</td><td>הודלקו + flag_guard 107/107</td></tr>
 </table>
-<div class="sub" style="margin-top:14px">מסמך-אח טקסטואלי עם מספרי-שורות-בקוד: <code>docs/reference/SYSTEM_DECISION_TREE_LIVE.md</code> · הכרעות שעוד פתוחות: G7 sizing (REDUCED מול FIXED_4) · אורפן (ORPHAN_AUTO_STOP) · מקור-אמת-אחד targets (איחוד yaml⟂py) · retest-לכניסה (הצעה תוגש) · פאנל-סוג-פתיחה (UI) · סטופ עסקת-הפתיחה (אימות).</div>
+<div class="sub" style="margin-top:14px">מסמך-אח: <code>docs/reference/SYSTEM_DECISION_TREE_LIVE.md</code> (עודכן 14:20) · פתוח ולא-חוסם: G7 · ORPHAN_AUTO_STOP · איחוד targets · G2/G3/G6 סים-gated. פאנל-סוג-פתיחה = חי בדשבורד.</div>
 
 </body>
 </html>
