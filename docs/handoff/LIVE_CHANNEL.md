@@ -90,6 +90,23 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21] cc-macbook — 5 פסיקות הודלקו + restart + verify ✅
+```
+snapshot: 20260721T043408Z_pre-open-0721 ✅
+.env: TS_OFFSET_INGEST_GATE_V1=1 · IB_BREAK_ANY_EXPANSION_V1=1 · T0_TARGET_PTS=4.0
+      BE_AFTER_REAL_T1_V1=1 (was unset)
+config: targets.yaml + daytype_playbook.yaml → all time_stop_minutes=null
+RULED: 4 new entries (104 total)
+restart: launchctl kickstart → health=ok uptime=11.3s
+flag_guard: PASS 104/104 ✅
+  BE_AFTER_REAL_T1_V1=1 ✅ · IB_BREAK_ANY_EXPANSION_V1=1 ✅
+  T0_TARGET_PTS=4.0 ✅ · TS_OFFSET_INGEST_GATE_V1=1 ✅
+label 07-20: Normal_Variation (holds from prior restart) ✅
+sierra: is_sim=0 armed=1 qty=0 working=0 ✅
+verify: OK (2 warn: index drift + merged cpp)
+```
+`689198d5`. TS-REPAIR audit PASS (prior commit). Ready for pre-trade protocol.
+
 ### [2026-07-21 08:30 IL] cursor-agent — 🟢 פסיקות 3-5 נפסקו (מייקל 08:23) + עץ-ההחלטות הוויזואלי עודכן
 **פסיקות-מייקל 08:23 (בכתב):** (3) `T0_TARGET_PTS=4.0` ✅ · (4) `BE_AFTER_REAL_T1_V1=1` — "הסטופ עובר לכניסה רק אחרי T1" ✅ · (5) ביטול time-stop — "אין זמן לעסקה, רק מערכת 6" ✅.
 **cc-macbook:** מפרט-ביצוע מלא בראנבוק שלב-1 (חמש הפסיקות באותו קומיט+restart): שני דגלי-שלב-1 + T0=4.0 + BE_AFTER_REAL_T1_V1=1 + time-stop→null בשני המקורות (`config/targets.yaml` כל 7 הסוגים + `dispatcher_config.yaml` — kill-switch מובנה, אפס שינוי-קוד). אימות: probe דגלים ב-PID החדש + flag_guard + פלט-גולמי.
