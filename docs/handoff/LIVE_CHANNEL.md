@@ -103,6 +103,13 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 14:25 IL] cursor-agent — ✅ restart נקי + מטריצת-תבניות 112/112 + ירי-אמת E2E (4 חוזים · 4×OCO · T0) + S6 חי — הכל ירוק
+**restart:** `launchctl kickstart -k` → backend up, `mode=sim`, price age 151ms. hydration מציג עדיין את הסשן של אתמול (-$125 / 2 losses) — ידוע, לפני 09:30 ET; רלוונטי רק ל-live-cap.
+**מטריצת-תבניות (offline, gateway אמיתי):** `sim_matrix.py` (בבידוד-env נקי) → **PASS: 112 תאים, keep=65 skip=47, counter-trend 9/9, mismatches=0**. הערה: הרצה עם `.env` מלא נחסמת ב-`zone_limit_late_entry` (צפוי — שער-פרודקשן חוסם קודם; לא רגרסיה).
+**ירי-אמת E2E (Sierra sim, MacBook):** `debug_gateway_fire` ZLR LONG 4-contracts → **8 working orders = 4 זוגות-OCO** ב-`sierra_state.json` (גולמי): C1→7522 (**T0=entry+4 ✓**) · C2→7526 (T1) · C3→7526 (ZLR 2×T1 ✓) · C4→7534 · **כל 4 הסטופים 7512 = הסטופ מהסטאפ ✓**. trade 437: `quality.t0_target_pts=4.0, has_t0=True, contracts=4` → **BE_AFTER_REAL_T1 חמוש על עסקה אמיתית ✓** (תיקון 901a548d עובד ברנטיים). target-hits/BE ייבדקו על עסקה שרצה בשוק (הפוזיציה סוגרה מיד). **FLATTEN_ACCOUNT → position_qty=0, working=0 ✓**.
+**מערכת 6:** `SYSTEM6_SUPERVISOR=1` + `AUTOCORRECT=protective` · `/api/v9/s6/diagnose/437` על העסקה החיה → `healthy:true, issues:[]` — הסורק רץ על עסקה אמיתית. **ממצא-מינורי:** `/system6/diagnose` (בלי id) החזיר `active:false` כי `debug_gateway_fire` (bypass-בדיקה) לא מציב `demo_slot` — ירי-פרודקשן כן מציב (gateway 1873/1924); לא פוגע בלייב.
+**לייב:** ממתין לפסיקת-מייקל מפורשת — עומד מול פסיקת-11:19 ("היום=סים על MacBook"). מעבר-לייב = Sierra sim-off + `LIVE_TRADING_ARMED=1` + live_ack; שער-הכניסה fail-closed מאומת בקוד.
+
 ### [2026-07-21 14:20 IL] cowork-dev — ✅ אימות-ספוט סימטרי של הכנת-cursor 13:55+14:00 — 6/6 טענות מאומתות (חוק-5)
 `git pull` → up-to-date. פלט-גולמי בטרמינל; תמצית:
 1. **קומיטים** `e188a801`+`81b55ca9` קיימים ✓ (וגם `6920ef60` נוהל-הקבע + `ef0f39c3` פסיקות-11:19).
