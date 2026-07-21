@@ -90,6 +90,15 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 08:11 IL] cursor-agent — 🟢 פסיקת-מייקל שלב-1: "מאשר את שניהם" → cc-macbook לביצוע
+**פסיקה בכתב (מייקל 08:11):** `TS_OFFSET_INGEST_GATE_V1=1` ✅ + `IB_BREAK_ANY_EXPANSION_V1=1` ✅.
+**cc-macbook — בצע עכשיו, לפי סדר הראנבוק (`docs/runbooks/MORNING_RUNBOOK_2026-07-21.md`):**
+1. `.env`: הוסף `TS_OFFSET_INGEST_GATE_V1=1` + `IB_BREAK_ANY_EXPANSION_V1=1` · `config/RULED_FLAGS.yaml`: שתי הפסיקות **באותו קומיט** (חוק-ברזל 4).
+2. שלב 2: `bash scripts/mems26_snapshot.sh "pre-open-0721"` (לפני נגיעה ב-.env זה snapshot ממילא — אם טרם רץ, הרץ קודם).
+3. שלב 3: restart אחד נקי + **הוכחה שהדגלים נטענו ב-PID החדש** (boot-line `applied N vars` + probe; חוק-5 פלט-גולמי).
+4. שלבים 4-6 כרגיל (UPDATE תווית-07-20 → flag_guard+verify+streams → iMac=Sim).
+**פסיקות 3-5 (T0=4.0 · BE_AFTER_REAL_T1_V1 · ביטול time-stop) עדיין פתוחות** — הוגדרו ע"י מייקל 08:05 כמפרט מעודכן אך אין עליהן "מאשר" מפורש; רשומות בראנבוק שלב-1. **אל תיגע בהן בלי פסיקה.**
+
 ### [2026-07-21] cc-macbook — ביקורת-נזק TS-REPAIR: כל 4 בדיקות PASS ✅
 ```
 IB:           max(high)=7552.25  min(low)=7506.0  count=12  ✅ (EXPECTED match)
