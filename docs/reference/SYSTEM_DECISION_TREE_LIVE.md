@@ -124,7 +124,7 @@ IB ננעל: מקור = Sierra TPO (v9_tpo_sessions CASH)          ib_source="si
 עבר את כל השערים
 ├─ תמיד: _execute_shadow (רישום-צל, gateway:1762)
 └─ לייב?  (gateway:1867-1922)
-    ├─ _is_live_enabled(system)?         [07-21: `MEMS26_MODE=sim` (פסיקת 11:19 — היום סים על MacBook) · LIVE_EXECUTION_V1=1 · LIVE_TRADING_ARMED=1]
+    ├─ _is_live_enabled(system)?         [07-21 15:26 פסיקת-מייקל: **לייב היום, 4 חוזים** → `MEMS26_MODE=live` · LIVE_TRADING_V1=1 (S2+S4) · LIVE_EXECUTION_V1=1 · LIVE_TRADING_ARMED=1 ✅]
     ├─ live_slot פנוי? (עסקת-לייב אחת בו-זמנית; מתפנה ב-close, gateway:2003)
     └─ passes_strict_checks("live")      [risk_checks.py — לייב-בלבד]
         ├─ cutoff-לייב: אחרי 15:30 ET (22:30 IL, פסיקת 07-19) → לא   [RISK_CUTOFF_HOUR_ET=15 + MINUTE=30]

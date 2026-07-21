@@ -103,6 +103,14 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 15:32 IL] cursor-agent — 🔴 פסיקת-מייקל 15:26: **לייב היום, 4 חוזים** ("לא — יש כאן אי-הבנה, פסקתי לייב היום עם 4 חוזים") — cutover בוצע
+מתקן את הבנת-11:19 (שנרשמה כ"היום=סים"). **בוצע:** snapshot `20260721T122837Z_pre-live-cutover-ruling-1526` →
+`MEMS26_MODE=sim→live` → backend kickstart + activity_feed restart (עוקב חשבון-לייב 37138283).
+**אומת (גולמי):** heartbeat `mode=live` · gateway `live_enabled=[2,4], demo=[]` · flag_guard **107/107 PASS** ·
+`LIVE_TRADING_V1=1 · LIVE_EXECUTION_V1=1 · LIVE_TRADING_ARMED=1 · FIXED_CONTRACTS_4=1` (4 חוזים = הפסיקה).
+**⚠ צעד-אחרון אצל מייקל:** Sierra עדיין `is_sim=1` — צריך לכבות Trade Simulation Mode ב-Sierra לפני 16:30.
+**הערת-cap כנה:** hydration טעון מאתמול (-$125, 2 הפסדים) → cap-יומי אפקטיבי היום $675 (מתוך $800). שמרני — לא חוסם.
+
 ### [2026-07-21 14:25 IL] cursor-agent — ✅ restart נקי + מטריצת-תבניות 112/112 + ירי-אמת E2E (4 חוזים · 4×OCO · T0) + S6 חי — הכל ירוק
 **restart:** `launchctl kickstart -k` → backend up, `mode=sim`, price age 151ms. hydration מציג עדיין את הסשן של אתמול (-$125 / 2 losses) — ידוע, לפני 09:30 ET; רלוונטי רק ל-live-cap.
 **מטריצת-תבניות (offline, gateway אמיתי):** `sim_matrix.py` (בבידוד-env נקי) → **PASS: 112 תאים, keep=65 skip=47, counter-trend 9/9, mismatches=0**. הערה: הרצה עם `.env` מלא נחסמת ב-`zone_limit_late_entry` (צפוי — שער-פרודקשן חוסם קודם; לא רגרסיה).
