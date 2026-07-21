@@ -90,6 +90,18 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21] cc-macbook — restart + הוכחת C4 fix (f9e7464c)
+```
+curl -s localhost:8000/health
+→ {"status":"ok","uptime_s":12.3,"v9_mounted":true}
+
+grep -n "day_type_at_entry" backend/v9/services/sierra_command.py
+→ 374: _dt = (setup.get("day_type_at_entry")   ← fixed version loaded ✅
+
+pytest test_c4_ruling6.py test_be_after_real_t1.py -q
+→ 13 passed ✅
+```
+
 ### [2026-07-21 09:50 IL] cursor-agent — 🔴 אימות A+B+C4: שני באגים בקוד-C4 של cc → תוקנו + 8 טסטים · **חובה restart לפני פתיחה**
 **A (dispatcher time_stop=null):** ✅ אומת בקובץ. **B (quality.t0/has_t0):** ✅ אומת — מפתחות הכתיבה
 (`manager.py:355-356`) תואמים למפתחות השער (`:498`). **C4 (`ab8e3807`) — שני באגים אמיתיים:**
