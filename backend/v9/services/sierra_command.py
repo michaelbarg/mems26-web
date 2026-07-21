@@ -363,18 +363,29 @@ def command_from_setup(
 
         # C4_RULING6_V1 (Michael ruling 2026-07-21): resolve t4 per day-type
         # when the old T3 leg (now _c4_target) is None.
+        # cursor 09:45 fix of CC ab8e3807: (1) `context` was UNDEFINED here
+        # (NameError on every no-T3 fire — the param belongs to
+        # write_trade_command); day_type comes from the setup itself.
+        # (2) Normal_Variation matched startswith("Normal") and got the
+        # opposite-edge branch — Michael's ruling maps Variation to
+        # stop-only/trail-with-T3. Normalize the alias FIRST.
         if os.getenv("C4_RULING6_V1", "0").lower() in ("1", "true", "yes") and _c4_target is None:
-            _ctx = context or {}
-            _dt = _ctx.get("day_type") or _ctx.get("day_type_at_entry") or ""
             _meta = setup.get("metadata") or {}
-            if _dt.startswith(("Normal", "Neutral")):
-                # Opposite edge from structural_targets resolver
-                _sp = setup.get("stop_price") or 0
+            _dt = (setup.get("day_type_at_entry")
+                   or _meta.get("day_type")
+                   or setup.get("day_type")
+                   or "")
+            _dt = {"Normal_Variation": "Variation"}.get(_dt, _dt)
+            if _dt == "Variation":
+                pass  # stays None → DLL builds stop-only; C4 trails with T3
+            elif _dt.startswith(("Normal", "Neutral")):
+                # Opposite edge ("הקצה השני"): VAL for SHORT / VAH for LONG,
+                # IB edge as fallback. Missing levels → honest None (stop-only).
                 try:
-                    _ibh = float(_meta.get("ib_high") or _ctx.get("ib_high") or 0)
-                    _ibl = float(_meta.get("ib_low") or _ctx.get("ib_low") or 0)
-                    _vah = float(_meta.get("vah") or _ctx.get("vah") or 0) or None
-                    _val = float(_meta.get("val") or _ctx.get("val") or 0) or None
+                    _ibh = float(_meta.get("ib_high") or 0) or None
+                    _ibl = float(_meta.get("ib_low") or 0) or None
+                    _vah = float(_meta.get("vah") or 0) or None
+                    _val = float(_meta.get("val") or 0) or None
                     if direction == "SHORT":
                         _c4_target = _val if _val else _ibl
                     else:
@@ -388,7 +399,7 @@ def command_from_setup(
             elif _dt.startswith("Trend"):
                 # Trend: t4 = same as T3 (4R). Runner until 15:45 flatten.
                 _c4_target = _c3_target  # the shifted C3 (was old T2)
-            # Variation: _c4_target stays None → DLL builds stop-only (hardening)
+            # unknown/missing day_type: stays None → stop-only (honest)
 
     return write_trade_command(
         action=action,

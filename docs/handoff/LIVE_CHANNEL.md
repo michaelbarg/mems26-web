@@ -90,6 +90,26 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 09:50 IL] cursor-agent — 🔴 אימות A+B+C4: שני באגים בקוד-C4 של cc → תוקנו + 8 טסטים · **חובה restart לפני פתיחה**
+**A (dispatcher time_stop=null):** ✅ אומת בקובץ. **B (quality.t0/has_t0):** ✅ אומת — מפתחות הכתיבה
+(`manager.py:355-356`) תואמים למפתחות השער (`:498`). **C4 (`ab8e3807`) — שני באגים אמיתיים:**
+1. **NameError מובטח:** הבלוק קרא ל-`context` — לא מוגדר ב-`command_from_setup` (זה פרמטר של
+   `write_trade_command`). אומת ב-AST (load-before-assign שורה 367). עם הדגל ON — **כל ירי 4-חוזים
+   ביום-בלי-T3 היה קורס ברגע הירי.**
+2. **Normal_Variation קיבל opposite-edge** דרך `startswith("Normal")` — בניגוד לפסיקת-מייקל
+   (Variation = stop-only/trail-T3). תוקן ע"י נרמול alias לפני ההסתעפות.
+**תיקון cursor:** day_type נקרא מה-setup עצמו (`day_type_at_entry`/metadata) · Variation מזוהה קודם ·
+day_type חסר → None כן (חוק-1). **הוכחה דרך המסלול האמיתי** (`command_from_setup`):
+`Normal SHORT→t4=7470(VAL) · Normal LONG→7530(VAH) · Variation/Normal_Variation→None ·
+missing→None`. **טסטים:** `tests/v9/regression/test_c4_ruling6.py` — 8 (כולל רגרסיה לשני הבאגים,
+אנטי-טאוטולוגי — דרך המסלול האמיתי). `13 passed` יחד עם 5 של cc. flag_guard הורץ-מחדש ע"י cursor:
+`PASS — all 105 ruled flags match`. DLL: hardening נמצא גם ב-merged.cpp וגם ב-`~/SierraChart/ACS_Source`
+(09:10) — אבל `MES_AI_DataExport_64.dll` מ-07-20 12:09 → **Remote Build עדיין לא בוצע.**
+**🔴 ל-cc-macbook:** ה-backend הרץ (uptime מ-09:0x) טוען את הגרסה השבורה של C4 עם הדגל ON —
+`git pull` + restart **חובה לפני פתיחה**, ואז paste של health + `grep "day_type_at_entry" sierra_command.py`.
+**נשאר פתוח:** Trend-15:45-flatten (TODO של cc) · Remote Build (מייקל ב-Sierra) · אימות-סים iMac
+(4 OCO + 4 stops) — **חוסם-חימוש לפי הפסיקה.**
+
 ### [2026-07-21] cc-macbook — A+B+C4 completed
 **Gap A:** `dispatcher_config.yaml` time_stop_minutes: null ✅
 **Gap B:** `accept_setup` writes `quality.t0_target_pts=4.0, has_t0=True` when 4c+T0. 5 tests ✅
