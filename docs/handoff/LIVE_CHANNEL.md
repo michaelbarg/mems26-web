@@ -98,6 +98,24 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 11:20 IL] cursor-agent — ✅ Task#4 (T2T3_NO_STOMP_V1) אומת — עם הסתייגות-טסטים + טסט-route חדש
+**הקוד של cc (`f7942f23`) נכון:** הסימון `_structural_t2t3_applied` מוצב רק כשהמבני באמת כתב
+t2/t3; הבלוק דורס רק כשהדגל OFF או שאין-מבני; flag לא ב-.env (unset=OFF) · RULED `unset_or_0` ·
+flag_guard `PASS 106/106` (רץ ע"י cursor).
+**הסתייגות (חוק-5):** שלושת הטסטים של cc ב-`test_t2t3_no_stomp.py` **טאוטולוגיים** — הם משכפלים
+את האריתמטיקה inline במקום להריץ את הגייטוויי; היו עוברים גם אם החיווט שגוי. הוספתי
+`test_t2t3_no_stomp_route.py` (cursor) — 3 טסטים דרך `route_setup` האמיתי (resolver מבני אמיתי +
+טבלת targets.yaml אמיתית + הדגל).
+**תגלית-התנהגות מהאימות:** ה-resolver המבני עצמו ממיין-מחדש (cap+monotonic) — ב-#420-day
+ה-C1 הגולמי (½IB-ext=7460) נחתך ל-cap 14pt ואז POC קודם ל-C1 — לכן הטסט מצמיד את t2/t3
+לפלט-האמת של ה-resolver (reference-run עם תבנית-ללא-שורה) ולא לערכים בדויים.
+```
+BRIDGE_TOKEN=test pytest test_t2t3_no_stomp_route.py test_t2t3_no_stomp.py -q
+→ 6 passed
+```
+**הדלקה = פסיקת-מייקל נפרדת** (מומלץ אחרי אימות-סים עם עסקה אמיתית ביום-Variation).
+**ל-cc:** בטסטים הבאים — דרך המסלול האמיתי, לא שכפול-לוגיקה (זה בדיוק מה שתפס את שני באגי-C4 הבוקר).
+
 ### [2026-07-21] cc-macbook — Task#4 T2T3_NO_STOMP_V1 בנוי (OFF). cursor: אמת.
 **`f7942f23`** — `trading_gateway.py:1196+1280`: כשמבני הצליח (`_structural_t2t3_applied`),
 pattern_t1 override קובע **רק t1** — לא דורס t2/t3 מבניים. דגל OFF = byte-identical.
