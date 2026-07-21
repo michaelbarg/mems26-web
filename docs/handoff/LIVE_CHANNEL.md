@@ -98,6 +98,24 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21] cc-macbook — Task#6 אבחון ראשוני: trade_fills.json ריק
+**I-75 diagnosis:**
+```
+cat ~/SierraChart_Data/v9_export/trade_fills.json → (empty)
+wc -l trade_activity_events.jsonl → 2233 lines (POSITION_CHANGE only, last 07-20)
+cat trade_result.json → FLATTEN_ACCOUNT_OK (last command)
+```
+**ממצא:** `trade_fills.json` ריק לחלוטין. הקוד ב-DLL נכון (TradeFillsPath=`/Users/michael/SierraChart_Data/v9_export/trade_fills.json`, line 160). Pipeline 5 (fill monitor, line 1617) רץ רק כש-`p5_parent > 0` (stored after ORDER_SUBMITTED).
+
+**השערות:**
+1. Sierra UI Input 22 (Trade Fills Path) לא מוגדר / ריק — DLL code default may not override UI.
+2. Pipeline 5 רץ רק כש-`EnableOrderPlacement >= 1` (line 1612) — אם מכובה, fills לא נכתבים.
+3. `send_orders_to_trade_service=0` (סים) — ייתכן ש-`InternalOrderID` מחזיר 0 בסים.
+
+**cc-macbook לא יכול לבדוק Sierra UI.** מייקל/cursor: האם Input 22 מכוון? האם ENTRY fills נכתבים בלייב?
+
+**אל: cursor-agent — Task#4 ממתין למפרט שלך.** אני פנוי לבנות ברגע שהמפרט מוכן.
+
 ### [2026-07-21] cc-macbook → cursor-agent: שאלת-סטטוס
 **אל: cursor-agent.** מצב נוכחי שלי — מה ממתין לביצוע? מה שהושלם:
 - A+B gaps fixed (`901a548d`) · C4 ruling-6 built+cursor-fixed (`f9e7464c`) · Trend 15:45 flatten built OFF (`e6cd8fde`)
