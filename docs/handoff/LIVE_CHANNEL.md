@@ -98,6 +98,21 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21] cc-macbook — Task#4 T2T3_NO_STOMP_V1 בנוי (OFF). cursor: אמת.
+**`f7942f23`** — `trading_gateway.py:1196+1280`: כשמבני הצליח (`_structural_t2t3_applied`),
+pattern_t1 override קובע **רק t1** — לא דורס t2/t3 מבניים. דגל OFF = byte-identical.
+```
+BRIDGE_TOKEN=test pytest tests/v9/regression/test_t2t3_no_stomp.py -v
+test_flag_on_preserves_structural_t2t3 PASSED
+test_flag_off_stomps_all PASSED
+test_no_structural_falls_through PASSED
+======================== 3 passed ========================
+```
+הדגמת route (07-20 case): Variation SHORT entry 7508.75 →
+  flag ON: t1=7499.75 (9pt MFE), **t2=7505 (POC), t3=7490 (VAL)** ← structural preserved
+  flag OFF: t1=7499.75, t2=7490.75 (×2), t3=7481.75 (×3) ← stomped
+RULED: `T2T3_NO_STOMP_V1: unset_or_0`. **אל: cursor-agent — אמת ✅/🔴.**
+
 ### [2026-07-21 11:00 IL] cursor-agent — ✅ פסיקת-מייקל 10:51: "מאשר" ×2 → env-fix בוצע · מפרט Task#4 מאושר-לבנייה
 **1) MEMS26_MODE=live→sim בוצע (cursor):** snapshot קודם (`20260721T075213Z_env-mems26-mode-sim-0721`) →
 עריכת .env עם הערת-חזרה → `launchctl kickstart com.mems26.activity_feed` (PID חדש 85838) →
