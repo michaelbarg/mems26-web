@@ -361,6 +361,35 @@ def command_from_setup(
         _c1_target = _t0                 # T0 → C1 (fast take)
         setup["t0"] = _t0                # observability + trade record
 
+        # C4_RULING6_V1 (Michael ruling 2026-07-21): resolve t4 per day-type
+        # when the old T3 leg (now _c4_target) is None.
+        if os.getenv("C4_RULING6_V1", "0").lower() in ("1", "true", "yes") and _c4_target is None:
+            _ctx = context or {}
+            _dt = _ctx.get("day_type") or _ctx.get("day_type_at_entry") or ""
+            _meta = setup.get("metadata") or {}
+            if _dt.startswith(("Normal", "Neutral")):
+                # Opposite edge from structural_targets resolver
+                _sp = setup.get("stop_price") or 0
+                try:
+                    _ibh = float(_meta.get("ib_high") or _ctx.get("ib_high") or 0)
+                    _ibl = float(_meta.get("ib_low") or _ctx.get("ib_low") or 0)
+                    _vah = float(_meta.get("vah") or _ctx.get("vah") or 0) or None
+                    _val = float(_meta.get("val") or _ctx.get("val") or 0) or None
+                    if direction == "SHORT":
+                        _c4_target = _val if _val else _ibl
+                    else:
+                        _c4_target = _vah if _vah else _ibh
+                    if _c4_target and _c4_target > 0:
+                        _c4_target = round(round(_c4_target / 0.25) * 0.25, 2)
+                    else:
+                        _c4_target = None
+                except (TypeError, ValueError):
+                    _c4_target = None
+            elif _dt.startswith("Trend"):
+                # Trend: t4 = same as T3 (4R). Runner until 15:45 flatten.
+                _c4_target = _c3_target  # the shifted C3 (was old T2)
+            # Variation: _c4_target stays None → DLL builds stop-only (hardening)
+
     return write_trade_command(
         action=action,
         trade_id=trade_id,

@@ -102,6 +102,7 @@ ruled:
   TS_OFFSET_INGEST_GATE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "שער ts-offset: דוחה batch עם ts>900s מאחורי now. מונע תקלת 07-20" }
   IB_BREAK_ANY_EXPANSION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "כל פריצת IB = הרחבה. מוריד שער-רעש 20%×IB" }
   BE_AFTER_REAL_T1_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "BE אחרי T1-האמיתי (C2), לא T0 (C1 scalp). Remap DLL T1→T0" }
+  C4_RULING6_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "פסיקה-6: C4 target per day-type. Normal/Neutral=opposite edge · Variation=stop-only · Trend=T3(4R). DLL-hardened: C4 always gets stop" }
   SYSTEM6_AUTOCORRECT:   {expected: "protective", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 6/6: מערכת-6 עובדת במדרגה-מגינה — רק BE-completion והפלת-יעד-בצד-שגוי; עירום/רוחב נשארים ALERT" }
   STOP_FLOOR_ROTATION_ATR: {expected: "0.8", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 5/6: רצפת-סטופ 0.8×ATR בימי Variation/Neutral (שורש מות-#372); מגמה נשארת 0.5" }
   DAYTYPE_LOCATION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-20", note: "כובה 11:32 ('לכבות DAYTYPE_LOCATION_GATE') — over-block חי: על Variation דרש CONT ללכת עם-התרחבות, אבל get_live_expansion=None (גלאי-ההרחבה פספס פריצת-IB-מטה של 5 נק' — אותו שורש כמו שגגת-סוג-היום) → חסם את השורט-ההמשכי המרכזי של היום. מחלקת G6/G2/G3 (שער על סיגנל-שבור). היה ON 07-15 (מגן על מיקום-REV, #372 נחסם) — לשחזר אחרי שגלאי-ההרחבה מתוקן (Task #5). היסטוריה: 07-15 ON, REV רק בקצה-ערך + Variation דו-שלבי" }

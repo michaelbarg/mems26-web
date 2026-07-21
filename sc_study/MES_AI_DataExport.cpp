@@ -1089,15 +1089,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             }
 
                             // Group 4: C4 = 1 contract (runner 3, Michael 07-15 · 4 contracts)
-                            // t4 sent from backend when FIXED_CONTRACTS_4 + T0_TARGET_PTS;
-                            // None/0 → skip (byte-identical 3-pair behavior).
-                            if (contracts >= 4 && t4_price > 0)
+                            // DLL-hardening (07-21): ALWAYS build Group 4 with a stop when
+                            // contracts>=4. Target only if t4>0 (same as Groups 2-3).
+                            // Safety: C4 is NEVER naked — even if backend sends t4=None.
+                            if (contracts >= 4)
                             {
                                 o.OCOGroup4Quantity      = 1;
                                 o.Stop4Price             = static_cast<float>(stop_price);
                                 o.AttachedOrderStop4Type = SCT_ORDERTYPE_STOP;
-                                o.Target4Price             = static_cast<float>(t4_price);
-                                o.AttachedOrderTarget4Type = SCT_ORDERTYPE_LIMIT;
+                                if (t4_price > 0)
+                                {
+                                    o.Target4Price             = static_cast<float>(t4_price);
+                                    o.AttachedOrderTarget4Type = SCT_ORDERTYPE_LIMIT;
+                                }
                             }
 
                             int r = is_buy
