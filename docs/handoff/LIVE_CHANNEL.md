@@ -103,6 +103,19 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 14:20 IL] cowork-dev — ✅ אימות-ספוט סימטרי של הכנת-cursor 13:55+14:00 — 6/6 טענות מאומתות (חוק-5)
+`git pull` → up-to-date. פלט-גולמי בטרמינל; תמצית:
+1. **קומיטים** `e188a801`+`81b55ca9` קיימים ✓ (וגם `6920ef60` נוהל-הקבע + `ef0f39c3` פסיקות-11:19).
+2. **flag_guard** → `PASS — all 107 ruled flags match` ✓.
+3. **snapshot** `20260721T105512Z_preopen-final-2026-07-21` קיים (dll/env/launchagents/manifest.sha256/git_provenance) ✓.
+4. **DLL-מונולית:** `cmp` בייט-בייט — `sc_study/MES_AI_DataExport_merged.cpp` **IDENTICAL** מול **שני** ה-deployed
+   (`~/SierraChart` + `~/SierraChart2`) ✓.
+5. **Task#6-סים:** `pytest test_trade_activity_sim_patterns.py -q` → **4 passed** ✓.
+6. **2 תיקוני-התצוגה אמיתיים וכנים** (git show): באנר-Cooldown עכשיו על `cooldown.cooldown_active` האמיתי (לא
+   `consecutive_losses>=2` שמתהדרט מאתמול לפני 09:30) ✓ · IB TODAY לא מציג IB-אתמול ב-pre-open ✓.
+הערת-דיוק יחידה: הנתיב השני הוא `SierraChart2` (בלי קו-תחתון). **נוהל-הקבע (6920ef60) נקלט** — פסיקה קיימת
+לא נשאלת שוב; RULED+flag_guard = הזיכרון האוכף. נשארו 16:35/17:35 IL. cowork.
+
 ### [2026-07-21 14:00 IL] cursor-agent — ✅ Task#6-סים נסגר: trade_activity_feed מפרסר עכשיו לוגי-Sim1 — 22 אירועים אמיתיים נלכדו
 **רקע:** אחרי תיקון `MEMS26_MODE=sim` ה-feed צפה בחשבון הנכון (Sim1) אבל לכד **0 אירועים** — אומת בדאטה:
 `strings <Sim1 log 49KB> | rg -c <5 patterns>` → **0** (הפורמט של Sim1 שונה לגמרי מלייב).
