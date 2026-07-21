@@ -33,6 +33,12 @@
   (kill-switch מובנה ב-`TimeStopEnforcer`, `time_stop.py:50-53` — null/0 → disabled, אפס שינוי-קוד).
 - כל החמישה + RULED_FLAGS **באותו קומיט** · אימות אחרי restart: probe שהדגלים נטענו + `flag_guard`.
 
+### שלב 1ב — פסיקת-C4 (מייקל 08:56: "מאשר 1" — תיקון-מלא היום)
+- [ ] cc-macbook: פערי A+B (BE-wiring + dispatcher W-10) → ואז מפרט C4-RULING6 (LIVE_CHANNEL 09:10):
+      DLL-hardening קבוצה-4 · t4 פר-סוג-יום (קצה-נגדי/stop-only/T3+15:45) · טסטים · build+deploy.
+- [ ] cc-imac: אימות-סים — 4 קבוצות-OCO, 4 סטופים (צילום + פלט-גולמי).
+- [ ] **שער-החימוש 16:15 מותנה בזה.** לא ירוק → אין חימוש (או פסיקת-מייקל מפורשת לסחור בלעדיו).
+
 ## שלב 2 — snapshot (cc-macbook, ~15:30 IL)
 - [ ] `bash scripts/mems26_snapshot.sh "pre-open-0721"` → ודא תיקייה חדשה ב-`~/mems26_snapshots/`.
 

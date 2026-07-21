@@ -90,6 +90,20 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 09:10 IL] cursor-agent — 🔴→🛠 פסיקת-מייקל C4: "מאשר 1" (תיקון-מלא היום) — מפרט ל-cc-macbook
+**מייקל (08:56): אופציה 1** — יישום פסיקה-6 + DLL-hardening + deploy + סים, לפני חימוש היום. **סדר: קודם סגור את פערי A+B (רשומת 08:50), אח"כ זה.**
+
+**מפרט C4-RULING6 (דגל `C4_RULING6_V1`, ON באותו קומיט עם RULED — פסיקה בכתב קיימת):**
+1. **DLL-hardening (חובה, בלי דגל — תיקון-בטיחות):** `MES_AI_DataExport_merged.cpp:2875` — קבוצה-4 נבנית **תמיד** כש-`contracts>=4` עם Stop4 (כמו קבוצות 2-3, `:2846-2870`); Target4 רק אם `t4>0`. חוזה רביעי לעולם לא עירום — גם אם ה-backend שולח t4=None.
+2. **backend `sierra_command.py` (בתוך בלוק ה-T0, `:354-362`):** כשהדגל ON ו-`_c4_target is None` — resolve לפי סוג-יום:
+   - **Normal / Neutral_Extreme / Neutral_Center:** t4 = הקצה-הנגדי — **לעשות שימוש-חוזר** ב-resolver הקיים `structural_targets.py::_resolve_neutral_extreme` (`:261`, כבר מחשב opposite edge VAH/VAL/IB מ-Sierra) — לא לחשב מחדש ולא להמציא רמות.
+   - **Variation:** t4 נשאר None → קבוצה-4 stop-only (ה-hardening בסעיף 1) — "נכנס יחד עם T3": ה-manager מנהל trail על C3+C4 יחד (אמת שה-trail הקיים של T3 חל; אם הוא per-slot — הרחב ל-T4, ציין file:line).
+   - **Trend_Normal / Trend_DD:** t4 = T3 הקיים (4R) כיעד-פתיחה; **וכלל 15:45 ET:** ב-15:45 ET (22:45 IL) אם עסקת-לייב עדיין פתוחה עם runner → FLATTEN_ACCOUNT (המנגנון המאומת; לא op=EXIT). חווט היכן שיושב ה-EOD cutoff הקיים (אמת file:line), אותו scheduler.
+3. **טסטים אנטי-טאוטולוגיים** דרך `command_from_setup` האמיתי: (א) Normal-day setup בלי t3 → t4=קצה מה-resolver, לא None · (ב) Variation → t4=None אבל הדגל מסומן stop-only · (ג) Trend → t4=T3 · (ד) דגל OFF → התנהגות ישנה byte-identical.
+4. **Deploy:** `./scripts/build_monolithic_cpp.sh --deploy` (auto-snapshot) → Remote Build → reload study. **אימות-סים ב-cc-imac (iMac=Sim):** ירי-סים 4-חוזים עם t4=None-בכוונה → צלם ב-Sierra **4 קבוצות-OCO, 4 סטופים**; ואז עם t4 מלא → 4 יעדים. פלט-גולמי + צילום ל-LIVE_CHANNEL.
+5. restart backend + הוכחת-דגל ב-PID + flag_guard. **שער-החימוש של 16:15 מותנה בסעיף 4 ירוק.**
+**גבולות:** לא לגעת ב-op=EXIT · לא ב-ORPHAN_AUTO_STOP · המפה = פסיקה-6 בלבד, כל סטייה → עצור ושאל. cowork מאמת סימטרית (כולל בר-מתמטיקה על ה-t4 שנשלח).
+
 ### [2026-07-21 09:05 IL] cursor-agent — מייקל: אישור-עקרוני ל"חוקה" (מקור-אמת-אחד + שומר)
 **מייקל (08:49): "מאשר עקרוני את 3"** = שלב-ב' של תוכנית-הסדר: `TRADING_CONSTITUTION.yaml` קנוני יחיד (פר-סוג-יום: חוזים, סולם T0-T3, סטופ, כניסה, ניהול-אחרי-T1) + הקוד/UI קוראים רק ממנו + שומר-בוקר שנכשל-בקול על סטייה (דפוס flag_guard). ביטול כפילות targets.yaml⟂targets_table.py. **אישור עקרוני בלבד** — cursor מכין מפרט אחרי סגירת-הבוקר; ביצוע רק אחרי פסיקת-מייקל על המפרט. תואם dispatch פסיקה-#5.
 
