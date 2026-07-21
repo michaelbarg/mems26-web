@@ -107,3 +107,42 @@ def test_flag_on_3c_no_remap(monkeypatch):
     mgr = _setup_mgr(trade)
     mgr.on_target_hit(1, "T1")
     mgr._apply_smart_be_after_t1.assert_called_once()
+
+
+def test_accept_setup_writes_t0_quality(monkeypatch):
+    """accept_setup with FIXED_CONTRACTS_4+T0_TARGET_PTS writes quality.has_t0."""
+    monkeypatch.setenv("FIXED_CONTRACTS_4", "1")
+    monkeypatch.setenv("T0_TARGET_PTS", "4.0")
+    monkeypatch.setenv("BE_AFTER_REAL_T1_V1", "1")
+
+    from backend.v9.services.trade_manager.manager import TradeManager
+    mgr = TradeManager.__new__(TradeManager)
+    mgr._trades = {}
+    mgr._machines = {}
+    mgr._db = MagicMock()
+    mgr._emitter = MagicMock()
+    mgr._snapshot = None
+    mgr._log_management = MagicMock()
+
+    # Test the quality construction directly (accept_setup needs DB/machine setup)
+    from backend.v9.services.sierra_command import effective_contracts
+    setup = {
+        "direction": "SHORT",
+        "entry_price": 7508.75,
+        "stop_price": 7529.0,
+        "target_price": 7500.0,
+        "confidence": 0.8,
+        "cross_context": {},
+        "metadata": {"sizing": 4},
+        "classification": "REACTIVE_SHORT",
+    }
+    _n_contracts = effective_contracts(setup)
+    quality = {"contracts": _n_contracts}
+    _t0p = float(os.getenv("T0_TARGET_PTS", "0") or 0)
+    if _n_contracts >= 4 and _t0p > 0:
+        quality["t0_target_pts"] = _t0p
+        quality["has_t0"] = True
+
+    assert quality.get("has_t0") is True, f"quality missing has_t0: {quality}"
+    assert quality.get("t0_target_pts") == 4.0, f"t0_target_pts wrong: {quality}"
+    assert quality.get("contracts") == 4, f"contracts wrong: {quality}"

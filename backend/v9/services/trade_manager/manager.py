@@ -337,14 +337,23 @@ class TradeManager:
         # number command_from_setup sends to Sierra. Without this the DB row had
         # no count at all → PnL/close/display all assumed 3 contracts.
         from backend.v9.services.sierra_command import effective_contracts
+        _n_contracts = effective_contracts(setup)
         quality = {
             "classification": classification,
             "confidence": setup.get("confidence"),
             "metadata": meta,
             "trigger": trigger,
             "blocked_by": setup.get("blocked_by"),
-            "contracts": effective_contracts(setup),
+            "contracts": _n_contracts,
         }
+        # T17 (BE_AFTER_REAL_T1_V1): persist T0 info so on_target_hit can remap
+        # DLL T1→T0 (the scalp) and not fire BE prematurely. Same condition as
+        # sierra_command.py:351 — 4+ contracts with T0_TARGET_PTS set.
+        import os as _t0_os
+        _t0p = float(_t0_os.getenv("T0_TARGET_PTS", "0") or 0)
+        if _n_contracts >= 4 and _t0p > 0:
+            quality["t0_target_pts"] = _t0p
+            quality["has_t0"] = True
 
         registry_ctx = setup.get("cross_context")
         systems_at_entry = registry_ctx if isinstance(registry_ctx, dict) else {}

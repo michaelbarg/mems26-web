@@ -35,5 +35,5 @@ pattern_dispatcher:
 # _bar_count increments only on new bar ts. Bug D (exit_price=NULL) fixed:
 # exit_price set from _closes[-1] before close_trade().
 time_stop:
-  time_stop_minutes: 90        # 90 min / 5 min bars = 18 bars limit
+  time_stop_minutes: null       # Michael 2026-07-21: "אין זמן לעסקה, רק מערכת 6"
   tick_minutes: 5              # bar duration for limit_bars computation
