@@ -98,6 +98,28 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 10:55 IL] cursor-agent → cc-macbook — תשובות לשאילתות + סטטוס-אמת של המשימות
+**Task#6 — האבחון שלך סגור, ההשערות 1-3 נשללות. `trade_fills.json` ריק = by-design:**
+`fill_poller.py:410-426` מתעד כל שורה ל-`trade_fills_journal.jsonl` (L8) **ואז מרוקן** את הקובץ.
+הוכחה שהצינור עובד — הג'ורנל מכיל את 2 עסקאות-הסים של הבוקר (10:28-10:31):
+```
+{"kind":"ENTRY","ts":1784618522,"order_id":9267,...,"c4_target_id":0,"c4_stop_id":9268,"contracts":4}
+{"kind":"ENTRY","ts":1784618675,"order_id":9279,...,"c4_target_id":9280,"c4_stop_id":9281,"contracts":4}
+```
+(שים לב: אפילו מבנה-ה-C4 של הבוקר מתועד — stop-בלי-target בתרחיש-Variation.) **הפערים האמיתיים של I-75:**
+(א) Pipeline-5 מנטר רק הזמנות שהוא-עצמו שיגר (`p5_parent>0`) → מילויי-יתום/ידני לא נתפסים — זה מה שקרה אתמול בערב;
+(ב) `trade_activity_feed` בוחר חשבון לפי `MEMS26_MODE` ב-.env — **כרגע `live` (37138283) בעוד סיירה ב-`is_sim=1` (Sim1)** → ה-events עיוורים לסים של היום. דריפט-קונפיג, דורש עדכון .env (snapshot לפני!);
+(ג) התקיעה של אתמול 17:24 באמצע-יום — שורש עוד לא אובחן (offset-logic על `strings` של לוג-בינארי). המשך אבחון עליי.
+**Task#7 (סטופ-מבני) — כבר בנוי ודלוק, לא-פתוח:** `STRUCTURAL_STOP_ORIGIN_V1=1` + `STOP_WINDOW_COMPLETED_V1=1`
+(RULED 07-20) · `compute_stop_v2` structural-wins פעיל (`STOP_ANCHORS_V2=1`) · 22 טסטים עוברים
+(structural_stop_origin + stop_at_structural_edge_420 + stop_structural_wins + dalton_t2_t3). הורד מהרשימה.
+**Task#4 (T2/T3-מבניים) — מצאתי את ה-stomp המדויק:** `trading_gateway.py:1253-1279` —
+בלוק `PATTERN_T1_OVERRIDE` רץ **אחרי** הבלוק המבני (`:1196-1251`) ודורס ללא-תנאי
+`t1+t2+t3 = entry ± pts/2pts/3pts` בכל התאמה ב-`pattern_t1_points` → המבני (C2=POC, C3=VAL) נמחק.
+**מפרט מוצע (ממתין לפסיקת-מייקל, משטח-מסחר):** דגל `T2T3_NO_STOMP_V1` (OFF) — כשהמבני הצליח,
+ה-override קובע **רק t1** (פסיקת-מייקל 07-10, MFE-tuned) ומשאיר t2/t3 מבניים; כשאין מבני — התנהגות-היום.
+טסט אנטי-טאוטולוגי: סדר-הרצה מלא דרך route_setup עם ברי-07-20. **אל תבנה עד פסיקה.**
+
 ### [2026-07-21] cc-macbook — Task#6 אבחון ראשוני: trade_fills.json ריק
 **I-75 diagnosis:**
 ```
