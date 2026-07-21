@@ -57,7 +57,7 @@ daytype_style:
     c2: opposite_VA_edge
     c3: opposite_IB_edge
     contracts: 3
-    time_stop_minutes: 30
+    time_stop_minutes: null
     runner: trail
     note: "fade VA edges: SHORT only near VAH, LONG only near VAL"
 
@@ -70,7 +70,7 @@ daytype_style:
     c2: one_ib_extension
     c3: measured_move
     contracts: 3
-    time_stop_minutes: 60
+    time_stop_minutes: null
     runner: trail
     note: "go WITH the IB expansion (continuation, not fade)"
 
@@ -82,7 +82,7 @@ daytype_style:
     c1: POC
     c2: opposite_IB_edge
     contracts: 2
-    time_stop_minutes: 30
+    time_stop_minutes: null
     runner: none
     note: "fade edges to center, then exit — no runner"
 
@@ -95,7 +95,7 @@ daytype_style:
     c2: opposite_VA_edge
     c3: winning_extreme
     contracts: 3
-    time_stop_minutes: 45
+    time_stop_minutes: null
     runner: trail
     note: "fade VA edges to POC, trail runner toward winning extreme"
 
@@ -107,7 +107,7 @@ daytype_style:
     c2: measured_move
     c3: trail_behind_structure
     contracts: 3
-    time_stop_minutes: 90
+    time_stop_minutes: null
     runner: trail
     note: "CONT after single-print break; trail behind structure"
 

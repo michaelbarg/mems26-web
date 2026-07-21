@@ -23,7 +23,7 @@ day_types:
     t2_r: null
     t3: "4R cap"
     t3_r: 4.0
-    time_stop_minutes: 90
+    time_stop_minutes: null
     trail_after_t2: false
     sizing: "AGGRESSIVE"
     contracts: 3
@@ -36,7 +36,7 @@ day_types:
     t2_r: 2.5
     t3: "trail"
     t3_r: null
-    time_stop_minutes: 60
+    time_stop_minutes: null
     trail_after_t2: true
     sizing: "FULL"
     contracts: 2
@@ -49,7 +49,7 @@ day_types:
     t2_r: null
     t3: null
     t3_r: null
-    time_stop_minutes: 30
+    time_stop_minutes: null
     trail_after_t2: false
     sizing: "HALF"
     contracts: 1
@@ -62,7 +62,7 @@ day_types:
     t2_r: null
     t3: null
     t3_r: null
-    time_stop_minutes: 45
+    time_stop_minutes: null
     trail_after_t2: false
     sizing: "HALF"
     contracts: 1
@@ -75,7 +75,7 @@ day_types:
     t2_r: null
     t3: null
     t3_r: null
-    time_stop_minutes: 30
+    time_stop_minutes: null
     trail_after_t2: false
     sizing: "HALF"
     contracts: 1

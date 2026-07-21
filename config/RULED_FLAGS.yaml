@@ -98,7 +98,10 @@ ruled:
   S1_VALUE_MIGRATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-6 מאושר ('להפעיל את 2'): הגירת-Value — וטו-Trend כשה-VA המתפתח חופף ≥80% לאתמול בלי כיוון; רפליי 07-08 DOWN·0 / 06-30 UP·0 / 07-10 חפיפה-1.0" }
   LSMA_FLAT_GATE_V1:      {expected: "0", ruled_by: "מייקל", date: "2026-07-13", note: "'כרגע לא להפעיל את זה' (בוקר 07-13, אחרי תיאור-הסף) — בנוי ומכויל, כבוי עד פסיקה חדשה" }
   FIXED_CONTRACTS_4:     {expected: "1", ruled_by: "מייקל", date: "2026-07-15", note: "פסיקת-בוקר: 'אני רוצה לעבוד היום על 4 חוזים' — עדיפות-עליונה בכל 6 נקודות-החנק" }
-  T0_TARGET_PTS:         {expected: "3.5", ruled_by: "מייקל", date: "2026-07-15", note: "'T0 יהיה 3.5 נקודות' — חוזה-1 יוצא ב-±3.5; הסולם מוזח C2→T1,C3→T2,C4→T3" }
+  T0_TARGET_PTS:         {expected: "4.0", ruled_by: "מייקל", date: "2026-07-21", note: "T0 = 4.0 נק' (היה 3.5). פסיקת-בוקר 07-21" }
+  TS_OFFSET_INGEST_GATE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "שער ts-offset: דוחה batch עם ts>900s מאחורי now. מונע תקלת 07-20" }
+  IB_BREAK_ANY_EXPANSION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "כל פריצת IB = הרחבה. מוריד שער-רעש 20%×IB" }
+  BE_AFTER_REAL_T1_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "BE אחרי T1-האמיתי (C2), לא T0 (C1 scalp). Remap DLL T1→T0" }
   SYSTEM6_AUTOCORRECT:   {expected: "protective", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 6/6: מערכת-6 עובדת במדרגה-מגינה — רק BE-completion והפלת-יעד-בצד-שגוי; עירום/רוחב נשארים ALERT" }
   STOP_FLOOR_ROTATION_ATR: {expected: "0.8", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 5/6: רצפת-סטופ 0.8×ATR בימי Variation/Neutral (שורש מות-#372); מגמה נשארת 0.5" }
   DAYTYPE_LOCATION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-20", note: "כובה 11:32 ('לכבות DAYTYPE_LOCATION_GATE') — over-block חי: על Variation דרש CONT ללכת עם-התרחבות, אבל get_live_expansion=None (גלאי-ההרחבה פספס פריצת-IB-מטה של 5 נק' — אותו שורש כמו שגגת-סוג-היום) → חסם את השורט-ההמשכי המרכזי של היום. מחלקת G6/G2/G3 (שער על סיגנל-שבור). היה ON 07-15 (מגן על מיקום-REV, #372 נחסם) — לשחזר אחרי שגלאי-ההרחבה מתוקן (Task #5). היסטוריה: 07-15 ON, REV רק בקצה-ערך + Variation דו-שלבי" }
