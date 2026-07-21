@@ -38,8 +38,14 @@ export function BannerStack() {
         // Gateway risk state (cheap endpoint)
         const gw = await fetch(`${API}/api/v9/gateway/status`).then(r => r.json()).catch(() => null);
         if (gw) {
-          if (gw.consecutive_losses >= 2) {
-            active.push({ id: 'cooldown', text: `Cooldown active — ${gw.consecutive_losses} consecutive stops`, color: '#fde68a', bg: '#78350f' });
+          // "Cooldown active" only when the real gate blocks (cooldown.cooldown_active).
+          // The 2-stop block is OFF by standing decision (Michael 07-02); showing
+          // "active" off consecutive_losses>=2 was a false banner — that counter
+          // also hydrates from YESTERDAY's session before 09:30 ET.
+          if (gw.cooldown?.cooldown_active) {
+            active.push({ id: 'cooldown', text: `Cooldown active — ${gw.cooldown.consecutive_stops} consecutive stops`, color: '#fde68a', bg: '#78350f' });
+          } else if (gw.consecutive_losses >= 2) {
+            active.push({ id: 'loss_streak', text: `מונה: ${gw.consecutive_losses} הפסדים רצופים (cooldown כבוי — החלטה קבועה)`, color: '#a3a3a3', bg: '#262626' });
           }
           if (gw.daily_pnl <= -200) {
             const pct = Math.min(100, Math.abs(gw.daily_pnl) / 250 * 100);

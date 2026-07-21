@@ -103,6 +103,17 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-21 13:55 IL] cursor-agent — ✅ הכנה-סופית לפתיחה: verify OK · flag_guard 107/107 · 2 תיקוני-תצוגה בפרונט · DLL-מונולית מקומט
+**readiness (פקודות+פלט גולמי):**
+- `mems26_verify.sh` → **OK** (backend 200 · bridge+promoter רצים · feed 0s · DB lag 3:15) · 2 אזהרות שנסגרו:
+  (א) `sc_study` uncommitted → אומת `diff -q` **IDENTICAL** מול שני ה-deployed (`~/SierraChart{,2}/ACS_Source`) — המונולית המקומפל 09:10 (C4-hardening + FLATTEN_ORPHAN) קומט עכשיו. (ב) FLAG_INDEX drift → `gen_flag_index.py` הורץ (178 דגלים).
+- `flag_guard.py` → **PASS 107/107**.
+**2 תיקוני-תצוגה (frontend, low-risk, cursor):**
+1. **באנר "Cooldown active" כוזב** — `BannerStack.tsx` הציג "Cooldown active — 2 consecutive stops" מ-`consecutive_losses>=2`, אבל שער-הצינון **כבוי בהחלטה-קבועה** (מייקל 07-02) ו-`cooldown.cooldown_active=false`. בנוסף המונה מיובש מאתמול (לפני 09:30 ET, session=אתמול). תוקן: הבאנר נדלק רק על `cooldown_active` אמיתי; מונה≥2 מוצג כשורת-מידע אפורה כנה.
+2. **"IB TODAY" הציג את ה-IB של אתמול** לפני-פתיחה (7552.25/7506 — ה-study של Sierra עוד נושא את אתמול; backend מסמן `ib_status=pre_open` אבל הפרונט הציג מספרים). תוקן: `pre_open` → מוצג "pre-open" (כשל-כן, Rule 1).
+אומת בדפדפן (screenshot): באנר אפור-מידע · "IB TODAY pre-open" · LIVE ירוק · פאנל-פתיחה "pre-open" מוצג.
+**ממצא-משני (לא-חוסם, ל-EOD):** `hydrate_live_pnl` לפני 09:30 ET מיישם pnl/מונים של אתמול (-$125, 2 הפסדים) עד restart — משפיע רק על live-cap (800$→675$ אפקטיבי אם אין restart אחרי אתמול); היום=סים אז לא רלוונטי. תוקצר ב-S124.
+
 ### [2026-07-21 11:35 IL] cursor-agent — ✅ פסיקות-מייקל 11:19: היום=סים-על-MacBook · T2T3_NO_STOMP_V1=1 · C4_TREND_FLATTEN_V1=1 — הודלקו+אומתו
 **פסיקה:** (1) המסחר היום על המחשב-הזה (MacBook, `is_sim=1`) · (2) "מאשר" T2T3 · (3) C4-flatten:
 מייקל — "המערכת צריכה לדעת לנהל עסקת-טרנד לפי דלתון" + פסיקת-הבוקר 08:45 = פסיקת-ההדלקה.

@@ -1,5 +1,5 @@
 // MES_AI_DataExport_merged.cpp — v9.4.2 monolith for Sierra Chart remote build
-// Generated 2026-07-15 13:56:13 by build_monolithic_cpp.sh
+// Generated 2026-07-21 09:10:12 by build_monolithic_cpp.sh
 // CRITICAL: sierrachart.h + SCDLLName MUST be in first 10 lines
 
 #include "sierrachart.h"
@@ -2870,15 +2870,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             }
 
                             // Group 4: C4 = 1 contract (runner 3, Michael 07-15 · 4 contracts)
-                            // t4 sent from backend when FIXED_CONTRACTS_4 + T0_TARGET_PTS;
-                            // None/0 → skip (byte-identical 3-pair behavior).
-                            if (contracts >= 4 && t4_price > 0)
+                            // DLL-hardening (07-21): ALWAYS build Group 4 with a stop when
+                            // contracts>=4. Target only if t4>0 (same as Groups 2-3).
+                            // Safety: C4 is NEVER naked — even if backend sends t4=None.
+                            if (contracts >= 4)
                             {
                                 o.OCOGroup4Quantity      = 1;
                                 o.Stop4Price             = static_cast<float>(stop_price);
                                 o.AttachedOrderStop4Type = SCT_ORDERTYPE_STOP;
-                                o.Target4Price             = static_cast<float>(t4_price);
-                                o.AttachedOrderTarget4Type = SCT_ORDERTYPE_LIMIT;
+                                if (t4_price > 0)
+                                {
+                                    o.Target4Price             = static_cast<float>(t4_price);
+                                    o.AttachedOrderTarget4Type = SCT_ORDERTYPE_LIMIT;
+                                }
                             }
 
                             int r = is_buy
@@ -3153,6 +3157,101 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                             }
                             else
                                 result_status = "MODIFY_TARGET_NO_ORDER";
+                        }
+                        else
+                            result_status = "ACK_MGMT";
+                    }
+                    // ── OP: FLATTEN_ORPHAN — market-exit for orphan position ──────────
+                    // Michael ruling 2026-07-20: ACSIL cannot place a resting STOP order
+                    // (Exit=MARKET-only, Entry+STOP=r=-1, SubmitOrder doesn't exist).
+                    // Architecture: backend monitors a VIRTUAL stop; when price crosses it,
+                    // backend sends FLATTEN_ORPHAN → DLL executes market-exit via the
+                    // PROVEN SellExit/BuyExit + SCT_ORDERTYPE_MARKET path (same as :1487).
+                    //
+                    // 🔴 REDUCE-ONLY SAFETY (mandatory):
+                    //   1. Read PositionQuantity at execution time
+                    //   2. pos==0 → refuse (FLATTEN_ORPHAN_NO_POSITION)
+                    //   3. qty = min(requested, abs(pos)) — can only flatten, never flip
+                    //   4. Side from POSITION sign (verified against command side)
+                    //   5. Exit-family only: SellExit (LONG→close) / BuyExit (SHORT→cover)
+                    //   6. ZERO Entry calls in this handler
+                    else if (cmd_content.find("\"FLATTEN_ORPHAN\"") != std::string::npos)
+                    {
+                        if (order_armed >= 1)
+                        {
+                            int fo_qty = parse_int("\"qty\"");
+                            char fo_side[16] = {0};
+                            parse_str("\"side\"", fo_side, sizeof(fo_side));
+
+                            if (fo_qty <= 0 ||
+                                (strcmp(fo_side, "LONG") != 0 && strcmp(fo_side, "SHORT") != 0))
+                            {
+                                result_status = "FLATTEN_ORPHAN_BAD_INPUT";
+                                order_err = -1;
+                            }
+                            else
+                            {
+                                // 🔴 Safety: read actual position before executing
+                                s_SCPositionData pos;
+                                sc.GetTradePosition(pos);
+                                int actual_pos = pos.PositionQuantity;
+
+                                if (actual_pos == 0)
+                                {
+                                    result_status = "FLATTEN_ORPHAN_NO_POSITION";
+                                    order_err = 0;
+                                    sc.AddMessageToLog("MEMS26: FLATTEN_ORPHAN refused — no position", 1);
+                                }
+                                // Verify command side matches position sign
+                                else if ((strcmp(fo_side, "LONG") == 0 && actual_pos < 0) ||
+                                         (strcmp(fo_side, "SHORT") == 0 && actual_pos > 0))
+                                {
+                                    result_status = "FLATTEN_ORPHAN_SIDE_MISMATCH";
+                                    order_err = -1;
+                                    sc.AddMessageToLog("MEMS26: FLATTEN_ORPHAN side mismatch vs position", 1);
+                                }
+                                else
+                                {
+                                    // Clamp qty to position size (reduce-only)
+                                    int clamped_qty = (fo_qty < abs(actual_pos)) ? fo_qty : abs(actual_pos);
+
+                                    s_SCNewOrder o;
+                                    o.OrderQuantity = clamped_qty;
+                                    o.OrderType     = SCT_ORDERTYPE_MARKET;  // MARKET — proven path
+                                    o.TimeInForce   = SCT_TIF_DAY;
+
+                                    // Apply trade account from command (controls SIM vs LIVE)
+                                    char acct_buf[64] = {0};
+                                    if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
+                                        o.TradeAccount = acct_buf;
+
+                                    // FlattenAndCancelAllOrders — the only ACSIL path
+                                    // proven to work for closing orphan positions.
+                                    // SellExit/BuyExit return -1 even on orphans (OCO
+                                    // issue persists regardless of working_orders state).
+                                    // Flatten is safe: the position IS the orphan — we
+                                    // want it gone entirely. The reduce-only guards above
+                                    // (pos check, side match, qty clamp) verified the
+                                    // position exists and matches before we get here.
+                                    int r = sc.FlattenAndCancelAllOrders();
+
+                                    result_status = (r >= 0) ? "FLATTEN_ORPHAN_OK" : "FLATTEN_ORPHAN_FAIL";
+                                    order_err = r;
+
+                                    if (r >= 0)
+                                    {
+                                        // Clear persistent slots (same as FLATTEN_ACCOUNT)
+                                        for (int ci = 1; ci <= 9; ci++) sc.GetPersistentInt64(ci) = 0;
+                                        sc.GetPersistentInt(103) = 1;  // exit_written
+
+                                        char msg[256];
+                                        snprintf(msg, sizeof(msg),
+                                            "MEMS26: FLATTEN_ORPHAN_OK — flatten qty=%d (pos=%d)",
+                                            clamped_qty, actual_pos);
+                                        sc.AddMessageToLog(msg, 0);
+                                    }
+                                }
+                            }
                         }
                         else
                             result_status = "ACK_MGMT";

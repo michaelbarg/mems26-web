@@ -220,13 +220,14 @@ export function KeyLevelsStrip() {
 
       <Sep />
 
-      {/* 3. IB Today */}
+      {/* 3. IB Today — pre-open the Sierra study still carries YESTERDAY's IB;
+          showing it as "IB TODAY" misled (07-21). Honest display: 'pre-open'. */}
       <IbBlock
         label="IB TODAY"
-        high={t.ib_high}
-        low={t.ib_low}
-        width={t.ib_width}
-        klass={t.ib_class}
+        high={t.ib_status === 'pre_open' ? null : t.ib_high}
+        low={t.ib_status === 'pre_open' ? null : t.ib_low}
+        width={t.ib_status === 'pre_open' ? null : t.ib_width}
+        klass={t.ib_status === 'pre_open' ? null : t.ib_class}
         emptyText={ibTodayEmpty}
         primary
       />
