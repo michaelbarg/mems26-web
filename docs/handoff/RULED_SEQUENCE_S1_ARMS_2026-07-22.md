@@ -12,9 +12,14 @@
 ## הרצף (מתוקן)
 **שלב 0 — חוסם-על:** cc סוגר 12 הרגרסיות → parent-parity 145/145 בחבילה + מריץ migration 023. (cowork מאמת.)
 
-**שלב 1 — תיקון-TPO/VA (מהיר, נפרד, בסים):** מצא למה `v9_tpo_sessions` id 1523 = 3.5pt בעוד Sierra = 19.5pt
-(שורה-מעופשת / קליטה-מ-mapped). תקן קליטה/רענון → ה-VA ב-DB = Sierra. **קבלה:** DB VA == export VA (±tick).
-זה לבדו מחזיר רמות-מיקום אמיתיות — לא תלוי בבר-contamination.
+**שלב 1 — תיקון-TPO/VA (מהיר, נפרד, בסים). 🔴 שורש אובחן (cowork read-only ~23:40):**
+`backend/v9/systems/tpo/tpo_system.py:3` — *"Builds TPO profile from 5-min bars"*. ה-VAH/VAL ב-`v9_tpo_sessions`
+**מחושבים בבקאנד מהברים-המזוהמים** (מכאן 3.5pt), בעוד ה-IB כבר נלקח מ-Sierra (`ib_source=sierra_tpo`, 7556.25/
+7525 — בריא). **ה-VA-הבריא של Sierra (19.5pt, `va_ok:True`) יושב ב-`tpo.json` אבל לא נכתב.** פיצול: IB מ-Sierra,
+VA מברים-רקובים.
+**התיקון (תואם Rule 1 / SoT — מקור-קנוני, לא סינתזה):** לכתוב `vah_price/val_price` מ-`tpo.json` (VA של Sierra),
+בדיוק כמו שה-IB כבר נלקח — במקום לחשב-מברים. **יתרון:** מתקן את ה-VA מיד, **עמיד לזיהום-הברים** (המקור נקי) —
+לכן שלב-1 עצמאי משלב-2. **קבלה:** `v9_tpo_sessions` VAH/VAL == `tpo.json` session.vah/val (±tick).
 
 **שלב 2 — תיקון-offset הברים (השורש):** ts-הייצוא הגולמי ‎−5h → יישר את הקליטה/bridge שבר-טרי ינחת ב-ts-נכון
 (≈0), **ופרוש את `WOODIES_TS_HOUR_FIX` לגמרי** (=0 לבד משאיר ‎−1h — לא מספיק). ואז נקה 12+12 רפאים (גיבוי;
