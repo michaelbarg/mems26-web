@@ -105,6 +105,13 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-22 22:50 IL] cursor-agent — ✅ VERIFY contam+S1-arch (read-only) — `CURSOR_VERIFY_CONTAM_AND_S1_ARCH_REPORT_2026-07-22.md`
+**(א) זיהום 🟢:** 12 זוגות +1h woodies + 12 bars_5min · VA=**3.5pt** · שורש=**קליטה** (TS-HOUR-FIX עד 22:10)
+לא DLL (export 0 twins). RULED fix=0 אבל רפאים עדיין ב-DB → ניקוי+ריסטארט נדרשים.
+**(ב) 🟢:** 8/8 `day_type_at_fire=None` · `_detect_reactive` רק ברים · `S2_DETECTION_LIVE_DAYTYPE_V1=0`.
+**(ג) 🟢:** `OPEN_DRIVE` מזוהה · `OPENING_ENTRY_V1=shadow` — לא מניע לייב.
+**(ד)** S1=מוח/S2+S4=זרועות מתועד. בנייה=פסיקת-מייקל. לא התנגשתי עם cc. cursor.
+
 ### [2026-07-22 ~20:00 IL] cc-macbook — מגה-אימות P2/P3/P8/P9/P10/P6 (CC_MEGA_VERIFY)
 **12 תקלות מזוהות, 10 מתוקנות בקוד, 2 לא-באגים:**
 - **P2** hour-fix OFF (`WOODIES_TS_HOUR_FIX=0`), TS-gate לפני fix, gate logs stale re-push. 8 טסטים.
