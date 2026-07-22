@@ -974,16 +974,27 @@ class WoodiesSystem(BaseV9TradingSystem):
                                             _win_c = _s4_struct_win or (self._bar_buffer[-_w_c:] if len(self._bar_buffer) >= 2 else None)
                                             if _win_c:
                                                 _t1_struct = SA.structure_end_t1(_win_c, direction)
-                                                if SA.t1_structure_valid(_s4_entry, _t1_struct, direction, _min_t):
+                                                # 07-22 18:55 (Michael "תקלה חמורה", live 18:51 blocks):
+                                                # BREAKOUT blind-spot — at new highs/lows the structure
+                                                # end sits next to entry (2.75pt vs 5.75pt stop → rr
+                                                # 0.48 blocked). Structural T1 must be VIABLE on its own
+                                                # geometry (≥ rr_min × risk); otherwise the structure is
+                                                # exhausted ahead → T1 = 1R per Michael's targets table.
+                                                _t1_dist = abs(_t1_struct - _s4_entry)
+                                                _risk_d = abs(_s4_entry - _s4_stop)
+                                                _rr_min_c = float(os.getenv("RR_MIN_ROTATION", "0.65") or 0.65)
+                                                if (SA.t1_structure_valid(_s4_entry, _t1_struct, direction, _min_t)
+                                                        and _risk_d > 0 and _t1_dist >= _rr_min_c * _risk_d):
                                                     logger.info(
                                                         "[Woodies] T1_STRUCTURE_END: %s %s t1 %.2f→%.2f (structure end over %d bars)",
                                                         _pid, direction, _s4_t1 or 0.0, _t1_struct, len(_win_c))
                                                     _s4_t1 = _t1_struct
-                                                else:
+                                                elif _risk_d > 0:
+                                                    _s4_t1 = _s4_entry + _s4_sign * _risk_d  # 1R (targets table)
                                                     self._last_t1_structure_exhausted = True
                                                     logger.info(
-                                                        "[Woodies] T1_STRUCTURE_END: %s %s structure_exhausted (end %.2f ≤ entry %.2f+%dT) — ladder T1 kept",
-                                                        _pid, direction, _t1_struct, _s4_entry, _min_t)
+                                                        "[Woodies] T1_STRUCTURE_END: %s %s structure exhausted ahead (end %.2f, %.2fpt < %.2f×risk %.2f) — T1=1R %.2f",
+                                                        _pid, direction, _t1_struct, _t1_dist, _rr_min_c, _risk_d, _s4_t1)
                                         except Exception as _c_err:
                                             logger.warning("[Woodies] T1_STRUCTURE_END failed (ladder kept): %s", _c_err)
                                     # T2/T3 = None (CCI-cross, deferred §1.6)

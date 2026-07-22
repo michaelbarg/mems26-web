@@ -1746,16 +1746,25 @@ class FiveMinSystem(BaseV9TradingSystem):
                         _win_c = _det_buf[-_w_c:] if _det_buf and len(_det_buf) >= 2 else None
                         if _win_c:
                             _t1_struct = _SA_c.structure_end_t1(_win_c, direction)
-                            if _SA_c.t1_structure_valid(entry_price, _t1_struct, direction, _min_t):
+                            # 07-22 18:55 breakout blind-spot fix (see woodies twin):
+                            # structural T1 only when viable (≥ rr_min×risk);
+                            # exhausted ahead → T1 = 1R per the targets table.
+                            _t1_dist_c = abs(_t1_struct - entry_price)
+                            _risk_c = abs(entry_price - stop_price) if stop_price else 0.0
+                            _rr_min_s2 = float(os.getenv("RR_MIN_ROTATION", "0.65") or 0.65)
+                            if (_SA_c.t1_structure_valid(entry_price, _t1_struct, direction, _min_t)
+                                    and _risk_c > 0 and _t1_dist_c >= _rr_min_s2 * _risk_c):
                                 logger.info(
                                     "[FiveMin] T1_STRUCTURE_END: %s %s t1 %.2f→%.2f (structure end over %d bars)",
                                     kind, direction, t1_price or 0.0, _t1_struct, len(_win_c))
                                 t1_price = _t1_struct
-                            else:
+                            elif _risk_c > 0:
+                                _sign_c = 1.0 if direction == "LONG" else -1.0
+                                t1_price = entry_price + _sign_c * _risk_c  # 1R
                                 info["t1_structure_exhausted"] = True
                                 logger.info(
-                                    "[FiveMin] T1_STRUCTURE_END: %s %s structure_exhausted (end %.2f, entry %.2f) — computed T1 kept",
-                                    kind, direction, _t1_struct, entry_price)
+                                    "[FiveMin] T1_STRUCTURE_END: %s %s structure exhausted ahead (end %.2f) — T1=1R %.2f",
+                                    kind, direction, _t1_struct, t1_price)
                     except Exception as _c_err:
                         logger.warning("[FiveMin] T1_STRUCTURE_END failed (computed T1 kept): %s", _c_err)
 

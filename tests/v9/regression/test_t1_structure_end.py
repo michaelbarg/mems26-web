@@ -111,3 +111,20 @@ def test_flags_off_no_import_errors():
     import backend.v9.systems.stop_anchors.resolver as r
     importlib.reload(r)
     assert hasattr(r, "structure_end_t1") and hasattr(r, "widen_stop_to_structure")
+
+
+def test_breakout_exhausted_falls_to_1r_viability():
+    """18:51 live blocks (Michael 'תקלה חמורה'): at new highs the structure end
+    is ~entry (2.75pt vs 5.75 stop → rr 0.48 blocked). The viability rule:
+    structural T1 only when dist >= rr_min×risk; else exhausted → T1=1R.
+    Yesterday's fixture must STILL choose structural (5.5 >= 0.65×7.5)."""
+    # yesterday's pullback: structural viable → kept
+    entry, stop = 7530.25, 7522.75  # risk 7.5
+    t1 = SA.structure_end_t1(WIN, "LONG")  # 7535.75 → dist 5.5
+    assert (t1 - entry) >= 0.65 * (entry - stop)  # structural stays
+    # today's breakout: structure end 2.75 away, stop 5.75 → NOT viable
+    entry2, stop2 = 7557.0, 7551.25  # risk 5.75
+    win_break = WIN + [B(7559.75, 7552.0, 7557.0)]  # window high 7559.75 → dist 2.75
+    t1b = SA.structure_end_t1(win_break, "LONG")
+    assert t1b - entry2 < 0.65 * (entry2 - stop2)  # viability fails → caller uses 1R
+    # 1R target passes the rr gate by construction: dist == risk → rr 1.0
