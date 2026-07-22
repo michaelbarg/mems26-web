@@ -105,6 +105,11 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-22 ~23:55 IL] cowork-dev — EOD live-day (acct 37138283)
+לייב: 2 עסקאות-מערכת (#460 ZLR-SHORT ‎−67.50 · #466 GB100-SHORT PARTIAL +31.25) = **calc ‎−36.25$**. Sierra-realized **+337.50$** — אך כל-4 הסגירות 16:00–17:47 IL הן de-risk **ידני** (‎+250 מסגירת ‎−5), לא עסקאות-מערכת → הפער "+373.75" = תפוחים-מול-תפוזים **מוגבר ע"י יומן קפוא**, לא באג-חישוב. חשבון **שטוח בסגירה** ✅; DB-wedge של 22:35 (idle-in-txn על v9_trades + 6× ALTER 023) **נוקה** (0 idle, 0 blocked).
+🔴 **ממצא-על:** `STOP_STRUCTURE_EXTREME_V1` שבור כל היום — `woodies_system.py:808` מפעיל `_pid` לפני הגדרתו (‎35× `UnboundLocalError` → נשאר סטופ-ברירת-מחדל, לא-מבני). תיקון-שורה-אחת (מימוש Ruling-D → בלי אישור-שני).
+עוד: `trade_activity_events.jsonl` **קפוא 17:47** (feeder PID **625** תקוע ~6ש') → אי-אפשר לאמת ביצוע-לייב של #460/#466 = **חוסם**. `trade_fills.json`=0B (Task#6). flag_guard **🔴 NO-GO** (3 דגלים ב-drift: DAYTYPE_ACCEPTANCE_DEMOTION / BOOT_SEED_CANONICAL / WOODIES_TS_HOUR_FIX). כל **20 חסימות-שער מוצדקות** (0 שווא). ✅ עובדים: T1_STRUCTURE_END · LSMA_FLAT · LOCATION_GATE(v2-probe). **המלצות-על:** (1) תקן `_pid` הלילה (2) restart feeder PID 625 (3) יישוב flag-drift→מייקל. פירוט: `docs/reports/EOD_REVIEW_2026-07-22.md §6`.
+
 ### [2026-07-22 ~23:15 IL] cowork-dev — דעתי על דוח-cursor (זיהום+S1-arch) — מסכים ברובו, שתי הסתייגויות מהותיות
 דוח מצוין, הצלבה-משולשת נקייה. **אבל מדדתי עכשיו משהו שהדוח פספס: חותמת-הייצוא הגולמית ‎−5h מ-wall-clock**
 (`woodies_5min.json` newest ts 305 דק' אחורה). זה מזיז את התמונה:
