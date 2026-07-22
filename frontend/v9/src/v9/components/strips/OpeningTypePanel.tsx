@@ -161,11 +161,21 @@ export function OpeningTypePanel() {
             />
           )}
 
-          {/* Michael 07-22: the tradeable stance for THIS opening type — reversal / directional / wait */}
+          {/* Michael 07-22: the tradeable stance for THIS opening type — reversal / directional / wait.
+              Pre-open (no opening type yet): show the separation explicitly so the trader sees
+              what WILL populate here at 16:30 (Michael 07-22: "הפרדה לתצוגה לצורך פתיחה"). */}
           {(() => {
             const stance = data?.stance ?? (ot ? STANCE_FALLBACK[ot] : null);
             const sv = stance ? STANCE_VIEW[stance] : null;
-            return sv ? <Pill text={sv.text} bg={sv.bg} fg={sv.fg} title={sv.title} /> : null;
+            if (sv) return <Pill text={sv.text} bg={sv.bg} fg={sv.fg} title={sv.title} />;
+            return (
+              <Pill
+                text="🕐 ממתין-לפתיחה → סוג-פתיחה · עמדה (🎯/🔄/⏸) · תווית-חיה"
+                bg="rgba(88,166,255,0.10)"
+                fg="#58a6ff"
+                title="ב-16:30 (6 ברים ראשונים) יופיעו כאן בהפרדה: סוג-הפתיחה (Drive/Test/Rejection/Auction) → העמדה הסחירה (כיוונית 🎯 / היפוך 🔄 / המתן ⏸) → התווית-החיה. עד אז — אין המצאת-תווית (חוק-1)."
+              />
+            );
           })()}
 
           {/* What the open foreshadows (classifier's own Dalton pp.63-74 mapping) */}
