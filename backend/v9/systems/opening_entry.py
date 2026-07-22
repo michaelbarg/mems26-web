@@ -100,6 +100,22 @@ def evaluate_opening_entry(session_bars: List[Dict[str, Any]],
             return {"type": "DRIVE", "direction": "SHORT", "entry": close,
                     "or_width": or_width}
 
+    # ── TEST_DRIVE: excursion beyond open (>= frac*OR) measured from BAR 2
+    # onward on one side, no drive-close on that side, then close through the
+    # open to the other side.
+    need = TD_EXCURSION_FRAC * or_width
+    if need > 0 and n >= 3:  # excursion bars 2..n-1, reclaim on bar n
+        exc_up = max((_f(b, "h", "high") or open_price) - open_price
+                     for b in session_bars[1:-1])
+        exc_dn = max(open_price - (_f(b, "l", "low") or open_price)
+                     for b in session_bars[1:-1])
+        if exc_up >= need and not drove_up_before and close < open_price:
+            return {"type": "TEST_DRIVE", "direction": "SHORT", "entry": close,
+                    "or_width": or_width, "excursion": exc_up}
+        if exc_dn >= need and not drove_dn_before and close > open_price:
+            return {"type": "TEST_DRIVE", "direction": "LONG", "entry": close,
+                    "or_width": or_width, "excursion": exc_dn}
+
     # ── EXTREME_REJECT (Michael's opening rule, 07-22 "מדויק" — validated on
     # 31 sessions): a bar tests the RUNNING session extreme (touch ≤0.5,
     # rejection close >0.5 back), the NEXT bar CONFIRMS (closes further away).
@@ -126,22 +142,6 @@ def evaluate_opening_entry(session_bars: List[Dict[str, Any]],
                     return {"type": "EXTREME_REJECT", "direction": "SHORT",
                             "entry": close, "or_width": or_width,
                             "extreme": max(prior_high, tb_h), "stop_offset_ticks": 10}
-
-    # ── TEST_DRIVE: excursion beyond open (>= frac*OR) measured from BAR 2
-    # onward on one side, no drive-close on that side, then close through the
-    # open to the other side.
-    need = TD_EXCURSION_FRAC * or_width
-    if need > 0 and n >= 3:  # excursion bars 2..n-1, reclaim on bar n
-        exc_up = max((_f(b, "h", "high") or open_price) - open_price
-                     for b in session_bars[1:-1])
-        exc_dn = max(open_price - (_f(b, "l", "low") or open_price)
-                     for b in session_bars[1:-1])
-        if exc_up >= need and not drove_up_before and close < open_price:
-            return {"type": "TEST_DRIVE", "direction": "SHORT", "entry": close,
-                    "or_width": or_width, "excursion": exc_up}
-        if exc_dn >= need and not drove_dn_before and close > open_price:
-            return {"type": "TEST_DRIVE", "direction": "LONG", "entry": close,
-                    "or_width": or_width, "excursion": exc_dn}
 
     return None
 
