@@ -93,10 +93,17 @@ function DecisionMark({ d, dim }: { d: GatewayDecision; dim?: boolean }) {
       </div>
     );
   }
+  if (d.outcome === 'order_failed') {
+    return (
+      <div style={{ fontSize: 9.5, color: '#f85149', lineHeight: 1.45 }}>
+        {'❌'} {t} ירה אבל Sierra דחתה ({d.trade_id ? `#${d.trade_id}` : ''})
+      </div>
+    );
+  }
   if (d.outcome === 'live' || d.outcome === 'demo') {
     return (
       <div style={{ fontSize: 9.5, color: '#3fb950', lineHeight: 1.45 }}>
-        🔫 {t} ירה ({d.outcome === 'live' ? 'לייב' : 'דמו'}{d.trade_id ? ` #${d.trade_id}` : ''})
+        {'🔫'} {t} ירה ({d.outcome === 'live' ? 'לייב' : 'דמו'}{d.trade_id ? ` #${d.trade_id}` : ''})
       </div>
     );
   }

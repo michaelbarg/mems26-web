@@ -545,6 +545,46 @@ async def _startup():
                         # Fail-safe: keep old-engine value, never throw on hot path
                         _logger.debug("[S1-NEW-CLS] error (fail-safe, kept old value): %s", _cls_err)
 
+                # P6 DAYTYPE_ACCEPTANCE_DEMOTION_V1 (Michael D2 06-30 + 07-22):
+                # When live label is Trend_* and price returns inside IB for K
+                # consecutive bars → demote one step to Normal_Variation.
+                if _os.environ.get("DAYTYPE_ACCEPTANCE_DEMOTION_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        _cur_dt = getattr(day_type_machine, "day_type", None)
+                        _cur_str = _cur_dt.value if hasattr(_cur_dt, "value") else str(_cur_dt or "")
+                        if _cur_str.startswith("Trend"):
+                            _ib_h = getattr(day_type_machine, "ib_high", None)
+                            _ib_l = getattr(day_type_machine, "ib_low", None)
+                            if _ib_h is not None and _ib_l is not None:
+                                _ib_w = float(_ib_h) - float(_ib_l)
+                                _dem_tol = min(max(0.25 * _ib_w, 1.0), 4.0) if _ib_w > 0 else 2.0
+                                _bar_h = bar_input.high
+                                _bar_l = bar_input.low
+                                _inside = (_bar_h < float(_ib_h) - _dem_tol and
+                                           _bar_l > float(_ib_l) + _dem_tol)
+                                if not hasattr(app.state, "_dem_inside_count"):
+                                    app.state._dem_inside_count = 0
+                                if _inside:
+                                    app.state._dem_inside_count += 1
+                                else:
+                                    app.state._dem_inside_count = 0
+                                _dem_k = int(_os.environ.get("DAYTYPE_DEMOTION_K_BARS", "3"))
+                                if app.state._dem_inside_count >= _dem_k:
+                                    app.state._dem_inside_count = 0
+                                    _dem_target = "Normal_Variation"
+                                    from backend.v9.systems.day_type.state_machine import DayType as _DT2
+                                    _dem_enum = _DT2.Variation  # Normal_Variation maps to Variation enum
+                                    state.day_type = _dem_enum
+                                    day_type_machine.day_type = _dem_enum
+                                    if hasattr(day_type_machine, '_last_state') and day_type_machine._last_state:
+                                        day_type_machine._last_state.day_type = _dem_enum
+                                    _logger.warning(
+                                        "[DayType] ACCEPTANCE-DEMOTION: %s → %s (K=%d bars re-accepted "
+                                        "inside IB %.2f/%.2f)", _cur_str, _dem_target, _dem_k,
+                                        float(_ib_h), float(_ib_l))
+                    except Exception as _dem_err:
+                        _logger.debug("[DayType] acceptance-demotion error (fail-safe): %s", _dem_err)
+
                 # D-S1DYN: Legacy shadow reclassification (SKIPPED when S1_ENGINE_NEW_CLASSIFIER ON)
                 elif S1_DYNAMIC_RECLASS and day_type_machine.ib_locked:
                     try:
@@ -780,6 +820,44 @@ async def _startup():
                     "day_type=%s bar_count=%d (BOOT_DAYTYPE_REPLAY_V1)",
                     _n, getattr(day_type_machine, "stage", "?"), _dt_v,
                     getattr(day_type_machine, "bar_count", 0))
+
+                # P6 DAYTYPE_BOOT_SEED_CANONICAL_V1 (2026-07-22): after replaying
+                # bars through the engine, ALSO run classify_session on the replayed
+                # bars and seed the canonical conclusion. This closes the gap where
+                # boot-replay gives Variation/0.12 but the canonical says Normal
+                # (or Trend). The canonical label overwrites the engine's replay label.
+                if (_bos.environ.get("DAYTYPE_BOOT_SEED_CANONICAL_V1", "0").lower()
+                        in ("1", "true", "yes") and len(_cls_rth_bars) >= 12):
+                    try:
+                        from backend.v9.systems.day_type.daytype_classifier import classify_session as _boot_cls
+                        _boot_result = _boot_cls(
+                            bars=_cls_rth_bars,
+                            pd_high=_pd.get("pd_high"), pd_low=_pd.get("pd_low"),
+                            pd_close=_pd.get("pd_close"),
+                            ib_high=_ibh0, ib_low=_ibl0,
+                        )
+                        _boot_dt_str = _boot_result.get("day_type")
+                        from backend.v9.systems.day_type.state_machine import DayType as _BDT
+                        _BOOT_MAP = {
+                            "Trend_Normal": _BDT.Trend_Normal, "Trend_DD": _BDT.Trend_DD,
+                            "Normal": _BDT.Normal, "Normal_Variation": _BDT.Variation,
+                            "Variation": _BDT.Variation, "Neutral_Center": _BDT.Neutral_Center,
+                            "Neutral_Extreme": _BDT.Neutral_Extreme, "Nontrend": _BDT.Nontrend,
+                        }
+                        _boot_enum = _BOOT_MAP.get(_boot_dt_str)
+                        if _boot_enum is not None and _boot_dt_str != "FORMING":
+                            _old_boot = _dt_v or "?"
+                            day_type_machine.day_type = _boot_enum
+                            if hasattr(day_type_machine, '_last_state') and day_type_machine._last_state:
+                                day_type_machine._last_state.day_type = _boot_enum
+                            _logger.warning(
+                                "[DayType] BOOT-SEED-CANONICAL: replay=%s → canonical=%s "
+                                "(classify_session on %d RTH bars, conf=%.2f)",
+                                _old_boot, _boot_dt_str, len(_cls_rth_bars),
+                                float(_boot_result.get("confidence", 0)))
+                            app.state.last_cls_result = _boot_result
+                    except Exception as _bsc_err:
+                        _logger.warning("[DayType] boot-seed-canonical failed (non-fatal): %s", _bsc_err)
             except Exception as _bre:
                 _logger.warning("[DayType] boot-replay failed (non-fatal): %s", _bre)
 

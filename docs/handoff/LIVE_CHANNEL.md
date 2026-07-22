@@ -105,6 +105,22 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-22 ~20:00 IL] cc-macbook — מגה-אימות P2/P3/P8/P9/P10/P6 (CC_MEGA_VERIFY)
+**12 תקלות מזוהות, 10 מתוקנות בקוד, 2 לא-באגים:**
+- **P2** hour-fix OFF (`WOODIES_TS_HOUR_FIX=0`), TS-gate לפני fix, gate logs stale re-push. 8 טסטים.
+- **P3** נפתר ע"י P2 (אין ghost-rows → flags בסלוט-הנכון).
+- **P8** `outcome_override="CANCELLED"` ב-close_trade. CANCELLED לא נספר ב-daily_pnl.
+- **P9** activity-feeder: Sim1→live fallback. Migration 023: pnl_sierra column.
+- **P10** decisions JSONL persistence + hydration. `/decisions` enriches order_failed. Frontend: red "Sierra דחתה".
+- **P6** acceptance-demotion (K=3 bars inside IB), boot-seed-canonical (classify_session after replay),
+  cross_check NV→V normalization.
+```
+BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_ts_offset_ingest_gate.py -q
+# 8 passed
+```
+**דגלים חדשים:** `WOODIES_TS_HOUR_FIX=0` · `DAYTYPE_ACCEPTANCE_DEMOTION_V1=1` · `DAYTYPE_BOOT_SEED_CANONICAL_V1=1`
+דוח: `docs/reports/FAULTS_AND_FIXES_2026-07-22.md`. cowork מאמת. cc-macbook.
+
 ### [2026-07-22 16:26 IL] cursor-agent — ✅ P0-1+P0-2 מאומתים חוק-5 (קומיט 61ad11a6)
 **P0-1:** `BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_t1_structure_end_route.py -q`
 → **3 passed** (0.16s). route_setup: flag ON → t1=7496.5 שורד · flag OFF → stomp ל-7499.75 (legacy).

@@ -80,3 +80,25 @@ def test_streams_isolated(monkeypatch):
     # advancing mislabeled on stream a; stream b has no baseline yet → passes
     assert bars_mod._ts_offset_ingest_gate(_bars(now - 3300), "b") is None
     assert bars_mod._ts_offset_ingest_gate(_bars(now - 3200), "a") is not None
+
+
+# ═══ P2 (2026-07-22): hour-fix default OFF + gate ordering ═══
+
+def test_hour_fix_default_off(monkeypatch):
+    """P2: WOODIES_TS_HOUR_FIX defaults to 0 — no shifting."""
+    monkeypatch.delenv("WOODIES_TS_HOUR_FIX", raising=False)
+    now = time.time()
+    bars_in = [{"ts": now - 3600}]  # exactly 1h old — the old trigger zone
+    shift = bars_mod._hour_shift_fix(bars_in, "test")
+    assert shift == 0
+    assert abs(bars_in[0]["ts"] - (now - 3600)) < 1  # ts unchanged
+
+
+def test_hour_fix_on_when_explicitly_enabled(monkeypatch):
+    """When WOODIES_TS_HOUR_FIX=1, the fix still works for genuine chartbook TZ."""
+    monkeypatch.setenv("WOODIES_TS_HOUR_FIX", "1")
+    now = time.time()
+    bars_in = [{"ts": now - 3600}]
+    shift = bars_mod._hour_shift_fix(bars_in, "test")
+    assert shift == 3600
+    assert abs(bars_in[0]["ts"] - now) < 2  # ts shifted forward

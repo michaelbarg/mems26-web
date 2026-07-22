@@ -71,6 +71,23 @@ async def gateway_decisions(request: Request, limit: int = 60):
             fired += 1
         elif d.get("outcome") == "shadow_only":
             shadow_only += 1
+    # P10 (2026-07-22): enrich fired decisions with the trade's actual DB state.
+    # A decision with outcome="live" but trade.state="CANCELLED" should show
+    # "order_failed", not "live" (the #462 bug: Sierra r=-1 but panel said "live").
+    _trade_states = {}
+    try:
+        _fired_ids = [d.get("trade_id") for d in buf
+                      if d.get("trade_id") and d.get("outcome") in ("live", "demo")]
+        if _fired_ids:
+            from backend.v9.db.read import read_all as _r
+            _rows = _r(
+                "SELECT id, state, outcome FROM v9_trades WHERE id = ANY(:ids)",
+                {"ids": list(set(_fired_ids))})
+            _trade_states = {int(r["id"]): {"state": r["state"], "outcome": r["outcome"]}
+                             for r in _rows}
+    except Exception:
+        pass  # enrichment is best-effort
+
     out = []
     for d in buf[-max(1, min(int(limit), 200)):][::-1]:  # newest first
         e = dict(d)
@@ -78,13 +95,21 @@ async def gateway_decisions(request: Request, limit: int = 60):
             e["t_il"] = _dt.fromisoformat(d["ts"]).astimezone(_il).strftime("%H:%M:%S")
         except Exception:
             e["t_il"] = None
+        # P10: override outcome for cancelled/failed trades
+        tid = e.get("trade_id")
+        if tid and int(tid) in _trade_states:
+            ts = _trade_states[int(tid)]
+            if ts["state"] == "CANCELLED" or ts["outcome"] == "CANCELLED":
+                e["outcome"] = "order_failed"
+                e["trade_state"] = ts["state"]
+                e["trade_outcome"] = ts["outcome"]
         out.append(e)
     return {
         "decisions": out,
         "today": {"fired": fired, "blocked": blocked,
                   "shadow_only": shadow_only, "by_gate": by_gate},
         "buffer_len": len(buf),
-        "note": "in-memory since backend start",
+        "note": "persisted to JSONL since P10 (2026-07-22)",
     }
 
 

@@ -283,14 +283,16 @@ class FillPoller:
                     try:
                         # Truncate reason to fit varchar(30)
                         _reason = f"ORDER_FAILED:{err_code}"[:30]
+                        # P8 fix (2026-07-22): use outcome_override="CANCELLED" so
+                        # close_trade persists the correct outcome in one flush (not
+                        # the PnL-based "BE" that _set_outcome would compute on pnl=0).
+                        # Also set state to CANCELLED for honest display.
                         self._tm.close_trade(
                             trade.id,
                             reason=_reason,
+                            outcome_override="CANCELLED",
                         )
-                        # Override state to CANCELLED (close_trade sets CLOSED)
                         trade.state = "CANCELLED"
-                        trade.pnl_usd = 0.0
-                        trade.outcome = "CANCELLED"
                         try:
                             self._tm._db.flush()
                         except Exception:

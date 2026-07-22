@@ -175,10 +175,28 @@ def _append_events(events: list[dict]):
 
 
 def run_once(account: str) -> list[dict]:
-    """Single extraction run. Returns new events."""
+    """Single extraction run. Returns new events.
+
+    P9 fix (2026-07-22): when a sim account log doesn't exist for today, fall
+    back to the live account log. Sierra writes to the real account even when
+    MEMS26_MODE=sim + send_orders_to_trade_service=1 (Sim1 log only exists
+    when Sierra's own is_sim=1 AND using a simulated account).
+    """
     log_path = _today_log_path(account)
     if not log_path.exists():
-        return []
+        # Sim fallback: try live account log
+        if account.lower().startswith("sim"):
+            live_path = _today_log_path(LIVE_ACCOUNT)
+            if live_path.exists():
+                import sys
+                print(f"[trade_activity_feed] {log_path.name} not found, "
+                      f"falling back to {live_path.name}", file=sys.stderr)
+                account = LIVE_ACCOUNT
+                log_path = live_path
+            else:
+                return []
+        else:
+            return []
 
     # Track offset per-account to avoid re-processing and cross-contamination
     offset_file = EXPORT_DIR / f".trade_activity_offset_{account}"

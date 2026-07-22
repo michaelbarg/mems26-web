@@ -1302,12 +1302,16 @@ class TradeManager:
         except Exception:
             pass
 
-    def close_trade(self, trade_id: int, reason: str, exit_price: Optional[float] = None) -> None:
+    def close_trade(self, trade_id: int, reason: str, exit_price: Optional[float] = None,
+                    outcome_override: Optional[str] = None) -> None:
         """Manual close — any active state -> CLOSED.
 
         exit_price: when provided (e.g. from Sierra fill or OPPOSITE_2X), sets
         the actual exit price for P&L. When None, _calculate_pnl falls back to
         target-based calculation.
+        outcome_override: when provided (e.g. "CANCELLED" for ORDER_FAILED),
+        replaces the PnL-based outcome. P8 fix (2026-07-22): prevents _set_outcome
+        from writing "BE" on a trade that was never actually executed.
         """
         trade = self._get_trade(trade_id)
         machine = self._get_machine(trade)
@@ -1323,7 +1327,11 @@ class TradeManager:
             trade.exit_price = exit_price
 
         self._calculate_pnl(trade)
-        self._set_outcome(trade)
+        if outcome_override:
+            trade.outcome = outcome_override
+            trade.pnl_usd = 0.0
+        else:
+            self._set_outcome(trade)
         self._cleanup_machine(trade_id)
         self._db.flush()
 

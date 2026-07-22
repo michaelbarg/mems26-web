@@ -100,6 +100,9 @@ ruled:
   FIXED_CONTRACTS_4:     {expected: "1", ruled_by: "מייקל", date: "2026-07-15", note: "פסיקת-בוקר: 'אני רוצה לעבוד היום על 4 חוזים' — עדיפות-עליונה בכל 6 נקודות-החנק" }
   T0_TARGET_PTS:         {expected: "4.0", ruled_by: "מייקל", date: "2026-07-21", note: "T0 = 4.0 נק' (היה 3.5). פסיקת-בוקר 07-21" }
   TS_OFFSET_INGEST_GATE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "שער ts-offset: דוחה batch עם ts>900s מאחורי now. מונע תקלת 07-20" }
+  WOODIES_TS_HOUR_FIX: {expected: "0", ruled_by: "מייקל", date: "2026-07-22", note: "P2: hour-fix יצר 11 זוגות-רפאים +1h היום (±120s window caught normal bar re-sends). default OFF. הדלקה=רק אם chartbook-TZ offset מאומת פעיל" }
+  DAYTYPE_ACCEPTANCE_DEMOTION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "P6: פסיקת-D2 06-30 + 07-22. Trend_*→Normal_Variation כשהמחיר חוזר ומתקבל בתוך IB (K=3 ברים). דו-כיווני. Fixture: 07-22 Trend stuck" }
+  DAYTYPE_BOOT_SEED_CANONICAL_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "P6: boot-replay seeds canonical classify_session result (not just engine replay). Fixes Normal-0.12 vs Variation divergence on restart" }
   IB_BREAK_ANY_EXPANSION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "כל פריצת IB = הרחבה. מוריד שער-רעש 20%×IB" }
   BE_AFTER_REAL_T1_V1:   {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "BE אחרי T1-האמיתי (C2), לא T0 (C1 scalp). Remap DLL T1→T0" }
   C4_RULING6_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "פסיקה-6: C4 target per day-type. Normal/Neutral=opposite edge · Variation=stop-only · Trend=T3(4R). DLL-hardened: C4 always gets stop" }

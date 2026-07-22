@@ -323,9 +323,14 @@ def opening_panel(request: Request) -> Dict[str, Any]:
     replay_dt = final.get("day_type")
     direction = final.get("direction")
 
-    # Cross-check: live vs replay — audit only, never drives decisions
+    # Cross-check: live vs replay — audit only, never drives decisions.
+    # P6 fix (2026-07-22): normalize Normal_Variation→Variation before comparing.
+    # get_live_day_type remaps NV→V but classify_replay returns raw "Normal_Variation".
+    _norm_map = {"Normal_Variation": "Variation"}
+    _live_norm = _norm_map.get(live_dt, live_dt) if live_dt else None
+    _replay_norm = _norm_map.get(replay_dt, replay_dt) if replay_dt else None
     cross_check = {
-        "match": (live_dt == replay_dt) if (live_dt and replay_dt) else None,
+        "match": (_live_norm == _replay_norm) if (_live_norm and _replay_norm) else None,
         "audit_label": replay_dt or "—",
         "live_label": live_dt or "—",
     }

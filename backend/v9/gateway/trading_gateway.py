@@ -14,6 +14,7 @@ import os
 import sqlite3
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path as _Path
 from typing import Dict, List, Optional
 
 from .risk_checks import passes_strict_checks
@@ -223,14 +224,49 @@ class TradingGateway:
         self._opposite_bar_ts: Optional[str] = None  # reset per bar
         # 07-15 Michael ("שיהיה ברור בכל רגע נתון למה לא ירה"): every route_setup
         # decision — fired OR blocked+reason — recorded in-memory for the panel.
-        # Ring buffer, no I/O on the hot path; survives until backend restart
-        # (full history stays in logs/DB as before).
+        # Ring buffer + JSONL persistence (P10 fix 2026-07-22: decisions survived
+        # restart). Hot path appends to file (append-only, one line per decision).
+        # On init, re-hydrate today's decisions from the file.
         from collections import deque as _deque
         self.decisions = _deque(maxlen=300)
+        self._decisions_path = _Path(
+            os.path.expanduser("~/SierraChart_Data/v9_export/gateway_decisions.jsonl"))
+        self._hydrate_decisions()
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""
         self._system_registry = registry
+
+    def _hydrate_decisions(self) -> None:
+        """P10 (2026-07-22): reload today's decisions from JSONL on restart."""
+        try:
+            if not self._decisions_path.exists():
+                return
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            count = 0
+            for line in self._decisions_path.read_text().splitlines():
+                if not line.strip():
+                    continue
+                try:
+                    d = json.loads(line)
+                    if d.get("ts", "")[:10] == today:
+                        self.decisions.append(d)
+                        count += 1
+                except (json.JSONDecodeError, KeyError):
+                    continue
+            if count:
+                logger.info("[Gateway] DECISIONS hydrated: %d entries from %s",
+                            count, self._decisions_path.name)
+        except Exception as e:
+            logger.warning("[Gateway] decisions hydration failed (non-fatal): %s", e)
+
+    def _persist_decision(self, decision: dict) -> None:
+        """P10 (2026-07-22): append one decision to the JSONL file."""
+        try:
+            with open(self._decisions_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(decision) + "\n")
+        except Exception:
+            pass  # never block trading on a logging failure
 
     def set_trade_manager(self, trade_manager) -> None:
         """W11 TradeManager — SHADOW lifecycle + PnL via BarLevelDetector."""
@@ -417,7 +453,7 @@ class TradingGateway:
                         "live" if result.get("live") else
                         "demo" if result.get("demo") else
                         "shadow_only" if result.get("shadow") else "none")
-            self.decisions.append({
+            _dec = {
                 "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                 "system": system_id,
                 "pattern": (setup.get("pattern") or setup.get("pattern_id")
@@ -430,7 +466,9 @@ class TradingGateway:
                 "reason": result.get("reason"),
                 "outcome": _outcome,
                 "trade_id": result.get("live") or result.get("demo") or result.get("shadow"),
-            })
+            }
+            self.decisions.append(_dec)
+            self._persist_decision(_dec)
         except Exception:
             pass
         # N12 (Michael 2026-07-17 "מסמך שמקבל שורה כל הזמן"): every routing
@@ -2104,13 +2142,16 @@ class TradingGateway:
 
         if self.live_slot and str(self.live_slot.get("trade_id")) == str(trade_id):
             self.live_slot = None
-            self._daily_trades += 1
-            self._daily_pnl += pnl
-            if pnl < 0:
-                self._consecutive_losses += 1
-            else:
-                self._consecutive_losses = 0
-            logger.info("[Gateway] LIVE slot freed: %s pnl=%.2f", trade_id, pnl)
+            # P8 fix (2026-07-22): CANCELLED/order-failed trades should NOT count
+            # toward daily trades or PnL — the order was never executed.
+            if outcome not in ("CANCELLED",):
+                self._daily_trades += 1
+                self._daily_pnl += pnl
+                if pnl < 0:
+                    self._consecutive_losses += 1
+                else:
+                    self._consecutive_losses = 0
+            logger.info("[Gateway] LIVE slot freed: %s pnl=%.2f outcome=%s", trade_id, pnl, outcome)
 
         # System 6 learning loop (SYSTEM6_EXIT_JOURNAL): stamp the outcome on this
         # trade's pending journal rows so per-signal hit-rates accrue. "helped" is

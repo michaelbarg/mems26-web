@@ -441,7 +441,12 @@ def _hour_shift_fix(bars: list, stream: str) -> int:
     Kill-switch: WOODIES_TS_HOUR_FIX=0. Returns the applied shift in seconds.
     """
     import os as _os
-    if _os.getenv("WOODIES_TS_HOUR_FIX", "1").lower() in ("0", "false", "no"):
+    # 2026-07-22 P2: default OFF. The hour-fix created 11 +1h ghost rows today
+    # because the ±120s window catches normal bar re-sends (bridge tail of 3 bars).
+    # The original 07-17 chartbook-TZ problem should be fixed at the DLL/chartbook
+    # level, not by the backend guessing. Set WOODIES_TS_HOUR_FIX=1 ONLY if the
+    # chartbook TZ offset is confirmed active again.
+    if _os.getenv("WOODIES_TS_HOUR_FIX", "0").lower() in ("0", "false", "no"):
         return 0
     try:
         _num = [b for b in bars if isinstance(b.get("ts"), (int, float)) and b.get("ts")]
@@ -515,6 +520,14 @@ def _ts_offset_ingest_gate(bars: list, stream: str) -> "Optional[str]":
         if _prev is not None and _newest > _prev and _off > _thr:
             return (f"newest bar ts {_off:.0f}s behind now (> {_thr:.0f}s) while feed "
                     f"advances ({_prev:.0f} -> {_newest:.0f}) — live-but-mislabeled TS")
+        # 2026-07-22 P2: also catch stale NON-ADVANCING batches (same ts re-sent
+        # hours later, e.g. after restart). Without this, a bridge restart that
+        # re-pushes an old tail passes because _newest == _prev. A genuinely
+        # stale batch (bar older than ts_thr) is suspicious even if non-advancing.
+        if _prev is not None and _newest == _prev and _off > _thr:
+            logger.warning(
+                "[%s] TS-OFFSET-GATE: non-advancing batch %.0fs old (> %ds) — "
+                "stale re-push (pass but logged)", stream, _off, _thr)
         _ts_gate_last_newest[stream] = _newest
         return None
     except Exception as _e:  # never break ingest on the gate
@@ -539,8 +552,20 @@ def post_bars_5min(
     rejected = 0
     last_valid_bar = None
 
+    # TS_OFFSET_INGEST_GATE_V1 — reject live-but-mislabeled batches.
+    # 2026-07-22 P2 FIX: gate runs BEFORE hour-fix so it evaluates raw ts (not
+    # shifted ts where _off≈0 and the gate is blind). Original ordering let
+    # _hour_shift_fix add +3600 → gate saw fresh ts → passed → 11 ghost rows.
+    _tsg = _ts_offset_ingest_gate(
+        [{"ts": getattr(b, "ts", None)} for b in bars], "bars_5min")
+    if _tsg:
+        logger.error("[bars/5min] TS-OFFSET-GATE REJECTED batch: %s", _tsg)
+        return {"ok": False, "inserted": 0, "rejected": len(bars),
+                "blocked_by": "ts_offset_gate", "reason": _tsg}
+
     # 2026-07-17: RTH-chartbook -1h epoch shift → normalize at the boundary
     # (pydantic models — adapt via a dict-view of ts, then write back)
+    # 2026-07-22 P2: default OFF (WOODIES_TS_HOUR_FIX=0). See _hour_shift_fix docstring.
     try:
         _tsd = [{"ts": b.ts, "_ref": b} for b in bars
                 if isinstance(getattr(b, "ts", None), (int, float))]
@@ -549,14 +574,6 @@ def post_bars_5min(
                 item["_ref"].ts = item["ts"]
     except Exception as _hf_err:
         logger.warning("[bars/5min] hour-fix wrapper errored (no shift): %s", _hf_err)
-
-    # TS_OFFSET_INGEST_GATE_V1 (default OFF) — reject live-but-mislabeled batches
-    _tsg = _ts_offset_ingest_gate(
-        [{"ts": getattr(b, "ts", None)} for b in bars], "bars_5min")
-    if _tsg:
-        logger.error("[bars/5min] TS-OFFSET-GATE REJECTED batch: %s", _tsg)
-        return {"ok": False, "inserted": 0, "rejected": len(bars),
-                "blocked_by": "ts_offset_gate", "reason": _tsg}
 
     def _flat_5min_for_router(bar: Bar5MinIn, ts) -> dict:
         """Flat keys for FiveMinSystem + BarLevelDetector (P31-02)."""
@@ -1101,15 +1118,16 @@ def post_woodies_5min(
     if not bars:
         return {"ok": True, "inserted": 0, "type": "woodies_5min"}
 
-    # 2026-07-17: RTH-chartbook -1h epoch shift → normalize at the boundary
-    _hour_shift_fix(bars, "woodies_5min")
-
-    # TS_OFFSET_INGEST_GATE_V1 (default OFF) — reject live-but-mislabeled batches
+    # TS_OFFSET_INGEST_GATE_V1 — gate BEFORE hour-fix (P2 fix, 2026-07-22)
     _tsg = _ts_offset_ingest_gate(bars, "woodies_5min")
     if _tsg:
         logger.error("[woodies_5min] TS-OFFSET-GATE REJECTED batch: %s", _tsg)
         return {"ok": False, "inserted": 0, "type": "woodies_5min",
                 "blocked_by": "ts_offset_gate", "reason": _tsg}
+
+    # 2026-07-17: RTH-chartbook -1h epoch shift → normalize at the boundary
+    # 2026-07-22 P2: default OFF (WOODIES_TS_HOUR_FIX=0). See _hour_shift_fix docstring.
+    _hour_shift_fix(bars, "woodies_5min")
 
     # Frozen-tail fix: when current_bar exists AND history is present,
     # override history[-1] study fields with current_bar's live Sierra values.

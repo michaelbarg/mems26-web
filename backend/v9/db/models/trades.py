@@ -45,9 +45,11 @@ class V9Trade(Base):
     # PnL — per-contract (c1/c2/c3), NOT 3x
     pnl_usd = Column(Float)
     pnl_r = Column(Float)
+    # P9 (2026-07-22): Sierra's own P&L from trade_activity_events (cross-check, not override)
+    pnl_sierra = Column(Float, nullable=True)
 
     # Outcome
-    outcome = Column(String(10))                           # WIN / LOSS / BE
+    outcome = Column(String(10))                           # WIN / LOSS / BE / CANCELLED
 
     # Quality — nullable, set by W12 EOD agent
     quality = Column(JsonColumn, nullable=True)
