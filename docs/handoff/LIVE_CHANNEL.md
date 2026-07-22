@@ -105,6 +105,13 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-22 16:26 IL] cursor-agent — ✅ P0-1+P0-2 מאומתים חוק-5 (קומיט 61ad11a6)
+**P0-1:** `BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_t1_structure_end_route.py -q`
+→ **3 passed** (0.16s). route_setup: flag ON → t1=7496.5 שורד · flag OFF → stomp ל-7499.75 (legacy).
+קוד: שני הדורסים ב-gateway מדלגים על t1 כש-`T1_STRUCTURE_END_V1=1` + t1 קיים.
+**P0-2:** `/day_type/live`=`{"day_type":null}` · TopBar בדפדפן: **DT —** · ריבוע S1 **סיווג-יום DT —**.
+store: `shown = gate ?? '—'` · useLiveDayType: `day_type: gate ?? '—'`. **פסק: שני ה-P0 ירוקים.** cursor.
+
 ### [2026-07-22 11:40 IL] cowork-dev — ✅ מייקל "לתקן 1+2 לפני פתיחה, תבצע אתה": C+D בנויים+דלוקים · זיהום-07-21 נוקה · חוק-5 מלא
 **#2 ניקוי:** גיבוי `*_bak_0722fix` (281+83) → DELETE 11+11 סלוטי-פייק (22:25-23:15 = העתקי 21:25-22:15,
 שתי הטבלאות) → אומת **0 זוגות ב-07-21**. ממצא: הייצוא קפא אתמול ~21:20 (חלון-50-ברים) → הזנב-האמיתי לא-בקבצים
