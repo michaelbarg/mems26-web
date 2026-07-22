@@ -57,6 +57,44 @@ def resolve_anchor_from_window(bars: Sequence[Any], direction: str,
     return apply_offset(window_extreme(bars, direction), direction, offset_ticks, tick_size)
 
 
+# ── Structure-end T1 + structure-extreme stop (Michael rulings 2026-07-21/22) ──
+#
+# Ruling C (Michael 2026-07-21 ~18:15): "T1 צריך להיות בסוף מבנה-הכניסה; לבטל
+# את האופן שבו הוא מחושב היום."  T1 = the PROFIT-side extreme of the SAME
+# structural window that anchors the stop — R:R becomes real structure geometry.
+#
+# Ruling D (Michael 2026-07-21 22:22): stop behind the STRUCTURE extreme, not a
+# single bar (supersedes breakout_bar/window:1 anchors — evidence: 1.75-3.5pt
+# stops vs a 7554.25 structure edge).
+
+def structure_end_t1(bars: Sequence[Any], direction: str) -> float:
+    """The END of the entry structure in the PROFIT direction: highest high of
+    the window for LONG, lowest low for SHORT (mirror of window_extreme, which
+    returns the RISK-side extreme). Raises on empty input (wiring bug)."""
+    if not bars:
+        raise ValueError("structure_end_t1: empty bar window")
+    return max(_highs(bars)) if direction == "LONG" else min(_lows(bars))
+
+
+def t1_structure_valid(entry_price: float, t1: float, direction: str,
+                       min_ticks: int = 2, tick_size: float = MES_TICK) -> bool:
+    """Is the structure-end T1 tradeable? It must sit at least `min_ticks`
+    BEYOND entry on the profit side; otherwise the structure is exhausted
+    (price already AT the structure end) → honest reject, no invented target."""
+    dist = (t1 - entry_price) if direction == "LONG" else (entry_price - t1)
+    return dist >= min_ticks * tick_size
+
+
+def widen_stop_to_structure(current_stop: float, structure_stop: float,
+                            direction: str) -> float:
+    """Ruling D: the stop must sit BEHIND the structure extreme. Returns the
+    FARTHER-from-entry of the two (widen-only — never tightens an already
+    structure-wide stop). LONG: lower wins; SHORT: higher wins."""
+    if direction == "LONG":
+        return min(current_stop, structure_stop)
+    return max(current_stop, structure_stop)
+
+
 # ── Risk + ladders ───────────────────────────────────────────────────
 
 def risk_points(entry_price: float, stop_price: float) -> float:

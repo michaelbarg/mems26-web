@@ -978,6 +978,18 @@ flags:
     standing_decision: true
     status: built_off
     ref: "backend/v9/services/trade_manager/bar_level_detector.py"
+  T1_STRUCTURE_END_V1:
+    category: targets
+    what: "T1 = the END of the entry structure (profit-side extreme of the completed-bar structure window, structure_window_bars=12) - REPLACES ladder/R T1 for S4 CONT + S2 Reactive/OFA. Chart patterns (HNS/Double/Flag/VEGAS/GHOST measure) keep pattern-measure. Structure exhausted (<t1_min_ticks beyond entry) -> computed T1 kept + honest log/metadata."
+    why: "Michael ruling 2026-07-21 ~18:15: T1 at the entry-structure END; cancel the current computation. Root of 07-21: ladder T1 0.25-3pt vs structural stops 7.5-23pt -> R:R 0.01-0.53 blocked every with-trend CONT (ZLR 17:45 pair, GB100 17:30) on a Trend-up day."
+    standing_decision: true
+    ref: "backend/v9/systems/stop_anchors/resolver.py (structure_end_t1); woodies_system.py; five_min_system.py"
+  STOP_STRUCTURE_EXTREME_V1:
+    category: stops
+    what: "Stop anchors BEHIND the structure extreme over the completed-bar structure window (widen-only vs current stop; +anchor_offset_ticks). S2: widens window:1 anchor windows to structure_window_bars. S4: window-extreme candidate vs pattern stop; gateway+Sierra receive the corrected stop (was best.stop raw)."
+    why: "Michael ruling 2026-07-21 22:22: stop behind structure extreme, not a single bar (supersedes breakout_bar/window:1, 06-30). Evidence: 1.75-3.5pt stops vs 7554.25 structure edge."
+    standing_decision: true
+    ref: "backend/v9/systems/stop_anchors/resolver.py (widen_stop_to_structure); woodies_system.py; five_min_system.py"
   STOP_WIDEN_TO_STRUCTURE_V1:
     category: sizing
     what: "When structural stop distance exceeds ATR cap, ACCEPT it (not reject). Structure always wins per Dalton. ATR cap drives contract reduction (SIZE_CAP_CUT_V1) instead of stop rejection."

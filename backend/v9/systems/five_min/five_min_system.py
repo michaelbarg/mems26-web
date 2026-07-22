@@ -1305,10 +1305,18 @@ class FiveMinSystem(BaseV9TradingSystem):
                         # self._bar_buffer[:-1] when >= 8 bars) already excludes the
                         # partial bar, matching the detection + entry window.
                         # OFF -> byte-identical to today (live buffer).
+                        # Ruling D (Michael 07-21 22:22, built 07-22): the stop
+                        # anchors behind the STRUCTURE extreme, not a single
+                        # bar — window:1 families (ZLR/Flag/OFA) collapse to the
+                        # last bar without this. Widen the anchor window to
+                        # structure_window_bars (completed bars). OFF → as-is.
+                        _w_eff = a["window"]
+                        if _flag("STOP_STRUCTURE_EXTREME_V1"):
+                            _w_eff = max(_w_eff, int(cfg["principles"].get("structure_window_bars", 12)))
                         if _flag("STOP_WINDOW_COMPLETED_V1"):
-                            window_bars = _det_buf[-a["window"]:]
+                            window_bars = _det_buf[-_w_eff:]
                         else:
-                            window_bars = self._bar_buffer[-a["window"]:]
+                            window_bars = self._bar_buffer[-_w_eff:]
                         struct = SA.resolve_anchor_from_window(
                             window_bars, direction, cfg["principles"]["anchor_offset_ticks"])
                     else:
@@ -1651,6 +1659,39 @@ class FiveMinSystem(BaseV9TradingSystem):
                             t1_price = (entry_price + t1_risk) if direction == "LONG" else (entry_price - t1_risk)
                             t2_price = (entry_price + 2 * t1_risk) if direction == "LONG" else (entry_price - 2 * t1_risk)
                             t3_price = None
+
+                # ── Ruling C (Michael 07-21 ~18:15, built 07-22 "תבצע אתה"):
+                # T1_STRUCTURE_END_V1 — T1 = the END of the entry structure
+                # (profit-side extreme of the completed-bar structure window),
+                # REPLACING the R/ladder computation. Applies to Reactive/OFA
+                # (chart patterns HNS/Double/Flag keep their pattern-measure —
+                # that IS their per-pattern structure). Structure exhausted →
+                # keep computed T1 + honest log. OFF → byte-identical.
+                if (_flag("T1_STRUCTURE_END_V1")
+                        and kind not in ("INVERSE_HNS", "HNS_TOP", "DOUBLE_BOTTOM_EE",
+                                         "DOUBLE_TOP_AA", "BULL_FLAG", "BEAR_FLAG")):
+                    try:
+                        from backend.v9.config_loader import load_stop_anchors as _lsa_c
+                        from backend.v9.systems.stop_anchors import resolver as _SA_c
+                        _sa_c = _lsa_c() or {}
+                        _pr_c = _sa_c.get("principles", {})
+                        _w_c = int(_pr_c.get("structure_window_bars", 12))
+                        _min_t = int(_pr_c.get("t1_min_ticks", 2))
+                        _win_c = _det_buf[-_w_c:] if _det_buf and len(_det_buf) >= 2 else None
+                        if _win_c:
+                            _t1_struct = _SA_c.structure_end_t1(_win_c, direction)
+                            if _SA_c.t1_structure_valid(entry_price, _t1_struct, direction, _min_t):
+                                logger.info(
+                                    "[FiveMin] T1_STRUCTURE_END: %s %s t1 %.2f→%.2f (structure end over %d bars)",
+                                    kind, direction, t1_price or 0.0, _t1_struct, len(_win_c))
+                                t1_price = _t1_struct
+                            else:
+                                info["t1_structure_exhausted"] = True
+                                logger.info(
+                                    "[FiveMin] T1_STRUCTURE_END: %s %s structure_exhausted (end %.2f, entry %.2f) — computed T1 kept",
+                                    kind, direction, _t1_struct, entry_price)
+                    except Exception as _c_err:
+                        logger.warning("[FiveMin] T1_STRUCTURE_END failed (computed T1 kept): %s", _c_err)
 
                 # _emit_day_type already computed above (FIX 1+5)
                 # FIX 4: pass TPO data in-memory (not HTTP self-call which

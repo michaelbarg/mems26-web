@@ -782,6 +782,33 @@ class WoodiesSystem(BaseV9TradingSystem):
                     # (deferred to CCI-cross monitor §1.6). Flag-gated STOP_ANCHORS_V2.
                     _s4_entry = best.entry_price
                     _s4_stop = _effective_stop
+                    # ── Ruling D (Michael 07-21 22:22, built 07-22 per "תבצע אתה"):
+                    # STOP_STRUCTURE_EXTREME_V1 — the stop must sit BEHIND the
+                    # structure extreme over the entry-structure window, not a
+                    # single/breakout bar. Widen-only (never tightens). OFF →
+                    # byte-identical.
+                    _s4_struct_win = None  # shared with C (same structure window)
+                    if _flag("STOP_STRUCTURE_EXTREME_V1"):
+                        try:
+                            from backend.v9.config_loader import load_stop_anchors as _lsa_d
+                            from backend.v9.systems.stop_anchors import resolver as _SA_d
+                            _sa_d = _lsa_d() or {}
+                            _pr = _sa_d.get("principles", {})
+                            _w = int(_pr.get("structure_window_bars", 12))
+                            _off = int(_pr.get("anchor_offset_ticks", 6))
+                            # woodies buffer holds CLOSED bars (stream lands on close)
+                            _s4_struct_win = self._bar_buffer[-_w:] if len(self._bar_buffer) >= 2 else None
+                            if _s4_struct_win:
+                                _d_anchor = _SA_d.window_extreme(_s4_struct_win, direction)
+                                _d_stop = _SA_d.apply_offset(_d_anchor, direction, _off)
+                                _new_stop = _SA_d.widen_stop_to_structure(_s4_stop, _d_stop, direction)
+                                if _new_stop != _s4_stop:
+                                    logger.info(
+                                        "[Woodies] STOP_STRUCTURE_EXTREME: %s %s stop %.2f→%.2f (structure %.2f+%dT over %d bars)",
+                                        _pid, direction, _s4_stop, _new_stop, _d_anchor, _off, len(_s4_struct_win))
+                                    _s4_stop = _new_stop
+                        except Exception as _d_err:
+                            logger.warning("[Woodies] STOP_STRUCTURE_EXTREME failed (keeping current stop): %s", _d_err)
                     _s4_risk = abs(_s4_entry - _s4_stop)
                     _s4_sign = 1.0 if direction == "LONG" else -1.0
                     _s4_t1 = _s4_entry + _s4_sign * _s4_risk  # 1R fallback
@@ -932,6 +959,33 @@ class WoodiesSystem(BaseV9TradingSystem):
                                         t1_floor_points=_sa.get("t1_floor_points", 3.0),
                                         ladder_shift=_shift,
                                     )
+                                    # ── Ruling C (Michael 07-21 ~18:15): T1 = END of the
+                                    # entry structure — REPLACES the ladder (the ladder
+                                    # produced 0.25-3pt T1s vs 7.5-23pt structural stops
+                                    # → R:R 0.01-0.53 blocked every CONT fire 07-21).
+                                    # Same window as the D-stop (one structure identity).
+                                    # Structure exhausted (end ≤ entry+2T) → keep ladder
+                                    # T1 + tag metadata (rr gate judges honestly).
+                                    if _flag("T1_STRUCTURE_END_V1"):
+                                        try:
+                                            _pr_c = _sa.get("principles", {})
+                                            _w_c = int(_pr_c.get("structure_window_bars", 12))
+                                            _min_t = int(_pr_c.get("t1_min_ticks", 2))
+                                            _win_c = _s4_struct_win or (self._bar_buffer[-_w_c:] if len(self._bar_buffer) >= 2 else None)
+                                            if _win_c:
+                                                _t1_struct = SA.structure_end_t1(_win_c, direction)
+                                                if SA.t1_structure_valid(_s4_entry, _t1_struct, direction, _min_t):
+                                                    logger.info(
+                                                        "[Woodies] T1_STRUCTURE_END: %s %s t1 %.2f→%.2f (structure end over %d bars)",
+                                                        _pid, direction, _s4_t1 or 0.0, _t1_struct, len(_win_c))
+                                                    _s4_t1 = _t1_struct
+                                                else:
+                                                    self._last_t1_structure_exhausted = True
+                                                    logger.info(
+                                                        "[Woodies] T1_STRUCTURE_END: %s %s structure_exhausted (end %.2f ≤ entry %.2f+%dT) — ladder T1 kept",
+                                                        _pid, direction, _t1_struct, _s4_entry, _min_t)
+                                        except Exception as _c_err:
+                                            logger.warning("[Woodies] T1_STRUCTURE_END failed (ladder kept): %s", _c_err)
                                     # T2/T3 = None (CCI-cross, deferred §1.6)
                         except Exception as _e:
                             logger.warning("[Woodies] S4 target calc failed: %s", _e)
@@ -1124,13 +1178,24 @@ class WoodiesSystem(BaseV9TradingSystem):
                     # so it surfaces as explicit blocked_by (no silent veto)
                     if _s4_risk_cap_block:
                         _gw_meta["s4_risk_cap_block"] = _s4_risk_cap_block
+                    # Ruling D (07-22): when the structure-extreme stop ran, the
+                    # gateway (rr gate) + Sierra must see THAT stop — not the
+                    # pattern's raw best.stop (yesterday: rr judged stop_dist
+                    # 23.25 from best.stop while fire_setup carried another).
+                    # Flag OFF → byte-identical (best.stop).
+                    _gw_stop = best.stop or 0.0
+                    if _flag("STOP_STRUCTURE_EXTREME_V1") and fire_setup and fire_setup.get("stop_price"):
+                        _gw_stop = fire_setup["stop_price"]
+                    if getattr(self, "_last_t1_structure_exhausted", False):
+                        _gw_meta["t1_structure_exhausted"] = True
+                        self._last_t1_structure_exhausted = False
                     setup = {
                         "firing_system": 4,
                         "direction": best.direction or "LONG",
                         "classification": best.pattern_id,
                         "confidence": best.confidence,
                         "entry_price": best.entry_price,
-                        "stop": best.stop or 0.0,
+                        "stop": _gw_stop,
                         "t1": _gw_t1,
                         "t2": _gw_t2,
                         "t3": None,
