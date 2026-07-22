@@ -97,8 +97,12 @@ async def gateway_decisions(request: Request, limit: int = 60):
             e["t_il"] = None
         # P10: override outcome for cancelled/failed trades
         tid = e.get("trade_id")
-        if tid and int(tid) in _trade_states:
-            ts = _trade_states[int(tid)]
+        try:
+            _tid_int = int(tid) if tid else None
+        except (ValueError, TypeError):
+            _tid_int = None
+        if _tid_int is not None and _tid_int in _trade_states:
+            ts = _trade_states[_tid_int]
             if ts["state"] == "CANCELLED" or ts["outcome"] == "CANCELLED":
                 e["outcome"] = "order_failed"
                 e["trade_state"] = ts["state"]

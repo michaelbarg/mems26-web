@@ -1,9 +1,9 @@
-// MES_AI_DataExport.cpp — v9.4.2-p30.11 (G1/G2/G4: proj H/L, TPO validation, va_ok)
-// Sierra Chart ACSIL Study — 3 minute chart + V9 tick reversal + footprint exports
-// REAL-TIME: exports every N seconds (ExportIntervalSec), NO "last bar only" guard.
-// מייצא: MTF, CVD, VWAP, Imbalance, Market Profile, Woodi, Levels
-//         + V9: Tick Reversal (15/12), Footprint, Volume Profile,
-//               Imbalance Flags, Stacked Imbalances, Cumulative Delta
+// MES_AI_DataExport.cpp — v8.2 / V9.2.0 (Layer 1 Primitives)
+// Sierra Chart ACSIL Study — 3 minute chart
+// מייצא: MTF (כולל m5), CVD, VWAP, Market Profile, Woodi Pivots + CCI, IB, Day Type,
+//         Opening Range, Prev Day POC, Gap, Relative Volume, Candle Patterns,
+//         Footprint (10 נרות), Order Fills, HistoryInit (960 נרות)
+// C5: Reads trade_command.json, verifies checksum, executes bracket order
 
 #include "sierrachart.h"
 #include <fstream>
@@ -13,1839 +13,2214 @@
 #include <map>
 #include <vector>
 #include <algorithm>
-#include "v9_types.h"
-#include "v9_exports.h"
-#include "v9_woodies_export.h"
+#include <cmath>
 
 SCDLLName("MES_AI_DataExport")
 
+#define MEMS26_DLL_VERSION "v8.2.0"
+
+// V7.9.5: Persistent checksum for command dedup (survives Re-add)
+#define PERSIST_KEY_LAST_CHECKSUM  210
+
+// V7.13.1: Vegas hysteresis state
+#define PERSIST_KEY_VEGAS_TREND_DIR    220  // 1=BULLISH, -1=BEARISH, 0=NEUTRAL
+#define PERSIST_KEY_VEGAS_PENDING_FLIPS 221
+
+// V7.7.1d: Persistent keys for bracket order tracking.
+// We use 3 OCO groups (V7.6.3 Stop1/Stop2/Stop3 pattern).
+// Sierra creates 3 parents, each with attached Target+Stop.
+#define PERSIST_KEY_C1_TARGET_ID   101
+#define PERSIST_KEY_C2_TARGET_ID   102
+#define PERSIST_KEY_C3_TARGET_ID   103
+#define PERSIST_KEY_C1_STOP_ID     104
+#define PERSIST_KEY_C2_STOP_ID     105
+#define PERSIST_KEY_C3_STOP_ID     106
+#define PERSIST_KEY_BUY_PARENT_ID  107
+
+// V7.8.0: Last-known OrderStatusCode for transition detection
+#define PERSIST_KEY_C1_LAST_STATUS      111
+#define PERSIST_KEY_C2_LAST_STATUS      112
+#define PERSIST_KEY_C3_LAST_STATUS      113
+#define PERSIST_KEY_S1_LAST_STATUS      114
+#define PERSIST_KEY_S2_LAST_STATUS      115
+#define PERSIST_KEY_S3_LAST_STATUS      116
+#define PERSIST_KEY_PARENT_LAST_STATUS  117
+
+// V7.8.0: Last write counter for trade_state.json (write only on changes)
+#define PERSIST_KEY_STATE_FILE_COUNTER  118
+
+// V7.14.1: Trigger ID counter (unique per trigger)
+#define PERSIST_KEY_TRIGGER_COUNTER  130
+
+// V8.2.0: Layer 1 Primitives (Sprint 4)
+#define PERSIST_KEY_OPENING_DECIDED   140  // 0=pending, 1=decided
+#define PERSIST_KEY_OPENING_TYPE      141  // 0=PENDING,1=OD,2=OTD,3=ORR,4=OAI,5=OAO
+#define PERSIST_KEY_OPENING_CONFIDENCE 142 // 0=LOW,1=MED,2=HIGH
+#define PERSIST_KEY_OPENING_DECIDED_TS 143 // unix timestamp of decision
+#define PERSIST_KEY_OPENING_TESTED_LVL 144 // 0=none,1=PDH,2=PDL,3=VAH,4=VAL
+#define PERSIST_KEY_OPENING_DATE       145 // date for daily reset
+// POC Migration: track last 10 POC samples (stored as int = price*100)
+#define PERSIST_KEY_POC_SAMPLE_0       150 // oldest sample
+// ... through PERSIST_KEY_POC_SAMPLE_9 = 159
+#define PERSIST_KEY_POC_SAMPLE_COUNT   160
+#define PERSIST_KEY_POC_SAMPLE_DATE    161 // date for daily reset
+
+// V7.13.0: C1/C2/C3 fill tracking + Smart BE state
+#define PERSIST_KEY_C1_FILLED     121
+#define PERSIST_KEY_C2_FILLED     122
+#define PERSIST_KEY_C3_ACTIVE     123
+#define PERSIST_KEY_ENTRY_PRICE   124  // stored as int (price * 100)
+#define PERSIST_KEY_BE_APPLIED    125
+
+// V7.14.0: Adaptive BE strategy + C2 target + C3 mode
+#define PERSIST_KEY_BE_STRATEGY   126  // 0=on_c2_fill, 1=on_c1_fill, 2=after_c2_plus_half_R
+#define PERSIST_KEY_C2_TARGET     127  // stored as int (price * 100)
+#define PERSIST_KEY_STOP_PRICE    128  // stored as int (price * 100)
+#define PERSIST_KEY_C3_ENABLED    129  // 0=disabled (c3_mode=="none"), 1=enabled
+
+// ── CCI Helper ────────────────────────────────────────────────────────────────
+static float calcCCI(SCStudyInterfaceRef& sc, int idx, int period)
+{
+    if (idx < period - 1) return 0.0f;
+    float sum = 0;
+    for (int i = idx - period + 1; i <= idx; i++)
+        sum += (sc.High[i] + sc.Low[i] + sc.Close[i]) / 3.0f;
+    float mean = sum / period;
+    float mad = 0;
+    for (int i = idx - period + 1; i <= idx; i++)
+        mad += std::fabs((sc.High[i] + sc.Low[i] + sc.Close[i]) / 3.0f - mean);
+    mad /= period;
+    if (mad < 0.0001f) return 0.0f;
+    float tp = (sc.High[idx] + sc.Low[idx] + sc.Close[idx]) / 3.0f;
+    return (tp - mean) / (0.015f * mad);
+}
+
+// ── Candle Pattern Helper ─────────────────────────────────────────────────────
+static const char* detectCandlePattern(float o, float h, float l, float c)
+{
+    float body  = std::fabs(c - o);
+    float range = h - l;
+    if (range < 0.01f) return "DOJI";
+    float upper_wick = h - (o > c ? o : c);
+    float lower_wick = (o < c ? o : c) - l;
+    float body_pct   = body / range;
+    if (body_pct < 0.1f) return "DOJI";
+    if (lower_wick > 2.0f * body && upper_wick < body * 0.5f && c > o) return "HAMMER";
+    if (upper_wick > 2.0f * body && lower_wick < body * 0.5f && c < o) return "SHOOTING_STAR";
+    if (c > o && body_pct > 0.6f && c > (h - range * 0.2f)) return "BULL_STRONG";
+    if (c < o && body_pct > 0.6f && c < (l + range * 0.2f)) return "BEAR_STRONG";
+    return (c >= o) ? "BULL" : "BEAR";
+}
+
+// ── SCDateTime → Unix Timestamp ──────────────────────────────────────────────
+static long long ToUnixTime(SCDateTime dt)
+{
+    // SCDateTime = OLE Automation date (days since Dec 30 1899)
+    // Unix epoch = Jan 1 1970 = OLE day 25569
+    return (long long)((dt.GetAsDouble() - 25569.0) * 86400.0 + 0.5);
+}
+
+// ── Session Phase Helper ──────────────────────────────────────────────────────
+static const char* getPhase(int H, int M)
+{
+    if (H == 9 && M >= 30) return "OPEN";
+    if (H >= 9 && H < 11)  return "AM_SESSION";
+    if (H >= 11 && H < 13) return "MIDDAY";
+    if (H >= 13 && H < 16) return "PM_SESSION";
+    if (H == 16)           return "CLOSE";
+    return "OVERNIGHT";
+}
+
+// ── SHA-256 (minimal, self-contained) ────────────────────────────────────────
+static void sha256(const unsigned char* data, size_t len, unsigned char out[32])
+{
+    uint32_t h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,
+             h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+    static const uint32_t k[64]={
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+        0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+        0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+        0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+        0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+        0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+        0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2};
+    // Padding
+    size_t new_len = len + 1;
+    while (new_len % 64 != 56) new_len++;
+    std::vector<unsigned char> msg(new_len + 8, 0);
+    memcpy(&msg[0], data, len);
+    msg[len] = 0x80;
+    uint64_t bit_len = (uint64_t)len * 8;
+    for (int i = 0; i < 8; i++) msg[new_len + 7 - i] = (unsigned char)(bit_len >> (i * 8));
+    // Process blocks
+    for (size_t off = 0; off < msg.size(); off += 64) {
+        uint32_t w[64];
+        for (int i = 0; i < 16; i++)
+            w[i] = ((uint32_t)msg[off+i*4]<<24)|((uint32_t)msg[off+i*4+1]<<16)|
+                   ((uint32_t)msg[off+i*4+2]<<8)|msg[off+i*4+3];
+        for (int i = 16; i < 64; i++) {
+            uint32_t s0 = ((w[i-15]>>7)|(w[i-15]<<25))^((w[i-15]>>18)|(w[i-15]<<14))^(w[i-15]>>3);
+            uint32_t s1 = ((w[i-2]>>17)|(w[i-2]<<15))^((w[i-2]>>19)|(w[i-2]<<13))^(w[i-2]>>10);
+            w[i] = w[i-16]+s0+w[i-7]+s1;
+        }
+        uint32_t a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,hh=h7;
+        for (int i = 0; i < 64; i++) {
+            uint32_t S1=((e>>6)|(e<<26))^((e>>11)|(e<<21))^((e>>25)|(e<<7));
+            uint32_t ch=(e&f)^((~e)&g);
+            uint32_t t1=hh+S1+ch+k[i]+w[i];
+            uint32_t S0=((a>>2)|(a<<30))^((a>>13)|(a<<19))^((a>>22)|(a<<10));
+            uint32_t maj=(a&b)^(a&c)^(b&c);
+            uint32_t t2=S0+maj;
+            hh=g;g=f;f=e;e=d+t1;d=c;c=b;b=a;a=t1+t2;
+        }
+        h0+=a;h1+=b;h2+=c;h3+=d;h4+=e;h5+=f;h6+=g;h7+=hh;
+    }
+    uint32_t hash[8]={h0,h1,h2,h3,h4,h5,h6,h7};
+    for(int i=0;i<8;i++){out[i*4]=(unsigned char)(hash[i]>>24);out[i*4+1]=(unsigned char)(hash[i]>>16);
+        out[i*4+2]=(unsigned char)(hash[i]>>8);out[i*4+3]=(unsigned char)hash[i];}
+}
+
+static std::string sha256hex(const std::string& input)
+{
+    unsigned char hash[32];
+    sha256((const unsigned char*)input.c_str(), input.size(), hash);
+    char hex[65];
+    for (int i = 0; i < 32; i++) sprintf(hex + i * 2, "%02x", hash[i]);
+    hex[64] = 0;
+    return std::string(hex);
+}
+
+// ── Minimal JSON field extraction (no external lib) ──────────────────────────
+static std::string jsonStr(const std::string& json, const std::string& key)
+{
+    std::string search = "\"" + key + "\"";
+    size_t p = json.find(search);
+    if (p == std::string::npos) return "";
+    p = json.find(':', p);
+    if (p == std::string::npos) return "";
+    p++;
+    while (p < json.size() && json[p] == ' ') p++;
+    if (p < json.size() && json[p] == '"') {
+        size_t start = p + 1;
+        size_t end = json.find('"', start);
+        return (end != std::string::npos) ? json.substr(start, end - start) : "";
+    }
+    // number or bool
+    size_t start = p;
+    size_t end = json.find_first_of(",} \n\r", start);
+    return (end != std::string::npos) ? json.substr(start, end - start) : json.substr(start);
+}
+
+static double jsonNum(const std::string& json, const std::string& key)
+{
+    std::string v = jsonStr(json, key);
+    return v.empty() ? 0.0 : atof(v.c_str());
+}
+
+static long long jsonInt(const std::string& json, const std::string& key)
+{
+    std::string v = jsonStr(json, key);
+    return v.empty() ? 0LL : atoll(v.c_str());
+}
+
 SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
 {
-    SCSubgraphRef CVD  = sc.Subgraph[0];
-    SCSubgraphRef VWAP = sc.Subgraph[1];
+    SCSubgraphRef CVD   = sc.Subgraph[0];
+    SCSubgraphRef VWAP  = sc.Subgraph[1];
+    SCSubgraphRef CCI14 = sc.Subgraph[2];
+    SCSubgraphRef CCI6  = sc.Subgraph[3];
+    SCSubgraphRef EMA144 = sc.Subgraph[4];  // V7.10.0: Vegas Tunnel
+    SCSubgraphRef EMA169 = sc.Subgraph[5];
 
     SCInputRef ExportPath        = sc.Input[0];
     SCInputRef ExportIntervalSec = sc.Input[1];
     SCInputRef VAPercent         = sc.Input[2];
     SCInputRef ImbalanceRatio    = sc.Input[3];
-    SCInputRef V9ExportPath      = sc.Input[4];
-    SCInputRef V9TickRev15       = sc.Input[5];
-    SCInputRef V9TickRev12       = sc.Input[6];
-    SCInputRef V9Lookback        = sc.Input[7];
-    SCInputRef V9WoodiesHistory  = sc.Input[8];
-    SCInputRef LivePriceEnabled  = sc.Input[9];
-    SCInputRef LivePriceIntervalMs = sc.Input[10];
-    SCInputRef TradeCommandPath  = sc.Input[11];
-    SCInputRef TradeResultPath   = sc.Input[12];
-    SCInputRef TPOYesterdayStudyID = sc.Input[13];  // Sierra Study ID:1 (TPO VA Lines, ref=1)
-    SCInputRef TPOTodayStudyID     = sc.Input[14];  // Sierra Study ID:3 (TPO VA Lines, ref=0, developing)
-    SCInputRef IBStudyID           = sc.Input[15];   // Sierra Study ID:6 (Initial Balance)
-    SCInputRef ProjHLStudyID       = sc.Input[16];   // Sierra Study ID for Daily Projected High-Low
-    SCInputRef TPOChartNumber      = sc.Input[17];   // Chart # where TPO studies live (0 = same chart)
-    SCInputRef WoodiesChartNumber  = sc.Input[18];   // Chart # where Woodies studies live (0 = same chart)
-    SCInputRef YesterdayIBStudyID  = sc.Input[19];   // Sierra Study ID for Yesterday's Initial Balance (0 = disabled)
-    SCInputRef ContinuousChartNumber = sc.Input[20]; // Chart # for 24h continuous 5-min bars (0 = disabled)
-    SCInputRef EnableOrderPlacement  = sc.Input[21]; // Pipeline 5: enable DEMO order placement (default OFF).
-    // NOTE (07-13): Sierra's UI shows this 1-based as "Enable Order Placement (In:22)" —
-    // sc.Input[21] (code, 0-based) == "In:22" (Sierra UI). Always identify the arm input by
-    // NAME ("Enable Order Placement"), not by number — the number differs code(21)↔UI(22).
-    SCInputRef TradeFillsPath        = sc.Input[22]; // Path for trade_fills.json (fill events)
+    SCInputRef IBPeriodMin       = sc.Input[4];
+    SCInputRef HistoryPath       = sc.Input[5];
+    SCInputRef FootprintBars     = sc.Input[6];
+    SCInputRef CommandPath       = sc.Input[7];
+    SCInputRef ResultPath        = sc.Input[8];
+    SCInputRef BridgeToken       = sc.Input[9];
+    SCInputRef TPO_PD_StudyID    = sc.Input[10];  // V7.11.2: configurable TPO IDs
+    SCInputRef TPO_CD_StudyID    = sc.Input[11];
 
     if (sc.SetDefaults)
     {
-        sc.GraphName        = "MES AI Data Export v9.4.3-chart5";
-        sc.StudyDescription = "V9.1 REAL-TIME: MTF + VWAP + Footprint + Tick Reversal + Imbalance + Market Profile";
+        sc.GraphName        = "MES AI Data Export v8.2.0";
+        sc.UpdateAlways     = 1;  // V7.7.1: run every update for position monitoring
+        sc.StudyDescription = "Full export v7: All indicators + Footprint Booleans + OrderFills + History960";
         sc.AutoLoop         = 1;
         sc.GraphRegion      = 1;
-
-        // Pipeline 5: FULL trading recipe per research §1.2. A SetDefaults change →
-        // study REMOVE+RE-ADD to take effect; re-add resets EnableOrderPlacement→0.
-        // MaintainTradeStatisticsAndTradesData=1 is safe because ALL trading calls are
-        // guarded by IsFullRecalculation/DownloadingHistoricalData (see below).
-        sc.SupportAttachedOrdersForTrading                = 1;
-        sc.MaximumPositionAllowed                         = 10;
-        sc.AllowOnlyOneTradePerBar                        = 0;   // CRITICAL: default 1 → silent skip
-        sc.MaintainTradeStatisticsAndTradesData           = 1;   // needed for position/trade tracking
-        sc.AllowMultipleEntriesInSameDirection             = 1;
-        // 07-13 sim-proof root: WITHOUT ScaleOut support, ACSIL rejects every
-        // partial SellExit/BuyExit CLIENT-SIDE (r=-1, no broker reject event) —
-        // the EXIT op could never have worked. ScaleOut also auto-reduces
-        // attached-order quantities on partial exits (desired semantics).
-        sc.SupportTradingScaleOut                          = 1;
-        sc.SupportReversals                                = 0;
-        sc.AllowOppositeEntryWithOpposingPositionOrOrders  = 0;
-        sc.CancelAllOrdersOnEntriesAndReversals            = 0;
-        sc.AllowEntryWithWorkingOrders                     = 1;
-        sc.CancelAllWorkingOrdersOnExit                    = 0;
-        // NOTE: sc.SendOrdersToTradeService intentionally NOT set here.
-        // Sierra's chart-level "Trade Simulation Mode" controls sim vs real.
-        // Setting it to 1 in SetDefaults broke ALL orders (DEMO+SIM) because
-        // the trade service connection was not available. Reverted 2026-07-07.
-
-        CVD.Name         = "CVD";
-        CVD.DrawStyle    = DRAWSTYLE_LINE;
-        CVD.PrimaryColor = COLOR_CYAN;
-
-        VWAP.Name         = "VWAP";
-        VWAP.DrawStyle    = DRAWSTYLE_LINE;
-        VWAP.PrimaryColor = COLOR_YELLOW;
-
+        sc.MaintainVolumeAtPriceData = 1;
+        CVD.Name   = "CVD";   CVD.DrawStyle   = DRAWSTYLE_LINE; CVD.PrimaryColor   = COLOR_CYAN;
+        VWAP.Name  = "VWAP";  VWAP.DrawStyle  = DRAWSTYLE_LINE; VWAP.PrimaryColor  = COLOR_YELLOW;
+        CCI14.Name = "CCI14"; CCI14.DrawStyle = DRAWSTYLE_LINE; CCI14.PrimaryColor = COLOR_WHITE;
+        CCI6.Name  = "CCI6";  CCI6.DrawStyle  = DRAWSTYLE_LINE; CCI6.PrimaryColor  = COLOR_GREEN;
+        EMA144.Name = "EMA144"; EMA144.DrawStyle = DRAWSTYLE_IGNORE;  // V7.10.0: Vegas Tunnel (data only)
+        EMA169.Name = "EMA169"; EMA169.DrawStyle = DRAWSTYLE_IGNORE;
         ExportPath.Name = "Export JSON Path";
-        ExportPath.SetString("/Users/michael/SierraChart_Data/v9_export/mes_ai_data.json");
-
-        ExportIntervalSec.Name = "Export Interval (seconds)";
-        ExportIntervalSec.SetInt(3);
-
-        VAPercent.Name = "Value Area %";
-        VAPercent.SetFloat(70.0f);
-
-        ImbalanceRatio.Name = "Imbalance Ratio (e.g. 3.0 = 3:1)";
-        ImbalanceRatio.SetFloat(3.0f);
-
-        V9ExportPath.Name = "V9 Export Directory";
-        V9ExportPath.SetString("/Users/michael/SierraChart_Data/v9_export/");
-
-        V9TickRev15.Name = "V9 Tick Reversal 15-tick (1=on)";
-        V9TickRev15.SetInt(1);
-
-        V9TickRev12.Name = "V9 Tick Reversal 12-tick (1=on)";
-        V9TickRev12.SetInt(1);
-
-        V9Lookback.Name = "V9 Lookback Bars";
-        V9Lookback.SetInt(200);
-
-        V9WoodiesHistory.Name = "V9 Woodies 30min History Bars";
-        V9WoodiesHistory.SetInt(50);
-
-        LivePriceEnabled.Name = "Live Price Export (1=on)";
-        LivePriceEnabled.SetInt(1);
-
-        LivePriceIntervalMs.Name = "Live Price Interval (ms)";
-        LivePriceIntervalMs.SetInt(200);
-
-        TradeCommandPath.Name = "Trade Command JSON Path";
-        TradeCommandPath.SetString("/Users/michael/SierraChart_Data/v9_export/trade_command.json");
-
-        TradeResultPath.Name = "Trade Result JSON Path";
-        TradeResultPath.SetString("/Users/michael/SierraChart_Data/v9_export/trade_result.json");
-
-        TPOYesterdayStudyID.Name = "TPO Yesterday Study ID (Sierra)";
-        TPOYesterdayStudyID.SetInt(1);  // Study ID:1 — TPO Value Area Lines, ref=1
-
-        TPOTodayStudyID.Name = "TPO Today Study ID (Sierra)";
-        TPOTodayStudyID.SetInt(3);  // Study ID:3 — TPO Value Area Lines, ref=0, developing
-
-        IBStudyID.Name = "Initial Balance Study ID (Sierra)";
-        IBStudyID.SetInt(6);  // Study ID:6 — Initial Balance
-
-        ProjHLStudyID.Name = "Projected High-Low Study ID (Sierra)";
-        ProjHLStudyID.SetInt(0);  // 0 = disabled; set to Sierra Study ID when study is on chart
-
-        TPOChartNumber.Name = "TPO Chart Number (0=same chart)";
-        TPOChartNumber.SetInt(0);  // Set to the chart # where TPO/IB studies live
-
-        WoodiesChartNumber.Name = "Woodies Chart Number (0=same chart)";
-        WoodiesChartNumber.SetInt(0);  // Set to the chart # where Woodies studies live
-
-        YesterdayIBStudyID.Name = "Yesterday Initial Balance Study ID (Sierra)";
-        YesterdayIBStudyID.SetInt(0);  // 0 = disabled; set to Sierra Study ID of the IB study configured for the previous session
-
-        ContinuousChartNumber.Name = "Continuous 24h Chart Number (0=disabled)";
-        ContinuousChartNumber.SetInt(5);  // Chart #5 = MESM26 5-Min 24h Globex
-
-        EnableOrderPlacement.Name = "Enable Order Placement (0=OFF, 1=DEMO)";
-        EnableOrderPlacement.SetInt(0);  // Pipeline 5: DEFAULT OFF — never place orders unless explicitly armed
-
-        TradeFillsPath.Name = "Trade Fills JSON Path";
-        TradeFillsPath.SetString("/Users/michael/SierraChart_Data/v9_export/trade_fills.json");
-
-        // v9.2.0: DISABLED — was causing Sierra-internal memory accumulation
-        // (unbounded VAP storage per bar). Footprint export now uses fallback
-        // distribution path which is bounded and safe.
-        sc.MaintainVolumeAtPriceData = 0;
-
+        ExportPath.SetString("/Users/michael/SierraChart2/Data/mes_ai_data.json");
+        ExportIntervalSec.Name = "Export Interval (seconds)"; ExportIntervalSec.SetInt(3);
+        VAPercent.Name = "Value Area %"; VAPercent.SetFloat(70.0f);
+        ImbalanceRatio.Name = "Imbalance Ratio"; ImbalanceRatio.SetFloat(3.0f);
+        IBPeriodMin.Name = "IB Period (minutes)"; IBPeriodMin.SetInt(60);
+        HistoryPath.Name = "History JSON Path";
+        HistoryPath.SetString("/Users/michael/SierraChart2/Data/mes_ai_history.json");
+        FootprintBars.Name = "Footprint Bars Count";
+        FootprintBars.SetInt(200);
+        CommandPath.Name = "Trade Command JSON Path";
+        CommandPath.SetString("/Users/michael/SierraChart2/Data/trade_command.json");
+        ResultPath.Name = "Trade Result JSON Path";
+        ResultPath.SetString("/Users/michael/SierraChart2/Data/trade_result.json");
+        BridgeToken.Name = "Bridge Token";
+        BridgeToken.SetString("michael-mems26-2026");
+        TPO_PD_StudyID.Name = "TPO PD Study ID (deprecated, ignored)";
+        TPO_PD_StudyID.SetInt(0);
+        TPO_CD_StudyID.Name = "TPO CD Study ID (deprecated, ignored)";
+        TPO_CD_StudyID.SetInt(0);
+        // V7.0: Trading variables for single-bracket-with-3-targets model
+        // Per Sierra Chart Engineering (ThreadID=105021), this is the
+        // supported native pattern for partial scale-out.
+        sc.AllowOnlyOneTradePerBar              = 0;
+        sc.SupportAttachedOrdersForTrading      = 1;
+        sc.MaintainTradeStatisticsAndTradesData = 1;
+        sc.AllowMultipleEntriesInSameDirection   = 0;
+        sc.AllowEntryWithWorkingOrders           = 1;
+        sc.MaximumPositionAllowed                = 10;
+        sc.SupportReversals                      = 0;
+        sc.AllowOppositeEntryWithOpposingPositionOrOrders = 0;
+        sc.CancelAllOrdersOnEntriesAndReversals  = 0;
+        sc.CancelAllWorkingOrdersOnExit          = 0;
+        sc.AddMessageToLog(SCString().Format(
+            "MEMS26 %s — Adaptive BE strategy active — built: %s %s",
+            MEMS26_DLL_VERSION, __DATE__, __TIME__), 1);
         return;
     }
 
-    // Auto-match SendOrdersToTradeService with Sierra's Trade Simulation Mode.
-    // Sim ON → 0 (internal sim fills). Sim OFF → 1 (real broker Teton/IronBeam).
-    // Must be OUTSIDE SetDefaults — Sierra requires consistency per-call.
-    // Per Sierra docs + SupportBoard #82446: mismatch → GENERAL_ERROR_OR_NOT_ENABLED.
-    sc.SendOrdersToTradeService = !sc.GlobalTradeSimulationIsOn;
-
-    // 07-13 EXIT root-fix: ScaleOut asserted PER-CALL (like the line above) —
-    // SetDefaults runs only on study ADD, and re-adding wipes all chart inputs
-    // (export dir, arm). Without ScaleOut, ACSIL rejects every partial
-    // BuyExit/SellExit CLIENT-SIDE (r=-1, no broker reject event).
+    // V7.4: Must be set OUTSIDE SetDefaults per Sierra docs
+    sc.SupportTradingScaleIn  = 1;
     sc.SupportTradingScaleOut = 1;
 
     int idx = sc.Index;
-    SCDateTime today = sc.BaseDateTimeIn[idx].GetDate();
-    float cp  = sc.Close[idx];
+    SCDateTime now_dt = sc.BaseDateTimeIn[idx];
+    SCDateTime today  = now_dt.GetDate();
+    float cp      = sc.Close[idx];
     float ask_vol = sc.AskVolume[idx];
     float bid_vol = sc.BidVolume[idx];
     float delta   = ask_vol - bid_vol;
+    int   H = now_dt.GetHour(), M = now_dt.GetMinute();
 
     // ── CVD ──────────────────────────────────────────────────
     CVD[idx] = (idx == 0) ? delta : CVD[idx - 1] + delta;
     float cvd20 = (idx >= 20) ? CVD[idx] - CVD[idx - 20] : 0;
     float cvd5  = (idx >= 5)  ? CVD[idx] - CVD[idx - 5]  : 0;
 
-    // ── VWAP (מתחיל מחדש כל יום) ──────────────────────────
+    // ── VWAP ─────────────────────────────────────────────────
     float sum_pv = 0, sum_v = 0;
-    for (int i = idx; i >= 0; i--)
-    {
+    for (int i = idx; i >= 0; i--) {
         if (sc.BaseDateTimeIn[i].GetDate() < today) break;
         float tp = (sc.High[i] + sc.Low[i] + sc.Close[i]) / 3.0f;
-        float v  = sc.Volume[i];
-        sum_pv += tp * v;
-        sum_v  += v;
+        sum_pv += tp * sc.Volume[i]; sum_v += sc.Volume[i];
     }
     VWAP[idx] = (sum_v > 0) ? sum_pv / sum_v : cp;
+    float vwap = VWAP[idx], vwap_dist = cp - vwap;
+    bool above_vwap = (cp > vwap), vwap_pullback = false;
+    if (idx >= 5 && above_vwap) {
+        bool was_higher = (sc.Close[idx-3] > sc.Close[idx-1]);
+        float avg_vol = 0; for (int i=idx-10;i<idx&&i>=0;i++) avg_vol+=sc.Volume[i]; avg_vol/=10.0f;
+        bool low_vol = true; for (int i=idx-3;i<=idx;i++) if(sc.Volume[i]>avg_vol*0.8f){low_vol=false;break;}
+        vwap_pullback = was_higher && low_vol && (cp-vwap<4.0f);
+    }
 
-    // ── Live Price Export (fast path — own throttle) ─────────
-    // Runs every LivePriceIntervalMs (default 200ms), separate from
-    // the main 3-second export. Minimal JSON, no heap allocs.
-    if (LivePriceEnabled.GetInt() == 1)
+    // ── Woodi Pivots ─────────────────────────────────────────
+    float PH=0,PL=0,PC=0; SCDateTime prevDate; bool foundPrev=false;
+    for (int i=idx-1;i>=0;i--) {
+        SCDateTime bd=sc.BaseDateTimeIn[i].GetDate();
+        if (!foundPrev&&bd<today){prevDate=bd;foundPrev=true;PC=sc.Close[i];PH=sc.High[i];PL=sc.Low[i];}
+        else if(foundPrev&&bd==prevDate){if(sc.High[i]>PH)PH=sc.High[i];if(sc.Low[i]<PL)PL=sc.Low[i];}
+        else if(foundPrev) break;
+    }
+    float PP=0,R1=0,R2=0,S1=0,S2=0;
+    if(foundPrev&&PH>0){PP=(PH+PL+PC*2)/4.0f;R1=2*PP-PL;R2=PP+(PH-PL);S1=2*PP-PH;S2=PP-(PH-PL);}
+
+    // ── Woodies CCI ──────────────────────────────────────────
+    CCI14[idx]=calcCCI(sc,idx,14); CCI6[idx]=calcCCI(sc,idx,6);
+    float cci14=CCI14[idx],cci6=CCI6[idx],cci_diff=cci6-cci14;
+    float cci14_prev=(idx>=1)?CCI14[idx-1]:0, cci6_prev=(idx>=1)?CCI6[idx-1]:0;
+    const char* cci_trend=(cci14>100)?"TREND_UP":(cci14<-100)?"TREND_DOWN":(cci14>0)?"ABOVE_ZERO":"BELOW_ZERO";
+    const char* hist_color="GRAY";
+    if(cci14>100&&cci6>100&&cci14>cci14_prev&&cci6>cci6_prev) hist_color="BLUE";
+    else if(cci14<-100&&cci6<-100&&cci14<cci14_prev&&cci6<cci6_prev) hist_color="DARK_RED";
+    else if(cci14>0&&cci6>0) hist_color="GREEN";
+    else if(cci14<0&&cci6<0) hist_color="RED";
+    bool turbo_bull=(cci14_prev<=0&&cci14>0&&cci6_prev<=0&&cci6>0);
+    bool turbo_bear=(cci14_prev>=0&&cci14<0&&cci6_prev>=0&&cci6<0);
+    bool zlr_bull=false,zlr_bear=false;
+    if(idx>=2){float p2=CCI14[idx-2],p1=CCI14[idx-1];if(p2>5&&std::fabs(p1)<20&&cci14>p1&&cci14>0)zlr_bull=true;if(p2<-5&&std::fabs(p1)<20&&cci14<p1&&cci14<0)zlr_bear=true;}
+    bool hook_up=(cci14>cci14_prev&&cci6>cci6_prev&&cci14<0);
+    bool hook_down=(cci14<cci14_prev&&cci6<cci6_prev&&cci14>0);
+
+    // ── Market Profile (Today) ────────────────────────────────
+    float SH=sc.High[idx],SL=sc.Low[idx],TV=0; std::map<int,float> pvm;
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;float bh=sc.High[i],bl=sc.Low[i],bv=sc.Volume[i];if(bh>SH)SH=bh;if(bl<SL)SL=bl;TV+=bv;float vps=bv/((int)((bh-bl)/0.25f)+1);for(float p=bl;p<=bh+0.001f;p+=0.25f)pvm[(int)(p*4)]+=vps;}
+    float POC=cp,maxV=0; for(auto&kv:pvm)if(kv.second>maxV){maxV=kv.second;POC=kv.first/4.0f;}
+    float vat=TV*(VAPercent.GetFloat()/100),vav=maxV,VAH=POC,VAL=POC;
+    auto itu=pvm.upper_bound((int)(POC*4)),itd=pvm.lower_bound((int)(POC*4));
+    while(vav<vat){float un=(itu!=pvm.end())?itu->second:0,dn=(itd!=pvm.begin())?std::prev(itd)->second:0;if(un>=dn){if(itu!=pvm.end()){vav+=un;VAH=itu->first/4.0f;++itu;}else break;}else{if(itd!=pvm.begin()){--itd;vav+=itd->second;VAL=itd->first/4.0f;}else break;}}
+    float tpo_poc=cp;int tpo_max=0;std::map<int,int>tpo_map;int tpo_back=(idx>=30)?30:idx;
+    for(int i=idx-tpo_back;i<=idx;i++)for(float p=sc.Low[i];p<=sc.High[i]+0.001f;p+=0.25f)tpo_map[(int)(p*4)]++;
+    for(auto&kv:tpo_map)if(kv.second>tpo_max){tpo_max=kv.second;tpo_poc=kv.first/4.0f;}
+
+    // ── Prev Day POC ──────────────────────────────────────────
+    std::map<int,float> prev_pvm; float prev_day_poc=0; bool in_prev=false; SCDateTime prevD;
+    for(int i=idx-1;i>=0;i--){SCDateTime bd=sc.BaseDateTimeIn[i].GetDate();if(!in_prev&&bd<today){in_prev=true;prevD=bd;}if(in_prev&&bd==prevD){float bh=sc.High[i],bl=sc.Low[i],bv=sc.Volume[i],vps=bv/((int)((bh-bl)/0.25f)+1);for(float p=bl;p<=bh+0.001f;p+=0.25f)prev_pvm[(int)(p*4)]+=vps;}else if(in_prev&&bd<prevD)break;}
+    float prev_day_vah=0, prev_day_val=0;
+    if(!prev_pvm.empty()){float pmv=0;for(auto&kv:prev_pvm)if(kv.second>pmv){pmv=kv.second;prev_day_poc=kv.first/4.0f;}
+        // Compute prev day VAH/VAL using same value area algorithm
+        float pTV=0;for(auto&kv:prev_pvm)pTV+=kv.second;
+        float pvat=pTV*(VAPercent.GetFloat()/100),pvav=pmv;
+        prev_day_vah=prev_day_poc;prev_day_val=prev_day_poc;
+        auto pitu=prev_pvm.find((int)(prev_day_poc*4));auto pitd=pitu;
+        if(pitu!=prev_pvm.end())++pitu;
+        while(pvav<pvat){float un=(pitu!=prev_pvm.end())?pitu->second:0,dn=(pitd!=prev_pvm.begin())?std::prev(pitd)->second:0;if(un>=dn){if(pitu!=prev_pvm.end()){pvav+=un;prev_day_vah=pitu->first/4.0f;++pitu;}else break;}else{if(pitd!=prev_pvm.begin()){--pitd;pvav+=pitd->second;prev_day_val=pitd->first/4.0f;}else break;}}
+    }
+
+    // ── Session Phase ─────────────────────────────────────────
+    const char* phase = getPhase(H, M);
+    float sesMin_f=(H*60.0f+M)-(9*60+30); int sesMin=(sesMin_f<0)?-1:(int)sesMin_f;
+
+    // ── Daily Open + Gap ─────────────────────────────────────
+    float daily_open=cp; for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()==today)daily_open=sc.Open[i];else break;}
+    float gap=daily_open-PC, gap_pct=(PC>0)?(gap/PC*100.0f):0;
+    const char* gap_type=(gap>2.0f)?"GAP_UP":(gap<-2.0f)?"GAP_DOWN":"FLAT";
+
+    // ── Overnight H/L ─────────────────────────────────────────
+    float ONH=sc.High[idx],ONL=sc.Low[idx];
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;if(sc.High[i]>ONH)ONH=sc.High[i];if(sc.Low[i]<ONL)ONL=sc.Low[i];}
+
+    // ── 72H / Weekly ─────────────────────────────────────────
+    float H72=sc.High[idx],L72=sc.Low[idx],HWk=sc.High[idx],LWk=sc.Low[idx];
+    SCDateTime t72=now_dt;t72.SubtractSeconds(72*3600);SCDateTime twk=now_dt;twk.SubtractSeconds((int)twk.GetDayOfWeek()*86400);
+    for(int i=idx-1;i>=0;i--){SCDateTime bt=sc.BaseDateTimeIn[i];if(bt>=t72){if(sc.High[i]>H72)H72=sc.High[i];if(sc.Low[i]<L72)L72=sc.Low[i];}if(bt>=twk){if(sc.High[i]>HWk)HWk=sc.High[i];if(sc.Low[i]<LWk)LWk=sc.Low[i];}if(bt<t72&&bt<twk)break;}
+
+    // ── IB + Opening Range ────────────────────────────────────
+    int ib_minutes=IBPeriodMin.GetInt();
+    float IBH=0,IBL=0; bool ib_locked=false;
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>ib_minutes)continue;if(IBH==0||sc.High[i]>IBH)IBH=sc.High[i];if(IBL==0||sc.Low[i]<IBL)IBL=sc.Low[i];}
+    float ib_range=(IBH>0&&IBL>0)?(IBH-IBL):0;
+    ib_locked=(sesMin>=ib_minutes);
+    // V8.2.0: IB Width Classification per D-063
+    const char* ib_width_class = "NARROW";
+    if (ib_range >= 25.0f) ib_width_class = "WIDE";
+    else if (ib_range >= 10.0f) ib_width_class = "MEDIUM";
+    bool ib_breakout_up=ib_locked&&IBH>0&&cp>IBH;
+    bool ib_breakout_down=ib_locked&&IBL>0&&cp<IBL;
+
+    float ORH=0,ORL=0;
+    for(int i=idx;i>=0;i--){if(sc.BaseDateTimeIn[i].GetDate()<today)break;int bH=sc.BaseDateTimeIn[i].GetHour(),bM=sc.BaseDateTimeIn[i].GetMinute();float mfo=(bH*60.0f+bM)-(9*60+30);if(mfo<0||mfo>30)continue;if(ORH==0||sc.High[i]>ORH)ORH=sc.High[i];if(ORL==0||sc.Low[i]<ORL)ORL=sc.Low[i];}
+    float or_range=(ORH>0&&ORL>0)?(ORH-ORL):0;
+
+    // ── Extension Count + Return to IB ───────────────────────
+    int ext_up_count=0, ext_down_count=0;
+    bool returned_after_breakout=false, was_outside_ib=false, was_up=false;
+    if(ib_locked && IBH>0 && IBL>0) {
+        for(int i=0;i<=idx;i++) {
+            if(sc.BaseDateTimeIn[i].GetDate()<today) continue;
+            int bH2=sc.BaseDateTimeIn[i].GetHour(),bM2=sc.BaseDateTimeIn[i].GetMinute();
+            float mfo2=(bH2*60.0f+bM2)-(9*60+30);
+            if(mfo2<ib_minutes) continue;
+            float bar_c=sc.Close[i];
+            bool outside_up=(bar_c>IBH+0.5f), outside_down=(bar_c<IBL-0.5f), inside_ib=(bar_c>=IBL&&bar_c<=IBH);
+            if(outside_up&&!was_outside_ib){ext_up_count++;was_outside_ib=true;was_up=true;}
+            if(outside_down&&!was_outside_ib){ext_down_count++;was_outside_ib=true;was_up=false;}
+            if(inside_ib&&was_outside_ib){returned_after_breakout=true;was_outside_ib=false;}
+        }
+    }
+    int total_extensions=ext_up_count+ext_down_count;
+
+    // ── Day Type ─────────────────────────────────────────────
+    const char* day_type="DEVELOPING";
+    if(ib_locked && IBH>0) {
+        if(ib_range<6.0f&&total_extensions==0) day_type="BALANCED";
+        else if(total_extensions>=2&&!returned_after_breakout) day_type="TRENDING";
+        else if(total_extensions>=1&&!returned_after_breakout) day_type="NORMAL_TRENDING";
+        else if(total_extensions>=1&&returned_after_breakout) day_type="NORMAL";
+        else if(ib_range>15.0f) day_type="VOLATILE";
+        else day_type="BALANCED";
+    }
+
+    // ── Relative Volume ──────────────────────────────────────
+    float avg_vol_20=0; int vc=0;
+    for(int i=idx-1;i>=idx-20&&i>=0;i--){avg_vol_20+=sc.Volume[i];vc++;}
+    if(vc>0)avg_vol_20/=vc;
+    float rel_vol=(avg_vol_20>0)?(sc.Volume[idx]/avg_vol_20):1.0f;
+    const char* vol_ctx=(rel_vol>2.0f)?"VERY_HIGH":(rel_vol>1.5f)?"HIGH":(rel_vol<0.5f)?"VERY_LOW":(rel_vol<0.8f)?"LOW":"NORMAL";
+
+    // ── Order Flow ────────────────────────────────────────────
+    bool absorption_bull=false;
+    if(idx>=3){float sp=0;for(int i=idx-2;i<=idx;i++)sp+=sc.BidVolume[i];if(sp>500&&(cp-sc.Close[idx-3])>=0)absorption_bull=true;}
+    bool liq_sweep_long=false,liq_sweep_short=false;
+    if(idx>=3){bool bl2=(sc.Low[idx-1]<SL-1.0f||sc.Low[idx-2]<SL-1.0f);if(bl2&&(cp>SL+0.5f)&&delta>0)liq_sweep_long=true;bool bh2=(sc.High[idx-1]>SH+1.0f||sc.High[idx-2]>SH+1.0f);if(bh2&&(cp<SH-0.5f)&&delta<0)liq_sweep_short=true;}
+
+    float imb_ratio=ImbalanceRatio.GetFloat();
+    struct ImbLevel{float price,buy_vol,sell_vol,ratio;};
+    std::vector<ImbLevel> imbalances;
+    int imb_lb=(idx>=5)?5:idx;
+    for(int i=idx-imb_lb;i<=idx;i++){if(i<0)continue;float bv=sc.AskVolume[i],sv=sc.BidVolume[i],dom=(sc.High[i]+sc.Low[i])/2.0f;if(sc.High[i]-sc.Low[i]<0.5f)continue;if(sv>0&&bv/sv>=imb_ratio)imbalances.push_back({dom,bv,sv,bv/sv});else if(bv>0&&sv/bv>=imb_ratio)imbalances.push_back({dom,bv,sv,-(sv/bv)});}
+    std::sort(imbalances.begin(),imbalances.end(),[](const ImbLevel&a,const ImbLevel&b){return std::fabs(a.ratio)>std::fabs(b.ratio);});
+    int imb_count=(int)imbalances.size();if(imb_count>3)imb_count=3;
+
+    // ── Footprint Booleans (A8) — price-level analysis ───────
+    bool fp_absorption = false;
+    bool fp_exhaustion = false;
+    bool fp_trapped_buyers = false;
+    int  fp_stacked_count = 0;
+    const char* fp_stacked_dir = "NONE";
+    bool fp_pullback_delta_declining = false;
+    bool fp_pullback_aggressive_buy  = false;
+    bool fp_pullback_aggressive_sell = false;
+
     {
-        static long long lastLivePriceMs = 0;
-        long long nowMs = (long long)time(nullptr) * 1000;
-        // Approximate ms from time_t (1-second resolution).
-        // For sub-second: use sc.CurrentSystemDateTime if available.
-        int intervalMs = LivePriceIntervalMs.GetInt();
-        if (intervalMs < 50) intervalMs = 50;  // safety floor
-        if ((nowMs - lastLivePriceMs) >= intervalMs || lastLivePriceMs == 0)
+        float tick_sz = sc.TickSize;  // MES = 0.25
+        if (tick_sz < 0.01f) tick_sz = 0.25f;
+        int vap_size = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(idx);
+
+        // ── 1. Absorption + 2. Exhaustion — scan extreme ticks of current bar ──
+        if (vap_size > 0)
         {
-            lastLivePriceMs = nowMs;
-            const char* v9dir = V9ExportPath.GetString();
-            // Build minimal JSON inline — no ostringstream, no alloc
-            char buf[256];
-            int len = snprintf(buf, sizeof(buf),
-                "{\"price\":%.2f,\"ts\":%lld,\"bid\":%.2f,\"ask\":%.2f,\"vol\":%.0f}\n",
-                cp, (long long)time(nullptr),
-                sc.Bid, sc.Ask, sc.Volume[idx]);
-            if (len > 0 && len < (int)sizeof(buf))
+            // Find top 3 and bottom 3 price levels
+            float bar_hi = sc.High[idx], bar_lo = sc.Low[idx];
+            unsigned int top_ask = 0, top_bid = 0, top_vol = 0;
+            unsigned int bot_ask = 0, bot_bid = 0, bot_vol = 0;
+
+            for (int v = 0; v < vap_size; v++)
             {
-                std::string path = std::string(v9dir) + "live_price.json";
-                std::ofstream f(path.c_str());
-                if (f.is_open()) { f.write(buf, len); f.close(); }
+                const s_VolumeAtPriceV2 *vap = NULL;
+                if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
+                if (vap == NULL) continue;
+                float px = vap->PriceInTicks * tick_sz;
+
+                // Top 3 ticks (near high)
+                if (px >= bar_hi - tick_sz * 2.5f)
+                {
+                    top_ask += vap->AskVolume;
+                    top_bid += vap->BidVolume;
+                    top_vol += vap->Volume;
+                }
+                // Bottom 3 ticks (near low)
+                if (px <= bar_lo + tick_sz * 2.5f)
+                {
+                    bot_ask += vap->AskVolume;
+                    bot_bid += vap->BidVolume;
+                    bot_vol += vap->Volume;
+                }
+            }
+
+            // Absorption: huge opposing volume at extreme but price rejected
+            // At high: big AskVol (buyers) but close < high → buyers absorbed by hidden sellers
+            if (top_ask > 50 && cp < bar_hi - tick_sz && top_ask > top_bid * 2)
+                fp_absorption = true;
+            // At low: big BidVol (sellers) but close > low → sellers absorbed by hidden buyers
+            if (bot_bid > 50 && cp > bar_lo + tick_sz && bot_bid > bot_ask * 2)
+                fp_absorption = true;
+
+            // Exhaustion: < 5 contracts at extreme tick → Zero Print
+            if (top_vol > 0 && top_vol < 5) fp_exhaustion = true;
+            if (bot_vol > 0 && bot_vol < 5) fp_exhaustion = true;
+        }
+
+        // ── 3. Trapped Buyers — broke above recent high then reversed ──
+        if (idx >= 3)
+        {
+            float prev_hi = sc.High[idx-1];
+            for (int i = idx-2; i >= idx-3 && i >= 0; i--)
+                if (sc.High[i] > prev_hi) prev_hi = sc.High[i];
+            // Broke above then closed below open = trapped buyers
+            if (sc.High[idx] > prev_hi + 0.5f && cp < sc.Open[idx])
+                fp_trapped_buyers = true;
+        }
+
+        // ── 4-5. Stacked Imbalances — consecutive price levels ×250% ──
+        if (vap_size >= 3)
+        {
+            int consec_bull = 0, consec_bear = 0;
+            int max_bull = 0, max_bear = 0;
+            const float STACK_RATIO = 2.5f;  // 250%
+
+            for (int v = 0; v < vap_size; v++)
+            {
+                const s_VolumeAtPriceV2 *vap = NULL;
+                if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(idx, v, &vap)) continue;
+                if (vap == NULL) continue;
+                unsigned int av = vap->AskVolume, bv = vap->BidVolume;
+
+                bool bull_imb = (bv > 0 && (float)av / bv >= STACK_RATIO);
+                bool bear_imb = (av > 0 && (float)bv / av >= STACK_RATIO);
+
+                if (bull_imb) { consec_bull++; if (consec_bull > max_bull) max_bull = consec_bull; }
+                else consec_bull = 0;
+
+                if (bear_imb) { consec_bear++; if (consec_bear > max_bear) max_bear = consec_bear; }
+                else consec_bear = 0;
+            }
+
+            if (max_bull >= 2 || max_bear >= 2)
+            {
+                fp_stacked_count = (max_bull >= max_bear) ? max_bull : max_bear;
+                if (fp_stacked_count > 10) fp_stacked_count = 10;
+                fp_stacked_dir = (max_bull >= max_bear) ? "LONG" : "SHORT";
+            }
+        }
+
+        // ── 6. Pullback Delta Declining — delta shrinking over last 3 bars ��─
+        if (idx >= 3)
+        {
+            float d0 = sc.AskVolume[idx]   - sc.BidVolume[idx];
+            float d1 = sc.AskVolume[idx-1] - sc.BidVolume[idx-1];
+            float d2 = sc.AskVolume[idx-2] - sc.BidVolume[idx-2];
+            // Absolute delta declining = momentum fading
+            if (std::fabs(d0) < std::fabs(d1) && std::fabs(d1) < std::fabs(d2))
+                fp_pullback_delta_declining = true;
+        }
+
+        // ── 7. Pullback Aggressive Buy — strong +delta during price dip ──
+        if (idx >= 3)
+        {
+            bool price_dipping = (cp < sc.Close[idx-3]);
+            bool price_rising  = (cp > sc.Close[idx-3]);
+            float recent_delta = delta;
+            for (int i = idx-1; i >= idx-2 && i >= 0; i--)
+                recent_delta += sc.AskVolume[i] - sc.BidVolume[i];
+            if (price_dipping && recent_delta > 100)
+                fp_pullback_aggressive_buy = true;
+            // ── 7b. Pullback Aggressive Sell — strong -delta during price rise ──
+            if (price_rising && recent_delta < -100)
+                fp_pullback_aggressive_sell = true;
+        }
+    }
+
+    // ── Candle Patterns ───────────────��───────────────────────
+    const char* pat0=detectCandlePattern(sc.Open[idx],sc.High[idx],sc.Low[idx],sc.Close[idx]);
+    const char* pat1=(idx>=1)?detectCandlePattern(sc.Open[idx-1],sc.High[idx-1],sc.Low[idx-1],sc.Close[idx-1]):"NONE";
+    const char* pat2=(idx>=2)?detectCandlePattern(sc.Open[idx-2],sc.High[idx-2],sc.Low[idx-2],sc.Close[idx-2]):"NONE";
+    bool bull_engulf=(idx>=1)&&(sc.Close[idx]>sc.Open[idx-1])&&(sc.Open[idx]<sc.Close[idx-1])&&(sc.Close[idx-1]<sc.Open[idx-1]);
+    bool bear_engulf=(idx>=1)&&(sc.Close[idx]<sc.Open[idx-1])&&(sc.Open[idx]>sc.Close[idx-1])&&(sc.Close[idx-1]>sc.Open[idx-1]);
+
+    // ── MTF — מיושר לגבולות זמן אמיתיים ──────────────────────
+    struct MTFBar{float o,h,l,c,vol,buy,sell,delta_v; long long bar_ts;};
+    auto calcBarAligned=[&](int interval_sec)->MTFBar{
+        MTFBar b={0,0,999999,0,0,0,0,0,0};
+        long long now_ts = ToUnixTime(sc.BaseDateTimeIn[idx]);
+        long long bar_start = (now_ts / interval_sec) * interval_sec;
+        b.bar_ts = bar_start;
+        b.c = sc.Close[idx];
+        bool first = true;
+        for(int i=idx;i>=0;i--){
+            long long bts = ToUnixTime(sc.BaseDateTimeIn[i]);
+            if(bts < bar_start) break;
+            b.o = sc.Open[i];
+            if(first){b.h=sc.High[i];b.l=sc.Low[i];first=false;}
+            if(sc.High[i]>b.h)b.h=sc.High[i];
+            if(sc.Low[i]<b.l)b.l=sc.Low[i];
+            b.vol+=sc.Volume[i];b.buy+=sc.AskVolume[i];b.sell+=sc.BidVolume[i];
+        }
+        b.delta_v=b.buy-b.sell;return b;
+    };
+    MTFBar m3=calcBarAligned(180),m5=calcBarAligned(300),m15=calcBarAligned(900),m30=calcBarAligned(1800),m60=calcBarAligned(3600);
+
+    // ── Footprint — נרות אחרונים (bar-level) ──────────────────
+    std::ostringstream fp_j;
+    fp_j << std::fixed << std::setprecision(2);
+    fp_j << "[";
+    int fp_count = FootprintBars.GetInt();
+    if (fp_count < 10) fp_count = 10;
+    if (fp_count > 960) fp_count = 960;
+    int fp_start = (idx >= fp_count - 1) ? idx - (fp_count - 1) : 0;
+    for (int bi = fp_start; bi <= idx; bi++) {
+        if (bi > fp_start) fp_j << ",";
+        fp_j << "{\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[bi])
+             << ",\"o\":"     << sc.Open[bi]
+             << ",\"h\":"     << sc.High[bi]
+             << ",\"l\":"     << sc.Low[bi]
+             << ",\"c\":"     << sc.Close[bi]
+             << ",\"buy\":"   << sc.AskVolume[bi]
+             << ",\"sell\":"  << sc.BidVolume[bi]
+             << ",\"delta\":" << (sc.AskVolume[bi] - sc.BidVolume[bi])
+             << "}";
+    }
+    fp_j << "]";
+
+    // ── Order Fills ───────────────────────────────────────────
+    std::ostringstream fills_j;
+    fills_j << std::fixed << std::setprecision(2);
+    fills_j << "[";
+    bool fills_first = true;
+    int fill_count = sc.GetOrderFillArraySize();
+    int fill_start = (fill_count > 20) ? fill_count - 20 : 0;
+    for (int f = fill_start; f < fill_count; f++) {
+        s_SCOrderFillData fill;
+        sc.GetOrderFillEntry(f, fill);
+        if (!fills_first) fills_j << ",";
+        fills_first = false;
+        fills_j << "{\"price\":"  << fill.FillPrice
+                << ",\"qty\":"   << fill.Quantity
+                << ",\"side\":\"" << (fill.BuySell == BSE_BUY ? "BUY" : "SELL") << "\""
+                << ",\"ts\":"    << ToUnixTime(fill.FillDateTime)
+                << ",\"pos\":"   << fill.TradePositionQuantity
+                << "}";
+    }
+    fills_j << "]";
+
+    // ── HistoryInit — שולח 960 נרות + MTF היסטוריה פעם אחת בטעינה ──
+    if (sc.IsFullRecalculation && idx == sc.ArraySize - 1)
+    {
+        int hist_count = (sc.ArraySize >= 960) ? 960 : sc.ArraySize;
+        int hist_start = sc.ArraySize - hist_count;
+
+        // ── 3m history (existing) ──
+        std::ostringstream hj;
+        hj << std::fixed << std::setprecision(2);
+        hj << "{\"candles\":[";
+
+        for (int i = hist_start; i < sc.ArraySize; i++) {
+            if (i > hist_start) hj << ",";
+            int bH2 = sc.BaseDateTimeIn[i].GetHour();
+            int bM2 = sc.BaseDateTimeIn[i].GetMinute();
+            hj << "{"
+               << "\"ts\":"    << ToUnixTime(sc.BaseDateTimeIn[i])
+               << ",\"o\":"    << sc.Open[i]
+               << ",\"h\":"    << sc.High[i]
+               << ",\"l\":"    << sc.Low[i]
+               << ",\"c\":"    << sc.Close[i]
+               << ",\"buy\":"  << sc.AskVolume[i]
+               << ",\"sell\":" << sc.BidVolume[i]
+               << ",\"vol\":"  << sc.Volume[i]
+               << ",\"delta\":" << (sc.AskVolume[i] - sc.BidVolume[i])
+               << ",\"cci14\":" << CCI14[i]
+               << ",\"cci6\":"  << CCI6[i]
+               << ",\"vwap\":"  << VWAP[i]
+               << ",\"phase\":\"" << getPhase(bH2, bM2) << "\""
+               << ",\"above_vwap\":" << (sc.Close[i] > VWAP[i] ? "true" : "false")
+               << "}";
+        }
+        hj << "],";
+
+        // ── MTF history — aggregate 3m bars into 5m/15m/30m/1h ──
+        struct MTFHist { long long ts; float o,h,l,c,vol,buy,sell; };
+        auto buildMTF = [&](int interval_sec, int max_bars) -> std::vector<MTFHist> {
+            std::map<long long, MTFHist> buckets;
+            for (int i = hist_start; i < sc.ArraySize; i++) {
+                long long bts = ToUnixTime(sc.BaseDateTimeIn[i]);
+                if (bts <= 0) continue;
+                long long bucket = (bts / interval_sec) * interval_sec;
+                auto it = buckets.find(bucket);
+                if (it == buckets.end()) {
+                    MTFHist bar;
+                    bar.ts = bucket;
+                    bar.o = sc.Open[i]; bar.h = sc.High[i]; bar.l = sc.Low[i]; bar.c = sc.Close[i];
+                    bar.vol = sc.Volume[i]; bar.buy = sc.AskVolume[i]; bar.sell = sc.BidVolume[i];
+                    buckets[bucket] = bar;
+                } else {
+                    MTFHist &bar = it->second;
+                    if (sc.High[i] > bar.h) bar.h = sc.High[i];
+                    if (sc.Low[i] < bar.l) bar.l = sc.Low[i];
+                    bar.c = sc.Close[i];
+                    bar.vol += sc.Volume[i]; bar.buy += sc.AskVolume[i]; bar.sell += sc.BidVolume[i];
+                }
+            }
+            // Sort by ts, take last max_bars
+            std::vector<MTFHist> result;
+            for (auto &kv : buckets) result.push_back(kv.second);
+            // std::map already sorted by key (ts), so result is sorted
+            if ((int)result.size() > max_bars)
+                result.erase(result.begin(), result.begin() + (result.size() - max_bars));
+            return result;
+        };
+
+        auto writeMTFArray = [&](std::ostringstream &out, const std::vector<MTFHist> &bars) {
+            out << "[";
+            for (int i = 0; i < (int)bars.size(); i++) {
+                if (i > 0) out << ",";
+                const MTFHist &b = bars[i];
+                out << "{\"ts\":" << b.ts
+                    << ",\"open\":" << b.o << ",\"high\":" << b.h
+                    << ",\"low\":" << b.l << ",\"close\":" << b.c
+                    << ",\"vol\":" << b.vol << ",\"buy\":" << b.buy
+                    << ",\"sell\":" << b.sell << ",\"delta\":" << (b.buy - b.sell)
+                    << "}";
+            }
+            out << "]";
+        };
+
+        auto m5h  = buildMTF(300,  288);
+        auto m15h = buildMTF(900,  96);
+        auto m30h = buildMTF(1800, 48);
+        auto m60h = buildMTF(3600, 64);
+
+        hj << "\"mtf_history\":{\"m5\":";
+        writeMTFArray(hj, m5h);
+        hj << ",\"m15\":";
+        writeMTFArray(hj, m15h);
+        hj << ",\"m30\":";
+        writeMTFArray(hj, m30h);
+        hj << ",\"m60\":";
+        writeMTFArray(hj, m60h);
+        hj << "}}";
+
+        std::ofstream hf(HistoryPath.GetString());
+        if (hf.is_open()) { hf << hj.str(); hf.close(); }
+    }
+
+    // ── V7.10.0: Vegas Tunnel (EMA 144 + EMA 169) ─────────────
+    sc.ExponentialMovAvg(sc.BaseDataIn[SC_LAST], EMA144, 144);
+    sc.ExponentialMovAvg(sc.BaseDataIn[SC_LAST], EMA169, 169);
+    float ema144_val = EMA144[idx];
+    float ema169_val = EMA169[idx];
+    float tunnel_top = (ema144_val > ema169_val) ? ema144_val : ema169_val;
+    float tunnel_bot = (ema144_val < ema169_val) ? ema144_val : ema169_val;
+    float tunnel_width = fabs(ema144_val - ema169_val);
+    const char* vegas_pos = (cp > tunnel_top) ? "ABOVE" : (cp < tunnel_bot) ? "BELOW" : "INSIDE";
+    int vegas_bars = idx + 1;
+    const char* vegas_quality = (vegas_bars >= 169) ? "FULL" : (vegas_bars >= 50) ? "PARTIAL" : "INSUFFICIENT";
+
+    // V7.13.1: Vegas hysteresis — 2 bars + 0.5pt buffer
+    // Raw direction from EMA spread (not price position)
+    float ema_distance = ema144_val - ema169_val;
+    float abs_ema_dist = (ema_distance > 0) ? ema_distance : -ema_distance;
+    int raw_dir = (ema_distance > 0) ? 1 : -1;  // 1=BULLISH, -1=BEARISH
+
+    int sticky_dir = sc.GetPersistentInt(PERSIST_KEY_VEGAS_TREND_DIR);
+    int pending_flips = sc.GetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS);
+
+    // Initialize on first run
+    if (sticky_dir == 0) {
+        sticky_dir = raw_dir;
+        sc.SetPersistentInt(PERSIST_KEY_VEGAS_TREND_DIR, sticky_dir);
+    }
+
+    // Only evaluate on new bar close (not every tick)
+    if (sc.GetBarHasClosedStatus(idx) == BHCS_BAR_HAS_CLOSED) {
+        if (raw_dir == sticky_dir) {
+            // Same direction — reset pending counter
+            if (pending_flips != 0) {
+                pending_flips = 0;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, 0);
+            }
+        } else if (abs_ema_dist > 0.5f) {
+            // Opposite direction with sufficient distance
+            pending_flips++;
+            sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, pending_flips);
+            if (pending_flips >= 2) {
+                sticky_dir = raw_dir;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_TREND_DIR, sticky_dir);
+                pending_flips = 0;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.13.1 Vegas trend flipped to %s (dist=%.2f)",
+                    (sticky_dir == 1) ? "BULLISH" : "BEARISH", ema_distance), 1);
+            }
+        } else {
+            // Distance too small — reset pending
+            if (pending_flips != 0) {
+                pending_flips = 0;
+                sc.SetPersistentInt(PERSIST_KEY_VEGAS_PENDING_FLIPS, 0);
             }
         }
     }
 
-    // ── FIX-13: Sierra state export (~1s) — "eyes on Sierra at all times" ──
-    // Michael ruling 2026-07-10: the system must know Sierra's true state at
-    // any moment. Writes sierra_state.json: sim flag, net position, avg price,
-    // working orders (id/type/side/price/qty). The reconciler (SYS-3) reads
-    // this instead of parsing activity logs — root fix for records≠reality
-    // (333/337/8704 family). Same direct-truncating-write pattern as
-    // live_price.json (safe under Wine; no rename involved).
+    const char* vegas_trend = (sticky_dir == 1) ? "BULLISH" : "BEARISH";
+
+    // ── V7.11.4: TPO using internal POC data (no Study API read) ──
+    // tpo_poc and prev_day_poc are already calculated above from raw bar data.
+    // VAH/VAL are from the market profile calculation.
+    bool tpo_cd_valid = (tpo_poc > 0.0f && tpo_poc < 100000.0f);
+    bool tpo_pd_valid = (prev_day_poc > 0.0f && prev_day_poc < 100000.0f);
+
+    // ── V7.13.0: Day Type Classifier ──────────────────────────
+    const char* day_class = "DEVELOPING";
+    float day_class_conf = 0.0f;
+    int vegas_flips = 0;
+    float day_range = SH - SL;
+    // V7.14.2: Count vegas trend flips — RTH only, date-reset, capped
     {
-        static long long lastStateMs = 0;
-        long long nowStateMs = (long long)time(nullptr) * 1000;
-        if ((nowStateMs - lastStateMs) >= 1000 || lastStateMs == 0)
-        {
-            lastStateMs = nowStateMs;
-            s_SCPositionData spos;
-            sc.GetTradePosition(spos);
-            char ordbuf[1024];
-            int ob = 0, n_ord = 0;
-            ordbuf[0] = '\0';
-            s_SCTradeOrder tord;
-            for (int oi2 = 0; oi2 < 64; oi2++)
-            {
-                if (sc.GetOrderByIndex(oi2, tord) == SCTRADING_ORDER_ERROR)
-                    break;
-                if (tord.OrderStatusCode != SCT_OSC_OPEN &&
-                    tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_CLIENT &&
-                    tord.OrderStatusCode != SCT_OSC_PENDING_CHILD_SERVER)
-                    continue;  // only working / held-bracket orders
-                if (n_ord < 10 && ob < (int)sizeof(ordbuf) - 96)
-                    ob += snprintf(ordbuf + ob, sizeof(ordbuf) - ob,
-                        "%s{\"id\":%d,\"type\":%d,\"bs\":%d,\"price\":%.2f,\"qty\":%.0f}",
-                        n_ord ? "," : "",
-                        (int)tord.InternalOrderID, (int)tord.OrderTypeAsInt,
-                        (int)tord.BuySell, tord.Price1, (float)tord.OrderQuantity);
-                n_ord++;
+        static int s_lastConfirmedDir = 0;
+        static int s_vegasFlipCount = 0;
+        static SCDateTime s_vegasFlipDate;
+        // Reset on date change (covers both overnight rollover and historical bar replay)
+        if (s_vegasFlipDate != today) {
+            s_vegasFlipCount = 0;
+            s_vegasFlipDate = today;
+            s_lastConfirmedDir = sticky_dir;
+        }
+        // Only count flips during RTH (sesMin >= 0 means after 09:30 ET)
+        // Overnight flips are noise and should not affect day classification
+        if (sesMin >= 0) {
+            if (sticky_dir != 0 && sticky_dir != s_lastConfirmedDir && s_lastConfirmedDir != 0)
+                s_vegasFlipCount++;
+            if (sticky_dir != 0) s_lastConfirmedDir = sticky_dir;
+        }
+        // Cap at 50 for sanity (prevents runaway from edge cases)
+        vegas_flips = (s_vegasFlipCount < 50) ? s_vegasFlipCount : 50;
+    }
+    bool ib_break_held = (ib_breakout_up || ib_breakout_down) && !returned_after_breakout;
+    // ATR baseline: average of last 14 days' ranges
+    float atr_base = 0;
+    {
+        int days_counted = 0;
+        SCDateTime prevD;
+        float dH = 0, dL = 999999;
+        for (int i = idx; i >= 0 && days_counted < 15; i--) {
+            SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
+            if (bd != prevD && prevD.IsDateSet()) {
+                if (days_counted > 0) atr_base += (dH - dL);
+                days_counted++;
+                dH = sc.High[i]; dL = sc.Low[i];
+            } else {
+                if (sc.High[i] > dH) dH = sc.High[i];
+                if (sc.Low[i] < dL) dL = sc.Low[i];
             }
-            char sbuf[1024];
-            int sl = snprintf(sbuf, sizeof(sbuf),
-                "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,"
-                "\"send_orders_to_trade_service\":%d,"
-                "\"position_qty\":%.0f,\"avg_price\":%.2f,"
-                "\"working_orders\":%d,\"orders\":[%s]}\n",
-                (long long)time(nullptr),
-                sc.GlobalTradeSimulationIsOn ? 1 : 0,
-                EnableOrderPlacement.GetInt(),   // B2 (07-13): arm-state in the 1s heartbeat —
-                                                 // read arm without sending a probe order.
-                sc.SendOrdersToTradeService ? 1 : 0,  // 07-13 iMac blocker: auto-match state —
-                                                      // if this drifts after a sim-toggle, PLACE no-ops.
-                (float)spos.PositionQuantity, (float)spos.AveragePrice,
-                n_ord, ordbuf);
-            if (sl > 0 && sl < (int)sizeof(sbuf))
-            {
-                const char* v9dirS = V9ExportPath.GetString();
-                if (v9dirS[0] != '\0')
-                {
-                    std::string spath = std::string(v9dirS) + "sierra_state.json";
-                    std::ofstream sf(spath.c_str());
-                    if (sf.is_open()) { sf.write(sbuf, sl); sf.close(); }
+            prevD = bd;
+        }
+        if (days_counted > 1) atr_base /= (days_counted - 1);
+    }
+    if (sesMin >= 60 && ib_locked) {
+        if (vegas_flips <= 2 && ib_break_held && atr_base > 0 && day_range > atr_base * 0.7f) {
+            day_class = "TREND_DAY"; day_class_conf = 0.85f;
+        } else if (vegas_flips >= 4 && atr_base > 0 && day_range < atr_base * 0.5f) {
+            day_class = "RANGE_DAY"; day_class_conf = 0.75f;
+        } else if (fabs(gap) > 5.0f && ((gap > 0 && cp < daily_open) || (gap < 0 && cp > daily_open))) {
+            day_class = "GAP_FILL"; day_class_conf = 0.70f;
+        } else {
+            day_class = "NORMAL"; day_class_conf = 0.50f;
+        }
+    }
+
+    // ── V8.2.0: Opening Type Detection per D-064 ──────────────
+    // State machine: decides within first 30 min of RTH
+    {
+        // Daily reset
+        int opening_date_stored = sc.GetPersistentInt(PERSIST_KEY_OPENING_DATE);
+        int today_int = (int)(today.GetAsDouble());
+        if (opening_date_stored != today_int) {
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_DATE, today_int);
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_DECIDED, 0);
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_TYPE, 0); // PENDING
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_CONFIDENCE, 0);
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_DECIDED_TS, 0);
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_TESTED_LVL, 0);
+        }
+    }
+    int opening_decided = sc.GetPersistentInt(PERSIST_KEY_OPENING_DECIDED);
+    int opening_type_code = sc.GetPersistentInt(PERSIST_KEY_OPENING_TYPE);
+    int opening_conf_code = sc.GetPersistentInt(PERSIST_KEY_OPENING_CONFIDENCE);
+    int opening_tested_code = sc.GetPersistentInt(PERSIST_KEY_OPENING_TESTED_LVL);
+    long long opening_decided_ts = (long long)sc.GetPersistentInt(PERSIST_KEY_OPENING_DECIDED_TS);
+
+    if (!opening_decided && sesMin >= 0 && sesMin <= 35) {
+        // Compute Opening Range high/low so far (first 30 min, ORH/ORL already computed above)
+        float open_price = daily_open;
+        float move_from_open = cp - open_price;
+        float or_width = (ORH > 0 && ORL > 0) ? (ORH - ORL) : 0;
+
+        // Track high/low during first 30 min for retracement checks
+        float high_so_far = ORH;
+        float low_so_far = ORL;
+
+        // OPEN_DRIVE: strong directional move, limited retracement
+        if (sesMin >= 10 && or_width > 0) {
+            float move_abs = (move_from_open > 0) ? move_from_open : -move_from_open;
+            float retracement = 0;
+            if (move_from_open > 0 && high_so_far > open_price)
+                retracement = (high_so_far - cp) / (high_so_far - open_price + 0.01f);
+            else if (move_from_open < 0 && low_so_far < open_price)
+                retracement = (cp - low_so_far) / (open_price - low_so_far + 0.01f);
+            if (move_abs > or_width * 0.7f && retracement < 0.30f) {
+                opening_type_code = 1; // OPEN_DRIVE
+                opening_conf_code = 2; // HIGH
+                opening_decided = 1;
+            }
+        }
+
+        // OPEN_TEST_DRIVE: tests PDH/PDL, then reverses
+        if (!opening_decided && sesMin >= 15 && sesMin <= 28) {
+            bool tested_pdh = (high_so_far >= PH - 0.5f && cp < PH - 1.0f);
+            bool tested_pdl = (low_so_far <= PL + 0.5f && cp > PL + 1.0f);
+            if (tested_pdh) {
+                opening_type_code = 2; // OPEN_TEST_DRIVE
+                opening_conf_code = 1; // MED
+                opening_tested_code = 1; // PDH
+                opening_decided = 1;
+            } else if (tested_pdl) {
+                opening_type_code = 2;
+                opening_conf_code = 1;
+                opening_tested_code = 2; // PDL
+                opening_decided = 1;
+            }
+        }
+
+        // ORR: initial move then reversal back to open area
+        if (!opening_decided && sesMin >= 12) {
+            // Check if we had a move of 3+ pts from open but returned
+            float max_excursion = (high_so_far - open_price > open_price - low_so_far)
+                                  ? (high_so_far - open_price) : (open_price - low_so_far);
+            float dist_from_open = (move_from_open > 0) ? move_from_open : -move_from_open;
+            if (max_excursion > 3.0f && dist_from_open < max_excursion * 0.30f) {
+                opening_type_code = 3; // ORR
+                opening_conf_code = 1; // MED
+                opening_decided = 1;
+            }
+        }
+
+        // OPEN_AUCTION_INSIDE / OUTSIDE: check after 20 min
+        if (!opening_decided && sesMin >= 20) {
+            bool always_inside = (low_so_far >= prev_day_val - 0.5f && high_so_far <= prev_day_vah + 0.5f);
+            bool always_outside = (low_so_far > prev_day_vah + 0.5f || high_so_far < prev_day_val - 0.5f);
+            if (always_inside && prev_day_vah > 0 && prev_day_val > 0) {
+                opening_type_code = 4; // OPEN_AUCTION_INSIDE
+                opening_conf_code = 1; // MED
+                opening_decided = 1;
+            } else if (always_outside && prev_day_vah > 0) {
+                opening_type_code = 5; // OPEN_AUCTION_OUTSIDE
+                opening_conf_code = 1; // MED
+                opening_decided = 1;
+            }
+        }
+
+        // Force decision at minute 30
+        if (!opening_decided && sesMin >= 30) {
+            opening_type_code = 4; // Default to OPEN_AUCTION_INSIDE
+            opening_conf_code = 0; // LOW
+            opening_decided = 1;
+        }
+
+        if (opening_decided) {
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_DECIDED, 1);
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_TYPE, opening_type_code);
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_CONFIDENCE, opening_conf_code);
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_DECIDED_TS, (int)time(NULL));
+            sc.SetPersistentInt(PERSIST_KEY_OPENING_TESTED_LVL, opening_tested_code);
+            opening_decided_ts = (long long)time(NULL);
+        }
+    }
+    // Map codes to strings
+    const char* opening_type_str = "PENDING";
+    switch (opening_type_code) {
+        case 1: opening_type_str = "OPEN_DRIVE"; break;
+        case 2: opening_type_str = "OPEN_TEST_DRIVE"; break;
+        case 3: opening_type_str = "ORR"; break;
+        case 4: opening_type_str = "OPEN_AUCTION_INSIDE"; break;
+        case 5: opening_type_str = "OPEN_AUCTION_OUTSIDE"; break;
+    }
+    const char* opening_conf_str = "LOW";
+    if (opening_conf_code == 1) opening_conf_str = "MED";
+    else if (opening_conf_code == 2) opening_conf_str = "HIGH";
+    const char* opening_tested_str = "null";
+    switch (opening_tested_code) {
+        case 1: opening_tested_str = "PDH"; break;
+        case 2: opening_tested_str = "PDL"; break;
+        case 3: opening_tested_str = "VAH"; break;
+        case 4: opening_tested_str = "VAL"; break;
+    }
+    int opening_minutes_elapsed = (sesMin >= 0 && sesMin <= 30) ? sesMin : 30;
+
+    // ── V8.2.0: POC Migration (rolling 30-min tracking) ─────
+    {
+        // Daily reset
+        int poc_date_stored = sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_DATE);
+        int today_int = (int)(today.GetAsDouble());
+        if (poc_date_stored != today_int) {
+            sc.SetPersistentInt(PERSIST_KEY_POC_SAMPLE_DATE, today_int);
+            sc.SetPersistentInt(PERSIST_KEY_POC_SAMPLE_COUNT, 0);
+            for (int k = 0; k < 10; k++)
+                sc.SetPersistentInt(PERSIST_KEY_POC_SAMPLE_0 + k, 0);
+        }
+        // Sample POC every ~3 minutes (on bar close)
+        if (sesMin >= 0 && tpo_poc > 0 && sc.GetBarHasClosedStatus(idx) == BHCS_BAR_HAS_CLOSED) {
+            int count = sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_COUNT);
+            if (count >= 10) {
+                // Shift left (drop oldest)
+                for (int k = 0; k < 9; k++)
+                    sc.SetPersistentInt(PERSIST_KEY_POC_SAMPLE_0 + k,
+                                        sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_0 + k + 1));
+                count = 9;
+            }
+            sc.SetPersistentInt(PERSIST_KEY_POC_SAMPLE_0 + count, (int)(tpo_poc * 100));
+            sc.SetPersistentInt(PERSIST_KEY_POC_SAMPLE_COUNT, count + 1);
+        }
+    }
+    // Compute migration from samples
+    const char* poc_mig_dir = "STUCK";
+    float poc_mig_pts = 0;
+    int poc_mig_dur_min = 0;
+    int poc_mig_stuck_min = 0;
+    {
+        int count = sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_COUNT);
+        if (count >= 2) {
+            float oldest = sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_0) / 100.0f;
+            float newest = sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_0 + count - 1) / 100.0f;
+            float moved = newest - oldest;
+            float abs_moved = (moved > 0) ? moved : -moved;
+            if (abs_moved < 0.5f) {
+                poc_mig_dir = "STUCK";
+            } else if (moved > 0) {
+                poc_mig_dir = "UP";
+            } else {
+                poc_mig_dir = "DOWN";
+            }
+            poc_mig_pts = abs_moved;
+            poc_mig_dur_min = count * 3; // ~3 min per sample
+            // Count stuck: how many consecutive samples with < 0.5pt change
+            int stuck = 0;
+            for (int k = count - 1; k >= 1; k--) {
+                float a = sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_0 + k) / 100.0f;
+                float b = sc.GetPersistentInt(PERSIST_KEY_POC_SAMPLE_0 + k - 1) / 100.0f;
+                float diff = (a - b > 0) ? (a - b) : (b - a);
+                if (diff < 0.5f) stuck++;
+                else break;
+            }
+            poc_mig_stuck_min = stuck * 3;
+        }
+    }
+
+    // ── V8.2.0: Buyers/Sellers Belly (volume clusters) ──────
+    // Aggregate buy/sell volume by price level over last 20 bars
+    float buyers_belly_high = 0, buyers_belly_low = 0;
+    int buyers_belly_size = 0;
+    float sellers_belly_high = 0, sellers_belly_low = 0;
+    int sellers_belly_size = 0;
+    {
+        float tick_sz = sc.TickSize;
+        if (tick_sz < 0.01f) tick_sz = 0.25f;
+        std::map<int, int> buy_by_price;  // price_tick -> total buy vol
+        std::map<int, int> sell_by_price; // price_tick -> total sell vol
+
+        int belly_start = (idx >= 19) ? idx - 19 : 0;
+        for (int bi = belly_start; bi <= idx; bi++) {
+            int vap_sz = sc.VolumeAtPriceForBars->GetSizeAtBarIndex(bi);
+            for (int v = 0; v < vap_sz; v++) {
+                const s_VolumeAtPriceV2 *vap = NULL;
+                if (!sc.VolumeAtPriceForBars->GetVAPElementAtIndex(bi, v, &vap)) continue;
+                if (vap == NULL) continue;
+                int ptick = vap->PriceInTicks;
+                buy_by_price[ptick] += (int)vap->AskVolume;
+                sell_by_price[ptick] += (int)vap->BidVolume;
+            }
+        }
+
+        // Find densest 3-tick cluster for buyers
+        int max_buy_vol = 0;
+        int max_buy_tick = 0;
+        for (auto& kv : buy_by_price) {
+            // Sum this tick + adjacent ticks (3-level cluster)
+            int cluster = kv.second;
+            auto it_up = buy_by_price.find(kv.first + 1);
+            auto it_dn = buy_by_price.find(kv.first - 1);
+            if (it_up != buy_by_price.end()) cluster += it_up->second;
+            if (it_dn != buy_by_price.end()) cluster += it_dn->second;
+            if (cluster > max_buy_vol) {
+                max_buy_vol = cluster;
+                max_buy_tick = kv.first;
+            }
+        }
+        if (max_buy_vol > 0) {
+            buyers_belly_size = max_buy_vol;
+            buyers_belly_low = (max_buy_tick - 1) * tick_sz;
+            buyers_belly_high = (max_buy_tick + 1) * tick_sz;
+        }
+
+        // Find densest 3-tick cluster for sellers
+        int max_sell_vol = 0;
+        int max_sell_tick = 0;
+        for (auto& kv : sell_by_price) {
+            int cluster = kv.second;
+            auto it_up = sell_by_price.find(kv.first + 1);
+            auto it_dn = sell_by_price.find(kv.first - 1);
+            if (it_up != sell_by_price.end()) cluster += it_up->second;
+            if (it_dn != sell_by_price.end()) cluster += it_dn->second;
+            if (cluster > max_sell_vol) {
+                max_sell_vol = cluster;
+                max_sell_tick = kv.first;
+            }
+        }
+        if (max_sell_vol > 0) {
+            sellers_belly_size = max_sell_vol;
+            sellers_belly_low = (max_sell_tick - 1) * tick_sz;
+            sellers_belly_high = (max_sell_tick + 1) * tick_sz;
+        }
+    }
+
+    // ── V7.12.0: Phase 3 Trigger Layer ─────────────────────────
+    // Trigger storage (static persists across AutoLoop calls, max 20)
+    struct Trigger {
+        char id[32]; char type[12]; char direction[8];
+        float price_high, price_low, gap_size;
+        char swept_level[20]; float swept_price;
+        float current_price;
+        long long detected_at, expires_at;
+    };
+    static Trigger s_triggers[20];
+    static int s_triggerCount = 0;
+    long long trig_now = (long long)time(NULL);
+
+    // Remove expired triggers
+    int keep = 0;
+    for (int i = 0; i < s_triggerCount; i++) {
+        if (s_triggers[i].expires_at > trig_now)
+            s_triggers[keep++] = s_triggers[i];
+    }
+    s_triggerCount = keep;
+
+    // Helper: add trigger if room (V7.14.1: unique counter)
+    auto addTrig = [&](const char* type, const char* dir,
+                       float ph, float pl, float gap,
+                       const char* swept_lv, float swept_px) {
+        if (s_triggerCount >= 20) return;
+        int tctr = sc.GetPersistentInt(PERSIST_KEY_TRIGGER_COUNTER) + 1;
+        sc.SetPersistentInt(PERSIST_KEY_TRIGGER_COUNTER, tctr);
+        Trigger& t = s_triggers[s_triggerCount];
+        sprintf(t.id, "T_%s_%lld_%d", type, trig_now, tctr);
+        strncpy(t.type, type, 11); t.type[11] = 0;
+        strncpy(t.direction, dir, 7); t.direction[7] = 0;
+        t.price_high = ph; t.price_low = pl; t.gap_size = gap;
+        strncpy(t.swept_level, swept_lv, 19); t.swept_level[19] = 0;
+        t.swept_price = swept_px;
+        t.current_price = cp;
+        t.detected_at = trig_now;
+        t.expires_at = trig_now + 300;
+        s_triggerCount++;
+    };
+
+    // PART A: FVG Detection (scan last 50 bars)
+    {
+        int fvg_start = (idx >= 52) ? idx - 50 : 2;
+        for (int i = fvg_start; i <= idx; i++) {
+            if (i < 2) continue;
+            float bull_gap = sc.Low[i] - sc.High[i-2];
+            if (bull_gap >= 0.25f && bull_gap <= 5.0f) {
+                // Check not already detected (simple: same bar timestamp)
+                long long bar_ts = (long long)((sc.BaseDateTimeIn[i].GetAsDouble() - 25569.0) * 86400.0 + 0.5);
+                bool dup = false;
+                for (int d = 0; d < s_triggerCount; d++)
+                    if (s_triggers[d].detected_at == bar_ts &&
+                        s_triggers[d].type[0] == 'F' &&
+                        s_triggers[d].direction[0] == 'b') { dup = true; break; }
+                if (!dup) addTrig("FVG", "bullish", sc.Low[i], sc.High[i-2], bull_gap, "", 0);
+            }
+            float bear_gap = sc.Low[i-2] - sc.High[i];
+            if (bear_gap >= 0.25f && bear_gap <= 5.0f) {
+                long long bar_ts = (long long)((sc.BaseDateTimeIn[i].GetAsDouble() - 25569.0) * 86400.0 + 0.5);
+                bool dup = false;
+                for (int d = 0; d < s_triggerCount; d++)
+                    if (s_triggers[d].detected_at == bar_ts &&
+                        s_triggers[d].type[0] == 'F' &&
+                        s_triggers[d].direction[0] == 'B') { dup = true; break; }
+                if (!dup) addTrig("FVG", "bearish", sc.Low[i-2], sc.High[i], bear_gap, "", 0);
+            }
+        }
+    }
+
+    // PART B: Footprint Reversal (last bar)
+    int fp_buy = (int)sc.AskVolume[idx];
+    int fp_sell = (int)sc.BidVolume[idx];
+    int fp_delta = fp_buy - fp_sell;
+    float fp_max = (float)((fp_buy > fp_sell) ? fp_buy : fp_sell);
+    float fp_min = (float)((fp_buy < fp_sell) ? fp_buy : fp_sell);
+    float fp_imb_ratio = (fp_min > 0) ? fp_max / fp_min : 0.0f;
+    bool fp_is_reversal = false;
+    if (idx >= 4 && fp_imb_ratio > 2.0f) {
+        int d1 = (int)(sc.AskVolume[idx-1] - sc.BidVolume[idx-1]);
+        int d2 = (int)(sc.AskVolume[idx-2] - sc.BidVolume[idx-2]);
+        int d3 = (int)(sc.AskVolume[idx-3] - sc.BidVolume[idx-3]);
+        bool prev_bullish = (d1 > 0 && d2 > 0 && d3 > 0);
+        bool prev_bearish = (d1 < 0 && d2 < 0 && d3 < 0);
+        if ((prev_bullish && fp_delta < 0) || (prev_bearish && fp_delta > 0)) {
+            fp_is_reversal = true;
+            addTrig("REVERSAL", (fp_delta > 0) ? "bullish" : "bearish",
+                    sc.High[idx], sc.Low[idx], 0, "", 0);
+        }
+    }
+
+    // PART C: Sweep Detection (last 5 bars against key levels)
+    {
+        struct LvlDef { const char* name; float price; };
+        LvlDef levels[7] = {
+            {"VEGAS_144", ema144_val}, {"VEGAS_169", ema169_val},
+            {"TPO_POC", tpo_poc}, {"TPO_VAH", VAH}, {"TPO_VAL", VAL},
+            {"PD_POC", prev_day_poc}, {"VWAP", vwap},
+        };
+        int sweep_start = (idx >= 5) ? idx - 4 : 0;
+        for (int li = 0; li < 7; li++) {
+            if (levels[li].price <= 0) continue;
+            float lv = levels[li].price;
+            for (int i = sweep_start; i <= idx; i++) {
+                if (sc.High[i] > lv + 0.25f && sc.Close[i] < lv) {
+                    addTrig("SWEEP", "bearish", sc.High[i], sc.Low[i], 0,
+                            levels[li].name, lv);
+                    break;
+                }
+                if (sc.Low[i] < lv - 0.25f && sc.Close[i] > lv) {
+                    addTrig("SWEEP", "bullish", sc.High[i], sc.Low[i], 0,
+                            levels[li].name, lv);
+                    break;
                 }
             }
         }
     }
 
-    // ══ THROTTLE (EARLY — before heavy computation) ══════════
-    // CVD + VWAP subgraph writes above run every bar (required for
-    // accurate per-bar tracking). Everything below only runs every
-    // ExportIntervalSec seconds. This prevents millions of map/vector
-    // heap allocs during AutoLoop chart load (was causing 123 GB leak).
-    static time_t lastExport = 0;
-    time_t now_t = time(nullptr);
-    if ((now_t - lastExport) < ExportIntervalSec.GetInt()) return;
-    lastExport = now_t;
-
-    float vwap = VWAP[idx];
-
-    // VWAP distance & side
-    float vwap_dist  = cp - vwap;
-    bool  above_vwap = (cp > vwap);
-
-    // VWAP pullback detection (last 5 bars trending toward VWAP from above/below)
-    bool vwap_pullback = false;
-    if (idx >= 5 && above_vwap)
-    {
-        bool was_higher = (sc.Close[idx-3] > sc.Close[idx-1]);
-        bool low_volume = true;
-        float avg_vol = 0;
-        for (int i = idx-10; i < idx && i >= 0; i++) avg_vol += sc.Volume[i];
-        avg_vol /= 10.0f;
-        for (int i = idx-3; i <= idx; i++)
-            if (sc.Volume[i] > avg_vol * 0.8f) { low_volume = false; break; }
-        vwap_pullback = was_higher && low_volume && (cp - vwap < 4.0f);
-    }
-
-    // ── Woodi Pivots ─────────────────────────────────────────
-    float PH=0, PL=0, PC=0;
-    SCDateTime prevDate;
-    bool foundPrev = false;
-    for (int i = idx-1; i >= 0; i--)
-    {
-        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
-        if (!foundPrev && bd < today) { prevDate=bd; foundPrev=true; PC=sc.Close[i]; PH=sc.High[i]; PL=sc.Low[i]; }
-        else if (foundPrev && bd == prevDate) { if (sc.High[i]>PH) PH=sc.High[i]; if (sc.Low[i]<PL) PL=sc.Low[i]; }
-        else if (foundPrev) break;
-    }
-    float PP=0,R1=0,R2=0,S1=0,S2=0;
-    if (foundPrev && PH>0) { PP=(PH+PL+PC*2)/4; R1=2*PP-PL; R2=PP+(PH-PL); S1=2*PP-PH; S2=PP-(PH-PL); }
-
-    // ── Session POC + Value Area ──────────────────────────────
-    float SH=sc.High[idx], SL=sc.Low[idx], TV=0;
-    std::map<int,float> pvm;
-    float HPrev=0,LPrev=0,CPrev=0;
-    bool prevDayFound=false;
-    for (int i=idx; i>=0; i--)
-    {
-        SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
-        if (bd < today) {
-            if (!prevDayFound) { HPrev=sc.High[i]; LPrev=sc.Low[i]; CPrev=sc.Close[i]; prevDayFound=true; }
-            break;
-        }
-        float bh=sc.High[i], bl=sc.Low[i], bv=sc.Volume[i];
-        if (bh>SH) SH=bh; if (bl<SL) SL=bl; TV+=bv;
-        int steps=(int)((bh-bl)/0.25f)+1; float vps=bv/steps;
-        int price_steps = 0;
-        const int PRICE_MAX_STEPS = 1000;  // v9.2.0 safety cap
-        for (float p=bl; p<=bh+0.001f && price_steps < PRICE_MAX_STEPS; p+=0.25f) {
-            pvm[(int)(p*4)]+=vps;
-            price_steps++;
-        }
-    }
-    float POC=cp, maxV=0;
-    for (auto& kv:pvm) if (kv.second>maxV){maxV=kv.second; POC=kv.first/4.0f;}
-
-    float vat=TV*(VAPercent.GetFloat()/100), vav=maxV, VAH=POC, VAL=POC;
-    auto itu=pvm.upper_bound((int)(POC*4)), itd=pvm.lower_bound((int)(POC*4));
-    while(vav<vat){
-        float un=(itu!=pvm.end())?itu->second:0, dn=(itd!=pvm.begin())?std::prev(itd)->second:0;
-        if(un>=dn){if(itu!=pvm.end()){vav+=un;VAH=itu->first/4.0f;++itu;}else break;}
-        else{if(itd!=pvm.begin()){--itd;vav+=itd->second;VAL=itd->first/4.0f;}else break;}
-    }
-
-    // TPO POC
-    std::map<int,int> tpo_map;
-    int tpo_back = (idx >= 30) ? 30 : idx;
-    for(int i=idx-tpo_back; i<=idx; i++){
-        for(float p=sc.Low[i]; p<=sc.High[i]+0.001f; p+=0.25f)
-            tpo_map[(int)(p*4)]++;
-    }
-    float tpo_poc=cp; int tpo_max=0;
-    for(auto& kv:tpo_map) if(kv.second>tpo_max){tpo_max=kv.second;tpo_poc=kv.first/4.0f;}
-
-    // ── 72H / Weekly ─────────────────────────────────────────
-    float H72=sc.High[idx],L72=sc.Low[idx],HWk=sc.High[idx],LWk=sc.Low[idx];
-    SCDateTime t72=sc.BaseDateTimeIn[idx]; t72.SubtractSeconds(72*3600);
-    SCDateTime twk=sc.BaseDateTimeIn[idx]; twk.SubtractSeconds((int)twk.GetDayOfWeek()*86400);
-    for(int i=idx-1;i>=0;i--){
-        SCDateTime bt=sc.BaseDateTimeIn[i];
-        if(bt>=t72){if(sc.High[i]>H72)H72=sc.High[i];if(sc.Low[i]<L72)L72=sc.Low[i];}
-        if(bt>=twk){if(sc.High[i]>HWk)HWk=sc.High[i];if(sc.Low[i]<LWk)LWk=sc.Low[i];}
-        if(bt<t72&&bt<twk)break;
-    }
-
-    // ── Session Phase ─────────────────────────────────────────
-    int H=sc.BaseDateTimeIn[idx].GetHour(), M=sc.BaseDateTimeIn[idx].GetMinute();
-    const char* phase="OVERNIGHT";
-    if(H==16&&M>=30)phase="OPEN";
-    else if(H>=17&&H<19)phase="AM_SESSION";
-    else if(H>=19&&H<21)phase="MIDDAY";
-    else if(H>=21&&H<23)phase="PM_SESSION";
-    else if(H==23)phase="CLOSE";
-    float sesMin_f = (H*60.0f+M) - (16*60+30);
-    int   sesMin   = (sesMin_f < 0) ? -1 : (int)sesMin_f;
-
-    float slope = (idx >= 5) ? (sc.Close[idx] - sc.Close[idx-5]) / 5.0f : 0;
-
-    // ── Imbalance Detection ───────────────────────────────────
-    // בודק את הנר הנוכחי ו-4 הנרות האחרונים לחוסר איזון
-    float imb_ratio = ImbalanceRatio.GetFloat();
-    struct ImbLevel { float price; float buy_vol; float sell_vol; float ratio; };
-    static std::vector<ImbLevel> imbalances;
-    imbalances.clear();  // reuses capacity — no heap alloc after first call
-
-    // בדיקת imbalance בנרות אחרונים
-    int imb_lookback = (idx >= 5) ? 5 : idx;
-    for (int i = idx - imb_lookback; i <= idx; i++)
-    {
-        if (i < 0) continue;
-        float bv_bar = sc.AskVolume[i];
-        float sv_bar = sc.BidVolume[i];
-        float bar_range = sc.High[i] - sc.Low[i];
-        if (bar_range < 0.5f) continue;
-
-        float ratio = 0;
-        float dom_price = (sc.High[i] + sc.Low[i]) / 2.0f;
-        if (sv_bar > 0 && bv_bar / sv_bar >= imb_ratio) {
-            ratio = bv_bar / sv_bar;
-            imbalances.push_back({dom_price, bv_bar, sv_bar, ratio});
-        } else if (bv_bar > 0 && sv_bar / bv_bar >= imb_ratio) {
-            ratio = -(sv_bar / bv_bar);
-            imbalances.push_back({dom_price, bv_bar, sv_bar, ratio});
-        }
-    }
-
-    // מיין לפי ratio מוחלט (use v9_abs, not std::abs — ACSIL macro conflict)
-    std::sort(imbalances.begin(), imbalances.end(), [](const ImbLevel& a, const ImbLevel& b){
-        return v9_abs(a.ratio) > v9_abs(b.ratio);
-    });
-
-    // גבול: שמור עד 3 imbalances חזקים
-    int imb_count = (int)imbalances.size();
-    if (imb_count > 3) imb_count = 3;
-
-    // Absorption detection: מוכרים הרבה אבל מחיר לא ירד
-    bool absorption_bull = false;
-    if (idx >= 3)
-    {
-        float sell_pressure = 0;
-        for (int i = idx-2; i <= idx; i++) sell_pressure += sc.BidVolume[i];
-        float price_change = sc.Close[idx] - sc.Close[idx-3];
-        if (sell_pressure > 500 && price_change >= 0) absorption_bull = true;
-    }
-
-    // Liquidity sweep detection
-    bool liq_sweep_long = false;
-    bool liq_sweep_short = false;
-    if (idx >= 3)
-    {
-        // Long sweep: מחיר שבר שפל ואז חזר מעליו
-        float recent_low = SL;
-        bool broke_low = (sc.Low[idx-1] < recent_low - 1.0f || sc.Low[idx-2] < recent_low - 1.0f);
-        bool recovered  = (cp > recent_low + 0.5f);
-        if (broke_low && recovered && delta > 0) liq_sweep_long = true;
-    }
-
-    // IB Breakout + Retest (מחושב כשיש IB)
-    // יישלח ל-Bridge שיחשב
-
-    // ── MTF (chart = 3 min per bar) ──────────────────────────
-    struct MTFBar { float o,h,l,c,vol,buy,sell,delta_v; };
-    auto calcBar = [&](int n) -> MTFBar {
-        MTFBar b = {0,0,999999,0,0,0,0,0};
-        int end = (idx-n+1>=0)?(idx-n+1):0;
-        b.o=sc.Open[end]; b.c=sc.Close[idx];
-        b.h=sc.High[end]; b.l=sc.Low[end];
-        for(int i=end;i<=idx;i++){
-            if(sc.High[i]>b.h)b.h=sc.High[i];
-            if(sc.Low[i]<b.l)b.l=sc.Low[i];
-            b.vol+=sc.Volume[i]; b.buy+=sc.AskVolume[i]; b.sell+=sc.BidVolume[i];
-        }
-        b.delta_v=b.buy-b.sell;
-        return b;
-    };
-    MTFBar m3=calcBar(1), m15=calcBar(5), m30=calcBar(10), m60=calcBar(20);
-
-    // ── Trend Strength ────────────────────────────────────────
-    // HH/HL count in last 20 bars
-    int hh_count=0, ll_count=0;
-    for(int i=idx-1; i>=idx-20 && i>0; i--){
-        if(sc.High[i]>sc.High[i-1]) hh_count++;
-        if(sc.Low[i]<sc.Low[i-1])   ll_count++;
-    }
-    const char* trend_str = "NEUTRAL";
-    if(hh_count > 14) trend_str = "STRONG_UP";
-    else if(hh_count > 10) trend_str = "UP";
-    else if(ll_count > 14) trend_str = "STRONG_DOWN";
-    else if(ll_count > 10) trend_str = "DOWN";
+    // ── Throttle ─────────────────────────────────────────────
+    static time_t lastExport=0; time_t now_t=time(nullptr);
+    if((now_t-lastExport)<ExportIntervalSec.GetInt())return;
+    lastExport=now_t;
 
     // ── JSON ──────────────────────────────────────────────────
-    std::ostringstream j;
-    j<<std::fixed<<std::setprecision(2);
-
+    std::ostringstream j; j<<std::fixed<<std::setprecision(2);
     j<<"{"
      <<"\"timestamp\":"<<(long long)now_t
      <<",\"symbol\":\"MEMS26\""
      <<",\"current_price\":"<<cp
      <<",\"session_phase\":\""<<phase<<"\""
      <<",\"session_min\":"<<sesMin
-
-     // CVD
-     <<",\"cvd\":{"
-       <<"\"current\":"<<CVD[idx]
-       <<",\"change_20bar\":"<<cvd20
-       <<",\"change_5bar\":"<<cvd5
-       <<",\"cumul_today\":"<<CVD[idx]
-       <<",\"trend\":\""<<(cvd20>100?"BULLISH":cvd20<-100?"BEARISH":"NEUTRAL")<<"\""
-       <<",\"buy_vol\":"<<ask_vol
-       <<",\"sell_vol\":"<<bid_vol
-       <<",\"delta\":"<<delta
-     <<"}"
-
-     // VWAP
-     <<",\"vwap\":{"
-       <<"\"value\":"<<vwap
-       <<",\"distance\":"<<vwap_dist
-       <<",\"above\":"<<(above_vwap?"true":"false")
-       <<",\"pullback\":"<<(vwap_pullback?"true":"false")
-     <<"}"
-
-     // Market Profile
-     <<",\"market_profile\":{"
-       <<"\"poc\":"<<POC
-       <<",\"vah\":"<<VAH
-       <<",\"val\":"<<VAL
-       <<",\"session_high\":"<<SH
-       <<",\"session_low\":"<<SL
-       <<",\"tpo_poc\":"<<tpo_poc
-       <<",\"in_value_area\":"<<(cp>=VAL&&cp<=VAH?"true":"false")
-       <<",\"above_poc\":"<<(cp>POC?"true":"false")
-     <<"}"
-
-     // Woodi
-     <<",\"woodi_pivots\":{"
-       <<"\"pp\":"<<PP<<",\"r1\":"<<R1<<",\"r2\":"<<R2
-       <<",\"s1\":"<<S1<<",\"s2\":"<<S2
-       <<",\"above_pp\":"<<(cp>PP?"true":"false")
-     <<"}"
-
-     // Levels
-     <<",\"time_levels\":{"
-       <<"\"weekly_high\":"<<HWk<<",\"weekly_low\":"<<LWk
-       <<",\"h72_high\":"<<H72<<",\"h72_low\":"<<L72
-       <<",\"prev_high\":"<<HPrev<<",\"prev_low\":"<<LPrev<<",\"prev_close\":"<<CPrev
-     <<"}"
-
-     // Price Action
-     <<",\"price_action\":{"
-       <<"\"slope_5bar\":"<<slope
-       <<",\"trend\":\""<<(slope>0?"UP":slope<0?"DOWN":"FLAT")<<"\""
-       <<",\"trend_strength\":\""<<trend_str<<"\""
-       <<",\"buy_vol_bar\":"<<ask_vol
-       <<",\"sell_vol_bar\":"<<bid_vol
-     <<"}"
-
-     // Imbalance
-     <<",\"order_flow\":{"
-       <<"\"absorption_bull\":"<<(absorption_bull?"true":"false")
-       <<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")
-       <<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")
-       <<",\"imbalances\":[";
-
-    for(int i=0; i<imb_count; i++){
-        if(i>0) j<<",";
-        j<<"{"
-         <<"\"price\":"<<imbalances[i].price
-         <<",\"buy\":"<<imbalances[i].buy_vol
-         <<",\"sell\":"<<imbalances[i].sell_vol
-         <<",\"ratio\":"<<imbalances[i].ratio
-         <<"}";
-    }
+     <<",\"cvd\":{\"current\":"<<CVD[idx]<<",\"change_20bar\":"<<cvd20<<",\"change_5bar\":"<<cvd5<<",\"trend\":\""<<(cvd20>100?"BULLISH":cvd20<-100?"BEARISH":"NEUTRAL")<<"\",\"buy_vol\":"<<ask_vol<<",\"sell_vol\":"<<bid_vol<<",\"delta\":"<<delta<<"}"
+     <<",\"vwap\":{\"value\":"<<vwap<<",\"distance\":"<<vwap_dist<<",\"above\":"<<(above_vwap?"true":"false")<<",\"pullback\":"<<(vwap_pullback?"true":"false")<<"}"
+     <<",\"woodies_cci\":{\"cci14\":"<<cci14<<",\"cci6\":"<<cci6<<",\"cci_diff\":"<<cci_diff<<",\"trend\":\""<<cci_trend<<"\",\"hist_color\":\""<<hist_color<<"\",\"turbo_bull\":"<<(turbo_bull?"true":"false")<<",\"turbo_bear\":"<<(turbo_bear?"true":"false")<<",\"zlr_bull\":"<<(zlr_bull?"true":"false")<<",\"zlr_bear\":"<<(zlr_bear?"true":"false")<<",\"hook_up\":"<<(hook_up?"true":"false")<<",\"hook_down\":"<<(hook_down?"true":"false")<<"}"
+     <<",\"market_profile\":{\"poc\":"<<POC<<",\"vah\":"<<VAH<<",\"val\":"<<VAL<<",\"session_high\":"<<SH<<",\"session_low\":"<<SL<<",\"tpo_poc\":"<<tpo_poc<<",\"prev_day_poc\":"<<prev_day_poc<<",\"in_value_area\":"<<(cp>=VAL&&cp<=VAH?"true":"false")<<",\"above_poc\":"<<(cp>POC?"true":"false")<<"}"
+     <<",\"day_context\":{\"day_type\":\""<<day_type<<"\",\"ib_high\":"<<IBH<<",\"ib_low\":"<<IBL<<",\"ib_range\":"<<ib_range<<",\"ib_locked\":"<<(ib_locked?"true":"false")<<",\"ib_breakout_up\":"<<(ib_breakout_up?"true":"false")<<",\"ib_breakout_down\":"<<(ib_breakout_down?"true":"false")<<",\"or_high\":"<<ORH<<",\"or_low\":"<<ORL<<",\"or_range\":"<<or_range<<",\"gap\":"<<gap<<",\"gap_pct\":"<<gap_pct<<",\"gap_type\":\""<<gap_type<<"\",\"ext_up\":"<<ext_up_count<<",\"ext_down\":"<<ext_down_count<<",\"total_ext\":"<<total_extensions<<",\"returned_after_break\":"<<(returned_after_breakout?"true":"false")<<"}"
+     <<",\"volume_context\":{\"current_vol\":"<<sc.Volume[idx]<<",\"avg_vol_20\":"<<avg_vol_20<<",\"rel_vol\":"<<rel_vol<<",\"context\":\""<<vol_ctx<<"\"}"
+     <<",\"candle_patterns\":{\"bar0\":\""<<pat0<<"\",\"bar1\":\""<<pat1<<"\",\"bar2\":\""<<pat2<<"\",\"bull_engulf\":"<<(bull_engulf?"true":"false")<<",\"bear_engulf\":"<<(bear_engulf?"true":"false")<<"}"
+     <<",\"woodi_pivots\":{\"pp\":"<<PP<<",\"r1\":"<<R1<<",\"r2\":"<<R2<<",\"s1\":"<<S1<<",\"s2\":"<<S2<<",\"above_pp\":"<<(cp>PP?"true":"false")<<"}"
+     <<",\"time_levels\":{\"weekly_high\":"<<HWk<<",\"weekly_low\":"<<LWk<<",\"h72_high\":"<<H72<<",\"h72_low\":"<<L72<<",\"prev_high\":"<<PH<<",\"prev_low\":"<<PL<<",\"prev_close\":"<<PC<<",\"daily_open\":"<<daily_open<<",\"overnight_high\":"<<ONH<<",\"overnight_low\":"<<ONL<<"}"
+     <<",\"order_flow\":{\"absorption_bull\":"<<(absorption_bull?"true":"false")<<",\"liq_sweep_long\":"<<(liq_sweep_long?"true":"false")<<",\"liq_sweep_short\":"<<(liq_sweep_short?"true":"false")<<",\"imbalances\":[";
+    for(int i=0;i<imb_count;i++){if(i>0)j<<",";j<<"{\"price\":"<<imbalances[i].price<<",\"buy\":"<<imbalances[i].buy_vol<<",\"sell\":"<<imbalances[i].sell_vol<<",\"ratio\":"<<imbalances[i].ratio<<"}";}
     j<<"]}"
-
-     // MTF
+     <<",\"footprint_bools\":{\"absorption_detected\":"<<(fp_absorption?"true":"false")
+        <<",\"exhaustion_detected\":"<<(fp_exhaustion?"true":"false")
+        <<",\"trapped_buyers\":"<<(fp_trapped_buyers?"true":"false")
+        <<",\"stacked_imbalance_count\":"<<fp_stacked_count
+        <<",\"stacked_imbalance_dir\":\""<<fp_stacked_dir<<"\""
+        <<",\"pullback_delta_declining\":"<<(fp_pullback_delta_declining?"true":"false")
+        <<",\"pullback_aggressive_buy\":"<<(fp_pullback_aggressive_buy?"true":"false")
+        <<",\"pullback_aggressive_sell\":"<<(fp_pullback_aggressive_sell?"true":"false")<<"}"
      <<",\"mtf\":{"
-       <<"\"m3\":{\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c
-         <<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
-       <<",\"m15\":{\"o\":"<<m15.o<<",\"h\":"<<m15.h<<",\"l\":"<<m15.l<<",\"c\":"<<m15.c
-         <<",\"vol\":"<<m15.vol<<",\"buy\":"<<m15.buy<<",\"sell\":"<<m15.sell<<",\"delta\":"<<m15.delta_v<<"}"
-       <<",\"m30\":{\"o\":"<<m30.o<<",\"h\":"<<m30.h<<",\"l\":"<<m30.l<<",\"c\":"<<m30.c
-         <<",\"vol\":"<<m30.vol<<",\"buy\":"<<m30.buy<<",\"sell\":"<<m30.sell<<",\"delta\":"<<m30.delta_v<<"}"
-       <<",\"m60\":{\"o\":"<<m60.o<<",\"h\":"<<m60.h<<",\"l\":"<<m60.l<<",\"c\":"<<m60.c
-         <<",\"vol\":"<<m60.vol<<",\"buy\":"<<m60.buy<<",\"sell\":"<<m60.sell<<",\"delta\":"<<m60.delta_v<<"}"
-     <<"}"
-
-     <<"}\n";
+        <<"\"m3\":{\"ts\":"<<m3.bar_ts<<",\"o\":"<<m3.o<<",\"h\":"<<m3.h<<",\"l\":"<<m3.l<<",\"c\":"<<m3.c<<",\"vol\":"<<m3.vol<<",\"buy\":"<<m3.buy<<",\"sell\":"<<m3.sell<<",\"delta\":"<<m3.delta_v<<"}"
+        <<",\"m5\":{\"ts\":"<<m5.bar_ts<<",\"o\":"<<m5.o<<",\"h\":"<<m5.h<<",\"l\":"<<m5.l<<",\"c\":"<<m5.c<<",\"vol\":"<<m5.vol<<",\"buy\":"<<m5.buy<<",\"sell\":"<<m5.sell<<",\"delta\":"<<m5.delta_v<<"}"
+        <<",\"m15\":{\"ts\":"<<m15.bar_ts<<",\"o\":"<<m15.o<<",\"h\":"<<m15.h<<",\"l\":"<<m15.l<<",\"c\":"<<m15.c<<",\"vol\":"<<m15.vol<<",\"buy\":"<<m15.buy<<",\"sell\":"<<m15.sell<<",\"delta\":"<<m15.delta_v<<"}"
+        <<",\"m30\":{\"ts\":"<<m30.bar_ts<<",\"o\":"<<m30.o<<",\"h\":"<<m30.h<<",\"l\":"<<m30.l<<",\"c\":"<<m30.c<<",\"vol\":"<<m30.vol<<",\"buy\":"<<m30.buy<<",\"sell\":"<<m30.sell<<",\"delta\":"<<m30.delta_v<<"}"
+        <<",\"m60\":{\"ts\":"<<m60.bar_ts<<",\"o\":"<<m60.o<<",\"h\":"<<m60.h<<",\"l\":"<<m60.l<<",\"c\":"<<m60.c<<",\"vol\":"<<m60.vol<<",\"buy\":"<<m60.buy<<",\"sell\":"<<m60.sell<<",\"delta\":"<<m60.delta_v<<"}}"
+     <<",\"footprint\":"<<fp_j.str()
+     <<",\"order_fills\":"<<fills_j.str();
+    // V7.10.0: Vegas Tunnel
+    if (vegas_bars >= 50) {
+        j<<",\"vegas\":{\"ema144\":"<<ema144_val
+          <<",\"ema169\":"<<ema169_val
+          <<",\"tunnel_top\":"<<tunnel_top
+          <<",\"tunnel_bot\":"<<tunnel_bot
+          <<",\"tunnel_width\":"<<tunnel_width
+          <<",\"price_position\":\""<<vegas_pos<<"\""
+          <<",\"trend\":\""<<vegas_trend<<"\""
+          <<",\"data_quality\":\""<<vegas_quality<<"\""
+          <<",\"bar_count\":"<<vegas_bars
+          <<",\"calculated_at\":"<<(long long)now_t<<"}";
+    } else {
+        j<<",\"vegas\":null";
+    }
+    // V7.11.4: TPO using internal POC data
+    // V7.15.0: Diagnostic — confirm VAH/VAL reach tpo section
+    {
+        static int s_tpoLogCount = 0;
+        if (s_tpoLogCount < 3) {
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.15.0 TPO_DEBUG cd_valid=%d pd_valid=%d VAH=%.2f VAL=%.2f tpo_poc=%.2f pd_poc=%.2f pd_vah=%.2f pd_val=%.2f",
+                tpo_cd_valid?1:0, tpo_pd_valid?1:0, VAH, VAL, tpo_poc, prev_day_poc, prev_day_vah, prev_day_val), 1);
+            s_tpoLogCount++;
+        }
+    }
+    if (tpo_cd_valid || tpo_pd_valid) {
+        j<<",\"tpo\":{";
+        if (tpo_cd_valid) {
+            j<<"\"current_day\":{\"poc_price\":"<<tpo_poc
+              <<",\"vah\":"<<VAH<<",\"val\":"<<VAL
+              <<",\"tpo_letter_minutes\":30,\"developing\":true"
+              <<",\"study_id\":null"
+              <<",\"calculated_at\":"<<(long long)now_t
+              <<",\"in_value_area\":"<<(cp>=VAL&&cp<=VAH?"true":"false")
+              <<",\"above_poc\":"<<(cp>POC?"true":"false")<<"}";
+        } else {
+            j<<"\"current_day\":null";
+        }
+        if (tpo_pd_valid) {
+            j<<",\"previous_day\":{\"poc_price\":"<<prev_day_poc
+              <<",\"vah\":"<<(prev_day_vah>0?prev_day_vah:prev_day_poc)
+              <<",\"val\":"<<(prev_day_val>0?prev_day_val:prev_day_poc)
+              <<",\"tpo_letter_minutes\":1440,\"developing\":false"
+              <<",\"study_id\":null"
+              <<",\"calculated_at\":"<<(long long)now_t<<"}";
+        } else {
+            j<<",\"previous_day\":null";
+        }
+        j<<"}";
+    } else {
+        j<<",\"tpo\":null";
+    }
+    // V7.12.0: Triggers
+    j<<",\"triggers\":{\"active\":[";
+    for (int ti = 0; ti < s_triggerCount; ti++) {
+        if (ti > 0) j<<",";
+        const Trigger& t = s_triggers[ti];
+        j<<"{\"id\":\""<<t.id<<"\""
+          <<",\"type\":\""<<t.type<<"\""
+          <<",\"direction\":\""<<t.direction<<"\""
+          <<",\"price_high\":"<<t.price_high
+          <<",\"price_low\":"<<t.price_low
+          <<",\"gap_size\":"<<t.gap_size;
+        if (t.swept_level[0] != '\0')
+            j<<",\"swept_level\":\""<<t.swept_level<<"\"";
+        else
+            j<<",\"swept_level\":null";
+        j<<",\"swept_price\":"<<t.swept_price
+          <<",\"current_price\":"<<t.current_price
+          <<",\"detected_at\":"<<t.detected_at
+          <<",\"expires_at\":"<<t.expires_at
+          <<"}";
+    }
+    j<<"],\"footprint_last_bar\":{"
+      <<"\"buy_vol\":"<<fp_buy
+      <<",\"sell_vol\":"<<fp_sell
+      <<",\"delta\":"<<fp_delta
+      <<",\"imbalance_ratio\":"<<fp_imb_ratio
+      <<",\"is_reversal\":"<<(fp_is_reversal?"true":"false")
+      <<"}}";
+    // V7.13.0: Day Classification
+    j<<",\"day_classification\":{"
+      <<"\"type\":\""<<day_class<<"\""
+      <<",\"confidence\":"<<day_class_conf
+      <<",\"metrics\":{"
+        <<"\"vegas_flips\":"<<vegas_flips
+        <<",\"ib_break_held\":"<<(ib_break_held?"true":"false")
+        <<",\"day_range\":"<<day_range
+        <<",\"atr_baseline\":"<<atr_base
+      <<"}"
+      <<",\"calculated_at\":"<<(long long)now_t
+      <<"}";
+    // V8.2.0: Layer 1 Primitives
+    j<<",\"primitives\":{"
+      <<"\"ib\":{\"width_pts\":"<<ib_range<<",\"width_class\":\""<<ib_width_class<<"\"}"
+      <<",\"opening\":{\"type\":\""<<opening_type_str<<"\""
+        <<",\"decided\":"<<(opening_decided?"true":"false")
+        <<",\"decided_at\":"<<(opening_decided_ts>0?opening_decided_ts:0)
+        <<",\"confidence\":\""<<opening_conf_str<<"\""
+        <<",\"tested_level\":"<<(opening_tested_code>0?"\"":"")<<(opening_tested_code>0?opening_tested_str:"null")<<(opening_tested_code>0?"\"":"")
+        <<",\"window_minutes\":30"
+        <<",\"minutes_elapsed\":"<<opening_minutes_elapsed<<"}"
+      <<",\"poc_migration\":{\"direction\":\""<<poc_mig_dir<<"\""
+        <<",\"points\":"<<poc_mig_pts
+        <<",\"duration_min\":"<<poc_mig_dur_min
+        <<",\"stuck_minutes\":"<<poc_mig_stuck_min<<"}"
+      <<",\"buyers_belly\":{\"size\":"<<buyers_belly_size
+        <<",\"high\":"<<buyers_belly_high
+        <<",\"low\":"<<buyers_belly_low<<"}"
+      <<",\"sellers_belly\":{\"size\":"<<sellers_belly_size
+        <<",\"high\":"<<sellers_belly_high
+        <<",\"low\":"<<sellers_belly_low<<"}"
+      <<"}";
+    j<<"}\n";
 
     std::ofstream f(ExportPath.GetString());
     if(f.is_open()){f<<j.str();f.close();}
 
-    // ══════════════════════════════════════════════════════════════
-    // V9 EXPORTS — New tick reversal + footprint + delta exports
-    // ══════════════════════════════════════════════════════════════
-    const char* v9dir = V9ExportPath.GetString();
-    int v9_lookback = V9Lookback.GetInt();
-    float v9_imb_threshold = 2.5f;  // 250% ratio for imbalance detection
-
-    // ── Export 0: Canonical 5-minute OHLCV history for bars_5min bridge ──
+    // ── C5: Trade Command Execution ──────────────────────────────────────
+    // Poll trade_command.json every second, verify checksum, execute bracket
     {
-        int five_min_lookback = v9_min_i(v9_max_i(v9_lookback * 3, 600), 2000);
-        std::string bars5_json = v9_5min_to_json(sc, five_min_lookback);
-        v9_write_json(v9dir, "5min.json", bars5_json);
-    }
+        static time_t s_lastCmdCheck = 0;
+        static std::string s_lastTradeId;
+        time_t now_c = time(nullptr);
+        if (now_c - s_lastCmdCheck < 1) goto c5_done;
+        s_lastCmdCheck = now_c;
 
-    // ── Export 1: Tick Reversal 15-tick ──
-    if (V9TickRev15.GetInt() == 1)
-    {
-        std::vector<TickReversalBar> tr15 = v9_build_tick_reversal_bars(sc, 15, v9_lookback);
-        std::string json15 = v9_tick_reversal_to_json(tr15, 15);
-        v9_write_json(v9dir, "tick_reversal_15.json", json15);
-    }
+        std::ifstream cf(CommandPath.GetString());
+        if (!cf.is_open()) goto c5_done;
+        std::string cmdJson((std::istreambuf_iterator<char>(cf)),
+                             std::istreambuf_iterator<char>());
+        cf.close();
+        if (cmdJson.size() < 10) goto c5_done;
 
-    // ── Export 2: Tick Reversal 12-tick ──
-    if (V9TickRev12.GetInt() == 1)
-    {
-        std::vector<TickReversalBar> tr12 = v9_build_tick_reversal_bars(sc, 12, v9_lookback);
-        std::string json12 = v9_tick_reversal_to_json(tr12, 12);
-        v9_write_json(v9dir, "tick_reversal_12.json", json12);
-    }
+        std::string cmd      = jsonStr(cmdJson, "cmd");
+        double cmdPrice      = jsonNum(cmdJson, "price");
+        int    cmdQty        = (int)jsonNum(cmdJson, "qty");
+        double cmdStop       = jsonNum(cmdJson, "stop");
+        double cmdT1         = jsonNum(cmdJson, "t1");
+        double cmdT2         = jsonNum(cmdJson, "t2");
+        double cmdT3         = jsonNum(cmdJson, "t3");
+        std::string tradeId  = jsonStr(cmdJson, "trade_id");
+        long long expiresAt  = jsonInt(cmdJson, "expires_at");
+        // V7.14.0: Phase 5 fields
+        std::string beStrategy = jsonStr(cmdJson, "be_strategy");
+        std::string c3Mode     = jsonStr(cmdJson, "c3_mode");
+        double c1Target        = jsonNum(cmdJson, "c1_target");
+        double c2Target        = jsonNum(cmdJson, "c2_target");
+        std::string checksum = jsonStr(cmdJson, "checksum");
 
-    // ── Export 3+4+5: Footprint + Volume Profile + Imbalance Flags ──
-    {
-        v9_footprint_reset_budget();  // v9.2.0: reset per-cycle memory budget
-        int fp_start = v9_max_i(0, sc.Index - 30);  // Last 30 chart bars
-        std::vector<FootprintBar> fp_bars;
-        for (int i = fp_start; i <= sc.Index; i++)
+        // V7.9.5: Checksum dedup using ACSIL persistent storage (survives Re-add).
         {
-            fp_bars.push_back(v9_build_footprint_bar(sc, i, v9_imb_threshold));
+            SCString lastChecksum = sc.GetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM);
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.6 cmd=%s chk=%s last=%s tid=%s",
+                cmd.c_str(),
+                checksum.empty() ? "EMPTY" : checksum.substr(0, 16).c_str(),
+                lastChecksum.GetLength() > 0 ? lastChecksum.GetSubString(16, 0).GetChars() : "EMPTY",
+                tradeId.c_str()), 1);
+            if (!checksum.empty() && SCString(checksum.c_str()) == lastChecksum)
+                goto c5_done;
         }
 
-        // Export 3: Footprint per bar — session-anchored cumulative delta
-        float cum_delta = 0;
-        for (int i = 0; i <= sc.Index; i++)
-        {
-            if (sc.BaseDateTimeIn[i].GetDate() < today) continue;
-            cum_delta += sc.AskVolume[i] - sc.BidVolume[i];
-        }
-        std::string fp_json = v9_footprint_to_json(fp_bars, cum_delta);
-        v9_write_json(v9dir, "footprint.json", fp_json);
+        sc.AddMessageToLog("C5: V7.9.6 past dedup", 1);
 
-        // Export 4: Volume Profile per bar
-        std::string vp_json = v9_volume_profile_to_json(fp_bars, VAPercent.GetFloat());
-        v9_write_json(v9dir, "volume_profile.json", vp_json);
-
-        // Export 5: Imbalance flags (250%+)
-        std::string imb_json = v9_imbalance_flags_to_json(fp_bars);
-        v9_write_json(v9dir, "imbalance_flags.json", imb_json);
-
-        // Export 6: Stacked imbalances (3+ consecutive)
-        std::string stack_json = v9_stacked_imbalances_to_json(fp_bars, 3);
-        v9_write_json(v9dir, "stacked_imbalances.json", stack_json);
-    }
-
-    // ── Export 7: Cumulative Delta running total ──
-    {
-        std::string cd_json = v9_cumulative_delta_to_json(sc, v9_lookback);
-        v9_write_json(v9dir, "cumulative_delta.json", cd_json);
-    }
-
-    // ── Export 8: Woodies CCI 30-min (all 11 studies + patterns) ──
-    {
-        std::string w_json = v9_woodies_30min_to_json(sc, V9WoodiesHistory.GetInt());
-        v9_write_json(v9dir, "woodies_30min.json", w_json);
-    }
-
-    // ── Export 8b: Woodies CCI 5-min (D-074: primary S4 / Cockpit panel) ──
-    // Read all Woodies indicators from Sierra native studies for exact match.
-    // Study IDs from Sierra chart (see docs/runbooks/SIERRA_DLL_OPS.md):
-    //   ID:4  = CCI-14           (SG0)
-    //   ID:10 = CCI-6 / TCCI     (SG0)
-    //   ID:3  = Woodies EMA      (SG0)
-    //   ID:2  = LSMA             (SG0)
-    //   ID:6  = Sidewinder       (SG0)
-    //   ID:7  = Chop Zone        (SG0)
-    //   ID:12 = Pivot Points     (SG4=proj_hi, SG5=proj_lo)
-    //   ID:11 = CCI Predictor    (SG0=hi, SG1=lo)
-    {
-        int w_chart = WoodiesChartNumber.GetInt();
-        int wc = (w_chart > 0) ? w_chart : sc.ChartNumber;
-
-        WoodiesSierraStudies sierra = {false, 0,0,0,0,0,0,0,0,0,0};
-
-        // BUG FIX: was `if (w_chart > 0)` — skipped reading when Input 18 = 0
-        // (0 = same chart = chart 12). Studies ARE on chart 12 and must be read.
-        // wc already defaults to sc.ChartNumber when w_chart == 0.
-        {
-            sierra.valid = true;
-            SCFloatArray arr;
-
-            // BUG FIX: use LAST element of chart 12's study array, not arr[idx].
-            // When the DLL host chart (RTH, 3-min) has fewer bars than chart 12
-            // (24h, 5-min), sc.Index (host) points to the MIDDLE of chart 12's
-            // array, not to the current bar. Reading arr[last] gets the LIVE value.
-            #define W_LAST(a) ((a).GetArraySize() - 1)
-
-            // CCI-14 (Study ID:4, SG0)
-            sc.GetStudyArrayFromChartUsingID(wc, 4, 0, arr);
-            if (W_LAST(arr) >= 0) sierra.cci_14 = arr[W_LAST(arr)];
-
-            // CCI-6 / TCCI (Study ID:10, SG0)
-            sc.GetStudyArrayFromChartUsingID(wc, 10, 0, arr);
-            if (W_LAST(arr) >= 0) sierra.cci_6 = arr[W_LAST(arr)];
-
-            // Woodies EMA (Study ID:3, SG0)
-            sc.GetStudyArrayFromChartUsingID(wc, 3, 0, arr);
-            if (W_LAST(arr) >= 0) sierra.ema_34 = arr[W_LAST(arr)];
-
-            // LSMA (Study ID:2, SG0)
-            sc.GetStudyArrayFromChartUsingID(wc, 2, 0, arr);
-            if (W_LAST(arr) >= 0) sierra.lsma_25 = arr[W_LAST(arr)];
-
-            // Sidewinder (Study ID:6, SG1=ACSIL 0 = SW Top = actual SWI value)
-            // Verified 2026-06-02: SG1=SW Top, SG2=SW Bottom, SG3=Flat Color, SG4=Spreadsheet
-            sc.GetStudyArrayFromChartUsingID(wc, 6, 0, arr);
-            if (W_LAST(arr) >= 0) sierra.sidewinder = arr[W_LAST(arr)];
-
-            // Chop Zone (Study ID:7, SG2 = angle value)
-            sc.GetStudyArrayFromChartUsingID(wc, 7, 2, arr);
-            if (W_LAST(arr) >= 0) sierra.chopzone = arr[W_LAST(arr)];
-
-            // ProjHigh/ProjLow from Woodies Panel (Study ID:9, SG1/SG2)
-            sc.GetStudyArrayFromChartUsingID(wc, 9, 1, arr);
-            if (W_LAST(arr) >= 0) sierra.proj_hi = arr[W_LAST(arr)];
-            sc.GetStudyArrayFromChartUsingID(wc, 9, 2, arr);
-            if (W_LAST(arr) >= 0) sierra.proj_lo = arr[W_LAST(arr)];
-
-            // CCI-14 previous bar (for predictor + trend accuracy)
-            sc.GetStudyArrayFromChartUsingID(wc, 4, 0, arr);
-            if (W_LAST(arr) >= 1) sierra.cci_14_prev = arr[W_LAST(arr) - 1];
-
-            #undef W_LAST
+        // TTL check — 60 seconds
+        if (expiresAt > 0 && (long long)now_c > expiresAt) {
+            sc.AddMessageToLog("C5: Command expired — skipping", 1);
+            s_lastTradeId = tradeId;
+            sc.SetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
+            goto c5_done;
         }
 
+        sc.AddMessageToLog("C5: V7.9.6 past TTL check", 1);
 
-        std::string w5_json = v9_woodies_5min_to_json(
-            sc, V9WoodiesHistory.GetInt(),
-            sierra.valid ? &sierra : nullptr,
-            wc, ProjHLStudyID.GetInt());
-        v9_write_json(v9dir, "woodies_5min.json", w5_json);
-    }
-
-    // ── Export 9: TPO session levels from Sierra native studies ──
-    // Reads POC/VAH/VAL from Sierra TPO Value Area Lines (IDs 1, 3)
-    // and IB from Initial Balance (ID 6) via GetStudyArrayFromChartUsingID.
-    {
-        int tpo_yday_id = TPOYesterdayStudyID.GetInt();
-        int tpo_today_id = TPOTodayStudyID.GetInt();
-        int ib_study_id  = IBStudyID.GetInt();
-        int tpo_chart = TPOChartNumber.GetInt();
-        int chart_num = (tpo_chart > 0) ? tpo_chart : sc.ChartNumber;
-
-        // Sierra TPO Value Area Lines subgraph layout (verified Sierra UI 2026-05-25):
-        //   UI SG1 = TPO POC  (ACSIL idx 0)
-        //   UI SG2 = TPO VAH  (ACSIL idx 1)
-        //   UI SG3 = TPO VAL  (ACSIL idx 2)
-        // Sierra Initial Balance subgraph layout (verified Sierra UI 2026-05-25):
-        //   UI SG7 = IB High  (ACSIL idx 6)  — NOT SG1 as previously documented
-        //   UI SG8 = IB Mid   (ACSIL idx 7)  — we compute mid as (high+low)/2 instead
-        //   UI SG9 = IB Low   (ACSIL idx 8)  — NOT SG2 as previously documented
-        // Reference: docs/forensics/SIERRA_UI_EVIDENCE_2026-05-25.md
-
-        std::ostringstream j;
-        j << std::fixed << std::setprecision(2);
-        j << "{";
-        json_str(j, "type", "tpo", false);
-        json_str(j, "version", V9_VERSION);
-        json_long(j, "export_ts", (long long)time(nullptr));
-
-        // ── Today's developing TPO (Study ID:3, ref=0) ──
-        // BUG FIX: use LAST element of study array (same cross-chart index
-        // fix as Woodies — sc.Index is host chart, not target chart).
-        SCFloatArray today_poc, today_vah, today_val;
-        bool today_ok = false;
-        float t_poc = 0, t_vah = 0, t_val = 0;
-        if (tpo_today_id > 0) {
-            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 0, today_poc);
-            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 1, today_vah);
-            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_today_id, 2, today_val);
-            int tl = today_poc.GetArraySize() - 1;
-            if (tl >= 0 && today_poc[tl] != 0) {
-                t_poc = today_poc[tl];
-                t_vah = (today_vah.GetArraySize() > tl) ? today_vah[tl] : 0;
-                t_val = (today_val.GetArraySize() > tl) ? today_val[tl] : 0;
-                today_ok = true;
+        // Verify SHA-256 checksum
+        {
+            std::ostringstream raw;
+            raw << std::fixed << std::setprecision(2);
+            raw << cmd << ":" << cmdPrice << ":" << cmdQty << ":"
+                << cmdStop << ":" << tradeId << ":" << expiresAt
+                << ":" << BridgeToken.GetString();
+            std::string computed = sha256hex(raw.str());
+            if (computed != checksum) {
+                sc.AddMessageToLog("C5: CHECKSUM MISMATCH — ignoring", 1);
+                s_lastTradeId = tradeId;
+                sc.SetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
+                goto c5_done;
             }
         }
 
-        // Session high/low from chart data (today only)
-        float ses_high = sc.High[idx], ses_low = sc.Low[idx];
-        for (int i = idx; i >= 0; i--) {
-            if (sc.BaseDateTimeIn[i].GetDate() < today) break;
-            if (sc.High[i] > ses_high) ses_high = sc.High[i];
-            if (sc.Low[i] < ses_low)  ses_low  = sc.Low[i];
+        s_lastTradeId = tradeId;
+        sc.SetPersistentSCString(PERSIST_KEY_LAST_CHECKSUM, SCString(checksum.c_str()));
+
+        // Write result helper
+        auto writeResult = [&](const char* status, const char* detail, int orderId) {
+            std::ostringstream rj;
+            rj << std::fixed << std::setprecision(2);
+            rj << "{\"trade_id\":\"" << tradeId << "\""
+               << ",\"status\":\"" << status << "\""
+               << ",\"detail\":\"" << detail << "\""
+               << ",\"order_id\":" << orderId
+               << ",\"ts\":" << (long long)now_c
+               << ",\"price\":" << cp
+               << "}";
+            std::ofstream rf(ResultPath.GetString());
+            if (rf.is_open()) { rf << rj.str(); rf.close(); }
+        };
+
+        // Debug: log raw command content
+        sc.AddMessageToLog(SCString().Format(
+            "C5: trade_command file size=%d bytes, first 200 chars: %.200s",
+            (int)cmdJson.length(), cmdJson.c_str()), 1);
+
+        // ── CANCEL ──
+        if (cmd == "CANCEL") {
+            sc.CancelAllOrders();
+            sc.FlattenAndCancelAllOrders();
+            writeResult("OK", "CANCEL executed", 0);
+            sc.AddMessageToLog("C5: CANCEL — canceled + flattened all", 0);
+            goto c5_done;
         }
 
-        // G4: va_ok = true only if Sierra TPO study produced valid values
-        bool va_ok = today_ok
-            && t_poc > 3000 && t_poc < 10000
-            && t_vah > 3000 && t_vah < 10000
-            && t_val > 3000 && t_val < 10000
-            && t_vah >= t_val;
-
-        // Session date as "YYYY-MM-DD" (from current wall-clock time)
-        char ses_date_buf[16] = {0};
-        {
-            time_t t_now = time(nullptr);
-            struct tm tm_now;
-            localtime_s(&tm_now, &t_now);
-            snprintf(ses_date_buf, sizeof(ses_date_buf), "%04d-%02d-%02d",
-                     tm_now.tm_year + 1900, tm_now.tm_mon + 1, tm_now.tm_mday);
+        // ── CLOSE ── V6.8: clean close from Backend
+        if (cmd == "CLOSE") {
+            sc.AddMessageToLog("C5: CLOSE command received", 1);
+            sc.CancelAllOrders();
+            sc.FlattenAndCancelAllOrders();
+            writeResult("OK", "CLOSE complete", 0);
+            sc.AddMessageToLog("C5: CLOSE complete (canceled + flattened)", 1);
+            goto c5_done;
         }
 
-        // G2 (Memorial Day fix): reset session values to 0 when va_ok=false
-        // Mirrors previous_session pattern at line 765-774 — prevents
-        // garbage like poc=-89088 from leaking into tpo.json.
-        if (!va_ok) {
-            t_poc = 0; t_vah = 0; t_val = 0;
+        // ── SCALE_OUT — disabled in V7.6.2 (safe no-op) ──
+        // V7.2-V7.5 all had fatal issues (SellExit error, CancelOrder
+        // error, ModifyOrder froze Sierra). V7.6 MoveToBreakEven makes
+        // runtime SCALE_OUT obsolete.
+        if (cmd == "SCALE_OUT") {
+            std::string contract = jsonStr(cmdJson, "contract");
+            sc.AddMessageToLog(SCString().Format(
+                "C5: SCALE_OUT ignored (DLL %s) — contract=%s — "
+                "obsolete: auto-breakeven handles stop management",
+                MEMS26_DLL_VERSION, contract.c_str()), 1);
+            writeResult("OK", "SCALE_OUT ignored (V7.6.2)", 0);
+            goto c5_done;
         }
 
-        j << ",\"session\":{";
-        json_float(j, "poc", t_poc, false);
-        json_float(j, "vah", t_vah);
-        json_float(j, "val", t_val);
-        json_bool(j, "va_ok", va_ok);
-        json_str(j, "session_date", ses_date_buf);
-        json_float(j, "session_high", ses_high);
-        json_float(j, "session_low", ses_low);
-        json_float(j, "total_volume", 0);  // placeholder until we sum
-        j << "}";
-
-        // ── Initial Balance (Study ID:6) ──
-        SCFloatArray ib_high_arr, ib_low_arr;
-        float ib_h = 0, ib_l = 0;
-        bool ib_found = false;
-        if (ib_study_id > 0) {
-            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 6, ib_high_arr);
-            sc.GetStudyArrayFromChartUsingID(chart_num, ib_study_id, 8, ib_low_arr);
-            int il = ib_high_arr.GetArraySize() - 1;
-            if (il >= 0 && ib_high_arr[il] != 0) {
-                ib_h = ib_high_arr[il];
-                ib_l = (ib_low_arr.GetArraySize() > il) ? ib_low_arr[il] : 0;
-                ib_found = (ib_h > 0 && ib_l > 0);
+        // ── ARM_BE — V7.9.0: Smart Breakeven (move 3 stops to entry) ──
+        if (cmd == "ARM_BE") {
+            double entryPrice = jsonNum(cmdJson, "entry_price");
+            if (entryPrice <= 0) {
+                writeResult("ERROR", "ARM_BE: entry_price invalid", 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.0 ARM_BE rejected — entry_price=%.2f invalid",
+                    entryPrice), 1);
+                goto c5_done;
             }
-        }
-        float ib_mid = ib_found ? (ib_h + ib_l) / 2.0f : 0;
 
-        j << ",\"ib\":{";
-        json_bool(j, "found", ib_found, false);
-        json_float(j, "high", ib_h);
-        json_float(j, "mid", ib_mid);
-        json_float(j, "low", ib_l);
-        j << "}";
+            int stopIds[3] = {
+                sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
+            };
+            const char* stopNames[3] = {"S1", "S2", "S3"};
 
-        // ── Yesterday's locked TPO (Study ID:1, ref=1) ──
-        SCFloatArray yday_poc, yday_vah, yday_val;
-        float y_poc = 0, y_vah = 0, y_val = 0;
-        bool yday_ok = false;
-        if (tpo_yday_id > 0) {
-            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 0, yday_poc);
-            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 1, yday_vah);
-            sc.GetStudyArrayFromChartUsingID(chart_num, tpo_yday_id, 2, yday_val);
-            int yl = yday_poc.GetArraySize() - 1;
-            if (yl >= 0 && yday_poc[yl] != 0) {
-                y_poc = yday_poc[yl];
-                y_vah = (yday_vah.GetArraySize() > yl) ? yday_vah[yl] : 0;
-                y_val = (yday_val.GetArraySize() > yl) ? yday_val[yl] : 0;
-                yday_ok = true;
-            }
-        }
-
-        // Prior-day high/low/close from chart data
-        float pd_high = 0, pd_low = 0, pd_close = 0;
-        bool pd_found = false;
-        for (int i = idx - 1; i >= 0; i--) {
-            SCDateTime bd = sc.BaseDateTimeIn[i].GetDate();
-            if (bd < today && !pd_found) {
-                pd_high = sc.High[i]; pd_low = sc.Low[i]; pd_close = sc.Close[i];
-                SCDateTime prev_date = bd;
-                for (int k = i; k >= 0; k--) {
-                    if (sc.BaseDateTimeIn[k].GetDate() != prev_date) break;
-                    if (sc.High[k] > pd_high) pd_high = sc.High[k];
-                    if (sc.Low[k] < pd_low) pd_low = sc.Low[k];
+            int modifiedCount = 0;
+            // BOUNDED loop: exactly 3 iterations
+            for (int i = 0; i < 3; i++) {
+                int stopId = stopIds[i];
+                if (stopId <= 0) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.0 ARM_BE skip %s — id=0 (no stop stored)",
+                        stopNames[i]), 1);
+                    continue;
                 }
-                pd_found = true;
-                break;
+
+                s_SCTradeOrder ExistingOrder;
+                if (sc.GetOrderByOrderID(stopId, ExistingOrder)
+                    == SCTRADING_ORDER_ERROR) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.0 ARM_BE skip %s — id=%d not found",
+                        stopNames[i], stopId), 1);
+                    continue;
+                }
+
+                if (!IsWorkingOrderStatus(ExistingOrder.OrderStatusCode)) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.0 ARM_BE skip %s — id=%d status=%d (not working)",
+                        stopNames[i], stopId,
+                        (int)ExistingOrder.OrderStatusCode), 1);
+                    continue;
+                }
+
+                s_SCNewOrder ModifyOrder;
+                ModifyOrder.InternalOrderID = stopId;
+                ModifyOrder.Price1 = (float)entryPrice;
+                ModifyOrder.OrderQuantity = 0;  // Let Sierra manage qty
+
+                int modResult = sc.ModifyOrder(ModifyOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.0 ARM_BE %s id=%d -> price=%.2f result=%d",
+                    stopNames[i], stopId, entryPrice, modResult), 1);
+
+                if (modResult > 0) modifiedCount++;
             }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.0 ARM_BE complete — %d/3 stops moved to BE=%.2f",
+                modifiedCount, entryPrice), 1);
+            writeResult("OK", "ARM_BE executed", modifiedCount);
+            goto c5_done;
         }
 
-        j << ",\"prior_day\":{";
-        json_bool(j, "found", pd_found, false);
-        json_float(j, "high", pd_high);
-        json_float(j, "low", pd_low);
-        json_float(j, "close", pd_close);
-        j << "}";
-
-        // G2: Validate previous_session values — reject corrupt Sierra output
-        // (e.g. poc=-76624, val=0). Valid MES range: 3000–10000.
-        bool y_valid = yday_ok
-            && y_poc > 3000 && y_poc < 10000
-            && y_vah > 3000 && y_vah < 10000
-            && y_val > 3000 && y_val < 10000
-            && y_vah >= y_val;
-        if (!y_valid) {
-            y_poc = 0; y_vah = 0; y_val = 0;
+        // ── BAILOUT — V7.9.1: Emergency exit (same as CLOSE, tagged for analytics) ──
+        if (cmd == "BAILOUT") {
+            sc.FlattenAndCancelAllOrders();
+            writeResult("OK", "BAILOUT executed", 0);
+            sc.AddMessageToLog(
+                "C5: V7.9.1 BAILOUT executed (FlattenAndCancelAllOrders)", 1);
+            goto c5_done;
         }
 
-        // ── Yesterday Initial Balance (Step 9, 2026-05-28) ──
-        // Same subgraph layout as today's IB study (Study ID:6):
-        //   ACSIL idx 6 = IB High, idx 8 = IB Low.
-        // The Sierra Study ID is configured via Input 19 (default 0 = disabled).
-        // When disabled or invalid, emit 0 so backend can treat as null.
-        int y_ib_study_id = YesterdayIBStudyID.GetInt();
-        float y_ib_h = 0, y_ib_l = 0;
-        bool y_ib_found = false;
-        if (y_ib_study_id > 0) {
-            SCFloatArray y_ib_high_arr, y_ib_low_arr;
-            sc.GetStudyArrayFromChartUsingID(chart_num, y_ib_study_id, 6, y_ib_high_arr);
-            sc.GetStudyArrayFromChartUsingID(chart_num, y_ib_study_id, 8, y_ib_low_arr);
-            int yil = y_ib_high_arr.GetArraySize() - 1;
-            if (yil >= 0 && y_ib_high_arr[yil] != 0) {
-                y_ib_h = y_ib_high_arr[yil];
-                y_ib_l = (y_ib_low_arr.GetArraySize() > yil) ? y_ib_low_arr[yil] : 0;
-                // MES range validation — reject corrupt Sierra output
-                bool y_ib_ok = y_ib_h > 3000 && y_ib_h < 10000
-                            && y_ib_l > 3000 && y_ib_l < 10000
-                            && y_ib_h >= y_ib_l;
-                if (y_ib_ok) {
-                    y_ib_found = true;
+        // ── MODIFY_STOP — V7.9.2: Move all 3 stops to new price ──
+        if (cmd == "MODIFY_STOP") {
+            double newStopPrice = jsonNum(cmdJson, "new_stop_price");
+            if (newStopPrice <= 0) {
+                writeResult("ERROR", "MODIFY_STOP: new_stop_price invalid", 0);
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.2 MODIFY_STOP rejected — new_stop_price=%.2f invalid",
+                    newStopPrice), 1);
+                goto c5_done;
+            }
+
+            int stopIds[3] = {
+                sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
+            };
+            const char* stopNames[3] = {"S1", "S2", "S3"};
+
+            int modifiedCount = 0;
+            // BOUNDED loop: exactly 3 iterations
+            for (int i = 0; i < 3; i++) {
+                int stopId = stopIds[i];
+                if (stopId <= 0) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.2 MODIFY_STOP skip %s — id=0",
+                        stopNames[i]), 1);
+                    continue;
+                }
+
+                s_SCTradeOrder ExistingOrder;
+                if (sc.GetOrderByOrderID(stopId, ExistingOrder)
+                    == SCTRADING_ORDER_ERROR) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.2 MODIFY_STOP skip %s — id=%d not found",
+                        stopNames[i], stopId), 1);
+                    continue;
+                }
+
+                if (!IsWorkingOrderStatus(ExistingOrder.OrderStatusCode)) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.2 MODIFY_STOP skip %s — id=%d status=%d (not working)",
+                        stopNames[i], stopId,
+                        (int)ExistingOrder.OrderStatusCode), 1);
+                    continue;
+                }
+
+                s_SCNewOrder ModifyOrder;
+                ModifyOrder.InternalOrderID = stopId;
+                ModifyOrder.Price1 = (float)newStopPrice;
+                ModifyOrder.OrderQuantity = 0;  // Let Sierra manage qty
+
+                int modResult = sc.ModifyOrder(ModifyOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.2 MODIFY_STOP %s id=%d -> price=%.2f result=%d",
+                    stopNames[i], stopId, newStopPrice, modResult), 1);
+
+                if (modResult > 0) modifiedCount++;
+            }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.2 MODIFY_STOP complete — %d/3 stops moved to %.2f",
+                modifiedCount, newStopPrice), 1);
+            writeResult("OK", "MODIFY_STOP executed", modifiedCount);
+            goto c5_done;
+        }
+
+        // ── MODIFY_TARGET — V7.9.3: Modify target prices independently ──
+        if (cmd == "MODIFY_TARGET") {
+            double newT1 = jsonNum(cmdJson, "new_t1");
+            double newT2 = jsonNum(cmdJson, "new_t2");
+            double newT3 = jsonNum(cmdJson, "new_t3");
+
+            int targetIds[3] = {
+                sc.GetPersistentInt(PERSIST_KEY_C1_TARGET_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C2_TARGET_ID),
+                sc.GetPersistentInt(PERSIST_KEY_C3_TARGET_ID),
+            };
+            double newPrices[3] = { newT1, newT2, newT3 };
+            const char* targetNames[3] = {"T1", "T2", "T3"};
+
+            int modifiedCount = 0;
+            // BOUNDED loop: exactly 3 iterations
+            for (int i = 0; i < 3; i++) {
+                double newPrice = newPrices[i];
+                if (newPrice <= 0) continue;  // skip if not provided
+
+                int targetId = targetIds[i];
+                if (targetId <= 0) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.3 MODIFY_TARGET skip %s — id=0",
+                        targetNames[i]), 1);
+                    continue;
+                }
+
+                s_SCTradeOrder ExistingOrder;
+                if (sc.GetOrderByOrderID(targetId, ExistingOrder)
+                    == SCTRADING_ORDER_ERROR) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.3 MODIFY_TARGET skip %s — id=%d not found",
+                        targetNames[i], targetId), 1);
+                    continue;
+                }
+
+                if (!IsWorkingOrderStatus(ExistingOrder.OrderStatusCode)) {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.3 MODIFY_TARGET skip %s — id=%d status=%d (not working)",
+                        targetNames[i], targetId,
+                        (int)ExistingOrder.OrderStatusCode), 1);
+                    continue;
+                }
+
+                s_SCNewOrder ModifyOrder;
+                ModifyOrder.InternalOrderID = targetId;
+                ModifyOrder.Price1 = (float)newPrice;
+                ModifyOrder.OrderQuantity = 0;  // Let Sierra manage qty
+
+                int modResult = sc.ModifyOrder(ModifyOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: V7.9.3 MODIFY_TARGET %s id=%d -> price=%.2f result=%d",
+                    targetNames[i], targetId, newPrice, modResult), 1);
+
+                if (modResult > 0) modifiedCount++;
+            }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.9.3 MODIFY_TARGET complete — %d targets modified",
+                modifiedCount), 1);
+            writeResult("OK", "MODIFY_TARGET executed", modifiedCount);
+            goto c5_done;
+        }
+
+        // ── BUY / SELL — Bracket Order ──
+        if (cmd != "BUY" && cmd != "SELL") {
+            writeResult("ERROR", "Unknown cmd", 0);
+            goto c5_done;
+        }
+
+        // Validate
+        if (cmdPrice <= 0 || cmdStop <= 0 || cmdQty <= 0 || cmdQty > 3) {
+            writeResult("ERROR", "Invalid price/stop/qty", 0);
+            goto c5_done;
+        }
+        if (std::fabs(cmdPrice - cmdStop) > 15.0) {
+            writeResult("ERROR", "Risk > 15pt", 0);
+            goto c5_done;
+        }
+
+        // V6.8: Strict brackets[] parser with debug logging
+        {
+            struct BracketSpec { std::string id; int qty; double target; };
+            std::vector<BracketSpec> brackets;
+
+            size_t bKey = cmdJson.find("\"brackets\"");
+            if (bKey != std::string::npos) {
+                size_t aS = cmdJson.find('[', bKey);
+                size_t aE = cmdJson.find(']', aS);
+                if (aS != std::string::npos && aE != std::string::npos) {
+                    std::string arr = cmdJson.substr(aS + 1, aE - aS - 1);
+                    size_t pos = 0;
+                    while (brackets.size() < 3) {
+                        size_t oS = arr.find('{', pos);
+                        if (oS == std::string::npos) break;
+                        size_t oE = arr.find('}', oS);
+                        if (oE == std::string::npos) break;
+                        std::string obj = arr.substr(oS, oE - oS + 1);
+                        BracketSpec b;
+                        b.id = jsonStr(obj, "id");
+                        b.qty = (int)jsonNum(obj, "qty");
+                        b.target = jsonNum(obj, "target");
+                        brackets.push_back(b);
+                        sc.AddMessageToLog(SCString().Format(
+                            "C5: parsed bracket: id=%s qty=%d target=%.2f",
+                            b.id.c_str(), b.qty, b.target), 1);
+                        pos = oE + 1;
+                    }
+                }
+            }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: parsed %d brackets from JSON", (int)brackets.size()), 1);
+
+            if (brackets.size() == 3) {
+                // V7.0: Single BuyEntry with attached targets + shared stop
+
+                // Sort by target distance: nearest first for LONG, farthest for SHORT
+                std::sort(brackets.begin(), brackets.end(),
+                    [&](const BracketSpec& a, const BracketSpec& b) {
+                        return (cmd == "BUY") ? a.target < b.target : a.target > b.target;
+                    });
+
+                // V7.14.0: c3_mode=="none" → 2 contracts only, skip C3
+                bool c3en = (c3Mode != "none");
+                int orderQty = c3en ? 3 : 2;
+
+                s_SCNewOrder NewOrder;
+                NewOrder.OrderQuantity = orderQty;
+                NewOrder.OrderType = SCT_ORDERTYPE_MARKET;
+                NewOrder.TextTag = "MEMS26_PARENT";
+                NewOrder.Target1Price = (float)brackets[0].target;
+                NewOrder.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                NewOrder.OCOGroup1Quantity = 1;
+                NewOrder.Target2Price = (float)brackets[1].target;
+                NewOrder.AttachedOrderTarget2Type = SCT_ORDERTYPE_LIMIT;
+                NewOrder.OCOGroup2Quantity = 1;
+                if (c3en) {
+                    NewOrder.Target3Price = (float)brackets[2].target;
+                    NewOrder.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
+                    NewOrder.OCOGroup3Quantity = 1;
+                }
+                // V7.6.3: Separate stops per OCO group
+                NewOrder.Stop1Price = (float)cmdStop;
+                NewOrder.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                NewOrder.Stop2Price = (float)cmdStop;
+                NewOrder.AttachedOrderStop2Type = SCT_ORDERTYPE_STOP;
+                if (c3en) {
+                    NewOrder.Stop3Price = (float)cmdStop;
+                    NewOrder.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
+                }
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: %s %d-target bracket dispatch (DLL %s) — T1=%.2f T2=%.2f%s stopAll=%.2f",
+                    cmd.c_str(), orderQty, MEMS26_DLL_VERSION,
+                    brackets[0].target, brackets[1].target,
+                    c3en ? SCString().Format(" T3=%.2f", brackets[2].target).GetChars() : "",
+                    cmdStop), 1);
+
+                int Result = (cmd == "BUY")
+                    ? (int)sc.BuyEntry(NewOrder) : (int)sc.SellEntry(NewOrder);
+
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: bracket dispatch Result=%d", Result), 1);
+                if (Result > 0) {
+                    // V7.7.1d: Persist 7 bracket order IDs for active management
+                    int t1Id = NewOrder.Target1InternalOrderID;
+                    int t2Id = NewOrder.Target2InternalOrderID;
+                    int t3Id = NewOrder.Target3InternalOrderID;
+                    int s1Id = NewOrder.Stop1InternalOrderID;
+                    int s2Id = NewOrder.Stop2InternalOrderID;
+                    int s3Id = NewOrder.Stop3InternalOrderID;
+                    int parentId = NewOrder.InternalOrderID;
+
+                    sc.SetPersistentInt(PERSIST_KEY_C1_TARGET_ID, t1Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_TARGET_ID, t2Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C3_TARGET_ID, t3Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C1_STOP_ID, s1Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_STOP_ID, s2Id);
+                    sc.SetPersistentInt(PERSIST_KEY_C3_STOP_ID, s3Id);
+                    sc.SetPersistentInt(PERSIST_KEY_BUY_PARENT_ID, parentId);
+
+                    // V7.9.5: If InternalOrderID is 0, use Result as parent
+                    if (parentId == 0) parentId = Result;
+                    if (parentId != 0)
+                        sc.SetPersistentInt(PERSIST_KEY_BUY_PARENT_ID, parentId);
+
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.9.5 stored IDs: parent=%d "
+                        "T1=%d T2=%d T3=%d S1=%d S2=%d S3=%d",
+                        parentId, t1Id, t2Id, t3Id, s1Id, s2Id, s3Id), 1);
+                    if (t1Id == 0 && s1Id == 0)
+                        sc.AddMessageToLog(
+                            "C5: WARNING — IDs all zero, Sierra may populate async", 1);
+
+                    // V7.14.0: Compute c3/BE config before fill tracking init
+                    int c3Enabled = (c3Mode != "none") ? 1 : 0;
+                    int beStratInt = 0;  // default: on_c2_fill
+                    if (beStrategy == "on_c1_fill") beStratInt = 1;
+                    else if (beStrategy == "after_c2_plus_half_R") beStratInt = 2;
+
+                    // V7.13.0+V7.14.0: Initialize fill + BE tracking
+                    sc.SetPersistentInt(PERSIST_KEY_C1_FILLED, 0);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_FILLED, 0);
+                    sc.SetPersistentInt(PERSIST_KEY_C3_ACTIVE, c3Enabled);
+                    sc.SetPersistentInt(PERSIST_KEY_ENTRY_PRICE, (int)(cmdPrice * 100));
+                    sc.SetPersistentInt(PERSIST_KEY_BE_APPLIED, 0);
+                    sc.SetPersistentInt(PERSIST_KEY_BE_STRATEGY, beStratInt);
+                    sc.SetPersistentInt(PERSIST_KEY_C2_TARGET, (int)(c2Target * 100));
+                    sc.SetPersistentInt(PERSIST_KEY_STOP_PRICE, (int)(cmdStop * 100));
+                    sc.SetPersistentInt(PERSIST_KEY_C3_ENABLED, c3Enabled);
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.14.0 be_strategy=%s(%d) c3_mode=%s(%d) c1t=%.2f c2t=%.2f",
+                        beStrategy.c_str(), beStratInt, c3Mode.c_str(), c3Enabled,
+                        c1Target, c2Target), 1);
+
+                    s_lastTradeId = tradeId;
+                    // V7.7.1c: Persist trade_id to file for position monitoring
+                    { std::string dp(ExportPath.GetString());
+                      size_t s = dp.rfind('/'); if (s == std::string::npos) s = dp.rfind('\\');
+                      if (s != std::string::npos) {
+                          std::ofstream idf(dp.substr(0, s+1) + "mems26_current_trade_id.txt");
+                          if (idf.is_open()) { idf << tradeId; idf.close(); }
+                      }
+                    }
+                    writeResult("OK", "1 bracket with 3 targets accepted", Result);
+                    sc.AddMessageToLog(
+                        "C5: dispatch complete: 1 bracket with 3 targets accepted", 1);
+                    sc.AddMessageToLog(
+                        "C5: V7.9.0 Auto-BE DISABLED — Backend controls Smart BE", 1);
                 } else {
-                    y_ib_h = 0; y_ib_l = 0;
+                    writeResult("ERROR", "bracket rejected", Result);
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: ERROR bracket rejected: %d", Result), 1);
+                }
+            } else {
+                // V6.8: replaced by strict parser above — kept for reference
+                sc.AddMessageToLog(SCString().Format(
+                    "C5: ERROR expected 3 brackets, got %d — using legacy fallback",
+                    (int)brackets.size()), 1);
+                s_SCNewOrder order;
+                order.OrderQuantity = cmdQty;
+                order.TimeInForce = SCT_TIF_GTC;
+                order.OrderType = SCT_ORDERTYPE_MARKET;
+                order.AttachedOrderStop1Type = SCT_ORDERTYPE_STOP;
+                order.Stop1Price = (float)cmdStop;
+                if (cmdT1 > 0) {
+                    order.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
+                    order.Target1Price = (float)cmdT1;
+                }
+                int result = (cmd == "BUY")
+                    ? (int)sc.BuyEntry(order) : (int)sc.SellEntry(order);
+                if (result > 0) {
+                    SCString msg;
+                    msg.Format("C5: LEGACY %s %d @ %.2f stop=%.2f t1=%.2f",
+                               cmd.c_str(), cmdQty, cmdPrice, cmdStop, cmdT1);
+                    writeResult("OK", msg.GetChars(), result);
+                    sc.AddMessageToLog(msg, 0);
+                } else {
+                    writeResult("ERROR", "Entry failed", result);
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: LEGACY %s FAILED result=%d", cmd.c_str(), result), 1);
                 }
             }
         }
+    }
+    c5_done:;
 
-        j << ",\"previous_session\":{";
-        json_bool(j, "found", y_valid, false);
-        json_float(j, "poc", y_poc);
-        json_float(j, "vah", y_vah);
-        json_float(j, "val", y_val);
-        json_bool(j, "ib_found", y_ib_found);
-        json_float(j, "ib_high", y_ib_h);
-        json_float(j, "ib_low", y_ib_l);
-        j << "}";
+    // V7.7.1c: POSITION CHANGE DETECTION (runs every update interval)
+    {
+        s_SCPositionData PosData;
+        sc.GetTradePosition(PosData);
+        int currentQty = (int)PosData.PositionQuantity;
+        int lastQty = sc.GetPersistentInt(200);
 
-        j << "}";
-        v9_write_json(v9dir, "tpo.json", j.str());
+        if (currentQty != lastQty) {
+            // Read trade_id from sidecar file
+            std::string tradeId = "unknown";
+            std::string dp(ExportPath.GetString());
+            size_t sl = dp.rfind('/'); if (sl == std::string::npos) sl = dp.rfind('\\');
+            std::string dataDir = (sl != std::string::npos) ? dp.substr(0, sl + 1) : "";
+            { std::ifstream idf(dataDir + "mems26_current_trade_id.txt");
+              if (idf.is_open()) { std::getline(idf, tradeId); idf.close(); } }
+
+            std::ostringstream ej;
+            ej << std::fixed << std::setprecision(2);
+            ej << "{\n"
+               << "  \"event_type\": \"POSITION_CHANGE\",\n"
+               << "  \"trade_id\": \"" << tradeId << "\",\n"
+               << "  \"prev_qty\": " << lastQty << ",\n"
+               << "  \"new_qty\": " << currentQty << ",\n"
+               << "  \"last_price\": " << (double)sc.LastTradePrice << ",\n"
+               << "  \"avg_price\": " << (double)PosData.AveragePrice << ",\n"
+               << "  \"ts\": " << (long long)time(NULL) << ",\n"
+               << "  \"dll_version\": \"" << MEMS26_DLL_VERSION << "\"\n"
+               << "}\n";
+
+            std::ofstream ef(dataDir + "trade_events.json");
+            if (ef.is_open()) { ef << ej.str(); ef.close(); }
+
+            sc.AddMessageToLog(SCString().Format(
+                "C5: V7.7.1c position %d -> %d (trade=%s), event written",
+                lastQty, currentQty, tradeId.c_str()), 1);
+            sc.GetPersistentInt(200) = currentQty;
+        }
     }
 
-    // ══════════════════════════════════════════════════════════════
-    // Pipeline 5: Order placement + management (DEMO/Sim only)
-    // Per research §1.2/§5.1/§5.3: Attached Orders on ONE entry.
-    // Guard: skip ALL trading on historical recalc / data download.
-    // ══════════════════════════════════════════════════════════════
-    if (sc.IsFullRecalculation || sc.DownloadingHistoricalData)
-        goto p5_skip_trading;  // safe: no trading on historical bars
-
-    // ── T2.2: Trade Command Polling ──
+    // V7.8.0: ACTIVE TRADE MONITOR (runs every update interval)
+    // Polls 7 stored bracket order IDs, detects status transitions,
+    // writes trade_state.json on changes.
+    // SAFE: bounded loop (7), read-only, no while, no runtime mods.
     {
-        const char* cmd_path = TradeCommandPath.GetString();
-        if (cmd_path[0] != '\0')
-        {
-            std::ifstream cmd_file(cmd_path);
-            if (cmd_file.is_open())
-            {
-                std::string cmd_content((std::istreambuf_iterator<char>(cmd_file)),
-                                         std::istreambuf_iterator<char>());
-                cmd_file.close();
+        int c1Id = sc.GetPersistentInt(PERSIST_KEY_C1_TARGET_ID);
+        int c2Id = sc.GetPersistentInt(PERSIST_KEY_C2_TARGET_ID);
+        int c3Id = sc.GetPersistentInt(PERSIST_KEY_C3_TARGET_ID);
+        int s1Id = sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID);
+        int s2Id = sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID);
+        int s3Id = sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID);
+        int parentId = sc.GetPersistentInt(PERSIST_KEY_BUY_PARENT_ID);
 
-                // Only process if non-empty and contains "op" or "action"
-                if (cmd_content.size() > 10 &&
-                    (cmd_content.find("\"op\"") != std::string::npos ||
-                     cmd_content.find("\"action\"") != std::string::npos))
-                {
-                    // Shared parsers (simple string search — no JSON lib in ACSIL)
-                    auto parse_float = [&](const char* key) -> double {
-                        size_t pos = cmd_content.find(key);
-                        if (pos == std::string::npos) return 0.0;
-                        pos = cmd_content.find(':', pos);
-                        if (pos == std::string::npos) return 0.0;
-                        return atof(cmd_content.c_str() + pos + 1);
+        if (c1Id != 0 || c2Id != 0 || c3Id != 0 ||
+            s1Id != 0 || s2Id != 0 || s3Id != 0 || parentId != 0)
+        {
+            struct OrderInfo {
+                const char* name;
+                int orderId;
+                int statusKey;
+                int currentStatus;
+                double lastFillPrice;
+                int filledQty;
+            };
+
+            OrderInfo orders[7] = {
+                {"C1",     c1Id,     PERSIST_KEY_C1_LAST_STATUS,     -1, 0.0, 0},
+                {"C2",     c2Id,     PERSIST_KEY_C2_LAST_STATUS,     -1, 0.0, 0},
+                {"C3",     c3Id,     PERSIST_KEY_C3_LAST_STATUS,     -1, 0.0, 0},
+                {"S1",     s1Id,     PERSIST_KEY_S1_LAST_STATUS,     -1, 0.0, 0},
+                {"S2",     s2Id,     PERSIST_KEY_S2_LAST_STATUS,     -1, 0.0, 0},
+                {"S3",     s3Id,     PERSIST_KEY_S3_LAST_STATUS,     -1, 0.0, 0},
+                {"parent", parentId, PERSIST_KEY_PARENT_LAST_STATUS, -1, 0.0, 0},
+            };
+
+            bool anyTransition = false;
+
+            // BOUNDED loop: exactly 7 iterations, no growth
+            for (int i = 0; i < 7; i++) {
+                if (orders[i].orderId <= 0) continue;
+
+                s_SCTradeOrder TradeOrder;
+                int qResult = sc.GetOrderByOrderID(orders[i].orderId, TradeOrder);
+
+                if (qResult != SCTRADING_ORDER_ERROR) {
+                    orders[i].currentStatus = (int)TradeOrder.OrderStatusCode;
+                    orders[i].lastFillPrice = (double)TradeOrder.LastFillPrice;
+                    orders[i].filledQty = (int)TradeOrder.FilledQuantity;
+
+                    int lastStatus = sc.GetPersistentInt(orders[i].statusKey);
+                    if (orders[i].currentStatus != lastStatus) {
+                        anyTransition = true;
+                        sc.SetPersistentInt(orders[i].statusKey,
+                                           orders[i].currentStatus);
+                    }
+                }
+            }
+
+            // V7.14.0: Track C1/C2 fills + Adaptive BE
+            if (anyTransition) {
+                // C1 filled?
+                if (orders[0].currentStatus == SCT_OSC_FILLED &&
+                    sc.GetPersistentInt(PERSIST_KEY_C1_FILLED) == 0) {
+                    sc.SetPersistentInt(PERSIST_KEY_C1_FILLED, 1);
+                    sc.AddMessageToLog("C5: V7.14.0 C1 FILLED", 1);
+                }
+                // C2 filled?
+                if (orders[1].currentStatus == SCT_OSC_FILLED &&
+                    sc.GetPersistentInt(PERSIST_KEY_C2_FILLED) == 0) {
+                    sc.SetPersistentInt(PERSIST_KEY_C2_FILLED, 1);
+                    sc.AddMessageToLog("C5: V7.14.0 C2 FILLED", 1);
+                }
+                // C3 closed (filled or canceled)?
+                if (orders[2].currentStatus == SCT_OSC_FILLED ||
+                    orders[2].currentStatus == SCT_OSC_CANCELED) {
+                    sc.SetPersistentInt(PERSIST_KEY_C3_ACTIVE, 0);
+                }
+            }
+
+            // V7.14.0: Adaptive BE — check every bar, not just on transition
+            if (sc.GetPersistentInt(PERSIST_KEY_BE_APPLIED) == 0) {
+                int beStrat = sc.GetPersistentInt(PERSIST_KEY_BE_STRATEGY);
+                int c1f = sc.GetPersistentInt(PERSIST_KEY_C1_FILLED);
+                int c2f = sc.GetPersistentInt(PERSIST_KEY_C2_FILLED);
+                float be_price = sc.GetPersistentInt(PERSIST_KEY_ENTRY_PRICE) / 100.0f;
+
+                bool trigger_be = false;
+
+                if (beStrat == 1 && c1f) {
+                    // on_c1_fill
+                    trigger_be = true;
+                } else if (beStrat == 0 && c2f) {
+                    // on_c2_fill (default)
+                    trigger_be = true;
+                } else if (beStrat == 2 && c2f) {
+                    // after_c2_plus_half_R: wait for price to move 0.5R past C2
+                    float c2Price = sc.GetPersistentInt(PERSIST_KEY_C2_TARGET) / 100.0f;
+                    float stopPrice = sc.GetPersistentInt(PERSIST_KEY_STOP_PRICE) / 100.0f;
+                    float R = (be_price > stopPrice) ? (be_price - stopPrice)
+                                                     : (stopPrice - be_price);
+                    float curPrice = sc.Close[sc.ArraySize - 1];
+                    int dirSign = (be_price < c2Price) ? 1 : -1;
+                    float threshold = c2Price + (0.5f * R * dirSign);
+                    if ((dirSign > 0 && curPrice >= threshold) ||
+                        (dirSign < 0 && curPrice <= threshold)) {
+                        trigger_be = true;
+                    }
+                }
+
+                if (trigger_be && be_price > 0) {
+                    const char* stratNames[3] = {"on_c2_fill", "on_c1_fill", "after_c2_plus_half_R"};
+                    int be_stops[3] = {
+                        sc.GetPersistentInt(PERSIST_KEY_C1_STOP_ID),
+                        sc.GetPersistentInt(PERSIST_KEY_C2_STOP_ID),
+                        sc.GetPersistentInt(PERSIST_KEY_C3_STOP_ID),
                     };
-                    auto parse_int = [&](const char* key) -> int {
-                        size_t pos = cmd_content.find(key);
-                        if (pos == std::string::npos) return 0;
-                        pos = cmd_content.find(':', pos);
-                        if (pos == std::string::npos) return 0;
-                        return atoi(cmd_content.c_str() + pos + 1);
-                    };
-                    // Parse a JSON string value: "key":"value" → value (no quotes)
-                    auto parse_str = [&](const char* key, char* out, int out_sz) -> bool {
-                        size_t pos = cmd_content.find(key);
-                        if (pos == std::string::npos) return false;
-                        pos = cmd_content.find(':', pos);
-                        if (pos == std::string::npos) return false;
-                        pos = cmd_content.find('"', pos + 1);
-                        if (pos == std::string::npos) return false;
-                        pos++; // skip opening quote
-                        size_t end = cmd_content.find('"', pos);
-                        if (end == std::string::npos || (int)(end - pos) >= out_sz) return false;
-                        memcpy(out, cmd_content.c_str() + pos, end - pos);
-                        out[end - pos] = '\0';
-                        return true;
-                    };
-
-                    const char* result_status = "UNKNOWN";
-                    int order_err = 0;
-                    const char* order_err_text = "";  // populated on ORDER_FAILED
-                    bool result_written = false;  // set true by ID-rich write to prevent generic overwrite
-                    int order_armed = EnableOrderPlacement.GetInt();
-
-                    // ── OP: PLACE — Attached Orders bracket (research §5.1) ──
-                    // ONE sc.BuyEntry/SellEntry with Stop1+Target1 attached.
-                    // Sierra manages the OCO server-side. Do NOT submit target/stop separately.
-                    if (cmd_content.find("\"BUY\"") != std::string::npos ||
-                        cmd_content.find("\"SELL\"") != std::string::npos)
-                    {
-                        if (order_armed >= 1)
-                        {
-                            double entry_price = parse_float("\"price\"");
-                            double stop_price  = parse_float("\"stop_price\"");
-                            double t1_price    = parse_float("\"target_price\"");
-                            int    contracts   = parse_int("\"contracts\"");
-                            if (contracts <= 0) contracts = 3;
-                            bool is_buy = (cmd_content.find("\"BUY\"") != std::string::npos);
-
-                            // Up to 4 OCO groups — each contract gets its OWN target + stop.
-                            // Group 1: C1 (1 lot) → Target1 at T0 + Stop1
-                            // Group 2: C2 (1 lot) → Target2 at T1 + Stop2 (re-anchored by manager)
-                            // Group 3: C3 (1 lot) → Target3 at T2 + Stop3 (re-anchored by manager)
-                            // Group 4: C4 (1 lot) → Target4 at T3 + Stop4 (runner, Michael 07-15)
-                            // The manager MODIFY_TARGET each runner's target independently.
-                            double t2_price = parse_float("\"t2\"");
-                            double t3_price = parse_float("\"t3\"");
-                            double t4_price = parse_float("\"t4\"");
-
-                            s_SCNewOrder o;
-                            o.OrderQuantity = contracts;
-                            o.OrderType     = SCT_ORDERTYPE_MARKET;
-                            o.TimeInForce   = SCT_TIF_DAY;
-
-                            // Apply trade account from command (controls SIM vs LIVE routing)
-                            char acct_buf[64] = {0};
-                            if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
-                                o.TradeAccount = acct_buf;
-
-                            // Group 1: C1 = 1 contract
-                            o.OCOGroup1Quantity        = 1;
-                            o.Target1Price             = static_cast<float>(t1_price);
-                            o.AttachedOrderTarget1Type = SCT_ORDERTYPE_LIMIT;
-                            o.Stop1Price               = static_cast<float>(stop_price);
-                            o.AttachedOrderStop1Type   = SCT_ORDERTYPE_STOP;
-
-                            // Group 2: C2 = 1 contract (runner 1)
-                            // If t2 <= 0: stop-only (no target). Rule 1: honest, no synthetic.
-                            if (contracts >= 2)
-                            {
-                                o.OCOGroup2Quantity      = 1;
-                                o.Stop2Price             = static_cast<float>(stop_price);
-                                o.AttachedOrderStop2Type = SCT_ORDERTYPE_STOP;
-                                if (t2_price > 0)
-                                {
-                                    o.Target2Price             = static_cast<float>(t2_price);
-                                    o.AttachedOrderTarget2Type = SCT_ORDERTYPE_LIMIT;
-                                }
-                            }
-
-                            // Group 3: C3 = 1 contract (runner 2)
-                            if (contracts >= 3)
-                            {
-                                o.OCOGroup3Quantity      = 1;
-                                o.Stop3Price             = static_cast<float>(stop_price);
-                                o.AttachedOrderStop3Type = SCT_ORDERTYPE_STOP;
-                                if (t3_price > 0)
-                                {
-                                    o.Target3Price             = static_cast<float>(t3_price);
-                                    o.AttachedOrderTarget3Type = SCT_ORDERTYPE_LIMIT;
-                                }
-                            }
-
-                            // Group 4: C4 = 1 contract (runner 3, Michael 07-15 · 4 contracts)
-                            // DLL-hardening (07-21): ALWAYS build Group 4 with a stop when
-                            // contracts>=4. Target only if t4>0 (same as Groups 2-3).
-                            // Safety: C4 is NEVER naked — even if backend sends t4=None.
-                            if (contracts >= 4)
-                            {
-                                o.OCOGroup4Quantity      = 1;
-                                o.Stop4Price             = static_cast<float>(stop_price);
-                                o.AttachedOrderStop4Type = SCT_ORDERTYPE_STOP;
-                                if (t4_price > 0)
-                                {
-                                    o.Target4Price             = static_cast<float>(t4_price);
-                                    o.AttachedOrderTarget4Type = SCT_ORDERTYPE_LIMIT;
-                                }
-                            }
-
-                            int r = is_buy
-                                ? static_cast<int>(sc.BuyEntry(o))
-                                : static_cast<int>(sc.SellEntry(o));
-
-                            if (r > 0)
-                            {
-                                result_status = "ORDER_SUBMITTED";
-                                // Persist ALL IDs via GetPersistentInt64
-                                // 1=parent, 2=C1 target, 3=C1 stop
-                                // 4=C2 target, 5=C2 stop, 6=C3 target, 7=C3 stop
-                                // 8=C4 target, 9=C4 stop (Michael 07-15, 4 contracts)
-                                sc.GetPersistentInt64(1) = o.InternalOrderID;
-                                sc.GetPersistentInt64(2) = o.Target1InternalOrderID;
-                                sc.GetPersistentInt64(3) = o.Stop1InternalOrderID;
-                                sc.GetPersistentInt64(4) = o.Target2InternalOrderID;
-                                sc.GetPersistentInt64(5) = o.Stop2InternalOrderID;
-                                sc.GetPersistentInt64(6) = o.Target3InternalOrderID;
-                                sc.GetPersistentInt64(7) = o.Stop3InternalOrderID;
-                                sc.GetPersistentInt64(8) = o.Target4InternalOrderID;
-                                sc.GetPersistentInt64(9) = o.Stop4InternalOrderID;
-                                sc.GetPersistentInt(103) = 0;
-                                sc.GetPersistentInt(107) = is_buy ? 1 : -1;  // D1: store direction for EXIT fallback
-
-                                // Write ENTRY fill + the 3 order IDs
-                                const char* fills_path = TradeFillsPath.GetString();
-                                if (fills_path[0] != '\0')
-                                {
-                                    char fb[2048];
-                                    int fl = snprintf(fb, sizeof(fb),
-                                        "{\"kind\":\"ENTRY\",\"ts\":%lld,\"order_id\":%lld,"
-                                        "\"c1_target_id\":%lld,\"c1_stop_id\":%lld,"
-                                        "\"c2_target_id\":%lld,\"c2_stop_id\":%lld,"
-                                        "\"c3_target_id\":%lld,\"c3_stop_id\":%lld,"
-                                        "\"c4_target_id\":%lld,\"c4_stop_id\":%lld,"
-                                        "\"price\":%.2f,\"contracts\":%d,\"direction\":\"%s\"}\n",
-                                        (long long)time(nullptr),
-                                        (long long)o.InternalOrderID,
-                                        (long long)o.Target1InternalOrderID,
-                                        (long long)o.Stop1InternalOrderID,
-                                        (long long)o.Target2InternalOrderID,
-                                        (long long)o.Stop2InternalOrderID,
-                                        (long long)o.Target3InternalOrderID,
-                                        (long long)o.Stop3InternalOrderID,
-                                        (long long)o.Target4InternalOrderID,
-                                        (long long)o.Stop4InternalOrderID,
-                                        entry_price, contracts, is_buy ? "LONG" : "SHORT");
-                                    if (fl > 0 && fl < (int)sizeof(fb))
-                                    {
-                                        std::ofstream ff(fills_path, std::ios::app);
-                                        if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
-                                    }
-                                }
-
-                                // Write order IDs to trade_result.json for backend correlation
-                                const char* res_path = TradeResultPath.GetString();
-                                if (res_path[0] != '\0')
-                                {
-                                    char rb[512];
-                                    int rl = snprintf(rb, sizeof(rb),
-                                        "{\"status\":\"ORDER_SUBMITTED\",\"ts\":%lld,"
-                                        "\"parent_id\":%lld,\"target_id\":%lld,\"stop_id\":%lld}\n",
-                                        (long long)time(nullptr),
-                                        (long long)o.InternalOrderID,
-                                        (long long)o.Target1InternalOrderID,
-                                        (long long)o.Stop1InternalOrderID);
-                                    if (rl > 0 && rl < (int)sizeof(rb))
-                                    {
-                                        std::ofstream rf(res_path);
-                                        if (rf.is_open()) { rf.write(rb, rl); rf.close(); result_written = true; }
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                result_status = "ORDER_FAILED";
-                                order_err = r;
-
-                                // Map ACSIL BuyEntry/SellEntry error codes to human text.
-                                // These are the standard ACSIL return values for order submission.
-                                const char* err_text = "UNKNOWN";
-                                switch (r) {
-                                    case  0: err_text = "NO_ACTION_TAKEN"; break;
-                                    case -1: err_text = "GENERAL_ERROR_OR_NOT_ENABLED"; break;
-                                    case -2: err_text = "NOT_ENOUGH_BARS"; break;
-                                    case -3: err_text = "EXCEEDED_MAX_POSITION"; break;
-                                    case -4: err_text = "NOT_ENOUGH_BARS_SINCE_LAST_ENTRY"; break;
-                                    case -5: err_text = "ONLY_ONE_TRADE_PER_BAR"; break;
-                                    case -6: err_text = "WORKING_ORDERS_EXIST"; break;
-                                    case -7: err_text = "OPPOSING_POSITION_EXISTS"; break;
-                                    case -8: err_text = "ORDER_NOT_ALLOWED_FOR_CHART"; break;
-                                    default: err_text = "UNDOCUMENTED_ERROR"; break;
-                                }
-
-                                order_err_text = err_text;  // expose to final result write
-
-                                // 07-13 iMac BLOCKER: armed PLACE that no-ops (BuyEntry r<=0,
-                                // e.g. r=0 NO_ACTION_TAKEN after a sim-toggle / study re-add) was
-                                // observed to leave trade_result.json EMPTY — silent-failure.
-                                // Write the result INLINE here (don't rely on the generic writer),
-                                // and include send_orders_to_trade_service so the exact cause is
-                                // visible in the result, not just silence. ("No silent failures".)
-                                const char* rp_fail = TradeResultPath.GetString();
-                                if (rp_fail[0] != '\0')
-                                {
-                                    char rb[256];
-                                    int rl = snprintf(rb, sizeof(rb),
-                                        "{\"status\":\"ORDER_FAILED\",\"ts\":%lld,\"error\":%d,"
-                                        "\"error_text\":\"%s\",\"send_orders_to_trade_service\":%d,"
-                                        "\"is_sim\":%d}\n",
-                                        (long long)time(nullptr), r, err_text,
-                                        sc.SendOrdersToTradeService ? 1 : 0,
-                                        sc.GlobalTradeSimulationIsOn ? 1 : 0);
-                                    if (rl > 0 && rl < (int)sizeof(rb))
-                                    {
-                                        std::ofstream rf(rp_fail);
-                                        if (rf.is_open()) { rf.write(rb, rl); rf.close(); result_written = true; }
-                                    }
-                                }
-
-                                // Log to Sierra message log for visual debugging
-                                char log_buf[256];
-                                snprintf(log_buf, sizeof(log_buf),
-                                    "MEMS26: ORDER_FAILED error=%d (%s) %s",
-                                    r, err_text, is_buy ? "BUY" : "SELL");
-                                sc.AddMessageToLog(log_buf, 1);
-                            }
-                        }
-                        else
-                        {
-                            // B1 (07-13, iMac silent-failure report): a DISARMED
-                            // PLACE (Input21=0) was observed to leave
-                            // trade_result.json empty — a silent failure that
-                            // masked the arm-state ("No silent failures", CLAUDE.md).
-                            // Write the ACK_SHADOW result HERE, directly, so a
-                            // disarmed BUY/SELL ALWAYS reports; do not depend on the
-                            // generic writer below (mark result_written to avoid a
-                            // double write).
-                            result_status = "ACK_SHADOW";
-                            const char* rp_shadow = TradeResultPath.GetString();
-                            if (rp_shadow[0] != '\0')
-                            {
-                                char rb[128];
-                                int rl = snprintf(rb, sizeof(rb),
-                                    "{\"status\":\"ACK_SHADOW\",\"ts\":%lld,\"armed\":0}\n",
-                                    (long long)time(nullptr));
-                                if (rl > 0 && rl < (int)sizeof(rb))
-                                {
-                                    std::ofstream rf(rp_shadow);
-                                    if (rf.is_open()) { rf.write(rb, rl); rf.close(); }
-                                }
-                            }
-                            result_written = true;
-                        }
+                    int be_moved = 0;
+                    for (int bi = 0; bi < 3; bi++) {
+                        if (be_stops[bi] <= 0) continue;
+                        s_SCTradeOrder ExOrd;
+                        if (sc.GetOrderByOrderID(be_stops[bi], ExOrd)
+                            == SCTRADING_ORDER_ERROR) continue;
+                        if (!IsWorkingOrderStatus(ExOrd.OrderStatusCode)) continue;
+                        s_SCNewOrder ModOrd;
+                        ModOrd.InternalOrderID = be_stops[bi];
+                        ModOrd.Price1 = be_price;
+                        ModOrd.OrderQuantity = 0;
+                        if (sc.ModifyOrder(ModOrd) > 0) be_moved++;
                     }
-                    // ── OP: MODIFY_STOP — move ALL live stops to new_stop ──
-                    // Primary: read stop_ids array from command JSON (backend sends them).
-                    // Fallback: persistent slots 3,5,7 (may be stale if Pipeline 5 cleared).
-                    else if (cmd_content.find("\"MODIFY_STOP\"") != std::string::npos)
-                    {
-                        if (order_armed >= 1)
-                        {
-                            double new_stop = parse_float("\"new_stop\"");
-                            int mod_count = 0;
-
-                            // Collect stop IDs: prefer stop_ids from command, fallback to persistent
-                            int64_t stop_oids[4] = {0, 0, 0, 0};
-                            int n_from_cmd = 0;
-                            // Parse "stop_ids":[id1,id2,id3,id4] — simple scan for the array
-                            size_t arr_pos = cmd_content.find("\"stop_ids\"");
-                            if (arr_pos != std::string::npos)
-                            {
-                                size_t bracket = cmd_content.find('[', arr_pos);
-                                if (bracket != std::string::npos)
-                                {
-                                    size_t cur = bracket + 1;
-                                    for (int idx = 0; idx < 4 && cur < cmd_content.size(); idx++)
-                                    {
-                                        while (cur < cmd_content.size() && (cmd_content[cur] == ' ' || cmd_content[cur] == ','))
-                                            cur++;
-                                        if (cur >= cmd_content.size() || cmd_content[cur] == ']') break;
-                                        stop_oids[idx] = atoll(cmd_content.c_str() + cur);
-                                        if (stop_oids[idx] > 0) n_from_cmd++;
-                                        while (cur < cmd_content.size() && cmd_content[cur] != ',' && cmd_content[cur] != ']')
-                                            cur++;
-                                    }
-                                }
-                            }
-                            // Fallback: persistent slots (3,5,7,9)
-                            if (n_from_cmd == 0)
-                            {
-                                stop_oids[0] = sc.GetPersistentInt64(3);
-                                stop_oids[1] = sc.GetPersistentInt64(5);
-                                stop_oids[2] = sc.GetPersistentInt64(7);
-                                stop_oids[3] = sc.GetPersistentInt64(9);
-                            }
-
-                            // Snapshot paired target prices BEFORE modifying stops.
-                            // Sierra Attached Orders may auto-drag targets to preserve
-                            // stop-target offset. We re-set targets after to prevent drag.
-                            int64_t tgt_oids[4] = {0, 0, 0, 0};
-                            float   tgt_prices[4] = {0, 0, 0, 0};
-                            // Target slots: 2, 4, 6, 8 (paired with stop slots 3, 5, 7, 9)
-                            for (int ti = 0; ti < 4; ti++)
-                            {
-                                int64_t tid = sc.GetPersistentInt64(2 + ti * 2);
-                                if (tid <= 0) continue;
-                                s_SCTradeOrder to;
-                                if (sc.GetOrderByOrderID(static_cast<int>(tid), to) == SCTRADING_ORDER_ERROR)
-                                    continue;
-                                if (to.OrderStatusCode == SCT_OSC_FILLED) continue;
-                                tgt_oids[ti] = tid;
-                                tgt_prices[ti] = to.Price1;
-                            }
-
-                            for (int si = 0; si < 4; si++)
-                            {
-                                if (stop_oids[si] <= 0) continue;
-                                s_SCTradeOrder so;
-                                if (sc.GetOrderByOrderID(static_cast<int>(stop_oids[si]), so) == SCTRADING_ORDER_ERROR)
-                                    continue;
-                                if (so.OrderStatusCode == SCT_OSC_FILLED) continue;
-                                s_SCNewOrder mod;
-                                mod.InternalOrderID = static_cast<int>(stop_oids[si]);
-                                mod.Price1 = static_cast<float>(new_stop);
-                                int mr = sc.ModifyOrder(mod);
-                                if (mr >= 0) mod_count++;
-                            }
-
-                            // Re-set targets to their original prices (undo Sierra auto-drag)
-                            for (int ti = 0; ti < 4; ti++)
-                            {
-                                if (tgt_oids[ti] <= 0 || tgt_prices[ti] <= 0) continue;
-                                s_SCTradeOrder to2;
-                                if (sc.GetOrderByOrderID(static_cast<int>(tgt_oids[ti]), to2) == SCTRADING_ORDER_ERROR)
-                                    continue;
-                                if (to2.OrderStatusCode == SCT_OSC_FILLED) continue;
-                                // Only re-set if Sierra actually moved the target
-                                if (to2.Price1 != tgt_prices[ti])
-                                {
-                                    s_SCNewOrder tmod;
-                                    tmod.InternalOrderID = static_cast<int>(tgt_oids[ti]);
-                                    tmod.Price1 = tgt_prices[ti];
-                                    sc.ModifyOrder(tmod);
-                                }
-                            }
-                            result_status = (mod_count > 0) ? "MODIFY_STOP_OK" : "MODIFY_STOP_NONE";
-                            order_err = mod_count;
-                        }
-                        else
-                            result_status = "ACK_MGMT";
-                    }
-                    // ── OP: MODIFY_TARGET — move a specific target by order_id ──
-                    // The command carries the order_id of WHICH target to modify (C2 or C3).
-                    else if (cmd_content.find("\"MODIFY_TARGET\"") != std::string::npos)
-                    {
-                        if (order_armed >= 1)
-                        {
-                            double new_target = parse_float("\"new_target\"");
-                            int64_t tgt_oid = (int64_t)parse_int("\"order_id\"");
-                            // Fallback: if no order_id in command, use C1 target
-                            if (tgt_oid <= 0) tgt_oid = sc.GetPersistentInt64(2);
-                            if (tgt_oid > 0 && new_target > 0)
-                            {
-                                s_SCNewOrder mod;
-                                mod.InternalOrderID = static_cast<int>(tgt_oid);
-                                mod.Price1 = static_cast<float>(new_target);
-                                int r = sc.ModifyOrder(mod);
-                                result_status = (r >= 0) ? "MODIFY_TARGET_OK" : "MODIFY_TARGET_FAIL";
-                                order_err = r;
-                            }
-                            else
-                                result_status = "MODIFY_TARGET_NO_ORDER";
-                        }
-                        else
-                            result_status = "ACK_MGMT";
-                    }
-                    // ── OP: FLATTEN_ORPHAN — market-exit for orphan position ──────────
-                    // Michael ruling 2026-07-20: ACSIL cannot place a resting STOP order
-                    // (Exit=MARKET-only, Entry+STOP=r=-1, SubmitOrder doesn't exist).
-                    // Architecture: backend monitors a VIRTUAL stop; when price crosses it,
-                    // backend sends FLATTEN_ORPHAN → DLL executes market-exit via the
-                    // PROVEN SellExit/BuyExit + SCT_ORDERTYPE_MARKET path (same as :1487).
-                    //
-                    // 🔴 REDUCE-ONLY SAFETY (mandatory):
-                    //   1. Read PositionQuantity at execution time
-                    //   2. pos==0 → refuse (FLATTEN_ORPHAN_NO_POSITION)
-                    //   3. qty = min(requested, abs(pos)) — can only flatten, never flip
-                    //   4. Side from POSITION sign (verified against command side)
-                    //   5. Exit-family only: SellExit (LONG→close) / BuyExit (SHORT→cover)
-                    //   6. ZERO Entry calls in this handler
-                    else if (cmd_content.find("\"FLATTEN_ORPHAN\"") != std::string::npos)
-                    {
-                        if (order_armed >= 1)
-                        {
-                            int fo_qty = parse_int("\"qty\"");
-                            char fo_side[16] = {0};
-                            parse_str("\"side\"", fo_side, sizeof(fo_side));
-
-                            if (fo_qty <= 0 ||
-                                (strcmp(fo_side, "LONG") != 0 && strcmp(fo_side, "SHORT") != 0))
-                            {
-                                result_status = "FLATTEN_ORPHAN_BAD_INPUT";
-                                order_err = -1;
-                            }
-                            else
-                            {
-                                // 🔴 Safety: read actual position before executing
-                                s_SCPositionData pos;
-                                sc.GetTradePosition(pos);
-                                int actual_pos = pos.PositionQuantity;
-
-                                if (actual_pos == 0)
-                                {
-                                    result_status = "FLATTEN_ORPHAN_NO_POSITION";
-                                    order_err = 0;
-                                    sc.AddMessageToLog("MEMS26: FLATTEN_ORPHAN refused — no position", 1);
-                                }
-                                // Verify command side matches position sign
-                                else if ((strcmp(fo_side, "LONG") == 0 && actual_pos < 0) ||
-                                         (strcmp(fo_side, "SHORT") == 0 && actual_pos > 0))
-                                {
-                                    result_status = "FLATTEN_ORPHAN_SIDE_MISMATCH";
-                                    order_err = -1;
-                                    sc.AddMessageToLog("MEMS26: FLATTEN_ORPHAN side mismatch vs position", 1);
-                                }
-                                else
-                                {
-                                    // Clamp qty to position size (reduce-only)
-                                    int clamped_qty = (fo_qty < abs(actual_pos)) ? fo_qty : abs(actual_pos);
-
-                                    s_SCNewOrder o;
-                                    o.OrderQuantity = clamped_qty;
-                                    o.OrderType     = SCT_ORDERTYPE_MARKET;  // MARKET — proven path
-                                    o.TimeInForce   = SCT_TIF_DAY;
-
-                                    // Apply trade account from command (controls SIM vs LIVE)
-                                    char acct_buf[64] = {0};
-                                    if (parse_str("\"account\"", acct_buf, sizeof(acct_buf)) && acct_buf[0] != '\0')
-                                        o.TradeAccount = acct_buf;
-
-                                    // FlattenAndCancelAllOrders — the only ACSIL path
-                                    // proven to work for closing orphan positions.
-                                    // SellExit/BuyExit return -1 even on orphans (OCO
-                                    // issue persists regardless of working_orders state).
-                                    // Flatten is safe: the position IS the orphan — we
-                                    // want it gone entirely. The reduce-only guards above
-                                    // (pos check, side match, qty clamp) verified the
-                                    // position exists and matches before we get here.
-                                    int r = sc.FlattenAndCancelAllOrders();
-
-                                    result_status = (r >= 0) ? "FLATTEN_ORPHAN_OK" : "FLATTEN_ORPHAN_FAIL";
-                                    order_err = r;
-
-                                    if (r >= 0)
-                                    {
-                                        // Clear persistent slots (same as FLATTEN_ACCOUNT)
-                                        for (int ci = 1; ci <= 9; ci++) sc.GetPersistentInt64(ci) = 0;
-                                        sc.GetPersistentInt(103) = 1;  // exit_written
-
-                                        char msg[256];
-                                        snprintf(msg, sizeof(msg),
-                                            "MEMS26: FLATTEN_ORPHAN_OK — flatten qty=%d (pos=%d)",
-                                            clamped_qty, actual_pos);
-                                        sc.AddMessageToLog(msg, 0);
-                                    }
-                                }
-                            }
-                        }
-                        else
-                            result_status = "ACK_MGMT";
-                    }
-                    // ── OP: EXIT — PARTIAL market exit of N contracts ────
-                    // Uses sc.BuyExit (for SHORT position) or sc.SellExit (for LONG position)
-                    // with OrderQuantity = exit_qty. This exits exactly N contracts, NOT all.
-                    // FlattenAndCancelAllOrders is reserved for CANCEL (full flatten).
-                    else if (cmd_content.find("\"EXIT\"") != std::string::npos)
-                    {
-                        if (order_armed >= 1)
-                        {
-                            int exit_qty = parse_int("\"contracts\"");
-                            if (exit_qty <= 0) exit_qty = 1;
-
-                            // Determine position direction from the entry to choose exit side
-                            // LONG position → SellExit; SHORT position → BuyExit
-                            s_SCNewOrder exit_order;
-                            exit_order.OrderQuantity = exit_qty;
-                            exit_order.OrderType = SCT_ORDERTYPE_MARKET;
-                            // 07-13 sim-proof: SellExit returned -1 with TIF=GTC on a
-                            // MARKET order (GTC is invalid for market in this config).
-                            // Market exits are immediate — DAY is the correct TIF.
-                            exit_order.TimeInForce = SCT_TIF_DAY;
-
-                            // Determine exit side: position > command direction > stored direction
-                            int r = 0;
-                            int exit_dir = sc.GetPersistentInt(107);  // 1=LONG, -1=SHORT
-                            // D1 fix: also read direction from command JSON
-                            if (cmd_content.find("\"LONG\"") != std::string::npos)
-                                exit_dir = 1;
-                            else if (cmd_content.find("\"SHORT\"") != std::string::npos)
-                                exit_dir = -1;
-                            s_SCPositionData pos;
-                            sc.GetTradePosition(pos);
-                            if (pos.PositionQuantity > 0)
-                                r = static_cast<int>(sc.SellExit(exit_order));
-                            else if (pos.PositionQuantity < 0)
-                                r = static_cast<int>(sc.BuyExit(exit_order));
-                            else if (exit_dir > 0)   // fallback: stored/command direction
-                                r = static_cast<int>(sc.SellExit(exit_order));
-                            else if (exit_dir < 0)
-                                r = static_cast<int>(sc.BuyExit(exit_order));
-                            else
-                                r = -1;
-
-                            result_status = (r > 0) ? "EXIT_OK" : "EXIT_FAIL";
-                            order_err = r;
-
-                            // Write EXIT fill
-                            const char* fills_path = TradeFillsPath.GetString();
-                            if (fills_path[0] != '\0')
-                            {
-                                char fb[512];
-                                int fl = snprintf(fb, sizeof(fb),
-                                    "{\"kind\":\"EXIT\",\"ts\":%lld,\"order_id\":%d,\"contracts\":%d}\n",
-                                    (long long)time(nullptr), r, exit_qty);
-                                if (fl > 0 && fl < (int)sizeof(fb))
-                                {
-                                    std::ofstream ff(fills_path, std::ios::app);
-                                    if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
-                                }
-                            }
-                        }
-                        else
-                            result_status = "ACK_MGMT";
-                    }
-                    // ── OP: FLATTEN_ACCOUNT — flatten NET position + cancel all (FIX-11) ──
-                    // Unlike CANCEL, NOT gated on order_armed: the 07-10 orphan
-                    // (manual short 8704) could not be closed from the system
-                    // because every close path required an armed bracket. This op
-                    // always acts on the account/symbol position.
-                    else if (cmd_content.find("\"FLATTEN_ACCOUNT\"") != std::string::npos)
-                    {
-                        int r = sc.FlattenAndCancelAllOrders();
-                        result_status = (r >= 0) ? "FLATTEN_ACCOUNT_OK" : "FLATTEN_ACCOUNT_FAIL";
-                        order_err = r;
-                        for (int ci = 1; ci <= 9; ci++) sc.GetPersistentInt64(ci) = 0;
-                        sc.GetPersistentInt(103) = 1;  // exit_written
-                        sc.AddMessageToLog("MEMS26: FLATTEN_ACCOUNT executed (FIX-11)", 1);
-                    }
-                    // ── OP: CANCEL — kill working orders / flatten ────────
-                    else if (cmd_content.find("\"CANCEL\"") != std::string::npos)
-                    {
-                        if (order_armed >= 1)
-                        {
-                            int r = sc.FlattenAndCancelAllOrders();
-                            result_status = (r >= 0) ? "CANCEL_OK" : "CANCEL_FAIL";
-                            order_err = r;
-                            for (int ci = 1; ci <= 9; ci++) sc.GetPersistentInt64(ci) = 0;
-                            sc.GetPersistentInt(103) = 1;  // exit_written
-                        }
-                        else
-                            result_status = "ACK_CANCEL";
-                    }
-                    // ── Legacy stubs ──────────────────────────────────────
-                    else if (cmd_content.find("\"CLOSE\"") != std::string::npos ||
-                             cmd_content.find("\"ARM_BE\"") != std::string::npos ||
-                             cmd_content.find("\"SCALE_OUT\"") != std::string::npos ||
-                             cmd_content.find("\"BAILOUT\"") != std::string::npos)
-                    {
-                        result_status = "ACK_MGMT";
-                    }
-
-                    // Write result JSON — skip if the ID-rich ORDER_SUBMITTED path already wrote
-                    const char* res_path = TradeResultPath.GetString();
-                    if (res_path[0] != '\0' && !result_written)
-                    {
-                        char res_buf[512];
-                        int res_len;
-                        if (order_err_text[0] != '\0') {
-                            res_len = snprintf(res_buf, sizeof(res_buf),
-                                "{\"status\":\"%s\",\"ts\":%lld,\"error\":%d,\"error_text\":\"%s\"}\n",
-                                result_status, (long long)time(nullptr), order_err, order_err_text);
-                        } else {
-                            res_len = snprintf(res_buf, sizeof(res_buf),
-                                "{\"status\":\"%s\",\"ts\":%lld,\"error\":%d}\n",
-                                result_status, (long long)time(nullptr), order_err);
-                        }
-                        if (res_len > 0 && res_len < (int)sizeof(res_buf))
-                        {
-                            std::ofstream res_file(res_path);
-                            if (res_file.is_open()) { res_file.write(res_buf, res_len); res_file.close(); }
-                        }
-                    }
-
-                    // Clear command file after processing (prevent re-read)
-                    std::ofstream clear_cmd(cmd_path, std::ofstream::trunc);
-                    if (clear_cmd.is_open()) clear_cmd.close();
+                    sc.SetPersistentInt(PERSIST_KEY_BE_APPLIED, 1);
+                    int si = (beStrat >= 0 && beStrat <= 2) ? beStrat : 0;
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.14.0 Adaptive BE applied: strategy=%s %d/3 stops → %.2f",
+                        stratNames[si], be_moved, be_price), 1);
                 }
             }
-        }
-    }
 
-    // ══════════════════════════════════════════════════════════════
-    // Pipeline 5: Monitor all groups' fills (up to 4)
-    // IDs: 1=parent, 2/3=C1 tgt/stop, 4/5=C2, 6/7=C3, 8/9=C4
-    // ══════════════════════════════════════════════════════════════
-    if (EnableOrderPlacement.GetInt() >= 1)
-    {
-        int64_t p5_parent = sc.GetPersistentInt64(1);
-        int& p5_exit_written = sc.GetPersistentInt(103);
-
-        if (p5_parent > 0 && p5_exit_written == 0)
-        {
-            const char* fills_path = TradeFillsPath.GetString();
-            if (fills_path[0] != '\0')
-            {
-                // Check each group's target + stop (2/3=C1, 4/5=C2, 6/7=C3, 8/9=C4)
-                const char* tgt_kinds[] = {"T1", "T2", "T3", "T4"};
-                for (int gi = 0; gi < 4; gi++)
+            if (anyTransition) {
+                // Read trade_id from sidecar file (V7.7.1c pattern)
+                std::string tradeId = "unknown";
                 {
-                    int tgt_slot = 2 + gi * 2;  // 2, 4, 6
-                    int stp_slot = 3 + gi * 2;  // 3, 5, 7
-                    int64_t tgt_id = sc.GetPersistentInt64(tgt_slot);
-                    int64_t stp_id = sc.GetPersistentInt64(stp_slot);
-
-                    // Check target fill
-                    if (tgt_id > 0)
-                    {
-                        s_SCTradeOrder ti;
-                        if (sc.GetOrderByOrderID(static_cast<int>(tgt_id), ti) != SCTRADING_ORDER_ERROR
-                            && ti.OrderStatusCode == SCT_OSC_FILLED)
-                        {
-                            char fb[512];
-                            int fl = snprintf(fb, sizeof(fb),
-                                "{\"kind\":\"%s\",\"ts\":%lld,\"order_id\":%lld,"
-                                "\"price\":%.2f,\"contracts\":%d}\n",
-                                tgt_kinds[gi], (long long)time(nullptr), (long long)tgt_id,
-                                ti.AvgFillPrice, (int)ti.FilledQuantity);
-                            if (fl > 0 && fl < (int)sizeof(fb))
-                            {
-                                std::ofstream ff(fills_path, std::ios::app);
-                                if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
-                            }
-                            sc.GetPersistentInt64(tgt_slot) = 0;
-                            sc.GetPersistentInt64(stp_slot) = 0; // OCO canceled the stop
-                        }
-                    }
-
-                    // Check stop fill
-                    if (stp_id > 0)
-                    {
-                        s_SCTradeOrder si;
-                        if (sc.GetOrderByOrderID(static_cast<int>(stp_id), si) != SCTRADING_ORDER_ERROR
-                            && si.OrderStatusCode == SCT_OSC_FILLED)
-                        {
-                            char fb[512];
-                            int fl = snprintf(fb, sizeof(fb),
-                                "{\"kind\":\"STOP\",\"ts\":%lld,\"order_id\":%lld,"
-                                "\"price\":%.2f,\"contracts\":%d,\"group\":%d}\n",
-                                (long long)time(nullptr), (long long)stp_id,
-                                si.AvgFillPrice, (int)si.FilledQuantity, gi + 1);
-                            if (fl > 0 && fl < (int)sizeof(fb))
-                            {
-                                std::ofstream ff(fills_path, std::ios::app);
-                                if (ff.is_open()) { ff.write(fb, fl); ff.close(); }
-                            }
-                            sc.GetPersistentInt64(tgt_slot) = 0; // OCO canceled the target
-                            sc.GetPersistentInt64(stp_slot) = 0;
-                        }
+                    std::string dp(ExportPath.GetString());
+                    size_t sl = dp.rfind('/');
+                    if (sl == std::string::npos) sl = dp.rfind('\\');
+                    std::string dataDir = (sl != std::string::npos)
+                        ? dp.substr(0, sl + 1) : "";
+                    std::ifstream idFile(dataDir + "mems26_current_trade_id.txt");
+                    if (idFile.is_open()) {
+                        std::getline(idFile, tradeId);
+                        idFile.close();
                     }
                 }
 
-                // If ALL groups are done (all slots 2-9 = 0), mark fully exited
-                bool all_done = true;
-                for (int ci = 2; ci <= 9; ci++)
-                    if (sc.GetPersistentInt64(ci) != 0) { all_done = false; break; }
-                if (all_done)
-                {
-                    p5_exit_written = 1;
-                    sc.GetPersistentInt64(1) = 0;
-                }
-            }
-        }
-    }
+                auto statusName = [](int code) -> const char* {
+                    if (code == SCT_OSC_OPEN)     return "OPEN";
+                    if (code == SCT_OSC_FILLED)    return "FILLED";
+                    if (code == SCT_OSC_CANCELED)  return "CANCELED";
+                    if (code == SCT_OSC_ERROR)     return "ERROR";
+                    if (code == -1) return "NOT_FOUND";
+                    return "UNKNOWN";
+                };
 
-    p5_skip_trading:  // label for the IsFullRecalculation/DownloadingHistoricalData guard
+                int counter = sc.GetPersistentInt(PERSIST_KEY_STATE_FILE_COUNTER) + 1;
+                sc.SetPersistentInt(PERSIST_KEY_STATE_FILE_COUNTER, counter);
 
-    // ══════════════════════════════════════════════════════════════
-    // T2.3: Reversal Bar Cluster Export
-    // Exports per-bar cluster + empty zone data for Layer 3
-    // ══════════════════════════════════════════════════════════════
-    {
-        // Export the current bar's volume distribution as cluster data
-        // This supplements tick_reversal_15.json with microstructure
-        int rev_idx = sc.Index;
-        float bar_h = sc.High[rev_idx];
-        float bar_l = sc.Low[rev_idx];
-        float bar_v = sc.Volume[rev_idx];
-        float bar_ask = sc.AskVolume[rev_idx];
-        float bar_bid = sc.BidVolume[rev_idx];
-        float bar_range = bar_h - bar_l;
+                SCString stateJson;
+                stateJson.Format(
+                    "{\n"
+                    "  \"event_type\": \"TRADE_STATE\",\n"
+                    "  \"trade_id\": \"%s\",\n"
+                    "  \"counter\": %d,\n"
+                    "  \"ts\": %lld,\n"
+                    "  \"orders\": {\n"
+                    "    \"c1\":     {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"c2\":     {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"c3\":     {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"stop_c1\":{\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"stop_c2\":{\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"stop_c3\":{\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d},\n"
+                    "    \"parent\": {\"id\": %d, \"status\": \"%s\", \"fill_price\": %.2f, \"filled_qty\": %d}\n"
+                    "  },\n"
+                    "  \"dll_version\": \"%s\"\n"
+                    "}\n",
+                    tradeId.c_str(), counter, (long long)time(NULL),
+                    orders[0].orderId, statusName(orders[0].currentStatus), orders[0].lastFillPrice, orders[0].filledQty,
+                    orders[1].orderId, statusName(orders[1].currentStatus), orders[1].lastFillPrice, orders[1].filledQty,
+                    orders[2].orderId, statusName(orders[2].currentStatus), orders[2].lastFillPrice, orders[2].filledQty,
+                    orders[3].orderId, statusName(orders[3].currentStatus), orders[3].lastFillPrice, orders[3].filledQty,
+                    orders[4].orderId, statusName(orders[4].currentStatus), orders[4].lastFillPrice, orders[4].filledQty,
+                    orders[5].orderId, statusName(orders[5].currentStatus), orders[5].lastFillPrice, orders[5].filledQty,
+                    orders[6].orderId, statusName(orders[6].currentStatus), orders[6].lastFillPrice, orders[6].filledQty,
+                    MEMS26_DLL_VERSION
+                );
 
-        if (bar_range > 0 && bar_v > 0)
-        {
-            float tick = sc.TickSize;
-            if (tick <= 0) tick = 0.25f;
-            int steps = (int)(bar_range / tick) + 1;
-            if (steps > 200) steps = 200;
+                // Write to Data directory (same dir as export path)
+                std::string dp(ExportPath.GetString());
+                size_t sl = dp.rfind('/');
+                if (sl == std::string::npos) sl = dp.rfind('\\');
+                std::string statePath = (sl != std::string::npos)
+                    ? dp.substr(0, sl + 1) + "trade_state.json" : "trade_state.json";
 
-            // Find POC (highest volume level) via simple distribution
-            float vol_per_step = bar_v / steps;
-            float poc_price = (bar_h + bar_l) / 2.0f;
-            float poc_vol = vol_per_step;
-
-            // For cluster: top 3 levels around midpoint
-            float mid = (bar_h + bar_l) / 2.0f;
-            float cluster_high = (mid + tick > bar_h) ? bar_h : mid + tick;
-            float cluster_low = (mid - tick < bar_l) ? bar_l : mid - tick;
-
-            // Empty zone: levels at extremes with low volume
-            float empty_high = bar_h;
-            float empty_low = bar_h - tick;
-
-            char cb[512];
-            int cl = snprintf(cb, sizeof(cb),
-                "{\"bar_idx\":%d,\"poc\":%.2f,\"poc_vol\":%.0f,"
-                "\"cluster_high\":%.2f,\"cluster_low\":%.2f,"
-                "\"empty_high\":%.2f,\"empty_low\":%.2f,"
-                "\"bar_vol\":%.0f,\"bar_delta\":%.0f,\"ts\":%lld}\n",
-                rev_idx, poc_price, poc_vol,
-                cluster_high, cluster_low,
-                empty_high, empty_low,
-                bar_v, bar_ask - bar_bid, (long long)time(nullptr));
-            if (cl > 0 && cl < (int)sizeof(cb))
-            {
-                std::string rpath = std::string(v9dir) + "reversal_cluster.json";
-                std::ofstream rf(rpath.c_str());
-                if (rf.is_open()) { rf.write(cb, cl); rf.close(); }
-            }
-        }
-    }
-
-    // ══════════════════════════════════════════════════════════════
-    // Export 10: Continuous 24h 5-min bars + CVD from chart #5
-    // Reads OHLCV + bid/ask volume from a 24h Globex chart (Input 20).
-    // Writes to SEPARATE files — does NOT touch chart #12 RTH exports.
-    // ══════════════════════════════════════════════════════════════
-    {
-        int cont_chart = ContinuousChartNumber.GetInt();
-        if (cont_chart > 0)
-        {
-            // ACSIL: GetChartBaseData fills ALL base arrays at once into SCGraphData
-            SCGraphData c5_data;
-            SCDateTimeArray c5_dt;
-
-            sc.GetChartBaseData(cont_chart, c5_data);
-            sc.GetChartDateTimeArray(cont_chart, c5_dt);
-
-            int c5_size = c5_data[SC_OPEN].GetArraySize();
-            if (c5_size > 0 && c5_dt.GetArraySize() >= c5_size)
-            {
-                int lookback = v9_min_i(c5_size, 600);
-                int start = c5_size - lookback;
-
-                // ── 5min_continuous.json: OHLCV bars ──
-                {
-                    std::ostringstream j;
-                    j << std::fixed << std::setprecision(2);
-                    j << "{";
-                    json_str(j, "type", "5min_continuous", false);
-                    json_str(j, "version", V9_VERSION);
-                    json_long(j, "export_ts", (long long)time(nullptr));
-                    json_int(j, "chart_number", cont_chart);
-                    json_int(j, "total_bars", lookback);
-
-                    j << ",\"bars\":[";
-                    bool first = true;
-                    for (int i = start; i < c5_size; i++)
-                    {
-                        long long ts = v9_sc_datetime_to_unix(c5_dt[i]);
-                        if (ts <= 0) continue;
-                        float o = c5_data[SC_OPEN][i], h = c5_data[SC_HIGH][i];
-                        float l = c5_data[SC_LOW][i], c = c5_data[SC_LAST][i];
-                        float v = c5_data[SC_VOLUME][i];
-                        float delta = (i < (int)c5_data[SC_ASKVOL].GetArraySize() && i < (int)c5_data[SC_BIDVOL].GetArraySize())
-                                    ? c5_data[SC_ASKVOL][i] - c5_data[SC_BIDVOL][i] : 0;
-
-                        if (!first) j << ",";
-                        first = false;
-                        j << "{";
-                        json_long(j, "ts", ts, false);
-                        json_float(j, "o", o);
-                        json_float(j, "h", h);
-                        json_float(j, "l", l);
-                        json_float(j, "c", c);
-                        json_float(j, "vol", v);
-                        json_float(j, "delta", delta);
-                        j << "}";
-                    }
-                    j << "]";
-                    j << "}";
-                    v9_write_json(v9dir, "5min_continuous.json", j.str());
-                }
-
-                // ── cumulative_delta_continuous.json: session-anchored CVD ──
-                {
-                    // Find session start: 18:00 ET rollover (same as main CVD export).
-                    // For simplicity: anchor to the start of lookback window.
-                    // The bridge/backend handles session reset boundaries.
-                    std::ostringstream j;
-                    j << std::fixed << std::setprecision(2);
-                    j << "{";
-                    json_str(j, "type", "cumulative_delta_continuous", false);
-                    json_str(j, "version", V9_VERSION);
-                    json_long(j, "export_ts", (long long)time(nullptr));
-                    json_int(j, "chart_number", cont_chart);
-                    json_int(j, "output_interval", 300);
-
-                    j << ",\"points\":[";
-                    float running = 0;
-                    bool first = true;
-                    for (int i = start; i < c5_size; i++)
-                    {
-                        long long ts = v9_sc_datetime_to_unix(c5_dt[i]);
-                        if (ts <= 0) continue;
-                        float d = (i < (int)c5_data[SC_ASKVOL].GetArraySize() && i < (int)c5_data[SC_BIDVOL].GetArraySize())
-                                ? c5_data[SC_ASKVOL][i] - c5_data[SC_BIDVOL][i] : 0;
-                        running += d;
-
-                        if (!first) j << ",";
-                        first = false;
-                        j << "{";
-                        json_long(j, "t", ts, false);
-                        json_float(j, "d", d);
-                        json_float(j, "cum", running);
-                        json_float(j, "p", c5_data[SC_LAST][i]);
-                        j << "}";
-                    }
-                    j << "]";
-
-                    json_float(j, "current_delta", running);
-                    j << "}";
-                    v9_write_json(v9dir, "cumulative_delta_continuous.json", j.str());
+                std::ofstream stateFile(statePath.c_str());
+                if (stateFile.is_open()) {
+                    stateFile << stateJson.GetChars();
+                    stateFile.close();
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.8.0 trade_state written #%d (trade=%s)",
+                        counter, tradeId.c_str()), 1);
+                } else {
+                    sc.AddMessageToLog(SCString().Format(
+                        "C5: V7.8.0 ERROR: cannot write trade_state.json"), 1);
                 }
             }
         }

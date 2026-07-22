@@ -17,7 +17,12 @@ def _isolate_gates(monkeypatch):
     .env loads DIRECTION_CONTEXT / CONT_TREND_FILTER / ZONE_LIMIT_ENTRY_V1 =1;
     those fire before dedup/shadow paths and make hermetic assertions flake
     (cowork 07-20: duplicate_fire → zone_limit_late_entry).
+    P10 fix: GATEWAY_DECISIONS_PATH → fresh temp file so _hydrate_decisions
+    doesn't load real production decisions into the test gateway.
     """
+    import tempfile, os
+    _tmp = tempfile.mktemp(suffix=".jsonl")
+    monkeypatch.setenv("GATEWAY_DECISIONS_PATH", _tmp)
     for flag in (
         "DIRECTION_CONTEXT",
         "CONT_TREND_FILTER",
@@ -83,7 +88,8 @@ def test_recorder_survives_patternless_setup(monkeypatch):
     assert len(gw.decisions) == 1  # recorded, pattern=None, no exception
 
 
-def test_ring_buffer_capped():
+def test_ring_buffer_capped(monkeypatch):
+    monkeypatch.setenv("GATEWAY_DECISIONS_PATH", "/tmp/_test_gw_decisions_nonexistent.jsonl")
     gw = tg.TradingGateway()
     assert gw.decisions.maxlen == 300
 

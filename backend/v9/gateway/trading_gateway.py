@@ -229,8 +229,9 @@ class TradingGateway:
         # On init, re-hydrate today's decisions from the file.
         from collections import deque as _deque
         self.decisions = _deque(maxlen=300)
-        self._decisions_path = _Path(
-            os.path.expanduser("~/SierraChart_Data/v9_export/gateway_decisions.jsonl"))
+        self._decisions_path = _Path(os.environ.get(
+            "GATEWAY_DECISIONS_PATH",
+            os.path.expanduser("~/SierraChart_Data/v9_export/gateway_decisions.jsonl")))
         self._hydrate_decisions()
 
     def set_system_registry(self, registry: Dict) -> None:
