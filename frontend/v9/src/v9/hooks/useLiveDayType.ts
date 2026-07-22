@@ -73,7 +73,9 @@ export function useLiveDayType(): LiveDayType | null {
           const gate: string | null = live && live.day_type ? String(live.day_type) : null;
           const overridden = !!(gate && gate !== d.final.day_type);
           setDt({
-            day_type: gate ?? d.final.day_type,   // show what the GATE acts on
+            // P0-2 (one-source): the GATE label only; live=null → honest "—"
+            // (never classify_replay — audit-only, flip-flops intra-session)
+            day_type: gate ?? '—',
             gate_day_type: gate,
             overridden,
             status: d.final.status,

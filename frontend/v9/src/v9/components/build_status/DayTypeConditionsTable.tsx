@@ -70,8 +70,9 @@ export function DayTypeConditionsTable() {
         const m = d.measured || {}; const bar = d.second_distribution?.bar || {}; const f = d.final || {};
         setSig({ sides: m.sides, rib: m.rib, close_pos: m.close_pos, one_tf: m.one_tf, vol_ratio: m.vol_ratio, narrow_ib: bar.narrow_ib, neck: bar.neck, invalidated: f.invalidated });
         const gate = live?.day_type ? String(live.day_type) : null;
-        const shown = gate ?? f.day_type ?? null;
-        setActive(shown ? { day_type: shown, status: f.status, gate, replay: f.day_type } : null);
+        // P0-2 (one-source): live=null → honest "—" (FORMING); replay kept as audit only
+        const shown = gate ?? '—';
+        setActive({ day_type: shown, status: gate ? f.status : 'FORMING', gate, replay: f.day_type });
         setOpening(d.opening_type || null);
         const ov = gate && f.day_type && gate !== f.day_type ? ` · gate≠replay(${f.day_type})` : '';
         setStatus(d.n_bars ? `${d.n_bars} bars · ${date}${ov}` : 'no bars yet');

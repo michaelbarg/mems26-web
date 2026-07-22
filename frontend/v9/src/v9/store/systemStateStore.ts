@@ -67,8 +67,11 @@ export const useSystemStateStore = create<SystemStateStore>((set, get) => ({
           ]);
           if (nc?.final?.day_type) {
             const gate: string | null = live && live.day_type ? String(live.day_type) : null;
-            const shown = gate ?? nc.final.day_type;
-            update(1, { state: shown, subState: nc.final.status ?? null, raw: { ...nc.final, gate_day_type: gate, overridden: !!(gate && gate !== nc.final.day_type), measured: nc.measured, source: gate ? 'get_live_day_type' : 'new_classifier' } });
+            // P0-2 (Michael one-source rule 07-22 10:47, cursor audit 16:14):
+            // live=null → honest "—"/FORMING. NEVER fall back to classify_replay
+            // (audit-only; it flip-flops). replay stays visible in raw as audit.
+            const shown = gate ?? '—';
+            update(1, { state: shown, subState: gate ? (nc.final.status ?? null) : 'FORMING', raw: { ...nc.final, gate_day_type: gate, overridden: !!(gate && gate !== nc.final.day_type), measured: nc.measured, source: gate ? 'get_live_day_type' : 'none (FORMING; replay=audit)' } });
           }
         } catch { /* keep the old-engine value set above */ }
       };

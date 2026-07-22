@@ -1291,8 +1291,20 @@ class TradingGateway:
                     if _st is not None:
                         _old_t1 = setup.get("t1")
                         _old_t2 = setup.get("t2")
-                        if _st.get("t1_price") is not None:
+                        # P0-1 (Michael ruling 07-21 T1=entry-structure-end; cursor
+                        # audit 07-22 16:14): when T1_STRUCTURE_END_V1 is ON and the
+                        # system already computed a structural T1, the gateway must
+                        # NOT stomp it. t2/t3 (POC/VAL/IB shelves) still apply.
+                        _t1se_keep = (
+                            os.getenv("T1_STRUCTURE_END_V1", "0").lower() in ("1", "true", "yes")
+                            and _old_t1 is not None
+                        )
+                        if _st.get("t1_price") is not None and not _t1se_keep:
                             setup["t1"] = _st["t1_price"]
+                        elif _t1se_keep and _st.get("t1_price") is not None:
+                            logger.info(
+                                "[Gateway] T1_STRUCTURE_END: keeping structural t1=%.2f (skipped C1=%.2f)",
+                                _old_t1, _st["t1_price"])
                         if _st.get("t2_price") is not None:
                             setup["t2"] = _st["t2_price"]
                             _structural_t2t3_applied = True
@@ -1327,7 +1339,20 @@ class TradingGateway:
                     _pt_entry = float(setup.get("entry_price", 0))
                     _pt_sign = 1.0 if str(direction).upper() == "LONG" else -1.0
                     _pt_old_t1 = setup.get("t1")
-                    setup["t1"] = round(_pt_entry + _pt_sign * _pt_pts, 2)
+                    # P0-1 (Michael ruling 07-21 supersedes the 07-10 fixed-points
+                    # table for T1): when T1_STRUCTURE_END_V1 is ON and a structural
+                    # t1 arrived from the system, keep it — do NOT stomp with the
+                    # per-pattern shelf. t2/t3 behavior below unchanged.
+                    _t1se_keep_pt = (
+                        os.getenv("T1_STRUCTURE_END_V1", "0").lower() in ("1", "true", "yes")
+                        and _pt_old_t1 is not None
+                    )
+                    if not _t1se_keep_pt:
+                        setup["t1"] = round(_pt_entry + _pt_sign * _pt_pts, 2)
+                    else:
+                        logger.info(
+                            "[Gateway] T1_STRUCTURE_END: keeping structural t1=%.2f (skipped pattern shelf %.1fpt)",
+                            _pt_old_t1, _pt_pts)
                     # T2T3_NO_STOMP_V1 (Michael ruling 2026-07-21): when structural
                     # targets already set t2/t3, do NOT overwrite them with ×2/×3.
                     # Structural targets (POC/VAL/IB edge) are Dalton-correct;
