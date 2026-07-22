@@ -3,6 +3,11 @@
 **מייקל 10:45 IL:** רשימה לקלוד לתקן — כולל משימות-אתמול + תיקון סוג-פתיחה/סוג-יום בפרונט +
 שינוי כניסת-S4 לטקטיות רק במיקום שמתאים לסוג-יום. **הכנה ללייב היום.**
 
+**מייקל 10:47 (standing, חוק-ברזל):** *"ממשיכים לעבוד באופן שתהיה הצלבה במקורות ונעבוד ממקור אחד."*
+= **מקור-קנוני אחד** לכל אות (סוג-יום · סוג-פתיחה · הרחבה · מחיר · סטופ/יעד) שמזין **גם** שערים
+**וגם** פרונט. מקורות-אחרים = **הצלבה/audit בלבד** (Rule 5) — לא תווית-חיה, לא fallback שמציג
+Normal כש-live=None. סטייה בין מקורות → LOG + אזהרה, לא בחירה-שקטה של מקור-שני.
+
 **מצב כניסה (cursor 10:45, חוק-5):** `git pull` → HEAD `509ca2c8`. משימות-לילה 1–4 **לא בוצעו**
 (אין קומיטים אחרי 22:45; `.env`: `LSMA_FLAT_GATE_V1=0`, `DAYTYPE_LOCATION_GATE=0`). pre-open:
 `opening_panel` n_bars=0 / opening=null · `day_type/live`=null · status day=UNKNOWN — צפוי לפני 09:30 ET.
@@ -27,19 +32,20 @@
 
 ---
 
-## A — סוג-פתיחה + סוג-יום בפרונט (מייקל 10:45: "שיתקן")
+## A — סוג-פתיחה + סוג-יום בפרונט (מייקל 10:45 + 10:47 מקור-אחד+הצלבה)
 
 **כאב (אתמול, אומת):** פיצול-4-מקורות — `opening_panel.live=Normal` · שער/פלייבוק=`Variation` ·
 `/day_type/live`=null · `classify_replay` מתהפך. מייקל ראה "Normal" וסחר על תווית-שגויה.
 
-**תיקון (smallest):**
-1. **מקור-תצוגה = אותו מקור כמו השערים:** `get_live_day_type` (override-aware). `classify_replay` =
-   audit/EOD בלבד — לא תווית-חיה ב-TopBar / OpeningTypePanel / DayTypeLens.
-2. `OpeningTypePanel`: סוג-פתיחה נשאר מ-`classify_replay` (זה נכון — opening type נקבע פעם אחת),
-   אבל שורת-`live` / `effective_day_type` / פסיקי-התבניות = מ-`get_live_day_type` + playbook על אותה תווית.
-3. כש-`get_live_day_type`=None → UI מציג **"—" / FORMING** בכנות (Rule 1) — לא נופל ל-Normal מדומה.
-4. אחרי restart: `curl …/opening_panel` + `curl …/day_type/live` + צילום-TopBar — אותה תווית ב-3 המקומות.
-5. טסט-רגרסיה: mock live=Variation → panel+TopBar מציגים Variation; live=None → לא מציגים Normal.
+**תיקון (smallest) — מקור-אחד + הצלבה:**
+1. **קנוני לסוג-יום חי:** `get_live_day_type` (override-aware) — **יחיד** לשערים + TopBar +
+   OpeningTypePanel.live + DayTypeLens + `effective_day_type` + playbook-verdicts.
+2. **קנוני לסוג-פתיחה:** אותו מסלול שהמנוע קובע opening type פעם אחת (לא מקור-UI נפרד).
+3. **הצלבה (לא סחר):** `classify_replay` / history / shadow = audit בלבד. אם audit ≠ live → שדה
+   `cross_check: {match:false, audit_label, live_label}` ב-endpoint + LOG warning — **בלי** להחליף את התצוגה.
+4. כש-live=None → UI **"—" / FORMING** בכנות (Rule 1) — אסור fallback ל-Normal / replay / history.
+5. אחרי restart: `curl …/opening_panel` + `curl …/day_type/live` + TopBar — **אותה תווית ב-3**.
+6. טסטים: live=Variation → הכל Variation · live=None → לא-Normal · live≠replay → UI=live + cross_check.match=false.
 
 **קבצים:** `daytype_classify_routes.py` (opening_panel) · `OpeningTypePanel.tsx` · `TopBar.tsx` ·
 store שמזין DayTypeLens. הצלב G5 / `GAP_REGISTER` G-16.
@@ -109,9 +115,12 @@ curl -s localhost:8000/api/v9/day_type/opening_panel | jq .opening,.live,.effect
 ```
 git pull. קרא docs/handoff/CC_LIVE_PREP_2026-07-22.md + docs/handoff/CC_T1_STRUCTURE_END_2026-07-21.md.
 
-מייקל 10:45 — הכנה ללייב היום. סדר:
-A) תקן סוג-פתיחה + סוג-יום בפרונט: מקור-תצוגה = get_live_day_type (כמו השערים);
-   classify_replay = audit בלבד; None → "—" בכנות; OpeningTypePanel+TopBar אותה תווית.
+מייקל 10:45+10:47 — הכנה ללייב היום.
+חוק-ברזל: מקור-אחד לכל אות (שערים=פרונט) + הצלבה=audit בלבד (לא מחליף תווית-חיה; סטייה→LOG).
+
+סדר:
+A) תקן סוג-פתיחה + סוג-יום בפרונט: קנוני=get_live_day_type; classify_replay=audit/הצלבה בלבד;
+   None → "—" בכנות; OpeningTypePanel+TopBar+live endpoint אותה תווית; cross_check בשדה.
 B) S4 טקטי רק במיקום שמתאים לסוג-יום — DAYTYPE_LOCATION_GATE v2 (משימת-לילה 2),
    fixtures #449/452/456 BLOCK + 19:55 VAH ALLOW; הדלקה בריסטארט.
 C+D) T1=סוף-מבנה + סטופ=קיצון-מבנה (אם יש זמן לפני פתיחה; אחרת אחרי-שוק).
