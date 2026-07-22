@@ -124,7 +124,7 @@ def test_breakout_exhausted_falls_to_1r_viability():
     assert (t1 - entry) >= 0.65 * (entry - stop)  # structural stays
     # today's breakout: structure end 2.75 away, stop 5.75 → NOT viable
     entry2, stop2 = 7557.0, 7551.25  # risk 5.75
-    win_break = WIN + [B(7559.75, 7552.0, 7557.0)]  # window high 7559.75 → dist 2.75
+    win_break = WIN + [B(7559.75, 7552.0)]  # window high 7559.75 → dist 2.75
     t1b = SA.structure_end_t1(win_break, "LONG")
     assert t1b - entry2 < 0.65 * (entry2 - stop2)  # viability fails → caller uses 1R
     # 1R target passes the rr gate by construction: dist == risk → rr 1.0
