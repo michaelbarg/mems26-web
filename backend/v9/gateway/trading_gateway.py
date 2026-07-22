@@ -1873,6 +1873,16 @@ class TradingGateway:
         # I-57 trades 271/272), free it HERE so a stuck slot can never block trading.
         self._selfheal_demo_slot()
 
+        # ── shadow_only setups (07-22, opening-entry SHADOW phase): the setup
+        # explicitly asks to be recorded-only. Shadow execution already ran
+        # above; never route to demo/live regardless of slots/flags. Scoped to
+        # setups carrying the metadata — everything else is byte-identical.
+        if bool((setup.get("metadata") or {}).get("shadow_only")):
+            result["shadow"] = True
+            logger.info("[Gateway] shadow_only setup (%s) — recorded, not routed",
+                        setup.get("classification", "?"))
+            return result
+
         if self._rr_selection_enabled:
             # Buffer candidate for bar-close flush (slot NOT filled yet)
             candidate = {

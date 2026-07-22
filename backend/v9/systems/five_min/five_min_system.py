@@ -1141,6 +1141,65 @@ class FiveMinSystem(BaseV9TradingSystem):
         if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
             self._fhb.on_bar()
 
+        # ── Opening-entry triggers (Michael 07-22 "ירי לפי סוג-פתיחה" — REVISED
+        # per the 31-session historical validation, SHADOW phase). Evaluates
+        # bars 2-6 of the session; emits shadow_only setups (gateway records,
+        # never routes live while OPENING_ENTRY_V1=shadow). Honest guards:
+        # collection starts ONLY on the true 16:30-IL open bar (restart
+        # mid-window → skip the day, no fake OR). Non-fatal on any error.
+        if self.mode == FiveMinMode.FIRST_HOUR_TACTICAL:
+            _oe_mode = os.getenv("OPENING_ENTRY_V1", "0").lower()
+            if _oe_mode in ("shadow", "1", "true"):
+                try:
+                    from backend.v9.systems.opening_entry import (
+                        build_opening_setup, evaluate_opening_entry)
+                    _ts_raw = bar.get("ts")
+                    _bar_dt = None
+                    try:
+                        if isinstance(_ts_raw, (int, float)):
+                            from zoneinfo import ZoneInfo as _ZI
+                            _bar_dt = datetime.fromtimestamp(
+                                _ts_raw / 1000 if _ts_raw > 1e12 else _ts_raw,
+                                tz=_ZI("Asia/Jerusalem"))
+                        elif _ts_raw:
+                            _bar_dt = datetime.fromisoformat(str(_ts_raw).replace("Z", "+00:00"))
+                    except Exception:
+                        _bar_dt = None
+                    _d_key = _bar_dt.date().isoformat() if _bar_dt else str(_ts_raw)[:10]
+                    if getattr(self, "_oe_date", None) != _d_key:
+                        self._oe_date = _d_key
+                        self._oe_bars = []
+                        self._oe_fired = set()
+                        self._oe_disabled = False
+                    if not getattr(self, "_oe_disabled", False):
+                        if not self._oe_bars:
+                            _is_open_bar = bool(_bar_dt and _bar_dt.hour == 16 and _bar_dt.minute == 30)
+                            if _is_open_bar:
+                                self._oe_bars.append(bar)
+                            else:
+                                self._oe_disabled = True
+                                logger.info(
+                                    "[FiveMin] OPENING_ENTRY: first seen bar %s is not the 16:30 open — honest skip today",
+                                    _ts_raw)
+                        elif len(self._oe_bars) < 6:
+                            self._oe_bars.append(bar)
+                        if 2 <= len(self._oe_bars) <= 6:
+                            _trig = evaluate_opening_entry(self._oe_bars, self._oe_fired)
+                            if _trig:
+                                self._oe_fired.add(_trig["type"])
+                                _setup = build_opening_setup(
+                                    _trig, self._oe_bars,
+                                    shadow_only=(_oe_mode == "shadow"))
+                                if _setup and self._gateway:
+                                    logger.info(
+                                        "[FiveMin] OPENING_ENTRY %s %s entry=%.2f stop=%.2f t1=%.2f (%s)",
+                                        _trig["type"], _trig["direction"],
+                                        _setup["entry_price"], _setup["stop"], _setup["t1"],
+                                        "SHADOW" if _oe_mode == "shadow" else "live-eligible")
+                                    self._gateway.route_setup(_setup, 2)
+                except Exception as _oe_err:
+                    logger.warning("[FiveMin] opening-entry failed (non-fatal): %s", _oe_err)
+
         # Compute choppiness continuously (all modes, not just FIRST_HOUR)
         # so s2_inspector.choppiness_ok stays fresh in DAY_TYPE_MODE.
         # Uses last 14 bars (rolling window) for stable measurement.

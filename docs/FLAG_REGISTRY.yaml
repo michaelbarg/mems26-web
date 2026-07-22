@@ -100,6 +100,12 @@ flags:
     ref: "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md FIX-6"
 
   # ───────────────────────── S2 — 5-min (Reactive / Initiative) ─────────────────────────
+  OPENING_ENTRY_V1:
+    category: entries
+    what: "Dalton opening-type ENTRY triggers, REVISED per the 31-session historical validation (naive spec scored -6.12R -> NOT live). DRIVE only on narrow OR (<=10pt); TEST_DRIVE excursion >=50% OR from bar 2 (bar-1-wick artifact killed); ORR supersedes a drive; AUCTION=none. value=shadow -> setups emit with metadata.shadow_only (gateway records, never routes demo/live); value=1 -> live-eligible (requires separate Michael ruling after shadow proof)."
+    why: "Michael 07-22: the system must FIRE per opening type, agent-validated on history first. Shadow phase collects forward evidence at zero risk."
+    standing_decision: true
+    ref: "backend/v9/systems/opening_entry.py; five_min_system.py (hook); trading_gateway.py (shadow_only guard)"
   OPENING_FIRE_CVD_V1:
     category: s2
     what: "CVD-confirm OPEN_DRIVE + suppress pre-IB-lock old-engine directional fallback for pattern selection."
