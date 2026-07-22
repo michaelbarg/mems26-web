@@ -32,6 +32,7 @@
 | PriceDisplay / PriceMeta / ConnectionIndicator | מחיר + חיבור | `priceStore` ← WS + `/live_price` | | |
 | AgentHeartbeatDot | פעימת-agent | `/api/agent-heartbeat` | | Next, לא v9 |
 | NewsDropdown | חדשות / NO_TRADE | `/agent/news_calendar` | מחסום | |
+| OpeningTypePanel `strips/OpeningTypePanel.tsx` | סוג-פתיחה + כיוון + **stance (🎯ודאות/🔄היפוך/⏸המתן)** + צופה + חי + ⚠audit≠live + תבניות-playbook עם ●-ירתה | `/day_type/opening_panel` (`opening.*`,`stance`,`provisional`,`live.day_type`,`cross_check`,`patterns[].fired`) | סוג-פתיחה/יום | 15s · stance-fallback סטטי מאושר-דלטון 07-22; backend (opening_type_gate) גובר; live=None→"— FORMING" בכנות |
 | Layer0Strip | chop + 6 מדדים + suffering | `/layer0/state` · `/veto/state` | מחסום | 15s |
 | KeyLevelsStrip | POC/VAH/VAL/IB + סוג-יום | `/key_levels` · `useLiveDayType`→`classify_replay`+`/day_type/live` | סוג-יום/רמות | SoT |
 | ChartV5b | נרות + CVD + TPO/IB + Woodies | `/chart/bars5min` · `/cumulative_delta/current` · `/tpo/*` · `/killzone/current` | | |
