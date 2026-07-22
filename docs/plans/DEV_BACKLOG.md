@@ -10,6 +10,7 @@
 
 | # | עדיפות | משימה | הסבר — מה זה ולמה חשוב | אחראי |
 |---|--------|--------|--------------------------|--------|
+| 19 | **P0 קריטית (מחר)** | 🔴 DB-wedge: migration 023 ALTER v9_trades ADD pnl_sierra נועל את כל ה-DB → backend קפוא + EOD חסום | S6-EOD 07-22: PID 28917 idle-in-txn 1h19m מחזיק AccessShareLock על v9_trades → 6× ALTER (migration 023) תקועים על AccessExclusiveLock → 14 קוראים בתור → /health=http=000, count(*) timeout 5ש. הריצה האוטומטית של s6_eod הייתה מייצרת דוח-שקר "0 עסקאות" — לכן נכתב דוח-אמת ידני. תיקון: ALTER אידמפוטנטי (בדוק information_schema לפני) + advisory-lock + idle_in_transaction_session_timeout. ניקוי-מיידי pg_terminate_backend(28917) בבעלות CC (נותב 19:35Z, עדיין פעיל 20:07Z). כסף בטוח: Sierra -3 ממוגן. | 🟣 |
 | 0 | **P1 גבוהה (מחר)** | ‏op=EXIT v2 — יציאה-חלקית על פוזיציה מבורקטת (cancel-then-exit + never-naked) | ‏SellExit מחזיר ‏r=-1 כי כל חוזה תפוס ב-OCO משלו (אומת iMac PID20495 + קוד 1028-1051); מעולם לא עבד, אין קוראים חיים — בנייה-קדימה לפני הפעלת STALL/S6-autocorrect. פרומפט מוכן: ‏CC_PROMPT_2026-07-14_EXIT_OP_REBUILD.md — ✅ **אושר ('נתקן מחר') — ל-CC מחר** | 🟣 |
 | 5 | **P2 בינונית** | הידרציה מלאה בבוט (**נמסר ל-CC 07-13**, ‏CC_PROMPT_2026-07-13_BACKLOG3) | שחזור שלב-S1 וצוברי-S2 בריסטארט (‏daily_pnl כבר משוחזר) + טבלת-HYDRATION בלוג. מוריד סיכון-ריסטארט באמצע-יום. | 🟣 |
 | 6 | **P2 בינונית** | ‏LaunchAgent לפרונטאנד (**נמסר ל-CC 07-13**) | כרגע הפרונט מוחזק ב-screen (נופל בריבוט עד הפעלה ידנית). נתקע על הרשאות-launchd — צריך פתרון TCC או נתיב חלופי. | 🟣 |

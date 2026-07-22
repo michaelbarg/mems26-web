@@ -3,10 +3,19 @@
  "meta": {
   "title": "לוח-המשימות החי (DEV_BACKLOG)",
   "subtitle": "לוח-המשימות MEMS26 — טבלה מלאה (עדכון: 2026-07-12 לילה — צ'אט-קלוד חי בדשבורד; P1-7/P1-8 פרוסים)",
-  "updated": "2026-07-20 23:13",
+  "updated": "2026-07-22 23:21",
   "priority_note": "P1=גבוהה · P2=בינונית · P3=נמוכה/רעיון · מקור-אמת: docs/plans/DEV_BACKLOG.md"
  },
  "tasks": [
+  {
+   "id": "DEV-19",
+   "title": "🔴 DB-wedge: migration 023 ALTER v9_trades ADD pnl_sierra נועל את כל ה-DB → backend קפוא +…",
+   "priority": "P0",
+   "status": "open",
+   "owner": "CC",
+   "where": "DEV_BACKLOG טבלה 1 — לפיתוח",
+   "next": "S6-EOD 07-22: PID 28917 idle-in-txn 1h19m מחזיק AccessShareLock על v9_trades → 6× ALTER (migration 023) תקועים על AccessExclusiveLock → 14 קוראים בתור → /health=http=000…"
+  },
   {
    "id": "DEV-0",
    "title": "op=EXIT v2 — יציאה-חלקית על פוזיציה מבורקטת (cancel-then-exit + never-naked)",
