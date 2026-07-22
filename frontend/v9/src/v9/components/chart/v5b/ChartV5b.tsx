@@ -231,6 +231,9 @@ export function ChartV5b() {
   const earliestTsRef = useRef<string | null>(null);
   const latestTsRef = useRef<number | null>(null);
   const loadingHistoryRef = useRef(false);
+  // Michael 07-22: keep the user's zoom/pan across the 5s data refresh. Once the
+  // user interacts (wheel/drag), stop re-fitting the visible range on reload.
+  const userAdjustedRef = useRef(false);
   const skipRangeEventsRef = useRef(2);
   const allBarsRef = useRef<any[]>([]);
   /** Last candle time on the series — guards stale WS ticks / poll rows (TASK B). */
@@ -443,6 +446,13 @@ export function ChartV5b() {
     cvdSeriesRef.current = cvdSeries;
     if (tpoOverlayRef.current) applyTpoToChart(tpoOverlayRef.current);
 
+    // Michael 07-22: the moment the user zooms (wheel) or pans (drag) the price
+    // or time axis, mark the view as user-owned so reloads stop re-fitting it.
+    const _markAdjusted = () => { userAdjustedRef.current = true; };
+    const _cont = containerRef.current;
+    _cont?.addEventListener('wheel', _markAdjusted, { passive: true });
+    _cont?.addEventListener('pointerdown', _markAdjusted, { passive: true });
+
     const syncPaneOverlay = () => {
       const el = containerRef.current;
       if (!el) return;
@@ -501,6 +511,8 @@ export function ChartV5b() {
       cancelAnimationFrame(paneTrackRaf);
       paneRo?.disconnect();
       ro.disconnect();
+      _cont?.removeEventListener('wheel', _markAdjusted);
+      _cont?.removeEventListener('pointerdown', _markAdjusted);
       chart.remove();
       chartRef.current = null;
       candleRef.current = null;
@@ -623,17 +635,22 @@ export function ChartV5b() {
       // CVD sync then mirrored onto a 17 h window — user saw 10 price candles
       // and only 2 CVD candles. Lazy-load handler in this file still fetches
       // older data when the user pans left.
+      // Michael 07-22: only auto-fit the FIRST load (or after "Auto" reset).
+      // Once the user zoomed/panned (userAdjustedRef), leave the view exactly
+      // as they set it — new data streams in, the frame does not jump back.
       const DEFAULT_VISIBLE = 60;
       const last = cData.length - 1; // index of newest sanitized bar
       const bucketSize = TF_SECONDS[tf] || 300;
       const nowBucket = Math.floor(Date.now() / 1000 / bucketSize) * bucketSize;
-      if (last >= 0) {
-        const fromIdx = Math.max(0, last - DEFAULT_VISIBLE + 1);
-        const fromTime = cData[fromIdx].time as any;
-        const toTime = Math.max(cData[last].time, nowBucket) as any;
-        chartRef.current?.timeScale().setVisibleRange({ from: fromTime, to: toTime });
-      } else {
-        chartRef.current?.timeScale().fitContent();
+      if (!userAdjustedRef.current) {
+        if (last >= 0) {
+          const fromIdx = Math.max(0, last - DEFAULT_VISIBLE + 1);
+          const fromTime = cData[fromIdx].time as any;
+          const toTime = Math.max(cData[last].time, nowBucket) as any;
+          chartRef.current?.timeScale().setVisibleRange({ from: fromTime, to: toTime });
+        } else {
+          chartRef.current?.timeScale().fitContent();
+        }
       }
       void fetchCvd();
       if (tpoOverlayRef.current) applyTpoToChart(tpoOverlayRef.current);
@@ -949,6 +966,9 @@ export function ChartV5b() {
    */
   const goToLatest = useCallback(() => {
     try {
+      // Michael 07-22: "Latest" also re-hands the view to auto-fit (clears the
+      // user-adjusted lock) so the frame tracks new bars again from here.
+      userAdjustedRef.current = false;
       chartRef.current?.timeScale().scrollToRealTime();
     } catch {
       /* chart not ready */
