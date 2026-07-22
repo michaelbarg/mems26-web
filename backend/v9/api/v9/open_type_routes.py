@@ -1,4 +1,8 @@
-"""Open Type endpoint — /api/v9/open_type/current (D-072)."""
+"""Open Type endpoint — /api/v9/open_type/current (D-072).
+LEGACY (Task A, 2026-07-22): uses the 4-type open_type.py taxonomy. The canonical
+opening-type detection is opening_detector_v2.py (7-type Dalton), exposed via
+/api/v9/day_type/opening_panel. This route is retained for backward compatibility
+but should NOT be used for gate/trading decisions."""
 from fastapi import APIRouter
 from backend.v9.services.market_clock import now_et, is_rth_open, ET
 from backend.v9.systems.day_type.open_type import classify_open_type, TRIGGER_TIME

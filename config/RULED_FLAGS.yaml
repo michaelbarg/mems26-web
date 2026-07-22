@@ -96,7 +96,7 @@ ruled:
   NEWS_BLACKOUT_V1:       {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "פסיקה-סופית ('אמרתי שרק אדום חוסם מסחר'): רק 🔴 חוסם -10/+5 דק'; 🟠🟡 בלוח+פאנל לתצוגה והחלטת-מייקל בלבד (NEWS_WIN_*); רענון-עצמי כל 6ש'; עוגן-BLS בביקורת-שני" }
   PHANTOM_HEAL_V1:        {expected: "1", ruled_by: "מייקל", date: "2026-07-13", note: "אישור 'כן מאשר': reconciler סוגר עסקה-פנטום (backend-active + Sierra flat qty=0/working=0 מהstate-file, ≥3 בדיקות רצופות) → משחרר slot; שמרני (הפוך מ-07-10). פתר את הפנטום-#9 שחסם את יום-הסים" }
   S1_VALUE_MIGRATION_V1:  {expected: "1", ruled_by: "מייקל", date: "2026-07-12", note: "P1-6 מאושר ('להפעיל את 2'): הגירת-Value — וטו-Trend כשה-VA המתפתח חופף ≥80% לאתמול בלי כיוון; רפליי 07-08 DOWN·0 / 06-30 UP·0 / 07-10 חפיפה-1.0" }
-  LSMA_FLAT_GATE_V1:      {expected: "0", ruled_by: "מייקל", date: "2026-07-13", note: "'כרגע לא להפעיל את זה' (בוקר 07-13, אחרי תיאור-הסף) — בנוי ומכויל, כבוי עד פסיקה חדשה" }
+  LSMA_FLAT_GATE_V1:      {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "פסיקת-בוקר 07-22 Task E: 'מחיר תקוע = אנרגיה נצברת; כניסה מוקדמת = הפסד'. fixtures #449/452/456=BLOCK, #444=pass. מחליף כיבוי-07-13" }
   FIXED_CONTRACTS_4:     {expected: "1", ruled_by: "מייקל", date: "2026-07-15", note: "פסיקת-בוקר: 'אני רוצה לעבוד היום על 4 חוזים' — עדיפות-עליונה בכל 6 נקודות-החנק" }
   T0_TARGET_PTS:         {expected: "4.0", ruled_by: "מייקל", date: "2026-07-21", note: "T0 = 4.0 נק' (היה 3.5). פסיקת-בוקר 07-21" }
   TS_OFFSET_INGEST_GATE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "שער ts-offset: דוחה batch עם ts>900s מאחורי now. מונע תקלת 07-20" }
@@ -105,7 +105,7 @@ ruled:
   C4_RULING6_V1:         {expected: "1", ruled_by: "מייקל", date: "2026-07-21", note: "פסיקה-6: C4 target per day-type. Normal/Neutral=opposite edge · Variation=stop-only · Trend=T3(4R). DLL-hardened: C4 always gets stop" }
   SYSTEM6_AUTOCORRECT:   {expected: "protective", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 6/6: מערכת-6 עובדת במדרגה-מגינה — רק BE-completion והפלת-יעד-בצד-שגוי; עירום/רוחב נשארים ALERT" }
   STOP_FLOOR_ROTATION_ATR: {expected: "0.8", ruled_by: "מייקל", date: "2026-07-15", note: "החלטה 5/6: רצפת-סטופ 0.8×ATR בימי Variation/Neutral (שורש מות-#372); מגמה נשארת 0.5" }
-  DAYTYPE_LOCATION_GATE:  {expected: "0", ruled_by: "מייקל", date: "2026-07-20", note: "כובה 11:32 ('לכבות DAYTYPE_LOCATION_GATE') — over-block חי: על Variation דרש CONT ללכת עם-התרחבות, אבל get_live_expansion=None (גלאי-ההרחבה פספס פריצת-IB-מטה של 5 נק' — אותו שורש כמו שגגת-סוג-היום) → חסם את השורט-ההמשכי המרכזי של היום. מחלקת G6/G2/G3 (שער על סיגנל-שבור). היה ON 07-15 (מגן על מיקום-REV, #372 נחסם) — לשחזר אחרי שגלאי-ההרחבה מתוקן (Task #5). היסטוריה: 07-15 ON, REV רק בקצה-ערך + Variation דו-שלבי" }
+  DAYTYPE_LOCATION_GATE:  {expected: "1", ruled_by: "מייקל", date: "2026-07-22", note: "v2: פסיקת 07-21 22:18 + בילד-בוקר 07-22. REV בקצה רק אחרי probe (בר שבדק הרמה ונדחה). #449/#452/#456 mid-value=BLOCK, 19:55 VAH-test=ALLOW. מחליף כיבוי-07-20 (שורש: expansion=None על v1; v2 לא תלוי ב-expansion-signal לבדיקת-probe)" }
   REQUIRE_WITH_TREND_DAY_DIRECTION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-20", note: "fix-2 Dalton: require_with_trend מול כיוון-יום. הודלק פסיקת מייקל 2026-07-20" }
   STRUCTURAL_STOP_ORIGIN_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-20", note: "fix-1: סטופ = swing extreme b1..b3 + 6T. #420" }
   STOP_WINDOW_COMPLETED_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-20", note: "fix-1: completed bars (לא partial)" }

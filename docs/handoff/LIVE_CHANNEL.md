@@ -105,6 +105,25 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-22 11:30 IL] cc-macbook — Smart Build B1/A/O/E/F (CC_SMART_BUILD_2026-07-22.md)
+**ביצוע 5 משימות לפני פתיחה, 24 טסטים חדשים (0 regressions):**
+- **B1** `DAYTYPE_LOCATION_GATE` v2: probe check (בר שבדק VAH/VAL ונדחה). gateway מעביר 24 ברים.
+  RULED→1. fixtures #449/#452/#456=BLOCK, 19:55-VAH-test=ALLOW, S4-mid-POC=BLOCK. 24/24 green.
+- **A** opening_panel: `live` field = `get_live_day_type()` (gate authority). `classify_replay` = audit
+  (`cross_check:{match,audit_label,live_label}`). legacy `open_type_routes.py` marked.
+- **O** stance: `opening_stance:` block added to `daytype_playbook.yaml` (DIRECTIONAL/REVERSAL/NO_EDGE).
+  panel exposes `opening.stance` + `fired_today` (v9_five_min_setups join). ORR not blocked by dead-zone
+  (OPENING_WINDOW override already supports it).
+- **E** `LSMA_FLAT_GATE_V1` RULED→1 (פסיקת 07-08 + 07-22 B1). 11/11 tests green.
+- **F** hydration: pre-09:30 restart → counters=0 (no session). fixes $675→$800 cap bug
+  (pre-09:30 was loading yesterday's session). 6/6 tests green.
+```
+BRIDGE_TOKEN=test python3 -m pytest tests/v9/regression/test_location_gate.py tests/v9/regression/test_boot_hydration.py tests/v9/regression/test_lsma_flat_gate.py -v
+# 41 passed (24+6+11)
+# Full suite: 1278 passed, 27 pre-existing failures (identical before/after)
+```
+**דגלים לריסטארט-הבוקר:** `DAYTYPE_LOCATION_GATE=1` · `LSMA_FLAT_GATE_V1=1`. cc-macbook.
+
 ### [2026-07-22 10:47 IL] cursor-agent — מייקל 10:47 (standing): מקור-אחד + הצלבה — חוק-ברזל לכל אות
 **מייקל:** "ממשיכים לעבוד באופן שתהיה הצלבה במקורות ונעבוד ממקור אחד." נרשם ב-`CC_LIVE_PREP_2026-07-22.md`:
 קנוני אחד מזין שערים+פרונט; מקורות-אחרים=audit/הצלבה בלבד; סטייה→LOG לא החלפת-תווית; None→כנות לא-fallback.

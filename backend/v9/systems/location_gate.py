@@ -1,21 +1,18 @@
-"""location_gate — DAYTYPE_LOCATION_GATE v1 (Michael 2026-07-15, default OFF).
+"""location_gate — DAYTYPE_LOCATION_GATE v2 (Michael 2026-07-22, default OFF).
 
-Dalton doctrine enforcement the audit found MISSING end-to-end: direction must
-match LOCATION per day type. The playbook's `daytype_style` block documented it
-but nothing read it; #372 (07-14) bought the VAH ceiling on a Variation day and
-no gate objected.
+v1 (2026-07-15): On ROTATION days (Variation / Normal / Neutral_*), RESPONSIVE
+(REV) patterns may fire ONLY at the correct value edge (LONG@VAL, SHORT@VAH).
+Blocks mid-range fades and counter-location entries (#372 class). CONT on
+Variation must go WITH detected expansion.
 
-v1 scope — sharp and minimal (the #372 class):
-  On ROTATION days (Variation / Normal / Neutral_*), RESPONSIVE (REV) patterns
-  may fire ONLY at the correct value edge, in the fade direction:
-    LONG  → near-VAL or stretched below value (buying the floor)
-    SHORT → near-VAH or stretched above value (selling the ceiling)
-  Everything else for REV on those days is blocked: mid-range fades and
-  counter-location entries (LONG@VAH — the #372 trade — or SHORT@VAL).
-
-  CONT patterns are untouched (with-expansion/with-trend is enforced by
-  require_with_trend + cont_trend_filter). Trend days are untouched (family
-  gate owns REV there). Missing levels/entry → fail-open with reason.
+v2 additions (פסיקת-מייקל 2026-07-21 22:18 + 2026-07-22 B1):
+  - **Probe requirement:** REV at the correct edge is allowed ONLY after a
+    mechanical probe — a 5-min bar that penetrated the edge (High >= VAH for
+    SHORT / Low <= VAL for LONG) AND closed back inside (Close < VAH / Close >
+    VAL). Without probe = BLOCK. Evidence: #449/#452/#456 (mid-value, no probe)
+    BLOCKED; 19:55 VAH probe → SHORT allowed.
+  - **S4 passes full gate** (no exemption — already confirmed in v1 code path).
+  - **mid-value counter-expansion = BLOCK always** (already in v1 CONT path).
 
 Zone tolerance: 0.25 × IB width (floor 1pt, cap 4pt) around each level.
 Flag: DAYTYPE_LOCATION_GATE (default OFF). Pure functions, no I/O.
@@ -23,9 +20,37 @@ Flag: DAYTYPE_LOCATION_GATE (default OFF). Pure functions, no I/O.
 from __future__ import annotations
 
 import os
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 _ROTATION_PREFIXES = ("Variation", "Normal_Variation", "Normal", "Neutral")
+
+
+def probe_detected(
+    direction: str,
+    vah: float,
+    val: float,
+    recent_bars: Optional[List[Dict]] = None,
+) -> Tuple[bool, str]:
+    """Check if a recent bar probed the target edge and was rejected.
+
+    Probe = bar penetrated the level AND closed back inside:
+      SHORT@VAH: any bar with High >= VAH and Close < VAH
+      LONG@VAL:  any bar with Low  <= VAL and Close > VAL
+    Returns (found, description).
+    """
+    if not recent_bars:
+        return (False, "no bars available")
+    d = direction.upper()
+    for i, bar in enumerate(recent_bars):
+        try:
+            h, l, c = float(bar["high"]), float(bar["low"]), float(bar["close"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if d == "SHORT" and h >= vah and c < vah:
+            return (True, f"bar[{i}] probed VAH (H={h:.2f}>=VAH={vah:.2f}, C={c:.2f}<VAH) — rejected")
+        if d == "LONG" and l <= val and c > val:
+            return (True, f"bar[{i}] probed VAL (L={l:.2f}<=VAL={val:.2f}, C={c:.2f}>VAL) — rejected")
+    return (False, f"no bar probed {'VAH' if d == 'SHORT' else 'VAL'} with rejection close")
 
 
 def _tol(ib_width: Optional[float]) -> float:
@@ -59,11 +84,13 @@ def decide_location(
     entry_price: Optional[float],
     levels: Optional[Dict],
     expansion: Optional[Dict] = None,
+    recent_bars: Optional[List[Dict]] = None,
 ) -> Tuple[bool, str]:
     """(allow, reason). Fail-open on missing data — never a synthetic block.
 
     expansion: the CANONICAL live expansion {"dir","ref"} from
-    get_live_expansion() (volume-accepted reference break, P0-1-v2) — or None."""
+    get_live_expansion() (volume-accepted reference break, P0-1-v2) — or None.
+    recent_bars: recent 5-min bars [{"high","low","close"}, ...] for probe check (v2)."""
     if os.getenv("DAYTYPE_LOCATION_GATE", "0").lower() not in ("1", "true", "yes"):
         return (True, "location gate OFF")
     if family == "CONT":
@@ -97,10 +124,19 @@ def decide_location(
 
     z = zone_of(e, vah, val, (levels or {}).get("ib_width"))
     d = direction.upper()
-    if d == "LONG" and z in ("near_val", "below_value"):
-        return (True, f"fade LONG at the floor ({z}) — doctrine-correct")
-    if d == "SHORT" and z in ("near_vah", "above_value"):
-        return (True, f"fade SHORT at the ceiling ({z}) — doctrine-correct")
-    return (False,
-            f"{dt}: {d} fade at {z} — wrong location (LONG only at VAL-side, "
-            f"SHORT only at VAH-side; the #372 class)")
+    # v1: wrong location → immediate block
+    if d == "LONG" and z not in ("near_val", "below_value"):
+        return (False,
+                f"{dt}: {d} fade at {z} — wrong location (LONG only at VAL-side, "
+                f"SHORT only at VAH-side; the #372 class)")
+    if d == "SHORT" and z not in ("near_vah", "above_value"):
+        return (False,
+                f"{dt}: {d} fade at {z} — wrong location (LONG only at VAL-side, "
+                f"SHORT only at VAH-side; the #372 class)")
+    # v2 (2026-07-22): correct edge — require probe (bar penetrated edge + closed back)
+    probed, probe_reason = probe_detected(d, vah, val, recent_bars)
+    if not probed:
+        return (False,
+                f"{dt}: {d} at correct edge ({z}) but no probe — "
+                f"{probe_reason}; entry requires prior level-test rejection")
+    return (True, f"fade {d} at {z} after probe — doctrine-correct ({probe_reason})")

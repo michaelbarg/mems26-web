@@ -123,6 +123,20 @@ daytype_style:
     stop_be_early: false
     note: "ride the pullback steps with-trend; let runners run to close"
 
+# ── Opening Stance (פסיקות מייקל 2+4, 2026-07-22; Dalton mapping approved) ──
+# Maps opening-type to a trading stance for the opening window. Consumed by
+# opening_panel (display) and opening_type_gate (gate logic). Read-only from here.
+#
+# DIRECTIONAL = with-drive only; approved reversal-at-open = early entry
+# REVERSAL    = counter-to-initial-move trade
+# NO_EDGE     = stand aside, wait for structure
+opening_stance:
+  OPEN_DRIVE:             DIRECTIONAL
+  OPEN_TEST_DRIVE:        DIRECTIONAL
+  OPEN_REJECTION_REVERSE: REVERSAL
+  OPEN_AUCTION_IN:        NO_EDGE
+  OPEN_AUCTION_OUT:       NO_EDGE
+
 # Per-pattern gate. Columns = the 7 day-types. (E=FULL, D=REDUCED, S=SKIP in the spec.)
 patterns:
   # ── Continuation (S4 Woodies + S2 INITIATIVE) ──

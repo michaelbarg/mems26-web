@@ -272,18 +272,31 @@ class TradingGateway:
         On restart, _daily_pnl/_daily_trades/_consecutive_losses reset to 0.
         This is a risk hole: the daily loss halt forgets prior losses.
         Restores from today's closed LIVE trades in the DB.
+
+        Task F (2026-07-22): hydration anchored to 09:30 ET of the CURRENT
+        trading day. Pre-09:30 restart → counters=0/pre-session (no session
+        yet, previous day's trades are irrelevant). Post-09:30 → today's
+        trades only. Yesterday's bug: pre-09:30 hydration loaded yesterday's
+        session → effective cap $675 instead of $800.
         """
         try:
             from backend.v9.db.read import read_all, read_scalar
             from backend.v9.services.market_clock import now_et
-            from datetime import time as _time_cls, timedelta
+            from datetime import time as _time_cls
 
             et_now = now_et()
-            # RTH session date: today if after 09:30 ET, else yesterday
-            if et_now.time() >= _time_cls(9, 30):
-                session_date = et_now.strftime("%Y-%m-%d")
-            else:
-                session_date = (et_now - timedelta(days=1)).strftime("%Y-%m-%d")
+
+            # Pre-09:30 ET: no session has started yet → counters stay at 0
+            # (the previous day's PnL is irrelevant for today's risk caps).
+            if et_now.time() < _time_cls(9, 30):
+                logger.info(
+                    "[Gateway] BOOT_HYDRATION: pre-09:30 ET (%s) — counters=0 (no session yet)",
+                    et_now.strftime("%H:%M:%S"),
+                )
+                return
+
+            # Post-09:30 ET: load today's session trades only
+            session_date = et_now.strftime("%Y-%m-%d")
             session_start = session_date + " 09:30:00"
 
             daily_pnl = read_scalar(
@@ -773,6 +786,18 @@ class TradingGateway:
                     _lg_exp = _lg_exp_fn()
                 except Exception:
                     _lg_exp = None
+                # v2 (07-22): recent bars for probe check (REV at edge requires
+                # prior level-test rejection — bar pierced VAH/VAL + closed back).
+                _lg_bars = None
+                try:
+                    from backend.v9.db.read import read_all as _lg_read
+                    _lg_rows = _lg_read(
+                        "SELECT high, low, close FROM v9_bars_5min_woodies "
+                        "ORDER BY ts DESC LIMIT 24", {})
+                    _lg_bars = [{"high": float(r["high"]), "low": float(r["low"]),
+                                 "close": float(r["close"])} for r in _lg_rows][::-1]
+                except Exception:
+                    pass  # fail-open: no bars → probe_detected returns False → decide handles
                 _lg_allow, _lg_reason = _lg_decide(
                     family=_lg_fam_fn(resolve_pattern_id(setup, _lg_g1) or ""),
                     direction=direction,
@@ -782,6 +807,7 @@ class TradingGateway:
                             "ib_width": (_lg_tpo.get("ib_high") - _lg_tpo.get("ib_low"))
                             if (_lg_tpo.get("ib_high") and _lg_tpo.get("ib_low")) else None},
                     expansion=_lg_exp,
+                    recent_bars=_lg_bars,
                 )
                 if not _lg_allow:
                     result["blocked_by"] = "location_gate"

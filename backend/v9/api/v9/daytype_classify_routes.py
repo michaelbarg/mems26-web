@@ -286,28 +286,49 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
 
 @router.get("/opening_panel")
 def opening_panel() -> Dict[str, Any]:
-    """Opening-Type panel (Michael 2026-07-21): today's opening type + what it
-    foreshadows + which patterns are relevant right now. DISPLAY ONLY — reads the
-    same sources the engine uses, computes nothing new (Rule 1 honest-missing).
+    """Opening-Type panel (Michael 2026-07-22, Task A single-source): today's
+    opening type + what it foreshadows + which patterns are relevant right now.
+    DISPLAY ONLY — reads the same sources the engine uses.
 
-    - opening: from classify_replay(today) — the ONE code path with the live engine.
-    - provisional: the classifier's OWN opening→day-type mapping
-      (_provisional_from_open, Dalton pp.63-74) — reused, not duplicated.
-    - patterns: config/daytype_playbook.yaml cells for the EFFECTIVE day-type
-      (live label when set, else the opening's provisional). SKIP/REDUCED/FULL.
+    Single-source wiring (Task A):
+    - **live day-type = get_live_day_type()** — the SAME authority the gates use
+      (manual override → live machine → prelock → antiflap). NOT classify_replay.
+    - classify_replay stays as **audit/cross-check only** in the `cross_check` field:
+      {match: bool, audit_label: str, live_label: str}. If replay unavailable or
+      day_type is None → "—"/FORMING in honesty (Rule 1, no fallback to Normal).
+    - opening: from classify_replay(today) — opening-type detection.
+    - provisional: the classifier's OWN opening→day-type mapping.
+    - patterns: config/daytype_playbook.yaml cells for the EFFECTIVE day-type.
     """
     today = datetime.now(_ET).date().isoformat()
+
+    # ── LIVE day-type from get_live_day_type (the gate authority) ──
+    live_dt = None
+    try:
+        from backend.v9.services.trade_context import get_live_day_type
+        live_dt = get_live_day_type()
+    except Exception as exc:
+        logger.warning("[opening_panel] get_live_day_type failed: %s", exc)
+
+    # ── Replay for opening-type + audit cross-check ──
+    replay = None
     try:
         replay = classify_replay(today)
     except Exception as exc:
         logger.warning("[opening_panel] classify_replay failed: %s", exc)
-        return {"date": today, "error": f"classify_replay failed: {exc}"}
 
-    final = replay.get("final") or {}
-    opening_type = replay.get("opening_type")
-    open_location_ = replay.get("open_location")
-    live_dt = final.get("day_type")
+    final = (replay.get("final") or {}) if replay else {}
+    opening_type = replay.get("opening_type") if replay else None
+    open_location_ = replay.get("open_location") if replay else None
+    replay_dt = final.get("day_type")
     direction = final.get("direction")
+
+    # Cross-check: live vs replay — audit only, never drives decisions
+    cross_check = {
+        "match": (live_dt == replay_dt) if (live_dt and replay_dt) else None,
+        "audit_label": replay_dt or "—",
+        "live_label": live_dt or "—",
+    }
 
     # Provisional-from-open — the classifier's own mapping (one source, no duplication).
     provisional: Optional[Dict[str, Any]] = None
@@ -325,18 +346,31 @@ def opening_panel() -> Dict[str, Any]:
         except Exception as exc:  # honest missing — panel shows "—"
             logger.warning("[opening_panel] provisional mapping failed: %s", exc)
 
-    # Effective day-type for the pattern column: live label unless still FORMING.
+    # Effective day-type: live label (gate authority) unless still FORMING/None.
+    # Fallback to provisional only for pattern display, NOT for gate decisions.
     effective_dt = live_dt if live_dt and live_dt not in ("FORMING", "UNKNOWN") else (
         (provisional or {}).get("day_type"))
     # playbook uses Variation key for Normal_Variation
     _dt_key = {"Normal_Variation": "Variation"}.get(effective_dt, effective_dt)
 
+    # ── Opening stance (Task O: Dalton mapping from playbook) ──
+    stance = None
+    try:
+        from backend.v9.config_loader import _load_yaml
+        _cfg = _load_yaml("daytype_playbook.yaml") or {}
+        _stance_map = _cfg.get("opening_stance") or {}
+        stance = _stance_map.get(opening_type)  # DIRECTIONAL / REVERSAL / NO_EDGE / None
+    except Exception as exc:
+        logger.warning("[opening_panel] opening_stance load failed: %s", exc)
+
+    # ── Pattern verdicts from playbook ──
     patterns: List[Dict[str, Any]] = []
     playbook_on = os.environ.get("DAYTYPE_PLAYBOOK", "").lower() in ("1", "true", "yes")
     if _dt_key:
         try:
-            from backend.v9.config_loader import _load_yaml
-            _cfg = _load_yaml("daytype_playbook.yaml") or {}
+            if not _cfg:
+                from backend.v9.config_loader import _load_yaml
+                _cfg = _load_yaml("daytype_playbook.yaml") or {}
             for name, pat in (_cfg.get("patterns") or {}).items():
                 cells = pat.get("cells") or {}
                 patterns.append({
@@ -348,21 +382,40 @@ def opening_panel() -> Dict[str, Any]:
         except Exception as exc:
             logger.warning("[opening_panel] playbook load failed: %s", exc)
 
+    # ── Fired patterns today (Task O: join eligible × actually-fired) ──
+    fired: List[Dict[str, Any]] = []
+    try:
+        from backend.v9.db.read import read_all as _fp_read
+        _fp_rows = _fp_read(
+            "SELECT pattern_id, direction, ts FROM v9_five_min_setups "
+            "WHERE (ts::timestamptz AT TIME ZONE 'America/New_York')::date = :d "
+            "ORDER BY ts::timestamptz DESC LIMIT 50",
+            {"d": today})
+        fired = [{"pattern": r["pattern_id"], "direction": r.get("direction"),
+                  "ts": str(r["ts"])} for r in _fp_rows]
+    except Exception as exc:
+        logger.debug("[opening_panel] fired patterns query failed: %s", exc)
+
     return {
         "date": today,
-        "n_bars": replay.get("n_bars", 0),
+        "n_bars": replay.get("n_bars", 0) if replay else 0,
         "opening": {
             "type": opening_type,
             "location": open_location_,
             "direction": direction,
+            "stance": stance,
         },
         "provisional": provisional,
-        "live": {"day_type": live_dt, "status": final.get("status"),
+        "live": {"day_type": live_dt or "—", "status": final.get("status") or "FORMING",
                  "direction": direction, "reason": final.get("reason")},
+        "cross_check": cross_check,
         "effective_day_type": effective_dt,
         "playbook_on": playbook_on,
         "patterns": patterns,
-        "ib": {"high": replay.get("ib_high"), "low": replay.get("ib_low"),
-               "width": replay.get("ib_width"), "source": replay.get("ib_source"),
-               "class": replay.get("ib_class")},
+        "fired_today": fired,
+        "ib": {"high": replay.get("ib_high") if replay else None,
+               "low": replay.get("ib_low") if replay else None,
+               "width": replay.get("ib_width") if replay else None,
+               "source": replay.get("ib_source") if replay else None,
+               "class": replay.get("ib_class") if replay else None},
     }
