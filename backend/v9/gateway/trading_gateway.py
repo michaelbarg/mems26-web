@@ -798,6 +798,32 @@ class TradingGateway:
                                  "close": float(r["close"])} for r in _lg_rows][::-1]
                 except Exception:
                     pass  # fail-open: no bars → probe_detected returns False → decide handles
+                # REV_EDGE_DAY_STRUCTURE_V1 (Michael 'מאשר' 07-22): day-structure
+                # edges for REV — today's session bars give day_high/low + the
+                # 16:30 open bar extreme; IB from tpo. Fail-open on any error.
+                _lg_day_levels = {}
+                _lg_session_bars = None
+                if os.getenv("REV_EDGE_DAY_STRUCTURE_V1", "0").lower() in ("1", "true", "yes"):
+                    try:
+                        _lg_srows = _lg_read(
+                            "SELECT high, low, close, to_char(ts,'HH24:MI') AS hm "
+                            "FROM v9_bars_5min_woodies "
+                            "WHERE ts::date = current_date AND ts::time >= '16:30' "
+                            "ORDER BY ts ASC", {})
+                        if _lg_srows:
+                            _lg_session_bars = [
+                                {"high": float(r["high"]), "low": float(r["low"]),
+                                 "close": float(r["close"])} for r in _lg_srows]
+                            _lg_day_levels = {
+                                "day_high": max(b["high"] for b in _lg_session_bars),
+                                "day_low": min(b["low"] for b in _lg_session_bars),
+                                "open_high": _lg_session_bars[0]["high"],
+                                "open_low": _lg_session_bars[0]["low"],
+                                "ib_high": _lg_tpo.get("ib_high"),
+                                "ib_low": _lg_tpo.get("ib_low"),
+                            }
+                    except Exception:
+                        pass
                 _lg_allow, _lg_reason = _lg_decide(
                     family=_lg_fam_fn(resolve_pattern_id(setup, _lg_g1) or ""),
                     direction=direction,
@@ -805,9 +831,12 @@ class TradingGateway:
                     entry_price=setup.get("entry_price"),
                     levels={"vah": _lg_tpo.get("vah"), "val": _lg_tpo.get("val"),
                             "ib_width": (_lg_tpo.get("ib_high") - _lg_tpo.get("ib_low"))
-                            if (_lg_tpo.get("ib_high") and _lg_tpo.get("ib_low")) else None},
+                            if (_lg_tpo.get("ib_high") and _lg_tpo.get("ib_low")) else None,
+                            **_lg_day_levels},
                     expansion=_lg_exp,
                     recent_bars=_lg_bars,
+                    stop_price=setup.get("stop"),
+                    session_bars=_lg_session_bars,
                 )
                 if not _lg_allow:
                     result["blocked_by"] = "location_gate"

@@ -53,6 +53,66 @@ def probe_detected(
     return (False, f"no bar probed {'VAH' if d == 'SHORT' else 'VAL'} with rejection close")
 
 
+def probe_level(
+    direction: str,
+    level: float,
+    bars: Optional[List[Dict]] = None,
+    touch_tol: float = 0.5,
+) -> Tuple[bool, str]:
+    """Generalized probe against an arbitrary level (day-structure edges,
+    Michael ruling 2026-07-22 'מאשר'): a bar TOUCHED/pierced the level
+    (within touch_tol) and CLOSED back on the safe side.
+      LONG@edge:  Low <= level + touch_tol and Close > level
+      SHORT@edge: High >= level - touch_tol and Close < level"""
+    if not bars:
+        return (False, "no bars available")
+    d = direction.upper()
+    for i, bar in enumerate(bars):
+        try:
+            h, l, c = float(bar["high"]), float(bar["low"]), float(bar["close"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        # rejection close must clear the level by MORE than touch_tol —
+        # a close sitting on the level is sliding, not rejection.
+        if d == "LONG" and l <= level + touch_tol and c > level + touch_tol:
+            return (True, f"bar[{i}] probed {level:.2f} (L={l:.2f}, C={c:.2f}>lvl+tol) — rejected")
+        if d == "SHORT" and h >= level - touch_tol and c < level - touch_tol:
+            return (True, f"bar[{i}] probed {level:.2f} (H={h:.2f}, C={c:.2f}<lvl-tol) — rejected")
+    return (False, f"no bar probed {level:.2f} with rejection close")
+
+
+def day_structure_edge(
+    direction: str,
+    entry: float,
+    stop_price: Optional[float],
+    levels: Dict,
+    tol: float,
+) -> Optional[Tuple[str, float]]:
+    """Michael ruling 07-22 ('מאשר', extending 'קצה' beyond prior-day value):
+    is the trade AT a day-structure edge? Candidate edges for LONG = day_low /
+    ib_low / open_low; for SHORT = day_high / ib_high / open_high. 'At' = entry
+    OR the stop (the structure proxy — it sits just beyond the pattern's
+    anchor) within tol of the level. Returns (edge_name, level) or None."""
+    d = direction.upper()
+    names = ("day_low", "ib_low", "open_low") if d == "LONG" else \
+            ("day_high", "ib_high", "open_high")
+    for name in names:
+        lv = levels.get(name)
+        try:
+            lv = float(lv)
+        except (TypeError, ValueError):
+            continue
+        if abs(entry - lv) <= tol:
+            return (name, lv)
+        if stop_price is not None:
+            try:
+                if abs(float(stop_price) - lv) <= tol:
+                    return (name, lv)
+            except (TypeError, ValueError):
+                pass
+    return None
+
+
 def _tol(ib_width: Optional[float]) -> float:
     try:
         if ib_width and float(ib_width) > 0:
@@ -85,6 +145,8 @@ def decide_location(
     levels: Optional[Dict],
     expansion: Optional[Dict] = None,
     recent_bars: Optional[List[Dict]] = None,
+    stop_price: Optional[float] = None,
+    session_bars: Optional[List[Dict]] = None,
 ) -> Tuple[bool, str]:
     """(allow, reason). Fail-open on missing data — never a synthetic block.
 
@@ -124,15 +186,31 @@ def decide_location(
 
     z = zone_of(e, vah, val, (levels or {}).get("ib_width"))
     d = direction.upper()
-    # v1: wrong location → immediate block
-    if d == "LONG" and z not in ("near_val", "below_value"):
+    _t = _tol((levels or {}).get("ib_width"))
+    # v1: wrong location by VALUE edges → before blocking, check DAY-STRUCTURE
+    # edges (Michael ruling 2026-07-22 'מאשר': a day that bases above value
+    # never touches VAL — the 07-21 double-bottom at day-low 7521.5 had no
+    # armed edge. Edge = also day_low/high, ib_low/high, open extreme — WITH
+    # the same probe requirement, against THAT level). Flag-gated; fail-open
+    # only into the ORIGINAL block (never allows without probe).
+    if (d == "LONG" and z not in ("near_val", "below_value")) or \
+       (d == "SHORT" and z not in ("near_vah", "above_value")):
+        if os.getenv("REV_EDGE_DAY_STRUCTURE_V1", "0").lower() in ("1", "true", "yes"):
+            _edge = day_structure_edge(d, e, stop_price, levels or {}, _t)
+            if _edge:
+                _ename, _elvl = _edge
+                _pbars = session_bars or recent_bars
+                _p_ok, _p_why = probe_level(d, _elvl, _pbars)
+                if _p_ok:
+                    return (True,
+                            f"fade {d} at day-structure edge {_ename}={_elvl:.2f} "
+                            f"after probe — doctrine-correct ({_p_why})")
+                return (False,
+                        f"{dt}: {d} at day-structure edge {_ename}={_elvl:.2f} "
+                        f"but no probe — {_p_why}; entry requires prior level-test rejection")
         return (False,
                 f"{dt}: {d} fade at {z} — wrong location (LONG only at VAL-side, "
-                f"SHORT only at VAH-side; the #372 class)")
-    if d == "SHORT" and z not in ("near_vah", "above_value"):
-        return (False,
-                f"{dt}: {d} fade at {z} — wrong location (LONG only at VAL-side, "
-                f"SHORT only at VAH-side; the #372 class)")
+                f"SHORT only at VAH-side, or day-structure edge w/probe; the #372 class)")
     # v2 (2026-07-22): correct edge — require probe (bar penetrated edge + closed back)
     probed, probe_reason = probe_detected(d, vah, val, recent_bars)
     if not probed:

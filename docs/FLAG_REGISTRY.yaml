@@ -100,6 +100,12 @@ flags:
     ref: "docs/handoff/CC_LIVE_INCIDENT_FIXPACK_2026-07-09.md FIX-6"
 
   # ───────────────────────── S2 — 5-min (Reactive / Initiative) ─────────────────────────
+  REV_EDGE_DAY_STRUCTURE_V1:
+    category: doctrine
+    what: "REV 'edge' extended beyond prior-day value: day_low/day_high, ib_low/ib_high (post-lock), opening-bar extreme. At-edge = entry OR stop (structure proxy) within zone tolerance of the level; entry allowed ONLY after a probe against THAT level (bar touched within 0.5pt AND closed back beyond level+0.5 — sliding close does not count). Wrong-zone with no day edge -> original block. Fail-open only into the ORIGINAL block."
+    why: "Michael ruling 2026-07-22 ('מאשר'): the 07-21 morning double-bottom at day-low 7521.5x2 ran +25pt with no armed edge — VAL was 25pt below. Days basing above value never touch VAL; day-structure edges are Dalton edges too."
+    standing_decision: true
+    ref: "backend/v9/systems/location_gate.py (day_structure_edge, probe_level); trading_gateway.py (session levels feed)"
   OPENING_ENTRY_V1:
     category: entries
     what: "Dalton opening-type ENTRY triggers, REVISED per the 31-session historical validation (naive spec scored -6.12R -> NOT live). DRIVE only on narrow OR (<=10pt); TEST_DRIVE excursion >=50% OR from bar 2 (bar-1-wick artifact killed); ORR supersedes a drive; AUCTION=none. value=shadow -> setups emit with metadata.shadow_only (gateway records, never routes demo/live); value=1 -> live-eligible (requires separate Michael ruling after shadow proof)."
