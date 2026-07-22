@@ -547,8 +547,16 @@ def get_live_day_type() -> Optional[str]:
     if _os.getenv("DAYTYPE_GATE_LIVE_V1", "").lower() not in ("1", "true", "yes"):
         return None
     try:
+        # P0 (07-22 17:40, Michael "למה אין זיהוי"): the RUNNING app is
+        # backend.main's (the real entrypoint) — importing backend.v9.app gives
+        # a DIFFERENT, EMPTY instance (the documented dead-wrapper trap,
+        # CLAUDE.md §Codebase Index). Read the live process' app first via
+        # sys.modules (present in production, absent in unit tests → fallback).
         import importlib as _il
-        _app_mod = _il.import_module("backend.v9.app").app
+        import sys as _sys
+        _main_mod = _sys.modules.get("backend.main")
+        _live_app = getattr(_main_mod, "app", None) if _main_mod else None
+        _app_mod = _live_app if _live_app is not None else _il.import_module("backend.v9.app").app
         _dtm = getattr(_app_mod.state, "day_type_machine", None)
         _mapped = None
         if _dtm:

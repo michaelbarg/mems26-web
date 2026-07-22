@@ -1174,13 +1174,20 @@ class FiveMinSystem(BaseV9TradingSystem):
                     if not getattr(self, "_oe_disabled", False):
                         if not self._oe_bars:
                             _is_open_bar = bool(_bar_dt and _bar_dt.hour == 16 and _bar_dt.minute == 30)
+                            # FIX 07-22 17:40: pre-open bars (e.g. a re-pushed
+                            # 16:25 ETH bar right after a restart) must WAIT,
+                            # not disable the day — that bug cost the shadow
+                            # evidence on a real OPEN_DRIVE day. Disable ONLY
+                            # when a bar AFTER 16:30 arrives while we have no
+                            # open bar (true mid-window start → no honest OR).
                             if _is_open_bar:
                                 self._oe_bars.append(bar)
-                            else:
+                            elif _bar_dt and (_bar_dt.hour, _bar_dt.minute) > (16, 30):
                                 self._oe_disabled = True
                                 logger.info(
-                                    "[FiveMin] OPENING_ENTRY: first seen bar %s is not the 16:30 open — honest skip today",
+                                    "[FiveMin] OPENING_ENTRY: first seen bar %s is past the 16:30 open — honest skip today",
                                     _ts_raw)
+                            # else: pre-open bar → wait for the 16:30 bar
                         elif len(self._oe_bars) < 6:
                             self._oe_bars.append(bar)
                         if 2 <= len(self._oe_bars) <= 6:
