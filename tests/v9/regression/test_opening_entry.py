@@ -121,3 +121,38 @@ def test_gateway_shadow_only_never_routes_live(monkeypatch):
     assert gw.live_slot is None and gw.demo_slot is None
     if not result.get("blocked_by"):
         assert result.get("shadow") is True  # guard branch reached
+
+
+# ── EXTREME_REJECT (Michael's opening rule, validated 31 sessions) ──
+
+def test_extreme_reject_low_test_confirm_fires():
+    """Test bar touches running low + rejection close; next bar confirms
+    (closes higher) → LONG at confirm close, stop = extreme − 10T."""
+    b1 = B(7530.0, 7536.0, 7529.0, 7530.5)
+    b2 = B(7530.5, 7531.0, 7524.0, 7526.0)   # running low 7524
+    b3 = B(7526.0, 7527.0, 7524.25, 7526.5)  # tests 7524 (low 7524.25<=7524.5), closes 7526.5>7524.5
+    b4 = B(7526.5, 7530.0, 7526.0, 7529.0)   # confirms (7529 > 7526.5)
+    t = evaluate_opening_entry([b1, b2, b3, b4])
+    assert t and t["type"] == "EXTREME_REJECT" and t["direction"] == "LONG"
+    s = build_opening_setup(t, [b1, b2, b3, b4], shadow_only=True)
+    assert s["stop"] == 7524.0 - 2.5  # extreme 7524 − 10T
+    assert s["metadata"]["shadow_only"] is True
+
+
+def test_extreme_reject_no_confirm_no_fire():
+    b1 = B(7530.0, 7536.0, 7529.0, 7530.5)
+    b2 = B(7530.5, 7531.0, 7524.0, 7526.0)
+    b3 = B(7526.0, 7527.0, 7524.25, 7526.5)  # test bar
+    b4 = B(7526.5, 7526.75, 7523.0, 7525.0)  # does NOT confirm (close < test close)
+    t = evaluate_opening_entry([b1, b2, b3, b4])
+    assert not (t and t["type"] == "EXTREME_REJECT")
+
+
+def test_extreme_reject_sliding_close_not_a_test():
+    """Close only 0.25 above the extreme = sliding, not rejection."""
+    b1 = B(7530.0, 7536.0, 7529.0, 7530.5)
+    b2 = B(7530.5, 7531.0, 7524.0, 7526.0)
+    b3 = B(7526.0, 7526.5, 7524.0, 7524.25)  # close 7524.25 <= 7524+0.5
+    b4 = B(7524.25, 7528.0, 7524.0, 7527.5)
+    t = evaluate_opening_entry([b1, b2, b3, b4])
+    assert not (t and t["type"] == "EXTREME_REJECT")

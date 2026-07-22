@@ -100,6 +100,33 @@ def evaluate_opening_entry(session_bars: List[Dict[str, Any]],
             return {"type": "DRIVE", "direction": "SHORT", "entry": close,
                     "or_width": or_width}
 
+    # ── EXTREME_REJECT (Michael's opening rule, 07-22 "מדויק" — validated on
+    # 31 sessions): a bar tests the RUNNING session extreme (touch ≤0.5,
+    # rejection close >0.5 back), the NEXT bar CONFIRMS (closes further away).
+    # Validation verdicts applied: confirm-filter kept (12/14 to +1R),
+    # stop widened to extreme ∓10T (6T re-probed routinely; sweep 10-16T
+    # flips expectancy), entry at confirm close, bank at +1R (setup t1).
+    # SHADOW evidence collection — one per session.
+    if "EXTREME_REJECT" not in fired and n >= 3:
+        test_i = n - 2   # candidate test bar = previous bar (index n-2)
+        if test_i >= 1:  # bar 2+
+            prior = session_bars[:test_i]
+            prior_low = min((_f(b, "l", "low") or open_price) for b in prior)
+            prior_high = max((_f(b, "h", "high") or open_price) for b in prior)
+            tb = session_bars[test_i]
+            tb_l, tb_h, tb_c = _f(tb, "l", "low"), _f(tb, "h", "high"), _f(tb, "c", "close")
+            if None not in (tb_l, tb_h, tb_c):
+                # low test + confirm
+                if tb_l <= prior_low + 0.5 and tb_c > prior_low + 0.5 and close > tb_c:
+                    return {"type": "EXTREME_REJECT", "direction": "LONG",
+                            "entry": close, "or_width": or_width,
+                            "extreme": min(prior_low, tb_l), "stop_offset_ticks": 10}
+                # high test + confirm
+                if tb_h >= prior_high - 0.5 and tb_c < prior_high - 0.5 and close < tb_c:
+                    return {"type": "EXTREME_REJECT", "direction": "SHORT",
+                            "entry": close, "or_width": or_width,
+                            "extreme": max(prior_high, tb_h), "stop_offset_ticks": 10}
+
     # ── TEST_DRIVE: excursion beyond open (>= frac*OR) measured from BAR 2
     # onward on one side, no drive-close on that side, then close through the
     # open to the other side.
@@ -128,12 +155,18 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
 
     direction = trigger["direction"]
     entry = float(trigger["entry"])
-    lows = [_f(b, "l", "low") for b in session_bars]
-    highs = [_f(b, "h", "high") for b in session_bars]
-    if direction == "LONG":
-        anchor = min(v for v in lows if v is not None)
+    if trigger.get("extreme") is not None:
+        # EXTREME_REJECT: stop behind the TESTED extreme, wider offset per the
+        # 31-session sweep (6T re-probed routinely; 10T+ flips expectancy).
+        anchor = float(trigger["extreme"])
+        offset_ticks = int(trigger.get("stop_offset_ticks", offset_ticks))
     else:
-        anchor = max(v for v in highs if v is not None)
+        lows = [_f(b, "l", "low") for b in session_bars]
+        highs = [_f(b, "h", "high") for b in session_bars]
+        if direction == "LONG":
+            anchor = min(v for v in lows if v is not None)
+        else:
+            anchor = max(v for v in highs if v is not None)
     stop = SA.apply_offset(anchor, direction, offset_ticks)
     risk = abs(entry - stop)
     if risk <= 0:
