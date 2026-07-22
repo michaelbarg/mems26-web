@@ -232,7 +232,11 @@ class TradingGateway:
         self._decisions_path = _Path(os.environ.get(
             "GATEWAY_DECISIONS_PATH",
             os.path.expanduser("~/SierraChart_Data/v9_export/gateway_decisions.jsonl")))
-        self._hydrate_decisions()
+        # Only hydrate from file when explicitly enabled (production startup).
+        # Tests create TradingGateway() without this flag → clean empty deque,
+        # no cross-test state leakage from the real decisions file.
+        if os.environ.get("GATEWAY_DECISIONS_HYDRATE", "").lower() in ("1", "true", "yes"):
+            self._hydrate_decisions()
 
     def set_system_registry(self, registry: Dict) -> None:
         """Inject system references for cross-context snapshots."""

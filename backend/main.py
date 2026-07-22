@@ -957,6 +957,8 @@ async def _startup():
     # P-TG.5: TradingGateway initialization
     try:
         from backend.v9.gateway import TradingGateway
+        import os as _tg_os
+        _tg_os.environ.setdefault("GATEWAY_DECISIONS_HYDRATE", "1")  # P10: enable hydration in production only
         trading_gateway = TradingGateway()
         # Wire system registry for cross-context snapshots
         system_registry = {}
