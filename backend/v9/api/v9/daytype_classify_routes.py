@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +285,7 @@ def classify_replay(date: str = Query(..., description="ET trading date, YYYY-MM
 
 
 @router.get("/opening_panel")
-def opening_panel() -> Dict[str, Any]:
+def opening_panel(request: Request) -> Dict[str, Any]:
     """Opening-Type panel (Michael 2026-07-22, Task A single-source): today's
     opening type + what it foreshadows + which patterns are relevant right now.
     DISPLAY ONLY — reads the same sources the engine uses.
@@ -396,9 +396,39 @@ def opening_panel() -> Dict[str, Any]:
     except Exception as exc:
         logger.debug("[opening_panel] fired patterns query failed: %s", exc)
 
+    # ── Opening ENTRY triggers (Michael 07-22: "תבניות הפתיחה" visible on the
+    # panel): live state of the 4 opening triggers (incl. Michael's
+    # EXTREME_REJECT rule) — window progress, what fired (shadow), decisions.
+    opening_triggers: Optional[Dict[str, Any]] = None
+    try:
+        _oe_mode = os.environ.get("OPENING_ENTRY_V1", "0").lower()
+        if _oe_mode in ("shadow", "1", "true"):
+            _fm = getattr(request.app.state, "five_min_system", None)
+            _oe_bars_n = len(getattr(_fm, "_oe_bars", []) or []) if _fm else 0
+            _gw_oe = getattr(request.app.state, "trading_gateway", None)
+            _oe_decs = [
+                {"ts": d.get("ts"), "pattern": d.get("pattern"),
+                 "direction": d.get("direction"), "entry": d.get("entry"),
+                 "blocked_by": d.get("blocked_by"), "outcome": d.get("outcome")}
+                for d in list(getattr(_gw_oe, "decisions", []) or [])
+                if str(d.get("pattern", "")).startswith("OPENING_")]
+            opening_triggers = {
+                "mode": "shadow" if _oe_mode == "shadow" else "live",
+                "window_bars_seen": _oe_bars_n,
+                "window_active": 1 <= _oe_bars_n < 6,
+                "window_done": _oe_bars_n >= 6,
+                "disabled_today": bool(getattr(_fm, "_oe_disabled", False)) if _fm else False,
+                "fired": sorted(getattr(_fm, "_oe_fired", set()) or []) if _fm else [],
+                "decisions": _oe_decs[-6:],
+                "catalog": ["DRIVE", "TEST_DRIVE", "ORR", "EXTREME_REJECT"],
+            }
+    except Exception as exc:
+        logger.debug("[opening_panel] opening_triggers failed: %s", exc)
+
     return {
         "date": today,
         "n_bars": replay.get("n_bars", 0) if replay else 0,
+        "opening_triggers": opening_triggers,
         "opening": {
             "type": opening_type,
             "location": open_location_,

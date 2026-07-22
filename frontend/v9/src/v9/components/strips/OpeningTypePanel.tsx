@@ -32,8 +32,28 @@ interface OpeningPanelData {
   stance?: 'DIRECTIONAL' | 'REVERSAL' | 'NO_EDGE' | string | null;
   // single-source cross-check: classify_replay (audit) vs get_live_day_type (live).
   cross_check?: { match: boolean; audit_label?: string | null; live_label?: string | null } | null;
+  // Michael 07-22: live state of the opening ENTRY triggers (incl. EXTREME_REJECT)
+  opening_triggers?: {
+    mode: string;
+    window_bars_seen: number;
+    window_active: boolean;
+    window_done: boolean;
+    disabled_today: boolean;
+    fired: string[];
+    decisions: { ts?: string; pattern?: string; direction?: string; entry?: number;
+                 blocked_by?: string | null; outcome?: string | null }[];
+    catalog: string[];
+  } | null;
   error?: string;
 }
+
+// Michael 07-22: תבניות-הפתיחה — display names for the entry triggers
+const TRIGGER_HE: Record<string, string> = {
+  DRIVE: 'דרייב (OR-צר)',
+  TEST_DRIVE: 'בדיקת-פתיחה',
+  ORR: 'היפוך-דחייה',
+  EXTREME_REJECT: 'בדיקת-קיצון (הכלל של מייקל)',
+};
 
 // Approved Dalton stance map (Michael ruling 2026-07-22) — display fallback only;
 // when the backend sends `stance` (from opening_type_gate) it wins.
@@ -232,6 +252,45 @@ export function OpeningTypePanel() {
             </>
           ) : (
             <span style={{ fontSize: 9, color: COLORS.textDisabled }}>אין סוג-יום עדיין — תבניות לפי playbook יוצגו משנקבע</span>
+          )}
+
+          {/* Michael 07-22: תבניות-הפתיחה — the opening ENTRY triggers, live status */}
+          {data?.opening_triggers && (
+            <>
+              <span style={{ color: COLORS.borderStrong, fontSize: 9 }}>│</span>
+              <span style={{ fontSize: 8, color: COLORS.textTertiary, fontWeight: 600 }}>
+                תבניות-פתיחה{data.opening_triggers.mode === 'shadow' ? ' (צל)' : ''}
+                {data.opening_triggers.window_active
+                  ? ` · בר ${data.opening_triggers.window_bars_seen}/6`
+                  : data.opening_triggers.window_done ? ' · חלון-נסגר' : ' · ממתין-לפתיחה'}:
+              </span>
+              {data.opening_triggers.disabled_today ? (
+                <Pill text="⚠ דילוג-היום (ריסטארט באמצע-חלון)" bg="rgba(248,81,73,0.10)" fg="#f0883e"
+                  title="הבר הראשון שנראה לא היה בר-16:30 — אין OR אמין, דילוג-כן (חוק-1)" />
+              ) : (
+                data.opening_triggers.catalog.map((tr) => {
+                  const dec = (data.opening_triggers?.decisions ?? []).find(
+                    (d) => (d.pattern ?? '') === `OPENING_${tr}`);
+                  const firedTr = data.opening_triggers?.fired.includes(tr) || !!dec;
+                  const label = TRIGGER_HE[tr] ?? tr;
+                  if (firedTr) {
+                    return (
+                      <Pill key={tr}
+                        text={`🔫 ${label}${dec?.direction ? ` ${dec.direction}` : ''}${dec?.entry ? ` @${dec.entry}` : ''}`}
+                        bg="rgba(46,160,67,0.15)" fg="#3fb950"
+                        title={`ירה${data.opening_triggers?.mode === 'shadow' ? ' בצל (אפס-כסף)' : ''}${dec?.blocked_by ? ` · נחסם: ${dec.blocked_by}` : dec?.outcome ? ` · ${dec.outcome}` : ''}`} />
+                    );
+                  }
+                  return (
+                    <Pill key={tr} text={label}
+                      bg="rgba(139,148,158,0.08)"
+                      fg={data.opening_triggers?.window_active ? '#8b949e' : COLORS.textDisabled}
+                      title={data.opening_triggers?.window_active ? 'פעיל — ממתין לתנאים' :
+                        data.opening_triggers?.window_done ? 'החלון נסגר בלי טריגר' : 'יופעל ב-16:30'} />
+                  );
+                })
+              )}
+            </>
           )}
         </>
       )}
