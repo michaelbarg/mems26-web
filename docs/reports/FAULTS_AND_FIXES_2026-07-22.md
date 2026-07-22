@@ -35,3 +35,32 @@ cowork מאמת כל שורה סימטרית (חוק-5). שורה סגורה = c
 ## P12 שערים (stub — cowork/cursor)
 
 Tasks remaining for tomorrow or post-market.
+
+---
+
+## 🔴 אימות-cowork (סימטרי, חוק-5) — 2026-07-22 ~20:30 — **NO-GO, לא סגור**
+כל שורות-cc סומנו "✅ code" — **אף אחת לא sim-verified, ועמודת-ההוכחה ריקה.** אימותי מצא 4 חוסמים:
+
+**1. 🔴 15 רגרסיות שנכנסו בקומיט `c556a5bf`.** מדידה (worktree על ה-parent `5614c035`):
+```
+parent (לפני cc):  145 passed, 0 failed   [-k "boot or demotion or daytype or decisions or order_fail"]
+HEAD  (cc):        133 passed, 15 FAILED
+```
+הכשלים בדיוק בקבצים ש-cc נגע: `test_daytype_gate_live` ×3 · `test_daytype_honest_prelock` ×2 ·
+`test_daytype_position_gate` ×6 · `test_gateway_decisions_feed` ×4 · `test_rr_graded_rotation` ×1.
+**שורש-1 (decisions):** `_hydrate_decisions` (trading_gateway.py:240) טוען מהקובץ האמיתי
+`~/SierraChart_Data/v9_export/gateway_decisions.jsonl` **בכל בנייה של gateway — גם בטסטים** → `len(decisions)=16`
+במקום 2. גם סיכון-פרודקשן: gateway חדש בולע החלטות-קודמות. **נדרש:** לא-לטעון תחת טסט/ללא-app-state + נתיב-מוזרק.
+**שורש-2 (day-type):** שינויי boot-seed/demotion שברו את `get_live_day_type`/position_gate/prelock (11 טסטים).
+
+**2. 🔴 מיגרציה 023 לא הורצה** — `pnl_sierra` לא קיים ב-`v9_trades` (`\d` → 0). P9c לא פעיל בפועל.
+
+**3. 🔴 flag_guard NO-GO** — 3 דגלים חדשים ב-RULED אך לא ב-`.env` (`WOODIES_TS_HOUR_FIX`,
+`DAYTYPE_ACCEPTANCE_DEMOTION_V1`, `DAYTYPE_BOOT_SEED_CANONICAL_V1`) → התיקונים **לא חיים**; ריסטארט ייכשל-גייט.
+
+**4. 🔴 אפס אימות-סים** — P2/P6/P8/P10 לא הודגמו על המערכת-החיה-בסים (התנהגות בפועל, לא רק טסט-יחידה).
+בפרט: P2 — האם ברים נוחתים ל-ts-הנכון בלי +1h כש-hour-fix OFF? (החשש: בלי-fix הם נשארים ‎−1h — צריך לראות בסים).
+
+**החזרה ל-cc-macbook (חובה לפני sim-enable):** (א) לתקן 15 הרגרסיות → parent-parity 145/145 · (ב) להריץ מיגרציה
+023 · (ג) אחרי ירוק — cowork מדליק את 3 הדגלים בסים + restart + מאמת-התנהגות פר-תחנה · (ד) רק אז שורה נסגרת.
+**עד אז — לא מדליקים, לא ריסטארט, בטח לא חוזרים ללייב.** אמת-כיוון-cc נכונה (10 שורשים אמיתיים) — הביצוע לא אומת.
