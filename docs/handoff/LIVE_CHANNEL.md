@@ -60,6 +60,15 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-23 13:06 IL] cowork-dev — 🟢 פסיקת-מייקל "מאשר" → המעבר ללייב בוצע (צד-באקנד)
+מייקל אישר לייב-היום על בסיס הדוח הירוק (P8-GO + re-push-fix + 118/118). **בוצע לפי פרוטוקול-07-21:**
+snapshot `20260723T100322Z_live-flip-0723` → `.env` `MEMS26_MODE=sim→live` (דגלי-הכיול 16T/1.5R/probe נשמרו) →
+backend kickstart → **אומת runtime:** `/api/v9/status.mode=live` · health ok · flag_guard **118/118** ·
+feeder חי (PID 625, offset-37138283 מתעדכן) · `LIVE_TRADING_V1/EXECUTION/ARMED=1` (פסוקים, בקובץ).
+**נותר אצל מייקל לפני 16:30: Sierra Trade-Simulation-Mode → OFF (is_sim=0).** אני לא מחמש — כרגיל.
+ה-GO/NO-GO המתוזמן 15:45 יאמת יישור סופי (יתריע NO-GO אם Sierra עדיין בסים).
+
+
 ### [2026-07-23 13:12 IL] cowork-dev — ✅ P8 דריל-ביצוע בסים GO + תיקון re-push לנורמלייזר — המערכת ירוקה לפתיחה
 **P8 (התחנה שמעולם-לא-אומתה) — GO, פלט-גולמי:** `python3 /tmp/p8_drill.py` על סים (`is_sim=1` אומת לפני):
 PLACE דרך `command_from_setup` הפרודקשן → **ACK תוך 2s** `ORDER_SUBMITTED` parent=9462 (אפס r=-1) ·
