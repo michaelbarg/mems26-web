@@ -60,6 +60,14 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-23 19:10 IL] cowork-dev — 🔴→🟡 מייקל: "הפסד-יומי ‑$269 שלא אישרתי" → נחקר + משימת-אימות ל-cursor
+**ה-$269 אמיתי:** 466(+31.25 לילי 04:05ET)+479(‑161.25)+481(‑138.75)=**‑268.75**. **שתי המפסידות NOT מהדגל** —
+479=INITIATIVE_SHORT(S2), 481=ZLR(S4), לא REACTIVE. שתיהן שורט-עם-הטרנד (כיוון-נכון) שנעצר על קפיצה 7411→7434 + BE-לא-הוחל.
+**2 ממצאים לאימות:** (F2) חוסר-עקביות-חלונות — נייד ‑$269 (calendar-IL, כולל לילי) vs מונה-halt ‑$300 (RTH 09:30ET);
+(F3) `pnl_sierra` **ריק** → ‑$269 מחושב, לא מאומת-Sierra. תוך התקרה: `RISK_DAILY_LOSS_CAP=800` (« $800), FLAT כרגע.
+**משימה ל-cursor:** `docs/handoff/CURSOR_VERIFY_DAILY_PNL_269_2026-07-23.md` (5 AC: מספר, Sierra-truth, לגיטימיות-מפסידות, halt, hydration).
+
+
 ### [2026-07-23 18:55 IL] cowork-dev — 📋 מסמך-ביקורת ל-RESPONSIVE_WITH_DAY_TREND_V1 מוכן + עדכון-כן #479
 **לביקורת בלתי-תלויה (cursor/cc):** `docs/handoff/REVIEW_RESPONSIVE_WITH_DAY_TREND_2026-07-23.md` — AC ל-replay/regression/dir_bias,
 מבחן-ליטמוס revert→RED, ובדיקות byte-identical-OFF + wiring. אנא אשר/הפרך ב-LIVE_CHANNEL (חוק-5).
@@ -67,6 +75,7 @@
 אך המחיר קפץ 7411→7434.75 ו-2 הראנרים נעצרו @7434.25. **הכיוון היה נכון** (ירד ל-7411); ההפסד = ניהול-ראנר
 (סטופ לא עבר ל-BE אחרי T1) + קפיצה חדה. **#479=INITIATIVE, לא REACTIVE — לא עבר בדגל שלי כלל** (מוכיח רק
 execution-בריא: אפס r=-1). הראיה לדגל = ה-replay בלבד. פערי-BE-לראנר ויציבות-סוג-יום = פתוחים נפרדים.
+**→ cursor ✅ מאומת 19:05 IL** — ראה LOG למטה. אין strategic-stop.
 
 
 ### [2026-07-23 18:28 IL] cowork-dev — 🟢 RESPONSIVE_WITH_DAY_TREND_V1 בנוי+אומת+הודלק חי (פסיקת-מייקל) + ירי-שורט-לייב ראשון
@@ -157,6 +166,26 @@ PLACE דרך `command_from_setup` הפרודקשן → **ACK תוך 2s** `ORDER_
 8. **D1 / G4** — עדיין OFF.
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-23 19:05 IL] cursor-agent — ✅ אימות בלתי-תלוי RESPONSIVE_WITH_DAY_TREND_V1 (חוק-5)
+**הכרעה: CONFIRMED — אין strategic-stop.** דגל חי לפי פסיקה; #479 לא נספר כראיה לדגל (INITIATIVE).
+
+| AC | ✓/✗ | ראיה (פקודה→פלט) |
+|---|---|---|
+| AC-1 טסטים | ✓ | `pytest …/test_responsive_with_day_trend.py -q` → **6 passed** |
+| AC-1 ליטמוס revert→RED | ✓ | `git show 52eb13ba^:…/daytype_playbook.py` → קובץ → **4 failed** (`with_trend_short_allowed…`, `counter_trend_long_blocked…`, `chasing_low…`, `up_day_symmetric`); restore → **6 passed** |
+| AC-2 regression | ✓ | `pytest … -k "boot or demotion or daytype or …"` → **187 passed**, 1201 deselected |
+| AC-3 replay 07-23 | ✓ | `decide(…, day_direction=DOWN, levels vah=7472/val=7450)` FLAG=1: 16:50/17:25/17:35 LONG → SKIP never-fade; 16:55/17:15/17:30/17:40 SHORT → ALLOW FULL. FLAG=0: כל-7 SKIP מיקום (byte-identical) |
+| AC-4 dir_bias PG | ✓ | `DATABASE_URL=postgresql://localhost/mems26 … get_live_dir_bias()` → **DOWN** |
+| AC-5 flag | ✓ | `flag_guard.py` → **PASS 119/119**; `.env` `RESPONSIVE_WITH_DAY_TREND_V1` raw `'1'` (בלי הערת-inline) |
+
+**§3 בלתי-תלוי:**
+- **byte-identical OFF:** `_with_trend_allow` נשאר False כשדגל OFF → בלוק מיקום מקורי; `test_dalton_require_day_direction_vah.py` → **11 passed**.
+- **wiring:** `trading_gateway.py:707–733` — expansion ראשון; `get_live_dir_bias` רק אם `day_direction not in _pb_kw` **וגם** דגל ON; נזרק ל-`_pb_decide(…, **_pb_kw)` ב-~757. אין דריסת expansion.
+- **dir_bias קצוות:** 3R+3B→None; decisive<3→None; ≥60% plurality→UP/DOWN. fail-closed. DB-per-setup OK (fires נדירים); cache לא חובה.
+- **לוג חי:** `/tmp/backend.err.log` מאז ~18:20 — **1×** `never fade the trend` @18:55 (`REACTIVE counter-trend … day_dir=DOWN`). אין עדיין שורת `with-trend`/`chasing extreme` (אין REACTIVE with-trend שעבר מאז ההדלקה — תואם NOT-DONE cowork).
+- **chasing-guard:** חוסם רק below_value/above_value — שאלת-דוקטרינה למייקל על mid_value אחרי ירידה-ארוכה; לא באג.
+- **NOT-DONE cowork:** מקבלים — #479≠ראיה לדגל; runner-BE נפרד; day_type flip-flop לא תוקן; אין sim-execution ייעודי של REACTIVE דרך הענף.
 
 ### [2026-07-23 ~09:00 IL] cc-macbook — cleanup-master stations 2-6 + #466 closed
 **תחנות 2-4 הושלמו:**
