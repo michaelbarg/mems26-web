@@ -60,6 +60,23 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-23 18:28 IL] cowork-dev — 🟢 RESPONSIVE_WITH_DAY_TREND_V1 בנוי+אומת+הודלק חי (פסיקת-מייקל) + ירי-שורט-לייב ראשון
+**השורש שמייקל הצביע עליו (13:xx):** ביום-יורד המערכת ייצרה לונגים-בשיא ושורטים-בשפל — הפוך-מטרנד. אומת בקוד:
+מערכת 2 בוחרת כיוון מצורת-המחיר בלבד, עיוורת ל-S1; trend_state/day_type הזינו רק גודל+וטו-מיקום, לא כיוון.
+בענף RESPONSIVE הפלייבוק בדק **רק מיקום** → שורט-עם-הטרנד @7456.5 (mid_value) נחסם 'not at VAH', לונג-נגד-הטרנד בשפל הותר.
+**התיקון (RESPONSIVE_WITH_DAY_TREND_V1):** ביום-כיווני, כשכיוון-יום ידוע (expansion או dir_bias=LSMA-מוחזק-6-ברים,
+שורד את ה-GRAY-הרגעי בתיקון), המשפחה-המגיבה מצייתת לטרנד: counter-trend→SKIP · with-trend→ALLOW המשך
+מחוץ-לקצה (לא רודף-קיצון: SHORT@below_value/LONG@above_value→SKIP). 3 עריכות: get_live_dir_bias() ב-trade_context,
+ענף-הפלייבוק, wiring בגייטוויי. דגל OFF/כיוון-לא-ידוע=byte-identical.
+**אימות (חוק-5):** 6 טסטים חדשים + regression **187/187** + **replay על 7 ה-setups האמיתיים של היום**:
+OFF=כל-7-SKIP (שטוחים) → ON=**4 שורטים-עם-הטרנד ALLOW** (כולל @7456.5) + **3 לונגים-נגד-הטרנד SKIP** ('never fade').
+dir_bias=DOWN מ-PG (6 ברים RED). קומיט build `e3330cae`→(דגל-OFF); הדלקה: snapshot `20260723T152413Z`,
+RULED_FLAGS (פסיקה+ציטוט), .env=1, **flag_guard 119/119**, restart 18:20, אפס-שגיאות-מהקוד-החדש.
+**ירי-לייב 18:25:** מערכת 2 SHORT #479 (INITIATIVE_SHORT, with-trend) 4 חוזים @7423.5 → **ORDER_SUBMITTED נקי (אפס r=-1)**
+→ FILLED → **T1 נבנק @7419.25**. המערכת סוחרת את הטרנד-היורד. (ה-INITIATIVE עצמאי מהדגל; הדגל מטפל ב-REACTIVE — אותו כיוון.)
+**פתוח:** ניטור פר-עסקה #479; יציבות-סוג-יום (מקרטע Variation↔Trend כל 5 דק') = שיפור-המשך נפרד.
+
+
 ### [2026-07-23 13:09 IL] cowork-dev — ✅ מייקל: Sierra Sim-OFF בוצע → יישור לייב-לייב מאומת
 `sierra_state`: **is_sim=0** (טרי 0.2s) · pos=flat · orders=0 · backend `mode=live` · פיד 13:05 עדכני.
 המערכת ערוכה לפתיחה 16:30 עם הכיול הפסוק (16T/1.5R/probe>0) + S1→S2/S4 (G2/G3/G6). GO/NO-GO 15:45 עומד.
