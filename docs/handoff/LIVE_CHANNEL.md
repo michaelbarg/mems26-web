@@ -59,6 +59,19 @@
 | **16** | **הכנה-לייב 07-22** — רשימה מלאה ב-`CC_LIVE_PREP_2026-07-22.md`: **A** סוג-פתיחה+סוג-יום בפרונט (מקור=`get_live_day_type`) · **B** S4 טקטי רק במיקום-סוג-יום (`DAYTYPE_LOCATION_GATE` v2) · **C** T1-מבני · **D** סטופ-קיצון-מבנה · **E** `LSMA_FLAT_GATE_V1=1` · **F** hydration 09:30. משימות-לילה אתמול **לא בוצעו** — לבצע עכשיו לפני פתיחה | **cc-macbook** → cursor | 🔴 פתוח |
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
+
+### [2026-07-23 13:12 IL] cowork-dev — ✅ P8 דריל-ביצוע בסים GO + תיקון re-push לנורמלייזר — המערכת ירוקה לפתיחה
+**P8 (התחנה שמעולם-לא-אומתה) — GO, פלט-גולמי:** `python3 /tmp/p8_drill.py` על סים (`is_sim=1` אומת לפני):
+PLACE דרך `command_from_setup` הפרודקשן → **ACK תוך 2s** `ORDER_SUBMITTED` parent=9462 (אפס r=-1) ·
+**גאומטריה פסוקה מדויקת:** entry 7511.75, stop 7507.75 (16T) · C1=T0 +4 · C2=T1 +6 (**1.5R**) · C3 +8 · C4 +10 ·
+**8 פקודות OCO** (4 targets+4 stops) ב-sierra_state · journal ENTRY: 4 חוזים + כל 8 ה-IDs ·
+`FLATTEN_ACCOUNT_OK` תוך 2s → pos=0, orders=0. סוגר את שורת-P8 ב-FAULTS כ-sim-verified-בפועל.
+**TS re-push hole (12:38):** 11 זוגות-רפאים חדשים — re-push של batch שנורמל עוקף את rail-המתקדם ונכתב ב-slot הגולמי ‎−1h.
+תוקן: זיכרון-shift פר-stream (`_ts_norm_last_shift`) מוחל על re-push תואם (לעולם לא shift חדש). קומיט `e3330cae`,
+טסטים 13/13, gate 148/0, restart 12:51, **0 זוגות אחרי** (אומת 13:10). זוגות-הבוקר גובו ל-`v9_bars_ghosts_bak_0723` ונוקו.
+**מצב-פתיחה:** flag_guard **118/118** · MEMS26_MODE=sim + Sierra is_sim=1 (מיושר) · פיד טרי · GO/NO-GO מתוזמן 15:45.
+**חוב-cc פתוח (לא-חוסם):** S3 VA-writer ל-DB-row · 15 טסטים env-תלויים · חתימת FAULTS.
+
 פרוטוקול: **הסבר → פסיקת-מייקל (`לתקן`/`לדחות`/`לשנות`) → מפרט-CC → cc-macbook → cowork אימות → cursor ✅**. פער אחד בכל פעם. דגל חדש=OFF עד פסיקת-הדלקה. הצלב עם [`GAP_REGISTER.md`](GAP_REGISTER.md).
 
 | # | פער | בעלים | תלוי-פסיקה | סטטוס | ראיה / GAP_REGISTER |
