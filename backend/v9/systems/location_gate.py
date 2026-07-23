@@ -58,26 +58,33 @@ def probe_level(
     level: float,
     bars: Optional[List[Dict]] = None,
     touch_tol: float = 0.5,
+    reject_min: Optional[float] = None,
 ) -> Tuple[bool, str]:
     """Generalized probe against an arbitrary level (day-structure edges,
     Michael ruling 2026-07-22 'מאשר'): a bar TOUCHED/pierced the level
     (within touch_tol) and CLOSED back on the safe side.
-      LONG@edge:  Low <= level + touch_tol and Close > level
-      SHORT@edge: High >= level - touch_tol and Close < level"""
+      LONG@edge:  Low <= level + touch_tol and Close > level + reject_min
+      SHORT@edge: High >= level - touch_tol and Close < level - reject_min
+    reject_min: how far beyond the level the rejection close must clear.
+    Default = touch_tol (0.5). 07-23 calibration (32-session study): relaxing
+    to >0 was worth +8.3R — env PROBE_REJECT_MIN_PTS tunes it (sim first)."""
     if not bars:
         return (False, "no bars available")
+    if reject_min is None:
+        try:
+            reject_min = float(os.getenv("PROBE_REJECT_MIN_PTS", str(touch_tol)))
+        except (TypeError, ValueError):
+            reject_min = touch_tol
     d = direction.upper()
     for i, bar in enumerate(bars):
         try:
             h, l, c = float(bar["high"]), float(bar["low"]), float(bar["close"])
         except (KeyError, TypeError, ValueError):
             continue
-        # rejection close must clear the level by MORE than touch_tol —
-        # a close sitting on the level is sliding, not rejection.
-        if d == "LONG" and l <= level + touch_tol and c > level + touch_tol:
-            return (True, f"bar[{i}] probed {level:.2f} (L={l:.2f}, C={c:.2f}>lvl+tol) — rejected")
-        if d == "SHORT" and h >= level - touch_tol and c < level - touch_tol:
-            return (True, f"bar[{i}] probed {level:.2f} (H={h:.2f}, C={c:.2f}<lvl-tol) — rejected")
+        if d == "LONG" and l <= level + touch_tol and c > level + reject_min:
+            return (True, f"bar[{i}] probed {level:.2f} (L={l:.2f}, C={c:.2f}>lvl+{reject_min:g}) — rejected")
+        if d == "SHORT" and h >= level - touch_tol and c < level - reject_min:
+            return (True, f"bar[{i}] probed {level:.2f} (H={h:.2f}, C={c:.2f}<lvl-{reject_min:g}) — rejected")
     return (False, f"no bar probed {level:.2f} with rejection close")
 
 

@@ -171,7 +171,11 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
     risk = abs(entry - stop)
     if risk <= 0:
         return None
-    t1 = entry + risk if direction == "LONG" else entry - risk
+    try:
+        _t1r = float(__import__("os").getenv("T1_BANK_R", "1.0") or 1.0)
+    except (TypeError, ValueError):
+        _t1r = 1.0
+    t1 = entry + _t1r * risk if direction == "LONG" else entry - _t1r * risk
     return {
         "firing_system": 2,
         "direction": direction,

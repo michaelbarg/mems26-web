@@ -990,7 +990,12 @@ class WoodiesSystem(BaseV9TradingSystem):
                                                         _pid, direction, _s4_t1 or 0.0, _t1_struct, len(_win_c))
                                                     _s4_t1 = _t1_struct
                                                 elif _risk_d > 0:
-                                                    _s4_t1 = _s4_entry + _s4_sign * _risk_d  # 1R (targets table)
+                                                    _t1r_mult = 1.0
+                                                    try:
+                                                        _t1r_mult = float(os.getenv("T1_BANK_R", "1.0") or 1.0)
+                                                    except (TypeError, ValueError):
+                                                        _t1r_mult = 1.0
+                                                    _s4_t1 = _s4_entry + _s4_sign * _t1r_mult * _risk_d  # T1_BANK_R x risk (default 1R)
                                                     self._last_t1_structure_exhausted = True
                                                     logger.info(
                                                         "[Woodies] T1_STRUCTURE_END: %s %s structure exhausted ahead (end %.2f, %.2fpt < %.2f×risk %.2f) — T1=1R %.2f",

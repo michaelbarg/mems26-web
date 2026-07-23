@@ -343,6 +343,20 @@ def load_stop_anchors() -> Optional[Dict[str, Any]]:
     off = p.get("anchor_offset_ticks", 3)
     if not (0 <= off <= off_max):
         errors.append(f"anchor_offset_ticks={off} out of range")
+    # 07-23 calibration override (32-session study: 6T/10T confirmed too tight,
+    # 16T best — biggest single lever +12R): env-tunable, applied AFTER schema
+    # validation so the yaml stays the ruled base. Bounded 0..20. Sim first;
+    # live per Michael's word.
+    try:
+        import os as _os
+        _ov = _os.getenv("STOP_ANCHOR_OFFSET_TICKS_OVERRIDE")
+        if _ov:
+            _ovi = int(_ov)
+            if 0 < _ovi <= 20:
+                p["anchor_offset_ticks"] = _ovi
+                data["principles"] = p
+    except (TypeError, ValueError):
+        pass
 
     if not (0 < data.get("risk_cap_points", 0) <= max_risk):
         errors.append(f"risk_cap_points={data.get('risk_cap_points')} out of range")

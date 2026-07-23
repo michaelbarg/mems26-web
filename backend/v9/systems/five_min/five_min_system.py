@@ -1760,7 +1760,12 @@ class FiveMinSystem(BaseV9TradingSystem):
                                 t1_price = _t1_struct
                             elif _risk_c > 0:
                                 _sign_c = 1.0 if direction == "LONG" else -1.0
-                                t1_price = entry_price + _sign_c * _risk_c  # 1R
+                                _t1r_m = 1.0
+                                try:
+                                    _t1r_m = float(os.getenv("T1_BANK_R", "1.0") or 1.0)
+                                except (TypeError, ValueError):
+                                    _t1r_m = 1.0
+                                t1_price = entry_price + _sign_c * _t1r_m * _risk_c  # T1_BANK_R x risk
                                 info["t1_structure_exhausted"] = True
                                 logger.info(
                                     "[FiveMin] T1_STRUCTURE_END: %s %s structure exhausted ahead (end %.2f) — T1=1R %.2f",
