@@ -713,6 +713,24 @@ class TradingGateway:
                             "[Gateway] get_live_expansion for playbook failed (fail-open): %s",
                             _pb_exp_err,
                         )
+                    # RESPONSIVE_WITH_DAY_TREND_V1 (Michael 2026-07-23): when there is
+                    # no volume-accepted break, fall back to the HELD LSMA dir_bias so
+                    # a plain trend day (no clean expansion event, e.g. 07-23's RED
+                    # session pulling back) still yields a day_direction for the
+                    # responsive with-trend continuation rule. Flag-gated + fail-open.
+                    if ("day_direction" not in _pb_kw and os.getenv(
+                        "RESPONSIVE_WITH_DAY_TREND_V1", "0"
+                    ).lower() in ("1", "true", "yes")):
+                        try:
+                            from backend.v9.services.trade_context import get_live_dir_bias
+                            _pb_db = get_live_dir_bias()
+                            if _pb_db in ("UP", "DOWN"):
+                                _pb_kw["day_direction"] = _pb_db
+                        except Exception as _pb_db_err:
+                            logger.warning(
+                                "[Gateway] get_live_dir_bias for playbook failed (fail-open): %s",
+                                _pb_db_err,
+                            )
                     _pb_tpo = (
                         cross_context.get("tpo_system")
                         if isinstance(cross_context, dict) else None

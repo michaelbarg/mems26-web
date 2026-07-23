@@ -954,6 +954,13 @@ flags:
     standing_decision: true
     status: built_off
     ref: "backend/v9/systems/daytype_playbook.py · backend/v9/gateway/trading_gateway.py · tests/v9/regression/test_dalton_require_day_direction_vah.py · config/RULED_FLAGS.yaml"
+  RESPONSIVE_WITH_DAY_TREND_V1:
+    category: cascade_gate
+    what: "On a directional day, the responsive family (REACTIVE/HNS) obeys the DAY TREND, not just value-location. When a day_direction is known (accepted-break expansion, or the held-LSMA dir_bias fallback get_live_dir_bias): counter-trend (LONG on DOWN / SHORT on UP) → SKIP (never fade the trend); with-trend (SHORT on DOWN / LONG on UP) → ALLOW as continuation off the value-edge, EXCEPT chasing the far extreme (SHORT@below_value / LONG@above_value) → SKIP. Requires REQUIRE_WITH_TREND_DAY_DIRECTION_V1=1 + DAYTYPE_PLAYBOOK=1. OFF or day_direction unknown → location-only, byte-identical."
+    why: "Michael ruling 2026-07-23 ('לבנות + לאמת-סים + להדליק חי') for the 07-23 live miss: RED down-session pulled back mid-value → with-trend SHORT@7456.5 blocked ('not at VAH') + counter-trend LONGs generated at highs → flat all day. Root: responsive branch read location only, blind to the held down-trend. dir_bias = held LSMA over last 6 bars (survives the momentary GRAY at the pullback). Enable after cowork sim-verify + Rule-5."
+    standing_decision: true
+    status: built_off
+    ref: "backend/v9/systems/daytype_playbook.py · backend/v9/services/trade_context.py (get_live_dir_bias) · backend/v9/gateway/trading_gateway.py · tests/v9/regression/test_responsive_with_day_trend.py · config/RULED_FLAGS.yaml"
   S2_DETECTION_LIVE_DAYTYPE_V1:
     category: s2
     what: "S2 detection (NT-skip, chart patterns 5a/5c, T2 fork) reads day_type from get_live_day_type() instead of the stale hydrated self.current_day_type. Fixes I-44/I-50 source split."

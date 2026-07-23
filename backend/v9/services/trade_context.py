@@ -786,3 +786,36 @@ def get_live_expansion():
     except Exception:
         pass
     return None
+
+
+def get_live_dir_bias(window: int = 6, min_frac: float = 0.6):
+    """HELD directional bias from the LSMA trend color over the last ``window``
+    Woodies bars (RED→DOWN, BLUE→UP; GRAY ignored). Returns "UP" / "DOWN" only on
+    a strong majority (>= min_frac of the decisive bars agree, >= 3 decisive bars,
+    and a strict plurality), else None.
+
+    This is the robust day-direction source for RESPONSIVE_WITH_DAY_TREND_V1
+    (Michael ruling 2026-07-23). It is deliberately NOT the momentary
+    ``trend_state`` — that blips GRAY at a pullback (observed 07-23 16:45, the
+    exact bar the with-trend SHORT was needed) which the playbook must not read
+    as "no trend". A held window survives the blip: 07-23 was RED on ~11 of the
+    last 12 bars → DOWN. Used only as a fallback when get_live_expansion() has no
+    volume-accepted break. Read-only; fail-closed to None on any error."""
+    try:
+        from backend.v9.db.read import read_all
+        rows = read_all(
+            "SELECT trend_state FROM v9_bars_5min_woodies ORDER BY ts DESC LIMIT :n",
+            {"n": int(window)},
+        )
+        colors = [str((r or {}).get("trend_state") or "").upper() for r in rows]
+        red = sum(1 for c in colors if c == "RED")
+        blue = sum(1 for c in colors if c == "BLUE")
+        decisive = red + blue
+        if decisive >= 3:
+            if red > blue and red >= min_frac * decisive:
+                return "DOWN"
+            if blue > red and blue >= min_frac * decisive:
+                return "UP"
+    except Exception:
+        pass
+    return None

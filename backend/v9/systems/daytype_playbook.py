@@ -190,22 +190,62 @@ def decide(
         d = (direction or "").upper()
         if _day_direction_v1():
             if pkey in _RESPONSIVE_REV:
-                # Responsive fade: location owns allow/deny — ignore trend_state.
-                loc = _resolve_location(location, entry_price, levels)
-                if loc is not None:
-                    short_ok = loc in ("near_vah", "above_value")
-                    long_ok = loc in ("near_val", "below_value")
-                    if d == "SHORT" and not short_ok:
+                # RESPONSIVE_WITH_DAY_TREND_V1 (Michael ruling 2026-07-23 "לבנות +
+                # לאמת-סים + להדליק חי"): on a directional day the responsive family
+                # must obey the DAY TREND, not just value-location. The 07-23 live
+                # miss — a RED (down) session, price pulled back UP to mid-value —
+                # exposed both halves of the location-only bug: the with-trend SHORT
+                # was BLOCKED ("not at VAH", mid_value) while a counter-trend LONG at
+                # VAL would have been ALLOWED (buy-the-dip into a downtrend). Doctrine
+                # (Dalton): on a trend day you SELL the rally and NEVER fade the
+                # trend. When a day_direction is known (accepted-break expansion, or
+                # the held-LSMA dir_bias fallback):
+                #   • counter-trend (LONG on DOWN / SHORT on UP) → SKIP (never fade)
+                #   • with-trend  (SHORT on DOWN / LONG on UP) → ALLOW as continuation,
+                #     off the value-edge — a pullback-high short is the "מנקודה גבוהה"
+                #     entry Michael wanted, NOT a value-edge fade — EXCEPT when it is
+                #     chasing the far extreme (SHORT at below_value / LONG at
+                #     above_value) → SKIP ("enter from a pullback, not the low").
+                # Flag OFF or day_direction unknown → location-only (byte-identical).
+                _dd = (day_direction or "").upper()
+                _wt_on = os.environ.get(
+                    "RESPONSIVE_WITH_DAY_TREND_V1", "0"
+                ).lower() in ("1", "true", "yes")
+                _with_trend_allow = False
+                if _wt_on and _dd in ("UP", "DOWN"):
+                    if (d == "LONG" and _dd == "DOWN") or (d == "SHORT" and _dd == "UP"):
                         return Decision(
                             "SKIP", 0,
-                            f"{pkey} responsive SHORT not at VAH ({loc}) on {day_type}",
+                            f"{pkey} counter-trend responsive on {day_type} "
+                            f"(day_dir={_dd}) — never fade the trend",
                         )
-                    if d == "LONG" and not long_ok:
+                    _loc_wt = _resolve_location(location, entry_price, levels)
+                    _chase = (d == "SHORT" and _loc_wt == "below_value") or (
+                        d == "LONG" and _loc_wt == "above_value")
+                    if _chase:
                         return Decision(
                             "SKIP", 0,
-                            f"{pkey} responsive LONG not at VAL ({loc}) on {day_type}",
+                            f"{pkey} with-trend {d} chasing extreme ({_loc_wt}) on "
+                            f"{day_type} — enter from a pullback, not the {'low' if d == 'SHORT' else 'high'}",
                         )
-                # missing location → fail-open (do not fall back to trend_state)
+                    _with_trend_allow = True  # continuation: bypass the value-edge check
+                if not _with_trend_allow:
+                    # Responsive fade: location owns allow/deny — ignore trend_state.
+                    loc = _resolve_location(location, entry_price, levels)
+                    if loc is not None:
+                        short_ok = loc in ("near_vah", "above_value")
+                        long_ok = loc in ("near_val", "below_value")
+                        if d == "SHORT" and not short_ok:
+                            return Decision(
+                                "SKIP", 0,
+                                f"{pkey} responsive SHORT not at VAH ({loc}) on {day_type}",
+                            )
+                        if d == "LONG" and not long_ok:
+                            return Decision(
+                                "SKIP", 0,
+                                f"{pkey} responsive LONG not at VAL ({loc}) on {day_type}",
+                            )
+                    # missing location → fail-open (do not fall back to trend_state)
             else:
                 # Non-responsive (e.g. CONFLUENCE): compare vs day expansion direction.
                 dd = (day_direction or "").upper()
