@@ -204,7 +204,7 @@ class TPOSystem(BaseV9TradingSystem):
                 if _sl is None or low < _sl:
                     _sl = low
 
-                # Update state
+                # Update state (bar-derived levels first, Sierra overwrites below)
                 self.current_state.update({
                     "session_type": session_type,
                     "poc": poc,
@@ -229,6 +229,10 @@ class TPOSystem(BaseV9TradingSystem):
                     "buffer_size": len(self.bar_buffer),
                     "bars_processed_today": self.current_state["bars_processed_today"] + 1,
                 })
+
+                # Station-3 (2026-07-23): Sierra VA overwrites bar-derived VA.
+                # Called AFTER current_state.update so Sierra values win.
+                self._update_va_from_sierra()
 
                 # Persist (LIVE only)
                 mode = getattr(event, 'mode', 'LIVE')
@@ -430,6 +434,52 @@ class TPOSystem(BaseV9TradingSystem):
         elif prev_high != ib_high or prev_low != ib_low:
             logger.info("[TPO] IB updated from Sierra: H=%.2f L=%.2f W=%.2f class=%s",
                         self.ib_high, self.ib_low, self._ib_width, self._ib_class)
+
+    def _update_va_from_sierra(self) -> None:
+        """Station-3 fix (2026-07-23): VA authoritative source = Sierra Study
+        via tpo.json — mirrors the IB pattern from _update_ib (2026-05-28).
+
+        Before this fix, VA was computed from 5-min bars (self._compute_levels)
+        which used the contaminated +1h ghost rows → VA=3.5pt instead of ~20pt.
+        Sierra's Study ID:3 exports session.poc/vah/val directly — these are
+        the canonical values from the real TPO computation on Sierra's chart.
+
+        When Sierra VA is available and valid, it overwrites the bar-derived
+        poc/vah/val in current_state. When unavailable (pre-RTH, stale),
+        leaves current_state unchanged (bar-derived values as fallback, not None
+        — this is different from IB where None is honest because IB hasn't formed).
+        """
+        try:
+            from backend.v9.api.v9.tpo_routes import _load_sierra_tpo
+            sierra = _load_sierra_tpo() or {}
+        except Exception as e:
+            logger.debug("[TPO] Sierra tpo.json load failed for VA update: %s", e)
+            return
+
+        try:
+            s_poc = float(sierra.get("poc"))
+            s_vah = float(sierra.get("vah"))
+            s_val = float(sierra.get("val"))
+        except (TypeError, ValueError):
+            return  # Sierra not reporting VA yet — keep bar-derived
+        if s_vah <= 0 or s_val <= 0 or s_poc <= 0:
+            return
+        if s_vah <= s_val:
+            return  # degenerate VA — don't use
+        va_spread = s_vah - s_val
+        if va_spread < 1.0:
+            logger.debug("[TPO] Sierra VA too narrow (%.2f) — keeping bar-derived", va_spread)
+            return
+
+        # Overwrite bar-derived with Sierra-canonical
+        prev = (self.current_state.get("poc"), self.current_state.get("vah"),
+                self.current_state.get("val"))
+        self.current_state["poc"] = s_poc
+        self.current_state["vah"] = s_vah
+        self.current_state["val"] = s_val
+        if prev != (s_poc, s_vah, s_val):
+            logger.info("[TPO] VA from Sierra: POC=%.2f VAH=%.2f VAL=%.2f (spread=%.2f)",
+                        s_poc, s_vah, s_val, va_spread)
 
     @staticmethod
     def _classify_ib_width(width: float) -> str:

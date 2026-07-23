@@ -26,9 +26,11 @@ def _payload(newest_age_sec: float, n: int = 3):
 
 # ── Layer 1: TS-HOUR tighten ────────────────────────────────────────────────
 
-def test_tzoffset_exactly_1h_is_still_fixed(monkeypatch):
-    """A TRUE chartbook-TZ offset (~exactly 3600s) must still be corrected."""
-    monkeypatch.delenv("WOODIES_TS_HOUR_FIX", raising=False)
+def test_tzoffset_exactly_1h_is_fixed_when_enabled(monkeypatch):
+    """A TRUE chartbook-TZ offset (~exactly 3600s) is corrected when ENABLED.
+    P2 ruling (2026-07-22): default is OFF (created 11 ghost rows). Only shifts
+    when explicitly enabled for a confirmed chartbook TZ mismatch."""
+    monkeypatch.setenv("WOODIES_TS_HOUR_FIX", "1")  # P2: must be explicit
     monkeypatch.delenv("TS_HOUR_FIX_TOL_SEC", raising=False)
     p = _payload(3600.0)
     before = [b["ts"] for b in p]
@@ -37,11 +39,22 @@ def test_tzoffset_exactly_1h_is_still_fixed(monkeypatch):
     assert [b["ts"] for b in p] == [t + 3600.0 for t in before]
 
 
+def test_default_off_no_shift(monkeypatch):
+    """P2 ruling (2026-07-22): default OFF — even a perfect 3600s offset is NOT shifted.
+    WOODIES_TS_HOUR_FIX=0 is the new default to prevent ghost-row creation."""
+    monkeypatch.delenv("WOODIES_TS_HOUR_FIX", raising=False)
+    p = _payload(3600.0)
+    before = [b["ts"] for b in p]
+    shift = bars._hour_shift_fix(p, "test")
+    assert shift == 0
+    assert [b["ts"] for b in p] == before
+
+
 def test_nomadic_drift_is_NOT_shifted(monkeypatch):
     """The 07-17 injector: newest bar 3897s old (drifted, stale) is in the OLD
     wide [3300,3900] band but OUTSIDE 3600±120 → must NOT shift (would stamp a
     stale bar at a current ts)."""
-    monkeypatch.delenv("WOODIES_TS_HOUR_FIX", raising=False)
+    monkeypatch.setenv("WOODIES_TS_HOUR_FIX", "1")
     monkeypatch.delenv("TS_HOUR_FIX_TOL_SEC", raising=False)
     for age in (3750.0, 3897.0, 3450.0):
         p = _payload(age)

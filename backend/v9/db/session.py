@@ -64,6 +64,19 @@ else:
         json_serializer=_json_serializer,
     )
 
+# Station-4 fix (2026-07-23): read-only engine with AUTOCOMMIT isolation.
+# The main engine starts implicit transactions on every execute() — if a read
+# path holds a connection (exception, reference leak), it stays as
+# "idle in transaction" and blocks DDL (migration 023 wedge, 95 min).
+# read.py uses this engine so SELECTs never open a transaction.
+_read_engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_size=3,
+    isolation_level="AUTOCOMMIT",
+    json_serializer=_json_serializer,
+) if not DATABASE_URL.startswith("sqlite") else engine
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

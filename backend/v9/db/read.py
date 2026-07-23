@@ -2,6 +2,10 @@
 
 Postgres migration (2026-06-03): replaces all raw sqlite3.connect(mode=ro)
 calls with engine-based reads that work on any SQLAlchemy-supported backend.
+
+Station-4 fix (2026-07-23): uses _read_engine (AUTOCOMMIT isolation) so
+SELECTs never open a transaction. Prevents "idle in transaction" leak that
+blocked DDL for 95 min (migration 023 wedge).
 """
 
 import logging
@@ -9,7 +13,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from sqlalchemy import text
 
-from backend.v9.db.session import engine
+from backend.v9.db.session import _read_engine as engine
 
 logger = logging.getLogger(__name__)
 
