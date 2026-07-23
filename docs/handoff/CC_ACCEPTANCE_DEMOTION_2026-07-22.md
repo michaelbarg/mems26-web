@@ -18,7 +18,9 @@ Normal — רק המכונה-החיה לא יודעת לרדת.
 - לוג מלא: `[DayType] ACCEPTANCE-DEMOTION: Trend_Normal → Normal_Variation (K=3 bars re-accepted inside IB
   7556.25/7525.00)` + עדכון consumer/DB באותו מסלול כמו אסקלציה.
 - Fixture חובה מהיום: ברי-07-22 (סיווג-Trend ~17:30-47 → ברים 17:35-17:50 בתוך-IB → demote ל-Normal_Variation
-  עד ~17:50) + counter-fixture: יום-Trend אמיתי (07-21 אחה"צ — אין חזרה-מלאה → אין demote).
+  עד ~17:50) + counter-fixture: **יום-Trend אמיתי = 07-16 (Trend_Normal DOWN, אומת קנונית)** — אין חזרה-מלאה
+  ל-IB → אין demote. **תיקון (מייקל 2026-07-22, סמכות-S1):** 07-21 היה **Variation** (לא Trend — הקנוני מסכים:
+  Normal_Variation UP), אז הוא counter-fixture שגוי; השתמש ב-07-16 כיום-ה-Trend שאסור-לו-לרדת.
 
 ## מיקום + דגל
 - הלוגיקה במכונת-התווית-החיה (איפה שהאסקלציה חיה — אותו נתיב שכתב "promoted:"), לא ב-getter.
