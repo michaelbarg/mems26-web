@@ -132,16 +132,23 @@ def test_normalize_5h_advancing(monkeypatch):
     assert B._ts_whole_hour_normalize(bs, "t5") == 5 * 3600
 
 
-def test_normalize_refuses_frozen_repush(monkeypatch):
-    """Same newest re-pushed (frozen export) → NEVER shifted (07-17 ghost class)."""
+def test_normalize_repush_gets_same_shift(monkeypatch):
+    """07-23 13:00 fix: a re-push of the SAME bars gets the SAME remembered
+    shift (else it lands at the raw −Nh slot = ghost pair, observed live).
+    A NEW shift is still never invented for a non-advancing batch."""
     from backend.v9.api.v9 import bars as B
     monkeypatch.setenv("TS_WHOLE_HOUR_NORMALIZE_V1", "1")
     B._ts_norm_last_raw_newest.pop("tf", None)
+    B._ts_norm_last_shift.pop("tf", None)
     bs1 = _mk(3650)
-    ts_keep = max(b["ts"] for b in bs1)
-    assert B._ts_whole_hour_normalize(bs1, "tf") == 3600  # first: advancing (bootstrap)
-    bs2 = [{"ts": ts_keep}]  # SAME raw newest again → not advancing
-    assert B._ts_whole_hour_normalize(bs2, "tf") == 0
+    ts_keep = max(b["ts"] for b in bs1)  # RAW newest (captured before the call mutates bs1)
+    assert B._ts_whole_hour_normalize(bs1, "tf") == 3600  # first: advancing
+    bs2 = [{"ts": ts_keep}]  # SAME raw newest re-pushed → same shift applied
+    assert B._ts_whole_hour_normalize(bs2, "tf") == 3600
+    # no remembered shift + not advancing → 0 (never a fresh shift)
+    B._ts_norm_last_shift.pop("tf", None)
+    bs3 = [{"ts": ts_keep}]
+    assert B._ts_whole_hour_normalize(bs3, "tf") == 0
 
 
 def test_normalize_no_shift_on_non_hour_offset(monkeypatch):

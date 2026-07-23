@@ -486,6 +486,7 @@ def _hour_shift_fix(bars: list, stream: str) -> int:
 # bars) — a frozen export's re-push (newest unchanged) is NEVER shifted (the
 # 07-17 ghost class). Bootstrap (no prev) allowed with the shifted-age check.
 _ts_norm_last_raw_newest: dict = {}
+_ts_norm_last_shift: dict = {}  # last applied shift per stream (re-push consistency)
 
 
 def _ts_whole_hour_normalize(bars: list, stream: str) -> int:
@@ -518,7 +519,19 @@ def _ts_whole_hour_normalize(bars: list, stream: str) -> int:
         _advanced = _prev is None or _newest > _prev
         _ts_norm_last_raw_newest[stream] = max(_newest, _prev or 0)
         if not _advanced:
-            return 0  # frozen/re-push — never shift (ghost-class protection)
+            # 07-23 13:00 fix: a RE-PUSH of the same bars must get the SAME
+            # shift as its first push — otherwise it lands at the raw (−Nh)
+            # slot and creates a ghost pair (observed live: 11 pairs 10:40-11:30
+            # written by re-pushes bypassing the advancing-only rail). Apply the
+            # remembered shift when the batch still matches it; never a NEW one.
+            _last_shift = _ts_norm_last_shift.get(stream)
+            if _last_shift:
+                _tol0 = float(_os.getenv("TS_WHOLE_HOUR_TOL_SEC", "330") or 330)
+                if abs(_off - _last_shift) <= _tol0 + 300:
+                    for b in _num:
+                        b["ts"] = float(b["ts"]) + _last_shift
+                    return int(_last_shift)
+            return 0  # frozen/no-prior-shift — never a fresh shift (ghost rail)
         _tol = float(_os.getenv("TS_WHOLE_HOUR_TOL_SEC", "330") or 330)
         for _n in range(1, 7):
             if abs(_off - _n * 3600.0) <= _tol:
@@ -526,6 +539,7 @@ def _ts_whole_hour_normalize(bars: list, stream: str) -> int:
                     break
                 for b in _num:
                     b["ts"] = float(b["ts"]) + _n * 3600.0
+                _ts_norm_last_shift[stream] = _n * 3600.0
                 logger.warning(
                     "[%s] TS-WHOLE-HOUR normalize: +%dh to %d bars (newest was %.0fs behind, tol=%.0fs)",
                     stream, _n, len(_num), _off, _tol)
