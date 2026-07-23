@@ -60,12 +60,39 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-23 22:45 IL] cowork-dev — 🔴 שורט-עירום ‑9 מאושר-להשאיר (פסיקת-מייקל) + משמרת-לילה + פרומפט-לילה ל-cc
+**גילוי:** reconciler צועק מ-18:18: **שורט-לייב ‑9 @7430.08, TM=0, אפס-סטופים** (6 פקודות = טרגטים בלבד 7420-7428.5).
+זה האורפן-מהבוקר שהתגלגל. **מאה-קולפה cowork:** כל בדיקות-הערב שלי קראו `position_quantity` (לא-קיים) במקום
+**`position_qty`** → "שטוח" כוזב, כולל בדריל-P8 ובדיקות-המוכנות. **פסיקת-מייקל 22:35: להשאיר** ("המחיר ירד אליי") — אין-לגעת.
+**מגן:** scheduled-task `mems26-naked-short-overnight-watch` כל 20 דק' (🔴 אם ≥7440 / הפוזיציה גדלה / פיד-מת; לוג רק על שינוי-ורדיקט).
+**🔴 OPEN אל cc-macbook:** `docs/handoff/CC_OVERNIGHT_3FIXES_2026-07-23.md` — Phase0 תיקון-מפתח position_qty בכל-הקוראים ·
+Phase1 root למה Smart-BE שתק על 479/481 (המנגנון קיים+דלוק! חשד: `_is_demo_mode` חוסם live ב-_emit_modify_stop) ·
+Phase2 EXTREME_CHASE_GUARD_V1 (היה חוסם 479+481) · Phase3 OPENING_TYPE_SEEDS_S1_V1 (זריעת-כיוון ב-15דק') · הכל flag-OFF,
+cowork מאמת+מדליק בבוקר לפי פסיקת-"שלושתם". יומי-לייב ‑$300 (סגורות) + ‑$232 לא-ממומש על העירום.
+
+
 ### [2026-07-23 19:10 IL] cowork-dev — 🔴→🟡 מייקל: "הפסד-יומי ‑$269 שלא אישרתי" → נחקר + משימת-אימות ל-cursor
 **ה-$269 אמיתי:** 466(+31.25 לילי 04:05ET)+479(‑161.25)+481(‑138.75)=**‑268.75**. **שתי המפסידות NOT מהדגל** —
 479=INITIATIVE_SHORT(S2), 481=ZLR(S4), לא REACTIVE. שתיהן שורט-עם-הטרנד (כיוון-נכון) שנעצר על קפיצה 7411→7434 + BE-לא-הוחל.
 **2 ממצאים לאימות:** (F2) חוסר-עקביות-חלונות — נייד ‑$269 (calendar-IL, כולל לילי) vs מונה-halt ‑$300 (RTH 09:30ET);
 (F3) `pnl_sierra` **ריק** → ‑$269 מחושב, לא מאומת-Sierra. תוך התקרה: `RISK_DAILY_LOSS_CAP=800` (« $800), FLAT כרגע.
 **משימה ל-cursor:** `docs/handoff/CURSOR_VERIFY_DAILY_PNL_269_2026-07-23.md` (5 AC: מספר, Sierra-truth, לגיטימיות-מפסידות, halt, hydration).
+**→ cursor 🔴 STRATEGIC-STOP 19:12 IL** — ראה LOG: cowork F2 הפוך; **לא FLAT** — naked −12c Sierra.
+
+
+### [2026-07-23 19:12 IL] cursor-agent — 🔴 STRATEGIC-STOP: אימות ‑$269 + naked orphan −12c
+**אל:** cowork-dev + מייקל · **דחיפות:** כסף-אמת — פוזיציה חיה בלי TM / בלי working stop.
+
+| AC | ✓/✗ | ממצא |
+|---|---|---|
+| AC-1 חלונות | ✗ cowork F2 הפוך | **נייד=`-300`** (479+481 בלבד; 466 entry_IL=אתמול). **halt-as-written=`-268.75`** (כולל 466) כי `exit_ts >= '…09:30:00'` naive מול `TimeZone=Asia/Jerusalem` → 09:30 **IL** לא ET. **ET-מפורש 09:30=`-300`**. Gateway `daily_pnl=-268.75` ← זה ה‑≈$269 שמייקל רואה. |
+| AC-2 Sierra truth | ✗ פער-אמת | `pnl_sierra` SUM=0/NULL. **sierra_state חי: `position_qty=-12` avg=7428.62 `working_orders=0` is_sim=0** (age&lt;1s). TM open=0. Reconciler מאז 18:55: `NAKED ORPHAN SHORT`. uPnL≈`$-863` @ mid 7443. **cowork "FLAT" מופרך.** |
+| AC-3 479/481 | ✓ חלקית | 479=`INITIATIVE_SHORT` S2; 481=`ZLR` S4 — **לא** `_RESPONSIVE_REV`. SHORT עם-טרנד, `STOP_HIT` @~7434.5. **אבל** בזמן 481: TM=-4 vs Sierra=-10; אחרי סגירה נשאר orphan −6→−12. |
+| AC-4 RISK_HALT | ✓ | `.env`+dotenv: `RISK_HALT_V1=1` `CAP=800` `ARMED=1`. Gateway `daily_pnl=-268.75` &lt;&lt; 800 → לא עוצר. קוד `trading_gateway.py:1839-1844` halt כש-`_daily_pnl <= -cap`. |
+| AC-5 carryover | ✗ באג-TZ | כוונת הקוד=09:30 ET; בפועל naive→IL → 466 (04:05 ET) נכנס למונה. אתמול RTH ‑67.5 (#460) **לא** במונה-היום. |
+
+**פעולה מיידית למייקל:** בדוק Sierra qty; אם −12 אמת → **FLATTEN / סטופ-מגן עכשיו** (ORPHAN_AUTO_STOP עדיין OFF/חסום). אל תסמוך על TM=FLAT.
+**תיקונים (אחרי עצירת-סיכון):** (1) session_start עם TZ ET מפורש ב-hydration/halt; (2) יישור נייד↔halt; (3) אכלוס `pnl_sierra`; (4) orphan −12 RCA.
 
 
 ### [2026-07-23 18:55 IL] cowork-dev — 📋 מסמך-ביקורת ל-RESPONSIVE_WITH_DAY_TREND_V1 מוכן + עדכון-כן #479
@@ -166,6 +193,13 @@ PLACE דרך `command_from_setup` הפרודקשן → **ACK תוך 2s** `ORDER_
 8. **D1 / G4** — עדיין OFF.
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-23 19:12 IL] cursor-agent — 🔴 STRATEGIC-STOP: ‑$269 verify + naked −12c
+ראה §OPEN לעיל. תמצית ראיה:
+- mobile/data today.pnl=**-300.0** (n=2) · gateway daily_pnl=**-268.75** · PG TZ=Asia/Jerusalem · 466 ge_naive=True ge_et=False
+- sierra_state position_qty=**-12** working_orders=0 · reconciler NAKED ORPHAN מאז 18:55 · mid≈7445 uPnL≈**−$1k**
+- 479 INITIATIVE_SHORT / 481 ZLR — לא RESPONSIVE · pnl_sierra ריק
+- RISK_HALT_V1=1 CAP=800 — מונה ‑268.75 לא עוצר; הבעיה=orphan לא יומי-סגור
 
 ### [2026-07-23 19:05 IL] cursor-agent — ✅ אימות בלתי-תלוי RESPONSIVE_WITH_DAY_TREND_V1 (חוק-5)
 **הכרעה: CONFIRMED — אין strategic-stop.** דגל חי לפי פסיקה; #479 לא נספר כראיה לדגל (INITIATIVE).
