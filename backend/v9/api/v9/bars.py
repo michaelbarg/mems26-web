@@ -481,6 +481,60 @@ def _hour_shift_fix(bars: list, stream: str) -> int:
     return 0
 
 
+# TS_WHOLE_HOUR_NORMALIZE_V1 state: last RAW newest-ts per stream (pre-shift),
+# so we only normalize batches whose newest ADVANCED (live feed producing new
+# bars) — a frozen export's re-push (newest unchanged) is NEVER shifted (the
+# 07-17 ghost class). Bootstrap (no prev) allowed with the shifted-age check.
+_ts_norm_last_raw_newest: dict = {}
+
+
+def _ts_whole_hour_normalize(bars: list, stream: str) -> int:
+    """A5 root-fix (cowork 2026-07-23, Michael autonomy mandate; supersedes the
+    1h-only ±120s hour-fix): the export stamps bars a WHOLE number of hours
+    behind wall-clock (measured: raw −5h; after the bridge's +4h → −1h at the
+    backend; TZ/DST drift can change N). If the batch's newest bar sits ≈N
+    whole hours behind now (N=1..6, tol covers the 0-300s in-bar age + push
+    latency), shift ALL bars +N·3600 so they land at their TRUE time.
+
+    Safety rails (the 07-17/07-18 lessons):
+      • ADVANCING-only: newest raw ts must have advanced vs the previous push
+        (live feed). Frozen-export re-pushes are never shifted.
+      • Post-shift the newest bar must look CURRENT (≤900s old) — a shift that
+        does not produce a current bar is refused.
+      • No whole-hour match → no shift (the honest TS gate below handles it).
+    Flag: TS_WHOLE_HOUR_NORMALIZE_V1 (default OFF). Returns the shift seconds.
+    """
+    import os as _os
+    if _os.getenv("TS_WHOLE_HOUR_NORMALIZE_V1", "0").lower() not in ("1", "true", "yes"):
+        return 0
+    try:
+        _num = [b for b in bars if isinstance(b.get("ts"), (int, float)) and b.get("ts")]
+        if not _num:
+            return 0
+        _newest = max(float(b["ts"]) for b in _num)
+        _now = datetime.now(timezone.utc).timestamp()
+        _off = _now - _newest
+        _prev = _ts_norm_last_raw_newest.get(stream)
+        _advanced = _prev is None or _newest > _prev
+        _ts_norm_last_raw_newest[stream] = max(_newest, _prev or 0)
+        if not _advanced:
+            return 0  # frozen/re-push — never shift (ghost-class protection)
+        _tol = float(_os.getenv("TS_WHOLE_HOUR_TOL_SEC", "330") or 330)
+        for _n in range(1, 7):
+            if abs(_off - _n * 3600.0) <= _tol:
+                if (_off - _n * 3600.0) > 900.0:  # post-shift still stale → refuse
+                    break
+                for b in _num:
+                    b["ts"] = float(b["ts"]) + _n * 3600.0
+                logger.warning(
+                    "[%s] TS-WHOLE-HOUR normalize: +%dh to %d bars (newest was %.0fs behind, tol=%.0fs)",
+                    stream, _n, len(_num), _off, _tol)
+                return _n * 3600
+    except Exception as _e:  # never break ingest on the normalizer
+        logger.warning("[%s] TS-WHOLE-HOUR errored (no shift): %s", stream, _e)
+    return 0
+
+
 # TS_OFFSET_INGEST_GATE_V1 state: newest accepted bar-ts per stream, to tell a
 # LIVE-but-mislabeled feed (ts advances every push, always offset) from a
 # paused/backfill re-push (ts unchanged — allowed, upsert is idempotent).
@@ -552,10 +606,25 @@ def post_bars_5min(
     rejected = 0
     last_valid_bar = None
 
+    # A5 root-fix (07-23): WHOLE-HOUR normalize FIRST — an advancing feed whose
+    # newest bar sits ≈N whole hours behind (chartbook TZ) is shifted to TRUE
+    # time; only what remains un-normalizable reaches the honest reject gate.
+    try:
+        _tsn = [{"ts": b.ts, "_ref": b} for b in bars
+                if isinstance(getattr(b, "ts", None), (int, float))]
+        if _ts_whole_hour_normalize(_tsn, "bars_5min"):
+            for item in _tsn:
+                item["_ref"].ts = item["ts"]
+    except Exception as _n_err:
+        logger.warning("[bars/5min] whole-hour normalize wrapper errored: %s", _n_err)
+
     # TS_OFFSET_INGEST_GATE_V1 — reject live-but-mislabeled batches.
     # 2026-07-22 P2 FIX: gate runs BEFORE hour-fix so it evaluates raw ts (not
     # shifted ts where _off≈0 and the gate is blind). Original ordering let
     # _hour_shift_fix add +3600 → gate saw fresh ts → passed → 11 ghost rows.
+    # 07-23: the whole-hour normalizer above runs first BY DESIGN — it shifts
+    # only advancing+hour-aligned batches to CURRENT time; the gate then judges
+    # anything still stale honestly.
     _tsg = _ts_offset_ingest_gate(
         [{"ts": getattr(b, "ts", None)} for b in bars], "bars_5min")
     if _tsg:
@@ -1117,6 +1186,10 @@ def post_woodies_5min(
     bars = payload.all_bars
     if not bars:
         return {"ok": True, "inserted": 0, "type": "woodies_5min"}
+
+    # A5 root-fix (07-23): whole-hour normalize FIRST (advancing + N·3600-aligned
+    # → shift to TRUE time), then the honest gate judges what remains.
+    _ts_whole_hour_normalize(bars, "woodies_5min")
 
     # TS_OFFSET_INGEST_GATE_V1 — gate BEFORE hour-fix (P2 fix, 2026-07-22)
     _tsg = _ts_offset_ingest_gate(bars, "woodies_5min")

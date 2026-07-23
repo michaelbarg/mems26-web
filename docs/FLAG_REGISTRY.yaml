@@ -140,6 +140,12 @@ flags:
     what: "Sanity-check the Sierra-exported IB against the first-12-bars' own extremes once >=12 RTH bars exist; fall back to the bars-derived IB (+ tag ib_source) when inconsistent by >2 ticks/2pt."
     why: "OFF (default). N1a/N1b 2026-07-17: Sierra IB proven to be a stale pre-open snapshot on 07-15 (exported 7591.75-7619.0 vs true 7601.25-7626.25) — fed a phantom UP side and a false mid-session Neutral. Trading-risk-surface (changes classification) → Michael sign-off + sim verification before live."
     ref: "docs/handoff/N1B_TRANSITIONS_DIAGNOSIS_2026-07-17.md RC#1; tests/v9/regression/test_s1_ib_sanity.py"
+  TS_WHOLE_HOUR_NORMALIZE_V1:
+    category: ingest
+    what: "A5 root-fix: advancing feed whose newest bar sits ~N whole hours behind wall-clock (N=1..6, tol 330s covering in-bar age) is shifted +N*3600 to TRUE time at ingest, BEFORE the honest TS gate. Frozen/re-push batches (newest not advancing) are NEVER shifted (07-17 ghost-class rail); post-shift newest must be current (<=900s)."
+    why: "Measured 07-23: raw export -5h, bridge +4h -> bars landed -1h with hour-fix OFF (A5 FAILED live). Replaces the 1h-only +-120s hour-fix whose window was narrower than the 300s bar period (dup-ghost class). Normalize-then-gate."
+    standing_decision: true
+    ref: "backend/v9/api/v9/bars.py (_ts_whole_hour_normalize; wired before gate in /5min and /woodies_5min)"
   TS_OFFSET_INGEST_GATE_V1:
     category: s1
     what: "Reject a bars batch (5min + woodies_5min ingest) whose newest bar-ts ADVANCES push-to-push (feed alive) while sitting > TS_OFFSET_REJECT_SEC (default 900s) behind server-now — a live-but-mislabeled TS feed. Honest reject, no guessed shift; paused-market/idempotent re-push (newest unchanged) always passes."
