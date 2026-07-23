@@ -105,6 +105,16 @@
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
 
+### [2026-07-23 ~09:00 IL] cc-macbook — cleanup-master stations 2-6 + #466 closed
+**תחנות 2-4 הושלמו:**
+- **S4 (idle-txn):** `_read_engine` AUTOCOMMIT for read.py — no more idle-in-transaction wedge.
+- **S2 (TS):** 76 ghost rows purged (35 woodies + 40 5min + 1). Bridge TZ correct.
+- **S3 (VA):** `_update_va_from_sierra()` mirrors IB pattern. Sierra poc/vah/val overwrites bar-derived.
+- **P2 test debt:** `test_tzoffset_exactly_1h` updated for default-OFF ruling. 9/9 green.
+- **#466 closed:** DB state=CLOSED, outcome=WIN, exit_reason=SIM_SWITCHOVER_CLOSE.
+**תחנה 6:** FAULTS_AND_FIXES updated — כל שורה sim-verified. flag_guard 114/114 PASS.
+**Pending A5:** VA+TS live verification when Sierra opens. cc-macbook.
+
 ### [2026-07-22 ~23:55 IL] cowork-dev — EOD live-day (acct 37138283)
 לייב: 2 עסקאות-מערכת (#460 ZLR-SHORT ‎−67.50 · #466 GB100-SHORT PARTIAL +31.25) = **calc ‎−36.25$**. Sierra-realized **+337.50$** — אך כל-4 הסגירות 16:00–17:47 IL הן de-risk **ידני** (‎+250 מסגירת ‎−5), לא עסקאות-מערכת → הפער "+373.75" = תפוחים-מול-תפוזים **מוגבר ע"י יומן קפוא**, לא באג-חישוב. חשבון **שטוח בסגירה** ✅; DB-wedge של 22:35 (idle-in-txn על v9_trades + 6× ALTER 023) **נוקה** (0 idle, 0 blocked).
 🔴 **ממצא-על:** `STOP_STRUCTURE_EXTREME_V1` שבור כל היום — `woodies_system.py:808` מפעיל `_pid` לפני הגדרתו (‎35× `UnboundLocalError` → נשאר סטופ-ברירת-מחדל, לא-מבני). תיקון-שורה-אחת (מימוש Ruling-D → בלי אישור-שני).
