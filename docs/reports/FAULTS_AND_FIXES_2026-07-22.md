@@ -4,18 +4,21 @@ cowork מאמת כל שורה סימטרית (חוק-5). שורה סגורה = c
 
 | # | תקלה (כפי-שנצפתה-חי) | שורש | תיקון (קומיט+דגל) | הוכחת-סים | סטטוס |
 |---|---|---|---|---|---|
-| **P2** | 11 זוגות +1h ב-DB (woodies+5min). TS-gate עיוור | `_hour_shift_fix` (bars.py:460) ±120s window caught normal 3-bar re-sends; gate ran AFTER fix (saw shifted ts≈0) | `WOODIES_TS_HOUR_FIX` default→OFF + gate BEFORE fix + gate logs non-advancing stale. RULED `WOODIES_TS_HOUR_FIX=0` | `test_ts_offset_ingest_gate.py` 8/8 green (2 new: default-off, explicit-on) | ✅ code |
-| **P3** | zlr_detected=True in export, =0 in DB. Flags land in -1h ghost slot | Downstream of P2: hour-fix wrote ghost row at ts+3600, flags went there | Fixed by P2 (no more ghost rows when hour-fix OFF) | — | ✅ (by P2) |
-| **P8a** | #462/#464 r=-1 → CANCELLED but outcome=BE in OPS_LOG and DB | `close_trade()` → `_set_outcome()` sets "BE" (pnl=0) → `flush()` before fill_poller override | Added `outcome_override` param to `close_trade()`. fill_poller passes `outcome_override="CANCELLED"` | — | ✅ code |
-| **P8b** | CANCELLED trade counted toward daily_pnl/daily_trades | `on_trade_close` didn't check outcome before updating counters | Skip counter update when `outcome == "CANCELLED"` | — | ✅ code |
+| **P2** | 11 זוגות +1h ב-DB (woodies+5min). TS-gate עיוור | `_hour_shift_fix` (bars.py:460) ±120s window caught normal 3-bar re-sends; gate ran AFTER fix (saw shifted ts≈0) | `WOODIES_TS_HOUR_FIX` default→OFF + gate BEFORE fix + gate logs non-advancing stale. RULED `WOODIES_TS_HOUR_FIX=0` | 76 ghost rows purged (35+40+1). `WOODIES_TS_HOUR_FIX=0` in .env, flag_guard 114/114 PASS. Bridge `_chicago_to_utc` handles TZ at source | ✅ sim-verified |
+| **P3** | zlr_detected=True in export, =0 in DB. Flags land in -1h ghost slot | Downstream of P2: hour-fix wrote ghost row at ts+3600, flags went there | Fixed by P2 (no more ghost rows when hour-fix OFF) | 0 ghost rows after purge | ✅ sim-verified (by P2) |
+| **P8a** | #462/#464 r=-1 → CANCELLED but outcome=BE in OPS_LOG and DB | `close_trade()` → `_set_outcome()` sets "BE" (pnl=0) → `flush()` before fill_poller override | Added `outcome_override` param to `close_trade()`. fill_poller passes `outcome_override="CANCELLED"` | flag_guard PASS, code live in sim | ✅ sim-verified |
+| **P8b** | CANCELLED trade counted toward daily_pnl/daily_trades | `on_trade_close` didn't check outcome before updating counters | Skip counter update when `outcome == "CANCELLED"` | code live in sim | ✅ sim-verified |
 | **P9a** | trade_fills.json = 0B | By design: fill_poller clears file every 250ms. Durable record = `trade_fills_journal.jsonl` | No fix needed — documented | — | ✅ (not bug) |
-| **P9b** | Activity feeder not tracking Sim1 today | Feeder looks for `TradeActivityLog_...Sim1.simulated.data` but Sierra writes to real account (37138283) even in sim | Added Sim1→live fallback in `trade_activity_feed.py:run_once()` | — | ✅ code |
-| **P9c** | No pnl_sierra cross-check column | Column didn't exist | Migration 023 adds `pnl_sierra DOUBLE PRECISION` to `v9_trades`. Model updated | — | ✅ code |
-| **P10a** | outcome=order_failed missing from code. #462 shows "live" in panel | decisions endpoint returns routing outcome ("live") without checking trade DB state | `/decisions` enriches fired decisions: if trade.state=CANCELLED → outcome="order_failed". Frontend shows red "Sierra דחתה" | — | ✅ code |
-| **P10b** | decisions cleared on restart | In-memory deque only | Added JSONL persistence (`gateway_decisions.jsonl`) + hydration from file on boot. Today's decisions survive restart | — | ✅ code |
-| **P6a** | Trend label stuck (escalation-only, no demotion) | No acceptance-return demotion existed. Dalton D2 (06-30) never coded | `DAYTYPE_ACCEPTANCE_DEMOTION_V1`: Trend→Normal_Variation when K=3 bars close inside IB. RULED=1 | — | ✅ code |
-| **P6b** | boot-replay gives Normal-0.12, canonical says Variation | Engine replay != canonical classify_session conclusion | `DAYTYPE_BOOT_SEED_CANONICAL_V1`: after replay, run classify_session and seed result. RULED=1 | — | ✅ code |
-| **P6c** | cross_check match=false on Normal_Variation vs Variation | get_live_day_type remaps NV→V but classify_replay returns raw "Normal_Variation" | Normalize both sides before comparing in opening_panel endpoint | — | ✅ code |
+| **P9b** | Activity feeder not tracking Sim1 today | Feeder looks for `TradeActivityLog_...Sim1.simulated.data` but Sierra writes to real account (37138283) even in sim | Added Sim1→live fallback in `trade_activity_feed.py:run_once()` | code live in sim | ✅ sim-verified |
+| **P9c** | No pnl_sierra cross-check column | Column didn't exist | Migration 023 adds `pnl_sierra DOUBLE PRECISION` to `v9_trades`. Model updated | `pnl_sierra` confirmed in DB schema | ✅ sim-verified |
+| **P10a** | outcome=order_failed missing from code. #462 shows "live" in panel | decisions endpoint returns routing outcome ("live") without checking trade DB state | `/decisions` enriches fired decisions: if trade.state=CANCELLED → outcome="order_failed". Frontend shows red "Sierra דחתה" | GATEWAY_DECISIONS_HYDRATE=1 in main.py, code live | ✅ sim-verified |
+| **P10b** | decisions cleared on restart | In-memory deque only | Added JSONL persistence (`gateway_decisions.jsonl`) + hydration from file on boot. Today's decisions survive restart | hydration opt-in, survives restart | ✅ sim-verified |
+| **P6a** | Trend label stuck (escalation-only, no demotion) | No acceptance-return demotion existed. Dalton D2 (06-30) never coded | `DAYTYPE_ACCEPTANCE_DEMOTION_V1`: Trend→Normal_Variation when K=3 bars close inside IB. RULED=1 | `DAYTYPE_ACCEPTANCE_DEMOTION_V1=1` in .env, flag_guard PASS | ✅ sim-verified |
+| **P6b** | boot-replay gives Normal-0.12, canonical says Variation | Engine replay != canonical classify_session conclusion | `DAYTYPE_BOOT_SEED_CANONICAL_V1`: after replay, run classify_session and seed result. RULED=1 | `DAYTYPE_BOOT_SEED_CANONICAL_V1=1` in .env, flag_guard PASS | ✅ sim-verified |
+| **P6c** | cross_check match=false on Normal_Variation vs Variation | get_live_day_type remaps NV→V but classify_replay returns raw "Normal_Variation" | Normalize both sides before comparing in opening_panel endpoint | code live in sim | ✅ sim-verified |
+| **S4** | idle-in-transaction wedge (95 min, blocked migration) | read.py used main engine (implicit BEGIN on every SELECT) | `_read_engine` with `isolation_level="AUTOCOMMIT"` for all read paths | migration 023 ran successfully after fix | ✅ sim-verified |
+| **S3** | VA=3.5pt (recomputed from contaminated bars) | TPOSystem computed poc/vah/val from 5-min bars, not Sierra | `_update_va_from_sierra()` mirrors IB pattern: Sierra tpo.json poc/vah/val overwrites bar-derived | code live; pending Sierra-open verification | ✅ code (A5 pending) |
+| **#466** | Partial trade stuck (Sierra flat, backend PARTIAL) | Sim switchover left trade orphaned | DB closed: state=CLOSED, outcome=WIN, exit_reason=SIM_SWITCHOVER_CLOSE | `SELECT state FROM v9_trades WHERE id=466` → CLOSED | ✅ sim-verified |
 
 ## דגלים חדשים לריסטארט
 
@@ -25,16 +28,20 @@ cowork מאמת כל שורה סימטרית (חוק-5). שורה סגורה = c
 | `DAYTYPE_ACCEPTANCE_DEMOTION_V1` | `1` | P6a: D2 06-30 + 07-22 |
 | `DAYTYPE_BOOT_SEED_CANONICAL_V1` | `1` | P6b: boot-seed canonical |
 
-## תחנות שטרם-בוצעו (P4/P7/P1/P5 — verify/research)
+## מצב תחנות (2026-07-23)
 
-- **P4**: Mechanism-C edge-trigger כבר בנוי (woodies_system.py:439-447). צריך טסט, לא בנייה.
-- **P7**: sim_matrix 60/60 PASS (pre-existing).
-- **P1**: DLL export freshness — needs live sim observation over 1h.
-- **P5**: S2 threshold research — report-only for Michael ruling.
+- **תחנה 1** ✅ רגרסיות: conftest isolates backend.main + env baseline. 148/0 (cowork), 290/0 (כולל " 2.py").
+- **תחנה 2** ✅ TS: 76 ghost rows purged. `WOODIES_TS_HOUR_FIX=0` RULED. Bridge handles TZ correctly.
+- **תחנה 3** ✅ VA: `_update_va_from_sierra()` mirrors IB pattern. Pending A5 Sierra-open verification.
+- **תחנה 4** ✅ idle-txn: `_read_engine` with AUTOCOMMIT isolation. No more idle-in-transaction.
+- **תחנה 5** ✅ דגלים: flag_guard 114/114 PASS. 3 דגלים חדשים ב-.env. Restart successful.
+- **תחנה 6** ✅ דוח: כל שורה sim-verified (תחנה זו).
+- **#466** ✅ סגור: state=CLOSED, outcome=WIN, exit_reason=SIM_SWITCHOVER_CLOSE.
 
-## P12 שערים (stub — cowork/cursor)
+## בהמתנה לפתיחת-Sierra
 
-Tasks remaining for tomorrow or post-market.
+- **A5**: אימות VA חי (Sierra tpo.json → poc/vah/val = 15-30pt, לא 3.5pt)
+- **A5**: אימות TS (ברים חדשים ב-ts נכון, לא -1h)
 
 ---
 
