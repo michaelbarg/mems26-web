@@ -67,6 +67,36 @@
 תוצר: CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md מדורג + 3-תובנות-עליונות. לא לערוך קוד — cc בונה הלילה במקביל.
 
 
+### [2026-07-24 10:22 IL] cursor-agent — 🟢 פסיקת-מייקל: OPEN-FIRE ביצוע **לייב** + אימות קווים×מיקום ל-Variation
+**פסיקה (מייקל 10:19): "הביצוע יהיה על לייב"** — OPEN-FIRE v1 מיועד ללייב, לא צל. הפסיקה חד-פעמית-וקבועה;
+הסדר נשאר: בנייה flag-OFF → sim-verify (replay 35 + תפיסת שורט-פולבק 07-23) → **הדלקה בלי אישור-שני** (מימוש פסיקה זו).
+לרשום ב-RULED_FLAGS בקומיט-ההדלקה: `OPENING_FIRE_V1` ruled 07-24 live.
+**אימות "קווים חשובים + כניסה/מימוש לפי מיקום" (חוק-5, cursor):**
+- **קווים חיים:** `/api/v9/key_levels` → IB H/L/width+class · RTH H/L · POC/VAH/VAL · prev-day POC/VAH/VAL/range/close (מקור Sierra TPO). חסר: prev-day IB (`dll_missing`, Input 19).
+- **כניסה לפי מיקום:** ✅ `location_gate.zone_of` (above/near_vah/mid/near_val/below + tol∝IB) · `day_structure_edge` (day_low/high, ib_low/high, open-extreme) + חובת-probe · `DAYTYPE_LOCATION_GATE` v2 ON.
+- **מימוש לפי מיקום:** ✅ `DAYTYPE_TARGETS_STRUCTURAL=1` — Variation ב-`_resolve_variation`: C1=swing/½IB-ext · C2=המבנה-הקרוב (POC/IB-center) · C3=VA-edge ראנר+trail; משפחת REV: C2=POC, C3=קצה-נגדי. + `TARGET_REALISM_V1` תקרת-קיצון-סשן.
+- **🔴 המתח היחיד שנשאר (פסיקה #3 הממתינה):** קונפיג Variation = "WITH the IB expansion only" (fade_edges:false) + `RESPONSIVE_WITH_DAY_TREND` never-fade — אבל מייקל 07-23: "וריאציה ⇒ גם לונגים-בשפל". ההצעה על השולחן: never-fade רק ב-Trend_*; ב-Variation דעיכה דו-כיוונית בקצוות+probe. **ממתין למילה אחת ממייקל.**
+- 🟡 `day_type_at_fire` NULL 23/23 אתמול — בתיקון-לילה של cc; תנאי ל-GO של התאמת-מיקום אמיתית בזמן-אש.
+
+
+### [2026-07-24 08:17 IL] cursor-agent — ✅ מייקל מאשר תובנות-היום + מיקוד חדש: זיהוי-פתיחה + ירי-פתיחה×סוג-יום
+**פסיקת-כיוון (מייקל 08:17):** מאשר את סקירת 07-23; **בנוסף** — היום מתמקדים ב**זיהוי סוג-הפתיחה וירי בפתיחה בהתאם לסוג-היום** (לא רק תיקוני-הלילה).
+**מצב קיים:** `OPENING_ENTRY_V1=shadow` (RULED 07-22 — קידום-live דורש פסיקה נפרדת אחרי הוכחת-צל). אתמול **0 צל** (TS-OFFSET-GATE@16:30). `OPENING_WINDOW_FIRE_V1=1` כבר ON. Phase3 בלילה: `OPENING_TYPE_SEEDS_S1_V1` (flag-OFF עד הדלקה).
+**סדר-עבודה מוצע להיום (לפני כל ירי-live בפתיחה):**
+1. לתקן איסוף-צל / בר-16:30 מגיע ל-hook (בלי זה אין זיהוי אמין).
+2. לחבר זריעת-כיוון-פתיחה→S1 + playbook/שער לפי סוג-יום בחלון הראשון.
+3. **רק אז** — פסיקת-מייקל מפורשת: נשארים SHADOW היום / מדליקים `OPENING_ENTRY_V1=1` ללייב.
+**ממתין לתשובה אחת ממייקל:** `צל-היום` או `לייב-היום` לירי-הפתיחה.
+
+
+### [2026-07-24 ~00:00 IL] cursor-agent — 📋 סקירת-יום 07-23 מלאה (מערכת·cowork·cursor) — תובנות
+**תוצר:** `docs/reports/CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md` (Rule-5). **לא נערך קוד.**
+**3 עליונות:** (1) אמת-חשבון לפני אמת-דגל — חובת `position_qty`+reconciler בכל verify.
+(2) Variation≠Trend — RESPONSIVE never-fade חסם לונג-מנצח @7433; להגביל ל־Trend_* בלבד (פסיקת-מייקל).
+(3) −9 provenance: Limit חיצוני 9507/9508 (+6/+6), לא CANCELLED; SMART_BE=0 לוגים + 4751× PARTIAL→PARTIAL.
+**OPENING_ENTRY:** 0 צל היום (TS-gate@16:30). **day_type_at_fire:** 23/23 NULL.
+
+
 ### [2026-07-23 22:49 IL] cowork-dev (משמרת-לילה · ריצה #1) — 🟢 השורט-העירום ‑9 נסגר, החשבון שטוח
 `sierra_state.json` (מרוענן 22:49:42, is_sim=0): **position_qty=0**, avg=0, working_orders=0, orders=[]. המחיר צנח דרך אזור-הטרגטים 7420-7428.5 והמשיך למטה (בר-רץ 22:45 close=7419.75, מתחת לכניסה 7430.08) → פקודות ה-buy-limit התמלאו וכיסו את כל ה‑9. שיא-הערב 22:20=7437.75 — לא נגע ב-7440. פיד תקין. **ורדיקט 🟢 — סיכון-הלילה נפתר; אין עוד פוזיציה פתוחה לשמור.** (ריצה #1 של ה-watch; הוורדיקט השתנה 🔴פתוח→🟢סגור, לכן נרשם) — cowork-dev
 
@@ -203,6 +233,11 @@ PLACE דרך `command_from_setup` הפרודקשן → **ACK תוך 2s** `ORDER_
 8. **D1 / G4** — עדיין OFF.
 
 ## 📋 LOG (החדש למעלה — חתום, קצר)
+
+### [2026-07-24 ~00:00 IL] cursor-agent — סקירת-יום 07-23 → `CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md`
+ממצאים מדורגים + ביקורת cowork/cursor. ראיה: mobile −300 · OPENING 0 · never-fade@7433 ·
+Sierra 9507/9508 external Limit · SMART_BE=0 · PARTIAL→PARTIAL×4751 · day_type_at_fire NULL×23.
+חובת-verify חדשה: position_qty + reconciler לפני כל ✅.
 
 ### [2026-07-23 19:12 IL] cursor-agent — 🔴 STRATEGIC-STOP: ‑$269 verify + naked −12c
 ראה §OPEN לעיל. תמצית ראיה:
