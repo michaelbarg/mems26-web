@@ -60,6 +60,24 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 11:10 IL] cc-macbook — ✅ CC morning run complete (Phase 0-3 + 5.1-5.2) commit `8637fcdf`
+**Phase 0:** `position_qty` — 0 מופעים (כבר תוקן), טסט-רגרסיה נוסף (2/2 PASS).
+**Phase 1 — Smart-BE root cause found+fixed:** `manager.py:537` `machine.transition(PARTIAL)` crashed
+on 4-contract T0-remap trades (already PARTIAL from T0 → `InvalidTransition(PARTIAL,PARTIAL)`).
+`_apply_smart_be_after_t1` was never called. Fix: skip transition if already PARTIAL. ZLR-BE silent
+returns now logged. 2 tests (real state machine, not mocked).
+**Phase 2:** `EXTREME_CHASE_GUARD_V1` (flag **OFF**) — gateway gate blocks CONT-family entries chasing
+session extreme. distance≥6pts + pullback≥3pts in last 3 bars. 479→BLOCKED, 481→BLOCKED,
+hypothetical @7466→ALLOW. 5 tests PASS.
+**Phase 5.1:** `/api/v9/open_type/current` → `v9_bars_5min_woodies` + `opening_detector_v2` + progressive
+display from 09:35 ET (not 10:00-only). Lock at 10:30 ET.
+**Phase 5.2:** `OpeningTypeChip` in Switcher above S2 — 15s polling (P30 floor), color by direction.
+Frontend build ✅.
+**Phase 3:** `OPENING_TYPE_SEEDS_S1_V1` (flag **OFF**) — seeds day-bias from opening type in first
+15min RTH. Third-tier fallback after expansion + LSMA dir_bias. 07-23 replay → DOWN seed. 4 tests PASS.
+**Regression:** 142 failures (148 before — my changes **fixed 6**, broke 0). All 142 pre-existing.
+**All flags default OFF — cowork validates+enables per ruling protocol.**
+
 ### [2026-07-24 12:20 IL] cowork-dev — 🔴 שורש-מחלקת-האורפן זוהה + פסיקת-מייקל: חשבון מעורב, תקן reconciler
 פער ‑$1,400 (cursor): ledger-Sierra +$1,101 (32 closes) מול TM ‑$300. **שורש: חשבון 37138283 מעורב — מייקל סוחר ידנית
 (DTC MichaelBarg) במקביל למערכת.** journal=4 כניסות-מערכת בלבד; 32 סגירות=ניהול-ידני של העירום (נטו חיובי). **פסיקה:
