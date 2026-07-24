@@ -28,3 +28,10 @@ AC: replay ברי-היום — עד 16:45 ההטיה=DOWN (נפתחנו אחרי
 `pytest tests/v9/regression -q` (כל הסלקציה הירוקה הקיימת נשארת ירוקה) · flag_guard PASS (הדגלים החדשים לא ב-RULED עדיין — cowork יוסיף בהדלקה) · `gen_flag_index.py` + FLAG_REGISTRY entries · דוח לפי חלק-C של החוזה (טבלת phases + evidence + NOT-DONE) → `docs/reports/CC_OVERNIGHT_3FIXES_REPORT_2026-07-24.md` · commit+push · שורה ב-LIVE_CHANNEL.
 
 **סדר: 0 → 1 → 2 → 3 → 4.** אם הזמן קצר — 0+1+2 הם החובה למחר; 3 יכול להיות חלקי עם NOT-DONE.
+
+
+## Phase 5 (נוסף 23:35 — פסיקת-מייקל "מערכת-ירי סוג-פתיחה"): endpoint+פרונט+חלון-60
+לפי `docs/plans/OPENING_FIRE_SYSTEM_PLAN_2026-07-23.md`:
+1. **תקן `api/v9/open_type_routes.py`:** קורא v9_bars_5min (טבלה מזוהמת — הפרת-SoT) → `v9_bars_5min_woodies`; הסר את טריגר-10:00-בלבד — תצוגה מדורגת מ-16:35 IL (עדכון כל בר עד 17:30, ואז נעילה). השתמש ב-opening_detector_v2 (לא הישן).
+2. **פרונט:** chip "Open type" בפאנל-הצד **מעל לשונית מערכת-2** — סוג+כיוון+confidence, צבע לפי כיוון, "PENDING" לפני 16:35. ניזון מ-`/api/v9/open_type/current`, polling **15000ms** (רצפות-P30 — אסור מהיר-יותר). קומפוננטה קטנה, אל תיגע בקיים.
+3. **הרחב `opening_entry.py` לחלון-60-דק'** (ברים 2-12, WINDOW_LAST_BAR=12) + כניסת **PULLBACK-CONT** חדשה (פולבק ≥33% מהמהלך + בר-דחייה → כניסה עם-הכיוון, סטופ מאחורי קיצון-הפולבק 16T, T1=1.5R) — הכל תחת flag חדש `OPENING_FIRE_V1` (default OFF; כשכבוי — התנהגות-30-דק' הקיימת byte-identical). טסטים: replay 07-23 חייב לתפוס שורט-פולבק ~7466-7470 אחרי דחיית-7486; revert→RED.
