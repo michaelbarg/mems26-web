@@ -35,3 +35,12 @@ AC: replay ברי-היום — עד 16:45 ההטיה=DOWN (נפתחנו אחרי
 1. **תקן `api/v9/open_type_routes.py`:** קורא v9_bars_5min (טבלה מזוהמת — הפרת-SoT) → `v9_bars_5min_woodies`; הסר את טריגר-10:00-בלבד — תצוגה מדורגת מ-16:35 IL (עדכון כל בר עד 17:30, ואז נעילה). השתמש ב-opening_detector_v2 (לא הישן).
 2. **פרונט:** chip "Open type" בפאנל-הצד **מעל לשונית מערכת-2** — סוג+כיוון+confidence, צבע לפי כיוון, "PENDING" לפני 16:35. ניזון מ-`/api/v9/open_type/current`, polling **15000ms** (רצפות-P30 — אסור מהיר-יותר). קומפוננטה קטנה, אל תיגע בקיים.
 3. **הרחב `opening_entry.py` לחלון-60-דק'** (ברים 2-12, WINDOW_LAST_BAR=12) + כניסת **PULLBACK-CONT** חדשה (פולבק ≥33% מהמהלך + בר-דחייה → כניסה עם-הכיוון, סטופ מאחורי קיצון-הפולבק 16T, T1=1.5R) — הכל תחת flag חדש `OPENING_FIRE_V1` (default OFF; כשכבוי — התנהגות-30-דק' הקיימת byte-identical). טסטים: replay 07-23 חייב לתפוס שורט-פולבק ~7466-7470 אחרי דחיית-7486; revert→RED.
+
+
+## Phase 6 (נוסף 23:55 — פסיקת-מייקל #3 "מאשר צמצום ל-Trend בלבד"): NEVERFADE_TREND_ONLY_V1
+דגל `NEVERFADE_TREND_ONLY_V1` (default OFF). ב-`daytype_playbook.py`, בענף ה-RESPONSIVE של
+RESPONSIVE_WITH_DAY_TREND_V1: כשהדגל-החדש ON — בדיקת ה-counter-trend/with-trend (never-fade) חלה **רק כאשר**
+day_type הקנוני מתחיל ב-Trend (Trend_Normal/Trend_DD); ב-Variation/Normal_Variation הזרימה נופלת ל-location-only
+הדו-כיווני הקיים (לונג@VAL/שפל + שורט@VAH/שיא, עם חובת-probe הקיימת). OFF = byte-identical להתנהגות-היום.
+AC: replay 07-23 18:50 REACTIVE_LONG @7433.25 (Variation, day_dir=DOWN, ליד-שפל) — עם שני הדגלים ON → **ALLOW**
+(אתמול נחסם "never fade"); ואילו על day_type=Trend_Normal אותו setup → SKIP נשאר. טסטים + revert→RED.

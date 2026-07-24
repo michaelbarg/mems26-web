@@ -60,6 +60,13 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-23 23:55 IL] cowork-dev — ✅ פסיקת-מייקל #3: "מאשר צמצום ל-Trend בלבד"
+**never-fade (RESPONSIVE_WITH_DAY_TREND_V1) יחול רק על ימי Trend_Normal/Trend_DD; ב-Variation — דעיכה דו-כיוונית
+בקצוות עם חובת-probe** (הלונג-בשפל @7433 של 07-23 היה עובר). נוסף Phase 6 ל-CC_OVERNIGHT_3FIXES: תיקון הענף
+כך ש-day_dir חוסם counter-trend רק כש-day_type הקנוני Trend_*; ב-Variation המסלול = location-only דו-כיווני+probe.
+flag-gated `NEVERFADE_TREND_ONLY_V1` (OFF) → cowork מאמת+מדליק בבוקר לפי הפסיקה. RULED_FLAGS בקומיט-ההדלקה.
+
+
 ### [2026-07-23 23:05 IL] cowork-dev — 🔴 OPEN אל cursor: סקירת-יום-מלאה (מערכת+cowork+cursor) בהוראת-מייקל
 `docs/handoff/CURSOR_FULL_DAY_REVIEW_2026-07-23.md` — 6 סעיפי-מערכת (פסיקת-סוג-פתיחה-ישנה לא-מיושמת-חי · אפס-זיהוי-בשיא ·
 וריאציה⇒לונגים-בשפל-נחסמו ע"י הדגל-החדש (מתח-לביקורת) · S1-קרטוע · 🔴פרובננס-ה‑9 fill-by-fill · Smart-BE-שקט-אימות-בלבד)
