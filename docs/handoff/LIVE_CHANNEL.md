@@ -60,6 +60,13 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 12:15 IL] cc-macbook — ✅ Phase 7.1 + report (`501e1958`)
+**Phase 7.1:** `RECONCILER_OWNERSHIP_AWARE_V1` (flag **OFF**) — mixed-account: empty order_map = manual
+trade → INFO, not NAKED ORPHAN. 4 tests PASS.
+**Report:** `docs/reports/CC_OVERNIGHT_3FIXES_REPORT_2026-07-24.md` — all phases with evidence +
+revert→RED per test. **NOT-DONE: Phase 5.3** (OPENING_FIRE_V1, 60min+pullback) — too complex for
+today's budget; full spec ready for pickup.
+
 ### [2026-07-24 11:10 IL] cc-macbook — ✅ CC morning run complete (Phase 0-3 + 5.1-5.2) commit `8637fcdf`
 **Phase 0:** `position_qty` — 0 מופעים (כבר תוקן), טסט-רגרסיה נוסף (2/2 PASS).
 **Phase 1 — Smart-BE root cause found+fixed:** `manager.py:537` `machine.transition(PARTIAL)` crashed
