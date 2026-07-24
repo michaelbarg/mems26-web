@@ -893,3 +893,70 @@ def get_opening_type_seed():
         return None
     except Exception:
         return None
+
+
+def get_opening_dir_fusion(oe_bars):
+    """OPENING_DIR_FUSION_V1 — volume-confirmed opening direction (empirical study
+    2026-07-24, docs/reports/OPENING_SIGNAL_EDGE: 73% on the days it fires vs the
+    classifier's 53%). Fetches the trailing-median opening (first-30-min) volume + the
+    prior-day reference levels, then calls opening_entry.opening_dir_fusion over the
+    caller's first-6 RTH bars. Returns 'UP'/'DOWN'/None (None = low-conviction/auction or
+    a level-break that conflicts with momentum → no opening trade). Flag-gated;
+    fail-closed to None."""
+    import os
+    if os.getenv("OPENING_DIR_FUSION_V1", "0").lower() not in ("1", "true", "yes"):
+        return None
+    try:
+        from backend.v9.systems.opening_entry import opening_dir_fusion
+        from backend.v9.db.read import read_scalar, read_one
+        from backend.v9.services.market_clock import get_previous_trading_day
+        if not oe_bars or len(oe_bars) < 6:
+            return None
+        b6 = oe_bars[:6]
+
+        def _f(v):
+            try:
+                return float(v) if v is not None else None
+            except (TypeError, ValueError):
+                return None
+
+        def _bg(b, *keys):
+            for k in keys:
+                v = b.get(k) if isinstance(b, dict) else getattr(b, k, None)
+                if v is not None:
+                    return v
+            return None
+
+        open_price = _f(_bg(b6[0], "o", "open"))
+        opening_vol = sum(_f(_bg(b, "v", "volume")) or 0.0 for b in b6)
+        med = read_scalar(
+            "SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY ov) FROM ("
+            "  SELECT d, sum(volume) ov FROM ("
+            "    SELECT (ts AT TIME ZONE 'America/New_York')::date d, volume, "
+            "           row_number() OVER (PARTITION BY (ts AT TIME ZONE 'America/New_York')::date ORDER BY ts) rn "
+            "    FROM v9_bars_5min_woodies WHERE symbol='MES' "
+            "    AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+            "    AND (ts AT TIME ZONE 'America/New_York')::time < '16:00' "
+            "    AND (ts AT TIME ZONE 'America/New_York')::date < current_date "
+            "  ) x WHERE rn <= 6 GROUP BY d "
+            ") y", {})
+        prev = get_previous_trading_day()
+        pdh = pdl = pvah = pval = None
+        if prev is not None:
+            _p = prev.isoformat() if hasattr(prev, "isoformat") else str(prev)
+            hl = read_one(
+                "SELECT max(high) AS h, min(low) AS l FROM v9_bars_5min_woodies "
+                "WHERE symbol='MES' AND (ts AT TIME ZONE 'America/New_York')::date = :d "
+                "AND (ts AT TIME ZONE 'America/New_York')::time >= '09:30' "
+                "AND (ts AT TIME ZONE 'America/New_York')::time < '16:00'", {"d": _p})
+            if hl:
+                pdh, pdl = _f(hl.get("h")), _f(hl.get("l"))
+            pv = read_one(
+                "SELECT vah_price AS vah, val_price AS val FROM v9_tpo_sessions "
+                "WHERE trading_date = :d ORDER BY id DESC LIMIT 1", {"d": _p})
+            if pv:
+                pvah, pval = _f(pv.get("vah")), _f(pv.get("val"))
+        return opening_dir_fusion(b6, open_price, opening_vol, _f(med),
+                                  pdh=pdh, pdl=pdl, prior_vah=pvah, prior_val=pval)
+    except Exception:
+        return None

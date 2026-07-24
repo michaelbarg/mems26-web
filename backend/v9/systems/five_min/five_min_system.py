@@ -1158,6 +1158,10 @@ class FiveMinSystem(BaseV9TradingSystem):
                     # window, no pullback → byte-identical to the SHADOW spec.
                     _of_on = os.getenv("OPENING_FIRE_V1", "0").lower() in ("1", "true", "yes")
                     _oe_win = 12 if _of_on else 6
+                    # OPENING_DIR_FUSION_V1: volume-confirmed opening-direction GATE over
+                    # the opening entries (empirical study 07-24: 73% vs 53%). OFF ⇒ never
+                    # computed, never gates → byte-identical.
+                    _fusion_on = os.getenv("OPENING_DIR_FUSION_V1", "0").lower() in ("1", "true", "yes")
                     _ts_raw = bar.get("ts")
                     _bar_dt = None
                     try:
@@ -1177,6 +1181,8 @@ class FiveMinSystem(BaseV9TradingSystem):
                         self._oe_fired = set()
                         self._oe_disabled = False
                         self._oe_seed_bias = None
+                        self._oe_fusion = None
+                        self._oe_fusion_done = False
                     if not getattr(self, "_oe_disabled", False):
                         if not self._oe_bars:
                             _is_open_bar = bool(_bar_dt and _bar_dt.hour == 16 and _bar_dt.minute == 30)
@@ -1207,11 +1213,30 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     self._oe_seed_bias = "LONG" if _seed == "UP" else "SHORT"
                             except Exception:
                                 pass
+                        # OPENING_DIR_FUSION_V1: compute the volume-confirmed direction once
+                        # the first 30 min are in (bar 6); cache UP/DOWN/None for the gate.
+                        if _fusion_on and not getattr(self, "_oe_fusion_done", False) and len(self._oe_bars) >= 6:
+                            self._oe_fusion_done = True
+                            try:
+                                from backend.v9.services.trade_context import get_opening_dir_fusion
+                                self._oe_fusion = get_opening_dir_fusion(self._oe_bars)
+                                logger.info("[FiveMin] OPENING_DIR_FUSION = %s", self._oe_fusion)
+                            except Exception as _fx:
+                                self._oe_fusion = None
+                                logger.warning("[FiveMin] opening-dir-fusion failed (non-fatal): %s", _fx)
                         if 2 <= len(self._oe_bars) <= _oe_win:
                             _trig = evaluate_opening_entry(
                                 self._oe_bars, self._oe_fired,
                                 window_last_bar=_oe_win, enable_pullback=_of_on,
                                 bias=getattr(self, "_oe_seed_bias", None))
+                            # direction gate: drop low-conviction (fusion None) or a trigger
+                            # that fights the fusion direction. Only once fusion is computed.
+                            if _trig and _fusion_on and getattr(self, "_oe_fusion_done", False):
+                                _fb = getattr(self, "_oe_fusion", None)
+                                if _fb is None or (_trig.get("direction") and _fb != _trig["direction"]):
+                                    logger.info("[FiveMin] OPENING_DIR_FUSION gate dropped %s %s (fusion=%s)",
+                                                _trig.get("type"), _trig.get("direction"), _fb)
+                                    _trig = None
                             if _trig:
                                 self._oe_fired.add(_trig["type"])
                                 _setup = build_opening_setup(

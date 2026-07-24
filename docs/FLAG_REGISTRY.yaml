@@ -1103,3 +1103,9 @@ flags:
     why: "ENABLED 07-24 (cowork, per Michael ruling 10:19 'OPEN-FIRE live' + 07-24 'enable 5.3'). Verified: 8 tests, real 07-23 replay catches the SHORT @7464.25 after the 7486.5 rejection, revert->RED, OFF=byte-identical, full regression 141<=142 (0 new). NOTE: actual LIVE routing also requires OPENING_ENTRY_V1 shadow->1 (Michael's live move) + Sierra Sim->Live; with OPENING_ENTRY_V1=shadow the setups are recorded shadow-only."
     status: enabled
     ref: "OPENING_FIRE_SYSTEM_PLAN_2026-07-23.md · CC_OVERNIGHT_3FIXES Phase 5.3 · RULED מייקל 10:19 · built+enabled cowork 07-24"
+  OPENING_DIR_FUSION_V1:
+    category: s2
+    what: "Volume-confirmed opening-direction GATE over the opening entries: opening (first-30min) volume vs trailing median + 30-min momentum + level-break acceptance -> UP/DOWN/None. None (low-conviction/auction, or a break conflicting with momentum) suppresses the opening trade; otherwise drops triggers fighting the direction. Never fires a trade itself. get_opening_dir_fusion() (trade_context) + pure opening_dir_fusion() (opening_entry)."
+    why: "ENABLED 07-24 (cowork, per Michael 'build + wire to live now'). Study docs/reports/OPENING_SIGNAL_EDGE_2026-07-24: 73% on fire-days vs the classifier's 53%; volume +7pts; gap anti-predictive; half the edge is skipping low-conviction days. CAVEAT: 11 fire-day sample, Michael chose live wiring explicitly. Risk-reducing (a gate, not a new trigger). Verified: 7 tests, OFF=byte-identical, regression 141<=142."
+    status: enabled
+    ref: "OPENING_SIGNAL_EDGE_2026-07-24.md · RULED מייקל 07-24 build+wire-live-now · cowork"

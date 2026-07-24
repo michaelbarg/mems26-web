@@ -257,3 +257,49 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
             "reverses": trigger.get("reverses"),
         },
     }
+
+
+# ── OPENING_DIR_FUSION_V1 (empirical study 2026-07-24, docs/reports/OPENING_SIGNAL_EDGE) ──
+# Volume-confirmed opening direction: on the days it fires it called the day direction
+# 73% vs the classifier's 53%. Pure function (DB-free) so it is unit-testable; the caller
+# supplies the first-30-min bars, the opening volume, the trailing-median opening volume,
+# and prior-day reference levels. Returns "UP" / "DOWN" / None. None = low-conviction
+# (auction) OR a level-break that conflicts with momentum → NO opening trade (the skip
+# is half the edge). Caller-gated on OPENING_DIR_FUSION_V1; used only as a direction
+# gate over the existing opening entries (never fires a trade by itself).
+FUSION_MOM_MIN_PTS = 2.0
+FUSION_ACCEPT_BUFFER_PTS = 1.0
+
+
+def opening_dir_fusion(bars: List[Dict[str, Any]], open_price: Optional[float],
+                       opening_vol: Optional[float], median_open_vol: Optional[float],
+                       *, pdh: Optional[float] = None, pdl: Optional[float] = None,
+                       prior_vah: Optional[float] = None, prior_val: Optional[float] = None,
+                       mom_min_pts: float = FUSION_MOM_MIN_PTS) -> Optional[str]:
+    if not bars or open_price is None or opening_vol is None or median_open_vol is None:
+        return None
+    if opening_vol < median_open_vol:              # auction / low conviction → skip
+        return None
+    closes = [_f(b, "c", "close") for b in bars]
+    highs = [_f(b, "h", "high") for b in bars]
+    lows = [_f(b, "l", "low") for b in bars]
+    b6c = closes[-1]
+    hs = [h for h in highs if h is not None]
+    ls = [l for l in lows if l is not None]
+    if b6c is None or not hs or not ls:
+        return None
+    delta = b6c - open_price                       # 30-min momentum
+    mom = "UP" if delta > mom_min_pts else ("DOWN" if delta < -mom_min_pts else None)
+    if mom is None:
+        return None
+    b6h, b6l = max(hs), min(ls)
+    refs_up = [x for x in (pdh, prior_vah) if x is not None]
+    refs_dn = [x for x in (pdl, prior_val) if x is not None]
+    acc = None                                     # accepted level-break in the 30-min
+    if refs_up and b6c > max(refs_up) and b6l >= min(refs_up) - FUSION_ACCEPT_BUFFER_PTS:
+        acc = "UP"
+    elif refs_dn and b6c < min(refs_dn) and b6h <= max(refs_dn) + FUSION_ACCEPT_BUFFER_PTS:
+        acc = "DOWN"
+    if acc is not None and acc != mom:             # break conflicts with momentum → skip
+        return None
+    return mom

@@ -60,6 +60,13 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 15:50 IL] cowork-dev — ✅ OPENING_DIR_FUSION_V1 נבנה+חווט+הודלק (מייקל "לבנות + לחווט ללייב עכשיו") + 🎯 reconciler-ownership אומת על כסף-אמת
+מחקר-אותות (`docs/reports/OPENING_SIGNAL_EDGE_2026-07-24`): fusion = ווליום-מאשר + מומנטום-30דק' + הסכמת-חצית-רמה = **73% מול 53%** של המסווג (ווליום +7נק'; גאפ אנטי-חזאי; חצי-הערך = דילוג ימי-lo-conviction). מיושם כ**שער-כיוון על כניסות-הפתיחה** (מפחית-סיכון, לא טריגר-חדש).
+- pure `opening_dir_fusion()` (opening_entry) + wrapper `get_opening_dir_fusion()` (trade_context: חציון-ווליום-נגרר + PDH/PDL/VAH/VAL) + חיווט five_min (שער על הטריגר, מחושב פעם-אחת בבר-6).
+- **7 טסטים** · OFF=byte-identical (הכל מאחורי `_fusion_on`) · רגרסיה **141≤142** (0 כשל-חדש, +7 passed) · snapshot `20260724T124945Z` → RULED +1 → .env=1 → **flag_guard 125/125** → restart → **boot-line 170 vars**.
+- **הסתייגות (בדוח+RULED):** 11 ימי-מדגם — מייקל בחר לחווט-לייב במפורש מול הסתייגות-overfit שהוצגה.
+- 🟢 **מצב-לייב:** `is_sim=0` (מייקל העביר Sierra→Live), שורט-ידני **-6 @7459.75 מוגן** (סטופ 7459.5 + טרגט 7450.5). **RECONCILER_OWNERSHIP_AWARE_V1 אומת חי:** הלוג רשם `ℹ️ MANUAL POSITION ... likely Michael's manual trade. Not orphan` (במקום NAKED ORPHAN+auto-heal) → **סוגר את מחלקת-האורפן 07-10/14/17/20/23 על כסף-אמת.**
+
 ### [2026-07-24 13:40 IL] cowork-dev — ✅ OPENING_ENTRY_V1 shadow→1 (מייקל "מאשר את שני המתגים") — OPEN-FIRE ללייב, אימות-לפני-לייב 🟢 GO
 מייקל אישר את שני המתגים + השטיח את פוזיציית-הסים. **אימות-לפני-לייב:** שטוח (position_qty=0, working_orders=0), reconciler שקט (0 אורפן ב-20 שורות אחרונות), **fire_drill 🟢 GO**, flag_guard 124/124, feed טרי (woodies 13s). **הדלקה:** snapshot `20260724T121214Z` → RULED `OPENING_ENTRY_V1` shadow→1 (07-24) → .env=1 → restart → `OPENING_ENTRY_V1=1`+`OPENING_FIRE_V1=1` חיים, position שטוח. **כניסות-הפתיחה (DRIVE/TD/ORR/EXTREME_REJECT + PULLBACK-CONT) מנתבות עכשיו ללייב.** נותר שער-הכסף: **מייקל Sierra Sim→Live** (is_sim=1→0) + חוק-סוחר-יחיד (iMac נשאר Sim). .env gitignored (מקומי).
 
