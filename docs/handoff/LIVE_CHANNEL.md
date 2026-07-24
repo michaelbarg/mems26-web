@@ -60,6 +60,13 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 12:20 IL] cowork-dev — 🔴 שורש-מחלקת-האורפן זוהה + פסיקת-מייקל: חשבון מעורב, תקן reconciler
+פער ‑$1,400 (cursor): ledger-Sierra +$1,101 (32 closes) מול TM ‑$300. **שורש: חשבון 37138283 מעורב — מייקל סוחר ידנית
+(DTC MichaelBarg) במקביל למערכת.** journal=4 כניסות-מערכת בלבד; 32 סגירות=ניהול-ידני של העירום (נטו חיובי). **פסיקה:
+נשאר מעורב → Phase 7 ל-cc:** reconciler מודע-בעלות (פוזיציה בלי order-map = ידני → לא-אורפן/לא-לרפא/לא-NAKED),
+flag RECONCILER_OWNERSHIP_AWARE_V1 (OFF); + אכלוס pnl_sierra + reconciliation יומי (non-blocking). זה סוגר את 07-10/14/17/20/23.
+
+
 ### [2026-07-23 23:55 IL] cowork-dev — ✅ פסיקת-מייקל #3: "מאשר צמצום ל-Trend בלבד"
 **never-fade (RESPONSIVE_WITH_DAY_TREND_V1) יחול רק על ימי Trend_Normal/Trend_DD; ב-Variation — דעיכה דו-כיוונית
 בקצוות עם חובת-probe** (הלונג-בשפל @7433 של 07-23 היה עובר). נוסף Phase 6 ל-CC_OVERNIGHT_3FIXES: תיקון הענף

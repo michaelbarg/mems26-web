@@ -49,3 +49,17 @@ day_type הקנוני מתחיל ב-Trend (Trend_Normal/Trend_DD); ב-Variation/
 הדו-כיווני הקיים (לונג@VAL/שפל + שורט@VAH/שיא, עם חובת-probe הקיימת). OFF = byte-identical להתנהגות-היום.
 AC: replay 07-23 18:50 REACTIVE_LONG @7433.25 (Variation, day_dir=DOWN, ליד-שפל) — עם שני הדגלים ON → **ALLOW**
 (אתמול נחסם "never fade"); ואילו על day_type=Trend_Normal אותו setup → SKIP נשאר. טסטים + revert→RED.
+
+
+## Phase 7 (נוסף 07-24 12:xx — פסיקת-מייקל "משאיר מעורב, תקן reconciler") 🔴 שורש-מחלקת-האורפן
+**ממצא (cursor c222c71f):** לדג'ר-Sierra 07-23 = +$1,101.25 (32 סגירות) מול TM ‑$300 → פער ≈$1,400. השורש (אומת cowork):
+**החשבון 37138283 מעורב — מייקל סוחר בו ידנית (DTC #69319 MichaelBarg) במקביל למערכת.** ה-fills-journal מראה
+רק 4 כניסות-מערכת; 32 הסגירות = הניהול-הידני של השורט-העירום (‑6→‑12→‑9, נסגר ידנית, נטו חיובי). **פסיקת-מייקל:
+החשבון נשאר מעורב.** לכן:
+1. **reconciler מודע-בעלוּת:** ב-`sierra_position_reconciler` — פוזיציה/חוזים שאין להם trade-מערכת תואם (order-id לא ב-order_map,
+   ולא נוצרו ע"י PLACE של המערכת) = **מסחר-ידני של מייקל → לא-אורפן, לא-לרפא, לא-להתריע-NAKED**. רק לוג-INFO "manual pos ignored".
+   פוזיציות-מערכת (order-id ב-map) ממשיכות reconcile רגיל. flag `RECONCILER_OWNERSHIP_AWARE_V1` (default OFF → התנהגות-היום).
+   AC: הזרם sierra_state עם pos שאין-לו-map → אין DIVERGENCE/NAKED; עם pos של trade-מערכת פתוח → reconcile כרגיל. revert→RED.
+2. **אכלוס `pnl_sierra` + reconciliation יומי** (חובת-cursor שהועברה): מלא pnl_sierra פר-trade מ-fills-journal של המערכת בלבד
+   (לא מהחשבון-המעורב); דוח יומי ledger↔pnl_usd עם הבחנה system-vs-manual; session_start עם TZ מפורש. non-blocking להיום.
+**סדר-עדיפויות מעודכן: 0→1→2→7.1 (חובה-להיום) → 5.1+5.2 → 3 → 5.3 → 7.2.**
