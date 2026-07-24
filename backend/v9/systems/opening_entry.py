@@ -36,6 +36,17 @@ TD_EXCURSION_FRAC = 0.5      # TEST excursion >= 50% of OR width, from bar 2
 WINDOW_LAST_BAR = 6          # bars 2..6 (first 30 min)
 ORR_FIRST_BAR = 3            # reversal earliest at bar 3
 
+# ── OPEN-FIRE v1 (flag OPENING_FIRE_V1, caller-gated) — 60-min window +
+# PULLBACK-CONT entry. Dalton: never chase the drive; fade the counter-bias
+# excursion once it is REJECTED and enter with the trend. Params are the ones
+# Michael ruled 07-23 (33% retrace / 16T stop / 1.5R via T1_BANK_R); YAML-tunable
+# if refined. When the caller leaves enable_pullback=False the block below is
+# never reached → byte-identical to the 30-min SHADOW spec.
+WINDOW_LAST_BAR_EXTENDED = 12     # bars 2..12 (first 60 min) when OPENING_FIRE_V1
+PULLBACK_RETRACE_FRAC = 0.33      # enter after price retraces ≥33% of the excursion
+PULLBACK_STOP_OFFSET_TICKS = 16   # stop behind the rejected extreme
+PULLBACK_MIN_EXCURSION_PTS = 6.0  # ignore noise: the excursion must be ≥ this
+
 
 def _f(bar: Dict[str, Any], *keys: str) -> Optional[float]:
     for k in keys:
@@ -49,14 +60,23 @@ def _f(bar: Dict[str, Any], *keys: str) -> Optional[float]:
 
 
 def evaluate_opening_entry(session_bars: List[Dict[str, Any]],
-                           already_fired: Optional[set] = None) -> Optional[Dict[str, Any]]:
+                           already_fired: Optional[set] = None,
+                           *, window_last_bar: int = WINDOW_LAST_BAR,
+                           enable_pullback: bool = False,
+                           bias: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Evaluate the LAST bar of `session_bars` (closed 5-min RTH bars, bar 1 =
     the 16:30 IL open bar) for an opening entry. Returns a trigger dict or None.
     `already_fired` = set of trigger types already emitted this session
-    (enforces one DRIVE/TD + at most one superseding ORR)."""
+    (enforces one DRIVE/TD + at most one superseding ORR).
+
+    OPEN-FIRE v1 (caller passes when OPENING_FIRE_V1=1): `window_last_bar`
+    extends the window to 12 bars (60 min) and `enable_pullback` activates the
+    PULLBACK-CONT trigger. `bias` ("LONG"/"SHORT", from the opening-type seed)
+    is an optional safety filter. Defaults reproduce the 30-min SHADOW spec
+    exactly (window 6, no pullback, no bias)."""
     fired = already_fired or set()
     n = len(session_bars)
-    if n < 2 or n > WINDOW_LAST_BAR:
+    if n < 2 or n > window_last_bar:
         return None
 
     b1 = session_bars[0]
@@ -86,6 +106,41 @@ def evaluate_opening_entry(session_bars: List[Dict[str, Any]],
         if drove_dn_before and close > open_price:
             return {"type": "ORR", "direction": "LONG", "entry": close,
                     "or_width": or_width, "reverses": "DOWN_DRIVE"}
+
+    # ── PULLBACK-CONT (OPEN-FIRE v1) — take the dominant excursion off the open
+    # (up vs down), and once price has retraced ≥ PULLBACK_RETRACE_FRAC of it
+    # with a rejection bar closing back the other way, enter WITH the rejection.
+    # Stop behind the rejected extreme (16T), T1 = 1.5R (via build_opening_setup
+    # + T1_BANK_R). `bias` (opening-type seed) only permits agreeing entries —
+    # never fade a with-bias move. Only reached when enable_pullback (OFF ⇒ the
+    # block is skipped and behaviour is byte-identical). One per session.
+    if enable_pullback and "PULLBACK_CONT" not in fired and n >= 3:
+        _highs = [_f(b, "h", "high") for b in session_bars]
+        _lows = [_f(b, "l", "low") for b in session_bars]
+        _prior_c = _f(session_bars[-2], "c", "close")
+        _last_o = _f(last, "o", "open")
+        if (_prior_c is not None and _last_o is not None
+                and all(v is not None for v in _highs)
+                and all(v is not None for v in _lows)):
+            peak = max(_highs)
+            trough = min(_lows)
+            up_exc = peak - open_price      # counter-bias rally → fade = SHORT
+            dn_exc = open_price - trough    # counter-bias dip   → fade = LONG
+            cand = None
+            if up_exc >= dn_exc and up_exc >= PULLBACK_MIN_EXCURSION_PTS:
+                if (peak - close >= PULLBACK_RETRACE_FRAC * up_exc
+                        and close < _last_o and close < _prior_c):
+                    cand = ("SHORT", peak)
+            elif dn_exc > up_exc and dn_exc >= PULLBACK_MIN_EXCURSION_PTS:
+                if (close - trough >= PULLBACK_RETRACE_FRAC * dn_exc
+                        and close > _last_o and close > _prior_c):
+                    cand = ("LONG", trough)
+            if cand is not None and bias in (None, cand[0]):
+                return {"type": "PULLBACK_CONT", "direction": cand[0],
+                        "entry": close, "or_width": or_width, "extreme": cand[1],
+                        "stop_offset_ticks": PULLBACK_STOP_OFFSET_TICKS,
+                        "excursion": round(max(up_exc, dn_exc), 2),
+                        "t1_r": 1.5}
 
     # only one initiating entry (DRIVE or TD) per session
     if fired & {"DRIVE", "TEST_DRIVE"}:
@@ -171,10 +226,19 @@ def build_opening_setup(trigger: Dict[str, Any], session_bars: List[Dict[str, An
     risk = abs(entry - stop)
     if risk <= 0:
         return None
-    try:
-        _t1r = float(__import__("os").getenv("T1_BANK_R", "1.0") or 1.0)
-    except (TypeError, ValueError):
-        _t1r = 1.0
+    # PULLBACK-CONT carries an explicit T1 (1.5R, Michael 07-23) so it does not
+    # depend on the global T1_BANK_R; all other triggers keep the T1_BANK_R bank.
+    _t1r_override = trigger.get("t1_r")
+    if _t1r_override is not None:
+        try:
+            _t1r = float(_t1r_override)
+        except (TypeError, ValueError):
+            _t1r = 1.0
+    else:
+        try:
+            _t1r = float(__import__("os").getenv("T1_BANK_R", "1.0") or 1.0)
+        except (TypeError, ValueError):
+            _t1r = 1.0
     t1 = entry + _t1r * risk if direction == "LONG" else entry - _t1r * risk
     return {
         "firing_system": 2,

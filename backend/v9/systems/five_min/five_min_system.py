@@ -1153,6 +1153,11 @@ class FiveMinSystem(BaseV9TradingSystem):
                 try:
                     from backend.v9.systems.opening_entry import (
                         build_opening_setup, evaluate_opening_entry)
+                    # OPEN-FIRE v1 (Michael 07-23 "live" ruling): extend the
+                    # window to 60 min and activate PULLBACK-CONT. OFF ⇒ 30-min
+                    # window, no pullback → byte-identical to the SHADOW spec.
+                    _of_on = os.getenv("OPENING_FIRE_V1", "0").lower() in ("1", "true", "yes")
+                    _oe_win = 12 if _of_on else 6
                     _ts_raw = bar.get("ts")
                     _bar_dt = None
                     try:
@@ -1171,6 +1176,7 @@ class FiveMinSystem(BaseV9TradingSystem):
                         self._oe_bars = []
                         self._oe_fired = set()
                         self._oe_disabled = False
+                        self._oe_seed_bias = None
                     if not getattr(self, "_oe_disabled", False):
                         if not self._oe_bars:
                             _is_open_bar = bool(_bar_dt and _bar_dt.hour == 16 and _bar_dt.minute == 30)
@@ -1188,10 +1194,24 @@ class FiveMinSystem(BaseV9TradingSystem):
                                     "[FiveMin] OPENING_ENTRY: first seen bar %s is past the 16:30 open — honest skip today",
                                     _ts_raw)
                             # else: pre-open bar → wait for the 16:30 bar
-                        elif len(self._oe_bars) < 6:
+                        elif len(self._oe_bars) < _oe_win:
                             self._oe_bars.append(bar)
-                        if 2 <= len(self._oe_bars) <= 6:
-                            _trig = evaluate_opening_entry(self._oe_bars, self._oe_fired)
+                        # Cache the opening-type seed bias (only non-None in the
+                        # first 15 min) so PULLBACK-CONT — which fires later in
+                        # the 60-min window — can use it as a safety filter.
+                        if _of_on:
+                            try:
+                                from backend.v9.services.trade_context import get_opening_type_seed
+                                _seed = get_opening_type_seed()
+                                if _seed in ("UP", "DOWN"):
+                                    self._oe_seed_bias = "LONG" if _seed == "UP" else "SHORT"
+                            except Exception:
+                                pass
+                        if 2 <= len(self._oe_bars) <= _oe_win:
+                            _trig = evaluate_opening_entry(
+                                self._oe_bars, self._oe_fired,
+                                window_last_bar=_oe_win, enable_pullback=_of_on,
+                                bias=getattr(self, "_oe_seed_bias", None))
                             if _trig:
                                 self._oe_fired.add(_trig["type"])
                                 _setup = build_opening_setup(

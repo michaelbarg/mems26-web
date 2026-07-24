@@ -183,3 +183,8 @@ ruled:
   EXTREME_CHASE_GUARD_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-23", note: "שלושתם #1: שער-גייטוויי חוסם כניסות CONT הרודפות קיצון-סשן (מרחק>=6pt + פולבק>=3pt). 479+481 רדפו שפל -> BLOCKED; @7466 עם פולבק -> ALLOW. 5 טסטים replay. מפחית-סיכון" }
   OPENING_TYPE_SEEDS_S1_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-23", note: "שלושתם #2: זריעת הטיית-כיוון מסוג-הפתיחה ב-15 הדקות הראשונות (fallback שלישי אחרי expansion+LSMA dir_bias), escalation-only עד IB-lock. replay 07-23 -> DOWN. 4 טסטים" }
   RECONCILER_OWNERSHIP_AWARE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-24", note: "פסיקת 12:20 משאיר-מעורב-תקן-reconciler: חשבון מעורב, פוזיציה בלי order-map = מסחר-ידני של מייקל -> INFO לא NAKED/auto-stop. סוגר מחלקת-אורפן-כוזב 07-10/14/17/20/23. 4 טסטים. מפחית-סיכון" }
+
+  # ── פסיקת-מייקל 10:19 (07-23/24) OPEN-FIRE ביצוע-על-לייב + הדלקה-בלי-אישור-שני אחרי sim-verify
+  #    (replay 35 + תפיסת שורט-פולבק 07-23) + הוראת 07-24 להדליק-את-הדגל-של-5.3. אומת cowork 07-24:
+  #    8 טסטים (07-23 שורט @7464.25 נתפס, revert->RED, OFF=byte-identical), רגרסיה 141<=142, 0-כשל-חדש ──
+  OPENING_FIRE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-24", note: "OPEN-FIRE v1: חלון 60 דק (12 ברים) + כניסת PULLBACK-CONT (פולבק>=33% מהמהלך + בר-דחייה -> כניסה עם-הכיוון, סטופ מאחורי קיצון-הפולבק 16T, T1=1.5R). ניזון מ-OPENING_TYPE_SEEDS ל-bias-safety. OFF=byte-identical. ניתוב-לייב-בפועל דורש גם OPENING_ENTRY_V1 shadow->1 (מעבר-מייקל) + Sierra->Live" }

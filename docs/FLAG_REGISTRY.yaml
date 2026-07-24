@@ -1097,3 +1097,9 @@ flags:
     what: "(Reserved, parallel build) Externalized per-pattern × day-type stop/target table — drive stop (and target) placement from an editable table instead of code constants."
     why: "OFF — reserved name, being built in parallel. Placeholder so the index knows it."
     status: not_built
+  OPENING_FIRE_V1:
+    category: s2
+    what: "OPEN-FIRE v1: extends the opening-entry window from 30 to 60 min (12 bars) and adds the PULLBACK-CONT trigger — take the dominant excursion off the open, and once price retraces >=33% of it with a rejection bar, enter WITH the rejection; stop behind the rejected extreme (16T), T1=1.5R. Seeded by OPENING_TYPE_SEEDS_S1_V1 (bias safety filter). Caller-gated in five_min_system; OFF => byte-identical to the 30-min spec."
+    why: "ENABLED 07-24 (cowork, per Michael ruling 10:19 'OPEN-FIRE live' + 07-24 'enable 5.3'). Verified: 8 tests, real 07-23 replay catches the SHORT @7464.25 after the 7486.5 rejection, revert->RED, OFF=byte-identical, full regression 141<=142 (0 new). NOTE: actual LIVE routing also requires OPENING_ENTRY_V1 shadow->1 (Michael's live move) + Sierra Sim->Live; with OPENING_ENTRY_V1=shadow the setups are recorded shadow-only."
+    status: enabled
+    ref: "OPENING_FIRE_SYSTEM_PLAN_2026-07-23.md · CC_OVERNIGHT_3FIXES Phase 5.3 · RULED מייקל 10:19 · built+enabled cowork 07-24"

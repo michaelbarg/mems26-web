@@ -60,6 +60,15 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 13:25 IL] cowork-dev — ✅ Phase 5.3 OPEN-FIRE v1 (OPENING_FIRE_V1) נבנה+אומת+הודלק (הוראת-מייקל "להדליק את הדגל של 5.3" + פסיקת-10:19 live)
+בניית 5.3 ש-cc השאיר NOT-DONE: חלון opening_entry 30→60 דק' + כניסת PULLBACK-CONT (פולבק≥33% מהמהלך + בר-דחייה → כניסה עם-הכיוון, סטופ מאחורי קיצון-הפולבק 16T, T1=1.5R) + מסנן-bias מ-OPENING_TYPE_SEEDS.
+- **fixture אמיתי 07-23** (woodies): הפתיחה עלתה ל-7486.5@16:40 ונדחתה → PULLBACK-CONT תופס SHORT @7464.25 (סטופ 7490.5, T1 1.5R). הכניסות הקיימות מחמיצות (TEST_DRIVE חסום ע"י drove_up, ORR דורש close<open מאוחר, EXTREME_REJECT לא-תואם) — זה הפער.
+- **8/8 טסטים חדשים** · revert→RED · **OFF=byte-identical** (params keyword-only, מוכח ב-git-stash) · רגרסיה **141≤142** (0 כשל-חדש; 2×item10 + 1×T1_BANK_R = פרה-קיימים, הוכח בהחזרת-קוד-מ-stash).
+- snapshot `20260724T104116Z` → RULED_FLAGS +1 → .env `OPENING_FIRE_V1=1` → **flag_guard 124/124** → restart → **boot-line 169 vars** → FLAG_REGISTRY+gen_flag_index (190). code-ref five_min_system.py:1159.
+- **NOT-LIVE בכוונה:** `OPENING_ENTRY_V1=shadow` (setups=shadow-only). ניתוב-לייב = **מעבר-מייקל**: OPENING_ENTRY_V1 shadow→1 (מרחיב את כל כניסות-הפתיחה ללייב, replay-verified-only) + Sierra→Live. רץ בצל היום לראיות-קדימה.
+- 🟡 **סים:** `position_qty=8` (is_sim=1) LONG@7460.75 עם-ברקטים (סטופ 7431.5, טרגטים 7504-7524) הופיע 13:09-13:22; reconciler מסמן NAKED ORPHAN (TM=0 לא-מתעד — כנראה restart-שלי איפס TM-בזיכרון). סים, מוגן, פוזיציות=מייקל.
+דוח: `docs/reports/COWORK_OPENING_FIRE_5.3_REPORT_2026-07-24.md`
+
 ### [2026-07-24 13:05 IL] cowork-dev — ✅ הודלקו 3 דגלי-הלילה לפי הפסיקה + אומתו חי (מנדט-אוטונומיה מייקל 07-24 "קוד סיים, המשך אוטונומי לפתיחה")
 אימות דוח-cc (Rule-5) + הדלקה לפי פסיקת-"שלושתם" (07-23 ערב, CC_OVERNIGHT_3FIXES) ו-reconciler (12:20 "משאיר מעורב, תקן reconciler"):
 - **17/17 טסטים ירוקים** (position_qty 2 · smart_be 2 · extreme_chase 5 · opening_seeds 4 · reconciler 4), env נטען.
