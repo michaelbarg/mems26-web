@@ -176,3 +176,10 @@ ruled:
   STOP_ANCHOR_OFFSET_TICKS_OVERRIDE: {expected: "16", ruled_by: "מייקל", date: "2026-07-23", note: "פסיקה 'מאשר' על כיול-32-סשנים (P=0.99): ריווח-סטופ 16T מאחורי קיצון-המבנה — מעבר לאזור-הרטסט (6T/10T מתו-מרטסט; 60×-1R עם MFE ממוצע +0.43R). גובר על 6T מ-07-20 כערך-אופרטיבי (ה-yaml נשאר בסיס). תקף סים+לייב. מדד-מנטר: MFE-של-נעצרות בביקורת-הערב; כיול-חוזר שבועי" }
   T1_BANK_R: {expected: "1.5", ruled_by: "מייקל", date: "2026-07-23", note: "פסיקה 'מאשר': בנק ב-1.5R במקום 1R (כיול-32-סשנים, +10.5R standalone) — מפחית round-trip-ל-BE. תקף סים+לייב" }
   PROBE_REJECT_MIN_PTS: {expected: "0.0", ruled_by: "מייקל", date: "2026-07-23", note: "פסיקה 'מאשר': סגירת-דחייה כלשהי מעבר-לרמה מספיקה ל-probe (היה >0.5; +8.3R standalone). ה-probe עצמו נשאר חובה (V-בלי-probe עלה רק ~1.7R). תקף סים+לייב" }
+
+  # ── פסיקת-מייקל 07-23 ערב "שלושתם" (בנה 3 תיקונים flag-OFF -> verify -> cowork מדליק בבוקר לפי הפסיקה;
+  #    CC_OVERNIGHT_3FIXES_2026-07-23.md) + פסיקת-reconciler 07-24 12:20 "משאיר מעורב, תקן reconciler".
+  #    אומת ע-י cowork 07-24: 17/17 טסטים, wiring אמת (getenv default-OFF), snapshot 20260724T095914Z לפני .env ──
+  EXTREME_CHASE_GUARD_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-23", note: "שלושתם #1: שער-גייטוויי חוסם כניסות CONT הרודפות קיצון-סשן (מרחק>=6pt + פולבק>=3pt). 479+481 רדפו שפל -> BLOCKED; @7466 עם פולבק -> ALLOW. 5 טסטים replay. מפחית-סיכון" }
+  OPENING_TYPE_SEEDS_S1_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-23", note: "שלושתם #2: זריעת הטיית-כיוון מסוג-הפתיחה ב-15 הדקות הראשונות (fallback שלישי אחרי expansion+LSMA dir_bias), escalation-only עד IB-lock. replay 07-23 -> DOWN. 4 טסטים" }
+  RECONCILER_OWNERSHIP_AWARE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-24", note: "פסיקת 12:20 משאיר-מעורב-תקן-reconciler: חשבון מעורב, פוזיציה בלי order-map = מסחר-ידני של מייקל -> INFO לא NAKED/auto-stop. סוגר מחלקת-אורפן-כוזב 07-10/14/17/20/23. 4 טסטים. מפחית-סיכון" }

@@ -60,6 +60,16 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 13:05 IL] cowork-dev — ✅ הודלקו 3 דגלי-הלילה לפי הפסיקה + אומתו חי (מנדט-אוטונומיה מייקל 07-24 "קוד סיים, המשך אוטונומי לפתיחה")
+אימות דוח-cc (Rule-5) + הדלקה לפי פסיקת-"שלושתם" (07-23 ערב, CC_OVERNIGHT_3FIXES) ו-reconciler (12:20 "משאיר מעורב, תקן reconciler"):
+- **17/17 טסטים ירוקים** (position_qty 2 · smart_be 2 · extreme_chase 5 · opening_seeds 4 · reconciler 4), env נטען.
+- **wiring אמת** (getenv default-OFF): `EXTREME_CHASE_GUARD_V1`@trading_gateway.py:1087 · `OPENING_TYPE_SEEDS_S1_V1`@trade_context.py:842 · `RECONCILER_OWNERSHIP_AWARE_V1`@sierra_position_reconciler.py:550-551.
+- snapshot `20260724T095914Z` לפני .env → 3×=1 → RULED_FLAGS +3 → **flag_guard PASS 123/123** → restart backend (uptime 9002→9s, health ok) → **boot-line [env_loader] applied 168 vars (היה 165 → +3)** → פוזיציה נשארה position_qty=0.
+- FLAG_REGISTRY 3× status→enabled + gen_flag_index (189 flags). ⚠ FLAG_INDEX מסמן RECONCILER "not-in-code" = **false-positive** (getenv רב-שורתי :550-551, אומת מחווט; זהה ל-RESPONSIVE_WITH_DAY_TREND).
+- **מצב: `is_sim=1`** (Sierra ב-Sim Mode כרגע, ts טרי 1.5דק'); .env=live+armed. **מעבר Sim→Live לפני 16:30 = ידני-מייקל** (חוק-סוחר-יחיד: לוודא iMac נשאר Sim).
+- **NOT-DONE:** Phase 5.3 `OPENING_FIRE_V1` (חלון-60+PULLBACK-CONT) — cc, יום-בנייה מלא, ספק מוכן.
+- **פרה-קיים (לא נגרם מההדלקה, לא-חוסם):** `column pattern_id does not exist`@daytype_classify_routes.py:395 (162× בלוג, לא על מסלול הדגלים) · Redis DOWN (סביל, WS→polling).
+
 ### [2026-07-24 12:15 IL] cc-macbook — ✅ Phase 7.1 + report (`501e1958`)
 **Phase 7.1:** `RECONCILER_OWNERSHIP_AWARE_V1` (flag **OFF**) — mixed-account: empty order_map = manual
 trade → INFO, not NAKED ORPHAN. 4 tests PASS.

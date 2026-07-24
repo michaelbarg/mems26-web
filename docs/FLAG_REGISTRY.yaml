@@ -1062,21 +1062,21 @@ flags:
   RECONCILER_OWNERSHIP_AWARE_V1:
     category: risk
     what: "Mixed-account reconciler: Sierra position with no system orders in order_map = manual trade → INFO, not NAKED ORPHAN. Prevents false alerts on Michael's manual trades."
-    why: "OFF — built Phase 7.1 (07-24). Account 37138283 is mixed (Michael trades manually alongside system). Without this, every manual position triggers CRITICAL orphan alerts."
-    status: awaiting_backtest
-    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 7"
+    why: "ENABLED 07-24 (cowork, per Michael ruling 12:20 'keep mixed, fix reconciler'). Account 37138283 is mixed (Michael trades manually alongside system). Closes false-orphan class 07-10/14/17/20/23. Risk-reducing. 4 tests."
+    status: enabled
+    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 7 · RULED מייקל 07-24 12:20 · enabled cowork 07-24"
   OPENING_TYPE_SEEDS_S1_V1:
     category: s1
     what: "Seed S1 day-bias from opening-type classification in first 15min of RTH. Directional opens (OD/OTD/ORR) seed UP/DOWN; auctions = no seed. Escalation-only lock until IB."
-    why: "OFF — built Phase 3 (07-24). First 15min have no dir_bias (too few bars) and no expansion (IB not locked). Opening signal is strongest here."
-    status: awaiting_backtest
-    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 3"
+    why: "ENABLED 07-24 (cowork, per Michael ruling 07-23 'שלושתם' #2). First 15min have no dir_bias (too few bars) and no expansion (IB not locked); opening signal strongest here. Escalation-only lock until IB. replay 07-23 → DOWN. 4 tests."
+    status: enabled
+    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 3 · RULED מייקל 07-23 'שלושתם' #2 · enabled cowork 07-24"
   EXTREME_CHASE_GUARD_V1:
     category: risk
     what: "Gateway gate: blocks CONT-family entries too close to session extreme (distance + pullback checks). Prevents chasing the low/high."
-    why: "OFF — built Phase 2 (07-24). 479+481 chased session low; this gate would have blocked both. Awaiting Michael ruling to enable."
-    status: awaiting_backtest
-    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 2"
+    why: "ENABLED 07-24 (cowork, per Michael ruling 07-23 'שלושתם' #1). 479+481 chased session low; this gate blocks both. @7466-with-pullback → ALLOW. Risk-reducing. 5 replay tests."
+    status: enabled
+    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 2 · RULED מייקל 07-23 'שלושתם' #1 · enabled cowork 07-24"
   EXTREME_MIN_DIST_PTS:
     category: param
     what: "Minimum points from session extreme for EXTREME_CHASE_GUARD. Default 6.0."
