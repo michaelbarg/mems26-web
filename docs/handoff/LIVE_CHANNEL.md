@@ -60,6 +60,12 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 18:45 IL] cowork-dev — 🔴 שורש-מזוהה חי: playbook חוסם with-trend על Variation-כיווני → CC handoff (flag-OFF, פסיקת-מייקל "תיקון מהשורש")
+**לייב היום Variation-שמתרחב-UP** (BLUE, +58pt 7431→7489.5). **18:15 REACTIVE LONG @7478** (פולבק אמיתי משיא 7489.5) **נחסם** ב-`daytype_playbook`: "responsive LONG not at VAL (above_value) on Variation". ובמקביל **18:20 REACTIVE SHORT נגד-הטרנד הלך ללייב** (id 509) — **inversion חי**.
+**שורש (`daytype_playbook.py:210-262`, מעקב-קוד מלא):** (1) `NEVERFADE_TREND_ONLY_V1` מכבה with-trend על **כל** non-Trend → location-only → דורש VAL; (2) ה-chase לפי **value-location** (`above_value`) ולא לפי **קיצון-סשן+פולבק** → פולבק-מעל-ערך-מהגר נקרא "רדיפה". ה-`decide()` מקבל רק {vah,val,ib_width} — חסר day_high/low.
+**תיקון (ספק מלא ל-CC):** `docs/handoff/CC_PROMPT_VARIATION_WITH_TREND_CONT_2026-07-24.md` — דגל `VARIATION_WITH_TREND_CONT_V1` (OFF=byte-identical): with-trend continuation על Variation-כיווני + chase לפי day_high/day_low (מרחק<6pt=רדיפה) + כיסוי-chase ל-REACTIVE; counter-trend נשאר location-fade (פסיקה #3). fixture מ-18:15 היום (revert→RED). **flag-OFF עד sim + פסיקת-מייקל להדליק; cowork מאמת.**
+**החלטת-תהליך:** לא hot-patch חי — שינוי-שער-כניסה רב-קבצים על כסף-אמת, אחרי שריסטארט שלי היום כבר גרם פיגור-day_type. חלוקת-CLAUDE.md: CC בונה עם קונטקסט-מלא, cowork מאמת.
+
 ### [2026-07-24 15:50 IL] cowork-dev — ✅ OPENING_DIR_FUSION_V1 נבנה+חווט+הודלק (מייקל "לבנות + לחווט ללייב עכשיו") + 🎯 reconciler-ownership אומת על כסף-אמת
 מחקר-אותות (`docs/reports/OPENING_SIGNAL_EDGE_2026-07-24`): fusion = ווליום-מאשר + מומנטום-30דק' + הסכמת-חצית-רמה = **73% מול 53%** של המסווג (ווליום +7נק'; גאפ אנטי-חזאי; חצי-הערך = דילוג ימי-lo-conviction). מיושם כ**שער-כיוון על כניסות-הפתיחה** (מפחית-סיכון, לא טריגר-חדש).
 - pure `opening_dir_fusion()` (opening_entry) + wrapper `get_opening_dir_fusion()` (trade_context: חציון-ווליום-נגרר + PDH/PDL/VAH/VAL) + חיווט five_min (שער על הטריגר, מחושב פעם-אחת בבר-6).
