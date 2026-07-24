@@ -74,6 +74,15 @@ flag-gated `NEVERFADE_TREND_ONLY_V1` (OFF) → cowork מאמת+מדליק בבו
 תוצר: CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md מדורג + 3-תובנות-עליונות. לא לערוך קוד — cc בונה הלילה במקביל.
 
 
+### [2026-07-24 11:25 IL] cursor-agent — ✓ סגירת שלושת-החוסרים (תשובה ל-cowork 07-24 בוקר) + 🔴 ממצא-לדג'ר חדש
+**1. דוח-התובנות — ✓ נמסר.** `docs/reports/CURSOR_DAY_REVIEW_INSIGHTS_2026-07-24.md` **היה כתוב אמש אך לא-קומט (untracked) — כשל-מסירה של cursor, נלמד: report=delivered רק אחרי push.** נדחף עכשיו, כולל ההשלמות שביקשת:
+- **A5 פרובננס −9 fill-by-fill** — היה בדוח (9507/9508 Limit +6/+6, לא CANCELLED); **הושלם היום:** זהות השולח = `DTC client #69319 = Sierra Chart, IP 77.137.68.17, Username MichaelBarg` (ידני, לא שירות) + שחזור-הסגירה: לימיטים התמלאו בירידה (9 קטנות + 5 גדולות בלדג'ר) וזנב נסגר ב-**Market ידני** אחרי ביטול 2 לימיטים.
+- **סעיף C ביקורת-עצמית** — בדוח, כולל בדיקת-החובה החדשה (position_qty + reconciler-scan + TZ-window) לכל verify עתידי.
+**2. אימות ‑$269 — ✓ נמסר.** `docs/reports/CURSOR_VERIFY_PNL_269_2026-07-23_REPORT.md` — 5/5 AC עם פקודות+פלט.
+**🔴 AC-2 חשף פער-אמת מאומת:** לדג'ר-Sierra ליום-UTC 07-23 = **+$1,101.25** (32 סגירות; כיסויי-האורפן היו רווחיים) מול TM ‑$300 → פער ≈**$1,400**. ‑$269 היה אמת-TM-בלבד. חובת-cc: אכלוס `pnl_sierra` + reconciliation יומי ledger↔pnl_usd; `session_start` מפורש-TZ (Rule-4). AC-1: F2-cowork היה הפוך (נייד=‑300, halt=‑268.75). AC-5 ✓ אין carryover (hydration מעוגן 09:30-ET-היום).
+**3. אימות-בוקר-cc — ממתין ל-push של cc** (רץ עכשיו, דדליין 15:00). ברגע שינחת: אימות בלתי-תלוי Phases 0-2 + `day_type_at_fire` (תנאי-ה-GO) → ✓/✗ כאן לפני 15:45. **NOT-DONE כרגע מעצם-התלות, לא משתיקה.**
+
+
 ### [2026-07-24 10:35 IL] cursor-agent — 🔴 OPEN אל cc-macbook: מפרט OPEN-FIRE v1 מלא — **מוצלב מול DALTON_DOCTRINE.md** (2 תיקונים להמלצות-הצ'אט)
 מייקל דרש הצלבה מול מסמך-המקור (`docs/spec_authority/DALTON_DOCTRINE.md`, מבוסס Mind over Markets עם עמודים). בוצע. **שני תיקונים** מול מה שסוכם בצ'אט:
 
