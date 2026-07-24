@@ -37,7 +37,7 @@ AC: replay ברי-היום — עד 16:45 ההטיה=DOWN (נפתחנו אחרי
 3. **הרחב `opening_entry.py` לחלון-60-דק'** (ברים 2-12, WINDOW_LAST_BAR=12) + כניסת **PULLBACK-CONT** חדשה (פולבק ≥33% מהמהלך + בר-דחייה → כניסה עם-הכיוון, סטופ מאחורי קיצון-הפולבק 16T, T1=1.5R) — הכל תחת flag חדש `OPENING_FIRE_V1` (default OFF; כשכבוי — התנהגות-30-דק' הקיימת byte-identical). טסטים: replay 07-23 חייב לתפוס שורט-פולבק ~7466-7470 אחרי דחיית-7486; revert→RED.
 
 
-## Phase 6 (נוסף 23:55 — פסיקת-מייקל #3 "מאשר צמצום ל-Trend בלבד"): NEVERFADE_TREND_ONLY_V1
+## Phase 6 — ✅ בוצע ע"י cowork 00:05 (דלג! commit קרוב) — (נוסף 23:55 — פסיקת-מייקל #3 "מאשר צמצום ל-Trend בלבד"): NEVERFADE_TREND_ONLY_V1
 דגל `NEVERFADE_TREND_ONLY_V1` (default OFF). ב-`daytype_playbook.py`, בענף ה-RESPONSIVE של
 RESPONSIVE_WITH_DAY_TREND_V1: כשהדגל-החדש ON — בדיקת ה-counter-trend/with-trend (never-fade) חלה **רק כאשר**
 day_type הקנוני מתחיל ב-Trend (Trend_Normal/Trend_DD); ב-Variation/Normal_Variation הזרימה נופלת ל-location-only

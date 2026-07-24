@@ -211,6 +211,20 @@ def decide(
                 _wt_on = os.environ.get(
                     "RESPONSIVE_WITH_DAY_TREND_V1", "0"
                 ).lower() in ("1", "true", "yes")
+                # NEVERFADE_TREND_ONLY_V1 (Michael ruling #3, 2026-07-23 23:55
+                # "מאשר צמצום ל-Trend בלבד"): the never-fade day-trend rule applies
+                # ONLY on canonical Trend days. On Variation/Normal days a rotation
+                # fades BOTH edges (long at the low, short at the high, probe
+                # required by the location path) — the 07-23 18:50 REACTIVE_LONG
+                # @7433.25 near the low was wrongly blocked "never fade" and the
+                # market rallied to 7457. Flag OFF = byte-identical (trend rule
+                # applies on all directional days as before).
+                if _wt_on and os.environ.get(
+                    "NEVERFADE_TREND_ONLY_V1", "0"
+                ).lower() in ("1", "true", "yes") and not str(
+                    day_type or ""
+                ).startswith("Trend"):
+                    _wt_on = False  # Variation → two-sided location-only fade
                 _with_trend_allow = False
                 if _wt_on and _dd in ("UP", "DOWN"):
                     if (d == "LONG" and _dd == "DOWN") or (d == "SHORT" and _dd == "UP"):

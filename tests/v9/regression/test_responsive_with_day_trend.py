@@ -115,3 +115,40 @@ def test_flag_on_but_no_day_direction_falls_back_to_location(monkeypatch):
     )
     assert not d.allow
     assert "not at VAH" in d.reason
+
+
+# ── NEVERFADE_TREND_ONLY_V1 (Michael ruling #3, 07-23) ──
+
+def test_trend_only_variation_allows_low_long(monkeypatch):
+    """Ruling #3: on Variation the never-fade rule is OFF — the 07-23 18:50
+    REACTIVE_LONG @7433.25 near the low (blocked live) must now pass to the
+    location path and be ALLOWED at the VAL-side edge."""
+    _clean(monkeypatch)
+    monkeypatch.setenv("RESPONSIVE_WITH_DAY_TREND_V1", "1")
+    monkeypatch.setenv("NEVERFADE_TREND_ONLY_V1", "1")
+    d = decide(pattern="REACTIVE_LONG", day_type="Variation", direction="LONG",
+               day_direction="DOWN", entry_price=7451.0,
+               levels={"vah": 7472.0, "val": 7450.0, "ib_width": 12.0})
+    assert d.allow, f"Variation low-long must pass location path: {d.reason}"
+
+
+def test_trend_only_trend_day_still_blocks(monkeypatch):
+    """On a canonical Trend day the never-fade rule still applies."""
+    _clean(monkeypatch)
+    monkeypatch.setenv("RESPONSIVE_WITH_DAY_TREND_V1", "1")
+    monkeypatch.setenv("NEVERFADE_TREND_ONLY_V1", "1")
+    d = decide(pattern="REACTIVE_LONG", day_type="Trend_Normal", direction="LONG",
+               day_direction="DOWN", entry_price=7451.0,
+               levels={"vah": 7472.0, "val": 7450.0, "ib_width": 12.0})
+    assert not d.allow and "counter-trend" in d.reason.lower()
+
+
+def test_trend_only_flag_off_byte_identical(monkeypatch):
+    """New flag OFF → Variation counter-trend still blocked (yesterday's behavior)."""
+    _clean(monkeypatch)
+    monkeypatch.setenv("RESPONSIVE_WITH_DAY_TREND_V1", "1")
+    monkeypatch.delenv("NEVERFADE_TREND_ONLY_V1", raising=False)
+    d = decide(pattern="REACTIVE_LONG", day_type="Variation", direction="LONG",
+               day_direction="DOWN", entry_price=7451.0,
+               levels={"vah": 7472.0, "val": 7450.0, "ib_width": 12.0})
+    assert not d.allow and "counter-trend" in d.reason.lower()
