@@ -28,6 +28,7 @@
 import { useEffect, useState } from 'react';
 import { TPOPill } from '../systems/TPOPill';
 import { KillzonePill } from '../systems/KillzonePill';
+import { OpeningTypeChip } from '../systems/OpeningTypeChip';
 import { SYSTEM_META } from '../../design/system_colors';
 import { COLORS } from '../../design/tokens';
 import { useSystemStateStore } from '../../store/systemStateStore';
@@ -235,6 +236,8 @@ export function Switcher({
           Firing — החלטות כניסה
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Opening Type chip — above S2 per Phase 5.2 spec */}
+          <OpeningTypeChip />
           <SystemRow
             systemId={2} nameHe="Five-Min" {...rowCommon(2)}
             dot={dotColor({ error: s2?.health === 'error', firedRecent: s2fire.recent, armed: s2armed })}

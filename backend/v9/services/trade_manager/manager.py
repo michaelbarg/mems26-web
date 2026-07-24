@@ -534,7 +534,10 @@ class TradeManager:
 
         if target == "T1":
             # C1 scale-out: FILLED → PARTIAL + stop→BE
-            machine.transition(TradeState.PARTIAL)
+            # After T0 remap (4-contract trades), state is already PARTIAL from
+            # the T0 scale-out.  Skip the transition to avoid InvalidTransition.
+            if machine.state != TradeState.PARTIAL:
+                machine.transition(TradeState.PARTIAL)
             trade.state = TradeState.PARTIAL.value
             trade.t1_hit_ts = hit_ts
             self._log_management(trade_id, "T1_HIT", {"ts": hit_ts.isoformat()})
@@ -657,10 +660,14 @@ class TradeManager:
             _cur = float(trade.stop) if trade.stop is not None else None
             if direction == "LONG":
                 if _cur is not None and _cur >= entry:
-                    return  # never widen — already at/through BE
+                    logger.info("[TradeManager] ZLR BE skip (never widen): trade %s stop=%.2f already >= entry=%.2f",
+                                getattr(trade, "id", "?"), _cur, entry)
+                    return
             elif direction == "SHORT":
                 if _cur is not None and _cur <= entry:
-                    return  # never widen — already at/through BE
+                    logger.info("[TradeManager] ZLR BE skip (never widen): trade %s stop=%.2f already <= entry=%.2f",
+                                getattr(trade, "id", "?"), _cur, entry)
+                    return
             else:
                 logger.warning(
                     "[TradeManager] ZLR BE unknown direction=%s · trade_id=%s",

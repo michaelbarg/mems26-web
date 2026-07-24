@@ -1059,6 +1059,28 @@ flags:
     what: "Minimum seconds between orphan flatten attempts. Default 60."
     why: "Rate-limit — prevent rapid-fire flatten attempts."
     status: param
+  OPENING_TYPE_SEEDS_S1_V1:
+    category: s1
+    what: "Seed S1 day-bias from opening-type classification in first 15min of RTH. Directional opens (OD/OTD/ORR) seed UP/DOWN; auctions = no seed. Escalation-only lock until IB."
+    why: "OFF — built Phase 3 (07-24). First 15min have no dir_bias (too few bars) and no expansion (IB not locked). Opening signal is strongest here."
+    status: awaiting_backtest
+    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 3"
+  EXTREME_CHASE_GUARD_V1:
+    category: risk
+    what: "Gateway gate: blocks CONT-family entries too close to session extreme (distance + pullback checks). Prevents chasing the low/high."
+    why: "OFF — built Phase 2 (07-24). 479+481 chased session low; this gate would have blocked both. Awaiting Michael ruling to enable."
+    status: awaiting_backtest
+    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 2"
+  EXTREME_MIN_DIST_PTS:
+    category: param
+    what: "Minimum points from session extreme for EXTREME_CHASE_GUARD. Default 6.0."
+    why: "Param for extreme-chase gate distance threshold."
+    status: param
+  PULLBACK_MIN_PTS:
+    category: param
+    what: "Minimum bounce pts from extreme in last 3 bars for EXTREME_CHASE_GUARD. Default 3.0."
+    why: "Param for extreme-chase gate pullback threshold."
+    status: param
   STOP_WINDOW_COMPLETED_V1:
     category: sizing
     what: "(Reserved, parallel build) Compute the S2/S4 initial stop from COMPLETED bars only — exclude the partial/opening in-progress bar so the stop window is not off-by-one."

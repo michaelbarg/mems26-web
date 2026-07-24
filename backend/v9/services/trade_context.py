@@ -819,3 +819,77 @@ def get_live_dir_bias(window: int = 6, min_frac: float = 0.6):
     except Exception:
         pass
     return None
+
+
+def get_opening_type_seed():
+    """OPENING_TYPE_SEEDS_S1_V1 — directional bias from opening-type classification.
+
+    Within the first 15 minutes of RTH (3 bars), if the opening type indicates
+    a directional open (OPEN_DRIVE, OPEN_TEST_DRIVE) or a clear reversal,
+    seed a directional bias:
+      OPEN_DRIVE UP / OPEN_TEST_DRIVE UP → "UP"
+      OPEN_DRIVE DOWN / OPEN_TEST_DRIVE DOWN → "DOWN"
+      OPEN_REJECTION_REVERSE direction → the REVERSAL direction
+      OPEN_AUCTION_* → None (no directional seed)
+
+    The seed is escalation-only: once set, it can only strengthen but never
+    flip (UP→DOWN) until IB-lock. This prevents the day-type flapping
+    observed on 07-23 (8× flips in 90min).
+
+    Returns "UP" / "DOWN" / None. Flag-gated; fail-closed to None.
+    """
+    import os
+    if os.getenv("OPENING_TYPE_SEEDS_S1_V1", "0").lower() not in ("1", "true", "yes"):
+        return None
+    try:
+        from backend.v9.systems.day_type.opening_detector_v2 import detect_opening_type
+        from backend.v9.db.read import read_all, read_one
+        from backend.v9.services.market_clock import now_et, get_previous_trading_day
+
+        et = now_et()
+        from datetime import time as _time
+        # Only seed in the first 15 minutes of RTH (09:30-09:45 ET)
+        if et.time() < _time(9, 30) or et.time() >= _time(9, 45):
+            return None
+
+        bars_rows = read_all(
+            "SELECT ts, open, high, low, close, volume "
+            "FROM v9_bars_5min_woodies "
+            "WHERE ts::date = current_date AND ts::time >= '16:30' "
+            "ORDER BY ts ASC LIMIT 3",
+            {},
+        )
+        if not bars_rows:
+            return None
+
+        def _f(v):
+            return float(v) if v is not None else None
+        rth_bars = [
+            {"o": _f(r["open"]), "h": _f(r["high"]), "l": _f(r["low"]),
+             "c": _f(r["close"]), "v": _f(r.get("volume"))}
+            for r in bars_rows
+        ]
+        open_price = rth_bars[0]["o"]
+
+        prev_date = get_previous_trading_day()
+        prev_row = read_one(
+            "SELECT vah_price, val_price FROM v9_tpo_sessions "
+            "WHERE trading_date = :prev_date AND session_type = 'CASH' "
+            "ORDER BY id DESC LIMIT 1",
+            {"prev_date": prev_date.isoformat()},
+        )
+        prev_vah = float(prev_row["vah_price"]) if prev_row and prev_row.get("vah_price") else None
+        prev_val = float(prev_row["val_price"]) if prev_row and prev_row.get("val_price") else None
+
+        result = detect_opening_type(
+            rth_bars, open_price, prior_vah=prev_vah, prior_val=prev_val,
+        )
+        otype = result.get("opening_type")
+        direction = result.get("direction")
+
+        if otype in ("OPEN_DRIVE", "OPEN_TEST_DRIVE", "OPEN_REJECTION_REVERSE"):
+            if direction in ("UP", "DOWN"):
+                return direction
+        return None
+    except Exception:
+        return None

@@ -731,6 +731,21 @@ class TradingGateway:
                                 "[Gateway] get_live_dir_bias for playbook failed (fail-open): %s",
                                 _pb_db_err,
                             )
+                    # OPENING_TYPE_SEEDS_S1_V1 (Phase 3, 07-24): third-tier fallback —
+                    # when both expansion and LSMA dir_bias are unavailable (first 15min
+                    # of RTH, before enough bars for dir_bias), seed from opening type.
+                    # Escalation-only lock: seed never flips once set.
+                    if "day_direction" not in _pb_kw:
+                        try:
+                            from backend.v9.services.trade_context import get_opening_type_seed
+                            _pb_ots = get_opening_type_seed()
+                            if _pb_ots in ("UP", "DOWN"):
+                                _pb_kw["day_direction"] = _pb_ots
+                        except Exception as _pb_ots_err:
+                            logger.warning(
+                                "[Gateway] opening_type_seed for playbook failed (fail-open): %s",
+                                _pb_ots_err,
+                            )
                     _pb_tpo = (
                         cross_context.get("tpo_system")
                         if isinstance(cross_context, dict) else None
@@ -1057,6 +1072,88 @@ class TradingGateway:
                     return result
             except Exception as _lf_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] lsma-flat gate errored (fail-open): %s", _lf_err)
+
+        # --- EXTREME_CHASE_GUARD_V1 (Michael ruling 2026-07-23, Phase 2):
+        # Blocks CONT-family entries that chase an extreme — SHORT too close to
+        # session low, LONG too close to session high. Two checks:
+        #   1) Distance-from-extreme: entry must be ≥ EXTREME_MIN_DIST_PTS from
+        #      session_low (SHORT) or session_high (LONG).
+        #   2) Pullback: at least one of the last 3 bars must show a bounce ≥
+        #      PULLBACK_MIN_PTS from the extreme (SHORT: bar.high ≥ session_low +
+        #      pullback_min; LONG: bar.low ≤ session_high − pullback_min).
+        # Scope: INITIATIVE / ZLR / CONT families — REACTIVE already covered by
+        # RESPONSIVE_WITH_DAY_TREND_V1.  Fail-open on missing data.
+        # Flag: EXTREME_CHASE_GUARD_V1 (default OFF).
+        if os.getenv("EXTREME_CHASE_GUARD_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                from backend.v9.systems.daytype_position_gate import _pattern_family as _ecg_fam_fn
+                _ecg_g1 = extract_g1_entry_context(cross_context)
+                _ecg_pat = resolve_pattern_id(setup, _ecg_g1) or ""
+                _ecg_fam = _ecg_fam_fn(_ecg_pat)
+                # Only apply to CONT family (INITIATIVE, ZLR, CONT patterns)
+                if _ecg_fam == "CONT":
+                    _ecg_entry = setup.get("entry_price")
+                    _ecg_min_dist = float(os.getenv("EXTREME_MIN_DIST_PTS", "6.0") or "6.0")
+                    _ecg_pb_min = float(os.getenv("PULLBACK_MIN_PTS", "3.0") or "3.0")
+                    # Get session bars for today's RTH
+                    from backend.v9.db.read import read_all as _ecg_read
+                    _ecg_srows = _ecg_read(
+                        "SELECT high, low FROM v9_bars_5min_woodies "
+                        "WHERE ts::date = current_date AND ts::time >= '16:30' "
+                        "ORDER BY ts ASC", {})
+                    if _ecg_srows and _ecg_entry is not None:
+                        _ecg_bars = [{"high": float(r["high"]), "low": float(r["low"])}
+                                     for r in _ecg_srows]
+                        _ecg_sh = max(b["high"] for b in _ecg_bars)
+                        _ecg_sl = min(b["low"] for b in _ecg_bars)
+                        _ecg_entry_f = float(_ecg_entry)
+                        _ecg_blocked = False
+                        _ecg_reason = ""
+                        if direction == "SHORT":
+                            _ecg_dist = _ecg_entry_f - _ecg_sl
+                            if _ecg_dist < _ecg_min_dist:
+                                _ecg_blocked = True
+                                _ecg_reason = (
+                                    f"SHORT entry {_ecg_entry_f:.2f} too close to "
+                                    f"session_low {_ecg_sl:.2f} (dist={_ecg_dist:.2f} < "
+                                    f"{_ecg_min_dist:.1f})")
+                            else:
+                                # Pullback check: need bounce from low in recent bars
+                                _ecg_recent = _ecg_bars[-3:] if len(_ecg_bars) >= 3 else _ecg_bars
+                                _ecg_has_pb = any(
+                                    b["high"] >= _ecg_sl + _ecg_pb_min for b in _ecg_recent)
+                                if not _ecg_has_pb:
+                                    _ecg_blocked = True
+                                    _ecg_reason = (
+                                        f"SHORT entry {_ecg_entry_f:.2f}: no pullback from "
+                                        f"session_low {_ecg_sl:.2f} in last {len(_ecg_recent)} "
+                                        f"bars (need bounce >= {_ecg_pb_min:.1f})")
+                        elif direction == "LONG":
+                            _ecg_dist = _ecg_sh - _ecg_entry_f
+                            if _ecg_dist < _ecg_min_dist:
+                                _ecg_blocked = True
+                                _ecg_reason = (
+                                    f"LONG entry {_ecg_entry_f:.2f} too close to "
+                                    f"session_high {_ecg_sh:.2f} (dist={_ecg_dist:.2f} < "
+                                    f"{_ecg_min_dist:.1f})")
+                            else:
+                                _ecg_recent = _ecg_bars[-3:] if len(_ecg_bars) >= 3 else _ecg_bars
+                                _ecg_has_pb = any(
+                                    b["low"] <= _ecg_sh - _ecg_pb_min for b in _ecg_recent)
+                                if not _ecg_has_pb:
+                                    _ecg_blocked = True
+                                    _ecg_reason = (
+                                        f"LONG entry {_ecg_entry_f:.2f}: no pullback from "
+                                        f"session_high {_ecg_sh:.2f} in last {len(_ecg_recent)} "
+                                        f"bars (need dip >= {_ecg_pb_min:.1f})")
+                        if _ecg_blocked:
+                            result["blocked_by"] = "extreme_chase_guard"
+                            result["reason"] = _ecg_reason
+                            logger.info("[Gateway] BLOCKED by extreme-chase-guard: %s", _ecg_reason)
+                            return result
+                    # else: no session bars or no entry → fail-open
+            except Exception as _ecg_err:  # fail-open — never block on a bug
+                logger.warning("[Gateway] extreme-chase-guard errored (fail-open): %s", _ecg_err)
 
         # --- IDEA-1 news blackout (Michael 2026-07-13): NO new entries inside the
         # window around a RED economic event (CPI/PPI/FOMC/NFP — config/news_calendar.yaml).
