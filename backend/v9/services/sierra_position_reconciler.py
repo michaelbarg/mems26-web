@@ -411,7 +411,7 @@ def _sierra_position_qty() -> Optional[int]:
         return None
 
 
-def reconcile_position(tm) -> Tuple[bool, str]:
+def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
     """Compare TM open trades vs Sierra's actual position.
 
     Returns (ok, message). ok=False means divergence detected.
@@ -540,6 +540,39 @@ def reconcile_position(tm) -> Tuple[bool, str]:
            f"Sierra says {sierra_qty} (src={src}). Records \u2260 reality!"
            + (f" [phantom-heal streak {_phantom_flat_streak}/{_need}]" if _heal_on else ""))
 
+    # RECONCILER_OWNERSHIP_AWARE_V1 (Michael ruling 07-24, Phase 7.1):
+    # Mixed account — Michael trades manually alongside the system. A Sierra
+    # position with TM=0 could be Michael's manual trade, not an orphan.
+    # Check: if no system-placed orders exist in the fill_poller order_map
+    # (no sierra_order_id → trade_id mapping), the position is manual →
+    # INFO only, not CRITICAL/NAKED/auto-stop. Flag OFF = byte-identical
+    # to pre-V1 behavior.
+    _ownership_aware = os.getenv(
+        "RECONCILER_OWNERSHIP_AWARE_V1", "0").lower() in ("1", "true", "yes")
+    _orphan_naked = (tm_qty == 0 and sierra_qty != 0)
+    if _orphan_naked and _ownership_aware:
+        _is_system_position = False
+        _fp = fill_poller
+        if _fp is None:
+            try:
+                import backend.main as _main_mod
+                _main_app = getattr(_main_mod, "app", None)
+                _fp = getattr(getattr(_main_app, "state", None),
+                              "fill_poller", None)
+            except Exception:
+                pass  # fail-safe
+        if _fp is not None:
+            _omap = getattr(_fp, "_order_map", {})
+            _is_system_position = len(_omap) > 0
+        if not _is_system_position:
+            _manual_msg = (
+                f"MANUAL POSITION: Sierra {sierra_qty}c but no system orders in "
+                f"order_map → likely Michael's manual trade. Not orphan."
+            )
+            msg += f" \u2139\ufe0f {_manual_msg}"
+            logger.info("[Reconciler] SYS-3 %s", msg)
+            return True, msg  # ok=True — not a divergence, just manual
+
     # P3 (orphan): Sierra holds a position the backend does not track (TM=0,
     # Sierra!=0) → NAKED orphan. Compute the exact protective stop and surface it
     # so it can be placed instantly.
@@ -547,7 +580,6 @@ def reconcile_position(tm) -> Tuple[bool, str]:
     # ORPHAN_AUTO_STOP_V1 (Michael ruling 07-17): when flag ON + all safety
     # conditions hold → attempt to place a protective stop automatically.
     # When flag OFF (default) → alert-only, identical to pre-V1 behavior.
-    _orphan_naked = (tm_qty == 0 and sierra_qty != 0)
     if _orphan_naked:
         # Try auto-stop first (returns None when flag OFF → falls through)
         _auto_result = _try_orphan_auto_stop(sierra_qty, src)

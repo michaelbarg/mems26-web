@@ -1059,6 +1059,12 @@ flags:
     what: "Minimum seconds between orphan flatten attempts. Default 60."
     why: "Rate-limit — prevent rapid-fire flatten attempts."
     status: param
+  RECONCILER_OWNERSHIP_AWARE_V1:
+    category: risk
+    what: "Mixed-account reconciler: Sierra position with no system orders in order_map = manual trade → INFO, not NAKED ORPHAN. Prevents false alerts on Michael's manual trades."
+    why: "OFF — built Phase 7.1 (07-24). Account 37138283 is mixed (Michael trades manually alongside system). Without this, every manual position triggers CRITICAL orphan alerts."
+    status: awaiting_backtest
+    ref: "CC_OVERNIGHT_3FIXES_2026-07-23.md Phase 7"
   OPENING_TYPE_SEEDS_S1_V1:
     category: s1
     what: "Seed S1 day-bias from opening-type classification in first 15min of RTH. Directional opens (OD/OTD/ORR) seed UP/DOWN; auctions = no seed. Escalation-only lock until IB."
