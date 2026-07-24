@@ -60,6 +60,9 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-24 13:40 IL] cowork-dev — ✅ OPENING_ENTRY_V1 shadow→1 (מייקל "מאשר את שני המתגים") — OPEN-FIRE ללייב, אימות-לפני-לייב 🟢 GO
+מייקל אישר את שני המתגים + השטיח את פוזיציית-הסים. **אימות-לפני-לייב:** שטוח (position_qty=0, working_orders=0), reconciler שקט (0 אורפן ב-20 שורות אחרונות), **fire_drill 🟢 GO**, flag_guard 124/124, feed טרי (woodies 13s). **הדלקה:** snapshot `20260724T121214Z` → RULED `OPENING_ENTRY_V1` shadow→1 (07-24) → .env=1 → restart → `OPENING_ENTRY_V1=1`+`OPENING_FIRE_V1=1` חיים, position שטוח. **כניסות-הפתיחה (DRIVE/TD/ORR/EXTREME_REJECT + PULLBACK-CONT) מנתבות עכשיו ללייב.** נותר שער-הכסף: **מייקל Sierra Sim→Live** (is_sim=1→0) + חוק-סוחר-יחיד (iMac נשאר Sim). .env gitignored (מקומי).
+
 ### [2026-07-24 13:25 IL] cowork-dev — ✅ Phase 5.3 OPEN-FIRE v1 (OPENING_FIRE_V1) נבנה+אומת+הודלק (הוראת-מייקל "להדליק את הדגל של 5.3" + פסיקת-10:19 live)
 בניית 5.3 ש-cc השאיר NOT-DONE: חלון opening_entry 30→60 דק' + כניסת PULLBACK-CONT (פולבק≥33% מהמהלך + בר-דחייה → כניסה עם-הכיוון, סטופ מאחורי קיצון-הפולבק 16T, T1=1.5R) + מסנן-bias מ-OPENING_TYPE_SEEDS.
 - **fixture אמיתי 07-23** (woodies): הפתיחה עלתה ל-7486.5@16:40 ונדחתה → PULLBACK-CONT תופס SHORT @7464.25 (סטופ 7490.5, T1 1.5R). הכניסות הקיימות מחמיצות (TEST_DRIVE חסום ע"י drove_up, ORR דורש close<open מאוחר, EXTREME_REJECT לא-תואם) — זה הפער.
