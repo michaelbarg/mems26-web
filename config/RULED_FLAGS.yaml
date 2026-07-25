@@ -193,3 +193,6 @@ ruled:
   #    על מחקר-האותות (docs/reports/OPENING_SIGNAL_EDGE): fusion 73% מול 53%. אומת cowork: 7 טסטים,
   #    OFF=byte-identical, רגרסיה 141<=142, 0-כשל-חדש, snapshot לפני .env ──
   OPENING_DIR_FUSION_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-24", note: "כיוון-פתיחה מאושר-ווליום: שער-ווליום (opening_vol מול חציון-נגרר) + מומנטום-30דק + הסכמת-חצית-רמה -> UP/DOWN/None. None (lo-conviction/conflict) = דלג כניסת-פתיחה; אחרת מפיל טריגרים בכיוון-נגדי. מחקר 07-24: 73% על ימי-ירי מול 53% מסווג. הסתייגות: 11 ימי-מדגם, מייקל בחר לחווט-לייב במפורש. מפחית-סיכון (גייט לא טריגר). שער-כסף=Sierra" }
+
+  # ── פסיקת-מייקל 07-25 ("התראה-בלבד" מתוך 3 אופציות שהוצגו) — הגנת-כניסה-ידנית-עירומה ──
+  MANUAL_POSITION_GUARD_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-25", note: "פוזיציה-ידנית (ענף-MANUAL של ה-reconciler) בלי סטופ-עובד מעל 60ש (MANUAL_GUARD_GRACE_S) -> CRITICAL + פוש-לפלאפון, re-alert כל 300ש. התראה-בלבד — לא נוגע בפקודות/פוזיציה (פסיקת-12:20 נשמרת במלואה). זיהוי-סטופ לפי order-type (2/3=stop, 1=limit, price-agnostic — תופס גם סטופ-רווח-נעול כמו 07-24), fallback-מחיר לפיד-חסר-type, unknown->שקט (Rule-1). 12 טסטים" }

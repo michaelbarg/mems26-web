@@ -90,6 +90,103 @@ def _sierra_state_avg_price() -> Optional[float]:
         return None
 
 
+def _sierra_state_orders() -> Optional[list]:
+    """orders[] from the fresh state file; None if stale/absent (Rule 1)."""
+    try:
+        if not STATE_FILE.exists():
+            return None
+        if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
+            return None
+        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        o = data.get("orders")
+        return list(o) if isinstance(o, list) else None
+    except (OSError, ValueError, TypeError):
+        return None
+
+
+def _has_protective_stop(qty: int, orders: Optional[list],
+                         avg_price: Optional[float]) -> Optional[bool]:
+    """MANUAL_POSITION_GUARD_V1: does a working order protect this position?
+    LONG (qty>0): a SELL (bs=2) at/below avg = the stop. SHORT: a BUY (bs=1)
+    at/above avg. avg missing → None (unknown — honest, no alert; Rule 1).
+    NOTE: orders[] only lists GetOrderByIndex-visible orders — a held bracket
+    may be invisible (known false-naked class); the grace window absorbs it."""
+    if not orders:
+        return False
+    try:
+        saw_typed = False
+        for o in orders:
+            bs = int(o.get("bs", 0))
+            typ = o.get("type")
+            if typ is not None:
+                saw_typed = True
+                # Sierra order types observed live 07-24: 1=limit(target),
+                # 2/3=stop varieties. A STOP on the closing side = protection,
+                # price-agnostic (covers locked-profit stops beyond avg).
+                if int(typ) in (2, 3) and (
+                        (qty > 0 and bs == 2) or (qty < 0 and bs == 1)):
+                    return True
+        if saw_typed:
+            return False  # typed orders present, none is a closing-side stop
+        # typeless feed → price-vs-avg proxy (legacy fallback)
+        if avg_price is None:
+            return None
+        for o in orders:
+            bs = int(o.get("bs", 0))
+            price = float(o.get("price", 0) or 0)
+            if qty > 0 and bs == 2 and price <= float(avg_price):
+                return True
+            if qty < 0 and bs == 1 and price >= float(avg_price):
+                return True
+    except (TypeError, ValueError):
+        return None
+    return False
+
+
+# MANUAL_POSITION_GUARD_V1 episode state (module-level; reset on protected/flat)
+_manual_guard = {"first_naked_ts": None, "last_alert_ts": 0.0}
+
+
+def _manual_position_guard(sierra_qty: int) -> Optional[str]:
+    """Michael ruling 2026-07-25 ("התראה-בלבד"): a MANUAL position with no
+    working protective stop for >= grace seconds → CRITICAL + phone push.
+    ALERT-ONLY — never places/modifies orders, never touches the position
+    (12:20 ownership ruling fully preserved). Returns the alert text when
+    alerting, else None. Fail-quiet on any error."""
+    import os as _mg_os
+    if _mg_os.getenv("MANUAL_POSITION_GUARD_V1", "0").lower() not in ("1", "true", "yes"):
+        return None
+    try:
+        _grace = float(_mg_os.getenv("MANUAL_GUARD_GRACE_S", "60"))
+        _throttle = float(_mg_os.getenv("MANUAL_GUARD_REALERT_S", "300"))
+        _now = _time_mod.time()
+        _prot = _has_protective_stop(
+            sierra_qty, _sierra_state_orders(), _sierra_state_avg_price())
+        if _prot is not False:  # protected, or unknown (avg missing) → no alert
+            _manual_guard["first_naked_ts"] = None
+            return None
+        if _manual_guard["first_naked_ts"] is None:
+            _manual_guard["first_naked_ts"] = _now
+            return None
+        if (_now - _manual_guard["first_naked_ts"]) < _grace:
+            return None
+        if (_now - _manual_guard["last_alert_ts"]) < _throttle:
+            return None
+        _manual_guard["last_alert_ts"] = _now
+        _naked_for = int(_now - _manual_guard["first_naked_ts"])
+        _txt = (f"🔴 MANUAL POSITION NAKED: {sierra_qty}c with NO working stop "
+                f"for {_naked_for}s — place a stop in Sierra NOW (alert-only, "
+                f"system will not touch your position)")
+        try:
+            from backend.v9.services.phone_alert import push as _mg_push
+            _mg_push("MANUAL NAKED", _txt)
+        except Exception:
+            pass  # phone unavailable — the CRITICAL log still fires
+        return _txt
+    except Exception:
+        return None
+
+
 def recommend_orphan_stop(sierra_qty: Optional[int],
                           avg_price: Optional[float]) -> Optional[dict]:
     """Conservative protective stop for an untracked (orphan) Sierra position.
@@ -570,7 +667,15 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
                 f"order_map → likely Michael's manual trade. Not orphan."
             )
             msg += f" \u2139\ufe0f {_manual_msg}"
-            logger.info("[Reconciler] SYS-3 %s", msg)
+            # MANUAL_POSITION_GUARD_V1 (Michael ruling 07-25 "התראה-בלבד"):
+            # alert-only naked-stop watch on the MANUAL position. Never touches
+            # orders/position — the 12:20 ownership ruling stays fully intact.
+            _mg_alert = _manual_position_guard(sierra_qty)
+            if _mg_alert:
+                msg += f" {_mg_alert}"
+                logger.critical("[Reconciler] SYS-3 %s", msg)
+            else:
+                logger.info("[Reconciler] SYS-3 %s", msg)
             return True, msg  # ok=True — not a divergence, just manual
 
     # P3 (orphan): Sierra holds a position the backend does not track (TM=0,
