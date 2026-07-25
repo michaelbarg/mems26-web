@@ -60,6 +60,15 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-25 13:00 IL] cowork-dev — 📋 תוכנית-שבת→שני (מנדט-מייקל "הכל מוכן לפתיחת שני") + פלאפון תוקן + סקירת-S2/S4 בוצעה
+**תוכנית-האם: `docs/plans/WORKPLAN_TO_MONDAY_2026-07-27.md`** (8 פריטים × בעלים × סדר).
+**בוצע-שבת (cowork):**
+- 📱 **פלאפון תוקן+אומת:** שורש = פרונט קשור ל-127.0.0.1 (`package.json "dev": next dev -H 127.0.0.1` + plist). תוקן: סקריפט `dev:lan` (-H 0.0.0.0) + plist → `npm run dev:lan` + **bootout/bootstrap** (kickstart לא טוען plist-ששונה!). אומת: node על `*:3000`, **ZT 10.1.118.147:3000 = 200**. snapshot `20260725T103252Z`.
+- 📊 **סקירת-S2/S4 (החצי-דאטה של פריט-G):** REAL מאז 07-01 — REACTIVE_SHORT 66%/+$155 טובה · **GB100 החזקה בשני-העולמות** (2/2 real; צל 66%/+10.9R) · ZLR שלילית-נטו (41%/−$136; צל 12%/−23.7R/40!) → כיול · GHOST 0%/−$178 בשניהם → מועמדת-השבתה · INITIATIVE_SHORT 0/4 → לבחון. תובנה: השערים מוסיפים ערך (צל≪לייב פר-תבנית). פירוט ב-WORKPLAN §G.
+**🔴 OPEN אל cc-macbook:** `docs/handoff/CC_WEEKEND_2026-07-25.md` — W2 exit-tracking (513) · W3 NAKED_STOP · W4 Variation-fix (ספק-קיים) · W1 DLL Trade-Positions fields (`MES_AI_DataExport.cpp:1998`, PosData) · W1b עמוד-חשבון-אמת (`/api/v9/account/state` + פאנל, polling 15s) · W6 תבנית HIGHER_LOW_SECOND_TEST (flag-OFF, הגדרה לאישור-מייקל) · W5 S6/EXIT-v2 (stretch). דדליין ראשון 20:00, דוח חלק-C, cowork מאמת.
+**🔴 OPEN אל cursor-agent:** (E) קריאה-חוזרת של `docs/spec_authority/DALTON_DOCTRINE.md` מול השערים/הזרימות החיות (FLAG_INDEX עדכני) → רשימת-פערים מדורגת; (G-דוקטרינה) הצלבת טבלת-כלכלת-התבניות (WORKPLAN §G) מול הדוקטרינה+PATTERN_BIBLE → המלצת enable/disable/recalibrate פר-תבנית לפסיקת-מייקל. עד ראשון-ערב.
+**על-מייקל:** בדיקת-פלאפון עכשיו (`http://10.1.118.147:3000`) · Remote-Build שני-בוקר (אחרי W1) · אישור-הגדרת-W6 · פסיקות-הדלקה לפי אימותים.
+
 ### [2026-07-24 18:45 IL] cowork-dev — 🔴 שורש-מזוהה חי: playbook חוסם with-trend על Variation-כיווני → CC handoff (flag-OFF, פסיקת-מייקל "תיקון מהשורש")
 **לייב היום Variation-שמתרחב-UP** (BLUE, +58pt 7431→7489.5). **18:15 REACTIVE LONG @7478** (פולבק אמיתי משיא 7489.5) **נחסם** ב-`daytype_playbook`: "responsive LONG not at VAL (above_value) on Variation". ובמקביל **18:20 REACTIVE SHORT נגד-הטרנד הלך ללייב** (id 509) — **inversion חי**.
 **שורש (`daytype_playbook.py:210-262`, מעקב-קוד מלא):** (1) `NEVERFADE_TREND_ONLY_V1` מכבה with-trend על **כל** non-Trend → location-only → דורש VAL; (2) ה-chase לפי **value-location** (`above_value`) ולא לפי **קיצון-סשן+פולבק** → פולבק-מעל-ערך-מהגר נקרא "רדיפה". ה-`decide()` מקבל רק {vah,val,ib_width} — חסר day_high/low.
