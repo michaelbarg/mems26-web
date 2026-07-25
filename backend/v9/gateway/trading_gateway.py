@@ -767,6 +767,29 @@ class TradingGateway:
                             )
                         except (TypeError, ValueError):
                             pass
+                    # W4 (2026-07-25): plumb day_high/day_low into playbook levels
+                    # for VARIATION_WITH_TREND_CONT_V1 chase detection (distance from
+                    # session extreme, not value-location). Reuse the same session-bar
+                    # query as REV_EDGE_DAY_STRUCTURE_V1 to avoid a duplicate DB hit.
+                    if os.getenv("VARIATION_WITH_TREND_CONT_V1", "0").lower() in (
+                        "1", "true", "yes",
+                    ):
+                        try:
+                            from backend.v9.db.read import read_all as _dh_read
+                            _dh_rows = _dh_read(
+                                "SELECT high, low FROM v9_bars_5min_woodies "
+                                "WHERE ts::date = current_date AND ts::time >= '16:30' "
+                                "ORDER BY ts", {},
+                            )
+                            if _dh_rows:
+                                _pb_levels["day_high"] = max(
+                                    float(r["high"]) for r in _dh_rows)
+                                _pb_levels["day_low"] = min(
+                                    float(r["low"]) for r in _dh_rows)
+                        except Exception as _dh_err:
+                            logger.debug(
+                                "[Gateway] W4 day_high/low for playbook failed "
+                                "(fail-open): %s", _dh_err)
                     if _pb_levels.get("vah") is not None and _pb_levels.get("val") is not None:
                         _pb_kw["levels"] = _pb_levels
                 _pb = _pb_decide(

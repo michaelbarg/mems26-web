@@ -6,6 +6,7 @@ import { LiveLedgerPanel } from '../../v9/components/board/LiveLedgerPanel';
 import { PagesPanel } from '../../v9/components/board/PagesPanel';
 import { NewsCalendarPanel } from '../../v9/components/board/NewsCalendarPanel';
 import { ProposedDiffsPanel } from '../../v9/components/board/ProposedDiffsPanel';
+import { AccountStatePanel } from '../../v9/components/board/AccountStatePanel';
 import { SierraLiveCheckPanel } from '../../v9/components/board/SierraLiveCheckPanel';
 import { StatusBoardPanel } from '../../v9/components/board/StatusBoardPanel';
 import { System6SupervisorPanel } from '../../v9/components/board/System6SupervisorPanel';
@@ -23,6 +24,8 @@ export default function BoardPage() {
       <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* למידה-v3: הצעות-כיול ממתינות לפסיקה — מוצג רק כשיש דיפים */}
         <ProposedDiffsPanel />
+        {/* W1b: עמוד-חשבון-אמת — sierra_state.json (מייקל 07-25) */}
+        <AccountStatePanel />
         {/* T1: בדיקת-אמת שהמערכת מזהה את סיירה (מייקל 07-14) */}
         <SierraLiveCheckPanel />
         {/* לוח-החדשות — חלון-NO_TRADE (מייקל 07-13) */}

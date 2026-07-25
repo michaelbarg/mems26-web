@@ -225,6 +225,55 @@ def decide(
                     day_type or ""
                 ).startswith("Trend"):
                     _wt_on = False  # Variation → two-sided location-only fade
+                # W4 (2026-07-25): VARIATION_WITH_TREND_CONT_V1 — on a directional
+                # Variation day (UP/DOWN), allow with-trend continuation entries
+                # using session extremes for chase detection instead of value-location.
+                # The fix for the 07-24 live miss: REACTIVE LONG @7478 was blocked
+                # "not at VAL" on a Variation-UP day (value migrating up) while the
+                # with-trend entry was correct (pullback from day_high 7489.5).
+                # Flag OFF → _variation_wt stays False → byte-identical.
+                _variation_wt = False
+                if (
+                    not _wt_on
+                    and os.environ.get(
+                        "VARIATION_WITH_TREND_CONT_V1", "0"
+                    ).lower() in ("1", "true", "yes")
+                    and day_type in ("Variation", "Normal_Variation")
+                    and _dd in ("UP", "DOWN")
+                ):
+                    _is_with_trend = (d == "LONG" and _dd == "UP") or (
+                        d == "SHORT" and _dd == "DOWN")
+                    if _is_with_trend:
+                        # Chase check: distance from session extreme (A2 amendment:
+                        # IB-scaled threshold, not fixed 6pt)
+                        _lvls = levels if isinstance(levels, dict) else {}
+                        _ib_w = _lvls.get("ib_width")
+                        _frac = float(os.environ.get("CHASE_MIN_DIST_IB_FRAC", "0.25"))
+                        _min_dist = 6.0
+                        if _ib_w is not None:
+                            try:
+                                _min_dist = max(6.0, _frac * float(_ib_w))
+                            except (TypeError, ValueError):
+                                pass
+                        _ep = float(entry_price) if entry_price is not None else None
+                        _dh = _lvls.get("day_high")
+                        _dl = _lvls.get("day_low")
+                        _chasing = False
+                        if _ep is not None:
+                            if d == "LONG" and _dh is not None:
+                                _chasing = (float(_dh) - _ep) < _min_dist
+                            elif d == "SHORT" and _dl is not None:
+                                _chasing = (_ep - float(_dl)) < _min_dist
+                        # day_high/day_low missing → fail-open (allow)
+                        if _chasing:
+                            return Decision(
+                                "SKIP", 0,
+                                f"{pkey} with-trend {d} chasing session extreme on "
+                                f"{day_type} (dist < {_min_dist:.1f}pt, "
+                                f"threshold=max(6, {_frac}×IB))",
+                            )
+                        _variation_wt = True  # allow as continuation
+                    # counter-trend on Variation: fall through to location-fade (ruling #3)
                 _with_trend_allow = False
                 if _wt_on and _dd in ("UP", "DOWN"):
                     if (d == "LONG" and _dd == "DOWN") or (d == "SHORT" and _dd == "UP"):
@@ -243,6 +292,8 @@ def decide(
                             f"{day_type} — enter from a pullback, not the {'low' if d == 'SHORT' else 'high'}",
                         )
                     _with_trend_allow = True  # continuation: bypass the value-edge check
+                if _variation_wt:
+                    _with_trend_allow = True  # W4: Variation continuation allowed
                 if not _with_trend_allow:
                     # Responsive fade: location owns allow/deny — ignore trend_state.
                     loc = _resolve_location(location, entry_price, levels)

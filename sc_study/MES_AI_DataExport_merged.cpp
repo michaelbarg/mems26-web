@@ -2049,11 +2049,19 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                         (int)tord.BuySell, tord.Price1, (float)tord.OrderQuantity);
                 n_ord++;
             }
-            char sbuf[1024];
+            // W1 (2026-07-25): expanded position fields from s_SCPositionData —
+            // Trade Positions screen data for the account-truth page (W1b).
+            // Existing position_qty + avg_price untouched (readers depend on them).
+            char sbuf[2048];
             int sl = snprintf(sbuf, sizeof(sbuf),
                 "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,"
                 "\"send_orders_to_trade_service\":%d,"
                 "\"position_qty\":%.0f,\"avg_price\":%.2f,"
+                "\"open_pnl\":%.2f,\"daily_pnl\":%.2f,"
+                "\"high_during_pos\":%.2f,\"low_during_pos\":%.2f,"
+                "\"trade_account\":\"%s\",\"symbol\":\"%s\","
+                "\"daily_total_qty_filled\":%.0f,"
+                "\"last_price\":%.2f,"
                 "\"working_orders\":%d,\"orders\":[%s]}\n",
                 (long long)time(nullptr),
                 sc.GlobalTradeSimulationIsOn ? 1 : 0,
@@ -2062,8 +2070,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 sc.SendOrdersToTradeService ? 1 : 0,  // 07-13 iMac blocker: auto-match state —
                                                       // if this drifts after a sim-toggle, PLACE no-ops.
                 (float)spos.PositionQuantity, (float)spos.AveragePrice,
+                (float)spos.OpenProfitLoss, (float)spos.DailyProfitLoss,
+                (float)spos.PriceHighDuringPosition, (float)spos.PriceLowDuringPosition,
+                sc.GetTradeAccount().GetChars(), sc.GetChartSymbol().GetChars(),
+                (float)spos.DailyTotalQuantityFilled,
+                (float)sc.LastTradePrice,
                 n_ord, ordbuf);
-            if (sl > 0 && sl < (int)sizeof(sbuf))
+            if (sl > 0 && sl < (int)sizeof(sbuf))  // W1: sbuf enlarged to 2048
             {
                 const char* v9dirS = V9ExportPath.GetString();
                 if (v9dirS[0] != '\0')

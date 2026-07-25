@@ -34,6 +34,11 @@ POLL_INTERVAL = 0.25  # seconds
 _SIGNALS_DIR = Path(os.getenv("MEMS26_SIGNALS_DIR", "/Users/michael/SierraChart_Data/v9_export"))
 COMMAND_PATH = _SIGNALS_DIR / "trade_command.json"
 RESULT_PATH = _SIGNALS_DIR / "trade_result.json"
+ACTIVITY_EVENTS_PATH = _SIGNALS_DIR / "trade_activity_events.jsonl"
+STATE_PATH = _SIGNALS_DIR / "sierra_state.json"
+
+# MES point value — shared with trade_manager for exit_price back-computation
+_MES_POINT_VALUE = 5.0  # $5 per point per contract
 
 
 class FillPoller:
@@ -57,6 +62,9 @@ class FillPoller:
         # Recorded + surfaced (never silent) for the reconcile / System 6 orphan invariant.
         self._orphan_fills: list = []
         self._orphan_count: int = 0
+        # W2 (2026-07-25): activity-exit tracker — incremental read position in
+        # trade_activity_events.jsonl for CLOSED_TRADE_PNL detection.
+        self._activity_exit_pos: Optional[int] = None
 
     def last_poll_age(self) -> float:
         """Seconds since the loop last iterated (P3 heartbeat). -1 if never run.
@@ -106,6 +114,7 @@ class FillPoller:
                 self._guard_duplicate_command()
                 self._check_result()
                 self._check_fills()
+                self._check_activity_exits()
                 self._maybe_reconcile()
                 self._check_rejections()
             except asyncio.CancelledError:
@@ -116,6 +125,185 @@ class FillPoller:
 
     def stop(self) -> None:
         self._running = False
+
+    def _check_activity_exits(self) -> None:
+        """W2 (trade 513, 2026-07-25): detect bracket exits via CLOSED_TRADE_PNL
+        events in trade_activity_events.jsonl.
+
+        The deployed DLL (v8.2.0) does NOT write exit fills (T1/T2/T3/STOP) to
+        trade_fills.json — only the undeployed _merged.cpp has Pipeline 5 fill
+        monitor. Until that DLL is deployed, bracket exits are invisible to
+        _check_fills(). This fallback reads CLOSED_TRADE_PNL events from the
+        activity journal (which the DLL DOES write) and closes the matching
+        trade with Sierra's authoritative PnL.
+
+        Flag-gated: EXIT_TRACK_ACTIVITY_V1 (default OFF). When OFF, this method
+        is a no-op (byte-identical to pre-W2).
+
+        Correlation: CLOSED_TRADE_PNL carries pnl + ts but NO order_id →
+        attributed to the most recent FILLED non-shadow trade (same single-slot
+        heuristic as ORDER_FAILED). Confirmed via sierra_state.json position_qty=0
+        before acting (double-check: Sierra is actually flat).
+        """
+        if not os.getenv("EXIT_TRACK_ACTIVITY_V1", "0").lower() in ("1", "true", "yes"):
+            return
+        if self._tm is None:
+            return
+        if not ACTIVITY_EVENTS_PATH.exists():
+            return
+        try:
+            size = ACTIVITY_EVENTS_PATH.stat().st_size
+            if self._activity_exit_pos is None:
+                # First run: start at EOF — never act on historical events
+                self._activity_exit_pos = size
+                return
+            if size <= self._activity_exit_pos:
+                if size < self._activity_exit_pos:
+                    self._activity_exit_pos = 0  # file rotated/truncated
+                return
+            with open(ACTIVITY_EVENTS_PATH, "r", encoding="utf-8") as f:
+                f.seek(self._activity_exit_pos)
+                new_lines = f.read().splitlines()
+            self._activity_exit_pos = size
+
+            # Collect CLOSED_TRADE_PNL events from new lines
+            pnl_events = []
+            for ln in new_lines:
+                try:
+                    ev = json.loads(ln)
+                except (ValueError, TypeError):
+                    continue
+                if ev.get("type") == "CLOSED_TRADE_PNL":
+                    pnl_events.append(ev)
+            if not pnl_events:
+                return
+
+            # Find active FILLED non-shadow trade
+            filled = [t for t in self._tm.get_active_trades()
+                      if getattr(t, "state", "") == "FILLED"
+                      and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
+            if not filled:
+                logger.debug(
+                    "[FillPoller] W2 CLOSED_TRADE_PNL seen but no FILLED demo/live trade")
+                return
+
+            # Double-check: sierra_state.json says position is flat
+            try:
+                if STATE_PATH.exists():
+                    state_data = json.loads(STATE_PATH.read_text().strip() or "{}")
+                    sq = state_data.get("position_qty")
+                    if sq is not None and int(sq) != 0:
+                        logger.debug(
+                            "[FillPoller] W2 CLOSED_TRADE_PNL but Sierra position_qty=%s "
+                            "(not flat) — waiting for full exit", sq)
+                        return
+                else:
+                    logger.debug("[FillPoller] W2 sierra_state.json missing — skipping")
+                    return
+            except (OSError, json.JSONDecodeError, ValueError):
+                return
+
+            # Use the LAST PnL event (most recent close)
+            ev = pnl_events[-1]
+            sierra_pnl = ev.get("pnl")
+            exit_ts_str = ev.get("ts")
+            exit_ts = None
+            if exit_ts_str:
+                try:
+                    exit_ts = datetime.fromisoformat(exit_ts_str)
+                    if exit_ts.tzinfo is None:
+                        exit_ts = exit_ts.replace(tzinfo=timezone.utc)
+                except (ValueError, TypeError):
+                    exit_ts = datetime.now(timezone.utc)
+            else:
+                exit_ts = datetime.now(timezone.utc)
+
+            trade = filled[-1]
+            trade_id = trade.id
+            entry_price = getattr(trade, "entry_price", None)
+            direction = str(getattr(trade, "direction", "")).upper()
+
+            # Back-compute exit_price from Sierra PnL when possible (Rule 1:
+            # honest None when data insufficient — never synthesize a lie)
+            exit_price = None
+            if sierra_pnl is not None and entry_price is not None:
+                from backend.v9.services.trade_manager.manager import trade_contract_count
+                n_contracts = trade_contract_count(trade)
+                if n_contracts > 0:
+                    pnl_per_contract = float(sierra_pnl) / n_contracts
+                    pts = pnl_per_contract / _MES_POINT_VALUE
+                    if direction == "LONG":
+                        exit_price = round(float(entry_price) + pts, 2)
+                    elif direction == "SHORT":
+                        exit_price = round(float(entry_price) - pts, 2)
+
+            logger.warning(
+                "[FillPoller] W2 EXIT-TRACK: CLOSED_TRADE_PNL detected — closing "
+                "trade %d (%s %s) with Sierra PnL=$%s, exit_price=%s, ts=%s",
+                trade_id, getattr(trade, "mode", "?"), direction,
+                sierra_pnl, exit_price, exit_ts,
+            )
+
+            # Close the trade via on_stop_hit (which sets all exit fields correctly)
+            # If we have a computed exit_price, use it; Sierra PnL overrides
+            # the manager's calculated PnL afterward.
+            try:
+                self._tm.on_stop_hit(trade_id, fill_ts=exit_ts, fill_price=exit_price)
+                # Override PnL with Sierra's authoritative value (the manager
+                # computes PnL from exit_price which may have rounding; Sierra's
+                # is ground truth per Rule 2).
+                if sierra_pnl is not None:
+                    trade.pnl_usd = float(sierra_pnl)
+                    trade.pnl_sierra = float(sierra_pnl)
+                    trade.exit_reason = "BRACKET_EXIT_ACTIVITY"
+                    self._tm._set_outcome(trade)
+                    try:
+                        self._tm._db.flush()
+                    except Exception:
+                        pass
+            except Exception as e:
+                # Fallback: if on_stop_hit fails (e.g. state machine won't
+                # transition), use close_trade which is more permissive.
+                logger.warning(
+                    "[FillPoller] W2 on_stop_hit failed for %d: %s — trying close_trade",
+                    trade_id, e)
+                try:
+                    self._tm.close_trade(
+                        trade_id,
+                        reason="BRACKET_EXIT_ACTIVITY",
+                        exit_price=exit_price,
+                    )
+                    if sierra_pnl is not None:
+                        trade.pnl_usd = float(sierra_pnl)
+                        trade.pnl_sierra = float(sierra_pnl)
+                        try:
+                            self._tm._db.flush()
+                        except Exception:
+                            pass
+                except Exception as e2:
+                    logger.error(
+                        "[FillPoller] W2 close_trade also failed for %d: %s", trade_id, e2)
+                    return
+
+            # Free the gateway slot
+            self._notify_gateway_close(trade_id, "BRACKET_EXIT_ACTIVITY")
+
+            logger.warning(
+                "[FillPoller] W2 EXIT-TRACK: trade %d CLOSED via activity fallback — "
+                "PnL=$%s outcome=%s exit_price=%s",
+                trade_id, trade.pnl_usd, trade.outcome, trade.exit_price,
+            )
+            # OPS_LOG
+            try:
+                from scripts.ops_log import log_event
+                log_event("fill_poller", "WARNING",
+                          f"W2 EXIT-TRACK: trade {trade_id} closed via CLOSED_TRADE_PNL "
+                          f"fallback — PnL=${sierra_pnl}, exit={exit_price}")
+            except Exception:
+                pass
+
+        except Exception as e:
+            logger.debug("[FillPoller] _check_activity_exits error (fail-safe): %s", e)
 
     def _maybe_reconcile(self) -> None:
         """FIX-6 (SYS-3): compare TM vs Sierra position every ≤30s.
@@ -244,6 +432,16 @@ class FillPoller:
                 self._register_submitted_order(result)
                 return
 
+            # W3 (2026-07-25): MODIFY_STOP_NONE → retry the stop modification.
+            # The DLL returns MODIFY_STOP_NONE when stop_ids are stale/empty or the
+            # bracket stop isn't in working state yet. This overwrites ORDER_SUBMITTED
+            # in trade_result.json, causing NAKED_STOP_SUSPECT for the trade's entire
+            # life. Fix: when flagged ON, re-send MODIFY_STOP with fresh stop IDs.
+            # Flag-gated: STOP_RETRY_ON_NONE_V1 (default OFF).
+            if status == "MODIFY_STOP_NONE":
+                self._handle_modify_stop_none()
+                return
+
             if status != "ORDER_FAILED":
                 return
 
@@ -355,6 +553,84 @@ class FillPoller:
             })
         except Exception as e:
             logger.warning("[FillPoller] set_sierra_order_ids at submit failed: %s", e)
+
+    def _handle_modify_stop_none(self) -> None:
+        """W3 (2026-07-25): MODIFY_STOP_NONE received — the DLL couldn't find/modify
+        the stop order(s). This is dangerous: the position may be naked (no stop
+        protection). Two responses:
+
+        1. ESCALATION (always): CRITICAL log + phone push so Michael knows immediately.
+        2. RETRY (flag-gated STOP_RETRY_ON_NONE_V1): re-send MODIFY_STOP with the
+           trade's current stop value and fresh stop IDs from quality JSON. The retry
+           uses a 2s delay to let the bracket order settle in Sierra.
+
+        This method is fail-safe — errors never break the fill-poller loop.
+        """
+        if self._tm is None:
+            return
+        # Find the active FILLED non-shadow trade
+        filled = [t for t in self._tm.get_active_trades()
+                  if getattr(t, "state", "") == "FILLED"
+                  and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
+        if not filled:
+            logger.warning(
+                "[FillPoller] W3 MODIFY_STOP_NONE but no FILLED demo/live trade — "
+                "stale result or manual order")
+            return
+
+        trade = filled[-1]
+        stop_val = getattr(trade, "stop", None)
+
+        # ESCALATION (always — not flag-gated): CRITICAL log + phone push
+        logger.critical(
+            "[FillPoller] W3 NAKED_STOP: MODIFY_STOP_NONE for trade %d (%s %s) — "
+            "stop modification failed, position may be unprotected. stop=%s",
+            trade.id, getattr(trade, "mode", "?"),
+            getattr(trade, "direction", "?"), stop_val,
+        )
+        try:
+            from backend.v9.services.phone_alert import push as _phone_push
+            _phone_push(
+                "naked_stop_modify",
+                "\U0001f534 MEMS26: NAKED STOP",
+                f"MODIFY_STOP_NONE for trade {trade.id} — stop not confirmed. "
+                f"Verify Sierra stop manually.",
+                priority=1,
+            )
+        except Exception:
+            pass
+        try:
+            from scripts.ops_log import log_event
+            log_event("fill_poller", "CRITICAL",
+                      f"W3 MODIFY_STOP_NONE: trade {trade.id} stop={stop_val} — "
+                      f"position may be naked")
+        except Exception:
+            pass
+
+        # RETRY (flag-gated)
+        if not os.getenv("STOP_RETRY_ON_NONE_V1", "0").lower() in ("1", "true", "yes"):
+            return
+        if stop_val is None:
+            logger.warning("[FillPoller] W3 retry skipped: trade %d has no stop value", trade.id)
+            return
+
+        # Throttle: max 1 retry per trade per 10s
+        _retry_key = f"stop_retry_{trade.id}"
+        _last = getattr(self, "_stop_retry_ts", {}).get(_retry_key, 0)
+        if time.time() - _last < 10.0:
+            return
+        if not hasattr(self, "_stop_retry_ts"):
+            self._stop_retry_ts = {}
+        self._stop_retry_ts[_retry_key] = time.time()
+
+        try:
+            self._tm._emit_modify_stop(trade, float(stop_val))
+            logger.warning(
+                "[FillPoller] W3 RETRY: re-sent MODIFY_STOP for trade %d stop=%s",
+                trade.id, stop_val,
+            )
+        except Exception as e:
+            logger.warning("[FillPoller] W3 MODIFY_STOP retry failed: %s", e)
 
     def _guard_duplicate_command(self) -> None:
         """Clear trade_command.json natively once the DLL has acked it (result mtime >=

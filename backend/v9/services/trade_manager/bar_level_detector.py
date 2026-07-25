@@ -248,6 +248,17 @@ class BarLevelDetector:
             v = gather_and_reconcile(gateway=gw)
             if getattr(v, "mismatch", False) or getattr(v, "naked_stop_suspect", False):
                 logger.critical("[Reconcile-live] %s — %s", v.verdict, getattr(v, "detail", ""))
+                # W3 (2026-07-25): immediate phone escalation — not just a log line.
+                # A naked stop is a live-risk event (position without protection).
+                if getattr(v, "naked_stop_suspect", False):
+                    try:
+                        from backend.v9.services.phone_alert import push as _pp
+                        _pp("naked_stop_reconcile",
+                            "\U0001f534 MEMS26: NAKED STOP SUSPECT",
+                            f"Reconcile-live: {getattr(v, 'detail', 'stop not confirmed')}",
+                            priority=1)
+                    except Exception:
+                        pass
             return v
         except Exception as _rc_err:  # never let reconcile break trade management
             logger.warning("[BarLevelDetector] reconcile-live error (fail-safe skip): %s", _rc_err)

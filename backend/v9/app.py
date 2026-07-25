@@ -97,6 +97,10 @@ v9_router.include_router(mobile_monitor_router)
 from backend.v9.api.v9.sierra_live_check import router as sierra_live_check_router
 v9_router.include_router(sierra_live_check_router)
 
+# W1b (2026-07-25): account truth page — sierra_state.json fields + open trade + verdict
+from backend.v9.api.v9.account_state_routes import router as account_state_router
+v9_router.include_router(account_state_router)
+
 
 @v9_router.get("/api/v9/health")
 async def v9_health():

@@ -531,6 +531,34 @@ flags:
     why: "ON (Michael 2026-07-10). Trade 337: margin rejection after submit-ack was recorded CLOSED/BE/pnl=0 — records≠reality in the money path."
     status: live
     ref: "backend/v9/services/fill_poller.py:_check_rejections · scripts/trade_activity_feed.py:ORDER_REJECT"
+  HIGHER_LOW_SECOND_TEST_V1:
+    category: s2
+    group: "pattern detection"
+    what: "W6: Higher-Low Second Test pattern — directional push → first pullback L1 → recovery ≥33% → second dip stops above L1 (higher-low L2 > L1 + margin) → rejection bar → LONG at close. Stop behind L2 - 16T, T1=1.5R. RTH only, one trade per structure. Symmetric SHORT (lower-high test)."
+    why: "OFF (default, definition awaiting Michael approval). Michael mandate: 'שיזהה את הירידה בפעם השנייה ונבצע רכישה בחלק הגבוה יותר'."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/five_min/patterns/higher_low_second_test.py · tests/v9/regression/test_higher_low_second_test.py"
+  VARIATION_WITH_TREND_CONT_V1:
+    category: s2
+    group: "direction discipline"
+    what: "W4: on a directional Variation day (UP/DOWN), allow with-trend REACTIVE/HNS continuation entries. Chase detection uses session extreme distance (IB-scaled: max(6, 0.25*IB_width)) instead of value-location. Counter-trend still location-faded (ruling #3). Also plumbs day_high/day_low into playbook levels from session bars."
+    why: "OFF (default, awaiting sim-verify + Michael ruling). 07-24 live miss: REACTIVE LONG @7478 blocked 'not at VAL (above_value)' on Variation-UP day while counter-trend SHORT went live."
+    status: awaiting_backtest
+    ref: "backend/v9/systems/daytype_playbook.py:_RESPONSIVE_REV · backend/v9/gateway/trading_gateway.py · tests/v9/regression/test_variation_with_trend_cont.py"
+  STOP_RETRY_ON_NONE_V1:
+    category: execution
+    group: "order lifecycle"
+    what: "W3: when DLL returns MODIFY_STOP_NONE (stop modification failed), retry MODIFY_STOP with the trade's current stop value. Throttled to 1 retry per 10s per trade. CRITICAL log + phone push always fire (not flag-gated); only the retry is gated."
+    why: "OFF (default, awaiting sim-verify + Michael ruling). NAKED_STOP_SUSPECT incidents: MODIFY_STOP_NONE overwrites ORDER_SUBMITTED in trade_result.json, leaving position unprotected for the trade's entire life."
+    status: awaiting_backtest
+    ref: "backend/v9/services/fill_poller.py:_handle_modify_stop_none · backend/v9/tests/test_w3_naked_stop.py"
+  EXIT_TRACK_ACTIVITY_V1:
+    category: execution
+    group: "order lifecycle"
+    what: "W2 (trade 513): fallback exit-tracking via CLOSED_TRADE_PNL events from trade_activity_events.jsonl. When the deployed DLL lacks Pipeline 5 fill monitor (no exit fills in trade_fills.json), this detects bracket exits through the activity journal + sierra_state.json position_qty=0 confirmation. Closes the FILLED trade with Sierra's authoritative PnL, back-computes exit_price, frees the gateway slot."
+    why: "OFF (default, awaiting sim-verify + Michael ruling). Trade 513 ZLR LONG exited in Sierra but backend never recorded the close — slot blocked, PnL missing."
+    status: awaiting_backtest
+    ref: "backend/v9/services/fill_poller.py:_check_activity_exits · backend/v9/tests/test_w2_exit_tracking.py"
   S1_DD_INVALIDATION_V1:
     category: s1
     group: "day-type classifier"
