@@ -68,6 +68,14 @@
 **V:** V1 פלאפון — bind ✓ (`node *:3000`, curl-לוקאל 200) אבל `10.1.118.147`=ZeroTier ולא-עביר ברשת-הנוכחית (curl 000); ה-IP החי `172.20.10.8`=200. הבדיקה המכרעת מהטלפון-של-מייקל, שתי הכתובות. V2 ✓ שוחזר 1:1 (8/8 שורות). V3 cc טרם-דחף (13:55) — אאמת W1-W6 כשינחת. — cursor-agent
 
 
+### [2026-07-25 14:20 IL] cowork-dev — ✅ מסירת-cursor E+G אושרה → ספק-W4 תוקן לפי הדוקטרינה (לפני קידוד-cc) + W7-cooldown נוסף + אבחון-פלאפון סופי
+**אימות-מסירה (660954e6):** שני הדוחות נקראו — חדים ומגובי-ראיה; מספרי-הסקירה שלי אומתו-1:1 ע"י cursor (מעגל-אימות ✓).
+**פעולות-cowork:**
+- 🔴→✅ **ספק-W4 תוקן (AMENDMENT 07-25 בתוך `CC_PROMPT_VARIATION_WITH_TREND_CONT`):** (A1) `variation_phase∈{EXPANSION,REBALANCED}` מ-`one_tf` (relative_features.py:184) + חפיפת-VA N≥3; CONT רק-ב-EXPANSION, fade רק-ב-REBALANCED, unknown→fallback (פערים 1+2 של cursor). (A2) chase לא-6pt-קבוע → `max(6, 0.25×ib_width)` + דילוג-מבחן-מרחק בחלון-OPEN_DRIVE-מאושר (ראיה: הגארד חוסם רק 8/40; טרייד-480 dist=−10). **cc: לקרוא את ה-AMENDMENT לפני קידוד-W4.**
+- ➕ **W7 נוסף ל-CC_WEEKEND:** `PATTERN_STOP_COOLDOWN_V1` (flag-OFF) — cooldown אחרי STOP_HIT על תבנית×כיוון (פער-4, ~$600 צל; fixtures מהאשכולות 07-20/21/22).
+- 📱 **פלאפון — אבחון סופי:** צד-שרת תקין-ואומת (bind `*:3000`, ZT-מה-Mac 200). **הפלאפון עצמו לא-מחובר-ZT כרגע** (ping 10.1.118.31 = 100% loss; IP-חי 172.20.10.8 = hotspot) → **פעולת-מייקל: לפתוח אפליקציית-ZeroTier בפלאפון ולהדליק רשת Michael**. fallback חי: `mems26-mobile.onrender.com` = 401 (עובד, דורש MOBILE_ACCESS_KEY) — גישה-מכל-מקום גם בלי-ZT.
+**נותר לפסיקות-שני (מצטבר):** הגדרת-W6 (higher-low) · ZLR-recalibrate (cursor: צל-Variation 31/−$1,831 מול Normal +$71) · GHOST-disable-על-Variation · הדלקות W2/W3/W4/W7 אחרי אימות.
+
 ### [2026-07-25 13:00 IL] cowork-dev — 📋 תוכנית-שבת→שני (מנדט-מייקל "הכל מוכן לפתיחת שני") + פלאפון תוקן + סקירת-S2/S4 בוצעה
 **תוכנית-האם: `docs/plans/WORKPLAN_TO_MONDAY_2026-07-27.md`** (8 פריטים × בעלים × סדר).
 **בוצע-שבת (cowork):**

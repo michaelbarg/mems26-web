@@ -60,3 +60,11 @@ NOT-DONE עם מפת-המשך מדויקת. אימות-סים = אחרי שמי�
 דוח חלק-C (`docs/reports/CC_WEEKEND_REPORT_2026-07-26.md`): טבלת-phases + פקודה+פלט-גולמי פר-אימות +
 revert→RED פר-טסט + NOT-DONE. flag_guard ירוק. רגרסיה ≤ baseline (141). commit+push + שורת-LOG
 ב-LIVE_CHANNEL. cowork מאמת ראשון-ערב.
+
+### W7 — cooldown אחרי STOP_HIT (cursor פער-4 🔴, ~$600 ראיית-צל בשבועיים) — flag-OFF
+`PATTERN_STOP_COOLDOWN_V1` (default OFF): אחרי STOP_HIT על תבנית×כיוון — חסום ירי-זהה (אותה
+תבנית+כיוון) ל-N ברים (default 6 = 30 דק', env `PATTERN_STOP_COOLDOWN_BARS`), אלא אם רמת-הכניסה
+החדשה רחוקה ≥X נק' מהכניסה-שנעצרה (מידע-חדש). מיקום: gateway, ליד שאר השערים (נקודת-חנק יחידה).
+fixtures מהאשכולות האמיתיים: 07-21 6×ZLR-SHORT 20:56→21:55 (−$206) · 07-20 3×LONG (−$310) ·
+07-22 3×SHORT (−$150) → עם-דגל: הראשון עובר, הבאים נחסמים. revert→RED · OFF=byte-identical.
+הדלקה = פסיקת-מייקל (שינוי-משטח-סיכון).

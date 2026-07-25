@@ -57,3 +57,29 @@ rely on the new day_high/day_low chase in the playbook. Pick one, state which, a
 `FLAG_REGISTRY.yaml` + `gen_flag_index.py` · report per contract part-C (phases + evidence +
 revert→RED + NOT-DONE) → `docs/reports/`. **NOT-DONE until:** sim-verify + Michael sign-off to enable.
 cowork verifies (Rule-5) before any enable.
+
+---
+
+## 🔴 AMENDMENT 07-25 (cursor doctrine review `CURSOR_DALTON_GAPS_2026-07-26` — MANDATORY, read before coding)
+
+Cursor's Dalton cross-check found this spec **phase-blind**. Two mandatory changes:
+
+### A1 — variation_phase gating (closes doctrine gaps 1+2)
+Doctrine (p.22, §5): a directional Variation day has TWO phases — trade WITH the RE while it runs,
+fade new edges only AFTER value rebalances. Add a `variation_phase ∈ {EXPANSION, REBALANCED}` read:
+- **EXPANSION** while `one_tf` / the range-extension is still running — `one_tf` already exists at
+  `backend/v9/systems/day_type/relative_features.py:184` (reuse it, do not rebuild).
+- **REBALANCED** once the developing VA overlaps the new value for N≥3 bars (value-migration; this is
+  backlog P1-6 — a simple overlap check is enough here).
+- **Gating:** with-trend CONT (the new allow) permitted **only in EXPANSION**; the two-sided edge-fade
+  (ruling #3 location path) permitted **only in REBALANCED**. Phase unknown/missing → fall back to
+  today's behavior (location-only) — fail-safe, byte-identical when the flag is OFF.
+
+### A2 — chase threshold is NOT a fixed 6pt
+Evidence: the 6pt guard blocks only 8/40 shadow-ZLR (−$516 of −$1,839); trade 480 entered at
+dist=−10. Doctrine measures "too late" vs STRUCTURE, not distance. Use
+`max(6.0, 0.25 × ib_width)` (env-tunable `CHASE_MIN_DIST_IB_FRAC=0.25`), and **skip the distance
+test entirely inside an approved OPEN_DRIVE window** (the 07-24 doctrine correction — on a true
+one-timeframe day price is always near the extreme; a distance test would skip the day that must
+not be missed).
+Add tests for both amendments (phase-gated allow/deny from real 07-24 bars; IB-scaled chase).
