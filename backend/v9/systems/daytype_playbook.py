@@ -147,6 +147,7 @@ def decide(
     location: Optional[str] = None,
     entry_price: Optional[float] = None,
     levels: Optional[dict] = None,
+    variation_phase: Optional[str] = None,
 ) -> Decision:
     """Return a Decision for (pattern, day_type, direction, live trend_state).
 
@@ -241,9 +242,23 @@ def decide(
                     and day_type in ("Variation", "Normal_Variation")
                     and _dd in ("UP", "DOWN")
                 ):
+                    # A1 (AMENDMENT 07-25, cursor doctrine gaps 1+2): a directional
+                    # Variation day has TWO phases. CONT-with-trend is permitted ONLY
+                    # while the extension is still running (EXPANSION); once value
+                    # rebuilds (REBALANCED) the two-sided edge-fade (ruling #3) is the
+                    # correct mode — and during EXPANSION fading a new edge is the
+                    # counter-trend disaster, so it is SKIPPED. Phase unknown (None) →
+                    # fall back to today's behavior (location-only) — fail-safe.
+                    _vphase = (variation_phase or "").upper() or None
                     _is_with_trend = (d == "LONG" and _dd == "UP") or (
                         d == "SHORT" and _dd == "DOWN")
-                    if _is_with_trend:
+                    if _vphase == "EXPANSION" and not _is_with_trend:
+                        return Decision(
+                            "SKIP", 0,
+                            f"{pkey} counter-trend fade during Variation EXPANSION "
+                            f"(day_dir={_dd}) — fade only after rebalance",
+                        )
+                    if _is_with_trend and _vphase == "EXPANSION":
                         # Chase check: distance from session extreme (A2 amendment:
                         # IB-scaled threshold, not fixed 6pt)
                         _lvls = levels if isinstance(levels, dict) else {}

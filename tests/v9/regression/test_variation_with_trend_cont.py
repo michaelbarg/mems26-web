@@ -47,7 +47,7 @@ def test_variation_up_with_trend_long_allowed(monkeypatch):
     d = decide(
         pattern="REACTIVE", day_type="Variation", direction="LONG",
         day_direction="UP", location="above_value", entry_price=7478.0,
-        levels=LEVELS_0724,
+        levels=LEVELS_0724, variation_phase="EXPANSION",
     )
     assert d.allow, f"Expected ALLOW but got SKIP: {d.reason}"
 
@@ -74,6 +74,7 @@ def test_variation_up_chasing_blocked(monkeypatch):
     d = decide(
         pattern="REACTIVE", day_type="Variation", direction="LONG",
         day_direction="UP", location="above_value", entry_price=7487.0,
+        variation_phase="EXPANSION",
         levels=LEVELS_0724,
     )
     assert not d.allow, f"Expected SKIP (chasing) but got ALLOW: {d.reason}"
@@ -149,6 +150,7 @@ def test_ib_scaled_chase_threshold(monkeypatch):
     d = decide(
         pattern="REACTIVE", day_type="Variation", direction="LONG",
         day_direction="UP", location="above_value", entry_price=7493.0,
+        variation_phase="EXPANSION",
         levels=wide_levels,
     )
     # dist = 7500 - 7493 = 7 < max(6, 0.25*40) = 10 → SKIP (chasing)
@@ -166,6 +168,7 @@ def test_ib_scaled_chase_not_chasing(monkeypatch):
     d = decide(
         pattern="REACTIVE", day_type="Variation", direction="LONG",
         day_direction="UP", location="above_value", entry_price=7485.0,
+        variation_phase="EXPANSION",
         levels=wide_levels,
     )
     # dist = 7500 - 7485 = 15 >= 10 → ALLOW (not chasing)
@@ -185,7 +188,49 @@ def test_variation_down_with_trend_short_allowed(monkeypatch):
     d = decide(
         pattern="REACTIVE", day_type="Variation", direction="SHORT",
         day_direction="DOWN", location="below_value", entry_price=7435.0,
+        variation_phase="EXPANSION",
         levels=down_levels,
     )
     # dist = 7435 - 7420 = 15 >= 6 → ALLOW
     assert d.allow, f"Expected ALLOW but got SKIP: {d.reason}"
+
+
+# ── A1 (AMENDMENT 07-25): variation_phase gating — CONT only in EXPANSION ────
+
+def test_phase_rebalanced_cont_denied_falls_to_fade(monkeypatch):
+    """REBALANCED: with-trend CONT above value is DENIED (extension over) —
+    the same call that ALLOWs in EXPANSION returns SKIP 'not at VAL'."""
+    monkeypatch.setenv("VARIATION_WITH_TREND_CONT_V1", "1")
+    from backend.v9.systems.daytype_playbook import decide
+    d = decide(
+        pattern="REACTIVE", day_type="Variation", direction="LONG",
+        day_direction="UP", location="above_value", entry_price=7478.0,
+        levels=LEVELS_0724, variation_phase="REBALANCED",
+    )
+    assert not d.allow, f"Expected SKIP in REBALANCED but got ALLOW: {d.reason}"
+
+
+def test_phase_unknown_is_todays_behavior(monkeypatch):
+    """Phase None (unknown) → fail-safe to today's location-only behavior."""
+    monkeypatch.setenv("VARIATION_WITH_TREND_CONT_V1", "1")
+    from backend.v9.systems.daytype_playbook import decide
+    d = decide(
+        pattern="REACTIVE", day_type="Variation", direction="LONG",
+        day_direction="UP", location="above_value", entry_price=7478.0,
+        levels=LEVELS_0724,
+    )
+    assert not d.allow
+
+
+def test_phase_expansion_counter_trend_fade_skipped(monkeypatch):
+    """During EXPANSION, fading the new edge (counter-trend SHORT at VAH on an
+    UP expansion) is SKIPPED — fade only after rebalance."""
+    monkeypatch.setenv("VARIATION_WITH_TREND_CONT_V1", "1")
+    from backend.v9.systems.daytype_playbook import decide
+    d = decide(
+        pattern="REACTIVE", day_type="Variation", direction="SHORT",
+        day_direction="UP", location="near_vah", entry_price=7465.0,
+        levels=LEVELS_0724, variation_phase="EXPANSION",
+    )
+    assert not d.allow
+    assert "rebalance" in d.reason.lower() or "EXPANSION" in d.reason

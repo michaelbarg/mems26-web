@@ -60,6 +60,14 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-25 21:30 IL] cowork-dev — ✅ מסירת-cc אומתה (0 רגרסיות — הוכח) + A1+W7 הושלמו ע"י cowork · מוכנות-שני כמעט-מלאה
+**אימות-cc (חוק-5, כולל חקירת-רגרסיה):** 32/32 טסטי-cc ✓ · flag_guard 125 ✓ · כל הדגלים OFF ✓. הרגרסיה הראתה 141→166 — **נחקר לעומק והופרך כרגרסיית-cc**: ‏worktree על הקומיט-שלפני באותה-סביבה = **161** (הדריפט 141→161 = חוב-DB-סביבתי + הרצות-תלויות-דאטה), וה"5 החדשים" = **3 קבצי-טסט לא-מקומטים** (untracked, חוב-ישן) שלא קיימים ב-worktree. **‏cc: 0 רגרסיות — הצהרתו אומתה.** ⚠️ פריט-היגיינה: 3 קבצי-הטסט הלא-מקומטים (dalton_ib_break_7501 / structural_edge_420 / verify_orphan_place_stop_sim) נכשלים — לקמט-או-לתקן (בעלים: cc, לא-חוסם-שני).
+**השלמות-cowork (‏cc משך לפני ה-AMENDMENT של 14:20):**
+- **A1 variation_phase** הושלם ב-playbook+gateway: ‏CONT רק-ב-EXPANSION · fade-קצה נחסם ב-EXPANSION ("fade only after rebalance") · ‏REBALANCED/None→התנהגות-היום · פאזה מחושבת בגייטוויי מרסנטיות-קיצון (proxy ל-one_tf; ‏VARIATION_PHASE_STALL_BARS=6) · **13/13 טסטים** (כולל 3 חדשים לפאזה).
+- **W7 `PATTERN_STOP_COOLDOWN_V1`** (OFF) נבנה: ‏helper ‏`_stop_cooldown_check` + שער-gateway אחרי extreme-chase · חוסם ירי-זהה אחרי-סטופ תוך-30דק' אלא-אם ≥4pt מהכניסה-שנעצרה · **6/6 טסטים** · REGISTRY+אינדקס (196).
+**רגרסיה סופית: 166=166 (אפס-חדש), +9 passed.** ‏cursor: ‏V3 עליך — כל ה-W-ים + A1+W7 שלי.
+**מוכנות-שני:** נותרו — Remote-Build (מייקל, אחרי-שאסמן) · פסיקות (W6-הגדרה · ‏ZLR-recal · ‏GHOST-Variation · הדלקות W2/W3/W4+A1/W7) · אימות-cursor · fire_drill-בוקר.
+
 ### [2026-07-25 20:00 IL] cc-macbook — W2-W6 weekend build delivered (6/7 phases DONE, W5 NOT-DONE stretch)
 **Commit `10a9a954`** pushed. 38 tests pass, all flags OFF, no live behavior changed.
 - **W2** EXIT_TRACK_ACTIVITY_V1 (OFF): fill_poller fallback exit-tracking via CLOSED_TRADE_PNL — fixes trade 513 class (5 tests, revert→RED)

@@ -48,6 +48,45 @@ _DB_URL = _os.environ.get("DATABASE_URL", "sqlite:///./data/mems26_local.db")
 DB_PATH = _DB_URL.replace("sqlite:///", "") if _DB_URL.startswith("sqlite") else "./data/mems26_local.db"
 
 
+def _stop_cooldown_check(pattern_id: Optional[str], direction: Optional[str],
+                         entry_price) -> tuple:
+    """W7 (PATTERN_STOP_COOLDOWN_V1): (blocked, reason) — was the SAME
+    pattern-family+direction stopped out within the cooldown window, with the
+    new entry too close to the stopped one? Pure helper (reads v9_trades via
+    db.read); caller flag-gates + fail-opens. Missing inputs → not blocked."""
+    if not pattern_id or not direction or entry_price is None:
+        return (False, "")
+    import os as _cd_os
+    from backend.v9.db.read import read_one as _cd_read_one
+    _bars = int(_cd_os.getenv("PATTERN_STOP_COOLDOWN_BARS", "6") or 6)
+    _min_dist = float(_cd_os.getenv("PATTERN_STOP_COOLDOWN_MIN_DIST_PT", "4.0") or 4.0)
+    _base = str(pattern_id).upper().strip()
+    for _suf in ("_LONG", "_SHORT"):
+        if _base.endswith(_suf):
+            _base = _base[: -len(_suf)]
+    _row = _cd_read_one(
+        "SELECT entry_price, stop_hit_ts FROM v9_trades "
+        "WHERE mode IN ('live','demo') AND direction = :d "
+        "AND upper(coalesce(pattern_id_at_entry,'')) LIKE :pat "
+        "AND stop_hit_ts IS NOT NULL "
+        "AND stop_hit_ts >= now() - (:mins * interval '1 minute') "
+        "ORDER BY stop_hit_ts DESC LIMIT 1",
+        {"d": str(direction).upper(), "pat": _base + "%", "mins": _bars * 5},
+    )
+    if not _row:
+        return (False, "")
+    try:
+        _prev = float(_row["entry_price"]) if _row.get("entry_price") is not None else None
+    except (TypeError, ValueError):
+        _prev = None
+    if _prev is not None and abs(float(entry_price) - _prev) >= _min_dist:
+        return (False, "")  # far enough from the stopped entry = new information
+    return (True, (
+        f"{_base} {direction} stopped at {_row.get('stop_hit_ts')} within "
+        f"{_bars * 5}min cooldown; re-entry {entry_price} within "
+        f"{_min_dist}pt of stopped entry {_prev} — same failing idea"))
+
+
 def _zone_limit_parse_ts(value) -> Optional[float]:
     """Parse a setup bar/signal timestamp into epoch-seconds UTC (N3 gate).
 
@@ -786,6 +825,32 @@ class TradingGateway:
                                     float(r["high"]) for r in _dh_rows)
                                 _pb_levels["day_low"] = min(
                                     float(r["low"]) for r in _dh_rows)
+                                # A1 (AMENDMENT 07-25): variation_phase from extreme
+                                # recency — EXPANSION while the extension keeps making
+                                # new session extremes in the day direction (one_tf
+                                # proxy); REBALANCED once no new extreme for >= N bars
+                                # (value rebuilding); None when too few bars / no dir.
+                                try:
+                                    _vp_dir = (_pb_kw.get("day_direction") or "").upper()
+                                    _vp_stall = int(os.getenv(
+                                        "VARIATION_PHASE_STALL_BARS", "6"))
+                                    if _vp_dir in ("UP", "DOWN") and len(_dh_rows) >= 8:
+                                        _run = None
+                                        _last_new = 0
+                                        for _vi, _vr in enumerate(_dh_rows):
+                                            _vv = float(_vr["high"] if _vp_dir == "UP"
+                                                        else _vr["low"])
+                                            if _run is None or (
+                                                    _vv > _run if _vp_dir == "UP"
+                                                    else _vv < _run):
+                                                _run = _vv
+                                                _last_new = _vi
+                                        _bars_since = len(_dh_rows) - 1 - _last_new
+                                        _pb_kw["variation_phase"] = (
+                                            "EXPANSION" if _bars_since < _vp_stall
+                                            else "REBALANCED")
+                                except Exception:
+                                    pass  # phase stays unset -> playbook fail-safe
                         except Exception as _dh_err:
                             logger.debug(
                                 "[Gateway] W4 day_high/low for playbook failed "
@@ -1177,6 +1242,27 @@ class TradingGateway:
                     # else: no session bars or no entry → fail-open
             except Exception as _ecg_err:  # fail-open — never block on a bug
                 logger.warning("[Gateway] extreme-chase-guard errored (fail-open): %s", _ecg_err)
+
+        # --- PATTERN_STOP_COOLDOWN_V1 (W7, cursor doctrine gap-4 2026-07-25):
+        # after a STOP_HIT on the same pattern-family+direction, an identical
+        # re-entry within the cooldown window is fighting fresh acceptance
+        # (Dalton p.288-292). Real clusters: 07-21 6x ZLR SHORT in 59min (-$206),
+        # 07-20 3x LONG (-$310), 07-22 3x SHORT (-$150). The FIRST fire passes;
+        # repeats are blocked unless the new entry is far enough from the
+        # stopped one (new information). Default OFF; fail-open on any error.
+        if os.getenv("PATTERN_STOP_COOLDOWN_V1", "0").lower() in ("1", "true", "yes"):
+            try:
+                _cd_g1 = extract_g1_entry_context(cross_context)
+                _cd_pat = resolve_pattern_id(setup, _cd_g1) or ""
+                _cd_blocked, _cd_reason = _stop_cooldown_check(
+                    _cd_pat, direction, setup.get("entry_price"))
+                if _cd_blocked:
+                    result["blocked_by"] = "pattern_stop_cooldown"
+                    result["reason"] = _cd_reason
+                    logger.info("[Gateway] BLOCKED by stop-cooldown: %s", _cd_reason)
+                    return result
+            except Exception as _cd_err:  # fail-open — never block on a bug
+                logger.warning("[Gateway] stop-cooldown errored (fail-open): %s", _cd_err)
 
         # --- IDEA-1 news blackout (Michael 2026-07-13): NO new entries inside the
         # window around a RED economic event (CPI/PPI/FOMC/NFP — config/news_calendar.yaml).

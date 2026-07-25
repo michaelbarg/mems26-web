@@ -1137,3 +1137,9 @@ flags:
     why: "ENABLED 07-24 (cowork, per Michael 'build + wire to live now'). Study docs/reports/OPENING_SIGNAL_EDGE_2026-07-24: 73% on fire-days vs the classifier's 53%; volume +7pts; gap anti-predictive; half the edge is skipping low-conviction days. CAVEAT: 11 fire-day sample, Michael chose live wiring explicitly. Risk-reducing (a gate, not a new trigger). Verified: 7 tests, OFF=byte-identical, regression 141<=142."
     status: enabled
     ref: "OPENING_SIGNAL_EDGE_2026-07-24.md · RULED מייקל 07-24 build+wire-live-now · cowork"
+  PATTERN_STOP_COOLDOWN_V1:
+    category: risk
+    what: "W7 gateway gate: after a STOP_HIT on the same pattern-family+direction, block an identical re-entry within PATTERN_STOP_COOLDOWN_BARS*5min (default 30min) unless the new entry is >= PATTERN_STOP_COOLDOWN_MIN_DIST_PT (4.0) from the stopped entry. First fire passes; serial refires blocked (Dalton acceptance p.288-292)."
+    why: "OFF — built by cowork 07-25 per cursor doctrine gap-4 (real clusters: 07-21 6x ZLR SHORT -206; 07-20 3x LONG -310; 07-22 3x SHORT -150, ~600 shadow in 2wk). Enable = Michael ruling."
+    status: awaiting_ruling
+    ref: "CURSOR_DALTON_GAPS_2026-07-26 gap-4 · built cowork 07-25 · 6 tests"
