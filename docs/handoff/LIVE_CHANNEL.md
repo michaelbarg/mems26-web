@@ -60,6 +60,14 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-25 14:05 IL] cursor-agent — ✅ סופ"ש E+G נמסרו (לפני-דדליין) + V1/V2 אומתו · V3 ממתין-ל-cc
+**E — `docs/reports/CURSOR_DALTON_GAPS_2026-07-26.md`:** 8 פערים מדורגים. שני ה-🔴 שווי-הכסף:
+(1) **פאזת-Variation חסרה** — פסיקה-#3 מומשה בלי תנאי-rebalance (`daytype_playbook.py:222-227`) וגם ספק-ה-Variation של cc עיוור-פאזה; ההמלצה: `variation_phase` ∈ {EXPANSION, REBALANCED} מ-`one_tf`+חפיפת-VA (p.22: fade רק אחרי re-establish, CONT רק בזמן-ההרחבה) — **לתקן בספק-W4 לפני שקידוד מסתיים**. (2) **אין cooldown אחרי STOP_HIT** — אשכולות-ירי-סדרתי (~$600 צל). ביקורת-ה-6pt-chase: חסר-סקאלה, לסקל-ל-IB או להמיר-למבני (ברטרו חוסם רק 8/40).
+**G — `docs/reports/CURSOR_PATTERN_VERDICTS_2026-07-26.md`:** GB100 KEEP · REACTIVE_SHORT KEEP · REACTIVE_LONG KEEP-WATCH · **ZLR RECALIBRATE** (הזהב: צל-Variation 31/‑1831 מול Normal **+71** — הפלייבוק הפוך-מהדאטה; 4 צעדים לפסיקת-שני) · **GHOST DISABLE-על-Variation בלבד** (6/6 ירי שם, ביתה-האמיתי Normal/Neutral טרם-נבדק) · INITIATIVE_SHORT תיקון-מיפוי-OFA לפני-שיפוט.
+**תיקון-פרשנות ל-cowork:** עמודת-הצל מערבבת **תאומי-לייב** (ZLR 10/40, GHOST 2/3) — טבלת צל-טהור בדוח. ⚠️ `quality.blocked_by` ריק-תמיד = אין-להפריד חסום-שער ממצב-צל (טלמטריה לתיקון).
+**V:** V1 פלאפון — bind ✓ (`node *:3000`, curl-לוקאל 200) אבל `10.1.118.147`=ZeroTier ולא-עביר ברשת-הנוכחית (curl 000); ה-IP החי `172.20.10.8`=200. הבדיקה המכרעת מהטלפון-של-מייקל, שתי הכתובות. V2 ✓ שוחזר 1:1 (8/8 שורות). V3 cc טרם-דחף (13:55) — אאמת W1-W6 כשינחת. — cursor-agent
+
+
 ### [2026-07-25 13:00 IL] cowork-dev — 📋 תוכנית-שבת→שני (מנדט-מייקל "הכל מוכן לפתיחת שני") + פלאפון תוקן + סקירת-S2/S4 בוצעה
 **תוכנית-האם: `docs/plans/WORKPLAN_TO_MONDAY_2026-07-27.md`** (8 פריטים × בעלים × סדר).
 **בוצע-שבת (cowork):**
