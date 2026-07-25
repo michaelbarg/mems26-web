@@ -68,3 +68,28 @@ revert→RED פר-טסט + NOT-DONE. flag_guard ירוק. רגרסיה ≤ basel
 fixtures מהאשכולות האמיתיים: 07-21 6×ZLR-SHORT 20:56→21:55 (−$206) · 07-20 3×LONG (−$310) ·
 07-22 3×SHORT (−$150) → עם-דגל: הראשון עובר, הבאים נחסמים. revert→RED · OFF=byte-identical.
 הדלקה = פסיקת-מייקל (שינוי-משטח-סיכון).
+
+### W8 — PROTECT-על-אישור: סטופ+נקודות-מימוש לפוזיציה-ידנית (פסיקת-מייקל 07-25 ליל-שבת)
+**הפסיקה:** "אפשר שבאישור של ההתראה תציב סטופ ונקודות מימוש" — אישור-פר-מקרה מהפלאפון על
+התראת-ה-NAKED (MANUAL_POSITION_GUARD_V1 שכבר חי) → המערכת מציבה הגנה מלאה על הפוזיציה-הידנית.
+אישור-פר-מקרה = רוח פסיקת-12:20 נשמרת (המערכת נוגעת רק בלחיצת-מייקל).
+
+**מה קיים (אומת):** מנגנון-אישור-פלאפון מוכח — `mobile_monitor.py:200` POST /flatten עם
+`{"confirm":"FLATTEN"}` + MOBILE_ACCESS_KEY (שכפל את התבנית) · מחיר-סטופ-מבני —
+`recommend_orphan_stop()` (reconciler:190) · יעדים — `target_zones.py` / סולם 1.5R.
+**מה חסר:** ל-DLL אין op להצבת סטופ/לימיט על פוזיציה קיימת (ב-merged יש רק FLATTEN+MODIFY;
+בדוק את המונולית — עבודת-PLACE_STOP-הישנה של 1ב אולי שם, עדיין לא-סים-מאומתת A1.6).
+
+**בנייה:**
+1. **DLL:** op `PLACE_STOP` (סטופ-מגן qty-מלא) + op `PLACE_LIMIT` (יעד) באזור-הדיספץ' של
+   FLATTEN/MODIFY. acks: `PLACE_STOP_OK/FAIL`, `PLACE_LIMIT_OK/FAIL` (‏reconcile.py:42 כבר
+   מכיר PLACE_STOP_OK). **רוכב על ה-Remote-Build של שני יחד עם W1** — אותו בילד.
+2. **Backend:** `POST /api/v9/mobile/protect` (תבנית-flatten: אישור-כפול `{"confirm":"PROTECT"}`
+   + מפתח): קורא פוזיציה-ידנית מ-sierra_state → סטופ=recommend_orphan_stop (מבני, לא-מסונתז) →
+   יעדים=1.5R+3R מ-avg (או target_zones אם זמין-נקי) → כותב PLACE_STOP+2×PLACE_LIMIT → מאשר-acks.
+   כשל-חלקי = דיווח-כן (מה הוצב ומה לא). flag `MANUAL_GUARD_PROTECT_V1` (OFF).
+3. **פלאפון:** בעמוד-המובייל — כשה-guard מזהה naked-manual: כפתור "🛡️ הצב הגנה" (אישור-כפול)
+   שקורא ל-/protect. ההתראה-פוש מפנה לעמוד.
+4. **טסטים:** חישוב-סטופ/יעדים לפוזיציה long/short אמיתית (avg 07-24) · אישור-כפול-חסר=דחייה ·
+   flag-OFF=endpoint-מחזיר-כבוי · acks-חלקיים=דיווח-כן. **הדלקה: אחרי סים-שני** (מציב פקודות-אמת!)
+   — פסיקת-ההפעלה כבר נתונה (07-25), נשאר sim-verify בלבד לפי הנוהל.
