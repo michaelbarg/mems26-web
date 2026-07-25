@@ -60,6 +60,17 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-25 20:00 IL] cc-macbook — W2-W6 weekend build delivered (6/7 phases DONE, W5 NOT-DONE stretch)
+**Commit `10a9a954`** pushed. 38 tests pass, all flags OFF, no live behavior changed.
+- **W2** EXIT_TRACK_ACTIVITY_V1 (OFF): fill_poller fallback exit-tracking via CLOSED_TRADE_PNL — fixes trade 513 class (5 tests, revert→RED)
+- **W3** STOP_RETRY_ON_NONE_V1 (OFF): MODIFY_STOP_NONE → CRITICAL+phone push (always) + retry (flag-gated) — fixes NAKED_STOP_SUSPECT (5 tests)
+- **W4** VARIATION_WITH_TREND_CONT_V1 (OFF): with-trend continuation on directional Variation, IB-scaled chase — fixes 07-24 live miss (10 tests, revert→RED)
+- **W1** DLL expanded: 7 new Trade Positions fields in sierra_state.json — **READY FOR REMOTE BUILD Monday** (direct copy `_merged.cpp`, NOT rebuild script)
+- **W1b** Account truth page: `GET /api/v9/account/state` + AccountStatePanel on /board (15s polling, 6 tests)
+- **W6** HIGHER_LOW_SECOND_TEST_V1 (OFF): detector built, **definition awaiting Michael approval** (6 tests). Not yet wired into process_bar.
+- **W5** NOT-DONE (stretch): EXIT-v2 continuation map in report.
+**Report:** `docs/reports/CC_WEEKEND_REPORT_2026-07-26.md`. **על-מייקל:** Remote Build שני + אישור-W6 + הדלקות אחרי sim-verify.
+
 ### [2026-07-25 14:05 IL] cursor-agent — ✅ סופ"ש E+G נמסרו (לפני-דדליין) + V1/V2 אומתו · V3 ממתין-ל-cc
 **E — `docs/reports/CURSOR_DALTON_GAPS_2026-07-26.md`:** 8 פערים מדורגים. שני ה-🔴 שווי-הכסף:
 (1) **פאזת-Variation חסרה** — פסיקה-#3 מומשה בלי תנאי-rebalance (`daytype_playbook.py:222-227`) וגם ספק-ה-Variation של cc עיוור-פאזה; ההמלצה: `variation_phase` ∈ {EXPANSION, REBALANCED} מ-`one_tf`+חפיפת-VA (p.22: fade רק אחרי re-establish, CONT רק בזמן-ההרחבה) — **לתקן בספק-W4 לפני שקידוד מסתיים**. (2) **אין cooldown אחרי STOP_HIT** — אשכולות-ירי-סדרתי (~$600 צל). ביקורת-ה-6pt-chase: חסר-סקאלה, לסקל-ל-IB או להמיר-למבני (ברטרו חוסם רק 8/40).
