@@ -365,4 +365,16 @@ async def mobile_page(request: Request):
             "font-family:-apple-system;padding:40px;text-align:center'>"
             "<h2>🔒 נדרש מפתח-גישה</h2><p>הוסף <code>?key=…</code> לכתובת.</p>"
             "</body></html>", status_code=401)
-    return HTMLResponse(_PAGE)
+    resp = HTMLResponse(_PAGE)
+    # FIX 07-25 (Michael: "מערכת הכיס לא עובדת"): _key_ok() has always accepted an
+    # `mkey` cookie, but nothing ever SET it — so a home-screen bookmark without
+    # ?key= (and every in-page /data fetch after a cookie-less load) returned 401
+    # and the app looked dead. Persist the key as a cookie on the first keyed
+    # visit so the bare URL works from then on. Only when a key was supplied
+    # explicitly (never invent one), 30 days, httponly, lax.
+    _want = (os.getenv("MOBILE_ACCESS_KEY") or "").strip()
+    _given = (request.query_params.get("key") or request.headers.get("X-Mobile-Key") or "")
+    if _want and _given == _want and request.cookies.get("mkey") != _want:
+        resp.set_cookie("mkey", _want, max_age=30 * 24 * 3600,
+                        httponly=True, samesite="lax", path="/")
+    return resp
