@@ -93,3 +93,28 @@ fixtures מהאשכולות האמיתיים: 07-21 6×ZLR-SHORT 20:56→21:55 (
 4. **טסטים:** חישוב-סטופ/יעדים לפוזיציה long/short אמיתית (avg 07-24) · אישור-כפול-חסר=דחייה ·
    flag-OFF=endpoint-מחזיר-כבוי · acks-חלקיים=דיווח-כן. **הדלקה: אחרי סים-שני** (מציב פקודות-אמת!)
    — פסיקת-ההפעלה כבר נתונה (07-25), נשאר sim-verify בלבד לפי הנוהל.
+
+### W9 — 🔴 dead-wiring: יומן-הלמידה של S6 ריק (0 שורות) — אין hit-rates, אפס למידה
+**ממצא (cowork 07-25, אומת ב-DB+קוד):** `SYSTEM6_EXIT_JOURNAL=1` דלוק מאז 07-13, אבל
+`select count(*) from v9_exit_decisions` = **0**. שורש: השרשרת מחווטת **חצי-דרך** —
+- ✍️ **כתיבת-שורות** קיימת רק ב-`api/v9/system6_routes.py:145` (`/s6/diagnose`) → נכתב **רק כשמישהו
+  פותח את פאנל-S6 בדשבורד**. אין שום לופ-רקע שמעריך `evaluate_exit()` על עסקה חיה פר-בר.
+- ✅ **חתימת-התוצאה** כן קיימת (`trading_gateway.py:2390` `fill_outcome` בשחרור-slot) — אבל אין לה
+  שורות לחתום עליהן.
+⇒ 8 אותות-היציאה/החזקה (price_stall, opposite_patterns, failed_reaction_volume, counter_flow_wins,
+cvd_divergence, pattern_intact, trend_continues, hold_confirmation) **מחושבים על-פי-דרישה בלבד
+ואף פעם לא נצברים** → אין דאטה להחליט אילו אותות לחבר ל-EXIT-v2. זה חוסם את ההחלטה על S6-המלאה.
+
+**הבנייה (flag-gated, ‏advisory-בלבד — לא נוגע במסחר):**
+1. **לופ-רקע:** בכל בר-5-דק' סגור, לכל עסקה **פתוחה** (live/demo) — לקרוא `evaluate_exit()` +
+   `pattern_intact/trend_continues/hold_confirmation` ולרשום שורה ל-`v9_exit_decisions` פר-אות
+   (‏`build_record` הקיים; `decision='OBSERVED'`, `decided_by='auto_loop'`). נקודת-חיבור טבעית:
+   ה-hook של `bar_level_detector`/‏TM שכבר רץ פר-בר על עסקאות-פתוחות (אותו מקום שבו S6-supervisor
+   רץ) — **לא** ליצור פולר חדש. דגל `SYSTEM6_JOURNAL_AUTOLOOP_V1` (OFF).
+2. **דה-דופ:** שורה אחת פר (trade_id, signal_kind, bar_ts) — לא להציף.
+3. **hit-rates:** לוודא ש-`compute_hit_rates` עובד על הדאטה החדשה + לחשוף ב-`/s6/hit_rates`
+   (הפונקציה קיימת, ‏system6_routes:160).
+4. **טסטים:** לופ רושם פר-בר-פר-אות · דה-דופ · `fill_outcome` חותם על השורות אחרי סגירה ·
+   flag-OFF = 0 כתיבות (byte-identical) · advisory-בלבד (אפס קריאות ל-write_exit/MODIFY).
+**מטרה:** להתחיל לצבור דאטת-אמת מיום-שני → תוך שבוע יש hit-rates אמיתיים → **אז** מחליטים אילו
+אותות מחברים ל-EXIT-v2 (‏W5) במקום לנחש. הדלקה: אחרי אימות — advisory, סיכון-אפס.
