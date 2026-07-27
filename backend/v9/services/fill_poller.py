@@ -183,8 +183,10 @@ class FillPoller:
                       if getattr(t, "state", "") == "FILLED"
                       and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
             if not filled:
-                logger.debug(
-                    "[FillPoller] W2 CLOSED_TRADE_PNL seen but no FILLED demo/live trade")
+                logger.warning(
+                    "[FillPoller] W2 CLOSED_TRADE_PNL seen (%d events) but no FILLED "
+                    "demo/live trade — manual close or already processed",
+                    len(pnl_events))
                 return
 
             # Double-check: sierra_state.json says position is flat
@@ -195,20 +197,28 @@ class FillPoller:
                     state_data = json.loads(_re.sub(r':\s*-?inf\b', ':null', _raw))
                     sq = state_data.get("position_qty")
                     if sq is not None and int(sq) != 0:
-                        logger.debug(
+                        logger.warning(
                             "[FillPoller] W2 CLOSED_TRADE_PNL but Sierra position_qty=%s "
                             "(not flat) — waiting for full exit", sq)
                         return
                 else:
-                    logger.debug("[FillPoller] W2 sierra_state.json missing — skipping")
+                    logger.warning("[FillPoller] W2 sierra_state.json missing — skipping")
                     return
             except (OSError, json.JSONDecodeError, ValueError):
                 return
 
-            # Use the LAST PnL event (most recent close)
-            ev = pnl_events[-1]
-            sierra_pnl = ev.get("pnl")
-            exit_ts_str = ev.get("ts")
+            # SUM all PnL events in this batch — the DLL writes one
+            # CLOSED_TRADE_PNL per contract, so a 2-contract exit produces
+            # two events (e.g. [-198.75, -607.5] → total -806.25). Taking
+            # only the last event (the pre-fix bug) under-counts multi-contract
+            # exits and breaks RISK_HALT accounting.
+            sierra_pnl = sum(
+                float(ev.get("pnl", 0)) for ev in pnl_events
+                if ev.get("pnl") is not None
+            )
+            # Use the last event's timestamp (all events in a bracket exit
+            # share the same ts, but last is safest)
+            exit_ts_str = pnl_events[-1].get("ts")
             exit_ts = None
             if exit_ts_str:
                 try:

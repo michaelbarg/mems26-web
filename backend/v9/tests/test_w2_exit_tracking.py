@@ -287,3 +287,46 @@ def test_exit_price_short(tmp_path, monkeypatch):
     assert trade.pnl_usd == 100.0
     # exit_price: SHORT, pnl=+100, 2c, $5/pt → pts_per_c = 100/2/5 = 10 → exit = 7500-10 = 7490
     assert trade.exit_price == 7490.0
+
+
+# ── Test 6: multi-contract PnL summing (the 07-09 bug) ──────────────────────
+
+def test_multi_contract_pnl_summed(tmp_path, monkeypatch):
+    """DLL writes one CLOSED_TRADE_PNL per contract. Sum must capture all.
+
+    Real fixture 07-09 15:45: 2-contract exit → [-198.75, -607.5] → total -806.25.
+    The pre-fix bug took only the last event (-607.5) → under-counted by $198.75.
+    """
+    monkeypatch.setenv("EXIT_TRACK_ACTIVITY_V1", "1")
+    trade = _mk_trade(tid=513, direction="SHORT", entry_price=7500.0, contracts=2)
+    poller, tm = _mk_poller(tmp_path, [trade])
+
+    events_path = tmp_path / "trade_activity_events.jsonl"
+    state_path = tmp_path / "sierra_state.json"
+
+    import backend.v9.services.fill_poller as fp
+    monkeypatch.setattr(fp, "ACTIVITY_EVENTS_PATH", events_path)
+    monkeypatch.setattr(fp, "STATE_PATH", state_path)
+
+    # Initialize
+    _write_activity_events(events_path, [
+        {"type": "POSITION_CHANGE", "ts": "2026-07-09T15:40:00+00:00"},
+    ])
+    poller._check_activity_exits()
+
+    # Append TWO per-contract PnL events (the real pattern)
+    with open(events_path, "a") as f:
+        f.write(json.dumps({
+            "type": "CLOSED_TRADE_PNL", "ts": "2026-07-09T15:45:00+00:00", "pnl": -198.75,
+        }) + "\n")
+        f.write(json.dumps({
+            "type": "CLOSED_TRADE_PNL", "ts": "2026-07-09T15:45:00+00:00", "pnl": -607.5,
+        }) + "\n")
+    _write_sierra_state(state_path, position_qty=0)
+
+    poller._check_activity_exits()
+
+    assert trade.state == "CLOSED"
+    # MUST be the SUM: -198.75 + -607.5 = -806.25
+    assert trade.pnl_usd == -806.25, f"Expected -806.25 but got {trade.pnl_usd}"
+    assert trade.pnl_sierra == -806.25
