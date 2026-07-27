@@ -17,6 +17,7 @@ SCDLLName("MES_AI_DataExport")
 #include <iomanip>
 #include <fstream>
 #include <cstdio>   // std::rename (atomic write)
+#include <cmath>    // std::isfinite — FIX 07-27: sanitize inf/nan in sierra_state.json
 #include <ctime>
 
 // ── ACSIL-safe min/max (Sierra macros clobber std::max/min) ──
@@ -2052,6 +2053,13 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
             // W1 (2026-07-25): expanded position fields from s_SCPositionData —
             // Trade Positions screen data for the account-truth page (W1b).
             // Existing position_qty + avg_price untouched (readers depend on them).
+            // FIX 2026-07-27 (cowork, live break): when FLAT Sierra returns +/-inf
+            // for PriceHigh/LowDuringPosition -> "%.2f" printed "inf" -> INVALID
+            // JSON -> every reader (reconciler/fill_poller/guard/mobile) went
+            // blind whenever the account was flat. Sanitize all float fields to
+            // finite (0.00 when not finite; readers already treat 0 as "no data"
+            // for these advisory display fields).
+            #define MES_FIN(x) (std::isfinite((double)(x)) ? (double)(x) : 0.0)
             char sbuf[2048];
             int sl = snprintf(sbuf, sizeof(sbuf),
                 "{\"ts\":%lld,\"is_sim\":%d,\"order_placement_armed\":%d,"
@@ -2069,13 +2077,14 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                                                  // read arm without sending a probe order.
                 sc.SendOrdersToTradeService ? 1 : 0,  // 07-13 iMac blocker: auto-match state —
                                                       // if this drifts after a sim-toggle, PLACE no-ops.
-                (float)spos.PositionQuantity, (float)spos.AveragePrice,
-                (float)spos.OpenProfitLoss, (float)spos.DailyProfitLoss,
-                (float)spos.PriceHighDuringPosition, (float)spos.PriceLowDuringPosition,
+                MES_FIN(spos.PositionQuantity), MES_FIN(spos.AveragePrice),
+                MES_FIN(spos.OpenProfitLoss), MES_FIN(spos.DailyProfitLoss),
+                MES_FIN(spos.PriceHighDuringPosition), MES_FIN(spos.PriceLowDuringPosition),
                 sc.SelectedTradeAccount.GetChars(), sc.Symbol.GetChars(),
-                (float)spos.DailyTotalQuantityFilled,
-                (float)sc.LastTradePrice,
+                MES_FIN(spos.DailyTotalQuantityFilled),
+                MES_FIN(sc.LastTradePrice),
                 n_ord, ordbuf);
+            #undef MES_FIN
             if (sl > 0 && sl < (int)sizeof(sbuf))  // W1: sbuf enlarged to 2048
             {
                 const char* v9dirS = V9ExportPath.GetString();
