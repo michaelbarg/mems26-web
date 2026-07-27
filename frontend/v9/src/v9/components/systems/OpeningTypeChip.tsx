@@ -15,6 +15,9 @@
  */
 import { useEffect, useState } from 'react';
 import { COLORS } from '../../design/tokens';
+import { getApiBase } from '../../lib/api';
+
+const API_BASE = getApiBase();
 
 interface PanelData {
   opening?: { type: string | null; location: string | null; direction: string | null; stance: string | null };
@@ -45,15 +48,18 @@ export function OpeningTypeChip() {
   useEffect(() => {
     let alive = true;
     const load = async () => {
+      // FIX 07-27 (Michael: "כרגע הוא ריק"): relative fetch hit :3000 → 404 →
+      // the rubric rendered empty. Use the app's API base (same as every
+      // working component) — direct to the backend.
       try {
-        const r = await fetch('/api/v9/day_type/opening_panel');
+        const r = await fetch(`${API_BASE}/api/v9/day_type/opening_panel`);
         if (r.ok) {
           const d = await r.json();
           if (alive) { setPanel(d); return; }
         }
       } catch { /* fall through */ }
       try {
-        const r2 = await fetch('/api/v9/open_type/current');
+        const r2 = await fetch(`${API_BASE}/api/v9/open_type/current`);
         if (r2.ok) { const d2 = await r2.json(); if (alive) setFallback(d2); }
       } catch { /* fail-silent */ }
     };
@@ -70,6 +76,11 @@ export function OpeningTypeChip() {
   const reason = panel?.provisional?.reason ?? panel?.live?.reason ?? null;
   const trig = panel?.opening_triggers;
   const patterns = Array.isArray(panel?.patterns) ? panel!.patterns! : [];
+  // S1 line (Michael 07-27: "מערכת 1 ... שיהיה לי מסודר"): live day-type from
+  // the same single-source panel (live = get_live_day_type authority).
+  const s1dt = panel?.live?.day_type && panel.live.day_type !== '—' ? panel.live.day_type : null;
+  const s1status = panel?.live?.status ?? null;
+  const s1dir = panel?.live?.direction ?? null;
 
   const isPending = !type;
   const dirColor = dir ? (DIR_COLORS[String(dir).toUpperCase()] ?? COLORS.textTertiary) : COLORS.textTertiary;
@@ -113,6 +124,23 @@ export function OpeningTypeChip() {
       {/* title — white, like a system rubric */}
       <div style={{ fontSize: 7, color: '#e4e4e7', letterSpacing: '0.5px', textTransform: 'uppercase', fontWeight: 700 }}>
         פתיחה — זיהוי + ירי
+      </div>
+
+      {/* row 0: System-1 live day-type (same single source as the gates) */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 8, fontFamily: 'ui-monospace' }}
+        title="מערכת 1 — סוג-היום החי (אותו מקור כמו השערים)">
+        <span style={{ color: COLORS.textDim, fontSize: 7 }}>S1</span>
+        <span style={{ fontWeight: 700, color: s1dt ? '#e4e4e7' : COLORS.textTertiary }}>
+          {s1dt ?? 'FORMING'}
+        </span>
+        {s1dir && (
+          <span style={{ fontSize: 7, fontWeight: 700, color: DIR_COLORS[String(s1dir).toUpperCase().includes('UP') ? 'UP' : String(s1dir).toUpperCase().includes('DOWN') ? 'DOWN' : 'NEUTRAL'] }}>
+            {String(s1dir)}
+          </span>
+        )}
+        {s1status && s1status !== 'CLASSIFIED' && (
+          <span style={{ color: COLORS.textTertiary, fontSize: 7 }}>{s1status}</span>
+        )}
       </div>
 
       {/* row 1: type + direction + confidence (identification headline) */}

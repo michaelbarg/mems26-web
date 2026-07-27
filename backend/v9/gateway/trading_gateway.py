@@ -852,9 +852,14 @@ class TradingGateway:
                                 except Exception:
                                     pass  # phase stays unset -> playbook fail-safe
                         except Exception as _dh_err:
-                            logger.debug(
-                                "[Gateway] W4 day_high/low for playbook failed "
-                                "(fail-open): %s", _dh_err)
+                            # V3 note (cursor 07-27): this must be VISIBLE — when the
+                            # fetch fails there is no day_high/low AND no phase, so the
+                            # playbook falls back to location-only (A1 fail-safe). Not
+                            # silent-debug: surface the drift (rate-limited by bar cadence).
+                            logger.warning(
+                                "[Gateway] W4 day_high/low+phase fetch failed — "
+                                "Variation CONT gate degraded to location-only this "
+                                "decision: %s", _dh_err)
                     if _pb_levels.get("vah") is not None and _pb_levels.get("val") is not None:
                         _pb_kw["levels"] = _pb_levels
                 _pb = _pb_decide(
