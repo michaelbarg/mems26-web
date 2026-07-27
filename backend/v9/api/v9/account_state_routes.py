@@ -45,9 +45,16 @@ def account_state(request: Request) -> Dict[str, Any]:
         if v is None:
             return None
         try:
-            return cast(v) if cast else v
+            v = cast(v) if cast else v
         except Exception:
             return None
+        # FIX 07-27 (post 3rd build): Sierra uses ±DBL_MAX (~1.8e308) as the
+        # "no position" sentinel for PriceHigh/LowDuringPosition — it passes
+        # std::isfinite in the DLL sanitizer and would render as 1.79e306 in
+        # the panel. Any absurd magnitude → honest None (Rule 1).
+        if isinstance(v, float) and abs(v) > 1e15:
+            return None
+        return v
 
     sierra = {
         "ok": st.get("ok", False),
