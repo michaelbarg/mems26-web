@@ -148,6 +148,12 @@ def _has_protective_stop(qty: int, orders: Optional[list],
     return False
 
 
+def _mg_os_env(name: str) -> bool:
+    """Truthy env read for the manual-guard family (module-local, no imports at call site)."""
+    import os as _e
+    return _e.getenv(name, "0").lower() in ("1", "true", "yes")
+
+
 # MANUAL_POSITION_GUARD_V1 episode state (module-level; reset on protected/flat)
 _manual_guard = {"first_naked_ts": None, "last_alert_ts": 0.0}
 
@@ -678,6 +684,37 @@ def reconcile_position(tm, *, fill_poller=None) -> Tuple[bool, str]:
             _mg_alert = _manual_position_guard(sierra_qty)
             if _mg_alert:
                 msg += f" {_mg_alert}"
+                # MANUAL_GUARD_AUTOPROTECT_V1 (Michael ruling 2026-07-27, after a
+                # >½-account loss on a naked manual position: "המערכת הייתה צריכה
+                # להציב לי סטופ ... וזה לא קרה"). SUPERSEDES the 07-25 alert-only
+                # ruling for the NAKED case only:
+                #   • position HAS a working stop  → system never touches it (12:20 ruling)
+                #   • position is NAKED past grace → arm the same virtual structural
+                #     stop machinery used for orphans (recommend_orphan_stop +
+                #     _place_orphan_stop): monitor, and FLATTEN_ORPHAN only when the
+                #     structural stop is breached OR unrealized loss >= the cap.
+                # Flag OFF → alert-only, byte-identical to 07-25.
+                if _mg_os_env("MANUAL_GUARD_AUTOPROTECT_V1"):
+                    try:
+                        _mp_rec = recommend_orphan_stop(sierra_qty,
+                                                        _sierra_state_avg_price())
+                        if _mp_rec:
+                            _mp_ok, _mp_status = _place_orphan_stop(_mp_rec)
+                            msg += f" 🛡️ AUTOPROTECT[{_mp_status}]"
+                            try:
+                                from backend.v9.services.phone_alert import push as _mp_push
+                                _mp_push("manual_autoprotect",
+                                         "MANUAL AUTOPROTECT",
+                                         f"פוזיציה-ידנית {sierra_qty}c ללא סטופ — "
+                                         f"המערכת מגנה: {_mp_status} "
+                                         f"(סטופ-מבני {_mp_rec.get('stop')})")
+                            except Exception:
+                                pass
+                        else:
+                            msg += " 🛡️ AUTOPROTECT[NO_RECOMMENDATION:avg missing]"
+                    except Exception as _mp_err:
+                        msg += f" 🛡️ AUTOPROTECT[ERROR:{type(_mp_err).__name__}]"
+                        logger.warning("[Reconciler] manual autoprotect failed: %s", _mp_err)
                 logger.critical("[Reconciler] SYS-3 %s", msg)
             else:
                 logger.info("[Reconciler] SYS-3 %s", msg)

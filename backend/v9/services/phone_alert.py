@@ -60,7 +60,21 @@ def _send_telegram(title: str, msg: str, priority: int) -> bool:
 
 
 def push(key: str, title: str, msg: str, priority: int = 1) -> None:
-    """Fire-and-forget push. `key` rate-limits repeats (same key ≤1/5min)."""
+    """Fire-and-forget push. `key` rate-limits repeats (same key ≤1/5min).
+
+    FIX 2026-07-27 (after Michael lost >½ account while 12 CRITICAL naked-stop
+    alerts died in the log): the LOCAL alert now fires FIRST and ALWAYS —
+    independent of PHONE_ALERTS_V1 and of any remote credentials. The remote
+    push stays best-effort on top. Root cause of the blindness: this function
+    returned on line 1 because PHONE_ALERTS_V1 was never set, so every caller
+    silently no-op'd. A safety alert must never depend on optional config.
+    """
+    try:
+        from backend.v9.services import local_alert as _la
+        _la.alert(key, title, msg)
+    except Exception:
+        pass  # local alert must never break the caller
+
     if not enabled():
         return
     now = time.time()
