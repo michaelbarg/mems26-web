@@ -531,6 +531,13 @@ flags:
     why: "ON (Michael 2026-07-10). Trade 337: margin rejection after submit-ack was recorded CLOSED/BE/pnl=0 — records≠reality in the money path."
     status: live
     ref: "backend/v9/services/fill_poller.py:_check_rejections · scripts/trade_activity_feed.py:ORDER_REJECT"
+  SYSTEM6_JOURNAL_AUTOLOOP_V1:
+    category: misc
+    group: "learning loop"
+    what: "W9: per-bar background journal of all 8 S6 exit/hold signals on open demo/live trades. Writes to v9_exit_decisions with decision=OBSERVED, decided_by=auto_loop. Advisory only — zero trading impact. Dedup per (trade_id, bar_ts). Requires SYSTEM6_EXIT_JOURNAL=1 to actually write rows."
+    why: "OFF (default). v9_exit_decisions had 0 rows because writes only happened when a user opened the S6 panel. This autoloop fills the journal from live sessions so hit-rates accumulate for EXIT-v2 decisions."
+    status: awaiting_backtest
+    ref: "backend/v9/services/trade_manager/bar_level_detector.py:_system6_journal_autoloop · backend/v9/tests/test_w9_journal_autoloop.py"
   HIGHER_LOW_SECOND_TEST_V1:
     category: s2
     group: "pattern detection"

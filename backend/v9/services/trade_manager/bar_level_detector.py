@@ -126,6 +126,201 @@ class BarLevelDetector:
         except Exception as _s6_err:  # never let supervision break trade management
             logger.warning("[BarLevelDetector] System6 scan error (fail-safe skip): %s", _s6_err)
 
+    def _system6_journal_autoloop(self, trade, bar_ts_key: str) -> None:
+        """W9 (2026-07-25): background journal of S6 exit/hold signals per bar.
+
+        On every 5-min bar, for each open demo/live trade, evaluate all 8
+        exit/hold signals and write each to v9_exit_decisions. This fills the
+        journal that was empty (0 rows) because writes only happened when a
+        user opened the S6 panel in the browser.
+
+        Advisory only — ZERO impact on trading. Never calls write_exit or
+        MODIFY. Flag-gated: SYSTEM6_JOURNAL_AUTOLOOP_V1 (default OFF).
+        Dedup: one row per (trade_id, signal_kind) per bar_ts_key.
+        Fail-safe: any error swallowed.
+        """
+        import os as _jl_os
+        if _jl_os.getenv("SYSTEM6_JOURNAL_AUTOLOOP_V1", "0").lower() not in (
+            "1", "true", "yes",
+        ):
+            return
+        # Dedup: skip if we already journalled this trade×bar
+        _dedup_key = f"{getattr(trade, 'id', 0)}_{bar_ts_key}"
+        if not hasattr(self, "_journal_seen"):
+            self._journal_seen: set = set()
+        if _dedup_key in self._journal_seen:
+            return
+        self._journal_seen.add(_dedup_key)
+        # Cap the seen-set to prevent unbounded growth
+        if len(self._journal_seen) > 500:
+            self._journal_seen = set(list(self._journal_seen)[-200:])
+
+        try:
+            from backend.v9.systems.system6_journal import (
+                record, build_record, enabled as _journal_enabled,
+            )
+            if not _journal_enabled():
+                return
+
+            from backend.v9.systems.system6_exit_signals import (
+                hold_confirmation, price_stall, opposite_patterns,
+                counter_flow_wins, cvd_divergence,
+                failed_reaction_volume, pattern_intact, trend_continues,
+            )
+
+            trade_id = getattr(trade, "id", None)
+            if trade_id is None:
+                return
+            direction = str(getattr(trade, "direction", "LONG")).upper()
+            entry = getattr(trade, "entry_price", None)
+            stop = getattr(trade, "stop", None)
+            t1 = getattr(trade, "t1", None)
+
+            # Fetch recent bars for signals
+            try:
+                from backend.v9.db.read import read_all
+                _rows = read_all(
+                    "SELECT high, low, close FROM v9_bars_5min_woodies "
+                    "ORDER BY ts DESC LIMIT 12", {},
+                )
+                bars = [{"high": float(r["high"]), "low": float(r["low"]),
+                         "close": float(r["close"])} for r in _rows][::-1]
+            except Exception:
+                bars = []
+
+            if not bars or entry is None:
+                return
+
+            # Evaluate all signals
+            signals = []
+
+            # 1. price_stall
+            signals.append(price_stall(direction=direction, bars=bars))
+
+            # 2. opposite_patterns
+            try:
+                _fr = read_all(
+                    "SELECT direction FROM v9_trades WHERE entry_ts >= "
+                    "(now() - interval '30 minutes') ORDER BY entry_ts", {},
+                )
+                _dirs = [str(r["direction"]) for r in _fr]
+            except Exception:
+                _dirs = []
+            signals.append(opposite_patterns(
+                trade_direction=direction, recent_fire_directions=_dirs))
+
+            # 3. counter_flow_wins + 4. cvd_divergence (CVD-based)
+            try:
+                _cv = read_all(
+                    "SELECT cumulative FROM v9_bars_cumulative_delta "
+                    "ORDER BY ts::timestamptz DESC LIMIT 6", {},
+                )
+                _cvd = [float(r["cumulative"]) for r in _cv
+                        if r["cumulative"] is not None][::-1]
+            except Exception:
+                _cvd = []
+            if len(_cvd) >= 3:
+                signals.append(counter_flow_wins(
+                    direction=direction, cvd_series=_cvd))
+                signals.append(cvd_divergence(
+                    direction=direction, bars=bars[-len(_cvd):], cvd_series=_cvd))
+
+            # 5. failed_reaction_volume (use T1 as the expected level)
+            _last_price = bars[-1].get("close") if bars else None
+            signals.append(failed_reaction_volume(
+                direction=direction,
+                price=float(_last_price) if _last_price else 0.0,
+                level=float(t1) if t1 else None,
+                level_tol=5.0,
+                flow_aligned=None,  # no live flow data outside the CVD path
+            ))
+
+            # 6. hold_confirmation (includes pattern_intact + trend_continues)
+            _hold = hold_confirmation(
+                direction=direction,
+                invalidation_level=float(stop) if stop else None,
+                bars=bars,
+            )
+            # Decompose hold into individual signal records
+            _last_close = bars[-1].get("close") if bars else None
+            _intact = pattern_intact(
+                direction=direction,
+                invalidation_level=float(stop) if stop else None,
+                last_close=float(_last_close) if _last_close else None,
+            )
+            _tc = trend_continues(direction=direction, bars=bars)
+
+            # Determine recommendation from hold gate
+            fired = [s for s in signals if s.fired]
+            if _hold.broke:
+                rec = "exit"
+            elif _hold.continuing:
+                rec = "hold"
+            elif fired:
+                rec = "consider_exit"
+            else:
+                rec = "hold"
+
+            # Write exit signal rows
+            _ctx_base = {
+                "entry": entry, "stop": stop,
+                "hold_intact": _hold.intact, "hold_continuing": _hold.continuing,
+                "bar_ts": bar_ts_key,
+            }
+            for s in signals:
+                record(build_record(
+                    trade_id=int(trade_id),
+                    signal_kind=s.kind,
+                    score=s.score,
+                    fired=s.fired,
+                    recommendation=rec,
+                    context={"reason": s.reason, **_ctx_base},
+                    decision="OBSERVED",
+                    decided_by="auto_loop",
+                ))
+
+            # Write hold-side records
+            record(build_record(
+                trade_id=int(trade_id),
+                signal_kind="pattern_intact",
+                score=1.0 if _intact else 0.0,
+                fired=not _intact,
+                recommendation=rec,
+                context={"intact": _intact, **_ctx_base},
+                decision="OBSERVED",
+                decided_by="auto_loop",
+            ))
+            record(build_record(
+                trade_id=int(trade_id),
+                signal_kind="trend_continues",
+                score=_tc.score,
+                fired=_tc.broke,
+                recommendation=rec,
+                context={"continuing": _tc.continuing, "reason": _tc.reason,
+                         **_ctx_base},
+                decision="OBSERVED",
+                decided_by="auto_loop",
+            ))
+            record(build_record(
+                trade_id=int(trade_id),
+                signal_kind="hold_confirmation",
+                score=_hold.score,
+                fired=_hold.broke,
+                recommendation=rec,
+                context={"intact": _hold.intact, "continuing": _hold.continuing,
+                         "reason": _hold.reason, **_ctx_base},
+                decision="OBSERVED",
+                decided_by="auto_loop",
+            ))
+
+            logger.debug(
+                "[BarLevelDetector] W9 journal: trade %d, %d signals written (bar=%s)",
+                trade_id, len(signals) + 3, bar_ts_key,
+            )
+        except Exception as _jl_err:
+            logger.warning(
+                "[BarLevelDetector] W9 journal autoloop error (fail-safe): %s", _jl_err)
+
     def _eod_flatten(self, active) -> None:
         """Auto-flatten open demo/live positions at RTH close (Michael 2026-07-07).
 
@@ -368,6 +563,8 @@ class BarLevelDetector:
                 # (flag-gated SYSTEM6_SUPERVISOR, default OFF → inert; fail-safe).
                 if _is_demo_live:
                     self._system6_scan(trade, reconcile_verdict=_recon_v)
+                    # W9: journal all exit/hold signals per bar (advisory, flag-gated)
+                    self._system6_journal_autoloop(trade, _ts_key)
 
                 # 1. Stop check FIRST (adverse fill priority)
                 if stop is not None:
