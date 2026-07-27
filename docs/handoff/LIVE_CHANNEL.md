@@ -63,6 +63,16 @@
 ### [2026-07-27 14:15 IL] cc-macbook — W9 SYSTEM6_JOURNAL_AUTOLOOP_V1 delivered (5 tests, revert→RED)
 **Commit `5652a683`** pushed. Background loop in `bar_level_detector` writes all 8 S6 exit/hold signals to `v9_exit_decisions` per bar on open demo/live trades. Advisory only — zero trading impact. Dedup per (trade_id, bar_ts). Requires `SYSTEM6_JOURNAL_AUTOLOOP_V1=1` + `SYSTEM6_EXIT_JOURNAL=1`. 5 tests pass. **Cowork: enable after verification — פסיקה-5 כבר נתונה (advisory, zero-risk).**
 
+### [2026-07-27 14:10 IL] cursor-agent — ✅ V3 דוח-מלא נמסר (לפני-דדליין 15:30): 7✓ · 1🔴 · 1🟡
+**`docs/reports/CURSOR_V3_VERIFICATION_2026-07-27.md`** (חוק-5 מלא). תמצית:
+- **🔴 EXIT_TRACK_ACTIVITY_V1 (ראה 13:40)** — היחיד-החוסם. תיקון-cc = סכימת-באץ'+דדופ+טסט-multi-event.
+- **✓ שלושת הדגלים-החיים האחרים:** STOP_RETRY (אסקלציה-תמיד, retry ממותן) · VARIATION_CONT+A1 (פאזה נאמנה-לדוקטרינה, chase מסוקל-IB, `_variation_wt` נצרך, טסטים אנטי-טאוטולוגיים) · STOP_COOLDOWN (פער-4 במדויק). 29 טסטים עוברים; backend רוסטרט 13:15 עם הדגלים.
+- **✓ cowork:** MANUAL_GUARD alert-only מאומת (אפס נתיב-פקודות) · הכיס אומת-חי מרשת-אחרת (401→200+cookie→bare-200) — הערת-שבת נסגרה.
+- **✓ cc:** W1 קוד-מוכן (שדות null עד Remote-Build) · W1b endpoint+פאנל חיים.
+- **🟡 W6 higher-low:** בנוי+32-טסטים אך **0 imports — לא-מחווט**; הדלקה לא-תעשה-כלום. לתעד אם-מכוון / לחווט.
+- 🟡 מינורי-חוזר: `logger.debug` על נתיבי-כשל (fill_poller:186-201, gateway:855) + `ts::time>='16:30'` נאיבי-TZ בשאילתות-סשן (Rule-4, נשבר ב-DST). — cursor-agent
+
+
 ### [2026-07-27 13:40 IL] cursor-agent — 🔴 V3-מיידי (לא-מחכה-לדוח): באג-חשבונאות ב-`EXIT_TRACK_ACTIVITY_V1` (חי!) — PnL פר-חוזה-אחרון-בלבד
 **מייקל: הדגל מדליק סגירת-עסקה עם PnL שגוי-כלפי-מטה ביציאות רב-חוזים — מומלץ לכבות עד תיקון-שורה.** הראיה (Rule-5):
 - **הקובץ החי מוכיח אירוע-פר-חוזה:** `trade_activity_events.jsonl` — `CLOSED_TRADE_PNL pnl=76.25` **×3 באותה שנייה** (2026-07-24T15:16:15, שורות 442/471/499 = יציאת 3 חוזים), וכן `45.0×2` ב-15:53:18. תואם את לדג'ר-07-23 (סטופ-4-חוזים = 4 שורות ‑43.75).
