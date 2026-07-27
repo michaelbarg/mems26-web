@@ -65,6 +65,8 @@ class FillPoller:
         # W2 (2026-07-25): activity-exit tracker — incremental read position in
         # trade_activity_events.jsonl for CLOSED_TRADE_PNL detection.
         self._activity_exit_pos: Optional[int] = None
+        # POSITION_TRUTH_SYNC_V1: when Sierra first reported flat (grace timer)
+        self._flat_since: Optional[float] = None
 
     def last_poll_age(self) -> float:
         """Seconds since the loop last iterated (P3 heartbeat). -1 if never run.
@@ -115,6 +117,7 @@ class FillPoller:
                 self._check_result()
                 self._check_fills()
                 self._check_activity_exits()
+                self._sync_position_truth()
                 self._maybe_reconcile()
                 self._check_rejections()
             except asyncio.CancelledError:
@@ -125,6 +128,96 @@ class FillPoller:
 
     def stop(self) -> None:
         self._running = False
+
+    def _sync_position_truth(self) -> None:
+        """POSITION_TRUTH_SYNC_V1 (2026-07-27, Michael: "המערכת לא מסמנת מתי יש
+        עסקה ומתי אין"). Sierra's own net position is the truth; our bookkeeping
+        must follow it, in BOTH directions:
+
+          • Sierra HOLDS a position + our trade is PENDING  → mark it FILLED
+            (a MARKET entry Sierra ACKed is open; the entry-fill line that would
+            normally flip the state never arrives — the deployed DLL leaves
+            trade_fills.json empty).
+          • Sierra is FLAT + we still believe a trade is open (PENDING/FILLED)
+            past a grace window → close it as SIERRA_FLAT and free the slot.
+
+        Why a grace window: an entry ACKed a second ago can legitimately show
+        position 0 for one poll. Grace (default 20s) prevents closing a trade
+        that is still filling.
+
+        Fail-safe: needs a FRESH state file (≤10s) — stale/unknown does nothing
+        (never invent a fill, never invent a close; Rule 1). Never raises.
+        """
+        if not os.getenv("POSITION_TRUTH_SYNC_V1", "0").lower() in ("1", "true", "yes"):
+            return
+        if self._tm is None:
+            return
+        try:
+            from backend.v9.services.sierra_position_reconciler import (
+                _sierra_state_avg_price as _sq_avg, _sierra_state_qty as _sq_qty,
+            )
+            qty = _sq_qty()
+            if qty is None:
+                return  # stale/missing → honest no-op
+            grace = float(os.getenv("POSITION_TRUTH_GRACE_S", "20"))
+            now = _t.time()
+            open_trades = [t for t in self._tm.get_active_trades()
+                           if getattr(t, "state", "") in ("PENDING", "FILLED")
+                           and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
+            if not open_trades:
+                return
+
+            if qty != 0:
+                # Sierra holds a position → any PENDING trade of ours is open.
+                avg = _sq_avg()
+                for t in open_trades:
+                    if getattr(t, "state", "") != "PENDING":
+                        continue
+                    px = avg or getattr(t, "entry_price", None)
+                    if px is None:
+                        continue
+                    try:
+                        self._tm.on_fill(t.id, float(px))
+                        logger.warning(
+                            "[FillPoller] POSITION_TRUTH: Sierra holds %sc → trade %s "
+                            "PENDING→FILLED @%.2f (entry-fill line never arrived)",
+                            qty, t.id, float(px))
+                    except Exception as e:
+                        logger.warning("[FillPoller] POSITION_TRUTH on_fill(%s) failed: %s",
+                                       t.id, e)
+                self._flat_since = None
+                return
+
+            # Sierra is FLAT — start/continue the grace timer, then close.
+            if self._flat_since is None:
+                self._flat_since = now
+                return
+            if (now - self._flat_since) < grace:
+                return
+            for t in open_trades:
+                age = None
+                try:
+                    _ct = getattr(t, "created_at", None)
+                    if _ct is not None:
+                        age = (_t.time() - _ct.timestamp())
+                except Exception:
+                    age = None
+                if age is None or age < grace:
+                    # Just created (or age unknown) — let it fill. Unknown age is
+                    # treated as "too young to close": closing a trade we cannot
+                    # date is the dangerous direction (Rule 1 / fail-safe).
+                    continue
+                try:
+                    self._tm.close_trade(t.id, "SIERRA_FLAT")
+                    self._notify_gateway_close(t.id, "SIERRA_FLAT")
+                    logger.warning(
+                        "[FillPoller] POSITION_TRUTH: Sierra FLAT for %.0fs → closed "
+                        "trade %s (was %s) + freed slot", now - self._flat_since,
+                        t.id, getattr(t, "state", "?"))
+                except Exception as e:
+                    logger.warning("[FillPoller] POSITION_TRUTH close(%s) failed: %s", t.id, e)
+        except Exception as e:  # pragma: no cover - defensive
+            logger.warning("[FillPoller] POSITION_TRUTH sync errored (non-fatal): %s", e)
 
     def _check_activity_exits(self) -> None:
         """W2 (trade 513, 2026-07-25): detect bracket exits via CLOSED_TRADE_PNL
@@ -178,13 +271,22 @@ class FillPoller:
             if not pnl_events:
                 return
 
+            # POSITION_TRUTH_SYNC_V1 (2026-07-27, Michael: "המערכת לא מסמנת
+            # מתי יש עסקה ומתי אין"): accept PENDING too. A MARKET entry that
+            # Sierra ACKed is de-facto open — but the entry-fill line that would
+            # flip PENDING→FILLED never arrives (trade_fills.json stays empty on
+            # the deployed DLL). Requiring FILLED meant every close was ignored,
+            # trades piled up as phantoms, the slot stuck, and the reconcile then
+            # screamed NAKED_STOP at a flat account. Sierra-flat is verified
+            # below before anything is closed, so accepting PENDING cannot close
+            # a live position.
             # Find active FILLED non-shadow trade
             filled = [t for t in self._tm.get_active_trades()
-                      if getattr(t, "state", "") == "FILLED"
+                      if getattr(t, "state", "") in ("FILLED", "PENDING")
                       and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
             if not filled:
                 logger.warning(
-                    "[FillPoller] W2 CLOSED_TRADE_PNL seen (%d events) but no FILLED "
+                    "[FillPoller] W2 CLOSED_TRADE_PNL seen (%d events) but no open "
                     "demo/live trade — manual close or already processed",
                     len(pnl_events))
                 return
