@@ -25,6 +25,36 @@ from backend.v9.gateway.session_gate import is_within_firing_window
 from backend.v9.services.trade_context import extract_g1_entry_context
 
 
+def _sierra_route_account() -> str:
+    """FIX 2026-07-27 (root of "the system did not fire today"): the account sent
+    in the PLACE command is used by the DLL as `o.TradeAccount`, which DECIDES
+    the routing target. Sending the hard-coded LIVE account while Sierra sits in
+    Sim (selected account "Sim1") is an account MISMATCH -> ACSIL rejects with
+    r=-1 GENERAL_ERROR_OR_NOT_ENABLED. That is exactly what killed all 3 live
+    orders on 07-27 (16:45/16:55/17:25) while the shadows filled fine.
+
+    Truth source = Sierra's own `trade_account` in sierra_state.json (fresh <=10s).
+    Falls back to SIERRA_LIVE_ACCOUNT only when the state file is unusable —
+    honest degradation, never a silent wrong route.
+    """
+    import json as _ra_json
+    import os as _ra_os
+    import time as _ra_time
+    from pathlib import Path as _RaPath
+    _p = _RaPath(_ra_os.path.expanduser(
+        _ra_os.getenv("SIERRA_STATE_PATH",
+                      "~/SierraChart_Data/v9_export/sierra_state.json")))
+    try:
+        if _p.exists() and (_ra_time.time() - _p.stat().st_mtime) <= 10:
+            _d = _ra_json.loads(_p.read_text().strip() or "{}")
+            _acct = (_d.get("trade_account") or "").strip()
+            if _acct:
+                return _acct
+    except Exception:
+        pass
+    return _ra_os.environ.get("SIERRA_LIVE_ACCOUNT", "APEX-125218-13")
+
+
 def resolve_pattern_id(setup: dict, g1: dict) -> Optional[str]:
     """Resolve pattern_id_at_entry: prefer the firing setup's classification.
 
@@ -2644,7 +2674,7 @@ class TradingGateway:
             command = command_from_setup(
                 live_setup,
                 trade_id=str(trade_id),
-                account=os.environ.get("SIERRA_LIVE_ACCOUNT", "APEX-125218-13"),
+                account=_sierra_route_account(),
                 mode="live",
             )
 
@@ -2652,7 +2682,7 @@ class TradingGateway:
                 "[Gateway] LIVE trade TM id=%d: %s %s system=%d t1=%.2f t2=%.2f t3=%.2f account=%s",
                 trade_id, tm_setup["direction"], setup.get("classification", ""),
                 system_id, t1, t2, t3,
-                os.environ.get("SIERRA_LIVE_ACCOUNT", "APEX-125218-13"),
+                _sierra_route_account(),
             )
             return {
                 "trade_id": str(trade_id),
