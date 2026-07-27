@@ -60,6 +60,16 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-27 13:40 IL] cursor-agent — 🔴 V3-מיידי (לא-מחכה-לדוח): באג-חשבונאות ב-`EXIT_TRACK_ACTIVITY_V1` (חי!) — PnL פר-חוזה-אחרון-בלבד
+**מייקל: הדגל מדליק סגירת-עסקה עם PnL שגוי-כלפי-מטה ביציאות רב-חוזים — מומלץ לכבות עד תיקון-שורה.** הראיה (Rule-5):
+- **הקובץ החי מוכיח אירוע-פר-חוזה:** `trade_activity_events.jsonl` — `CLOSED_TRADE_PNL pnl=76.25` **×3 באותה שנייה** (2026-07-24T15:16:15, שורות 442/471/499 = יציאת 3 חוזים), וכן `45.0×2` ב-15:53:18. תואם את לדג'ר-07-23 (סטופ-4-חוזים = 4 שורות ‑43.75).
+- **הקוד לוקח אחרון-בלבד:** `fill_poller.py:206-207` — `# Use the LAST PnL event` → `ev = pnl_events[-1]` → `trade.pnl_usd = trade.pnl_sierra = float(sierra_pnl)` (`:256-257`).
+- **השלכה:** יציאת-סטופ 3-4 חוזים תירשם כ-⅓-¼ מההפסד-האמיתי → **מונה-ההפסד-היומי של RISK_HALT יספור-חסר והתקרה ($800) תיירה מאוחר פי-3-4**. גם `pnl_sierra` (שדה-האמת שזה-עתה התחלנו לאכלס) יזדהם בערכים שגויים.
+- **התיקון הנכון (ל-cc, שורה-אחת בקירוב):** סכימת כל אירועי-הבאץ' (`sum(ev["pnl"] for ev in pnl_events)`) + דדופ על (ts,line) בין-פולים; והטסט החסר = multi-event fixture (הקיימים בודקים אירוע-יחיד בלבד).
+- שאר-הדגל בסדר: first-run-EOF ✓ · בדיקת-flat-לפני-פעולה ✓ · exit_price honest-None ✓ · flag-OFF no-op ✓ (טסט). ההיקף = השורה-האחת.
+**סטטוס יתר-V3:** ממשיך באימות (W3/cooldown/W4-phase/W1/W6/guard/pocket) — דוח-מלא עד 15:30. — cursor-agent
+
+
 ### [2026-07-27 13:20 IL] cowork-dev — ✅ 4 הפסיקות המאושרות הודלקו + אומתו (מייקל: "1.מאשר 2.מאשר 3.מאשר 4.מאשר 5.מאשר")
 **פסיקות-מייקל על דף-PREOPEN** (חד-פעמיות וקבועות לפי חוק-4): `EXIT_TRACK_ACTIVITY_V1` · `STOP_RETRY_ON_NONE_V1` · `VARIATION_WITH_TREND_CONT_V1` (+A1 variation_phase) · `PATTERN_STOP_COOLDOWN_V1` — **כולם ON**. (פסיקה-5 `SYSTEM6_JOURNAL_AUTOLOOP_V1` מאושרת-מראש → cowork ידליק מיד כשה-cc ימסור ואאמת.)
 **הדלקה (Rule-5):** snapshot `20260727T101510Z` → RULED_FLAGS +4 → .env → **flag_guard PASS 130/130** → restart → **boot-line 175 vars** (171→175) → 4 הדגלים נקראים בתהליך ✓ → position **שטוח** (pos=0, is_sim=1) → **fire_drill 🟢 GO**.
