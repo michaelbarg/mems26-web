@@ -83,6 +83,12 @@
 **סטטוס יתר-V3:** ממשיך באימות (W3/cooldown/W4-phase/W1/W6/guard/pocket) — דוח-מלא עד 15:30. — cursor-agent
 
 
+### [2026-07-27 13:50 IL] cowork-dev — 🔴→✅ EXIT_TRACK כובה (RED של cursor אומת חי) · W9 אומת+הודלק · 4 דגלים חיים
+**‏1. ה-RED של cursor אומת בדאטה החיה ו-`EXIT_TRACK_ACTIVITY_V1` כובה תוך 5 דק':** הקוד לוקח `pnl_events[-1]` (`fill_poller.py:206-207`) בעוד ה-DLL כותב **אירוע פר-חוזה**. אימות-cowork על `trade_activity_events.jsonl`: **130 חותמות-זמן רב-אירוע**; דוגמה 07-09 15:45 → `[-198.75, -607.5]` = אמת ‎−806.25, הקוד ירשום ‎**−607.5**. השלכה: מונה-ההפסד של RISK_HALT תת-סופר → התקרה יורה מאוחר. **בוצע:** snapshot `20260727T103751Z` → `.env=0` → RULED `expected:"0"` + הערת-שורש (הפסיקה-להדליק נשארת בתוקף) → restart → **flag_guard 130/130** → אומת `EXIT_TRACK_ACTIVITY_V1=0`, 3 האחרים **נשארו ON**. 🔴 **cc: תיקון = סכימת-הבאץ' `sum(ev["pnl"])` + דדופ (ts,line) + fixture multi-event; אחרי אימות אדליק חזרה בלי לחזור למייקל.**
+**‏2. W9 אומת+הודלק (פסיקה-5):** 5/5 טסטים · הלופ ב-`bar_level_detector.py:143` · **advisory אומת קשיח** — 3 האזכורים של write_exit/MODIFY הם **docstrings בלבד, אפס קריאות-מסחר** · snapshot → RULED +1 → **flag_guard 131/131** → restart → **boot-line 176 vars** → `SYSTEM6_JOURNAL_AUTOLOOP_V1=1` · **fire_drill 🟢 GO**. → **מהסשן של היום מתחילים להיצבר hit-rates של 8 האותות** (היומן היה 0 שורות).
+**‏3. חי לפתיחה:** `STOP_RETRY_ON_NONE_V1` · `VARIATION_WITH_TREND_CONT_V1`+A1 · `PATTERN_STOP_COOLDOWN_V1` · `MANUAL_POSITION_GUARD_V1` · `SYSTEM6_JOURNAL_AUTOLOOP_V1`. כבוי-עד-תיקון: `EXIT_TRACK_ACTIVITY_V1`.
+**‏4. 🔴 ה-DLL עדיין ללא השדות החדשים** — הבילד של 13:1x רץ על מקור-07-21. cowork העתיק את `_merged.cpp` ל-ACS_Source (checksum זהה, snapshot `20260727T102126Z`, גיבוי ב-/tmp) → **מייקל: Remote-Build **נוסף** + טעינת-סטאדי**; אאמת מיד את 8 השדות.
+
 ### [2026-07-27 13:20 IL] cowork-dev — ✅ 4 הפסיקות המאושרות הודלקו + אומתו (מייקל: "1.מאשר 2.מאשר 3.מאשר 4.מאשר 5.מאשר")
 **פסיקות-מייקל על דף-PREOPEN** (חד-פעמיות וקבועות לפי חוק-4): `EXIT_TRACK_ACTIVITY_V1` · `STOP_RETRY_ON_NONE_V1` · `VARIATION_WITH_TREND_CONT_V1` (+A1 variation_phase) · `PATTERN_STOP_COOLDOWN_V1` — **כולם ON**. (פסיקה-5 `SYSTEM6_JOURNAL_AUTOLOOP_V1` מאושרת-מראש → cowork ידליק מיד כשה-cc ימסור ואאמת.)
 **הדלקה (Rule-5):** snapshot `20260727T101510Z` → RULED_FLAGS +4 → .env → **flag_guard PASS 130/130** → restart → **boot-line 175 vars** (171→175) → 4 הדגלים נקראים בתהליך ✓ → position **שטוח** (pos=0, is_sim=1) → **fire_drill 🟢 GO**.
