@@ -25,7 +25,12 @@ def _read_state() -> Dict[str, Any]:
         if not STATE.exists():
             return {"ok": False, "stale": True, "error": "sierra_state.json not found"}
         age = time.time() - STATE.stat().st_mtime
-        data = json.loads(STATE.read_text().strip() or "{}")
+        raw = STATE.read_text().strip() or "{}"
+        # Sierra writes -inf/inf for high/low_during_pos when flat — not valid JSON.
+        # Replace with null so json.loads succeeds (Rule 1: honest None, not a lie).
+        import re
+        raw = re.sub(r':\s*-?inf\b', ':null', raw)
+        data = json.loads(raw)
         return {"ok": True, "stale": age > STALE_S, "age_s": round(age, 1), **data}
     except Exception as e:
         return {"ok": False, "stale": True, "error": str(e)}

@@ -190,7 +190,9 @@ class FillPoller:
             # Double-check: sierra_state.json says position is flat
             try:
                 if STATE_PATH.exists():
-                    state_data = json.loads(STATE_PATH.read_text().strip() or "{}")
+                    import re as _re
+                    _raw = STATE_PATH.read_text().strip() or "{}"
+                    state_data = json.loads(_re.sub(r':\s*-?inf\b', ':null', _raw))
                     sq = state_data.get("position_qty")
                     if sq is not None and int(sq) != 0:
                         logger.debug(

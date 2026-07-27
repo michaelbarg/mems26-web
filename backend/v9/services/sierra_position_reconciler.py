@@ -29,6 +29,11 @@ STATE_FILE = Path(os.path.expanduser(
     "~/SierraChart_Data/v9_export/sierra_state.json"))
 STATE_MAX_AGE_S = 10.0  # fresher than this → authoritative
 
+import re as _re
+def _safe_json_loads(raw: str) -> dict:
+    """Parse JSON tolerating Sierra's -inf/inf (high/low_during_pos when flat)."""
+    return json.loads(_re.sub(r':\s*-?inf\b', ':null', raw))
+
 # ── ORPHAN_AUTO_STOP_V1 constants ─────────────────────────────────────────────
 def _orphan_max_qty() -> int:
     return int(os.getenv("ORPHAN_AUTO_STOP_MAX_QTY", "10"))
@@ -55,7 +60,7 @@ def _sierra_state_qty() -> Optional[int]:
             return None
         if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
             return None
-        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        data = _safe_json_loads(STATE_FILE.read_text().strip() or "{}")
         qty = data.get("position_qty")
         return int(qty) if qty is not None else None
     except (OSError, ValueError, TypeError):
@@ -69,7 +74,7 @@ def _sierra_state_working() -> Optional[int]:
             return None
         if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
             return None
-        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        data = _safe_json_loads(STATE_FILE.read_text().strip() or "{}")
         w = data.get("working_orders")
         return int(w) if w is not None else None
     except (OSError, ValueError, TypeError):
@@ -83,7 +88,7 @@ def _sierra_state_avg_price() -> Optional[float]:
             return None
         if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
             return None
-        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        data = _safe_json_loads(STATE_FILE.read_text().strip() or "{}")
         ap = data.get("avg_price")
         return float(ap) if ap not in (None, "", 0, 0.0) else None
     except (OSError, ValueError, TypeError):
@@ -97,7 +102,7 @@ def _sierra_state_orders() -> Optional[list]:
             return None
         if (_time_mod.time() - STATE_FILE.stat().st_mtime) > STATE_MAX_AGE_S:
             return None
-        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        data = _safe_json_loads(STATE_FILE.read_text().strip() or "{}")
         o = data.get("orders")
         return list(o) if isinstance(o, list) else None
     except (OSError, ValueError, TypeError):
@@ -259,7 +264,7 @@ def _orphan_current_price() -> Optional[float]:
     try:
         if not STATE_FILE.exists():
             return None
-        data = json.loads(STATE_FILE.read_text().strip() or "{}")
+        data = _safe_json_loads(STATE_FILE.read_text().strip() or "{}")
         lp = data.get("last_price") or data.get("last_trade_price")
         return float(lp) if lp is not None else None
     except (OSError, ValueError, TypeError, json.JSONDecodeError):
@@ -324,7 +329,7 @@ def _flatten_orphan(rec: dict) -> Tuple[bool, str]:
     account = None
     try:
         if STATE_FILE.exists():
-            data = json.loads(STATE_FILE.read_text().strip() or "{}")
+            data = _safe_json_loads(STATE_FILE.read_text().strip() or "{}")
             account = data.get("account") or data.get("trade_account")
     except (OSError, json.JSONDecodeError):
         pass
