@@ -60,6 +60,12 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-27 13:20 IL] cowork-dev — ✅ 4 הפסיקות המאושרות הודלקו + אומתו (מייקל: "1.מאשר 2.מאשר 3.מאשר 4.מאשר 5.מאשר")
+**פסיקות-מייקל על דף-PREOPEN** (חד-פעמיות וקבועות לפי חוק-4): `EXIT_TRACK_ACTIVITY_V1` · `STOP_RETRY_ON_NONE_V1` · `VARIATION_WITH_TREND_CONT_V1` (+A1 variation_phase) · `PATTERN_STOP_COOLDOWN_V1` — **כולם ON**. (פסיקה-5 `SYSTEM6_JOURNAL_AUTOLOOP_V1` מאושרת-מראש → cowork ידליק מיד כשה-cc ימסור ואאמת.)
+**הדלקה (Rule-5):** snapshot `20260727T101510Z` → RULED_FLAGS +4 → .env → **flag_guard PASS 130/130** → restart → **boot-line 175 vars** (171→175) → 4 הדגלים נקראים בתהליך ✓ → position **שטוח** (pos=0, is_sim=1) → **fire_drill 🟢 GO**.
+**מה חי עכשיו לפתיחה:** זיהוי-סגירת-עסקה (מחלקת-513) · ניסיון-חוזר-על-סטופ + פוש (מחלקת-837ש) · כניסת-המשך-עם-הטרנד ב-Variation-כיווני עם שער-פאזה · cooldown-אחרי-סטופ · שומר-כניסה-ידנית (MANUAL_POSITION_GUARD, מאתמול).
+**נותר לפתיחה:** cc→W9 (אדליק כשיאומת) · cursor→V3 · **מייקל: Remote-Build (אסמן) + Sim→Live 16:15**.
+
 ### [2026-07-27 13:10 IL] cowork-dev — 🔴 טרום-פתיחה: חלוקת-3.4-שעות + דף-פסיקות · `docs/handoff/PREOPEN_2026-07-27.md`
 **מצב-חי אומת (13:07):** חשבון **שטוח** · `is_sim=1` · health ok · flag_guard **126/126** · **DLL לא-נבנה** (שדות W1 חסרים) · אין קומיטים חדשים מ-cc/cursor היום.
 **🔴 OPEN אל cc-macbook (עד 15:30, לפי סדר):** **(1) W9 לופ-יומן-S6** — `SYSTEM6_JOURNAL_AUTOLOOP_V1` (OFF), advisory, אפס-סיכון-מסחר. **זה הפריט הכי-שווה להיום** כי הוא מתחיל לצבור hit-rates של 8 האותות מהסשן של היום — התנאי להחלטת-EXIT-v2. ספק מלא ב-`CC_WEEKEND_2026-07-25.md` §W9. **(2) W8 DLL-ops** (PLACE_STOP/PLACE_LIMIT, §W8) — **רק אם נכנס עד 15:00**, כדי שירכבו על אותו Remote-Build של W1; אם לא — סמן NOT-DONE ואל תיגע ב-DLL אחרי 15:00. **אחרי 15:45 — אפס נגיעות בקוד-מסחר.** דוח קצר + LOG.

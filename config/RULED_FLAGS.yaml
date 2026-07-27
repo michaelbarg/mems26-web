@@ -196,3 +196,10 @@ ruled:
 
   # ── פסיקת-מייקל 07-25 ("התראה-בלבד" מתוך 3 אופציות שהוצגו) — הגנת-כניסה-ידנית-עירומה ──
   MANUAL_POSITION_GUARD_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-25", note: "פוזיציה-ידנית (ענף-MANUAL של ה-reconciler) בלי סטופ-עובד מעל 60ש (MANUAL_GUARD_GRACE_S) -> CRITICAL + פוש-לפלאפון, re-alert כל 300ש. התראה-בלבד — לא נוגע בפקודות/פוזיציה (פסיקת-12:20 נשמרת במלואה). זיהוי-סטופ לפי order-type (2/3=stop, 1=limit, price-agnostic — תופס גם סטופ-רווח-נעול כמו 07-24), fallback-מחיר לפיד-חסר-type, unknown->שקט (Rule-1). 12 טסטים" }
+
+  # ── פסיקות-מייקל 2026-07-27 טרום-פתיחה ("1.מאשר 2.מאשר 3.מאשר 4.מאשר 5.מאשר" על דף-הפסיקות
+  #    docs/handoff/PREOPEN_2026-07-27.md). כולם נבנו+נבדקו בסופ"ש, OFF עד הפסיקה. cowork הדליק. ──
+  EXIT_TRACK_ACTIVITY_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-27", note: "פסיקה-1: זיהוי-סגירת-עסקה fallback דרך CLOSED_TRADE_PNL ביומן-הפעילות — סוגר את מחלקת-513 (מייקל ראה חי 07-24: המערכת סגרה ולא רשמה -> slot תקוע). 5 טסטים, revert->RED. מפחית-סיכון" }
+  STOP_RETRY_ON_NONE_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-27", note: "פסיקה-2: MODIFY_STOP_NONE -> ניסיון-חוזר (מוגבל 1/10ש) + פוש-לפלאפון. סוגר NAKED_STOP_SUSPECT (837ש חשיפה חיה ב-07-24). 5 טסטים. מפחית-סיכון" }
+  VARIATION_WITH_TREND_CONT_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-27", note: "פסיקה-3 (תיקון-מהשורש 07-24 + AMENDMENT-A1 מביקורת-הדוקטרינה של cursor): כניסת-המשך-עם-הטרנד ביום Variation-כיווני; A1 variation_phase — CONT רק ב-EXPANSION, דעיכת-קצה רק ב-REBALANCED, פאזה-לא-ידועה -> התנהגות-קודמת; chase מסוקל-ל-IB max(6,0.25*ib_width). מתקן את הלונג שהוחמץ 18:15 @7478 (Variation-UP) בעוד שורט-נגד-הטרנד עבר ללייב. 13 טסטים" }
+  PATTERN_STOP_COOLDOWN_V1: {expected: "1", ruled_by: "מייקל", date: "2026-07-27", note: "פסיקה-4 (פער-4 בדוח-הדלתון של cursor): אחרי STOP_HIT על תבנית-משפחה+כיוון — חסימת ירי-זהה 30 דק (PATTERN_STOP_COOLDOWN_BARS=6) אלא-אם הכניסה >=4pt מהכניסה-שנעצרה. ראיה: 07-21 6xZLR-SHORT ב-59דק כולם-הפסד -206 · 07-20 3xLONG -310 · 07-22 3xSHORT -150 (~600 בשבועיים). 6 טסטים. מפחית-סיכון" }
