@@ -178,6 +178,10 @@ class FillPoller:
                         continue
                     try:
                         self._tm.on_fill(t.id, float(px))
+                        try:
+                            self._tm._db.commit()
+                        except Exception:
+                            pass
                         logger.warning(
                             "[FillPoller] POSITION_TRUTH: Sierra holds %sc → trade %s "
                             "PENDING→FILLED @%.2f (entry-fill line never arrived)",
@@ -207,13 +211,23 @@ class FillPoller:
                     # treated as "too young to close": closing a trade we cannot
                     # date is the dangerous direction (Rule 1 / fail-safe).
                     continue
+                _state_before = getattr(t, "state", "?")
                 try:
                     self._tm.close_trade(t.id, "SIERRA_FLAT")
+                    # TradeManager does NOT auto-commit (the gateway commits
+                    # explicitly after accept_setup). Without this the close
+                    # lived only in memory: the DB row stayed FILLED and the
+                    # sync re-closed the same trade every poll, forever.
+                    try:
+                        self._tm._db.commit()
+                    except Exception as _ce:
+                        logger.warning("[FillPoller] POSITION_TRUTH commit failed for %s: %s",
+                                       t.id, _ce)
                     self._notify_gateway_close(t.id, "SIERRA_FLAT")
                     logger.warning(
                         "[FillPoller] POSITION_TRUTH: Sierra FLAT for %.0fs → closed "
                         "trade %s (was %s) + freed slot", now - self._flat_since,
-                        t.id, getattr(t, "state", "?"))
+                        t.id, _state_before)
                 except Exception as e:
                     logger.warning("[FillPoller] POSITION_TRUTH close(%s) failed: %s", t.id, e)
         except Exception as e:  # pragma: no cover - defensive
