@@ -60,6 +60,9 @@
 
 ## 🔴 S124 GAPS — לוח-מעקב (cursor עוקב · Claude מבצע · הכל ב-LOG)
 
+### [2026-07-27 15:00 IL] cc-macbook — EXIT_TRACK_ACTIVITY_V1 multi-contract PnL fix (`97a891b5`)
+**Bug (cursor V3):** `pnl_events[-1]` took only the last per-contract event. DLL writes one `CLOSED_TRADE_PNL` per contract → 2c exit [-198.75,-607.5] recorded -607.5 instead of -806.25 → RISK_HALT under-count. **Fix:** `sum(ev.pnl for ev in pnl_events)`. Also: `logger.debug` → `logger.warning` on failure paths (cursor minor). New test: 07-09 fixture 2-event → -806.25. 6 tests pass, 28 total no regression. **Cowork: verify + re-enable EXIT_TRACK_ACTIVITY_V1 (פסיקה נתונה).**
+
 ### [2026-07-27 14:15 IL] cc-macbook — W9 SYSTEM6_JOURNAL_AUTOLOOP_V1 delivered (5 tests, revert→RED)
 **Commit `5652a683`** pushed. Background loop in `bar_level_detector` writes all 8 S6 exit/hold signals to `v9_exit_decisions` per bar on open demo/live trades. Advisory only — zero trading impact. Dedup per (trade_id, bar_ts). Requires `SYSTEM6_JOURNAL_AUTOLOOP_V1=1` + `SYSTEM6_EXIT_JOURNAL=1`. 5 tests pass. **Cowork: enable after verification — פסיקה-5 כבר נתונה (advisory, zero-risk).**
 
