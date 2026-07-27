@@ -43,12 +43,22 @@ class _TM:
         self.closed.append((tid, reason))
 
 
+def test_module_has_no_undefined_time_alias():
+    """Regression: the first cut used a `_t` alias that did not exist at runtime
+    -> 'name _t is not defined' every poll (the sync silently did nothing while
+    tests passed, because the fixture injected _t). Pin that the module uses the
+    real `time` import and no alias."""
+    import inspect
+    src = inspect.getsource(fp)
+    assert "_t.time()" not in src, "module must not use a _t alias"
+    assert hasattr(fp, "time"), "module must import time"
+
+
 def _poller(tm, monkeypatch, qty, avg=7456.0):
     p = fp.FillPoller.__new__(fp.FillPoller)
     p._tm = tm
     p._flat_since = None
     p._gateway = None
-    monkeypatch.setattr(fp, "_t", time, raising=False)
     import backend.v9.services.sierra_position_reconciler as rec
     monkeypatch.setattr(rec, "_sierra_state_qty", lambda: qty)
     monkeypatch.setattr(rec, "_sierra_state_avg_price", lambda: avg)

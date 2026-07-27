@@ -160,7 +160,7 @@ class FillPoller:
             if qty is None:
                 return  # stale/missing → honest no-op
             grace = float(os.getenv("POSITION_TRUTH_GRACE_S", "20"))
-            now = _t.time()
+            now = time.time()
             open_trades = [t for t in self._tm.get_active_trades()
                            if getattr(t, "state", "") in ("PENDING", "FILLED")
                            and getattr(t, "mode", "shadow") in ("demo", "live", "SIM")]
@@ -199,7 +199,7 @@ class FillPoller:
                 try:
                     _ct = getattr(t, "created_at", None)
                     if _ct is not None:
-                        age = (_t.time() - _ct.timestamp())
+                        age = (time.time() - _ct.timestamp())
                 except Exception:
                     age = None
                 if age is None or age < grace:
@@ -425,10 +425,9 @@ class FillPoller:
         Flag-gated: SIERRA_RECONCILER_V1 (default OFF — Michael enables at restart).
         Fail-safe: errors never break the fill-poller loop.
         """
-        import time as _t
-        if _t.time() < getattr(self, "_reconcile_next", 0.0):
+        if time.time() < getattr(self, "_reconcile_next", 0.0):
             return
-        self._reconcile_next = _t.time() + 30.0
+        self._reconcile_next = time.time() + 30.0
         if not os.getenv("SIERRA_RECONCILER_V1", "0").lower() in ("1", "true", "yes"):
             return
         if self._tm is None:
