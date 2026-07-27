@@ -76,8 +76,18 @@ def reconcile_positions(
     tm_in_position: Optional[bool] = None,
     last_result_status: Optional[str] = None,
     last_result_age_s: Optional[float] = None,
+    sierra_position_qty: Optional[int] = None,
 ) -> ReconcileVerdict:
-    """Pure three-way reconcile. Returns a verdict; never raises."""
+    """Pure three-way reconcile. Returns a verdict; never raises.
+
+    `sierra_position_qty` (2026-07-27) is Sierra's OWN net position — the
+    hardest available truth. When it is a fresh 0 the account is FLAT, and a
+    "naked stop" alarm is impossible by definition: there is nothing to protect.
+    Without it, stuck PENDING/FILLED rows in our own bookkeeping produced a
+    phantom belief and screamed NAKED_STOP_SUSPECT at Michael while Sierra was
+    flat (07-27 evening: an alert popping "with no reason"). None = unknown →
+    previous behaviour (no new assumptions).
+    """
     db_open = bool(db_open_ids)
     belief = slot_occupied or db_open or (tm_in_position is True)
 
@@ -105,6 +115,17 @@ def reconcile_positions(
     if not belief:
         v.verdict = AGREED_FLAT
         v.detail = "flat across slot, DB, and TradeManager"
+        return v
+
+    # Sierra flat overrides every internal belief: no position → no naked stop.
+    # (Bookkeeping drift must NEVER produce a safety alarm about a position that
+    # does not exist — it trains Michael to ignore real alarms.)
+    if sierra_position_qty is not None and int(sierra_position_qty) == 0:
+        v.verdict = AGREED_FLAT
+        v.detail = ("Sierra reports FLAT (position_qty=0) — internal belief "
+                    f"(slot={slot_occupied}, db_open={db_open_ids}, tm={tm_in_position}) "
+                    "is stale bookkeeping, not a live position")
+        v.naked_stop_suspect = False
         return v
 
     # In position by agreement → naked-stop check
@@ -180,10 +201,19 @@ def gather_and_reconcile(gateway=None) -> ReconcileVerdict:
                 tm_in_position = bool(pos)
 
     status, age = _read_last_result()
+    # 2026-07-27: feed Sierra's OWN net position (hardest truth, ≤10s fresh) so
+    # stale internal bookkeeping can never raise a naked-stop alarm on a flat
+    # account. Unknown/stale → None → previous behaviour.
+    _sq: Optional[int] = None
+    try:
+        from backend.v9.services.sierra_position_reconciler import _sierra_state_qty as _sq_read
+        _sq = _sq_read()
+    except Exception:
+        _sq = None
     v = reconcile_positions(
         slot_occupied=slot_occupied, db_open_ids=db_open_ids,
         tm_in_position=tm_in_position, last_result_status=status,
-        last_result_age_s=age,
+        last_result_age_s=age, sierra_position_qty=_sq,
     )
     # No-silent-failures: if a source errored, we must NOT report a confident
     # AGREED_FLAT — a hidden position could be exactly in the unread source.
