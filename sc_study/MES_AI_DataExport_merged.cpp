@@ -2072,7 +2072,7 @@ SCSFExport scsf_MES_AI_DataExport(SCStudyInterfaceRef sc)
                 (float)spos.PositionQuantity, (float)spos.AveragePrice,
                 (float)spos.OpenProfitLoss, (float)spos.DailyProfitLoss,
                 (float)spos.PriceHighDuringPosition, (float)spos.PriceLowDuringPosition,
-                sc.GetTradeAccountData().TradeAccount.GetChars(), sc.GetChartSymbol(sc.ChartNumber).GetChars(),
+                sc.SelectedTradeAccount.GetChars(), sc.Symbol.GetChars(),
                 (float)spos.DailyTotalQuantityFilled,
                 (float)sc.LastTradePrice,
                 n_ord, ordbuf);
